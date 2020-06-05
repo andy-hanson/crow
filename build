@@ -1,0 +1,9 @@
+#!/usr/bin/bash
+
+if (($EUID == 0))
+then
+	echo "Can't build as root"
+	exit 1
+fi
+
+dmd -debug -g -ofapp -betterC src/*.d src/*/*.d src/*/*/*.d -I=src/
