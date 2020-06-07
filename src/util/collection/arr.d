@@ -2,6 +2,7 @@ module util.collection.arr;
 
 @safe @nogc pure nothrow:
 
+import util.bools : Bool;
 import util.memory : myEmplace;
 
 struct Arr(T) {
@@ -10,13 +11,21 @@ struct Arr(T) {
 	immutable size_t size_;
 }
 
-@trusted ref const(T) at(T)(ref const Arr!T a, immutable size_t index) {
-	assert(index < a.size_);
-	return a.begin_[index];
+@system immutable(T*) begin(T)(ref immutable Arr!T a) {
+	return a.begin_;
 }
 
 immutable(size_t) size(T)(const Arr!T a) {
 	return a.size_;
+}
+
+immutable(Bool) empty(T)(ref const Arr!T a) {
+	return Bool(a.size == 0);
+}
+
+@trusted ref const(T) at(T)(ref const Arr!T a, immutable size_t index) {
+	assert(index < a.size_);
+	return a.begin_[index];
 }
 
 ref const(T) first(T)(ref const Arr!T a) {

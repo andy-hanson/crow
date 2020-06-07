@@ -5,11 +5,12 @@ module util.sym;
 import util.bitUtils : allBitsSet, bitsOverlap, getBitsShifted, singleBit;
 import util.bools : and, Bool, False, not, True;
 import util.collection.arr : at, first, last, range, size, tail;
-import util.collection.mutArr : MutArr;
-import util.collection.str : CStr, Str, strEqLiteral, strLiteral;
+import util.collection.mutArr : last, MutArr, push, range;
+import util.collection.str : CStr, Str, strEqLiteral, strLiteral, strToCStr;
 import util.comparison : Comparison;
 import util.types : u64;
 import util.verify : unreachable, verify;
+import util.writer : Writer;
 
 struct Sym {
 	// Short alpha identifier: packed representation, marked with shortAlphaIdentifierMarker
@@ -20,8 +21,56 @@ struct Sym {
 }
 
 struct AllSymbols(Alloc) {
+	this(Alloc al) {
+		alloc = al;
+		largeStrings = MutArr!(immutable CStr, Alloc)(alloc);
+	}
+
 	Alloc alloc;
-	MutArr!(immutable CStr) largeStrings;
+	MutArr!(immutable CStr, Alloc) largeStrings;
+}
+
+immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
+	immutable Sym res = str.size <= maxShortAlphaIdentifierSize
+		? Sym(packAlphaIdentifier(str))
+		: getSymFromLongStr(allSymbols, str, False);
+	assertSym(res, str);
+	return res;
+}
+
+immutable(Sym) getSymFromOperator(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
+	const Sym res = str.size <= maxShortOperatorSize
+		? Sym(packOperator(str))
+		: getSymFromLongStr(allSymbols, str, True);
+	assertSym(res, str);
+	return res;
+}
+
+void eachCharInSym(alias cb)(immutable Sym a) {
+	if (isShortAlpha(a))
+		unpackShortAlphaIdentifier!cb(a.value);
+	else if (isShortOperator(a))
+		unpackShortOperator!cb(a.value);
+	else
+		foreach (immutable char c; asLong(a).range)
+			cb(c);
+}
+
+immutable(size_t) symSize(immutable Sym a) {
+	size_t size = 0;
+	eachCharInSym!((immutable char) {
+		size++;
+	})(a);
+	return size;
+}
+
+immutable(Comparison) compareSym(immutable Sym a, immutable Sym b) {
+	// We just need to be consistent, so just use the value
+	return a.value < b.value
+			? Comparison.less
+		: a.value > b.value
+			? Comparison.greater
+			: Comparison.equal;
 }
 
 private:
@@ -158,7 +207,7 @@ immutable(Bool) isShortOperator(immutable Sym a) {
 	return allBitsSet(a.value, shortOperatorMarker);
 }
 
-immutable(Str) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
+immutable(CStr) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
 	foreach (immutable CStr s; allSymbols.largeStrings.range)
 		if (strEqLiteral(str, s))
 			return s;
@@ -182,28 +231,6 @@ void assertSym(const Sym sym, const Str str) {
 		assert(c == expected);
 	})(sym);
 	assert(idx == str.size);
-}
-
-immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
-	immutable Sym res = str.size <= maxShortAlphaIdentifierSize
-		? Sym(packAlphaIdentifier(str))
-		: getSymFromLongStr(allSymbols, str, False);
-	assertSym(res, str);
-	return res;
-}
-
-immutable(Sym) getSymFromOperator(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
-	const Sym res = str.size <= maxShortOperatorSize
-		? Sym(packOperator(str))
-		: getSymFromLongStr(allSymbols, str, True);
-	assertSym(res, str);
-	return res;
-}
-
-immutable(Comparison) compareSym(immutable Sym a, immutable Sym b) {
-	return a.value < b.value ? Comparison.less :
-		a.value > b.value ? Comparison.greater :
-		Comparison.equal;
 }
 
 immutable(Bool) symEq(immutable Sym a, immutable Sym b) {
@@ -243,10 +270,12 @@ immutable(Bool) symEqLongOperatorLiteral(immutable Sym a, immutable CStr lit) {
 }
 
 immutable(Str) strOfSym(Alloc)(ref Alloc alloc, immutable Sym a) {
-	return todo;
+	Writer!Alloc writer = Writer!Alloc(alloc);
+	writeSym(writer, a);
+	return writer.finish;
 }
 
-immutable(size_t) writeSymAndGetSize(Writer)(ref Writer writer, immutable Sym a) {
+immutable(size_t) writeSymAndGetSize(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
 	size_t size = 0;
 	eachCharInSym!((immutable char c) {
 		writer.writeChar(c);
@@ -255,16 +284,8 @@ immutable(size_t) writeSymAndGetSize(Writer)(ref Writer writer, immutable Sym a)
 	return size;
 }
 
-immutable void writeSym(Writer)(ref Writer writer, immutable Sym a) {
+immutable void writeSym(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
 	writeSymAndGetSize(writer, a);
-}
-
-immutable(size_t) symSize(immutable Sym a) {
-	size_t size = 0;
-	eachCharInSym!((immutable char) {
-		size++;
-	})(a);
-	return size;
 }
 
 immutable(CStr) symToCStr(Alloc)(ref Alloc alloc, immutable Sym a) {
@@ -273,15 +294,5 @@ immutable(CStr) symToCStr(Alloc)(ref Alloc alloc, immutable Sym a) {
 
 immutable(Bool) isSymOperator(immutable Sym a) {
 	return bitsOverlap(a.value, shortOrLongOperatorMarker);
-}
-
-void eachCharInSym(alias cb)(immutable Sym a) {
-	if (isShortAlpha(a))
-		unpackShortAlphaIdentifier!cb(a.value);
-	else if (isShortOperator(a))
-		unpackShortOperator!cb(a.value);
-	else
-		foreach (immutable char c; asLong(a).range)
-			cb(c);
 }
 

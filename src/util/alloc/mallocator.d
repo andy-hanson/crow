@@ -1,4 +1,4 @@
-module util.mallocator;
+module util.alloc.mallocator;
 
 @safe @nogc pure nothrow:
 
