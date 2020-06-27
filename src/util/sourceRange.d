@@ -2,10 +2,9 @@ module util.sourceRange;
 
 @safe @nogc pure nothrow:
 
-struct Pos {
-	uint start;
-	uint end;
-}
+import util.types : u32;
+
+alias Pos = u32;
 
 //TODO:MOVE
 struct SourceRange {

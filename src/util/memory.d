@@ -15,5 +15,5 @@ module util.memory;
 	else static if(Args.length == 1 && is(Args[0] == T))
 		initMemory!T(ptr, args);
 	else
-		initMemory!T(ptr, T(args));
+		initMemory!T(ptr, immutable T(args));
 }

@@ -3,6 +3,7 @@
 import core.stdc.stdio : printf;
 
 import frontend.ast : match, TypeAst;
+import frontend.frontendCompile : frontendCompile;
 
 import util.alloc.mallocator : Mallocator;
 import util.collection.str : strLiteral;

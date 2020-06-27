@@ -54,15 +54,15 @@ struct TypeAst {
 }
 
 @trusted T match(T)(
-	ref immutable TypeAst ast,
+	ref immutable TypeAst a,
 	scope T delegate(ref immutable TypeAst.TypeParam) @safe @nogc pure nothrow cbTypeParam,
 	scope T delegate(ref immutable TypeAst.InstStruct) @safe @nogc pure nothrow cbInstStruct
 ) {
-	final switch (ast.kind) {
+	final switch (a.kind) {
 		case TypeAst.Kind.typeParam:
-			return cbTypeParam(ast.typeParam);
+			return cbTypeParam(a.typeParam);
 		case TypeAst.Kind.instStruct:
-			return cbInstStruct(ast.instStruct);
+			return cbInstStruct(a.instStruct);
 	}
 }
 
@@ -96,11 +96,6 @@ struct CreateRecordMultiLineAst {
 
 	immutable Opt!TypeAst type;
 	immutable Arr!Line lines;
-}
-
-struct FunAsLambdaAst {
-	immutable Sym funName;
-	immutable Arr!TypeAst typeArgs;
 }
 
 struct IdentifierAst {
@@ -179,7 +174,6 @@ struct ExprAstKind {
 		createArr,
 		createRecord,
 		createRecordMultiLine,
-		funAsLambda,
 		identifier,
 		lambda,
 		let,
@@ -202,7 +196,7 @@ struct ExprAstKind {
 		immutable LetAst let;
 		immutable LiteralAst literal;
 		immutable LiteralInnerAst literalInner;
-		immutable MatchAst match;
+		immutable MatchAst match_;
 		immutable SeqAst seq;
 		immutable RecordFieldSetAst recordFieldSet;
 		immutable ThenAst then;
@@ -219,7 +213,7 @@ struct ExprAstKind {
 	@trusted this(immutable LetAst a) { kind = Kind.let; let = a; }
 	@trusted this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
 	@trusted this(immutable LiteralInnerAst a) { kind = Kind.literalInner; literalInner = a; }
-	@trusted this(immutable MatchAst a) { kind = Kind.match; match = a; }
+	@trusted this(immutable MatchAst a) { kind = Kind.match; match_ = a; }
 	@trusted this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
 	@trusted this(immutable RecordFieldSetAst a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 	@trusted this(immutable ThenAst a) { kind = Kind.then; then = a; }
@@ -241,55 +235,52 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 	return a.call;
 }
 
-@trusted T match(T)(
-	ref immutable ExprAstKind a,
-	scope T delegate(ref immutable CallAst) @safe @nogc pure nothrow cbCall,
-	scope T delegate(ref immutable CondAst) @safe @nogc pure nothrow cbCond,
-	scope T delegate(ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
-	scope T delegate(ref immutable CreateRecordAst) @safe @nogc pure nothrow cbCreateRecord,
-	scope T delegate(ref immutable CreateRecordMultiLineAst) @safe @nogc pure nothrow cbCreateRecordMultiLine,
-	scope T delegate(ref immutable FunAsLambdaAst) @safe @nogc pure nothrow cbFunAsLambda,
-	scope T delegate(ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
-	scope T delegate(ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
-	scope T delegate(ref immutable LetAst) @safe @nogc pure nothrow cbLet,
-	scope T delegate(ref immutable LiteralAst) @safe @nogc pure nothrow cbLiteral,
-	scope T delegate(ref immutable LiteralInnerAst) @safe @nogc pure nothrow cbLiteralInner,
-	scope T delegate(ref immutable MatchAst) @safe @nogc pure nothrow cbMatch,
-	scope T delegate(ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
-	scope T delegate(ref immutable RecordFieldSetAst) @safe @nogc pure nothrow cbRecordFieldSet,
-	scope T delegate(ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
+@trusted T matchAst(T)(
+	scope ref immutable ExprAstKind a,
+	scope immutable(T) delegate(scope ref immutable CallAst) @safe @nogc pure nothrow cbCall,
+	scope immutable(T) delegate(scope ref immutable CondAst) @safe @nogc pure nothrow cbCond,
+	scope immutable(T) delegate(scope ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
+	scope immutable(T) delegate(scope ref immutable CreateRecordAst) @safe @nogc pure nothrow cbCreateRecord,
+	scope immutable(T) delegate(scope ref immutable CreateRecordMultiLineAst) @safe @nogc pure nothrow cbCreateRecordMultiLine,
+	scope immutable(T) delegate(scope ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
+	scope immutable(T) delegate(scope ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
+	scope immutable(T) delegate(scope ref immutable LetAst) @safe @nogc pure nothrow cbLet,
+	scope immutable(T) delegate(scope ref immutable LiteralAst) @safe @nogc pure nothrow cbLiteral,
+	scope immutable(T) delegate(scope ref immutable LiteralInnerAst) @safe @nogc pure nothrow cbLiteralInner,
+	scope immutable(T) delegate(scope ref immutable MatchAst) @safe @nogc pure nothrow cbMatch,
+	scope immutable(T) delegate(scope ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
+	scope immutable(T) delegate(scope ref immutable RecordFieldSetAst) @safe @nogc pure nothrow cbRecordFieldSet,
+	scope immutable(T) delegate(scope ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
 ) {
 	final switch (a.kind) {
 		case ExprAstKind.Kind.call:
 			return cbCall(a.call);
 		case ExprAstKind.Kind.cond:
-			return cbCall(a.cond);
+			return cbCond(a.cond);
 		case ExprAstKind.Kind.createArr:
-			return cbCall(a.createArr);
+			return cbCreateArr(a.createArr);
 		case ExprAstKind.Kind.createRecord:
-			return cbCall(a.createRecord);
+			return cbCreateRecord(a.createRecord);
 		case ExprAstKind.Kind.createRecordMultiLine:
-			return cbCall(a.createRecordMultiLine);
-		case ExprAstKind.Kind.funAsLambda:
-			return cbCall(a.funAsLambda);
+			return cbCreateRecordMultiLine(a.createRecordMultiLine);
 		case ExprAstKind.Kind.identifier:
-			return cbCall(a.identifier);
+			return cbIdentifier(a.identifier);
 		case ExprAstKind.Kind.lambda:
-			return cbCall(a.lambda);
+			return cbLambda(a.lambda);
 		case ExprAstKind.Kind.let:
-			return cbCall(a.let);
+			return cbLet(a.let);
 		case ExprAstKind.Kind.literal:
-			return cbCall(a.literal);
+			return cbLiteral(a.literal);
 		case ExprAstKind.Kind.literalInner:
-			return cbCall(a.literalInner);
+			return cbLiteralInner(a.literalInner);
 		case ExprAstKind.Kind.match:
-			return cbCall(a.match);
+			return cbMatch(a.match_);
 		case ExprAstKind.Kind.seq:
-			return cbCall(a.seq);
+			return cbSeq(a.seq);
 		case ExprAstKind.Kind.recordFieldSet:
-			return cbCall(a.recordFieldSet);
+			return cbRecordFieldSet(a.recordFieldSet);
 		case ExprAstKind.Kind.then:
-			return cbCall(a.then);
+			return cbThen(a.then);
 	}
 }
 
@@ -413,6 +404,8 @@ T match(T)(
 }
 
 struct SpecBodyAst {
+	@safe @nogc pure nothrow:
+
 	struct Builtin {}
 
 	private:
@@ -453,10 +446,12 @@ struct SpecDeclAst {
 }
 
 struct FunBodyAst {
+	@safe @nogc pure nothrow:
+
 	struct Builtin {}
 	struct Extern {
-		immutable Bool isGlobal;
-		immutable Opt!Str mangledName;
+		Bool isGlobal;
+		Opt!Str mangledName;
 	}
 
 	private:
@@ -473,9 +468,9 @@ struct FunBodyAst {
 	}
 
 	public:
-	this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
-	@trusted this(immutable ExprAst a) { kind = Kind.exprAst; exprAst = a; }
+	this(immutable Builtin a) immutable { kind = Kind.builtin; builtin = a; }
+	@trusted this(immutable Extern a) immutable { kind = Kind.extern_; extern_ = a; }
+	@trusted this(immutable ExprAst a) immutable { kind = Kind.exprAst; exprAst = a; }
 }
 
 T match(T)(

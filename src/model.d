@@ -1,0 +1,1314 @@
+module model;
+
+@safe @nogc pure nothrow:
+
+import util.bools : and, Bool, False, or, True;
+import util.collection.arr : Arr, empty, emptyArr, first, only, range, size, sizeEq;
+import util.collection.arrUtil : exists;
+import util.collection.dict : Dict, MultiDict;
+import util.collection.mutArr : MutArr;
+import util.collection.str : Str;
+import util.comparison : compareEnum, compareOr, Comparison, ptrEquals;
+import util.late : Late, lateGet, lateIsSet, lateSet;
+import util.lineAndColumnGetter : LineAndColumnGetter;
+import util.opt : none, Opt, some;
+import util.path : AbsolutePath, addManyChildren, baseName, comparePath, PathAndStorageKind, StorageKind;
+import util.ptr : Ptr;
+import util.sourceRange : SourceRange;
+import util.sym : compareSym, Sym;
+import util.util : todo;
+import util.writer : Writer;
+
+immutable(Comparison) comparePathAndStorageKind(immutable PathAndStorageKind a, immutable PathAndStorageKind b) {
+	return compareOr(
+		compareEnum(a.storageKind, b.storageKind),
+		() => comparePath(a.path, b.path));
+}
+
+immutable(Bool) pathAndStorageKindEq(immutable PathAndStorageKind a, immutable PathAndStorageKind b) {
+	return Bool(comparePathAndStorageKind(a, b) == Comparison.equal);
+}
+
+struct AbsolutePathsGetter {
+	immutable AbsolutePath globalPath;
+	immutable AbsolutePath localPath;
+
+	immutable(AbsolutePath) getBasePath(immutable StorageKind sk) {
+		final switch (sk) {
+			case StorageKind.global:
+				return globalPath;
+			case StorageKind.local:
+				return localPath;
+		}
+	}
+
+	immutable(Path) getAbsolutePath(Alloc)(ref Alloc alloc, immutable PathAndStorageKind p) {
+		return getBasePath(p.storageKind).addManyChildren(p.path);
+	}
+}
+
+alias LineAndColumnGetters = immutable Dict!(PathAndStorageKind, LineAndColumnGetter, comparePathAndStorageKind);
+
+enum Purity {
+	data,
+	sendable,
+	mut,
+}
+
+immutable(Bool) isDataOrSendalbe(immutable Purity a) {
+	return Bool(a != Purity.mut);
+}
+
+immutable(Bool) isPurityWorse(immutable Purity a, immutable Purity b) {
+	return Bool(a > b);
+}
+
+immutable(Purity) worsePurity(immutable Purity a, immutable Purity b) {
+	return isPurityWorse(a, b) ? a : b;
+}
+
+struct TypeParam {
+	immutable SourceRange range;
+	immutable Sym name;
+	immutable size_t index;
+}
+
+struct Type {
+	@safe @nogc pure nothrow:
+	struct Bogus {}
+	enum Kind {
+		bogus,
+		typeParam,
+		structInst,
+	}
+
+	private:
+	immutable Kind kind;
+	union {
+		immutable Bogus bogus;
+		immutable Ptr!TypeParam typeParam;
+		immutable Ptr!StructInst structInst;
+	}
+
+	public:
+	immutable this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
+	@trusted immutable this(immutable Ptr!TypeParam a) { kind = Kind.typeParam; typeParam = a; }
+	@trusted immutable this(immutable Ptr!StructInst a) { kind = Kind.structInst; structInst = a; }
+}
+
+@trusted T match(T)(
+	ref immutable Type a,
+	scope T delegate(ref immutable Type.Bogus) @safe @nogc pure nothrow cbBogus,
+	scope T delegate(immutable Ptr!TypeParam) @safe @nogc pure nothrow cbTypeParam,
+	scope T delegate(immutable Ptr!StructInst) @safe @nogc pure nothrow cbStructInst,
+) {
+	final switch (a.kind) {
+		case Type.Kind.bogus:
+			return cbBogus(a.bogus);
+		case Type.Kind.typeParam:
+			return cbTypeParam(a.typeParam);
+		case Type.Kind.structInst:
+			return cbStructInst(a.structInst);
+	}
+}
+
+immutable(Bool) isBogus(ref immutable Type a) {
+	return Bool(a.kind == Type.Kind.bogus);
+}
+immutable(Bool) isTypeParam(ref immutable Type a) {
+	return Bool(a.kind == Type.Kind.typeParam);
+}
+@trusted immutable(Ptr!TypeParam) asTypeParam(ref immutable Type a) {
+	assert(a.isTypeParam);
+	return a.typeParam;
+}
+immutable(Bool) isStructInst(ref immutable Type a) {
+	return Bool(a.kind == Type.Kind.structInst);
+}
+@trusted immutable(Ptr!StructInst) asStructInst(ref immutable Type a) {
+	assert(a.isStructInst);
+	return a.structInst;
+}
+
+immutable(Bool) containsUnresolvedTypeParams(ref immutable Type a) {
+	return a.match!(immutable Bool)(
+		(ref immutable Type.Bogus) =>
+			True,
+		(immutable Ptr!TypeParam) =>
+			True,
+		(immutable Ptr!StructInst i) =>
+			i.typeArgs.exists((ref immutable Type t) =>
+				t.containsUnresolvedTypeParams),
+	);
+}
+
+immutable(Purity) bestCasePurity(ref immutable Type a) {
+	return a.match!(immutable Purity)(
+		(ref immutable Type.Bogus) => Purity.data,
+		(immutable Ptr!TypeParam) => Purity.data,
+		(immutable Ptr!StructInst i) => i.bestCasePurity,
+	);
+}
+
+immutable(Purity) worstCasePurity(ref immutable Type a) {
+	return a.match!(immutable Purity)(
+		(ref immutable Type.Bogus) => Purity.data,
+		(immutable Ptr!TypeParam) => Purity.mut,
+		(immutable Ptr!StructInst i) => i.worstCasePurity,
+	);
+}
+
+//TODO:MOVE?
+immutable(Bool) typeEquals(immutable Type a, immutable Type b) {
+	return a.match(
+		(ref immutable Type.Bogus) => b.isBogus,
+		(immutable Ptr!TypeParam p) => and!(() => b.isTypeParam, () => p.ptrEquals(b.asTypeParam)),
+		(immutable Ptr!StructInst i) => and!(() => b.isStructInst, () => i.ptrEquals(b.asStructInst))
+	);
+}
+
+struct Param {
+	immutable SourceRange range;
+	immutable Sym name;
+	immutable Type type;
+	immutable size_t index;
+}
+
+immutable(Param) withType(ref immutable Param a, ref immutable Type t) {
+	return Param(a.range, a.name, t, a.index);
+}
+
+struct Sig {
+	immutable SourceRange range;
+	immutable Sym name;
+	immutable Type returnType;
+	immutable Arr!Param params;
+}
+
+immutable(size_t) arity(ref immutable Sig a) {
+	return a.params.size;
+}
+
+struct RecordField {
+	immutable SourceRange range;
+	immutable Bool isMutable;
+	immutable Sym name;
+	immutable Type type;
+	immutable size_t index;
+}
+
+immutable(RecordField) withType(ref immutable RecordField a, ref immutable Type t) {
+	return RecordField(a.range, a.isMutable, a.name, t, a.index);
+}
+
+enum ForcedByValOrRef {
+	byVal,
+	byRef,
+}
+
+struct StructBody {
+	struct Bogus {}
+	struct Builtin {}
+	struct Record {
+		immutable Opt!ForcedByValOrRef forcedByValOrRef;
+		immutable Arr!RecordField fields;
+	}
+	struct Union {
+		immutable Arr!(Ptr!StructInst) members;
+	}
+
+	private:
+	enum Kind {
+		bogus,
+		builtin,
+		record,
+		union_,
+	}
+	immutable Kind kind;
+	union {
+		immutable Bogus bogus;
+		immutable Builtin builtin;
+		immutable Record record;
+		immutable Union union_;
+	}
+
+	public:
+	this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
+	this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	@trusted this(immutable Record a) { kind = Kind.record; record = a; }
+	@trusted this(immutable Union a) { kind = Kind.union_; union_ = a;}
+}
+
+immutable(Bool) isBogus(ref immutable StructBody a) {
+	return Bool(a.kind == StructBody.Kind.bogus);
+}
+immutable(Bool) isBuiltin(ref immutable StructBody a) {
+	return Bool(a.kind == StructBody.Kind.builtin);
+}
+immutable(Bool) isRecord(ref immutable StructBody a) {
+	return Bool(a.kind == StructBody.Kind.record);
+}
+@trusted ref immutable(StructBody.Record) asRecord(return scope ref immutable StructBody a) {
+	assert(a.isRecord);
+	return a.record;
+}
+immutable(Bool) isUnion(ref immutable StructBody a) {
+	return Bool(a.kind == StructBody.Kind.union_);
+}
+@trusted ref immutable(StructBody.Union) asUnion(return scope ref immutable StructBody a) {
+	assert(a.isUnion);
+	return a.union_;
+}
+
+@trusted T match(T)(
+	ref immutable StructBody a,
+	scope T delegate(ref immutable StructBody.Bogus) @safe @nogc pure nothrow cbBogus,
+	scope T delegate(ref immutable StructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope T delegate(ref immutable StructBody.Record) @safe @nogc pure nothrow cbRecord,
+	scope T delegate(ref immutable StructBody.Union) @safe @nogc pure nothrow cbUnion,
+) {
+	final switch (a.kind) {
+		case StructBody.Kind.bogus:
+			return cbBogus(a.bogus);
+		case StructBody.Kind.builtin:
+			return cbBuiltin(a.builtin);
+		case StructBody.Kind.record:
+			return cbRecord(a.record);
+		case StructBody.Kind.union_:
+			return cbUnion(a.union_);
+	}
+}
+
+struct StructAlias {
+	immutable SourceRange range;
+	immutable Bool isPublic;
+	immutable Sym name;
+	immutable Arr!TypeParam typeParams;
+
+	private:
+	// This will be none if the alias target is not found
+	Late!(immutable Opt!(Ptr!StructInst)) target_;
+
+	public:
+	this(immutable SourceRange r, immutable Bool p, immutable Sym n, immutable Arr!TypeParam tp) {
+		range = r;
+		isPublic = p;
+		name = n;
+		typeParams = tp;
+	}
+}
+
+immutable(Opt!(Ptr!StructInst)) target(ref immutable StructAlias a) {
+	return a.target_.lateGet;
+}
+void setTarget(ref StructAlias a, immutable Opt!(Ptr!StructInst) value) {
+	a.target_.lateSet(value);
+}
+
+struct StructDecl {
+	immutable SourceRange range;
+	immutable Bool isPublic;
+	immutable Sym name;
+	immutable Arr!TypeParam typeParams;
+	// Note: purity on the decl does not take type args into account
+	immutable Purity purity;
+	immutable Bool forceSendable;
+	MutArr!(immutable Ptr!StructInst) insts;
+
+	private:
+	Late!(immutable StructBody) _body_;
+
+	public:
+	this(
+		immutable SourceRange r,
+		immutable Bool isp,
+		immutable Sym n,
+		immutable Arr!TypeParam tps,
+		immutable Purity p,
+		immutable Bool fs
+	) {
+		range = r;
+		isPublic = isp;
+		name = n;
+		typeParams = tps;
+		purity = p;
+		forceSendable = fs;
+	}
+}
+
+immutable(Bool) bodyIsSet(ref const StructDecl a) {
+	return a._body_.lateIsSet;
+}
+
+ref immutable(StructBody) body_(return scope ref immutable StructDecl a) {
+	return a._body_.lateGet;
+}
+
+void setBody(ref StructDecl a, immutable StructBody value) {
+	lateSet(a._body_, value);
+}
+
+struct StructInst {
+	immutable Ptr!StructDecl decl;
+	immutable Arr!Type typeArgs;
+	immutable Purity bestCasePurity;
+	immutable Purity worstCasePurity;
+
+	private:
+	// Like decl.body but hsa type args filled in.
+	Late!(immutable StructBody) _body_;
+
+	this(immutable Ptr!StructDecl d, immutable Arr!Type ta, immutable Purity bp, immutable Purity wp) {
+		decl = d;
+		typeArgs = ta;
+		bestCasePurity = bp;
+		worstCasePurity = wp;
+	}
+}
+
+ref immutable(StructBody) body_(return scope ref immutable StructInst a) {
+	return a._body_.lateGet;
+}
+
+void setBody(ref StructInst a, immutable StructBody value) {
+	a._body_.lateSet(value);
+}
+
+struct SpecBody {
+	struct Builtin {
+		enum Kind {
+			data,
+			send,
+		}
+		immutable Kind kind;
+	}
+
+	private:
+	enum Kind {
+		builtin,
+		sigs,
+	}
+	immutable Kind kind;
+	union {
+		immutable Builtin builtin;
+		immutable Arr!Sig sigs;
+	}
+
+	public:
+	this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	@trusted this(immutable Arr!Sig a) { kind = Kind.sigs; sigs = a; }
+}
+
+@trusted T match(T)(
+	ref immutable SpecBody a,
+	scope T delegate(ref immutable SpecBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope T delegate(ref immutable Arr!Sig) @safe @nogc pure nothrow cbSigs,
+) {
+	final switch (a.kind) {
+		case SpecBody.Kind.builtin:
+			return cbBuiltin(a.builtin);
+		case SpecBody.Kind.sigs:
+			return cbSigs(a.sigs);
+	}
+}
+
+immutable(size_t) nSigs(ref immutable SpecBody a) {
+	return a.match!(immutable size_t)(
+		(ref immutable SpecBody.Builtin) => immutable size_t(0),
+		(ref immutable Arr!Sig sigs) => sigs.size,
+	);
+}
+
+struct SpecDecl {
+	immutable SourceRange range;
+	immutable Bool isPublic;
+	immutable Sym name;
+	immutable Arr!(immutable TypeParam) typeParams;
+	immutable SpecBody body_;
+	MutArr!(immutable Ptr!SpecInst) insts;
+}
+
+struct SpecInst {
+	immutable Ptr!SpecDecl decl;
+	immutable Arr!Type typeArgs;
+	immutable SpecBody body_;
+}
+
+immutable(Sym) name(ref immutable SpecInst a) {
+	return a.decl.name;
+}
+
+struct FunBody {
+	struct Builtin {}
+	struct Extern {
+		immutable Bool isGlobal;
+		immutable Opt!Str mangledName;
+	}
+
+	private:
+	enum Kind {
+		builtin,
+		extern_,
+		expr,
+	}
+	immutable Kind kind;
+	union {
+		immutable Builtin builtin;
+		immutable Extern extern_;
+		immutable Ptr!Expr expr;
+	}
+
+	public:
+	this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	@trusted this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
+	@trusted this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
+}
+
+immutable(Bool) isBuiltin(ref immutable FunBody a) {
+	return Bool(a.kind == FunBody.Kind.builtin);
+}
+
+immutable(Bool) isExtern(ref immutable FunBody a) {
+	return Bool(a.kind == FunBody.Kind.extern_);
+}
+
+immutable(Bool) isExpr(ref immutable FunBody a) {
+	return Bool(a.kind == FunBody.Kind.expr);
+}
+
+@trusted immutable(FunBody.Extern) asExtern(ref immutable FunBody a) {
+	assert(a.isExtern);
+	return a.extern_;
+}
+
+@trusted T match(T)(
+	ref immutable FunBody a,
+	scope T delegate(ref immutable FunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope T delegate(ref immutable FunBody.Extern) @safe @nogc pure nothrow cbExtern,
+	scope T delegate(immutable Ptr!Expr) @safe @nogc pure nothrow cbExpr,
+) {
+	final switch (a.kind) {
+		case FunBody.Kind.builtin:
+			return cbBuiltin(a.builtin);
+		case FunBody.Kind.extern_:
+			return cbExtern(a.extern_);
+		case FunBody.Kind.expr:
+			return cbExpr(a.expr);
+	}
+}
+
+struct FunFlags {
+	immutable Bool noCtx;
+	immutable Bool summon;
+	immutable Bool unsafe;
+	immutable Bool trusted;
+}
+
+immutable(FunFlags) funFlagsNone() {
+	return FunFlags(False, False, False, False);
+}
+
+struct FunDecl {
+	immutable Bool isPublic;
+	immutable FunFlags flags;
+	immutable Sig sig;
+	immutable Arr!TypeParam typeParams;
+	immutable Arr!(Ptr!SpecInst) specs;
+	private:
+	Late!(immutable FunBody) _body_;
+	Late!(immutable Ptr!Module) containingModule_;
+	MutArr!(immutable Ptr!FunInst) insts;
+}
+
+ref immutable(FunBody) body_(return scope ref immutable FunDecl a) {
+	return a._body_.lateGet;
+}
+void setBody(ref FunDecl a, immutable FunBody b) {
+	return a._body_.lateSet(b);
+}
+
+immutable(Ptr!Module) containingModule(ref immutable FunDecl a) {
+	return a.containingModule_.lateGet;
+}
+void setContainingModule(ref FunDecl a, immutable Ptr!Module m) {
+	a.containingModule_.lateSet(m);
+}
+
+ref immutable(SourceRange) range(return scope ref immutable FunDecl a) {
+	return a.sig.range;
+}
+
+immutable(Bool) isBuiltin(ref immutable FunDecl a) {
+	return a.body_.isBuiltin;
+}
+immutable(Bool) isExtern(ref immutable FunDecl a) {
+	return a.body_.isExtern;
+}
+
+immutable(Bool) noCtx(ref immutable FunDecl a) {
+	return a.flags.noCtx;
+}
+
+immutable(Sym) name(ref immutable FunDecl a) {
+	return a.sig.name;
+}
+
+ref immutable(Type) returnType(return scope ref immutable FunDecl a) {
+	return a.sig.returnType;
+}
+
+ref immutable(Arr!Param) params(return scope ref immutable FunDecl a) {
+	return a.sig.params;
+}
+
+immutable(size_t) nSpecImpls(ref immutable FunDecl a) {
+	size_t n = 0;
+	foreach (immutable Ptr!SpecInst s; a.specs.range)
+		n += s.body_.nSigs;
+	return n;
+}
+
+immutable(Bool) isTemplate(ref immutable FunDecl a) {
+	return or(a.typeParams.empty, a.specs.empty);
+}
+
+immutable(Bool) isSummon(ref immutable FunDecl a) {
+	return a.flags.summon;
+}
+
+immutable(size_t) arity(ref immutable FunDecl a) {
+	return a.sig.arity;
+}
+
+immutable(size_t) typeArity(ref immutable FunDecl a) {
+	return a.typeParams.size;
+}
+
+struct FunInst {
+	immutable Ptr!FunDecl decl;
+	immutable Arr!Type typeArgs;
+	immutable Arr!Called specImpls;
+	immutable Sig sig;
+
+	this(immutable Ptr!FunDecl d, immutable Arr!Type ta, immutable Arr!Called si, immutable Sig s) {
+		decl = d;
+		typeArgs = ta;
+		specImpls = si;
+		sig = s;
+		assert(typeArgs.sizeEq(decl.typeParams));
+		assert(specImpls.size == decl.nSpecImpls);
+	}
+}
+
+immutable(Sym) name(ref immutable FunInst a) {
+	return a.sig.name;
+}
+
+ref immutable(Type) returnType(return scope ref immutable FunInst a) {
+	return a.sig.returnType;
+}
+
+ref immutable(Arr!Param) params(return scope ref immutable FunInst a) {
+	return a.sig.params;
+}
+
+immutable(Bool) noCtx(ref immutable FunInst a) {
+	return a.decl.noCtx;
+}
+
+immutable(size_t) arity(ref immutable FunInst a) {
+	return a.decl.arity;
+}
+
+struct SpecSig {
+	immutable Ptr!SpecInst specInst;
+	immutable Ptr!Sig sig;
+	immutable size_t indexOverAllSpecUses;
+}
+
+immutable(Sym) name(ref immutable SpecSig a) {
+	return a.sig.name;
+}
+
+// Like 'Called', but we haven't fully instantiated yet. (This is used for Candidate when checking a call expr.)
+struct CalledDecl {
+	private:
+	enum Kind {
+		funDecl,
+		specSig,
+	}
+	immutable Kind kind;
+	union {
+		immutable Ptr!FunDecl funDecl;
+		immutable SpecSig specSig;
+	}
+
+	public:
+	@trusted this(immutable Ptr!FunDecl a) { kind = Kind.funDecl; funDecl = a; }
+	@trusted this(immutable SpecSig a) { kind = Kind.specSig; specSig = a; }
+}
+
+@trusted T match(T)(
+	ref immutable CalledDecl a,
+	scope T delegate(immutable Ptr!FunDecl) @safe @nogc pure nothrow cbFunDecl,
+	scope T delegate(ref immutable SpecSig) @safe @nogc pure nothrow cbSpecSig,
+) {
+	final switch (a.kind) {
+		case CalledDecl.Kind.funDecl:
+			return cbFunDecl(a.funDecl);
+		case CalledDecl.Kind.specSig:
+			return cbSpecSig(a.specSig);
+	}
+}
+
+@trusted ref immutable(Sig) sig(return scope ref immutable CalledDecl a) {
+	final switch (a.kind) {
+		case CalledDecl.Kind.funDecl:
+			return a.funDecl.sig;
+		case CalledDecl.Kind.specSig:
+			return a.specSig.sig.deref;
+	}
+	//TODO: match can't return ref?
+	//return a.match(
+	//	(immutable Ptr!FunDecl f) => f.sig,
+	//	(ref immutable SpecSig s) => s.sig.deref,
+	//);
+}
+
+immutable(Sym) name(ref immutable CalledDecl a) {
+	return a.sig.name;
+}
+
+ref immutable(Type) returnType(return scope ref immutable CalledDecl a) {
+	return a.sig.returnType;
+}
+
+ref immutable(Arr!Param) params(return scope ref immutable CalledDecl a) {
+	return a.sig.params;
+}
+
+immutable(Arr!TypeParam) typeParams(return scope ref immutable CalledDecl a) {
+	return a.match(
+		(immutable Ptr!FunDecl f) => f.typeParams,
+		(ref immutable SpecSig) => emptyArr!TypeParam,
+	);
+}
+
+immutable(size_t) arity(ref immutable CalledDecl a) {
+	return a.typeParams.size;
+}
+
+immutable(size_t) nTypeParams(ref immutable CalledDecl a) {
+	return a.typeParams.size;
+}
+
+struct Called {
+	private:
+	enum Kind {
+		funInst,
+		specSig,
+	}
+	immutable Kind kind;
+	union {
+		immutable Ptr!FunInst funInst;
+		immutable SpecSig specSig;
+	}
+
+	public:
+	@trusted this(immutable Ptr!FunInst a) { kind = Kind.funInst; funInst = a; }
+	@trusted this(immutable SpecSig a) { kind = Kind.specSig; specSig = a; }
+}
+
+immutable(Bool) isFunInst(ref immutable Called a) {
+	return Bool(a.kind == Called.Kind.funInst);
+}
+
+immutable(Bool) isSpecSig(ref immutable Called a) {
+	return Bool(a.kind == Called.Kind.specSig);
+}
+
+@trusted immutable(Ptr!FunInst) asFunInst(ref immutable Called a) {
+	assert(a.isFunInst);
+	return a.funInst;
+}
+
+@trusted immutable(SpecSig) asSpecSig(ref immutable Called a) {
+	assert(a.isSpecSig);
+	return a.specSig;
+}
+
+@trusted T match(T)(
+	ref immutable Called a,
+	scope T delegate(immutable Ptr!FunInst) @safe @nogc pure nothrow cbFunInst,
+	scope T delegate(ref immutable SpecSig) @safe @nogc pure nothrow cbSpecSig,
+) {
+	final switch (a.kind) {
+		case Called.Kind.funInst:
+			return cbFunInst(a.funInst);
+		case Called.Kind.specSig:
+			return cbSpecSig(a.specSig);
+	}
+}
+
+@trusted ref immutable(Sig) sig(ref immutable Called a) {
+	final switch (a.kind) {
+		case Called.Kind.funInst:
+			return a.funInst.sig;
+		case Called.Kind.specSig:
+			return a.specSig.sig.deref;
+	}
+	//TODO: match can't return ref?
+	//return a.match(
+	//	(immutable Ptr!FunInst f) => f.sig,
+	//	(ref immutable SpecSig s) => s.sig.deref,
+	//);
+}
+
+immutable(Sym) name(ref immutable Called a) {
+	return a.match(
+		(immutable Ptr!FunInst f) => a.name,
+		(ref immutable SpecSig s) => a.name,
+	);
+}
+
+ref immutable(Type) returnType(ref immutable Called a) {
+	return a.sig.returnType;
+}
+
+ref immutable(Arr!Param) params(ref immutable Called a) {
+	return a.sig.params;
+}
+
+immutable(size_t) arity(ref immutable Called a) {
+	return a.sig.arity;
+}
+
+struct StructOrAlias {
+	private:
+	enum Kind {
+		alias_,
+		structDecl,
+	}
+	immutable Kind kind;
+	union {
+		immutable Ptr!StructAlias alias_;
+		immutable Ptr!StructDecl structDecl_;
+	}
+
+	public:
+	@trusted this(immutable Ptr!StructAlias a) { kind = Kind.alias_; alias_ = a; }
+	@trusted this(immutable Ptr!StructDecl a) { kind = Kind.structDecl; structDecl_ = a; }
+}
+
+immutable(Bool) isAlias(ref immutable StructOrAlias a) {
+	return Bool(a.kind == StructOrAlias.Kind.alias_);
+}
+
+immutable(Bool) isStructDecl(ref immutable StructOrAlias a) {
+	return Bool(a.kind == StructOrAlias.Kind.structDecl);
+}
+
+@trusted immutable(Ptr!StructAlias) asAlias(immutable StructOrAlias a) {
+	assert(a.isAlias);
+	return a.alias_;
+}
+
+@trusted immutable(Ptr!StructDecl) asStructDecl(immutable StructOrAlias a) {
+	assert(a.isStructDecl);
+	return a.structDecl_;
+}
+
+@trusted T match(T)(
+	ref immutable StructOrAlias a,
+	scope T delegate(immutable Ptr!StructAlias) @safe @nogc pure nothrow cbAlias,
+	scope T delegate(immutable Ptr!StructDecl) @safe @nogc pure nothrow cbStructDecl,
+) {
+	final switch (a.kind) {
+		case StructOrAlias.Kind.alias_:
+			return cbAlias(a.alias_);
+		case StructOrAlias.Kind.structDecl:
+			return cbStructDecl(a.structDecl_);
+	}
+}
+
+immutable(Arr!TypeParam) typeParams(ref immutable StructOrAlias a) {
+	return a.match(
+		(immutable Ptr!StructAlias al) => al.typeParams,
+		(immutable Ptr!StructDecl d) => d.typeParams,
+	);
+}
+
+immutable(SourceRange) range(ref immutable StructOrAlias a) {
+	return a.match(
+		(immutable Ptr!StructAlias al) => al.range,
+		(immutable Ptr!StructDecl d) => d.range,
+	);
+}
+
+immutable(Bool) isPublic(ref immutable StructOrAlias a) {
+	return a.match(
+		(immutable Ptr!StructAlias al) => al.isPublic,
+		(immutable Ptr!StructDecl d) => d.isPublic,
+	);
+}
+
+immutable(Sym) name(ref immutable StructOrAlias a) {
+	return a.match(
+		(immutable Ptr!StructAlias al) => al.name,
+		(immutable Ptr!StructDecl d) => d.name,
+	);
+}
+
+alias StructsAndAliasesMap = Dict!(Sym, StructOrAlias, compareSym);
+alias SpecsMap = Dict!(Sym, Ptr!SpecDecl, compareSym);
+alias FunsMap = MultiDict!(Sym, Ptr!FunDecl, compareSym);
+
+struct Module {
+	immutable PathAndStorageKind pathAndStorageKind;
+	immutable Arr!(Ptr!Module) imports;
+	immutable Arr!(Ptr!Module) exports;
+	immutable Arr!StructDecl structs;
+	immutable Arr!SpecDecl specs;
+	immutable Arr!FunDecl funs;
+	immutable StructsAndAliasesMap structsAndAliasesMap;
+	immutable SpecsMap specsMap;
+	immutable FunsMap funsMap;
+}
+
+immutable(Sym) name(ref immutable Module a) {
+	return a.pathAndStorageKind.path.baseName;
+}
+
+enum FunKind {
+	ptr,
+	plain,
+	mut,
+	ref_,
+}
+
+struct FunKindAndStructs {
+	immutable FunKind kind;
+	immutable Arr!(Ptr!StructDecl) structs;
+}
+
+struct CommonTypes {
+	immutable Ptr!StructInst bool_;
+	immutable Ptr!StructInst char_;
+	immutable Ptr!StructInst int32;
+	immutable Ptr!StructInst str;
+	immutable Ptr!StructInst void_;
+	immutable Ptr!StructInst anyPtr;
+	immutable Arr!(Ptr!StructDecl) optionSomeNone;
+	immutable Ptr!StructDecl byVal;
+	immutable Ptr!StructDecl arr;
+	immutable Ptr!StructDecl fut;
+	immutable Arr!(immutable FunKindAndStructs) funKindsAndStructs;
+}
+
+immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable Ptr!StructDecl s) {
+	//TODO: use arrUtils
+	foreach (immutable ref FunKindAndStructs fs; a.funKindsAndStructs.range)
+		foreach (immutable Ptr!StructDecl funStruct; fs.structs.range)
+			if (ptrEquals(s, funStruct))
+				return some(fs.kind);
+	return none!FunKind;
+}
+
+struct Program {
+	immutable Ptr!Module bootstrapModule;
+	immutable Ptr!Module runtimeModule;
+	immutable Ptr!Module runtimeMainModule;
+	immutable Ptr!Module mainModule;
+	// Includes 'include.nz'
+	immutable Arr!(Ptr!Module) allModules;
+	immutable CommonTypes commonTypes;
+	immutable Ptr!StructInst ctxStructInst;
+	immutable LineAndColumnGetters lineAndColumnGetters;
+}
+
+struct Local {
+	immutable SourceRange range;
+	immutable Sym name;
+	immutable Type type;
+}
+
+struct ClosureField {
+	immutable Sym name;
+	immutable Type type;
+	immutable Ptr!Expr expr;
+	immutable size_t index;
+}
+
+struct Expr {
+	@safe @nogc pure nothrow:
+	struct Bogus {}
+
+	struct Call {
+		immutable Called called;
+		immutable Arr!Expr args;
+	}
+
+	struct ClosureFieldRef {
+		immutable Ptr!ClosureField field;
+	}
+
+	struct Cond {
+		immutable Type type;
+		immutable Ptr!Expr cond;
+		immutable Ptr!Expr then;
+		immutable Ptr!Expr elze;
+	}
+
+	struct CreateArr {
+		immutable Ptr!StructInst arrType;
+		immutable Arr!Expr args;
+	}
+
+	struct CreateRecord {
+		immutable Ptr!StructInst structInst;
+		immutable Arr!Expr args;
+	}
+
+	struct ImplicitConvertToUnion {
+		immutable Ptr!StructInst unionType;
+		immutable size_t memberIndex;
+		immutable Ptr!Expr inner;
+	}
+
+	// type is the lambda's type (not the body's return type), e.g. a Fun1 or sendFun1 instance.
+	struct Lambda {
+		immutable Arr!Param params;
+		immutable Ptr!Expr body_;
+		immutable Arr!(Ptr!ClosureField) closure;
+		// This is the funN type;
+		immutable Ptr!StructInst type;
+		immutable FunKind kind;
+		// For FunKind.send this includes 'fut' wrapper
+		immutable Type returnType;
+	}
+
+	struct Let {
+		immutable Ptr!Local local;
+		immutable Ptr!Expr value;
+		immutable Ptr!Expr then;
+	}
+
+	struct LocalRef {
+		immutable Ptr!Local local;
+	}
+
+	struct Match {
+		struct Case {
+			immutable Opt!(Ptr!Local) local;
+			immutable Ptr!Expr then;
+		}
+
+		immutable Ptr!Expr matched;
+		immutable Ptr!StructInst matchedUNion;
+		immutable Arr!Case cases;
+		immutable Type type;
+	}
+
+	struct ParamRef {
+		immutable Ptr!Param param;
+	}
+
+	struct RecordFieldAccess {
+		immutable Ptr!Expr target;
+		immutable Ptr!StructInst targetType;
+		immutable Ptr!RecordField field; // This is the field from the StructInst, not the StructDecl
+	}
+
+	struct RecordFieldSet {
+		immutable Ptr!Expr target;
+		immutable Ptr!StructInst targetType;
+		immutable Ptr!RecordField field;
+		immutable Ptr!Expr value;
+
+		this(immutable Ptr!Expr t, immutable Ptr!StructInst tt, immutable Ptr!RecordField f, immutable Ptr!Expr v) {
+			target = t;
+			targetType = tt;
+			field = f;
+			value = v;
+			assert(field.isMutable);
+		}
+	}
+
+	struct Seq {
+		immutable(Ptr!Expr) first;
+		immutable(Ptr!Expr) then;
+	}
+
+	struct StringLiteral {
+		immutable Str literal;
+	}
+
+	private:
+	enum Kind {
+		bogus,
+		call,
+		closureFieldRef,
+		cond,
+		createArr,
+		createRecord,
+		implicitConvertToUnion,
+		lambda,
+		let,
+		localRef,
+		match,
+		paramRef,
+		recordFieldAccess,
+		recordFieldSet,
+		seq,
+		stringLiteral,
+	}
+
+	immutable SourceRange range_;
+	immutable Kind kind;
+	union {
+		immutable Bogus bogus;
+		immutable Call call;
+		immutable ClosureFieldRef closureFieldRef;
+		immutable Cond cond;
+		immutable CreateArr createArr;
+		immutable CreateRecord createRecord;
+		immutable ImplicitConvertToUnion implicitConvertToUnion;
+		immutable Lambda lambda;
+		immutable Let let;
+		immutable LocalRef localRef;
+		immutable Match match_;
+		immutable ParamRef paramRef;
+		immutable RecordFieldAccess recordFieldAccess;
+		immutable RecordFieldSet recordFieldSet;
+		immutable Seq seq;
+		immutable StringLiteral stringLiteral;
+	}
+
+	public:
+	this(immutable SourceRange r, immutable Bogus a) { range_ = r; kind = Kind.bogus; bogus = a; }
+	@trusted this(immutable SourceRange r, immutable Call a) { range_ = r; kind = Kind.call; call = a; }
+	@trusted this(immutable SourceRange r, immutable ClosureFieldRef a) { range_ = r; kind = Kind.closureFieldRef; closureFieldRef = a; }
+	@trusted this(immutable SourceRange r, immutable Cond a) { range_ = r; kind = Kind.cond; cond = a; }
+	@trusted this(immutable SourceRange r, immutable CreateArr a) { range_ = r; kind = Kind.createArr; createArr = a; }
+	@trusted this(immutable SourceRange r, immutable CreateRecord a) { range_ = r; kind = Kind.createRecord; createRecord = a; }
+	@trusted this(immutable SourceRange r, immutable ImplicitConvertToUnion a) { range_ = r; kind = Kind.implicitConvertToUnion; implicitConvertToUnion = a; }
+	@trusted this(immutable SourceRange r, immutable Lambda a) { range_ = r; kind = Kind.lambda; lambda = a; }
+	@trusted this(immutable SourceRange r, immutable Let a) { range_ = r; kind = Kind.let; let = a; }
+	@trusted this(immutable SourceRange r, immutable LocalRef a) { range_ = r; kind = Kind.localRef; localRef = a; }
+	@trusted this(immutable SourceRange r, immutable Match a) { range_ = r; kind = Kind.match; match_ = a; }
+	@trusted this(immutable SourceRange r, immutable ParamRef a) { range_ = r; kind = Kind.paramRef; paramRef = a; }
+	@trusted this(immutable SourceRange r, immutable RecordFieldAccess a) { range_ = r; kind = Kind.recordFieldAccess; recordFieldAccess = a; }
+	@trusted this(immutable SourceRange r, immutable RecordFieldSet a) { range_ = r; kind = Kind.recordFieldSet; recordFieldSet = a; }
+	@trusted this(immutable SourceRange r, immutable Seq a) { range_ = r; kind = Kind.seq; seq = a; }
+	@trusted this(immutable SourceRange r, immutable StringLiteral a) { range_ = r; kind = Kind.stringLiteral; stringLiteral = a; }
+}
+
+immutable(size_t) index(ref immutable Expr.ClosureFieldRef a) {
+	return a.field.index;
+}
+
+ref immutable(Type) elementType(ref immutable Expr.CreateArr a) {
+	return a.arrType.typeArgs.only;
+}
+
+// For FunKind.send this includes 'fut' wrapper
+
+ref immutable(Type) nonFutReturnType(ref immutable Expr.Lambda a) {
+	return a.type.typeArgs.first;
+}
+
+immutable(Sym) fieldName(ref immutable Expr.RecordFieldAccess a) {
+	return a.field.name;
+}
+
+ref immutable(SourceRange) range(ref immutable Expr a) {
+	return a.range;
+}
+
+@trusted T match(T)(
+	ref immutable Expr a,
+	scope T delegate(ref immutable Expr.Bogus) @safe @nogc pure nothrow cbBogus,
+	scope T delegate(ref immutable Expr.Call) @safe @nogc pure nothrow cbCall,
+	scope T delegate(ref immutable Expr.ClosureFieldRef) @safe @nogc pure nothrow cbClosureFieldRef,
+	scope T delegate(ref immutable Expr.Cond) @safe @nogc pure nothrow cbCond,
+	scope T delegate(ref immutable Expr.CreateArr) @safe @nogc pure nothrow cbCreateArr,
+	scope T delegate(ref immutable Expr.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
+	scope T delegate(ref immutable Expr.ImplicitConvertToUnion) @safe @nogc pure nothrow cbImplicitConvertToUnion,
+	scope T delegate(ref immutable Expr.Lambda) @safe @nogc pure nothrow cbLambda,
+	scope T delegate(ref immutable Expr.Let) @safe @nogc pure nothrow cbLet,
+	scope T delegate(ref immutable Expr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
+	scope T delegate(ref immutable Expr.Match) @safe @nogc pure nothrow cbMatch,
+	scope T delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
+	scope T delegate(ref immutable Expr.RecordFieldAccess) @safe @nogc pure nothrow cbRecordFieldAccess,
+	scope T delegate(ref immutable Expr.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
+	scope T delegate(ref immutable Expr.Seq) @safe @nogc pure nothrow cbSeq,
+	scope T delegate(ref immutable Expr.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
+) {
+	final switch (a.kind) {
+		case Expr.Kind.bogus:
+			return cbBogus(a.bogus);
+		case Expr.Kind.call:
+			return cbCall(a.call);
+		case Expr.Kind.closureFieldRef:
+			return cbClosureFieldRef(a.closureFieldRef);
+		case Expr.Kind.cond:
+			return cbCond(a.cond);
+		case Expr.Kind.createArr:
+			return cbCreateArr(a.createArr);
+		case Expr.Kind.createRecord:
+			return cbCreateRecord(a.createRecord);
+		case Expr.Kind.implicitConvertToUnion:
+			return cbImplicitConvertToUnion(a.implicitConvertToUnion);
+		case Expr.Kind.lambda:
+			return cbLambda(a.lambda);
+		case Expr.Kind.let:
+			return cbLet(a.let);
+		case Expr.Kind.localRef:
+			return cbLocalRef(a.localRef);
+		case Expr.Kind.match:
+			return cbMatch(a.match_);
+		case Expr.Kind.paramRef:
+			return cbParamRef(a.paramRef);
+		case Expr.Kind.recordFieldAccess:
+			return cbRecordFieldAccess(a.recordFieldAccess);
+		case Expr.Kind.recordFieldSet:
+			return cbRecordFieldSet(a.recordFieldSet);
+		case Expr.Kind.seq:
+			return cbSeq(a.seq);
+		case Expr.Kind.stringLiteral:
+			return cbStringLiteral(a.stringLiteral);
+	}
+}
+
+immutable(Bool) typeIsBogus(ref immutable Expr a) {
+	return a.match!(immutable Bool)(
+		(ref immutable Expr.Bogus) => True,
+		(ref immutable Expr.Call e) => e.called.returnType.isBogus,
+		(ref immutable Expr.ClosureFieldRef e) => e.field.type.isBogus,
+		(ref immutable Expr.Cond e) => e.type.isBogus,
+		(ref immutable Expr.CreateArr) => False,
+		(ref immutable Expr.CreateRecord) => False,
+		(ref immutable Expr.ImplicitConvertToUnion) => False,
+		(ref immutable Expr.Lambda) => False,
+		(ref immutable Expr.Let e) => e.then.typeIsBogus,
+		(ref immutable Expr.LocalRef e) => e.local.type.isBogus,
+		(ref immutable Expr.Match e) => e.type.isBogus,
+		(ref immutable Expr.ParamRef e) => e.param.type.isBogus,
+		(ref immutable Expr.RecordFieldAccess e) => e.field.type.isBogus,
+		(ref immutable Expr.RecordFieldSet e) => False,
+		(ref immutable Expr.Seq e) => e.then.typeIsBogus,
+		(ref immutable Expr.StringLiteral e) => False,
+	);
+}
+
+immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTypes) {
+	return a.match!(immutable Type)(
+		(ref immutable Expr.Bogus) => immutable Type(immutable Type.Bogus()),
+		(ref immutable Expr.Call e) => e.called.returnType,
+		(ref immutable Expr.ClosureFieldRef e) => e.field.type,
+		(ref immutable Expr.Cond) => todo!(immutable Type)("getType cond"),
+		(ref immutable Expr.CreateArr e) => immutable Type(e.arrType),
+		(ref immutable Expr.CreateRecord e) => immutable Type(e.structInst),
+		(ref immutable Expr.ImplicitConvertToUnion e) => immutable Type(e.unionType),
+		(ref immutable Expr.Lambda e) => immutable Type(e.type),
+		(ref immutable Expr.Let e) => e.then.getType(commonTypes),
+		(ref immutable Expr.LocalRef e) => e.local.type,
+		(ref immutable Expr.Match) => todo!(immutable Type)("getType match"),
+		(ref immutable Expr.ParamRef e) => e.param.type,
+		(ref immutable Expr.RecordFieldAccess e) => e.field.type,
+		(ref immutable Expr.RecordFieldSet e) => immutable Type(commonTypes.void_),
+		(ref immutable Expr.Seq e) => e.then.getType(commonTypes),
+		(ref immutable Expr.StringLiteral) => immutable Type(commonTypes.str),
+	);
+}
+
+void writeStructInst(Alloc)(ref Writer!Alloc writer, ref immutable StructInst s) {
+	writer.writeSym(s.decl.name);
+	if (!s.typeArgs.empty) {
+		Bool first = True;
+		foreach (ref immutable Type t; s.typeArgs) {
+			writer.writeChar(first ? '<' : ' ');
+			writer.writeType(t);
+			first = False;
+		}
+		writer.writeChar('>');
+	}
+}
+
+void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Type type) {
+	return type.match(
+		(ref immutable Type.Bogus) {
+			writer.writeStatic("<<bogus>>");
+		},
+		(immutable Ptr!TypeParam p) {
+			writer.writeChar(writer, '?');
+			writer.writeSym(p.name);
+		},
+		(immutable Ptr!StructInst s) {
+			writer.writeStructInst(s);
+		},
+	);
+}
+
+
+private immutable(Sexpr) structInstToSexpr(Alloc)(ref Alloc alloc, immutable Ptr!StructInst si) {
+	return Sexpr(SexprRecord(
+		shortSymAlphaLIteral("struct-inst"),
+		arrLiteral!Sexpr(
+			alloc,
+			Sexpr(si.decl.name),
+			arrToSexpr(alloc, si.typeArgs, (ref immutable Type t) =>
+				typeToSexpr(alloc, t))),
+	));
+}
+
+immutable(Sexpr) typeToSexpr(Alloc)(ref Alloc alloc, ref immutable Type t) {
+	return t.match(
+		(ref immutable Type.Bogus) => Sexpr(shortSymAlphaLiteral("bogus")),
+		(immutable Ptr!TypeParam p) => Sexpr(p.name),
+		(immutable Ptr!StructInst) => todo!(immutable Sexpr)("typeToSexpr"),
+	);
+}
+
+immutable(Sexpr) exprToSexpr(Alloc)(ref Alloc alloc, ref immutable Expr expr) {
+	return expr.match(
+		(ref immutable Expr.Bogus) => Sexpr(strLiteral("bogus")),
+		(ref immutable Expr.Call e) =>
+			Sexpr(SexprRecord(
+				shortSymAlphaLiteral("call"),
+				arrLiteral!Sexpr(
+					alloc,
+					calledToSexpr(alloc, e.called),
+					arrToSexpr(arena, e.args, (ref immutable Expr arg) => exprToSexpr(alloc, arg))
+				),
+			)),
+		(ref immutable Expr.ClosureFieldRef) => todo!(immutable Sexpr)("closureFieldRef"),
+		(ref immutable Expr.Cond) => todo!(immutable Sexpr)("cond"),
+		(ref immutable Expr.CreateArr) => todo!(immutable Sexpr)("createArr"),
+		(ref immutable Expr.CreateRecord e) =>
+			Sexpr(SexprRecord(
+				shortSymAlphaLiteral("record"),
+				arrLiteral!Sexpr(
+					alloc,
+					structInstToSexpr(alloc, e.structInst),
+					arrToSexpr(alloc, e.args, (ref immutable Expr arg) => exprToSexpr(alloc, arg))
+				),
+			)),
+		(ref immutable Expr.FunAsLambda) => todo!(immutable Sexpr)("funaslambda"),
+		(ref immutable Expr.ImplicitConvertToUnion) => todo!(immutable Sexpr)("implicitconverttounion"),
+		(ref immutable Expr.Lambda) => todo!(immutable Sexpr)("lambda"),
+		(ref immutable Expr.Let) => todo!(immutable Sexpr)("let"),
+		(ref immutable Expr.LocalRef) => todo!(immutable Sexpr)("localref"),
+		(ref immutable Expr.Match) => todo!(immutable Sexpr)("match"),
+		(ref immutable Expr.ParamRef) => todo!(immutable Sexpr)("paramref"),
+		(ref immutable Expr.RecordFieldAccess) => todo!(immutable Sexpr)("recordfieldaccess"),
+		(ref immutable Expr.RecordFieldSet) => todo!(immutable Sexpr)("recordfieldset"),
+		(ref immutable Expr.Seq) => todo!(immutable Sexpr)("seq"),
+		(ref immutable Expr.StringLiteral) => todo!(immutable Sexpr)("stringliteral"),
+	);
+}
+
+void writeExpr(Alloc)(ref Writer!Alloc writer, ref immutable Expr expr) {
+	StackAllocator tempAlloc;
+	writer.writeSexpr(exprToSexpr(tempAlloc, expr));
+}

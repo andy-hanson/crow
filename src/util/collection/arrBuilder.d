@@ -2,17 +2,18 @@ module util.collection.arrBuilder;
 
 @safe @nogc pure nothrow:
 
+import util.collection.arr : Arr;
 import util.collection.mutArr : moveToArr, MutArr, push;
 
-struct ArrBuilder(T, Alloc) {
-	private MutArr!(T, Alloc) data;
+struct ArrBuilder(T) {
+	private MutArr!T data;
 }
 
-void push(T, Alloc)(ref ArrBuilder!(T, Alloc) a, T t) {
-	a.data.push(t);
+void add(T, Alloc)(ref ArrBuilder!T a, ref Alloc alloc, immutable T value) {
+	a.data.push!(T, Alloc)(alloc, value);
 }
 
-Arr!T finish(T)(ref ArrBuilder!(T, Alloc) a) {
-	return data.moveToArr();
+immutable(Arr!T) finishArr(T, Alloc)(ref ArrBuilder!T a, ref Alloc alloc) {
+	return a.data.moveToArr(alloc);
 }
 

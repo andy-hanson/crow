@@ -9,19 +9,32 @@ struct Opt(T) {
 	static assert(__traits(isPOD, T)); // TODO: handling types with destructors
 
 	private:
-	immutable Bool has_;
+	this(BeNone) immutable {
+		has_ = False;
+	}
+	this(immutable T value) immutable {
+		has_ = True;
+		value_ = value;
+	}
+	this(inout T value) inout {
+		has_ = True;
+		value_ = value;
+	}
+	Bool has_;
 	T value_ = void;
 }
 
+private struct BeNone {}
+
 immutable(Opt!T) none(T)() {
-	return Opt!T(False);
+	return immutable Opt!T(BeNone());
 }
 
 immutable(Opt!T) some(T)(immutable T value) {
-	return immutable Opt!T(True, value);
+	return immutable Opt!T(value);
 }
 
-immutable(Bool) has(T)(immutable ref Opt!T a) {
+immutable(Bool) has(T)(const Opt!T a) {
 	return a.has_;
 }
 
@@ -32,19 +45,22 @@ ref immutable(T) force(T)(immutable ref Opt!T a) {
 
 immutable(Out) match(Out, T)(
 	immutable Opt!T a,
-	scope Out delegate(ref immutable T) @safe @nogc pure nothrow cbSome,
-	scope Out delegate() @safe @nogc pure nothrow cbNone,
+	scope immutable(Out) delegate(ref immutable T) @safe @nogc pure nothrow cbSome,
+	scope immutable(Out) delegate() @safe @nogc pure nothrow cbNone,
 ) {
-	return a.has ? cbSome(a.force) : cbNone();
+	if (a.has)
+		return cbSome(a.force);
+	else
+		return cbNone();
 }
 
-immutable(T) optOr(T)(immutable Opt!T a, scope T delegate() @safe @nogc pure nothrow cb) {
-	return a.match((immutable T t) => t, cb);
+immutable(T) optOr(T)(immutable Opt!T a, scope immutable(T) delegate() @safe @nogc pure nothrow cb) {
+	return a.match!(T, T)((ref immutable T t) => t, cb);
 }
 
 immutable(Opt!Out) mapOption(Out, T)(
 	immutable Opt!T a,
-	scope Out delegate(immutable T) @safe @nogc pure nothrow cb,
+	scope immutable(Out) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return a.has ? some!Out(cb(a.force)) :none!Out;
 }

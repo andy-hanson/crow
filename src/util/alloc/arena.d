@@ -1,53 +1,55 @@
-module util.arena;
+module util.alloc.arena;
 
 @safe @nogc pure nothrow:
 
+import util.util : todo;
+
 struct Arena(Allocator) {
 	this(Allocator a) {
-		allocator = a;
+		allocator_ = a;
 	}
 
 	private:
 
-	Allocator allocator;
-	const ubyte* begin;
-	ubyte* cur;
-	const ubyte* end;
+	Allocator allocator_;
+	ubyte* begin_;
+	ubyte* cur_;
+	ubyte* end_;
 
 	~this() {
-		if (begin != null)
-			allocator.free(begin, end - begin);
+		if (begin_ != null)
+			allocator_.free(begin_, end_ - begin_);
 	}
 
 
-	byte* allocate(immutable size_t nBytes) {
-		if (arena.begin == null) {
+	@trusted ubyte* allocate(immutable size_t nBytes) {
+		if (begin_ == null) {
 			immutable size_t size = ARENA_SIZE;
-			arena.begin = malloc(size);
-			assert(arena.begin != null);
-			arena.cur = arena.begin;
-			arena.end = arena.begin + size;
+			begin_ = allocator_.allocate(size);
+			assert(begin_ != null);
+			cur_ = begin_;
+			end_ = begin_ + size;
 			// Fill with 0xff for debugging
-			for (byte* b = arena.cur; b < arena.end; b++)
+			for (ubyte* b = cur_; b < end_; b++)
 				*b = 0xff;
 		}
 
-		assert(n_bytes < 999999);
+		assert(nBytes < 999999);
 
-		byte* res = arena.cur;
-		arena.cur = arena.cur + n_bytes;
+		ubyte* res = cur_;
+		cur_ += nBytes;
 
-		if (arena.cur > arena.end)
-			todo("Ran out of space!");
+		if (cur_ > end_)
+			todo!void("Ran out of space!");
 
 		// Since we filled with 0xff, should still be that way!
-		for (byte* b = res; b < arena.cur; b++)
+		for (ubyte* b = res; b < cur_; b++)
 			assert(*b == 0xff);
 
 		return res;
 	}
 
-	void free(byte* ptr, size_t _size) {
+	void free(ubyte*, size_t) {
 		// do nothing
 	}
 }

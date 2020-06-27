@@ -9,13 +9,13 @@ import util.verify : verify;
 struct Mallocator {
 	@safe @nogc pure nothrow:
 
-	@trusted byte* allocate(immutable size_t size) {
-		byte* res = cast(byte*) pureMalloc(size);
+	@trusted ubyte* allocate(immutable size_t size) {
+		ubyte* res = cast(ubyte*) pureMalloc(size);
 		assert(res != null);
 		return res;
 	}
 
-	@trusted void free(byte* ptr, immutable size_t _size) {
+	@trusted void free(ubyte* ptr, immutable size_t) {
 		pureFree(cast(void*) ptr);
 	}
 }

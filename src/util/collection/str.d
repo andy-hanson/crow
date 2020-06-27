@@ -4,21 +4,27 @@ module util.collection.str;
 
 import core.stdc.string : memcpy;
 
-import util.bools : and, Bool;
-import util.collection.arr : Arr, at, begin, empty, first, size, tail;
+import util.bools : and, Bool, False, True;
+import util.collection.arr : Arr, at, begin, empty, emptyArr, first, size, tail, rtail;
 import util.collection.mutArr : MutArr;
 import util.comparison : compareChar, compareOr, Comparison;
 import util.util : todo;
 
-alias CStr = immutable char*;
+alias CStr = immutable(char)*;
 alias Str = Arr!char;
-alias MutStr(Alloc) = MutArr!(char, Alloc);
+alias MutStr = MutArr!char;
+
+immutable Str emptyStr = emptyArr!char;
 
 @trusted private immutable(CStr) end(immutable CStr c) {
 	return *c == '\0' ? c : end(c + 1);
 }
 
-immutable(Str) strLiteral(immutable CStr c) {
+@trusted immutable(Str) strLiteral(immutable string s) {
+	return immutable Str(s.ptr, s.length);
+}
+
+@trusted immutable(Str) strOfCStr(immutable CStr c) {
 	return immutable Str(c, end(c) - c);
 }
 
@@ -36,7 +42,7 @@ struct NulTerminatedStr {
 	char* res = cast(char*) alloc.allocate(s.size + 1);
 	memcpy(res, s.begin, s.size);
 	res[s.size] = '\0';
-	return NulTerminatedStr(immutable Str(cast(immutable char*) res, s.size + 1));
+	return NulTerminatedStr(immutable Str(cast(immutable) res, s.size + 1));
 }
 
 @trusted immutable(CStr) asCStr(immutable NulTerminatedStr s) {
@@ -47,13 +53,23 @@ immutable(CStr) strToCStr(Alloc)(ref Alloc alloc, immutable Str s) {
 	return strToNulTerminatedStr(alloc, s).asCStr;
 }
 
-@trusted immutable(Bool) strEqLiteral(immutable Str a, immutable CStr b) {
+@trusted immutable(Bool) strEqCStr(immutable Str a, immutable CStr b) {
 	return *b == '\0'
 		? Bool(a.size == 0)
 		: and!(
 			() => Bool(a.size != 0),
 			() => Bool(a.first == *b),
-			() => strEqLiteral(a.tail, b + 1));
+			() => strEqCStr(a.tail, b + 1));
+}
+
+@trusted immutable(Bool) strEqLiteral(immutable Str a, immutable string b) {
+	if (a.size == b.length) {
+		foreach (immutable size_t i; 0..a.size)
+			if (a.at(i) != b[i])
+				return False;
+		return True;
+	} else
+		return False;
 }
 
 //TODO:KILL?
@@ -68,4 +84,12 @@ immutable(Comparison) compareStr(immutable Str a, immutable Str b) {
 				compareChar(a.first, b.first),
 				() => compareStr(a.tail, b.tail));
 
+}
+
+immutable(Str) stripNulTerminator(immutable NulTerminatedStr a) {
+	return a.str.rtail;
+}
+
+immutable(Str) copyStr(Alloc)(ref Alloc alloc, immutable Str s) {
+	assert(0); //TODO
 }

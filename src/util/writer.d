@@ -4,7 +4,7 @@ module util.writer;
 
 import util.ptr : Ptr;
 import util.collection.arr : Arr, at, size;
-import util.collection.arrBuilder : ArrBuilder, finish;
+import util.collection.arrBuilder : ArrBuilder, finishArr;
 import util.collection.str : Str, strLiteral;
 
 struct Writer(Alloc) {
@@ -14,12 +14,12 @@ struct Writer(Alloc) {
 }
 
 Str finish(Alloc)(ref Writer!Alloc writer) {
-	return writer.res.finish;
+	return writer.res.finishArr;
 }
 
 CStr finishToCStr(Alloc)(ref Writer!Alloc writer) {
 	writer.res.push('\0');
-	return writer.res.finish.begin;
+	return writer.res.finishArr.begin;
 }
 
 //TODO:KILL
