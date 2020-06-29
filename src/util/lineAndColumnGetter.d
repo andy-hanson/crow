@@ -2,7 +2,8 @@ module util.lineAndColumnGetter;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr, at, size, slice;
+import util.collection.arr : Arr, at, size;
+import util.collection.arrUtil : slice;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : emptyStr, Str;
 import util.sourceRange : Pos;

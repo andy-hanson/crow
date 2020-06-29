@@ -1,6 +1,6 @@
 module frontend.frontendCompile;
 
-@safe @nogc pure nothrow:
+@safe @nogc nothrow: // not pure
 
 import diag : Diag, Diags, Diagnostic, Diagnostics, FilesInfo, PathAndStorageKindAndRange;
 
@@ -37,7 +37,18 @@ import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmp
 import util.opt : force, has, Opt, none, some;
 import util.path : baseName, copyPath, parent, Path, PathAndStorageKind, RelPath, resolvePath, rootPath, StorageKind;
 import util.ptr : Ptr;
-import util.result : asSuccess, fail, flatMapSuccess, isSuccess, joinResults, mapFailure, mapSuccess, match, Result, success;
+import util.result :
+	asSuccess,
+	fail,
+	flatMapSuccess,
+	isSuccess,
+	joinResults,
+	mapFailure,
+	mapSuccess,
+	match,
+	matchImpure,
+	Result,
+	success;
 import util.sourceRange : SourceRange;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
 
@@ -60,6 +71,148 @@ immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, SymAlloc)(
 
 private:
 
+enum ParseStatus {
+	started,
+	finished,
+}
+
+alias AllAsts = immutable Arr!PathAndAstAndResolvedImports;
+
+struct LcgsAndAllAsts {
+	immutable LineAndColumnGetters lineAndColumnGetters;
+	immutable Result!(AllAsts, Diags) allAsts;
+}
+
+LcgsAndAllAsts parseEverything(ModelAlloc, AstAlloc, SymAlloc)(
+	ref ModelAlloc modelAlloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	ref ReadOnlyStorages storages,
+	ref immutable PathAndStorageKind mainPath,
+	ref AstAlloc astAlloc,
+) {
+	LineAndColumnGettersBuilder lineAndColumnGetters;
+	immutable Result!(AllAsts, Diags) asts =
+		parseEverythingWorker(modelAlloc, astAlloc, allSymbols, mainPath, storages, lineAndColumnGetters);
+	immutable LineAndColumnGetters lc = lineAndColumnGetters.finishDictShouldBeNoConflict(modelAlloc);
+	return LcgsAndAllAsts(lc, asts);
+}
+
+// Starts at 'main' and recursively parses all imports too.
+// Result will be in import order -- asts at lower indices are imported by asts at higher indices.
+// So, don't have to worry about circularity when checking.
+immutable(Result!(AllAsts, Diags)) parseEverythingWorker(ModelAlloc, AstAlloc, SymAlloc)(
+	ref ModelAlloc modelAlloc,
+	ref AstAlloc astAlloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	immutable PathAndStorageKind mainPath,
+	ref ReadOnlyStorages storages,
+	ref LineAndColumnGettersBuilder lineAndColumnGetters,
+) {
+	ArrBuilder!PathAndAstAndResolvedImports res;
+	MutDict!(PathAndStorageKind, ParseStatus, comparePathAndStorageKind) statuses;
+	immutable Arr!PathAndStorageKind rootPaths = arrLiteral!PathAndStorageKind(
+		astAlloc,
+		// Ensure bootstrap.nz is parsed first
+		bootstrapPath(modelAlloc),
+		// Ensure std.nz is available
+		stdPath(modelAlloc),
+		runtimePath(modelAlloc),
+		runtimeMainPath(modelAlloc),
+		mainPath);
+	foreach (immutable PathAndStorageKind path; rootPaths.range)
+		if (!statuses.hasKey_mut(path)) {
+			immutable Opt!Diags err = parseRecur(
+				modelAlloc,
+				astAlloc,
+				allSymbols,
+				storages,
+				lineAndColumnGetters,
+				res,
+				statuses,
+				none!PathAndStorageKindAndRange,
+				path);
+			if (err.has)
+				return fail!(AllAsts, Diags)(err.force);
+		}
+	return success!(AllAsts, Diags)(res.finishArr(astAlloc));
+}
+
+immutable(Opt!NulTerminatedStr) getFile(Alloc)(
+	ref Alloc fileAlloc,
+	immutable PathAndStorageKind pk,
+	ref ReadOnlyStorages storages,
+) {
+	return storages.choose(pk.storageKind).tryReadFile(fileAlloc, pk.path, ".nz");
+}
+
+//TODO: Diags is an array, just use empty array instead of none?
+immutable(Opt!Diags) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
+	ref ModelAlloc modelAlloc,
+	ref AstAlloc astAlloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	ref ReadOnlyStorages storages,
+	ref LineAndColumnGettersBuilder lineAndColumnGetters,
+	ref ArrBuilder!PathAndAstAndResolvedImports res,
+	ref MutDict!(PathAndStorageKind, ParseStatus, comparePathAndStorageKind) statuses,
+	immutable Opt!PathAndStorageKindAndRange importedFrom,
+	immutable PathAndStorageKind path,
+) {
+	statuses.setInDict(astAlloc, path, ParseStatus.started);
+
+	immutable Opt!NulTerminatedStr opFileContent = getFile(astAlloc, path, storages);
+	immutable Result!(FileAst, Diags) parseResult =
+		parseSingle(modelAlloc, astAlloc, allSymbols, importedFrom, path, lineAndColumnGetters, opFileContent);
+	return parseResult.matchImpure(
+		(ref immutable FileAst ast) {
+			immutable Result!(ImportAndExportPaths, Diags) importsResult =
+				resolveImportsAndExports(modelAlloc, astAlloc, path, ast.imports, ast.exports);
+			return importsResult.matchImpure(
+				(ref immutable ImportAndExportPaths importsAndExports) {
+					// Ensure all imports are added before adding this
+					immutable Arr!ResolvedImport importsAndExportsArr =
+						cat(astAlloc, importsAndExports.imports, importsAndExports.exports);
+					foreach (ref immutable ResolvedImport import_; importsAndExportsArr.range) {
+						immutable Opt!ParseStatus status = statuses.getAt_mut(import_.resolvedPath);
+						if (status.has) {
+							final switch (status.force) {
+								case ParseStatus.started:
+									return some(arrLiteral!Diagnostic(modelAlloc,
+										Diagnostic(import_.importedFrom, Diag(Diag.CircularImport(path, import_.resolvedPath)))));
+								case ParseStatus.finished:
+									break;
+							}
+						} else {
+							immutable Opt!Diags err = parseRecur(
+								modelAlloc,
+								astAlloc,
+								allSymbols,
+								storages,
+								lineAndColumnGetters,
+								res,
+								statuses,
+								some(import_.importedFrom),
+								import_.resolvedPath);
+							if (err.has)
+								return err;
+						}
+					}
+					immutable PathAndAstAndResolvedImports pa = PathAndAstAndResolvedImports(
+						path,
+						ast,
+						stripRange(astAlloc, importsAndExports.imports));
+					res.add(astAlloc, pa);
+					statuses.setInDict(astAlloc, path, ParseStatus.finished);
+					return none!Diags;
+				},
+				(ref immutable Diags d) => some(d),
+			);
+		},
+		(ref immutable Diags d) => some(d),
+	);
+}
+
+pure:
+
 immutable(PathAndStorageKind) pathInInclude(Alloc)(ref Alloc alloc, immutable Sym name) {
 	return PathAndStorageKind(rootPath(alloc, name), StorageKind.global);
 }
@@ -78,14 +231,6 @@ immutable(PathAndStorageKind) runtimePath(Alloc)(ref Alloc alloc) {
 
 immutable(PathAndStorageKind) runtimeMainPath(Alloc)(ref Alloc alloc) {
 	return pathInInclude(alloc, shortSymAlphaLiteral("runtime-main"));
-}
-
-immutable(Opt!NulTerminatedStr) getFile(Alloc)(
-	ref Alloc fileAlloc,
-	immutable PathAndStorageKind pk,
-	ref ReadOnlyStorages storages,
-) {
-	return storages.choose(pk.storageKind).tryReadFile(fileAlloc, pk.path);
 }
 
 immutable(Diags) parseDiagnostics(Alloc)(
@@ -114,11 +259,10 @@ immutable(Result!(FileAst, Diags)) parseSingle(ModelAlloc, AstAlloc, SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	immutable Opt!PathAndStorageKindAndRange importedFrom,
 	immutable PathAndStorageKind where,
-	ref ReadOnlyStorages storages,
-	ref LineAndColumnGettersBuilder lineAndColumnGetters
+	ref LineAndColumnGettersBuilder lineAndColumnGetters,
+	immutable Opt!NulTerminatedStr opFileContent,
 ) {
 	// File content must go in astAlloc because we refer to strings without copying
-	immutable Opt!NulTerminatedStr opFileContent = getFile(astAlloc, where, storages);
 	if (opFileContent.has) {
 		immutable NulTerminatedStr text = opFileContent.force;
 		lineAndColumnGetters.addToDict(modelAlloc, where, lineAndColumnGetterForText(modelAlloc, text.stripNulTerminator));
@@ -209,138 +353,7 @@ immutable(PathAndAst) pathAndAst(ref immutable PathAndAstAndResolvedImports a) {
 }
 
 immutable(Arr!PathAndStorageKind) stripRange(Alloc)(ref Alloc alloc, immutable Arr!ResolvedImport a) {
-	return a.map(alloc, (ref immutable ResolvedImport i) => i.resolvedPath);
-}
-
-enum ParseStatus {
-	started,
-	finished,
-}
-
-//TODO: Diags is an array, just use empty array instead of none?
-immutable(Opt!Diags) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
-	ref ModelAlloc modelAlloc,
-	ref AstAlloc astAlloc,
-	ref AllSymbols!SymAlloc allSymbols,
-	ref ReadOnlyStorages storages,
-	ref LineAndColumnGettersBuilder lineAndColumnGetters,
-	ref ArrBuilder!PathAndAstAndResolvedImports res,
-	ref MutDict!(PathAndStorageKind, ParseStatus, comparePathAndStorageKind) statuses,
-	immutable Opt!PathAndStorageKindAndRange importedFrom,
-	immutable PathAndStorageKind path,
-) {
-	statuses.setInDict(astAlloc, path, ParseStatus.started);
-
-	immutable Result!(FileAst, Diags) parseResult =
-		parseSingle(modelAlloc, astAlloc, allSymbols, importedFrom, path, storages, lineAndColumnGetters);
-	return parseResult.match(
-		(ref immutable FileAst ast) {
-			immutable Result!(ImportAndExportPaths, Diags) importsResult =
-				resolveImportsAndExports(modelAlloc, astAlloc, path, ast.imports, ast.exports);
-			return importsResult.match(
-				(ref immutable ImportAndExportPaths importsAndExports) {
-					// Ensure all imports are added before adding this
-					immutable Arr!ResolvedImport importsAndExportsArr =
-						cat(astAlloc, importsAndExports.imports, importsAndExports.exports);
-					foreach (ref immutable ResolvedImport import_; importsAndExportsArr.range) {
-						immutable Opt!ParseStatus status = statuses.getAt_mut(import_.resolvedPath);
-						if (status.has) {
-							final switch (status.force) {
-								case ParseStatus.started:
-									return some(arrLiteral!Diagnostic(modelAlloc,
-										Diagnostic(import_.importedFrom, Diag(Diag.CircularImport(path, import_.resolvedPath)))));
-								case ParseStatus.finished:
-									break;
-							}
-						} else {
-							immutable Opt!Diags err = parseRecur(
-								modelAlloc,
-								astAlloc,
-								allSymbols,
-								storages,
-								lineAndColumnGetters,
-								res,
-								statuses,
-								some(import_.importedFrom),
-								import_.resolvedPath);
-							if (err.has)
-								return err;
-						}
-					}
-					immutable PathAndAstAndResolvedImports pa = PathAndAstAndResolvedImports(
-						path,
-						ast,
-						stripRange(astAlloc, importsAndExports.imports));
-					res.add(astAlloc, pa);
-					statuses.setInDict(astAlloc, path, ParseStatus.finished);
-					return none!Diags;
-				},
-				(ref immutable Diags d) => some(d),
-			);
-		},
-		(ref immutable Diags d) => some(d),
-	);
-}
-
-alias AllAsts = immutable Arr!PathAndAstAndResolvedImports;
-
-// Starts at 'main' and recursively parses all imports too.
-// Result will be in import order -- asts at lower indices are imported by asts at higher indices.
-// So, don't have to worry about circularity when checking.
-immutable(Result!(AllAsts, Diags)) parseEverythingWorker(ModelAlloc, AstAlloc, SymAlloc)(
-	ref ModelAlloc modelAlloc,
-	ref AstAlloc astAlloc,
-	ref AllSymbols!SymAlloc allSymbols,
-	immutable PathAndStorageKind mainPath,
-	ref ReadOnlyStorages storages,
-	ref LineAndColumnGettersBuilder lineAndColumnGetters,
-) {
-	ArrBuilder!PathAndAstAndResolvedImports res;
-	MutDict!(PathAndStorageKind, ParseStatus, comparePathAndStorageKind) statuses;
-	immutable Arr!PathAndStorageKind rootPaths = arrLiteral!PathAndStorageKind(
-		astAlloc,
-		// Ensure bootstrap.nz is parsed first
-		bootstrapPath(modelAlloc),
-		// Ensure std.nz is available
-		stdPath(modelAlloc),
-		runtimePath(modelAlloc),
-		runtimeMainPath(modelAlloc),
-		mainPath);
-	foreach (immutable PathAndStorageKind path; rootPaths.range)
-		if (!statuses.hasKey_mut(path)) {
-			immutable Opt!Diags err = parseRecur(
-				modelAlloc,
-				astAlloc,
-				allSymbols,
-				storages,
-				lineAndColumnGetters,
-				res,
-				statuses,
-				none!PathAndStorageKindAndRange,
-				path);
-			if (err.has)
-				return fail!(AllAsts, Diags)(err.force);
-		}
-	return success!(AllAsts, Diags)(res.finishArr(astAlloc));
-}
-
-struct LcgsAndAllAsts {
-	immutable LineAndColumnGetters lineAndColumnGetters;
-	immutable Result!(AllAsts, Diags) allAsts;
-}
-
-LcgsAndAllAsts parseEverything(ModelAlloc, AstAlloc, SymAlloc)(
-	ref ModelAlloc modelAlloc,
-	ref AllSymbols!SymAlloc allSymbols,
-	ref ReadOnlyStorages storages,
-	ref immutable PathAndStorageKind mainPath,
-	ref AstAlloc astAlloc,
-) {
-	LineAndColumnGettersBuilder lineAndColumnGetters;
-	immutable Result!(AllAsts, Diags) asts =
-		parseEverythingWorker(modelAlloc, astAlloc, allSymbols, mainPath, storages, lineAndColumnGetters);
-	immutable LineAndColumnGetters lc = lineAndColumnGetters.finishDictShouldBeNoConflict(modelAlloc);
-	return LcgsAndAllAsts(lc, asts);
+	return map(alloc, a, (ref immutable ResolvedImport i) => i.resolvedPath);
 }
 
 struct ImportsAndExports {
@@ -354,8 +367,9 @@ immutable(Arr!(Ptr!Module)) mapImportsOrExports(ModelAlloc)(
 	immutable Arr!PathAndStorageKind paths,
 	ref MutDict!(PathAndStorageKind, immutable Ptr!Module, comparePathAndStorageKind) compiled,
 ) {
-	return paths.map(
+	return map(
 		modelAlloc,
+		paths,
 		(ref immutable PathAndStorageKind importPath) => compiled.mustGetAt_mut(importPath));
 }
 

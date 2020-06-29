@@ -5,7 +5,8 @@ module util.collection.str;
 import core.stdc.string : memcpy;
 
 import util.bools : and, Bool, False, True;
-import util.collection.arr : Arr, at, begin, empty, emptyArr, first, size, tail, rtail;
+import util.collection.arr : Arr, at, begin, empty, emptyArr, first, size;
+import util.collection.arrUtil : rtail, slice, tail;
 import util.collection.mutArr : MutArr;
 import util.comparison : compareChar, compareOr, Comparison;
 import util.util : todo;
@@ -15,6 +16,9 @@ alias Str = Arr!char;
 alias MutStr = MutArr!char;
 
 immutable Str emptyStr = emptyArr!char;
+immutable(NulTerminatedStr) emptyNulTerminatedStr() {
+	return immutable NulTerminatedStr(strLiteral("\0"));
+}
 
 @trusted private immutable(CStr) end(immutable CStr c) {
 	return *c == '\0' ? c : end(c + 1);
@@ -28,11 +32,15 @@ immutable Str emptyStr = emptyArr!char;
 	return immutable Str(c, end(c) - c);
 }
 
+immutable(NulTerminatedStr) nulTerminatedStrOfCStr(immutable CStr c) {
+	return immutable NulTerminatedStr(immutable Str(c, end(c) - c + 1));
+}
+
 struct NulTerminatedStr {
 	@safe @nogc pure nothrow:
 	immutable Str str;
 
-	this(immutable Str s) {
+	this(immutable Str s) immutable {
 		str = s;
 		assert(str.at(str.size - 1) == '\0');
 	}
@@ -42,7 +50,7 @@ struct NulTerminatedStr {
 	char* res = cast(char*) alloc.allocate(s.size + 1);
 	memcpy(res, s.begin, s.size);
 	res[s.size] = '\0';
-	return NulTerminatedStr(immutable Str(cast(immutable) res, s.size + 1));
+	return immutable NulTerminatedStr(immutable Str(cast(immutable) res, s.size + 1));
 }
 
 @trusted immutable(CStr) asCStr(immutable NulTerminatedStr s) {
@@ -92,4 +100,13 @@ immutable(Str) stripNulTerminator(immutable NulTerminatedStr a) {
 
 immutable(Str) copyStr(Alloc)(ref Alloc alloc, immutable Str s) {
 	assert(0); //TODO
+}
+
+immutable(NulTerminatedStr) copyNulTerminatedStr(Alloc)(ref Alloc alloc, immutable NulTerminatedStr s) {
+	assert(0); //TODO
+}
+
+immutable(Bool) endsWith(immutable Str a, immutable string b) {
+	return Bool(a.size >= b.length &&
+		strEqLiteral(a.slice(a.size - b.length, b.length), b));
 }

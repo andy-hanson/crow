@@ -7,7 +7,8 @@ import frontend.ast : LiteralAst, NameAndRange;
 import parseDiag : ParseDiag, ParseDiagnostic;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : arrOfRange, at, begin, empty, first, last, size, slice;
+import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
+import util.collection.arrUtil : slice;
 import util.collection.mutArr : moveToArr, mutArrSize, newUninitializedMutArr, setAt;
 import util.collection.str : copyStr, CStr, MutStr, NulTerminatedStr, Str, stripNulTerminator;
 import util.opt : force, has, none, Opt, some;

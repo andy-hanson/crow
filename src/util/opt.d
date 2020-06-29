@@ -38,9 +38,16 @@ immutable(Bool) has(T)(const Opt!T a) {
 	return a.has_;
 }
 
-ref immutable(T) force(T)(immutable ref Opt!T a) {
+ref immutable(T) force(T)(ref immutable Opt!T a) {
 	assert(a.has);
 	return a.value_;
+}
+
+ref immutable(T) forceOrTodo(T)(ref immutable Opt!T a) {
+	if (a.has)
+		return a.force;
+	else
+		assert(0); // TODO
 }
 
 immutable(Out) match(Out, T)(

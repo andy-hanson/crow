@@ -25,18 +25,20 @@ import util.verify : unreachable;
 
 // These return program exit codes
 
-int build(
+immutable(int) build(SymAlloc)(
+	ref AllSymbols!SymAlloc allSymbols,
 	immutable AbsolutePath nozeDir,
 	immutable AbsolutePath programDir,
 	immutable Ptr!Path mainPath,
 	immutable Environ environ,
 ) {
 	StackAlloc exePathAlloc;
-	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, nozeDir, programDir, mainPath, environ);
+	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, nozeDir, programDir, mainPath, environ);
 	return exePath.has ? 0 : 1;
 }
 
-int buildAndRun(
+immutable(int) buildAndRun(SymAlloc)(
+	ref AllSymbols!SymAlloc allSymbols,
 	immutable AbsolutePath nozeDir,
 	immutable AbsolutePath programDir,
 	immutable Ptr!Path mainPath,
@@ -44,7 +46,7 @@ int buildAndRun(
 	immutable Environ environ
 ) {
 	StackAlloc exePathAlloc;
-	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, nozeDir, programDir, mainPath, environ);
+	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, nozeDir, programDir, mainPath, environ);
 	if (exePath.has) {
 		replaceCurrentProcess(exePath.force, programArgs, environ);
 		return unreachable!int;
@@ -56,16 +58,15 @@ private:
 
 // mainPath is relative to programDir
 // Returns exePath
-immutable(Opt!AbsolutePath) buildWorker(Alloc)(
+immutable(Opt!AbsolutePath) buildWorker(Alloc, SymAlloc)(
 	ref Alloc outputAlloc, // Just for exePath
+	ref AllSymbols!SymAlloc allSymbols,
 	immutable AbsolutePath nozeDir,
 	immutable AbsolutePath programDir,
 	immutable Ptr!Path mainPath,
 	immutable Environ environ
 ) {
 	StackAlloc modelAlloc;
-	StackAlloc symAlloc;
-	AllSymbols!StackAlloc allSymbols = AllSymbols!StackAlloc(symAlloc);
 	immutable AbsolutePath include = childPath(modelAlloc, nozeDir, shortSymAlphaLiteral("include"));
 	immutable ReadOnlyStorages storages = ReadOnlyStorages(ReadOnlyStorage(include), ReadOnlyStorage(programDir));
 	immutable Result!(Program, Diagnostics) programResult =
@@ -105,9 +106,9 @@ void compileC(immutable AbsolutePath cPath, immutable AbsolutePath exePath, immu
 		strLiteral("-pthread"),
 		// TODO: configurable whether we want debug or release
 		strLiteral("-g"),
-		pathToStr(alloc, cPath),
+		pathToStr(alloc, cPath, ".c"),
 		strLiteral("-o"),
-		pathToStr(alloc, exePath));
+		pathToStr(alloc, exePath, ""));
 	immutable int err = spawnAndWaitSync(cCompiler, args, environ);
 	if (err != 0) {
 		debug {

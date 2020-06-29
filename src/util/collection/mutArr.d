@@ -14,6 +14,10 @@ struct MutArr(T) {
 	size_t capacity_;
 }
 
+@system T* mutArrBegin(T)(ref MutArr!T a) {
+	return a.begin_;
+}
+
 ref const(T) mutArrAt(T)(ref const MutArr!T a, immutable size_t index) {
 	assert(index < a.size_);
 	return a.begin[index];

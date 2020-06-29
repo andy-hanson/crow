@@ -4,7 +4,8 @@ module util.sym;
 
 import util.bitUtils : allBitsSet, bitsOverlap, getBitsShifted, singleBit;
 import util.bools : and, Bool, False, not, True;
-import util.collection.arr : at, first, last, range, size, tail;
+import util.collection.arr : at, first, last, range, size;
+import util.collection.arrUtil : tail;
 import util.collection.mutArr : last, MutArr, push, range;
 import util.collection.mutSet : MutSet;
 import util.collection.str : CStr, Str, strEqCStr, strEqLiteral, strLiteral, strOfCStr, strToCStr;

@@ -3,7 +3,7 @@ module util.collection.arrUtil;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, range, size;
+import util.collection.arr : Arr, at, begin, range, size;
 import util.memory : initMemory;
 import util.opt : none, Opt, some;
 import util.result : asFailure, asSuccess, fail, isSuccess, Result, success;
@@ -90,8 +90,8 @@ immutable(Opt!T) find(T)(
 }
 
 @trusted immutable(Arr!Out) map(Out, In, Alloc)(
-	immutable Arr!In a,
 	ref Alloc alloc,
+	immutable Arr!In a,
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * a.size);
@@ -128,6 +128,26 @@ immutable(Opt!T) find(T)(
 	return immutable Arr!T(cast(immutable) res, resSize);
 }
 
+@trusted immutable(Arr!T) cat(T, Alloc)(
+	ref Alloc alloc,
+	immutable Arr!T a,
+	immutable Arr!T b,
+	immutable Arr!T c,
+	immutable Arr!T d,
+) {
+	immutable size_t resSize = a.size + b.size + c.size + d.size;
+	T* res = cast(T*) alloc.allocate(T.sizeof * resSize);
+	foreach (immutable size_t i; 0..a.size)
+		initMemory(res + i, a.at(i));
+	foreach (immutable size_t i; 0..b.size)
+		initMemory(res + a.size + i, b.at(i));
+	foreach (immutable size_t i; 0..c.size)
+		initMemory(res + a.size + b.size + i, c.at(i));
+	foreach (immutable size_t i; 0..d.size)
+		initMemory(res + a.size + b.size + c.size + i, d.at(i));
+	return immutable Arr!T(cast(immutable) res, resSize);
+}
+
 @trusted immutable(Arr!T) prepend(T, Alloc)(ref Alloc alloc, immutable T a, immutable Arr!T b) {
 	immutable size_t resSize = 1 + b.size;
 	T* res = cast(T*) alloc.allocate(T.sizeof * resSize);
@@ -135,4 +155,29 @@ immutable(Opt!T) find(T)(
 	foreach (immutable size_t i; 0..b.size)
 		initMemory(res + 1 + i, b.at(i));
 	return immutable Arr!T(cast(immutable) res, resSize);
+}
+
+@trusted immutable(Arr!T) slice(T)(ref immutable Arr!T a, immutable size_t begin, immutable size_t newSize) {
+	assert(begin + newSize <= a.size);
+	return immutable Arr!T(a.begin + begin, newSize);
+}
+
+immutable(Arr!T) slice(T)(ref immutable Arr!T a, immutable size_t begin) {
+	assert(begin <= a.size);
+	return a.slice(begin, a.size - begin);
+}
+
+immutable(Arr!T) sliceFromTo(T)(ref immutable Arr!T a, immutable size_t lo, immutable size_t hi) {
+	assert(lo <= hi);
+	return slice(a, lo, hi - lo);
+}
+
+immutable(Arr!T) tail(T)(immutable Arr!T a) {
+	assert(a.size != 0);
+	return a.slice(1);
+}
+
+immutable(Arr!T) rtail(T)(immutable Arr!T a) {
+	assert(a.size != 0);
+	return a.slice(0, a.size - 1);
 }

@@ -1,6 +1,6 @@
 module frontend.readOnlyStorage;
 
-@safe @nogc pure nothrow:
+@safe @nogc nothrow: // not pure
 
 import model : AbsolutePathsGetter;
 
@@ -18,9 +18,12 @@ immutable(Opt!NulTerminatedStr) tryReadFile(Alloc)(
 	ref ReadOnlyStorage storage,
 	ref Alloc alloc,
 	immutable Ptr!Path path,
+	immutable string extension,
 ) {
-	return ioTryReadFile(alloc, addManyChildren!Alloc(alloc, storage.root, path));
+	return ioTryReadFile(alloc, addManyChildren!Alloc(alloc, storage.root, path), extension);
 }
+
+pure:
 
 struct ReadOnlyStorages {
 	ReadOnlyStorage include;

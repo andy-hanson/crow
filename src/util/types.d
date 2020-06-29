@@ -11,6 +11,8 @@ alias u64 = ulong;
 
 alias i32 = int;
 
+alias ssize_t = long;
+
 i32 safeI32FromU32(immutable u32 u) {
 	assert(u <= 999);
 	return cast(i32) u;
@@ -30,5 +32,11 @@ u32 safeSizeTToU32(immutable size_t s) {
 	assert(s <= 99999);
 	return cast(u32) s;
 }
+
+size_t safeSizeTFromSSizeT(immutable ssize_t s) {
+	assert(s >= 0);
+	return cast(size_t) s;
+}
+
 
 immutable u8 MAX_UINT8 = 255;
