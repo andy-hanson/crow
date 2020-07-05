@@ -3,9 +3,9 @@ module util.collection.arrUtil;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, begin, ptrAt, range, size, sizeEq;
+import util.collection.arr : Arr, at, begin, empty, first, ptrAt, range, size, sizeEq;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push;
-import util.comparison : Comparer, Comparison;
+import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
@@ -406,5 +406,32 @@ void zipMutPtrFirst(T, U)(
 	assert(sizeEq(a, b));
 	foreach (immutable size_t i; 0..size(a))
 		cb(ptrAt(a, i), at(b, i));
+}
+
+immutable(Comparison) compareArr(T)(
+	ref immutable Arr!T a,
+	ref immutable Arr!T b,
+	Comparer!T compare,
+) {
+	return compareOr(
+		compareSizeT(size(a), size(b)),
+		() {
+			foreach (immutable size_t i; 0..size(a)) {
+				immutable Comparison c = compare(at(a, i), at(b, i));
+				if (c != Comparison.equal)
+					return c;
+			}
+			return Comparison.equal;
+		});
+}
+
+immutable(T) fold(T, U)(
+	immutable T start,
+	immutable Arr!U arr,
+	scope immutable(T) delegate(ref immutable T a, ref immutable U b) @safe @nogc pure nothrow cb,
+) {
+	return empty(arr)
+		? start
+		: fold!(T, U)(cb(start, first(arr)), tail(arr), cb);
 }
 

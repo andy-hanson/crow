@@ -42,3 +42,9 @@ struct DelayInit(T) {
 	myEmplace(ptr, args);
 	return immutable Ptr!T(cast(immutable) ptr);
 }
+
+@trusted Ptr!T nuMut(T, Alloc, Args...)(ref Alloc alloc, Args args) {
+	T* ptr = cast(T*) alloc.allocate(T.sizeof);
+	myEmplace(ptr, args);
+	return Ptr!T(ptr);
+}

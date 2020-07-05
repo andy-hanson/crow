@@ -11,9 +11,10 @@ import model :
 	bestCasePurity,
 	CalledDecl,
 	comparePathAndStorageKind,
+	decl,
 	FunDecl,
 	getAbsolutePath,
-	match,
+	matchCalledDecl,
 	Module,
 	name,
 	nTypeParams,
@@ -207,7 +208,8 @@ void writeSigJustTypes(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
 
 void writeCalledDecl(Alloc)(ref Writer!Alloc writer, immutable FilesInfo fi, immutable CalledDecl c) {
 	writeSigJustTypes(writer, c.sig);
-	return c.match(
+	return matchCalledDecl(
+		c,
 		(immutable Ptr!FunDecl funDecl) {
 			// TODO: write the module it's from
 			writeStatic(writer, " (from ");
@@ -442,7 +444,7 @@ void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref i
 		(ref immutable Diag.MatchCaseStructNamesDoNotMatch d) {
 			writeStatic(writer, "expected the case names to be: ");
 			writeWithCommas(writer, d.unionMembers, (ref immutable Ptr!StructInst i) {
-				writeName(writer, i.decl.name);
+				writeName(writer, decl(i).name);
 			});
 		},
 		(ref immutable Diag.MatchOnNonUnion d) {

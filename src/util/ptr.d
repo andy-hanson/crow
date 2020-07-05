@@ -3,6 +3,7 @@ module util.ptr;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
+import util.comparison : Comparison;
 
 // Non-null
 struct Ptr(T) {
@@ -37,4 +38,12 @@ struct Ptr(T) {
 
 immutable(Bool) ptrEquals(T)(immutable Ptr!T a, immutable Ptr!T b) {
 	return Bool(a.ptr == b.ptr);
+}
+
+immutable(Comparison) comparePtr(T)(immutable Ptr!T a, immutable Ptr!T b) {
+	return a.ptr < b.ptr
+		? Comparison.less
+		: a.ptr > b.ptr
+		? Comparison.greater
+		: Comparison.equal;
 }

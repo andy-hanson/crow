@@ -13,13 +13,33 @@ enum Comparison {
 	greater,
 }
 
-immutable(Comparison) compareOr(immutable Comparison a, scope Comparison delegate() @safe @nogc pure nothrow cb) {
+immutable(Comparison) compareOr(
+	immutable Comparison a,
+	scope Comparison delegate() @safe @nogc pure nothrow cb,
+) {
 	return a == Comparison.equal
 		? cb()
 		: a;
 }
 
-immutable(Comparison) compareInt(int a, int b) {
+immutable(Comparison) compareOr(
+	immutable Comparison a,
+	scope Comparison delegate() @safe @nogc pure nothrow cb0,
+	scope Comparison delegate() @safe @nogc pure nothrow cb1,
+) {
+	return compareOr(a, () =>
+		compareOr(cb0(), cb1));
+}
+
+immutable(Comparison) compareInt(immutable int a, immutable int b) {
+	return a < b
+			? Comparison.less
+		: a > b
+			? Comparison.greater
+		: Comparison.equal
+		;
+}
+immutable(Comparison) compareSizeT(immutable size_t a, immutable size_t b) {
 	return a < b
 			? Comparison.less
 		: a > b

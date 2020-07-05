@@ -24,6 +24,7 @@ import frontend.ast :
 	TypeParamAst;
 import frontend.checkCtx : addDiag, CheckCtx, diags, hasDiags;
 import frontend.checkExpr : checkFunctionBody;
+import frontend.checkUtil : arrAsImmutable, ptrAsImmutable;
 import frontend.instantiate : DelayStructInsts, instantiateSpec, instantiateStruct, instantiateStructBody, TypeParamsScope;
 import frontend.programState : ProgramState;
 import frontend.typeFromAst : instStructFromAst, tryFindSpec, typeArgsFromAsts, typeFromAst;
@@ -37,6 +38,7 @@ import model :
 	bestCasePurity,
 	body_,
 	CommonTypes,
+	decl,
 	ForcedByValOrRef,
 	FunBody,
 	FunDecl,
@@ -61,11 +63,13 @@ import model :
 	Sig,
 	SpecBody,
 	SpecDecl,
+	SpecDeclAndArgs,
 	SpecInst,
 	SpecsMap,
 	StructAlias,
 	StructBody,
 	StructDecl,
+	StructDeclAndArgs,
 	StructInst,
 	StructOrAlias,
 	StructsAndAliasesMap,
@@ -183,7 +187,7 @@ immutable(Opt!(Ptr!StructInst)) getCommonNonTemplateType(Alloc)(
 			structOrAlias,
 			(immutable Ptr!StructAlias a) => target(a),
 			(immutable Ptr!StructDecl s) =>
-				some(instantiateStruct!Alloc(alloc, ctx, s, emptyArr!Type, someMut(ptrTrustMe(delayedStructInsts)))));
+				some(instantiateStruct!Alloc(alloc, ctx, StructDeclAndArgs(s, emptyArr!Type), someMut(ptrTrustMe(delayedStructInsts)))));
 	}
 }
 
@@ -586,7 +590,7 @@ immutable(StructBody) checkUnion(Alloc)(
 		everyPairWithIndex(
 			a,
 			(ref immutable Ptr!StructInst a, ref immutable Ptr!StructInst b, immutable size_t, immutable size_t bIndex) {
-				if (ptrEquals(a.decl, b.decl)) {
+				if (ptrEquals(decl(a), decl(a))) {
 					assert(0); //TODO
 					immutable Diag diag =
 						immutable Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.decl.name));
@@ -625,7 +629,7 @@ void checkStructBodies(Alloc)(
 		setBody(struct_, body_);
 	});
 
-	foreach (ref immutable StructDecl struct_; asImmutable(structs).range) {
+	foreach (ref immutable StructDecl struct_; range(arrAsImmutable(structs))) {
 		matchStructBody(
 			body_(struct_),
 			(ref immutable StructBody.Bogus) {},
@@ -633,14 +637,10 @@ void checkStructBodies(Alloc)(
 			(ref immutable StructBody.Record) {},
 			(ref immutable StructBody.Union u) {
 				foreach (ref immutable Ptr!StructInst member; range(u.members))
-					if (isUnion(body_(member.decl)))
+					if (isUnion(body_(member.decl.deref)))
 						todo!void("unions can't contain unions");
 			});
 	}
-}
-
-@trusted immutable(Ptr!T) ptrAsImmutable(T)(Ptr!T a) {
-	return cast(immutable) a;
 }
 
 immutable(StructsAndAliasesMap) buildStructsAndAliasesDict(Alloc)(
@@ -681,7 +681,7 @@ immutable(Arr!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 				addDiag(alloc, ctx, ast.range, immutable Diag(Diag.WrongNumberTypeArgsForSpec(spec, size(spec.typeParams), size(typeArgs))));
 				return none!(Ptr!SpecInst);
 			} else
-				return some(instantiateSpec(alloc, ctx, spec, typeArgs));
+				return some(instantiateSpec(alloc, ctx, SpecDeclAndArgs(spec, typeArgs)));
 		} else {
 			addDiag(alloc, ctx, ast.range, immutable Diag(Diag.NameNotFound(Diag.NameNotFound.Kind.spec, ast.spec)));
 			return none!(Ptr!SpecInst);
@@ -720,7 +720,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 		return immutable FunDecl(containingModule, funAst.isPublic, flags, sig, typeParams, specUses);
 	});
 
-	immutable FunsMap funsMap = buildMultiDict!(Sym, Ptr!FunDecl, compareSym, FunDecl, Alloc)(alloc, asImmutable(funs), (immutable Ptr!FunDecl it) =>
+	immutable FunsMap funsMap = buildMultiDict!(Sym, Ptr!FunDecl, compareSym, FunDecl, Alloc)(alloc, arrAsImmutable(funs), (immutable Ptr!FunDecl it) =>
 		immutable KeyValuePair!(Sym, Ptr!FunDecl)(name(it), it));
 
 	foreach (ref const FunDecl f; range(funs))
@@ -744,7 +744,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 					alloc, ctx, e, structsAndAliasesMap, funsMap, ptrAsImmutable(fun), commonTypes))));
 	});
 
-	return FunsAndMap(asImmutable(funs), funsMap);
+	return FunsAndMap(arrAsImmutable(funs), funsMap);
 }
 
 immutable(SpecsMap) buildSpecsDict(Alloc)(
@@ -780,7 +780,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 				addToMutSymSetOkIfPresent(alloc, ctx.programState.recordFieldNames, f.name);
 
 	foreach (ref Ptr!StructInst i; mutArrRangeMut(delayStructInsts))
-		i.setBody(instantiateStructBody(alloc, ctx, i.decl, i.typeArgs));
+		i.setBody(instantiateStructBody(alloc, ctx, i.declAndArgs));
 
 	immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, structsAndAliasesMap, ast.specs);
 	immutable SpecsMap specsMap = buildSpecsDict(alloc, ctx, specs);
@@ -796,7 +796,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 		ctx.path,
 		imports,
 		exports,
-		asImmutable(structs),
+		arrAsImmutable(structs),
 		specs,
 		funsAndMap.funs,
 		structsAndAliasesMap,
@@ -850,7 +850,7 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 	foreach (ref const StructAlias a; range(structAliases))
 		addToMutSymSetOkIfPresent(alloc, programState.structAndAliasNames, a.name);
 	immutable StructsAndAliasesMap structsAndAliasesMap =
-		buildStructsAndAliasesDict(alloc, ctx, asImmutable(structs), asImmutable(structAliases));
+		buildStructsAndAliasesDict(alloc, ctx, arrAsImmutable(structs), arrAsImmutable(structAliases));
 
 	// We need to create StructInsts when filling in struct bodies.
 	// But when creating a StructInst, we usuallly want to fill in its body.
@@ -881,8 +881,4 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 					: success!(BootstrapCheck, Diags)(BootstrapCheck(mod, commonTypes));
 			});
 	}
-}
-
-@trusted immutable(Arr!T) asImmutable(T)(Arr!T a) {
-	return cast(immutable) a;
 }

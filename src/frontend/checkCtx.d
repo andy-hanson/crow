@@ -6,13 +6,24 @@ import diag : Diag, Diagnostic, Diags, PathAndStorageKindAndRange;
 
 import frontend.programState : ProgramState;
 
-import model : Module;
+import model :
+	compareFunDeclAndArgs,
+	compareSpecDeclAndArgs,
+	compareStructDeclAndArgs,
+	FunDeclAndArgs,
+	FunInst,
+	Module,
+	SpecDeclAndArgs,
+	SpecInst,
+	StructDeclAndArgs,
+	StructInst;
 
 import util.bools : Bool, not;
 import util.collection.arr : Arr;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, finishArr;
+import util.collection.mutDict : MutDict;
 import util.path : PathAndStorageKind;
-import util.ptr : Ptr;
+import util.ptr : comparePtr, Ptr;
 import util.sourceRange : SourceRange;
 
 struct CheckCtx {
@@ -20,6 +31,9 @@ struct CheckCtx {
 	immutable PathAndStorageKind path;
 	immutable Arr!(Ptr!Module) allFlattenedImports;
 	ArrBuilder!Diagnostic diagsBuilder;
+	MutDict!(immutable FunDeclAndArgs, immutable Ptr!FunInst, compareFunDeclAndArgs) funInsts;
+	MutDict!(immutable StructDeclAndArgs, Ptr!StructInst, compareStructDeclAndArgs) structInsts;
+	MutDict!(immutable SpecDeclAndArgs, immutable Ptr!SpecInst, compareSpecDeclAndArgs) specInsts;
 }
 
 void addDiag(Alloc)(

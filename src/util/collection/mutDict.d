@@ -29,7 +29,7 @@ immutable(V) mustGetAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) d, imm
 	return opt.force;
 }
 
-void setInDict(Alloc, K, V, alias cmp)(ref MutDict!(K, V, cmp) d, ref Alloc alloc, immutable K key, immutable V value) {
+void setInDict(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, V, cmp) d, immutable K key, immutable V value) {
 	foreach (ref KeyValuePair!(K, V) pair; mutArrRangeMut(d.pairs))
 		if (cmp(pair.key, key) == Comparison.equal) {
 			pair.value = value;
@@ -39,30 +39,30 @@ void setInDict(Alloc, K, V, alias cmp)(ref MutDict!(K, V, cmp) d, ref Alloc allo
 }
 
 
-void addToMutDict(Alloc, K, V, alias cmp)(ref MutDict!(K, V, cmp) d, ref Alloc alloc, immutable K key, immutable V value) {
+void addToMutDict(Alloc, K, V, alias cmp)(ref Alloc alloc,  ref MutDict!(K, V, cmp) d, immutable K key, immutable V value) {
 	immutable Bool has = d.hasKey_mut(key);
 	assert(!has);
 	push(alloc, d.pairs, immutable KeyValuePair!(K, V)(key, value));
 }
 
-immutable(V) getOrAdd(Alloc, K, V, alias cmp)(
-	ref MutDict!(K, V, cmp) d,
+V getOrAdd(Alloc, K, V, alias compare)(
 	ref Alloc alloc,
+	ref MutDict!(K, V, compare) d,
 	immutable K key,
-	scope immutable(V) delegate() @safe @nogc pure nothrow getValue,
+	scope V delegate() @safe @nogc pure nothrow getValue,
 ) {
-	foreach (ref const KeyValuePair!(K, V) pair; mutArrRange(d.pairs))
-		if (cmp(pair.key, key) == Comparison.equal)
+	foreach (ref KeyValuePair!(K, V) pair; mutArrRangeMut(d.pairs))
+		if (compare(pair.key, key) == Comparison.equal)
 			return pair.value;
-	immutable V value = getValue();
+	V value = getValue();
 	push(alloc, d.pairs, KeyValuePair!(K, V)(key, value));
 	return value;
 }
 
 // Like getOrAdd, but the key is allowed to be temporary; if we need to add we'll make a copy then
 immutable(V) getOrAddAndCopyKey(Alloc, K, V, alias cmp)(
+	ref Alloc alloc,
 	ref MutDict!(K, V, cmp) d,
-	ref Alloc laloc,
 	immutable K key,
 	scope immutable(K) delegate() @safe @nogc pure nothrow getKeyCopy,
 	scope immutable(V) delegate() @safe @nogc pure nothrow getValue,

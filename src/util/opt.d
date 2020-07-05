@@ -49,11 +49,15 @@ immutable(Bool) has(T)(const Opt!T a) {
 	return a.has_;
 }
 
-@trusted ref immutable(T) force(T)(ref immutable Opt!T a) {
+@trusted ref T force(T)(ref Opt!T a) {
 	assert(a.has);
 	return a.value_;
 }
 @trusted ref const(T) force(T)(ref const Opt!T a) {
+	assert(a.has);
+	return a.value_;
+}
+@trusted ref immutable(T) force(T)(ref immutable Opt!T a) {
 	assert(a.has);
 	return a.value_;
 }

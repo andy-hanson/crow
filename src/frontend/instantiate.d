@@ -1,11 +1,49 @@
 module frontend.instantiate;
 
-import frontend.checkCtx : CheckCtx;
-import model : SpecDecl, SpecInst, StructBody, StructDecl, StructInst, Type, TypeParam;
+@safe @nogc pure nothrow:
 
-import util.bools : Bool;
+import frontend.checkCtx : CheckCtx;
+import frontend.checkUtil : ptrAsImmutable;
+import model :
+	asFunInst,
+	asSpecSig,
+	bestCasePurity,
+	body_,
+	bodyIsSet,
+	Called,
+	FunInst,
+	isFunInst,
+	isSpecSig,
+	matchCalled,
+	matchSpecBody,
+	matchStructBody,
+	matchType,
+	Param,
+	Purity,
+	RecordField,
+	setBody,
+	Sig,
+	SpecBody,
+	SpecDecl,
+	SpecDeclAndArgs,
+	SpecInst,
+	SpecSig,
+	StructBody,
+	StructDecl,
+	StructDeclAndArgs,
+	StructInst,
+	Type,
+	TypeParam,
+	withType,
+	worsePurity,
+	worstCasePurity;
+
+import util.bools : Bool, False;
 import util.collection.arr : Arr, begin, ptrAt, sizeEq;
-import util.collection.mutArr : MutArr;
+import util.collection.arrUtil : fold, map;
+import util.collection.mutDict : getOrAdd;
+import util.collection.mutArr : MutArr, push;
+import util.memory : nu, nuMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr, ptrEquals;
 import util.util : todo;
@@ -51,7 +89,16 @@ immutable(Type) instantiateType(Alloc)(
 	ref immutable Type type,
 	ref immutable TypeParamsAndArgs typeParamsAndArgs,
 ) {
-	return todo!(immutable Type)("instantiateType");
+	return matchType!(immutable Type)(
+		type,
+		(ref immutable Type.Bogus) =>
+			immutable Type(Type.Bogus()),
+		(immutable Ptr!TypeParam p) {
+			immutable Opt!Type op = tryGetTypeArgFromTypeParamsAndArgs(typeParamsAndArgs, p);
+			return has(op) ? force(op) : type;
+		},
+		(immutable Ptr!StructInst i) =>
+			immutable Type(instantiateStructInst(alloc, ctx, i, typeParamsAndArgs)));
 }
 
 immutable(Type) instantiateType(Alloc)(
@@ -65,30 +112,66 @@ immutable(Type) instantiateType(Alloc)(
 immutable(Ptr!FunInst) instantiateFun(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	immutable Ptr!FunDecl decl,
-	ref immutable Arr!Type typeArgs,
-	ref immutable Arr!Called specImpls,
+	immutable FunDeclAndArgs declAndArgs,
 ) {
-	return todo!(immutable Ptr!FunInst)("instantiateFun");
+	return getOrAdd(
+		ctx.funInsts,
+		declAndArgs,
+		() => nu!FunInst(
+			alloc,
+			declAndArgs,
+			instantiateSig(
+				alloc,
+				declAndArgs.decl.sig,
+				TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs))));
 }
 
 immutable(StructBody) instantiateStructBody(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	immutable Ptr!StructDecl decl,
-	ref immutable Arr!Type typeArgs,
+	immutable StructDeclAndArgs declAndArgs,
 ) {
-	return todo!(immutable StructBody)("instantiateStructBody");
+	immutable TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs);
+	return matchStructBody(
+		body_(declAndArgs.decl),
+		(ref immutable StructBody.Bogus) => immutable StructBody(StructBody.Bogus()),
+		(ref immutable StructBody.Builtin) => immutable StructBody(StructBody.Builtin()),
+		(ref immutable StructBody.Record r) =>
+			immutable StructBody(StructBody.Record(
+				r.forcedByValOrRef,
+				map!RecordField(alloc, r.fields, (ref immutable RecordField f) =>
+					withType(f, instantiateType(alloc, ctx, f.type, typeParamsAndArgs))))),
+		(ref immutable StructBody.Union u) =>
+			immutable StructBody(StructBody.Union(
+				map!(Ptr!StructInst)(alloc, u.members, (ref immutable Ptr!StructInst i) =>
+					instantiateStructInst(alloc, ctx, i, typeParamsAndArgs)))));
 }
 
 immutable(Ptr!StructInst) instantiateStruct(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	immutable Ptr!StructDecl decl,
-	immutable Arr!Type typeArgs,
+	immutable StructDeclAndArgs declAndArgs,
 	DelayStructInsts delayStructInsts,
 ) {
-	return todo!(immutable Ptr!StructInst)("instantiateStruct");
+	return ptrAsImmutable(getOrAdd(
+		alloc,
+		ctx.structInsts,
+		declAndArgs,
+		() {
+			immutable Purity bestPurity = fold(declAndArgs.decl.purity, declAndArgs.typeArgs, (ref immutable Purity pur, ref immutable Type typeArg) =>
+				worsePurity(pur, bestCasePurity(typeArg)));
+			immutable Purity worstPurity = fold(declAndArgs.decl.purity, declAndArgs.typeArgs, (ref immutable Purity pur, ref immutable Type typeArg) =>
+				worsePurity(pur, worstCasePurity(typeArg)));
+
+			Ptr!StructInst res = nuMut!StructInst(alloc, declAndArgs, bestPurity, worstPurity);
+			if (bodyIsSet(declAndArgs.decl))
+				setBody(res, instantiateStructBody(alloc, ctx, declAndArgs));
+			else
+				// We should only need to do this in the initial phase of settings struct bodies,
+				// which is when delayedStructInst is set.
+				push!(Ptr!StructInst, Alloc)(alloc, force(delayStructInsts).deref, res);
+			return res;
+		}));
 }
 
 immutable(Ptr!StructInst) instantiateNonTemplateStruct(Alloc)(
@@ -131,10 +214,19 @@ immutable(Ptr!StructInst) instantiateStructNeverDelay(Alloc)(
 immutable(Ptr!SpecInst) instantiateSpec(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	immutable Ptr!SpecDecl decl,
-	ref immutable Arr!Type typeArgs,
+	immutable SpecDeclAndArgs declAndArgs,
 ) {
-	return todo!(immutable Ptr!SpecInst)("instantiateSpec");
+	return getOrAdd(
+		alloc,
+		ctx.specInsts,
+		declAndArgs,
+		() => nu!SpecInst(alloc, declAndArgs, matchSpecBody(
+				declAndArgs.decl.body_,
+				(ref immutable SpecBody.Builtin b) =>
+					immutable SpecBody(SpecBody.Builtin(b.kind)),
+				(ref immutable Arr!Sig sigs) =>
+					immutable SpecBody(map!Sig(alloc, sigs, (ref immutable Sig sig) =>
+						instantiateSig(alloc, ctx, sig, TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs)))))));
 }
 
 immutable(Ptr!SpecInst) instantiateSpecInst(Alloc)(
@@ -143,5 +235,41 @@ immutable(Ptr!SpecInst) instantiateSpecInst(Alloc)(
 	immutable Ptr!SpecInst specInst,
 	ref immutable TypeParamsAndArgs typeParamsAndArgs,
 ) {
-	return todo!(immutable Ptr!SpecInst)("instantiateSpecInst");
+	// TODO:PERF don't create the array if we don't need it (`instantiate` could take the callback)
+	immutable Arr!Type itsTypeArgs = map!Type(alloc, specInst.typeArgs, (ref immutable Type t) =>
+		instantiateType(alloc, ctx, t, typeParamsAndArgs));
+	return instantiateSpec(alloc, decl(specInst), itsTypeArgs);
+}
+
+private:
+
+immutable(Bool) calledEquals(ref immutable Called a, ref immutable Called b) {
+	return matchCalled(
+		a,
+		(immutable Ptr!FunInst f) =>
+			immutable Bool(isFunInst(b) && ptrEquals(f, asFunInst(b))),
+		(ref immutable SpecSig s) {
+			if (isSpecSig(b)) {
+				immutable SpecSig bs = asSpecSig(b);
+				if (ptrEquals(s.specInst, bs.specInst)) {
+					immutable Bool res = ptrEquals(s.sig, bs.sig);
+					assert(res == Bool(s.indexOverAllSpecUses == bs.indexOverAllSpecUses));
+					return res;
+				} else
+					return False;
+			} else
+				return False;
+		});
+}
+
+immutable(Sig) instantiateSig(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref immutable Sig sig,
+	immutable TypeParamsAndArgs typeParamsAndArgs,
+) {
+	immutable Type returnType = instantiateType(alloc, ctx, sig.returnType, typeParamsAndArgs);
+	immutable Arr!Param params = map!Param(alloc, sig.params, (ref immutable Param p) =>
+		withType(p, instantiateType(alloc, ctx, p.type, typeParamsAndArgs)));
+	return immutable Sig(sig.range, sig.name, returnType, params);
 }

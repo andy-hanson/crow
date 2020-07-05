@@ -183,7 +183,7 @@ immutable(Opt!Diags) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 	immutable Opt!PathAndStorageKindAndRange importedFrom,
 	immutable PathAndStorageKind path,
 ) {
-	statuses.setInDict(astAlloc, path, ParseStatus.started);
+	setInDict(astAlloc, statuses, path, ParseStatus.started);
 
 	immutable Opt!NulTerminatedStr opFileContent = getFile(astAlloc, path, storages);
 	immutable Result!(FileAst, Diags) parseResult =
@@ -227,7 +227,7 @@ immutable(Opt!Diags) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 						ast,
 						stripRange(astAlloc, importsAndExports.imports));
 					add(astAlloc, res, pa);
-					statuses.setInDict(astAlloc, path, ParseStatus.finished);
+					setInDict(astAlloc, statuses, path, ParseStatus.finished);
 					return none!Diags;
 				},
 				(ref immutable Diags d) => some(d),
@@ -443,8 +443,7 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 				}
 			})();
 			if (res.isSuccess)
-				compiled.addToMutDict(
-					compiledAlloc, ast.pathAndStorageKind, res.asSuccess);
+				addToMutDict(compiledAlloc, compiled, ast.pathAndStorageKind, res.asSuccess);
 			return res;
 		});
 	return mapSuccess!(ModulesAndCommonTypes, Arr!(Ptr!Module), Diags)(
