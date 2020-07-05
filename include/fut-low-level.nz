@@ -1,0 +1,47 @@
+import .bootstrap .thread-utils
+
+| Considered unsafe because normally it should not be possible to never resolve a fut
+new-unresolved-fut fut ?t() unsafe
+	new new-lock, new<fut-state-callbacks<?t>> none
+
+must-be-resolved result ?t exception(f fut ?t) unsafe noctx
+	match f state
+		fut-state-callbacks
+			hard-unreachable
+		fut-state-resolved r
+			ok: r value
+		exception e
+			err: e
+
+resolve void(f fut ?t, value ?t) unsafe
+	f resolve-or-reject value.ok
+
+reject void(f fut ?t, e exception) unsafe
+	f resolve-or-reject e.err
+
+resolve-or-reject void(f fut ?t, result result ?t exception) unsafe
+	f.lk.ref-of-val acquire-lock
+	match f.state
+		fut-state-callbacks cbs
+			cbs.head resolve-or-reject-recur result
+		fut-state-resolved
+			hard-fail: "resolving an already-resolved fut"
+		exception
+			hard-fail: "resolving an already-resolved fut"
+	f.state := match result
+		ok o
+			new<fut-state-resolved<?t>> o.value
+		err e
+			e.value
+	f.lk.ref-of-val release-lock
+
+private
+
+resolve-or-reject-recur void(node opt fut-callback-node<?t>, value result ?t exception)
+	match node
+		none
+			pass
+		some s
+			| the fun-ref will return a fut<void>, just ignore it
+			drop: s.value.cb call value
+			s.value.next-node resolve-or-reject-recur value

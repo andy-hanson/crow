@@ -1,0 +1,145 @@
+import
+	.arr-utils
+	.bootstrap
+	.cell
+	.exceptions
+	.fut-low-level
+	.fut-utils
+	.gc
+	.io
+	.posix
+	.runtime
+	.str-utils
+	.thread-utils
+
+main-ptr alias
+	fun-ptr2 fut<exit-code> ctx arr<str>
+
+| Treated specially by the compiler
+rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
+	| TODO: detect # hardware processors to use for n-threads
+	n-threads = two as<nat>
+	gctx-by-val = new<by-val<global-ctx>>
+		lk. new-lock
+		vats. empty-arr<vat>
+		n-live-threads. n-threads
+		may-be-work-to-do. new-condition
+		is-shut-down. false
+		any-unhandled-exceptions?. false
+	gctx = gctx-by-val ref-of-val
+	vat-by-val = new-vat: gctx, zero, n-threads
+	vat = vat-by-val ref-of-val
+
+	vats = new<arr<vat>> one, vat.ptr-to
+
+	gctx.vats := vats
+
+	| Before we start the engine, add a task.
+	| Create a ctx manually so we can call functions that need it when creating the task
+	ectx = new-exception-ctx
+	tls = new<by-val<thread-local-stuff>> ectx.ref-of-val
+	ctx-by-val = new-ctx: gctx, tls.ref-of-val, vat, zero
+	ctx = ctx-by-val ref-of-val
+	| TODO: just 'as', not 'as-non-const'
+	add = &add-first-task as-non-const<fun2<fut<exit-code>, arr<c-str>, main-ptr>>
+	all-args = new<arr<c-str>> argc.to-int.unsafe-to-nat, argv
+	main-fut = ctx call-with-ctx add, all-args, main-ptr
+
+	n-threads run-threads gctx, &thread-function
+
+	when
+		gctx any-unhandled-exceptions?
+			one
+		else
+			match main-fut.must-be-resolved
+				ok o
+					o.value
+				err e
+					print-err-sync-no-newline: "main failed: "
+					print-err-sync: e.value.message
+					one
+
+thread-args<?t> record
+	by-ref
+	fun fun-ptr2 void nat ?t
+	thread-id nat
+	arg ?t
+
+| TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
+| We want main-fut to be available immediately, not after having run some user code.
+| So we create main-fut now, and forward the result of 'main' to that.
+add-first-task fut exit-code(all-args arr c-str, main-ptr fun-ptr2 fut<exit-code> ctx arr<str>) unsafe
+	| 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
+	| TODO: 'then' overload for fut<void> taking lambda with 0 params
+	pass.resolved.as<fut<void>> then2 \
+		| First argument is the path to this executable.
+		args = all-args tail
+		main-ptr call: get-ctx, args map {it.to-str}
+
+| Each thread will get the thread ID, and the common arguments.
+| TODO: ?t must be a reference type
+run-threads void(n-threads nat, arg ?t, fun fun-ptr2 void nat ?t) noctx unsafe
+	threads = n-threads unmanaged-alloc-elements<pthread-t>
+	thread-args = n-threads unmanaged-alloc-elements<by-val<thread-args<?t>>>
+
+	zero run-threads-recur n-threads, threads, thread-args, arg, fun
+	zero join-threads-recur n-threads, threads
+
+	threads unmanaged-free
+	thread-args unmanaged-free
+
+run-threads-recur void
+	i nat
+	n-threads nat
+	threads ptr pthread-t
+	thread-args ptr by-val<thread-args<?t>>
+	arg ?t
+	fun fun-ptr2 void nat ?t
+spec
+	noctx
+	unsafe
+body
+	when
+		i == n-threads
+			pass
+		else
+			thread-arg-ptr = thread-args + i
+			thread-arg-ptr set new fun, i, arg
+			thread-ptr = threads + i
+			err = thread-ptr.as-cell pthread-create null, &thread-fun<?t>, thread-arg-ptr.as-any-ptr
+			when
+				err zero?
+					i.noctx-incr run-threads-recur n-threads, threads, thread-args, arg, fun
+				err == eagain
+					| TODO: warn and make do with the threads it does let us create (so long as there's at least one)
+					todo
+				else
+					| Fatal error
+					todo
+
+thread-fun<?t> any-ptr(args-ptr any-ptr) noctx unsafe
+	args = args-ptr as-ref<thread-args<?t>>
+	args.fun call args.thread-id, args.arg
+	null
+
+join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsafe
+	when
+		i == n-threads
+			pass
+		else
+			(threads + i).deref join-one-thread
+			i.noctx-incr join-threads-recur n-threads, threads
+
+join-one-thread void(tid pthread-t) noctx unsafe
+	thread-return = new<by-val<cell<any-ptr>>> null
+	err = tid pthread-join thread-return.ref-of-val
+	when
+		err zero?
+			pass
+		err == einval
+			todo
+		err == esrch
+			todo
+		else
+			todo
+	hard-assert: thread-return.ref-of-val.get == null

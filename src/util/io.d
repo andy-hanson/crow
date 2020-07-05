@@ -19,7 +19,6 @@ import util.collection.arr : Arr, arrOfRange, begin, range, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, map, tail;
 import util.collection.dict : KeyValuePair;
-import util.collection.mutArr : moveToArr, mutArrBegin, mutArrSize, newUninitializedMutArr, setAt;
 import util.collection.str :
 	asCStr,
 	copyNulTerminatedStr,
@@ -34,14 +33,13 @@ import util.collection.str :
 	strOfCStr,
 	strToCStr;
 import util.opt : none, Opt, some;
-import util.path : AbsolutePath, parseAbsolutePath, pathToCStr;
-import util.sym : AllSymbols;
+import util.path : AbsolutePath, pathToCStr;
 import util.types : safeSizeTFromSSizeT, ssize_t;
 import util.util : todo;
 
-@trusted immutable(Bool) fileExists(immutable AbsolutePath path, immutable string extension) {
-	StackAlloc temp;
-	immutable CStr pathCStr = pathToCStr(temp, path, extension);
+@trusted immutable(Bool) fileExists(immutable AbsolutePath path) {
+	PathAlloc temp;
+	immutable CStr pathCStr = pathToCStr(temp, path);
 	stat_t s;
 	immutable int res = stat(pathCStr, &s);
 	if (res == 0)
@@ -57,12 +55,12 @@ import util.util : todo;
 @trusted immutable(Opt!NulTerminatedStr) tryReadFile(Alloc)(
 	ref Alloc alloc,
 	immutable AbsolutePath path,
-	immutable string extension,
 ) {
 	alias Ret = immutable Opt!NulTerminatedStr;
 
-	StackAlloc temp;
-	immutable CStr pathCStr = pathToCStr(temp, path, extension);
+	PathAlloc temp;
+	immutable CStr pathCStr = pathToCStr(temp, path);
+
 	immutable int fd = open(pathCStr, O_RDONLY);
 	if (fd == -1) {
 		if (errno == ENOENT)
@@ -92,8 +90,9 @@ import util.util : todo;
 
 	assert(off == 0);
 
-	MutStr res = newUninitializedMutArr!char(alloc, fileSize + 1); // + 1 for the '\0'
-	immutable ssize_t nBytesRead = read(fd, res.mutArrBegin, fileSize);
+	immutable size_t resSize = fileSize + 1;
+	char* res = cast(char*) alloc.allocate(char.sizeof * resSize); // + 1 for the '\0'
+	immutable ssize_t nBytesRead = read(fd, res, fileSize);
 
 	if (nBytesRead == -1)
 		return todo!Ret("read failed");
@@ -101,13 +100,13 @@ import util.util : todo;
 	if (nBytesRead != fileSize)
 		return todo!Ret("nBytesRead not right?");
 
-	res.setAt(res.mutArrSize - 1, '\0');
+	res[fileSize] = '\0';
 
-	return some(immutable NulTerminatedStr(res.moveToArr(alloc)));
+	return some(immutable NulTerminatedStr(immutable Str(cast(immutable) res, resSize)));
 }
 
-@trusted void writeFileSync(immutable AbsolutePath path, immutable string extension, immutable Str content) {
-	immutable int fd = tryOpen(path, extension, O_CREAT | O_WRONLY | O_TRUNC, 0b110100100);
+@trusted void writeFileSync(immutable AbsolutePath path, immutable Str content) {
+	immutable int fd = tryOpen(path, O_CREAT | O_WRONLY | O_TRUNC, 0b110100100);
 	scope(exit) close(fd);
 
 	immutable ssize_t wroteBytes = write(fd, content.begin, content.size);
@@ -127,8 +126,8 @@ alias Environ = Arr!(KeyValuePair!(Str, Str));
 	immutable Arr!Str args,
 	immutable Environ environ
 ) {
-	StackAlloc temp;
-	immutable CStr executableCStr = pathToCStr(temp, executable, "");
+	PathAlloc temp;
+	immutable CStr executableCStr = pathToCStr(temp, executable);
 	return spawnAndWaitSync(
 		executableCStr,
 		convertArgs(temp, executableCStr, args),
@@ -142,8 +141,8 @@ alias Environ = Arr!(KeyValuePair!(Str, Str));
 	immutable Arr!Str args,
 	immutable Environ environ,
 ) {
-	StackAlloc temp;
-	immutable CStr executableCStr = pathToCStr(temp, executable, "");
+	PathAlloc temp;
+	immutable CStr executableCStr = pathToCStr(temp, executable);
 	immutable int err = execvpe(
 		executableCStr,
 		convertArgs(temp, executableCStr, args),
@@ -155,46 +154,47 @@ alias Environ = Arr!(KeyValuePair!(Str, Str));
 }
 
 struct CommandLineArgs {
-	immutable AbsolutePath pathToThisExecutable;
+	immutable Str pathToThisExecutable;
 	immutable Arr!Str args;
 	immutable Environ environ;
 }
 
-immutable(CommandLineArgs) parseCommandLineArgs(Alloc, SymAlloc)(
+immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
 	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
 	immutable size_t argc,
 	immutable CStr* argv,
 ) {
 	immutable Arr!CStr allArgs = immutable Arr!CStr(argv, argc);
 	immutable Arr!Str args = map!(Str, CStr, Alloc)(alloc, allArgs, (ref immutable CStr a) => strOfCStr(a));
 	// Take the tail because the first one is 'noze'
-	return CommandLineArgs(getPathToThisExecutable(alloc, allSymbols), args.tail, getEnviron(alloc));
+	return CommandLineArgs(getPathToThisExecutable(alloc), args.tail, getEnviron(alloc));
 }
 
-@trusted immutable(AbsolutePath) getCwd(Alloc, SymAlloc)(ref Alloc alloc, ref AllSymbols!SymAlloc allSymbols) {
+@trusted immutable(Str) getCwd(Alloc)(ref Alloc alloc) {
 	char[maxPathSize] buff;
 	char* b = getcwd(buff.ptr, maxPathSize);
 	if (b == null)
-		return todo!AbsolutePath("getcwd failed");
+		return todo!Str("getcwd failed");
 	else {
 		assert(b == buff.ptr);
-		return parseAbsolutePath(alloc, allSymbols, copyCStrToStr(alloc, cast(immutable) buff.ptr));
+		return copyCStrToStr(alloc, cast(immutable) buff.ptr);
 	}
 }
 
 @trusted immutable(Environ) getEnviron(Alloc)(ref Alloc alloc) {
 	ArrBuilder!(KeyValuePair!(Str, Str)) res;
-	for (immutable(char*)* env = environ; *env != null; env++)
-		res.add(alloc, parseEnvironEntry(*env));
-	return res.finishArr(alloc);
+	for (immutable(char*)* env = cast(immutable) environ; *env != null; env++)
+		add(alloc, res, parseEnvironEntry(*env));
+	return finishArr(alloc, res);
 }
 
 private:
 
-@system int tryOpen(immutable AbsolutePath path, immutable string extension, immutable int flags, immutable int moreFlags) {
-	StackAlloc temp;
-	immutable int fd = open(pathToCStr(temp, path, extension), flags, moreFlags);
+alias PathAlloc = StackAlloc!("temp path", 1024);
+
+@system int tryOpen(immutable AbsolutePath path, immutable int flags, immutable int moreFlags) {
+	PathAlloc temp;
+	immutable int fd = open(pathToCStr(temp, path), flags, moreFlags);
 	if (fd == -1)
 		todo!void("can't write to file");
 	return fd;
@@ -263,15 +263,12 @@ immutable(CStr) copyCStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
 
 immutable size_t maxPathSize = 1024;
 
-@trusted immutable(AbsolutePath) getPathToThisExecutable(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
-) {
+@trusted immutable(Str) getPathToThisExecutable(Alloc)(ref Alloc alloc) {
 	char[maxPathSize] buff;
 	immutable ssize_t size = readlink("/proc/self/exe", buff.ptr, maxPathSize);
 	if (size < 0)
 		todo!void("posix error");
-	return parseAbsolutePath(alloc, allSymbols, copyStr(alloc, immutable Str(cast(immutable) buff.ptr, safeSizeTFromSSizeT(size))));
+	return copyStr(alloc, immutable Str(cast(immutable) buff.ptr, safeSizeTFromSSizeT(size)));
 }
 
 // Return should be const, but some posix functions aren't marked that way
@@ -279,11 +276,11 @@ immutable size_t maxPathSize = 1024;
 	ArrBuilder!CStr cArgs;
 	// Make a mutable copy
 	immutable CStr executableCopy = copyCStr(alloc, executableCStr);
-	cArgs.add(alloc, executableCopy);
+	add(alloc, cArgs, executableCopy);
 	foreach (immutable Str arg; args.range)
-		cArgs.add(alloc, strToCStr(alloc, arg));
-	cArgs.add(alloc, null);
-	return cArgs.finishArr(alloc).begin;
+		add(alloc, cArgs, strToCStr(alloc, arg));
+	add(alloc, cArgs, null);
+	return finishArr(alloc, cArgs).begin;
 }
 
 @system immutable(CStr*) convertEnviron(Alloc)(ref Alloc alloc, immutable Environ environ) {
@@ -295,15 +292,15 @@ immutable size_t maxPathSize = 1024;
 			strLiteral("="),
 			pair.value,
 			strLiteral("\0")));
-		cEnviron.add(alloc, s.str.begin);
+		add(alloc, cEnviron, s.str.begin);
 	}
-	cEnviron.add(alloc, null);
-	return cEnviron.finishArr(alloc).begin;
+	add(alloc, cEnviron, null);
+	return finishArr(alloc, cEnviron).begin;
 }
 
 // D doesn't declare this anywhere for some reason
 extern(C) int execvpe(const char *__file, const char ** __argv, const char ** __envp);
-immutable char** environ;
+extern(C) extern immutable char** environ;
 
 // Copying from /usr/include/dmd/druntime/import/core/sys/posix/sys/wait.d
 // to avoid linking to druntime

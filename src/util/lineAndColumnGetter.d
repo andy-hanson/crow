@@ -38,17 +38,17 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForText(Alloc)(ref Alloc alloc
 	ArrBuilder!Pos lineToPos;
 	ArrBuilder!u8 lineToNTabs;
 
-	lineToPos.add(alloc, 0);
-	lineToNTabs.add(alloc, text.getNTabs);
+	add(alloc, lineToPos, 0);
+	add(alloc, lineToNTabs, text.getNTabs);
 
 	foreach (immutable u32 i; 0..text.size.safeSizeTToU32) {
 		if (text.at(i) == '\n') {
-			lineToPos.add(alloc, i + 1);
-			lineToNTabs.add(alloc, text.slice(i + 1).getNTabs);
+			add(alloc, lineToPos, i + 1);
+			add(alloc, lineToNTabs, text.slice(i + 1).getNTabs);
 		}
 	}
 
-	return LineAndColumnGetter(lineToPos.finishArr(alloc), lineToNTabs.finishArr(alloc));
+	return LineAndColumnGetter(finishArr(alloc, lineToPos), finishArr(alloc, lineToNTabs));
 }
 
 immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(Alloc)(ref Alloc alloc) {

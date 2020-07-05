@@ -2,10 +2,12 @@ module util.writer;
 
 @safe @nogc pure nothrow:
 
+import util.bools : Bool;
 import util.ptr : Ptr;
-import util.collection.arr : Arr, at, size;
-import util.collection.arrBuilder : ArrBuilder, finishArr;
-import util.collection.str : Str, strLiteral;
+import util.collection.arr : Arr, at, begin, range, size;
+import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.collection.str : CStr, Str, strLiteral;
+import util.types : u16;
 
 struct Writer(Alloc) {
 	private:
@@ -17,20 +19,20 @@ Str finish(Alloc)(ref Writer!Alloc writer) {
 	return writer.res.finishArr;
 }
 
-CStr finishToCStr(Alloc)(ref Writer!Alloc writer) {
-	writer.res.push('\0');
-	return writer.res.finishArr.begin;
+@trusted CStr finishToCStr(Alloc)(ref Writer!Alloc writer) {
+	add(writer.alloc, writer.res, '\0');
+	return begin(finishArr(writer.alloc, writer.res));
 }
 
 //TODO:KILL
 void writeChar(Alloc)(ref Writer!Alloc writer, immutable char c) {
-	writer.res.push(c);
+	add(writer.alloc, writer.res, c);
 }
 void writeStr(Alloc)(ref Writer!Alloc writer, immutable Str s) {
-	foreach (immutable char c; s)
+	foreach (immutable char c; s.range)
 		writeChar(writer, c);
 }
-void writeStatic(Alloc)(ref Writer!Alloc writer, immutable char* c) {
+void writeStatic(Alloc)(ref Writer!Alloc writer, immutable string c) {
 	writeStr(writer, strLiteral(c));
 }
 
@@ -50,7 +52,10 @@ void writeBool(Alloc)(ref Writer!Alloc writer, immutable Bool b) {
 	writeStatic(writer, b ? "true" : "false");
 }
 
-void writeWithCommas(Alloc, T, alias cb)(ref Writer!Alloc writer, immutable Arr!T a) {
+void writeWithCommas(Alloc, T)(
+	ref Writer!Alloc writer,
+	immutable Arr!T a,
+	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,) {
 	foreach (immutable size_t i; 0..a.size) {
 		if (i != 0)
 			writeStatic(writer, ", ");
@@ -125,8 +130,8 @@ void writeHyperlink(Alloc)(ref Writer!Alloc writer, immutable Str url, immutable
 }
 
 struct WriterWithIndent(Alloc) {
-	private:
 	Ptr!(Writer!Alloc) writer;
+	private:
 	u16 indent = 0;
 }
 
@@ -159,8 +164,8 @@ void writeChar(Alloc)(ref WriterWithIndent!Alloc writer, immutable char c) {
 	writer.writer.writeChar(c);
 }
 
-void writeStatic(Alloc)(ref WriterWithIndent!Alloc writer, immutable CStr text) {
-	writer.writer.writeStatic(text);
+void writeStatic(Alloc)(ref WriterWithIndent!Alloc writer, immutable string text) {
+	writeStatic(writer.writer, text);
 }
 
 void writeStr(Alloc)(ref WriterWithIndent!Alloc writer, immutable Str s) {

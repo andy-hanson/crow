@@ -71,7 +71,7 @@ struct Diag {
 	struct CommonTypesMissing {}
 	struct CreateArrNoExpectedType {}
 	struct CreateRecordByRefNoCtx {
-		immutable Ptr!StructDecl strukt;
+		immutable Ptr!StructDecl struct_;
 	}
 	struct CreateRecordMultiLineWrongFields {
 		immutable Ptr!StructDecl decl;
@@ -165,7 +165,7 @@ struct Diag {
 	struct SpecBuiltinNotSatisfied {
 		immutable SpecBody.Builtin.Kind kind;
 		immutable Type type;
-		immutable FunDecl* called;
+		immutable Ptr!FunDecl called;
 	}
 	struct SpecImplNotFound {
 		immutable Sym sigName;
@@ -290,45 +290,170 @@ struct Diag {
 	}
 
 	public:
-	@trusted this(immutable CallMultipleMatches a) { kind = Kind.callMultipleMatches; callMultipleMatches = a; }
-	@trusted this(immutable CallNoMatch a) { kind = Kind.callNoMatch; callNoMatch = a; }
-	@trusted this(immutable CantCall a) { kind = Kind.cantCall; cantCall = a; }
-	@trusted this(immutable CantCreateNonRecordType a) { kind = Kind.cantCreateNonRecordType; cantCreateNonRecordType = a; }
-	@trusted this(immutable CantCreateRecordWithoutExpectedType a) { kind = Kind.cantCreateRecordWithoutExpectedType; cantCreateRecordWithoutExpectedType = a; }
-	@trusted this(immutable CantInferTypeArguments a) { kind = Kind.cantInferTypeArguments; cantInferTypeArguments = a; }
-	@trusted this(immutable CircularImport a) { kind = Kind.circularImport; circularImport = a; }
-	@trusted this(immutable CommonTypesMissing a) { kind = Kind.commonTypesMissing; commonTypesMissing = a; }
-	@trusted this(immutable CreateArrNoExpectedType a) { kind = Kind.createArrNoExpectedType; createArrNoExpectedType = a; }
-	@trusted this(immutable CreateRecordByRefNoCtx a) { kind = Kind.createRecordByRefNoCtx; createRecordByRefNoCtx = a; }
-	@trusted this(immutable CreateRecordMultiLineWrongFields a) { kind = Kind.createRecordMultiLineWrongFields; createRecordMultiLineWrongFields = a; }
-	@trusted this(immutable DuplicateDeclaration a) { kind = Kind.duplicateDeclaration; duplicateDeclaration = a; }
-	@trusted this(immutable DuplicateImports a) { kind = Kind.duplicateImports; duplicateImports = a; }
-	@trusted this(immutable ExpectedTypeIsNotALambda a) { kind = Kind.expectedTypeIsNotALambda; expectedTypeIsNotALambda = a; }
-	@trusted this(immutable FileDoesNotExist a) { kind = Kind.fileDoesNotExist; fileDoesNotExist = a; }
-	@trusted this(immutable LambdaCantInferParamTypes a) { kind = Kind.lambdaCantInferParamTypes; lambdaCantInferParamTypes = a; }
-	@trusted this(immutable LambdaClosesOverMut a) { kind = Kind.lambdaClosesOverMut; lambdaClosesOverMut = a; }
-	@trusted this(immutable LambdaForFunPtrHasClosure a) { kind = Kind.lambdaForFunPtrHasClosure; lambdaForFunPtrHasClosure = a; }
-	@trusted this(immutable LocalShadowsPrevious a) { kind = Kind.localShadowsPrevious; localShadowsPrevious = a; }
-	@trusted this(immutable MatchCaseStructNamesDoNotMatch a) { kind = Kind.matchCaseStructNamesDoNotMatch; matchCaseStructNamesDoNotMatch = a; }
-	@trusted this(immutable MatchOnNonUnion a) { kind = Kind.matchOnNonUnion; matchOnNonUnion = a; }
-	@trusted this(immutable MutFieldNotAllowed a) { kind = Kind.mutFieldNotAllowed; mutFieldNotAllowed = a; }
-	@trusted this(immutable NameNotFound a) { kind = Kind.nameNotFound; nameNotFound = a; }
-	@trusted this(immutable ParamShadowsPrevious a) { kind = Kind.paramShadowsPrevious; paramShadowsPrevious = a; }
-	@trusted this(immutable ParseDiag a) { kind = Kind.parseDiag; parseDiag = a; }
-	@trusted this(immutable PurityOfFieldWorseThanRecord a) { kind = Kind.purityOfFieldWorseThanRecord; purityOfFieldWorseThanRecord = a; }
-	@trusted this(immutable PurityOfMemberWorseThanUnion a) { kind = Kind.purityOfMemberWorseThanUnion; purityOfMemberWorseThanUnion = a; }
-	@trusted this(immutable RelativeImportReachesPastRoot a) { kind = Kind.relativeImportReachesPastRoot; relativeImportReachesPastRoot = a; }
-	@trusted this(immutable SendFunDoesNotReturnFut a) { kind = Kind.sendFunDoesNotReturnFut; sendFunDoesNotReturnFut = a; }
-	@trusted this(immutable SpecBuiltinNotSatisfied a) { kind = Kind.specBuiltinNotSatisfied; specBuiltinNotSatisfied = a; }
-	@trusted this(immutable SpecImplHasSpecs a) { kind = Kind.specImplHasSpecs; specImplHasSpecs = a; }
-	@trusted this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
-	@trusted this(immutable TypeConflict a) { kind = Kind.typeConflict; typeConflict = a; }
-	@trusted this(immutable TypeNotSendable a) { kind = Kind.typeNotSendable; typeNotSendable = a; }
-	@trusted this(immutable WriteToNonExistentField a) { kind = Kind.writeToNonExistentField; writeToNonExistentField = a; }
-	@trusted this(immutable WriteToNonMutableField a) { kind = Kind.writeToNonMutableField; writeToNonMutableField = a; }
-	@trusted this(immutable WrongNumberNewStructArgs a) { kind = Kind.wrongNumberNewStructArgs; wrongNumberNewStructArgs = a; }
-	@trusted this(immutable WrongNumberTypeArgsForSpec a) { kind = Kind.wrongNumberTypeArgsForSpec; wrongNumberTypeArgsForSpec = a; }
-	@trusted this(immutable WrongNumberTypeArgsForStruct a) { kind = Kind.wrongNumberTypeArgsForStruct; wrongNumberTypeArgsForStruct = a; }
+	@trusted immutable this(immutable CallMultipleMatches a) { kind = Kind.callMultipleMatches; callMultipleMatches = a; }
+	@trusted immutable this(immutable CallNoMatch a) { kind = Kind.callNoMatch; callNoMatch = a; }
+	@trusted immutable this(immutable CantCall a) { kind = Kind.cantCall; cantCall = a; }
+	@trusted immutable this(immutable CantCreateNonRecordType a) { kind = Kind.cantCreateNonRecordType; cantCreateNonRecordType = a; }
+	@trusted immutable this(immutable CantCreateRecordWithoutExpectedType a) { kind = Kind.cantCreateRecordWithoutExpectedType; cantCreateRecordWithoutExpectedType = a; }
+	@trusted immutable this(immutable CantInferTypeArguments a) { kind = Kind.cantInferTypeArguments; cantInferTypeArguments = a; }
+	@trusted immutable this(immutable CircularImport a) { kind = Kind.circularImport; circularImport = a; }
+	@trusted immutable this(immutable CommonTypesMissing a) { kind = Kind.commonTypesMissing; commonTypesMissing = a; }
+	@trusted immutable this(immutable CreateArrNoExpectedType a) { kind = Kind.createArrNoExpectedType; createArrNoExpectedType = a; }
+	@trusted immutable this(immutable CreateRecordByRefNoCtx a) { kind = Kind.createRecordByRefNoCtx; createRecordByRefNoCtx = a; }
+	@trusted immutable this(immutable CreateRecordMultiLineWrongFields a) { kind = Kind.createRecordMultiLineWrongFields; createRecordMultiLineWrongFields = a; }
+	@trusted immutable this(immutable DuplicateDeclaration a) { kind = Kind.duplicateDeclaration; duplicateDeclaration = a; }
+	@trusted immutable this(immutable DuplicateImports a) { kind = Kind.duplicateImports; duplicateImports = a; }
+	@trusted immutable this(immutable ExpectedTypeIsNotALambda a) { kind = Kind.expectedTypeIsNotALambda; expectedTypeIsNotALambda = a; }
+	@trusted immutable this(immutable FileDoesNotExist a) { kind = Kind.fileDoesNotExist; fileDoesNotExist = a; }
+	@trusted immutable this(immutable LambdaCantInferParamTypes a) { kind = Kind.lambdaCantInferParamTypes; lambdaCantInferParamTypes = a; }
+	@trusted immutable this(immutable LambdaClosesOverMut a) { kind = Kind.lambdaClosesOverMut; lambdaClosesOverMut = a; }
+	@trusted immutable this(immutable LambdaForFunPtrHasClosure a) { kind = Kind.lambdaForFunPtrHasClosure; lambdaForFunPtrHasClosure = a; }
+	@trusted immutable this(immutable LocalShadowsPrevious a) { kind = Kind.localShadowsPrevious; localShadowsPrevious = a; }
+	@trusted immutable this(immutable MatchCaseStructNamesDoNotMatch a) { kind = Kind.matchCaseStructNamesDoNotMatch; matchCaseStructNamesDoNotMatch = a; }
+	@trusted immutable this(immutable MatchOnNonUnion a) { kind = Kind.matchOnNonUnion; matchOnNonUnion = a; }
+	@trusted immutable this(immutable MutFieldNotAllowed a) { kind = Kind.mutFieldNotAllowed; mutFieldNotAllowed = a; }
+	@trusted immutable this(immutable NameNotFound a) { kind = Kind.nameNotFound; nameNotFound = a; }
+	@trusted immutable this(immutable ParamShadowsPrevious a) { kind = Kind.paramShadowsPrevious; paramShadowsPrevious = a; }
+	@trusted immutable this(immutable ParseDiag a) { kind = Kind.parseDiag; parseDiag = a; }
+	@trusted immutable this(immutable PurityOfFieldWorseThanRecord a) { kind = Kind.purityOfFieldWorseThanRecord; purityOfFieldWorseThanRecord = a; }
+	@trusted immutable this(immutable PurityOfMemberWorseThanUnion a) { kind = Kind.purityOfMemberWorseThanUnion; purityOfMemberWorseThanUnion = a; }
+	@trusted immutable this(immutable RelativeImportReachesPastRoot a) { kind = Kind.relativeImportReachesPastRoot; relativeImportReachesPastRoot = a; }
+	@trusted immutable this(immutable SendFunDoesNotReturnFut a) { kind = Kind.sendFunDoesNotReturnFut; sendFunDoesNotReturnFut = a; }
+	@trusted immutable this(immutable SpecBuiltinNotSatisfied a) { kind = Kind.specBuiltinNotSatisfied; specBuiltinNotSatisfied = a; }
+	@trusted immutable this(immutable SpecImplHasSpecs a) { kind = Kind.specImplHasSpecs; specImplHasSpecs = a; }
+	@trusted immutable this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
+	@trusted immutable this(immutable TypeConflict a) { kind = Kind.typeConflict; typeConflict = a; }
+	@trusted immutable this(immutable TypeNotSendable a) { kind = Kind.typeNotSendable; typeNotSendable = a; }
+	@trusted immutable this(immutable WriteToNonExistentField a) { kind = Kind.writeToNonExistentField; writeToNonExistentField = a; }
+	@trusted immutable this(immutable WriteToNonMutableField a) { kind = Kind.writeToNonMutableField; writeToNonMutableField = a; }
+	@trusted immutable this(immutable WrongNumberNewStructArgs a) { kind = Kind.wrongNumberNewStructArgs; wrongNumberNewStructArgs = a; }
+	@trusted immutable this(immutable WrongNumberTypeArgsForSpec a) { kind = Kind.wrongNumberTypeArgsForSpec; wrongNumberTypeArgsForSpec = a; }
+	@trusted immutable this(immutable WrongNumberTypeArgsForStruct a) { kind = Kind.wrongNumberTypeArgsForStruct; wrongNumberTypeArgsForStruct = a; }
+}
+
+
+@trusted immutable(Out) matchDiag(Out)(
+	immutable Diag a,
+	scope immutable(Out) delegate(ref immutable Diag.CallMultipleMatches) @safe @nogc pure nothrow cbCallMultipleMatches,
+	scope immutable(Out) delegate(ref immutable Diag.CallNoMatch) @safe @nogc pure nothrow cbCallNoMatch,
+	scope immutable(Out) delegate(ref immutable Diag.CantCall) @safe @nogc pure nothrow cbCantCall,
+	scope immutable(Out) delegate(ref immutable Diag.CantCreateNonRecordType) @safe @nogc pure nothrow cbCantCreateNonRecordType,
+	scope immutable(Out) delegate(ref immutable Diag.CantCreateRecordWithoutExpectedType) @safe @nogc pure nothrow cbCantCreateRecordWithoutExpectedType,
+	scope immutable(Out) delegate(ref immutable Diag.CantInferTypeArguments) @safe @nogc pure nothrow cbCantInferTypeArguments,
+	scope immutable(Out) delegate(ref immutable Diag.CircularImport) @safe @nogc pure nothrow cbCircularImport,
+	scope immutable(Out) delegate(ref immutable Diag.CommonTypesMissing) @safe @nogc pure nothrow cbCommonTypesMissing,
+	scope immutable(Out) delegate(ref immutable Diag.CreateArrNoExpectedType) @safe @nogc pure nothrow cbCreateArrNoExpectedType,
+	scope immutable(Out) delegate(ref immutable Diag.CreateRecordByRefNoCtx) @safe @nogc pure nothrow cbCreateRecordByRefNoCtx,
+	scope immutable(Out) delegate(ref immutable Diag.CreateRecordMultiLineWrongFields) @safe @nogc pure nothrow cbCreateRecordMultiLineWrongFields,
+	scope immutable(Out) delegate(ref immutable Diag.DuplicateDeclaration) @safe @nogc pure nothrow cbDuplicateDeclaration,
+	scope immutable(Out) delegate(ref immutable Diag.DuplicateImports) @safe @nogc pure nothrow cbDuplicateImports,
+	scope immutable(Out) delegate(ref immutable Diag.ExpectedTypeIsNotALambda) @safe @nogc pure nothrow cbExpectedTypeIsNotALambda,
+	scope immutable(Out) delegate(ref immutable Diag.FileDoesNotExist) @safe @nogc pure nothrow cbFileDoesNotExist,
+	scope immutable(Out) delegate(ref immutable Diag.LambdaCantInferParamTypes) @safe @nogc pure nothrow cbLambdaCantInferParamTypes,
+	scope immutable(Out) delegate(ref immutable Diag.LambdaClosesOverMut) @safe @nogc pure nothrow cbLambdaClosesOverMut,
+	scope immutable(Out) delegate(ref immutable Diag.LambdaForFunPtrHasClosure) @safe @nogc pure nothrow cbLambdaForFunPtrHasClosure,
+	scope immutable(Out) delegate(ref immutable Diag.LocalShadowsPrevious) @safe @nogc pure nothrow cbLocalShadowsPrevious,
+	scope immutable(Out) delegate(ref immutable Diag.MatchCaseStructNamesDoNotMatch) @safe @nogc pure nothrow cbMatchCaseStructNamesDoNotMatch,
+	scope immutable(Out) delegate(ref immutable Diag.MatchOnNonUnion) @safe @nogc pure nothrow cbMatchOnNonUnion,
+	scope immutable(Out) delegate(ref immutable Diag.MutFieldNotAllowed) @safe @nogc pure nothrow cbMutFieldNotAllowed,
+	scope immutable(Out) delegate(ref immutable Diag.NameNotFound) @safe @nogc pure nothrow cbNameNotFound,
+	scope immutable(Out) delegate(ref immutable Diag.ParamShadowsPrevious) @safe @nogc pure nothrow cbParamShadowsPrevious,
+	scope immutable(Out) delegate(ref immutable ParseDiag) @safe @nogc pure nothrow cbParseDiag,
+	scope immutable(Out) delegate(ref immutable Diag.PurityOfFieldWorseThanRecord) @safe @nogc pure nothrow cbPurityOfFieldWorseThanRecord,
+	scope immutable(Out) delegate(ref immutable Diag.PurityOfMemberWorseThanUnion) @safe @nogc pure nothrow cbPurityOfMemberWorseThanUnion,
+	scope immutable(Out) delegate(ref immutable Diag.RelativeImportReachesPastRoot) @safe @nogc pure nothrow cbRelativeImportReachesPastRoot,
+	scope immutable(Out) delegate(ref immutable Diag.SendFunDoesNotReturnFut) @safe @nogc pure nothrow cbSendFunDoesNotReturnFut,
+	scope immutable(Out) delegate(ref immutable Diag.SpecBuiltinNotSatisfied) @safe @nogc pure nothrow cbSpecBuiltinNotSatisfied,
+	scope immutable(Out) delegate(ref immutable Diag.SpecImplHasSpecs) @safe @nogc pure nothrow cbSpecImplHasSpecs,
+	scope immutable(Out) delegate(ref immutable Diag.SpecImplNotFound) @safe @nogc pure nothrow cbSpecImplNotFound,
+	scope immutable(Out) delegate(ref immutable Diag.TypeConflict) @safe @nogc pure nothrow cbTypeConflict,
+	scope immutable(Out) delegate(ref immutable Diag.TypeNotSendable) @safe @nogc pure nothrow cbTypeNotSendable,
+	scope immutable(Out) delegate(ref immutable Diag.WriteToNonExistentField) @safe @nogc pure nothrow cbWriteToNonExistentField,
+	scope immutable(Out) delegate(ref immutable Diag.WriteToNonMutableField) @safe @nogc pure nothrow cbWriteToNonMutableField,
+	scope immutable(Out) delegate(ref immutable Diag.WrongNumberNewStructArgs) @safe @nogc pure nothrow cbWrongNumberNewStructArgs,
+	scope immutable(Out) delegate(ref immutable Diag.WrongNumberTypeArgsForSpec) @safe @nogc pure nothrow cbWrongNumberTypeArgsForSpec,
+	scope immutable(Out) delegate(ref immutable Diag.WrongNumberTypeArgsForStruct) @safe @nogc pure nothrow cbWrongNumberTypeArgsForStruct,
+) {
+	final switch (a.kind) {
+		case Diag.Kind.callMultipleMatches:
+			return cbCallMultipleMatches(a.callMultipleMatches);
+		case Diag.Kind.callNoMatch:
+			return cbCallNoMatch(a.callNoMatch);
+		case Diag.Kind.cantCall:
+			return cbCantCall(a.cantCall);
+		case Diag.Kind.cantCreateNonRecordType:
+			return cbCantCreateNonRecordType(a.cantCreateNonRecordType);
+		case Diag.Kind.cantCreateRecordWithoutExpectedType:
+			return cbCantCreateRecordWithoutExpectedType(a.cantCreateRecordWithoutExpectedType);
+		case Diag.Kind.cantInferTypeArguments:
+			return cbCantInferTypeArguments(a.cantInferTypeArguments);
+		case Diag.Kind.circularImport:
+			return cbCircularImport(a.circularImport);
+		case Diag.Kind.commonTypesMissing:
+			return cbCommonTypesMissing(a.commonTypesMissing);
+		case Diag.Kind.createArrNoExpectedType:
+			return cbCreateArrNoExpectedType(a.createArrNoExpectedType);
+		case Diag.Kind.createRecordByRefNoCtx:
+			return cbCreateRecordByRefNoCtx(a.createRecordByRefNoCtx);
+		case Diag.Kind.createRecordMultiLineWrongFields:
+			return cbCreateRecordMultiLineWrongFields(a.createRecordMultiLineWrongFields);
+		case Diag.Kind.duplicateDeclaration:
+			return cbDuplicateDeclaration(a.duplicateDeclaration);
+		case Diag.Kind.duplicateImports:
+			return cbDuplicateImports(a.duplicateImports);
+		case Diag.Kind.expectedTypeIsNotALambda:
+			return cbExpectedTypeIsNotALambda(a.expectedTypeIsNotALambda);
+		case Diag.Kind.fileDoesNotExist:
+			return cbFileDoesNotExist(a.fileDoesNotExist);
+		case Diag.Kind.lambdaCantInferParamTypes:
+			return cbLambdaCantInferParamTypes(a.lambdaCantInferParamTypes);
+		case Diag.Kind.lambdaClosesOverMut:
+			return cbLambdaClosesOverMut(a.lambdaClosesOverMut);
+		case Diag.Kind.lambdaForFunPtrHasClosure:
+			return cbLambdaForFunPtrHasClosure(a.lambdaForFunPtrHasClosure);
+		case Diag.Kind.localShadowsPrevious:
+			return cbLocalShadowsPrevious(a.localShadowsPrevious);
+		case Diag.Kind.matchCaseStructNamesDoNotMatch:
+			return cbMatchCaseStructNamesDoNotMatch(a.matchCaseStructNamesDoNotMatch);
+		case Diag.Kind.matchOnNonUnion:
+			return cbMatchOnNonUnion(a.matchOnNonUnion);
+		case Diag.Kind.mutFieldNotAllowed:
+			return cbMutFieldNotAllowed(a.mutFieldNotAllowed);
+		case Diag.Kind.nameNotFound:
+			return cbNameNotFound(a.nameNotFound);
+		case Diag.Kind.paramShadowsPrevious:
+			return cbParamShadowsPrevious(a.paramShadowsPrevious);
+		case Diag.Kind.parseDiag:
+			return cbParseDiag(a.parseDiag);
+		case Diag.Kind.purityOfFieldWorseThanRecord:
+			return cbPurityOfFieldWorseThanRecord(a.purityOfFieldWorseThanRecord);
+		case Diag.Kind.purityOfMemberWorseThanUnion:
+			return cbPurityOfMemberWorseThanUnion(a.purityOfMemberWorseThanUnion);
+		case Diag.Kind.relativeImportReachesPastRoot:
+			return cbRelativeImportReachesPastRoot(a.relativeImportReachesPastRoot);
+		case Diag.Kind.sendFunDoesNotReturnFut:
+			return cbSendFunDoesNotReturnFut(a.sendFunDoesNotReturnFut);
+		case Diag.Kind.specBuiltinNotSatisfied:
+			return cbSpecBuiltinNotSatisfied(a.specBuiltinNotSatisfied);
+		case Diag.Kind.specImplHasSpecs:
+			return cbSpecImplHasSpecs(a.specImplHasSpecs);
+		case Diag.Kind.specImplNotFound:
+			return cbSpecImplNotFound(a.specImplNotFound);
+		case Diag.Kind.typeConflict:
+			return cbTypeConflict(a.typeConflict);
+		case Diag.Kind.typeNotSendable:
+			return cbTypeNotSendable(a.typeNotSendable);
+		case Diag.Kind.writeToNonExistentField:
+			return cbWriteToNonExistentField(a.writeToNonExistentField);
+		case Diag.Kind.writeToNonMutableField:
+			return cbWriteToNonMutableField(a.writeToNonMutableField);
+		case Diag.Kind.wrongNumberNewStructArgs:
+			return cbWrongNumberNewStructArgs(a.wrongNumberNewStructArgs);
+		case Diag.Kind.wrongNumberTypeArgsForSpec:
+			return cbWrongNumberTypeArgsForSpec(a.wrongNumberTypeArgsForSpec);
+		case Diag.Kind.wrongNumberTypeArgsForStruct:
+			return cbWrongNumberTypeArgsForStruct(a.wrongNumberTypeArgsForStruct);
+	}
 }
 
 struct PathAndStorageKindAndRange {

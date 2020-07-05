@@ -1,0 +1,74 @@
+import .bootstrap .posix
+
+exception-ctx record mut
+	jmp-buf-ptr mut jmp-buf
+	thrown-exception mut exception
+
+new-exception-ctx by-val exception-ctx() noctx unsafe
+	| Nothing on the exception-ctx initially
+	new null, new ""
+
+get-exception-ctx exception-ctx() unsafe
+	get-ctx.exception-ctx-ptr as-ref<exception-ctx>
+
+number-to-throw int32()
+	seven
+
+throw ?t(e exception) trusted
+	exn-ctx = get-exception-ctx
+	hard-forbid: exn-ctx.jmp-buf-ptr == null
+	exn-ctx.thrown-exception := e
+	exn-ctx.jmp-buf-ptr longjmp number-to-throw
+	| Unreachable
+	todo
+
+catch result ?t exception(try fun-mut0 ?t)
+	{try.call ok} catch {it err}
+
+catch ?t(try fun-mut0 ?t, catcher fun-mut1 ?t exception) trusted
+	get-exception-ctx catch-with-exception-ctx try, catcher
+
+catch-with-exception-ctx ?t(ec exception-ctx, try fun-mut0 ?t, catcher fun-mut1 ?t exception) unsafe
+	old-thrown-exception = ec thrown-exception
+	old-jmp-buf = ec jmp-buf-ptr
+	store = new<jmp-buf-tag> zero, zero, zero
+	ec.jmp-buf-ptr := store ptr-to
+	setjmp-result = ec.jmp-buf-ptr setjmp
+	when
+		setjmp-result == zero
+			| Get here after setting the jump.
+			| If it throws, we'll go to the above branch.
+			res = try call
+			ec.jmp-buf-ptr := old-jmp-buf
+			ec.thrown-exception := old-thrown-exception
+			res
+		else
+			| This is what we threw in 'throw'
+			assert: setjmp-result == number-to-throw
+			| Get here if we throw inside of `try`
+			thrown-exception = ec thrown-exception
+			| NOTE: changing thrown-exception back probably isn't really necessary
+			ec.jmp-buf-ptr := old-jmp-buf
+			ec.thrown-exception := old-thrown-exception
+			catcher call thrown-exception
+
+
+
+
+fail ?t(reason str)
+	throw: new reason
+
+assert void(condition bool)
+	condition assert "assert failed"
+
+assert-unreachable ?t()
+	"should be unreachable" fail
+
+assert void(condition bool, message str)
+	condition if pass, message.fail
+
+forbid void(condition bool)
+	condition forbid "forbid failed"
+
+forbid void(condition bool, message str)
+	condition if message.fail, pass

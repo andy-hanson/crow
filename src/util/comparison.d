@@ -5,6 +5,8 @@ module util.comparison;
 import util.bools : Bool;
 import util.ptr : Ptr;
 
+alias Comparer(T) = immutable(Comparison) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow;
+
 enum Comparison {
 	less,
 	equal,

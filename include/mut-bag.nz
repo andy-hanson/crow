@@ -1,0 +1,25 @@
+import .bootstrap
+
+| NOTE: currently this is a linked list, but we actually want to pseudorandomly take out nodes.
+
+mut-bag-node<?t> record mut
+	value ?t
+	next-node mut opt mut-bag-node<?t>
+
+| Expose construction of nodes, because it's better to do this outside of a lock
+new-mut-bag-node mut-bag-node ?t(value ?t)
+	new value, none
+
+mut-bag<?t> record mut
+	head mut opt mut-bag-node<?t>
+
+new-mut-bag by-val mut-bag<?t>() noctx
+	new none
+
+add void(bag mut-bag ?t, node mut-bag-node ?t) noctx
+	| TODO: insert randomly somewhere
+	node.next-node := bag.head
+	bag.head := node some
+
+empty? bool(m mut-bag ?t) noctx
+	m.head empty?

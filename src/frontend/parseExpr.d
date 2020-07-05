@@ -18,8 +18,8 @@ import frontend.ast :
 	LambdaAst,
 	LetAst,
 	LiteralAst,
-	matchAst,
 	MatchAst,
+	matchExprAstKind,
 	NameAndRange,
 	RecordFieldSetAst,
 	SeqAst,
@@ -122,10 +122,10 @@ immutable(ArgsAndMaybeDedent) parseArgsRecur(Alloc, SymAlloc)(
 	ref ArrBuilder!ExprAst args,
 ) {
 	immutable ExprAndMaybeDedent ad = parseExprArg(alloc, lexer, ctx);
-	args.add(alloc, ad.expr);
+	add(alloc, args, ad.expr);
 	return !ad.dedents.has && lexer.tryTake(", ")
 		? parseArgsRecur(alloc, lexer, ctx, args)
-		: ArgsAndMaybeDedent(args.finishArr(alloc), ad.dedents);
+		: ArgsAndMaybeDedent(finishArr(alloc, args), ad.dedents);
 }
 
 immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
@@ -214,7 +214,8 @@ immutable(Bool) someInOwnBody(
 		return someInOwnBody(sub, cb);
 	}
 
-	return body_.kind.matchAst!(immutable Bool)(
+	return matchExprAstKind!(immutable Bool)(
+		body_.kind,
 		(scope ref immutable CallAst e) => e.args.exists(&recur),
 		(scope ref immutable CondAst) => unreachable!(immutable Bool),
 		(scope ref immutable CreateArrAst e) => e.args.exists(&recur),
@@ -276,12 +277,12 @@ immutable(ExprAndMaybeDedent) parseMatch(Alloc, SymAlloc)(
 					return some(local);
 				}();
 			immutable ExprAndDedent ed = parseStatementsAndDedent(alloc, lexer);
-			cases.add(alloc, immutable MatchAst.CaseAst(lexer.range(startCase), structName, localName, allocExpr(alloc, ed.expr)));
+			add(alloc, cases, immutable MatchAst.CaseAst(lexer.range(startCase), structName, localName, allocExpr(alloc, ed.expr)));
 			if (ed.dedents != 0)
 				return ed.dedents - 1;
 		}
 	}();
-	immutable MatchAst match = MatchAst(matched, cases.finishArr(alloc));
+	immutable MatchAst match = MatchAst(matched, finishArr(alloc, cases));
 	return ExprAndMaybeDedent(
 		ExprAst(lexer.range(start), ExprAstKind(match)),
 		some(matchDedents));
@@ -298,10 +299,10 @@ immutable(ExprAndMaybeDedent) parseMultiLineNew(Alloc, SymAlloc)(
 		immutable NameAndRange name = lexer.takeNameAndRange();
 		lexer.take(". ");
 		immutable ExprAndDedent ed = parseExprNoLet(alloc, lexer);
-		lines.add(alloc, immutable CreateRecordMultiLineAst.Line(name, ed.expr));
+		add(alloc, lines, immutable CreateRecordMultiLineAst.Line(name, ed.expr));
 		if (ed.dedents != 0)
 			return ExprAndMaybeDedent(
-				ExprAst(lexer.range(start), ExprAstKind(CreateRecordMultiLineAst(type, lines.finishArr(alloc)))),
+				ExprAst(lexer.range(start), ExprAstKind(CreateRecordMultiLineAst(type, finishArr(alloc, lines)))),
 				some(ed.dedents - 1));
 	}
 }
@@ -317,10 +318,10 @@ immutable(ExprAndMaybeDedent) parseMultiLineNewArr(Alloc, SymAlloc)(
 		// Each line must begin with ". "
 		lexer.take(". ");
 		immutable ExprAndDedent ed = parseExprNoLet(alloc, lexer);
-		args.add(alloc, ed.expr);
+		add(alloc, args, ed.expr);
 		if (ed.dedents != 0)
 			return ExprAndMaybeDedent(
-				ExprAst(lexer.range(start), ExprAstKind(CreateArrAst(type, args.finishArr(alloc)))));
+				ExprAst(lexer.range(start), ExprAstKind(CreateArrAst(type, finishArr(alloc, args)))));
 	}
 }
 
@@ -412,10 +413,10 @@ immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
 		else
 			lexer.take(' ');
 		immutable NameAndRange nr = lexer.takeNameAndRange();
-		parameters.add(alloc, LambdaAst.Param(nr.range, nr.name));
+		add(alloc, parameters, LambdaAst.Param(nr.range, nr.name));
 	}
 	immutable ExprAndDedent bodyAndDedent = parseStatementsAndDedent(alloc, lexer);
-	immutable LambdaAst lambda = LambdaAst(parameters.finishArr(alloc), allocExpr(alloc, bodyAndDedent.expr));
+	immutable LambdaAst lambda = LambdaAst(finishArr(alloc, parameters), allocExpr(alloc, bodyAndDedent.expr));
 	return ExprAndMaybeDedent(
 		ExprAst(lexer.range(start), ExprAstKind(lambda)),
 		some!size_t(bodyAndDedent.dedents));

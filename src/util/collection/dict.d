@@ -31,24 +31,16 @@ immutable(Opt!(Ptr!V)) getAt_ptr(K, V, alias cmp)(ref immutable Dict!(K, V, cmp)
 }
 
 immutable(Bool) hasKey(K, V, alias cmp)(ref immutable Dict!(K, V, cmp) d, immutable K key) {
-	immutable Opt!V opt = d.getAt(key);
+	immutable Opt!V opt = getAt(d, key);
 	return opt.has;
 }
 
 immutable(V) mustGetAt(K, V, alias cmp)(ref immutable Dict!(K, V, cmp) d, immutable K key) {
-	immutable Opt!V opt = d.getAt(key);
+	immutable Opt!V opt = getAt(d, key);
 	return opt.force;
 }
 
 immutable(Ptr!V) mustGetAt_ptr(K, V, alias cmp)(ref immutable Dict!(K, V, cmp) d, immutable K key) {
 	immutable Opt!(Ptr!V) opt = d.getAt_ptr(key);
 	return opt.force;
-}
-
-struct MultiDict(K, V, alias cmp) {
-	immutable Dict!(K, Arr!V, cmp) inner;
-}
-
-immutable(Arr!V) multiDictGetAt(K, V, alias cmp)(immutable MultiDict!(K, V, cmp) d, immutable K key) {
-	return d.inner.getAt(key).optOr(() => emptyArr!V);
 }

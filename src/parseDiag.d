@@ -77,25 +77,25 @@ struct ParseDiag {
 	}
 
 	public:
-	this(immutable ExpectedCharacter a) { kind = Kind.expectedCharacter; expectedCharacter = a; }
-	this(immutable ExpectedDedent a) { kind = Kind.expectedDedent; expectedDedent = a; }
-	this(immutable ExpectedIndent a) { kind = Kind.expectedIndent; expectedIndent = a; }
-	this(immutable ExpectedPurityAfterSpace a) { kind = Kind.expectedPurityAfterSpace; expectedPurityAfterSpace = a; }
-	this(immutable IndentNotDivisible a) { kind = Kind.indentNotDivisible; indentNotDivisible = a; }
-	this(immutable IndentWrongCharacter a) { kind = Kind.indentWrongCharacter; indentWrongCharacter = a; }
-	this(immutable LetMustHaveThen a) { kind = Kind.letMustHaveThen; letMustHaveThen = a; }
-	this(immutable MatchWhenNewMayNotAppearInsideArg a) { kind = Kind.matchWhenNewMayNotAppearInsideArg; matchWhenNewMayNotAppearInsideArg = a; }
-	this(immutable MustEndInBlankLine a) { kind = Kind.mustEndInBlankLine; mustEndInBlankLine = a; }
-	this(immutable ReservedName a) { kind = Kind.reservedName; reservedName = a; }
-	this(immutable TypeParamCantHaveTypeArgs a) { kind = Kind.typeParamCantHaveTypeArgs; typeParamCantHaveTypeArgs = a; }
-	this(immutable UnexpectedCharacter a) { kind = Kind.unexpectedCharacter; unexpectedCharacter = a; }
-	this(immutable UnexpectedDedent a) { kind = Kind.unexpectedDedent; unexpectedDedent = a; }
-	this(immutable UnexpectedIndent a) { kind = Kind.unexpectedIndent; unexpectedIndent = a; }
-	this(immutable UnionCantBeEmpty a) { kind = Kind.unionCantBeEmpty; unionCantBeEmpty = a; }
-	this(immutable WhenMustHaveElse a) { kind = Kind.whenMustHaveElse; whenMustHaveElse = a; }
+	immutable this(immutable ExpectedCharacter a) { kind = Kind.expectedCharacter; expectedCharacter = a; }
+	immutable this(immutable ExpectedDedent a) { kind = Kind.expectedDedent; expectedDedent = a; }
+	immutable this(immutable ExpectedIndent a) { kind = Kind.expectedIndent; expectedIndent = a; }
+	immutable this(immutable ExpectedPurityAfterSpace a) { kind = Kind.expectedPurityAfterSpace; expectedPurityAfterSpace = a; }
+	immutable this(immutable IndentNotDivisible a) { kind = Kind.indentNotDivisible; indentNotDivisible = a; }
+	immutable this(immutable IndentWrongCharacter a) { kind = Kind.indentWrongCharacter; indentWrongCharacter = a; }
+	immutable this(immutable LetMustHaveThen a) { kind = Kind.letMustHaveThen; letMustHaveThen = a; }
+	immutable this(immutable MatchWhenNewMayNotAppearInsideArg a) { kind = Kind.matchWhenNewMayNotAppearInsideArg; matchWhenNewMayNotAppearInsideArg = a; }
+	immutable this(immutable MustEndInBlankLine a) { kind = Kind.mustEndInBlankLine; mustEndInBlankLine = a; }
+	immutable this(immutable ReservedName a) { kind = Kind.reservedName; reservedName = a; }
+	immutable this(immutable TypeParamCantHaveTypeArgs a) { kind = Kind.typeParamCantHaveTypeArgs; typeParamCantHaveTypeArgs = a; }
+	immutable this(immutable UnexpectedCharacter a) { kind = Kind.unexpectedCharacter; unexpectedCharacter = a; }
+	immutable this(immutable UnexpectedDedent a) { kind = Kind.unexpectedDedent; unexpectedDedent = a; }
+	immutable this(immutable UnexpectedIndent a) { kind = Kind.unexpectedIndent; unexpectedIndent = a; }
+	immutable this(immutable UnionCantBeEmpty a) { kind = Kind.unionCantBeEmpty; unionCantBeEmpty = a; }
+	immutable this(immutable WhenMustHaveElse a) { kind = Kind.whenMustHaveElse; whenMustHaveElse = a; }
 }
 
-T match(T)(
+T matchParseDiag(T)(
 	ref immutable ParseDiag a,
 	scope T delegate(ref immutable ParseDiag.ExpectedCharacter) @safe @nogc pure nothrow cbExpectedCharacter,
 	scope T delegate(ref immutable ParseDiag.ExpectedDedent) @safe @nogc pure nothrow cbExpectedDedent,
@@ -127,7 +127,7 @@ T match(T)(
 			return cbIndentNotDivisible(a.indentNotDivisible);
 		case ParseDiag.Kind.indentWrongCharacter:
 			return cbIndentWrongCharacter(a.indentWrongCharacter);
-		case ParseDiag.Kind.letMustHaveTrhen:
+		case ParseDiag.Kind.letMustHaveThen:
 			return cbLetMustHaveThen(a.letMustHaveThen);
 		case ParseDiag.Kind.matchWhenNewMayNotAppearInsideArg:
 			return cbMatchWhenNewMayNotAppearInsideArg(a.matchWhenNewMayNotAppearInsideArg);

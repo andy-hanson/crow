@@ -2,8 +2,593 @@ module frontend.showDiag;
 
 @safe @nogc nothrow: // not pure
 
-import diag : Diagnostics;
+import core.stdc.stdio : fprintf, stderr;
+
+import diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, PathAndStorageKindAndRange;
+import frontend.lang : nozeExtension;
+import model :
+	arity,
+	bestCasePurity,
+	CalledDecl,
+	comparePathAndStorageKind,
+	FunDecl,
+	getAbsolutePath,
+	match,
+	Module,
+	name,
+	nTypeParams,
+	Param,
+	Purity,
+	range,
+	RecordField,
+	sig,
+	Sig,
+	SpecBody,
+	SpecSig,
+	StructInst,
+	Type,
+	writeStructInst,
+	writeType;
+import parseDiag : matchParseDiag, ParseDiag;
+
+import util.alloc.stackAlloc : StackAlloc;
+import util.bools : and, Bool, not, or, True;
+import util.collection.arr : Arr, empty, only, range, size;
+import util.collection.arrUtil : exists, map, sort;
+import util.collection.dict : mustGetAt;
+import util.collection.str : emptyStr;
+import util.diff : diffSymbols;
+import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetter;
+import util.opt : force, has;
+import util.path : PathAndStorageKind, pathToStr;
+import util.ptr : Ptr, ptrTrustMe;
+import util.sourceRange : SourceRange;
+import util.sym : Sym;
+import util.util : todo;
+import util.writer :
+	finishToCStr,
+	writeBold,
+	writeChar,
+	writeHyperlink,
+	writeNat,
+	writeRed,
+	writeReset,
+	writeStatic,
+	writeWithCommas,
+	Writer;
+import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRange, writeRelPath;
 
 void printDiagnostics(immutable Diagnostics diagnostics) {
-	assert(0); // TODO
+	PrintAlloc alloc;
+	Writer!PrintAlloc writer = Writer!PrintAlloc(ptrTrustMe(alloc));
+	immutable Diags sorted = sort!(Diagnostic, PrintAlloc)(
+		alloc,
+		diagnostics.diagnostics,
+		(ref immutable Diagnostic a, ref immutable Diagnostic b) =>
+			// TOOD: sort by file position too
+			comparePathAndStorageKind(a.where.pathAndStorageKind, b.where.pathAndStorageKind));
+	foreach (ref immutable Diagnostic d; sorted.range)
+		showDiagnostic(writer, diagnostics.filesInfo, d);
+	printOutWriter(writer);
+}
+
+private:
+
+@trusted void printOutWriter(Alloc)(ref Writer!Alloc writer) {
+	fprintf(stderr, "%s", finishToCStr(writer));
+}
+
+pure:
+
+alias PrintAlloc = StackAlloc!("printDiagnostics", 1024);
+
+void writeWhere(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable FilesInfo fi,
+	ref immutable PathAndStorageKindAndRange where,
+) {
+	writeBold(writer);
+	alias TempAlloc = StackAlloc!("writeWhere", 1024);
+	TempAlloc temp;
+	writeHyperlink(
+		writer,
+		pathToStr(temp, getAbsolutePath(temp, fi.absolutePathsGetter, where.pathAndStorageKind, nozeExtension)),
+		pathToStr(temp, emptyStr, where.pathAndStorageKind.path, nozeExtension));
+	writeChar(writer, ' ');
+	writeRed(writer);
+
+	immutable LineAndColumnGetter lcg = mustGetAt(fi.lineAndColumnGetters, where.pathAndStorageKind);
+	writeRange(writer, lcg, where.range);
+	writeReset(writer);
+}
+
+void writeLineNumber(Alloc)(
+	ref Writer!Alloc writer,
+	immutable FilesInfo fi,
+	ref immutable Module module_,
+	immutable SourceRange range,
+) {
+	immutable PathAndStorageKind where = module_.pathAndStorageKind;
+	writeBold(writer);
+	writePathAndStorageKind(writer, where);
+	writeReset(writer);
+	writeStatic(writer, " line ");
+	immutable LineAndColumnGetter lcg = mustGetAt(fi.lineAndColumnGetters, where);
+	immutable size_t line = lineAndColumnAtPos(lcg, range.start).line;
+	writeNat(writer, line + 1);
+}
+
+void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
+	matchParseDiag(d,
+		(ref immutable ParseDiag.ExpectedCharacter) {
+			todo!void("expectedcharacter");
+		},
+		(ref immutable ParseDiag.ExpectedDedent) {
+			writeStatic(writer, "expected a dedent");
+		},
+		(ref immutable ParseDiag.ExpectedIndent) {
+			writeStatic(writer, "expected an indent");
+		},
+		(ref immutable ParseDiag.ExpectedPurityAfterSpace) {
+			writeStatic(writer, "after trailing space, expected to parse 'mutable' or 'sendable'");
+		},
+		(ref immutable ParseDiag.IndentNotDivisible d) {
+			writeStatic(writer, "expected indentation by ");
+			writeNat(writer, d.nSpacesPerIndent);
+			writeStatic(writer, " spaces per level, but got ");
+			writeNat(writer, d.nSpaces);
+			writeStatic(writer, " which is not divisible");
+		},
+		(ref immutable ParseDiag.IndentWrongCharacter d) {
+			writeStatic(writer, "epxected indentation by");
+			writeStatic(writer, d.expectedTabs ? "tabs" : "spaces");
+			writeStatic(writer, " (based on first indented line), but here there is a ");
+			writeStatic(writer, d.expectedTabs ? "space" : "tab");
+		},
+		(ref immutable ParseDiag.LetMustHaveThen) {
+			writeStatic(writer, "the final line of a block can not be 'x = y'\n(hint: remove 'x =', or add another line)");
+		},
+		(ref immutable ParseDiag.MatchWhenNewMayNotAppearInsideArg) {
+			todo!void("matchwhennew");
+		},
+		(ref immutable ParseDiag.MustEndInBlankLine) {
+			writeStatic(writer, "file must end in a blank line");
+		},
+		(ref immutable ParseDiag.ReservedName d) {
+			writeName(writer, d.name);
+			writeStatic(writer, " is a reserved word and can't be used as a name");
+		},
+		(ref immutable ParseDiag.TypeParamCantHaveTypeArgs) {
+			writeStatic(writer, "a type parameter can't have type arguments");
+		},
+		(ref immutable ParseDiag.UnexpectedCharacter u) {
+			writeStatic(writer, "unexpected character '");
+			showChar(writer, u.ch);
+			writeStatic(writer, "'");
+		},
+		(ref immutable ParseDiag.UnexpectedDedent) {
+			writeStatic(writer, "unexpected dedent");
+		},
+		(ref immutable ParseDiag.UnexpectedIndent) {
+			writeStatic(writer, "unexpected indent");
+		},
+		(ref immutable ParseDiag.UnionCantBeEmpty) {
+			writeStatic(writer, "union type can't be empty");
+		},
+		(ref immutable ParseDiag.WhenMustHaveElse) {
+			writeStatic(writer, "'when' expression must end in 'else'");
+		});
+}
+
+void writePurity(Alloc)(ref Writer!Alloc writer, immutable Purity p) {
+	writeChar(writer, '\'');
+	final switch (p) {
+		case Purity.data:
+			writeStatic(writer, "data");
+			break;
+		case Purity.sendable:
+			writeStatic(writer, "sendable");
+			break;
+		case Purity.mut:
+			writeStatic(writer, "mut");
+			break;
+	}
+	writeChar(writer, '\'');
+}
+
+void writeSigJustTypes(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
+	writeType(writer, s.returnType);
+	writeChar(writer, '(');
+	writeWithCommas(writer, s.params, (ref immutable Param p) {
+		writeType(writer, p.type);
+	});
+	writeChar(writer, ')');
+}
+
+void writeCalledDecl(Alloc)(ref Writer!Alloc writer, immutable FilesInfo fi, immutable CalledDecl c) {
+	writeSigJustTypes(writer, c.sig);
+	return c.match(
+		(immutable Ptr!FunDecl funDecl) {
+			// TODO: write the module it's from
+			writeStatic(writer, " (from ");
+			writeLineNumber(writer, fi, funDecl.containingModule.deref, funDecl.range);
+			writeChar(writer, ')');
+		},
+		(ref immutable SpecSig specSig) {
+			writeStatic(writer, " (from spec ");
+			writeName(writer, specSig.specInst.name);
+			writeChar(writer, ')');
+		});
+}
+
+void writeCalledDecls(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable FilesInfo fi,
+	ref immutable Arr!CalledDecl cs,
+	scope immutable(Bool) delegate(ref immutable CalledDecl) @safe @nogc pure nothrow filter,
+) {
+	foreach (ref immutable CalledDecl c; cs.range)
+		if (filter(c)) {
+			writeNl(writer);
+			writeCalledDecl(writer, fi, c);
+		}
+}
+
+void writeCalledDecls(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref immutable Arr!CalledDecl cs) {
+	writeCalledDecls(writer, fi, cs, (ref immutable CalledDecl) => True);
+}
+
+void writeCallNoMatch(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref immutable Diag.CallNoMatch d) {
+	immutable Bool someCandidateHasCorrectNTypeArgs = or(
+		Bool(d.actualNTypeArgs == 0),
+		exists(d.allCandidates, (ref immutable CalledDecl c) =>
+			immutable Bool(nTypeParams(c) == d.actualNTypeArgs)));
+	immutable Bool someCandidateHasCorrectArity = exists(d.allCandidates, (ref immutable CalledDecl c) =>
+		and(
+			or(Bool(d.actualNTypeArgs == 0), Bool(nTypeParams(c) == d.actualNTypeArgs)),
+			Bool(arity(c) == d.actualArity)));
+
+	if (empty(d.allCandidates)) {
+		writeStatic(writer, "there is no function ");
+		if (d.actualArity == 0)
+			// If there is no local variable by that name we try a call,
+			// but message should reflect that the user might not have wanted a call.
+			writeStatic(writer, "or variable ");
+		else if (d.actualArity == 1)
+			writeStatic(writer, "or field ");
+		writeStatic(writer, "named ");
+		writeName(writer, d.funName);
+
+		if (size(d.actualArgTypes) == 1) {
+			writeStatic(writer, "\nargument type: ");
+			writeType(writer, only(d.actualArgTypes));
+		}
+	} else if (!someCandidateHasCorrectArity) {
+		writeStatic(writer, "there are functions named ");
+		writeName(writer, d.funName);
+		writeStatic(writer, ", but none takes ");
+		if (someCandidateHasCorrectNTypeArgs) {
+			writeNat(writer, d.actualArity);
+		} else {
+			writeNat(writer, d.actualNTypeArgs);
+			writeStatic(writer, " type");
+		}
+		writeStatic(writer, " arguments. candidates:");
+		writeCalledDecls(writer, fi, d.allCandidates);
+	} else {
+		writeStatic(writer, "there are functions named ");
+		writeName(writer, d.funName);
+		writeStatic(writer, ", but they do not match the ");
+		immutable Bool hasRet = has(d.expectedReturnType);
+		immutable Bool hasArgs = not(empty(d.actualArgTypes));
+		immutable string descr = hasRet
+			? hasArgs ? "expected return type and actual argument types" : "expected return type"
+			: "actual argument types";
+		writeStatic(writer, descr);
+		writeStatic(writer, ".");
+		if (hasRet) {
+			writeStatic(writer, "\nexpected return type: ");
+			writeType(writer, force(d.expectedReturnType));
+		}
+		if (hasArgs) {
+			writeStatic(writer, "\nactual argument types: ");
+			writeWithCommas(writer, d.actualArgTypes, (ref immutable Type t) {
+				writeType(writer, t);
+			});
+			if (size(d.actualArgTypes) < d.actualArity)
+				writeStatic(writer, " (other arguments not checked, gave up early)");
+		}
+		writeStatic(writer, "\ncandidates (with ");
+		writeNat(writer, d.actualArity);
+		writeStatic(writer, " arguments):");
+		writeCalledDecls(writer, fi, d.allCandidates, (ref immutable CalledDecl c) {
+			return immutable Bool(arity(c) == d.actualArity);
+		});
+	}
+}
+
+void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref immutable Diag d) {
+	matchDiag!void(
+		d,
+		(ref immutable Diag.CallMultipleMatches d) {
+			writeStatic(writer, "cannot choose an overload of ");
+			writeName(writer, d.funName);
+			writeStatic(writer, ". multiple functions match:");
+			writeCalledDecls(writer, fi, d.matches);
+		},
+		(ref immutable Diag.CallNoMatch d) {
+			writeCallNoMatch(writer, fi, d);
+		},
+		(ref immutable Diag.CantCall c) {
+			immutable string descr = () {
+				final switch (c.reason) {
+					case Diag.CantCall.Reason.nonNoCtx:
+						return "a 'noctx' fun can't call a non-'noctx' fun";
+					case Diag.CantCall.Reason.summon:
+						return "a non-'summon' fun can't call a 'summon' fun";
+					case Diag.CantCall.Reason.unsafe:
+						return "a non-'trusted' and non-'unsafe' fun can't call an 'unsafe' fun";
+				}
+			}();
+			writeStatic(writer, descr);
+			writeStatic(writer, "\ncalling: ");
+			writeName(writer, c.callee.name);
+			writeStatic(writer, "\ncaller: ");
+			writeName(writer, c.caller.name);
+		},
+		(ref immutable Diag.CantCreateNonRecordType d) {
+			writeStatic(writer, "non-record type ");
+			writeType(writer, d.type);
+			writeStatic(writer, " can't be constructed");
+		},
+		(ref immutable Diag.CantCreateRecordWithoutExpectedType) {
+			writeStatic(writer, "don't know what to 'new' (maybe provide a type argument)");
+		},
+		(ref immutable Diag.CantInferTypeArguments) {
+			writeStatic(writer, "can't infer type arguments");
+		},
+		(ref immutable Diag.CircularImport d) {
+			writeStatic(writer, "circular import from ");
+			writePathAndStorageKind(writer, d.from);
+			writeStatic(writer, " to ");
+			writePathAndStorageKind(writer, d.to);
+		},
+		(ref immutable Diag.CommonTypesMissing) {
+			writeStatic(writer, "common types are missing from 'include.nz'");
+		},
+		(ref immutable Diag.CreateArrNoExpectedType) {
+			writeStatic(writer, "can't infer element type of array, please provide a type argument to 'new-arr'");
+		},
+		(ref immutable Diag.CreateRecordByRefNoCtx d) {
+			writeStatic(writer, "the current function is 'noctx' and record ");
+			writeName(writer, d.struct_.name);
+			writeStatic(writer, " is not marked 'by-val'; can't allocate");
+		},
+		(ref immutable Diag.CreateRecordMultiLineWrongFields d) {
+			writeStatic(writer, "didn't get expected fields of ");
+			writeName(writer, d.decl.name);
+			writeChar(writer, ':');
+			StackAlloc!("CreateRecordMultipleLineWrongFields", 1024) temp;
+			immutable Arr!Sym expected = map(temp, d.fields, (ref immutable RecordField f) {
+				return f.name;
+			});
+			diffSymbols(writer, expected, d.providedFieldNames);
+		},
+		(ref immutable Diag.DuplicateDeclaration d) {
+			writeStatic(writer, "duplicate ");
+			final switch (d.kind) {
+				case Diag.DuplicateDeclaration.Kind.structOrAlias:
+					writeStatic(writer, "struct");
+					break;
+				case Diag.DuplicateDeclaration.Kind.spec:
+					writeStatic(writer, "spec");
+					break;
+				case Diag.DuplicateDeclaration.Kind.field:
+					writeStatic(writer, "field");
+					break;
+				case Diag.DuplicateDeclaration.Kind.unionMember:
+					writeStatic(writer, "member");
+					break;
+			}
+			writeChar(writer, ' ');
+			writeName(writer, d.name);
+		},
+		(ref immutable Diag.DuplicateImports d) {
+			writeStatic(writer, "the symbol ");
+			writeName(writer, d.name);
+			writeStatic(writer, " appears in multiple modules");
+		},
+		(ref immutable Diag.ExpectedTypeIsNotALambda d) {
+			if (has(d.expectedType)) {
+				writeStatic(writer, "the expected type at the lambda is ");
+				writeType(writer, force(d.expectedType));
+				writeStatic(writer, ", which is not a lambda type");
+			} else
+				writeStatic(writer, "there is no expected type at this location; lambdas need an expected type");
+		},
+		(ref immutable Diag.FileDoesNotExist d) {
+			final switch (d.kind) {
+				case Diag.FileDoesNotExist.Kind.root:
+					writeStatic(writer, "root path ");
+					writePathAndStorageKind(writer, d.path);
+					writeStatic(writer, " does not exist");
+					break;
+				case Diag.FileDoesNotExist.Kind.import_:
+					writeStatic(writer, "import resolves to ");
+					writePathAndStorageKind(writer, d.path);
+					writeStatic(writer, ", but file does not exist\n");
+					break;
+			}
+		},
+		(ref immutable Diag.LambdaCantInferParamTypes) {
+			writeStatic(writer, "can't infer parameter types for lambda.\nconsider prefixing with 'as<...>:'");
+		},
+		(ref immutable Diag.LambdaClosesOverMut d) {
+			writeStatic(writer, "lambda is a plain 'fun' but closes over ");
+			writeName(writer, d.field.name);
+			writeStatic(writer, " of of 'mut' type ");
+			writeType(writer, d.field.type);
+			writeStatic(writer, " (should it be a 'fun-mut'?)");
+		},
+		(ref immutable Diag.LambdaForFunPtrHasClosure d) {
+			writeStatic(writer, "lambda closes over ");
+			writeName(writer, d.field.name);
+			writeStatic(writer, "; a lambda for a 'fun-ptr' is not allowed to close over anything");
+		},
+		(ref immutable Diag.LocalShadowsPrevious d) {
+			writeName(writer, d.name);
+			writeStatic(writer, " is already in scope");
+		},
+		(ref immutable Diag.MatchCaseStructNamesDoNotMatch d) {
+			writeStatic(writer, "expected the case names to be: ");
+			writeWithCommas(writer, d.unionMembers, (ref immutable Ptr!StructInst i) {
+				writeName(writer, i.decl.name);
+			});
+		},
+		(ref immutable Diag.MatchOnNonUnion d) {
+			writeStatic(writer, "can't match on non-union type ");
+			writeType(writer, d.type);
+		},
+		(ref immutable Diag.MutFieldNotAllowed d) {
+			immutable string message = () {
+				final switch (d.reason) {
+					case Diag.MutFieldNotAllowed.Reason.recordIsNotMut:
+						return "field is mut, but containing record was not marked mut";
+					case Diag.MutFieldNotAllowed.Reason.recordIsForcedByVal:
+						return "field is mut, but containing record was forced by-val";
+				}
+			}();
+			writeStatic(writer, message);
+		},
+		(ref immutable Diag.NameNotFound d) {
+			immutable string kind = () {
+				final switch (d.kind) {
+					case Diag.NameNotFound.Kind.strukt:
+						return "struct";
+					case Diag.NameNotFound.Kind.spec:
+						return "spec";
+					case Diag.NameNotFound.Kind.typeParam:
+						return "type parameter";
+				}
+			}();
+			writeStatic(writer, kind);
+			writeStatic(writer, " name not found: ");
+			writeName(writer, d.name);
+		},
+		(ref immutable Diag.ParamShadowsPrevious d) {
+			immutable string message = () {
+				final switch (d.kind) {
+					case Diag.ParamShadowsPrevious.Kind.param:
+						return "there is already a parameter named ";
+					case Diag.ParamShadowsPrevious.Kind.typeParam:
+						return "there is already a type parameter named ";
+				}
+			}();
+			writeStatic(writer, message);
+			writeName(writer, d.name);
+		},
+		(ref immutable ParseDiag pd) {
+			writeParseDiag(writer, pd);
+		},
+		(ref immutable Diag.PurityOfFieldWorseThanRecord d) {
+			writeStatic(writer, "struct ");
+			writeName(writer, d.strukt.name);
+			writeStatic(writer, " has purity ");
+			writePurity(writer, d.strukt.purity);
+			writeStatic(writer, ", but field type ");
+			writeType(writer, d.fieldType);
+			writeStatic(writer, " has purity ");
+			writePurity(writer, d.fieldType.bestCasePurity());
+		},
+		(ref immutable Diag.PurityOfMemberWorseThanUnion d) {
+			writeStatic(writer, "union ");
+			writeName(writer, d.strukt.name);
+			writeStatic(writer, " has purity ");
+			writePurity(writer, d.strukt.purity);
+			writeStatic(writer, ", but member type ");
+			writeStructInst(writer, d.member);
+			writeStatic(writer, " has purity ");
+			writePurity(writer, d.member.bestCasePurity);
+		},
+		(ref immutable Diag.RelativeImportReachesPastRoot d) {
+			writeStatic(writer, "importing ");
+			writeRelPath(writer, d.imported);
+			writeStatic(writer, " reaches above the source directory");
+			//TODO: recommend a compiler option to fix this
+		},
+		(ref immutable Diag.SendFunDoesNotReturnFut d) {
+			writeStatic(writer, "a fun-ref should return a fut, but returns ");
+			writeType(writer, d.actualReturnType);
+		},
+		(ref immutable Diag.SpecBuiltinNotSatisfied d) {
+			writeStatic(writer, "trying to call ");
+			writeName(writer, d.called.deref.name);
+			writeStatic(writer, ", but ");
+			writeType(writer, d.type);
+			immutable string message = () {
+				final switch (d.kind) {
+					case SpecBody.Builtin.Kind.data:
+						return " is not 'data'";
+					case SpecBody.Builtin.Kind.send:
+						return " is not 'send'";
+				}
+			}();
+			writeStatic(writer, message);
+		},
+		(ref immutable Diag.SpecImplHasSpecs d) {
+			writeStatic(writer, "spec implementation ");
+			writeName(writer, d.funName);
+			writeStatic(writer, " has specs itself; currently this is not allowed");
+		},
+		(ref immutable Diag.SpecImplNotFound d) {
+			writeStatic(writer, "no implementation was found for spec signature ");
+			writeName(writer, d.sigName);
+		},
+		(ref immutable Diag.TypeConflict d) {
+			writeStatic(writer, "the type of the expression conflicts with its expected type.\n\texpected: ");
+			writeType(writer, d.expected);
+			writeStatic(writer, "\n\tactual: ");
+			writeType(writer, d.actual);
+		},
+		(ref immutable Diag.TypeNotSendable) {
+			writeStatic(writer, "this type is not sendable and should not appear in an interface");
+		},
+		(ref immutable Diag.WriteToNonExistentField d) {
+			writeStatic(writer, "type ");
+			writeType(writer, d.targetType);
+			writeStatic(writer, " has no field ");
+			writeName(writer, d.fieldName);
+		},
+		(ref immutable Diag.WriteToNonMutableField d) {
+			writeStatic(writer, "field ");
+			writeName(writer, d.field.name);
+			writeStatic(writer, " is not mutable");
+		},
+		(ref immutable Diag.WrongNumberNewStructArgs d) {
+			writeStatic(writer, "struct initializer expected to get ");
+			writeNat(writer, d.nExpectedArgs);
+			writeStatic(writer, " args, but got ");
+			writeNat(writer, d.nActualArgs);
+		},
+		(ref immutable Diag.WrongNumberTypeArgsForSpec d) {
+			writeName(writer, d.decl.name);
+			writeStatic(writer, " expected to get ");
+			writeNat(writer, d.nExpectedTypeArgs);
+			writeStatic(writer, " type args, but got ");
+			writeNat(writer, d.nActualTypeArgs);
+		},
+		(ref immutable Diag.WrongNumberTypeArgsForStruct d) {
+			writeName(writer, d.decl.name);
+			writeStatic(writer, " expected to get ");
+			writeNat(writer, d.nExpectedTypeArgs);
+			writeStatic(writer, " type args, but got ");
+			writeNat(writer, d.nActualTypeArgs);
+		});
+}
+
+void showDiagnostic(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref immutable Diagnostic d) {
+	writeWhere(writer, fi, d.where);
+	writeChar(writer, ' ');
+	writeDiag(writer, fi, d.diag);
+	writeNl(writer);
 }

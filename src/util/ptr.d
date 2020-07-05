@@ -2,6 +2,8 @@ module util.ptr;
 
 @safe @nogc pure nothrow:
 
+import util.bools : Bool;
+
 // Non-null
 struct Ptr(T) {
 	@safe @nogc pure nothrow:
@@ -19,6 +21,9 @@ struct Ptr(T) {
 	ref T deref() {
 		return *ptr;
 	}
+	ref const(T) deref() const {
+		return *ptr;
+	}
 	ref immutable(T) deref() immutable {
 		return *ptr;
 	}
@@ -28,4 +33,8 @@ struct Ptr(T) {
 
 @trusted Ptr!T ptrTrustMe(T)(ref T t) {
 	return Ptr!T(&t);
+}
+
+immutable(Bool) ptrEquals(T)(immutable Ptr!T a, immutable Ptr!T b) {
+	return Bool(a.ptr == b.ptr);
 }

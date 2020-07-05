@@ -1,0 +1,5 @@
+magic opt ?out(a opt ?in)
+	todo
+
+test opt ?out(a opt ?in)
+	a magic<?out>

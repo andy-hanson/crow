@@ -1,0 +1,137 @@
+import io openssl posix
+
+test-uri void() summon
+	my-uri = "https://www.duckduckgo.com:80/some-thing"
+	match my-uri parse-uri
+		none
+			print-sync: "did not parse"
+		some s
+			uri = s.value
+			u test-get
+			| print-sync: "host: " + uri.host
+			| print-sync: "path and query: " + uri.path-and-query
+			| print-sync: "port: " + uri.port.to-str
+
+split-with-splitter<?t> record
+	before arr ?t
+	at ?t
+	after arr ?t
+
+split<?t> record
+	before arr ?t
+	after arr ?t
+
+| TODO: ->UTILS
+split-at-first opt split-with-splitter<?t>(a arr ?t, pred fun-mut1 bool ?t)
+	idx <- a find-index pred
+	| TODO: parens should be unnecessary
+	some: new (a slice-up-to idx), (a at idx), (a slice-after idx)
+
+| If splitter is not present, right part is empty
+try-split split ?t(a arr ?t, pred fun-mut1 bool ?t)
+	match a find-index pred
+		none
+			new a, empty-arr
+		some s
+			idx = s.value
+			new (a slice-up-to idx), (a slice-after idx)
+
+| If splitter is not present, right part is empty
+try-split-from-right split ?t(a arr ?t, pred fun-mut1 bool ?t)
+	match a find-rindex pred
+		none
+			new a, empty-arr
+		some s
+			index = s.value
+			new (a slice-up-to index), (a slice-after index)
+
+nghttp2-session-callbacks-new foo() extern noctx summon
+nghttp2-session-client-new foo() extern noctx summon
+nghttp2-session-callbacks-del foo() extern noctx summon
+nghttp2-submit-settings foo() extern noctx summon
+nghttp2-session-want-read foo() extern noctx summon
+nghttp2-session-want-write foo() extern noctx summon
+nghttp2-session-del foo() extern noctx summon
+
+
+
+request record
+	host c-str
+	path c-str
+	hostport c-str
+	stream-id int32
+	port nat16
+
+test-get void(u uri) summon
+	| act = zero as<by-val<sigaction>>
+	| act = new<by-val<sigaction>>
+	|	sa-handler. sig-ign
+	|	sa-flags. zero
+	|	sa-restorer. null
+	|	sa-mask. zero
+	| sigpipe act
+
+	| Ignore SIGPIPE errors (WARN: This has a global effect!)
+	check-errno-if-not-zero: sigpipe sigignore
+
+	ssl-load-error-strings
+	i = ssl-library-init
+	assert: i zero?
+
+	fd = u connect-to-uri
+
+	ssl-ctx = ssl-v23-client-method ssl-ctx-new
+	forbid: ssl-ctx null?
+	ssl = ssl-ctx ssl-new
+	forbid: ssl null?
+
+	ssl ssl-handshake fd
+
+	todo
+
+void ssl-handshake(ssl ssl, fd fd-t)
+	err = ssl ssl-set-fd fd
+	| TODO: handle errors
+	forbid: err == 0
+	err-clear-error
+	rv = ssl ssl-connect
+	| TODO: handle other return values
+	assert: rv == 1
+
+
+
+| ALGORITHM:
+| eat 'https://'
+| eat up to `:/?#`
+| if saw `:`, eat up to `/`
+| if saw `/`, eat up to `?`
+
+| BETTER: do it in reverse
+| Parse off '#' from right
+| Parse off '?' from right
+| Then parse the *first* '/'
+| Then take a ':' from the left part
+parse-uri opt uri(uri str)
+	| Must start with https
+	after-https <- uri try-remove-str-start "https://"
+
+	host-and-port-split-path-and-query-and-hash = after-https try-split {it == "/"}
+	host-and-port = host-and-port-split-path-and-query-and-hash before
+	path-and-query-and-hash = host-and-port-split-path-and-query-and-hash after
+
+	host-split-port = host-and-port try-split {it == ":"}
+	host = host-split-port before
+	port-str = host-split-port after
+	port = port-str.literal as<nat16>
+
+	path-and-query-split-after-hash = path-and-query-and-hash try-split-from-right {it == "#"}
+	path-and-query = path-and-query-split-after-hash before
+	after-hash = path-and-query-split-after-hash after
+
+	| TODO: not bothering to split out query for now.
+
+	some: new
+		host. host
+		port. port
+		path-and-query. path-and-query
+		after-hash. after-hash

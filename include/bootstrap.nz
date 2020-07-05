@@ -1,0 +1,735 @@
+| Unrecoverable assertion failure
+hard-fail ?t(reason str) noctx unsafe builtin
+
+hard-unreachable ?t() noctx unsafe
+	hard-fail: "unreachable"
+
+todo ?t() trusted noctx
+	| TODO: soft-fail, remove 'trusted' above
+	hard-fail: "TODO"
+
+by-val<?t> builtin
+
+| Unsafe because the ref will only be valid temporarily!
+ref-of-val ?t(b by-val ?t) noctx unsafe builtin
+
+| This forces something to be stack-allocated.
+| WARN: If '?t' is a reference type already, this is a pointer to a pointer!
+ptr-to ptr ?t(t ?t) noctx unsafe builtin
+
+| TODO: this function only works for by-ref types -- currently that is not checked by the type checker
+as-any-ptr any-ptr(some-ref ?t) noctx unsafe builtin
+| TODO: this function only works for by-ref types -- currently that is not checked by the type checker
+as-ref ?t(p any-ptr) noctx unsafe builtin
+
+ref-of-ptr ?t(p ptr by-val<?t>) noctx unsafe
+	p.deref ref-of-val
+
+ptr-eq bool(a ?t, b ?t) noctx unsafe
+	a.as-any-ptr == b.as-any-ptr
+
+| Since this fun is not marked 'noctx', it simply returns the ctx that already exists.
+get-ctx ctx() unsafe builtin
+
+void builtin
+| TODO: nat8 should be the builtin and this should alias it
+byte builtin
+
+| NOTE: if ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
+ptr<?t> builtin
+deref ?t(p ptr ?t) noctx unsafe builtin
+set void(p ptr ?t, value ?t) noctx unsafe builtin
+
+null ptr ?t() noctx builtin
+
+| TODO: this should be generic (problem: currently only pointers to data are equatable)
+null? bool(a any-ptr) noctx
+	a == null
+null? bool(a ptr char) noctx
+	a == null
+
+any-ptr alias
+	ptr byte
+
+is-reference-type?<?t> bool() noctx unsafe builtin
+size-of<?t> nat() noctx unsafe builtin
+
+size-or-pointer-size<?t> nat() noctx unsafe
+	when
+		is-reference-type?<?t>
+			size-of<ptr<void>>
+		else
+			size-of<?t>
+
+ptr-cast ptr ?out(p ptr ?in) noctx unsafe builtin
+
+magic-cast ?out(p ?in) noctx unsafe
+	p.as-any-ptr as-ref
+
+to-nat nat(p ptr ?t) noctx unsafe builtin
+
++ ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
+- ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
+- nat(a ptr ?t, b ptr ?t) noctx unsafe
+	a - b.to-nat to-nat
+
+region comparison
+
+less record
+equal record
+greater record
+comparison union
+	less
+	equal
+	greater
+
+to-str str(c comparison)
+	match c
+		less
+			"less"
+		equal
+			"equal"
+		greater
+			"greater"
+
+<=> comparison(a ?t, b ?t) data<?t> noctx builtin
+
+== bool(a ?t, b ?t) noctx data<?t>
+	match a <=> b
+		less
+			false
+		equal
+			true
+		greater
+			false
+
+!= bool(a ?t, b ?t) noctx data<?t>
+	a == b not
+
+< bool(a ?t, b ?t) noctx data<?t>
+	match a <=> b
+		less
+			true
+		equal
+			false
+		greater
+			false
+
+<= bool(a ?t, b ?t) noctx data<?t>
+	b < a not
+
+> bool(a ?t, b ?t) noctx data<?t>
+	a <= b not
+
+>= bool(a ?t, b ?t) noctx data<?t>
+	a < b not
+
+min ?t(a ?t, b ?t) noctx data<?t>
+	(a < b) if a, b
+
+max ?t(a ?t, b ?t) noctx data<?t>
+	(a > b) if a, b
+
+| NOTE: this is not a normal record, compiler treats it specially
+arr<?t> record
+	by-val
+	size nat
+	data ptr ?t
+
+char builtin
+str alias
+	arr char
+c-str alias
+	ptr char
+
+
+region bool
+
+bool builtin
+false bool() noctx builtin
+true bool() noctx builtin
+not bool(a bool) noctx builtin
+| Note: this should be lazily evaluated
+and bool(a bool, b bool) noctx builtin
+or bool(a bool, b bool) noctx builtin
+nand bool(a bool, b bool) noctx builtin
+nor bool(a bool, b bool) noctx builtin
+| Only one of 'if-true' and 'if-false' arguments will be evaluated
+if ?t(cond bool, if-true ?t, if-false ?t) noctx builtin
+if void(cond bool, if-true void) noctx builtin
+
+
+always-true bool(a ?t)
+	true
+always-false bool(a ?t)
+	false
+
+region Fun
+
+| Pointer to a function with no arguments (not even ctx)
+fun-ptr0<?r> builtin
+fun-ptr1<?r, ?p0> builtin
+fun-ptr2<?r, ?p0, ?p1> builtin
+fun-ptr3<?r, ?p0, ?p1, ?p2> builtin
+fun-ptr4<?r, ?p0, ?p1, ?p2, ?p3> builtin
+fun-ptr5<?r, ?p0, ?p1, ?p2, ?p3, ?p4> builtin
+fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5> builtin
+
+ctx record mut
+	by-ref
+	gctx-ptr any-ptr
+	vat-id vat-id
+	actor-id actor-id
+	gc-ctx-ptr any-ptr
+	exception-ctx-ptr any-ptr
+
+vat-id alias
+	nat
+
+actor-id alias
+	nat
+
+vat-and-actor-id record
+	by-val
+	vat vat-id
+	actor actor-id
+
+| A fun is two pointers -- one to the fun pointer, one to the closure.
+| TODO: point to the vtable, and have vtable also store layout information
+fun0<?r> record mut
+	by-val
+	fun-ptr fun-ptr2 ?r ctx any-ptr
+	closure any-ptr
+fun1<?r, ?p0> record mut
+	by-val
+	fun-ptr fun-ptr3 ?r ctx any-ptr ?p0
+	closure any-ptr
+fun2<?r, ?p0, ?p1> record mut
+	by-val
+	fun-ptr fun-ptr4 ?r ctx any-ptr ?p0 ?p1
+	closure any-ptr
+fun3<?r, ?p0, ?p1, ?p2> record mut
+	by-val
+	fun-ptr fun-ptr5 ?r ctx any-ptr ?p0 ?p1 ?p2
+	closure any-ptr
+
+| A fun-mut may close over 'mut' state.
+| (A normal 'fun' may still closue over mutable state that is sendable.)
+fun-mut0<?r> record mut
+	by-val
+	fun-ptr fun-ptr2 ?r ctx any-ptr
+	closure any-ptr
+fun-mut1<?r, ?p0> record mut
+	by-val
+	fun-ptr fun-ptr3 ?r ctx any-ptr ?p0
+	closure any-ptr
+fun-mut2<?r, ?p0, ?p1> record mut
+	by-val
+	fun-ptr fun-ptr4 ?r ctx any-ptr ?p0 ?p1
+	closure any-ptr
+fun-mut3<?r, ?p0, ?p1, ?p2> record mut
+	by-val
+	fun-ptr fun-ptr5 ?r ctx any-ptr ?p0 ?p1 ?p2
+	closure any-ptr
+
+| A normal fun is non-sendable, a fun-ref becomes sendable by storing the vat/actor that will provide its ctx.
+| As the name implies, we have a reference to the fun, but when we call it,
+| the one who created it runs the code, not us.
+fun-ref0<?r> record force-sendable
+	by-val
+	vat-and-actor vat-and-actor-id
+	fun fun-mut0 fut<?r>
+fun-ref1<?r, ?p0> record force-sendable
+	by-val
+	vat-and-actor vat-and-actor-id
+	fun fun-mut1 fut<?r> ?p0
+fun-ref2<?r, ?p0, ?p1> record force-sendable
+	by-val
+	vat-and-actor vat-and-actor-id
+	fun fun-mut2 fut<?r> ?p0 ?p1
+fun-ref3<?r, ?p0, ?p1, ?p2> record force-sendable
+	by-val
+	vat-and-actor vat-and-actor-id
+	fun fun-mut3 fut<?r> ?p0 ?p1 ?p2
+
+| calling a fun-ptr is a primitive operation
+call ?r(f fun-ptr0 ?r) noctx builtin
+call ?r(f fun-ptr1 ?r ?p0, p0 ?p0) noctx builtin
+call ?r(f fun-ptr2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) noctx builtin
+call ?r(f fun-ptr3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
+call ?r(f fun-ptr4 ?r ?p0 ?p1 ?p2 ?p3, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
+call ?r(f fun-ptr5 ?r ?p0 ?p1 ?p2 ?p3 ?p4, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4) noctx builtin
+call ?r(f fun-ptr6 ?r ?p0 ?p1 ?p2 ?p3 ?p4 ?p5, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4, p5 ?p5) noctx builtin
+
+| Note: this is the implementation for a dynamic call.
+| But the compiler may call the function dynamically instead
+call ?r(f fun0 ?r) trusted
+	get-ctx call-with-ctx f
+
+call-with-ctx ?r(c ctx, f fun0 ?r) noctx
+	f.fun-ptr call c, f.closure
+
+call ?r(f fun-mut0 ?r) trusted
+	get-ctx call-with-ctx f
+
+call-with-ctx ?r(c ctx, f fun-mut0 ?r) noctx
+	f.fun-ptr call c, f.closure
+
+call ?r(f fun1 ?r ?p0, p0 ?p0) trusted
+	get-ctx call-with-ctx f, p0
+
+call-with-ctx ?r(c ctx, f fun1 ?r ?p0, p0 ?p0) noctx
+	f.fun-ptr call c, f.closure, p0
+
+call ?r(f fun-mut1 ?r ?p0, p0 ?p0) trusted
+	get-ctx call-with-ctx f, p0
+
+call-with-ctx ?r(c ctx, f fun-mut1 ?r ?p0, p0 ?p0) noctx
+	f.fun-ptr call c, f.closure, p0
+
+call ?r(f fun2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted
+	get-ctx call-with-ctx f, p0, p1
+
+call-with-ctx ?r(c ctx, f fun2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) noctx
+	f.fun-ptr call c, f.closure, p0, p1
+
+call ?r(f fun-mut2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted
+	get-ctx call-with-ctx f, p0, p1
+
+call-with-ctx ?r(c ctx, f fun-mut2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) noctx
+	f.fun-ptr call c, f.closure, p0, p1
+
+call ?r(f fun3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) trusted
+	get-ctx call-with-ctx f, p0, p1, p2
+
+call-with-ctx ?r(c ctx, f fun3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) noctx
+	f.fun-ptr call c, f.closure, p0, p1, p2
+
+call ?r(f fun-mut3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) trusted
+	get-ctx call-with-ctx f, p0, p1, p2
+
+call-with-ctx ?r(c ctx, f fun-mut3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) noctx
+	f.fun-ptr call c, f.closure, p0, p1, p2
+
+| A type is data if it is:
+| * A primitive
+| * A record or union of pure types
+data<?t> builtin-spec
+
+| A type is sendable if it does not have any thread-unsafe mutable state.
+send<?t> builtin-spec
+
+
+region Arithmetic
+
+| All are 64-bits, even on 32-bit systems
+nat builtin
+nat64 alias
+	nat
+int builtin
+int64 alias
+	int
+float builtin
+| Not currently used for anything other than posix headers, so limited arithmetic is avialable
+int16 builtin
+int32 builtin
+nat16 builtin
+nat32 builtin
+
+| UB for negative numbers
+unsafe-to-nat nat(a int) noctx builtin
+unsafe-to-nat16 nat16(a nat) noctx builtin
+unsafe-to-nat32 nat32(a nat) noctx builtin
+
+| UB for positive numbers >= 2 ** 63
+unsafe-to-int int(a nat) noctx builtin
+unsafe-to-int16 int16(a int) noctx builtin
+unsafe-to-int32 int32(a int) noctx builtin
+
+to-nat nat(n nat16) noctx builtin
+to-nat nat(n nat32) noctx builtin
+
+to-int int(i int16) noctx builtin
+to-int int(i int32) noctx builtin
+
+
+wrap-add int(a int, b int) noctx builtin
+wrap-add nat(a nat, b nat) noctx builtin
+wrap-add nat32(a nat32, b nat32) noctx builtin
+
+wrap-sub int(a int, b int) noctx builtin
+wrap-sub int16(a int16, b int16) noctx builtin
+wrap-sub nat(a nat, b nat) noctx builtin
+wrap-sub nat32(a nat32, b nat32) noctx builtin
+
+wrap-mul int(a int, b int) noctx builtin
+wrap-mul int16(a int16, b int16) noctx builtin
+wrap-mul int32(a int32, b int32) noctx builtin
+wrap-mul nat(a nat, b nat) noctx builtin
+wrap-mul nat32(a nat32, b nat32) noctx builtin
+
+unsafe-div int(a int, b int) noctx unsafe builtin
+unsafe-div nat(a nat, b nat) noctx unsafe builtin
+
+unsafe-mod nat(a nat, b nat) noctx unsafe builtin
+
+
+zero int() noctx builtin
+zero int16() noctx builtin
+zero int32() noctx builtin
+zero nat() noctx builtin
+zero nat16() noctx builtin
+zero nat32() noctx builtin
+
+one int() noctx builtin
+one int16() noctx builtin
+one int32() noctx builtin
+one nat() noctx builtin
+one nat16() noctx builtin
+one nat32() noctx builtin
+
+neg-one int() noctx
+	zero wrap-sub one
+neg-one int32() noctx
+	zero wrap-sub one
+
+two int() noctx
+	one wrap-incr
+two int16() noctx
+	one wrap-incr
+two int32() noctx
+	one wrap-incr
+two nat() noctx
+	one wrap-incr
+two nat32() noctx
+	one wrap-incr
+
+three int() noctx
+	two wrap-incr
+three int16() noctx
+	two wrap-incr
+three int32() noctx
+	two wrap-incr
+three nat() noctx
+	two wrap-incr
+three nat32() noctx
+	two wrap-incr
+
+four int() noctx
+	three wrap-incr
+four int16() noctx
+	three wrap-incr
+four int32() noctx
+	three wrap-incr
+four nat() noctx
+	three wrap-incr
+four nat32() noctx
+	three wrap-incr
+
+five int() noctx
+	four wrap-incr
+five int16() noctx
+	four wrap-incr
+five int32() noctx
+	four wrap-incr
+five nat() noctx
+	four wrap-incr
+five nat32() noctx
+	four wrap-incr
+
+six int() noctx
+	five wrap-incr
+six int32() noctx
+	five wrap-incr
+six nat() noctx
+	five wrap-incr
+six nat32() noctx
+	five wrap-incr
+
+seven int() noctx
+	six wrap-incr
+seven int32() noctx
+	six wrap-incr
+seven nat() noctx
+	six wrap-incr
+seven nat32() noctx
+	six wrap-incr
+
+eight int() noctx
+	seven wrap-incr
+eight int32() noctx
+	four wrap-add four
+eight nat() noctx
+	seven wrap-incr
+eight nat32() noctx
+	seven wrap-incr
+
+nine int() noctx
+	eight wrap-incr
+nine int32() noctx
+	eight wrap-incr
+nine nat() noctx
+	eight wrap-incr
+
+ten int() noctx
+	nine wrap-incr
+ten int32() noctx
+	nine wrap-incr
+ten nat() noctx
+	nine wrap-incr
+
+twelve nat32() noctx
+	eight wrap-add four
+
+thirteen int32() noctx
+	eight wrap-add five
+
+fourteen nat32() noctx
+	twelve wrap-add two
+
+fifteen nat32() noctx
+	fourteen wrap-incr
+
+sixteen int32() noctx
+	ten wrap-add six
+
+hundred int() noctx
+	ten wrap-mul ten
+hundred int32() noctx
+	ten wrap-mul ten
+hundred nat() noctx
+	ten wrap-mul ten
+
+thousand int() noctx
+	hundred wrap-mul ten
+thousand int32() noctx
+	hundred wrap-mul ten
+thousand nat() noctx
+	hundred wrap-mul ten
+
+million int() noctx
+	thousand wrap-mul thousand
+million int32() noctx
+	thousand wrap-mul thousand
+million nat() noctx
+	thousand wrap-mul thousand
+
+neg-million int() noctx
+	million wrap-mul neg-one
+neg-million int32() noctx
+	million wrap-mul neg-one
+
+billion int() noctx
+	million wrap-mul thousand
+billion nat() noctx
+	million wrap-mul thousand
+
+bits-and nat16(a nat16, b nat16) noctx builtin
+bits-and nat32(a nat32, b nat32) noctx builtin
+bits-and nat(a nat, b nat) noctx builtin
+bits-and int16(a int16, b int16) noctx builtin
+bits-and int32(a int32, b int32) noctx builtin
+bits-and int(a int, b int) noctx builtin
+
+bits-intersect? bool(a int16, b int16) noctx
+	not: a bits-and b zero?
+bits-intersect? bool(a int32, b int32) noctx
+	not: a bits-and b zero?
+
+bit-lshift int32(a int32, b int32) noctx builtin
+bit-rshift int32(a int32, b int32) noctx builtin
+
+| TODO: generic
+zero? bool(n nat) noctx
+	n == zero
+zero? bool(n nat32) noctx
+	n == zero
+zero? bool(i int) noctx
+	i == zero
+zero? bool(a int16) noctx
+	a == zero
+zero? bool(i int32) noctx
+	i == zero
+
+
+wrap-add int16(a int16, b int16) noctx builtin
+wrap-add int32(a int32, b int32) noctx builtin
+
+wrap-sub int32(a int32, b int32) noctx builtin
+
+wrap-incr int(a int) noctx
+	a wrap-add one
+wrap-incr int16(a int16) noctx
+	a wrap-add one
+wrap-incr int32(a int32) noctx
+	a wrap-add one
+wrap-incr nat(a nat) noctx
+	a wrap-add one
+wrap-incr nat32(a nat32) noctx
+	a wrap-add one
+
+
+wrap-decr int(a int) noctx
+	a wrap-sub one
+wrap-decr int16(a int16) noctx
+	a wrap-sub one
+wrap-decr int32(a int32) noctx
+	a wrap-sub one
+wrap-decr nat(a nat) noctx
+	a wrap-sub one
+wrap-decr nat32(a nat32) noctx
+	a wrap-sub one
+
+two-pow nat(pow nat) noctx
+	when
+		pow zero?
+			one
+		else
+			| TODO: safety
+			pow.wrap-decr.two-pow wrap-mul two
+two-pow nat32(pow nat32) noctx
+	| TODO: use bitshift
+	when
+		pow zero?
+			one
+		else
+			| TODO: safety
+			pow.wrap-decr.two-pow wrap-mul two
+two-pow int16(pow int16) noctx
+	when
+		pow zero?
+			one
+		else
+			pow.wrap-decr.two-pow wrap-mul two
+two-pow int32(pow int32) noctx
+	when
+		pow zero?
+			one
+		else
+			pow.wrap-decr.two-pow wrap-mul two
+
+
+noctx-incr nat(n nat) noctx unsafe
+	| TODO: billion should be max-value
+	hard-assert: n < billion
+	n wrap-incr
+
+incr ptr ?t(p ptr ?t) noctx unsafe
+	p + one
+
+decr ptr ?t(p ptr ?t) noctx unsafe
+	p - one
+
+noctx-decr int32(a int32) noctx unsafe
+	hard-forbid: a zero?
+	a wrap-sub one
+noctx-decr nat(n nat) noctx unsafe
+	hard-forbid: n zero?
+	n wrap-sub one
+
+region Util
+
+pass void() noctx builtin
+pass fut void() noctx builtin
+drop void(t ?t) noctx
+	pass
+
+hard-assert void(condition bool) noctx unsafe
+	condition if pass, "Assertion failed!".hard-fail
+
+hard-forbid void(condition bool) noctx unsafe
+	condition.not hard-assert
+
+hard-assert-unreachable ?t() noctx unsafe
+	"should be unreachable" hard-fail
+
+some<?t> record
+	by-val
+	value ?t
+none record
+opt<?t> union
+	none
+	some<?t>
+
+some some ?x(t ?x) noctx
+	new t
+
+none none() noctx
+	new<none>
+
+empty? bool(a opt ?t) noctx
+	match a
+		none n
+			true
+		some s
+			false
+
+has? bool(a opt ?t) noctx
+	a.empty? not
+
+| TODO: 'result' module
+ok<?t> record
+	by-val
+	value ?t
+err<?t> record
+	by-val
+	value ?t
+result<?ok, ?err> union
+	ok<?ok>
+	err<?err>
+
+ok ok ?t(t ?t) noctx
+	new t
+err err ?t(t ?t) noctx
+	new t
+
+then result ?ok-out ?err(a result ?ok-in ?err, f fun-mut1 result<?ok-out, ?err> ?ok-in)
+	match a
+		ok o
+			f call o.value
+		err e
+			e
+
+as ?t(value ?t) noctx builtin
+as-non-const ?t(value ?t) noctx builtin
+
+region fut
+
+exception record
+	by-val
+	| TODO: stack trace here too
+	message str
+
+fut<?t> record force-sendable
+	lk by-val lock
+	state mut fut-state ?t
+
+fut-state<?t> union mut
+	fut-state-callbacks<?t>
+	fut-state-resolved<?t>
+	exception
+
+fut-state-callbacks<?t> record mut
+	head opt fut-callback-node<?t>
+
+fut-callback-node<?t> record mut
+	| WARN: the cb will be called with whatever ctx resolves the fut, not the ctx that created it
+	cb fun-mut1 void result<?t, exception>
+	next-node opt fut-callback-node<?t>
+
+fut-state-resolved<?t> record
+	value ?t
+
+
+region lock
+
+atomic-bool record force-sendable
+	value mut bool
+
+lock record sendable
+	by-ref
+	| Storing this by-val to avoid needing allocations.
+	| User should prefer to store the lock by-val too, and only pass by-ref
+	is-locked by-val atomic-bool
+
+

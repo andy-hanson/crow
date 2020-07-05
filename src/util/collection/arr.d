@@ -3,6 +3,7 @@ module util.collection.arr;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
+import util.ptr : Ptr;
 import util.memory : myEmplace;
 
 struct Arr(T) {
@@ -24,21 +25,33 @@ immutable(Arr!T) emptyArr(T)() {
 	return a.begin_;
 }
 
-immutable(size_t) size(T)(immutable Arr!T a) {
+immutable(size_t) size(T)(const Arr!T a) {
 	return a.size_;
 }
 
-immutable(Bool) sizeEq(T, U)(ref immutable Arr!T a, ref immutable Arr!U b) {
-	return Bool(a.size == b.size);
+immutable(Bool) sizeEq(T, U)(ref const Arr!T a, ref const Arr!U b) {
+	return Bool(size(a) == size(b));
 }
 
-immutable(Bool) empty(T)(ref immutable Arr!T a) {
+immutable(Bool) empty(T)(immutable Arr!T a) {
 	return Bool(a.size == 0);
 }
 
-@trusted ref immutable(T) at(T)(ref immutable Arr!T a, immutable size_t index) {
+@trusted Ptr!T ptrAt(T)(ref Arr!T a, immutable size_t index) {
 	assert(index < a.size_);
-	return a.begin_[index];
+	return Ptr!T(a.begin_ + index);
+}
+
+@trusted immutable(Ptr!T) ptrAt(T)(ref immutable Arr!T a, immutable size_t index) {
+	assert(index < a.size_);
+	return immutable Ptr!T(a.begin_ + index);
+}
+
+@trusted ref T at(T)(ref Arr!T a, immutable size_t index) {
+	return ptrAt(a, index).deref;
+}
+@trusted ref immutable(T) at(T)(ref immutable Arr!T a, immutable size_t index) {
+	return ptrAt(a, index).deref;
 }
 
 ref immutable(T) first(T)(ref immutable Arr!T a) {
@@ -55,6 +68,30 @@ ref immutable(T) last(T)(ref immutable Arr!T a) {
 	return a.at(a.size - 1);
 }
 
+@trusted T[] range(T)(Arr!T a) {
+	return a.begin_[0..a.size_];
+}
 @trusted immutable(T[]) range(T)(immutable Arr!T a) {
 	return a.begin_[0..a.size_];
+}
+
+@trusted PtrsRange!T ptrsRange(T)(ref immutable Arr!T a) {
+	return PtrsRange!T(a.begin_, a.begin_ + a.size);
+}
+
+struct PtrsRange(T) {
+	immutable(T)* begin;
+	immutable(T)* end;
+
+	bool empty() const {
+		return begin >= end;
+	}
+
+	immutable(Ptr!T) front() const {
+		return immutable Ptr!T(begin);
+	}
+
+	@trusted void popFront() {
+		begin++;
+	}
 }

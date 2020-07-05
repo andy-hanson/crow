@@ -6,13 +6,15 @@ import util.bitUtils : allBitsSet, bitsOverlap, getBitsShifted, singleBit;
 import util.bools : and, Bool, False, not, True;
 import util.collection.arr : at, first, last, range, size;
 import util.collection.arrUtil : tail;
-import util.collection.mutArr : last, MutArr, push, range;
-import util.collection.mutSet : MutSet;
+import util.collection.mutArr : last, MutArr, mutArrRange, push;
+import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
 import util.collection.str : CStr, Str, strEqCStr, strEqLiteral, strLiteral, strOfCStr, strToCStr;
 import util.comparison : Comparison;
+import util.opt : Opt;
 import util.types : u64;
 import util.verify : unreachable, verify;
-import util.writer : Writer;
+import util.writer : writeChar, Writer;
+import util.util : todo;
 
 struct Sym {
 	// Short alpha identifier: packed representation, marked with shortAlphaIdentifierMarker
@@ -29,6 +31,11 @@ struct AllSymbols(Alloc) {
 
 	Alloc alloc;
 	MutArr!(immutable CStr) largeStrings;
+}
+
+immutable(Opt!Sym) tryGetSymFromStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
+	//Remember to fail on empty strings!
+	return todo!(Opt!Sym)("tryGetSymFromStr");
 }
 
 immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
@@ -120,14 +127,14 @@ immutable(Str) strOfSym(Alloc)(ref Alloc alloc, immutable Sym a) {
 
 immutable(size_t) writeSymAndGetSize(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
 	size_t size = 0;
-	eachCharInSym!((immutable char c) {
-		writer.writeChar(c);
+	eachCharInSym(a, (immutable char c) {
+		writeChar(writer, c);
 		size++;
-	})(a);
+	});
 	return size;
 }
 
-immutable void writeSym(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
+void writeSym(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
 	writeSymAndGetSize(writer, a);
 }
 
@@ -137,6 +144,14 @@ immutable(CStr) symToCStr(Alloc)(ref Alloc alloc, immutable Sym a) {
 
 immutable(Bool) isSymOperator(immutable Sym a) {
 	return bitsOverlap(a.value, shortOrLongOperatorMarker);
+}
+
+void addToMutSymSetOkIfPresent(Alloc)(
+	ref Alloc alloc,
+	ref MutSymSet set,
+	immutable Sym sym,
+) {
+	addToMutSetOkIfPresent!(immutable Sym, compareSym, Alloc)(alloc, set, sym);
 }
 
 private:
@@ -274,10 +289,10 @@ immutable(Bool) isShortOperator(immutable Sym a) {
 }
 
 immutable(CStr) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
-	foreach (immutable CStr s; allSymbols.largeStrings.range)
+	foreach (immutable CStr s; mutArrRange(allSymbols.largeStrings))
 		if (strEqCStr(str, s))
 			return s;
-	allSymbols.largeStrings.push(allSymbols.alloc, strToCStr(allSymbols.alloc, str));
+	push(allSymbols.alloc, allSymbols.largeStrings, strToCStr(allSymbols.alloc, str));
 	return allSymbols.largeStrings.last;
 }
 
@@ -298,4 +313,3 @@ void assertSym(immutable Sym sym, immutable Str str) {
 	});
 	assert(idx == str.size);
 }
-

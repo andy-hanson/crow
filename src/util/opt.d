@@ -9,14 +9,17 @@ struct Opt(T) {
 	static assert(__traits(isPOD, T)); // TODO: handling types with destructors
 
 	private:
+	this(BeNone) {
+		has_ = False;
+	}
 	this(BeNone) immutable {
 		has_ = False;
 	}
-	this(immutable T value) immutable {
+	@trusted this(T value) {
 		has_ = True;
 		value_ = value;
 	}
-	this(inout T value) inout {
+	@trusted this(immutable T value) immutable {
 		has_ = True;
 		value_ = value;
 	}
@@ -30,15 +33,27 @@ immutable(Opt!T) none(T)() {
 	return immutable Opt!T(BeNone());
 }
 
+Opt!T noneMut(T)() {
+	return Opt!T(BeNone());
+}
+
 immutable(Opt!T) some(T)(immutable T value) {
 	return immutable Opt!T(value);
+}
+
+Opt!T someMut(T)(T value) {
+	return Opt!T(value);
 }
 
 immutable(Bool) has(T)(const Opt!T a) {
 	return a.has_;
 }
 
-ref immutable(T) force(T)(ref immutable Opt!T a) {
+@trusted ref immutable(T) force(T)(ref immutable Opt!T a) {
+	assert(a.has);
+	return a.value_;
+}
+@trusted ref const(T) force(T)(ref const Opt!T a) {
 	assert(a.has);
 	return a.value_;
 }
@@ -50,7 +65,7 @@ ref immutable(T) forceOrTodo(T)(ref immutable Opt!T a) {
 		assert(0); // TODO
 }
 
-immutable(Out) match(Out, T)(
+immutable(Out) matchOpt(Out, T)(
 	immutable Opt!T a,
 	scope immutable(Out) delegate(ref immutable T) @safe @nogc pure nothrow cbSome,
 	scope immutable(Out) delegate() @safe @nogc pure nothrow cbNone,
@@ -62,14 +77,21 @@ immutable(Out) match(Out, T)(
 }
 
 immutable(T) optOr(T)(immutable Opt!T a, scope immutable(T) delegate() @safe @nogc pure nothrow cb) {
-	return a.match!(T, T)((ref immutable T t) => t, cb);
+	return matchOpt(a, (ref immutable T t) => t, cb);
 }
 
 immutable(Opt!Out) mapOption(Out, T)(
 	immutable Opt!T a,
 	scope immutable(Out) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return a.has ? some!Out(cb(a.force)) :none!Out;
+	return a.has ? some!Out(cb(a.force)) : none!Out;
+}
+
+immutable(Opt!Out) flatMapOption(Out, T)(
+	immutable Opt!T a,
+	scope immutable(Opt!Out) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	return a.has ? cb(a.force) : none!Out;
 }
 
 immutable(Comparison) compareOpt(T)(
@@ -78,10 +100,13 @@ immutable(Comparison) compareOpt(T)(
 	scope Comparison delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow compare,
 ) {
 	// none < some
-	return a.match!(Comparison, T)(
+	return matchOpt!(Comparison, T)(
+		a,
 		(ref immutable T ta) =>
-			b.match!(Comparison, T)(
+			matchOpt!(Comparison, T)(
+				b,
 				(ref immutable T tb) => compare(ta, tb),
 				() => Comparison.greater),
-		() => Comparison.less);
+		() =>
+			has(b) ? Comparison.less : Comparison.equal);
 }

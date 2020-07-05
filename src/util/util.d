@@ -10,3 +10,8 @@ T todo(T)(immutable char* message) {
 	}
 	assert(0);
 }
+
+void repeat(immutable size_t times, scope void delegate() @safe @nogc pure nothrow cb) {
+	foreach (immutable size_t _; 0..times)
+		cb();
+}

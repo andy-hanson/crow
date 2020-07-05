@@ -70,7 +70,7 @@ immutable(CStr) strToCStr(Alloc)(ref Alloc alloc, immutable Str s) {
 			() => strEqCStr(a.tail, b + 1));
 }
 
-@trusted immutable(Bool) strEqLiteral(immutable Str a, immutable string b) {
+immutable(Bool) strEqLiteral(immutable Str a, immutable string b) {
 	if (a.size == b.length) {
 		foreach (immutable size_t i; 0..a.size)
 			if (a.at(i) != b[i])
@@ -78,6 +78,10 @@ immutable(CStr) strToCStr(Alloc)(ref Alloc alloc, immutable Str s) {
 		return True;
 	} else
 		return False;
+}
+
+immutable(Bool) strEq(immutable Str a, immutable Str b) {
+	return Bool(a.size == b.size && (a.size == 0 || (a.at(0) == b.at(0) && strEq(a.tail, b.tail))));
 }
 
 //TODO:KILL?
@@ -98,15 +102,18 @@ immutable(Str) stripNulTerminator(immutable NulTerminatedStr a) {
 	return a.str.rtail;
 }
 
-immutable(Str) copyStr(Alloc)(ref Alloc alloc, immutable Str s) {
-	assert(0); //TODO
+@trusted immutable(Str) copyStr(Alloc)(ref Alloc alloc, immutable Str s) {
+	char* begin = cast(char*) alloc.allocate(char.sizeof * s.size);
+	foreach (immutable size_t i; 0..s.size)
+		begin[i] = s.at(i);
+	return immutable Str(cast(immutable) begin, s.size);
 }
 
 immutable(NulTerminatedStr) copyNulTerminatedStr(Alloc)(ref Alloc alloc, immutable NulTerminatedStr s) {
 	assert(0); //TODO
 }
 
-immutable(Bool) endsWith(immutable Str a, immutable string b) {
-	return Bool(a.size >= b.length &&
-		strEqLiteral(a.slice(a.size - b.length, b.length), b));
+immutable(Bool) endsWith(immutable Str a, immutable Str b) {
+	return Bool(a.size >= b.size &&
+		strEq(a.slice(a.size - b.size, b.size), b));
 }

@@ -1,0 +1,85 @@
+import .arr-utils .bootstrap .exceptions .number-utils
+
+key-value-pair<?k, ?v> record
+	key ?k
+	value ?v
+
+dict<?k, ?v> record
+	keys arr ?k
+	values arr ?v
+
+empty? bool(d dict ?k ?v)
+	d.keys empty?
+
+empty-dict dict ?k ?v()
+	| TODO: should be able to infer type arguments
+	new empty-arr<?k>, empty-arr<?v>
+
+mut-dict<?k, ?v> record mut
+	keys mut-arr ?k
+	values mut-arr ?v
+
+new-mut-dict mut-dict ?k ?v()
+	| TODO: should be able to infer type arguments -- worked when there was only one field...
+	new new-mut-arr<?k>, new-mut-arr<?v>
+
+unsafe-as-dict dict ?k ?v(m mut-dict ?k ?v) unsafe
+	new m.keys.unsafe-as-arr, m.values.unsafe-as-arr
+
+freeze dict ?k ?v(m mut-dict ?k ?v)
+	new m.keys.freeze, m.values.freeze
+
+get-recursive<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
+	when
+		idx == keys.size
+			none
+		key ==: keys at idx
+			values at idx some
+		else
+			| TODO: should not need to provide type arguments!
+			get-recursive<?k, ?v>: keys, values, idx.incr, key
+
+get opt ?v(d dict ?k ?v, key ?k) trusted data<?k>
+	| TODO: should not need to provide type arguments
+	get-recursive<?k, ?v>: d.keys, d.values, zero, key
+
+get opt ?v(d mut-dict ?k ?v, key ?k) trusted data<?k>
+	d.unsafe-as-dict get key
+
+at ?v(d dict ?k ?v, key ?k) data<?k>
+	match d get key
+		none
+			todo
+		some s
+			s.value
+
+at ?v(d mut-dict ?k ?v, key ?k) trusted data<?k>
+	d.unsafe-as-dict at key
+
+has? bool(d dict ?k ?v, key ?k) data<?k>
+	d get key has?
+
+has? bool(d mut-dict ?k ?v, key ?k) trusted data<?k>
+	d.unsafe-as-dict has? key
+
+add void(m mut-dict ?k ?v, pair key-value-pair ?k ?v) data<?k>
+	m add pair.key, pair.value
+
+add void(m mut-dict ?k ?v, key ?k, value ?v) data<?k>
+	forbid: m has? key
+	m.keys push key
+	m.values push value
+
+map-values dict ?k ?v-out(d dict ?k ?v-in, mapper fun-mut1 ?v-out ?v-in)
+	new-values = d.values map mapper
+	new d.keys, new-values
+
+each void(d dict ?k ?v, f fun-mut2 void ?k ?v)
+	when
+		d empty?
+			pass
+		else
+			f call d.keys.first, d.values.first
+			| TODO: type argument to 'new' should be unnecessary
+			(new<dict<?k, ?v>> d.keys.tail, d.values.tail) each f
+

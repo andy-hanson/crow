@@ -1,16 +1,27 @@
 module frontend.lexer;
 
+import core.sys.posix.setjmp : jmp_buf, longjmp, setjmp;
+
+alias PureSetJmp = extern(C) int function(ref jmp_buf) @safe @nogc pure nothrow;
+immutable PureSetJmp pureSetjmp =
+	cast(PureSetJmp) &setjmp;
+
+alias PureLongJmp = extern(C) void function(ref jmp_buf, int) @safe @nogc pure nothrow;
+immutable PureLongJmp pureLongjmp =
+	cast(PureLongJmp) &longjmp;
+
 @safe @nogc pure nothrow:
 
 import frontend.ast : LiteralAst, NameAndRange;
 
 import parseDiag : ParseDiag, ParseDiagnostic;
 
+import util.alloc.alloc : nu;
 import util.bools : Bool, False, True;
 import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrUtil : slice;
-import util.collection.mutArr : moveToArr, mutArrSize, newUninitializedMutArr, setAt;
 import util.collection.str : copyStr, CStr, MutStr, NulTerminatedStr, Str, stripNulTerminator;
+import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.result : fail, Result, success;
@@ -33,6 +44,10 @@ struct Lexer(SymAlloc) {
 	CStr ptr;
 	immutable IndentKind indentKind;
 	u32 indent;
+	public:
+	jmp_buf jump_buffer = void;
+	// Assigned when an exception is thrown
+	ParseDiagnostic diagnostic_ = void;
 }
 
 @trusted Lexer!SymAlloc createLexer(SymAlloc)(Ptr!(AllSymbols!SymAlloc) allSymbols, immutable NulTerminatedStr source) {
@@ -61,26 +76,32 @@ immutable(Pos) curPos(SymAlloc)(ref const Lexer!SymAlloc lexer) {
 	return safeSizeTToU32(lexer.ptr - lexer.sourceBegin);
 }
 
-T throwDiag(T, SymAlloc)(ref const Lexer!SymAlloc lexer, immutable ParseDiagnostic pd) {
-	return todo!T("throwDiag");
+T throwDiag(T, SymAlloc)(ref Lexer!SymAlloc lexer, immutable ParseDiagnostic pd) {
+	initMemory(&lexer.diagnostic_, pd);
+	debug {
+		import core.stdc.stdio : printf;
+		printf("THROWING PARSE ERROR\n");
+	}
+	pureLongjmp(lexer.jump_buffer, 1);
+	return unreachable!T;
 }
 
-T throwDiag(T, SymAlloc)(ref const Lexer!SymAlloc lexer, immutable SourceRange range, immutable ParseDiag diag) {
-	return lexer.throwDiag!(T, SymAlloc)(ParseDiagnostic(range, diag));
+T throwDiag(T, SymAlloc)(ref Lexer!SymAlloc lexer, immutable SourceRange range, immutable ParseDiag diag) {
+	return throwDiag!(T, SymAlloc)(lexer, ParseDiagnostic(range, diag));
 }
 
-T throwDiag(T, SymAlloc)(ref const Lexer!SymAlloc lexer, immutable ParseDiag diag) {
+T throwDiag(T, SymAlloc)(ref Lexer!SymAlloc lexer, immutable ParseDiag diag) {
 	immutable Pos a = lexer.curPos;
 	return lexer.throwDiag!(T, SymAlloc)(SourceRange(a, lexer.curChar == '\0' ? a : a + 1), diag);
 }
 
-T throwAtChar(T, SymAlloc)(ref const Lexer!SymAlloc lexer, immutable ParseDiag diag) {
+T throwAtChar(T, SymAlloc)(ref Lexer!SymAlloc lexer, immutable ParseDiag diag) {
 	immutable Pos a = lexer.curPos;
 	immutable SourceRange range = SourceRange(a, lexer.curChar == '\0' ? a : a + 1);
-	return lexer.throwDiag!(T, SymAlloc)(range, diag);
+	return throwDiag!(T, SymAlloc)(lexer, range, diag);
 }
 
-T throwUnexpected(T, SymAlloc)(ref const Lexer!SymAlloc lexer) {
+T throwUnexpected(T, SymAlloc)(ref Lexer!SymAlloc lexer) {
 	return lexer.throwDiag!T(ParseDiag(ParseDiag.UnexpectedCharacter(lexer.curChar)));
 }
 
@@ -186,17 +207,17 @@ NewlineOrIndent tryTakeIndentAfterNewline(SymAlloc)(ref Lexer!SymAlloc lexer) {
 }
 
 void takeIndentAfterNewline(SymAlloc)(ref Lexer!SymAlloc lexer) {
-	immutable int delta = lexer.skipLinesAndGetIndentDelta();
-	if (delta != -1)
-		lexer.throwAtChar!void(ParseDiag(ParseDiag.ExpectedIndent()));
+	immutable int delta = skipLinesAndGetIndentDelta(lexer);
+	if (delta != 1)
+		throwAtChar!void(lexer, ParseDiag(ParseDiag.ExpectedIndent()));
 }
 
 immutable(size_t) takeNewlineOrDedentAmount(SymAlloc)(ref Lexer!SymAlloc lexer) {
 	// Mut be at the end of a line
 	lexer.take('\n');
-	immutable int i = lexer.skipLinesAndGetIndentDelta();
+	immutable int i = skipLinesAndGetIndentDelta(lexer);
 	return i > 0
-		? lexer.throwAtChar!size_t(ParseDiag(ParseDiag.UnexpectedIndent()))
+		? throwAtChar!size_t(lexer, ParseDiag(ParseDiag.UnexpectedIndent()))
 		: -i;
 }
 
@@ -468,7 +489,7 @@ immutable(size_t) toHexDigit(immutable char c) {
 	}
 
 	immutable size_t size = (lexer.ptr - begin) - nEscapedCharacters;
-	MutStr res = newUninitializedMutArr!char(alloc, size);
+	char* res = cast(char*) alloc.allocate(char.sizeof * size);
 
 	size_t outI = 0;
 	lexer.ptr = begin;
@@ -498,10 +519,10 @@ immutable(size_t) toHexDigit(immutable char c) {
 						return lexer.throwUnexpected!char;
 				}
 			}();
-			res.setAt(outI, c);
+			res[outI] = c;
 			outI++;
 		} else {
-			res.setAt(outI, *lexer.ptr);
+			res[outI] = *lexer.ptr;
 			outI++;
 		}
 		lexer.ptr++;
@@ -509,8 +530,8 @@ immutable(size_t) toHexDigit(immutable char c) {
 
 	// Skip past the closing '"'
 	lexer.ptr++;
-	assert(outI == res.mutArrSize);
-	return res.moveToArr(alloc);
+	assert(outI == size);
+	return immutable Str(cast(immutable) res, size);
 }
 
 @trusted immutable(Str) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
@@ -530,11 +551,11 @@ immutable(size_t) toHexDigit(immutable char c) {
 @trusted u32 takeIndentAmount(SymAlloc)(ref Lexer!SymAlloc lexer) {
 	immutable CStr begin = lexer.ptr;
 	if (lexer.indentKind == IndentKind.tabs) {
-		while (*lexer.ptr == '\t')
-			lexer.ptr++;
+		while (*lexer.ptr == '\t') lexer.ptr++;
 		if (*lexer.ptr == ' ')
 			lexer.throwAtChar!(void, SymAlloc)(ParseDiag(ParseDiag.IndentWrongCharacter(True)));
-		return (lexer.ptr - begin).safeSizeTToU32;
+		immutable u32 res = (lexer.ptr - begin).safeSizeTToU32;
+		return res;
 	} else {
 		immutable Pos start = lexer.curPos;
 		while (*lexer.ptr == ' ')
@@ -555,10 +576,10 @@ immutable(size_t) toHexDigit(immutable char c) {
 // NOTE: never returns a value > 1 as double-indent is always illegal.
 i32 skipLinesAndGetIndentDelta(SymAlloc)(ref Lexer!SymAlloc lexer) {
 	// comment / region counts as a blank line no matter its indent level.
-	immutable u32 newIndent = lexer.takeIndentAmount();
+	immutable u32 newIndent = takeIndentAmount(lexer);
 
-	if (lexer.tryTake('\n'))
-		return lexer.skipLinesAndGetIndentDelta();
+	if (tryTake(lexer, '\n'))
+		return skipLinesAndGetIndentDelta(lexer);
 	else if (lexer.tryTake('|')) {
 		lexer.skipRestOfLine();
 		return lexer.skipLinesAndGetIndentDelta();

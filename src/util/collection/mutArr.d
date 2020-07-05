@@ -2,8 +2,11 @@ module util.collection.mutArr;
 
 @safe @nogc pure nothrow:
 
+import std.traits : Unqual;
+
 import core.stdc.string : memcpy;
 
+import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.memory : initMemory;
 
@@ -18,9 +21,13 @@ struct MutArr(T) {
 	return a.begin_;
 }
 
-ref const(T) mutArrAt(T)(ref const MutArr!T a, immutable size_t index) {
+@trusted ref T mutArrAt(T)(ref MutArr!T a, immutable size_t index) {
 	assert(index < a.size_);
-	return a.begin[index];
+	return a.begin_[index];
+}
+
+ref T mutArrFirst(T)(ref MutArr!T a) {
+	return mutArrAt(a, 0);
 }
 
 immutable(size_t) mutArrSize(T)(ref const MutArr!T a) {
@@ -28,10 +35,10 @@ immutable(size_t) mutArrSize(T)(ref const MutArr!T a) {
 }
 
 immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
-	return a.size_ == 0;
+	return Bool(a.size_ == 0);
 }
 
-@trusted void push(T, Alloc)(ref MutArr!T a, ref Alloc alloc, immutable T value) {
+@trusted void push(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable T value) {
 	if (a.size_ == a.capacity_) {
 		immutable size_t newCapacity = a.size_ == 0 ? 2 : a.size_ * 2;
 		T* newBegin = cast(T*) alloc.allocate(newCapacity * T.sizeof);
@@ -51,22 +58,21 @@ immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 	a.begin_[index] = value;
 }
 
-@trusted const(T[]) range(T)(ref const MutArr!T a) {
+@trusted const(T[]) mutArrRange(T)(ref const MutArr!T a) {
 	return a.begin_[0..a.size_];
 }
 
-@trusted T[] rangeMut(T)(ref MutArr!T a) {
+@trusted T[] mutArrRangeMut(T)(ref MutArr!T a) {
 	return a.begin_[0..a.size_];
 }
 
-@trusted immutable(Arr!T) moveToArr(T, Alloc)(ref MutArr!T a, ref Alloc alloc) {
-	static assert(__traits(isPOD, T));
-	Arr!T res = Arr!T(a.begin_, a.size_);
+@trusted immutable(Arr!T) moveToArr(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a) {
+	immutable Arr!T res = immutable Arr!T(cast(immutable) a.begin_, a.size_);
 	alloc.freePartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
 	a.size_ = 0;
 	a.capacity_ = 0;
-	return cast(immutable) res;
+	return res;
 }
 
 @trusted ref const(T) last(T)(ref const MutArr!T a) {
@@ -78,6 +84,6 @@ immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 	return MutArr!T(cast(T*) alloc.allocate(T.sizeof * size), size, size);
 }
 
-ref const(Arr!T) tempAsArr(T)(ref const MutArr!T m) {
-	return const Arr!T(m.begin, m.size);
+const(Arr!T) tempAsArr(T)(ref const MutArr!T m) {
+	return const Arr!T(m.begin_, m.size_);
 }

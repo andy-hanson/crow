@@ -1,0 +1,140 @@
+import .bootstrap .exceptions
+
+is-multiple? bool(a nat, b nat)
+	a mod b == zero
+
+incr nat(n nat)
+	| TODO: billion should be max-value
+	assert: n < billion
+	n wrap-add one
+
+incr int(i int)
+	| TODO: billion should be max-value
+	assert: i < billion
+	i wrap-add one
+
+| TODO: use specs for this kind of function
+decr nat(a nat)
+	forbid: a zero?
+	a wrap-decr
+decr int(a int)
+	forbid: a zero?
+	a wrap-decr
+decr int32(a int32)
+	forbid: a zero?
+	a wrap-decr
+
++ nat(a nat, b nat)
+	res = a wrap-add b
+	assert: res >= a and: res >= b
+	res
+- nat(a nat, b nat)
+	assert: a >= b
+	a wrap-sub b
+* nat(a nat, b nat)
+	| TODO: better safety check
+	when
+		a.zero? or: b.zero?
+			zero
+		else
+			res = a wrap-mul b
+			assert: res / b == a
+			assert: res / a == b
+			res
+/ nat(a nat, b nat) trusted
+	forbid: b zero?
+	a unsafe-div b
+
+mod nat(a nat, b nat) trusted
+	forbid: b zero?
+	a unsafe-mod b
+
++ int(a int, b int)
+	| TODO: better safety check
+	assert: a > neg-million
+	assert: a < million
+	assert: b > neg-million
+	assert: b < million
+	a wrap-add b
++ int32(a int32, b int32)
+	| TODO: better safety check
+	assert: a > neg-million
+	assert: a < million
+	assert: b > neg-million
+	assert: b < million
+	a wrap-add b
+
+- int(a int, b int)
+	| TODO: better safety check
+	assert: a > neg-million
+	assert: a < million
+	assert: b > neg-million
+	assert: b < million
+	a wrap-sub b
+- int32(a int32, b int32)
+	| TODO: better safety check
+	assert: a > neg-million
+	assert: a < million
+	assert: b > neg-million
+	assert: b < million
+	a wrap-sub b
+
+* int(a int, b int)
+	assert: a > neg-million
+	assert: a < million
+	assert: b > neg-million
+	assert: b < million
+	a wrap-mul b
+/ int(a int, b int) trusted
+	forbid: b zero?
+	| If a is the smallest int and b is -1, result is UB
+	| TODO: better safety check
+	assert: a > neg-million
+	a unsafe-div b
+
+to-int int(n nat)
+	| TODO: assert: n < (32 pow2)
+	assert: n < million
+	n unsafe-to-int
+
+to-int32 int32(n nat)
+	| TODO: assert: n < (32 pow2)
+	assert: n < million
+	n.unsafe-to-int unsafe-to-int32
+
+to-nat nat(i int)
+	forbid: i.negative?
+	i unsafe-to-nat
+
+to-nat nat(i int32)
+	i.to-int.to-nat
+
+negative? bool(i int)
+	i < zero
+
+neg int(i int)
+	i * neg-one
+
+neg int(n nat)
+	n.to-int neg
+
+abs nat(i int)
+	i-abs = i.negative? if i.neg, i
+	i-abs to-nat
+
+mod nat(a int, b nat)
+	forbid: b zero?
+	when
+		a negative?
+			x = a.abs mod b
+			x == b if: zero, b - x
+		else
+			a.to-nat mod b
+
++ float(a float, b float) noctx builtin
+- float(a float, b float) noctx builtin
+* float(a float, b float) noctx builtin
+unsafe-div float(a float, b float) noctx unsafe builtin
+zero float() noctx builtin
+one float() noctx builtin
+

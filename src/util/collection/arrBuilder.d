@@ -2,18 +2,31 @@ module util.collection.arrBuilder;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr;
-import util.collection.mutArr : moveToArr, MutArr, push;
+import util.bools : Bool;
+import util.collection.arr : Arr, begin, size;
+import util.collection.mutArr : tempAsArr, moveToArr, MutArr, mutArrIsEmpty, mutArrSize, push;
 
 struct ArrBuilder(T) {
-	private MutArr!T data;
+	private MutArr!(immutable T) data;
 }
 
-void add(T, Alloc)(ref ArrBuilder!T a, ref Alloc alloc, immutable T value) {
-	a.data.push!(T, Alloc)(alloc, value);
+void add(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
+	push(alloc, a.data, value);
 }
 
-immutable(Arr!T) finishArr(T, Alloc)(ref ArrBuilder!T a, ref Alloc alloc) {
-	return a.data.moveToArr(alloc);
+immutable(Arr!T) finishArr(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a) {
+	return moveToArr(alloc, a.data);
 }
 
+immutable(Bool) arrBuilderIsEmpty(T)(ref const ArrBuilder!T a) {
+	return mutArrIsEmpty(a.data);
+}
+
+@trusted immutable(Arr!T) arrBuilderAsTempArr(T)(ref ArrBuilder!T a) {
+	const Arr!(immutable T) arr = tempAsArr(a.data);
+	return immutable Arr!T(begin(arr), size(arr));
+}
+
+immutable(size_t) arrBuilderSize(T)(ref ArrBuilder!T a) {
+	return mutArrSize(a.data);
+}

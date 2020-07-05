@@ -1,0 +1,58 @@
+#!/usr/bin/env noze
+
+import
+	arr-utils
+	cell
+	command-line-parser
+	dict
+	fut-utils
+	gc
+	io
+	posix
+	runtime
+	str-utils
+	.compile-error-tests
+	.failure
+	.lint
+	.path-utils
+	.runnable-tests
+
+main fut exit-code(args arr str) summon
+	options = args parse-cmd-line-args<test-options> (new-arr "print-tests", "max-failures"), \values
+		print-tests-strs = values at 0
+		max-failures-strs = values at 1
+		print-tests? = print-tests-strs.has?
+		max-failures = as<nat>: match max-failures-strs
+			none
+				100
+			some s
+				strs = s.value
+				assert: strs.size == 1
+				strs.first literal
+		new print-tests?, max-failures
+	resolved: match options
+		none
+			print-help
+			1
+		some s
+			s.value do-test
+
+private
+
+print-help void() summon
+	print-sync: "test -- runs tests"
+	print-sync: "options:"
+	print-sync: "\t--print-tests  : print every test run"
+	print-sync: "\t--max-failures : stop after this many failures. Defaults to 10."
+
+do-test exit-code(options test-options) summon
+	test-path = current-executable-path parent-path
+	noze-path = test-path parent-path
+	noze-exe = noze-path child-path "bin" child-path "noze"
+	env = get-environ
+
+	compile-failures = test-path child-path "compile-errors" run-compile-error-tests noze-exe, env, options
+	run-failures = compile-failures first-failures \
+		test-path child-path "runnable" run-runnable-tests noze-exe, env, options
+	all-failures = run-failures first-failures {noze-path lint options}
+	all-failures print-failures options

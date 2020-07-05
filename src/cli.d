@@ -2,7 +2,8 @@ module cli;
 
 import core.stdc.stdio : printf;
 
-import compiler : build, buildAndRun;
+import compiler : build, buildAndRun, printAst, ProgramDirAndMain;
+import frontend.lang : nozeExtension;
 
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
@@ -13,12 +14,13 @@ import util.io : getCwd, parseCommandLineArgs, CommandLineArgs;
 import util.opt : force, forceOrTodo, has, Opt;
 import util.path :
 	AbsolutePath,
-	AbsoluteOrRelPath,
 	baseName,
-	match,
 	parseAbsoluteOrRelPath,
 	parent,
 	Path,
+	pathBaseName,
+	pathParent,
+	pathToStr,
 	RelPath,
 	resolvePath,
 	rootPath;
@@ -29,32 +31,28 @@ import util.util : todo;
 @safe @nogc nothrow: // not pure
 
 int cli(immutable size_t argc, immutable CStr* argv) {
-	StackAlloc alloc;
-	StackAlloc symAlloc;
-	AllSymbols!StackAlloc allSymbols = AllSymbols!StackAlloc(symAlloc); // Just for paths
-	immutable CommandLineArgs args = parseCommandLineArgs(alloc, allSymbols, argc, argv);
+	CliAlloc alloc;
+	SymAlloc symAlloc;
+	immutable CommandLineArgs args = parseCommandLineArgs(alloc, argc, argv);
+	AllSymbols!SymAlloc allSymbols = AllSymbols!SymAlloc(symAlloc);
 	return go(allSymbols, args);
 }
 
 private:
 
+alias CliAlloc = StackAlloc!("commandLineArgs", 32 * 1024);
+alias SymAlloc = StackAlloc!("symAlloc", 1024 * 1024);
+
 immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable CommandLineArgs args) {
-	StackAlloc alloc;
-	immutable AbsolutePath nozeDir = getNozeDirectory(args.pathToThisExecutable);
-	immutable Command command = parseCommand(alloc, allSymbols, getCwd(alloc, allSymbols), args.args);
-	/*
-	ref immutable Command a,
-	scope immutable(Out) delegate(ref immutable Command.Build) @safe @nogc pure nothrow cbBuild,
-	scope immutable(Out) delegate(ref immutable Command.Help) @safe @nogc pure nothrow cbHelp,
-	scope immutable(Out) delegate(ref immutable Command.HelpBuild) @safe @nogc pure nothrow cbHelpBuild,
-	scope immutable(Out) delegate(ref immutable Command.HelpRun) @safe @nogc pure nothrow cbHelpRun,
-	scope immutable(Out) delegate(ref immutable Command.Run) @safe @nogc pure nothrow cbRun,
-	scope immutable(Out) delegate(ref immutable Command.Version) @safe @nogc pure nothrow cbVersion,
-	*/
+	StackAlloc!("command", 1024) alloc;
+	immutable Str nozeDir = getNozeDirectory(args.pathToThisExecutable);
+	immutable Command command = parseCommand(alloc, allSymbols, getCwd(alloc), args.args);
 	return match!int(
 		command,
+		(ref immutable Command.Ast a) =>
+			printAst(allSymbols, a.programDirAndMain),
 		(ref immutable Command.Build b) =>
-			build(allSymbols, nozeDir, b.programDirAndMain.programDir, b.programDirAndMain.mainPath, args.environ),
+			build(allSymbols, nozeDir, b.programDirAndMain, args.environ),
 		(ref immutable Command.Help h) =>
 			help(h.isDueToCommandParseError),
 		(ref immutable Command.HelpBuild) =>
@@ -62,18 +60,16 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 		(ref immutable Command.HelpRun) =>
 			helpRun(),
 		(ref immutable Command.Run r) =>
-			buildAndRun(
-				allSymbols,
-				nozeDir,
-				r.programDirAndMain.programDir,
-				r.programDirAndMain.mainPath,
-				r.programArgs,
-				args.environ),
+			buildAndRun(allSymbols, nozeDir, r.programDirAndMain, r.programArgs, args.environ),
 		(ref immutable Command.Version) {
-			//printf("Approximately 0.000\n");
+			printVersion();
 			return 0;
 		},
 	);
+}
+
+@trusted void printVersion() {
+	printf("Approximately 0.000\n");
 }
 
 @trusted immutable(int) helpBuild() {
@@ -88,7 +84,7 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 		"Command: noze run [PATH] -- args\n" ~
 		"\tDoes the same as 'noze build [PATH]', then runs the executable it created.\n" ~
 		"\tNo options.\n" ~
-		"\tArguments after `--` will be sent to the program.");
+		"\tArguments after `--` will be sent to the program.\n");
 	return 0;
 }
 
@@ -103,6 +99,7 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 
 @trusted Out match(Out)(
 	ref immutable Command a,
+	scope immutable(Out) delegate(ref immutable Command.Ast) @safe @nogc nothrow cbAst,
 	scope immutable(Out) delegate(ref immutable Command.Build) @safe @nogc nothrow cbBuild,
 	scope immutable(Out) delegate(ref immutable Command.Help) @safe @nogc nothrow cbHelp,
 	scope immutable(Out) delegate(ref immutable Command.HelpBuild) @safe @nogc nothrow cbHelpBuild,
@@ -111,6 +108,8 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 	scope immutable(Out) delegate(ref immutable Command.Version) @safe @nogc nothrow cbVersion,
 ) {
 	final switch (a.kind) {
+		case Command.Kind.ast:
+			return cbAst(a.ast);
 		case Command.Kind.build:
 			return cbBuild(a.build);
 		case Command.Kind.help:
@@ -128,11 +127,6 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 
 pure:
 
-struct ProgramDirAndMain {
-	immutable AbsolutePath programDir;
-	immutable Ptr!Path mainPath;
-}
-
 immutable(Bool) isSpecialArg(immutable Str s, immutable string expected) {
 	return Bool(!s.empty &&
 		(s.at(0) == '-' ? isSpecialArg(s.tail, expected) : strEqLiteral(s, expected)));
@@ -144,6 +138,9 @@ immutable(Bool) isHelp(immutable Str s) {
 
 struct Command {
 	@safe @nogc pure nothrow:
+	struct Ast {
+		immutable ProgramDirAndMain programDirAndMain;
+	}
 	struct Build {
 		immutable ProgramDirAndMain programDirAndMain;
 	}
@@ -159,6 +156,7 @@ struct Command {
 	}
 	struct Version {}
 
+	@trusted this(immutable Ast a) { kind = Kind.ast; ast = a; }
 	@trusted this(immutable Build a) { kind = Kind.build; build = a; }
 	@trusted this(immutable Help a) { kind = Kind.help; help = a; }
 	@trusted this(immutable HelpBuild a) { kind = Kind.helpBuild; helpBuild = a; }
@@ -168,6 +166,7 @@ struct Command {
 
 	private:
 	enum Kind {
+		ast,
 		build,
 		help,
 		helpBuild,
@@ -177,6 +176,7 @@ struct Command {
 	}
 	immutable Kind kind;
 	union {
+		immutable Ast ast;
 		immutable Build build;
 		immutable Help help;
 		immutable HelpBuild helpBuild;
@@ -186,38 +186,35 @@ struct Command {
 	}
 }
 
-immutable(AbsolutePath) parseCwdRelativePath(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
-	immutable AbsolutePath cwd,
-	immutable Str arg,
-) {
-	immutable AbsoluteOrRelPath a = parseAbsoluteOrRelPath(alloc, allSymbols, arg);
-	return a.match(
-		(ref immutable AbsolutePath p) => p,
-		(ref immutable RelPath p) {
-			immutable Opt!AbsolutePath resolved = resolvePath(alloc, cwd, p);
-			return forceOrTodo(resolved);
-		});
-}
-
 immutable(ProgramDirAndMain) parseProgramDirAndMain(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable AbsolutePath cwd,
+	immutable Str cwd,
 	immutable Str arg,
 ) {
-	immutable AbsolutePath mainAbsolutePath = parseCwdRelativePath(alloc, allSymbols, cwd, arg);
+	immutable Opt!AbsolutePath mainAbsolutePathOption = parseAbsoluteOrRelPath(alloc, allSymbols, cwd, arg);
+	immutable AbsolutePath mainAbsolutePath = forceOrTodo(mainAbsolutePathOption);
 	immutable Opt!AbsolutePath parent = mainAbsolutePath.parent;
-	immutable AbsolutePath dir = forceOrTodo(parent);
+	immutable Str dir = pathToStr(alloc, forceOrTodo(parent));
 	immutable Sym name = mainAbsolutePath.baseName;
 	return ProgramDirAndMain(dir, rootPath(alloc, name));
+}
+
+immutable(Command) parseAstCommand(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	immutable Str cwd,
+	immutable Arr!Str args,
+) {
+	return args.size == 1 && !isHelp(args.only)
+		? Command(Command.Ast(parseProgramDirAndMain(alloc, allSymbols, cwd, args.only)))
+		: todo!Command("Command.HelpAst");
 }
 
 immutable(Command) parseBuildCommand(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable AbsolutePath cwd,
+	immutable Str cwd,
 	immutable Arr!Str args,
 ) {
 	return args.size == 1 && !isHelp(args.only)
@@ -228,7 +225,7 @@ immutable(Command) parseBuildCommand(Alloc, SymAlloc)(
 immutable(Command) parseRunCommand(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable AbsolutePath cwd,
+	immutable Str cwd,
 	immutable Arr!Str args,
 ) {
 	if (args.size == 0 || isHelp(args.first))
@@ -246,7 +243,7 @@ immutable(Command) parseRunCommand(Alloc, SymAlloc)(
 immutable(Command) parseCommand(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable AbsolutePath cwd,
+	immutable Str cwd,
 	immutable Arr!Str args,
 ) {
 	if (args.size == 0)
@@ -257,28 +254,31 @@ immutable(Command) parseCommand(Alloc, SymAlloc)(
 			? Command(Command.Help(False))
 			: isSpecialArg(arg0, "version")
 			? Command(Command.Version())
+			: strEqLiteral(arg0, "ast")
+			? parseAstCommand(alloc, allSymbols, cwd, args.tail)
 			: strEqLiteral(arg0, "build")
 			? parseBuildCommand(alloc, allSymbols, cwd, args.tail)
 			: strEqLiteral(arg0, "run")
 			? parseRunCommand(alloc, allSymbols, cwd, args.tail)
 			// Allow `noze foo.nz args` to translate to `noze run foo.nz -- args`
-			: arg0.endsWith(".nz")
+			: endsWith(arg0, nozeExtension)
 			? Command(Command.Run(parseProgramDirAndMain(alloc, allSymbols, cwd, arg0), args.tail))
 			: Command(Command.Help(True));
 	}
 }
 
-immutable(AbsolutePath) climbUpToNoze(immutable AbsolutePath p) {
-	immutable Opt!AbsolutePath par = p.parent;
-	return symEq(p.baseName, shortSymAlphaLiteral("noze"))
+immutable(Str) climbUpToNoze(immutable Str p) {
+	immutable Opt!Str par = pathParent(p);
+	immutable Opt!Str bn = pathBaseName(p);
+	return strEqLiteral(bn.forceOrTodo, "noze")
 		? p
 		: par.has
 		? climbUpToNoze(par.force)
-		: todo!AbsolutePath("no 'noze' directory in path");
+		: todo!Str("no 'noze' directory in path");
 }
 
-immutable(AbsolutePath) getNozeDirectory(immutable AbsolutePath pathToThisExecutable) {
-	immutable Opt!AbsolutePath parent = pathToThisExecutable.parent;
+immutable(Str) getNozeDirectory(immutable Str pathToThisExecutable) {
+	immutable Opt!Str parent = pathParent(pathToThisExecutable);
 	return climbUpToNoze(forceOrTodo(parent));
 }
 

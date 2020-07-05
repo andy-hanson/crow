@@ -1,0 +1,468 @@
+| number-utils for errno.to-str
+import .arr-utils .bootstrap .cell .dict .exceptions .number-utils .opt-utils .posix .str-conv .str-utils
+
+| TODO: summon
+write-sync-no-newline void(fd fd-t, s str) unsafe noctx
+	hard-assert: size-of<char> == size-of<byte>
+	res = fd write s.data.as-any-ptr, s.size
+	when
+		res == s.size.unsafe-to-int
+			pass
+		else
+			| Retry?
+			todo
+
+print-sync-no-newline void(s str) summon trusted noctx
+	stdout-fd write-sync-no-newline s
+
+print-sync void(s str) summon noctx
+	s print-sync-no-newline
+	"\n" print-sync-no-newline
+
+print-err-sync-no-newline void(s str) summon trusted noctx
+	stderr-fd write-sync-no-newline s
+
+print-err-sync void(s str) summon noctx
+	s print-err-sync-no-newline
+	"\n" print-err-sync-no-newline
+
+debug-print-sync void(s str) noctx trusted
+	stderr-fd write-sync-no-newline s
+	stderr-fd write-sync-no-newline "\n"
+
+is-dir? bool(path str) summon
+	path.to-c-str is-dir?
+
+is-dir? bool(path c-str) summon
+	match path get-stat
+		none
+			| raise exception -- path does not exist
+			todo
+		some s
+			s.value.st-mode bits-and s-ifmt == s-ifdir
+
+is-file? bool(path str) summon
+	path.to-c-str is-file?
+
+is-file? bool(path c-str) summon
+	match path get-stat
+		none
+			| raise exception
+			todo
+		some s
+			s.value.st-mode bits-and s-ifmt == s-ifreg
+
+| TODO: move to io.nz
+path-exists? bool(path c-str) summon
+	path.get-stat has?
+
+path-exists? bool(path str) summon
+	path.to-c-str path-exists?
+
+get-dirent-name str(d dirent) unsafe noctx
+	| TODO: this is offsetof(d, d-name)
+	name-offset = size-of<ino-t> wrap-add size-of<off-t> wrap-add size-of<nat16> wrap-add size-of<char>
+	name-ptr = d.as-any-ptr + name-offset
+	name-ptr.ptr-cast<char, byte> to-str
+
+seek-set int32()
+	zero
+seek-cur int32()
+	one
+seek-end int32()
+	two
+
+
+read-dir arr str(path str) summon
+	path.to-c-str read-dir
+
+| Returns array of filenames in the directory.
+read-dir arr str(path c-str) trusted summon
+	dirp = path opendir
+	| TODO: handle errors
+	forbid: dirp null?
+	res = new-mut-arr<str>
+	dirp read-dir-recur res
+	res.freeze sort
+
+read-dir-recur void(dirp dirp, res mut-arr str) unsafe summon
+	| Initial value of entry / result should not matter
+	entry = new<dirent> zero, zero, zero, "\0", zero
+	result = entry new-cell<dirent>
+	err = dirp readdir-r entry, result
+	| TODO: handle error
+	assert: err zero?
+	when
+		result.get.as-any-ptr null?
+			| finished
+			pass
+		else
+			assert: result.get ptr-eq entry
+			name = entry.get-dirent-name
+			when
+				name == "." or: name == ".."
+					pass
+				else
+					res push entry.get-dirent-name
+			dirp read-dir-recur res
+
+read-link str(path str) summon trusted
+	| TODO: smart small and retry if necessAry
+	buff = thousand new-uninitialized-mut-arr<char>
+	size = path.to-c-str readlink buff.data, buff.size
+	size check-errno-if-neg-one
+	buff.freeze slice-up-to size.to-nat
+
+current-executable-path str() summon trusted
+	"/proc/self/exe" read-link
+
+read-file str(path str) summon
+	| TODO:KILL (handle this in try-read-file -- test that that works)
+	assert: path is-file?
+
+	match path try-read-file
+		none
+			| exception: file does not exist
+			todo
+		some s
+			s.value
+
+try-read-file opt str(path str) summon
+	path.to-c-str try-read-file
+
+try-read-file opt str(path c-str) summon trusted
+	fd = path open o-rdonly
+	when
+		fd == neg-one
+			errno = get-errno
+			when
+				errno == enoent
+					none
+				else
+					print-sync: "failed to open file " + path.to-str
+					todo
+		else
+			file-size = fd lseek zero, seek-end
+			| TODO: handle errors
+			forbid: file-size == neg-one
+			| TODO: this is just a sanity check
+			assert: file-size < billion
+			| TODO: handle empty files
+			forbid: file-size zero?
+
+			| Go back to beginning
+			off = fd lseek zero, seek-set
+			| TODO: handle errors
+			assert: off == zero
+
+			| TODO: allocation can fail, then 'fd' is left open. Need finalizers
+			file-size-nat = file-size.to-nat
+			res = file-size-nat new-uninitialized-mut-arr<char>
+			n-bytes-read = fd read res.data.ptr-cast, file-size-nat
+			| TODO: handle errors
+			forbid: n-bytes-read == neg-one
+			assert: n-bytes-read == file-size
+			check-posix-error: fd close
+			res.freeze some
+
+get-cwd str() summon trusted
+	max-size = eight.two-pow as<nat>
+	buff = max-size new-uninitialized-mut-arr<char>
+	b = buff.data getcwd buff.size
+	when
+		b null?
+			todo
+		else
+			assert: b == buff.data
+			b to-str
+
+
+environ alias
+	dict str str
+
+convert-args ptr c-str(exe-c-str c-str, args arr str)
+	data: exe-c-str cons: args map {it.to-c-str} rcons null
+
+get-environ environ() summon trusted
+	res = new-mut-dict<str, str>
+	environ get-environ-recur res
+	res freeze
+
+get-environ-recur void(env ptr c-str, res mut-dict str str) unsafe
+	when
+		env.deref null?
+			pass
+		else
+			res add env.deref.parse-environ-entry
+			env.incr get-environ-recur res
+
+parse-environ-entry key-value-pair str str(entry c-str) unsafe
+	key-end = entry find-char-in-cstr "="
+	key = entry arr-from-begin-end key-end
+	value-begin = key-end incr
+	value-end = value-begin find-cstr-end
+	value = value-begin arr-from-begin-end value-end
+	new key, value
+
+convert-environ ptr c-str(environ environ)
+	res = new-mut-arr<c-str>
+	environ each \key value
+		res push: key + "=" + value to-c-str
+	res push null
+	res.freeze data
+
+exit-code alias
+	int32
+
+process-result record
+	exit-code exit-code
+	stdout str
+	stderr str
+
+spawn-and-wait-result process-result(exe str, args arr str, environ environ) trusted summon
+	when
+		| TODO: kill, handle that error properly
+		exe is-file?
+			exe-c-str = exe.to-c-str
+			exe-c-str spawn-and-wait-result (exe-c-str convert-args args), environ.convert-environ
+		else
+			fail: exe + " is not a file"
+
+| This one shares stdout and stderr with parent process
+spawn-and-wait int32(exe str, args arr str, environ environ) trusted summon
+	when
+		| TODO: kill, handle that error properly
+		exe is-file?
+			| First argument should be the executable path
+			| TODO: &to-c-str
+			exe-c-str = exe.to-c-str
+			exe-c-str spawn-and-wait (exe-c-str convert-args args), environ.convert-environ
+		else
+			fail: exe + " is not a file"
+
+spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
+	stdout-pipes = make-pipes
+	stderr-pipes = make-pipes
+
+	| TODO: Neater, move to own function
+	actions = new<posix-spawn-file-actions-t> zero, zero, null, zero
+	check-posix-error: actions posix-spawn-file-actions-init
+	check-posix-error: actions posix-spawn-file-actions-addclose stdout-pipes.write-pipe
+	check-posix-error: actions posix-spawn-file-actions-addclose stderr-pipes.write-pipe
+	check-posix-error: actions posix-spawn-file-actions-adddup2 stdout-pipes.read-pipe, stdout-fd
+	check-posix-error: actions posix-spawn-file-actions-adddup2 stderr-pipes.read-pipe, stderr-fd
+	check-posix-error: actions posix-spawn-file-actions-addclose stdout-pipes.read-pipe
+	check-posix-error: actions posix-spawn-file-actions-addclose stderr-pipes.read-pipe
+
+	pid-cell = zero new-cell<pid-t>
+	check-posix-error: posix-spawn: pid-cell, exe, actions, null, args, environ
+	pid = pid-cell.get
+
+	| Close child-side of pipes (from this process, child still has them)
+	check-posix-error: stdout-pipes.read-pipe close
+	check-posix-error: stderr-pipes.read-pipe close
+
+	| Read from pipes
+	stdout-builder = new-mut-arr<char>
+	stderr-builder = new-mut-arr<char>
+	keep-polling: stdout-pipes.write-pipe, stderr-pipes.write-pipe, stdout-builder, stderr-builder
+
+	exit-code = pid wait-and-get-exit-code
+
+	new exit-code, stdout-builder.freeze, stderr-builder.freeze
+
+
+| Args should be terminated by null.
+| Each entry in environ looks like "name=value", and final entry is null.
+| TODO: option to get stdout/stderr as a string rather than having them go to the terminal
+spawn-and-wait exit-code(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
+	pid-cell = zero new-cell<pid-t>
+	check-posix-error: posix-spawn: pid-cell, exe, null.as-ref, null, args, environ
+	pid-cell.get wait-and-get-exit-code
+
+| TODO:MOVE
+mut-str alias
+	mut-arr char
+
+read-to-buffer-until-eof void(fd fd-t, buffer mut-str) trusted summon
+	read-max = ten.two-pow as<nat>
+	| It will write to the end of the buffer. So we must ensure that it has enough space at the end.
+	buffer ensure-capacity: buffer.size + read-max
+	add-data-to = buffer.data + buffer.size
+	n-bytes-read = fd read add-data-to.as-any-ptr, read-max
+	when
+		n-bytes-read == neg-one
+			| Error
+			todo
+		n-bytes-read == zero
+			| EOF, done
+			pass
+		else
+			buffer unsafe-increase-size n-bytes-read.to-nat
+			fd read-to-buffer-until-eof buffer
+
+| TODO:MOVE
+to-nat nat(b bool)
+	b if: one, zero
+
+keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, stderr-builder mut-str) summon unsafe
+	poll-fds = new-arr<by-val<pollfd>> (new stdout-pipe, pollin, zero), (new stderr-pipe, pollin, zero)
+	stdout-pollfd = poll-fds ref-of-val-at zero
+	stderr-pollfd = poll-fds ref-of-val-at one
+	| timeout == neg-one means we block
+	n-pollfds-with-events = poll: poll-fds.data, poll-fds.size, neg-one
+	when
+		n-pollfds-with-events zero?
+			| TODO: is this even possible to reach? I think we always get has-pollhup? instead.
+			pass
+		else
+			a = stdout-pollfd handle-revents stdout-builder
+			b = stderr-pollfd handle-revents stderr-builder
+			assert: a.any?.to-nat + b.any?.to-nat == n-pollfds-with-events.to-nat
+			when
+				| Apparently stdout and stderr can hang up at slightly different times.
+				a.hung-up? and b.hung-up?
+					pass
+				else
+					keep-polling: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
+
+handle-revents-result record
+	had-pollin? bool
+	hung-up? bool
+
+any? bool(r handle-revents-result)
+	r.had-pollin? or r.hung-up?
+
+handle-revents handle-revents-result(pollfd pollfd, builder mut-str) summon
+	revents = pollfd revents
+	had-pollin? = revents has-pollin?
+	when
+		had-pollin?
+			pollfd.fd read-to-buffer-until-eof builder
+		else
+			pass
+	hung-up? = revents has-pollhup?
+	when
+		revents.has-pollpri? or revents.has-pollout? or revents.has-pollerr? or revents.has-pollnval?
+			todo
+		else
+			pass
+	| TODO: shouldn't need parens?
+	new had-pollin?, hung-up?
+
+wait-and-get-exit-code exit-code(pid pid-t) summon unsafe
+	wait-status-cell = zero new-cell<status-t>
+	res-pid = pid waitpid wait-status-cell, zero
+	wait-status = wait-status-cell.get
+	assert: res-pid == pid
+	when
+		wait-status w-if-exited
+			wait-status w-exit-status
+		wait-status w-if-signaled
+			signal = wait-status w-term-sig
+			print-sync: "Process terminated with signal " + signal.to-str
+			todo
+			| use `wait-status w-term-sig`
+			| and `wait-status w-core-dump`
+		wait-status w-if-stopped
+			print-sync: "WAIT STOPPED"
+			todo
+			| use `wait-status w-stop-sig`
+		wait-status w-if-continued
+			todo
+		else
+			| What other statuses are there?
+			todo
+
+get-stat opt stat-t(path c-str) summon trusted
+	| Initial value doesn't really matter
+	s = empty-stat
+	err = path stat s
+	when
+		err == zero
+			s some
+		else
+			assert: err == neg-one
+			errno = get-errno
+			when
+				errno == enoent
+					none
+				else
+					todo
+
+check-posix-error void(e err-t)
+	| TODO: throw an exception
+	assert: e zero?
+
+check-errno-if-neg-one void(e int) summon trusted
+	when
+		e == neg-one
+			get-errno check-posix-error
+			hard-unreachable
+		else
+			pass
+
+check-errno-if-not-zero void(e int) summon trusted
+	when
+		e zero?
+			pass
+		else
+			get-errno check-posix-error
+			hard-unreachable
+
+make-pipes pipes() summon
+	res = new<pipes> zero, zero
+	check-posix-error: res pipe
+	res
+
+
+
+
+
+uri record
+	host str
+	port nat16
+	path-and-query str
+	| Basically just ignored
+	after-hash str
+
+| Returns fd of an an opened socket to uri
+connect-to-uri fd-t(u uri) summon trusted
+	hints = new<addrinfo>
+		ai-flags. 0
+		ai-family. af-unspec
+		ai-socktype. sock-stream
+		ai-protocol. zero
+		ai-addrlen. zero
+		ai-addr. null.as-ref
+		ai-canonname. null
+		ai-next. null
+
+	result = null new-cell<ptr<addrinfo>>
+	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
+	op-sock = result.get find-working-socket
+	result.get freeaddrinfo
+	| TODO: handle failure
+	op-sock force
+
+find-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
+	when
+		ap == null
+			none
+		else
+			a = ap deref
+			sock = socket: a.ai-family, a.ai-socktype, a.ai-protocol
+			when
+				sock == neg-one
+					| Ignore error and try again
+					a.ai-next find-working-socket
+				else
+					err = sock connect a.ai-addr, a.ai-addrlen
+					when
+						err == neg-one
+							check-posix-error: sock close
+							| Ignore error and try again
+							a.ai-next find-working-socket
+						else
+							assert: err zero?
+							sock some

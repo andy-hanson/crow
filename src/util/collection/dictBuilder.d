@@ -2,9 +2,10 @@ module util.collection.dictBuilder;
 
 @safe @nogc pure nothrow:
 
+import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.mutArr : moveToArr, MutArr, mutArrSize;
+import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push;
 import util.collection.dict : Dict, KeyValuePair;
 import util.comparison : Comparison;
 
@@ -13,21 +14,21 @@ struct DictBuilder(K, V, alias cmp) {
 }
 
 void addToDict(Alloc, K, V, alias cmp)(
-	ref DictBuilder!(K, V, cmp) db,
 	ref Alloc alloc,
+	ref DictBuilder!(K, V, cmp) db,
 	immutable K key,
 	immutable V value,
 ) {
-	return db.builder.add(alloc, immutable KeyValuePair!(K, V)(key, value));
+	return add(alloc, db.builder, immutable KeyValuePair!(K, V)(key, value));
 }
 
 immutable(Dict!(K, V, cmp)) finishDict(Alloc, K, V, alias cmp)(
-	ref DictBuilder!(K, V, cmp) db,
 	ref Alloc alloc,
+	ref DictBuilder!(K, V, cmp) db,
 	scope void delegate(ref immutable K, ref immutable V, ref immutable V) @safe @nogc pure nothrow cbConflict,
 ) {
-	Arr!(KeyValuePair!(K, V)) allPairs = db.builder.finishArr;
-	MutArr!(KeyValuePair!(K, V)) res;
+	immutable Arr!(KeyValuePair!(K, V)) allPairs = finishArr(alloc, db.builder);
+	MutArr!(immutable KeyValuePair!(K, V)) res;
 	foreach (immutable size_t i; 0..allPairs.size) {
 		immutable KeyValuePair!(K, V) pair = allPairs.at(i);
 		Bool isConflict = False;
@@ -40,16 +41,16 @@ immutable(Dict!(K, V, cmp)) finishDict(Alloc, K, V, alias cmp)(
 			}
 		}
 		if (!isConflict)
-			res.push(alloc, pair);
+			push(alloc, res, pair);
 	}
-	return immutable Dict!(K, V, cmp)(res.moveToArr);
+	return immutable Dict!(K, V, cmp)(moveToArr!(KeyValuePair!(K, V), Alloc)(alloc, res));
 }
 
 immutable(Dict!(K, V, cmp)) finishDictShouldBeNoConflict(Alloc, K, V, alias cmp)(
 	ref DictBuilder!(K, V, cmp) a,
 	ref Alloc alloc,
 ) {
-	immutable Arr!(KeyValuePair!(K, V)) allPairs = a.builder.finishArr(alloc);
+	immutable Arr!(KeyValuePair!(K, V)) allPairs = finishArr(alloc, a.builder);
 	foreach (immutable size_t i; 0..allPairs.size)
 		foreach (immutable size_t j; 0..i)
 			assert(cmp(allPairs.at(i).key, allPairs.at(j).key) != Comparison.equal);

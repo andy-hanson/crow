@@ -5,7 +5,8 @@ module model;
 import util.bools : and, Bool, False, or, True;
 import util.collection.arr : Arr, empty, emptyArr, first, only, range, size, sizeEq;
 import util.collection.arrUtil : exists;
-import util.collection.dict : Dict, MultiDict;
+import util.collection.dict : Dict;
+import util.collection.multiDict : MultiDict;
 import util.collection.mutArr : MutArr;
 import util.collection.str : Str;
 import util.comparison : compareEnum, compareOr, Comparison, ptrEquals;
@@ -15,9 +16,9 @@ import util.opt : none, Opt, some;
 import util.path : AbsolutePath, addManyChildren, baseName, comparePath, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
-import util.sym : compareSym, Sym;
+import util.sym : compareSym, Sym, writeSym;
 import util.util : todo;
-import util.writer : Writer;
+import util.writer : writeChar, Writer, writeStatic;
 
 immutable(Comparison) comparePathAndStorageKind(immutable PathAndStorageKind a, immutable PathAndStorageKind b) {
 	return compareOr(
@@ -30,21 +31,26 @@ immutable(Bool) pathAndStorageKindEq(immutable PathAndStorageKind a, immutable P
 }
 
 struct AbsolutePathsGetter {
-	immutable AbsolutePath globalPath;
-	immutable AbsolutePath localPath;
+	immutable Str globalPath;
+	immutable Str localPath;
+}
 
-	immutable(AbsolutePath) getBasePath(immutable StorageKind sk) {
-		final switch (sk) {
-			case StorageKind.global:
-				return globalPath;
-			case StorageKind.local:
-				return localPath;
-		}
+immutable(Str) getBasePath(ref immutable AbsolutePathsGetter a, immutable StorageKind sk) {
+	final switch (sk) {
+		case StorageKind.global:
+			return a.globalPath;
+		case StorageKind.local:
+			return a.localPath;
 	}
+}
 
-	immutable(Path) getAbsolutePath(Alloc)(ref Alloc alloc, immutable PathAndStorageKind p) {
-		return getBasePath(p.storageKind).addManyChildren(p.path);
-	}
+immutable(AbsolutePath) getAbsolutePath(Alloc)(
+	ref Alloc alloc,
+	ref immutable AbsolutePathsGetter a,
+	immutable PathAndStorageKind p,
+	immutable Str extension,
+) {
+	return AbsolutePath(a.getBasePath(p.storageKind), p.path, extension);
 }
 
 alias LineAndColumnGetters = immutable Dict!(PathAndStorageKind, LineAndColumnGetter, comparePathAndStorageKind);
@@ -185,7 +191,7 @@ struct Sig {
 	immutable Arr!Param params;
 }
 
-immutable(size_t) arity(ref immutable Sig a) {
+immutable(size_t) arity(ref const Sig a) {
 	return a.params.size;
 }
 
@@ -207,6 +213,7 @@ enum ForcedByValOrRef {
 }
 
 struct StructBody {
+	@safe @nogc pure nothrow:
 	struct Bogus {}
 	struct Builtin {}
 	struct Record {
@@ -233,10 +240,10 @@ struct StructBody {
 	}
 
 	public:
-	this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
-	this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted this(immutable Record a) { kind = Kind.record; record = a; }
-	@trusted this(immutable Union a) { kind = Kind.union_; union_ = a;}
+	immutable this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
+	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
+	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a;}
 }
 
 immutable(Bool) isBogus(ref immutable StructBody a) {
@@ -245,10 +252,10 @@ immutable(Bool) isBogus(ref immutable StructBody a) {
 immutable(Bool) isBuiltin(ref immutable StructBody a) {
 	return Bool(a.kind == StructBody.Kind.builtin);
 }
-immutable(Bool) isRecord(ref immutable StructBody a) {
+immutable(Bool) isRecord(ref const StructBody a) {
 	return Bool(a.kind == StructBody.Kind.record);
 }
-@trusted ref immutable(StructBody.Record) asRecord(return scope ref immutable StructBody a) {
+@trusted ref const(StructBody.Record) asRecord(return scope ref const StructBody a) {
 	assert(a.isRecord);
 	return a.record;
 }
@@ -260,7 +267,7 @@ immutable(Bool) isUnion(ref immutable StructBody a) {
 	return a.union_;
 }
 
-@trusted T match(T)(
+@trusted T matchStructBody(T)(
 	ref immutable StructBody a,
 	scope T delegate(ref immutable StructBody.Bogus) @safe @nogc pure nothrow cbBogus,
 	scope T delegate(ref immutable StructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
@@ -280,6 +287,7 @@ immutable(Bool) isUnion(ref immutable StructBody a) {
 }
 
 struct StructAlias {
+	@safe @nogc pure nothrow:
 	immutable SourceRange range;
 	immutable Bool isPublic;
 	immutable Sym name;
@@ -290,7 +298,7 @@ struct StructAlias {
 	Late!(immutable Opt!(Ptr!StructInst)) target_;
 
 	public:
-	this(immutable SourceRange r, immutable Bool p, immutable Sym n, immutable Arr!TypeParam tp) {
+	this(immutable SourceRange r, immutable Bool p, immutable Sym n, immutable Arr!TypeParam tp) immutable {
 		range = r;
 		isPublic = p;
 		name = n;
@@ -306,6 +314,7 @@ void setTarget(ref StructAlias a, immutable Opt!(Ptr!StructInst) value) {
 }
 
 struct StructDecl {
+	@safe @nogc pure nothrow:
 	immutable SourceRange range;
 	immutable Bool isPublic;
 	immutable Sym name;
@@ -326,7 +335,7 @@ struct StructDecl {
 		immutable Arr!TypeParam tps,
 		immutable Purity p,
 		immutable Bool fs
-	) {
+	) immutable {
 		range = r;
 		isPublic = isp;
 		name = n;
@@ -340,6 +349,9 @@ immutable(Bool) bodyIsSet(ref const StructDecl a) {
 	return a._body_.lateIsSet;
 }
 
+ref const(StructBody) body_(return scope ref const StructDecl a) {
+	return a._body_.lateGet;
+}
 ref immutable(StructBody) body_(return scope ref immutable StructDecl a) {
 	return a._body_.lateGet;
 }
@@ -375,6 +387,8 @@ void setBody(ref StructInst a, immutable StructBody value) {
 }
 
 struct SpecBody {
+	@safe @nogc pure nothrow:
+
 	struct Builtin {
 		enum Kind {
 			data,
@@ -395,8 +409,8 @@ struct SpecBody {
 	}
 
 	public:
-	this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted this(immutable Arr!Sig a) { kind = Kind.sigs; sigs = a; }
+	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	@trusted immutable this(immutable Arr!Sig a) { kind = Kind.sigs; sigs = a; }
 }
 
 @trusted T match(T)(
@@ -423,7 +437,7 @@ struct SpecDecl {
 	immutable SourceRange range;
 	immutable Bool isPublic;
 	immutable Sym name;
-	immutable Arr!(immutable TypeParam) typeParams;
+	immutable Arr!TypeParam typeParams;
 	immutable SpecBody body_;
 	MutArr!(immutable Ptr!SpecInst) insts;
 }
@@ -439,6 +453,8 @@ immutable(Sym) name(ref immutable SpecInst a) {
 }
 
 struct FunBody {
+	@safe @nogc pure nothrow:
+
 	struct Builtin {}
 	struct Extern {
 		immutable Bool isGlobal;
@@ -459,9 +475,9 @@ struct FunBody {
 	}
 
 	public:
-	this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
-	@trusted this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
+	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
+	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
 }
 
 immutable(Bool) isBuiltin(ref immutable FunBody a) {
@@ -509,6 +525,7 @@ immutable(FunFlags) funFlagsNone() {
 }
 
 struct FunDecl {
+	immutable Ptr!Module containingModule;
 	immutable Bool isPublic;
 	immutable FunFlags flags;
 	immutable Sig sig;
@@ -516,7 +533,6 @@ struct FunDecl {
 	immutable Arr!(Ptr!SpecInst) specs;
 	private:
 	Late!(immutable FunBody) _body_;
-	Late!(immutable Ptr!Module) containingModule_;
 	MutArr!(immutable Ptr!FunInst) insts;
 }
 
@@ -525,13 +541,6 @@ ref immutable(FunBody) body_(return scope ref immutable FunDecl a) {
 }
 void setBody(ref FunDecl a, immutable FunBody b) {
 	return a._body_.lateSet(b);
-}
-
-immutable(Ptr!Module) containingModule(ref immutable FunDecl a) {
-	return a.containingModule_.lateGet;
-}
-void setContainingModule(ref FunDecl a, immutable Ptr!Module m) {
-	a.containingModule_.lateSet(m);
 }
 
 ref immutable(SourceRange) range(return scope ref immutable FunDecl a) {
@@ -545,11 +554,11 @@ immutable(Bool) isExtern(ref immutable FunDecl a) {
 	return a.body_.isExtern;
 }
 
-immutable(Bool) noCtx(ref immutable FunDecl a) {
+immutable(Bool) noCtx(ref const FunDecl a) {
 	return a.flags.noCtx;
 }
 
-immutable(Sym) name(ref immutable FunDecl a) {
+immutable(Sym) name(ref const FunDecl a) {
 	return a.sig.name;
 }
 
@@ -576,8 +585,8 @@ immutable(Bool) isSummon(ref immutable FunDecl a) {
 	return a.flags.summon;
 }
 
-immutable(size_t) arity(ref immutable FunDecl a) {
-	return a.sig.arity;
+immutable(size_t) arity(ref const FunDecl a) {
+	return arity(a.sig);
 }
 
 immutable(size_t) typeArity(ref immutable FunDecl a) {
@@ -784,6 +793,7 @@ immutable(size_t) arity(ref immutable Called a) {
 }
 
 struct StructOrAlias {
+	@safe @nogc pure nothrow:
 	private:
 	enum Kind {
 		alias_,
@@ -796,8 +806,8 @@ struct StructOrAlias {
 	}
 
 	public:
-	@trusted this(immutable Ptr!StructAlias a) { kind = Kind.alias_; alias_ = a; }
-	@trusted this(immutable Ptr!StructDecl a) { kind = Kind.structDecl; structDecl_ = a; }
+	@trusted immutable this(immutable Ptr!StructAlias a) { kind = Kind.alias_; alias_ = a; }
+	@trusted immutable this(immutable Ptr!StructDecl a) { kind = Kind.structDecl; structDecl_ = a; }
 }
 
 immutable(Bool) isAlias(ref immutable StructOrAlias a) {
@@ -818,7 +828,7 @@ immutable(Bool) isStructDecl(ref immutable StructOrAlias a) {
 	return a.structDecl_;
 }
 
-@trusted T match(T)(
+@trusted T matchStructOrAlias(T)(
 	ref immutable StructOrAlias a,
 	scope T delegate(immutable Ptr!StructAlias) @safe @nogc pure nothrow cbAlias,
 	scope T delegate(immutable Ptr!StructDecl) @safe @nogc pure nothrow cbStructDecl,
@@ -832,31 +842,31 @@ immutable(Bool) isStructDecl(ref immutable StructOrAlias a) {
 }
 
 immutable(Arr!TypeParam) typeParams(ref immutable StructOrAlias a) {
-	return a.match(
+	return matchStructOrAlias(
+		a,
 		(immutable Ptr!StructAlias al) => al.typeParams,
-		(immutable Ptr!StructDecl d) => d.typeParams,
-	);
+		(immutable Ptr!StructDecl d) => d.typeParams);
 }
 
 immutable(SourceRange) range(ref immutable StructOrAlias a) {
-	return a.match(
+	return matchStructOrAlias(
+		a,
 		(immutable Ptr!StructAlias al) => al.range,
-		(immutable Ptr!StructDecl d) => d.range,
-	);
+		(immutable Ptr!StructDecl d) => d.range);
 }
 
 immutable(Bool) isPublic(ref immutable StructOrAlias a) {
-	return a.match(
+	return matchStructOrAlias(
+		a,
 		(immutable Ptr!StructAlias al) => al.isPublic,
-		(immutable Ptr!StructDecl d) => d.isPublic,
-	);
+		(immutable Ptr!StructDecl d) => d.isPublic);
 }
 
 immutable(Sym) name(ref immutable StructOrAlias a) {
-	return a.match(
+	return matchStructOrAlias(
+		a,
 		(immutable Ptr!StructAlias al) => al.name,
-		(immutable Ptr!StructDecl d) => d.name,
-	);
+		(immutable Ptr!StructDecl d) => d.name);
 }
 
 alias StructsAndAliasesMap = Dict!(Sym, StructOrAlias, compareSym);
@@ -902,7 +912,7 @@ struct CommonTypes {
 	immutable Ptr!StructDecl byVal;
 	immutable Ptr!StructDecl arr;
 	immutable Ptr!StructDecl fut;
-	immutable Arr!(immutable FunKindAndStructs) funKindsAndStructs;
+	immutable Arr!FunKindAndStructs funKindsAndStructs;
 }
 
 immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable Ptr!StructDecl s) {
@@ -1223,29 +1233,29 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 }
 
 void writeStructInst(Alloc)(ref Writer!Alloc writer, ref immutable StructInst s) {
-	writer.writeSym(s.decl.name);
+	writeSym(writer, s.decl.name);
 	if (!s.typeArgs.empty) {
 		Bool first = True;
-		foreach (ref immutable Type t; s.typeArgs) {
-			writer.writeChar(first ? '<' : ' ');
-			writer.writeType(t);
+		foreach (ref immutable Type t; s.typeArgs.range) {
+			writeChar(writer, first ? '<' : ' ');
+			writeType(writer, t);
 			first = False;
 		}
-		writer.writeChar('>');
+		writeChar(writer, '>');
 	}
 }
 
 void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Type type) {
 	return type.match(
 		(ref immutable Type.Bogus) {
-			writer.writeStatic("<<bogus>>");
+			writeStatic(writer, "<<bogus>>");
 		},
 		(immutable Ptr!TypeParam p) {
-			writer.writeChar(writer, '?');
-			writer.writeSym(p.name);
+			writeChar(writer, '?');
+			writeSym(writer, p.name);
 		},
 		(immutable Ptr!StructInst s) {
-			writer.writeStructInst(s);
+			writeStructInst(writer, s);
 		},
 	);
 }

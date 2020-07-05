@@ -1,0 +1,59 @@
+import io
+
+flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper fun-mut1 arr<?out> ?in) trusted
+	res = new-mut-arr<?out>
+	a each \x
+		when
+			res.size < max-size
+				res push-all: mapper call x
+				res reduce-size-if-more-than max-size
+			else
+				pass
+	res freeze
+
+test-options record
+	print-tests? bool
+	max-failures nat
+
+failure record
+	path str
+	message str
+
+first-failures result str arr<failure>(a result str arr<failure>, b fun0 result<str, arr<failure>>)
+	a-descr <- a
+	b-descr <- b call
+	ok: a-descr + "\n" + b-descr
+
+print-failures exit-code(failures result str arr<failure>, options test-options) summon
+	match failures
+		ok o
+			print-sync: o.value
+			0
+		err e
+			e.value each &print-failure
+			n-failures = e.value.size
+			print-sync: when
+				n-failures == options.max-failures
+					"hit maximum of " + options.max-failures.to-str + " failures"
+				else
+					n-failures.to-str + " failures"
+			n-failures.to-int32
+
+private
+
+print-failure void(failure failure) summon
+	print-bold
+	print-sync-no-newline: failure.path
+	print-reset
+	print-sync-no-newline: " "
+	print-sync: failure.message
+
+| TODO:MOVE
+print-bold void() summon
+	print-sync-no-newline: "\x1b[1m"
+
+print-red void() summon
+	print-sync-no-newline: "\x1b[31m"
+
+print-reset void() summon
+	print-sync-no-newline: "\x1b[m"

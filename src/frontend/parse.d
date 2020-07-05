@@ -27,6 +27,7 @@ import frontend.lexer :
 	Lexer,
 	NewlineOrDedent,
 	NewlineOrIndent,
+	pureSetjmp,
 	range,
 	skipBlankLines,
 	skipShebang,
@@ -58,7 +59,7 @@ import util.collection.str : CStr, NulTerminatedStr, Str;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.path : childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe;
-import util.result : Result, success;
+import util.result : fail, Result, success;
 import util.sourceRange : Pos;
 import util.sym : AllSymbols, shortSymAlphaLiteralValue, Sym;
 import util.types : u8;
@@ -71,7 +72,10 @@ immutable(Result!(FileAst, ParseDiagnostic)) parseFile(Alloc, SymAlloc)(
 	immutable NulTerminatedStr source,
 ) {
 	Lexer!SymAlloc lexer = createLexer(ptrTrustMe(allSymbols), source);
-	return success!(FileAst, ParseDiagnostic)(parseFileInner(alloc, lexer));
+	immutable int i = pureSetjmp(lexer.jump_buffer);
+	return i == 0
+		? success!(FileAst, ParseDiagnostic)(parseFileInner(alloc, lexer))
+		: fail!(FileAst, ParseDiagnostic)(lexer.diagnostic_);
 }
 
 private:
@@ -83,10 +87,10 @@ immutable(Arr!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc alloc, re
 			immutable Pos start = lexer.curPos;
 			lexer.take('?');
 			immutable Sym name = lexer.takeName();
-			res.add(alloc, TypeParamAst(lexer.range(start), name));
+			add(alloc, res, TypeParamAst(lexer.range(start), name));
 		} while (lexer.tryTake(", "));
 		lexer.take('>');
-		return res.finishArr(alloc);
+		return finishArr(alloc, res);
 	} else
 		return emptyArr!TypeParamAst;
 }
@@ -140,22 +144,22 @@ immutable(Arr!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Alloc allo
 	else {
 		ArrBuilder!ParamAst res;
 		for (;;) {
-			res.add(alloc, parseSingleParam(alloc, lexer));
+			add(alloc, res, parseSingleParam(alloc, lexer));
 			if (lexer.tryTake(')'))
 				break;
 			lexer.take(", ");
 		}
-		return res.finishArr(alloc);
+		return finishArr(alloc, res);
 	}
 }
 
 immutable(ParamsAndMaybeDedent) parseIndentedParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	ArrBuilder!ParamAst res;
 	for (;;) {
-		res.add(alloc, parseSingleParam(alloc, lexer));
+		add(alloc, res, parseSingleParam(alloc, lexer));
 		immutable size_t dedents = lexer.takeNewlineOrDedentAmount();
 		if (dedents != 0)
-			return ParamsAndMaybeDedent(res.finishArr(alloc), some(dedents - 1));
+			return ParamsAndMaybeDedent(finishArr(alloc, res), some(dedents - 1));
 	}
 }
 
@@ -206,30 +210,30 @@ immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!
 immutable(Arr!ImportAst) parseImportsNonIndented(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	ArrBuilder!ImportAst res;
 	do {
-		res.add(alloc, parseSingleImport(alloc, lexer));
+		add(alloc, res, parseSingleImport(alloc, lexer));
 	} while (lexer.tryTake(' '));
 	lexer.take('\n');
-	return res.finishArr(alloc);
+	return finishArr(alloc, res);
 }
 
 immutable(Arr!ImportAst) parseImportsIndented(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	ArrBuilder!ImportAst res;
 	lexer.takeIndentAfterNewline();
 	do {
-		res.add(alloc, parseSingleImport(alloc, lexer));
+		add(alloc, res, parseSingleImport(alloc, lexer));
 	} while (lexer.takeNewlineOrSingleDedent() == NewlineOrDedent.newline);
-	return res.finishArr(alloc);
+	return finishArr(alloc, res);
 }
 
 immutable(Arr!SigAst) parseIndentedSigs(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	ArrBuilder!SigAst res;
 	for (;;) {
 		immutable SigAstAndDedent sd = parseSig(alloc, lexer);
-		res.add(alloc, sd.sig);
+		add(alloc, res, sd.sig);
 		if (sd.dedents != 0) {
 			// We started at in indent level of only 1, so can't go down more than 1.
 			assert(sd.dedents == 1);
-			return res.finishArr(alloc);
+			return finishArr(alloc, res);
 		}
 	}
 }
@@ -319,11 +323,11 @@ immutable(StructDeclAst.Body.Record) parseFields(Alloc, SymAlloc)(
 				lexer.take(' ');
 				immutable Bool isMutable = lexer.tryTake("mut ");
 				immutable TypeAst type = parseType(alloc, lexer);
-				res.add(alloc, immutable StructDeclAst.Body.Record.Field(lexer.range(start), isMutable, name, type));
+				add(alloc, res, immutable StructDeclAst.Body.Record.Field(lexer.range(start), isMutable, name, type));
 		}
 		isFirstLine = False;
 	} while (lexer.takeNewlineOrSingleDedent() == NewlineOrDedent.newline);
-	return StructDeclAst.Body.Record(explicitByValOrRef, res.finishArr(alloc));
+	return StructDeclAst.Body.Record(explicitByValOrRef, finishArr(alloc, res));
 }
 
 immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
@@ -335,9 +339,9 @@ immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
 		immutable Pos start = lexer.curPos;
 		immutable Sym name = lexer.takeName();
 		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
-		res.add(alloc, immutable TypeAst.InstStruct(lexer.range(start), name, typeArgs));
+		add(alloc, res, immutable TypeAst.InstStruct(lexer.range(start), name, typeArgs));
 	} while (lexer.takeNewlineOrSingleDedent() == NewlineOrDedent.newline);
-	return res.finishArr(alloc);
+	return finishArr(alloc, res);
 }
 
 struct SpecUsesAndSigFlagsAndKwBody {
@@ -433,7 +437,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 		}
 	} else {
 		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
-		specUses.add(alloc, immutable SpecUseAst(lexer.range(start), name.sym, typeArgs));
+		add(alloc, specUses, immutable SpecUseAst(lexer.range(start), name.sym, typeArgs));
 		return nextSpecOrStop(alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 	}
 }
@@ -468,15 +472,16 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(Alloc, SymAlloc)(
 			: extern_.has
 			? some(immutable FunBodyAst(extern_.force))
 			: none!FunBodyAst;
-		return SpecUsesAndSigFlagsAndKwBody(specUses.finishArr(alloc), noCtx, summon, unsafe, trusted, body_);
+		return SpecUsesAndSigFlagsAndKwBody(finishArr(alloc, specUses), noCtx, summon, unsafe, trusted, body_);
 	}
 }
 
-immutable(SpecUsesAndSigFlagsAndKwBody) buildSpecs(Alloc, SymAlloc)(
+// TODO: handle 'noctx' and friends too! (share code with parseSpecUsesAndSigFlagsAndKwBody)
+immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	scope immutable(Bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
+	lexer.takeIndent();
 	return parseNextSpec(
 		alloc,
 		lexer,
@@ -488,25 +493,26 @@ immutable(SpecUsesAndSigFlagsAndKwBody) buildSpecs(Alloc, SymAlloc)(
 		False,
 		none!(FunBodyAst.Extern),
 		none!Str,
-		canTakeNext);
-}
-
-// TODO: handle 'noctx' and friends too! (share code with parseSpecUsesAndSigFlagsAndKwBody)
-immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
-) {
-	lexer.takeIndent();
-	return buildSpecs(alloc, lexer, () =>
-		immutable Bool(lexer.takeNewlineOrSingleDedent() == NewlineOrDedent.newline));
+		() => immutable Bool(lexer.takeNewlineOrSingleDedent() == NewlineOrDedent.newline));
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	return buildSpecs(alloc, lexer, () =>
-		lexer.tryTake(' '));
+	// Unlike indented specs, we check for a separator on first spec, so use nextSpecOrStop instead of parseNextSpec
+	return nextSpecOrStop(
+		alloc,
+		lexer,
+		ArrBuilder!SpecUseAst(),
+		False,
+		False,
+		False,
+		False,
+		False,
+		none!(FunBodyAst.Extern),
+		none!Str,
+		() => lexer.tryTake(' '));
 }
 
 //TODO:RENAME
@@ -597,20 +603,20 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				todo!void("alias shouldn't have purity");
 			immutable TypeAst.InstStruct target = parseStructType(alloc, lexer);
 			lexer.takeDedent();
-			structAliases.add(alloc, immutable StructAliasAst(lexer.range(start), isPublic, name, typeParams, target));
+			add(alloc, structAliases, immutable StructAliasAst(lexer.range(start), isPublic, name, typeParams, target));
 		} else if (kw == NonFunKeyword.builtinSpec) {
 			if (tookIndent)
 				todo!void("builtin-spec has no body");
 			if (purity.has)
 				todo!void("spec shouldn't have purity");
-			specs.add(alloc, immutable SpecDeclAst(lexer.range(start), isPublic, name, typeParams, SpecBodyAst(SpecBodyAst.Builtin())));
+			add(alloc, specs, immutable SpecDeclAst(lexer.range(start), isPublic, name, typeParams, SpecBodyAst(SpecBodyAst.Builtin())));
 		} else if (kw == NonFunKeyword.spec) {
 			if (!tookIndent)
 				todo!void("always indent spec");
 			if (purity.has)
 				todo!void("spec shouldn't have purity");
 			immutable Arr!SigAst sigs = parseIndentedSigs(alloc, lexer);
-			specs.add(alloc, immutable SpecDeclAst(lexer.range(start), isPublic, name, typeParams, SpecBodyAst(sigs)));
+			add(alloc, specs, immutable SpecDeclAst(lexer.range(start), isPublic, name, typeParams, SpecBodyAst(sigs)));
 		} else {
 			immutable StructDeclAst.Body body_ = () {
 				switch (kw) {
@@ -634,10 +640,10 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 						return unreachable!(immutable StructDeclAst.Body);
 				}
 			}();
-			structs.add(alloc, immutable StructDeclAst(lexer.range(start), isPublic, name, typeParams, purity, body_));
+			add(alloc, structs, immutable StructDeclAst(lexer.range(start), isPublic, name, typeParams, purity, body_));
 		}
 	} else {
-		funs.add(alloc, parseFun(alloc, lexer, isPublic, start, name, typeParams));
+		add(alloc, funs, parseFun(alloc, lexer, isPublic, start, name, typeParams));
 	}
 }
 
@@ -677,8 +683,8 @@ immutable(FileAst) parseFileInner(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!Sy
 	return FileAst(
 		imports,
 		exports,
-		specs.finishArr(alloc),
-		structAliases.finishArr(alloc),
-		structs.finishArr(alloc),
-		funs.finishArr(alloc));
+		finishArr(alloc, specs),
+		finishArr(alloc, structAliases),
+		finishArr(alloc, structs),
+		finishArr(alloc, funs));
 }

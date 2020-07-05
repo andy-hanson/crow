@@ -1,0 +1,113 @@
+import .arr-utils .bootstrap .number-utils .str-utils
+
+to-str str(b bool)
+	b if "true", "false"
+
+parse-bool bool(s str)
+	when
+		s == "true"
+			true
+		s == "false"
+			false
+		else
+			todo
+
+to-str str(n nat)
+	when
+		n == 0
+			"0"
+		n == 1
+			"1"
+		n == 2
+			"2"
+		n == 3
+			"3"
+		n == 4
+			"4"
+		n == 5
+			"5"
+		n == 6
+			"6"
+		n == 7
+			"7"
+		n == 8
+			"8"
+		n == 9
+			"9"
+		else
+			hi = to-str: n / ten
+			lo = to-str: n mod ten
+			hi + lo
+
+to-str str(n nat32)
+	n.to-nat to-str
+
+to-str str(n nat16)
+	n.to-nat to-str
+
+to-str str(i int)
+	a = i.abs to-str
+	| TODO: string interpolation
+	i.negative? if ("-" + a), a
+
+to-str str(i int32)
+	i.to-int to-str
+
+to-str str(i int16)
+	i.to-int to-str
+
+char-to-nat nat(c char) noctx
+	when
+		c == "0"
+			zero
+		c == "1"
+			one
+		c == "2"
+			two
+		c == "3"
+			three
+		c == "4"
+			four
+		c == "5"
+			five
+		c == "6"
+			six
+		c == "7"
+			seven
+		c == "8"
+			eight
+		c == "9"
+			nine
+		else
+			todo
+
+literal nat(s str)
+	when
+		s empty?
+			zero
+		else
+			higher-digits = s.rtail.literal as<nat>
+			higher-digits * ten + (char-to-nat: s last)
+
+literal nat16(s str)
+	| TODO: make safe
+	s.literal.as<nat> unsafe-to-nat16
+
+literal nat32(s str)
+	| TODO: make safe
+	s.literal.as<nat> unsafe-to-nat32
+
+literal int(s str)
+	fst = s at zero
+	when
+		fst == "-"
+			n = as<nat>: s.tail.literal
+			n neg
+		fst == "+"
+			s.tail.literal.as<nat> to-int
+		else
+			s.literal.as<nat> to-int
+
+literal int32(s str)
+	| TODO: make safe
+	s.literal.as<int> unsafe-to-int32

@@ -1,0 +1,85 @@
+import .bootstrap .posix .thread-utils
+
+gc record mut
+	lk by-val lock
+	context-head mut opt gc-ctx
+	needs-gc mut bool
+	is-doing-gc mut bool
+	begin ptr byte
+	next-byte ptr byte
+
+| GC info specific to a ctx.
+| Currently they all share the common GC and must take a lock every time they allocate.
+gc-ctx record mut
+	gc mut gc
+	next-ctx mut opt gc-ctx
+
+get-gc-ctx gc-ctx(gc gc) noctx unsafe
+	gc.lk.ref-of-val acquire-lock
+	res = match gc.context-head
+		none
+			| NOTE: malloc'd memory is not traced for garbage collection.
+			| This is fine as 'gc' is kept alive anyway.
+			| TODO: `size-of<gc-ctx>.malloc` should be legal
+			c = (size-of<gc-ctx> malloc) as-ref<gc-ctx>
+			c.gc := gc
+			c.next-ctx := none
+			c
+		some s
+			c = s.value
+			gc.context-head := c next-ctx
+			c.next-ctx := none
+			c
+	gc.lk.ref-of-val release-lock
+	res
+
+return-gc-ctx void(gc-ctx gc-ctx) noctx unsafe
+	gc = gc-ctx.gc
+	gc.lk.ref-of-val acquire-lock
+	gc-ctx.next-ctx := gc.context-head
+	gc.context-head := gc-ctx some
+	gc.lk.ref-of-val release-lock
+
+get-gc-ctx gc-ctx() unsafe
+	get-ctx.gc-ctx-ptr as-ref
+
+get-gc gc() unsafe
+	get-gc-ctx.gc
+
+new-gc by-val gc() noctx
+	new
+		lk. new-lock
+		context-head. none
+		needs-gc. false
+		is-doing-gc. false
+		begin. null
+		next-byte. null
+
+try-gc-alloc opt any-ptr(gc gc, size nat) noctx trusted
+	| TODO: allocate from gc memory!
+	size.unmanaged-alloc-bytes some
+
+gc-alloc any-ptr(gc gc, size nat)
+	match gc try-gc-alloc size
+		none
+			| TODO: throw an exception on OOM
+			todo
+		some s
+			s.value
+
+alloc any-ptr(size nat) unsafe
+	get-gc gc-alloc size
+
+unmanaged-alloc-bytes any-ptr(size nat) noctx unsafe
+	res = size malloc
+	hard-forbid: res null?
+	res
+
+unmanaged-alloc-elements ptr ?t(size-elements nat) noctx unsafe
+	| TODO: wrap-mul is unsafe!
+	bytes = size-elements wrap-mul size-of<?t> unmanaged-alloc-bytes
+	bytes ptr-cast
+
+unmanaged-free void(p ptr ?t) noctx unsafe
+	p.ptr-cast free
+

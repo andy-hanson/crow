@@ -1,0 +1,93 @@
+import io .failure .path-utils
+
+run-compile-error-tests result str arr<failure>(path str, path-to-noze str, env environ, options test-options) summon
+	tests = path list-compile-error-tests
+	failures = tests flat-map-with-max-size options.max-failures, \test
+		when
+			options print-tests?
+				print-sync: "noze build " + test
+			else
+				pass
+		path-to-noze run-single-compile-error-test env, test
+	when
+		failures has?
+			err: failures with-max-size options.max-failures
+		else
+			ok: "Ran " + tests.size.to-str + " compile-error tests"
+
+private
+
+list-compile-error-tests arr str(path str) summon
+	res = new-mut-arr<str>
+	path each-child-recursive &always-true<str>, \child
+		ext = child.base-name.get-extension.force
+		when
+			| TODO: union equality
+			ext == "nz"
+				res push child
+			ext == "err"
+				pass
+			else
+				| Unexpected file
+				todo
+	res freeze
+
+| Spawn 'noze' and get result.
+| We want to capture stdout!
+run-single-compile-error-test arr failure(path-to-noze str, env environ, path str) summon
+	failures = new-mut-arr<failure>
+
+	result = path-to-noze spawn-and-wait-result (new-arr "build", path), env
+	when
+		result.exit-code == 1
+			pass
+		else
+			message = "Compile error should result in exit code of 1. Instead got " + result.exit-code.to-str
+			failures push new path, message
+	when
+		result.stdout == ""
+			pass
+		else
+			failures push new path, ("stdout should be empty. Instead got:\n" + result.stdout)
+	stderr-no-color = result.stderr remove-colors
+	when
+		result.stderr == ""
+			failures push new path, "stderr is empty"
+		else
+			stderr-file = path change-extension "err"
+			match stderr-file try-read-file
+				none
+					failures push new path, (stderr-file.base-name + " does not exist. stderr was:\n" + stderr-no-color)
+				some s
+					when
+						s.value == stderr-no-color
+							pass
+						else
+							message = "got different stderr than expected. actual:\n" + stderr-no-color
+							failures push new path, message
+
+	failures freeze
+
+remove-colors str(s str)
+	out = new-mut-arr<char>
+	s remove-colors-recur out
+	out freeze
+
+remove-colors-recur void(s str, out mut-str)
+	when
+		s empty?
+			pass
+		s.first == "\x1b"
+			s.tail remove-colors-recur-2 out
+		else
+			out push s.first
+			s.tail remove-colors-recur out
+
+remove-colors-recur-2 void(s str, out mut-str)
+	when
+		s empty?
+			pass
+		s.first == "m"
+			s.tail remove-colors-recur out
+		else
+			s.tail remove-colors-recur-2 out

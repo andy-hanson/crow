@@ -1,0 +1,123 @@
+import .bootstrap .exceptions .io .fut-low-level .opt-utils .runtime .thread-utils
+
+| Used to make code run after the actor's next step. Equivalent to `sleep 0`.
+delay fut void() noctx
+	pass
+
+resolved fut ?t(value ?t)
+	new new-lock, new<fut-state-resolved<?t>> value
+
+joiner<?out, ?in0, ?in1> record force-sendable
+	res fut ?out
+	fun fun-ref2 ?out ?in0 ?in1
+	arg0 mut opt result<?in0, exception>
+	arg1 mut opt result<?in1, exception>
+	| NOTE: we can't just check that both arg0 and arg1 are done -- we might try calling 'fun' twice.
+	| We need to atomically decrement the counter so we only call 'fun' once
+	n-remaining-args by-val thread-safe-counter
+
+decr-joiner void(j joiner ?out ?in0 ?in1) unsafe send<?out> send<?in0> send<?in1>
+	when
+		j.n-remaining-args.ref-of-val decrement
+			match j.arg0 force
+				ok ok0
+					match j.arg1 force
+						ok ok1
+							j.fun call ok0.value, ok1.value forward-to j.res
+						err e1
+							j.res reject e1.value
+				err e0
+					match j.arg1 force
+						ok a1
+							j.res reject e0.value
+						err e1
+							| Combine the exceptions
+							todo
+		else
+			pass
+
+join fut ?out(a fut ?in0, b fut ?in1, fun fun-ref2 ?out ?in0 ?in1) trusted send<?out> send<?in0> send<?in1>
+	res = new-unresolved-fut<?out>
+	joiner = new<joiner<?out, ?in0, ?in1>> res, fun, none, none, new-thread-safe-counter: two
+	a then-void \value
+		joiner.arg0 := value some
+		joiner decr-joiner
+	b then-void \value
+		joiner.arg1 := value some
+		joiner decr-joiner
+	res
+
+| NOTE: The function will be called with whatever ctx the fut terminates with!!!
+then-void void(f fut ?t, cb fun-mut1 void result<?t, exception>) unsafe
+	f.lk.ref-of-val acquire-lock
+	match f.state
+		fut-state-callbacks cbs
+			| create a new callback
+			f.state := new<fut-state-callbacks<?t>> some: new cb, cbs.head
+		fut-state-resolved r
+			cb call r.value.ok
+		exception e
+			cb call e.err
+	f.lk.ref-of-val release-lock
+
+forward-to void(from fut ?t, to fut ?t) unsafe
+	from then-void {to resolve-or-reject it}
+
+then fut ?out(f fut ?in, cb fun-ref1 ?out ?in) trusted send<?out> send<?in>
+	res = new-unresolved-fut<?out>
+	f then-void \result
+		match result
+			ok o
+				cb call o.value forward-to res
+			err e
+				res reject e.value
+	res
+
+| TODO: rename to just 'then'
+| This requires that we be able to handle two expected types at once,
+| and choose just one based on the arity of a lambda.
+then2 fut ?out(f fut void, cb fun-ref0 ?out) send<?out>
+	f then<?out, void> \ignore
+		cb call
+
+| Runs 'f' asynchronously.
+| Since 'f' is 'fun' and not 'fun-mut' it is guaranteed to not close over 'mut' data.
+| So we can run it in parallel.
+async fut ?t(f fun0 fut<?t>) trusted
+	res = new-unresolved-fut<?t>
+	vat = get-cur-vat
+	vat add-task new<task> vat.new-actor-id, \
+		f.call forward-to res
+	res
+
+call fut ?r(f fun-ref0 ?r) trusted send<?r>
+	vat = f.vat-and-actor.vat get-vat
+	res = new-unresolved-fut<?r>
+	vat add-task new<task> f.vat-and-actor.actor, \
+		{f.fun.call forward-to res} catch {res reject it}
+	res
+
+call fut ?r(f fun-ref1 ?r ?p0, p0 ?p0) trusted send<?r> send<?p0>
+	vat = f.vat-and-actor.vat get-vat
+	res = new-unresolved-fut<?r>
+	vat add-task new<task> f.vat-and-actor.actor, \
+		{f.fun call p0 forward-to res} catch {res reject it}
+	res
+
+call fut ?r(f fun-ref2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
+	vat = f.vat-and-actor.vat get-vat
+	res = new-unresolved-fut<?r>
+	vat add-task new<task> f.vat-and-actor.actor, \
+		{f.fun call p0, p1 forward-to res} catch {res reject it}
+	res
+
+private
+
+assert-resolved void(f fut ?t) unsafe
+	match f.state
+		fut-state-callbacks cbs
+			hard-unreachable
+		fut-state-resolved
+			pass
+		exception
+			pass

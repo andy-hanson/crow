@@ -1,0 +1,19 @@
+import
+	arr-utils
+	cell
+	command-line-parser
+	dict
+	fut-utils
+	gc
+	io
+	posix
+	runtime
+	str-utils
+	.compile-error-tests
+	.failure
+	.lint
+	.path-utils
+	.runnable-tests
+
+main fut exit-code(args arr str) summon
+	0

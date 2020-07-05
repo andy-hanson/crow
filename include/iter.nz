@@ -1,0 +1,96 @@
+import .bootstrap .cell .exceptions .number-utils
+
+
+| TODO: Depend on a spec, then move to cell.nz
+get-and-incr nat(c cell nat)
+	res = c get
+	c set: res incr
+	res
+
+cell-incr void(c cell nat)
+	c.get-and-incr drop
+
+cell-add void(c cell nat, n nat)
+	c set: c.get + n
+
+
+| TODO: ALIAS
+iterator<?t> record mut
+	get-next fun-mut0 opt<?t>
+
+next opt ?t(i iterator ?t)
+	i.get-next call
+
+| Iterator that can be started over from the beginning.
+stream<?t> record mut
+	get-iter fun-mut0 iterator<?t>
+
+iter iterator ?t(s stream ?t)
+	s.get-iter call
+
+iter<?t, ?e> spec
+	iter iterator ?e(t ?t)
+
+to-stream<?t, ?e> stream ?e(t ?t) iter<?t, ?e>
+	new {t iter}
+
+region range
+
+range-nat record
+	| lo inclusive, hi exclusive
+	lo nat
+	hi nat
+
+iter iterator nat(r range-nat)
+	n = r.lo new-cell<nat>
+	new \
+		when
+			n.get == r.hi
+				none
+			else
+				n.get-and-incr some
+
+to range-nat(lo nat, hi nat)
+	lo <= hi assert
+	new lo, hi
+
+empty? bool(r range-nat) noctx
+	r.lo == r.hi
+
+tail range-nat(r range-nat)
+	r.empty? forbid
+	r.lo.incr to r.hi
+
+each void(s stream ?t, f fun-mut1 void ?t)
+	s.iter each-recur f
+
+each void(r range-nat, f fun-mut1 void nat)
+	r.iter each-recur f
+
+each-recur void(i iterator ?t, f fun-mut1 void ?t)
+	match i next
+		none
+			pass
+		some s
+			f call s.value
+			i each-recur f
+
+
+filter stream ?t(in stream ?t, pred fun-mut1 bool ?t)
+	new \
+		itr = in iter
+		new {itr filter-helper pred}
+
+filter-helper opt ?t(i iterator ?t, pred fun-mut1 bool ?t)
+	match i next
+		none
+			none
+		some s
+			v = s.value
+			when
+				pred call v
+					v some
+				else
+					| This one didn't satisfy the predicate, but keep trying until we get one or each the end
+					i filter-helper pred
+

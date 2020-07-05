@@ -4,23 +4,23 @@ module frontend.readOnlyStorage;
 
 import model : AbsolutePathsGetter;
 
-import util.collection.str : NulTerminatedStr;
+import util.collection.str : NulTerminatedStr, Str;
 import util.io : ioTryReadFile = tryReadFile;
 import util.opt : Opt;
 import util.path : AbsolutePath, addManyChildren, Path, StorageKind;
 import util.ptr : Ptr;
 
 struct ReadOnlyStorage {
-	immutable AbsolutePath root;
+	immutable Str root;
 }
 
 immutable(Opt!NulTerminatedStr) tryReadFile(Alloc)(
 	ref ReadOnlyStorage storage,
 	ref Alloc alloc,
 	immutable Ptr!Path path,
-	immutable string extension,
+	immutable Str extension,
 ) {
-	return ioTryReadFile(alloc, addManyChildren!Alloc(alloc, storage.root, path), extension);
+	return ioTryReadFile(alloc, AbsolutePath(storage.root, path, extension));
 }
 
 pure:

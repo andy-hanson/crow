@@ -4,17 +4,18 @@ module util.path;
 
 import util.alloc.alloc : nu;
 import util.bools : Bool, False, True;
-import util.collection.arr : at, first, size;
+import util.collection.arr : at, first, range, size;
 import util.collection.arrUtil : slice, sliceFromTo;
 import util.collection.mutArr : moveToArr, newUninitializedMutArr, setAt;
-import util.collection.str : asCStr, CStr, MutStr, NulTerminatedStr, Str;
+import util.collection.str : asCStr, CStr, emptyStr, MutStr, NulTerminatedStr, Str;
 import util.comparison : Comparison, compareOr;
-import util.opt : compareOpt, has, force, mapOption, match, none, Opt, some;
+import util.opt : compareOpt, has, flatMapOption, force, forceOrTodo, mapOption, matchOpt, none, Opt, some;
 import util.ptr : Ptr;
-import util.sym : AllSymbols, compareSym, eachCharInSym, getSymFromAlphaIdentifier, Sym, symSize;
+import util.sym : AllSymbols, compareSym, eachCharInSym, getSymFromAlphaIdentifier, Sym, symSize, tryGetSymFromStr;
 import util.types : u8;
 import util.util : todo;
 
+// This is a list of Sym basically. Doesn't have the root or extension.
 struct Path {
 	private:
 	immutable Opt!(Ptr!Path) parent_;
@@ -22,8 +23,9 @@ struct Path {
 }
 
 struct AbsolutePath {
-	private:
+	immutable(Str) root;
 	immutable Ptr!Path path;
+	immutable(Str) extension;
 }
 
 ref immutable(Opt!(Ptr!Path)) parent(return scope ref immutable Path a) {
@@ -32,15 +34,6 @@ ref immutable(Opt!(Ptr!Path)) parent(return scope ref immutable Path a) {
 
 immutable(Sym) baseName(immutable Path a) {
 	return a.baseName_;
-}
-
-immutable(Opt!AbsolutePath) parent(immutable AbsolutePath a) {
-	immutable Opt!(Ptr!Path) parent = a.path.parent_;
-	return mapOption!(AbsolutePath, Ptr!Path)(parent, (ref immutable Ptr!Path p) => immutable AbsolutePath(p));
-}
-
-immutable(Sym) baseName(immutable AbsolutePath a) {
-	return a.path.baseName_;
 }
 
 immutable(Ptr!Path) rootPath(Alloc)(ref Alloc alloc, immutable Sym name) {
@@ -64,35 +57,38 @@ immutable(Ptr!Path) childPath(Alloc)(
 	return childPath(alloc, childPath(alloc, parent, name0), name1);
 }
 
-
-immutable(AbsolutePath) childPath(Alloc)(ref Alloc alloc, immutable AbsolutePath parent, immutable Sym name) {
-	return AbsolutePath(childPath(alloc, parent.path, name));
-}
-
-immutable(AbsolutePath) childPath(Alloc)(
-	ref Alloc alloc,
-	immutable AbsolutePath parent,
-	immutable Sym name0,
-	immutable Sym name1,
-) {
-	return AbsolutePath(childPath(alloc, parent.path, name0, name1));
-}
-
 struct RelPath {
 	private:
 	immutable u8 nParents_;
 	immutable Ptr!Path path_;
 }
 
+immutable(u8) nParents(ref immutable RelPath a) {
+	return a.nParents_;
+}
+immutable(Ptr!Path) path(ref immutable RelPath a) {
+	return a.path_;
+}
+
+struct RelPathWithExtension {
+	immutable RelPath relPath;
+	immutable Str extension;
+}
+
 immutable(Opt!(Ptr!Path)) resolvePath(Alloc)(ref Alloc alloc, immutable Opt!(Ptr!Path) path, immutable RelPath relPath) {
-	return path.match!(Opt!(Ptr!Path), Ptr!Path)(
+	return matchOpt(
+		path,
 		(ref immutable Ptr!Path cur) =>
 			climbParents(cur, relPath.nParents_).mapOption!(Ptr!Path, Opt!(Ptr!Path))(
 				(ref immutable Opt!(Ptr!Path) ancestor) =>
-					ancestor.match(
+					matchOpt(
+						ancestor,
 						(ref immutable Ptr!Path a) => addManyChildren(alloc, a, relPath.path_),
 						() => relPath.path_)),
-		() => relPath.nParents_ == 0 ? some!(Ptr!Path)(relPath.path_) : none!(Ptr!Path));
+		() =>
+			relPath.nParents_ == 0
+				? some!(Ptr!Path)(relPath.path_)
+				: none!(Ptr!Path));
 }
 
 
@@ -112,25 +108,19 @@ immutable(Opt!(Ptr!Path)) resolvePath(Alloc)(ref Alloc alloc, immutable Ptr!Path
 	return resolvePath(alloc, some!(Ptr!Path)(path), relPath);
 }
 
-immutable(Opt!AbsolutePath) resolvePath(Alloc)(ref Alloc alloc, immutable AbsolutePath path, immutable RelPath relPath) {
-	immutable Opt!(Ptr!Path) p = resolvePath(alloc, path.path, relPath);
-	return mapOption(p, (ref immutable Ptr!Path path) => immutable AbsolutePath(path));
-}
 
 immutable(Ptr!Path) addManyChildren(Alloc)(ref Alloc alloc, immutable Ptr!Path a, immutable Ptr!Path b) {
-	immutable Ptr!Path p = b.parent.match!(Ptr!Path, Ptr!Path)(
+	immutable Ptr!Path p = matchOpt(
+		b.parent,
 		(ref immutable Ptr!Path parent) => addManyChildren(alloc, a, parent),
 		() => a);
 	return childPath(alloc, p, b.baseName);
 }
 
-immutable(AbsolutePath) addManyChildren(Alloc)(ref Alloc alloc, immutable AbsolutePath a, immutable Ptr!Path b) {
-	return AbsolutePath(addManyChildren(alloc, a.path, b));
-}
-
 private void walkPathBackwards(immutable Ptr!Path p, scope void delegate(immutable Sym) @safe @nogc pure nothrow cb) {
 	cb(p.baseName_);
-	p.parent.match!(void, Ptr!Path)(
+	matchOpt!(void, Ptr!Path)(
+		p.parent,
 		(ref immutable Ptr!Path parent) { walkPathBackwards(parent, cb); },
 		() {},
 	);
@@ -139,62 +129,77 @@ private void walkPathBackwards(immutable Ptr!Path p, scope void delegate(immutab
 private size_t pathToStrSize(immutable Ptr!Path path) {
 	size_t sz = 0;
 	walkPathBackwards(path, (immutable Sym part) {
-		sz += part.symSize + 1;
+		// 1 for '/'
+		sz += 1 + part.symSize;
 	});
 	return sz;
 }
 
 private @trusted immutable(Str) pathToStrWorker(Alloc)(
 	ref Alloc alloc,
+	immutable Str root,
 	immutable Ptr!Path path,
-	immutable string extension,
+	immutable Str extension,
 	immutable Bool nulTerminated,
 ) {
-	immutable size_t sz = pathToStrSize(path) + extension.length + (nulTerminated ? 1 : 0);
-	MutStr res = newUninitializedMutArr!char(alloc, sz);
-	size_t i = sz;
+	immutable size_t sz = root.size + pathToStrSize(path) + extension.size + (nulTerminated ? 1 : 0);
+	char* begin = cast(char*) alloc.allocate(char.sizeof * sz);
+	char* cur = begin + sz;
 	if (nulTerminated) {
-		i--;
-		res.setAt(i, '\0');
+		cur--;
+		*cur = '\0';
 	}
-	foreach_reverse (immutable char c; extension) {
-		i--;
-		res.setAt(i, c);
+	foreach_reverse (immutable char c; extension.range) {
+		cur--;
+		*cur = c;
 	}
-	walkPathBackwards(path, (immutable Sym part) {
-		i -= part.symSize;
-		size_t j = i;
-		part.eachCharInSym((immutable char c) {
-			res.setAt(j, c);
+	assert(cur == begin + root.size + pathToStrSize(path));
+	@trusted void onSym(immutable Sym part) {
+		cur -= part.symSize;
+		char* j = cur;
+		@trusted void writeJ(immutable char c) {
+			*j = c;
 			j++;
-		});
-		assert(j == i + part.symSize);
-	});
-	assert(i == 0);
-	return res.moveToArr(alloc);
+		}
+		part.eachCharInSym(&writeJ);
+		assert(j == cur + part.symSize);
+		cur--;
+		*cur = '/';
+	}
+	walkPathBackwards(path, &onSym);
+	assert(cur == begin + root.size);
+	foreach_reverse (immutable char c; root.range) {
+		cur--;
+		*cur = c;
+	}
+	assert(cur == begin);
+	return immutable Str(cast(immutable) begin, sz);
 }
 
-immutable(Str) pathToStr(Alloc)(ref Alloc alloc, immutable Ptr!Path path, immutable string extension) {
-	return pathToStrWorker(alloc, path, extension, False);
+immutable(Str) pathToStr(Alloc)(ref Alloc alloc, immutable Str root, immutable Ptr!Path path, immutable Str extension) {
+	return pathToStrWorker(alloc, root, path, extension, False);
 }
-
-immutable(Str) pathToStr(Alloc)(ref Alloc alloc, immutable AbsolutePath path, immutable string extension) {
-	return pathToStr(alloc, path.path, extension);
+immutable(CStr) pathToCStr(Alloc)(ref Alloc alloc, immutable Str root, immutable Ptr!Path path, immutable Str extension) {
+	return pathToNulTerminatedStr(alloc, root, path, extension).asCStr();
 }
 
 immutable(NulTerminatedStr) pathToNulTerminatedStr(Alloc)(
 	ref Alloc alloc,
+	immutable Str root,
 	immutable Ptr!Path path,
-	immutable string extension,
+	immutable Str extension,
 ) {
-	return immutable NulTerminatedStr(pathToStrWorker(alloc, path, extension, True));
+	return immutable NulTerminatedStr(pathToStrWorker(alloc, root, path, extension, True));
 }
 
-immutable(CStr) pathToCStr(Alloc)(ref Alloc alloc, immutable AbsolutePath path, immutable string extension) {
-	return pathToNulTerminatedStr(alloc, path.path, extension).asCStr();
+immutable(Str) pathToStr(Alloc)(ref Alloc alloc, immutable AbsolutePath path) {
+	return pathToStr(alloc, path.root, path.path, path.extension);
+}
+immutable(CStr) pathToCStr(Alloc)(ref Alloc alloc, immutable AbsolutePath path) {
+	return pathToNulTerminatedStr(alloc, path.root, path.path, path.extension).asCStr();
 }
 
-immutable(Ptr!Path) parsePath(Alloc)(ref Alloc alloc, ref AllSymbols!Alloc symbols, immutable Str str) {
+immutable(Ptr!Path) parsePath(Alloc, SymAlloc)(ref Alloc alloc, ref AllSymbols!SymAlloc symbols, immutable Str str) {
 	immutable size_t len = str.size;
 	size_t i = 0;
 	if (i < len && str.at(i) == '/')
@@ -224,12 +229,12 @@ immutable(Ptr!Path) parsePath(Alloc)(ref Alloc alloc, ref AllSymbols!Alloc symbo
 	return recur(i, path);
 }
 
-immutable(AbsolutePath) parseAbsolutePath(Alloc, SymAlloc)(
+private immutable(RelPathWithExtension) parseRelPathWithExtension(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable Str str,
+	immutable Str s,
 ) {
-	return AbsolutePath(parsePath(alloc, allSymbols, str));
+
 }
 
 private immutable(RelPath) parseRelPath(Alloc, SymAlloc)(
@@ -251,54 +256,132 @@ private immutable(RelPath) parseRelPath(Alloc, SymAlloc)(
 		return RelPath(0, parsePath(alloc, allSymbols, s));
 }
 
-
-struct AbsoluteOrRelPath {
-	@safe @nogc pure nothrow:
-	@trusted this(immutable AbsolutePath a) { kind = Kind.absolutePath; absolutePath = a; }
-	@trusted this(immutable RelPath a) { kind = Kind.relPath; relPath = a; }
-
-	private:
-	enum Kind {
-		absolutePath,
-		relPath,
-	}
-	immutable Kind kind;
-	union {
-		immutable AbsolutePath absolutePath;
-		immutable RelPath relPath;
-	}
+immutable(Opt!AbsolutePath) parent(ref immutable AbsolutePath a) {
+	immutable Opt!(Ptr!Path) pathParent = parent(a.path);
+	return pathParent.has
+		? some(immutable AbsolutePath(a.root, pathParent.force, emptyStr))
+		: none!AbsolutePath;
 }
 
-@trusted Out match(Out)(
-	ref immutable AbsoluteOrRelPath a,
-	scope immutable(Out) delegate(ref immutable AbsolutePath) @safe @nogc pure nothrow cbAbsolutePath,
-	scope immutable(Out) delegate(ref immutable RelPath) @safe @nogc pure nothrow cbRelPath,
-) {
-	final switch (a.kind) {
-		case AbsoluteOrRelPath.Kind.absolutePath:
-			return cbAbsolutePath(a.absolutePath);
-		case AbsoluteOrRelPath.Kind.relPath:
-			return cbRelPath(a.relPath);
-	}
+immutable(Sym) baseName(ref immutable AbsolutePath a) {
+	return baseName(a.path);
 }
 
-immutable(AbsoluteOrRelPath) parseAbsoluteOrRelPath(Alloc, SymAlloc)(
+immutable(AbsolutePath) addManyChildren(Alloc)(ref Alloc alloc, immutable AbsolutePath a, immutable Ptr!Path b) {
+	return AbsolutePath(a.root, addManyChildren(alloc, a.path, b), a.extension);
+}
+
+immutable(Opt!AbsolutePath) parseAbsoluteOrRelPath(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
+	immutable Str cwd,
+	immutable Str s,
+) {
+	immutable StrAndExtension se = removeExtension(s);
+	immutable Opt!RootAndPath rp = parseAbsoluteOrRelPathWithoutExtension(alloc, allSymbols, cwd, se.withoutExtension);
+	return mapOption(rp, (ref immutable RootAndPath r) =>
+		immutable AbsolutePath(r.root, r.path, se.extension));
+}
+
+private immutable(Opt!RootAndPath) parseAbsoluteOrRelPathWithoutExtension(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	immutable Str cwd,
 	immutable Str s,
 ) {
 	switch (s.first) {
 		case '.':
-			return AbsoluteOrRelPath(parseRelPath(alloc, allSymbols, s));
+			//TODO: handle parse error (return none if so)
+			immutable RelPath rp = parseRelPath(alloc, allSymbols, s);
+			return some(immutable RootAndPath(dropParents(cwd, rp.nParents_), rp.path_));
 		case '/':
-			return AbsoluteOrRelPath(parseAbsolutePath(alloc, allSymbols, s));
+			return parseAbsolutePathNoExtension(alloc, allSymbols, s);
 		case '\\':
-			return todo!(AbsoluteOrRelPath)("unc path?");
+			return todo!(Opt!RootAndPath)("unc path?");
 		default:
+			// Treat a plain string without '/' in front as a relative path
 			return s.at(1) == ':'
-				? todo!AbsoluteOrRelPath("C:/ ?")
-				: AbsoluteOrRelPath(RelPath(0, parsePath(alloc, allSymbols, s)));
+				? todo!(Opt!RootAndPath)("C:/ ?")
+				: some(immutable RootAndPath(cwd, parsePath(alloc, allSymbols, s)));
 	}
+}
+
+private immutable(Str) dropParents(immutable Str path, immutable u8 nParents) {
+	if (nParents == 0)
+		return path;
+	else {
+		immutable Opt!Str p = pathParent(path);
+		return dropParents(p.forceOrTodo, cast(u8) (nParents - 1));
+	}
+}
+
+private struct StrAndExtension {
+	immutable Str withoutExtension;
+	immutable Str extension;
+}
+
+private immutable(StrAndExtension) removeExtension(immutable Str s) {
+	// Deliberately not allowing i == 0
+	for (size_t i = s.size - 1; i > 0; i--)
+		if (s.at(i) == '.')
+			return StrAndExtension(s.slice(0, i), s.slice(i + 1));
+	return StrAndExtension(s, emptyStr);
+}
+
+// AbsolutePath with no extension
+private struct RootAndPath {
+	immutable Str root;
+	immutable Ptr!Path path;
+}
+
+private immutable(Opt!RootAndPath) parseAbsolutePathNoExtension(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	immutable Str s,
+) {
+	return flatMapOption(pathParentAndBaseName(s), (ref immutable ParentAndBaseName pbn) {
+		immutable Opt!Sym sym = tryGetSymFromStr(allSymbols, pbn.baseName);
+		if (sym.has) {
+			immutable Opt!RootAndPath left = parseAbsolutePathNoExtension(alloc, allSymbols, pbn.parent);
+			return left.has
+				? some!RootAndPath(immutable RootAndPath(left.force.root, childPath(alloc, left.force.path, sym.force)))
+				: some!RootAndPath(immutable RootAndPath(pbn.parent, rootPath(alloc, sym.force)));
+		} else {
+			return none!RootAndPath;
+		}
+	});
+}
+
+immutable(AbsolutePath) childPath(Alloc)(ref Alloc alloc, immutable AbsolutePath parent, immutable Sym name) {
+	return AbsolutePath(parent.root, childPath(alloc, parent.path, name), parent.extension);
+}
+
+immutable(Opt!size_t) pathSlashIndex(immutable Str s) {
+	for (size_t i = s.size - 1; i > 0; i--)
+		if (s.at(i) == '/')
+			return some(i);
+	return none!size_t;
+}
+
+private struct ParentAndBaseName {
+	immutable Str parent;
+	immutable Str baseName;
+}
+
+immutable(Opt!Str) pathBaseName(immutable Str s) {
+	immutable Opt!ParentAndBaseName o = pathParentAndBaseName(s);
+	return mapOption(o, (ref immutable ParentAndBaseName p) => p.baseName);
+}
+immutable(Opt!Str) pathParent(immutable Str s) {
+	immutable Opt!ParentAndBaseName o = pathParentAndBaseName(s);
+	return mapOption(o, (ref immutable ParentAndBaseName p) => p.parent);
+}
+
+private immutable(Opt!ParentAndBaseName) pathParentAndBaseName(immutable Str s) {
+	immutable Opt!size_t index = pathSlashIndex(s);
+	return index.has
+		? some(immutable ParentAndBaseName(s.slice(0, index.force), s.slice(index.force + 1)))
+		: none!ParentAndBaseName;
 }
 
 immutable(Comparison) comparePath(immutable Ptr!Path a, immutable Ptr!Path b) {

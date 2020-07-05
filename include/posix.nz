@@ -1,0 +1,482 @@
+import .bootstrap .cell
+
+| TODO:
+| This code will need to be different for different OS.
+| Needs a #if -like language feature.
+| Currently only works on 64-bit linux.
+
+u-long alias
+	nat64
+u-long-long alias
+	nat64
+u-int alias
+	nat32
+s-long alias
+	int
+s-long-long alias
+	int
+dev-t alias
+	u-long-long
+ino-t alias
+	u-long
+mode-t alias
+	u-int
+nlink-t alias
+	u-int
+uid-t alias
+	u-long
+gid-t alias
+	u-long
+off-t alias
+	s-long-long
+blksize-t alias
+	u-long
+blkcnt-t alias
+	u-long
+time-t alias
+	u-long
+size-t alias
+	nat64
+ssize-t alias
+	int64
+
+pthread-t alias
+	u-long
+
+pid-t alias
+	| /usr/include/x86_64-linux-gnu/bits/typesizes.h
+	int32
+
+bytes2 alias
+	nat16
+
+bytes4 alias
+	nat32
+
+bytes8 alias
+	nat64
+
+bytes14 record
+	n0 bytes8
+	n1 bytes4
+	n2 bytes2
+
+bytes16 record
+	by-val
+	n0 bytes8
+	n1 bytes8
+
+bytes32 record
+	by-val
+	n0 bytes16
+	n1 bytes16
+
+bytes64 record
+	by-val
+	n0 bytes32
+	n1 bytes32
+
+bytes128 record
+	by-val
+	n0 bytes64
+	n1 bytes64
+
+| TODO: remove
+bytes256 record
+	by-val
+	n0 bytes128
+	n1 bytes128
+
+zero bytes16() noctx
+	new zero, zero
+
+zero bytes32() noctx
+	new zero, zero
+
+zero bytes64() noctx
+	new zero, zero
+
+zero bytes128() noctx
+	new zero, zero
+
+zero bytes256() noctx
+	new zero, zero
+
+| writes to `thread`
+| attr -- not typing this as currently I only pass null
+pthread-create err-t
+	thread cell pthread-t
+	attr any-ptr
+	start-routine fun-ptr1 any-ptr any-ptr
+	arg any-ptr
+spec
+	unsafe
+	extern
+	noctx
+
+| writes to `thread-return`
+pthread-join err-t(thread pthread-t, thread-return cell any-ptr) unsafe extern noctx
+
+pthread-yield err-t() unsafe extern noctx
+
+| based on my /usr/include/x86_64-linux-gnu/asm/stat.h `struct stat64`
+stat-t record mut
+	st-dev mut dev-t
+	pad0 mut nat32
+	st-ino-unused mut ino-t
+	st-mode mut mode-t
+	st-nlink mut nlink-t
+	st-uid mut uid-t
+	st-gid mut gid-t
+	st-rdev mut dev-t
+	pad1 mut nat32
+	st-size mut off-t
+	st-blksize mut blksize-t
+	st-blocks mut blkcnt-t
+	st-atime mut time-t
+	st-atime-nsec mut u-long
+	st-mtime mut time-t
+	st-mtime-nsec mut u-long
+	st-ctime mut time-t
+	st-ctime-nsec mut u-long
+	st-ino mut u-long-long
+	unused mut u-long-long
+
+err-t alias
+	int32
+
+enoent err-t() noctx
+	two
+eagain err-t() noctx
+	ten wrap-add one
+einval err-t() noctx
+	ten wrap-add ten wrap-add two
+esrch err-t() noctx
+	three
+
+get-errno err-t() summon builtin
+
+stat int32(path c-str, buf stat-t) extern noctx
+
+empty-stat stat-t()
+	new
+		st-dev. zero
+		pad0. zero
+		st-ino-unused. zero
+		st-mode. zero
+		st-nlink. zero
+		st-uid. zero
+		st-gid. zero
+		st-rdev. zero
+		pad1. zero
+		st-size. zero
+		st-blksize. zero
+		st-blocks. zero
+		st-atime. zero
+		st-atime-nsec. zero
+		st-mtime. zero
+		st-mtime-nsec. zero
+		st-ctime. zero
+		st-ctime-nsec. zero
+		st-ino. zero
+		unused. zero
+
+s-ifmt nat32()
+	| TODO: "octal170000"
+	twelve.two-pow wrap-mul fifteen
+
+s-ifdir nat32()
+	| TODO: "octal40000"
+	fourteen.two-pow
+
+s-ifreg nat32()
+	| TODO: "octal100000"
+	fifteen.two-pow
+
+| TODO: type file-actions and attrp, currently these are always null
+| /usr/include/spawn.h
+posix-spawn err-t
+	pid cell pid-t
+	executable-path c-str
+	file-actions posix-spawn-file-actions-t
+	attrp any-ptr
+	argv ptr c-str
+	environ ptr c-str
+spec
+	unsafe
+	extern
+	noctx
+	summon
+
+| /usr/include/x86_64-linux-gnu/sys/wait.h
+waitpid pid-t(pid pid-t, wait-status cell status-t, options int32) unsafe extern noctx summon
+
+status-t alias
+	int32
+
+x7f status-t() noctx trusted
+	seven.two-pow.noctx-decr
+
+x80 status-t() noctx trusted
+	seven.two-pow.noctx-decr
+
+xff status-t() noctx trusted
+	eight.two-pow.noctx-decr
+
+xffff status-t() noctx trusted
+	sixteen.two-pow.noctx-decr
+
+xff00 status-t() noctx
+	xffff wrap-sub xff
+
+w-term-sig status-t(status status-t)
+	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
+	status bits-and x7f
+
+w-exit-status status-t(status status-t)
+	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
+	status bits-and xff00 bit-rshift eight
+
+w-if-exited bool(status status-t)
+	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
+	status.w-term-sig zero?
+
+w-if-signaled bool(status status-t)
+	ts = status w-term-sig
+	ts != zero and: ts != x7f
+
+w-core-dump bool(status status-t)
+	status bits-intersect? x80
+
+w-if-stopped bool(status status-t)
+	status bits-and xff == x7f
+
+w-if-continued bool(status status-t)
+	status == xffff
+
+
+| /usr/include/spawn.h
+posix-spawn-file-actions-t record mut
+	allocated mut int32
+	used mut int32
+	actions mut any-ptr
+	pad mut bytes64
+
+fd-t alias
+	int32
+
+| /usr/include/spawn.h
+| TODO: these functions are marked __THROW, what does that do?
+posix-spawn-file-actions-init err-t(file-actions posix-spawn-file-actions-t) summon extern noctx
+posix-spawn-file-actions-destroy err-t(file-actions posix-spawn-file-actions-t) summon extern noctx
+posix-spawn-file-actions-addopen err-t
+	file-actions posix-spawn-file-actions-t
+	fd fd-t
+	path c-str
+	oflag int32
+	mode mode-t
+spec
+	summon
+	extern
+	noctx
+posix-spawn-file-actions-addclose err-t(file-actions posix-spawn-file-actions-t, fd fd-t) summon extern noctx
+posix-spawn-file-actions-adddup2 err-t
+	file-actions posix-spawn-file-actions-t
+	fd fd-t
+	new-fd fd-t
+spec
+	summon
+	extern
+	noctx
+
+| The headers just use int[2], but this is easier to use from noze
+pipes record mut
+	write-pipe mut fd-t
+	read-pipe mut fd-t
+
+| /usr/include/unistd.h
+| TODO: this is __THROW
+pipe err-t(pipes pipes) summon extern noctx
+
+stdin-fd fd-t() noctx
+	zero
+stdout-fd fd-t() noctx
+	one
+stderr-fd fd-t() noctx
+	two
+
+| /usr/include/asm-generic/poll.h
+pollfd record mut
+	fd fd-t
+	events int16
+	| mut, written to by 'poll'
+	revents mut int16
+
+pollin int16()
+	zero two-pow
+pollpri int16()
+	one two-pow
+pollout int16()
+	two two-pow
+pollerr int16()
+	three two-pow
+pollhup int16()
+	four two-pow
+pollnval int16()
+	five two-pow
+
+| /usr/include/x86_64-linux-gnu/sys/poll.h
+poll int32(fds ptr by-val<pollfd>, n-fds u-long, timeout int32) summon extern noctx
+
+
+has-pollin? bool(revents int16)
+	revents bits-intersect? pollin
+has-pollpri? bool(revents int16)
+	revents bits-intersect? pollpri
+has-pollout? bool(revents int16)
+	revents bits-intersect? pollout
+has-pollerr? bool(revents int16)
+	revents bits-intersect? pollerr
+has-pollhup? bool(revents int16)
+	revents bits-intersect? pollhup
+has-pollnval? bool(revents int16)
+	revents bits-intersect? pollnval
+
+oflag-t alias
+	int32
+
+o-rdonly oflag-t()
+	zero
+
+
+open fd-t(path c-str, oflag oflag-t) summon extern noctx
+close err-t(fd fd-t) summon extern noctx
+lseek off-t(f fd-t, offset off-t, whence int32) summon extern noctx
+read ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) summon extern noctx
+| TODO: summon
+write ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) extern noctx
+
+| /usr/include/unistd.h
+getcwd c-str(buf c-str, size size-t) unsafe extern noctx summon
+
+| /usr/include/x86_64-linux-gnu/bits/sockaddr.h
+sa-family-t alias
+	nat16
+
+| /usr/include/x86_64-linux-gnu/bits/socket.h
+sockaddr record
+	by-ref
+	safamily sa-family-t
+	sa-data bytes14
+
+| /usr/include/x86_64-linux-gnu/bits/types.h
+socklen-t alias
+	nat32
+
+| /usr/include/x86_64-linux-gnu/bits/socket.h
+af-unspec int32()
+	zero
+
+| /usr/include/netdb.h
+addrinfo record
+	by-val
+	ai-flags int32
+	ai-family int32
+	ai-socktype int32
+	ai-protocol int32
+	ai-addrlen socklen-t
+	ai-addr sockaddr
+	ai-canonname c-str
+	ai-next ptr addrinfo
+
+| /usr/include/x86_64-linux-gnu/bits/socket_type.h
+sock-stream int32()
+	one
+
+| /usr/include/x86_64-linux-gnu/sys/socket.h
+socket fd-t(domain int32, type int32, protocol int32) unsafe extern noctx summon
+
+connect int32(fd fd-t, addr sockaddr, len socklen-t) unsafe extern noctx summon
+
+| /usr/include/netdb.h
+| Remember to call 'freeaddrinfo'!
+| Writes to 'pai'
+getaddrinfo int32(name c-str, service c-str, req ptr addrinfo, pai cell ptr<addrinfo>) unsafe extern noctx summon
+freeaddrinfo void(ai ptr addrinfo) unsafe extern noctx
+gai-strerror c-str(ecode int32) extern noctx
+
+| /usr/include/x86_64-linux-gnu/bits/sigset.h
+sigset-t alias
+	| 1024 bits
+	bytes128
+
+
+| /usr/include/x86_64-linux-gnu/asm/signal.h
+sigaction record
+	sa-handler any-ptr
+	sa-flags u-long
+	sa-restorer any-ptr
+	sa-mask sigset-t
+
+| Not in include headers, something I added
+signal-t alias
+	int32
+
+| /usr/include/x86_64-linux-gnu/asm/signal.h
+sigpipe signal-t() noctx
+	thirteen
+
+| /usr/include/signal.h
+sighandler-t alias
+	fun-ptr1 void int
+
+| /usr/include/signal.h
+sigignore int(sig signal-t) extern noctx summon
+
+| /usr/include/setjmp.h
+jmp-buf-tag record
+	by-val
+	jmp-buf bytes64
+	mask-was-saved int32
+	saved-mask sigset-t
+
+| WARNING: This is declared as `typedef struct __jmp_buf_tag jmp_buf[1];`
+| So in some cases it's by value, in others by reference
+| /usr/include/setjmp.h
+jmp-buf alias
+	ptr jmp-buf-tag
+
+| TODO: this is marked __THROWNL, what does that do?
+setjmp int32(env jmp-buf) unsafe extern noctx
+
+| TODO: this is marked __THROWNL, what does that do?
+longjmp void(env jmp-buf, val int32) unsafe extern noctx
+
+malloc any-ptr(size nat) unsafe extern noctx
+free void(p any-ptr) unsafe extern noctx
+
+
+dirp alias
+	any-ptr
+
+dirent record mut
+	d-ino mut ino-t
+	d-off mut off-t
+	d-reclen mut nat16
+	d-type mut char
+	| TODO: d-name char[256]
+	d-name mut bytes256
+
+| /usr/include/dirent.h
+opendir dirp(name c-str) summon extern noctx
+readdir-r int32(dirp dirp, entry dirent, result cell dirent) summon extern noctx
+
+| /usr/include/unistd.h
+readlink ssize-t(path c-str, buf c-str, len size-t) summon extern noctx
+
+
+usleep void(micro-seconds nat) extern noctx
+
+environ ptr c-str() unsafe global noctx
+
+

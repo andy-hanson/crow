@@ -2,7 +2,7 @@ module frontend.parseType;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast : match, TypeAst;
+import frontend.ast : matchTypeAst, TypeAst;
 import frontend.lexer : curPos, Lexer, range, take, takeName, throwAtChar, tryTake;
 
 import parseDiag : ParseDiag;
@@ -30,7 +30,7 @@ immutable(Opt!TypeAst) tryParseTypeArg(Alloc, SymAlloc)(ref Alloc alloc, ref Lex
 
 immutable(TypeAst.InstStruct) parseStructType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable TypeAst t = parseType(alloc, lexer);
-	return t.match(
+	return matchTypeAst(t,
 		(ref immutable TypeAst.TypeParam) {
 			return todo!(immutable TypeAst.InstStruct)("must be a struct");
 		},
@@ -55,12 +55,12 @@ immutable(Arr!TypeAst) tryParseTypeArgsWorker(Alloc, SymAlloc)(
 		for (;;) {
 			if (!isInner && !lexer.tryTake(' '))
 				break;
-			res.add(alloc, parseTypeWorker(alloc, lexer, True));
+			add(alloc, res, parseTypeWorker(alloc, lexer, True));
 			if (isInner)
 				lexer.take('>');
 		}
 	}
-	return res.finishArr(alloc);
+	return finishArr(alloc, res);
 }
 
 immutable(TypeAst) parseTypeWorker(Alloc, SymAlloc)(
