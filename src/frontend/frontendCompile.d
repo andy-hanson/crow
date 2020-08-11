@@ -471,7 +471,7 @@ immutable(Result!(Program, Diags)) checkEverything(ModelAlloc)(
 		immutable Ptr!Module bootstrapModule = findModule(bootstrapPath(modelAlloc), modules);
 		immutable Ptr!StructDecl ctxStructDecl =
 			bootstrapModule.structsAndAliasesMap.mustGetAt(shortSymAlphaLiteral("ctx")).asStructDecl;
-		immutable Ptr!StructInst ctxStructInst = instantiateNonTemplateStruct(modelAlloc, ctxStructDecl);
+		immutable Ptr!StructInst ctxStructInst = instantiateNonTemplateStruct(modelAlloc, programState, ctxStructDecl);
 		return immutable Program(
 			bootstrapModule,
 			findModule(runtimePath(modelAlloc), modules),

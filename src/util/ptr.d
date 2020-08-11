@@ -12,6 +12,10 @@ struct Ptr(T) {
 		ptr = p;
 		assert(ptr != null);
 	}
+	this(const T* p) const {
+		ptr = p;
+		assert(ptr != null);
+	}
 	this(immutable T* p) immutable {
 		ptr = p;
 		assert(ptr != null);
@@ -32,11 +36,15 @@ struct Ptr(T) {
 	alias deref this;
 }
 
-@trusted Ptr!T ptrTrustMe(T)(ref T t) {
+@trusted immutable(Ptr!T) ptrTrustMe(T)(ref immutable T t) {
+	return immutable Ptr!T(&t);
+}
+
+@trusted Ptr!T ptrTrustMe_mut(T)(ref T t) {
 	return Ptr!T(&t);
 }
 
-immutable(Bool) ptrEquals(T)(immutable Ptr!T a, immutable Ptr!T b) {
+immutable(Bool) ptrEquals(T)(const Ptr!T a, const Ptr!T b) {
 	return Bool(a.ptr == b.ptr);
 }
 

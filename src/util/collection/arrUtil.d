@@ -3,8 +3,8 @@ module util.collection.arrUtil;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, begin, empty, first, ptrAt, range, size, sizeEq;
-import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push;
+import util.collection.arr : Arr, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
+import util.collection.mutArr : moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
@@ -174,14 +174,50 @@ import util.util : todo;
 	initMemory(ptr + 13, v13);
 	initMemory(ptr + 14, v14);
 	return immutable Arr!T(cast(immutable) ptr, 15);
+}
 
+@trusted Arr!Out fillArr_mut(Out, Alloc)(
+	ref Alloc alloc,
+	immutable size_t size,
+	scope Out delegate(immutable size_t) @safe @nogc pure nothrow cb,
+) {
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size);
+	foreach (immutable size_t i; 0..size)
+		initMemory(res + i, cb(i));
+	return Arr!Out(res, size);
+}
+
+@trusted immutable(Opt!(Arr!Out)) fillArrOrFail(Out, Alloc)(
+	ref Alloc alloc,
+	immutable size_t size,
+	scope immutable(Opt!Out) delegate(immutable size_t) @safe @nogc pure nothrow cb,
+) {
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size);
+	foreach (immutable size_t i; 0..size) {
+		immutable Opt!Out op = cb(i);
+		if (has(op))
+			initMemory(res + i, force(op));
+		else
+			return none!(Arr!Out);
+	}
+	return some(immutable Arr!Out(cast(immutable) res, size));
 }
 
 immutable(Bool) exists(T)(
-	scope ref immutable Arr!T arr,
+	scope immutable Arr!T arr,
 	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (ref immutable T x; arr.range)
+	foreach (ref immutable T x; range(arr))
+		if (cb(x))
+			return True;
+	return False;
+}
+
+immutable(Bool) exists(T)(
+	scope const Arr!T arr,
+	scope immutable(Bool) delegate(ref const T) @safe @nogc pure nothrow cb,
+) {
+	foreach (ref const T x; range(arr))
 		if (cb(x))
 			return True;
 	return False;
@@ -197,13 +233,33 @@ immutable(Bool) contains(T)(
 }
 
 immutable(Opt!T) find(T)(
-	ref immutable Arr!T arr,
+	ref immutable Arr!T a,
 	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (ref immutable T x; arr.range)
+	foreach (ref immutable T x; range(a))
 		if (cb(x))
 			return some!T(x);
 	return none!T;
+}
+
+immutable(Opt!size_t) findIndex(T)(
+	ref immutable Arr!T a,
+	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	foreach (immutable size_t i; 0..size(a))
+		if (cb(at(a, i)))
+			return some(i);
+	return none!size_t;
+}
+
+immutable(Opt!(Ptr!T)) findPtr(T)(
+	ref immutable Arr!T arr,
+	scope immutable(Bool) delegate(immutable Ptr!T) @safe @nogc pure nothrow cb,
+) {
+	foreach (immutable Ptr!T x; ptrsRange(arr))
+		if (cb(x))
+			return some!(Ptr!T)(x);
+	return none!(Ptr!T);
 }
 
 @trusted immutable(Arr!Out) map(Out, In, Alloc)(
@@ -212,6 +268,16 @@ immutable(Opt!T) find(T)(
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	return cast(immutable) mapToMut(alloc, a, cb);
+}
+@trusted immutable(Arr!Out) map_const(Out, In, Alloc)(
+	ref Alloc alloc,
+	const Arr!In a,
+	scope immutable(Out) delegate(ref const In) @safe @nogc pure nothrow cb,
+) {
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
+	foreach (immutable size_t i; 0..size(a))
+		initMemory(res + i, cb(at(a, i)));
+	return immutable Arr!Out(cast(immutable) res, size(a));
 }
 @trusted Arr!Out mapToMut(Out, In, Alloc)(
 	ref Alloc alloc,
@@ -245,6 +311,21 @@ immutable(Opt!T) find(T)(
 	ref Alloc alloc,
 	ref immutable Arr!In a,
 	scope immutable(Opt!Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+) {
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * a.size);
+	foreach (immutable size_t i; 0..size(a)) {
+		immutable Opt!Out o = cb(at(a, i));
+		if (has(o))
+			initMemory(res + i, force(o));
+		else
+			return none!(Arr!Out);
+	}
+	return some(immutable Arr!Out(cast(immutable) res, size(a)));
+}
+@trusted immutable(Opt!(Arr!Out)) mapOrNone_const(Out, In, Alloc)(
+	ref Alloc alloc,
+	ref const Arr!In a,
+	scope immutable(Opt!Out) delegate(ref const In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * a.size);
 	foreach (immutable size_t i; 0..size(a)) {
@@ -325,14 +406,30 @@ immutable(Opt!T) find(T)(
 	return immutable Arr!T(cast(immutable) res, resSize);
 }
 
-@trusted immutable(Arr!T) slice(T)(ref immutable Arr!T a, immutable size_t begin, immutable size_t newSize) {
+@trusted immutable(Arr!T) slice(T)(immutable Arr!T a, immutable size_t begin, immutable size_t newSize) {
 	assert(begin + newSize <= a.size);
 	return immutable Arr!T(a.begin + begin, newSize);
 }
+@trusted const(Arr!T) slice(T)(const Arr!T a, immutable size_t begin, immutable size_t newSize) {
+	assert(begin + newSize <= a.size);
+	return const Arr!T(a.begin + begin, newSize);
+}
+@trusted Arr!T slice(T)(Arr!T a, immutable size_t begin, immutable size_t newSize) {
+	assert(begin + newSize <= a.size);
+	return Arr!T(a.begin + begin, newSize);
+}
 
-immutable(Arr!T) slice(T)(ref immutable Arr!T a, immutable size_t begin) {
+immutable(Arr!T) slice(T)(immutable Arr!T a, immutable size_t begin) {
 	assert(begin <= a.size);
-	return a.slice(begin, a.size - begin);
+	return slice(a, begin, a.size - begin);
+}
+const(Arr!T) slice(T)(const Arr!T a, immutable size_t begin) {
+	assert(begin <= a.size);
+	return slice(a, begin, a.size - begin);
+}
+Arr!T slice(T)(Arr!T a, immutable size_t begin) {
+	assert(begin <= a.size);
+	return slice(a, begin, a.size - begin);
 }
 
 immutable(Arr!T) sliceFromTo(T)(ref immutable Arr!T a, immutable size_t lo, immutable size_t hi) {
@@ -342,7 +439,15 @@ immutable(Arr!T) sliceFromTo(T)(ref immutable Arr!T a, immutable size_t lo, immu
 
 immutable(Arr!T) tail(T)(immutable Arr!T a) {
 	assert(a.size != 0);
-	return a.slice(1);
+	return slice(a, 1);
+}
+const(Arr!T) tail(T)(const Arr!T a) {
+	assert(a.size != 0);
+	return slice(a, 1);
+}
+Arr!T tail(T)(Arr!T a) {
+	assert(a.size != 0);
+	return slice(a, 1);
 }
 
 immutable(Arr!T) rtail(T)(immutable Arr!T a) {
@@ -408,6 +513,78 @@ void zipMutPtrFirst(T, U)(
 		cb(ptrAt(a, i), at(b, i));
 }
 
+@trusted immutable(Arr!Out) mapZip(Out, In0, In1, Alloc)(
+	ref Alloc alloc,
+	ref immutable Arr!In0 in0,
+	ref immutable Arr!In1 in1,
+	scope immutable(Out) delegate(ref immutable In0, ref immutable In1) @safe @nogc pure nothrow cb,
+) {
+	assert(sizeEq(in0, in1));
+	immutable size_t sz = size(in0);
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * sz);
+	foreach (immutable size_t i; 0..sz)
+		initMemory(res + i, cb(at(in0, i), at(in1, i)));
+	return immutable Arr!Out(cast(immutable) res, sz);
+}
+
+@trusted immutable(Arr!Out) mapZipWithIndex(Out, In0, In1, Alloc)(
+	ref Alloc alloc,
+	ref immutable Arr!In0 in0,
+	ref immutable Arr!In1 in1,
+	scope immutable(Out) delegate(ref immutable In0, ref immutable In1, immutable size_t) @safe @nogc pure nothrow cb,
+) {
+	assert(sizeEq(in0, in1));
+	immutable size_t sz = size(in0);
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * sz);
+	foreach (immutable size_t i; 0..sz)
+		initMemory(res + i, cb(at(in0, i), at(in1, i), i));
+	return immutable Arr!Out(cast(immutable) res, sz);
+}
+
+
+@trusted immutable(Opt!(Arr!Out)) mapZipOrNone(Out, In0, In1, Alloc)(
+	ref Alloc alloc,
+	ref immutable Arr!In0 in0,
+	ref immutable Arr!In1 in1,
+	scope immutable(Opt!Out) delegate(ref immutable In0, ref immutable In1) @safe @nogc pure nothrow cb,
+) {
+	assert(sizeEq(in0, in1));
+	immutable size_t sz = size(in0);
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * sz);
+	foreach (immutable size_t i; 0..sz) {
+		immutable Opt!Out o = cb(at(in0, i), at(in1, i));
+		if (has(o))
+			initMemory(res + i, force(o));
+		else
+			return none!(Arr!Out);
+	}
+	return some(immutable Arr!Out(cast(immutable) res, sz));
+}
+
+immutable(Bool) zipSome(In0, In1)(
+	ref immutable Arr!In0 in0,
+	ref immutable Arr!In1 in1,
+	scope immutable(Bool) delegate(ref immutable In0, ref immutable In1) @safe @nogc pure nothrow cb,
+) {
+	assert(sizeEq(in0, in1));
+	foreach (immutable size_t i; 0..size(in0))
+		if (cb(at(in0, i), at(in1, i)))
+			return True;
+	return False;
+}
+
+immutable(Bool) eachCorresponds(T, U)(
+	ref immutable Arr!T a,
+	ref immutable Arr!T b,
+	scope immutable(Bool) delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
+) {
+	assert(sizeEq(a, b));
+	foreach (immutable size_t i; 0..size(a))
+		if (!cb(at(a, i), at(b, i)))
+			return False;
+	return True;
+}
+
 immutable(Comparison) compareArr(T)(
 	ref immutable Arr!T a,
 	ref immutable Arr!T b,
@@ -435,3 +612,28 @@ immutable(T) fold(T, U)(
 		: fold!(T, U)(cb(start, first(arr)), tail(arr), cb);
 }
 
+immutable(size_t) sum(T)(
+	immutable Arr!T a,
+	scope immutable(size_t) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	return fold!(size_t, T)(0, a, (ref immutable size_t l, ref immutable T t) =>
+		l + cb(t));
+}
+
+void filterUnordered(T)(
+	ref MutArr!T a,
+	scope immutable(Bool) delegate(ref T a) @safe @nogc pure nothrow pred,
+) {
+	size_t i = 0;
+	while (i < mutArrSize(a)) {
+		immutable Bool b = pred(mutArrAt(a, i));
+		if (b)
+			i++;
+		else if (i == mutArrSize(a) - 1)
+			mustPop(a);
+		else {
+			T t = mustPop(a);
+			setAt(a, i, t);
+		}
+	}
+}

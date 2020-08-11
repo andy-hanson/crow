@@ -58,7 +58,7 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, NulTerminatedStr, Str;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.path : childPath, Path, rootPath;
-import util.ptr : Ptr, ptrTrustMe;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.result : fail, Result, success;
 import util.sourceRange : Pos;
 import util.sym : AllSymbols, shortSymAlphaLiteralValue, Sym;
@@ -71,7 +71,7 @@ immutable(Result!(FileAst, ParseDiagnostic)) parseFile(Alloc, SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	immutable NulTerminatedStr source,
 ) {
-	Lexer!SymAlloc lexer = createLexer(ptrTrustMe(allSymbols), source);
+	Lexer!SymAlloc lexer = createLexer(ptrTrustMe_mut(allSymbols), source);
 	immutable int i = pureSetjmp(lexer.jump_buffer);
 	return i == 0
 		? success!(FileAst, ParseDiagnostic)(parseFileInner(alloc, lexer))
@@ -133,7 +133,15 @@ immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer
 	immutable Pos start = lexer.curPos();
 	immutable Sym name = lexer.takeName();
 	lexer.take(' ');
+	debug {
+		import core.stdc.stdio : printf;
+		printf("In parseSingleParam, about to parseType\n");
+	}
 	immutable TypeAst type = parseType(alloc, lexer);
+	debug {
+		import core.stdc.stdio : printf;
+		printf("Finished parseSingleParam\n");
+	}
 	return ParamAst(lexer.range(start), name, type);
 }
 
@@ -145,8 +153,22 @@ immutable(Arr!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Alloc allo
 		ArrBuilder!ParamAst res;
 		for (;;) {
 			add(alloc, res, parseSingleParam(alloc, lexer));
-			if (lexer.tryTake(')'))
+			debug {
+				import core.stdc.stdio : printf;
+				printf("About to tryTake ')'\n");
+				lexer.debugPrint();
+			}
+			if (lexer.tryTake(')')) {
+				debug {
+					import core.stdc.stdio : printf;
+					printf("Took ')'\n");
+				}
 				break;
+			}
+			debug {
+				import core.stdc.stdio : printf;
+				printf("Did not take ')'\n");
+			}
 			lexer.take(", ");
 		}
 		return finishArr(alloc, res);

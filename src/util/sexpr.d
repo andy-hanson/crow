@@ -5,7 +5,7 @@ module util.sexpr;
 import util.bools : Bool;
 import util.collection.arr : Arr, range;
 import util.collection.str : Str;
-import util.ptr : ptrTrustMe;
+import util.ptr : ptrTrustMe_mut;
 import util.sym : Sym, writeSym;
 import util.types : u32;
 import util.writer :
@@ -102,7 +102,7 @@ immutable(Sexpr) arrToSexpr(Alloc)(ref Alloc alloc, ref immutable Arr!T a, scope
 }
 
 void writeSexpr(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
-	WriterWithIndent!Alloc wi = WriterWithIndent!Alloc(ptrTrustMe(writer), 0);
+	WriterWithIndent!Alloc wi = WriterWithIndent!Alloc(ptrTrustMe_mut(writer), 0);
 	return writeSexprRecur(wi, a);
 }
 

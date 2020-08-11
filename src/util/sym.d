@@ -7,7 +7,7 @@ import util.bools : and, Bool, False, not, True;
 import util.collection.arr : at, first, last, range, size;
 import util.collection.arrUtil : tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
-import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
+import util.collection.mutSet : addToMutSetOkIfPresent, MutSet, mutSetHas;
 import util.collection.str : CStr, Str, strEqCStr, strEqLiteral, strLiteral, strOfCStr, strToCStr;
 import util.comparison : Comparison;
 import util.opt : Opt;
@@ -144,6 +144,10 @@ immutable(CStr) symToCStr(Alloc)(ref Alloc alloc, immutable Sym a) {
 
 immutable(Bool) isSymOperator(immutable Sym a) {
 	return bitsOverlap(a.value, shortOrLongOperatorMarker);
+}
+
+immutable(Bool) mutSymSetHas(ref const MutSymSet set, immutable Sym sym) {
+	return mutSetHas(set, sym);
 }
 
 void addToMutSymSetOkIfPresent(Alloc)(

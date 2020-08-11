@@ -48,6 +48,14 @@ struct Lexer(SymAlloc) {
 	jmp_buf jump_buffer = void;
 	// Assigned when an exception is thrown
 	ParseDiagnostic diagnostic_ = void;
+
+	//TODO:KILL
+	void debugPrint() {
+		debug {
+			import core.stdc.stdio : printf;
+			printf("Pos is: %lu\n", (ptr - sourceBegin + 1));
+		}
+	}
 }
 
 @trusted Lexer!SymAlloc createLexer(SymAlloc)(Ptr!(AllSymbols!SymAlloc) allSymbols, immutable NulTerminatedStr source) {

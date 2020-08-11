@@ -18,7 +18,7 @@ import util.collection.str : CStr, emptyStr, Str, strLiteral;
 import util.io : Environ, replaceCurrentProcess, spawnAndWaitSync;
 import util.opt : force, has, none, Opt, some;
 import util.path : AbsolutePath, addManyChildren, childPath, parseAbsoluteOrRelPath, Path, pathToStr, rootPath;
-import util.ptr : Ptr, ptrTrustMe;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.result : matchImpure, Result;
 import util.sexpr : Sexpr, writeSexpr;
 import util.sym : AllSymbols, shortSymAlphaLiteral;
@@ -88,7 +88,7 @@ void printOutAst(ref immutable FileAst ast) {
 	alias Alloc = StackAlloc!("printOutAst", 8 * 1024);
 	Alloc alloc;
 	immutable Sexpr sexpr = sexprOfAst(alloc, ast);
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe(alloc));
+	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	writeSexpr(writer, sexpr);
 	printCStr(finishToCStr(writer));
 }

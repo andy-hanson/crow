@@ -19,6 +19,10 @@ struct Opt(T) {
 		has_ = True;
 		value_ = value;
 	}
+	@trusted this(const T value) const {
+		has_ = True;
+		value_ = value;
+	}
 	@trusted this(immutable T value) immutable {
 		has_ = True;
 		value_ = value;
@@ -39,6 +43,10 @@ Opt!T noneMut(T)() {
 
 immutable(Opt!T) some(T)(immutable T value) {
 	return immutable Opt!T(value);
+}
+
+const(Opt!T) someConst(T)(const T value) {
+	return const Opt!T(value);
 }
 
 Opt!T someMut(T)(T value) {

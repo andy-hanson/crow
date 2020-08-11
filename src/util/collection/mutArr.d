@@ -8,7 +8,8 @@ import core.stdc.string : memcpy;
 
 import util.bools : Bool;
 import util.collection.arr : Arr;
-import util.memory : initMemory;
+import util.memory : initMemory, overwriteMemory;
+import util.opt : force, noneMut, Opt, someMut;
 
 struct MutArr(T) {
 	private:
@@ -22,6 +23,10 @@ struct MutArr(T) {
 }
 
 @trusted ref T mutArrAt(T)(ref MutArr!T a, immutable size_t index) {
+	assert(index < a.size_);
+	return a.begin_[index];
+}
+@trusted ref const(T) mutArrAt(T)(ref const MutArr!T a, immutable size_t index) {
 	assert(index < a.size_);
 	return a.begin_[index];
 }
@@ -53,9 +58,28 @@ immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 	assert(a.size_ <= a.capacity_);
 }
 
+@trusted Opt!T pop(T)(ref MutArr!T a) {
+	if (a.size_ == 0)
+		return noneMut!T;
+	else {
+		a.size_--;
+		return someMut!T(a.begin_[a.size_]);
+	}
+}
+
+T mustPop(T)(ref MutArr!T a) {
+	Opt!T p = pop(a);
+	return force(p);
+}
+
+@trusted ref T mustPeek(T)(ref MutArr!T m) {
+	assert(m.size_ != 0);
+	return m.begin_[m.size_ - 1];
+}
+
 @trusted void setAt(T)(ref MutArr!T a, immutable size_t index, T value) {
 	assert(index < a.size_);
-	a.begin_[index] = value;
+	overwriteMemory(a.begin_ + index, value);
 }
 
 @trusted const(T[]) mutArrRange(T)(ref const MutArr!T a) {
@@ -75,6 +99,15 @@ immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 	return res;
 }
 
+@trusted const(Arr!T) moveToArr_const(T, Alloc)(ref Alloc alloc, ref MutArr!T a) {
+	const Arr!T res = const Arr!T(a.begin_, a.size_);
+	alloc.freePartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
+	a.begin_ = null;
+	a.size_ = 0;
+	a.capacity_ = 0;
+	return res;
+}
+
 @trusted ref const(T) last(T)(ref const MutArr!T a) {
 	assert(a.size_ != 0);
 	return a.begin_[a.size_ - 1];
@@ -86,4 +119,7 @@ immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 
 const(Arr!T) tempAsArr(T)(ref const MutArr!T m) {
 	return const Arr!T(m.begin_, m.size_);
+}
+Arr!T tempAsArr_mut(T)(ref MutArr!T m) {
+	return Arr!T(m.begin_, m.size_);
 }

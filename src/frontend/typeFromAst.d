@@ -5,7 +5,7 @@ module frontend.typeFromAst;
 import frontend.ast : TypeAst;
 import frontend.checkCtx : CheckCtx;
 import frontend.instantiate : DelayStructInsts, TypeParamsScope;
-import model : SpecDecl, SpecsMap, StructInst, StructsAndAliasesMap, Type;
+import model : CommonTypes, SpecDecl, SpecsMap, StructInst, StructsAndAliasesMap, Type;
 import util.collection.arr : Arr;
 import util.opt : Opt;
 import util.ptr : Ptr;

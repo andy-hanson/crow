@@ -21,7 +21,17 @@ immutable(Arr!T) emptyArr(T)() {
 	return immutable Arr!T(null, 0);
 }
 
+Arr!T emptyArr_mut(T)() {
+	return Arr!T(null, 0);
+}
+
 @system immutable(T*) begin(T)(immutable Arr!T a) {
+	return a.begin_;
+}
+@system const(T*) begin(T)(const Arr!T a) {
+	return a.begin_;
+}
+@system T* begin(T)(Arr!T a) {
 	return a.begin_;
 }
 
@@ -33,13 +43,18 @@ immutable(Bool) sizeEq(T, U)(ref const Arr!T a, ref const Arr!U b) {
 	return Bool(size(a) == size(b));
 }
 
-immutable(Bool) empty(T)(immutable Arr!T a) {
+immutable(Bool) empty(T)(const Arr!T a) {
 	return Bool(a.size == 0);
 }
 
 @trusted Ptr!T ptrAt(T)(ref Arr!T a, immutable size_t index) {
 	assert(index < a.size_);
 	return Ptr!T(a.begin_ + index);
+}
+
+@trusted const(Ptr!T) ptrAt(T)(ref const Arr!T a, immutable size_t index) {
+	assert(index < a.size_);
+	return const Ptr!T(a.begin_ + index);
 }
 
 @trusted immutable(Ptr!T) ptrAt(T)(ref immutable Arr!T a, immutable size_t index) {
@@ -50,25 +65,46 @@ immutable(Bool) empty(T)(immutable Arr!T a) {
 @trusted ref T at(T)(ref Arr!T a, immutable size_t index) {
 	return ptrAt(a, index).deref;
 }
+@trusted ref const(T) at(T)(ref const Arr!T a, immutable size_t index) {
+	return ptrAt(a, index).deref;
+}
 @trusted ref immutable(T) at(T)(ref immutable Arr!T a, immutable size_t index) {
 	return ptrAt(a, index).deref;
 }
 
 ref immutable(T) first(T)(ref immutable Arr!T a) {
-	return a.at(0);
+	return at(a, 0);
+}
+ref const(T) first(T)(ref const Arr!T a) {
+	return at(a, 0);
+}
+ref T first(T)(ref Arr!T a) {
+	return at(a, 0);
 }
 
 ref immutable(T) only(T)(ref immutable Arr!T a) {
 	assert(a.size == 1);
-	return a.first;
+	return first(a);
+}
+ref const(T) only_const(T)(ref const Arr!T a) {
+	assert(a.size == 1);
+	return first(a);
+}
+
+Ptr!T onlyPtr_mut(T)(ref Arr!T a) {
+	assert(a.size == 1);
+	return ptrAt(a, 0);
 }
 
 ref immutable(T) last(T)(ref immutable Arr!T a) {
 	assert(a.size != 0);
-	return a.at(a.size - 1);
+	return at(a, a.size - 1);
 }
 
 @trusted T[] range(T)(Arr!T a) {
+	return a.begin_[0..a.size_];
+}
+@trusted const(T[]) range(T)(const Arr!T a) {
 	return a.begin_[0..a.size_];
 }
 @trusted immutable(T[]) range(T)(immutable Arr!T a) {

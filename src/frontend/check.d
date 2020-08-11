@@ -101,7 +101,7 @@ import util.collection.str : copyStr, Str;
 import util.memory : DelayInit, delayInit;
 import util.opt : force, has, mapOption, none, noneMut, Opt, some, someMut;
 import util.path : PathAndStorageKind;
-import util.ptr : Ptr, ptrEquals, ptrTrustMe;
+import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.result : fail, flatMapSuccess, mapSuccess, Result, success;
 import util.sourceRange : SourceRange;
 import util.sym : addToMutSymSetOkIfPresent, compareSym, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
@@ -187,7 +187,11 @@ immutable(Opt!(Ptr!StructInst)) getCommonNonTemplateType(Alloc)(
 			structOrAlias,
 			(immutable Ptr!StructAlias a) => target(a),
 			(immutable Ptr!StructDecl s) =>
-				some(instantiateStruct!Alloc(alloc, ctx, StructDeclAndArgs(s, emptyArr!Type), someMut(ptrTrustMe(delayedStructInsts)))));
+				some(instantiateStruct(
+					alloc,
+					ctx.programState,
+					StructDeclAndArgs(s, emptyArr!Type),
+					someMut(ptrTrustMe_mut(delayedStructInsts)))));
 	}
 }
 
@@ -482,7 +486,7 @@ void checkStructAliasTargets(Alloc)(
 			ast.target,
 			structsAndAliasesMap,
 			TypeParamsScope(structAlias.typeParams),
-			someMut!(Ptr!(MutArr!(Ptr!StructInst)))(ptrTrustMe(delayStructInsts))));
+			someMut!(Ptr!(MutArr!(Ptr!StructInst)))(ptrTrustMe_mut(delayStructInsts))));
 	});
 }
 
@@ -538,7 +542,7 @@ immutable(StructBody) checkRecord(Alloc)(
 				field.type,
 				structsAndAliasesMap,
 				TypeParamsScope(struct_.typeParams),
-				someMut(ptrTrustMe(delayStructInsts)));
+				someMut(ptrTrustMe_mut(delayStructInsts)));
 			if (!isPurityWorse(bestCasePurity(fieldType), struct_.purity) && !struct_.forceSendable)
 				addDiag(alloc, ctx, field.range, immutable Diag(Diag.PurityOfFieldWorseThanRecord(struct_, fieldType)));
 			if (field.isMutable) {
@@ -579,7 +583,7 @@ immutable(StructBody) checkUnion(Alloc)(
 				it,
 				structsAndAliasesMap,
 				TypeParamsScope(struct_.typeParams),
-				someMut(ptrTrustMe(delayStructInsts)));
+				someMut(ptrTrustMe_mut(delayStructInsts)));
 			if (has(res) && isPurityWorse(force(res).bestCasePurity, struct_.purity))
 				addDiag(alloc, ctx, it.range, immutable Diag(Diag.PurityOfMemberWorseThanUnion(struct_, force(res))));
 			return res;
@@ -681,7 +685,7 @@ immutable(Arr!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 				addDiag(alloc, ctx, ast.range, immutable Diag(Diag.WrongNumberTypeArgsForSpec(spec, size(spec.typeParams), size(typeArgs))));
 				return none!(Ptr!SpecInst);
 			} else
-				return some(instantiateSpec(alloc, ctx, SpecDeclAndArgs(spec, typeArgs)));
+				return some(instantiateSpec(alloc, ctx.programState, SpecDeclAndArgs(spec, typeArgs)));
 		} else {
 			addDiag(alloc, ctx, ast.range, immutable Diag(Diag.NameNotFound(Diag.NameNotFound.Kind.spec, ast.spec)));
 			return none!(Ptr!SpecInst);
@@ -780,7 +784,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 				addToMutSymSetOkIfPresent(alloc, ctx.programState.recordFieldNames, f.name);
 
 	foreach (ref Ptr!StructInst i; mutArrRangeMut(delayStructInsts))
-		i.setBody(instantiateStructBody(alloc, ctx, i.declAndArgs));
+		i.setBody(instantiateStructBody(alloc, ctx.programState, i.declAndArgs));
 
 	immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, structsAndAliasesMap, ast.specs);
 	immutable SpecsMap specsMap = buildSpecsDict(alloc, ctx, specs);
@@ -839,7 +843,7 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 		ref MutArr!(Ptr!StructInst),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
-	CheckCtx ctx = CheckCtx(ptrTrustMe(programState), pathAndAst.pathAndStorageKind, getFlattenedImports(alloc, imports));
+	CheckCtx ctx = CheckCtx(ptrTrustMe_mut(programState), pathAndAst.pathAndStorageKind, getFlattenedImports(alloc, imports));
 	immutable FileAst ast = pathAndAst.ast;
 
 	// Since structs may refer to each other, first get a structsAndAliasesMap, *then* fill in bodies

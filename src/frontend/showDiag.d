@@ -42,7 +42,7 @@ import util.diff : diffSymbols;
 import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetter;
 import util.opt : force, has;
 import util.path : PathAndStorageKind, pathToStr;
-import util.ptr : Ptr, ptrTrustMe;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : SourceRange;
 import util.sym : Sym;
 import util.util : todo;
@@ -61,7 +61,7 @@ import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind,
 
 void printDiagnostics(immutable Diagnostics diagnostics) {
 	PrintAlloc alloc;
-	Writer!PrintAlloc writer = Writer!PrintAlloc(ptrTrustMe(alloc));
+	Writer!PrintAlloc writer = Writer!PrintAlloc(ptrTrustMe_mut(alloc));
 	immutable Diags sorted = sort!(Diagnostic, PrintAlloc)(
 		alloc,
 		diagnostics.diagnostics,
