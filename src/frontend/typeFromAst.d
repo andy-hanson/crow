@@ -5,7 +5,7 @@ module frontend.typeFromAst;
 import diag : Diag;
 import frontend.ast : matchTypeAst, TypeAst;
 import frontend.checkCtx : addDiag, CheckCtx;
-import frontend.instantiate : DelayStructInsts, instantiateStruct, TypeParamsScope;
+import frontend.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
 import model :
 	CommonTypes,
 	matchStructOrAlias,
@@ -22,16 +22,15 @@ import model :
 	Type,
 	TypeParam,
 	typeParams;
+import frontend.programState : ProgramState;
 import util.collection.arr : Arr, empty, first, size;
-import util.collection.arrUtil : fillArr, findPtr, map, tail;
+import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map, tail;
 import util.collection.dict : Dict, getAt;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
 import util.sym : compareSym, Sym, symEq;
 import util.util : todo;
-
-import core.stdc.stdio : printf; // TODO:KILL
 
 immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 	ref Alloc alloc,
@@ -41,8 +40,6 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	debug { printf("  instStructFromAst has delayStructInsts? %d\n", has(delayStructInsts).value); }
-
 	immutable Opt!StructOrAlias opDecl = tryFindT!(StructOrAlias, Alloc)(
 		alloc,
 		ctx,
@@ -118,13 +115,22 @@ immutable(Type) typeFromAst(Alloc)(
 		});
 }
 
-immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(
+immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
+	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable Sym name,
 	immutable SourceRange range,
 	ref immutable SpecsMap specsMap,
 ) {
-	return todo!(Opt!(Ptr!SpecDecl))("tryFindSpec");
+	return tryFindT(
+		alloc,
+		ctx,
+		name,
+		range,
+		specsMap,
+		Diag.DuplicateImports.Kind.spec,
+		Diag.NameNotFound.Kind.spec,
+		(immutable Ptr!Module m) => m.specsMap);
 }
 
 immutable(Arr!Type) typeArgsFromAsts(Alloc)(
@@ -141,10 +147,14 @@ immutable(Arr!Type) typeArgsFromAsts(Alloc)(
 
 immutable(Type) makeFutType(Alloc)(
 	ref Alloc alloc,
+	ref ProgramState programState,
 	ref immutable CommonTypes commonTypes,
 	ref immutable Type type,
 ) {
-	return todo!Type("makeFutType");
+	return immutable Type(instantiateStructNeverDelay(
+		alloc,
+		programState,
+		immutable StructDeclAndArgs(commonTypes.fut, arrLiteral!Type(alloc, type))));
 }
 
 private:

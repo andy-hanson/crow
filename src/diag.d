@@ -17,6 +17,7 @@ import model :
 	Type;
 import parseDiag : ParseDiag;
 import util.collection.arr : Arr, empty;
+import util.collection.str : Str;
 import util.opt : Opt;
 import util.path : PathAndStorageKind, RelPath;
 import util.ptr : Ptr;
@@ -68,7 +69,9 @@ struct Diag {
 		immutable PathAndStorageKind from;
 		immutable PathAndStorageKind to;
 	}
-	struct CommonTypesMissing {}
+	struct CommonTypesMissing {
+		immutable Arr!Str missing;
+	}
 	struct CreateArrNoExpectedType {}
 	struct CreateRecordByRefNoCtx {
 		immutable Ptr!StructDecl struct_;
@@ -113,6 +116,10 @@ struct Diag {
 	}
 	struct LambdaForFunPtrHasClosure {
 		immutable Ptr!ClosureField field;
+	}
+	struct LambdaWrongNumberParams {
+		immutable Ptr!StructInst expectedLambdaType;
+		immutable size_t actualNParams;
 	}
 	struct LocalShadowsPrevious {
 		immutable Sym name;
@@ -223,6 +230,7 @@ struct Diag {
 		lambdaCantInferParamTypes,
 		lambdaClosesOverMut,
 		lambdaForFunPtrHasClosure,
+		lambdaWrongNumberParams,
 		localShadowsPrevious,
 		matchCaseStructNamesDoNotMatch,
 		matchOnNonUnion,
@@ -266,6 +274,7 @@ struct Diag {
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
 		immutable LambdaClosesOverMut lambdaClosesOverMut;
 		immutable LambdaForFunPtrHasClosure lambdaForFunPtrHasClosure;
+		immutable LambdaWrongNumberParams lambdaWrongNumberParams;
 		immutable LocalShadowsPrevious localShadowsPrevious;
 		immutable MatchCaseStructNamesDoNotMatch matchCaseStructNamesDoNotMatch;
 		immutable MatchOnNonUnion matchOnNonUnion;
@@ -308,6 +317,7 @@ struct Diag {
 	@trusted immutable this(immutable LambdaCantInferParamTypes a) { kind = Kind.lambdaCantInferParamTypes; lambdaCantInferParamTypes = a; }
 	@trusted immutable this(immutable LambdaClosesOverMut a) { kind = Kind.lambdaClosesOverMut; lambdaClosesOverMut = a; }
 	@trusted immutable this(immutable LambdaForFunPtrHasClosure a) { kind = Kind.lambdaForFunPtrHasClosure; lambdaForFunPtrHasClosure = a; }
+	@trusted immutable this(immutable LambdaWrongNumberParams a) { kind = Kind.lambdaWrongNumberParams; lambdaWrongNumberParams = a; }
 	@trusted immutable this(immutable LocalShadowsPrevious a) { kind = Kind.localShadowsPrevious; localShadowsPrevious = a; }
 	@trusted immutable this(immutable MatchCaseStructNamesDoNotMatch a) { kind = Kind.matchCaseStructNamesDoNotMatch; matchCaseStructNamesDoNotMatch = a; }
 	@trusted immutable this(immutable MatchOnNonUnion a) { kind = Kind.matchOnNonUnion; matchOnNonUnion = a; }
@@ -352,6 +362,7 @@ struct Diag {
 	scope immutable(Out) delegate(ref immutable Diag.LambdaCantInferParamTypes) @safe @nogc pure nothrow cbLambdaCantInferParamTypes,
 	scope immutable(Out) delegate(ref immutable Diag.LambdaClosesOverMut) @safe @nogc pure nothrow cbLambdaClosesOverMut,
 	scope immutable(Out) delegate(ref immutable Diag.LambdaForFunPtrHasClosure) @safe @nogc pure nothrow cbLambdaForFunPtrHasClosure,
+	scope immutable(Out) delegate(ref immutable Diag.LambdaWrongNumberParams) @safe @nogc pure nothrow cbLambdaWrongNumberParams,
 	scope immutable(Out) delegate(ref immutable Diag.LocalShadowsPrevious) @safe @nogc pure nothrow cbLocalShadowsPrevious,
 	scope immutable(Out) delegate(ref immutable Diag.MatchCaseStructNamesDoNotMatch) @safe @nogc pure nothrow cbMatchCaseStructNamesDoNotMatch,
 	scope immutable(Out) delegate(ref immutable Diag.MatchOnNonUnion) @safe @nogc pure nothrow cbMatchOnNonUnion,
@@ -411,6 +422,8 @@ struct Diag {
 			return cbLambdaClosesOverMut(a.lambdaClosesOverMut);
 		case Diag.Kind.lambdaForFunPtrHasClosure:
 			return cbLambdaForFunPtrHasClosure(a.lambdaForFunPtrHasClosure);
+		case Diag.Kind.lambdaWrongNumberParams:
+			return cbLambdaWrongNumberParams(a.lambdaWrongNumberParams);
 		case Diag.Kind.localShadowsPrevious:
 			return cbLocalShadowsPrevious(a.localShadowsPrevious);
 		case Diag.Kind.matchCaseStructNamesDoNotMatch:

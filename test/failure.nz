@@ -30,8 +30,7 @@ print-failures exit-code(failures result str arr<failure>, options test-options)
 			print-sync: o.value
 			0
 		err e
-			e.value each \
-				it print-failure
+			e.value each {it print-failure}
 			n-failures = e.value.size
 			print-sync: when
 				n-failures == options.max-failures

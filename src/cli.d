@@ -5,7 +5,8 @@ import core.stdc.stdio : printf;
 import compiler : build, buildAndRun, printAst, ProgramDirAndMain;
 import frontend.lang : nozeExtension;
 
-import util.alloc.stackAlloc : StackAlloc;
+import util.alloc.mallocator : Mallocator;
+import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, first, only, size;
 import util.collection.arrUtil : slice, sliceFromTo, tail;
@@ -24,15 +25,17 @@ import util.path :
 	RelPath,
 	resolvePath,
 	rootPath;
-import util.ptr : Ptr;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym, symEq;
 import util.util : todo;
 
 @safe @nogc nothrow: // not pure
 
 int cli(immutable size_t argc, immutable CStr* argv) {
+	Mallocator mallocator;
 	CliAlloc alloc;
-	SymAlloc symAlloc;
+	alias SymAlloc = SingleHeapAlloc!(Mallocator, "symAlloc", 1024 * 1024);
+	SymAlloc symAlloc = SymAlloc(ptrTrustMe_mut(mallocator));
 	immutable CommandLineArgs args = parseCommandLineArgs(alloc, argc, argv);
 	AllSymbols!SymAlloc allSymbols = AllSymbols!SymAlloc(symAlloc);
 	return go(allSymbols, args);
@@ -41,7 +44,6 @@ int cli(immutable size_t argc, immutable CStr* argv) {
 private:
 
 alias CliAlloc = StackAlloc!("commandLineArgs", 32 * 1024);
-alias SymAlloc = StackAlloc!("symAlloc", 1024 * 1024);
 
 immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable CommandLineArgs args) {
 	StackAlloc!("command", 1024) alloc;

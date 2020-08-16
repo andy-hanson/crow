@@ -47,8 +47,8 @@ struct NulTerminatedStr {
 }
 
 @trusted immutable(NulTerminatedStr) strToNulTerminatedStr(Alloc)(ref Alloc alloc, immutable Str s) {
-	char* res = cast(char*) alloc.allocate(s.size + 1);
-	memcpy(res, s.begin, s.size);
+	char* res = cast(char*) alloc.allocate(size(s) + 1);
+	memcpy(res, s.begin, size(s));
 	res[s.size] = '\0';
 	return immutable NulTerminatedStr(immutable Str(cast(immutable) res, s.size + 1));
 }

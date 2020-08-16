@@ -97,7 +97,7 @@ import util.collection.dict : getAt, KeyValuePair;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDict;
 import util.collection.dictUtil : buildDict, buildMultiDict;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty, mutArrRangeMut;
-import util.collection.str : copyStr, Str;
+import util.collection.str : copyStr, Str, strLiteral;
 import util.memory : DelayInit, delayInit;
 import util.opt : force, has, mapOption, none, noneMut, Opt, some, someMut;
 import util.path : PathAndStorageKind;
@@ -201,13 +201,18 @@ immutable(Result!(CommonTypes, Diags)) getCommonTypes(Alloc)(
 	ref immutable StructsAndAliasesMap structsAndAliasesMap,
 	ref MutArr!(Ptr!StructInst) delayedStructInsts,
 ) {
-	immutable(Opt!(Ptr!StructInst)) nonTemplate(immutable string s) {
-		return getCommonNonTemplateType(
+	ArrBuilder!Str missing = ArrBuilder!Str();
+
+	immutable(Opt!(Ptr!StructInst)) nonTemplate(immutable string name) {
+		immutable Opt!(Ptr!StructInst) res = getCommonNonTemplateType(
 			alloc,
 			ctx,
 			structsAndAliasesMap,
-			shortSymAlphaLiteral(s),
+			shortSymAlphaLiteral(name),
 			delayedStructInsts);
+		if (!has(res))
+			add(alloc, missing, strLiteral(name));
+		return res;
 	}
 
 	immutable Opt!(Ptr!StructInst) bool_ = nonTemplate("bool");
@@ -218,7 +223,10 @@ immutable(Result!(CommonTypes, Diags)) getCommonTypes(Alloc)(
 	immutable Opt!(Ptr!StructInst) anyPtr = nonTemplate("any-ptr");
 
 	immutable(Opt!(Ptr!StructDecl)) com(immutable string name, immutable size_t nTypeParameters) {
-		return getCommonTemplateType(structsAndAliasesMap, shortSymAlphaLiteral(name), nTypeParameters);
+		immutable Opt!(Ptr!StructDecl) res = getCommonTemplateType(structsAndAliasesMap, shortSymAlphaLiteral(name), nTypeParameters);
+		if (!has(res))
+			add(alloc, missing, strLiteral(name));
+		return res;
 	}
 
 	immutable Opt!(Ptr!StructDecl) opt = com("opt", 1);
@@ -247,13 +255,14 @@ immutable(Result!(CommonTypes, Diags)) getCommonTypes(Alloc)(
 	immutable Opt!(Ptr!StructDecl) funRef2 = com("fun-ref2", 3);
 	immutable Opt!(Ptr!StructDecl) funRef3 = com("fun-ref3", 4);
 
-	if (has(bool_) && has(char_) && has(int32) && has(str) && has(void_) && has(anyPtr) &&
-		has(opt) && has(some) && has(none) &&
-		has(byVal) && has(arr) && has(fut) &&
-		has(fun0) && has(fun1) && has(fun2) && has(fun3) &&
-		has(funMut0) && has(funMut1) && has(funMut2) && has(funMut3) &&
-		has(funPtr0) && has(funPtr1) && has(funPtr2) && has(funPtr3) && has(funPtr4) && has(funPtr5) && has(funPtr6) &&
-		has(funRef0) && has(funRef1) && has(funRef2) && has(funRef3))
+	immutable Arr!Str missingArr = finishArr(alloc, missing);
+
+	if (!empty(missingArr)) {
+		immutable Diagnostic diag = Diagnostic(
+			PathAndStorageKindAndRange(ctx.path, SourceRange.empty),
+			immutable Diag(Diag.CommonTypesMissing(missingArr)));
+		return fail!(CommonTypes, Diags)(arrLiteral!Diagnostic(alloc, diag));
+	} else {
 		return success!(CommonTypes, Diags)(
 			CommonTypes(
 				force(bool_),
@@ -295,11 +304,6 @@ immutable(Result!(CommonTypes, Diags)) getCommonTypes(Alloc)(
 						force(funRef1),
 						force(funRef2),
 						force(funRef3))))));
-	else {
-		immutable Diagnostic diag = Diagnostic(
-			PathAndStorageKindAndRange(ctx.path, SourceRange.empty),
-			Diag(Diag.CommonTypesMissing()));
-		return fail!(CommonTypes, Diags)(arrLiteral!Diagnostic(alloc, diag));
 	}
 }
 
@@ -497,7 +501,7 @@ void everyPairWithIndex(T)(
 ) {
 	foreach (immutable size_t i; 0..size(a))
 		foreach (immutable size_t j; 0..i)
-			cb(at(a, i), at(a, j), i, j);
+			cb(at(a, j), at(a, i), j, i);
 }
 
 //TODO:MOVE
@@ -530,15 +534,12 @@ immutable(StructBody) checkRecord(Alloc)(
 	ref immutable StructDeclAst.Body.Record r,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	debug { printf("checkRecord\n"); }
-
 	immutable Opt!ForcedByValOrRef forcedByValOrRef = getForcedByValOrRef(r.explicitByValOrRef);
 	immutable Bool forcedByVal = Bool(has(forcedByValOrRef) && force(forcedByValOrRef) == ForcedByValOrRef.byVal);
 	immutable Arr!RecordField fields = mapWithIndex(
 		alloc,
 		r.fields,
 		(ref immutable StructDeclAst.Body.Record.Field field, immutable size_t index) {
-			debug { printf(">> get fieldType\n"); }
 			immutable Type fieldType = typeFromAst!Alloc(
 				alloc,
 				ctx,
@@ -546,8 +547,7 @@ immutable(StructBody) checkRecord(Alloc)(
 				structsAndAliasesMap,
 				TypeParamsScope(struct_.typeParams),
 				someMut(ptrTrustMe_mut(delayStructInsts)));
-			debug { printf("<< get fieldType\n"); }
-			if (!isPurityWorse(bestCasePurity(fieldType), struct_.purity) && !struct_.forceSendable)
+			if (isPurityWorse(bestCasePurity(fieldType), struct_.purity) && !struct_.forceSendable)
 				addDiag(alloc, ctx, field.range, immutable Diag(Diag.PurityOfFieldWorseThanRecord(struct_, fieldType)));
 			if (field.isMutable) {
 				immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
@@ -567,8 +567,6 @@ immutable(StructBody) checkRecord(Alloc)(
 				immutable Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.field, a.name)));
 	});
 
-	debug { printf("end checkRecord\n"); }
-
 	return immutable StructBody(StructBody.Record(forcedByValOrRef, fields));
 }
 
@@ -580,8 +578,6 @@ immutable(StructBody) checkUnion(Alloc)(
 	ref immutable StructDeclAst.Body.Union un,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	debug { printf("checkUnion\n"); }
-
 	immutable Opt!(Arr!(Ptr!StructInst)) members = mapOrNone!(Ptr!StructInst)(
 		alloc,
 		un.members,
@@ -602,19 +598,16 @@ immutable(StructBody) checkUnion(Alloc)(
 			force(members),
 			// Must name the ignored parameter due to https://issues.dlang.org/show_bug.cgi?id=21165
 			(ref immutable Ptr!StructInst a, ref immutable Ptr!StructInst b, immutable size_t _ignoreMe, immutable size_t bIndex) {
-				if (ptrEquals(decl(a), decl(a))) {
+				if (ptrEquals(decl(a), decl(b))) {
 					immutable Diag diag =
 						immutable Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.decl.name));
 					immutable SourceRange rg = at(un.members, bIndex).range;
 					addDiag(alloc, ctx, rg, diag);
 				}
 			});
-		debug { printf("end checkUnion\n"); }
 		return immutable StructBody(StructBody.Union(force(members)));
-	} else {
-		debug { printf("end checkUnion\n"); }
+	} else
 		return immutable StructBody(StructBody.Bogus());
-	}
 }
 
 void checkStructBodies(Alloc)(
@@ -625,8 +618,6 @@ void checkStructBodies(Alloc)(
 	ref immutable Arr!StructDeclAst asts,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	debug { printf("C\nC\nC\n"); }
-
 	zipMutPtrFirst(structs, asts, (Ptr!StructDecl struct_, ref immutable StructDeclAst ast) {
 		immutable StructBody body_ = matchStructDeclAstBody!(immutable StructBody)(
 			ast.body_,
@@ -638,8 +629,6 @@ void checkStructBodies(Alloc)(
 				checkUnion(alloc, ctx, structsAndAliasesMap, ptrAsImmutable(struct_), un, delayStructInsts));
 		setBody(struct_, body_);
 	});
-
-	debug { printf("D\nD\nD\n"); }
 
 	foreach (ref immutable StructDecl struct_; range(arrAsImmutable(structs))) {
 		matchStructBody(
@@ -686,7 +675,7 @@ immutable(Arr!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 	immutable TypeParamsScope typeParamsScope,
 ) {
 	return mapOp!(Ptr!SpecInst)(alloc, asts, (ref immutable SpecUseAst ast) {
-		immutable Opt!(Ptr!SpecDecl) opSpec = tryFindSpec(ctx, ast.spec, ast.range, specsMap);
+		immutable Opt!(Ptr!SpecDecl) opSpec = tryFindSpec(alloc, ctx, ast.spec, ast.range, specsMap);
 		if (has(opSpec)) {
 			immutable Ptr!SpecDecl spec = force(opSpec);
 			immutable Arr!Type typeArgs = typeArgsFromAsts(
@@ -787,9 +776,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 	ref immutable Arr!(Ptr!Module) exports,
 	ref immutable FileAst ast,
 ) {
-	debug { printf("A\nA\nA\n"); }
 	checkStructBodies!Alloc(alloc, ctx, structsAndAliasesMap, structs, ast.structs, delayStructInsts);
-	debug { printf("B\nB\nB\n"); }
 	foreach (ref const StructDecl s; range(structs))
 		if (isRecord(s.body_))
 			foreach (ref immutable RecordField f; range(asRecord(s.body_).fields))
@@ -844,8 +831,6 @@ immutable(Arr!(Ptr!Module)) getFlattenedImports(Alloc)(
 		recurAddImport(alloc, res, m);
 	return finishArr(alloc, res);
 }
-
-import core.stdc.stdio : printf; // TODO:KILL
 
 immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 	ref Alloc alloc,

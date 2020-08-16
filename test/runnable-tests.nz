@@ -19,7 +19,7 @@ private
 
 list-runnable-tests arr str(path str) summon
 	res = new-mut-arr<str>
-	filter = as<fn<bool, str>>: \s
+	filter = as<fun-mut1<bool, str>>: \s
 		true
 	path each-child-recursive filter, \child
 		match child.base-name.get-extension

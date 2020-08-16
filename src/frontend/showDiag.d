@@ -37,14 +37,14 @@ import util.bools : and, Bool, not, or, True;
 import util.collection.arr : Arr, empty, only, range, size;
 import util.collection.arrUtil : exists, map, sort;
 import util.collection.dict : mustGetAt;
-import util.collection.str : emptyStr;
+import util.collection.str : emptyStr, Str;
 import util.diff : diffSymbols;
 import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetter;
 import util.opt : force, has;
 import util.path : PathAndStorageKind, pathToStr;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : SourceRange;
-import util.sym : Sym;
+import util.sym : Sym, writeSym;
 import util.util : todo;
 import util.writer :
 	finishToCStr,
@@ -55,6 +55,7 @@ import util.writer :
 	writeRed,
 	writeReset,
 	writeStatic,
+	writeStr,
 	writeWithCommas,
 	Writer;
 import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRange, writeRelPath;
@@ -81,7 +82,7 @@ private:
 
 pure:
 
-alias PrintAlloc = StackAlloc!("printDiagnostics", 1024);
+alias PrintAlloc = StackAlloc!("printDiagnostics", 1024 * 1024);
 
 void writeWhere(Alloc)(
 	ref Writer!Alloc writer,
@@ -197,8 +198,10 @@ void writePurity(Alloc)(ref Writer!Alloc writer, immutable Purity p) {
 	writeChar(writer, '\'');
 }
 
-void writeSigJustTypes(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
+void writeSig(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
 	writeType(writer, s.returnType);
+	writeChar(writer, ' ');
+	writeSym(writer, s.name);
 	writeChar(writer, '(');
 	writeWithCommas(writer, s.params, (ref immutable Param p) {
 		writeType(writer, p.type);
@@ -207,7 +210,7 @@ void writeSigJustTypes(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
 }
 
 void writeCalledDecl(Alloc)(ref Writer!Alloc writer, immutable FilesInfo fi, immutable CalledDecl c) {
-	writeSigJustTypes(writer, c.sig);
+	writeSig(writer, c.sig);
 	return matchCalledDecl(
 		c,
 		(immutable Ptr!FunDecl funDecl) {
@@ -355,8 +358,12 @@ void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref i
 			writeStatic(writer, " to ");
 			writePathAndStorageKind(writer, d.to);
 		},
-		(ref immutable Diag.CommonTypesMissing) {
-			writeStatic(writer, "common types are missing from 'include.nz'");
+		(ref immutable Diag.CommonTypesMissing d) {
+			writeStatic(writer, "common types are missing from 'include.nz':");
+			foreach (immutable Str s; range(d.missing)) {
+				writeStatic(writer, "\n\t");
+				writeStr(writer, s);
+			}
 		},
 		(ref immutable Diag.CreateArrNoExpectedType) {
 			writeStatic(writer, "can't infer element type of array, please provide a type argument to 'new-arr'");
@@ -436,6 +443,13 @@ void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref i
 			writeStatic(writer, "lambda closes over ");
 			writeName(writer, d.field.name);
 			writeStatic(writer, "; a lambda for a 'fun-ptr' is not allowed to close over anything");
+		},
+		(ref immutable Diag.LambdaWrongNumberParams d) {
+			writeStatic(writer, "expected a ");
+			writeStructInst(writer, d.expectedLambdaType);
+			writeStatic(writer, " but lambda has ");
+			writeNat(writer, d.actualNParams);
+			writeStatic(writer, " parameters");
 		},
 		(ref immutable Diag.LocalShadowsPrevious d) {
 			writeName(writer, d.name);

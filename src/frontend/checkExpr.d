@@ -103,7 +103,7 @@ import util.collection.arrUtil :
 	zipSome;
 import util.collection.mutArr :
 	moveToArr,
-	mustPeek,
+	mustPeek_mut,
 	mustPop,
 	MutArr,
 	mutArrAt,
@@ -412,6 +412,7 @@ immutable(CheckedExpr) checkCreateRecordMultiLine(Alloc)(
 }
 
 struct ExpectedLambdaType {
+	immutable Ptr!StructInst funStructInst;
 	immutable Ptr!StructDecl funStruct;
 	immutable FunKind kind;
 	immutable Arr!Type paramTypes;
@@ -446,9 +447,9 @@ immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(Alloc)(
 				tryGetDeeplyInstantiatedTypeFor(alloc, programState(ctx), expected, it));
 		if (has(paramTypes)) {
 			immutable Type nonInstantiatedReturnType = kind == FunKind.ref_
-				? makeFutType(alloc, ctx.commonTypes, nonInstantiatedNonFutReturnType)
+				? makeFutType(alloc, programState(ctx), ctx.commonTypes, nonInstantiatedNonFutReturnType)
 				: nonInstantiatedNonFutReturnType;
-			return some(immutable ExpectedLambdaType(funStruct, kind, force(paramTypes), nonInstantiatedReturnType));
+			return some(immutable ExpectedLambdaType(expectedStructInst, funStruct, kind, force(paramTypes), nonInstantiatedReturnType));
 		} else {
 			addDiag2(alloc, ctx, range, Diag(Diag.LambdaCantInferParamTypes()));
 			return none!ExpectedLambdaType;
@@ -603,7 +604,7 @@ immutable(Expr) checkWithLocal(Alloc)(
 	} else {
 		Ptr!(MutArr!(immutable Ptr!Local)) locals = mutArrIsEmpty(ctx.lambdas)
 			? ptrTrustMe_mut(ctx.messageOrFunctionLocals)
-			: ptrTrustMe_mut(mustPeek(ctx.lambdas).locals);
+			: ptrTrustMe_mut(mustPeek_mut(ctx.lambdas).locals);
 		push(alloc, locals.deref, local);
 		immutable Expr res = checkExpr(alloc, ctx, ast, expected);
 		immutable Ptr!Local popped = mustPop(locals);
@@ -637,17 +638,19 @@ immutable(CheckedExpr) checkLambda(Alloc)(
 		return bogus(expected, range);
 
 	immutable ExpectedLambdaType et = force(opEt);
+	immutable FunKind kind = et.kind;
 
 	if (!sizeEq(ast.params, et.paramTypes)) {
 		debug {
 			import core.stdc.stdio : printf;
 			printf("Number of params should be %zu, got %zu\n", size(et.paramTypes), size(ast.params));
 		}
-		todo!void("checkLambdaWorker -- # params is wrong");
+		addDiag2(alloc, ctx, range, immutable Diag(Diag.LambdaWrongNumberParams(et.funStructInst, size(ast.params))));
+		return bogus(expected, range);
 	}
 
 	immutable Arr!Param params = checkFunOrSendFunParamsForLambda(alloc, ast.params, et.paramTypes);
-	LambdaInfo info = LambdaInfo(params);
+	LambdaInfo info = LambdaInfo(kind, params);
 	Expected returnTypeInferrer = copyWithNewExpectedType(expected, et.nonInstantiatedPossiblyFutReturnType);
 
 	immutable Ptr!Expr body_ = withLambda(alloc, ctx, info, () =>
@@ -655,7 +658,6 @@ immutable(CheckedExpr) checkLambda(Alloc)(
 		// if the expected return type contains candidate's type params
 		allocExpr(alloc, checkExpr(alloc, ctx, ast.body_, returnTypeInferrer)));
 	immutable Arr!(Ptr!ClosureField) closureFields = moveToArr(alloc, info.closureFields);
-	immutable FunKind kind = et.kind;
 
 	final switch (kind) {
 		case FunKind.ptr:

@@ -23,6 +23,7 @@ import frontend.inferringType :
 	ExprCtx,
 	inferred,
 	InferringTypeArgs,
+	LambdaInfo,
 	matchTypesNoDiagnostic,
 	programState,
 	SingleInferringType,
@@ -45,6 +46,7 @@ import model :
 	FunDecl,
 	FunDeclAndArgs,
 	FunFlags,
+	FunKind,
 	getType,
 	isDataOrSendable,
 	matchCalledDecl,
@@ -55,6 +57,7 @@ import model :
 	params,
 	Purity,
 	returnType,
+	sig,
 	Sig,
 	SpecBody,
 	SpecInst,
@@ -88,16 +91,20 @@ import util.collection.mutArr :
 	moveToArr_const,
 	MutArr,
 	mutArrIsEmpty,
+	mutArrSize,
 	newUninitializedMutArr,
+	peek,
 	push,
 	setAt,
 	tempAsArr,
 	tempAsArr_mut;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, mapOption_const, none, Opt, some;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : SourceRange;
 import util.sym : mutSymSetHas, Sym, symEq;
 import util.util : todo;
+
+import core.stdc.stdio : printf; //TODO:KILL
 
 immutable(CheckedExpr) checkCall(Alloc)(
 	ref Alloc alloc,
@@ -110,6 +117,7 @@ immutable(CheckedExpr) checkCall(Alloc)(
 	immutable size_t arity = size(ast.args);
 	immutable Arr!Type explicitTypeArgs = typeArgsFromAsts(alloc, ctx, ast.typeArgs);
 	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, funName, explicitTypeArgs, arity);
+
 	// TODO: may not need to be deeply instantiated to do useful filtering here
 	immutable Opt!Type expectedReturnType = tryGetDeeplyInstantiatedType(alloc, programState(ctx), expected);
 	if (has(expectedReturnType))
@@ -270,6 +278,9 @@ MutArr!Candidate getInitialCandidates(Alloc)(
 ) {
 	MutArr!Candidate res = MutArr!Candidate();
 	eachFunInScope(ctx, funName, (immutable CalledDecl called) {
+		//debug {
+		//	printf("Fun in scope! Its arity: %lu = %lu\n", arity(called), size(sig(called).params));
+		//}
 		immutable size_t nTypeParams = size(typeParams(called));
 		if (arity(called) == actualArity &&
 			(empty(explicitTypeArgs) || nTypeParams == size(explicitTypeArgs))) {
@@ -397,9 +408,13 @@ immutable(Opt!(Expr.RecordFieldAccess)) tryGetRecordFieldAccess(Alloc)(
 immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
 	immutable FunFlags calledFlags,
 	immutable FunFlags callerFlags,
+	immutable Opt!FunKind lambdaKind,
 ) {
-	return !calledFlags.noCtx && callerFlags.noCtx
-		? some(Diag.CantCall.Reason.nonNoCtx)
+	immutable Bool callerIsNoCtx = has(lambdaKind)
+		? Bool(force(lambdaKind) == FunKind.ptr)
+		: callerFlags.noCtx;
+	return !calledFlags.noCtx && callerIsNoCtx
+		? some(Diag.CantCall.Reason.nonNoCtx) // TODO: need to explain this better in the case where noCtx is due to the lambda
 		: calledFlags.summon && !callerFlags.summon
 		? some(Diag.CantCall.Reason.summon)
 		: calledFlags.unsafe && !callerFlags.trusted && !callerFlags.unsafe
@@ -413,8 +428,12 @@ void checkCallFlags(Alloc)(
 	immutable SourceRange range,
 	immutable Ptr!FunDecl called,
 	immutable Ptr!FunDecl caller,
+	const Opt!(Ptr!LambdaInfo) callerLambda,
 ) {
-	immutable Opt!(Diag.CantCall.Reason) reason = getCantCallReason(called.flags, caller.flags);
+	immutable Opt!(Diag.CantCall.Reason) reason = getCantCallReason(
+		called.flags,
+		caller.flags,
+		mapOption_const(callerLambda, (ref const Ptr!LambdaInfo it) => it.funKind));
 	if (has(reason))
 		addDiag(alloc, ctx, range, immutable Diag(Diag.CantCall(force(reason), called, caller)));
 }
@@ -438,7 +457,7 @@ void checkCalledDeclFlags(Alloc)(
 	return matchCalledDecl(
 		res,
 		(immutable Ptr!FunDecl f) {
-			checkCallFlags(alloc, ctx.checkCtx, range, f, ctx.outermostFun);
+			checkCallFlags(alloc, ctx.checkCtx, range, f, ctx.outermostFun, peek(ctx.lambdas));
 		},
 		(ref immutable SpecSig) {
 			// For a spec, we check the flags when providing the spec impl

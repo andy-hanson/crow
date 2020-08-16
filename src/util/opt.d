@@ -12,6 +12,9 @@ struct Opt(T) {
 	this(BeNone) {
 		has_ = False;
 	}
+	this(BeNone) const {
+		has_ = False;
+	}
 	this(BeNone) immutable {
 		has_ = False;
 	}
@@ -35,6 +38,10 @@ private struct BeNone {}
 
 immutable(Opt!T) none(T)() {
 	return immutable Opt!T(BeNone());
+}
+
+const(Opt!T) noneConst(T)() {
+	return const Opt!T(BeNone());
 }
 
 Opt!T noneMut(T)() {
@@ -97,6 +104,13 @@ immutable(Opt!Out) mapOption(Out, T)(
 	scope immutable(Out) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return has(a) ? some!Out(cb(force(a))) : none!Out;
+}
+
+immutable(Opt!Out) mapOption_const(Out, T)(
+	const Opt!T a,
+	scope immutable(Out) delegate(ref const T) @safe @nogc pure nothrow cb,
+) {
+	return has(a) ? someConst!Out(cb(force(a))) : noneConst!Out;
 }
 
 immutable(Opt!Out) flatMapOption(Out, T)(

@@ -18,6 +18,7 @@ import model :
 	decl,
 	Expr,
 	FunDecl,
+	FunKind,
 	FunsMap,
 	isBogus,
 	isStructInst,
@@ -40,7 +41,7 @@ import model :
 	TypeParam;
 import util.bools : Bool, False, True;
 import util.cell : Cell, cellGet, cellSet;
-import util.collection.arr : Arr, at, emptyArr, emptyArr_mut;
+import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, size, sizeEq;
 import util.collection.arrUtil : find, findIndex, findPtr, map, mapOrNone, mapZipOrNone;
 import util.collection.mutArr : MutArr;
 import util.memory : allocate;
@@ -55,6 +56,7 @@ immutable(Ptr!Expr) allocExpr(Alloc)(ref Alloc alloc, immutable Expr e) {
 }
 
 struct LambdaInfo {
+	immutable FunKind funKind;
 	immutable Arr!Param lambdaParams;
 	MutArr!(immutable Ptr!Local) locals = MutArr!(immutable Ptr!Local)();
 	MutArr!(immutable Ptr!ClosureField) closureFields = MutArr!(immutable Ptr!ClosureField)();
@@ -124,6 +126,21 @@ struct InferringTypeArgs {
 
 	static InferringTypeArgs none() {
 		return InferringTypeArgs(emptyArr!TypeParam, emptyArr_mut!SingleInferringType);
+	}
+
+	this(immutable Arr!TypeParam ps, Arr!SingleInferringType as) {
+		params = ps;
+		args = as;
+		assert(sizeEq(params, args));
+		foreach (immutable size_t i; 0..size(params))
+			assert(at(params, i).index == i);
+	}
+	const this(immutable Arr!TypeParam ps, const Arr!SingleInferringType as) {
+		params = ps;
+		args = as;
+		assert(sizeEq(params, args));
+		foreach (immutable size_t i; 0..size(params))
+			assert(at(params, i).index == i);
 	}
 }
 

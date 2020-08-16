@@ -16,4 +16,4 @@ import
 	.runnable-tests
 
 main fut exit-code(args arr str) summon
-	0
+	zero resolved

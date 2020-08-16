@@ -108,8 +108,8 @@ body
 			thread-arg-ptr = thread-args + i
 			thread-arg-ptr set new fun, i, arg
 			thread-ptr = threads + i
-			fn = as<fn-ptr1<thread-fun<?t>, any-ptr>>: \args-ptr
-				thread-fn args-ptr
+			fn = as<fun-ptr1<any-ptr, any-ptr>>: \args-ptr
+				args-ptr thread-fun<?t>
 			err = thread-ptr.as-cell pthread-create null, fn, thread-arg-ptr.as-any-ptr
 			when
 				err zero?

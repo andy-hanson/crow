@@ -81,7 +81,9 @@ const(Opt!(Ptr!T)) tryGetTypeArg(T)(
 	ref const Arr!T typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
-	immutable Bool hasTypeParam = ptrEquals(ptrAt(typeParams, typeParam.index), typeParam);
+	immutable Bool hasTypeParam = Bool(
+		typeParam.index < size(typeParams) &&
+		ptrEquals(ptrAt(typeParams, typeParam.index), typeParam));
 	return hasTypeParam
 		? someConst(ptrAt(typeArgs, typeParam.index))
 		: none!(Ptr!T);
@@ -92,7 +94,9 @@ Opt!(Ptr!T) tryGetTypeArg(T)(
 	ref Arr!T typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
-	immutable Bool hasTypeParam = ptrEquals(ptrAt(typeParams, typeParam.index), typeParam);
+	immutable Bool hasTypeParam = Bool(
+		typeParam.index < size(typeParams) &&
+		ptrEquals(ptrAt(typeParams, typeParam.index), typeParam));
 	return hasTypeParam
 		? someMut(ptrAt(typeArgs, typeParam.index))
 		: noneMut!(Ptr!T);
@@ -239,10 +243,6 @@ immutable(Ptr!StructInst) instantiateStruct(Alloc)(
 		programState.structInsts,
 		declAndArgs,
 		() {
-			debug {
-				import core.stdc.stdio : printf;
-				printf("  Not in cache!\n");
-			}
 			immutable Purity bestPurity = fold(
 				declAndArgs.decl.purity,
 				declAndArgs.typeArgs,
@@ -274,7 +274,6 @@ immutable(Ptr!StructInst) instantiateNonTemplateStruct(Alloc)(
 	ref ProgramState programState,
 	immutable Ptr!StructDecl decl,
 ) {
-	debug { printf("instantiateNonTemplateStruct\n"); }
 	return instantiateStruct(
 		alloc,
 		programState,
@@ -312,7 +311,6 @@ immutable(Ptr!StructInst) instantiateStructNeverDelay(Alloc)(
 	ref ProgramState programState,
 	immutable StructDeclAndArgs declAndArgs,
 ) {
-	debug { printf("instantiateStructNeverDelay\n"); }
 	return instantiateStruct(alloc, programState, declAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
 

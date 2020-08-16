@@ -10,7 +10,8 @@ import frontend.frontendCompile : frontendCompile, parseAst;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : printDiagnostics;
 import model : Program;
-import util.alloc.stackAlloc : StackAlloc;
+import util.alloc.mallocator : Mallocator;
+import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
 import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.collection.arrUtil : arrLiteral, cat;
@@ -110,7 +111,9 @@ immutable(Opt!AbsolutePath) buildWorker(Alloc, SymAlloc)(
 	immutable ProgramDirAndMain programDirAndMain,
 	immutable Environ environ
 ) {
-	StackAlloc!("model", 1024 * 1024) modelAlloc;
+	Mallocator mallocator;
+	alias ModelAlloc = SingleHeapAlloc!(Mallocator, "model", 16 * 1024 * 1024);
+	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
 	immutable Str include = cat(outputAlloc, nozeDir, strLiteral("/include"));//childPath(modelAlloc, nozeDir, shortSymAlphaLiteral("include"));
 	immutable ReadOnlyStorages storages =
 		ReadOnlyStorages(ReadOnlyStorage(include), ReadOnlyStorage(programDirAndMain.programDir));
@@ -161,5 +164,5 @@ void compileC(immutable AbsolutePath cPath, immutable AbsolutePath exePath, immu
 }
 
 void emitProgram(ref immutable Program program, immutable AbsolutePath cPath) {
-	assert(0); //TODO
+	todo!void("EMITPROGRAM");
 }

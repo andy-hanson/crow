@@ -9,7 +9,7 @@ import core.stdc.string : memcpy;
 import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.memory : initMemory, overwriteMemory;
-import util.opt : force, noneMut, Opt, someMut;
+import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
 
 struct MutArr(T) {
 	private:
@@ -72,7 +72,18 @@ T mustPop(T)(ref MutArr!T a) {
 	return force(p);
 }
 
-@trusted ref T mustPeek(T)(ref MutArr!T m) {
+@trusted const(Opt!T) peek(T)(ref MutArr!T m) {
+	return mutArrIsEmpty(m)
+		? noneConst!T
+		: someConst(mustPeek(m));
+}
+
+@trusted ref const(T) mustPeek(T)(ref const MutArr!T m) {
+	assert(m.size_ != 0);
+	return m.begin_[m.size_ - 1];
+}
+
+@trusted ref T mustPeek_mut(T)(ref MutArr!T m) {
 	assert(m.size_ != 0);
 	return m.begin_[m.size_ - 1];
 }

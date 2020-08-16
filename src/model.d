@@ -66,6 +66,13 @@ immutable(Bool) isDataOrSendable(immutable Purity a) {
 	return Bool(a != Purity.mut);
 }
 
+immutable(char*) purityStr(immutable Purity a) {
+	return a == Purity.data ? "data" : a == Purity.sendable ? "sendable" : "mut";
+}
+immutable(char*) boolStr(immutable Bool a) {
+	return a ? "true" : "false";
+}
+
 immutable(Bool) isPurityWorse(immutable Purity a, immutable Purity b) {
 	return Bool(a > b);
 }
@@ -75,9 +82,17 @@ immutable(Purity) worsePurity(immutable Purity a, immutable Purity b) {
 }
 
 struct TypeParam {
+	@safe @nogc pure nothrow:
+
 	immutable SourceRange range;
 	immutable Sym name;
 	immutable size_t index;
+
+	immutable this(immutable SourceRange r, immutable Sym n, immutable size_t i) {
+		range = r;
+		name = n;
+		index = i;
+	}
 }
 
 struct Type {
@@ -800,7 +815,7 @@ immutable(Arr!TypeParam) typeParams(return scope ref immutable CalledDecl a) {
 }
 
 immutable(size_t) arity(ref immutable CalledDecl a) {
-	return a.typeParams.size;
+	return params(a).size;
 }
 
 immutable(size_t) nTypeParams(ref immutable CalledDecl a) {
@@ -1254,8 +1269,8 @@ immutable(Sym) fieldName(ref immutable Expr.RecordFieldAccess a) {
 	return a.field.name;
 }
 
-ref immutable(SourceRange) range(ref immutable Expr a) {
-	return a.range;
+ref immutable(SourceRange) range(return ref immutable Expr a) {
+	return a.range_;
 }
 
 @trusted T matchExpr(T)(
