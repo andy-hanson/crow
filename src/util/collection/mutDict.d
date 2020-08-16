@@ -2,14 +2,14 @@ module util.collection.mutDict;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
+import util.bools : Bool, False, True;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrIsEmpty, mutArrRange, mutArrRangeMut, mutArrSize, push;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 
 struct MutDict(K, V, alias cmp) {
-	MutArr!(KeyValuePair!(K, V)) pairs;
+	MutArr!(KeyValuePair!(K, V)) pairs; // TODO:PRIVATE
 }
 
 const(Opt!V) getAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) d, immutable K key) {
@@ -45,7 +45,21 @@ void addToMutDict(Alloc, K, V, alias cmp)(ref Alloc alloc,  ref MutDict!(K, V, c
 	push(alloc, d.pairs, immutable KeyValuePair!(K, V)(key, value));
 }
 
+struct ValueAndDidAdd(V) {
+	V value;
+	immutable Bool didAdd;
+}
+
 V getOrAdd(Alloc, K, V, alias compare)(
+	ref Alloc alloc,
+	ref MutDict!(K, V, compare) d,
+	immutable K key,
+	scope V delegate() @safe @nogc pure nothrow getValue,
+) {
+	return getOrAddAndDidAdd(alloc, d, key, getValue).value;
+}
+
+ValueAndDidAdd!V getOrAddAndDidAdd(Alloc, K, V, alias compare)(
 	ref Alloc alloc,
 	ref MutDict!(K, V, compare) d,
 	immutable K key,
@@ -53,10 +67,10 @@ V getOrAdd(Alloc, K, V, alias compare)(
 ) {
 	foreach (ref KeyValuePair!(K, V) pair; mutArrRangeMut(d.pairs))
 		if (compare(pair.key, key) == Comparison.equal)
-			return pair.value;
+			return ValueAndDidAdd!V(pair.value, False);
 	V value = getValue();
 	push(alloc, d.pairs, KeyValuePair!(K, V)(key, value));
-	return value;
+	return ValueAndDidAdd!V(value, True);
 }
 
 // Like getOrAdd, but the key is allowed to be temporary; if we need to add we'll make a copy then

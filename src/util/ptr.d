@@ -8,6 +8,7 @@ import util.comparison : Comparison;
 // Non-null
 struct Ptr(T) {
 	@safe @nogc pure nothrow:
+	@disable this(); // No nulls!
 	this(T* p) {
 		ptr = p;
 		assert(ptr != null);
@@ -32,6 +33,8 @@ struct Ptr(T) {
 	ref immutable(T) deref() immutable {
 		return *ptr;
 	}
+
+	immutable(T*) rawPtr() immutable { return ptr; }
 
 	alias deref this;
 }

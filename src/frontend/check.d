@@ -96,7 +96,7 @@ import util.collection.arrUtil :
 import util.collection.dict : getAt, KeyValuePair;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDict;
 import util.collection.dictUtil : buildDict, buildMultiDict;
-import util.collection.mutArr : MutArr, mutArrRangeMut;
+import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty, mutArrRangeMut;
 import util.collection.str : copyStr, Str;
 import util.memory : DelayInit, delayInit;
 import util.opt : force, has, mapOption, none, noneMut, Opt, some, someMut;
@@ -190,7 +190,7 @@ immutable(Opt!(Ptr!StructInst)) getCommonNonTemplateType(Alloc)(
 				some(instantiateStruct(
 					alloc,
 					ctx.programState,
-					StructDeclAndArgs(s, emptyArr!Type),
+					immutable StructDeclAndArgs(s, emptyArr!Type),
 					someMut(ptrTrustMe_mut(delayedStructInsts)))));
 	}
 }
@@ -492,7 +492,7 @@ void checkStructAliasTargets(Alloc)(
 
 //TODO:MOVE
 void everyPairWithIndex(T)(
-	ref immutable Arr!T a,
+	immutable Arr!T a,
 	scope void delegate(ref immutable T, ref immutable T, immutable size_t, immutable size_t) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t i; 0..size(a))
@@ -530,12 +530,15 @@ immutable(StructBody) checkRecord(Alloc)(
 	ref immutable StructDeclAst.Body.Record r,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
+	debug { printf("checkRecord\n"); }
+
 	immutable Opt!ForcedByValOrRef forcedByValOrRef = getForcedByValOrRef(r.explicitByValOrRef);
 	immutable Bool forcedByVal = Bool(has(forcedByValOrRef) && force(forcedByValOrRef) == ForcedByValOrRef.byVal);
 	immutable Arr!RecordField fields = mapWithIndex(
 		alloc,
 		r.fields,
 		(ref immutable StructDeclAst.Body.Record.Field field, immutable size_t index) {
+			debug { printf(">> get fieldType\n"); }
 			immutable Type fieldType = typeFromAst!Alloc(
 				alloc,
 				ctx,
@@ -543,6 +546,7 @@ immutable(StructBody) checkRecord(Alloc)(
 				structsAndAliasesMap,
 				TypeParamsScope(struct_.typeParams),
 				someMut(ptrTrustMe_mut(delayStructInsts)));
+			debug { printf("<< get fieldType\n"); }
 			if (!isPurityWorse(bestCasePurity(fieldType), struct_.purity) && !struct_.forceSendable)
 				addDiag(alloc, ctx, field.range, immutable Diag(Diag.PurityOfFieldWorseThanRecord(struct_, fieldType)));
 			if (field.isMutable) {
@@ -559,8 +563,11 @@ immutable(StructBody) checkRecord(Alloc)(
 		});
 	everyPair(fields, (ref immutable RecordField a, ref immutable RecordField b) {
 		if (symEq(a.name, b.name))
-			addDiag(alloc, ctx, b.range, immutable Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.field, a.name)));
+			addDiag(alloc, ctx, b.range,
+				immutable Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.field, a.name)));
 	});
+
+	debug { printf("end checkRecord\n"); }
 
 	return immutable StructBody(StructBody.Record(forcedByValOrRef, fields));
 }
@@ -573,6 +580,8 @@ immutable(StructBody) checkUnion(Alloc)(
 	ref immutable StructDeclAst.Body.Union un,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
+	debug { printf("checkUnion\n"); }
+
 	immutable Opt!(Arr!(Ptr!StructInst)) members = mapOrNone!(Ptr!StructInst)(
 		alloc,
 		un.members,
@@ -589,28 +598,23 @@ immutable(StructBody) checkUnion(Alloc)(
 			return res;
 		});
 	if (has(members)) {
-		assert(0); //TODO
-		immutable Arr!(Ptr!StructInst) a = force(members);
 		everyPairWithIndex(
-			a,
-			(ref immutable Ptr!StructInst a, ref immutable Ptr!StructInst b, immutable size_t, immutable size_t bIndex) {
+			force(members),
+			// Must name the ignored parameter due to https://issues.dlang.org/show_bug.cgi?id=21165
+			(ref immutable Ptr!StructInst a, ref immutable Ptr!StructInst b, immutable size_t _ignoreMe, immutable size_t bIndex) {
 				if (ptrEquals(decl(a), decl(a))) {
-					assert(0); //TODO
 					immutable Diag diag =
 						immutable Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.decl.name));
-					//immutable SourceRange rg = foo(un, bIndex);
-					//addDiag(alloc, ctx, rg, diag);
+					immutable SourceRange rg = at(un.members, bIndex).range;
+					addDiag(alloc, ctx, rg, diag);
 				}
 			});
+		debug { printf("end checkUnion\n"); }
 		return immutable StructBody(StructBody.Union(force(members)));
-	} else
+	} else {
+		debug { printf("end checkUnion\n"); }
 		return immutable StructBody(StructBody.Bogus());
-}
-
-//TODO:INLINE
-immutable(SourceRange) foo(ref immutable StructDeclAst.Body.Union un, immutable size_t bIndex) {
-	assert(0); //TODO
-	//return at(un.members, bIndex).range;
+	}
 }
 
 void checkStructBodies(Alloc)(
@@ -621,6 +625,8 @@ void checkStructBodies(Alloc)(
 	ref immutable Arr!StructDeclAst asts,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
+	debug { printf("C\nC\nC\n"); }
+
 	zipMutPtrFirst(structs, asts, (Ptr!StructDecl struct_, ref immutable StructDeclAst ast) {
 		immutable StructBody body_ = matchStructDeclAstBody!(immutable StructBody)(
 			ast.body_,
@@ -632,6 +638,8 @@ void checkStructBodies(Alloc)(
 				checkUnion(alloc, ctx, structsAndAliasesMap, ptrAsImmutable(struct_), un, delayStructInsts));
 		setBody(struct_, body_);
 	});
+
+	debug { printf("D\nD\nD\n"); }
 
 	foreach (ref immutable StructDecl struct_; range(arrAsImmutable(structs))) {
 		matchStructBody(
@@ -654,8 +662,10 @@ immutable(StructsAndAliasesMap) buildStructsAndAliasesDict(Alloc)(
 	immutable Arr!StructAlias aliases,
 ) {
 	DictBuilder!(Sym, StructOrAlias, compareSym) d;
-	foreach (immutable Ptr!StructDecl decl; ptrsRange(structs))
+	foreach (immutable Ptr!StructDecl decl; ptrsRange(structs)) {
+		assert(size(decl.typeParams) < 10); //TODO:KILL
 		addToDict(alloc, d, decl.name, immutable StructOrAlias(decl));
+	}
 	foreach (immutable Ptr!StructAlias a; ptrsRange(aliases))
 		addToDict(alloc, d, a.name, immutable StructOrAlias(a));
 	return finishDict!(Alloc, Sym, StructOrAlias, compareSym)(alloc, d, (ref immutable Sym name, ref immutable StructOrAlias, ref immutable StructOrAlias b) =>
@@ -777,14 +787,18 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 	ref immutable Arr!(Ptr!Module) exports,
 	ref immutable FileAst ast,
 ) {
+	debug { printf("A\nA\nA\n"); }
 	checkStructBodies!Alloc(alloc, ctx, structsAndAliasesMap, structs, ast.structs, delayStructInsts);
+	debug { printf("B\nB\nB\n"); }
 	foreach (ref const StructDecl s; range(structs))
 		if (isRecord(s.body_))
 			foreach (ref immutable RecordField f; range(asRecord(s.body_).fields))
 				addToMutSymSetOkIfPresent(alloc, ctx.programState.recordFieldNames, f.name);
 
-	foreach (ref Ptr!StructInst i; mutArrRangeMut(delayStructInsts))
-		i.setBody(instantiateStructBody(alloc, ctx.programState, i.declAndArgs));
+	while (!mutArrIsEmpty(delayStructInsts)) {
+		Ptr!StructInst i = mustPop(delayStructInsts);
+		setBody(i, instantiateStructBody(alloc, ctx.programState, i.declAndArgs, someMut(ptrTrustMe_mut(delayStructInsts))));
+	}
 
 	immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, structsAndAliasesMap, ast.specs);
 	immutable SpecsMap specsMap = buildSpecsDict(alloc, ctx, specs);
@@ -831,6 +845,8 @@ immutable(Arr!(Ptr!Module)) getFlattenedImports(Alloc)(
 	return finishArr(alloc, res);
 }
 
+import core.stdc.stdio : printf; // TODO:KILL
+
 immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
@@ -857,7 +873,7 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 		buildStructsAndAliasesDict(alloc, ctx, arrAsImmutable(structs), arrAsImmutable(structAliases));
 
 	// We need to create StructInsts when filling in struct bodies.
-	// But when creating a StructInst, we usuallly want to fill in its body.
+	// But when creating a StructInst, we usually want to fill in its body.
 	// In case the decl body isn't available yet,
 	// we'll delay creating the StructInst body, which isn't needed until expr checking.
 	MutArr!(Ptr!StructInst) delayStructInsts;

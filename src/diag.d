@@ -133,7 +133,7 @@ struct Diag {
 	}
 	struct NameNotFound {
 		enum Kind {
-			strukt,
+			struct_,
 			spec,
 			typeParam,
 		}

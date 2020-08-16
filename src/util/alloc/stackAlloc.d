@@ -21,6 +21,12 @@ struct StackAlloc(string debugName, size_t capacity) {
 
 		ubyte* res = data_.ptr + cur;
 		cur += nBytes;
+
+		//debug {
+		//	import core.stdc.stdio : printf;
+		//	//printf("Allocate %lu bytes to %p (%lu out of %lu used)\n", nBytes, res, cur, capacity);
+		//}
+
 		return res;
 	}
 

@@ -465,7 +465,7 @@ void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref i
 		(ref immutable Diag.NameNotFound d) {
 			immutable string kind = () {
 				final switch (d.kind) {
-					case Diag.NameNotFound.Kind.strukt:
+					case Diag.NameNotFound.Kind.struct_:
 						return "struct";
 					case Diag.NameNotFound.Kind.spec:
 						return "spec";

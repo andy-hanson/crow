@@ -2,16 +2,15 @@ module frontend.ast;
 
 @safe @nogc pure nothrow:
 
-import util.opt : force, has, Opt;
-import util.path : Path, pathToStr;
-import util.ptr : Ptr;
-
 import util.bools : Bool;
-import util.collection.arr : Arr;
+import util.collection.arr : Arr, emptyArr;
 import util.collection.arrUtil : arrLiteral, map;
 import util.collection.str : emptyStr, Str;
+import util.opt : force, has, mapOption, Opt;
+import util.path : Path, pathToStr;
+import util.ptr : Ptr;
+import util.sexpr : allocSexpr, NameAndSexpr, Sexpr, SexprNamedRecord, SexprRecord;
 import util.sourceRange : SourceRange;
-import util.sexpr : NameAndSexpr, Sexpr, SexprNamedRecord, SexprRecord;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : u8;
 import util.util : todo;
@@ -668,7 +667,7 @@ immutable(Sexpr) sexprOfFunBodyAst(Alloc)(ref Alloc alloc, ref immutable FunBody
 	return matchFunBodyAst(
 		a,
 		(ref immutable FunBodyAst.Builtin) =>
-			immutable Sexpr(SexprRecord(shortSymAlphaLiteral("builtin"))),
+			immutable Sexpr(immutable SexprRecord(shortSymAlphaLiteral("builtin"), emptyArr!Sexpr)),
 		(ref immutable FunBodyAst.Extern e) {
 			immutable Sexpr isGlobal = Sexpr(e.isGlobal);
 			immutable Arr!Sexpr args = has(e.mangledName)
@@ -687,9 +686,30 @@ immutable(Sexpr) sexprOfExprAst(Alloc)(ref Alloc alloc, ref immutable ExprAst as
 immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKind ast) {
 	return matchExprAstKind!(immutable Sexpr)(
 		ast,
-		(ref immutable CallAst) => todo!(immutable Sexpr)("sexprOfExprAstKind"),
-		(ref immutable CondAst) => todo!(immutable Sexpr)("sexprOfExprAstKind"),
-		(ref immutable CreateArrAst) => todo!(immutable Sexpr)("sexprOfExprAstKind"),
+		(ref immutable CallAst e) => immutable Sexpr(SexprRecord(
+			shortSymAlphaLiteral("call"),
+			arrLiteral!Sexpr(
+				alloc,
+				immutable Sexpr(e.funName),
+				immutable Sexpr(map(alloc, e.typeArgs, (ref immutable TypeAst it) =>
+					sexprOfTypeAst(alloc, it))),
+				immutable Sexpr(map(alloc, e.args, (ref immutable ExprAst it) =>
+					sexprOfExprAst(alloc, it)))))),
+		(ref immutable CondAst e) => immutable Sexpr(SexprRecord(
+			shortSymAlphaLiteral("cond"),
+			arrLiteral!Sexpr(
+				alloc,
+				sexprOfExprAst(alloc, e.cond.deref),
+				sexprOfExprAst(alloc, e.then.deref),
+				sexprOfExprAst(alloc, e.elze.deref)))),
+		(ref immutable CreateArrAst e) => immutable Sexpr(SexprRecord(
+			shortSymAlphaLiteral("create-arr"),
+			arrLiteral!Sexpr(
+				alloc,
+				immutable Sexpr(mapOption(e.elementType, (ref immutable TypeAst it) =>
+					allocSexpr(alloc, sexprOfTypeAst(alloc, it)))),
+				immutable Sexpr(map(alloc, e.args, (ref immutable ExprAst it) =>
+					sexprOfExprAst(alloc, it)))))),
 		(ref immutable CreateRecordAst) => todo!(immutable Sexpr)("sexprOfExprAstKind"),
 		(ref immutable CreateRecordMultiLineAst) => todo!(immutable Sexpr)("sexprOfExprAstKind"),
 		(ref immutable IdentifierAst a)  => immutable Sexpr(a.name),

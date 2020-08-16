@@ -39,11 +39,6 @@ immutable(TypeAst.InstStruct) parseStructType(Alloc, SymAlloc)(ref Alloc alloc, 
 }
 
 immutable(TypeAst) parseType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	debug {
-		import core.stdc.stdio : printf;
-		printf("PARSETYPE\n");
-		lexer.debugPrint();
-	}
 	return parseTypeWorker(alloc, lexer, False);
 }
 
@@ -75,12 +70,6 @@ immutable(TypeAst) parseTypeWorker(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable Bool isInner,
 ) {
-	debug {
-		import core.stdc.stdio : printf;
-		printf("Enter parseTypeWorker\n");
-		lexer.debugPrint();
-	}
-
 	immutable Pos start = lexer.curPos;
 	immutable Bool isTypeParam = lexer.tryTake('?');
 	immutable Sym name = lexer.takeName();
@@ -88,12 +77,6 @@ immutable(TypeAst) parseTypeWorker(Alloc, SymAlloc)(
 	if (isTypeParam && !typeArgs.empty)
 		return lexer.throwAtChar!TypeAst(ParseDiag(ParseDiag.TypeParamCantHaveTypeArgs()));
 	immutable SourceRange rng = lexer.range(start);
-
-	debug {
-		import core.stdc.stdio : printf;
-		printf("Return from parseTypeWorker\n");
-		lexer.debugPrint();
-	}
 	return isTypeParam
 		? TypeAst(TypeAst.TypeParam(rng, name))
 		: TypeAst(TypeAst.InstStruct(rng, name, typeArgs));

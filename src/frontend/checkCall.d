@@ -320,7 +320,7 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(Alloc)(
 			//TODO:PERF, the map might change nothing, so don't reallocate in that situation
 			immutable Arr!Type typeArgs = map!Type(alloc, i.typeArgs, (ref immutable Type t) =>
 				getCandidateExpectedParameterTypeRecur(alloc, programState, candidate, t));
-			return immutable Type(instantiateStructNeverDelay(alloc, programState, StructDeclAndArgs(i.decl, typeArgs)));
+			return immutable Type(instantiateStructNeverDelay(alloc, programState, immutable StructDeclAndArgs(i.decl, typeArgs)));
 		});
 }
 

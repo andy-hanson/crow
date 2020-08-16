@@ -235,7 +235,9 @@ immutable(Bool) someInOwnBody(
 
 immutable(Bool) bodyUsesIt(ref immutable ExprAst body_) {
 	return someInOwnBody(body_, (ref immutable ExprAst it) =>
-		and(it.kind.isIdentifier, it.kind.asIdentifier.name.symEq(shortSymAlphaLiteral("it"))));
+		immutable Bool(
+			isIdentifier(it.kind) &&
+			symEq(asIdentifier(it.kind).name, shortSymAlphaLiteral("it"))));
 }
 
 immutable(ExprAst) tryParseDots(Alloc, SymAlloc)(
@@ -321,7 +323,8 @@ immutable(ExprAndMaybeDedent) parseMultiLineNewArr(Alloc, SymAlloc)(
 		add(alloc, args, ed.expr);
 		if (ed.dedents != 0)
 			return ExprAndMaybeDedent(
-				ExprAst(lexer.range(start), ExprAstKind(CreateArrAst(type, finishArr(alloc, args)))));
+				ExprAst(lexer.range(start), ExprAstKind(CreateArrAst(type, finishArr(alloc, args)))),
+				some(ed.dedents - 1));
 	}
 }
 

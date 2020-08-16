@@ -16,7 +16,7 @@ struct Dict(K, V, alias cmp) {
 	Arr!(KeyValuePair!(K, V)) pairs;
 }
 
-immutable(Opt!V) getAt(K, V, alias cmp)(ref immutable Dict!(K, V, cmp) d, immutable K key) {
+immutable(Opt!V) getAt(K, V, alias cmp)(immutable Dict!(K, V, cmp) d, immutable K key) {
 	foreach (ref immutable KeyValuePair!(K, V) pair; d.pairs.range)
 		if (cmp(pair.key, key) == Comparison.equal)
 			return some!V(pair.value);

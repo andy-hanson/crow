@@ -7,10 +7,12 @@ import util.memory : initMemory;
 
 struct Late(T) {
 	private:
-	Bool isSet_;
-	union {
-		T value_;
-	}
+	Bool isSet_ = False;
+	T value_ = void;
+}
+
+@trusted Late!T late(T)() {
+	return Late!T();
 }
 
 immutable(Bool) lateIsSet(T)(ref const Late!T a) {

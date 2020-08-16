@@ -5,7 +5,9 @@ module util.sexpr;
 import util.bools : Bool;
 import util.collection.arr : Arr, range;
 import util.collection.str : Str;
-import util.ptr : ptrTrustMe_mut;
+import util.memory : allocate;
+import util.opt : force, has, Opt;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : Sym, writeSym;
 import util.types : u32;
 import util.writer :
@@ -44,6 +46,7 @@ struct Sexpr {
 		bool_,
 		namedRecord,
 		nat,
+		opt,
 		record,
 		str,
 		symbol,
@@ -54,6 +57,7 @@ struct Sexpr {
 		immutable Bool bool_;
 		immutable SexprNamedRecord namedRecord;
 		immutable u32 nat;
+		immutable Opt!(Ptr!Sexpr) opt;
 		immutable SexprRecord record;
 		immutable Str str;
 		immutable Sym symbol;
@@ -63,7 +67,8 @@ struct Sexpr {
 	@trusted this(immutable Arr!Sexpr a) immutable { kind = Kind.arr; arr = a; }
 	this(immutable Bool a) immutable { kind = Kind.bool_; bool_ = a; }
 	@trusted this(immutable SexprNamedRecord a) immutable { kind = Kind.namedRecord; namedRecord = a; }
-	@trusted this(immutable u32 a) immutable { kind = Kind.nat;nat = a; }
+	@trusted this(immutable u32 a) immutable { kind = Kind.nat; nat = a; }
+	@trusted this(immutable Opt!(Ptr!Sexpr) a) immutable { kind = Kind.opt; opt = a; }
 	@trusted this(immutable SexprRecord a) immutable { kind = Kind.record; record = a; }
 	@trusted this(immutable Str a) immutable { kind = Kind.str; str = a; }
 	this(immutable Sym a) immutable { kind = Kind.symbol; symbol = a; }
@@ -73,8 +78,9 @@ struct Sexpr {
 	ref immutable Sexpr a,
 	scope T delegate(ref immutable Arr!Sexpr) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Bool) @safe @nogc pure nothrow cbBool,
-	scope T delegate(ref immutable u32) @safe @nogc pure nothrow cbInt,
+	scope T delegate(ref immutable u32) @safe @nogc pure nothrow cbNat,
 	scope T delegate(ref immutable SexprNamedRecord) @safe @nogc pure nothrow cbNamedRecord,
+	scope T delegate(ref immutable Opt!(Ptr!Sexpr)) @safe @nogc pure nothrow cbOpt,
 	scope T delegate(ref immutable SexprRecord) @safe @nogc pure nothrow cbRecord,
 	scope T delegate(ref immutable Str) @safe @nogc pure nothrow cbStr,
 	scope T delegate(immutable Sym) @safe @nogc pure nothrow cbSym,
@@ -87,7 +93,9 @@ struct Sexpr {
 		case Sexpr.Kind.namedRecord:
 			return cbNamedRecord(a.namedRecord);
 		case Sexpr.Kind.nat:
-			return cbInt(a.nat);
+			return cbNat(a.nat);
+		case Sexpr.Kind.opt:
+			return cbOpt(a.opt);
 		case Sexpr.Kind.record:
 			return cbRecord(a.record);
 		case Sexpr.Kind.str:
@@ -97,18 +105,15 @@ struct Sexpr {
 	}
 }
 
+immutable(Ptr!Sexpr) allocSexpr(Alloc)(ref Alloc alloc, immutable Sexpr s) {
+	return allocate!Sexpr(alloc, s);
+}
+
 immutable(Sexpr) arrToSexpr(Alloc)(ref Alloc alloc, ref immutable Arr!T a, scope Sexpr delegate(ref immutable T) @safe @nogc pure nothrow cbToSexpr) {
 	return Sexpr(map!(const Sexpr)(alloc, a, cbToSexpr));
 }
 
-void writeSexpr(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
-	WriterWithIndent!Alloc wi = WriterWithIndent!Alloc(ptrTrustMe_mut(writer), 0);
-	return writeSexprRecur(wi, a);
-}
-
-private:
-
-void writeSexprRecur(Alloc)(ref WriterWithIndent!Alloc writer, ref immutable Sexpr a) {
+void writeSexpr(Alloc)(ref WriterWithIndent!Alloc writer, ref immutable Sexpr a) {
 	matchSexpr(
 		a,
 		(ref immutable Arr!Sexpr s) {
@@ -116,7 +121,7 @@ void writeSexprRecur(Alloc)(ref WriterWithIndent!Alloc writer, ref immutable Sex
 			incrIndent(writer);
 			foreach (ref immutable Sexpr element; s.range) {
 				newline(writer);
-				writeSexprRecur(writer, element);
+				writeSexpr(writer, element);
 			}
 			dedent(writer);
 			writeChar(writer, ']');
@@ -135,10 +140,18 @@ void writeSexprRecur(Alloc)(ref WriterWithIndent!Alloc writer, ref immutable Sex
 				newline(writer);
 				writeSym(writer.writer, element.name);
 				writeStatic(writer, ": ");
-				writeSexprRecur(writer, element.value);
+				writeSexpr(writer, element.value);
 			}
 			dedent(writer);
 			writeChar(writer, ')');
+		},
+		(ref immutable Opt!(Ptr!Sexpr) s) {
+			if (has(s)) {
+				writeStatic(writer, "some(");
+				writeSexpr(writer, force(s).deref);
+				writeChar(writer, ')');
+			} else
+				writeStatic(writer, "none");
 		},
 		(ref immutable SexprRecord s) {
 			writeSym(writer.writer, s.name);
@@ -146,7 +159,7 @@ void writeSexprRecur(Alloc)(ref WriterWithIndent!Alloc writer, ref immutable Sex
 			incrIndent(writer);
 			foreach (ref immutable Sexpr element; s.children.range) {
 				newline(writer);
-				writeSexprRecur(writer, element);
+				writeSexpr(writer, element);
 			}
 			dedent(writer);
 			writeChar(writer, ')');

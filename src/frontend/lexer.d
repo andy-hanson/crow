@@ -290,12 +290,12 @@ immutable(Str) takeNameAsStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Allo
 immutable(NameAndRange) takeNameAndRange(SymAlloc)(ref Lexer!SymAlloc lexer) {
 	immutable CStr begin = lexer.ptr;
 	immutable Sym name = lexer.takeName;
-	return immutable NameAndRange(lexer.range(begin), name);
+	return immutable NameAndRange(range(lexer, begin), name);
 }
 
 immutable(Str) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
 	lexer.take('"');
-	return lexer.takeStringLiteralAfterQuote(alloc);
+	return takeStringLiteralAfterQuote(lexer, alloc);
 }
 
 struct ExpressionToken {
@@ -313,15 +313,17 @@ struct ExpressionToken {
 	}
 	immutable Kind kind_;
 	union {
+		bool none_;
 		immutable LiteralAst literal_;
 		immutable NameAndRange nameAndRange_;
 	}
-	this(immutable Kind kind) {
+	@trusted immutable this(immutable Kind kind) {
+		none_ = true;
 		kind_ = kind;
 		assert(kind != Kind.literal && kind != Kind.nameAndRange);
 	}
-	@trusted this(immutable LiteralAst a) { kind_ = Kind.literal; literal_ = a; }
-	@trusted this(immutable NameAndRange a) { kind_ = Kind.nameAndRange; nameAndRange_ = a; }
+	@trusted immutable this(immutable LiteralAst a) { kind_ = Kind.literal; literal_ = a; }
+	@trusted immutable this(immutable NameAndRange a) { kind_ = Kind.nameAndRange; nameAndRange_ = a; }
 }
 
 @trusted ref immutable(LiteralAst) asLiteral(return scope ref immutable ExpressionToken a) {
@@ -343,13 +345,13 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Lexer!SymAll
 	immutable char c = lexer.next();
 	switch (c) {
 		case '(':
-			return ExpressionToken(ExpressionToken.Kind.lparen);
+			return immutable ExpressionToken(ExpressionToken.Kind.lparen);
 		case '{':
-			return ExpressionToken(ExpressionToken.Kind.lbrace);
+			return immutable ExpressionToken(ExpressionToken.Kind.lbrace);
 		case '\\':
-			return ExpressionToken(ExpressionToken.Kind.lambda);
+			return immutable ExpressionToken(ExpressionToken.Kind.lambda);
 		case '"':
-			return ExpressionToken(LiteralAst(LiteralAst.Kind.string_, lexer.takeStringLiteralAfterQuote(alloc)));
+			return immutable ExpressionToken(immutable LiteralAst(LiteralAst.Kind.string_, takeStringLiteralAfterQuote(lexer, alloc)));
 		case '+':
 		case '-':
 			return (*lexer.ptr).isDigit
@@ -365,18 +367,18 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Lexer!SymAll
 				if (name.isReservedName)
 					switch (name.value) {
 						case shortSymAlphaLiteralValue("match"):
-							return ExpressionToken(ExpressionToken.Kind.match);
+							return immutable ExpressionToken(ExpressionToken.Kind.match);
 						case shortSymAlphaLiteralValue("new"):
-							return ExpressionToken(ExpressionToken.Kind.new_);
+							return immutable ExpressionToken(ExpressionToken.Kind.new_);
 						case shortSymAlphaLiteralValue("new-arr"):
-							return ExpressionToken(ExpressionToken.Kind.newArr);
+							return immutable ExpressionToken(ExpressionToken.Kind.newArr);
 						case shortSymAlphaLiteralValue("when"):
-							return ExpressionToken(ExpressionToken.Kind.when);
+							return immutable ExpressionToken(ExpressionToken.Kind.when);
 						default:
 							return lexer.throwOnReservedName!ExpressionToken(nameRange, name);
 					}
 				else
-					return ExpressionToken(NameAndRange(nameRange, name));
+					return immutable ExpressionToken(NameAndRange(nameRange, name));
 			} else if (c.isDigit)
 				return lexer.takeNumber(alloc, begin);
 			else
@@ -461,7 +463,7 @@ immutable(SourceRange) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr 
 @trusted immutable(ExpressionToken) takeNumber(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc, immutable CStr begin) {
 	while ((*lexer.ptr).isDigit || *lexer.ptr == '.') lexer.ptr++;
 	immutable Str text = copyStr(alloc, arrOfRange(begin, lexer.ptr));
-	return ExpressionToken(LiteralAst(LiteralAst.Kind.numeric, text));
+	return immutable ExpressionToken(immutable LiteralAst(LiteralAst.Kind.numeric, text));
 }
 
 @trusted immutable(Str) takeOperatorRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
@@ -517,7 +519,7 @@ immutable(size_t) toHexDigit(immutable char c) {
 						return cast(char) (na * 16 + nb);
 					case '"':
 						return '"';
-					case '\n':
+					case 'n':
 						return '\n';
 					case 't':
 						return '\t';

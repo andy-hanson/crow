@@ -3,6 +3,11 @@
 Build with `./build`.
 
 
+### Debugging the compiler
+
+`gdb app`
+
+
 ### Editing
 
 It's recommended to install the Sublime Text syntax.

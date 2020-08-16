@@ -439,8 +439,8 @@ immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!StructDecl decl,
-	ref immutable Arr!Type as,
-	ref immutable Arr!Type bs,
+	immutable Arr!Type as,
+	immutable Arr!Type bs,
 	ref InferringTypeArgs aInferringTypeArgs,
 ) {
 	// If we need to set at least one type arg, return Set.
@@ -467,7 +467,7 @@ immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(Alloc)(
 	return has(newTypeArgs)
 		? someIsSet
 			? immutable SetTypeResult(immutable SetTypeResult.Set(immutable Type(
-				instantiateStructNeverDelay(alloc, programState, StructDeclAndArgs(decl, force(newTypeArgs))))))
+				instantiateStructNeverDelay(alloc, programState, immutable StructDeclAndArgs(decl, force(newTypeArgs))))))
 			: immutable SetTypeResult(SetTypeResult.Keep())
 		: immutable SetTypeResult(SetTypeResult.Fail());
 }
@@ -523,7 +523,7 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(Alloc)(
 			immutable Opt!(Arr!Type) typeArgs = mapOrNone!Type(alloc, typeArgs(i), (ref immutable Type t) =>
 				tryGetDeeplyInstantiatedTypeWorker(alloc, programState, t, inferringTypeArgs));
 			return has(typeArgs)
-				? some(immutable Type(instantiateStructNeverDelay(alloc, programState, StructDeclAndArgs(decl(i), force(typeArgs)))))
+				? some(immutable Type(instantiateStructNeverDelay(alloc, programState, immutable StructDeclAndArgs(decl(i), force(typeArgs)))))
 				: none!Type;
 		});
 }

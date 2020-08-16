@@ -176,6 +176,17 @@ import util.util : todo;
 	return immutable Arr!T(cast(immutable) ptr, 15);
 }
 
+@trusted immutable(Arr!Out) fillArr(Out, Alloc)(
+	ref Alloc alloc,
+	immutable size_t size,
+	scope immutable(Out) delegate(immutable size_t) @safe @nogc pure nothrow cb,
+) {
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size);
+	foreach (immutable size_t i; 0..size)
+		initMemory(res + i, cb(i));
+	return immutable Arr!Out(cast(immutable) res, size);
+}
+
 @trusted Arr!Out fillArr_mut(Out, Alloc)(
 	ref Alloc alloc,
 	immutable size_t size,
@@ -309,7 +320,7 @@ immutable(Opt!(Ptr!T)) findPtr(T)(
 
 @trusted immutable(Opt!(Arr!Out)) mapOrNone(Out, In, Alloc)(
 	ref Alloc alloc,
-	ref immutable Arr!In a,
+	immutable Arr!In a,
 	scope immutable(Opt!Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * a.size);
@@ -574,8 +585,8 @@ immutable(Bool) zipSome(In0, In1)(
 }
 
 immutable(Bool) eachCorresponds(T, U)(
-	ref immutable Arr!T a,
-	ref immutable Arr!T b,
+	immutable Arr!T a,
+	immutable Arr!T b,
 	scope immutable(Bool) delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
 ) {
 	assert(sizeEq(a, b));

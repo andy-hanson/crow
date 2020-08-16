@@ -34,7 +34,7 @@ import util.collection.dict : mustGetAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.mutDict : addToMutDict, getAt_mut, hasKey_mut, mustGetAt_mut, MutDict, setInDict;
 import util.collection.str : NulTerminatedStr, Str, stripNulTerminator, strLiteral;
-import util.late : Late, lateGet, lateIsSet, lateSet;
+import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
 import util.opt : force, has, Opt, none, some;
 import util.path : baseName, copyPath, parent, Path, PathAndStorageKind, RelPath, resolvePath, rootPath, StorageKind;
@@ -60,7 +60,7 @@ immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, SymAlloc)(
 	ReadOnlyStorages storages,
 	immutable Ptr!Path mainPath,
 ) {
-	StackAlloc!("asts", 1024 * 1024) astsAlloc;
+	StackAlloc!("asts", 4 * 1024 * 1024) astsAlloc;
 
 	immutable PathAndStorageKind main = PathAndStorageKind(mainPath, StorageKind.local);
 	immutable LcgsAndAllAsts parsed = parseEverything(modelAlloc, allSymbols, storages, main, astsAlloc);
@@ -225,7 +225,8 @@ immutable(Opt!Diags) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 					immutable PathAndAstAndResolvedImports pa = PathAndAstAndResolvedImports(
 						path,
 						ast,
-						stripRange(astAlloc, importsAndExports.imports));
+						stripRange(astAlloc, importsAndExports.imports),
+						stripRange(astAlloc, importsAndExports.exports));
 					add(astAlloc, res, pa);
 					setInDict(astAlloc, statuses, path, ParseStatus.finished);
 					return none!Diags;
@@ -410,7 +411,7 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 	ref ProgramState programState,
 	immutable AllAsts fileAsts,
 ) {
-	Late!CommonTypes commonTypes;
+	Late!CommonTypes commonTypes = late!CommonTypes;
 	StackAlloc!("compiled dict", 4 * 1024) compiledAlloc;
 	MutDict!(PathAndStorageKind, immutable Ptr!Module, comparePathAndStorageKind) compiled;
 	immutable Result!(Arr!(Ptr!Module), Diags) res = fileAsts.mapOrFail!(Ptr!Module, Diags)(

@@ -93,7 +93,8 @@ new-vat by-val vat(gctx global-ctx, id vat-id, max-threads nat) noctx unsafe
 		currently-running-actors. actors
 		n-threads-running. zero
 		next-actor-id. new-thread-safe-counter
-		exception-handler. &default-exception-handler
+		exception-handler. \e
+			e default-exception-handler
 
 default-exception-handler void(e exception) summon unsafe
 	print-err-sync-no-newline: "uncaught exception: "

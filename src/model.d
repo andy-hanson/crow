@@ -4,7 +4,7 @@ module model;
 
 import util.bools : and, Bool, False, or, True;
 import util.collection.arr : Arr, empty, emptyArr, first, only, range, size, sizeEq;
-import util.collection.arrUtil : compareArr, exists;
+import util.collection.arrUtil : arrLiteral, compareArr, exists, map;
 import util.collection.dict : Dict;
 import util.collection.multiDict : MultiDict;
 import util.collection.mutArr : MutArr;
@@ -15,8 +15,9 @@ import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : none, Opt, some;
 import util.path : AbsolutePath, addManyChildren, baseName, comparePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
+import util.sexpr : Sexpr, SexprRecord;
 import util.sourceRange : SourceRange;
-import util.sym : compareSym, Sym, writeSym;
+import util.sym : compareSym, shortSymAlphaLiteral, Sym, writeSym;
 import util.util : todo;
 import util.writer : writeChar, Writer, writeStatic;
 
@@ -181,13 +182,13 @@ immutable(Comparison) compareType(ref immutable Type a, ref immutable Type b) {
 			matchType!(immutable Comparison)(
 				b,
 				(ref immutable Type.Bogus) => Comparison.greater,
-				(immutable Ptr!TypeParam pb) => comparePtr(pa, asTypeParam(b)),
+				(immutable Ptr!TypeParam pb) => comparePtr(pa, pb),
 				(immutable Ptr!StructInst) => Comparison.less),
 		(immutable Ptr!StructInst ia) =>
 			matchType!(immutable Comparison)(
 				b,
 				(ref immutable Type.Bogus) => Comparison.greater,
-				(immutable Ptr!TypeParam pb) => Comparison.greater,
+				(immutable Ptr!TypeParam) => Comparison.greater,
 				(immutable Ptr!StructInst ib) => comparePtr(ia, ib)));
 }
 
@@ -340,7 +341,6 @@ struct StructDecl {
 	// Note: purity on the decl does not take type args into account
 	immutable Purity purity;
 	immutable Bool forceSendable;
-	MutArr!(immutable Ptr!StructInst) insts;
 
 	private:
 	Late!(immutable StructBody) _body_;
@@ -379,8 +379,16 @@ void setBody(ref StructDecl a, immutable StructBody value) {
 }
 
 struct StructDeclAndArgs {
+	@safe @nogc pure nothrow:
+
 	immutable Ptr!StructDecl decl;
 	immutable Arr!Type typeArgs;
+
+	immutable this(immutable Ptr!StructDecl d, immutable Arr!Type t) {
+		assert(size(d.typeParams) == size(t));
+		decl = d;
+		typeArgs = t;
+	}
 }
 
 immutable(Comparison) compareStructDeclAndArgs(ref immutable StructDeclAndArgs a, ref immutable StructDeclAndArgs b) {
@@ -416,7 +424,7 @@ immutable(Ptr!StructDecl) decl(ref immutable StructInst i) {
 	return i.declAndArgs.decl;
 }
 
-ref immutable(Arr!Type) typeArgs(return scope ref immutable StructInst i) {
+immutable(Arr!Type) typeArgs(ref immutable StructInst i) {
 	return i.declAndArgs.typeArgs;
 }
 
@@ -662,6 +670,9 @@ struct FunDeclAndArgs {
 	immutable Arr!Called specImpls;
 
 	immutable this(immutable Ptr!FunDecl d, immutable Arr!Type ta, immutable Arr!Called si) {
+		decl = d;
+		typeArgs = ta;
+		specImpls = si;
 		assert(typeArgs.sizeEq(decl.typeParams));
 		assert(specImpls.size == decl.nSpecImpls);
 	}
@@ -908,8 +919,12 @@ struct StructOrAlias {
 	}
 
 	public:
-	@trusted immutable this(immutable Ptr!StructAlias a) { kind = Kind.alias_; alias_ = a; }
-	@trusted immutable this(immutable Ptr!StructDecl a) { kind = Kind.structDecl; structDecl_ = a; }
+	@trusted immutable this(immutable Ptr!StructAlias a) {
+		kind = Kind.alias_; alias_ = a; }
+	@trusted immutable this(immutable Ptr!StructDecl a) {
+		kind = Kind.structDecl; structDecl_ = a;
+		assert(size(a.typeParams) < 10); //TODO:KILL
+	}
 }
 
 immutable(Bool) isAlias(ref immutable StructOrAlias a) {
@@ -1381,11 +1396,19 @@ private immutable(Sexpr) structInstToSexpr(Alloc)(ref Alloc alloc, immutable Ptr
 }
 
 immutable(Sexpr) typeToSexpr(Alloc)(ref Alloc alloc, ref immutable Type t) {
-	return matchType(
+	return matchType!(immutable Sexpr)(
 		t,
-		(ref immutable Type.Bogus) => Sexpr(shortSymAlphaLiteral("bogus")),
-		(immutable Ptr!TypeParam p) => Sexpr(p.name),
-		(immutable Ptr!StructInst) => todo!(immutable Sexpr)("typeToSexpr"));
+		(ref immutable Type.Bogus) =>
+			immutable Sexpr(shortSymAlphaLiteral("bogus")),
+		(immutable Ptr!TypeParam p) =>
+			immutable Sexpr(immutable SexprRecord(
+				shortSymAlphaLiteral("?"),
+				arrLiteral!Sexpr(alloc, immutable Sexpr(p.name)))),
+		(immutable Ptr!StructInst a) =>
+			immutable Sexpr(immutable SexprRecord(
+				a.declAndArgs.decl.name,
+				map(alloc, a.declAndArgs.typeArgs, (ref immutable Type it) =>
+					typeToSexpr(alloc, it)))));
 }
 
 immutable(Sexpr) exprToSexpr(Alloc)(ref Alloc alloc, ref immutable Expr expr) {

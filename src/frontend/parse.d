@@ -133,15 +133,7 @@ immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer
 	immutable Pos start = lexer.curPos();
 	immutable Sym name = lexer.takeName();
 	lexer.take(' ');
-	debug {
-		import core.stdc.stdio : printf;
-		printf("In parseSingleParam, about to parseType\n");
-	}
 	immutable TypeAst type = parseType(alloc, lexer);
-	debug {
-		import core.stdc.stdio : printf;
-		printf("Finished parseSingleParam\n");
-	}
 	return ParamAst(lexer.range(start), name, type);
 }
 
@@ -153,22 +145,8 @@ immutable(Arr!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Alloc allo
 		ArrBuilder!ParamAst res;
 		for (;;) {
 			add(alloc, res, parseSingleParam(alloc, lexer));
-			debug {
-				import core.stdc.stdio : printf;
-				printf("About to tryTake ')'\n");
-				lexer.debugPrint();
-			}
-			if (lexer.tryTake(')')) {
-				debug {
-					import core.stdc.stdio : printf;
-					printf("Took ')'\n");
-				}
+			if (lexer.tryTake(')'))
 				break;
-			}
-			debug {
-				import core.stdc.stdio : printf;
-				printf("Did not take ')'\n");
-			}
 			lexer.take(", ");
 		}
 		return finishArr(alloc, res);

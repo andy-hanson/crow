@@ -58,21 +58,21 @@ immutable(Bool) has(T)(const Opt!T a) {
 }
 
 @trusted ref T force(T)(ref Opt!T a) {
-	assert(a.has);
+	assert(has(a));
 	return a.value_;
 }
 @trusted ref const(T) force(T)(ref const Opt!T a) {
-	assert(a.has);
+	assert(has(a));
 	return a.value_;
 }
 @trusted ref immutable(T) force(T)(ref immutable Opt!T a) {
-	assert(a.has);
+	assert(has(a));
 	return a.value_;
 }
 
 ref immutable(T) forceOrTodo(T)(ref immutable Opt!T a) {
-	if (a.has)
-		return a.force;
+	if (has(a))
+		return force(a);
 	else
 		assert(0); // TODO
 }
@@ -82,8 +82,8 @@ immutable(Out) matchOpt(Out, T)(
 	scope immutable(Out) delegate(ref immutable T) @safe @nogc pure nothrow cbSome,
 	scope immutable(Out) delegate() @safe @nogc pure nothrow cbNone,
 ) {
-	if (a.has)
-		return cbSome(a.force);
+	if (has(a))
+		return cbSome(force(a));
 	else
 		return cbNone();
 }
@@ -96,14 +96,14 @@ immutable(Opt!Out) mapOption(Out, T)(
 	immutable Opt!T a,
 	scope immutable(Out) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return a.has ? some!Out(cb(a.force)) : none!Out;
+	return has(a) ? some!Out(cb(force(a))) : none!Out;
 }
 
 immutable(Opt!Out) flatMapOption(Out, T)(
 	immutable Opt!T a,
 	scope immutable(Opt!Out) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return a.has ? cb(a.force) : none!Out;
+	return has(a) ? cb(force(a)) : none!Out;
 }
 
 immutable(Comparison) compareOpt(T)(

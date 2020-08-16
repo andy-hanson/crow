@@ -24,7 +24,7 @@ import util.sexpr : Sexpr, writeSexpr;
 import util.sym : AllSymbols, shortSymAlphaLiteral;
 import util.util : todo;
 import util.verify : unreachable;
-import util.writer : finishToCStr, Writer;
+import util.writer : finishToCStr, Writer, WriterWithIndent;
 
 // These return program exit codes
 
@@ -88,9 +88,10 @@ void printOutAst(ref immutable FileAst ast) {
 	alias Alloc = StackAlloc!("printOutAst", 8 * 1024);
 	Alloc alloc;
 	immutable Sexpr sexpr = sexprOfAst(alloc, ast);
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	Writer!Alloc w = Writer!Alloc(ptrTrustMe_mut(alloc));
+	WriterWithIndent!Alloc writer = WriterWithIndent!Alloc(ptrTrustMe_mut(w));
 	writeSexpr(writer, sexpr);
-	printCStr(finishToCStr(writer));
+	printCStr(finishToCStr(w));
 }
 
 //TODO:MOVE

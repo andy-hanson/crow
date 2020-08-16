@@ -239,7 +239,7 @@ immutable(CheckedExpr) checkCreateArr(Alloc)(
 			immutable Ptr!StructInst arrType = instantiateStructNeverDelay!Alloc(
 				alloc,
 				programState(ctx),
-				StructDeclAndArgs(ctx.commonTypes.arr, arrLiteral!Type(alloc, ta)));
+				immutable StructDeclAndArgs(ctx.commonTypes.arr, arrLiteral!Type(alloc, ta)));
 			return some(immutable ArrExpectedType(False, arrType, ta));
 		} else {
 			immutable Opt!Type opT = tryGetDeeplyInstantiatedType(alloc, programState(ctx), expected);
@@ -692,7 +692,7 @@ immutable(CheckedExpr) checkLambda(Alloc)(
 		immutable Ptr!StructInst instFunStruct = instantiateStructNeverDelay(
 			alloc,
 			programState(ctx),
-			StructDeclAndArgs(
+			immutable StructDeclAndArgs(
 				et.funStruct,
 				prepend!Type(alloc, force(actualNonFutReturnType), et.paramTypes)));
 		immutable Expr.Lambda lambda = Expr.Lambda(

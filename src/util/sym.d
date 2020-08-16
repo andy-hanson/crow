@@ -11,9 +11,10 @@ import util.collection.mutSet : addToMutSetOkIfPresent, MutSet, mutSetHas;
 import util.collection.str : CStr, Str, strEqCStr, strEqLiteral, strLiteral, strOfCStr, strToCStr;
 import util.comparison : Comparison;
 import util.opt : Opt;
+import util.ptr : ptrTrustMe_mut;
 import util.types : u64;
 import util.verify : unreachable, verify;
-import util.writer : writeChar, Writer;
+import util.writer : finish, writeChar, Writer;
 import util.util : todo;
 
 struct Sym {
@@ -120,9 +121,9 @@ immutable(Bool) symEqLongOperatorLiteral(immutable Sym a, immutable string lit) 
 }
 
 immutable(Str) strOfSym(Alloc)(ref Alloc alloc, immutable Sym a) {
-	Writer!Alloc writer = Writer!Alloc(alloc);
+	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut!Alloc(alloc));
 	writeSym(writer, a);
-	return writer.finish;
+	return finish(writer);
 }
 
 immutable(size_t) writeSymAndGetSize(Alloc)(ref Writer!Alloc writer, immutable Sym a) {

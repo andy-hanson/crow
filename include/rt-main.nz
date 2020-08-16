@@ -41,11 +41,13 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	ctx-by-val = new-ctx: gctx, tls.ref-of-val, vat, zero
 	ctx = ctx-by-val ref-of-val
 	| TODO: just 'as', not 'as-non-const'
-	add = &add-first-task as-non-const<fun2<fut<exit-code>, arr<c-str>, main-ptr>>
+	add = as-non-const<fun2<fut<exit-code>, arr<c-str>, main-ptr>>: \all-args main-ptr
+		add-first-task: all-args, main-ptr
 	all-args = new<arr<c-str>> argc.to-int.unsafe-to-nat, argv
 	main-fut = ctx call-with-ctx add, all-args, main-ptr
 
-	n-threads run-threads gctx, &thread-function
+	n-threads run-threads gctx, \thread-id gctx
+		thread-function: thread-id, gctx
 
 	when
 		gctx any-unhandled-exceptions?
@@ -106,7 +108,9 @@ body
 			thread-arg-ptr = thread-args + i
 			thread-arg-ptr set new fun, i, arg
 			thread-ptr = threads + i
-			err = thread-ptr.as-cell pthread-create null, &thread-fun<?t>, thread-arg-ptr.as-any-ptr
+			fn = as<fn-ptr1<thread-fun<?t>, any-ptr>>: \args-ptr
+				thread-fn args-ptr
+			err = thread-ptr.as-cell pthread-create null, fn, thread-arg-ptr.as-any-ptr
 			when
 				err zero?
 					i.noctx-incr run-threads-recur n-threads, threads, thread-args, arg, fun

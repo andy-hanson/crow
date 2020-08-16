@@ -402,6 +402,11 @@ struct PathAndStorageKind {
 }
 
 //TODO:KILL?
-immutable(Ptr!Path) copyPath(Alloc)(ref Alloc alloc, immutable Ptr!Path p) {
-	assert(0);
+immutable(Ptr!Path) copyPath(Alloc)(ref Alloc alloc, immutable Ptr!Path a) {
+	return nu!Path(
+		alloc,
+		has(a.parent)
+			? some(copyPath(alloc, force(a.parent)))
+			: none!(Ptr!Path),
+		a.baseName);
 }

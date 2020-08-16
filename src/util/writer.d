@@ -15,11 +15,11 @@ struct Writer(Alloc) {
 	ArrBuilder!char res;
 }
 
-Str finish(Alloc)(ref Writer!Alloc writer) {
-	return writer.res.finishArr;
+immutable(Str) finish(Alloc)(ref Writer!Alloc writer) {
+	return finishArr(writer.alloc.deref, writer.res);
 }
 
-@trusted CStr finishToCStr(Alloc)(ref Writer!Alloc writer) {
+@trusted immutable(CStr) finishToCStr(Alloc)(ref Writer!Alloc writer) {
 	add(writer.alloc, writer.res, '\0');
 	return begin(finishArr(writer.alloc, writer.res));
 }

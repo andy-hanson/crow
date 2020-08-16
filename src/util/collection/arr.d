@@ -10,6 +10,12 @@ struct Arr(T) {
 	private:
 	T* begin_;
 	immutable size_t size_;
+	@disable this();
+
+	public:
+	immutable this(immutable T* b, immutable size_t s) { begin_ = b; size_ = s; }
+	const this(const T* b, immutable size_t s) { begin_ = b; size_ = s; }
+	this(T* b, immutable size_t s) { begin_ = b; size_ = s; }
 }
 
 immutable(Arr!T) arrOfRange(T)(immutable T* begin, immutable T* end) {
@@ -72,17 +78,17 @@ immutable(Bool) empty(T)(const Arr!T a) {
 	return ptrAt(a, index).deref;
 }
 
-ref immutable(T) first(T)(ref immutable Arr!T a) {
+ref immutable(T) first(T)(immutable Arr!T a) {
 	return at(a, 0);
 }
-ref const(T) first(T)(ref const Arr!T a) {
+ref const(T) first(T)(const Arr!T a) {
 	return at(a, 0);
 }
-ref T first(T)(ref Arr!T a) {
+ref T first(T)(Arr!T a) {
 	return at(a, 0);
 }
 
-ref immutable(T) only(T)(ref immutable Arr!T a) {
+ref immutable(T) only(T)(immutable Arr!T a) {
 	assert(a.size == 1);
 	return first(a);
 }
