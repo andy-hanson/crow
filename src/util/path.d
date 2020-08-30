@@ -11,7 +11,15 @@ import util.collection.str : asCStr, CStr, emptyStr, MutStr, NulTerminatedStr, S
 import util.comparison : Comparison, compareOr;
 import util.opt : compareOpt, has, flatMapOption, force, forceOrTodo, mapOption, matchOpt, none, Opt, some;
 import util.ptr : Ptr;
-import util.sym : AllSymbols, compareSym, eachCharInSym, getSymFromAlphaIdentifier, Sym, symSize, tryGetSymFromStr;
+import util.sym :
+	AllSymbols,
+	compareSym,
+	eachCharInSym,
+	getSymFromAlphaIdentifier,
+	shortSymAlphaLiteral,
+	Sym,
+	symSize,
+	tryGetSymFromStr;
 import util.types : u8;
 import util.util : todo;
 
@@ -186,6 +194,9 @@ private @trusted immutable(Str) pathToStrWorker(Alloc)(
 
 immutable(Str) pathToStr(Alloc)(ref Alloc alloc, immutable Str root, immutable Ptr!Path path, immutable Str extension) {
 	return pathToStrWorker(alloc, root, path, extension, False);
+}
+immutable(Str) pathToStrNoRoot(Alloc)(ref Alloc alloc, immutable Ptr!Path path) {
+	return pathToStr(alloc, emptyStr, path, emptyStr);
 }
 immutable(CStr) pathToCStr(Alloc)(
 	ref Alloc alloc,
@@ -399,6 +410,15 @@ immutable(Comparison) comparePath(immutable Ptr!Path a, immutable Ptr!Path b) {
 enum StorageKind {
 	global,
 	local,
+}
+
+immutable(Sym) storageKindSym(immutable StorageKind a) {
+	final switch (a) {
+		case StorageKind.global:
+			return shortSymAlphaLiteral("global");
+		case StorageKind.local:
+			return shortSymAlphaLiteral("local");
+	}
 }
 
 struct PathAndStorageKind {

@@ -66,7 +66,6 @@ struct Sexpr {
 		immutable Sym symbol;
 	}
 
-	public:
 	@trusted this(immutable Arr!Sexpr a) immutable { kind = Kind.arr; arr = a; }
 	this(immutable Bool a) immutable { kind = Kind.bool_; bool_ = a; }
 	@trusted this(immutable SexprNamedRecord a) immutable { kind = Kind.namedRecord; namedRecord = a; }
@@ -112,13 +111,11 @@ immutable(Ptr!Sexpr) allocSexpr(Alloc)(ref Alloc alloc, immutable Sexpr s) {
 	return allocate!Sexpr(alloc, s);
 }
 
-immutable(Sexpr) arrToSexpr(Alloc)(
-	ref Alloc alloc,
-	ref immutable Arr!T a,
-	scope immutable(Sexpr) delegate(ref immutable T) @safe @nogc pure nothrow cbToSexpr,
-) {
-	return Sexpr(map!(const Sexpr)(alloc, a, cbToSexpr));
+void writeSexpr(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
+	writeSexpr(writer, 0, 120, a);
 }
+
+private:
 
 immutable int indentSize = 4;
 
