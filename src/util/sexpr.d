@@ -109,7 +109,11 @@ immutable(Ptr!Sexpr) allocSexpr(Alloc)(ref Alloc alloc, immutable Sexpr s) {
 	return allocate!Sexpr(alloc, s);
 }
 
-immutable(Sexpr) arrToSexpr(Alloc)(ref Alloc alloc, ref immutable Arr!T a, scope Sexpr delegate(ref immutable T) @safe @nogc pure nothrow cbToSexpr) {
+immutable(Sexpr) arrToSexpr(Alloc)(
+	ref Alloc alloc,
+	ref immutable Arr!T a,
+	scope immutable(Sexpr) delegate(ref immutable T) @safe @nogc pure nothrow cbToSexpr,
+) {
 	return Sexpr(map!(const Sexpr)(alloc, a, cbToSexpr));
 }
 

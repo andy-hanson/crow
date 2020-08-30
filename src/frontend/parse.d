@@ -276,7 +276,9 @@ immutable(Opt!NonFunKeywordAndIndent) tryTakeKw(SymAlloc)(
 	return lexer.tryTake(kwSpace)
 		? some(NonFunKeywordAndIndent(keyword, SpaceOrNewlineOrIndent.space))
 		: lexer.tryTake(kwNl)
-		? some(NonFunKeywordAndIndent(keyword, spaceOrNewlineOrIndentFromNewlineOrIndent(lexer.tryTakeIndentAfterNewline())))
+		? some(NonFunKeywordAndIndent(
+			keyword,
+			spaceOrNewlineOrIndentFromNewlineOrIndent(lexer.tryTakeIndentAfterNewline())))
 		: none!NonFunKeywordAndIndent;
 }
 
@@ -410,24 +412,30 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 				todo!void("duplicate");
 			immutable Opt!Str mangledName = tryTakeMangledName(alloc, lexer);
 			immutable Opt!(FunBodyAst.Extern) extern2 = some(immutable FunBodyAst.Extern(isGlobal, mangledName));
-			return nextSpecOrStop(alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern2, mangle, canTakeNext);
+			return nextSpecOrStop(
+				alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern2, mangle, canTakeNext);
 		}
 		switch (name.sym.value) {
 			case shortSymAlphaLiteralValue("noctx"):
 				if (noCtx) todo!void("duplicate");
-				return nextSpecOrStop(alloc, lexer, specUses, True, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+				return nextSpecOrStop(
+					alloc, lexer, specUses, True, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 			case shortSymAlphaLiteralValue("summon"):
 				if (summon) todo!void("duplicate");
-				return nextSpecOrStop(alloc, lexer, specUses, noCtx, True, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+				return nextSpecOrStop(
+					alloc, lexer, specUses, noCtx, True, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 			case shortSymAlphaLiteralValue("unsafe"):
 				if (unsafe) todo!void("duplicate");
-				return nextSpecOrStop(alloc, lexer, specUses, noCtx, summon, True, trusted, builtin, extern_, mangle, canTakeNext);
+				return nextSpecOrStop(
+					alloc, lexer, specUses, noCtx, summon, True, trusted, builtin, extern_, mangle, canTakeNext);
 			case shortSymAlphaLiteralValue("trusted"):
 				if (trusted) todo!void("duplicate");
-				return nextSpecOrStop(alloc, lexer, specUses, noCtx, summon, unsafe, True, builtin, extern_, mangle, canTakeNext);
+				return nextSpecOrStop(
+					alloc, lexer, specUses, noCtx, summon, unsafe, True, builtin, extern_, mangle, canTakeNext);
 			case shortSymAlphaLiteralValue("builtin"):
 				if (builtin) todo!void("duplicate");
-				return nextSpecOrStop(alloc, lexer, specUses, noCtx, summon, unsafe, trusted, True, extern_, mangle, canTakeNext);
+				return nextSpecOrStop(
+					alloc, lexer, specUses, noCtx, summon, unsafe, trusted, True, extern_, mangle, canTakeNext);
 			case shortSymAlphaLiteralValue("extern"):
 				return setExtern(False);
 			case shortSymAlphaLiteralValue("global"):
@@ -438,7 +446,8 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 	} else {
 		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		add(alloc, specUses, immutable SpecUseAst(lexer.range(start), name.sym, typeArgs));
-		return nextSpecOrStop(alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+		return nextSpecOrStop(
+			alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 	}
 }
 
@@ -456,7 +465,8 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(Alloc, SymAlloc)(
 	scope immutable(Bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
 	if (canTakeNext())
-		return parseNextSpec(alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+		return parseNextSpec(
+			alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 	else {
 		if (unsafe && trusted)
 			todo!void("'unsafe trusted' is redundant");
@@ -609,7 +619,12 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				todo!void("builtin-spec has no body");
 			if (purity.has)
 				todo!void("spec shouldn't have purity");
-			add(alloc, specs, immutable SpecDeclAst(lexer.range(start), isPublic, name, typeParams, SpecBodyAst(SpecBodyAst.Builtin())));
+			add(alloc, specs, immutable SpecDeclAst(
+				lexer.range(start),
+				isPublic,
+				name,
+				typeParams,
+				SpecBodyAst(SpecBodyAst.Builtin())));
 		} else if (kw == NonFunKeyword.spec) {
 			if (!tookIndent)
 				todo!void("always indent spec");

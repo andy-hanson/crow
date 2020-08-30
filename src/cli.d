@@ -37,7 +37,7 @@ int cli(immutable size_t argc, immutable CStr* argv) {
 	alias SymAlloc = SingleHeapAlloc!(Mallocator, "symAlloc", 1024 * 1024);
 	SymAlloc symAlloc = SymAlloc(ptrTrustMe_mut(mallocator));
 	immutable CommandLineArgs args = parseCommandLineArgs(alloc, argc, argv);
-	AllSymbols!SymAlloc allSymbols = AllSymbols!SymAlloc(symAlloc);
+	AllSymbols!SymAlloc allSymbols = AllSymbols!SymAlloc(ptrTrustMe_mut(symAlloc));
 	return go(allSymbols, args);
 }
 

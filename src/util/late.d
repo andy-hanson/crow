@@ -35,9 +35,14 @@ immutable(Bool) lateIsSet(T)(ref const Late!T a) {
 	a.isSet_ = True;
 }
 
-ref const(T) lazilySet(T)(ref Late!T a, scope T delegate() @safe @nogc pure nothrow cb) {
-	if (!a.lateIsSet)
-		a.lateSet(value);
-	return a.lateGet;
+@trusted void lateSetOverwrite(T)(ref Late!T a, T value) {
+	assert(a.lateIsSet);
+	initMemory(&a.value_, value);
+	a.isSet_ = True;
 }
 
+ref const(T) lazilySet(T)(ref Late!T a, scope T delegate() @safe @nogc pure nothrow cb) {
+	if (!a.lateIsSet)
+		a.lateSet(cb());
+	return a.lateGet;
+}

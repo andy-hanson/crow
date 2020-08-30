@@ -215,11 +215,6 @@ struct arr__nat {
 	nat size;
 	ptr__nat data;
 };
-typedef struct my_record my_record;
-struct my_record {
-	nat x;
-	nat y;
-};
 struct ctx {
 	ptr__byte gctx_ptr;
 	nat vat_id;
@@ -1811,16 +1806,6 @@ arr__nat _failarr__nat() {
 	assert(0);
 }
 
-
-my_record* _initmy_record(byte* out, my_record value) {
-	my_record* res = (my_record*) out; 
-	*res = value;
-	return res;
-}
-my_record _failmy_record() {
-	assert(0);
-}
-
 void* _failVoidPtr() { assert(0); }
 int32 rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(int32 argc, ptr__ptr__char argv, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr);
 nat as__nat__nat(nat value);
@@ -2174,53 +2159,7 @@ result__int32__exception must_be_resolved__result__int32__exception__ptr_fut__in
 result__int32__exception hard_unreachable__result__int32__exception();
 result__int32__exception hard_fail__result__int32__exception__arr__char(arr__char reason);
 fut__int32* main__ptr_fut__int32__arr__arr__char(ctx* _ctx, arr__arr__char args);
-nat literal__nat__arr__char(ctx* _ctx, arr__char s);
-arr__char rtail__arr__char__arr__char(ctx* _ctx, arr__char a);
-arr__char slice__arr__char__arr__char__nat__nat(ctx* _ctx, arr__char a, nat begin, nat size);
-nat decr__nat__nat(ctx* _ctx, nat a);
-nat wrap_decr__nat__nat(nat a);
-nat _op_times__nat__nat__nat(ctx* _ctx, nat a, nat b);
-nat _op_div__nat__nat__nat(ctx* _ctx, nat a, nat b);
-nat unsafe_div__nat__nat__nat(nat a, nat b);
-nat char_to_nat__nat__char(char c);
-nat todo__nat();
-nat hard_fail__nat__arr__char(arr__char reason);
-char last__char__arr__char(ctx* _ctx, arr__char a);
-char at__char__arr__char__nat(ctx* _ctx, arr__char a, nat index);
 fut__int32* resolved__ptr_fut__int32__int32(ctx* _ctx, int32 value);
-int32 literal__int32__arr__char(ctx* _ctx, arr__char s);
-int32 unsafe_to_int32__int32___int(_int a);
-_int as___int___int(_int value);
-_int literal___int__arr__char(ctx* _ctx, arr__char s);
-arr__char tail__arr__char__arr__char(ctx* _ctx, arr__char a);
-arr__char slice_starting_at__arr__char__arr__char__nat(ctx* _ctx, arr__char a, nat begin);
-_int neg___int__nat(ctx* _ctx, nat n);
-_int neg___int___int(ctx* _ctx, _int i);
-_int _op_times___int___int___int(ctx* _ctx, _int a, _int b);
-bool _op_greater__bool___int___int(_int a, _int b);
-bool _op_less_equal__bool___int___int(_int a, _int b);
-bool _op_less__bool___int___int(_int a, _int b);
-_int neg_million___int();
-_int wrap_mul___int___int___int(_int a, _int b);
-_int million___int();
-_int thousand___int();
-_int hundred___int();
-_int ten___int();
-_int wrap_incr___int___int(_int a);
-_int wrap_add___int___int___int(_int a, _int b);
-_int one___int();
-_int nine___int();
-_int eight___int();
-_int seven___int();
-_int six___int();
-_int five___int();
-_int four___int();
-_int three___int();
-_int two___int();
-_int neg_one___int();
-_int wrap_sub___int___int___int(_int a, _int b);
-_int zero___int();
-_int to_int___int__nat(ctx* _ctx, nat n);
 int32 rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(int32 argc, ptr__ptr__char argv, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr) {
 	nat n_threads;
 	global_ctx gctx_by_val;
@@ -3583,187 +3522,10 @@ result__int32__exception hard_fail__result__int32__exception__arr__char(arr__cha
 	assert(0);
 }
 fut__int32* main__ptr_fut__int32__arr__arr__char(ctx* _ctx, arr__arr__char args) {
-	my_record m;
-	return ((m = (my_record) {literal__nat__arr__char(_ctx, (arr__char){1, "1"}), literal__nat__arr__char(_ctx, (arr__char){1, "2"})}),
-	((assert___void__bool(_ctx, _op_equal_equal__bool__nat__nat(m.x, literal__nat__arr__char(_ctx, (arr__char){1, "1"}))),
-	assert___void__bool(_ctx, _op_equal_equal__bool__nat__nat(m.y, literal__nat__arr__char(_ctx, (arr__char){1, "2"})))),
-	resolved__ptr_fut__int32__int32(_ctx, literal__int32__arr__char(_ctx, (arr__char){1, "0"}))));
-}
-nat literal__nat__arr__char(ctx* _ctx, arr__char s) {
-	nat higher_digits;
-	return empty__q__bool__arr__char(s)
-		? 0
-		: ((higher_digits = literal__nat__arr__char(_ctx, rtail__arr__char__arr__char(_ctx, s))),
-		_op_plus__nat__nat__nat(_ctx, _op_times__nat__nat__nat(_ctx, higher_digits, ten__nat()), char_to_nat__nat__char(last__char__arr__char(_ctx, s))));
-}
-arr__char rtail__arr__char__arr__char(ctx* _ctx, arr__char a) {
-	return (forbid___void__bool(_ctx, empty__q__bool__arr__char(a)),
-	slice__arr__char__arr__char__nat__nat(_ctx, a, 0, decr__nat__nat(_ctx, a.size)));
-}
-arr__char slice__arr__char__arr__char__nat__nat(ctx* _ctx, arr__char a, nat begin, nat size) {
-	return (assert___void__bool(_ctx, _op_less_equal__bool__nat__nat(_op_plus__nat__nat__nat(_ctx, begin, size), a.size)),
-	(arr__char) {size, (a.data + begin)});
-}
-nat decr__nat__nat(ctx* _ctx, nat a) {
-	return (forbid___void__bool(_ctx, zero__q__bool__nat(a)),
-	wrap_decr__nat__nat(a));
-}
-nat wrap_decr__nat__nat(nat a) {
-	return (a - 1);
-}
-nat _op_times__nat__nat__nat(ctx* _ctx, nat a, nat b) {
-	nat res;
-	return (zero__q__bool__nat(a) || zero__q__bool__nat(b))
-		? 0
-		: ((res = (a * b)),
-		((assert___void__bool(_ctx, _op_equal_equal__bool__nat__nat(_op_div__nat__nat__nat(_ctx, res, b), a)),
-		assert___void__bool(_ctx, _op_equal_equal__bool__nat__nat(_op_div__nat__nat__nat(_ctx, res, a), b))),
-		res));
-}
-nat _op_div__nat__nat__nat(ctx* _ctx, nat a, nat b) {
-	return (forbid___void__bool(_ctx, zero__q__bool__nat(b)),
-	(a / b));
-}
-nat char_to_nat__nat__char(char c) {
-	return _op_equal_equal__bool__char__char(c, literal__char__arr__char((arr__char){1, "0"}))
-		? 0
-		: _op_equal_equal__bool__char__char(c, literal__char__arr__char((arr__char){1, "1"}))
-			? 1
-			: _op_equal_equal__bool__char__char(c, literal__char__arr__char((arr__char){1, "2"}))
-				? two__nat()
-				: _op_equal_equal__bool__char__char(c, literal__char__arr__char((arr__char){1, "3"}))
-					? three__nat()
-					: _op_equal_equal__bool__char__char(c, literal__char__arr__char((arr__char){1, "4"}))
-						? four__nat()
-						: _op_equal_equal__bool__char__char(c, literal__char__arr__char((arr__char){1, "5"}))
-							? five__nat()
-							: _op_equal_equal__bool__char__char(c, literal__char__arr__char((arr__char){1, "6"}))
-								? six__nat()
-								: _op_equal_equal__bool__char__char(c, literal__char__arr__char((arr__char){1, "7"}))
-									? seven__nat()
-									: _op_equal_equal__bool__char__char(c, literal__char__arr__char((arr__char){1, "8"}))
-										? eight__nat()
-										: _op_equal_equal__bool__char__char(c, literal__char__arr__char((arr__char){1, "9"}))
-											? nine__nat()
-											: todo__nat();
-}
-nat todo__nat() {
-	return hard_fail__nat__arr__char((arr__char){4, "TODO"});
-}
-nat hard_fail__nat__arr__char(arr__char reason) {
-	assert(0);
-}
-char last__char__arr__char(ctx* _ctx, arr__char a) {
-	return (forbid___void__bool(_ctx, empty__q__bool__arr__char(a)),
-	at__char__arr__char__nat(_ctx, a, decr__nat__nat(_ctx, a.size)));
-}
-char at__char__arr__char__nat(ctx* _ctx, arr__char a, nat index) {
-	return (assert___void__bool(_ctx, _op_less__bool__nat__nat(index, a.size)),
-	noctx_at__char__arr__char__nat(a, index));
+	return resolved__ptr_fut__int32__int32(_ctx, 0);
 }
 fut__int32* resolved__ptr_fut__int32__int32(ctx* _ctx, int32 value) {
 	return _initfut__int32(alloc__ptr__byte__nat(_ctx, 32), (fut__int32) {new_lock__lock(), (fut_state__int32) { 1, .as_fut_state_resolved__int32 = (fut_state_resolved__int32) {value} }});
-}
-int32 literal__int32__arr__char(ctx* _ctx, arr__char s) {
-	return (int32) literal___int__arr__char(_ctx, s);
-}
-_int literal___int__arr__char(ctx* _ctx, arr__char s) {
-	char fst;
-	nat n;
-	return ((fst = at__char__arr__char__nat(_ctx, s, 0)),
-	_op_equal_equal__bool__char__char(fst, literal__char__arr__char((arr__char){1, "-"}))
-		? ((n = literal__nat__arr__char(_ctx, tail__arr__char__arr__char(_ctx, s))),
-		neg___int__nat(_ctx, n))
-		: _op_equal_equal__bool__char__char(fst, literal__char__arr__char((arr__char){1, "+"}))
-			? to_int___int__nat(_ctx, literal__nat__arr__char(_ctx, tail__arr__char__arr__char(_ctx, s)))
-			: to_int___int__nat(_ctx, literal__nat__arr__char(_ctx, s)));
-}
-arr__char tail__arr__char__arr__char(ctx* _ctx, arr__char a) {
-	return (forbid___void__bool(_ctx, empty__q__bool__arr__char(a)),
-	slice_starting_at__arr__char__arr__char__nat(_ctx, a, 1));
-}
-arr__char slice_starting_at__arr__char__arr__char__nat(ctx* _ctx, arr__char a, nat begin) {
-	return (assert___void__bool(_ctx, _op_less_equal__bool__nat__nat(begin, a.size)),
-	slice__arr__char__arr__char__nat__nat(_ctx, a, begin, _op_minus__nat__nat__nat(_ctx, a.size, begin)));
-}
-_int neg___int__nat(ctx* _ctx, nat n) {
-	return neg___int___int(_ctx, to_int___int__nat(_ctx, n));
-}
-_int neg___int___int(ctx* _ctx, _int i) {
-	return _op_times___int___int___int(_ctx, i, neg_one___int());
-}
-_int _op_times___int___int___int(ctx* _ctx, _int a, _int b) {
-	return ((((assert___void__bool(_ctx, _op_greater__bool___int___int(a, neg_million___int())),
-	assert___void__bool(_ctx, _op_less__bool___int___int(a, million___int()))),
-	assert___void__bool(_ctx, _op_greater__bool___int___int(b, neg_million___int()))),
-	assert___void__bool(_ctx, _op_less__bool___int___int(b, million___int()))),
-	(a * b));
-}
-bool _op_greater__bool___int___int(_int a, _int b) {
-	return !(_op_less_equal__bool___int___int(a, b));
-}
-bool _op_less_equal__bool___int___int(_int a, _int b) {
-	return !(_op_less__bool___int___int(b, a));
-}
-bool _op_less__bool___int___int(_int a, _int b) {
-	comparison matched;
-	return (matched = _op_less_equal_greater__comparison___int___int(a, b),
-		matched.kind == 0
-		? 1
-		: matched.kind == 1
-		? 0
-		: matched.kind == 2
-		? 0
-		: _failbool());
-}
-_int neg_million___int() {
-	return (million___int() * neg_one___int());
-}
-_int million___int() {
-	return (thousand___int() * thousand___int());
-}
-_int thousand___int() {
-	return (hundred___int() * ten___int());
-}
-_int hundred___int() {
-	return (ten___int() * ten___int());
-}
-_int ten___int() {
-	return wrap_incr___int___int(nine___int());
-}
-_int wrap_incr___int___int(_int a) {
-	return (a + 1);
-}
-_int nine___int() {
-	return wrap_incr___int___int(eight___int());
-}
-_int eight___int() {
-	return wrap_incr___int___int(seven___int());
-}
-_int seven___int() {
-	return wrap_incr___int___int(six___int());
-}
-_int six___int() {
-	return wrap_incr___int___int(five___int());
-}
-_int five___int() {
-	return wrap_incr___int___int(four___int());
-}
-_int four___int() {
-	return wrap_incr___int___int(three___int());
-}
-_int three___int() {
-	return wrap_incr___int___int(two___int());
-}
-_int two___int() {
-	return wrap_incr___int___int(1);
-}
-_int neg_one___int() {
-	return (0 - 1);
-}
-_int to_int___int__nat(ctx* _ctx, nat n) {
-	return (assert___void__bool(_ctx, _op_less__bool__nat__nat(n, million__nat())),
-	(_int) n);
 }
 
 
@@ -3893,7 +3655,6 @@ int main(int argc, char** argv) {
 	assert(sizeof(opt__task_and_nodes) == 48);
 	assert(sizeof(some__task_and_nodes) == 40);
 	assert(sizeof(arr__nat) == 16);
-	assert(sizeof(my_record) == 16);
 
 	return rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(argc, argv, main__ptr_fut__int32__arr__arr__char);
 }

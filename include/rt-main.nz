@@ -1,11 +1,11 @@
 import
+	.alloc
 	.arr-utils
 	.bootstrap
 	.cell
 	.exceptions
 	.fut-low-level
 	.fut-utils
-	.gc
 	.io
 	.posix
 	.runtime
@@ -40,8 +40,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	tls = new<by-val<thread-local-stuff>> ectx.ref-of-val
 	ctx-by-val = new-ctx: gctx, tls.ref-of-val, vat, zero
 	ctx = ctx-by-val ref-of-val
-	| TODO: just 'as', not 'as-non-const'
-	add = as-non-const<fun2<fut<exit-code>, arr<c-str>, main-ptr>>: \all-args main-ptr
+	add = as<fun2<fut<exit-code>, arr<c-str>, main-ptr>>: \all-args main-ptr
 		add-first-task: all-args, main-ptr
 	all-args = new<arr<c-str>> argc.to-int.unsafe-to-nat, argv
 	main-fut = ctx call-with-ctx add, all-args, main-ptr

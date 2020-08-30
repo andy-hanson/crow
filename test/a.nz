@@ -4,7 +4,6 @@ import
 	command-line-parser
 	dict
 	fut-utils
-	gc
 	io
 	posix
 	runtime

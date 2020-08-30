@@ -10,7 +10,7 @@ import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.result : asFailure, asSuccess, fail, isSuccess, Result, success;
-import util.util : todo;
+import util.util : max, todo;
 
 @trusted immutable(Arr!T) arrLiteral(T, Alloc)(ref Alloc alloc, immutable T value) {
 	T* ptr = cast(T*) alloc.allocate(T.sizeof * 1);
@@ -156,8 +156,9 @@ import util.util : todo;
 	immutable T v12,
 	immutable T v13,
 	immutable T v14,
+	immutable T v15,
 ) {
-	T* ptr = cast(T*) alloc.allocate(T.sizeof * 15);
+	T* ptr = cast(T*) alloc.allocate(T.sizeof * 16);
 	initMemory(ptr +  0,  v0);
 	initMemory(ptr +  1,  v1);
 	initMemory(ptr +  2,  v2);
@@ -173,7 +174,8 @@ import util.util : todo;
 	initMemory(ptr + 12, v12);
 	initMemory(ptr + 13, v13);
 	initMemory(ptr + 14, v14);
-	return immutable Arr!T(cast(immutable) ptr, 15);
+	initMemory(ptr + 15, v15);
+	return immutable Arr!T(cast(immutable) ptr, 16);
 }
 
 @trusted immutable(Arr!Out) fillArr(Out, Alloc)(
@@ -232,6 +234,16 @@ immutable(Bool) exists(T)(
 		if (cb(x))
 			return True;
 	return False;
+}
+
+immutable(Bool) every(T)(
+	immutable Arr!T arr,
+	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	foreach (ref immutable T x; range(arr))
+		if (!cb(x))
+			return False;
+	return True;
 }
 
 immutable(Bool) contains(T)(
@@ -584,6 +596,16 @@ immutable(Bool) zipSome(In0, In1)(
 	return False;
 }
 
+void zipWithIndex(In0, In1)(
+	ref immutable Arr!In0 in0,
+	ref immutable Arr!In1 in1,
+	scope void delegate(ref immutable In0, ref immutable In1, immutable size_t) @safe @nogc pure nothrow cb,
+) {
+	assert(sizeEq(in0, in1));
+	foreach (immutable size_t i; 0..size(in0))
+		cb(at(in0, i), at(in1, i), i);
+}
+
 immutable(Bool) eachCorresponds(T, U)(
 	immutable Arr!T a,
 	immutable Arr!T b,
@@ -623,6 +645,16 @@ immutable(T) fold(T, U)(
 		: fold!(T, U)(cb(start, first(arr)), tail(arr), cb);
 }
 
+immutable(size_t) arrMax(T)(
+	immutable size_t start,
+	immutable Arr!T a,
+	scope immutable(size_t) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	return empty(a)
+		? start
+		: arrMax(max(start, cb(first(a))), tail(a), cb);
+}
+
 immutable(size_t) sum(T)(
 	immutable Arr!T a,
 	scope immutable(size_t) delegate(ref immutable T) @safe @nogc pure nothrow cb,
@@ -631,9 +663,18 @@ immutable(size_t) sum(T)(
 		l + cb(t));
 }
 
+immutable(Arr!T) filter(Alloc, T)(
+	ref Alloc alloc,
+	ref immutable Arr!T a,
+	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow pred,
+) {
+	return mapOp!T(alloc, a, (ref immutable T t) =>
+		pred(t) ? some!T(t) : none!T);
+}
+
 void filterUnordered(T)(
 	ref MutArr!T a,
-	scope immutable(Bool) delegate(ref T a) @safe @nogc pure nothrow pred,
+	scope immutable(Bool) delegate(ref T) @safe @nogc pure nothrow pred,
 ) {
 	size_t i = 0;
 	while (i < mutArrSize(a)) {
@@ -646,5 +687,31 @@ void filterUnordered(T)(
 			T t = mustPop(a);
 			setAt(a, i, t);
 		}
+	}
+}
+
+immutable(size_t) arrMaxIndex(T, U)(
+	const Arr!U a,
+	scope immutable(T) delegate(ref const U, immutable size_t) @safe @nogc pure nothrow cb,
+	Comparer!T compare,
+) {
+	return arrMaxIndexRecur!(T, U)(0, cb(first(a), 0), a, 1, cb, compare);
+}
+
+immutable(size_t) arrMaxIndexRecur(T, U)(
+	immutable size_t indexOfMax,
+	immutable T maxValue,
+	ref const Arr!U a,
+	immutable size_t index,
+	scope immutable(T) delegate(ref const U, immutable size_t) @safe @nogc pure nothrow cb,
+	Comparer!T compare,
+) {
+	if (index == size(a))
+		return indexOfMax;
+	else {
+		immutable T valueHere = cb(at(a, index), index);
+		return compare(valueHere, maxValue) == Comparison.greater
+			? arrMaxIndexRecur!(T, U)(index, valueHere, a, index + 1, cb, compare)
+			: arrMaxIndexRecur!(T, U)(indexOfMax, maxValue, a, index + 1, cb, compare);
 	}
 }

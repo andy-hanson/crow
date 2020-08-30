@@ -80,7 +80,8 @@ immutable(Result!(FileAst, Diagnostics)) parseAst(Alloc, SymAlloc)(
 	StackAlloc!("single file", 1024 * 1024) fileAlloc;
 	LineAndColumnGettersBuilder lineAndColumnGetters;
 	// In this case model alloc and AST alloc are the same
-	immutable Opt!NulTerminatedStr opFileContent = getFile(fileAlloc, PathAndStorageKind(path, StorageKind.local), storages);
+	immutable Opt!NulTerminatedStr opFileContent =
+		getFile(fileAlloc, PathAndStorageKind(path, StorageKind.local), storages);
 	immutable Result!(FileAst, Diags) res =
 		parseSingle(
 			alloc,
@@ -203,7 +204,9 @@ immutable(Opt!Diags) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 							final switch (status.force) {
 								case ParseStatus.started:
 									return some(arrLiteral!Diagnostic(modelAlloc,
-										Diagnostic(import_.importedFrom, immutable Diag(Diag.CircularImport(path, import_.resolvedPath)))));
+										immutable Diagnostic(
+											import_.importedFrom,
+											immutable Diag(Diag.CircularImport(path, import_.resolvedPath)))));
 								case ParseStatus.finished:
 									break;
 							}
@@ -252,6 +255,10 @@ immutable(PathAndStorageKind) stdPath(Alloc)(ref Alloc alloc) {
 	return pathInInclude(alloc, shortSymAlphaLiteral("std"));
 }
 
+immutable(PathAndStorageKind) allocPath(Alloc)(ref Alloc alloc) {
+	return pathInInclude(alloc, shortSymAlphaLiteral("alloc"));
+}
+
 immutable(PathAndStorageKind) runtimePath(Alloc)(ref Alloc alloc) {
 	return pathInInclude(alloc, shortSymAlphaLiteral("runtime"));
 }
@@ -292,7 +299,11 @@ immutable(Result!(FileAst, Diags)) parseSingle(ModelAlloc, AstAlloc, SymAlloc)(
 	// File content must go in astAlloc because we refer to strings without copying
 	if (opFileContent.has) {
 		immutable NulTerminatedStr text = opFileContent.force;
-		addToDict(modelAlloc, lineAndColumnGetters, where, lineAndColumnGetterForText(modelAlloc, text.stripNulTerminator));
+		addToDict(
+			modelAlloc,
+			lineAndColumnGetters,
+			where,
+			lineAndColumnGetterForText(modelAlloc, text.stripNulTerminator));
 		immutable Result!(FileAst, ParseDiagnostic) result = parseFile(astAlloc, allSymbols, text);
 		return result.mapFailure!(Diags, FileAst, ParseDiagnostic)((ref immutable ParseDiagnostic p) =>
 			parseDiagnostics(modelAlloc, where, p));
@@ -333,9 +344,13 @@ immutable(Result!(ResolvedImport, Diags)) tryResolveImport(Alloc)(
 		immutable RelPath relPath = RelPath(cast(ubyte) (ast.nDots - 1), path);
 		immutable Opt!(Ptr!Path) rel = resolvePath(modelAlloc, from.path.parent, relPath);
 		return rel.has
-			? success!(ResolvedImport, Diags)(ResolvedImport(importedFrom, PathAndStorageKind(rel.force, from.storageKind)))
+			? success!(ResolvedImport, Diags)(ResolvedImport(
+				importedFrom,
+				PathAndStorageKind(rel.force, from.storageKind)))
 			: fail!(ResolvedImport, Diags)(arrLiteral!Diagnostic(modelAlloc,
-				Diagnostic(PathAndStorageKindAndRange(from, ast.range), immutable Diag(Diag.RelativeImportReachesPastRoot(relPath)))));
+				Diagnostic(
+					PathAndStorageKindAndRange(from, ast.range),
+					immutable Diag(Diag.RelativeImportReachesPastRoot(relPath)))));
 	}
 }
 
@@ -424,7 +439,8 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 						? ast.resolvedImports
 						: prepend(modelAlloc, stdPath(modelAlloc), ast.resolvedImports);
 					immutable Arr!(Ptr!Module) mappedImports = mapImportsOrExports(modelAlloc, allImports, compiled);
-					immutable Arr!(Ptr!Module) mappedExports = mapImportsOrExports(modelAlloc, ast.resolvedExports, compiled);
+					immutable Arr!(Ptr!Module) mappedExports =
+						mapImportsOrExports(modelAlloc, ast.resolvedExports, compiled);
 					return check(
 						modelAlloc,
 						programState,
@@ -474,6 +490,7 @@ immutable(Result!(Program, Diags)) checkEverything(ModelAlloc)(
 			bootstrapModule.structsAndAliasesMap.mustGetAt(shortSymAlphaLiteral("ctx")).asStructDecl;
 		immutable Ptr!StructInst ctxStructInst = instantiateNonTemplateStruct(modelAlloc, programState, ctxStructDecl);
 		return immutable Program(
+			findModule(allocPath(modelAlloc), modules),
 			bootstrapModule,
 			findModule(runtimePath(modelAlloc), modules),
 			findModule(runtimeMainPath(modelAlloc), modules),

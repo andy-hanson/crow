@@ -64,10 +64,10 @@ immutable(CStr) strToCStr(Alloc)(ref Alloc alloc, immutable Str s) {
 @trusted immutable(Bool) strEqCStr(immutable Str a, immutable CStr b) {
 	return *b == '\0'
 		? Bool(a.size == 0)
-		: and!(
-			() => Bool(a.size != 0),
-			() => Bool(a.first == *b),
-			() => strEqCStr(a.tail, b + 1));
+		: Bool(
+			a.size != 0 &&
+			a.first == *b &&
+			strEqCStr(a.tail, b + 1));
 }
 
 immutable(Bool) strEqLiteral(immutable Str a, immutable string b) {
@@ -110,7 +110,7 @@ immutable(Str) stripNulTerminator(immutable NulTerminatedStr a) {
 }
 
 immutable(NulTerminatedStr) copyNulTerminatedStr(Alloc)(ref Alloc alloc, immutable NulTerminatedStr s) {
-	assert(0); //TODO
+	return immutable NulTerminatedStr(copyStr(alloc, s.str));
 }
 
 immutable(Bool) endsWith(immutable Str a, immutable Str b) {

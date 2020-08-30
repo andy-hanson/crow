@@ -2,7 +2,7 @@ module util.writer;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
+import util.bools : Bool, False;
 import util.ptr : Ptr;
 import util.collection.arr : Arr, at, begin, range, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -15,11 +15,11 @@ struct Writer(Alloc) {
 	ArrBuilder!char res;
 }
 
-immutable(Str) finish(Alloc)(ref Writer!Alloc writer) {
+immutable(Str) finishWriter(Alloc)(ref Writer!Alloc writer) {
 	return finishArr(writer.alloc.deref, writer.res);
 }
 
-@trusted immutable(CStr) finishToCStr(Alloc)(ref Writer!Alloc writer) {
+@trusted immutable(CStr) finishWriterToCStr(Alloc)(ref Writer!Alloc writer) {
 	add(writer.alloc, writer.res, '\0');
 	return begin(finishArr(writer.alloc, writer.res));
 }
@@ -55,15 +55,17 @@ void writeBool(Alloc)(ref Writer!Alloc writer, immutable Bool b) {
 void writeWithCommas(Alloc, T)(
 	ref Writer!Alloc writer,
 	immutable Arr!T a,
-	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,) {
-	foreach (immutable size_t i; 0..a.size) {
-		if (i != 0)
-			writeStatic(writer, ", ");
-		cb(a.at(i));
-	}
+	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	writeWithCommas(writer, a, False, cb);
 }
 
-void writeWithCommas(Alloc, T, alias cb)(ref Writer!Alloc writer, immutable Arr!T a, immutable Bool leadingComma) {
+void writeWithCommas(Alloc, T)(
+	ref Writer!Alloc writer,
+	immutable Arr!T a,
+	immutable Bool leadingComma,
+	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
 	foreach (immutable size_t i; 0..a.size) {
 		if (leadingComma || i != 0)
 			writeStatic(writer, ", ");

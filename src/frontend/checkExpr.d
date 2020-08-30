@@ -216,8 +216,8 @@ immutable(CheckedExpr) checkCond(Alloc)(
 ) {
 	immutable Ptr!Expr cond = allocExpr(alloc, checkAndExpect(alloc, ctx, ast.cond, ctx.commonTypes.bool_));
 	immutable Ptr!Expr then = allocExpr(alloc, checkExpr(alloc, ctx, ast.then, expected));
-	immutable Ptr!Expr elze = allocExpr(alloc, checkExpr(alloc, ctx, ast.elze, expected));
-	return CheckedExpr(immutable Expr(range, Expr.Cond(inferred(expected), cond, then, elze)));
+	immutable Ptr!Expr else_ = allocExpr(alloc, checkExpr(alloc, ctx, ast.else_, expected));
+	return CheckedExpr(immutable Expr(range, Expr.Cond(inferred(expected), cond, then, else_)));
 }
 
 struct ArrExpectedType {
@@ -280,7 +280,10 @@ immutable(CheckedExpr) checkCreateRecordCommon(Alloc)(
 	immutable SourceRange range,
 	immutable Opt!TypeAst type,
 	ref Expected expected,
-	scope immutable(Opt!(Arr!Expr)) delegate(immutable Ptr!StructDecl, immutable Arr!RecordField) @safe @nogc pure nothrow cbCheckFields,
+	scope immutable(Opt!(Arr!Expr)) delegate(
+		immutable Ptr!StructDecl,
+		immutable Arr!RecordField,
+	) @safe @nogc pure nothrow cbCheckFields,
 ) {
 	Bool typeIsFromExpected = False;
 	immutable Opt!Type opT = () {
@@ -365,7 +368,8 @@ immutable(CheckedExpr) checkCreateRecord(Alloc)(
 		expected,
 		(immutable Ptr!StructDecl decl, immutable Arr!RecordField fields) {
 			if (!sizeEq(ast.args, fields)) {
-				addDiag2(alloc, ctx, range, immutable Diag(Diag.WrongNumberNewStructArgs(decl, size(fields), size(ast.args))));
+				addDiag2(alloc, ctx, range, immutable Diag(
+					Diag.WrongNumberNewStructArgs(decl, size(fields), size(ast.args))));
 				return none!(Arr!Expr);
 			} else {
 				return some!(Arr!Expr)(mapZip!Expr(
@@ -403,8 +407,9 @@ immutable(CheckedExpr) checkCreateRecordMultiLine(Alloc)(
 							: none!Expr)
 				: none!(Arr!Expr);
 			if (!has(res)) {
-				immutable Arr!Sym names = map!Sym(alloc, ast.lines, (ref immutable CreateRecordMultiLineAst.Line line) =>
-					line.name.name);
+				immutable Arr!Sym names =
+					map!Sym(alloc, ast.lines, (ref immutable CreateRecordMultiLineAst.Line line) =>
+						line.name.name);
 				addDiag2(alloc, ctx, range, immutable Diag(Diag.CreateRecordMultiLineWrongFields(decl, fields, names)));
 			}
 			return res;
@@ -449,7 +454,12 @@ immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(Alloc)(
 			immutable Type nonInstantiatedReturnType = kind == FunKind.ref_
 				? makeFutType(alloc, programState(ctx), ctx.commonTypes, nonInstantiatedNonFutReturnType)
 				: nonInstantiatedNonFutReturnType;
-			return some(immutable ExpectedLambdaType(expectedStructInst, funStruct, kind, force(paramTypes), nonInstantiatedReturnType));
+			return some(immutable ExpectedLambdaType(
+				expectedStructInst,
+				funStruct,
+				kind,
+				force(paramTypes),
+				nonInstantiatedReturnType));
 		} else {
 			addDiag2(alloc, ctx, range, Diag(Diag.LambdaCantInferParamTypes()));
 			return none!ExpectedLambdaType;
@@ -783,7 +793,11 @@ immutable(CheckedExpr) checkMatch(Alloc)(
 				ast.cases,
 				(ref immutable Ptr!StructInst member, ref immutable MatchAst.CaseAst caseAst) {
 					immutable Opt!(Ptr!Local) local = has(caseAst.local)
-						? some(nu!Local(alloc, force(caseAst.local).range, force(caseAst.local).name, immutable Type(member)))
+						? some(nu!Local(
+							alloc,
+							force(caseAst.local).range,
+							force(caseAst.local).name,
+							immutable Type(member)))
 						: none!(Ptr!Local);
 					immutable Expr then = isBogus(expected)
 						? bogus(expected, range).expr

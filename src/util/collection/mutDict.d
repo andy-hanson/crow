@@ -3,16 +3,34 @@ module util.collection.mutDict;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
+import util.collection.arr : Arr;
+import util.collection.arrUtil : map_const;
 import util.collection.dict : KeyValuePair;
-import util.collection.mutArr : MutArr, mutArrAt, mutArrIsEmpty, mutArrRange, mutArrRangeMut, mutArrSize, push;
+import util.collection.mutArr :
+	deleteAt,
+	moveToArr_const,
+	MutArr,
+	mutArrAt,
+	mutArrIsEmpty,
+	mutArrRange,
+	mutArrRangeMut,
+	mutArrSize,
+	push;
 import util.comparison : Comparison;
+import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
 
 struct MutDict(K, V, alias cmp) {
 	MutArr!(KeyValuePair!(K, V)) pairs; // TODO:PRIVATE
 }
 
-const(Opt!V) getAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) d, immutable K key) {
+immutable(Arr!V) moveMutDictToValues(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, immutable V, cmp) a) {
+	const Arr!(KeyValuePair!(K, immutable V)) pairs = moveToArr_const(alloc, a.pairs);
+	return map_const(alloc, pairs, (ref const KeyValuePair!(K, immutable V) pair) =>
+		pair.value);
+}
+
+immutable(Opt!V) getAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) d, immutable K key) {
 	foreach (ref const KeyValuePair!(K, V) pair; mutArrRange(d.pairs))
 		if (cmp(pair.key, key) == Comparison.equal)
 			return some!V(pair.value);
@@ -32,17 +50,22 @@ immutable(V) mustGetAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) d, imm
 void setInDict(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, V, cmp) d, immutable K key, immutable V value) {
 	foreach (ref KeyValuePair!(K, V) pair; mutArrRangeMut(d.pairs))
 		if (cmp(pair.key, key) == Comparison.equal) {
-			pair.value = value;
+			overwriteMemory(&pair.value, value);
 			return;
 		}
 	push(alloc, d.pairs, immutable KeyValuePair!(K, V)(key, value));
 }
 
 
-void addToMutDict(Alloc, K, V, alias cmp)(ref Alloc alloc,  ref MutDict!(K, V, cmp) d, immutable K key, immutable V value) {
+void addToMutDict(Alloc, K, V, alias cmp)(
+	ref Alloc alloc,
+	ref MutDict!(K, V, cmp) d,
+	immutable K key,
+	immutable V value,
+) {
 	immutable Bool has = d.hasKey_mut(key);
 	assert(!has);
-	push(alloc, d.pairs, immutable KeyValuePair!(K, V)(key, value));
+	push(alloc, d.pairs, KeyValuePair!(K, V)(key, value));
 }
 
 struct ValueAndDidAdd(V) {
@@ -95,7 +118,7 @@ immutable(Opt!V) tryDeleteAndGet(K, V, alias cmp)(ref MutDict!(K, V, cmp) d, imm
 	foreach (immutable size_t i; 0..d.pairs.mutArrSize) {
 		immutable KeyValuePair!(K, V) pair = d.pairs.mutArrAt(i);
 		if (cmp(pair.key, key) == Comparison.equal) {
-			d.pairs.deleteAt(i);
+			deleteAt(d.pairs, i);
 			return some!V(pair.value);
 		}
 	}
@@ -103,10 +126,12 @@ immutable(Opt!V) tryDeleteAndGet(K, V, alias cmp)(ref MutDict!(K, V, cmp) d, imm
 }
 
 immutable(V) mustDelete(K, V, alias cmp)(ref MutDict!(K, V, cmp) d, immutable K key) {
-	return tryDeleteAndGet(d, key).force;
+	immutable Opt!V op = tryDeleteAndGet(d, key);
+	return force(op);
 }
 
 immutable(Bool) mutDictIsEmpty(K, V, alias cmp)(ref MutDict!(K, V, cmp) d) {
 	return d.pairs.mutArrIsEmpty;
 }
 
+private:

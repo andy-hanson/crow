@@ -1,4 +1,4 @@
-import .bootstrap .exceptions .gc .number-utils .opt-utils
+import .alloc .bootstrap .exceptions .number-utils .opt-utils
 
 arr-from-begin-end arr ?t(begin ptr ?t, end ptr ?t) unsafe noctx
 	new (end - begin), begin
@@ -330,6 +330,14 @@ reduce-size-if-more-than void(a mut-arr ?t, new-size nat)
 			a.size := new-size
 		else
 			pass
+
+fold ?a(val ?a, a arr ?b, combine fun-mut2 ?a ?a ?b)
+	when
+		a empty?
+			val
+		else
+			combine call val, a.first fold a.tail, combine
+
 
 make-arr arr ?t(size nat, f fun-mut1 ?t nat)
 	size make-mut-arr f freeze

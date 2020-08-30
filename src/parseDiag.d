@@ -80,14 +80,20 @@ struct ParseDiag {
 	immutable this(immutable ExpectedCharacter a) { kind = Kind.expectedCharacter; expectedCharacter = a; }
 	immutable this(immutable ExpectedDedent a) { kind = Kind.expectedDedent; expectedDedent = a; }
 	immutable this(immutable ExpectedIndent a) { kind = Kind.expectedIndent; expectedIndent = a; }
-	immutable this(immutable ExpectedPurityAfterSpace a) { kind = Kind.expectedPurityAfterSpace; expectedPurityAfterSpace = a; }
+	immutable this(immutable ExpectedPurityAfterSpace a) {
+		kind = Kind.expectedPurityAfterSpace; expectedPurityAfterSpace = a;
+	}
 	immutable this(immutable IndentNotDivisible a) { kind = Kind.indentNotDivisible; indentNotDivisible = a; }
 	immutable this(immutable IndentWrongCharacter a) { kind = Kind.indentWrongCharacter; indentWrongCharacter = a; }
 	immutable this(immutable LetMustHaveThen a) { kind = Kind.letMustHaveThen; letMustHaveThen = a; }
-	immutable this(immutable MatchWhenNewMayNotAppearInsideArg a) { kind = Kind.matchWhenNewMayNotAppearInsideArg; matchWhenNewMayNotAppearInsideArg = a; }
+	immutable this(immutable MatchWhenNewMayNotAppearInsideArg a) {
+		kind = Kind.matchWhenNewMayNotAppearInsideArg; matchWhenNewMayNotAppearInsideArg = a;
+	}
 	immutable this(immutable MustEndInBlankLine a) { kind = Kind.mustEndInBlankLine; mustEndInBlankLine = a; }
 	immutable this(immutable ReservedName a) { kind = Kind.reservedName; reservedName = a; }
-	immutable this(immutable TypeParamCantHaveTypeArgs a) { kind = Kind.typeParamCantHaveTypeArgs; typeParamCantHaveTypeArgs = a; }
+	immutable this(immutable TypeParamCantHaveTypeArgs a) {
+		kind = Kind.typeParamCantHaveTypeArgs; typeParamCantHaveTypeArgs = a;
+	}
 	immutable this(immutable UnexpectedCharacter a) { kind = Kind.unexpectedCharacter; unexpectedCharacter = a; }
 	immutable this(immutable UnexpectedDedent a) { kind = Kind.unexpectedDedent; unexpectedDedent = a; }
 	immutable this(immutable UnexpectedIndent a) { kind = Kind.unexpectedIndent; unexpectedIndent = a; }
@@ -100,14 +106,20 @@ T matchParseDiag(T)(
 	scope T delegate(ref immutable ParseDiag.ExpectedCharacter) @safe @nogc pure nothrow cbExpectedCharacter,
 	scope T delegate(ref immutable ParseDiag.ExpectedDedent) @safe @nogc pure nothrow cbExpectedDedent,
 	scope T delegate(ref immutable ParseDiag.ExpectedIndent) @safe @nogc pure nothrow cbExpectedIndent,
-	scope T delegate(ref immutable ParseDiag.ExpectedPurityAfterSpace) @safe @nogc pure nothrow cbExpectedPurityAfterSpace,
+	scope T delegate(
+		ref immutable ParseDiag.ExpectedPurityAfterSpace
+	) @safe @nogc pure nothrow cbExpectedPurityAfterSpace,
 	scope T delegate(ref immutable ParseDiag.IndentNotDivisible) @safe @nogc pure nothrow cbIndentNotDivisible,
 	scope T delegate(ref immutable ParseDiag.IndentWrongCharacter) @safe @nogc pure nothrow cbIndentWrongCharacter,
 	scope T delegate(ref immutable ParseDiag.LetMustHaveThen) @safe @nogc pure nothrow cbLetMustHaveThen,
-	scope T delegate(ref immutable ParseDiag.MatchWhenNewMayNotAppearInsideArg) @safe @nogc pure nothrow cbMatchWhenNewMayNotAppearInsideArg,
+	scope T delegate(
+		ref immutable ParseDiag.MatchWhenNewMayNotAppearInsideArg
+	) @safe @nogc pure nothrow cbMatchWhenNewMayNotAppearInsideArg,
 	scope T delegate(ref immutable ParseDiag.MustEndInBlankLine) @safe @nogc pure nothrow cbMustEndInBlankLine,
 	scope T delegate(ref immutable ParseDiag.ReservedName) @safe @nogc pure nothrow cbReservedName,
-	scope T delegate(ref immutable ParseDiag.TypeParamCantHaveTypeArgs) @safe @nogc pure nothrow cbTypeParamCantHaveTypeArgs,
+	scope T delegate(
+		ref immutable ParseDiag.TypeParamCantHaveTypeArgs
+	) @safe @nogc pure nothrow cbTypeParamCantHaveTypeArgs,
 	scope T delegate(ref immutable ParseDiag.UnexpectedCharacter) @safe @nogc pure nothrow cbUnexpectedCharacter,
 	scope T delegate(ref immutable ParseDiag.UnexpectedDedent) @safe @nogc pure nothrow cbUnexpectedDedent,
 	scope T delegate(ref immutable ParseDiag.UnexpectedIndent) @safe @nogc pure nothrow cbUnexpectedIndent,

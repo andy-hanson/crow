@@ -28,6 +28,10 @@ struct AbsolutePath {
 	immutable(Str) extension;
 }
 
+immutable(AbsolutePath) withExtension(ref immutable AbsolutePath a, immutable Str newExtension) {
+	return immutable AbsolutePath(a.root, a.path, newExtension);
+}
+
 ref immutable(Opt!(Ptr!Path)) parent(return scope ref immutable Path a) {
 	return a.parent_;
 }
@@ -75,7 +79,11 @@ struct RelPathWithExtension {
 	immutable Str extension;
 }
 
-immutable(Opt!(Ptr!Path)) resolvePath(Alloc)(ref Alloc alloc, immutable Opt!(Ptr!Path) path, immutable RelPath relPath) {
+immutable(Opt!(Ptr!Path)) resolvePath(Alloc)(
+	ref Alloc alloc,
+	immutable Opt!(Ptr!Path) path,
+	immutable RelPath relPath,
+) {
 	return matchOpt(
 		path,
 		(ref immutable Ptr!Path cur) =>
@@ -179,7 +187,12 @@ private @trusted immutable(Str) pathToStrWorker(Alloc)(
 immutable(Str) pathToStr(Alloc)(ref Alloc alloc, immutable Str root, immutable Ptr!Path path, immutable Str extension) {
 	return pathToStrWorker(alloc, root, path, extension, False);
 }
-immutable(CStr) pathToCStr(Alloc)(ref Alloc alloc, immutable Str root, immutable Ptr!Path path, immutable Str extension) {
+immutable(CStr) pathToCStr(Alloc)(
+	ref Alloc alloc,
+	immutable Str root,
+	immutable Ptr!Path path,
+	immutable Str extension,
+) {
 	return pathToNulTerminatedStr(alloc, root, path, extension).asCStr();
 }
 
@@ -227,14 +240,6 @@ immutable(Ptr!Path) parsePath(Alloc, SymAlloc)(ref Alloc alloc, ref AllSymbols!S
 		return recur(i, childPath(alloc, path, symbols.getSymFromAlphaIdentifier(sliceFromTo(str, begin, i))));
 	}
 	return recur(i, path);
-}
-
-private immutable(RelPathWithExtension) parseRelPathWithExtension(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
-	immutable Str s,
-) {
-
 }
 
 private immutable(RelPath) parseRelPath(Alloc, SymAlloc)(

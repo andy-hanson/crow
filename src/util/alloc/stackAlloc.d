@@ -54,6 +54,10 @@ struct SingleHeapAlloc(ParentAlloc, string debugName, size_t capacity) {
 
 	public:
 	this(Ptr!ParentAlloc parent) {
+		debug {
+			import core.stdc.stdio : printf;
+			if (false) printf("Init SingleHeapAlloc %.*s\n", cast(int) debugName.length, debugName.ptr);
+		}
 		parentAlloc = parent;
 		data_ = parentAlloc.allocate(capacity);
 		assert(data_ != null);
@@ -61,10 +65,18 @@ struct SingleHeapAlloc(ParentAlloc, string debugName, size_t capacity) {
 	}
 
 	~this() {
+		debug {
+			import core.stdc.stdio : printf;
+			if (false) printf("Delete SingleHeapAlloc %.*s\n", cast(int) debugName.length, debugName.ptr);
+		}
 		parentAlloc.free(data_, capacity);
 	}
 
 	@trusted ubyte* allocate(immutable size_t nBytes) {
+		debug {
+			import core.stdc.stdio : printf;
+		}
+
 		if (cur + nBytes > capacity) {
 			debug {
 				import core.stdc.stdio : printf;

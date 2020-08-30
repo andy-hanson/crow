@@ -47,8 +47,7 @@ is-file? bool(path str) summon
 is-file? bool(path c-str) summon
 	match path get-stat
 		none
-			| raise exception
-			todo
+			false
 		some s
 			s.value.st-mode bits-and s-ifmt == s-ifreg
 
@@ -117,13 +116,11 @@ current-executable-path str() summon trusted
 	"/proc/self/exe" read-link
 
 read-file str(path str) summon
-	| TODO:KILL (handle this in try-read-file -- test that that works)
-	assert: path is-file?
-
 	match path try-read-file
 		none
-			| exception: file does not exist
-			todo
+			| TODO: don't print, warn
+			print-sync: "file does not exist: " + path
+			""
 		some s
 			s.value
 
@@ -131,39 +128,45 @@ try-read-file opt str(path str) summon
 	path.to-c-str try-read-file
 
 try-read-file opt str(path c-str) summon trusted
-	fd = path open o-rdonly
 	when
-		fd == neg-one
-			errno = get-errno
+		path is-file?
+			fd = path open o-rdonly
 			when
-				errno == enoent
-					none
+				fd == neg-one
+					errno = get-errno
+					when
+						errno == enoent
+							none
+						else
+							print-sync: "failed to open file " + path.to-str
+							todo
 				else
-					print-sync: "failed to open file " + path.to-str
-					todo
+					file-size = fd lseek zero, seek-end
+					| TODO: handle errors
+					forbid: file-size == neg-one
+					| TODO: this is just a sanity check
+					assert: file-size < billion
+					| TODO: handle empty files
+					forbid: file-size zero?
+
+					| Go back to beginning
+					off = fd lseek zero, seek-set
+					| TODO: handle errors
+					assert: off == zero
+
+					| TODO: allocation can fail, then 'fd' is left open. Need finalizers
+					file-size-nat = file-size.to-nat
+					res = file-size-nat new-uninitialized-mut-arr<char>
+					n-bytes-read = fd read res.data.ptr-cast, file-size-nat
+					| TODO: handle errors
+					forbid: n-bytes-read == neg-one
+					assert: n-bytes-read == file-size
+					check-posix-error: fd close
+					res.freeze some
 		else
-			file-size = fd lseek zero, seek-end
-			| TODO: handle errors
-			forbid: file-size == neg-one
-			| TODO: this is just a sanity check
-			assert: file-size < billion
-			| TODO: handle empty files
-			forbid: file-size zero?
-
-			| Go back to beginning
-			off = fd lseek zero, seek-set
-			| TODO: handle errors
-			assert: off == zero
-
-			| TODO: allocation can fail, then 'fd' is left open. Need finalizers
-			file-size-nat = file-size.to-nat
-			res = file-size-nat new-uninitialized-mut-arr<char>
-			n-bytes-read = fd read res.data.ptr-cast, file-size-nat
-			| TODO: handle errors
-			forbid: n-bytes-read == neg-one
-			assert: n-bytes-read == file-size
-			check-posix-error: fd close
-			res.freeze some
+			| TODO: don't print, warn
+			print-sync: "not a file: " + path.to-str
+			none
 
 get-cwd str() summon trusted
 	max-size = eight.two-pow as<nat>
@@ -220,6 +223,9 @@ process-result record
 	stderr str
 
 spawn-and-wait-result process-result(exe str, args arr str, environ environ) trusted summon
+	print-sync: "spawn-and-wait-result: " + exe fold args, \a b
+		a + " " + b
+
 	when
 		| TODO: kill, handle that error properly
 		exe is-file?

@@ -1,2 +1,7 @@
-app
-app.o
+# Ignore extensionless files (executables)
+# https://stackoverflow.com/questions/19023550/how-do-i-add-files-without-dots-in-them-all-extension-less-files-to-the-gitign
+*
+!/**/
+!*.*
+
+*.o

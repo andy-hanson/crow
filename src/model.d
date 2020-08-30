@@ -2,7 +2,7 @@ module model;
 
 @safe @nogc pure nothrow:
 
-import util.bools : and, Bool, False, or, True;
+import util.bools : and, Bool, False, True;
 import util.collection.arr : Arr, empty, emptyArr, first, only, range, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, compareArr, exists, map;
 import util.collection.dict : Dict;
@@ -181,7 +181,7 @@ immutable(Purity) worstCasePurity(ref immutable Type a) {
 }
 
 //TODO:MOVE?
-immutable(Bool) typeEquals(ref immutable Type a, ref immutable Type b) {
+immutable(Bool) typeEquals(immutable Type a, immutable Type b) {
 	return matchType(
 		a,
 		(ref immutable Type.Bogus) => isBogus(b),
@@ -425,7 +425,7 @@ struct StructInst {
 	Late!(immutable StructBody) _body_;
 
 	public:
-	immutable this(immutable StructDeclAndArgs da, immutable Purity bp, immutable Purity wp) {
+	this(immutable StructDeclAndArgs da, immutable Purity bp, immutable Purity wp) {
 		declAndArgs = da;
 		bestCasePurity = bp;
 		worstCasePurity = wp;
@@ -662,7 +662,7 @@ immutable(size_t) nSpecImpls(ref immutable FunDecl a) {
 }
 
 immutable(Bool) isTemplate(ref immutable FunDecl a) {
-	return or(a.typeParams.empty, a.specs.empty);
+	return Bool(!empty(a.typeParams) || !empty(a.specs));
 }
 
 immutable(Bool) isSummon(ref immutable FunDecl a) {
@@ -720,7 +720,15 @@ ref immutable(Arr!Param) params(return scope ref immutable FunInst a) {
 }
 
 immutable(Ptr!FunDecl) decl(ref immutable FunInst a) {
-	return a.decl;
+	return a.funDeclAndArgs.decl;
+}
+
+immutable(Arr!Type) typeArgs(ref immutable FunInst a) {
+	return a.funDeclAndArgs.typeArgs;
+}
+
+immutable(Arr!Called) specImpls(ref immutable FunInst a) {
+	return a.funDeclAndArgs.specImpls;
 }
 
 immutable(Bool) noCtx(ref immutable FunInst a) {
@@ -1057,6 +1065,7 @@ immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable P
 }
 
 struct Program {
+	immutable Ptr!Module allocModule;
 	immutable Ptr!Module bootstrapModule;
 	immutable Ptr!Module runtimeModule;
 	immutable Ptr!Module runtimeMainModule;
@@ -1098,7 +1107,7 @@ struct Expr {
 		immutable Type type;
 		immutable Ptr!Expr cond;
 		immutable Ptr!Expr then;
-		immutable Ptr!Expr elze;
+		immutable Ptr!Expr else_;
 	}
 
 	struct CreateArr {
@@ -1146,7 +1155,7 @@ struct Expr {
 		}
 
 		immutable Ptr!Expr matched;
-		immutable Ptr!StructInst matchedUNion;
+		immutable Ptr!StructInst matchedUnion;
 		immutable Arr!Case cases;
 		immutable Type type;
 	}
@@ -1168,7 +1177,12 @@ struct Expr {
 		immutable Ptr!RecordField field;
 		immutable Ptr!Expr value;
 
-		immutable this(immutable Ptr!Expr t, immutable Ptr!StructInst tt, immutable Ptr!RecordField f, immutable Ptr!Expr v) {
+		immutable this(
+			immutable Ptr!Expr t,
+			immutable Ptr!StructInst tt,
+			immutable Ptr!RecordField f,
+			immutable Ptr!Expr v,
+		) {
 			target = t;
 			targetType = tt;
 			field = f;
@@ -1230,20 +1244,38 @@ struct Expr {
 	public:
 	immutable this(immutable SourceRange r, immutable Bogus a) { range_ = r; kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable SourceRange r, immutable Call a) { range_ = r; kind = Kind.call; call = a; }
-	@trusted immutable this(immutable SourceRange r, immutable ClosureFieldRef a) { range_ = r; kind = Kind.closureFieldRef; closureFieldRef = a; }
+	@trusted immutable this(immutable SourceRange r, immutable ClosureFieldRef a) {
+		range_ = r; kind = Kind.closureFieldRef; closureFieldRef = a;
+	}
 	@trusted immutable this(immutable SourceRange r, immutable Cond a) { range_ = r; kind = Kind.cond; cond = a; }
-	@trusted immutable this(immutable SourceRange r, immutable CreateArr a) { range_ = r; kind = Kind.createArr; createArr = a; }
-	@trusted immutable this(immutable SourceRange r, immutable CreateRecord a) { range_ = r; kind = Kind.createRecord; createRecord = a; }
-	@trusted immutable this(immutable SourceRange r, immutable ImplicitConvertToUnion a) { range_ = r; kind = Kind.implicitConvertToUnion; implicitConvertToUnion = a; }
+	@trusted immutable this(immutable SourceRange r, immutable CreateArr a) {
+		range_ = r; kind = Kind.createArr; createArr = a;
+	}
+	@trusted immutable this(immutable SourceRange r, immutable CreateRecord a) {
+		range_ = r; kind = Kind.createRecord; createRecord = a;
+	}
+	@trusted immutable this(immutable SourceRange r, immutable ImplicitConvertToUnion a) {
+		range_ = r; kind = Kind.implicitConvertToUnion; implicitConvertToUnion = a;
+	}
 	@trusted immutable this(immutable SourceRange r, immutable Lambda a) { range_ = r; kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable SourceRange r, immutable Let a) { range_ = r; kind = Kind.let; let = a; }
-	@trusted immutable this(immutable SourceRange r, immutable LocalRef a) { range_ = r; kind = Kind.localRef; localRef = a; }
+	@trusted immutable this(immutable SourceRange r, immutable LocalRef a) {
+		range_ = r; kind = Kind.localRef; localRef = a;
+	}
 	@trusted immutable this(immutable SourceRange r, immutable Match a) { range_ = r; kind = Kind.match; match_ = a; }
-	@trusted immutable this(immutable SourceRange r, immutable ParamRef a) { range_ = r; kind = Kind.paramRef; paramRef = a; }
-	@trusted immutable this(immutable SourceRange r, immutable RecordFieldAccess a) { range_ = r; kind = Kind.recordFieldAccess; recordFieldAccess = a; }
-	@trusted immutable this(immutable SourceRange r, immutable RecordFieldSet a) { range_ = r; kind = Kind.recordFieldSet; recordFieldSet = a; }
+	@trusted immutable this(immutable SourceRange r, immutable ParamRef a) {
+		range_ = r; kind = Kind.paramRef; paramRef = a;
+	}
+	@trusted immutable this(immutable SourceRange r, immutable RecordFieldAccess a) {
+		range_ = r; kind = Kind.recordFieldAccess; recordFieldAccess = a;
+	}
+	@trusted immutable this(immutable SourceRange r, immutable RecordFieldSet a) {
+		range_ = r; kind = Kind.recordFieldSet; recordFieldSet = a;
+	}
 	@trusted immutable this(immutable SourceRange r, immutable Seq a) { range_ = r; kind = Kind.seq; seq = a; }
-	@trusted immutable this(immutable SourceRange r, immutable StringLiteral a) { range_ = r; kind = Kind.stringLiteral; stringLiteral = a; }
+	@trusted immutable this(immutable SourceRange r, immutable StringLiteral a) {
+		range_ = r; kind = Kind.stringLiteral; stringLiteral = a;
+	}
 }
 
 immutable(size_t) index(ref immutable Expr.ClosureFieldRef a) {

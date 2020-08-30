@@ -1,5 +1,7 @@
 module util.bools;
 
+@safe @nogc pure nothrow:
+
 immutable(Bool) and(alias a, alias b)() {
 	return a().value ? b() : False;
 }
@@ -8,24 +10,21 @@ immutable(Bool) and(alias a, alias b, alias c)() {
 	return a().value && b().value ? c() : False;
 }
 
-@safe @nogc pure nothrow:
-
 struct Bool {
+	@safe @nogc pure nothrow:
+
 	bool value;
 
 	alias value this;
+
+	@disable this();
+	immutable this(immutable bool v) {
+		value = v;
+	}
 }
 
 immutable Bool False = Bool(false);
 immutable Bool True = Bool(true);
-
-immutable(Bool) and(immutable Bool a, immutable Bool b) {
-	return a.value ? b : False;
-}
-
-immutable(Bool) or(immutable Bool a, immutable Bool b) {
-	return a.value ? True : b;
-}
 
 immutable(Bool) not(immutable Bool a) {
 	return Bool(!a.value);

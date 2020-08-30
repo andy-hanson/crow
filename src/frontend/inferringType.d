@@ -342,7 +342,12 @@ immutable(Bool) setTypeNoDiagnostic(Alloc)(
 	ref Expected expected,
 	immutable Type setType,
 ) {
-	immutable SetTypeResult typeToSet = checkAssignabilityOpt!Alloc(alloc, programState, tryGetInferred(expected), setType, expected.inferringTypeArgs);
+	immutable SetTypeResult typeToSet = checkAssignabilityOpt(
+		alloc,
+		programState,
+		tryGetInferred(expected),
+		setType,
+		expected.inferringTypeArgs);
 	return matchSetTypeResult(
 		typeToSet,
 		(ref immutable SetTypeResult.Set s) {
@@ -484,7 +489,10 @@ immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(Alloc)(
 	return has(newTypeArgs)
 		? someIsSet
 			? immutable SetTypeResult(immutable SetTypeResult.Set(immutable Type(
-				instantiateStructNeverDelay(alloc, programState, immutable StructDeclAndArgs(decl, force(newTypeArgs))))))
+				instantiateStructNeverDelay(
+					alloc,
+					programState,
+					immutable StructDeclAndArgs(decl, force(newTypeArgs))))))
 			: immutable SetTypeResult(SetTypeResult.Keep())
 		: immutable SetTypeResult(SetTypeResult.Fail());
 }
@@ -540,7 +548,10 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(Alloc)(
 			immutable Opt!(Arr!Type) typeArgs = mapOrNone!Type(alloc, typeArgs(i), (ref immutable Type t) =>
 				tryGetDeeplyInstantiatedTypeWorker(alloc, programState, t, inferringTypeArgs));
 			return has(typeArgs)
-				? some(immutable Type(instantiateStructNeverDelay(alloc, programState, immutable StructDeclAndArgs(decl(i), force(typeArgs)))))
+				? some(immutable Type(instantiateStructNeverDelay(
+					alloc,
+					programState,
+					immutable StructDeclAndArgs(decl(i), force(typeArgs)))))
 				: none!Type;
 		});
 }
@@ -564,7 +575,7 @@ immutable(SetTypeResult) setTypeNoDiagnosticWorker_forSingleInferringType(Alloc)
 	ref immutable Type setType,
 ) {
 	InferringTypeArgs inferring = InferringTypeArgs.none();
-	immutable SetTypeResult res = checkAssignabilityOpt!Alloc(alloc, programState, tryGetInferred(sit), setType, inferring);
+	immutable SetTypeResult res = checkAssignabilityOpt(alloc, programState, tryGetInferred(sit), setType, inferring);
 	matchSetTypeResult!void(
 		res,
 		(ref immutable SetTypeResult.Set s) {
@@ -597,7 +608,7 @@ immutable(SetTypeResult) checkAssignability(Alloc)(
 		(immutable Ptr!TypeParam pa) {
 			Opt!(Ptr!SingleInferringType) aInferring = tryGetTypeArgFromInferringTypeArgs(aInferringTypeArgs, pa);
 			return has(aInferring)
-				? setTypeNoDiagnosticWorker_forSingleInferringType!Alloc(alloc, programState, force(aInferring).deref, b)
+				? setTypeNoDiagnosticWorker_forSingleInferringType(alloc, programState, force(aInferring).deref, b)
 				: matchType!SetTypeResult(
 					b,
 					(ref immutable Type.Bogus) =>
@@ -620,7 +631,13 @@ immutable(SetTypeResult) checkAssignability(Alloc)(
 				(immutable Ptr!TypeParam) =>
 					immutable SetTypeResult(SetTypeResult.Fail()),
 				(immutable Ptr!StructInst bi) =>
-					setTypeNoDiagnosticWorker_forStructInst(alloc, programState, ai, bi, aInferringTypeArgs, allowConvertAToBUnion)));
+					setTypeNoDiagnosticWorker_forStructInst(
+						alloc,
+						programState,
+						ai,
+						bi,
+						aInferringTypeArgs,
+						allowConvertAToBUnion)));
 }
 
 

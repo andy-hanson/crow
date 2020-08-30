@@ -1,12 +1,12 @@
 | .str-utils for c-str.to-str
 | TODO: don't import .io or .number-utils
 import
+	.alloc
 	.arr-utils
 	.bootstrap
 	.cell
 	.exceptions
 	.fut-low-level
-	.gc
 	.io
 	.mut-bag
 	.number-utils

@@ -3,19 +3,48 @@ module util.sym;
 @safe @nogc pure nothrow:
 
 import util.bitUtils : allBitsSet, bitsOverlap, getBitsShifted, singleBit;
-import util.bools : and, Bool, False, not, True;
-import util.collection.arr : at, first, last, range, size;
-import util.collection.arrUtil : tail;
+import util.bools : Bool, False, not, True;
+import util.collection.arr : at, empty, first, last, range, size;
+import util.collection.arrUtil : every, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet, mutSetHas;
 import util.collection.str : CStr, Str, strEqCStr, strEqLiteral, strLiteral, strOfCStr, strToCStr;
 import util.comparison : Comparison;
-import util.opt : Opt;
-import util.ptr : ptrTrustMe_mut;
+import util.opt : Opt, none, some;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.types : u64;
 import util.verify : unreachable, verify;
-import util.writer : finish, writeChar, Writer;
+import util.writer : finishWriter, writeChar, Writer;
 import util.util : todo;
+
+
+immutable(Bool) isAlphaIdentifierStart(immutable char c) {
+	return Bool('a' <= c && c <= 'z');
+}
+
+immutable(Bool) isDigit(immutable char c) {
+	return Bool('0' <= c && c <= '9');
+}
+
+immutable(Bool) isOperatorChar(immutable char c) {
+	switch (c) {
+		case '+':
+		case '-':
+		case '*':
+		case '/':
+		case '<':
+		case '>':
+		case '=':
+		case '!':
+			return True;
+		default:
+			return False;
+	}
+}
+
+immutable(Bool) isAlphaIdentifierContinue(immutable char c) {
+	return Bool(isAlphaIdentifierStart(c) || c == '-' || c.isDigit);
+}
 
 struct Sym {
 	// Short alpha identifier: packed representation, marked with shortAlphaIdentifierMarker
@@ -26,17 +55,18 @@ struct Sym {
 }
 
 struct AllSymbols(Alloc) {
-	this(Alloc al) {
-		alloc = al;
-	}
-
-	Alloc alloc;
+	Ptr!Alloc alloc;
 	MutArr!(immutable CStr) largeStrings;
 }
 
 immutable(Opt!Sym) tryGetSymFromStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
-	//Remember to fail on empty strings!
-	return todo!(Opt!Sym)("tryGetSymFromStr");
+	return empty(str)
+		? none!Sym
+		: isAlphaIdentifierStart(first(str)) && every(tail(str), (ref immutable char c) => isAlphaIdentifierContinue(c))
+		? some(getSymFromAlphaIdentifier(allSymbols, str))
+		: every(str, (ref immutable char c) => isOperatorChar(c))
+		? some(getSymFromOperator(allSymbols, str))
+		: none!Sym;
 }
 
 immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
@@ -109,21 +139,19 @@ immutable(u64) shortSymOperatorLiteralValue(immutable string name) {
 immutable(Bool) symEqLongAlphaLiteral(immutable Sym a, immutable string lit) {
 	immutable Str str = strLiteral(lit);
 	assert(str.size > maxShortAlphaIdentifierSize);
-	return isLongSym(a).and(strEqLiteral(asLong(a), lit));
+	return Bool(isLongSym(a) && strEqLiteral(asLong(a), lit));
 }
 
 immutable(Bool) symEqLongOperatorLiteral(immutable Sym a, immutable string lit) {
 	immutable Str str = strLiteral(lit);
 	assert(str.size > maxShortOperatorSize);
-	return and(
-		isLongSym(a),
-		strEqLiteral(asLong(a), lit));
+	return Bool(isLongSym(a) && strEqLiteral(asLong(a), lit));
 }
 
 immutable(Str) strOfSym(Alloc)(ref Alloc alloc, immutable Sym a) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut!Alloc(alloc));
 	writeSym(writer, a);
-	return finish(writer);
+	return finishWriter(writer);
 }
 
 immutable(size_t) writeSymAndGetSize(Alloc)(ref Writer!Alloc writer, immutable Sym a) {

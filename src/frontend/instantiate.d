@@ -59,10 +59,16 @@ struct TypeParamsScope {
 }
 
 struct TypeParamsAndArgs {
+	@safe @nogc pure nothrow:
+
 	immutable Arr!TypeParam typeParams;
 	immutable Arr!Type typeArgs;
 
-	invariant(sizeEq(typeParams, typeArgs));
+	immutable this(immutable Arr!TypeParam tp, immutable Arr!Type ta) {
+		typeParams = tp;
+		typeArgs = ta;
+		assert(sizeEq(typeParams, typeArgs));
+	}
 }
 
 immutable(Opt!(Ptr!T)) tryGetTypeArg(T)(
@@ -157,7 +163,7 @@ immutable(Ptr!FunInst) instantiateFun(Alloc)(
 				alloc,
 				programState,
 				declAndArgs.decl.sig,
-				TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs))));
+				immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs))));
 }
 
 immutable(StructBody) instantiateStructBody(Alloc)(
@@ -166,7 +172,8 @@ immutable(StructBody) instantiateStructBody(Alloc)(
 	immutable StructDeclAndArgs declAndArgs,
 	DelayStructInsts delayStructInsts,
 ) {
-	immutable TypeParamsAndArgs typeParamsAndArgs = TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs);
+	immutable TypeParamsAndArgs typeParamsAndArgs =
+		immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs);
 	return matchStructBody(
 		body_(declAndArgs.decl),
 		(ref immutable StructBody.Bogus) => immutable StructBody(StructBody.Bogus()),
@@ -188,56 +195,6 @@ immutable(Ptr!StructInst) instantiateStruct(Alloc)(
 	immutable StructDeclAndArgs declAndArgs,
 	DelayStructInsts delayStructInsts,
 ) {
-	debug {
-		if (false) {
-			import core.stdc.stdio : printf;
-			import model : asTypeParam, isTypeParam, typeToSexpr;
-			import util.collection.mutArr : mutArrRange;
-			import util.collection.dict : KeyValuePair;
-			import util.sym : symToCStr;
-			import util.sexpr : Sexpr, writeSexpr;
-			import util.writer : finishToCStr, Writer, WriterWithIndent;
-			import util.collection.arr : arrRange = range, only;
-			import util.ptr : ptrTrustMe_mut;
-			import util.sym : Sym, symEq;
-
-			immutable Sym name = declAndArgs.decl.deref.name;
-			printf("  instantiateStruct has delayStructInsts? %d\n", has(delayStructInsts).value);
-			printf(
-				"InstantiateStruct %s (%lu type params, %lu type args)\n",
-				symToCStr(alloc, name),
-				size(declAndArgs.decl.typeParams),
-				size(declAndArgs.typeArgs));
-			if (size(declAndArgs.typeArgs) == 1 && isTypeParam(only(declAndArgs.typeArgs))) {
-				immutable Ptr!TypeParam tp = asTypeParam(only(declAndArgs.typeArgs));
-				printf("  Decl is %s at %p\n", symToCStr(alloc, name), declAndArgs.decl.rawPtr);
-				printf("  Instantiating on type param %s at %p\n", symToCStr(alloc, tp.name), tp.rawPtr);
-
-				foreach (const KeyValuePair!(immutable StructDeclAndArgs, Ptr!StructInst) pair; mutArrRange(programState.structInsts.pairs)) {
-					immutable StructDeclAndArgs sda = pair.key;
-
-					if (symEq(sda.decl.name, name)) {
-						immutable Type typeArg = only(sda.typeArgs);
-						//immutable Sexpr s = typeToSexpr(alloc, typeArg);
-						//Writer!Alloc w = Writer!Alloc(ptrTrustMe_mut!Alloc(alloc));
-						//WriterWithIndent!Alloc ww = WriterWithIndent!Alloc(ptrTrustMe_mut(w), 1);
-						//immutable Ptr!TypeParam tp2 = asTypeParam(only(sda.typeArgs));
-						printf("  Has an instance already...\n");
-						if (isTypeParam(typeArg)) {
-							printf("    ... on type param %s at %p\n",
-								symToCStr(alloc, asTypeParam(typeArg).name),
-								asTypeParam(typeArg).rawPtr);
-						} else {
-							printf("    ... on something other than a TypeParam\n");
-						}
-
-						//writeSexpr(ww, s);
-						//printf("  %s\n", finishToCStr(w));
-					}
-				}
-			}
-		}
-	}
 	ValueAndDidAdd!(Ptr!StructInst) res = getOrAddAndDidAdd(
 		alloc,
 		programState.structInsts,
@@ -302,7 +259,9 @@ immutable(Ptr!StructInst) instantiateStructInst(Alloc)(
 	immutable Ptr!StructInst structInst,
 	ref immutable StructInst contextStructInst,
 ) {
-	immutable TypeParamsAndArgs ta = TypeParamsAndArgs(contextStructInst.decl.typeParams, contextStructInst.typeArgs);
+	immutable TypeParamsAndArgs ta = immutable TypeParamsAndArgs(
+		contextStructInst.decl.typeParams,
+		contextStructInst.typeArgs);
 	return instantiateStructInst(alloc, programState, structInst, ta, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
 
@@ -329,7 +288,11 @@ immutable(Ptr!SpecInst) instantiateSpec(Alloc)(
 					immutable SpecBody(SpecBody.Builtin(b.kind)),
 				(ref immutable Arr!Sig sigs) =>
 					immutable SpecBody(map!Sig(alloc, sigs, (ref immutable Sig sig) =>
-						instantiateSig(alloc, programState, sig, TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs)))))));
+						instantiateSig(
+							alloc,
+							programState,
+							sig,
+							immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs)))))));
 }
 
 immutable(Ptr!SpecInst) instantiateSpecInst(Alloc)(
@@ -374,6 +337,11 @@ immutable(Sig) instantiateSig(Alloc)(
 	immutable Type returnType = instantiateType(
 		alloc, programState, sig.returnType, typeParamsAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 	immutable Arr!Param params = map!Param(alloc, sig.params, (ref immutable Param p) =>
-		withType(p, instantiateType(alloc, programState, p.type, typeParamsAndArgs, noneMut!(Ptr!(MutArr!(Ptr!StructInst))))));
+		withType(p, instantiateType(
+			alloc,
+			programState,
+			p.type,
+			typeParamsAndArgs,
+			noneMut!(Ptr!(MutArr!(Ptr!StructInst))))));
 	return immutable Sig(sig.range, sig.name, returnType, params);
 }

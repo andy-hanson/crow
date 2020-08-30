@@ -50,7 +50,7 @@ import frontend.parseType : tryParseTypeArg, tryParseTypeArgs;
 import parseDiag : ParseDiag;
 
 import util.alloc.alloc : nu2;
-import util.bools : and, Bool, False, or, True;
+import util.bools : Bool, False, True;
 import util.collection.arr : Arr, empty, emptyArr, only, size;
 import util.collection.arrUtil : arrLiteral, exists, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -197,7 +197,12 @@ immutable(ExprAndMaybeDedent) parseCallsAndRecordFieldSets(Alloc, SymAlloc)(
 		immutable RecordFieldSetAst rfs = RecordFieldSetAst(target, call.funName, allocExpr(alloc, value.expr));
 		return ExprAndMaybeDedent(ExprAst(lexer.range(start), ExprAstKind(rfs)), value.dedents);
 	} else if (lexer.tryTake(' '))
-		return parseCallsAndRecordFieldSets(alloc, lexer, start, parseCall(alloc, lexer, ed.expr, allowBlock), allowBlock);
+		return parseCallsAndRecordFieldSets(
+			alloc,
+			lexer,
+			start,
+			parseCall(alloc, lexer, ed.expr, allowBlock),
+			allowBlock);
 	else
 		return ed;
 }
@@ -228,7 +233,7 @@ immutable(Bool) someInOwnBody(
 		(scope ref immutable LiteralInnterAst) => unreachable!(immutable Bool),
 		(scope ref immutable MatchAst) => unreachable!(immutable Bool),
 		(scope ref immutable SeqAst) => unreachable!(immutable Bool),
-		(scope ref immutable RecordFieldSetAst e) => or(recur(e.target), recur(e.value)),
+		(scope ref immutable RecordFieldSetAst e) => immutable Bool(recur(e.target) || recur(e.value)),
 		(scope ref immutable ThenAst) => unreachable!(immutable Bool),
 	);
 }
@@ -279,7 +284,11 @@ immutable(ExprAndMaybeDedent) parseMatch(Alloc, SymAlloc)(
 					return some(local);
 				}();
 			immutable ExprAndDedent ed = parseStatementsAndDedent(alloc, lexer);
-			add(alloc, cases, immutable MatchAst.CaseAst(lexer.range(startCase), structName, localName, allocExpr(alloc, ed.expr)));
+			add(alloc, cases, immutable MatchAst.CaseAst(
+				lexer.range(startCase),
+				structName,
+				localName,
+				allocExpr(alloc, ed.expr)));
 			if (ed.dedents != 0)
 				return ed.dedents - 1;
 		}
@@ -572,7 +581,12 @@ immutable(ExprAndDedent) parseStatementsAndDedentRecur(Alloc, SymAlloc)(
 	if (dedents == 0) {
 		immutable ExprAndDedent ed = parseSingleStatementLine(alloc, lexer);
 		immutable SeqAst seq = SeqAst(allocExpr(alloc, expr), allocExpr(alloc, ed.expr));
-		return parseStatementsAndDedentRecur(alloc, lexer, start, ExprAst(lexer.range(start), ExprAstKind(seq)), ed.dedents);
+		return parseStatementsAndDedentRecur(
+			alloc,
+			lexer,
+			start,
+			ExprAst(lexer.range(start), ExprAstKind(seq)),
+			ed.dedents);
 	} else
 		return ExprAndDedent(expr, dedents - 1);
 }

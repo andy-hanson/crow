@@ -134,3 +134,10 @@ const(Arr!T) tempAsArr(T)(ref const MutArr!T m) {
 Arr!T tempAsArr_mut(T)(ref MutArr!T m) {
 	return Arr!T(m.begin_, m.size_);
 }
+
+@trusted void deleteAt(T)(ref MutArr!T a, immutable size_t index) {
+	assert(index < a.size_);
+	foreach (immutable size_t i; index..a.size_ - 1)
+		overwriteMemory(a.begin_ + i, mutArrAt(a, i + 1));
+	a.size_--;
+}

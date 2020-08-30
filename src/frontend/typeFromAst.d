@@ -61,7 +61,13 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 					Diag.WrongNumberTypeArgsForStruct(sOrA, nExpectedTypeArgs, nActualTypeArgs)));
 				return fillArr!Type(alloc, nExpectedTypeArgs, (immutable size_t) => immutable Type(Type.Bogus()));
 			} else
-				return typeArgsFromAsts(alloc, ctx, ast.typeArgs, structsAndAliasesMap, typeParamsScope, delayStructInsts);
+				return typeArgsFromAsts(
+					alloc,
+					ctx,
+					ast.typeArgs,
+					structsAndAliasesMap,
+					typeParamsScope,
+					delayStructInsts);
 		}();
 
 		return matchStructOrAlias!(immutable Opt!(Ptr!StructInst))(
@@ -72,8 +78,11 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 					: target(a),
 			(immutable Ptr!StructDecl decl) {
 				assert(size(decl.typeParams) < 10); //TODO:KILL
-				return some!(Ptr!StructInst)(
-					instantiateStruct(alloc, ctx.programState, immutable StructDeclAndArgs(decl, typeArgs), delayStructInsts));
+				return some!(Ptr!StructInst)(instantiateStruct(
+					alloc,
+					ctx.programState,
+					immutable StructDeclAndArgs(decl, typeArgs),
+					delayStructInsts));
 			});
 	}
 }
@@ -99,12 +108,14 @@ immutable(Type) typeFromAst(Alloc)(
 	return matchTypeAst(
 		ast,
 		(ref immutable TypeAst.TypeParam p) {
-			immutable Opt!(Ptr!TypeParam) found = findPtr(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
-				symEq(it.name, p.name));
+			immutable Opt!(Ptr!TypeParam) found =
+				findPtr(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
+					symEq(it.name, p.name));
 			if (has(found))
 				return immutable Type(force(found));
 			else {
-				addDiag(alloc, ctx, p.range, immutable Diag(Diag.NameNotFound(Diag.NameNotFound.Kind.typeParam, p.name)));
+				addDiag(alloc, ctx, p.range, immutable Diag(
+					Diag.NameNotFound(Diag.NameNotFound.Kind.typeParam, p.name)));
 				return immutable Type(Type.Bogus());
 			}
 		},

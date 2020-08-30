@@ -55,6 +55,12 @@ immutable(Comparison) compareEnum(E)(immutable E a, immutable E b) {
 	return compareInt(int(a), int(b));
 }
 
+immutable(Comparison) compareBool(immutable Bool a, immutable Bool b) {
+	return a
+		? b ? Comparison.equal : Comparison.greater
+		: b ? Comparison.less : Comparison.equal;
+}
+
 immutable(Bool) ptrEquals(T)(immutable Ptr!T a, immutable Ptr!T b) {
 	return Bool(a == b);
 }

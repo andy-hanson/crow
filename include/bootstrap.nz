@@ -691,7 +691,6 @@ then result ?ok-out ?err(a result ?ok-in ?err, f fun-mut1 result<?ok-out, ?err> 
 			e
 
 as ?t(value ?t) noctx builtin
-as-non-const ?t(value ?t) noctx builtin
 
 region fut
 

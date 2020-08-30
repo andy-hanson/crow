@@ -45,7 +45,7 @@ immutable(size_t) size(T)(const Arr!T a) {
 	return a.size_;
 }
 
-immutable(Bool) sizeEq(T, U)(ref const Arr!T a, ref const Arr!U b) {
+immutable(Bool) sizeEq(T, U)(const Arr!T a, const Arr!U b) {
 	return Bool(size(a) == size(b));
 }
 
@@ -53,17 +53,17 @@ immutable(Bool) empty(T)(const Arr!T a) {
 	return Bool(a.size == 0);
 }
 
-@trusted Ptr!T ptrAt(T)(ref Arr!T a, immutable size_t index) {
+@trusted Ptr!T ptrAt(T)(Arr!T a, immutable size_t index) {
 	assert(index < a.size_);
 	return Ptr!T(a.begin_ + index);
 }
 
-@trusted const(Ptr!T) ptrAt(T)(ref const Arr!T a, immutable size_t index) {
+@trusted const(Ptr!T) ptrAt(T)(const Arr!T a, immutable size_t index) {
 	assert(index < a.size_);
 	return const Ptr!T(a.begin_ + index);
 }
 
-@trusted immutable(Ptr!T) ptrAt(T)(ref immutable Arr!T a, immutable size_t index) {
+@trusted immutable(Ptr!T) ptrAt(T)(immutable Arr!T a, immutable size_t index) {
 	assert(index < a.size_);
 	return immutable Ptr!T(a.begin_ + index);
 }

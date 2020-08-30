@@ -51,10 +51,18 @@ immutable(Bool) ptrEquals(T)(const Ptr!T a, const Ptr!T b) {
 	return Bool(a.ptr == b.ptr);
 }
 
-immutable(Comparison) comparePtr(T)(immutable Ptr!T a, immutable Ptr!T b) {
+immutable(Comparison) comparePtr(T)(const Ptr!T a, const Ptr!T b) {
 	return a.ptr < b.ptr
 		? Comparison.less
 		: a.ptr > b.ptr
 		? Comparison.greater
 		: Comparison.equal;
+}
+
+@trusted immutable(Ptr!T) castImmutable(T)(Ptr!T a) {
+	return cast(immutable) a;
+}
+
+@trusted Ptr!T castMutable(T)(immutable Ptr!T a) {
+	return cast(Ptr!T) a;
 }

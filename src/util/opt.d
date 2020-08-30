@@ -4,6 +4,7 @@ module util.opt;
 
 import util.bools : Bool, False, True;
 import util.comparison : Comparison;
+import util.ptr : Ptr, ptrTrustMe;
 
 struct Opt(T) {
 	static assert(__traits(isPOD, T)); // TODO: handling types with destructors
@@ -75,6 +76,11 @@ immutable(Bool) has(T)(const Opt!T a) {
 @trusted ref immutable(T) force(T)(ref immutable Opt!T a) {
 	assert(has(a));
 	return a.value_;
+}
+
+@trusted immutable(Ptr!T) forcePtr(T)(immutable Ptr!(Opt!T) a) {
+	assert(has(a));
+	return ptrTrustMe(a.value_);
 }
 
 ref immutable(T) forceOrTodo(T)(ref immutable Opt!T a) {

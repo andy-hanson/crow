@@ -7,8 +7,8 @@ import util.opt : force, has;
 import util.path : baseName, nParents, parent, path, Path, PathAndStorageKind, RelPath;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, SourceRange;
-import util.sym : Sym, writeSym;
-import util.util : repeat;
+import util.sym : Sym, writeSym, writeSymAndGetSize;
+import util.util : repeat, todo;
 import util.writer : writeChar, writeNat, Writer, writeStatic;
 
 void writePath(Alloc)(ref Writer!Alloc writer, immutable Ptr!Path p) {

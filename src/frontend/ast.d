@@ -77,7 +77,7 @@ struct CallAst {
 struct CondAst {
 	immutable Ptr!ExprAst cond;
 	immutable Ptr!ExprAst then;
-	immutable Ptr!ExprAst elze;
+	immutable Ptr!ExprAst else_;
 }
 
 struct CreateArrAst {
@@ -209,7 +209,9 @@ struct ExprAstKind {
 	@trusted this(immutable CondAst a) { kind = Kind.cond; cond = a; }
 	@trusted this(immutable CreateArrAst a) { kind = Kind.createArr; createArr = a; }
 	@trusted this(immutable CreateRecordAst a) { kind = Kind.createRecord; createRecord = a; }
-	@trusted this(immutable CreateRecordMultiLineAst a) { kind = Kind.createRecordMultiLine; createRecordMultiLine = a; }
+	@trusted this(immutable CreateRecordMultiLineAst a) {
+		kind = Kind.createRecordMultiLine; createRecordMultiLine = a;
+	}
 	@trusted this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
 	@trusted this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
 	@trusted this(immutable LetAst a) { kind = Kind.let; let = a; }
@@ -243,7 +245,9 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 	scope immutable(T) delegate(scope ref immutable CondAst) @safe @nogc pure nothrow cbCond,
 	scope immutable(T) delegate(scope ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
 	scope immutable(T) delegate(scope ref immutable CreateRecordAst) @safe @nogc pure nothrow cbCreateRecord,
-	scope immutable(T) delegate(scope ref immutable CreateRecordMultiLineAst) @safe @nogc pure nothrow cbCreateRecordMultiLine,
+	scope immutable(T) delegate(
+		scope ref immutable CreateRecordMultiLineAst
+	) @safe @nogc pure nothrow cbCreateRecordMultiLine,
 	scope immutable(T) delegate(scope ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
 	scope immutable(T) delegate(scope ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
 	scope immutable(T) delegate(scope ref immutable LetAst) @safe @nogc pure nothrow cbLet,
@@ -537,11 +541,13 @@ immutable(Sexpr) sexprOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
 			),
 			NameAndSexpr(
 				shortSymAlphaLiteral("aliases"),
-				immutable Sexpr(map(alloc, ast.structAliases, (ref immutable StructAliasAst a) => sexprOfStructAliasAst(alloc, a))),
+				immutable Sexpr(map(alloc, ast.structAliases, (ref immutable StructAliasAst a) =>
+					sexprOfStructAliasAst(alloc, a))),
 			),
 			NameAndSexpr(
 				shortSymAlphaLiteral("structs"),
-				immutable Sexpr(map(alloc, ast.structs, (ref immutable StructDeclAst a) => sexprOfStructDeclAst(alloc, a))),
+				immutable Sexpr(map(alloc, ast.structs, (ref immutable StructDeclAst a) =>
+					sexprOfStructDeclAst(alloc, a))),
 			),
 			NameAndSexpr(
 				shortSymAlphaLiteral("funs"),
@@ -580,7 +586,8 @@ immutable(Sexpr) sexprOfFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDecl
 			NameAndSexpr(shortSymAlphaLiteral("public?"), Sexpr(a.isPublic)),
 			NameAndSexpr(
 				shortSymAlphaLiteral("typeparams"),
-				immutable Sexpr(map(alloc, a.typeParams, (ref immutable TypeParamAst t) => sexprOfTypeParamAst(alloc, t))),
+				immutable Sexpr(map(alloc, a.typeParams, (ref immutable TypeParamAst t) =>
+					sexprOfTypeParamAst(alloc, t))),
 			),
 			NameAndSexpr(shortSymAlphaLiteral("sig"), sexprOfSig(alloc, a.sig)),
 			NameAndSexpr(
@@ -701,7 +708,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 				alloc,
 				sexprOfExprAst(alloc, e.cond.deref),
 				sexprOfExprAst(alloc, e.then.deref),
-				sexprOfExprAst(alloc, e.elze.deref)))),
+				sexprOfExprAst(alloc, e.else_.deref)))),
 		(ref immutable CreateArrAst e) => immutable Sexpr(SexprRecord(
 			shortSymAlphaLiteral("create-arr"),
 			arrLiteral!Sexpr(

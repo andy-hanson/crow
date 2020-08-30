@@ -25,7 +25,12 @@ import frontend.ast :
 import frontend.checkCtx : addDiag, CheckCtx, diags, hasDiags;
 import frontend.checkExpr : checkFunctionBody;
 import frontend.checkUtil : arrAsImmutable, ptrAsImmutable;
-import frontend.instantiate : DelayStructInsts, instantiateSpec, instantiateStruct, instantiateStructBody, TypeParamsScope;
+import frontend.instantiate :
+	DelayStructInsts,
+	instantiateSpec,
+	instantiateStruct,
+	instantiateStructBody,
+	TypeParamsScope;
 import frontend.programState : ProgramState;
 import frontend.typeFromAst : instStructFromAst, tryFindSpec, typeArgsFromAsts, typeFromAst;
 
@@ -129,7 +134,9 @@ immutable(Result!(BootstrapCheck, Diags)) checkBootstrapNz(Alloc)(
 		emptyArr!(Ptr!Module),
 		emptyArr!(Ptr!Module),
 		pathAndAst,
-		(ref CheckCtx ctx, ref immutable StructsAndAliasesMap structsAndAliasesMap, ref MutArr!(Ptr!StructInst) delayedStructInsts) =>
+		(ref CheckCtx ctx,
+		ref immutable StructsAndAliasesMap structsAndAliasesMap,
+		ref MutArr!(Ptr!StructInst) delayedStructInsts) =>
 			getCommonTypes(alloc, ctx, structsAndAliasesMap, delayedStructInsts));
 }
 
@@ -223,7 +230,10 @@ immutable(Result!(CommonTypes, Diags)) getCommonTypes(Alloc)(
 	immutable Opt!(Ptr!StructInst) anyPtr = nonTemplate("any-ptr");
 
 	immutable(Opt!(Ptr!StructDecl)) com(immutable string name, immutable size_t nTypeParameters) {
-		immutable Opt!(Ptr!StructDecl) res = getCommonTemplateType(structsAndAliasesMap, shortSymAlphaLiteral(name), nTypeParameters);
+		immutable Opt!(Ptr!StructDecl) res = getCommonTemplateType(
+			structsAndAliasesMap,
+			shortSymAlphaLiteral(name),
+			nTypeParameters);
 		if (!has(res))
 			add(alloc, missing, strLiteral(name));
 		return res;
@@ -321,7 +331,8 @@ immutable(Arr!TypeParam) checkTypeParams(Alloc)(
 		foreach (immutable size_t prev_i; 0..i) {
 			immutable TypeParam tp = at(typeParams, i);
 			if (symEq(tp.name, at(typeParams, prev_i).name))
-				addDiag(alloc, ctx, tp.range, Diag(Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.typeParam, tp.name)));
+				addDiag(alloc, ctx, tp.range, Diag(
+					Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.typeParam, tp.name)));
 		}
 	return typeParams;
 }
@@ -361,14 +372,21 @@ immutable(Arr!Param) checkParams(Alloc)(
 		alloc,
 		asts,
 		(ref immutable ParamAst ast, immutable size_t index) {
-			immutable Type type = typeFromAst(alloc, ctx, ast.type, structsAndAliasesMap, typeParamsScope, delayStructInsts);
+			immutable Type type = typeFromAst(
+				alloc,
+				ctx,
+				ast.type,
+				structsAndAliasesMap,
+				typeParamsScope,
+				delayStructInsts);
 			return immutable Param(ast.range, ast.name, type, index);
 		});
 	foreach (immutable size_t i; 0..size(params))
 		foreach (immutable size_t prev_i; 0..i) {
 			immutable Param param = at(params, i);
 			if (symEq(param.name, at(params, prev_i).name))
-				addDiag(alloc, ctx, at(params, i).range, Diag(Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.param, param.name)));
+				addDiag(alloc, ctx, at(params, i).range, Diag(
+					Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.param, param.name)));
 		}
 	return params;
 }
@@ -382,8 +400,10 @@ immutable(Sig) checkSig(Alloc)(
 	DelayStructInsts delayStructInsts
 ) {
 	immutable TypeParamsScope typeParamsScope = TypeParamsScope(typeParams);
-	immutable Arr!Param params = checkParams(alloc, ctx, ast.params, structsAndAliasesMap, typeParamsScope, delayStructInsts);
-	immutable Type returnType = typeFromAst(alloc, ctx, ast.returnType, structsAndAliasesMap, typeParamsScope, delayStructInsts);
+	immutable Arr!Param params =
+		checkParams(alloc, ctx, ast.params, structsAndAliasesMap, typeParamsScope, delayStructInsts);
+	immutable Type returnType =
+		typeFromAst(alloc, ctx, ast.returnType, structsAndAliasesMap, typeParamsScope, delayStructInsts);
 	return Sig(ast.range, ast.name, returnType, params);
 }
 
@@ -412,7 +432,13 @@ immutable(SpecBody) checkSpecBody(Alloc)(
 			immutable SpecBody(SpecBody.Builtin(getSpecBodyBuiltinKind(name))),
 		(ref immutable Arr!SigAst sigs) =>
 			immutable SpecBody(map!Sig(alloc, sigs, (ref immutable SigAst it) =>
-				checkSig!Alloc(alloc, ctx, it, typeParams, structsAndAliasesMap, noneMut!(Ptr!(MutArr!(Ptr!StructInst)))))));
+				checkSig!Alloc(
+					alloc,
+					ctx,
+					it,
+					typeParams,
+					structsAndAliasesMap,
+					noneMut!(Ptr!(MutArr!(Ptr!StructInst)))))));
 }
 
 immutable(Arr!SpecDecl) checkSpecDecls(Alloc)(
@@ -483,7 +509,7 @@ void checkStructAliasTargets(Alloc)(
 	ref immutable Arr!StructAliasAst asts,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	zipFirstMut!(StructAlias, StructAliasAst)(aliases, asts, (ref StructAlias structAlias, ref immutable StructAliasAst ast) {
+	zipFirstMut(aliases, asts, (ref StructAlias structAlias, ref immutable StructAliasAst ast) {
 		setTarget(structAlias, instStructFromAst!Alloc(
 			alloc,
 			ctx,
@@ -497,7 +523,12 @@ void checkStructAliasTargets(Alloc)(
 //TODO:MOVE
 void everyPairWithIndex(T)(
 	immutable Arr!T a,
-	scope void delegate(ref immutable T, ref immutable T, immutable size_t, immutable size_t) @safe @nogc pure nothrow cb,
+	scope void delegate(
+		ref immutable T,
+		ref immutable T,
+		immutable size_t,
+		immutable size_t,
+	) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t i; 0..size(a))
 		foreach (immutable size_t j; 0..i)
@@ -597,10 +628,13 @@ immutable(StructBody) checkUnion(Alloc)(
 		everyPairWithIndex(
 			force(members),
 			// Must name the ignored parameter due to https://issues.dlang.org/show_bug.cgi?id=21165
-			(ref immutable Ptr!StructInst a, ref immutable Ptr!StructInst b, immutable size_t _ignoreMe, immutable size_t bIndex) {
+			(ref immutable Ptr!StructInst a,
+			ref immutable Ptr!StructInst b,
+			immutable size_t _ignoreMe,
+			immutable size_t bIndex) {
 				if (ptrEquals(decl(a), decl(b))) {
-					immutable Diag diag =
-						immutable Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.decl.name));
+					immutable Diag diag = immutable Diag(
+						Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.decl.name));
 					immutable SourceRange rg = at(un.members, bIndex).range;
 					addDiag(alloc, ctx, rg, diag);
 				}
@@ -657,8 +691,12 @@ immutable(StructsAndAliasesMap) buildStructsAndAliasesDict(Alloc)(
 	}
 	foreach (immutable Ptr!StructAlias a; ptrsRange(aliases))
 		addToDict(alloc, d, a.name, immutable StructOrAlias(a));
-	return finishDict!(Alloc, Sym, StructOrAlias, compareSym)(alloc, d, (ref immutable Sym name, ref immutable StructOrAlias, ref immutable StructOrAlias b) =>
-		addDiag(alloc, ctx, b.range, immutable Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name))));
+	return finishDict!(Alloc, Sym, StructOrAlias, compareSym)(
+		alloc,
+		d,
+		(ref immutable Sym name, ref immutable StructOrAlias, ref immutable StructOrAlias b) =>
+			addDiag(alloc, ctx, b.range, immutable Diag(
+				Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name))));
 }
 
 struct FunsAndMap {
@@ -679,9 +717,15 @@ immutable(Arr!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 		if (has(opSpec)) {
 			immutable Ptr!SpecDecl spec = force(opSpec);
 			immutable Arr!Type typeArgs = typeArgsFromAsts(
-				alloc, ctx, ast.typeArgs, structsAndAliasesMap, typeParamsScope, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
+				alloc,
+				ctx,
+				ast.typeArgs,
+				structsAndAliasesMap,
+				typeParamsScope,
+				noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 			if (!sizeEq(typeArgs, spec.typeParams)) {
-				addDiag(alloc, ctx, ast.range, immutable Diag(Diag.WrongNumberTypeArgsForSpec(spec, size(spec.typeParams), size(typeArgs))));
+				addDiag(alloc, ctx, ast.range, immutable Diag(
+					Diag.WrongNumberTypeArgsForSpec(spec, size(spec.typeParams), size(typeArgs))));
 				return none!(Ptr!SpecInst);
 			} else
 				return some(instantiateSpec(alloc, ctx.programState, SpecDeclAndArgs(spec, typeArgs)));
@@ -723,8 +767,11 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 		return immutable FunDecl(containingModule, funAst.isPublic, flags, sig, typeParams, specUses);
 	});
 
-	immutable FunsMap funsMap = buildMultiDict!(Sym, Ptr!FunDecl, compareSym, FunDecl, Alloc)(alloc, arrAsImmutable(funs), (immutable Ptr!FunDecl it) =>
-		immutable KeyValuePair!(Sym, Ptr!FunDecl)(name(it), it));
+	immutable FunsMap funsMap = buildMultiDict!(Sym, Ptr!FunDecl, compareSym, FunDecl, Alloc)(
+		alloc,
+		arrAsImmutable(funs),
+		(immutable Ptr!FunDecl it) =>
+			immutable KeyValuePair!(Sym, Ptr!FunDecl)(name(it), it));
 
 	foreach (ref const FunDecl f; range(funs))
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.funNames, name(f));
@@ -739,7 +786,8 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 					todo!void("'extern' fun must be 'noctx'");
 				if (e.isGlobal && arity(fun) != 0)
 					todo!void("'extern' fun has parameters");
-				immutable Opt!Str mangledName = mapOption!Str(e.mangledName, (ref immutable Str s) => copyStr(alloc, s));
+				immutable Opt!Str mangledName = mapOption!Str(e.mangledName, (ref immutable Str s) =>
+					copyStr(alloc, s));
 				return immutable FunBody(FunBody.Extern(e.isGlobal, mangledName));
 			},
 			(ref immutable ExprAst e) =>
@@ -784,7 +832,11 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 
 	while (!mutArrIsEmpty(delayStructInsts)) {
 		Ptr!StructInst i = mustPop(delayStructInsts);
-		setBody(i, instantiateStructBody(alloc, ctx.programState, i.declAndArgs, someMut(ptrTrustMe_mut(delayStructInsts))));
+		setBody(i, instantiateStructBody(
+			alloc,
+			ctx.programState,
+			i.declAndArgs,
+			someMut(ptrTrustMe_mut(delayStructInsts))));
 	}
 
 	immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, structsAndAliasesMap, ast.specs);
@@ -794,7 +846,14 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 
 	DelayInit!Module mod = delayInit!Module(alloc);
 
-	immutable FunsAndMap funsAndMap = checkFuns(alloc, ctx, mod.ptr, commonTypes, specsMap, structsAndAliasesMap, ast.funs);
+	immutable FunsAndMap funsAndMap = checkFuns(
+		alloc,
+		ctx,
+		mod.ptr,
+		commonTypes,
+		specsMap,
+		structsAndAliasesMap,
+		ast.funs);
 
 	// Create a module unconditionally so every function will always have containingModule set, even in failure case
 	return mod.finish(
@@ -844,7 +903,10 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 		ref MutArr!(Ptr!StructInst),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
-	CheckCtx ctx = CheckCtx(ptrTrustMe_mut(programState), pathAndAst.pathAndStorageKind, getFlattenedImports(alloc, imports));
+	CheckCtx ctx = CheckCtx(
+		ptrTrustMe_mut(programState),
+		pathAndAst.pathAndStorageKind,
+		getFlattenedImports(alloc, imports));
 	immutable FileAst ast = pathAndAst.ast;
 
 	// Since structs may refer to each other, first get a structsAndAliasesMap, *then* fill in bodies
@@ -867,7 +929,8 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 	if (hasDiags(ctx))
 		return fail!(BootstrapCheck, Diags)(diags(alloc, ctx));
 	else {
-		immutable Result!(CommonTypes, Diags) commonTypesResult = getCommonTypes(ctx, structsAndAliasesMap, delayStructInsts);
+		immutable Result!(CommonTypes, Diags) commonTypesResult =
+			getCommonTypes(ctx, structsAndAliasesMap, delayStructInsts);
 		return flatMapSuccess!(BootstrapCheck, CommonTypes, Diags)(
 			commonTypesResult,
 			(ref immutable CommonTypes commonTypes) {

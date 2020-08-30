@@ -72,7 +72,18 @@ import model :
 	typeParams,
 	worstCasePurity;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, emptyArr, first, only, only_const, onlyPtr_mut, ptrAt, arrRange = range, size;
+import util.collection.arr :
+	Arr,
+	at,
+	empty,
+	emptyArr,
+	first,
+	only,
+	only_const,
+	onlyPtr_mut,
+	ptrAt,
+	arrRange = range,
+	size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil :
 	eachCorresponds,
@@ -237,7 +248,7 @@ immutable(Bool) exprMightHaveProperties(immutable ExprAst ast) {
 		ast.kind,
 		(ref immutable CallAst) => True,
 		(ref immutable CondAst e) =>
-			immutable Bool(exprMightHaveProperties(e.then) && exprMightHaveProperties(e.elze)),
+			immutable Bool(exprMightHaveProperties(e.then) && exprMightHaveProperties(e.else_)),
 		(ref immutable CreateArrAst) => True,
 		(ref immutable CreateRecordAst) => True,
 		(ref immutable CreateRecordMultiLineAst) => True,
@@ -331,7 +342,8 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(Alloc)(
 			//TODO:PERF, the map might change nothing, so don't reallocate in that situation
 			immutable Arr!Type typeArgs = map!Type(alloc, i.typeArgs, (ref immutable Type t) =>
 				getCandidateExpectedParameterTypeRecur(alloc, programState, candidate, t));
-			return immutable Type(instantiateStructNeverDelay(alloc, programState, immutable StructDeclAndArgs(i.decl, typeArgs)));
+			return immutable Type(
+				instantiateStructNeverDelay(alloc, programState, immutable StructDeclAndArgs(i.decl, typeArgs)));
 		});
 }
 
@@ -341,7 +353,11 @@ immutable(Type) getCandidateExpectedParameterType(Alloc)(
 	ref const Candidate candidate,
 	ref immutable size_t argIdx,
 ) {
-	return getCandidateExpectedParameterTypeRecur(alloc, programState, candidate, at(params(candidate.called), argIdx).type);
+	return getCandidateExpectedParameterTypeRecur(
+		alloc,
+		programState,
+		candidate,
+		at(params(candidate.called), argIdx).type);
 }
 
 struct CommonOverloadExpected {
@@ -365,7 +381,12 @@ Expected getCommonOverloadParamExpectedForMultipleCandidates(Alloc)(
 		return has(expected) && !typeEquals(paramType, force(expected))
 			// Only get an expected type if all candidates expect it.
 			? Expected.infer()
-			: getCommonOverloadParamExpectedForMultipleCandidates(alloc, programState, tail(candidates), argIdx, some(paramType));
+			: getCommonOverloadParamExpectedForMultipleCandidates(
+				alloc,
+				programState,
+				tail(candidates),
+				argIdx,
+				some(paramType));
 	}
 }
 
@@ -414,7 +435,8 @@ immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
 		? Bool(force(lambdaKind) == FunKind.ptr)
 		: callerFlags.noCtx;
 	return !calledFlags.noCtx && callerIsNoCtx
-		? some(Diag.CantCall.Reason.nonNoCtx) // TODO: need to explain this better in the case where noCtx is due to the lambda
+		// TODO: need to explain this better in the case where noCtx is due to the lambda
+		? some(Diag.CantCall.Reason.nonNoCtx)
 		: calledFlags.summon && !callerFlags.summon
 		? some(Diag.CantCall.Reason.summon)
 		: calledFlags.unsafe && !callerFlags.trusted && !callerFlags.unsafe
@@ -586,7 +608,7 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 		foreach (immutable Ptr!SpecInst specInst; arrRange(called.specs)) {
 			// specInst was instantiated potentially based on f's params.
 			// Meed to instantiate it again.
-			immutable TypeParamsAndArgs tpa = TypeParamsAndArgs(called.typeParams, typeArgz);
+			immutable TypeParamsAndArgs tpa = immutable TypeParamsAndArgs(called.typeParams, typeArgz);
 			immutable Ptr!SpecInst specInstInstantiated = instantiateSpecInst(alloc, programState(ctx), specInst, tpa);
 			immutable Bool succeeded = matchSpecBody(
 				specInstInstantiated.body_,
@@ -643,7 +665,10 @@ immutable(Opt!Called) getCalledFromCandidate(Alloc)(
 				immutable Opt!(Arr!Called) specImpls = checkSpecImpls(alloc, ctx, range, f, typeArgs, allowSpecs);
 				return has(specImpls)
 					? some(immutable Called(
-						instantiateFun(alloc, programState(ctx), immutable FunDeclAndArgs(f, typeArgs, force(specImpls)))))
+						instantiateFun(
+							alloc,
+							programState(ctx),
+							immutable FunDeclAndArgs(f, typeArgs, force(specImpls)))))
 					: none!Called;
 			},
 			(ref immutable SpecSig s) =>

@@ -26,7 +26,18 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.result : fail, Result, success;
 import util.sourceRange : Pos, SourceRange;
-import util.sym : AllSymbols, getSymFromAlphaIdentifier, getSymFromOperator, shortSymAlphaLiteralValue, shortSymOperatorLiteral, Sym, symEq;
+import util.sym :
+	AllSymbols,
+	getSymFromAlphaIdentifier,
+	getSymFromOperator,
+	isAlphaIdentifierStart,
+	isAlphaIdentifierContinue,
+	isDigit,
+	isOperatorChar,
+	shortSymAlphaLiteralValue,
+	shortSymOperatorLiteral,
+	Sym,
+	symEq;
 import util.types : i32, u32, Void, safeI32FromU32, safeSizeTToU32;
 import util.util : todo;
 import util.verify : unreachable;
@@ -58,7 +69,10 @@ struct Lexer(SymAlloc) {
 	}
 }
 
-@trusted Lexer!SymAlloc createLexer(SymAlloc)(Ptr!(AllSymbols!SymAlloc) allSymbols, immutable NulTerminatedStr source) {
+@trusted Lexer!SymAlloc createLexer(SymAlloc)(
+	Ptr!(AllSymbols!SymAlloc) allSymbols,
+	immutable NulTerminatedStr source,
+) {
 	// Note: We *are* relying on the nul terminator to stop the lexer.
 	immutable Str str = source.stripNulTerminator;
 	immutable u32 len = str.size.safeSizeTToU32;
@@ -86,10 +100,6 @@ immutable(Pos) curPos(SymAlloc)(ref const Lexer!SymAlloc lexer) {
 
 T throwDiag(T, SymAlloc)(ref Lexer!SymAlloc lexer, immutable ParseDiagnostic pd) {
 	initMemory(&lexer.diagnostic_, pd);
-	debug {
-		import core.stdc.stdio : printf;
-		printf("THROWING PARSE ERROR\n");
-	}
 	pureLongjmp(lexer.jump_buffer, 1);
 	return unreachable!T;
 }
@@ -167,7 +177,9 @@ immutable(Opt!NewlineOrIndent) tryTakeNewlineOrIndent(SymAlloc)(ref Lexer!SymAll
 			case 1:
 				return some(NewlineOrIndent.indent);
 			default:
-				return lexer.throwDiag!(Opt!NewlineOrIndent)(lexer.range(start), ParseDiag(ParseDiag.UnexpectedDedent()));
+				return lexer.throwDiag!(Opt!NewlineOrIndent)(
+					lexer.range(start),
+					immutable ParseDiag(ParseDiag.UnexpectedDedent()));
 		}
 	} else
 		return none!NewlineOrIndent;
@@ -266,7 +278,7 @@ struct SymAndIsReserved {
 }
 
 immutable(SymAndIsReserved) takeNameAllowReserved(SymAlloc)(ref Lexer!SymAlloc lexer) {
-	immutable StrAndIsOperator s = lexer.takeNameAsTempStr;
+	immutable StrAndIsOperator s = takeNameAsTempStr(lexer);
 	if (s.isOperator) {
 		immutable Sym op = getSymFromOperator(lexer.allSymbols.deref, s.str);
 		return SymAndIsReserved(op, s.range, op.symEq(shortSymOperatorLiteral("=")));
@@ -351,19 +363,20 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Lexer!SymAll
 		case '\\':
 			return immutable ExpressionToken(ExpressionToken.Kind.lambda);
 		case '"':
-			return immutable ExpressionToken(immutable LiteralAst(LiteralAst.Kind.string_, takeStringLiteralAfterQuote(lexer, alloc)));
+			return immutable ExpressionToken(
+				immutable LiteralAst(LiteralAst.Kind.string_, takeStringLiteralAfterQuote(lexer, alloc)));
 		case '+':
 		case '-':
-			return (*lexer.ptr).isDigit
+			return isDigit(*lexer.ptr)
 				? lexer.takeNumber(alloc, begin)
 				: lexer.takeOperator(begin);
 		default:
-			if (c.isOperatorChar)
+			if (isOperatorChar(c))
 				return lexer.takeOperator(begin);
-			else if (c.isLowerCaseLetter) {
-				immutable Str nameStr = lexer.takeNameRest(begin);
-				immutable Sym name = lexer.allSymbols.getSymFromAlphaIdentifier(nameStr);
-				immutable SourceRange nameRange = lexer.range(begin);
+			else if (isAlphaIdentifierStart(c)) {
+				immutable Str nameStr = takeNameRest(lexer, begin);
+				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
+				immutable SourceRange nameRange = range(lexer, begin);
 				if (name.isReservedName)
 					switch (name.value) {
 						case shortSymAlphaLiteralValue("match"):
@@ -427,40 +440,16 @@ IndentKind detectIndentKind(immutable Str str) {
 	return res;
 }
 
-immutable(Bool) isLowerCaseLetter(immutable char c) {
-	return Bool('a' <= c && c <= 'z');
-}
-
-immutable(Bool) isDigit(immutable char c) {
-	return Bool('0' <= c && c <= '9');
-}
-
-immutable(Bool) isOperatorChar(immutable char c) {
-	switch (c) {
-		case '+':
-		case '-':
-		case '*':
-		case '/':
-		case '<':
-		case '>':
-		case '=':
-		case '!':
-			return True;
-		default:
-			return False;
-	}
-}
-
-immutable(Bool) isNameContinue(immutable char c) {
-	return Bool(c.isLowerCaseLetter || c == '-' || c.isDigit);
-}
-
 immutable(SourceRange) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
 	assert(begin >= lexer.sourceBegin);
 	return lexer.range(safeSizeTToU32(begin - lexer.sourceBegin));
 }
 
-@trusted immutable(ExpressionToken) takeNumber(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc, immutable CStr begin) {
+@trusted immutable(ExpressionToken) takeNumber(Alloc, SymAlloc)(
+	ref Lexer!SymAlloc lexer,
+	ref Alloc alloc,
+	immutable CStr begin,
+) {
 	while ((*lexer.ptr).isDigit || *lexer.ptr == '.') lexer.ptr++;
 	immutable Str text = copyStr(alloc, arrOfRange(begin, lexer.ptr));
 	return immutable ExpressionToken(immutable LiteralAst(LiteralAst.Kind.numeric, text));
@@ -545,7 +534,7 @@ immutable(size_t) toHexDigit(immutable char c) {
 }
 
 @trusted immutable(Str) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
-	while ((*lexer.ptr).isNameContinue)
+	while (isAlphaIdentifierContinue(*lexer.ptr))
 		lexer.ptr++;
 	if (*lexer.ptr == '?')
 		lexer.ptr++;
@@ -576,7 +565,9 @@ immutable(size_t) toHexDigit(immutable char c) {
 		immutable u32 nSpacesPerIndent = lexer.indentKind == IndentKind.spaces2 ? 2 : 4;
 		immutable u32 res = nSpaces / nSpacesPerIndent;
 		if (res * nSpacesPerIndent != nSpaces)
-			lexer.throwDiag!(void, SymAlloc)(lexer.range(start), ParseDiag(ParseDiag.IndentNotDivisible(nSpaces, nSpacesPerIndent)));
+			lexer.throwDiag!(void, SymAlloc)(
+				lexer.range(start),
+				immutable ParseDiag(immutable ParseDiag.IndentNotDivisible(nSpaces, nSpacesPerIndent)));
 		return res;
 	}
 }
@@ -616,11 +607,11 @@ struct StrAndIsOperator {
 	immutable CStr begin = lexer.ptr;
 	if (isOperatorChar(*lexer.ptr)) {
 		lexer.ptr++;
-		immutable Str op = lexer.takeOperatorRest(begin);
+		immutable Str op = takeOperatorRest(lexer, begin);
 		return StrAndIsOperator(op, lexer.range(begin), True);
-	} else if ((*lexer.ptr).isLowerCaseLetter) {
+	} else if (isAlphaIdentifierStart(*lexer.ptr)) {
 		lexer.ptr++;
-		immutable Str name = lexer.takeNameRest(begin);
+		immutable Str name = takeNameRest(lexer, begin);
 		return StrAndIsOperator(name, lexer.range(begin), False);
 	} else
 		return lexer.throwUnexpected!StrAndIsOperator;

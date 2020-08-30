@@ -3,7 +3,7 @@ module util.collection.arrBuilder;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
-import util.collection.arr : Arr, begin, size;
+import util.collection.arr : Arr, begin, range, size;
 import util.collection.mutArr : tempAsArr, moveToArr, MutArr, mutArrIsEmpty, mutArrSize, push;
 
 struct ArrBuilder(T) {
@@ -12,6 +12,15 @@ struct ArrBuilder(T) {
 
 void add(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
 	push(alloc, a.data, value);
+}
+
+void addMany(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable Arr!T values) {
+	foreach (ref immutable T value; range(values))
+		add(alloc, a, value);
+}
+
+immutable(Arr!T) finishArr_immutable(T, Alloc)(ref Alloc alloc, ref ArrBuilder!(immutable T) a) {
+	return moveToArr(alloc, a.data);
 }
 
 immutable(Arr!T) finishArr(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a) {

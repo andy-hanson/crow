@@ -126,7 +126,7 @@ alias Environ = Arr!(KeyValuePair!(Str, Str));
 	immutable Arr!Str args,
 	immutable Environ environ
 ) {
-	PathAlloc temp;
+	PathAndEnvironAlloc temp;
 	immutable CStr executableCStr = pathToCStr(temp, executable);
 	return spawnAndWaitSync(
 		executableCStr,
@@ -190,7 +190,8 @@ immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
 
 private:
 
-alias PathAlloc = StackAlloc!("temp path", 1024);
+alias PathAlloc = StackAlloc!("temp path", 8 * 1024);
+alias PathAndEnvironAlloc = StackAlloc!("temp path and environ", 8 * 1024);
 
 @system int tryOpen(immutable AbsolutePath path, immutable int flags, immutable int moreFlags) {
 	PathAlloc temp;

@@ -33,7 +33,7 @@ import model :
 import parseDiag : matchParseDiag, ParseDiag;
 
 import util.alloc.stackAlloc : StackAlloc;
-import util.bools : and, Bool, not, or, True;
+import util.bools : Bool, not, True;
 import util.collection.arr : Arr, empty, only, range, size;
 import util.collection.arrUtil : exists, map, sort;
 import util.collection.dict : mustGetAt;
@@ -47,7 +47,7 @@ import util.sourceRange : SourceRange;
 import util.sym : Sym, writeSym;
 import util.util : todo;
 import util.writer :
-	finishToCStr,
+	finishWriterToCStr,
 	writeBold,
 	writeChar,
 	writeHyperlink,
@@ -77,7 +77,7 @@ void printDiagnostics(immutable Diagnostics diagnostics) {
 private:
 
 @trusted void printOutWriter(Alloc)(ref Writer!Alloc writer) {
-	fprintf(stderr, "%s", finishToCStr(writer));
+	fprintf(stderr, "%s", finishWriterToCStr(writer));
 }
 
 pure:
@@ -113,6 +113,7 @@ void writeLineNumber(Alloc)(
 	immutable PathAndStorageKind where = module_.pathAndStorageKind;
 	writeBold(writer);
 	writePathAndStorageKind(writer, where);
+	writeStatic(writer, ".nz");
 	writeReset(writer);
 	writeStatic(writer, " line ");
 	immutable LineAndColumnGetter lcg = mustGetAt(fi.lineAndColumnGetters, where);
@@ -148,7 +149,9 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 			writeStatic(writer, d.expectedTabs ? "space" : "tab");
 		},
 		(ref immutable ParseDiag.LetMustHaveThen) {
-			writeStatic(writer, "the final line of a block can not be 'x = y'\n(hint: remove 'x =', or add another line)");
+			writeStatic(
+				writer,
+				"the final line of a block can not be 'x = y'\n(hint: remove 'x =', or add another line)");
 		},
 		(ref immutable ParseDiag.MatchWhenNewMayNotAppearInsideArg) {
 			todo!void("matchwhennew");
@@ -214,7 +217,6 @@ void writeCalledDecl(Alloc)(ref Writer!Alloc writer, immutable FilesInfo fi, imm
 	return matchCalledDecl(
 		c,
 		(immutable Ptr!FunDecl funDecl) {
-			// TODO: write the module it's from
 			writeStatic(writer, " (from ");
 			writeLineNumber(writer, fi, funDecl.containingModule.deref, funDecl.range);
 			writeChar(writer, ')');
@@ -244,14 +246,14 @@ void writeCalledDecls(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi
 }
 
 void writeCallNoMatch(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref immutable Diag.CallNoMatch d) {
-	immutable Bool someCandidateHasCorrectNTypeArgs = or(
-		Bool(d.actualNTypeArgs == 0),
+	immutable Bool someCandidateHasCorrectNTypeArgs = Bool(
+		d.actualNTypeArgs == 0 ||
 		exists(d.allCandidates, (ref immutable CalledDecl c) =>
 			immutable Bool(nTypeParams(c) == d.actualNTypeArgs)));
 	immutable Bool someCandidateHasCorrectArity = exists(d.allCandidates, (ref immutable CalledDecl c) =>
-		and(
-			or(Bool(d.actualNTypeArgs == 0), Bool(nTypeParams(c) == d.actualNTypeArgs)),
-			Bool(arity(c) == d.actualArity)));
+		immutable Bool(
+			(d.actualNTypeArgs == 0 || nTypeParams(c) == d.actualNTypeArgs) &&
+			arity(c) == d.actualArity));
 
 	if (empty(d.allCandidates)) {
 		writeStatic(writer, "there is no function ");
