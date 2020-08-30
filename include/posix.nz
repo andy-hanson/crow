@@ -345,8 +345,17 @@ has-pollnval? bool(revents int16)
 oflag-t alias
 	int32
 
+| /usr/include/bits/fcntl-linux.h
 o-rdonly oflag-t()
 	zero
+o-wronly oflag-t()
+	one
+o-rdwr oflag-t()
+	two
+o-creat oflag-t()
+	four
+o-trunc oflag-t()
+	eight
 
 
 open fd-t(path c-str, oflag oflag-t) summon extern noctx

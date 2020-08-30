@@ -33,6 +33,11 @@ u32 safeSizeTToU32(immutable size_t s) {
 	return cast(u32) s;
 }
 
+int safeIntFromSizeT(immutable size_t s) {
+	assert(s <= 9999);
+	return cast(int) s;
+}
+
 size_t safeSizeTFromSSizeT(immutable ssize_t s) {
 	assert(s >= 0);
 	return cast(size_t) s;

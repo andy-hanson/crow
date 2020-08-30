@@ -8,7 +8,8 @@ run-runnable-tests result str arr<failure>(path str, path-to-noze str, env envir
 				print-sync: "noze run " + test
 			else
 				pass
-		path-to-noze run-single-runnable-test env, test
+		path-to-noze do-single-ast-test env, test arr-or \
+			path-to-noze run-single-runnable-test env, test
 	when
 		failures has?
 			failures err
@@ -16,6 +17,14 @@ run-runnable-tests result str arr<failure>(path str, path-to-noze str, env envir
 			ok: "ran " + tests.size.to-str + " runnable tests"
 
 private
+
+| TODO:MOVE
+arr-or arr ?t(a arr ?t, b fun-mut0 arr<?t>)
+	when
+		a empty?
+			b call
+		else
+			a
 
 list-runnable-tests arr str(path str) summon
 	res = new-mut-arr<str>
@@ -35,6 +44,24 @@ list-runnable-tests arr str(path str) summon
 						| Unexpected extension
 						todo
 	res freeze
+
+do-single-ast-test arr failure
+	path-to-noze str
+	env environ
+	path str
+spec
+	summon
+body
+	res = path-to-noze spawn-and-wait-result (new-arr "ast", path), env
+	when
+		res.exit-code == 0 and: res.stderr == ""
+			ast = res.stdout
+			"the-ast.ast" write-file ast
+			empty-arr
+		else
+			message = "\nstatus: " + res.exit-code.to-str + "\nstdout:\n" + res.stdout + "stderr:\n" + res.stderr
+			new-arr new path, message
+
 
 run-single-runnable-test arr failure
 	path-to-noze str

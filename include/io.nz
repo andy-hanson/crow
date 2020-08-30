@@ -124,6 +124,34 @@ read-file str(path str) summon
 		some s
 			s.value
 
+write-file void(path str, content str) summon
+	path.to-c-str write-file content
+
+write-file void(path c-str, content str) summon trusted
+	| immutable int fd = tryOpen(path, O_CREAT | O_WRONLY | O_TRUNC, 0b110100100);
+	fd = path open (o-creat bits-or o-wronly bits-or o-trunc)
+	when
+		fd == neg-one
+			errno = get-errno
+			print-sync: "failed to open file for write: " + path.to-str
+			todo
+		else
+			wrote-bytes = fd write content.data.ptr-cast<byte, char>, content.size
+			when
+				wrote-bytes == content.size.to-int
+					pass
+				wrote-bytes == -1
+					todo
+				else
+					| didn't write all the bytes?
+					todo
+			err = fd close
+			when
+				err == zero
+					pass
+				else
+					todo
+
 try-read-file opt str(path str) summon
 	path.to-c-str try-read-file
 

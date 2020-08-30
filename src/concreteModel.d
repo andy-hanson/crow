@@ -50,6 +50,12 @@ enum BuiltinFunKind {
 	bitwiseAndNat16,
 	bitwiseAndNat32,
 	bitwiseAndNat64,
+	bitwiseOrInt16,
+	bitwiseOrInt32,
+	bitwiseOrInt64,
+	bitwiseOrNat16,
+	bitwiseOrNat32,
+	bitwiseOrNat64,
 	callFunPtr,
 	compareExchangeStrong,
 	compare, // the `<=>` operator

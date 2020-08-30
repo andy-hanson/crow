@@ -587,9 +587,9 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 	ref immutable LiteralAst ast,
 	ref Expected expected,
 ) {
-	immutable LiteralInnerAst inner = LiteralInnerAst(ast.kind, ast.literal);
+	immutable LiteralInnerAst inner = LiteralInnerAst(ast.literalKind, ast.literal);
 	if (isExpectingString(expected, ctx.commonTypes.str) ||
-		(!hasExpected(expected) && ast.kind == LiteralAst.Kind.string_))
+		(!hasExpected(expected) && ast.literalKind == LiteralAst.Kind.string_))
 		return checkLiteralInner(alloc, ctx, range, inner, expected);
 	else {
 		immutable CallAst call = CallAst(

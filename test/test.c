@@ -425,6 +425,13 @@ struct run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__
 	arr__char path_to_noze;
 	dict__arr__char__arr__char* env;
 };
+typedef struct fun_mut0__arr__ptr_failure fun_mut0__arr__ptr_failure;
+typedef struct run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure;
+struct run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure {
+	arr__char path_to_noze;
+	dict__arr__char__arr__char* env;
+	arr__char test;
+};
 typedef struct do_test__int32__test_options__lambda1___closure do_test__int32__test_options__lambda1___closure;
 struct do_test__int32__test_options__lambda1___closure {
 	arr__char noze_path;
@@ -711,6 +718,7 @@ struct fun_mut2___void__arr__char__arr__char {
 	fun_ptr4___void__ptr_ctx__ptr__byte__arr__char__arr__char fun_ptr;
 	ptr__byte closure;
 };
+typedef arr__ptr_failure (*fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte)(ctx*, ptr__byte);
 struct fun_mut2___void__arr__char__nat {
 	fun_ptr4___void__ptr_ctx__ptr__byte__arr__char__nat fun_ptr;
 	ptr__byte closure;
@@ -888,6 +896,10 @@ struct arr__pollfd {
 };
 typedef result__arr__char__arr__ptr_failure (*fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__byte)(ctx*, ptr__byte);
 typedef result__arr__char__arr__ptr_failure (*fun_ptr3__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__byte__arr__char)(ctx*, ptr__byte, arr__char);
+struct fun_mut0__arr__ptr_failure {
+	fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte fun_ptr;
+	ptr__byte closure;
+};
 struct fut_state__int32 {
 	int kind;
 	union {
@@ -3268,6 +3280,36 @@ run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__p
 }
 
 
+fun_mut0__arr__ptr_failure* _initfun_mut0__arr__ptr_failure(byte* out, fun_mut0__arr__ptr_failure value) {
+	fun_mut0__arr__ptr_failure* res = (fun_mut0__arr__ptr_failure*) out; 
+	*res = value;
+	return res;
+}
+fun_mut0__arr__ptr_failure _failfun_mut0__arr__ptr_failure() {
+	assert(0);
+}
+
+
+fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte* _initfun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte(byte* out, fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte value) {
+	fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte* res = (fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte*) out; 
+	*res = value;
+	return res;
+}
+fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte _failfun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte() {
+	assert(0);
+}
+
+
+run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* _initrun_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure(byte* out, run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure value) {
+	run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* res = (run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure*) out; 
+	*res = value;
+	return res;
+}
+run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure _failrun_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure() {
+	assert(0);
+}
+
+
 do_test__int32__test_options__lambda1___closure* _initdo_test__int32__test_options__lambda1___closure(byte* out, do_test__int32__test_options__lambda1___closure value) {
 	do_test__int32__test_options__lambda1___closure* res = (do_test__int32__test_options__lambda1___closure*) out; 
 	*res = value;
@@ -4233,10 +4275,22 @@ result__arr__char__arr__ptr_failure run_runnable_tests__result__arr__char__arr__
 arr__arr__char list_runnable_tests__arr__arr__char__arr__char(ctx* _ctx, arr__char path);
 bool list_runnable_tests__arr__arr__char__arr__char__lambda0(ctx* _ctx, ptr__byte _closure, arr__char s);
 _void list_runnable_tests__arr__arr__char__arr__char__lambda1(ctx* _ctx, list_runnable_tests__arr__arr__char__arr__char__lambda1___closure* _closure, arr__char child);
+arr__ptr_failure arr_or__arr__ptr_failure__arr__ptr_failure__fun_mut0__arr__ptr_failure(ctx* _ctx, arr__ptr_failure a, fun_mut0__arr__ptr_failure b);
+arr__ptr_failure call__arr__ptr_failure__fun_mut0__arr__ptr_failure(ctx* _ctx, fun_mut0__arr__ptr_failure f);
+arr__ptr_failure call_with_ctx__arr__ptr_failure__ptr_ctx__fun_mut0__arr__ptr_failure(ctx* c, fun_mut0__arr__ptr_failure f);
+arr__ptr_failure call__arr__ptr_failure__fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte(fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte f, ctx* p0, ptr__byte p1);
+arr__ptr_failure do_single_ast_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char(ctx* _ctx, arr__char path_to_noze, dict__arr__char__arr__char* env, arr__char path);
+_void write_file___void__arr__char__arr__char(ctx* _ctx, arr__char path, arr__char content);
+_void write_file___void__ptr__char__arr__char(ctx* _ctx, ptr__char path, arr__char content);
+int32 bits_or__int32__int32__int32(int32 a, int32 b);
+int32 o_creat__int32(ctx* _ctx);
+int32 o_wronly__int32(ctx* _ctx);
+int32 o_trunc__int32(ctx* _ctx);
+arr__ptr_failure empty_arr__arr__ptr_failure();
 arr__ptr_failure run_single_runnable_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char(ctx* _ctx, arr__char path_to_noze, dict__arr__char__arr__char* env, arr__char path);
 bool _op_equal_equal__bool__ptr_process_result__ptr_process_result(process_result* a, process_result* b);
 comparison _op_less_equal_greater__comparison__ptr_process_result__ptr_process_result(process_result* a, process_result* b);
-arr__ptr_failure empty_arr__arr__ptr_failure();
+arr__ptr_failure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0(ctx* _ctx, run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* _closure);
 arr__ptr_failure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(ctx* _ctx, run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, arr__char test);
 result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0(ctx* _ctx, do_test__int32__test_options__lambda0___closure* _closure);
 result__arr__char__arr__ptr_failure lint__result__arr__char__arr__ptr_failure__arr__char__test_options(ctx* _ctx, arr__char path, test_options options);
@@ -7920,6 +7974,67 @@ _void list_runnable_tests__arr__arr__char__arr__char__lambda1(ctx* _ctx, list_ru
 				: todo___void()
 		): _fail_void());
 }
+arr__ptr_failure arr_or__arr__ptr_failure__arr__ptr_failure__fun_mut0__arr__ptr_failure(ctx* _ctx, arr__ptr_failure a, fun_mut0__arr__ptr_failure b) {
+	return empty__q__bool__arr__ptr_failure(a)
+		? call__arr__ptr_failure__fun_mut0__arr__ptr_failure(_ctx, b)
+		: a;
+}
+arr__ptr_failure call__arr__ptr_failure__fun_mut0__arr__ptr_failure(ctx* _ctx, fun_mut0__arr__ptr_failure f) {
+	return call_with_ctx__arr__ptr_failure__ptr_ctx__fun_mut0__arr__ptr_failure(_ctx, f);
+}
+arr__ptr_failure call_with_ctx__arr__ptr_failure__ptr_ctx__fun_mut0__arr__ptr_failure(ctx* c, fun_mut0__arr__ptr_failure f) {
+	return f.fun_ptr(c, f.closure);
+}
+arr__ptr_failure do_single_ast_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char(ctx* _ctx, arr__char path_to_noze, dict__arr__char__arr__char* env, arr__char path) {
+	arr__arr__char arr;
+	process_result* res;
+	arr__char ast;
+	arr__char message;
+	arr__ptr_failure arr1;
+	return ((res = spawn_and_wait_result__ptr_process_result__arr__char__arr__arr__char__ptr_dict__arr__char__arr__char(_ctx, path_to_noze, (arr = (arr__arr__char) { 2, (arr__char*) alloc__ptr__byte__nat(_ctx, 32) }, arr.data[0] =(arr__char){3, "ast"}, arr.data[1] =path, arr), env)),
+	(_op_equal_equal__bool__int32__int32(res->exit_code, literal__int32__arr__char(_ctx, (arr__char){1, "0"})) && _op_equal_equal__bool__arr__char__arr__char(res->stderr, (arr__char){0, ""}))
+		? ((ast = res->stdout),
+		(write_file___void__arr__char__arr__char(_ctx, (arr__char){11, "the-ast.ast"}, ast),
+		empty_arr__arr__ptr_failure()))
+		: ((message = _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, (arr__char){9, "\nstatus: "}, to_str__arr__char__int32(_ctx, res->exit_code)), (arr__char){9, "\nstdout:\n"}), res->stdout), (arr__char){8, "stderr:\n"}), res->stderr)),
+		(arr1 = (arr__ptr_failure) { 1, (failure**) alloc__ptr__byte__nat(_ctx, 8) }, arr1.data[0] =_initfailure(alloc__ptr__byte__nat(_ctx, 32), (failure) {path, message}), arr1)));
+}
+_void write_file___void__arr__char__arr__char(ctx* _ctx, arr__char path, arr__char content) {
+	return write_file___void__ptr__char__arr__char(_ctx, to_c_str__ptr__char__arr__char(_ctx, path), content);
+}
+_void write_file___void__ptr__char__arr__char(ctx* _ctx, ptr__char path, arr__char content) {
+	int32 fd;
+	int32 errno;
+	_int wrote_bytes;
+	int32 err;
+	return ((fd = open(path, ((o_creat__int32(_ctx) | o_wronly__int32(_ctx)) | o_trunc__int32(_ctx)))),
+	_op_equal_equal__bool__int32__int32(fd, neg_one__int32())
+		? ((errno = get_errno__int32(_ctx)),
+		(print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(_ctx, (arr__char){31, "failed to open file for write: "}, to_str__arr__char__ptr__char(path))),
+		todo___void()))
+		: ((wrote_bytes = write(fd, (ptr__byte) content.data, content.size)),
+		(_op_equal_equal__bool___int___int(wrote_bytes, to_int___int__nat(_ctx, content.size))
+			? 0
+			: _op_equal_equal__bool___int___int(wrote_bytes, literal___int__arr__char(_ctx, (arr__char){2, "-1"}))
+				? todo___void()
+				: todo___void(),
+		((err = close(fd)),
+		_op_equal_equal__bool__int32__int32(err, 0)
+			? 0
+			: todo___void()))));
+}
+int32 o_creat__int32(ctx* _ctx) {
+	return four__int32();
+}
+int32 o_wronly__int32(ctx* _ctx) {
+	return 1;
+}
+int32 o_trunc__int32(ctx* _ctx) {
+	return eight__int32();
+}
+arr__ptr_failure empty_arr__arr__ptr_failure() {
+	return (arr__ptr_failure) {0, NULL};
+}
 arr__ptr_failure run_single_runnable_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char(ctx* _ctx, arr__char path_to_noze, dict__arr__char__arr__char* env, arr__char path) {
 	arr__arr__char arr;
 	process_result* res;
@@ -7975,14 +8090,17 @@ comparison _op_less_equal_greater__comparison__ptr_process_result__ptr_process_r
 		? _cmpexit_code
 		: _failcomparison()));
 }
-arr__ptr_failure empty_arr__arr__ptr_failure() {
-	return (arr__ptr_failure) {0, NULL};
+arr__ptr_failure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0(ctx* _ctx, run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* _closure) {
+	return run_single_runnable_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char(_ctx, _closure->path_to_noze, _closure->env, _closure->test);
 }
 arr__ptr_failure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(ctx* _ctx, run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, arr__char test) {
 	return (_closure->options.print_tests__q
 		? print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(_ctx, (arr__char){9, "noze run "}, test))
 		: 0,
-	run_single_runnable_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char(_ctx, _closure->path_to_noze, _closure->env, test));
+	arr_or__arr__ptr_failure__arr__ptr_failure__fun_mut0__arr__ptr_failure(_ctx, do_single_ast_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char(_ctx, _closure->path_to_noze, _closure->env, test), (fun_mut0__arr__ptr_failure) {
+		(fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte) run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0,
+		(ptr__byte) _initrun_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure(alloc__ptr__byte__nat(_ctx, 40), (run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure) {_closure->path_to_noze, _closure->env, test})
+	}));
 }
 result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0(ctx* _ctx, do_test__int32__test_options__lambda0___closure* _closure) {
 	return run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(_ctx, child_path__arr__char__arr__char__arr__char(_ctx, _closure->test_path, (arr__char){8, "runnable"}), _closure->noze_exe, _closure->env, _closure->options);
@@ -8455,6 +8573,9 @@ int main(int argc, char** argv) {
 	assert(sizeof(do_test__int32__test_options__lambda0___closure) == 56);
 	assert(sizeof(list_runnable_tests__arr__arr__char__arr__char__lambda1___closure) == 8);
 	assert(sizeof(run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure) == 40);
+	assert(sizeof(fun_mut0__arr__ptr_failure) == 16);
+	assert(sizeof(fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte) == 8);
+	assert(sizeof(run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure) == 40);
 	assert(sizeof(do_test__int32__test_options__lambda1___closure) == 32);
 	assert(sizeof(list_lintable_files__arr__arr__char__arr__char__lambda1___closure) == 8);
 	assert(sizeof(lint__result__arr__char__arr__ptr_failure__arr__char__test_options__lambda0___closure) == 16);

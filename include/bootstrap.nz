@@ -531,6 +531,14 @@ bits-and int16(a int16, b int16) noctx builtin
 bits-and int32(a int32, b int32) noctx builtin
 bits-and int(a int, b int) noctx builtin
 
+bits-or nat16(a nat16, b nat16) noctx builtin
+bits-or nat32(a nat32, b nat32) noctx builtin
+bits-or nat(a nat, b nat) noctx builtin
+bits-or int16(a int16, b int16) noctx builtin
+bits-or int32(a int32, b int32) noctx builtin
+bits-or int(a int, b int) noctx builtin
+
+
 bits-intersect? bool(a int16, b int16) noctx
 	not: a bits-and b zero?
 bits-intersect? bool(a int32, b int32) noctx

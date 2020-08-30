@@ -492,6 +492,15 @@ void writeCallOperator(Alloc)(
 			binaryOperator("&");
 			break;
 
+		case BuiltinFunKind.bitwiseOrInt16:
+		case BuiltinFunKind.bitwiseOrInt32:
+		case BuiltinFunKind.bitwiseOrInt64:
+		case BuiltinFunKind.bitwiseOrNat16:
+		case BuiltinFunKind.bitwiseOrNat32:
+		case BuiltinFunKind.bitwiseOrNat64:
+			binaryOperator("|");
+			break;
+
 		case BuiltinFunKind.callFunPtr:
 			writeArg(0);
 			writeChar(writer, '(');

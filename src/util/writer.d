@@ -137,10 +137,14 @@ struct WriterWithIndent(Alloc) {
 	u16 indent = 0;
 }
 
-void newline(Alloc)(ref WriterWithIndent!Alloc writer) {
-	writer.writeChar('\n');
-	foreach (immutable u16 _; 0..writer.indent)
+void newline(Alloc)(ref Writer!Alloc writer, immutable size_t indent) {
+	writeChar(writer, '\n');
+	foreach (immutable size_t _; 0..indent)
 		writeChar(writer, '\t');
+}
+
+void newline(Alloc)(ref WriterWithIndent!Alloc writer) {
+	newline(writer.writer, writer.indent);
 }
 
 void decrIndent(Alloc)(ref WriterWithIndent!Alloc writer) {

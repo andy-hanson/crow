@@ -185,6 +185,14 @@ immutable(Opt!BuiltinFunInfo) tryGetBuiltinFunInfo(ref immutable Sig sig) {
 				: isInt32(rt) ? operator(BuiltinFunKind.bitwiseAndInt32)
 				: isInt64(rt) ? operator(BuiltinFunKind.bitwiseAndInt64)
 				: no;
+		case shortSymAlphaLiteralValue("bits-or"):
+			return isNat16(rt) ? operator(BuiltinFunKind.bitwiseOrNat16)
+				: isNat32(rt) ? operator(BuiltinFunKind.bitwiseOrNat32)
+				: isNat64(rt) ? operator(BuiltinFunKind.bitwiseOrNat64)
+				: isInt16(rt) ? operator(BuiltinFunKind.bitwiseOrInt16)
+				: isInt32(rt) ? operator(BuiltinFunKind.bitwiseOrInt32)
+				: isInt64(rt) ? operator(BuiltinFunKind.bitwiseOrInt64)
+				: no;
 		case shortSymAlphaLiteralValue("bit-lshift"):
 			return isInt32(rt) ? operator(BuiltinFunKind.bitShiftLeftInt32) : no;
 		case shortSymAlphaLiteralValue("bit-rshift"):
