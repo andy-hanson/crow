@@ -128,12 +128,18 @@ write-file void(path str, content str) summon
 	path.to-c-str write-file content
 
 write-file void(path c-str, content str) summon trusted
-	| immutable int fd = tryOpen(path, O_CREAT | O_WRONLY | O_TRUNC, 0b110100100);
-	fd = path open (o-creat bits-or o-wronly bits-or o-trunc)
+	permission-rdwr = six as<int32>
+	permission-rd = four as<int32>
+	permission = (permission-rdwr bit-lshift six) bits-or (permission-rd bit-lshift three) bits-or permission-rd
+	flags = o-creat bits-or o-wronly bits-or o-trunc
+	fd = path open flags, permission
 	when
 		fd == neg-one
 			errno = get-errno
 			print-sync: "failed to open file for write: " + path.to-str
+			print-sync: "errno: " + errno.to-str
+			print-sync: "flags: " + flags.to-str
+			print-sync: "permission: " + permission.to-str
 			todo
 		else
 			wrote-bytes = fd write content.data.ptr-cast<byte, char>, content.size
@@ -158,7 +164,7 @@ try-read-file opt str(path str) summon
 try-read-file opt str(path c-str) summon trusted
 	when
 		path is-file?
-			fd = path open o-rdonly
+			fd = path open o-rdonly, 0
 			when
 				fd == neg-one
 					errno = get-errno
@@ -192,8 +198,6 @@ try-read-file opt str(path c-str) summon trusted
 					check-posix-error: fd close
 					res.freeze some
 		else
-			| TODO: don't print, warn
-			print-sync: "not a file: " + path.to-str
 			none
 
 get-cwd str() summon trusted
@@ -332,6 +336,7 @@ read-to-buffer-until-eof void(fd fd-t, buffer mut-str) trusted summon
 			| EOF, done
 			pass
 		else
+			assert: n-bytes-read.to-nat <= read-max
 			buffer unsafe-increase-size n-bytes-read.to-nat
 			fd read-to-buffer-until-eof buffer
 

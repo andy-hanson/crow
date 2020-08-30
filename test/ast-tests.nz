@@ -1,19 +1,19 @@
 import io .failure .path-utils
 
-run-runnable-tests result str arr<failure>(path str, path-to-noze str, env environ, options test-options) summon
-	tests = path list-runnable-tests
+run-ast-tests result str arr<failure>(path str, path-to-noze str, env environ, options test-options) summon
+	tests = path list-ast-tests
 	failures = tests flat-map-with-max-size options.max-failures, \test
-		options.print-tests? if ("noze run " + test print-sync), pass
-		path-to-noze run-single-runnable-test env, test, options.overwrite-output?
+		options.print-tests? if ("noze ast " + test print-sync), pass
+		path-to-noze run-single-ast-test env, test, options.overwrite-output?
 	when
 		failures has?
 			failures err
 		else
-			ok: "ran " + tests.size.to-str + " runnable tests"
+			ok: "ran " + tests.size.to-str + " ast tests"
 
 private
 
-list-runnable-tests arr str(path str) summon
+list-ast-tests arr str(path str) summon
 	res = new-mut-arr<str>
 	filter = as<fun-mut1<bool, str>>: \s
 		true
@@ -25,7 +25,7 @@ list-runnable-tests arr str(path str) summon
 				s.value == "nz" if (res push child), pass
 	res freeze
 
-run-single-runnable-test arr failure
+run-single-ast-test arr failure
 	path-to-noze str
 	env environ
 	path str
@@ -33,10 +33,10 @@ run-single-runnable-test arr failure
 spec
 	summon
 body
-	res = path-to-noze spawn-and-wait-result (new-arr "run", path), env
+	res = path-to-noze spawn-and-wait-result (new-arr "ast", path), env
 	when
 		res.exit-code == 0 and: res.stderr == ""
-			path handle-output (path + ".stdout"), res.stdout, overwrite-output?
+			handle-output: path, (path + ".ast"), res.stdout, overwrite-output?
 		else
 			message = "status: " + res.exit-code.to-str + "\nstdout:\n" + res.stdout + "stderr:\n" + res.stderr
 			new-arr new path, message

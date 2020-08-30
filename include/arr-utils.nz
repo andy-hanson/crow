@@ -318,7 +318,7 @@ ensure-capacity void(a mut-arr ?t, capacity nat) unsafe
 
 | Unsafe because increasing the size can expose uninitialized data
 unsafe-set-size void(a mut-arr ?t, new-size nat) unsafe
-	assert: new-size < a.capacity
+	assert: new-size <= a.capacity
 	a.size := new-size
 
 unsafe-increase-size void(a mut-arr ?t, increase-by nat) unsafe

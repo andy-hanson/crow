@@ -1,9 +1,13 @@
+import io
+
 my-record record
 	x nat
 	y nat
 
-main fut int32(args arr str)
+main fut int32(args arr str) summon
 	m = new<my-record> 1, 2
 	assert: m.x == 1
 	assert: m.y == 2
+	print-sync: m.x.to-str
+	print-sync: m.y.to-str
 	resolved: 0

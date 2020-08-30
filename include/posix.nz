@@ -351,14 +351,14 @@ o-rdonly oflag-t()
 o-wronly oflag-t()
 	one
 o-rdwr oflag-t()
-	two
+	one bit-lshift one
 o-creat oflag-t()
-	four
+	one bit-lshift six
 o-trunc oflag-t()
-	eight
+	one bit-lshift nine
 
 
-open fd-t(path c-str, oflag oflag-t) summon extern noctx
+open fd-t(path c-str, oflag oflag-t, permission int32) summon extern noctx
 close err-t(fd fd-t) summon extern noctx
 lseek off-t(f fd-t, offset off-t, whence int32) summon extern noctx
 read ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) summon extern noctx

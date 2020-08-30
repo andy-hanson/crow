@@ -8,7 +8,7 @@ run-compile-error-tests result str arr<failure>(path str, path-to-noze str, env 
 				print-sync: "noze build " + test
 			else
 				pass
-		path-to-noze run-single-compile-error-test env, test
+		path-to-noze run-single-compile-error-test env, test, options.overwrite-output?
 	when
 		failures has?
 			err: failures with-max-size options.max-failures
@@ -36,9 +36,15 @@ list-compile-error-tests arr str(path str) summon
 
 | Spawn 'noze' and get result.
 | We want to capture stdout!
-run-single-compile-error-test arr failure(path-to-noze str, env environ, path str) summon
+run-single-compile-error-test arr failure
+	path-to-noze str
+	env environ
+	path str
+	overwrite-output? bool
+spec
+	summon
+body
 	failures = new-mut-arr<failure>
-
 	result = path-to-noze spawn-and-wait-result (new-arr "build", path), env
 	when
 		result.exit-code == 1
@@ -56,18 +62,7 @@ run-single-compile-error-test arr failure(path-to-noze str, env environ, path st
 		result.stderr == ""
 			failures push new path, "stderr is empty"
 		else
-			stderr-file = path change-extension "err"
-			match stderr-file try-read-file
-				none
-					failures push new path, (stderr-file.base-name + " does not exist. stderr was:\n" + stderr-no-color)
-				some s
-					when
-						s.value == stderr-no-color
-							pass
-						else
-							message = "got different stderr than expected. actual:\n" + stderr-no-color
-							failures push new path, message
-
+			failures push-all: handle-output: path, (path + ".err"), stderr-no-color, overwrite-output?
 	failures freeze
 
 remove-colors str(s str)

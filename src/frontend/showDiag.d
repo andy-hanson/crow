@@ -583,9 +583,11 @@ void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref i
 			writeStatic(writer, " is not mutable");
 		},
 		(ref immutable Diag.WrongNumberNewStructArgs d) {
-			writeStatic(writer, "struct initializer expected to get ");
+			writeStatic(writer, "record type ");
+			writeSym(writer, d.decl.name);
+			writeStatic(writer, " has ");
 			writeNat(writer, d.nExpectedArgs);
-			writeStatic(writer, " args, but got ");
+			writeStatic(writer, " fields, but got ");
 			writeNat(writer, d.nActualArgs);
 		},
 		(ref immutable Diag.WrongNumberTypeArgsForSpec d) {

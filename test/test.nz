@@ -10,6 +10,7 @@ import
 	posix
 	runtime
 	str-utils
+	.ast-tests
 	.compile-error-tests
 	.failure
 	.lint
@@ -17,10 +18,19 @@ import
 	.runnable-tests
 
 main fut exit-code(args arr str) summon
-	options = args parse-cmd-line-args<test-options> (new-arr "print-tests", "max-failures"), \values
+	option-names = new-arr<str> "print-tests", "overwrite-output", "max-failures"
+	options = args parse-cmd-line-args<test-options> option-names, \values
 		print-tests-strs = values at 0
-		max-failures-strs = values at 1
+		overwrite-output-strs = values at 1
+		max-failures-strs = values at 2
 		print-tests? = print-tests-strs.has?
+		overwrite-output? = match overwrite-output-strs
+			none
+				false
+			some s
+				| TODO: handle it..
+				assert: s.value empty?
+				true
 		max-failures = as<nat>: match max-failures-strs
 			none
 				100
@@ -28,7 +38,7 @@ main fut exit-code(args arr str) summon
 				strs = s.value
 				assert: strs.size == 1
 				strs.first literal
-		new print-tests?, max-failures
+		new print-tests?, overwrite-output?, max-failures
 	resolved: match options
 		none
 			print-help
@@ -52,6 +62,7 @@ do-test exit-code(options test-options) summon
 
 	compile-failures = test-path child-path "compile-errors" run-compile-error-tests noze-exe, env, options
 	run-failures = compile-failures first-failures \
-		test-path child-path "runnable" run-runnable-tests noze-exe, env, options
+		test-path child-path "runnable" run-ast-tests noze-exe, env, options first-failures \
+			test-path child-path "runnable" run-runnable-tests noze-exe, env, options
 	all-failures = run-failures first-failures {noze-path lint options}
 	all-failures print-failures options

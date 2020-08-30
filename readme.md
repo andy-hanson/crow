@@ -8,6 +8,23 @@ Build with `./build`.
 `gdb app`
 
 
+### Run all tests
+
+`./run-test`
+
+The compiler has no internal unit tests of its own.
+Instead, the tests are written in noze which invokes the compiler executable.
+
+
+### Debugging noze code
+
+```
+cd test
+gdb test
+rbreak throw
+run
+```
+
 ### Editing
 
 It's recommended to install the Sublime Text syntax.
