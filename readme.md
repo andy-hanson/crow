@@ -15,6 +15,10 @@ Build with `./build`.
 The compiler has no internal unit tests of its own.
 Instead, the tests are written in noze which invokes the compiler executable.
 
+## Debugging the compiler
+
+`./noze print --help` is a useful command to see compiler stages.
+
 
 ### Debugging noze code
 

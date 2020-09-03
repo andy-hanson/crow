@@ -71,13 +71,7 @@ immutable(CStr) strToCStr(Alloc)(ref Alloc alloc, immutable Str s) {
 }
 
 immutable(Bool) strEqLiteral(immutable Str a, immutable string b) {
-	if (a.size == b.length) {
-		foreach (immutable size_t i; 0..a.size)
-			if (a.at(i) != b[i])
-				return False;
-		return True;
-	} else
-		return False;
+	return strEq(a, strLiteral(b));
 }
 
 immutable(Bool) strEq(immutable Str a, immutable Str b) {

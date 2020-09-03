@@ -89,11 +89,11 @@ ref T first(T)(Arr!T a) {
 }
 
 ref immutable(T) only(T)(immutable Arr!T a) {
-	assert(a.size == 1);
+	assert(size(a) == 1);
 	return first(a);
 }
 ref const(T) only_const(T)(ref const Arr!T a) {
-	assert(a.size == 1);
+	assert(size(a) == 1);
 	return first(a);
 }
 

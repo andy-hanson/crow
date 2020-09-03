@@ -13,6 +13,7 @@ import frontend.frontendCompile : frontendCompile, parseAst;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : printDiagnostics;
 import model : Module, Program;
+import sexprOfConcreteModel : tataOfConcreteProgram;
 import sexprOfModel : sexprOfModule;
 import util.alloc.mallocator : Mallocator;
 import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
@@ -46,9 +47,60 @@ struct ProgramDirAndMain {
 	immutable Ptr!Path mainPath;
 }
 
+enum PrintKind {
+	ast,
+	model,
+	concreteModel,
+}
+
+immutable(int) print(SymAlloc)(
+	ref AllSymbols!SymAlloc allSymbols,
+	immutable PrintKind kind,
+	ref immutable Str nozeDir,
+	ref immutable ProgramDirAndMain programDirAndMain,
+) {
+	final switch (kind) {
+		case PrintKind.ast:
+			return printAst(allSymbols, programDirAndMain);
+		case PrintKind.model:
+			return printModel(allSymbols, nozeDir, programDirAndMain);
+		case PrintKind.concreteModel:
+			return printConcreteModel(allSymbols, nozeDir, programDirAndMain);
+	}
+}
+
+immutable(int) build(SymAlloc)(
+	ref AllSymbols!SymAlloc allSymbols,
+	immutable Str nozeDir,
+	ref immutable ProgramDirAndMain programDirAndMain,
+	immutable Environ environ,
+) {
+	ExePathAlloc exePathAlloc;
+	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, nozeDir, programDirAndMain, environ);
+	return exePath.has ? 0 : 1;
+}
+
+immutable(int) buildAndRun(SymAlloc)(
+	ref AllSymbols!SymAlloc allSymbols,
+	ref immutable Str nozeDir,
+	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable Arr!Str programArgs,
+	ref immutable Environ environ
+) {
+	ExePathAlloc exePathAlloc;
+	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, nozeDir, programDirAndMain, environ);
+	if (exePath.has) {
+		replaceCurrentProcess(exePath.force, programArgs, environ);
+		return unreachable!int;
+	} else
+		return 1;
+}
+
+private:
+
 immutable(int) printAst(SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ProgramDirAndMain programDirAndMain,
 ) {
 	StackAlloc!("printAst", 1024 * 1024) alloc;
 	ReadOnlyStorages storages = ReadOnlyStorages(
@@ -69,8 +121,8 @@ immutable(int) printAst(SymAlloc)(
 
 immutable(int) printModel(SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable Str nozeDir,
-	immutable ProgramDirAndMain programDirAndMain,
+	ref immutable Str nozeDir,
+	ref immutable ProgramDirAndMain programDirAndMain,
 ) {
 	Mallocator mallocator;
 	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
@@ -88,60 +140,61 @@ immutable(int) printModel(SymAlloc)(
 		});
 }
 
-immutable(int) build(SymAlloc)(
+immutable(int) printConcreteModel(SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable Str nozeDir,
-	immutable ProgramDirAndMain programDirAndMain,
-	immutable Environ environ,
+	ref immutable Str nozeDir,
+	ref immutable ProgramDirAndMain programDirAndMain,
 ) {
-	ExePathAlloc exePathAlloc;
-	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, nozeDir, programDirAndMain, environ);
-	return exePath.has ? 0 : 1;
-}
+	Mallocator mallocator;
+	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
+	immutable Result!(Program, Diagnostics) programResult =
+		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
+	return matchImpure!(int, Program, Diagnostics)(
+		programResult,
+		(ref immutable Program program) {
+			ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
+			immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
+			printOutConcreteProgram(concreteProgram);
+			return 0;
+		},
+		(ref immutable Diagnostics diagnostics) {
+			printDiagnostics(diagnostics);
+			return 1;
+		});
 
-immutable(int) buildAndRun(SymAlloc)(
-	ref AllSymbols!SymAlloc allSymbols,
-	immutable Str nozeDir,
-	immutable ProgramDirAndMain programDirAndMain,
-	immutable Arr!Str programArgs,
-	immutable Environ environ
-) {
-	ExePathAlloc exePathAlloc;
-	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, nozeDir, programDirAndMain, environ);
-	if (exePath.has) {
-		replaceCurrentProcess(exePath.force, programArgs, environ);
-		return unreachable!int;
-	} else
-		return 1;
 }
-
-private:
 
 @trusted void printCStr(immutable CStr a) {
 	printf("%s\n", a);
 }
 
+void printOutAst(ref immutable FileAst ast) {
+	StackAlloc!("sexprOfAst", 32 * 1024) alloc;
+	printOutSexpr(sexprOfAst(alloc, ast));
+}
+
 void printOutModule(ref immutable Module a) {
-	StackAlloc!("sexprOfModule", 32 * 1024) sexprAlloc;
-	immutable Sexpr sexpr = sexprOfModule(sexprAlloc, a);
+	StackAlloc!("sexprOfModule", 32 * 1024) alloc;
+	printOutSexpr(sexprOfModule(alloc, a));
+}
+
+void printOutConcreteProgram(ref immutable ConcreteProgram a) {
+	StackAlloc!("sexprOfConcreteProgram", 32 * 1024) alloc;
+	printOutSexpr(tataOfConcreteProgram(alloc, a));
+}
+
+void printOutSexpr(immutable Sexpr a) {
 	alias StrAlloc = StackAlloc!("printOutSexprOfModule", 32 * 1024);
 	StrAlloc strAlloc;
 	Writer!StrAlloc writer = Writer!StrAlloc(ptrTrustMe_mut(strAlloc));
-	writeSexpr(writer, sexpr);
-	printCStr(finishWriterToCStr(writer));
-}
-
-void printOutAst(ref immutable FileAst ast) {
-	alias Alloc = StackAlloc!("printOutAst", 32 * 1024);
-	Alloc alloc;
-	immutable Sexpr sexpr = sexprOfAst(alloc, ast);
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-	writeSexpr(writer, sexpr);
+	writeSexpr(writer, a);
 	printCStr(finishWriterToCStr(writer));
 }
 
 alias ExePathAlloc = StackAlloc!("exePath", 1024);
 alias ModelAlloc = SingleHeapAlloc!(Mallocator, "model", 16 * 1024 * 1024);
+alias ConcreteAlloc = SingleHeapAlloc!(Mallocator, "concrete-model", 64 * 1024 * 1024);
+alias WriteAlloc = SingleHeapAlloc!(Mallocator, "write-to-c", 64 * 1024 * 1024);
 
 // mainPath is relative to programDir
 // Returns exePath
@@ -218,10 +271,8 @@ void compileC(immutable AbsolutePath cPath, immutable AbsolutePath exePath, immu
 
 void emitProgram(ref immutable Program program, immutable AbsolutePath cPath) {
 	Mallocator mallocator;
-	alias ConcreteAlloc = SingleHeapAlloc!(Mallocator, "concrete-model", 64 * 1024 * 1024);
 	ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
 	immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
-	alias WriteAlloc = SingleHeapAlloc!(Mallocator, "write-to-c", 64 * 1024 * 1024);
 	WriteAlloc writeAlloc = WriteAlloc(ptrTrustMe_mut(mallocator));
 	immutable Str emitted = writeToC(writeAlloc, concreteProgram);
 	writeFileSync(cPath, emitted);

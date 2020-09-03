@@ -8092,7 +8092,7 @@ arr__ptr_failure run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr_
 	process_result* res;
 	arr__char message;
 	arr__ptr_failure arr1;
-	return ((res = spawn_and_wait_result__ptr_process_result__arr__char__arr__arr__char__ptr_dict__arr__char__arr__char(_ctx, path_to_noze, (arr = (arr__arr__char) { 2, (arr__char*) alloc__ptr__byte__nat(_ctx, 32) }, arr.data[0] =ast_or_model, arr.data[1] =path, arr), env)),
+	return ((res = spawn_and_wait_result__ptr_process_result__arr__char__arr__arr__char__ptr_dict__arr__char__arr__char(_ctx, path_to_noze, (arr = (arr__arr__char) { 3, (arr__char*) alloc__ptr__byte__nat(_ctx, 48) }, arr.data[0] =(arr__char){5, "print"}, arr.data[1] =ast_or_model, arr.data[2] =path, arr), env)),
 	(_op_equal_equal__bool__int32__int32(res->exit_code, literal__int32__arr__char(_ctx, (arr__char){1, "0"})) && _op_equal_equal__bool__arr__char__arr__char(res->stderr, (arr__char){0, ""}))
 		? handle_output__arr__ptr_failure__arr__char__arr__char__arr__char__bool(_ctx, path, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, path, (arr__char){1, "."}), ast_or_model), (arr__char){5, ".tata"}), res->stdout, overwrite_output__q)
 		: ((message = _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, (arr__char){8, "status: "}, to_str__arr__char__int32(_ctx, res->exit_code)), (arr__char){9, "\nstdout:\n"}), res->stdout), (arr__char){8, "stderr:\n"}), res->stderr)),

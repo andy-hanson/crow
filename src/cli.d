@@ -2,7 +2,7 @@ module cli;
 
 import core.stdc.stdio : printf;
 
-import compiler : build, buildAndRun, printAst, printModel, ProgramDirAndMain;
+import compiler : build, buildAndRun, print, PrintKind, ProgramDirAndMain;
 import frontend.lang : nozeExtension;
 import util.alloc.mallocator : Mallocator;
 import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
@@ -50,8 +50,6 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 	immutable Command command = parseCommand(alloc, allSymbols, getCwd(alloc), args.args);
 	return matchCommand!int(
 		command,
-		(ref immutable Command.Ast a) =>
-			printAst(allSymbols, a.programDirAndMain),
 		(ref immutable Command.Build b) =>
 			build(allSymbols, nozeDir, b.programDirAndMain, args.environ),
 		(ref immutable Command.Help h) =>
@@ -60,8 +58,8 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 			helpBuild(),
 		(ref immutable Command.HelpRun) =>
 			helpRun(),
-		(ref immutable Command.Model a) =>
-			printModel(allSymbols, nozeDir, a.programDirAndMain),
+		(ref immutable Command.Print a) =>
+			print(allSymbols, a.kind, nozeDir, a.programDirAndMain),
 		(ref immutable Command.Run r) =>
 			buildAndRun(allSymbols, nozeDir, r.programDirAndMain, r.programArgs, args.environ),
 		(ref immutable Command.Version) {
@@ -102,18 +100,15 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 
 @trusted Out matchCommand(Out)(
 	ref immutable Command a,
-	scope immutable(Out) delegate(ref immutable Command.Ast) @safe @nogc nothrow cbAst,
 	scope immutable(Out) delegate(ref immutable Command.Build) @safe @nogc nothrow cbBuild,
 	scope immutable(Out) delegate(ref immutable Command.Help) @safe @nogc nothrow cbHelp,
 	scope immutable(Out) delegate(ref immutable Command.HelpBuild) @safe @nogc nothrow cbHelpBuild,
 	scope immutable(Out) delegate(ref immutable Command.HelpRun) @safe @nogc nothrow cbHelpRun,
-	scope immutable(Out) delegate(ref immutable Command.Model) @safe @nogc nothrow cbModel,
+	scope immutable(Out) delegate(ref immutable Command.Print) @safe @nogc nothrow cbPrint,
 	scope immutable(Out) delegate(ref immutable Command.Run) @safe @nogc nothrow cbRun,
 	scope immutable(Out) delegate(ref immutable Command.Version) @safe @nogc nothrow cbVersion,
 ) {
 	final switch (a.kind) {
-		case Command.Kind.ast:
-			return cbAst(a.ast);
 		case Command.Kind.build:
 			return cbBuild(a.build);
 		case Command.Kind.help:
@@ -122,8 +117,8 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 			return cbHelpBuild(a.helpBuild);
 		case Command.Kind.helpRun:
 			return cbHelpRun(a.helpRun);
-		case Command.Kind.model:
-			return cbModel(a.model);
+		case Command.Kind.print:
+			return cbPrint(a.print);
 		case Command.Kind.run:
 			return cbRun(a.run);
 		case Command.Kind.version_:
@@ -144,9 +139,6 @@ immutable(Bool) isHelp(immutable Str s) {
 
 struct Command {
 	@safe @nogc pure nothrow:
-	struct Ast {
-		immutable ProgramDirAndMain programDirAndMain;
-	}
 	struct Build {
 		immutable ProgramDirAndMain programDirAndMain;
 	}
@@ -155,7 +147,8 @@ struct Command {
 	}
 	struct HelpBuild {}
 	struct HelpRun {}
-	struct Model {
+	struct Print {
+		immutable PrintKind kind;
 		immutable ProgramDirAndMain programDirAndMain;
 	}
 	// Also builds first
@@ -165,34 +158,31 @@ struct Command {
 	}
 	struct Version {}
 
-	@trusted immutable this(immutable Ast a) { kind = Kind.ast; ast = a; }
 	@trusted immutable this(immutable Build a) { kind = Kind.build; build = a; }
 	@trusted immutable this(immutable Help a) { kind = Kind.help; help = a; }
 	@trusted immutable this(immutable HelpBuild a) { kind = Kind.helpBuild; helpBuild = a; }
 	@trusted immutable this(immutable HelpRun a) { kind = Kind.helpRun; helpRun = a; }
-	@trusted immutable this(immutable Model a) { kind = Kind.model; model = a; }
+	@trusted immutable this(immutable Print a) { kind = Kind.print; print = a; }
 	@trusted immutable this(immutable Run a) { kind = Kind.run; run = a; }
 	@trusted immutable this(immutable Version a) { kind = Kind.version_; version_ = a; }
 
 	private:
 	enum Kind {
-		ast,
 		build,
 		help,
 		helpBuild,
 		helpRun,
-		model,
+		print,
 		run,
 		version_,
 	}
 	immutable Kind kind;
 	union {
-		immutable Ast ast;
 		immutable Build build;
 		immutable Help help;
 		immutable HelpBuild helpBuild;
 		immutable HelpRun helpRun;
-		immutable Model model;
+		immutable Print print;
 		immutable Run run;
 		immutable Version version_;
 	}
@@ -212,26 +202,27 @@ immutable(ProgramDirAndMain) parseProgramDirAndMain(Alloc, SymAlloc)(
 	return ProgramDirAndMain(dir, rootPath(alloc, name));
 }
 
-immutable(Command) parseAstCommand(Alloc, SymAlloc)(
+immutable(Command) parsePrintCommand(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Str cwd,
 	ref immutable Arr!Str args,
 ) {
-	return args.size == 1 && !isHelp(args.only)
-		? immutable Command(Command.Ast(parseProgramDirAndMain(alloc, allSymbols, cwd, args.only)))
+	return size(args) == 2
+		? immutable Command(Command.Print(
+			parsePrintKind(first(args)),
+			parseProgramDirAndMain(alloc, allSymbols, cwd, at(args, 1))))
 		: todo!Command("Command.HelpAst");
 }
 
-immutable(Command) parseModelCommand(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable Str cwd,
-	ref immutable Arr!Str args,
-) {
-	return args.size == 1 && !isHelp(args.only)
-		? immutable Command(Command.Model(parseProgramDirAndMain(alloc, allSymbols, cwd, args.only)))
-		: todo!Command("Command.HelpModel");
+immutable(PrintKind) parsePrintKind(immutable Str a) {
+	return strEqLiteral(a, "ast")
+		? PrintKind.ast
+		: strEqLiteral(a, "model")
+		? PrintKind.model
+		: strEqLiteral(a, "concrete-model")
+		? PrintKind.concreteModel
+		: todo!(immutable PrintKind)("parsePrintKind");
 }
 
 immutable(Command) parseBuildCommand(Alloc, SymAlloc)(
@@ -278,10 +269,8 @@ immutable(Command) parseCommand(Alloc, SymAlloc)(
 			? Command(Command.Help(False))
 			: isSpecialArg(arg0, "version")
 			? Command(Command.Version())
-			: strEqLiteral(arg0, "ast")
-			? parseAstCommand(alloc, allSymbols, cwd, cmdArgs)
-			: strEqLiteral(arg0, "model")
-			? parseModelCommand(alloc, allSymbols, cwd, cmdArgs)
+			: strEqLiteral(arg0, "print")
+			? parsePrintCommand(alloc, allSymbols, cwd, cmdArgs)
 			: strEqLiteral(arg0, "build")
 			? parseBuildCommand(alloc, allSymbols, cwd, cmdArgs)
 			: strEqLiteral(arg0, "run")

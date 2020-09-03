@@ -39,7 +39,7 @@ run-single-ast-or-model-test arr failure
 spec
 	summon
 body
-	res = path-to-noze spawn-and-wait-result (new-arr ast-or-model, path), env
+	res = path-to-noze spawn-and-wait-result (new-arr "print", ast-or-model, path), env
 	when
 		res.exit-code == 0 and: res.stderr == ""
 			handle-output: path, (path + "." + ast-or-model + ".tata"), res.stdout, overwrite-output?
