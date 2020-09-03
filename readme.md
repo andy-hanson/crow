@@ -34,4 +34,5 @@ so you can go to their definitions to read documentation.
 
 ```sh
 bash -llc 'ln -s `pwd`/noze.sublime-syntax ~/.config/sublime-text-3/Packages/User/noze.sublime-syntax'
+bash -llc 'ln -s `pwd`/tata.sublime-syntax ~/.config/sublime-text-3/Packages/User/tata.sublime-syntax'
 ```

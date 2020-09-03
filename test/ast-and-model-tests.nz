@@ -1,10 +1,11 @@
 import io .failure .path-utils
 
-run-ast-tests result str arr<failure>(path str, path-to-noze str, env environ, options test-options) summon
-	tests = path list-ast-tests
+run-ast-and-model-tests result str arr<failure>(path str, path-to-noze str, env environ, options test-options) summon
+	tests = path list-ast-and-model-tests
 	failures = tests flat-map-with-max-size options.max-failures, \test
 		options.print-tests? if ("noze ast " + test print-sync), pass
-		path-to-noze run-single-ast-test env, test, options.overwrite-output?
+		"ast" run-single-ast-or-model-test path-to-noze, env, test, options.overwrite-output? arr-or \
+			"model" run-single-ast-or-model-test path-to-noze, env, test, options.overwrite-output?
 	when
 		failures has?
 			failures err
@@ -13,7 +14,11 @@ run-ast-tests result str arr<failure>(path str, path-to-noze str, env environ, o
 
 private
 
-list-ast-tests arr str(path str) summon
+| TODO:MOVE
+arr-or arr ?a(a arr ?a, b fun-mut0 arr<?a>)
+	a.has? if a, b.call
+
+list-ast-and-model-tests arr str(path str) summon
 	res = new-mut-arr<str>
 	filter = as<fun-mut1<bool, str>>: \s
 		true
@@ -25,7 +30,8 @@ list-ast-tests arr str(path str) summon
 				s.value == "nz" if (res push child), pass
 	res freeze
 
-run-single-ast-test arr failure
+run-single-ast-or-model-test arr failure
+	ast-or-model str
 	path-to-noze str
 	env environ
 	path str
@@ -33,10 +39,10 @@ run-single-ast-test arr failure
 spec
 	summon
 body
-	res = path-to-noze spawn-and-wait-result (new-arr "ast", path), env
+	res = path-to-noze spawn-and-wait-result (new-arr ast-or-model, path), env
 	when
 		res.exit-code == 0 and: res.stderr == ""
-			handle-output: path, (path + ".ast"), res.stdout, overwrite-output?
+			handle-output: path, (path + "." + ast-or-model + ".tata"), res.stdout, overwrite-output?
 		else
 			message = "status: " + res.exit-code.to-str + "\nstdout:\n" + res.stdout + "stderr:\n" + res.stderr
 			new-arr new path, message

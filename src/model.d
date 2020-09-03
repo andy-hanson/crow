@@ -15,7 +15,6 @@ import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : none, Opt, some;
 import util.path : AbsolutePath, addManyChildren, baseName, comparePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
-import util.sexpr : Sexpr, SexprRecord;
 import util.sourceRange : SourceRange;
 import util.sym : compareSym, shortSymAlphaLiteral, Sym, writeSym;
 import util.util : todo;
@@ -66,8 +65,15 @@ immutable(Bool) isDataOrSendable(immutable Purity a) {
 	return Bool(a != Purity.mut);
 }
 
-immutable(char*) purityStr(immutable Purity a) {
-	return a == Purity.data ? "data" : a == Purity.sendable ? "sendable" : "mut";
+immutable(Sym) symOfPurity(immutable Purity a) {
+	final switch (a) {
+		case Purity.data:
+			return shortSymAlphaLiteral("data");
+		case Purity.sendable:
+			return shortSymAlphaLiteral("sendable");
+		case Purity.mut:
+			return shortSymAlphaLiteral("mut");
+	}
 }
 immutable(char*) boolStr(immutable Bool a) {
 	return a ? "true" : "false";
@@ -617,7 +623,6 @@ struct FunDecl {
 	immutable Arr!(Ptr!SpecInst) specs;
 	private:
 	Late!(immutable FunBody) _body_;
-	MutArr!(immutable Ptr!FunInst) insts;
 }
 
 ref immutable(FunBody) body_(return scope ref immutable FunDecl a) {
@@ -640,6 +645,15 @@ immutable(Bool) isExtern(ref immutable FunDecl a) {
 
 immutable(Bool) noCtx(ref const FunDecl a) {
 	return a.flags.noCtx;
+}
+immutable(Bool) summon(ref immutable FunDecl a) {
+	return a.flags.summon;
+}
+immutable(Bool) unsafe(ref immutable FunDecl a) {
+	return a.flags.unsafe;
+}
+immutable(Bool) trusted(ref immutable FunDecl a) {
+	return a.flags.trusted;
 }
 
 immutable(Sym) name(ref const FunDecl a) {

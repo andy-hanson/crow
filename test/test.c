@@ -416,15 +416,23 @@ struct do_test__int32__test_options__lambda0___closure {
 	dict__arr__char__arr__char* env;
 	test_options options;
 };
-typedef struct list_ast_tests__arr__arr__char__arr__char__lambda1___closure list_ast_tests__arr__arr__char__arr__char__lambda1___closure;
-struct list_ast_tests__arr__arr__char__arr__char__lambda1___closure {
+typedef struct list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure;
+struct list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure {
 	mut_arr__arr__char* res;
 };
-typedef struct run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure;
-struct run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure {
+typedef struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure;
+struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure {
 	test_options options;
 	arr__char path_to_noze;
 	dict__arr__char__arr__char* env;
+};
+typedef struct fun_mut0__arr__ptr_failure fun_mut0__arr__ptr_failure;
+typedef struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure;
+struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure {
+	arr__char path_to_noze;
+	dict__arr__char__arr__char* env;
+	arr__char test;
+	test_options options;
 };
 typedef struct do_test__int32__test_options__lambda0__lambda0___closure do_test__int32__test_options__lambda0__lambda0___closure;
 struct do_test__int32__test_options__lambda0__lambda0___closure {
@@ -729,6 +737,7 @@ struct fun_mut2___void__arr__char__arr__char {
 	fun_ptr4___void__ptr_ctx__ptr__byte__arr__char__arr__char fun_ptr;
 	ptr__byte closure;
 };
+typedef arr__ptr_failure (*fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte)(ctx*, ptr__byte);
 struct fun_mut2___void__arr__char__nat {
 	fun_ptr4___void__ptr_ctx__ptr__byte__arr__char__nat fun_ptr;
 	ptr__byte closure;
@@ -906,6 +915,10 @@ struct arr__pollfd {
 };
 typedef result__arr__char__arr__ptr_failure (*fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__byte)(ctx*, ptr__byte);
 typedef result__arr__char__arr__ptr_failure (*fun_ptr3__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__byte__arr__char)(ctx*, ptr__byte, arr__char);
+struct fun_mut0__arr__ptr_failure {
+	fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte fun_ptr;
+	ptr__byte closure;
+};
 struct fut_state__int32 {
 	int kind;
 	union {
@@ -3266,22 +3279,52 @@ do_test__int32__test_options__lambda0___closure _faildo_test__int32__test_option
 }
 
 
-list_ast_tests__arr__arr__char__arr__char__lambda1___closure* _initlist_ast_tests__arr__arr__char__arr__char__lambda1___closure(byte* out, list_ast_tests__arr__arr__char__arr__char__lambda1___closure value) {
-	list_ast_tests__arr__arr__char__arr__char__lambda1___closure* res = (list_ast_tests__arr__arr__char__arr__char__lambda1___closure*) out; 
+list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure* _initlist_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure(byte* out, list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure value) {
+	list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure* res = (list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure*) out; 
 	*res = value;
 	return res;
 }
-list_ast_tests__arr__arr__char__arr__char__lambda1___closure _faillist_ast_tests__arr__arr__char__arr__char__lambda1___closure() {
+list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure _faillist_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure() {
 	assert(0);
 }
 
 
-run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _initrun_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure(byte* out, run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure value) {
-	run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* res = (run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure*) out; 
+run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _initrun_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure(byte* out, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure value) {
+	run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* res = (run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure*) out; 
 	*res = value;
 	return res;
 }
-run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure _failrun_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure() {
+run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure _failrun_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure() {
+	assert(0);
+}
+
+
+fun_mut0__arr__ptr_failure* _initfun_mut0__arr__ptr_failure(byte* out, fun_mut0__arr__ptr_failure value) {
+	fun_mut0__arr__ptr_failure* res = (fun_mut0__arr__ptr_failure*) out; 
+	*res = value;
+	return res;
+}
+fun_mut0__arr__ptr_failure _failfun_mut0__arr__ptr_failure() {
+	assert(0);
+}
+
+
+fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte* _initfun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte(byte* out, fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte value) {
+	fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte* res = (fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte*) out; 
+	*res = value;
+	return res;
+}
+fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte _failfun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte() {
+	assert(0);
+}
+
+
+run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* _initrun_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure(byte* out, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure value) {
+	run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* res = (run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure*) out; 
+	*res = value;
+	return res;
+}
+run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure _failrun_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure() {
 	assert(0);
 }
 
@@ -4284,12 +4327,18 @@ result__arr__char__arr__ptr_failure call_with_ctx__result__arr__char__arr__ptr_f
 result__arr__char__arr__ptr_failure call__result__arr__char__arr__ptr_failure__fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__byte f, ctx* p0, ptr__byte p1);
 result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0(ctx* _ctx, first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure* _closure, arr__char b_descr);
 result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0(ctx* _ctx, first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure* _closure, arr__char a_descr);
-result__arr__char__arr__ptr_failure run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx* _ctx, arr__char path, arr__char path_to_noze, dict__arr__char__arr__char* env, test_options options);
-arr__arr__char list_ast_tests__arr__arr__char__arr__char(ctx* _ctx, arr__char path);
-bool list_ast_tests__arr__arr__char__arr__char__lambda0(ctx* _ctx, ptr__byte _closure, arr__char s);
-_void list_ast_tests__arr__arr__char__arr__char__lambda1(ctx* _ctx, list_ast_tests__arr__arr__char__arr__char__lambda1___closure* _closure, arr__char child);
-arr__ptr_failure run_single_ast_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(ctx* _ctx, arr__char path_to_noze, dict__arr__char__arr__char* env, arr__char path, bool overwrite_output__q);
-arr__ptr_failure run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(ctx* _ctx, run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, arr__char test);
+result__arr__char__arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx* _ctx, arr__char path, arr__char path_to_noze, dict__arr__char__arr__char* env, test_options options);
+arr__arr__char list_ast_and_model_tests__arr__arr__char__arr__char(ctx* _ctx, arr__char path);
+bool list_ast_and_model_tests__arr__arr__char__arr__char__lambda0(ctx* _ctx, ptr__byte _closure, arr__char s);
+_void list_ast_and_model_tests__arr__arr__char__arr__char__lambda1(ctx* _ctx, list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure* _closure, arr__char child);
+arr__ptr_failure arr_or__arr__ptr_failure__arr__ptr_failure__fun_mut0__arr__ptr_failure(ctx* _ctx, arr__ptr_failure a, fun_mut0__arr__ptr_failure b);
+arr__ptr_failure if__arr__ptr_failure__bool__arr__ptr_failure__arr__ptr_failure(bool cond, arr__ptr_failure if_true, arr__ptr_failure if_false);
+arr__ptr_failure call__arr__ptr_failure__fun_mut0__arr__ptr_failure(ctx* _ctx, fun_mut0__arr__ptr_failure f);
+arr__ptr_failure call_with_ctx__arr__ptr_failure__ptr_ctx__fun_mut0__arr__ptr_failure(ctx* c, fun_mut0__arr__ptr_failure f);
+arr__ptr_failure call__arr__ptr_failure__fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte(fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte f, ctx* p0, ptr__byte p1);
+arr__ptr_failure run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(ctx* _ctx, arr__char ast_or_model, arr__char path_to_noze, dict__arr__char__arr__char* env, arr__char path, bool overwrite_output__q);
+arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0(ctx* _ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* _closure);
+arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(ctx* _ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, arr__char test);
 result__arr__char__arr__ptr_failure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx* _ctx, arr__char path, arr__char path_to_noze, dict__arr__char__arr__char* env, test_options options);
 arr__arr__char list_runnable_tests__arr__arr__char__arr__char(ctx* _ctx, arr__char path);
 bool list_runnable_tests__arr__arr__char__arr__char__lambda0(ctx* _ctx, ptr__byte _closure, arr__char s);
@@ -7989,36 +8038,36 @@ result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_
 		(ptr__byte) _initfirst_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure(alloc__ptr__byte__nat(_ctx, 16), (first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure) {a_descr})
 	});
 }
-result__arr__char__arr__ptr_failure run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx* _ctx, arr__char path, arr__char path_to_noze, dict__arr__char__arr__char* env, test_options options) {
+result__arr__char__arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx* _ctx, arr__char path, arr__char path_to_noze, dict__arr__char__arr__char* env, test_options options) {
 	arr__arr__char tests;
 	arr__ptr_failure failures;
-	return ((tests = list_ast_tests__arr__arr__char__arr__char(_ctx, path)),
+	return ((tests = list_ast_and_model_tests__arr__arr__char__arr__char(_ctx, path)),
 	((failures = flat_map_with_max_size__arr__ptr_failure__arr__arr__char__nat__fun_mut1__arr__ptr_failure__arr__char(_ctx, tests, options.max_failures, (fun_mut1__arr__ptr_failure__arr__char) {
-		(fun_ptr3__arr__ptr_failure__ptr_ctx__ptr__byte__arr__char) run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0,
-		(ptr__byte) _initrun_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure(alloc__ptr__byte__nat(_ctx, 40), (run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure) {options, path_to_noze, env})
+		(fun_ptr3__arr__ptr_failure__ptr_ctx__ptr__byte__arr__char) run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0,
+		(ptr__byte) _initrun_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure(alloc__ptr__byte__nat(_ctx, 40), (run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure) {options, path_to_noze, env})
 	})),
 	has__q__bool__arr__ptr_failure(failures)
 		? (result__arr__char__arr__ptr_failure) { 1, .as_err__arr__ptr_failure = err__err__arr__ptr_failure__arr__ptr_failure(failures) }
 		: (result__arr__char__arr__ptr_failure) { 0, .as_ok__arr__char = ok__ok__arr__char__arr__char(_op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, (arr__char){4, "ran "}, to_str__arr__char__nat(_ctx, tests.size)), (arr__char){10, " ast tests"})) }));
 }
-arr__arr__char list_ast_tests__arr__arr__char__arr__char(ctx* _ctx, arr__char path) {
+arr__arr__char list_ast_and_model_tests__arr__arr__char__arr__char(ctx* _ctx, arr__char path) {
 	mut_arr__arr__char* res;
 	fun_mut1__bool__arr__char filter;
 	return ((res = new_mut_arr__ptr_mut_arr__arr__char(_ctx)),
 	((filter = (fun_mut1__bool__arr__char) {
-		(fun_ptr3__bool__ptr_ctx__ptr__byte__arr__char) list_ast_tests__arr__arr__char__arr__char__lambda0,
+		(fun_ptr3__bool__ptr_ctx__ptr__byte__arr__char) list_ast_and_model_tests__arr__arr__char__arr__char__lambda0,
 		(ptr__byte) NULL
 	}),
 	(each_child_recursive___void__arr__char__fun_mut1__bool__arr__char__fun_mut1___void__arr__char(_ctx, path, filter, (fun_mut1___void__arr__char) {
-		(fun_ptr3___void__ptr_ctx__ptr__byte__arr__char) list_ast_tests__arr__arr__char__arr__char__lambda1,
-		(ptr__byte) _initlist_ast_tests__arr__arr__char__arr__char__lambda1___closure(alloc__ptr__byte__nat(_ctx, 8), (list_ast_tests__arr__arr__char__arr__char__lambda1___closure) {res})
+		(fun_ptr3___void__ptr_ctx__ptr__byte__arr__char) list_ast_and_model_tests__arr__arr__char__arr__char__lambda1,
+		(ptr__byte) _initlist_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure(alloc__ptr__byte__nat(_ctx, 8), (list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure) {res})
 	}),
 	freeze__arr__arr__char__ptr_mut_arr__arr__char(res))));
 }
-bool list_ast_tests__arr__arr__char__arr__char__lambda0(ctx* _ctx, ptr__byte _closure, arr__char s) {
+bool list_ast_and_model_tests__arr__arr__char__arr__char__lambda0(ctx* _ctx, ptr__byte _closure, arr__char s) {
 	return 1;
 }
-_void list_ast_tests__arr__arr__char__arr__char__lambda1(ctx* _ctx, list_ast_tests__arr__arr__char__arr__char__lambda1___closure* _closure, arr__char child) {
+_void list_ast_and_model_tests__arr__arr__char__arr__char__lambda1(ctx* _ctx, list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure* _closure, arr__char child) {
 	some__arr__char s;
 	opt__arr__char matched;
 	return (matched = get_extension__opt__arr__char__arr__char(_ctx, base_name__arr__char__arr__char(_ctx, child)),
@@ -8029,20 +8078,35 @@ _void list_ast_tests__arr__arr__char__arr__char__lambda1(ctx* _ctx, list_ast_tes
 		(_op_equal_equal__bool__arr__char__arr__char(s.value, (arr__char){2, "nz"}) ? push___void__ptr_mut_arr__arr__char__arr__char(_ctx, _closure->res, child) : 0)
 		): _fail_void());
 }
-arr__ptr_failure run_single_ast_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(ctx* _ctx, arr__char path_to_noze, dict__arr__char__arr__char* env, arr__char path, bool overwrite_output__q) {
+arr__ptr_failure arr_or__arr__ptr_failure__arr__ptr_failure__fun_mut0__arr__ptr_failure(ctx* _ctx, arr__ptr_failure a, fun_mut0__arr__ptr_failure b) {
+	return (has__q__bool__arr__ptr_failure(a) ? a : call__arr__ptr_failure__fun_mut0__arr__ptr_failure(_ctx, b));
+}
+arr__ptr_failure call__arr__ptr_failure__fun_mut0__arr__ptr_failure(ctx* _ctx, fun_mut0__arr__ptr_failure f) {
+	return call_with_ctx__arr__ptr_failure__ptr_ctx__fun_mut0__arr__ptr_failure(_ctx, f);
+}
+arr__ptr_failure call_with_ctx__arr__ptr_failure__ptr_ctx__fun_mut0__arr__ptr_failure(ctx* c, fun_mut0__arr__ptr_failure f) {
+	return f.fun_ptr(c, f.closure);
+}
+arr__ptr_failure run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(ctx* _ctx, arr__char ast_or_model, arr__char path_to_noze, dict__arr__char__arr__char* env, arr__char path, bool overwrite_output__q) {
 	arr__arr__char arr;
 	process_result* res;
 	arr__char message;
 	arr__ptr_failure arr1;
-	return ((res = spawn_and_wait_result__ptr_process_result__arr__char__arr__arr__char__ptr_dict__arr__char__arr__char(_ctx, path_to_noze, (arr = (arr__arr__char) { 2, (arr__char*) alloc__ptr__byte__nat(_ctx, 32) }, arr.data[0] =(arr__char){3, "ast"}, arr.data[1] =path, arr), env)),
+	return ((res = spawn_and_wait_result__ptr_process_result__arr__char__arr__arr__char__ptr_dict__arr__char__arr__char(_ctx, path_to_noze, (arr = (arr__arr__char) { 2, (arr__char*) alloc__ptr__byte__nat(_ctx, 32) }, arr.data[0] =ast_or_model, arr.data[1] =path, arr), env)),
 	(_op_equal_equal__bool__int32__int32(res->exit_code, literal__int32__arr__char(_ctx, (arr__char){1, "0"})) && _op_equal_equal__bool__arr__char__arr__char(res->stderr, (arr__char){0, ""}))
-		? handle_output__arr__ptr_failure__arr__char__arr__char__arr__char__bool(_ctx, path, _op_plus__arr__char__arr__char__arr__char(_ctx, path, (arr__char){4, ".ast"}), res->stdout, overwrite_output__q)
+		? handle_output__arr__ptr_failure__arr__char__arr__char__arr__char__bool(_ctx, path, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, path, (arr__char){1, "."}), ast_or_model), (arr__char){5, ".tata"}), res->stdout, overwrite_output__q)
 		: ((message = _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, (arr__char){8, "status: "}, to_str__arr__char__int32(_ctx, res->exit_code)), (arr__char){9, "\nstdout:\n"}), res->stdout), (arr__char){8, "stderr:\n"}), res->stderr)),
 		(arr1 = (arr__ptr_failure) { 1, (failure**) alloc__ptr__byte__nat(_ctx, 8) }, arr1.data[0] =_initfailure(alloc__ptr__byte__nat(_ctx, 32), (failure) {path, message}), arr1)));
 }
-arr__ptr_failure run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(ctx* _ctx, run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, arr__char test) {
+arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0(ctx* _ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* _closure) {
+	return run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(_ctx, (arr__char){5, "model"}, _closure->path_to_noze, _closure->env, _closure->test, _closure->options.overwrite_output__q);
+}
+arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(ctx* _ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, arr__char test) {
 	return ((_closure->options.print_tests__q ? print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(_ctx, (arr__char){9, "noze ast "}, test)) : 0),
-	run_single_ast_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(_ctx, _closure->path_to_noze, _closure->env, test, _closure->options.overwrite_output__q));
+	arr_or__arr__ptr_failure__arr__ptr_failure__fun_mut0__arr__ptr_failure(_ctx, run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(_ctx, (arr__char){3, "ast"}, _closure->path_to_noze, _closure->env, test, _closure->options.overwrite_output__q), (fun_mut0__arr__ptr_failure) {
+		(fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte) run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0,
+		(ptr__byte) _initrun_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure(alloc__ptr__byte__nat(_ctx, 56), (run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure) {_closure->path_to_noze, _closure->env, test, _closure->options})
+	}));
 }
 result__arr__char__arr__ptr_failure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx* _ctx, arr__char path, arr__char path_to_noze, dict__arr__char__arr__char* env, test_options options) {
 	arr__arr__char tests;
@@ -8103,7 +8167,7 @@ result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0__lambd
 	return run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(_ctx, child_path__arr__char__arr__char__arr__char(_ctx, _closure->test_path, (arr__char){8, "runnable"}), _closure->noze_exe, _closure->env, _closure->options);
 }
 result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0(ctx* _ctx, do_test__int32__test_options__lambda0___closure* _closure) {
-	return first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(_ctx, run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(_ctx, child_path__arr__char__arr__char__arr__char(_ctx, _closure->test_path, (arr__char){8, "runnable"}), _closure->noze_exe, _closure->env, _closure->options), (fun0__result__arr__char__arr__ptr_failure) {
+	return first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(_ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(_ctx, child_path__arr__char__arr__char__arr__char(_ctx, _closure->test_path, (arr__char){8, "runnable"}), _closure->noze_exe, _closure->env, _closure->options), (fun0__result__arr__char__arr__ptr_failure) {
 		(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__byte) do_test__int32__test_options__lambda0__lambda0,
 		(ptr__byte) _initdo_test__int32__test_options__lambda0__lambda0___closure(alloc__ptr__byte__nat(_ctx, 56), (do_test__int32__test_options__lambda0__lambda0___closure) {_closure->test_path, _closure->noze_exe, _closure->env, _closure->options})
 	});
@@ -8574,8 +8638,11 @@ int main(int argc, char** argv) {
 	assert(sizeof(first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure) == 16);
 	assert(sizeof(first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure) == 16);
 	assert(sizeof(do_test__int32__test_options__lambda0___closure) == 56);
-	assert(sizeof(list_ast_tests__arr__arr__char__arr__char__lambda1___closure) == 8);
-	assert(sizeof(run_ast_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure) == 40);
+	assert(sizeof(list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure) == 8);
+	assert(sizeof(run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure) == 40);
+	assert(sizeof(fun_mut0__arr__ptr_failure) == 16);
+	assert(sizeof(fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte) == 8);
+	assert(sizeof(run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure) == 56);
 	assert(sizeof(do_test__int32__test_options__lambda0__lambda0___closure) == 56);
 	assert(sizeof(list_runnable_tests__arr__arr__char__arr__char__lambda1___closure) == 8);
 	assert(sizeof(run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure) == 40);

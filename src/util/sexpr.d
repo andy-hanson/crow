@@ -3,14 +3,14 @@ module util.sexpr;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
-import util.collection.arr : Arr, empty, first, range, size;
-import util.collection.arrUtil : tail;
+import util.collection.arr : Arr, empty, emptyArr, first, range, size;
+import util.collection.arrUtil : arrLiteral, map, tail;
 import util.collection.str : Str;
 import util.memory : allocate;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sym : Sym, symSize, writeSym;
-import util.types : u32, safeIntFromSizeT;
+import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
+import util.types : safeIntFromSizeT;
 import util.util : todo;
 import util.verify : unreachable;
 import util.writer :
@@ -26,12 +26,95 @@ import util.writer :
 	WriterWithIndent,
 	writeWithCommas;
 
-struct SexprRecord {
+immutable(Sexpr) tataRecord(immutable Sym name, immutable Arr!Sexpr children) {
+	return immutable Sexpr(immutable SexprRecord(name, children));
+}
+
+immutable(Sexpr) tataRecord(immutable string name, immutable Arr!Sexpr children) {
+	return tataRecord(shortSymAlphaLiteral(name), children);
+}
+
+immutable(Sexpr) tataRecord(immutable string name) {
+	return tataRecord(name, emptyArr!Sexpr);
+}
+
+immutable(Sexpr) tataRecord(Alloc)(ref Alloc alloc, immutable string name, immutable Sexpr child0) {
+	return tataRecord(name, arrLiteral!Sexpr(alloc, child0));
+}
+
+immutable(Sexpr) tataRecord(Alloc)(
+	ref Alloc alloc,
+	immutable string name,
+	immutable Sexpr child0,
+	immutable Sexpr child1,
+) {
+	return tataRecord(name, arrLiteral!Sexpr(alloc, child0, child1));
+}
+
+immutable(Sexpr) tataRecord(Alloc)(
+	ref Alloc alloc,
+	immutable string name,
+	immutable Sexpr child0,
+	immutable Sexpr child1,
+	immutable Sexpr child2,
+) {
+	return tataRecord(name, arrLiteral!Sexpr(alloc, child0, child1, child2));
+}
+
+immutable(Sexpr) tataRecord(Alloc)(
+	ref Alloc alloc,
+	immutable string name,
+	immutable Sexpr child0,
+	immutable Sexpr child1,
+	immutable Sexpr child2,
+	immutable Sexpr child3,
+) {
+	return tataRecord(name, arrLiteral!Sexpr(alloc, child0, child1, child2, child3));
+}
+
+immutable(Sexpr) tataRecord(Alloc)(
+	ref Alloc alloc,
+	immutable string name,
+	immutable Sexpr child0,
+	immutable Sexpr child1,
+	immutable Sexpr child2,
+	immutable Sexpr child3,
+	immutable Sexpr child4,
+) {
+	return tataRecord(name, arrLiteral!Sexpr(alloc, child0, child1, child2, child3, child4));
+}
+
+immutable(Sexpr) tataRecord(Alloc)(
+	ref Alloc alloc,
+	immutable string name,
+	immutable Sexpr child0,
+	immutable Sexpr child1,
+	immutable Sexpr child2,
+	immutable Sexpr child3,
+	immutable Sexpr child4,
+	immutable Sexpr child5,
+) {
+	return tataRecord(name, arrLiteral!Sexpr(alloc, child0, child1, child2, child3, child4, child5));
+}
+
+private struct SexprRecord {
 	immutable Sym name;
 	immutable Arr!Sexpr children;
 }
 
-struct SexprNamedRecord {
+immutable(Sexpr) tataNamedRecord(immutable string name, immutable Arr!NameAndSexpr children) {
+	return immutable Sexpr(immutable SexprNamedRecord(shortSymAlphaLiteral(name), children));
+}
+
+immutable(Sexpr) tataArr(T, Alloc)(
+	ref Alloc alloc,
+	immutable Arr!T xs,
+	scope immutable(Sexpr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	return immutable Sexpr(map(alloc, xs, cb), true);
+}
+
+private struct SexprNamedRecord {
 	immutable Sym name;
 	immutable Arr!NameAndSexpr children;
 }
@@ -59,17 +142,18 @@ struct Sexpr {
 		immutable Arr!Sexpr arr;
 		immutable Bool bool_;
 		immutable SexprNamedRecord namedRecord;
-		immutable u32 nat;
+		immutable size_t nat;
 		immutable Opt!(Ptr!Sexpr) opt;
 		immutable SexprRecord record;
 		immutable Str str;
 		immutable Sym symbol;
 	}
 
-	@trusted this(immutable Arr!Sexpr a) immutable { kind = Kind.arr; arr = a; }
+	@trusted this(immutable Arr!Sexpr a, bool b) immutable { kind = Kind.arr; arr = a; }
+	public:
 	this(immutable Bool a) immutable { kind = Kind.bool_; bool_ = a; }
 	@trusted this(immutable SexprNamedRecord a) immutable { kind = Kind.namedRecord; namedRecord = a; }
-	@trusted this(immutable u32 a) immutable { kind = Kind.nat; nat = a; }
+	@trusted this(immutable size_t a) immutable { kind = Kind.nat; nat = a; }
 	@trusted this(immutable Opt!(Ptr!Sexpr) a) immutable { kind = Kind.opt; opt = a; }
 	@trusted this(immutable SexprRecord a) immutable { kind = Kind.record; record = a; }
 	@trusted this(immutable Str a) immutable { kind = Kind.str; str = a; }
@@ -80,7 +164,7 @@ struct Sexpr {
 	ref immutable Sexpr a,
 	scope T delegate(ref immutable Arr!Sexpr) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Bool) @safe @nogc pure nothrow cbBool,
-	scope T delegate(immutable u32) @safe @nogc pure nothrow cbNat,
+	scope T delegate(immutable size_t) @safe @nogc pure nothrow cbNat,
 	scope T delegate(ref immutable SexprNamedRecord) @safe @nogc pure nothrow cbNamedRecord,
 	scope T delegate(immutable Opt!(Ptr!Sexpr)) @safe @nogc pure nothrow cbOpt,
 	scope T delegate(ref immutable SexprRecord) @safe @nogc pure nothrow cbRecord,
@@ -141,7 +225,7 @@ void writeSexpr(Alloc)(
 		(immutable Bool s) {
 			writeSexprBool(writer, s);
 		},
-		(immutable u32 s) {
+		(immutable size_t s) {
 			writeNat(writer, s);
 		},
 		(ref immutable SexprNamedRecord s) {
@@ -194,8 +278,8 @@ immutable(int) measureSexprSingleLine(ref immutable Sexpr a, immutable int avail
 			measureSexprArr(s, available),
 		(immutable Bool s) =>
 			available - measureSexprBool(s),
-		(immutable u32 s) =>
-			available - measureSexprU32(s),
+		(immutable size_t s) =>
+			available - measureSexprNat(s),
 		(ref immutable SexprNamedRecord s) =>
 			// Never format these on one line
 			-1,
@@ -240,7 +324,7 @@ void writeSexprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a)
 		(immutable Bool s) {
 			writeSexprBool(writer, s);
 		},
-		(immutable u32 s) {
+		(immutable size_t s) {
 			writeNat(writer, s);
 		},
 		(ref immutable SexprNamedRecord s) {
@@ -300,8 +384,8 @@ void writeSexprBool(Alloc)(ref Writer!Alloc writer, ref immutable Bool s) {
 	writeStatic(writer, s ? "true" : "false");
 }
 
-immutable(int) measureSexprU32(immutable u32 s) {
-	uint recur(immutable uint size, immutable u32 a) {
+immutable(int) measureSexprNat(immutable size_t s) {
+	uint recur(immutable uint size, immutable size_t a) {
 		return a == 0 ? 0 : recur(size + 1, a / 10);
 	}
 	return recur(1, s / 10);

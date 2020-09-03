@@ -122,7 +122,7 @@ private:
 }
 
 void printOutModule(ref immutable Module a) {
-	StackAlloc!("sexprOfModule", 8 * 1024) sexprAlloc;
+	StackAlloc!("sexprOfModule", 32 * 1024) sexprAlloc;
 	immutable Sexpr sexpr = sexprOfModule(sexprAlloc, a);
 	alias StrAlloc = StackAlloc!("printOutSexprOfModule", 32 * 1024);
 	StrAlloc strAlloc;
