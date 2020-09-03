@@ -3,12 +3,11 @@ module util.sourceRange;
 @safe @nogc pure nothrow:
 
 import util.collection.arrUtil : arrLiteral;
-import util.sexpr : Sexpr, tataRecord;
+import util.sexpr : Sexpr, tataNat, tataRecord;
 import util.types : u32;
 
 alias Pos = u32;
 
-//TODO:MOVE
 struct SourceRange {
 	immutable Pos start;
 	immutable Pos end;
@@ -17,5 +16,5 @@ struct SourceRange {
 }
 
 immutable(Sexpr) sexprOfSourceRange(Alloc)(ref Alloc alloc, immutable SourceRange a) {
-	return tataRecord(alloc, "range", immutable Sexpr(a.start), immutable Sexpr(a.end));
+	return tataRecord(alloc, "range", tataNat(a.start), tataNat(a.end));
 }

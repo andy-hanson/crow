@@ -12,7 +12,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(range(43, 71), main, fut(int32()), [param(range(58, 70), args, arr(arr(char())), 0)])
+			sig: sig(range(43, 71), main, fut(int32()), [param(range(58, 70), args, arr(arr(char())))])
 			body: let(
 				local(range(80, 81), m, my-record())
 				record(

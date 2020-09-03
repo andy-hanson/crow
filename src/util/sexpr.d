@@ -7,7 +7,7 @@ import util.collection.arr : Arr, empty, emptyArr, first, range, size;
 import util.collection.arrUtil : arrLiteral, map, tail;
 import util.collection.str : Str;
 import util.memory : allocate;
-import util.opt : force, has, Opt;
+import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
 import util.types : safeIntFromSizeT;
@@ -114,9 +114,42 @@ immutable(Sexpr) tataArr(T, Alloc)(
 	return immutable Sexpr(map(alloc, xs, cb), true);
 }
 
+immutable(Sexpr) tataBool(immutable Bool a) {
+	return immutable Sexpr(a);
+}
+
+immutable(Sexpr) tataNat(immutable size_t a) {
+	return immutable Sexpr(a);
+}
+
+immutable(Sexpr) tataStr(immutable Str a) {
+	return immutable Sexpr(a);
+}
+
+immutable(Sexpr) tataSym(immutable Sym a) {
+	return immutable Sexpr(a);
+}
+
+immutable(Sexpr) tataSym(immutable string a) {
+	return tataSym(shortSymAlphaLiteral(a));
+}
+
+immutable(Sexpr) tataOpt(Alloc, T)(
+	ref Alloc alloc,
+	immutable Opt!T opt,
+	scope immutable(Sexpr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	return immutable Sexpr(mapOption(opt, (ref immutable T t) =>
+		allocSexpr(alloc, cb(t))));
+}
+
 private struct SexprNamedRecord {
 	immutable Sym name;
 	immutable Arr!NameAndSexpr children;
+}
+
+immutable(NameAndSexpr) nameAndTata(immutable string name, immutable Sexpr value) {
+	return immutable NameAndSexpr(shortSymAlphaLiteral(name), value);
 }
 
 struct NameAndSexpr {
@@ -150,7 +183,6 @@ struct Sexpr {
 	}
 
 	@trusted this(immutable Arr!Sexpr a, bool b) immutable { kind = Kind.arr; arr = a; }
-	public:
 	this(immutable Bool a) immutable { kind = Kind.bool_; bool_ = a; }
 	@trusted this(immutable SexprNamedRecord a) immutable { kind = Kind.namedRecord; namedRecord = a; }
 	@trusted this(immutable size_t a) immutable { kind = Kind.nat; nat = a; }
