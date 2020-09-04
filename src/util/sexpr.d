@@ -428,8 +428,22 @@ immutable(int) measureQuotedStr(ref immutable Str s) {
 }
 
 void writeQuotedStr(Alloc)(ref Writer!Alloc writer, ref immutable Str s) {
-	//TODO: escape inside quotes
 	writeChar(writer, '"');
-	writeStr(writer, s);
+	foreach (immutable char c; range(s)) {
+		switch (c) {
+			case '\t':
+				writeStatic(writer, "\\t");
+				break;
+			case '\n':
+				writeStatic(writer, "\\n");
+				break;
+			case '"':
+				writeStatic(writer, "\\\"");
+				break;
+			default:
+				writeChar(writer, c);
+				break;
+		}
+	}
 	writeChar(writer, '"');
 }

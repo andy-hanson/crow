@@ -1,0 +1,3765 @@
+program(
+	[
+		struct(
+			name: "ctx"
+			ptr?: true
+			body: record(
+				[
+					field(false, "gctx_ptr", type(false, "ptr__byte"))
+					field(false, "vat_id", type(false, "nat"))
+					field(false, "actor_id", type(false, "nat"))
+					field(false, "gc_ctx_ptr", type(false, "ptr__byte"))
+					field(false, "exception_ctx_ptr", type(false, "ptr__byte"))]))
+		struct(
+			name: "byte"
+			body: builtin(byte, 1, []))
+		struct(
+			name: "ptr__byte"
+			body: builtin(ptr, 8, [type(false, "byte")]))
+		struct(
+			name: "nat"
+			body: builtin(nat-64, 8, []))
+		struct(
+			name: "int32"
+			body: builtin(int-32, 4, []))
+		struct(
+			name: "char"
+			body: builtin(char, 1, []))
+		struct(
+			name: "ptr__char"
+			body: builtin(ptr, 8, [type(false, "char")]))
+		struct(
+			name: "ptr__ptr__char"
+			body: builtin(ptr, 8, [type(false, "ptr__char")]))
+		struct(
+			name: "fut__int32"
+			mut?: true
+			ptr?: true
+			body: record([field(false, "lk", type(false, "lock")), field(true, "state", type(false, "fut_state__int32"))]))
+		struct(
+			name: "lock"
+			ptr?: true
+			body: record([field(false, "is_locked", type(false, "_atomic_bool"))]))
+		struct(
+			name: "_atomic_bool"
+			mut?: true
+			ptr?: true
+			body: record([field(true, "value", type(false, "bool"))]))
+		struct(
+			name: "bool"
+			body: builtin(bool, 1, []))
+		struct(
+			name: "fut_state__int32"
+			body: union(
+				[
+					type(false, "fut_state_callbacks__int32")
+					type(false, "fut_state_resolved__int32")
+					type(false, "exception")]))
+		struct(
+			name: "fut_state_callbacks__int32"
+			body: record([field(false, "head", type(false, "opt__ptr_fut_callback_node__int32"))]))
+		struct(
+			name: "fut_callback_node__int32"
+			ptr?: true
+			body: record(
+				[
+					field(false, "cb", type(false, "fun_mut1___void__result__int32__exception"))
+					field(false, "next_node", type(false, "opt__ptr_fut_callback_node__int32"))]))
+		struct(
+			name: "_void"
+			body: builtin(void, 1, []))
+		struct(
+			name: "exception"
+			body: record([field(false, "message", type(false, "arr__char"))]))
+		struct(
+			name: "arr__char"
+			special: special(arr, type(false, "char"))
+			body: record([field(false, "size", type(false, "nat")), field(false, "data", type(false, "ptr__char"))]))
+		struct(
+			name: "result__int32__exception"
+			body: union([type(false, "ok__int32"), type(false, "err__exception")]))
+		struct(
+			name: "ok__int32"
+			body: record([field(false, "value", type(false, "int32"))]))
+		struct(
+			name: "err__exception"
+			body: record([field(false, "value", type(false, "exception"))]))
+		struct(
+			name: "fun_mut1___void__result__int32__exception"
+			body: record(
+				[
+					field(
+						false
+						"fun_ptr"
+						type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception"))
+					field(false, "closure", type(false, "ptr__byte"))]))
+		struct(
+			name: "fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception"
+			body: builtin(
+				fun-ptr
+				8
+				[
+					type(false, "_void")
+					type(true, "ctx")
+					type(false, "ptr__byte")
+					type(false, "result__int32__exception")]))
+		struct(
+			name: "opt__ptr_fut_callback_node__int32"
+			body: union([type(false, "none"), type(false, "some__ptr_fut_callback_node__int32")]))
+		struct(
+			name: "none"
+			body: record([]))
+		struct(
+			name: "some__ptr_fut_callback_node__int32"
+			body: record([field(false, "value", type(true, "fut_callback_node__int32"))]))
+		struct(
+			name: "fut_state_resolved__int32"
+			body: record([field(false, "value", type(false, "int32"))]))
+		struct(
+			name: "arr__arr__char"
+			special: special(arr, type(false, "arr__char"))
+			body: record([field(false, "size", type(false, "nat")), field(false, "data", type(false, "ptr__arr__char"))]))
+		struct(
+			name: "ptr__arr__char"
+			body: builtin(ptr, 8, [type(false, "arr__char")]))
+		struct(
+			name: "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+			body: builtin(fun-ptr, 8, [type(true, "fut__int32"), type(true, "ctx"), type(false, "arr__arr__char")]))
+		struct(
+			name: "global_ctx"
+			mut?: true
+			ptr?: true
+			body: record(
+				[
+					field(false, "lk", type(false, "lock"))
+					field(true, "vats", type(false, "arr__ptr_vat"))
+					field(true, "n_live_threads", type(false, "nat"))
+					field(false, "may_be_work_to_do", type(false, "condition"))
+					field(true, "is_shut_down", type(false, "bool"))
+					field(true, "any_unhandled_exceptions__q", type(false, "bool"))]))
+		struct(
+			name: "vat"
+			mut?: true
+			ptr?: true
+			body: record(
+				[
+					field(false, "gctx", type(true, "global_ctx"))
+					field(false, "id", type(false, "nat"))
+					field(false, "gc", type(false, "gc"))
+					field(false, "tasks_lock", type(false, "lock"))
+					field(false, "tasks", type(false, "mut_bag__task"))
+					field(false, "currently_running_actors", type(false, "mut_arr__nat"))
+					field(true, "n_threads_running", type(false, "nat"))
+					field(false, "next_actor_id", type(false, "thread_safe_counter"))
+					field(true, "exception_handler", type(false, "fun_mut1___void__exception"))]))
+		struct(
+			name: "gc"
+			mut?: true
+			ptr?: true
+			body: record(
+				[
+					field(false, "lk", type(false, "lock"))
+					field(true, "context_head", type(false, "opt__ptr_gc_ctx"))
+					field(true, "needs_gc", type(false, "bool"))
+					field(true, "is_doing_gc", type(false, "bool"))
+					field(false, "begin", type(false, "ptr__byte"))
+					field(false, "next_byte", type(false, "ptr__byte"))]))
+		struct(
+			name: "gc_ctx"
+			mut?: true
+			ptr?: true
+			body: record([field(true, "gc", type(true, "gc")), field(true, "next_ctx", type(false, "opt__ptr_gc_ctx"))]))
+		struct(
+			name: "opt__ptr_gc_ctx"
+			body: union([type(false, "none"), type(false, "some__ptr_gc_ctx")]))
+		struct(
+			name: "some__ptr_gc_ctx"
+			body: record([field(false, "value", type(true, "gc_ctx"))]))
+		struct(
+			name: "task"
+			body: record([field(false, "actor_id", type(false, "nat")), field(false, "fun", type(false, "fun_mut0___void"))]))
+		struct(
+			name: "fun_mut0___void"
+			body: record(
+				[
+					field(false, "fun_ptr", type(false, "fun_ptr2___void__ptr_ctx__ptr__byte"))
+					field(false, "closure", type(false, "ptr__byte"))]))
+		struct(
+			name: "fun_ptr2___void__ptr_ctx__ptr__byte"
+			body: builtin(fun-ptr, 8, [type(false, "_void"), type(true, "ctx"), type(false, "ptr__byte")]))
+		struct(
+			name: "mut_bag__task"
+			mut?: true
+			ptr?: true
+			body: record([field(true, "head", type(false, "opt__ptr_mut_bag_node__task"))]))
+		struct(
+			name: "mut_bag_node__task"
+			mut?: true
+			ptr?: true
+			body: record(
+				[
+					field(false, "value", type(false, "task"))
+					field(true, "next_node", type(false, "opt__ptr_mut_bag_node__task"))]))
+		struct(
+			name: "opt__ptr_mut_bag_node__task"
+			body: union([type(false, "none"), type(false, "some__ptr_mut_bag_node__task")]))
+		struct(
+			name: "some__ptr_mut_bag_node__task"
+			body: record([field(false, "value", type(true, "mut_bag_node__task"))]))
+		struct(
+			name: "mut_arr__nat"
+			mut?: true
+			ptr?: true
+			body: record(
+				[
+					field(true, "frozen__q", type(false, "bool"))
+					field(true, "size", type(false, "nat"))
+					field(true, "capacity", type(false, "nat"))
+					field(true, "data", type(false, "ptr__nat"))]))
+		struct(
+			name: "ptr__nat"
+			body: builtin(ptr, 8, [type(false, "nat")]))
+		struct(
+			name: "thread_safe_counter"
+			mut?: true
+			ptr?: true
+			body: record([field(false, "lk", type(false, "lock")), field(true, "value", type(false, "nat"))]))
+		struct(
+			name: "fun_mut1___void__exception"
+			body: record(
+				[
+					field(false, "fun_ptr", type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__exception"))
+					field(false, "closure", type(false, "ptr__byte"))]))
+		struct(
+			name: "fun_ptr3___void__ptr_ctx__ptr__byte__exception"
+			body: builtin(
+				fun-ptr
+				8
+				[type(false, "_void"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "exception")]))
+		struct(
+			name: "arr__ptr_vat"
+			special: special(arr, type(true, "vat"))
+			body: record([field(false, "size", type(false, "nat")), field(false, "data", type(false, "ptr__ptr_vat"))]))
+		struct(
+			name: "ptr__ptr_vat"
+			body: builtin(ptr, 8, [type(true, "vat")]))
+		struct(
+			name: "condition"
+			mut?: true
+			ptr?: true
+			body: record([field(false, "lk", type(false, "lock")), field(true, "value", type(false, "nat"))]))
+		struct(
+			name: "comparison"
+			body: union([type(false, "less"), type(false, "equal"), type(false, "greater")]))
+		struct(
+			name: "less"
+			body: record([]))
+		struct(
+			name: "equal"
+			body: record([]))
+		struct(
+			name: "greater"
+			body: record([]))
+		struct(
+			name: "ptr__bool"
+			body: builtin(ptr, 8, [type(false, "bool")]))
+		struct(
+			name: "_int"
+			body: builtin(int-64, 8, []))
+		struct(
+			name: "exception_ctx"
+			mut?: true
+			ptr?: true
+			body: record(
+				[
+					field(true, "jmp_buf_ptr", type(false, "ptr__jmp_buf_tag"))
+					field(true, "thrown_exception", type(false, "exception"))]))
+		struct(
+			name: "jmp_buf_tag"
+			body: record(
+				[
+					field(false, "jmp_buf", type(false, "bytes64"))
+					field(false, "mask_was_saved", type(false, "int32"))
+					field(false, "saved_mask", type(false, "bytes128"))]))
+		struct(
+			name: "bytes64"
+			body: record([field(false, "n0", type(false, "bytes32")), field(false, "n1", type(false, "bytes32"))]))
+		struct(
+			name: "bytes32"
+			body: record([field(false, "n0", type(false, "bytes16")), field(false, "n1", type(false, "bytes16"))]))
+		struct(
+			name: "bytes16"
+			body: record([field(false, "n0", type(false, "nat")), field(false, "n1", type(false, "nat"))]))
+		struct(
+			name: "bytes128"
+			body: record([field(false, "n0", type(false, "bytes64")), field(false, "n1", type(false, "bytes64"))]))
+		struct(
+			name: "ptr__jmp_buf_tag"
+			body: builtin(ptr, 8, [type(false, "jmp_buf_tag")]))
+		struct(
+			name: "thread_local_stuff"
+			ptr?: true
+			body: record([field(false, "exception_ctx", type(true, "exception_ctx"))]))
+		struct(
+			name: "arr__ptr__char"
+			special: special(arr, type(false, "ptr__char"))
+			body: record([field(false, "size", type(false, "nat")), field(false, "data", type(false, "ptr__ptr__char"))]))
+		struct(
+			name: "fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+			body: record(
+				[
+					field(
+						false
+						"fun_ptr"
+						type(
+							false
+							"fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))
+					field(false, "closure", type(false, "ptr__byte"))]))
+		struct(
+			name: "fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+			body: builtin(
+				fun-ptr
+				8
+				[
+					type(true, "fut__int32")
+					type(true, "ctx")
+					type(false, "ptr__byte")
+					type(false, "arr__ptr__char")
+					type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char")]))
+		struct(
+			name: "fut___void"
+			mut?: true
+			ptr?: true
+			body: record([field(false, "lk", type(false, "lock")), field(true, "state", type(false, "fut_state___void"))]))
+		struct(
+			name: "fut_state___void"
+			body: union(
+				[
+					type(false, "fut_state_callbacks___void")
+					type(false, "fut_state_resolved___void")
+					type(false, "exception")]))
+		struct(
+			name: "fut_state_callbacks___void"
+			body: record([field(false, "head", type(false, "opt__ptr_fut_callback_node___void"))]))
+		struct(
+			name: "fut_callback_node___void"
+			ptr?: true
+			body: record(
+				[
+					field(false, "cb", type(false, "fun_mut1___void__result___void__exception"))
+					field(false, "next_node", type(false, "opt__ptr_fut_callback_node___void"))]))
+		struct(
+			name: "result___void__exception"
+			body: union([type(false, "ok___void"), type(false, "err__exception")]))
+		struct(
+			name: "ok___void"
+			body: record([field(false, "value", type(false, "_void"))]))
+		struct(
+			name: "fun_mut1___void__result___void__exception"
+			body: record(
+				[
+					field(
+						false
+						"fun_ptr"
+						type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception"))
+					field(false, "closure", type(false, "ptr__byte"))]))
+		struct(
+			name: "fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception"
+			body: builtin(
+				fun-ptr
+				8
+				[
+					type(false, "_void")
+					type(true, "ctx")
+					type(false, "ptr__byte")
+					type(false, "result___void__exception")]))
+		struct(
+			name: "opt__ptr_fut_callback_node___void"
+			body: union([type(false, "none"), type(false, "some__ptr_fut_callback_node___void")]))
+		struct(
+			name: "some__ptr_fut_callback_node___void"
+			body: record([field(false, "value", type(true, "fut_callback_node___void"))]))
+		struct(
+			name: "fut_state_resolved___void"
+			body: record([field(false, "value", type(false, "_void"))]))
+		struct(
+			name: "fun_ref0__int32"
+			body: record(
+				[
+					field(false, "vat_and_actor", type(false, "vat_and_actor_id"))
+					field(false, "fun", type(false, "fun_mut0__ptr_fut__int32"))]))
+		struct(
+			name: "vat_and_actor_id"
+			body: record([field(false, "vat", type(false, "nat")), field(false, "actor", type(false, "nat"))]))
+		struct(
+			name: "fun_mut0__ptr_fut__int32"
+			body: record(
+				[
+					field(false, "fun_ptr", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte"))
+					field(false, "closure", type(false, "ptr__byte"))]))
+		struct(
+			name: "fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte"
+			body: builtin(fun-ptr, 8, [type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__byte")]))
+		struct(
+			name: "fun_ref1__int32___void"
+			body: record(
+				[
+					field(false, "vat_and_actor", type(false, "vat_and_actor_id"))
+					field(false, "fun", type(false, "fun_mut1__ptr_fut__int32___void"))]))
+		struct(
+			name: "fun_mut1__ptr_fut__int32___void"
+			body: record(
+				[
+					field(false, "fun_ptr", type(false, "fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void"))
+					field(false, "closure", type(false, "ptr__byte"))]))
+		struct(
+			name: "fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void"
+			body: builtin(
+				fun-ptr
+				8
+				[type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "_void")]))
+		struct(
+			name: "opt__ptr__byte"
+			body: union([type(false, "none"), type(false, "some__ptr__byte")]))
+		struct(
+			name: "some__ptr__byte"
+			body: record([field(false, "value", type(false, "ptr__byte"))]))
+		struct(
+			name: "then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure"
+			ptr?: true
+			body: record(
+				[
+					field(false, "cb", type(false, "fun_ref1__int32___void"))
+					field(false, "res", type(true, "fut__int32"))]))
+		struct(
+			name: "forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0___closure"
+			body: record([field(false, "to", type(true, "fut__int32"))]))
+		struct(
+			name: "call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0___closure"
+			ptr?: true
+			body: record(
+				[
+					field(false, "f", type(false, "fun_ref1__int32___void"))
+					field(false, "p0", type(false, "_void"))
+					field(false, "res", type(true, "fut__int32"))]))
+		struct(
+			name: "call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0___closure"
+			ptr?: true
+			body: record(
+				[
+					field(false, "f", type(false, "fun_ref1__int32___void"))
+					field(false, "p0", type(false, "_void"))
+					field(false, "res", type(true, "fut__int32"))]))
+		struct(
+			name: "call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1___closure"
+			body: record([field(false, "res", type(true, "fut__int32"))]))
+		struct(
+			name: "then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0___closure"
+			ptr?: true
+			body: record([field(false, "cb", type(false, "fun_ref0__int32"))]))
+		struct(
+			name: "call__ptr_fut__int32__fun_ref0__int32__lambda0___closure"
+			ptr?: true
+			body: record([field(false, "f", type(false, "fun_ref0__int32")), field(false, "res", type(true, "fut__int32"))]))
+		struct(
+			name: "call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0___closure"
+			ptr?: true
+			body: record([field(false, "f", type(false, "fun_ref0__int32")), field(false, "res", type(true, "fut__int32"))]))
+		struct(
+			name: "call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1___closure"
+			body: record([field(false, "res", type(true, "fut__int32"))]))
+		struct(
+			name: "add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0___closure"
+			ptr?: true
+			body: record(
+				[
+					field(false, "all_args", type(false, "arr__ptr__char"))
+					field(false, "main_ptr", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))]))
+		struct(
+			name: "fun_mut1__arr__char__ptr__char"
+			body: record(
+				[
+					field(false, "fun_ptr", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char"))
+					field(false, "closure", type(false, "ptr__byte"))]))
+		struct(
+			name: "fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char"
+			body: builtin(
+				fun-ptr
+				8
+				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "ptr__char")]))
+		struct(
+			name: "fun_mut1__arr__char__nat"
+			body: record(
+				[
+					field(false, "fun_ptr", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat"))
+					field(false, "closure", type(false, "ptr__byte"))]))
+		struct(
+			name: "fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat"
+			body: builtin(
+				fun-ptr
+				8
+				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "nat")]))
+		struct(
+			name: "mut_arr__arr__char"
+			mut?: true
+			ptr?: true
+			body: record(
+				[
+					field(true, "frozen__q", type(false, "bool"))
+					field(true, "size", type(false, "nat"))
+					field(true, "capacity", type(false, "nat"))
+					field(true, "data", type(false, "ptr__arr__char"))]))
+		struct(
+			name: "map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0___closure"
+			ptr?: true
+			body: record(
+				[
+					field(false, "mapper", type(false, "fun_mut1__arr__char__ptr__char"))
+					field(false, "a", type(false, "arr__ptr__char"))]))
+		struct(
+			name: "fun_ptr2___void__nat__ptr_global_ctx"
+			body: builtin(fun-ptr, 8, [type(false, "_void"), type(false, "nat"), type(true, "global_ctx")]))
+		struct(
+			name: "thread_args__ptr_global_ctx"
+			ptr?: true
+			body: record(
+				[
+					field(false, "fun", type(false, "fun_ptr2___void__nat__ptr_global_ctx"))
+					field(false, "thread_id", type(false, "nat"))
+					field(false, "arg", type(true, "global_ctx"))]))
+		struct(
+			name: "ptr__thread_args__ptr_global_ctx"
+			body: builtin(ptr, 8, [type(false, "thread_args__ptr_global_ctx")]))
+		struct(
+			name: "fun_ptr1__ptr__byte__ptr__byte"
+			body: builtin(fun-ptr, 8, [type(false, "ptr__byte"), type(false, "ptr__byte")]))
+		struct(
+			name: "cell__nat"
+			mut?: true
+			ptr?: true
+			body: record([field(true, "value", type(false, "nat"))]))
+		struct(
+			name: "cell__ptr__byte"
+			mut?: true
+			ptr?: true
+			body: record([field(true, "value", type(false, "ptr__byte"))]))
+		struct(
+			name: "chosen_task"
+			body: record([field(false, "vat", type(true, "vat")), field(false, "task_or_gc", type(false, "opt__task"))]))
+		struct(
+			name: "opt__task"
+			body: union([type(false, "none"), type(false, "some__task")]))
+		struct(
+			name: "some__task"
+			body: record([field(false, "value", type(false, "task"))]))
+		struct(
+			name: "no_chosen_task"
+			body: record([field(false, "last_thread_out", type(false, "bool"))]))
+		struct(
+			name: "result__chosen_task__no_chosen_task"
+			body: union([type(false, "ok__chosen_task"), type(false, "err__no_chosen_task")]))
+		struct(
+			name: "ok__chosen_task"
+			body: record([field(false, "value", type(false, "chosen_task"))]))
+		struct(
+			name: "err__no_chosen_task"
+			body: record([field(false, "value", type(false, "no_chosen_task"))]))
+		struct(
+			name: "opt__chosen_task"
+			body: union([type(false, "none"), type(false, "some__chosen_task")]))
+		struct(
+			name: "some__chosen_task"
+			body: record([field(false, "value", type(false, "chosen_task"))]))
+		struct(
+			name: "opt__opt__task"
+			body: union([type(false, "none"), type(false, "some__opt__task")]))
+		struct(
+			name: "some__opt__task"
+			body: record([field(false, "value", type(false, "opt__task"))]))
+		struct(
+			name: "task_and_nodes"
+			body: record(
+				[
+					field(false, "task", type(false, "task"))
+					field(false, "nodes", type(false, "opt__ptr_mut_bag_node__task"))]))
+		struct(
+			name: "opt__task_and_nodes"
+			body: union([type(false, "none"), type(false, "some__task_and_nodes")]))
+		struct(
+			name: "some__task_and_nodes"
+			body: record([field(false, "value", type(false, "task_and_nodes"))]))
+		struct(
+			name: "arr__nat"
+			special: special(arr, type(false, "nat"))
+			body: record([field(false, "size", type(false, "nat")), field(false, "data", type(false, "ptr__nat"))]))
+		struct(
+			name: "my_record"
+			body: record([field(false, "x", type(false, "nat")), field(false, "y", type(false, "nat"))]))
+		struct(
+			name: "fun_mut1__char__nat"
+			body: record(
+				[
+					field(false, "fun_ptr", type(false, "fun_ptr3__char__ptr_ctx__ptr__byte__nat"))
+					field(false, "closure", type(false, "ptr__byte"))]))
+		struct(
+			name: "fun_ptr3__char__ptr_ctx__ptr__byte__nat"
+			body: builtin(fun-ptr, 8, [type(false, "char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "nat")]))
+		struct(
+			name: "mut_arr__char"
+			mut?: true
+			ptr?: true
+			body: record(
+				[
+					field(true, "frozen__q", type(false, "bool"))
+					field(true, "size", type(false, "nat"))
+					field(true, "capacity", type(false, "nat"))
+					field(true, "data", type(false, "ptr__char"))]))
+		struct(
+			name: "_op_plus__arr__char__arr__char__arr__char__lambda0___closure"
+			ptr?: true
+			body: record([field(false, "a", type(false, "arr__char")), field(false, "b", type(false, "arr__char"))]))]
+	[
+		fun(
+			false
+			none
+			"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+			type(false, "int32")
+			[
+				param("argc", type(false, "int32"))
+				param("argv", type(false, "ptr__ptr__char"))
+				param("main_ptr", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))]
+			expr-body(
+				[
+					local("n_threads", type(false, "nat"))
+					local("gctx_by_val", type(false, "global_ctx"))
+					local("gctx", type(true, "global_ctx"))
+					local("vat_by_val", type(false, "vat"))
+					local("vat", type(true, "vat"))
+					local("vats", type(false, "arr__ptr_vat"))
+					local("ectx", type(false, "exception_ctx"))
+					local("tls", type(false, "thread_local_stuff"))
+					local("ctx_by_val", type(false, "ctx"))
+					local("ctx", type(true, "ctx"))
+					local(
+						"add"
+						type(
+							false
+							"fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))
+					local("all_args", type(false, "arr__ptr__char"))
+					local("main_fut", type(true, "fut__int32"))
+					local("o", type(false, "ok__int32"))
+					local("e", type(false, "err__exception"))
+					local("matched", type(false, "result__int32__exception"))]
+				let(
+					"n_threads"
+					call("as__nat__nat", [call("two__nat", [])])
+					let(
+						"gctx_by_val"
+						record(
+							[
+								call("new_lock__lock", [])
+								call("empty_arr__arr__ptr_vat", [])
+								local-ref("n_threads")
+								call("new_condition__condition", [])
+								call("false__bool", [])
+								call("false__bool", [])])
+						let(
+							"gctx"
+							call("ref_of_val__ptr_global_ctx__global_ctx", [local-ref("gctx_by_val")])
+							let(
+								"vat_by_val"
+								call(
+									"new_vat__vat__ptr_global_ctx__nat__nat"
+									[local-ref("gctx"), call("zero__nat", []), local-ref("n_threads")])
+								let(
+									"vat"
+									call("ref_of_val__ptr_vat__vat", [local-ref("vat_by_val")])
+									let(
+										"vats"
+										record(
+											[
+												call("one__nat", [])
+												call("ptr_to__ptr__ptr_vat__ptr_vat", [local-ref("vat")])])
+										seq(
+											set-field(true, local-ref("gctx"), "vats", local-ref("vats"))
+											let(
+												"ectx"
+												call("new_exception_ctx__exception_ctx", [])
+												let(
+													"tls"
+													record(
+														[
+															call(
+																"ref_of_val__ptr_exception_ctx__exception_ctx"
+																[local-ref("ectx")])])
+													let(
+														"ctx_by_val"
+														call(
+															"new_ctx__ctx__ptr_global_ctx__ptr_thread_local_stuff__ptr_vat__nat"
+															[
+																local-ref("gctx")
+																call(
+																	"ref_of_val__ptr_thread_local_stuff__thread_local_stuff"
+																	[local-ref("tls")])
+																local-ref("vat")
+																call("zero__nat", [])])
+														let(
+															"ctx"
+															call("ref_of_val__ptr_ctx__ctx", [local-ref("ctx_by_val")])
+															let(
+																"add"
+																call(
+																	"as__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+																	[
+																		lambda(
+																			"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
+																			some(call("null__ptr__bool", [])))])
+																let(
+																	"all_args"
+																	record(
+																		[
+																			call(
+																				"unsafe_to_nat__nat___int"
+																				[
+																					call(
+																						"to_int___int__int32"
+																						[param-ref("argc")])])
+																			param-ref("argv")])
+																	let(
+																		"main_fut"
+																		call(
+																			"call_with_ctx__ptr_fut__int32__ptr_ctx__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+																			[
+																				local-ref("ctx")
+																				local-ref("add")
+																				local-ref("all_args")
+																				param-ref("main_ptr")])
+																		seq(
+																			call(
+																				"run_threads___void__nat__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx"
+																				[
+																					local-ref("n_threads")
+																					local-ref("gctx")
+																					lambda(
+																						"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda1"
+																						none)])
+																			cond(
+																				get-field(
+																					true
+																					local-ref("gctx")
+																					"any_unhandled_exceptions__q")
+																				call("one__int32", [])
+																				match(
+																					"matched"
+																					call(
+																						"must_be_resolved__result__int32__exception__ptr_fut__int32"
+																						[local-ref("main_fut")])
+																					[
+																						case(
+																							some("o")
+																							get-field(
+																								false
+																								local-ref("o")
+																								"value"))
+																						case(
+																							some("e")
+																							seq(
+																								seq(
+																									call(
+																										"print_err_sync_no_newline___void__arr__char"
+																										[
+																											str-lit(
+																												"main failed: ")])
+																									call(
+																										"print_err_sync___void__arr__char"
+																										[
+																											get-field(
+																												false
+																												get-field(
+																													false
+																													local-ref(
+																														"e")
+																													"value")
+																												"message")]))
+																								call("one__int32", [])))])))))))))))))))))))
+		fun(
+			false
+			none
+			"as__nat__nat"
+			type(false, "nat")
+			[param("value", type(false, "nat"))]
+			builtin(operator, "as", [type(false, "nat")]))
+		fun(
+			false
+			none
+			"two__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_incr__nat__nat", [call("one__nat", [])])))
+		fun(
+			false
+			none
+			"wrap_incr__nat__nat"
+			type(false, "nat")
+			[param("a", type(false, "nat"))]
+			expr-body([], call("wrap_add__nat__nat__nat", [param-ref("a"), call("one__nat", [])])))
+		fun(
+			false
+			none
+			"wrap_add__nat__nat__nat"
+			type(false, "nat")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			builtin(operator, "wrap-add (nat-64)", []))
+		fun(false, none, "one__nat", type(false, "nat"), [], builtin(operator, "one (nat-64)", []))
+		fun(
+			false
+			none
+			"new_lock__lock"
+			type(false, "lock")
+			[]
+			expr-body([], record([call("new_atomic_bool___atomic_bool", [])])))
+		fun(
+			false
+			none
+			"new_atomic_bool___atomic_bool"
+			type(false, "_atomic_bool")
+			[]
+			expr-body([], record([call("false__bool", [])])))
+		fun(false, none, "false__bool", type(false, "bool"), [], builtin(operator, "false", []))
+		fun(
+			false
+			none
+			"empty_arr__arr__ptr_vat"
+			type(false, "arr__ptr_vat")
+			[]
+			expr-body([], record([call("zero__nat", []), call("null__ptr__ptr_vat", [])])))
+		fun(false, none, "zero__nat", type(false, "nat"), [], builtin(operator, "zero (nat-64)", []))
+		fun(
+			false
+			none
+			"null__ptr__ptr_vat"
+			type(false, "ptr__ptr_vat")
+			[]
+			builtin(operator, "null", [type(true, "vat")]))
+		fun(
+			false
+			none
+			"new_condition__condition"
+			type(false, "condition")
+			[]
+			expr-body([], record([call("new_lock__lock", []), call("zero__nat", [])])))
+		fun(
+			false
+			none
+			"ref_of_val__ptr_global_ctx__global_ctx"
+			type(true, "global_ctx")
+			[param("b", type(false, "global_ctx"))]
+			builtin(operator, "ref-of-val", [type(true, "global_ctx")]))
+		fun(
+			false
+			none
+			"new_vat__vat__ptr_global_ctx__nat__nat"
+			type(false, "vat")
+			[
+				param("gctx", type(true, "global_ctx"))
+				param("id", type(false, "nat"))
+				param("max_threads", type(false, "nat"))]
+			expr-body(
+				[local("actors", type(false, "mut_arr__nat"))]
+				let(
+					"actors"
+					call(
+						"new_mut_arr_by_val_with_capacity_from_unmanaged_memory__mut_arr__nat__nat"
+						[param-ref("max_threads")])
+					record(
+						[
+							param-ref("gctx")
+							param-ref("id")
+							call("new_gc__gc", [])
+							call("new_lock__lock", [])
+							call("new_mut_bag__mut_bag__task", [])
+							local-ref("actors")
+							call("zero__nat", [])
+							call("new_thread_safe_counter__thread_safe_counter", [])
+							lambda("new_vat__vat__ptr_global_ctx__nat__nat__lambda0", some(call("null__ptr__bool", [])))]))))
+		fun(
+			false
+			none
+			"new_mut_arr_by_val_with_capacity_from_unmanaged_memory__mut_arr__nat__nat"
+			type(false, "mut_arr__nat")
+			[param("capacity", type(false, "nat"))]
+			expr-body(
+				[]
+				record(
+					[
+						call("false__bool", [])
+						call("zero__nat", [])
+						param-ref("capacity")
+						call("unmanaged_alloc_elements__ptr__nat__nat", [param-ref("capacity")])])))
+		fun(
+			false
+			none
+			"unmanaged_alloc_elements__ptr__nat__nat"
+			type(false, "ptr__nat")
+			[param("size_elements", type(false, "nat"))]
+			expr-body(
+				[local("bytes", type(false, "ptr__byte"))]
+				let(
+					"bytes"
+					call(
+						"unmanaged_alloc_bytes__ptr__byte__nat"
+						[call("wrap_mul__nat__nat__nat", [param-ref("size_elements"), call("size_of__nat", [])])])
+					call("ptr_cast__ptr__nat__ptr__byte", [local-ref("bytes")]))))
+		fun(
+			false
+			none
+			"unmanaged_alloc_bytes__ptr__byte__nat"
+			type(false, "ptr__byte")
+			[param("size", type(false, "nat"))]
+			expr-body(
+				[local("res", type(false, "ptr__byte"))]
+				let(
+					"res"
+					call("malloc", [param-ref("size")])
+					seq(
+						call("hard_forbid___void__bool", [call("null__q__bool__ptr__byte", [local-ref("res")])])
+						local-ref("res")))))
+		fun(false, none, "malloc", type(false, "ptr__byte"), [param("size", type(false, "nat"))], extern(false))
+		fun(
+			false
+			none
+			"hard_forbid___void__bool"
+			type(false, "_void")
+			[param("condition", type(false, "bool"))]
+			expr-body([], call("hard_assert___void__bool", [call("not__bool__bool", [param-ref("condition")])])))
+		fun(
+			false
+			none
+			"hard_assert___void__bool"
+			type(false, "_void")
+			[param("condition", type(false, "bool"))]
+			expr-body(
+				[]
+				call(
+					"if___void__bool___void___void"
+					[
+						param-ref("condition")
+						call("pass___void", [])
+						call("hard_fail___void__arr__char", [str-lit("Assertion failed!")])])))
+		fun(
+			false
+			none
+			"if___void__bool___void___void"
+			type(false, "_void")
+			[
+				param("cond", type(false, "bool"))
+				param("if_true", type(false, "_void"))
+				param("if_false", type(false, "_void"))]
+			builtin(operator, "if", [type(false, "_void")]))
+		fun(false, none, "pass___void", type(false, "_void"), [], builtin(operator, "pass", []))
+		fun(
+			false
+			none
+			"hard_fail___void__arr__char"
+			type(false, "_void")
+			[param("reason", type(false, "arr__char"))]
+			builtin(special, "hard-fail", [type(false, "_void")]))
+		fun(
+			false
+			none
+			"not__bool__bool"
+			type(false, "bool")
+			[param("a", type(false, "bool"))]
+			builtin(operator, "not", []))
+		fun(
+			false
+			none
+			"null__q__bool__ptr__byte"
+			type(false, "bool")
+			[param("a", type(false, "ptr__byte"))]
+			expr-body(
+				[]
+				call("_op_equal_equal__bool__ptr__byte__ptr__byte", [param-ref("a"), call("null__ptr__byte", [])])))
+		fun(
+			false
+			none
+			"_op_equal_equal__bool__ptr__byte__ptr__byte"
+			type(false, "bool")
+			[param("a", type(false, "ptr__byte")), param("b", type(false, "ptr__byte"))]
+			expr-body(
+				[local("matched", type(false, "comparison"))]
+				match(
+					"matched"
+					call("_op_less_equal_greater__comparison__ptr__byte__ptr__byte", [param-ref("a"), param-ref("b")])
+					[
+						case(none, call("false__bool", []))
+						case(none, call("true__bool", []))
+						case(none, call("false__bool", []))])))
+		fun(
+			false
+			none
+			"_op_less_equal_greater__comparison__ptr__byte__ptr__byte"
+			type(false, "comparison")
+			[param("a", type(false, "ptr__byte")), param("b", type(false, "ptr__byte"))]
+			expr-body(
+				[]
+				cond(
+					special(less, param-ref("a"), param-ref("b"))
+					to-union(0, record([]))
+					cond(special(less, param-ref("b"), param-ref("a")), to-union(2, record([])), to-union(1, record([]))))))
+		fun(false, none, "true__bool", type(false, "bool"), [], builtin(operator, "true", []))
+		fun(
+			false
+			none
+			"null__ptr__byte"
+			type(false, "ptr__byte")
+			[]
+			builtin(operator, "null", [type(false, "byte")]))
+		fun(
+			false
+			none
+			"wrap_mul__nat__nat__nat"
+			type(false, "nat")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			builtin(operator, "wrap-mul (nat-64)", []))
+		fun(false, none, "size_of__nat", type(false, "nat"), [], builtin(operator, "size-of", [type(false, "nat")]))
+		fun(
+			false
+			none
+			"ptr_cast__ptr__nat__ptr__byte"
+			type(false, "ptr__nat")
+			[param("p", type(false, "ptr__byte"))]
+			builtin(operator, "ptr-cast", [type(false, "nat"), type(false, "byte")]))
+		fun(
+			false
+			none
+			"new_gc__gc"
+			type(false, "gc")
+			[]
+			expr-body(
+				[]
+				record(
+					[
+						call("new_lock__lock", [])
+						to-union(0, call("none__none", []))
+						call("false__bool", [])
+						call("false__bool", [])
+						call("null__ptr__byte", [])
+						call("null__ptr__byte", [])])))
+		fun(false, none, "none__none", type(false, "none"), [], expr-body([], record([])))
+		fun(
+			false
+			none
+			"new_mut_bag__mut_bag__task"
+			type(false, "mut_bag__task")
+			[]
+			expr-body([], record([to-union(0, call("none__none", []))])))
+		fun(
+			false
+			none
+			"new_thread_safe_counter__thread_safe_counter"
+			type(false, "thread_safe_counter")
+			[]
+			expr-body([], call("new_thread_safe_counter__thread_safe_counter__nat", [call("zero__nat", [])])))
+		fun(
+			false
+			none
+			"new_thread_safe_counter__thread_safe_counter__nat"
+			type(false, "thread_safe_counter")
+			[param("init", type(false, "nat"))]
+			expr-body([], record([call("new_lock__lock", []), param-ref("init")])))
+		fun(
+			false
+			none
+			"null__ptr__bool"
+			type(false, "ptr__bool")
+			[]
+			builtin(operator, "null", [type(false, "bool")]))
+		fun(
+			true
+			none
+			"default_exception_handler___void__exception"
+			type(false, "_void")
+			[param("e", type(false, "exception"))]
+			expr-body(
+				[]
+				seq(
+					seq(
+						call("print_err_sync_no_newline___void__arr__char", [str-lit("uncaught exception: ")])
+						call(
+							"print_err_sync___void__arr__char"
+							[
+								call(
+									"if__arr__char__bool__arr__char__arr__char"
+									[
+										call("empty__q__bool__arr__char", [get-field(false, param-ref("e"), "message")])
+										str-lit("<<empty message>>")
+										get-field(false, param-ref("e"), "message")])]))
+					set-field(
+						true
+						call("get_gctx__ptr_global_ctx", [])
+						"any_unhandled_exceptions__q"
+						call("true__bool", [])))))
+		fun(
+			false
+			none
+			"print_err_sync_no_newline___void__arr__char"
+			type(false, "_void")
+			[param("s", type(false, "arr__char"))]
+			expr-body(
+				[]
+				call("write_sync_no_newline___void__int32__arr__char", [call("stderr_fd__int32", []), param-ref("s")])))
+		fun(
+			false
+			none
+			"write_sync_no_newline___void__int32__arr__char"
+			type(false, "_void")
+			[param("fd", type(false, "int32")), param("s", type(false, "arr__char"))]
+			expr-body(
+				[local("res", type(false, "_int"))]
+				seq(
+					call(
+						"hard_assert___void__bool"
+						[call("_op_equal_equal__bool__nat__nat", [call("size_of__nat", []), call("size_of__nat", [])])])
+					let(
+						"res"
+						call(
+							"write"
+							[
+								param-ref("fd")
+								call("as_any_ptr__ptr__byte__ptr__char", [get-field(false, param-ref("s"), "data")])
+								get-field(false, param-ref("s"), "size")])
+						cond(
+							call(
+								"_op_equal_equal__bool___int___int"
+								[
+									local-ref("res")
+									call("unsafe_to_int___int__nat", [get-field(false, param-ref("s"), "size")])])
+							call("pass___void", [])
+							call("todo___void", []))))))
+		fun(
+			false
+			none
+			"_op_equal_equal__bool__nat__nat"
+			type(false, "bool")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body(
+				[local("matched", type(false, "comparison"))]
+				match(
+					"matched"
+					call("_op_less_equal_greater__comparison__nat__nat", [param-ref("a"), param-ref("b")])
+					[
+						case(none, call("false__bool", []))
+						case(none, call("true__bool", []))
+						case(none, call("false__bool", []))])))
+		fun(
+			false
+			none
+			"_op_less_equal_greater__comparison__nat__nat"
+			type(false, "comparison")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body(
+				[]
+				cond(
+					special(less, param-ref("a"), param-ref("b"))
+					to-union(0, record([]))
+					cond(special(less, param-ref("b"), param-ref("a")), to-union(2, record([])), to-union(1, record([]))))))
+		fun(false, none, "size_of__nat", type(false, "nat"), [], builtin(operator, "size-of", [type(false, "char")]))
+		fun(false, none, "size_of__nat", type(false, "nat"), [], builtin(operator, "size-of", [type(false, "byte")]))
+		fun(
+			false
+			none
+			"write"
+			type(false, "_int")
+			[
+				param("fd", type(false, "int32"))
+				param("buff", type(false, "ptr__byte"))
+				param("n_bytes", type(false, "nat"))]
+			extern(false))
+		fun(
+			false
+			none
+			"as_any_ptr__ptr__byte__ptr__char"
+			type(false, "ptr__byte")
+			[param("some_ref", type(false, "ptr__char"))]
+			builtin(operator, "as-any-ptr", [type(false, "ptr__char")]))
+		fun(
+			false
+			none
+			"_op_equal_equal__bool___int___int"
+			type(false, "bool")
+			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
+			expr-body(
+				[local("matched", type(false, "comparison"))]
+				match(
+					"matched"
+					call("_op_less_equal_greater__comparison___int___int", [param-ref("a"), param-ref("b")])
+					[
+						case(none, call("false__bool", []))
+						case(none, call("true__bool", []))
+						case(none, call("false__bool", []))])))
+		fun(
+			false
+			none
+			"_op_less_equal_greater__comparison___int___int"
+			type(false, "comparison")
+			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
+			expr-body(
+				[]
+				cond(
+					special(less, param-ref("a"), param-ref("b"))
+					to-union(0, record([]))
+					cond(special(less, param-ref("b"), param-ref("a")), to-union(2, record([])), to-union(1, record([]))))))
+		fun(
+			false
+			none
+			"unsafe_to_int___int__nat"
+			type(false, "_int")
+			[param("a", type(false, "nat"))]
+			builtin(operator, "usnafe-nat64-to-int64", []))
+		fun(
+			false
+			none
+			"todo___void"
+			type(false, "_void")
+			[]
+			expr-body([], call("hard_fail___void__arr__char", [str-lit("TODO")])))
+		fun(false, none, "stderr_fd__int32", type(false, "int32"), [], expr-body([], call("two__int32", [])))
+		fun(
+			false
+			none
+			"two__int32"
+			type(false, "int32")
+			[]
+			expr-body([], call("wrap_incr__int32__int32", [call("one__int32", [])])))
+		fun(
+			false
+			none
+			"wrap_incr__int32__int32"
+			type(false, "int32")
+			[param("a", type(false, "int32"))]
+			expr-body([], call("wrap_add__int32__int32__int32", [param-ref("a"), call("one__int32", [])])))
+		fun(
+			false
+			none
+			"wrap_add__int32__int32__int32"
+			type(false, "int32")
+			[param("a", type(false, "int32")), param("b", type(false, "int32"))]
+			builtin(operator, "wrap-add (int-32)", []))
+		fun(false, none, "one__int32", type(false, "int32"), [], builtin(operator, "one (int-32)", []))
+		fun(
+			false
+			none
+			"print_err_sync___void__arr__char"
+			type(false, "_void")
+			[param("s", type(false, "arr__char"))]
+			expr-body(
+				[]
+				seq(
+					call("print_err_sync_no_newline___void__arr__char", [param-ref("s")])
+					call("print_err_sync_no_newline___void__arr__char", [str-lit("\n")]))))
+		fun(
+			false
+			none
+			"if__arr__char__bool__arr__char__arr__char"
+			type(false, "arr__char")
+			[
+				param("cond", type(false, "bool"))
+				param("if_true", type(false, "arr__char"))
+				param("if_false", type(false, "arr__char"))]
+			builtin(operator, "if", [type(false, "arr__char")]))
+		fun(
+			false
+			none
+			"empty__q__bool__arr__char"
+			type(false, "bool")
+			[param("a", type(false, "arr__char"))]
+			expr-body([], call("zero__q__bool__nat", [get-field(false, param-ref("a"), "size")])))
+		fun(
+			false
+			none
+			"zero__q__bool__nat"
+			type(false, "bool")
+			[param("n", type(false, "nat"))]
+			expr-body([], call("_op_equal_equal__bool__nat__nat", [param-ref("n"), call("zero__nat", [])])))
+		fun(
+			true
+			none
+			"get_gctx__ptr_global_ctx"
+			type(true, "global_ctx")
+			[]
+			expr-body(
+				[]
+				call("as_ref__ptr_global_ctx__ptr__byte", [get-field(true, call("get_ctx__ptr_ctx", []), "gctx_ptr")])))
+		fun(
+			false
+			none
+			"as_ref__ptr_global_ctx__ptr__byte"
+			type(true, "global_ctx")
+			[param("p", type(false, "ptr__byte"))]
+			builtin(operator, "as-ref", [type(true, "global_ctx")]))
+		fun(true, none, "get_ctx__ptr_ctx", type(true, "ctx"), [], builtin(operator, "get-ctx", []))
+		fun(
+			true
+			some(param("_closure", type(false, "ptr__byte")))
+			"new_vat__vat__ptr_global_ctx__nat__nat__lambda0"
+			type(false, "_void")
+			[param("it", type(false, "exception"))]
+			expr-body([], call("default_exception_handler___void__exception", [param-ref("it")])))
+		fun(
+			false
+			none
+			"ref_of_val__ptr_vat__vat"
+			type(true, "vat")
+			[param("b", type(false, "vat"))]
+			builtin(operator, "ref-of-val", [type(true, "vat")]))
+		fun(
+			false
+			none
+			"ptr_to__ptr__ptr_vat__ptr_vat"
+			type(false, "ptr__ptr_vat")
+			[param("t", type(true, "vat"))]
+			builtin(operator, "ptr-to", [type(true, "vat")]))
+		fun(
+			false
+			none
+			"new_exception_ctx__exception_ctx"
+			type(false, "exception_ctx")
+			[]
+			expr-body([], record([call("null__ptr__jmp_buf_tag", []), record([str-lit("")])])))
+		fun(
+			false
+			none
+			"null__ptr__jmp_buf_tag"
+			type(false, "ptr__jmp_buf_tag")
+			[]
+			builtin(operator, "null", [type(false, "jmp_buf_tag")]))
+		fun(
+			false
+			none
+			"ref_of_val__ptr_exception_ctx__exception_ctx"
+			type(true, "exception_ctx")
+			[param("b", type(false, "exception_ctx"))]
+			builtin(operator, "ref-of-val", [type(true, "exception_ctx")]))
+		fun(
+			false
+			none
+			"new_ctx__ctx__ptr_global_ctx__ptr_thread_local_stuff__ptr_vat__nat"
+			type(false, "ctx")
+			[
+				param("gctx", type(true, "global_ctx"))
+				param("tls", type(true, "thread_local_stuff"))
+				param("vat", type(true, "vat"))
+				param("actor_id", type(false, "nat"))]
+			expr-body(
+				[]
+				record(
+					[
+						call("as_any_ptr__ptr__byte__ptr_global_ctx", [param-ref("gctx")])
+						get-field(true, param-ref("vat"), "id")
+						param-ref("actor_id")
+						call(
+							"as_any_ptr__ptr__byte__ptr_gc_ctx"
+							[
+								call(
+									"get_gc_ctx__ptr_gc_ctx__ptr_gc"
+									[call("ref_of_val__ptr_gc__gc", [get-field(true, param-ref("vat"), "gc")])])])
+						call(
+							"as_any_ptr__ptr__byte__ptr_exception_ctx"
+							[get-field(true, param-ref("tls"), "exception_ctx")])])))
+		fun(
+			false
+			none
+			"as_any_ptr__ptr__byte__ptr_global_ctx"
+			type(false, "ptr__byte")
+			[param("some_ref", type(true, "global_ctx"))]
+			builtin(operator, "as-any-ptr", [type(true, "global_ctx")]))
+		fun(
+			false
+			none
+			"as_any_ptr__ptr__byte__ptr_gc_ctx"
+			type(false, "ptr__byte")
+			[param("some_ref", type(true, "gc_ctx"))]
+			builtin(operator, "as-any-ptr", [type(true, "gc_ctx")]))
+		fun(
+			false
+			none
+			"get_gc_ctx__ptr_gc_ctx__ptr_gc"
+			type(true, "gc_ctx")
+			[param("gc", type(true, "gc"))]
+			expr-body(
+				[
+					local("c", type(true, "gc_ctx"))
+					local("s", type(false, "some__ptr_gc_ctx"))
+					local("c1", type(true, "gc_ctx"))
+					local("matched", type(false, "opt__ptr_gc_ctx"))
+					local("res", type(true, "gc_ctx"))]
+				seq(
+					call(
+						"acquire_lock___void__ptr_lock"
+						[call("ref_of_val__ptr_lock__lock", [get-field(true, param-ref("gc"), "lk")])])
+					let(
+						"res"
+						match(
+							"matched"
+							get-field(true, param-ref("gc"), "context_head")
+							[
+								case(
+									none
+									let(
+										"c"
+										call(
+											"as_ref__ptr_gc_ctx__ptr__byte"
+											[call("malloc", [call("size_of__nat", [])])])
+										seq(
+											seq(
+												set-field(true, local-ref("c"), "gc", param-ref("gc"))
+												set-field(
+													true
+													local-ref("c")
+													"next_ctx"
+													to-union(0, call("none__none", []))))
+											local-ref("c"))))
+								case(
+									some("s")
+									let(
+										"c1"
+										get-field(false, local-ref("s"), "value")
+										seq(
+											seq(
+												set-field(
+													true
+													param-ref("gc")
+													"context_head"
+													get-field(true, local-ref("c1"), "next_ctx"))
+												set-field(
+													true
+													local-ref("c1")
+													"next_ctx"
+													to-union(0, call("none__none", []))))
+											local-ref("c1"))))])
+						seq(
+							call(
+								"release_lock___void__ptr_lock"
+								[call("ref_of_val__ptr_lock__lock", [get-field(true, param-ref("gc"), "lk")])])
+							local-ref("res"))))))
+		fun(
+			false
+			none
+			"acquire_lock___void__ptr_lock"
+			type(false, "_void")
+			[param("l", type(true, "lock"))]
+			expr-body([], call("acquire_lock_recur___void__ptr_lock__nat", [param-ref("l"), call("zero__nat", [])])))
+		fun(
+			false
+			none
+			"acquire_lock_recur___void__ptr_lock__nat"
+			type(false, "_void")
+			[param("l", type(true, "lock")), param("n_tries", type(false, "nat"))]
+			expr-body(
+				[]
+				cond(
+					call("try_acquire_lock__bool__ptr_lock", [param-ref("l")])
+					call("pass___void", [])
+					cond(
+						call("_op_equal_equal__bool__nat__nat", [param-ref("n_tries"), call("thousand__nat", [])])
+						call("hard_fail___void__arr__char", [str-lit("Couldn't acquire lock after 1000 tries")])
+						seq(
+							call("yield_thread___void", [])
+							call(
+								"acquire_lock_recur___void__ptr_lock__nat"
+								[param-ref("l"), call("noctx_incr__nat__nat", [param-ref("n_tries")])]))))))
+		fun(
+			false
+			none
+			"try_acquire_lock__bool__ptr_lock"
+			type(false, "bool")
+			[param("l", type(true, "lock"))]
+			expr-body(
+				[]
+				call(
+					"try_set__bool__ptr__atomic_bool"
+					[call("ref_of_val__ptr__atomic_bool___atomic_bool", [get-field(true, param-ref("l"), "is_locked")])])))
+		fun(
+			false
+			none
+			"try_set__bool__ptr__atomic_bool"
+			type(false, "bool")
+			[param("a", type(true, "_atomic_bool"))]
+			expr-body([], call("try_change__bool__ptr__atomic_bool__bool", [param-ref("a"), call("false__bool", [])])))
+		fun(
+			false
+			none
+			"try_change__bool__ptr__atomic_bool__bool"
+			type(false, "bool")
+			[param("a", type(true, "_atomic_bool")), param("old_value", type(false, "bool"))]
+			expr-body(
+				[]
+				call(
+					"compare_exchange_strong__bool__ptr__bool__ptr__bool__bool"
+					[
+						call("ptr_to__ptr__bool__bool", [get-field(true, param-ref("a"), "value")])
+						call("ptr_to__ptr__bool__bool", [param-ref("old_value")])
+						call("not__bool__bool", [param-ref("old_value")])])))
+		fun(
+			false
+			none
+			"compare_exchange_strong__bool__ptr__bool__ptr__bool__bool"
+			type(false, "bool")
+			[
+				param("value_ptr", type(false, "ptr__bool"))
+				param("expected_ptr", type(false, "ptr__bool"))
+				param("desired", type(false, "bool"))]
+			builtin(special, "compare-exchange-strong", []))
+		fun(
+			false
+			none
+			"ptr_to__ptr__bool__bool"
+			type(false, "ptr__bool")
+			[param("t", type(false, "bool"))]
+			builtin(operator, "ptr-to", [type(false, "bool")]))
+		fun(
+			false
+			none
+			"ref_of_val__ptr__atomic_bool___atomic_bool"
+			type(true, "_atomic_bool")
+			[param("b", type(false, "_atomic_bool"))]
+			builtin(operator, "ref-of-val", [type(true, "_atomic_bool")]))
+		fun(
+			false
+			none
+			"thousand__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_mul__nat__nat__nat", [call("hundred__nat", []), call("ten__nat", [])])))
+		fun(
+			false
+			none
+			"hundred__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_mul__nat__nat__nat", [call("ten__nat", []), call("ten__nat", [])])))
+		fun(
+			false
+			none
+			"ten__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_incr__nat__nat", [call("nine__nat", [])])))
+		fun(
+			false
+			none
+			"nine__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_incr__nat__nat", [call("eight__nat", [])])))
+		fun(
+			false
+			none
+			"eight__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_incr__nat__nat", [call("seven__nat", [])])))
+		fun(
+			false
+			none
+			"seven__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_incr__nat__nat", [call("six__nat", [])])))
+		fun(
+			false
+			none
+			"six__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_incr__nat__nat", [call("five__nat", [])])))
+		fun(
+			false
+			none
+			"five__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_incr__nat__nat", [call("four__nat", [])])))
+		fun(
+			false
+			none
+			"four__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_incr__nat__nat", [call("three__nat", [])])))
+		fun(
+			false
+			none
+			"three__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_incr__nat__nat", [call("two__nat", [])])))
+		fun(
+			false
+			none
+			"yield_thread___void"
+			type(false, "_void")
+			[]
+			expr-body(
+				[local("err", type(false, "int32"))]
+				let(
+					"err"
+					call("pthread_yield", [])
+					seq(
+						call("usleep", [call("thousand__nat", [])])
+						call("hard_assert___void__bool", [call("zero__q__bool__int32", [local-ref("err")])])))))
+		fun(false, none, "pthread_yield", type(false, "int32"), [], extern(false))
+		fun(false, none, "usleep", type(false, "_void"), [param("micro_seconds", type(false, "nat"))], extern(false))
+		fun(
+			false
+			none
+			"zero__q__bool__int32"
+			type(false, "bool")
+			[param("i", type(false, "int32"))]
+			expr-body([], call("_op_equal_equal__bool__int32__int32", [param-ref("i"), call("zero__int32", [])])))
+		fun(
+			false
+			none
+			"_op_equal_equal__bool__int32__int32"
+			type(false, "bool")
+			[param("a", type(false, "int32")), param("b", type(false, "int32"))]
+			expr-body(
+				[local("matched", type(false, "comparison"))]
+				match(
+					"matched"
+					call("_op_less_equal_greater__comparison__int32__int32", [param-ref("a"), param-ref("b")])
+					[
+						case(none, call("false__bool", []))
+						case(none, call("true__bool", []))
+						case(none, call("false__bool", []))])))
+		fun(
+			false
+			none
+			"_op_less_equal_greater__comparison__int32__int32"
+			type(false, "comparison")
+			[param("a", type(false, "int32")), param("b", type(false, "int32"))]
+			expr-body(
+				[]
+				cond(
+					special(less, param-ref("a"), param-ref("b"))
+					to-union(0, record([]))
+					cond(special(less, param-ref("b"), param-ref("a")), to-union(2, record([])), to-union(1, record([]))))))
+		fun(false, none, "zero__int32", type(false, "int32"), [], builtin(operator, "zero (int-32)", []))
+		fun(
+			false
+			none
+			"noctx_incr__nat__nat"
+			type(false, "nat")
+			[param("n", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"hard_assert___void__bool"
+						[call("_op_less__bool__nat__nat", [param-ref("n"), call("billion__nat", [])])])
+					call("wrap_incr__nat__nat", [param-ref("n")]))))
+		fun(
+			false
+			none
+			"_op_less__bool__nat__nat"
+			type(false, "bool")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body(
+				[local("matched", type(false, "comparison"))]
+				match(
+					"matched"
+					call("_op_less_equal_greater__comparison__nat__nat", [param-ref("a"), param-ref("b")])
+					[
+						case(none, call("true__bool", []))
+						case(none, call("false__bool", []))
+						case(none, call("false__bool", []))])))
+		fun(
+			false
+			none
+			"billion__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_mul__nat__nat__nat", [call("million__nat", []), call("thousand__nat", [])])))
+		fun(
+			false
+			none
+			"million__nat"
+			type(false, "nat")
+			[]
+			expr-body([], call("wrap_mul__nat__nat__nat", [call("thousand__nat", []), call("thousand__nat", [])])))
+		fun(
+			false
+			none
+			"ref_of_val__ptr_lock__lock"
+			type(true, "lock")
+			[param("b", type(false, "lock"))]
+			builtin(operator, "ref-of-val", [type(true, "lock")]))
+		fun(
+			false
+			none
+			"as_ref__ptr_gc_ctx__ptr__byte"
+			type(true, "gc_ctx")
+			[param("p", type(false, "ptr__byte"))]
+			builtin(operator, "as-ref", [type(true, "gc_ctx")]))
+		fun(false, none, "size_of__nat", type(false, "nat"), [], builtin(operator, "size-of", [type(true, "gc_ctx")]))
+		fun(
+			false
+			none
+			"release_lock___void__ptr_lock"
+			type(false, "_void")
+			[param("l", type(true, "lock"))]
+			expr-body(
+				[]
+				call(
+					"must_unset___void__ptr__atomic_bool"
+					[call("ref_of_val__ptr__atomic_bool___atomic_bool", [get-field(true, param-ref("l"), "is_locked")])])))
+		fun(
+			false
+			none
+			"must_unset___void__ptr__atomic_bool"
+			type(false, "_void")
+			[param("a", type(true, "_atomic_bool"))]
+			expr-body(
+				[local("did_unset", type(false, "bool"))]
+				let(
+					"did_unset"
+					call("try_unset__bool__ptr__atomic_bool", [param-ref("a")])
+					call("hard_assert___void__bool", [local-ref("did_unset")]))))
+		fun(
+			false
+			none
+			"try_unset__bool__ptr__atomic_bool"
+			type(false, "bool")
+			[param("a", type(true, "_atomic_bool"))]
+			expr-body([], call("try_change__bool__ptr__atomic_bool__bool", [param-ref("a"), call("true__bool", [])])))
+		fun(
+			false
+			none
+			"ref_of_val__ptr_gc__gc"
+			type(true, "gc")
+			[param("b", type(false, "gc"))]
+			builtin(operator, "ref-of-val", [type(true, "gc")]))
+		fun(
+			false
+			none
+			"as_any_ptr__ptr__byte__ptr_exception_ctx"
+			type(false, "ptr__byte")
+			[param("some_ref", type(true, "exception_ctx"))]
+			builtin(operator, "as-any-ptr", [type(true, "exception_ctx")]))
+		fun(
+			false
+			none
+			"ref_of_val__ptr_thread_local_stuff__thread_local_stuff"
+			type(true, "thread_local_stuff")
+			[param("b", type(false, "thread_local_stuff"))]
+			builtin(operator, "ref-of-val", [type(true, "thread_local_stuff")]))
+		fun(
+			false
+			none
+			"ref_of_val__ptr_ctx__ctx"
+			type(true, "ctx")
+			[param("b", type(false, "ctx"))]
+			builtin(operator, "ref-of-val", [type(true, "ctx")]))
+		fun(
+			false
+			none
+			"as__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+			type(false, "fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char")
+			[
+				param(
+					"value"
+					type(
+						false
+						"fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))]
+			builtin(
+				operator
+				"as"
+				[type(false, "fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char")]))
+		fun(
+			true
+			none
+			"add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+			type(true, "fut__int32")
+			[
+				param("all_args", type(false, "arr__ptr__char"))
+				param("main_ptr", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))]
+			expr-body(
+				[]
+				call(
+					"then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32"
+					[
+						call(
+							"as__ptr_fut___void__ptr_fut___void"
+							[call("resolved__ptr_fut___void___void", [call("pass___void", [])])])
+						record(
+							[
+								call("cur_actor__vat_and_actor_id", [])
+								lambda(
+									"add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
+									some(alloc(
+										"alloc__ptr__byte__nat"
+										record([param-ref("all_args"), param-ref("main_ptr")]))))])])))
+		fun(
+			true
+			none
+			"then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32"
+			type(true, "fut__int32")
+			[param("f", type(true, "fut___void")), param("cb", type(false, "fun_ref0__int32"))]
+			expr-body(
+				[]
+				call(
+					"then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void"
+					[
+						param-ref("f")
+						record(
+							[
+								call("cur_actor__vat_and_actor_id", [])
+								lambda(
+									"then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0"
+									some(alloc("alloc__ptr__byte__nat", record([param-ref("cb")]))))])])))
+		fun(
+			true
+			none
+			"then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void"
+			type(true, "fut__int32")
+			[param("f", type(true, "fut___void")), param("cb", type(false, "fun_ref1__int32___void"))]
+			expr-body(
+				[local("res", type(true, "fut__int32"))]
+				let(
+					"res"
+					call("new_unresolved_fut__ptr_fut__int32", [])
+					seq(
+						call(
+							"then_void___void__ptr_fut___void__fun_mut1___void__result___void__exception"
+							[
+								param-ref("f")
+								lambda(
+									"then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0"
+									some(alloc("alloc__ptr__byte__nat", record([param-ref("cb"), local-ref("res")]))))])
+						local-ref("res")))))
+		fun(
+			true
+			none
+			"new_unresolved_fut__ptr_fut__int32"
+			type(true, "fut__int32")
+			[]
+			expr-body(
+				[]
+				alloc(
+					"alloc__ptr__byte__nat"
+					record([call("new_lock__lock", []), to-union(0, record([to-union(0, call("none__none", []))]))]))))
+		fun(
+			true
+			none
+			"alloc__ptr__byte__nat"
+			type(false, "ptr__byte")
+			[param("size", type(false, "nat"))]
+			expr-body([], call("gc_alloc__ptr__byte__ptr_gc__nat", [call("get_gc__ptr_gc", []), param-ref("size")])))
+		fun(
+			true
+			none
+			"gc_alloc__ptr__byte__ptr_gc__nat"
+			type(false, "ptr__byte")
+			[param("gc", type(true, "gc")), param("size", type(false, "nat"))]
+			expr-body(
+				[local("s", type(false, "some__ptr__byte")), local("matched", type(false, "opt__ptr__byte"))]
+				match(
+					"matched"
+					call("try_gc_alloc__opt__ptr__byte__ptr_gc__nat", [param-ref("gc"), param-ref("size")])
+					[
+						case(none, call("todo__ptr__byte", []))
+						case(some("s"), get-field(false, local-ref("s"), "value"))])))
+		fun(
+			false
+			none
+			"try_gc_alloc__opt__ptr__byte__ptr_gc__nat"
+			type(false, "opt__ptr__byte")
+			[param("gc", type(true, "gc")), param("size", type(false, "nat"))]
+			expr-body(
+				[]
+				to-union(
+					1
+					call(
+						"some__some__ptr__byte__ptr__byte"
+						[call("unmanaged_alloc_bytes__ptr__byte__nat", [param-ref("size")])]))))
+		fun(
+			false
+			none
+			"some__some__ptr__byte__ptr__byte"
+			type(false, "some__ptr__byte")
+			[param("t", type(false, "ptr__byte"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			false
+			none
+			"todo__ptr__byte"
+			type(false, "ptr__byte")
+			[]
+			expr-body([], call("hard_fail__ptr__byte__arr__char", [str-lit("TODO")])))
+		fun(
+			false
+			none
+			"hard_fail__ptr__byte__arr__char"
+			type(false, "ptr__byte")
+			[param("reason", type(false, "arr__char"))]
+			builtin(special, "hard-fail", [type(false, "ptr__byte")]))
+		fun(
+			true
+			none
+			"get_gc__ptr_gc"
+			type(true, "gc")
+			[]
+			expr-body([], get-field(true, call("get_gc_ctx__ptr_gc_ctx", []), "gc")))
+		fun(
+			true
+			none
+			"get_gc_ctx__ptr_gc_ctx"
+			type(true, "gc_ctx")
+			[]
+			expr-body(
+				[]
+				call("as_ref__ptr_gc_ctx__ptr__byte", [get-field(true, call("get_ctx__ptr_ctx", []), "gc_ctx_ptr")])))
+		fun(
+			true
+			none
+			"then_void___void__ptr_fut___void__fun_mut1___void__result___void__exception"
+			type(false, "_void")
+			[
+				param("f", type(true, "fut___void"))
+				param("cb", type(false, "fun_mut1___void__result___void__exception"))]
+			expr-body(
+				[
+					local("cbs", type(false, "fut_state_callbacks___void"))
+					local("r", type(false, "fut_state_resolved___void"))
+					local("e", type(false, "exception"))
+					local("matched", type(false, "fut_state___void"))]
+				seq(
+					seq(
+						call(
+							"acquire_lock___void__ptr_lock"
+							[call("ref_of_val__ptr_lock__lock", [get-field(true, param-ref("f"), "lk")])])
+						match(
+							"matched"
+							get-field(true, param-ref("f"), "state")
+							[
+								case(
+									some("cbs")
+									set-field(
+										true
+										param-ref("f")
+										"state"
+										to-union(
+											0
+											record(
+												[
+													to-union(
+														1
+														call(
+															"some__some__ptr_fut_callback_node___void__ptr_fut_callback_node___void"
+															[
+																alloc(
+																	"alloc__ptr__byte__nat"
+																	record(
+																		[
+																			param-ref("cb")
+																			get-field(false, local-ref("cbs"), "head")]))]))]))))
+								case(
+									some("r")
+									call(
+										"call___void__fun_mut1___void__result___void__exception__result___void__exception"
+										[
+											param-ref("cb")
+											to-union(
+												0
+												call(
+													"ok__ok___void___void"
+													[get-field(false, local-ref("r"), "value")]))]))
+								case(
+									some("e")
+									call(
+										"call___void__fun_mut1___void__result___void__exception__result___void__exception"
+										[
+											param-ref("cb")
+											to-union(1, call("err__err__exception__exception", [local-ref("e")]))]))]))
+					call(
+						"release_lock___void__ptr_lock"
+						[call("ref_of_val__ptr_lock__lock", [get-field(true, param-ref("f"), "lk")])]))))
+		fun(
+			false
+			none
+			"some__some__ptr_fut_callback_node___void__ptr_fut_callback_node___void"
+			type(false, "some__ptr_fut_callback_node___void")
+			[param("t", type(true, "fut_callback_node___void"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			true
+			none
+			"call___void__fun_mut1___void__result___void__exception__result___void__exception"
+			type(false, "_void")
+			[
+				param("f", type(false, "fun_mut1___void__result___void__exception"))
+				param("p0", type(false, "result___void__exception"))]
+			expr-body(
+				[]
+				call(
+					"call_with_ctx___void__ptr_ctx__fun_mut1___void__result___void__exception__result___void__exception"
+					[call("get_ctx__ptr_ctx", []), param-ref("f"), param-ref("p0")])))
+		fun(
+			false
+			none
+			"call_with_ctx___void__ptr_ctx__fun_mut1___void__result___void__exception__result___void__exception"
+			type(false, "_void")
+			[
+				param("c", type(true, "ctx"))
+				param("f", type(false, "fun_mut1___void__result___void__exception"))
+				param("p0", type(false, "result___void__exception"))]
+			expr-body(
+				[]
+				call(
+					"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception__ptr_ctx__ptr__byte__result___void__exception"
+					[
+						get-field(false, param-ref("f"), "fun_ptr")
+						param-ref("c")
+						get-field(false, param-ref("f"), "closure")
+						param-ref("p0")])))
+		fun(
+			false
+			none
+			"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception__ptr_ctx__ptr__byte__result___void__exception"
+			type(false, "_void")
+			[
+				param("f", type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception"))
+				param("p0", type(true, "ctx"))
+				param("p1", type(false, "ptr__byte"))
+				param("p2", type(false, "result___void__exception"))]
+			builtin(
+				operator
+				"call (fun-ptr)"
+				[
+					type(false, "_void")
+					type(true, "ctx")
+					type(false, "ptr__byte")
+					type(false, "result___void__exception")]))
+		fun(
+			false
+			none
+			"ok__ok___void___void"
+			type(false, "ok___void")
+			[param("t", type(false, "_void"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			false
+			none
+			"err__err__exception__exception"
+			type(false, "err__exception")
+			[param("t", type(false, "exception"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			true
+			none
+			"forward_to___void__ptr_fut__int32__ptr_fut__int32"
+			type(false, "_void")
+			[param("from", type(true, "fut__int32")), param("to", type(true, "fut__int32"))]
+			expr-body(
+				[]
+				call(
+					"then_void___void__ptr_fut__int32__fun_mut1___void__result__int32__exception"
+					[
+						param-ref("from")
+						lambda(
+							"forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0"
+							some(alloc("alloc__ptr__byte__nat", record([param-ref("to")]))))])))
+		fun(
+			true
+			none
+			"then_void___void__ptr_fut__int32__fun_mut1___void__result__int32__exception"
+			type(false, "_void")
+			[
+				param("f", type(true, "fut__int32"))
+				param("cb", type(false, "fun_mut1___void__result__int32__exception"))]
+			expr-body(
+				[
+					local("cbs", type(false, "fut_state_callbacks__int32"))
+					local("r", type(false, "fut_state_resolved__int32"))
+					local("e", type(false, "exception"))
+					local("matched", type(false, "fut_state__int32"))]
+				seq(
+					seq(
+						call(
+							"acquire_lock___void__ptr_lock"
+							[call("ref_of_val__ptr_lock__lock", [get-field(true, param-ref("f"), "lk")])])
+						match(
+							"matched"
+							get-field(true, param-ref("f"), "state")
+							[
+								case(
+									some("cbs")
+									set-field(
+										true
+										param-ref("f")
+										"state"
+										to-union(
+											0
+											record(
+												[
+													to-union(
+														1
+														call(
+															"some__some__ptr_fut_callback_node__int32__ptr_fut_callback_node__int32"
+															[
+																alloc(
+																	"alloc__ptr__byte__nat"
+																	record(
+																		[
+																			param-ref("cb")
+																			get-field(false, local-ref("cbs"), "head")]))]))]))))
+								case(
+									some("r")
+									call(
+										"call___void__fun_mut1___void__result__int32__exception__result__int32__exception"
+										[
+											param-ref("cb")
+											to-union(
+												0
+												call(
+													"ok__ok__int32__int32"
+													[get-field(false, local-ref("r"), "value")]))]))
+								case(
+									some("e")
+									call(
+										"call___void__fun_mut1___void__result__int32__exception__result__int32__exception"
+										[
+											param-ref("cb")
+											to-union(1, call("err__err__exception__exception", [local-ref("e")]))]))]))
+					call(
+						"release_lock___void__ptr_lock"
+						[call("ref_of_val__ptr_lock__lock", [get-field(true, param-ref("f"), "lk")])]))))
+		fun(
+			false
+			none
+			"some__some__ptr_fut_callback_node__int32__ptr_fut_callback_node__int32"
+			type(false, "some__ptr_fut_callback_node__int32")
+			[param("t", type(true, "fut_callback_node__int32"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			true
+			none
+			"call___void__fun_mut1___void__result__int32__exception__result__int32__exception"
+			type(false, "_void")
+			[
+				param("f", type(false, "fun_mut1___void__result__int32__exception"))
+				param("p0", type(false, "result__int32__exception"))]
+			expr-body(
+				[]
+				call(
+					"call_with_ctx___void__ptr_ctx__fun_mut1___void__result__int32__exception__result__int32__exception"
+					[call("get_ctx__ptr_ctx", []), param-ref("f"), param-ref("p0")])))
+		fun(
+			false
+			none
+			"call_with_ctx___void__ptr_ctx__fun_mut1___void__result__int32__exception__result__int32__exception"
+			type(false, "_void")
+			[
+				param("c", type(true, "ctx"))
+				param("f", type(false, "fun_mut1___void__result__int32__exception"))
+				param("p0", type(false, "result__int32__exception"))]
+			expr-body(
+				[]
+				call(
+					"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception__ptr_ctx__ptr__byte__result__int32__exception"
+					[
+						get-field(false, param-ref("f"), "fun_ptr")
+						param-ref("c")
+						get-field(false, param-ref("f"), "closure")
+						param-ref("p0")])))
+		fun(
+			false
+			none
+			"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception__ptr_ctx__ptr__byte__result__int32__exception"
+			type(false, "_void")
+			[
+				param("f", type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception"))
+				param("p0", type(true, "ctx"))
+				param("p1", type(false, "ptr__byte"))
+				param("p2", type(false, "result__int32__exception"))]
+			builtin(
+				operator
+				"call (fun-ptr)"
+				[
+					type(false, "_void")
+					type(true, "ctx")
+					type(false, "ptr__byte")
+					type(false, "result__int32__exception")]))
+		fun(
+			false
+			none
+			"ok__ok__int32__int32"
+			type(false, "ok__int32")
+			[param("t", type(false, "int32"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			true
+			none
+			"resolve_or_reject___void__ptr_fut__int32__result__int32__exception"
+			type(false, "_void")
+			[param("f", type(true, "fut__int32")), param("result", type(false, "result__int32__exception"))]
+			expr-body(
+				[
+					local("cbs", type(false, "fut_state_callbacks__int32"))
+					local("matched", type(false, "fut_state__int32"))
+					local("o", type(false, "ok__int32"))
+					local("e", type(false, "err__exception"))
+					local("matched1", type(false, "result__int32__exception"))]
+				seq(
+					seq(
+						seq(
+							call(
+								"acquire_lock___void__ptr_lock"
+								[call("ref_of_val__ptr_lock__lock", [get-field(true, param-ref("f"), "lk")])])
+							match(
+								"matched"
+								get-field(true, param-ref("f"), "state")
+								[
+									case(
+										some("cbs")
+										call(
+											"resolve_or_reject_recur___void__opt__ptr_fut_callback_node__int32__result__int32__exception"
+											[get-field(false, local-ref("cbs"), "head"), param-ref("result")]))
+									case(
+										none
+										call(
+											"hard_fail___void__arr__char"
+											[str-lit("resolving an already-resolved fut")]))
+									case(
+										none
+										call(
+											"hard_fail___void__arr__char"
+											[str-lit("resolving an already-resolved fut")]))]))
+						set-field(
+							true
+							param-ref("f")
+							"state"
+							match(
+								"matched1"
+								param-ref("result")
+								[
+									case(some("o"), to-union(1, record([get-field(false, local-ref("o"), "value")])))
+									case(some("e"), to-union(2, get-field(false, local-ref("e"), "value")))])))
+					call(
+						"release_lock___void__ptr_lock"
+						[call("ref_of_val__ptr_lock__lock", [get-field(true, param-ref("f"), "lk")])]))))
+		fun(
+			true
+			none
+			"resolve_or_reject_recur___void__opt__ptr_fut_callback_node__int32__result__int32__exception"
+			type(false, "_void")
+			[
+				param("node", type(false, "opt__ptr_fut_callback_node__int32"))
+				param("value", type(false, "result__int32__exception"))]
+			expr-body(
+				[
+					local("s", type(false, "some__ptr_fut_callback_node__int32"))
+					local("matched", type(false, "opt__ptr_fut_callback_node__int32"))]
+				match(
+					"matched"
+					param-ref("node")
+					[
+						case(none, call("pass___void", []))
+						case(
+							some("s")
+							seq(
+								call(
+									"drop___void___void"
+									[
+										call(
+											"call___void__fun_mut1___void__result__int32__exception__result__int32__exception"
+											[
+												get-field(true, get-field(false, local-ref("s"), "value"), "cb")
+												param-ref("value")])])
+								call(
+									"resolve_or_reject_recur___void__opt__ptr_fut_callback_node__int32__result__int32__exception"
+									[
+										get-field(true, get-field(false, local-ref("s"), "value"), "next_node")
+										param-ref("value")])))])))
+		fun(
+			false
+			none
+			"drop___void___void"
+			type(false, "_void")
+			[param("t", type(false, "_void"))]
+			expr-body([], call("pass___void", [])))
+		fun(
+			true
+			some(param("_closure", type(true, "forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0___closure")))
+			"forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0"
+			type(false, "_void")
+			[param("it", type(false, "result__int32__exception"))]
+			expr-body(
+				[]
+				call(
+					"resolve_or_reject___void__ptr_fut__int32__result__int32__exception"
+					[get-field(true, param-ref("_closure"), "to"), param-ref("it")])))
+		fun(
+			true
+			none
+			"call__ptr_fut__int32__fun_ref1__int32___void___void"
+			type(true, "fut__int32")
+			[param("f", type(false, "fun_ref1__int32___void")), param("p0", type(false, "_void"))]
+			expr-body(
+				[local("vat", type(true, "vat")), local("res", type(true, "fut__int32"))]
+				let(
+					"vat"
+					call(
+						"get_vat__ptr_vat__nat"
+						[get-field(false, get-field(false, param-ref("f"), "vat_and_actor"), "vat")])
+					let(
+						"res"
+						call("new_unresolved_fut__ptr_fut__int32", [])
+						seq(
+							call(
+								"add_task___void__ptr_vat__task"
+								[
+									local-ref("vat")
+									record(
+										[
+											get-field(false, get-field(false, param-ref("f"), "vat_and_actor"), "actor")
+											lambda(
+												"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0"
+												some(alloc(
+													"alloc__ptr__byte__nat"
+													record([param-ref("f"), param-ref("p0"), local-ref("res")]))))])])
+							local-ref("res"))))))
+		fun(
+			true
+			none
+			"get_vat__ptr_vat__nat"
+			type(true, "vat")
+			[param("vat_id", type(false, "nat"))]
+			expr-body(
+				[]
+				call(
+					"at__ptr_vat__arr__ptr_vat__nat"
+					[get-field(true, call("get_gctx__ptr_global_ctx", []), "vats"), param-ref("vat_id")])))
+		fun(
+			true
+			none
+			"at__ptr_vat__arr__ptr_vat__nat"
+			type(true, "vat")
+			[param("a", type(false, "arr__ptr_vat")), param("index", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[
+							call(
+								"_op_less__bool__nat__nat"
+								[param-ref("index"), get-field(false, param-ref("a"), "size")])])
+					call("noctx_at__ptr_vat__arr__ptr_vat__nat", [param-ref("a"), param-ref("index")]))))
+		fun(
+			true
+			none
+			"assert___void__bool"
+			type(false, "_void")
+			[param("condition", type(false, "bool"))]
+			expr-body([], call("assert___void__bool__arr__char", [param-ref("condition"), str-lit("assert failed")])))
+		fun(
+			true
+			none
+			"assert___void__bool__arr__char"
+			type(false, "_void")
+			[param("condition", type(false, "bool")), param("message", type(false, "arr__char"))]
+			expr-body(
+				[]
+				call(
+					"if___void__bool___void___void"
+					[
+						param-ref("condition")
+						call("pass___void", [])
+						call("fail___void__arr__char", [param-ref("message")])])))
+		fun(
+			true
+			none
+			"fail___void__arr__char"
+			type(false, "_void")
+			[param("reason", type(false, "arr__char"))]
+			expr-body([], call("throw___void__exception", [record([param-ref("reason")])])))
+		fun(
+			true
+			none
+			"throw___void__exception"
+			type(false, "_void")
+			[param("e", type(false, "exception"))]
+			expr-body(
+				[local("exn_ctx", type(true, "exception_ctx"))]
+				let(
+					"exn_ctx"
+					call("get_exception_ctx__ptr_exception_ctx", [])
+					seq(
+						seq(
+							seq(
+								call(
+									"hard_forbid___void__bool"
+									[
+										call(
+											"_op_equal_equal__bool__ptr__jmp_buf_tag__ptr__jmp_buf_tag"
+											[
+												get-field(true, local-ref("exn_ctx"), "jmp_buf_ptr")
+												call("null__ptr__jmp_buf_tag", [])])])
+								set-field(true, local-ref("exn_ctx"), "thrown_exception", param-ref("e")))
+							call(
+								"longjmp"
+								[
+									get-field(true, local-ref("exn_ctx"), "jmp_buf_ptr")
+									call("number_to_throw__int32", [])]))
+						call("todo___void", [])))))
+		fun(
+			true
+			none
+			"get_exception_ctx__ptr_exception_ctx"
+			type(true, "exception_ctx")
+			[]
+			expr-body(
+				[]
+				call(
+					"as_ref__ptr_exception_ctx__ptr__byte"
+					[get-field(true, call("get_ctx__ptr_ctx", []), "exception_ctx_ptr")])))
+		fun(
+			false
+			none
+			"as_ref__ptr_exception_ctx__ptr__byte"
+			type(true, "exception_ctx")
+			[param("p", type(false, "ptr__byte"))]
+			builtin(operator, "as-ref", [type(true, "exception_ctx")]))
+		fun(
+			false
+			none
+			"_op_equal_equal__bool__ptr__jmp_buf_tag__ptr__jmp_buf_tag"
+			type(false, "bool")
+			[param("a", type(false, "ptr__jmp_buf_tag")), param("b", type(false, "ptr__jmp_buf_tag"))]
+			expr-body(
+				[local("matched", type(false, "comparison"))]
+				match(
+					"matched"
+					call(
+						"_op_less_equal_greater__comparison__ptr__jmp_buf_tag__ptr__jmp_buf_tag"
+						[param-ref("a"), param-ref("b")])
+					[
+						case(none, call("false__bool", []))
+						case(none, call("true__bool", []))
+						case(none, call("false__bool", []))])))
+		fun(
+			false
+			none
+			"_op_less_equal_greater__comparison__ptr__jmp_buf_tag__ptr__jmp_buf_tag"
+			type(false, "comparison")
+			[param("a", type(false, "ptr__jmp_buf_tag")), param("b", type(false, "ptr__jmp_buf_tag"))]
+			expr-body(
+				[]
+				cond(
+					special(less, param-ref("a"), param-ref("b"))
+					to-union(0, record([]))
+					cond(special(less, param-ref("b"), param-ref("a")), to-union(2, record([])), to-union(1, record([]))))))
+		fun(
+			false
+			none
+			"longjmp"
+			type(false, "_void")
+			[param("env", type(false, "ptr__jmp_buf_tag")), param("val", type(false, "int32"))]
+			extern(false))
+		fun(true, none, "number_to_throw__int32", type(false, "int32"), [], expr-body([], call("seven__int32", [])))
+		fun(
+			false
+			none
+			"seven__int32"
+			type(false, "int32")
+			[]
+			expr-body([], call("wrap_incr__int32__int32", [call("six__int32", [])])))
+		fun(
+			false
+			none
+			"six__int32"
+			type(false, "int32")
+			[]
+			expr-body([], call("wrap_incr__int32__int32", [call("five__int32", [])])))
+		fun(
+			false
+			none
+			"five__int32"
+			type(false, "int32")
+			[]
+			expr-body([], call("wrap_incr__int32__int32", [call("four__int32", [])])))
+		fun(
+			false
+			none
+			"four__int32"
+			type(false, "int32")
+			[]
+			expr-body([], call("wrap_incr__int32__int32", [call("three__int32", [])])))
+		fun(
+			false
+			none
+			"three__int32"
+			type(false, "int32")
+			[]
+			expr-body([], call("wrap_incr__int32__int32", [call("two__int32", [])])))
+		fun(
+			false
+			none
+			"noctx_at__ptr_vat__arr__ptr_vat__nat"
+			type(true, "vat")
+			[param("a", type(false, "arr__ptr_vat")), param("index", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"hard_assert___void__bool"
+						[
+							call(
+								"_op_less__bool__nat__nat"
+								[param-ref("index"), get-field(false, param-ref("a"), "size")])])
+					call(
+						"deref__ptr_vat__ptr__ptr_vat"
+						[
+							call(
+								"_op_plus__ptr__ptr_vat__ptr__ptr_vat__nat"
+								[get-field(false, param-ref("a"), "data"), param-ref("index")])]))))
+		fun(
+			false
+			none
+			"deref__ptr_vat__ptr__ptr_vat"
+			type(true, "vat")
+			[param("p", type(false, "ptr__ptr_vat"))]
+			builtin(operator, "deref", [type(true, "vat")]))
+		fun(
+			false
+			none
+			"_op_plus__ptr__ptr_vat__ptr__ptr_vat__nat"
+			type(false, "ptr__ptr_vat")
+			[param("p", type(false, "ptr__ptr_vat")), param("offset", type(false, "nat"))]
+			builtin(operator, "+ (ptr)", [type(true, "vat")]))
+		fun(
+			true
+			none
+			"add_task___void__ptr_vat__task"
+			type(false, "_void")
+			[param("v", type(true, "vat")), param("t", type(false, "task"))]
+			expr-body(
+				[local("node", type(true, "mut_bag_node__task"))]
+				let(
+					"node"
+					call("new_mut_bag_node__ptr_mut_bag_node__task__task", [param-ref("t")])
+					seq(
+						seq(
+							seq(
+								call(
+									"acquire_lock___void__ptr_lock"
+									[
+										call(
+											"ref_of_val__ptr_lock__lock"
+											[get-field(true, param-ref("v"), "tasks_lock")])])
+								call(
+									"add___void__ptr_mut_bag__task__ptr_mut_bag_node__task"
+									[
+										call(
+											"ref_of_val__ptr_mut_bag__task__mut_bag__task"
+											[get-field(true, param-ref("v"), "tasks")])
+										local-ref("node")]))
+							call(
+								"release_lock___void__ptr_lock"
+								[call("ref_of_val__ptr_lock__lock", [get-field(true, param-ref("v"), "tasks_lock")])]))
+						call(
+							"broadcast___void__ptr_condition"
+							[
+								call(
+									"ref_of_val__ptr_condition__condition"
+									[get-field(true, get-field(true, param-ref("v"), "gctx"), "may_be_work_to_do")])])))))
+		fun(
+			true
+			none
+			"new_mut_bag_node__ptr_mut_bag_node__task__task"
+			type(true, "mut_bag_node__task")
+			[param("value", type(false, "task"))]
+			expr-body(
+				[]
+				alloc("alloc__ptr__byte__nat", record([param-ref("value"), to-union(0, call("none__none", []))]))))
+		fun(
+			false
+			none
+			"add___void__ptr_mut_bag__task__ptr_mut_bag_node__task"
+			type(false, "_void")
+			[param("bag", type(true, "mut_bag__task")), param("node", type(true, "mut_bag_node__task"))]
+			expr-body(
+				[]
+				seq(
+					set-field(true, param-ref("node"), "next_node", get-field(true, param-ref("bag"), "head"))
+					set-field(
+						true
+						param-ref("bag")
+						"head"
+						to-union(
+							1
+							call("some__some__ptr_mut_bag_node__task__ptr_mut_bag_node__task", [param-ref("node")]))))))
+		fun(
+			false
+			none
+			"some__some__ptr_mut_bag_node__task__ptr_mut_bag_node__task"
+			type(false, "some__ptr_mut_bag_node__task")
+			[param("t", type(true, "mut_bag_node__task"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			false
+			none
+			"ref_of_val__ptr_mut_bag__task__mut_bag__task"
+			type(true, "mut_bag__task")
+			[param("b", type(false, "mut_bag__task"))]
+			builtin(operator, "ref-of-val", [type(true, "mut_bag__task")]))
+		fun(
+			false
+			none
+			"broadcast___void__ptr_condition"
+			type(false, "_void")
+			[param("c", type(true, "condition"))]
+			expr-body(
+				[]
+				seq(
+					seq(
+						call(
+							"acquire_lock___void__ptr_lock"
+							[call("ref_of_val__ptr_lock__lock", [get-field(true, param-ref("c"), "lk")])])
+						set-field(
+							true
+							param-ref("c")
+							"value"
+							call("noctx_incr__nat__nat", [get-field(true, param-ref("c"), "value")])))
+					call(
+						"release_lock___void__ptr_lock"
+						[call("ref_of_val__ptr_lock__lock", [get-field(true, param-ref("c"), "lk")])]))))
+		fun(
+			false
+			none
+			"ref_of_val__ptr_condition__condition"
+			type(true, "condition")
+			[param("b", type(false, "condition"))]
+			builtin(operator, "ref-of-val", [type(true, "condition")]))
+		fun(
+			true
+			none
+			"catch___void__fun_mut0___void__fun_mut1___void__exception"
+			type(false, "_void")
+			[param("try", type(false, "fun_mut0___void")), param("catcher", type(false, "fun_mut1___void__exception"))]
+			expr-body(
+				[]
+				call(
+					"catch_with_exception_ctx___void__ptr_exception_ctx__fun_mut0___void__fun_mut1___void__exception"
+					[call("get_exception_ctx__ptr_exception_ctx", []), param-ref("try"), param-ref("catcher")])))
+		fun(
+			true
+			none
+			"catch_with_exception_ctx___void__ptr_exception_ctx__fun_mut0___void__fun_mut1___void__exception"
+			type(false, "_void")
+			[
+				param("ec", type(true, "exception_ctx"))
+				param("try", type(false, "fun_mut0___void"))
+				param("catcher", type(false, "fun_mut1___void__exception"))]
+			expr-body(
+				[
+					local("old_thrown_exception", type(false, "exception"))
+					local("old_jmp_buf", type(false, "ptr__jmp_buf_tag"))
+					local("store", type(false, "jmp_buf_tag"))
+					local("setjmp_result", type(false, "int32"))
+					local("res", type(false, "_void"))
+					local("thrown_exception", type(false, "exception"))]
+				let(
+					"old_thrown_exception"
+					get-field(true, param-ref("ec"), "thrown_exception")
+					let(
+						"old_jmp_buf"
+						get-field(true, param-ref("ec"), "jmp_buf_ptr")
+						let(
+							"store"
+							record([call("zero__bytes64", []), call("zero__int32", []), call("zero__bytes128", [])])
+							seq(
+								set-field(
+									true
+									param-ref("ec")
+									"jmp_buf_ptr"
+									call("ptr_to__ptr__jmp_buf_tag__jmp_buf_tag", [local-ref("store")]))
+								let(
+									"setjmp_result"
+									call("setjmp", [get-field(true, param-ref("ec"), "jmp_buf_ptr")])
+									cond(
+										call(
+											"_op_equal_equal__bool__int32__int32"
+											[local-ref("setjmp_result"), call("zero__int32", [])])
+										let(
+											"res"
+											call("call___void__fun_mut0___void", [param-ref("try")])
+											seq(
+												seq(
+													set-field(
+														true
+														param-ref("ec")
+														"jmp_buf_ptr"
+														local-ref("old_jmp_buf"))
+													set-field(
+														true
+														param-ref("ec")
+														"thrown_exception"
+														local-ref("old_thrown_exception")))
+												local-ref("res")))
+										seq(
+											call(
+												"assert___void__bool"
+												[
+													call(
+														"_op_equal_equal__bool__int32__int32"
+														[local-ref("setjmp_result"), call("number_to_throw__int32", [])])])
+											let(
+												"thrown_exception"
+												get-field(true, param-ref("ec"), "thrown_exception")
+												seq(
+													seq(
+														set-field(
+															true
+															param-ref("ec")
+															"jmp_buf_ptr"
+															local-ref("old_jmp_buf"))
+														set-field(
+															true
+															param-ref("ec")
+															"thrown_exception"
+															local-ref("old_thrown_exception")))
+													call(
+														"call___void__fun_mut1___void__exception__exception"
+														[param-ref("catcher"), local-ref("thrown_exception")]))))))))))))
+		fun(
+			false
+			none
+			"zero__bytes64"
+			type(false, "bytes64")
+			[]
+			expr-body([], record([call("zero__bytes32", []), call("zero__bytes32", [])])))
+		fun(
+			false
+			none
+			"zero__bytes32"
+			type(false, "bytes32")
+			[]
+			expr-body([], record([call("zero__bytes16", []), call("zero__bytes16", [])])))
+		fun(
+			false
+			none
+			"zero__bytes16"
+			type(false, "bytes16")
+			[]
+			expr-body([], record([call("zero__nat", []), call("zero__nat", [])])))
+		fun(
+			false
+			none
+			"zero__bytes128"
+			type(false, "bytes128")
+			[]
+			expr-body([], record([call("zero__bytes64", []), call("zero__bytes64", [])])))
+		fun(
+			false
+			none
+			"ptr_to__ptr__jmp_buf_tag__jmp_buf_tag"
+			type(false, "ptr__jmp_buf_tag")
+			[param("t", type(false, "jmp_buf_tag"))]
+			builtin(operator, "ptr-to", [type(false, "jmp_buf_tag")]))
+		fun(false, none, "setjmp", type(false, "int32"), [param("env", type(false, "ptr__jmp_buf_tag"))], extern(false))
+		fun(
+			true
+			none
+			"call___void__fun_mut0___void"
+			type(false, "_void")
+			[param("f", type(false, "fun_mut0___void"))]
+			expr-body(
+				[]
+				call("call_with_ctx___void__ptr_ctx__fun_mut0___void", [call("get_ctx__ptr_ctx", []), param-ref("f")])))
+		fun(
+			false
+			none
+			"call_with_ctx___void__ptr_ctx__fun_mut0___void"
+			type(false, "_void")
+			[param("c", type(true, "ctx")), param("f", type(false, "fun_mut0___void"))]
+			expr-body(
+				[]
+				call(
+					"call___void__fun_ptr2___void__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte"
+					[
+						get-field(false, param-ref("f"), "fun_ptr")
+						param-ref("c")
+						get-field(false, param-ref("f"), "closure")])))
+		fun(
+			false
+			none
+			"call___void__fun_ptr2___void__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte"
+			type(false, "_void")
+			[
+				param("f", type(false, "fun_ptr2___void__ptr_ctx__ptr__byte"))
+				param("p0", type(true, "ctx"))
+				param("p1", type(false, "ptr__byte"))]
+			builtin(operator, "call (fun-ptr)", [type(false, "_void"), type(true, "ctx"), type(false, "ptr__byte")]))
+		fun(
+			true
+			none
+			"call___void__fun_mut1___void__exception__exception"
+			type(false, "_void")
+			[param("f", type(false, "fun_mut1___void__exception")), param("p0", type(false, "exception"))]
+			expr-body(
+				[]
+				call(
+					"call_with_ctx___void__ptr_ctx__fun_mut1___void__exception__exception"
+					[call("get_ctx__ptr_ctx", []), param-ref("f"), param-ref("p0")])))
+		fun(
+			false
+			none
+			"call_with_ctx___void__ptr_ctx__fun_mut1___void__exception__exception"
+			type(false, "_void")
+			[
+				param("c", type(true, "ctx"))
+				param("f", type(false, "fun_mut1___void__exception"))
+				param("p0", type(false, "exception"))]
+			expr-body(
+				[]
+				call(
+					"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__exception__ptr_ctx__ptr__byte__exception"
+					[
+						get-field(false, param-ref("f"), "fun_ptr")
+						param-ref("c")
+						get-field(false, param-ref("f"), "closure")
+						param-ref("p0")])))
+		fun(
+			false
+			none
+			"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__exception__ptr_ctx__ptr__byte__exception"
+			type(false, "_void")
+			[
+				param("f", type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__exception"))
+				param("p0", type(true, "ctx"))
+				param("p1", type(false, "ptr__byte"))
+				param("p2", type(false, "exception"))]
+			builtin(
+				operator
+				"call (fun-ptr)"
+				[type(false, "_void"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "exception")]))
+		fun(
+			true
+			none
+			"call__ptr_fut__int32__fun_mut1__ptr_fut__int32___void___void"
+			type(true, "fut__int32")
+			[param("f", type(false, "fun_mut1__ptr_fut__int32___void")), param("p0", type(false, "_void"))]
+			expr-body(
+				[]
+				call(
+					"call_with_ctx__ptr_fut__int32__ptr_ctx__fun_mut1__ptr_fut__int32___void___void"
+					[call("get_ctx__ptr_ctx", []), param-ref("f"), param-ref("p0")])))
+		fun(
+			false
+			none
+			"call_with_ctx__ptr_fut__int32__ptr_ctx__fun_mut1__ptr_fut__int32___void___void"
+			type(true, "fut__int32")
+			[
+				param("c", type(true, "ctx"))
+				param("f", type(false, "fun_mut1__ptr_fut__int32___void"))
+				param("p0", type(false, "_void"))]
+			expr-body(
+				[]
+				call(
+					"call__ptr_fut__int32__fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void__ptr_ctx__ptr__byte___void"
+					[
+						get-field(false, param-ref("f"), "fun_ptr")
+						param-ref("c")
+						get-field(false, param-ref("f"), "closure")
+						param-ref("p0")])))
+		fun(
+			false
+			none
+			"call__ptr_fut__int32__fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void__ptr_ctx__ptr__byte___void"
+			type(true, "fut__int32")
+			[
+				param("f", type(false, "fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void"))
+				param("p0", type(true, "ctx"))
+				param("p1", type(false, "ptr__byte"))
+				param("p2", type(false, "_void"))]
+			builtin(
+				operator
+				"call (fun-ptr)"
+				[type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "_void")]))
+		fun(
+			true
+			some(param(
+				"_closure"
+				type(true, "call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0___closure")))
+			"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0"
+			type(false, "_void")
+			[]
+			expr-body(
+				[]
+				call(
+					"forward_to___void__ptr_fut__int32__ptr_fut__int32"
+					[
+						call(
+							"call__ptr_fut__int32__fun_mut1__ptr_fut__int32___void___void"
+							[
+								get-field(false, get-field(true, param-ref("_closure"), "f"), "fun")
+								get-field(true, param-ref("_closure"), "p0")])
+						get-field(true, param-ref("_closure"), "res")])))
+		fun(
+			true
+			none
+			"reject___void__ptr_fut__int32__exception"
+			type(false, "_void")
+			[param("f", type(true, "fut__int32")), param("e", type(false, "exception"))]
+			expr-body(
+				[]
+				call(
+					"resolve_or_reject___void__ptr_fut__int32__result__int32__exception"
+					[param-ref("f"), to-union(1, call("err__err__exception__exception", [param-ref("e")]))])))
+		fun(
+			true
+			some(param(
+				"_closure"
+				type(true, "call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1___closure")))
+			"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1"
+			type(false, "_void")
+			[param("it", type(false, "exception"))]
+			expr-body(
+				[]
+				call(
+					"reject___void__ptr_fut__int32__exception"
+					[get-field(true, param-ref("_closure"), "res"), param-ref("it")])))
+		fun(
+			true
+			some(param("_closure", type(true, "call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0___closure")))
+			"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0"
+			type(false, "_void")
+			[]
+			expr-body(
+				[]
+				call(
+					"catch___void__fun_mut0___void__fun_mut1___void__exception"
+					[
+						lambda(
+							"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0"
+							some(alloc(
+								"alloc__ptr__byte__nat"
+								record(
+									[
+										get-field(true, param-ref("_closure"), "f")
+										get-field(true, param-ref("_closure"), "p0")
+										get-field(true, param-ref("_closure"), "res")]))))
+						lambda(
+							"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1"
+							some(alloc("alloc__ptr__byte__nat", record([get-field(true, param-ref("_closure"), "res")]))))])))
+		fun(
+			true
+			some(param(
+				"_closure"
+				type(true, "then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure")))
+			"then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0"
+			type(false, "_void")
+			[param("result", type(false, "result___void__exception"))]
+			expr-body(
+				[
+					local("o", type(false, "ok___void"))
+					local("e", type(false, "err__exception"))
+					local("matched", type(false, "result___void__exception"))]
+				match(
+					"matched"
+					param-ref("result")
+					[
+						case(
+							some("o")
+							call(
+								"forward_to___void__ptr_fut__int32__ptr_fut__int32"
+								[
+									call(
+										"call__ptr_fut__int32__fun_ref1__int32___void___void"
+										[
+											get-field(true, param-ref("_closure"), "cb")
+											get-field(false, local-ref("o"), "value")])
+									get-field(true, param-ref("_closure"), "res")]))
+						case(
+							some("e")
+							call(
+								"reject___void__ptr_fut__int32__exception"
+								[
+									get-field(true, param-ref("_closure"), "res")
+									get-field(false, local-ref("e"), "value")]))])))
+		fun(
+			true
+			none
+			"call__ptr_fut__int32__fun_ref0__int32"
+			type(true, "fut__int32")
+			[param("f", type(false, "fun_ref0__int32"))]
+			expr-body(
+				[local("vat", type(true, "vat")), local("res", type(true, "fut__int32"))]
+				let(
+					"vat"
+					call(
+						"get_vat__ptr_vat__nat"
+						[get-field(false, get-field(false, param-ref("f"), "vat_and_actor"), "vat")])
+					let(
+						"res"
+						call("new_unresolved_fut__ptr_fut__int32", [])
+						seq(
+							call(
+								"add_task___void__ptr_vat__task"
+								[
+									local-ref("vat")
+									record(
+										[
+											get-field(false, get-field(false, param-ref("f"), "vat_and_actor"), "actor")
+											lambda(
+												"call__ptr_fut__int32__fun_ref0__int32__lambda0"
+												some(alloc(
+													"alloc__ptr__byte__nat"
+													record([param-ref("f"), local-ref("res")]))))])])
+							local-ref("res"))))))
+		fun(
+			true
+			none
+			"call__ptr_fut__int32__fun_mut0__ptr_fut__int32"
+			type(true, "fut__int32")
+			[param("f", type(false, "fun_mut0__ptr_fut__int32"))]
+			expr-body(
+				[]
+				call(
+					"call_with_ctx__ptr_fut__int32__ptr_ctx__fun_mut0__ptr_fut__int32"
+					[call("get_ctx__ptr_ctx", []), param-ref("f")])))
+		fun(
+			false
+			none
+			"call_with_ctx__ptr_fut__int32__ptr_ctx__fun_mut0__ptr_fut__int32"
+			type(true, "fut__int32")
+			[param("c", type(true, "ctx")), param("f", type(false, "fun_mut0__ptr_fut__int32"))]
+			expr-body(
+				[]
+				call(
+					"call__ptr_fut__int32__fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte"
+					[
+						get-field(false, param-ref("f"), "fun_ptr")
+						param-ref("c")
+						get-field(false, param-ref("f"), "closure")])))
+		fun(
+			false
+			none
+			"call__ptr_fut__int32__fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte"
+			type(true, "fut__int32")
+			[
+				param("f", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte"))
+				param("p0", type(true, "ctx"))
+				param("p1", type(false, "ptr__byte"))]
+			builtin(operator, "call (fun-ptr)", [type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__byte")]))
+		fun(
+			true
+			some(param("_closure", type(true, "call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0___closure")))
+			"call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0"
+			type(false, "_void")
+			[]
+			expr-body(
+				[]
+				call(
+					"forward_to___void__ptr_fut__int32__ptr_fut__int32"
+					[
+						call(
+							"call__ptr_fut__int32__fun_mut0__ptr_fut__int32"
+							[get-field(false, get-field(true, param-ref("_closure"), "f"), "fun")])
+						get-field(true, param-ref("_closure"), "res")])))
+		fun(
+			true
+			some(param("_closure", type(true, "call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1___closure")))
+			"call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1"
+			type(false, "_void")
+			[param("it", type(false, "exception"))]
+			expr-body(
+				[]
+				call(
+					"reject___void__ptr_fut__int32__exception"
+					[get-field(true, param-ref("_closure"), "res"), param-ref("it")])))
+		fun(
+			true
+			some(param("_closure", type(true, "call__ptr_fut__int32__fun_ref0__int32__lambda0___closure")))
+			"call__ptr_fut__int32__fun_ref0__int32__lambda0"
+			type(false, "_void")
+			[]
+			expr-body(
+				[]
+				call(
+					"catch___void__fun_mut0___void__fun_mut1___void__exception"
+					[
+						lambda(
+							"call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0"
+							some(alloc(
+								"alloc__ptr__byte__nat"
+								record(
+									[
+										get-field(true, param-ref("_closure"), "f")
+										get-field(true, param-ref("_closure"), "res")]))))
+						lambda(
+							"call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1"
+							some(alloc("alloc__ptr__byte__nat", record([get-field(true, param-ref("_closure"), "res")]))))])))
+		fun(
+			true
+			some(param("_closure", type(true, "then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0___closure")))
+			"then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0"
+			type(true, "fut__int32")
+			[param("ignore", type(false, "_void"))]
+			expr-body([], call("call__ptr_fut__int32__fun_ref0__int32", [get-field(true, param-ref("_closure"), "cb")])))
+		fun(
+			true
+			none
+			"cur_actor__vat_and_actor_id"
+			type(false, "vat_and_actor_id")
+			[]
+			expr-body(
+				[local("c", type(true, "ctx"))]
+				let(
+					"c"
+					call("get_ctx__ptr_ctx", [])
+					record([get-field(true, local-ref("c"), "vat_id"), get-field(true, local-ref("c"), "actor_id")]))))
+		fun(
+			false
+			none
+			"as__ptr_fut___void__ptr_fut___void"
+			type(true, "fut___void")
+			[param("value", type(true, "fut___void"))]
+			builtin(operator, "as", [type(true, "fut___void")]))
+		fun(
+			true
+			none
+			"resolved__ptr_fut___void___void"
+			type(true, "fut___void")
+			[param("value", type(false, "_void"))]
+			expr-body(
+				[]
+				alloc(
+					"alloc__ptr__byte__nat"
+					record([call("new_lock__lock", []), to-union(1, record([param-ref("value")]))]))))
+		fun(
+			true
+			none
+			"tail__arr__ptr__char__arr__ptr__char"
+			type(false, "arr__ptr__char")
+			[param("a", type(false, "arr__ptr__char"))]
+			expr-body(
+				[]
+				seq(
+					call("forbid___void__bool", [call("empty__q__bool__arr__ptr__char", [param-ref("a")])])
+					call(
+						"slice_starting_at__arr__ptr__char__arr__ptr__char__nat"
+						[param-ref("a"), call("one__nat", [])]))))
+		fun(
+			true
+			none
+			"forbid___void__bool"
+			type(false, "_void")
+			[param("condition", type(false, "bool"))]
+			expr-body([], call("forbid___void__bool__arr__char", [param-ref("condition"), str-lit("forbid failed")])))
+		fun(
+			true
+			none
+			"forbid___void__bool__arr__char"
+			type(false, "_void")
+			[param("condition", type(false, "bool")), param("message", type(false, "arr__char"))]
+			expr-body(
+				[]
+				call(
+					"if___void__bool___void___void"
+					[
+						param-ref("condition")
+						call("fail___void__arr__char", [param-ref("message")])
+						call("pass___void", [])])))
+		fun(
+			false
+			none
+			"empty__q__bool__arr__ptr__char"
+			type(false, "bool")
+			[param("a", type(false, "arr__ptr__char"))]
+			expr-body([], call("zero__q__bool__nat", [get-field(false, param-ref("a"), "size")])))
+		fun(
+			true
+			none
+			"slice_starting_at__arr__ptr__char__arr__ptr__char__nat"
+			type(false, "arr__ptr__char")
+			[param("a", type(false, "arr__ptr__char")), param("begin", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[
+							call(
+								"_op_less_equal__bool__nat__nat"
+								[param-ref("begin"), get-field(false, param-ref("a"), "size")])])
+					call(
+						"slice__arr__ptr__char__arr__ptr__char__nat__nat"
+						[
+							param-ref("a")
+							param-ref("begin")
+							call(
+								"_op_minus__nat__nat__nat"
+								[get-field(false, param-ref("a"), "size"), param-ref("begin")])]))))
+		fun(
+			false
+			none
+			"_op_less_equal__bool__nat__nat"
+			type(false, "bool")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body([], call("not__bool__bool", [call("_op_less__bool__nat__nat", [param-ref("b"), param-ref("a")])])))
+		fun(
+			true
+			none
+			"slice__arr__ptr__char__arr__ptr__char__nat__nat"
+			type(false, "arr__ptr__char")
+			[
+				param("a", type(false, "arr__ptr__char"))
+				param("begin", type(false, "nat"))
+				param("size", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[
+							call(
+								"_op_less_equal__bool__nat__nat"
+								[
+									call("_op_plus__nat__nat__nat", [param-ref("begin"), param-ref("size")])
+									get-field(false, param-ref("a"), "size")])])
+					record(
+						[
+							param-ref("size")
+							call(
+								"_op_plus__ptr__ptr__char__ptr__ptr__char__nat"
+								[get-field(false, param-ref("a"), "data"), param-ref("begin")])]))))
+		fun(
+			true
+			none
+			"_op_plus__nat__nat__nat"
+			type(false, "nat")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body(
+				[local("res", type(false, "nat"))]
+				let(
+					"res"
+					call("wrap_add__nat__nat__nat", [param-ref("a"), param-ref("b")])
+					seq(
+						call(
+							"assert___void__bool"
+							[
+								call(
+									"and__bool__bool__bool"
+									[
+										call("_op_greater_equal__bool__nat__nat", [local-ref("res"), param-ref("a")])
+										call("_op_greater_equal__bool__nat__nat", [local-ref("res"), param-ref("b")])])])
+						local-ref("res")))))
+		fun(
+			false
+			none
+			"and__bool__bool__bool"
+			type(false, "bool")
+			[param("a", type(false, "bool")), param("b", type(false, "bool"))]
+			builtin(operator, "and", []))
+		fun(
+			false
+			none
+			"_op_greater_equal__bool__nat__nat"
+			type(false, "bool")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body([], call("not__bool__bool", [call("_op_less__bool__nat__nat", [param-ref("a"), param-ref("b")])])))
+		fun(
+			false
+			none
+			"_op_plus__ptr__ptr__char__ptr__ptr__char__nat"
+			type(false, "ptr__ptr__char")
+			[param("p", type(false, "ptr__ptr__char")), param("offset", type(false, "nat"))]
+			builtin(operator, "+ (ptr)", [type(false, "ptr__char")]))
+		fun(
+			true
+			none
+			"_op_minus__nat__nat__nat"
+			type(false, "nat")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[call("_op_greater_equal__bool__nat__nat", [param-ref("a"), param-ref("b")])])
+					call("wrap_sub__nat__nat__nat", [param-ref("a"), param-ref("b")]))))
+		fun(
+			false
+			none
+			"wrap_sub__nat__nat__nat"
+			type(false, "nat")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			builtin(operator, "wrap-sub (nat-64)", []))
+		fun(
+			false
+			none
+			"call__ptr_fut__int32__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__ptr_ctx__arr__arr__char"
+			type(true, "fut__int32")
+			[
+				param("f", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))
+				param("p0", type(true, "ctx"))
+				param("p1", type(false, "arr__arr__char"))]
+			builtin(
+				operator
+				"call (fun-ptr)"
+				[type(true, "fut__int32"), type(true, "ctx"), type(false, "arr__arr__char")]))
+		fun(
+			true
+			none
+			"map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char"
+			type(false, "arr__arr__char")
+			[param("a", type(false, "arr__ptr__char")), param("mapper", type(false, "fun_mut1__arr__char__ptr__char"))]
+			expr-body(
+				[]
+				call(
+					"make_arr__arr__arr__char__nat__fun_mut1__arr__char__nat"
+					[
+						get-field(false, param-ref("a"), "size")
+						lambda(
+							"map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0"
+							some(alloc("alloc__ptr__byte__nat", record([param-ref("mapper"), param-ref("a")]))))])))
+		fun(
+			true
+			none
+			"make_arr__arr__arr__char__nat__fun_mut1__arr__char__nat"
+			type(false, "arr__arr__char")
+			[param("size", type(false, "nat")), param("f", type(false, "fun_mut1__arr__char__nat"))]
+			expr-body(
+				[]
+				call(
+					"freeze__arr__arr__char__ptr_mut_arr__arr__char"
+					[
+						call(
+							"make_mut_arr__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat"
+							[param-ref("size"), param-ref("f")])])))
+		fun(
+			false
+			none
+			"freeze__arr__arr__char__ptr_mut_arr__arr__char"
+			type(false, "arr__arr__char")
+			[param("a", type(true, "mut_arr__arr__char"))]
+			expr-body(
+				[]
+				seq(
+					set-field(true, param-ref("a"), "frozen__q", call("true__bool", []))
+					call("unsafe_as_arr__arr__arr__char__ptr_mut_arr__arr__char", [param-ref("a")]))))
+		fun(
+			false
+			none
+			"unsafe_as_arr__arr__arr__char__ptr_mut_arr__arr__char"
+			type(false, "arr__arr__char")
+			[param("a", type(true, "mut_arr__arr__char"))]
+			expr-body([], record([get-field(true, param-ref("a"), "size"), get-field(true, param-ref("a"), "data")])))
+		fun(
+			true
+			none
+			"make_mut_arr__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat"
+			type(true, "mut_arr__arr__char")
+			[param("size", type(false, "nat")), param("f", type(false, "fun_mut1__arr__char__nat"))]
+			expr-body(
+				[local("res", type(true, "mut_arr__arr__char"))]
+				let(
+					"res"
+					call("new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat", [param-ref("size")])
+					seq(
+						call(
+							"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat"
+							[local-ref("res"), call("zero__nat", []), param-ref("size"), param-ref("f")])
+						local-ref("res")))))
+		fun(
+			true
+			none
+			"new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat"
+			type(true, "mut_arr__arr__char")
+			[param("size", type(false, "nat"))]
+			expr-body(
+				[]
+				alloc(
+					"alloc__ptr__byte__nat"
+					record(
+						[
+							call("false__bool", [])
+							param-ref("size")
+							param-ref("size")
+							call("uninitialized_data__ptr__arr__char__nat", [param-ref("size")])]))))
+		fun(
+			true
+			none
+			"uninitialized_data__ptr__arr__char__nat"
+			type(false, "ptr__arr__char")
+			[param("size", type(false, "nat"))]
+			expr-body(
+				[local("bptr", type(false, "ptr__byte"))]
+				let(
+					"bptr"
+					call(
+						"alloc__ptr__byte__nat"
+						[call("wrap_mul__nat__nat__nat", [param-ref("size"), call("size_of__nat", [])])])
+					call("ptr_cast__ptr__arr__char__ptr__byte", [local-ref("bptr")]))))
+		fun(
+			false
+			none
+			"size_of__nat"
+			type(false, "nat")
+			[]
+			builtin(operator, "size-of", [type(false, "arr__char")]))
+		fun(
+			false
+			none
+			"ptr_cast__ptr__arr__char__ptr__byte"
+			type(false, "ptr__arr__char")
+			[param("p", type(false, "ptr__byte"))]
+			builtin(operator, "ptr-cast", [type(false, "arr__char"), type(false, "byte")]))
+		fun(
+			true
+			none
+			"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat"
+			type(false, "_void")
+			[
+				param("m", type(true, "mut_arr__arr__char"))
+				param("lo", type(false, "nat"))
+				param("hi", type(false, "nat"))
+				param("f", type(false, "fun_mut1__arr__char__nat"))]
+			expr-body(
+				[local("mid", type(false, "nat"))]
+				cond(
+					call("_op_equal_equal__bool__nat__nat", [param-ref("lo"), param-ref("hi")])
+					call("pass___void", [])
+					seq(
+						call(
+							"set_at___void__ptr_mut_arr__arr__char__nat__arr__char"
+							[
+								param-ref("m")
+								param-ref("lo")
+								call(
+									"call__arr__char__fun_mut1__arr__char__nat__nat"
+									[param-ref("f"), param-ref("lo")])])
+						let(
+							"mid"
+							call(
+								"_op_div__nat__nat__nat"
+								[
+									call(
+										"_op_plus__nat__nat__nat"
+										[call("incr__nat__nat", [param-ref("lo")]), param-ref("hi")])
+									call("two__nat", [])])
+							seq(
+								call(
+									"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat"
+									[
+										param-ref("m")
+										call("incr__nat__nat", [param-ref("lo")])
+										local-ref("mid")
+										param-ref("f")])
+								call(
+									"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat"
+									[param-ref("m"), local-ref("mid"), param-ref("hi"), param-ref("f")])))))))
+		fun(
+			true
+			none
+			"set_at___void__ptr_mut_arr__arr__char__nat__arr__char"
+			type(false, "_void")
+			[
+				param("a", type(true, "mut_arr__arr__char"))
+				param("index", type(false, "nat"))
+				param("value", type(false, "arr__char"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[
+							call(
+								"_op_less__bool__nat__nat"
+								[param-ref("index"), get-field(true, param-ref("a"), "size")])])
+					call(
+						"noctx_set_at___void__ptr_mut_arr__arr__char__nat__arr__char"
+						[param-ref("a"), param-ref("index"), param-ref("value")]))))
+		fun(
+			false
+			none
+			"noctx_set_at___void__ptr_mut_arr__arr__char__nat__arr__char"
+			type(false, "_void")
+			[
+				param("a", type(true, "mut_arr__arr__char"))
+				param("index", type(false, "nat"))
+				param("value", type(false, "arr__char"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"hard_assert___void__bool"
+						[
+							call(
+								"_op_less__bool__nat__nat"
+								[param-ref("index"), get-field(true, param-ref("a"), "size")])])
+					call(
+						"set___void__ptr__arr__char__arr__char"
+						[
+							call(
+								"_op_plus__ptr__arr__char__ptr__arr__char__nat"
+								[get-field(true, param-ref("a"), "data"), param-ref("index")])
+							param-ref("value")]))))
+		fun(
+			false
+			none
+			"set___void__ptr__arr__char__arr__char"
+			type(false, "_void")
+			[param("p", type(false, "ptr__arr__char")), param("value", type(false, "arr__char"))]
+			builtin(operator, "set-ptr", [type(false, "arr__char")]))
+		fun(
+			false
+			none
+			"_op_plus__ptr__arr__char__ptr__arr__char__nat"
+			type(false, "ptr__arr__char")
+			[param("p", type(false, "ptr__arr__char")), param("offset", type(false, "nat"))]
+			builtin(operator, "+ (ptr)", [type(false, "arr__char")]))
+		fun(
+			true
+			none
+			"call__arr__char__fun_mut1__arr__char__nat__nat"
+			type(false, "arr__char")
+			[param("f", type(false, "fun_mut1__arr__char__nat")), param("p0", type(false, "nat"))]
+			expr-body(
+				[]
+				call(
+					"call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__nat__nat"
+					[call("get_ctx__ptr_ctx", []), param-ref("f"), param-ref("p0")])))
+		fun(
+			false
+			none
+			"call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__nat__nat"
+			type(false, "arr__char")
+			[
+				param("c", type(true, "ctx"))
+				param("f", type(false, "fun_mut1__arr__char__nat"))
+				param("p0", type(false, "nat"))]
+			expr-body(
+				[]
+				call(
+					"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat__ptr_ctx__ptr__byte__nat"
+					[
+						get-field(false, param-ref("f"), "fun_ptr")
+						param-ref("c")
+						get-field(false, param-ref("f"), "closure")
+						param-ref("p0")])))
+		fun(
+			false
+			none
+			"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat__ptr_ctx__ptr__byte__nat"
+			type(false, "arr__char")
+			[
+				param("f", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat"))
+				param("p0", type(true, "ctx"))
+				param("p1", type(false, "ptr__byte"))
+				param("p2", type(false, "nat"))]
+			builtin(
+				operator
+				"call (fun-ptr)"
+				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "nat")]))
+		fun(
+			true
+			none
+			"_op_div__nat__nat__nat"
+			type(false, "nat")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call("forbid___void__bool", [call("zero__q__bool__nat", [param-ref("b")])])
+					call("unsafe_div__nat__nat__nat", [param-ref("a"), param-ref("b")]))))
+		fun(
+			false
+			none
+			"unsafe_div__nat__nat__nat"
+			type(false, "nat")
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			builtin(operator, "unsafe-div (nat-64)", []))
+		fun(
+			true
+			none
+			"incr__nat__nat"
+			type(false, "nat")
+			[param("n", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[call("_op_less__bool__nat__nat", [param-ref("n"), call("billion__nat", [])])])
+					call("wrap_add__nat__nat__nat", [param-ref("n"), call("one__nat", [])]))))
+		fun(
+			true
+			none
+			"call__arr__char__fun_mut1__arr__char__ptr__char__ptr__char"
+			type(false, "arr__char")
+			[param("f", type(false, "fun_mut1__arr__char__ptr__char")), param("p0", type(false, "ptr__char"))]
+			expr-body(
+				[]
+				call(
+					"call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__ptr__char__ptr__char"
+					[call("get_ctx__ptr_ctx", []), param-ref("f"), param-ref("p0")])))
+		fun(
+			false
+			none
+			"call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__ptr__char__ptr__char"
+			type(false, "arr__char")
+			[
+				param("c", type(true, "ctx"))
+				param("f", type(false, "fun_mut1__arr__char__ptr__char"))
+				param("p0", type(false, "ptr__char"))]
+			expr-body(
+				[]
+				call(
+					"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char__ptr_ctx__ptr__byte__ptr__char"
+					[
+						get-field(false, param-ref("f"), "fun_ptr")
+						param-ref("c")
+						get-field(false, param-ref("f"), "closure")
+						param-ref("p0")])))
+		fun(
+			false
+			none
+			"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char__ptr_ctx__ptr__byte__ptr__char"
+			type(false, "arr__char")
+			[
+				param("f", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char"))
+				param("p0", type(true, "ctx"))
+				param("p1", type(false, "ptr__byte"))
+				param("p2", type(false, "ptr__char"))]
+			builtin(
+				operator
+				"call (fun-ptr)"
+				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "ptr__char")]))
+		fun(
+			true
+			none
+			"at__ptr__char__arr__ptr__char__nat"
+			type(false, "ptr__char")
+			[param("a", type(false, "arr__ptr__char")), param("index", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[
+							call(
+								"_op_less__bool__nat__nat"
+								[param-ref("index"), get-field(false, param-ref("a"), "size")])])
+					call("noctx_at__ptr__char__arr__ptr__char__nat", [param-ref("a"), param-ref("index")]))))
+		fun(
+			false
+			none
+			"noctx_at__ptr__char__arr__ptr__char__nat"
+			type(false, "ptr__char")
+			[param("a", type(false, "arr__ptr__char")), param("index", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"hard_assert___void__bool"
+						[
+							call(
+								"_op_less__bool__nat__nat"
+								[param-ref("index"), get-field(false, param-ref("a"), "size")])])
+					call(
+						"deref__ptr__char__ptr__ptr__char"
+						[
+							call(
+								"_op_plus__ptr__ptr__char__ptr__ptr__char__nat"
+								[get-field(false, param-ref("a"), "data"), param-ref("index")])]))))
+		fun(
+			false
+			none
+			"deref__ptr__char__ptr__ptr__char"
+			type(false, "ptr__char")
+			[param("p", type(false, "ptr__ptr__char"))]
+			builtin(operator, "deref", [type(false, "ptr__char")]))
+		fun(
+			true
+			some(param(
+				"_closure"
+				type(true, "map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0___closure")))
+			"map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0"
+			type(false, "arr__char")
+			[param("i", type(false, "nat"))]
+			expr-body(
+				[]
+				call(
+					"call__arr__char__fun_mut1__arr__char__ptr__char__ptr__char"
+					[
+						get-field(true, param-ref("_closure"), "mapper")
+						call(
+							"at__ptr__char__arr__ptr__char__nat"
+							[get-field(true, param-ref("_closure"), "a"), param-ref("i")])])))
+		fun(
+			false
+			none
+			"to_str__arr__char__ptr__char"
+			type(false, "arr__char")
+			[param("a", type(false, "ptr__char"))]
+			expr-body(
+				[]
+				call(
+					"arr_from_begin_end__arr__char__ptr__char__ptr__char"
+					[param-ref("a"), call("find_cstr_end__ptr__char__ptr__char", [param-ref("a")])])))
+		fun(
+			false
+			none
+			"arr_from_begin_end__arr__char__ptr__char__ptr__char"
+			type(false, "arr__char")
+			[param("begin", type(false, "ptr__char")), param("end", type(false, "ptr__char"))]
+			expr-body(
+				[]
+				record(
+					[
+						call("_op_minus__nat__ptr__char__ptr__char", [param-ref("end"), param-ref("begin")])
+						param-ref("begin")])))
+		fun(
+			false
+			none
+			"_op_minus__nat__ptr__char__ptr__char"
+			type(false, "nat")
+			[param("a", type(false, "ptr__char")), param("b", type(false, "ptr__char"))]
+			expr-body(
+				[]
+				call(
+					"to_nat__nat__ptr__char"
+					[
+						call(
+							"_op_minus__ptr__char__ptr__char__nat"
+							[param-ref("a"), call("to_nat__nat__ptr__char", [param-ref("b")])])])))
+		fun(
+			false
+			none
+			"to_nat__nat__ptr__char"
+			type(false, "nat")
+			[param("p", type(false, "ptr__char"))]
+			builtin(operator, "to-nat (from ptr)", [type(false, "char")]))
+		fun(
+			false
+			none
+			"_op_minus__ptr__char__ptr__char__nat"
+			type(false, "ptr__char")
+			[param("p", type(false, "ptr__char")), param("offset", type(false, "nat"))]
+			builtin(operator, "sub-ptr-nat", [type(false, "char")]))
+		fun(
+			false
+			none
+			"find_cstr_end__ptr__char__ptr__char"
+			type(false, "ptr__char")
+			[param("a", type(false, "ptr__char"))]
+			expr-body(
+				[]
+				call(
+					"find_char_in_cstr__ptr__char__ptr__char__char"
+					[param-ref("a"), call("literal__char__arr__char", [str-lit("

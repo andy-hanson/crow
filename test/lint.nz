@@ -55,6 +55,7 @@ ignored-extensions arr str()
 		. "data"
 		. "o"
 		. "out"
+		. "tata"
 		. "tmLanguage"
 
 ignore-extension bool(ext str)

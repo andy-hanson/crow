@@ -2108,7 +2108,7 @@ mut_arr__arr__char* new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat(ctx* 
 ptr__arr__char uninitialized_data__ptr__arr__char__nat(ctx* _ctx, nat size);
 nat size_of__nat();
 ptr__arr__char ptr_cast__ptr__arr__char__ptr__byte(ptr__byte p);
-_void make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(ctx* _ctx, mut_arr__arr__char* m, nat i, fun_mut1__arr__char__nat f);
+_void make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(ctx* _ctx, mut_arr__arr__char* m, nat lo, nat hi, fun_mut1__arr__char__nat f);
 _void set_at___void__ptr_mut_arr__arr__char__nat__arr__char(ctx* _ctx, mut_arr__arr__char* a, nat index, arr__char value);
 _void noctx_set_at___void__ptr_mut_arr__arr__char__nat__arr__char(mut_arr__arr__char* a, nat index, arr__char value);
 _void set___void__ptr__arr__char__arr__char(ptr__arr__char p, arr__char value);
@@ -2116,6 +2116,8 @@ ptr__arr__char _op_plus__ptr__arr__char__ptr__arr__char__nat(ptr__arr__char p, n
 arr__char call__arr__char__fun_mut1__arr__char__nat__nat(ctx* _ctx, fun_mut1__arr__char__nat f, nat p0);
 arr__char call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__nat__nat(ctx* c, fun_mut1__arr__char__nat f, nat p0);
 arr__char call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat__ptr_ctx__ptr__byte__nat(fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat f, ctx* p0, ptr__byte p1, nat p2);
+nat _op_div__nat__nat__nat(ctx* _ctx, nat a, nat b);
+nat unsafe_div__nat__nat__nat(nat a, nat b);
 nat incr__nat__nat(ctx* _ctx, nat n);
 arr__char call__arr__char__fun_mut1__arr__char__ptr__char__ptr__char(ctx* _ctx, fun_mut1__arr__char__ptr__char f, ptr__char p0);
 arr__char call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__ptr__char__ptr__char(ctx* c, fun_mut1__arr__char__ptr__char f, ptr__char p0);
@@ -2238,8 +2240,6 @@ arr__char slice__arr__char__arr__char__nat__nat(ctx* _ctx, arr__char a, nat begi
 nat decr__nat__nat(ctx* _ctx, nat a);
 nat wrap_decr__nat__nat(nat a);
 nat _op_times__nat__nat__nat(ctx* _ctx, nat a, nat b);
-nat _op_div__nat__nat__nat(ctx* _ctx, nat a, nat b);
-nat unsafe_div__nat__nat__nat(nat a, nat b);
 nat char_to_nat__nat__char(char c);
 nat todo__nat();
 nat hard_fail__nat__arr__char(arr__char reason);
@@ -2259,7 +2259,7 @@ mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx* _c
 mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(ctx* _ctx, nat size);
 ptr__char uninitialized_data__ptr__char__nat(ctx* _ctx, nat size);
 ptr__char ptr_cast__ptr__char__ptr__byte(ptr__byte p);
-_void make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx* _ctx, mut_arr__char* m, nat i, fun_mut1__char__nat f);
+_void make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(ctx* _ctx, mut_arr__char* m, nat lo, nat hi, fun_mut1__char__nat f);
 _void set_at___void__ptr_mut_arr__char__nat__char(ctx* _ctx, mut_arr__char* a, nat index, char value);
 _void noctx_set_at___void__ptr_mut_arr__char__nat__char(mut_arr__char* a, nat index, char value);
 _void set___void__ptr__char__char(ptr__char p, char value);
@@ -3113,7 +3113,7 @@ arr__arr__char unsafe_as_arr__arr__arr__char__ptr_mut_arr__arr__char(mut_arr__ar
 mut_arr__arr__char* make_mut_arr__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(ctx* _ctx, nat size, fun_mut1__arr__char__nat f) {
 	mut_arr__arr__char* res;
 	return ((res = new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat(_ctx, size)),
-	(make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(_ctx, res, 0, f),
+	(make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(_ctx, res, 0, size, f),
 	res));
 }
 mut_arr__arr__char* new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat(ctx* _ctx, nat size) {
@@ -3124,11 +3124,14 @@ ptr__arr__char uninitialized_data__ptr__arr__char__nat(ctx* _ctx, nat size) {
 	return ((bptr = alloc__ptr__byte__nat(_ctx, (size * sizeof(arr__char)))),
 	(ptr__arr__char) bptr);
 }
-_void make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(ctx* _ctx, mut_arr__arr__char* m, nat i, fun_mut1__arr__char__nat f) {
-	return _op_equal_equal__bool__nat__nat(i, m->size)
+_void make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(ctx* _ctx, mut_arr__arr__char* m, nat lo, nat hi, fun_mut1__arr__char__nat f) {
+	nat mid;
+	return _op_equal_equal__bool__nat__nat(lo, hi)
 		? 0
-		: (set_at___void__ptr_mut_arr__arr__char__nat__arr__char(_ctx, m, i, call__arr__char__fun_mut1__arr__char__nat__nat(_ctx, f, i)),
-		make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(_ctx, m, incr__nat__nat(_ctx, i), f));
+		: (set_at___void__ptr_mut_arr__arr__char__nat__arr__char(_ctx, m, lo, call__arr__char__fun_mut1__arr__char__nat__nat(_ctx, f, lo)),
+		((mid = _op_div__nat__nat__nat(_ctx, _op_plus__nat__nat__nat(_ctx, incr__nat__nat(_ctx, lo), hi), two__nat())),
+		(make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(_ctx, m, incr__nat__nat(_ctx, lo), mid, f),
+		make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(_ctx, m, mid, hi, f))));
 }
 _void set_at___void__ptr_mut_arr__arr__char__nat__arr__char(ctx* _ctx, mut_arr__arr__char* a, nat index, arr__char value) {
 	return (assert___void__bool(_ctx, _op_less__bool__nat__nat(index, a->size)),
@@ -3143,6 +3146,10 @@ arr__char call__arr__char__fun_mut1__arr__char__nat__nat(ctx* _ctx, fun_mut1__ar
 }
 arr__char call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__nat__nat(ctx* c, fun_mut1__arr__char__nat f, nat p0) {
 	return f.fun_ptr(c, f.closure, p0);
+}
+nat _op_div__nat__nat__nat(ctx* _ctx, nat a, nat b) {
+	return (forbid___void__bool(_ctx, zero__q__bool__nat(b)),
+	(a / b));
 }
 nat incr__nat__nat(ctx* _ctx, nat n) {
 	return (assert___void__bool(_ctx, _op_less__bool__nat__nat(n, billion__nat())),
@@ -3702,10 +3709,6 @@ nat _op_times__nat__nat__nat(ctx* _ctx, nat a, nat b) {
 		assert___void__bool(_ctx, _op_equal_equal__bool__nat__nat(_op_div__nat__nat__nat(_ctx, res, a), b))),
 		res));
 }
-nat _op_div__nat__nat__nat(ctx* _ctx, nat a, nat b) {
-	return (forbid___void__bool(_ctx, zero__q__bool__nat(b)),
-	(a / b));
-}
 nat char_to_nat__nat__char(char c) {
 	return _op_equal_equal__bool__char__char(c, literal__char__arr__char((arr__char){1, "0"}))
 		? 0
@@ -3803,7 +3806,7 @@ arr__char unsafe_as_arr__arr__char__ptr_mut_arr__char(mut_arr__char* a) {
 mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx* _ctx, nat size, fun_mut1__char__nat f) {
 	mut_arr__char* res;
 	return ((res = new_uninitialized_mut_arr__ptr_mut_arr__char__nat(_ctx, size)),
-	(make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(_ctx, res, 0, f),
+	(make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(_ctx, res, 0, size, f),
 	res));
 }
 mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(ctx* _ctx, nat size) {
@@ -3814,11 +3817,14 @@ ptr__char uninitialized_data__ptr__char__nat(ctx* _ctx, nat size) {
 	return ((bptr = alloc__ptr__byte__nat(_ctx, (size * sizeof(char)))),
 	(ptr__char) bptr);
 }
-_void make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx* _ctx, mut_arr__char* m, nat i, fun_mut1__char__nat f) {
-	return _op_equal_equal__bool__nat__nat(i, m->size)
+_void make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(ctx* _ctx, mut_arr__char* m, nat lo, nat hi, fun_mut1__char__nat f) {
+	nat mid;
+	return _op_equal_equal__bool__nat__nat(lo, hi)
 		? 0
-		: (set_at___void__ptr_mut_arr__char__nat__char(_ctx, m, i, call__char__fun_mut1__char__nat__nat(_ctx, f, i)),
-		make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(_ctx, m, incr__nat__nat(_ctx, i), f));
+		: (set_at___void__ptr_mut_arr__char__nat__char(_ctx, m, lo, call__char__fun_mut1__char__nat__nat(_ctx, f, lo)),
+		((mid = _op_div__nat__nat__nat(_ctx, _op_plus__nat__nat__nat(_ctx, incr__nat__nat(_ctx, lo), hi), two__nat())),
+		(make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(_ctx, m, incr__nat__nat(_ctx, lo), mid, f),
+		make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(_ctx, m, mid, hi, f))));
 }
 _void set_at___void__ptr_mut_arr__char__nat__char(ctx* _ctx, mut_arr__char* a, nat index, char value) {
 	return (assert___void__bool(_ctx, _op_less__bool__nat__nat(index, a->size)),

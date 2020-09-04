@@ -5,7 +5,8 @@ run-ast-and-model-tests result str arr<failure>(path str, path-to-noze str, env 
 	failures = tests flat-map-with-max-size options.max-failures, \test
 		options.print-tests? if ("noze ast " + test print-sync), pass
 		"ast" run-single-ast-or-model-test path-to-noze, env, test, options.overwrite-output? arr-or \
-			"model" run-single-ast-or-model-test path-to-noze, env, test, options.overwrite-output?
+			"model" run-single-ast-or-model-test path-to-noze, env, test, options.overwrite-output? arr-or \
+				"concrete-model" run-single-ast-or-model-test path-to-noze, env, test, options.overwrite-output?
 	when
 		failures has?
 			failures err

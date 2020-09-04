@@ -18,7 +18,7 @@ body
 					new-arr new original-path, (output-path.base-name + " does not exist. actual was:\n" + actual)
 		some s
 			when
-				s.value == actual
+				s.value large-strings-eq? actual
 					empty-arr
 				overwrite-output?
 					output-path write-file actual
@@ -26,6 +26,15 @@ body
 				else
 					message = output-path.base-name + " was not as expected. actual:\n" + actual
 					new-arr new original-path, message
+
+| TODO: unnecessary if tail recursion works
+large-strings-eq? bool(a str, b str)
+	when
+		a.size < 128
+			a == b
+		else
+			hl = a.size / 2
+			(a slice zero, hl) == (b slice zero, hl) and: (a slice-starting-at hl) == (b slice-starting-at hl)
 
 flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper fun-mut1 arr<?out> ?in) trusted
 	res = new-mut-arr<?out>

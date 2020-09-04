@@ -271,11 +271,21 @@ at ?t(a mut-arr ?t, index nat) trusted
 
 copy-data-from void(to ptr ?t, from ptr ?t, len nat) unsafe
 	when
+		len < eight
+			to copy-data-from-small from, len
+		else
+			hl = len / two
+			to copy-data-from from, hl
+			(to + hl) copy-data-from (from + hl), (len - hl)
+
+copy-data-from-small void(to ptr ?t, from ptr ?t, len nat) unsafe
+	when
 		len zero?
 			pass
 		else
 			to set: from deref
 			| TODO: should be able to infer type arguments
+			| TODO: I wish this were linear, but that runs out of stack ...
 			to.incr copy-data-from<?t> from.incr, len.decr
 
 push void(a mut-arr ?t, value ?t) trusted
@@ -344,7 +354,7 @@ make-arr arr ?t(size nat, f fun-mut1 ?t nat)
 
 make-mut-arr mut-arr ?t(size nat, f fun-mut1 ?t nat) trusted
 	res = new-uninitialized-mut-arr<?t>: size
-	res make-mut-arr-worker zero, f
+	res make-mut-arr-worker zero, size, f
 	res
 
 fill-arr arr ?t(size nat, value ?t)
@@ -355,18 +365,20 @@ fill-mut-arr mut-arr ?t(size nat, value ?t)
 	size make-mut-arr \ignore
 		value
 
-make-mut-arr-worker void(m mut-arr ?t, i nat, f fun-mut1 ?t nat)
+make-mut-arr-worker void(m mut-arr ?t, lo nat, hi nat, f fun-mut1 ?t nat)
 	when
-		i == m.size
+		lo == hi
 			pass
 		else
-			m set-at: i, f call i
-			m make-mut-arr-worker i.incr, f
+			m set-at: lo, f call lo
+			| TODO: tail recursion would simplify this...
+			mid = ((lo.incr + hi) / two)
+			m make-mut-arr-worker lo.incr, mid, f
+			m make-mut-arr-worker mid, hi, f
 
 to-mut-arr mut-arr ?t(a arr ?t)
 	a.size make-mut-arr<?t> \i
 		a at i
-
 
 each void(a arr ?t, f fun-mut1 void ?t)
 	when

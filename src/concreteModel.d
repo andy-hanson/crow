@@ -11,6 +11,8 @@ import util.late : Late, lateGet, lateSet;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals;
 import util.sourceRange : SourceRange;
+import util.sym : shortSymAlphaLiteral, Sym;
+import util.util : todo;
 import util.verify : unreachable;
 
 enum BuiltinStructKind {
@@ -27,6 +29,37 @@ enum BuiltinStructKind {
 	nat64,
 	ptr,
 	void_,
+}
+
+immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
+	final switch (a) {
+		case BuiltinStructKind.bool_:
+			return shortSymAlphaLiteral("bool");
+		case BuiltinStructKind.byte_:
+			return shortSymAlphaLiteral("byte");
+		case BuiltinStructKind.char_:
+			return shortSymAlphaLiteral("char");
+		case BuiltinStructKind.float64:
+			return shortSymAlphaLiteral("float-64");
+		case BuiltinStructKind.funPtrN:
+			return shortSymAlphaLiteral("fun-ptr");
+		case BuiltinStructKind.int16:
+			return shortSymAlphaLiteral("int-16");
+		case BuiltinStructKind.int32:
+			return shortSymAlphaLiteral("int-32");
+		case BuiltinStructKind.int64:
+			return shortSymAlphaLiteral("int-64");
+		case BuiltinStructKind.nat16:
+			return shortSymAlphaLiteral("nat-16");
+		case BuiltinStructKind.nat32:
+			return shortSymAlphaLiteral("nat-32");
+		case BuiltinStructKind.nat64:
+			return shortSymAlphaLiteral("nat-64");
+		case BuiltinStructKind.ptr:
+			return shortSymAlphaLiteral("ptr");
+		case BuiltinStructKind.void_:
+			return shortSymAlphaLiteral("void");
+	}
 }
 
 struct BuiltinStructInfo {
@@ -126,10 +159,204 @@ enum BuiltinFunKind {
 	zeroNat64,
 }
 
+immutable(string) strOfBuiltinFunKind(immutable BuiltinFunKind kind) {
+	final switch (kind) {
+		case BuiltinFunKind.addFloat64:
+			return "+ (float-64)";
+		case BuiltinFunKind.addPtr:
+			return "+ (ptr)";
+		case BuiltinFunKind.and:
+			return "and";
+		case BuiltinFunKind.as:
+			return "as";
+		case BuiltinFunKind.asAnyPtr:
+			return "as-any-ptr";
+		case BuiltinFunKind.asNonConst:
+			return "as-non-const";
+		case BuiltinFunKind.asRef:
+			return "as-ref";
+		case BuiltinFunKind.bitShiftLeftInt32:
+			return "bit-shift-left (int-32)";
+		case BuiltinFunKind.bitShiftRightInt32:
+			return "bit-shift-right (int-32)";
+		case BuiltinFunKind.bitwiseAndInt16:
+			return "bit-and (int-16)";
+		case BuiltinFunKind.bitwiseAndInt32:
+			return "bit-and (int-32)";
+		case BuiltinFunKind.bitwiseAndInt64:
+			return "bit-and (int-64)";
+		case BuiltinFunKind.bitwiseAndNat16:
+			return "bit-and (nat-16)";
+		case BuiltinFunKind.bitwiseAndNat32:
+			return "bit-and (nat-32)";
+		case BuiltinFunKind.bitwiseAndNat64:
+			return "bit-and (int-64)";
+		case BuiltinFunKind.bitwiseOrInt16:
+			return "bit-or (int-16)";
+		case BuiltinFunKind.bitwiseOrInt32:
+			return "bit-or (int-32)";
+		case BuiltinFunKind.bitwiseOrInt64:
+			return "bit-or (int-64)";
+		case BuiltinFunKind.bitwiseOrNat16:
+			return "bit-or (nat-16)";
+		case BuiltinFunKind.bitwiseOrNat32:
+			return "bit-or (nat-32)";
+		case BuiltinFunKind.bitwiseOrNat64:
+			return "bit-or (nat-64)";
+		case BuiltinFunKind.callFunPtr:
+			return "call (fun-ptr)";
+		case BuiltinFunKind.compareExchangeStrong:
+			return "compare-exchange-strong";
+		case BuiltinFunKind.compare:
+			return "<=>";
+		case BuiltinFunKind.deref:
+			return "deref";
+		case BuiltinFunKind.false_:
+			return "false";
+		case BuiltinFunKind.getCtx:
+			return "get-ctx";
+		case BuiltinFunKind.getErrno:
+			return "get-errno";
+		case BuiltinFunKind.hardFail:
+			return "hard-fail";
+		case BuiltinFunKind.if_:
+			return "if";
+		case BuiltinFunKind.isReferenceType:
+			return "is-reference-type?";
+		case BuiltinFunKind.mulFloat64:
+			return "* (float-64)";
+		case BuiltinFunKind.not:
+			return "not";
+		case BuiltinFunKind.null_:
+			return "null";
+		case BuiltinFunKind.oneInt16:
+			return "one (int-16)";
+		case BuiltinFunKind.oneInt32:
+			return "one (int-32)";
+		case BuiltinFunKind.oneInt64:
+			return "one (int-64)";
+		case BuiltinFunKind.oneNat16:
+			return "one (nat-16)";
+		case BuiltinFunKind.oneNat32:
+			return "one (nat-32)";
+		case BuiltinFunKind.oneNat64:
+			return "one (nat-64)";
+		case BuiltinFunKind.or:
+			return "or";
+		case BuiltinFunKind.pass:
+			return "pass";
+		case BuiltinFunKind.ptrCast:
+			return "ptr-cast";
+		case BuiltinFunKind.ptrTo:
+			return "ptr-to";
+		case BuiltinFunKind.refOfVal:
+			return "ref-of-val";
+		case BuiltinFunKind.setPtr:
+			return "set-ptr";
+		case BuiltinFunKind.sizeOf:
+			return "size-of";
+		case BuiltinFunKind.subFloat64:
+			return "sub-float-64";
+		case BuiltinFunKind.subPtrNat:
+			return "sub-ptr-nat";
+		case BuiltinFunKind.toIntFromInt16:
+			return "to-int (from int-16)";
+		case BuiltinFunKind.toIntFromInt32:
+			return "to-int (from int-32)";
+		case BuiltinFunKind.toNatFromNat16:
+			return "to-nat (from nat-16)";
+		case BuiltinFunKind.toNatFromNat32:
+			return "to-nat (from nat-32)";
+		case BuiltinFunKind.toNatFromPtr:
+			return "to-nat (from ptr)";
+		case BuiltinFunKind.true_:
+			return "true";
+		case BuiltinFunKind.unsafeDivFloat64:
+			return "unsafe-div (float-64)";
+		case BuiltinFunKind.unsafeDivInt64:
+			return "unsafe-div (int-64)";
+		case BuiltinFunKind.unsafeDivNat64:
+			return "unsafe-div (nat-64)";
+		case BuiltinFunKind.unsafeInt64ToNat64:
+			return "unsafe-int64-to-nat64";
+		case BuiltinFunKind.unsafeInt64ToInt16:
+			return "unsafe-int64-to-int16";
+		case BuiltinFunKind.unsafeInt64ToInt32:
+			return "unsafe-int64-to-int32";
+		case BuiltinFunKind.unsafeModNat64:
+			return "unsafe-mod (nat64)";
+		case BuiltinFunKind.unsafeNat64ToInt64:
+			return "usnafe-nat64-to-int64";
+		case BuiltinFunKind.unsafeNat64ToNat32:
+			return "unsafe-nat64-to-nat32";
+		case BuiltinFunKind.unsafeNat64ToNat16:
+			return "unsafe-nat64-to-nat16";
+		case BuiltinFunKind.wrapAddInt16:
+			return "wrap-add (int-16)";
+		case BuiltinFunKind.wrapAddInt32:
+			return "wrap-add (int-32)";
+		case BuiltinFunKind.wrapAddInt64:
+			return "wrap-add (int-64)";
+		case BuiltinFunKind.wrapAddNat16:
+			return "wrap-add (nat-16)";
+		case BuiltinFunKind.wrapAddNat32:
+			return "wrap-add (nat-32)";
+		case BuiltinFunKind.wrapAddNat64:
+			return "wrap-add (nat-64)";
+		case BuiltinFunKind.wrapMulInt16:
+			return "wrap-mul (int-16)";
+		case BuiltinFunKind.wrapMulInt32:
+			return "wrap-mul (int-32)";
+		case BuiltinFunKind.wrapMulInt64:
+			return "wrap-mul (int-64)";
+		case BuiltinFunKind.wrapMulNat16:
+			return "wrap-mul (nat-16)";
+		case BuiltinFunKind.wrapMulNat32:
+			return "wrap-mul (nat-32)";
+		case BuiltinFunKind.wrapMulNat64:
+			return "wrap-mul (nat-64)";
+		case BuiltinFunKind.wrapSubInt16:
+			return "wrap-sub (int-16)";
+		case BuiltinFunKind.wrapSubInt32:
+			return "wrap-sub (int-32)";
+		case BuiltinFunKind.wrapSubInt64:
+			return "wrap-sub (int-64)";
+		case BuiltinFunKind.wrapSubNat16:
+			return "wrap-sub (nat-16)";
+		case BuiltinFunKind.wrapSubNat32:
+			return "wrap-sub (nat-32)";
+		case BuiltinFunKind.wrapSubNat64:
+			return "wrap-sub (nat-64)";
+		case BuiltinFunKind.zeroInt16:
+			return "zero (int-16)";
+		case BuiltinFunKind.zeroInt32:
+			return "zero (int-32)";
+		case BuiltinFunKind.zeroInt64:
+			return "zero (int-64)";
+		case BuiltinFunKind.zeroNat16:
+			return "zero (nat-16)";
+		case BuiltinFunKind.zeroNat32:
+			return "zero (nat-32)";
+		case BuiltinFunKind.zeroNat64:
+			return "zero (nat-64)";
+	}
+}
+
 enum BuiltinFunEmit {
 	generate,
 	operator,
 	special,
+}
+
+immutable(Sym) symOfBuiltinFunEmit(immutable BuiltinFunEmit a) {
+	final switch (a) {
+		case BuiltinFunEmit.generate:
+			return shortSymAlphaLiteral("generate");
+		case BuiltinFunEmit.operator:
+			return shortSymAlphaLiteral("operator");
+		case BuiltinFunEmit.special:
+			return shortSymAlphaLiteral("special");
+	}
 }
 
 struct BuiltinFunInfo {
@@ -252,8 +479,8 @@ struct SpecialStructInfo {
 
 struct ConcreteStructInfo {
 	immutable ConcreteStructBody body_;
-	immutable size_t sizeBytes;
-	immutable Bool isSelfMutable;
+	immutable size_t sizeBytes; // TODO: never used?
+	immutable Bool isSelfMutable; //TODO: never used?
 	immutable Bool defaultIsPointer;
 }
 

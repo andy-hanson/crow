@@ -179,13 +179,15 @@ void printOutModule(ref immutable Module a) {
 }
 
 void printOutConcreteProgram(ref immutable ConcreteProgram a) {
-	StackAlloc!("sexprOfConcreteProgram", 32 * 1024) alloc;
+	Mallocator mallocator;
+	ConcreteSexprAlloc alloc = ConcreteSexprAlloc(ptrTrustMe_mut(mallocator));
 	printOutSexpr(tataOfConcreteProgram(alloc, a));
 }
 
 void printOutSexpr(immutable Sexpr a) {
-	alias StrAlloc = StackAlloc!("printOutSexprOfModule", 32 * 1024);
-	StrAlloc strAlloc;
+	Mallocator mallocator;
+	alias StrAlloc = SingleHeapAlloc!(Mallocator, "printOutSexpr", 4 * 1024 * 1024);
+	StrAlloc strAlloc = StrAlloc(ptrTrustMe_mut(mallocator));
 	Writer!StrAlloc writer = Writer!StrAlloc(ptrTrustMe_mut(strAlloc));
 	writeSexpr(writer, a);
 	printCStr(finishWriterToCStr(writer));
@@ -194,6 +196,7 @@ void printOutSexpr(immutable Sexpr a) {
 alias ExePathAlloc = StackAlloc!("exePath", 1024);
 alias ModelAlloc = SingleHeapAlloc!(Mallocator, "model", 16 * 1024 * 1024);
 alias ConcreteAlloc = SingleHeapAlloc!(Mallocator, "concrete-model", 64 * 1024 * 1024);
+alias ConcreteSexprAlloc = SingleHeapAlloc!(Mallocator, "concrete-model", 64 * 1024 * 1024);
 alias WriteAlloc = SingleHeapAlloc!(Mallocator, "write-to-c", 64 * 1024 * 1024);
 
 // mainPath is relative to programDir

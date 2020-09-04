@@ -434,6 +434,13 @@ struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__
 	arr__char test;
 	test_options options;
 };
+typedef struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure;
+struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure {
+	arr__char path_to_noze;
+	dict__arr__char__arr__char* env;
+	arr__char test;
+	test_options options;
+};
 typedef struct do_test__int32__test_options__lambda0__lambda0___closure do_test__int32__test_options__lambda0__lambda0___closure;
 struct do_test__int32__test_options__lambda0__lambda0___closure {
 	arr__char test_path;
@@ -3329,6 +3336,16 @@ run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__ch
 }
 
 
+run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure* _initrun_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure(byte* out, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure value) {
+	run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure* res = (run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure*) out; 
+	*res = value;
+	return res;
+}
+run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure _failrun_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure() {
+	assert(0);
+}
+
+
 do_test__int32__test_options__lambda0__lambda0___closure* _initdo_test__int32__test_options__lambda0__lambda0___closure(byte* out, do_test__int32__test_options__lambda0__lambda0___closure value) {
 	do_test__int32__test_options__lambda0__lambda0___closure* res = (do_test__int32__test_options__lambda0__lambda0___closure*) out; 
 	*res = value;
@@ -3677,7 +3694,7 @@ mut_arr__arr__char* new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat(ctx* 
 ptr__arr__char uninitialized_data__ptr__arr__char__nat(ctx* _ctx, nat size);
 nat size_of__nat();
 ptr__arr__char ptr_cast__ptr__arr__char__ptr__byte(ptr__byte p);
-_void make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(ctx* _ctx, mut_arr__arr__char* m, nat i, fun_mut1__arr__char__nat f);
+_void make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(ctx* _ctx, mut_arr__arr__char* m, nat lo, nat hi, fun_mut1__arr__char__nat f);
 _void set_at___void__ptr_mut_arr__arr__char__nat__arr__char(ctx* _ctx, mut_arr__arr__char* a, nat index, arr__char value);
 _void noctx_set_at___void__ptr_mut_arr__arr__char__nat__arr__char(mut_arr__arr__char* a, nat index, arr__char value);
 _void set___void__ptr__arr__char__arr__char(ptr__arr__char p, arr__char value);
@@ -3685,6 +3702,8 @@ ptr__arr__char _op_plus__ptr__arr__char__ptr__arr__char__nat(ptr__arr__char p, n
 arr__char call__arr__char__fun_mut1__arr__char__nat__nat(ctx* _ctx, fun_mut1__arr__char__nat f, nat p0);
 arr__char call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__nat__nat(ctx* c, fun_mut1__arr__char__nat f, nat p0);
 arr__char call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat__ptr_ctx__ptr__byte__nat(fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat f, ctx* p0, ptr__byte p1, nat p2);
+nat _op_div__nat__nat__nat(ctx* _ctx, nat a, nat b);
+nat unsafe_div__nat__nat__nat(nat a, nat b);
 nat incr__nat__nat(ctx* _ctx, nat n);
 arr__char call__arr__char__fun_mut1__arr__char__ptr__char__ptr__char(ctx* _ctx, fun_mut1__arr__char__ptr__char f, ptr__char p0);
 arr__char call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__ptr__char__ptr__char(ctx* c, fun_mut1__arr__char__ptr__char f, ptr__char p0);
@@ -3865,13 +3884,12 @@ arr__arr__arr__char unsafe_as_arr__arr__arr__arr__char__ptr_mut_arr__arr__arr__c
 _void push___void__ptr_mut_arr__arr__char__arr__char(ctx* _ctx, mut_arr__arr__char* a, arr__char value);
 _void increase_capacity_to___void__ptr_mut_arr__arr__char__nat(ctx* _ctx, mut_arr__arr__char* a, nat new_capacity);
 _void copy_data_from___void__ptr__arr__char__ptr__arr__char__nat(ctx* _ctx, ptr__arr__char to, ptr__arr__char from, nat len);
+_void copy_data_from_small___void__ptr__arr__char__ptr__arr__char__nat(ctx* _ctx, ptr__arr__char to, ptr__arr__char from, nat len);
 ptr__arr__char incr__ptr__arr__char__ptr__arr__char(ptr__arr__char p);
 nat decr__nat__nat(ctx* _ctx, nat a);
 nat wrap_decr__nat__nat(nat a);
 nat if__nat__bool__nat__nat(bool cond, nat if_true, nat if_false);
 nat _op_times__nat__nat__nat(ctx* _ctx, nat a, nat b);
-nat _op_div__nat__nat__nat(ctx* _ctx, nat a, nat b);
-nat unsafe_div__nat__nat__nat(nat a, nat b);
 _void ensure_capacity___void__ptr_mut_arr__arr__char__nat(ctx* _ctx, mut_arr__arr__char* a, nat capacity);
 nat round_up_to_power_of_two__nat__nat(ctx* _ctx, nat n);
 nat round_up_to_power_of_two_recur__nat__nat__nat(ctx* _ctx, nat acc, nat n);
@@ -3881,6 +3899,7 @@ ptr__arr__arr__char uninitialized_data__ptr__arr__arr__char__nat(ctx* _ctx, nat 
 nat size_of__nat();
 ptr__arr__arr__char ptr_cast__ptr__arr__arr__char__ptr__byte(ptr__byte p);
 _void copy_data_from___void__ptr__arr__arr__char__ptr__arr__arr__char__nat(ctx* _ctx, ptr__arr__arr__char to, ptr__arr__arr__char from, nat len);
+_void copy_data_from_small___void__ptr__arr__arr__char__ptr__arr__arr__char__nat(ctx* _ctx, ptr__arr__arr__char to, ptr__arr__arr__char from, nat len);
 _void set___void__ptr__arr__arr__char__arr__arr__char(ptr__arr__arr__char p, arr__arr__char value);
 ptr__arr__arr__char incr__ptr__arr__arr__char__ptr__arr__arr__char(ptr__arr__arr__char p);
 _void ensure_capacity___void__ptr_mut_arr__arr__arr__char__nat(ctx* _ctx, mut_arr__arr__arr__char* a, nat capacity);
@@ -3893,7 +3912,7 @@ mut_arr__opt__arr__arr__char* new_uninitialized_mut_arr__ptr_mut_arr__opt__arr__
 ptr__opt__arr__arr__char uninitialized_data__ptr__opt__arr__arr__char__nat(ctx* _ctx, nat size);
 nat size_of__nat();
 ptr__opt__arr__arr__char ptr_cast__ptr__opt__arr__arr__char__ptr__byte(ptr__byte p);
-_void make_mut_arr_worker___void__ptr_mut_arr__opt__arr__arr__char__nat__fun_mut1__opt__arr__arr__char__nat(ctx* _ctx, mut_arr__opt__arr__arr__char* m, nat i, fun_mut1__opt__arr__arr__char__nat f);
+_void make_mut_arr_worker___void__ptr_mut_arr__opt__arr__arr__char__nat__nat__fun_mut1__opt__arr__arr__char__nat(ctx* _ctx, mut_arr__opt__arr__arr__char* m, nat lo, nat hi, fun_mut1__opt__arr__arr__char__nat f);
 _void set_at___void__ptr_mut_arr__opt__arr__arr__char__nat__opt__arr__arr__char(ctx* _ctx, mut_arr__opt__arr__arr__char* a, nat index, opt__arr__arr__char value);
 _void noctx_set_at___void__ptr_mut_arr__opt__arr__arr__char__nat__opt__arr__arr__char(mut_arr__opt__arr__arr__char* a, nat index, opt__arr__arr__char value);
 _void set___void__ptr__opt__arr__arr__char__opt__arr__arr__char(ptr__opt__arr__arr__char p, opt__arr__arr__char value);
@@ -3924,7 +3943,7 @@ mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx* _c
 mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(ctx* _ctx, nat size);
 ptr__char uninitialized_data__ptr__char__nat(ctx* _ctx, nat size);
 ptr__char ptr_cast__ptr__char__ptr__byte(ptr__byte p);
-_void make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx* _ctx, mut_arr__char* m, nat i, fun_mut1__char__nat f);
+_void make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(ctx* _ctx, mut_arr__char* m, nat lo, nat hi, fun_mut1__char__nat f);
 _void set_at___void__ptr_mut_arr__char__nat__char(ctx* _ctx, mut_arr__char* a, nat index, char value);
 _void noctx_set_at___void__ptr_mut_arr__char__nat__char(mut_arr__char* a, nat index, char value);
 _void set___void__ptr__char__char(ptr__char p, char value);
@@ -4134,6 +4153,7 @@ ptr__ptr_failure uninitialized_data__ptr__ptr_failure__nat(ctx* _ctx, nat size);
 nat size_of__nat();
 ptr__ptr_failure ptr_cast__ptr__ptr_failure__ptr__byte(ptr__byte p);
 _void copy_data_from___void__ptr__ptr_failure__ptr__ptr_failure__nat(ctx* _ctx, ptr__ptr_failure to, ptr__ptr_failure from, nat len);
+_void copy_data_from_small___void__ptr__ptr_failure__ptr__ptr_failure__nat(ctx* _ctx, ptr__ptr_failure to, ptr__ptr_failure from, nat len);
 _void set___void__ptr__ptr_failure__ptr_failure(ptr__ptr_failure p, failure* value);
 ptr__ptr_failure incr__ptr__ptr_failure__ptr__ptr_failure(ptr__ptr_failure p);
 _void ensure_capacity___void__ptr_mut_arr__ptr_failure__nat(ctx* _ctx, mut_arr__ptr_failure* a, nat capacity);
@@ -4195,6 +4215,7 @@ nat two_pow__nat__nat(nat pow);
 _void ensure_capacity___void__ptr_mut_arr__char__nat(ctx* _ctx, mut_arr__char* a, nat capacity);
 _void increase_capacity_to___void__ptr_mut_arr__char__nat(ctx* _ctx, mut_arr__char* a, nat new_capacity);
 _void copy_data_from___void__ptr__char__ptr__char__nat(ctx* _ctx, ptr__char to, ptr__char from, nat len);
+_void copy_data_from_small___void__ptr__char__ptr__char__nat(ctx* _ctx, ptr__char to, ptr__char from, nat len);
 extern _int read(int32 fd, ptr__byte buff, nat n_bytes);
 _void unsafe_increase_size___void__ptr_mut_arr__char__nat(ctx* _ctx, mut_arr__char* a, nat increase_by);
 _void unsafe_set_size___void__ptr_mut_arr__char__nat(ctx* _ctx, mut_arr__char* a, nat new_size);
@@ -4254,7 +4275,7 @@ mut_arr__ptr__char* new_uninitialized_mut_arr__ptr_mut_arr__ptr__char__nat(ctx* 
 ptr__ptr__char uninitialized_data__ptr__ptr__char__nat(ctx* _ctx, nat size);
 nat size_of__nat();
 ptr__ptr__char ptr_cast__ptr__ptr__char__ptr__byte(ptr__byte p);
-_void make_mut_arr_worker___void__ptr_mut_arr__ptr__char__nat__fun_mut1__ptr__char__nat(ctx* _ctx, mut_arr__ptr__char* m, nat i, fun_mut1__ptr__char__nat f);
+_void make_mut_arr_worker___void__ptr_mut_arr__ptr__char__nat__nat__fun_mut1__ptr__char__nat(ctx* _ctx, mut_arr__ptr__char* m, nat lo, nat hi, fun_mut1__ptr__char__nat f);
 _void set_at___void__ptr_mut_arr__ptr__char__nat__ptr__char(ctx* _ctx, mut_arr__ptr__char* a, nat index, ptr__char value);
 _void noctx_set_at___void__ptr_mut_arr__ptr__char__nat__ptr__char(mut_arr__ptr__char* a, nat index, ptr__char value);
 _void set___void__ptr__ptr__char__ptr__char(ptr__ptr__char p, ptr__char value);
@@ -4280,6 +4301,7 @@ _void call___void__fun_ptr4___void__ptr_ctx__ptr__byte__arr__char__arr__char__pt
 _void push___void__ptr_mut_arr__ptr__char__ptr__char(ctx* _ctx, mut_arr__ptr__char* a, ptr__char value);
 _void increase_capacity_to___void__ptr_mut_arr__ptr__char__nat(ctx* _ctx, mut_arr__ptr__char* a, nat new_capacity);
 _void copy_data_from___void__ptr__ptr__char__ptr__ptr__char__nat(ctx* _ctx, ptr__ptr__char to, ptr__ptr__char from, nat len);
+_void copy_data_from_small___void__ptr__ptr__char__ptr__ptr__char__nat(ctx* _ctx, ptr__ptr__char to, ptr__ptr__char from, nat len);
 _void ensure_capacity___void__ptr_mut_arr__ptr__char__nat(ctx* _ctx, mut_arr__ptr__char* a, nat capacity);
 _void convert_environ__ptr__ptr__char__ptr_dict__arr__char__arr__char__lambda0(ctx* _ctx, convert_environ__ptr__ptr__char__ptr_dict__arr__char__arr__char__lambda0___closure* _closure, arr__char key, arr__char value);
 process_result* fail__ptr_process_result__arr__char(ctx* _ctx, arr__char reason);
@@ -4312,6 +4334,7 @@ int32 o_creat__int32(ctx* _ctx);
 int32 o_wronly__int32(ctx* _ctx);
 int32 o_trunc__int32(ctx* _ctx);
 arr__ptr_failure empty_arr__arr__ptr_failure();
+bool large_strings_eq__q__bool__arr__char__arr__char(ctx* _ctx, arr__char a, arr__char b);
 arr__ptr_failure run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(ctx* _ctx, run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, arr__char test);
 bool has__q__bool__arr__ptr_failure(arr__ptr_failure a);
 err__arr__ptr_failure err__err__arr__ptr_failure__arr__ptr_failure(arr__ptr_failure t);
@@ -4337,6 +4360,7 @@ arr__ptr_failure call__arr__ptr_failure__fun_mut0__arr__ptr_failure(ctx* _ctx, f
 arr__ptr_failure call_with_ctx__arr__ptr_failure__ptr_ctx__fun_mut0__arr__ptr_failure(ctx* c, fun_mut0__arr__ptr_failure f);
 arr__ptr_failure call__arr__ptr_failure__fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte(fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte f, ctx* p0, ptr__byte p1);
 arr__ptr_failure run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(ctx* _ctx, arr__char ast_or_model, arr__char path_to_noze, dict__arr__char__arr__char* env, arr__char path, bool overwrite_output__q);
+arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0(ctx* _ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure* _closure);
 arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0(ctx* _ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* _closure);
 arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(ctx* _ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, arr__char test);
 result__arr__char__arr__ptr_failure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx* _ctx, arr__char path, arr__char path_to_noze, dict__arr__char__arr__char* env, test_options options);
@@ -5203,7 +5227,7 @@ arr__arr__char unsafe_as_arr__arr__arr__char__ptr_mut_arr__arr__char(mut_arr__ar
 mut_arr__arr__char* make_mut_arr__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(ctx* _ctx, nat size, fun_mut1__arr__char__nat f) {
 	mut_arr__arr__char* res;
 	return ((res = new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat(_ctx, size)),
-	(make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(_ctx, res, 0, f),
+	(make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(_ctx, res, 0, size, f),
 	res));
 }
 mut_arr__arr__char* new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat(ctx* _ctx, nat size) {
@@ -5214,11 +5238,14 @@ ptr__arr__char uninitialized_data__ptr__arr__char__nat(ctx* _ctx, nat size) {
 	return ((bptr = alloc__ptr__byte__nat(_ctx, (size * sizeof(arr__char)))),
 	(ptr__arr__char) bptr);
 }
-_void make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(ctx* _ctx, mut_arr__arr__char* m, nat i, fun_mut1__arr__char__nat f) {
-	return _op_equal_equal__bool__nat__nat(i, m->size)
+_void make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(ctx* _ctx, mut_arr__arr__char* m, nat lo, nat hi, fun_mut1__arr__char__nat f) {
+	nat mid;
+	return _op_equal_equal__bool__nat__nat(lo, hi)
 		? 0
-		: (set_at___void__ptr_mut_arr__arr__char__nat__arr__char(_ctx, m, i, call__arr__char__fun_mut1__arr__char__nat__nat(_ctx, f, i)),
-		make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(_ctx, m, incr__nat__nat(_ctx, i), f));
+		: (set_at___void__ptr_mut_arr__arr__char__nat__arr__char(_ctx, m, lo, call__arr__char__fun_mut1__arr__char__nat__nat(_ctx, f, lo)),
+		((mid = _op_div__nat__nat__nat(_ctx, _op_plus__nat__nat__nat(_ctx, incr__nat__nat(_ctx, lo), hi), two__nat())),
+		(make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(_ctx, m, incr__nat__nat(_ctx, lo), mid, f),
+		make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(_ctx, m, mid, hi, f))));
 }
 _void set_at___void__ptr_mut_arr__arr__char__nat__arr__char(ctx* _ctx, mut_arr__arr__char* a, nat index, arr__char value) {
 	return (assert___void__bool(_ctx, _op_less__bool__nat__nat(index, a->size)),
@@ -5233,6 +5260,10 @@ arr__char call__arr__char__fun_mut1__arr__char__nat__nat(ctx* _ctx, fun_mut1__ar
 }
 arr__char call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__nat__nat(ctx* c, fun_mut1__arr__char__nat f, nat p0) {
 	return f.fun_ptr(c, f.closure, p0);
+}
+nat _op_div__nat__nat__nat(ctx* _ctx, nat a, nat b) {
+	return (forbid___void__bool(_ctx, zero__q__bool__nat(b)),
+	(a / b));
 }
 nat incr__nat__nat(ctx* _ctx, nat n) {
 	return (assert___void__bool(_ctx, _op_less__bool__nat__nat(n, billion__nat())),
@@ -6095,6 +6126,14 @@ _void increase_capacity_to___void__ptr_mut_arr__arr__char__nat(ctx* _ctx, mut_ar
 	copy_data_from___void__ptr__arr__char__ptr__arr__char__nat(_ctx, a->data, old_data, a->size))));
 }
 _void copy_data_from___void__ptr__arr__char__ptr__arr__char__nat(ctx* _ctx, ptr__arr__char to, ptr__arr__char from, nat len) {
+	nat hl;
+	return _op_less__bool__nat__nat(len, eight__nat())
+		? copy_data_from_small___void__ptr__arr__char__ptr__arr__char__nat(_ctx, to, from, len)
+		: ((hl = _op_div__nat__nat__nat(_ctx, len, two__nat())),
+		(copy_data_from___void__ptr__arr__char__ptr__arr__char__nat(_ctx, to, from, hl),
+		copy_data_from___void__ptr__arr__char__ptr__arr__char__nat(_ctx, (to + hl), (from + hl), _op_minus__nat__nat__nat(_ctx, len, hl))));
+}
+_void copy_data_from_small___void__ptr__arr__char__ptr__arr__char__nat(ctx* _ctx, ptr__arr__char to, ptr__arr__char from, nat len) {
 	return zero__q__bool__nat(len)
 		? 0
 		: (((*(to) = *(from)), 0),
@@ -6118,10 +6157,6 @@ nat _op_times__nat__nat__nat(ctx* _ctx, nat a, nat b) {
 		((assert___void__bool(_ctx, _op_equal_equal__bool__nat__nat(_op_div__nat__nat__nat(_ctx, res, b), a)),
 		assert___void__bool(_ctx, _op_equal_equal__bool__nat__nat(_op_div__nat__nat__nat(_ctx, res, a), b))),
 		res));
-}
-nat _op_div__nat__nat__nat(ctx* _ctx, nat a, nat b) {
-	return (forbid___void__bool(_ctx, zero__q__bool__nat(b)),
-	(a / b));
 }
 _void ensure_capacity___void__ptr_mut_arr__arr__char__nat(ctx* _ctx, mut_arr__arr__char* a, nat capacity) {
 	return _op_less__bool__nat__nat(a->capacity, capacity)
@@ -6159,6 +6194,14 @@ ptr__arr__arr__char uninitialized_data__ptr__arr__arr__char__nat(ctx* _ctx, nat 
 	(ptr__arr__arr__char) bptr);
 }
 _void copy_data_from___void__ptr__arr__arr__char__ptr__arr__arr__char__nat(ctx* _ctx, ptr__arr__arr__char to, ptr__arr__arr__char from, nat len) {
+	nat hl;
+	return _op_less__bool__nat__nat(len, eight__nat())
+		? copy_data_from_small___void__ptr__arr__arr__char__ptr__arr__arr__char__nat(_ctx, to, from, len)
+		: ((hl = _op_div__nat__nat__nat(_ctx, len, two__nat())),
+		(copy_data_from___void__ptr__arr__arr__char__ptr__arr__arr__char__nat(_ctx, to, from, hl),
+		copy_data_from___void__ptr__arr__arr__char__ptr__arr__arr__char__nat(_ctx, (to + hl), (from + hl), _op_minus__nat__nat__nat(_ctx, len, hl))));
+}
+_void copy_data_from_small___void__ptr__arr__arr__char__ptr__arr__arr__char__nat(ctx* _ctx, ptr__arr__arr__char to, ptr__arr__arr__char from, nat len) {
 	return zero__q__bool__nat(len)
 		? 0
 		: (((*(to) = *(from)), 0),
@@ -6191,7 +6234,7 @@ mut_arr__opt__arr__arr__char* fill_mut_arr__ptr_mut_arr__opt__arr__arr__char__na
 mut_arr__opt__arr__arr__char* make_mut_arr__ptr_mut_arr__opt__arr__arr__char__nat__fun_mut1__opt__arr__arr__char__nat(ctx* _ctx, nat size, fun_mut1__opt__arr__arr__char__nat f) {
 	mut_arr__opt__arr__arr__char* res;
 	return ((res = new_uninitialized_mut_arr__ptr_mut_arr__opt__arr__arr__char__nat(_ctx, size)),
-	(make_mut_arr_worker___void__ptr_mut_arr__opt__arr__arr__char__nat__fun_mut1__opt__arr__arr__char__nat(_ctx, res, 0, f),
+	(make_mut_arr_worker___void__ptr_mut_arr__opt__arr__arr__char__nat__nat__fun_mut1__opt__arr__arr__char__nat(_ctx, res, 0, size, f),
 	res));
 }
 mut_arr__opt__arr__arr__char* new_uninitialized_mut_arr__ptr_mut_arr__opt__arr__arr__char__nat(ctx* _ctx, nat size) {
@@ -6202,11 +6245,14 @@ ptr__opt__arr__arr__char uninitialized_data__ptr__opt__arr__arr__char__nat(ctx* 
 	return ((bptr = alloc__ptr__byte__nat(_ctx, (size * sizeof(opt__arr__arr__char)))),
 	(ptr__opt__arr__arr__char) bptr);
 }
-_void make_mut_arr_worker___void__ptr_mut_arr__opt__arr__arr__char__nat__fun_mut1__opt__arr__arr__char__nat(ctx* _ctx, mut_arr__opt__arr__arr__char* m, nat i, fun_mut1__opt__arr__arr__char__nat f) {
-	return _op_equal_equal__bool__nat__nat(i, m->size)
+_void make_mut_arr_worker___void__ptr_mut_arr__opt__arr__arr__char__nat__nat__fun_mut1__opt__arr__arr__char__nat(ctx* _ctx, mut_arr__opt__arr__arr__char* m, nat lo, nat hi, fun_mut1__opt__arr__arr__char__nat f) {
+	nat mid;
+	return _op_equal_equal__bool__nat__nat(lo, hi)
 		? 0
-		: (set_at___void__ptr_mut_arr__opt__arr__arr__char__nat__opt__arr__arr__char(_ctx, m, i, call__opt__arr__arr__char__fun_mut1__opt__arr__arr__char__nat__nat(_ctx, f, i)),
-		make_mut_arr_worker___void__ptr_mut_arr__opt__arr__arr__char__nat__fun_mut1__opt__arr__arr__char__nat(_ctx, m, incr__nat__nat(_ctx, i), f));
+		: (set_at___void__ptr_mut_arr__opt__arr__arr__char__nat__opt__arr__arr__char(_ctx, m, lo, call__opt__arr__arr__char__fun_mut1__opt__arr__arr__char__nat__nat(_ctx, f, lo)),
+		((mid = _op_div__nat__nat__nat(_ctx, _op_plus__nat__nat__nat(_ctx, incr__nat__nat(_ctx, lo), hi), two__nat())),
+		(make_mut_arr_worker___void__ptr_mut_arr__opt__arr__arr__char__nat__nat__fun_mut1__opt__arr__arr__char__nat(_ctx, m, incr__nat__nat(_ctx, lo), mid, f),
+		make_mut_arr_worker___void__ptr_mut_arr__opt__arr__arr__char__nat__nat__fun_mut1__opt__arr__arr__char__nat(_ctx, m, mid, hi, f))));
 }
 _void set_at___void__ptr_mut_arr__opt__arr__arr__char__nat__opt__arr__arr__char(ctx* _ctx, mut_arr__opt__arr__arr__char* a, nat index, opt__arr__arr__char value) {
 	return (assert___void__bool(_ctx, _op_less__bool__nat__nat(index, a->size)),
@@ -6293,7 +6339,7 @@ arr__char unsafe_as_arr__arr__char__ptr_mut_arr__char(mut_arr__char* a) {
 mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx* _ctx, nat size, fun_mut1__char__nat f) {
 	mut_arr__char* res;
 	return ((res = new_uninitialized_mut_arr__ptr_mut_arr__char__nat(_ctx, size)),
-	(make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(_ctx, res, 0, f),
+	(make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(_ctx, res, 0, size, f),
 	res));
 }
 mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(ctx* _ctx, nat size) {
@@ -6304,11 +6350,14 @@ ptr__char uninitialized_data__ptr__char__nat(ctx* _ctx, nat size) {
 	return ((bptr = alloc__ptr__byte__nat(_ctx, (size * sizeof(char)))),
 	(ptr__char) bptr);
 }
-_void make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx* _ctx, mut_arr__char* m, nat i, fun_mut1__char__nat f) {
-	return _op_equal_equal__bool__nat__nat(i, m->size)
+_void make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(ctx* _ctx, mut_arr__char* m, nat lo, nat hi, fun_mut1__char__nat f) {
+	nat mid;
+	return _op_equal_equal__bool__nat__nat(lo, hi)
 		? 0
-		: (set_at___void__ptr_mut_arr__char__nat__char(_ctx, m, i, call__char__fun_mut1__char__nat__nat(_ctx, f, i)),
-		make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(_ctx, m, incr__nat__nat(_ctx, i), f));
+		: (set_at___void__ptr_mut_arr__char__nat__char(_ctx, m, lo, call__char__fun_mut1__char__nat__nat(_ctx, f, lo)),
+		((mid = _op_div__nat__nat__nat(_ctx, _op_plus__nat__nat__nat(_ctx, incr__nat__nat(_ctx, lo), hi), two__nat())),
+		(make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(_ctx, m, incr__nat__nat(_ctx, lo), mid, f),
+		make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(_ctx, m, mid, hi, f))));
 }
 _void set_at___void__ptr_mut_arr__char__nat__char(ctx* _ctx, mut_arr__char* a, nat index, char value) {
 	return (assert___void__bool(_ctx, _op_less__bool__nat__nat(index, a->size)),
@@ -7208,6 +7257,14 @@ ptr__ptr_failure uninitialized_data__ptr__ptr_failure__nat(ctx* _ctx, nat size) 
 	(ptr__ptr_failure) bptr);
 }
 _void copy_data_from___void__ptr__ptr_failure__ptr__ptr_failure__nat(ctx* _ctx, ptr__ptr_failure to, ptr__ptr_failure from, nat len) {
+	nat hl;
+	return _op_less__bool__nat__nat(len, eight__nat())
+		? copy_data_from_small___void__ptr__ptr_failure__ptr__ptr_failure__nat(_ctx, to, from, len)
+		: ((hl = _op_div__nat__nat__nat(_ctx, len, two__nat())),
+		(copy_data_from___void__ptr__ptr_failure__ptr__ptr_failure__nat(_ctx, to, from, hl),
+		copy_data_from___void__ptr__ptr_failure__ptr__ptr_failure__nat(_ctx, (to + hl), (from + hl), _op_minus__nat__nat__nat(_ctx, len, hl))));
+}
+_void copy_data_from_small___void__ptr__ptr_failure__ptr__ptr_failure__nat(ctx* _ctx, ptr__ptr_failure to, ptr__ptr_failure from, nat len) {
 	return zero__q__bool__nat(len)
 		? 0
 		: (((*(to) = *(from)), 0),
@@ -7478,6 +7535,14 @@ _void increase_capacity_to___void__ptr_mut_arr__char__nat(ctx* _ctx, mut_arr__ch
 	copy_data_from___void__ptr__char__ptr__char__nat(_ctx, a->data, old_data, a->size))));
 }
 _void copy_data_from___void__ptr__char__ptr__char__nat(ctx* _ctx, ptr__char to, ptr__char from, nat len) {
+	nat hl;
+	return _op_less__bool__nat__nat(len, eight__nat())
+		? copy_data_from_small___void__ptr__char__ptr__char__nat(_ctx, to, from, len)
+		: ((hl = _op_div__nat__nat__nat(_ctx, len, two__nat())),
+		(copy_data_from___void__ptr__char__ptr__char__nat(_ctx, to, from, hl),
+		copy_data_from___void__ptr__char__ptr__char__nat(_ctx, (to + hl), (from + hl), _op_minus__nat__nat__nat(_ctx, len, hl))));
+}
+_void copy_data_from_small___void__ptr__char__ptr__char__nat(ctx* _ctx, ptr__char to, ptr__char from, nat len) {
 	return zero__q__bool__nat(len)
 		? 0
 		: (((*(to) = *(from)), 0),
@@ -7689,7 +7754,7 @@ arr__ptr__char unsafe_as_arr__arr__ptr__char__ptr_mut_arr__ptr__char(mut_arr__pt
 mut_arr__ptr__char* make_mut_arr__ptr_mut_arr__ptr__char__nat__fun_mut1__ptr__char__nat(ctx* _ctx, nat size, fun_mut1__ptr__char__nat f) {
 	mut_arr__ptr__char* res;
 	return ((res = new_uninitialized_mut_arr__ptr_mut_arr__ptr__char__nat(_ctx, size)),
-	(make_mut_arr_worker___void__ptr_mut_arr__ptr__char__nat__fun_mut1__ptr__char__nat(_ctx, res, 0, f),
+	(make_mut_arr_worker___void__ptr_mut_arr__ptr__char__nat__nat__fun_mut1__ptr__char__nat(_ctx, res, 0, size, f),
 	res));
 }
 mut_arr__ptr__char* new_uninitialized_mut_arr__ptr_mut_arr__ptr__char__nat(ctx* _ctx, nat size) {
@@ -7700,11 +7765,14 @@ ptr__ptr__char uninitialized_data__ptr__ptr__char__nat(ctx* _ctx, nat size) {
 	return ((bptr = alloc__ptr__byte__nat(_ctx, (size * sizeof(ptr__char)))),
 	(ptr__ptr__char) bptr);
 }
-_void make_mut_arr_worker___void__ptr_mut_arr__ptr__char__nat__fun_mut1__ptr__char__nat(ctx* _ctx, mut_arr__ptr__char* m, nat i, fun_mut1__ptr__char__nat f) {
-	return _op_equal_equal__bool__nat__nat(i, m->size)
+_void make_mut_arr_worker___void__ptr_mut_arr__ptr__char__nat__nat__fun_mut1__ptr__char__nat(ctx* _ctx, mut_arr__ptr__char* m, nat lo, nat hi, fun_mut1__ptr__char__nat f) {
+	nat mid;
+	return _op_equal_equal__bool__nat__nat(lo, hi)
 		? 0
-		: (set_at___void__ptr_mut_arr__ptr__char__nat__ptr__char(_ctx, m, i, call__ptr__char__fun_mut1__ptr__char__nat__nat(_ctx, f, i)),
-		make_mut_arr_worker___void__ptr_mut_arr__ptr__char__nat__fun_mut1__ptr__char__nat(_ctx, m, incr__nat__nat(_ctx, i), f));
+		: (set_at___void__ptr_mut_arr__ptr__char__nat__ptr__char(_ctx, m, lo, call__ptr__char__fun_mut1__ptr__char__nat__nat(_ctx, f, lo)),
+		((mid = _op_div__nat__nat__nat(_ctx, _op_plus__nat__nat__nat(_ctx, incr__nat__nat(_ctx, lo), hi), two__nat())),
+		(make_mut_arr_worker___void__ptr_mut_arr__ptr__char__nat__nat__fun_mut1__ptr__char__nat(_ctx, m, incr__nat__nat(_ctx, lo), mid, f),
+		make_mut_arr_worker___void__ptr_mut_arr__ptr__char__nat__nat__fun_mut1__ptr__char__nat(_ctx, m, mid, hi, f))));
 }
 _void set_at___void__ptr_mut_arr__ptr__char__nat__ptr__char(ctx* _ctx, mut_arr__ptr__char* a, nat index, ptr__char value) {
 	return (assert___void__bool(_ctx, _op_less__bool__nat__nat(index, a->size)),
@@ -7793,6 +7861,14 @@ _void increase_capacity_to___void__ptr_mut_arr__ptr__char__nat(ctx* _ctx, mut_ar
 	copy_data_from___void__ptr__ptr__char__ptr__ptr__char__nat(_ctx, a->data, old_data, a->size))));
 }
 _void copy_data_from___void__ptr__ptr__char__ptr__ptr__char__nat(ctx* _ctx, ptr__ptr__char to, ptr__ptr__char from, nat len) {
+	nat hl;
+	return _op_less__bool__nat__nat(len, eight__nat())
+		? copy_data_from_small___void__ptr__ptr__char__ptr__ptr__char__nat(_ctx, to, from, len)
+		: ((hl = _op_div__nat__nat__nat(_ctx, len, two__nat())),
+		(copy_data_from___void__ptr__ptr__char__ptr__ptr__char__nat(_ctx, to, from, hl),
+		copy_data_from___void__ptr__ptr__char__ptr__ptr__char__nat(_ctx, (to + hl), (from + hl), _op_minus__nat__nat__nat(_ctx, len, hl))));
+}
+_void copy_data_from_small___void__ptr__ptr__char__ptr__ptr__char__nat(ctx* _ctx, ptr__ptr__char to, ptr__ptr__char from, nat len) {
 	return zero__q__bool__nat(len)
 		? 0
 		: (((*(to) = *(from)), 0),
@@ -7867,7 +7943,7 @@ arr__ptr_failure handle_output__arr__ptr_failure__arr__char__arr__char__arr__cha
 			: (arr = (arr__ptr_failure) { 1, (failure**) alloc__ptr__byte__nat(_ctx, 8) }, arr.data[0] =_initfailure(alloc__ptr__byte__nat(_ctx, 32), (failure) {original_path, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, base_name__arr__char__arr__char(_ctx, output_path), (arr__char){29, " does not exist. actual was:\n"}), actual)}), arr)
 		: matched.kind == 1
 		? (s = matched.as_some__arr__char,
-		_op_equal_equal__bool__arr__char__arr__char(s.value, actual)
+		large_strings_eq__q__bool__arr__char__arr__char(_ctx, s.value, actual)
 			? empty_arr__arr__ptr_failure()
 			: overwrite_output__q
 				? (write_file___void__arr__char__arr__char(_ctx, output_path, actual),
@@ -7977,6 +8053,13 @@ int32 o_trunc__int32(ctx* _ctx) {
 }
 arr__ptr_failure empty_arr__arr__ptr_failure() {
 	return (arr__ptr_failure) {0, NULL};
+}
+bool large_strings_eq__q__bool__arr__char__arr__char(ctx* _ctx, arr__char a, arr__char b) {
+	nat hl;
+	return _op_less__bool__nat__nat(a.size, literal__nat__arr__char(_ctx, (arr__char){3, "128"}))
+		? _op_equal_equal__bool__arr__char__arr__char(a, b)
+		: ((hl = _op_div__nat__nat__nat(_ctx, a.size, literal__nat__arr__char(_ctx, (arr__char){1, "2"}))),
+		(_op_equal_equal__bool__arr__char__arr__char(slice__arr__char__arr__char__nat__nat(_ctx, a, 0, hl), slice__arr__char__arr__char__nat__nat(_ctx, b, 0, hl)) && _op_equal_equal__bool__arr__char__arr__char(slice_starting_at__arr__char__arr__char__nat(_ctx, a, hl), slice_starting_at__arr__char__arr__char__nat(_ctx, b, hl))));
 }
 arr__ptr_failure run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(ctx* _ctx, run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, arr__char test) {
 	return (_closure->options.print_tests__q
@@ -8098,8 +8181,14 @@ arr__ptr_failure run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr_
 		: ((message = _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, _op_plus__arr__char__arr__char__arr__char(_ctx, (arr__char){8, "status: "}, to_str__arr__char__int32(_ctx, res->exit_code)), (arr__char){9, "\nstdout:\n"}), res->stdout), (arr__char){8, "stderr:\n"}), res->stderr)),
 		(arr1 = (arr__ptr_failure) { 1, (failure**) alloc__ptr__byte__nat(_ctx, 8) }, arr1.data[0] =_initfailure(alloc__ptr__byte__nat(_ctx, 32), (failure) {path, message}), arr1)));
 }
+arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0(ctx* _ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure* _closure) {
+	return run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(_ctx, (arr__char){14, "concrete-model"}, _closure->path_to_noze, _closure->env, _closure->test, _closure->options.overwrite_output__q);
+}
 arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0(ctx* _ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* _closure) {
-	return run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(_ctx, (arr__char){5, "model"}, _closure->path_to_noze, _closure->env, _closure->test, _closure->options.overwrite_output__q);
+	return arr_or__arr__ptr_failure__arr__ptr_failure__fun_mut0__arr__ptr_failure(_ctx, run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(_ctx, (arr__char){5, "model"}, _closure->path_to_noze, _closure->env, _closure->test, _closure->options.overwrite_output__q), (fun_mut0__arr__ptr_failure) {
+		(fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte) run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0,
+		(ptr__byte) _initrun_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure(alloc__ptr__byte__nat(_ctx, 56), (run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure) {_closure->path_to_noze, _closure->env, _closure->test, _closure->options})
+	});
 }
 arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(ctx* _ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, arr__char test) {
 	return ((_closure->options.print_tests__q ? print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(_ctx, (arr__char){9, "noze ast "}, test)) : 0),
@@ -8223,7 +8312,7 @@ bool contains_recur__q__bool__arr__arr__char__arr__char__nat(arr__arr__char a, a
 }
 arr__arr__char ignored_extensions__arr__arr__char(ctx* _ctx) {
 	arr__arr__char arr;
-	return (arr = (arr__arr__char) { 5, (arr__char*) alloc__ptr__byte__nat(_ctx, 80) }, arr.data[0] =(arr__char){1, "c"}, arr.data[1] =(arr__char){4, "data"}, arr.data[2] =(arr__char){1, "o"}, arr.data[3] =(arr__char){3, "out"}, arr.data[4] =(arr__char){10, "tmLanguage"}, arr);
+	return (arr = (arr__arr__char) { 6, (arr__char*) alloc__ptr__byte__nat(_ctx, 96) }, arr.data[0] =(arr__char){1, "c"}, arr.data[1] =(arr__char){4, "data"}, arr.data[2] =(arr__char){1, "o"}, arr.data[3] =(arr__char){3, "out"}, arr.data[4] =(arr__char){4, "tata"}, arr.data[5] =(arr__char){10, "tmLanguage"}, arr);
 }
 _void list_lintable_files__arr__arr__char__arr__char__lambda1(ctx* _ctx, list_lintable_files__arr__arr__char__arr__char__lambda1___closure* _closure, arr__char child) {
 	return ignore_extension_of_name__bool__arr__char(_ctx, base_name__arr__char__arr__char(_ctx, child))
@@ -8643,6 +8732,7 @@ int main(int argc, char** argv) {
 	assert(sizeof(fun_mut0__arr__ptr_failure) == 16);
 	assert(sizeof(fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__byte) == 8);
 	assert(sizeof(run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure) == 56);
+	assert(sizeof(run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0__lambda0___closure) == 56);
 	assert(sizeof(do_test__int32__test_options__lambda0__lambda0___closure) == 56);
 	assert(sizeof(list_runnable_tests__arr__arr__char__arr__char__lambda1___closure) == 8);
 	assert(sizeof(run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure) == 40);
