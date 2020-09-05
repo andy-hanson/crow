@@ -212,8 +212,6 @@ immutable(Sexpr) tataOfConcreteExpr(Alloc)(ref Alloc alloc, ref immutable Concre
 immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable ConcreteExpr a) {
 	return matchConcreteExpr!(immutable Sexpr)(
 		a,
-		(ref immutable ConcreteExpr.Bogus) =>
-			unreachable!(immutable Sexpr),
 		(ref immutable ConcreteExpr.Alloc it) =>
 			tataRecord(
 				alloc,

@@ -824,9 +824,6 @@ void writeExpr(Alloc)(ref WriterWithIndent!Alloc writer, ref immutable ConcreteE
 	immutable ConcreteType type = ce.type;
 	matchConcreteExpr!void(
 		ce,
-		(ref immutable ConcreteExpr.Bogus) {
-			unreachable!void();
-		},
 		(ref immutable ConcreteExpr.Alloc e) {
 			writeStatic(writer, "_init");
 			writeStr(writer.writer, mustBePointer(type).mangledName);

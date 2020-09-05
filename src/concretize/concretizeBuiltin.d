@@ -3,7 +3,6 @@ module concretize.concretizeBuiltin;
 @safe @nogc pure nothrow:
 
 import concreteModel :
-	arityExcludingCtxAndClosure,
 	asRecord,
 	asUnion,
 	body_,
@@ -75,7 +74,7 @@ immutable(ConcreteFunExprBody) generateCompare(Alloc)(
 	immutable Ptr!ConcreteFun compareFun,
 ) {
 	immutable ComparisonTypes types = getComparisonTypes(compareFun.returnType, compareFunKey.typeArgs);
-	assert(arityExcludingCtxAndClosure(compareFun) == 2);
+	assert(size(compareFun.paramsExcludingCtxAndClosure) == 2);
 	immutable Ptr!ConcreteParam aParam = ptrAt(compareFun.paramsExcludingCtxAndClosure, 0);
 	immutable Ptr!ConcreteParam bParam = ptrAt(compareFun.paramsExcludingCtxAndClosure, 1);
 	immutable ConcreteExpr a =

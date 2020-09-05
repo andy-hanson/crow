@@ -366,7 +366,6 @@ struct BuiltinFunInfo {
 struct ConcreteStructBody {
 	@safe @nogc pure nothrow:
 
-	struct Bogus {}
 	struct Builtin {
 		immutable BuiltinStructInfo info;
 		immutable Arr!ConcreteType typeArgs;
@@ -380,50 +379,35 @@ struct ConcreteStructBody {
 
 	private:
 	enum Kind {
-		bogus,
 		builtin,
 		record,
 		union_,
 	}
 	immutable Kind kind;
 	union {
-		immutable Bogus bogus;
 		immutable Builtin builtin;
 		immutable Record record;
 		immutable Union union_;
 	}
 
 	public:
-	immutable this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
 }
 
-immutable(Bool) isBuiltin(ref immutable ConcreteStructBody a) {
-	return Bool(a.kind == ConcreteStructBody.Kind.builtin);
-}
-
-immutable(Bool) isRecord(ref immutable ConcreteStructBody a) {
-	return Bool(a.kind == ConcreteStructBody.Kind.record);
-}
-
-immutable(Bool) isUnion(ref immutable ConcreteStructBody a) {
-	return Bool(a.kind == ConcreteStructBody.Kind.union_);
-}
-
 @trusted ref immutable(ConcreteStructBody.Builtin) asBuiltin(return scope ref immutable ConcreteStructBody a) {
-	assert(isBuiltin(a));
+	assert(a.kind == ConcreteStructBody.Kind.builtin);
 	return a.builtin;
 }
 
 @trusted ref immutable(ConcreteStructBody.Record) asRecord(return scope ref immutable ConcreteStructBody a) {
-	assert(isRecord(a));
+	assert(a.kind == ConcreteStructBody.Kind.record);
 	return a.record;
 }
 
 @trusted ref immutable(ConcreteStructBody.Union) asUnion(return scope ref immutable ConcreteStructBody a) {
-	assert(isUnion(a));
+	assert(a.kind == ConcreteStructBody.Kind.union_);
 	return a.union_;
 }
 
@@ -434,8 +418,6 @@ immutable(Bool) isUnion(ref immutable ConcreteStructBody a) {
 	scope T delegate(ref immutable ConcreteStructBody.Union) @safe @nogc pure nothrow cbUnion,
 ) {
 	final switch (a.kind) {
-		case ConcreteStructBody.Kind.bogus:
-			return unreachable!T;
 		case ConcreteStructBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
 		case ConcreteStructBody.Kind.record:
@@ -519,14 +501,6 @@ immutable(Bool) isSelfMutable(ref immutable ConcreteStruct a) {
 
 immutable(Bool) defaultIsPointer(ref immutable ConcreteStruct a) {
 	return info(a).defaultIsPointer;
-}
-
-immutable(Bool) isRecord(ref immutable ConcreteStruct a) {
-	return isRecord(body_(a));
-}
-
-immutable(Bool) isUnion(ref immutable ConcreteStruct a) {
-	return isUnion(body_(a));
 }
 
 immutable(Opt!ConcreteType) getConcreteTypeAsArrElementType(ref immutable ConcreteType t) {
@@ -711,28 +685,6 @@ void setBody(ref ConcreteFun a, immutable ConcreteFunBody value) {
 	lateSet(a._body_, value);
 }
 
-immutable(Bool) hasClosure(ref immutable ConcreteFun a) {
-	return has(a.closureParam);
-}
-
-immutable(Opt!ConcreteType) closureType(ref immutable ConcreteFun a) {
-	return has(a.closureParam)
-		? some(force(a.closureParam).type)
-		: none!ConcreteType;
-}
-
-immutable(size_t) arityExcludingCtxAndClosure(ref immutable ConcreteFun a) {
-	return size(a.paramsExcludingCtxAndClosure);
-}
-
-immutable(size_t) arityExcludingCtxIncludingClosure(ref immutable ConcreteFun a) {
-	return (has(a.closureParam) ? 1 : 0) + arityExcludingCtxAndClosure(a);
-}
-
-immutable(size_t) arityIncludingCtxAndClosure(ref immutable ConcreteFun a) {
-	return (a.needsCtx ? 1 : 0) + arityExcludingCtxIncludingClosure(a);
-}
-
 immutable(Bool) isExtern(ref immutable ConcreteFun a) {
 	return isExtern(body_(a));
 }
@@ -743,9 +695,6 @@ immutable(Bool) isGlobal(ref immutable ConcreteFun a) {
 
 struct ConcreteExpr {
 	@safe @nogc pure nothrow:
-
-	// Only exists temporarily
-	struct Bogus {}
 
 	struct Alloc {
 		immutable Ptr!ConcreteFun alloc;
@@ -901,7 +850,6 @@ struct ConcreteExpr {
 	immutable Kind kind;
 	private:
 	enum Kind {
-		bogus,
 		alloc,
 		call,
 		cond,
@@ -922,7 +870,6 @@ struct ConcreteExpr {
 		stringLiteral,
 	}
 	union {
-		immutable Bogus bogus;
 		immutable Alloc alloc;
 		immutable Call call;
 		immutable Cond cond;
@@ -944,9 +891,6 @@ struct ConcreteExpr {
 	}
 
 	public:
-	immutable this(immutable ConcreteType t, immutable SourceRange r, immutable Bogus a) {
-		type = t; range = r; kind = Kind.bogus; bogus = a;
-	}
 	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable Alloc a) {
 		type = t; range = r; kind = Kind.alloc; alloc = a;
 	}
@@ -1021,7 +965,6 @@ immutable(Bool) isCond(ref immutable ConcreteExpr a) {
 
 @trusted T matchConcreteExpr(T)(
 	ref immutable ConcreteExpr a,
-	scope T delegate(ref immutable ConcreteExpr.Bogus) @safe @nogc pure nothrow cbBogus,
 	scope T delegate(ref immutable ConcreteExpr.Alloc) @safe @nogc pure nothrow cbAlloc,
 	scope T delegate(ref immutable ConcreteExpr.Call) @safe @nogc pure nothrow cbCall,
 	scope T delegate(ref immutable ConcreteExpr.Cond) @safe @nogc pure nothrow cbCond,
@@ -1042,8 +985,6 @@ immutable(Bool) isCond(ref immutable ConcreteExpr a) {
 	scope T delegate(ref immutable ConcreteExpr.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
 ) {
 	final switch (a.kind) {
-		case ConcreteExpr.Kind.bogus:
-			return cbBogus(a.bogus);
 		case ConcreteExpr.Kind.alloc:
 			return cbAlloc(a.alloc);
 		case ConcreteExpr.Kind.call:
