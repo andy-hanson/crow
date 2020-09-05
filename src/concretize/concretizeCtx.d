@@ -13,11 +13,9 @@ import concreteModel :
 	ConcreteType,
 	concreteType_fromStruct,
 	concreteType_pointer,
-	ConcreteSig,
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructInfo,
-	mangledName,
 	sizeOrPointerSizeBytes,
 	SpecialStructInfo;
 import concretize.builtinInfo : getBuiltinStructInfo;
@@ -243,12 +241,14 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Bool needsCtx,
-	ref immutable ConcreteSig sig,
+	ref immutable Str mangledName,
+	immutable ConcreteType returnType,
 	ref immutable Opt!ConcreteParam closureParam,
+	ref immutable Arr!ConcreteParam params,
 	ref immutable ConcreteFunKey containingConcreteFunKey,
 	immutable Ptr!Expr body_,
 ) {
-	Ptr!ConcreteFun res = nuMut!ConcreteFun(alloc, needsCtx, closureParam, sig, False);
+	Ptr!ConcreteFun res = nuMut!ConcreteFun(alloc, mangledName, returnType, needsCtx, closureParam, params);
 	immutable ConcreteFunSource source = ConcreteFunSource(
 		castImmutable(res),
 		containingConcreteFunKey,
@@ -339,11 +339,6 @@ immutable(ConcreteType) concreteTypeFromFields_alwaysPointer(Alloc)(
 	return concreteType_pointer(cs);
 }
 
-immutable(Bool) isCallFun(ref const ConcretizeCtx ctx, immutable Ptr!FunDecl decl) {
-	return exists(ctx.callFuns, (ref immutable Ptr!FunDecl d) =>
-		ptrEquals(d, decl));
-}
-
 immutable(Ptr!ConcreteFun) getAllocFun(Alloc)(ref Alloc alloc, ref ConcretizeCtx ctx) {
 	return getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, ctx.allocFun);
 }
@@ -384,14 +379,13 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(Alloc)(
 	immutable ConcreteType returnType = getConcreteType(alloc, ctx, returnType(decl), typeScope);
 	immutable Arr!ConcreteParam params = concretizeParams(alloc, ctx, params(decl), typeScope);
 	immutable Str mangledName = getMangledName(alloc, ctx, key, returnType, params);
-	immutable ConcreteSig sig = immutable ConcreteSig(mangledName, returnType, params);
 	Ptr!ConcreteFun res = nuMut!ConcreteFun(
 		alloc,
+		mangledName,
+		returnType,
 		not(noCtx(decl)),
-		//TODO: lambdas need closure...
 		none!ConcreteParam,
-		sig,
-		isCallFun(ctx, decl));
+		params);
 	immutable ConcreteFunSource source = ConcreteFunSource(
 		castImmutable(res),
 		key,
@@ -432,7 +426,7 @@ immutable(Str) getConcreteFunMangledName(Alloc)(
 		writeConcreteTypeForMangle(writer, p.type);
 	foreach (immutable Ptr!ConcreteFun si; range(specImpls)) {
 		writeStatic(writer, "__");
-		writeStr(writer, mangledName(si.deref));
+		writeStr(writer, si.mangledName);
 	}
 	return finishWriter(writer);
 }
@@ -574,7 +568,7 @@ void fillInConcreteFunBody(Alloc)(
 ) {
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf._body_)) {
-		lateSet(cf._body_, immutable ConcreteFunBody(ConcreteFunBody.Bogus()));
+		lateSet(cf._body_, immutable ConcreteFunBody(ConcreteFunBody.Extern(False))); // set to arbitrary temporarily
 		immutable ConcreteFunSource source = mustDelete(ctx.concreteFunToSource, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
 			source.body_,

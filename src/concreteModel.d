@@ -2,7 +2,6 @@ module concreteModel;
 
 @safe @nogc pure nothrow:
 
-import concretize.mangleName : isMangledName;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, empty, size, sizeEq;
 import util.collection.str : Str;
@@ -595,39 +594,12 @@ struct ConcreteField {
 }
 
 struct ConcreteParam {
-	@safe @nogc pure nothrow:
-
 	immutable Str mangledName;
 	immutable ConcreteType type;
-
-	immutable this(immutable Str mn, immutable ConcreteType t) {
-		mangledName = mn;
-		type = t;
-		assert(isMangledName(mangledName));
-	}
 }
 
 immutable(ConcreteParam) withType(ref immutable ConcreteParam a, ref immutable ConcreteType newType) {
 	return immutable ConcreteParam(a.mangledName, newType);
-}
-
-struct ConcreteSig {
-	@safe @nogc pure nothrow:
-
-	immutable(Str) mangledName; // This should be globally unique
-	immutable(ConcreteType) returnType;
-	immutable Arr!ConcreteParam params;
-
-	immutable this(immutable Str mn, immutable ConcreteType rt, immutable Arr!ConcreteParam ps) {
-		mangledName = mn;
-		returnType = rt;
-		params = ps;
-		assert(isMangledName(mangledName));
-	}
-}
-
-immutable(size_t) arity(ref immutable ConcreteSig a) {
-	return size(a.params);
 }
 
 struct ConcreteLocal {
@@ -643,7 +615,6 @@ struct ConcreteFunExprBody {
 struct ConcreteFunBody {
 	@safe @nogc pure nothrow:
 
-	struct Bogus {}
 	struct Builtin {
 		immutable BuiltinFunInfo builtinInfo;
 		immutable Arr!ConcreteType typeArgs;
@@ -654,30 +625,23 @@ struct ConcreteFunBody {
 
 	private:
 	enum Kind {
-		bogus,
 		builtin,
 		extern_,
 		concreteFunExprBody,
 	}
 	immutable Kind kind;
 	union {
-		immutable Bogus bogus;
 		immutable Builtin builtin;
 		immutable Extern extern_;
 		immutable ConcreteFunExprBody concreteFunExprBody;
 	}
 
 	public:
-	immutable this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
 	immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable ConcreteFunExprBody a) {
 		kind = Kind.concreteFunExprBody; concreteFunExprBody = a;
 	}
-}
-
-immutable(Bool) isBogus(ref immutable ConcreteFunBody a) {
-	return Bool(a.kind == ConcreteFunBody.Kind.bogus);
 }
 
 immutable(Bool) isBuiltin(ref immutable ConcreteFunBody a) {
@@ -709,14 +673,11 @@ immutable(Bool) isConcreteFunExprBody(ref immutable ConcreteFunBody a) {
 
 @trusted T matchConcreteFunBody(T)(
 	ref immutable ConcreteFunBody a,
-	scope T delegate(ref immutable ConcreteFunBody.Bogus) @safe @nogc pure nothrow cbBogus,
 	scope T delegate(ref immutable ConcreteFunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope T delegate(ref immutable ConcreteFunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(ref immutable ConcreteFunExprBody) @safe @nogc pure nothrow cbConcreteFunExprBody,
 ) {
 	final switch (a.kind) {
-		case ConcreteFunBody.Kind.bogus:
-			return cbBogus(a.bogus);
 		case ConcreteFunBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
 		case ConcreteFunBody.Kind.extern_:
@@ -734,22 +695,12 @@ immutable(Bool) isGlobal(ref immutable ConcreteFunBody a) {
 // Each instantiation of a FunDecl
 // Each lambda inside an instantiation of a FunDecl
 struct ConcreteFun {
-	@safe @nogc pure nothrow:
-
+	immutable(Str) mangledName; // This should be globally unique
+	immutable(ConcreteType) returnType;
 	immutable Bool needsCtx;
 	immutable Opt!ConcreteParam closureParam;
-	// Note: This does not include the ctx or closure params;
-	immutable ConcreteSig sig;
-	immutable Bool isCallFun; // `call` is not a builtin, but we treat is specially
-
+	immutable Arr!ConcreteParam paramsExcludingCtxAndClosure;
 	Late!(immutable ConcreteFunBody) _body_;
-
-	this(immutable Bool nc, immutable Opt!ConcreteParam cp, immutable ConcreteSig s, immutable Bool icf) {
-		needsCtx = nc;
-		closureParam = cp;
-		sig = s;
-		isCallFun = icf;
-	}
 }
 
 ref immutable(ConcreteFunBody) body_(return scope ref const ConcreteFun a) {
@@ -758,18 +709,6 @@ ref immutable(ConcreteFunBody) body_(return scope ref const ConcreteFun a) {
 
 void setBody(ref ConcreteFun a, immutable ConcreteFunBody value) {
 	lateSet(a._body_, value);
-}
-
-immutable(Str) mangledName(ref immutable ConcreteFun a) {
-	return a.sig.mangledName;
-}
-
-ref immutable(ConcreteType) returnType(return scope ref immutable ConcreteFun a) {
-	return a.sig.returnType;
-}
-
-immutable(Arr!ConcreteParam) paramsExcludingCtxAndClosure(ref immutable ConcreteFun a) {
-	return a.sig.params;
 }
 
 immutable(Bool) hasClosure(ref immutable ConcreteFun a) {
@@ -783,7 +722,7 @@ immutable(Opt!ConcreteType) closureType(ref immutable ConcreteFun a) {
 }
 
 immutable(size_t) arityExcludingCtxAndClosure(ref immutable ConcreteFun a) {
-	return arity(a.sig);
+	return size(a.paramsExcludingCtxAndClosure);
 }
 
 immutable(size_t) arityExcludingCtxIncludingClosure(ref immutable ConcreteFun a) {
@@ -896,7 +835,6 @@ struct ConcreteExpr {
 	}
 
 	struct RecordFieldAccess {
-		immutable Bool targetIsPointer; // TODO:NEEDED? Use target.type.isPointer?
 		immutable Ptr!ConcreteExpr target;
 		immutable Ptr!ConcreteField field;
 	}
@@ -904,18 +842,15 @@ struct ConcreteExpr {
 	struct RecordFieldSet {
 		@safe @nogc pure nothrow:
 
-		immutable Bool targetIsPointer; // TODO: NEEDED? Use target.type.isPointer?
 		immutable Ptr!ConcreteExpr target;
 		immutable Ptr!ConcreteField field;
 		immutable Ptr!ConcreteExpr value;
 
 		immutable this(
-			immutable Bool tp,
 			immutable Ptr!ConcreteExpr t,
 			immutable Ptr!ConcreteField f,
 			immutable Ptr!ConcreteExpr v,
 		) {
-			targetIsPointer = tp;
 			target = t;
 			field = f;
 			value = v;
@@ -1069,7 +1004,7 @@ struct ConcreteExpr {
 }
 
 ref immutable(ConcreteType) returnType(return scope ref immutable ConcreteExpr.Call a) {
-	return returnType(a.called);
+	return a.called.returnType;
 }
 
 immutable(size_t) sizeBytes(ref immutable ConcreteExpr.CreateArr a) {

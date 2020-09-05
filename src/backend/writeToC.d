@@ -25,13 +25,11 @@ import concreteModel :
 	isBuiltin,
 	isExtern,
 	isGlobal,
-	mangledName,
 	matchConcreteExpr,
 	matchConcreteFunBody,
 	matchConcreteStructBody,
 	matchedUnionMembers,
 	mustBePointer,
-	paramsExcludingCtxAndClosure,
 	returnType,
 	sizeBytes;
 import util.alloc.stackAlloc : StackAlloc;
@@ -705,7 +703,7 @@ void writeArgsWithOptionalCtx(Alloc)(
 
 immutable(Bool) returnsVoid(ref immutable ConcreteFun fun) {
 	// TODO: better way to detect this than looking at the name
-	return strEq(returnType(fun).struct_.mangledName, strLiteral("_void"));
+	return strEq(fun.returnType.struct_.mangledName, strLiteral("_void"));
 }
 
 void writeCall(Alloc)(
@@ -742,16 +740,16 @@ void writeCall(Alloc)(
 			call();
 			writeStatic(writer, ", 0)");
 		} else if (isGlobal(e.called))
-			writeStr(writer, mangledName(e.called));
+			writeStr(writer, e.called.mangledName);
 		else
 			call();
 	} else
 		call();
 }
 
-void writeAllocNBytes(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFun alloc, immutable size_t nBytes) {
-	assert(alloc.needsCtx);
-	writeStr(writer, mangledName(alloc));
+void writeAllocNBytes(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFun allocFun, immutable size_t nBytes) {
+	assert(allocFun.needsCtx);
+	writeStr(writer, allocFun.mangledName);
 	writeStatic(writer, "(_ctx, ");
 	writeNat(writer, nBytes);
 	writeChar(writer, ')');
@@ -811,7 +809,7 @@ void writeLambda(Alloc)(
 		writeChar(writer, '{');
 		indent(writer);
 		writeCastToType(writer.writer, funPtrField.type);
-		writeStr(writer, mangledName(e.fun));
+		writeStr(writer, e.fun.mangledName);
 		writeChar(writer, ',');
 		newline(writer);
 		writeCastToType(writer.writer, dataPtrField.type);
@@ -819,7 +817,7 @@ void writeLambda(Alloc)(
 		dedent(writer);
 		writeChar(writer, '}');
 	} else
-		writeStr(writer, mangledName(e.fun));
+		writeStr(writer, e.fun.mangledName);
 }
 
 void writeExpr(Alloc)(ref WriterWithIndent!Alloc writer, ref immutable ConcreteExpr ce) {
@@ -896,12 +894,12 @@ void writeExpr(Alloc)(ref WriterWithIndent!Alloc writer, ref immutable ConcreteE
 			writeStr(writer, e.param.mangledName);
 		},
 		(ref immutable ConcreteExpr.RecordFieldAccess e) {
-			writeFieldAccess(writer, e.targetIsPointer, e.target, e.field);
+			writeFieldAccess(writer, e.target.type.isPointer, e.target, e.field);
 		},
 		(ref immutable ConcreteExpr.RecordFieldSet e) {
 			// (s.x = v), 0
 			writeChar(writer, '(');
-			writeFieldAccess(writer, e.targetIsPointer, e.target, e.field);
+			writeFieldAccess(writer, e.target.type.isPointer, e.target, e.field);
 			writeStatic(writer, " = ");
 			writeExpr(writer, e.value);
 			writeStatic(writer, "), 0");
@@ -981,16 +979,16 @@ void writeFunReturnTypeNameAndParams(Alloc)(ref Writer!Alloc writer, ref immutab
 	if (isExtern(fun) && returnsVoid(fun))
 		writeStatic(writer, "void");
 	else
-		writeType(writer, returnType(fun));
+		writeType(writer, fun.returnType);
 	writeChar(writer, ' ');
-	writeStr(writer, mangledName(fun));
+	writeStr(writer, fun.mangledName);
 	if (!isGlobal(fun))
 		writeSigParams(writer, fun.needsCtx, fun.closureParam, fun.paramsExcludingCtxAndClosure);
 }
 
 void writeConcreteFunDeclaration(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFun fun) {
 	//TODO:HAX: printf apparently *must* be declared as variadic
-	if (strEqLiteral(mangledName(fun), "printf"))
+	if (strEqLiteral(fun.mangledName, "printf"))
 		writeStatic(writer, "int printf(const char* format, ...);\n");
 	else {
 		if (isExtern(body_(fun)))
@@ -1038,7 +1036,7 @@ void writeSpecialBody(Alloc)(
 	switch (kind) {
 		case BuiltinFunKind.compareExchangeStrong: {
 			writeStatic(writer, "return atomic_compare_exchange_strong(");
-			immutable Arr!ConcreteParam params = paramsExcludingCtxAndClosure(fun);
+			immutable Arr!ConcreteParam params = fun.paramsExcludingCtxAndClosure;
 			assert(size(params) == 3);
 			writeStr(writer, at(params, 0).mangledName);
 			writeStatic(writer, ", ");
@@ -1065,9 +1063,6 @@ void writeSpecialBody(Alloc)(
 void writeConcreteFunDefinition(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFun fun) {
 	matchConcreteFunBody(
 		body_(fun),
-		(ref immutable ConcreteFunBody.Bogus) {
-			unreachable!void();
-		},
 		(ref immutable ConcreteFunBody.Builtin builtin) {
 			immutable BuiltinFunInfo info = builtin.builtinInfo;
 			final switch (info.emit) {
@@ -1137,9 +1132,9 @@ void writeMain(Alloc)(
 	}
 
 	writeStatic(writer, "\n\n\treturn ");
-	writeStr(writer, mangledName(rtMain));
+	writeStr(writer, rtMain.mangledName);
 	writeStatic(writer, "(argc, argv, ");
-	writeStr(writer, mangledName(userMain));
+	writeStr(writer, userMain.mangledName);
 	writeStatic(writer, ");\n}\n");
 }
 

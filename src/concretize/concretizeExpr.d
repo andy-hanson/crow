@@ -14,14 +14,11 @@ import concreteModel :
 	ConcreteFunExprBody,
 	ConcreteLocal,
 	ConcreteParam,
-	ConcreteSig,
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteType,
 	concreteType_byValue,
-	mangledName,
 	mustBeNonPointer,
-	paramsExcludingCtxAndClosure,
 	returnType;
 import concretize.concretizeCtx :
 	anyPtrType,
@@ -177,10 +174,7 @@ immutable(ConcreteExpr) concretizeCall(Alloc)(
 	immutable Ptr!ConcreteFun concreteCalled = getConcreteFunFromCalled(alloc, ctx, e.called);
 	immutable Arr!ConcreteExpr args = map(alloc, e.args, (ref immutable Expr arg) =>
 		concretizeExpr(alloc, ctx, arg));
-	return immutable ConcreteExpr(
-		returnType(concreteCalled),
-		range,
-		immutable ConcreteExpr.Call(concreteCalled, args));
+	return immutable ConcreteExpr(concreteCalled.returnType, range, immutable ConcreteExpr.Call(concreteCalled, args));
 }
 
 immutable(Ptr!ConcreteFun) getConcreteFunFromCalled(Alloc)(
@@ -227,7 +221,7 @@ immutable(ConcreteExpr) concretizeClosureFieldRef(Alloc)(
 	return immutable ConcreteExpr(
 		field.type,
 		range,
-		immutable ConcreteExpr.RecordFieldAccess(closureType.isPointer, allocExpr(alloc, closureParamRef), field));
+		immutable ConcreteExpr.RecordFieldAccess(allocExpr(alloc, closureParamRef), field));
 }
 
 immutable(Arr!ConcreteExpr) getArgs(Alloc)(
@@ -302,7 +296,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 	immutable Arr!ConcreteParam params = concretizeParams(alloc, ctx.concretizeCtx, e.params, tScope);
 	immutable Str lambdaMangledName = () {
 		Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-		writeStr(writer, mangledName(ctx.currentConcreteFun));
+		writeStr(writer, ctx.currentConcreteFun.mangledName);
 		writeStatic(writer, "__lambda");
 		writeNat(writer, ctx.nextLambdaIndex);
 		ctx.nextLambdaIndex++;
@@ -336,10 +330,6 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 					range,
 					immutable ConcreteExpr.CreateRecord(closureArgs)))));
 
-	immutable ConcreteSig sig = immutable ConcreteSig(
-		lambdaMangledName,
-		getConcreteType(alloc, ctx, e.returnType),
-		params);
 	immutable ConcreteType possiblySendType = getConcreteType_forStructInst(alloc, ctx, e.type);
 	// For a fun-ref this is the inner fun-mut type.
 	immutable ConcreteType funType = e.kind == FunKind.ref_
@@ -352,13 +342,14 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 		}()
 		: possiblySendType;
 
-	// Generate the function!
-	immutable Ptr!ConcreteFun fun = getConcreteFunForLambdaAndFillBody(
+	immutable Ptr!ConcreteFun fun = getConcreteFunForLambdaAndFillBody!Alloc(
 		alloc,
 		ctx.concretizeCtx,
 		Bool(e.kind != FunKind.ptr),
-		sig,
+		lambdaMangledName,
+		getConcreteType(alloc, ctx, e.returnType),
 		closureParam,
+		params,
 		ctx.concreteFunSource.containingConcreteFunKey,
 		ptrTrustMe(e.body_));
 	immutable ConcreteExpr res = immutable ConcreteExpr(funType, range, immutable ConcreteExpr.Lambda(fun, closure));
@@ -487,7 +478,7 @@ immutable(ConcreteExpr) concretizeParamRef(Alloc)(
 	immutable size_t paramIndex = e.param.index;
 	// NOTE: we'll never see a ParamRef to a param from outside of a lambda --
 	// that would be a ClosureFieldRef instead.
-	immutable Ptr!ConcreteParam concreteParam = ptrAt(paramsExcludingCtxAndClosure(ctx.currentConcreteFun), paramIndex);
+	immutable Ptr!ConcreteParam concreteParam = ptrAt(ctx.currentConcreteFun.paramsExcludingCtxAndClosure, paramIndex);
 	return immutable ConcreteExpr(concreteParam.type, range, immutable ConcreteExpr.ParamRef(concreteParam));
 }
 
@@ -517,7 +508,7 @@ immutable(ConcreteExpr) concretizeRecordFieldAccess(Alloc)(
 	return immutable ConcreteExpr(
 		field.type,
 		range,
-		immutable ConcreteExpr.RecordFieldAccess(targetType.isPointer, target, field));
+		immutable ConcreteExpr.RecordFieldAccess(target, field));
 }
 
 immutable(ConcreteExpr) concretizeRecordFieldSet(Alloc)(
@@ -535,7 +526,7 @@ immutable(ConcreteExpr) concretizeRecordFieldSet(Alloc)(
 	return immutable ConcreteExpr(
 		voidType,
 		range,
-		immutable ConcreteExpr.RecordFieldSet(targetType.isPointer, target, field, value));
+		immutable ConcreteExpr.RecordFieldSet(target, field, value));
 }
 
 immutable(ConcreteExpr) concretizeExpr(Alloc)(ref Alloc alloc, ref ConcretizeExprCtx ctx, ref immutable Expr e) {

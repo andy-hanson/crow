@@ -24,7 +24,6 @@ import concreteModel :
 	defaultIsPointer,
 	matchConcreteStructBody,
 	mustBeNonPointer,
-	paramsExcludingCtxAndClosure,
 	returnType,
 	SpecialStructInfo;
 import concretize.builtinInfo : getBuiltinFunInfo;
@@ -75,12 +74,10 @@ immutable(ConcreteFunExprBody) generateCompare(Alloc)(
 	ref immutable ConcreteFunKey compareFunKey,
 	immutable Ptr!ConcreteFun compareFun,
 ) {
-	immutable ComparisonTypes types = getComparisonTypes(returnType(compareFun), compareFunKey.typeArgs);
+	immutable ComparisonTypes types = getComparisonTypes(compareFun.returnType, compareFunKey.typeArgs);
 	assert(arityExcludingCtxAndClosure(compareFun) == 2);
-	immutable Ptr!ConcreteParam aParam = ptrAt(paramsExcludingCtxAndClosure(compareFun), 0);
-	immutable Ptr!ConcreteParam bParam = ptrAt(paramsExcludingCtxAndClosure(compareFun), 1);
-	immutable Bool aIsPointer = aParam.type.isPointer;
-	immutable Bool bIsPointer = bParam.type.isPointer;
+	immutable Ptr!ConcreteParam aParam = ptrAt(compareFun.paramsExcludingCtxAndClosure, 0);
+	immutable Ptr!ConcreteParam bParam = ptrAt(compareFun.paramsExcludingCtxAndClosure, 1);
 	immutable ConcreteExpr a =
 		immutable ConcreteExpr(types.t, SourceRange.empty, immutable ConcreteExpr.ParamRef(aParam));
 	immutable ConcreteExpr b =
@@ -110,7 +107,7 @@ immutable(ConcreteFunExprBody) generateCompare(Alloc)(
 			(ref immutable ConcreteStructBody.Builtin builtin) =>
 				generateCompareBuiltin(alloc, boolType, types, builtin, a, b),
 			(ref immutable ConcreteStructBody.Record it) =>
-				generateCompareRecord(alloc, ctx, compareFunKey, types, it, a, b, aIsPointer, bIsPointer),
+				generateCompareRecord(alloc, ctx, compareFunKey, types, it, a, b),
 			(ref immutable ConcreteStructBody.Union) =>
 				todo!(immutable ConcreteFunExprBody)("compare union"));
 		return todo!(immutable ConcreteFunExprBody)("generateCompare");
@@ -268,13 +265,12 @@ immutable(LocalsAndExpr) combineCompares(Alloc)(
 immutable(ConcreteExpr) genFieldAccess(Alloc)(
 	ref Alloc alloc,
 	ref immutable ConcreteExpr a,
-	immutable Bool aIsPointer,
 	immutable Ptr!ConcreteField field,
 ) {
 	return immutable ConcreteExpr(
 		field.type,
 		SourceRange.empty,
-		immutable ConcreteExpr.RecordFieldAccess(aIsPointer, allocExpr(alloc, a), field));
+		immutable ConcreteExpr.RecordFieldAccess(allocExpr(alloc, a), field));
 }
 
 immutable(ConcreteExpr) genCreateArr(Alloc)(
@@ -299,7 +295,7 @@ immutable(ConcreteFunExprBody) generateCompareArr(Alloc)(
 	ref immutable ConcreteExpr b,
 ) {
 	// a.size == 0 ? (b.size == 0 ? eq : lt) : (b.size == 0 ? gt : (a[0] <=> b[0] or cmp(tail(a), tail(b))))
-	immutable ConcreteType arrType = first(paramsExcludingCtxAndClosure(compareFun)).type;
+	immutable ConcreteType arrType = first(compareFun.paramsExcludingCtxAndClosure).type;
 	immutable ConcreteStructBody.Record r = asRecord(body_(mustBeNonPointer(arrType).deref));
 	assert(size(r.fields) == 2);
 	immutable Ptr!ConcreteField sizeField = ptrAt(r.fields, 0);
@@ -312,10 +308,10 @@ immutable(ConcreteFunExprBody) generateCompareArr(Alloc)(
 	immutable ConcreteType ptrType = dataField.type;
 
 	immutable(ConcreteExpr) genGetSize(ref immutable ConcreteExpr arr) {
-		return genFieldAccess(alloc, arr, False, sizeField);
+		return genFieldAccess(alloc, arr, sizeField);
 	}
 	immutable(ConcreteExpr) genGetData(ref immutable ConcreteExpr arr) {
-		return genFieldAccess(alloc, arr, False, dataField);
+		return genFieldAccess(alloc, arr, dataField);
 	}
 
 	immutable(ConcreteExpr) genTail(ref immutable ConcreteExpr arr) {
@@ -487,10 +483,7 @@ immutable(ConcreteExpr) genCall(Alloc)(
 	immutable Ptr!ConcreteFun fun,
 	immutable Arr!ConcreteExpr args,
 ) {
-	return immutable ConcreteExpr(
-		returnType(fun),
-		SourceRange.empty,
-		immutable ConcreteExpr.Call(fun, args));
+	return immutable ConcreteExpr(fun.returnType, SourceRange.empty, immutable ConcreteExpr.Call(fun, args));
 }
 
 immutable(Ptr!ConcreteFun) getCompareFunFor(Alloc)(
@@ -511,8 +504,6 @@ immutable(ConcreteFunExprBody) generateCompareRecord(Alloc)(
 	ref immutable ConcreteStructBody.Record r,
 	ref immutable ConcreteExpr a,
 	ref immutable ConcreteExpr b,
-	immutable Bool aIsPointer,
-	immutable Bool bIsPointer,
 ) {
 	ArrBuilder!(Ptr!ConcreteLocal) locals;
 
@@ -523,7 +514,7 @@ immutable(ConcreteFunExprBody) generateCompareRecord(Alloc)(
 			// Generate the comparisons in reverse -- though the first field is the to actually be compared first
 			immutable Ptr!ConcreteField field = ptrAt(fields, size(fields) - 1);
 			immutable ConcreteExpr compareThisField =
-				compareOneField(alloc, ctx, concreteFunKey, field, a, b, aIsPointer, bIsPointer);
+				compareOneField(alloc, ctx, concreteFunKey, field, a, b);
 			immutable LocalsAndExpr le =
 				combineCompares(alloc, field.mangledName, compareThisField, accum, types.comparison);
 			addMany(alloc, locals, le.locals);
@@ -541,11 +532,9 @@ immutable(ConcreteExpr) compareOneField(Alloc)(
 	immutable Ptr!ConcreteField field,
 	ref immutable ConcreteExpr a,
 	ref immutable ConcreteExpr b,
-	immutable Bool aIsPointer,
-	immutable Bool bIsPointer,
 ) {
-	immutable ConcreteExpr ax = genFieldAccess(alloc, a, aIsPointer, field);
-	immutable ConcreteExpr bx = genFieldAccess(alloc, b, bIsPointer, field);
+	immutable ConcreteExpr ax = genFieldAccess(alloc, a, field);
+	immutable ConcreteExpr bx = genFieldAccess(alloc, b, field);
 	return genCompare(alloc, ctx, compareFunKey, field.type, ax, bx);
 }
 

@@ -17,7 +17,6 @@ import concreteModel :
 	ConcreteType,
 	defaultIsPointer,
 	isSelfMutable,
-	mangledName,
 	matchConcreteExpr,
 	matchConcreteFunBody,
 	matchConcreteStructBody,
@@ -140,11 +139,11 @@ immutable(Sexpr) tataOfConcreteFun(Alloc)(ref Alloc alloc, ref immutable Concret
 		alloc,
 		"fun",
 		tataBool(a.needsCtx),
+		tataStr(a.mangledName),
+		tataOfConcreteType(alloc, a.returnType),
 		tataOpt(alloc, a.closureParam, (ref immutable ConcreteParam it) =>
 			tataOfParam(alloc, it)),
-		tataStr(mangledName(a)),
-		tataOfConcreteType(alloc, returnType(a)),
-		tataArr(alloc, a.sig.params, (ref immutable ConcreteParam it) =>
+		tataArr(alloc, a.paramsExcludingCtxAndClosure, (ref immutable ConcreteParam it) =>
 			tataOfParam(alloc, it)),
 		tataOfConcreteFunBody(alloc, body_(a)));
 }
@@ -162,14 +161,12 @@ immutable(Sexpr) tataOfConcreteStructPtr(Alloc)(ref Alloc alloc, immutable Ptr!C
 }
 
 immutable(Sexpr) tataOfConcreteFunPtr(Alloc)(ref Alloc alloc, immutable Ptr!ConcreteFun a) {
-	return tataStr(mangledName(a));
+	return tataStr(a.mangledName);
 }
 
 immutable(Sexpr) tataOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable ConcreteFunBody a) {
 	return matchConcreteFunBody!(immutable Sexpr)(
 		a,
-		(ref immutable ConcreteFunBody.Bogus) =>
-			unreachable!(immutable Sexpr)(),
 		(ref immutable ConcreteFunBody.Builtin it) =>
 			tataOfConcreteFunBodyBuiltin(alloc, it),
 		(ref immutable ConcreteFunBody.Extern it) =>
@@ -294,14 +291,12 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 			tataRecord(
 				alloc,
 				"get-field",
-				tataBool(it.targetIsPointer),
 				tataOfConcreteExpr(alloc, it.target),
 				tataStr(it.field.mangledName)),
 		(ref immutable ConcreteExpr.RecordFieldSet it) =>
 			tataRecord(
 				alloc,
 				"set-field",
-				tataBool(it.targetIsPointer),
 				tataOfConcreteExpr(alloc, it.target),
 				tataStr(it.field.mangledName),
 				tataOfConcreteExpr(alloc, it.value)),
