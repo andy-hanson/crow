@@ -12,6 +12,8 @@ import frontend.ast : FileAst, sexprOfAst;
 import frontend.frontendCompile : frontendCompile, parseAst;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : printDiagnostics;
+import lower.lower : lower;
+import lowModel : LowProgram;
 import model : Module, Program;
 import sexprOfConcreteModel : tataOfConcreteProgram;
 import sexprOfModel : sexprOfModule;
@@ -196,6 +198,7 @@ void printOutSexpr(immutable Sexpr a) {
 alias ExePathAlloc = StackAlloc!("exePath", 1024);
 alias ModelAlloc = SingleHeapAlloc!(Mallocator, "model", 16 * 1024 * 1024);
 alias ConcreteAlloc = SingleHeapAlloc!(Mallocator, "concrete-model", 64 * 1024 * 1024);
+alias LowAlloc = SingleHeapAlloc!(Mallocator, "low-model", 64 * 1024 * 1024);
 alias ConcreteSexprAlloc = SingleHeapAlloc!(Mallocator, "concrete-model", 64 * 1024 * 1024);
 alias WriteAlloc = SingleHeapAlloc!(Mallocator, "write-to-c", 64 * 1024 * 1024);
 
@@ -276,6 +279,8 @@ void emitProgram(ref immutable Program program, immutable AbsolutePath cPath) {
 	Mallocator mallocator;
 	ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
 	immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
+	LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
+	//immutable LowProgram lowProgram = lower(lowAlloc, concreteProgram);
 	WriteAlloc writeAlloc = WriteAlloc(ptrTrustMe_mut(mallocator));
 	immutable Str emitted = writeToC(writeAlloc, concreteProgram);
 	writeFileSync(cPath, emitted);

@@ -72,7 +72,6 @@ enum BuiltinFunKind {
 	and,
 	as,
 	asAnyPtr,
-	asNonConst,
 	asRef,
 	bitShiftLeftInt32,
 	bitShiftRightInt32,
@@ -170,8 +169,6 @@ immutable(string) strOfBuiltinFunKind(immutable BuiltinFunKind kind) {
 			return "as";
 		case BuiltinFunKind.asAnyPtr:
 			return "as-any-ptr";
-		case BuiltinFunKind.asNonConst:
-			return "as-non-const";
 		case BuiltinFunKind.asRef:
 			return "as-ref";
 		case BuiltinFunKind.bitShiftLeftInt32:
@@ -577,6 +574,7 @@ immutable(ConcreteParam) withType(ref immutable ConcreteParam a, ref immutable C
 }
 
 struct ConcreteLocal {
+	immutable size_t index;
 	immutable Str mangledName;
 	immutable ConcreteType type;
 }
@@ -697,7 +695,7 @@ struct ConcreteExpr {
 	@safe @nogc pure nothrow:
 
 	struct Alloc {
-		immutable Ptr!ConcreteFun alloc;
+		immutable Ptr!ConcreteFun alloc; // TODO: just store this once on the ConcreteProgram
 		immutable Ptr!ConcreteExpr inner;
 	}
 
@@ -717,7 +715,7 @@ struct ConcreteExpr {
 		immutable ConcreteType elementType;
 		immutable Ptr!ConcreteFun alloc;
 		// Needed because we must first allocate the array, then write to each field. That requires a local.
-		immutable Ptr!ConcreteLocal local;
+		immutable Ptr!ConcreteLocal local; // TODO:KILL
 		immutable Arr!ConcreteExpr args;
 	}
 

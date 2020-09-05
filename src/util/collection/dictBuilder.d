@@ -47,8 +47,8 @@ immutable(Dict!(K, V, cmp)) finishDict(Alloc, K, V, alias cmp)(
 }
 
 immutable(Dict!(K, V, cmp)) finishDictShouldBeNoConflict(Alloc, K, V, alias cmp)(
-	ref DictBuilder!(K, V, cmp) a,
 	ref Alloc alloc,
+	ref DictBuilder!(K, V, cmp) a,
 ) {
 	immutable Arr!(KeyValuePair!(K, V)) allPairs = finishArr(alloc, a.builder);
 	foreach (immutable size_t i; 0..allPairs.size)

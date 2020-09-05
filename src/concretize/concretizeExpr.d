@@ -64,8 +64,8 @@ import model :
 	typeArgs;
 import util.bools : Bool, False;
 import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
+import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAsTempArr, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, exists, map;
-import util.collection.mutArr : moveToArr, MutArr, push, tempAsArr;
 import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutDict;
 import util.collection.str : copyStr, Str, strEq, strEqLiteral, strLiteral;
 import util.memory : allocate, nu;
@@ -88,7 +88,7 @@ immutable(ConcreteFunBody) concretizeExpr(Alloc)(
 	immutable ConcreteExpr res = concretizeExpr(alloc, exprCtx, e);
 	return immutable ConcreteFunBody(
 		immutable ConcreteFunExprBody(
-			moveToArr(alloc, exprCtx.allLocalsInThisFun),
+			finishArr(alloc, exprCtx.allLocalsInThisFun),
 			allocExpr(alloc, res)));
 }
 
@@ -107,7 +107,7 @@ struct ConcretizeExprCtx {
 	// Note: this dict contains only the locals that are currently in scope.
 	MutDict!(immutable Ptr!Local, immutable Ptr!ConcreteLocal, comparePtr!Local) locals;
 	// Contains *all* locals
-	MutArr!(immutable Ptr!ConcreteLocal) allLocalsInThisFun;
+	ArrBuilder!(Ptr!ConcreteLocal) allLocalsInThisFun;
 }
 
 immutable(ConcreteType) getConcreteType(Alloc)(ref Alloc alloc, ref ConcretizeExprCtx ctx, ref immutable Type t) {
@@ -369,10 +369,10 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 immutable(Str) chooseUniqueName(Alloc)(
 	ref Alloc alloc,
 	immutable Str mangledName,
-	const Arr!(immutable Ptr!ConcreteLocal) allLocals,
+	immutable Arr!(Ptr!ConcreteLocal) allLocals,
 ) {
 	immutable Bool alreadyExists =
-		exists!(immutable Ptr!ConcreteLocal)(allLocals, (ref immutable Ptr!ConcreteLocal l) =>
+		exists!(Ptr!ConcreteLocal)(allLocals, (ref immutable Ptr!ConcreteLocal l) =>
 			strEq(l.mangledName, mangledName));
 	return alreadyExists
 		? chooseUniqueName(alloc, cat(alloc, mangledName, strLiteral("1")), allLocals)
@@ -388,9 +388,13 @@ immutable(Ptr!ConcreteLocal) makeLocalWorker(Alloc)(
 	immutable Str mangledName = chooseUniqueName!Alloc(
 		alloc,
 		mangleName(alloc, name),
-		tempAsArr(ctx.allLocalsInThisFun));
-	immutable Ptr!ConcreteLocal res = nu!ConcreteLocal(alloc, mangledName, type);
-	push(alloc, ctx.allLocalsInThisFun, res);
+		arrBuilderAsTempArr(ctx.allLocalsInThisFun));
+	immutable Ptr!ConcreteLocal res = nu!ConcreteLocal(
+		alloc,
+		arrBuilderSize(ctx.allLocalsInThisFun),
+		mangledName,
+		type);
+	add(alloc, ctx.allLocalsInThisFun, res);
 	return res;
 }
 

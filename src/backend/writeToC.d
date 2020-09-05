@@ -467,7 +467,6 @@ void writeCallOperator(Alloc)(
 			break;
 
 		case BuiltinFunKind.as:
-		case BuiltinFunKind.asNonConst:
 			writeArg(0);
 			break;
 

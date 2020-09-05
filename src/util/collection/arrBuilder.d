@@ -4,19 +4,18 @@ module util.collection.arrBuilder;
 
 import util.bools : Bool;
 import util.collection.arr : Arr, begin, range, size;
-import util.collection.mutArr : tempAsArr, moveToArr, MutArr, mutArrIsEmpty, mutArrSize, push;
+import util.collection.mutArr : tempAsArr, moveToArr, MutArr, mutArrAt, mutArrIsEmpty, mutArrSize, push;
 
 struct ArrBuilder(T) {
 	private MutArr!(immutable T) data;
 }
 
-void add(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
-	push(alloc, a.data, value);
+ref immutable(T) arrBuilderAt(T)(ref ArrBuilder!T a,immutable size_t index) {
+	return mutArrAt(a.data, index);
 }
 
-void addMany(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable Arr!T values) {
-	foreach (ref immutable T value; range(values))
-		add(alloc, a, value);
+void add(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
+	push(alloc, a.data, value);
 }
 
 immutable(Arr!T) finishArr_immutable(T, Alloc)(ref Alloc alloc, ref ArrBuilder!(immutable T) a) {

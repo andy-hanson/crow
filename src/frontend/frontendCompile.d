@@ -91,7 +91,7 @@ immutable(Result!(FileAst, Diagnostics)) parseAst(Alloc, SymAlloc)(
 			PathAndStorageKind(path, StorageKind.local),
 			lineAndColumnGetters,
 			opFileContent);
-	immutable LineAndColumnGetters lc = lineAndColumnGetters.finishDictShouldBeNoConflict(alloc);
+	immutable LineAndColumnGetters lc = finishDictShouldBeNoConflict(alloc, lineAndColumnGetters);
 	return mapFailure!(Diagnostics, FileAst, Diags)(res, (ref immutable Diags diagnostics) =>
 		immutable Diagnostics(diagnostics, FilesInfo(storages.absolutePathsGetter, lc)));
 }
@@ -120,7 +120,7 @@ LcgsAndAllAsts parseEverything(ModelAlloc, AstAlloc, SymAlloc)(
 	LineAndColumnGettersBuilder lineAndColumnGetters;
 	immutable Result!(AllAsts, Diags) asts =
 		parseEverythingWorker(modelAlloc, astAlloc, allSymbols, mainPath, storages, lineAndColumnGetters);
-	immutable LineAndColumnGetters lc = lineAndColumnGetters.finishDictShouldBeNoConflict(modelAlloc);
+	immutable LineAndColumnGetters lc = finishDictShouldBeNoConflict(modelAlloc, lineAndColumnGetters);
 	return LcgsAndAllAsts(lc, asts);
 }
 

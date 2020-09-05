@@ -38,7 +38,7 @@ import concretize.concretizeCtx :
 import concretize.concretizeExpr : allocExpr;
 import util.bools : Bool, False;
 import util.collection.arr : Arr, at, emptyArr, first, empty, only, ptrAt, size;
-import util.collection.arrBuilder : addMany, ArrBuilder, finishArr;
+import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, rtail;
 import util.collection.str : Str, strEq, strEqLiteral, strLiteral;
 import util.memory : nu;
@@ -214,20 +214,28 @@ immutable(ConcreteExpr) makeCond(Alloc)(
 			allocExpr(alloc, else_)));
 }
 
-struct LocalsAndExpr {
-	immutable Arr!(Ptr!ConcreteLocal) locals;
-	immutable Ptr!ConcreteExpr expr;
+immutable(Ptr!ConcreteLocal) addLocal(Alloc)(
+	ref Alloc alloc,
+	ref ArrBuilder!(Ptr!ConcreteLocal) locals,
+	immutable Str name,
+	immutable ConcreteType type,
+) {
+	immutable Ptr!ConcreteLocal res = nu!ConcreteLocal(alloc, arrBuilderSize(locals), name, type);
+	add(alloc, locals, res);
+	return res;
 }
 
-immutable(LocalsAndExpr) combineCompares(Alloc)(
+immutable(ConcreteExpr) combineCompares(Alloc)(
 	ref Alloc alloc,
+	ref ArrBuilder!(Ptr!ConcreteLocal) locals,
 	immutable Str name,
 	ref immutable ConcreteExpr cmpFirst,
 	ref immutable ConcreteExpr cmpSecond,
 	ref immutable ConcreteType comparisonType,
 ) {
-	immutable Ptr!ConcreteLocal cmpFirstLocal = nu!ConcreteLocal(
+	immutable Ptr!ConcreteLocal cmpFirstLocal = addLocal(
 		alloc,
+		locals,
 		cat(alloc, strLiteral("_cmp"), name),
 		comparisonType);
 	immutable ConcreteExpr getCmpFirst = immutable ConcreteExpr(
@@ -241,8 +249,9 @@ immutable(LocalsAndExpr) combineCompares(Alloc)(
 		caseUseFirst,
 		caseUseSecond,
 		caseUseFirst);
-	immutable Ptr!ConcreteLocal matchedLocal = nu!ConcreteLocal(
+	immutable Ptr!ConcreteLocal matchedLocal = addLocal(
 		alloc,
+		locals,
 		cat(alloc, strLiteral("_matched"), name),
 		comparisonType);
 	immutable ConcreteExpr then = immutable ConcreteExpr(
@@ -256,9 +265,7 @@ immutable(LocalsAndExpr) combineCompares(Alloc)(
 			cmpFirstLocal,
 			allocExpr(alloc, cmpFirst),
 			allocExpr(alloc, then)));
-	return LocalsAndExpr(
-		arrLiteral!(Ptr!ConcreteLocal)(alloc, cmpFirstLocal, matchedLocal),
-		allocExpr(alloc, res));
+	return res;
 }
 
 immutable(ConcreteExpr) genFieldAccess(Alloc)(
@@ -327,8 +334,10 @@ immutable(ConcreteFunExprBody) generateCompareArr(Alloc)(
 
 	immutable ConcreteExpr compareFirst = genCompare(alloc, ctx, compareFunKey, elementType, genFirst(a), genFirst(b));
 	immutable ConcreteExpr recurOnTail = genCall(alloc, compareFun, genTail(a), genTail(b));
-	immutable(LocalsAndExpr) firstThenRecur = combineCompares!Alloc(
+	ArrBuilder!(Ptr!ConcreteLocal) locals;
+	immutable ConcreteExpr firstThenRecur = combineCompares!Alloc(
 		alloc,
+		locals,
 		strLiteral("el"),
 		compareFirst,
 		recurOnTail,
@@ -345,9 +354,9 @@ immutable(ConcreteFunExprBody) generateCompareArr(Alloc)(
 		comparisonType,
 		genSizeEqZero(a),
 		makeCond(alloc, comparisonType, bSizeIsZero, genEqualLiteral(alloc, types), genLessLiteral(alloc, types)),
-		makeCond(alloc, comparisonType, bSizeIsZero, genGreaterLiteral(alloc, types), firstThenRecur.expr));
+		makeCond(alloc, comparisonType, bSizeIsZero, genGreaterLiteral(alloc, types), firstThenRecur));
 
-	return immutable ConcreteFunExprBody(firstThenRecur.locals, res);
+	return immutable ConcreteFunExprBody(finishArr(alloc, locals), res);
 }
 
 immutable(ConcreteExpr) genDecrNat(Alloc)(
@@ -514,10 +523,9 @@ immutable(ConcreteFunExprBody) generateCompareRecord(Alloc)(
 			immutable Ptr!ConcreteField field = ptrAt(fields, size(fields) - 1);
 			immutable ConcreteExpr compareThisField =
 				compareOneField(alloc, ctx, concreteFunKey, field, a, b);
-			immutable LocalsAndExpr le =
-				combineCompares(alloc, field.mangledName, compareThisField, accum, types.comparison);
-			addMany(alloc, locals, le.locals);
-			return recur(le.expr, rtail(fields));
+			immutable ConcreteExpr e =
+				combineCompares(alloc, locals, field.mangledName, compareThisField, accum, types.comparison);
+			return recur(e, rtail(fields));
 		}
 	}
 	immutable ConcreteExpr expr = recur(genEqualLiteral(alloc, types), r.fields);
