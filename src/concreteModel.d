@@ -559,18 +559,20 @@ immutable(Bool) concreteTypeEq(ref immutable ConcreteType a, ref immutable Concr
 }
 
 struct ConcreteField {
+	immutable size_t index;
 	immutable Bool isMutable;
 	immutable Str mangledName;
 	immutable ConcreteType type;
 }
 
 struct ConcreteParam {
+	immutable Opt!size_t index; // not present for ctx/ closure param
 	immutable Str mangledName;
 	immutable ConcreteType type;
 }
 
 immutable(ConcreteParam) withType(ref immutable ConcreteParam a, ref immutable ConcreteType newType) {
-	return immutable ConcreteParam(a.mangledName, newType);
+	return immutable ConcreteParam(a.index, a.mangledName, newType);
 }
 
 struct ConcreteLocal {

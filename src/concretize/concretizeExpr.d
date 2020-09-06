@@ -65,7 +65,7 @@ import model :
 import util.bools : Bool, False;
 import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAsTempArr, arrBuilderSize, finishArr;
-import util.collection.arrUtil : arrLiteral, cat, exists, map;
+import util.collection.arrUtil : arrLiteral, cat, exists, map, mapWithIndex;
 import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutDict;
 import util.collection.str : copyStr, Str, strEq, strEqLiteral, strLiteral;
 import util.memory : allocate, nu;
@@ -279,8 +279,9 @@ immutable(Arr!ConcreteField) concretizeClosureFields(Alloc)(
 	ref immutable Arr!(Ptr!ClosureField) closure,
 	ref immutable TypeArgsScope typeArgsScope,
 ) {
-	return map!ConcreteField(alloc, closure, (ref immutable Ptr!ClosureField it) =>
+	return mapWithIndex!ConcreteField(alloc, closure, (ref immutable Ptr!ClosureField it, immutable size_t index) =>
 		immutable ConcreteField(
+			index,
 			False,
 			mangleName(alloc, it.name),
 			getConcreteType_fromConcretizeCtx(alloc, ctx, it.type, typeArgsScope)));
@@ -313,7 +314,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 			? anyPtrType(alloc, ctx.concretizeCtx)
 			: concreteTypeFromFields_alwaysPointer(alloc, ctx.concretizeCtx, closureFields, typeMangledName));
 	immutable Opt!ConcreteParam closureParam = has(closureType)
-		? some(immutable ConcreteParam(strLiteral("_closure"), force(closureType)))
+		? some(immutable ConcreteParam(none!size_t, strLiteral("_closure"), force(closureType)))
 		: none!ConcreteParam;
 	immutable Opt!(Ptr!ConcreteExpr) closure = e.kind == FunKind.ptr
 		? none!(Ptr!ConcreteExpr)

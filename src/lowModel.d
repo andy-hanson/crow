@@ -82,24 +82,38 @@ struct LowType {
 	immutable this(immutable Union a) { kind_ = Kind.union_; union_ = a; }
 }
 
+immutable(Bool) isNonFunPtrType(ref immutable LowType a) {
+	return Bool(a.kind_ == LowType.Kind.nonFunPtr);
+}
+
+@trusted immutable(LowType.NonFunPtr) asNonFunPtrType(ref immutable LowType a) {
+	assert(isNonFunPtrType(a));
+	return a.nonFunPtr_;
+}
+
 immutable(LowType.FunPtr) asFunPtrType(ref immutable LowType a) {
 	assert(a.kind_ == LowType.Kind.funPtr);
 	return a.funPtr_;
 }
 
+immutable(LowType.Record) asRecordType(ref immutable LowType a) {
+	assert(a.kind_ == LowType.Kind.record);
+	return a.record_;
+}
+
 T matchLowType(T)(
 	ref immutable LowType a,
-	scope T delegate(immutable LowType.FunPtr) @safe @nogc pure nothrow cbBuiltin,
-	scope T delegate(immutable LowType.NonFunPtr) @safe @nogc pure nothrow cbFunPtr,
+	scope T delegate(immutable LowType.FunPtr) @safe @nogc pure nothrow cbFunPtr,
+	scope T delegate(immutable LowType.NonFunPtr) @safe @nogc pure nothrow cbNonFunPtr,
 	scope T delegate(immutable PrimitiveType) @safe @nogc pure nothrow cbPtr,
 	scope T delegate(immutable LowType.Record) @safe @nogc pure nothrow cbRecord,
 	scope T delegate(immutable LowType.Union) @safe @nogc pure nothrow cbUnion,
 ) {
 	final switch (a.kind) {
 		case LowType.Kind.funPtr_:
-			return cbBuiltin(a.funPtr_);
+			return cbFunPtr(a.funPtr_);
 		case LowType.Kind.nonFunPtr:
-			return cbFunPtr(a.nonFunPtr_);
+			return cbNonFunPtr(a.nonFunPtr_);
 		case LowType.Kind.primitive:
 			return cbPtr(a.primitive_);
 		case LowType.Kind.record:
@@ -190,12 +204,6 @@ struct LowExprKind {
 		immutable Arr!LowExpr args;
 	}
 
-	struct Cond {
-		immutable Ptr!LowExpr cond;
-		immutable Ptr!LowExpr then;
-		immutable Ptr!LowExpr else_;
-	}
-
 	struct CreateRecord {
 		immutable Arr!LowExpr args;
 	}
@@ -235,13 +243,20 @@ struct LowExprKind {
 		immutable Ptr!LowParam param;
 	}
 
+	struct PtrCast {
+		immutable Ptr!LowExpr target;
+		immutable LowType newPointeeType;
+	}
+
 	struct RecordFieldAccess {
 		immutable Ptr!LowExpr target;
+		immutable Bool targetIsPointer;
 		immutable Ptr!LowField field;
 	}
 
 	struct RecordFieldSet {
 		immutable Ptr!LowExpr target;
+		immutable Bool targetIsPointer;
 		immutable Ptr!LowField field;
 		immutable Ptr!LowExpr value;
 	}
@@ -258,24 +273,64 @@ struct LowExprKind {
 	struct SpecialConstant {
 		@safe @nogc pure nothrow:
 
-		struct Nat {
+		struct BoolConstant {
+			immutable Bool value;
+		}
+		// For int and nat types
+		struct Integral {
 			immutable size_t value;
 		}
+		struct Null {}
+		struct Void {}
+
 		private:
 		enum Kind {
-			nat,
+			bool_,
+			integral,
+			null_,
+			void_,
 		}
 		immutable Kind kind;
 		union {
-			immutable Nat nat_;
+			immutable BoolConstant bool_;
+			immutable Integral integral_;
+			immutable Null null_;
+			immutable Void void_;
 		}
 		public:
-		immutable this(immutable Nat a) { kind = Kind.nat; nat_ = a; }
+		immutable this(immutable BoolConstant a) { kind = Kind.bool_; bool_ = a; }
+		immutable this(immutable Integral a) { kind = Kind.integral; integral_ = a; }
+		immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }
+		immutable this(immutable Void a) { kind = Kind.void_; void_ = a; }
+	}
+
+	struct Special0Ary {
+		enum Kind {
+			getErrno,
+		}
+		immutable Kind kind;
 	}
 
 	struct SpecialUnary {
 		enum Kind {
+			asAnyPtr,
+			asRef,
 			deref,
+			hardFail,
+			not,
+			ptrTo,
+			refOfVal,
+			toIntFromInt16,
+			toIntFromInt32,
+			toNatFromNat16,
+			toNatFromNat32,
+			toNatFromPtr,
+			unsafeInt64ToNat64,
+			unsafeInt64ToInt16,
+			unsafeInt64ToInt32,
+			unsafeNat64ToInt64,
+			unsafeNat64ToNat32,
+			unsafeNat64ToNat16,
 		}
 		immutable Kind kind;
 		immutable Ptr!LowExpr arg;
@@ -283,18 +338,78 @@ struct LowExprKind {
 
 	struct SpecialBinary {
 		enum Kind {
-			add,
+			add, //TODO:KILL, use typed versions
+			addFloat64,
+			addPtr,
+			and,
 			bitShiftLeftInt32,
+			bitShiftRightInt32,
+			bitwiseAndInt16,
+			bitwiseAndInt32,
+			bitwiseAndInt64,
+			bitwiseAndNat16,
+			bitwiseAndNat32,
+			bitwiseAndNat64,
+			bitwiseOrInt16,
+			bitwiseOrInt32,
+			bitwiseOrInt64,
+			bitwiseOrNat16,
+			bitwiseOrNat32,
+			bitwiseOrNat64,
 			eq,
 			less,
+			mulFloat64,
 			mulNat64,
 			or,
 			sub,
+			subFloat64,
+			subPtrNat,
+			unsafeDivFloat64,
+			unsafeDivInt64,
+			unsafeDivNat64,
+			unsafeModNat64,
+			wrapAddInt16,
+			wrapAddInt32,
+			wrapAddInt64,
+			wrapAddNat16,
+			wrapAddNat32,
+			wrapAddNat64,
+			wrapMulInt16,
+			wrapMulInt32,
+			wrapMulInt64,
+			wrapMulNat16,
+			wrapMulNat32,
+			wrapMulNat64,
+			wrapSubInt16,
+			wrapSubInt32,
+			wrapSubInt64,
+			wrapSubNat16,
+			wrapSubNat32,
+			wrapSubNat64,
 			writeToPtr,
 		}
 		immutable Kind kind;
 		immutable Ptr!LowExpr left;
 		immutable Ptr!LowExpr right;
+	}
+
+	struct SpecialTrinary {
+		enum Kind {
+			if_,
+			compareExchangeStrong,
+		}
+		immutable Kind kind;
+		immutable Ptr!LowExpr p0;
+		immutable Ptr!LowExpr p1;
+		immutable Ptr!LowExpr p2;
+	}
+
+	struct SpecialNAry {
+		enum Kind {
+			callFunPtr,
+		}
+		immutable Kind kind;
+		immutable Arr!LowExpr args;
 	}
 
 	struct StringLiteral {
@@ -304,7 +419,6 @@ struct LowExprKind {
 	private:
 	enum Kind {
 		call,
-		cond,
 		createRecord,
 		convertToUnion,
 		funPtr,
@@ -312,19 +426,22 @@ struct LowExprKind {
 		localRef,
 		match,
 		paramRef,
+		ptrCast,
 		recordFieldAccess,
 		recordFieldSet,
 		seq,
 		sizeOf,
 		specialConstant,
+		special0Ary,
 		specialUnary,
 		specialBinary,
+		specialTrinary,
+		specialNAry,
 		stringLiteral,
 	}
 	immutable Kind kind;
 	union {
 		immutable Call call;
-		immutable Cond cond;
 		immutable CreateRecord createRecord;
 		immutable FunPtr funPtr;
 		immutable ConvertToUnion convertToUnion;
@@ -332,19 +449,22 @@ struct LowExprKind {
 		immutable LocalRef localRef;
 		immutable Match match;
 		immutable ParamRef paramRef;
+		immutable PtrCast ptrCast;
 		immutable RecordFieldAccess recordFieldAccess;
 		immutable RecordFieldSet recordFieldSet;
 		immutable Seq seq;
 		immutable SizeOf sizeOf;
 		immutable SpecialConstant specialConstant;
+		immutable Special0Ary special0Ary;
 		immutable SpecialUnary specialUnary;
 		immutable SpecialBinary specialBinary;
+		immutable SpecialTrinary specialTrinary;
+		immutable SpecialNAry specialNAry;
 		immutable StringLiteral stringLiteral;
 	}
 
 	public:
 	@trusted immutable this(immutable Call a) { kind = Kind.call; call = a; }
-	@trusted immutable this(immutable Cond a) { kind = Kind.cond; cond = a; }
 	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	immutable this(immutable FunPtr a) { kind = Kind.funPtr; funPtr = a; }
 	@trusted immutable this(immutable ConvertToUnion a) { kind = Kind.convertToUnion; convertToUnion = a; }
@@ -352,30 +472,42 @@ struct LowExprKind {
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
 	@trusted immutable this(immutable Match a) { kind = Kind.match; match = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
+	@trusted immutable this(immutable PtrCast a) { kind = Kind.ptrCast; ptrCast = a; }
 	@trusted immutable this(immutable RecordFieldAccess a) { kind = Kind.recordFieldAccess; recordFieldAccess = a; }
 	@trusted immutable this(immutable RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 	@trusted immutable this(immutable Seq a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable SizeOf a) { kind = Kind.sizeOf; sizeOf = a; }
 	@trusted immutable this(immutable SpecialConstant a) { kind = Kind.specialConstant; specialConstant = a; }
+	@trusted immutable this(immutable Special0Ary a) { kind = Kind.special0Ary; special0Ary = a; }
 	@trusted immutable this(immutable SpecialUnary a) { kind = Kind.specialUnary; specialUnary = a; }
 	@trusted immutable this(immutable SpecialBinary a) { kind = Kind.specialBinary; specialBinary = a; }
+	@trusted immutable this(immutable SpecialTrinary a) { kind = Kind.specialTrinary; specialTrinary = a; }
+	@trusted immutable this(immutable SpecialNAry a) { kind = Kind.specialNAry; specialNAry = a; }
 	@trusted immutable this(immutable StringLiteral a) { kind = Kind.stringLiteral; stringLiteral = a; }
 }
 
 T matchSpecialConstant(T)(
 	ref immutable LowExprKind.SpecialConstant a,
-	scope T delegate(immutable LowExprKind.SpecialConstant.Nat) @safe @nogc pure nothrow cbNat,
+	scope T delegate(immutable LowExprKind.SpecialConstant.Bool) @safe @nogc pure nothrow cbBool,
+	scope T delegate(immutable LowExprKind.SpecialConstant.Integral) @safe @nogc pure nothrow cbIntegral,
+	scope T delegate(immutable LowExprKind.SpecialConstant.Null) @safe @nogc pure nothrow cbNull,
+	scope T delegate(immutable LowExprKind.SpecialConstant.Void) @safe @nogc pure nothrow cbVoid,
 ) {
 	final switch (a.kind) {
-		case LowExprKind.SpecialConstant.Kind.nat:
-			return cbNat(a.nat_);
+		case LowExprKind.SpecialConstant.Kind.bool_:
+			return cbBool(a.bool_);
+		case LowExprKind.SpecialConstant.Kind.integral:
+			return cbIntegral(a.integral_);
+		case LowExprKind.SpecialConstant.Kind.null_:
+			return cbNull(a.null_);
+		case LowExprKind.SpecialConstant.Kind.void_:
+			return cbVoid(a.void_);
 	}
 }
 
 T matchLowExprKind(T)(
 	ref immutable LowExprKind a,
 	scope T delegate(ref immutable LowExprKind.Call) @safe @nogc pure nothrow cbCall,
-	scope T delegate(ref immutable LowExprKind.Cond) @safe @nogc pure nothrow cbCond,
 	scope T delegate(ref immutable LowExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable LowExprKind.ConvertToUnion) @safe @nogc pure nothrow cbConvertToUnion,
 	scope T delegate(ref immutable LowExprKind.FunPtr) @safe @nogc pure nothrow cbFunPtr,
@@ -383,49 +515,59 @@ T matchLowExprKind(T)(
 	scope T delegate(ref immutable LowExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
 	scope T delegate(ref immutable LowExprKind.Match) @safe @nogc pure nothrow cbMatch,
 	scope T delegate(ref immutable LowExprKind.ParamRef) @safe @nogc pure nothrow cbParamRef,
+	scope T delegate(ref immutable LowExprKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
 	scope T delegate(ref immutable LowExprKind.RecordFieldAccess) @safe @nogc pure nothrow cbRecordFieldAccess,
 	scope T delegate(ref immutable LowExprKind.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 	scope T delegate(ref immutable LowExprKind.Seq) @safe @nogc pure nothrow cbSeq,
 	scope T delegate(ref immutable LowExprKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
 	scope T delegate(ref immutable LowExprKind.SpecialConstant) @safe @nogc pure nothrow cbSpecialConstant,
+	scope T delegate(ref immutable LowExprKind.Special0Ary) @safe @nogc pure nothrow cbSpecial0Ary,
 	scope T delegate(ref immutable LowExprKind.SpecialUnary) @safe @nogc pure nothrow cbSpecialUnary,
 	scope T delegate(ref immutable LowExprKind.SpecialBinary) @safe @nogc pure nothrow cbSpecialBinary,
+	scope T delegate(ref immutable LowExprKind.SpecialTrinary) @safe @nogc pure nothrow cbSpecialBinary,
+	scope T delegate(ref immutable LowExprKind.SpecialNAry) @safe @nogc pure nothrow cbSpecialNAry,
 	scope T delegate(ref immutable LowExprKind.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
 ) {
 	final switch (a.kind) {
-		case LowExpr.Kind.call:
+		case LowExprKind.Kind.call:
 			return cbCall(a.call);
-		case LowExpr.Kind.cond:
-			return cbCond(a.cond);
-		case LowExpr.Kind.createRecord:
+		case LowExprKind.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
-		case LowExpr.Kind.convertToUnion:
+		case LowExprKind.Kind.convertToUnion:
 			return cbConvertToUnion(a.convertToUnion);
-		case LowExpr.Kind.funPtr:
+		case LowExprKind.Kind.funPtr:
 			return cbFunPtr(a.funPtr);
-		case LowExpr.Kind.let:
+		case LowExprKind.Kind.let:
 			return cbLet(a.let);
-		case LowExpr.Kind.localRef:
+		case LowExprKind.Kind.localRef:
 			return cbLocalRef(a.localRef);
-		case LowExpr.Kind.match:
+		case LowExprKind.Kind.match:
 			return cbMatch(a.match);
-		case LowExpr.Kind.paramRef:
+		case LowExprKind.Kind.paramRef:
 			return cbParamRef(a.paramRef);
-		case LowExpr.Kind.recordFieldAccess:
+		case LowExprKind.Kind.ptrCast:
+			return cbPtrCast(a.ptrCast);
+		case LowExprKind.Kind.recordFieldAccess:
 			return cbRecordFieldAccess(a.recordFieldAccess);
-		case LowExpr.Kind.recordFieldSet:
+		case LowExprKind.Kind.recordFieldSet:
 			return cbRecordFieldSet(a.recordFieldSet);
-		case LowExpr.Kind.seq:
+		case LowExprKind.Kind.seq:
 			return cbSeq(a.seq);
-		case LowExpr.Kind.sizeOf:
+		case LowExprKind.Kind.sizeOf:
 			return cbSizeOf(a.sizeOf);
-		case LowExpr.Kind.specialConstant:
+		case LowExprKind.Kind.specialConstant:
 			return cbSpecialConstant(a.specialConstant);
-		case LowExpr.Kind.specialUnary:
+		case LowExprKind.Kind.Special0Ary:
+			return cbSpecial0Ary(a.special0Ary);
+		case LowExprKind.Kind.specialUnary:
 			return cbSpecialUnary(a.specialUnary);
-		case LowExpr.Kind.specialBinary:
+		case LowExprKind.Kind.specialBinary:
 			return cbSpecialBinary(a.specialBinary);
-		case LowExpr.Kind.stringLiteral:
+		case LowExprKind.Kind.specialTrinary:
+			return cbSpecialTrinary(a.specialTrinary);
+		case LowExprKind.Kind.specialNAry:
+			return cbSpecialNAry(a.specialNAry);
+		case LowExprKind.Kind.stringLiteral:
 			return cbStringLiteral(a.stringLiteral);
 	}
 }
@@ -435,5 +577,7 @@ struct LowProgram {
 	immutable Arr!LowRecord allRecords;
 	immutable Arr!LowUnion allUnions;
 	immutable Arr!LowFun allFuns;
-	immutable Ptr!LowFun main;
+	//TODO: just have a generated 'main' fun instead of separate rtMain and userMain
+	immutable LowFunIndex rtMain;
+	immutable LowFunIndex userMain;
 }

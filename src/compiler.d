@@ -280,7 +280,7 @@ void emitProgram(ref immutable Program program, immutable AbsolutePath cPath) {
 	ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
 	immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
 	LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
-	//immutable LowProgram lowProgram = lower(lowAlloc, concreteProgram);
+	immutable LowProgram lowProgram = lower(lowAlloc, concreteProgram);
 	WriteAlloc writeAlloc = WriteAlloc(ptrTrustMe_mut(mallocator));
 	immutable Str emitted = writeToC(writeAlloc, concreteProgram);
 	writeFileSync(cPath, emitted);

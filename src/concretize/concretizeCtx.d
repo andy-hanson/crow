@@ -50,7 +50,7 @@ import model :
 import util.bools : Bool, False, not, True;
 import util.collection.arr : Arr, at, empty, emptyArr, only, ptrAt, range, sizeEq;
 import util.collection.arrBuilder : add, ArrBuilder;
-import util.collection.arrUtil : arrLiteral, arrMax, compareArr, exists, map;
+import util.collection.arrUtil : arrLiteral, arrMax, compareArr, exists, map, mapWithIndex;
 import util.collection.mutArr : MutArr;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.collection.str : copyStr, Str;
@@ -520,11 +520,13 @@ void initializeConcreteStruct(Alloc)(
 				False);
 		},
 		(ref immutable StructBody.Record r) {
-			immutable Arr!ConcreteField fields = map!ConcreteField(alloc, r.fields, (ref immutable RecordField f) =>
-				immutable ConcreteField(
-					f.isMutable,
-					mangleName(alloc, f.name),
-					getConcreteType(alloc, ctx, f.type, typeArgsScope)));
+			immutable Arr!ConcreteField fields =
+				mapWithIndex!ConcreteField(alloc, r.fields, (ref immutable RecordField f, immutable size_t index) =>
+					immutable ConcreteField(
+						index,
+						f.isMutable,
+						mangleName(alloc, f.name),
+						getConcreteType(alloc, ctx, f.type, typeArgsScope)));
 			return getConcreteStructInfoForFields(r.forcedByValOrRef, fields);
 		},
 		(ref immutable StructBody.Union u) {
@@ -588,6 +590,9 @@ immutable(Arr!ConcreteParam) concretizeParams(Alloc)(
 	ref immutable Arr!Param params,
 	ref immutable TypeArgsScope typeArgsScope,
 ) {
-	return map!ConcreteParam(alloc, params, (ref immutable Param p) =>
-		immutable ConcreteParam(mangleName(alloc, p.name), getConcreteType(alloc, ctx, p.type, typeArgsScope)));
+	return mapWithIndex!ConcreteParam(alloc, params, (ref immutable Param p, immutable size_t index) =>
+		immutable ConcreteParam(
+			some!size_t(index),
+			mangleName(alloc, p.name),
+			getConcreteType(alloc, ctx, p.type, typeArgsScope)));
 }
