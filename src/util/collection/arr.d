@@ -78,6 +78,11 @@ immutable(Bool) empty(T)(const Arr!T a) {
 	return ptrAt(a, index).deref;
 }
 
+@trusted void setAt(T)(ref Arr!T a, immutable size_t index, immutable T value) {
+	assert(index < a.size_);
+	a.begin_[index] = value;
+}
+
 ref immutable(T) first(T)(immutable Arr!T a) {
 	return at(a, 0);
 }

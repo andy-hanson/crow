@@ -49,7 +49,7 @@ import util.collection.arrUtil : arrLiteral, map, mapOp, mapWithOptFirst, slice,
 import util.collection.dict : Dict, getAt, mustGetAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.mutDict : getOrAdd, MutDict;
-import util.collection.str : strEq, strLiteral;
+import util.collection.str : Str, strEq, strLiteral;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
@@ -95,12 +95,26 @@ struct GetLowTypeCtx {
 	MutDict!(immutable Ptr!ConcreteStruct, immutable LowType, comparePtr!ConcreteStruct) concreteStructToPtrType;
 }
 
+struct FunPtrSource {
+	immutable Str mangledName;
+	immutable Ptr!(ConcreteStructBody.Builtin) body_;
+}
+
+struct RecordSource {
+	immutable Str mangledName;
+	immutable Ptr!(ConcreteStructBody.Record) body_;
+}
+
+struct UnionSource {
+	immutable Str mangledName;
+	immutable Ptr!(ConcreteStructBody.Union) body_;
+}
+
 AllLowTypes getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr!ConcreteStruct) allStructs) {
 	DictBuilder!(Ptr!ConcreteStruct, LowType, comparePtr!ConcreteStruct) concreteStructToTypeBuilder;
-	ArrBuilder!(Ptr!(ConcreteStructBody.Builtin)) allFunPtrSources;
-	//ArrBuilder!(Ptr!(ConcreteStructBody.Builtin)) allPtrSources;
-	ArrBuilder!(Ptr!(ConcreteStructBody.Record)) allRecordSources;
-	ArrBuilder!(Ptr!(ConcreteStructBody.Union)) allUnionSources;
+	ArrBuilder!FunPtrSource allFunPtrSources;
+	ArrBuilder!RecordSource allRecordSources;
+	ArrBuilder!UnionSource allUnionSources;
 
 	foreach (immutable Ptr!ConcreteStruct s; arrRange(allStructs)) {
 		immutable Opt!LowType lowType = matchConcreteStructBody!(immutable Opt!LowType)(
@@ -117,7 +131,7 @@ AllLowTypes getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr!Concre
 						return some(immutable LowType(PrimitiveType.float64));
 					case BuiltinStructKind.funPtrN:
 						immutable size_t i = arrBuilderSize(allFunPtrSources);
-						add(alloc, allFunPtrSources, ptrTrustMe(it));
+						add(alloc, allFunPtrSources, immutable FunPtrSource(s.mangledName, ptrTrustMe(it)));
 						return some(immutable LowType(immutable LowType.FunPtr(i)));
 					case BuiltinStructKind.int16:
 						return some(immutable LowType(PrimitiveType.int16));
@@ -139,12 +153,12 @@ AllLowTypes getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr!Concre
 			},
 			(ref immutable ConcreteStructBody.Record it) {
 				immutable size_t i = arrBuilderSize(allRecordSources);
-				add(alloc, allRecordSources, ptrTrustMe(it));
+				add(alloc, allRecordSources, immutable RecordSource(s.mangledName, ptrTrustMe(it)));
 				return some(immutable LowType(immutable LowType.Record(i)));
 			},
 			(ref immutable ConcreteStructBody.Union it) {
 				immutable size_t i = arrBuilderSize(allUnionSources);
-				add(alloc, allUnionSources, ptrTrustMe(it));
+				add(alloc, allUnionSources, immutable UnionSource(s.mangledName, ptrTrustMe(it)));
 				return some(immutable LowType(immutable LowType.Union(i)));
 			});
 		if (has(lowType))
@@ -154,19 +168,20 @@ AllLowTypes getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr!Concre
 	GetLowTypeCtx getLowTypeCtx = GetLowTypeCtx(finishDictShouldBeNoConflict(alloc, concreteStructToTypeBuilder));
 
 	immutable Arr!(LowFunPtrType) allFunPtrs =
-		map(alloc, finishArr(alloc, allFunPtrSources), (ref immutable Ptr!(ConcreteStructBody.Builtin) it) {
-			immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, first(it.typeArgs));
-			immutable Arr!LowType paramTypes = map(alloc, tail(it.typeArgs), (ref immutable ConcreteType typeArg) =>
-				lowTypeFromConcreteType(alloc, getLowTypeCtx, typeArg));
+		map(alloc, finishArr(alloc, allFunPtrSources), (ref immutable FunPtrSource it) {
+			immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, first(it.body_.typeArgs));
+			immutable Arr!LowType paramTypes =
+				map(alloc, tail(it.body_.typeArgs), (ref immutable ConcreteType typeArg) =>
+					lowTypeFromConcreteType(alloc, getLowTypeCtx, typeArg));
 			return immutable LowFunPtrType(returnType, paramTypes);
 		});
 	immutable Arr!LowRecord allRecords =
-		map(alloc, finishArr(alloc, allRecordSources), (ref immutable Ptr!(ConcreteStructBody.Record) it) =>
-			immutable LowRecord(map(alloc, it.fields, (ref immutable ConcreteField field) =>
+		map(alloc, finishArr(alloc, allRecordSources), (ref immutable RecordSource it) =>
+			immutable LowRecord(it.mangledName, map(alloc, it.body_.fields, (ref immutable ConcreteField field) =>
 				immutable LowField(field.mangledName, lowTypeFromConcreteType(alloc, getLowTypeCtx, field.type)))));
 	immutable Arr!LowUnion allUnions =
-		map(alloc, finishArr(alloc, allUnionSources), (ref immutable Ptr!(ConcreteStructBody.Union) it) =>
-			immutable LowUnion(map(alloc, it.members, (ref immutable ConcreteType member) =>
+		map(alloc, finishArr(alloc, allUnionSources), (ref immutable UnionSource it) =>
+			immutable LowUnion(it.mangledName, map(alloc, it.body_.members, (ref immutable ConcreteType member) =>
 				lowTypeFromConcreteType(alloc, getLowTypeCtx, member))));
 
 	return AllLowTypes(allFunPtrs, allRecords, allUnions, getLowTypeCtx);
@@ -866,8 +881,7 @@ immutable(LowExprKind) getOperatorCallExpr(Alloc)(
 			return constant(immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.Void()));
 		case BuiltinFunKind.ptrCast:
 			assert(size(args) == 1 && size(typeArgs) == 2);
-			// Other type arg is 'from'; don't need it
-			return immutable LowExprKind(immutable LowExprKind.PtrCast(allocate(alloc, arg0()), typeArg0()));
+			return immutable LowExprKind(immutable LowExprKind.PtrCast(allocate(alloc, arg0())));
 		case BuiltinFunKind.ptrTo:
 			return unary(LowExprKind.SpecialUnary.Kind.ptrTo);
 		case BuiltinFunKind.refOfVal:
