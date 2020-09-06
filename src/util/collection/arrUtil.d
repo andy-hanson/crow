@@ -313,7 +313,7 @@ immutable(Opt!(Ptr!T)) findPtr(T)(
 	return Arr!Out(res, size(a));
 }
 
-@trusted immutable(Arr!Out) mapWithOptFirst(Out, In, Alloc)(
+@trusted immutable(Arr!Out) mapWithOptFirst2(Out, In, Alloc)(
 	ref Alloc alloc,
 	ref immutable Opt!Out optFirst0,
 	ref immutable Opt!Out optFirst1,
@@ -331,6 +331,16 @@ immutable(Opt!(Ptr!T)) findPtr(T)(
 	foreach (immutable size_t i; 0..size(a))
 		initMemory(res + offset + i, cb(at(a, i)));
 	return immutable Arr!Out(cast(immutable) res, offset + size(a));
+}
+
+@trusted immutable(Arr!Out) mapWithOptFirst(Out, In, Alloc)(
+	ref Alloc alloc,
+	ref immutable Opt!Out optFirst,
+	ref immutable Arr!In a,
+	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+) {
+	immutable Opt!Out opt2 = none!Out;
+	return mapWithOptFirst2!(Out, In, Alloc)(alloc, optFirst, opt2, a, cb);
 }
 
 @trusted immutable(Arr!Out) mapOp(Out, In, Alloc)(

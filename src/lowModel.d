@@ -21,6 +21,7 @@ struct LowUnion {
 }
 
 struct LowFunPtrType {
+	immutable Str mangledName;
 	immutable LowType returnType;
 	immutable Arr!LowType paramTypes;
 }
@@ -253,7 +254,7 @@ struct LowExprKind {
 
 	struct Call {
 		immutable LowFunIndex called;
-		immutable Arr!LowExpr args;
+		immutable Arr!LowExpr args; // Includes implicit ctx arg if needed
 	}
 
 	struct CreateRecord {

@@ -283,8 +283,6 @@ void emitProgram(ref immutable Program program, immutable AbsolutePath cPath) {
 	LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
 	immutable LowProgram lowProgram = lower(lowAlloc, concreteProgram);
 	WriteAlloc writeAlloc = WriteAlloc(ptrTrustMe_mut(mallocator));
-	//immutable Str emitted = writeToC(writeAlloc, concreteProgram);
 	immutable Str emitted = writeToCNew(writeAlloc, lowProgram);
-	todo!void("GOT HERE! YAY!");
 	writeFileSync(cPath, emitted);
 }
