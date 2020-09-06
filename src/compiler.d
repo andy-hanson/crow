@@ -5,7 +5,6 @@ module compiler;
 import core.stdc.stdio : printf;
 
 import backend.writeToC : writeToC;
-import backend.writeToCNew : writeToCNew;
 import concreteModel : ConcreteProgram;
 import concretize.concretize : concretize;
 import diag : Diagnostics;
@@ -283,6 +282,6 @@ void emitProgram(ref immutable Program program, immutable AbsolutePath cPath) {
 	LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
 	immutable LowProgram lowProgram = lower(lowAlloc, concreteProgram);
 	WriteAlloc writeAlloc = WriteAlloc(ptrTrustMe_mut(mallocator));
-	immutable Str emitted = writeToCNew(writeAlloc, lowProgram);
+	immutable Str emitted = writeToC(writeAlloc, lowProgram);
 	writeFileSync(cPath, emitted);
 }
