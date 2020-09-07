@@ -500,16 +500,16 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 			immutable LowExprKind(immutable LowExprKind.SpecialBinary(
 				() {
 					final switch (it.kind) {
-						case ConcreteExpr.SpecialBinary.Kind.add:
-							return LowExprKind.SpecialBinary.Kind.add;
-						case ConcreteExpr.SpecialBinary.Kind.eq:
-							return LowExprKind.SpecialBinary.Kind.eq;
+						case ConcreteExpr.SpecialBinary.Kind.eqNat64:
+							return LowExprKind.SpecialBinary.Kind.eqNat64;
 						case ConcreteExpr.SpecialBinary.Kind.less:
 							return LowExprKind.SpecialBinary.Kind.less;
 						case ConcreteExpr.SpecialBinary.Kind.or:
 							return LowExprKind.SpecialBinary.Kind.or;
-						case ConcreteExpr.SpecialBinary.Kind.sub:
-							return LowExprKind.SpecialBinary.Kind.sub;
+						case ConcreteExpr.SpecialBinary.Kind.wrapAddNat64:
+							return LowExprKind.SpecialBinary.Kind.wrapAddNat64;
+						case ConcreteExpr.SpecialBinary.Kind.wrapSubNat64:
+							return LowExprKind.SpecialBinary.Kind.wrapSubNat64;
 					}
 				}(),
 				allocate(alloc, getLowExpr(alloc, ctx, it.left)),
@@ -526,12 +526,13 @@ immutable(LowExpr) getAllocateExpr(Alloc)(
 	ref immutable LowType ptrType,
 	ref immutable LowExpr size,
 ) {
-	return immutable LowExpr(
+	immutable LowExpr allocate = immutable LowExpr(
 		ptrType,
 		range,
 		immutable LowExprKind(immutable LowExprKind.Call(
 			getLowFunIndex(ctx, allocFun),
 			arrLiteral!LowExpr(alloc, getCtxParamRef(alloc, ctx, range), size))));
+	return ptrCast(alloc, ptrType, range, allocate);
 }
 
 immutable(LowExprKind) getAllocExpr(Alloc)(
@@ -546,11 +547,7 @@ immutable(LowExprKind) getAllocExpr(Alloc)(
 	immutable LowType ptrType = getLowPtrType(alloc, typeCtx(ctx), pointeeType);
 	immutable Ptr!LowLocal local = addTempLocal(alloc, ctx, ptrType);
 	immutable LowExpr sizeofT = getSizeOf(range, pointeeType);
-	immutable LowExpr allocatePtr = ptrCast(
-		alloc,
-		ptrType,
-		range,
-		getAllocateExpr!Alloc(alloc, ctx, range, a.alloc, ptrType, sizeofT));
+	immutable LowExpr allocatePtr = getAllocateExpr!Alloc(alloc, ctx, range, a.alloc, ptrType, sizeofT);
 	immutable Ptr!LowExpr getTemp = allocate(alloc, localRef(alloc, range, local));
 	immutable LowExpr setTemp = writeToPtr(alloc, range, getTemp, inner);
 	return immutable LowExprKind(immutable LowExprKind.Let(
@@ -596,11 +593,7 @@ immutable(LowExprKind) getCreateArrExpr(Alloc)(
 	immutable LowExpr elementSize = getSizeOf(range, elementType);
 	immutable LowExpr nElements = constantNat64(range, size(a.args));
 	immutable LowExpr sizeBytes = mulNat64(alloc, range, elementSize, nElements);
-	immutable LowExpr allocatePtr = ptrCast(
-		alloc,
-		elementPtrType,
-		range,
-		getAllocateExpr(alloc, ctx, range, a.alloc, elementPtrType, sizeBytes));
+	immutable LowExpr allocatePtr = getAllocateExpr(alloc, ctx, range, a.alloc, elementPtrType, sizeBytes);
 	immutable Ptr!LowLocal temp = addTempLocal(alloc, ctx, elementPtrType);
 	immutable LowExpr getTemp = localRef(alloc, range, temp);
 	immutable(LowExpr) recur(immutable LowExpr cur, immutable size_t prevIndex) {

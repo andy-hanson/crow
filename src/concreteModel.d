@@ -830,11 +830,11 @@ struct ConcreteExpr {
 
 	struct SpecialBinary {
 		enum Kind {
-			add,
-			eq,
+			eqNat64,
 			less,
 			or,
-			sub,
+			wrapAddNat64,
+			wrapSubNat64,
 		}
 		immutable Kind kind;
 		immutable Ptr!ConcreteExpr left;

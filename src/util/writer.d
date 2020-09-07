@@ -131,51 +131,8 @@ void writeHyperlink(Alloc)(ref Writer!Alloc writer, immutable Str url, immutable
 	}
 }
 
-struct WriterWithIndent(Alloc) {
-	Ptr!(Writer!Alloc) writer;
-	private:
-	u16 indent = 0;
-}
-
 void newline(Alloc)(ref Writer!Alloc writer, immutable size_t indent) {
 	writeChar(writer, '\n');
 	foreach (immutable size_t _; 0..indent)
 		writeChar(writer, '\t');
 }
-
-void newline(Alloc)(ref WriterWithIndent!Alloc writer) {
-	newline(writer.writer, writer.indent);
-}
-
-void decrIndent(Alloc)(ref WriterWithIndent!Alloc writer) {
-	assert(writer.indent != 0);
-	writer.indent--;
-}
-
-void incrIndent(Alloc)(ref WriterWithIndent!Alloc writer) {
-	writer.indent++;
-}
-
-void indent(Alloc)(ref WriterWithIndent!Alloc writer) {
-	writer.incrIndent;
-	writer.newline();
-}
-
-void dedent(Alloc)(ref WriterWithIndent!Alloc writer) {
-	writer.decrIndent;
-	writer.newline();
-}
-
-void writeChar(Alloc)(ref WriterWithIndent!Alloc writer, immutable char c) {
-	writer.writer.writeChar(c);
-}
-
-void writeStatic(Alloc)(ref WriterWithIndent!Alloc writer, immutable string text) {
-	writeStatic(writer.writer, text);
-}
-
-void writeStr(Alloc)(ref WriterWithIndent!Alloc writer, immutable Str s) {
-	writer.writer.writeStr(s);
-}
-
-

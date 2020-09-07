@@ -369,7 +369,7 @@ immutable(ConcreteExpr) genDecrNat(Alloc)(
 		natType,
 		SourceRange.empty,
 		immutable ConcreteExpr.SpecialBinary(
-			ConcreteExpr.SpecialBinary.Kind.sub,
+			ConcreteExpr.SpecialBinary.Kind.wrapSubNat64,
 			allocExpr(alloc, a),
 			allocExpr(alloc, immutable ConcreteExpr(
 				natType,
@@ -387,7 +387,7 @@ immutable(ConcreteExpr) genNatEqNat(Alloc)(
 		boolType,
 		SourceRange.empty,
 		immutable ConcreteExpr.SpecialBinary(
-			ConcreteExpr.SpecialBinary.Kind.eq,
+			ConcreteExpr.SpecialBinary.Kind.eqNat64,
 			allocExpr(alloc, a),
 			allocExpr(alloc, b)));
 }
@@ -417,7 +417,7 @@ immutable(ConcreteExpr) genIncrPointer(Alloc)(
 		ptrType,
 		SourceRange.empty,
 		immutable ConcreteExpr.SpecialBinary(
-			ConcreteExpr.SpecialBinary.Kind.add,
+			ConcreteExpr.SpecialBinary.Kind.wrapAddNat64,
 			allocExpr(alloc, ptr),
 			allocExpr(alloc, immutable ConcreteExpr(
 				natType,

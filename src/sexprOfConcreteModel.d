@@ -331,20 +331,20 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 			tataRecord(
 				alloc,
 				"special",
-				tataSym(() {
+				tataStr(strLiteral(() {
 					final switch (it.kind) {
-						case ConcreteExpr.SpecialBinary.Kind.add:
-							return "add";
-						case ConcreteExpr.SpecialBinary.Kind.eq:
-							return "eq";
+						case ConcreteExpr.SpecialBinary.Kind.eqNat64:
+							return "eqNat64";
 						case ConcreteExpr.SpecialBinary.Kind.less:
 							return "less";
 						case ConcreteExpr.SpecialBinary.Kind.or:
 							return "or";
-						case ConcreteExpr.SpecialBinary.Kind.sub:
-							return "sub";
+						case ConcreteExpr.SpecialBinary.Kind.wrapAddNat64:
+							return "wrapAddNat64";
+						case ConcreteExpr.SpecialBinary.Kind.wrapSubNat64:
+							return "wrapSubNat64";
 					}
-				}()),
+				}())),
 				tataOfConcreteExpr(alloc, it.left),
 				tataOfConcreteExpr(alloc, it.right)),
 		(ref immutable ConcreteExpr.StringLiteral it) =>

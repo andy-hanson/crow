@@ -1000,9 +1000,12 @@ program(
 			expr-body(
 				[]
 				cond(
-					special(less, param-ref("a"), param-ref("b"))
+					special("less", param-ref("a"), param-ref("b"))
 					to-union(0, record([]))
-					cond(special(less, param-ref("b"), param-ref("a")), to-union(2, record([])), to-union(1, record([]))))))
+					cond(
+						special("less", param-ref("b"), param-ref("a"))
+						to-union(2, record([]))
+						to-union(1, record([]))))))
 		fun(false, "true__bool", type(false, "bool"), none, [], builtin(operator, "true", []))
 		fun(
 			false
@@ -1156,9 +1159,12 @@ program(
 			expr-body(
 				[]
 				cond(
-					special(less, param-ref("a"), param-ref("b"))
+					special("less", param-ref("a"), param-ref("b"))
 					to-union(0, record([]))
-					cond(special(less, param-ref("b"), param-ref("a")), to-union(2, record([])), to-union(1, record([]))))))
+					cond(
+						special("less", param-ref("b"), param-ref("a"))
+						to-union(2, record([]))
+						to-union(1, record([]))))))
 		fun(false, "size_of__nat", type(false, "nat"), none, [], builtin(operator, "size-of", [type(false, "char")]))
 		fun(false, "size_of__nat", type(false, "nat"), none, [], builtin(operator, "size-of", [type(false, "byte")]))
 		fun(
@@ -1202,9 +1208,12 @@ program(
 			expr-body(
 				[]
 				cond(
-					special(less, param-ref("a"), param-ref("b"))
+					special("less", param-ref("a"), param-ref("b"))
 					to-union(0, record([]))
-					cond(special(less, param-ref("b"), param-ref("a")), to-union(2, record([])), to-union(1, record([]))))))
+					cond(
+						special("less", param-ref("b"), param-ref("a"))
+						to-union(2, record([]))
+						to-union(1, record([]))))))
 		fun(
 			false
 			"unsafe_to_int___int__nat"
@@ -1632,9 +1641,12 @@ program(
 			expr-body(
 				[]
 				cond(
-					special(less, param-ref("a"), param-ref("b"))
+					special("less", param-ref("a"), param-ref("b"))
 					to-union(0, record([]))
-					cond(special(less, param-ref("b"), param-ref("a")), to-union(2, record([])), to-union(1, record([]))))))
+					cond(
+						special("less", param-ref("b"), param-ref("a"))
+						to-union(2, record([]))
+						to-union(1, record([]))))))
 		fun(false, "zero__int32", type(false, "int32"), none, [], builtin(operator, "zero (int-32)", []))
 		fun(
 			false
@@ -2428,9 +2440,12 @@ program(
 			expr-body(
 				[]
 				cond(
-					special(less, param-ref("a"), param-ref("b"))
+					special("less", param-ref("a"), param-ref("b"))
 					to-union(0, record([]))
-					cond(special(less, param-ref("b"), param-ref("a")), to-union(2, record([])), to-union(1, record([]))))))
+					cond(
+						special("less", param-ref("b"), param-ref("a"))
+						to-union(2, record([]))
+						to-union(1, record([]))))))
 		fun(
 			false
 			"longjmp"

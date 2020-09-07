@@ -14,16 +14,12 @@ import util.types : safeIntFromSizeT;
 import util.util : todo;
 import util.verify : unreachable;
 import util.writer :
-	dedent,
-	incrIndent,
-	indent,
 	newline,
 	writeChar,
 	writeNat,
 	Writer,
 	writeStatic,
 	writeStr,
-	WriterWithIndent,
 	writeWithCommas;
 
 immutable(Sexpr) tataRecord(immutable Sym name, immutable Arr!Sexpr children) {
@@ -296,11 +292,8 @@ void writeSexpr(Alloc)(
 		},
 		(immutable Sym s) {
 			writeSym(writer, s);
-		},
-	);
+		});
 }
-
-private:
 
 // Returns the size remaining, but all negative numbers considered equivalent
 immutable(int) measureSexprSingleLine(ref immutable Sexpr a, immutable int available) {

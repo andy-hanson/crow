@@ -882,7 +882,6 @@ void writeSpecialBinary(Alloc)(
 	}
 
 	final switch (it.kind) {
-		case LowExprKind.SpecialBinary.Kind.add:
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 		case LowExprKind.SpecialBinary.Kind.addPtr:
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt16:
@@ -918,7 +917,7 @@ void writeSpecialBinary(Alloc)(
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
 			operator("|");
 			break;
-		case LowExprKind.SpecialBinary.Kind.eq:
+		case LowExprKind.SpecialBinary.Kind.eqNat64:
 			operator("==");
 			break;
 		case LowExprKind.SpecialBinary.Kind.less:
@@ -937,7 +936,6 @@ void writeSpecialBinary(Alloc)(
 		case LowExprKind.SpecialBinary.Kind.or:
 			operator("||");
 			break;
-		case LowExprKind.SpecialBinary.Kind.sub:
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 		case LowExprKind.SpecialBinary.Kind.subPtrNat:
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:

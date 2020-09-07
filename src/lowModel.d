@@ -390,7 +390,6 @@ struct LowExprKind {
 
 	struct SpecialBinary {
 		enum Kind {
-			add, //TODO:KILL, use typed versions
 			addFloat64,
 			addPtr,
 			and,
@@ -408,12 +407,11 @@ struct LowExprKind {
 			bitwiseOrNat16,
 			bitwiseOrNat32,
 			bitwiseOrNat64,
-			eq, // TODO:KILL, use typed versions
+			eqNat64,
 			less, // TODO:KILL, use typed versions
 			mulFloat64,
 			mulNat64,
 			or,
-			sub, // TODO:KILL, use typed versions
 			subFloat64,
 			subPtrNat,
 			unsafeDivFloat64,
