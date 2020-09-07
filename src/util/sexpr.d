@@ -224,12 +224,13 @@ immutable(Ptr!Sexpr) allocSexpr(Alloc)(ref Alloc alloc, immutable Sexpr s) {
 }
 
 void writeSexpr(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
-	writeSexpr(writer, 0, 120, a);
+	writeSexpr(writer, 0, maxWidth, a);
 }
 
 private:
 
 immutable int indentSize = 4;
+immutable size_t maxWidth = 120;
 
 void writeSexpr(Alloc)(
 	ref Writer!Alloc writer,
@@ -256,16 +257,19 @@ void writeSexpr(Alloc)(
 		(immutable size_t s) {
 			writeNat(writer, s);
 		},
-		(ref immutable SexprNamedRecord s) {
-			writeSym(writer, s.name);
-			writeChar(writer, '(');
-			foreach (ref immutable NameAndSexpr element; s.children.range) {
-				newline(writer, indent + 1);
-				writeSym(writer, element.name);
-				writeStatic(writer, ": ");
-				writeSexpr(writer, indent + 1, availableWidth - indentSize, element.value);
-			}
-			writeChar(writer, ')');
+		(ref immutable SexprNamedRecord it) {
+			if (measureSexprNamedRecord(it, availableWidth) < 0) {
+				writeSym(writer, it.name);
+				writeChar(writer, '(');
+				foreach (ref immutable NameAndSexpr element; it.children.range) {
+					newline(writer, indent + 1);
+					writeSym(writer, element.name);
+					writeStatic(writer, ": ");
+					writeSexpr(writer, indent + 1, availableWidth - indentSize, element.value);
+				}
+				writeChar(writer, ')');
+			} else
+				writeSexprNamedRecordSingleLine(writer, it);
 		},
 		(immutable Opt!(Ptr!Sexpr) s) {
 			if (has(s)) {
@@ -306,8 +310,7 @@ immutable(int) measureSexprSingleLine(ref immutable Sexpr a, immutable int avail
 		(immutable size_t s) =>
 			available - measureSexprNat(s),
 		(ref immutable SexprNamedRecord s) =>
-			// Never format these on one line
-			-1,
+			measureSexprNamedRecord(s, available),
 		(immutable Opt!(Ptr!Sexpr) s) =>
 			has(s)
 				? measureSexprSingleLine(force(s), available - safeIntFromSizeT("some()".length))
@@ -321,23 +324,42 @@ immutable(int) measureSexprSingleLine(ref immutable Sexpr a, immutable int avail
 }
 
 immutable(int) measureSexprArr(ref immutable Arr!Sexpr a, immutable int available) {
-	return measureCommaSeparatedChildren(a, available);
+	return measureCommaSeparatedChildren(a, available - safeIntFromSizeT("[]".length));
+}
+
+immutable(int) measureSexprNamedRecord(ref immutable SexprNamedRecord a, immutable int available) {
+	return measureSexprNamedRecordRecur(
+		a.children,
+		available - safeIntFromSizeT(symSize(a.name)) - safeIntFromSizeT("()".length));
+}
+immutable(int) measureSexprNamedRecordRecur(immutable Arr!NameAndSexpr xs, immutable int available) {
+	if (empty(xs))
+		return available;
+	else {
+		immutable int availableAfterFirst = measureSexprSingleLine(
+			first(xs).value,
+			available - safeIntFromSizeT(symSize(first(xs).name)) - safeIntFromSizeT(": ".length));
+		return availableAfterFirst < 0 || empty(tail(xs))
+			? availableAfterFirst
+			: measureSexprNamedRecordRecur(tail(xs), availableAfterFirst - safeIntFromSizeT(", ".length));
+	}
 }
 
 immutable(int) measureSexprRecord(ref immutable SexprRecord a, immutable int available) {
-	return measureCommaSeparatedChildren(a.children, available - safeIntFromSizeT(symSize(a.name)));
+	return measureCommaSeparatedChildren(
+		a.children,
+		available - safeIntFromSizeT(symSize(a.name)) - safeIntFromSizeT("()".length));
 }
 
-immutable(int) measureCommaSeparatedChildren(immutable Arr!Sexpr s, immutable int available) {
-	immutable int res = available - 2; // for '[' and ']'
-	if (res < 0 || empty(s)) return res;
-	immutable(int) recur(immutable Arr!Sexpr xs, immutable int remaining) {
-		if (empty(xs)) return remaining;
-		immutable int x = remaining - 2; // For ", "
-		return x < 0 ? x : recur(tail(xs), measureSexprSingleLine(first(xs), x));
+immutable(int) measureCommaSeparatedChildren(immutable Arr!Sexpr xs, immutable int available) {
+	if (empty(xs))
+		return available;
+	else {
+		immutable int availableAfterFirst = measureSexprSingleLine(first(xs), available);
+		return availableAfterFirst < 0 || empty(tail(xs))
+			? availableAfterFirst
+			: measureCommaSeparatedChildren(tail(xs), availableAfterFirst - safeIntFromSizeT(", ".length));
 	}
-	immutable int res2 = measureSexprSingleLine(first(s), res);
-	return recur(tail(s), res2);
 }
 
 void writeSexprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
@@ -353,7 +375,7 @@ void writeSexprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a)
 			writeNat(writer, s);
 		},
 		(ref immutable SexprNamedRecord s) {
-			unreachable!void(); // Had infinite measure, so we'll never format to single line
+			writeSexprNamedRecordSingleLine(writer, s);
 		},
 		(immutable Opt!(Ptr!Sexpr) s) {
 			if (has(s)) {
@@ -378,6 +400,17 @@ void writeSexprArrSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Arr!S
 	writeChar(writer, '[');
 	writeCommaSeparatedChildren(writer, a);
 	writeChar(writer, ']');
+}
+
+void writeSexprNamedRecordSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable SexprNamedRecord a) {
+	writeSym(writer, a.name);
+	writeChar(writer, '(');
+	writeWithCommas(writer, a.children, (ref immutable NameAndSexpr child) {
+		writeSym(writer, child.name);
+		writeStatic(writer, ": ");
+		writeSexprSingleLine(writer, child.value);
+	});
+	writeChar(writer, ')');
 }
 
 void writeSexprRecordSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable SexprRecord a) {

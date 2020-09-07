@@ -42,6 +42,17 @@ first ?t(a arr ?t)
 	forbid: a empty?
 	a at zero
 
+first-some opt ?out(a arr ?in, cb fun-mut1 opt<?out> ?in)
+	when
+		a empty?
+			none
+		else
+			match cb call a.first
+				none
+					a.tail first-some cb
+				some s
+					s
+
 last ?t(a arr ?t)
 	forbid: a empty?
 	a at a.size.decr

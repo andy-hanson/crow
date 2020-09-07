@@ -4,9 +4,10 @@ run-ast-and-model-tests result str arr<failure>(path str, path-to-noze str, env 
 	tests = path list-ast-and-model-tests
 	failures = tests flat-map-with-max-size options.max-failures, \test
 		options.print-tests? if ("noze ast " + test print-sync), pass
-		"ast" run-single-ast-or-model-test path-to-noze, env, test, options.overwrite-output? arr-or \
-			"model" run-single-ast-or-model-test path-to-noze, env, test, options.overwrite-output? arr-or \
-				"concrete-model" run-single-ast-or-model-test path-to-noze, env, test, options.overwrite-output?
+		op = (new-arr<str> "ast", "model", "concrete-model", "low-model") first-some<arr<failure>, str> \name
+			a = name run-single-ast-or-model-test path-to-noze, env, test, options.overwrite-output?
+			a.empty? if none, a.some
+		op opt-or {empty-arr}
 	when
 		failures has?
 			failures err
@@ -14,10 +15,6 @@ run-ast-and-model-tests result str arr<failure>(path str, path-to-noze str, env 
 			ok: "ran " + tests.size.to-str + " ast tests"
 
 private
-
-| TODO:MOVE
-arr-or arr ?a(a arr ?a, b fun-mut0 arr<?a>)
-	a.has? if a, b.call
 
 list-ast-and-model-tests arr str(path str) summon
 	res = new-mut-arr<str>

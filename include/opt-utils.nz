@@ -1,11 +1,18 @@
 import .bootstrap .exceptions
 
+opt-or ?t(a opt ?t, default fun-mut0 ?t)
+	match a
+		none n
+			default call
+		some s
+			s value
+
 force ?t(a opt ?t)
 	match a
 		none n
 			fail: "tried to force empty option"
 		some s
-			s.value
+			s value
 
 then opt ?out(a opt ?in, f fun-mut1 opt<?out> ?in)
 	match a

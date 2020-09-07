@@ -222,6 +222,8 @@ immutable(PrintKind) parsePrintKind(immutable Str a) {
 		? PrintKind.model
 		: strEqLiteral(a, "concrete-model")
 		? PrintKind.concreteModel
+		: strEqLiteral(a, "low-model")
+		? PrintKind.lowModel
 		: todo!(immutable PrintKind)("parsePrintKind");
 }
 

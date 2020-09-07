@@ -10,44 +10,21 @@ program(
 					field(false, "actor_id", type(false, "nat"))
 					field(false, "gc_ctx_ptr", type(false, "ptr__byte"))
 					field(false, "exception_ctx_ptr", type(false, "ptr__byte"))]))
-		struct(
-			name: "byte"
-			body: builtin(byte, 1, []))
-		struct(
-			name: "ptr__byte"
-			body: builtin(ptr, 8, [type(false, "byte")]))
-		struct(
-			name: "nat"
-			body: builtin(nat-64, 8, []))
-		struct(
-			name: "int32"
-			body: builtin(int-32, 4, []))
-		struct(
-			name: "char"
-			body: builtin(char, 1, []))
-		struct(
-			name: "ptr__char"
-			body: builtin(ptr, 8, [type(false, "char")]))
-		struct(
-			name: "ptr__ptr__char"
-			body: builtin(ptr, 8, [type(false, "ptr__char")]))
+		struct(name: "byte", body: builtin(byte, 1, []))
+		struct(name: "ptr__byte", body: builtin(ptr, 8, [type(false, "byte")]))
+		struct(name: "nat", body: builtin(nat-64, 8, []))
+		struct(name: "int32", body: builtin(int-32, 4, []))
+		struct(name: "char", body: builtin(char, 1, []))
+		struct(name: "ptr__char", body: builtin(ptr, 8, [type(false, "char")]))
+		struct(name: "ptr__ptr__char", body: builtin(ptr, 8, [type(false, "ptr__char")]))
 		struct(
 			name: "fut__int32"
 			mut?: true
 			ptr?: true
 			body: record([field(false, "lk", type(false, "lock")), field(true, "state", type(false, "fut_state__int32"))]))
-		struct(
-			name: "lock"
-			ptr?: true
-			body: record([field(false, "is_locked", type(false, "_atomic_bool"))]))
-		struct(
-			name: "_atomic_bool"
-			mut?: true
-			ptr?: true
-			body: record([field(true, "value", type(false, "bool"))]))
-		struct(
-			name: "bool"
-			body: builtin(bool, 1, []))
+		struct(name: "lock", ptr?: true, body: record([field(false, "is_locked", type(false, "_atomic_bool"))]))
+		struct(name: "_atomic_bool", mut?: true, ptr?: true, body: record([field(true, "value", type(false, "bool"))]))
+		struct(name: "bool", body: builtin(bool, 1, []))
 		struct(
 			name: "fut_state__int32"
 			body: union(
@@ -65,25 +42,15 @@ program(
 				[
 					field(false, "cb", type(false, "fun_mut1___void__result__int32__exception"))
 					field(false, "next_node", type(false, "opt__ptr_fut_callback_node__int32"))]))
-		struct(
-			name: "_void"
-			body: builtin(void, 1, []))
-		struct(
-			name: "exception"
-			body: record([field(false, "message", type(false, "arr__char"))]))
+		struct(name: "_void", body: builtin(void, 1, []))
+		struct(name: "exception", body: record([field(false, "message", type(false, "arr__char"))]))
 		struct(
 			name: "arr__char"
 			special: special(arr, type(false, "char"))
 			body: record([field(false, "size", type(false, "nat")), field(false, "data", type(false, "ptr__char"))]))
-		struct(
-			name: "result__int32__exception"
-			body: union([type(false, "ok__int32"), type(false, "err__exception")]))
-		struct(
-			name: "ok__int32"
-			body: record([field(false, "value", type(false, "int32"))]))
-		struct(
-			name: "err__exception"
-			body: record([field(false, "value", type(false, "exception"))]))
+		struct(name: "result__int32__exception", body: union([type(false, "ok__int32"), type(false, "err__exception")]))
+		struct(name: "ok__int32", body: record([field(false, "value", type(false, "int32"))]))
+		struct(name: "err__exception", body: record([field(false, "value", type(false, "exception"))]))
 		struct(
 			name: "fun_mut1___void__result__int32__exception"
 			body: record(
@@ -106,22 +73,16 @@ program(
 		struct(
 			name: "opt__ptr_fut_callback_node__int32"
 			body: union([type(false, "none"), type(false, "some__ptr_fut_callback_node__int32")]))
-		struct(
-			name: "none"
-			body: record([]))
+		struct(name: "none", body: record([]))
 		struct(
 			name: "some__ptr_fut_callback_node__int32"
 			body: record([field(false, "value", type(true, "fut_callback_node__int32"))]))
-		struct(
-			name: "fut_state_resolved__int32"
-			body: record([field(false, "value", type(false, "int32"))]))
+		struct(name: "fut_state_resolved__int32", body: record([field(false, "value", type(false, "int32"))]))
 		struct(
 			name: "arr__arr__char"
 			special: special(arr, type(false, "arr__char"))
 			body: record([field(false, "size", type(false, "nat")), field(false, "data", type(false, "ptr__arr__char"))]))
-		struct(
-			name: "ptr__arr__char"
-			body: builtin(ptr, 8, [type(false, "arr__char")]))
+		struct(name: "ptr__arr__char", body: builtin(ptr, 8, [type(false, "arr__char")]))
 		struct(
 			name: "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
 			body: builtin(fun-ptr, 8, [type(true, "fut__int32"), type(true, "ctx"), type(false, "arr__arr__char")]))
@@ -169,12 +130,8 @@ program(
 			mut?: true
 			ptr?: true
 			body: record([field(true, "gc", type(true, "gc")), field(true, "next_ctx", type(false, "opt__ptr_gc_ctx"))]))
-		struct(
-			name: "opt__ptr_gc_ctx"
-			body: union([type(false, "none"), type(false, "some__ptr_gc_ctx")]))
-		struct(
-			name: "some__ptr_gc_ctx"
-			body: record([field(false, "value", type(true, "gc_ctx"))]))
+		struct(name: "opt__ptr_gc_ctx", body: union([type(false, "none"), type(false, "some__ptr_gc_ctx")]))
+		struct(name: "some__ptr_gc_ctx", body: record([field(false, "value", type(true, "gc_ctx"))]))
 		struct(
 			name: "task"
 			body: record([field(false, "actor_id", type(false, "nat")), field(false, "fun", type(false, "fun_mut0___void"))]))
@@ -216,9 +173,7 @@ program(
 					field(true, "size", type(false, "nat"))
 					field(true, "capacity", type(false, "nat"))
 					field(true, "data", type(false, "ptr__nat"))]))
-		struct(
-			name: "ptr__nat"
-			body: builtin(ptr, 8, [type(false, "nat")]))
+		struct(name: "ptr__nat", body: builtin(ptr, 8, [type(false, "nat")]))
 		struct(
 			name: "thread_safe_counter"
 			mut?: true
@@ -240,32 +195,18 @@ program(
 			name: "arr__ptr_vat"
 			special: special(arr, type(true, "vat"))
 			body: record([field(false, "size", type(false, "nat")), field(false, "data", type(false, "ptr__ptr_vat"))]))
-		struct(
-			name: "ptr__ptr_vat"
-			body: builtin(ptr, 8, [type(true, "vat")]))
+		struct(name: "ptr__ptr_vat", body: builtin(ptr, 8, [type(true, "vat")]))
 		struct(
 			name: "condition"
 			mut?: true
 			ptr?: true
 			body: record([field(false, "lk", type(false, "lock")), field(true, "value", type(false, "nat"))]))
-		struct(
-			name: "comparison"
-			body: union([type(false, "less"), type(false, "equal"), type(false, "greater")]))
-		struct(
-			name: "less"
-			body: record([]))
-		struct(
-			name: "equal"
-			body: record([]))
-		struct(
-			name: "greater"
-			body: record([]))
-		struct(
-			name: "ptr__bool"
-			body: builtin(ptr, 8, [type(false, "bool")]))
-		struct(
-			name: "_int"
-			body: builtin(int-64, 8, []))
+		struct(name: "comparison", body: union([type(false, "less"), type(false, "equal"), type(false, "greater")]))
+		struct(name: "less", body: record([]))
+		struct(name: "equal", body: record([]))
+		struct(name: "greater", body: record([]))
+		struct(name: "ptr__bool", body: builtin(ptr, 8, [type(false, "bool")]))
+		struct(name: "_int", body: builtin(int-64, 8, []))
 		struct(
 			name: "exception_ctx"
 			mut?: true
@@ -293,9 +234,7 @@ program(
 		struct(
 			name: "bytes128"
 			body: record([field(false, "n0", type(false, "bytes64")), field(false, "n1", type(false, "bytes64"))]))
-		struct(
-			name: "ptr__jmp_buf_tag"
-			body: builtin(ptr, 8, [type(false, "jmp_buf_tag")]))
+		struct(name: "ptr__jmp_buf_tag", body: builtin(ptr, 8, [type(false, "jmp_buf_tag")]))
 		struct(
 			name: "thread_local_stuff"
 			ptr?: true
@@ -348,12 +287,8 @@ program(
 				[
 					field(false, "cb", type(false, "fun_mut1___void__result___void__exception"))
 					field(false, "next_node", type(false, "opt__ptr_fut_callback_node___void"))]))
-		struct(
-			name: "result___void__exception"
-			body: union([type(false, "ok___void"), type(false, "err__exception")]))
-		struct(
-			name: "ok___void"
-			body: record([field(false, "value", type(false, "_void"))]))
+		struct(name: "result___void__exception", body: union([type(false, "ok___void"), type(false, "err__exception")]))
+		struct(name: "ok___void", body: record([field(false, "value", type(false, "_void"))]))
 		struct(
 			name: "fun_mut1___void__result___void__exception"
 			body: record(
@@ -379,9 +314,7 @@ program(
 		struct(
 			name: "some__ptr_fut_callback_node___void"
 			body: record([field(false, "value", type(true, "fut_callback_node___void"))]))
-		struct(
-			name: "fut_state_resolved___void"
-			body: record([field(false, "value", type(false, "_void"))]))
+		struct(name: "fut_state_resolved___void", body: record([field(false, "value", type(false, "_void"))]))
 		struct(
 			name: "fun_ref0__int32"
 			body: record(
@@ -418,12 +351,8 @@ program(
 				fun-ptr
 				8
 				[type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "_void")]))
-		struct(
-			name: "opt__ptr__byte"
-			body: union([type(false, "none"), type(false, "some__ptr__byte")]))
-		struct(
-			name: "some__ptr__byte"
-			body: record([field(false, "value", type(false, "ptr__byte"))]))
+		struct(name: "opt__ptr__byte", body: union([type(false, "none"), type(false, "some__ptr__byte")]))
+		struct(name: "some__ptr__byte", body: record([field(false, "value", type(false, "ptr__byte"))]))
 		struct(
 			name: "then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure"
 			ptr?: true
@@ -533,11 +462,7 @@ program(
 		struct(
 			name: "fun_ptr1__ptr__byte__ptr__byte"
 			body: builtin(fun-ptr, 8, [type(false, "ptr__byte"), type(false, "ptr__byte")]))
-		struct(
-			name: "cell__nat"
-			mut?: true
-			ptr?: true
-			body: record([field(true, "value", type(false, "nat"))]))
+		struct(name: "cell__nat", mut?: true, ptr?: true, body: record([field(true, "value", type(false, "nat"))]))
 		struct(
 			name: "cell__ptr__byte"
 			mut?: true
@@ -546,48 +471,26 @@ program(
 		struct(
 			name: "chosen_task"
 			body: record([field(false, "vat", type(true, "vat")), field(false, "task_or_gc", type(false, "opt__task"))]))
-		struct(
-			name: "opt__task"
-			body: union([type(false, "none"), type(false, "some__task")]))
-		struct(
-			name: "some__task"
-			body: record([field(false, "value", type(false, "task"))]))
-		struct(
-			name: "no_chosen_task"
-			body: record([field(false, "last_thread_out", type(false, "bool"))]))
+		struct(name: "opt__task", body: union([type(false, "none"), type(false, "some__task")]))
+		struct(name: "some__task", body: record([field(false, "value", type(false, "task"))]))
+		struct(name: "no_chosen_task", body: record([field(false, "last_thread_out", type(false, "bool"))]))
 		struct(
 			name: "result__chosen_task__no_chosen_task"
 			body: union([type(false, "ok__chosen_task"), type(false, "err__no_chosen_task")]))
-		struct(
-			name: "ok__chosen_task"
-			body: record([field(false, "value", type(false, "chosen_task"))]))
-		struct(
-			name: "err__no_chosen_task"
-			body: record([field(false, "value", type(false, "no_chosen_task"))]))
-		struct(
-			name: "opt__chosen_task"
-			body: union([type(false, "none"), type(false, "some__chosen_task")]))
-		struct(
-			name: "some__chosen_task"
-			body: record([field(false, "value", type(false, "chosen_task"))]))
-		struct(
-			name: "opt__opt__task"
-			body: union([type(false, "none"), type(false, "some__opt__task")]))
-		struct(
-			name: "some__opt__task"
-			body: record([field(false, "value", type(false, "opt__task"))]))
+		struct(name: "ok__chosen_task", body: record([field(false, "value", type(false, "chosen_task"))]))
+		struct(name: "err__no_chosen_task", body: record([field(false, "value", type(false, "no_chosen_task"))]))
+		struct(name: "opt__chosen_task", body: union([type(false, "none"), type(false, "some__chosen_task")]))
+		struct(name: "some__chosen_task", body: record([field(false, "value", type(false, "chosen_task"))]))
+		struct(name: "opt__opt__task", body: union([type(false, "none"), type(false, "some__opt__task")]))
+		struct(name: "some__opt__task", body: record([field(false, "value", type(false, "opt__task"))]))
 		struct(
 			name: "task_and_nodes"
 			body: record(
 				[
 					field(false, "task", type(false, "task"))
 					field(false, "nodes", type(false, "opt__ptr_mut_bag_node__task"))]))
-		struct(
-			name: "opt__task_and_nodes"
-			body: union([type(false, "none"), type(false, "some__task_and_nodes")]))
-		struct(
-			name: "some__task_and_nodes"
-			body: record([field(false, "value", type(false, "task_and_nodes"))]))
+		struct(name: "opt__task_and_nodes", body: union([type(false, "none"), type(false, "some__task_and_nodes")]))
+		struct(name: "some__task_and_nodes", body: record([field(false, "value", type(false, "task_and_nodes"))]))
 		struct(
 			name: "arr__nat"
 			special: special(arr, type(false, "nat"))

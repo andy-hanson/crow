@@ -71,6 +71,7 @@ private:
 
 immutable(Bool) conflictsWithCName(immutable Sym name) {
 	switch (name.value) {
+		case shortSymAlphaLiteralValue("default"):
 		case shortSymAlphaLiteralValue("float"):
 		case shortSymAlphaLiteralValue("int"):
 		case shortSymAlphaLiteralValue("void"):

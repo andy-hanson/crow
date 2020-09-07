@@ -16,6 +16,7 @@ import lower.lower : lower;
 import lowModel : LowProgram;
 import model : Module, Program;
 import sexprOfConcreteModel : tataOfConcreteProgram;
+import sexprOfLowModel : tataOfLowProgram;
 import sexprOfModel : sexprOfModule;
 import util.alloc.mallocator : Mallocator;
 import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
@@ -53,6 +54,7 @@ enum PrintKind {
 	ast,
 	model,
 	concreteModel,
+	lowModel,
 }
 
 immutable(int) print(SymAlloc)(
@@ -68,6 +70,8 @@ immutable(int) print(SymAlloc)(
 			return printModel(allSymbols, nozeDir, programDirAndMain);
 		case PrintKind.concreteModel:
 			return printConcreteModel(allSymbols, nozeDir, programDirAndMain);
+		case PrintKind.lowModel:
+			return printLowModel(allSymbols, nozeDir, programDirAndMain);
 	}
 }
 
@@ -156,7 +160,33 @@ immutable(int) printConcreteModel(SymAlloc)(
 		(ref immutable Program program) {
 			ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
 			immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
-			printOutConcreteProgram(concreteProgram);
+			printOutConcreteProgram(mallocator, concreteProgram);
+			return 0;
+		},
+		(ref immutable Diagnostics diagnostics) {
+			printDiagnostics(diagnostics);
+			return 1;
+		});
+
+}
+
+immutable(int) printLowModel(SymAlloc)(
+	ref AllSymbols!SymAlloc allSymbols,
+	ref immutable Str nozeDir,
+	ref immutable ProgramDirAndMain programDirAndMain,
+) {
+	Mallocator mallocator;
+	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
+	immutable Result!(Program, Diagnostics) programResult =
+		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
+	return matchImpure!(int, Program, Diagnostics)(
+		programResult,
+		(ref immutable Program program) {
+			ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
+			LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
+			immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
+			immutable LowProgram lowProgram = lower(lowAlloc, concreteProgram);
+			printOutLowProgram(mallocator, lowProgram);
 			return 0;
 		},
 		(ref immutable Diagnostics diagnostics) {
@@ -180,10 +210,14 @@ void printOutModule(ref immutable Module a) {
 	printOutSexpr(sexprOfModule(alloc, a));
 }
 
-void printOutConcreteProgram(ref immutable ConcreteProgram a) {
-	Mallocator mallocator;
+void printOutConcreteProgram(ref Mallocator mallocator, ref immutable ConcreteProgram a) {
 	ConcreteSexprAlloc alloc = ConcreteSexprAlloc(ptrTrustMe_mut(mallocator));
 	printOutSexpr(tataOfConcreteProgram(alloc, a));
+}
+
+void printOutLowProgram(ref Mallocator mallocator, ref immutable LowProgram a) {
+	LowSexprAlloc alloc = LowSexprAlloc(ptrTrustMe_mut(mallocator));
+	printOutSexpr(tataOfLowProgram(alloc, a));
 }
 
 void printOutSexpr(immutable Sexpr a) {
@@ -199,7 +233,8 @@ alias ExePathAlloc = StackAlloc!("exePath", 1024);
 alias ModelAlloc = SingleHeapAlloc!(Mallocator, "model", 16 * 1024 * 1024);
 alias ConcreteAlloc = SingleHeapAlloc!(Mallocator, "concrete-model", 64 * 1024 * 1024);
 alias LowAlloc = SingleHeapAlloc!(Mallocator, "low-model", 64 * 1024 * 1024);
-alias ConcreteSexprAlloc = SingleHeapAlloc!(Mallocator, "concrete-model", 64 * 1024 * 1024);
+alias ConcreteSexprAlloc = SingleHeapAlloc!(Mallocator, "concrete-model-repr", 64 * 1024 * 1024);
+alias LowSexprAlloc = SingleHeapAlloc!(Mallocator, "low-model-repr", 64 * 1024 * 1024);
 alias WriteAlloc = SingleHeapAlloc!(Mallocator, "write-to-c", 64 * 1024 * 1024);
 
 // mainPath is relative to programDir
