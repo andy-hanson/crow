@@ -24,21 +24,21 @@ must-unset void(a atomic-bool) noctx unsafe
 new-lock by-val lock() noctx
 	new new-atomic-bool
 
-try-acquire-lock bool(l lock) noctx trusted
-	l.is-locked.ref-of-val try-set
+try-acquire-lock bool(a lock) noctx trusted
+	a.is-locked.ref-of-val try-set
 
-acquire-lock void(l lock) noctx unsafe
-	l acquire-lock-recur zero
+acquire-lock void(a lock) noctx unsafe
+	a acquire-lock-recur zero
 
-acquire-lock-recur void(l lock, n-tries nat) noctx unsafe
+acquire-lock-recur void(a lock, n-tries nat) noctx unsafe
 	when
-		l.try-acquire-lock
+		a try-acquire-lock
 			pass
 		n-tries == thousand
 			hard-fail: "Couldn't acquire lock after 1000 tries"
 		else
 			yield-thread
-			l acquire-lock-recur n-tries.noctx-incr
+			a acquire-lock-recur n-tries.noctx-incr
 
 yield-thread void() noctx unsafe
 	err = pthread-yield

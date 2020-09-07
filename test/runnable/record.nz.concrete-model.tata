@@ -1350,18 +1350,18 @@ program(
 			"acquire_lock___void__ptr_lock"
 			type(false, "_void")
 			none
-			[param("l", type(true, "lock"))]
-			expr-body([], call("acquire_lock_recur___void__ptr_lock__nat", [param-ref("l"), call("zero__nat", [])])))
+			[param("a", type(true, "lock"))]
+			expr-body([], call("acquire_lock_recur___void__ptr_lock__nat", [param-ref("a"), call("zero__nat", [])])))
 		fun(
 			false
 			"acquire_lock_recur___void__ptr_lock__nat"
 			type(false, "_void")
 			none
-			[param("l", type(true, "lock")), param("n_tries", type(false, "nat"))]
+			[param("a", type(true, "lock")), param("n_tries", type(false, "nat"))]
 			expr-body(
 				[]
 				cond(
-					call("try_acquire_lock__bool__ptr_lock", [param-ref("l")])
+					call("try_acquire_lock__bool__ptr_lock", [param-ref("a")])
 					call("pass___void", [])
 					cond(
 						call("_op_equal_equal__bool__nat__nat", [param-ref("n_tries"), call("thousand__nat", [])])
@@ -1370,18 +1370,18 @@ program(
 							call("yield_thread___void", [])
 							call(
 								"acquire_lock_recur___void__ptr_lock__nat"
-								[param-ref("l"), call("noctx_incr__nat__nat", [param-ref("n_tries")])]))))))
+								[param-ref("a"), call("noctx_incr__nat__nat", [param-ref("n_tries")])]))))))
 		fun(
 			false
 			"try_acquire_lock__bool__ptr_lock"
 			type(false, "bool")
 			none
-			[param("l", type(true, "lock"))]
+			[param("a", type(true, "lock"))]
 			expr-body(
 				[]
 				call(
 					"try_set__bool__ptr__atomic_bool"
-					[call("ref_of_val__ptr__atomic_bool___atomic_bool", [get-field(param-ref("l"), "is_locked")])])))
+					[call("ref_of_val__ptr__atomic_bool___atomic_bool", [get-field(param-ref("a"), "is_locked")])])))
 		fun(
 			false
 			"try_set__bool__ptr__atomic_bool"
@@ -3227,8 +3227,8 @@ program(
 					call("new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat", [param-ref("size")])
 					seq(
 						call(
-							"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat"
-							[local-ref("res"), call("zero__nat", []), param-ref("size"), param-ref("f")])
+							"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat"
+							[local-ref("res"), call("zero__nat", []), param-ref("f")])
 						local-ref("res")))))
 		fun(
 			true
@@ -3276,48 +3276,28 @@ program(
 			builtin(operator, "ptr-cast", [type(false, "arr__char"), type(false, "byte")]))
 		fun(
 			true
-			"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat"
+			"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat"
 			type(false, "_void")
 			none
 			[
 				param("m", type(true, "mut_arr__arr__char"))
-				param("lo", type(false, "nat"))
-				param("hi", type(false, "nat"))
+				param("i", type(false, "nat"))
 				param("f", type(false, "fun_mut1__arr__char__nat"))]
 			expr-body(
-				[local("mid", type(false, "nat"))]
+				[]
 				cond(
-					call("_op_equal_equal__bool__nat__nat", [param-ref("lo"), param-ref("hi")])
+					call("_op_equal_equal__bool__nat__nat", [param-ref("i"), get-field(param-ref("m"), "size")])
 					call("pass___void", [])
 					seq(
 						call(
 							"set_at___void__ptr_mut_arr__arr__char__nat__arr__char"
 							[
 								param-ref("m")
-								param-ref("lo")
-								call(
-									"call__arr__char__fun_mut1__arr__char__nat__nat"
-									[param-ref("f"), param-ref("lo")])])
-						let(
-							"mid"
-							call(
-								"_op_div__nat__nat__nat"
-								[
-									call(
-										"_op_plus__nat__nat__nat"
-										[call("incr__nat__nat", [param-ref("lo")]), param-ref("hi")])
-									call("two__nat", [])])
-							seq(
-								call(
-									"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat"
-									[
-										param-ref("m")
-										call("incr__nat__nat", [param-ref("lo")])
-										local-ref("mid")
-										param-ref("f")])
-								call(
-									"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat"
-									[param-ref("m"), local-ref("mid"), param-ref("hi"), param-ref("f")])))))))
+								param-ref("i")
+								call("call__arr__char__fun_mut1__arr__char__nat__nat", [param-ref("f"), param-ref("i")])])
+						call(
+							"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat"
+							[param-ref("m"), call("incr__nat__nat", [param-ref("i")]), param-ref("f")])))))
 		fun(
 			true
 			"set_at___void__ptr_mut_arr__arr__char__nat__arr__char"
@@ -3415,24 +3395,6 @@ program(
 				operator
 				"call (fun-ptr)"
 				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "nat")]))
-		fun(
-			true
-			"_op_div__nat__nat__nat"
-			type(false, "nat")
-			none
-			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
-			expr-body(
-				[]
-				seq(
-					call("forbid___void__bool", [call("zero__q__bool__nat", [param-ref("b")])])
-					call("unsafe_div__nat__nat__nat", [param-ref("a"), param-ref("b")]))))
-		fun(
-			false
-			"unsafe_div__nat__nat__nat"
-			type(false, "nat")
-			none
-			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
-			builtin(operator, "unsafe-div (nat-64)", []))
 		fun(
 			true
 			"incr__nat__nat"

@@ -604,9 +604,9 @@ uint8_t new_vat__vat__ptr_global_ctx__nat__nat__lambda0(struct ctx* ctx, uint8_t
 struct exception_ctx new_exception_ctx__exception_ctx();
 struct ctx new_ctx__ctx__ptr_global_ctx__ptr_thread_local_stuff__ptr_vat__nat(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id);
 struct gc_ctx* get_gc_ctx__ptr_gc_ctx__ptr_gc(struct gc* gc);
-uint8_t acquire_lock___void__ptr_lock(struct lock* l);
-uint8_t acquire_lock_recur___void__ptr_lock__nat(struct lock* l, uint64_t n_tries);
-uint8_t try_acquire_lock__bool__ptr_lock(struct lock* l);
+uint8_t acquire_lock___void__ptr_lock(struct lock* a);
+uint8_t acquire_lock_recur___void__ptr_lock__nat(struct lock* a, uint64_t n_tries);
+uint8_t try_acquire_lock__bool__ptr_lock(struct lock* a);
 uint8_t try_set__bool__ptr__atomic_bool(struct _atomic_bool* a);
 uint8_t try_change__bool__ptr__atomic_bool__bool(struct _atomic_bool* a, uint8_t old_value);
 uint64_t thousand__nat();
@@ -726,12 +726,11 @@ struct arr__arr__char unsafe_as_arr__arr__arr__char__ptr_mut_arr__arr__char(stru
 struct mut_arr__arr__char* make_mut_arr__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__arr__char__nat f);
 struct mut_arr__arr__char* new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat(struct ctx* ctx, uint64_t size);
 struct arr__char* uninitialized_data__ptr__arr__char__nat(struct ctx* ctx, uint64_t size);
-uint8_t make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(struct ctx* ctx, struct mut_arr__arr__char* m, uint64_t lo, uint64_t hi, struct fun_mut1__arr__char__nat f);
+uint8_t make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(struct ctx* ctx, struct mut_arr__arr__char* m, uint64_t i, struct fun_mut1__arr__char__nat f);
 uint8_t set_at___void__ptr_mut_arr__arr__char__nat__arr__char(struct ctx* ctx, struct mut_arr__arr__char* a, uint64_t index, struct arr__char value);
 uint8_t noctx_set_at___void__ptr_mut_arr__arr__char__nat__arr__char(struct mut_arr__arr__char* a, uint64_t index, struct arr__char value);
 struct arr__char call__arr__char__fun_mut1__arr__char__nat__nat(struct ctx* ctx, struct fun_mut1__arr__char__nat f, uint64_t p0);
 struct arr__char call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__nat__nat(struct ctx* c, struct fun_mut1__arr__char__nat f, uint64_t p0);
-uint64_t _op_div__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
 uint64_t incr__nat__nat(struct ctx* ctx, uint64_t n);
 struct arr__char call__arr__char__fun_mut1__arr__char__ptr__char__ptr__char(struct ctx* ctx, struct fun_mut1__arr__char__ptr__char f, char* p0);
 struct arr__char call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__ptr__char__ptr__char(struct ctx* c, struct fun_mut1__arr__char__ptr__char f, char* p0);
@@ -821,6 +820,7 @@ struct arr__char slice__arr__char__arr__char__nat__nat(struct ctx* ctx, struct a
 uint64_t decr__nat__nat(struct ctx* ctx, uint64_t a);
 uint64_t wrap_decr__nat__nat(uint64_t a);
 uint64_t _op_times__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
+uint64_t _op_div__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
 uint64_t char_to_nat__nat__char(char c);
 uint64_t todo__nat();
 char last__char__arr__char(struct ctx* ctx, struct arr__char a);
@@ -837,7 +837,7 @@ struct arr__char unsafe_as_arr__arr__char__ptr_mut_arr__char(struct mut_arr__cha
 struct mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f);
 struct mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(struct ctx* ctx, uint64_t size);
 char* uninitialized_data__ptr__char__nat(struct ctx* ctx, uint64_t size);
-uint8_t make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(struct ctx* ctx, struct mut_arr__char* m, uint64_t lo, uint64_t hi, struct fun_mut1__char__nat f);
+uint8_t make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, struct mut_arr__char* m, uint64_t i, struct fun_mut1__char__nat f);
 uint8_t set_at___void__ptr_mut_arr__char__nat__char(struct ctx* ctx, struct mut_arr__char* a, uint64_t index, char value);
 uint8_t noctx_set_at___void__ptr_mut_arr__char__nat__char(struct mut_arr__char* a, uint64_t index, char value);
 char call__char__fun_mut1__char__nat__nat(struct ctx* ctx, struct fun_mut1__char__nat f, uint64_t p0);
@@ -1123,23 +1123,30 @@ struct gc_ctx* get_gc_ctx__ptr_gc_ctx__ptr_gc(struct gc* gc) {
 	release_lock___void__ptr_lock((&(gc->lk)));
 	return res;
 }
-uint8_t acquire_lock___void__ptr_lock(struct lock* l) {
-	return acquire_lock_recur___void__ptr_lock__nat(l, 0);
+uint8_t acquire_lock___void__ptr_lock(struct lock* a) {
+	return acquire_lock_recur___void__ptr_lock__nat(a, 0);
 }
-uint8_t acquire_lock_recur___void__ptr_lock__nat(struct lock* l, uint64_t n_tries) {
-	if (try_acquire_lock__bool__ptr_lock(l)) {
+uint8_t acquire_lock_recur___void__ptr_lock__nat(struct lock* a, uint64_t n_tries) {
+	struct lock* _tailCalla;
+	uint64_t _tailCalln_tries;
+	top:
+	if (try_acquire_lock__bool__ptr_lock(a)) {
 		return 0;
 	} else {
 		if (_op_equal_equal__bool__nat__nat(n_tries, thousand__nat())) {
 			return (assert(0),0);
 		} else {
 			yield_thread___void();
-			return acquire_lock_recur___void__ptr_lock__nat(l, noctx_incr__nat__nat(n_tries));
+			_tailCalla = a;
+			_tailCalln_tries = noctx_incr__nat__nat(n_tries);
+			a = _tailCalla;
+			n_tries = _tailCalln_tries;
+			goto top;
 		}
 	}
 }
-uint8_t try_acquire_lock__bool__ptr_lock(struct lock* l) {
-	return try_set__bool__ptr__atomic_bool((&(l->is_locked)));
+uint8_t try_acquire_lock__bool__ptr_lock(struct lock* a) {
+	return try_set__bool__ptr__atomic_bool((&(a->is_locked)));
 }
 uint8_t try_set__bool__ptr__atomic_bool(struct _atomic_bool* a) {
 	return try_change__bool__ptr__atomic_bool__bool(a, 0);
@@ -1410,6 +1417,10 @@ uint8_t resolve_or_reject___void__ptr_fut__int32__result__int32__exception(struc
 uint8_t resolve_or_reject_recur___void__opt__ptr_fut_callback_node__int32__result__int32__exception(struct ctx* ctx, struct opt__ptr_fut_callback_node__int32 node, struct result__int32__exception value) {
 	struct some__ptr_fut_callback_node__int32 s;
 	struct opt__ptr_fut_callback_node__int32 matched;
+	struct ctx* _tailCallctx;
+	struct opt__ptr_fut_callback_node__int32 _tailCallnode;
+	struct result__int32__exception _tailCallvalue;
+	top:
 	matched = node;
 	switch (matched.kind) {
 		case 0:
@@ -1417,7 +1428,13 @@ uint8_t resolve_or_reject_recur___void__opt__ptr_fut_callback_node__int32__resul
 		case 1:
 			s = matched.as1;
 			drop___void___void(call___void__fun_mut1___void__result__int32__exception__result__int32__exception(ctx, s.value->cb, value));
-			return resolve_or_reject_recur___void__opt__ptr_fut_callback_node__int32__result__int32__exception(ctx, s.value->next_node, value);
+			_tailCallctx = ctx;
+			_tailCallnode = s.value->next_node;
+			_tailCallvalue = value;
+			ctx = _tailCallctx;
+			node = _tailCallnode;
+			value = _tailCallvalue;
+			goto top;
 		default:
 			return (assert(0),0);
 	}
@@ -1727,7 +1744,7 @@ struct arr__arr__char unsafe_as_arr__arr__arr__char__ptr_mut_arr__arr__char(stru
 struct mut_arr__arr__char* make_mut_arr__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__arr__char__nat f) {
 	struct mut_arr__arr__char* res;
 	res = new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat(ctx, size);
-	make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(ctx, res, 0, size, f);
+	make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(ctx, res, 0, f);
 	return res;
 }
 struct mut_arr__arr__char* new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat(struct ctx* ctx, uint64_t size) {
@@ -1741,15 +1758,25 @@ struct arr__char* uninitialized_data__ptr__arr__char__nat(struct ctx* ctx, uint6
 	bptr = alloc__ptr__byte__nat(ctx, (size * sizeof(struct arr__char)));
 	return (struct arr__char*) bptr;
 }
-uint8_t make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(struct ctx* ctx, struct mut_arr__arr__char* m, uint64_t lo, uint64_t hi, struct fun_mut1__arr__char__nat f) {
-	uint64_t mid;
-	if (_op_equal_equal__bool__nat__nat(lo, hi)) {
+uint8_t make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(struct ctx* ctx, struct mut_arr__arr__char* m, uint64_t i, struct fun_mut1__arr__char__nat f) {
+	struct ctx* _tailCallctx;
+	struct mut_arr__arr__char* _tailCallm;
+	uint64_t _tailCalli;
+	struct fun_mut1__arr__char__nat _tailCallf;
+	top:
+	if (_op_equal_equal__bool__nat__nat(i, m->size)) {
 		return 0;
 	} else {
-		set_at___void__ptr_mut_arr__arr__char__nat__arr__char(ctx, m, lo, call__arr__char__fun_mut1__arr__char__nat__nat(ctx, f, lo));
-		mid = _op_div__nat__nat__nat(ctx, _op_plus__nat__nat__nat(ctx, incr__nat__nat(ctx, lo), hi), two__nat());
-		make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(ctx, m, incr__nat__nat(ctx, lo), mid, f);
-		return make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__nat__fun_mut1__arr__char__nat(ctx, m, mid, hi, f);
+		set_at___void__ptr_mut_arr__arr__char__nat__arr__char(ctx, m, i, call__arr__char__fun_mut1__arr__char__nat__nat(ctx, f, i));
+		_tailCallctx = ctx;
+		_tailCallm = m;
+		_tailCalli = incr__nat__nat(ctx, i);
+		_tailCallf = f;
+		ctx = _tailCallctx;
+		m = _tailCallm;
+		i = _tailCalli;
+		f = _tailCallf;
+		goto top;
 	}
 }
 uint8_t set_at___void__ptr_mut_arr__arr__char__nat__arr__char(struct ctx* ctx, struct mut_arr__arr__char* a, uint64_t index, struct arr__char value) {
@@ -1765,10 +1792,6 @@ struct arr__char call__arr__char__fun_mut1__arr__char__nat__nat(struct ctx* ctx,
 }
 struct arr__char call_with_ctx__arr__char__ptr_ctx__fun_mut1__arr__char__nat__nat(struct ctx* c, struct fun_mut1__arr__char__nat f, uint64_t p0) {
 	return f.fun_ptr(c, f.closure, p0);
-}
-uint64_t _op_div__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b) {
-	forbid___void__bool(ctx, zero__q__bool__nat(b));
-	return (a / b);
 }
 uint64_t incr__nat__nat(struct ctx* ctx, uint64_t n) {
 	assert___void__bool(ctx, _op_less__bool__nat__nat(n, billion__nat()));
@@ -1804,13 +1827,20 @@ char* find_cstr_end__ptr__char__ptr__char(char* a) {
 	return find_char_in_cstr__ptr__char__ptr__char__char(a, literal__char__arr__char((struct arr__char) {1, "\0"}));
 }
 char* find_char_in_cstr__ptr__char__ptr__char__char(char* a, char c) {
+	char* _tailCalla;
+	char _tailCallc;
+	top:
 	if (_op_equal_equal__bool__char__char((*(a)), c)) {
 		return a;
 	} else {
 		if (_op_equal_equal__bool__char__char((*(a)), literal__char__arr__char((struct arr__char) {1, "\0"}))) {
 			return todo__ptr__char();
 		} else {
-			return find_char_in_cstr__ptr__char__ptr__char__char(incr__ptr__char__ptr__char(a), c);
+			_tailCalla = incr__ptr__char__ptr__char(a);
+			_tailCallc = c;
+			a = _tailCalla;
+			c = _tailCallc;
+			goto top;
 		}
 	}
 }
@@ -1886,6 +1916,13 @@ uint8_t run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_glob
 	uint64_t* thread_ptr;
 	fun_ptr1__ptr__byte__ptr__byte fn;
 	int32_t err;
+	uint64_t _tailCalli;
+	uint64_t _tailCalln_threads;
+	uint64_t* _tailCallthreads;
+	struct thread_args__ptr_global_ctx* _tailCallthread_args;
+	struct global_ctx* _tailCallarg;
+	fun_ptr2___void__nat__ptr_global_ctx _tailCallfun;
+	top:
 	if (_op_equal_equal__bool__nat__nat(i, n_threads)) {
 		return 0;
 	} else {
@@ -1895,7 +1932,19 @@ uint8_t run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_glob
 		fn = run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx__lambda0;
 		err = pthread_create(as_cell__ptr_cell__nat__ptr__nat(thread_ptr), NULL, fn, (uint8_t*) thread_arg_ptr);
 		if (zero__q__bool__int32(err)) {
-			return run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx(noctx_incr__nat__nat(i), n_threads, threads, thread_args, arg, fun);
+			_tailCalli = noctx_incr__nat__nat(i);
+			_tailCalln_threads = n_threads;
+			_tailCallthreads = threads;
+			_tailCallthread_args = thread_args;
+			_tailCallarg = arg;
+			_tailCallfun = fun;
+			i = _tailCalli;
+			n_threads = _tailCalln_threads;
+			threads = _tailCallthreads;
+			thread_args = _tailCallthread_args;
+			arg = _tailCallarg;
+			fun = _tailCallfun;
+			goto top;
 		} else {
 			if (_op_equal_equal__bool__int32__int32(err, eagain__int32())) {
 				return todo___void();
@@ -1930,11 +1979,21 @@ int32_t eight__int32() {
 	return (four__int32() + four__int32());
 }
 uint8_t join_threads_recur___void__nat__nat__ptr__nat(uint64_t i, uint64_t n_threads, uint64_t* threads) {
+	uint64_t _tailCalli;
+	uint64_t _tailCalln_threads;
+	uint64_t* _tailCallthreads;
+	top:
 	if (_op_equal_equal__bool__nat__nat(i, n_threads)) {
 		return 0;
 	} else {
 		join_one_thread___void__nat((*((threads + i))));
-		return join_threads_recur___void__nat__nat__ptr__nat(noctx_incr__nat__nat(i), n_threads, threads);
+		_tailCalli = noctx_incr__nat__nat(i);
+		_tailCalln_threads = n_threads;
+		_tailCallthreads = threads;
+		i = _tailCalli;
+		n_threads = _tailCalln_threads;
+		threads = _tailCallthreads;
+		goto top;
 	}
 }
 uint8_t join_one_thread___void__nat(uint64_t tid) {
@@ -1984,6 +2043,10 @@ uint8_t thread_function_recur___void__nat__ptr_global_ctx__ptr_thread_local_stuf
 	struct ok__chosen_task ok_chosen_task;
 	struct err__no_chosen_task e;
 	struct result__chosen_task__no_chosen_task matched;
+	uint64_t _tailCallthread_id;
+	struct global_ctx* _tailCallgctx;
+	struct thread_local_stuff* _tailCalltls;
+	top:
 	if (gctx->is_shut_down) {
 		acquire_lock___void__ptr_lock((&(gctx->lk)));
 		(gctx->n_live_threads = noctx_decr__nat__nat(gctx->n_live_threads), 0);
@@ -2014,7 +2077,13 @@ uint8_t thread_function_recur___void__nat__ptr_global_ctx__ptr_thread_local_stuf
 			default:
 				(assert(0),0);
 		}
-		return thread_function_recur___void__nat__ptr_global_ctx__ptr_thread_local_stuff(thread_id, gctx, tls);
+		_tailCallthread_id = thread_id;
+		_tailCallgctx = gctx;
+		_tailCalltls = tls;
+		thread_id = _tailCallthread_id;
+		gctx = _tailCallgctx;
+		tls = _tailCalltls;
+		goto top;
 	}
 }
 uint64_t noctx_decr__nat__nat(uint64_t n) {
@@ -2023,6 +2092,9 @@ uint64_t noctx_decr__nat__nat(uint64_t n) {
 }
 uint8_t assert_vats_are_shut_down___void__nat__arr__ptr_vat(uint64_t i, struct arr__ptr_vat vats) {
 	struct vat* vat;
+	uint64_t _tailCalli;
+	struct arr__ptr_vat _tailCallvats;
+	top:
 	if (_op_equal_equal__bool__nat__nat(i, vats.size)) {
 		return 0;
 	} else {
@@ -2032,7 +2104,11 @@ uint8_t assert_vats_are_shut_down___void__nat__arr__ptr_vat(uint64_t i, struct a
 		hard_assert___void__bool(zero__q__bool__nat(vat->n_threads_running));
 		hard_assert___void__bool(empty__q__bool__ptr_mut_bag__task((&(vat->tasks))));
 		release_lock___void__ptr_lock((&(vat->tasks_lock)));
-		return assert_vats_are_shut_down___void__nat__arr__ptr_vat(noctx_incr__nat__nat(i), vats);
+		_tailCalli = noctx_incr__nat__nat(i);
+		_tailCallvats = vats;
+		i = _tailCalli;
+		vats = _tailCallvats;
+		goto top;
 	}
 }
 uint8_t empty__q__bool__ptr_mut_bag__task(struct mut_bag__task* m) {
@@ -2073,6 +2149,9 @@ struct opt__chosen_task choose_task_recur__opt__chosen_task__arr__ptr_vat__nat(s
 	struct vat* vat;
 	struct some__opt__task s;
 	struct opt__opt__task matched;
+	struct arr__ptr_vat _tailCallvats;
+	uint64_t _tailCalli;
+	top:
 	if (_op_equal_equal__bool__nat__nat(i, vats.size)) {
 		return (struct opt__chosen_task) {0, .as0 = none__none()};
 	} else {
@@ -2080,7 +2159,11 @@ struct opt__chosen_task choose_task_recur__opt__chosen_task__arr__ptr_vat__nat(s
 		matched = choose_task_in_vat__opt__opt__task__ptr_vat(vat);
 		switch (matched.kind) {
 			case 0:
-				return choose_task_recur__opt__chosen_task__arr__ptr_vat__nat(vats, noctx_incr__nat__nat(i));
+				_tailCallvats = vats;
+				_tailCalli = noctx_incr__nat__nat(i);
+				vats = _tailCallvats;
+				i = _tailCalli;
+				goto top;
 			case 1:
 				s = matched.as1;
 				return (struct opt__chosen_task) {1, .as1 = some__some__chosen_task__chosen_task((struct chosen_task) {vat, s.value})};
@@ -2169,10 +2252,24 @@ uint8_t contains__q__bool__ptr_mut_arr__nat__nat(struct mut_arr__nat* a, uint64_
 	return contains_recur__q__bool__arr__nat__nat__nat(temp_as_arr__arr__nat__ptr_mut_arr__nat(a), value, 0);
 }
 uint8_t contains_recur__q__bool__arr__nat__nat__nat(struct arr__nat a, uint64_t value, uint64_t i) {
+	struct arr__nat _tailCalla;
+	uint64_t _tailCallvalue;
+	uint64_t _tailCalli;
+	top:
 	if (_op_equal_equal__bool__nat__nat(i, a.size)) {
 		return 0;
 	} else {
-		return (_op_equal_equal__bool__nat__nat(noctx_at__nat__arr__nat__nat(a, i), value) || contains_recur__q__bool__arr__nat__nat__nat(a, value, noctx_incr__nat__nat(i)));
+		if (_op_equal_equal__bool__nat__nat(noctx_at__nat__arr__nat__nat(a, i), value)) {
+			return 1;
+		} else {
+			_tailCalla = a;
+			_tailCallvalue = value;
+			_tailCalli = noctx_incr__nat__nat(i);
+			a = _tailCalla;
+			value = _tailCallvalue;
+			i = _tailCalli;
+			goto top;
+		}
 	}
 }
 uint64_t noctx_at__nat__arr__nat__nat(struct arr__nat a, uint64_t index) {
@@ -2258,13 +2355,23 @@ uint8_t noctx_must_remove_unordered___void__ptr_mut_arr__nat__nat(struct mut_arr
 	return noctx_must_remove_unordered_recur___void__ptr_mut_arr__nat__nat__nat(a, 0, value);
 }
 uint8_t noctx_must_remove_unordered_recur___void__ptr_mut_arr__nat__nat__nat(struct mut_arr__nat* a, uint64_t index, uint64_t value) {
+	struct mut_arr__nat* _tailCalla;
+	uint64_t _tailCallindex;
+	uint64_t _tailCallvalue;
+	top:
 	if (_op_equal_equal__bool__nat__nat(index, a->size)) {
 		return (assert(0),0);
 	} else {
 		if (_op_equal_equal__bool__nat__nat(noctx_at__nat__ptr_mut_arr__nat__nat(a, index), value)) {
 			return drop___void__nat(noctx_remove_unordered_at_index__nat__ptr_mut_arr__nat__nat(a, index));
 		} else {
-			return noctx_must_remove_unordered_recur___void__ptr_mut_arr__nat__nat__nat(a, noctx_incr__nat__nat(index), value);
+			_tailCalla = a;
+			_tailCallindex = noctx_incr__nat__nat(index);
+			_tailCallvalue = value;
+			a = _tailCalla;
+			index = _tailCallindex;
+			value = _tailCallvalue;
+			goto top;
 		}
 	}
 }
@@ -2304,9 +2411,16 @@ struct some__ptr_gc_ctx some__some__ptr_gc_ctx__ptr_gc_ctx(struct gc_ctx* t) {
 	return (struct some__ptr_gc_ctx) {t};
 }
 uint8_t wait_on___void__ptr_condition__nat(struct condition* c, uint64_t last_checked) {
+	struct condition* _tailCallc;
+	uint64_t _tailCalllast_checked;
+	top:
 	if (_op_equal_equal__bool__nat__nat(c->value, last_checked)) {
 		yield_thread___void();
-		return wait_on___void__ptr_condition__nat(c, last_checked);
+		_tailCallc = c;
+		_tailCalllast_checked = last_checked;
+		c = _tailCallc;
+		last_checked = _tailCalllast_checked;
+		goto top;
 	} else {
 		return 0;
 	}
@@ -2378,6 +2492,10 @@ uint64_t _op_times__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b) {
 		assert___void__bool(ctx, _op_equal_equal__bool__nat__nat(_op_div__nat__nat__nat(ctx, res, a), b));
 		return res;
 	}
+}
+uint64_t _op_div__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b) {
+	forbid___void__bool(ctx, zero__q__bool__nat(b));
+	return (a / b);
 }
 uint64_t char_to_nat__nat__char(char c) {
 	if (_op_equal_equal__bool__char__char(c, literal__char__arr__char((struct arr__char) {1, "0"}))) {
@@ -2511,7 +2629,7 @@ struct arr__char unsafe_as_arr__arr__char__ptr_mut_arr__char(struct mut_arr__cha
 struct mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f) {
 	struct mut_arr__char* res;
 	res = new_uninitialized_mut_arr__ptr_mut_arr__char__nat(ctx, size);
-	make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(ctx, res, 0, size, f);
+	make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx, res, 0, f);
 	return res;
 }
 struct mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(struct ctx* ctx, uint64_t size) {
@@ -2525,15 +2643,25 @@ char* uninitialized_data__ptr__char__nat(struct ctx* ctx, uint64_t size) {
 	bptr = alloc__ptr__byte__nat(ctx, (size * sizeof(char)));
 	return (char*) bptr;
 }
-uint8_t make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(struct ctx* ctx, struct mut_arr__char* m, uint64_t lo, uint64_t hi, struct fun_mut1__char__nat f) {
-	uint64_t mid;
-	if (_op_equal_equal__bool__nat__nat(lo, hi)) {
+uint8_t make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, struct mut_arr__char* m, uint64_t i, struct fun_mut1__char__nat f) {
+	struct ctx* _tailCallctx;
+	struct mut_arr__char* _tailCallm;
+	uint64_t _tailCalli;
+	struct fun_mut1__char__nat _tailCallf;
+	top:
+	if (_op_equal_equal__bool__nat__nat(i, m->size)) {
 		return 0;
 	} else {
-		set_at___void__ptr_mut_arr__char__nat__char(ctx, m, lo, call__char__fun_mut1__char__nat__nat(ctx, f, lo));
-		mid = _op_div__nat__nat__nat(ctx, _op_plus__nat__nat__nat(ctx, incr__nat__nat(ctx, lo), hi), two__nat());
-		make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(ctx, m, incr__nat__nat(ctx, lo), mid, f);
-		return make_mut_arr_worker___void__ptr_mut_arr__char__nat__nat__fun_mut1__char__nat(ctx, m, mid, hi, f);
+		set_at___void__ptr_mut_arr__char__nat__char(ctx, m, i, call__char__fun_mut1__char__nat__nat(ctx, f, i));
+		_tailCallctx = ctx;
+		_tailCallm = m;
+		_tailCalli = incr__nat__nat(ctx, i);
+		_tailCallf = f;
+		ctx = _tailCallctx;
+		m = _tailCallm;
+		i = _tailCalli;
+		f = _tailCallf;
+		goto top;
 	}
 }
 uint8_t set_at___void__ptr_mut_arr__char__nat__char(struct ctx* ctx, struct mut_arr__char* a, uint64_t index, char value) {

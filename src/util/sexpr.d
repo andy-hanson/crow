@@ -421,17 +421,9 @@ void writeSexprRecordSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Se
 }
 
 void writeCommaSeparatedChildren(Alloc)(ref Writer!Alloc writer, ref immutable Arr!Sexpr a) {
-	if (!empty(a)) {
-		writeSexprSingleLine(writer, first(a));
-		void recur(immutable Arr!Sexpr xs) {
-			if (!empty(xs)) {
-				writeStatic(writer, ", ");
-				writeSexprSingleLine(writer, first(xs));
-				recur(tail(xs));
-			}
-		}
-		recur(tail(a));
-	}
+	writeWithCommas(writer, a, (ref immutable Sexpr it) {
+		writeSexprSingleLine(writer, it);
+	});
 }
 
 immutable(int) measureSexprBool(ref immutable Bool s) {
