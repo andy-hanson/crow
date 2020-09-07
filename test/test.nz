@@ -2,7 +2,6 @@
 
 import
 	arr-utils
-	cell
 	command-line-parser
 	dict
 	fut-utils
@@ -16,6 +15,7 @@ import
 	.lint
 	.path-utils
 	.runnable-tests
+	.sdl
 
 main fut exit-code(args arr str) summon
 	option-names = new-arr<str> "print-tests", "overwrite-output", "max-failures"

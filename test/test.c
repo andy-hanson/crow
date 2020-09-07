@@ -1691,7 +1691,6 @@ int32_t o_creat__int32(struct ctx* ctx);
 int32_t o_wronly__int32(struct ctx* ctx);
 int32_t o_trunc__int32(struct ctx* ctx);
 struct arr__ptr_failure empty_arr__arr__ptr_failure();
-uint8_t large_strings_eq__q__bool__arr__char__arr__char(struct ctx* ctx, struct arr__char a, struct arr__char b);
 struct arr__ptr_failure run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char test);
 uint8_t has__q__bool__arr__ptr_failure(struct arr__ptr_failure a);
 struct err__arr__ptr_failure err__err__arr__ptr_failure__arr__ptr_failure(struct arr__ptr_failure t);
@@ -6175,7 +6174,7 @@ struct arr__ptr_failure handle_output__arr__ptr_failure__arr__char__arr__char__a
 			}
 		case 1:
 			s = matched.as1;
-			if (large_strings_eq__q__bool__arr__char__arr__char(ctx, s.value, actual)) {
+			if (_op_equal_equal__bool__arr__char__arr__char(s.value, actual)) {
 				return empty_arr__arr__ptr_failure();
 			} else {
 				if (overwrite_output__q) {
@@ -6304,15 +6303,6 @@ int32_t o_trunc__int32(struct ctx* ctx) {
 }
 struct arr__ptr_failure empty_arr__arr__ptr_failure() {
 	return (struct arr__ptr_failure) {0, NULL};
-}
-uint8_t large_strings_eq__q__bool__arr__char__arr__char(struct ctx* ctx, struct arr__char a, struct arr__char b) {
-	uint64_t hl;
-	if (_op_less__bool__nat__nat(a.size, literal__nat__arr__char(ctx, (struct arr__char) {3, "128"}))) {
-		return _op_equal_equal__bool__arr__char__arr__char(a, b);
-	} else {
-		hl = _op_div__nat__nat__nat(ctx, a.size, literal__nat__arr__char(ctx, (struct arr__char) {1, "2"}));
-		return (_op_equal_equal__bool__arr__char__arr__char(slice__arr__char__arr__char__nat__nat(ctx, a, 0, hl), slice__arr__char__arr__char__nat__nat(ctx, b, 0, hl)) && _op_equal_equal__bool__arr__char__arr__char(slice_starting_at__arr__char__arr__char__nat(ctx, a, hl), slice_starting_at__arr__char__arr__char__nat(ctx, b, hl)));
-	}
 }
 struct arr__ptr_failure run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char test) {
 	if (_closure->options.print_tests__q) {

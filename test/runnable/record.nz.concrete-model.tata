@@ -3567,4 +3567,2661 @@ program(
 				[]
 				call(
 					"find_char_in_cstr__ptr__char__ptr__char__char"
-					[param-ref("a"), call("literal__char__arr__char", [str-lit("
+					[param-ref("a"), call("literal__char__arr__char", [str-lit("\0")])])))
+		fun(
+			false
+			"find_char_in_cstr__ptr__char__ptr__char__char"
+			type(false, "ptr__char")
+			none
+			[param("a", type(false, "ptr__char")), param("c", type(false, "char"))]
+			expr-body(
+				[]
+				cond(
+					call(
+						"_op_equal_equal__bool__char__char"
+						[call("deref__char__ptr__char", [param-ref("a")]), param-ref("c")])
+					param-ref("a")
+					cond(
+						call(
+							"_op_equal_equal__bool__char__char"
+							[
+								call("deref__char__ptr__char", [param-ref("a")])
+								call("literal__char__arr__char", [str-lit("\0")])])
+						call("todo__ptr__char", [])
+						call(
+							"find_char_in_cstr__ptr__char__ptr__char__char"
+							[call("incr__ptr__char__ptr__char", [param-ref("a")]), param-ref("c")])))))
+		fun(
+			false
+			"_op_equal_equal__bool__char__char"
+			type(false, "bool")
+			none
+			[param("a", type(false, "char")), param("b", type(false, "char"))]
+			expr-body(
+				[local("matched", type(false, "comparison"))]
+				match(
+					"matched"
+					call("_op_less_equal_greater__comparison__char__char", [param-ref("a"), param-ref("b")])
+					[
+						case(none, call("false__bool", []))
+						case(none, call("true__bool", []))
+						case(none, call("false__bool", []))])))
+		fun(
+			false
+			"_op_less_equal_greater__comparison__char__char"
+			type(false, "comparison")
+			none
+			[param("a", type(false, "char")), param("b", type(false, "char"))]
+			expr-body(
+				[]
+				cond(
+					special("less", param-ref("a"), param-ref("b"))
+					to-union(0, record([]))
+					cond(
+						special("less", param-ref("b"), param-ref("a"))
+						to-union(2, record([]))
+						to-union(1, record([]))))))
+		fun(
+			false
+			"deref__char__ptr__char"
+			type(false, "char")
+			none
+			[param("p", type(false, "ptr__char"))]
+			builtin(operator, "deref", [type(false, "char")]))
+		fun(
+			false
+			"literal__char__arr__char"
+			type(false, "char")
+			none
+			[param("a", type(false, "arr__char"))]
+			expr-body([], call("noctx_at__char__arr__char__nat", [param-ref("a"), call("zero__nat", [])])))
+		fun(
+			false
+			"noctx_at__char__arr__char__nat"
+			type(false, "char")
+			none
+			[param("a", type(false, "arr__char")), param("index", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"hard_assert___void__bool"
+						[call("_op_less__bool__nat__nat", [param-ref("index"), get-field(param-ref("a"), "size")])])
+					call(
+						"deref__char__ptr__char"
+						[
+							call(
+								"_op_plus__ptr__char__ptr__char__nat"
+								[get-field(param-ref("a"), "data"), param-ref("index")])]))))
+		fun(
+			false
+			"_op_plus__ptr__char__ptr__char__nat"
+			type(false, "ptr__char")
+			none
+			[param("p", type(false, "ptr__char")), param("offset", type(false, "nat"))]
+			builtin(operator, "+ (ptr)", [type(false, "char")]))
+		fun(
+			false
+			"todo__ptr__char"
+			type(false, "ptr__char")
+			none
+			[]
+			expr-body([], call("hard_fail__ptr__char__arr__char", [str-lit("TODO")])))
+		fun(
+			false
+			"hard_fail__ptr__char__arr__char"
+			type(false, "ptr__char")
+			none
+			[param("reason", type(false, "arr__char"))]
+			builtin(special, "hard-fail", [type(false, "ptr__char")]))
+		fun(
+			false
+			"incr__ptr__char__ptr__char"
+			type(false, "ptr__char")
+			none
+			[param("p", type(false, "ptr__char"))]
+			expr-body([], call("_op_plus__ptr__char__ptr__char__nat", [param-ref("p"), call("one__nat", [])])))
+		fun(
+			true
+			"add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0__lambda0"
+			type(false, "arr__char")
+			some(param("_closure", type(false, "ptr__byte")))
+			[param("it", type(false, "ptr__char"))]
+			expr-body([], call("to_str__arr__char__ptr__char", [param-ref("it")])))
+		fun(
+			true
+			"add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
+			type(true, "fut__int32")
+			some(param(
+				"_closure"
+				type(
+					true
+					"add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0___closure")))
+			[]
+			expr-body(
+				[local("args", type(false, "arr__ptr__char"))]
+				let(
+					"args"
+					call("tail__arr__ptr__char__arr__ptr__char", [get-field(param-ref("_closure"), "all_args")])
+					call(
+						"call__ptr_fut__int32__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__ptr_ctx__arr__arr__char"
+						[
+							get-field(param-ref("_closure"), "main_ptr")
+							call("get_ctx__ptr_ctx", [])
+							call(
+								"map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char"
+								[
+									local-ref("args")
+									lambda(
+										"add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0__lambda0"
+										some(call("null__ptr__bool", [])))])]))))
+		fun(
+			true
+			"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
+			type(true, "fut__int32")
+			some(param("_closure", type(false, "ptr__byte")))
+			[
+				param("all_args", type(false, "arr__ptr__char"))
+				param("main_ptr", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))]
+			expr-body(
+				[]
+				call(
+					"add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+					[param-ref("all_args"), param-ref("main_ptr")])))
+		fun(
+			false
+			"unsafe_to_nat__nat___int"
+			type(false, "nat")
+			none
+			[param("a", type(false, "_int"))]
+			builtin(operator, "unsafe-int64-to-nat64", []))
+		fun(
+			false
+			"to_int___int__int32"
+			type(false, "_int")
+			none
+			[param("i", type(false, "int32"))]
+			builtin(operator, "to-int (from int-32)", []))
+		fun(
+			false
+			"call_with_ctx__ptr_fut__int32__ptr_ctx__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+			type(true, "fut__int32")
+			none
+			[
+				param("c", type(true, "ctx"))
+				param(
+					"f"
+					type(
+						false
+						"fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))
+				param("p0", type(false, "arr__ptr__char"))
+				param("p1", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))]
+			expr-body(
+				[]
+				call(
+					"call__ptr_fut__int32__fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+					[
+						get-field(param-ref("f"), "fun_ptr")
+						param-ref("c")
+						get-field(param-ref("f"), "closure")
+						param-ref("p0")
+						param-ref("p1")])))
+		fun(
+			false
+			"call__ptr_fut__int32__fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+			type(true, "fut__int32")
+			none
+			[
+				param(
+					"f"
+					type(
+						false
+						"fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))
+				param("p0", type(true, "ctx"))
+				param("p1", type(false, "ptr__byte"))
+				param("p2", type(false, "arr__ptr__char"))
+				param("p3", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))]
+			builtin(
+				operator
+				"call (fun-ptr)"
+				[
+					type(true, "fut__int32")
+					type(true, "ctx")
+					type(false, "ptr__byte")
+					type(false, "arr__ptr__char")
+					type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char")]))
+		fun(
+			false
+			"run_threads___void__nat__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx"
+			type(false, "_void")
+			none
+			[
+				param("n_threads", type(false, "nat"))
+				param("arg", type(true, "global_ctx"))
+				param("fun", type(false, "fun_ptr2___void__nat__ptr_global_ctx"))]
+			expr-body(
+				[
+					local("threads", type(false, "ptr__nat"))
+					local("thread_args", type(false, "ptr__thread_args__ptr_global_ctx"))]
+				let(
+					"threads"
+					call("unmanaged_alloc_elements__ptr__nat__nat", [param-ref("n_threads")])
+					let(
+						"thread_args"
+						call(
+							"unmanaged_alloc_elements__ptr__thread_args__ptr_global_ctx__nat"
+							[param-ref("n_threads")])
+						seq(
+							seq(
+								seq(
+									call(
+										"run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx"
+										[
+											call("zero__nat", [])
+											param-ref("n_threads")
+											local-ref("threads")
+											local-ref("thread_args")
+											param-ref("arg")
+											param-ref("fun")])
+									call(
+										"join_threads_recur___void__nat__nat__ptr__nat"
+										[call("zero__nat", []), param-ref("n_threads"), local-ref("threads")]))
+								call("unmanaged_free___void__ptr__nat", [local-ref("threads")]))
+							call("unmanaged_free___void__ptr__thread_args__ptr_global_ctx", [local-ref("thread_args")]))))))
+		fun(
+			false
+			"unmanaged_alloc_elements__ptr__thread_args__ptr_global_ctx__nat"
+			type(false, "ptr__thread_args__ptr_global_ctx")
+			none
+			[param("size_elements", type(false, "nat"))]
+			expr-body(
+				[local("bytes", type(false, "ptr__byte"))]
+				let(
+					"bytes"
+					call(
+						"unmanaged_alloc_bytes__ptr__byte__nat"
+						[call("wrap_mul__nat__nat__nat", [param-ref("size_elements"), call("size_of__nat", [])])])
+					call("ptr_cast__ptr__thread_args__ptr_global_ctx__ptr__byte", [local-ref("bytes")]))))
+		fun(
+			false
+			"size_of__nat"
+			type(false, "nat")
+			none
+			[]
+			builtin(operator, "size-of", [type(false, "thread_args__ptr_global_ctx")]))
+		fun(
+			false
+			"ptr_cast__ptr__thread_args__ptr_global_ctx__ptr__byte"
+			type(false, "ptr__thread_args__ptr_global_ctx")
+			none
+			[param("p", type(false, "ptr__byte"))]
+			builtin(operator, "ptr-cast", [type(false, "thread_args__ptr_global_ctx"), type(false, "byte")]))
+		fun(
+			false
+			"run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx"
+			type(false, "_void")
+			none
+			[
+				param("i", type(false, "nat"))
+				param("n_threads", type(false, "nat"))
+				param("threads", type(false, "ptr__nat"))
+				param("thread_args", type(false, "ptr__thread_args__ptr_global_ctx"))
+				param("arg", type(true, "global_ctx"))
+				param("fun", type(false, "fun_ptr2___void__nat__ptr_global_ctx"))]
+			expr-body(
+				[
+					local("thread_arg_ptr", type(false, "ptr__thread_args__ptr_global_ctx"))
+					local("thread_ptr", type(false, "ptr__nat"))
+					local("fn", type(false, "fun_ptr1__ptr__byte__ptr__byte"))
+					local("err", type(false, "int32"))]
+				cond(
+					call("_op_equal_equal__bool__nat__nat", [param-ref("i"), param-ref("n_threads")])
+					call("pass___void", [])
+					let(
+						"thread_arg_ptr"
+						call(
+							"_op_plus__ptr__thread_args__ptr_global_ctx__ptr__thread_args__ptr_global_ctx__nat"
+							[param-ref("thread_args"), param-ref("i")])
+						seq(
+							call(
+								"set___void__ptr__thread_args__ptr_global_ctx__thread_args__ptr_global_ctx"
+								[
+									local-ref("thread_arg_ptr")
+									record([param-ref("fun"), param-ref("i"), param-ref("arg")])])
+							let(
+								"thread_ptr"
+								call("_op_plus__ptr__nat__ptr__nat__nat", [param-ref("threads"), param-ref("i")])
+								let(
+									"fn"
+									call(
+										"as__fun_ptr1__ptr__byte__ptr__byte__fun_ptr1__ptr__byte__ptr__byte"
+										[
+											lambda(
+												"run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx__lambda0"
+												none)])
+									let(
+										"err"
+										call(
+											"pthread_create"
+											[
+												call("as_cell__ptr_cell__nat__ptr__nat", [local-ref("thread_ptr")])
+												call("null__ptr__byte", [])
+												local-ref("fn")
+												call(
+													"as_any_ptr__ptr__byte__ptr__thread_args__ptr_global_ctx"
+													[local-ref("thread_arg_ptr")])])
+										cond(
+											call("zero__q__bool__int32", [local-ref("err")])
+											call(
+												"run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx"
+												[
+													call("noctx_incr__nat__nat", [param-ref("i")])
+													param-ref("n_threads")
+													param-ref("threads")
+													param-ref("thread_args")
+													param-ref("arg")
+													param-ref("fun")])
+											cond(
+												call(
+													"_op_equal_equal__bool__int32__int32"
+													[local-ref("err"), call("eagain__int32", [])])
+												call("todo___void", [])
+												call("todo___void", [])))))))))))
+		fun(
+			false
+			"_op_plus__ptr__thread_args__ptr_global_ctx__ptr__thread_args__ptr_global_ctx__nat"
+			type(false, "ptr__thread_args__ptr_global_ctx")
+			none
+			[param("p", type(false, "ptr__thread_args__ptr_global_ctx")), param("offset", type(false, "nat"))]
+			builtin(operator, "+ (ptr)", [type(false, "thread_args__ptr_global_ctx")]))
+		fun(
+			false
+			"set___void__ptr__thread_args__ptr_global_ctx__thread_args__ptr_global_ctx"
+			type(false, "_void")
+			none
+			[
+				param("p", type(false, "ptr__thread_args__ptr_global_ctx"))
+				param("value", type(false, "thread_args__ptr_global_ctx"))]
+			builtin(operator, "set-ptr", [type(false, "thread_args__ptr_global_ctx")]))
+		fun(
+			false
+			"_op_plus__ptr__nat__ptr__nat__nat"
+			type(false, "ptr__nat")
+			none
+			[param("p", type(false, "ptr__nat")), param("offset", type(false, "nat"))]
+			builtin(operator, "+ (ptr)", [type(false, "nat")]))
+		fun(
+			false
+			"as__fun_ptr1__ptr__byte__ptr__byte__fun_ptr1__ptr__byte__ptr__byte"
+			type(false, "fun_ptr1__ptr__byte__ptr__byte")
+			none
+			[param("value", type(false, "fun_ptr1__ptr__byte__ptr__byte"))]
+			builtin(operator, "as", [type(false, "fun_ptr1__ptr__byte__ptr__byte")]))
+		fun(
+			false
+			"thread_fun__ptr__byte__ptr__byte"
+			type(false, "ptr__byte")
+			none
+			[param("args_ptr", type(false, "ptr__byte"))]
+			expr-body(
+				[local("args", type(true, "thread_args__ptr_global_ctx"))]
+				let(
+					"args"
+					call("as_ref__ptr_thread_args__ptr_global_ctx__ptr__byte", [param-ref("args_ptr")])
+					seq(
+						call(
+							"call___void__fun_ptr2___void__nat__ptr_global_ctx__nat__ptr_global_ctx"
+							[
+								get-field(local-ref("args"), "fun")
+								get-field(local-ref("args"), "thread_id")
+								get-field(local-ref("args"), "arg")])
+						call("null__ptr__byte", [])))))
+		fun(
+			false
+			"as_ref__ptr_thread_args__ptr_global_ctx__ptr__byte"
+			type(true, "thread_args__ptr_global_ctx")
+			none
+			[param("p", type(false, "ptr__byte"))]
+			builtin(operator, "as-ref", [type(true, "thread_args__ptr_global_ctx")]))
+		fun(
+			false
+			"call___void__fun_ptr2___void__nat__ptr_global_ctx__nat__ptr_global_ctx"
+			type(false, "_void")
+			none
+			[
+				param("f", type(false, "fun_ptr2___void__nat__ptr_global_ctx"))
+				param("p0", type(false, "nat"))
+				param("p1", type(true, "global_ctx"))]
+			builtin(operator, "call (fun-ptr)", [type(false, "_void"), type(false, "nat"), type(true, "global_ctx")]))
+		fun(
+			false
+			"run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx__lambda0"
+			type(false, "ptr__byte")
+			none
+			[param("args_ptr", type(false, "ptr__byte"))]
+			expr-body([], call("thread_fun__ptr__byte__ptr__byte", [param-ref("args_ptr")])))
+		fun(
+			false
+			"pthread_create"
+			type(false, "int32")
+			none
+			[
+				param("thread", type(true, "cell__nat"))
+				param("attr", type(false, "ptr__byte"))
+				param("start_routine", type(false, "fun_ptr1__ptr__byte__ptr__byte"))
+				param("arg", type(false, "ptr__byte"))]
+			extern(false))
+		fun(
+			false
+			"as_cell__ptr_cell__nat__ptr__nat"
+			type(true, "cell__nat")
+			none
+			[param("p", type(false, "ptr__nat"))]
+			expr-body(
+				[]
+				call("as_ref__ptr_cell__nat__ptr__byte", [call("as_any_ptr__ptr__byte__ptr__nat", [param-ref("p")])])))
+		fun(
+			false
+			"as_ref__ptr_cell__nat__ptr__byte"
+			type(true, "cell__nat")
+			none
+			[param("p", type(false, "ptr__byte"))]
+			builtin(operator, "as-ref", [type(true, "cell__nat")]))
+		fun(
+			false
+			"as_any_ptr__ptr__byte__ptr__nat"
+			type(false, "ptr__byte")
+			none
+			[param("some_ref", type(false, "ptr__nat"))]
+			builtin(operator, "as-any-ptr", [type(false, "ptr__nat")]))
+		fun(
+			false
+			"as_any_ptr__ptr__byte__ptr__thread_args__ptr_global_ctx"
+			type(false, "ptr__byte")
+			none
+			[param("some_ref", type(false, "ptr__thread_args__ptr_global_ctx"))]
+			builtin(operator, "as-any-ptr", [type(false, "ptr__thread_args__ptr_global_ctx")]))
+		fun(
+			false
+			"eagain__int32"
+			type(false, "int32")
+			none
+			[]
+			expr-body([], call("wrap_add__int32__int32__int32", [call("ten__int32", []), call("one__int32", [])])))
+		fun(
+			false
+			"ten__int32"
+			type(false, "int32")
+			none
+			[]
+			expr-body([], call("wrap_incr__int32__int32", [call("nine__int32", [])])))
+		fun(
+			false
+			"nine__int32"
+			type(false, "int32")
+			none
+			[]
+			expr-body([], call("wrap_incr__int32__int32", [call("eight__int32", [])])))
+		fun(
+			false
+			"eight__int32"
+			type(false, "int32")
+			none
+			[]
+			expr-body([], call("wrap_add__int32__int32__int32", [call("four__int32", []), call("four__int32", [])])))
+		fun(
+			false
+			"join_threads_recur___void__nat__nat__ptr__nat"
+			type(false, "_void")
+			none
+			[
+				param("i", type(false, "nat"))
+				param("n_threads", type(false, "nat"))
+				param("threads", type(false, "ptr__nat"))]
+			expr-body(
+				[]
+				cond(
+					call("_op_equal_equal__bool__nat__nat", [param-ref("i"), param-ref("n_threads")])
+					call("pass___void", [])
+					seq(
+						call(
+							"join_one_thread___void__nat"
+							[
+								call(
+									"deref__nat__ptr__nat"
+									[call("_op_plus__ptr__nat__ptr__nat__nat", [param-ref("threads"), param-ref("i")])])])
+						call(
+							"join_threads_recur___void__nat__nat__ptr__nat"
+							[
+								call("noctx_incr__nat__nat", [param-ref("i")])
+								param-ref("n_threads")
+								param-ref("threads")])))))
+		fun(
+			false
+			"join_one_thread___void__nat"
+			type(false, "_void")
+			none
+			[param("tid", type(false, "nat"))]
+			expr-body(
+				[local("thread_return", type(false, "cell__ptr__byte")), local("err", type(false, "int32"))]
+				let(
+					"thread_return"
+					record([call("null__ptr__byte", [])])
+					let(
+						"err"
+						call(
+							"pthread_join"
+							[
+								param-ref("tid")
+								call("ref_of_val__ptr_cell__ptr__byte__cell__ptr__byte", [local-ref("thread_return")])])
+						seq(
+							cond(
+								call("zero__q__bool__int32", [local-ref("err")])
+								call("pass___void", [])
+								cond(
+									call(
+										"_op_equal_equal__bool__int32__int32"
+										[local-ref("err"), call("einval__int32", [])])
+									call("todo___void", [])
+									cond(
+										call(
+											"_op_equal_equal__bool__int32__int32"
+											[local-ref("err"), call("esrch__int32", [])])
+										call("todo___void", [])
+										call("todo___void", []))))
+							call(
+								"hard_assert___void__bool"
+								[
+									call(
+										"_op_equal_equal__bool__ptr__byte__ptr__byte"
+										[
+											call(
+												"get__ptr__byte__ptr_cell__ptr__byte"
+												[
+													call(
+														"ref_of_val__ptr_cell__ptr__byte__cell__ptr__byte"
+														[local-ref("thread_return")])])
+											call("null__ptr__byte", [])])]))))))
+		fun(
+			false
+			"pthread_join"
+			type(false, "int32")
+			none
+			[param("thread", type(false, "nat")), param("thread_return", type(true, "cell__ptr__byte"))]
+			extern(false))
+		fun(
+			false
+			"ref_of_val__ptr_cell__ptr__byte__cell__ptr__byte"
+			type(true, "cell__ptr__byte")
+			none
+			[param("b", type(false, "cell__ptr__byte"))]
+			builtin(operator, "ref-of-val", [type(true, "cell__ptr__byte")]))
+		fun(
+			false
+			"einval__int32"
+			type(false, "int32")
+			none
+			[]
+			expr-body(
+				[]
+				call(
+					"wrap_add__int32__int32__int32"
+					[
+						call("wrap_add__int32__int32__int32", [call("ten__int32", []), call("ten__int32", [])])
+						call("two__int32", [])])))
+		fun(false, "esrch__int32", type(false, "int32"), none, [], expr-body([], call("three__int32", [])))
+		fun(
+			false
+			"get__ptr__byte__ptr_cell__ptr__byte"
+			type(false, "ptr__byte")
+			none
+			[param("c", type(true, "cell__ptr__byte"))]
+			expr-body([], get-field(param-ref("c"), "value")))
+		fun(
+			false
+			"deref__nat__ptr__nat"
+			type(false, "nat")
+			none
+			[param("p", type(false, "ptr__nat"))]
+			builtin(operator, "deref", [type(false, "nat")]))
+		fun(
+			false
+			"unmanaged_free___void__ptr__nat"
+			type(false, "_void")
+			none
+			[param("p", type(false, "ptr__nat"))]
+			expr-body([], call("free", [call("ptr_cast__ptr__byte__ptr__nat", [param-ref("p")])])))
+		fun(false, "free", type(false, "_void"), none, [param("p", type(false, "ptr__byte"))], extern(false))
+		fun(
+			false
+			"ptr_cast__ptr__byte__ptr__nat"
+			type(false, "ptr__byte")
+			none
+			[param("p", type(false, "ptr__nat"))]
+			builtin(operator, "ptr-cast", [type(false, "byte"), type(false, "nat")]))
+		fun(
+			false
+			"unmanaged_free___void__ptr__thread_args__ptr_global_ctx"
+			type(false, "_void")
+			none
+			[param("p", type(false, "ptr__thread_args__ptr_global_ctx"))]
+			expr-body(
+				[]
+				call("free", [call("ptr_cast__ptr__byte__ptr__thread_args__ptr_global_ctx", [param-ref("p")])])))
+		fun(
+			false
+			"ptr_cast__ptr__byte__ptr__thread_args__ptr_global_ctx"
+			type(false, "ptr__byte")
+			none
+			[param("p", type(false, "ptr__thread_args__ptr_global_ctx"))]
+			builtin(operator, "ptr-cast", [type(false, "byte"), type(false, "thread_args__ptr_global_ctx")]))
+		fun(
+			false
+			"thread_function___void__nat__ptr_global_ctx"
+			type(false, "_void")
+			none
+			[param("thread_id", type(false, "nat")), param("gctx", type(true, "global_ctx"))]
+			expr-body(
+				[local("ectx", type(false, "exception_ctx")), local("tls", type(false, "thread_local_stuff"))]
+				let(
+					"ectx"
+					call("new_exception_ctx__exception_ctx", [])
+					let(
+						"tls"
+						call(
+							"as__thread_local_stuff__thread_local_stuff"
+							[record([call("ref_of_val__ptr_exception_ctx__exception_ctx", [local-ref("ectx")])])])
+						call(
+							"thread_function_recur___void__nat__ptr_global_ctx__ptr_thread_local_stuff"
+							[
+								param-ref("thread_id")
+								param-ref("gctx")
+								call("ref_of_val__ptr_thread_local_stuff__thread_local_stuff", [local-ref("tls")])])))))
+		fun(
+			false
+			"as__thread_local_stuff__thread_local_stuff"
+			type(false, "thread_local_stuff")
+			none
+			[param("value", type(false, "thread_local_stuff"))]
+			builtin(operator, "as", [type(false, "thread_local_stuff")]))
+		fun(
+			false
+			"thread_function_recur___void__nat__ptr_global_ctx__ptr_thread_local_stuff"
+			type(false, "_void")
+			none
+			[
+				param("thread_id", type(false, "nat"))
+				param("gctx", type(true, "global_ctx"))
+				param("tls", type(true, "thread_local_stuff"))]
+			expr-body(
+				[
+					local("last_checked", type(false, "nat"))
+					local("ok_chosen_task", type(false, "ok__chosen_task"))
+					local("e", type(false, "err__no_chosen_task"))
+					local("matched", type(false, "result__chosen_task__no_chosen_task"))]
+				cond(
+					get-field(param-ref("gctx"), "is_shut_down")
+					seq(
+						seq(
+							seq(
+								call(
+									"acquire_lock___void__ptr_lock"
+									[call("ref_of_val__ptr_lock__lock", [get-field(param-ref("gctx"), "lk")])])
+								set-field(
+									param-ref("gctx")
+									"n_live_threads"
+									call("noctx_decr__nat__nat", [get-field(param-ref("gctx"), "n_live_threads")])))
+							call(
+								"assert_vats_are_shut_down___void__nat__arr__ptr_vat"
+								[call("zero__nat", []), get-field(param-ref("gctx"), "vats")]))
+						call(
+							"release_lock___void__ptr_lock"
+							[call("ref_of_val__ptr_lock__lock", [get-field(param-ref("gctx"), "lk")])]))
+					seq(
+						call(
+							"hard_assert___void__bool"
+							[
+								call(
+									"_op_greater__bool__nat__nat"
+									[get-field(param-ref("gctx"), "n_live_threads"), call("zero__nat", [])])])
+						let(
+							"last_checked"
+							call(
+								"get_last_checked__nat__ptr_condition"
+								[
+									call(
+										"ref_of_val__ptr_condition__condition"
+										[get-field(param-ref("gctx"), "may_be_work_to_do")])])
+							seq(
+								match(
+									"matched"
+									call(
+										"choose_task__result__chosen_task__no_chosen_task__ptr_global_ctx"
+										[param-ref("gctx")])
+									[
+										case(
+											some("ok_chosen_task")
+											call(
+												"do_task___void__ptr_global_ctx__ptr_thread_local_stuff__chosen_task"
+												[
+													param-ref("gctx")
+													param-ref("tls")
+													get-field(local-ref("ok_chosen_task"), "value")]))
+										case(
+											some("e")
+											seq(
+												seq(
+													seq(
+														cond(
+															get-field(
+																get-field(local-ref("e"), "value")
+																"last_thread_out")
+															seq(
+																seq(
+																	call(
+																		"hard_forbid___void__bool"
+																		[get-field(param-ref("gctx"), "is_shut_down")])
+																	set-field(
+																		param-ref("gctx")
+																		"is_shut_down"
+																		call("true__bool", [])))
+																call(
+																	"broadcast___void__ptr_condition"
+																	[
+																		call(
+																			"ref_of_val__ptr_condition__condition"
+																			[
+																				get-field(
+																					param-ref("gctx")
+																					"may_be_work_to_do")])]))
+															call(
+																"wait_on___void__ptr_condition__nat"
+																[
+																	call(
+																		"ref_of_val__ptr_condition__condition"
+																		[
+																			get-field(
+																				param-ref("gctx")
+																				"may_be_work_to_do")])
+																	local-ref("last_checked")]))
+														call(
+															"acquire_lock___void__ptr_lock"
+															[
+																call(
+																	"ref_of_val__ptr_lock__lock"
+																	[get-field(param-ref("gctx"), "lk")])]))
+													set-field(
+														param-ref("gctx")
+														"n_live_threads"
+														call(
+															"noctx_incr__nat__nat"
+															[get-field(param-ref("gctx"), "n_live_threads")])))
+												call(
+													"release_lock___void__ptr_lock"
+													[
+														call(
+															"ref_of_val__ptr_lock__lock"
+															[get-field(param-ref("gctx"), "lk")])])))])
+								call(
+									"thread_function_recur___void__nat__ptr_global_ctx__ptr_thread_local_stuff"
+									[param-ref("thread_id"), param-ref("gctx"), param-ref("tls")])))))))
+		fun(
+			false
+			"noctx_decr__nat__nat"
+			type(false, "nat")
+			none
+			[param("n", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call("hard_forbid___void__bool", [call("zero__q__bool__nat", [param-ref("n")])])
+					call("wrap_sub__nat__nat__nat", [param-ref("n"), call("one__nat", [])]))))
+		fun(
+			false
+			"assert_vats_are_shut_down___void__nat__arr__ptr_vat"
+			type(false, "_void")
+			none
+			[param("i", type(false, "nat")), param("vats", type(false, "arr__ptr_vat"))]
+			expr-body(
+				[local("vat", type(true, "vat"))]
+				cond(
+					call("_op_equal_equal__bool__nat__nat", [param-ref("i"), get-field(param-ref("vats"), "size")])
+					call("pass___void", [])
+					let(
+						"vat"
+						call("noctx_at__ptr_vat__arr__ptr_vat__nat", [param-ref("vats"), param-ref("i")])
+						seq(
+							seq(
+								seq(
+									seq(
+										seq(
+											call(
+												"acquire_lock___void__ptr_lock"
+												[
+													call(
+														"ref_of_val__ptr_lock__lock"
+														[get-field(local-ref("vat"), "tasks_lock")])])
+											call(
+												"hard_forbid___void__bool"
+												[
+													get-field(
+														call(
+															"ref_of_val__ptr_gc__gc"
+															[get-field(local-ref("vat"), "gc")])
+														"needs_gc")]))
+										call(
+											"hard_assert___void__bool"
+											[
+												call(
+													"zero__q__bool__nat"
+													[get-field(local-ref("vat"), "n_threads_running")])]))
+									call(
+										"hard_assert___void__bool"
+										[
+											call(
+												"empty__q__bool__ptr_mut_bag__task"
+												[
+													call(
+														"ref_of_val__ptr_mut_bag__task__mut_bag__task"
+														[get-field(local-ref("vat"), "tasks")])])]))
+								call(
+									"release_lock___void__ptr_lock"
+									[call("ref_of_val__ptr_lock__lock", [get-field(local-ref("vat"), "tasks_lock")])]))
+							call(
+								"assert_vats_are_shut_down___void__nat__arr__ptr_vat"
+								[call("noctx_incr__nat__nat", [param-ref("i")]), param-ref("vats")]))))))
+		fun(
+			false
+			"empty__q__bool__ptr_mut_bag__task"
+			type(false, "bool")
+			none
+			[param("m", type(true, "mut_bag__task"))]
+			expr-body([], call("empty__q__bool__opt__ptr_mut_bag_node__task", [get-field(param-ref("m"), "head")])))
+		fun(
+			false
+			"empty__q__bool__opt__ptr_mut_bag_node__task"
+			type(false, "bool")
+			none
+			[param("a", type(false, "opt__ptr_mut_bag_node__task"))]
+			expr-body(
+				[
+					local("n", type(false, "none"))
+					local("s", type(false, "some__ptr_mut_bag_node__task"))
+					local("matched", type(false, "opt__ptr_mut_bag_node__task"))]
+				match(
+					"matched"
+					param-ref("a")
+					[case(some("n"), call("true__bool", [])), case(some("s"), call("false__bool", []))])))
+		fun(
+			false
+			"_op_greater__bool__nat__nat"
+			type(false, "bool")
+			none
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body(
+				[]
+				call("not__bool__bool", [call("_op_less_equal__bool__nat__nat", [param-ref("a"), param-ref("b")])])))
+		fun(
+			false
+			"get_last_checked__nat__ptr_condition"
+			type(false, "nat")
+			none
+			[param("c", type(true, "condition"))]
+			expr-body([], get-field(param-ref("c"), "value")))
+		fun(
+			false
+			"choose_task__result__chosen_task__no_chosen_task__ptr_global_ctx"
+			type(false, "result__chosen_task__no_chosen_task")
+			none
+			[param("gctx", type(true, "global_ctx"))]
+			expr-body(
+				[
+					local("s", type(false, "some__chosen_task"))
+					local("matched", type(false, "opt__chosen_task"))
+					local("res", type(false, "result__chosen_task__no_chosen_task"))]
+				seq(
+					call(
+						"acquire_lock___void__ptr_lock"
+						[call("ref_of_val__ptr_lock__lock", [get-field(param-ref("gctx"), "lk")])])
+					let(
+						"res"
+						call(
+							"as__result__chosen_task__no_chosen_task__result__chosen_task__no_chosen_task"
+							[
+								match(
+									"matched"
+									call(
+										"choose_task_recur__opt__chosen_task__arr__ptr_vat__nat"
+										[get-field(param-ref("gctx"), "vats"), call("zero__nat", [])])
+									[
+										case(
+											none
+											seq(
+												set-field(
+													param-ref("gctx")
+													"n_live_threads"
+													call(
+														"noctx_decr__nat__nat"
+														[get-field(param-ref("gctx"), "n_live_threads")]))
+												to-union(
+													1
+													call(
+														"err__err__no_chosen_task__no_chosen_task"
+														[
+															record(
+																[
+																	call(
+																		"zero__q__bool__nat"
+																		[get-field(param-ref("gctx"), "n_live_threads")])])]))))
+										case(
+											some("s")
+											to-union(
+												0
+												call(
+													"ok__ok__chosen_task__chosen_task"
+													[get-field(local-ref("s"), "value")])))])])
+						seq(
+							call(
+								"release_lock___void__ptr_lock"
+								[call("ref_of_val__ptr_lock__lock", [get-field(param-ref("gctx"), "lk")])])
+							local-ref("res"))))))
+		fun(
+			false
+			"as__result__chosen_task__no_chosen_task__result__chosen_task__no_chosen_task"
+			type(false, "result__chosen_task__no_chosen_task")
+			none
+			[param("value", type(false, "result__chosen_task__no_chosen_task"))]
+			builtin(operator, "as", [type(false, "result__chosen_task__no_chosen_task")]))
+		fun(
+			false
+			"choose_task_recur__opt__chosen_task__arr__ptr_vat__nat"
+			type(false, "opt__chosen_task")
+			none
+			[param("vats", type(false, "arr__ptr_vat")), param("i", type(false, "nat"))]
+			expr-body(
+				[
+					local("vat", type(true, "vat"))
+					local("s", type(false, "some__opt__task"))
+					local("matched", type(false, "opt__opt__task"))]
+				cond(
+					call("_op_equal_equal__bool__nat__nat", [param-ref("i"), get-field(param-ref("vats"), "size")])
+					to-union(0, call("none__none", []))
+					let(
+						"vat"
+						call("noctx_at__ptr_vat__arr__ptr_vat__nat", [param-ref("vats"), param-ref("i")])
+						match(
+							"matched"
+							call("choose_task_in_vat__opt__opt__task__ptr_vat", [local-ref("vat")])
+							[
+								case(
+									none
+									call(
+										"choose_task_recur__opt__chosen_task__arr__ptr_vat__nat"
+										[param-ref("vats"), call("noctx_incr__nat__nat", [param-ref("i")])]))
+								case(
+									some("s")
+									to-union(
+										1
+										call(
+											"some__some__chosen_task__chosen_task"
+											[record([local-ref("vat"), get-field(local-ref("s"), "value")])])))])))))
+		fun(
+			false
+			"choose_task_in_vat__opt__opt__task__ptr_vat"
+			type(false, "opt__opt__task")
+			none
+			[param("vat", type(true, "vat"))]
+			expr-body(
+				[
+					local("s", type(false, "some__task"))
+					local("matched", type(false, "opt__task"))
+					local("res", type(false, "opt__opt__task"))]
+				seq(
+					call(
+						"acquire_lock___void__ptr_lock"
+						[call("ref_of_val__ptr_lock__lock", [get-field(param-ref("vat"), "tasks_lock")])])
+					let(
+						"res"
+						call(
+							"as__opt__opt__task__opt__opt__task"
+							[
+								cond(
+									get-field(
+										call("ref_of_val__ptr_gc__gc", [get-field(param-ref("vat"), "gc")])
+										"needs_gc")
+									cond(
+										call("zero__q__bool__nat", [get-field(param-ref("vat"), "n_threads_running")])
+										to-union(
+											1
+											call(
+												"some__some__opt__task__opt__task"
+												[to-union(0, call("none__none", []))]))
+										to-union(0, call("none__none", [])))
+									match(
+										"matched"
+										call(
+											"find_and_remove_first_doable_task__opt__task__ptr_vat"
+											[param-ref("vat")])
+										[
+											case(none, to-union(0, call("none__none", [])))
+											case(
+												some("s")
+												to-union(
+													1
+													call(
+														"some__some__opt__task__opt__task"
+														[
+															to-union(
+																1
+																call(
+																	"some__some__task__task"
+																	[get-field(local-ref("s"), "value")]))])))]))])
+						seq(
+							seq(
+								cond(
+									call("empty__q__bool__opt__opt__task", [local-ref("res")])
+									call("pass___void", [])
+									set-field(
+										param-ref("vat")
+										"n_threads_running"
+										call("noctx_incr__nat__nat", [get-field(param-ref("vat"), "n_threads_running")])))
+								call(
+									"release_lock___void__ptr_lock"
+									[call("ref_of_val__ptr_lock__lock", [get-field(param-ref("vat"), "tasks_lock")])]))
+							local-ref("res"))))))
+		fun(
+			false
+			"as__opt__opt__task__opt__opt__task"
+			type(false, "opt__opt__task")
+			none
+			[param("value", type(false, "opt__opt__task"))]
+			builtin(operator, "as", [type(false, "opt__opt__task")]))
+		fun(
+			false
+			"some__some__opt__task__opt__task"
+			type(false, "some__opt__task")
+			none
+			[param("t", type(false, "opt__task"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			false
+			"find_and_remove_first_doable_task__opt__task__ptr_vat"
+			type(false, "opt__task")
+			none
+			[param("vat", type(true, "vat"))]
+			expr-body(
+				[
+					local("tasks", type(true, "mut_bag__task"))
+					local("res", type(false, "opt__task_and_nodes"))
+					local("s", type(false, "some__task_and_nodes"))
+					local("matched", type(false, "opt__task_and_nodes"))]
+				let(
+					"tasks"
+					call("ref_of_val__ptr_mut_bag__task__mut_bag__task", [get-field(param-ref("vat"), "tasks")])
+					let(
+						"res"
+						call(
+							"find_and_remove_first_doable_task_recur__opt__task_and_nodes__ptr_vat__opt__ptr_mut_bag_node__task"
+							[param-ref("vat"), get-field(local-ref("tasks"), "head")])
+						match(
+							"matched"
+							local-ref("res")
+							[
+								case(none, to-union(0, call("none__none", [])))
+								case(
+									some("s")
+									seq(
+										set-field(
+											local-ref("tasks")
+											"head"
+											get-field(get-field(local-ref("s"), "value"), "nodes"))
+										to-union(
+											1
+											call(
+												"some__some__task__task"
+												[get-field(get-field(local-ref("s"), "value"), "task")]))))])))))
+		fun(
+			false
+			"find_and_remove_first_doable_task_recur__opt__task_and_nodes__ptr_vat__opt__ptr_mut_bag_node__task"
+			type(false, "opt__task_and_nodes")
+			none
+			[param("vat", type(true, "vat")), param("opt_node", type(false, "opt__ptr_mut_bag_node__task"))]
+			expr-body(
+				[
+					local("s", type(false, "some__ptr_mut_bag_node__task"))
+					local("node", type(true, "mut_bag_node__task"))
+					local("task", type(false, "task"))
+					local("actors", type(true, "mut_arr__nat"))
+					local("task_ok", type(false, "bool"))
+					local("ss", type(false, "some__task_and_nodes"))
+					local("tn", type(false, "task_and_nodes"))
+					local("matched", type(false, "opt__task_and_nodes"))
+					local("matched1", type(false, "opt__ptr_mut_bag_node__task"))]
+				match(
+					"matched1"
+					param-ref("opt_node")
+					[
+						case(none, to-union(0, call("none__none", [])))
+						case(
+							some("s")
+							let(
+								"node"
+								get-field(local-ref("s"), "value")
+								let(
+									"task"
+									get-field(local-ref("node"), "value")
+									let(
+										"actors"
+										call(
+											"ref_of_val__ptr_mut_arr__nat__mut_arr__nat"
+											[get-field(param-ref("vat"), "currently_running_actors")])
+										let(
+											"task_ok"
+											cond(
+												call(
+													"contains__q__bool__ptr_mut_arr__nat__nat"
+													[local-ref("actors"), get-field(local-ref("task"), "actor_id")])
+												call("false__bool", [])
+												seq(
+													call(
+														"push_capacity_must_be_sufficient___void__ptr_mut_arr__nat__nat"
+														[local-ref("actors"), get-field(local-ref("task"), "actor_id")])
+													call("true__bool", [])))
+											cond(
+												local-ref("task_ok")
+												to-union(
+													1
+													call(
+														"some__some__task_and_nodes__task_and_nodes"
+														[
+															record(
+																[
+																	local-ref("task")
+																	get-field(local-ref("node"), "next_node")])]))
+												match(
+													"matched"
+													call(
+														"find_and_remove_first_doable_task_recur__opt__task_and_nodes__ptr_vat__opt__ptr_mut_bag_node__task"
+														[param-ref("vat"), get-field(local-ref("node"), "next_node")])
+													[
+														case(none, to-union(0, call("none__none", [])))
+														case(
+															some("ss")
+															let(
+																"tn"
+																call(
+																	"as__task_and_nodes__task_and_nodes"
+																	[get-field(local-ref("ss"), "value")])
+																seq(
+																	set-field(
+																		local-ref("node")
+																		"next_node"
+																		get-field(local-ref("tn"), "nodes"))
+																	to-union(
+																		1
+																		call(
+																			"some__some__task_and_nodes__task_and_nodes"
+																			[
+																				record(
+																					[
+																						get-field(
+																							local-ref("tn")
+																							"task")
+																						to-union(
+																							1
+																							call(
+																								"some__some__ptr_mut_bag_node__task__ptr_mut_bag_node__task"
+																								[local-ref("node")]))])])))))])))))))])))
+		fun(
+			false
+			"ref_of_val__ptr_mut_arr__nat__mut_arr__nat"
+			type(true, "mut_arr__nat")
+			none
+			[param("b", type(false, "mut_arr__nat"))]
+			builtin(operator, "ref-of-val", [type(true, "mut_arr__nat")]))
+		fun(
+			false
+			"contains__q__bool__ptr_mut_arr__nat__nat"
+			type(false, "bool")
+			none
+			[param("a", type(true, "mut_arr__nat")), param("value", type(false, "nat"))]
+			expr-body(
+				[]
+				call(
+					"contains_recur__q__bool__arr__nat__nat__nat"
+					[
+						call("temp_as_arr__arr__nat__ptr_mut_arr__nat", [param-ref("a")])
+						param-ref("value")
+						call("zero__nat", [])])))
+		fun(
+			false
+			"contains_recur__q__bool__arr__nat__nat__nat"
+			type(false, "bool")
+			none
+			[param("a", type(false, "arr__nat")), param("value", type(false, "nat")), param("i", type(false, "nat"))]
+			expr-body(
+				[]
+				cond(
+					call("_op_equal_equal__bool__nat__nat", [param-ref("i"), get-field(param-ref("a"), "size")])
+					call("false__bool", [])
+					call(
+						"or__bool__bool__bool"
+						[
+							call(
+								"_op_equal_equal__bool__nat__nat"
+								[
+									call("noctx_at__nat__arr__nat__nat", [param-ref("a"), param-ref("i")])
+									param-ref("value")])
+							call(
+								"contains_recur__q__bool__arr__nat__nat__nat"
+								[param-ref("a"), param-ref("value"), call("noctx_incr__nat__nat", [param-ref("i")])])]))))
+		fun(
+			false
+			"or__bool__bool__bool"
+			type(false, "bool")
+			none
+			[param("a", type(false, "bool")), param("b", type(false, "bool"))]
+			builtin(operator, "or", []))
+		fun(
+			false
+			"noctx_at__nat__arr__nat__nat"
+			type(false, "nat")
+			none
+			[param("a", type(false, "arr__nat")), param("index", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"hard_assert___void__bool"
+						[call("_op_less__bool__nat__nat", [param-ref("index"), get-field(param-ref("a"), "size")])])
+					call(
+						"deref__nat__ptr__nat"
+						[
+							call(
+								"_op_plus__ptr__nat__ptr__nat__nat"
+								[get-field(param-ref("a"), "data"), param-ref("index")])]))))
+		fun(
+			false
+			"temp_as_arr__arr__nat__ptr_mut_arr__nat"
+			type(false, "arr__nat")
+			none
+			[param("a", type(true, "mut_arr__nat"))]
+			expr-body([], record([get-field(param-ref("a"), "size"), get-field(param-ref("a"), "data")])))
+		fun(
+			false
+			"push_capacity_must_be_sufficient___void__ptr_mut_arr__nat__nat"
+			type(false, "_void")
+			none
+			[param("a", type(true, "mut_arr__nat")), param("value", type(false, "nat"))]
+			expr-body(
+				[local("old_size", type(false, "nat"))]
+				seq(
+					call(
+						"hard_assert___void__bool"
+						[
+							call(
+								"_op_less__bool__nat__nat"
+								[get-field(param-ref("a"), "size"), get-field(param-ref("a"), "capacity")])])
+					let(
+						"old_size"
+						get-field(param-ref("a"), "size")
+						seq(
+							set-field(param-ref("a"), "size", call("noctx_incr__nat__nat", [local-ref("old_size")]))
+							call(
+								"noctx_set_at___void__ptr_mut_arr__nat__nat__nat"
+								[param-ref("a"), local-ref("old_size"), param-ref("value")]))))))
+		fun(
+			false
+			"noctx_set_at___void__ptr_mut_arr__nat__nat__nat"
+			type(false, "_void")
+			none
+			[
+				param("a", type(true, "mut_arr__nat"))
+				param("index", type(false, "nat"))
+				param("value", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"hard_assert___void__bool"
+						[call("_op_less__bool__nat__nat", [param-ref("index"), get-field(param-ref("a"), "size")])])
+					call(
+						"set___void__ptr__nat__nat"
+						[
+							call(
+								"_op_plus__ptr__nat__ptr__nat__nat"
+								[get-field(param-ref("a"), "data"), param-ref("index")])
+							param-ref("value")]))))
+		fun(
+			false
+			"set___void__ptr__nat__nat"
+			type(false, "_void")
+			none
+			[param("p", type(false, "ptr__nat")), param("value", type(false, "nat"))]
+			builtin(operator, "set-ptr", [type(false, "nat")]))
+		fun(
+			false
+			"some__some__task_and_nodes__task_and_nodes"
+			type(false, "some__task_and_nodes")
+			none
+			[param("t", type(false, "task_and_nodes"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			false
+			"as__task_and_nodes__task_and_nodes"
+			type(false, "task_and_nodes")
+			none
+			[param("value", type(false, "task_and_nodes"))]
+			builtin(operator, "as", [type(false, "task_and_nodes")]))
+		fun(
+			false
+			"some__some__task__task"
+			type(false, "some__task")
+			none
+			[param("t", type(false, "task"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			false
+			"empty__q__bool__opt__opt__task"
+			type(false, "bool")
+			none
+			[param("a", type(false, "opt__opt__task"))]
+			expr-body(
+				[
+					local("n", type(false, "none"))
+					local("s", type(false, "some__opt__task"))
+					local("matched", type(false, "opt__opt__task"))]
+				match(
+					"matched"
+					param-ref("a")
+					[case(some("n"), call("true__bool", [])), case(some("s"), call("false__bool", []))])))
+		fun(
+			false
+			"some__some__chosen_task__chosen_task"
+			type(false, "some__chosen_task")
+			none
+			[param("t", type(false, "chosen_task"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			false
+			"err__err__no_chosen_task__no_chosen_task"
+			type(false, "err__no_chosen_task")
+			none
+			[param("t", type(false, "no_chosen_task"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			false
+			"ok__ok__chosen_task__chosen_task"
+			type(false, "ok__chosen_task")
+			none
+			[param("t", type(false, "chosen_task"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			false
+			"do_task___void__ptr_global_ctx__ptr_thread_local_stuff__chosen_task"
+			type(false, "_void")
+			none
+			[
+				param("gctx", type(true, "global_ctx"))
+				param("tls", type(true, "thread_local_stuff"))
+				param("chosen_task", type(false, "chosen_task"))]
+			expr-body(
+				[
+					local("vat", type(true, "vat"))
+					local("some_task", type(false, "some__task"))
+					local("task", type(false, "task"))
+					local("ctx", type(false, "ctx"))
+					local("matched", type(false, "opt__task"))]
+				let(
+					"vat"
+					get-field(param-ref("chosen_task"), "vat")
+					seq(
+						seq(
+							seq(
+								match(
+									"matched"
+									get-field(param-ref("chosen_task"), "task_or_gc")
+									[
+										case(
+											none
+											seq(
+												call("todo___void", [])
+												call(
+													"broadcast___void__ptr_condition"
+													[
+														call(
+															"ref_of_val__ptr_condition__condition"
+															[get-field(param-ref("gctx"), "may_be_work_to_do")])])))
+										case(
+											some("some_task")
+											let(
+												"task"
+												get-field(local-ref("some_task"), "value")
+												let(
+													"ctx"
+													call(
+														"new_ctx__ctx__ptr_global_ctx__ptr_thread_local_stuff__ptr_vat__nat"
+														[
+															param-ref("gctx")
+															param-ref("tls")
+															local-ref("vat")
+															get-field(local-ref("task"), "actor_id")])
+													seq(
+														seq(
+															seq(
+																seq(
+																	call(
+																		"call_with_ctx___void__ptr_ctx__fun_mut0___void"
+																		[
+																			call(
+																				"ref_of_val__ptr_ctx__ctx"
+																				[local-ref("ctx")])
+																			get-field(local-ref("task"), "fun")])
+																	call(
+																		"acquire_lock___void__ptr_lock"
+																		[
+																			call(
+																				"ref_of_val__ptr_lock__lock"
+																				[
+																					get-field(
+																						local-ref("vat")
+																						"tasks_lock")])]))
+																call(
+																	"noctx_must_remove_unordered___void__ptr_mut_arr__nat__nat"
+																	[
+																		call(
+																			"ref_of_val__ptr_mut_arr__nat__mut_arr__nat"
+																			[
+																				get-field(
+																					local-ref("vat")
+																					"currently_running_actors")])
+																		get-field(local-ref("task"), "actor_id")]))
+															call(
+																"release_lock___void__ptr_lock"
+																[
+																	call(
+																		"ref_of_val__ptr_lock__lock"
+																		[get-field(local-ref("vat"), "tasks_lock")])]))
+														call(
+															"return_ctx___void__ptr_ctx"
+															[call("ref_of_val__ptr_ctx__ctx", [local-ref("ctx")])])))))])
+								call(
+									"acquire_lock___void__ptr_lock"
+									[call("ref_of_val__ptr_lock__lock", [get-field(local-ref("vat"), "tasks_lock")])]))
+							set-field(
+								local-ref("vat")
+								"n_threads_running"
+								call("noctx_decr__nat__nat", [get-field(local-ref("vat"), "n_threads_running")])))
+						call(
+							"release_lock___void__ptr_lock"
+							[call("ref_of_val__ptr_lock__lock", [get-field(local-ref("vat"), "tasks_lock")])])))))
+		fun(
+			false
+			"noctx_must_remove_unordered___void__ptr_mut_arr__nat__nat"
+			type(false, "_void")
+			none
+			[param("a", type(true, "mut_arr__nat")), param("value", type(false, "nat"))]
+			expr-body(
+				[]
+				call(
+					"noctx_must_remove_unordered_recur___void__ptr_mut_arr__nat__nat__nat"
+					[param-ref("a"), call("zero__nat", []), param-ref("value")])))
+		fun(
+			false
+			"noctx_must_remove_unordered_recur___void__ptr_mut_arr__nat__nat__nat"
+			type(false, "_void")
+			none
+			[
+				param("a", type(true, "mut_arr__nat"))
+				param("index", type(false, "nat"))
+				param("value", type(false, "nat"))]
+			expr-body(
+				[]
+				cond(
+					call("_op_equal_equal__bool__nat__nat", [param-ref("index"), get-field(param-ref("a"), "size")])
+					call("hard_fail___void__arr__char", [str-lit("Did not find the element in the mut-arr")])
+					cond(
+						call(
+							"_op_equal_equal__bool__nat__nat"
+							[
+								call("noctx_at__nat__ptr_mut_arr__nat__nat", [param-ref("a"), param-ref("index")])
+								param-ref("value")])
+						call(
+							"drop___void__nat"
+							[
+								call(
+									"noctx_remove_unordered_at_index__nat__ptr_mut_arr__nat__nat"
+									[param-ref("a"), param-ref("index")])])
+						call(
+							"noctx_must_remove_unordered_recur___void__ptr_mut_arr__nat__nat__nat"
+							[param-ref("a"), call("noctx_incr__nat__nat", [param-ref("index")]), param-ref("value")])))))
+		fun(
+			false
+			"noctx_at__nat__ptr_mut_arr__nat__nat"
+			type(false, "nat")
+			none
+			[param("a", type(true, "mut_arr__nat")), param("index", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"hard_assert___void__bool"
+						[call("_op_less__bool__nat__nat", [param-ref("index"), get-field(param-ref("a"), "size")])])
+					call(
+						"deref__nat__ptr__nat"
+						[
+							call(
+								"_op_plus__ptr__nat__ptr__nat__nat"
+								[get-field(param-ref("a"), "data"), param-ref("index")])]))))
+		fun(
+			false
+			"drop___void__nat"
+			type(false, "_void")
+			none
+			[param("t", type(false, "nat"))]
+			expr-body([], call("pass___void", [])))
+		fun(
+			false
+			"noctx_remove_unordered_at_index__nat__ptr_mut_arr__nat__nat"
+			type(false, "nat")
+			none
+			[param("a", type(true, "mut_arr__nat")), param("index", type(false, "nat"))]
+			expr-body(
+				[local("res", type(false, "nat"))]
+				let(
+					"res"
+					call("noctx_at__nat__ptr_mut_arr__nat__nat", [param-ref("a"), param-ref("index")])
+					seq(
+						seq(
+							call(
+								"noctx_set_at___void__ptr_mut_arr__nat__nat__nat"
+								[
+									param-ref("a")
+									param-ref("index")
+									call("noctx_last__nat__ptr_mut_arr__nat", [param-ref("a")])])
+							set-field(
+								param-ref("a")
+								"size"
+								call("noctx_decr__nat__nat", [get-field(param-ref("a"), "size")])))
+						local-ref("res")))))
+		fun(
+			false
+			"noctx_last__nat__ptr_mut_arr__nat"
+			type(false, "nat")
+			none
+			[param("a", type(true, "mut_arr__nat"))]
+			expr-body(
+				[]
+				seq(
+					call("hard_forbid___void__bool", [call("empty__q__bool__ptr_mut_arr__nat", [param-ref("a")])])
+					call(
+						"noctx_at__nat__ptr_mut_arr__nat__nat"
+						[param-ref("a"), call("noctx_decr__nat__nat", [get-field(param-ref("a"), "size")])]))))
+		fun(
+			false
+			"empty__q__bool__ptr_mut_arr__nat"
+			type(false, "bool")
+			none
+			[param("a", type(true, "mut_arr__nat"))]
+			expr-body([], call("zero__q__bool__nat", [get-field(param-ref("a"), "size")])))
+		fun(
+			false
+			"return_ctx___void__ptr_ctx"
+			type(false, "_void")
+			none
+			[param("c", type(true, "ctx"))]
+			expr-body(
+				[]
+				call(
+					"return_gc_ctx___void__ptr_gc_ctx"
+					[call("as_ref__ptr_gc_ctx__ptr__byte", [get-field(param-ref("c"), "gc_ctx_ptr")])])))
+		fun(
+			false
+			"return_gc_ctx___void__ptr_gc_ctx"
+			type(false, "_void")
+			none
+			[param("gc_ctx", type(true, "gc_ctx"))]
+			expr-body(
+				[local("gc", type(true, "gc"))]
+				let(
+					"gc"
+					get-field(param-ref("gc_ctx"), "gc")
+					seq(
+						seq(
+							seq(
+								call(
+									"acquire_lock___void__ptr_lock"
+									[call("ref_of_val__ptr_lock__lock", [get-field(local-ref("gc"), "lk")])])
+								set-field(param-ref("gc_ctx"), "next_ctx", get-field(local-ref("gc"), "context_head")))
+							set-field(
+								local-ref("gc")
+								"context_head"
+								to-union(1, call("some__some__ptr_gc_ctx__ptr_gc_ctx", [param-ref("gc_ctx")]))))
+						call(
+							"release_lock___void__ptr_lock"
+							[call("ref_of_val__ptr_lock__lock", [get-field(local-ref("gc"), "lk")])])))))
+		fun(
+			false
+			"some__some__ptr_gc_ctx__ptr_gc_ctx"
+			type(false, "some__ptr_gc_ctx")
+			none
+			[param("t", type(true, "gc_ctx"))]
+			expr-body([], record([param-ref("t")])))
+		fun(
+			false
+			"wait_on___void__ptr_condition__nat"
+			type(false, "_void")
+			none
+			[param("c", type(true, "condition")), param("last_checked", type(false, "nat"))]
+			expr-body(
+				[]
+				cond(
+					call(
+						"_op_equal_equal__bool__nat__nat"
+						[get-field(param-ref("c"), "value"), param-ref("last_checked")])
+					seq(
+						call("yield_thread___void", [])
+						call("wait_on___void__ptr_condition__nat", [param-ref("c"), param-ref("last_checked")]))
+					call("pass___void", []))))
+		fun(
+			false
+			"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda1"
+			type(false, "_void")
+			none
+			[param("thread_id", type(false, "nat")), param("gctx", type(true, "global_ctx"))]
+			expr-body(
+				[]
+				call("thread_function___void__nat__ptr_global_ctx", [param-ref("thread_id"), param-ref("gctx")])))
+		fun(
+			false
+			"must_be_resolved__result__int32__exception__ptr_fut__int32"
+			type(false, "result__int32__exception")
+			none
+			[param("f", type(true, "fut__int32"))]
+			expr-body(
+				[
+					local("r", type(false, "fut_state_resolved__int32"))
+					local("e", type(false, "exception"))
+					local("matched", type(false, "fut_state__int32"))]
+				match(
+					"matched"
+					get-field(param-ref("f"), "state")
+					[
+						case(none, call("hard_unreachable__result__int32__exception", []))
+						case(some("r"), to-union(0, call("ok__ok__int32__int32", [get-field(local-ref("r"), "value")])))
+						case(some("e"), to-union(1, call("err__err__exception__exception", [local-ref("e")])))])))
+		fun(
+			false
+			"hard_unreachable__result__int32__exception"
+			type(false, "result__int32__exception")
+			none
+			[]
+			expr-body([], call("hard_fail__result__int32__exception__arr__char", [str-lit("unreachable")])))
+		fun(
+			false
+			"hard_fail__result__int32__exception__arr__char"
+			type(false, "result__int32__exception")
+			none
+			[param("reason", type(false, "arr__char"))]
+			builtin(special, "hard-fail", [type(false, "result__int32__exception")]))
+		fun(
+			true
+			"main__ptr_fut__int32__arr__arr__char"
+			type(true, "fut__int32")
+			none
+			[param("args", type(false, "arr__arr__char"))]
+			expr-body(
+				[local("m", type(false, "my_record"))]
+				let(
+					"m"
+					record(
+						[
+							call("literal__nat__arr__char", [str-lit("1")])
+							call("literal__nat__arr__char", [str-lit("2")])])
+					seq(
+						seq(
+							seq(
+								seq(
+									call(
+										"assert___void__bool"
+										[
+											call(
+												"_op_equal_equal__bool__nat__nat"
+												[
+													get-field(local-ref("m"), "x")
+													call("literal__nat__arr__char", [str-lit("1")])])])
+									call(
+										"assert___void__bool"
+										[
+											call(
+												"_op_equal_equal__bool__nat__nat"
+												[
+													get-field(local-ref("m"), "y")
+													call("literal__nat__arr__char", [str-lit("2")])])]))
+								call(
+									"print_sync___void__arr__char"
+									[call("to_str__arr__char__nat", [get-field(local-ref("m"), "x")])]))
+							call(
+								"print_sync___void__arr__char"
+								[call("to_str__arr__char__nat", [get-field(local-ref("m"), "y")])]))
+						call("resolved__ptr_fut__int32__int32", [call("literal__int32__arr__char", [str-lit("0")])])))))
+		fun(
+			true
+			"literal__nat__arr__char"
+			type(false, "nat")
+			none
+			[param("s", type(false, "arr__char"))]
+			expr-body(
+				[local("higher_digits", type(false, "nat"))]
+				cond(
+					call("empty__q__bool__arr__char", [param-ref("s")])
+					call("zero__nat", [])
+					let(
+						"higher_digits"
+						call(
+							"as__nat__nat"
+							[call("literal__nat__arr__char", [call("rtail__arr__char__arr__char", [param-ref("s")])])])
+						call(
+							"_op_plus__nat__nat__nat"
+							[
+								call("_op_times__nat__nat__nat", [local-ref("higher_digits"), call("ten__nat", [])])
+								call("char_to_nat__nat__char", [call("last__char__arr__char", [param-ref("s")])])])))))
+		fun(
+			true
+			"rtail__arr__char__arr__char"
+			type(false, "arr__char")
+			none
+			[param("a", type(false, "arr__char"))]
+			expr-body(
+				[]
+				seq(
+					call("forbid___void__bool", [call("empty__q__bool__arr__char", [param-ref("a")])])
+					call(
+						"slice__arr__char__arr__char__nat__nat"
+						[
+							param-ref("a")
+							call("zero__nat", [])
+							call("decr__nat__nat", [get-field(param-ref("a"), "size")])]))))
+		fun(
+			true
+			"slice__arr__char__arr__char__nat__nat"
+			type(false, "arr__char")
+			none
+			[
+				param("a", type(false, "arr__char"))
+				param("begin", type(false, "nat"))
+				param("size", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[
+							call(
+								"_op_less_equal__bool__nat__nat"
+								[
+									call("_op_plus__nat__nat__nat", [param-ref("begin"), param-ref("size")])
+									get-field(param-ref("a"), "size")])])
+					record(
+						[
+							param-ref("size")
+							call(
+								"_op_plus__ptr__char__ptr__char__nat"
+								[get-field(param-ref("a"), "data"), param-ref("begin")])]))))
+		fun(
+			true
+			"decr__nat__nat"
+			type(false, "nat")
+			none
+			[param("a", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call("forbid___void__bool", [call("zero__q__bool__nat", [param-ref("a")])])
+					call("wrap_decr__nat__nat", [param-ref("a")]))))
+		fun(
+			false
+			"wrap_decr__nat__nat"
+			type(false, "nat")
+			none
+			[param("a", type(false, "nat"))]
+			expr-body([], call("wrap_sub__nat__nat__nat", [param-ref("a"), call("one__nat", [])])))
+		fun(
+			true
+			"_op_times__nat__nat__nat"
+			type(false, "nat")
+			none
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body(
+				[local("res", type(false, "nat"))]
+				cond(
+					call(
+						"or__bool__bool__bool"
+						[call("zero__q__bool__nat", [param-ref("a")]), call("zero__q__bool__nat", [param-ref("b")])])
+					call("zero__nat", [])
+					let(
+						"res"
+						call("wrap_mul__nat__nat__nat", [param-ref("a"), param-ref("b")])
+						seq(
+							seq(
+								call(
+									"assert___void__bool"
+									[
+										call(
+											"_op_equal_equal__bool__nat__nat"
+											[
+												call("_op_div__nat__nat__nat", [local-ref("res"), param-ref("b")])
+												param-ref("a")])])
+								call(
+									"assert___void__bool"
+									[
+										call(
+											"_op_equal_equal__bool__nat__nat"
+											[
+												call("_op_div__nat__nat__nat", [local-ref("res"), param-ref("a")])
+												param-ref("b")])]))
+							local-ref("res"))))))
+		fun(
+			true
+			"_op_div__nat__nat__nat"
+			type(false, "nat")
+			none
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call("forbid___void__bool", [call("zero__q__bool__nat", [param-ref("b")])])
+					call("unsafe_div__nat__nat__nat", [param-ref("a"), param-ref("b")]))))
+		fun(
+			false
+			"unsafe_div__nat__nat__nat"
+			type(false, "nat")
+			none
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			builtin(operator, "unsafe-div (nat-64)", []))
+		fun(
+			false
+			"char_to_nat__nat__char"
+			type(false, "nat")
+			none
+			[param("c", type(false, "char"))]
+			expr-body(
+				[]
+				cond(
+					call(
+						"_op_equal_equal__bool__char__char"
+						[param-ref("c"), call("literal__char__arr__char", [str-lit("0")])])
+					call("zero__nat", [])
+					cond(
+						call(
+							"_op_equal_equal__bool__char__char"
+							[param-ref("c"), call("literal__char__arr__char", [str-lit("1")])])
+						call("one__nat", [])
+						cond(
+							call(
+								"_op_equal_equal__bool__char__char"
+								[param-ref("c"), call("literal__char__arr__char", [str-lit("2")])])
+							call("two__nat", [])
+							cond(
+								call(
+									"_op_equal_equal__bool__char__char"
+									[param-ref("c"), call("literal__char__arr__char", [str-lit("3")])])
+								call("three__nat", [])
+								cond(
+									call(
+										"_op_equal_equal__bool__char__char"
+										[param-ref("c"), call("literal__char__arr__char", [str-lit("4")])])
+									call("four__nat", [])
+									cond(
+										call(
+											"_op_equal_equal__bool__char__char"
+											[param-ref("c"), call("literal__char__arr__char", [str-lit("5")])])
+										call("five__nat", [])
+										cond(
+											call(
+												"_op_equal_equal__bool__char__char"
+												[param-ref("c"), call("literal__char__arr__char", [str-lit("6")])])
+											call("six__nat", [])
+											cond(
+												call(
+													"_op_equal_equal__bool__char__char"
+													[param-ref("c"), call("literal__char__arr__char", [str-lit("7")])])
+												call("seven__nat", [])
+												cond(
+													call(
+														"_op_equal_equal__bool__char__char"
+														[
+															param-ref("c")
+															call("literal__char__arr__char", [str-lit("8")])])
+													call("eight__nat", [])
+													cond(
+														call(
+															"_op_equal_equal__bool__char__char"
+															[
+																param-ref("c")
+																call("literal__char__arr__char", [str-lit("9")])])
+														call("nine__nat", [])
+														call("todo__nat", [])))))))))))))
+		fun(
+			false
+			"todo__nat"
+			type(false, "nat")
+			none
+			[]
+			expr-body([], call("hard_fail__nat__arr__char", [str-lit("TODO")])))
+		fun(
+			false
+			"hard_fail__nat__arr__char"
+			type(false, "nat")
+			none
+			[param("reason", type(false, "arr__char"))]
+			builtin(special, "hard-fail", [type(false, "nat")]))
+		fun(
+			true
+			"last__char__arr__char"
+			type(false, "char")
+			none
+			[param("a", type(false, "arr__char"))]
+			expr-body(
+				[]
+				seq(
+					call("forbid___void__bool", [call("empty__q__bool__arr__char", [param-ref("a")])])
+					call(
+						"at__char__arr__char__nat"
+						[param-ref("a"), call("decr__nat__nat", [get-field(param-ref("a"), "size")])]))))
+		fun(
+			true
+			"at__char__arr__char__nat"
+			type(false, "char")
+			none
+			[param("a", type(false, "arr__char")), param("index", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[call("_op_less__bool__nat__nat", [param-ref("index"), get-field(param-ref("a"), "size")])])
+					call("noctx_at__char__arr__char__nat", [param-ref("a"), param-ref("index")]))))
+		fun(
+			false
+			"print_sync___void__arr__char"
+			type(false, "_void")
+			none
+			[param("s", type(false, "arr__char"))]
+			expr-body(
+				[]
+				seq(
+					call("print_sync_no_newline___void__arr__char", [param-ref("s")])
+					call("print_sync_no_newline___void__arr__char", [str-lit("\n")]))))
+		fun(
+			false
+			"print_sync_no_newline___void__arr__char"
+			type(false, "_void")
+			none
+			[param("s", type(false, "arr__char"))]
+			expr-body(
+				[]
+				call("write_sync_no_newline___void__int32__arr__char", [call("stdout_fd__int32", []), param-ref("s")])))
+		fun(false, "stdout_fd__int32", type(false, "int32"), none, [], expr-body([], call("one__int32", [])))
+		fun(
+			true
+			"to_str__arr__char__nat"
+			type(false, "arr__char")
+			none
+			[param("n", type(false, "nat"))]
+			expr-body(
+				[local("hi", type(false, "arr__char")), local("lo", type(false, "arr__char"))]
+				cond(
+					call(
+						"_op_equal_equal__bool__nat__nat"
+						[param-ref("n"), call("literal__nat__arr__char", [str-lit("0")])])
+					str-lit("0")
+					cond(
+						call(
+							"_op_equal_equal__bool__nat__nat"
+							[param-ref("n"), call("literal__nat__arr__char", [str-lit("1")])])
+						str-lit("1")
+						cond(
+							call(
+								"_op_equal_equal__bool__nat__nat"
+								[param-ref("n"), call("literal__nat__arr__char", [str-lit("2")])])
+							str-lit("2")
+							cond(
+								call(
+									"_op_equal_equal__bool__nat__nat"
+									[param-ref("n"), call("literal__nat__arr__char", [str-lit("3")])])
+								str-lit("3")
+								cond(
+									call(
+										"_op_equal_equal__bool__nat__nat"
+										[param-ref("n"), call("literal__nat__arr__char", [str-lit("4")])])
+									str-lit("4")
+									cond(
+										call(
+											"_op_equal_equal__bool__nat__nat"
+											[param-ref("n"), call("literal__nat__arr__char", [str-lit("5")])])
+										str-lit("5")
+										cond(
+											call(
+												"_op_equal_equal__bool__nat__nat"
+												[param-ref("n"), call("literal__nat__arr__char", [str-lit("6")])])
+											str-lit("6")
+											cond(
+												call(
+													"_op_equal_equal__bool__nat__nat"
+													[param-ref("n"), call("literal__nat__arr__char", [str-lit("7")])])
+												str-lit("7")
+												cond(
+													call(
+														"_op_equal_equal__bool__nat__nat"
+														[
+															param-ref("n")
+															call("literal__nat__arr__char", [str-lit("8")])])
+													str-lit("8")
+													cond(
+														call(
+															"_op_equal_equal__bool__nat__nat"
+															[
+																param-ref("n")
+																call("literal__nat__arr__char", [str-lit("9")])])
+														str-lit("9")
+														let(
+															"hi"
+															call(
+																"to_str__arr__char__nat"
+																[
+																	call(
+																		"_op_div__nat__nat__nat"
+																		[param-ref("n"), call("ten__nat", [])])])
+															let(
+																"lo"
+																call(
+																	"to_str__arr__char__nat"
+																	[
+																		call(
+																			"mod__nat__nat__nat"
+																			[param-ref("n"), call("ten__nat", [])])])
+																call(
+																	"_op_plus__arr__char__arr__char__arr__char"
+																	[local-ref("hi"), local-ref("lo")])))))))))))))))
+		fun(
+			true
+			"mod__nat__nat__nat"
+			type(false, "nat")
+			none
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call("forbid___void__bool", [call("zero__q__bool__nat", [param-ref("b")])])
+					call("unsafe_mod__nat__nat__nat", [param-ref("a"), param-ref("b")]))))
+		fun(
+			false
+			"unsafe_mod__nat__nat__nat"
+			type(false, "nat")
+			none
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
+			builtin(operator, "unsafe-mod (nat64)", []))
+		fun(
+			true
+			"_op_plus__arr__char__arr__char__arr__char"
+			type(false, "arr__char")
+			none
+			[param("a", type(false, "arr__char")), param("b", type(false, "arr__char"))]
+			expr-body(
+				[]
+				call(
+					"make_arr__arr__char__nat__fun_mut1__char__nat"
+					[
+						call(
+							"_op_plus__nat__nat__nat"
+							[get-field(param-ref("a"), "size"), get-field(param-ref("b"), "size")])
+						lambda(
+							"_op_plus__arr__char__arr__char__arr__char__lambda0"
+							some(alloc("alloc__ptr__byte__nat", record([param-ref("a"), param-ref("b")]))))])))
+		fun(
+			true
+			"make_arr__arr__char__nat__fun_mut1__char__nat"
+			type(false, "arr__char")
+			none
+			[param("size", type(false, "nat")), param("f", type(false, "fun_mut1__char__nat"))]
+			expr-body(
+				[]
+				call(
+					"freeze__arr__char__ptr_mut_arr__char"
+					[
+						call(
+							"make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat"
+							[param-ref("size"), param-ref("f")])])))
+		fun(
+			false
+			"freeze__arr__char__ptr_mut_arr__char"
+			type(false, "arr__char")
+			none
+			[param("a", type(true, "mut_arr__char"))]
+			expr-body(
+				[]
+				seq(
+					set-field(param-ref("a"), "frozen__q", call("true__bool", []))
+					call("unsafe_as_arr__arr__char__ptr_mut_arr__char", [param-ref("a")]))))
+		fun(
+			false
+			"unsafe_as_arr__arr__char__ptr_mut_arr__char"
+			type(false, "arr__char")
+			none
+			[param("a", type(true, "mut_arr__char"))]
+			expr-body([], record([get-field(param-ref("a"), "size"), get-field(param-ref("a"), "data")])))
+		fun(
+			true
+			"make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat"
+			type(true, "mut_arr__char")
+			none
+			[param("size", type(false, "nat")), param("f", type(false, "fun_mut1__char__nat"))]
+			expr-body(
+				[local("res", type(true, "mut_arr__char"))]
+				let(
+					"res"
+					call("new_uninitialized_mut_arr__ptr_mut_arr__char__nat", [param-ref("size")])
+					seq(
+						call(
+							"make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat"
+							[local-ref("res"), call("zero__nat", []), param-ref("f")])
+						local-ref("res")))))
+		fun(
+			true
+			"new_uninitialized_mut_arr__ptr_mut_arr__char__nat"
+			type(true, "mut_arr__char")
+			none
+			[param("size", type(false, "nat"))]
+			expr-body(
+				[]
+				alloc(
+					"alloc__ptr__byte__nat"
+					record(
+						[
+							call("false__bool", [])
+							param-ref("size")
+							param-ref("size")
+							call("uninitialized_data__ptr__char__nat", [param-ref("size")])]))))
+		fun(
+			true
+			"uninitialized_data__ptr__char__nat"
+			type(false, "ptr__char")
+			none
+			[param("size", type(false, "nat"))]
+			expr-body(
+				[local("bptr", type(false, "ptr__byte"))]
+				let(
+					"bptr"
+					call(
+						"alloc__ptr__byte__nat"
+						[call("wrap_mul__nat__nat__nat", [param-ref("size"), call("size_of__nat", [])])])
+					call("ptr_cast__ptr__char__ptr__byte", [local-ref("bptr")]))))
+		fun(
+			false
+			"ptr_cast__ptr__char__ptr__byte"
+			type(false, "ptr__char")
+			none
+			[param("p", type(false, "ptr__byte"))]
+			builtin(operator, "ptr-cast", [type(false, "char"), type(false, "byte")]))
+		fun(
+			true
+			"make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat"
+			type(false, "_void")
+			none
+			[
+				param("m", type(true, "mut_arr__char"))
+				param("i", type(false, "nat"))
+				param("f", type(false, "fun_mut1__char__nat"))]
+			expr-body(
+				[]
+				cond(
+					call("_op_equal_equal__bool__nat__nat", [param-ref("i"), get-field(param-ref("m"), "size")])
+					call("pass___void", [])
+					seq(
+						call(
+							"set_at___void__ptr_mut_arr__char__nat__char"
+							[
+								param-ref("m")
+								param-ref("i")
+								call("call__char__fun_mut1__char__nat__nat", [param-ref("f"), param-ref("i")])])
+						call(
+							"make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat"
+							[param-ref("m"), call("incr__nat__nat", [param-ref("i")]), param-ref("f")])))))
+		fun(
+			true
+			"set_at___void__ptr_mut_arr__char__nat__char"
+			type(false, "_void")
+			none
+			[
+				param("a", type(true, "mut_arr__char"))
+				param("index", type(false, "nat"))
+				param("value", type(false, "char"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[call("_op_less__bool__nat__nat", [param-ref("index"), get-field(param-ref("a"), "size")])])
+					call(
+						"noctx_set_at___void__ptr_mut_arr__char__nat__char"
+						[param-ref("a"), param-ref("index"), param-ref("value")]))))
+		fun(
+			false
+			"noctx_set_at___void__ptr_mut_arr__char__nat__char"
+			type(false, "_void")
+			none
+			[
+				param("a", type(true, "mut_arr__char"))
+				param("index", type(false, "nat"))
+				param("value", type(false, "char"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"hard_assert___void__bool"
+						[call("_op_less__bool__nat__nat", [param-ref("index"), get-field(param-ref("a"), "size")])])
+					call(
+						"set___void__ptr__char__char"
+						[
+							call(
+								"_op_plus__ptr__char__ptr__char__nat"
+								[get-field(param-ref("a"), "data"), param-ref("index")])
+							param-ref("value")]))))
+		fun(
+			false
+			"set___void__ptr__char__char"
+			type(false, "_void")
+			none
+			[param("p", type(false, "ptr__char")), param("value", type(false, "char"))]
+			builtin(operator, "set-ptr", [type(false, "char")]))
+		fun(
+			true
+			"call__char__fun_mut1__char__nat__nat"
+			type(false, "char")
+			none
+			[param("f", type(false, "fun_mut1__char__nat")), param("p0", type(false, "nat"))]
+			expr-body(
+				[]
+				call(
+					"call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat"
+					[call("get_ctx__ptr_ctx", []), param-ref("f"), param-ref("p0")])))
+		fun(
+			false
+			"call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat"
+			type(false, "char")
+			none
+			[
+				param("c", type(true, "ctx"))
+				param("f", type(false, "fun_mut1__char__nat"))
+				param("p0", type(false, "nat"))]
+			expr-body(
+				[]
+				call(
+					"call__char__fun_ptr3__char__ptr_ctx__ptr__byte__nat__ptr_ctx__ptr__byte__nat"
+					[
+						get-field(param-ref("f"), "fun_ptr")
+						param-ref("c")
+						get-field(param-ref("f"), "closure")
+						param-ref("p0")])))
+		fun(
+			false
+			"call__char__fun_ptr3__char__ptr_ctx__ptr__byte__nat__ptr_ctx__ptr__byte__nat"
+			type(false, "char")
+			none
+			[
+				param("f", type(false, "fun_ptr3__char__ptr_ctx__ptr__byte__nat"))
+				param("p0", type(true, "ctx"))
+				param("p1", type(false, "ptr__byte"))
+				param("p2", type(false, "nat"))]
+			builtin(
+				operator
+				"call (fun-ptr)"
+				[type(false, "char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "nat")]))
+		fun(
+			true
+			"_op_plus__arr__char__arr__char__arr__char__lambda0"
+			type(false, "char")
+			some(param("_closure", type(true, "_op_plus__arr__char__arr__char__arr__char__lambda0___closure")))
+			[param("i", type(false, "nat"))]
+			expr-body(
+				[]
+				cond(
+					call(
+						"_op_less__bool__nat__nat"
+						[param-ref("i"), get-field(get-field(param-ref("_closure"), "a"), "size")])
+					call("at__char__arr__char__nat", [get-field(param-ref("_closure"), "a"), param-ref("i")])
+					call(
+						"at__char__arr__char__nat"
+						[
+							get-field(param-ref("_closure"), "b")
+							call(
+								"_op_minus__nat__nat__nat"
+								[param-ref("i"), get-field(get-field(param-ref("_closure"), "a"), "size")])]))))
+		fun(
+			true
+			"resolved__ptr_fut__int32__int32"
+			type(true, "fut__int32")
+			none
+			[param("value", type(false, "int32"))]
+			expr-body(
+				[]
+				alloc(
+					"alloc__ptr__byte__nat"
+					record([call("new_lock__lock", []), to-union(1, record([param-ref("value")]))]))))
+		fun(
+			true
+			"literal__int32__arr__char"
+			type(false, "int32")
+			none
+			[param("s", type(false, "arr__char"))]
+			expr-body(
+				[]
+				call(
+					"unsafe_to_int32__int32___int"
+					[call("as___int___int", [call("literal___int__arr__char", [param-ref("s")])])])))
+		fun(
+			false
+			"unsafe_to_int32__int32___int"
+			type(false, "int32")
+			none
+			[param("a", type(false, "_int"))]
+			builtin(operator, "unsafe-int64-to-int32", []))
+		fun(
+			false
+			"as___int___int"
+			type(false, "_int")
+			none
+			[param("value", type(false, "_int"))]
+			builtin(operator, "as", [type(false, "_int")]))
+		fun(
+			true
+			"literal___int__arr__char"
+			type(false, "_int")
+			none
+			[param("s", type(false, "arr__char"))]
+			expr-body(
+				[local("fst", type(false, "char")), local("n", type(false, "nat"))]
+				let(
+					"fst"
+					call("at__char__arr__char__nat", [param-ref("s"), call("zero__nat", [])])
+					cond(
+						call(
+							"_op_equal_equal__bool__char__char"
+							[local-ref("fst"), call("literal__char__arr__char", [str-lit("-")])])
+						let(
+							"n"
+							call(
+								"as__nat__nat"
+								[
+									call(
+										"literal__nat__arr__char"
+										[call("tail__arr__char__arr__char", [param-ref("s")])])])
+							call("neg___int__nat", [local-ref("n")]))
+						cond(
+							call(
+								"_op_equal_equal__bool__char__char"
+								[local-ref("fst"), call("literal__char__arr__char", [str-lit("+")])])
+							call(
+								"to_int___int__nat"
+								[
+									call(
+										"as__nat__nat"
+										[
+											call(
+												"literal__nat__arr__char"
+												[call("tail__arr__char__arr__char", [param-ref("s")])])])])
+							call(
+								"to_int___int__nat"
+								[call("as__nat__nat", [call("literal__nat__arr__char", [param-ref("s")])])]))))))
+		fun(
+			true
+			"tail__arr__char__arr__char"
+			type(false, "arr__char")
+			none
+			[param("a", type(false, "arr__char"))]
+			expr-body(
+				[]
+				seq(
+					call("forbid___void__bool", [call("empty__q__bool__arr__char", [param-ref("a")])])
+					call("slice_starting_at__arr__char__arr__char__nat", [param-ref("a"), call("one__nat", [])]))))
+		fun(
+			true
+			"slice_starting_at__arr__char__arr__char__nat"
+			type(false, "arr__char")
+			none
+			[param("a", type(false, "arr__char")), param("begin", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[
+							call(
+								"_op_less_equal__bool__nat__nat"
+								[param-ref("begin"), get-field(param-ref("a"), "size")])])
+					call(
+						"slice__arr__char__arr__char__nat__nat"
+						[
+							param-ref("a")
+							param-ref("begin")
+							call("_op_minus__nat__nat__nat", [get-field(param-ref("a"), "size"), param-ref("begin")])]))))
+		fun(
+			true
+			"neg___int__nat"
+			type(false, "_int")
+			none
+			[param("n", type(false, "nat"))]
+			expr-body([], call("neg___int___int", [call("to_int___int__nat", [param-ref("n")])])))
+		fun(
+			true
+			"neg___int___int"
+			type(false, "_int")
+			none
+			[param("i", type(false, "_int"))]
+			expr-body([], call("_op_times___int___int___int", [param-ref("i"), call("neg_one___int", [])])))
+		fun(
+			true
+			"_op_times___int___int___int"
+			type(false, "_int")
+			none
+			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
+			expr-body(
+				[]
+				seq(
+					seq(
+						seq(
+							seq(
+								call(
+									"assert___void__bool"
+									[
+										call(
+											"_op_greater__bool___int___int"
+											[param-ref("a"), call("neg_million___int", [])])])
+								call(
+									"assert___void__bool"
+									[call("_op_less__bool___int___int", [param-ref("a"), call("million___int", [])])]))
+							call(
+								"assert___void__bool"
+								[call("_op_greater__bool___int___int", [param-ref("b"), call("neg_million___int", [])])]))
+						call(
+							"assert___void__bool"
+							[call("_op_less__bool___int___int", [param-ref("b"), call("million___int", [])])]))
+					call("wrap_mul___int___int___int", [param-ref("a"), param-ref("b")]))))
+		fun(
+			false
+			"_op_greater__bool___int___int"
+			type(false, "bool")
+			none
+			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
+			expr-body(
+				[]
+				call("not__bool__bool", [call("_op_less_equal__bool___int___int", [param-ref("a"), param-ref("b")])])))
+		fun(
+			false
+			"_op_less_equal__bool___int___int"
+			type(false, "bool")
+			none
+			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
+			expr-body(
+				[]
+				call("not__bool__bool", [call("_op_less__bool___int___int", [param-ref("b"), param-ref("a")])])))
+		fun(
+			false
+			"_op_less__bool___int___int"
+			type(false, "bool")
+			none
+			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
+			expr-body(
+				[local("matched", type(false, "comparison"))]
+				match(
+					"matched"
+					call("_op_less_equal_greater__comparison___int___int", [param-ref("a"), param-ref("b")])
+					[
+						case(none, call("true__bool", []))
+						case(none, call("false__bool", []))
+						case(none, call("false__bool", []))])))
+		fun(
+			false
+			"neg_million___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_mul___int___int___int", [call("million___int", []), call("neg_one___int", [])])))
+		fun(
+			false
+			"wrap_mul___int___int___int"
+			type(false, "_int")
+			none
+			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
+			builtin(operator, "wrap-mul (int-64)", []))
+		fun(
+			false
+			"million___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_mul___int___int___int", [call("thousand___int", []), call("thousand___int", [])])))
+		fun(
+			false
+			"thousand___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_mul___int___int___int", [call("hundred___int", []), call("ten___int", [])])))
+		fun(
+			false
+			"hundred___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_mul___int___int___int", [call("ten___int", []), call("ten___int", [])])))
+		fun(
+			false
+			"ten___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_incr___int___int", [call("nine___int", [])])))
+		fun(
+			false
+			"wrap_incr___int___int"
+			type(false, "_int")
+			none
+			[param("a", type(false, "_int"))]
+			expr-body([], call("wrap_add___int___int___int", [param-ref("a"), call("one___int", [])])))
+		fun(
+			false
+			"wrap_add___int___int___int"
+			type(false, "_int")
+			none
+			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
+			builtin(operator, "wrap-add (int-64)", []))
+		fun(false, "one___int", type(false, "_int"), none, [], builtin(operator, "one (int-64)", []))
+		fun(
+			false
+			"nine___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_incr___int___int", [call("eight___int", [])])))
+		fun(
+			false
+			"eight___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_incr___int___int", [call("seven___int", [])])))
+		fun(
+			false
+			"seven___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_incr___int___int", [call("six___int", [])])))
+		fun(
+			false
+			"six___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_incr___int___int", [call("five___int", [])])))
+		fun(
+			false
+			"five___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_incr___int___int", [call("four___int", [])])))
+		fun(
+			false
+			"four___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_incr___int___int", [call("three___int", [])])))
+		fun(
+			false
+			"three___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_incr___int___int", [call("two___int", [])])))
+		fun(
+			false
+			"two___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_incr___int___int", [call("one___int", [])])))
+		fun(
+			false
+			"neg_one___int"
+			type(false, "_int")
+			none
+			[]
+			expr-body([], call("wrap_sub___int___int___int", [call("zero___int", []), call("one___int", [])])))
+		fun(
+			false
+			"wrap_sub___int___int___int"
+			type(false, "_int")
+			none
+			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
+			builtin(operator, "wrap-sub (int-64)", []))
+		fun(false, "zero___int", type(false, "_int"), none, [], builtin(operator, "zero (int-64)", []))
+		fun(
+			true
+			"to_int___int__nat"
+			type(false, "_int")
+			none
+			[param("n", type(false, "nat"))]
+			expr-body(
+				[]
+				seq(
+					call(
+						"assert___void__bool"
+						[call("_op_less__bool__nat__nat", [param-ref("n"), call("million__nat", [])])])
+					call("unsafe_to_int___int__nat", [param-ref("n")]))))]
+	"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+	"main__ptr_fut__int32__arr__arr__char"
+	"ctx")

@@ -322,11 +322,9 @@ immutable(Arr!TypeParam) checkTypeParams(Alloc)(
 	ref CheckCtx ctx,
 	ref immutable Arr!TypeParamAst asts,
 ) {
-	immutable Arr!TypeParam typeParams = mapWithIndex!(TypeParam, TypeParamAst, Alloc)(
-		alloc,
-		asts,
-		(ref immutable TypeParamAst ast, immutable size_t i) =>
-			immutable TypeParam(ast.range, ast.name, i));
+	immutable Arr!TypeParam typeParams =
+		mapWithIndex(alloc, asts, (immutable size_t index, ref immutable TypeParamAst ast) =>
+			immutable TypeParam(ast.range, ast.name, index));
 	foreach (immutable size_t i; 0..size(typeParams))
 		foreach (immutable size_t prev_i; 0..i) {
 			immutable TypeParam tp = at(typeParams, i);
@@ -371,7 +369,7 @@ immutable(Arr!Param) checkParams(Alloc)(
 	immutable Arr!Param params = mapWithIndex!Param(
 		alloc,
 		asts,
-		(ref immutable ParamAst ast, immutable size_t index) {
+		(immutable size_t index, ref immutable ParamAst ast) {
 			immutable Type type = typeFromAst(
 				alloc,
 				ctx,
@@ -570,7 +568,7 @@ immutable(StructBody) checkRecord(Alloc)(
 	immutable Arr!RecordField fields = mapWithIndex(
 		alloc,
 		r.fields,
-		(ref immutable StructDeclAst.Body.Record.Field field, immutable size_t index) {
+		(immutable size_t index, ref immutable StructDeclAst.Body.Record.Field field) {
 			immutable Type fieldType = typeFromAst!Alloc(
 				alloc,
 				ctx,

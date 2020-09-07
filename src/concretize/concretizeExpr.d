@@ -279,7 +279,7 @@ immutable(Arr!ConcreteField) concretizeClosureFields(Alloc)(
 	ref immutable Arr!(Ptr!ClosureField) closure,
 	ref immutable TypeArgsScope typeArgsScope,
 ) {
-	return mapWithIndex!ConcreteField(alloc, closure, (ref immutable Ptr!ClosureField it, immutable size_t index) =>
+	return mapWithIndex!ConcreteField(alloc, closure, (immutable size_t index, ref immutable Ptr!ClosureField it) =>
 		immutable ConcreteField(
 			index,
 			False,

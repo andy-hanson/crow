@@ -8,7 +8,6 @@ import util.collection.str : Str;
 import util.opt : Opt;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
-import util.sym : shortSymAlphaLiteral, Sym;
 
 struct LowRecord {
 	immutable Str mangledName;
@@ -42,35 +41,6 @@ enum PrimitiveType {
 	nat32,
 	nat64,
 	void_,
-}
-
-immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
-	return shortSymAlphaLiteral(() {
-		final switch (a) {
-			case PrimitiveType.bool_:
-				return "bool";
-			case PrimitiveType.byte_:
-				return "byte";
-			case PrimitiveType.char_:
-				return "char";
-			case PrimitiveType.float64:
-				return "float-64";
-			case PrimitiveType.int16:
-				return "int-16";
-			case PrimitiveType.int32:
-				return "int-32";
-			case PrimitiveType.int64:
-				return "int-64";
-			case PrimitiveType.nat16:
-				return "nat-16";
-			case PrimitiveType.nat32:
-				return "nat-32";
-			case PrimitiveType.nat64:
-				return "nat-64";
-			case PrimitiveType.void_:
-				return "void";
-		}
-	}());
 }
 
 struct LowType {
@@ -193,7 +163,7 @@ struct LowFunBody {
 	@safe @nogc pure nothrow:
 
 	struct Extern {
-		immutable Bool isGlobal_;
+		immutable Bool isGlobal;
 	}
 
 	enum Kind {
@@ -216,7 +186,7 @@ immutable(Bool) isExtern(ref immutable LowFunBody a) {
 }
 
 immutable(Bool) isGlobal(ref immutable LowFunBody a) {
-	return immutable Bool(isExtern(a) && a.extern_.isGlobal_);
+	return immutable Bool(isExtern(a) && a.extern_.isGlobal);
 }
 
 @trusted T matchLowFunBody(T)(
@@ -308,7 +278,7 @@ struct LowExprKind {
 
 	struct RecordFieldSet {
 		immutable Ptr!LowExpr target;
-		immutable Bool targetIsPointer;
+		immutable Bool targetIsPointer; // TODO: this should always be true..
 		immutable Ptr!LowField field;
 		immutable Ptr!LowExpr value;
 	}

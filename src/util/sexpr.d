@@ -4,7 +4,7 @@ module util.sexpr;
 
 import util.bools : Bool;
 import util.collection.arr : Arr, empty, emptyArr, first, range, size;
-import util.collection.arrUtil : arrLiteral, map, tail;
+import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
 import util.collection.str : Str;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
@@ -108,6 +108,14 @@ immutable(Sexpr) tataArr(T, Alloc)(
 	scope immutable(Sexpr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return immutable Sexpr(map(alloc, xs, cb), true);
+}
+
+immutable(Sexpr) tataArr(T, Alloc)(
+	ref Alloc alloc,
+	immutable Arr!T xs,
+	scope immutable(Sexpr) delegate(immutable size_t, ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	return immutable Sexpr(mapWithIndex(alloc, xs, cb), true);
 }
 
 immutable(Sexpr) tataBool(immutable Bool a) {
@@ -457,6 +465,9 @@ void writeQuotedStr(Alloc)(ref Writer!Alloc writer, ref immutable Str s) {
 				break;
 			case '"':
 				writeStatic(writer, "\\\"");
+				break;
+			case '\0':
+				writeStatic(writer, "\\0");
 				break;
 			default:
 				writeChar(writer, c);

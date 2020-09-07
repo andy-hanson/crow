@@ -1,0 +1,7 @@
+import
+	arr-utils
+
+c-int alias
+	int
+
+sdl-init c-int(flags nat32) extern<"SDL_Init"> noctx summon

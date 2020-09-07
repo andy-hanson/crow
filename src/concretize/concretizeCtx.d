@@ -521,7 +521,7 @@ void initializeConcreteStruct(Alloc)(
 		},
 		(ref immutable StructBody.Record r) {
 			immutable Arr!ConcreteField fields =
-				mapWithIndex!ConcreteField(alloc, r.fields, (ref immutable RecordField f, immutable size_t index) =>
+				mapWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, ref immutable RecordField f) =>
 					immutable ConcreteField(
 						index,
 						f.isMutable,
@@ -590,7 +590,7 @@ immutable(Arr!ConcreteParam) concretizeParams(Alloc)(
 	ref immutable Arr!Param params,
 	ref immutable TypeArgsScope typeArgsScope,
 ) {
-	return mapWithIndex!ConcreteParam(alloc, params, (ref immutable Param p, immutable size_t index) =>
+	return mapWithIndex!ConcreteParam(alloc, params, (immutable size_t index, ref immutable Param p) =>
 		immutable ConcreteParam(
 			some!size_t(index),
 			mangleName(alloc, p.name),

@@ -394,11 +394,11 @@ immutable(Opt!(Ptr!T)) findPtr(T)(
 @trusted immutable(Arr!Out) mapWithIndex(Out, In, Alloc)(
 	ref Alloc alloc,
 	immutable Arr!In a,
-	scope immutable(Out) delegate(ref immutable In, immutable size_t) @safe @nogc pure nothrow cb,
+	scope immutable(Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * a.size);
 	foreach (immutable size_t i; 0..a.size)
-		initMemory(res + i, cb(at(a, i), i));
+		initMemory(res + i, cb(i, at(a, i)));
 	return immutable Arr!Out(cast(immutable) res, a.size);
 }
 
