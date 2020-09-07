@@ -6315,7 +6315,6 @@ int32_t to_int32__int32__nat(struct ctx* ctx, uint64_t n) {
 	assert___void__bool(ctx, _op_less__bool__nat__nat(n, million__nat()));
 	return n;
 }
-
-int main(int argc, char** argv) {
+int32_t main(int32_t argc, char** argv) {
 	return rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(argc, argv, main__ptr_fut__int32__arr__arr__char);
 }

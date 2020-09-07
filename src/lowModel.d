@@ -629,8 +629,6 @@ struct LowProgram {
 	immutable Arr!LowFunPtrType allFunPtrTypes;
 	immutable Arr!LowRecord allRecords;
 	immutable Arr!LowUnion allUnions;
-	immutable Arr!LowFun allFuns;
-	//TODO: just have a generated 'main' fun instead of separate rtMain and userMain
-	immutable LowFunIndex rtMain;
-	immutable LowFunIndex userMain;
+	immutable Arr!LowFun allFuns; // Does not include main
+	immutable LowFun main;
 }

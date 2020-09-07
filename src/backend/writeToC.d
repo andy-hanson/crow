@@ -68,25 +68,9 @@ immutable(Str) writeToC(Alloc)(
 	foreach (ref immutable LowFun fun; range(program.allFuns))
 		writeFunDefinition(writer, ctx, fun);
 
-	//TODO: generate main in lower step
-	writeMain(writer, ctx, program.rtMain, program.userMain);
+	writeFunDefinition(writer, ctx, program.main);
 
 	return finishWriter(writer);
-}
-
-//TODO:KILL (generate as a normal LowFun)
-void writeMain(Alloc)(
-	ref Writer!Alloc writer,
-	ref immutable Ctx ctx,
-	immutable LowFunIndex rtMain,
-	immutable LowFunIndex userMain,
-) {
-	writeStatic(writer, "\nint main(int argc, char** argv) {");
-	writeStatic(writer, "\n\treturn ");
-	writeFunName(writer, ctx, rtMain);
-	writeStatic(writer, "(argc, argv, ");
-	writeFunName(writer, ctx, userMain);
-	writeStatic(writer, ");\n}\n");
 }
 
 struct Ctx {

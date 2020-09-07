@@ -22,6 +22,20 @@ import concreteModel :
 	matchConcreteExpr,
 	matchConcreteFunBody,
 	matchConcreteStructBody;
+import lower.lowExprHelpers :
+	addPtr,
+	anyPtrType,
+	charPtrPtrType,
+	constantNat64,
+	getSizeOf,
+	int32Type,
+	localRef,
+	paramRef,
+	mulNat64,
+	ptrCast,
+	ptrCastKind,
+	seq,
+	writeToPtr;
 import lowModel :
 	asFunPtrType,
 	asNonFunPtrType,
@@ -43,7 +57,7 @@ import lowModel :
 	LowUnion,
 	PrimitiveType;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, first, only, ptrAt, arrRange = range, size;
+import util.collection.arr : Arr, at, empty, emptyArr, first, only, ptrAt, arrRange = range, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAt, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, map, mapOp, mapWithOptFirst, mapWithOptFirst2, slice, tail;
 import util.collection.dict : Dict, getAt, mustGetAt;
@@ -70,8 +84,7 @@ immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgra
 		allTypes.allRecords,
 		allTypes.allUnions,
 		allFuns.allLowFuns,
-		allFuns.rtMain,
-		allFuns.userMain);
+		allFuns.main);
 }
 
 private:
@@ -84,10 +97,8 @@ struct AllLowTypes {
 }
 
 struct AllLowFuns {
-	immutable Arr!LowFun allLowFuns;
-	//TODO: just generate 'immutable Ptr!LowFun lowMainFun' in lowering;
-	immutable LowFunIndex rtMain;
-	immutable LowFunIndex userMain;
+	immutable Arr!LowFun allLowFuns; // Does not include main
+	immutable LowFun main;
 }
 
 struct GetLowTypeCtx {
@@ -238,7 +249,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 		}
 	}
 
-	ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
+	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
 		finishDictShouldBeNoConflict(alloc, concreteFunToLowFunIndexBuilder);
 
 	immutable Arr!LowFun allLowFuns = mapOp(alloc, program.allFuns, (ref immutable Ptr!ConcreteFun cf) {
@@ -275,10 +286,42 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 
 	assert(size(allLowFuns) == lowFunIndex);
 
-	return immutable AllLowFuns(
-		allLowFuns,
-		mustGetAt(concreteFunToLowFunIndex, program.rtMain),
-		mustGetAt(concreteFunToLowFunIndex, program.userMain));
+	immutable LowFunIndex userMainIndex = mustGetAt(concreteFunToLowFunIndex, program.userMain);
+	immutable LowFunIndex rtMainIndex = mustGetAt(concreteFunToLowFunIndex, program.rtMain);
+	immutable LowFun mainFun = mainFun!Alloc(alloc, ctx, rtMainIndex, userMainIndex, at(allLowFuns, rtMainIndex.index));
+	return immutable AllLowFuns(allLowFuns, mainFun);
+}
+
+immutable(LowFun) mainFun(Alloc)(
+	ref Alloc alloc,
+	ref const GetLowTypeCtx ctx,
+	immutable LowFunIndex rtMainIndex,
+	immutable LowFunIndex userMainIndex,
+	ref immutable LowFun rtMain,
+) {
+	immutable Arr!LowParam params = arrLiteral!LowParam(
+		alloc,
+		immutable LowParam(strLiteral("argc"), int32Type),
+		immutable LowParam(strLiteral("argv"), charPtrPtrType));
+	immutable Ptr!LowParam argc = ptrAt(params, 0);
+	immutable Ptr!LowParam argv = ptrAt(params, 1);
+	immutable LowType userMainFunPtrType = at(rtMain.params, 2).type;
+	immutable LowExpr userMainFunPtr = immutable LowExpr(
+		userMainFunPtrType,
+		SourceRange.empty,
+		immutable LowExprKind(immutable LowExprKind.FunPtr(userMainIndex)));
+	immutable LowExpr call = immutable LowExpr(
+		int32Type,
+		SourceRange.empty,
+		immutable LowExprKind(immutable LowExprKind.Call(
+			rtMainIndex,
+			arrLiteral!LowExpr(
+				alloc,
+				paramRef(SourceRange.empty, argc),
+				paramRef(SourceRange.empty, argv),
+				userMainFunPtr))));
+	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(emptyArr!(Ptr!LowLocal), call));
+	return immutable LowFun(strLiteral("main"), int32Type, params, body_);
 }
 
 immutable(LowParam) getLowParam(Alloc)(ref Alloc alloc, ref GetLowTypeCtx ctx, ref immutable ConcreteParam a) {
@@ -358,10 +401,7 @@ immutable(LowExpr) getCtxParamRef(Alloc)(
 	ref const GetLowExprCtx ctx,
 	ref immutable SourceRange range,
 ) {
-	return immutable LowExpr(
-		force(ctx.ctxParam).type,
-		range,
-		immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.ctxParam))));
+	return paramRef(range, force(ctx.ctxParam));
 }
 
 immutable(LowExprKind) getCtxParamRefKind(ref const GetLowExprCtx ctx) {
@@ -478,15 +518,6 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 			immutable LowExprKind(immutable LowExprKind.StringLiteral(it.literal)));
 }
 
-immutable LowType byteType = immutable LowType(PrimitiveType.byte_);
-immutable LowType nat64Type = immutable LowType(PrimitiveType.nat64);
-immutable LowType anyPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&byteType)));
-immutable LowType voidType = immutable LowType(PrimitiveType.void_);
-
-immutable(LowExpr) getSizeOf(immutable SourceRange range, immutable LowType t) {
-	return immutable LowExpr(nat64Type, range, immutable LowExprKind(immutable LowExprKind.SizeOf(t)));
-}
-
 immutable(LowExpr) getAllocateExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
@@ -501,22 +532,6 @@ immutable(LowExpr) getAllocateExpr(Alloc)(
 		immutable LowExprKind(immutable LowExprKind.Call(
 			getLowFunIndex(ctx, allocFun),
 			arrLiteral!LowExpr(alloc, getCtxParamRef(alloc, ctx, range), size))));
-}
-
-immutable(LowExpr) localRef(Alloc)(ref Alloc alloc, ref immutable SourceRange range, immutable Ptr!LowLocal local) {
-	return immutable LowExpr(local.type, range, immutable LowExprKind(immutable LowExprKind.LocalRef(local)));
-}
-
-immutable(LowExpr) seq(Alloc)(
-	ref Alloc alloc,
-	ref immutable SourceRange range,
-	immutable LowExpr first,
-	immutable LowExpr then,
-) {
-	return immutable LowExpr(
-		then.type,
-		range,
-		immutable LowExprKind(immutable LowExprKind.Seq(allocate(alloc, first), allocate(alloc, then))));
 }
 
 immutable(LowExprKind) getAllocExpr(Alloc)(
@@ -537,43 +552,11 @@ immutable(LowExprKind) getAllocExpr(Alloc)(
 		range,
 		getAllocateExpr!Alloc(alloc, ctx, range, a.alloc, ptrType, sizeofT));
 	immutable Ptr!LowExpr getTemp = allocate(alloc, localRef(alloc, range, local));
-	immutable LowExpr setTemp = immutable LowExpr(
-		voidType,
-		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-			LowExprKind.SpecialBinary.Kind.writeToPtr,
-			getTemp,
-			allocate(alloc, inner))));
+	immutable LowExpr setTemp = writeToPtr(alloc, range, getTemp, inner);
 	return immutable LowExprKind(immutable LowExprKind.Let(
 		local,
 		allocate(alloc, allocatePtr),
 		allocate(alloc, seq(alloc, range, setTemp, getTemp))));
-}
-
-immutable(LowExpr) constantNat64(
-	ref immutable SourceRange range,
-	immutable size_t value,
-) {
-	return immutable LowExpr(
-		nat64Type,
-		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialConstant(
-			immutable LowExprKind.SpecialConstant.Integral(value))));
-}
-
-immutable(LowExpr) mulNat64(Alloc)(
-	ref Alloc alloc,
-	ref immutable SourceRange range,
-	ref immutable LowExpr left,
-	ref immutable LowExpr right,
-) {
-	return immutable LowExpr(
-		nat64Type,
-		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-			LowExprKind.SpecialBinary.Kind.mulNat64,
-			allocate(alloc, left),
-			allocate(alloc, right))));
 }
 
 immutable(LowExprKind) getCallExpr(Alloc)(
@@ -582,7 +565,6 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 	ref immutable SourceRange range,
 	ref immutable ConcreteExpr.Call a,
 ) {
-	// A call isn't always a call!
 	immutable Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, a.called);
 	if (has(opCalled)) {
 		immutable Opt!LowExpr ctxArg = a.called.needsCtx ? some(getCtxParamRef(alloc, ctx, range)) : none!LowExpr;
@@ -628,7 +610,7 @@ immutable(LowExprKind) getCreateArrExpr(Alloc)(
 			immutable size_t index = prevIndex - 1;
 			immutable LowExpr arg = getLowExpr(alloc, ctx, at(a.args, index));
 			immutable LowExpr elementPtr = addPtr(alloc, elementPtrType, range, getTemp, index);
-			immutable LowExpr writeToElement = writeToPtr(alloc, elementPtrType, range, elementPtr, arg);
+			immutable LowExpr writeToElement = writeToPtr(alloc, range, elementPtr, arg);
 			return recur(seq(alloc, range, writeToElement, cur), index);
 		}
 	}
@@ -642,36 +624,6 @@ immutable(LowExprKind) getCreateArrExpr(Alloc)(
 		temp,
 		allocate(alloc, allocatePtr),
 		allocate(alloc, writeAndGetArr)));
-}
-
-immutable(LowExpr) addPtr(Alloc)(
-	ref Alloc alloc,
-	ref immutable LowType ptrType,
-	ref immutable SourceRange range,
-	ref immutable LowExpr ptr,
-	immutable size_t value,
-) {
-	return immutable LowExpr(
-		ptrType,
-		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-			LowExprKind.SpecialBinary.Kind.addPtr,
-			allocate(alloc, ptr),
-			allocate(alloc, constantNat64(range, value)))));
-}
-
-immutable(LowExpr) writeToPtr(Alloc)(
-	ref Alloc alloc,
-	ref immutable LowType ptrType,
-	ref immutable SourceRange range,
-	ref immutable LowExpr ptr,
-	ref immutable LowExpr value,
-) {
-	return immutable LowExpr(voidType, range, immutable LowExprKind(
-		immutable LowExprKind.SpecialBinary(
-			LowExprKind.SpecialBinary.Kind.writeToPtr,
-			allocate(alloc, ptr),
-			allocate(alloc, value))));
 }
 
 immutable(LowExprKind) getLambdaExpr(Alloc)(
@@ -699,19 +651,6 @@ immutable(LowExprKind) getLambdaExpr(Alloc)(
 		immutable Arr!LowExpr args = arrLiteral!LowExpr(alloc, funPtrCasted, closure);
 		return immutable LowExprKind(immutable LowExprKind.CreateRecord(args));
 	}
-}
-
-immutable(LowExpr) ptrCast(Alloc)(
-	ref Alloc alloc,
-	ref immutable LowType type,
-	ref immutable SourceRange range,
-	immutable LowExpr inner,
-) {
-	return immutable LowExpr(type, range, ptrCastKind(alloc, inner));
-}
-
-immutable(LowExprKind) ptrCastKind(Alloc)(ref Alloc alloc, immutable LowExpr inner) {
-	return immutable LowExprKind(immutable LowExprKind.PtrCast(allocate(alloc, inner)));
 }
 
 immutable(Ptr!LowLocal) getLocal(ref GetLowExprCtx ctx, immutable Ptr!ConcreteLocal concreteLocal) {
