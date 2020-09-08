@@ -324,6 +324,8 @@ immutable(CheckedExpr) checkCreateRecordCommon(Alloc)(
 			}
 			return none!RecordAndIsBuiltinByVal;
 		},
+		(ref immutable StructBody.ExternPtr) =>
+			none!RecordAndIsBuiltinByVal,
 		(ref immutable StructBody.Record r) =>
 			some(immutable RecordAndIsBuiltinByVal(r, False)),
 		(ref immutable StructBody.Union) =>

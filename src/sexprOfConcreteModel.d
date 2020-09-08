@@ -91,6 +91,8 @@ immutable(Sexpr) tataOfConcreteStructBody(Alloc)(ref Alloc alloc, ref immutable 
 		a,
 		(ref immutable ConcreteStructBody.Builtin it) =>
 			tataOfConcreteStructBodyBuiltin(alloc, it),
+		(ref immutable ConcreteStructBody.ExternPtr it) =>
+			tataSym("extern-ptr"),
 		(ref immutable ConcreteStructBody.Record it) =>
 			tataOfConcreteStructBodyRecord(alloc, it),
 		(ref immutable ConcreteStructBody.Union it) =>

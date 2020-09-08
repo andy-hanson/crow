@@ -654,7 +654,9 @@ void checkStructBodies(Alloc)(
 		immutable StructBody body_ = matchStructDeclAstBody!(immutable StructBody)(
 			ast.body_,
 			(ref immutable StructDeclAst.Body.Builtin) =>
-				immutable StructBody(StructBody.Builtin()),
+				immutable StructBody(immutable StructBody.Builtin()),
+			(ref immutable StructDeclAst.Body.ExternPtr) =>
+				immutable StructBody(immutable StructBody.ExternPtr()),
 			(ref immutable StructDeclAst.Body.Record r) =>
 				checkRecord(alloc, ctx, structsAndAliasesMap, ptrAsImmutable(struct_), r, delayStructInsts),
 			(ref immutable StructDeclAst.Body.Union un) =>
@@ -663,10 +665,11 @@ void checkStructBodies(Alloc)(
 	});
 
 	foreach (ref immutable StructDecl struct_; range(arrAsImmutable(structs))) {
-		matchStructBody(
+		matchStructBody!void(
 			body_(struct_),
 			(ref immutable StructBody.Bogus) {},
 			(ref immutable StructBody.Builtin) {},
+			(ref immutable StructBody.ExternPtr) {},
 			(ref immutable StructBody.Record) {},
 			(ref immutable StructBody.Union u) {
 				foreach (ref immutable Ptr!StructInst member; range(u.members))

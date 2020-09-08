@@ -256,6 +256,7 @@ struct StructBody {
 	@safe @nogc pure nothrow:
 	struct Bogus {}
 	struct Builtin {}
+	struct ExternPtr {}
 	struct Record {
 		immutable Opt!ForcedByValOrRef forcedByValOrRef;
 		immutable Arr!RecordField fields;
@@ -268,6 +269,7 @@ struct StructBody {
 	enum Kind {
 		bogus,
 		builtin,
+		externPtr,
 		record,
 		union_,
 	}
@@ -275,6 +277,7 @@ struct StructBody {
 	union {
 		immutable Bogus bogus;
 		immutable Builtin builtin;
+		immutable ExternPtr externPtr;
 		immutable Record record;
 		immutable Union union_;
 	}
@@ -282,6 +285,7 @@ struct StructBody {
 	public:
 	immutable this(immutable Bogus a) { kind = Kind.bogus; bogus = a; }
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	immutable this(immutable ExternPtr a) { kind = Kind.externPtr; externPtr = a; }
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a;}
 }
@@ -311,6 +315,7 @@ immutable(Bool) isUnion(ref immutable StructBody a) {
 	ref immutable StructBody a,
 	scope T delegate(ref immutable StructBody.Bogus) @safe @nogc pure nothrow cbBogus,
 	scope T delegate(ref immutable StructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope T delegate(ref immutable StructBody.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
 	scope T delegate(ref immutable StructBody.Record) @safe @nogc pure nothrow cbRecord,
 	scope T delegate(ref immutable StructBody.Union) @safe @nogc pure nothrow cbUnion,
 ) {
@@ -319,6 +324,8 @@ immutable(Bool) isUnion(ref immutable StructBody a) {
 			return cbBogus(a.bogus);
 		case StructBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
+		case StructBody.Kind.externPtr:
+			return cbExternPtr(a.externPtr);
 		case StructBody.Kind.record:
 			return cbRecord(a.record);
 		case StructBody.Kind.union_:

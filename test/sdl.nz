@@ -83,9 +83,7 @@ spec
 	summon
 	unsafe
 
-sdl-renderer record
-	| TODO: this is bogus. Noze should have types with unknown contents
-	x int
+sdl-renderer extern-ptr
 
 sdl-renderer-accelerated sdl-flags()
 	2

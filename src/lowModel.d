@@ -9,6 +9,10 @@ import util.opt : Opt;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
 
+struct LowExternPtrType {
+	immutable Str mangledName;
+}
+
 struct LowRecord {
 	immutable Str mangledName;
 	immutable Arr!LowField fields;
@@ -47,6 +51,9 @@ enum PrimitiveType {
 struct LowType {
 	@safe @nogc pure nothrow:
 
+	struct ExternPtr {
+		immutable size_t index;
+	}
 	struct FunPtr {
 		immutable size_t index;
 	}
@@ -62,6 +69,7 @@ struct LowType {
 
 	private:
 	enum Kind {
+		externPtr,
 		funPtr,
 		nonFunPtr,
 		primitive,
@@ -70,6 +78,7 @@ struct LowType {
 	}
 	immutable Kind kind_;
 	union {
+		immutable ExternPtr externPtr_;
 		immutable FunPtr funPtr_;
 		immutable NonFunPtr nonFunPtr_;
 		immutable PrimitiveType primitive_;
@@ -78,6 +87,7 @@ struct LowType {
 	}
 
 	public:
+	immutable this(immutable ExternPtr a) { kind_ = Kind.externPtr; externPtr_ = a; }
 	immutable this(immutable FunPtr a) { kind_ = Kind.funPtr; funPtr_ = a; }
 	@trusted immutable this(immutable NonFunPtr a) { kind_ = Kind.nonFunPtr; nonFunPtr_ = a; }
 	immutable this(immutable PrimitiveType a) { kind_ = Kind.primitive; primitive_ = a; }
@@ -119,6 +129,7 @@ immutable(LowType.Record) asRecordType(ref immutable LowType a) {
 
 @trusted T matchLowType(T)(
 	ref immutable LowType a,
+	scope T delegate(immutable LowType.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
 	scope T delegate(immutable LowType.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(immutable LowType.NonFunPtr) @safe @nogc pure nothrow cbNonFunPtr,
 	scope T delegate(immutable PrimitiveType) @safe @nogc pure nothrow cbPtr,
@@ -126,6 +137,8 @@ immutable(LowType.Record) asRecordType(ref immutable LowType a) {
 	scope T delegate(immutable LowType.Union) @safe @nogc pure nothrow cbUnion,
 ) {
 	final switch (a.kind_) {
+		case LowType.Kind.externPtr:
+			return cbExternPtr(a.externPtr_);
 		case LowType.Kind.funPtr:
 			return cbFunPtr(a.funPtr_);
 		case LowType.Kind.nonFunPtr:
@@ -602,6 +615,7 @@ T matchSpecialConstant(T)(
 }
 
 struct LowProgram {
+	immutable Arr!LowExternPtrType allExternPtrTypes;
 	immutable Arr!LowFunPtrType allFunPtrTypes;
 	immutable Arr!LowRecord allRecords;
 	immutable Arr!LowUnion allUnions;

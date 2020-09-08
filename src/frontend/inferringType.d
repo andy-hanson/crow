@@ -366,7 +366,7 @@ struct StructAndField {
 }
 
 immutable(Opt!StructAndField) tryGetRecordField(immutable Type targetType, immutable Sym fieldName) {
-	return matchType(
+	return matchType!(immutable Opt!StructAndField)(
 		targetType,
 		(ref immutable Type.Bogus) =>
 			//TODO: want to avoid cascading errors here.
@@ -374,11 +374,13 @@ immutable(Opt!StructAndField) tryGetRecordField(immutable Type targetType, immut
 		(immutable Ptr!TypeParam) =>
 			none!StructAndField,
 		(immutable Ptr!StructInst targetStructInst) =>
-			matchStructBody(
+			matchStructBody!(immutable Opt!StructAndField)(
 				body_(targetStructInst),
 				(ref immutable StructBody.Bogus) =>
 					none!StructAndField,
 				(ref immutable StructBody.Builtin) =>
+					none!StructAndField,
+				(ref immutable StructBody.ExternPtr) =>
 					none!StructAndField,
 				(ref immutable StructBody.Record r) {
 					immutable Opt!(Ptr!RecordField) field = findPtr(r.fields, (immutable Ptr!RecordField f) =>

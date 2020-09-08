@@ -624,6 +624,7 @@ immutable(Bool) isReservedName(immutable Sym name) {
 		case shortSymAlphaLiteralValue("else"):
 		case shortSymAlphaLiteralValue("export"):
 		case shortSymAlphaLiteralValue("extern"):
+		case shortSymAlphaLiteralValue("extern-ptr"):
 		case shortSymAlphaLiteralValue("global"):
 		case shortSymAlphaLiteralValue("import"):
 		case shortSymAlphaLiteralValue("match"):

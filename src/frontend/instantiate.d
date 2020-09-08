@@ -174,10 +174,14 @@ immutable(StructBody) instantiateStructBody(Alloc)(
 ) {
 	immutable TypeParamsAndArgs typeParamsAndArgs =
 		immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs);
-	return matchStructBody(
+	return matchStructBody!(immutable StructBody)(
 		body_(declAndArgs.decl),
-		(ref immutable StructBody.Bogus) => immutable StructBody(StructBody.Bogus()),
-		(ref immutable StructBody.Builtin) => immutable StructBody(StructBody.Builtin()),
+		(ref immutable StructBody.Bogus) =>
+			immutable StructBody(immutable StructBody.Bogus()),
+		(ref immutable StructBody.Builtin) =>
+			immutable StructBody(immutable StructBody.Builtin()),
+		(ref immutable StructBody.ExternPtr) =>
+			immutable StructBody(immutable StructBody.ExternPtr()),
 		(ref immutable StructBody.Record r) =>
 			immutable StructBody(StructBody.Record(
 				r.forcedByValOrRef,

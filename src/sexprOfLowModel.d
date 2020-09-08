@@ -60,6 +60,8 @@ immutable(Sexpr) tataOfLowFunPtrType(Alloc)(ref Alloc alloc, immutable size_t in
 immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) {
 	return matchLowType!(immutable Sexpr)(
 		a,
+		(immutable LowType.ExternPtr it) =>
+			tataRecord(alloc, "extern-ptr", tataNat(it.index)),
 		(immutable LowType.FunPtr it) =>
 			tataRecord(alloc, "fun-ptr", tataNat(it.index)),
 		(immutable LowType.NonFunPtr it) =>

@@ -46,6 +46,7 @@ import util.opt : force, has, none;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
 import util.util : todo;
+import util.verify : unreachable;
 
 immutable(ConcreteFunBody) getBuiltinFunBody(Alloc)(
 	ref Alloc alloc,
@@ -105,6 +106,9 @@ immutable(ConcreteFunExprBody) generateCompare(Alloc)(
 			body_(types.t.struct_),
 			(ref immutable ConcreteStructBody.Builtin builtin) =>
 				generateCompareBuiltin(alloc, boolType, types, builtin, a, b),
+			(ref immutable ConcreteStructBody.ExternPtr) =>
+				// not data, can't compare
+				unreachable!(immutable ConcreteFunExprBody),
 			(ref immutable ConcreteStructBody.Record it) =>
 				generateCompareRecord(alloc, ctx, compareFunKey, types, it, a, b),
 			(ref immutable ConcreteStructBody.Union) =>

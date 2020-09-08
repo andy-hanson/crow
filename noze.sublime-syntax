@@ -79,6 +79,9 @@ contexts:
     - match: builtin
       scope: comment
       pop: true
+    - match: extern-ptr
+      scope: comment
+      pop: true
     - match: record
       scope: comment
       push: record

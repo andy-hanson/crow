@@ -60,7 +60,7 @@ import util.memory : nu, nuMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sym : Sym;
-import util.util : min, max, roundUp;
+import util.util : min, max, roundUp, todo;
 import util.verify : unreachable;
 import util.writer : finishWriter, Writer, writeStatic, writeStr;
 
@@ -519,6 +519,13 @@ void initializeConcreteStruct(Alloc)(
 				False,
 				False);
 		},
+		(ref immutable StructBody.ExternPtr it) =>
+			immutable ConcreteStructInfo(
+				immutable ConcreteStructBody(immutable ConcreteStructBody.ExternPtr()),
+				(void*).sizeof,
+				False,
+				//defaultIsPointer is false because the 'extern' type *is* a pointer
+				False),
 		(ref immutable StructBody.Record r) {
 			immutable Arr!ConcreteField fields =
 				mapWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, ref immutable RecordField f) =>

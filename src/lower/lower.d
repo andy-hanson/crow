@@ -43,6 +43,7 @@ import lowModel :
 	isNonFunPtrType,
 	LowExpr,
 	LowExprKind,
+	LowExternPtrType,
 	LowField,
 	LowFun,
 	LowFunBody,
@@ -80,7 +81,8 @@ immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgra
 		allTypes.getLowTypeCtx,
 		a);
 	return immutable LowProgram(
-		allTypes.allFunPtrs,
+		allTypes.allExternPtrTypes,
+		allTypes.allFunPtrTypes,
 		allTypes.allRecords,
 		allTypes.allUnions,
 		allFuns.allLowFuns,
@@ -90,7 +92,8 @@ immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgra
 private:
 
 struct AllLowTypes {
-	immutable Arr!LowFunPtrType allFunPtrs;
+	immutable Arr!LowExternPtrType allExternPtrTypes;
+	immutable Arr!LowFunPtrType allFunPtrTypes;
 	immutable Arr!LowRecord allRecords;
 	immutable Arr!LowUnion allUnions;
 	GetLowTypeCtx getLowTypeCtx;
@@ -124,6 +127,7 @@ struct UnionSource {
 AllLowTypes getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr!ConcreteStruct) allStructs) {
 	DictBuilder!(Ptr!ConcreteStruct, LowType, comparePtr!ConcreteStruct) concreteStructToTypeBuilder;
 	ArrBuilder!FunPtrSource allFunPtrSources;
+	ArrBuilder!LowExternPtrType allExternPtrTypes;
 	ArrBuilder!RecordSource allRecordSources;
 	ArrBuilder!UnionSource allUnionSources;
 
@@ -164,6 +168,11 @@ AllLowTypes getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr!Concre
 						return some(immutable LowType(PrimitiveType.void_));
 				}
 			},
+			(ref immutable ConcreteStructBody.ExternPtr it) {
+				immutable size_t i = arrBuilderSize(allExternPtrTypes);
+				add(alloc, allExternPtrTypes, immutable LowExternPtrType(s.mangledName));
+				return some(immutable LowType(immutable LowType.ExternPtr(i)));
+			},
 			(ref immutable ConcreteStructBody.Record it) {
 				immutable size_t i = arrBuilderSize(allRecordSources);
 				add(alloc, allRecordSources, immutable RecordSource(s.mangledName, ptrTrustMe(it)));
@@ -197,7 +206,7 @@ AllLowTypes getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr!Concre
 			immutable LowUnion(it.mangledName, map(alloc, it.body_.members, (ref immutable ConcreteType member) =>
 				lowTypeFromConcreteType(alloc, getLowTypeCtx, member))));
 
-	return AllLowTypes(allFunPtrs, allRecords, allUnions, getLowTypeCtx);
+	return AllLowTypes(finishArr(alloc, allExternPtrTypes), allFunPtrs, allRecords, allUnions, getLowTypeCtx);
 }
 
 immutable(LowType) getLowPtrType(Alloc)(

@@ -406,6 +406,7 @@ struct ConcreteStructBody {
 		immutable BuiltinStructInfo info;
 		immutable Arr!ConcreteType typeArgs;
 	}
+	struct ExternPtr {}
 	struct Record {
 		immutable Arr!ConcreteField fields;
 	}
@@ -416,18 +417,21 @@ struct ConcreteStructBody {
 	private:
 	enum Kind {
 		builtin,
+		externPtr,
 		record,
 		union_,
 	}
 	immutable Kind kind;
 	union {
 		immutable Builtin builtin;
+		immutable ExternPtr externPtr;
 		immutable Record record;
 		immutable Union union_;
 	}
 
 	public:
 	@trusted immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	immutable this(immutable ExternPtr a) { kind = Kind.externPtr; externPtr = a; }
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
 }
@@ -450,12 +454,15 @@ struct ConcreteStructBody {
 @trusted T matchConcreteStructBody(T)(
 	ref immutable ConcreteStructBody a,
 	scope T delegate(ref immutable ConcreteStructBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope T delegate(ref immutable ConcreteStructBody.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
 	scope T delegate(ref immutable ConcreteStructBody.Record) @safe @nogc pure nothrow cbRecord,
 	scope T delegate(ref immutable ConcreteStructBody.Union) @safe @nogc pure nothrow cbUnion,
 ) {
 	final switch (a.kind) {
 		case ConcreteStructBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
+		case ConcreteStructBody.Kind.externPtr:
+			return cbExternPtr(a.externPtr);
 		case ConcreteStructBody.Kind.record:
 			return cbRecord(a.record);
 		case ConcreteStructBody.Kind.union_:

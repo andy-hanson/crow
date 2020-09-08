@@ -355,6 +355,7 @@ struct StructDeclAst {
 	struct Body {
 		@safe @nogc pure nothrow:
 		struct Builtin {}
+		struct ExternPtr {}
 		struct Record {
 			struct Field {
 				immutable SourceRange range;
@@ -372,6 +373,7 @@ struct StructDeclAst {
 		private:
 		enum Kind {
 			builtin,
+			externPtr,
 			record,
 			union_,
 		}
@@ -379,15 +381,17 @@ struct StructDeclAst {
 		immutable Kind kind;
 		union {
 			immutable Builtin builtin;
+			immutable ExternPtr externPtr;
 			immutable Record record;
 			immutable Union union_;
 		}
 
 		public:
 
-		this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-		@trusted this(immutable Record a) { kind = Kind.record; record = a; }
-		@trusted this(immutable Union a) { kind = Kind.union_; union_ = a; }
+		immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+		immutable this(immutable ExternPtr a) { kind = Kind.externPtr; externPtr = a; }
+		@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
+		@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
 	}
 
 	immutable SourceRange range;
@@ -408,12 +412,15 @@ immutable(Bool) isUnion(immutable ref StructDeclAst.Body a) {
 @trusted T matchStructDeclAstBody(T)(
 	immutable ref StructDeclAst.Body a,
 	scope T delegate(ref immutable StructDeclAst.Body.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope T delegate(ref immutable StructDeclAst.Body.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
 	scope T delegate(ref immutable StructDeclAst.Body.Record) @safe @nogc pure nothrow cbRecord,
 	scope T delegate(ref immutable StructDeclAst.Body.Union) @safe @nogc pure nothrow cbUnion,
 ) {
 	final switch (a.kind) {
 		case StructDeclAst.Body.Kind.builtin:
 			return cbBuiltin(a.builtin);
+		case StructDeclAst.Body.Kind.externPtr:
+			return cbExternPtr(a.externPtr);
 		case StructDeclAst.Body.Kind.record:
 			return cbRecord(a.record);
 		case StructDeclAst.Body.Kind.union_:
@@ -625,6 +632,8 @@ immutable(Sexpr) sexprOfStructBodyAst(Alloc)(ref Alloc alloc, ref immutable Stru
 		a,
 		(ref immutable StructDeclAst.Body.Builtin) =>
 			tataSym("builtin"),
+		(ref immutable StructDeclAst.Body.ExternPtr) =>
+			tataSym("extern"),
 		(ref immutable StructDeclAst.Body.Record a) =>
 			sexprOfRecord(alloc, a),
 		(ref immutable StructDeclAst.Body.Union a) =>

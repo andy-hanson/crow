@@ -8,6 +8,7 @@ import lowModel :
 	isVoid,
 	LowExpr,
 	LowExprKind,
+	LowExternPtrType,
 	LowField,
 	LowFun,
 	LowFunBody,
@@ -89,8 +90,13 @@ struct FunBodyCtx {
 void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType t) {
 	return matchLowType!void(
 		t,
-		(immutable LowType.FunPtr fp) {
-			writeStr(writer, at(ctx.program.allFunPtrTypes, fp.index).mangledName);
+		(immutable LowType.ExternPtr it) {
+			writeStatic(writer, "struct ");
+			writeStr(writer, at(ctx.program.allExternPtrTypes, it.index).mangledName);
+			writeChar(writer, '*');
+		},
+		(immutable LowType.FunPtr it) {
+			writeStr(writer, at(ctx.program.allFunPtrTypes, it.index).mangledName);
 		},
 		(immutable LowType.NonFunPtr it) {
 			writeType(writer, ctx, it.pointee);
@@ -182,6 +188,9 @@ immutable(Bool) canReferenceTypeAsValue(
 ) {
 	return matchLowType!(immutable Bool)(
 		t,
+		(immutable LowType.ExternPtr it) =>
+			// Declared all up front
+			True,
 		(immutable LowType.FunPtr it) =>
 			immutable Bool(at(states.funPtrStates, it.index)),
 		(immutable LowType.NonFunPtr it) =>
@@ -201,6 +210,9 @@ immutable(Bool) canReferenceTypeAsPointee(
 ) {
 	return matchLowType!(immutable Bool)(
 		t,
+		(immutable LowType.ExternPtr it) =>
+			// Declared all up front
+			True,
 		(immutable LowType.FunPtr it) =>
 			immutable Bool(at(states.funPtrStates, it.index)),
 		(immutable LowType.NonFunPtr it) =>
@@ -283,6 +295,11 @@ immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
 void writeStructs(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx) {
 	alias TempAlloc = StackAlloc!("struct-states", 1024 * 1024);
 	TempAlloc tempAlloc;
+	// Write extern-ptr types first
+	foreach (ref immutable LowExternPtrType it; range(ctx.program.allExternPtrTypes)) {
+		declareStruct(writer, it.mangledName);
+	}
+
 	StructStates structStates = StructStates(
 		fillArr_mut!(Bool, TempAlloc)(tempAlloc, size(ctx.program.allFunPtrTypes), (immutable size_t) => Bool(false)),
 		fillArr_mut!StructState(tempAlloc, size(ctx.program.allRecords), (immutable size_t) => StructState.none),
@@ -958,6 +975,9 @@ void writeHardFail(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref im
 void writeEmptyValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType type) {
 	return matchLowType!void(
 		type,
+		(immutable LowType.ExternPtr) {
+			writeStatic(writer, "NULL");
+		},
 		(immutable LowType.FunPtr) {
 			writeStatic(writer, "NULL");
 		},
