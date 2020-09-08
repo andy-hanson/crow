@@ -36,8 +36,6 @@ immutable(BuiltinStructInfo) getBuiltinStructInfo(immutable Ptr!StructDecl s) {
 	switch (s.name.value) {
 		case shortSymAlphaLiteralValue("bool"):
 			return BuiltinStructInfo(BuiltinStructKind.bool_, Bool.sizeof);
-		case shortSymAlphaLiteralValue("byte"):
-			return BuiltinStructInfo(BuiltinStructKind.byte_, byte.sizeof);
 		case shortSymAlphaLiteralValue("char"):
 			return BuiltinStructInfo(BuiltinStructKind.char_, char.sizeof);
 		case shortSymAlphaLiteralValue("float"):
@@ -50,12 +48,16 @@ immutable(BuiltinStructInfo) getBuiltinStructInfo(immutable Ptr!StructDecl s) {
 		case shortSymAlphaLiteralValue("fun-ptr5"):
 		case shortSymAlphaLiteralValue("fun-ptr6"):
 			return BuiltinStructInfo(BuiltinStructKind.funPtrN, (void *).sizeof);
+		case shortSymAlphaLiteralValue("int8"):
+			return BuiltinStructInfo(BuiltinStructKind.int8, byte.sizeof);
 		case shortSymAlphaLiteralValue("int16"):
 			return BuiltinStructInfo(BuiltinStructKind.int16, short.sizeof);
 		case shortSymAlphaLiteralValue("int32"):
 			return BuiltinStructInfo(BuiltinStructKind.int32, int.sizeof);
 		case shortSymAlphaLiteralValue("int"):
 			return BuiltinStructInfo(BuiltinStructKind.int64, long.sizeof);
+		case shortSymAlphaLiteralValue("nat8"):
+			return BuiltinStructInfo(BuiltinStructKind.nat8, ubyte.sizeof);
 		case shortSymAlphaLiteralValue("nat16"):
 			return BuiltinStructInfo(BuiltinStructKind.nat16, ushort.sizeof);
 		case shortSymAlphaLiteralValue("nat32"):
@@ -81,6 +83,10 @@ immutable(Bool) isFloat64(ref immutable Type t) {
 	return isNamed(t, shortSymAlphaLiteral("float"));
 }
 
+immutable(Bool) isInt8(ref immutable Type t) {
+	return isNamed(t, shortSymAlphaLiteral("int8"));
+}
+
 immutable(Bool) isInt16(ref immutable Type t) {
 	return isNamed(t, shortSymAlphaLiteral("int16"));
 }
@@ -91,6 +97,10 @@ immutable(Bool) isInt32(ref immutable Type t) {
 
 immutable(Bool) isInt64(ref immutable Type t) {
 	return isNamed(t, shortSymAlphaLiteral("int"));
+}
+
+immutable(Bool) isNat8(ref immutable Type t) {
+	return isNamed(t, shortSymAlphaLiteral("nat8"));
 }
 
 immutable(Bool) isNat16(ref immutable Type t) {
@@ -178,25 +188,25 @@ immutable(Opt!BuiltinFunInfo) tryGetBuiltinFunInfo(ref immutable Sig sig) {
 			// Constant arr<by-val<?t>>, get ptr, do as-ref, it should be constant
 			return operator(BuiltinFunKind.asRef);
 		case shortSymAlphaLiteralValue("bits-and"):
-			return isNat16(rt) ? operator(BuiltinFunKind.bitwiseAndNat16)
+			return isNat8(rt) ? operator(BuiltinFunKind.bitwiseAndNat8)
+				: isNat16(rt) ? operator(BuiltinFunKind.bitwiseAndNat16)
 				: isNat32(rt) ? operator(BuiltinFunKind.bitwiseAndNat32)
 				: isNat64(rt) ? operator(BuiltinFunKind.bitwiseAndNat64)
+				: isInt8(rt) ? operator(BuiltinFunKind.bitwiseAndInt8)
 				: isInt16(rt) ? operator(BuiltinFunKind.bitwiseAndInt16)
 				: isInt32(rt) ? operator(BuiltinFunKind.bitwiseAndInt32)
 				: isInt64(rt) ? operator(BuiltinFunKind.bitwiseAndInt64)
 				: no;
 		case shortSymAlphaLiteralValue("bits-or"):
-			return isNat16(rt) ? operator(BuiltinFunKind.bitwiseOrNat16)
+			return isNat8(rt) ? operator(BuiltinFunKind.bitwiseOrNat8)
+				: isNat16(rt) ? operator(BuiltinFunKind.bitwiseOrNat16)
 				: isNat32(rt) ? operator(BuiltinFunKind.bitwiseOrNat32)
 				: isNat64(rt) ? operator(BuiltinFunKind.bitwiseOrNat64)
+				: isInt8(rt) ? operator(BuiltinFunKind.bitwiseOrInt8)
 				: isInt16(rt) ? operator(BuiltinFunKind.bitwiseOrInt16)
 				: isInt32(rt) ? operator(BuiltinFunKind.bitwiseOrInt32)
 				: isInt64(rt) ? operator(BuiltinFunKind.bitwiseOrInt64)
 				: no;
-		case shortSymAlphaLiteralValue("bit-lshift"):
-			return isInt32(rt) ? operator(BuiltinFunKind.bitShiftLeftInt32) : no;
-		case shortSymAlphaLiteralValue("bit-rshift"):
-			return isInt32(rt) ? operator(BuiltinFunKind.bitShiftRightInt32) : no;
 		case shortSymAlphaLiteralValue("call"):
 			return isSomeFunPtr(p0) ? operator(BuiltinFunKind.callFunPtr) : no;
 		case shortSymAlphaLiteralValue("deref"):
@@ -217,9 +227,11 @@ immutable(Opt!BuiltinFunInfo) tryGetBuiltinFunInfo(ref immutable Sig sig) {
 			return operator(BuiltinFunKind.null_);
 		case shortSymAlphaLiteralValue("one"):
 			return isFloat64(rt) ? todo!(immutable Opt!BuiltinFunInfo)("one float")
+				: isInt8(rt) ? operator(BuiltinFunKind.oneInt8)
 				: isInt16(rt) ? operator(BuiltinFunKind.oneInt16)
 				: isInt32(rt) ? operator(BuiltinFunKind.oneInt32)
 				: isInt64(rt) ? operator(BuiltinFunKind.oneInt64)
+				: isNat8(rt) ? operator(BuiltinFunKind.oneNat8)
 				: isNat16(rt) ? operator(BuiltinFunKind.oneNat16)
 				: isNat32(rt) ? operator(BuiltinFunKind.oneNat32)
 				: isNat64(rt) ? operator(BuiltinFunKind.oneNat64)
@@ -282,26 +294,40 @@ immutable(Opt!BuiltinFunInfo) tryGetBuiltinFunInfo(ref immutable Sig sig) {
 				: no;
 		case shortSymAlphaLiteralValue("zero"):
 			return isFloat64(rt) ? todo!(immutable Opt!BuiltinFunInfo)("zero float")
+				: isInt8(rt) ? operator(BuiltinFunKind.zeroInt8)
 				: isInt16(rt) ? operator(BuiltinFunKind.zeroInt16)
 				: isInt32(rt) ? operator(BuiltinFunKind.zeroInt32)
 				: isInt64(rt) ? operator(BuiltinFunKind.zeroInt64)
+				: isNat8(rt) ? operator(BuiltinFunKind.zeroNat8)
 				: isNat16(rt) ? operator(BuiltinFunKind.zeroNat16)
 				: isNat32(rt) ? operator(BuiltinFunKind.zeroNat32)
 				: isNat64(rt) ? operator(BuiltinFunKind.zeroNat64)
 				: no;
 		default:
+			if (symEqLongAlphaLiteral(name, "bit-shift-left"))
+				return isInt32(rt) ? operator(BuiltinFunKind.bitShiftLeftInt32)
+					: isNat32(rt) ? operator(BuiltinFunKind.bitShiftLeftNat32)
+					: no;
+			else if (symEqLongAlphaLiteral(name, "bit-shift-right"))
+				return isInt32(rt) ? operator(BuiltinFunKind.bitShiftRightInt32)
+					: isNat32(rt) ? operator(BuiltinFunKind.bitShiftRightNat32)
+					: no;
 			if (symEqLongAlphaLiteral(name, "compare-exchange-strong"))
 				return special(BuiltinFunKind.compareExchangeStrong);
 			else if (symEqLongAlphaLiteral(name, "is-reference-type"))
 				return operator(BuiltinFunKind.isReferenceType);
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int"))
 				return isNat64(p0) ? operator(BuiltinFunKind.unsafeNat64ToInt64) : no;
+			else if (symEqLongAlphaLiteral(name, "unsafe-to-int8"))
+				return isInt64(p0) ? operator(BuiltinFunKind.unsafeInt64ToInt8) : no;
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int16"))
 				return isInt64(p0) ? operator(BuiltinFunKind.unsafeInt64ToInt16) : no;
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int32"))
 				return isInt64(p0) ? operator(BuiltinFunKind.unsafeInt64ToInt32) : no;
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat"))
 				return isInt64(p0) ? operator(BuiltinFunKind.unsafeInt64ToNat64) : no;
+			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat8"))
+				return isNat64(p0) ? operator(BuiltinFunKind.unsafeNat64ToNat8) : no;
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat16"))
 				return isNat64(p0) ? operator(BuiltinFunKind.unsafeNat64ToNat16) : no;
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat32"))

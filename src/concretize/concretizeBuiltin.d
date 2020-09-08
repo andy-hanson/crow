@@ -124,12 +124,13 @@ immutable(ConcreteFunExprBody) generateCompareBuiltin(Alloc)(
 	immutable BuiltinStructInfo info = builtin.info;
 	final switch (info.kind) {
 		case BuiltinStructKind.bool_:
-		case BuiltinStructKind.byte_:
 		case BuiltinStructKind.char_:
 		case BuiltinStructKind.float64:
+		case BuiltinStructKind.int8:
 		case BuiltinStructKind.int16:
 		case BuiltinStructKind.int32:
 		case BuiltinStructKind.int64:
+		case BuiltinStructKind.nat8:
 		case BuiltinStructKind.nat16:
 		case BuiltinStructKind.nat32:
 		case BuiltinStructKind.nat64:

@@ -912,6 +912,7 @@ void writeSpecialUnary(Alloc)(
 			prefix("(uint8_t*) ");
 			break;
 		case LowExprKind.SpecialUnary.Kind.asRef:
+		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
 			writeCastToType(writer, ctx.ctx, type);
 			arg();
 			break;
@@ -932,11 +933,12 @@ void writeSpecialUnary(Alloc)(
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
-		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
+		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64:
 		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64:
+		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8:
 		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16:
 		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32:
 			// C will implicitly cast
@@ -1036,22 +1038,28 @@ void writeSpecialBinary(Alloc)(
 			writeLogicalOperator(writer, indent, ctx, writeKind, LogicalOperator.and, it.left, it.right);
 			break;
 		case LowExprKind.SpecialBinary.Kind.bitShiftLeftInt32:
+		case LowExprKind.SpecialBinary.Kind.bitShiftLeftNat32:
 			operator("<<");
 			break;
 		case LowExprKind.SpecialBinary.Kind.bitShiftRightInt32:
+		case LowExprKind.SpecialBinary.Kind.bitShiftRightNat32:
 			operator(">>");
 			break;
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt64:
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat8:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat16:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat64:
 			operator("&");
 			break;
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt8:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt16:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt64:
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat8:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat16:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat32:
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
@@ -1064,7 +1072,6 @@ void writeSpecialBinary(Alloc)(
 			operator("<");
 			break;
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
-		case LowExprKind.SpecialBinary.Kind.mulNat64:
 		case LowExprKind.SpecialBinary.Kind.wrapMulInt16:
 		case LowExprKind.SpecialBinary.Kind.wrapMulInt32:
 		case LowExprKind.SpecialBinary.Kind.wrapMulInt64:
@@ -1246,18 +1253,20 @@ void writePrimitiveType(Alloc)(ref Writer!Alloc writer, immutable PrimitiveType 
 		final switch (a) {
 			case PrimitiveType.bool_:
 				return "uint8_t";
-			case PrimitiveType.byte_:
-				return "uint8_t";
 			case PrimitiveType.char_:
 				return "char";
 			case PrimitiveType.float64:
 				return "double";
+			case PrimitiveType.int8:
+				return "int8_t";
 			case PrimitiveType.int16:
 				return "int16_t";
 			case PrimitiveType.int32:
 				return "int32_t";
 			case PrimitiveType.int64:
 				return "int64_t";
+			case PrimitiveType.nat8:
+				return "uint8_t";
 			case PrimitiveType.nat16:
 				return "uint16_t";
 			case PrimitiveType.nat32:

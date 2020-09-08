@@ -130,7 +130,7 @@ write-file void(path str, content str) summon
 write-file void(path c-str, content str) summon trusted
 	permission-rdwr = six as<int32>
 	permission-rd = four as<int32>
-	permission = (permission-rdwr bit-lshift six) bits-or (permission-rd bit-lshift three) bits-or permission-rd
+	permission = (permission-rdwr bit-shift-left six) bits-or (permission-rd bit-shift-left three) bits-or permission-rd
 	flags = o-creat bits-or o-wronly bits-or o-trunc
 	fd = path open flags, permission
 	when

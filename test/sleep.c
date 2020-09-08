@@ -3,7 +3,7 @@
 #include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
-typedef uint8_t* (*fun_ptr1__ptr__nat8__ptr__nat8)(uint8_t*);
+typedef uint8_t* (*fun_ptr1__ptr__byte__ptr__byte)(uint8_t*);
 struct ctx {
 	uint8_t* gctx_ptr;
 	uint64_t vat_id;
@@ -115,7 +115,7 @@ struct vat_and_actor_id {
 struct fun_mut0__ptr_fut__int32;
 struct fun_ref1__int32___void;
 struct fun_mut1__ptr_fut__int32___void;
-struct some__ptr__nat8 {
+struct some__ptr__byte {
 	uint8_t* value;
 };
 struct then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure;
@@ -147,7 +147,7 @@ struct thread_args__ptr_global_ctx;
 struct cell__nat {
 	uint64_t value;
 };
-struct cell__ptr__nat8 {
+struct cell__ptr__byte {
 	uint8_t* value;
 };
 struct chosen_task;
@@ -166,21 +166,6 @@ struct some__task_and_nodes;
 struct arr__nat {
 	uint64_t size;
 	uint64_t* data;
-};
-struct my_record {
-	uint64_t x;
-	uint64_t y;
-};
-struct fun_mut1__char__nat;
-struct mut_arr__char {
-	uint8_t frozen__q;
-	uint64_t size;
-	uint64_t capacity;
-	char* data;
-};
-struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure {
-	struct arr__char a;
-	struct arr__char b;
 };
 struct fut_state__int32;
 struct result__int32__exception;
@@ -222,11 +207,11 @@ struct opt__ptr_fut_callback_node___void {
 		struct some__ptr_fut_callback_node___void as1;
 	};
 };
-struct opt__ptr__nat8 {
+struct opt__ptr__byte {
 	int kind;
 	union {
 		struct none as0;
-		struct some__ptr__nat8 as1;
+		struct some__ptr__byte as1;
 	};
 };
 struct opt__task;
@@ -234,18 +219,17 @@ struct result__chosen_task__no_chosen_task;
 struct opt__chosen_task;
 struct opt__opt__task;
 struct opt__task_and_nodes;
-typedef uint8_t (*fun_ptr3___void__ptr_ctx__ptr__nat8__result__int32__exception)(struct ctx*, uint8_t*, struct result__int32__exception);
+typedef uint8_t (*fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception)(struct ctx*, uint8_t*, struct result__int32__exception);
 typedef struct fut__int32* (*fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char)(struct ctx*, struct arr__arr__char);
-typedef uint8_t (*fun_ptr2___void__ptr_ctx__ptr__nat8)(struct ctx*, uint8_t*);
-typedef uint8_t (*fun_ptr3___void__ptr_ctx__ptr__nat8__exception)(struct ctx*, uint8_t*, struct exception);
-typedef struct fut__int32* (*fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char)(struct ctx*, uint8_t*, struct arr__ptr__char, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char);
-typedef uint8_t (*fun_ptr3___void__ptr_ctx__ptr__nat8__result___void__exception)(struct ctx*, uint8_t*, struct result___void__exception);
-typedef struct fut__int32* (*fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__nat8)(struct ctx*, uint8_t*);
-typedef struct fut__int32* (*fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__nat8___void)(struct ctx*, uint8_t*, uint8_t);
-typedef struct arr__char (*fun_ptr3__arr__char__ptr_ctx__ptr__nat8__ptr__char)(struct ctx*, uint8_t*, char*);
-typedef struct arr__char (*fun_ptr3__arr__char__ptr_ctx__ptr__nat8__nat)(struct ctx*, uint8_t*, uint64_t);
+typedef uint8_t (*fun_ptr2___void__ptr_ctx__ptr__byte)(struct ctx*, uint8_t*);
+typedef uint8_t (*fun_ptr3___void__ptr_ctx__ptr__byte__exception)(struct ctx*, uint8_t*, struct exception);
+typedef struct fut__int32* (*fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char)(struct ctx*, uint8_t*, struct arr__ptr__char, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char);
+typedef uint8_t (*fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception)(struct ctx*, uint8_t*, struct result___void__exception);
+typedef struct fut__int32* (*fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte)(struct ctx*, uint8_t*);
+typedef struct fut__int32* (*fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void)(struct ctx*, uint8_t*, uint8_t);
+typedef struct arr__char (*fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char)(struct ctx*, uint8_t*, char*);
+typedef struct arr__char (*fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat)(struct ctx*, uint8_t*, uint64_t);
 typedef uint8_t (*fun_ptr2___void__nat__ptr_global_ctx)(uint64_t, struct global_ctx*);
-typedef char (*fun_ptr3__char__ptr_ctx__ptr__nat8__nat)(struct ctx*, uint8_t*, uint64_t);
 struct fut__int32;
 struct lock {
 	struct _atomic_bool is_locked;
@@ -261,7 +245,7 @@ struct err__exception {
 	struct exception value;
 };
 struct fun_mut1___void__result__int32__exception {
-	fun_ptr3___void__ptr_ctx__ptr__nat8__result__int32__exception fun_ptr;
+	fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception fun_ptr;
 	uint8_t* closure;
 };
 struct global_ctx;
@@ -280,7 +264,7 @@ struct gc_ctx {
 };
 struct task;
 struct fun_mut0___void {
-	fun_ptr2___void__ptr_ctx__ptr__nat8 fun_ptr;
+	fun_ptr2___void__ptr_ctx__ptr__byte fun_ptr;
 	uint8_t* closure;
 };
 struct mut_bag__task {
@@ -292,7 +276,7 @@ struct thread_safe_counter {
 	uint64_t value;
 };
 struct fun_mut1___void__exception {
-	fun_ptr3___void__ptr_ctx__ptr__nat8__exception fun_ptr;
+	fun_ptr3___void__ptr_ctx__ptr__byte__exception fun_ptr;
 	uint8_t* closure;
 };
 struct condition {
@@ -311,7 +295,7 @@ struct bytes32 {
 };
 struct bytes128;
 struct fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char {
-	fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char fun_ptr;
+	fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char fun_ptr;
 	uint8_t* closure;
 };
 struct fut___void;
@@ -320,17 +304,17 @@ struct fut_state_callbacks___void {
 };
 struct fut_callback_node___void;
 struct fun_mut1___void__result___void__exception {
-	fun_ptr3___void__ptr_ctx__ptr__nat8__result___void__exception fun_ptr;
+	fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception fun_ptr;
 	uint8_t* closure;
 };
 struct fun_ref0__int32;
 struct fun_mut0__ptr_fut__int32 {
-	fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__nat8 fun_ptr;
+	fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte fun_ptr;
 	uint8_t* closure;
 };
 struct fun_ref1__int32___void;
 struct fun_mut1__ptr_fut__int32___void {
-	fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__nat8___void fun_ptr;
+	fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void fun_ptr;
 	uint8_t* closure;
 };
 struct then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure;
@@ -344,11 +328,11 @@ struct add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32_
 	fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr;
 };
 struct fun_mut1__arr__char__ptr__char {
-	fun_ptr3__arr__char__ptr_ctx__ptr__nat8__ptr__char fun_ptr;
+	fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char fun_ptr;
 	uint8_t* closure;
 };
 struct fun_mut1__arr__char__nat {
-	fun_ptr3__arr__char__ptr_ctx__ptr__nat8__nat fun_ptr;
+	fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat fun_ptr;
 	uint8_t* closure;
 };
 struct map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0___closure {
@@ -367,10 +351,6 @@ struct some__chosen_task;
 struct some__opt__task;
 struct task_and_nodes;
 struct some__task_and_nodes;
-struct fun_mut1__char__nat {
-	fun_ptr3__char__ptr_ctx__ptr__nat8__nat fun_ptr;
-	uint8_t* closure;
-};
 struct fut_state__int32 {
 	int kind;
 	union {
@@ -572,11 +552,11 @@ struct condition new_condition__condition();
 struct vat new_vat__vat__ptr_global_ctx__nat__nat(struct global_ctx* gctx, uint64_t id, uint64_t max_threads);
 struct mut_arr__nat new_mut_arr_by_val_with_capacity_from_unmanaged_memory__mut_arr__nat__nat(uint64_t capacity);
 uint64_t* unmanaged_alloc_elements__ptr__nat__nat(uint64_t size_elements);
-uint8_t* unmanaged_alloc_bytes__ptr__nat8__nat(uint64_t size);
+uint8_t* unmanaged_alloc_bytes__ptr__byte__nat(uint64_t size);
 extern uint8_t* malloc(uint64_t size);
 uint8_t hard_forbid___void__bool(uint8_t condition);
 uint8_t hard_assert___void__bool(uint8_t condition);
-uint8_t null__q__bool__ptr__nat8(uint8_t* a);
+uint8_t null__q__bool__ptr__byte(uint8_t* a);
 uint8_t _op_equal_equal__bool__nat__nat(uint64_t a, uint64_t b);
 struct comparison _op_less_equal_greater__comparison__nat__nat(uint64_t a, uint64_t b);
 struct gc new_gc__gc();
@@ -634,11 +614,11 @@ struct fut__int32* add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr
 struct fut__int32* then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32(struct ctx* ctx, struct fut___void* f, struct fun_ref0__int32 cb);
 struct fut__int32* then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void(struct ctx* ctx, struct fut___void* f, struct fun_ref1__int32___void cb);
 struct fut__int32* new_unresolved_fut__ptr_fut__int32(struct ctx* ctx);
-uint8_t* alloc__ptr__nat8__nat(struct ctx* ctx, uint64_t size);
-uint8_t* gc_alloc__ptr__nat8__ptr_gc__nat(struct ctx* ctx, struct gc* gc, uint64_t size);
-struct opt__ptr__nat8 try_gc_alloc__opt__ptr__nat8__ptr_gc__nat(struct gc* gc, uint64_t size);
-struct some__ptr__nat8 some__some__ptr__nat8__ptr__nat8(uint8_t* t);
-uint8_t* todo__ptr__nat8();
+uint8_t* alloc__ptr__byte__nat(struct ctx* ctx, uint64_t size);
+uint8_t* gc_alloc__ptr__byte__ptr_gc__nat(struct ctx* ctx, struct gc* gc, uint64_t size);
+struct opt__ptr__byte try_gc_alloc__opt__ptr__byte__ptr_gc__nat(struct gc* gc, uint64_t size);
+struct some__ptr__byte some__some__ptr__byte__ptr__byte(uint8_t* t);
+uint8_t* todo__ptr__byte();
 struct gc* get_gc__ptr_gc(struct ctx* ctx);
 struct gc_ctx* get_gc_ctx__ptr_gc_ctx(struct ctx* ctx);
 uint8_t then_void___void__ptr_fut___void__fun_mut1___void__result___void__exception(struct ctx* ctx, struct fut___void* f, struct fun_mut1___void__result___void__exception cb);
@@ -753,9 +733,9 @@ struct fut__int32* call_with_ctx__ptr_fut__int32__ptr_ctx__fun2__ptr_fut__int32_
 uint8_t run_threads___void__nat__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx(uint64_t n_threads, struct global_ctx* arg, fun_ptr2___void__nat__ptr_global_ctx fun);
 struct thread_args__ptr_global_ctx* unmanaged_alloc_elements__ptr__thread_args__ptr_global_ctx__nat(uint64_t size_elements);
 uint8_t run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args__ptr_global_ctx* thread_args, struct global_ctx* arg, fun_ptr2___void__nat__ptr_global_ctx fun);
-uint8_t* thread_fun__ptr__nat8__ptr__nat8(uint8_t* args_ptr);
+uint8_t* thread_fun__ptr__byte__ptr__byte(uint8_t* args_ptr);
 uint8_t* run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx__lambda0(uint8_t* args_ptr);
-extern int32_t pthread_create(struct cell__nat* thread, uint8_t* attr, fun_ptr1__ptr__nat8__ptr__nat8 start_routine, uint8_t* arg);
+extern int32_t pthread_create(struct cell__nat* thread, uint8_t* attr, fun_ptr1__ptr__byte__ptr__byte start_routine, uint8_t* arg);
 struct cell__nat* as_cell__ptr_cell__nat__ptr__nat(uint64_t* p);
 int32_t eagain__int32();
 int32_t ten__int32();
@@ -763,12 +743,12 @@ int32_t nine__int32();
 int32_t eight__int32();
 uint8_t join_threads_recur___void__nat__nat__ptr__nat(uint64_t i, uint64_t n_threads, uint64_t* threads);
 uint8_t join_one_thread___void__nat(uint64_t tid);
-extern int32_t pthread_join(uint64_t thread, struct cell__ptr__nat8* thread_return);
+extern int32_t pthread_join(uint64_t thread, struct cell__ptr__byte* thread_return);
 int32_t einval__int32();
 int32_t esrch__int32();
-uint8_t _op_equal_equal__bool__ptr__nat8__ptr__nat8(uint8_t* a, uint8_t* b);
-struct comparison _op_less_equal_greater__comparison__ptr__nat8__ptr__nat8(uint8_t* a, uint8_t* b);
-uint8_t* get__ptr__nat8__ptr_cell__ptr__nat8(struct cell__ptr__nat8* c);
+uint8_t _op_equal_equal__bool__ptr__byte__ptr__byte(uint8_t* a, uint8_t* b);
+struct comparison _op_less_equal_greater__comparison__ptr__byte__ptr__byte(uint8_t* a, uint8_t* b);
+uint8_t* get__ptr__byte__ptr_cell__ptr__byte(struct cell__ptr__byte* c);
 uint8_t unmanaged_free___void__ptr__nat(uint64_t* p);
 extern void free(uint8_t* p);
 uint8_t unmanaged_free___void__ptr__thread_args__ptr_global_ctx(struct thread_args__ptr_global_ctx* p);
@@ -814,6 +794,13 @@ uint8_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx
 struct result__int32__exception must_be_resolved__result__int32__exception__ptr_fut__int32(struct fut__int32* f);
 struct result__int32__exception hard_unreachable__result__int32__exception();
 struct fut__int32* main__ptr_fut__int32__arr__arr__char(struct ctx* ctx, struct arr__arr__char args);
+uint8_t print_sync___void__arr__char(struct arr__char s);
+uint8_t print_sync_no_newline___void__arr__char(struct arr__char s);
+int32_t stdout_fd__int32();
+struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value);
+int32_t literal__int32__arr__char(struct ctx* ctx, struct arr__char s);
+int64_t literal___int__arr__char(struct ctx* ctx, struct arr__char s);
+char at__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t index);
 uint64_t literal__nat__arr__char(struct ctx* ctx, struct arr__char s);
 struct arr__char rtail__arr__char__arr__char(struct ctx* ctx, struct arr__char a);
 struct arr__char slice__arr__char__arr__char__nat__nat(struct ctx* ctx, struct arr__char a, uint64_t begin, uint64_t size);
@@ -824,28 +811,6 @@ uint64_t _op_div__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
 uint64_t char_to_nat__nat__char(char c);
 uint64_t todo__nat();
 char last__char__arr__char(struct ctx* ctx, struct arr__char a);
-char at__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t index);
-uint8_t print_sync___void__arr__char(struct arr__char s);
-uint8_t print_sync_no_newline___void__arr__char(struct arr__char s);
-int32_t stdout_fd__int32();
-struct arr__char to_str__arr__char__nat(struct ctx* ctx, uint64_t n);
-uint64_t mod__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
-struct arr__char _op_plus__arr__char__arr__char__arr__char(struct ctx* ctx, struct arr__char a, struct arr__char b);
-struct arr__char make_arr__arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f);
-struct arr__char freeze__arr__char__ptr_mut_arr__char(struct mut_arr__char* a);
-struct arr__char unsafe_as_arr__arr__char__ptr_mut_arr__char(struct mut_arr__char* a);
-struct mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f);
-struct mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(struct ctx* ctx, uint64_t size);
-char* uninitialized_data__ptr__char__nat(struct ctx* ctx, uint64_t size);
-uint8_t make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, struct mut_arr__char* m, uint64_t i, struct fun_mut1__char__nat f);
-uint8_t set_at___void__ptr_mut_arr__char__nat__char(struct ctx* ctx, struct mut_arr__char* a, uint64_t index, char value);
-uint8_t noctx_set_at___void__ptr_mut_arr__char__nat__char(struct mut_arr__char* a, uint64_t index, char value);
-char call__char__fun_mut1__char__nat__nat(struct ctx* ctx, struct fun_mut1__char__nat f, uint64_t p0);
-char call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat(struct ctx* c, struct fun_mut1__char__nat f, uint64_t p0);
-char _op_plus__arr__char__arr__char__arr__char__lambda0(struct ctx* ctx, struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure* _closure, uint64_t i);
-struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value);
-int32_t literal__int32__arr__char(struct ctx* ctx, struct arr__char s);
-int64_t literal___int__arr__char(struct ctx* ctx, struct arr__char s);
 struct arr__char tail__arr__char__arr__char(struct ctx* ctx, struct arr__char a);
 struct arr__char slice_starting_at__arr__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t begin);
 int64_t neg___int__nat(struct ctx* ctx, uint64_t n);
@@ -898,7 +863,7 @@ int32_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx
 	tls = (struct thread_local_stuff) {(&(ectx))};
 	ctx_by_val = new_ctx__ctx__ptr_global_ctx__ptr_thread_local_stuff__ptr_vat__nat(gctx, (&(tls)), vat, 0);
 	ctx = (&(ctx_by_val));
-	add = (struct fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char) {(fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char) rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0, (uint8_t*) NULL};
+	add = (struct fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char) {(fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char) rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0, (uint8_t*) NULL};
 	all_args = (struct arr__ptr__char) {argc, argv};
 	main_fut = call_with_ctx__ptr_fut__int32__ptr_ctx__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(ctx, add, all_args, main_ptr);
 	run_threads___void__nat__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx(n_threads, gctx, rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda1);
@@ -941,20 +906,20 @@ struct condition new_condition__condition() {
 struct vat new_vat__vat__ptr_global_ctx__nat__nat(struct global_ctx* gctx, uint64_t id, uint64_t max_threads) {
 	struct mut_arr__nat actors;
 	actors = new_mut_arr_by_val_with_capacity_from_unmanaged_memory__mut_arr__nat__nat(max_threads);
-	return (struct vat) {gctx, id, new_gc__gc(), new_lock__lock(), new_mut_bag__mut_bag__task(), actors, 0, new_thread_safe_counter__thread_safe_counter(), (struct fun_mut1___void__exception) {(fun_ptr3___void__ptr_ctx__ptr__nat8__exception) new_vat__vat__ptr_global_ctx__nat__nat__lambda0, (uint8_t*) NULL}};
+	return (struct vat) {gctx, id, new_gc__gc(), new_lock__lock(), new_mut_bag__mut_bag__task(), actors, 0, new_thread_safe_counter__thread_safe_counter(), (struct fun_mut1___void__exception) {(fun_ptr3___void__ptr_ctx__ptr__byte__exception) new_vat__vat__ptr_global_ctx__nat__nat__lambda0, (uint8_t*) NULL}};
 }
 struct mut_arr__nat new_mut_arr_by_val_with_capacity_from_unmanaged_memory__mut_arr__nat__nat(uint64_t capacity) {
 	return (struct mut_arr__nat) {0, 0, capacity, unmanaged_alloc_elements__ptr__nat__nat(capacity)};
 }
 uint64_t* unmanaged_alloc_elements__ptr__nat__nat(uint64_t size_elements) {
 	uint8_t* bytes;
-	bytes = unmanaged_alloc_bytes__ptr__nat8__nat((size_elements * sizeof(uint64_t)));
+	bytes = unmanaged_alloc_bytes__ptr__byte__nat((size_elements * sizeof(uint64_t)));
 	return (uint64_t*) bytes;
 }
-uint8_t* unmanaged_alloc_bytes__ptr__nat8__nat(uint64_t size) {
+uint8_t* unmanaged_alloc_bytes__ptr__byte__nat(uint64_t size) {
 	uint8_t* res;
 	res = malloc(size);
-	hard_forbid___void__bool(null__q__bool__ptr__nat8(res));
+	hard_forbid___void__bool(null__q__bool__ptr__byte(res));
 	return res;
 }
 uint8_t hard_forbid___void__bool(uint8_t condition) {
@@ -967,7 +932,7 @@ uint8_t hard_assert___void__bool(uint8_t condition) {
 		return (assert(0),0);
 	}
 }
-uint8_t null__q__bool__ptr__nat8(uint8_t* a) {
+uint8_t null__q__bool__ptr__byte(uint8_t* a) {
 	return _op_equal_equal__bool__nat__nat((uint64_t) a, (uint64_t) NULL);
 }
 uint8_t _op_equal_equal__bool__nat__nat(uint64_t a, uint64_t b) {
@@ -1230,35 +1195,35 @@ uint8_t try_unset__bool__ptr__atomic_bool(struct _atomic_bool* a) {
 }
 struct fut__int32* add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(struct ctx* ctx, struct arr__ptr__char all_args, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr) {
 	struct add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0___closure* temp0;
-	return then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32(ctx, resolved__ptr_fut___void___void(ctx, 0), (struct fun_ref0__int32) {cur_actor__vat_and_actor_id(ctx), (struct fun_mut0__ptr_fut__int32) {(fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__nat8) add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0, (uint8_t*) (temp0 = (struct add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0___closure)), ((*(temp0) = (struct add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0___closure) {all_args, main_ptr}, 0), temp0))}});
+	return then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32(ctx, resolved__ptr_fut___void___void(ctx, 0), (struct fun_ref0__int32) {cur_actor__vat_and_actor_id(ctx), (struct fun_mut0__ptr_fut__int32) {(fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte) add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0, (uint8_t*) (temp0 = (struct add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0___closure*) alloc__ptr__byte__nat(ctx, sizeof(struct add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0___closure)), ((*(temp0) = (struct add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0___closure) {all_args, main_ptr}, 0), temp0))}});
 }
 struct fut__int32* then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32(struct ctx* ctx, struct fut___void* f, struct fun_ref0__int32 cb) {
 	struct then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0___closure* temp0;
-	return then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void(ctx, f, (struct fun_ref1__int32___void) {cur_actor__vat_and_actor_id(ctx), (struct fun_mut1__ptr_fut__int32___void) {(fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__nat8___void) then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0, (uint8_t*) (temp0 = (struct then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0___closure)), ((*(temp0) = (struct then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0___closure) {cb}, 0), temp0))}});
+	return then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void(ctx, f, (struct fun_ref1__int32___void) {cur_actor__vat_and_actor_id(ctx), (struct fun_mut1__ptr_fut__int32___void) {(fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void) then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0, (uint8_t*) (temp0 = (struct then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0___closure*) alloc__ptr__byte__nat(ctx, sizeof(struct then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0___closure)), ((*(temp0) = (struct then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0___closure) {cb}, 0), temp0))}});
 }
 struct fut__int32* then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void(struct ctx* ctx, struct fut___void* f, struct fun_ref1__int32___void cb) {
 	struct fut__int32* res;
 	struct then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure* temp0;
 	res = new_unresolved_fut__ptr_fut__int32(ctx);
-	then_void___void__ptr_fut___void__fun_mut1___void__result___void__exception(ctx, f, (struct fun_mut1___void__result___void__exception) {(fun_ptr3___void__ptr_ctx__ptr__nat8__result___void__exception) then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0, (uint8_t*) (temp0 = (struct then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure)), ((*(temp0) = (struct then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure) {cb, res}, 0), temp0))});
+	then_void___void__ptr_fut___void__fun_mut1___void__result___void__exception(ctx, f, (struct fun_mut1___void__result___void__exception) {(fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception) then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0, (uint8_t*) (temp0 = (struct then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure*) alloc__ptr__byte__nat(ctx, sizeof(struct then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure)), ((*(temp0) = (struct then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure) {cb, res}, 0), temp0))});
 	return res;
 }
 struct fut__int32* new_unresolved_fut__ptr_fut__int32(struct ctx* ctx) {
 	struct fut__int32* temp0;
-	temp0 = (struct fut__int32*) alloc__ptr__nat8__nat(ctx, sizeof(struct fut__int32));
+	temp0 = (struct fut__int32*) alloc__ptr__byte__nat(ctx, sizeof(struct fut__int32));
 	(*(temp0) = (struct fut__int32) {new_lock__lock(), (struct fut_state__int32) {0, .as0 = (struct fut_state_callbacks__int32) {(struct opt__ptr_fut_callback_node__int32) {0, .as0 = none__none()}}}}, 0);
 	return temp0;
 }
-uint8_t* alloc__ptr__nat8__nat(struct ctx* ctx, uint64_t size) {
-	return gc_alloc__ptr__nat8__ptr_gc__nat(ctx, get_gc__ptr_gc(ctx), size);
+uint8_t* alloc__ptr__byte__nat(struct ctx* ctx, uint64_t size) {
+	return gc_alloc__ptr__byte__ptr_gc__nat(ctx, get_gc__ptr_gc(ctx), size);
 }
-uint8_t* gc_alloc__ptr__nat8__ptr_gc__nat(struct ctx* ctx, struct gc* gc, uint64_t size) {
-	struct some__ptr__nat8 s;
-	struct opt__ptr__nat8 matched;
-	matched = try_gc_alloc__opt__ptr__nat8__ptr_gc__nat(gc, size);
+uint8_t* gc_alloc__ptr__byte__ptr_gc__nat(struct ctx* ctx, struct gc* gc, uint64_t size) {
+	struct some__ptr__byte s;
+	struct opt__ptr__byte matched;
+	matched = try_gc_alloc__opt__ptr__byte__ptr_gc__nat(gc, size);
 	switch (matched.kind) {
 		case 0:
-			return todo__ptr__nat8();
+			return todo__ptr__byte();
 		case 1:
 			s = matched.as1;
 			return s.value;
@@ -1266,13 +1231,13 @@ uint8_t* gc_alloc__ptr__nat8__ptr_gc__nat(struct ctx* ctx, struct gc* gc, uint64
 			return (assert(0),NULL);
 	}
 }
-struct opt__ptr__nat8 try_gc_alloc__opt__ptr__nat8__ptr_gc__nat(struct gc* gc, uint64_t size) {
-	return (struct opt__ptr__nat8) {1, .as1 = some__some__ptr__nat8__ptr__nat8(unmanaged_alloc_bytes__ptr__nat8__nat(size))};
+struct opt__ptr__byte try_gc_alloc__opt__ptr__byte__ptr_gc__nat(struct gc* gc, uint64_t size) {
+	return (struct opt__ptr__byte) {1, .as1 = some__some__ptr__byte__ptr__byte(unmanaged_alloc_bytes__ptr__byte__nat(size))};
 }
-struct some__ptr__nat8 some__some__ptr__nat8__ptr__nat8(uint8_t* t) {
-	return (struct some__ptr__nat8) {t};
+struct some__ptr__byte some__some__ptr__byte__ptr__byte(uint8_t* t) {
+	return (struct some__ptr__byte) {t};
 }
-uint8_t* todo__ptr__nat8() {
+uint8_t* todo__ptr__byte() {
 	return (assert(0),NULL);
 }
 struct gc* get_gc__ptr_gc(struct ctx* ctx) {
@@ -1292,7 +1257,7 @@ uint8_t then_void___void__ptr_fut___void__fun_mut1___void__result___void__except
 	switch (matched.kind) {
 		case 0:
 			cbs = matched.as0;
-			(f->state = (struct fut_state___void) {0, .as0 = (struct fut_state_callbacks___void) {(struct opt__ptr_fut_callback_node___void) {1, .as1 = some__some__ptr_fut_callback_node___void__ptr_fut_callback_node___void((temp0 = (struct fut_callback_node___void*) alloc__ptr__nat8__nat(ctx, sizeof(struct fut_callback_node___void)), ((*(temp0) = (struct fut_callback_node___void) {cb, cbs.head}, 0), temp0)))}}}, 0);
+			(f->state = (struct fut_state___void) {0, .as0 = (struct fut_state_callbacks___void) {(struct opt__ptr_fut_callback_node___void) {1, .as1 = some__some__ptr_fut_callback_node___void__ptr_fut_callback_node___void((temp0 = (struct fut_callback_node___void*) alloc__ptr__byte__nat(ctx, sizeof(struct fut_callback_node___void)), ((*(temp0) = (struct fut_callback_node___void) {cb, cbs.head}, 0), temp0)))}}}, 0);
 			break;
 		case 1:
 			r = matched.as1;
@@ -1324,7 +1289,7 @@ struct err__exception err__err__exception__exception(struct exception t) {
 }
 uint8_t forward_to___void__ptr_fut__int32__ptr_fut__int32(struct ctx* ctx, struct fut__int32* from, struct fut__int32* to) {
 	struct forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0___closure* temp0;
-	return then_void___void__ptr_fut__int32__fun_mut1___void__result__int32__exception(ctx, from, (struct fun_mut1___void__result__int32__exception) {(fun_ptr3___void__ptr_ctx__ptr__nat8__result__int32__exception) forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0, (uint8_t*) (temp0 = (struct forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0___closure)), ((*(temp0) = (struct forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0___closure) {to}, 0), temp0))});
+	return then_void___void__ptr_fut__int32__fun_mut1___void__result__int32__exception(ctx, from, (struct fun_mut1___void__result__int32__exception) {(fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception) forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0, (uint8_t*) (temp0 = (struct forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0___closure*) alloc__ptr__byte__nat(ctx, sizeof(struct forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0___closure)), ((*(temp0) = (struct forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0___closure) {to}, 0), temp0))});
 }
 uint8_t then_void___void__ptr_fut__int32__fun_mut1___void__result__int32__exception(struct ctx* ctx, struct fut__int32* f, struct fun_mut1___void__result__int32__exception cb) {
 	struct fut_state_callbacks__int32 cbs;
@@ -1337,7 +1302,7 @@ uint8_t then_void___void__ptr_fut__int32__fun_mut1___void__result__int32__except
 	switch (matched.kind) {
 		case 0:
 			cbs = matched.as0;
-			(f->state = (struct fut_state__int32) {0, .as0 = (struct fut_state_callbacks__int32) {(struct opt__ptr_fut_callback_node__int32) {1, .as1 = some__some__ptr_fut_callback_node__int32__ptr_fut_callback_node__int32((temp0 = (struct fut_callback_node__int32*) alloc__ptr__nat8__nat(ctx, sizeof(struct fut_callback_node__int32)), ((*(temp0) = (struct fut_callback_node__int32) {cb, cbs.head}, 0), temp0)))}}}, 0);
+			(f->state = (struct fut_state__int32) {0, .as0 = (struct fut_state_callbacks__int32) {(struct opt__ptr_fut_callback_node__int32) {1, .as1 = some__some__ptr_fut_callback_node__int32__ptr_fut_callback_node__int32((temp0 = (struct fut_callback_node__int32*) alloc__ptr__byte__nat(ctx, sizeof(struct fut_callback_node__int32)), ((*(temp0) = (struct fut_callback_node__int32) {cb, cbs.head}, 0), temp0)))}}}, 0);
 			break;
 		case 1:
 			r = matched.as1;
@@ -1426,7 +1391,7 @@ struct fut__int32* call__ptr_fut__int32__fun_ref1__int32___void___void(struct ct
 	struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0___closure* temp0;
 	vat = get_vat__ptr_vat__nat(ctx, f.vat_and_actor.vat);
 	res = new_unresolved_fut__ptr_fut__int32(ctx);
-	add_task___void__ptr_vat__task(ctx, vat, (struct task) {f.vat_and_actor.actor, (struct fun_mut0___void) {(fun_ptr2___void__ptr_ctx__ptr__nat8) call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0, (uint8_t*) (temp0 = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0___closure)), ((*(temp0) = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0___closure) {f, p0, res}, 0), temp0))}});
+	add_task___void__ptr_vat__task(ctx, vat, (struct task) {f.vat_and_actor.actor, (struct fun_mut0___void) {(fun_ptr2___void__ptr_ctx__ptr__byte) call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0, (uint8_t*) (temp0 = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0___closure*) alloc__ptr__byte__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0___closure)), ((*(temp0) = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0___closure) {f, p0, res}, 0), temp0))}});
 	return res;
 }
 struct vat* get_vat__ptr_vat__nat(struct ctx* ctx, uint64_t vat_id) {
@@ -1517,7 +1482,7 @@ uint8_t add_task___void__ptr_vat__task(struct ctx* ctx, struct vat* v, struct ta
 }
 struct mut_bag_node__task* new_mut_bag_node__ptr_mut_bag_node__task__task(struct ctx* ctx, struct task value) {
 	struct mut_bag_node__task* temp0;
-	temp0 = (struct mut_bag_node__task*) alloc__ptr__nat8__nat(ctx, sizeof(struct mut_bag_node__task));
+	temp0 = (struct mut_bag_node__task*) alloc__ptr__byte__nat(ctx, sizeof(struct mut_bag_node__task));
 	(*(temp0) = (struct mut_bag_node__task) {value, (struct opt__ptr_mut_bag_node__task) {0, .as0 = none__none()}}, 0);
 	return temp0;
 }
@@ -1603,7 +1568,7 @@ uint8_t call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1(st
 uint8_t call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0(struct ctx* ctx, struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0___closure* _closure) {
 	struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0___closure* temp0;
 	struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1___closure* temp1;
-	return catch___void__fun_mut0___void__fun_mut1___void__exception(ctx, (struct fun_mut0___void) {(fun_ptr2___void__ptr_ctx__ptr__nat8) call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0, (uint8_t*) (temp0 = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0___closure)), ((*(temp0) = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0___closure) {_closure->f, _closure->p0, _closure->res}, 0), temp0))}, (struct fun_mut1___void__exception) {(fun_ptr3___void__ptr_ctx__ptr__nat8__exception) call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1, (uint8_t*) (temp1 = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1___closure)), ((*(temp1) = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1___closure) {_closure->res}, 0), temp1))});
+	return catch___void__fun_mut0___void__fun_mut1___void__exception(ctx, (struct fun_mut0___void) {(fun_ptr2___void__ptr_ctx__ptr__byte) call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0, (uint8_t*) (temp0 = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0___closure*) alloc__ptr__byte__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0___closure)), ((*(temp0) = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0___closure) {_closure->f, _closure->p0, _closure->res}, 0), temp0))}, (struct fun_mut1___void__exception) {(fun_ptr3___void__ptr_ctx__ptr__byte__exception) call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1, (uint8_t*) (temp1 = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1___closure*) alloc__ptr__byte__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1___closure)), ((*(temp1) = (struct call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1___closure) {_closure->res}, 0), temp1))});
 }
 uint8_t then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0(struct ctx* ctx, struct then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure* _closure, struct result___void__exception result) {
 	struct ok___void o;
@@ -1627,7 +1592,7 @@ struct fut__int32* call__ptr_fut__int32__fun_ref0__int32(struct ctx* ctx, struct
 	struct call__ptr_fut__int32__fun_ref0__int32__lambda0___closure* temp0;
 	vat = get_vat__ptr_vat__nat(ctx, f.vat_and_actor.vat);
 	res = new_unresolved_fut__ptr_fut__int32(ctx);
-	add_task___void__ptr_vat__task(ctx, vat, (struct task) {f.vat_and_actor.actor, (struct fun_mut0___void) {(fun_ptr2___void__ptr_ctx__ptr__nat8) call__ptr_fut__int32__fun_ref0__int32__lambda0, (uint8_t*) (temp0 = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref0__int32__lambda0___closure)), ((*(temp0) = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0___closure) {f, res}, 0), temp0))}});
+	add_task___void__ptr_vat__task(ctx, vat, (struct task) {f.vat_and_actor.actor, (struct fun_mut0___void) {(fun_ptr2___void__ptr_ctx__ptr__byte) call__ptr_fut__int32__fun_ref0__int32__lambda0, (uint8_t*) (temp0 = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0___closure*) alloc__ptr__byte__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref0__int32__lambda0___closure)), ((*(temp0) = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0___closure) {f, res}, 0), temp0))}});
 	return res;
 }
 struct fut__int32* call__ptr_fut__int32__fun_mut0__ptr_fut__int32(struct ctx* ctx, struct fun_mut0__ptr_fut__int32 f) {
@@ -1645,7 +1610,7 @@ uint8_t call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1(struct ctx* ctx,
 uint8_t call__ptr_fut__int32__fun_ref0__int32__lambda0(struct ctx* ctx, struct call__ptr_fut__int32__fun_ref0__int32__lambda0___closure* _closure) {
 	struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0___closure* temp0;
 	struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1___closure* temp1;
-	return catch___void__fun_mut0___void__fun_mut1___void__exception(ctx, (struct fun_mut0___void) {(fun_ptr2___void__ptr_ctx__ptr__nat8) call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0, (uint8_t*) (temp0 = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0___closure)), ((*(temp0) = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0___closure) {_closure->f, _closure->res}, 0), temp0))}, (struct fun_mut1___void__exception) {(fun_ptr3___void__ptr_ctx__ptr__nat8__exception) call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1, (uint8_t*) (temp1 = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1___closure)), ((*(temp1) = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1___closure) {_closure->res}, 0), temp1))});
+	return catch___void__fun_mut0___void__fun_mut1___void__exception(ctx, (struct fun_mut0___void) {(fun_ptr2___void__ptr_ctx__ptr__byte) call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0, (uint8_t*) (temp0 = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0___closure*) alloc__ptr__byte__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0___closure)), ((*(temp0) = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0___closure) {_closure->f, _closure->res}, 0), temp0))}, (struct fun_mut1___void__exception) {(fun_ptr3___void__ptr_ctx__ptr__byte__exception) call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1, (uint8_t*) (temp1 = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1___closure*) alloc__ptr__byte__nat(ctx, sizeof(struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1___closure)), ((*(temp1) = (struct call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1___closure) {_closure->res}, 0), temp1))});
 }
 struct fut__int32* then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0(struct ctx* ctx, struct then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0___closure* _closure, uint8_t ignore) {
 	return call__ptr_fut__int32__fun_ref0__int32(ctx, _closure->cb);
@@ -1657,7 +1622,7 @@ struct vat_and_actor_id cur_actor__vat_and_actor_id(struct ctx* ctx) {
 }
 struct fut___void* resolved__ptr_fut___void___void(struct ctx* ctx, uint8_t value) {
 	struct fut___void* temp0;
-	temp0 = (struct fut___void*) alloc__ptr__nat8__nat(ctx, sizeof(struct fut___void));
+	temp0 = (struct fut___void*) alloc__ptr__byte__nat(ctx, sizeof(struct fut___void));
 	(*(temp0) = (struct fut___void) {new_lock__lock(), (struct fut_state___void) {1, .as1 = (struct fut_state_resolved___void) {value}}}, 0);
 	return temp0;
 }
@@ -1704,7 +1669,7 @@ uint64_t _op_minus__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b) {
 }
 struct arr__arr__char map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char(struct ctx* ctx, struct arr__ptr__char a, struct fun_mut1__arr__char__ptr__char mapper) {
 	struct map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0___closure* temp0;
-	return make_arr__arr__arr__char__nat__fun_mut1__arr__char__nat(ctx, a.size, (struct fun_mut1__arr__char__nat) {(fun_ptr3__arr__char__ptr_ctx__ptr__nat8__nat) map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0, (uint8_t*) (temp0 = (struct map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0___closure)), ((*(temp0) = (struct map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0___closure) {mapper, a}, 0), temp0))});
+	return make_arr__arr__arr__char__nat__fun_mut1__arr__char__nat(ctx, a.size, (struct fun_mut1__arr__char__nat) {(fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat) map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0, (uint8_t*) (temp0 = (struct map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0___closure*) alloc__ptr__byte__nat(ctx, sizeof(struct map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0___closure)), ((*(temp0) = (struct map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0___closure) {mapper, a}, 0), temp0))});
 }
 struct arr__arr__char make_arr__arr__arr__char__nat__fun_mut1__arr__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__arr__char__nat f) {
 	return freeze__arr__arr__char__ptr_mut_arr__arr__char(make_mut_arr__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(ctx, size, f));
@@ -1724,13 +1689,13 @@ struct mut_arr__arr__char* make_mut_arr__ptr_mut_arr__arr__char__nat__fun_mut1__
 }
 struct mut_arr__arr__char* new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat(struct ctx* ctx, uint64_t size) {
 	struct mut_arr__arr__char* temp0;
-	temp0 = (struct mut_arr__arr__char*) alloc__ptr__nat8__nat(ctx, sizeof(struct mut_arr__arr__char));
+	temp0 = (struct mut_arr__arr__char*) alloc__ptr__byte__nat(ctx, sizeof(struct mut_arr__arr__char));
 	(*(temp0) = (struct mut_arr__arr__char) {0, size, size, uninitialized_data__ptr__arr__char__nat(ctx, size)}, 0);
 	return temp0;
 }
 struct arr__char* uninitialized_data__ptr__arr__char__nat(struct ctx* ctx, uint64_t size) {
 	uint8_t* bptr;
-	bptr = alloc__ptr__nat8__nat(ctx, (size * sizeof(struct arr__char)));
+	bptr = alloc__ptr__byte__nat(ctx, (size * sizeof(struct arr__char)));
 	return (struct arr__char*) bptr;
 }
 uint8_t make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat(struct ctx* ctx, struct mut_arr__arr__char* m, uint64_t i, struct fun_mut1__arr__char__nat f) {
@@ -1863,7 +1828,7 @@ struct arr__char add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_f
 struct fut__int32* add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0(struct ctx* ctx, struct add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0___closure* _closure) {
 	struct arr__ptr__char args;
 	args = tail__arr__ptr__char__arr__ptr__char(ctx, _closure->all_args);
-	return _closure->main_ptr(ctx, map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char(ctx, args, (struct fun_mut1__arr__char__ptr__char) {(fun_ptr3__arr__char__ptr_ctx__ptr__nat8__ptr__char) add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0__lambda0, (uint8_t*) NULL}));
+	return _closure->main_ptr(ctx, map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char(ctx, args, (struct fun_mut1__arr__char__ptr__char) {(fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char) add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0__lambda0, (uint8_t*) NULL}));
 }
 struct fut__int32* rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__ptr__char all_args, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr) {
 	return add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(ctx, all_args, main_ptr);
@@ -1883,13 +1848,13 @@ uint8_t run_threads___void__nat__ptr_global_ctx__fun_ptr2___void__nat__ptr_globa
 }
 struct thread_args__ptr_global_ctx* unmanaged_alloc_elements__ptr__thread_args__ptr_global_ctx__nat(uint64_t size_elements) {
 	uint8_t* bytes;
-	bytes = unmanaged_alloc_bytes__ptr__nat8__nat((size_elements * sizeof(struct thread_args__ptr_global_ctx)));
+	bytes = unmanaged_alloc_bytes__ptr__byte__nat((size_elements * sizeof(struct thread_args__ptr_global_ctx)));
 	return (struct thread_args__ptr_global_ctx*) bytes;
 }
 uint8_t run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args__ptr_global_ctx* thread_args, struct global_ctx* arg, fun_ptr2___void__nat__ptr_global_ctx fun) {
 	struct thread_args__ptr_global_ctx* thread_arg_ptr;
 	uint64_t* thread_ptr;
-	fun_ptr1__ptr__nat8__ptr__nat8 fn;
+	fun_ptr1__ptr__byte__ptr__byte fn;
 	int32_t err;
 	uint64_t _tailCalli;
 	uint64_t _tailCalln_threads;
@@ -1929,14 +1894,14 @@ uint8_t run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_glob
 		}
 	}
 }
-uint8_t* thread_fun__ptr__nat8__ptr__nat8(uint8_t* args_ptr) {
+uint8_t* thread_fun__ptr__byte__ptr__byte(uint8_t* args_ptr) {
 	struct thread_args__ptr_global_ctx* args;
 	args = (struct thread_args__ptr_global_ctx*) args_ptr;
 	args->fun(args->thread_id, args->arg);
 	return NULL;
 }
 uint8_t* run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx__lambda0(uint8_t* args_ptr) {
-	return thread_fun__ptr__nat8__ptr__nat8(args_ptr);
+	return thread_fun__ptr__byte__ptr__byte(args_ptr);
 }
 struct cell__nat* as_cell__ptr_cell__nat__ptr__nat(uint64_t* p) {
 	return (struct cell__nat*) (uint8_t*) p;
@@ -1972,9 +1937,9 @@ uint8_t join_threads_recur___void__nat__nat__ptr__nat(uint64_t i, uint64_t n_thr
 	}
 }
 uint8_t join_one_thread___void__nat(uint64_t tid) {
-	struct cell__ptr__nat8 thread_return;
+	struct cell__ptr__byte thread_return;
 	int32_t err;
-	thread_return = (struct cell__ptr__nat8) {NULL};
+	thread_return = (struct cell__ptr__byte) {NULL};
 	err = pthread_join(tid, (&(thread_return)));
 	if (zero__q__bool__int32(err)) {
 		0;
@@ -1989,7 +1954,7 @@ uint8_t join_one_thread___void__nat(uint64_t tid) {
 			}
 		}
 	}
-	return hard_assert___void__bool(_op_equal_equal__bool__ptr__nat8__ptr__nat8(get__ptr__nat8__ptr_cell__ptr__nat8((&(thread_return))), NULL));
+	return hard_assert___void__bool(_op_equal_equal__bool__ptr__byte__ptr__byte(get__ptr__byte__ptr_cell__ptr__byte((&(thread_return))), NULL));
 }
 int32_t einval__int32() {
 	return ((ten__int32() + ten__int32()) + two__int32());
@@ -1997,9 +1962,9 @@ int32_t einval__int32() {
 int32_t esrch__int32() {
 	return three__int32();
 }
-uint8_t _op_equal_equal__bool__ptr__nat8__ptr__nat8(uint8_t* a, uint8_t* b) {
+uint8_t _op_equal_equal__bool__ptr__byte__ptr__byte(uint8_t* a, uint8_t* b) {
 	struct comparison matched;
-	matched = _op_less_equal_greater__comparison__ptr__nat8__ptr__nat8(a, b);
+	matched = _op_less_equal_greater__comparison__ptr__byte__ptr__byte(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -2011,7 +1976,7 @@ uint8_t _op_equal_equal__bool__ptr__nat8__ptr__nat8(uint8_t* a, uint8_t* b) {
 			return (assert(0),0);
 	}
 }
-struct comparison _op_less_equal_greater__comparison__ptr__nat8__ptr__nat8(uint8_t* a, uint8_t* b) {
+struct comparison _op_less_equal_greater__comparison__ptr__byte__ptr__byte(uint8_t* a, uint8_t* b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -2022,7 +1987,7 @@ struct comparison _op_less_equal_greater__comparison__ptr__nat8__ptr__nat8(uint8
 		}
 	}
 }
-uint8_t* get__ptr__nat8__ptr_cell__ptr__nat8(struct cell__ptr__nat8* c) {
+uint8_t* get__ptr__byte__ptr_cell__ptr__byte(struct cell__ptr__byte* c) {
 	return c->value;
 }
 uint8_t unmanaged_free___void__ptr__nat(uint64_t* p) {
@@ -2450,13 +2415,46 @@ struct result__int32__exception hard_unreachable__result__int32__exception() {
 	return (assert(0),(struct result__int32__exception) {0});
 }
 struct fut__int32* main__ptr_fut__int32__arr__arr__char(struct ctx* ctx, struct arr__arr__char args) {
-	struct my_record m;
-	m = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})};
-	assert___void__bool(ctx, _op_equal_equal__bool__nat__nat(m.x, literal__nat__arr__char(ctx, (struct arr__char) {1, "1"})));
-	assert___void__bool(ctx, _op_equal_equal__bool__nat__nat(m.y, literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})));
-	print_sync___void__arr__char(to_str__arr__char__nat(ctx, m.x));
-	print_sync___void__arr__char(to_str__arr__char__nat(ctx, m.y));
+	print_sync___void__arr__char((struct arr__char) {12, "Hello world!"});
 	return resolved__ptr_fut__int32__int32(ctx, literal__int32__arr__char(ctx, (struct arr__char) {1, "0"}));
+}
+uint8_t print_sync___void__arr__char(struct arr__char s) {
+	print_sync_no_newline___void__arr__char(s);
+	return print_sync_no_newline___void__arr__char((struct arr__char) {1, "\n"});
+}
+uint8_t print_sync_no_newline___void__arr__char(struct arr__char s) {
+	return write_sync_no_newline___void__int32__arr__char(stdout_fd__int32(), s);
+}
+int32_t stdout_fd__int32() {
+	return 1;
+}
+struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value) {
+	struct fut__int32* temp0;
+	temp0 = (struct fut__int32*) alloc__ptr__byte__nat(ctx, sizeof(struct fut__int32));
+	(*(temp0) = (struct fut__int32) {new_lock__lock(), (struct fut_state__int32) {1, .as1 = (struct fut_state_resolved__int32) {value}}}, 0);
+	return temp0;
+}
+int32_t literal__int32__arr__char(struct ctx* ctx, struct arr__char s) {
+	return literal___int__arr__char(ctx, s);
+}
+int64_t literal___int__arr__char(struct ctx* ctx, struct arr__char s) {
+	char fst;
+	uint64_t n;
+	fst = at__char__arr__char__nat(ctx, s, 0);
+	if (_op_equal_equal__bool__char__char(fst, literal__char__arr__char((struct arr__char) {1, "-"}))) {
+		n = literal__nat__arr__char(ctx, tail__arr__char__arr__char(ctx, s));
+		return neg___int__nat(ctx, n);
+	} else {
+		if (_op_equal_equal__bool__char__char(fst, literal__char__arr__char((struct arr__char) {1, "+"}))) {
+			return to_int___int__nat(ctx, literal__nat__arr__char(ctx, tail__arr__char__arr__char(ctx, s)));
+		} else {
+			return to_int___int__nat(ctx, literal__nat__arr__char(ctx, s));
+		}
+	}
+}
+char at__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t index) {
+	assert___void__bool(ctx, _op_less__bool__nat__nat(index, a.size));
+	return noctx_at__char__arr__char__nat(a, index);
 }
 uint64_t literal__nat__arr__char(struct ctx* ctx, struct arr__char s) {
 	uint64_t higher_digits;
@@ -2546,168 +2544,6 @@ uint64_t todo__nat() {
 char last__char__arr__char(struct ctx* ctx, struct arr__char a) {
 	forbid___void__bool(ctx, empty__q__bool__arr__char(a));
 	return at__char__arr__char__nat(ctx, a, decr__nat__nat(ctx, a.size));
-}
-char at__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t index) {
-	assert___void__bool(ctx, _op_less__bool__nat__nat(index, a.size));
-	return noctx_at__char__arr__char__nat(a, index);
-}
-uint8_t print_sync___void__arr__char(struct arr__char s) {
-	print_sync_no_newline___void__arr__char(s);
-	return print_sync_no_newline___void__arr__char((struct arr__char) {1, "\n"});
-}
-uint8_t print_sync_no_newline___void__arr__char(struct arr__char s) {
-	return write_sync_no_newline___void__int32__arr__char(stdout_fd__int32(), s);
-}
-int32_t stdout_fd__int32() {
-	return 1;
-}
-struct arr__char to_str__arr__char__nat(struct ctx* ctx, uint64_t n) {
-	struct arr__char hi;
-	struct arr__char lo;
-	if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "0"}))) {
-		return (struct arr__char) {1, "0"};
-	} else {
-		if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}))) {
-			return (struct arr__char) {1, "1"};
-		} else {
-			if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "2"}))) {
-				return (struct arr__char) {1, "2"};
-			} else {
-				if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "3"}))) {
-					return (struct arr__char) {1, "3"};
-				} else {
-					if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "4"}))) {
-						return (struct arr__char) {1, "4"};
-					} else {
-						if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "5"}))) {
-							return (struct arr__char) {1, "5"};
-						} else {
-							if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "6"}))) {
-								return (struct arr__char) {1, "6"};
-							} else {
-								if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "7"}))) {
-									return (struct arr__char) {1, "7"};
-								} else {
-									if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "8"}))) {
-										return (struct arr__char) {1, "8"};
-									} else {
-										if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "9"}))) {
-											return (struct arr__char) {1, "9"};
-										} else {
-											hi = to_str__arr__char__nat(ctx, _op_div__nat__nat__nat(ctx, n, ten__nat()));
-											lo = to_str__arr__char__nat(ctx, mod__nat__nat__nat(ctx, n, ten__nat()));
-											return _op_plus__arr__char__arr__char__arr__char(ctx, hi, lo);
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-}
-uint64_t mod__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b) {
-	forbid___void__bool(ctx, zero__q__bool__nat(b));
-	return (a % b);
-}
-struct arr__char _op_plus__arr__char__arr__char__arr__char(struct ctx* ctx, struct arr__char a, struct arr__char b) {
-	struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure* temp0;
-	return make_arr__arr__char__nat__fun_mut1__char__nat(ctx, _op_plus__nat__nat__nat(ctx, a.size, b.size), (struct fun_mut1__char__nat) {(fun_ptr3__char__ptr_ctx__ptr__nat8__nat) _op_plus__arr__char__arr__char__arr__char__lambda0, (uint8_t*) (temp0 = (struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure)), ((*(temp0) = (struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure) {a, b}, 0), temp0))});
-}
-struct arr__char make_arr__arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f) {
-	return freeze__arr__char__ptr_mut_arr__char(make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx, size, f));
-}
-struct arr__char freeze__arr__char__ptr_mut_arr__char(struct mut_arr__char* a) {
-	(a->frozen__q = 1, 0);
-	return unsafe_as_arr__arr__char__ptr_mut_arr__char(a);
-}
-struct arr__char unsafe_as_arr__arr__char__ptr_mut_arr__char(struct mut_arr__char* a) {
-	return (struct arr__char) {a->size, a->data};
-}
-struct mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f) {
-	struct mut_arr__char* res;
-	res = new_uninitialized_mut_arr__ptr_mut_arr__char__nat(ctx, size);
-	make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx, res, 0, f);
-	return res;
-}
-struct mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(struct ctx* ctx, uint64_t size) {
-	struct mut_arr__char* temp0;
-	temp0 = (struct mut_arr__char*) alloc__ptr__nat8__nat(ctx, sizeof(struct mut_arr__char));
-	(*(temp0) = (struct mut_arr__char) {0, size, size, uninitialized_data__ptr__char__nat(ctx, size)}, 0);
-	return temp0;
-}
-char* uninitialized_data__ptr__char__nat(struct ctx* ctx, uint64_t size) {
-	uint8_t* bptr;
-	bptr = alloc__ptr__nat8__nat(ctx, (size * sizeof(char)));
-	return (char*) bptr;
-}
-uint8_t make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, struct mut_arr__char* m, uint64_t i, struct fun_mut1__char__nat f) {
-	struct ctx* _tailCallctx;
-	struct mut_arr__char* _tailCallm;
-	uint64_t _tailCalli;
-	struct fun_mut1__char__nat _tailCallf;
-	top:
-	if (_op_equal_equal__bool__nat__nat(i, m->size)) {
-		return 0;
-	} else {
-		set_at___void__ptr_mut_arr__char__nat__char(ctx, m, i, call__char__fun_mut1__char__nat__nat(ctx, f, i));
-		_tailCallctx = ctx;
-		_tailCallm = m;
-		_tailCalli = incr__nat__nat(ctx, i);
-		_tailCallf = f;
-		ctx = _tailCallctx;
-		m = _tailCallm;
-		i = _tailCalli;
-		f = _tailCallf;
-		goto top;
-	}
-}
-uint8_t set_at___void__ptr_mut_arr__char__nat__char(struct ctx* ctx, struct mut_arr__char* a, uint64_t index, char value) {
-	assert___void__bool(ctx, _op_less__bool__nat__nat(index, a->size));
-	return noctx_set_at___void__ptr_mut_arr__char__nat__char(a, index, value);
-}
-uint8_t noctx_set_at___void__ptr_mut_arr__char__nat__char(struct mut_arr__char* a, uint64_t index, char value) {
-	hard_assert___void__bool(_op_less__bool__nat__nat(index, a->size));
-	return (*((a->data + index)) = value, 0);
-}
-char call__char__fun_mut1__char__nat__nat(struct ctx* ctx, struct fun_mut1__char__nat f, uint64_t p0) {
-	return call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat(ctx, f, p0);
-}
-char call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat(struct ctx* c, struct fun_mut1__char__nat f, uint64_t p0) {
-	return f.fun_ptr(c, f.closure, p0);
-}
-char _op_plus__arr__char__arr__char__arr__char__lambda0(struct ctx* ctx, struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure* _closure, uint64_t i) {
-	if (_op_less__bool__nat__nat(i, _closure->a.size)) {
-		return at__char__arr__char__nat(ctx, _closure->a, i);
-	} else {
-		return at__char__arr__char__nat(ctx, _closure->b, _op_minus__nat__nat__nat(ctx, i, _closure->a.size));
-	}
-}
-struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value) {
-	struct fut__int32* temp0;
-	temp0 = (struct fut__int32*) alloc__ptr__nat8__nat(ctx, sizeof(struct fut__int32));
-	(*(temp0) = (struct fut__int32) {new_lock__lock(), (struct fut_state__int32) {1, .as1 = (struct fut_state_resolved__int32) {value}}}, 0);
-	return temp0;
-}
-int32_t literal__int32__arr__char(struct ctx* ctx, struct arr__char s) {
-	return literal___int__arr__char(ctx, s);
-}
-int64_t literal___int__arr__char(struct ctx* ctx, struct arr__char s) {
-	char fst;
-	uint64_t n;
-	fst = at__char__arr__char__nat(ctx, s, 0);
-	if (_op_equal_equal__bool__char__char(fst, literal__char__arr__char((struct arr__char) {1, "-"}))) {
-		n = literal__nat__arr__char(ctx, tail__arr__char__arr__char(ctx, s));
-		return neg___int__nat(ctx, n);
-	} else {
-		if (_op_equal_equal__bool__char__char(fst, literal__char__arr__char((struct arr__char) {1, "+"}))) {
-			return to_int___int__nat(ctx, literal__nat__arr__char(ctx, tail__arr__char__arr__char(ctx, s)));
-		} else {
-			return to_int___int__nat(ctx, literal__nat__arr__char(ctx, s));
-		}
-	}
 }
 struct arr__char tail__arr__char__arr__char(struct ctx* ctx, struct arr__char a) {
 	forbid___void__bool(ctx, empty__q__bool__arr__char(a));

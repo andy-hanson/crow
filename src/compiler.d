@@ -296,6 +296,7 @@ void compileC(immutable AbsolutePath cPath, immutable AbsolutePath exePath, immu
 		strLiteral("-Wno-unused-value"),
 		strLiteral("-Wno-builtin-declaration-mismatch"), //TODO:KILL?
 		strLiteral("-pthread"),
+		strLiteral("-lSDL2"),
 		// TODO: configurable whether we want debug or release
 		strLiteral("-g"),
 		pathToStr(alloc, cPath),

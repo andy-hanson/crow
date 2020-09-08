@@ -237,18 +237,20 @@ immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
 		final switch (a) {
 			case PrimitiveType.bool_:
 				return "bool";
-			case PrimitiveType.byte_:
-				return "byte";
 			case PrimitiveType.char_:
 				return "char";
 			case PrimitiveType.float64:
 				return "float-64";
+			case PrimitiveType.int8:
+				return "int-8";
 			case PrimitiveType.int16:
 				return "int-16";
 			case PrimitiveType.int32:
 				return "int-32";
 			case PrimitiveType.int64:
 				return "int-64";
+			case PrimitiveType.nat8:
+				return "nat-8";
 			case PrimitiveType.nat16:
 				return "nat-16";
 			case PrimitiveType.nat32:
@@ -308,6 +310,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "to-nat (from nat-32)";
 		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
 			return "to-nat (from ptr)";
+		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
+			return "unsafe-int64-to-int8";
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
 			return "unsafe-int64-to-int16";
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:
@@ -316,6 +320,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "unsafe-int64-to-nat64";
 		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64:
 			return "unsafe-nat64-to-int64";
+		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8:
+			return "unsafe-nat64-to-nat8";
 		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16:
 			return "unsafe-nat64-to-nat16";
 		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32:
@@ -333,26 +339,38 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "and";
 		case LowExprKind.SpecialBinary.Kind.bitShiftLeftInt32:
 			return "bit-shift-left (int-32)";
+		case LowExprKind.SpecialBinary.Kind.bitShiftLeftNat32:
+			return "bit-shift-left (nat-32)";
 		case LowExprKind.SpecialBinary.Kind.bitShiftRightInt32:
 			return "bit-shift-right (int-32)";
+		case LowExprKind.SpecialBinary.Kind.bitShiftRightNat32:
+			return "bit-shift-right (nat-32)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
+			return "bitwise-and (int-8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
 			return "bitwise-and (int-16)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt32:
 			return "bitwise-and (int-32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt64:
 			return "bitwise-and (int-64)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat8:
+			return "bitwise-and (nat-8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat16:
 			return "bitwise-and (nat-16)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat32:
 			return "bitwise-and (nat-32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat64:
 			return "bitwise-and (nat-64)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt8:
+			return "bitwise-or (int-8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt16:
 			return "bitwise-or (int-16)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt32:
 			return "bitwise-or (int-32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt64:
 			return "bitwise-or (int-64)";
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat8:
+			return "bitwise-or (nat-8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat16:
 			return "bitwise-or (nat-16)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat32:
@@ -365,8 +383,6 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "< (?)";
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
 			return "* (float-64)";
-		case LowExprKind.SpecialBinary.Kind.mulNat64:
-			return "* (nat-64)";
 		case LowExprKind.SpecialBinary.Kind.or:
 			return "or";
 		case LowExprKind.SpecialBinary.Kind.subFloat64:

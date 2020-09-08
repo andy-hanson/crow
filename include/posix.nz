@@ -235,7 +235,7 @@ w-term-sig status-t(status status-t)
 
 w-exit-status status-t(status status-t)
 	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
-	status bits-and xff00 bit-rshift eight
+	status bits-and xff00 bit-shift-right eight
 
 w-if-exited bool(status status-t)
 	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
@@ -351,11 +351,11 @@ o-rdonly oflag-t()
 o-wronly oflag-t()
 	one
 o-rdwr oflag-t()
-	one bit-lshift one
+	one bit-shift-left one
 o-creat oflag-t()
-	one bit-lshift six
+	one bit-shift-left six
 o-trunc oflag-t()
-	one bit-lshift nine
+	one bit-shift-left nine
 
 
 open fd-t(path c-str, oflag oflag-t, permission int32) summon extern noctx

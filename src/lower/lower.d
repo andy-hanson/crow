@@ -31,10 +31,10 @@ import lower.lowExprHelpers :
 	int32Type,
 	localRef,
 	paramRef,
-	mulNat64,
 	ptrCast,
 	ptrCastKind,
 	seq,
+	wrapMulNat64,
 	writeToPtr;
 import lowModel :
 	asFunPtrType,
@@ -134,8 +134,6 @@ AllLowTypes getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr!Concre
 				final switch (it.info.kind) {
 					case BuiltinStructKind.bool_:
 						return some(immutable LowType(PrimitiveType.bool_));
-					case BuiltinStructKind.byte_:
-						return some(immutable LowType(PrimitiveType.byte_));
 					case BuiltinStructKind.char_:
 						return some(immutable LowType(PrimitiveType.char_));
 					case BuiltinStructKind.float64:
@@ -144,12 +142,16 @@ AllLowTypes getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr!Concre
 						immutable size_t i = arrBuilderSize(allFunPtrSources);
 						add(alloc, allFunPtrSources, immutable FunPtrSource(s.mangledName, ptrTrustMe(it)));
 						return some(immutable LowType(immutable LowType.FunPtr(i)));
+					case BuiltinStructKind.int8:
+						return some(immutable LowType(PrimitiveType.int8));
 					case BuiltinStructKind.int16:
 						return some(immutable LowType(PrimitiveType.int16));
 					case BuiltinStructKind.int32:
 						return some(immutable LowType(PrimitiveType.int32));
 					case BuiltinStructKind.int64:
 						return some(immutable LowType(PrimitiveType.int64));
+					case BuiltinStructKind.nat8:
+						return some(immutable LowType(PrimitiveType.nat8));
 					case BuiltinStructKind.nat16:
 						return some(immutable LowType(PrimitiveType.nat16));
 					case BuiltinStructKind.nat32:
@@ -592,7 +594,7 @@ immutable(LowExprKind) getCreateArrExpr(Alloc)(
 	immutable LowType elementPtrType = getLowPtrType(alloc, typeCtx(ctx), elementType);
 	immutable LowExpr elementSize = getSizeOf(range, elementType);
 	immutable LowExpr nElements = constantNat64(range, size(a.args));
-	immutable LowExpr sizeBytes = mulNat64(alloc, range, elementSize, nElements);
+	immutable LowExpr sizeBytes = wrapMulNat64(alloc, range, elementSize, nElements);
 	immutable LowExpr allocatePtr = getAllocateExpr(alloc, ctx, range, a.alloc, elementPtrType, sizeBytes);
 	immutable Ptr!LowLocal temp = addTempLocal(alloc, ctx, elementPtrType);
 	immutable LowExpr getTemp = localRef(alloc, range, temp);
@@ -817,26 +819,38 @@ immutable(LowExprKind) getOperatorCallExpr(Alloc)(
 			return arg0().kind;
 		case BuiltinFunKind.bitShiftLeftInt32:
 			return binary(LowExprKind.SpecialBinary.Kind.bitShiftLeftInt32);
+		case BuiltinFunKind.bitShiftLeftNat32:
+			return binary(LowExprKind.SpecialBinary.Kind.bitShiftLeftNat32);
 		case BuiltinFunKind.bitShiftRightInt32:
 			return binary(LowExprKind.SpecialBinary.Kind.bitShiftRightInt32);
+		case BuiltinFunKind.bitShiftRightNat32:
+			return binary(LowExprKind.SpecialBinary.Kind.bitShiftRightNat32);
+		case BuiltinFunKind.bitwiseAndInt8:
+			return binary(LowExprKind.SpecialBinary.Kind.bitwiseAndInt8);
 		case BuiltinFunKind.bitwiseAndInt16:
 			return binary(LowExprKind.SpecialBinary.Kind.bitwiseAndInt16);
 		case BuiltinFunKind.bitwiseAndInt32:
 			return binary(LowExprKind.SpecialBinary.Kind.bitwiseAndInt32);
 		case BuiltinFunKind.bitwiseAndInt64:
 			return binary(LowExprKind.SpecialBinary.Kind.bitwiseAndInt64);
+		case BuiltinFunKind.bitwiseAndNat8:
+			return binary(LowExprKind.SpecialBinary.Kind.bitwiseAndNat8);
 		case BuiltinFunKind.bitwiseAndNat16:
 			return binary(LowExprKind.SpecialBinary.Kind.bitwiseAndNat16);
 		case BuiltinFunKind.bitwiseAndNat32:
 			return binary(LowExprKind.SpecialBinary.Kind.bitwiseAndNat32);
 		case BuiltinFunKind.bitwiseAndNat64:
-			return binary(LowExprKind.SpecialBinary.Kind.bitwiseAndNat64);
+		return binary(LowExprKind.SpecialBinary.Kind.bitwiseAndNat64);
+		case BuiltinFunKind.bitwiseOrInt8:
+			return binary(LowExprKind.SpecialBinary.Kind.bitwiseOrInt8);
 		case BuiltinFunKind.bitwiseOrInt16:
 			return binary(LowExprKind.SpecialBinary.Kind.bitwiseOrInt16);
 		case BuiltinFunKind.bitwiseOrInt32:
 			return binary(LowExprKind.SpecialBinary.Kind.bitwiseOrInt32);
 		case BuiltinFunKind.bitwiseOrInt64:
 			return binary(LowExprKind.SpecialBinary.Kind.bitwiseOrInt64);
+		case BuiltinFunKind.bitwiseOrNat8:
+			return binary(LowExprKind.SpecialBinary.Kind.bitwiseAndNat8);
 		case BuiltinFunKind.bitwiseOrNat16:
 			return binary(LowExprKind.SpecialBinary.Kind.bitwiseOrNat16);
 		case BuiltinFunKind.bitwiseOrNat32:
@@ -868,9 +882,11 @@ immutable(LowExprKind) getOperatorCallExpr(Alloc)(
 			return unary(LowExprKind.SpecialUnary.Kind.not);
 		case BuiltinFunKind.null_:
 			return constant(immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.Null()));
+		case BuiltinFunKind.oneInt8:
 		case BuiltinFunKind.oneInt16:
 		case BuiltinFunKind.oneInt32:
 		case BuiltinFunKind.oneInt64:
+		case BuiltinFunKind.oneNat8:
 		case BuiltinFunKind.oneNat16:
 		case BuiltinFunKind.oneNat32:
 		case BuiltinFunKind.oneNat64:
@@ -915,6 +931,8 @@ immutable(LowExprKind) getOperatorCallExpr(Alloc)(
 			return binary(LowExprKind.SpecialBinary.Kind.unsafeDivNat64);
 		case BuiltinFunKind.unsafeInt64ToNat64:
 			return unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64);
+		case BuiltinFunKind.unsafeInt64ToInt8:
+			return unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8);
 		case BuiltinFunKind.unsafeInt64ToInt16:
 			return unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16);
 		case BuiltinFunKind.unsafeInt64ToInt32:
@@ -923,10 +941,12 @@ immutable(LowExprKind) getOperatorCallExpr(Alloc)(
 			return binary(LowExprKind.SpecialBinary.Kind.unsafeModNat64);
 		case BuiltinFunKind.unsafeNat64ToInt64:
 			return unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64);
-		case BuiltinFunKind.unsafeNat64ToNat32:
-			return unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32);
+		case BuiltinFunKind.unsafeNat64ToNat8:
+			return unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8);
 		case BuiltinFunKind.unsafeNat64ToNat16:
 			return unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16);
+		case BuiltinFunKind.unsafeNat64ToNat32:
+			return unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32);
 		case BuiltinFunKind.wrapAddInt16:
 			return binary(LowExprKind.SpecialBinary.Kind.wrapAddInt16);
 		case BuiltinFunKind.wrapAddInt32:
@@ -963,9 +983,11 @@ immutable(LowExprKind) getOperatorCallExpr(Alloc)(
 			return binary(LowExprKind.SpecialBinary.Kind.wrapSubNat32);
 		case BuiltinFunKind.wrapSubNat64:
 			return binary(LowExprKind.SpecialBinary.Kind.wrapSubNat64);
+		case BuiltinFunKind.zeroInt8:
 		case BuiltinFunKind.zeroInt16:
 		case BuiltinFunKind.zeroInt32:
 		case BuiltinFunKind.zeroInt64:
+		case BuiltinFunKind.zeroNat8:
 		case BuiltinFunKind.zeroNat16:
 		case BuiltinFunKind.zeroNat32:
 		case BuiltinFunKind.zeroNat64:

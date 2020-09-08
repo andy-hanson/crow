@@ -157,8 +157,9 @@ import util.util : max, todo;
 	immutable T v13,
 	immutable T v14,
 	immutable T v15,
+	immutable T v16,
 ) {
-	T* ptr = cast(T*) alloc.allocate(T.sizeof * 16);
+	T* ptr = cast(T*) alloc.allocate(T.sizeof * 17);
 	initMemory(ptr +  0,  v0);
 	initMemory(ptr +  1,  v1);
 	initMemory(ptr +  2,  v2);
@@ -175,7 +176,8 @@ import util.util : max, todo;
 	initMemory(ptr + 13, v13);
 	initMemory(ptr + 14, v14);
 	initMemory(ptr + 15, v15);
-	return immutable Arr!T(cast(immutable) ptr, 16);
+	initMemory(ptr + 16, v16);
+	return immutable Arr!T(cast(immutable) ptr, 17);
 }
 
 @trusted immutable(Arr!Out) fillArr(Out, Alloc)(

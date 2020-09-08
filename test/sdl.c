@@ -167,10 +167,6 @@ struct arr__nat {
 	uint64_t size;
 	uint64_t* data;
 };
-struct my_record {
-	uint64_t x;
-	uint64_t y;
-};
 struct fun_mut1__char__nat;
 struct mut_arr__char {
 	uint8_t frozen__q;
@@ -181,6 +177,35 @@ struct mut_arr__char {
 struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure {
 	struct arr__char a;
 	struct arr__char b;
+};
+struct sdl_window {
+	int64_t x;
+};
+struct sdl_renderer {
+	int64_t x;
+};
+struct sdl_surface {
+	int64_t x;
+};
+struct sdl_rwops {
+	int64_t x;
+};
+struct sdl_texture {
+	int64_t x;
+};
+struct main__ptr_fut__int32__arr__arr__char__lambda0___closure {
+	struct sdl_renderer* renderer;
+	struct sdl_texture* texture;
+};
+struct arr__nat8 {
+	uint64_t size;
+	uint8_t* data;
+};
+struct sdl_rect {
+	int64_t x;
+	int64_t y;
+	int64_t w;
+	int64_t h;
 };
 struct fut_state__int32;
 struct result__int32__exception;
@@ -814,22 +839,9 @@ uint8_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx
 struct result__int32__exception must_be_resolved__result__int32__exception__ptr_fut__int32(struct fut__int32* f);
 struct result__int32__exception hard_unreachable__result__int32__exception();
 struct fut__int32* main__ptr_fut__int32__arr__arr__char(struct ctx* ctx, struct arr__arr__char args);
-uint64_t literal__nat__arr__char(struct ctx* ctx, struct arr__char s);
-struct arr__char rtail__arr__char__arr__char(struct ctx* ctx, struct arr__char a);
-struct arr__char slice__arr__char__arr__char__nat__nat(struct ctx* ctx, struct arr__char a, uint64_t begin, uint64_t size);
-uint64_t decr__nat__nat(struct ctx* ctx, uint64_t a);
-uint64_t wrap_decr__nat__nat(uint64_t a);
-uint64_t _op_times__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
-uint64_t _op_div__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
-uint64_t char_to_nat__nat__char(char c);
-uint64_t todo__nat();
-char last__char__arr__char(struct ctx* ctx, struct arr__char a);
-char at__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t index);
-uint8_t print_sync___void__arr__char(struct arr__char s);
-uint8_t print_sync_no_newline___void__arr__char(struct arr__char s);
-int32_t stdout_fd__int32();
-struct arr__char to_str__arr__char__nat(struct ctx* ctx, uint64_t n);
-uint64_t mod__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
+uint8_t handle_sdl_error___void__arr__char___int(struct ctx* ctx, struct arr__char operation, int64_t err);
+uint8_t zero__q__bool___int(int64_t i);
+uint8_t fail_sdl_error___void__arr__char(struct ctx* ctx, struct arr__char operation);
 struct arr__char _op_plus__arr__char__arr__char__arr__char(struct ctx* ctx, struct arr__char a, struct arr__char b);
 struct arr__char make_arr__arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f);
 struct arr__char freeze__arr__char__ptr_mut_arr__char(struct mut_arr__char* a);
@@ -842,9 +854,25 @@ uint8_t set_at___void__ptr_mut_arr__char__nat__char(struct ctx* ctx, struct mut_
 uint8_t noctx_set_at___void__ptr_mut_arr__char__nat__char(struct mut_arr__char* a, uint64_t index, char value);
 char call__char__fun_mut1__char__nat__nat(struct ctx* ctx, struct fun_mut1__char__nat f, uint64_t p0);
 char call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat(struct ctx* c, struct fun_mut1__char__nat f, uint64_t p0);
+char at__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t index);
 char _op_plus__arr__char__arr__char__arr__char__lambda0(struct ctx* ctx, struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure* _closure, uint64_t i);
-struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value);
-int32_t literal__int32__arr__char(struct ctx* ctx, struct arr__char s);
+extern char* SDL_GetError();
+extern void SDL_Quit();
+extern int64_t SDL_Init(uint32_t flags);
+uint32_t sdl_init_video__nat32(struct ctx* ctx);
+uint32_t literal__nat32__arr__char(struct ctx* ctx, struct arr__char s);
+uint64_t literal__nat__arr__char(struct ctx* ctx, struct arr__char s);
+struct arr__char rtail__arr__char__arr__char(struct ctx* ctx, struct arr__char a);
+struct arr__char slice__arr__char__arr__char__nat__nat(struct ctx* ctx, struct arr__char a, uint64_t begin, uint64_t size);
+uint64_t decr__nat__nat(struct ctx* ctx, uint64_t a);
+uint64_t wrap_decr__nat__nat(uint64_t a);
+uint64_t _op_times__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
+uint64_t _op_div__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
+uint64_t char_to_nat__nat__char(char c);
+uint64_t todo__nat();
+char last__char__arr__char(struct ctx* ctx, struct arr__char a);
+extern struct sdl_window* SDL_CreateWindow(char* title, int64_t x, int64_t y, int64_t w, int64_t h, uint32_t flags);
+char* literal__ptr__char__arr__char(struct arr__char a);
 int64_t literal___int__arr__char(struct ctx* ctx, struct arr__char s);
 struct arr__char tail__arr__char__arr__char(struct ctx* ctx, struct arr__char a);
 struct arr__char slice_starting_at__arr__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t begin);
@@ -870,6 +898,43 @@ int64_t three___int();
 int64_t two___int();
 int64_t neg_one___int();
 int64_t to_int___int__nat(struct ctx* ctx, uint64_t n);
+uint32_t sdl_window_shown__nat32(struct ctx* ctx);
+uint8_t null__q__bool__ptr__sdl_window(struct sdl_window* a);
+extern struct sdl_renderer* SDL_CreateRenderer(struct sdl_window* window, int64_t index, uint32_t flags);
+uint32_t sdl_renderer_accelerated__nat32(struct ctx* ctx);
+uint32_t sdl_renderer_present_vsync__nat32(struct ctx* ctx);
+uint8_t null__q__bool__ptr__sdl_renderer(struct sdl_renderer* a);
+extern void SDL_DestroyWindow(struct sdl_window* window);
+struct sdl_surface* sdl_load_bmp__ptr__sdl_surface__arr__char(struct ctx* ctx, struct arr__char file);
+extern struct sdl_surface* SDL_LoadBMP_RW(struct sdl_rwops* src, int64_t freesrc);
+extern struct sdl_rwops* SDL_RWFromFile(char* file, char* mode);
+char* to_c_str__ptr__char__arr__char(struct ctx* ctx, struct arr__char a);
+uint8_t null__q__bool__ptr__sdl_surface(struct sdl_surface* a);
+extern void SDL_DestroyRenderer(struct sdl_renderer* renderer);
+extern struct sdl_texture* SDL_CreateTextureFromSurface(struct sdl_renderer* renderer, struct sdl_surface* surface);
+extern void SDL_FreeSurface(struct sdl_surface* surface);
+uint8_t null__q__bool__ptr__sdl_texture(struct sdl_texture* a);
+uint8_t repeat___void__nat__fun_mut0___void(struct ctx* ctx, uint64_t times, struct fun_mut0___void action);
+extern void SDL_PumpEvents();
+extern uint8_t* SDL_GetKeyboardState(int64_t* num_keys);
+struct arr__nat8 ptr_as_arr__arr__nat8__nat__ptr__nat8(struct ctx* ctx, uint64_t size, uint8_t* data);
+uint64_t sdl_num_scancodes__nat(struct ctx* ctx);
+uint8_t zero__q__bool__nat8(uint8_t n);
+uint8_t _op_equal_equal__bool__nat8__nat8(uint8_t a, uint8_t b);
+struct comparison _op_less_equal_greater__comparison__nat8__nat8(uint8_t a, uint8_t b);
+uint8_t at__nat8__arr__nat8__nat(struct ctx* ctx, struct arr__nat8 a, uint64_t index);
+uint8_t noctx_at__nat8__arr__nat8__nat(struct arr__nat8 a, uint64_t index);
+uint64_t sdl_scancode_return__nat(struct ctx* ctx);
+uint8_t print_sync___void__arr__char(struct arr__char s);
+uint8_t print_sync_no_newline___void__arr__char(struct arr__char s);
+int32_t stdout_fd__int32();
+extern int64_t SDL_RenderClear(struct sdl_renderer* renderer);
+extern int64_t SDL_RenderCopy(struct sdl_renderer* renderer, struct sdl_texture* texture, struct sdl_rect** src_rect, struct sdl_rect** dest_rect);
+extern void SDL_RenderPresent(struct sdl_renderer* renderer);
+uint8_t sleep_ms_sync___void__nat(uint64_t ms);
+uint8_t main__ptr_fut__int32__arr__arr__char__lambda0(struct ctx* ctx, struct main__ptr_fut__int32__arr__arr__char__lambda0___closure* _closure);
+extern void SDL_DestroyTexture(struct sdl_texture* texture);
+struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value);
 int32_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(int32_t argc, char** argv, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr) {
 	uint64_t n_threads;
 	struct global_ctx gctx_by_val;
@@ -2450,13 +2515,148 @@ struct result__int32__exception hard_unreachable__result__int32__exception() {
 	return (assert(0),(struct result__int32__exception) {0});
 }
 struct fut__int32* main__ptr_fut__int32__arr__arr__char(struct ctx* ctx, struct arr__arr__char args) {
-	struct my_record m;
-	m = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})};
-	assert___void__bool(ctx, _op_equal_equal__bool__nat__nat(m.x, literal__nat__arr__char(ctx, (struct arr__char) {1, "1"})));
-	assert___void__bool(ctx, _op_equal_equal__bool__nat__nat(m.y, literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})));
-	print_sync___void__arr__char(to_str__arr__char__nat(ctx, m.x));
-	print_sync___void__arr__char(to_str__arr__char__nat(ctx, m.y));
-	return resolved__ptr_fut__int32__int32(ctx, literal__int32__arr__char(ctx, (struct arr__char) {1, "0"}));
+	struct sdl_window* window;
+	struct sdl_renderer* renderer;
+	struct arr__char image_path;
+	struct sdl_surface* bmp;
+	struct sdl_texture* texture;
+	struct main__ptr_fut__int32__arr__arr__char__lambda0___closure* temp0;
+	handle_sdl_error___void__arr__char___int(ctx, (struct arr__char) {14, "sdl-init-video"}, SDL_Init(sdl_init_video__nat32(ctx)));
+	window = SDL_CreateWindow(literal__ptr__char__arr__char((struct arr__char) {12, "Hello World!"}), literal___int__arr__char(ctx, (struct arr__char) {3, "100"}), literal___int__arr__char(ctx, (struct arr__char) {3, "100"}), literal___int__arr__char(ctx, (struct arr__char) {3, "640"}), literal___int__arr__char(ctx, (struct arr__char) {3, "480"}), sdl_window_shown__nat32(ctx));
+	if (null__q__bool__ptr__sdl_window(window)) {
+		fail_sdl_error___void__arr__char(ctx, (struct arr__char) {17, "sdl-create-window"});
+	} else {
+		0;
+	}
+	renderer = SDL_CreateRenderer(window, literal___int__arr__char(ctx, (struct arr__char) {2, "-1"}), (sdl_renderer_accelerated__nat32(ctx) | sdl_renderer_present_vsync__nat32(ctx)));
+	if (null__q__bool__ptr__sdl_renderer(renderer)) {
+		(SDL_DestroyWindow(window), 0);
+		fail_sdl_error___void__arr__char(ctx, (struct arr__char) {19, "sdl-create-renderer"});
+	} else {
+		0;
+	}
+	image_path = (struct arr__char) {9, "hello.bmp"};
+	bmp = sdl_load_bmp__ptr__sdl_surface__arr__char(ctx, image_path);
+	if (null__q__bool__ptr__sdl_surface(bmp)) {
+		(SDL_DestroyRenderer(renderer), 0);
+		(SDL_DestroyWindow(window), 0);
+		fail_sdl_error___void__arr__char(ctx, (struct arr__char) {17, "sdl-loadbmp-error"});
+	} else {
+		0;
+	}
+	texture = SDL_CreateTextureFromSurface(renderer, bmp);
+	(SDL_FreeSurface(bmp), 0);
+	if (null__q__bool__ptr__sdl_texture(texture)) {
+		(SDL_DestroyRenderer(renderer), 0);
+		(SDL_DestroyWindow(window), 0);
+		fail_sdl_error___void__arr__char(ctx, (struct arr__char) {31, "sdl-create-texture-from-surface"});
+	} else {
+		0;
+	}
+	repeat___void__nat__fun_mut0___void(ctx, literal__nat__arr__char(ctx, (struct arr__char) {2, "20"}), (struct fun_mut0___void) {(fun_ptr2___void__ptr_ctx__ptr__nat8) main__ptr_fut__int32__arr__arr__char__lambda0, (uint8_t*) (temp0 = (struct main__ptr_fut__int32__arr__arr__char__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct main__ptr_fut__int32__arr__arr__char__lambda0___closure)), ((*(temp0) = (struct main__ptr_fut__int32__arr__arr__char__lambda0___closure) {renderer, texture}, 0), temp0))});
+	(SDL_DestroyTexture(texture), 0);
+	(SDL_DestroyRenderer(renderer), 0);
+	(SDL_DestroyWindow(window), 0);
+	(SDL_Quit(), 0);
+	print_sync___void__arr__char((struct arr__char) {7, "Bye bye"});
+	return resolved__ptr_fut__int32__int32(ctx, 0);
+}
+uint8_t handle_sdl_error___void__arr__char___int(struct ctx* ctx, struct arr__char operation, int64_t err) {
+	if (zero__q__bool___int(err)) {
+		return 0;
+	} else {
+		return fail_sdl_error___void__arr__char(ctx, operation);
+	}
+}
+uint8_t zero__q__bool___int(int64_t i) {
+	return _op_equal_equal__bool___int___int(i, 0);
+}
+uint8_t fail_sdl_error___void__arr__char(struct ctx* ctx, struct arr__char operation) {
+	fail___void__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {13, "sdl error in "}, operation), (struct arr__char) {1, " "}), to_str__arr__char__ptr__char(SDL_GetError())));
+	return (SDL_Quit(), 0);
+}
+struct arr__char _op_plus__arr__char__arr__char__arr__char(struct ctx* ctx, struct arr__char a, struct arr__char b) {
+	struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure* temp0;
+	return make_arr__arr__char__nat__fun_mut1__char__nat(ctx, _op_plus__nat__nat__nat(ctx, a.size, b.size), (struct fun_mut1__char__nat) {(fun_ptr3__char__ptr_ctx__ptr__nat8__nat) _op_plus__arr__char__arr__char__arr__char__lambda0, (uint8_t*) (temp0 = (struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure)), ((*(temp0) = (struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure) {a, b}, 0), temp0))});
+}
+struct arr__char make_arr__arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f) {
+	return freeze__arr__char__ptr_mut_arr__char(make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx, size, f));
+}
+struct arr__char freeze__arr__char__ptr_mut_arr__char(struct mut_arr__char* a) {
+	(a->frozen__q = 1, 0);
+	return unsafe_as_arr__arr__char__ptr_mut_arr__char(a);
+}
+struct arr__char unsafe_as_arr__arr__char__ptr_mut_arr__char(struct mut_arr__char* a) {
+	return (struct arr__char) {a->size, a->data};
+}
+struct mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f) {
+	struct mut_arr__char* res;
+	res = new_uninitialized_mut_arr__ptr_mut_arr__char__nat(ctx, size);
+	make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx, res, 0, f);
+	return res;
+}
+struct mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(struct ctx* ctx, uint64_t size) {
+	struct mut_arr__char* temp0;
+	temp0 = (struct mut_arr__char*) alloc__ptr__nat8__nat(ctx, sizeof(struct mut_arr__char));
+	(*(temp0) = (struct mut_arr__char) {0, size, size, uninitialized_data__ptr__char__nat(ctx, size)}, 0);
+	return temp0;
+}
+char* uninitialized_data__ptr__char__nat(struct ctx* ctx, uint64_t size) {
+	uint8_t* bptr;
+	bptr = alloc__ptr__nat8__nat(ctx, (size * sizeof(char)));
+	return (char*) bptr;
+}
+uint8_t make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, struct mut_arr__char* m, uint64_t i, struct fun_mut1__char__nat f) {
+	struct ctx* _tailCallctx;
+	struct mut_arr__char* _tailCallm;
+	uint64_t _tailCalli;
+	struct fun_mut1__char__nat _tailCallf;
+	top:
+	if (_op_equal_equal__bool__nat__nat(i, m->size)) {
+		return 0;
+	} else {
+		set_at___void__ptr_mut_arr__char__nat__char(ctx, m, i, call__char__fun_mut1__char__nat__nat(ctx, f, i));
+		_tailCallctx = ctx;
+		_tailCallm = m;
+		_tailCalli = incr__nat__nat(ctx, i);
+		_tailCallf = f;
+		ctx = _tailCallctx;
+		m = _tailCallm;
+		i = _tailCalli;
+		f = _tailCallf;
+		goto top;
+	}
+}
+uint8_t set_at___void__ptr_mut_arr__char__nat__char(struct ctx* ctx, struct mut_arr__char* a, uint64_t index, char value) {
+	assert___void__bool(ctx, _op_less__bool__nat__nat(index, a->size));
+	return noctx_set_at___void__ptr_mut_arr__char__nat__char(a, index, value);
+}
+uint8_t noctx_set_at___void__ptr_mut_arr__char__nat__char(struct mut_arr__char* a, uint64_t index, char value) {
+	hard_assert___void__bool(_op_less__bool__nat__nat(index, a->size));
+	return (*((a->data + index)) = value, 0);
+}
+char call__char__fun_mut1__char__nat__nat(struct ctx* ctx, struct fun_mut1__char__nat f, uint64_t p0) {
+	return call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat(ctx, f, p0);
+}
+char call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat(struct ctx* c, struct fun_mut1__char__nat f, uint64_t p0) {
+	return f.fun_ptr(c, f.closure, p0);
+}
+char at__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t index) {
+	assert___void__bool(ctx, _op_less__bool__nat__nat(index, a.size));
+	return noctx_at__char__arr__char__nat(a, index);
+}
+char _op_plus__arr__char__arr__char__arr__char__lambda0(struct ctx* ctx, struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure* _closure, uint64_t i) {
+	if (_op_less__bool__nat__nat(i, _closure->a.size)) {
+		return at__char__arr__char__nat(ctx, _closure->a, i);
+	} else {
+		return at__char__arr__char__nat(ctx, _closure->b, _op_minus__nat__nat__nat(ctx, i, _closure->a.size));
+	}
+}
+uint32_t sdl_init_video__nat32(struct ctx* ctx) {
+	return (literal__nat32__arr__char(ctx, (struct arr__char) {1, "1"}) << literal__nat32__arr__char(ctx, (struct arr__char) {1, "5"}));
+}
+uint32_t literal__nat32__arr__char(struct ctx* ctx, struct arr__char s) {
+	return literal__nat__arr__char(ctx, s);
 }
 uint64_t literal__nat__arr__char(struct ctx* ctx, struct arr__char s) {
 	uint64_t higher_digits;
@@ -2547,152 +2747,8 @@ char last__char__arr__char(struct ctx* ctx, struct arr__char a) {
 	forbid___void__bool(ctx, empty__q__bool__arr__char(a));
 	return at__char__arr__char__nat(ctx, a, decr__nat__nat(ctx, a.size));
 }
-char at__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t index) {
-	assert___void__bool(ctx, _op_less__bool__nat__nat(index, a.size));
-	return noctx_at__char__arr__char__nat(a, index);
-}
-uint8_t print_sync___void__arr__char(struct arr__char s) {
-	print_sync_no_newline___void__arr__char(s);
-	return print_sync_no_newline___void__arr__char((struct arr__char) {1, "\n"});
-}
-uint8_t print_sync_no_newline___void__arr__char(struct arr__char s) {
-	return write_sync_no_newline___void__int32__arr__char(stdout_fd__int32(), s);
-}
-int32_t stdout_fd__int32() {
-	return 1;
-}
-struct arr__char to_str__arr__char__nat(struct ctx* ctx, uint64_t n) {
-	struct arr__char hi;
-	struct arr__char lo;
-	if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "0"}))) {
-		return (struct arr__char) {1, "0"};
-	} else {
-		if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}))) {
-			return (struct arr__char) {1, "1"};
-		} else {
-			if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "2"}))) {
-				return (struct arr__char) {1, "2"};
-			} else {
-				if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "3"}))) {
-					return (struct arr__char) {1, "3"};
-				} else {
-					if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "4"}))) {
-						return (struct arr__char) {1, "4"};
-					} else {
-						if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "5"}))) {
-							return (struct arr__char) {1, "5"};
-						} else {
-							if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "6"}))) {
-								return (struct arr__char) {1, "6"};
-							} else {
-								if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "7"}))) {
-									return (struct arr__char) {1, "7"};
-								} else {
-									if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "8"}))) {
-										return (struct arr__char) {1, "8"};
-									} else {
-										if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "9"}))) {
-											return (struct arr__char) {1, "9"};
-										} else {
-											hi = to_str__arr__char__nat(ctx, _op_div__nat__nat__nat(ctx, n, ten__nat()));
-											lo = to_str__arr__char__nat(ctx, mod__nat__nat__nat(ctx, n, ten__nat()));
-											return _op_plus__arr__char__arr__char__arr__char(ctx, hi, lo);
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-}
-uint64_t mod__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b) {
-	forbid___void__bool(ctx, zero__q__bool__nat(b));
-	return (a % b);
-}
-struct arr__char _op_plus__arr__char__arr__char__arr__char(struct ctx* ctx, struct arr__char a, struct arr__char b) {
-	struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure* temp0;
-	return make_arr__arr__char__nat__fun_mut1__char__nat(ctx, _op_plus__nat__nat__nat(ctx, a.size, b.size), (struct fun_mut1__char__nat) {(fun_ptr3__char__ptr_ctx__ptr__nat8__nat) _op_plus__arr__char__arr__char__arr__char__lambda0, (uint8_t*) (temp0 = (struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure)), ((*(temp0) = (struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure) {a, b}, 0), temp0))});
-}
-struct arr__char make_arr__arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f) {
-	return freeze__arr__char__ptr_mut_arr__char(make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx, size, f));
-}
-struct arr__char freeze__arr__char__ptr_mut_arr__char(struct mut_arr__char* a) {
-	(a->frozen__q = 1, 0);
-	return unsafe_as_arr__arr__char__ptr_mut_arr__char(a);
-}
-struct arr__char unsafe_as_arr__arr__char__ptr_mut_arr__char(struct mut_arr__char* a) {
-	return (struct arr__char) {a->size, a->data};
-}
-struct mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f) {
-	struct mut_arr__char* res;
-	res = new_uninitialized_mut_arr__ptr_mut_arr__char__nat(ctx, size);
-	make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx, res, 0, f);
-	return res;
-}
-struct mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(struct ctx* ctx, uint64_t size) {
-	struct mut_arr__char* temp0;
-	temp0 = (struct mut_arr__char*) alloc__ptr__nat8__nat(ctx, sizeof(struct mut_arr__char));
-	(*(temp0) = (struct mut_arr__char) {0, size, size, uninitialized_data__ptr__char__nat(ctx, size)}, 0);
-	return temp0;
-}
-char* uninitialized_data__ptr__char__nat(struct ctx* ctx, uint64_t size) {
-	uint8_t* bptr;
-	bptr = alloc__ptr__nat8__nat(ctx, (size * sizeof(char)));
-	return (char*) bptr;
-}
-uint8_t make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, struct mut_arr__char* m, uint64_t i, struct fun_mut1__char__nat f) {
-	struct ctx* _tailCallctx;
-	struct mut_arr__char* _tailCallm;
-	uint64_t _tailCalli;
-	struct fun_mut1__char__nat _tailCallf;
-	top:
-	if (_op_equal_equal__bool__nat__nat(i, m->size)) {
-		return 0;
-	} else {
-		set_at___void__ptr_mut_arr__char__nat__char(ctx, m, i, call__char__fun_mut1__char__nat__nat(ctx, f, i));
-		_tailCallctx = ctx;
-		_tailCallm = m;
-		_tailCalli = incr__nat__nat(ctx, i);
-		_tailCallf = f;
-		ctx = _tailCallctx;
-		m = _tailCallm;
-		i = _tailCalli;
-		f = _tailCallf;
-		goto top;
-	}
-}
-uint8_t set_at___void__ptr_mut_arr__char__nat__char(struct ctx* ctx, struct mut_arr__char* a, uint64_t index, char value) {
-	assert___void__bool(ctx, _op_less__bool__nat__nat(index, a->size));
-	return noctx_set_at___void__ptr_mut_arr__char__nat__char(a, index, value);
-}
-uint8_t noctx_set_at___void__ptr_mut_arr__char__nat__char(struct mut_arr__char* a, uint64_t index, char value) {
-	hard_assert___void__bool(_op_less__bool__nat__nat(index, a->size));
-	return (*((a->data + index)) = value, 0);
-}
-char call__char__fun_mut1__char__nat__nat(struct ctx* ctx, struct fun_mut1__char__nat f, uint64_t p0) {
-	return call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat(ctx, f, p0);
-}
-char call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat(struct ctx* c, struct fun_mut1__char__nat f, uint64_t p0) {
-	return f.fun_ptr(c, f.closure, p0);
-}
-char _op_plus__arr__char__arr__char__arr__char__lambda0(struct ctx* ctx, struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure* _closure, uint64_t i) {
-	if (_op_less__bool__nat__nat(i, _closure->a.size)) {
-		return at__char__arr__char__nat(ctx, _closure->a, i);
-	} else {
-		return at__char__arr__char__nat(ctx, _closure->b, _op_minus__nat__nat__nat(ctx, i, _closure->a.size));
-	}
-}
-struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value) {
-	struct fut__int32* temp0;
-	temp0 = (struct fut__int32*) alloc__ptr__nat8__nat(ctx, sizeof(struct fut__int32));
-	(*(temp0) = (struct fut__int32) {new_lock__lock(), (struct fut_state__int32) {1, .as1 = (struct fut_state_resolved__int32) {value}}}, 0);
-	return temp0;
-}
-int32_t literal__int32__arr__char(struct ctx* ctx, struct arr__char s) {
-	return literal___int__arr__char(ctx, s);
+char* literal__ptr__char__arr__char(struct arr__char a) {
+	return a.data;
 }
 int64_t literal___int__arr__char(struct ctx* ctx, struct arr__char s) {
 	char fst;
@@ -2798,6 +2854,131 @@ int64_t neg_one___int() {
 int64_t to_int___int__nat(struct ctx* ctx, uint64_t n) {
 	assert___void__bool(ctx, _op_less__bool__nat__nat(n, million__nat()));
 	return n;
+}
+uint32_t sdl_window_shown__nat32(struct ctx* ctx) {
+	return literal__nat32__arr__char(ctx, (struct arr__char) {1, "4"});
+}
+uint8_t null__q__bool__ptr__sdl_window(struct sdl_window* a) {
+	return _op_equal_equal__bool__nat__nat((uint64_t) a, (uint64_t) NULL);
+}
+uint32_t sdl_renderer_accelerated__nat32(struct ctx* ctx) {
+	return literal__nat32__arr__char(ctx, (struct arr__char) {1, "2"});
+}
+uint32_t sdl_renderer_present_vsync__nat32(struct ctx* ctx) {
+	return literal__nat32__arr__char(ctx, (struct arr__char) {1, "4"});
+}
+uint8_t null__q__bool__ptr__sdl_renderer(struct sdl_renderer* a) {
+	return _op_equal_equal__bool__nat__nat((uint64_t) a, (uint64_t) NULL);
+}
+struct sdl_surface* sdl_load_bmp__ptr__sdl_surface__arr__char(struct ctx* ctx, struct arr__char file) {
+	return SDL_LoadBMP_RW(SDL_RWFromFile(to_c_str__ptr__char__arr__char(ctx, file), literal__ptr__char__arr__char((struct arr__char) {2, "rb"})), literal___int__arr__char(ctx, (struct arr__char) {1, "1"}));
+}
+char* to_c_str__ptr__char__arr__char(struct ctx* ctx, struct arr__char a) {
+	return _op_plus__arr__char__arr__char__arr__char(ctx, a, (struct arr__char) {1, "\0"}).data;
+}
+uint8_t null__q__bool__ptr__sdl_surface(struct sdl_surface* a) {
+	return _op_equal_equal__bool__nat__nat((uint64_t) a, (uint64_t) NULL);
+}
+uint8_t null__q__bool__ptr__sdl_texture(struct sdl_texture* a) {
+	return _op_equal_equal__bool__nat__nat((uint64_t) a, (uint64_t) NULL);
+}
+uint8_t repeat___void__nat__fun_mut0___void(struct ctx* ctx, uint64_t times, struct fun_mut0___void action) {
+	struct ctx* _tailCallctx;
+	uint64_t _tailCalltimes;
+	struct fun_mut0___void _tailCallaction;
+	top:
+	if (zero__q__bool__nat(times)) {
+		return 0;
+	} else {
+		call___void__fun_mut0___void(ctx, action);
+		_tailCallctx = ctx;
+		_tailCalltimes = decr__nat__nat(ctx, times);
+		_tailCallaction = action;
+		ctx = _tailCallctx;
+		times = _tailCalltimes;
+		action = _tailCallaction;
+		goto top;
+	}
+}
+struct arr__nat8 ptr_as_arr__arr__nat8__nat__ptr__nat8(struct ctx* ctx, uint64_t size, uint8_t* data) {
+	return (struct arr__nat8) {size, data};
+}
+uint64_t sdl_num_scancodes__nat(struct ctx* ctx) {
+	return literal__nat__arr__char(ctx, (struct arr__char) {3, "512"});
+}
+uint8_t zero__q__bool__nat8(uint8_t n) {
+	return _op_equal_equal__bool__nat8__nat8(n, 0);
+}
+uint8_t _op_equal_equal__bool__nat8__nat8(uint8_t a, uint8_t b) {
+	struct comparison matched;
+	matched = _op_less_equal_greater__comparison__nat8__nat8(a, b);
+	switch (matched.kind) {
+		case 0:
+			return 0;
+		case 1:
+			return 1;
+		case 2:
+			return 0;
+		default:
+			return (assert(0),0);
+	}
+}
+struct comparison _op_less_equal_greater__comparison__nat8__nat8(uint8_t a, uint8_t b) {
+	if ((a < b)) {
+		return (struct comparison) {0, .as0 = (struct less) {0}};
+	} else {
+		if ((b < a)) {
+			return (struct comparison) {2, .as2 = (struct greater) {0}};
+		} else {
+			return (struct comparison) {1, .as1 = (struct equal) {0}};
+		}
+	}
+}
+uint8_t at__nat8__arr__nat8__nat(struct ctx* ctx, struct arr__nat8 a, uint64_t index) {
+	assert___void__bool(ctx, _op_less__bool__nat__nat(index, a.size));
+	return noctx_at__nat8__arr__nat8__nat(a, index);
+}
+uint8_t noctx_at__nat8__arr__nat8__nat(struct arr__nat8 a, uint64_t index) {
+	hard_assert___void__bool(_op_less__bool__nat__nat(index, a.size));
+	return (*((a.data + index)));
+}
+uint64_t sdl_scancode_return__nat(struct ctx* ctx) {
+	return literal__nat__arr__char(ctx, (struct arr__char) {2, "40"});
+}
+uint8_t print_sync___void__arr__char(struct arr__char s) {
+	print_sync_no_newline___void__arr__char(s);
+	return print_sync_no_newline___void__arr__char((struct arr__char) {1, "\n"});
+}
+uint8_t print_sync_no_newline___void__arr__char(struct arr__char s) {
+	return write_sync_no_newline___void__int32__arr__char(stdout_fd__int32(), s);
+}
+int32_t stdout_fd__int32() {
+	return 1;
+}
+uint8_t sleep_ms_sync___void__nat(uint64_t ms) {
+	return (usleep((ms * thousand__nat())), 0);
+}
+uint8_t main__ptr_fut__int32__arr__arr__char__lambda0(struct ctx* ctx, struct main__ptr_fut__int32__arr__arr__char__lambda0___closure* _closure) {
+	uint8_t* key_states_ptr;
+	struct arr__nat8 key_states;
+	(SDL_PumpEvents(), 0);
+	key_states_ptr = SDL_GetKeyboardState(NULL);
+	key_states = ptr_as_arr__arr__nat8__nat__ptr__nat8(ctx, sdl_num_scancodes__nat(ctx), key_states_ptr);
+	if (zero__q__bool__nat8(at__nat8__arr__nat8__nat(ctx, key_states, sdl_scancode_return__nat(ctx)))) {
+		print_sync___void__arr__char((struct arr__char) {9, "no return"});
+	} else {
+		print_sync___void__arr__char((struct arr__char) {17, "return is pressed"});
+	}
+	handle_sdl_error___void__arr__char___int(ctx, (struct arr__char) {16, "sdl-render-clear"}, SDL_RenderClear(_closure->renderer));
+	handle_sdl_error___void__arr__char___int(ctx, (struct arr__char) {15, "sdl-render-copy"}, SDL_RenderCopy(_closure->renderer, _closure->texture, NULL, NULL));
+	(SDL_RenderPresent(_closure->renderer), 0);
+	return sleep_ms_sync___void__nat(literal__nat__arr__char(ctx, (struct arr__char) {3, "100"}));
+}
+struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value) {
+	struct fut__int32* temp0;
+	temp0 = (struct fut__int32*) alloc__ptr__nat8__nat(ctx, sizeof(struct fut__int32));
+	(*(temp0) = (struct fut__int32) {new_lock__lock(), (struct fut_state__int32) {1, .as1 = (struct fut_state_resolved__int32) {value}}}, 0);
+	return temp0;
 }
 int32_t main(int32_t argc, char** argv) {
 	return rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(argc, argv, main__ptr_fut__int32__arr__arr__char);

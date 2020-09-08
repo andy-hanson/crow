@@ -5,13 +5,13 @@ program(
 			ptr?: true
 			body: record(
 				[
-					field(false, "gctx_ptr", type(false, "ptr__byte"))
+					field(false, "gctx_ptr", type(false, "ptr__nat8"))
 					field(false, "vat_id", type(false, "nat"))
 					field(false, "actor_id", type(false, "nat"))
-					field(false, "gc_ctx_ptr", type(false, "ptr__byte"))
-					field(false, "exception_ctx_ptr", type(false, "ptr__byte"))]))
-		struct(name: "byte", body: builtin(byte, 1, []))
-		struct(name: "ptr__byte", body: builtin(ptr, 8, [type(false, "byte")]))
+					field(false, "gc_ctx_ptr", type(false, "ptr__nat8"))
+					field(false, "exception_ctx_ptr", type(false, "ptr__nat8"))]))
+		struct(name: "nat8", body: builtin(nat-8, 1, []))
+		struct(name: "ptr__nat8", body: builtin(ptr, 8, [type(false, "nat8")]))
 		struct(name: "nat", body: builtin(nat-64, 8, []))
 		struct(name: "int32", body: builtin(int-32, 4, []))
 		struct(name: "char", body: builtin(char, 1, []))
@@ -58,17 +58,17 @@ program(
 					field(
 						false
 						"fun_ptr"
-						type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception"))
-					field(false, "closure", type(false, "ptr__byte"))]))
+						type(false, "fun_ptr3___void__ptr_ctx__ptr__nat8__result__int32__exception"))
+					field(false, "closure", type(false, "ptr__nat8"))]))
 		struct(
-			name: "fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception"
+			name: "fun_ptr3___void__ptr_ctx__ptr__nat8__result__int32__exception"
 			body: builtin(
 				fun-ptr
 				8
 				[
 					type(false, "_void")
 					type(true, "ctx")
-					type(false, "ptr__byte")
+					type(false, "ptr__nat8")
 					type(false, "result__int32__exception")]))
 		struct(
 			name: "opt__ptr_fut_callback_node__int32"
@@ -123,8 +123,8 @@ program(
 					field(true, "context_head", type(false, "opt__ptr_gc_ctx"))
 					field(true, "needs_gc", type(false, "bool"))
 					field(true, "is_doing_gc", type(false, "bool"))
-					field(false, "begin", type(false, "ptr__byte"))
-					field(false, "next_byte", type(false, "ptr__byte"))]))
+					field(false, "begin", type(false, "ptr__nat8"))
+					field(false, "next_byte", type(false, "ptr__nat8"))]))
 		struct(
 			name: "gc_ctx"
 			mut?: true
@@ -139,11 +139,11 @@ program(
 			name: "fun_mut0___void"
 			body: record(
 				[
-					field(false, "fun_ptr", type(false, "fun_ptr2___void__ptr_ctx__ptr__byte"))
-					field(false, "closure", type(false, "ptr__byte"))]))
+					field(false, "fun_ptr", type(false, "fun_ptr2___void__ptr_ctx__ptr__nat8"))
+					field(false, "closure", type(false, "ptr__nat8"))]))
 		struct(
-			name: "fun_ptr2___void__ptr_ctx__ptr__byte"
-			body: builtin(fun-ptr, 8, [type(false, "_void"), type(true, "ctx"), type(false, "ptr__byte")]))
+			name: "fun_ptr2___void__ptr_ctx__ptr__nat8"
+			body: builtin(fun-ptr, 8, [type(false, "_void"), type(true, "ctx"), type(false, "ptr__nat8")]))
 		struct(
 			name: "mut_bag__task"
 			mut?: true
@@ -183,14 +183,14 @@ program(
 			name: "fun_mut1___void__exception"
 			body: record(
 				[
-					field(false, "fun_ptr", type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__exception"))
-					field(false, "closure", type(false, "ptr__byte"))]))
+					field(false, "fun_ptr", type(false, "fun_ptr3___void__ptr_ctx__ptr__nat8__exception"))
+					field(false, "closure", type(false, "ptr__nat8"))]))
 		struct(
-			name: "fun_ptr3___void__ptr_ctx__ptr__byte__exception"
+			name: "fun_ptr3___void__ptr_ctx__ptr__nat8__exception"
 			body: builtin(
 				fun-ptr
 				8
-				[type(false, "_void"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "exception")]))
+				[type(false, "_void"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "exception")]))
 		struct(
 			name: "arr__ptr_vat"
 			special: special(arr, type(true, "vat"))
@@ -252,17 +252,17 @@ program(
 						"fun_ptr"
 						type(
 							false
-							"fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))
-					field(false, "closure", type(false, "ptr__byte"))]))
+							"fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))
+					field(false, "closure", type(false, "ptr__nat8"))]))
 		struct(
-			name: "fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+			name: "fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
 			body: builtin(
 				fun-ptr
 				8
 				[
 					type(true, "fut__int32")
 					type(true, "ctx")
-					type(false, "ptr__byte")
+					type(false, "ptr__nat8")
 					type(false, "arr__ptr__char")
 					type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char")]))
 		struct(
@@ -296,17 +296,17 @@ program(
 					field(
 						false
 						"fun_ptr"
-						type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception"))
-					field(false, "closure", type(false, "ptr__byte"))]))
+						type(false, "fun_ptr3___void__ptr_ctx__ptr__nat8__result___void__exception"))
+					field(false, "closure", type(false, "ptr__nat8"))]))
 		struct(
-			name: "fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception"
+			name: "fun_ptr3___void__ptr_ctx__ptr__nat8__result___void__exception"
 			body: builtin(
 				fun-ptr
 				8
 				[
 					type(false, "_void")
 					type(true, "ctx")
-					type(false, "ptr__byte")
+					type(false, "ptr__nat8")
 					type(false, "result___void__exception")]))
 		struct(
 			name: "opt__ptr_fut_callback_node___void"
@@ -328,11 +328,11 @@ program(
 			name: "fun_mut0__ptr_fut__int32"
 			body: record(
 				[
-					field(false, "fun_ptr", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte"))
-					field(false, "closure", type(false, "ptr__byte"))]))
+					field(false, "fun_ptr", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__nat8"))
+					field(false, "closure", type(false, "ptr__nat8"))]))
 		struct(
-			name: "fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte"
-			body: builtin(fun-ptr, 8, [type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__byte")]))
+			name: "fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__nat8"
+			body: builtin(fun-ptr, 8, [type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__nat8")]))
 		struct(
 			name: "fun_ref1__int32___void"
 			body: record(
@@ -343,16 +343,16 @@ program(
 			name: "fun_mut1__ptr_fut__int32___void"
 			body: record(
 				[
-					field(false, "fun_ptr", type(false, "fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void"))
-					field(false, "closure", type(false, "ptr__byte"))]))
+					field(false, "fun_ptr", type(false, "fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__nat8___void"))
+					field(false, "closure", type(false, "ptr__nat8"))]))
 		struct(
-			name: "fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void"
+			name: "fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__nat8___void"
 			body: builtin(
 				fun-ptr
 				8
-				[type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "_void")]))
-		struct(name: "opt__ptr__byte", body: union([type(false, "none"), type(false, "some__ptr__byte")]))
-		struct(name: "some__ptr__byte", body: record([field(false, "value", type(false, "ptr__byte"))]))
+				[type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "_void")]))
+		struct(name: "opt__ptr__nat8", body: union([type(false, "none"), type(false, "some__ptr__nat8")]))
+		struct(name: "some__ptr__nat8", body: record([field(false, "value", type(false, "ptr__nat8"))]))
 		struct(
 			name: "then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0___closure"
 			ptr?: true
@@ -408,26 +408,26 @@ program(
 			name: "fun_mut1__arr__char__ptr__char"
 			body: record(
 				[
-					field(false, "fun_ptr", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char"))
-					field(false, "closure", type(false, "ptr__byte"))]))
+					field(false, "fun_ptr", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__nat8__ptr__char"))
+					field(false, "closure", type(false, "ptr__nat8"))]))
 		struct(
-			name: "fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char"
+			name: "fun_ptr3__arr__char__ptr_ctx__ptr__nat8__ptr__char"
 			body: builtin(
 				fun-ptr
 				8
-				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "ptr__char")]))
+				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "ptr__char")]))
 		struct(
 			name: "fun_mut1__arr__char__nat"
 			body: record(
 				[
-					field(false, "fun_ptr", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat"))
-					field(false, "closure", type(false, "ptr__byte"))]))
+					field(false, "fun_ptr", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__nat8__nat"))
+					field(false, "closure", type(false, "ptr__nat8"))]))
 		struct(
-			name: "fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat"
+			name: "fun_ptr3__arr__char__ptr_ctx__ptr__nat8__nat"
 			body: builtin(
 				fun-ptr
 				8
-				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "nat")]))
+				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "nat")]))
 		struct(
 			name: "mut_arr__arr__char"
 			mut?: true
@@ -460,14 +460,14 @@ program(
 			name: "ptr__thread_args__ptr_global_ctx"
 			body: builtin(ptr, 8, [type(false, "thread_args__ptr_global_ctx")]))
 		struct(
-			name: "fun_ptr1__ptr__byte__ptr__byte"
-			body: builtin(fun-ptr, 8, [type(false, "ptr__byte"), type(false, "ptr__byte")]))
+			name: "fun_ptr1__ptr__nat8__ptr__nat8"
+			body: builtin(fun-ptr, 8, [type(false, "ptr__nat8"), type(false, "ptr__nat8")]))
 		struct(name: "cell__nat", mut?: true, ptr?: true, body: record([field(true, "value", type(false, "nat"))]))
 		struct(
-			name: "cell__ptr__byte"
+			name: "cell__ptr__nat8"
 			mut?: true
 			ptr?: true
-			body: record([field(true, "value", type(false, "ptr__byte"))]))
+			body: record([field(true, "value", type(false, "ptr__nat8"))]))
 		struct(
 			name: "chosen_task"
 			body: record([field(false, "vat", type(true, "vat")), field(false, "task_or_gc", type(false, "opt__task"))]))
@@ -502,11 +502,11 @@ program(
 			name: "fun_mut1__char__nat"
 			body: record(
 				[
-					field(false, "fun_ptr", type(false, "fun_ptr3__char__ptr_ctx__ptr__byte__nat"))
-					field(false, "closure", type(false, "ptr__byte"))]))
+					field(false, "fun_ptr", type(false, "fun_ptr3__char__ptr_ctx__ptr__nat8__nat"))
+					field(false, "closure", type(false, "ptr__nat8"))]))
 		struct(
-			name: "fun_ptr3__char__ptr_ctx__ptr__byte__nat"
-			body: builtin(fun-ptr, 8, [type(false, "char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "nat")]))
+			name: "fun_ptr3__char__ptr_ctx__ptr__nat8__nat"
+			body: builtin(fun-ptr, 8, [type(false, "char"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "nat")]))
 		struct(
 			name: "mut_arr__char"
 			mut?: true
@@ -802,28 +802,28 @@ program(
 			none
 			[param("size_elements", type(false, "nat"))]
 			expr-body(
-				[local("bytes", type(false, "ptr__byte"))]
+				[local("bytes", type(false, "ptr__nat8"))]
 				let(
 					"bytes"
 					call(
-						"unmanaged_alloc_bytes__ptr__byte__nat"
+						"unmanaged_alloc_bytes__ptr__nat8__nat"
 						[call("wrap_mul__nat__nat__nat", [param-ref("size_elements"), call("size_of__nat", [])])])
-					call("ptr_cast__ptr__nat__ptr__byte", [local-ref("bytes")]))))
+					call("ptr_cast__ptr__nat__ptr__nat8", [local-ref("bytes")]))))
 		fun(
 			false
-			"unmanaged_alloc_bytes__ptr__byte__nat"
-			type(false, "ptr__byte")
+			"unmanaged_alloc_bytes__ptr__nat8__nat"
+			type(false, "ptr__nat8")
 			none
 			[param("size", type(false, "nat"))]
 			expr-body(
-				[local("res", type(false, "ptr__byte"))]
+				[local("res", type(false, "ptr__nat8"))]
 				let(
 					"res"
 					call("malloc", [param-ref("size")])
 					seq(
-						call("hard_forbid___void__bool", [call("null__q__bool__ptr__byte", [local-ref("res")])])
+						call("hard_forbid___void__bool", [call("null__q__bool__ptr__nat8", [local-ref("res")])])
 						local-ref("res")))))
-		fun(false, "malloc", type(false, "ptr__byte"), none, [param("size", type(false, "nat"))], extern(false))
+		fun(false, "malloc", type(false, "ptr__nat8"), none, [param("size", type(false, "nat"))], extern(false))
 		fun(
 			false
 			"hard_forbid___void__bool"
@@ -872,34 +872,38 @@ program(
 			builtin(operator, "not", []))
 		fun(
 			false
-			"null__q__bool__ptr__byte"
+			"null__q__bool__ptr__nat8"
 			type(false, "bool")
 			none
-			[param("a", type(false, "ptr__byte"))]
+			[param("a", type(false, "ptr__nat8"))]
 			expr-body(
 				[]
-				call("_op_equal_equal__bool__ptr__byte__ptr__byte", [param-ref("a"), call("null__ptr__byte", [])])))
+				call(
+					"_op_equal_equal__bool__nat__nat"
+					[
+						call("to_nat__nat__ptr__nat8", [param-ref("a")])
+						call("to_nat__nat__ptr__nat8", [call("null__ptr__nat8", [])])])))
 		fun(
 			false
-			"_op_equal_equal__bool__ptr__byte__ptr__byte"
+			"_op_equal_equal__bool__nat__nat"
 			type(false, "bool")
 			none
-			[param("a", type(false, "ptr__byte")), param("b", type(false, "ptr__byte"))]
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
 			expr-body(
 				[local("matched", type(false, "comparison"))]
 				match(
 					"matched"
-					call("_op_less_equal_greater__comparison__ptr__byte__ptr__byte", [param-ref("a"), param-ref("b")])
+					call("_op_less_equal_greater__comparison__nat__nat", [param-ref("a"), param-ref("b")])
 					[
 						case(none, call("false__bool", []))
 						case(none, call("true__bool", []))
 						case(none, call("false__bool", []))])))
 		fun(
 			false
-			"_op_less_equal_greater__comparison__ptr__byte__ptr__byte"
+			"_op_less_equal_greater__comparison__nat__nat"
 			type(false, "comparison")
 			none
-			[param("a", type(false, "ptr__byte")), param("b", type(false, "ptr__byte"))]
+			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
 			expr-body(
 				[]
 				cond(
@@ -912,11 +916,18 @@ program(
 		fun(false, "true__bool", type(false, "bool"), none, [], builtin(operator, "true", []))
 		fun(
 			false
-			"null__ptr__byte"
-			type(false, "ptr__byte")
+			"to_nat__nat__ptr__nat8"
+			type(false, "nat")
+			none
+			[param("p", type(false, "ptr__nat8"))]
+			builtin(operator, "to-nat (from ptr)", [type(false, "nat8")]))
+		fun(
+			false
+			"null__ptr__nat8"
+			type(false, "ptr__nat8")
 			none
 			[]
-			builtin(operator, "null", [type(false, "byte")]))
+			builtin(operator, "null", [type(false, "nat8")]))
 		fun(
 			false
 			"wrap_mul__nat__nat__nat"
@@ -927,11 +938,11 @@ program(
 		fun(false, "size_of__nat", type(false, "nat"), none, [], builtin(operator, "size-of", [type(false, "nat")]))
 		fun(
 			false
-			"ptr_cast__ptr__nat__ptr__byte"
+			"ptr_cast__ptr__nat__ptr__nat8"
 			type(false, "ptr__nat")
 			none
-			[param("p", type(false, "ptr__byte"))]
-			builtin(operator, "ptr-cast", [type(false, "nat"), type(false, "byte")]))
+			[param("p", type(false, "ptr__nat8"))]
+			builtin(operator, "ptr-cast", [type(false, "nat"), type(false, "nat8")]))
 		fun(
 			false
 			"new_gc__gc"
@@ -946,8 +957,8 @@ program(
 						to-union(0, call("none__none", []))
 						call("false__bool", [])
 						call("false__bool", [])
-						call("null__ptr__byte", [])
-						call("null__ptr__byte", [])])))
+						call("null__ptr__nat8", [])
+						call("null__ptr__nat8", [])])))
 		fun(false, "none__none", type(false, "none"), none, [], expr-body([], record([])))
 		fun(
 			false
@@ -1028,7 +1039,7 @@ program(
 							"write"
 							[
 								param-ref("fd")
-								call("as_any_ptr__ptr__byte__ptr__char", [get-field(param-ref("s"), "data")])
+								call("as_any_ptr__ptr__nat8__ptr__char", [get-field(param-ref("s"), "data")])
 								get-field(param-ref("s"), "size")])
 						cond(
 							call(
@@ -1038,38 +1049,8 @@ program(
 									call("unsafe_to_int___int__nat", [get-field(param-ref("s"), "size")])])
 							call("pass___void", [])
 							call("todo___void", []))))))
-		fun(
-			false
-			"_op_equal_equal__bool__nat__nat"
-			type(false, "bool")
-			none
-			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
-			expr-body(
-				[local("matched", type(false, "comparison"))]
-				match(
-					"matched"
-					call("_op_less_equal_greater__comparison__nat__nat", [param-ref("a"), param-ref("b")])
-					[
-						case(none, call("false__bool", []))
-						case(none, call("true__bool", []))
-						case(none, call("false__bool", []))])))
-		fun(
-			false
-			"_op_less_equal_greater__comparison__nat__nat"
-			type(false, "comparison")
-			none
-			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
-			expr-body(
-				[]
-				cond(
-					special("less", param-ref("a"), param-ref("b"))
-					to-union(0, record([]))
-					cond(
-						special("less", param-ref("b"), param-ref("a"))
-						to-union(2, record([]))
-						to-union(1, record([]))))))
 		fun(false, "size_of__nat", type(false, "nat"), none, [], builtin(operator, "size-of", [type(false, "char")]))
-		fun(false, "size_of__nat", type(false, "nat"), none, [], builtin(operator, "size-of", [type(false, "byte")]))
+		fun(false, "size_of__nat", type(false, "nat"), none, [], builtin(operator, "size-of", [type(false, "nat8")]))
 		fun(
 			false
 			"write"
@@ -1077,13 +1058,13 @@ program(
 			none
 			[
 				param("fd", type(false, "int32"))
-				param("buff", type(false, "ptr__byte"))
+				param("buff", type(false, "ptr__nat8"))
 				param("n_bytes", type(false, "nat"))]
 			extern(false))
 		fun(
 			false
-			"as_any_ptr__ptr__byte__ptr__char"
-			type(false, "ptr__byte")
+			"as_any_ptr__ptr__nat8__ptr__char"
+			type(false, "ptr__nat8")
 			none
 			[param("some_ref", type(false, "ptr__char"))]
 			builtin(operator, "as-any-ptr", [type(false, "ptr__char")]))
@@ -1197,20 +1178,20 @@ program(
 			[]
 			expr-body(
 				[]
-				call("as_ref__ptr_global_ctx__ptr__byte", [get-field(call("get_ctx__ptr_ctx", []), "gctx_ptr")])))
+				call("as_ref__ptr_global_ctx__ptr__nat8", [get-field(call("get_ctx__ptr_ctx", []), "gctx_ptr")])))
 		fun(
 			false
-			"as_ref__ptr_global_ctx__ptr__byte"
+			"as_ref__ptr_global_ctx__ptr__nat8"
 			type(true, "global_ctx")
 			none
-			[param("p", type(false, "ptr__byte"))]
+			[param("p", type(false, "ptr__nat8"))]
 			builtin(operator, "as-ref", [type(true, "global_ctx")]))
 		fun(true, "get_ctx__ptr_ctx", type(true, "ctx"), none, [], builtin(operator, "get-ctx", []))
 		fun(
 			true
 			"new_vat__vat__ptr_global_ctx__nat__nat__lambda0"
 			type(false, "_void")
-			some(param("_closure", type(false, "ptr__byte")))
+			some(param("_closure", type(false, "ptr__nat8")))
 			[param("it", type(false, "exception"))]
 			expr-body([], call("default_exception_handler___void__exception", [param-ref("it")])))
 		fun(
@@ -1262,27 +1243,27 @@ program(
 				[]
 				record(
 					[
-						call("as_any_ptr__ptr__byte__ptr_global_ctx", [param-ref("gctx")])
+						call("as_any_ptr__ptr__nat8__ptr_global_ctx", [param-ref("gctx")])
 						get-field(param-ref("vat"), "id")
 						param-ref("actor_id")
 						call(
-							"as_any_ptr__ptr__byte__ptr_gc_ctx"
+							"as_any_ptr__ptr__nat8__ptr_gc_ctx"
 							[
 								call(
 									"get_gc_ctx__ptr_gc_ctx__ptr_gc"
 									[call("ref_of_val__ptr_gc__gc", [get-field(param-ref("vat"), "gc")])])])
-						call("as_any_ptr__ptr__byte__ptr_exception_ctx", [get-field(param-ref("tls"), "exception_ctx")])])))
+						call("as_any_ptr__ptr__nat8__ptr_exception_ctx", [get-field(param-ref("tls"), "exception_ctx")])])))
 		fun(
 			false
-			"as_any_ptr__ptr__byte__ptr_global_ctx"
-			type(false, "ptr__byte")
+			"as_any_ptr__ptr__nat8__ptr_global_ctx"
+			type(false, "ptr__nat8")
 			none
 			[param("some_ref", type(true, "global_ctx"))]
 			builtin(operator, "as-any-ptr", [type(true, "global_ctx")]))
 		fun(
 			false
-			"as_any_ptr__ptr__byte__ptr_gc_ctx"
-			type(false, "ptr__byte")
+			"as_any_ptr__ptr__nat8__ptr_gc_ctx"
+			type(false, "ptr__nat8")
 			none
 			[param("some_ref", type(true, "gc_ctx"))]
 			builtin(operator, "as-any-ptr", [type(true, "gc_ctx")]))
@@ -1314,7 +1295,7 @@ program(
 									let(
 										"c"
 										call(
-											"as_ref__ptr_gc_ctx__ptr__byte"
+											"as_ref__ptr_gc_ctx__ptr__nat8"
 											[call("malloc", [call("size_of__nat", [])])])
 										seq(
 											seq(
@@ -1602,10 +1583,10 @@ program(
 			builtin(operator, "ref-of-val", [type(true, "lock")]))
 		fun(
 			false
-			"as_ref__ptr_gc_ctx__ptr__byte"
+			"as_ref__ptr_gc_ctx__ptr__nat8"
 			type(true, "gc_ctx")
 			none
-			[param("p", type(false, "ptr__byte"))]
+			[param("p", type(false, "ptr__nat8"))]
 			builtin(operator, "as-ref", [type(true, "gc_ctx")]))
 		fun(false, "size_of__nat", type(false, "nat"), none, [], builtin(operator, "size-of", [type(true, "gc_ctx")]))
 		fun(
@@ -1647,8 +1628,8 @@ program(
 			builtin(operator, "ref-of-val", [type(true, "gc")]))
 		fun(
 			false
-			"as_any_ptr__ptr__byte__ptr_exception_ctx"
-			type(false, "ptr__byte")
+			"as_any_ptr__ptr__nat8__ptr_exception_ctx"
+			type(false, "ptr__nat8")
 			none
 			[param("some_ref", type(true, "exception_ctx"))]
 			builtin(operator, "as-any-ptr", [type(true, "exception_ctx")]))
@@ -1703,7 +1684,7 @@ program(
 								lambda(
 									"add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
 									some(alloc(
-										"alloc__ptr__byte__nat"
+										"alloc__ptr__nat8__nat"
 										record([param-ref("all_args"), param-ref("main_ptr")]))))])])))
 		fun(
 			true
@@ -1722,7 +1703,7 @@ program(
 								call("cur_actor__vat_and_actor_id", [])
 								lambda(
 									"then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0"
-									some(alloc("alloc__ptr__byte__nat", record([param-ref("cb")]))))])])))
+									some(alloc("alloc__ptr__nat8__nat", record([param-ref("cb")]))))])])))
 		fun(
 			true
 			"then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void"
@@ -1741,7 +1722,7 @@ program(
 								param-ref("f")
 								lambda(
 									"then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0"
-									some(alloc("alloc__ptr__byte__nat", record([param-ref("cb"), local-ref("res")]))))])
+									some(alloc("alloc__ptr__nat8__nat", record([param-ref("cb"), local-ref("res")]))))])
 						local-ref("res")))))
 		fun(
 			true
@@ -1752,31 +1733,31 @@ program(
 			expr-body(
 				[]
 				alloc(
-					"alloc__ptr__byte__nat"
+					"alloc__ptr__nat8__nat"
 					record([call("new_lock__lock", []), to-union(0, record([to-union(0, call("none__none", []))]))]))))
 		fun(
 			true
-			"alloc__ptr__byte__nat"
-			type(false, "ptr__byte")
+			"alloc__ptr__nat8__nat"
+			type(false, "ptr__nat8")
 			none
 			[param("size", type(false, "nat"))]
-			expr-body([], call("gc_alloc__ptr__byte__ptr_gc__nat", [call("get_gc__ptr_gc", []), param-ref("size")])))
+			expr-body([], call("gc_alloc__ptr__nat8__ptr_gc__nat", [call("get_gc__ptr_gc", []), param-ref("size")])))
 		fun(
 			true
-			"gc_alloc__ptr__byte__ptr_gc__nat"
-			type(false, "ptr__byte")
+			"gc_alloc__ptr__nat8__ptr_gc__nat"
+			type(false, "ptr__nat8")
 			none
 			[param("gc", type(true, "gc")), param("size", type(false, "nat"))]
 			expr-body(
-				[local("s", type(false, "some__ptr__byte")), local("matched", type(false, "opt__ptr__byte"))]
+				[local("s", type(false, "some__ptr__nat8")), local("matched", type(false, "opt__ptr__nat8"))]
 				match(
 					"matched"
-					call("try_gc_alloc__opt__ptr__byte__ptr_gc__nat", [param-ref("gc"), param-ref("size")])
-					[case(none, call("todo__ptr__byte", [])), case(some("s"), get-field(local-ref("s"), "value"))])))
+					call("try_gc_alloc__opt__ptr__nat8__ptr_gc__nat", [param-ref("gc"), param-ref("size")])
+					[case(none, call("todo__ptr__nat8", [])), case(some("s"), get-field(local-ref("s"), "value"))])))
 		fun(
 			false
-			"try_gc_alloc__opt__ptr__byte__ptr_gc__nat"
-			type(false, "opt__ptr__byte")
+			"try_gc_alloc__opt__ptr__nat8__ptr_gc__nat"
+			type(false, "opt__ptr__nat8")
 			none
 			[param("gc", type(true, "gc")), param("size", type(false, "nat"))]
 			expr-body(
@@ -1784,29 +1765,29 @@ program(
 				to-union(
 					1
 					call(
-						"some__some__ptr__byte__ptr__byte"
-						[call("unmanaged_alloc_bytes__ptr__byte__nat", [param-ref("size")])]))))
+						"some__some__ptr__nat8__ptr__nat8"
+						[call("unmanaged_alloc_bytes__ptr__nat8__nat", [param-ref("size")])]))))
 		fun(
 			false
-			"some__some__ptr__byte__ptr__byte"
-			type(false, "some__ptr__byte")
+			"some__some__ptr__nat8__ptr__nat8"
+			type(false, "some__ptr__nat8")
 			none
-			[param("t", type(false, "ptr__byte"))]
+			[param("t", type(false, "ptr__nat8"))]
 			expr-body([], record([param-ref("t")])))
 		fun(
 			false
-			"todo__ptr__byte"
-			type(false, "ptr__byte")
+			"todo__ptr__nat8"
+			type(false, "ptr__nat8")
 			none
 			[]
-			expr-body([], call("hard_fail__ptr__byte__arr__char", [str-lit("TODO")])))
+			expr-body([], call("hard_fail__ptr__nat8__arr__char", [str-lit("TODO")])))
 		fun(
 			false
-			"hard_fail__ptr__byte__arr__char"
-			type(false, "ptr__byte")
+			"hard_fail__ptr__nat8__arr__char"
+			type(false, "ptr__nat8")
 			none
 			[param("reason", type(false, "arr__char"))]
-			builtin(special, "hard-fail", [type(false, "ptr__byte")]))
+			builtin(special, "hard-fail", [type(false, "ptr__nat8")]))
 		fun(
 			true
 			"get_gc__ptr_gc"
@@ -1822,7 +1803,7 @@ program(
 			[]
 			expr-body(
 				[]
-				call("as_ref__ptr_gc_ctx__ptr__byte", [get-field(call("get_ctx__ptr_ctx", []), "gc_ctx_ptr")])))
+				call("as_ref__ptr_gc_ctx__ptr__nat8", [get-field(call("get_ctx__ptr_ctx", []), "gc_ctx_ptr")])))
 		fun(
 			true
 			"then_void___void__ptr_fut___void__fun_mut1___void__result___void__exception"
@@ -1861,7 +1842,7 @@ program(
 															"some__some__ptr_fut_callback_node___void__ptr_fut_callback_node___void"
 															[
 																alloc(
-																	"alloc__ptr__byte__nat"
+																	"alloc__ptr__nat8__nat"
 																	record(
 																		[
 																			param-ref("cb")
@@ -1917,7 +1898,7 @@ program(
 			expr-body(
 				[]
 				call(
-					"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception__ptr_ctx__ptr__byte__result___void__exception"
+					"call___void__fun_ptr3___void__ptr_ctx__ptr__nat8__result___void__exception__ptr_ctx__ptr__nat8__result___void__exception"
 					[
 						get-field(param-ref("f"), "fun_ptr")
 						param-ref("c")
@@ -1925,13 +1906,13 @@ program(
 						param-ref("p0")])))
 		fun(
 			false
-			"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception__ptr_ctx__ptr__byte__result___void__exception"
+			"call___void__fun_ptr3___void__ptr_ctx__ptr__nat8__result___void__exception__ptr_ctx__ptr__nat8__result___void__exception"
 			type(false, "_void")
 			none
 			[
-				param("f", type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__result___void__exception"))
+				param("f", type(false, "fun_ptr3___void__ptr_ctx__ptr__nat8__result___void__exception"))
 				param("p0", type(true, "ctx"))
-				param("p1", type(false, "ptr__byte"))
+				param("p1", type(false, "ptr__nat8"))
 				param("p2", type(false, "result___void__exception"))]
 			builtin(
 				operator
@@ -1939,7 +1920,7 @@ program(
 				[
 					type(false, "_void")
 					type(true, "ctx")
-					type(false, "ptr__byte")
+					type(false, "ptr__nat8")
 					type(false, "result___void__exception")]))
 		fun(
 			false
@@ -1969,7 +1950,7 @@ program(
 						param-ref("from")
 						lambda(
 							"forward_to___void__ptr_fut__int32__ptr_fut__int32__lambda0"
-							some(alloc("alloc__ptr__byte__nat", record([param-ref("to")]))))])))
+							some(alloc("alloc__ptr__nat8__nat", record([param-ref("to")]))))])))
 		fun(
 			true
 			"then_void___void__ptr_fut__int32__fun_mut1___void__result__int32__exception"
@@ -2008,7 +1989,7 @@ program(
 															"some__some__ptr_fut_callback_node__int32__ptr_fut_callback_node__int32"
 															[
 																alloc(
-																	"alloc__ptr__byte__nat"
+																	"alloc__ptr__nat8__nat"
 																	record(
 																		[
 																			param-ref("cb")
@@ -2064,7 +2045,7 @@ program(
 			expr-body(
 				[]
 				call(
-					"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception__ptr_ctx__ptr__byte__result__int32__exception"
+					"call___void__fun_ptr3___void__ptr_ctx__ptr__nat8__result__int32__exception__ptr_ctx__ptr__nat8__result__int32__exception"
 					[
 						get-field(param-ref("f"), "fun_ptr")
 						param-ref("c")
@@ -2072,13 +2053,13 @@ program(
 						param-ref("p0")])))
 		fun(
 			false
-			"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception__ptr_ctx__ptr__byte__result__int32__exception"
+			"call___void__fun_ptr3___void__ptr_ctx__ptr__nat8__result__int32__exception__ptr_ctx__ptr__nat8__result__int32__exception"
 			type(false, "_void")
 			none
 			[
-				param("f", type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__result__int32__exception"))
+				param("f", type(false, "fun_ptr3___void__ptr_ctx__ptr__nat8__result__int32__exception"))
 				param("p0", type(true, "ctx"))
-				param("p1", type(false, "ptr__byte"))
+				param("p1", type(false, "ptr__nat8"))
 				param("p2", type(false, "result__int32__exception"))]
 			builtin(
 				operator
@@ -2086,7 +2067,7 @@ program(
 				[
 					type(false, "_void")
 					type(true, "ctx")
-					type(false, "ptr__byte")
+					type(false, "ptr__nat8")
 					type(false, "result__int32__exception")]))
 		fun(
 			false
@@ -2217,7 +2198,7 @@ program(
 											lambda(
 												"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0"
 												some(alloc(
-													"alloc__ptr__byte__nat"
+													"alloc__ptr__nat8__nat"
 													record([param-ref("f"), param-ref("p0"), local-ref("res")]))))])])
 							local-ref("res"))))))
 		fun(
@@ -2308,14 +2289,14 @@ program(
 			expr-body(
 				[]
 				call(
-					"as_ref__ptr_exception_ctx__ptr__byte"
+					"as_ref__ptr_exception_ctx__ptr__nat8"
 					[get-field(call("get_ctx__ptr_ctx", []), "exception_ctx_ptr")])))
 		fun(
 			false
-			"as_ref__ptr_exception_ctx__ptr__byte"
+			"as_ref__ptr_exception_ctx__ptr__nat8"
 			type(true, "exception_ctx")
 			none
-			[param("p", type(false, "ptr__byte"))]
+			[param("p", type(false, "ptr__nat8"))]
 			builtin(operator, "as-ref", [type(true, "exception_ctx")]))
 		fun(
 			false
@@ -2465,7 +2446,7 @@ program(
 			[param("value", type(false, "task"))]
 			expr-body(
 				[]
-				alloc("alloc__ptr__byte__nat", record([param-ref("value"), to-union(0, call("none__none", []))]))))
+				alloc("alloc__ptr__nat8__nat", record([param-ref("value"), to-union(0, call("none__none", []))]))))
 		fun(
 			false
 			"add___void__ptr_mut_bag__task__ptr_mut_bag_node__task"
@@ -2660,18 +2641,18 @@ program(
 			expr-body(
 				[]
 				call(
-					"call___void__fun_ptr2___void__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte"
+					"call___void__fun_ptr2___void__ptr_ctx__ptr__nat8__ptr_ctx__ptr__nat8"
 					[get-field(param-ref("f"), "fun_ptr"), param-ref("c"), get-field(param-ref("f"), "closure")])))
 		fun(
 			false
-			"call___void__fun_ptr2___void__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte"
+			"call___void__fun_ptr2___void__ptr_ctx__ptr__nat8__ptr_ctx__ptr__nat8"
 			type(false, "_void")
 			none
 			[
-				param("f", type(false, "fun_ptr2___void__ptr_ctx__ptr__byte"))
+				param("f", type(false, "fun_ptr2___void__ptr_ctx__ptr__nat8"))
 				param("p0", type(true, "ctx"))
-				param("p1", type(false, "ptr__byte"))]
-			builtin(operator, "call (fun-ptr)", [type(false, "_void"), type(true, "ctx"), type(false, "ptr__byte")]))
+				param("p1", type(false, "ptr__nat8"))]
+			builtin(operator, "call (fun-ptr)", [type(false, "_void"), type(true, "ctx"), type(false, "ptr__nat8")]))
 		fun(
 			true
 			"call___void__fun_mut1___void__exception__exception"
@@ -2695,7 +2676,7 @@ program(
 			expr-body(
 				[]
 				call(
-					"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__exception__ptr_ctx__ptr__byte__exception"
+					"call___void__fun_ptr3___void__ptr_ctx__ptr__nat8__exception__ptr_ctx__ptr__nat8__exception"
 					[
 						get-field(param-ref("f"), "fun_ptr")
 						param-ref("c")
@@ -2703,18 +2684,18 @@ program(
 						param-ref("p0")])))
 		fun(
 			false
-			"call___void__fun_ptr3___void__ptr_ctx__ptr__byte__exception__ptr_ctx__ptr__byte__exception"
+			"call___void__fun_ptr3___void__ptr_ctx__ptr__nat8__exception__ptr_ctx__ptr__nat8__exception"
 			type(false, "_void")
 			none
 			[
-				param("f", type(false, "fun_ptr3___void__ptr_ctx__ptr__byte__exception"))
+				param("f", type(false, "fun_ptr3___void__ptr_ctx__ptr__nat8__exception"))
 				param("p0", type(true, "ctx"))
-				param("p1", type(false, "ptr__byte"))
+				param("p1", type(false, "ptr__nat8"))
 				param("p2", type(false, "exception"))]
 			builtin(
 				operator
 				"call (fun-ptr)"
-				[type(false, "_void"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "exception")]))
+				[type(false, "_void"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "exception")]))
 		fun(
 			true
 			"call__ptr_fut__int32__fun_mut1__ptr_fut__int32___void___void"
@@ -2738,7 +2719,7 @@ program(
 			expr-body(
 				[]
 				call(
-					"call__ptr_fut__int32__fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void__ptr_ctx__ptr__byte___void"
+					"call__ptr_fut__int32__fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__nat8___void__ptr_ctx__ptr__nat8___void"
 					[
 						get-field(param-ref("f"), "fun_ptr")
 						param-ref("c")
@@ -2746,18 +2727,18 @@ program(
 						param-ref("p0")])))
 		fun(
 			false
-			"call__ptr_fut__int32__fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void__ptr_ctx__ptr__byte___void"
+			"call__ptr_fut__int32__fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__nat8___void__ptr_ctx__ptr__nat8___void"
 			type(true, "fut__int32")
 			none
 			[
-				param("f", type(false, "fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__byte___void"))
+				param("f", type(false, "fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__nat8___void"))
 				param("p0", type(true, "ctx"))
-				param("p1", type(false, "ptr__byte"))
+				param("p1", type(false, "ptr__nat8"))
 				param("p2", type(false, "_void"))]
 			builtin(
 				operator
 				"call (fun-ptr)"
-				[type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "_void")]))
+				[type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "_void")]))
 		fun(
 			true
 			"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0"
@@ -2815,7 +2796,7 @@ program(
 						lambda(
 							"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0"
 							some(alloc(
-								"alloc__ptr__byte__nat"
+								"alloc__ptr__nat8__nat"
 								record(
 									[
 										get-field(param-ref("_closure"), "f")
@@ -2823,7 +2804,7 @@ program(
 										get-field(param-ref("_closure"), "res")]))))
 						lambda(
 							"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda1"
-							some(alloc("alloc__ptr__byte__nat", record([get-field(param-ref("_closure"), "res")]))))])))
+							some(alloc("alloc__ptr__nat8__nat", record([get-field(param-ref("_closure"), "res")]))))])))
 		fun(
 			true
 			"then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0"
@@ -2880,7 +2861,7 @@ program(
 											lambda(
 												"call__ptr_fut__int32__fun_ref0__int32__lambda0"
 												some(alloc(
-													"alloc__ptr__byte__nat"
+													"alloc__ptr__nat8__nat"
 													record([param-ref("f"), local-ref("res")]))))])])
 							local-ref("res"))))))
 		fun(
@@ -2903,18 +2884,18 @@ program(
 			expr-body(
 				[]
 				call(
-					"call__ptr_fut__int32__fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte"
+					"call__ptr_fut__int32__fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__nat8__ptr_ctx__ptr__nat8"
 					[get-field(param-ref("f"), "fun_ptr"), param-ref("c"), get-field(param-ref("f"), "closure")])))
 		fun(
 			false
-			"call__ptr_fut__int32__fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte__ptr_ctx__ptr__byte"
+			"call__ptr_fut__int32__fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__nat8__ptr_ctx__ptr__nat8"
 			type(true, "fut__int32")
 			none
 			[
-				param("f", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__byte"))
+				param("f", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__ptr__nat8"))
 				param("p0", type(true, "ctx"))
-				param("p1", type(false, "ptr__byte"))]
-			builtin(operator, "call (fun-ptr)", [type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__byte")]))
+				param("p1", type(false, "ptr__nat8"))]
+			builtin(operator, "call (fun-ptr)", [type(true, "fut__int32"), type(true, "ctx"), type(false, "ptr__nat8")]))
 		fun(
 			true
 			"call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0"
@@ -2955,11 +2936,11 @@ program(
 						lambda(
 							"call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0"
 							some(alloc(
-								"alloc__ptr__byte__nat"
+								"alloc__ptr__nat8__nat"
 								record([get-field(param-ref("_closure"), "f"), get-field(param-ref("_closure"), "res")]))))
 						lambda(
 							"call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1"
-							some(alloc("alloc__ptr__byte__nat", record([get-field(param-ref("_closure"), "res")]))))])))
+							some(alloc("alloc__ptr__nat8__nat", record([get-field(param-ref("_closure"), "res")]))))])))
 		fun(
 			true
 			"then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0"
@@ -2995,7 +2976,7 @@ program(
 			expr-body(
 				[]
 				alloc(
-					"alloc__ptr__byte__nat"
+					"alloc__ptr__nat8__nat"
 					record([call("new_lock__lock", []), to-union(1, record([param-ref("value")]))]))))
 		fun(
 			true
@@ -3181,7 +3162,7 @@ program(
 						get-field(param-ref("a"), "size")
 						lambda(
 							"map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0"
-							some(alloc("alloc__ptr__byte__nat", record([param-ref("mapper"), param-ref("a")]))))])))
+							some(alloc("alloc__ptr__nat8__nat", record([param-ref("mapper"), param-ref("a")]))))])))
 		fun(
 			true
 			"make_arr__arr__arr__char__nat__fun_mut1__arr__char__nat"
@@ -3239,7 +3220,7 @@ program(
 			expr-body(
 				[]
 				alloc(
-					"alloc__ptr__byte__nat"
+					"alloc__ptr__nat8__nat"
 					record(
 						[
 							call("false__bool", [])
@@ -3253,13 +3234,13 @@ program(
 			none
 			[param("size", type(false, "nat"))]
 			expr-body(
-				[local("bptr", type(false, "ptr__byte"))]
+				[local("bptr", type(false, "ptr__nat8"))]
 				let(
 					"bptr"
 					call(
-						"alloc__ptr__byte__nat"
+						"alloc__ptr__nat8__nat"
 						[call("wrap_mul__nat__nat__nat", [param-ref("size"), call("size_of__nat", [])])])
-					call("ptr_cast__ptr__arr__char__ptr__byte", [local-ref("bptr")]))))
+					call("ptr_cast__ptr__arr__char__ptr__nat8", [local-ref("bptr")]))))
 		fun(
 			false
 			"size_of__nat"
@@ -3269,11 +3250,11 @@ program(
 			builtin(operator, "size-of", [type(false, "arr__char")]))
 		fun(
 			false
-			"ptr_cast__ptr__arr__char__ptr__byte"
+			"ptr_cast__ptr__arr__char__ptr__nat8"
 			type(false, "ptr__arr__char")
 			none
-			[param("p", type(false, "ptr__byte"))]
-			builtin(operator, "ptr-cast", [type(false, "arr__char"), type(false, "byte")]))
+			[param("p", type(false, "ptr__nat8"))]
+			builtin(operator, "ptr-cast", [type(false, "arr__char"), type(false, "nat8")]))
 		fun(
 			true
 			"make_mut_arr_worker___void__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat"
@@ -3375,7 +3356,7 @@ program(
 			expr-body(
 				[]
 				call(
-					"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat__ptr_ctx__ptr__byte__nat"
+					"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__nat8__nat__ptr_ctx__ptr__nat8__nat"
 					[
 						get-field(param-ref("f"), "fun_ptr")
 						param-ref("c")
@@ -3383,18 +3364,18 @@ program(
 						param-ref("p0")])))
 		fun(
 			false
-			"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat__ptr_ctx__ptr__byte__nat"
+			"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__nat8__nat__ptr_ctx__ptr__nat8__nat"
 			type(false, "arr__char")
 			none
 			[
-				param("f", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__byte__nat"))
+				param("f", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__nat8__nat"))
 				param("p0", type(true, "ctx"))
-				param("p1", type(false, "ptr__byte"))
+				param("p1", type(false, "ptr__nat8"))
 				param("p2", type(false, "nat"))]
 			builtin(
 				operator
 				"call (fun-ptr)"
-				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "nat")]))
+				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "nat")]))
 		fun(
 			true
 			"incr__nat__nat"
@@ -3431,7 +3412,7 @@ program(
 			expr-body(
 				[]
 				call(
-					"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char__ptr_ctx__ptr__byte__ptr__char"
+					"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__nat8__ptr__char__ptr_ctx__ptr__nat8__ptr__char"
 					[
 						get-field(param-ref("f"), "fun_ptr")
 						param-ref("c")
@@ -3439,18 +3420,18 @@ program(
 						param-ref("p0")])))
 		fun(
 			false
-			"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char__ptr_ctx__ptr__byte__ptr__char"
+			"call__arr__char__fun_ptr3__arr__char__ptr_ctx__ptr__nat8__ptr__char__ptr_ctx__ptr__nat8__ptr__char"
 			type(false, "arr__char")
 			none
 			[
-				param("f", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__byte__ptr__char"))
+				param("f", type(false, "fun_ptr3__arr__char__ptr_ctx__ptr__nat8__ptr__char"))
 				param("p0", type(true, "ctx"))
-				param("p1", type(false, "ptr__byte"))
+				param("p1", type(false, "ptr__nat8"))
 				param("p2", type(false, "ptr__char"))]
 			builtin(
 				operator
 				"call (fun-ptr)"
-				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "ptr__char")]))
+				[type(false, "arr__char"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "ptr__char")]))
 		fun(
 			true
 			"at__ptr__char__arr__ptr__char__nat"
@@ -3685,7 +3666,7 @@ program(
 			true
 			"add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0__lambda0"
 			type(false, "arr__char")
-			some(param("_closure", type(false, "ptr__byte")))
+			some(param("_closure", type(false, "ptr__nat8")))
 			[param("it", type(false, "ptr__char"))]
 			expr-body([], call("to_str__arr__char__ptr__char", [param-ref("it")])))
 		fun(
@@ -3719,7 +3700,7 @@ program(
 			true
 			"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
 			type(true, "fut__int32")
-			some(param("_closure", type(false, "ptr__byte")))
+			some(param("_closure", type(false, "ptr__nat8")))
 			[
 				param("all_args", type(false, "arr__ptr__char"))
 				param("main_ptr", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))]
@@ -3759,7 +3740,7 @@ program(
 			expr-body(
 				[]
 				call(
-					"call__ptr_fut__int32__fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+					"call__ptr_fut__int32__fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
 					[
 						get-field(param-ref("f"), "fun_ptr")
 						param-ref("c")
@@ -3768,7 +3749,7 @@ program(
 						param-ref("p1")])))
 		fun(
 			false
-			"call__ptr_fut__int32__fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+			"call__ptr_fut__int32__fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
 			type(true, "fut__int32")
 			none
 			[
@@ -3776,9 +3757,9 @@ program(
 					"f"
 					type(
 						false
-						"fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__byte__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))
+						"fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))
 				param("p0", type(true, "ctx"))
-				param("p1", type(false, "ptr__byte"))
+				param("p1", type(false, "ptr__nat8"))
 				param("p2", type(false, "arr__ptr__char"))
 				param("p3", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))]
 			builtin(
@@ -3787,7 +3768,7 @@ program(
 				[
 					type(true, "fut__int32")
 					type(true, "ctx")
-					type(false, "ptr__byte")
+					type(false, "ptr__nat8")
 					type(false, "arr__ptr__char")
 					type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char")]))
 		fun(
@@ -3835,13 +3816,13 @@ program(
 			none
 			[param("size_elements", type(false, "nat"))]
 			expr-body(
-				[local("bytes", type(false, "ptr__byte"))]
+				[local("bytes", type(false, "ptr__nat8"))]
 				let(
 					"bytes"
 					call(
-						"unmanaged_alloc_bytes__ptr__byte__nat"
+						"unmanaged_alloc_bytes__ptr__nat8__nat"
 						[call("wrap_mul__nat__nat__nat", [param-ref("size_elements"), call("size_of__nat", [])])])
-					call("ptr_cast__ptr__thread_args__ptr_global_ctx__ptr__byte", [local-ref("bytes")]))))
+					call("ptr_cast__ptr__thread_args__ptr_global_ctx__ptr__nat8", [local-ref("bytes")]))))
 		fun(
 			false
 			"size_of__nat"
@@ -3851,11 +3832,11 @@ program(
 			builtin(operator, "size-of", [type(false, "thread_args__ptr_global_ctx")]))
 		fun(
 			false
-			"ptr_cast__ptr__thread_args__ptr_global_ctx__ptr__byte"
+			"ptr_cast__ptr__thread_args__ptr_global_ctx__ptr__nat8"
 			type(false, "ptr__thread_args__ptr_global_ctx")
 			none
-			[param("p", type(false, "ptr__byte"))]
-			builtin(operator, "ptr-cast", [type(false, "thread_args__ptr_global_ctx"), type(false, "byte")]))
+			[param("p", type(false, "ptr__nat8"))]
+			builtin(operator, "ptr-cast", [type(false, "thread_args__ptr_global_ctx"), type(false, "nat8")]))
 		fun(
 			false
 			"run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx"
@@ -3872,7 +3853,7 @@ program(
 				[
 					local("thread_arg_ptr", type(false, "ptr__thread_args__ptr_global_ctx"))
 					local("thread_ptr", type(false, "ptr__nat"))
-					local("fn", type(false, "fun_ptr1__ptr__byte__ptr__byte"))
+					local("fn", type(false, "fun_ptr1__ptr__nat8__ptr__nat8"))
 					local("err", type(false, "int32"))]
 				cond(
 					call("_op_equal_equal__bool__nat__nat", [param-ref("i"), param-ref("n_threads")])
@@ -3894,7 +3875,7 @@ program(
 								let(
 									"fn"
 									call(
-										"as__fun_ptr1__ptr__byte__ptr__byte__fun_ptr1__ptr__byte__ptr__byte"
+										"as__fun_ptr1__ptr__nat8__ptr__nat8__fun_ptr1__ptr__nat8__ptr__nat8"
 										[
 											lambda(
 												"run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx__lambda0"
@@ -3905,10 +3886,10 @@ program(
 											"pthread_create"
 											[
 												call("as_cell__ptr_cell__nat__ptr__nat", [local-ref("thread_ptr")])
-												call("null__ptr__byte", [])
+												call("null__ptr__nat8", [])
 												local-ref("fn")
 												call(
-													"as_any_ptr__ptr__byte__ptr__thread_args__ptr_global_ctx"
+													"as_any_ptr__ptr__nat8__ptr__thread_args__ptr_global_ctx"
 													[local-ref("thread_arg_ptr")])])
 										cond(
 											call("zero__q__bool__int32", [local-ref("err")])
@@ -3952,22 +3933,22 @@ program(
 			builtin(operator, "+ (ptr)", [type(false, "nat")]))
 		fun(
 			false
-			"as__fun_ptr1__ptr__byte__ptr__byte__fun_ptr1__ptr__byte__ptr__byte"
-			type(false, "fun_ptr1__ptr__byte__ptr__byte")
+			"as__fun_ptr1__ptr__nat8__ptr__nat8__fun_ptr1__ptr__nat8__ptr__nat8"
+			type(false, "fun_ptr1__ptr__nat8__ptr__nat8")
 			none
-			[param("value", type(false, "fun_ptr1__ptr__byte__ptr__byte"))]
-			builtin(operator, "as", [type(false, "fun_ptr1__ptr__byte__ptr__byte")]))
+			[param("value", type(false, "fun_ptr1__ptr__nat8__ptr__nat8"))]
+			builtin(operator, "as", [type(false, "fun_ptr1__ptr__nat8__ptr__nat8")]))
 		fun(
 			false
-			"thread_fun__ptr__byte__ptr__byte"
-			type(false, "ptr__byte")
+			"thread_fun__ptr__nat8__ptr__nat8"
+			type(false, "ptr__nat8")
 			none
-			[param("args_ptr", type(false, "ptr__byte"))]
+			[param("args_ptr", type(false, "ptr__nat8"))]
 			expr-body(
 				[local("args", type(true, "thread_args__ptr_global_ctx"))]
 				let(
 					"args"
-					call("as_ref__ptr_thread_args__ptr_global_ctx__ptr__byte", [param-ref("args_ptr")])
+					call("as_ref__ptr_thread_args__ptr_global_ctx__ptr__nat8", [param-ref("args_ptr")])
 					seq(
 						call(
 							"call___void__fun_ptr2___void__nat__ptr_global_ctx__nat__ptr_global_ctx"
@@ -3975,13 +3956,13 @@ program(
 								get-field(local-ref("args"), "fun")
 								get-field(local-ref("args"), "thread_id")
 								get-field(local-ref("args"), "arg")])
-						call("null__ptr__byte", [])))))
+						call("null__ptr__nat8", [])))))
 		fun(
 			false
-			"as_ref__ptr_thread_args__ptr_global_ctx__ptr__byte"
+			"as_ref__ptr_thread_args__ptr_global_ctx__ptr__nat8"
 			type(true, "thread_args__ptr_global_ctx")
 			none
-			[param("p", type(false, "ptr__byte"))]
+			[param("p", type(false, "ptr__nat8"))]
 			builtin(operator, "as-ref", [type(true, "thread_args__ptr_global_ctx")]))
 		fun(
 			false
@@ -3996,10 +3977,10 @@ program(
 		fun(
 			false
 			"run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx__lambda0"
-			type(false, "ptr__byte")
+			type(false, "ptr__nat8")
 			none
-			[param("args_ptr", type(false, "ptr__byte"))]
-			expr-body([], call("thread_fun__ptr__byte__ptr__byte", [param-ref("args_ptr")])))
+			[param("args_ptr", type(false, "ptr__nat8"))]
+			expr-body([], call("thread_fun__ptr__nat8__ptr__nat8", [param-ref("args_ptr")])))
 		fun(
 			false
 			"pthread_create"
@@ -4007,9 +3988,9 @@ program(
 			none
 			[
 				param("thread", type(true, "cell__nat"))
-				param("attr", type(false, "ptr__byte"))
-				param("start_routine", type(false, "fun_ptr1__ptr__byte__ptr__byte"))
-				param("arg", type(false, "ptr__byte"))]
+				param("attr", type(false, "ptr__nat8"))
+				param("start_routine", type(false, "fun_ptr1__ptr__nat8__ptr__nat8"))
+				param("arg", type(false, "ptr__nat8"))]
 			extern(false))
 		fun(
 			false
@@ -4019,25 +4000,25 @@ program(
 			[param("p", type(false, "ptr__nat"))]
 			expr-body(
 				[]
-				call("as_ref__ptr_cell__nat__ptr__byte", [call("as_any_ptr__ptr__byte__ptr__nat", [param-ref("p")])])))
+				call("as_ref__ptr_cell__nat__ptr__nat8", [call("as_any_ptr__ptr__nat8__ptr__nat", [param-ref("p")])])))
 		fun(
 			false
-			"as_ref__ptr_cell__nat__ptr__byte"
+			"as_ref__ptr_cell__nat__ptr__nat8"
 			type(true, "cell__nat")
 			none
-			[param("p", type(false, "ptr__byte"))]
+			[param("p", type(false, "ptr__nat8"))]
 			builtin(operator, "as-ref", [type(true, "cell__nat")]))
 		fun(
 			false
-			"as_any_ptr__ptr__byte__ptr__nat"
-			type(false, "ptr__byte")
+			"as_any_ptr__ptr__nat8__ptr__nat"
+			type(false, "ptr__nat8")
 			none
 			[param("some_ref", type(false, "ptr__nat"))]
 			builtin(operator, "as-any-ptr", [type(false, "ptr__nat")]))
 		fun(
 			false
-			"as_any_ptr__ptr__byte__ptr__thread_args__ptr_global_ctx"
-			type(false, "ptr__byte")
+			"as_any_ptr__ptr__nat8__ptr__thread_args__ptr_global_ctx"
+			type(false, "ptr__nat8")
 			none
 			[param("some_ref", type(false, "ptr__thread_args__ptr_global_ctx"))]
 			builtin(operator, "as-any-ptr", [type(false, "ptr__thread_args__ptr_global_ctx")]))
@@ -4103,17 +4084,17 @@ program(
 			none
 			[param("tid", type(false, "nat"))]
 			expr-body(
-				[local("thread_return", type(false, "cell__ptr__byte")), local("err", type(false, "int32"))]
+				[local("thread_return", type(false, "cell__ptr__nat8")), local("err", type(false, "int32"))]
 				let(
 					"thread_return"
-					record([call("null__ptr__byte", [])])
+					record([call("null__ptr__nat8", [])])
 					let(
 						"err"
 						call(
 							"pthread_join"
 							[
 								param-ref("tid")
-								call("ref_of_val__ptr_cell__ptr__byte__cell__ptr__byte", [local-ref("thread_return")])])
+								call("ref_of_val__ptr_cell__ptr__nat8__cell__ptr__nat8", [local-ref("thread_return")])])
 						seq(
 							cond(
 								call("zero__q__bool__int32", [local-ref("err")])
@@ -4133,29 +4114,29 @@ program(
 								"hard_assert___void__bool"
 								[
 									call(
-										"_op_equal_equal__bool__ptr__byte__ptr__byte"
+										"_op_equal_equal__bool__ptr__nat8__ptr__nat8"
 										[
 											call(
-												"get__ptr__byte__ptr_cell__ptr__byte"
+												"get__ptr__nat8__ptr_cell__ptr__nat8"
 												[
 													call(
-														"ref_of_val__ptr_cell__ptr__byte__cell__ptr__byte"
+														"ref_of_val__ptr_cell__ptr__nat8__cell__ptr__nat8"
 														[local-ref("thread_return")])])
-											call("null__ptr__byte", [])])]))))))
+											call("null__ptr__nat8", [])])]))))))
 		fun(
 			false
 			"pthread_join"
 			type(false, "int32")
 			none
-			[param("thread", type(false, "nat")), param("thread_return", type(true, "cell__ptr__byte"))]
+			[param("thread", type(false, "nat")), param("thread_return", type(true, "cell__ptr__nat8"))]
 			extern(false))
 		fun(
 			false
-			"ref_of_val__ptr_cell__ptr__byte__cell__ptr__byte"
-			type(true, "cell__ptr__byte")
+			"ref_of_val__ptr_cell__ptr__nat8__cell__ptr__nat8"
+			type(true, "cell__ptr__nat8")
 			none
-			[param("b", type(false, "cell__ptr__byte"))]
-			builtin(operator, "ref-of-val", [type(true, "cell__ptr__byte")]))
+			[param("b", type(false, "cell__ptr__nat8"))]
+			builtin(operator, "ref-of-val", [type(true, "cell__ptr__nat8")]))
 		fun(
 			false
 			"einval__int32"
@@ -4172,10 +4153,40 @@ program(
 		fun(false, "esrch__int32", type(false, "int32"), none, [], expr-body([], call("three__int32", [])))
 		fun(
 			false
-			"get__ptr__byte__ptr_cell__ptr__byte"
-			type(false, "ptr__byte")
+			"_op_equal_equal__bool__ptr__nat8__ptr__nat8"
+			type(false, "bool")
 			none
-			[param("c", type(true, "cell__ptr__byte"))]
+			[param("a", type(false, "ptr__nat8")), param("b", type(false, "ptr__nat8"))]
+			expr-body(
+				[local("matched", type(false, "comparison"))]
+				match(
+					"matched"
+					call("_op_less_equal_greater__comparison__ptr__nat8__ptr__nat8", [param-ref("a"), param-ref("b")])
+					[
+						case(none, call("false__bool", []))
+						case(none, call("true__bool", []))
+						case(none, call("false__bool", []))])))
+		fun(
+			false
+			"_op_less_equal_greater__comparison__ptr__nat8__ptr__nat8"
+			type(false, "comparison")
+			none
+			[param("a", type(false, "ptr__nat8")), param("b", type(false, "ptr__nat8"))]
+			expr-body(
+				[]
+				cond(
+					special("less", param-ref("a"), param-ref("b"))
+					to-union(0, record([]))
+					cond(
+						special("less", param-ref("b"), param-ref("a"))
+						to-union(2, record([]))
+						to-union(1, record([]))))))
+		fun(
+			false
+			"get__ptr__nat8__ptr_cell__ptr__nat8"
+			type(false, "ptr__nat8")
+			none
+			[param("c", type(true, "cell__ptr__nat8"))]
 			expr-body([], get-field(param-ref("c"), "value")))
 		fun(
 			false
@@ -4190,15 +4201,15 @@ program(
 			type(false, "_void")
 			none
 			[param("p", type(false, "ptr__nat"))]
-			expr-body([], call("free", [call("ptr_cast__ptr__byte__ptr__nat", [param-ref("p")])])))
-		fun(false, "free", type(false, "_void"), none, [param("p", type(false, "ptr__byte"))], extern(false))
+			expr-body([], call("free", [call("ptr_cast__ptr__nat8__ptr__nat", [param-ref("p")])])))
+		fun(false, "free", type(false, "_void"), none, [param("p", type(false, "ptr__nat8"))], extern(false))
 		fun(
 			false
-			"ptr_cast__ptr__byte__ptr__nat"
-			type(false, "ptr__byte")
+			"ptr_cast__ptr__nat8__ptr__nat"
+			type(false, "ptr__nat8")
 			none
 			[param("p", type(false, "ptr__nat"))]
-			builtin(operator, "ptr-cast", [type(false, "byte"), type(false, "nat")]))
+			builtin(operator, "ptr-cast", [type(false, "nat8"), type(false, "nat")]))
 		fun(
 			false
 			"unmanaged_free___void__ptr__thread_args__ptr_global_ctx"
@@ -4207,14 +4218,14 @@ program(
 			[param("p", type(false, "ptr__thread_args__ptr_global_ctx"))]
 			expr-body(
 				[]
-				call("free", [call("ptr_cast__ptr__byte__ptr__thread_args__ptr_global_ctx", [param-ref("p")])])))
+				call("free", [call("ptr_cast__ptr__nat8__ptr__thread_args__ptr_global_ctx", [param-ref("p")])])))
 		fun(
 			false
-			"ptr_cast__ptr__byte__ptr__thread_args__ptr_global_ctx"
-			type(false, "ptr__byte")
+			"ptr_cast__ptr__nat8__ptr__thread_args__ptr_global_ctx"
+			type(false, "ptr__nat8")
 			none
 			[param("p", type(false, "ptr__thread_args__ptr_global_ctx"))]
-			builtin(operator, "ptr-cast", [type(false, "byte"), type(false, "thread_args__ptr_global_ctx")]))
+			builtin(operator, "ptr-cast", [type(false, "nat8"), type(false, "thread_args__ptr_global_ctx")]))
 		fun(
 			false
 			"thread_function___void__nat__ptr_global_ctx"
@@ -5174,7 +5185,7 @@ program(
 				[]
 				call(
 					"return_gc_ctx___void__ptr_gc_ctx"
-					[call("as_ref__ptr_gc_ctx__ptr__byte", [get-field(param-ref("c"), "gc_ctx_ptr")])])))
+					[call("as_ref__ptr_gc_ctx__ptr__nat8", [get-field(param-ref("c"), "gc_ctx_ptr")])])))
 		fun(
 			false
 			"return_gc_ctx___void__ptr_gc_ctx"
@@ -5678,7 +5689,7 @@ program(
 							[get-field(param-ref("a"), "size"), get-field(param-ref("b"), "size")])
 						lambda(
 							"_op_plus__arr__char__arr__char__arr__char__lambda0"
-							some(alloc("alloc__ptr__byte__nat", record([param-ref("a"), param-ref("b")]))))])))
+							some(alloc("alloc__ptr__nat8__nat", record([param-ref("a"), param-ref("b")]))))])))
 		fun(
 			true
 			"make_arr__arr__char__nat__fun_mut1__char__nat"
@@ -5736,7 +5747,7 @@ program(
 			expr-body(
 				[]
 				alloc(
-					"alloc__ptr__byte__nat"
+					"alloc__ptr__nat8__nat"
 					record(
 						[
 							call("false__bool", [])
@@ -5750,20 +5761,20 @@ program(
 			none
 			[param("size", type(false, "nat"))]
 			expr-body(
-				[local("bptr", type(false, "ptr__byte"))]
+				[local("bptr", type(false, "ptr__nat8"))]
 				let(
 					"bptr"
 					call(
-						"alloc__ptr__byte__nat"
+						"alloc__ptr__nat8__nat"
 						[call("wrap_mul__nat__nat__nat", [param-ref("size"), call("size_of__nat", [])])])
-					call("ptr_cast__ptr__char__ptr__byte", [local-ref("bptr")]))))
+					call("ptr_cast__ptr__char__ptr__nat8", [local-ref("bptr")]))))
 		fun(
 			false
-			"ptr_cast__ptr__char__ptr__byte"
+			"ptr_cast__ptr__char__ptr__nat8"
 			type(false, "ptr__char")
 			none
-			[param("p", type(false, "ptr__byte"))]
-			builtin(operator, "ptr-cast", [type(false, "char"), type(false, "byte")]))
+			[param("p", type(false, "ptr__nat8"))]
+			builtin(operator, "ptr-cast", [type(false, "char"), type(false, "nat8")]))
 		fun(
 			true
 			"make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat"
@@ -5858,7 +5869,7 @@ program(
 			expr-body(
 				[]
 				call(
-					"call__char__fun_ptr3__char__ptr_ctx__ptr__byte__nat__ptr_ctx__ptr__byte__nat"
+					"call__char__fun_ptr3__char__ptr_ctx__ptr__nat8__nat__ptr_ctx__ptr__nat8__nat"
 					[
 						get-field(param-ref("f"), "fun_ptr")
 						param-ref("c")
@@ -5866,18 +5877,18 @@ program(
 						param-ref("p0")])))
 		fun(
 			false
-			"call__char__fun_ptr3__char__ptr_ctx__ptr__byte__nat__ptr_ctx__ptr__byte__nat"
+			"call__char__fun_ptr3__char__ptr_ctx__ptr__nat8__nat__ptr_ctx__ptr__nat8__nat"
 			type(false, "char")
 			none
 			[
-				param("f", type(false, "fun_ptr3__char__ptr_ctx__ptr__byte__nat"))
+				param("f", type(false, "fun_ptr3__char__ptr_ctx__ptr__nat8__nat"))
 				param("p0", type(true, "ctx"))
-				param("p1", type(false, "ptr__byte"))
+				param("p1", type(false, "ptr__nat8"))
 				param("p2", type(false, "nat"))]
 			builtin(
 				operator
 				"call (fun-ptr)"
-				[type(false, "char"), type(true, "ctx"), type(false, "ptr__byte"), type(false, "nat")]))
+				[type(false, "char"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "nat")]))
 		fun(
 			true
 			"_op_plus__arr__char__arr__char__arr__char__lambda0"
@@ -5907,7 +5918,7 @@ program(
 			expr-body(
 				[]
 				alloc(
-					"alloc__ptr__byte__nat"
+					"alloc__ptr__nat8__nat"
 					record([call("new_lock__lock", []), to-union(1, record([param-ref("value")]))]))))
 		fun(
 			true

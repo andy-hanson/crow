@@ -1,7 +1,239 @@
 import
 	arr-utils
+	io
+	str-utils
+	thread-utils
 
 c-int alias
 	int
 
-sdl-init c-int(flags nat32) extern<"SDL_Init"> noctx summon
+| SDL.h
+
+sdl-flags alias
+	nat32
+
+sdl-init c-int(flags sdl-flags) extern<"SDL_Init"> noctx summon
+
+sdl-init-video sdl-flags()
+	1 bit-shift-left 5
+
+sdl-init-joystick sdl-flags()
+	1 bit-shift-left 9
+
+sdl-quit void() extern<"SDL_Quit"> noctx summon
+
+| SDL_error.h
+
+sdl-err alias
+	int
+
+sdl-get-error c-str() extern<"SDL_GetError"> noctx summon
+
+| SDL_events.h
+
+sdl-pump-events void() extern<"SDL_PumpEvents"> noctx summon
+
+| SDL_keyboard.h
+
+sdl-get-keyboard-state ptr nat8(num-keys ptr int) extern<"SDL_GetKeyboardState"> noctx summon
+
+| SDL_rect.h
+
+sdl-rect record
+	x c-int
+	y c-int
+	w c-int
+	h c-int
+
+| SDL_render.h
+
+sdl-create-renderer ptr sdl-renderer
+	window ptr sdl-window
+	index c-int
+	flags sdl-flags
+spec
+	extern<"SDL_CreateRenderer">
+	noctx
+	summon
+	unsafe
+
+sdl-create-texture-from-surface ptr sdl-texture
+	renderer ptr sdl-renderer
+	surface ptr sdl-surface
+spec
+	extern<"SDL_CreateTextureFromSurface">
+	noctx
+	summon
+	unsafe
+
+sdl-destroy-renderer void(renderer ptr sdl-renderer) extern<"SDL_DestroyRenderer"> noctx summon unsafe
+
+sdl-destroy-texture void(texture ptr sdl-texture) extern<"SDL_DestroyTexture"> noctx summon unsafe
+
+sdl-render-clear c-int(renderer ptr sdl-renderer) extern<"SDL_RenderClear"> noctx summon unsafe
+
+sdl-render-copy c-int
+	renderer ptr sdl-renderer
+	texture ptr sdl-texture
+	src-rect ptr sdl-rect
+	dest-rect ptr sdl-rect
+spec
+	extern<"SDL_RenderCopy">
+	noctx
+	summon
+	unsafe
+
+sdl-renderer record
+	| TODO: this is bogus. Noze should have types with unknown contents
+	x int
+
+sdl-renderer-accelerated sdl-flags()
+	2
+
+sdl-renderer-present-vsync sdl-flags()
+	4
+
+sdl-render-present void(renderer ptr sdl-renderer) extern<"SDL_RenderPresent"> noctx summon unsafe
+
+sdl-texture record
+	| TODO: this is bogus. Noze should have types with unknown contents
+	x int
+
+| SDL_rwops.h
+
+sdl-rwops record
+	| TODO: this is bogus. Noze should have types with unknown contents
+	x int
+
+sdl-rw-from-file ptr sdl-rwops(file c-str, mode c-str) extern<"SDL_RWFromFile"> noctx summon unsafe
+
+| SDL_surface.h
+
+sdl-free-surface void(surface ptr sdl-surface) extern<"SDL_FreeSurface"> noctx summon unsafe
+
+sdl-surface record
+	| TODO: this is bogus. Noze should have types with unknown contents
+	x int
+
+sdl-load-bmp-rw ptr sdl-surface(src ptr sdl-rwops, freesrc c-int) extern<"SDL_LoadBMP_RW"> noctx summon unsafe
+
+sdl-load-bmp ptr sdl-surface(file str) summon unsafe
+	file.to-c-str sdl-rw-from-file "rb" sdl-load-bmp-rw 1
+
+| SDL_scancode.h
+
+sdl-scancode alias
+	nat
+
+sdl-scancode-return sdl-scancode()
+	40
+
+sdl-scancode-right sdl-scancode()
+	79
+sdl-scancode-left sdl-scancode()
+	80
+sdl-scancode-down sdl-scancode()
+	81
+sdl-scancode-up sdl-scancode()
+	82
+sdl-num-scancodes sdl-scancode()
+	512
+
+| SDL_video.h
+
+sdl-destroy-window void(window ptr sdl-window) extern<"SDL_DestroyWindow"> noctx summon unsafe
+
+sdl-window record
+	| TODO: this is bogus. Noze should have types with unknown contents
+	x int
+
+sdl-create-window ptr sdl-window
+	title c-str
+	x c-int
+	y c-int
+	w c-int
+	h c-int
+	flags sdl-flags
+spec
+	extern<"SDL_CreateWindow">
+	noctx
+	summon
+	unsafe
+
+sdl-window-shown sdl-flags()
+	4
+
+| Not lib code
+
+main fut exit-code(args arr str) summon trusted
+	"sdl-init-video" handle-sdl-error: sdl-init-video sdl-init
+	window = "Hello World!" sdl-create-window 100, 100, 640, 480, sdl-window-shown
+	window.null? if: "sdl-create-window".fail-sdl-error, pass
+	renderer = window sdl-create-renderer: -1, sdl-renderer-accelerated bits-or sdl-renderer-present-vsync
+	when
+		renderer null?
+			window sdl-destroy-window
+			"sdl-create-renderer" fail-sdl-error
+		else
+			pass
+
+	image-path = "hello.bmp"
+	bmp = image-path sdl-load-bmp
+	when
+		bmp null?
+			renderer sdl-destroy-renderer
+			window sdl-destroy-window
+			"sdl-loadbmp-error" fail-sdl-error
+		else
+			pass
+
+	texture = renderer sdl-create-texture-from-surface bmp
+	bmp sdl-free-surface
+	when
+		texture null?
+			renderer sdl-destroy-renderer
+			window sdl-destroy-window
+			"sdl-create-texture-from-surface" fail-sdl-error
+		else
+			pass
+
+	20 repeat \
+		sdl-pump-events
+		key-states-ptr = null sdl-get-keyboard-state
+		key-states = sdl-num-scancodes ptr-as-arr key-states-ptr
+		when
+			key-states at sdl-scancode-return zero?
+				print-sync: "no return"
+			else
+				print-sync: "return is pressed"
+
+		"sdl-render-clear" handle-sdl-error: renderer sdl-render-clear
+		"sdl-render-copy" handle-sdl-error: renderer sdl-render-copy texture, null, null
+		renderer sdl-render-present
+		100 sleep-ms-sync
+
+	texture sdl-destroy-texture
+	renderer sdl-destroy-renderer
+	window sdl-destroy-window
+	sdl-quit
+
+	print-sync: "Bye bye"
+	zero resolved
+
+
+
+handle-sdl-error void(operation str, err c-int) summon trusted
+	err.zero? if: pass, operation fail-sdl-error
+
+fail-sdl-error void(operation str) summon trusted
+	fail: "sdl error in " + operation + " " + sdl-get-error.to-str
+	sdl-quit
+
+| TODO:MOVE
+repeat void(times nat, action fun-mut0 void)
+	when
+		times zero?
+			pass
+		else
+			action call
+			times.decr repeat action

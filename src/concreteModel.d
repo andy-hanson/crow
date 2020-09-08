@@ -16,13 +16,14 @@ import util.verify : unreachable;
 
 enum BuiltinStructKind {
 	bool_,
-	byte_,
 	char_,
 	float64,
 	funPtrN, // fun-ptr0, fun-ptr1, etc...
+	int8,
 	int16,
 	int32,
 	int64,
+	nat8,
 	nat16,
 	nat32,
 	nat64,
@@ -34,20 +35,22 @@ immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
 	final switch (a) {
 		case BuiltinStructKind.bool_:
 			return shortSymAlphaLiteral("bool");
-		case BuiltinStructKind.byte_:
-			return shortSymAlphaLiteral("byte");
 		case BuiltinStructKind.char_:
 			return shortSymAlphaLiteral("char");
 		case BuiltinStructKind.float64:
 			return shortSymAlphaLiteral("float-64");
 		case BuiltinStructKind.funPtrN:
 			return shortSymAlphaLiteral("fun-ptr");
+		case BuiltinStructKind.int8:
+			return shortSymAlphaLiteral("int-8");
 		case BuiltinStructKind.int16:
 			return shortSymAlphaLiteral("int-16");
 		case BuiltinStructKind.int32:
 			return shortSymAlphaLiteral("int-32");
 		case BuiltinStructKind.int64:
 			return shortSymAlphaLiteral("int-64");
+		case BuiltinStructKind.nat8:
+			return shortSymAlphaLiteral("nat-8");
 		case BuiltinStructKind.nat16:
 			return shortSymAlphaLiteral("nat-16");
 		case BuiltinStructKind.nat32:
@@ -74,16 +77,22 @@ enum BuiltinFunKind {
 	asAnyPtr,
 	asRef,
 	bitShiftLeftInt32,
+	bitShiftLeftNat32,
 	bitShiftRightInt32,
+	bitShiftRightNat32,
+	bitwiseAndInt8,
 	bitwiseAndInt16,
 	bitwiseAndInt32,
 	bitwiseAndInt64,
+	bitwiseAndNat8,
 	bitwiseAndNat16,
 	bitwiseAndNat32,
 	bitwiseAndNat64,
+	bitwiseOrInt8,
 	bitwiseOrInt16,
 	bitwiseOrInt32,
 	bitwiseOrInt64,
+	bitwiseOrNat8,
 	bitwiseOrNat16,
 	bitwiseOrNat32,
 	bitwiseOrNat64,
@@ -100,9 +109,11 @@ enum BuiltinFunKind {
 	mulFloat64,
 	not,
 	null_,
+	oneInt8,
 	oneInt16,
 	oneInt32,
 	oneInt64,
+	oneNat8,
 	oneNat16,
 	oneNat32,
 	oneNat64,
@@ -125,12 +136,14 @@ enum BuiltinFunKind {
 	unsafeDivInt64,
 	unsafeDivNat64,
 	unsafeInt64ToNat64,
+	unsafeInt64ToInt8,
 	unsafeInt64ToInt16,
 	unsafeInt64ToInt32,
 	unsafeModNat64,
 	unsafeNat64ToInt64,
-	unsafeNat64ToNat32,
+	unsafeNat64ToNat8,
 	unsafeNat64ToNat16,
+	unsafeNat64ToNat32,
 	wrapAddInt16,
 	wrapAddInt32,
 	wrapAddInt64,
@@ -149,9 +162,11 @@ enum BuiltinFunKind {
 	wrapSubNat16,
 	wrapSubNat32,
 	wrapSubNat64,
+	zeroInt8,
 	zeroInt16,
 	zeroInt32,
 	zeroInt64,
+	zeroNat8,
 	zeroNat16,
 	zeroNat32,
 	zeroNat64,
@@ -173,26 +188,38 @@ immutable(string) strOfBuiltinFunKind(immutable BuiltinFunKind kind) {
 			return "as-ref";
 		case BuiltinFunKind.bitShiftLeftInt32:
 			return "bit-shift-left (int-32)";
+		case BuiltinFunKind.bitShiftLeftNat32:
+			return "bit-shift-left (nat-32)";
 		case BuiltinFunKind.bitShiftRightInt32:
 			return "bit-shift-right (int-32)";
+		case BuiltinFunKind.bitShiftRightNat32:
+			return "bit-shift-right (nat-32)";
+		case BuiltinFunKind.bitwiseAndInt8:
+			return "bit-and (int-8)";
 		case BuiltinFunKind.bitwiseAndInt16:
 			return "bit-and (int-16)";
 		case BuiltinFunKind.bitwiseAndInt32:
 			return "bit-and (int-32)";
 		case BuiltinFunKind.bitwiseAndInt64:
 			return "bit-and (int-64)";
+		case BuiltinFunKind.bitwiseAndNat8:
+			return "bit-and (nat-8)";
 		case BuiltinFunKind.bitwiseAndNat16:
 			return "bit-and (nat-16)";
 		case BuiltinFunKind.bitwiseAndNat32:
 			return "bit-and (nat-32)";
 		case BuiltinFunKind.bitwiseAndNat64:
 			return "bit-and (int-64)";
+		case BuiltinFunKind.bitwiseOrInt8:
+			return "bit-or (int-8)";
 		case BuiltinFunKind.bitwiseOrInt16:
 			return "bit-or (int-16)";
 		case BuiltinFunKind.bitwiseOrInt32:
 			return "bit-or (int-32)";
 		case BuiltinFunKind.bitwiseOrInt64:
 			return "bit-or (int-64)";
+		case BuiltinFunKind.bitwiseOrNat8:
+			return "bit-or (nat-8)";
 		case BuiltinFunKind.bitwiseOrNat16:
 			return "bit-or (nat-16)";
 		case BuiltinFunKind.bitwiseOrNat32:
@@ -225,12 +252,16 @@ immutable(string) strOfBuiltinFunKind(immutable BuiltinFunKind kind) {
 			return "not";
 		case BuiltinFunKind.null_:
 			return "null";
+		case BuiltinFunKind.oneInt8:
+			return "one (int-8)";
 		case BuiltinFunKind.oneInt16:
 			return "one (int-16)";
 		case BuiltinFunKind.oneInt32:
 			return "one (int-32)";
 		case BuiltinFunKind.oneInt64:
 			return "one (int-64)";
+		case BuiltinFunKind.oneNat8:
+			return "one (nat-8)";
 		case BuiltinFunKind.oneNat16:
 			return "one (nat-16)";
 		case BuiltinFunKind.oneNat32:
@@ -275,6 +306,8 @@ immutable(string) strOfBuiltinFunKind(immutable BuiltinFunKind kind) {
 			return "unsafe-div (nat-64)";
 		case BuiltinFunKind.unsafeInt64ToNat64:
 			return "unsafe-int64-to-nat64";
+		case BuiltinFunKind.unsafeInt64ToInt8:
+			return "unsafe-int64-to-int8";
 		case BuiltinFunKind.unsafeInt64ToInt16:
 			return "unsafe-int64-to-int16";
 		case BuiltinFunKind.unsafeInt64ToInt32:
@@ -283,10 +316,12 @@ immutable(string) strOfBuiltinFunKind(immutable BuiltinFunKind kind) {
 			return "unsafe-mod (nat64)";
 		case BuiltinFunKind.unsafeNat64ToInt64:
 			return "usnafe-nat64-to-int64";
-		case BuiltinFunKind.unsafeNat64ToNat32:
-			return "unsafe-nat64-to-nat32";
+		case BuiltinFunKind.unsafeNat64ToNat8:
+			return "unsafe-nat64-to-nat8";
 		case BuiltinFunKind.unsafeNat64ToNat16:
 			return "unsafe-nat64-to-nat16";
+		case BuiltinFunKind.unsafeNat64ToNat32:
+			return "unsafe-nat64-to-nat32";
 		case BuiltinFunKind.wrapAddInt16:
 			return "wrap-add (int-16)";
 		case BuiltinFunKind.wrapAddInt32:
@@ -323,12 +358,16 @@ immutable(string) strOfBuiltinFunKind(immutable BuiltinFunKind kind) {
 			return "wrap-sub (nat-32)";
 		case BuiltinFunKind.wrapSubNat64:
 			return "wrap-sub (nat-64)";
+		case BuiltinFunKind.zeroInt8:
+			return "zero (int-8)";
 		case BuiltinFunKind.zeroInt16:
 			return "zero (int-16)";
 		case BuiltinFunKind.zeroInt32:
 			return "zero (int-32)";
 		case BuiltinFunKind.zeroInt64:
 			return "zero (int-64)";
+		case BuiltinFunKind.zeroNat8:
+			return "zero (nat-8)";
 		case BuiltinFunKind.zeroNat16:
 			return "zero (nat-16)";
 		case BuiltinFunKind.zeroNat32:

@@ -7,13 +7,13 @@ import util.memory : allocate;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
 
-immutable LowType byteType = immutable LowType(PrimitiveType.byte_);
 immutable LowType charType = immutable LowType(PrimitiveType.char_);
 immutable LowType charPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charType)));
 immutable LowType charPtrPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charPtrType)));
 immutable LowType int32Type = immutable LowType(PrimitiveType.int32);
+immutable LowType nat8Type = immutable LowType(PrimitiveType.nat8);
 immutable LowType nat64Type = immutable LowType(PrimitiveType.nat64);
-immutable LowType anyPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&byteType)));
+immutable LowType anyPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&nat8Type)));
 immutable LowType voidType = immutable LowType(PrimitiveType.void_);
 
 immutable(LowExpr) addPtr(Alloc)(
@@ -55,7 +55,7 @@ immutable(LowExpr) paramRef(ref immutable SourceRange range, immutable Ptr!LowPa
 	return immutable LowExpr(param.type, range, immutable LowExprKind(immutable LowExprKind.ParamRef(param)));
 }
 
-immutable(LowExpr) mulNat64(Alloc)(
+immutable(LowExpr) wrapMulNat64(Alloc)(
 	ref Alloc alloc,
 	ref immutable SourceRange range,
 	ref immutable LowExpr left,
@@ -65,7 +65,7 @@ immutable(LowExpr) mulNat64(Alloc)(
 		nat64Type,
 		range,
 		immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-			LowExprKind.SpecialBinary.Kind.mulNat64,
+			LowExprKind.SpecialBinary.Kind.wrapMulNat64,
 			allocate(alloc, left),
 			allocate(alloc, right))));
 }

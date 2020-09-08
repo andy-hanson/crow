@@ -32,8 +32,9 @@ ptr-eq bool(a ?t, b ?t) noctx unsafe
 get-ctx ctx() unsafe builtin
 
 void builtin
-| TODO: nat8 should be the builtin and this should alias it
-byte builtin
+| TODO: kill, just use nat8...
+byte alias
+	nat8
 
 | NOTE: if ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
 ptr<?t> builtin
@@ -42,11 +43,8 @@ set void(p ptr ?t, value ?t) noctx unsafe builtin
 
 null ptr ?t() noctx builtin
 
-| TODO: this should be generic (problem: currently only pointers to data are equatable)
-null? bool(a any-ptr) noctx
-	a == null
-null? bool(a ptr char) noctx
-	a == null
+null? bool(a ptr ?t) noctx trusted
+	a.to-nat == (null<?t>).to-nat
 
 any-ptr alias
 	ptr byte
@@ -135,6 +133,9 @@ arr<?t> record
 	by-val
 	size nat
 	data ptr ?t
+
+ptr-as-arr arr ?t(size nat, data ptr ?t)
+	new size, data
 
 char builtin
 str alias
@@ -331,27 +332,31 @@ int64 alias
 	int
 float builtin
 | Not currently used for anything other than posix headers, so limited arithmetic is avialable
+int8 builtin
 int16 builtin
 int32 builtin
+nat8 builtin
 nat16 builtin
 nat32 builtin
 
 | UB for negative numbers
 unsafe-to-nat nat(a int) noctx builtin
+unsafe-to-nat8 nat8(a nat) noctx builtin
 unsafe-to-nat16 nat16(a nat) noctx builtin
 unsafe-to-nat32 nat32(a nat) noctx builtin
 
 | UB for positive numbers >= 2 ** 63
 unsafe-to-int int(a nat) noctx builtin
+unsafe-to-int8 int8(a int) noctx builtin
 unsafe-to-int16 int16(a int) noctx builtin
 unsafe-to-int32 int32(a int) noctx builtin
 
 to-nat nat(n nat16) noctx builtin
 to-nat nat(n nat32) noctx builtin
 
+to-int int(i int8) noctx builtin
 to-int int(i int16) noctx builtin
 to-int int(i int32) noctx builtin
-
 
 wrap-add int(a int, b int) noctx builtin
 wrap-add nat(a nat, b nat) noctx builtin
@@ -375,16 +380,20 @@ unsafe-mod nat(a nat, b nat) noctx unsafe builtin
 
 
 zero int() noctx builtin
+zero int8() noctx builtin
 zero int16() noctx builtin
 zero int32() noctx builtin
 zero nat() noctx builtin
+zero nat8() noctx builtin
 zero nat16() noctx builtin
 zero nat32() noctx builtin
 
 one int() noctx builtin
+one int8() noctx builtin
 one int16() noctx builtin
 one int32() noctx builtin
 one nat() noctx builtin
+one nat8() noctx builtin
 one nat16() noctx builtin
 one nat32() noctx builtin
 
@@ -527,6 +536,7 @@ billion nat() noctx
 bits-and nat16(a nat16, b nat16) noctx builtin
 bits-and nat32(a nat32, b nat32) noctx builtin
 bits-and nat(a nat, b nat) noctx builtin
+bits-and int8(a int8, b int8) noctx builtin
 bits-and int16(a int16, b int16) noctx builtin
 bits-and int32(a int32, b int32) noctx builtin
 bits-and int(a int, b int) noctx builtin
@@ -534,21 +544,25 @@ bits-and int(a int, b int) noctx builtin
 bits-or nat16(a nat16, b nat16) noctx builtin
 bits-or nat32(a nat32, b nat32) noctx builtin
 bits-or nat(a nat, b nat) noctx builtin
+bits-or nat8(a nat8, b nat8) noctx builtin
 bits-or int16(a int16, b int16) noctx builtin
 bits-or int32(a int32, b int32) noctx builtin
 bits-or int(a int, b int) noctx builtin
-
 
 bits-intersect? bool(a int16, b int16) noctx
 	not: a bits-and b zero?
 bits-intersect? bool(a int32, b int32) noctx
 	not: a bits-and b zero?
 
-bit-lshift int32(a int32, b int32) noctx builtin
-bit-rshift int32(a int32, b int32) noctx builtin
+bit-shift-left int32(a int32, b int32) noctx builtin
+bit-shift-left nat32(a nat32, b nat32) noctx builtin
+bit-shift-right int32(a int32, b int32) noctx builtin
+bit-shift-right nat32(a nat32, b nat32) noctx builtin
 
 | TODO: generic
 zero? bool(n nat) noctx
+	n == zero
+zero? bool(n nat8) noctx
 	n == zero
 zero? bool(n nat32) noctx
 	n == zero
@@ -558,7 +572,6 @@ zero? bool(a int16) noctx
 	a == zero
 zero? bool(i int32) noctx
 	i == zero
-
 
 wrap-add int16(a int16, b int16) noctx builtin
 wrap-add int32(a int32, b int32) noctx builtin
