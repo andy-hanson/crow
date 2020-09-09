@@ -503,7 +503,7 @@ struct SpecialStructInfo {
 struct ConcreteStructInfo {
 	immutable ConcreteStructBody body_;
 	immutable size_t sizeBytes; // TODO: never used?
-	immutable Bool isSelfMutable; //TODO: never used?
+	immutable Bool isSelfMutable; //TODO: never used? (may need for GC though)
 	immutable Bool defaultIsPointer;
 }
 

@@ -1,0 +1,12 @@
+r record
+	f t
+	g ?a
+	h t ?a
+
+u union
+	t
+
+foo t()
+	x
+	a y
+	a z b

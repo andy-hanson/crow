@@ -34,7 +34,7 @@ import frontend.instantiate :
 import frontend.programState : ProgramState;
 import frontend.typeFromAst : instStructFromAst, tryFindSpec, typeArgsFromAsts, typeFromAst;
 
-import diag : Diag, Diagnostic, Diags, PathAndStorageKindAndRange;
+import diag : Diag, Diagnostic, Diags, PathAndStorageKindAndRange, TypeKind;
 
 import model :
 	arity,
@@ -467,19 +467,50 @@ struct PurityAndForceSendable {
 }
 
 //TODO: just take ast.purity since that's all I use..
-immutable(PurityAndForceSendable) getPurityFromAst(ref immutable StructDeclAst ast) {
+immutable(PurityAndForceSendable) getPurityFromAst(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref immutable StructDeclAst ast,
+) {
+	immutable Purity defaultPurity = matchStructDeclAstBody!(immutable Purity)(
+		ast.body_,
+		(ref immutable StructDeclAst.Body.Builtin) =>
+			Purity.data,
+		(ref immutable StructDeclAst.Body.ExternPtr) =>
+			Purity.mut,
+		(ref immutable StructDeclAst.Body.Record) =>
+			Purity.data,
+		(ref immutable StructDeclAst.Body.Union) =>
+			Purity.data);
 	// Note: purity is taken for granted here, and verified later when we check the body.
-	if (has(ast.purity))
-		final switch (force(ast.purity)) {
-			case PuritySpecifier.sendable:
-				return PurityAndForceSendable(Purity.sendable, False);
-			case PuritySpecifier.forceSendable:
-				return PurityAndForceSendable(Purity.sendable, True);
-			case PuritySpecifier.mut:
-				return PurityAndForceSendable(Purity.mut, False);
-		}
-	else
-		return PurityAndForceSendable(Purity.data, False);
+	if (has(ast.purity)) {
+		immutable PurityAndForceSendable res = () {
+			final switch (force(ast.purity)) {
+				case PuritySpecifier.data:
+					return PurityAndForceSendable(Purity.data, False);
+				case PuritySpecifier.sendable:
+					return PurityAndForceSendable(Purity.sendable, False);
+				case PuritySpecifier.forceSendable:
+					return PurityAndForceSendable(Purity.sendable, True);
+				case PuritySpecifier.mut:
+					return PurityAndForceSendable(Purity.mut, False);
+			}
+		}();
+		if (res.purity == defaultPurity)
+			addDiag(alloc, ctx, ast.range, immutable Diag(
+				immutable Diag.PuritySpecifierRedundant(defaultPurity, getTypeKind(ast.body_))));
+		return res;
+	} else
+		return PurityAndForceSendable(defaultPurity, False);
+}
+
+immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) {
+	return matchStructDeclAstBody!(immutable TypeKind)(
+		a,
+		(ref immutable StructDeclAst.Body.Builtin) => TypeKind.builtin,
+		(ref immutable StructDeclAst.Body.ExternPtr) => TypeKind.externPtr,
+		(ref immutable StructDeclAst.Body.Record) => TypeKind.record,
+		(ref immutable StructDeclAst.Body.Union) => TypeKind.union_);
 }
 
 Arr!StructDecl checkStructsInitial(Alloc)(
@@ -488,7 +519,7 @@ Arr!StructDecl checkStructsInitial(Alloc)(
 	ref immutable Arr!StructDeclAst asts,
 ) {
 	return mapToMut!StructDecl(alloc, asts, (ref immutable StructDeclAst ast) {
-		immutable PurityAndForceSendable p = getPurityFromAst(ast);
+		immutable PurityAndForceSendable p = getPurityFromAst(alloc, ctx, ast);
 		return immutable StructDecl(
 			ast.range,
 			ast.isPublic,
@@ -655,8 +686,11 @@ void checkStructBodies(Alloc)(
 			ast.body_,
 			(ref immutable StructDeclAst.Body.Builtin) =>
 				immutable StructBody(immutable StructBody.Builtin()),
-			(ref immutable StructDeclAst.Body.ExternPtr) =>
-				immutable StructBody(immutable StructBody.ExternPtr()),
+			(ref immutable StructDeclAst.Body.ExternPtr) {
+				if (!empty(ast.typeParams))
+					addDiag(alloc, ctx, ast.range, immutable Diag(immutable Diag.ExternPtrHasTypeParams()));
+				return immutable StructBody(immutable StructBody.ExternPtr());
+			},
 			(ref immutable StructDeclAst.Body.Record r) =>
 				checkRecord(alloc, ctx, structsAndAliasesMap, ptrAsImmutable(struct_), r, delayStructInsts),
 			(ref immutable StructDeclAst.Body.Union un) =>

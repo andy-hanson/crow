@@ -1,0 +1,8 @@
+b builtin data
+
+e extern-ptr mut
+
+r record data
+
+u union data
+	r

@@ -1,0 +1,5 @@
+
+a extern-ptr
+
+r record
+	a a

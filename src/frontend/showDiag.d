@@ -4,7 +4,7 @@ module frontend.showDiag;
 
 import core.stdc.stdio : fprintf, stderr;
 
-import diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, PathAndStorageKindAndRange;
+import diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, PathAndStorageKindAndRange, TypeKind;
 import frontend.lang : nozeExtension;
 import model :
 	arity,
@@ -27,6 +27,7 @@ import model :
 	SpecBody,
 	SpecSig,
 	StructInst,
+	symOfPurity,
 	Type,
 	writeStructInst,
 	writeType;
@@ -417,6 +418,9 @@ void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref i
 			} else
 				writeStatic(writer, "there is no expected type at this location; lambdas need an expected type");
 		},
+		(ref immutable Diag.ExternPtrHasTypeParams) {
+			writeStatic(writer, "an 'extern-ptr' type should not be a template");
+		},
 		(ref immutable Diag.FileDoesNotExist d) {
 			final switch (d.kind) {
 				case Diag.FileDoesNotExist.Kind.root:
@@ -481,10 +485,10 @@ void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref i
 		(ref immutable Diag.NameNotFound d) {
 			immutable string kind = () {
 				final switch (d.kind) {
-					case Diag.NameNotFound.Kind.struct_:
-						return "struct";
 					case Diag.NameNotFound.Kind.spec:
 						return "spec";
+					case Diag.NameNotFound.Kind.type:
+						return "type";
 					case Diag.NameNotFound.Kind.typeParam:
 						return "type parameter";
 				}
@@ -527,6 +531,13 @@ void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref i
 			writeStructInst(writer, d.member);
 			writeStatic(writer, " has purity ");
 			writePurity(writer, d.member.bestCasePurity);
+		},
+		(ref immutable Diag.PuritySpecifierRedundant d) {
+			writeStatic(writer, "redundant purity specifier of ");
+			writeName(writer, symOfPurity(d.purity));
+			writeStatic(writer, " is already the default for ");
+			writeStatic(writer, aOrAnTypeKind(d.typeKind));
+			writeStatic(writer, " type");
 		},
 		(ref immutable Diag.RelativeImportReachesPastRoot d) {
 			writeStatic(writer, "importing ");
@@ -611,4 +622,17 @@ void showDiagnostic(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, 
 	writeChar(writer, ' ');
 	writeDiag(writer, fi, d.diag);
 	writeNl(writer);
+}
+
+immutable(string) aOrAnTypeKind(immutable TypeKind a) {
+	final switch (a) {
+		case TypeKind.builtin:
+			return "a builtin";
+		case TypeKind.externPtr:
+			return "an extern-ptr";
+		case TypeKind.record:
+			return "a record";
+		case TypeKind.union_:
+			return "a union";
+	}
 }

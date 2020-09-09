@@ -95,7 +95,9 @@ immutable(Arr!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc alloc, re
 }
 
 immutable(PuritySpecifier) parsePurity(SymAlloc)(ref Lexer!SymAlloc lexer) {
-	if (lexer.tryTake("mut"))
+	if (lexer.tryTake("data"))
+		return PuritySpecifier.data;
+	else if (lexer.tryTake("mut"))
 		return PuritySpecifier.mut;
 	else if (lexer.tryTake("sendable"))
 		return PuritySpecifier.sendable;

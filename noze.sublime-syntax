@@ -128,7 +128,7 @@ contexts:
   record:
     - match: '{{unindented_line}}'
       pop: true
-    - match: 'force-sendable|mut|sendable'
+    - match: 'data|force-sendable|mut|sendable'
       scope: keyword
     - match: $
       push: record_body

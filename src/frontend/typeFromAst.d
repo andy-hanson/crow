@@ -46,8 +46,8 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 		ast.name,
 		ast.range,
 		structsAndAliasesMap,
-		Diag.DuplicateImports.Kind.structOrAlias,
-		Diag.NameNotFound.Kind.struct_,
+		Diag.DuplicateImports.Kind.type,
+		Diag.NameNotFound.Kind.type,
 		(immutable Ptr!Module m) => m.structsAndAliasesMap);
 	if (!has(opDecl))
 		return none!(Ptr!StructInst);

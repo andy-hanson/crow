@@ -8,6 +8,7 @@ import model :
 	ClosureField,
 	FunDecl,
 	LineAndColumnGetters,
+	Purity,
 	RecordField,
 	SpecBody,
 	SpecDecl,
@@ -22,7 +23,29 @@ import util.opt : Opt;
 import util.path : PathAndStorageKind, RelPath;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
-import util.sym : Sym;
+import util.sym : shortSymAlphaLiteral, Sym;
+
+enum TypeKind {
+	builtin,
+	externPtr,
+	record,
+	union_,
+}
+
+immutable(Sym) symOfTypeKind(immutable TypeKind a) {
+	return shortSymAlphaLiteral(() {
+		final switch (a) {
+			case TypeKind.builtin:
+				return "builtin";
+			case TypeKind.externPtr:
+				return "extern-ptr";
+			case TypeKind.record:
+				return "record";
+			case TypeKind.union_:
+				return "union";
+		}
+	}());
+}
 
 struct Diag {
 	@safe @nogc pure nothrow:
@@ -93,8 +116,8 @@ struct Diag {
 	}
 	struct DuplicateImports {
 		enum Kind {
-			structOrAlias,
 			spec,
+			type,
 		}
 		immutable Kind kind;
 		immutable Sym name;
@@ -102,6 +125,7 @@ struct Diag {
 	struct ExpectedTypeIsNotALambda {
 		immutable Opt!Type expectedType;
 	}
+	struct ExternPtrHasTypeParams {}
 	struct FileDoesNotExist {
 		enum Kind {
 			root,
@@ -140,8 +164,8 @@ struct Diag {
 	}
 	struct NameNotFound {
 		enum Kind {
-			struct_,
 			spec,
+			type,
 			typeParam,
 		}
 		immutable Kind kind;
@@ -162,6 +186,10 @@ struct Diag {
 	struct PurityOfMemberWorseThanUnion {
 		immutable Ptr!StructDecl strukt;
 		immutable Ptr!StructInst member;
+	}
+	struct PuritySpecifierRedundant {
+		immutable Purity purity;
+		immutable TypeKind typeKind;
 	}
 	struct RelativeImportReachesPastRoot {
 		immutable RelPath imported;
@@ -226,6 +254,7 @@ struct Diag {
 		duplicateDeclaration,
 		duplicateImports,
 		expectedTypeIsNotALambda,
+		externPtrHasTypeParams,
 		fileDoesNotExist,
 		lambdaCantInferParamTypes,
 		lambdaClosesOverMut,
@@ -240,6 +269,7 @@ struct Diag {
 		parseDiag,
 		purityOfFieldWorseThanRecord,
 		purityOfMemberWorseThanUnion,
+		puritySpecifierRedundant,
 		relativeImportReachesPastRoot,
 		sendFunDoesNotReturnFut,
 		specBuiltinNotSatisfied,
@@ -270,6 +300,7 @@ struct Diag {
 		immutable DuplicateDeclaration duplicateDeclaration;
 		immutable DuplicateImports duplicateImports;
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
+		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
 		immutable FileDoesNotExist fileDoesNotExist;
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
 		immutable LambdaClosesOverMut lambdaClosesOverMut;
@@ -284,6 +315,7 @@ struct Diag {
 		immutable ParseDiag parseDiag;
 		immutable PurityOfFieldWorseThanRecord purityOfFieldWorseThanRecord;
 		immutable PurityOfMemberWorseThanUnion purityOfMemberWorseThanUnion;
+		immutable PuritySpecifierRedundant puritySpecifierRedundant;
 		immutable RelativeImportReachesPastRoot relativeImportReachesPastRoot;
 		immutable SendFunDoesNotReturnFut sendFunDoesNotReturnFut;
 		immutable SpecBuiltinNotSatisfied specBuiltinNotSatisfied;
@@ -331,6 +363,9 @@ struct Diag {
 	@trusted immutable this(immutable ExpectedTypeIsNotALambda a) {
 		kind = Kind.expectedTypeIsNotALambda; expectedTypeIsNotALambda = a;
 	}
+	immutable this(immutable ExternPtrHasTypeParams a) {
+		kind = Kind.externPtrHasTypeParams; externPtrHasTypeParams = a;
+	}
 	@trusted immutable this(immutable FileDoesNotExist a) {
 		kind = Kind.fileDoesNotExist; fileDoesNotExist = a;
 	}
@@ -372,6 +407,9 @@ struct Diag {
 	}
 	@trusted immutable this(immutable PurityOfMemberWorseThanUnion a) {
 		kind = Kind.purityOfMemberWorseThanUnion; purityOfMemberWorseThanUnion = a;
+	}
+	immutable this(immutable PuritySpecifierRedundant a) {
+		kind = Kind.puritySpecifierRedundant; puritySpecifierRedundant = a;
 	}
 	@trusted immutable this(immutable RelativeImportReachesPastRoot a) {
 		kind = Kind.relativeImportReachesPastRoot; relativeImportReachesPastRoot = a;
@@ -443,6 +481,9 @@ struct Diag {
 		ref immutable Diag.ExpectedTypeIsNotALambda
 	) @safe @nogc pure nothrow cbExpectedTypeIsNotALambda,
 	scope immutable(Out) delegate(
+		ref immutable Diag.ExternPtrHasTypeParams
+	) @safe @nogc pure nothrow cbExternPtrHasTypeParams,
+	scope immutable(Out) delegate(
 		ref immutable Diag.FileDoesNotExist
 	) @safe @nogc pure nothrow cbFileDoesNotExist,
 	scope immutable(Out) delegate(
@@ -484,6 +525,9 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.PurityOfMemberWorseThanUnion
 	) @safe @nogc pure nothrow cbPurityOfMemberWorseThanUnion,
+	scope immutable(Out) delegate(
+		ref immutable Diag.PuritySpecifierRedundant
+	) @safe @nogc pure nothrow cbPuritySpecifierRedundant,
 	scope immutable(Out) delegate(
 		ref immutable Diag.RelativeImportReachesPastRoot
 	) @safe @nogc pure nothrow cbRelativeImportReachesPastRoot,
@@ -550,6 +594,8 @@ struct Diag {
 			return cbDuplicateImports(a.duplicateImports);
 		case Diag.Kind.expectedTypeIsNotALambda:
 			return cbExpectedTypeIsNotALambda(a.expectedTypeIsNotALambda);
+		case Diag.Kind.externPtrHasTypeParams:
+			return cbExternPtrHasTypeParams(a.externPtrHasTypeParams);
 		case Diag.Kind.fileDoesNotExist:
 			return cbFileDoesNotExist(a.fileDoesNotExist);
 		case Diag.Kind.lambdaCantInferParamTypes:
@@ -578,6 +624,8 @@ struct Diag {
 			return cbPurityOfFieldWorseThanRecord(a.purityOfFieldWorseThanRecord);
 		case Diag.Kind.purityOfMemberWorseThanUnion:
 			return cbPurityOfMemberWorseThanUnion(a.purityOfMemberWorseThanUnion);
+		case Diag.Kind.puritySpecifierRedundant:
+			return cbPuritySpecifierRedundant(a.puritySpecifierRedundant);
 		case Diag.Kind.relativeImportReachesPastRoot:
 			return cbRelativeImportReachesPastRoot(a.relativeImportReachesPastRoot);
 		case Diag.Kind.sendFunDoesNotReturnFut:

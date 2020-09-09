@@ -333,6 +333,7 @@ struct SigAst {
 }
 
 enum PuritySpecifier {
+	data,
 	sendable,
 	forceSendable,
 	mut,
@@ -582,6 +583,8 @@ immutable(Sexpr) sexprOfOptPurity(Alloc)(ref Alloc alloc, immutable Opt!PuritySp
 	return tataOpt(alloc, purity, (ref immutable PuritySpecifier a) =>
 		tataSym(() {
 			final switch (force(purity)) {
+				case PuritySpecifier.data:
+					return "data";
 				case PuritySpecifier.sendable:
 					return "sendable";
 				case PuritySpecifier.forceSendable:
