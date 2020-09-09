@@ -232,6 +232,9 @@ contains-subsequence? bool(a arr ?t, subseq arr ?t) data<?t>
 starts-with? bool(a arr ?t, start arr ?t) data<?t>
 	a.size >= start.size and: a slice zero, start.size arr-eq? start
 
+ends-with? bool(a arr ?t, end arr ?t) data<?t>
+	a.size >= end.size and: a slice (a.size - end.size), end.size arr-eq? end
+
 | TODO: should be unnecessary, just use '=='
 arr-eq? bool(a arr ?t, b arr ?t) data<?t>
 	a.size == b.size and: a.empty? or: a.first == b.first and: a.tail arr-eq? b.tail

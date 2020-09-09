@@ -19,7 +19,7 @@ private
 
 list-lintable-files arr str(path str) summon
 	res = new-mut-arr<str>
-	path each-child-recursive {not: it.first == "." or: it == "libfirm"}, \child
+	path each-child-recursive {not: it.first == "." or: it == "libfirm" or: it ends-with? ".bmp"}, \child
 		when
 			child.base-name ignore-extension-of-name
 				pass

@@ -13,9 +13,8 @@ import util.comparison : Comparison;
 import util.opt : Opt, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.types : u64;
-import util.verify : unreachable, verify;
+import util.util : todo, unreachable;
 import util.writer : finishWriter, writeChar, Writer;
-import util.util : todo;
 
 
 immutable(Bool) isAlphaIdentifierStart(immutable char c) {
@@ -308,7 +307,7 @@ immutable(Bool) isLongSym(immutable Sym a) {
 }
 
 @trusted immutable(Str) asLong(immutable Sym a) {
-	verify(isLongSym(a));
+	assert(isLongSym(a));
 	immutable u64 value = a.value & ~(shortOrLongAlphaMarker | shortOrLongOperatorMarker);
 	return strOfCStr(cast(immutable CStr) value);
 }

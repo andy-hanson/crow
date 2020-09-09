@@ -3,7 +3,11 @@
 #include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
+struct sdl_window;
 struct sdl_renderer;
+struct sdl_surface;
+struct sdl_rwops;
+struct sdl_texture;
 typedef uint8_t* (*fun_ptr1__ptr__nat8__ptr__nat8)(uint8_t*);
 struct ctx {
 	uint8_t* gctx_ptr;
@@ -179,21 +183,9 @@ struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure {
 	struct arr__char a;
 	struct arr__char b;
 };
-struct sdl_window {
-	int64_t x;
-};
-struct sdl_surface {
-	int64_t x;
-};
-struct sdl_rwops {
-	int64_t x;
-};
-struct sdl_texture {
-	int64_t x;
-};
 struct main__ptr_fut__int32__arr__arr__char__lambda0___closure {
 	struct sdl_renderer** renderer;
-	struct sdl_texture* texture;
+	struct sdl_texture** texture;
 };
 struct arr__nat8 {
 	uint64_t size;
@@ -869,7 +861,7 @@ uint64_t _op_div__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
 uint64_t char_to_nat__nat__char(char c);
 uint64_t todo__nat();
 char last__char__arr__char(struct ctx* ctx, struct arr__char a);
-extern struct sdl_window* SDL_CreateWindow(char* title, int64_t x, int64_t y, int64_t w, int64_t h, uint32_t flags);
+extern struct sdl_window** SDL_CreateWindow(char* title, int64_t x, int64_t y, int64_t w, int64_t h, uint32_t flags);
 char* literal__ptr__char__arr__char(struct arr__char a);
 int64_t literal___int__arr__char(struct ctx* ctx, struct arr__char s);
 struct arr__char tail__arr__char__arr__char(struct ctx* ctx, struct arr__char a);
@@ -897,21 +889,21 @@ int64_t two___int();
 int64_t neg_one___int();
 int64_t to_int___int__nat(struct ctx* ctx, uint64_t n);
 uint32_t sdl_window_shown__nat32(struct ctx* ctx);
-uint8_t null__q__bool__ptr__sdl_window(struct sdl_window* a);
-extern struct sdl_renderer** SDL_CreateRenderer(struct sdl_window* window, int64_t index, uint32_t flags);
+uint8_t null__q__bool__ptr__sdl_window(struct sdl_window** a);
+extern struct sdl_renderer** SDL_CreateRenderer(struct sdl_window** window, int64_t index, uint32_t flags);
 uint32_t sdl_renderer_accelerated__nat32(struct ctx* ctx);
 uint32_t sdl_renderer_present_vsync__nat32(struct ctx* ctx);
 uint8_t null__q__bool__ptr__sdl_renderer(struct sdl_renderer** a);
-extern void SDL_DestroyWindow(struct sdl_window* window);
-struct sdl_surface* sdl_load_bmp__ptr__sdl_surface__arr__char(struct ctx* ctx, struct arr__char file);
-extern struct sdl_surface* SDL_LoadBMP_RW(struct sdl_rwops* src, int64_t freesrc);
-extern struct sdl_rwops* SDL_RWFromFile(char* file, char* mode);
+extern void SDL_DestroyWindow(struct sdl_window** window);
+struct sdl_surface** sdl_load_bmp__ptr__sdl_surface__arr__char(struct ctx* ctx, struct arr__char file);
+extern struct sdl_surface** SDL_LoadBMP_RW(struct sdl_rwops** src, int64_t freesrc);
+extern struct sdl_rwops** SDL_RWFromFile(char* file, char* mode);
 char* to_c_str__ptr__char__arr__char(struct ctx* ctx, struct arr__char a);
-uint8_t null__q__bool__ptr__sdl_surface(struct sdl_surface* a);
+uint8_t null__q__bool__ptr__sdl_surface(struct sdl_surface** a);
 extern void SDL_DestroyRenderer(struct sdl_renderer** renderer);
-extern struct sdl_texture* SDL_CreateTextureFromSurface(struct sdl_renderer** renderer, struct sdl_surface* surface);
-extern void SDL_FreeSurface(struct sdl_surface* surface);
-uint8_t null__q__bool__ptr__sdl_texture(struct sdl_texture* a);
+extern struct sdl_texture** SDL_CreateTextureFromSurface(struct sdl_renderer** renderer, struct sdl_surface** surface);
+extern void SDL_FreeSurface(struct sdl_surface** surface);
+uint8_t null__q__bool__ptr__sdl_texture(struct sdl_texture** a);
 uint8_t repeat___void__nat__fun_mut0___void(struct ctx* ctx, uint64_t times, struct fun_mut0___void action);
 extern void SDL_PumpEvents();
 extern uint8_t* SDL_GetKeyboardState(int64_t* num_keys);
@@ -927,11 +919,11 @@ uint8_t print_sync___void__arr__char(struct arr__char s);
 uint8_t print_sync_no_newline___void__arr__char(struct arr__char s);
 int32_t stdout_fd__int32();
 extern int64_t SDL_RenderClear(struct sdl_renderer** renderer);
-extern int64_t SDL_RenderCopy(struct sdl_renderer** renderer, struct sdl_texture* texture, struct sdl_rect** src_rect, struct sdl_rect** dest_rect);
+extern int64_t SDL_RenderCopy(struct sdl_renderer** renderer, struct sdl_texture** texture, struct sdl_rect** src_rect, struct sdl_rect** dest_rect);
 extern void SDL_RenderPresent(struct sdl_renderer** renderer);
 uint8_t sleep_ms_sync___void__nat(uint64_t ms);
 uint8_t main__ptr_fut__int32__arr__arr__char__lambda0(struct ctx* ctx, struct main__ptr_fut__int32__arr__arr__char__lambda0___closure* _closure);
-extern void SDL_DestroyTexture(struct sdl_texture* texture);
+extern void SDL_DestroyTexture(struct sdl_texture** texture);
 struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value);
 int32_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(int32_t argc, char** argv, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr) {
 	uint64_t n_threads;
@@ -2513,11 +2505,11 @@ struct result__int32__exception hard_unreachable__result__int32__exception() {
 	return (assert(0),(struct result__int32__exception) {0});
 }
 struct fut__int32* main__ptr_fut__int32__arr__arr__char(struct ctx* ctx, struct arr__arr__char args) {
-	struct sdl_window* window;
+	struct sdl_window** window;
 	struct sdl_renderer** renderer;
 	struct arr__char image_path;
-	struct sdl_surface* bmp;
-	struct sdl_texture* texture;
+	struct sdl_surface** bmp;
+	struct sdl_texture** texture;
 	struct main__ptr_fut__int32__arr__arr__char__lambda0___closure* temp0;
 	handle_sdl_error___void__arr__char___int(ctx, (struct arr__char) {14, "sdl-init-video"}, SDL_Init(sdl_init_video__nat32(ctx)));
 	window = SDL_CreateWindow(literal__ptr__char__arr__char((struct arr__char) {12, "Hello World!"}), literal___int__arr__char(ctx, (struct arr__char) {3, "100"}), literal___int__arr__char(ctx, (struct arr__char) {3, "100"}), literal___int__arr__char(ctx, (struct arr__char) {3, "640"}), literal___int__arr__char(ctx, (struct arr__char) {3, "480"}), sdl_window_shown__nat32(ctx));
@@ -2856,7 +2848,7 @@ int64_t to_int___int__nat(struct ctx* ctx, uint64_t n) {
 uint32_t sdl_window_shown__nat32(struct ctx* ctx) {
 	return literal__nat32__arr__char(ctx, (struct arr__char) {1, "4"});
 }
-uint8_t null__q__bool__ptr__sdl_window(struct sdl_window* a) {
+uint8_t null__q__bool__ptr__sdl_window(struct sdl_window** a) {
 	return _op_equal_equal__bool__nat__nat((uint64_t) a, (uint64_t) NULL);
 }
 uint32_t sdl_renderer_accelerated__nat32(struct ctx* ctx) {
@@ -2868,16 +2860,16 @@ uint32_t sdl_renderer_present_vsync__nat32(struct ctx* ctx) {
 uint8_t null__q__bool__ptr__sdl_renderer(struct sdl_renderer** a) {
 	return _op_equal_equal__bool__nat__nat((uint64_t) a, (uint64_t) NULL);
 }
-struct sdl_surface* sdl_load_bmp__ptr__sdl_surface__arr__char(struct ctx* ctx, struct arr__char file) {
+struct sdl_surface** sdl_load_bmp__ptr__sdl_surface__arr__char(struct ctx* ctx, struct arr__char file) {
 	return SDL_LoadBMP_RW(SDL_RWFromFile(to_c_str__ptr__char__arr__char(ctx, file), literal__ptr__char__arr__char((struct arr__char) {2, "rb"})), literal___int__arr__char(ctx, (struct arr__char) {1, "1"}));
 }
 char* to_c_str__ptr__char__arr__char(struct ctx* ctx, struct arr__char a) {
 	return _op_plus__arr__char__arr__char__arr__char(ctx, a, (struct arr__char) {1, "\0"}).data;
 }
-uint8_t null__q__bool__ptr__sdl_surface(struct sdl_surface* a) {
+uint8_t null__q__bool__ptr__sdl_surface(struct sdl_surface** a) {
 	return _op_equal_equal__bool__nat__nat((uint64_t) a, (uint64_t) NULL);
 }
-uint8_t null__q__bool__ptr__sdl_texture(struct sdl_texture* a) {
+uint8_t null__q__bool__ptr__sdl_texture(struct sdl_texture** a) {
 	return _op_equal_equal__bool__nat__nat((uint64_t) a, (uint64_t) NULL);
 }
 uint8_t repeat___void__nat__fun_mut0___void(struct ctx* ctx, uint64_t times, struct fun_mut0___void action) {

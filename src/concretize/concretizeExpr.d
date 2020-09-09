@@ -73,8 +73,7 @@ import util.opt : force, forcePtr, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
-import util.util : todo;
-import util.verify : unreachable;
+import util.util : todo, unreachable;
 import util.writer : finishWriter, writeNat, Writer, writeStatic, writeStr;
 
 immutable(ConcreteFunBody) concretizeExpr(Alloc)(

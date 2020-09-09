@@ -69,8 +69,7 @@ import util.memory : allocate;
 import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : SourceRange;
-import util.util : todo;
-import util.verify : unreachable;
+import util.util : todo, unreachable;
 import util.writer : finishWriter, writeNat, Writer, writeStatic;
 
 immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {

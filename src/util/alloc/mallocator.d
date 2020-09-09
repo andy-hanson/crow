@@ -4,8 +4,6 @@ module util.alloc.mallocator;
 
 import core.memory : pureFree, pureMalloc;
 
-import util.verify : verify;
-
 struct Mallocator {
 	@safe @nogc pure nothrow:
 

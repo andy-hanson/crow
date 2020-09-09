@@ -60,8 +60,7 @@ import util.memory : nu, nuMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sym : Sym;
-import util.util : min, max, roundUp, todo;
-import util.verify : unreachable;
+import util.util : min, max, roundUp, todo, unreachable;
 import util.writer : finishWriter, Writer, writeStatic, writeStr;
 
 void writeConcreteTypeForMangle(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteType t) {

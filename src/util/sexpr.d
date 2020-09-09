@@ -11,8 +11,7 @@ import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
 import util.types : safeIntFromSizeT;
-import util.util : todo;
-import util.verify : unreachable;
+import util.util : todo, unreachable;
 import util.writer :
 	newline,
 	writeChar,

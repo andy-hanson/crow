@@ -39,8 +39,7 @@ import util.sym :
 	Sym,
 	symEq;
 import util.types : i32, u32, Void, safeI32FromU32, safeSizeTToU32;
-import util.util : todo;
-import util.verify : unreachable;
+import util.util : todo, unreachable;
 
 enum IndentKind {
 	tabs,

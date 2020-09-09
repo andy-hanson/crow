@@ -11,8 +11,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.util : todo;
-import util.verify : unreachable;
+import util.util : todo, unreachable;
 
 enum BuiltinStructKind {
 	bool_,

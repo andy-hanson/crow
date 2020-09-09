@@ -39,8 +39,7 @@ import util.ptr : Ptr, ptrTrustMe_mut;
 import util.result : matchImpure, Result;
 import util.sexpr : Sexpr, writeSexpr;
 import util.sym : AllSymbols, shortSymAlphaLiteral;
-import util.util : todo;
-import util.verify : unreachable;
+import util.util : todo, unreachable;
 import util.writer : finishWriterToCStr, Writer;
 
 // These return program exit codes

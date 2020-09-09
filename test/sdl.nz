@@ -93,15 +93,11 @@ sdl-renderer-present-vsync sdl-flags()
 
 sdl-render-present void(renderer ptr sdl-renderer) extern<"SDL_RenderPresent"> noctx summon unsafe
 
-sdl-texture record
-	| TODO: this is bogus. Noze should have types with unknown contents
-	x int
+sdl-texture extern-ptr
 
 | SDL_rwops.h
 
-sdl-rwops record
-	| TODO: this is bogus. Noze should have types with unknown contents
-	x int
+sdl-rwops extern-ptr
 
 sdl-rw-from-file ptr sdl-rwops(file c-str, mode c-str) extern<"SDL_RWFromFile"> noctx summon unsafe
 
@@ -109,9 +105,7 @@ sdl-rw-from-file ptr sdl-rwops(file c-str, mode c-str) extern<"SDL_RWFromFile"> 
 
 sdl-free-surface void(surface ptr sdl-surface) extern<"SDL_FreeSurface"> noctx summon unsafe
 
-sdl-surface record
-	| TODO: this is bogus. Noze should have types with unknown contents
-	x int
+sdl-surface extern-ptr
 
 sdl-load-bmp-rw ptr sdl-surface(src ptr sdl-rwops, freesrc c-int) extern<"SDL_LoadBMP_RW"> noctx summon unsafe
 
@@ -141,9 +135,7 @@ sdl-num-scancodes sdl-scancode()
 
 sdl-destroy-window void(window ptr sdl-window) extern<"SDL_DestroyWindow"> noctx summon unsafe
 
-sdl-window record
-	| TODO: this is bogus. Noze should have types with unknown contents
-	x int
+sdl-window extern-ptr
 
 sdl-create-window ptr sdl-window
 	title c-str

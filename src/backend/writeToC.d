@@ -34,8 +34,7 @@ import util.collection.arrUtil : every, exists, fillArr_mut, tail;
 import util.collection.str : Str, strEq, strLiteral;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.util : todo;
-import util.verify : unreachable;
+import util.util : unreachable;
 import util.writer :
 	finishWriter,
 	newline,

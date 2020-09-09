@@ -63,8 +63,7 @@ import util.result : fail, Result, success;
 import util.sourceRange : Pos;
 import util.sym : AllSymbols, shortSymAlphaLiteralValue, Sym;
 import util.types : u8;
-import util.util : todo;
-import util.verify : unreachable;
+import util.util : todo, unreachable;
 
 immutable(Result!(FileAst, ParseDiagnostic)) parseFile(Alloc, SymAlloc)(
 	ref Alloc alloc,
@@ -617,7 +616,10 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 					todo!void("alias shouldn't have purity");
 				immutable TypeAst.InstStruct target = parseStructType(alloc, lexer);
 				lexer.takeDedent();
-				add(alloc, structAliases, immutable StructAliasAst(lexer.range(start), isPublic, name, typeParams, target));
+				add(
+					alloc,
+					structAliases,
+					immutable StructAliasAst(lexer.range(start), isPublic, name, typeParams, target));
 				break;
 			case NonFunKeyword.builtinSpec:
 				if (tookIndent)
@@ -637,7 +639,10 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				if (purity.has)
 					todo!void("spec shouldn't have purity");
 				immutable Arr!SigAst sigs = parseIndentedSigs(alloc, lexer);
-				add(alloc, specs, immutable SpecDeclAst(lexer.range(start), isPublic, name, typeParams, SpecBodyAst(sigs)));
+				add(
+					alloc,
+					specs,
+					immutable SpecDeclAst(lexer.range(start), isPublic, name, typeParams, SpecBodyAst(sigs)));
 				break;
 			case NonFunKeyword.builtin:
 			case NonFunKeyword.externPtr:
@@ -665,11 +670,15 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 									emptyArr!(StructDeclAst.Body.Record.Field)));
 						case NonFunKeyword.union_:
 							return tookIndent
-								? immutable StructDeclAst.Body(immutable StructDeclAst.Body.Union(parseUnionMembers(alloc, lexer)))
+								? immutable StructDeclAst.Body(
+									immutable StructDeclAst.Body.Union(parseUnionMembers(alloc, lexer)))
 								: throwAtChar!(StructDeclAst.Body)(lexer, ParseDiag(ParseDiag.UnionCantBeEmpty()));
 					}
 				}();
-				add(alloc, structs, immutable StructDeclAst(lexer.range(start), isPublic, name, typeParams, purity, body_));
+				add(
+					alloc,
+					structs,
+					immutable StructDeclAst(lexer.range(start), isPublic, name, typeParams, purity, body_));
 				break;
 		}
 	} else {

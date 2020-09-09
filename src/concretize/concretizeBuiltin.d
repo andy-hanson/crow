@@ -45,8 +45,7 @@ import util.memory : nu;
 import util.opt : force, has, none;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
-import util.util : todo;
-import util.verify : unreachable;
+import util.util : todo, unreachable;
 
 immutable(ConcreteFunBody) getBuiltinFunBody(Alloc)(
 	ref Alloc alloc,

@@ -43,7 +43,7 @@ import util.sexpr :
 	tataStr,
 	tataSym;
 import util.sourceRange : sexprOfSourceRange;
-import util.verify : unreachable;
+import util.util : unreachable;
 
 immutable(Sexpr) tataOfConcreteProgram(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	return tataRecord(

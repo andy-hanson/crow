@@ -3,6 +3,7 @@ module util.util;
 @safe @nogc pure nothrow:
 
 import core.stdc.stdio : printf;
+import util.bools : Bool;
 
 T todo(T)(immutable char* message) {
 	debug {
@@ -27,4 +28,8 @@ immutable(size_t) max(immutable size_t a, immutable size_t b) {
 immutable(size_t) roundUp(immutable size_t a, immutable size_t b) {
 	assert(b != 0);
 	return a % b == 0 ? a : roundUp(a + 1, b);
+}
+
+T unreachable(T)() {
+	assert(0);
 }

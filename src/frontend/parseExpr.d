@@ -58,8 +58,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
-import util.util : todo;
-import util.verify : unreachable;
+import util.util : todo, unreachable;
 
 immutable(ExprAst) parseFunExprBody(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	lexer.takeIndent();

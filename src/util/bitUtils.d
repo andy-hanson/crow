@@ -4,7 +4,6 @@ module util.bitUtils;
 
 import util.bools : Bool, not;
 import util.types : u64;
-import util.verify : verify;
 
 immutable(u64) singleBit(immutable u64 bitIndex) {
 	return u64(1) << bitIndex;
@@ -35,15 +34,15 @@ immutable(u64) getBitsUnshifted(immutable u64 n, immutable u64 firstBitIndex, im
 		mask = setBit(mask, i);
 	immutable u64 res = n & mask;
 	foreach (immutable size_t i; 0..firstBitIndex)
-		verify(getBit(res, i).not);
+		assert(getBit(res, i).not);
 	foreach (immutable size_t i; firstBitIndex + nBits..64)
-		verify(getBit(res, i).not);
+		assert(getBit(res, i).not);
 	return res;
 }
 
 immutable(u64) getBitsShifted(immutable u64 n, immutable u64 firstBitIndex, immutable u64 nBits) {
 	immutable u64 res = getBitsUnshifted(n, firstBitIndex, nBits) >> firstBitIndex;
 	foreach (immutable size_t i; nBits..64)
-		verify(getBit(res, i).not);
+		assert(getBit(res, i).not);
 	return res;
 }
