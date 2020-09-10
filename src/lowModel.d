@@ -8,6 +8,7 @@ import util.collection.str : Str;
 import util.opt : Opt;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
+import util.sym : shortSymAlphaLiteral, Sym;
 
 struct LowExternPtrType {
 	immutable Str mangledName;
@@ -46,6 +47,37 @@ enum PrimitiveType {
 	nat32,
 	nat64,
 	void_,
+}
+
+immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
+	return shortSymAlphaLiteral(() {
+		final switch (a) {
+			case PrimitiveType.bool_:
+				return "bool";
+			case PrimitiveType.char_:
+				return "char";
+			case PrimitiveType.float64:
+				return "float-64";
+			case PrimitiveType.int8:
+				return "int-8";
+			case PrimitiveType.int16:
+				return "int-16";
+			case PrimitiveType.int32:
+				return "int-32";
+			case PrimitiveType.int64:
+				return "int-64";
+			case PrimitiveType.nat8:
+				return "nat-8";
+			case PrimitiveType.nat16:
+				return "nat-16";
+			case PrimitiveType.nat32:
+				return "nat-32";
+			case PrimitiveType.nat64:
+				return "nat-64";
+			case PrimitiveType.void_:
+				return "void";
+		}
+	}());
 }
 
 struct LowType {
@@ -95,6 +127,25 @@ struct LowType {
 	immutable this(immutable Union a) { kind_ = Kind.union_; union_ = a; }
 }
 
+immutable(Bool) lowTypeEqual(ref immutable LowType a, ref immutable LowType b) {
+	return immutable Bool(a.kind_ == b.kind_ && () {
+		final switch (a.kind_) {
+			case LowType.Kind.externPtr:
+				return immutable Bool(a.externPtr_.index == b.externPtr_.index);
+			case LowType.Kind.funPtr:
+				return immutable Bool(a.funPtr_.index == b.funPtr_.index);
+			case LowType.Kind.nonFunPtr:
+				return lowTypeEqual(a.nonFunPtr_.pointee, b.nonFunPtr_.pointee);
+			case LowType.Kind.primitive:
+				return immutable Bool(a.primitive_ == b.primitive_);
+			case LowType.Kind.record:
+				return immutable Bool(a.record_.index == b.record_.index);
+			case LowType.Kind.union_:
+				return immutable Bool(a.union_.index == b.union_.index);
+		}
+	}());
+}
+
 immutable(Bool) isPrimitive(ref immutable LowType a) {
 	return immutable Bool(a.kind_ == LowType.Kind.primitive);
 }
@@ -125,6 +176,11 @@ immutable(LowType.FunPtr) asFunPtrType(ref immutable LowType a) {
 immutable(LowType.Record) asRecordType(ref immutable LowType a) {
 	assert(a.kind_ == LowType.Kind.record);
 	return a.record_;
+}
+
+immutable(LowType.Union) asUnionType(ref immutable LowType a) {
+	assert(a.kind_ == LowType.Kind.union_);
+	return a.union_;
 }
 
 @trusted T matchLowType(T)(
@@ -287,12 +343,14 @@ struct LowExprKind {
 	struct RecordFieldAccess {
 		immutable Ptr!LowExpr target;
 		immutable Bool targetIsPointer; // TODO: is this redundant?
+		immutable LowType.Record record;
 		immutable Ptr!LowField field;
 	}
 
 	struct RecordFieldSet {
 		immutable Ptr!LowExpr target;
 		immutable Bool targetIsPointer; // TODO: this should always be true..
+		immutable LowType.Record record;
 		immutable Ptr!LowField field;
 		immutable Ptr!LowExpr value;
 	}

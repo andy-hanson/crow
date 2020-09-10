@@ -2109,7 +2109,7 @@ program(
 																		range(2184, 2408)
 																		ptr-cast(
 																			expr(
-																				ptr(record(64))
+																				ptr(nat-8)
 																				range(2184, 2408)
 																				call(
 																					72
@@ -2201,7 +2201,7 @@ program(
 																		range(2444, 2608)
 																		ptr-cast(
 																			expr(
-																				ptr(record(60))
+																				ptr(nat-8)
 																				range(2444, 2608)
 																				call(
 																					72
@@ -2288,7 +2288,7 @@ program(
 																			range(2110, 2209)
 																			ptr-cast(
 																				expr(
-																					ptr(record(55))
+																					ptr(nat-8)
 																					range(2110, 2209)
 																					call(
 																						72
@@ -2349,7 +2349,7 @@ program(
 							range(155, 202)
 							ptr-cast(
 								expr(
-									ptr(record(1))
+									ptr(nat-8)
 									range(155, 202)
 									call(
 										72
@@ -2581,8 +2581,7 @@ program(
 																											ptr-cast(
 																												expr(
 																													ptr(
-																														record(
-																															44))
+																														nat-8)
 																													range(
 																														1775
 																														1791)
@@ -2828,7 +2827,7 @@ program(
 															range(1962, 1987)
 															ptr-cast(
 																expr(
-																	ptr(record(56))
+																	ptr(nat-8)
 																	range(1962, 1987)
 																	call(
 																		72
@@ -2951,8 +2950,7 @@ program(
 																											ptr-cast(
 																												expr(
 																													ptr(
-																														record(
-																															5))
+																														nat-8)
 																													range(
 																														1775
 																														1791)
@@ -3509,7 +3507,7 @@ program(
 																								range(3162, 3220)
 																								ptr-cast(
 																									expr(
-																										ptr(record(57))
+																										ptr(nat-8)
 																										range(3162, 3220)
 																										call(
 																											72
@@ -4061,7 +4059,7 @@ program(
 							range(316, 331)
 							ptr-cast(
 								expr(
-									ptr(record(23))
+									ptr(nat-8)
 									range(316, 331)
 									call(
 										72
@@ -4770,7 +4768,7 @@ program(
 															range(3166, 3196)
 															ptr-cast(
 																expr(
-																	ptr(record(58))
+																	ptr(nat-8)
 																	range(3166, 3196)
 																	call(
 																		72
@@ -4849,7 +4847,7 @@ program(
 															range(3203, 3218)
 															ptr-cast(
 																expr(
-																	ptr(record(59))
+																	ptr(nat-8)
 																	range(3203, 3218)
 																	call(
 																		72
@@ -5060,7 +5058,7 @@ program(
 																								range(2924, 2979)
 																								ptr-cast(
 																									expr(
-																										ptr(record(61))
+																										ptr(nat-8)
 																										range(2924, 2979)
 																										call(
 																											72
@@ -5256,7 +5254,7 @@ program(
 															range(2928, 2955)
 															ptr-cast(
 																expr(
-																	ptr(record(62))
+																	ptr(nat-8)
 																	range(2928, 2955)
 																	call(
 																		72
@@ -5325,7 +5323,7 @@ program(
 															range(2962, 2977)
 															ptr-cast(
 																expr(
-																	ptr(record(63))
+																	ptr(nat-8)
 																	range(2962, 2977)
 																	call(
 																		72
@@ -5425,7 +5423,7 @@ program(
 							range(219, 266)
 							ptr-cast(
 								expr(
-									ptr(record(42))
+									ptr(nat-8)
 									range(219, 266)
 									call(
 										72
@@ -5792,7 +5790,7 @@ program(
 															range(10059, 10085)
 															ptr-cast(
 																expr(
-																	ptr(record(68))
+																	ptr(nat-8)
 																	range(10059, 10085)
 																	call(
 																		72
@@ -5943,7 +5941,7 @@ program(
 							range(3894, 3945)
 							ptr-cast(
 								expr(
-									ptr(record(67))
+									ptr(nat-8)
 									range(3894, 3945)
 									call(
 										72
@@ -11559,7 +11557,7 @@ program(
 															range(1743, 1808)
 															ptr-cast(
 																expr(
-																	ptr(record(85))
+																	ptr(nat-8)
 																	range(1743, 1808)
 																	call(
 																		72
@@ -11710,7 +11708,7 @@ program(
 							range(3894, 3945)
 							ptr-cast(
 								expr(
-									ptr(record(84))
+									ptr(nat-8)
 									range(3894, 3945)
 									call(
 										72
@@ -12054,7 +12052,7 @@ program(
 							range(219, 266)
 							ptr-cast(
 								expr(
-									ptr(record(1))
+									ptr(nat-8)
 									range(219, 266)
 									call(
 										72

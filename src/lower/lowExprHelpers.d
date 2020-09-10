@@ -7,6 +7,7 @@ import util.memory : allocate;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
 
+immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
 immutable LowType charType = immutable LowType(PrimitiveType.char_);
 immutable LowType charPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charType)));
 immutable LowType charPtrPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charPtrType)));

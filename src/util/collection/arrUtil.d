@@ -539,8 +539,8 @@ immutable(Arr!T) sort(T, Alloc)(
 }
 
 void zip(T, U)(
-	ref immutable Arr!T a,
-	ref immutable Arr!U b,
+	immutable Arr!T a,
+	immutable Arr!U b,
 	scope void delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
 ) {
 	assert(sizeEq(a, b));

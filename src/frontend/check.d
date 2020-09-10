@@ -466,7 +466,6 @@ struct PurityAndForceSendable {
 	immutable Bool forceSendable;
 }
 
-//TODO: just take ast.purity since that's all I use..
 immutable(PurityAndForceSendable) getPurityFromAst(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,

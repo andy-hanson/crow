@@ -2,8 +2,6 @@ module compiler;
 
 @safe @nogc nothrow: // not pure
 
-import core.stdc.stdio : printf;
-
 import backend.writeToC : writeToC;
 import concreteModel : ConcreteProgram;
 import concretize.concretize : concretize;
@@ -23,7 +21,7 @@ import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
 import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.collection.arrUtil : arrLiteral, cat;
-import util.collection.str : CStr, emptyStr, Str, strLiteral;
+import util.collection.str : emptyStr, Str, strLiteral;
 import util.io : Environ, replaceCurrentProcess, spawnAndWaitSync, writeFileSync;
 import util.opt : force, has, none, Opt, some;
 import util.path :
@@ -37,10 +35,10 @@ import util.path :
 	withExtension;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.result : matchImpure, Result;
-import util.sexpr : Sexpr, writeSexpr;
+import util.sexpr : Sexpr;
+import util.sexprPrint : printOutSexpr;
 import util.sym : AllSymbols, shortSymAlphaLiteral;
 import util.util : todo, unreachable;
-import util.writer : finishWriterToCStr, Writer;
 
 // These return program exit codes
 
@@ -195,10 +193,6 @@ immutable(int) printLowModel(SymAlloc)(
 
 }
 
-@trusted void printCStr(immutable CStr a) {
-	printf("%s\n", a);
-}
-
 void printOutAst(ref immutable FileAst ast) {
 	StackAlloc!("sexprOfAst", 32 * 1024) alloc;
 	printOutSexpr(sexprOfAst(alloc, ast));
@@ -217,15 +211,6 @@ void printOutConcreteProgram(ref Mallocator mallocator, ref immutable ConcretePr
 void printOutLowProgram(ref Mallocator mallocator, ref immutable LowProgram a) {
 	LowSexprAlloc alloc = LowSexprAlloc(ptrTrustMe_mut(mallocator));
 	printOutSexpr(tataOfLowProgram(alloc, a));
-}
-
-void printOutSexpr(immutable Sexpr a) {
-	Mallocator mallocator;
-	alias StrAlloc = SingleHeapAlloc!(Mallocator, "printOutSexpr", 4 * 1024 * 1024);
-	StrAlloc strAlloc = StrAlloc(ptrTrustMe_mut(mallocator));
-	Writer!StrAlloc writer = Writer!StrAlloc(ptrTrustMe_mut(strAlloc));
-	writeSexpr(writer, a);
-	printCStr(finishWriterToCStr(writer));
 }
 
 alias ExePathAlloc = StackAlloc!("exePath", 1024);
@@ -304,6 +289,7 @@ void compileC(immutable AbsolutePath cPath, immutable AbsolutePath exePath, immu
 	immutable int err = spawnAndWaitSync(cCompiler, args, environ);
 	if (err != 0) {
 		debug {
+			import core.stdc.stdio : printf;
 			printf("C compile error! Exit code: %d\n", err);
 		}
 		todo!void("C compile error");

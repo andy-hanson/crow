@@ -8,7 +8,7 @@ import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
 import util.collection.str : Str;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : Ptr;
 import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
 import util.types : safeIntFromSizeT;
 import util.util : todo, unreachable;

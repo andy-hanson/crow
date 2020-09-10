@@ -20,7 +20,8 @@ import lowModel :
 	matchLowFunBody,
 	matchLowType,
 	matchSpecialConstant,
-	PrimitiveType;
+	PrimitiveType,
+	symOfPrimitiveType;
 import util.collection.arr : size;
 import util.collection.str : strLiteral;
 import util.ptr : Ptr;
@@ -44,19 +45,6 @@ immutable(Sexpr) tataOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgr
 		tataOfLowFun(alloc, size(a.allFuns), a.main));
 }
 
-private:
-
-immutable(Sexpr) tataOfLowFunPtrType(Alloc)(ref Alloc alloc, immutable size_t index, ref immutable LowFunPtrType a) {
-	return tataRecord(
-		alloc,
-		"fun-ptr",
-		tataNat(index),
-		tataStr(a.mangledName),
-		tataOfLowType(alloc, a.returnType),
-		tataArr(alloc, a.paramTypes, (ref immutable LowType it) =>
-			tataOfLowType(alloc, it)));
-}
-
 immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) {
 	return matchLowType!(immutable Sexpr)(
 		a,
@@ -72,6 +60,19 @@ immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) 
 			tataRecord(alloc, "record", tataNat(it.index)),
 		(immutable LowType.Union it) =>
 			tataRecord(alloc, "union", tataNat(it.index)));
+}
+
+private:
+
+immutable(Sexpr) tataOfLowFunPtrType(Alloc)(ref Alloc alloc, immutable size_t index, ref immutable LowFunPtrType a) {
+	return tataRecord(
+		alloc,
+		"fun-ptr",
+		tataNat(index),
+		tataStr(a.mangledName),
+		tataOfLowType(alloc, a.returnType),
+		tataArr(alloc, a.paramTypes, (ref immutable LowType it) =>
+			tataOfLowType(alloc, it)));
 }
 
 immutable(Sexpr) tataOfLowRecord(Alloc)(ref Alloc alloc, immutable size_t index, ref immutable LowRecord a) {
@@ -232,37 +233,6 @@ immutable(Sexpr) tataOfMatch(Alloc)(ref Alloc alloc, ref immutable LowExprKind.M
 				tataOpt(alloc, case_.local, (ref immutable Ptr!LowLocal it) =>
 					tataStr(it.mangledName)),
 				tataOfLowExpr(alloc, case_.then))));
-}
-
-immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
-	return shortSymAlphaLiteral(() {
-		final switch (a) {
-			case PrimitiveType.bool_:
-				return "bool";
-			case PrimitiveType.char_:
-				return "char";
-			case PrimitiveType.float64:
-				return "float-64";
-			case PrimitiveType.int8:
-				return "int-8";
-			case PrimitiveType.int16:
-				return "int-16";
-			case PrimitiveType.int32:
-				return "int-32";
-			case PrimitiveType.int64:
-				return "int-64";
-			case PrimitiveType.nat8:
-				return "nat-8";
-			case PrimitiveType.nat16:
-				return "nat-16";
-			case PrimitiveType.nat32:
-				return "nat-32";
-			case PrimitiveType.nat64:
-				return "nat-64";
-			case PrimitiveType.void_:
-				return "void";
-		}
-	}());
 }
 
 immutable(Sexpr) tataOfSpecialConstant(Alloc)(ref Alloc alloc, ref immutable LowExprKind.SpecialConstant a) {
