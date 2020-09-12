@@ -1,0 +1,40 @@
+file-ast(
+	imports: [import-ast(0, "/io")]
+	exports: []
+	specs: []
+	aliases: []
+	structs: [
+		struct(
+			range(37, 133)
+			true
+			[]
+			none
+			record(
+				none
+				[
+					field(range(51, 58), false, x, inststruct(range(53, 58), float))
+					field(range(60, 67), false, y, inststruct(range(62, 67), float))]))]
+	funs: [
+		fun-decl(
+			public?: true
+			sig: sig-ast(range(133, 153), create-point, inststruct(range(146, 151), point), [])
+			body: new-record(none, [literal(numeric, "1"), literal(numeric, "2")]))
+		fun-decl(
+			public?: true
+			sig: sig-ast(range(336, 356), get-x, inststruct(range(342, 347), float), [param(range(348, 355), a, inststruct(range(350, 355), point))])
+			body: call(x, [], [a]))
+		fun-decl(
+			public?: true
+			sig: sig-ast(
+				range(508, 540)
+				main
+				inststruct(range(513, 526), fut, [inststruct(range(517, 526), exit-code)])
+				[param(range(527, 539), args, inststruct(range(532, 539), arr, [inststruct(range(536, 539), str)]))])
+			summon: true
+			body: let(
+				name-range(range(611, 612), p)
+				create-point
+				let(
+					name-range(range(666, 669), p-x)
+					call(get-x, [], [p])
+					seq-ast(call(print-sync, [], [call(to-str, [], [p-x])]), call(resolved, [], [zero])))))])

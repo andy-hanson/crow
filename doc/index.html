@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+	<meta charset="utf-8">
+	<title>The Noze Programming Language</title>
+	<link rel="stylesheet" href="./index.css">
+	<script type='module' async src='./index.js' ></script>
+	</head>
+	<body>
+		<section>
+			<h2>Installation</h2>
+
+			Noze has the following dependencies:
+
+			<ul>
+			<li><a href="https://dlang.org/download.html">DMD</a>: install version 2.093 or greater.</li>
+			<li><a href="https://www.libsdl.org/">SDL2: Install this from your package manager.</a></li>
+			</ul>
+
+			Then to install Noze:
+
+			<ul>
+			<li>Download the repo <b>(TODO: HOW?)</b></li>
+			<li>Run <code>./build</code> to build.</li>
+			<li>You may add the <code>bin</code> directory to your path, or just write the path explicitly.</li>
+			</ul>
+		</section>
+
+		<section>
+			<h2>Types</h2>
+			Noze has only a few kinds of types:
+			<ul>
+			<li>
+				<span class='list-item-bold'><code class='keyword'>builtin</code></span>:
+				Things like <code>bool</code> that can't be expressed in terms of other types.
+			</li>
+			<li>
+				<span class='list-item-bold'><code class='keyword'>extern-ptr</code></span>:
+				A pointer to data from an external library that can only be used through that library.
+			</li>
+			<li>
+				<span class='list-item-bold'><code class='keyword'>record</code></span>:
+				Type of a value that contains several named values.
+				An example would be a <code>point</code> with <code>x</code> and <code>y</code> fields.</li>
+			<li>
+				<span class='list-item-bold'><code class='keyword'>union</code></span>:
+				Type of a value that is one of several possibilities.
+				An example would be a <code>shape</code> with <code>circle</code> or <code>square</code> choices.
+			</li>
+			</ul>
+
+			<code class='keyword'>record</code> and <code class='keyword'>union</code> types
+			can each have primitive operations for using them.
+			<code class='keyword'>builtin</code> and <code class='keyword'>union</code> types
+			can only be used through certain functions and are otherwise inscrutable.
+		</section>
+
+		<section>
+			<h2>Records</h2>
+
+			<pre data-src='example-record.nz'>
+
+			</pre>
+		</section>
+
+
+
+	</body>
+</html>

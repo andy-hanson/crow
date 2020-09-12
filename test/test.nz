@@ -57,7 +57,7 @@ print-help void() summon
 do-test exit-code(options test-options) summon
 	test-path = current-executable-path parent-path
 	noze-path = test-path parent-path
-	noze-exe = noze-path child-path "noze"
+	noze-exe = noze-path child-path "bin" child-path "noze"
 	env = get-environ
 
 	compile-failures = test-path child-path "compile-errors" run-compile-error-tests noze-exe, env, options

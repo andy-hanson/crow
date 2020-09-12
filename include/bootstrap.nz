@@ -358,6 +358,10 @@ to-int int(i int8) noctx builtin
 to-int int(i int16) noctx builtin
 to-int int(i int32) noctx builtin
 
+to-float float(a nat64) noctx builtin
+to-float float(a int64) noctx builtin
+truncate-to-int int64(a float) noctx builtin
+
 wrap-add int(a int, b int) noctx builtin
 wrap-add nat(a nat, b nat) noctx builtin
 wrap-add nat32(a nat32, b nat32) noctx builtin

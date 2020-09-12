@@ -125,12 +125,15 @@ enum BuiltinFunKind {
 	sizeOf,
 	subFloat64,
 	subPtrNat,
+	toFloat64FromInt64,
+	toFloat64FromNat64,
 	toIntFromInt16,
 	toIntFromInt32,
 	toNatFromNat16,
 	toNatFromNat32,
 	toNatFromPtr,
 	true_,
+	truncateToInt64FromFloat64,
 	unsafeDivFloat64,
 	unsafeDivInt64,
 	unsafeDivNat64,
@@ -285,6 +288,10 @@ immutable(string) strOfBuiltinFunKind(immutable BuiltinFunKind kind) {
 			return "sub-float-64";
 		case BuiltinFunKind.subPtrNat:
 			return "sub-ptr-nat";
+		case BuiltinFunKind.toFloat64FromInt64:
+			return "to-float-64 (from int-64)";
+		case BuiltinFunKind.toFloat64FromNat64:
+			return "to-float-64 (from nat-64)";
 		case BuiltinFunKind.toIntFromInt16:
 			return "to-int (from int-16)";
 		case BuiltinFunKind.toIntFromInt32:
@@ -297,6 +304,8 @@ immutable(string) strOfBuiltinFunKind(immutable BuiltinFunKind kind) {
 			return "to-nat (from ptr)";
 		case BuiltinFunKind.true_:
 			return "true";
+		case BuiltinFunKind.truncateToInt64FromFloat64:
+			return "truncate-to-int (from float-64)";
 		case BuiltinFunKind.unsafeDivFloat64:
 			return "unsafe-div (float-64)";
 		case BuiltinFunKind.unsafeDivInt64:

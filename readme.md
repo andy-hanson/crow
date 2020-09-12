@@ -37,6 +37,12 @@ It also supports go-to-definition, which includes all builtin functions (includi
 so you can go to their definitions to read documentation.
 
 ```sh
-bash -llc 'ln -s `pwd`/noze.sublime-syntax ~/.config/sublime-text-3/Packages/User/noze.sublime-syntax'
-bash -llc 'ln -s `pwd`/tata.sublime-syntax ~/.config/sublime-text-3/Packages/User/tata.sublime-syntax'
+bash -llc 'ln -s `pwd`/syntaxes/noze.sublime-syntax ~/.config/sublime-text-3/Packages/User/noze.sublime-syntax'
+bash -llc 'ln -s `pwd`/syntaxes/tata.sublime-syntax ~/.config/sublime-text-3/Packages/User/tata.sublime-syntax'
 ```
+
+## Viewing docs
+
+`python -m SimpleHTTPServer 8080`
+
+Then visit http://localhost:8080/doc .

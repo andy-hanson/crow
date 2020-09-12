@@ -1,0 +1,30 @@
+import
+	io
+
+| Declare a record type.
+point record
+	x float
+	y float
+
+| Declare a function returning a point and taking no arguments.
+create-point point()
+	| The type is usually inferred from the context.
+	| If not you can write `new<point>`.
+	new 1, 2
+
+| Declare a function named 'get-x' returning a float and taking a point named 'a'.
+get-x float(a point)
+	| Accessing a record member uses the same syntax as calling a function.
+	a x
+
+| Ignore this header for now; just know that this is the main function.
+main fut exit-code(args arr str) summon
+	| Calls the function 'create-point' and names the result 'p'
+	p = create-point
+	| Calls the function 'get-x' on 'p'
+	p-x = p get-x
+	| This shows the prefix syntax for function calls (in addition to the usual syntax for `to-str`).
+	| This is equivalent to `print_sync(to_str(p_x))` in C.
+	| The syntax choice is not tied to the function; you can use any call syntax for any function.
+	print-sync: p-x to-str
+	zero resolved

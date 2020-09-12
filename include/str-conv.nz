@@ -56,6 +56,10 @@ to-str str(i int32)
 to-str str(i int16)
 	i.to-int to-str
 
+| TODO: actually handle floats!
+to-str str(a float)
+	a.truncate-to-int to-str
+
 char-to-nat nat(c char) noctx
 	when
 		c == "0"
@@ -111,3 +115,7 @@ literal int(s str)
 literal int32(s str)
 	| TODO: make safe
 	s.literal.as<int> unsafe-to-int32
+
+| TODO: handle the decimal point!
+literal float(a str)
+	a.literal.as<nat> to-float

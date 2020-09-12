@@ -945,10 +945,13 @@ void writeSpecialUnary(Alloc)(
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			prefixParenthesized("&");
 			break;
+		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64:
+		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
+		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:

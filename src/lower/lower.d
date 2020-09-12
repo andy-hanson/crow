@@ -928,6 +928,10 @@ immutable(LowExprKind) getOperatorCallExpr(Alloc)(
 			return binary(LowExprKind.SpecialBinary.Kind.subFloat64);
 		case BuiltinFunKind.subPtrNat:
 			return binary(LowExprKind.SpecialBinary.Kind.subPtrNat);
+		case BuiltinFunKind.toFloat64FromInt64:
+			return unary(LowExprKind.SpecialUnary.Kind.toFloat64FromInt64);
+		case BuiltinFunKind.toFloat64FromNat64:
+			return unary(LowExprKind.SpecialUnary.Kind.toFloat64FromNat64);
 		case BuiltinFunKind.toIntFromInt16:
 			return unary(LowExprKind.SpecialUnary.Kind.toIntFromInt16);
 		case BuiltinFunKind.toIntFromInt32:
@@ -940,6 +944,8 @@ immutable(LowExprKind) getOperatorCallExpr(Alloc)(
 			return unary(LowExprKind.SpecialUnary.Kind.toNatFromPtr);
 		case BuiltinFunKind.true_:
 			return constantBool(True);
+		case BuiltinFunKind.truncateToInt64FromFloat64:
+			return unary(LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64);
 		case BuiltinFunKind.unsafeDivFloat64:
 			return binary(LowExprKind.SpecialBinary.Kind.unsafeDivFloat64);
 		case BuiltinFunKind.unsafeDivInt64:

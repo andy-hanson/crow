@@ -6,4 +6,4 @@ then
 	exit 1
 fi
 
-dmd -debug -g -ofnoze -betterC src/*.d src/*/*.d src/*/*/*.d -I=src/
+dmd -debug -g -ofbin/noze -betterC src/*.d src/*/*.d src/*/*/*.d -I=src/

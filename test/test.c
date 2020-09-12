@@ -4425,7 +4425,7 @@ int32_t do_test__int32__test_options(struct ctx* ctx, struct test_options option
 	struct do_test__int32__test_options__lambda1___closure* temp1;
 	test_path = parent_path__arr__char__arr__char(ctx, current_executable_path__arr__char(ctx));
 	noze_path = parent_path__arr__char__arr__char(ctx, test_path);
-	noze_exe = child_path__arr__char__arr__char__arr__char(ctx, noze_path, (struct arr__char) {4, "noze"});
+	noze_exe = child_path__arr__char__arr__char__arr__char(ctx, child_path__arr__char__arr__char__arr__char(ctx, noze_path, (struct arr__char) {3, "bin"}), (struct arr__char) {4, "noze"});
 	env = get_environ__ptr_dict__arr__char__arr__char(ctx);
 	compile_failures = run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx, child_path__arr__char__arr__char__arr__char(ctx, test_path, (struct arr__char) {14, "compile-errors"}), noze_exe, env, options);
 	run_failures = first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, compile_failures, (struct fun0__result__arr__char__arr__ptr_failure) {(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8) do_test__int32__test_options__lambda0, (uint8_t*) (temp0 = (struct do_test__int32__test_options__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct do_test__int32__test_options__lambda0___closure)), ((*(temp0) = (struct do_test__int32__test_options__lambda0___closure) {test_path, noze_exe, env, options}, 0), temp0))});

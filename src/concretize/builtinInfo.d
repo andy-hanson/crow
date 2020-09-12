@@ -250,6 +250,10 @@ immutable(Opt!BuiltinFunInfo) tryGetBuiltinFunInfo(ref immutable Sig sig) {
 			return isPtr(p0) ? operator(BuiltinFunKind.setPtr) : no;
 		case shortSymAlphaLiteralValue("size-of"):
 			return operator(BuiltinFunKind.sizeOf);
+		case shortSymAlphaLiteralValue("to-float"):
+			return isInt64(p0) ? operator(BuiltinFunKind.toFloat64FromInt64)
+				: isNat64(p0) ? operator(BuiltinFunKind.toFloat64FromNat64)
+				: no;
 		case shortSymAlphaLiteralValue("to-int"):
 			return isInt16(p0) ? operator(BuiltinFunKind.toIntFromInt16)
 				: isInt32(p0) ? operator(BuiltinFunKind.toIntFromInt32)
@@ -316,6 +320,8 @@ immutable(Opt!BuiltinFunInfo) tryGetBuiltinFunInfo(ref immutable Sig sig) {
 				return special(BuiltinFunKind.compareExchangeStrong);
 			else if (symEqLongAlphaLiteral(name, "is-reference-type"))
 				return operator(BuiltinFunKind.isReferenceType);
+			else if (symEqLongAlphaLiteral(name, "truncate-to-int"))
+				return operator(BuiltinFunKind.truncateToInt64FromFloat64);
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int"))
 				return isNat64(p0) ? operator(BuiltinFunKind.unsafeNat64ToInt64) : no;
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int8"))
