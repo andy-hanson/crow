@@ -68,6 +68,15 @@ void addToMutDict(Alloc, K, V, alias cmp)(
 	push(alloc, d.pairs, KeyValuePair!(K, V)(key, value));
 }
 
+immutable(Bool) tryAddToMutDict(Alloc, K, V, alias cmp)(
+	ref Alloc alloc,
+	ref MutDict!(K, V, cmp) d,
+	immutable K key,
+	scope V delegate() @safe @nogc pure nothrow getValue,
+) {
+	return getOrAddAndDidAdd(alloc, d, key, getValue).didAdd;
+}
+
 struct ValueAndDidAdd(V) {
 	V value;
 	immutable Bool didAdd;
@@ -133,5 +142,3 @@ immutable(V) mustDelete(K, V, alias cmp)(ref MutDict!(K, V, cmp) d, immutable K 
 immutable(Bool) mutDictIsEmpty(K, V, alias cmp)(ref MutDict!(K, V, cmp) d) {
 	return d.pairs.mutArrIsEmpty;
 }
-
-private:

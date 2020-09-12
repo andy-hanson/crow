@@ -242,6 +242,8 @@ immutable(Opt!BuiltinFunInfo) tryGetBuiltinFunInfo(ref immutable Sig sig) {
 			return isVoid(rt) ? operator(BuiltinFunKind.pass) : no;
 		case shortSymAlphaLiteralValue("ptr-cast"):
 			return operator(BuiltinFunKind.ptrCast);
+		case shortSymAlphaLiteralValue("ptr-eq"):
+			return operator(BuiltinFunKind.ptrEq);
 		case shortSymAlphaLiteralValue("ptr-to"):
 			return operator(BuiltinFunKind.ptrTo);
 		case shortSymAlphaLiteralValue("ref-of-val"):

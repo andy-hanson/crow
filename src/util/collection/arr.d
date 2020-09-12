@@ -4,7 +4,7 @@ module util.collection.arr;
 
 import util.bools : Bool;
 import util.ptr : Ptr;
-import util.memory : myEmplace;
+import util.memory : myEmplace, overwriteMemory;
 
 struct Arr(T) {
 	private:
@@ -80,7 +80,7 @@ immutable(Bool) empty(T)(const Arr!T a) {
 
 @trusted void setAt(T)(ref Arr!T a, immutable size_t index, immutable T value) {
 	assert(index < a.size_);
-	a.begin_[index] = value;
+	overwriteMemory(a.begin_ + index, value);
 }
 
 ref immutable(T) first(T)(immutable Arr!T a) {

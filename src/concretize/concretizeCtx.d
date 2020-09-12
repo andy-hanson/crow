@@ -581,7 +581,7 @@ void fillInConcreteFunBody(Alloc)(
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
 			source.body_,
 			(ref immutable FunBody.Builtin) =>
-				getBuiltinFunBody!Alloc(alloc, ctx, source, castImmutable(cf)),
+				getBuiltinFunBody!Alloc(alloc, ctx, source),
 			(ref immutable FunBody.Extern e) =>
 				immutable ConcreteFunBody(ConcreteFunBody.Extern(e.isGlobal)),
 			(immutable Ptr!Expr e) =>

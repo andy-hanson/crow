@@ -1088,9 +1088,21 @@ void writeSpecialBinary(Alloc)(
 			operator("|");
 			break;
 		case LowExprKind.SpecialBinary.Kind.eqNat64:
+		case LowExprKind.SpecialBinary.Kind.eqPtr:
 			operator("==");
 			break;
 		case LowExprKind.SpecialBinary.Kind.less:
+		case LowExprKind.SpecialBinary.Kind.lessBool:
+		case LowExprKind.SpecialBinary.Kind.lessChar:
+		case LowExprKind.SpecialBinary.Kind.lessFloat64:
+		case LowExprKind.SpecialBinary.Kind.lessInt8:
+		case LowExprKind.SpecialBinary.Kind.lessInt16:
+		case LowExprKind.SpecialBinary.Kind.lessInt32:
+		case LowExprKind.SpecialBinary.Kind.lessInt64:
+		case LowExprKind.SpecialBinary.Kind.lessNat8:
+		case LowExprKind.SpecialBinary.Kind.lessNat16:
+		case LowExprKind.SpecialBinary.Kind.lessNat32:
+		case LowExprKind.SpecialBinary.Kind.lessNat64:
 			operator("<");
 			break;
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:

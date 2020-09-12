@@ -496,32 +496,14 @@ program(
 			special: special(arr, type(false, "nat"))
 			body: record([field(false, "size", type(false, "nat")), field(false, "data", type(false, "ptr__nat"))]))
 		struct(
-			name: "point"
-			body: record([field(false, "x", type(false, "_float")), field(false, "y", type(false, "_float"))]))
-		struct(name: "_float", body: builtin(float-64, 8, []))
+			name: "my_record"
+			body: record([field(false, "x", type(false, "nat")), field(false, "y", type(false, "nat"))]))
 		struct(
-			name: "fun_mut1__char__nat"
-			body: record(
-				[
-					field(false, "fun_ptr", type(false, "fun_ptr3__char__ptr_ctx__ptr__nat8__nat"))
-					field(false, "closure", type(false, "ptr__nat8"))]))
-		struct(
-			name: "fun_ptr3__char__ptr_ctx__ptr__nat8__nat"
-			body: builtin(fun-ptr, 8, [type(false, "char"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "nat")]))
-		struct(
-			name: "mut_arr__char"
-			mut?: true
+			name: "my_byref_record"
 			ptr?: true
-			body: record(
-				[
-					field(true, "frozen__q", type(false, "bool"))
-					field(true, "size", type(false, "nat"))
-					field(true, "capacity", type(false, "nat"))
-					field(true, "data", type(false, "ptr__char"))]))
-		struct(
-			name: "_op_plus__arr__char__arr__char__arr__char__lambda0___closure"
-			ptr?: true
-			body: record([field(false, "a", type(false, "arr__char")), field(false, "b", type(false, "arr__char"))]))]
+			body: record([field(false, "x", type(false, "nat")), field(false, "y", type(false, "nat"))]))
+		struct(name: "my_union", body: union([type(false, "my_record"), type(false, "my_other_record")]))
+		struct(name: "my_other_record", body: record([]))]
 	[
 		fun(
 			false
@@ -5206,48 +5188,77 @@ program(
 			none
 			[param("args", type(false, "arr__arr__char"))]
 			expr-body(
-				[local("p", type(false, "point")), local("p_x", type(false, "_float"))]
-				let(
-					"p"
-					call("create_point__point", [])
-					let(
-						"p_x"
-						call("get_x___float__point", [local-ref("p")])
-						seq(
-							call(
-								"print_sync___void__arr__char"
-								[call("to_str__arr__char___float", [local-ref("p_x")])])
-							call("resolved__ptr_fut__int32__int32", [call("zero__int32", [])]))))))
+				[]
+				seq(
+					seq(
+						seq(call("test_compare_records___void", []), call("test_compare_byref_records___void", []))
+						call("test_compare_unions___void", []))
+					call("resolved__ptr_fut__int32__int32", [call("literal__int32__arr__char", [str-lit("0")])]))))
 		fun(
 			true
-			"create_point__point"
-			type(false, "point")
+			"test_compare_records___void"
+			type(false, "_void")
 			none
 			[]
 			expr-body(
-				[]
-				record(
-					[
-						call("literal___float__arr__char", [str-lit("1")])
-						call("literal___float__arr__char", [str-lit("2")])])))
-		fun(
-			true
-			"literal___float__arr__char"
-			type(false, "_float")
-			none
-			[param("a", type(false, "arr__char"))]
-			expr-body(
-				[]
-				call(
-					"to_float___float__nat"
-					[call("as__nat__nat", [call("literal__nat__arr__char", [param-ref("a")])])])))
-		fun(
-			false
-			"to_float___float__nat"
-			type(false, "_float")
-			none
-			[param("a", type(false, "nat"))]
-			builtin(operator, "to-float-64 (from nat-64)", []))
+				[
+					local("a", type(false, "my_record"))
+					local("b", type(false, "my_record"))
+					local("c", type(false, "my_record"))
+					local("d", type(false, "my_record"))]
+				let(
+					"a"
+					record(
+						[
+							call("literal__nat__arr__char", [str-lit("1")])
+							call("literal__nat__arr__char", [str-lit("2")])])
+					let(
+						"b"
+						record(
+							[
+								call("literal__nat__arr__char", [str-lit("1")])
+								call("literal__nat__arr__char", [str-lit("3")])])
+						let(
+							"c"
+							record(
+								[
+									call("literal__nat__arr__char", [str-lit("1")])
+									call("literal__nat__arr__char", [str-lit("2")])])
+							let(
+								"d"
+								record(
+									[
+										call("literal__nat__arr__char", [str-lit("0")])
+										call("literal__nat__arr__char", [str-lit("3")])])
+								seq(
+									seq(
+										call(
+											"print_sync___void__arr__char"
+											[
+												call(
+													"to_str__arr__char__comparison"
+													[
+														call(
+															"_op_less_equal_greater__comparison__my_record__my_record"
+															[local-ref("a"), local-ref("b")])])])
+										call(
+											"print_sync___void__arr__char"
+											[
+												call(
+													"to_str__arr__char__comparison"
+													[
+														call(
+															"_op_less_equal_greater__comparison__my_record__my_record"
+															[local-ref("a"), local-ref("c")])])]))
+									call(
+										"print_sync___void__arr__char"
+										[
+											call(
+												"to_str__arr__char__comparison"
+												[
+													call(
+														"_op_less_equal_greater__comparison__my_record__my_record"
+														[local-ref("a"), local-ref("d")])])]))))))))
 		fun(
 			true
 			"literal__nat__arr__char"
@@ -5486,13 +5497,6 @@ program(
 						[call("_op_less__bool__nat__nat", [param-ref("index"), get-field(param-ref("a"), "size")])])
 					call("noctx_at__char__arr__char__nat", [param-ref("a"), param-ref("index")]))))
 		fun(
-			true
-			"get_x___float__point"
-			type(false, "_float")
-			none
-			[param("a", type(false, "point"))]
-			expr-body([], get-field(param-ref("a"), "x")))
-		fun(
 			false
 			"print_sync___void__arr__char"
 			type(false, "_void")
@@ -5515,413 +5519,309 @@ program(
 		fun(false, "stdout_fd__int32", type(false, "int32"), none, [], expr-body([], call("one__int32", [])))
 		fun(
 			true
-			"to_str__arr__char___float"
+			"to_str__arr__char__comparison"
 			type(false, "arr__char")
 			none
-			[param("a", type(false, "_float"))]
-			expr-body([], call("to_str__arr__char___int", [call("truncate_to_int___int___float", [param-ref("a")])])))
+			[param("c", type(false, "comparison"))]
+			expr-body(
+				[local("matched", type(false, "comparison"))]
+				match(
+					"matched"
+					param-ref("c")
+					[case(none, str-lit("less")), case(none, str-lit("equal")), case(none, str-lit("greater"))])))
+		fun(
+			false
+			"_op_less_equal_greater__comparison__my_record__my_record"
+			type(false, "comparison")
+			none
+			[param("a", type(false, "my_record")), param("b", type(false, "my_record"))]
+			builtin(generate, "<=>", [type(false, "my_record")]))
 		fun(
 			true
-			"to_str__arr__char___int"
-			type(false, "arr__char")
+			"test_compare_byref_records___void"
+			type(false, "_void")
 			none
-			[param("i", type(false, "_int"))]
+			[]
 			expr-body(
-				[local("a", type(false, "arr__char"))]
+				[
+					local("a", type(true, "my_byref_record"))
+					local("b", type(true, "my_byref_record"))
+					local("c", type(true, "my_byref_record"))
+					local("d", type(true, "my_byref_record"))]
 				let(
 					"a"
-					call("to_str__arr__char__nat", [call("abs__nat___int", [param-ref("i")])])
-					call(
-						"if__arr__char__bool__arr__char__arr__char"
-						[
-							call("negative__q__bool___int", [param-ref("i")])
-							call("_op_plus__arr__char__arr__char__arr__char", [str-lit("-"), local-ref("a")])
-							local-ref("a")]))))
-		fun(
-			true
-			"to_str__arr__char__nat"
-			type(false, "arr__char")
-			none
-			[param("n", type(false, "nat"))]
-			expr-body(
-				[local("hi", type(false, "arr__char")), local("lo", type(false, "arr__char"))]
-				cond(
-					call(
-						"_op_equal_equal__bool__nat__nat"
-						[param-ref("n"), call("literal__nat__arr__char", [str-lit("0")])])
-					str-lit("0")
-					cond(
-						call(
-							"_op_equal_equal__bool__nat__nat"
-							[param-ref("n"), call("literal__nat__arr__char", [str-lit("1")])])
-						str-lit("1")
-						cond(
-							call(
-								"_op_equal_equal__bool__nat__nat"
-								[param-ref("n"), call("literal__nat__arr__char", [str-lit("2")])])
-							str-lit("2")
-							cond(
-								call(
-									"_op_equal_equal__bool__nat__nat"
-									[param-ref("n"), call("literal__nat__arr__char", [str-lit("3")])])
-								str-lit("3")
-								cond(
-									call(
-										"_op_equal_equal__bool__nat__nat"
-										[param-ref("n"), call("literal__nat__arr__char", [str-lit("4")])])
-									str-lit("4")
-									cond(
+					alloc(
+						"alloc__ptr__nat8__nat"
+						record(
+							[
+								call("literal__nat__arr__char", [str-lit("1")])
+								call("literal__nat__arr__char", [str-lit("2")])]))
+					let(
+						"b"
+						alloc(
+							"alloc__ptr__nat8__nat"
+							record(
+								[
+									call("literal__nat__arr__char", [str-lit("1")])
+									call("literal__nat__arr__char", [str-lit("3")])]))
+						let(
+							"c"
+							alloc(
+								"alloc__ptr__nat8__nat"
+								record(
+									[
+										call("literal__nat__arr__char", [str-lit("1")])
+										call("literal__nat__arr__char", [str-lit("2")])]))
+							let(
+								"d"
+								alloc(
+									"alloc__ptr__nat8__nat"
+									record(
+										[
+											call("literal__nat__arr__char", [str-lit("0")])
+											call("literal__nat__arr__char", [str-lit("3")])]))
+								seq(
+									seq(
 										call(
-											"_op_equal_equal__bool__nat__nat"
-											[param-ref("n"), call("literal__nat__arr__char", [str-lit("5")])])
-										str-lit("5")
-										cond(
-											call(
-												"_op_equal_equal__bool__nat__nat"
-												[param-ref("n"), call("literal__nat__arr__char", [str-lit("6")])])
-											str-lit("6")
-											cond(
+											"print_sync___void__arr__char"
+											[
 												call(
-													"_op_equal_equal__bool__nat__nat"
-													[param-ref("n"), call("literal__nat__arr__char", [str-lit("7")])])
-												str-lit("7")
-												cond(
-													call(
-														"_op_equal_equal__bool__nat__nat"
-														[
-															param-ref("n")
-															call("literal__nat__arr__char", [str-lit("8")])])
-													str-lit("8")
-													cond(
+													"to_str__arr__char__comparison"
+													[
 														call(
-															"_op_equal_equal__bool__nat__nat"
-															[
-																param-ref("n")
-																call("literal__nat__arr__char", [str-lit("9")])])
-														str-lit("9")
-														let(
-															"hi"
-															call(
-																"to_str__arr__char__nat"
-																[
-																	call(
-																		"_op_div__nat__nat__nat"
-																		[param-ref("n"), call("ten__nat", [])])])
-															let(
-																"lo"
-																call(
-																	"to_str__arr__char__nat"
-																	[
-																		call(
-																			"mod__nat__nat__nat"
-																			[param-ref("n"), call("ten__nat", [])])])
-																call(
-																	"_op_plus__arr__char__arr__char__arr__char"
-																	[local-ref("hi"), local-ref("lo")])))))))))))))))
-		fun(
-			true
-			"mod__nat__nat__nat"
-			type(false, "nat")
-			none
-			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
-			expr-body(
-				[]
-				seq(
-					call("forbid___void__bool", [call("zero__q__bool__nat", [param-ref("b")])])
-					call("unsafe_mod__nat__nat__nat", [param-ref("a"), param-ref("b")]))))
+															"_op_less_equal_greater__comparison__ptr_my_byref_record__ptr_my_byref_record"
+															[local-ref("a"), local-ref("b")])])])
+										call(
+											"print_sync___void__arr__char"
+											[
+												call(
+													"to_str__arr__char__comparison"
+													[
+														call(
+															"_op_less_equal_greater__comparison__ptr_my_byref_record__ptr_my_byref_record"
+															[local-ref("a"), local-ref("c")])])]))
+									call(
+										"print_sync___void__arr__char"
+										[
+											call(
+												"to_str__arr__char__comparison"
+												[
+													call(
+														"_op_less_equal_greater__comparison__ptr_my_byref_record__ptr_my_byref_record"
+														[local-ref("a"), local-ref("d")])])]))))))))
 		fun(
 			false
-			"unsafe_mod__nat__nat__nat"
-			type(false, "nat")
+			"_op_less_equal_greater__comparison__ptr_my_byref_record__ptr_my_byref_record"
+			type(false, "comparison")
 			none
-			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
-			builtin(operator, "unsafe-mod (nat64)", []))
+			[param("a", type(true, "my_byref_record")), param("b", type(true, "my_byref_record"))]
+			builtin(generate, "<=>", [type(true, "my_byref_record")]))
 		fun(
 			true
-			"_op_plus__arr__char__arr__char__arr__char"
-			type(false, "arr__char")
+			"test_compare_unions___void"
+			type(false, "_void")
 			none
-			[param("a", type(false, "arr__char")), param("b", type(false, "arr__char"))]
+			[]
 			expr-body(
-				[]
-				call(
-					"make_arr__arr__char__nat__fun_mut1__char__nat"
-					[
-						call(
-							"_op_plus__nat__nat__nat"
-							[get-field(param-ref("a"), "size"), get-field(param-ref("b"), "size")])
-						lambda(
-							"_op_plus__arr__char__arr__char__arr__char__lambda0"
-							some(alloc("alloc__ptr__nat8__nat", record([param-ref("a"), param-ref("b")]))))])))
-		fun(
-			true
-			"make_arr__arr__char__nat__fun_mut1__char__nat"
-			type(false, "arr__char")
-			none
-			[param("size", type(false, "nat")), param("f", type(false, "fun_mut1__char__nat"))]
-			expr-body(
-				[]
-				call(
-					"freeze__arr__char__ptr_mut_arr__char"
-					[
-						call(
-							"make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat"
-							[param-ref("size"), param-ref("f")])])))
-		fun(
-			false
-			"freeze__arr__char__ptr_mut_arr__char"
-			type(false, "arr__char")
-			none
-			[param("a", type(true, "mut_arr__char"))]
-			expr-body(
-				[]
-				seq(
-					set-field(param-ref("a"), "frozen__q", call("true__bool", []))
-					call("unsafe_as_arr__arr__char__ptr_mut_arr__char", [param-ref("a")]))))
-		fun(
-			false
-			"unsafe_as_arr__arr__char__ptr_mut_arr__char"
-			type(false, "arr__char")
-			none
-			[param("a", type(true, "mut_arr__char"))]
-			expr-body([], record([get-field(param-ref("a"), "size"), get-field(param-ref("a"), "data")])))
-		fun(
-			true
-			"make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat"
-			type(true, "mut_arr__char")
-			none
-			[param("size", type(false, "nat")), param("f", type(false, "fun_mut1__char__nat"))]
-			expr-body(
-				[local("res", type(true, "mut_arr__char"))]
+				[
+					local("a", type(false, "my_union"))
+					local("b", type(false, "my_union"))
+					local("c", type(false, "my_union"))
+					local("d", type(false, "my_union"))]
 				let(
-					"res"
-					call("new_uninitialized_mut_arr__ptr_mut_arr__char__nat", [param-ref("size")])
-					seq(
-						call(
-							"make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat"
-							[local-ref("res"), call("zero__nat", []), param-ref("f")])
-						local-ref("res")))))
+					"a"
+					call(
+						"as__my_union__my_union"
+						[
+							to-union(
+								0
+								record(
+									[
+										call("literal__nat__arr__char", [str-lit("1")])
+										call("literal__nat__arr__char", [str-lit("2")])]))])
+					let(
+						"b"
+						call("as__my_union__my_union", [to-union(1, record([]))])
+						let(
+							"c"
+							call(
+								"as__my_union__my_union"
+								[
+									to-union(
+										0
+										record(
+											[
+												call("literal__nat__arr__char", [str-lit("1")])
+												call("literal__nat__arr__char", [str-lit("2")])]))])
+							let(
+								"d"
+								call(
+									"as__my_union__my_union"
+									[
+										to-union(
+											0
+											record(
+												[
+													call("literal__nat__arr__char", [str-lit("1")])
+													call("literal__nat__arr__char", [str-lit("1")])]))])
+								seq(
+									seq(
+										call(
+											"print_sync___void__arr__char"
+											[
+												call(
+													"to_str__arr__char__comparison"
+													[
+														call(
+															"_op_less_equal_greater__comparison__my_union__my_union"
+															[local-ref("a"), local-ref("b")])])])
+										call(
+											"print_sync___void__arr__char"
+											[
+												call(
+													"to_str__arr__char__comparison"
+													[
+														call(
+															"_op_less_equal_greater__comparison__my_union__my_union"
+															[local-ref("a"), local-ref("c")])])]))
+									call(
+										"print_sync___void__arr__char"
+										[
+											call(
+												"to_str__arr__char__comparison"
+												[
+													call(
+														"_op_less_equal_greater__comparison__my_union__my_union"
+														[local-ref("a"), local-ref("d")])])]))))))))
+		fun(
+			false
+			"as__my_union__my_union"
+			type(false, "my_union")
+			none
+			[param("value", type(false, "my_union"))]
+			builtin(operator, "as", [type(false, "my_union")]))
+		fun(
+			false
+			"_op_less_equal_greater__comparison__my_union__my_union"
+			type(false, "comparison")
+			none
+			[param("a", type(false, "my_union")), param("b", type(false, "my_union"))]
+			builtin(generate, "<=>", [type(false, "my_union")]))
 		fun(
 			true
-			"new_uninitialized_mut_arr__ptr_mut_arr__char__nat"
-			type(true, "mut_arr__char")
+			"resolved__ptr_fut__int32__int32"
+			type(true, "fut__int32")
 			none
-			[param("size", type(false, "nat"))]
+			[param("value", type(false, "int32"))]
 			expr-body(
 				[]
 				alloc(
 					"alloc__ptr__nat8__nat"
-					record(
-						[
-							call("false__bool", [])
-							param-ref("size")
-							param-ref("size")
-							call("uninitialized_data__ptr__char__nat", [param-ref("size")])]))))
+					record([call("new_lock__lock", []), to-union(1, record([param-ref("value")]))]))))
 		fun(
 			true
-			"uninitialized_data__ptr__char__nat"
-			type(false, "ptr__char")
+			"literal__int32__arr__char"
+			type(false, "int32")
 			none
-			[param("size", type(false, "nat"))]
-			expr-body(
-				[local("bptr", type(false, "ptr__nat8"))]
-				let(
-					"bptr"
-					call(
-						"alloc__ptr__nat8__nat"
-						[call("wrap_mul__nat__nat__nat", [param-ref("size"), call("size_of__nat", [])])])
-					call("ptr_cast__ptr__char__ptr__nat8", [local-ref("bptr")]))))
-		fun(
-			false
-			"ptr_cast__ptr__char__ptr__nat8"
-			type(false, "ptr__char")
-			none
-			[param("p", type(false, "ptr__nat8"))]
-			builtin(operator, "ptr-cast", [type(false, "char"), type(false, "nat8")]))
-		fun(
-			true
-			"make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat"
-			type(false, "_void")
-			none
-			[
-				param("m", type(true, "mut_arr__char"))
-				param("i", type(false, "nat"))
-				param("f", type(false, "fun_mut1__char__nat"))]
+			[param("s", type(false, "arr__char"))]
 			expr-body(
 				[]
-				cond(
-					call("_op_equal_equal__bool__nat__nat", [param-ref("i"), get-field(param-ref("m"), "size")])
-					call("pass___void", [])
-					seq(
-						call(
-							"set_at___void__ptr_mut_arr__char__nat__char"
-							[
-								param-ref("m")
-								param-ref("i")
-								call("call__char__fun_mut1__char__nat__nat", [param-ref("f"), param-ref("i")])])
-						call(
-							"make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat"
-							[param-ref("m"), call("incr__nat__nat", [param-ref("i")]), param-ref("f")])))))
+				call(
+					"unsafe_to_int32__int32___int"
+					[call("as___int___int", [call("literal___int__arr__char", [param-ref("s")])])])))
+		fun(
+			false
+			"unsafe_to_int32__int32___int"
+			type(false, "int32")
+			none
+			[param("a", type(false, "_int"))]
+			builtin(operator, "unsafe-int64-to-int32", []))
+		fun(
+			false
+			"as___int___int"
+			type(false, "_int")
+			none
+			[param("value", type(false, "_int"))]
+			builtin(operator, "as", [type(false, "_int")]))
 		fun(
 			true
-			"set_at___void__ptr_mut_arr__char__nat__char"
-			type(false, "_void")
+			"literal___int__arr__char"
+			type(false, "_int")
 			none
-			[
-				param("a", type(true, "mut_arr__char"))
-				param("index", type(false, "nat"))
-				param("value", type(false, "char"))]
+			[param("s", type(false, "arr__char"))]
+			expr-body(
+				[local("fst", type(false, "char")), local("n", type(false, "nat"))]
+				let(
+					"fst"
+					call("at__char__arr__char__nat", [param-ref("s"), call("zero__nat", [])])
+					cond(
+						call(
+							"_op_equal_equal__bool__char__char"
+							[local-ref("fst"), call("literal__char__arr__char", [str-lit("-")])])
+						let(
+							"n"
+							call(
+								"as__nat__nat"
+								[
+									call(
+										"literal__nat__arr__char"
+										[call("tail__arr__char__arr__char", [param-ref("s")])])])
+							call("neg___int__nat", [local-ref("n")]))
+						cond(
+							call(
+								"_op_equal_equal__bool__char__char"
+								[local-ref("fst"), call("literal__char__arr__char", [str-lit("+")])])
+							call(
+								"to_int___int__nat"
+								[
+									call(
+										"as__nat__nat"
+										[
+											call(
+												"literal__nat__arr__char"
+												[call("tail__arr__char__arr__char", [param-ref("s")])])])])
+							call(
+								"to_int___int__nat"
+								[call("as__nat__nat", [call("literal__nat__arr__char", [param-ref("s")])])]))))))
+		fun(
+			true
+			"tail__arr__char__arr__char"
+			type(false, "arr__char")
+			none
+			[param("a", type(false, "arr__char"))]
+			expr-body(
+				[]
+				seq(
+					call("forbid___void__bool", [call("empty__q__bool__arr__char", [param-ref("a")])])
+					call("slice_starting_at__arr__char__arr__char__nat", [param-ref("a"), call("one__nat", [])]))))
+		fun(
+			true
+			"slice_starting_at__arr__char__arr__char__nat"
+			type(false, "arr__char")
+			none
+			[param("a", type(false, "arr__char")), param("begin", type(false, "nat"))]
 			expr-body(
 				[]
 				seq(
 					call(
 						"assert___void__bool"
-						[call("_op_less__bool__nat__nat", [param-ref("index"), get-field(param-ref("a"), "size")])])
-					call(
-						"noctx_set_at___void__ptr_mut_arr__char__nat__char"
-						[param-ref("a"), param-ref("index"), param-ref("value")]))))
-		fun(
-			false
-			"noctx_set_at___void__ptr_mut_arr__char__nat__char"
-			type(false, "_void")
-			none
-			[
-				param("a", type(true, "mut_arr__char"))
-				param("index", type(false, "nat"))
-				param("value", type(false, "char"))]
-			expr-body(
-				[]
-				seq(
-					call(
-						"hard_assert___void__bool"
-						[call("_op_less__bool__nat__nat", [param-ref("index"), get-field(param-ref("a"), "size")])])
-					call(
-						"set___void__ptr__char__char"
 						[
 							call(
-								"_op_plus__ptr__char__ptr__char__nat"
-								[get-field(param-ref("a"), "data"), param-ref("index")])
-							param-ref("value")]))))
-		fun(
-			false
-			"set___void__ptr__char__char"
-			type(false, "_void")
-			none
-			[param("p", type(false, "ptr__char")), param("value", type(false, "char"))]
-			builtin(operator, "set-ptr", [type(false, "char")]))
-		fun(
-			true
-			"call__char__fun_mut1__char__nat__nat"
-			type(false, "char")
-			none
-			[param("f", type(false, "fun_mut1__char__nat")), param("p0", type(false, "nat"))]
-			expr-body(
-				[]
-				call(
-					"call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat"
-					[call("get_ctx__ptr_ctx", []), param-ref("f"), param-ref("p0")])))
-		fun(
-			false
-			"call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat"
-			type(false, "char")
-			none
-			[
-				param("c", type(true, "ctx"))
-				param("f", type(false, "fun_mut1__char__nat"))
-				param("p0", type(false, "nat"))]
-			expr-body(
-				[]
-				call(
-					"call__char__fun_ptr3__char__ptr_ctx__ptr__nat8__nat__ptr_ctx__ptr__nat8__nat"
-					[
-						get-field(param-ref("f"), "fun_ptr")
-						param-ref("c")
-						get-field(param-ref("f"), "closure")
-						param-ref("p0")])))
-		fun(
-			false
-			"call__char__fun_ptr3__char__ptr_ctx__ptr__nat8__nat__ptr_ctx__ptr__nat8__nat"
-			type(false, "char")
-			none
-			[
-				param("f", type(false, "fun_ptr3__char__ptr_ctx__ptr__nat8__nat"))
-				param("p0", type(true, "ctx"))
-				param("p1", type(false, "ptr__nat8"))
-				param("p2", type(false, "nat"))]
-			builtin(
-				operator
-				"call (fun-ptr)"
-				[type(false, "char"), type(true, "ctx"), type(false, "ptr__nat8"), type(false, "nat")]))
-		fun(
-			true
-			"_op_plus__arr__char__arr__char__arr__char__lambda0"
-			type(false, "char")
-			some(param("_closure", type(true, "_op_plus__arr__char__arr__char__arr__char__lambda0___closure")))
-			[param("i", type(false, "nat"))]
-			expr-body(
-				[]
-				cond(
+								"_op_less_equal__bool__nat__nat"
+								[param-ref("begin"), get-field(param-ref("a"), "size")])])
 					call(
-						"_op_less__bool__nat__nat"
-						[param-ref("i"), get-field(get-field(param-ref("_closure"), "a"), "size")])
-					call("at__char__arr__char__nat", [get-field(param-ref("_closure"), "a"), param-ref("i")])
-					call(
-						"at__char__arr__char__nat"
+						"slice__arr__char__arr__char__nat__nat"
 						[
-							get-field(param-ref("_closure"), "b")
-							call(
-								"_op_minus__nat__nat__nat"
-								[param-ref("i"), get-field(get-field(param-ref("_closure"), "a"), "size")])]))))
+							param-ref("a")
+							param-ref("begin")
+							call("_op_minus__nat__nat__nat", [get-field(param-ref("a"), "size"), param-ref("begin")])]))))
 		fun(
 			true
-			"abs__nat___int"
-			type(false, "nat")
-			none
-			[param("i", type(false, "_int"))]
-			expr-body(
-				[local("i_abs", type(false, "_int"))]
-				let(
-					"i_abs"
-					call(
-						"if___int__bool___int___int"
-						[
-							call("negative__q__bool___int", [param-ref("i")])
-							call("neg___int___int", [param-ref("i")])
-							param-ref("i")])
-					call("to_nat__nat___int", [local-ref("i_abs")]))))
-		fun(
-			false
-			"if___int__bool___int___int"
+			"neg___int__nat"
 			type(false, "_int")
 			none
-			[
-				param("cond", type(false, "bool"))
-				param("if_true", type(false, "_int"))
-				param("if_false", type(false, "_int"))]
-			builtin(operator, "if", [type(false, "_int")]))
-		fun(
-			true
-			"negative__q__bool___int"
-			type(false, "bool")
-			none
-			[param("i", type(false, "_int"))]
-			expr-body([], call("_op_less__bool___int___int", [param-ref("i"), call("zero___int", [])])))
-		fun(
-			false
-			"_op_less__bool___int___int"
-			type(false, "bool")
-			none
-			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
-			expr-body(
-				[local("matched", type(false, "comparison"))]
-				match(
-					"matched"
-					call("_op_less_equal_greater__comparison___int___int", [param-ref("a"), param-ref("b")])
-					[
-						case(none, call("true__bool", []))
-						case(none, call("false__bool", []))
-						case(none, call("false__bool", []))])))
-		fun(false, "zero___int", type(false, "_int"), none, [], builtin(operator, "zero (int-64)", []))
+			[param("n", type(false, "nat"))]
+			expr-body([], call("neg___int___int", [call("to_int___int__nat", [param-ref("n")])])))
 		fun(
 			true
 			"neg___int___int"
@@ -5975,6 +5875,21 @@ program(
 			expr-body(
 				[]
 				call("not__bool__bool", [call("_op_less__bool___int___int", [param-ref("b"), param-ref("a")])])))
+		fun(
+			false
+			"_op_less__bool___int___int"
+			type(false, "bool")
+			none
+			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
+			expr-body(
+				[local("matched", type(false, "comparison"))]
+				match(
+					"matched"
+					call("_op_less_equal_greater__comparison___int___int", [param-ref("a"), param-ref("b")])
+					[
+						case(none, call("true__bool", []))
+						case(none, call("false__bool", []))
+						case(none, call("false__bool", []))])))
 		fun(
 			false
 			"neg_million___int"
@@ -6102,35 +6017,20 @@ program(
 			none
 			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
 			builtin(operator, "wrap-sub (int-64)", []))
+		fun(false, "zero___int", type(false, "_int"), none, [], builtin(operator, "zero (int-64)", []))
 		fun(
 			true
-			"to_nat__nat___int"
-			type(false, "nat")
+			"to_int___int__nat"
+			type(false, "_int")
 			none
-			[param("i", type(false, "_int"))]
+			[param("n", type(false, "nat"))]
 			expr-body(
 				[]
 				seq(
-					call("forbid___void__bool", [call("negative__q__bool___int", [param-ref("i")])])
-					call("unsafe_to_nat__nat___int", [param-ref("i")]))))
-		fun(
-			false
-			"truncate_to_int___int___float"
-			type(false, "_int")
-			none
-			[param("a", type(false, "_float"))]
-			builtin(operator, "truncate-to-int (from float-64)", []))
-		fun(
-			true
-			"resolved__ptr_fut__int32__int32"
-			type(true, "fut__int32")
-			none
-			[param("value", type(false, "int32"))]
-			expr-body(
-				[]
-				alloc(
-					"alloc__ptr__nat8__nat"
-					record([call("new_lock__lock", []), to-union(1, record([param-ref("value")]))]))))]
+					call(
+						"assert___void__bool"
+						[call("_op_less__bool__nat__nat", [param-ref("n"), call("million__nat", [])])])
+					call("unsafe_to_int___int__nat", [param-ref("n")]))))]
 	"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
 	"main__ptr_fut__int32__arr__arr__char"
 	"ctx")

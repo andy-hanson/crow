@@ -1026,7 +1026,7 @@ uint8_t hard_forbid___void__bool(uint8_t condition);
 uint8_t hard_assert___void__bool(uint8_t condition);
 uint8_t null__q__bool__ptr__nat8(uint8_t* a);
 uint8_t _op_equal_equal__bool__nat__nat(uint64_t a, uint64_t b);
-struct comparison _op_less_equal_greater__comparison__nat__nat(uint64_t a, uint64_t b);
+struct comparison compare16(uint64_t a, uint64_t b);
 struct gc new_gc__gc();
 struct none none__none();
 struct mut_bag__task new_mut_bag__mut_bag__task();
@@ -1037,7 +1037,7 @@ uint8_t print_err_sync_no_newline___void__arr__char(struct arr__char s);
 uint8_t write_sync_no_newline___void__int32__arr__char(int32_t fd, struct arr__char s);
 extern int64_t write(int32_t fd, uint8_t* buff, uint64_t n_bytes);
 uint8_t _op_equal_equal__bool___int___int(int64_t a, int64_t b);
-struct comparison _op_less_equal_greater__comparison___int___int(int64_t a, int64_t b);
+struct comparison compare27(int64_t a, int64_t b);
 uint8_t todo___void();
 int32_t stderr_fd__int32();
 int32_t two__int32();
@@ -1070,7 +1070,7 @@ extern int32_t pthread_yield();
 extern void usleep(uint64_t micro_seconds);
 uint8_t zero__q__bool__int32(int32_t i);
 uint8_t _op_equal_equal__bool__int32__int32(int32_t a, int32_t b);
-struct comparison _op_less_equal_greater__comparison__int32__int32(int32_t a, int32_t b);
+struct comparison compare60(int32_t a, int32_t b);
 uint64_t noctx_incr__nat__nat(uint64_t n);
 uint8_t _op_less__bool__nat__nat(uint64_t a, uint64_t b);
 uint64_t billion__nat();
@@ -1113,8 +1113,7 @@ uint8_t assert___void__bool__arr__char(struct ctx* ctx, uint8_t condition, struc
 uint8_t fail___void__arr__char(struct ctx* ctx, struct arr__char reason);
 uint8_t throw___void__exception(struct ctx* ctx, struct exception e);
 struct exception_ctx* get_exception_ctx__ptr_exception_ctx(struct ctx* ctx);
-uint8_t _op_equal_equal__bool__ptr__jmp_buf_tag__ptr__jmp_buf_tag(struct jmp_buf_tag* a, struct jmp_buf_tag* b);
-struct comparison _op_less_equal_greater__comparison__ptr__jmp_buf_tag__ptr__jmp_buf_tag(struct jmp_buf_tag* a, struct jmp_buf_tag* b);
+uint8_t null__q__bool__ptr__jmp_buf_tag(struct jmp_buf_tag* a);
 extern void longjmp(struct jmp_buf_tag* env, int32_t val);
 int32_t number_to_throw__int32(struct ctx* ctx);
 int32_t seven__int32();
@@ -1189,7 +1188,7 @@ uint64_t _op_minus__nat__ptr__char__ptr__char(char* a, char* b);
 char* find_cstr_end__ptr__char__ptr__char(char* a);
 char* find_char_in_cstr__ptr__char__ptr__char__char(char* a, char c);
 uint8_t _op_equal_equal__bool__char__char(char a, char b);
-struct comparison _op_less_equal_greater__comparison__char__char(char a, char b);
+struct comparison compare178(char a, char b);
 char literal__char__arr__char(struct arr__char a);
 char noctx_at__char__arr__char__nat(struct arr__char a, uint64_t index);
 char* todo__ptr__char();
@@ -1214,8 +1213,6 @@ uint8_t join_one_thread___void__nat(uint64_t tid);
 extern int32_t pthread_join(uint64_t thread, struct cell__ptr__nat8* thread_return);
 int32_t einval__int32();
 int32_t esrch__int32();
-uint8_t _op_equal_equal__bool__ptr__nat8__ptr__nat8(uint8_t* a, uint8_t* b);
-struct comparison _op_less_equal_greater__comparison__ptr__nat8__ptr__nat8(uint8_t* a, uint8_t* b);
 uint8_t* get__ptr__nat8__ptr_cell__ptr__nat8(struct cell__ptr__nat8* c);
 uint8_t unmanaged_free___void__ptr__nat(uint64_t* p);
 extern void free(uint8_t* p);
@@ -1286,7 +1283,7 @@ struct arr__arr__char slice_up_to__arr__arr__char__arr__arr__char__nat(struct ct
 struct arr__arr__char slice__arr__arr__char__arr__arr__char__nat__nat(struct ctx* ctx, struct arr__arr__char a, uint64_t begin, uint64_t size);
 struct arr__arr__char slice_starting_at__arr__arr__char__arr__arr__char__nat(struct ctx* ctx, struct arr__arr__char a, uint64_t begin);
 uint8_t _op_equal_equal__bool__arr__char__arr__char(struct arr__char a, struct arr__char b);
-struct comparison _op_less_equal_greater__comparison__arr__char__arr__char(struct arr__char a, struct arr__char b);
+struct comparison compare273(struct arr__char a, struct arr__char b);
 uint8_t parse_cmd_line_args_dynamic__ptr_parsed_cmd_line_args__arr__arr__char__lambda1(struct ctx* ctx, uint8_t* _closure, struct arr__char it);
 struct dict__arr__char__arr__arr__char* parse_named_args__ptr_dict__arr__char__arr__arr__char__arr__arr__char(struct ctx* ctx, struct arr__arr__char args);
 struct mut_dict__arr__char__arr__arr__char new_mut_dict__mut_dict__arr__char__arr__arr__char(struct ctx* ctx);
@@ -1471,7 +1468,7 @@ int32_t enoent__int32();
 struct opt__ptr_stat_t todo__opt__ptr_stat_t();
 uint8_t todo__bool();
 uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b);
-struct comparison _op_less_equal_greater__comparison__nat32__nat32(uint32_t a, uint32_t b);
+struct comparison compare458(uint32_t a, uint32_t b);
 uint32_t s_ifmt__nat32(struct ctx* ctx);
 uint32_t two_pow__nat32__nat32(uint32_t pow);
 uint8_t zero__q__bool__nat32(uint32_t n);
@@ -1499,7 +1496,7 @@ struct bytes256 zero__bytes256();
 struct cell__ptr_dirent* new_cell__ptr_cell__ptr_dirent__ptr_dirent(struct ctx* ctx, struct dirent* value);
 extern int32_t readdir_r(uint8_t* dirp, struct dirent* entry, struct cell__ptr_dirent* result);
 struct dirent* get__ptr_dirent__ptr_cell__ptr_dirent(struct cell__ptr_dirent* c);
-uint8_t ptr_eq__bool__ptr_dirent__ptr_dirent(struct dirent* a, struct dirent* b);
+uint8_t ref_eq__bool__ptr_dirent__ptr_dirent(struct dirent* a, struct dirent* b);
 struct arr__char get_dirent_name__arr__char__ptr_dirent(struct dirent* d);
 struct arr__arr__char sort__arr__arr__char__arr__arr__char(struct ctx* ctx, struct arr__arr__char a);
 struct mut_arr__arr__char* to_mut_arr__ptr_mut_arr__arr__char__arr__arr__char(struct ctx* ctx, struct arr__arr__char a);
@@ -1574,7 +1571,7 @@ int16_t pollin__int16(struct ctx* ctx);
 int16_t two_pow__int16__int16(int16_t pow);
 uint8_t zero__q__bool__int16(int16_t a);
 uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b);
-struct comparison _op_less_equal_greater__comparison__int16__int16(int16_t a, int16_t b);
+struct comparison compare561(int16_t a, int16_t b);
 int16_t wrap_decr__int16__int16(int16_t a);
 int16_t two__int16();
 int16_t wrap_incr__int16__int16(int16_t a);
@@ -1870,7 +1867,7 @@ uint8_t null__q__bool__ptr__nat8(uint8_t* a) {
 }
 uint8_t _op_equal_equal__bool__nat__nat(uint64_t a, uint64_t b) {
 	struct comparison matched;
-	matched = _op_less_equal_greater__comparison__nat__nat(a, b);
+	matched = compare16(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -1882,7 +1879,7 @@ uint8_t _op_equal_equal__bool__nat__nat(uint64_t a, uint64_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison _op_less_equal_greater__comparison__nat__nat(uint64_t a, uint64_t b) {
+struct comparison compare16(uint64_t a, uint64_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -1928,7 +1925,7 @@ uint8_t write_sync_no_newline___void__int32__arr__char(int32_t fd, struct arr__c
 }
 uint8_t _op_equal_equal__bool___int___int(int64_t a, int64_t b) {
 	struct comparison matched;
-	matched = _op_less_equal_greater__comparison___int___int(a, b);
+	matched = compare27(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -1940,7 +1937,7 @@ uint8_t _op_equal_equal__bool___int___int(int64_t a, int64_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison _op_less_equal_greater__comparison___int___int(int64_t a, int64_t b) {
+struct comparison compare27(int64_t a, int64_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -2068,7 +2065,7 @@ uint8_t zero__q__bool__int32(int32_t i) {
 }
 uint8_t _op_equal_equal__bool__int32__int32(int32_t a, int32_t b) {
 	struct comparison matched;
-	matched = _op_less_equal_greater__comparison__int32__int32(a, b);
+	matched = compare60(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -2080,7 +2077,7 @@ uint8_t _op_equal_equal__bool__int32__int32(int32_t a, int32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison _op_less_equal_greater__comparison__int32__int32(int32_t a, int32_t b) {
+struct comparison compare60(int32_t a, int32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -2097,7 +2094,7 @@ uint64_t noctx_incr__nat__nat(uint64_t n) {
 }
 uint8_t _op_less__bool__nat__nat(uint64_t a, uint64_t b) {
 	struct comparison matched;
-	matched = _op_less_equal_greater__comparison__nat__nat(a, b);
+	matched = compare16(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 1;
@@ -2350,7 +2347,7 @@ uint8_t fail___void__arr__char(struct ctx* ctx, struct arr__char reason) {
 uint8_t throw___void__exception(struct ctx* ctx, struct exception e) {
 	struct exception_ctx* exn_ctx;
 	exn_ctx = get_exception_ctx__ptr_exception_ctx(ctx);
-	hard_forbid___void__bool(_op_equal_equal__bool__ptr__jmp_buf_tag__ptr__jmp_buf_tag(exn_ctx->jmp_buf_ptr, NULL));
+	hard_forbid___void__bool(null__q__bool__ptr__jmp_buf_tag(exn_ctx->jmp_buf_ptr));
 	(exn_ctx->thrown_exception = e, 0);
 	(longjmp(exn_ctx->jmp_buf_ptr, number_to_throw__int32(ctx)), 0);
 	return todo___void();
@@ -2358,30 +2355,8 @@ uint8_t throw___void__exception(struct ctx* ctx, struct exception e) {
 struct exception_ctx* get_exception_ctx__ptr_exception_ctx(struct ctx* ctx) {
 	return (struct exception_ctx*) ctx->exception_ctx_ptr;
 }
-uint8_t _op_equal_equal__bool__ptr__jmp_buf_tag__ptr__jmp_buf_tag(struct jmp_buf_tag* a, struct jmp_buf_tag* b) {
-	struct comparison matched;
-	matched = _op_less_equal_greater__comparison__ptr__jmp_buf_tag__ptr__jmp_buf_tag(a, b);
-	switch (matched.kind) {
-		case 0:
-			return 0;
-		case 1:
-			return 1;
-		case 2:
-			return 0;
-		default:
-			return (assert(0),0);
-	}
-}
-struct comparison _op_less_equal_greater__comparison__ptr__jmp_buf_tag__ptr__jmp_buf_tag(struct jmp_buf_tag* a, struct jmp_buf_tag* b) {
-	if ((a < b)) {
-		return (struct comparison) {0, .as0 = (struct less) {0}};
-	} else {
-		if ((b < a)) {
-			return (struct comparison) {2, .as2 = (struct greater) {0}};
-		} else {
-			return (struct comparison) {1, .as1 = (struct equal) {0}};
-		}
-	}
+uint8_t null__q__bool__ptr__jmp_buf_tag(struct jmp_buf_tag* a) {
+	return _op_equal_equal__bool__nat__nat((uint64_t) a, (uint64_t) NULL);
 }
 int32_t number_to_throw__int32(struct ctx* ctx) {
 	return seven__int32();
@@ -2719,7 +2694,7 @@ char* find_char_in_cstr__ptr__char__ptr__char__char(char* a, char c) {
 }
 uint8_t _op_equal_equal__bool__char__char(char a, char b) {
 	struct comparison matched;
-	matched = _op_less_equal_greater__comparison__char__char(a, b);
+	matched = compare178(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -2731,7 +2706,7 @@ uint8_t _op_equal_equal__bool__char__char(char a, char b) {
 			return (assert(0),0);
 	}
 }
-struct comparison _op_less_equal_greater__comparison__char__char(char a, char b) {
+struct comparison compare178(char a, char b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -2887,38 +2862,13 @@ uint8_t join_one_thread___void__nat(uint64_t tid) {
 			}
 		}
 	}
-	return hard_assert___void__bool(_op_equal_equal__bool__ptr__nat8__ptr__nat8(get__ptr__nat8__ptr_cell__ptr__nat8((&(thread_return))), NULL));
+	return hard_assert___void__bool(null__q__bool__ptr__nat8(get__ptr__nat8__ptr_cell__ptr__nat8((&(thread_return)))));
 }
 int32_t einval__int32() {
 	return ((ten__int32() + ten__int32()) + two__int32());
 }
 int32_t esrch__int32() {
 	return three__int32();
-}
-uint8_t _op_equal_equal__bool__ptr__nat8__ptr__nat8(uint8_t* a, uint8_t* b) {
-	struct comparison matched;
-	matched = _op_less_equal_greater__comparison__ptr__nat8__ptr__nat8(a, b);
-	switch (matched.kind) {
-		case 0:
-			return 0;
-		case 1:
-			return 1;
-		case 2:
-			return 0;
-		default:
-			return (assert(0),0);
-	}
-}
-struct comparison _op_less_equal_greater__comparison__ptr__nat8__ptr__nat8(uint8_t* a, uint8_t* b) {
-	if ((a < b)) {
-		return (struct comparison) {0, .as0 = (struct less) {0}};
-	} else {
-		if ((b < a)) {
-			return (struct comparison) {2, .as2 = (struct greater) {0}};
-		} else {
-			return (struct comparison) {1, .as1 = (struct equal) {0}};
-		}
-	}
 }
 uint8_t* get__ptr__nat8__ptr_cell__ptr__nat8(struct cell__ptr__nat8* c) {
 	return c->value;
@@ -3538,7 +3488,7 @@ struct arr__arr__char slice_starting_at__arr__arr__char__arr__arr__char__nat(str
 }
 uint8_t _op_equal_equal__bool__arr__char__arr__char(struct arr__char a, struct arr__char b) {
 	struct comparison matched;
-	matched = _op_less_equal_greater__comparison__arr__char__arr__char(a, b);
+	matched = compare273(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -3550,9 +3500,8 @@ uint8_t _op_equal_equal__bool__arr__char__arr__char(struct arr__char a, struct a
 			return (assert(0),0);
 	}
 }
-struct comparison _op_less_equal_greater__comparison__arr__char__arr__char(struct arr__char a, struct arr__char b) {
-	struct comparison _cmpel;
-	struct comparison _matchedel;
+struct comparison compare273(struct arr__char a, struct arr__char b) {
+	struct comparison matchedelement;
 	struct arr__char _tailCalla;
 	struct arr__char _tailCallb;
 	top:
@@ -3566,11 +3515,10 @@ struct comparison _op_less_equal_greater__comparison__arr__char__arr__char(struc
 		if ((b.size == 0)) {
 			return (struct comparison) {2, .as2 = (struct greater) {0}};
 		} else {
-			_cmpel = _op_less_equal_greater__comparison__char__char((*(a.data)), (*(b.data)));
-			_matchedel = _cmpel;
-			switch (_matchedel.kind) {
+			matchedelement = compare178((*(a.data)), (*(b.data)));
+			switch (matchedelement.kind) {
 				case 0:
-					return _cmpel;
+					return (struct comparison) {0, .as0 = (struct less) {0}};
 				case 1:
 					_tailCalla = (struct arr__char) {(a.size - 1), (a.data + 1)};
 					_tailCallb = (struct arr__char) {(b.size - 1), (b.data + 1)};
@@ -3578,7 +3526,7 @@ struct comparison _op_less_equal_greater__comparison__arr__char__arr__char(struc
 					b = _tailCallb;
 					goto top;
 				case 2:
-					return _cmpel;
+					return (struct comparison) {2, .as2 = (struct greater) {0}};
 				default:
 					return (assert(0),(struct comparison) {0});
 			}
@@ -3665,7 +3613,7 @@ struct arr__char fail__arr__char__arr__char(struct ctx* ctx, struct arr__char re
 struct arr__char throw__arr__char__exception(struct ctx* ctx, struct exception e) {
 	struct exception_ctx* exn_ctx;
 	exn_ctx = get_exception_ctx__ptr_exception_ctx(ctx);
-	hard_forbid___void__bool(_op_equal_equal__bool__ptr__jmp_buf_tag__ptr__jmp_buf_tag(exn_ctx->jmp_buf_ptr, NULL));
+	hard_forbid___void__bool(null__q__bool__ptr__jmp_buf_tag(exn_ctx->jmp_buf_ptr));
 	(exn_ctx->thrown_exception = e, 0);
 	(longjmp(exn_ctx->jmp_buf_ptr, number_to_throw__int32(ctx)), 0);
 	return todo__arr__char();
@@ -4352,7 +4300,7 @@ uint8_t _op_less_equal__bool___int___int(int64_t a, int64_t b) {
 }
 uint8_t _op_less__bool___int___int(int64_t a, int64_t b) {
 	struct comparison matched;
-	matched = _op_less_equal_greater__comparison___int___int(a, b);
+	matched = compare27(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 1;
@@ -4746,7 +4694,7 @@ uint8_t todo__bool() {
 }
 uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b) {
 	struct comparison matched;
-	matched = _op_less_equal_greater__comparison__nat32__nat32(a, b);
+	matched = compare458(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -4758,7 +4706,7 @@ uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison _op_less_equal_greater__comparison__nat32__nat32(uint32_t a, uint32_t b) {
+struct comparison compare458(uint32_t a, uint32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -4874,7 +4822,7 @@ uint8_t read_dir_recur___void__ptr__nat8__ptr_mut_arr__arr__char(struct ctx* ctx
 	if (null__q__bool__ptr__nat8((uint8_t*) get__ptr_dirent__ptr_cell__ptr_dirent(result))) {
 		return 0;
 	} else {
-		assert___void__bool(ctx, ptr_eq__bool__ptr_dirent__ptr_dirent(get__ptr_dirent__ptr_cell__ptr_dirent(result), entry));
+		assert___void__bool(ctx, ref_eq__bool__ptr_dirent__ptr_dirent(get__ptr_dirent__ptr_cell__ptr_dirent(result), entry));
 		name = get_dirent_name__arr__char__ptr_dirent(entry);
 		if ((_op_equal_equal__bool__arr__char__arr__char(name, (struct arr__char) {1, "."}) || _op_equal_equal__bool__arr__char__arr__char(name, (struct arr__char) {2, ".."}))) {
 			0;
@@ -4902,8 +4850,8 @@ struct cell__ptr_dirent* new_cell__ptr_cell__ptr_dirent__ptr_dirent(struct ctx* 
 struct dirent* get__ptr_dirent__ptr_cell__ptr_dirent(struct cell__ptr_dirent* c) {
 	return c->value;
 }
-uint8_t ptr_eq__bool__ptr_dirent__ptr_dirent(struct dirent* a, struct dirent* b) {
-	return _op_equal_equal__bool__ptr__nat8__ptr__nat8((uint8_t*) a, (uint8_t*) b);
+uint8_t ref_eq__bool__ptr_dirent__ptr_dirent(struct dirent* a, struct dirent* b) {
+	return ((uint8_t*) a == (uint8_t*) b);
 }
 struct arr__char get_dirent_name__arr__char__ptr_dirent(struct dirent* d) {
 	uint64_t name_offset;
@@ -5017,7 +4965,7 @@ uint64_t partition_recur__nat__ptr_mut_slice__arr__char__arr__char__nat__nat(str
 }
 uint8_t _op_less__bool__arr__char__arr__char(struct arr__char a, struct arr__char b) {
 	struct comparison matched;
-	matched = _op_less_equal_greater__comparison__arr__char__arr__char(a, b);
+	matched = compare273(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 1;
@@ -5488,7 +5436,7 @@ uint8_t zero__q__bool__int16(int16_t a) {
 }
 uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b) {
 	struct comparison matched;
-	matched = _op_less_equal_greater__comparison__int16__int16(a, b);
+	matched = compare561(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -5500,7 +5448,7 @@ uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison _op_less_equal_greater__comparison__int16__int16(int16_t a, int16_t b) {
+struct comparison compare561(int16_t a, int16_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -6057,7 +6005,7 @@ struct process_result* fail__ptr_process_result__arr__char(struct ctx* ctx, stru
 struct process_result* throw__ptr_process_result__exception(struct ctx* ctx, struct exception e) {
 	struct exception_ctx* exn_ctx;
 	exn_ctx = get_exception_ctx__ptr_exception_ctx(ctx);
-	hard_forbid___void__bool(_op_equal_equal__bool__ptr__jmp_buf_tag__ptr__jmp_buf_tag(exn_ctx->jmp_buf_ptr, NULL));
+	hard_forbid___void__bool(null__q__bool__ptr__jmp_buf_tag(exn_ctx->jmp_buf_ptr));
 	(exn_ctx->thrown_exception = e, 0);
 	(longjmp(exn_ctx->jmp_buf_ptr, number_to_throw__int32(ctx)), 0);
 	return todo__ptr_process_result();

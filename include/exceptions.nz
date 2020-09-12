@@ -16,7 +16,7 @@ number-to-throw int32()
 
 throw ?t(e exception) trusted
 	exn-ctx = get-exception-ctx
-	hard-forbid: exn-ctx.jmp-buf-ptr == null
+	hard-forbid: exn-ctx.jmp-buf-ptr null?
 	exn-ctx.thrown-exception := e
 	exn-ctx.jmp-buf-ptr longjmp number-to-throw
 	| Unreachable

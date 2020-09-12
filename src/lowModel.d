@@ -49,6 +49,8 @@ enum PrimitiveType {
 	void_,
 }
 
+immutable(size_t) nPrimitiveTypes = 1 + cast(size_t) PrimitiveType.void_;
+
 immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
 	return shortSymAlphaLiteral(() {
 		final switch (a) {
@@ -343,7 +345,7 @@ struct LowExprKind {
 	struct RecordFieldAccess {
 		immutable Ptr!LowExpr target;
 		immutable Bool targetIsPointer; // TODO: is this redundant?
-		immutable LowType.Record record;
+		immutable LowType.Record record; //TODO: this is just asRecordType(target.type)?
 		immutable Ptr!LowField field;
 	}
 
@@ -461,7 +463,19 @@ struct LowExprKind {
 			bitwiseOrNat32,
 			bitwiseOrNat64,
 			eqNat64,
-			less, // TODO:KILL, use typed versions
+			eqPtr,
+			less, // TODO:KILL
+			lessBool,
+			lessChar,
+			lessFloat64,
+			lessInt8,
+			lessInt16,
+			lessInt32,
+			lessInt64,
+			lessNat8,
+			lessNat16,
+			lessNat32,
+			lessNat64,
 			mulFloat64,
 			or,
 			subFloat64,

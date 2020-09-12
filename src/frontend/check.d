@@ -461,12 +461,12 @@ Arr!StructAlias checkStructAliasesInitial(Alloc)(
 		immutable StructAlias(ast.range, ast.isPublic, ast.name, checkTypeParams(alloc, ctx, ast.typeParams)));
 }
 
-struct PurityAndForceSendable {
+struct PurityAndForced {
 	immutable Purity purity;
-	immutable Bool forceSendable;
+	immutable Bool forced;
 }
 
-immutable(PurityAndForceSendable) getPurityFromAst(Alloc)(
+immutable(PurityAndForced) getPurityFromAst(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable StructDeclAst ast,
@@ -483,24 +483,26 @@ immutable(PurityAndForceSendable) getPurityFromAst(Alloc)(
 			Purity.data);
 	// Note: purity is taken for granted here, and verified later when we check the body.
 	if (has(ast.purity)) {
-		immutable PurityAndForceSendable res = () {
+		immutable PurityAndForced res = () {
 			final switch (force(ast.purity)) {
 				case PuritySpecifier.data:
-					return PurityAndForceSendable(Purity.data, False);
+					return PurityAndForced(Purity.data, False);
+				case PuritySpecifier.forceData:
+					return PurityAndForced(Purity.data, True);
 				case PuritySpecifier.sendable:
-					return PurityAndForceSendable(Purity.sendable, False);
+					return PurityAndForced(Purity.sendable, False);
 				case PuritySpecifier.forceSendable:
-					return PurityAndForceSendable(Purity.sendable, True);
+					return PurityAndForced(Purity.sendable, True);
 				case PuritySpecifier.mut:
-					return PurityAndForceSendable(Purity.mut, False);
+					return PurityAndForced(Purity.mut, False);
 			}
 		}();
-		if (res.purity == defaultPurity)
+		if (res.purity == defaultPurity && !res.forced)
 			addDiag(alloc, ctx, ast.range, immutable Diag(
 				immutable Diag.PuritySpecifierRedundant(defaultPurity, getTypeKind(ast.body_))));
 		return res;
 	} else
-		return PurityAndForceSendable(defaultPurity, False);
+		return PurityAndForced(defaultPurity, False);
 }
 
 immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) {
@@ -518,14 +520,14 @@ Arr!StructDecl checkStructsInitial(Alloc)(
 	ref immutable Arr!StructDeclAst asts,
 ) {
 	return mapToMut!StructDecl(alloc, asts, (ref immutable StructDeclAst ast) {
-		immutable PurityAndForceSendable p = getPurityFromAst(alloc, ctx, ast);
+		immutable PurityAndForced p = getPurityFromAst(alloc, ctx, ast);
 		return immutable StructDecl(
 			ast.range,
 			ast.isPublic,
 			ast.name,
 			checkTypeParams(alloc, ctx, ast.typeParams),
 			p.purity,
-			p.forceSendable);
+			p.forced);
 	});
 }
 
@@ -606,11 +608,11 @@ immutable(StructBody) checkRecord(Alloc)(
 				structsAndAliasesMap,
 				TypeParamsScope(struct_.typeParams),
 				someMut(ptrTrustMe_mut(delayStructInsts)));
-			if (isPurityWorse(bestCasePurity(fieldType), struct_.purity) && !struct_.forceSendable)
+			if (isPurityWorse(bestCasePurity(fieldType), struct_.purity) && !struct_.purityIsForced)
 				addDiag(alloc, ctx, field.range, immutable Diag(Diag.PurityOfFieldWorseThanRecord(struct_, fieldType)));
 			if (field.isMutable) {
 				immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
-					struct_.purity != Purity.mut && !struct_.forceSendable
+					struct_.purity != Purity.mut && !struct_.purityIsForced
 						? some(Diag.MutFieldNotAllowed.Reason.recordIsNotMut)
 						: forcedByVal
 						? some(Diag.MutFieldNotAllowed.Reason.recordIsForcedByVal)

@@ -167,20 +167,16 @@ struct arr__nat {
 	uint64_t size;
 	uint64_t* data;
 };
-struct point {
-	double x;
-	double y;
+struct my_record {
+	uint64_t x;
+	uint64_t y;
 };
-struct fun_mut1__char__nat;
-struct mut_arr__char {
-	uint8_t frozen__q;
-	uint64_t size;
-	uint64_t capacity;
-	char* data;
+struct my_byref_record {
+	uint64_t x;
+	uint64_t y;
 };
-struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure {
-	struct arr__char a;
-	struct arr__char b;
+struct my_other_record {
+	uint8_t __mustBeNonEmpty;
 };
 struct fut_state__int32;
 struct result__int32__exception;
@@ -234,6 +230,13 @@ struct result__chosen_task__no_chosen_task;
 struct opt__chosen_task;
 struct opt__opt__task;
 struct opt__task_and_nodes;
+struct my_union {
+	int kind;
+	union {
+		struct my_record as0;
+		struct my_other_record as1;
+	};
+};
 typedef uint8_t (*fun_ptr3___void__ptr_ctx__ptr__nat8__result__int32__exception)(struct ctx*, uint8_t*, struct result__int32__exception);
 typedef struct fut__int32* (*fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char)(struct ctx*, struct arr__arr__char);
 typedef uint8_t (*fun_ptr2___void__ptr_ctx__ptr__nat8)(struct ctx*, uint8_t*);
@@ -245,7 +248,6 @@ typedef struct fut__int32* (*fun_ptr3__ptr_fut__int32__ptr_ctx__ptr__nat8___void
 typedef struct arr__char (*fun_ptr3__arr__char__ptr_ctx__ptr__nat8__ptr__char)(struct ctx*, uint8_t*, char*);
 typedef struct arr__char (*fun_ptr3__arr__char__ptr_ctx__ptr__nat8__nat)(struct ctx*, uint8_t*, uint64_t);
 typedef uint8_t (*fun_ptr2___void__nat__ptr_global_ctx)(uint64_t, struct global_ctx*);
-typedef char (*fun_ptr3__char__ptr_ctx__ptr__nat8__nat)(struct ctx*, uint8_t*, uint64_t);
 struct fut__int32;
 struct lock {
 	struct _atomic_bool is_locked;
@@ -367,10 +369,6 @@ struct some__chosen_task;
 struct some__opt__task;
 struct task_and_nodes;
 struct some__task_and_nodes;
-struct fun_mut1__char__nat {
-	fun_ptr3__char__ptr_ctx__ptr__nat8__nat fun_ptr;
-	uint8_t* closure;
-};
 struct fut_state__int32 {
 	int kind;
 	union {
@@ -811,8 +809,7 @@ uint8_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx
 struct result__int32__exception must_be_resolved__result__int32__exception__ptr_fut__int32(struct fut__int32* f);
 struct result__int32__exception hard_unreachable__result__int32__exception();
 struct fut__int32* main__ptr_fut__int32__arr__arr__char(struct ctx* ctx, struct arr__arr__char args);
-struct point create_point__point(struct ctx* ctx);
-double literal___float__arr__char(struct ctx* ctx, struct arr__char a);
+uint8_t test_compare_records___void(struct ctx* ctx);
 uint64_t literal__nat__arr__char(struct ctx* ctx, struct arr__char s);
 struct arr__char rtail__arr__char__arr__char(struct ctx* ctx, struct arr__char a);
 struct arr__char slice__arr__char__arr__char__nat__nat(struct ctx* ctx, struct arr__char a, uint64_t begin, uint64_t size);
@@ -824,34 +821,27 @@ uint64_t char_to_nat__nat__char(char c);
 uint64_t todo__nat();
 char last__char__arr__char(struct ctx* ctx, struct arr__char a);
 char at__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t index);
-double get_x___float__point(struct ctx* ctx, struct point a);
 uint8_t print_sync___void__arr__char(struct arr__char s);
 uint8_t print_sync_no_newline___void__arr__char(struct arr__char s);
 int32_t stdout_fd__int32();
-struct arr__char to_str__arr__char___float(struct ctx* ctx, double a);
-struct arr__char to_str__arr__char___int(struct ctx* ctx, int64_t i);
-struct arr__char to_str__arr__char__nat(struct ctx* ctx, uint64_t n);
-uint64_t mod__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
-struct arr__char _op_plus__arr__char__arr__char__arr__char(struct ctx* ctx, struct arr__char a, struct arr__char b);
-struct arr__char make_arr__arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f);
-struct arr__char freeze__arr__char__ptr_mut_arr__char(struct mut_arr__char* a);
-struct arr__char unsafe_as_arr__arr__char__ptr_mut_arr__char(struct mut_arr__char* a);
-struct mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f);
-struct mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(struct ctx* ctx, uint64_t size);
-char* uninitialized_data__ptr__char__nat(struct ctx* ctx, uint64_t size);
-uint8_t make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, struct mut_arr__char* m, uint64_t i, struct fun_mut1__char__nat f);
-uint8_t set_at___void__ptr_mut_arr__char__nat__char(struct ctx* ctx, struct mut_arr__char* a, uint64_t index, char value);
-uint8_t noctx_set_at___void__ptr_mut_arr__char__nat__char(struct mut_arr__char* a, uint64_t index, char value);
-char call__char__fun_mut1__char__nat__nat(struct ctx* ctx, struct fun_mut1__char__nat f, uint64_t p0);
-char call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat(struct ctx* c, struct fun_mut1__char__nat f, uint64_t p0);
-char _op_plus__arr__char__arr__char__arr__char__lambda0(struct ctx* ctx, struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure* _closure, uint64_t i);
-uint64_t abs__nat___int(struct ctx* ctx, int64_t i);
-uint8_t negative__q__bool___int(struct ctx* ctx, int64_t i);
-uint8_t _op_less__bool___int___int(int64_t a, int64_t b);
+struct arr__char to_str__arr__char__comparison(struct ctx* ctx, struct comparison c);
+struct comparison compare265(struct my_record a, struct my_record b);
+uint8_t test_compare_byref_records___void(struct ctx* ctx);
+struct comparison compare267(struct my_byref_record* a, struct my_byref_record* b);
+uint8_t test_compare_unions___void(struct ctx* ctx);
+struct comparison compare269(struct my_union a, struct my_union b);
+struct comparison compare270(struct my_other_record a, struct my_other_record b);
+struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value);
+int32_t literal__int32__arr__char(struct ctx* ctx, struct arr__char s);
+int64_t literal___int__arr__char(struct ctx* ctx, struct arr__char s);
+struct arr__char tail__arr__char__arr__char(struct ctx* ctx, struct arr__char a);
+struct arr__char slice_starting_at__arr__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t begin);
+int64_t neg___int__nat(struct ctx* ctx, uint64_t n);
 int64_t neg___int___int(struct ctx* ctx, int64_t i);
 int64_t _op_times___int___int___int(struct ctx* ctx, int64_t a, int64_t b);
 uint8_t _op_greater__bool___int___int(int64_t a, int64_t b);
 uint8_t _op_less_equal__bool___int___int(int64_t a, int64_t b);
+uint8_t _op_less__bool___int___int(int64_t a, int64_t b);
 int64_t neg_million___int();
 int64_t million___int();
 int64_t thousand___int();
@@ -867,8 +857,7 @@ int64_t four___int();
 int64_t three___int();
 int64_t two___int();
 int64_t neg_one___int();
-uint64_t to_nat__nat___int(struct ctx* ctx, int64_t i);
-struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value);
+int64_t to_int___int__nat(struct ctx* ctx, uint64_t n);
 int32_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(int32_t argc, char** argv, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr) {
 	uint64_t n_threads;
 	struct global_ctx gctx_by_val;
@@ -2402,18 +2391,23 @@ struct result__int32__exception hard_unreachable__result__int32__exception() {
 	return (assert(0),(struct result__int32__exception) {0});
 }
 struct fut__int32* main__ptr_fut__int32__arr__arr__char(struct ctx* ctx, struct arr__arr__char args) {
-	struct point p;
-	double p_x;
-	p = create_point__point(ctx);
-	p_x = get_x___float__point(ctx, p);
-	print_sync___void__arr__char(to_str__arr__char___float(ctx, p_x));
-	return resolved__ptr_fut__int32__int32(ctx, 0);
+	test_compare_records___void(ctx);
+	test_compare_byref_records___void(ctx);
+	test_compare_unions___void(ctx);
+	return resolved__ptr_fut__int32__int32(ctx, literal__int32__arr__char(ctx, (struct arr__char) {1, "0"}));
 }
-struct point create_point__point(struct ctx* ctx) {
-	return (struct point) {literal___float__arr__char(ctx, (struct arr__char) {1, "1"}), literal___float__arr__char(ctx, (struct arr__char) {1, "2"})};
-}
-double literal___float__arr__char(struct ctx* ctx, struct arr__char a) {
-	return literal__nat__arr__char(ctx, a);
+uint8_t test_compare_records___void(struct ctx* ctx) {
+	struct my_record a;
+	struct my_record b;
+	struct my_record c;
+	struct my_record d;
+	a = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})};
+	b = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "3"})};
+	c = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})};
+	d = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "0"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "3"})};
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare265(a, b)));
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare265(a, c)));
+	return print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare265(a, d)));
 }
 uint64_t literal__nat__arr__char(struct ctx* ctx, struct arr__char s) {
 	uint64_t higher_digits;
@@ -2508,9 +2502,6 @@ char at__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t inde
 	assert___void__bool(ctx, _op_less__bool__nat__nat(index, a.size));
 	return noctx_at__char__arr__char__nat(a, index);
 }
-double get_x___float__point(struct ctx* ctx, struct point a) {
-	return a.x;
-}
 uint8_t print_sync___void__arr__char(struct arr__char s) {
 	print_sync_no_newline___void__arr__char(s);
 	return print_sync_no_newline___void__arr__char((struct arr__char) {1, "\n"});
@@ -2521,163 +2512,175 @@ uint8_t print_sync_no_newline___void__arr__char(struct arr__char s) {
 int32_t stdout_fd__int32() {
 	return 1;
 }
-struct arr__char to_str__arr__char___float(struct ctx* ctx, double a) {
-	return to_str__arr__char___int(ctx, a);
-}
-struct arr__char to_str__arr__char___int(struct ctx* ctx, int64_t i) {
-	struct arr__char a;
-	a = to_str__arr__char__nat(ctx, abs__nat___int(ctx, i));
-	if (negative__q__bool___int(ctx, i)) {
-		return _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {1, "-"}, a);
-	} else {
-		return a;
+struct arr__char to_str__arr__char__comparison(struct ctx* ctx, struct comparison c) {
+	struct comparison matched;
+	matched = c;
+	switch (matched.kind) {
+		case 0:
+			return (struct arr__char) {4, "less"};
+		case 1:
+			return (struct arr__char) {5, "equal"};
+		case 2:
+			return (struct arr__char) {7, "greater"};
+		default:
+			return (assert(0),(struct arr__char) {0, NULL});
 	}
 }
-struct arr__char to_str__arr__char__nat(struct ctx* ctx, uint64_t n) {
-	struct arr__char hi;
-	struct arr__char lo;
-	if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "0"}))) {
-		return (struct arr__char) {1, "0"};
-	} else {
-		if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}))) {
-			return (struct arr__char) {1, "1"};
-		} else {
-			if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "2"}))) {
-				return (struct arr__char) {1, "2"};
-			} else {
-				if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "3"}))) {
-					return (struct arr__char) {1, "3"};
-				} else {
-					if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "4"}))) {
-						return (struct arr__char) {1, "4"};
-					} else {
-						if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "5"}))) {
-							return (struct arr__char) {1, "5"};
-						} else {
-							if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "6"}))) {
-								return (struct arr__char) {1, "6"};
-							} else {
-								if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "7"}))) {
-									return (struct arr__char) {1, "7"};
-								} else {
-									if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "8"}))) {
-										return (struct arr__char) {1, "8"};
-									} else {
-										if (_op_equal_equal__bool__nat__nat(n, literal__nat__arr__char(ctx, (struct arr__char) {1, "9"}))) {
-											return (struct arr__char) {1, "9"};
-										} else {
-											hi = to_str__arr__char__nat(ctx, _op_div__nat__nat__nat(ctx, n, ten__nat()));
-											lo = to_str__arr__char__nat(ctx, mod__nat__nat__nat(ctx, n, ten__nat()));
-											return _op_plus__arr__char__arr__char__arr__char(ctx, hi, lo);
-										}
-									}
-								}
-							}
-						}
-					}
-				}
+struct comparison compare265(struct my_record a, struct my_record b) {
+	struct comparison matchedy;
+	struct comparison matchedx;
+	matchedx = compare16(a.x, b.x);
+	switch (matchedx.kind) {
+		case 0:
+			return (struct comparison) {0, .as0 = (struct less) {0}};
+		case 1:
+			matchedy = compare16(a.y, b.y);
+			switch (matchedy.kind) {
+				case 0:
+					return (struct comparison) {0, .as0 = (struct less) {0}};
+				case 1:
+					return (struct comparison) {1, .as1 = (struct equal) {0}};
+				case 2:
+					return (struct comparison) {2, .as2 = (struct greater) {0}};
+				default:
+					return (assert(0),(struct comparison) {0});
 			}
+		case 2:
+			return (struct comparison) {2, .as2 = (struct greater) {0}};
+		default:
+			return (assert(0),(struct comparison) {0});
+	}
+}
+uint8_t test_compare_byref_records___void(struct ctx* ctx) {
+	struct my_byref_record* a;
+	struct my_byref_record* b;
+	struct my_byref_record* c;
+	struct my_byref_record* d;
+	struct my_byref_record* temp0;
+	struct my_byref_record* temp1;
+	struct my_byref_record* temp2;
+	struct my_byref_record* temp3;
+	a = (temp0 = (struct my_byref_record*) alloc__ptr__nat8__nat(ctx, sizeof(struct my_byref_record)), ((*(temp0) = (struct my_byref_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})}, 0), temp0));
+	b = (temp1 = (struct my_byref_record*) alloc__ptr__nat8__nat(ctx, sizeof(struct my_byref_record)), ((*(temp1) = (struct my_byref_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "3"})}, 0), temp1));
+	c = (temp2 = (struct my_byref_record*) alloc__ptr__nat8__nat(ctx, sizeof(struct my_byref_record)), ((*(temp2) = (struct my_byref_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})}, 0), temp2));
+	d = (temp3 = (struct my_byref_record*) alloc__ptr__nat8__nat(ctx, sizeof(struct my_byref_record)), ((*(temp3) = (struct my_byref_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "0"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "3"})}, 0), temp3));
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare267(a, b)));
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare267(a, c)));
+	return print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare267(a, d)));
+}
+struct comparison compare267(struct my_byref_record* a, struct my_byref_record* b) {
+	struct comparison matchedy;
+	struct comparison matchedx;
+	matchedx = compare16(a->x, b->x);
+	switch (matchedx.kind) {
+		case 0:
+			return (struct comparison) {0, .as0 = (struct less) {0}};
+		case 1:
+			matchedy = compare16(a->y, b->y);
+			switch (matchedy.kind) {
+				case 0:
+					return (struct comparison) {0, .as0 = (struct less) {0}};
+				case 1:
+					return (struct comparison) {1, .as1 = (struct equal) {0}};
+				case 2:
+					return (struct comparison) {2, .as2 = (struct greater) {0}};
+				default:
+					return (assert(0),(struct comparison) {0});
+			}
+		case 2:
+			return (struct comparison) {2, .as2 = (struct greater) {0}};
+		default:
+			return (assert(0),(struct comparison) {0});
+	}
+}
+uint8_t test_compare_unions___void(struct ctx* ctx) {
+	struct my_union a;
+	struct my_union b;
+	struct my_union c;
+	struct my_union d;
+	a = (struct my_union) {0, .as0 = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})}};
+	b = (struct my_union) {1, .as1 = (struct my_other_record) {0}};
+	c = (struct my_union) {0, .as0 = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})}};
+	d = (struct my_union) {0, .as0 = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "1"})}};
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare269(a, b)));
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare269(a, c)));
+	return print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare269(a, d)));
+}
+struct comparison compare269(struct my_union a, struct my_union b) {
+	struct my_union matchA;
+	struct my_record a0;
+	struct my_record b0;
+	struct my_union matchB0;
+	struct my_other_record a1;
+	struct my_other_record b1;
+	struct my_union matchB1;
+	matchA = a;
+	switch (matchA.kind) {
+		case 0:
+			a0 = matchA.as0;
+			matchB0 = b;
+			switch (matchB0.kind) {
+				case 0:
+					b0 = matchB0.as0;
+					return compare265(a0, b0);
+				case 1:
+					return (struct comparison) {0, .as0 = (struct less) {0}};
+				default:
+					return (assert(0),(struct comparison) {0});
+			}
+		case 1:
+			a1 = matchA.as1;
+			matchB1 = b;
+			switch (matchB1.kind) {
+				case 0:
+					return (struct comparison) {2, .as2 = (struct greater) {0}};
+				case 1:
+					b1 = matchB1.as1;
+					return compare270(a1, b1);
+				default:
+					return (assert(0),(struct comparison) {0});
+			}
+		default:
+			return (assert(0),(struct comparison) {0});
+	}
+}
+struct comparison compare270(struct my_other_record a, struct my_other_record b) {
+	return (struct comparison) {1, .as1 = (struct equal) {0}};
+}
+struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value) {
+	struct fut__int32* temp0;
+	temp0 = (struct fut__int32*) alloc__ptr__nat8__nat(ctx, sizeof(struct fut__int32));
+	(*(temp0) = (struct fut__int32) {new_lock__lock(), (struct fut_state__int32) {1, .as1 = (struct fut_state_resolved__int32) {value}}}, 0);
+	return temp0;
+}
+int32_t literal__int32__arr__char(struct ctx* ctx, struct arr__char s) {
+	return literal___int__arr__char(ctx, s);
+}
+int64_t literal___int__arr__char(struct ctx* ctx, struct arr__char s) {
+	char fst;
+	uint64_t n;
+	fst = at__char__arr__char__nat(ctx, s, 0);
+	if (_op_equal_equal__bool__char__char(fst, literal__char__arr__char((struct arr__char) {1, "-"}))) {
+		n = literal__nat__arr__char(ctx, tail__arr__char__arr__char(ctx, s));
+		return neg___int__nat(ctx, n);
+	} else {
+		if (_op_equal_equal__bool__char__char(fst, literal__char__arr__char((struct arr__char) {1, "+"}))) {
+			return to_int___int__nat(ctx, literal__nat__arr__char(ctx, tail__arr__char__arr__char(ctx, s)));
+		} else {
+			return to_int___int__nat(ctx, literal__nat__arr__char(ctx, s));
 		}
 	}
 }
-uint64_t mod__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b) {
-	forbid___void__bool(ctx, zero__q__bool__nat(b));
-	return (a % b);
+struct arr__char tail__arr__char__arr__char(struct ctx* ctx, struct arr__char a) {
+	forbid___void__bool(ctx, empty__q__bool__arr__char(a));
+	return slice_starting_at__arr__char__arr__char__nat(ctx, a, 1);
 }
-struct arr__char _op_plus__arr__char__arr__char__arr__char(struct ctx* ctx, struct arr__char a, struct arr__char b) {
-	struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure* temp0;
-	return make_arr__arr__char__nat__fun_mut1__char__nat(ctx, _op_plus__nat__nat__nat(ctx, a.size, b.size), (struct fun_mut1__char__nat) {(fun_ptr3__char__ptr_ctx__ptr__nat8__nat) _op_plus__arr__char__arr__char__arr__char__lambda0, (uint8_t*) (temp0 = (struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure)), ((*(temp0) = (struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure) {a, b}, 0), temp0))});
+struct arr__char slice_starting_at__arr__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t begin) {
+	assert___void__bool(ctx, _op_less_equal__bool__nat__nat(begin, a.size));
+	return slice__arr__char__arr__char__nat__nat(ctx, a, begin, _op_minus__nat__nat__nat(ctx, a.size, begin));
 }
-struct arr__char make_arr__arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f) {
-	return freeze__arr__char__ptr_mut_arr__char(make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx, size, f));
-}
-struct arr__char freeze__arr__char__ptr_mut_arr__char(struct mut_arr__char* a) {
-	(a->frozen__q = 1, 0);
-	return unsafe_as_arr__arr__char__ptr_mut_arr__char(a);
-}
-struct arr__char unsafe_as_arr__arr__char__ptr_mut_arr__char(struct mut_arr__char* a) {
-	return (struct arr__char) {a->size, a->data};
-}
-struct mut_arr__char* make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, uint64_t size, struct fun_mut1__char__nat f) {
-	struct mut_arr__char* res;
-	res = new_uninitialized_mut_arr__ptr_mut_arr__char__nat(ctx, size);
-	make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(ctx, res, 0, f);
-	return res;
-}
-struct mut_arr__char* new_uninitialized_mut_arr__ptr_mut_arr__char__nat(struct ctx* ctx, uint64_t size) {
-	struct mut_arr__char* temp0;
-	temp0 = (struct mut_arr__char*) alloc__ptr__nat8__nat(ctx, sizeof(struct mut_arr__char));
-	(*(temp0) = (struct mut_arr__char) {0, size, size, uninitialized_data__ptr__char__nat(ctx, size)}, 0);
-	return temp0;
-}
-char* uninitialized_data__ptr__char__nat(struct ctx* ctx, uint64_t size) {
-	uint8_t* bptr;
-	bptr = alloc__ptr__nat8__nat(ctx, (size * sizeof(char)));
-	return (char*) bptr;
-}
-uint8_t make_mut_arr_worker___void__ptr_mut_arr__char__nat__fun_mut1__char__nat(struct ctx* ctx, struct mut_arr__char* m, uint64_t i, struct fun_mut1__char__nat f) {
-	struct ctx* _tailCallctx;
-	struct mut_arr__char* _tailCallm;
-	uint64_t _tailCalli;
-	struct fun_mut1__char__nat _tailCallf;
-	top:
-	if (_op_equal_equal__bool__nat__nat(i, m->size)) {
-		return 0;
-	} else {
-		set_at___void__ptr_mut_arr__char__nat__char(ctx, m, i, call__char__fun_mut1__char__nat__nat(ctx, f, i));
-		_tailCallctx = ctx;
-		_tailCallm = m;
-		_tailCalli = incr__nat__nat(ctx, i);
-		_tailCallf = f;
-		ctx = _tailCallctx;
-		m = _tailCallm;
-		i = _tailCalli;
-		f = _tailCallf;
-		goto top;
-	}
-}
-uint8_t set_at___void__ptr_mut_arr__char__nat__char(struct ctx* ctx, struct mut_arr__char* a, uint64_t index, char value) {
-	assert___void__bool(ctx, _op_less__bool__nat__nat(index, a->size));
-	return noctx_set_at___void__ptr_mut_arr__char__nat__char(a, index, value);
-}
-uint8_t noctx_set_at___void__ptr_mut_arr__char__nat__char(struct mut_arr__char* a, uint64_t index, char value) {
-	hard_assert___void__bool(_op_less__bool__nat__nat(index, a->size));
-	return (*((a->data + index)) = value, 0);
-}
-char call__char__fun_mut1__char__nat__nat(struct ctx* ctx, struct fun_mut1__char__nat f, uint64_t p0) {
-	return call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat(ctx, f, p0);
-}
-char call_with_ctx__char__ptr_ctx__fun_mut1__char__nat__nat(struct ctx* c, struct fun_mut1__char__nat f, uint64_t p0) {
-	return f.fun_ptr(c, f.closure, p0);
-}
-char _op_plus__arr__char__arr__char__arr__char__lambda0(struct ctx* ctx, struct _op_plus__arr__char__arr__char__arr__char__lambda0___closure* _closure, uint64_t i) {
-	if (_op_less__bool__nat__nat(i, _closure->a.size)) {
-		return at__char__arr__char__nat(ctx, _closure->a, i);
-	} else {
-		return at__char__arr__char__nat(ctx, _closure->b, _op_minus__nat__nat__nat(ctx, i, _closure->a.size));
-	}
-}
-uint64_t abs__nat___int(struct ctx* ctx, int64_t i) {
-	int64_t i_abs;
-	i_abs = (negative__q__bool___int(ctx, i) ? neg___int___int(ctx, i) : i);
-	return to_nat__nat___int(ctx, i_abs);
-}
-uint8_t negative__q__bool___int(struct ctx* ctx, int64_t i) {
-	return _op_less__bool___int___int(i, 0);
-}
-uint8_t _op_less__bool___int___int(int64_t a, int64_t b) {
-	struct comparison matched;
-	matched = compare27(a, b);
-	switch (matched.kind) {
-		case 0:
-			return 1;
-		case 1:
-			return 0;
-		case 2:
-			return 0;
-		default:
-			return (assert(0),0);
-	}
+int64_t neg___int__nat(struct ctx* ctx, uint64_t n) {
+	return neg___int___int(ctx, to_int___int__nat(ctx, n));
 }
 int64_t neg___int___int(struct ctx* ctx, int64_t i) {
 	return _op_times___int___int___int(ctx, i, neg_one___int());
@@ -2694,6 +2697,20 @@ uint8_t _op_greater__bool___int___int(int64_t a, int64_t b) {
 }
 uint8_t _op_less_equal__bool___int___int(int64_t a, int64_t b) {
 	return !_op_less__bool___int___int(b, a);
+}
+uint8_t _op_less__bool___int___int(int64_t a, int64_t b) {
+	struct comparison matched;
+	matched = compare27(a, b);
+	switch (matched.kind) {
+		case 0:
+			return 1;
+		case 1:
+			return 0;
+		case 2:
+			return 0;
+		default:
+			return (assert(0),0);
+	}
 }
 int64_t neg_million___int() {
 	return (million___int() * neg_one___int());
@@ -2740,15 +2757,9 @@ int64_t two___int() {
 int64_t neg_one___int() {
 	return (0 - 1);
 }
-uint64_t to_nat__nat___int(struct ctx* ctx, int64_t i) {
-	forbid___void__bool(ctx, negative__q__bool___int(ctx, i));
-	return i;
-}
-struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value) {
-	struct fut__int32* temp0;
-	temp0 = (struct fut__int32*) alloc__ptr__nat8__nat(ctx, sizeof(struct fut__int32));
-	(*(temp0) = (struct fut__int32) {new_lock__lock(), (struct fut_state__int32) {1, .as1 = (struct fut_state_resolved__int32) {value}}}, 0);
-	return temp0;
+int64_t to_int___int__nat(struct ctx* ctx, uint64_t n) {
+	assert___void__bool(ctx, _op_less__bool__nat__nat(n, million__nat()));
+	return n;
 }
 int32_t main(int32_t argc, char** argv) {
 	return rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(argc, argv, main__ptr_fut__int32__arr__arr__char);

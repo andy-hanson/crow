@@ -119,6 +119,7 @@ enum BuiltinFunKind {
 	or,
 	pass,
 	ptrCast,
+	ptrEq,
 	ptrTo,
 	refOfVal,
 	setPtr,
@@ -276,6 +277,8 @@ immutable(string) strOfBuiltinFunKind(immutable BuiltinFunKind kind) {
 			return "pass";
 		case BuiltinFunKind.ptrCast:
 			return "ptr-cast";
+		case BuiltinFunKind.ptrEq:
+			return "ptr-eq";
 		case BuiltinFunKind.ptrTo:
 			return "ptr-to";
 		case BuiltinFunKind.refOfVal:

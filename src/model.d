@@ -368,27 +368,10 @@ struct StructDecl {
 	immutable Arr!TypeParam typeParams;
 	// Note: purity on the decl does not take type args into account
 	immutable Purity purity;
-	immutable Bool forceSendable;
+	immutable Bool purityIsForced;
 
 	private:
 	Late!(immutable StructBody) _body_;
-
-	public:
-	this(
-		immutable SourceRange r,
-		immutable Bool isp,
-		immutable Sym n,
-		immutable Arr!TypeParam tps,
-		immutable Purity p,
-		immutable Bool fs
-	) immutable {
-		range = r;
-		isPublic = isp;
-		name = n;
-		typeParams = tps;
-		purity = p;
-		forceSendable = fs;
-	}
 }
 
 immutable(Bool) bodyIsSet(ref const StructDecl a) {

@@ -334,6 +334,7 @@ struct SigAst {
 
 enum PuritySpecifier {
 	data,
+	forceData,
 	sendable,
 	forceSendable,
 	mut,
@@ -585,6 +586,8 @@ immutable(Sexpr) sexprOfOptPurity(Alloc)(ref Alloc alloc, immutable Opt!PuritySp
 			final switch (force(purity)) {
 				case PuritySpecifier.data:
 					return "data";
+				case PuritySpecifier.forceData:
+					return "force-data";
 				case PuritySpecifier.sendable:
 					return "sendable";
 				case PuritySpecifier.forceSendable:
@@ -627,7 +630,11 @@ immutable(Sexpr) sexprOfRecord(Alloc)(ref Alloc alloc, ref immutable StructDeclA
 }
 
 immutable(Sexpr) sexprOfUnion(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Union a) {
-	return todo!(immutable Sexpr)("sexprOfUnion");
+	return tataRecord(
+		alloc,
+		"union",
+		tataArr(alloc, a.members, (ref immutable TypeAst.InstStruct member) =>
+			sexprOfInstStructAst(alloc, member)));
 }
 
 immutable(Sexpr) sexprOfStructBodyAst(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body a) {

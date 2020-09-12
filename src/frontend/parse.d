@@ -101,6 +101,8 @@ immutable(PuritySpecifier) parsePurity(SymAlloc)(ref Lexer!SymAlloc lexer) {
 		return PuritySpecifier.mut;
 	else if (lexer.tryTake("sendable"))
 		return PuritySpecifier.sendable;
+	else if (lexer.tryTake("force-data"))
+		return PuritySpecifier.forceData;
 	else if (lexer.tryTake("force-sendable"))
 		return PuritySpecifier.forceSendable;
 	else

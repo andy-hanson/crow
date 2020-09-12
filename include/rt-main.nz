@@ -145,4 +145,4 @@ join-one-thread void(tid pthread-t) noctx unsafe
 			todo
 		else
 			todo
-	hard-assert: thread-return.ref-of-val.get == null
+	hard-assert: thread-return.ref-of-val.get null?

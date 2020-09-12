@@ -96,7 +96,7 @@ read-dir-recur void(dirp dirp, res mut-arr str) unsafe summon
 			| finished
 			pass
 		else
-			assert: result.get ptr-eq entry
+			assert: result.get ref-eq entry
 			name = entry.get-dirent-name
 			when
 				name == "." or: name == ".."
@@ -208,7 +208,7 @@ get-cwd str() summon trusted
 		b null?
 			todo
 		else
-			assert: b == buff.data
+			assert: b ptr-eq buff.data
 			b to-str
 
 
@@ -486,7 +486,7 @@ connect-to-uri fd-t(u uri) summon trusted
 
 find-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
 	when
-		ap == null
+		ap null?
 			none
 		else
 			a = ap deref

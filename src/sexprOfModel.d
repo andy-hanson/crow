@@ -52,6 +52,7 @@ import util.sexpr :
 	tataArr,
 	tataBool,
 	tataNamedRecord,
+	tataNat,
 	tataOpt,
 	tataRecord,
 	tataStr,
@@ -113,8 +114,8 @@ immutable(Sexpr) sexprOfStructDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immu
 			sexprOfTypeParam(alloc, it))));
 	if (a.purity != Purity.data)
 		add(alloc, fields, nameAndTata("purity", tataSym(symOfPurity(a.purity))));
-	if (a.forceSendable)
-		add(alloc, fields, nameAndTata("force-send", tataBool(True)));
+	if (a.purityIsForced)
+		add(alloc, fields, nameAndTata("forced", tataBool(True)));
 	return tataNamedRecord("struct", finishArr(alloc, fields));
 }
 
@@ -239,8 +240,13 @@ immutable(Sexpr) sexprOfExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable 
 				sexprOfStructInst(alloc, ctx, e.structInst),
 				tataArr(alloc, e.args, (ref immutable Expr arg) =>
 					sexprOfExpr(alloc, ctx, arg))),
-		(ref immutable Expr.ImplicitConvertToUnion) =>
-			todo!(immutable Sexpr)("implicitconverttounion"),
+		(ref immutable Expr.ImplicitConvertToUnion e) =>
+			tataRecord(
+				alloc,
+				"to-union",
+				sexprOfStructInst(alloc, ctx, e.unionType),
+				tataNat(e.memberIndex),
+				sexprOfExpr(alloc, ctx, e.inner)),
 		(ref immutable Expr.Lambda a) =>
 			tataRecord(
 				alloc,

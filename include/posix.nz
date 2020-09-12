@@ -387,7 +387,7 @@ af-unspec int32()
 	zero
 
 | /usr/include/netdb.h
-addrinfo record
+addrinfo record mut
 	by-val
 	ai-flags int32
 	ai-family int32
@@ -421,7 +421,7 @@ sigset-t alias
 
 
 | /usr/include/x86_64-linux-gnu/asm/signal.h
-sigaction record
+sigaction record mut
 	sa-handler any-ptr
 	sa-flags u-long
 	sa-restorer any-ptr

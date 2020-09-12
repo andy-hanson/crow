@@ -1,0 +1,50 @@
+import io
+
+my-record record
+	x nat
+	y nat
+
+my-byref-record record
+	by-ref
+	x nat
+	y nat
+
+my-other-record record
+
+my-union union
+	my-record
+	my-other-record
+
+test-compare-records void() summon
+	a = new<my-record> 1, 2
+	b = new<my-record> 1, 3
+	c = new<my-record> 1, 2
+	d = new<my-record> 0, 3
+	print-sync: a <=> b to-str
+	print-sync: a <=> c to-str
+	print-sync: a <=> d to-str
+
+test-compare-byref-records void() summon
+	a = new<my-byref-record> 1, 2
+	b = new<my-byref-record> 1, 3
+	c = new<my-byref-record> 1, 2
+	d = new<my-byref-record> 0, 3
+	print-sync: a <=> b to-str
+	print-sync: a <=> c to-str
+	print-sync: a <=> d to-str
+
+test-compare-unions void() summon
+	a = as<my-union>: new<my-record> 1, 2
+	b = as<my-union>: new<my-other-record>
+	c = as<my-union>: new<my-record> 1, 2
+	d = as<my-union>: new<my-record> 1, 1
+
+	print-sync: a <=> b to-str
+	print-sync: a <=> c to-str
+	print-sync: a <=> d to-str
+
+main fut int32(args arr str) summon
+	test-compare-records
+	test-compare-byref-records
+	test-compare-unions
+	resolved: 0

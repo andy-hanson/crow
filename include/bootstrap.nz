@@ -25,8 +25,10 @@ as-ref ?t(p any-ptr) noctx unsafe builtin
 ref-of-ptr ?t(p ptr by-val<?t>) noctx unsafe
 	p.deref ref-of-val
 
-ptr-eq bool(a ?t, b ?t) noctx unsafe
-	a.as-any-ptr == b.as-any-ptr
+ptr-eq bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
+
+ref-eq bool(a ?t, b ?t) noctx unsafe
+	a.as-any-ptr ptr-eq b.as-any-ptr
 
 | Since this fun is not marked 'noctx', it simply returns the ctx that already exists.
 get-ctx ctx() unsafe builtin
@@ -37,7 +39,7 @@ byte alias
 	nat8
 
 | NOTE: if ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
-ptr<?t> builtin
+ptr<?t> builtin mut
 deref ?t(p ptr ?t) noctx unsafe builtin
 set void(p ptr ?t, value ?t) noctx unsafe builtin
 
@@ -129,7 +131,7 @@ max ?t(a ?t, b ?t) noctx data<?t>
 	(a > b) if a, b
 
 | NOTE: this is not a normal record, compiler treats it specially
-arr<?t> record
+arr<?t> record force-data
 	by-val
 	size nat
 	data ptr ?t

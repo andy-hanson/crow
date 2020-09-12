@@ -1,1 +1,1 @@
-./build && gdb ./noze -- $@
+./build && gdb ./bin/noze -- $@

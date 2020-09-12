@@ -904,15 +904,7 @@ program(
 			type(false, "comparison")
 			none
 			[param("a", type(false, "nat")), param("b", type(false, "nat"))]
-			expr-body(
-				[]
-				cond(
-					special("less", param-ref("a"), param-ref("b"))
-					to-union(0, record([]))
-					cond(
-						special("less", param-ref("b"), param-ref("a"))
-						to-union(2, record([]))
-						to-union(1, record([]))))))
+			builtin(generate, "<=>", [type(false, "nat")]))
 		fun(false, "true__bool", type(false, "bool"), none, [], builtin(operator, "true", []))
 		fun(
 			false
@@ -1089,15 +1081,7 @@ program(
 			type(false, "comparison")
 			none
 			[param("a", type(false, "_int")), param("b", type(false, "_int"))]
-			expr-body(
-				[]
-				cond(
-					special("less", param-ref("a"), param-ref("b"))
-					to-union(0, record([]))
-					cond(
-						special("less", param-ref("b"), param-ref("a"))
-						to-union(2, record([]))
-						to-union(1, record([]))))))
+			builtin(generate, "<=>", [type(false, "_int")]))
 		fun(
 			false
 			"unsafe_to_int___int__nat"
@@ -1522,15 +1506,7 @@ program(
 			type(false, "comparison")
 			none
 			[param("a", type(false, "int32")), param("b", type(false, "int32"))]
-			expr-body(
-				[]
-				cond(
-					special("less", param-ref("a"), param-ref("b"))
-					to-union(0, record([]))
-					cond(
-						special("less", param-ref("b"), param-ref("a"))
-						to-union(2, record([]))
-						to-union(1, record([]))))))
+			builtin(generate, "<=>", [type(false, "int32")]))
 		fun(false, "zero__int32", type(false, "int32"), none, [], builtin(operator, "zero (int-32)", []))
 		fun(
 			false
@@ -2271,10 +2247,8 @@ program(
 									"hard_forbid___void__bool"
 									[
 										call(
-											"_op_equal_equal__bool__ptr__jmp_buf_tag__ptr__jmp_buf_tag"
-											[
-												get-field(local-ref("exn_ctx"), "jmp_buf_ptr")
-												call("null__ptr__jmp_buf_tag", [])])])
+											"null__q__bool__ptr__jmp_buf_tag"
+											[get-field(local-ref("exn_ctx"), "jmp_buf_ptr")])])
 								set-field(local-ref("exn_ctx"), "thrown_exception", param-ref("e")))
 							call(
 								"longjmp"
@@ -2300,36 +2274,24 @@ program(
 			builtin(operator, "as-ref", [type(true, "exception_ctx")]))
 		fun(
 			false
-			"_op_equal_equal__bool__ptr__jmp_buf_tag__ptr__jmp_buf_tag"
+			"null__q__bool__ptr__jmp_buf_tag"
 			type(false, "bool")
 			none
-			[param("a", type(false, "ptr__jmp_buf_tag")), param("b", type(false, "ptr__jmp_buf_tag"))]
-			expr-body(
-				[local("matched", type(false, "comparison"))]
-				match(
-					"matched"
-					call(
-						"_op_less_equal_greater__comparison__ptr__jmp_buf_tag__ptr__jmp_buf_tag"
-						[param-ref("a"), param-ref("b")])
-					[
-						case(none, call("false__bool", []))
-						case(none, call("true__bool", []))
-						case(none, call("false__bool", []))])))
-		fun(
-			false
-			"_op_less_equal_greater__comparison__ptr__jmp_buf_tag__ptr__jmp_buf_tag"
-			type(false, "comparison")
-			none
-			[param("a", type(false, "ptr__jmp_buf_tag")), param("b", type(false, "ptr__jmp_buf_tag"))]
+			[param("a", type(false, "ptr__jmp_buf_tag"))]
 			expr-body(
 				[]
-				cond(
-					special("less", param-ref("a"), param-ref("b"))
-					to-union(0, record([]))
-					cond(
-						special("less", param-ref("b"), param-ref("a"))
-						to-union(2, record([]))
-						to-union(1, record([]))))))
+				call(
+					"_op_equal_equal__bool__nat__nat"
+					[
+						call("to_nat__nat__ptr__jmp_buf_tag", [param-ref("a")])
+						call("to_nat__nat__ptr__jmp_buf_tag", [call("null__ptr__jmp_buf_tag", [])])])))
+		fun(
+			false
+			"to_nat__nat__ptr__jmp_buf_tag"
+			type(false, "nat")
+			none
+			[param("p", type(false, "ptr__jmp_buf_tag"))]
+			builtin(operator, "to-nat (from ptr)", [type(false, "jmp_buf_tag")]))
 		fun(
 			false
 			"longjmp"
@@ -3593,15 +3555,7 @@ program(
 			type(false, "comparison")
 			none
 			[param("a", type(false, "char")), param("b", type(false, "char"))]
-			expr-body(
-				[]
-				cond(
-					special("less", param-ref("a"), param-ref("b"))
-					to-union(0, record([]))
-					cond(
-						special("less", param-ref("b"), param-ref("a"))
-						to-union(2, record([]))
-						to-union(1, record([]))))))
+			builtin(generate, "<=>", [type(false, "char")]))
 		fun(
 			false
 			"deref__char__ptr__char"
@@ -4114,15 +4068,14 @@ program(
 								"hard_assert___void__bool"
 								[
 									call(
-										"_op_equal_equal__bool__ptr__nat8__ptr__nat8"
+										"null__q__bool__ptr__nat8"
 										[
 											call(
 												"get__ptr__nat8__ptr_cell__ptr__nat8"
 												[
 													call(
 														"ref_of_val__ptr_cell__ptr__nat8__cell__ptr__nat8"
-														[local-ref("thread_return")])])
-											call("null__ptr__nat8", [])])]))))))
+														[local-ref("thread_return")])])])]))))))
 		fun(
 			false
 			"pthread_join"
@@ -4151,36 +4104,6 @@ program(
 						call("wrap_add__int32__int32__int32", [call("ten__int32", []), call("ten__int32", [])])
 						call("two__int32", [])])))
 		fun(false, "esrch__int32", type(false, "int32"), none, [], expr-body([], call("three__int32", [])))
-		fun(
-			false
-			"_op_equal_equal__bool__ptr__nat8__ptr__nat8"
-			type(false, "bool")
-			none
-			[param("a", type(false, "ptr__nat8")), param("b", type(false, "ptr__nat8"))]
-			expr-body(
-				[local("matched", type(false, "comparison"))]
-				match(
-					"matched"
-					call("_op_less_equal_greater__comparison__ptr__nat8__ptr__nat8", [param-ref("a"), param-ref("b")])
-					[
-						case(none, call("false__bool", []))
-						case(none, call("true__bool", []))
-						case(none, call("false__bool", []))])))
-		fun(
-			false
-			"_op_less_equal_greater__comparison__ptr__nat8__ptr__nat8"
-			type(false, "comparison")
-			none
-			[param("a", type(false, "ptr__nat8")), param("b", type(false, "ptr__nat8"))]
-			expr-body(
-				[]
-				cond(
-					special("less", param-ref("a"), param-ref("b"))
-					to-union(0, record([]))
-					cond(
-						special("less", param-ref("b"), param-ref("a"))
-						to-union(2, record([]))
-						to-union(1, record([]))))))
 		fun(
 			false
 			"get__ptr__nat8__ptr_cell__ptr__nat8"

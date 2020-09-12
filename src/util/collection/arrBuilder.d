@@ -5,6 +5,7 @@ module util.collection.arrBuilder;
 import util.bools : Bool;
 import util.collection.arr : Arr, begin, range, size;
 import util.collection.mutArr : tempAsArr, moveToArr, MutArr, mutArrAt, mutArrIsEmpty, mutArrSize, push;
+import util.memory : initMemory;
 
 struct ArrBuilder(T) {
 	private MutArr!(immutable T) data;
