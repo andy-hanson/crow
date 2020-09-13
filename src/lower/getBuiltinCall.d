@@ -20,7 +20,7 @@ import util.opt : force, Opt;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteralValue, shortSymOperatorLiteralValue, Sym, symEqLongAlphaLiteral;
-import util.util : todo;
+import util.util : todo, verify;
 
 immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 	ref Alloc alloc,
@@ -54,24 +54,24 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 		return constant(immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.Integral(value)));
 	}
 	immutable(LowExprKind) special0Ary(immutable LowExprKind.Special0Ary.Kind kind) {
-		assert(empty(args));
+		verify(empty(args));
 		return immutable LowExprKind(immutable LowExprKind.Special0Ary(kind));
 	}
 	immutable(LowExprKind) unary(immutable LowExprKind.SpecialUnary.Kind kind) {
-		assert(size(args) == 1);
+		verify(size(args) == 1);
 		return immutable LowExprKind(immutable LowExprKind.SpecialUnary(
 			kind,
 			allocate(alloc, arg0())));
 	}
 	immutable(LowExprKind) binary(immutable LowExprKind.SpecialBinary.Kind kind) {
-		assert(size(args) == 2);
+		verify(size(args) == 2);
 		return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
 			kind,
 			allocate(alloc, arg0()),
 			allocate(alloc, arg1())));
 	}
 	immutable(LowExprKind) trinary(immutable LowExprKind.SpecialTrinary.Kind kind) {
-		assert(size(args) == 3);
+		verify(size(args) == 3);
 		return immutable LowExprKind(immutable LowExprKind.SpecialTrinary(
 			kind,
 			allocate(alloc, arg0()),
@@ -83,12 +83,9 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 	}
 	immutable(T) failT(T)() {
 		debug {
-			import core.stdc.stdio : printf;
-			import util.collection.arr : begin;
-			import util.collection.str : Str;
-			import util.sym : strOfSym;
-			immutable Str nameStr = strOfSym(alloc, name);
-			printf("%.*s\n", cast(int) size(nameStr), begin(nameStr));
+			import util.sym : symToCStr;
+			import util.print : print;
+			print(symToCStr(alloc, name));
 		}
 		return todo!T("not a builtin fun");
 	}
@@ -122,7 +119,7 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 		case shortSymAlphaLiteralValue("and"):
 			return binary(LowExprKind.SpecialBinary.Kind.and);
 		case shortSymAlphaLiteralValue("as"):
-			assert(size(args) == 1);
+			verify(size(args) == 1);
 			return arg0().kind;
 		case shortSymAlphaLiteralValue("as-ref"):
 			return unary(LowExprKind.SpecialUnary.Kind.asRef);
@@ -189,7 +186,7 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 		case shortSymAlphaLiteralValue("pass"):
 			return constant(immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.Void()));
 		case shortSymAlphaLiteralValue("ptr-cast"):
-			assert(size(args) == 1 && size(typeArgs) == 2);
+			verify(size(args) == 1 && size(typeArgs) == 2);
 			return ptrCastKind(alloc, arg0());
 		case shortSymAlphaLiteralValue("ptr-eq"):
 			return binary(LowExprKind.SpecialBinary.Kind.eqPtr);
@@ -200,7 +197,7 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 		case shortSymAlphaLiteralValue("set"):
 			return isNonFunPtrType(arg0().type) ? binary(LowExprKind.SpecialBinary.Kind.writeToPtr) : fail();
 		case shortSymAlphaLiteralValue("size-of"):
-			assert(empty(args) && size(typeArgs) == 1);
+			verify(empty(args) && size(typeArgs) == 1);
 			return immutable LowExprKind(immutable LowExprKind.SizeOf(typeArg0()));
 		case shortSymAlphaLiteralValue("to-float"):
 			return unary(isInt64(arg0().type)

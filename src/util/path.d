@@ -21,7 +21,7 @@ import util.sym :
 	symSize,
 	tryGetSymFromStr;
 import util.types : u8;
-import util.util : todo;
+import util.util : todo, verify;
 
 // This is a list of Sym basically. Doesn't have the root or extension.
 struct Path {
@@ -169,7 +169,7 @@ private @trusted immutable(Str) pathToStrWorker(Alloc)(
 		cur--;
 		*cur = c;
 	}
-	assert(cur == begin + root.size + pathToStrSize(path));
+	verify(cur == begin + root.size + pathToStrSize(path));
 	@trusted void onSym(immutable Sym part) {
 		cur -= part.symSize;
 		char* j = cur;
@@ -178,17 +178,17 @@ private @trusted immutable(Str) pathToStrWorker(Alloc)(
 			j++;
 		}
 		part.eachCharInSym(&writeJ);
-		assert(j == cur + part.symSize);
+		verify(j == cur + part.symSize);
 		cur--;
 		*cur = '/';
 	}
 	walkPathBackwards(path, &onSym);
-	assert(cur == begin + root.size);
+	verify(cur == begin + root.size);
 	foreach_reverse (immutable char c; root.range) {
 		cur--;
 		*cur = c;
 	}
-	assert(cur == begin);
+	verify(cur == begin);
 	return immutable Str(cast(immutable) begin, sz);
 }
 
@@ -234,7 +234,7 @@ immutable(Ptr!Path) parsePath(Alloc, SymAlloc)(ref Alloc alloc, ref AllSymbols!S
 		immutable size_t begin = i;
 		while (i < len && str.at(i) != '/')
 			i++;
-		assert(i != begin);
+		verify(i != begin);
 		return rootPath(alloc, symbols.getSymFromAlphaIdentifier(sliceFromTo(str, begin, i)));
 	}();
 
@@ -263,7 +263,7 @@ private immutable(RelPath) parseRelPath(Alloc, SymAlloc)(
 			return parseRelPath(alloc, allSymbols, s.slice(2));
 		else if (s.at(1) == '.' && s.at(2) == '/') {
 			immutable RelPath r = parseRelPath(alloc, allSymbols, s.slice(3));
-			assert(r.nParents_ < 255);
+			verify(r.nParents_ < 255);
 			return RelPath(cast(ubyte) (r.nParents_ + 1), r.path_);
 		} else
 			// Path component happens to start with '.' but is not '.' or '..'

@@ -287,13 +287,8 @@ void compileC(immutable AbsolutePath cPath, immutable AbsolutePath exePath, immu
 		strLiteral("-o"),
 		pathToStr(alloc, exePath));
 	immutable int err = spawnAndWaitSync(cCompiler, args, environ);
-	if (err != 0) {
-		debug {
-			import core.stdc.stdio : printf;
-			printf("C compile error! Exit code: %d\n", err);
-		}
+	if (err != 0)
 		todo!void("C compile error");
-	}
 }
 
 void emitProgram(ref immutable Program program, immutable AbsolutePath cPath) {

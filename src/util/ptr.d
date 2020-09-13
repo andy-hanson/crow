@@ -4,6 +4,7 @@ module util.ptr;
 
 import util.bools : Bool;
 import util.comparison : Comparison;
+import util.util : verify;
 
 // Non-null
 struct Ptr(T) {
@@ -11,15 +12,15 @@ struct Ptr(T) {
 	@disable this(); // No nulls!
 	this(T* p) {
 		ptr = p;
-		assert(ptr != null);
+		verify(ptr != null);
 	}
 	this(const T* p) const {
 		ptr = p;
-		assert(ptr != null);
+		verify(ptr != null);
 	}
 	this(immutable T* p) immutable {
 		ptr = p;
-		assert(ptr != null);
+		verify(ptr != null);
 	}
 
 	private T* ptr;

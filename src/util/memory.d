@@ -11,6 +11,11 @@ import util.ptr : Ptr;
 	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);
 }
 
+@system void memcpy(ubyte* dest, const ubyte* src, immutable size_t length) {
+	foreach (immutable size_t i; 0..length)
+		dest[i] = src[i];
+}
+
 void overwriteMemory(T)(T* ptr, T value) {
 	initMemory(ptr, value);
 }

@@ -31,7 +31,7 @@ import util.collection.arrUtil : tail, zip;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe;
 import util.sexpr : Sexpr, tataRecord, tataStr, tataSym;
-import util.util : todo;
+import util.util : todo, verify;
 
 void checkLowProgram(ref immutable LowProgram a) {
 	immutable Ctx ctx = immutable Ctx(ptrTrustMe(a));
@@ -62,14 +62,14 @@ void checkLowExpr(ref immutable Ctx ctx, ref immutable LowType type, ref immutab
 		(ref immutable LowExprKind.Call it) {
 			immutable LowFun fun = at(ctx.program.allFuns, it.called.index);
 			checkTypeEqual(ctx, type, fun.returnType);
-			assert(sizeEq(fun.params, it.args));
+			verify(sizeEq(fun.params, it.args));
 			zip(fun.params, it.args, (ref immutable LowParam param, ref immutable LowExpr arg) {
 				checkLowExpr(ctx, param.type, arg);
 			});
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			immutable LowRecord record = at(ctx.program.allRecords, asRecordType(type).index);
-			assert(sizeEq(record.fields, it.args));
+			verify(sizeEq(record.fields, it.args));
 			zip(record.fields, it.args, (ref immutable LowField field, ref immutable LowExpr arg) {
 				checkLowExpr(ctx, field.type, arg);
 			});
@@ -82,7 +82,7 @@ void checkLowExpr(ref immutable Ctx ctx, ref immutable LowType type, ref immutab
 		(ref immutable LowExprKind.FunPtr it) {
 			immutable LowFun fun = at(ctx.program.allFuns, it.fun.index);
 			immutable LowFunPtrType funType = at(ctx.program.allFunPtrTypes, asFunPtrType(type).index);
-			assert(sizeEq(fun.params, funType.paramTypes));
+			verify(sizeEq(fun.params, funType.paramTypes));
 			size_t index = 0;
 			zip(fun.params, funType.paramTypes, (ref immutable LowParam param, ref immutable LowType paramType) {
 				// TODO: this is failing for lambda closure,
@@ -103,7 +103,7 @@ void checkLowExpr(ref immutable Ctx ctx, ref immutable LowType type, ref immutab
 		(ref immutable LowExprKind.Match it) {
 			checkLowExpr(ctx, it.matchedLocal.type, it.matchedValue);
 			immutable LowUnion union_ = at(ctx.program.allUnions, asUnionType(it.matchedLocal.type).index);
-			assert(sizeEq(union_.members, it.cases));
+			verify(sizeEq(union_.members, it.cases));
 			zip(
 				union_.members,
 				it.cases,
@@ -192,7 +192,7 @@ void checkLowExpr(ref immutable Ctx ctx, ref immutable LowType type, ref immutab
 					immutable LowFunPtrType funPtrType =
 						at(ctx.program.allFunPtrTypes, asFunPtrType(funPtr.type).index);
 					checkTypeEqual(ctx, type, funPtrType.returnType);
-					assert(sizeEq(funPtrType.paramTypes, tail(it.args)));
+					verify(sizeEq(funPtrType.paramTypes, tail(it.args)));
 					zip(
 						funPtrType.paramTypes,
 						tail(it.args),
@@ -209,17 +209,17 @@ void checkLowExpr(ref immutable Ctx ctx, ref immutable LowType type, ref immutab
 void checkTypeEqual(ref immutable Ctx ctx, ref immutable LowType expected, ref immutable LowType actual) {
 	if (!lowTypeEqual(expected, actual)) {
 		debug {
-			import core.stdc.stdio : printf;
-			import util.alloc.stackAlloc : StackAlloc;
-			import util.sexprPrint : printOutSexpr;
-			printf("checkLowModel failed!\nExpected:\n");
-			StackAlloc!("checkTypeEqual", 4 * 1024) alloc;
-			printOutSexpr(tataOfLowType2(alloc, ctx, expected));
-			printf("Actual:\n");
-			printOutSexpr(tataOfLowType2(alloc, ctx, actual));
+			//import core.stdc.stdio : printf;
+			//import util.alloc.stackAlloc : StackAlloc;
+			//import util.sexprPrint : printOutSexpr;
+			//printf("checkLowModel failed!\nExpected:\n");
+			//StackAlloc!("checkTypeEqual", 4 * 1024) alloc;
+			//printOutSexpr(tataOfLowType2(alloc, ctx, expected));
+			//printf("Actual:\n");
+			//printOutSexpr(tataOfLowType2(alloc, ctx, actual));
 		}
 
-		assert(0);
+		verify(0);
 	}
 }
 

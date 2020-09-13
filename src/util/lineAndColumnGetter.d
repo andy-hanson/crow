@@ -8,6 +8,7 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : emptyStr, Str;
 import util.sourceRange : Pos;
 import util.types : MAX_UINT8, safeSizeTToU16, safeSizeTToU32, safeU32ToU16, u8, u16, u32;
+import util.util : verify;
 
 struct LineAndColumn {
 	immutable u16 line;
@@ -30,7 +31,7 @@ struct LineAndColumnGetter {
 	this(immutable Arr!Pos lp, immutable Arr!u8 lnt) {
 		lineToPos = lp;
 		lineToNTabs = lnt;
-		assert(lineToPos.size == lineToNTabs.size);
+		verify(lineToPos.size == lineToNTabs.size);
 	}
 }
 
@@ -74,7 +75,7 @@ immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc
 
 	immutable u16 line = lowLine;
 	immutable Pos lineStart = lc.lineToPos.at(line);
-	assert(pos >= lineStart && line == lc.lineToPos.size - 1 || pos <= lc.lineToPos.at(line + 1));
+	verify(pos >= lineStart && line == lc.lineToPos.size - 1 || pos <= lc.lineToPos.at(line + 1));
 
 	immutable u32 nCharsIntoLine = pos - lineStart;
 	immutable u8 nTabs = lc.lineToNTabs.at(line);

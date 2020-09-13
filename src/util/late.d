@@ -4,6 +4,7 @@ module util.late;
 
 import util.bools : False, Bool, True;
 import util.memory : initMemory;
+import util.util : verify;
 
 struct Late(T) {
 	private:
@@ -20,23 +21,23 @@ immutable(Bool) lateIsSet(T)(ref const Late!T a) {
 }
 
 @trusted ref immutable(T) lateGet(T)(ref immutable Late!T a) {
-	assert(a.lateIsSet);
+	verify(a.lateIsSet);
 	return a.value_;
 }
 
 @trusted ref const(T) lateGet(T)(ref const Late!T a) {
-	assert(a.lateIsSet);
+	verify(a.lateIsSet);
 	return a.value_;
 }
 
 @trusted void lateSet(T)(ref Late!T a, T value) {
-	assert(!a.lateIsSet);
+	verify(!a.lateIsSet);
 	initMemory(&a.value_, value);
 	a.isSet_ = True;
 }
 
 @trusted void lateSetOverwrite(T)(ref Late!T a, T value) {
-	assert(a.lateIsSet);
+	verify(a.lateIsSet);
 	initMemory(&a.value_, value);
 	a.isSet_ = True;
 }

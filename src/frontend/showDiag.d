@@ -2,8 +2,6 @@ module frontend.showDiag;
 
 @safe @nogc nothrow: // not pure
 
-import core.stdc.stdio : fprintf, stderr;
-
 import diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, PathAndStorageKindAndRange, TypeKind;
 import frontend.lang : nozeExtension;
 import model :
@@ -44,6 +42,7 @@ import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetter;
 import util.opt : force, has;
 import util.path : PathAndStorageKind, pathToStr;
 import util.ptr : Ptr, ptrTrustMe_mut;
+import util.print : printErr;
 import util.sourceRange : SourceRange;
 import util.sym : Sym, writeSym;
 import util.util : todo;
@@ -78,7 +77,7 @@ void printDiagnostics(immutable Diagnostics diagnostics) {
 private:
 
 @trusted void printOutWriter(Alloc)(ref Writer!Alloc writer) {
-	fprintf(stderr, "%s", finishWriterToCStr(writer));
+	printErr(finishWriterToCStr(writer));
 }
 
 pure:

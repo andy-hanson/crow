@@ -49,7 +49,7 @@ import util.opt : has, force, none, noneMut, Opt, some;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : SourceRange;
 import util.sym : Sym, symEq;
-import util.util : todo;
+import util.util : todo, verify;
 
 immutable(Ptr!Expr) allocExpr(Alloc)(ref Alloc alloc, immutable Expr e) {
 	return allocate!Expr(alloc, e);
@@ -131,16 +131,16 @@ struct InferringTypeArgs {
 	this(immutable Arr!TypeParam ps, Arr!SingleInferringType as) {
 		params = ps;
 		args = as;
-		assert(sizeEq(params, args));
+		verify(sizeEq(params, args));
 		foreach (immutable size_t i; 0..size(params))
-			assert(at(params, i).index == i);
+			verify(at(params, i).index == i);
 	}
 	const this(immutable Arr!TypeParam ps, const Arr!SingleInferringType as) {
 		params = ps;
 		args = as;
-		assert(sizeEq(params, args));
+		verify(sizeEq(params, args));
 		foreach (immutable size_t i; 0..size(params))
-			assert(at(params, i).index == i);
+			verify(at(params, i).index == i);
 	}
 }
 

@@ -39,7 +39,7 @@ import util.sym :
 	Sym,
 	symEq;
 import util.types : i32, u32, Void, safeI32FromU32, safeSizeTToU32;
-import util.util : todo, unreachable;
+import util.util : todo, unreachable, verify;
 
 enum IndentKind {
 	tabs,
@@ -58,14 +58,6 @@ struct Lexer(SymAlloc) {
 	jmp_buf jump_buffer = void;
 	// Assigned when an exception is thrown
 	ParseDiagnostic diagnostic_ = void;
-
-	//TODO:KILL
-	void debugPrint() {
-		debug {
-			import core.stdc.stdio : printf;
-			printf("Pos is: %lu\n", (ptr - sourceBegin + 1));
-		}
-	}
 }
 
 @trusted Lexer!SymAlloc createLexer(SymAlloc)(
@@ -246,7 +238,7 @@ enum NewlineOrDedent {
 }
 
 immutable(NewlineOrDedent) takeNewlineOrSingleDedent(SymAlloc)(ref Lexer!SymAlloc lexer) {
-	assert(lexer.indent == 1);
+	verify(lexer.indent == 1);
 	switch (lexer.takeNewlineOrDedentAmount()) {
 		case 0:
 			return NewlineOrDedent.newline;
@@ -258,7 +250,7 @@ immutable(NewlineOrDedent) takeNewlineOrSingleDedent(SymAlloc)(ref Lexer!SymAllo
 }
 
 immutable(SourceRange) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Pos begin) {
-	assert(begin < lexer.curPos);
+	verify(begin < lexer.curPos);
 	return SourceRange(begin, lexer.curPos);
 }
 
@@ -331,14 +323,14 @@ struct ExpressionToken {
 	@trusted immutable this(immutable Kind kind) {
 		none_ = true;
 		kind_ = kind;
-		assert(kind != Kind.literal && kind != Kind.nameAndRange);
+		verify(kind != Kind.literal && kind != Kind.nameAndRange);
 	}
 	@trusted immutable this(immutable LiteralAst a) { kind_ = Kind.literal; literal_ = a; }
 	@trusted immutable this(immutable NameAndRange a) { kind_ = Kind.nameAndRange; nameAndRange_ = a; }
 }
 
 @trusted ref immutable(LiteralAst) asLiteral(return scope ref immutable ExpressionToken a) {
-	assert(a.kind_ == ExpressionToken.Kind.literal);
+	verify(a.kind_ == ExpressionToken.Kind.literal);
 	return a.literal_;
 }
 
@@ -347,7 +339,7 @@ immutable(Bool) isNameAndRange(ref immutable ExpressionToken a) {
 }
 
 @trusted ref immutable(NameAndRange) asNameAndRange(return scope ref immutable ExpressionToken a) {
-	assert(a.isNameAndRange);
+	verify(a.isNameAndRange);
 	return a.nameAndRange_;
 }
 
@@ -440,7 +432,7 @@ IndentKind detectIndentKind(immutable Str str) {
 }
 
 immutable(SourceRange) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
-	assert(begin >= lexer.sourceBegin);
+	verify(begin >= lexer.sourceBegin);
 	return lexer.range(safeSizeTToU32(begin - lexer.sourceBegin));
 }
 
@@ -528,7 +520,7 @@ immutable(size_t) toHexDigit(immutable char c) {
 
 	// Skip past the closing '"'
 	lexer.ptr++;
-	assert(outI == size);
+	verify(outI == size);
 	return immutable Str(cast(immutable) res, size);
 }
 

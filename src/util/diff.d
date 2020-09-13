@@ -20,7 +20,7 @@ import util.comparison : compareSizeT;
 import util.sym : shortSymAlphaLiteral, Sym, symEq, symSize, writeSym;
 import util.writer : Writer, writeRed, writeReset, writeStatic;
 import util.writerUtils : writeNlIndent, writeSpaces, writeSymPadded;
-import util.util : max, todo;
+import util.util : max, todo, verify;
 
 void diffSymbols(Alloc)(
 	ref Writer!Alloc writer,
@@ -61,7 +61,7 @@ void getMaximumCommonSubsequenceLengths(T)(
 ) {
 	// The buffers need to be 1 more than the length of b,
 	// because they have an entry at size(b).
-	assert(mutSliceSize(result) == size(b) + 1);
+	verify(mutSliceSize(result) == size(b) + 1);
 
 	// We are actually calculating a matrix. But we only need to store one row.
 	// matrix[r][c] = maximum subsequence length of slice(a, 0, i) and slice(b, 0, j).
@@ -104,7 +104,7 @@ immutable(size_t) findBestSplitIndex(
 	immutable size_t i = size(a) / 2;
 	// 1 greater because it goes from 0 to size(b) inclusive
 	immutable size_t subseqsSize = size(b) + 1;
-	assert(mutSliceSize(scratch) >= subseqsSize * 2);
+	verify(mutSliceSize(scratch) >= subseqsSize * 2);
 	MutSlice!size_t leftSubsequenceLengths = mutSlice(scratch, 0, subseqsSize);
 	MutSlice!size_t rightSubsequenceLengths = mutSlice(scratch, subseqsSize, subseqsSize);
 	getMaximumCommonSubsequenceLengths!Sym(slice(a, 0, i), b, leftSubsequenceLengths, False);
@@ -194,7 +194,7 @@ void printDiff(Alloc)(
 		bi++;
 	}
 	void common() {
-		assert(symEq(at(a, ai), at(b, bi)));
+		verify(symEq(at(a, ai), at(b, bi)));
 		writeNlIndent(writer);
 		writeSymPadded(writer, at(a, ai), columnSize);
 		writeSym(writer, at(b, bi));

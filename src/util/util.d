@@ -2,12 +2,12 @@ module util.util;
 
 @safe @nogc pure nothrow:
 
-import core.stdc.stdio : printf;
-import util.bools : Bool;
+import util.bools : Bool, False;
+//import util.print : print;
 
 T todo(T)(immutable char* message) {
 	debug {
-		printf("TODO: %s\n", message);
+		//print("TODO: %s\n", message);
 	}
 	assert(0);
 }
@@ -26,8 +26,17 @@ immutable(size_t) max(immutable size_t a, immutable size_t b) {
 }
 
 immutable(size_t) roundUp(immutable size_t a, immutable size_t b) {
-	assert(b != 0);
+	verify(b != 0);
 	return a % b == 0 ? a : roundUp(a + 1, b);
+}
+
+void verify(immutable bool condition) {
+	// TODO: In WASM assertions are turned off. Log somewhere instead?
+	assert(condition);
+}
+
+void verifyFail() {
+	verify(False);
 }
 
 T unreachable(T)() {

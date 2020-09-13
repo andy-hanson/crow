@@ -6531,7 +6531,7 @@ uint8_t ends_with__q__bool__arr__char__arr__char(struct ctx* ctx, struct arr__ch
 	return (_op_greater_equal__bool__nat__nat(a.size, end.size) && arr_eq__q__bool__arr__char__arr__char(ctx, slice__arr__char__arr__char__nat__nat(ctx, a, _op_minus__nat__nat__nat(ctx, a.size, end.size), end.size), end));
 }
 uint8_t list_lintable_files__arr__arr__char__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__char it) {
-	return !(_op_equal_equal__bool__char__char(first__char__arr__char(ctx, it), literal__char__arr__char((struct arr__char) {1, "."})) || (_op_equal_equal__bool__arr__char__arr__char(it, (struct arr__char) {7, "libfirm"}) || ends_with__q__bool__arr__char__arr__char(ctx, it, (struct arr__char) {4, ".bmp"})));
+	return !(_op_equal_equal__bool__char__char(first__char__arr__char(ctx, it), literal__char__arr__char((struct arr__char) {1, "."})) || (_op_equal_equal__bool__arr__char__arr__char(it, (struct arr__char) {7, "libfirm"}) || (ends_with__q__bool__arr__char__arr__char(ctx, it, (struct arr__char) {4, ".bmp"}) || ends_with__q__bool__arr__char__arr__char(ctx, it, (struct arr__char) {5, ".wasm"}))));
 }
 uint8_t ignore_extension_of_name__bool__arr__char(struct ctx* ctx, struct arr__char name) {
 	struct some__arr__char s;

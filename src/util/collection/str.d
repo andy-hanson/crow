@@ -2,14 +2,13 @@ module util.collection.str;
 
 @safe @nogc pure nothrow:
 
-import core.stdc.string : memcpy;
-
 import util.bools : and, Bool, False, True;
 import util.collection.arr : Arr, at, begin, empty, emptyArr, first, size;
 import util.collection.arrUtil : rtail, slice, tail;
 import util.collection.mutArr : MutArr;
 import util.comparison : compareChar, compareOr, Comparison;
-import util.util : todo;
+import util.memory : memcpy;
+import util.util : todo, verify;
 
 alias CStr = immutable(char)*;
 alias Str = Arr!char;
@@ -42,14 +41,14 @@ struct NulTerminatedStr {
 
 	this(immutable Str s) immutable {
 		str = s;
-		assert(str.at(str.size - 1) == '\0');
+		verify(str.at(str.size - 1) == '\0');
 	}
 }
 
 @trusted immutable(NulTerminatedStr) strToNulTerminatedStr(Alloc)(ref Alloc alloc, immutable Str s) {
 	char* res = cast(char*) alloc.allocate(size(s) + 1);
-	memcpy(res, s.begin, size(s));
-	res[s.size] = '\0';
+	memcpy(cast(ubyte*) res, cast(ubyte*) begin(s), size(s));
+	res[size(s)] = '\0';
 	return immutable NulTerminatedStr(immutable Str(cast(immutable) res, s.size + 1));
 }
 

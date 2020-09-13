@@ -34,7 +34,7 @@ import util.collection.arrUtil : every, exists, fillArr_mut, tail;
 import util.collection.str : Str, strEq, strLiteral;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.util : unreachable;
+import util.util : unreachable, verify;
 import util.writer :
 	finishWriter,
 	newline,
@@ -262,7 +262,7 @@ immutable(StructState) writeRecordDeclarationOrDefinition(Alloc)(
 	immutable StructState prevState,
 	immutable size_t recordIndex,
 ) {
-	assert(prevState != StructState.defined);
+	verify(prevState != StructState.defined);
 	immutable LowRecord record = at(ctx.program.allRecords, recordIndex);
 	if (every(record.fields, (ref immutable LowField f) => canReferenceTypeAsValue(ctx, structStates, f.type))) {
 		writeRecord(writer, ctx, record);
@@ -280,7 +280,7 @@ immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
 	immutable StructState prevState,
 	immutable size_t unionIndex,
 ) {
-	assert(prevState != StructState.defined);
+	verify(prevState != StructState.defined);
 	immutable LowUnion union_ = at(ctx.program.allUnions, unionIndex);
 	if (every(union_.members, (ref immutable LowType t) => canReferenceTypeAsValue(ctx, structStates, t))) {
 		writeUnion(writer, ctx, union_);
@@ -341,7 +341,7 @@ void writeStructs(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx) {
 			}
 		}
 		if (someIncomplete)
-			assert(madeProgress);
+			verify(madeProgress);
 		else
 			break;
 	}

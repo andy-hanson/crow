@@ -3,10 +3,13 @@
   <head>
 	<meta charset="utf-8">
 	<title>The Noze Programming Language</title>
-	<link rel="stylesheet" href="./index.css">
-	<script type='module' async src='./index.js' ></script>
+	<link rel="stylesheet" href="./index.css" />
+	<link rel="stylesheet" href="https://unpkg.com/prismjs@1.21.0/themes/prism.css" />
+	<link rel="stylesheet" href="https://unpkg.com/prismjs@1.21.0/themes/prism-coy.css"/>
+	<script src='https://unpkg.com/prismjs@1.21.0/prism.js' data-manual></script>
+	<script type='module' async src='./index.js'></script>
 	</head>
-	<body>
+	<body class="language-noze">
 		<section>
 			<h2>Installation</h2>
 
@@ -58,9 +61,38 @@
 		<section>
 			<h2>Records</h2>
 
-			<pre data-src='example-record.nz'>
+			<pre><code data-src="example-record.nz">
+import
+	io
 
-			</pre>
+| Declare a record type.
+point record
+	x float
+	y float
+
+| Declare a function returning a point and taking no arguments.
+create-point point()
+	| The type is usually inferred from the context.
+	| If not you can write `new<point>`.
+	new 1, 2
+
+| Declare a function named 'get-x' returning a float and taking a point named 'a'.
+get-x float(a point)
+	| Accessing a record member uses the same syntax as calling a function.
+	a x
+
+| Ignore this header for now; just know that this is the main function.
+main fut exit-code(args arr str) summon
+	| Calls the function 'create-point' and names the result 'p'
+	p = create-point
+	| Calls the function 'get-x' on 'p'
+	p-x = p get-x
+	| This shows the prefix syntax for function calls (in addition to the usual syntax for `to-str`).
+	| This is equivalent to `print_sync(to_str(p_x))` in C.
+	| The syntax choice is not tied to the function; you can use any call syntax for any function.
+	print-sync: p-x to-str
+	zero resolved
+			</code></pre>
 		</section>
 
 

@@ -24,6 +24,7 @@ import util.path : PathAndStorageKind, RelPath;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym;
+import util.util : verify;
 
 enum TypeKind {
 	builtin,
@@ -678,6 +679,6 @@ struct Diagnostics {
 	this(immutable Diags d, immutable FilesInfo f) immutable {
 		diagnostics = d;
 		filesInfo = f;
-		assert(!diagnostics.empty);
+		verify(!diagnostics.empty);
 	}
 }

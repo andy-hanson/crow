@@ -49,9 +49,7 @@ import util.collection.mutArr : MutArr, push;
 import util.memory : nu, nuMut;
 import util.opt : force, has, none, noneMut, Opt, some, someConst, someMut;
 import util.ptr : Ptr, ptrEquals;
-import util.util : todo;
-
-import core.stdc.stdio : printf; // TODO:KILL
+import util.util : todo, verify;
 
 struct TypeParamsScope {
 	// TODO: consistent naming
@@ -67,7 +65,7 @@ struct TypeParamsAndArgs {
 	immutable this(immutable Arr!TypeParam tp, immutable Arr!Type ta) {
 		typeParams = tp;
 		typeArgs = ta;
-		assert(sizeEq(typeParams, typeArgs));
+		verify(sizeEq(typeParams, typeArgs));
 	}
 }
 
@@ -323,7 +321,7 @@ immutable(Bool) calledEquals(ref immutable Called a, ref immutable Called b) {
 				immutable SpecSig bs = asSpecSig(b);
 				if (ptrEquals(s.specInst, bs.specInst)) {
 					immutable Bool res = ptrEquals(s.sig, bs.sig);
-					assert(res == Bool(s.indexOverAllSpecUses == bs.indexOverAllSpecUses));
+					verify(res == Bool(s.indexOverAllSpecUses == bs.indexOverAllSpecUses));
 					return res;
 				} else
 					return False;

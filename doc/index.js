@@ -1,13 +1,23 @@
 console.log("HELLO WORLD")
 
 
+Prism.languages.noze = {
+	'comment': /int/
+}
+
 window.onload = () => {
 	console.log("LOADED!")
+
 	const nodes = document.body.querySelectorAll('[data-src]')
-	for (const node of nodes) {
-		fillIn(node).catch(e => console.error(e))
-	}
-	console.log({nodes})
+
+	console.log(Prism)
+	Prism.highlightElement(nodes[0])
+
+
+	//for (const node of nodes) {
+	//	fillIn(node).catch(e => console.error(e))
+	//}
+	//console.log({nodes})
 }
 
 const fillIn = async node => {

@@ -31,7 +31,7 @@ import util.collection.multiDict : multiDictGetAt;
 import util.opt : force, has, Opt;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe;
 import util.sym : shortSymAlphaLiteral;
-import util.util : todo;
+import util.util : todo, verify;
 
 immutable(ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	ConcretizeCtx ctx = ConcretizeCtx(
@@ -46,11 +46,11 @@ immutable(ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable Prog
 	immutable Ptr!ConcreteFun rtMainConcreteFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getRtMainFun(program));
 	// We remove items from these dicts when we process them.
-	assert(mutDictIsEmpty(ctx.concreteFunToSource));
+	verify(mutDictIsEmpty(ctx.concreteFunToSource));
 	immutable Ptr!ConcreteFun userMainConcreteFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getUserMainFun(program));
 	// We remove items from these dicts when we process them.
-	assert(mutDictIsEmpty(ctx.concreteFunToSource));
+	verify(mutDictIsEmpty(ctx.concreteFunToSource));
 
 	return ConcreteProgram(
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
@@ -137,24 +137,8 @@ immutable(Ptr!FunDecl) getUserMainFun(ref immutable Program program) {
 
 immutable(Ptr!FunDecl) getAllocFun(ref immutable Program program) {
 	immutable Arr!(Ptr!FunDecl) allocFuns = multiDictGetAt(program.allocModule.funsMap, shortSymAlphaLiteral("alloc"));
-	if (size(allocFuns) != 1) {
-		debug {
-			import core.stdc.stdio : printf;
-			import util.path : pathToCStr;
-			import util.alloc.stackAlloc : StackAlloc;
-			import util.collection.str : strLiteral;
-			StackAlloc!("temp", 1024 * 1024) tempAlloc;
-			printf(
-				"alloc module path: %s\n",
-				pathToCStr(
-					tempAlloc,
-					strLiteral("root/"),
-					program.allocModule.deref.pathAndStorageKind.path,
-					strLiteral(".nz")));
-			printf("wrong number alloc funs. actual: %lu, expected: 1\n", size(allocFuns));
-		}
+	if (size(allocFuns) != 1)
 		todo!void("wrong number alloc funs");
-	}
 	immutable Ptr!FunDecl allocFun = only(allocFuns);
 	// TODO: check the signature!
 	return allocFun;
@@ -198,7 +182,7 @@ immutable(Arr!(Ptr!FunDecl)) getCallFuns(Alloc)(ref Alloc alloc, ref immutable P
 			return False;
 	});
 	// fun0, fun1, fun2, fun3, same for funMut
-	assert(size(res) == 8);
+	verify(size(res) == 8);
 	return res;
 }
 

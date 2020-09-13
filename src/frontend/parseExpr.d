@@ -58,12 +58,12 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
-import util.util : todo, unreachable;
+import util.util : todo, unreachable, verify;
 
 immutable(ExprAst) parseFunExprBody(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	lexer.takeIndent();
 	immutable ExprAndDedent ed = parseStatementsAndDedent(alloc, lexer);
-	assert(ed.dedents == 0);
+	verify(ed.dedents == 0);
 	return ed.expr;
 }
 
@@ -366,7 +366,7 @@ immutable(ExprAndMaybeDedent) parseNewOrNewArr(Alloc, SymAlloc)(
 				? parseMultiLineNewArr(alloc, lexer, start, type)
 				: parseMultiLineNew(alloc, lexer, start, type);
 		else {
-			assert(indent <= 0);
+			verify(indent <= 0);
 			immutable ArgsAndMaybeDedent ad =
 				ArgsAndMaybeDedent(emptyArr!ExprAst, some!size_t(-indent));
 			return parseNewOrNewArrAfterArgs(alloc, lexer, start, isNewArr, type, ad);
@@ -516,7 +516,7 @@ immutable(ExprAst) parseExprNoBlock(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!
 	immutable ExpressionToken et = lexer.takeExpressionToken(alloc);
 	immutable ExprAndMaybeDedent ed = parseExprWorker(alloc, lexer, start, et, ArgCtx(False, True));
 	// We set allowBlock to false, so not allowed to take newlines, so can't have dedents.
-	assert(!has(ed.dedents));
+	verify(!has(ed.dedents));
 	return ed.expr;
 }
 

@@ -73,7 +73,7 @@ import util.opt : force, forcePtr, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
-import util.util : todo, unreachable;
+import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, writeNat, Writer, writeStatic, writeStr;
 
 immutable(ConcreteFunBody) concretizeExpr(Alloc)(
@@ -237,7 +237,7 @@ immutable(ConcreteExpr) createAllocExpr(Alloc)(
 	ref ConcretizeCtx ctx,
 	immutable ConcreteExpr inner,
 ) {
-	assert(!inner.type.isPointer);
+	verify(!inner.type.isPointer);
 	return immutable ConcreteExpr(
 		byRef(inner.type),
 		inner.range,
@@ -340,9 +340,9 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 	immutable ConcreteType funType = e.kind == FunKind.ref_
 		? () {
 			immutable Arr!ConcreteField fields = asRecord(body_(possiblySendType.struct_)).fields;
-			assert(size(fields) == 2);
+			verify(size(fields) == 2);
 			immutable ConcreteField funField = at(fields, 1);
-			assert(strEqLiteral(funField.mangledName, "fun"));
+			verify(strEqLiteral(funField.mangledName, "fun"));
 			return funField.type;
 		}()
 		: possiblySendType;
@@ -362,7 +362,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 
 	if (e.kind == FunKind.ref_) {
 		immutable ConcreteField vatAndActorField = at(asRecord(body_(possiblySendType.struct_)).fields, 0);
-		assert(strEqLiteral(vatAndActorField.mangledName, "vat_and_actor"));
+		verify(strEqLiteral(vatAndActorField.mangledName, "vat_and_actor"));
 		immutable ConcreteExpr vatAndActor = getGetVatAndActor(alloc, ctx, vatAndActorField.type, range);
 		return immutable ConcreteExpr(
 			possiblySendType,
@@ -434,7 +434,7 @@ immutable(ConcreteExpr) concretizeWithLocal(Alloc)(
 	addToMutDict(alloc, ctx.locals, modelLocal, concreteLocal);
 	immutable ConcreteExpr res = concretizeExpr(alloc, ctx, expr);
 	immutable Ptr!ConcreteLocal cl2 = mustDelete(ctx.locals, modelLocal);
-	assert(ptrEquals(cl2, concreteLocal));
+	verify(ptrEquals(cl2, concreteLocal));
 	return res;
 }
 
@@ -529,7 +529,7 @@ immutable(ConcreteExpr) concretizeRecordFieldSet(Alloc)(
 ) {
 	immutable Ptr!ConcreteExpr target = allocExpr(alloc, concretizeExpr(alloc, ctx, e.target));
 	immutable ConcreteType targetType = getConcreteType_forStructInst(alloc, ctx, e.targetType);
-	assert(targetType.isPointer); // If we're mutating it, it should be by reference.
+	verify(targetType.isPointer); // If we're mutating it, it should be by reference.
 	immutable Ptr!ConcreteField field = getMatchingField(targetType.struct_, e.field.index);
 	immutable Ptr!ConcreteExpr value = allocExpr(alloc, concretizeExpr(alloc, ctx, e.value));
 	immutable ConcreteType voidType = voidType(alloc, ctx.concretizeCtx);

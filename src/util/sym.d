@@ -13,9 +13,8 @@ import util.comparison : Comparison;
 import util.opt : Opt, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.types : u64;
-import util.util : todo, unreachable;
+import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer;
-
 
 immutable(Bool) isAlphaIdentifierStart(immutable char c) {
 	return Bool('a' <= c && c <= 'z');
@@ -118,7 +117,7 @@ immutable(Bool) symEq(immutable Sym a, immutable Sym b) {
 }
 
 immutable(Sym) shortSymAlphaLiteral(immutable string name) {
-	assert(strLiteral(name).size <= maxShortAlphaIdentifierSize);
+	verify(strLiteral(name).size <= maxShortAlphaIdentifierSize);
 	return Sym(packAlphaIdentifier(strLiteral(name)));
 }
 
@@ -127,7 +126,7 @@ immutable(u64) shortSymAlphaLiteralValue(immutable string name) {
 }
 
 immutable(Sym) shortSymOperatorLiteral(immutable string name) {
-	assert(strLiteral(name).size <= maxShortOperatorSize);
+	verify(strLiteral(name).size <= maxShortOperatorSize);
 	return Sym(packOperator(strLiteral(name)));
 }
 
@@ -137,13 +136,13 @@ immutable(u64) shortSymOperatorLiteralValue(immutable string name) {
 
 immutable(Bool) symEqLongAlphaLiteral(immutable Sym a, immutable string lit) {
 	immutable Str str = strLiteral(lit);
-	assert(str.size > maxShortAlphaIdentifierSize);
+	verify(str.size > maxShortAlphaIdentifierSize);
 	return Bool(isLongSym(a) && strEqLiteral(asLong(a), lit));
 }
 
 immutable(Bool) symEqLongOperatorLiteral(immutable Sym a, immutable string lit) {
 	immutable Str str = strLiteral(lit);
-	assert(str.size > maxShortOperatorSize);
+	verify(str.size > maxShortOperatorSize);
 	return Bool(isLongSym(a) && strEqLiteral(asLong(a), lit));
 }
 
@@ -198,12 +197,12 @@ immutable(u64) packAlphaChar(immutable char c) {
 		c == '-' ? 1 + 26 + 10 :
 		c == '?' ? 1 + 26 + 10 + 1 :
 		unreachable!u64;
-	assert(res < (1 << bitsPerAlphaChar));
+	verify(res < (1 << bitsPerAlphaChar));
 	return res;
 }
 
 immutable(char) unpackAlphaChar(immutable u64 n) {
-	assert(n != 0);
+	verify(n != 0);
 	return n < 1 + 26 ? cast(char) ('a' + (n - 1)) :
 		n < 1 + 26 + 10 ? cast(char) ('0' + (n - 1 - 26)) :
 		n == 1 + 26 + 10 ? '-' :
@@ -222,7 +221,7 @@ immutable(u64) packOperatorChar(immutable char c) {
 		c == '=' ? 7 :
 		c == '!' ? 8 :
 		unreachable!u64;
-	assert(res < (1 << bitsPerOperatorChar));
+	verify(res < (1 << bitsPerOperatorChar));
 	return res;
 }
 
@@ -265,25 +264,25 @@ immutable u64 highestPossibleOperatorBit = singleBit(bitsPerOperatorChar * (maxS
 static assert((shortOperatorMarker & highestPossibleOperatorBit) == 0, "1");
 
 immutable(u64) packAlphaIdentifier(immutable Str str) {
-	assert(str.size <= maxShortAlphaIdentifierSize);
+	verify(str.size <= maxShortAlphaIdentifierSize);
 	u64 res = 0;
 	foreach (immutable u64 i; 0..str.size)
 		res |= packAlphaChar(str.at(i)) << (bitsPerAlphaChar * i);
-	assert((res & shortAlphaIdentifierMarker) == 0);
+	verify((res & shortAlphaIdentifierMarker) == 0);
 	return res | shortAlphaIdentifierMarker;
 }
 
 immutable(u64) packOperator(immutable Str str) {
-	assert(str.size <= maxShortOperatorSize);
+	verify(str.size <= maxShortOperatorSize);
 	u64 res = 0;
 	foreach (immutable u64 i; 0..str.size)
 		res |= packOperatorChar(str.at(i)) << (bitsPerOperatorChar * i);
-	assert((res & shortOperatorMarker) == 0);
+	verify((res & shortOperatorMarker) == 0);
 	return res | shortOperatorMarker;
 }
 
 void unpackShortAlphaIdentifier(alias cb)(immutable u64 packedStr) {
-	assert((packedStr & shortAlphaIdentifierMarker) == shortAlphaIdentifierMarker);
+	verify((packedStr & shortAlphaIdentifierMarker) == shortAlphaIdentifierMarker);
 	foreach (immutable u64 i; 0..maxShortAlphaIdentifierSize) {
 		immutable u64 packedChar = getBitsShifted(packedStr, bitsPerAlphaChar * i, bitsPerAlphaChar);
 		if (packedChar == 0)
@@ -293,7 +292,7 @@ void unpackShortAlphaIdentifier(alias cb)(immutable u64 packedStr) {
 }
 
 void unpackShortOperator(alias cb)(immutable u64 packedStr) {
-	assert((packedStr & shortOperatorMarker) == shortOperatorMarker);
+	verify((packedStr & shortOperatorMarker) == shortOperatorMarker);
 	foreach (immutable u64 i; 0..maxShortOperatorSize) {
 		immutable u64 packedChar = getBitsShifted(packedStr, bitsPerOperatorChar * i, bitsPerOperatorChar);
 		if (packedChar == 0)
@@ -307,7 +306,7 @@ immutable(Bool) isLongSym(immutable Sym a) {
 }
 
 @trusted immutable(Str) asLong(immutable Sym a) {
-	assert(isLongSym(a));
+	verify(isLongSym(a));
 	immutable u64 value = a.value & ~(shortOrLongAlphaMarker | shortOrLongOperatorMarker);
 	return strOfCStr(cast(immutable CStr) value);
 }
@@ -332,7 +331,7 @@ immutable(Sym) getSymFromLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutab
 	immutable CStr cstr = getOrAddLongStr(allSymbols, str);
 	immutable u64 marker = isOperator ? shortOrLongOperatorMarker : shortOrLongAlphaMarker;
 	immutable u64 res = (cast(immutable u64) cstr) | marker;
-	assert((res & shortAlphaOrOperatorMarker) == 0);
+	verify((res & shortAlphaOrOperatorMarker) == 0);
 	return Sym(res);
 }
 
@@ -341,7 +340,7 @@ void assertSym(immutable Sym sym, immutable Str str) {
 	size_t idx = 0;
 	sym.eachCharInSym((immutable char c) {
 		immutable char expected = at(str, idx++);
-		assert(c == expected);
+		verify(c == expected);
 	});
-	assert(idx == str.size);
+	verify(idx == str.size);
 }

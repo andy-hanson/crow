@@ -8,6 +8,7 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push;
 import util.collection.dict : Dict, KeyValuePair;
 import util.comparison : Comparison;
+import util.util : verify;
 
 struct DictBuilder(K, V, alias cmp) {
 	ArrBuilder!(KeyValuePair!(K, V)) builder;
@@ -53,6 +54,6 @@ immutable(Dict!(K, V, cmp)) finishDictShouldBeNoConflict(Alloc, K, V, alias cmp)
 	immutable Arr!(KeyValuePair!(K, V)) allPairs = finishArr(alloc, a.builder);
 	foreach (immutable size_t i; 0..allPairs.size)
 		foreach (immutable size_t j; 0..i)
-			assert(cmp(allPairs.at(i).key, allPairs.at(j).key) != Comparison.equal);
+			verify(cmp(allPairs.at(i).key, allPairs.at(j).key) != Comparison.equal);
 	return immutable Dict!(K, V, cmp)(allPairs);
 }

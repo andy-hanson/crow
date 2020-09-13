@@ -17,7 +17,7 @@ import util.path : AbsolutePath, addManyChildren, baseName, comparePath, PathAnd
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : SourceRange;
 import util.sym : compareSym, shortSymAlphaLiteral, Sym, writeSym;
-import util.util : todo;
+import util.util : todo, verify;
 import util.writer : writeChar, Writer, writeStatic;
 
 immutable(Comparison) comparePathAndStorageKind(immutable PathAndStorageKind a, immutable PathAndStorageKind b) {
@@ -147,14 +147,14 @@ immutable(Bool) isTypeParam(ref immutable Type a) {
 	return Bool(a.kind == Type.Kind.typeParam);
 }
 @trusted immutable(Ptr!TypeParam) asTypeParam(ref immutable Type a) {
-	assert(a.isTypeParam);
+	verify(a.isTypeParam);
 	return a.typeParam;
 }
 immutable(Bool) isStructInst(ref immutable Type a) {
 	return Bool(a.kind == Type.Kind.structInst);
 }
 @trusted immutable(Ptr!StructInst) asStructInst(ref immutable Type a) {
-	assert(a.isStructInst);
+	verify(a.isStructInst);
 	return a.structInst;
 }
 
@@ -300,14 +300,14 @@ immutable(Bool) isRecord(ref const StructBody a) {
 	return Bool(a.kind == StructBody.Kind.record);
 }
 @trusted ref const(StructBody.Record) asRecord(return scope ref const StructBody a) {
-	assert(a.isRecord);
+	verify(a.isRecord);
 	return a.record;
 }
 immutable(Bool) isUnion(ref immutable StructBody a) {
 	return Bool(a.kind == StructBody.Kind.union_);
 }
 @trusted ref immutable(StructBody.Union) asUnion(return scope ref immutable StructBody a) {
-	assert(a.isUnion);
+	verify(a.isUnion);
 	return a.union_;
 }
 
@@ -396,7 +396,7 @@ struct StructDeclAndArgs {
 	immutable Arr!Type typeArgs;
 
 	immutable this(immutable Ptr!StructDecl d, immutable Arr!Type t) {
-		assert(size(d.typeParams) == size(t));
+		verify(size(d.typeParams) == size(t));
 		decl = d;
 		typeArgs = t;
 	}
@@ -573,7 +573,7 @@ immutable(Bool) isExpr(ref immutable FunBody a) {
 }
 
 @trusted immutable(FunBody.Extern) asExtern(ref immutable FunBody a) {
-	assert(a.isExtern);
+	verify(a.isExtern);
 	return a.extern_;
 }
 
@@ -692,8 +692,8 @@ struct FunDeclAndArgs {
 		decl = d;
 		typeArgs = ta;
 		specImpls = si;
-		assert(typeArgs.sizeEq(decl.typeParams));
-		assert(specImpls.size == decl.nSpecImpls);
+		verify(typeArgs.sizeEq(decl.typeParams));
+		verify(specImpls.size == decl.nSpecImpls);
 	}
 }
 
@@ -890,12 +890,12 @@ immutable(Bool) isSpecSig(ref immutable Called a) {
 }
 
 @trusted immutable(Ptr!FunInst) asFunInst(ref immutable Called a) {
-	assert(a.isFunInst);
+	verify(a.isFunInst);
 	return a.funInst;
 }
 
 @trusted immutable(SpecSig) asSpecSig(ref immutable Called a) {
-	assert(a.isSpecSig);
+	verify(a.isSpecSig);
 	return a.specSig;
 }
 
@@ -950,7 +950,7 @@ struct StructOrAlias {
 		kind = Kind.alias_; alias_ = a; }
 	@trusted immutable this(immutable Ptr!StructDecl a) {
 		kind = Kind.structDecl; structDecl_ = a;
-		assert(size(a.typeParams) < 10); //TODO:KILL
+		verify(size(a.typeParams) < 10); //TODO:KILL
 	}
 }
 
@@ -963,12 +963,12 @@ immutable(Bool) isStructDecl(ref immutable StructOrAlias a) {
 }
 
 @trusted immutable(Ptr!StructAlias) asAlias(immutable StructOrAlias a) {
-	assert(a.isAlias);
+	verify(a.isAlias);
 	return a.alias_;
 }
 
 @trusted immutable(Ptr!StructDecl) asStructDecl(immutable StructOrAlias a) {
-	assert(a.isStructDecl);
+	verify(a.isStructDecl);
 	return a.structDecl_;
 }
 
@@ -1191,7 +1191,7 @@ struct Expr {
 			targetType = tt;
 			field = f;
 			value = v;
-			assert(field.isMutable);
+			verify(field.isMutable);
 		}
 	}
 

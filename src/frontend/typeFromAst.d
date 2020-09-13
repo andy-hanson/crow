@@ -77,7 +77,6 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 					? todo!(immutable Opt!(Ptr!StructInst))("alias with type params")
 					: target(a),
 			(immutable Ptr!StructDecl decl) {
-				assert(size(decl.typeParams) < 10); //TODO:KILL
 				return some!(Ptr!StructInst)(instantiateStruct(
 					alloc,
 					ctx.programState,

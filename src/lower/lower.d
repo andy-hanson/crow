@@ -77,7 +77,7 @@ import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, shortSymOperatorLiteral, Sym, symEq;
-import util.util : todo, unreachable;
+import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, writeNat, Writer, writeStatic;
 
 immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
@@ -262,7 +262,7 @@ immutable(LowType) lowTypeFromConcreteStruct(Alloc)(
 ) {
 	return optOr!LowType(getAt(ctx.concreteStructToType, it), () {
 		immutable ConcreteStructBody.Builtin builtin = asBuiltin(body_(it));
-		assert(builtin.kind == BuiltinStructKind.ptr);
+		verify(builtin.kind == BuiltinStructKind.ptr);
 		//TODO: cache the creation.. don't want an allocation for every BuiltinStructKind.ptr to the same target type
 		return immutable LowType(
 			immutable LowType.NonFunPtr(allocate(alloc, lowTypeFromConcreteType(alloc, ctx, only(builtin.typeArgs)))));
@@ -394,7 +394,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 					() => addIt(typeIsArr));
 				if (index.didAdd) {
 					if (typeIsArr) {
-						assert(strEqLiteral(at(record.fields, 1).mangledName, "data"));
+						verify(strEqLiteral(at(record.fields, 1).mangledName, "data"));
 						generateCompareForType(asNonFunPtrType(at(record.fields, 1).type).pointee);
 					} else
 						generateCompareForFields(it);
@@ -415,8 +415,6 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 		immutable Opt!LowFunIndex opIndex = matchConcreteFunBody!(immutable Opt!LowFunIndex)(
 			body_(fun),
 			(ref immutable ConcreteFunBody.Builtin it) {
-				//TODO: this is repeating work that we'll do again later.
-				//Maybe generate all signatures up front?
 				if (symEq(fun.name, shortSymOperatorLiteral("<=>"))) {
 					if (!lateIsSet(comparisonType)) {
 						immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.returnType);
@@ -424,7 +422,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 					}
 					immutable Opt!LowFunIndex res = generateCompareForType(
 						lowTypeFromConcreteType(alloc, getLowTypeCtx, only(it.typeArgs)));
-					assert(has(res));
+					verify(has(res));
 					return res;
 				} else
 					return none!LowFunIndex;
@@ -839,7 +837,7 @@ immutable(LowExprKind) getLambdaExpr(Alloc)(
 	else {
 		immutable LowType.Record recordType = asRecordType(type);
 		immutable Ptr!LowRecord record = ptrAt(ctx.allTypes.allRecords, recordType.index);
-		assert(size(record.fields) == 2);
+		verify(size(record.fields) == 2);
 		immutable LowType funPtrType = immutable LowType(asFunPtrType(at(record.fields, 0).type));
 		immutable LowExpr closure = ptrCast(alloc, anyPtrType, range, getLowExpr(alloc, ctx, force(a.closure)));
 		immutable LowExpr funPtrCasted = ptrCast(
@@ -855,7 +853,7 @@ immutable(LowExprKind) getLambdaExpr(Alloc)(
 immutable(Ptr!LowLocal) getLocal(ref GetLowExprCtx ctx, immutable Ptr!ConcreteLocal concreteLocal) {
 	immutable size_t localIndex = concreteLocal.index;
 	immutable Ptr!LowLocal local = arrBuilderAt(ctx.locals, localIndex);
-	assert(strEq(local.mangledName, concreteLocal.mangledName));
+	verify(strEq(local.mangledName, concreteLocal.mangledName));
 	return local;
 }
 
@@ -894,12 +892,12 @@ immutable(LowExprKind) getParamRefExpr(Alloc)(
 ) {
 	if (!has(a.param.index)) {
 		//TODO: don't generate ParamRef in ConcreteModel for closure field access. Do that in lowering.
-		assert(strEq(a.param.mangledName, strLiteral("_closure")));
+		verify(strEq(a.param.mangledName, strLiteral("_closure")));
 		return immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.closureParam)));
 	}
 
 	immutable Ptr!LowParam param = ptrAt(ctx.regularParams, force(a.param.index));
-	assert(strEq(param.mangledName, a.param.mangledName));
+	verify(strEq(param.mangledName, a.param.mangledName));
 	return immutable LowExprKind(immutable LowExprKind.ParamRef(param));
 }
 
@@ -917,7 +915,7 @@ immutable(FieldAndTargetIsPointer) getLowField(
 	immutable Bool targetIsPointer = isNonFunPtrType(targetType);
 	immutable LowType.Record record = asRecordType(targetIsPointer ? asNonFunPtrType(targetType).pointee : targetType);
 	immutable Ptr!LowField field = ptrAt(at(ctx.allTypes.allRecords, record.index).fields, concreteField.index);
-	assert(strEq(field.mangledName, concreteField.mangledName));
+	verify(strEq(field.mangledName, concreteField.mangledName));
 	return immutable FieldAndTargetIsPointer(targetIsPointer, record, field);
 }
 

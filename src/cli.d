@@ -1,7 +1,5 @@
 module cli;
 
-import core.stdc.stdio : printf;
-
 import compiler : build, buildAndRun, print, PrintKind, ProgramDirAndMain;
 import frontend.lang : nozeExtension;
 import util.alloc.mallocator : Mallocator;
@@ -25,6 +23,7 @@ import util.path :
 	resolvePath,
 	rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
+import util.print : print;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym, symEq;
 import util.util : todo;
 
@@ -70,18 +69,18 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 }
 
 @trusted void printVersion() {
-	printf("Approximately 0.000\n");
+	print("Approximately 0.000\n");
 }
 
 @trusted immutable(int) helpBuild() {
-	printf("Command: noze build [PATH]\n" ~
+	print("Command: noze build [PATH]\n" ~
 		"\tCompiles the program at [PATH] to a '.cpp' and executable file with the same name.\n" ~
 		"\tNo options.\n");
 	return 0;
 }
 
 @trusted immutable(int) helpRun() {
-	printf("Command: noze run [PATH]\n" ~
+	print("Command: noze run [PATH]\n" ~
 		"Command: noze run [PATH] -- args\n" ~
 		"\tDoes the same as 'noze build [PATH]', then runs the executable it created.\n" ~
 		"\tNo options.\n" ~
@@ -90,10 +89,10 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 }
 
 @trusted immutable(int) help(immutable Bool isDueToCommandParseError) {
-	printf("Command: noze [PATH ENDING IN '.nz'] args\n" ~
+	print("Command: noze [PATH ENDING IN '.nz'] args\n" ~
 		"\tSame as `noze run [PATH] -- args\n");
 	helpBuild();
-	printf("\n");
+	print("\n");
 	helpRun();
 	return isDueToCommandParseError ? 1 : 0;
 }

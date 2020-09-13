@@ -57,7 +57,7 @@ import util.memory : nu, nuMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sym : shortSymAlphaLiteralValue, Sym;
-import util.util : min, max, roundUp, todo, unreachable;
+import util.util : min, max, roundUp, todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeStatic, writeStr;
 
 void writeConcreteTypeForMangle(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteType t) {
@@ -90,7 +90,7 @@ struct TypeArgsScope {
 	immutable this(immutable Arr!TypeParam tp, immutable Arr!ConcreteType ta) {
 		typeParams = tp;
 		typeArgs = ta;
-		assert(sizeEq(typeParams, typeArgs));
+		verify(sizeEq(typeParams, typeArgs));
 	}
 
 	static immutable(TypeArgsScope) empty() {
@@ -217,7 +217,7 @@ immutable(ConcreteType) anyPtrType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) 
 }
 
 immutable(ConcreteType) ctxType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a)
-out(it) { assert(it.isPointer); }
+out(it) { verify(it.isPointer); }
 body {
 	return lazilySet(a._ctxType, () =>
 		getConcreteType_forStructInst(alloc, a, a.ctxStructInst, TypeArgsScope.empty));
@@ -303,7 +303,7 @@ immutable(ConcreteType) getConcreteType(Alloc)(
 			unreachable!(immutable ConcreteType),
 		(immutable Ptr!TypeParam p) {
 			// Handle calledConcreteFun first
-			assert(ptrEquals(p, ptrAt(typeArgsScope.typeParams, p.index)));
+			verify(ptrEquals(p, ptrAt(typeArgsScope.typeParams, p.index)));
 			return at(typeArgsScope.typeArgs, p.index);
 		},
 		(immutable Ptr!StructInst i) =>
@@ -327,14 +327,11 @@ immutable(ConcreteType) concreteTypeFromFields_alwaysPointer(Alloc)(
 	immutable Sym name,
 	immutable Str mangledName,
 ) {
-	assert(!empty(fields));
-	immutable Ptr!ConcreteStruct cs = nu!ConcreteStruct(
-		alloc,
-		name,
-		mangledName,
-		getConcreteStructInfoForFields(none!ForcedByValOrRef, fields));
-	add(alloc, ctx.allConcreteStructs, cs);
-	return concreteType_pointer(cs);
+	verify(!empty(fields));
+	Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, name, mangledName);
+	lateSet(cs.info_, getConcreteStructInfoForFields(none!ForcedByValOrRef, fields));
+	add(alloc, ctx.allConcreteStructs, castImmutable(cs));
+	return concreteType_pointer(castImmutable(cs));
 }
 
 immutable(Ptr!ConcreteFun) getAllocFun(Alloc)(ref Alloc alloc, ref ConcretizeCtx ctx) {
@@ -457,7 +454,7 @@ immutable(Bool) getDefaultIsPointerForFields(
 	if (has(forcedByValOrRef))
 		final switch (force(forcedByValOrRef)) {
 			case ForcedByValOrRef.byVal:
-				assert(!isSelfMutable);
+				verify(!isSelfMutable);
 				return False;
 			case ForcedByValOrRef.byRef:
 				return True;

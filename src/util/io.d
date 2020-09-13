@@ -35,22 +35,7 @@ import util.collection.str :
 import util.opt : none, Opt, some;
 import util.path : AbsolutePath, pathToCStr;
 import util.types : safeSizeTFromSSizeT, ssize_t;
-import util.util : todo;
-
-@trusted immutable(Bool) fileExists(immutable AbsolutePath path) {
-	PathAlloc temp;
-	immutable CStr pathCStr = pathToCStr(temp, path);
-	stat_t s;
-	immutable int res = stat(pathCStr, &s);
-	if (res == 0)
-		return True;
-	else if (res == ENOENT)
-		return False;
-	else {
-		fprintf(stderr, "fileExists of %s failed\n", pathCStr);
-		return todo!Bool("fileExists failed");
-	}
-}
+import util.util : todo, verify;
 
 @trusted immutable(Opt!NulTerminatedStr) tryReadFile(Alloc)(
 	ref Alloc alloc,
@@ -88,7 +73,7 @@ import util.util : todo;
 	if (off == -1)
 		return todo!Ret("lseek failed");
 
-	assert(off == 0);
+	verify(off == 0);
 
 	immutable size_t resSize = fileSize + 1;
 	char* res = cast(char*) alloc.allocate(char.sizeof * resSize); // + 1 for the '\0'
@@ -148,7 +133,7 @@ alias Environ = Arr!(KeyValuePair!(Str, Str));
 		convertArgs(temp, executableCStr, args),
 		convertEnviron(temp, environ));
 	// 'execvpe' only returns if we failed to create the process (maybe executable does not exist?)
-	assert(err == -1);
+	verify(err == -1);
 	fprintf(stderr, "Failed to launch %s: error %s\n", executableCStr, strerror(errno));
 	todo!void("failed to launch");
 }
@@ -176,7 +161,7 @@ immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
 	if (b == null)
 		return todo!Str("getcwd failed");
 	else {
-		assert(b == buff.ptr);
+		verify(b == buff.ptr);
 		return copyCStrToStr(alloc, cast(immutable) buff.ptr);
 	}
 }
@@ -236,7 +221,7 @@ immutable(CStr) copyCStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
 	if (spawnStatus == 0) {
 		int waitStatus;
 		immutable int resPid = waitpid(pid, &waitStatus, 0);
-		assert(resPid == pid);
+		verify(resPid == pid);
 		if (WIFEXITED(waitStatus))
 			return WEXITSTATUS(waitStatus); // only valid if WIFEXITED
 		else {
@@ -252,7 +237,7 @@ immutable(CStr) copyCStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
 @system immutable(KeyValuePair!(Str, Str)) parseEnvironEntry(immutable CStr entry) {
 	immutable(char)* keyEnd = entry;
 	for (; *keyEnd != '='; keyEnd++)
-		assert(*keyEnd != '\0');
+		verify(*keyEnd != '\0');
 	immutable Str key = arrOfRange(entry, keyEnd);
 	// Skip the '='
 	immutable CStr valueBegin = keyEnd + 1;
@@ -312,5 +297,3 @@ bool WIFSIGNALED( int status )
 {
 	return ( cast(byte) ( ( status & 0x7F ) + 1 ) >> 1 ) > 0;
 }
-
-

@@ -4,12 +4,11 @@ module util.collection.mutArr;
 
 import std.traits : Unqual;
 
-import core.stdc.string : memcpy;
-
 import util.bools : Bool;
 import util.collection.arr : Arr;
-import util.memory : initMemory, overwriteMemory;
+import util.memory : initMemory, memcpy, overwriteMemory;
 import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
+import util.util : verify;
 
 struct MutArr(T) {
 	private:
@@ -23,11 +22,11 @@ struct MutArr(T) {
 }
 
 @trusted ref T mutArrAt(T)(ref MutArr!T a, immutable size_t index) {
-	assert(index < a.size_);
+	verify(index < a.size_);
 	return a.begin_[index];
 }
 @trusted ref const(T) mutArrAt(T)(ref const MutArr!T a, immutable size_t index) {
-	assert(index < a.size_);
+	verify(index < a.size_);
 	return a.begin_[index];
 }
 
@@ -47,7 +46,7 @@ immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 	if (a.size_ == a.capacity_) {
 		immutable size_t newCapacity = a.size_ == 0 ? 2 : a.size_ * 2;
 		T* newBegin = cast(T*) alloc.allocate(newCapacity * T.sizeof);
-		memcpy(cast(void*) newBegin, cast(void*) a.begin_, a.size_ * T.sizeof);
+		memcpy(cast(ubyte*) newBegin, cast(ubyte*) a.begin_, a.size_ * T.sizeof);
 		alloc.free(cast(ubyte*) a.begin_, a.size_ * T.sizeof);
 		a.begin_ = newBegin;
 		a.capacity_ = newCapacity;
@@ -55,7 +54,7 @@ immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 
 	initMemory(a.begin_ + a.size_, value);
 	a.size_++;
-	assert(a.size_ <= a.capacity_);
+	verify(a.size_ <= a.capacity_);
 }
 
 @trusted Opt!T pop(T)(ref MutArr!T a) {
@@ -79,17 +78,17 @@ T mustPop(T)(ref MutArr!T a) {
 }
 
 @trusted ref const(T) mustPeek(T)(ref const MutArr!T m) {
-	assert(m.size_ != 0);
+	verify(m.size_ != 0);
 	return m.begin_[m.size_ - 1];
 }
 
 @trusted ref T mustPeek_mut(T)(ref MutArr!T m) {
-	assert(m.size_ != 0);
+	verify(m.size_ != 0);
 	return m.begin_[m.size_ - 1];
 }
 
 @trusted void setAt(T)(ref MutArr!T a, immutable size_t index, T value) {
-	assert(index < a.size_);
+	verify(index < a.size_);
 	overwriteMemory(a.begin_ + index, value);
 }
 
@@ -120,7 +119,7 @@ T mustPop(T)(ref MutArr!T a) {
 }
 
 @trusted ref const(T) last(T)(ref const MutArr!T a) {
-	assert(a.size_ != 0);
+	verify(a.size_ != 0);
 	return a.begin_[a.size_ - 1];
 }
 
@@ -136,7 +135,7 @@ Arr!T tempAsArr_mut(T)(ref MutArr!T m) {
 }
 
 @trusted void deleteAt(T)(ref MutArr!T a, immutable size_t index) {
-	assert(index < a.size_);
+	verify(index < a.size_);
 	foreach (immutable size_t i; index..a.size_ - 1)
 		overwriteMemory(a.begin_ + i, mutArrAt(a, i + 1));
 	a.size_--;

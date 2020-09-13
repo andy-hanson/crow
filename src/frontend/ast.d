@@ -25,7 +25,7 @@ import util.sexpr :
 import util.sourceRange : sexprOfSourceRange, SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : u8;
-import util.util : todo;
+import util.util : todo, verify;
 
 struct NameAndRange {
 	immutable SourceRange range;
@@ -239,7 +239,7 @@ immutable(Bool) isIdentifier(ref immutable ExprAstKind a) {
 	return Bool(a.kind == ExprAstKind.Kind.identifier);
 }
 ref immutable(IdentifierAst) asIdentifier(return ref immutable ExprAstKind a) {
-	assert(a.isIdentifier);
+	verify(a.isIdentifier);
 	return a.identifier;
 }
 
@@ -247,7 +247,7 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 	return Bool(a.kind == ExprAstKind.Kind.call);
 }
 @trusted ref immutable(CallAst) asCall(return ref immutable ExprAstKind a) {
-	assert(a.isCall);
+	verify(a.isCall);
 	return a.call;
 }
 

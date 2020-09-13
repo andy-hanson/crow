@@ -10,7 +10,7 @@ import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.result : asFailure, asSuccess, fail, isSuccess, Result, success;
-import util.util : max, todo;
+import util.util : max, todo, verify;
 
 @trusted immutable(Arr!T) arrLiteral(T, Alloc)(ref Alloc alloc, immutable T value) {
 	T* ptr = cast(T*) alloc.allocate(T.sizeof * 1);
@@ -462,51 +462,51 @@ immutable(Opt!(Ptr!T)) findPtr(T)(
 }
 
 @trusted immutable(Arr!T) slice(T)(immutable Arr!T a, immutable size_t begin, immutable size_t newSize) {
-	assert(begin + newSize <= a.size);
+	verify(begin + newSize <= a.size);
 	return immutable Arr!T(a.begin + begin, newSize);
 }
 @trusted const(Arr!T) slice(T)(const Arr!T a, immutable size_t begin, immutable size_t newSize) {
-	assert(begin + newSize <= a.size);
+	verify(begin + newSize <= a.size);
 	return const Arr!T(a.begin + begin, newSize);
 }
 @trusted Arr!T slice(T)(Arr!T a, immutable size_t begin, immutable size_t newSize) {
-	assert(begin + newSize <= a.size);
+	verify(begin + newSize <= a.size);
 	return Arr!T(a.begin + begin, newSize);
 }
 
 immutable(Arr!T) slice(T)(immutable Arr!T a, immutable size_t begin) {
-	assert(begin <= a.size);
+	verify(begin <= a.size);
 	return slice(a, begin, a.size - begin);
 }
 const(Arr!T) slice(T)(const Arr!T a, immutable size_t begin) {
-	assert(begin <= a.size);
+	verify(begin <= a.size);
 	return slice(a, begin, a.size - begin);
 }
 Arr!T slice(T)(Arr!T a, immutable size_t begin) {
-	assert(begin <= a.size);
+	verify(begin <= a.size);
 	return slice(a, begin, a.size - begin);
 }
 
 immutable(Arr!T) sliceFromTo(T)(ref immutable Arr!T a, immutable size_t lo, immutable size_t hi) {
-	assert(lo <= hi);
+	verify(lo <= hi);
 	return slice(a, lo, hi - lo);
 }
 
 immutable(Arr!T) tail(T)(immutable Arr!T a) {
-	assert(a.size != 0);
+	verify(a.size != 0);
 	return slice(a, 1);
 }
 const(Arr!T) tail(T)(const Arr!T a) {
-	assert(a.size != 0);
+	verify(a.size != 0);
 	return slice(a, 1);
 }
 Arr!T tail(T)(Arr!T a) {
-	assert(a.size != 0);
+	verify(a.size != 0);
 	return slice(a, 1);
 }
 
 immutable(Arr!T) rtail(T)(immutable Arr!T a) {
-	assert(a.size != 0);
+	verify(a.size != 0);
 	return a.slice(0, a.size - 1);
 }
 
@@ -543,7 +543,7 @@ void zip(T, U)(
 	immutable Arr!U b,
 	scope void delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
 ) {
-	assert(sizeEq(a, b));
+	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0..size(a))
 		cb(at(a, i), at(b, i));
 }
@@ -553,7 +553,7 @@ void zipFirstMut(T, U)(
 	ref immutable Arr!U b,
 	scope void delegate(ref T, ref immutable U) @safe @nogc pure nothrow cb,
 ) {
-	assert(sizeEq(a, b));
+	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0..size(a))
 		cb(at(a, i), at(b, i));
 }
@@ -563,7 +563,7 @@ void zipMutPtrFirst(T, U)(
 	ref immutable Arr!U b,
 	scope void delegate(Ptr!T, ref immutable U) @safe @nogc pure nothrow cb,
 ) {
-	assert(sizeEq(a, b));
+	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0..size(a))
 		cb(ptrAt(a, i), at(b, i));
 }
@@ -574,7 +574,7 @@ void zipMutPtrFirst(T, U)(
 	ref immutable Arr!In1 in1,
 	scope immutable(Out) delegate(ref immutable In0, ref immutable In1) @safe @nogc pure nothrow cb,
 ) {
-	assert(sizeEq(in0, in1));
+	verify(sizeEq(in0, in1));
 	immutable size_t sz = size(in0);
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * sz);
 	foreach (immutable size_t i; 0..sz)
@@ -588,7 +588,7 @@ void zipMutPtrFirst(T, U)(
 	ref immutable Arr!In1 in1,
 	scope immutable(Out) delegate(ref immutable In0, ref immutable In1, immutable size_t) @safe @nogc pure nothrow cb,
 ) {
-	assert(sizeEq(in0, in1));
+	verify(sizeEq(in0, in1));
 	immutable size_t sz = size(in0);
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * sz);
 	foreach (immutable size_t i; 0..sz)
@@ -603,7 +603,7 @@ void zipMutPtrFirst(T, U)(
 	ref immutable Arr!In1 in1,
 	scope immutable(Opt!Out) delegate(ref immutable In0, ref immutable In1) @safe @nogc pure nothrow cb,
 ) {
-	assert(sizeEq(in0, in1));
+	verify(sizeEq(in0, in1));
 	immutable size_t sz = size(in0);
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * sz);
 	foreach (immutable size_t i; 0..sz) {
@@ -621,7 +621,7 @@ immutable(Bool) zipSome(In0, In1)(
 	ref immutable Arr!In1 in1,
 	scope immutable(Bool) delegate(ref immutable In0, ref immutable In1) @safe @nogc pure nothrow cb,
 ) {
-	assert(sizeEq(in0, in1));
+	verify(sizeEq(in0, in1));
 	foreach (immutable size_t i; 0..size(in0))
 		if (cb(at(in0, i), at(in1, i)))
 			return True;
@@ -633,7 +633,7 @@ void zipWithIndex(In0, In1)(
 	ref immutable Arr!In1 in1,
 	scope void delegate(ref immutable In0, ref immutable In1, immutable size_t) @safe @nogc pure nothrow cb,
 ) {
-	assert(sizeEq(in0, in1));
+	verify(sizeEq(in0, in1));
 	foreach (immutable size_t i; 0..size(in0))
 		cb(at(in0, i), at(in1, i), i);
 }
@@ -643,7 +643,7 @@ immutable(Bool) eachCorresponds(T, U)(
 	immutable Arr!T b,
 	scope immutable(Bool) delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
 ) {
-	assert(sizeEq(a, b));
+	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0..size(a))
 		if (!cb(at(a, i), at(b, i)))
 			return False;

@@ -11,7 +11,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.util : todo, unreachable;
+import util.util : todo, unreachable, verify;
 
 enum BuiltinStructKind {
 	bool_,
@@ -101,17 +101,17 @@ struct ConcreteStructBody {
 }
 
 @trusted ref immutable(ConcreteStructBody.Builtin) asBuiltin(return scope ref immutable ConcreteStructBody a) {
-	assert(a.kind == ConcreteStructBody.Kind.builtin);
+	verify(a.kind == ConcreteStructBody.Kind.builtin);
 	return a.builtin;
 }
 
 @trusted ref immutable(ConcreteStructBody.Record) asRecord(return scope ref immutable ConcreteStructBody a) {
-	assert(a.kind == ConcreteStructBody.Kind.record);
+	verify(a.kind == ConcreteStructBody.Kind.record);
 	return a.record;
 }
 
 @trusted ref immutable(ConcreteStructBody.Union) asUnion(return scope ref immutable ConcreteStructBody a) {
-	assert(a.kind == ConcreteStructBody.Kind.union_);
+	verify(a.kind == ConcreteStructBody.Kind.union_);
 	return a.union_;
 }
 
@@ -147,13 +147,13 @@ immutable(Bool) concreteTypeEqual(ref immutable ConcreteType a, ref immutable Co
 }
 
 immutable(Ptr!ConcreteStruct) mustBePointer(immutable ConcreteType a) {
-	assert(a.isPointer);
+	verify(a.isPointer);
 	return a.struct_;
 }
 
 // Union should never be a pointer
 immutable(Ptr!ConcreteStruct) mustBeNonPointer(immutable ConcreteType a) {
-	assert(!a.isPointer);
+	verify(!a.isPointer);
 	return a.struct_;
 }
 
@@ -170,16 +170,6 @@ struct ConcreteStruct {
 	immutable Sym name;
 	immutable Str mangledName; // TODO:KILL
 	Late!(immutable ConcreteStructInfo) info_;
-
-	this(immutable Sym n, immutable Str mn) {
-		name = n;
-		mangledName = mn;
-	}
-	this(immutable Sym n, immutable Str mn, immutable ConcreteStructInfo info) {
-		name = n;
-		mangledName = mn;
-		lateSet!(immutable ConcreteStructInfo)(info_, info);
-	}
 }
 
 ref immutable(ConcreteStructInfo) info(return scope ref const ConcreteStruct a) {
@@ -223,7 +213,7 @@ immutable(ConcreteType) byVal(ref immutable ConcreteType t) {
 }
 
 immutable(ConcreteType) changeToByRef(ref immutable ConcreteType t) {
-	assert(!t.isPointer);
+	verify(!t.isPointer);
 	return byRef(t);
 }
 
@@ -318,17 +308,17 @@ immutable(Bool) isConcreteFunExprBody(ref immutable ConcreteFunBody a) {
 }
 
 @trusted ref immutable(ConcreteFunBody.Builtin) asBuiltin(return scope ref immutable ConcreteFunBody a) {
-	assert(isBuiltin(a));
+	verify(isBuiltin(a));
 	return a.builtin;
 }
 
 @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref immutable ConcreteFunBody a) {
-	assert(isExtern(a));
+	verify(isExtern(a));
 	return a.extern_;
 }
 
 @trusted ref immutable(ConcreteFunExprBody) asConcreteFunExprBody(return scope ref immutable ConcreteFunBody a) {
-	assert(isConcreteFunExprBody(a));
+	verify(isConcreteFunExprBody(a));
 	return a.concreteFunExprBody;
 }
 
@@ -439,7 +429,7 @@ struct ConcreteExpr {
 			fun = f;
 			closure = c;
 			if (has(closure))
-				assert(force(closure).type.isPointer);
+				verify(force(closure).type.isPointer);
 		}
 	}
 
@@ -463,7 +453,7 @@ struct ConcreteExpr {
 			matchedLocal = ml;
 			matchedValue = mv;
 			cases = c;
-			assert(sizeEq(matchedUnionMembers(this), cases));
+			verify(sizeEq(matchedUnionMembers(this), cases));
 		}
 	}
 
@@ -491,7 +481,7 @@ struct ConcreteExpr {
 			target = t;
 			field = f;
 			value = v;
-			assert(field.isMutable);
+			verify(field.isMutable);
 		}
 	}
 

@@ -110,7 +110,7 @@ import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.result : fail, flatMapSuccess, mapSuccess, Result, success;
 import util.sourceRange : SourceRange;
 import util.sym : addToMutSymSetOkIfPresent, compareSym, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
-import util.util : todo;
+import util.util : todo, verify;
 
 struct PathAndAst {
 	immutable PathAndStorageKind pathAndStorageKind;
@@ -127,7 +127,7 @@ immutable(Result!(BootstrapCheck, Diags)) checkBootstrapNz(Alloc)(
 	ref ProgramState programState,
 	immutable PathAndAst pathAndAst,
 ) {
-	assert(empty(pathAndAst.ast.imports) && empty(pathAndAst.ast.exports));
+	verify(empty(pathAndAst.ast.imports) && empty(pathAndAst.ast.exports));
 	return checkWorker(
 		alloc,
 		programState,
@@ -189,7 +189,7 @@ immutable(Opt!(Ptr!StructInst)) getCommonNonTemplateType(Alloc)(
 		return none!(Ptr!StructInst);
 	else {
 		immutable StructOrAlias structOrAlias = force(opStructOrAlias);
-		assert(empty(typeParams(structOrAlias)));
+		verify(empty(typeParams(structOrAlias)));
 		return matchStructOrAlias(
 			structOrAlias,
 			(immutable Ptr!StructAlias a) => target(a),
@@ -722,7 +722,7 @@ immutable(StructsAndAliasesMap) buildStructsAndAliasesDict(Alloc)(
 ) {
 	DictBuilder!(Sym, StructOrAlias, compareSym) d;
 	foreach (immutable Ptr!StructDecl decl; ptrsRange(structs)) {
-		assert(size(decl.typeParams) < 10); //TODO:KILL
+		verify(size(decl.typeParams) < 10); //TODO:KILL
 		addToDict(alloc, d, decl.name, immutable StructOrAlias(decl));
 	}
 	foreach (immutable Ptr!StructAlias a; ptrsRange(aliases))

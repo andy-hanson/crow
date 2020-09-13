@@ -13,6 +13,7 @@ module util.result;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
+import util.util : verify;
 
 struct Result(Success, Failure) {
 	@safe @nogc pure nothrow:
@@ -41,12 +42,12 @@ immutable(Bool) isSuccess(S, F)(ref immutable Result!(S, F) a) {
 }
 
 @trusted ref immutable(S) asSuccess(S, F)(ref immutable Result!(S, F) a) {
-	assert(a.isSuccess_);
+	verify(a.isSuccess_);
 	return a.success_;
 }
 
 @trusted ref immutable(F) asFailure(S, F)(ref immutable Result!(S, F) a) {
-	assert(!a.isSuccess_);
+	verify(!a.isSuccess_);
 	return a.failure_;
 }
 

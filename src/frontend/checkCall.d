@@ -113,9 +113,7 @@ import util.opt : force, has, mapOption_const, none, Opt, some;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : SourceRange;
 import util.sym : mutSymSetHas, Sym, symEq;
-import util.util : todo;
-
-import core.stdc.stdio : printf; //TODO:KILL
+import util.util : todo, verify;
 
 immutable(CheckedExpr) checkCall(Alloc)(
 	ref Alloc alloc,
@@ -628,7 +626,7 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 				allSucceeded = False;
 		}
 		if (allSucceeded) {
-			assert(outI == nImpls);
+			verify(outI == nImpls);
 			return some(moveToArr(alloc, res));
 		} else
 			return none!(Arr!Called);

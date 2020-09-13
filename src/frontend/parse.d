@@ -63,7 +63,7 @@ import util.result : fail, Result, success;
 import util.sourceRange : Pos;
 import util.sym : AllSymbols, shortSymAlphaLiteralValue, Sym;
 import util.types : u8;
-import util.util : todo, unreachable;
+import util.util : todo, unreachable, verify;
 
 immutable(Result!(FileAst, ParseDiagnostic)) parseFile(Alloc, SymAlloc)(
 	ref Alloc alloc,
@@ -113,7 +113,7 @@ immutable(ImportAst) parseSingleImport(Alloc, SymAlloc)(ref Alloc alloc, ref Lex
 	immutable Pos start = lexer.curPos;
 	u8 nDots = 0;
 	while (lexer.tryTake('.')) {
-		assert(nDots < 255);
+		verify(nDots < 255);
 		nDots++;
 	}
 
@@ -235,7 +235,7 @@ immutable(Arr!SigAst) parseIndentedSigs(Alloc, SymAlloc)(ref Alloc alloc, ref Le
 		add(alloc, res, sd.sig);
 		if (sd.dedents != 0) {
 			// We started at in indent level of only 1, so can't go down more than 1.
-			assert(sd.dedents == 1);
+			verify(sd.dedents == 1);
 			return finishArr(alloc, res);
 		}
 	}
@@ -319,12 +319,12 @@ immutable(StructDeclAst.Body.Record) parseFields(Alloc, SymAlloc)(
 		switch (name.value) {
 			case shortSymAlphaLiteralValue("by-val"):
 				if (!isFirstLine) todo!void("by-val on later line");
-				assert(!explicitByValOrRef.has);
+				verify(!explicitByValOrRef.has);
 				explicitByValOrRef = some(ExplicitByValOrRef.byVal);
 				break;
 			case shortSymAlphaLiteralValue("by-ref"):
 				if (!isFirstLine) todo!void("by-ref on later line");
-				assert(!explicitByValOrRef.has);
+				verify(!explicitByValOrRef.has);
 				explicitByValOrRef = some(ExplicitByValOrRef.byRef);
 				break;
 			default:
@@ -549,7 +549,7 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 	immutable FunDeclStuff stuff = () {
 		if (sig.dedents.has) {
 			// Started at indent of 0
-			assert(sig.dedents.force == 0);
+			verify(sig.dedents.force == 0);
 			immutable SpecUsesAndSigFlagsAndKwBody extra = lexer.tryTake("spec")
 				? parseIndentedSpecUses(alloc, lexer)
 				: emptySpecUsesAndSigFlagsAndKwBody;

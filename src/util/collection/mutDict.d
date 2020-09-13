@@ -19,6 +19,7 @@ import util.collection.mutArr :
 import util.comparison : Comparison;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
+import util.util : verify;
 
 struct MutDict(K, V, alias cmp) {
 	MutArr!(KeyValuePair!(K, V)) pairs; // TODO:PRIVATE
@@ -64,7 +65,7 @@ void addToMutDict(Alloc, K, V, alias cmp)(
 	immutable V value,
 ) {
 	immutable Bool has = d.hasKey_mut(key);
-	assert(!has);
+	verify(!has);
 	push(alloc, d.pairs, KeyValuePair!(K, V)(key, value));
 }
 
@@ -117,7 +118,7 @@ immutable(V) getOrAddAndCopyKey(Alloc, K, V, alias cmp)(
 		if (cmp(pair.key, key) == Comparison.equal)
 			return pair.value;
 	immutable K keyCopy = getKeyCopy();
-	assert(cmp(keyCopy, key) == Comparison.equal);
+	verify(cmp(keyCopy, key) == Comparison.equal);
 	immutable V value = getValue();
 	d.pairs.push(alloc, KeyValuePair!(K, V)(key, value));
 	return value;

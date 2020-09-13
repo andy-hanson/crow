@@ -9,6 +9,7 @@ import util.collection.multiDict : MultiDict;
 import util.comparison : Comparison;
 import util.memory : initMemory;
 import util.ptr : Ptr;
+import util.util : verify;
 
 @trusted immutable(Dict!(K, V, compare)) buildDict(K, V, alias compare, T, Alloc)(
 	ref Alloc alloc,
@@ -34,7 +35,7 @@ import util.ptr : Ptr;
 			resI ++;
 		}
 	}
-	assert(resI <= size(inputs));
+	verify(resI <= size(inputs));
 	alloc.freePartial(cast(ubyte*) (res + resI), Pair.sizeof * (size(inputs) - resI));
 	return immutable Dict!(K, V, compare)(immutable Arr!Pair(cast(immutable) res, resI));
 }

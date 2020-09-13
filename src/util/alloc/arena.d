@@ -2,7 +2,7 @@ module util.alloc.arena;
 
 @safe @nogc pure nothrow:
 
-import util.util : todo;
+import util.util : todo, verify;
 
 struct Arena(Allocator) {
 	this(Allocator a) {
@@ -21,12 +21,11 @@ struct Arena(Allocator) {
 			allocator_.free(begin_, end_ - begin_);
 	}
 
-
 	@trusted ubyte* allocate(immutable size_t nBytes) {
 		if (begin_ == null) {
 			immutable size_t size = ARENA_SIZE;
 			begin_ = allocator_.allocate(size);
-			assert(begin_ != null);
+			verify(begin_ != null);
 			cur_ = begin_;
 			end_ = begin_ + size;
 			// Fill with 0xff for debugging
@@ -34,7 +33,7 @@ struct Arena(Allocator) {
 				*b = 0xff;
 		}
 
-		assert(nBytes < 999999);
+		verify(nBytes < 999999);
 
 		ubyte* res = cur_;
 		cur_ += nBytes;
@@ -44,7 +43,7 @@ struct Arena(Allocator) {
 
 		// Since we filled with 0xff, should still be that way!
 		for (ubyte* b = res; b < cur_; b++)
-			assert(*b == 0xff);
+			verify(*b == 0xff);
 
 		return res;
 	}

@@ -119,7 +119,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
-import util.util : todo;
+import util.util : todo, verify;
 
 immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 	ref Alloc alloc,
@@ -160,7 +160,7 @@ immutable(T) withLambda(T, Alloc)(
 	push(alloc, ctx.lambdas, infoPtr);
 	immutable T res = cb();
 	Ptr!LambdaInfo popped = mustPop(ctx.lambdas);
-	assert(ptrEquals(popped, infoPtr));
+	verify(ptrEquals(popped, infoPtr));
 	return res;
 }
 
@@ -537,7 +537,7 @@ immutable(CheckedExpr) checkRef(Alloc)(
 		// Inner ones must reference this by a closure field.
 		Ptr!LambdaInfo l0 = first(passedLambdas);
 		// Shouldn't have already closed over it (or we should just be using that)
-		assert(!exists!(immutable Ptr!ClosureField)(tempAsArr(l0.closureFields), (ref immutable Ptr!ClosureField it) =>
+		verify(!exists!(immutable Ptr!ClosureField)(tempAsArr(l0.closureFields), (ref immutable Ptr!ClosureField it) =>
 			symEq(it.name, name)));
 		immutable Ptr!ClosureField field = nu!ClosureField(
 			alloc,
@@ -620,7 +620,7 @@ immutable(Expr) checkWithLocal(Alloc)(
 		push(alloc, locals.deref, local);
 		immutable Expr res = checkExpr(alloc, ctx, ast, expected);
 		immutable Ptr!Local popped = mustPop(locals);
-		assert(ptrEquals(popped, local));
+		verify(ptrEquals(popped, local));
 		return res;
 	}
 }
@@ -653,10 +653,6 @@ immutable(CheckedExpr) checkLambda(Alloc)(
 	immutable FunKind kind = et.kind;
 
 	if (!sizeEq(ast.params, et.paramTypes)) {
-		debug {
-			import core.stdc.stdio : printf;
-			printf("Number of params should be %zu, got %zu\n", size(et.paramTypes), size(ast.params));
-		}
 		addDiag2(alloc, ctx, range, immutable Diag(Diag.LambdaWrongNumberParams(et.funStructInst, size(ast.params))));
 		return bogus(expected, range);
 	}

@@ -53,6 +53,7 @@ import util.result :
 	success;
 import util.sourceRange : SourceRange;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
+import util.util : verify;
 
 immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, SymAlloc)(
 	ref ModelAlloc modelAlloc,
@@ -450,8 +451,8 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 						commonTypes.lateGet);
 				} else {
 					// The first module to check is always 'bootstrap.nz'
-					assert(pathAndStorageKindEq(ast.pathAndStorageKind, modelAlloc.bootstrapPath));
-					assert(ast.resolvedImports.empty);
+					verify(pathAndStorageKindEq(ast.pathAndStorageKind, modelAlloc.bootstrapPath));
+					verify(ast.resolvedImports.empty);
 					immutable Result!(BootstrapCheck, Diags) res =
 						checkBootstrapNz(modelAlloc, programState, ast.pathAndAst);
 					if (res.isSuccess)

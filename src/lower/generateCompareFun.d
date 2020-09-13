@@ -46,7 +46,7 @@ import util.memory : allocate, nu;
 import util.opt : none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : SourceRange;
-import util.util : todo, unreachable;
+import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeStatic, writeNat;
 
 immutable(LowFun) generateCompareFun(Alloc)(
@@ -101,11 +101,11 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 ) {
 	immutable LowType.Record arrRecordType = asRecordType(arrType);
 	immutable LowRecord arrRecord = at(allTypes.allRecords, arrRecordType.index);
-	assert(size(arrRecord.fields) == 2);
+	verify(size(arrRecord.fields) == 2);
 	immutable Ptr!LowField sizeField = ptrAt(arrRecord.fields, 0);
 	immutable Ptr!LowField dataField = ptrAt(arrRecord.fields, 1);
-	assert(strEqLiteral(sizeField.mangledName, "size"));
-	assert(strEqLiteral(dataField.mangledName, "data"));
+	verify(strEqLiteral(sizeField.mangledName, "size"));
+	verify(strEqLiteral(dataField.mangledName, "data"));
 	immutable LowType elementPtrType = dataField.type;
 	immutable LowType elementType = asNonFunPtrType(elementPtrType).pointee;
 

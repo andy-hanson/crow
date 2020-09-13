@@ -5,6 +5,7 @@ module util.collection.arr;
 import util.bools : Bool;
 import util.ptr : Ptr;
 import util.memory : myEmplace, overwriteMemory;
+import util.util : verify;
 
 struct Arr(T) {
 	private:
@@ -19,7 +20,7 @@ struct Arr(T) {
 }
 
 immutable(Arr!T) arrOfRange(T)(immutable T* begin, immutable T* end) {
-	assert(begin <= end);
+	verify(begin <= end);
 	return immutable Arr!T(begin, end - begin);
 }
 
@@ -54,17 +55,17 @@ immutable(Bool) empty(T)(const Arr!T a) {
 }
 
 @trusted Ptr!T ptrAt(T)(Arr!T a, immutable size_t index) {
-	assert(index < a.size_);
+	verify(index < a.size_);
 	return Ptr!T(a.begin_ + index);
 }
 
 @trusted const(Ptr!T) ptrAt(T)(const Arr!T a, immutable size_t index) {
-	assert(index < a.size_);
+	verify(index < a.size_);
 	return const Ptr!T(a.begin_ + index);
 }
 
 @trusted immutable(Ptr!T) ptrAt(T)(immutable Arr!T a, immutable size_t index) {
-	assert(index < a.size_);
+	verify(index < a.size_);
 	return immutable Ptr!T(a.begin_ + index);
 }
 
@@ -79,7 +80,7 @@ immutable(Bool) empty(T)(const Arr!T a) {
 }
 
 @trusted void setAt(T)(ref Arr!T a, immutable size_t index, immutable T value) {
-	assert(index < a.size_);
+	verify(index < a.size_);
 	overwriteMemory(a.begin_ + index, value);
 }
 
@@ -94,21 +95,21 @@ ref T first(T)(Arr!T a) {
 }
 
 ref immutable(T) only(T)(immutable Arr!T a) {
-	assert(size(a) == 1);
+	verify(size(a) == 1);
 	return first(a);
 }
 ref const(T) only_const(T)(ref const Arr!T a) {
-	assert(size(a) == 1);
+	verify(size(a) == 1);
 	return first(a);
 }
 
 Ptr!T onlyPtr_mut(T)(ref Arr!T a) {
-	assert(a.size == 1);
+	verify(a.size == 1);
 	return ptrAt(a, 0);
 }
 
 ref immutable(T) last(T)(ref immutable Arr!T a) {
-	assert(a.size != 0);
+	verify(a.size != 0);
 	return at(a, a.size - 1);
 }
 

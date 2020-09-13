@@ -9,6 +9,7 @@ import util.opt : Opt;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym;
+import util.util : verify;
 
 struct LowExternPtrType {
 	immutable Str mangledName;
@@ -153,7 +154,7 @@ immutable(Bool) isPrimitive(ref immutable LowType a) {
 }
 
 immutable(PrimitiveType) asPrimitive(ref immutable LowType a) {
-	assert(isPrimitive(a));
+	verify(isPrimitive(a));
 	return a.primitive_;
 }
 
@@ -170,22 +171,22 @@ immutable(Bool) isNonFunPtrType(ref immutable LowType a) {
 }
 
 @trusted immutable(LowType.NonFunPtr) asNonFunPtrType(ref immutable LowType a) {
-	assert(isNonFunPtrType(a));
+	verify(isNonFunPtrType(a));
 	return a.nonFunPtr_;
 }
 
 immutable(LowType.FunPtr) asFunPtrType(ref immutable LowType a) {
-	assert(a.kind_ == LowType.Kind.funPtr);
+	verify(a.kind_ == LowType.Kind.funPtr);
 	return a.funPtr_;
 }
 
 immutable(LowType.Record) asRecordType(ref immutable LowType a) {
-	assert(a.kind_ == LowType.Kind.record);
+	verify(a.kind_ == LowType.Kind.record);
 	return a.record_;
 }
 
 immutable(LowType.Union) asUnionType(ref immutable LowType a) {
-	assert(a.kind_ == LowType.Kind.union_);
+	verify(a.kind_ == LowType.Kind.union_);
 	return a.union_;
 }
 

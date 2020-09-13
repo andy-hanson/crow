@@ -8,14 +8,14 @@ import util.collection.arrUtil : every, map;
 import util.collection.str : Str;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : eachCharInSym, isSymOperator, shortSymAlphaLiteralValue, strOfSym, Sym, symEqLongAlphaLiteral;
-import util.util : todo;
+import util.util : todo, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
 immutable(Str) mangleName(Alloc)(ref Alloc alloc, immutable Sym name) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	writeMangledName(writer, name);
 	immutable Str res = finishWriter(writer);
-	assert(isMangledName(res));
+	verify(isMangledName(res));
 	return res;
 }
 
