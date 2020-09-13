@@ -21,9 +21,6 @@ import concreteModel :
 	matchConcreteFunBody,
 	matchConcreteStructBody,
 	returnType,
-	SpecialStructInfo,
-	symOfBuiltinFunEmit,
-	strOfBuiltinFunKind,
 	symOfBuiltinStructKind;
 import util.bools : True;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -63,8 +60,6 @@ private:
 immutable(Sexpr) tataOfConcreteStruct(Alloc)(ref Alloc alloc, ref immutable ConcreteStruct a) {
 	ArrBuilder!NameAndSexpr fields;
 	add(alloc, fields, nameAndTata("name", tataStr(a.mangledName)));
-	if (has(a.special))
-		add(alloc, fields, nameAndTata("special", tataOfSpecialStructInfo(alloc, force(a.special))));
 	if (isSelfMutable(a))
 		add(alloc, fields, nameAndTata("mut?", tataBool(True)));
 	if (defaultIsPointer(a))
@@ -103,8 +98,7 @@ immutable(Sexpr) tataOfConcreteStructBodyBuiltin(Alloc)(ref Alloc alloc, ref imm
 	return tataRecord(
 		alloc,
 		"builtin",
-		tataSym(symOfBuiltinStructKind(a.info.kind)),
-		tataNat(a.info.sizeBytes),
+		tataSym(symOfBuiltinStructKind(a.kind)),
 		tataArr(alloc, a.typeArgs, (ref immutable ConcreteType it) =>
 			tataOfConcreteType(alloc, it)));
 }
@@ -181,8 +175,6 @@ immutable(Sexpr) tataOfConcreteFunBodyBuiltin(Alloc)(ref Alloc alloc, ref immuta
 	return tataRecord(
 		alloc,
 		"builtin",
-		tataSym(symOfBuiltinFunEmit(a.builtinInfo.emit)),
-		tataStr(strLiteral(strOfBuiltinFunKind(a.builtinInfo.kind))),
 		tataArr(alloc, a.typeArgs, (ref immutable ConcreteType it) =>
 			tataOfConcreteType(alloc, it)));
 }

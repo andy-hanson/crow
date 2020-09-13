@@ -311,7 +311,12 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 		? none!ConcreteType
 		: some!ConcreteType(empty(closureArgs)
 			? anyPtrType(alloc, ctx.concretizeCtx)
-			: concreteTypeFromFields_alwaysPointer(alloc, ctx.concretizeCtx, closureFields, typeMangledName));
+			: concreteTypeFromFields_alwaysPointer(
+				alloc,
+				ctx.concretizeCtx,
+				closureFields,
+				shortSymAlphaLiteral("closure"),
+				typeMangledName));
 	immutable Opt!ConcreteParam closureParam = has(closureType)
 		? some(immutable ConcreteParam(none!size_t, strLiteral("_closure"), force(closureType)))
 		: none!ConcreteParam;
@@ -346,6 +351,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 		alloc,
 		ctx.concretizeCtx,
 		Bool(e.kind != FunKind.ptr),
+		shortSymAlphaLiteral("lambda"),
 		lambdaMangledName,
 		getConcreteType(alloc, ctx, e.returnType),
 		closureParam,

@@ -161,6 +161,10 @@ immutable(Bool) isVoid(ref immutable LowType a) {
 	return immutable Bool(isPrimitive(a) && asPrimitive(a) == PrimitiveType.void_);
 }
 
+immutable(Bool) isFunPtrType(ref immutable LowType a) {
+	return Bool(a.kind_ == LowType.Kind.funPtr);
+}
+
 immutable(Bool) isNonFunPtrType(ref immutable LowType a) {
 	return Bool(a.kind_ == LowType.Kind.nonFunPtr);
 }

@@ -3,7 +3,7 @@ module concretize.concretizeCtx;
 @safe @nogc pure nothrow:
 
 import concreteModel :
-	BuiltinStructInfo,
+	BuiltinStructKind,
 	byVal,
 	compareConcreteType,
 	ConcreteField,
@@ -16,10 +16,7 @@ import concreteModel :
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructInfo,
-	sizeOrPointerSizeBytes,
-	SpecialStructInfo;
-import concretize.builtinInfo : getBuiltinStructInfo;
-import concretize.concretizeBuiltin : getBuiltinFunBody;
+	sizeOrPointerSizeBytes;
 import concretize.concretizeExpr : concretizeExpr;
 import concretize.mangleName : mangleExternFunName, mangleName, writeMangledName;
 import model :
@@ -59,7 +56,7 @@ import util.late : Late, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : nu, nuMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals, ptrTrustMe_mut;
-import util.sym : Sym;
+import util.sym : shortSymAlphaLiteralValue, Sym;
 import util.util : min, max, roundUp, todo, unreachable;
 import util.writer : finishWriter, Writer, writeStatic, writeStr;
 
@@ -240,6 +237,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Bool needsCtx,
+	immutable Sym name,
 	ref immutable Str mangledName,
 	immutable ConcreteType returnType,
 	ref immutable Opt!ConcreteParam closureParam,
@@ -247,7 +245,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	ref immutable ConcreteFunKey containingConcreteFunKey,
 	immutable Ptr!Expr body_,
 ) {
-	Ptr!ConcreteFun res = nuMut!ConcreteFun(alloc, mangledName, returnType, needsCtx, closureParam, params);
+	Ptr!ConcreteFun res = nuMut!ConcreteFun(alloc, name, mangledName, returnType, needsCtx, closureParam, params);
 	immutable ConcreteFunSource source = ConcreteFunSource(
 		castImmutable(res),
 		containingConcreteFunKey,
@@ -282,8 +280,8 @@ immutable(ConcreteType) getConcreteType_forStructInst(Alloc)(
 			getOrAddAndDidAdd(alloc, ctx.nonLambdaConcreteStructs, key, () {
 				immutable Ptr!ConcreteStruct res = nu!ConcreteStruct(
 					alloc,
-					getConcreteStructMangledName(alloc, i.decl.name, key.typeArgs),
-					getSpecialStructInfo(i, ctx.commonTypes, typeArgs));
+					i.decl.name,
+					getConcreteStructMangledName(alloc, i.decl.name, key.typeArgs));
 				add(alloc, ctx.allConcreteStructs, res);
 				return res;
 			});
@@ -326,13 +324,14 @@ immutable(ConcreteType) concreteTypeFromFields_alwaysPointer(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	ref immutable Arr!ConcreteField fields,
+	immutable Sym name,
 	immutable Str mangledName,
 ) {
 	assert(!empty(fields));
 	immutable Ptr!ConcreteStruct cs = nu!ConcreteStruct(
 		alloc,
+		name,
 		mangledName,
-		none!SpecialStructInfo,
 		getConcreteStructInfoForFields(none!ForcedByValOrRef, fields));
 	add(alloc, ctx.allConcreteStructs, cs);
 	return concreteType_pointer(cs);
@@ -380,6 +379,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(Alloc)(
 	immutable Str mangledName = getMangledName(alloc, ctx, key, returnType, params);
 	Ptr!ConcreteFun res = nuMut!ConcreteFun(
 		alloc,
+		decl.name,
 		mangledName,
 		returnType,
 		not(noCtx(decl)),
@@ -430,16 +430,6 @@ immutable(Str) getConcreteFunMangledName(Alloc)(
 	return finishWriter(writer);
 }
 
-immutable(Opt!SpecialStructInfo) getSpecialStructInfo(
-	immutable Ptr!StructInst i,
-	ref immutable CommonTypes commonTypes,
-	immutable Arr!ConcreteType typeArgs,
-) {
-	immutable Ptr!StructDecl decl = decl(i);
-	return ptrEquals(decl, commonTypes.arr)
-		? some(immutable SpecialStructInfo(SpecialStructInfo.Kind.arr, only(typeArgs)))
-		: none!SpecialStructInfo;
-}
 
 size_t sizeFromConcreteFields(immutable Arr!ConcreteField fields) {
 	// TODO: this is definitely not accurate. Luckily I use static asserts in the generated code to check this.
@@ -511,10 +501,10 @@ void initializeConcreteStruct(Alloc)(
 		body_(i),
 		(ref immutable StructBody.Bogus) => unreachable!(immutable ConcreteStructInfo),
 		(ref immutable StructBody.Builtin) {
-			immutable BuiltinStructInfo b = getBuiltinStructInfo(i.decl);
+			immutable BuiltinStructKind kind = getBuiltinStructKind(i.decl.name);
 			return immutable ConcreteStructInfo(
-				immutable ConcreteStructBody(ConcreteStructBody.Builtin(b, typeArgs)),
-				b.sizeBytes,
+				immutable ConcreteStructBody(ConcreteStructBody.Builtin(kind, typeArgs)),
+				getBuiltinStructSize(kind),
 				False,
 				False);
 		},
@@ -581,7 +571,7 @@ void fillInConcreteFunBody(Alloc)(
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
 			source.body_,
 			(ref immutable FunBody.Builtin) =>
-				getBuiltinFunBody!Alloc(alloc, ctx, source),
+				immutable ConcreteFunBody(ConcreteFunBody.Builtin(typeArgs(source))),
 			(ref immutable FunBody.Extern e) =>
 				immutable ConcreteFunBody(ConcreteFunBody.Extern(e.isGlobal)),
 			(immutable Ptr!Expr e) =>
@@ -601,4 +591,78 @@ immutable(Arr!ConcreteParam) concretizeParams(Alloc)(
 			some!size_t(index),
 			mangleName(alloc, p.name),
 			getConcreteType(alloc, ctx, p.type, typeArgsScope)));
+}
+
+immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
+	switch (name.value) {
+		case shortSymAlphaLiteralValue("bool"):
+			return BuiltinStructKind.bool_;
+		case shortSymAlphaLiteralValue("char"):
+			return BuiltinStructKind.char_;
+		case shortSymAlphaLiteralValue("float"):
+			return BuiltinStructKind.float64;
+		case shortSymAlphaLiteralValue("fun-ptr0"):
+		case shortSymAlphaLiteralValue("fun-ptr1"):
+		case shortSymAlphaLiteralValue("fun-ptr2"):
+		case shortSymAlphaLiteralValue("fun-ptr3"):
+		case shortSymAlphaLiteralValue("fun-ptr4"):
+		case shortSymAlphaLiteralValue("fun-ptr5"):
+		case shortSymAlphaLiteralValue("fun-ptr6"):
+			return BuiltinStructKind.funPtrN;
+		case shortSymAlphaLiteralValue("int8"):
+			return BuiltinStructKind.int8;
+		case shortSymAlphaLiteralValue("int16"):
+			return BuiltinStructKind.int16;
+		case shortSymAlphaLiteralValue("int32"):
+			return BuiltinStructKind.int32;
+		case shortSymAlphaLiteralValue("int"):
+			return BuiltinStructKind.int64;
+		case shortSymAlphaLiteralValue("nat8"):
+			return BuiltinStructKind.nat8;
+		case shortSymAlphaLiteralValue("nat16"):
+			return BuiltinStructKind.nat16;
+		case shortSymAlphaLiteralValue("nat32"):
+			return BuiltinStructKind.nat32;
+		case shortSymAlphaLiteralValue("nat"):
+			return BuiltinStructKind.nat64;
+		case shortSymAlphaLiteralValue("ptr"):
+			return BuiltinStructKind.ptr;
+		case shortSymAlphaLiteralValue("void"):
+			return BuiltinStructKind.void_;
+		default:
+			return todo!(immutable BuiltinStructKind)("not a builtin struct");
+	}
+}
+
+immutable(size_t) getBuiltinStructSize(immutable BuiltinStructKind kind) {
+	final switch (kind) {
+		case BuiltinStructKind.bool_:
+			return Bool.sizeof;
+		case BuiltinStructKind.char_:
+			return char.sizeof;
+		case BuiltinStructKind.float64:
+			return double.sizeof;
+		case BuiltinStructKind.funPtrN:
+			return (void*).sizeof;
+		case BuiltinStructKind.int8:
+			return byte.sizeof;
+		case BuiltinStructKind.int16:
+			return short.sizeof;
+		case BuiltinStructKind.int32:
+			return int.sizeof;
+		case BuiltinStructKind.int64:
+			return long.sizeof;
+		case BuiltinStructKind.nat8:
+			return ubyte.sizeof;
+		case BuiltinStructKind.nat16:
+			return ushort.sizeof;
+		case BuiltinStructKind.nat32:
+			return uint.sizeof;
+		case BuiltinStructKind.nat64:
+			return ulong.sizeof;
+		case BuiltinStructKind.ptr:
+			return (void*).sizeof;
+		case BuiltinStructKind.void_:
+			return 1; // TODO: should be 0?
+	}
 }
