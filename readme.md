@@ -43,6 +43,7 @@ bash -llc 'ln -s `pwd`/syntaxes/tata.sublime-syntax ~/.config/sublime-text-3/Pac
 
 ## Viewing docs
 
+`./build-wasm`
 `python -m SimpleHTTPServer 8080`
 
 Then visit http://localhost:8080/doc .

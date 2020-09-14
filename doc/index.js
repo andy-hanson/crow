@@ -1,23 +1,24 @@
-console.log("HELLO WORLD")
-
-
-Prism.languages.noze = {
-	'comment': /int/
+window.onload = () => {
+	main().catch(e => { console.error(e) })
 }
 
-window.onload = () => {
-	console.log("LOADED!")
+const main = async () => {
+	const bytes = await (await fetch('../bin/noze.wasm')).arrayBuffer()
+	const result = await WebAssembly.instantiate(bytes, {})
+	const { exports } = result.instance;
+	const { getBufferSize, getBuffer, upperCase, memory } = exports
+	const view = new DataView(memory.buffer)
 
-	const nodes = document.body.querySelectorAll('[data-src]')
+	const bufferSize = getBufferSize()
+	const buffer = getBuffer()
 
-	console.log(Prism)
-	Prism.highlightElement(nodes[0])
+	const setStr = str => writeString(view, buffer, bufferSize, str)
+	const getStr = () => readString(view, buffer, bufferSize)
 
-
-	//for (const node of nodes) {
-	//	fillIn(node).catch(e => console.error(e))
-	//}
-	//console.log({nodes})
+	setStr("hello world")
+	console.log(getStr())
+	upperCase()
+	console.log(getStr())
 }
 
 const fillIn = async node => {
@@ -27,13 +28,24 @@ const fillIn = async node => {
 	node.innerText = text
 }
 
-
-const main = async () => {
-	//const rslt = await (await fetch('../test/runnable/example-record.c')).text()
-	//console.log({rslt})
+function writeString(view, buffer, bufferSize, str) {
+	if (str.length >= bufferSize)
+		throw new Error("input too long")
+	for (let i = 0; i < str.length; i++)
+		view.setUint8(buffer + i, str.charCodeAt(i))
+	view.setUint8(buffer + str.length, 0)
 }
 
-main().catch(e => {
-	console.error(e)
-})
-
+function readString(view, buffer, bufferSize) {
+	let s = ''
+	let i;
+	for (i = 0; i < bufferSize; i++) {
+		const code = view.getUint8(buffer + i)
+		if (code === 0)
+			break
+		s += String.fromCharCode(code)
+	}
+	if (i == bufferSize)
+		throw new Error("TOO LONG")
+	return s
+}

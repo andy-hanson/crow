@@ -1,22 +1,28 @@
-extern(C): // disable D mangling
-
 //import frontend.parse : parse;
 
-double add(double a, double b) { return a + b; }
+immutable size_t bufferSize = 1024 * 1024;
+char[bufferSize] buffer;
 
-immutable(char*) getAString() {
-	return "hello world";
+extern(C) immutable(size_t) getBufferSize() {
+	return bufferSize;
 }
 
-int foo() {
-	enum E { a, b }
-	immutable E e = E.a;
-	final switch (e) {
-		case E.a:
-		case E.b:
-			return 0;
+extern(C) char* getBuffer() {
+	return buffer.ptr;
+}
+
+extern(C) void upperCase() {
+	upperCaseInPlace(buffer.ptr);
+}
+
+void upperCaseInPlace(char* c) {
+	if (*c != '\0') {
+		if ('a' <= *c && *c <= 'z') {
+			*c = cast(char) (*c + 'A' - 'a');
+		}
+		upperCaseInPlace(c + 1);
 	}
 }
 
 // seems to be the required entry point
-void _start() {}
+extern(C) void _start() {}
