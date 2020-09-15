@@ -409,6 +409,9 @@ struct do_test__int32__test_options__lambda1___closure {
 	struct arr__char noze_path;
 	struct test_options options;
 };
+struct excluded_from_lint__q__bool__arr__char__lambda0___closure {
+	struct arr__char name;
+};
 struct list_lintable_files__arr__arr__char__arr__char__lambda1___closure {
 	struct mut_arr__arr__char* res;
 };
@@ -1724,7 +1727,10 @@ struct result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0
 struct result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0(struct ctx* ctx, struct do_test__int32__test_options__lambda0___closure* _closure);
 struct result__arr__char__arr__ptr_failure lint__result__arr__char__arr__ptr_failure__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct test_options options);
 struct arr__arr__char list_lintable_files__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path);
+uint8_t excluded_from_lint__q__bool__arr__char(struct ctx* ctx, struct arr__char name);
+uint8_t some__q__bool__arr__arr__char__fun_mut1__bool__arr__char(struct ctx* ctx, struct arr__arr__char a, struct fun_mut1__bool__arr__char pred);
 uint8_t ends_with__q__bool__arr__char__arr__char(struct ctx* ctx, struct arr__char a, struct arr__char end);
+uint8_t excluded_from_lint__q__bool__arr__char__lambda0(struct ctx* ctx, struct excluded_from_lint__q__bool__arr__char__lambda0___closure* _closure, struct arr__char it);
 uint8_t list_lintable_files__arr__arr__char__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__char it);
 uint8_t ignore_extension_of_name__bool__arr__char(struct ctx* ctx, struct arr__char name);
 uint8_t ignore_extension__bool__arr__char(struct ctx* ctx, struct arr__char ext);
@@ -6527,11 +6533,43 @@ struct arr__arr__char list_lintable_files__arr__arr__char__arr__char(struct ctx*
 	each_child_recursive___void__arr__char__fun_mut1__bool__arr__char__fun_mut1___void__arr__char(ctx, path, (struct fun_mut1__bool__arr__char) {(fun_ptr3__bool__ptr_ctx__ptr__nat8__arr__char) list_lintable_files__arr__arr__char__arr__char__lambda0, (uint8_t*) NULL}, (struct fun_mut1___void__arr__char) {(fun_ptr3___void__ptr_ctx__ptr__nat8__arr__char) list_lintable_files__arr__arr__char__arr__char__lambda1, (uint8_t*) (temp0 = (struct list_lintable_files__arr__arr__char__arr__char__lambda1___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct list_lintable_files__arr__arr__char__arr__char__lambda1___closure)), ((*(temp0) = (struct list_lintable_files__arr__arr__char__arr__char__lambda1___closure) {res}, 0), temp0))});
 	return freeze__arr__arr__char__ptr_mut_arr__arr__char(res);
 }
+uint8_t excluded_from_lint__q__bool__arr__char(struct ctx* ctx, struct arr__char name) {
+	struct arr__arr__char arr;
+	struct arr__arr__char bad_exts;
+	struct arr__char* temp0;
+	struct excluded_from_lint__q__bool__arr__char__lambda0___closure* temp1;
+	bad_exts = (temp0 = (struct arr__char*) alloc__ptr__nat8__nat(ctx, (sizeof(struct arr__char) * 3)), ((*((temp0 + 0)) = (struct arr__char) {4, ".bmp"}, 0), ((*((temp0 + 1)) = (struct arr__char) {4, ".png"}, 0), ((*((temp0 + 2)) = (struct arr__char) {5, ".wasm"}, 0), (struct arr__arr__char) {3, temp0}))));
+	return (_op_equal_equal__bool__char__char(first__char__arr__char(ctx, name), literal__char__arr__char((struct arr__char) {1, "."})) || (_op_equal_equal__bool__arr__char__arr__char(name, (struct arr__char) {7, "libfirm"}) || some__q__bool__arr__arr__char__fun_mut1__bool__arr__char(ctx, bad_exts, (struct fun_mut1__bool__arr__char) {(fun_ptr3__bool__ptr_ctx__ptr__nat8__arr__char) excluded_from_lint__q__bool__arr__char__lambda0, (uint8_t*) (temp1 = (struct excluded_from_lint__q__bool__arr__char__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct excluded_from_lint__q__bool__arr__char__lambda0___closure)), ((*(temp1) = (struct excluded_from_lint__q__bool__arr__char__lambda0___closure) {name}, 0), temp1))})));
+}
+uint8_t some__q__bool__arr__arr__char__fun_mut1__bool__arr__char(struct ctx* ctx, struct arr__arr__char a, struct fun_mut1__bool__arr__char pred) {
+	struct ctx* _tailCallctx;
+	struct arr__arr__char _tailCalla;
+	struct fun_mut1__bool__arr__char _tailCallpred;
+	top:
+	if (!empty__q__bool__arr__arr__char(a)) {
+		if (call__bool__fun_mut1__bool__arr__char__arr__char(ctx, pred, first__arr__char__arr__arr__char(ctx, a))) {
+			return 1;
+		} else {
+			_tailCallctx = ctx;
+			_tailCalla = tail__arr__arr__char__arr__arr__char(ctx, a);
+			_tailCallpred = pred;
+			ctx = _tailCallctx;
+			a = _tailCalla;
+			pred = _tailCallpred;
+			goto top;
+		}
+	} else {
+		return 0;
+	}
+}
 uint8_t ends_with__q__bool__arr__char__arr__char(struct ctx* ctx, struct arr__char a, struct arr__char end) {
 	return (_op_greater_equal__bool__nat__nat(a.size, end.size) && arr_eq__q__bool__arr__char__arr__char(ctx, slice__arr__char__arr__char__nat__nat(ctx, a, _op_minus__nat__nat__nat(ctx, a.size, end.size), end.size), end));
 }
+uint8_t excluded_from_lint__q__bool__arr__char__lambda0(struct ctx* ctx, struct excluded_from_lint__q__bool__arr__char__lambda0___closure* _closure, struct arr__char it) {
+	return ends_with__q__bool__arr__char__arr__char(ctx, _closure->name, it);
+}
 uint8_t list_lintable_files__arr__arr__char__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__char it) {
-	return !(_op_equal_equal__bool__char__char(first__char__arr__char(ctx, it), literal__char__arr__char((struct arr__char) {1, "."})) || (_op_equal_equal__bool__arr__char__arr__char(it, (struct arr__char) {7, "libfirm"}) || (ends_with__q__bool__arr__char__arr__char(ctx, it, (struct arr__char) {4, ".bmp"}) || ends_with__q__bool__arr__char__arr__char(ctx, it, (struct arr__char) {5, ".wasm"}))));
+	return !excluded_from_lint__q__bool__arr__char(ctx, it);
 }
 uint8_t ignore_extension_of_name__bool__arr__char(struct ctx* ctx, struct arr__char name) {
 	struct some__arr__char s;

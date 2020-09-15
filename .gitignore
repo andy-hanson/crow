@@ -3,5 +3,8 @@
 *
 !/**/
 !*.*
-
+!build
+!build-wasm
+!run
+!run-test
 *.o

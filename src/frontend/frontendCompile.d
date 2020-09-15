@@ -17,7 +17,7 @@ import model :
 	StructInst;
 import parseDiag : ParseDiagnostic;
 
-import frontend.ast : FileAst, ImportAst;
+import frontend.ast : exports, FileAst, funs, ImportAst, imports, specs, structAliases, structs;
 import frontend.check : BootstrapCheck, check, checkBootstrapNz, PathAndAst;
 import frontend.instantiate : instantiateNonTemplateStruct;
 import frontend.lang : nozeExtension;
@@ -47,8 +47,8 @@ import util.result :
 	joinResults,
 	mapFailure,
 	mapSuccess,
-	match,
-	matchImpure,
+	matchResult,
+	matchResultImpure,
 	Result,
 	success;
 import util.sourceRange : SourceRange;
@@ -190,11 +190,13 @@ immutable(Opt!Diags) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 	immutable Opt!NulTerminatedStr opFileContent = getFile(astAlloc, path, storages);
 	immutable Result!(FileAst, Diags) parseResult =
 		parseSingle(modelAlloc, astAlloc, allSymbols, importedFrom, path, lineAndColumnGetters, opFileContent);
-	return parseResult.matchImpure(
+	return matchResultImpure(
+		parseResult,
 		(ref immutable FileAst ast) {
 			immutable Result!(ImportAndExportPaths, Diags) importsResult =
 				resolveImportsAndExports(modelAlloc, astAlloc, path, ast.imports, ast.exports);
-			return importsResult.matchImpure(
+			return matchResultImpure(
+				importsResult,
 				(ref immutable ImportAndExportPaths importsAndExports) {
 					// Ensure all imports are added before adding this
 					immutable Arr!ResolvedImport importsAndExportsArr =
@@ -235,10 +237,12 @@ immutable(Opt!Diags) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 					setInDict(astAlloc, statuses, path, ParseStatus.finished);
 					return none!Diags;
 				},
-				(ref immutable Diags d) => some(d),
+				(ref immutable Diags d) =>
+					some(d),
 			);
 		},
-		(ref immutable Diags d) => some(d),
+		(ref immutable Diags d) =>
+			some(d),
 	);
 }
 

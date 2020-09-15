@@ -1,26 +1,66 @@
-//import frontend.parse : parse;
+@safe @nogc nothrow: // not pure
 
-immutable size_t bufferSize = 1024 * 1024;
-char[bufferSize] buffer;
+import frontend.parse : parseFile;
+import frontend.ast : FileAst, sexprOfAst;
+import parseDiag : ParseDiagnostic;
+import util.alloc.globalAlloc : GlobalAlloc;
+import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr;
+import util.ptr : ptrTrustMe_mut;
+import util.result : matchResultImpure, Result;
+import util.sexpr : Sexpr, writeSexprJSON;
+import util.sym : AllSymbols;
+import util.writer : finishWriterToCStr, Writer;
 
 extern(C) immutable(size_t) getBufferSize() {
 	return bufferSize;
 }
 
-extern(C) char* getBuffer() {
+@system extern(C) char* getBuffer() {
 	return buffer.ptr;
 }
 
-extern(C) void upperCase() {
-	upperCaseInPlace(buffer.ptr);
+@system extern(C) void getAst() {
+	alias Alloc = GlobalAlloc!("getAst");
+	Alloc alloc;
+	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
+	immutable NulTerminatedStr str = nulTerminatedStrOfCStr(cast(immutable) buffer.ptr);
+	//immutable Result!(FileAst, ParseDiagnostic) rslt = parseFile(alloc, allSymbols, str);
+	//matchResultImpure!(void, FileAst, ParseDiagnostic)(
+	//	rslt,
+	//	(ref immutable FileAst ast) {
+	//		writeAstResult(alloc, ast);
+	//	},
+	//	(ref immutable ParseDiagnostic) {
+	//		writeEmptyResult();
+	//	});
 }
 
-void upperCaseInPlace(char* c) {
-	if (*c != '\0') {
-		if ('a' <= *c && *c <= 'z') {
-			*c = cast(char) (*c + 'A' - 'a');
-		}
-		upperCaseInPlace(c + 1);
+private:
+
+immutable size_t bufferSize = 1024 * 1024;
+char[bufferSize] buffer;
+
+//TODO: not trusted
+@trusted void writeAstResult(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
+	immutable Sexpr astSexpr = sexprOfAst(alloc, ast);
+	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	writeSexprJSON(writer, astSexpr);
+	writeResult(finishWriterToCStr(writer));
+}
+
+//TODO: not trusted
+@trusted void writeEmptyResult() {
+	writeResult("{}");
+}
+
+@system void writeResult(immutable(char)* str) {
+	const char* end = buffer.ptr + buffer.length;
+	for (char* ptr = buffer.ptr; ptr < end; ptr++) {
+		immutable char c = *str;
+		*ptr = c;
+		if (c == '\0')
+			break;
+		str++;
 	}
 }
 

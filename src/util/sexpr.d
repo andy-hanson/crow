@@ -235,7 +235,66 @@ void writeSexpr(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
 	writeChar(writer, '\n');
 }
 
+void writeSexprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
+	matchSexpr!void(
+		a,
+		(ref immutable Arr!Sexpr it) {
+			writeChar(writer, '[');
+			writeWithCommas(writer, it, (ref immutable Sexpr em) {
+				writeSexprJSON(writer, em);
+			});
+			writeChar(writer, ']');
+		},
+		(immutable Bool it) {
+			writeSexprBool(writer, it);
+		},
+		(immutable size_t it) {
+			writeNat(writer, it);
+		},
+		(ref immutable SexprNamedRecord it) {
+			writeStatic(writer, "{\"_type\":");
+			writeQuotedSym(writer, it.name);
+			foreach (ref immutable NameAndSexpr pair; range(it.children)) {
+				writeChar(writer, ',');
+				writeQuotedSym(writer, pair.name);
+				writeChar(writer, ':');
+				writeSexprJSON(writer, pair.value);
+			}
+			writeChar(writer,'}');
+		},
+		(immutable Opt!(Ptr!Sexpr) it) {
+			if (has(it)) {
+				writeStatic(writer, "{\"_type\":\"some\",\"value\":");
+				writeSexprJSON(writer, force(it));
+				writeChar(writer, '}');
+			} else {
+				writeStatic(writer, "{\"_type\":\"none\"}");
+			}
+		},
+		(ref immutable SexprRecord it) {
+			writeStatic(writer, "{\"_type\":");
+			writeQuotedSym(writer, it.name);
+			writeStatic(writer, ",\"args\":[");
+			writeWithCommas(writer, it.children, (ref immutable Sexpr child) {
+				writeSexprJSON(writer, child);
+			});
+			writeStatic(writer, "]}");
+		},
+		(ref immutable Str it) {
+			writeQuotedStr(writer, it);
+		},
+		(immutable Sym it) {
+			writeQuotedSym(writer, it);
+		});
+}
+
 private:
+
+void writeQuotedSym(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
+	writeChar(writer, '"');
+	writeSym(writer, a);
+	writeChar(writer, '"');
+}
 
 immutable int indentSize = 4;
 immutable size_t maxWidth = 120;
@@ -246,7 +305,7 @@ void writeSexpr(Alloc)(
 	immutable int availableWidth,
 	ref immutable Sexpr a,
 ) {
-	matchSexpr(
+	matchSexpr!void(
 		a,
 		(ref immutable Arr!Sexpr s) {
 			if (measureSexprArr(s, availableWidth) < 0) {

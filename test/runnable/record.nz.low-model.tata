@@ -5726,69 +5726,69 @@ program(
 				[local("temp0", ptr(record(68)))]
 				expr(
 					record(14)
-					range(10050, 10085)
+					range(10229, 10264)
 					call(
 						155
 						[
-							expr(ptr(record(0)), range(10050, 10085), param-ref("ctx"))
-							expr(nat-64, range(10044, 10049), get-field(expr(record(40), range(10043, 10044), param-ref("a")), false, "size"))
+							expr(ptr(record(0)), range(10229, 10264), param-ref("ctx"))
+							expr(nat-64, range(10223, 10228), get-field(expr(record(40), range(10222, 10223), param-ref("a")), false, "size"))
 							expr(
 								record(66)
-								range(10059, 10085)
+								range(10238, 10264)
 								record(
 									[
-										expr(fun-ptr(9), range(10059, 10085), ptr-cast(expr(fun-ptr(9), range(10059, 10085), fun-ptr(171))))
+										expr(fun-ptr(9), range(10238, 10264), ptr-cast(expr(fun-ptr(9), range(10238, 10264), fun-ptr(171))))
 										expr(
 											ptr(nat-8)
-											range(10059, 10085)
+											range(10238, 10264)
 											ptr-cast(
 												expr(
 													ptr(record(68))
-													range(10059, 10085)
+													range(10238, 10264)
 													let(
 														"temp0"
 														expr(
 															ptr(record(68))
-															range(10059, 10085)
+															range(10238, 10264)
 															ptr-cast(
 																expr(
 																	ptr(nat-8)
-																	range(10059, 10085)
+																	range(10238, 10264)
 																	call(
 																		72
 																		[
 																			expr(
 																				ptr(record(0))
-																				range(10059, 10085)
+																				range(10238, 10264)
 																				param-ref("ctx"))
-																			expr(nat-64, range(10059, 10085), size-of(record(68)))]))))
+																			expr(nat-64, range(10238, 10264), size-of(record(68)))]))))
 														expr(
 															ptr(record(68))
-															range(10059, 10085)
+															range(10238, 10264)
 															seq(
 																expr(
 																	void
-																	range(10059, 10085)
+																	range(10238, 10264)
 																	binary(
 																		"wriite to ptr"
 																		expr(
 																			ptr(record(68))
-																			range(10059, 10085)
+																			range(10238, 10264)
 																			local-ref("temp0"))
 																		expr(
 																			record(68)
-																			range(10059, 10085)
+																			range(10238, 10264)
 																			record(
 																				[
 																					expr(
 																						record(65)
-																						range(10064, 10070)
+																						range(10243, 10249)
 																						param-ref("mapper"))
 																					expr(
 																						record(40)
-																						range(10077, 10078)
+																						range(10256, 10257)
 																						param-ref("a"))]))))
-																expr(ptr(record(68)), range(10059, 10085), local-ref("temp0"))))))))]))]))))
+																expr(ptr(record(68)), range(10238, 10264), local-ref("temp0"))))))))]))]))))
 		fun(
 			155
 			"make_arr__arr__arr__char__nat__fun_mut1__arr__char__nat"
@@ -5798,19 +5798,19 @@ program(
 				[]
 				expr(
 					record(14)
-					range(8949, 8955)
+					range(9128, 9134)
 					call(
 						156
 						[
 							expr(
 								ptr(record(67))
-								range(8934, 8948)
+								range(9113, 9127)
 								call(
 									158
 									[
-										expr(ptr(record(0)), range(8934, 8948), param-ref("ctx"))
-										expr(nat-64, range(8929, 8933), param-ref("size"))
-										expr(record(66), range(8947, 8948), param-ref("f"))]))]))))
+										expr(ptr(record(0)), range(9113, 9127), param-ref("ctx"))
+										expr(nat-64, range(9108, 9112), param-ref("size"))
+										expr(record(66), range(9126, 9127), param-ref("f"))]))]))))
 		fun(
 			156
 			"freeze__arr__arr__char__ptr_mut_arr__arr__char"
@@ -5820,17 +5820,17 @@ program(
 				[]
 				expr(
 					record(14)
-					range(6639, 6675)
+					range(6818, 6854)
 					seq(
 						expr(
 							void
-							range(6639, 6656)
+							range(6818, 6835)
 							set-field(
-								expr(ptr(record(67)), range(6639, 6640), param-ref("a"))
+								expr(ptr(record(67)), range(6818, 6819), param-ref("a"))
 								true
 								"frozen__q"
-								expr(bool, range(6652, 6656), constant(true))))
-						expr(record(14), range(6660, 6673), call(157, [expr(ptr(record(67)), range(6658, 6659), param-ref("a"))]))))))
+								expr(bool, range(6831, 6835), constant(true))))
+						expr(record(14), range(6839, 6852), call(157, [expr(ptr(record(67)), range(6837, 6838), param-ref("a"))]))))))
 		fun(
 			157
 			"unsafe_as_arr__arr__arr__char__ptr_mut_arr__arr__char"
@@ -5840,17 +5840,17 @@ program(
 				[]
 				expr(
 					record(14)
-					range(6576, 6594)
+					range(6755, 6773)
 					record(
 						[
 							expr(
 								nat-64
-								range(6581, 6586)
-								get-field(expr(ptr(record(67)), range(6580, 6581), param-ref("a")), true, "size"))
+								range(6760, 6765)
+								get-field(expr(ptr(record(67)), range(6759, 6760), param-ref("a")), true, "size"))
 							expr(
 								ptr(record(7))
-								range(6589, 6594)
-								get-field(expr(ptr(record(67)), range(6588, 6589), param-ref("a")), true, "data"))]))))
+								range(6768, 6773)
+								get-field(expr(ptr(record(67)), range(6767, 6768), param-ref("a")), true, "data"))]))))
 		fun(
 			158
 			"make_mut_arr__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat"
@@ -5860,32 +5860,32 @@ program(
 				[local("res", ptr(record(67)))]
 				expr(
 					ptr(record(67))
-					range(9019, 9100)
+					range(9198, 9279)
 					let(
 						"res"
 						expr(
 							ptr(record(67))
-							range(9025, 9060)
+							range(9204, 9239)
 							call(
 								159
 								[
-									expr(ptr(record(0)), range(9025, 9060), param-ref("ctx"))
-									expr(nat-64, range(9056, 9060), param-ref("size"))]))
+									expr(ptr(record(0)), range(9204, 9239), param-ref("ctx"))
+									expr(nat-64, range(9235, 9239), param-ref("size"))]))
 						expr(
 							ptr(record(67))
-							range(9062, 9100)
+							range(9241, 9279)
 							seq(
 								expr(
 									void
-									range(9066, 9093)
+									range(9245, 9272)
 									call(
 										161
 										[
-											expr(ptr(record(0)), range(9066, 9093), param-ref("ctx"))
-											expr(ptr(record(67)), range(9062, 9065), local-ref("res"))
-											expr(nat-64, range(9086, 9090), constant(0))
-											expr(record(66), range(9092, 9093), param-ref("f"))]))
-								expr(ptr(record(67)), range(9095, 9098), local-ref("res"))))))))
+											expr(ptr(record(0)), range(9245, 9272), param-ref("ctx"))
+											expr(ptr(record(67)), range(9241, 9244), local-ref("res"))
+											expr(nat-64, range(9265, 9269), constant(0))
+											expr(record(66), range(9271, 9272), param-ref("f"))]))
+								expr(ptr(record(67)), range(9274, 9277), local-ref("res"))))))))
 		fun(
 			159
 			"new_uninitialized_mut_arr__ptr_mut_arr__arr__char__nat"
@@ -5973,60 +5973,60 @@ program(
 				[]
 				expr(
 					void
-					range(9314, 9409)
+					range(9493, 9588)
 					trinary(
 						"if"
 						expr(
 							bool
-							range(9323, 9332)
+							range(9502, 9511)
 							call(
 								15
 								[
-									expr(nat-64, range(9321, 9322), param-ref("i"))
+									expr(nat-64, range(9500, 9501), param-ref("i"))
 									expr(
 										nat-64
-										range(9327, 9332)
-										get-field(expr(ptr(record(67)), range(9326, 9327), param-ref("m")), true, "size"))]))
-						expr(void, range(9336, 9340), constant(void))
+										range(9506, 9511)
+										get-field(expr(ptr(record(67)), range(9505, 9506), param-ref("m")), true, "size"))]))
+						expr(void, range(9515, 9519), constant(void))
 						expr(
 							void
-							range(9351, 9409)
+							range(9530, 9588)
 							seq(
 								expr(
 									void
-									range(9353, 9372)
+									range(9532, 9551)
 									call(
 										162
 										[
-											expr(ptr(record(0)), range(9353, 9372), param-ref("ctx"))
-											expr(ptr(record(67)), range(9351, 9352), param-ref("m"))
-											expr(nat-64, range(9361, 9362), param-ref("i"))
+											expr(ptr(record(0)), range(9532, 9551), param-ref("ctx"))
+											expr(ptr(record(67)), range(9530, 9531), param-ref("m"))
+											expr(nat-64, range(9540, 9541), param-ref("i"))
 											expr(
 												record(7)
-												range(9366, 9372)
+												range(9545, 9551)
 												call(
 													164
 													[
-														expr(ptr(record(0)), range(9366, 9372), param-ref("ctx"))
-														expr(record(66), range(9364, 9365), param-ref("f"))
-														expr(nat-64, range(9371, 9372), param-ref("i"))]))]))
+														expr(ptr(record(0)), range(9545, 9551), param-ref("ctx"))
+														expr(record(66), range(9543, 9544), param-ref("f"))
+														expr(nat-64, range(9550, 9551), param-ref("i"))]))]))
 								expr(
 									void
-									range(9378, 9407)
+									range(9557, 9586)
 									call(
 										161
 										[
-											expr(ptr(record(0)), range(9378, 9407), param-ref("ctx"))
-											expr(ptr(record(67)), range(9376, 9377), param-ref("m"))
+											expr(ptr(record(0)), range(9557, 9586), param-ref("ctx"))
+											expr(ptr(record(67)), range(9555, 9556), param-ref("m"))
 											expr(
 												nat-64
-												range(9399, 9404)
+												range(9578, 9583)
 												call(
 													166
 													[
-														expr(ptr(record(0)), range(9399, 9404), param-ref("ctx"))
-														expr(nat-64, range(9398, 9399), param-ref("i"))]))
-											expr(record(66), range(9406, 9407), param-ref("f"))]))))))))
+														expr(ptr(record(0)), range(9578, 9583), param-ref("ctx"))
+														expr(nat-64, range(9577, 9578), param-ref("i"))]))
+											expr(record(66), range(9585, 9586), param-ref("f"))]))))))))
 		fun(
 			162
 			"set_at___void__ptr_mut_arr__arr__char__nat__arr__char"
@@ -6313,27 +6313,27 @@ program(
 				[]
 				expr(
 					record(7)
-					range(10071, 10083)
+					range(10250, 10262)
 					call(
 						167
 						[
-							expr(ptr(record(0)), range(10071, 10083), param-ref("ctx"))
+							expr(ptr(record(0)), range(10250, 10262), param-ref("ctx"))
 							expr(
 								record(65)
-								range(10064, 10070)
-								get-field(expr(ptr(record(68)), range(10064, 10070), param-ref("_closure")), true, "mapper"))
+								range(10243, 10249)
+								get-field(expr(ptr(record(68)), range(10243, 10249), param-ref("_closure")), true, "mapper"))
 							expr(
 								ptr(char)
-								range(10079, 10083)
+								range(10258, 10262)
 								call(
 									169
 									[
-										expr(ptr(record(0)), range(10079, 10083), param-ref("ctx"))
+										expr(ptr(record(0)), range(10258, 10262), param-ref("ctx"))
 										expr(
 											record(40)
-											range(10077, 10078)
-											get-field(expr(ptr(record(68)), range(10077, 10078), param-ref("_closure")), true, "a"))
-										expr(nat-64, range(10082, 10083), param-ref("i"))]))]))))
+											range(10256, 10257)
+											get-field(expr(ptr(record(68)), range(10256, 10257), param-ref("_closure")), true, "a"))
+										expr(nat-64, range(10261, 10262), param-ref("i"))]))]))))
 		fun(
 			172
 			"to_str__arr__char__ptr__char"
@@ -8959,13 +8959,13 @@ program(
 				[]
 				expr(
 					bool
-					range(4843, 4870)
+					range(5022, 5049)
 					call(
 						222
 						[
-							expr(record(81), range(4830, 4842), call(224, [expr(ptr(record(25)), range(4829, 4830), param-ref("a"))]))
-							expr(nat-64, range(4859, 4864), param-ref("value"))
-							expr(nat-64, range(4866, 4870), constant(0))]))))
+							expr(record(81), range(5009, 5021), call(224, [expr(ptr(record(25)), range(5008, 5009), param-ref("a"))]))
+							expr(nat-64, range(5038, 5043), param-ref("value"))
+							expr(nat-64, range(5045, 5049), constant(0))]))))
 		fun(
 			222
 			"contains_recur__q__bool__arr__nat__nat__nat"
@@ -8975,50 +8975,50 @@ program(
 				[]
 				expr(
 					bool
-					range(4944, 5047)
+					range(5123, 5226)
 					trinary(
 						"if"
 						expr(
 							bool
-							range(4953, 4962)
+							range(5132, 5141)
 							call(
 								15
 								[
-									expr(nat-64, range(4951, 4952), param-ref("i"))
+									expr(nat-64, range(5130, 5131), param-ref("i"))
 									expr(
 										nat-64
-										range(4957, 4962)
-										get-field(expr(record(81), range(4956, 4957), param-ref("a")), false, "size"))]))
-						expr(bool, range(4966, 4971), constant(false))
+										range(5136, 5141)
+										get-field(expr(record(81), range(5135, 5136), param-ref("a")), false, "size"))]))
+						expr(bool, range(5145, 5150), constant(false))
 						expr(
 							bool
-							range(5004, 5045)
+							range(5183, 5224)
 							binary(
 								"or"
 								expr(
 									bool
-									range(4995, 5003)
+									range(5174, 5182)
 									call(
 										15
 										[
 											expr(
 												nat-64
-												range(4984, 4994)
+												range(5163, 5173)
 												call(
 													223
 													[
-														expr(record(81), range(4982, 4983), param-ref("a"))
-														expr(nat-64, range(4993, 4994), param-ref("i"))]))
-											expr(nat-64, range(4998, 5003), param-ref("value"))]))
+														expr(record(81), range(5161, 5162), param-ref("a"))
+														expr(nat-64, range(5172, 5173), param-ref("i"))]))
+											expr(nat-64, range(5177, 5182), param-ref("value"))]))
 								expr(
 									bool
-									range(5010, 5045)
+									range(5189, 5224)
 									call(
 										222
 										[
-											expr(record(81), range(5008, 5009), param-ref("a"))
-											expr(nat-64, range(5026, 5031), param-ref("value"))
-											expr(nat-64, range(5034, 5045), call(61, [expr(nat-64, range(5033, 5034), param-ref("i"))]))]))))))))
+											expr(record(81), range(5187, 5188), param-ref("a"))
+											expr(nat-64, range(5205, 5210), param-ref("value"))
+											expr(nat-64, range(5213, 5224), call(61, [expr(nat-64, range(5212, 5213), param-ref("i"))]))]))))))))
 		fun(
 			223
 			"noctx_at__nat__arr__nat__nat"
@@ -9091,67 +9091,67 @@ program(
 				[local("old_size", nat-64)]
 				expr(
 					void
-					range(5920, 6036)
+					range(6099, 6215)
 					seq(
 						expr(
 							void
-							range(5920, 5952)
+							range(6099, 6131)
 							call(
 								13
 								[
 									expr(
 										bool
-										range(5940, 5952)
+										range(6119, 6131)
 										call(
 											62
 											[
 												expr(
 													nat-64
-													range(5934, 5939)
+													range(6113, 6118)
 													get-field(
-														expr(ptr(record(25)), range(5933, 5934), param-ref("a"))
+														expr(ptr(record(25)), range(6112, 6113), param-ref("a"))
 														true
 														"size"))
 												expr(
 													nat-64
-													range(5943, 5952)
+													range(6122, 6131)
 													get-field(
-														expr(ptr(record(25)), range(5942, 5943), param-ref("a"))
+														expr(ptr(record(25)), range(6121, 6122), param-ref("a"))
 														true
 														"capacity"))]))]))
 						expr(
 							void
-							range(5954, 6036)
+							range(6133, 6215)
 							let(
 								"old_size"
 								expr(
 									nat-64
-									range(5966, 5971)
-									get-field(expr(ptr(record(25)), range(5965, 5966), param-ref("a")), true, "size"))
+									range(6145, 6150)
+									get-field(expr(ptr(record(25)), range(6144, 6145), param-ref("a")), true, "size"))
 								expr(
 									void
-									range(5973, 6036)
+									range(6152, 6215)
 									seq(
 										expr(
 											void
-											range(5973, 6002)
+											range(6152, 6181)
 											set-field(
-												expr(ptr(record(25)), range(5973, 5974), param-ref("a"))
+												expr(ptr(record(25)), range(6152, 6153), param-ref("a"))
 												true
 												"size"
 												expr(
 													nat-64
-													range(5991, 6002)
-													call(61, [expr(nat-64, range(5983, 5991), local-ref("old_size"))]))))
+													range(6170, 6181)
+													call(61, [expr(nat-64, range(6162, 6170), local-ref("old_size"))]))))
 										expr(
 											void
-											range(6006, 6034)
+											range(6185, 6213)
 											call(
 												226
 												[
-													expr(ptr(record(25)), range(6004, 6005), param-ref("a"))
-													expr(nat-64, range(6019, 6027), local-ref("old_size"))
-													expr(nat-64, range(6029, 6034), param-ref("value"))]))))))))))
+													expr(ptr(record(25)), range(6183, 6184), param-ref("a"))
+													expr(nat-64, range(6198, 6206), local-ref("old_size"))
+													expr(nat-64, range(6208, 6213), param-ref("value"))]))))))))))
 		fun(
 			226
 			"noctx_set_at___void__ptr_mut_arr__nat__nat__nat"
@@ -9632,13 +9632,13 @@ program(
 				[]
 				expr(
 					void
-					range(6441, 6486)
+					range(6620, 6665)
 					call(
 						235
 						[
-							expr(ptr(record(25)), range(6439, 6440), param-ref("a"))
-							expr(nat-64, range(6475, 6479), constant(0))
-							expr(nat-64, range(6481, 6486), param-ref("value"))]))))
+							expr(ptr(record(25)), range(6618, 6619), param-ref("a"))
+							expr(nat-64, range(6654, 6658), constant(0))
+							expr(nat-64, range(6660, 6665), param-ref("value"))]))))
 		fun(
 			235
 			"noctx_must_remove_unordered_recur___void__ptr_mut_arr__nat__nat__nat"
@@ -9648,72 +9648,72 @@ program(
 				[]
 				expr(
 					void
-					range(6133, 6359)
+					range(6312, 6538)
 					trinary(
 						"if"
 						expr(
 							bool
-							range(6146, 6155)
+							range(6325, 6334)
 							call(
 								15
 								[
-									expr(nat-64, range(6140, 6145), param-ref("index"))
+									expr(nat-64, range(6319, 6324), param-ref("index"))
 									expr(
 										nat-64
-										range(6150, 6155)
-										get-field(expr(ptr(record(25)), range(6149, 6150), param-ref("a")), true, "size"))]))
+										range(6329, 6334)
+										get-field(expr(ptr(record(25)), range(6328, 6329), param-ref("a")), true, "size"))]))
 						expr(
 							void
-							range(6159, 6211)
+							range(6338, 6390)
 							unary(
 								"hard-fail"
-								expr(record(7), range(6170, 6211), str-lit("Did not find the element in the mut-arr"))))
+								expr(record(7), range(6349, 6390), str-lit("Did not find the element in the mut-arr"))))
 						expr(
 							void
-							range(6133, 6359)
+							range(6312, 6538)
 							trinary(
 								"if"
 								expr(
 									bool
-									range(6231, 6239)
+									range(6410, 6418)
 									call(
 										15
 										[
 											expr(
 												nat-64
-												range(6216, 6230)
+												range(6395, 6409)
 												call(
 													236
 													[
-														expr(ptr(record(25)), range(6214, 6215), param-ref("a"))
-														expr(nat-64, range(6225, 6230), param-ref("index"))]))
-											expr(nat-64, range(6234, 6239), param-ref("value"))]))
+														expr(ptr(record(25)), range(6393, 6394), param-ref("a"))
+														expr(nat-64, range(6404, 6409), param-ref("index"))]))
+											expr(nat-64, range(6413, 6418), param-ref("value"))]))
 								expr(
 									void
-									range(6283, 6287)
+									range(6462, 6466)
 									call(
 										237
 										[
 											expr(
 												nat-64
-												range(6245, 6282)
+												range(6424, 6461)
 												call(
 													238
 													[
-														expr(ptr(record(25)), range(6243, 6244), param-ref("a"))
-														expr(nat-64, range(6277, 6282), param-ref("index"))]))]))
+														expr(ptr(record(25)), range(6422, 6423), param-ref("a"))
+														expr(nat-64, range(6456, 6461), param-ref("index"))]))]))
 								expr(
 									void
-									range(6300, 6357)
+									range(6479, 6536)
 									call(
 										235
 										[
-											expr(ptr(record(25)), range(6298, 6299), param-ref("a"))
+											expr(ptr(record(25)), range(6477, 6478), param-ref("a"))
 											expr(
 												nat-64
-												range(6339, 6350)
-												call(61, [expr(nat-64, range(6334, 6339), param-ref("index"))]))
-											expr(nat-64, range(6352, 6357), param-ref("value"))]))))))))
+												range(6518, 6529)
+												call(61, [expr(nat-64, range(6513, 6518), param-ref("index"))]))
+											expr(nat-64, range(6531, 6536), param-ref("value"))]))))))))
 		fun(
 			236
 			"noctx_at__nat__ptr_mut_arr__nat__nat"
@@ -9723,43 +9723,43 @@ program(
 				[]
 				expr(
 					nat-64
-					range(6727, 6778)
+					range(6906, 6957)
 					seq(
 						expr(
 							void
-							range(6727, 6754)
+							range(6906, 6933)
 							call(
 								13
 								[
 									expr(
 										bool
-										range(6746, 6754)
+										range(6925, 6933)
 										call(
 											62
 											[
-												expr(nat-64, range(6740, 6745), param-ref("index"))
+												expr(nat-64, range(6919, 6924), param-ref("index"))
 												expr(
 													nat-64
-													range(6749, 6754)
+													range(6928, 6933)
 													get-field(
-														expr(ptr(record(25)), range(6748, 6749), param-ref("a"))
+														expr(ptr(record(25)), range(6927, 6928), param-ref("a"))
 														true
 														"size"))]))]))
 						expr(
 							nat-64
-							range(6771, 6776)
+							range(6950, 6955)
 							unary(
 								"deref"
 								expr(
 									ptr(nat-64)
-									range(6763, 6770)
+									range(6942, 6949)
 									binary(
 										"+ (ptr)"
 										expr(
 											ptr(nat-64)
-											range(6757, 6762)
-											get-field(expr(ptr(record(25)), range(6756, 6757), param-ref("a")), true, "data"))
-										expr(nat-64, range(6765, 6770), param-ref("index"))))))))))
+											range(6936, 6941)
+											get-field(expr(ptr(record(25)), range(6935, 6936), param-ref("a")), true, "data"))
+										expr(nat-64, range(6944, 6949), param-ref("index"))))))))))
 		fun(237, "drop___void__nat", void, [param("t", nat-64)], expr-body([], expr(void, range(15076, 15080), constant(void))))
 		fun(
 			238
@@ -11506,19 +11506,19 @@ program(
 				[]
 				expr(
 					record(7)
-					range(8949, 8955)
+					range(9128, 9134)
 					call(
 						267
 						[
 							expr(
 								ptr(record(84))
-								range(8934, 8948)
+								range(9113, 9127)
 								call(
 									269
 									[
-										expr(ptr(record(0)), range(8934, 8948), param-ref("ctx"))
-										expr(nat-64, range(8929, 8933), param-ref("size"))
-										expr(record(83), range(8947, 8948), param-ref("f"))]))]))))
+										expr(ptr(record(0)), range(9113, 9127), param-ref("ctx"))
+										expr(nat-64, range(9108, 9112), param-ref("size"))
+										expr(record(83), range(9126, 9127), param-ref("f"))]))]))))
 		fun(
 			267
 			"freeze__arr__char__ptr_mut_arr__char"
@@ -11528,17 +11528,17 @@ program(
 				[]
 				expr(
 					record(7)
-					range(6639, 6675)
+					range(6818, 6854)
 					seq(
 						expr(
 							void
-							range(6639, 6656)
+							range(6818, 6835)
 							set-field(
-								expr(ptr(record(84)), range(6639, 6640), param-ref("a"))
+								expr(ptr(record(84)), range(6818, 6819), param-ref("a"))
 								true
 								"frozen__q"
-								expr(bool, range(6652, 6656), constant(true))))
-						expr(record(7), range(6660, 6673), call(268, [expr(ptr(record(84)), range(6658, 6659), param-ref("a"))]))))))
+								expr(bool, range(6831, 6835), constant(true))))
+						expr(record(7), range(6839, 6852), call(268, [expr(ptr(record(84)), range(6837, 6838), param-ref("a"))]))))))
 		fun(
 			268
 			"unsafe_as_arr__arr__char__ptr_mut_arr__char"
@@ -11548,17 +11548,17 @@ program(
 				[]
 				expr(
 					record(7)
-					range(6576, 6594)
+					range(6755, 6773)
 					record(
 						[
 							expr(
 								nat-64
-								range(6581, 6586)
-								get-field(expr(ptr(record(84)), range(6580, 6581), param-ref("a")), true, "size"))
+								range(6760, 6765)
+								get-field(expr(ptr(record(84)), range(6759, 6760), param-ref("a")), true, "size"))
 							expr(
 								ptr(char)
-								range(6589, 6594)
-								get-field(expr(ptr(record(84)), range(6588, 6589), param-ref("a")), true, "data"))]))))
+								range(6768, 6773)
+								get-field(expr(ptr(record(84)), range(6767, 6768), param-ref("a")), true, "data"))]))))
 		fun(
 			269
 			"make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat"
@@ -11568,32 +11568,32 @@ program(
 				[local("res", ptr(record(84)))]
 				expr(
 					ptr(record(84))
-					range(9019, 9100)
+					range(9198, 9279)
 					let(
 						"res"
 						expr(
 							ptr(record(84))
-							range(9025, 9060)
+							range(9204, 9239)
 							call(
 								270
 								[
-									expr(ptr(record(0)), range(9025, 9060), param-ref("ctx"))
-									expr(nat-64, range(9056, 9060), param-ref("size"))]))
+									expr(ptr(record(0)), range(9204, 9239), param-ref("ctx"))
+									expr(nat-64, range(9235, 9239), param-ref("size"))]))
 						expr(
 							ptr(record(84))
-							range(9062, 9100)
+							range(9241, 9279)
 							seq(
 								expr(
 									void
-									range(9066, 9093)
+									range(9245, 9272)
 									call(
 										272
 										[
-											expr(ptr(record(0)), range(9066, 9093), param-ref("ctx"))
-											expr(ptr(record(84)), range(9062, 9065), local-ref("res"))
-											expr(nat-64, range(9086, 9090), constant(0))
-											expr(record(83), range(9092, 9093), param-ref("f"))]))
-								expr(ptr(record(84)), range(9095, 9098), local-ref("res"))))))))
+											expr(ptr(record(0)), range(9245, 9272), param-ref("ctx"))
+											expr(ptr(record(84)), range(9241, 9244), local-ref("res"))
+											expr(nat-64, range(9265, 9269), constant(0))
+											expr(record(83), range(9271, 9272), param-ref("f"))]))
+								expr(ptr(record(84)), range(9274, 9277), local-ref("res"))))))))
 		fun(
 			270
 			"new_uninitialized_mut_arr__ptr_mut_arr__char__nat"
@@ -11681,60 +11681,60 @@ program(
 				[]
 				expr(
 					void
-					range(9314, 9409)
+					range(9493, 9588)
 					trinary(
 						"if"
 						expr(
 							bool
-							range(9323, 9332)
+							range(9502, 9511)
 							call(
 								15
 								[
-									expr(nat-64, range(9321, 9322), param-ref("i"))
+									expr(nat-64, range(9500, 9501), param-ref("i"))
 									expr(
 										nat-64
-										range(9327, 9332)
-										get-field(expr(ptr(record(84)), range(9326, 9327), param-ref("m")), true, "size"))]))
-						expr(void, range(9336, 9340), constant(void))
+										range(9506, 9511)
+										get-field(expr(ptr(record(84)), range(9505, 9506), param-ref("m")), true, "size"))]))
+						expr(void, range(9515, 9519), constant(void))
 						expr(
 							void
-							range(9351, 9409)
+							range(9530, 9588)
 							seq(
 								expr(
 									void
-									range(9353, 9372)
+									range(9532, 9551)
 									call(
 										273
 										[
-											expr(ptr(record(0)), range(9353, 9372), param-ref("ctx"))
-											expr(ptr(record(84)), range(9351, 9352), param-ref("m"))
-											expr(nat-64, range(9361, 9362), param-ref("i"))
+											expr(ptr(record(0)), range(9532, 9551), param-ref("ctx"))
+											expr(ptr(record(84)), range(9530, 9531), param-ref("m"))
+											expr(nat-64, range(9540, 9541), param-ref("i"))
 											expr(
 												char
-												range(9366, 9372)
+												range(9545, 9551)
 												call(
 													275
 													[
-														expr(ptr(record(0)), range(9366, 9372), param-ref("ctx"))
-														expr(record(83), range(9364, 9365), param-ref("f"))
-														expr(nat-64, range(9371, 9372), param-ref("i"))]))]))
+														expr(ptr(record(0)), range(9545, 9551), param-ref("ctx"))
+														expr(record(83), range(9543, 9544), param-ref("f"))
+														expr(nat-64, range(9550, 9551), param-ref("i"))]))]))
 								expr(
 									void
-									range(9378, 9407)
+									range(9557, 9586)
 									call(
 										272
 										[
-											expr(ptr(record(0)), range(9378, 9407), param-ref("ctx"))
-											expr(ptr(record(84)), range(9376, 9377), param-ref("m"))
+											expr(ptr(record(0)), range(9557, 9586), param-ref("ctx"))
+											expr(ptr(record(84)), range(9555, 9556), param-ref("m"))
 											expr(
 												nat-64
-												range(9399, 9404)
+												range(9578, 9583)
 												call(
 													166
 													[
-														expr(ptr(record(0)), range(9399, 9404), param-ref("ctx"))
-														expr(nat-64, range(9398, 9399), param-ref("i"))]))
-											expr(record(83), range(9406, 9407), param-ref("f"))]))))))))
+														expr(ptr(record(0)), range(9578, 9583), param-ref("ctx"))
+														expr(nat-64, range(9577, 9578), param-ref("i"))]))
+											expr(record(83), range(9585, 9586), param-ref("f"))]))))))))
 		fun(
 			273
 			"set_at___void__ptr_mut_arr__char__nat__char"

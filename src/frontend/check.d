@@ -4,10 +4,13 @@ module frontend.check;
 
 import frontend.ast :
 	ExplicitByValOrRef,
+	exports,
 	ExprAst,
 	FileAst,
 	FunBodyAst,
 	FunDeclAst,
+	funs,
+	imports,
 	matchFunBodyAst,
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
@@ -17,9 +20,12 @@ import frontend.ast :
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
+	specs,
 	SpecUseAst,
 	StructAliasAst,
 	StructDeclAst,
+	structAliases,
+	structs,
 	TypeAst,
 	TypeParamAst;
 import frontend.checkCtx : addDiag, CheckCtx, diags, hasDiags;

@@ -1,6 +1,6 @@
 module util.result;
 
-@nogc nothrow @trusted immutable(Out) matchImpure(Out, S, F)(
+@nogc nothrow @trusted immutable(Out) matchResultImpure(Out, S, F)(
 	ref immutable Result!(S, F) a,
 	scope immutable(Out) delegate(ref immutable S) @safe @nogc nothrow cbSuccess,
 	scope immutable(Out) delegate(ref immutable F) @safe @nogc nothrow cbFailure,
@@ -51,7 +51,7 @@ immutable(Bool) isSuccess(S, F)(ref immutable Result!(S, F) a) {
 	return a.failure_;
 }
 
-@trusted immutable(Out) match(Out, S, F)(
+@trusted immutable(Out) matchResult(Out, S, F)(
 	ref immutable Result!(S, F) a,
 	scope immutable(Out) delegate(ref immutable S) @safe @nogc pure nothrow cbSuccess,
 	scope immutable(Out) delegate(ref immutable F) @safe @nogc pure nothrow cbFailure,
@@ -65,27 +65,28 @@ immutable(Result!(OutSuccess, Failure)) mapSuccess(OutSuccess, InSuccess, Failur
 	ref immutable Result!(InSuccess, Failure) a,
 	scope immutable(OutSuccess) delegate(ref immutable InSuccess) @safe @nogc pure nothrow cb,
 ) {
-	return a.match!(immutable Result!(OutSuccess, Failure), InSuccess, Failure)(
+	return matchResult!(immutable Result!(OutSuccess, Failure), InSuccess, Failure)(
+		a,
 		(ref immutable InSuccess s) => success!(OutSuccess, Failure)(cb(s)),
-		(ref immutable Failure f) => fail!(OutSuccess, Failure)(f),
-	);
+		(ref immutable Failure f) => fail!(OutSuccess, Failure)(f));
 }
 
 immutable(Result!(Success, OutFailure)) mapFailure(OutFailure, Success, InFailure)(
 	ref immutable Result!(Success, InFailure) a,
 	scope immutable(OutFailure) delegate(ref immutable InFailure) @safe @nogc pure nothrow cb,
 ) {
-	return a.match!(immutable Result!(Success, OutFailure), Success, InFailure)(
+	return matchResult!(immutable Result!(Success, OutFailure), Success, InFailure)(
+		a,
 		(ref immutable Success s) => success!(Success, OutFailure)(s),
-		(ref immutable InFailure f) => fail!(Success, OutFailure)(cb(f)),
-	);
+		(ref immutable InFailure f) => fail!(Success, OutFailure)(cb(f)));
 }
 
 immutable(Result!(OutSuccess, Failure)) flatMapSuccess(OutSuccess, InSuccess, Failure)(
 	ref immutable Result!(InSuccess, Failure) a,
 	scope immutable(Result!(OutSuccess, Failure)) delegate(ref immutable InSuccess) @safe @nogc pure nothrow cb,
 ) {
-	return a.match!(immutable Result!(OutSuccess, Failure), InSuccess, Failure)(
+	return matchResult!(immutable Result!(OutSuccess, Failure), InSuccess, Failure)(
+		a,
 		cb,
 		(ref immutable Failure f) => fail!(OutSuccess, Failure)(f),
 	);

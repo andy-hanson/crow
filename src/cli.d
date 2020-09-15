@@ -24,6 +24,7 @@ import util.path :
 	rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.print : print;
+import util.sexprPrint : PrintFormat;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym, symEq;
 import util.util : todo;
 
@@ -58,7 +59,7 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 		(ref immutable Command.HelpRun) =>
 			helpRun(),
 		(ref immutable Command.Print a) =>
-			print(allSymbols, a.kind, nozeDir, a.programDirAndMain),
+			print(allSymbols, a.kind, a.format, nozeDir, a.programDirAndMain),
 		(ref immutable Command.Run r) =>
 			buildAndRun(allSymbols, nozeDir, r.programDirAndMain, r.programArgs, args.environ),
 		(ref immutable Command.Version) {
@@ -149,6 +150,7 @@ struct Command {
 	struct Print {
 		immutable PrintKind kind;
 		immutable ProgramDirAndMain programDirAndMain;
+		immutable PrintFormat format;
 	}
 	// Also builds first
 	struct Run {
@@ -207,11 +209,20 @@ immutable(Command) parsePrintCommand(Alloc, SymAlloc)(
 	ref immutable Str cwd,
 	ref immutable Arr!Str args,
 ) {
-	return size(args) == 2
-		? immutable Command(Command.Print(
+
+	if (size(args) < 2)
+		return todo!Command("Command.HelpPrint");
+	else {
+		immutable PrintFormat format = size(args) == 2
+			? PrintFormat.sexpr
+			: size(args) == 4 && strEqLiteral(at(args, 2), "--format") && strEqLiteral(at(args, 3), "json")
+			? PrintFormat.json
+			: todo!(immutable PrintFormat)("Command.HelpPrint");
+		return immutable Command(Command.Print(
 			parsePrintKind(first(args)),
-			parseProgramDirAndMain(alloc, allSymbols, cwd, at(args, 1))))
-		: todo!Command("Command.HelpAst");
+			parseProgramDirAndMain(alloc, allSymbols, cwd, at(args, 1)),
+			format));
+	}
 }
 
 immutable(PrintKind) parsePrintKind(immutable Str a) {

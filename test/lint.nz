@@ -19,13 +19,17 @@ private
 
 list-lintable-files arr str(path str) summon
 	res = new-mut-arr<str>
-	path each-child-recursive {not: it.first == "." or: it == "libfirm" or: it ends-with? ".bmp" or: it ends-with? ".wasm"}, \child
+	path each-child-recursive {not: it excluded-from-lint?}, \child
 		when
 			child.base-name ignore-extension-of-name
 				pass
 			else
 				res push child
 	res freeze
+
+excluded-from-lint? bool(name str)
+	bad-exts = new-arr<str> ".bmp", ".png", ".wasm"
+	name.first == "." or: name == "libfirm" or: bad-exts some? {name ends-with? it}
 
 | Returns nubmer of errors
 lint-file arr failure(path str) summon

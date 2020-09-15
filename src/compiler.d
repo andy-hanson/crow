@@ -34,9 +34,9 @@ import util.path :
 	rootPath,
 	withExtension;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.result : matchImpure, Result;
+import util.result : matchResultImpure, Result;
 import util.sexpr : Sexpr;
-import util.sexprPrint : printOutSexpr;
+import util.sexprPrint : PrintFormat, printOutSexpr;
 import util.sym : AllSymbols, shortSymAlphaLiteral;
 import util.util : todo, unreachable;
 
@@ -57,18 +57,19 @@ enum PrintKind {
 immutable(int) print(SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	immutable PrintKind kind,
+	immutable PrintFormat format,
 	ref immutable Str nozeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
 ) {
 	final switch (kind) {
 		case PrintKind.ast:
-			return printAst(allSymbols, programDirAndMain);
+			return printAst(allSymbols, programDirAndMain, format);
 		case PrintKind.model:
-			return printModel(allSymbols, nozeDir, programDirAndMain);
+			return printModel(allSymbols, nozeDir, programDirAndMain, format);
 		case PrintKind.concreteModel:
-			return printConcreteModel(allSymbols, nozeDir, programDirAndMain);
+			return printConcreteModel(allSymbols, nozeDir, programDirAndMain, format);
 		case PrintKind.lowModel:
-			return printLowModel(allSymbols, nozeDir, programDirAndMain);
+			return printLowModel(allSymbols, nozeDir, programDirAndMain, format);
 	}
 }
 
@@ -104,6 +105,7 @@ private:
 immutable(int) printAst(SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable ProgramDirAndMain programDirAndMain,
+	immutable PrintFormat format,
 ) {
 	StackAlloc!("printAst", 1024 * 1024) alloc;
 	ReadOnlyStorages storages = ReadOnlyStorages(
@@ -111,9 +113,10 @@ immutable(int) printAst(SymAlloc)(
 		ReadOnlyStorage(programDirAndMain.programDir));
 	immutable Result!(FileAst, Diagnostics) astResult =
 		parseAst(alloc, allSymbols, storages, programDirAndMain.mainPath);
-	return astResult.matchImpure!(int, FileAst, Diagnostics)(
+	return matchResultImpure!(int, FileAst, Diagnostics)(
+		astResult,
 		(ref immutable FileAst ast) {
-			printOutAst(ast);
+			printOutAst(ast, format);
 			return 0;
 		},
 		(ref immutable Diagnostics diagnostics) {
@@ -126,15 +129,16 @@ immutable(int) printModel(SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Str nozeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
+	immutable PrintFormat format,
 ) {
 	Mallocator mallocator;
 	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
 	immutable Result!(Program, Diagnostics) programResult =
 		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
-	return matchImpure!(int, Program, Diagnostics)(
+	return matchResultImpure!(int, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
-			printOutModule(program.mainModule);
+			printOutModule(program.mainModule, format);
 			return 0;
 		},
 		(ref immutable Diagnostics diagnostics) {
@@ -147,17 +151,18 @@ immutable(int) printConcreteModel(SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Str nozeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
+	immutable PrintFormat format,
 ) {
 	Mallocator mallocator;
 	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
 	immutable Result!(Program, Diagnostics) programResult =
 		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
-	return matchImpure!(int, Program, Diagnostics)(
+	return matchResultImpure!(int, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
 			ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
 			immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
-			printOutConcreteProgram(mallocator, concreteProgram);
+			printOutConcreteProgram(mallocator, concreteProgram, format);
 			return 0;
 		},
 		(ref immutable Diagnostics diagnostics) {
@@ -171,19 +176,20 @@ immutable(int) printLowModel(SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Str nozeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
+	immutable PrintFormat format,
 ) {
 	Mallocator mallocator;
 	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
 	immutable Result!(Program, Diagnostics) programResult =
 		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
-	return matchImpure!(int, Program, Diagnostics)(
+	return matchResultImpure!(int, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
 			ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
 			LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
 			immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
 			immutable LowProgram lowProgram = lower(lowAlloc, concreteProgram);
-			printOutLowProgram(mallocator, lowProgram);
+			printOutLowProgram(mallocator, lowProgram, format);
 			return 0;
 		},
 		(ref immutable Diagnostics diagnostics) {
@@ -193,24 +199,24 @@ immutable(int) printLowModel(SymAlloc)(
 
 }
 
-void printOutAst(ref immutable FileAst ast) {
+void printOutAst(ref immutable FileAst ast, immutable PrintFormat format) {
 	StackAlloc!("sexprOfAst", 32 * 1024) alloc;
-	printOutSexpr(sexprOfAst(alloc, ast));
+	printOutSexpr(sexprOfAst(alloc, ast), format);
 }
 
-void printOutModule(ref immutable Module a) {
+void printOutModule(ref immutable Module a, immutable PrintFormat format) {
 	StackAlloc!("sexprOfModule", 32 * 1024) alloc;
-	printOutSexpr(sexprOfModule(alloc, a));
+	printOutSexpr(sexprOfModule(alloc, a), format);
 }
 
-void printOutConcreteProgram(ref Mallocator mallocator, ref immutable ConcreteProgram a) {
+void printOutConcreteProgram(ref Mallocator mallocator, ref immutable ConcreteProgram a, immutable PrintFormat format) {
 	ConcreteSexprAlloc alloc = ConcreteSexprAlloc(ptrTrustMe_mut(mallocator));
-	printOutSexpr(tataOfConcreteProgram(alloc, a));
+	printOutSexpr(tataOfConcreteProgram(alloc, a), format);
 }
 
-void printOutLowProgram(ref Mallocator mallocator, ref immutable LowProgram a) {
+void printOutLowProgram(ref Mallocator mallocator, ref immutable LowProgram a, immutable PrintFormat format) {
 	LowSexprAlloc alloc = LowSexprAlloc(ptrTrustMe_mut(mallocator));
-	printOutSexpr(tataOfLowProgram(alloc, a));
+	printOutSexpr(tataOfLowProgram(alloc, a), format);
 }
 
 alias ExePathAlloc = StackAlloc!("exePath", 1024);
@@ -234,7 +240,7 @@ immutable(Opt!AbsolutePath) buildWorker(Alloc, SymAlloc)(
 	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
 	immutable Result!(Program, Diagnostics) programResult =
 		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
-	return matchImpure!(Opt!AbsolutePath, Program, Diagnostics)(
+	return matchResultImpure!(Opt!AbsolutePath, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
 			immutable AbsolutePath fullMainPath =

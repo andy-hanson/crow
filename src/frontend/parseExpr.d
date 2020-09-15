@@ -54,7 +54,8 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, empty, emptyArr, only, size;
 import util.collection.arrUtil : arrLiteral, exists, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.opt : force, has, none, Opt, some;
+import util.memory : allocate;
+import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
@@ -142,8 +143,8 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 		immutable ExprAndDedent thenAndDedent = parseStatementsAndDedent(alloc, lexer);
 		immutable Ptr!ExprAst then = allocExpr(alloc, thenAndDedent.expr);
 		immutable ExprAstKind exprKind = isArrow
-			? ExprAstKind(ThenAst(LambdaAst.Param(name.range, name.name), init, then))
-			: ExprAstKind(LetAst(name, init, then));
+			? immutable ExprAstKind(immutable ThenAst(immutable LambdaAst.Param(name.range, name.name), init, then))
+			: immutable ExprAstKind(immutable LetAst(name, init, then));
 		// Since we don't always expect a dedent here,
 		// the dedent isn't *extra*, so increment to get the correct number of dedents.
 		return ExprAndDedent(ExprAst(lexer.range(start), exprKind), thenAndDedent.dedents + 1);
@@ -161,15 +162,15 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 		immutable Sym funName = lexer.takeName();
 		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		immutable CallAst call = CallAst(funName, typeArgs, arrLiteral!ExprAst(alloc, target));
-		return noDedent(ExprAst(lexer.range(start), ExprAstKind(call)));
+		return noDedent(immutable ExprAst(lexer.range(start), immutable ExprAstKind(call)));
 	} else {
 		immutable Sym funName = lexer.takeName();
 		immutable Bool colon = lexer.tryTake(':');
 		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		immutable ArgsAndMaybeDedent args = parseArgs(alloc, lexer, ArgCtx(allowBlock, colon));
-		immutable ExprAstKind exprKind = ExprAstKind(
-			CallAst(funName, typeArgs, prepend(alloc, target, args.args)));
-		return ExprAndMaybeDedent(ExprAst(lexer.range(start), exprKind), args.dedent);
+		immutable ExprAstKind exprKind = immutable ExprAstKind(
+			immutable CallAst(funName, typeArgs, prepend(alloc, target, args.args)));
+		return immutable ExprAndMaybeDedent(immutable ExprAst(lexer.range(start), exprKind), args.dedent);
 	}
 }
 
@@ -194,7 +195,9 @@ immutable(ExprAndMaybeDedent) parseCallsAndRecordFieldSets(Alloc, SymAlloc)(
 		immutable Ptr!ExprAst target = allocExpr(alloc, call.args.only);
 		immutable ExprAndMaybeDedent value = parseExprArg(alloc, lexer, ArgCtx(allowBlock, True));
 		immutable RecordFieldSetAst rfs = RecordFieldSetAst(target, call.funName, allocExpr(alloc, value.expr));
-		return ExprAndMaybeDedent(ExprAst(lexer.range(start), ExprAstKind(rfs)), value.dedents);
+		return immutable ExprAndMaybeDedent(
+			immutable ExprAst(lexer.range(start), immutable ExprAstKind(rfs)),
+			value.dedents);
 	} else if (lexer.tryTake(' '))
 		return parseCallsAndRecordFieldSets(
 			alloc,
@@ -253,8 +256,8 @@ immutable(ExprAst) tryParseDots(Alloc, SymAlloc)(
 	if (lexer.tryTake('.')) {
 		immutable Sym name = lexer.takeName();
 		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
-		immutable CallAst call = CallAst(name, typeArgs, arrLiteral!ExprAst(alloc, initial));
-		immutable ExprAst expr = ExprAst(lexer.range(start), ExprAstKind(call));
+		immutable CallAst call = immutable CallAst(name, typeArgs, arrLiteral!ExprAst(alloc, initial));
+		immutable ExprAst expr = immutable ExprAst(lexer.range(start), immutable ExprAstKind(call));
 		return tryParseDots(alloc, lexer, expr);
 	} else
 		return initial;
@@ -293,8 +296,8 @@ immutable(ExprAndMaybeDedent) parseMatch(Alloc, SymAlloc)(
 		}
 	}();
 	immutable MatchAst match = MatchAst(matched, finishArr(alloc, cases));
-	return ExprAndMaybeDedent(
-		ExprAst(lexer.range(start), ExprAstKind(match)),
+	return immutable ExprAndMaybeDedent(
+		immutable ExprAst(lexer.range(start), immutable ExprAstKind(match)),
 		some(matchDedents));
 }
 
@@ -311,8 +314,12 @@ immutable(ExprAndMaybeDedent) parseMultiLineNew(Alloc, SymAlloc)(
 		immutable ExprAndDedent ed = parseExprNoLet(alloc, lexer);
 		add(alloc, lines, immutable CreateRecordMultiLineAst.Line(name, ed.expr));
 		if (ed.dedents != 0)
-			return ExprAndMaybeDedent(
-				ExprAst(lexer.range(start), ExprAstKind(CreateRecordMultiLineAst(type, finishArr(alloc, lines)))),
+			return immutable ExprAndMaybeDedent(
+				immutable ExprAst(
+					lexer.range(start),
+					immutable ExprAstKind(immutable CreateRecordMultiLineAst(
+						allocateOpt(alloc, type),
+						finishArr(alloc, lines)))),
 				some(ed.dedents - 1));
 	}
 }
@@ -330,10 +337,17 @@ immutable(ExprAndMaybeDedent) parseMultiLineNewArr(Alloc, SymAlloc)(
 		immutable ExprAndDedent ed = parseExprNoLet(alloc, lexer);
 		add(alloc, args, ed.expr);
 		if (ed.dedents != 0)
-			return ExprAndMaybeDedent(
-				ExprAst(lexer.range(start), ExprAstKind(CreateArrAst(type, finishArr(alloc, args)))),
+			return immutable ExprAndMaybeDedent(
+				immutable ExprAst(
+					lexer.range(start),
+					immutable ExprAstKind(immutable CreateArrAst(allocateOpt(alloc, type), finishArr(alloc, args)))),
 				some(ed.dedents - 1));
 	}
+}
+
+//TODO:MOVE?
+immutable(Opt!(Ptr!T)) allocateOpt(T, Alloc)(ref Alloc alloc, immutable Opt!T opt) {
+	return mapOption(opt, (ref immutable T t) => allocate(alloc, t));
 }
 
 immutable(ExprAndMaybeDedent) parseNewOrNewArrAfterArgs(Alloc, SymAlloc)(
@@ -345,8 +359,8 @@ immutable(ExprAndMaybeDedent) parseNewOrNewArrAfterArgs(Alloc, SymAlloc)(
 	immutable ArgsAndMaybeDedent ad,
 ) {
 	immutable ExprAstKind ast = isNewArr
-		? ExprAstKind(CreateArrAst(type, ad.args))
-		: ExprAstKind(CreateRecordAst(type, ad.args));
+		? immutable ExprAstKind(immutable CreateArrAst(allocateOpt(alloc, type), ad.args))
+		: immutable ExprAstKind(immutable CreateRecordAst(allocateOpt(alloc, type), ad.args));
 	return ExprAndMaybeDedent(ExprAst(lexer.range(start), ast), ad.dedent);
 }
 
@@ -396,8 +410,8 @@ immutable(ExprAndMaybeDedent) parseWhenLoop(Alloc, SymAlloc)(
 			allocExpr(alloc, condition),
 			allocExpr(alloc, thenAndDedent.expr),
 			allocExpr(alloc, elseAndDedent.expr));
-		return ExprAndMaybeDedent(
-			ExprAst(lexer.range(start), ExprAstKind(cond)),
+		return immutable ExprAndMaybeDedent(
+			immutable ExprAst(lexer.range(start), immutable ExprAstKind(cond)),
 			elseAndDedent.dedents);
 	}
 }
@@ -428,8 +442,8 @@ immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
 	}
 	immutable ExprAndDedent bodyAndDedent = parseStatementsAndDedent(alloc, lexer);
 	immutable LambdaAst lambda = LambdaAst(finishArr(alloc, parameters), allocExpr(alloc, bodyAndDedent.expr));
-	return ExprAndMaybeDedent(
-		ExprAst(lexer.range(start), ExprAstKind(lambda)),
+	return immutable ExprAndMaybeDedent(
+		immutable ExprAst(lexer.range(start), immutable ExprAstKind(lambda)),
 		some!size_t(bodyAndDedent.dedents));
 }
 
@@ -461,11 +475,13 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			immutable Arr!(LambdaAst.Param) params = bodyUsesIt(body_)
 				? arrLiteral!(LambdaAst.Param)(alloc, LambdaAst.Param(range, shortSymAlphaLiteral("it")))
 				: emptyArr!(LambdaAst.Param);
-			immutable ExprAst expr = ExprAst(range, ExprAstKind(LambdaAst(params, body_)));
+			immutable ExprAst expr = immutable ExprAst(
+				range,
+				immutable ExprAstKind(immutable LambdaAst(params, body_)));
 			return noDedent(tryParseDots(alloc, lexer, expr));
 		case Kind.literal:
 			immutable LiteralAst literal = et.asLiteral;
-			immutable ExprAst expr = ExprAst(getRange(), ExprAstKind(literal));
+			immutable ExprAst expr = immutable ExprAst(getRange(), immutable ExprAstKind(literal));
 			return noDedent(tryParseDots(alloc, lexer, expr));
 		case Kind.lparen:
 			immutable ExprAst expr = parseExprNoBlock(alloc, lexer);
@@ -481,13 +497,18 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			if (tookColon) {
 				// Prefix call `foo: bar, baz`
 				immutable ArgsAndMaybeDedent ad = parseArgs(alloc, lexer, ctx);
-				immutable CallAst call = CallAst(name, typeArgs, ad.args);
-				return ExprAndMaybeDedent(ExprAst(getRange(), ExprAstKind(call)), ad.dedent);
+				immutable CallAst call = immutable CallAst(name, typeArgs, ad.args);
+				return immutable ExprAndMaybeDedent(
+					immutable ExprAst(getRange(), immutable ExprAstKind(call)),
+					ad.dedent);
 			} else if (!typeArgs.empty) {
-				return noDedent(
-					ExprAst(getRange(), ExprAstKind(CallAst(name, typeArgs, emptyArr!ExprAst))));
+				return noDedent(immutable ExprAst(
+					getRange(),
+					immutable ExprAstKind(immutable CallAst(name, typeArgs, emptyArr!ExprAst))));
 			} else {
-				immutable ExprAst expr = ExprAst(getRange(), ExprAstKind(IdentifierAst(name)));
+				immutable ExprAst expr = immutable ExprAst(
+					getRange(),
+					immutable ExprAstKind(immutable IdentifierAst(name)));
 				return noDedent(tryParseDots(alloc, lexer, expr));
 			}
 		case Kind.new_:
@@ -584,9 +605,9 @@ immutable(ExprAndDedent) parseStatementsAndDedentRecur(Alloc, SymAlloc)(
 			alloc,
 			lexer,
 			start,
-			ExprAst(lexer.range(start), ExprAstKind(seq)),
+			immutable ExprAst(lexer.range(start), immutable ExprAstKind(seq)),
 			ed.dedents);
 	} else
-		return ExprAndDedent(expr, dedents - 1);
+		return immutable ExprAndDedent(expr, dedents - 1);
 }
 

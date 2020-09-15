@@ -212,6 +212,10 @@ noctx-remove-unordered-at-index ?t(a mut-arr ?t, index nat) noctx unsafe
 	res
 
 
+some? bool(a arr ?t, pred fun-mut1 bool ?t)
+	a.empty?.not and: (pred call a.first or: a.tail some? pred)
+
+| TODO: only written this way to be `noctx`, else could defer to `some?`
 contains? bool(a arr ?t, value ?t) noctx data<?t>
 	a contains-recur? value, zero
 

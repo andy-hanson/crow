@@ -278,7 +278,7 @@ immutable(CheckedExpr) checkCreateRecordCommon(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	immutable SourceRange range,
-	immutable Opt!TypeAst type,
+	immutable Opt!(Ptr!TypeAst) type,
 	ref Expected expected,
 	scope immutable(Opt!(Arr!Expr)) delegate(
 		immutable Ptr!StructDecl,
@@ -594,10 +594,10 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 		(!hasExpected(expected) && ast.literalKind == LiteralAst.Kind.string_))
 		return checkLiteralInner(alloc, ctx, range, inner, expected);
 	else {
-		immutable CallAst call = CallAst(
+		immutable CallAst call = immutable CallAst(
 			shortSymAlphaLiteral("literal"),
 			emptyArr!TypeAst,
-			arrLiteral!ExprAst(alloc, ExprAst(range, ExprAstKind(inner))));
+			arrLiteral!ExprAst(alloc, immutable ExprAst(range, immutable ExprAstKind(inner))));
 		return checkCall(alloc, ctx, range, call, expected);
 	}
 }
@@ -861,9 +861,9 @@ immutable(CheckedExpr) checkThen(Alloc)(
 	ref immutable ThenAst ast,
 	ref Expected expected,
 ) {
-	immutable ExprAst lambda = ExprAst(
+	immutable ExprAst lambda = immutable ExprAst(
 		range,
-		ExprAstKind(LambdaAst(
+		immutable ExprAstKind(immutable LambdaAst(
 			//TODO: use temp alloc?
 			arrLiteral!(LambdaAst.Param)(alloc, ast.left),
 			ast.then)));

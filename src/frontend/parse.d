@@ -7,6 +7,8 @@ import parseDiag : ParseDiagnostic;
 import frontend.ast :
 	ExplicitByValOrRef,
 	FileAst,
+	FileAstPart0,
+	FileAstPart1,
 	FunBodyAst,
 	FunDeclAst,
 	ImportAst,
@@ -56,6 +58,7 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, emptyArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, NulTerminatedStr, Str;
+import util.memory : nu;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.path : childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -723,11 +726,7 @@ immutable(FileAst) parseFileInner(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!Sy
 		parseSpecOrStructOrFun!(Alloc, SymAlloc)(alloc, lexer, isPublic, specs, structAliases, structs, funs);
 	}
 
-	return FileAst(
-		imports,
-		exports,
-		finishArr(alloc, specs),
-		finishArr(alloc, structAliases),
-		finishArr(alloc, structs),
-		finishArr(alloc, funs));
+	return immutable FileAst(
+		nu!FileAstPart0(alloc, imports, exports, finishArr(alloc, specs)),
+		nu!FileAstPart1(alloc, finishArr(alloc, structAliases), finishArr(alloc, structs), finishArr(alloc, funs)));
 }

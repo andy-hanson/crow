@@ -4,6 +4,7 @@ module util.alloc.stackAlloc;
 
 import util.ptr : Ptr;
 import util.util : verify, verifyFail;
+import util.alloc.mallocator : Mallocator;
 
 struct StackAlloc(immutable char* debugName, size_t capacity) {
 	@safe @nogc pure nothrow:
@@ -15,10 +16,10 @@ struct StackAlloc(immutable char* debugName, size_t capacity) {
 	@trusted ubyte* allocate(immutable size_t nBytes) {
 		if (cur + nBytes > capacity) {
 			debug {
-				import util.print : print;
-				print("Stack alloc ran out of space\n");
-				print(debugName);
-				print("\n");
+				//import util.print : print;
+				//print("Stack alloc ran out of space\n");
+				//print(debugName);
+				//print("\n");
 				//print("capacity: %zd, already filled: %zd, tried to allocate: %zd\n", capacity, cur, nBytes);
 			}
 			verifyFail();
@@ -29,11 +30,11 @@ struct StackAlloc(immutable char* debugName, size_t capacity) {
 		return res;
 	}
 
-	void freePartial(ubyte*, size_t) {
+	void freePartial(ubyte*, immutable size_t) {
 		// do nothing
 	}
 
-	void free(ubyte*, size_t ) {
+	void free(ubyte*, immutable size_t) {
 		// do nothing
 	}
 }
@@ -77,11 +78,11 @@ struct SingleHeapAlloc(ParentAlloc, string debugName, size_t capacity) {
 		return res;
 	}
 
-	void freePartial(ubyte*, size_t) {
+	void freePartial(ubyte*, immutable size_t) {
 		// do nothing
 	}
 
-	void free(ubyte*, size_t ) {
+	void free(ubyte*, immutable size_t) {
 		// do nothing
 	}
 }

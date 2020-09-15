@@ -93,12 +93,12 @@ struct CondAst {
 }
 
 struct CreateArrAst {
-	immutable Opt!TypeAst elementType;
+	immutable Opt!(Ptr!TypeAst) elementType; // Ptr because this is rarely needed
 	immutable Arr!ExprAst args;
 }
 
 struct CreateRecordAst {
-	immutable Opt!TypeAst type;
+	immutable Opt!(Ptr!TypeAst) type;
 	immutable Arr!ExprAst args;
 }
 
@@ -108,7 +108,7 @@ struct CreateRecordMultiLineAst {
 		immutable ExprAst value;
 	}
 
-	immutable Opt!TypeAst type;
+	immutable Opt!(Ptr!TypeAst) type;
 	immutable Arr!Line lines;
 }
 
@@ -217,22 +217,22 @@ struct ExprAstKind {
 	}
 
 	public:
-	@trusted this(immutable CallAst a) { kind = Kind.call; call = a; }
-	@trusted this(immutable CondAst a) { kind = Kind.cond; cond = a; }
-	@trusted this(immutable CreateArrAst a) { kind = Kind.createArr; createArr = a; }
-	@trusted this(immutable CreateRecordAst a) { kind = Kind.createRecord; createRecord = a; }
-	@trusted this(immutable CreateRecordMultiLineAst a) {
+	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
+	@trusted immutable this(immutable CondAst a) { kind = Kind.cond; cond = a; }
+	@trusted immutable this(immutable CreateArrAst a) { kind = Kind.createArr; createArr = a; }
+	@trusted immutable this(immutable CreateRecordAst a) { kind = Kind.createRecord; createRecord = a; }
+	@trusted immutable this(immutable CreateRecordMultiLineAst a) {
 		kind = Kind.createRecordMultiLine; createRecordMultiLine = a;
 	}
-	@trusted this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
-	@trusted this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
-	@trusted this(immutable LetAst a) { kind = Kind.let; let = a; }
-	@trusted this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
-	@trusted this(immutable LiteralInnerAst a) { kind = Kind.literalInner; literalInner = a; }
-	@trusted this(immutable MatchAst a) { kind = Kind.match; match_ = a; }
-	@trusted this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
-	@trusted this(immutable RecordFieldSetAst a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
-	@trusted this(immutable ThenAst a) { kind = Kind.then; then = a; }
+	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
+	@trusted immutable this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
+	@trusted immutable this(immutable LetAst a) { kind = Kind.let; let = a; }
+	@trusted immutable this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
+	@trusted immutable this(immutable LiteralInnerAst a) { kind = Kind.literalInner; literalInner = a; }
+	@trusted immutable this(immutable MatchAst a) { kind = Kind.match; match_ = a; }
+	@trusted immutable this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
+	@trusted immutable this(immutable RecordFieldSetAst a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
+	@trusted immutable this(immutable ThenAst a) { kind = Kind.then; then = a; }
 }
 
 immutable(Bool) isIdentifier(ref immutable ExprAstKind a) {
@@ -534,13 +534,46 @@ struct ImportAst {
 	immutable Ptr!Path path;
 }
 
-struct FileAst {
+// TODO: I'm doing this because the wasm compilation generates a call to 'memset' whenever there's a big struct.
+struct FileAstPart0 {
 	immutable Arr!ImportAst imports;
 	immutable Arr!ImportAst exports;
 	immutable Arr!SpecDeclAst specs;
+}
+
+struct FileAstPart1 {
 	immutable Arr!StructAliasAst structAliases;
 	immutable Arr!StructDeclAst structs;
 	immutable Arr!FunDeclAst funs;
+}
+
+struct FileAst {
+	immutable Ptr!FileAstPart0 part0;
+	immutable Ptr!FileAstPart1 part1;
+}
+
+ref immutable(Arr!ImportAst) imports(return scope ref immutable FileAst a) {
+	return a.part0.imports;
+}
+
+ref immutable(Arr!ImportAst) exports(return scope ref immutable FileAst a) {
+	return a.part0.exports;
+}
+
+ref immutable(Arr!SpecDeclAst) specs(return scope ref immutable FileAst a) {
+	return a.part0.specs;
+}
+
+ref immutable(Arr!StructAliasAst) structAliases(return scope ref immutable FileAst a) {
+	return a.part1.structAliases;
+}
+
+ref immutable(Arr!StructDeclAst) structs(return scope ref immutable FileAst a) {
+	return a.part1.structs;
+}
+
+ref immutable(Arr!FunDeclAst) funs(return scope ref immutable FileAst a) {
+	return a.part1.funs;
 }
 
 immutable(Sexpr) sexprOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
@@ -711,8 +744,8 @@ immutable(Sexpr) sexprOfTypeAst(Alloc)(ref Alloc alloc, ref immutable TypeAst a)
 			sexprOfInstStructAst(alloc, i));
 }
 
-immutable(Sexpr) sexprOfOptTypeAst(Alloc)(ref Alloc alloc, ref immutable Opt!TypeAst a) {
-	return tataOpt(alloc, a, (ref immutable TypeAst it) =>
+immutable(Sexpr) sexprOfOptTypeAst(Alloc)(ref Alloc alloc, immutable Opt!(Ptr!TypeAst) a) {
+	return tataOpt(alloc, a, (ref immutable Ptr!TypeAst it) =>
 		sexprOfTypeAst(alloc, it));
 }
 
@@ -782,7 +815,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 			tataRecord(
 				alloc,
 				"create-arr",
-				tataOpt(alloc,  e.elementType, (ref immutable TypeAst it) =>
+				tataOpt(alloc,  e.elementType, (ref immutable Ptr!TypeAst it) =>
 					sexprOfTypeAst(alloc, it)),
 				tataArr(alloc, e.args, (ref immutable ExprAst it) =>
 					sexprOfExprAst(alloc, it))),
