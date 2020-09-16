@@ -2,13 +2,13 @@ module frontend.parseType;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast : matchTypeAst, TypeAst;
-import frontend.lexer : curPos, Lexer, range, take, takeName, throwAtChar, tryTake;
+import frontend.ast : matchTypeAst, range, TypeAst;
+import frontend.lexer : addDiag, curPos, Lexer, range, take, takeName, tryTake;
 
 import parseDiag : ParseDiag;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, empty;
+import util.collection.arr : Arr, at, empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.opt : none, Opt, some;
 import util.sourceRange : Pos, SourceRange;
@@ -74,8 +74,9 @@ immutable(TypeAst) parseTypeWorker(Alloc, SymAlloc)(
 	immutable Bool isTypeParam = lexer.tryTake('?');
 	immutable Sym name = lexer.takeName();
 	immutable Arr!TypeAst typeArgs = tryParseTypeArgsWorker(alloc, lexer, isInner);
-	if (isTypeParam && !typeArgs.empty)
-		return lexer.throwAtChar!TypeAst(ParseDiag(ParseDiag.TypeParamCantHaveTypeArgs()));
+	if (isTypeParam && !empty(typeArgs))
+		addDiag(alloc, lexer, at(typeArgs, 0).range,
+			immutable ParseDiag(immutable ParseDiag.TypeParamCantHaveTypeArgs()));
 	immutable SourceRange rng = lexer.range(start);
 	return isTypeParam
 		? TypeAst(TypeAst.TypeParam(rng, name))

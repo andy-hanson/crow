@@ -80,6 +80,13 @@ struct TypeAst {
 	}
 }
 
+immutable(SourceRange) range(ref immutable TypeAst a) {
+	return matchTypeAst(
+		a,
+		(ref immutable TypeAst.TypeParam it) => it.range,
+		(ref immutable TypeAst.InstStruct it) => it.range);
+}
+
 struct BogusAst {}
 
 struct CallAst {
