@@ -4,6 +4,7 @@ import frontend.parse : parseFile;
 import frontend.ast : FileAst, sexprOfAst;
 import parseDiag : ParseDiagnostic;
 import util.alloc.globalAlloc : GlobalAlloc;
+import util.collection.arr : Arr;
 import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr;
 import util.ptr : ptrTrustMe_mut;
 import util.result : matchResultImpure, Result;
@@ -24,15 +25,15 @@ extern(C) immutable(size_t) getBufferSize() {
 	Alloc alloc;
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 	immutable NulTerminatedStr str = nulTerminatedStrOfCStr(cast(immutable) buffer.ptr);
-	immutable Result!(FileAst, ParseDiagnostic) rslt = parseFile(alloc, allSymbols, str);
-	//matchResultImpure!(void, FileAst, ParseDiagnostic)(
-	//	rslt,
-	//	(ref immutable FileAst ast) {
-	//		writeAstResult(alloc, ast);
-	//	},
-	//	(ref immutable ParseDiagnostic) {
-	//		writeEmptyResult();
-	//	});
+	immutable Result!(FileAst, Arr!ParseDiagnostic) rslt = parseFile(alloc, allSymbols, str);
+	matchResultImpure!(void, FileAst, Arr!ParseDiagnostic)(
+		rslt,
+		(ref immutable FileAst ast) {
+			writeAstResult(alloc, ast);
+		},
+		(ref immutable Arr!ParseDiagnostic) {
+			writeEmptyResult();
+		});
 }
 
 private:

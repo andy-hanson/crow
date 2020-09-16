@@ -4,6 +4,7 @@ module frontend.checkExpr;
 
 import diag : Diag;
 import frontend.ast :
+	BogusAst,
 	CallAst,
 	CondAst,
 	CreateArrAst,
@@ -119,7 +120,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
-import util.util : todo, verify;
+import util.util : todo, unreachable, verify;
 
 immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 	ref Alloc alloc,
@@ -874,7 +875,7 @@ immutable(CheckedExpr) checkThen(Alloc)(
 	return checkCall(alloc, ctx, range, call, expected);
 }
 
-CheckedExpr checkExprWorker(Alloc)(
+immutable(CheckedExpr) checkExprWorker(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable ExprAst ast,
@@ -883,6 +884,8 @@ CheckedExpr checkExprWorker(Alloc)(
 	immutable SourceRange range = ast.range;
 	return matchExprAstKind!(immutable CheckedExpr)(
 		ast.kind,
+		(ref immutable BogusAst) =>
+			unreachable!(immutable CheckedExpr),
 		(ref immutable CallAst a) =>
 			checkCall(alloc, ctx, range, a, expected),
 		(ref immutable CondAst a) =>

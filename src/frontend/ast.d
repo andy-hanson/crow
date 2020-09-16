@@ -80,6 +80,8 @@ struct TypeAst {
 	}
 }
 
+struct BogusAst {}
+
 struct CallAst {
 	immutable Sym funName;
 	immutable Arr!TypeAst typeArgs;
@@ -183,6 +185,7 @@ struct ExprAstKind {
 
 	private:
 	enum Kind {
+		bogus,
 		call,
 		cond,
 		createArr,
@@ -200,6 +203,7 @@ struct ExprAstKind {
 	}
 	immutable Kind kind;
 	union {
+		immutable BogusAst bogus;
 		immutable CallAst call;
 		immutable CondAst cond;
 		immutable CreateArrAst createArr;
@@ -217,6 +221,7 @@ struct ExprAstKind {
 	}
 
 	public:
+	@trusted immutable this(immutable BogusAst a) { kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
 	@trusted immutable this(immutable CondAst a) { kind = Kind.cond; cond = a; }
 	@trusted immutable this(immutable CreateArrAst a) { kind = Kind.createArr; createArr = a; }
@@ -253,6 +258,7 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 
 @trusted T matchExprAstKind(T)(
 	scope ref immutable ExprAstKind a,
+	scope immutable(T) delegate(scope ref immutable BogusAst) @safe @nogc pure nothrow cbBogus,
 	scope immutable(T) delegate(scope ref immutable CallAst) @safe @nogc pure nothrow cbCall,
 	scope immutable(T) delegate(scope ref immutable CondAst) @safe @nogc pure nothrow cbCond,
 	scope immutable(T) delegate(scope ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
@@ -271,6 +277,8 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 	scope immutable(T) delegate(scope ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
 ) {
 	final switch (a.kind) {
+		case ExprAstKind.Kind.bogus:
+			return cbBogus(a.bogus);
 		case ExprAstKind.Kind.call:
 			return cbCall(a.call);
 		case ExprAstKind.Kind.cond:
@@ -795,6 +803,8 @@ immutable(Sexpr) sexprOfNameAndRange(Alloc)(ref Alloc alloc, ref immutable NameA
 immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKind ast) {
 	return matchExprAstKind!(immutable Sexpr)(
 		ast,
+		(ref immutable BogusAst e) =>
+			tataSym( "bogus"),
 		(ref immutable CallAst e) =>
 			tataRecord(
 				alloc,

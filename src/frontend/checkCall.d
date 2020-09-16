@@ -113,7 +113,7 @@ import util.opt : force, has, mapOption_const, none, Opt, some;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : SourceRange;
 import util.sym : mutSymSetHas, Sym, symEq;
-import util.util : todo, verify;
+import util.util : todo, unreachable, verify;
 
 immutable(CheckedExpr) checkCall(Alloc)(
 	ref Alloc alloc,
@@ -244,6 +244,7 @@ void eachFunInScope(
 immutable(Bool) exprMightHaveProperties(immutable ExprAst ast) {
 	return matchExprAstKind!(immutable Bool)(
 		ast.kind,
+		(ref immutable BogusAst) => unreachable!(immutable Bool),
 		(ref immutable CallAst) => True,
 		(ref immutable CondAst e) =>
 			immutable Bool(exprMightHaveProperties(e.then) && exprMightHaveProperties(e.else_)),

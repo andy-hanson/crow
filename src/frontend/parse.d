@@ -26,6 +26,7 @@ import frontend.lexer :
 	createLexer,
 	curChar,
 	curPos,
+	finishDiags,
 	Lexer,
 	NewlineOrDedent,
 	NewlineOrIndent,
@@ -55,8 +56,9 @@ import frontend.parseType : parseStructType, parseType, tryParseTypeArgs;
 import parseDiag : ParseDiag;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, emptyArr, emptyArrWithSize;
+import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
+import util.collection.arrUtil : arrLiteral;
 import util.collection.str : CStr, NulTerminatedStr, Str;
 import util.memory : nu;
 import util.opt : force, has, none, Opt, optOr, some;
@@ -68,16 +70,22 @@ import util.sym : AllSymbols, shortSymAlphaLiteralValue, Sym;
 import util.types : u8;
 import util.util : todo, unreachable, verify;
 
-immutable(Result!(FileAst, ParseDiagnostic)) parseFile(Alloc, SymAlloc)(
+immutable(Result!(FileAst, Arr!ParseDiagnostic)) parseFile(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	immutable NulTerminatedStr source,
 ) {
 	Lexer!SymAlloc lexer = createLexer(ptrTrustMe_mut(allSymbols), source);
 	immutable int i = pureSetjmp(lexer.jump_buffer);
-	return i == 0
-		? success!(FileAst, ParseDiagnostic)(parseFileInner(alloc, lexer))
-		: fail!(FileAst, ParseDiagnostic)(lexer.diagnostic_);
+	if (i == 0) {
+		immutable FileAst ast = parseFileInner(alloc, lexer);
+		immutable Arr!ParseDiagnostic diags = finishDiags(alloc, lexer);
+		return empty(diags)
+			? success!(FileAst, Arr!ParseDiagnostic)(ast)
+			: fail!(FileAst, Arr!ParseDiagnostic)(diags);
+	} else {
+		return fail!(FileAst, Arr!ParseDiagnostic)(arrLiteral(alloc, lexer.diagnostic_));
+	}
 }
 
 private:

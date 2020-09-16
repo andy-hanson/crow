@@ -275,9 +275,10 @@ immutable(PathAndStorageKind) runtimeMainPath(Alloc)(ref Alloc alloc) {
 immutable(Diags) parseDiagnostics(Alloc)(
 	ref Alloc modelAlloc,
 	immutable PathAndStorageKind where,
-	immutable ParseDiagnostic p,
+	immutable Arr!ParseDiagnostic diags,
 ) {
-	return arrLiteral!Diagnostic(modelAlloc, Diagnostic(PathAndStorageKindAndRange(where, p.range), Diag(p.diag)));
+	return map(modelAlloc, diags, (ref immutable ParseDiagnostic it) =>
+		immutable Diagnostic(immutable PathAndStorageKindAndRange(where, it.range), immutable Diag(it.diag)));
 }
 
 alias LineAndColumnGettersBuilder =
@@ -309,9 +310,9 @@ immutable(Result!(FileAst, Diags)) parseSingle(ModelAlloc, AstAlloc, SymAlloc)(
 			lineAndColumnGetters,
 			where,
 			lineAndColumnGetterForText(modelAlloc, text.stripNulTerminator));
-		immutable Result!(FileAst, ParseDiagnostic) result = parseFile(astAlloc, allSymbols, text);
-		return result.mapFailure!(Diags, FileAst, ParseDiagnostic)((ref immutable ParseDiagnostic p) =>
-			parseDiagnostics(modelAlloc, where, p));
+		immutable Result!(FileAst, Arr!ParseDiagnostic) result = parseFile(astAlloc, allSymbols, text);
+		return mapFailure!(Diags, FileAst, Arr!ParseDiagnostic)(result, (ref immutable Arr!ParseDiagnostic it) =>
+			parseDiagnostics(modelAlloc, where, it));
 	} else {
 		immutable Bool isImport = importedFrom.has;
 		immutable PathAndStorageKindAndRange diagWhere = isImport

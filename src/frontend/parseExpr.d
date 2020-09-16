@@ -5,6 +5,7 @@ module frontend.parseExpr;
 import frontend.ast :
 	asCall,
 	asIdentifier,
+	BogusAst,
 	CallAst,
 	CondAst,
 	CreateArrAst,
@@ -26,6 +27,7 @@ import frontend.ast :
 	ThenAst,
 	TypeAst;
 import frontend.lexer :
+	addDiag,
 	asLiteral,
 	asNameAndRange,
 	curPos,
@@ -40,7 +42,6 @@ import frontend.lexer :
 	takeNameAndRange,
 	takeNewlineOrDedentAmount,
 	throwAtChar,
-	throwDiag,
 	tryTake,
 	tryTakeElseIndent,
 	tryTakeIndent,
@@ -63,12 +64,16 @@ import util.util : todo, unreachable, verify;
 
 immutable(ExprAst) parseFunExprBody(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	lexer.takeIndent();
-	immutable ExprAndDedent ed = parseStatementsAndDedent(alloc, lexer);
+	immutable ExprAndDedent ed = parseStatementsAndExtraDedents(alloc, lexer);
 	verify(ed.dedents == 0);
 	return ed.expr;
 }
 
 private:
+
+immutable(ExprAst) bogusExpr(immutable SourceRange range) {
+	return immutable ExprAst(range, immutable ExprAstKind(immutable BogusAst()));
+}
 
 immutable(Ptr!ExprAst) allocExpr(Alloc)(ref Alloc alloc, immutable ExprAst e) {
 	return nu2(alloc, e);
@@ -136,19 +141,22 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 	immutable Bool isArrow,
 ) {
 	immutable ExprAndDedent initAndDedent = parseExprNoLet(alloc, lexer);
-	if (initAndDedent.dedents != 0)
-		return lexer.throwDiag!ExprAndDedent(lexer.range(start), ParseDiag(ParseDiag.LetMustHaveThen()));
-	else {
-		immutable Ptr!ExprAst init = allocExpr(alloc, initAndDedent.expr);
-		immutable ExprAndDedent thenAndDedent = parseStatementsAndDedent(alloc, lexer);
-		immutable Ptr!ExprAst then = allocExpr(alloc, thenAndDedent.expr);
-		immutable ExprAstKind exprKind = isArrow
-			? immutable ExprAstKind(immutable ThenAst(immutable LambdaAst.Param(name.range, name.name), init, then))
-			: immutable ExprAstKind(immutable LetAst(name, init, then));
-		// Since we don't always expect a dedent here,
-		// the dedent isn't *extra*, so increment to get the correct number of dedents.
-		return ExprAndDedent(ExprAst(lexer.range(start), exprKind), thenAndDedent.dedents + 1);
-	}
+	immutable Ptr!ExprAst init = allocExpr(alloc, initAndDedent.expr);
+	immutable ExprAndDedent thenAndDedent = () {
+		if (initAndDedent.dedents != 0) {
+			immutable SourceRange range = lexer.range(start);
+			addDiag(alloc, lexer, range, ParseDiag(ParseDiag.LetMustHaveThen()));
+			return immutable ExprAndDedent(bogusExpr(range), initAndDedent.dedents - 1);
+		} else
+			return parseStatementsAndExtraDedents(alloc, lexer);
+	}();
+	immutable Ptr!ExprAst then = allocExpr(alloc, thenAndDedent.expr);
+	immutable ExprAstKind exprKind = isArrow
+		? immutable ExprAstKind(immutable ThenAst(immutable LambdaAst.Param(name.range, name.name), init, then))
+		: immutable ExprAstKind(immutable LetAst(name, init, then));
+	// Since we don't always expect a dedent here,
+	// the dedent isn't *extra*, so increment to get the correct number of dedents.
+	return ExprAndDedent(ExprAst(lexer.range(start), exprKind), thenAndDedent.dedents + 1);
 }
 
 immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
@@ -223,21 +231,21 @@ immutable(Bool) someInOwnBody(
 
 	return matchExprAstKind!(immutable Bool)(
 		body_.kind,
-		(scope ref immutable CallAst e) => e.args.exists(&recur),
-		(scope ref immutable CondAst) => unreachable!(immutable Bool),
-		(scope ref immutable CreateArrAst e) => e.args.exists(&recur),
-		(scope ref immutable CreateRecordAst e) => e.args.exists(&recur),
-		(scope ref immutable CreateRecordMultiLineAst e) => unreachable!(immutable Bool),
-		(scope ref immutable IdentifierAst) => False,
-		(scope ref immutable LambdaAst) => False,
-		(scope ref immutable LetAst) => unreachable!(immutable Bool),
-		(scope ref immutable LiteralAst) => False,
-		(scope ref immutable LiteralInnterAst) => unreachable!(immutable Bool),
-		(scope ref immutable MatchAst) => unreachable!(immutable Bool),
-		(scope ref immutable SeqAst) => unreachable!(immutable Bool),
-		(scope ref immutable RecordFieldSetAst e) => immutable Bool(recur(e.target) || recur(e.value)),
-		(scope ref immutable ThenAst) => unreachable!(immutable Bool),
-	);
+		(ref immutable BogusAst) => False,
+		(ref immutable CallAst e) => e.args.exists(&recur),
+		(ref immutable CondAst) => unreachable!(immutable Bool),
+		(ref immutable CreateArrAst e) => e.args.exists(&recur),
+		(ref immutable CreateRecordAst e) => e.args.exists(&recur),
+		(ref immutable CreateRecordMultiLineAst e) => unreachable!(immutable Bool),
+		(ref immutable IdentifierAst) => False,
+		(ref immutable LambdaAst) => False,
+		(ref immutable LetAst) => unreachable!(immutable Bool),
+		(ref immutable LiteralAst) => False,
+		(ref immutable LiteralInnterAst) => unreachable!(immutable Bool),
+		(ref immutable MatchAst) => unreachable!(immutable Bool),
+		(ref immutable SeqAst) => unreachable!(immutable Bool),
+		(ref immutable RecordFieldSetAst e) => immutable Bool(recur(e.target) || recur(e.value)),
+		(ref immutable ThenAst) => unreachable!(immutable Bool));
 }
 
 immutable(Bool) bodyUsesIt(ref immutable ExprAst body_) {
@@ -285,7 +293,7 @@ immutable(ExprAndMaybeDedent) parseMatch(Alloc, SymAlloc)(
 					lexer.takeIndent();
 					return some(local);
 				}();
-			immutable ExprAndDedent ed = parseStatementsAndDedent(alloc, lexer);
+			immutable ExprAndDedent ed = parseStatementsAndExtraDedents(alloc, lexer);
 			add(alloc, cases, immutable MatchAst.CaseAst(
 				lexer.range(startCase),
 				structName,
@@ -395,14 +403,14 @@ immutable(ExprAndMaybeDedent) parseWhenLoop(Alloc, SymAlloc)(
 	immutable Pos start,
 ) {
 	if (lexer.tryTakeElseIndent()) {
-		immutable ExprAndDedent elseAndDedent = parseStatementsAndDedent(alloc, lexer);
+		immutable ExprAndDedent elseAndDedent = parseStatementsAndExtraDedents(alloc, lexer);
 		if (elseAndDedent.dedents == 0)
 			todo!void("can't have any case after 'else'");
 		return ExprAndMaybeDedent(elseAndDedent.expr, some!size_t(elseAndDedent.dedents - 1));
 	} else {
 		immutable ExprAst condition = parseExprNoBlock(alloc, lexer);
 		lexer.takeIndent();
-		immutable ExprAndDedent thenAndDedent = parseStatementsAndDedent(alloc, lexer);
+		immutable ExprAndDedent thenAndDedent = parseStatementsAndExtraDedents(alloc, lexer);
 		if (thenAndDedent.dedents != 0)
 			return throwAtChar!ExprAndMaybeDedent(lexer, ParseDiag(ParseDiag.WhenMustHaveElse()));
 		immutable ExprAndMaybeDedent elseAndDedent = parseWhenLoop(alloc, lexer, start);
@@ -440,7 +448,7 @@ immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
 		immutable NameAndRange nr = lexer.takeNameAndRange();
 		add(alloc, parameters, LambdaAst.Param(nr.range, nr.name));
 	}
-	immutable ExprAndDedent bodyAndDedent = parseStatementsAndDedent(alloc, lexer);
+	immutable ExprAndDedent bodyAndDedent = parseStatementsAndExtraDedents(alloc, lexer);
 	immutable LambdaAst lambda = LambdaAst(finishArr(alloc, parameters), allocExpr(alloc, bodyAndDedent.expr));
 	return immutable ExprAndMaybeDedent(
 		immutable ExprAst(lexer.range(start), immutable ExprAstKind(lambda)),
@@ -584,14 +592,13 @@ immutable(ExprAndDedent) parseSingleStatementLine(Alloc, SymAlloc)(ref Alloc all
 }
 
 // Return value is number of dedents - 1; the number of *extra* dedents
-immutable(ExprAndDedent) parseStatementsAndDedent(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(ExprAndDedent) parseStatementsAndExtraDedents(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = lexer.curPos;
 	immutable ExprAndDedent ed = parseSingleStatementLine(alloc, lexer);
-	return parseStatementsAndDedentRecur(alloc, lexer, start, ed.expr, ed.dedents);
+	return parseStatementsAndExtraDedentsRecur(alloc, lexer, start, ed.expr, ed.dedents);
 }
 
-
-immutable(ExprAndDedent) parseStatementsAndDedentRecur(Alloc, SymAlloc)(
+immutable(ExprAndDedent) parseStatementsAndExtraDedentsRecur(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
@@ -601,7 +608,7 @@ immutable(ExprAndDedent) parseStatementsAndDedentRecur(Alloc, SymAlloc)(
 	if (dedents == 0) {
 		immutable ExprAndDedent ed = parseSingleStatementLine(alloc, lexer);
 		immutable SeqAst seq = SeqAst(allocExpr(alloc, expr), allocExpr(alloc, ed.expr));
-		return parseStatementsAndDedentRecur(
+		return parseStatementsAndExtraDedentsRecur(
 			alloc,
 			lexer,
 			start,

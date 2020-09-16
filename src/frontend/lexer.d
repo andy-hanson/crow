@@ -12,22 +12,14 @@ immutable PureLongJmp pureLongjmp =
 
 @safe @nogc pure nothrow:
 
-//alias jmp_buf = int;
-//
-//int pureSetjmp(ref jmp_buf) {
-//	return todo!int("pureSetjmp");
-//}
-//void pureLongjmp(ref jmp_buf, int) {
-//	todo!void("pureLongjmp");
-//}
-
 import frontend.ast : LiteralAst, NameAndRange;
 
 import parseDiag : ParseDiag, ParseDiagnostic;
 
 import util.alloc.alloc : nu;
 import util.bools : Bool, False, True;
-import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
+import util.collection.arr : Arr, arrOfRange, at, begin, empty, first, last, size;
+import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : slice;
 import util.collection.str : copyStr, CStr, MutStr, NulTerminatedStr, Str, stripNulTerminator;
 import util.memory : initMemory;
@@ -59,6 +51,7 @@ enum IndentKind {
 struct Lexer(SymAlloc) {
 	private:
 	Ptr!(AllSymbols!SymAlloc) allSymbols;
+	ArrBuilder!ParseDiagnostic diags;
 	immutable CStr sourceBegin;
 	CStr ptr;
 	immutable IndentKind indentKind;
@@ -84,6 +77,7 @@ struct Lexer(SymAlloc) {
 	}
 	return Lexer!SymAlloc(
 		allSymbols,
+		ArrBuilder!ParseDiagnostic(),
 		str.begin,
 		str.begin,
 		str.detectIndentKind,
@@ -96,6 +90,19 @@ immutable(char) curChar(SymAlloc)(ref const Lexer!SymAlloc lexer) {
 
 immutable(Pos) curPos(SymAlloc)(ref const Lexer!SymAlloc lexer) {
 	return safeSizeTToU32(lexer.ptr - lexer.sourceBegin);
+}
+
+void addDiag(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable SourceRange range,
+	immutable ParseDiag diag,
+) {
+	add(alloc, lexer.diags, immutable ParseDiagnostic(range, diag));
+}
+
+immutable(Arr!ParseDiagnostic) finishDiags(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	return finishArr(alloc, lexer.diags);
 }
 
 T throwDiag(T, SymAlloc)(ref Lexer!SymAlloc lexer, immutable ParseDiagnostic pd) {
