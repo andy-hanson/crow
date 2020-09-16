@@ -20,7 +20,9 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 			ExprAstKind,
 			FileAst,
 			SigAst,
-			TypeAst;
+			TypeAst,
+			FunDeclAst,
+			FunBodyAst;
 		import parseDiag : ParseDiagnostic;
 		import util.result : Result;
 		printf("Call: %lu\n", CallAst.sizeof);
@@ -46,6 +48,8 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 
 		printf("SigAst: %lu\n", SigAst.sizeof);
 		printf("TypeAst: %lu\n", TypeAst.sizeof);
+		printf("FunDeclAst: %lu\n", FunDeclAst.sizeof);
+		printf("FunBodyAst: %lu\n", FunBodyAst.sizeof);
 		return 0;
 	} }
 

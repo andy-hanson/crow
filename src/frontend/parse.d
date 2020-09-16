@@ -183,7 +183,7 @@ immutable(ParamsAndMaybeDedent) parseParams(Alloc, SymAlloc)(ref Alloc alloc, re
 }
 
 struct SigAstAndMaybeDedent {
-	immutable SigAst sig;
+	immutable Ptr!SigAst sig;
 	immutable Opt!size_t dedents;
 }
 
@@ -200,7 +200,7 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 ) {
 	immutable TypeAst returnType = parseType(alloc, lexer);
 	immutable ParamsAndMaybeDedent params = parseParams(alloc, lexer);
-	immutable SigAst sigAst = SigAst(lexer.range(start), name, returnType, params.params);
+	immutable Ptr!SigAst sigAst = nu!SigAst(alloc, lexer.range(start), name, returnType, params.params);
 	return SigAstAndMaybeDedent(sigAst, params.dedents);
 }
 
@@ -361,7 +361,7 @@ struct SpecUsesAndSigFlagsAndKwBody {
 	immutable Bool summon;
 	immutable Bool unsafe;
 	immutable Bool trusted;
-	immutable Opt!FunBodyAst body_; // 'builtin' or 'extern'
+	immutable Opt!(Ptr!FunBodyAst) body_; // none for 'builtin' or 'extern'
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
@@ -371,8 +371,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 		False,
 		False,
 		False,
-		none!FunBodyAst,
-	);
+		none!(Ptr!FunBodyAst));
 
 struct SpecUsesAndSigFlagsAndKwBodyBuilder {
 	ArrBuilder!SpecUseAst specUses;
@@ -486,11 +485,11 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(Alloc, SymAlloc)(
 
 		//TODO: assert 'builtin' and 'extern' and 'extern-global' can't be set together.
 		//Also, 'extern-global' should always be 'unsafe noctx'
-		immutable Opt!FunBodyAst body_ = builtin
-			? some(immutable FunBodyAst(immutable FunBodyAst.Builtin()))
+		immutable Opt!(Ptr!FunBodyAst) body_ = builtin
+			? some(nu!FunBodyAst(alloc, immutable FunBodyAst.Builtin()))
 			: extern_.has
-			? some(immutable FunBodyAst(extern_.force))
-			: none!FunBodyAst;
+			? some(nu!FunBodyAst(alloc, extern_.force))
+			: none!(Ptr!FunBodyAst);
 		return SpecUsesAndSigFlagsAndKwBody(finishArr(alloc, specUses), noCtx, summon, unsafe, trusted, body_);
 	}
 }
@@ -537,7 +536,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(Alloc,
 //TODO:RENAME
 struct FunDeclStuff {
 	immutable SpecUsesAndSigFlagsAndKwBody extra;
-	immutable FunBodyAst body_;
+	immutable Ptr!FunBodyAst body_;
 }
 
 immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
@@ -556,24 +555,24 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 			immutable SpecUsesAndSigFlagsAndKwBody extra = lexer.tryTake("spec")
 				? parseIndentedSpecUses(alloc, lexer)
 				: emptySpecUsesAndSigFlagsAndKwBody;
-			immutable FunBodyAst body_ = extra.body_.optOr(() {
+			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () {
 				lexer.take("body");
-				return immutable FunBodyAst(parseFunExprBody(alloc, lexer));
+				return nu!FunBodyAst(alloc, parseFunExprBody(alloc, lexer));
 			});
 			return FunDeclStuff(extra, body_);
 		} else {
 			immutable SpecUsesAndSigFlagsAndKwBody extra = parseSpecUsesAndSigFlagsAndKwBody(alloc, lexer);
-			immutable FunBodyAst body_ = extra.body_.optOr(() =>
-				immutable FunBodyAst(parseFunExprBody(alloc, lexer)));
+			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () =>
+				nu!FunBodyAst(alloc, parseFunExprBody(alloc, lexer)));
 			return FunDeclStuff(extra, body_);
 		}
 	}();
 	immutable SpecUsesAndSigFlagsAndKwBody extra = stuff.extra;
 	return FunDeclAst(
-		isPublic,
 		typeParams,
 		sig.sig,
 		extra.specUses,
+		isPublic,
 		extra.noCtx,
 		extra.summon,
 		extra.unsafe,

@@ -517,15 +517,15 @@ struct FunBodyAst {
 }
 
 struct FunDeclAst {
-	immutable Bool isPublic;
 	immutable Arr!TypeParamAst typeParams; // If this is empty, infer type params
-	immutable SigAst sig;
+	immutable Ptr!SigAst sig; // Ptr to keep this struct from getting too big
 	immutable Arr!SpecUseAst specUses;
+	immutable Bool isPublic;
 	immutable Bool noCtx;
 	immutable Bool summon;
 	immutable Bool unsafe;
 	immutable Bool trusted;
-	immutable FunBodyAst body_;
+	immutable Ptr!FunBodyAst body_;
 }
 
 struct ImportAst {
