@@ -3,7 +3,7 @@ module frontend.ast;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, True;
-import util.collection.arr : Arr, empty, emptyArr;
+import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, map;
 import util.collection.str : emptyStr, Str;
@@ -329,7 +329,7 @@ struct SigAst {
 	immutable SourceRange range;
 	immutable Sym name;
 	immutable TypeAst returnType;
-	immutable Arr!ParamAst params;
+	immutable ArrWithSize!ParamAst params;
 }
 
 enum PuritySpecifier {
@@ -728,7 +728,7 @@ immutable(Sexpr) sexprOfSig(Alloc)(ref Alloc alloc, ref immutable SigAst a) {
 		sexprOfSourceRange(alloc, a.range),
 		tataSym(a.name),
 		sexprOfTypeAst(alloc, a.returnType),
-		tataArr(alloc, a.params, (ref immutable ParamAst p) => sexprOfParamAst(alloc, p)));
+		tataArr(alloc, toArr(a.params), (ref immutable ParamAst p) => sexprOfParamAst(alloc, p)));
 }
 
 immutable(Sexpr) sexprOfSpecUseAst(Alloc)(ref Alloc alloc, ref immutable SpecUseAst a) {

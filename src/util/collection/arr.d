@@ -7,6 +7,23 @@ import util.ptr : Ptr;
 import util.memory : myEmplace, overwriteMemory;
 import util.util : verify;
 
+struct ArrWithSize(T) {
+	ubyte* sizeAndBegin_;
+	@disable this();
+	@system immutable this(immutable ubyte* p) { sizeAndBegin_ = p; }
+}
+
+@trusted immutable(Arr!T) toArr(T)(ref immutable ArrWithSize!T a) {
+	immutable T* begin = cast(immutable T*) (a.sizeAndBegin_ + size_t.sizeof);
+	immutable size_t size = *(cast(immutable size_t*) a.sizeAndBegin_);
+	return immutable Arr!T(begin, size);
+}
+
+@trusted immutable(ArrWithSize!T) emptyArrWithSize(T)() {
+	static immutable size_t zero = 0;
+	return immutable ArrWithSize!T(cast(immutable ubyte*) &zero);
+}
+
 struct Arr(T) {
 	private:
 	T* begin_;

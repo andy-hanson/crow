@@ -18,7 +18,9 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 			RecordFieldSetAst,
 			ThenAst,
 			ExprAstKind,
-			FileAst;
+			FileAst,
+			SigAst,
+			TypeAst;
 		import parseDiag : ParseDiagnostic;
 		import util.result : Result;
 		printf("Call: %lu\n", CallAst.sizeof);
@@ -41,7 +43,11 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 		printf("FileAst: %lu\n", FileAst.sizeof);
 		printf("ParseDiagnostic: %lu\n", ParseDiagnostic.sizeof);
 		printf("ThisThing: %lu\n", ThisThing.sizeof);
+
+		printf("SigAst: %lu\n", SigAst.sizeof);
+		printf("TypeAst: %lu\n", TypeAst.sizeof);
 		return 0;
 	} }
+
 	return cli(argc, argv);
 }

@@ -90,7 +90,7 @@ import model :
 	typeParams;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, emptyArr, ptrsRange, range, size, sizeEq;
+import util.collection.arr : Arr, at, empty, emptyArr, ptrsRange, range, size, sizeEq, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAsTempArr, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
@@ -359,7 +359,7 @@ void collectTypeParamsInAst(Alloc)(ref Alloc alloc, ref immutable TypeAst ast, r
 immutable(Arr!TypeParam) collectTypeParams(Alloc)(ref Alloc alloc, ref immutable SigAst ast) {
 	ArrBuilder!TypeParam res;
 	collectTypeParamsInAst(alloc, ast.returnType, res);
-	foreach (ref immutable ParamAst p; range(ast.params))
+	foreach (ref immutable ParamAst p; range(toArr(ast.params)))
 		collectTypeParamsInAst(alloc, p.type, res);
 	return finishArr(alloc, res);
 }
@@ -367,7 +367,7 @@ immutable(Arr!TypeParam) collectTypeParams(Alloc)(ref Alloc alloc, ref immutable
 immutable(Arr!Param) checkParams(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	ref immutable Arr!ParamAst asts,
+	immutable Arr!ParamAst asts,
 	ref immutable StructsAndAliasesMap structsAndAliasesMap,
 	ref immutable TypeParamsScope typeParamsScope,
 	ref DelayStructInsts delayStructInsts,
@@ -405,7 +405,7 @@ immutable(Sig) checkSig(Alloc)(
 ) {
 	immutable TypeParamsScope typeParamsScope = TypeParamsScope(typeParams);
 	immutable Arr!Param params =
-		checkParams(alloc, ctx, ast.params, structsAndAliasesMap, typeParamsScope, delayStructInsts);
+		checkParams(alloc, ctx, toArr(ast.params), structsAndAliasesMap, typeParamsScope, delayStructInsts);
 	immutable Type returnType =
 		typeFromAst(alloc, ctx, ast.returnType, structsAndAliasesMap, typeParamsScope, delayStructInsts);
 	return Sig(ast.range, ast.name, returnType, params);

@@ -12,6 +12,15 @@ immutable PureLongJmp pureLongjmp =
 
 @safe @nogc pure nothrow:
 
+//alias jmp_buf = int;
+//
+//int pureSetjmp(ref jmp_buf) {
+//	return todo!int("pureSetjmp");
+//}
+//void pureLongjmp(ref jmp_buf, int) {
+//	todo!void("pureLongjmp");
+//}
+
 import frontend.ast : LiteralAst, NameAndRange;
 
 import parseDiag : ParseDiag, ParseDiagnostic;

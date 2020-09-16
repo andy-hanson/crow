@@ -55,8 +55,8 @@ import frontend.parseType : parseStructType, parseType, tryParseTypeArgs;
 import parseDiag : ParseDiag;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, emptyArr;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.collection.arr : Arr, ArrWithSize, emptyArr, emptyArrWithSize;
+import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
 import util.collection.str : CStr, NulTerminatedStr, Str;
 import util.memory : nu;
 import util.opt : force, has, none, Opt, optOr, some;
@@ -130,7 +130,7 @@ immutable(ImportAst) parseSingleImport(Alloc, SymAlloc)(ref Alloc alloc, ref Lex
 }
 
 struct ParamsAndMaybeDedent {
-	immutable Arr!ParamAst params;
+	immutable ArrWithSize!ParamAst params;
 	// 0 if we took a newline but it didn't change the indent level from before parsing params.
 	immutable Opt!size_t dedents;
 }
@@ -143,12 +143,12 @@ immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer
 	return ParamAst(lexer.range(start), name, type);
 }
 
-immutable(Arr!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(ArrWithSize!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	lexer.take('(');
 	if (lexer.tryTake(')'))
-		return emptyArr!ParamAst;
+		return emptyArrWithSize!ParamAst;
 	else {
-		ArrBuilder!ParamAst res;
+		ArrWithSizeBuilder!ParamAst res;
 		for (;;) {
 			add(alloc, res, parseSingleParam(alloc, lexer));
 			if (lexer.tryTake(')'))
@@ -160,7 +160,7 @@ immutable(Arr!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Alloc allo
 }
 
 immutable(ParamsAndMaybeDedent) parseIndentedParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	ArrBuilder!ParamAst res;
+	ArrWithSizeBuilder!ParamAst res;
 	for (;;) {
 		add(alloc, res, parseSingleParam(alloc, lexer));
 		immutable size_t dedents = lexer.takeNewlineOrDedentAmount();
@@ -174,7 +174,7 @@ immutable(ParamsAndMaybeDedent) parseParams(Alloc, SymAlloc)(ref Alloc alloc, re
 	if (opNi.has)
 		final switch (opNi.force) {
 			case NewlineOrIndent.newline:
-				return ParamsAndMaybeDedent(emptyArr!ParamAst, some!size_t(0));
+				return ParamsAndMaybeDedent(emptyArrWithSize!ParamAst, some!size_t(0));
 			case NewlineOrIndent.indent:
 				return parseIndentedParams(alloc, lexer);
 		}

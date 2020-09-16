@@ -24,7 +24,7 @@ extern(C) immutable(size_t) getBufferSize() {
 	Alloc alloc;
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 	immutable NulTerminatedStr str = nulTerminatedStrOfCStr(cast(immutable) buffer.ptr);
-	//immutable Result!(FileAst, ParseDiagnostic) rslt = parseFile(alloc, allSymbols, str);
+	immutable Result!(FileAst, ParseDiagnostic) rslt = parseFile(alloc, allSymbols, str);
 	//matchResultImpure!(void, FileAst, ParseDiagnostic)(
 	//	rslt,
 	//	(ref immutable FileAst ast) {
