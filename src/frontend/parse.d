@@ -5,6 +5,7 @@ module frontend.parse;
 import parseDiag : ParseDiagnostic;
 
 import frontend.ast :
+	emptyFileAst,
 	ExplicitByValOrRef,
 	FileAst,
 	FileAstPart0,
@@ -56,7 +57,7 @@ import frontend.parseType : parseStructType, parseType, tryParseTypeArgs;
 import parseDiag : ParseDiag;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, emptyArrWithSize;
+import util.collection.arr : Arr, ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
 import util.collection.str : CStr, NulTerminatedStr, Str;
@@ -64,13 +65,17 @@ import util.memory : nu;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.path : childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.result : fail, Result, success;
 import util.sourceRange : Pos;
 import util.sym : AllSymbols, shortSymAlphaLiteralValue, Sym;
 import util.types : u8;
 import util.util : todo, unreachable, verify;
 
-immutable(Result!(FileAst, Arr!ParseDiagnostic)) parseFile(Alloc, SymAlloc)(
+struct FileAstAndParseDiagnostics {
+	immutable FileAst ast;
+	immutable Arr!ParseDiagnostic diagnostics;
+}
+
+immutable(FileAstAndParseDiagnostics) parseFile(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	immutable NulTerminatedStr source,
@@ -79,13 +84,9 @@ immutable(Result!(FileAst, Arr!ParseDiagnostic)) parseFile(Alloc, SymAlloc)(
 	immutable int i = pureSetjmp(lexer.jump_buffer);
 	if (i == 0) {
 		immutable FileAst ast = parseFileInner(alloc, lexer);
-		immutable Arr!ParseDiagnostic diags = finishDiags(alloc, lexer);
-		return empty(diags)
-			? success!(FileAst, Arr!ParseDiagnostic)(ast)
-			: fail!(FileAst, Arr!ParseDiagnostic)(diags);
-	} else {
-		return fail!(FileAst, Arr!ParseDiagnostic)(arrLiteral(alloc, lexer.diagnostic_));
-	}
+		return immutable FileAstAndParseDiagnostics(ast, finishDiags(alloc, lexer));
+	} else
+		return immutable FileAstAndParseDiagnostics(emptyFileAst, arrLiteral(alloc, lexer.diagnostic_));
 }
 
 private:

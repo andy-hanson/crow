@@ -17,11 +17,11 @@ import model :
 	StructInst;
 import parseDiag : ParseDiagnostic;
 
-import frontend.ast : exports, FileAst, funs, ImportAst, imports, specs, structAliases, structs;
+import frontend.ast : emptyFileAst, exports, FileAst, funs, ImportAst, imports, specs, structAliases, structs;
 import frontend.check : BootstrapCheck, check, checkBootstrapNz, PathAndAst;
 import frontend.instantiate : instantiateNonTemplateStruct;
 import frontend.lang : nozeExtension;
-import frontend.parse : parseFile;
+import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
 import frontend.readOnlyStorage : absolutePathsGetter, choose, ReadOnlyStorage, ReadOnlyStorages, tryReadFile;
 
@@ -72,7 +72,17 @@ immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, SymAlloc)(
 		immutable Diagnostics(diagnostics, FilesInfo(storages.absolutePathsGetter, parsed.lineAndColumnGetters)));
 }
 
-immutable(Result!(FileAst, Diagnostics)) parseAst(Alloc, SymAlloc)(
+struct FileAstAndArrDiagnostic {
+	immutable FileAst ast;
+	immutable Arr!Diagnostic diagnostics;
+}
+
+struct FileAstAndDiagnostics {
+	immutable FileAst ast;
+	immutable Diagnostics diagnostics;
+}
+
+immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref ReadOnlyStorages storages,
@@ -83,18 +93,18 @@ immutable(Result!(FileAst, Diagnostics)) parseAst(Alloc, SymAlloc)(
 	// In this case model alloc and AST alloc are the same
 	immutable Opt!NulTerminatedStr opFileContent =
 		getFile(fileAlloc, PathAndStorageKind(path, StorageKind.local), storages);
-	immutable Result!(FileAst, Diags) res =
-		parseSingle(
-			alloc,
-			alloc,
-			allSymbols,
-			none!PathAndStorageKindAndRange,
-			PathAndStorageKind(path, StorageKind.local),
-			lineAndColumnGetters,
-			opFileContent);
+	immutable FileAstAndArrDiagnostic res = parseSingle(
+		alloc,
+		alloc,
+		allSymbols,
+		none!PathAndStorageKindAndRange,
+		PathAndStorageKind(path, StorageKind.local),
+		lineAndColumnGetters,
+		opFileContent);
 	immutable LineAndColumnGetters lc = finishDictShouldBeNoConflict(alloc, lineAndColumnGetters);
-	return mapFailure!(Diagnostics, FileAst, Diags)(res, (ref immutable Diags diagnostics) =>
-		immutable Diagnostics(diagnostics, FilesInfo(storages.absolutePathsGetter, lc)));
+	return immutable FileAstAndDiagnostics(
+		res.ast,
+		immutable Diagnostics(res.diagnostics, FilesInfo(storages.absolutePathsGetter, lc)));
 }
 
 private:
@@ -188,62 +198,60 @@ immutable(Opt!Diags) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 	setInDict(astAlloc, statuses, path, ParseStatus.started);
 
 	immutable Opt!NulTerminatedStr opFileContent = getFile(astAlloc, path, storages);
-	immutable Result!(FileAst, Diags) parseResult =
+	immutable FileAstAndArrDiagnostic parseResult =
 		parseSingle(modelAlloc, astAlloc, allSymbols, importedFrom, path, lineAndColumnGetters, opFileContent);
-	return matchResultImpure(
-		parseResult,
-		(ref immutable FileAst ast) {
-			immutable Result!(ImportAndExportPaths, Diags) importsResult =
-				resolveImportsAndExports(modelAlloc, astAlloc, path, ast.imports, ast.exports);
-			return matchResultImpure(
-				importsResult,
-				(ref immutable ImportAndExportPaths importsAndExports) {
-					// Ensure all imports are added before adding this
-					immutable Arr!ResolvedImport importsAndExportsArr =
-						cat(astAlloc, importsAndExports.imports, importsAndExports.exports);
-					foreach (ref immutable ResolvedImport import_; importsAndExportsArr.range) {
-						immutable Opt!ParseStatus status = statuses.getAt_mut(import_.resolvedPath);
-						if (status.has) {
-							final switch (status.force) {
-								case ParseStatus.started:
-									return some(arrLiteral!Diagnostic(modelAlloc,
-										immutable Diagnostic(
-											import_.importedFrom,
-											immutable Diag(Diag.CircularImport(path, import_.resolvedPath)))));
-								case ParseStatus.finished:
-									break;
-							}
-						} else {
-							immutable Opt!Diags err = parseRecur(
-								modelAlloc,
-								astAlloc,
-								allSymbols,
-								storages,
-								lineAndColumnGetters,
-								res,
-								statuses,
-								some(import_.importedFrom),
-								import_.resolvedPath);
-							if (err.has)
-								return err;
+	if (!empty(parseResult.diagnostics))
+		return some(parseResult.diagnostics);
+	else {
+		immutable FileAst ast = parseResult.ast;
+		immutable Result!(ImportAndExportPaths, Diags) importsResult =
+			resolveImportsAndExports(modelAlloc, astAlloc, path, ast.imports, ast.exports);
+		return matchResultImpure(
+			importsResult,
+			(ref immutable ImportAndExportPaths importsAndExports) {
+				// Ensure all imports are added before adding this
+				immutable Arr!ResolvedImport importsAndExportsArr =
+					cat(astAlloc, importsAndExports.imports, importsAndExports.exports);
+				foreach (ref immutable ResolvedImport import_; importsAndExportsArr.range) {
+					immutable Opt!ParseStatus status = statuses.getAt_mut(import_.resolvedPath);
+					if (status.has) {
+						final switch (status.force) {
+							case ParseStatus.started:
+								return some(arrLiteral!Diagnostic(modelAlloc,
+									immutable Diagnostic(
+										import_.importedFrom,
+										immutable Diag(Diag.CircularImport(path, import_.resolvedPath)))));
+							case ParseStatus.finished:
+								break;
 						}
+					} else {
+						immutable Opt!Diags err = parseRecur(
+							modelAlloc,
+							astAlloc,
+							allSymbols,
+							storages,
+							lineAndColumnGetters,
+							res,
+							statuses,
+							some(import_.importedFrom),
+							import_.resolvedPath);
+						if (err.has)
+							return err;
 					}
-					immutable PathAndAstAndResolvedImports pa = PathAndAstAndResolvedImports(
-						path,
-						ast,
-						stripRange(astAlloc, importsAndExports.imports),
-						stripRange(astAlloc, importsAndExports.exports));
-					add(astAlloc, res, pa);
-					setInDict(astAlloc, statuses, path, ParseStatus.finished);
-					return none!Diags;
-				},
-				(ref immutable Diags d) =>
-					some(d),
-			);
-		},
-		(ref immutable Diags d) =>
-			some(d),
-	);
+				}
+				immutable PathAndAstAndResolvedImports pa = PathAndAstAndResolvedImports(
+					path,
+					ast,
+					stripRange(astAlloc, importsAndExports.imports),
+					stripRange(astAlloc, importsAndExports.exports));
+				add(astAlloc, res, pa);
+				setInDict(astAlloc, statuses, path, ParseStatus.finished);
+				return none!Diags;
+			},
+			(ref immutable Diags d) =>
+				some(d),
+		);
+	}
 }
 
 pure:
@@ -293,7 +301,7 @@ void addEmptyLineAndColumnGetter(Alloc)(
 	addToDict(alloc, lineAndColumnGetters, where, lineAndColumnGetterForEmptyFile(alloc));
 }
 
-immutable(Result!(FileAst, Diags)) parseSingle(ModelAlloc, AstAlloc, SymAlloc)(
+immutable(FileAstAndArrDiagnostic) parseSingle(ModelAlloc, AstAlloc, SymAlloc)(
 	ref ModelAlloc modelAlloc,
 	ref AstAlloc astAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
@@ -310,9 +318,8 @@ immutable(Result!(FileAst, Diags)) parseSingle(ModelAlloc, AstAlloc, SymAlloc)(
 			lineAndColumnGetters,
 			where,
 			lineAndColumnGetterForText(modelAlloc, text.stripNulTerminator));
-		immutable Result!(FileAst, Arr!ParseDiagnostic) result = parseFile(astAlloc, allSymbols, text);
-		return mapFailure!(Diags, FileAst, Arr!ParseDiagnostic)(result, (ref immutable Arr!ParseDiagnostic it) =>
-			parseDiagnostics(modelAlloc, where, it));
+		immutable FileAstAndParseDiagnostics result = parseFile(astAlloc, allSymbols, text);
+		return immutable FileAstAndArrDiagnostic(result.ast, parseDiagnostics(modelAlloc, where, result.diagnostics));
 	} else {
 		immutable Bool isImport = importedFrom.has;
 		immutable PathAndStorageKindAndRange diagWhere = isImport
@@ -323,9 +330,9 @@ immutable(Result!(FileAst, Diags)) parseSingle(ModelAlloc, AstAlloc, SymAlloc)(
 		immutable Diag.FileDoesNotExist.Kind kind = isImport
 			? Diag.FileDoesNotExist.Kind.import_
 			: Diag.FileDoesNotExist.Kind.root;
-		return fail!(FileAst, Diags)(arrLiteral!Diagnostic(
+		return immutable FileAstAndArrDiagnostic(emptyFileAst, arrLiteral!Diagnostic(
 			modelAlloc,
-			Diagnostic(diagWhere, immutable Diag(Diag.FileDoesNotExist(kind, where)))));
+			immutable Diagnostic(diagWhere, immutable Diag(Diag.FileDoesNotExist(kind, where)))));
 	}
 }
 

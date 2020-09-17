@@ -7,7 +7,7 @@ import concreteModel : ConcreteProgram;
 import concretize.concretize : concretize;
 import diag : Diagnostics;
 import frontend.ast : FileAst, sexprOfAst;
-import frontend.frontendCompile : frontendCompile, parseAst;
+import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : printDiagnostics;
 import lower.lower : lower;
@@ -19,7 +19,7 @@ import sexprOfModel : sexprOfModule;
 import util.alloc.mallocator : Mallocator;
 import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
 import util.bools : Bool;
-import util.collection.arr : Arr;
+import util.collection.arr : Arr, empty;
 import util.collection.arrUtil : arrLiteral, cat;
 import util.collection.str : emptyStr, Str, strLiteral;
 import util.io : Environ, replaceCurrentProcess, spawnAndWaitSync, writeFileSync;
@@ -111,18 +111,11 @@ immutable(int) printAst(SymAlloc)(
 	ReadOnlyStorages storages = ReadOnlyStorages(
 		ReadOnlyStorage(programDirAndMain.programDir),
 		ReadOnlyStorage(programDirAndMain.programDir));
-	immutable Result!(FileAst, Diagnostics) astResult =
-		parseAst(alloc, allSymbols, storages, programDirAndMain.mainPath);
-	return matchResultImpure!(int, FileAst, Diagnostics)(
-		astResult,
-		(ref immutable FileAst ast) {
-			printOutAst(ast, format);
-			return 0;
-		},
-		(ref immutable Diagnostics diagnostics) {
-			printDiagnostics(diagnostics);
-			return 1;
-		});
+	immutable FileAstAndDiagnostics astResult =
+		parseSingleAst(alloc, allSymbols, storages, programDirAndMain.mainPath);
+	printDiagnostics(astResult.diagnostics);
+	printOutAst(astResult.ast, format);
+	return empty(astResult.diagnostics.diagnostics) ? 0 : 1;
 }
 
 immutable(int) printModel(SymAlloc)(

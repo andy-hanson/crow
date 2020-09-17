@@ -679,6 +679,5 @@ struct Diagnostics {
 	this(immutable Diags d, immutable FilesInfo f) immutable {
 		diagnostics = d;
 		filesInfo = f;
-		verify(!diagnostics.empty);
 	}
 }

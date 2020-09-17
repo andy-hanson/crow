@@ -570,6 +570,14 @@ struct FileAst {
 	immutable Ptr!FileAstPart1 part1;
 }
 
+private immutable FileAstPart0 emptyFileAstPart0 =
+	immutable FileAstPart0(emptyArr!ImportAst, emptyArr!ImportAst, emptyArr!SpecDeclAst);
+private immutable FileAstPart1 emptyFileAstPart1 =
+	immutable FileAstPart1(emptyArr!StructAliasAst, emptyArr!StructDeclAst, emptyArr!FunDeclAst);
+immutable FileAst emptyFileAst = immutable FileAst(
+	immutable Ptr!FileAstPart0(&emptyFileAstPart0),
+	immutable Ptr!FileAstPart1(&emptyFileAstPart1));
+
 ref immutable(Arr!ImportAst) imports(return scope ref immutable FileAst a) {
 	return a.part0.imports;
 }
