@@ -1,0 +1,23 @@
+file-ast(
+	imports: []
+	exports: []
+	specs: []
+	aliases: []
+	structs: [
+		struct(
+			range(0, 29)
+			true
+			[]
+			none
+			record(
+				none
+				[
+					field(range(10, 13), false, f, inststruct(range(12, 13), t))
+					field(range(15, 19), false, g, type-param(range(17, 19), a))
+					field(range(21, 27), false, h, inststruct(range(23, 27), t, [type-param(range(25, 27), a)]))]))
+		struct(range(29, 41), true, [], none, union([inststruct(range(38, 39), t)]))]
+	funs: [
+		fun-decl(
+			public?: true
+			sig: sig-ast(range(41, 48), foo, inststruct(range(45, 46), t), [])
+			body: seq-ast(seq-ast(x, call(y, [], [a])), call(z, [], [a, b])))])

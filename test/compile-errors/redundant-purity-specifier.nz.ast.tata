@@ -1,0 +1,11 @@
+file-ast(
+	imports: []
+	exports: []
+	specs: []
+	aliases: []
+	structs: [
+		struct(range(0, 16), true, [], some(data), builtin)
+		struct(range(16, 34), true, [], some(mut), extern)
+		struct(range(34, 49), true, [], some(data), record(none, []))
+		struct(range(49, 65), true, [], some(data), union([inststruct(range(63, 64), r)]))]
+	funs: [])

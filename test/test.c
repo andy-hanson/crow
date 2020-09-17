@@ -256,6 +256,12 @@ struct ok__arr__char {
 struct err__arr__ptr_failure {
 	struct arr__ptr_failure value;
 };
+struct fun0__result__arr__char__arr__ptr_failure;
+struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char;
+struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure;
+struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure {
+	struct arr__char a_descr;
+};
 struct fun_mut1___void__arr__char;
 struct stat_t {
 	uint64_t st_dev;
@@ -296,7 +302,7 @@ struct mut_slice__arr__char {
 	uint64_t begin;
 };
 struct each_child_recursive___void__arr__char__fun_mut1__bool__arr__char__fun_mut1___void__arr__char__lambda0___closure;
-struct list_compile_error_tests__arr__arr__char__arr__char__lambda1___closure {
+struct list_tests__arr__arr__char__arr__char__lambda1___closure {
 	struct mut_arr__arr__char* res;
 };
 struct fun_mut1__arr__ptr_failure__arr__char;
@@ -311,10 +317,24 @@ struct fun_mut1___void__ptr_failure;
 struct push_all___void__ptr_mut_arr__ptr_failure__arr__ptr_failure__lambda0___closure {
 	struct mut_arr__ptr_failure* a;
 };
-struct run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure {
-	struct test_options options;
+struct run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure {
 	struct arr__char path_to_noze;
 	struct dict__arr__char__arr__char* env;
+	struct test_options options;
+};
+struct some__arr__ptr_failure {
+	struct arr__ptr_failure value;
+};
+struct fun_mut1__opt__arr__ptr_failure__arr__char;
+struct run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options__lambda0___closure {
+	struct test_options options;
+	struct arr__char path;
+	struct arr__char path_to_noze;
+	struct dict__arr__char__arr__char* env;
+};
+struct print_test_result {
+	uint8_t should_stop__q;
+	struct arr__ptr_failure failures;
 };
 struct process_result {
 	int32_t exit_code;
@@ -360,50 +380,11 @@ struct fun_mut2___void__arr__char__arr__char;
 struct convert_environ__ptr__ptr__char__ptr_dict__arr__char__arr__char__lambda0___closure {
 	struct mut_arr__ptr__char* res;
 };
-struct fun0__result__arr__char__arr__ptr_failure;
-struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char;
-struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure;
-struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure {
-	struct arr__char a_descr;
-};
 struct do_test__int32__test_options__lambda0___closure {
 	struct arr__char test_path;
 	struct arr__char noze_exe;
 	struct dict__arr__char__arr__char* env;
 	struct test_options options;
-};
-struct list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure {
-	struct mut_arr__arr__char* res;
-};
-struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure {
-	struct test_options options;
-	struct arr__char path_to_noze;
-	struct dict__arr__char__arr__char* env;
-};
-struct some__arr__ptr_failure {
-	struct arr__ptr_failure value;
-};
-struct fun_mut1__opt__arr__ptr_failure__arr__char;
-struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure {
-	struct arr__char path_to_noze;
-	struct dict__arr__char__arr__char* env;
-	struct arr__char test;
-	struct test_options options;
-};
-struct fun_mut0__arr__ptr_failure;
-struct do_test__int32__test_options__lambda0__lambda0___closure {
-	struct arr__char test_path;
-	struct arr__char noze_exe;
-	struct dict__arr__char__arr__char* env;
-	struct test_options options;
-};
-struct list_runnable_tests__arr__arr__char__arr__char__lambda1___closure {
-	struct mut_arr__arr__char* res;
-};
-struct run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure {
-	struct test_options options;
-	struct arr__char path_to_noze;
-	struct dict__arr__char__arr__char* env;
 };
 struct do_test__int32__test_options__lambda1___closure {
 	struct arr__char noze_path;
@@ -548,17 +529,16 @@ typedef struct opt__arr__arr__char (*fun_ptr3__opt__arr__arr__char__ptr_ctx__ptr
 typedef uint8_t (*fun_ptr4___void__ptr_ctx__ptr__nat8__arr__char__arr__arr__char)(struct ctx*, uint8_t*, struct arr__char, struct arr__arr__char);
 typedef char (*fun_ptr3__char__ptr_ctx__ptr__nat8__nat)(struct ctx*, uint8_t*, uint64_t);
 typedef uint8_t (*fun_ptr3__bool__ptr_ctx__ptr__nat8__char)(struct ctx*, uint8_t*, char);
+typedef struct result__arr__char__arr__ptr_failure (*fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8)(struct ctx*, uint8_t*);
+typedef struct result__arr__char__arr__ptr_failure (*fun_ptr3__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char)(struct ctx*, uint8_t*, struct arr__char);
 typedef uint8_t (*fun_ptr3___void__ptr_ctx__ptr__nat8__arr__char)(struct ctx*, uint8_t*, struct arr__char);
 typedef struct arr__ptr_failure (*fun_ptr3__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char)(struct ctx*, uint8_t*, struct arr__char);
 typedef uint8_t (*fun_ptr3___void__ptr_ctx__ptr__nat8__ptr_failure)(struct ctx*, uint8_t*, struct failure*);
+typedef struct opt__arr__ptr_failure (*fun_ptr3__opt__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char)(struct ctx*, uint8_t*, struct arr__char);
 typedef struct arr__char (*fun_ptr4__arr__char__ptr_ctx__ptr__nat8__arr__char__arr__char)(struct ctx*, uint8_t*, struct arr__char, struct arr__char);
 typedef char* (*fun_ptr3__ptr__char__ptr_ctx__ptr__nat8__nat)(struct ctx*, uint8_t*, uint64_t);
 typedef char* (*fun_ptr3__ptr__char__ptr_ctx__ptr__nat8__arr__char)(struct ctx*, uint8_t*, struct arr__char);
 typedef uint8_t (*fun_ptr4___void__ptr_ctx__ptr__nat8__arr__char__arr__char)(struct ctx*, uint8_t*, struct arr__char, struct arr__char);
-typedef struct result__arr__char__arr__ptr_failure (*fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8)(struct ctx*, uint8_t*);
-typedef struct result__arr__char__arr__ptr_failure (*fun_ptr3__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char)(struct ctx*, uint8_t*, struct arr__char);
-typedef struct opt__arr__ptr_failure (*fun_ptr3__opt__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char)(struct ctx*, uint8_t*, struct arr__char);
-typedef struct arr__ptr_failure (*fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__nat8)(struct ctx*, uint8_t*);
 typedef uint8_t (*fun_ptr4___void__ptr_ctx__ptr__nat8__arr__char__nat)(struct ctx*, uint8_t*, struct arr__char, uint64_t);
 typedef uint8_t (*fun_ptr4___void__ptr_ctx__ptr__nat8__char__nat)(struct ctx*, uint8_t*, char, uint64_t);
 struct fut__int32;
@@ -732,6 +712,17 @@ struct fun_mut1__bool__char {
 	fun_ptr3__bool__ptr_ctx__ptr__nat8__char fun_ptr;
 	uint8_t* closure;
 };
+struct fun0__result__arr__char__arr__ptr_failure {
+	fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8 fun_ptr;
+	uint8_t* closure;
+};
+struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char {
+	fun_ptr3__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char fun_ptr;
+	uint8_t* closure;
+};
+struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure {
+	struct fun0__result__arr__char__arr__ptr_failure b;
+};
 struct fun_mut1___void__arr__char {
 	fun_ptr3___void__ptr_ctx__ptr__nat8__arr__char fun_ptr;
 	uint8_t* closure;
@@ -756,6 +747,10 @@ struct fun_mut1___void__ptr_failure {
 	fun_ptr3___void__ptr_ctx__ptr__nat8__ptr_failure fun_ptr;
 	uint8_t* closure;
 };
+struct fun_mut1__opt__arr__ptr_failure__arr__char {
+	fun_ptr3__opt__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char fun_ptr;
+	uint8_t* closure;
+};
 struct fun_mut2__arr__char__arr__char__arr__char {
 	fun_ptr4__arr__char__ptr_ctx__ptr__nat8__arr__char__arr__char fun_ptr;
 	uint8_t* closure;
@@ -775,25 +770,6 @@ struct map__arr__ptr__char__arr__arr__char__fun_mut1__ptr__char__arr__char__lamb
 };
 struct fun_mut2___void__arr__char__arr__char {
 	fun_ptr4___void__ptr_ctx__ptr__nat8__arr__char__arr__char fun_ptr;
-	uint8_t* closure;
-};
-struct fun0__result__arr__char__arr__ptr_failure {
-	fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8 fun_ptr;
-	uint8_t* closure;
-};
-struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char {
-	fun_ptr3__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char fun_ptr;
-	uint8_t* closure;
-};
-struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure {
-	struct fun0__result__arr__char__arr__ptr_failure b;
-};
-struct fun_mut1__opt__arr__ptr_failure__arr__char {
-	fun_ptr3__opt__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char fun_ptr;
-	uint8_t* closure;
-};
-struct fun_mut0__arr__ptr_failure {
-	fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__nat8 fun_ptr;
 	uint8_t* closure;
 };
 struct fun_mut2___void__arr__char__nat {
@@ -1456,9 +1432,18 @@ struct key_value_pair__arr__char__arr__char* parse_environ_entry__ptr_key_value_
 char** incr__ptr__ptr__char__ptr__ptr__char(char** p);
 extern char** environ;
 struct dict__arr__char__arr__char* freeze__ptr_dict__arr__char__arr__char__mut_dict__arr__char__arr__char(struct ctx* ctx, struct mut_dict__arr__char__arr__char m);
-struct result__arr__char__arr__ptr_failure run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct test_options options);
-struct arr__arr__char list_compile_error_tests__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path);
-uint8_t list_compile_error_tests__arr__arr__char__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__char s);
+struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(struct ctx* ctx, struct result__arr__char__arr__ptr_failure a, struct fun0__result__arr__char__arr__ptr_failure b);
+struct result__arr__char__arr__ptr_failure then__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char(struct ctx* ctx, struct result__arr__char__arr__ptr_failure a, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f);
+struct result__arr__char__arr__ptr_failure call__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(struct ctx* ctx, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f, struct arr__char p0);
+struct result__arr__char__arr__ptr_failure call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(struct ctx* c, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f, struct arr__char p0);
+struct result__arr__char__arr__ptr_failure call__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(struct ctx* ctx, struct fun0__result__arr__char__arr__ptr_failure f);
+struct result__arr__char__arr__ptr_failure call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun0__result__arr__char__arr__ptr_failure(struct ctx* c, struct fun0__result__arr__char__arr__ptr_failure f);
+struct ok__arr__char ok__ok__arr__char__arr__char(struct arr__char t);
+struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0(struct ctx* ctx, struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure* _closure, struct arr__char b_descr);
+struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0(struct ctx* ctx, struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure* _closure, struct arr__char a_descr);
+struct result__arr__char__arr__ptr_failure run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct test_options options);
+struct arr__arr__char list_tests__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path);
+uint8_t list_tests__arr__arr__char__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__char s);
 uint8_t each_child_recursive___void__arr__char__fun_mut1__bool__arr__char__fun_mut1___void__arr__char(struct ctx* ctx, struct arr__char path, struct fun_mut1__bool__arr__char filter, struct fun_mut1___void__arr__char f);
 uint8_t is_dir__q__bool__arr__char(struct ctx* ctx, struct arr__char path);
 uint8_t is_dir__q__bool__ptr__char(struct ctx* ctx, char* path);
@@ -1471,7 +1456,7 @@ int32_t enoent__int32();
 struct opt__ptr_stat_t todo__opt__ptr_stat_t();
 uint8_t todo__bool();
 uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b);
-struct comparison compare458(uint32_t a, uint32_t b);
+struct comparison compare467(uint32_t a, uint32_t b);
 uint32_t s_ifmt__nat32(struct ctx* ctx);
 uint32_t two_pow__nat32__nat32(uint32_t pow);
 uint8_t zero__q__bool__nat32(uint32_t n);
@@ -1521,7 +1506,7 @@ struct opt__arr__char get_extension__opt__arr__char__arr__char(struct ctx* ctx, 
 struct opt__nat last_index_of__opt__nat__arr__char__char(struct ctx* ctx, struct arr__char s, char c);
 struct arr__char slice_after__arr__char__arr__char__nat(struct ctx* ctx, struct arr__char a, uint64_t before_begin);
 struct arr__char base_name__arr__char__arr__char(struct ctx* ctx, struct arr__char path);
-uint8_t list_compile_error_tests__arr__arr__char__arr__char__lambda1(struct ctx* ctx, struct list_compile_error_tests__arr__arr__char__arr__char__lambda1___closure* _closure, struct arr__char child);
+uint8_t list_tests__arr__arr__char__arr__char__lambda1(struct ctx* ctx, struct list_tests__arr__arr__char__arr__char__lambda1___closure* _closure, struct arr__char child);
 struct arr__ptr_failure flat_map_with_max_size__arr__ptr_failure__arr__arr__char__nat__fun_mut1__arr__ptr_failure__arr__char(struct ctx* ctx, struct arr__arr__char a, uint64_t max_size, struct fun_mut1__arr__ptr_failure__arr__char mapper);
 struct mut_arr__ptr_failure* new_mut_arr__ptr_mut_arr__ptr_failure(struct ctx* ctx);
 uint8_t push_all___void__ptr_mut_arr__ptr_failure__arr__ptr_failure(struct ctx* ctx, struct mut_arr__ptr_failure* a, struct arr__ptr_failure values);
@@ -1549,7 +1534,11 @@ uint8_t reduce_size_if_more_than___void__ptr_mut_arr__ptr_failure__nat(struct ct
 uint8_t flat_map_with_max_size__arr__ptr_failure__arr__arr__char__nat__fun_mut1__arr__ptr_failure__arr__char__lambda0(struct ctx* ctx, struct flat_map_with_max_size__arr__ptr_failure__arr__arr__char__nat__fun_mut1__arr__ptr_failure__arr__char__lambda0___closure* _closure, struct arr__char x);
 struct arr__ptr_failure freeze__arr__ptr_failure__ptr_mut_arr__ptr_failure(struct mut_arr__ptr_failure* a);
 struct arr__ptr_failure unsafe_as_arr__arr__ptr_failure__ptr_mut_arr__ptr_failure(struct mut_arr__ptr_failure* a);
-struct arr__ptr_failure run_single_compile_error_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct arr__char path, uint8_t overwrite_output__q);
+struct arr__ptr_failure run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options(struct ctx* ctx, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct arr__char path, struct test_options options);
+struct opt__arr__ptr_failure first_some__opt__arr__ptr_failure__arr__arr__char__fun_mut1__opt__arr__ptr_failure__arr__char(struct ctx* ctx, struct arr__arr__char a, struct fun_mut1__opt__arr__ptr_failure__arr__char cb);
+struct opt__arr__ptr_failure call__opt__arr__ptr_failure__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(struct ctx* ctx, struct fun_mut1__opt__arr__ptr_failure__arr__char f, struct arr__char p0);
+struct opt__arr__ptr_failure call_with_ctx__opt__arr__ptr_failure__ptr_ctx__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(struct ctx* c, struct fun_mut1__opt__arr__ptr_failure__arr__char f, struct arr__char p0);
+struct print_test_result* run_print_test__ptr_print_test_result__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char print_kind, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct arr__char path, uint8_t overwrite_output__q);
 struct process_result* spawn_and_wait_result__ptr_process_result__arr__char__arr__arr__char__ptr_dict__arr__char__arr__char(struct ctx* ctx, struct arr__char exe, struct arr__arr__char args, struct dict__arr__char__arr__char* environ);
 struct arr__char fold__arr__char__arr__char__arr__arr__char__fun_mut2__arr__char__arr__char__arr__char(struct ctx* ctx, struct arr__char val, struct arr__arr__char a, struct fun_mut2__arr__char__arr__char__arr__char combine);
 struct arr__char call__arr__char__fun_mut2__arr__char__arr__char__arr__char__arr__char__arr__char(struct ctx* ctx, struct fun_mut2__arr__char__arr__char__arr__char f, struct arr__char p0, struct arr__char p1);
@@ -1574,7 +1563,7 @@ int16_t pollin__int16(struct ctx* ctx);
 int16_t two_pow__int16__int16(int16_t pow);
 uint8_t zero__q__bool__int16(int16_t a);
 uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b);
-struct comparison compare561(int16_t a, int16_t b);
+struct comparison compare574(int16_t a, int16_t b);
 int16_t wrap_decr__int16__int16(int16_t a);
 int16_t two__int16();
 int16_t wrap_incr__int16__int16(int16_t a);
@@ -1668,10 +1657,7 @@ uint8_t convert_environ__ptr__ptr__char__ptr_dict__arr__char__arr__char__lambda0
 struct process_result* fail__ptr_process_result__arr__char(struct ctx* ctx, struct arr__char reason);
 struct process_result* throw__ptr_process_result__exception(struct ctx* ctx, struct exception e);
 struct process_result* todo__ptr_process_result();
-struct arr__char remove_colors__arr__char__arr__char(struct ctx* ctx, struct arr__char s);
-uint8_t remove_colors_recur___void__arr__char__ptr_mut_arr__char(struct ctx* ctx, struct arr__char s, struct mut_arr__char* out);
-uint8_t remove_colors_recur_2___void__arr__char__ptr_mut_arr__char(struct ctx* ctx, struct arr__char s, struct mut_arr__char* out);
-uint8_t push___void__ptr_mut_arr__char__char(struct ctx* ctx, struct mut_arr__char* a, char value);
+struct arr__ptr_failure empty_arr__arr__ptr_failure();
 struct arr__ptr_failure handle_output__arr__ptr_failure__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char original_path, struct arr__char output_path, struct arr__char actual, uint8_t overwrite_output__q);
 struct opt__arr__char try_read_file__opt__arr__char__arr__char(struct ctx* ctx, struct arr__char path);
 struct opt__arr__char try_read_file__opt__arr__char__ptr__char(struct ctx* ctx, char* path);
@@ -1688,42 +1674,16 @@ uint8_t write_file___void__ptr__char__arr__char(struct ctx* ctx, char* path, str
 int32_t o_creat__int32(struct ctx* ctx);
 int32_t o_wronly__int32(struct ctx* ctx);
 int32_t o_trunc__int32(struct ctx* ctx);
-struct arr__ptr_failure empty_arr__arr__ptr_failure();
-struct arr__ptr_failure run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char test);
+struct arr__char remove_colors__arr__char__arr__char(struct ctx* ctx, struct arr__char s);
+uint8_t remove_colors_recur___void__arr__char__ptr_mut_arr__char(struct ctx* ctx, struct arr__char s, struct mut_arr__char* out);
+uint8_t remove_colors_recur_2___void__arr__char__ptr_mut_arr__char(struct ctx* ctx, struct arr__char s, struct mut_arr__char* out);
+uint8_t push___void__ptr_mut_arr__char__char(struct ctx* ctx, struct mut_arr__char* a, char value);
+struct some__arr__ptr_failure some__some__arr__ptr_failure__arr__ptr_failure(struct arr__ptr_failure t);
+struct opt__arr__ptr_failure run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char print_kind);
+struct arr__ptr_failure run_single_runnable_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct arr__char path, uint8_t overwrite_output__q);
+struct arr__ptr_failure run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char test);
 uint8_t has__q__bool__arr__ptr_failure(struct arr__ptr_failure a);
 struct err__arr__ptr_failure err__err__arr__ptr_failure__arr__ptr_failure(struct arr__ptr_failure t);
-struct arr__ptr_failure with_max_size__arr__ptr_failure__arr__ptr_failure__nat(struct ctx* ctx, struct arr__ptr_failure a, uint64_t max_size);
-struct ok__arr__char ok__ok__arr__char__arr__char(struct arr__char t);
-struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(struct ctx* ctx, struct result__arr__char__arr__ptr_failure a, struct fun0__result__arr__char__arr__ptr_failure b);
-struct result__arr__char__arr__ptr_failure then__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char(struct ctx* ctx, struct result__arr__char__arr__ptr_failure a, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f);
-struct result__arr__char__arr__ptr_failure call__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(struct ctx* ctx, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f, struct arr__char p0);
-struct result__arr__char__arr__ptr_failure call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(struct ctx* c, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f, struct arr__char p0);
-struct result__arr__char__arr__ptr_failure call__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(struct ctx* ctx, struct fun0__result__arr__char__arr__ptr_failure f);
-struct result__arr__char__arr__ptr_failure call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun0__result__arr__char__arr__ptr_failure(struct ctx* c, struct fun0__result__arr__char__arr__ptr_failure f);
-struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0(struct ctx* ctx, struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure* _closure, struct arr__char b_descr);
-struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0(struct ctx* ctx, struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure* _closure, struct arr__char a_descr);
-struct result__arr__char__arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct test_options options);
-struct arr__arr__char list_ast_and_model_tests__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path);
-uint8_t list_ast_and_model_tests__arr__arr__char__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__char s);
-uint8_t list_ast_and_model_tests__arr__arr__char__arr__char__lambda1(struct ctx* ctx, struct list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure* _closure, struct arr__char child);
-struct opt__arr__ptr_failure first_some__opt__arr__ptr_failure__arr__arr__char__fun_mut1__opt__arr__ptr_failure__arr__char(struct ctx* ctx, struct arr__arr__char a, struct fun_mut1__opt__arr__ptr_failure__arr__char cb);
-struct opt__arr__ptr_failure call__opt__arr__ptr_failure__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(struct ctx* ctx, struct fun_mut1__opt__arr__ptr_failure__arr__char f, struct arr__char p0);
-struct opt__arr__ptr_failure call_with_ctx__opt__arr__ptr_failure__ptr_ctx__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(struct ctx* c, struct fun_mut1__opt__arr__ptr_failure__arr__char f, struct arr__char p0);
-struct arr__ptr_failure run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char ast_or_model, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct arr__char path, uint8_t overwrite_output__q);
-struct some__arr__ptr_failure some__some__arr__ptr_failure__arr__ptr_failure(struct arr__ptr_failure t);
-struct opt__arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0(struct ctx* ctx, struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* _closure, struct arr__char name);
-struct arr__ptr_failure opt_or__arr__ptr_failure__opt__arr__ptr_failure__fun_mut0__arr__ptr_failure(struct ctx* ctx, struct opt__arr__ptr_failure a, struct fun_mut0__arr__ptr_failure _default);
-struct arr__ptr_failure call__arr__ptr_failure__fun_mut0__arr__ptr_failure(struct ctx* ctx, struct fun_mut0__arr__ptr_failure f);
-struct arr__ptr_failure call_with_ctx__arr__ptr_failure__ptr_ctx__fun_mut0__arr__ptr_failure(struct ctx* c, struct fun_mut0__arr__ptr_failure f);
-struct arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda1(struct ctx* ctx, uint8_t* _closure);
-struct arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char test);
-struct result__arr__char__arr__ptr_failure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct test_options options);
-struct arr__arr__char list_runnable_tests__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path);
-uint8_t list_runnable_tests__arr__arr__char__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__char s);
-uint8_t list_runnable_tests__arr__arr__char__arr__char__lambda1(struct ctx* ctx, struct list_runnable_tests__arr__arr__char__arr__char__lambda1___closure* _closure, struct arr__char child);
-struct arr__ptr_failure run_single_runnable_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct arr__char path, uint8_t overwrite_output__q);
-struct arr__ptr_failure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char test);
-struct result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0__lambda0(struct ctx* ctx, struct do_test__int32__test_options__lambda0__lambda0___closure* _closure);
 struct result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0(struct ctx* ctx, struct do_test__int32__test_options__lambda0___closure* _closure);
 struct result__arr__char__arr__ptr_failure lint__result__arr__char__arr__ptr_failure__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct test_options options);
 struct arr__arr__char list_lintable_files__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path);
@@ -4372,8 +4332,7 @@ int32_t do_test__int32__test_options(struct ctx* ctx, struct test_options option
 	struct arr__char noze_path;
 	struct arr__char noze_exe;
 	struct dict__arr__char__arr__char* env;
-	struct result__arr__char__arr__ptr_failure compile_failures;
-	struct result__arr__char__arr__ptr_failure run_failures;
+	struct result__arr__char__arr__ptr_failure noze_failures;
 	struct result__arr__char__arr__ptr_failure all_failures;
 	struct do_test__int32__test_options__lambda0___closure* temp0;
 	struct do_test__int32__test_options__lambda1___closure* temp1;
@@ -4381,9 +4340,8 @@ int32_t do_test__int32__test_options(struct ctx* ctx, struct test_options option
 	noze_path = parent_path__arr__char__arr__char(ctx, test_path);
 	noze_exe = child_path__arr__char__arr__char__arr__char(ctx, child_path__arr__char__arr__char__arr__char(ctx, noze_path, (struct arr__char) {3, "bin"}), (struct arr__char) {4, "noze"});
 	env = get_environ__ptr_dict__arr__char__arr__char(ctx);
-	compile_failures = run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx, child_path__arr__char__arr__char__arr__char(ctx, test_path, (struct arr__char) {14, "compile-errors"}), noze_exe, env, options);
-	run_failures = first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, compile_failures, (struct fun0__result__arr__char__arr__ptr_failure) {(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8) do_test__int32__test_options__lambda0, (uint8_t*) (temp0 = (struct do_test__int32__test_options__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct do_test__int32__test_options__lambda0___closure)), ((*(temp0) = (struct do_test__int32__test_options__lambda0___closure) {test_path, noze_exe, env, options}, 0), temp0))});
-	all_failures = first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, run_failures, (struct fun0__result__arr__char__arr__ptr_failure) {(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8) do_test__int32__test_options__lambda1, (uint8_t*) (temp1 = (struct do_test__int32__test_options__lambda1___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct do_test__int32__test_options__lambda1___closure)), ((*(temp1) = (struct do_test__int32__test_options__lambda1___closure) {noze_path, options}, 0), temp1))});
+	noze_failures = first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx, child_path__arr__char__arr__char__arr__char(ctx, test_path, (struct arr__char) {14, "compile-errors"}), noze_exe, env, options), (struct fun0__result__arr__char__arr__ptr_failure) {(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8) do_test__int32__test_options__lambda0, (uint8_t*) (temp0 = (struct do_test__int32__test_options__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct do_test__int32__test_options__lambda0___closure)), ((*(temp0) = (struct do_test__int32__test_options__lambda0___closure) {test_path, noze_exe, env, options}, 0), temp0))});
+	all_failures = first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, noze_failures, (struct fun0__result__arr__char__arr__ptr_failure) {(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8) do_test__int32__test_options__lambda1, (uint8_t*) (temp1 = (struct do_test__int32__test_options__lambda1___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct do_test__int32__test_options__lambda1___closure)), ((*(temp1) = (struct do_test__int32__test_options__lambda1___closure) {noze_path, options}, 0), temp1))});
 	return print_failures__int32__result__arr__char__arr__ptr_failure__test_options(ctx, all_failures, options);
 }
 struct arr__char parent_path__arr__char__arr__char(struct ctx* ctx, struct arr__char a) {
@@ -4610,28 +4568,70 @@ struct dict__arr__char__arr__char* freeze__ptr_dict__arr__char__arr__char__mut_d
 	(*(temp0) = (struct dict__arr__char__arr__char) {freeze__arr__arr__char__ptr_mut_arr__arr__char(m.keys), freeze__arr__arr__char__ptr_mut_arr__arr__char(m.values)}, 0);
 	return temp0;
 }
-struct result__arr__char__arr__ptr_failure run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct test_options options) {
-	struct arr__arr__char tests;
-	struct arr__ptr_failure failures;
-	struct run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* temp0;
-	tests = list_compile_error_tests__arr__arr__char__arr__char(ctx, path);
-	failures = flat_map_with_max_size__arr__ptr_failure__arr__arr__char__nat__fun_mut1__arr__ptr_failure__arr__char(ctx, tests, options.max_failures, (struct fun_mut1__arr__ptr_failure__arr__char) {(fun_ptr3__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char) run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0, (uint8_t*) (temp0 = (struct run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure)), ((*(temp0) = (struct run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure) {options, path_to_noze, env}, 0), temp0))});
-	if (has__q__bool__arr__ptr_failure(failures)) {
-		return (struct result__arr__char__arr__ptr_failure) {1, .as1 = err__err__arr__ptr_failure__arr__ptr_failure(with_max_size__arr__ptr_failure__arr__ptr_failure__nat(ctx, failures, options.max_failures))};
-	} else {
-		return (struct result__arr__char__arr__ptr_failure) {0, .as0 = ok__ok__arr__char__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {4, "Ran "}, to_str__arr__char__nat(ctx, tests.size)), (struct arr__char) {20, " compile-error tests"}))};
+struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(struct ctx* ctx, struct result__arr__char__arr__ptr_failure a, struct fun0__result__arr__char__arr__ptr_failure b) {
+	struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure* temp0;
+	return then__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char(ctx, a, (struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char) {(fun_ptr3__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char) first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0, (uint8_t*) (temp0 = (struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure)), ((*(temp0) = (struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure) {b}, 0), temp0))});
+}
+struct result__arr__char__arr__ptr_failure then__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char(struct ctx* ctx, struct result__arr__char__arr__ptr_failure a, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f) {
+	struct ok__arr__char o;
+	struct err__arr__ptr_failure e;
+	struct result__arr__char__arr__ptr_failure matched;
+	matched = a;
+	switch (matched.kind) {
+		case 0:
+			o = matched.as0;
+			return call__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(ctx, f, o.value);
+		case 1:
+			e = matched.as1;
+			return (struct result__arr__char__arr__ptr_failure) {1, .as1 = e};
+		default:
+			return (assert(0),(struct result__arr__char__arr__ptr_failure) {0});
 	}
 }
-struct arr__arr__char list_compile_error_tests__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path) {
+struct result__arr__char__arr__ptr_failure call__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(struct ctx* ctx, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f, struct arr__char p0) {
+	return call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(ctx, f, p0);
+}
+struct result__arr__char__arr__ptr_failure call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(struct ctx* c, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f, struct arr__char p0) {
+	return f.fun_ptr(c, f.closure, p0);
+}
+struct result__arr__char__arr__ptr_failure call__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(struct ctx* ctx, struct fun0__result__arr__char__arr__ptr_failure f) {
+	return call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun0__result__arr__char__arr__ptr_failure(ctx, f);
+}
+struct result__arr__char__arr__ptr_failure call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun0__result__arr__char__arr__ptr_failure(struct ctx* c, struct fun0__result__arr__char__arr__ptr_failure f) {
+	return f.fun_ptr(c, f.closure);
+}
+struct ok__arr__char ok__ok__arr__char__arr__char(struct arr__char t) {
+	return (struct ok__arr__char) {t};
+}
+struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0(struct ctx* ctx, struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure* _closure, struct arr__char b_descr) {
+	return (struct result__arr__char__arr__ptr_failure) {0, .as0 = ok__ok__arr__char__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, _closure->a_descr, (struct arr__char) {1, "\n"}), b_descr))};
+}
+struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0(struct ctx* ctx, struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure* _closure, struct arr__char a_descr) {
+	struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure* temp0;
+	return then__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char(ctx, call__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, _closure->b), (struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char) {(fun_ptr3__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char) first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0, (uint8_t*) (temp0 = (struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure)), ((*(temp0) = (struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure) {a_descr}, 0), temp0))});
+}
+struct result__arr__char__arr__ptr_failure run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct test_options options) {
+	struct arr__arr__char tests;
+	struct arr__ptr_failure failures;
+	struct run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* temp0;
+	tests = list_tests__arr__arr__char__arr__char(ctx, path);
+	failures = flat_map_with_max_size__arr__ptr_failure__arr__arr__char__nat__fun_mut1__arr__ptr_failure__arr__char(ctx, tests, options.max_failures, (struct fun_mut1__arr__ptr_failure__arr__char) {(fun_ptr3__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char) run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0, (uint8_t*) (temp0 = (struct run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure)), ((*(temp0) = (struct run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure) {path_to_noze, env, options}, 0), temp0))});
+	if (has__q__bool__arr__ptr_failure(failures)) {
+		return (struct result__arr__char__arr__ptr_failure) {1, .as1 = err__err__arr__ptr_failure__arr__ptr_failure(failures)};
+	} else {
+		return (struct result__arr__char__arr__ptr_failure) {0, .as0 = ok__ok__arr__char__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {4, "ran "}, to_str__arr__char__nat(ctx, tests.size)), (struct arr__char) {10, " tests in "}), path))};
+	}
+}
+struct arr__arr__char list_tests__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path) {
 	struct mut_arr__arr__char* res;
 	struct fun_mut1__bool__arr__char filter;
-	struct list_compile_error_tests__arr__arr__char__arr__char__lambda1___closure* temp0;
+	struct list_tests__arr__arr__char__arr__char__lambda1___closure* temp0;
 	res = new_mut_arr__ptr_mut_arr__arr__char(ctx);
-	filter = (struct fun_mut1__bool__arr__char) {(fun_ptr3__bool__ptr_ctx__ptr__nat8__arr__char) list_compile_error_tests__arr__arr__char__arr__char__lambda0, (uint8_t*) NULL};
-	each_child_recursive___void__arr__char__fun_mut1__bool__arr__char__fun_mut1___void__arr__char(ctx, path, filter, (struct fun_mut1___void__arr__char) {(fun_ptr3___void__ptr_ctx__ptr__nat8__arr__char) list_compile_error_tests__arr__arr__char__arr__char__lambda1, (uint8_t*) (temp0 = (struct list_compile_error_tests__arr__arr__char__arr__char__lambda1___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct list_compile_error_tests__arr__arr__char__arr__char__lambda1___closure)), ((*(temp0) = (struct list_compile_error_tests__arr__arr__char__arr__char__lambda1___closure) {res}, 0), temp0))});
+	filter = (struct fun_mut1__bool__arr__char) {(fun_ptr3__bool__ptr_ctx__ptr__nat8__arr__char) list_tests__arr__arr__char__arr__char__lambda0, (uint8_t*) NULL};
+	each_child_recursive___void__arr__char__fun_mut1__bool__arr__char__fun_mut1___void__arr__char(ctx, path, filter, (struct fun_mut1___void__arr__char) {(fun_ptr3___void__ptr_ctx__ptr__nat8__arr__char) list_tests__arr__arr__char__arr__char__lambda1, (uint8_t*) (temp0 = (struct list_tests__arr__arr__char__arr__char__lambda1___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct list_tests__arr__arr__char__arr__char__lambda1___closure)), ((*(temp0) = (struct list_tests__arr__arr__char__arr__char__lambda1___closure) {res}, 0), temp0))});
 	return freeze__arr__arr__char__ptr_mut_arr__arr__char(res);
 }
-uint8_t list_compile_error_tests__arr__arr__char__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__char s) {
+uint8_t list_tests__arr__arr__char__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__char s) {
 	return 1;
 }
 uint8_t each_child_recursive___void__arr__char__fun_mut1__bool__arr__char__fun_mut1___void__arr__char(struct ctx* ctx, struct arr__char path, struct fun_mut1__bool__arr__char filter, struct fun_mut1___void__arr__char f) {
@@ -4700,7 +4700,7 @@ uint8_t todo__bool() {
 }
 uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b) {
 	struct comparison matched;
-	matched = compare458(a, b);
+	matched = compare467(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -4712,7 +4712,7 @@ uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare458(uint32_t a, uint32_t b) {
+struct comparison compare467(uint32_t a, uint32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -5062,17 +5062,22 @@ struct arr__char base_name__arr__char__arr__char(struct ctx* ctx, struct arr__ch
 			return (assert(0),(struct arr__char) {0, NULL});
 	}
 }
-uint8_t list_compile_error_tests__arr__arr__char__arr__char__lambda1(struct ctx* ctx, struct list_compile_error_tests__arr__arr__char__arr__char__lambda1___closure* _closure, struct arr__char child) {
-	struct arr__char ext;
-	ext = force__arr__char__opt__arr__char(ctx, get_extension__opt__arr__char__arr__char(ctx, base_name__arr__char__arr__char(ctx, child)));
-	if (_op_equal_equal__bool__arr__char__arr__char(ext, (struct arr__char) {2, "nz"})) {
-		return push___void__ptr_mut_arr__arr__char__arr__char(ctx, _closure->res, child);
-	} else {
-		if (_op_equal_equal__bool__arr__char__arr__char(ext, (struct arr__char) {3, "err"})) {
+uint8_t list_tests__arr__arr__char__arr__char__lambda1(struct ctx* ctx, struct list_tests__arr__arr__char__arr__char__lambda1___closure* _closure, struct arr__char child) {
+	struct some__arr__char s;
+	struct opt__arr__char matched;
+	matched = get_extension__opt__arr__char__arr__char(ctx, base_name__arr__char__arr__char(ctx, child));
+	switch (matched.kind) {
+		case 0:
 			return 0;
-		} else {
-			return todo___void();
-		}
+		case 1:
+			s = matched.as1;
+			if (_op_equal_equal__bool__arr__char__arr__char(s.value, (struct arr__char) {2, "nz"})) {
+				return push___void__ptr_mut_arr__arr__char__arr__char(ctx, _closure->res, child);
+			} else {
+				return 0;
+			}
+		default:
+			return (assert(0),0);
 	}
 }
 struct arr__ptr_failure flat_map_with_max_size__arr__ptr_failure__arr__arr__char__nat__fun_mut1__arr__ptr_failure__arr__char(struct ctx* ctx, struct arr__arr__char a, uint64_t max_size, struct fun_mut1__arr__ptr_failure__arr__char mapper) {
@@ -5239,36 +5244,106 @@ struct arr__ptr_failure freeze__arr__ptr_failure__ptr_mut_arr__ptr_failure(struc
 struct arr__ptr_failure unsafe_as_arr__arr__ptr_failure__ptr_mut_arr__ptr_failure(struct mut_arr__ptr_failure* a) {
 	return (struct arr__ptr_failure) {a->size, a->data};
 }
-struct arr__ptr_failure run_single_compile_error_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct arr__char path, uint8_t overwrite_output__q) {
-	struct mut_arr__ptr_failure* failures;
+struct arr__ptr_failure run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options(struct ctx* ctx, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct arr__char path, struct test_options options) {
 	struct arr__arr__char arr;
-	struct process_result* result;
-	struct arr__char message;
-	struct arr__char stderr_no_color;
+	struct opt__arr__ptr_failure op;
+	struct some__arr__ptr_failure s;
+	struct opt__arr__ptr_failure matched;
 	struct arr__char* temp0;
-	struct failure* temp1;
-	struct failure* temp2;
-	struct failure* temp3;
-	failures = new_mut_arr__ptr_mut_arr__ptr_failure(ctx);
-	result = spawn_and_wait_result__ptr_process_result__arr__char__arr__arr__char__ptr_dict__arr__char__arr__char(ctx, path_to_noze, (temp0 = (struct arr__char*) alloc__ptr__nat8__nat(ctx, (sizeof(struct arr__char) * 2)), ((*((temp0 + 0)) = (struct arr__char) {5, "build"}, 0), ((*((temp0 + 1)) = path, 0), (struct arr__arr__char) {2, temp0}))), env);
-	if (_op_equal_equal__bool__int32__int32(result->exit_code, literal__int32__arr__char(ctx, (struct arr__char) {1, "1"}))) {
-		0;
-	} else {
-		message = _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {59, "Compile error should result in exit code of 1. Instead got "}, to_str__arr__char__int32(ctx, result->exit_code));
-		push___void__ptr_mut_arr__ptr_failure__ptr_failure(ctx, failures, (temp1 = (struct failure*) alloc__ptr__nat8__nat(ctx, sizeof(struct failure)), ((*(temp1) = (struct failure) {path, message}, 0), temp1)));
+	struct run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options__lambda0___closure* temp1;
+	op = first_some__opt__arr__ptr_failure__arr__arr__char__fun_mut1__opt__arr__ptr_failure__arr__char(ctx, (temp0 = (struct arr__char*) alloc__ptr__nat8__nat(ctx, (sizeof(struct arr__char) * 4)), ((*((temp0 + 0)) = (struct arr__char) {3, "ast"}, 0), ((*((temp0 + 1)) = (struct arr__char) {5, "model"}, 0), ((*((temp0 + 2)) = (struct arr__char) {14, "concrete-model"}, 0), ((*((temp0 + 3)) = (struct arr__char) {9, "low-model"}, 0), (struct arr__arr__char) {4, temp0}))))), (struct fun_mut1__opt__arr__ptr_failure__arr__char) {(fun_ptr3__opt__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char) run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options__lambda0, (uint8_t*) (temp1 = (struct run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options__lambda0___closure)), ((*(temp1) = (struct run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options__lambda0___closure) {options, path, path_to_noze, env}, 0), temp1))});
+	matched = op;
+	switch (matched.kind) {
+		case 0:
+			if (options.print_tests__q) {
+				print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {9, "noze run "}, path));
+			} else {
+				0;
+			}
+			return run_single_runnable_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(ctx, path_to_noze, env, path, options.overwrite_output__q);
+		case 1:
+			s = matched.as1;
+			return s.value;
+		default:
+			return (assert(0),(struct arr__ptr_failure) {0, NULL});
 	}
-	if (_op_equal_equal__bool__arr__char__arr__char(result->stdout, (struct arr__char) {0, ""})) {
-		0;
+}
+struct opt__arr__ptr_failure first_some__opt__arr__ptr_failure__arr__arr__char__fun_mut1__opt__arr__ptr_failure__arr__char(struct ctx* ctx, struct arr__arr__char a, struct fun_mut1__opt__arr__ptr_failure__arr__char cb) {
+	struct some__arr__ptr_failure s;
+	struct opt__arr__ptr_failure matched;
+	struct ctx* _tailCallctx;
+	struct arr__arr__char _tailCalla;
+	struct fun_mut1__opt__arr__ptr_failure__arr__char _tailCallcb;
+	top:
+	if (empty__q__bool__arr__arr__char(a)) {
+		return (struct opt__arr__ptr_failure) {0, .as0 = none__none()};
 	} else {
-		push___void__ptr_mut_arr__ptr_failure__ptr_failure(ctx, failures, (temp2 = (struct failure*) alloc__ptr__nat8__nat(ctx, sizeof(struct failure)), ((*(temp2) = (struct failure) {path, _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {37, "stdout should be empty. Instead got:\n"}, result->stdout)}, 0), temp2)));
+		matched = call__opt__arr__ptr_failure__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(ctx, cb, first__arr__char__arr__arr__char(ctx, a));
+		switch (matched.kind) {
+			case 0:
+				_tailCallctx = ctx;
+				_tailCalla = tail__arr__arr__char__arr__arr__char(ctx, a);
+				_tailCallcb = cb;
+				ctx = _tailCallctx;
+				a = _tailCalla;
+				cb = _tailCallcb;
+				goto top;
+			case 1:
+				s = matched.as1;
+				return (struct opt__arr__ptr_failure) {1, .as1 = s};
+			default:
+				return (assert(0),(struct opt__arr__ptr_failure) {0});
+		}
 	}
-	stderr_no_color = remove_colors__arr__char__arr__char(ctx, result->stderr);
-	if (_op_equal_equal__bool__arr__char__arr__char(result->stderr, (struct arr__char) {0, ""})) {
-		push___void__ptr_mut_arr__ptr_failure__ptr_failure(ctx, failures, (temp3 = (struct failure*) alloc__ptr__nat8__nat(ctx, sizeof(struct failure)), ((*(temp3) = (struct failure) {path, (struct arr__char) {15, "stderr is empty"}}, 0), temp3)));
+}
+struct opt__arr__ptr_failure call__opt__arr__ptr_failure__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(struct ctx* ctx, struct fun_mut1__opt__arr__ptr_failure__arr__char f, struct arr__char p0) {
+	return call_with_ctx__opt__arr__ptr_failure__ptr_ctx__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(ctx, f, p0);
+}
+struct opt__arr__ptr_failure call_with_ctx__opt__arr__ptr_failure__ptr_ctx__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(struct ctx* c, struct fun_mut1__opt__arr__ptr_failure__arr__char f, struct arr__char p0) {
+	return f.fun_ptr(c, f.closure, p0);
+}
+struct print_test_result* run_print_test__ptr_print_test_result__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char print_kind, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct arr__char path, uint8_t overwrite_output__q) {
+	struct arr__arr__char arr;
+	struct process_result* res;
+	struct arr__char output_path;
+	struct arr__ptr_failure output_failures;
+	struct arr__char stderr_no_color;
+	struct arr__char message;
+	struct arr__ptr_failure arr1;
+	struct arr__char* temp0;
+	struct print_test_result* temp1;
+	struct print_test_result* temp2;
+	struct print_test_result* temp3;
+	struct failure** temp4;
+	struct failure* temp5;
+	struct print_test_result* temp6;
+	res = spawn_and_wait_result__ptr_process_result__arr__char__arr__arr__char__ptr_dict__arr__char__arr__char(ctx, path_to_noze, (temp0 = (struct arr__char*) alloc__ptr__nat8__nat(ctx, (sizeof(struct arr__char) * 3)), ((*((temp0 + 0)) = (struct arr__char) {5, "print"}, 0), ((*((temp0 + 1)) = print_kind, 0), ((*((temp0 + 2)) = path, 0), (struct arr__arr__char) {3, temp0})))), env);
+	output_path = _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, path, (struct arr__char) {1, "."}), print_kind), (struct arr__char) {5, ".tata"});
+	output_failures = ((empty__q__bool__arr__char(res->stdout) && _op_bang_equal__bool__int32__int32(res->exit_code, literal__int32__arr__char(ctx, (struct arr__char) {1, "0"}))) ? empty_arr__arr__ptr_failure() : handle_output__arr__ptr_failure__arr__char__arr__char__arr__char__bool(ctx, path, output_path, res->stdout, overwrite_output__q));
+	if (!empty__q__bool__arr__ptr_failure(output_failures)) {
+		temp1 = (struct print_test_result*) alloc__ptr__nat8__nat(ctx, sizeof(struct print_test_result));
+		(*(temp1) = (struct print_test_result) {1, output_failures}, 0);
+		return temp1;
 	} else {
-		push_all___void__ptr_mut_arr__ptr_failure__arr__ptr_failure(ctx, failures, handle_output__arr__ptr_failure__arr__char__arr__char__arr__char__bool(ctx, path, _op_plus__arr__char__arr__char__arr__char(ctx, path, (struct arr__char) {4, ".err"}), stderr_no_color, overwrite_output__q));
+		if (_op_equal_equal__bool__int32__int32(res->exit_code, literal__int32__arr__char(ctx, (struct arr__char) {1, "0"}))) {
+			assert___void__bool(ctx, _op_equal_equal__bool__arr__char__arr__char(res->stderr, (struct arr__char) {0, ""}));
+			temp2 = (struct print_test_result*) alloc__ptr__nat8__nat(ctx, sizeof(struct print_test_result));
+			(*(temp2) = (struct print_test_result) {0, empty_arr__arr__ptr_failure()}, 0);
+			return temp2;
+		} else {
+			if (_op_equal_equal__bool__int32__int32(res->exit_code, literal__int32__arr__char(ctx, (struct arr__char) {1, "1"}))) {
+				stderr_no_color = remove_colors__arr__char__arr__char(ctx, res->stderr);
+				temp3 = (struct print_test_result*) alloc__ptr__nat8__nat(ctx, sizeof(struct print_test_result));
+				(*(temp3) = (struct print_test_result) {1, handle_output__arr__ptr_failure__arr__char__arr__char__arr__char__bool(ctx, path, _op_plus__arr__char__arr__char__arr__char(ctx, output_path, (struct arr__char) {4, ".err"}), stderr_no_color, overwrite_output__q)}, 0);
+				return temp3;
+			} else {
+				message = _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {22, "unexpected exit code: "}, to_str__arr__char__int32(ctx, res->exit_code));
+				temp6 = (struct print_test_result*) alloc__ptr__nat8__nat(ctx, sizeof(struct print_test_result));
+				(*(temp6) = (struct print_test_result) {1, (temp4 = (struct failure**) alloc__ptr__nat8__nat(ctx, (sizeof(struct failure*) * 1)), ((*((temp4 + 0)) = (temp5 = (struct failure*) alloc__ptr__nat8__nat(ctx, sizeof(struct failure)), ((*(temp5) = (struct failure) {path, message}, 0), temp5)), 0), (struct arr__ptr_failure) {1, temp4}))}, 0);
+				return temp6;
+			}
+		}
 	}
-	return freeze__arr__ptr_failure__ptr_mut_arr__ptr_failure(failures);
 }
 struct process_result* spawn_and_wait_result__ptr_process_result__arr__char__arr__arr__char__ptr_dict__arr__char__arr__char(struct ctx* ctx, struct arr__char exe, struct arr__arr__char args, struct dict__arr__char__arr__char* environ) {
 	char* exe_c_str;
@@ -5442,7 +5517,7 @@ uint8_t zero__q__bool__int16(int16_t a) {
 }
 uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b) {
 	struct comparison matched;
-	matched = compare561(a, b);
+	matched = compare574(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -5454,7 +5529,7 @@ uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare561(int16_t a, int16_t b) {
+struct comparison compare574(int16_t a, int16_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -6019,65 +6094,8 @@ struct process_result* throw__ptr_process_result__exception(struct ctx* ctx, str
 struct process_result* todo__ptr_process_result() {
 	return (assert(0),NULL);
 }
-struct arr__char remove_colors__arr__char__arr__char(struct ctx* ctx, struct arr__char s) {
-	struct mut_arr__char* out;
-	out = new_mut_arr__ptr_mut_arr__char(ctx);
-	remove_colors_recur___void__arr__char__ptr_mut_arr__char(ctx, s, out);
-	return freeze__arr__char__ptr_mut_arr__char(out);
-}
-uint8_t remove_colors_recur___void__arr__char__ptr_mut_arr__char(struct ctx* ctx, struct arr__char s, struct mut_arr__char* out) {
-	struct ctx* _tailCallctx;
-	struct arr__char _tailCalls;
-	struct mut_arr__char* _tailCallout;
-	top:
-	if (empty__q__bool__arr__char(s)) {
-		return 0;
-	} else {
-		if (_op_equal_equal__bool__char__char(first__char__arr__char(ctx, s), literal__char__arr__char((struct arr__char) {1, "\x1b"}))) {
-			return remove_colors_recur_2___void__arr__char__ptr_mut_arr__char(ctx, tail__arr__char__arr__char(ctx, s), out);
-		} else {
-			push___void__ptr_mut_arr__char__char(ctx, out, first__char__arr__char(ctx, s));
-			_tailCallctx = ctx;
-			_tailCalls = tail__arr__char__arr__char(ctx, s);
-			_tailCallout = out;
-			ctx = _tailCallctx;
-			s = _tailCalls;
-			out = _tailCallout;
-			goto top;
-		}
-	}
-}
-uint8_t remove_colors_recur_2___void__arr__char__ptr_mut_arr__char(struct ctx* ctx, struct arr__char s, struct mut_arr__char* out) {
-	struct ctx* _tailCallctx;
-	struct arr__char _tailCalls;
-	struct mut_arr__char* _tailCallout;
-	top:
-	if (empty__q__bool__arr__char(s)) {
-		return 0;
-	} else {
-		if (_op_equal_equal__bool__char__char(first__char__arr__char(ctx, s), literal__char__arr__char((struct arr__char) {1, "m"}))) {
-			return remove_colors_recur___void__arr__char__ptr_mut_arr__char(ctx, tail__arr__char__arr__char(ctx, s), out);
-		} else {
-			_tailCallctx = ctx;
-			_tailCalls = tail__arr__char__arr__char(ctx, s);
-			_tailCallout = out;
-			ctx = _tailCallctx;
-			s = _tailCalls;
-			out = _tailCallout;
-			goto top;
-		}
-	}
-}
-uint8_t push___void__ptr_mut_arr__char__char(struct ctx* ctx, struct mut_arr__char* a, char value) {
-	if (_op_equal_equal__bool__nat__nat(a->size, a->capacity)) {
-		increase_capacity_to___void__ptr_mut_arr__char__nat(ctx, a, (zero__q__bool__nat(a->size) ? four__nat() : _op_times__nat__nat__nat(ctx, a->size, two__nat())));
-	} else {
-		0;
-	}
-	ensure_capacity___void__ptr_mut_arr__char__nat(ctx, a, round_up_to_power_of_two__nat__nat(ctx, incr__nat__nat(ctx, a->size)));
-	assert___void__bool(ctx, _op_less__bool__nat__nat(a->size, a->capacity));
-	(*((a->data + a->size)) = value, 0);
-	return (a->size = incr__nat__nat(ctx, a->size), 0);
+struct arr__ptr_failure empty_arr__arr__ptr_failure() {
+	return (struct arr__ptr_failure) {0, NULL};
 }
 struct arr__ptr_failure handle_output__arr__ptr_failure__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char original_path, struct arr__char output_path, struct arr__char actual, uint8_t overwrite_output__q) {
 	struct arr__ptr_failure arr;
@@ -6229,256 +6247,81 @@ int32_t o_wronly__int32(struct ctx* ctx) {
 int32_t o_trunc__int32(struct ctx* ctx) {
 	return (1 << nine__int32());
 }
-struct arr__ptr_failure empty_arr__arr__ptr_failure() {
-	return (struct arr__ptr_failure) {0, NULL};
+struct arr__char remove_colors__arr__char__arr__char(struct ctx* ctx, struct arr__char s) {
+	struct mut_arr__char* out;
+	out = new_mut_arr__ptr_mut_arr__char(ctx);
+	remove_colors_recur___void__arr__char__ptr_mut_arr__char(ctx, s, out);
+	return freeze__arr__char__ptr_mut_arr__char(out);
 }
-struct arr__ptr_failure run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_compile_error_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char test) {
-	if (_closure->options.print_tests__q) {
-		print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {11, "noze build "}, test));
-	} else {
-		0;
-	}
-	return run_single_compile_error_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(ctx, _closure->path_to_noze, _closure->env, test, _closure->options.overwrite_output__q);
-}
-uint8_t has__q__bool__arr__ptr_failure(struct arr__ptr_failure a) {
-	return !empty__q__bool__arr__ptr_failure(a);
-}
-struct err__arr__ptr_failure err__err__arr__ptr_failure__arr__ptr_failure(struct arr__ptr_failure t) {
-	return (struct err__arr__ptr_failure) {t};
-}
-struct arr__ptr_failure with_max_size__arr__ptr_failure__arr__ptr_failure__nat(struct ctx* ctx, struct arr__ptr_failure a, uint64_t max_size) {
-	if (_op_greater__bool__nat__nat(a.size, max_size)) {
-		return slice__arr__ptr_failure__arr__ptr_failure__nat__nat(ctx, a, 0, max_size);
-	} else {
-		return a;
-	}
-}
-struct ok__arr__char ok__ok__arr__char__arr__char(struct arr__char t) {
-	return (struct ok__arr__char) {t};
-}
-struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(struct ctx* ctx, struct result__arr__char__arr__ptr_failure a, struct fun0__result__arr__char__arr__ptr_failure b) {
-	struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure* temp0;
-	return then__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char(ctx, a, (struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char) {(fun_ptr3__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char) first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0, (uint8_t*) (temp0 = (struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure)), ((*(temp0) = (struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure) {b}, 0), temp0))});
-}
-struct result__arr__char__arr__ptr_failure then__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char(struct ctx* ctx, struct result__arr__char__arr__ptr_failure a, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f) {
-	struct ok__arr__char o;
-	struct err__arr__ptr_failure e;
-	struct result__arr__char__arr__ptr_failure matched;
-	matched = a;
-	switch (matched.kind) {
-		case 0:
-			o = matched.as0;
-			return call__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(ctx, f, o.value);
-		case 1:
-			e = matched.as1;
-			return (struct result__arr__char__arr__ptr_failure) {1, .as1 = e};
-		default:
-			return (assert(0),(struct result__arr__char__arr__ptr_failure) {0});
-	}
-}
-struct result__arr__char__arr__ptr_failure call__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(struct ctx* ctx, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f, struct arr__char p0) {
-	return call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(ctx, f, p0);
-}
-struct result__arr__char__arr__ptr_failure call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun_mut1__result__arr__char__arr__ptr_failure__arr__char__arr__char(struct ctx* c, struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char f, struct arr__char p0) {
-	return f.fun_ptr(c, f.closure, p0);
-}
-struct result__arr__char__arr__ptr_failure call__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(struct ctx* ctx, struct fun0__result__arr__char__arr__ptr_failure f) {
-	return call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun0__result__arr__char__arr__ptr_failure(ctx, f);
-}
-struct result__arr__char__arr__ptr_failure call_with_ctx__result__arr__char__arr__ptr_failure__ptr_ctx__fun0__result__arr__char__arr__ptr_failure(struct ctx* c, struct fun0__result__arr__char__arr__ptr_failure f) {
-	return f.fun_ptr(c, f.closure);
-}
-struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0(struct ctx* ctx, struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure* _closure, struct arr__char b_descr) {
-	return (struct result__arr__char__arr__ptr_failure) {0, .as0 = ok__ok__arr__char__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, _closure->a_descr, (struct arr__char) {1, "\n"}), b_descr))};
-}
-struct result__arr__char__arr__ptr_failure first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0(struct ctx* ctx, struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0___closure* _closure, struct arr__char a_descr) {
-	struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure* temp0;
-	return then__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun_mut1__result__arr__char__arr__ptr_failure__arr__char(ctx, call__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, _closure->b), (struct fun_mut1__result__arr__char__arr__ptr_failure__arr__char) {(fun_ptr3__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char) first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0, (uint8_t*) (temp0 = (struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure)), ((*(temp0) = (struct first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure__lambda0__lambda0___closure) {a_descr}, 0), temp0))});
-}
-struct result__arr__char__arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct test_options options) {
-	struct arr__arr__char tests;
-	struct arr__ptr_failure failures;
-	struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* temp0;
-	tests = list_ast_and_model_tests__arr__arr__char__arr__char(ctx, path);
-	failures = flat_map_with_max_size__arr__ptr_failure__arr__arr__char__nat__fun_mut1__arr__ptr_failure__arr__char(ctx, tests, options.max_failures, (struct fun_mut1__arr__ptr_failure__arr__char) {(fun_ptr3__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char) run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0, (uint8_t*) (temp0 = (struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure)), ((*(temp0) = (struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure) {options, path_to_noze, env}, 0), temp0))});
-	if (has__q__bool__arr__ptr_failure(failures)) {
-		return (struct result__arr__char__arr__ptr_failure) {1, .as1 = err__err__arr__ptr_failure__arr__ptr_failure(failures)};
-	} else {
-		return (struct result__arr__char__arr__ptr_failure) {0, .as0 = ok__ok__arr__char__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {4, "ran "}, to_str__arr__char__nat(ctx, tests.size)), (struct arr__char) {10, " ast tests"}))};
-	}
-}
-struct arr__arr__char list_ast_and_model_tests__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path) {
-	struct mut_arr__arr__char* res;
-	struct fun_mut1__bool__arr__char filter;
-	struct list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure* temp0;
-	res = new_mut_arr__ptr_mut_arr__arr__char(ctx);
-	filter = (struct fun_mut1__bool__arr__char) {(fun_ptr3__bool__ptr_ctx__ptr__nat8__arr__char) list_ast_and_model_tests__arr__arr__char__arr__char__lambda0, (uint8_t*) NULL};
-	each_child_recursive___void__arr__char__fun_mut1__bool__arr__char__fun_mut1___void__arr__char(ctx, path, filter, (struct fun_mut1___void__arr__char) {(fun_ptr3___void__ptr_ctx__ptr__nat8__arr__char) list_ast_and_model_tests__arr__arr__char__arr__char__lambda1, (uint8_t*) (temp0 = (struct list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure)), ((*(temp0) = (struct list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure) {res}, 0), temp0))});
-	return freeze__arr__arr__char__ptr_mut_arr__arr__char(res);
-}
-uint8_t list_ast_and_model_tests__arr__arr__char__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__char s) {
-	return 1;
-}
-uint8_t list_ast_and_model_tests__arr__arr__char__arr__char__lambda1(struct ctx* ctx, struct list_ast_and_model_tests__arr__arr__char__arr__char__lambda1___closure* _closure, struct arr__char child) {
-	struct some__arr__char s;
-	struct opt__arr__char matched;
-	matched = get_extension__opt__arr__char__arr__char(ctx, base_name__arr__char__arr__char(ctx, child));
-	switch (matched.kind) {
-		case 0:
-			return 0;
-		case 1:
-			s = matched.as1;
-			if (_op_equal_equal__bool__arr__char__arr__char(s.value, (struct arr__char) {2, "nz"})) {
-				return push___void__ptr_mut_arr__arr__char__arr__char(ctx, _closure->res, child);
-			} else {
-				return 0;
-			}
-		default:
-			return (assert(0),0);
-	}
-}
-struct opt__arr__ptr_failure first_some__opt__arr__ptr_failure__arr__arr__char__fun_mut1__opt__arr__ptr_failure__arr__char(struct ctx* ctx, struct arr__arr__char a, struct fun_mut1__opt__arr__ptr_failure__arr__char cb) {
-	struct some__arr__ptr_failure s;
-	struct opt__arr__ptr_failure matched;
+uint8_t remove_colors_recur___void__arr__char__ptr_mut_arr__char(struct ctx* ctx, struct arr__char s, struct mut_arr__char* out) {
 	struct ctx* _tailCallctx;
-	struct arr__arr__char _tailCalla;
-	struct fun_mut1__opt__arr__ptr_failure__arr__char _tailCallcb;
+	struct arr__char _tailCalls;
+	struct mut_arr__char* _tailCallout;
 	top:
-	if (empty__q__bool__arr__arr__char(a)) {
-		return (struct opt__arr__ptr_failure) {0, .as0 = none__none()};
+	if (empty__q__bool__arr__char(s)) {
+		return 0;
 	} else {
-		matched = call__opt__arr__ptr_failure__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(ctx, cb, first__arr__char__arr__arr__char(ctx, a));
-		switch (matched.kind) {
-			case 0:
-				_tailCallctx = ctx;
-				_tailCalla = tail__arr__arr__char__arr__arr__char(ctx, a);
-				_tailCallcb = cb;
-				ctx = _tailCallctx;
-				a = _tailCalla;
-				cb = _tailCallcb;
-				goto top;
-			case 1:
-				s = matched.as1;
-				return (struct opt__arr__ptr_failure) {1, .as1 = s};
-			default:
-				return (assert(0),(struct opt__arr__ptr_failure) {0});
+		if (_op_equal_equal__bool__char__char(first__char__arr__char(ctx, s), literal__char__arr__char((struct arr__char) {1, "\x1b"}))) {
+			return remove_colors_recur_2___void__arr__char__ptr_mut_arr__char(ctx, tail__arr__char__arr__char(ctx, s), out);
+		} else {
+			push___void__ptr_mut_arr__char__char(ctx, out, first__char__arr__char(ctx, s));
+			_tailCallctx = ctx;
+			_tailCalls = tail__arr__char__arr__char(ctx, s);
+			_tailCallout = out;
+			ctx = _tailCallctx;
+			s = _tailCalls;
+			out = _tailCallout;
+			goto top;
 		}
 	}
 }
-struct opt__arr__ptr_failure call__opt__arr__ptr_failure__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(struct ctx* ctx, struct fun_mut1__opt__arr__ptr_failure__arr__char f, struct arr__char p0) {
-	return call_with_ctx__opt__arr__ptr_failure__ptr_ctx__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(ctx, f, p0);
-}
-struct opt__arr__ptr_failure call_with_ctx__opt__arr__ptr_failure__ptr_ctx__fun_mut1__opt__arr__ptr_failure__arr__char__arr__char(struct ctx* c, struct fun_mut1__opt__arr__ptr_failure__arr__char f, struct arr__char p0) {
-	return f.fun_ptr(c, f.closure, p0);
-}
-struct arr__ptr_failure run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char ast_or_model, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct arr__char path, uint8_t overwrite_output__q) {
-	struct arr__arr__char arr;
-	struct process_result* res;
-	struct arr__char message;
-	struct arr__ptr_failure arr1;
-	struct arr__char* temp0;
-	struct failure** temp1;
-	struct failure* temp2;
-	res = spawn_and_wait_result__ptr_process_result__arr__char__arr__arr__char__ptr_dict__arr__char__arr__char(ctx, path_to_noze, (temp0 = (struct arr__char*) alloc__ptr__nat8__nat(ctx, (sizeof(struct arr__char) * 3)), ((*((temp0 + 0)) = (struct arr__char) {5, "print"}, 0), ((*((temp0 + 1)) = ast_or_model, 0), ((*((temp0 + 2)) = path, 0), (struct arr__arr__char) {3, temp0})))), env);
-	if ((_op_equal_equal__bool__int32__int32(res->exit_code, literal__int32__arr__char(ctx, (struct arr__char) {1, "0"})) && _op_equal_equal__bool__arr__char__arr__char(res->stderr, (struct arr__char) {0, ""}))) {
-		return handle_output__arr__ptr_failure__arr__char__arr__char__arr__char__bool(ctx, path, _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, path, (struct arr__char) {1, "."}), ast_or_model), (struct arr__char) {5, ".tata"}), res->stdout, overwrite_output__q);
+uint8_t remove_colors_recur_2___void__arr__char__ptr_mut_arr__char(struct ctx* ctx, struct arr__char s, struct mut_arr__char* out) {
+	struct ctx* _tailCallctx;
+	struct arr__char _tailCalls;
+	struct mut_arr__char* _tailCallout;
+	top:
+	if (empty__q__bool__arr__char(s)) {
+		return 0;
 	} else {
-		message = _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {8, "status: "}, to_str__arr__char__int32(ctx, res->exit_code)), (struct arr__char) {9, "\nstdout:\n"}), res->stdout), (struct arr__char) {8, "stderr:\n"}), res->stderr);
-		temp1 = (struct failure**) alloc__ptr__nat8__nat(ctx, (sizeof(struct failure*) * 1));
-		(*((temp1 + 0)) = (temp2 = (struct failure*) alloc__ptr__nat8__nat(ctx, sizeof(struct failure)), ((*(temp2) = (struct failure) {path, message}, 0), temp2)), 0);
-		return (struct arr__ptr_failure) {1, temp1};
+		if (_op_equal_equal__bool__char__char(first__char__arr__char(ctx, s), literal__char__arr__char((struct arr__char) {1, "m"}))) {
+			return remove_colors_recur___void__arr__char__ptr_mut_arr__char(ctx, tail__arr__char__arr__char(ctx, s), out);
+		} else {
+			_tailCallctx = ctx;
+			_tailCalls = tail__arr__char__arr__char(ctx, s);
+			_tailCallout = out;
+			ctx = _tailCallctx;
+			s = _tailCalls;
+			out = _tailCallout;
+			goto top;
+		}
 	}
+}
+uint8_t push___void__ptr_mut_arr__char__char(struct ctx* ctx, struct mut_arr__char* a, char value) {
+	if (_op_equal_equal__bool__nat__nat(a->size, a->capacity)) {
+		increase_capacity_to___void__ptr_mut_arr__char__nat(ctx, a, (zero__q__bool__nat(a->size) ? four__nat() : _op_times__nat__nat__nat(ctx, a->size, two__nat())));
+	} else {
+		0;
+	}
+	ensure_capacity___void__ptr_mut_arr__char__nat(ctx, a, round_up_to_power_of_two__nat__nat(ctx, incr__nat__nat(ctx, a->size)));
+	assert___void__bool(ctx, _op_less__bool__nat__nat(a->size, a->capacity));
+	(*((a->data + a->size)) = value, 0);
+	return (a->size = incr__nat__nat(ctx, a->size), 0);
 }
 struct some__arr__ptr_failure some__some__arr__ptr_failure__arr__ptr_failure(struct arr__ptr_failure t) {
 	return (struct some__arr__ptr_failure) {t};
 }
-struct opt__arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0(struct ctx* ctx, struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* _closure, struct arr__char name) {
-	struct arr__ptr_failure a;
-	a = run_single_ast_or_model_test__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(ctx, name, _closure->path_to_noze, _closure->env, _closure->test, _closure->options.overwrite_output__q);
-	if (empty__q__bool__arr__ptr_failure(a)) {
-		return (struct opt__arr__ptr_failure) {0, .as0 = none__none()};
-	} else {
-		return (struct opt__arr__ptr_failure) {1, .as1 = some__some__arr__ptr_failure__arr__ptr_failure(a)};
-	}
-}
-struct arr__ptr_failure opt_or__arr__ptr_failure__opt__arr__ptr_failure__fun_mut0__arr__ptr_failure(struct ctx* ctx, struct opt__arr__ptr_failure a, struct fun_mut0__arr__ptr_failure _default) {
-	struct none n;
-	struct some__arr__ptr_failure s;
-	struct opt__arr__ptr_failure matched;
-	matched = a;
-	switch (matched.kind) {
-		case 0:
-			n = matched.as0;
-			return call__arr__ptr_failure__fun_mut0__arr__ptr_failure(ctx, _default);
-		case 1:
-			s = matched.as1;
-			return s.value;
-		default:
-			return (assert(0),(struct arr__ptr_failure) {0, NULL});
-	}
-}
-struct arr__ptr_failure call__arr__ptr_failure__fun_mut0__arr__ptr_failure(struct ctx* ctx, struct fun_mut0__arr__ptr_failure f) {
-	return call_with_ctx__arr__ptr_failure__ptr_ctx__fun_mut0__arr__ptr_failure(ctx, f);
-}
-struct arr__ptr_failure call_with_ctx__arr__ptr_failure__ptr_ctx__fun_mut0__arr__ptr_failure(struct ctx* c, struct fun_mut0__arr__ptr_failure f) {
-	return f.fun_ptr(c, f.closure);
-}
-struct arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda1(struct ctx* ctx, uint8_t* _closure) {
-	return empty_arr__arr__ptr_failure();
-}
-struct arr__ptr_failure run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char test) {
-	struct arr__arr__char arr;
-	struct opt__arr__ptr_failure op;
-	struct arr__char* temp0;
-	struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure* temp1;
+struct opt__arr__ptr_failure run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char print_kind) {
+	struct print_test_result* res;
 	if (_closure->options.print_tests__q) {
-		print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {9, "noze ast "}, test));
+		print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {11, "noze print "}, print_kind), (struct arr__char) {1, " "}), _closure->path));
 	} else {
 		0;
 	}
-	op = first_some__opt__arr__ptr_failure__arr__arr__char__fun_mut1__opt__arr__ptr_failure__arr__char(ctx, (temp0 = (struct arr__char*) alloc__ptr__nat8__nat(ctx, (sizeof(struct arr__char) * 4)), ((*((temp0 + 0)) = (struct arr__char) {3, "ast"}, 0), ((*((temp0 + 1)) = (struct arr__char) {5, "model"}, 0), ((*((temp0 + 2)) = (struct arr__char) {14, "concrete-model"}, 0), ((*((temp0 + 3)) = (struct arr__char) {9, "low-model"}, 0), (struct arr__arr__char) {4, temp0}))))), (struct fun_mut1__opt__arr__ptr_failure__arr__char) {(fun_ptr3__opt__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char) run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0, (uint8_t*) (temp1 = (struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure)), ((*(temp1) = (struct run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda0___closure) {_closure->path_to_noze, _closure->env, test, _closure->options}, 0), temp1))});
-	return opt_or__arr__ptr_failure__opt__arr__ptr_failure__fun_mut0__arr__ptr_failure(ctx, op, (struct fun_mut0__arr__ptr_failure) {(fun_ptr2__arr__ptr_failure__ptr_ctx__ptr__nat8) run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0__lambda1, (uint8_t*) NULL});
-}
-struct result__arr__char__arr__ptr_failure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct test_options options) {
-	struct arr__arr__char tests;
-	struct arr__ptr_failure failures;
-	struct run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* temp0;
-	tests = list_runnable_tests__arr__arr__char__arr__char(ctx, path);
-	failures = flat_map_with_max_size__arr__ptr_failure__arr__arr__char__nat__fun_mut1__arr__ptr_failure__arr__char(ctx, tests, options.max_failures, (struct fun_mut1__arr__ptr_failure__arr__char) {(fun_ptr3__arr__ptr_failure__ptr_ctx__ptr__nat8__arr__char) run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0, (uint8_t*) (temp0 = (struct run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure)), ((*(temp0) = (struct run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure) {options, path_to_noze, env}, 0), temp0))});
-	if (has__q__bool__arr__ptr_failure(failures)) {
-		return (struct result__arr__char__arr__ptr_failure) {1, .as1 = err__err__arr__ptr_failure__arr__ptr_failure(failures)};
+	res = run_print_test__ptr_print_test_result__arr__char__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(ctx, print_kind, _closure->path_to_noze, _closure->env, _closure->path, _closure->options.overwrite_output__q);
+	if (res->should_stop__q) {
+		return (struct opt__arr__ptr_failure) {1, .as1 = some__some__arr__ptr_failure__arr__ptr_failure(res->failures)};
 	} else {
-		return (struct result__arr__char__arr__ptr_failure) {0, .as0 = ok__ok__arr__char__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {4, "ran "}, to_str__arr__char__nat(ctx, tests.size)), (struct arr__char) {15, " runnable tests"}))};
-	}
-}
-struct arr__arr__char list_runnable_tests__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path) {
-	struct mut_arr__arr__char* res;
-	struct fun_mut1__bool__arr__char filter;
-	struct list_runnable_tests__arr__arr__char__arr__char__lambda1___closure* temp0;
-	res = new_mut_arr__ptr_mut_arr__arr__char(ctx);
-	filter = (struct fun_mut1__bool__arr__char) {(fun_ptr3__bool__ptr_ctx__ptr__nat8__arr__char) list_runnable_tests__arr__arr__char__arr__char__lambda0, (uint8_t*) NULL};
-	each_child_recursive___void__arr__char__fun_mut1__bool__arr__char__fun_mut1___void__arr__char(ctx, path, filter, (struct fun_mut1___void__arr__char) {(fun_ptr3___void__ptr_ctx__ptr__nat8__arr__char) list_runnable_tests__arr__arr__char__arr__char__lambda1, (uint8_t*) (temp0 = (struct list_runnable_tests__arr__arr__char__arr__char__lambda1___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct list_runnable_tests__arr__arr__char__arr__char__lambda1___closure)), ((*(temp0) = (struct list_runnable_tests__arr__arr__char__arr__char__lambda1___closure) {res}, 0), temp0))});
-	return freeze__arr__arr__char__ptr_mut_arr__arr__char(res);
-}
-uint8_t list_runnable_tests__arr__arr__char__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__char s) {
-	return 1;
-}
-uint8_t list_runnable_tests__arr__arr__char__arr__char__lambda1(struct ctx* ctx, struct list_runnable_tests__arr__arr__char__arr__char__lambda1___closure* _closure, struct arr__char child) {
-	struct some__arr__char s;
-	struct opt__arr__char matched;
-	matched = get_extension__opt__arr__char__arr__char(ctx, base_name__arr__char__arr__char(ctx, child));
-	switch (matched.kind) {
-		case 0:
-			return 0;
-		case 1:
-			s = matched.as1;
-			if (_op_equal_equal__bool__arr__char__arr__char(s.value, (struct arr__char) {2, "nz"})) {
-				return push___void__ptr_mut_arr__arr__char__arr__char(ctx, _closure->res, child);
-			} else {
-				return 0;
-			}
-		default:
-			return (assert(0),0);
+		return (struct opt__arr__ptr_failure) {0, .as0 = none__none()};
 	}
 }
 struct arr__ptr_failure run_single_runnable_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char path_to_noze, struct dict__arr__char__arr__char* env, struct arr__char path, uint8_t overwrite_output__q) {
@@ -6499,20 +6342,17 @@ struct arr__ptr_failure run_single_runnable_test__arr__ptr_failure__arr__char__p
 		return (struct arr__ptr_failure) {1, temp1};
 	}
 }
-struct arr__ptr_failure run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char test) {
-	if (_closure->options.print_tests__q) {
-		print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {9, "noze run "}, test));
-	} else {
-		0;
-	}
-	return run_single_runnable_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__bool(ctx, _closure->path_to_noze, _closure->env, test, _closure->options.overwrite_output__q);
+struct arr__ptr_failure run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char test) {
+	return run_single_noze_test__arr__ptr_failure__arr__char__ptr_dict__arr__char__arr__char__arr__char__test_options(ctx, _closure->path_to_noze, _closure->env, test, _closure->options);
 }
-struct result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0__lambda0(struct ctx* ctx, struct do_test__int32__test_options__lambda0__lambda0___closure* _closure) {
-	return run_runnable_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx, child_path__arr__char__arr__char__arr__char(ctx, _closure->test_path, (struct arr__char) {8, "runnable"}), _closure->noze_exe, _closure->env, _closure->options);
+uint8_t has__q__bool__arr__ptr_failure(struct arr__ptr_failure a) {
+	return !empty__q__bool__arr__ptr_failure(a);
+}
+struct err__arr__ptr_failure err__err__arr__ptr_failure__arr__ptr_failure(struct arr__ptr_failure t) {
+	return (struct err__arr__ptr_failure) {t};
 }
 struct result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0(struct ctx* ctx, struct do_test__int32__test_options__lambda0___closure* _closure) {
-	struct do_test__int32__test_options__lambda0__lambda0___closure* temp0;
-	return first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, run_ast_and_model_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx, child_path__arr__char__arr__char__arr__char(ctx, _closure->test_path, (struct arr__char) {8, "runnable"}), _closure->noze_exe, _closure->env, _closure->options), (struct fun0__result__arr__char__arr__ptr_failure) {(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8) do_test__int32__test_options__lambda0__lambda0, (uint8_t*) (temp0 = (struct do_test__int32__test_options__lambda0__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct do_test__int32__test_options__lambda0__lambda0___closure)), ((*(temp0) = (struct do_test__int32__test_options__lambda0__lambda0___closure) {_closure->test_path, _closure->noze_exe, _closure->env, _closure->options}, 0), temp0))});
+	return run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx, child_path__arr__char__arr__char__arr__char(ctx, _closure->test_path, (struct arr__char) {8, "runnable"}), _closure->noze_exe, _closure->env, _closure->options);
 }
 struct result__arr__char__arr__ptr_failure lint__result__arr__char__arr__ptr_failure__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct test_options options) {
 	struct arr__arr__char files;
@@ -6523,7 +6363,7 @@ struct result__arr__char__arr__ptr_failure lint__result__arr__char__arr__ptr_fai
 	if (has__q__bool__arr__ptr_failure(failures)) {
 		return (struct result__arr__char__arr__ptr_failure) {1, .as1 = err__err__arr__ptr_failure__arr__ptr_failure(failures)};
 	} else {
-		return (struct result__arr__char__arr__ptr_failure) {0, .as0 = ok__ok__arr__char__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {7, "Linted "}, to_str__arr__char__nat(ctx, files.size)), (struct arr__char) {6, " files"}))};
+		return (struct result__arr__char__arr__ptr_failure) {0, .as0 = ok__ok__arr__char__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, _op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {7, "linted "}, to_str__arr__char__nat(ctx, files.size)), (struct arr__char) {6, " files"}))};
 	}
 }
 struct arr__arr__char list_lintable_files__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path) {

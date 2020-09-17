@@ -744,7 +744,11 @@ immutable(Sexpr) sexprOfFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDecl
 }
 
 immutable(Sexpr) sexprOfTypeParamAst(Alloc)(ref Alloc alloc, ref immutable TypeParamAst a) {
-	return todo!(immutable Sexpr)("sexprOfTypeParamAst");
+	return tataRecord(
+		alloc,
+		"type-param",
+		sexprOfSourceRange(alloc, a.range),
+		tataSym(a.name));
 }
 
 immutable(Sexpr) sexprOfSig(Alloc)(ref Alloc alloc, ref immutable SigAst a) {
@@ -847,8 +851,17 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 				sexprOfOptTypeAst(alloc, a.type),
 				tataArr(alloc, a.args, (ref immutable ExprAst it) =>
 					sexprOfExprAst(alloc, it))),
-		(ref immutable CreateRecordMultiLineAst) =>
-			todo!(immutable Sexpr)("sexprOfCreateRecordMultilineAst"),
+		(ref immutable CreateRecordMultiLineAst a) =>
+			tataRecord(
+				alloc,
+				"new-record",
+				sexprOfOptTypeAst(alloc, a.type),
+				tataArr(alloc, a.lines, (ref immutable CreateRecordMultiLineAst.Line it) =>
+					tataRecord(
+						alloc,
+						"line",
+						sexprOfNameAndRange(alloc, it.name),
+						sexprOfExprAst(alloc, it.value)))),
 		(ref immutable IdentifierAst a)  =>
 			tataSym(a.name),
 		(ref immutable LambdaAst) =>

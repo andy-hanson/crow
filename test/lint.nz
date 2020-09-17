@@ -13,7 +13,7 @@ lint result str arr<failure>(path str, options test-options) summon
 		failures has?
 			err: failures
 		else
-			ok: "Linted " + files.size.to-str + " files"
+			ok: "linted " + files.size.to-str + " files"
 
 private
 
