@@ -6,7 +6,6 @@ import diag : Diag;
 import frontend.ast :
 	BogusAst,
 	CallAst,
-	CondAst,
 	CreateArrAst,
 	CreateRecordAst,
 	CreateRecordMultiLineAst,
@@ -22,7 +21,8 @@ import frontend.ast :
 	RecordFieldSetAst,
 	SeqAst,
 	ThenAst,
-	TypeAst;
+	TypeAst,
+	WhenAst;
 import frontend.checkCall : checkCall, checkIdentifierCall;
 import frontend.checkCtx : CheckCtx;
 import frontend.inferringType :
@@ -208,17 +208,34 @@ immutable(Expr) checkAndExpect(Alloc)(
 	return checkAndExpect(alloc, ctx, ast, immutable Type(expected));
 }
 
-immutable(CheckedExpr) checkCond(Alloc)(
+immutable(CheckedExpr) checkWhen(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	immutable SourceRange range,
-	ref immutable CondAst ast,
+	ref immutable WhenAst ast,
 	ref Expected expected,
 ) {
-	immutable Ptr!Expr cond = allocExpr(alloc, checkAndExpect(alloc, ctx, ast.cond, ctx.commonTypes.bool_));
-	immutable Ptr!Expr then = allocExpr(alloc, checkExpr(alloc, ctx, ast.then, expected));
-	immutable Ptr!Expr else_ = allocExpr(alloc, checkExpr(alloc, ctx, ast.else_, expected));
-	return CheckedExpr(immutable Expr(range, Expr.Cond(inferred(expected), cond, then, else_)));
+	return checkWhenRecur(alloc, ctx, range, ast.cases, force(ast.else_), expected);
+}
+
+immutable(CheckedExpr) checkWhenRecur(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	immutable SourceRange range,
+	immutable Arr!(WhenAst.Case) cases,
+	immutable Ptr!ExprAst else_,
+	ref Expected expected,
+) {
+	if (empty(cases)) {
+		return immutable CheckedExpr(checkExpr(alloc, ctx, else_, expected));
+	} else {
+		immutable WhenAst.Case case_ = first(cases);
+		immutable Ptr!Expr cond = allocExpr(alloc, checkAndExpect(alloc, ctx, case_.cond, ctx.commonTypes.bool_));
+		immutable Ptr!Expr then = allocExpr(alloc, checkExpr(alloc, ctx, case_.then, expected));
+		immutable Ptr!Expr rest = allocExpr(alloc,
+			checkWhenRecur(alloc, ctx, range, tail(cases), else_, expected).expr);
+		return immutable CheckedExpr(immutable Expr(range, immutable Expr.Cond(inferred(expected), cond, then, rest)));
+	}
 }
 
 struct ArrExpectedType {
@@ -888,8 +905,6 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			unreachable!(immutable CheckedExpr),
 		(ref immutable CallAst a) =>
 			checkCall(alloc, ctx, range, a, expected),
-		(ref immutable CondAst a) =>
-			checkCond(alloc, ctx, range, a, expected),
 		(ref immutable CreateArrAst a) =>
 			checkCreateArr(alloc, ctx, range, a, expected),
 		(ref immutable CreateRecordAst a) =>
@@ -913,5 +928,7 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 		(ref immutable RecordFieldSetAst a) =>
 			checkRecordFieldSet(alloc, ctx, range, a, expected),
 		(ref immutable ThenAst a) =>
-			checkThen(alloc, ctx, range, a, expected));
+			checkThen(alloc, ctx, range, a, expected),
+		(ref immutable WhenAst a) =>
+			checkWhen(alloc, ctx, range, a, expected));
 }

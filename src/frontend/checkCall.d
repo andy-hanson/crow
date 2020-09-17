@@ -5,12 +5,12 @@ module frontend.checkCall;
 import diag : Diag;
 import frontend.ast :
 	CallAst,
-	CondAst,
 	ExprAst,
 	LetAst,
 	matchExprAstKind,
 	SeqAst,
-	TypeAst;
+	TypeAst,
+	WhenAst;
 import frontend.checkCtx : addDiag, CheckCtx;
 import frontend.checkExpr : checkExpr;
 import frontend.inferringType :
@@ -87,6 +87,7 @@ import util.collection.arr :
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil :
 	eachCorresponds,
+	every,
 	exists,
 	fillArr_mut,
 	fillArrOrFail,
@@ -246,8 +247,6 @@ immutable(Bool) exprMightHaveProperties(immutable ExprAst ast) {
 		ast.kind,
 		(ref immutable BogusAst) => unreachable!(immutable Bool),
 		(ref immutable CallAst) => True,
-		(ref immutable CondAst e) =>
-			immutable Bool(exprMightHaveProperties(e.then) && exprMightHaveProperties(e.else_)),
 		(ref immutable CreateArrAst) => True,
 		(ref immutable CreateRecordAst) => True,
 		(ref immutable CreateRecordMultiLineAst) => True,
@@ -263,7 +262,12 @@ immutable(Bool) exprMightHaveProperties(immutable ExprAst ast) {
 		(ref immutable SeqAst e) => exprMightHaveProperties(e.then),
 		(ref immutable RecordFieldSetAst) => False,
 		// Always returns fut
-		(ref immutable ThenAst) => False);
+		(ref immutable ThenAst) => False,
+		(ref immutable WhenAst e) =>
+			immutable Bool(
+				every(e.cases, (ref immutable WhenAst.Case case_) =>
+					exprMightHaveProperties(case_.then)) &&
+				exprMightHaveProperties(force(e.else_))));
 }
 
 struct Candidate {

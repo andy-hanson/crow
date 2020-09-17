@@ -5,7 +5,7 @@ import cli : cli;
 extern(C) int main(immutable size_t argc, immutable char** argv) {
 	if (false) { debug {
 		import core.stdc.stdio : printf;
-		import frontend.ast : CallAst, CondAst, CreateArrAst,
+		import frontend.ast : CallAst, CreateArrAst,
 			CreateRecordAst,
 			CreateRecordMultiLineAst,
 			IdentifierAst,
@@ -21,12 +21,13 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 			FileAst,
 			SigAst,
 			TypeAst,
+			WhenAst,
 			FunDeclAst,
 			FunBodyAst;
 		import parseDiag : ParseDiagnostic;
 		import util.result : Result;
 		printf("Call: %lu\n", CallAst.sizeof);
-		printf("Cond: %lu\n", CondAst.sizeof);
+		printf("When: %lu\n", WhenAst.sizeof);
 		printf("CreateArr: %lu\n", CreateArrAst.sizeof);
 		printf("CreateRecord: %lu\n", CreateRecordAst.sizeof);
 		printf("CreateRecordMultiLine: %lu\n", CreateRecordMultiLineAst.sizeof);

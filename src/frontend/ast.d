@@ -95,10 +95,13 @@ struct CallAst {
 	immutable Arr!ExprAst args;
 }
 
-struct CondAst {
-	immutable Ptr!ExprAst cond;
-	immutable Ptr!ExprAst then;
-	immutable Ptr!ExprAst else_;
+struct WhenAst {
+	struct Case {
+		immutable ExprAst cond;
+		immutable ExprAst then;
+	}
+	immutable Arr!Case cases;
+	immutable Opt!(Ptr!ExprAst) else_; // parse error if missing
 }
 
 struct CreateArrAst {
@@ -194,7 +197,6 @@ struct ExprAstKind {
 	enum Kind {
 		bogus,
 		call,
-		cond,
 		createArr,
 		createRecord,
 		createRecordMultiLine,
@@ -207,12 +209,12 @@ struct ExprAstKind {
 		seq,
 		recordFieldSet,
 		then,
+		when,
 	}
 	immutable Kind kind;
 	union {
 		immutable BogusAst bogus;
 		immutable CallAst call;
-		immutable CondAst cond;
 		immutable CreateArrAst createArr;
 		immutable CreateRecordAst createRecord;
 		immutable CreateRecordMultiLineAst createRecordMultiLine;
@@ -225,12 +227,12 @@ struct ExprAstKind {
 		immutable SeqAst seq;
 		immutable RecordFieldSetAst recordFieldSet;
 		immutable ThenAst then;
+		immutable WhenAst when;
 	}
 
 	public:
 	@trusted immutable this(immutable BogusAst a) { kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
-	@trusted immutable this(immutable CondAst a) { kind = Kind.cond; cond = a; }
 	@trusted immutable this(immutable CreateArrAst a) { kind = Kind.createArr; createArr = a; }
 	@trusted immutable this(immutable CreateRecordAst a) { kind = Kind.createRecord; createRecord = a; }
 	@trusted immutable this(immutable CreateRecordMultiLineAst a) {
@@ -245,6 +247,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable RecordFieldSetAst a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 	@trusted immutable this(immutable ThenAst a) { kind = Kind.then; then = a; }
+	@trusted immutable this(immutable WhenAst a) { kind = Kind.when; when = a; }
 }
 
 immutable(Bool) isIdentifier(ref immutable ExprAstKind a) {
@@ -267,7 +270,6 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 	scope ref immutable ExprAstKind a,
 	scope immutable(T) delegate(scope ref immutable BogusAst) @safe @nogc pure nothrow cbBogus,
 	scope immutable(T) delegate(scope ref immutable CallAst) @safe @nogc pure nothrow cbCall,
-	scope immutable(T) delegate(scope ref immutable CondAst) @safe @nogc pure nothrow cbCond,
 	scope immutable(T) delegate(scope ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
 	scope immutable(T) delegate(scope ref immutable CreateRecordAst) @safe @nogc pure nothrow cbCreateRecord,
 	scope immutable(T) delegate(
@@ -282,14 +284,13 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 	scope immutable(T) delegate(scope ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
 	scope immutable(T) delegate(scope ref immutable RecordFieldSetAst) @safe @nogc pure nothrow cbRecordFieldSet,
 	scope immutable(T) delegate(scope ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
+	scope immutable(T) delegate(scope ref immutable WhenAst) @safe @nogc pure nothrow cbWhen,
 ) {
 	final switch (a.kind) {
 		case ExprAstKind.Kind.bogus:
 			return cbBogus(a.bogus);
 		case ExprAstKind.Kind.call:
 			return cbCall(a.call);
-		case ExprAstKind.Kind.cond:
-			return cbCond(a.cond);
 		case ExprAstKind.Kind.createArr:
 			return cbCreateArr(a.createArr);
 		case ExprAstKind.Kind.createRecord:
@@ -314,6 +315,8 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 			return cbRecordFieldSet(a.recordFieldSet);
 		case ExprAstKind.Kind.then:
 			return cbThen(a.then);
+		case ExprAstKind.Kind.when:
+			return cbWhen(a.when);
 	}
 }
 
@@ -821,13 +824,6 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 					sexprOfTypeAst(alloc, it)),
 				tataArr(alloc, e.args, (ref immutable ExprAst it) =>
 					sexprOfExprAst(alloc, it))),
-		(ref immutable CondAst e) =>
-			tataRecord(
-				alloc,
-				"cond",
-				sexprOfExprAst(alloc, e.cond.deref),
-				sexprOfExprAst(alloc, e.then.deref),
-				sexprOfExprAst(alloc, e.else_.deref)),
 		(ref immutable CreateArrAst e) =>
 			tataRecord(
 				alloc,
@@ -878,5 +874,17 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 				sexprOfExprAst(alloc, a.first),
 				sexprOfExprAst(alloc, a.then)),
 		(ref immutable RecordFieldSetAst)  => todo!(immutable Sexpr)("sexprOfRecordFieldSetAst"),
-		(ref immutable ThenAst) => todo!(immutable Sexpr)("sexprOfThenAst"));
+		(ref immutable ThenAst) => todo!(immutable Sexpr)("sexprOfThenAst"),
+		(ref immutable WhenAst e) =>
+			tataRecord(
+				alloc,
+				"when",
+				tataArr(alloc, e.cases, (ref immutable WhenAst.Case case_) =>
+					tataRecord(
+						alloc,
+						"case",
+						sexprOfExprAst(alloc, case_.cond),
+						sexprOfExprAst(alloc, case_.then))),
+				tataOpt(alloc, e.else_, (ref immutable Ptr!ExprAst it) =>
+					sexprOfExprAst(alloc, it))));
 }

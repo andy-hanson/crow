@@ -7,7 +7,6 @@ import frontend.ast :
 	asIdentifier,
 	BogusAst,
 	CallAst,
-	CondAst,
 	CreateArrAst,
 	CreateRecordAst,
 	CreateRecordMultiLineAst,
@@ -25,7 +24,8 @@ import frontend.ast :
 	RecordFieldSetAst,
 	SeqAst,
 	ThenAst,
-	TypeAst;
+	TypeAst,
+	WhenAst;
 import frontend.lexer :
 	addDiag,
 	asLiteral,
@@ -233,7 +233,6 @@ immutable(Bool) someInOwnBody(
 		body_.kind,
 		(ref immutable BogusAst) => False,
 		(ref immutable CallAst e) => e.args.exists(&recur),
-		(ref immutable CondAst) => unreachable!(immutable Bool),
 		(ref immutable CreateArrAst e) => e.args.exists(&recur),
 		(ref immutable CreateRecordAst e) => e.args.exists(&recur),
 		(ref immutable CreateRecordMultiLineAst e) => unreachable!(immutable Bool),
@@ -245,7 +244,8 @@ immutable(Bool) someInOwnBody(
 		(ref immutable MatchAst) => unreachable!(immutable Bool),
 		(ref immutable SeqAst) => unreachable!(immutable Bool),
 		(ref immutable RecordFieldSetAst e) => immutable Bool(recur(e.target) || recur(e.value)),
-		(ref immutable ThenAst) => unreachable!(immutable Bool));
+		(ref immutable ThenAst) => unreachable!(immutable Bool),
+		(ref immutable CondAst) => unreachable!(immutable Bool));
 }
 
 immutable(Bool) bodyUsesIt(ref immutable ExprAst body_) {
@@ -401,26 +401,30 @@ immutable(ExprAndMaybeDedent) parseWhenLoop(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
+	ref ArrBuilder!(WhenAst.Case) cases,
 ) {
 	if (lexer.tryTakeElseIndent()) {
 		immutable ExprAndDedent elseAndDedent = parseStatementsAndExtraDedents(alloc, lexer);
 		if (elseAndDedent.dedents == 0)
 			todo!void("can't have any case after 'else'");
-		return ExprAndMaybeDedent(elseAndDedent.expr, some!size_t(elseAndDedent.dedents - 1));
+		immutable WhenAst when = immutable WhenAst(finishArr(alloc, cases), some(allocExpr(alloc, elseAndDedent.expr)));
+		return immutable ExprAndMaybeDedent(
+			immutable ExprAst(range(lexer, start), immutable ExprAstKind(when)),
+			some!size_t(elseAndDedent.dedents - 1));
 	} else {
 		immutable ExprAst condition = parseExprNoBlock(alloc, lexer);
-		lexer.takeIndent();
+		takeIndent(lexer);
 		immutable ExprAndDedent thenAndDedent = parseStatementsAndExtraDedents(alloc, lexer);
-		if (thenAndDedent.dedents != 0)
-			return throwAtChar!ExprAndMaybeDedent(lexer, ParseDiag(ParseDiag.WhenMustHaveElse()));
-		immutable ExprAndMaybeDedent elseAndDedent = parseWhenLoop(alloc, lexer, start);
-		immutable CondAst cond = CondAst(
-			allocExpr(alloc, condition),
-			allocExpr(alloc, thenAndDedent.expr),
-			allocExpr(alloc, elseAndDedent.expr));
-		return immutable ExprAndMaybeDedent(
-			immutable ExprAst(lexer.range(start), immutable ExprAstKind(cond)),
-			elseAndDedent.dedents);
+		if (thenAndDedent.dedents != 0) {
+			addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(immutable ParseDiag.WhenMustHaveElse()));
+			immutable WhenAst when = immutable WhenAst(finishArr(alloc, cases), none!(Ptr!ExprAst));
+			return immutable ExprAndMaybeDedent(
+				immutable ExprAst(range(lexer, start), immutable ExprAstKind(when)),
+				some!size_t(thenAndDedent.dedents - 1));
+		} else {
+			add(alloc, cases, immutable WhenAst.Case(condition, thenAndDedent.expr));
+			return parseWhenLoop(alloc, lexer, start, cases);
+		}
 	}
 }
 
@@ -429,8 +433,9 @@ immutable(ExprAndMaybeDedent) parseWhen(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
 ) {
-	lexer.takeIndent();
-	return parseWhenLoop(alloc, lexer, start);
+	takeIndent(lexer);
+	ArrBuilder!(WhenAst.Case) cases;
+	return parseWhenLoop(alloc, lexer, start, cases);
 }
 
 immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
