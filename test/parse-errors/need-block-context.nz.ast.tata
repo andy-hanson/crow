@@ -1,0 +1,19 @@
+file-ast(
+	imports: []
+	exports: []
+	specs: []
+	aliases: []
+	structs: []
+	funs: [
+		fun-decl(
+			public?: true
+			sig: sig-ast(range(0, 8), f, inststruct(range(2, 6), void), [])
+			body: seq-ast(
+				seq-ast(
+					when([case(bogus, literal(numeric, "0"))], some(literal(numeric, "1")))
+					match(
+						some(bogus)
+						[
+							case(range(54, 66), some, none, literal(numeric, "0"))
+							case(range(66, 77), none, none, literal(numeric, "1"))]))
+				bogus))])

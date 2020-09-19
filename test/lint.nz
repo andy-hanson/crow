@@ -28,7 +28,7 @@ list-lintable-files arr str(path str) summon
 	res freeze
 
 excluded-from-lint? bool(name str)
-	bad-exts = new-arr<str> ".bmp", ".png", ".wasm"
+	bad-exts = new-arr<str> ".bmp", ".err", ".png", ".tata", ".wasm"
 	name.first == "." or: name == "libfirm" or: bad-exts some? {name ends-with? it}
 
 | Returns nubmer of errors

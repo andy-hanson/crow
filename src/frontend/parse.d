@@ -24,6 +24,7 @@ import frontend.ast :
 	TypeAst,
 	TypeParamAst;
 import frontend.lexer :
+	addDiagAtChar,
 	createLexer,
 	curChar,
 	curPos,
@@ -106,19 +107,21 @@ immutable(Arr!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc alloc, re
 		return emptyArr!TypeParamAst;
 }
 
-immutable(PuritySpecifier) parsePurity(SymAlloc)(ref Lexer!SymAlloc lexer) {
+immutable(Opt!PuritySpecifier) parsePurity(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	if (lexer.tryTake("data"))
-		return PuritySpecifier.data;
+		return some(PuritySpecifier.data);
 	else if (lexer.tryTake("mut"))
-		return PuritySpecifier.mut;
+		return some(PuritySpecifier.mut);
 	else if (lexer.tryTake("sendable"))
-		return PuritySpecifier.sendable;
+		return some(PuritySpecifier.sendable);
 	else if (lexer.tryTake("force-data"))
-		return PuritySpecifier.forceData;
+		return some(PuritySpecifier.forceData);
 	else if (lexer.tryTake("force-sendable"))
-		return PuritySpecifier.forceSendable;
-	else
-		return lexer.throwAtChar!PuritySpecifier(ParseDiag(ParseDiag.ExpectedPurityAfterSpace()));
+		return some(PuritySpecifier.forceSendable);
+	else {
+		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.ExpectedPurityAfterSpace()));
+		return none!PuritySpecifier;
+	}
 }
 
 immutable(ImportAst) parseSingleImport(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -613,7 +616,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 		immutable NonFunKeyword kw = kwAndIndent.keyword;
 		immutable SpaceOrNewlineOrIndent after = kwAndIndent.after;
 		immutable Opt!PuritySpecifier purity = after == SpaceOrNewlineOrIndent.space
-			? some(parsePurity(lexer))
+			? parsePurity(alloc, lexer)
 			: none!PuritySpecifier;
 
 		immutable Bool tookIndent = () {
@@ -688,10 +691,16 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 									none!ExplicitByValOrRef,
 									emptyArr!(StructDeclAst.Body.Record.Field)));
 						case NonFunKeyword.union_:
-							return tookIndent
-								? immutable StructDeclAst.Body(
-									immutable StructDeclAst.Body.Union(parseUnionMembers(alloc, lexer)))
-								: throwAtChar!(StructDeclAst.Body)(lexer, ParseDiag(ParseDiag.UnionCantBeEmpty()));
+							return immutable StructDeclAst.Body(
+								immutable StructDeclAst.Body.Union(() {
+									if (tookIndent)
+										return parseUnionMembers(alloc, lexer);
+									else {
+										addDiagAtChar(alloc, lexer, immutable ParseDiag(
+											immutable ParseDiag.UnionCantBeEmpty()));
+										return emptyArr!(TypeAst.InstStruct);
+									}
+								}()));
 					}
 				}();
 				add(

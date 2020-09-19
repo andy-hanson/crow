@@ -25,7 +25,7 @@ import util.sexpr :
 import util.sourceRange : sexprOfSourceRange, SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : u8;
-import util.util : todo, verify;
+import util.util : todo, unreachable, verify;
 
 struct NameAndRange {
 	immutable SourceRange range;
@@ -169,7 +169,7 @@ struct MatchAst {
 		immutable Ptr!ExprAst then;
 	}
 
-	immutable Ptr!ExprAst matched;
+	immutable Opt!(Ptr!ExprAst) matched; // parse error if missing
 	immutable Arr!CaseAst cases;
 }
 
@@ -869,11 +869,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 				alloc,
 				"lambda",
 				tataArr(alloc, a.params, (ref immutable LambdaAst.Param it) =>
-					tataRecord(
-						alloc,
-						"param",
-						sexprOfSourceRange(alloc, it.range),
-						tataSym(it.name)))),
+					sexprOfLambdaParamAst(alloc, it))),
 		(ref immutable LetAst a) =>
 			tataRecord(
 				alloc,
@@ -894,16 +890,44 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 					}
 				}()),
 				tataStr(a.literal)),
-		(ref immutable LiteralInnerAst)  => todo!(immutable Sexpr)("sexprOfLiteralInnerAst"),
-		(ref immutable MatchAst) => todo!(immutable Sexpr)("sexprOfMatchAst"),
+		(ref immutable LiteralInnerAst) =>
+			// Only used temporarily; should never need to print this
+			unreachable!(immutable Sexpr),
+		(ref immutable MatchAst it) =>
+			tataRecord(
+				alloc,
+				"match",
+				tataOpt(alloc, it.matched, (ref immutable Ptr!ExprAst matched) =>
+					sexprOfExprAst(alloc, matched)),
+				tataArr(alloc, it.cases, (ref immutable MatchAst.CaseAst case_) =>
+					tataRecord(
+						alloc,
+						"case",
+						sexprOfSourceRange(alloc, case_.range),
+						tataSym(case_.structName),
+						tataOpt(alloc, case_.local, (ref immutable NameAndRange nr) =>
+							sexprOfNameAndRange(alloc, nr)),
+						sexprOfExprAst(alloc, case_.then)))),
 		(ref immutable SeqAst a) =>
 			tataRecord(
 				alloc,
 				"seq-ast",
 				sexprOfExprAst(alloc, a.first),
 				sexprOfExprAst(alloc, a.then)),
-		(ref immutable RecordFieldSetAst)  => todo!(immutable Sexpr)("sexprOfRecordFieldSetAst"),
-		(ref immutable ThenAst) => todo!(immutable Sexpr)("sexprOfThenAst"),
+		(ref immutable RecordFieldSetAst it) =>
+			tataRecord(
+				alloc,
+				"field-set",
+				sexprOfExprAst(alloc, it.target),
+				tataSym(it.fieldName),
+				sexprOfExprAst(alloc, it.value)),
+		(ref immutable ThenAst it) =>
+			tataRecord(
+				alloc,
+				"then-ast",
+				sexprOfLambdaParamAst(alloc, it.left),
+				sexprOfExprAst(alloc, it.futExpr),
+				sexprOfExprAst(alloc, it.then)),
 		(ref immutable WhenAst e) =>
 			tataRecord(
 				alloc,
@@ -916,4 +940,12 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 						sexprOfExprAst(alloc, case_.then))),
 				tataOpt(alloc, e.else_, (ref immutable Ptr!ExprAst it) =>
 					sexprOfExprAst(alloc, it))));
+}
+
+immutable(Sexpr) sexprOfLambdaParamAst(Alloc)(ref Alloc alloc, ref immutable LambdaAst.Param a) {
+	return tataRecord(
+		alloc,
+		"param",
+		sexprOfSourceRange(alloc, a.range),
+		tataSym(a.name));
 }

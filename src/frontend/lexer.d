@@ -231,6 +231,7 @@ immutable(NewlineOrIndent) takeNewlineOrIndent(Alloc, SymAlloc)(ref Alloc alloc,
 	return skipLinesAndGetIndentDelta(alloc, lexer);
 }
 
+//TODO:KILL (throws)
 void takeIndent(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	take(lexer, '\n');
 	takeIndentAfterNewline(alloc, lexer);

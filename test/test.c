@@ -386,6 +386,12 @@ struct do_test__int32__test_options__lambda0___closure {
 	struct dict__arr__char__arr__char* env;
 	struct test_options options;
 };
+struct do_test__int32__test_options__lambda0__lambda0___closure {
+	struct arr__char test_path;
+	struct arr__char noze_exe;
+	struct dict__arr__char__arr__char* env;
+	struct test_options options;
+};
 struct do_test__int32__test_options__lambda1___closure {
 	struct arr__char noze_path;
 	struct test_options options;
@@ -1684,6 +1690,7 @@ struct arr__ptr_failure run_single_runnable_test__arr__ptr_failure__arr__char__p
 struct arr__ptr_failure run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0(struct ctx* ctx, struct run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options__lambda0___closure* _closure, struct arr__char test);
 uint8_t has__q__bool__arr__ptr_failure(struct arr__ptr_failure a);
 struct err__arr__ptr_failure err__err__arr__ptr_failure__arr__ptr_failure(struct arr__ptr_failure t);
+struct result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0__lambda0(struct ctx* ctx, struct do_test__int32__test_options__lambda0__lambda0___closure* _closure);
 struct result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0(struct ctx* ctx, struct do_test__int32__test_options__lambda0___closure* _closure);
 struct result__arr__char__arr__ptr_failure lint__result__arr__char__arr__ptr_failure__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct test_options options);
 struct arr__arr__char list_lintable_files__arr__arr__char__arr__char(struct ctx* ctx, struct arr__char path);
@@ -4340,7 +4347,7 @@ int32_t do_test__int32__test_options(struct ctx* ctx, struct test_options option
 	noze_path = parent_path__arr__char__arr__char(ctx, test_path);
 	noze_exe = child_path__arr__char__arr__char__arr__char(ctx, child_path__arr__char__arr__char__arr__char(ctx, noze_path, (struct arr__char) {3, "bin"}), (struct arr__char) {4, "noze"});
 	env = get_environ__ptr_dict__arr__char__arr__char(ctx);
-	noze_failures = first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx, child_path__arr__char__arr__char__arr__char(ctx, test_path, (struct arr__char) {14, "compile-errors"}), noze_exe, env, options), (struct fun0__result__arr__char__arr__ptr_failure) {(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8) do_test__int32__test_options__lambda0, (uint8_t*) (temp0 = (struct do_test__int32__test_options__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct do_test__int32__test_options__lambda0___closure)), ((*(temp0) = (struct do_test__int32__test_options__lambda0___closure) {test_path, noze_exe, env, options}, 0), temp0))});
+	noze_failures = first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx, child_path__arr__char__arr__char__arr__char(ctx, test_path, (struct arr__char) {12, "parse-errors"}), noze_exe, env, options), (struct fun0__result__arr__char__arr__ptr_failure) {(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8) do_test__int32__test_options__lambda0, (uint8_t*) (temp0 = (struct do_test__int32__test_options__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct do_test__int32__test_options__lambda0___closure)), ((*(temp0) = (struct do_test__int32__test_options__lambda0___closure) {test_path, noze_exe, env, options}, 0), temp0))});
 	all_failures = first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, noze_failures, (struct fun0__result__arr__char__arr__ptr_failure) {(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8) do_test__int32__test_options__lambda1, (uint8_t*) (temp1 = (struct do_test__int32__test_options__lambda1___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct do_test__int32__test_options__lambda1___closure)), ((*(temp1) = (struct do_test__int32__test_options__lambda1___closure) {noze_path, options}, 0), temp1))});
 	return print_failures__int32__result__arr__char__arr__ptr_failure__test_options(ctx, all_failures, options);
 }
@@ -6351,8 +6358,12 @@ uint8_t has__q__bool__arr__ptr_failure(struct arr__ptr_failure a) {
 struct err__arr__ptr_failure err__err__arr__ptr_failure__arr__ptr_failure(struct arr__ptr_failure t) {
 	return (struct err__arr__ptr_failure) {t};
 }
-struct result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0(struct ctx* ctx, struct do_test__int32__test_options__lambda0___closure* _closure) {
+struct result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0__lambda0(struct ctx* ctx, struct do_test__int32__test_options__lambda0__lambda0___closure* _closure) {
 	return run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx, child_path__arr__char__arr__char__arr__char(ctx, _closure->test_path, (struct arr__char) {8, "runnable"}), _closure->noze_exe, _closure->env, _closure->options);
+}
+struct result__arr__char__arr__ptr_failure do_test__int32__test_options__lambda0(struct ctx* ctx, struct do_test__int32__test_options__lambda0___closure* _closure) {
+	struct do_test__int32__test_options__lambda0__lambda0___closure* temp0;
+	return first_failures__result__arr__char__arr__ptr_failure__result__arr__char__arr__ptr_failure__fun0__result__arr__char__arr__ptr_failure(ctx, run_noze_tests__result__arr__char__arr__ptr_failure__arr__char__arr__char__ptr_dict__arr__char__arr__char__test_options(ctx, child_path__arr__char__arr__char__arr__char(ctx, _closure->test_path, (struct arr__char) {14, "compile-errors"}), _closure->noze_exe, _closure->env, _closure->options), (struct fun0__result__arr__char__arr__ptr_failure) {(fun_ptr2__result__arr__char__arr__ptr_failure__ptr_ctx__ptr__nat8) do_test__int32__test_options__lambda0__lambda0, (uint8_t*) (temp0 = (struct do_test__int32__test_options__lambda0__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct do_test__int32__test_options__lambda0__lambda0___closure)), ((*(temp0) = (struct do_test__int32__test_options__lambda0__lambda0___closure) {_closure->test_path, _closure->noze_exe, _closure->env, _closure->options}, 0), temp0))});
 }
 struct result__arr__char__arr__ptr_failure lint__result__arr__char__arr__ptr_failure__arr__char__test_options(struct ctx* ctx, struct arr__char path, struct test_options options) {
 	struct arr__arr__char files;
@@ -6378,7 +6389,7 @@ uint8_t excluded_from_lint__q__bool__arr__char(struct ctx* ctx, struct arr__char
 	struct arr__arr__char bad_exts;
 	struct arr__char* temp0;
 	struct excluded_from_lint__q__bool__arr__char__lambda0___closure* temp1;
-	bad_exts = (temp0 = (struct arr__char*) alloc__ptr__nat8__nat(ctx, (sizeof(struct arr__char) * 3)), ((*((temp0 + 0)) = (struct arr__char) {4, ".bmp"}, 0), ((*((temp0 + 1)) = (struct arr__char) {4, ".png"}, 0), ((*((temp0 + 2)) = (struct arr__char) {5, ".wasm"}, 0), (struct arr__arr__char) {3, temp0}))));
+	bad_exts = (temp0 = (struct arr__char*) alloc__ptr__nat8__nat(ctx, (sizeof(struct arr__char) * 5)), ((*((temp0 + 0)) = (struct arr__char) {4, ".bmp"}, 0), ((*((temp0 + 1)) = (struct arr__char) {4, ".err"}, 0), ((*((temp0 + 2)) = (struct arr__char) {4, ".png"}, 0), ((*((temp0 + 3)) = (struct arr__char) {5, ".tata"}, 0), ((*((temp0 + 4)) = (struct arr__char) {5, ".wasm"}, 0), (struct arr__arr__char) {5, temp0}))))));
 	return (_op_equal_equal__bool__char__char(first__char__arr__char(ctx, name), literal__char__arr__char((struct arr__char) {1, "."})) || (_op_equal_equal__bool__arr__char__arr__char(name, (struct arr__char) {7, "libfirm"}) || some__q__bool__arr__arr__char__fun_mut1__bool__arr__char(ctx, bad_exts, (struct fun_mut1__bool__arr__char) {(fun_ptr3__bool__ptr_ctx__ptr__nat8__arr__char) excluded_from_lint__q__bool__arr__char__lambda0, (uint8_t*) (temp1 = (struct excluded_from_lint__q__bool__arr__char__lambda0___closure*) alloc__ptr__nat8__nat(ctx, sizeof(struct excluded_from_lint__q__bool__arr__char__lambda0___closure)), ((*(temp1) = (struct excluded_from_lint__q__bool__arr__char__lambda0___closure) {name}, 0), temp1))})));
 }
 uint8_t some__q__bool__arr__arr__char__fun_mut1__bool__arr__char(struct ctx* ctx, struct arr__arr__char a, struct fun_mut1__bool__arr__char pred) {

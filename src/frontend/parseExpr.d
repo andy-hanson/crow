@@ -279,37 +279,38 @@ immutable(ExprAndMaybeDedent) parseMatch(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start
 ) {
-	take(lexer, ' ');
-	immutable Ptr!ExprAst matched = allocExpr(alloc, parseExprNoBlock(alloc, lexer));
-	takeIndent(alloc, lexer);
-
-	ArrBuilder!(MatchAst.CaseAst) cases;
-	immutable size_t matchDedents = () {
-		for (;;) {
-			immutable Pos startCase = lexer.curPos;
-			immutable Sym structName = lexer.takeName();
-			immutable Opt!NameAndRange localName = tryTakeIndent(alloc, lexer)
-				? none!NameAndRange
-				: () {
-					take(lexer, ' ');
-					immutable NameAndRange local = takeNameAndRange(lexer);
-					takeIndent(alloc, lexer);
-					return some(local);
-				}();
-			immutable ExprAndDedent ed = parseStatementsAndExtraDedents(alloc, lexer);
-			add(alloc, cases, immutable MatchAst.CaseAst(
-				lexer.range(startCase),
-				structName,
-				localName,
-				allocExpr(alloc, ed.expr)));
-			if (ed.dedents != 0)
-				return ed.dedents - 1;
-		}
-	}();
-	immutable MatchAst match = MatchAst(matched, finishArr(alloc, cases));
-	return immutable ExprAndMaybeDedent(
-		immutable ExprAst(lexer.range(start), immutable ExprAstKind(match)),
-		some(matchDedents));
+	immutable Opt!(Ptr!ExprAst) matched = tryTake(lexer, ' ')
+		? some(allocExpr(alloc, parseExprNoBlock(alloc, lexer)))
+		: none!(Ptr!ExprAst);
+	return takeIndentOrFail(alloc, lexer, start, () {
+		ArrBuilder!(MatchAst.CaseAst) cases;
+		immutable size_t matchDedents = () {
+			for (;;) {
+				immutable Pos startCase = lexer.curPos;
+				immutable Sym structName = lexer.takeName();
+				immutable Opt!NameAndRange localName = tryTakeIndent(alloc, lexer)
+					? none!NameAndRange
+					: () {
+						take(lexer, ' ');
+						immutable NameAndRange local = takeNameAndRange(lexer);
+						takeIndent(alloc, lexer);
+						return some(local);
+					}();
+				immutable ExprAndDedent ed = parseStatementsAndExtraDedents(alloc, lexer);
+				add(alloc, cases, immutable MatchAst.CaseAst(
+					lexer.range(startCase),
+					structName,
+					localName,
+					allocExpr(alloc, ed.expr)));
+				if (ed.dedents != 0)
+					return ed.dedents - 1;
+			}
+		}();
+		immutable MatchAst match = immutable MatchAst(matched, finishArr(alloc, cases));
+		return immutable ExprAndMaybeDedent(
+			immutable ExprAst(lexer.range(start), immutable ExprAstKind(match)),
+			some(matchDedents));
+	});
 }
 
 immutable(ExprAndMaybeDedent) parseMultiLineNew(Alloc, SymAlloc)(
@@ -431,10 +432,11 @@ immutable(ExprAndMaybeDedent) parseWhenLoop(Alloc, SymAlloc)(
 	}
 }
 
-immutable(ExprAndMaybeDedent) parseWhen(Alloc, SymAlloc)(
+immutable(ExprAndMaybeDedent) takeIndentOrFail(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
+	scope immutable(ExprAndMaybeDedent) delegate() @safe @nogc pure nothrow cbIndent,
 ) {
 	immutable IndentDelta delta = takeNewlineAndReturnIndentDelta(alloc, lexer);
 	return matchIndentDelta!(immutable ExprAndMaybeDedent)(
@@ -446,9 +448,19 @@ immutable(ExprAndMaybeDedent) parseWhen(Alloc, SymAlloc)(
 				some(dedent.nDedents));
 		},
 		(ref immutable IndentDelta.Indent) {
-			ArrBuilder!(WhenAst.Case) cases;
-			return parseWhenLoop(alloc, lexer, start, cases);
+			return cbIndent();
 		});
+}
+
+immutable(ExprAndMaybeDedent) parseWhen(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Pos start,
+) {
+	return takeIndentOrFail(alloc, lexer, start, () {
+		ArrBuilder!(WhenAst.Case) cases;
+		return parseWhenLoop(alloc, lexer, start, cases);
+	});
 }
 
 immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(

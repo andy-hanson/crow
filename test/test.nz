@@ -58,7 +58,8 @@ do-test exit-code(options test-options) summon
 	noze-exe = noze-path child-path "bin" child-path "noze"
 	env = get-environ
 
-	noze-failures = test-path child-path "compile-errors" run-noze-tests noze-exe, env, options first-failures \
-		test-path child-path "runnable" run-noze-tests noze-exe, env, options
+	noze-failures = test-path child-path "parse-errors" run-noze-tests noze-exe, env, options first-failures \
+		test-path child-path "compile-errors" run-noze-tests noze-exe, env, options first-failures \
+			test-path child-path "runnable" run-noze-tests noze-exe, env, options
 	all-failures = noze-failures first-failures {noze-path lint options}
 	all-failures print-failures options

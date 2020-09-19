@@ -1,0 +1,12 @@
+f void()
+	when
+		when
+			0
+		else
+			1
+	match match
+		some
+			0
+		none
+			1
+	match \
