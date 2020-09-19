@@ -12,6 +12,12 @@ struct ParseDiag {
 	struct ExpectedCharacter {
 		immutable char ch;
 	}
+	struct ExpectedClosing {
+		enum Kind {
+			paren,
+		}
+		immutable Kind kind;
+	}
 	struct ExpectedDedent {}
 	struct ExpectedIndent {}
 	struct ExpectedPurityAfterSpace {}
@@ -19,11 +25,19 @@ struct ParseDiag {
 		immutable u32 nSpaces;
 		immutable u32 nSpacesPerIndent;
 	}
+	struct IndentTooMuch {}
 	struct IndentWrongCharacter {
 		immutable Bool expectedTabs;
 	}
 	struct LetMustHaveThen {}
-	struct MatchWhenNewMayNotAppearInsideArg {}
+	struct MatchWhenOrLambdaNeedsBlockCtx {
+		enum Kind {
+			match,
+			when,
+			lambda,
+		}
+		immutable Kind kind;
+	}
 	struct MustEndInBlankLine {}
 	struct ReservedName {
 		immutable Sym name;
@@ -40,13 +54,15 @@ struct ParseDiag {
 	private:
 	enum Kind {
 		expectedCharacter,
+		expectedClosing,
 		expectedDedent,
 		expectedIndent,
 		expectedPurityAfterSpace,
 		indentNotDivisible,
+		indentTooMuch,
 		indentWrongCharacter,
 		letMustHaveThen,
-		matchWhenNewMayNotAppearInsideArg,
+		matchWhenOrLambdaNeedsBlockCtx,
 		mustEndInBlankLine,
 		reservedName,
 		typeParamCantHaveTypeArgs,
@@ -59,13 +75,15 @@ struct ParseDiag {
 	immutable Kind kind;
 	union {
 		immutable ExpectedCharacter expectedCharacter;
+		immutable ExpectedClosing expectedClosing;
 		immutable ExpectedDedent expectedDedent;
 		immutable ExpectedIndent expectedIndent;
 		immutable ExpectedPurityAfterSpace expectedPurityAfterSpace;
 		immutable IndentNotDivisible indentNotDivisible;
+		immutable IndentTooMuch indentTooMuch;
 		immutable IndentWrongCharacter indentWrongCharacter;
 		immutable LetMustHaveThen letMustHaveThen;
-		immutable MatchWhenNewMayNotAppearInsideArg matchWhenNewMayNotAppearInsideArg;
+		immutable MatchWhenOrLambdaNeedsBlockCtx matchWhenOrLambdaNeedsBlockCtx;
 		immutable MustEndInBlankLine mustEndInBlankLine;
 		immutable ReservedName reservedName;
 		immutable TypeParamCantHaveTypeArgs typeParamCantHaveTypeArgs;
@@ -78,16 +96,18 @@ struct ParseDiag {
 
 	public:
 	immutable this(immutable ExpectedCharacter a) { kind = Kind.expectedCharacter; expectedCharacter = a; }
+	immutable this(immutable ExpectedClosing a) { kind = Kind.expectedClosing; expectedClosing = a; }
 	immutable this(immutable ExpectedDedent a) { kind = Kind.expectedDedent; expectedDedent = a; }
 	immutable this(immutable ExpectedIndent a) { kind = Kind.expectedIndent; expectedIndent = a; }
 	immutable this(immutable ExpectedPurityAfterSpace a) {
 		kind = Kind.expectedPurityAfterSpace; expectedPurityAfterSpace = a;
 	}
 	immutable this(immutable IndentNotDivisible a) { kind = Kind.indentNotDivisible; indentNotDivisible = a; }
+	immutable this(immutable IndentTooMuch a) { kind = Kind.indentTooMuch; indentTooMuch = a; }
 	immutable this(immutable IndentWrongCharacter a) { kind = Kind.indentWrongCharacter; indentWrongCharacter = a; }
 	immutable this(immutable LetMustHaveThen a) { kind = Kind.letMustHaveThen; letMustHaveThen = a; }
-	immutable this(immutable MatchWhenNewMayNotAppearInsideArg a) {
-		kind = Kind.matchWhenNewMayNotAppearInsideArg; matchWhenNewMayNotAppearInsideArg = a;
+	immutable this(immutable MatchWhenOrLambdaNeedsBlockCtx a) {
+		kind = Kind.matchWhenOrLambdaNeedsBlockCtx; matchWhenOrLambdaNeedsBlockCtx = a;
 	}
 	immutable this(immutable MustEndInBlankLine a) { kind = Kind.mustEndInBlankLine; mustEndInBlankLine = a; }
 	immutable this(immutable ReservedName a) { kind = Kind.reservedName; reservedName = a; }
@@ -104,17 +124,19 @@ struct ParseDiag {
 T matchParseDiag(T)(
 	ref immutable ParseDiag a,
 	scope T delegate(ref immutable ParseDiag.ExpectedCharacter) @safe @nogc pure nothrow cbExpectedCharacter,
+	scope T delegate(ref immutable ParseDiag.ExpectedClosing) @safe @nogc pure nothrow cbExpectedClosing,
 	scope T delegate(ref immutable ParseDiag.ExpectedDedent) @safe @nogc pure nothrow cbExpectedDedent,
 	scope T delegate(ref immutable ParseDiag.ExpectedIndent) @safe @nogc pure nothrow cbExpectedIndent,
 	scope T delegate(
 		ref immutable ParseDiag.ExpectedPurityAfterSpace
 	) @safe @nogc pure nothrow cbExpectedPurityAfterSpace,
 	scope T delegate(ref immutable ParseDiag.IndentNotDivisible) @safe @nogc pure nothrow cbIndentNotDivisible,
+	scope T delegate(ref immutable ParseDiag.IndentTooMuch) @safe @nogc pure nothrow cbIndentTooMuch,
 	scope T delegate(ref immutable ParseDiag.IndentWrongCharacter) @safe @nogc pure nothrow cbIndentWrongCharacter,
 	scope T delegate(ref immutable ParseDiag.LetMustHaveThen) @safe @nogc pure nothrow cbLetMustHaveThen,
 	scope T delegate(
-		ref immutable ParseDiag.MatchWhenNewMayNotAppearInsideArg
-	) @safe @nogc pure nothrow cbMatchWhenNewMayNotAppearInsideArg,
+		ref immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx
+	) @safe @nogc pure nothrow cbMatchWhenOrLambdaNeedsBlockCtx,
 	scope T delegate(ref immutable ParseDiag.MustEndInBlankLine) @safe @nogc pure nothrow cbMustEndInBlankLine,
 	scope T delegate(ref immutable ParseDiag.ReservedName) @safe @nogc pure nothrow cbReservedName,
 	scope T delegate(
@@ -129,6 +151,8 @@ T matchParseDiag(T)(
 	final switch (a.kind) {
 		case ParseDiag.Kind.expectedCharacter:
 			return cbExpectedCharacter(a.expectedCharacter);
+		case ParseDiag.Kind.expectedClosing:
+			return cbExpectedClosing(a.expectedClosing);
 		case ParseDiag.Kind.expectedDedent:
 			return cbExpectedDedent(a.expectedDedent);
 		case ParseDiag.Kind.expectedIndent:
@@ -137,12 +161,14 @@ T matchParseDiag(T)(
 			return cbExpectedPurityAfterSpace(a.expectedPurityAfterSpace);
 		case ParseDiag.Kind.indentNotDivisible:
 			return cbIndentNotDivisible(a.indentNotDivisible);
+		case ParseDiag.Kind.indentTooMuch:
+			return cbIndentTooMuch(a.indentTooMuch);
 		case ParseDiag.Kind.indentWrongCharacter:
 			return cbIndentWrongCharacter(a.indentWrongCharacter);
 		case ParseDiag.Kind.letMustHaveThen:
 			return cbLetMustHaveThen(a.letMustHaveThen);
-		case ParseDiag.Kind.matchWhenNewMayNotAppearInsideArg:
-			return cbMatchWhenNewMayNotAppearInsideArg(a.matchWhenNewMayNotAppearInsideArg);
+		case ParseDiag.Kind.matchWhenOrLambdaNeedsBlockCtx:
+			return cbMatchWhenOrLambdaNeedsBlockCtx(a.matchWhenOrLambdaNeedsBlockCtx);
 		case ParseDiag.Kind.mustEndInBlankLine:
 			return cbMustEndInBlankLine(a.mustEndInBlankLine);
 		case ParseDiag.Kind.reservedName:

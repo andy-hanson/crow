@@ -172,14 +172,14 @@ immutable(ParamsAndMaybeDedent) parseIndentedParams(Alloc, SymAlloc)(ref Alloc a
 	ArrWithSizeBuilder!ParamAst res;
 	for (;;) {
 		add(alloc, res, parseSingleParam(alloc, lexer));
-		immutable size_t dedents = lexer.takeNewlineOrDedentAmount();
+		immutable size_t dedents = takeNewlineOrDedentAmount(alloc, lexer);
 		if (dedents != 0)
 			return ParamsAndMaybeDedent(finishArr(alloc, res), some(dedents - 1));
 	}
 }
 
 immutable(ParamsAndMaybeDedent) parseParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable Opt!NewlineOrIndent opNi = lexer.tryTakeNewlineOrIndent();
+	immutable Opt!NewlineOrIndent opNi = tryTakeNewlineOrIndent(alloc, lexer);
 	if (opNi.has)
 		final switch (opNi.force) {
 			case NewlineOrIndent.newline:
@@ -218,7 +218,7 @@ immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!
 	immutable Sym sigName = lexer.takeName();
 	lexer.take(' ');
 	immutable SigAstAndMaybeDedent s = parseSigAfterNameAndSpace(alloc, lexer, start, sigName);
-	immutable size_t dedents = s.dedents.has ? s.dedents.force : lexer.takeNewlineOrDedentAmount();
+	immutable size_t dedents = s.dedents.has ? s.dedents.force : takeNewlineOrDedentAmount(alloc, lexer);
 	return SigAstAndDedent(s.sig, dedents);
 }
 
@@ -233,10 +233,10 @@ immutable(Arr!ImportAst) parseImportsNonIndented(Alloc, SymAlloc)(ref Alloc allo
 
 immutable(Arr!ImportAst) parseImportsIndented(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	ArrBuilder!ImportAst res;
-	lexer.takeIndentAfterNewline();
+	takeIndentAfterNewline(alloc, lexer);
 	do {
 		add(alloc, res, parseSingleImport(alloc, lexer));
-	} while (lexer.takeNewlineOrSingleDedent() == NewlineOrDedent.newline);
+	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
 	return finishArr(alloc, res);
 }
 
@@ -283,7 +283,8 @@ SpaceOrNewlineOrIndent spaceOrNewlineOrIndentFromNewlineOrIndent(immutable Newli
 	}
 }
 
-immutable(Opt!NonFunKeywordAndIndent) tryTakeKw(SymAlloc)(
+immutable(Opt!NonFunKeywordAndIndent) tryTakeKw(Alloc, SymAlloc)(
+	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable CStr kwSpace,
 	immutable CStr kwNl,
@@ -294,25 +295,28 @@ immutable(Opt!NonFunKeywordAndIndent) tryTakeKw(SymAlloc)(
 		: lexer.tryTake(kwNl)
 		? some(NonFunKeywordAndIndent(
 			keyword,
-			spaceOrNewlineOrIndentFromNewlineOrIndent(lexer.tryTakeIndentAfterNewline())))
+			spaceOrNewlineOrIndentFromNewlineOrIndent(tryTakeIndentAfterNewline(alloc, lexer))))
 		: none!NonFunKeywordAndIndent;
 }
 
-immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(SymAlloc)(ref Lexer!SymAlloc lexer) {
+immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	switch (lexer.curChar) {
 		case 'a':
-			return tryTakeKw(lexer, "alias ", "alias\n", NonFunKeyword.alias_);
+			return tryTakeKw(alloc, lexer, "alias ", "alias\n", NonFunKeyword.alias_);
 		case 'b':
-			immutable Opt!NonFunKeywordAndIndent res = tryTakeKw(lexer, "builtin ", "builtin\n", NonFunKeyword.builtin);
-			return res.has ? res : tryTakeKw(lexer, "builtin-spec ", "builtin-spec\n", NonFunKeyword.builtinSpec);
+			immutable Opt!NonFunKeywordAndIndent res =
+				tryTakeKw(alloc, lexer, "builtin ", "builtin\n", NonFunKeyword.builtin);
+			return has(res)
+				? res
+				: tryTakeKw(alloc, lexer, "builtin-spec ", "builtin-spec\n", NonFunKeyword.builtinSpec);
 		case 'e':
-			return tryTakeKw(lexer, "extern-ptr ", "extern-ptr\n", NonFunKeyword.externPtr);
+			return tryTakeKw(alloc, lexer, "extern-ptr ", "extern-ptr\n", NonFunKeyword.externPtr);
 		case 'r':
-			return tryTakeKw(lexer, "record ", "record\n", NonFunKeyword.record);
+			return tryTakeKw(alloc, lexer, "record ", "record\n", NonFunKeyword.record);
 		case 's':
-			return tryTakeKw(lexer, "spec ", "spec\n", NonFunKeyword.spec);
+			return tryTakeKw(alloc, lexer, "spec ", "spec\n", NonFunKeyword.spec);
 		case 'u':
-			return tryTakeKw(lexer, "union ", "union\n", NonFunKeyword.union_);
+			return tryTakeKw(alloc, lexer, "union ", "union\n", NonFunKeyword.union_);
 		default:
 			return none!NonFunKeywordAndIndent;
 	}
@@ -346,7 +350,7 @@ immutable(StructDeclAst.Body.Record) parseFields(Alloc, SymAlloc)(
 				add(alloc, res, immutable StructDeclAst.Body.Record.Field(lexer.range(start), isMutable, name, type));
 		}
 		isFirstLine = False;
-	} while (lexer.takeNewlineOrSingleDedent() == NewlineOrDedent.newline);
+	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
 	return StructDeclAst.Body.Record(explicitByValOrRef, finishArr(alloc, res));
 }
 
@@ -360,7 +364,7 @@ immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
 		immutable Sym name = lexer.takeName();
 		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		add(alloc, res, immutable TypeAst.InstStruct(lexer.range(start), name, typeArgs));
-	} while (lexer.takeNewlineOrSingleDedent() == NewlineOrDedent.newline);
+	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
 	return finishArr(alloc, res);
 }
 
@@ -508,7 +512,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	lexer.takeIndent();
+	takeIndent(alloc, lexer);
 	return parseNextSpec(
 		alloc,
 		lexer,
@@ -520,7 +524,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(Alloc, SymAlloc)(
 		False,
 		none!(FunBodyAst.Extern),
 		none!Str,
-		() => immutable Bool(lexer.takeNewlineOrSingleDedent() == NewlineOrDedent.newline));
+		() => immutable Bool(takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline));
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(Alloc, SymAlloc)(
@@ -603,7 +607,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 	immutable Arr!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
 	lexer.take(' ');
 
-	immutable Opt!NonFunKeywordAndIndent opKwAndIndent = parseNonFunKeyword(lexer);
+	immutable Opt!NonFunKeywordAndIndent opKwAndIndent = parseNonFunKeyword(alloc, lexer);
 	if (opKwAndIndent.has) {
 		immutable NonFunKeywordAndIndent kwAndIndent = opKwAndIndent.force;
 		immutable NonFunKeyword kw = kwAndIndent.keyword;
@@ -615,7 +619,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 		immutable Bool tookIndent = () {
 			final switch (after) {
 				case SpaceOrNewlineOrIndent.space:
-					return Bool(lexer.takeNewlineOrIndent() == NewlineOrIndent.indent);
+					return Bool(takeNewlineOrIndent(alloc, lexer) == NewlineOrIndent.indent);
 				case SpaceOrNewlineOrIndent.newline:
 					return False;
 				case SpaceOrNewlineOrIndent.indent:
@@ -630,7 +634,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				if (purity.has)
 					todo!void("alias shouldn't have purity");
 				immutable TypeAst.InstStruct target = parseStructType(alloc, lexer);
-				lexer.takeDedent();
+				takeDedent(alloc, lexer);
 				add(
 					alloc,
 					structAliases,
@@ -702,8 +706,8 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 }
 
 immutable(FileAst) parseFileInner(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	lexer.skipShebang();
-	lexer.skipBlankLines();
+	skipShebang(lexer);
+	skipBlankLines(alloc, lexer);
 	immutable Arr!ImportAst imports = lexer.tryTake("import ")
 		? parseImportsNonIndented(alloc, lexer)
 		: lexer.tryTake("import\n")
@@ -722,14 +726,14 @@ immutable(FileAst) parseFileInner(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!Sy
 
 	Bool isPublic = True;
 	for (;;) {
-		lexer.skipBlankLines();
+		skipBlankLines(alloc, lexer);
 		if (lexer.tryTake('\0'))
 			break;
 		if (lexer.tryTake("private\n")) {
 			if (!isPublic)
 				todo!void("already private");
 			isPublic = False;
-			lexer.skipBlankLines();
+			skipBlankLines(alloc, lexer);
 		}
 		parseSpecOrStructOrFun!(Alloc, SymAlloc)(alloc, lexer, isPublic, specs, structAliases, structs, funs);
 	}

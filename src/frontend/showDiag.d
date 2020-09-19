@@ -126,6 +126,15 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 		(ref immutable ParseDiag.ExpectedCharacter) {
 			todo!void("expectedcharacter");
 		},
+		(ref immutable ParseDiag.ExpectedClosing it) {
+			writeStatic(writer, "expected ");
+			writeStatic(writer, () {
+				final switch (it.kind) {
+					case ParseDiag.ExpectedClosing.Kind.paren:
+						return "')'";
+				}
+			}());
+		},
 		(ref immutable ParseDiag.ExpectedDedent) {
 			writeStatic(writer, "expected a dedent");
 		},
@@ -142,8 +151,11 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 			writeNat(writer, d.nSpaces);
 			writeStatic(writer, " which is not divisible");
 		},
+		(ref immutable ParseDiag.IndentTooMuch it) {
+			writeStatic(writer, "indented too far");
+		},
 		(ref immutable ParseDiag.IndentWrongCharacter d) {
-			writeStatic(writer, "epxected indentation by");
+			writeStatic(writer, "expected indentation by");
 			writeStatic(writer, d.expectedTabs ? "tabs" : "spaces");
 			writeStatic(writer, " (based on first indented line), but here there is a ");
 			writeStatic(writer, d.expectedTabs ? "space" : "tab");
@@ -153,8 +165,18 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 				writer,
 				"the final line of a block can not be 'x = y'\n(hint: remove 'x =', or add another line)");
 		},
-		(ref immutable ParseDiag.MatchWhenNewMayNotAppearInsideArg) {
-			todo!void("matchwhennew");
+		(ref immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx it) {
+			writeStatic(writer, () {
+				final switch (it.kind) {
+					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match:
+						return "'match'";
+					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.when:
+						return "'when'";
+					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda:
+						return "lambda";
+				}
+			}());
+			writeStatic(writer, " expression must appear in a context where it can be followed by an indented block");
 		},
 		(ref immutable ParseDiag.MustEndInBlankLine) {
 			writeStatic(writer, "file must end in a blank line");

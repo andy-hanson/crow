@@ -864,8 +864,16 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 						sexprOfExprAst(alloc, it.value)))),
 		(ref immutable IdentifierAst a)  =>
 			tataSym(a.name),
-		(ref immutable LambdaAst) =>
-			todo!(immutable Sexpr)("sexprOfLambdaAst"),
+		(ref immutable LambdaAst a) =>
+			tataRecord(
+				alloc,
+				"lambda",
+				tataArr(alloc, a.params, (ref immutable LambdaAst.Param it) =>
+					tataRecord(
+						alloc,
+						"param",
+						sexprOfSourceRange(alloc, it.range),
+						tataSym(it.name)))),
 		(ref immutable LetAst a) =>
 			tataRecord(
 				alloc,
