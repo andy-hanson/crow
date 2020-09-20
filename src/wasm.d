@@ -8,7 +8,8 @@ import util.collection.arr : Arr;
 import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr;
 import util.ptr : ptrTrustMe_mut;
 import util.result : matchResultImpure, Result;
-import util.sexpr : Sexpr, writeSexprJSON;
+import util.sexpr : Sexpr, tataArr, tataRecord, writeSexprJSON;
+import sexprOfParseDiag : sexprOfParseDiagnostic;
 import util.sym : AllSymbols;
 import util.writer : finishWriterToCStr, Writer;
 
@@ -25,7 +26,7 @@ extern(C) immutable(size_t) getBufferSize() {
 	Alloc alloc;
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 	immutable NulTerminatedStr str = nulTerminatedStrOfCStr(cast(immutable) buffer.ptr);
-	immutable FileAst ast = parseFile(alloc, allSymbols, str).ast;
+	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, allSymbols, str);
 	writeAstResult(alloc, ast);
 }
 
@@ -35,11 +36,20 @@ immutable size_t bufferSize = 1024 * 1024;
 char[bufferSize] buffer;
 
 //TODO: not trusted
-@trusted void writeAstResult(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
-	immutable Sexpr astSexpr = sexprOfAst(alloc, ast);
+@trusted void writeAstResult(Alloc)(ref Alloc alloc, ref immutable FileAstAndParseDiagnostics ast) {
+	immutable Sexpr sexpr = sexprOfAstAndParseDiagnostics(alloc, ast);
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-	writeSexprJSON(writer, astSexpr);
+	writeSexprJSON(writer, sexpr);
 	writeResult(finishWriterToCStr(writer));
+}
+
+immutable(Sexpr) sexprOfAstAndParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable FileAstAndParseDiagnostics a) {
+	return tataRecord(
+		alloc,
+		"ast-diags",
+		sexprOfAst(alloc, a.ast),
+		tataArr(alloc, a.diagnostics, (ref immutable ParseDiagnostic it) =>
+			sexprOfParseDiagnostic(alloc, it)));
 }
 
 //TODO: not trusted

@@ -8,14 +8,14 @@ import frontend.lexer : addDiag, addDiagAtChar, curPos, Lexer, range, takeName, 
 import parseDiag : ParseDiag;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.collection.arr : Arr, ArrWithSize, at, empty, toArr;
+import util.collection.arrBuilder : add, ArrWithSizeBuilder, finishArr;
 import util.opt : none, Opt, some;
 import util.sourceRange : Pos, SourceRange;
 import util.sym : Sym;
 import util.util : todo;
 
-immutable(Arr!TypeAst) tryParseTypeArgs(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(ArrWithSize!TypeAst) tryParseTypeArgs(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	return tryParseTypeArgsWorker(alloc, lexer, True);
 }
 
@@ -48,12 +48,12 @@ void takeTypeArgsEnd(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer)
 
 private:
 
-immutable(Arr!TypeAst) tryParseTypeArgsWorker(Alloc, SymAlloc)(
+immutable(ArrWithSize!TypeAst) tryParseTypeArgsWorker(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Bool isInner,
 ) {
-	ArrBuilder!TypeAst res;
+	ArrWithSizeBuilder!TypeAst res;
 	// Require '<>' if parsing type args inside of type args.
 	if (!isInner || tryTake(lexer, '<')) {
 		for (;;) {
@@ -77,9 +77,10 @@ immutable(TypeAst) parseTypeWorker(Alloc, SymAlloc)(
 	immutable Pos start = curPos(lexer);
 	immutable Bool isTypeParam = tryTake(lexer, '?');
 	immutable Sym name = takeName(alloc, lexer);
-	immutable Arr!TypeAst typeArgs = tryParseTypeArgsWorker(alloc, lexer, isInner);
-	if (isTypeParam && !empty(typeArgs))
-		addDiag(alloc, lexer, at(typeArgs, 0).range,
+	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsWorker(alloc, lexer, isInner);
+	immutable Arr!TypeAst typeArgsArr = toArr(typeArgs);
+	if (isTypeParam && !empty(typeArgsArr))
+		addDiag(alloc, lexer, at(typeArgsArr, 0).range,
 			immutable ParseDiag(immutable ParseDiag.TypeParamCantHaveTypeArgs()));
 	immutable SourceRange rng = range(lexer, start);
 	return isTypeParam

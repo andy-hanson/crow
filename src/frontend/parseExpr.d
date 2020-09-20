@@ -55,8 +55,8 @@ import parseDiag : ParseDiag;
 
 import util.alloc.alloc : nu2;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, empty, emptyArr, only, size;
-import util.collection.arrUtil : arrLiteral, exists, prepend;
+import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, only, size, toArr;
+import util.collection.arrUtil : arrLiteral, arrWithSizeLiteral, exists, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, Opt, some;
@@ -175,13 +175,13 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 	immutable Pos start = curPos(lexer);
 	if (tryTake(lexer, '.')) {
 		immutable Sym funName = takeName(alloc, lexer);
-		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		immutable CallAst call = CallAst(funName, typeArgs, arrLiteral!ExprAst(alloc, target));
 		return noDedent(immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
 	} else {
 		immutable Sym funName = takeName(alloc, lexer);
 		immutable Bool colon = tryTake(lexer, ':');
-		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		immutable ArgsAndMaybeDedent args = parseArgs(alloc, lexer, ArgCtx(allowBlock, colon));
 		immutable ExprAstKind exprKind = immutable ExprAstKind(
 			immutable CallAst(funName, typeArgs, prepend(alloc, target, args.args)));
@@ -203,7 +203,7 @@ immutable(ExprAndMaybeDedent) parseCallsAndRecordFieldSets(Alloc, SymAlloc)(
 		if (!expr.kind.isCall)
 			todo!void("non-struct-field-access to left of ':='");
 		immutable CallAst call = expr.kind.asCall;
-		if (!call.typeArgs.empty)
+		if (!empty(toArr(call.typeArgs)))
 			todo!void("RecordFieldSet should not have type args");
 		if (call.args.size != 1)
 			todo!void("RecordFieldSet should have exactly 1 arg");
@@ -270,7 +270,7 @@ immutable(ExprAst) tryParseDots(Alloc, SymAlloc)(
 	immutable Pos start = curPos(lexer);
 	if (tryTake(lexer, '.')) {
 		immutable Sym name = takeName(alloc, lexer);
-		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		immutable CallAst call = immutable CallAst(name, typeArgs, arrLiteral!ExprAst(alloc, initial));
 		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
 		return tryParseDots(alloc, lexer, expr);
@@ -432,7 +432,9 @@ immutable(ExprAndMaybeDedent) parseWhenLoop(Alloc, SymAlloc)(
 					immutable ExprAst(range(lexer, start), immutable ExprAstKind(when)),
 					some!size_t(thenAndDedent.dedents - 1));
 			} else {
-				add(alloc, cases, immutable WhenAst.Case(condition, thenAndDedent.expr));
+				add(alloc, cases, immutable WhenAst.Case(
+					allocExpr(alloc, condition),
+					allocExpr(alloc, thenAndDedent.expr)));
 				return parseWhenLoop(alloc, lexer, start, cases);
 			}
 		});
@@ -576,7 +578,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
 		case ExpressionToken.Kind.nameAndRange:
 			immutable Sym name = et.asNameAndRange.name;
-			immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
+			immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 			immutable Bool tookColon = tryTake(lexer, ':');
 			if (tookColon) {
 				// Prefix call `foo: bar, baz`
@@ -585,7 +587,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				return immutable ExprAndMaybeDedent(
 					immutable ExprAst(getRange(), immutable ExprAstKind(call)),
 					ad.dedent);
-			} else if (!typeArgs.empty) {
+			} else if (!empty(toArr(typeArgs))) {
 				return noDedent(immutable ExprAst(
 					getRange(),
 					immutable ExprAstKind(immutable CallAst(name, typeArgs, emptyArr!ExprAst))));
@@ -695,7 +697,7 @@ immutable(ExprAndDedent) parseStatementsAndExtraDedentsRecur(Alloc, SymAlloc)(
 ) {
 	if (dedents == 0) {
 		immutable ExprAndDedent ed = parseSingleStatementLine(alloc, lexer);
-		immutable SeqAst seq = SeqAst(allocExpr(alloc, expr), allocExpr(alloc, ed.expr));
+		immutable SeqAst seq = immutable SeqAst(allocExpr(alloc, expr), allocExpr(alloc, ed.expr));
 		return parseStatementsAndExtraDedentsRecur(
 			alloc,
 			lexer,

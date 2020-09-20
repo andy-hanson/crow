@@ -99,7 +99,7 @@ immutable(Type) typeFromAst2(Alloc)(ref Alloc alloc, ref ExprCtx ctx, ref immuta
 		noneMut!(Ptr!(MutArr!(Ptr!(StructInst)))));
 }
 
-immutable(Arr!Type) typeArgsFromAsts(Alloc)(ref Alloc alloc, ref ExprCtx ctx, ref immutable Arr!TypeAst typeAsts) {
+immutable(Arr!Type) typeArgsFromAsts(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable Arr!TypeAst typeAsts) {
 	return map!Type(alloc, typeAsts, (ref immutable TypeAst it) =>
 		typeFromAst2(alloc, ctx, it));
 }

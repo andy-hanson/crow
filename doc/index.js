@@ -2,11 +2,16 @@ window.onload = () => {
 	main().catch(e => { console.error(e) })
 }
 
+const src = `
+f void()
+	a
+`
+
 const main = async () => {
 	const bytes = await (await fetch('../bin/noze.wasm')).arrayBuffer()
 	const result = await WebAssembly.instantiate(bytes, {})
 	const { exports } = result.instance;
-	const { getBufferSize, getBuffer, upperCase, memory } = exports
+	const { getBufferSize, getBuffer, getAst, memory } = exports
 	const view = new DataView(memory.buffer)
 
 	const bufferSize = getBufferSize()
@@ -15,9 +20,9 @@ const main = async () => {
 	const setStr = str => writeString(view, buffer, bufferSize, str)
 	const getStr = () => readString(view, buffer, bufferSize)
 
-	setStr("hello world")
+	setStr(src)
 	console.log(getStr())
-	upperCase()
+	getAst()
 	console.log(getStr())
 }
 

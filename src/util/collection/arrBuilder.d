@@ -3,7 +3,7 @@ module util.collection.arrBuilder;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
-import util.collection.arr : Arr, ArrWithSize, begin, range, size;
+import util.collection.arr : Arr, ArrWithSize, begin, emptyArrWithSize, range, size;
 import util.collection.mutArr : tempAsArr, moveToArr, MutArr, mutArrAt, mutArrIsEmpty, mutArrSize, push;
 import util.memory : initMemory;
 import util.util : verify;
@@ -66,7 +66,11 @@ private @system T* begin(T)(ref ArrWithSizeBuilder!T a) {
 }
 
 @trusted immutable(ArrWithSize!T) finishArr(T, Alloc)(ref Alloc alloc, ref ArrWithSizeBuilder!T a) {
-	alloc.freePartial(cast(ubyte*) (begin(a) + a.size_), a.capacity_ - a.size_);
-	*(cast(size_t*) a.data_) = a.size_;
-	return immutable ArrWithSize!T(cast(immutable) a.data_);
+	if (a.data_ == null)
+		return emptyArrWithSize!T;
+	else {
+		alloc.freePartial(cast(ubyte*) (begin(a) + a.size_), a.capacity_ - a.size_);
+		*(cast(size_t*) a.data_) = a.size_;
+		return immutable ArrWithSize!T(cast(immutable) a.data_);
+	}
 }

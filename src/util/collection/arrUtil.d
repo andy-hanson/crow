@@ -3,7 +3,8 @@ module util.collection.arrUtil;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
+import util.collection.arr : Arr, ArrWithSize, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
+import util.collection.arrBuilder : add, ArrWithSizeBuilder, finishArr;
 import util.collection.mutArr : moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory;
@@ -16,6 +17,15 @@ import util.util : max, todo, verify;
 	T* ptr = cast(T*) alloc.allocate(T.sizeof * 1);
 	initMemory(ptr, value);
 	return immutable Arr!T(cast(immutable) ptr, 1);
+}
+
+immutable(ArrWithSize!T) arrWithSizeLiteral(T, Alloc)(
+	ref Alloc alloc,
+	immutable T v0,
+) {
+	ArrWithSizeBuilder!T builder;
+	add(alloc, builder, v0);
+	return finishArr(alloc, builder);
 }
 
 @trusted immutable(Arr!T) arrLiteral(T, Alloc)(

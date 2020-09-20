@@ -42,7 +42,7 @@ struct TypeAst {
 	struct InstStruct {
 		immutable SourceRange range;
 		immutable Sym name;
-		immutable Arr!TypeAst typeArgs;
+		immutable ArrWithSize!TypeAst typeArgs;
 	}
 
 	@trusted this(immutable TypeParam t) {
@@ -91,14 +91,15 @@ struct BogusAst {}
 
 struct CallAst {
 	immutable Sym funName;
-	immutable Arr!TypeAst typeArgs;
+	immutable ArrWithSize!TypeAst typeArgs;
 	immutable Arr!ExprAst args;
 }
 
 struct WhenAst {
 	struct Case {
-		immutable ExprAst cond;
-		immutable ExprAst then;
+		// TODO: would prefer to store by value, but that causes WASM compile errors
+		immutable Ptr!ExprAst cond;
+		immutable Ptr!ExprAst then;
 	}
 	immutable Arr!Case cases;
 	immutable Opt!(Ptr!ExprAst) else_; // parse error if missing
@@ -340,7 +341,7 @@ struct ParamAst {
 struct SpecUseAst {
 	immutable SourceRange range;
 	immutable Sym spec;
-	immutable Arr!TypeAst typeArgs;
+	immutable ArrWithSize!TypeAst typeArgs;
 }
 
 struct SigAst {
@@ -782,9 +783,9 @@ immutable(Sexpr) sexprOfOptTypeAst(Alloc)(ref Alloc alloc, immutable Opt!(Ptr!Ty
 immutable(Sexpr) sexprOfInstStructAst(Alloc)(ref Alloc alloc, ref immutable TypeAst.InstStruct a) {
 	immutable Sexpr range = sexprOfSourceRange(alloc, a.range);
 	immutable Sexpr name = tataSym(a.name);
-	immutable Opt!Sexpr typeArgs = empty(a.typeArgs)
+	immutable Opt!Sexpr typeArgs = empty(toArr(a.typeArgs))
 		? none!Sexpr
-		: some(tataArr(alloc, a.typeArgs, (ref immutable TypeAst t) => sexprOfTypeAst(alloc, t)));
+		: some(tataArr(alloc, toArr(a.typeArgs), (ref immutable TypeAst t) => sexprOfTypeAst(alloc, t)));
 	return tataRecord(
 		"inststruct",
 		has(typeArgs) ? arrLiteral!Sexpr(alloc, range, name, force(typeArgs)) : arrLiteral!Sexpr(alloc, range, name));
@@ -832,7 +833,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 				alloc,
 				"call",
 				tataSym(e.funName),
-				tataArr(alloc, e.typeArgs, (ref immutable TypeAst it) =>
+				tataArr(alloc, toArr(e.typeArgs), (ref immutable TypeAst it) =>
 					sexprOfTypeAst(alloc, it)),
 				tataArr(alloc, e.args, (ref immutable ExprAst it) =>
 					sexprOfExprAst(alloc, it))),

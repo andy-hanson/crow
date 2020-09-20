@@ -8,6 +8,8 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 		import frontend.ast : CallAst, CreateArrAst,
 			CreateRecordAst,
 			CreateRecordMultiLineAst,
+			ExprAst,
+			ExprAstKind,
 			IdentifierAst,
 			LambdaAst,
 			LetAst,
@@ -25,22 +27,24 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 			FunDeclAst,
 			FunBodyAst;
 		import parseDiag : ParseDiagnostic;
+		import util.collection.arrBuilder : ArrBuilder;
 		import util.result : Result;
-		printf("Call: %lu\n", CallAst.sizeof);
-		printf("When: %lu\n", WhenAst.sizeof);
-		printf("CreateArr: %lu\n", CreateArrAst.sizeof);
-		printf("CreateRecord: %lu\n", CreateRecordAst.sizeof);
-		printf("CreateRecordMultiLine: %lu\n", CreateRecordMultiLineAst.sizeof);
-		printf("Identifier: %lu\n", IdentifierAst.sizeof);
-		printf("Lambda: %lu\n", LambdaAst.sizeof);
-		printf("Let: %lu\n", LetAst.sizeof);
-		printf("Literal: %lu\n", LiteralAst.sizeof);
-		printf("LiteralInner: %lu\n", LiteralInnerAst.sizeof);
-		printf("Match: %lu\n", MatchAst.sizeof);
-		printf("Seq: %lu\n", SeqAst.sizeof);
-		printf("RecordFieldSet: %lu\n", RecordFieldSetAst.sizeof);
-		printf("Then: %lu\n", ThenAst.sizeof);
-
+		printf("ExprAst: %lu\n", ExprAst.sizeof);
+		printf("ExprAstKind: %lu\n", ExprAstKind.sizeof);
+		printf("	CallAst: %lu\n", CallAst.sizeof);
+		printf("	CreateArrAst: %lu\n", CreateArrAst.sizeof);
+		printf("	CreateRecordAst: %lu\n", CreateRecordAst.sizeof);
+		printf("	CreateRecordMultiLineAst: %lu\n", CreateRecordMultiLineAst.sizeof);
+		printf("	IdentifierAst: %lu\n", IdentifierAst.sizeof);
+		printf("	LambdaAst: %lu\n", LambdaAst.sizeof);
+		printf("	LetAst: %lu\n", LetAst.sizeof);
+		printf("	LiteralAst: %lu\n", LiteralAst.sizeof);
+		printf("	LiteralInnerAst: %lu\n", LiteralInnerAst.sizeof);
+		printf("	MatchAst: %lu\n", MatchAst.sizeof);
+		printf("	RecordFieldSetAst: %lu\n", RecordFieldSetAst.sizeof);
+		printf("	SeqAst: %lu\n", SeqAst.sizeof);
+		printf("	ThenAst: %lu\n", ThenAst.sizeof);
+		printf("	WhenAst: %lu\n", WhenAst.sizeof);
 
 		alias ThisThing = Result!(FileAst, ParseDiagnostic);
 		printf("FileAst: %lu\n", FileAst.sizeof);
@@ -51,6 +55,8 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 		printf("TypeAst: %lu\n", TypeAst.sizeof);
 		printf("FunDeclAst: %lu\n", FunDeclAst.sizeof);
 		printf("FunBodyAst: %lu\n", FunBodyAst.sizeof);
+
+		printf("WhenAst.Case: %lu\n", WhenAst.Case.sizeof);
 		return 0;
 	} }
 

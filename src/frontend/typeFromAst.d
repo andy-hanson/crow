@@ -23,7 +23,7 @@ import model :
 	TypeParam,
 	typeParams;
 import frontend.programState : ProgramState;
-import util.collection.arr : Arr, empty, first, size;
+import util.collection.arr : Arr, empty, first, size, toArr;
 import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map, tail;
 import util.collection.dict : Dict, getAt;
 import util.opt : force, has, none, Opt, some;
@@ -54,8 +54,9 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 	else {
 		immutable StructOrAlias sOrA = force(opDecl);
 		immutable size_t nExpectedTypeArgs = size(typeParams(sOrA));
+		immutable Arr!TypeAst typeArgAsts = toArr(ast.typeArgs);
 		immutable Arr!Type typeArgs = () {
-			immutable size_t nActualTypeArgs = size(ast.typeArgs);
+			immutable size_t nActualTypeArgs = size(typeArgAsts);
 			if (nActualTypeArgs != nExpectedTypeArgs) {
 				addDiag(alloc, ctx, ast.range, immutable Diag(
 					Diag.WrongNumberTypeArgsForStruct(sOrA, nExpectedTypeArgs, nActualTypeArgs)));
@@ -64,7 +65,7 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 				return typeArgsFromAsts(
 					alloc,
 					ctx,
-					ast.typeArgs,
+					typeArgAsts,
 					structsAndAliasesMap,
 					typeParamsScope,
 					delayStructInsts);
@@ -146,7 +147,7 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
 immutable(Arr!Type) typeArgsFromAsts(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	ref immutable Arr!TypeAst typeAsts,
+	immutable Arr!TypeAst typeAsts,
 	ref immutable StructsAndAliasesMap structsAndAliasesMap,
 	ref immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,

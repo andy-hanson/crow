@@ -351,7 +351,7 @@ void collectTypeParamsInAst(Alloc)(ref Alloc alloc, ref immutable TypeAst ast, r
 			}
 		},
 		(ref immutable TypeAst.InstStruct i) {
-			foreach (ref immutable TypeAst arg; range(i.typeArgs))
+			foreach (ref immutable TypeAst arg; range(toArr(i.typeArgs)))
 				collectTypeParamsInAst(alloc, arg, res);
 		});
 }
@@ -761,7 +761,7 @@ immutable(Arr!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 			immutable Arr!Type typeArgs = typeArgsFromAsts(
 				alloc,
 				ctx,
-				ast.typeArgs,
+				toArr(ast.typeArgs),
 				structsAndAliasesMap,
 				typeParamsScope,
 				noneMut!(Ptr!(MutArr!(Ptr!StructInst))));

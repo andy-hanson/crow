@@ -89,7 +89,7 @@ import model :
 	TypeParam,
 	worstCasePurity;
 import util.bools : Bool, False, not, True;
-import util.collection.arr : Arr, empty, emptyArr, first, only, ptrsRange, arrRange = range, size, sizeEq;
+import util.collection.arr : Arr, empty, emptyArrWithSize, first, only, ptrsRange, arrRange = range, size, sizeEq;
 import util.collection.arrUtil :
 	arrLiteral,
 	exists,
@@ -614,7 +614,7 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 	else {
 		immutable CallAst call = immutable CallAst(
 			shortSymAlphaLiteral("literal"),
-			emptyArr!TypeAst,
+			emptyArrWithSize!TypeAst,
 			arrLiteral!ExprAst(alloc, immutable ExprAst(range, immutable ExprAstKind(inner))));
 		return checkCall(alloc, ctx, range, call, expected);
 	}
@@ -888,7 +888,7 @@ immutable(CheckedExpr) checkThen(Alloc)(
 			ast.then)));
 	immutable CallAst call = CallAst(
 		shortSymAlphaLiteral("then"),
-		emptyArr!TypeAst,
+		emptyArrWithSize!TypeAst,
 		arrLiteral!ExprAst(alloc, ast.futExpr.deref, lambda));
 	return checkCall(alloc, ctx, range, call, expected);
 }

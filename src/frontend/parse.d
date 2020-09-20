@@ -357,7 +357,7 @@ immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
 	do {
 		immutable Pos start = curPos(lexer);
 		immutable Sym name = takeName(alloc, lexer);
-		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		add(alloc, res, immutable TypeAst.InstStruct(range(lexer, start), name, typeArgs));
 	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
 	return finishArr(alloc, res);
@@ -463,7 +463,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 			}
 		}
 	} else {
-		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		add(alloc, specUses, immutable SpecUseAst(range(lexer, start), name.sym, typeArgs));
 		return nextSpecOrStop(
 			alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
@@ -578,12 +578,12 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 				takeOrAddDiagExpected(alloc, lexer, "body", ParseDiag.Expected.Kind.bodyKeyword);
 				return nu!FunBodyAst(alloc, parseFunExprBody(alloc, lexer));
 			});
-			return FunDeclStuff(extra, body_);
+			return immutable FunDeclStuff(extra, body_);
 		} else {
 			immutable SpecUsesAndSigFlagsAndKwBody extra = parseSpecUsesAndSigFlagsAndKwBody(alloc, lexer);
 			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () =>
 				nu!FunBodyAst(alloc, parseFunExprBody(alloc, lexer)));
-			return FunDeclStuff(extra, body_);
+			return immutable FunDeclStuff(extra, body_);
 		}
 	}();
 	immutable SpecUsesAndSigFlagsAndKwBody extra = stuff.extra;

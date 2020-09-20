@@ -77,13 +77,15 @@ import util.collection.arr :
 	at,
 	empty,
 	emptyArr,
+	emptyArrWithSize,
 	first,
 	only,
 	only_const,
 	onlyPtr_mut,
 	ptrAt,
 	arrRange = range,
-	size;
+	size,
+	toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil :
 	eachCorresponds,
@@ -125,7 +127,7 @@ immutable(CheckedExpr) checkCall(Alloc)(
 ) {
 	immutable Sym funName = ast.funName;
 	immutable size_t arity = size(ast.args);
-	immutable Arr!Type explicitTypeArgs = typeArgsFromAsts(alloc, ctx, ast.typeArgs);
+	immutable Arr!Type explicitTypeArgs = typeArgsFromAsts(alloc, ctx, toArr(ast.typeArgs));
 	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, funName, explicitTypeArgs, arity);
 
 	// TODO: may not need to be deeply instantiated to do useful filtering here
@@ -208,7 +210,7 @@ immutable(CheckedExpr) checkIdentifierCall(Alloc)(
 	immutable Sym name,
 	ref Expected expected,
 ) {
-	immutable CallAst callAst = CallAst(name, emptyArr!TypeAst, emptyArr!ExprAst);
+	immutable CallAst callAst = immutable CallAst(name, emptyArrWithSize!TypeAst, emptyArr!ExprAst);
 	return checkCall(alloc, ctx, range, callAst, expected);
 }
 
