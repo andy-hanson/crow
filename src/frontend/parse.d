@@ -50,7 +50,7 @@ import frontend.lexer :
 	takeQuotedStr,
 	throwAtChar,
 	tryTake,
-	tryTakeIndentAfterNewline,
+	tryTakeIndentAfterNewline_topLevel,
 	tryTakeNewlineOrIndent;
 import frontend.parseExpr : parseFunExprBody;
 import frontend.parseType : parseStructType, parseType, takeTypeArgsEnd, tryParseTypeArgs;
@@ -297,7 +297,7 @@ immutable(Opt!NonFunKeywordAndIndent) tryTakeKw(Alloc, SymAlloc)(
 		: tryTake(lexer, kwNl)
 		? some(NonFunKeywordAndIndent(
 			keyword,
-			spaceOrNewlineOrIndentFromNewlineOrIndent(tryTakeIndentAfterNewline(alloc, lexer))))
+			spaceOrNewlineOrIndentFromNewlineOrIndent(tryTakeIndentAfterNewline_topLevel(alloc, lexer))))
 		: none!NonFunKeywordAndIndent;
 }
 

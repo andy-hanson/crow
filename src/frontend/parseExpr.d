@@ -41,14 +41,13 @@ import frontend.lexer :
 	range,
 	skipUntilNewlineNoDiag,
 	takeExpressionToken,
+	takeIndentOrDiagTopLevel,
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAndRange,
 	takeNewlineOrDedentAmount,
 	takeOrAddDiagExpected,
 	tryTake,
-	tryTakeElseIndent,
-	tryTakeIndent_topLevel,
 	tryTakeIndentOrDedent;
 import frontend.parseType : tryParseTypeArg, tryParseTypeArgs;
 
@@ -68,7 +67,7 @@ import util.util : todo, unreachable, verify;
 
 immutable(ExprAst) parseFunExprBody(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
-	if (tryTakeIndent_topLevel(alloc, lexer)) {
+	if (takeIndentOrDiagTopLevel(alloc, lexer)) {
 		immutable ExprAndDedent ed = parseStatementsAndExtraDedents(alloc, lexer);
 		verify(ed.dedents == 0); // Since we started at the root, can't dedent more
 		return ed.expr;

@@ -154,6 +154,9 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 					//TODO: better message
 					writeStatic(writer, "after trailing space, expected to parse 'mutable' or 'sendable'");
 					break;
+				case ParseDiag.Expected.Kind.quote:
+					writeStatic(writer, "expected '\"'");
+					break;
 				case ParseDiag.Expected.Kind.space:
 					writeStatic(writer, "expected a space");
 					break;

@@ -21,6 +21,7 @@ struct ParseDiag {
 			multiLineArrSeparator,
 			multiLineNewSeparator,
 			purity,
+			quote,
 			space,
 			typeArgsEnd,
 			typeParamQuestionMark,
