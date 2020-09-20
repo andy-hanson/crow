@@ -241,7 +241,7 @@ immutable(Bool) takeIndentOrDiagTopLevelAfterNewline(Alloc, SymAlloc)(ref Alloc 
 				alloc,
 				lexer,
 				immutable SourceRange(start, start + 1),
-				immutable ParseDiag(immutable ParseDiag.ExpectedIndent()));
+				immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 			return False;
 		},
 		(ref immutable IndentDelta.Indent) => True);
@@ -262,7 +262,7 @@ immutable(T) takeIndentOrFailGeneric(T, Alloc, SymAlloc)(
 				alloc,
 				lexer,
 				immutable SourceRange(start, start + 1),
-				immutable ParseDiag(immutable ParseDiag.ExpectedIndent()));
+				immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 			return cbFail(range(lexer, start), dedent.nDedents);
 		},
 		(ref immutable IndentDelta.Indent) {
@@ -276,7 +276,7 @@ private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(Alloc, S
 ) {
 	if (*lexer.ptr != '\n') {
 		//TODO: not always expecting indent..
-		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.ExpectedIndent()));
+		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 		skipUntilNewlineNoDiag(lexer);
 	}
 	assert(*lexer.ptr == '\n');
@@ -304,7 +304,7 @@ void takeDedentFromIndent1(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc 
 		(ref immutable IndentDelta.DedentOrSame it) => immutable Bool(it.nDedents == 1),
 		(ref immutable IndentDelta.Indent) => False);
 	if (!success) {
-		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.ExpectedDedent()));
+		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.dedent)));
 		skipRestOfLineAndNewline(lexer);
 		takeDedentFromIndent1(alloc, lexer);
 	}
@@ -343,7 +343,7 @@ void takeIndentAfterNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc
 	matchIndentDelta(
 		delta,
 		(ref immutable IndentDelta.DedentOrSame) {
-			throwAtChar!void(lexer, ParseDiag(ParseDiag.ExpectedIndent()));
+			throwAtChar!void(lexer, ParseDiag(ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 		},
 		(ref immutable IndentDelta.Indent) {});
 }

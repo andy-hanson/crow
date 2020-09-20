@@ -9,18 +9,16 @@ import util.types : u32;
 
 struct ParseDiag {
 	@safe @nogc pure nothrow:
-	struct ExpectedCharacter {
-		immutable char ch;
-	}
-	struct ExpectedClosing {
+	struct Expected {
 		enum Kind {
-			paren,
+			closingParen,
+			dedent,
+			indent,
+			multiLineNewSeparator,
+			purity,
 		}
 		immutable Kind kind;
 	}
-	struct ExpectedDedent {}
-	struct ExpectedIndent {}
-	struct ExpectedPurityAfterSpace {}
 	struct IndentNotDivisible {
 		immutable u32 nSpaces;
 		immutable u32 nSpacesPerIndent;
@@ -53,11 +51,7 @@ struct ParseDiag {
 
 	private:
 	enum Kind {
-		expectedCharacter,
-		expectedClosing,
-		expectedDedent,
-		expectedIndent,
-		expectedPurityAfterSpace,
+		expected,
 		indentNotDivisible,
 		indentTooMuch,
 		indentWrongCharacter,
@@ -74,11 +68,7 @@ struct ParseDiag {
 	}
 	immutable Kind kind;
 	union {
-		immutable ExpectedCharacter expectedCharacter;
-		immutable ExpectedClosing expectedClosing;
-		immutable ExpectedDedent expectedDedent;
-		immutable ExpectedIndent expectedIndent;
-		immutable ExpectedPurityAfterSpace expectedPurityAfterSpace;
+		immutable Expected expected;
 		immutable IndentNotDivisible indentNotDivisible;
 		immutable IndentTooMuch indentTooMuch;
 		immutable IndentWrongCharacter indentWrongCharacter;
@@ -95,13 +85,7 @@ struct ParseDiag {
 	}
 
 	public:
-	immutable this(immutable ExpectedCharacter a) { kind = Kind.expectedCharacter; expectedCharacter = a; }
-	immutable this(immutable ExpectedClosing a) { kind = Kind.expectedClosing; expectedClosing = a; }
-	immutable this(immutable ExpectedDedent a) { kind = Kind.expectedDedent; expectedDedent = a; }
-	immutable this(immutable ExpectedIndent a) { kind = Kind.expectedIndent; expectedIndent = a; }
-	immutable this(immutable ExpectedPurityAfterSpace a) {
-		kind = Kind.expectedPurityAfterSpace; expectedPurityAfterSpace = a;
-	}
+	immutable this(immutable Expected a) { kind = Kind.expected; expected = a; }
 	immutable this(immutable IndentNotDivisible a) { kind = Kind.indentNotDivisible; indentNotDivisible = a; }
 	immutable this(immutable IndentTooMuch a) { kind = Kind.indentTooMuch; indentTooMuch = a; }
 	immutable this(immutable IndentWrongCharacter a) { kind = Kind.indentWrongCharacter; indentWrongCharacter = a; }
@@ -123,13 +107,7 @@ struct ParseDiag {
 
 T matchParseDiag(T)(
 	ref immutable ParseDiag a,
-	scope T delegate(ref immutable ParseDiag.ExpectedCharacter) @safe @nogc pure nothrow cbExpectedCharacter,
-	scope T delegate(ref immutable ParseDiag.ExpectedClosing) @safe @nogc pure nothrow cbExpectedClosing,
-	scope T delegate(ref immutable ParseDiag.ExpectedDedent) @safe @nogc pure nothrow cbExpectedDedent,
-	scope T delegate(ref immutable ParseDiag.ExpectedIndent) @safe @nogc pure nothrow cbExpectedIndent,
-	scope T delegate(
-		ref immutable ParseDiag.ExpectedPurityAfterSpace
-	) @safe @nogc pure nothrow cbExpectedPurityAfterSpace,
+	scope T delegate(ref immutable ParseDiag.Expected) @safe @nogc pure nothrow cbExpected,
 	scope T delegate(ref immutable ParseDiag.IndentNotDivisible) @safe @nogc pure nothrow cbIndentNotDivisible,
 	scope T delegate(ref immutable ParseDiag.IndentTooMuch) @safe @nogc pure nothrow cbIndentTooMuch,
 	scope T delegate(ref immutable ParseDiag.IndentWrongCharacter) @safe @nogc pure nothrow cbIndentWrongCharacter,
@@ -149,16 +127,8 @@ T matchParseDiag(T)(
 	scope T delegate(ref immutable ParseDiag.WhenMustHaveElse) @safe @nogc pure nothrow cbWhenMustHaveElse,
 ) {
 	final switch (a.kind) {
-		case ParseDiag.Kind.expectedCharacter:
-			return cbExpectedCharacter(a.expectedCharacter);
-		case ParseDiag.Kind.expectedClosing:
-			return cbExpectedClosing(a.expectedClosing);
-		case ParseDiag.Kind.expectedDedent:
-			return cbExpectedDedent(a.expectedDedent);
-		case ParseDiag.Kind.expectedIndent:
-			return cbExpectedIndent(a.expectedIndent);
-		case ParseDiag.Kind.expectedPurityAfterSpace:
-			return cbExpectedPurityAfterSpace(a.expectedPurityAfterSpace);
+		case ParseDiag.Kind.expected:
+			return cbExpected(a.expected);
 		case ParseDiag.Kind.indentNotDivisible:
 			return cbIndentNotDivisible(a.indentNotDivisible);
 		case ParseDiag.Kind.indentTooMuch:

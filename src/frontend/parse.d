@@ -119,7 +119,7 @@ immutable(Opt!PuritySpecifier) parsePurity(Alloc, SymAlloc)(ref Alloc alloc, ref
 	else if (tryTake(lexer, "force-sendable"))
 		return some(PuritySpecifier.forceSendable);
 	else {
-		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.ExpectedPurityAfterSpace()));
+		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.purity)));
 		return none!PuritySpecifier;
 	}
 }

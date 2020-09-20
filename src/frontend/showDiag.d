@@ -123,26 +123,25 @@ void writeLineNumber(Alloc)(
 
 void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 	matchParseDiag(d,
-		(ref immutable ParseDiag.ExpectedCharacter) {
-			todo!void("expectedcharacter");
-		},
-		(ref immutable ParseDiag.ExpectedClosing it) {
-			writeStatic(writer, "expected ");
-			writeStatic(writer, () {
-				final switch (it.kind) {
-					case ParseDiag.ExpectedClosing.Kind.paren:
-						return "')'";
-				}
-			}());
-		},
-		(ref immutable ParseDiag.ExpectedDedent) {
-			writeStatic(writer, "expected a dedent");
-		},
-		(ref immutable ParseDiag.ExpectedIndent) {
-			writeStatic(writer, "expected an indent");
-		},
-		(ref immutable ParseDiag.ExpectedPurityAfterSpace) {
-			writeStatic(writer, "after trailing space, expected to parse 'mutable' or 'sendable'");
+		(ref immutable ParseDiag.Expected it) {
+			final switch (it.kind) {
+				case ParseDiag.Expected.Kind.closingParen:
+					writeStatic(writer, "expected ')'");
+					break;
+				case ParseDiag.Expected.Kind.dedent:
+					writeStatic(writer, "expected a dedent");
+					break;
+				case ParseDiag.Expected.Kind.indent:
+					writeStatic(writer, "expected an indent");
+					break;
+				case ParseDiag.Expected.Kind.multiLineNewSeparator:
+					writeStatic(writer, "'. '");
+					break;
+				case ParseDiag.Expected.Kind.purity:
+					//TODO: better message
+					writeStatic(writer, "after trailing space, expected to parse 'mutable' or 'sendable'");
+					break;
+			}
 		},
 		(ref immutable ParseDiag.IndentNotDivisible d) {
 			writeStatic(writer, "expected indentation by ");
