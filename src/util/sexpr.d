@@ -17,6 +17,7 @@ import util.writer :
 	writeChar,
 	writeNat,
 	Writer,
+	writeQuotedStr,
 	writeStatic,
 	writeStr,
 	writeWithCommas;
@@ -510,28 +511,4 @@ immutable(int) measureSexprNat(immutable size_t s) {
 
 immutable(int) measureQuotedStr(ref immutable Str s) {
 	return 2 + safeIntFromSizeT(size(s));
-}
-
-void writeQuotedStr(Alloc)(ref Writer!Alloc writer, ref immutable Str s) {
-	writeChar(writer, '"');
-	foreach (immutable char c; range(s)) {
-		switch (c) {
-			case '\t':
-				writeStatic(writer, "\\t");
-				break;
-			case '\n':
-				writeStatic(writer, "\\n");
-				break;
-			case '"':
-				writeStatic(writer, "\\\"");
-				break;
-			case '\0':
-				writeStatic(writer, "\\0");
-				break;
-			default:
-				writeChar(writer, c);
-				break;
-		}
-	}
-	writeChar(writer, '"');
 }

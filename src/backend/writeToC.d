@@ -42,6 +42,7 @@ import util.writer :
 	writeEscapedChar,
 	writeNat,
 	Writer,
+	writeQuotedStr,
 	writeStatic,
 	writeStr,
 	writeWithCommas;
@@ -603,7 +604,7 @@ void writeExpr(Alloc)(
 				writeChar(writer, '{');
 				writeNat(writer, size(it.literal));
 				writeStatic(writer, ", ");
-				writeQuotedString(writer, it.literal);
+				writeQuotedStr(writer, it.literal);
 				writeChar(writer, '}');
 			});
 		});
@@ -1273,13 +1274,6 @@ void writeSpecialNAry(Alloc)(
 			writeChar(writer, ')');
 			break;
 	}
-}
-
-void writeQuotedString(Alloc)(ref Writer!Alloc writer, ref immutable Str str) {
-	writeChar(writer, '"');
-	foreach (immutable char c; range(str))
-		writeEscapedChar(writer, c);
-	writeChar(writer, '"');
 }
 
 void writePrimitiveType(Alloc)(ref Writer!Alloc writer, immutable PrimitiveType a) {

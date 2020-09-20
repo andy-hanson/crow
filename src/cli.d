@@ -203,6 +203,11 @@ immutable(ProgramDirAndMain) parseProgramDirAndMain(Alloc, SymAlloc)(
 	return ProgramDirAndMain(dir, rootPath(alloc, name));
 }
 
+struct FormatAndPath {
+	immutable PrintFormat format;
+	immutable Str path;
+}
+
 immutable(Command) parsePrintCommand(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
@@ -213,15 +218,15 @@ immutable(Command) parsePrintCommand(Alloc, SymAlloc)(
 	if (size(args) < 2)
 		return todo!Command("Command.HelpPrint");
 	else {
-		immutable PrintFormat format = size(args) == 2
-			? PrintFormat.sexpr
-			: size(args) == 4 && strEqLiteral(at(args, 2), "--format") && strEqLiteral(at(args, 3), "json")
-			? PrintFormat.json
-			: todo!(immutable PrintFormat)("Command.HelpPrint");
+		immutable FormatAndPath formatAndPath = size(args) == 2
+			? immutable FormatAndPath(PrintFormat.sexpr, at(args, 1))
+			: size(args) == 4 && strEqLiteral(at(args, 1), "--format") && strEqLiteral(at(args, 2), "json")
+			? immutable FormatAndPath(PrintFormat.json, at(args, 3))
+			: todo!(immutable FormatAndPath)("Command.HelpPrint");
 		return immutable Command(Command.Print(
 			parsePrintKind(first(args)),
-			parseProgramDirAndMain(alloc, allSymbols, cwd, at(args, 1)),
-			format));
+			parseProgramDirAndMain(alloc, allSymbols, cwd, formatAndPath.path),
+			formatAndPath.format));
 	}
 }
 

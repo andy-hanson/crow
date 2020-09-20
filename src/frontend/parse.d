@@ -33,7 +33,6 @@ import frontend.lexer :
 	Lexer,
 	NewlineOrDedent,
 	NewlineOrIndent,
-	pureSetjmp,
 	range,
 	skipBlankLines,
 	skipShebang,
@@ -44,14 +43,12 @@ import frontend.lexer :
 	takeName,
 	takeNameAllowReserved,
 	takeNewlineOrDedentAmount,
-	takeNewlineOrIndent,
+	takeNewlineOrIndent_topLevel,
 	takeNewlineOrSingleDedent,
 	takeOrAddDiagExpected,
 	takeQuotedStr,
-	throwAtChar,
 	tryTake,
-	tryTakeIndentAfterNewline_topLevel,
-	tryTakeNewlineOrIndent;
+	tryTakeIndentAfterNewline_topLevel;
 import frontend.parseExpr : parseFunExprBody;
 import frontend.parseType : parseStructType, parseType, takeTypeArgsEnd, tryParseTypeArgs;
 
@@ -81,13 +78,9 @@ immutable(FileAstAndParseDiagnostics) parseFile(Alloc, SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	immutable NulTerminatedStr source,
 ) {
-	Lexer!SymAlloc lexer = createLexer(ptrTrustMe_mut(allSymbols), source);
-	immutable int i = pureSetjmp(lexer.jump_buffer);
-	if (i == 0) {
-		immutable FileAst ast = parseFileInner(alloc, lexer);
-		return immutable FileAstAndParseDiagnostics(ast, finishDiags(alloc, lexer));
-	} else
-		return immutable FileAstAndParseDiagnostics(emptyFileAst, arrLiteral(alloc, lexer.diagnostic_));
+	Lexer!SymAlloc lexer = createLexer(alloc, ptrTrustMe_mut(allSymbols), source);
+	immutable FileAst ast = parseFileInner(alloc, lexer);
+	return immutable FileAstAndParseDiagnostics(ast, finishDiags(alloc, lexer));
 }
 
 private:
@@ -184,7 +177,7 @@ immutable(ParamsAndMaybeDedent) parseParams(Alloc, SymAlloc)(ref Alloc alloc, re
 	if (tryTake(lexer, '('))
 		return ParamsAndMaybeDedent(parseParenthesizedParams(alloc, lexer), none!size_t);
 	else
-		final switch (takeNewlineOrIndent(alloc, lexer)) {
+		final switch (takeNewlineOrIndent_topLevel(alloc, lexer)) {
 			case NewlineOrIndent.newline:
 				return ParamsAndMaybeDedent(emptyArrWithSize!ParamAst, some!size_t(0));
 			case NewlineOrIndent.indent:
@@ -428,7 +421,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 	scope immutable(Bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable SymAndIsReserved name = takeNameAllowReserved(lexer);
+	immutable SymAndIsReserved name = takeNameAllowReserved(alloc, lexer);
 	if (name.isReserved) {
 		scope immutable(SpecUsesAndSigFlagsAndKwBody) setExtern(immutable Bool isGlobal) {
 			if (extern_.has)
@@ -632,7 +625,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 		immutable Bool tookIndent = () {
 			final switch (after) {
 				case SpaceOrNewlineOrIndent.space:
-					return Bool(takeNewlineOrIndent(alloc, lexer) == NewlineOrIndent.indent);
+					return Bool(takeNewlineOrIndent_topLevel(alloc, lexer) == NewlineOrIndent.indent);
 				case SpaceOrNewlineOrIndent.newline:
 					return False;
 				case SpaceOrNewlineOrIndent.indent:

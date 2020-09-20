@@ -1,15 +1,5 @@
 module frontend.lexer;
 
-import core.sys.posix.setjmp : jmp_buf, longjmp, setjmp;
-
-alias PureSetJmp = extern(C) int function(ref jmp_buf) @safe @nogc pure nothrow;
-immutable PureSetJmp pureSetjmp =
-	cast(PureSetJmp) &setjmp;
-
-alias PureLongJmp = extern(C) void function(ref jmp_buf, int) @safe @nogc pure nothrow;
-immutable PureLongJmp pureLongjmp =
-	cast(PureLongJmp) &longjmp;
-
 @safe @nogc pure nothrow:
 
 import frontend.ast : LiteralAst, NameAndRange;
@@ -20,8 +10,8 @@ import util.alloc.alloc : nu;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil : slice;
-import util.collection.str : copyStr, CStr, emptyStr, MutStr, NulTerminatedStr, Str, stripNulTerminator;
+import util.collection.arrUtil : cat, rtail, slice;
+import util.collection.str : copyStr, CStr, emptyStr, MutStr, NulTerminatedStr, Str, stripNulTerminator,  strLiteral;
 import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
@@ -56,32 +46,29 @@ struct Lexer(SymAlloc) {
 	CStr ptr;
 	immutable IndentKind indentKind;
 	u32 indent;
-	public:
-	jmp_buf jump_buffer = void;
-	// Assigned when an exception is thrown
-	ParseDiagnostic diagnostic_ = void;
 }
 
-@trusted Lexer!SymAlloc createLexer(SymAlloc)(
+@trusted Lexer!SymAlloc createLexer(Alloc, SymAlloc)(
+	ref Alloc alloc,
 	Ptr!(AllSymbols!SymAlloc) allSymbols,
 	immutable NulTerminatedStr source,
 ) {
 	// Note: We *are* relying on the nul terminator to stop the lexer.
 	immutable Str str = source.stripNulTerminator;
+	immutable Bool endsInBlankLine = last(str) == '\n';
+	immutable Str useStr = endsInBlankLine ? str : rtail(cat!char(alloc, str, strLiteral("\n\0")));
 	immutable u32 len = str.size.safeSizeTToU32;
-	if (!str.empty && str.last != '\n') {
-		immutable ParseDiagnostic p = ParseDiagnostic(
-			SourceRange(len - 1, len),
-			ParseDiag(ParseDiag.MustEndInBlankLine()));
-		todo!void("createLexer");
-	}
-	return Lexer!SymAlloc(
+	Lexer!SymAlloc lexer = Lexer!SymAlloc(
 		allSymbols,
 		ArrBuilder!ParseDiagnostic(),
-		str.begin,
-		str.begin,
-		str.detectIndentKind,
+		begin(useStr),
+		begin(useStr),
+		detectIndentKind(useStr),
 		0);
+	if (!endsInBlankLine)
+		addDiag(alloc, lexer, immutable SourceRange(len - 1, len), immutable ParseDiag(
+			immutable ParseDiag.MustEndInBlankLine()));
+	return lexer;
 }
 
 immutable(char) curChar(SymAlloc)(ref const Lexer!SymAlloc lexer) {
@@ -105,39 +92,13 @@ immutable(Arr!ParseDiagnostic) finishDiags(Alloc, SymAlloc)(ref Alloc alloc, ref
 	return finishArr(alloc, lexer.diags);
 }
 
-T throwDiag(T, SymAlloc)(ref Lexer!SymAlloc lexer, immutable ParseDiagnostic pd) {
-	assert(0); // WE ain't doing this no more
-	initMemory(&lexer.diagnostic_, pd);
-	pureLongjmp(lexer.jump_buffer, 1);
-	return unreachable!T;
-}
-
-T throwDiag(T, SymAlloc)(ref Lexer!SymAlloc lexer, immutable SourceRange range, immutable ParseDiag diag) {
-	return throwDiag!(T, SymAlloc)(lexer, ParseDiagnostic(range, diag));
-}
-
 void addDiagAtChar(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer, immutable ParseDiag diag) {
 	immutable Pos a = lexer.curPos;
 	addDiag(alloc, lexer, immutable SourceRange(a, lexer.curChar == '\0' ? a : a + 1), diag);
 }
 
-T throwDiag(T, SymAlloc)(ref Lexer!SymAlloc lexer, immutable ParseDiag diag) {
-	immutable Pos a = lexer.curPos;
-	return lexer.throwDiag!(T, SymAlloc)(SourceRange(a, lexer.curChar == '\0' ? a : a + 1), diag);
-}
-
-T throwAtChar(T, SymAlloc)(ref Lexer!SymAlloc lexer, immutable ParseDiag diag) {
-	immutable Pos a = lexer.curPos;
-	immutable SourceRange range = SourceRange(a, lexer.curChar == '\0' ? a : a + 1);
-	return throwDiag!(T, SymAlloc)(lexer, range, diag);
-}
-
 void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.UnexpectedCharacter(curChar(lexer))));
-}
-
-T throwUnexpected(T, SymAlloc)(ref Lexer!SymAlloc lexer) {
-	return lexer.throwDiag!T(immutable ParseDiag(immutable ParseDiag.UnexpectedCharacter(lexer.curChar)));
 }
 
 @trusted immutable(Bool) tryTake(SymAlloc)(ref Lexer!SymAlloc lexer, immutable char c) {
@@ -193,15 +154,17 @@ void skipShebang(SymAlloc)(ref Lexer!SymAlloc lexer) {
 
 //TODO: this is only called at base level, so dedenting should be impossible..
 void skipBlankLines(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	verify(lexer.indent == 0);
 	immutable IndentDelta i = skipLinesAndGetIndentDelta(alloc, lexer);
 	matchIndentDelta(
 		i,
 		(ref immutable IndentDelta.DedentOrSame it) {
-			if (it.nDedents != 0)
-				lexer.throwUnexpected!void;
+			verify(it.nDedents == 0);
 		},
 		(ref immutable IndentDelta.Indent it) {
-			lexer.throwUnexpected!void;
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.indent)));
+			skipRestOfLineAndNewline(lexer);
+			skipBlankLines(alloc, lexer);
 		});
 }
 
@@ -210,34 +173,24 @@ enum NewlineOrIndent {
 	indent,
 }
 
-immutable(Opt!NewlineOrIndent) tryTakeNewlineOrIndent(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable Pos start = lexer.curPos;
-	if (tryTake(lexer, '\n')) {
-		immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer);
-		return matchIndentDelta(
-			delta,
-			(ref immutable IndentDelta.DedentOrSame it) {
-				return it.nDedents == 0
-					? some(NewlineOrIndent.newline)
-					: throwDiag!(immutable Opt!NewlineOrIndent)(
-						lexer,
-						range(lexer, start),
-						immutable ParseDiag(immutable ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.dedent)));
-			},
-			(ref immutable IndentDelta.Indent) {
-				return some(NewlineOrIndent.indent);
-			});
-	} else
-		return none!NewlineOrIndent;
-}
-
-immutable(NewlineOrIndent) takeNewlineOrIndent(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable Opt!NewlineOrIndent op = tryTakeNewlineOrIndent(alloc, lexer);
-	return op.has ? op.force : throwUnexpected!NewlineOrIndent(lexer);
+immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	verify(lexer.indent == 0);
+	if (!takeOrAddDiagExpected(alloc, lexer, '\n', ParseDiag.Expected.Kind.endOfLine))
+		skipRestOfLineAndNewline(lexer);
+	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer);
+	return matchIndentDelta!(immutable NewlineOrIndent)(
+		delta,
+		(ref immutable IndentDelta.DedentOrSame it) {
+			verify(it.nDedents == 0);
+			return NewlineOrIndent.newline;
+		},
+		(ref immutable IndentDelta.Indent) {
+			return NewlineOrIndent.indent;
+		});
 }
 
 immutable(Bool) takeIndentOrDiagTopLevel(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	assert(lexer.indent == 0);
+	verify(lexer.indent == 0);
 	return takeIndentOrFailGeneric!(immutable Bool)(
 		alloc,
 		lexer,
@@ -249,13 +202,13 @@ immutable(Bool) takeIndentOrDiagTopLevel(Alloc, SymAlloc)(ref Alloc alloc, ref L
 }
 
 immutable(Bool) takeIndentOrDiagTopLevelAfterNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	assert(lexer.indent == 0);
+	verify(lexer.indent == 0);
 	immutable Pos start = curPos(lexer);
 	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer);
 	return matchIndentDelta!(immutable Bool)(
 		delta,
 		(ref immutable IndentDelta.DedentOrSame dedent) {
-			assert(dedent.nDedents == 0);
+			verify(dedent.nDedents == 0);
 			addDiag(
 				alloc,
 				lexer,
@@ -298,7 +251,7 @@ private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(Alloc, S
 		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 		skipUntilNewlineNoDiag(lexer);
 	}
-	assert(*lexer.ptr == '\n');
+	verify(*lexer.ptr == '\n');
 	lexer.ptr++;
 	return skipLinesAndGetIndentDelta(alloc, lexer);
 }
@@ -310,7 +263,7 @@ private void skipToFirstNonIndentedLine(Alloc, SymAlloc)(ref Alloc alloc, ref Le
 }
 
 void takeDedentFromIndent1(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	assert(lexer.indent == 1);
+	verify(lexer.indent == 1);
 	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer);
 	immutable Bool success = matchIndentDelta!(immutable Bool)(
 		delta,
@@ -357,8 +310,10 @@ immutable(size_t) takeNewlineOrDedentAmount(Alloc, SymAlloc)(ref Alloc alloc, re
 			return it.nDedents;
 		},
 		(ref immutable IndentDelta.Indent) {
-			return throwAtChar!size_t(lexer, immutable ParseDiag(
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(
 				immutable ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.indent)));
+			skipUntilNewlineNoDiag(lexer);
+			return takeNewlineOrDedentAmount(alloc, lexer);
 		});
 }
 
@@ -399,8 +354,8 @@ struct SymAndIsReserved {
 	immutable Bool isReserved;
 }
 
-immutable(SymAndIsReserved) takeNameAllowReserved(SymAlloc)(ref Lexer!SymAlloc lexer) {
-	immutable StrAndIsOperator s = takeNameAsTempStr(lexer);
+immutable(SymAndIsReserved) takeNameAllowReserved(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	immutable StrAndIsOperator s = takeNameAsTempStr(alloc, lexer);
 	if (s.isOperator) {
 		immutable Sym op = getSymFromOperator(lexer.allSymbols.deref, s.str);
 		return SymAndIsReserved(op, s.range, op.symEq(shortSymOperatorLiteral("=")));
@@ -411,14 +366,14 @@ immutable(SymAndIsReserved) takeNameAllowReserved(SymAlloc)(ref Lexer!SymAlloc l
 }
 
 immutable(Sym) takeName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable SymAndIsReserved s = takeNameAllowReserved(lexer);
+	immutable SymAndIsReserved s = takeNameAllowReserved(alloc, lexer);
 	if (s.isReserved)
 		addDiagOnReservedName(alloc, lexer, s.range, s.sym);
 	return s.sym;
 }
 
 immutable(Str) takeNameAsStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
-	return copyStr(alloc, lexer.takeNameAsTempStr.str);
+	return copyStr(alloc, takeNameAsTempStr(lexer, str));
 }
 
 immutable(NameAndRange) takeNameAndRange(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -634,7 +589,8 @@ immutable(size_t) toHexDigit(immutable char c) {
 		if (*lexer.ptr == '\\') {
 			lexer.ptr++;
 			immutable char c = () {
-				switch (*lexer.ptr) {
+				immutable char esc = *lexer.ptr;
+				switch (esc) {
 					case 'x':
 						// Take two more
 						lexer.ptr++;
@@ -653,7 +609,8 @@ immutable(size_t) toHexDigit(immutable char c) {
 					case '0':
 						return '\0';
 					default:
-						return lexer.throwUnexpected!char;
+						addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.InvalidStringEscape(esc)));
+						return 'a';
 				}
 			}();
 			res[outI] = c;
@@ -680,12 +637,12 @@ immutable(size_t) toHexDigit(immutable char c) {
 }
 
 // Called after the newline
-@trusted u32 takeIndentAmount(SymAlloc)(ref Lexer!SymAlloc lexer) {
+@trusted u32 takeIndentAmount(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable CStr begin = lexer.ptr;
 	if (lexer.indentKind == IndentKind.tabs) {
 		while (*lexer.ptr == '\t') lexer.ptr++;
 		if (*lexer.ptr == ' ')
-			throwAtChar!(void, SymAlloc)(lexer, ParseDiag(ParseDiag.IndentWrongCharacter(True)));
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(True)));
 		immutable u32 res = (lexer.ptr - begin).safeSizeTToU32;
 		return res;
 	} else {
@@ -693,15 +650,13 @@ immutable(size_t) toHexDigit(immutable char c) {
 		while (*lexer.ptr == ' ')
 			lexer.ptr++;
 		if (*lexer.ptr == '\t')
-			lexer.throwAtChar!(void, SymAlloc)(ParseDiag(ParseDiag.IndentWrongCharacter(False)));
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(False)));
 		immutable u32 nSpaces = (lexer.ptr - begin).safeSizeTToU32;
 		immutable u32 nSpacesPerIndent = lexer.indentKind == IndentKind.spaces2 ? 2 : 4;
 		immutable u32 res = nSpaces / nSpacesPerIndent;
 		if (res * nSpacesPerIndent != nSpaces)
-			throwDiag!(void, SymAlloc)(
-				lexer,
-				range(lexer, start),
-				immutable ParseDiag(immutable ParseDiag.IndentNotDivisible(nSpaces, nSpacesPerIndent)));
+			addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
+				immutable ParseDiag.IndentNotDivisible(nSpaces, nSpacesPerIndent)));
 		return res;
 	}
 }
@@ -747,7 +702,7 @@ public @trusted T matchIndentDelta(T)(
 // NOTE: never returns a value > 1 as double-indent is always illegal.
 immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	// comment / region counts as a blank line no matter its indent level.
-	immutable u32 newIndent = takeIndentAmount(lexer);
+	immutable u32 newIndent = takeIndentAmount(alloc, lexer);
 
 	if (tryTake(lexer, '\n'))
 		return skipLinesAndGetIndentDelta(alloc, lexer);
@@ -779,7 +734,7 @@ struct StrAndIsOperator {
 	immutable Bool isOperator;
 }
 
-@trusted immutable(StrAndIsOperator) takeNameAsTempStr(SymAlloc)(ref Lexer!SymAlloc lexer) {
+@trusted immutable(StrAndIsOperator) takeNameAsTempStr(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable CStr begin = lexer.ptr;
 	if (isOperatorChar(*lexer.ptr)) {
 		lexer.ptr++;
@@ -790,7 +745,14 @@ struct StrAndIsOperator {
 		immutable Str name = takeNameRest(lexer, begin);
 		return immutable StrAndIsOperator(name, range(lexer, begin), False);
 	} else {
-		return throwUnexpected!StrAndIsOperator(lexer);
+		while (*lexer.ptr != ' ' && *lexer.ptr != '\n')
+			lexer.ptr++;
+		// Copy since it's used in a diag
+		immutable Str s = copyStr(alloc, arrOfRange(begin, lexer.ptr));
+		immutable SourceRange range = range(lexer, begin);
+		addDiag(alloc, lexer, range, immutable ParseDiag(
+			immutable ParseDiag.InvalidName(s)));
+		return immutable StrAndIsOperator(s, range, False);
 	}
 }
 

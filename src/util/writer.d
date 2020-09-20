@@ -73,16 +73,27 @@ void writeWithCommas(Alloc, T)(
 	}
 }
 
+void writeQuotedStr(Alloc)(ref Writer!Alloc writer, ref immutable Str s) {
+	writeChar(writer, '"');
+	foreach (immutable char c; range(s))
+		writeEscapedChar_inner(writer, c);
+	writeChar(writer, '"');
+}
+
 void writeEscapedChar(Alloc)(ref Writer!Alloc writer, immutable char c) {
+	if (c == '\'')
+		writeStatic(writer, "\\\'");
+	else
+		writeEscapedChar_inner(writer, c);
+}
+
+private void writeEscapedChar_inner(Alloc)(ref Writer!Alloc writer, immutable char c) {
 	switch (c) {
 		case '\n':
 			writeStatic(writer, "\\n");
 			break;
 		case '\t':
 			writeStatic(writer, "\\t");
-			break;
-		case '\'':
-			writeStatic(writer, "\\\'");
 			break;
 		case '"':
 			writeStatic(writer, "\\\"");

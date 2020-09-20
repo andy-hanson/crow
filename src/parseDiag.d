@@ -3,6 +3,7 @@ module parseDiag;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
+import util.collection.str : Str;
 import util.sourceRange : SourceRange;
 import util.sym : Sym;
 import util.types : u32;
@@ -35,6 +36,12 @@ struct ParseDiag {
 	struct IndentTooMuch {}
 	struct IndentWrongCharacter {
 		immutable Bool expectedTabs;
+	}
+	struct InvalidName {
+		immutable Str actual;
+	}
+	struct InvalidStringEscape {
+		immutable char actual;
 	}
 	struct LetMustHaveThen {}
 	struct MatchWhenOrLambdaNeedsBlockCtx {
@@ -70,6 +77,8 @@ struct ParseDiag {
 		indentNotDivisible,
 		indentTooMuch,
 		indentWrongCharacter,
+		invalidName,
+		invalidStringEscape,
 		letMustHaveThen,
 		matchWhenOrLambdaNeedsBlockCtx,
 		mustEndInBlankLine,
@@ -86,6 +95,8 @@ struct ParseDiag {
 		immutable IndentNotDivisible indentNotDivisible;
 		immutable IndentTooMuch indentTooMuch;
 		immutable IndentWrongCharacter indentWrongCharacter;
+		immutable InvalidName invalidName;
+		immutable InvalidStringEscape invalidStringEscape;
 		immutable LetMustHaveThen letMustHaveThen;
 		immutable MatchWhenOrLambdaNeedsBlockCtx matchWhenOrLambdaNeedsBlockCtx;
 		immutable MustEndInBlankLine mustEndInBlankLine;
@@ -102,6 +113,8 @@ struct ParseDiag {
 	immutable this(immutable IndentNotDivisible a) { kind = Kind.indentNotDivisible; indentNotDivisible = a; }
 	immutable this(immutable IndentTooMuch a) { kind = Kind.indentTooMuch; indentTooMuch = a; }
 	immutable this(immutable IndentWrongCharacter a) { kind = Kind.indentWrongCharacter; indentWrongCharacter = a; }
+	@trusted immutable this(immutable InvalidName a) { kind = Kind.invalidName; invalidName = a; }
+	immutable this(immutable InvalidStringEscape a) { kind = Kind.invalidStringEscape; invalidStringEscape = a; }
 	immutable this(immutable LetMustHaveThen a) { kind = Kind.letMustHaveThen; letMustHaveThen = a; }
 	immutable this(immutable MatchWhenOrLambdaNeedsBlockCtx a) {
 		kind = Kind.matchWhenOrLambdaNeedsBlockCtx; matchWhenOrLambdaNeedsBlockCtx = a;
@@ -117,12 +130,14 @@ struct ParseDiag {
 	immutable this(immutable WhenMustHaveElse a) { kind = Kind.whenMustHaveElse; whenMustHaveElse = a; }
 }
 
-T matchParseDiag(T)(
+@trusted T matchParseDiag(T)(
 	ref immutable ParseDiag a,
 	scope T delegate(ref immutable ParseDiag.Expected) @safe @nogc pure nothrow cbExpected,
 	scope T delegate(ref immutable ParseDiag.IndentNotDivisible) @safe @nogc pure nothrow cbIndentNotDivisible,
 	scope T delegate(ref immutable ParseDiag.IndentTooMuch) @safe @nogc pure nothrow cbIndentTooMuch,
 	scope T delegate(ref immutable ParseDiag.IndentWrongCharacter) @safe @nogc pure nothrow cbIndentWrongCharacter,
+	scope T delegate(ref immutable ParseDiag.InvalidName) @safe @nogc pure nothrow cbInvalidName,
+	scope T delegate(ref immutable ParseDiag.InvalidStringEscape) @safe @nogc pure nothrow cbInvalidStringEscape,
 	scope T delegate(ref immutable ParseDiag.LetMustHaveThen) @safe @nogc pure nothrow cbLetMustHaveThen,
 	scope T delegate(
 		ref immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx
@@ -146,6 +161,10 @@ T matchParseDiag(T)(
 			return cbIndentTooMuch(a.indentTooMuch);
 		case ParseDiag.Kind.indentWrongCharacter:
 			return cbIndentWrongCharacter(a.indentWrongCharacter);
+		case ParseDiag.Kind.invalidName:
+			return cbInvalidName(a.invalidName);
+		case ParseDiag.Kind.invalidStringEscape:
+			return cbInvalidStringEscape(a.invalidStringEscape);
 		case ParseDiag.Kind.letMustHaveThen:
 			return cbLetMustHaveThen(a.letMustHaveThen);
 		case ParseDiag.Kind.matchWhenOrLambdaNeedsBlockCtx:

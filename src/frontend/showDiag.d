@@ -50,8 +50,10 @@ import util.writer :
 	finishWriterToCStr,
 	writeBold,
 	writeChar,
+	writeEscapedChar,
 	writeHyperlink,
 	writeNat,
+	writeQuotedStr,
 	writeRed,
 	writeReset,
 	writeStatic,
@@ -182,6 +184,15 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 			writeStatic(writer, d.expectedTabs ? "tabs" : "spaces");
 			writeStatic(writer, " (based on first indented line), but here there is a ");
 			writeStatic(writer, d.expectedTabs ? "space" : "tab");
+		},
+		(ref immutable ParseDiag.InvalidName it) {
+			writeQuotedStr(writer, it.actual);
+			writeStatic(writer, " is not a valid name");
+		},
+		(ref immutable ParseDiag.InvalidStringEscape it) {
+			writeStatic(writer, "invalid escape character '");
+			writeEscapedChar(writer, it.actual);
+			writeChar(writer, '\'');
 		},
 		(ref immutable ParseDiag.LetMustHaveThen) {
 			writeStatic(
