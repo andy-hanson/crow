@@ -31,6 +31,7 @@ import frontend.lexer :
 	addDiagAtChar,
 	asLiteral,
 	asNameAndRange,
+	curChar,
 	curPos,
 	ExpressionToken,
 	IndentDelta,
@@ -47,7 +48,7 @@ import frontend.lexer :
 	takeOrAddDiagExpected,
 	tryTake,
 	tryTakeElseIndent,
-	tryTakeIndent,
+	tryTakeIndent_topLevel,
 	tryTakeIndentOrDedent;
 import frontend.parseType : tryParseTypeArg, tryParseTypeArgs;
 
@@ -67,7 +68,7 @@ import util.util : todo, unreachable, verify;
 
 immutable(ExprAst) parseFunExprBody(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
-	if (tryTakeIndent(alloc, lexer)) {
+	if (tryTakeIndent_topLevel(alloc, lexer)) {
 		immutable ExprAndDedent ed = parseStatementsAndExtraDedents(alloc, lexer);
 		verify(ed.dedents == 0); // Since we started at the root, can't dedent more
 		return ed.expr;
@@ -407,16 +408,22 @@ immutable(ExprAndMaybeDedent) parseWhenLoop(Alloc, SymAlloc)(
 	immutable Pos start,
 	ref ArrBuilder!(WhenAst.Case) cases,
 ) {
-	if (tryTakeElseIndent(alloc, lexer)) {
-		immutable ExprAndDedent elseAndDedent = parseStatementsAndExtraDedents(alloc, lexer);
-		if (elseAndDedent.dedents == 0)
-			todo!void("can't have any case after 'else'");
-		immutable WhenAst when = immutable WhenAst(finishArr(alloc, cases), some(allocExpr(alloc, elseAndDedent.expr)));
-		return immutable ExprAndMaybeDedent(
-			immutable ExprAst(range(lexer, start), immutable ExprAstKind(when)),
-			some!size_t(elseAndDedent.dedents - 1));
-	} else {
-		immutable ExprAst condition = parseExprNoBlock(alloc, lexer);
+	immutable Pos conditionStart = curPos(lexer);
+	immutable ExpressionToken token = takeExpressionToken(alloc, lexer);
+	if (token.kind_ == ExpressionToken.Kind.else_)
+		return takeIndentOrFail_ExprAndMaybeDedent(alloc, lexer, () {
+			immutable ExprAndDedent elseAndDedent = parseStatementsAndExtraDedents(alloc, lexer);
+			if (elseAndDedent.dedents == 0)
+				todo!void("can't have any case after 'else'");
+			immutable WhenAst when = immutable WhenAst(
+				finishArr(alloc, cases),
+				some(allocExpr(alloc, elseAndDedent.expr)));
+			return immutable ExprAndMaybeDedent(
+				immutable ExprAst(range(lexer, start), immutable ExprAstKind(when)),
+				some!size_t(elseAndDedent.dedents - 1));
+		});
+	else {
+		immutable ExprAst condition = parseExprNoBlock(alloc, lexer, conditionStart, token);
 		return takeIndentOrFail_ExprAndMaybeDedent(alloc, lexer, () {
 			immutable ExprAndDedent thenAndDedent = parseStatementsAndExtraDedents(alloc, lexer);
 			if (thenAndDedent.dedents != 0) {
@@ -473,7 +480,7 @@ immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
 ) {
 	ArrBuilder!(LambdaAst.Param) parameters;
 	Bool isFirst = True;
-	while (!tryTakeIndent(alloc, lexer)) {
+	while (curChar(lexer) != '\n') {
 		immutable Bool success = () {
 			if (isFirst) {
 				isFirst = False;
@@ -490,11 +497,13 @@ immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
 			skipUntilNewlineNoDiag(lexer);
 		}
 	}
-	immutable ExprAndDedent bodyAndDedent = parseStatementsAndExtraDedents(alloc, lexer);
-	immutable LambdaAst lambda = LambdaAst(finishArr(alloc, parameters), allocExpr(alloc, bodyAndDedent.expr));
-	return immutable ExprAndMaybeDedent(
-		immutable ExprAst(range(lexer, start), immutable ExprAstKind(lambda)),
-		some!size_t(bodyAndDedent.dedents));
+	return takeIndentOrFail_ExprAndMaybeDedent(alloc, lexer, () {
+		immutable ExprAndDedent bodyAndDedent = parseStatementsAndExtraDedents(alloc, lexer);
+		immutable LambdaAst lambda = LambdaAst(finishArr(alloc, parameters), allocExpr(alloc, bodyAndDedent.expr));
+		return immutable ExprAndMaybeDedent(
+			immutable ExprAst(range(lexer, start), immutable ExprAstKind(lambda)),
+			some!size_t(bodyAndDedent.dedents));
+	});
 }
 
 immutable(ExprAndMaybeDedent) skipRestOfLineAndReturnBogusNoDiag(SymAlloc)(
@@ -534,13 +543,16 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			immutable ParseDiag(immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx(kind)));
 	}
 
-	alias Kind = ExpressionToken.Kind;
 	final switch (et.kind_) {
-		case Kind.lambda:
+		case ExpressionToken.Kind.else_:
+			addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
+				immutable ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.else_)));
+			return noDedent(bogusExpr(range(lexer, start)));
+		case ExpressionToken.Kind.lambda:
 			return ctx.allowBlock
 				? parseLambda(alloc, lexer, start)
 				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda);
-		case Kind.lbrace:
+		case ExpressionToken.Kind.lbrace:
 			immutable Ptr!ExprAst body_ = allocExpr(alloc, parseExprNoBlock(alloc, lexer));
 			takeOrAddDiagExpected(alloc, lexer, '}', ParseDiag.Expected.Kind.closingBrace);
 			immutable SourceRange range = getRange();
@@ -551,19 +563,19 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				range,
 				immutable ExprAstKind(immutable LambdaAst(params, body_)));
 			return noDedent(tryParseDots(alloc, lexer, expr));
-		case Kind.literal:
+		case ExpressionToken.Kind.literal:
 			immutable LiteralAst literal = et.asLiteral;
 			immutable ExprAst expr = immutable ExprAst(getRange(), immutable ExprAstKind(literal));
 			return noDedent(tryParseDots(alloc, lexer, expr));
-		case Kind.lparen:
+		case ExpressionToken.Kind.lparen:
 			immutable ExprAst expr = parseExprNoBlock(alloc, lexer);
 			takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
 			return noDedent(tryParseDots(alloc, lexer, expr));
-		case Kind.match:
+		case ExpressionToken.Kind.match:
 			return ctx.allowBlock
 				? parseMatch(alloc, lexer, start)
 				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
-		case Kind.nameAndRange:
+		case ExpressionToken.Kind.nameAndRange:
 			immutable Sym name = et.asNameAndRange.name;
 			immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 			immutable Bool tookColon = tryTake(lexer, ':');
@@ -584,12 +596,12 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 					immutable ExprAstKind(immutable IdentifierAst(name)));
 				return noDedent(tryParseDots(alloc, lexer, expr));
 			}
-		case Kind.new_:
-		case Kind.newArr:
-			return parseNewOrNewArr(alloc, lexer, start, Bool(et.kind_ == Kind.newArr), ctx);
-		case Kind.unexpected:
+		case ExpressionToken.Kind.new_:
+		case ExpressionToken.Kind.newArr:
+			return parseNewOrNewArr(alloc, lexer, start, Bool(et.kind_ == ExpressionToken.Kind.newArr), ctx);
+		case ExpressionToken.Kind.unexpected:
 			return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
-		case Kind.when:
+		case ExpressionToken.Kind.when:
 			return ctx.allowBlock
 				? parseWhen(alloc, lexer, start)
 				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.when);
@@ -611,6 +623,15 @@ immutable(ExprAndMaybeDedent) parseExprWorker(Alloc, SymAlloc)(
 immutable(ExprAst) parseExprNoBlock(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable ExpressionToken et = takeExpressionToken(alloc, lexer);
+	return parseExprNoBlock(alloc, lexer, start, et);
+}
+
+immutable(ExprAst) parseExprNoBlock(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Pos start,
+	ref immutable ExpressionToken et,
+) {
 	immutable ExprAndMaybeDedent ed = parseExprWorker(alloc, lexer, start, et, ArgCtx(False, True));
 	// We set allowBlock to false, so not allowed to take newlines, so can't have dedents.
 	verify(!has(ed.dedents));

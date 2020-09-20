@@ -125,14 +125,23 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 	matchParseDiag(d,
 		(ref immutable ParseDiag.Expected it) {
 			final switch (it.kind) {
+				case ParseDiag.Expected.Kind.bodyKeyword:
+					writeStatic(writer, "expected 'body'");
+					break;
 				case ParseDiag.Expected.Kind.closingBrace:
 					writeStatic(writer, "expected '}'");
 					break;
 				case ParseDiag.Expected.Kind.closingParen:
 					writeStatic(writer, "expected ')'");
 					break;
+				case ParseDiag.Expected.Kind.comma:
+					writeStatic(writer, "expected ', '");
+					break;
 				case ParseDiag.Expected.Kind.dedent:
 					writeStatic(writer, "expected a dedent");
+					break;
+				case ParseDiag.Expected.Kind.endOfLine:
+					writeStatic(writer, "expected end of line");
 					break;
 				case ParseDiag.Expected.Kind.indent:
 					writeStatic(writer, "expected an indent");
@@ -199,16 +208,23 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 		(ref immutable ParseDiag.TypeParamCantHaveTypeArgs) {
 			writeStatic(writer, "a type parameter can't have type arguments");
 		},
+		(ref immutable ParseDiag.Unexpected it) {
+			final switch (it.kind) {
+				case ParseDiag.Unexpected.Kind.dedent:
+					writeStatic(writer, "unexpected dedent");
+					break;
+				case ParseDiag.Unexpected.Kind.else_:
+					writeStatic(writer, "unexpected 'else'");
+					break;
+				case ParseDiag.Unexpected.Kind.indent:
+					writeStatic(writer, "unexpected indent");
+					break;
+			}
+		},
 		(ref immutable ParseDiag.UnexpectedCharacter u) {
 			writeStatic(writer, "unexpected character '");
 			showChar(writer, u.ch);
 			writeStatic(writer, "'");
-		},
-		(ref immutable ParseDiag.UnexpectedDedent) {
-			writeStatic(writer, "unexpected dedent");
-		},
-		(ref immutable ParseDiag.UnexpectedIndent) {
-			writeStatic(writer, "unexpected indent");
 		},
 		(ref immutable ParseDiag.UnionCantBeEmpty) {
 			writeStatic(writer, "union type can't be empty");

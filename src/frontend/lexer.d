@@ -228,7 +228,7 @@ immutable(Opt!NewlineOrIndent) tryTakeNewlineOrIndent(Alloc, SymAlloc)(ref Alloc
 					? some(NewlineOrIndent.newline)
 					: lexer.throwDiag!(immutable Opt!NewlineOrIndent)(
 						lexer.range(start),
-						immutable ParseDiag(ParseDiag.UnexpectedDedent()));
+						immutable ParseDiag(immutable ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.dedent)));
 			},
 			(ref immutable IndentDelta.Indent) {
 				return some(NewlineOrIndent.indent);
@@ -309,12 +309,6 @@ private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(Alloc, S
 	return skipLinesAndGetIndentDelta(alloc, lexer);
 }
 
-//TODO:KILL (throws)
-void takeIndent(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	take(lexer, '\n');
-	takeIndentAfterNewline(alloc, lexer);
-}
-
 private void skipToFirstNonIndentedLine(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	verify(lexer.indent == 1);
 	immutable IndentDelta delta = skiplinesAndGetIndentDelta(alloc, lexer);
@@ -336,15 +330,22 @@ void takeDedentFromIndent1(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc 
 }
 
 immutable(Opt!IndentDelta) tryTakeIndentOrDedent(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	return lexer.curChar == '\n'
+	return curChar(lexer) == '\n'
 		? some!IndentDelta(skipLinesAndGetIndentDelta(alloc, lexer))
 		: none!IndentDelta;
 }
 
-immutable(Bool) tryTakeIndent(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+//TODO:KILL (throws)
+void takeIndent_topLevel(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	verify(lexer.indent == 0);
+	take(lexer, '\n');
+	takeIndentAfterNewline_topLevel(alloc, lexer);
+}
+
+immutable(Bool) tryTakeIndent_topLevel(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Bool res = Bool(lexer.curChar == '\n');
 	if (res)
-		takeIndent(alloc, lexer);
+		takeIndent_topLevel(alloc, lexer);
 	return res;
 }
 
@@ -364,6 +365,11 @@ immutable(NewlineOrIndent) tryTakeIndentAfterNewline(Alloc, SymAlloc)(ref Alloc 
 }
 
 void takeIndentAfterNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	//TODO: not right!
+	takeIndentAfterNewline_topLevel(alloc, lexer);
+}
+
+void takeIndentAfterNewline_topLevel(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer);
 	matchIndentDelta(
 		delta,
@@ -383,7 +389,8 @@ immutable(size_t) takeNewlineOrDedentAmount(Alloc, SymAlloc)(ref Alloc alloc, re
 			return it.nDedents;
 		},
 		(ref immutable IndentDelta.Indent) {
-			return throwAtChar!size_t(lexer, ParseDiag(ParseDiag.UnexpectedIndent()));
+			return throwAtChar!size_t(lexer, immutable ParseDiag(
+				immutable ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.indent)));
 		});
 }
 
@@ -460,6 +467,7 @@ immutable(Str) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Allo
 struct ExpressionToken {
 	@safe @nogc pure nothrow:
 	enum Kind {
+		else_,
 		lambda,
 		lbrace,
 		literal,
@@ -527,6 +535,8 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 				immutable SourceRange nameRange = range(lexer, begin);
 				if (name.isReservedName)
 					switch (name.value) {
+						case shortSymAlphaLiteralValue("else"):
+							return immutable ExpressionToken(ExpressionToken.Kind.else_);
 						case shortSymAlphaLiteralValue("match"):
 							return immutable ExpressionToken(ExpressionToken.Kind.match);
 						case shortSymAlphaLiteralValue("new"):

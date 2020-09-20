@@ -11,8 +11,11 @@ struct ParseDiag {
 	@safe @nogc pure nothrow:
 	struct Expected {
 		enum Kind {
+			bodyKeyword,
 			closingBrace,
 			closingParen,
+			comma,
+			endOfLine,
 			dedent,
 			indent,
 			multiLineArrSeparator,
@@ -46,11 +49,17 @@ struct ParseDiag {
 		immutable Sym name;
 	}
 	struct TypeParamCantHaveTypeArgs {}
+	struct Unexpected {
+		enum Kind {
+			dedent,
+			else_,
+			indent,
+		}
+		immutable Kind kind;
+	}
 	struct UnexpectedCharacter {
 		immutable char ch;
 	}
-	struct UnexpectedDedent {}
-	struct UnexpectedIndent {}
 	struct UnionCantBeEmpty {}
 	struct WhenMustHaveElse {}
 
@@ -65,9 +74,8 @@ struct ParseDiag {
 		mustEndInBlankLine,
 		reservedName,
 		typeParamCantHaveTypeArgs,
+		unexpected,
 		unexpectedCharacter,
-		unexpectedDedent,
-		unexpectedIndent,
 		unionCantBeEmpty,
 		whenMustHaveElse,
 	}
@@ -82,9 +90,8 @@ struct ParseDiag {
 		immutable MustEndInBlankLine mustEndInBlankLine;
 		immutable ReservedName reservedName;
 		immutable TypeParamCantHaveTypeArgs typeParamCantHaveTypeArgs;
+		immutable Unexpected unexpected;
 		immutable UnexpectedCharacter unexpectedCharacter;
-		immutable UnexpectedDedent unexpectedDedent;
-		immutable UnexpectedIndent unexpectedIndent;
 		immutable UnionCantBeEmpty unionCantBeEmpty;
 		immutable WhenMustHaveElse whenMustHaveElse;
 	}
@@ -103,9 +110,8 @@ struct ParseDiag {
 	immutable this(immutable TypeParamCantHaveTypeArgs a) {
 		kind = Kind.typeParamCantHaveTypeArgs; typeParamCantHaveTypeArgs = a;
 	}
+	immutable this(immutable Unexpected a) { kind = Kind.unexpected; unexpected = a; }
 	immutable this(immutable UnexpectedCharacter a) { kind = Kind.unexpectedCharacter; unexpectedCharacter = a; }
-	immutable this(immutable UnexpectedDedent a) { kind = Kind.unexpectedDedent; unexpectedDedent = a; }
-	immutable this(immutable UnexpectedIndent a) { kind = Kind.unexpectedIndent; unexpectedIndent = a; }
 	immutable this(immutable UnionCantBeEmpty a) { kind = Kind.unionCantBeEmpty; unionCantBeEmpty = a; }
 	immutable this(immutable WhenMustHaveElse a) { kind = Kind.whenMustHaveElse; whenMustHaveElse = a; }
 }
@@ -125,9 +131,8 @@ T matchParseDiag(T)(
 	scope T delegate(
 		ref immutable ParseDiag.TypeParamCantHaveTypeArgs
 	) @safe @nogc pure nothrow cbTypeParamCantHaveTypeArgs,
+	scope T delegate(ref immutable ParseDiag.Unexpected) @safe @nogc pure nothrow cbUnexpected,
 	scope T delegate(ref immutable ParseDiag.UnexpectedCharacter) @safe @nogc pure nothrow cbUnexpectedCharacter,
-	scope T delegate(ref immutable ParseDiag.UnexpectedDedent) @safe @nogc pure nothrow cbUnexpectedDedent,
-	scope T delegate(ref immutable ParseDiag.UnexpectedIndent) @safe @nogc pure nothrow cbUnexpectedIndent,
 	scope T delegate(ref immutable ParseDiag.UnionCantBeEmpty) @safe @nogc pure nothrow cbUnionCantBeEmpty,
 	scope T delegate(ref immutable ParseDiag.WhenMustHaveElse) @safe @nogc pure nothrow cbWhenMustHaveElse,
 ) {
@@ -150,12 +155,10 @@ T matchParseDiag(T)(
 			return cbReservedName(a.reservedName);
 		case ParseDiag.Kind.typeParamCantHaveTypeArgs:
 			return cbTypeParamCantHaveTypeArgs(a.typeParamCantHaveTypeArgs);
+		case ParseDiag.Kind.unexpected:
+			return cbUnexpected(a.unexpected);
 		case ParseDiag.Kind.unexpectedCharacter:
 			return cbUnexpectedCharacter(a.unexpectedCharacter);
-		case ParseDiag.Kind.unexpectedDedent:
-			return cbUnexpectedDedent(a.unexpectedDedent);
-		case ParseDiag.Kind.unexpectedIndent:
-			return cbUnexpectedIndent(a.unexpectedIndent);
 		case ParseDiag.Kind.unionCantBeEmpty:
 			return cbUnionCantBeEmpty(a.unionCantBeEmpty);
 		case ParseDiag.Kind.whenMustHaveElse:

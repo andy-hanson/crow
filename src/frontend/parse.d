@@ -38,7 +38,6 @@ import frontend.lexer :
 	skipBlankLines,
 	skipShebang,
 	SymAndIsReserved,
-	take,
 	takeDedentFromIndent1,
 	takeIndentOrDiagTopLevel,
 	takeIndentOrDiagTopLevelAfterNewline,
@@ -157,7 +156,6 @@ immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer
 }
 
 immutable(ArrWithSize!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	take(lexer, '(');
 	if (tryTake(lexer, ')'))
 		return emptyArrWithSize!ParamAst;
 	else {
@@ -166,7 +164,7 @@ immutable(ArrWithSize!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Al
 			add(alloc, res, parseSingleParam(alloc, lexer));
 			if (tryTake(lexer, ')'))
 				break;
-			take(lexer, ", ");
+			takeOrAddDiagExpected(alloc, lexer, ", ", ParseDiag.Expected.Kind.comma);
 		}
 		return finishArr(alloc, res);
 	}
@@ -183,16 +181,15 @@ immutable(ParamsAndMaybeDedent) parseIndentedParams(Alloc, SymAlloc)(ref Alloc a
 }
 
 immutable(ParamsAndMaybeDedent) parseParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable Opt!NewlineOrIndent opNi = tryTakeNewlineOrIndent(alloc, lexer);
-	if (opNi.has)
-		final switch (opNi.force) {
+	if (tryTake(lexer, '('))
+		return ParamsAndMaybeDedent(parseParenthesizedParams(alloc, lexer), none!size_t);
+	else
+		final switch (takeNewlineOrIndent(alloc, lexer)) {
 			case NewlineOrIndent.newline:
 				return ParamsAndMaybeDedent(emptyArrWithSize!ParamAst, some!size_t(0));
 			case NewlineOrIndent.indent:
 				return parseIndentedParams(alloc, lexer);
 		}
-	else
-		return ParamsAndMaybeDedent(parseParenthesizedParams(alloc, lexer), none!size_t);
 }
 
 struct SigAstAndMaybeDedent {
@@ -220,7 +217,7 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable Sym sigName = takeName(alloc, lexer);
-	take(lexer, ' ');
+	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 	immutable SigAstAndMaybeDedent s = parseSigAfterNameAndSpace(alloc, lexer, start, sigName);
 	immutable size_t dedents = s.dedents.has ? s.dedents.force : takeNewlineOrDedentAmount(alloc, lexer);
 	return SigAstAndDedent(s.sig, dedents);
@@ -231,7 +228,7 @@ immutable(Arr!ImportAst) parseImportsNonIndented(Alloc, SymAlloc)(ref Alloc allo
 	do {
 		add(alloc, res, parseSingleImport(alloc, lexer));
 	} while (tryTake(lexer, ' '));
-	take(lexer, '\n');
+	takeOrAddDiagExpected(alloc, lexer, '\n', ParseDiag.Expected.Kind.endOfLine);
 	return finishArr(alloc, res);
 }
 
@@ -349,7 +346,7 @@ immutable(StructDeclAst.Body.Record) parseFields(Alloc, SymAlloc)(
 				explicitByValOrRef = some(ExplicitByValOrRef.byRef);
 				break;
 			default:
-				take(lexer, ' ');
+				takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 				immutable Bool isMutable = tryTake(lexer, "mut ");
 				immutable TypeAst type = parseType(alloc, lexer);
 				add(alloc, res, immutable StructDeclAst.Body.Record.Field(range(lexer, start), isMutable, name, type));
@@ -405,7 +402,7 @@ struct SpecUsesAndSigFlagsAndKwBodyBuilder {
 immutable(Opt!Str) tryTakeMangledName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	if (tryTake(lexer, '<')) {
 		immutable Str mangledName = takeQuotedStr(lexer, alloc);
-		take(lexer, '>');
+		takeTypeArgsEnd(alloc, lexer);
 		return some(mangledName);
 	} else
 		return none!Str;
@@ -585,7 +582,7 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 				? parseIndentedSpecUses(alloc, lexer)
 				: emptySpecUsesAndSigFlagsAndKwBody;
 			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () {
-				take(lexer, "body");
+				takeOrAddDiagExpected(alloc, lexer, "body", ParseDiag.Expected.Kind.bodyKeyword);
 				return nu!FunBodyAst(alloc, parseFunExprBody(alloc, lexer));
 			});
 			return FunDeclStuff(extra, body_);
@@ -621,7 +618,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 	immutable Pos start = curPos(lexer);
 	immutable Sym name = takeName(alloc, lexer);
 	immutable Arr!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
-	take(lexer, ' ');
+	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 
 	immutable Opt!NonFunKeywordAndIndent opKwAndIndent = parseNonFunKeyword(alloc, lexer);
 	if (opKwAndIndent.has) {
