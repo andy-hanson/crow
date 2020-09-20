@@ -20,6 +20,7 @@ struct ParseDiag {
 			purity,
 			space,
 			typeArgsEnd,
+			typeParamQuestionMark,
 		}
 		immutable Kind kind;
 	}

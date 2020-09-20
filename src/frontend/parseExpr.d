@@ -44,6 +44,7 @@ import frontend.lexer :
 	takeName,
 	takeNameAndRange,
 	takeNewlineOrDedentAmount,
+	takeOrAddDiagExpected,
 	tryTake,
 	tryTakeElseIndent,
 	tryTakeIndent,
@@ -321,9 +322,7 @@ immutable(ExprAndMaybeDedent) parseMultiLineNew(Alloc, SymAlloc)(
 	ArrBuilder!(CreateRecordMultiLineAst.Line) lines;
 	for (;;) {
 		immutable NameAndRange name = takeNameAndRange(alloc, lexer);
-		if (!tryTake(lexer, ". "))
-			addDiagAtChar(alloc, lexer, immutable ParseDiag(
-				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.multiLineNewSeparator)));
+		takeOrAddDiagExpected(alloc, lexer, ". ", ParseDiag.Expected.Kind.multiLineNewSeparator);
 		immutable ExprAndDedent ed = parseExprNoLet(alloc, lexer);
 		add(alloc, lines, immutable CreateRecordMultiLineAst.Line(name, ed.expr));
 		if (ed.dedents != 0)
@@ -346,9 +345,7 @@ immutable(ExprAndMaybeDedent) parseMultiLineNewArr(Alloc, SymAlloc)(
 	ArrBuilder!ExprAst args;
 	for (;;) {
 		// Each line must begin with ". "
-		if (!tryTake(lexer, ". "))
-			addDiagAtChar(alloc, lexer, immutable ParseDiag(
-				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.multiLineArrSeparator)));
+		takeOrAddDiagExpected(alloc, lexer, ". ", ParseDiag.Expected.Kind.multiLineArrSeparator);
 		immutable ExprAndDedent ed = parseExprNoLet(alloc, lexer);
 		add(alloc, args, ed.expr);
 		if (ed.dedents != 0)
@@ -545,9 +542,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda);
 		case Kind.lbrace:
 			immutable Ptr!ExprAst body_ = allocExpr(alloc, parseExprNoBlock(alloc, lexer));
-			if (!tryTake(lexer, '}'))
-				addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
-					immutable ParseDiag.Expected(ParseDiag.Expected.Kind.closingBrace)));
+			takeOrAddDiagExpected(alloc, lexer, '}', ParseDiag.Expected.Kind.closingBrace);
 			immutable SourceRange range = getRange();
 			immutable Arr!(LambdaAst.Param) params = bodyUsesIt(body_)
 				? arrLiteral!(LambdaAst.Param)(alloc, LambdaAst.Param(range, shortSymAlphaLiteral("it")))
@@ -562,9 +557,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			return noDedent(tryParseDots(alloc, lexer, expr));
 		case Kind.lparen:
 			immutable ExprAst expr = parseExprNoBlock(alloc, lexer);
-			if (!tryTake(lexer, ')'))
-				addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
-					immutable ParseDiag.Expected(ParseDiag.Expected.Kind.closingParen)));
+			takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
 			return noDedent(tryParseDots(alloc, lexer, expr));
 		case Kind.match:
 			return ctx.allowBlock

@@ -47,13 +47,14 @@ import frontend.lexer :
 	takeNewlineOrDedentAmount,
 	takeNewlineOrIndent,
 	takeNewlineOrSingleDedent,
+	takeOrAddDiagExpected,
 	takeQuotedStr,
 	throwAtChar,
 	tryTake,
 	tryTakeIndentAfterNewline,
 	tryTakeNewlineOrIndent;
 import frontend.parseExpr : parseFunExprBody;
-import frontend.parseType : parseStructType, parseType, tryParseTypeArgs;
+import frontend.parseType : parseStructType, parseType, takeTypeArgsEnd, tryParseTypeArgs;
 
 import parseDiag : ParseDiag;
 
@@ -97,11 +98,11 @@ immutable(Arr!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc alloc, re
 		ArrBuilder!TypeParamAst res;
 		do {
 			immutable Pos start = curPos(lexer);
-			take(lexer, '?');
+			takeOrAddDiagExpected(alloc, lexer, '?', ParseDiag.Expected.Kind.typeParamQuestionMark);
 			immutable Sym name = takeName(alloc, lexer);
 			add(alloc, res, TypeParamAst(range(lexer, start), name));
 		} while (tryTake(lexer, ", "));
-		take(lexer, '>');
+		takeTypeArgsEnd(alloc, lexer);
 		return finishArr(alloc, res);
 	} else
 		return emptyArr!TypeParamAst;
@@ -150,7 +151,7 @@ struct ParamsAndMaybeDedent {
 immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable Sym name = takeName(alloc, lexer);
-	take(lexer, ' ');
+	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 	immutable TypeAst type = parseType(alloc, lexer);
 	return ParamAst(range(lexer, start), name, type);
 }

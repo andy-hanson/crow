@@ -150,6 +150,9 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 					break;
 				case ParseDiag.Expected.Kind.typeArgsEnd:
 					writeStatic(writer, "expected '>'");
+					break;
+				case ParseDiag.Expected.Kind.typeParamQuestionMark:
+					writeStatic(writer, "expected type parameter name to start with '?'");
 			}
 		},
 		(ref immutable ParseDiag.IndentNotDivisible d) {

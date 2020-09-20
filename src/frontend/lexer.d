@@ -159,6 +159,26 @@ T throwUnexpected(T, SymAlloc)(ref Lexer!SymAlloc lexer) {
 	return True;
 }
 
+void takeOrAddDiagExpected(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable char c,
+	immutable ParseDiag.Expected.Kind kind,
+) {
+	if (!tryTake(lexer, c))
+		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
+}
+
+void takeOrAddDiagExpected(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable CStr c,
+	immutable ParseDiag.Expected.Kind kind,
+) {
+	if (!tryTake(lexer, c))
+		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
+}
+
 void take(SymAlloc)(ref Lexer!SymAlloc lexer, immutable char c) {
 	if (!lexer.tryTake(c))
 		lexer.throwUnexpected!void;

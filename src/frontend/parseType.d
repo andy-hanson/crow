@@ -3,7 +3,7 @@ module frontend.parseType;
 @safe @nogc pure nothrow:
 
 import frontend.ast : matchTypeAst, range, TypeAst;
-import frontend.lexer : addDiag, addDiagAtChar, curPos, Lexer, range, takeName, tryTake;
+import frontend.lexer : addDiag, addDiagAtChar, curPos, Lexer, range, takeName, takeOrAddDiagExpected, tryTake;
 
 import parseDiag : ParseDiag;
 
@@ -42,13 +42,11 @@ immutable(TypeAst) parseType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAllo
 	return parseTypeWorker(alloc, lexer, False);
 }
 
-private:
-
 void takeTypeArgsEnd(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	if (!tryTake(lexer, '>'))
-		addDiagAtChar(alloc, lexer, immutable ParseDiag(
-			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.typeArgsEnd)));
+	takeOrAddDiagExpected(alloc, lexer, '>', ParseDiag.Expected.Kind.typeArgsEnd);
 }
+
+private:
 
 immutable(Arr!TypeAst) tryParseTypeArgsWorker(Alloc, SymAlloc)(
 	ref Alloc alloc,
