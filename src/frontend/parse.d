@@ -97,7 +97,7 @@ immutable(Arr!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc alloc, re
 		ArrBuilder!TypeParamAst res;
 		do {
 			immutable Pos start = curPos(lexer);
-			lexer.take('?');
+			take(lexer, '?');
 			immutable Sym name = takeName(alloc, lexer);
 			add(alloc, res, TypeParamAst(range(lexer, start), name));
 		} while (tryTake(lexer, ", "));
@@ -125,7 +125,7 @@ immutable(Opt!PuritySpecifier) parsePurity(Alloc, SymAlloc)(ref Alloc alloc, ref
 }
 
 immutable(ImportAst) parseSingleImport(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable Pos start = lexer.curPos;
+	immutable Pos start = curPos(lexer);
 	u8 nDots = 0;
 	while (tryTake(lexer, '.')) {
 		verify(nDots < 255);
@@ -138,7 +138,7 @@ immutable(ImportAst) parseSingleImport(Alloc, SymAlloc)(ref Alloc alloc, ref Lex
 			: path;
 	}
 	immutable Ptr!Path path = addPathComponents(rootPath(alloc, takeName(alloc, lexer)));
-	return ImportAst(lexer.range(start), nDots, path);
+	return ImportAst(range(lexer, start), nDots, path);
 }
 
 struct ParamsAndMaybeDedent {
@@ -150,13 +150,13 @@ struct ParamsAndMaybeDedent {
 immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable Sym name = takeName(alloc, lexer);
-	lexer.take(' ');
+	take(lexer, ' ');
 	immutable TypeAst type = parseType(alloc, lexer);
-	return ParamAst(lexer.range(start), name, type);
+	return ParamAst(range(lexer, start), name, type);
 }
 
 immutable(ArrWithSize!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	lexer.take('(');
+	take(lexer, '(');
 	if (tryTake(lexer, ')'))
 		return emptyArrWithSize!ParamAst;
 	else {
@@ -165,7 +165,7 @@ immutable(ArrWithSize!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Al
 			add(alloc, res, parseSingleParam(alloc, lexer));
 			if (tryTake(lexer, ')'))
 				break;
-			lexer.take(", ");
+			take(lexer, ", ");
 		}
 		return finishArr(alloc, res);
 	}
@@ -212,14 +212,14 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 ) {
 	immutable TypeAst returnType = parseType(alloc, lexer);
 	immutable ParamsAndMaybeDedent params = parseParams(alloc, lexer);
-	immutable Ptr!SigAst sigAst = nu!SigAst(alloc, lexer.range(start), name, returnType, params.params);
+	immutable Ptr!SigAst sigAst = nu!SigAst(alloc, range(lexer, start), name, returnType, params.params);
 	return SigAstAndMaybeDedent(sigAst, params.dedents);
 }
 
 immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable Sym sigName = takeName(alloc, lexer);
-	lexer.take(' ');
+	take(lexer, ' ');
 	immutable SigAstAndMaybeDedent s = parseSigAfterNameAndSpace(alloc, lexer, start, sigName);
 	immutable size_t dedents = s.dedents.has ? s.dedents.force : takeNewlineOrDedentAmount(alloc, lexer);
 	return SigAstAndDedent(s.sig, dedents);
@@ -230,7 +230,7 @@ immutable(Arr!ImportAst) parseImportsNonIndented(Alloc, SymAlloc)(ref Alloc allo
 	do {
 		add(alloc, res, parseSingleImport(alloc, lexer));
 	} while (tryTake(lexer, ' '));
-	lexer.take('\n');
+	take(lexer, '\n');
 	return finishArr(alloc, res);
 }
 
@@ -304,7 +304,7 @@ immutable(Opt!NonFunKeywordAndIndent) tryTakeKw(Alloc, SymAlloc)(
 }
 
 immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	switch (lexer.curChar) {
+	switch (curChar(lexer)) {
 		case 'a':
 			return tryTakeKw(alloc, lexer, "alias ", "alias\n", NonFunKeyword.alias_);
 		case 'b':
@@ -348,10 +348,10 @@ immutable(StructDeclAst.Body.Record) parseFields(Alloc, SymAlloc)(
 				explicitByValOrRef = some(ExplicitByValOrRef.byRef);
 				break;
 			default:
-				lexer.take(' ');
+				take(lexer, ' ');
 				immutable Bool isMutable = tryTake(lexer, "mut ");
 				immutable TypeAst type = parseType(alloc, lexer);
-				add(alloc, res, immutable StructDeclAst.Body.Record.Field(lexer.range(start), isMutable, name, type));
+				add(alloc, res, immutable StructDeclAst.Body.Record.Field(range(lexer, start), isMutable, name, type));
 		}
 		isFirstLine = False;
 	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
@@ -367,7 +367,7 @@ immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
 		immutable Pos start = curPos(lexer);
 		immutable Sym name = takeName(alloc, lexer);
 		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
-		add(alloc, res, immutable TypeAst.InstStruct(lexer.range(start), name, typeArgs));
+		add(alloc, res, immutable TypeAst.InstStruct(range(lexer, start), name, typeArgs));
 	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
 	return finishArr(alloc, res);
 }
@@ -403,8 +403,8 @@ struct SpecUsesAndSigFlagsAndKwBodyBuilder {
 
 immutable(Opt!Str) tryTakeMangledName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	if (tryTake(lexer, '<')) {
-		immutable Str mangledName = lexer.takeQuotedStr(alloc);
-		lexer.take('>');
+		immutable Str mangledName = takeQuotedStr(lexer, alloc);
+		take(lexer, '>');
 		return some(mangledName);
 	} else
 		return none!Str;
@@ -429,8 +429,8 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 	immutable Opt!Str mangle,
 	scope immutable(Bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
-	immutable Pos start = lexer.curPos;
-	immutable SymAndIsReserved name = lexer.takeNameAllowReserved();
+	immutable Pos start = curPos(lexer);
+	immutable SymAndIsReserved name = takeNameAllowReserved(lexer);
 	if (name.isReserved) {
 		scope immutable(SpecUsesAndSigFlagsAndKwBody) setExtern(immutable Bool isGlobal) {
 			if (extern_.has)
@@ -473,7 +473,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 		}
 	} else {
 		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
-		add(alloc, specUses, immutable SpecUseAst(lexer.range(start), name.sym, typeArgs));
+		add(alloc, specUses, immutable SpecUseAst(range(lexer, start), name.sym, typeArgs));
 		return nextSpecOrStop(
 			alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 	}
@@ -584,7 +584,7 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 				? parseIndentedSpecUses(alloc, lexer)
 				: emptySpecUsesAndSigFlagsAndKwBody;
 			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () {
-				lexer.take("body");
+				take(lexer, "body");
 				return nu!FunBodyAst(alloc, parseFunExprBody(alloc, lexer));
 			});
 			return FunDeclStuff(extra, body_);
@@ -617,10 +617,10 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 	ref ArrBuilder!StructDeclAst structs,
 	ref ArrBuilder!FunDeclAst funs,
 ) {
-	immutable Pos start = lexer.curPos;
+	immutable Pos start = curPos(lexer);
 	immutable Sym name = takeName(alloc, lexer);
 	immutable Arr!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
-	lexer.take(' ');
+	take(lexer, ' ');
 
 	immutable Opt!NonFunKeywordAndIndent opKwAndIndent = parseNonFunKeyword(alloc, lexer);
 	if (opKwAndIndent.has) {
@@ -653,7 +653,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				add(
 					alloc,
 					structAliases,
-					immutable StructAliasAst(lexer.range(start), isPublic, name, typeParams, target));
+					immutable StructAliasAst(range(lexer, start), isPublic, name, typeParams, target));
 				break;
 			case NonFunKeyword.builtinSpec:
 				if (tookIndent)
@@ -661,7 +661,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				if (purity.has)
 					todo!void("spec shouldn't have purity");
 				add(alloc, specs, immutable SpecDeclAst(
-					lexer.range(start),
+					range(lexer, start),
 					isPublic,
 					name,
 					typeParams,
@@ -676,7 +676,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				add(
 					alloc,
 					specs,
-					immutable SpecDeclAst(lexer.range(start), isPublic, name, typeParams, SpecBodyAst(sigs)));
+					immutable SpecDeclAst(range(lexer, start), isPublic, name, typeParams, SpecBodyAst(sigs)));
 				break;
 			case NonFunKeyword.builtin:
 			case NonFunKeyword.externPtr:

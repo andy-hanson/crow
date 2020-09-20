@@ -11,11 +11,15 @@ struct ParseDiag {
 	@safe @nogc pure nothrow:
 	struct Expected {
 		enum Kind {
+			closingBrace,
 			closingParen,
 			dedent,
 			indent,
+			multiLineArrSeparator,
 			multiLineNewSeparator,
 			purity,
+			space,
+			typeArgsEnd,
 		}
 		immutable Kind kind;
 	}

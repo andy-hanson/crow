@@ -164,6 +164,11 @@ void take(SymAlloc)(ref Lexer!SymAlloc lexer, immutable char c) {
 		lexer.throwUnexpected!void;
 }
 
+void takeOrAddDiag(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer, immutable char c) {
+	if (!tryTake(lexer, c))
+		addDiagUnexpected(alloc, lexer);
+}
+
 void take(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr c) {
 	if (!lexer.tryTake(c))
 		lexer.throwUnexpected!void;
@@ -350,7 +355,7 @@ void takeIndentAfterNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc
 
 immutable(size_t) takeNewlineOrDedentAmount(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	// Must be at the end of a line
-	lexer.take('\n');
+	take(lexer, '\n');
 	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer);
 	return matchIndentDelta!(immutable size_t)(
 		delta,

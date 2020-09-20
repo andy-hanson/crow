@@ -3,7 +3,7 @@ module frontend.parseType;
 @safe @nogc pure nothrow:
 
 import frontend.ast : matchTypeAst, range, TypeAst;
-import frontend.lexer : addDiag, curPos, Lexer, range, take, takeName, tryTake;
+import frontend.lexer : addDiag, addDiagAtChar, curPos, Lexer, range, takeName, tryTake;
 
 import parseDiag : ParseDiag;
 
@@ -20,9 +20,9 @@ immutable(Arr!TypeAst) tryParseTypeArgs(Alloc, SymAlloc)(ref Alloc alloc, ref Le
 }
 
 immutable(Opt!TypeAst) tryParseTypeArg(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	if (lexer.tryTake('<')) {
+	if (tryTake(lexer, '<')) {
 		immutable TypeAst res = parseTypeWorker(alloc, lexer, True);
-		lexer.take('>');
+		takeTypeArgsEnd(alloc, lexer);
 		return some(res);
 	} else
 		return none!TypeAst;
@@ -44,6 +44,12 @@ immutable(TypeAst) parseType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAllo
 
 private:
 
+void takeTypeArgsEnd(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	if (!tryTake(lexer, '>'))
+		addDiagAtChar(alloc, lexer, immutable ParseDiag(
+			immutable ParseDiag.Expected(ParseDiag.Expected.Kind.typeArgsEnd)));
+}
+
 immutable(Arr!TypeAst) tryParseTypeArgsWorker(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
@@ -51,16 +57,16 @@ immutable(Arr!TypeAst) tryParseTypeArgsWorker(Alloc, SymAlloc)(
 ) {
 	ArrBuilder!TypeAst res;
 	// Require '<>' if parsing type args inside of type args.
-	if (!isInner || lexer.tryTake('<')) {
+	if (!isInner || tryTake(lexer, '<')) {
 		for (;;) {
-			if (!isInner && !lexer.tryTake(' '))
+			if (!isInner && !tryTake(lexer, ' '))
 				break;
 			add(alloc, res, parseTypeWorker(alloc, lexer, True));
 			if (isInner && !tryTake(lexer, ", "))
 				break;
 		}
 		if (isInner)
-			take(lexer, '>');
+			takeTypeArgsEnd(alloc, lexer);
 	}
 	return finishArr(alloc, res);
 }
@@ -70,14 +76,14 @@ immutable(TypeAst) parseTypeWorker(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable Bool isInner,
 ) {
-	immutable Pos start = lexer.curPos;
+	immutable Pos start = curPos(lexer);
 	immutable Bool isTypeParam = tryTake(lexer, '?');
 	immutable Sym name = takeName(alloc, lexer);
 	immutable Arr!TypeAst typeArgs = tryParseTypeArgsWorker(alloc, lexer, isInner);
 	if (isTypeParam && !empty(typeArgs))
 		addDiag(alloc, lexer, at(typeArgs, 0).range,
 			immutable ParseDiag(immutable ParseDiag.TypeParamCantHaveTypeArgs()));
-	immutable SourceRange rng = lexer.range(start);
+	immutable SourceRange rng = range(lexer, start);
 	return isTypeParam
 		? TypeAst(TypeAst.TypeParam(rng, name))
 		: TypeAst(TypeAst.InstStruct(rng, name, typeArgs));

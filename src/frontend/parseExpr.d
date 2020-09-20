@@ -39,7 +39,6 @@ import frontend.lexer :
 	matchIndentDelta,
 	range,
 	skipUntilNewlineNoDiag,
-	take,
 	takeExpressionToken,
 	takeIndentOrFailGeneric,
 	takeName,
@@ -322,10 +321,9 @@ immutable(ExprAndMaybeDedent) parseMultiLineNew(Alloc, SymAlloc)(
 	ArrBuilder!(CreateRecordMultiLineAst.Line) lines;
 	for (;;) {
 		immutable NameAndRange name = takeNameAndRange(alloc, lexer);
-		if (!tryTake(lexer, ". ")) {
+		if (!tryTake(lexer, ". "))
 			addDiagAtChar(alloc, lexer, immutable ParseDiag(
 				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.multiLineNewSeparator)));
-		}
 		immutable ExprAndDedent ed = parseExprNoLet(alloc, lexer);
 		add(alloc, lines, immutable CreateRecordMultiLineAst.Line(name, ed.expr));
 		if (ed.dedents != 0)
@@ -348,7 +346,9 @@ immutable(ExprAndMaybeDedent) parseMultiLineNewArr(Alloc, SymAlloc)(
 	ArrBuilder!ExprAst args;
 	for (;;) {
 		// Each line must begin with ". "
-		take(lexer, ". ");
+		if (!tryTake(lexer, ". "))
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(
+				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.multiLineArrSeparator)));
 		immutable ExprAndDedent ed = parseExprNoLet(alloc, lexer);
 		add(alloc, args, ed.expr);
 		if (ed.dedents != 0)
@@ -477,12 +477,21 @@ immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
 	ArrBuilder!(LambdaAst.Param) parameters;
 	Bool isFirst = True;
 	while (!tryTakeIndent(alloc, lexer)) {
-		if (isFirst)
-			isFirst = False;
-		else
-			take(lexer, ' ');
-		immutable NameAndRange nr = takeNameAndRange(alloc, lexer);
-		add(alloc, parameters, LambdaAst.Param(nr.range, nr.name));
+		immutable Bool success = () {
+			if (isFirst) {
+				isFirst = False;
+				return True;
+			} else
+				return tryTake(lexer, ' ');
+		}();
+		if (success) {
+			immutable NameAndRange nr = takeNameAndRange(alloc, lexer);
+			add(alloc, parameters, immutable LambdaAst.Param(nr.range, nr.name));
+		} else {
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(
+				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.space)));
+			skipUntilNewlineNoDiag(lexer);
+		}
 	}
 	immutable ExprAndDedent bodyAndDedent = parseStatementsAndExtraDedents(alloc, lexer);
 	immutable LambdaAst lambda = LambdaAst(finishArr(alloc, parameters), allocExpr(alloc, bodyAndDedent.expr));
@@ -536,7 +545,9 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda);
 		case Kind.lbrace:
 			immutable Ptr!ExprAst body_ = allocExpr(alloc, parseExprNoBlock(alloc, lexer));
-			take(lexer, '}');
+			if (!tryTake(lexer, '}'))
+				addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
+					immutable ParseDiag.Expected(ParseDiag.Expected.Kind.closingBrace)));
 			immutable SourceRange range = getRange();
 			immutable Arr!(LambdaAst.Param) params = bodyUsesIt(body_)
 				? arrLiteral!(LambdaAst.Param)(alloc, LambdaAst.Param(range, shortSymAlphaLiteral("it")))
@@ -681,4 +692,3 @@ immutable(ExprAndDedent) parseStatementsAndExtraDedentsRecur(Alloc, SymAlloc)(
 	} else
 		return immutable ExprAndDedent(expr, dedents - 1);
 }
-
