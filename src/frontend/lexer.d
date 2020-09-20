@@ -217,7 +217,60 @@ immutable(NewlineOrIndent) takeNewlineOrIndent(Alloc, SymAlloc)(ref Alloc alloc,
 	return op.has ? op.force : throwUnexpected!NewlineOrIndent(lexer);
 }
 
-@trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(Alloc, SymAlloc)(
+immutable(Bool) takeIndentOrDiagTopLevel(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	assert(lexer.indent == 0);
+	return takeIndentOrFailGeneric!(immutable Bool)(
+		alloc,
+		lexer,
+		() => True,
+		(immutable SourceRange, immutable size_t dedent) {
+			verify(dedent == 0);
+			return False;
+		});
+}
+
+immutable(Bool) takeIndentOrDiagTopLevelAfterNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	assert(lexer.indent == 0);
+	immutable Pos start = curPos(lexer);
+	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer);
+	return matchIndentDelta!(immutable Bool)(
+		delta,
+		(ref immutable IndentDelta.DedentOrSame dedent) {
+			assert(dedent.nDedents == 0);
+			addDiag(
+				alloc,
+				lexer,
+				immutable SourceRange(start, start + 1),
+				immutable ParseDiag(immutable ParseDiag.ExpectedIndent()));
+			return False;
+		},
+		(ref immutable IndentDelta.Indent) => True);
+}
+
+immutable(T) takeIndentOrFailGeneric(T, Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	scope immutable(T) delegate() @safe @nogc pure nothrow cbIndent,
+	scope immutable(T) delegate(immutable SourceRange, immutable size_t) @safe @nogc pure nothrow cbFail,
+) {
+	immutable Pos start = curPos(lexer);
+	immutable IndentDelta delta = takeNewlineAndReturnIndentDelta(alloc, lexer);
+	return matchIndentDelta!(immutable T)(
+		delta,
+		(ref immutable IndentDelta.DedentOrSame dedent) {
+			addDiag(
+				alloc,
+				lexer,
+				immutable SourceRange(start, start + 1),
+				immutable ParseDiag(immutable ParseDiag.ExpectedIndent()));
+			return cbFail(range(lexer, start), dedent.nDedents);
+		},
+		(ref immutable IndentDelta.Indent) {
+			return cbIndent();
+		});
+}
+
+private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
@@ -237,18 +290,24 @@ void takeIndent(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	takeIndentAfterNewline(alloc, lexer);
 }
 
-void takeDedent(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+private void skipToFirstNonIndentedLine(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	verify(lexer.indent == 1);
+	immutable IndentDelta delta = skiplinesAndGetIndentDelta(alloc, lexer);
+
+}
+
+void takeDedentFromIndent1(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	assert(lexer.indent == 1);
 	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer);
-	matchIndentDelta(
+	immutable Bool success = matchIndentDelta!(immutable Bool)(
 		delta,
-		(ref immutable IndentDelta.DedentOrSame it) {
-			if (it.nDedents != 1) {
-				throwAtChar!void(lexer, immutable ParseDiag(immutable ParseDiag.ExpectedDedent()));
-			}
-		},
-		(ref immutable IndentDelta.Indent) {
-			throwAtChar!void(lexer, immutable ParseDiag(immutable ParseDiag.ExpectedDedent()));
-		});
+		(ref immutable IndentDelta.DedentOrSame it) => immutable Bool(it.nDedents == 1),
+		(ref immutable IndentDelta.Indent) => False);
+	if (!success) {
+		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.ExpectedDedent()));
+		skipRestOfLineAndNewline(lexer);
+		takeDedentFromIndent1(alloc, lexer);
+	}
 }
 
 immutable(Opt!IndentDelta) tryTakeIndentOrDedent(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -325,12 +384,13 @@ immutable(SourceRange) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Pos b
 	return SourceRange(begin, lexer.curPos);
 }
 
-immutable(T) throwOnReservedName(T, SymAlloc)(
+void addDiagOnReservedName(Alloc, SymAlloc)(
+	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable SourceRange range,
 	immutable Sym name,
 ) {
-	return lexer.throwDiag!T(range, ParseDiag(ParseDiag.ReservedName(name)));
+	return addDiag(alloc, lexer, range, immutable ParseDiag(immutable ParseDiag.ReservedName(name)));
 }
 
 struct SymAndIsReserved {
@@ -350,20 +410,20 @@ immutable(SymAndIsReserved) takeNameAllowReserved(SymAlloc)(ref Lexer!SymAlloc l
 	}
 }
 
-immutable(Sym) takeName(SymAlloc)(ref Lexer!SymAlloc lexer) {
-	immutable SymAndIsReserved s = lexer.takeNameAllowReserved;
-	return s.isReserved
-		? lexer.throwOnReservedName!Sym(s.range, s.sym)
-		: s.sym;
+immutable(Sym) takeName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	immutable SymAndIsReserved s = takeNameAllowReserved(lexer);
+	if (s.isReserved)
+		addDiagOnReservedName(alloc, lexer, s.range, s.sym);
+	return s.sym;
 }
 
 immutable(Str) takeNameAsStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
 	return copyStr(alloc, lexer.takeNameAsTempStr.str);
 }
 
-immutable(NameAndRange) takeNameAndRange(SymAlloc)(ref Lexer!SymAlloc lexer) {
+immutable(NameAndRange) takeNameAndRange(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable CStr begin = lexer.ptr;
-	immutable Sym name = lexer.takeName;
+	immutable Sym name = takeName(alloc, lexer);
 	return immutable NameAndRange(range(lexer, begin), name);
 }
 
@@ -451,7 +511,8 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 						case shortSymAlphaLiteralValue("when"):
 							return immutable ExpressionToken(ExpressionToken.Kind.when);
 						default:
-							return lexer.throwOnReservedName!ExpressionToken(nameRange, name);
+							addDiagOnReservedName(alloc, lexer, nameRange, name);
+							return immutable ExpressionToken(ExpressionToken.Kind.unexpected);
 					}
 				else
 					return immutable ExpressionToken(immutable NameAndRange(nameRange, name));
@@ -725,13 +786,14 @@ struct StrAndIsOperator {
 	if (isOperatorChar(*lexer.ptr)) {
 		lexer.ptr++;
 		immutable Str op = takeOperatorRest(lexer, begin);
-		return StrAndIsOperator(op, lexer.range(begin), True);
+		return immutable StrAndIsOperator(op, lexer.range(begin), True);
 	} else if (isAlphaIdentifierStart(*lexer.ptr)) {
 		lexer.ptr++;
 		immutable Str name = takeNameRest(lexer, begin);
-		return StrAndIsOperator(name, lexer.range(begin), False);
-	} else
-		return lexer.throwUnexpected!StrAndIsOperator;
+		return immutable StrAndIsOperator(name, lexer.range(begin), False);
+	} else {
+		return throwUnexpected!StrAndIsOperator(lexer);
+	}
 }
 
 immutable(Bool) isReservedName(immutable Sym name) {

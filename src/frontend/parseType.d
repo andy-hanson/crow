@@ -71,8 +71,8 @@ immutable(TypeAst) parseTypeWorker(Alloc, SymAlloc)(
 	immutable Bool isInner,
 ) {
 	immutable Pos start = lexer.curPos;
-	immutable Bool isTypeParam = lexer.tryTake('?');
-	immutable Sym name = lexer.takeName();
+	immutable Bool isTypeParam = tryTake(lexer, '?');
+	immutable Sym name = takeName(alloc, lexer);
 	immutable Arr!TypeAst typeArgs = tryParseTypeArgsWorker(alloc, lexer, isInner);
 	if (isTypeParam && !empty(typeArgs))
 		addDiag(alloc, lexer, at(typeArgs, 0).range,

@@ -25,6 +25,7 @@ import frontend.ast :
 	TypeParamAst;
 import frontend.lexer :
 	addDiagAtChar,
+	addDiagOnReservedName,
 	createLexer,
 	curChar,
 	curPos,
@@ -38,9 +39,9 @@ import frontend.lexer :
 	skipShebang,
 	SymAndIsReserved,
 	take,
-	takeDedent,
-	takeIndent,
-	takeIndentAfterNewline,
+	takeDedentFromIndent1,
+	takeIndentOrDiagTopLevel,
+	takeIndentOrDiagTopLevelAfterNewline,
 	takeName,
 	takeNameAllowReserved,
 	takeNewlineOrDedentAmount,
@@ -48,7 +49,6 @@ import frontend.lexer :
 	takeNewlineOrSingleDedent,
 	takeQuotedStr,
 	throwAtChar,
-	throwOnReservedName,
 	tryTake,
 	tryTakeIndentAfterNewline,
 	tryTakeNewlineOrIndent;
@@ -93,30 +93,30 @@ immutable(FileAstAndParseDiagnostics) parseFile(Alloc, SymAlloc)(
 private:
 
 immutable(Arr!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	if (lexer.tryTake('<')) {
+	if (tryTake(lexer, '<')) {
 		ArrBuilder!TypeParamAst res;
 		do {
-			immutable Pos start = lexer.curPos;
+			immutable Pos start = curPos(lexer);
 			lexer.take('?');
-			immutable Sym name = lexer.takeName();
-			add(alloc, res, TypeParamAst(lexer.range(start), name));
-		} while (lexer.tryTake(", "));
-		lexer.take('>');
+			immutable Sym name = takeName(alloc, lexer);
+			add(alloc, res, TypeParamAst(range(lexer, start), name));
+		} while (tryTake(lexer, ", "));
+		take(lexer, '>');
 		return finishArr(alloc, res);
 	} else
 		return emptyArr!TypeParamAst;
 }
 
 immutable(Opt!PuritySpecifier) parsePurity(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	if (lexer.tryTake("data"))
+	if (tryTake(lexer, "data"))
 		return some(PuritySpecifier.data);
-	else if (lexer.tryTake("mut"))
+	else if (tryTake(lexer, "mut"))
 		return some(PuritySpecifier.mut);
-	else if (lexer.tryTake("sendable"))
+	else if (tryTake(lexer, "sendable"))
 		return some(PuritySpecifier.sendable);
-	else if (lexer.tryTake("force-data"))
+	else if (tryTake(lexer, "force-data"))
 		return some(PuritySpecifier.forceData);
-	else if (lexer.tryTake("force-sendable"))
+	else if (tryTake(lexer, "force-sendable"))
 		return some(PuritySpecifier.forceSendable);
 	else {
 		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.ExpectedPurityAfterSpace()));
@@ -127,17 +127,17 @@ immutable(Opt!PuritySpecifier) parsePurity(Alloc, SymAlloc)(ref Alloc alloc, ref
 immutable(ImportAst) parseSingleImport(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = lexer.curPos;
 	u8 nDots = 0;
-	while (lexer.tryTake('.')) {
+	while (tryTake(lexer, '.')) {
 		verify(nDots < 255);
 		nDots++;
 	}
 
 	immutable(Ptr!Path) addPathComponents(immutable Ptr!Path path) {
-		return lexer.tryTake('.')
-			? addPathComponents(childPath(alloc, path, lexer.takeName()))
+		return tryTake(lexer, '.')
+			? addPathComponents(childPath(alloc, path, takeName(alloc, lexer)))
 			: path;
 	}
-	immutable Ptr!Path path = addPathComponents(rootPath(alloc, lexer.takeName()));
+	immutable Ptr!Path path = addPathComponents(rootPath(alloc, takeName(alloc, lexer)));
 	return ImportAst(lexer.range(start), nDots, path);
 }
 
@@ -148,8 +148,8 @@ struct ParamsAndMaybeDedent {
 }
 
 immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable Pos start = lexer.curPos();
-	immutable Sym name = lexer.takeName();
+	immutable Pos start = curPos(lexer);
+	immutable Sym name = takeName(alloc, lexer);
 	lexer.take(' ');
 	immutable TypeAst type = parseType(alloc, lexer);
 	return ParamAst(lexer.range(start), name, type);
@@ -157,13 +157,13 @@ immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer
 
 immutable(ArrWithSize!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	lexer.take('(');
-	if (lexer.tryTake(')'))
+	if (tryTake(lexer, ')'))
 		return emptyArrWithSize!ParamAst;
 	else {
 		ArrWithSizeBuilder!ParamAst res;
 		for (;;) {
 			add(alloc, res, parseSingleParam(alloc, lexer));
-			if (lexer.tryTake(')'))
+			if (tryTake(lexer, ')'))
 				break;
 			lexer.take(", ");
 		}
@@ -217,8 +217,8 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 }
 
 immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable Pos start = lexer.curPos;
-	immutable Sym sigName = lexer.takeName();
+	immutable Pos start = curPos(lexer);
+	immutable Sym sigName = takeName(alloc, lexer);
 	lexer.take(' ');
 	immutable SigAstAndMaybeDedent s = parseSigAfterNameAndSpace(alloc, lexer, start, sigName);
 	immutable size_t dedents = s.dedents.has ? s.dedents.force : takeNewlineOrDedentAmount(alloc, lexer);
@@ -229,17 +229,18 @@ immutable(Arr!ImportAst) parseImportsNonIndented(Alloc, SymAlloc)(ref Alloc allo
 	ArrBuilder!ImportAst res;
 	do {
 		add(alloc, res, parseSingleImport(alloc, lexer));
-	} while (lexer.tryTake(' '));
+	} while (tryTake(lexer, ' '));
 	lexer.take('\n');
 	return finishArr(alloc, res);
 }
 
 immutable(Arr!ImportAst) parseImportsIndented(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	ArrBuilder!ImportAst res;
-	takeIndentAfterNewline(alloc, lexer);
-	do {
-		add(alloc, res, parseSingleImport(alloc, lexer));
-	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
+	if (takeIndentOrDiagTopLevelAfterNewline(alloc, lexer)) {
+		do {
+			add(alloc, res, parseSingleImport(alloc, lexer));
+		} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
+	}
 	return finishArr(alloc, res);
 }
 
@@ -293,9 +294,9 @@ immutable(Opt!NonFunKeywordAndIndent) tryTakeKw(Alloc, SymAlloc)(
 	immutable CStr kwNl,
 	immutable NonFunKeyword keyword
 ) {
-	return lexer.tryTake(kwSpace)
+	return tryTake(lexer, kwSpace)
 		? some(NonFunKeywordAndIndent(keyword, SpaceOrNewlineOrIndent.space))
-		: lexer.tryTake(kwNl)
+		: tryTake(lexer, kwNl)
 		? some(NonFunKeywordAndIndent(
 			keyword,
 			spaceOrNewlineOrIndentFromNewlineOrIndent(tryTakeIndentAfterNewline(alloc, lexer))))
@@ -333,8 +334,8 @@ immutable(StructDeclAst.Body.Record) parseFields(Alloc, SymAlloc)(
 	Opt!ExplicitByValOrRef explicitByValOrRef = none!ExplicitByValOrRef;
 	Bool isFirstLine = True;
 	do {
-		immutable Pos start = lexer.curPos;
-		immutable Sym name = lexer.takeName();
+		immutable Pos start = curPos(lexer);
+		immutable Sym name = takeName(alloc, lexer);
 		switch (name.value) {
 			case shortSymAlphaLiteralValue("by-val"):
 				if (!isFirstLine) todo!void("by-val on later line");
@@ -348,7 +349,7 @@ immutable(StructDeclAst.Body.Record) parseFields(Alloc, SymAlloc)(
 				break;
 			default:
 				lexer.take(' ');
-				immutable Bool isMutable = lexer.tryTake("mut ");
+				immutable Bool isMutable = tryTake(lexer, "mut ");
 				immutable TypeAst type = parseType(alloc, lexer);
 				add(alloc, res, immutable StructDeclAst.Body.Record.Field(lexer.range(start), isMutable, name, type));
 		}
@@ -363,8 +364,8 @@ immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
 ) {
 	ArrBuilder!(TypeAst.InstStruct) res;
 	do {
-		immutable Pos start = lexer.curPos;
-		immutable Sym name = lexer.takeName();
+		immutable Pos start = curPos(lexer);
+		immutable Sym name = takeName(alloc, lexer);
 		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		add(alloc, res, immutable TypeAst.InstStruct(lexer.range(start), name, typeArgs));
 	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
@@ -401,7 +402,7 @@ struct SpecUsesAndSigFlagsAndKwBodyBuilder {
 }
 
 immutable(Opt!Str) tryTakeMangledName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	if (lexer.tryTake('<')) {
+	if (tryTake(lexer, '<')) {
 		immutable Str mangledName = lexer.takeQuotedStr(alloc);
 		lexer.take('>');
 		return some(mangledName);
@@ -464,8 +465,11 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 				return setExtern(False);
 			case shortSymAlphaLiteralValue("global"):
 				return setExtern(True);
-			default:
-				return lexer.throwOnReservedName!SpecUsesAndSigFlagsAndKwBody(name.range, name.sym);
+			default: {
+				addDiagOnReservedName(alloc, lexer, name.range, name.sym);
+				return nextSpecOrStop(
+					alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+			}
 		}
 	} else {
 		immutable Arr!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
@@ -515,19 +519,27 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	takeIndent(alloc, lexer);
-	return parseNextSpec(
-		alloc,
-		lexer,
-		ArrBuilder!SpecUseAst(),
-		False,
-		False,
-		False,
-		False,
-		False,
-		none!(FunBodyAst.Extern),
-		none!Str,
-		() => immutable Bool(takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline));
+	if (takeIndentOrDiagTopLevel(alloc, lexer))
+		return parseNextSpec(
+			alloc,
+			lexer,
+			ArrBuilder!SpecUseAst(),
+			False,
+			False,
+			False,
+			False,
+			False,
+			none!(FunBodyAst.Extern),
+			none!Str,
+			() => immutable Bool(takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline));
+	else
+		return immutable SpecUsesAndSigFlagsAndKwBody(
+			emptyArr!SpecUseAst,
+			False,
+			False,
+			False,
+			False,
+			none!(Ptr!FunBodyAst));
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(Alloc, SymAlloc)(
@@ -546,7 +558,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(Alloc,
 		False,
 		none!(FunBodyAst.Extern),
 		none!Str,
-		() => lexer.tryTake(' '));
+		() => tryTake(lexer, ' '));
 }
 
 //TODO:RENAME
@@ -568,7 +580,7 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 		if (sig.dedents.has) {
 			// Started at indent of 0
 			verify(sig.dedents.force == 0);
-			immutable SpecUsesAndSigFlagsAndKwBody extra = lexer.tryTake("spec")
+			immutable SpecUsesAndSigFlagsAndKwBody extra = tryTake(lexer, "spec")
 				? parseIndentedSpecUses(alloc, lexer)
 				: emptySpecUsesAndSigFlagsAndKwBody;
 			immutable Ptr!FunBodyAst body_ = optOr(extra.body_, () {
@@ -606,7 +618,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 	ref ArrBuilder!FunDeclAst funs,
 ) {
 	immutable Pos start = lexer.curPos;
-	immutable Sym name = lexer.takeName;
+	immutable Sym name = takeName(alloc, lexer);
 	immutable Arr!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
 	lexer.take(' ');
 
@@ -637,7 +649,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				if (purity.has)
 					todo!void("alias shouldn't have purity");
 				immutable TypeAst.InstStruct target = parseStructType(alloc, lexer);
-				takeDedent(alloc, lexer);
+				takeDedentFromIndent1(alloc, lexer);
 				add(
 					alloc,
 					structAliases,
@@ -706,7 +718,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				add(
 					alloc,
 					structs,
-					immutable StructDeclAst(lexer.range(start), isPublic, name, typeParams, purity, body_));
+					immutable StructDeclAst(range(lexer, start), isPublic, name, typeParams, purity, body_));
 				break;
 		}
 	} else {
@@ -717,14 +729,14 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 immutable(FileAst) parseFileInner(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	skipShebang(lexer);
 	skipBlankLines(alloc, lexer);
-	immutable Arr!ImportAst imports = lexer.tryTake("import ")
+	immutable Arr!ImportAst imports = tryTake(lexer, "import ")
 		? parseImportsNonIndented(alloc, lexer)
-		: lexer.tryTake("import\n")
+		: tryTake(lexer, "import\n")
 		? parseImportsIndented(alloc, lexer)
 		: emptyArr!ImportAst;
-	immutable Arr!ImportAst exports = lexer.tryTake("export ")
+	immutable Arr!ImportAst exports = tryTake(lexer, "export ")
 		? parseImportsNonIndented(alloc, lexer)
-		: lexer.tryTake("export\n")
+		: tryTake(lexer, "export\n")
 		? parseImportsIndented(alloc, lexer)
 		: emptyArr!ImportAst;
 
@@ -736,9 +748,9 @@ immutable(FileAst) parseFileInner(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!Sy
 	Bool isPublic = True;
 	for (;;) {
 		skipBlankLines(alloc, lexer);
-		if (lexer.tryTake('\0'))
+		if (tryTake(lexer, '\0'))
 			break;
-		if (lexer.tryTake("private\n")) {
+		if (tryTake(lexer, "private\n")) {
 			if (!isPublic)
 				todo!void("already private");
 			isPublic = False;
