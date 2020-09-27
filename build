@@ -6,4 +6,20 @@ then
 	exit 1
 fi
 
-dmd -debug -g -ofbin/noze -betterC src/*.d src/*/*.d src/*/*/*.d -I=src/
+# Avoiding src/wasm.d
+dmd -debug -g -ofbin/noze -betterC \
+	src/app.d \
+	src/cli.d \
+	src/compiler.d \
+	src/concreteModel.d \
+	src/diag.d \
+	src/lowModel.d \
+	src/model.d \
+	src/parseDiag.d \
+	src/sexprOfConcreteModel.d \
+	src/sexprOfLowModel.d \
+	src/sexprOfModel.d \
+	src/sexprOfParseDiag.d \
+	src/*/*.d \
+	src/*/*/*.d \
+	-I=src/

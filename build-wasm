@@ -5,6 +5,7 @@ ldc2 \
 	-betterC \
 	--enable-asserts=false \
 	src/frontend/ast.d \
+	src/frontend/getTokens.d \
 	src/frontend/parse.d \
 	src/frontend/parseExpr.d \
 	src/frontend/parseType.d \
@@ -20,6 +21,7 @@ ldc2 \
 	src/util/collection/multiDict.d \
 	src/util/collection/mutArr.d \
 	src/util/collection/mutSet.d \
+	src/util/collection/sortUtil.d \
 	src/util/collection/str.d \
 	src/util/ptr.d \
 	src/util/bitUtils.d \
@@ -36,6 +38,7 @@ ldc2 \
 	src/util/types.d \
 	src/util/util.d \
 	src/util/writer.d \
+	src/sexprOfParseDiag.d \
 	src/wasm.d
 
 # Unfortunately it fails with `undefined symbol: __assert` regardless of the `--checkaction` setting without `--enable-asserts=false`

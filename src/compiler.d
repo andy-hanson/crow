@@ -8,7 +8,7 @@ import concretize.concretize : concretize;
 import diag : Diagnostics;
 import frontend.ast : FileAst, sexprOfAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
-import frontend.getTokens : getTokens, Token, sexprOfTokens;
+import frontend.getTokens : Token, tokensOfAst, sexprOfTokens;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : printDiagnostics;
 import lower.lower : lower;
@@ -93,7 +93,7 @@ immutable(int) buildAndRun(SymAlloc)(
 	ref immutable Str nozeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable Arr!Str programArgs,
-	ref immutable Environ environ
+	ref immutable Environ environ,
 ) {
 	ExePathAlloc exePathAlloc;
 	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, nozeDir, programDirAndMain, environ);
@@ -114,7 +114,7 @@ immutable(int) printTokens(SymAlloc)(
 	StackAlloc!("printTokens", 1024 * 1024) alloc;
 	immutable FileAstAndDiagnostics astResult = getAst(alloc, allSymbols, programDirAndMain);
 	printDiagnostics(astResult.diagnostics);
-	immutable Arr!Token tokens = getTokens(alloc, astResult.ast);
+	immutable Arr!Token tokens = tokensOfAst(alloc, astResult.ast);
 	printOutSexpr(sexprOfTokens(alloc, tokens), format);
 	return empty(astResult.diagnostics.diagnostics) ? 0 : 1;
 }

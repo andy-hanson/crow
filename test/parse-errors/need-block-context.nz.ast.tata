@@ -14,6 +14,6 @@ file-ast(
 					match(
 						some(bogus)
 						[
-							case(range(54, 66), some, none, literal(numeric, "0"))
-							case(range(66, 77), none, none, literal(numeric, "1"))]))
+							case(range(54, 66), name-range(range(54, 58), some), none, literal(numeric, "0"))
+							case(range(66, 77), name-range(range(66, 70), none), none, literal(numeric, "1"))]))
 				bogus))])

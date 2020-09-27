@@ -1,11 +1,12 @@
 @safe @nogc nothrow: // not pure
 
+import frontend.getTokens : tokensOfAst, sexprOfTokens, Token;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.ast : FileAst, sexprOfAst;
 import parseDiag : ParseDiagnostic;
 import util.alloc.globalAlloc : GlobalAlloc;
 import util.collection.arr : Arr;
-import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr;
+import util.collection.str : CStr, NulTerminatedStr, nulTerminatedStrOfCStr;
 import util.ptr : ptrTrustMe_mut;
 import util.result : matchResultImpure, Result;
 import util.sexpr : Sexpr, tataArr, tataRecord, writeSexprJSON;
@@ -21,6 +22,14 @@ extern(C) immutable(size_t) getBufferSize() {
 	return buffer.ptr;
 }
 
+@system extern(C) void getTokens() {
+	alias Alloc = GlobalAlloc!("getTokens");
+	Alloc alloc;
+	immutable NulTerminatedStr str = nulTerminatedStrOfCStr(cast(immutable) buffer.ptr);
+	immutable CStr result = getTokensAndDiagnosticsJSON(alloc, str);
+	writeResult(result);
+}
+
 @system extern(C) void getAst() {
 	alias Alloc = GlobalAlloc!("getAst");
 	Alloc alloc;
@@ -31,6 +40,21 @@ extern(C) immutable(size_t) getBufferSize() {
 }
 
 private:
+
+immutable(CStr) getTokensAndDiagnosticsJSON(Alloc)(ref Alloc alloc, ref immutable NulTerminatedStr str) {
+	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
+	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, allSymbols, str);
+	immutable Arr!Token tokens = tokensOfAst(alloc, ast.ast);
+	immutable Sexpr sexpr = tataRecord(
+		alloc,
+		"tkns-diags",
+		sexprOfTokens(alloc, tokens),
+		tataArr(alloc, ast.diagnostics, (ref immutable ParseDiagnostic it) =>
+			sexprOfParseDiagnostic(alloc, it)));
+	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	writeSexprJSON(writer, sexpr);
+	return finishWriterToCStr(writer);
+}
 
 immutable size_t bufferSize = 1024 * 1024;
 char[bufferSize] buffer;

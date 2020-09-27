@@ -166,7 +166,7 @@ struct LiteralInnerAst {
 struct MatchAst {
 	struct CaseAst {
 		immutable SourceRange range;
-		immutable Sym structName;
+		immutable NameAndRange structName;
 		immutable Opt!NameAndRange local;
 		immutable Ptr!ExprAst then;
 	}
@@ -931,7 +931,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 						alloc,
 						"case",
 						sexprOfSourceRange(alloc, case_.range),
-						tataSym(case_.structName),
+						sexprOfNameAndRange(alloc, case_.structName),
 						tataOpt(alloc, case_.local, (ref immutable NameAndRange nr) =>
 							sexprOfNameAndRange(alloc, nr)),
 						sexprOfExprAst(alloc, case_.then)))),

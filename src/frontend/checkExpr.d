@@ -802,7 +802,7 @@ immutable(CheckedExpr) checkMatch(Alloc)(
 		immutable Bool badCases = Bool(
 			!sizeEq(members, ast.cases) ||
 			zipSome(members, ast.cases, (ref immutable Ptr!StructInst member, ref immutable MatchAst.CaseAst caseAst) =>
-				not(symEq(member.decl.name, caseAst.structName))));
+				not(symEq(member.decl.name, caseAst.structName.name))));
 		if (badCases) {
 			addDiag2(alloc, ctx, range, immutable Diag(Diag.MatchCaseStructNamesDoNotMatch(members)));
 			return bogus(expected, range);

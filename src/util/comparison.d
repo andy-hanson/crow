@@ -36,9 +36,13 @@ immutable(Comparison) compareInt(immutable int a, immutable int b) {
 			? Comparison.less
 		: a > b
 			? Comparison.greater
-		: Comparison.equal
-		;
+		: Comparison.equal;
 }
+
+immutable(Comparison) compareNat32(immutable uint a, immutable uint b) {
+	return compareSizeT(a, b);
+}
+
 immutable(Comparison) compareSizeT(immutable size_t a, immutable size_t b) {
 	return a < b
 			? Comparison.less

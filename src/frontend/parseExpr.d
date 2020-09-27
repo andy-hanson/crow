@@ -184,7 +184,7 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 	} else {
 		immutable ArgsAndMaybeDedent args = parseArgs(alloc, lexer, ArgCtx(allowBlock, tookColon));
 		immutable ExprAstKind exprKind = immutable ExprAstKind(
-			immutable CallAst(CallAst.Style.prefix, funName, typeArgs, prepend(alloc, target, args.args)));
+			immutable CallAst(CallAst.Style.infix, funName, typeArgs, prepend(alloc, target, args.args)));
 		return immutable ExprAndMaybeDedent(immutable ExprAst(range(lexer, start), exprKind), args.dedent);
 	}
 }
@@ -293,7 +293,7 @@ immutable(ExprAndMaybeDedent) parseMatch(Alloc, SymAlloc)(
 		immutable size_t matchDedents = () {
 			for (;;) {
 				immutable Pos startCase = curPos(lexer);
-				immutable Sym structName = takeName(alloc, lexer);
+				immutable NameAndRange structName = takeNameAndRange(alloc, lexer);
 				immutable Opt!NameAndRange localName = tryTake(lexer, ' ')
 					? some(takeNameAndRange(alloc, lexer))
 					: none!NameAndRange;
