@@ -388,16 +388,35 @@ enum PuritySpecifier {
 	mut,
 }
 
+immutable(Sym) symOfPuritySpecifier(immutable PuritySpecifier a) {
+	final switch (a) {
+		case PuritySpecifier.data:
+			return shortSymAlphaLiteral("data");
+		case PuritySpecifier.forceData:
+			return shortSymAlphaLiteral("force-data");
+		case PuritySpecifier.sendable:
+			return shortSymAlphaLiteral("sendable");
+		case PuritySpecifier.forceSendable:
+			return shortSymAlphaLiteral("force-send");
+		case PuritySpecifier.mut:
+			return shortSymAlphaLiteral("mut");
+	}
+}
+
 struct PuritySpecifierAndRange {
-	immutable SourceRange range;
+	immutable Pos start;
 	immutable PuritySpecifier specifier;
+}
+
+immutable(SourceRange) rangeOfPuritySpecifier(ref immutable PuritySpecifierAndRange a) {
+	return immutable SourceRange(a.start, safeSizeTToU32(a.start + symSize(symOfPuritySpecifier(a.specifier))));
 }
 
 struct StructAliasAst {
 	immutable SourceRange range;
 	immutable Bool isPublic;
 	immutable Sym name;
-	immutable Arr!TypeParamAst typeParams;
+	immutable ArrWithSize!TypeParamAst typeParams;
 	immutable TypeAst.InstStruct target;
 }
 
@@ -471,7 +490,7 @@ struct StructDeclAst {
 	immutable SourceRange range;
 	immutable Bool isPublic;
 	immutable Sym name; // start is range.start
-	immutable Arr!TypeParamAst typeParams;
+	immutable ArrWithSize!TypeParamAst typeParams;
 	immutable Opt!PuritySpecifierAndRange purity;
 	immutable Body body_;
 }
@@ -540,7 +559,7 @@ struct SpecDeclAst {
 	immutable SourceRange range;
 	immutable Bool isPublic;
 	immutable Sym name;
-	immutable Arr!TypeParamAst typeParams;
+	immutable ArrWithSize!TypeParamAst typeParams;
 	immutable SpecBodyAst body_;
 }
 
@@ -590,7 +609,7 @@ struct FunBodyAst {
 
 struct FunDeclAst {
 	immutable SourceRange range;
-	immutable Arr!TypeParamAst typeParams; // If this is empty, infer type params
+	immutable ArrWithSize!TypeParamAst typeParams; // If this is empty, infer type params
 	immutable Ptr!SigAst sig; // Ptr to keep this struct from getting too big
 	immutable Arr!SpecUseAst specUses;
 	immutable Bool isPublic;
@@ -699,23 +718,8 @@ immutable(Sexpr) sexprOfOptPurity(Alloc)(ref Alloc alloc, immutable Opt!PuritySp
 		tataRecord(
 			alloc,
 			"purity",
-			sexprOfSourceRange(alloc, it.range),
+			tataNat(it.start),
 			tataSym(symOfPuritySpecifier(it.specifier))));
-}
-
-immutable(Sym) symOfPuritySpecifier(immutable PuritySpecifier a) {
-	final switch (a) {
-		case PuritySpecifier.data:
-			return shortSymAlphaLiteral("data");
-		case PuritySpecifier.forceData:
-			return shortSymAlphaLiteral("force-data");
-		case PuritySpecifier.sendable:
-			return shortSymAlphaLiteral("sendable");
-		case PuritySpecifier.forceSendable:
-			return shortSymAlphaLiteral("force-send");
-		case PuritySpecifier.mut:
-			return shortSymAlphaLiteral("mut");
-	}
 }
 
 immutable(Sexpr) sexprOfOptExplicitByValOrRefAndRange(Alloc)(
@@ -776,7 +780,7 @@ immutable(Sexpr) sexprOfStructDeclAst(Alloc)(ref Alloc alloc, ref immutable Stru
 		"struct",
 		sexprOfSourceRange(alloc, a.range),
 		tataBool(a.isPublic),
-		tataArr(alloc, a.typeParams, (ref immutable TypeParamAst a) =>
+		tataArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst a) =>
 			sexprOfTypeParamAst(alloc, a)),
 		sexprOfOptPurity(alloc, a.purity),
 		sexprOfStructBodyAst(alloc, a.body_));
@@ -785,9 +789,11 @@ immutable(Sexpr) sexprOfStructDeclAst(Alloc)(ref Alloc alloc, ref immutable Stru
 immutable(Sexpr) sexprOfFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDeclAst a) {
 	ArrBuilder!NameAndSexpr fields;
 	add(alloc, fields, nameAndTata("public?", tataBool(a.isPublic)));
-	if (!empty(a.typeParams))
-		add(alloc, fields, nameAndTata("typeparams", tataArr(alloc, a.typeParams, (ref immutable TypeParamAst t) =>
-			sexprOfTypeParamAst(alloc, t))));
+	if (!empty(toArr(a.typeParams)))
+		add(alloc, fields, nameAndTata(
+			"typeparams",
+			tataArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst t) =>
+				sexprOfTypeParamAst(alloc, t))));
 	add(alloc, fields, nameAndTata("sig", sexprOfSig(alloc, a.sig)));
 	if (!empty(a.specUses))
 		add(alloc, fields, nameAndTata("spec-uses", tataArr(alloc, a.specUses, (ref immutable SpecUseAst s) =>

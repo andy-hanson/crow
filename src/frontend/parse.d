@@ -89,9 +89,9 @@ immutable(FileAstAndParseDiagnostics) parseFile(Alloc, SymAlloc)(
 
 private:
 
-immutable(Arr!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(ArrWithSize!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	if (tryTake(lexer, '<')) {
-		ArrBuilder!TypeParamAst res;
+		ArrWithSizeBuilder!TypeParamAst res;
 		do {
 			immutable Pos start = curPos(lexer);
 			takeOrAddDiagExpected(alloc, lexer, '?', ParseDiag.Expected.Kind.typeParamQuestionMark);
@@ -101,7 +101,7 @@ immutable(Arr!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc alloc, re
 		takeTypeArgsEnd(alloc, lexer);
 		return finishArr(alloc, res);
 	} else
-		return emptyArr!TypeParamAst;
+		return emptyArrWithSize!TypeParamAst;
 }
 
 immutable(Opt!PuritySpecifierAndRange) parsePurity(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -124,7 +124,7 @@ immutable(Opt!PuritySpecifierAndRange) parsePurity(Alloc, SymAlloc)(ref Alloc al
 		}
 	}();
 	return mapOption(specifier, (ref immutable PuritySpecifier it) =>
-		immutable PuritySpecifierAndRange(range(lexer, start), it));
+		immutable PuritySpecifierAndRange(start, it));
 }
 
 immutable(ImportAst) parseSingleImport(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -579,7 +579,7 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 	immutable Bool isPublic,
 	immutable Pos start,
 	immutable Sym name,
-	immutable Arr!TypeParamAst typeParams,
+	immutable ArrWithSize!TypeParamAst typeParams,
 ) {
 	immutable SigAstAndMaybeDedent sig = parseSigAfterNameAndSpace(alloc, lexer, start, name);
 	immutable FunDeclStuff stuff = () {
@@ -626,7 +626,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable Sym name = takeName(alloc, lexer);
-	immutable Arr!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
+	immutable ArrWithSize!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
 	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 
 	immutable Opt!NonFunKeywordAndIndent opKwAndIndent = parseNonFunKeyword(alloc, lexer);

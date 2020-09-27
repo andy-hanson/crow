@@ -92,7 +92,7 @@ import model :
 	typeParams;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, emptyArr, ptrsRange, range, size, sizeEq, toArr;
+import util.collection.arr : Arr, ArrWithSize, at, empty, emptyArr, ptrsRange, range, size, sizeEq, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAsTempArr, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
@@ -328,10 +328,10 @@ immutable(Result!(CommonTypes, Diags)) getCommonTypes(Alloc)(
 immutable(Arr!TypeParam) checkTypeParams(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	ref immutable Arr!TypeParamAst asts,
+	ref immutable ArrWithSize!TypeParamAst asts,
 ) {
 	immutable Arr!TypeParam typeParams =
-		mapWithIndex(alloc, asts, (immutable size_t index, ref immutable TypeParamAst ast) =>
+		mapWithIndex(alloc, toArr(asts), (immutable size_t index, ref immutable TypeParamAst ast) =>
 			immutable TypeParam(ast.range, ast.name, index));
 	foreach (immutable size_t i; 0..size(typeParams))
 		foreach (immutable size_t prev_i; 0..i) {
@@ -697,7 +697,7 @@ void checkStructBodies(Alloc)(
 			(ref immutable StructDeclAst.Body.Builtin) =>
 				immutable StructBody(immutable StructBody.Builtin()),
 			(ref immutable StructDeclAst.Body.ExternPtr) {
-				if (!empty(ast.typeParams))
+				if (!empty(toArr(ast.typeParams)))
 					addDiag(alloc, ctx, ast.range, immutable Diag(immutable Diag.ExternPtrHasTypeParams()));
 				return immutable StructBody(immutable StructBody.ExternPtr());
 			},
@@ -792,7 +792,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 	ref immutable Arr!FunDeclAst asts,
 ) {
 	Arr!FunDecl funs = mapToMut(alloc, asts, (ref immutable FunDeclAst funAst) {
-		immutable Arr!TypeParam typeParams = empty(funAst.typeParams)
+		immutable Arr!TypeParam typeParams = empty(toArr(funAst.typeParams))
 			? collectTypeParams(alloc, funAst.sig)
 			: checkTypeParams(alloc, ctx, funAst.typeParams);
 		immutable Sig sig = checkSig(

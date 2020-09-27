@@ -22,6 +22,7 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 			ExprAstKind,
 			FileAst,
 			SigAst,
+			StructDeclAst,
 			TypeAst,
 			WhenAst,
 			FunDeclAst,
@@ -55,6 +56,8 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 		printf("TypeAst: %lu\n", TypeAst.sizeof);
 		printf("FunDeclAst: %lu\n", FunDeclAst.sizeof);
 		printf("FunBodyAst: %lu\n", FunBodyAst.sizeof);
+		printf("StructDeclAst: %lu\n", StructDeclAst.sizeof);
+		printf("StructDeclAst.Body: %lu\n", StructDeclAst.Body.sizeof);
 
 		printf("WhenAst.Case: %lu\n", WhenAst.Case.sizeof);
 		return 0;

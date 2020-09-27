@@ -30,6 +30,7 @@ import frontend.ast :
 	ParamAst,
 	rangeOfExplicitByValOrRef,
 	rangeOfNameAndRange,
+	rangeOfPuritySpecifier,
 	RecordFieldSetAst,
 	SeqAst,
 	SigAst,
@@ -171,8 +172,12 @@ void addParamTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref imm
 	addTypeTokens(alloc, tokens, a.type);
 }
 
-void addTypeParamsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable Arr!TypeParamAst a) {
-	foreach (ref immutable TypeParamAst typeParam; range(a))
+void addTypeParamsTokens(Alloc)(
+	ref Alloc alloc,
+	ref ArrBuilder!Token tokens,
+	ref immutable ArrWithSize!TypeParamAst a,
+) {
+	foreach (ref immutable TypeParamAst typeParam; range(toArr(a)))
 		add(alloc, tokens, immutable Token(Token.Kind.typeParamDef, typeParam.range));
 }
 
@@ -186,7 +191,7 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 	add(alloc, tokens, immutable Token(Token.Kind.structDef, rangeAtName(a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, a.typeParams);
 	if (has(a.purity))
-		add(alloc, tokens, immutable Token(Token.Kind.purity, force(a.purity).range));
+		add(alloc, tokens, immutable Token(Token.Kind.purity, rangeOfPuritySpecifier(force(a.purity))));
 	matchStructDeclAstBody!void(
 		a.body_,
 		(ref immutable StructDeclAst.Body.Builtin) {},
