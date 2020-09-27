@@ -58,6 +58,7 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 		printf("FunBodyAst: %lu\n", FunBodyAst.sizeof);
 		printf("StructDeclAst: %lu\n", StructDeclAst.sizeof);
 		printf("StructDeclAst.Body: %lu\n", StructDeclAst.Body.sizeof);
+		printf("StructDeclAst.Body.Record.Field: %lu\n", StructDeclAst.Body.Record.Field.sizeof);
 
 		printf("WhenAst.Case: %lu\n", WhenAst.Case.sizeof);
 		return 0;

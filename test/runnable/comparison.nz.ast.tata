@@ -12,8 +12,8 @@ file-ast(
 			record(
 				none
 				[
-					field(range(29, 34), false, name-range(29, x), inststruct(range(31, 34), name-range(31, nat)))
-					field(range(36, 41), false, name-range(36, y), inststruct(range(38, 41), name-range(38, nat)))]))
+					field(range(29, 34), false, x, inststruct(range(31, 34), name-range(31, nat)))
+					field(range(36, 41), false, y, inststruct(range(38, 41), name-range(38, nat)))]))
 		struct(
 			range(43, 89)
 			true
@@ -22,8 +22,8 @@ file-ast(
 			record(
 				some(by-val-ref(67, by-ref))
 				[
-					field(range(75, 80), false, name-range(75, x), inststruct(range(77, 80), name-range(77, nat)))
-					field(range(82, 87), false, name-range(82, y), inststruct(range(84, 87), name-range(84, nat)))]))
+					field(range(75, 80), false, x, inststruct(range(77, 80), name-range(77, nat)))
+					field(range(82, 87), false, y, inststruct(range(84, 87), name-range(84, nat)))]))
 		struct(range(89, 113), true, [], none, record(none, []))
 		struct(
 			range(113, 157)

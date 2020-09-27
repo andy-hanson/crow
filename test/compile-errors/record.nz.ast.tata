@@ -12,10 +12,10 @@ file-ast(
 			record(
 				none
 				[
-					field(range(18, 23), false, name-range(18, x), inststruct(range(20, 23), name-range(20, int)))
-					field(range(25, 30), false, name-range(25, y), inststruct(range(27, 30), name-range(27, int)))
-					field(range(32, 37), false, name-range(32, z), inststruct(range(34, 37), name-range(34, int)))
-					field(range(39, 44), false, name-range(39, w), inststruct(range(41, 44), name-range(41, int)))]))]
+					field(range(18, 23), false, x, inststruct(range(20, 23), name-range(20, int)))
+					field(range(25, 30), false, y, inststruct(range(27, 30), name-range(27, int)))
+					field(range(32, 37), false, z, inststruct(range(34, 37), name-range(34, int)))
+					field(range(39, 44), false, w, inststruct(range(41, 44), name-range(41, int)))]))]
 	funs: [
 		fun-decl(
 			public?: true

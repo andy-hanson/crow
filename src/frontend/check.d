@@ -629,7 +629,7 @@ immutable(StructBody) checkRecord(Alloc)(
 				if (has(reason))
 					addDiag(alloc, ctx, field.range, immutable Diag(Diag.MutFieldNotAllowed(force(reason))));
 			}
-			return immutable RecordField(field.range, field.isMutable, field.name.name, fieldType, index);
+			return immutable RecordField(field.range, field.isMutable, field.name, fieldType, index);
 		});
 	everyPair(fields, (ref immutable RecordField a, ref immutable RecordField b) {
 		if (symEq(a.name, b.name))

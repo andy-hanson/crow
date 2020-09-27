@@ -453,7 +453,7 @@ struct StructDeclAst {
 			struct Field {
 				immutable SourceRange range;
 				immutable Bool isMutable;
-				immutable NameAndRange name;
+				immutable Sym name;
 				immutable TypeAst type;
 			}
 			immutable Opt!ExplicitByValOrRefAndRange explicitByValOrRef;
@@ -740,7 +740,7 @@ immutable(Sexpr) sexprOfField(Alloc)(ref Alloc alloc, ref immutable StructDeclAs
 		"field",
 		sexprOfSourceRange(alloc, a.range),
 		tataBool(a.isMutable),
-		sexprOfNameAndRange(alloc, a.name),
+		tataSym(a.name),
 		sexprOfTypeAst(alloc, a.type));
 }
 

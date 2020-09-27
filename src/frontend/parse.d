@@ -334,17 +334,17 @@ immutable(StructDeclAst.Body.Record) parseFields(Alloc, SymAlloc)(
 	ArrBuilder!(StructDeclAst.Body.Record.Field) res;
 	immutable(StructDeclAst.Body.Record) recur(immutable Opt!ExplicitByValOrRefAndRange prevExplicitByValOrRef) {
 		immutable Pos start = curPos(lexer);
-		immutable NameAndRange name = takeNameAndRange(alloc, lexer);
+		immutable Sym name = takeName(alloc, lexer);
 		immutable Opt!ExplicitByValOrRefAndRange newExplicitByValOrRef = () {
-			switch (name.name.value) {
+			switch (name.value) {
 				case shortSymAlphaLiteralValue("by-val"):
 				case shortSymAlphaLiteralValue("by-ref"):
-					immutable ExplicitByValOrRef value = name.name.value == shortSymAlphaLiteralValue("by-val")
+					immutable ExplicitByValOrRef value = name.value == shortSymAlphaLiteralValue("by-val")
 						? ExplicitByValOrRef.byVal
 						: ExplicitByValOrRef.byRef;
 					if (has(prevExplicitByValOrRef) || !arrBuilderIsEmpty(res))
 						todo!void("by-val or by-ref on later line");
-					return some(immutable ExplicitByValOrRefAndRange(name.start, value));
+					return some(immutable ExplicitByValOrRefAndRange(start, value));
 				default:
 					takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 					immutable Bool isMutable = tryTake(lexer, "mut ");
@@ -694,7 +694,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 						case NonFunKeyword.alias_:
 						case NonFunKeyword.builtinSpec:
 						case NonFunKeyword.spec:
-							return unreachable!(StructDeclAst.Body);
+							return unreachable!(immutable StructDeclAst.Body);
 						case NonFunKeyword.builtin:
 							if (tookIndent)
 								todo!void("shouldn't indent after builtin");
