@@ -8,6 +8,7 @@ import frontend.ast :
 	ExprAst,
 	LetAst,
 	matchExprAstKind,
+	NameAndRange,
 	SeqAst,
 	TypeAst,
 	WhenAst;
@@ -125,7 +126,7 @@ immutable(CheckedExpr) checkCall(Alloc)(
 	ref immutable CallAst ast,
 	ref Expected expected,
 ) {
-	immutable Sym funName = ast.funName;
+	immutable Sym funName = ast.funName.name;
 	immutable size_t arity = size(ast.args);
 	immutable Arr!Type explicitTypeArgs = typeArgsFromAsts(alloc, ctx, toArr(ast.typeArgs));
 	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, funName, explicitTypeArgs, arity);
@@ -210,7 +211,12 @@ immutable(CheckedExpr) checkIdentifierCall(Alloc)(
 	immutable Sym name,
 	ref Expected expected,
 ) {
-	immutable CallAst callAst = immutable CallAst(name, emptyArrWithSize!TypeAst, emptyArr!ExprAst);
+	//TODO:NEATER (don't make a synthetic AST, just directly call an appropriate function)
+	immutable CallAst callAst = immutable CallAst(
+		CallAst.Style.single,
+		immutable NameAndRange(range, name),
+		emptyArrWithSize!TypeAst,
+		emptyArr!ExprAst);
 	return checkCall(alloc, ctx, range, callAst, expected);
 }
 

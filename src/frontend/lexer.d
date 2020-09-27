@@ -342,15 +342,13 @@ immutable(SourceRange) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Pos b
 void addDiagOnReservedName(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable SourceRange range,
-	immutable Sym name,
+	immutable NameAndRange name,
 ) {
-	return addDiag(alloc, lexer, range, immutable ParseDiag(immutable ParseDiag.ReservedName(name)));
+	return addDiag(alloc, lexer, name.range, immutable ParseDiag(immutable ParseDiag.ReservedName(name.name)));
 }
 
 struct SymAndIsReserved {
-	immutable Sym sym;
-	immutable SourceRange range;
+	immutable NameAndRange name;
 	immutable Bool isReserved;
 }
 
@@ -358,28 +356,26 @@ immutable(SymAndIsReserved) takeNameAllowReserved(Alloc, SymAlloc)(ref Alloc all
 	immutable StrAndIsOperator s = takeNameAsTempStr(alloc, lexer);
 	if (s.isOperator) {
 		immutable Sym op = getSymFromOperator(lexer.allSymbols.deref, s.str);
-		return SymAndIsReserved(op, s.range, op.symEq(shortSymOperatorLiteral("=")));
+		return SymAndIsReserved(immutable NameAndRange(s.range, op), op.symEq(shortSymOperatorLiteral("=")));
 	} else {
 		immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, s.str);
-		return SymAndIsReserved(name, s.range, name.isReservedName);
+		return SymAndIsReserved(immutable NameAndRange(s.range, name), name.isReservedName);
 	}
 }
 
-immutable(Sym) takeName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(NameAndRange) takeNameAndRange(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable SymAndIsReserved s = takeNameAllowReserved(alloc, lexer);
 	if (s.isReserved)
-		addDiagOnReservedName(alloc, lexer, s.range, s.sym);
-	return s.sym;
+		addDiagOnReservedName(alloc, lexer, s.name);
+	return s.name;
+}
+
+immutable(Sym) takeName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	return takeNameAndRange(alloc, lexer).name;
 }
 
 immutable(Str) takeNameAsStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
 	return copyStr(alloc, takeNameAsTempStr(lexer, str));
-}
-
-immutable(NameAndRange) takeNameAndRange(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable CStr begin = lexer.ptr;
-	immutable Sym name = takeName(alloc, lexer);
-	return immutable NameAndRange(range(lexer, begin), name);
 }
 
 immutable(Str) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
@@ -470,7 +466,7 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 						case shortSymAlphaLiteralValue("when"):
 							return immutable ExpressionToken(ExpressionToken.Kind.when);
 						default:
-							addDiagOnReservedName(alloc, lexer, nameRange, name);
+							addDiagOnReservedName(alloc, lexer, immutable NameAndRange(nameRange, name));
 							return immutable ExpressionToken(ExpressionToken.Kind.unexpected);
 					}
 				else

@@ -38,7 +38,7 @@ file-ast(
 				name-range(range(336, 341), get-x)
 				inststruct(range(342, 347), name-range(range(342, 347), float))
 				[param(range(348, 355), name-range(range(348, 349), a), inststruct(range(350, 355), name-range(range(350, 355), point)))])
-			body: call(x, [], [a]))
+			body: call(prefix, name-range(range(433, 434), x), [], [a]))
 		fun-decl(
 			public?: true
 			sig: sig-ast(
@@ -62,5 +62,11 @@ file-ast(
 				create-point
 				let(
 					name-range(range(666, 669), p-x)
-					call(get-x, [], [p])
-					seq-ast(call(print-sync, [], [call(to-str, [], [p-x])]), call(resolved, [], [zero])))))])
+					call(prefix, name-range(range(674, 679), get-x), [], [p])
+					seq-ast(
+						call(
+							prefix
+							name-range(range(933, 943), print-sync)
+							[]
+							[call(prefix, name-range(range(949, 955), to-str), [], [p-x])])
+						call(prefix, name-range(range(962, 970), resolved), [], [zero])))))])

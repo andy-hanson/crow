@@ -3,36 +3,57 @@ module frontend.getTokens;
 @safe @nogc pure nothrow:
 
 import frontend.ast :
+	BogusAst,
+	CallAst,
+	CreateArrAst,
+	CreateRecordAst,
+	CreateRecordMultiLineAst,
 	exports,
+	ExprAst,
 	FileAst,
+	FunBodyAst,
 	FunDeclAst,
 	funs,
+	IdentifierAst,
 	imports,
+	LambdaAst,
+	LetAst,
+	LiteralAst,
+	LiteralInnerAst,
+	MatchAst,
+	matchExprAstKind,
+	matchFunBodyAst,
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
 	matchTypeAst,
 	NameAndRange,
 	ParamAst,
+	RecordFieldSetAst,
+	SeqAst,
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
 	specs,
+	SpecUseAst,
 	structAliases,
 	StructAliasAst,
 	StructDeclAst,
 	structs,
+	ThenAst,
 	TypeAst,
-	TypeParamAst;
+	TypeParamAst,
+	WhenAst;
 
-import util.collection.arr : Arr, ArrWithSize, range, toArr;
+import util.collection.arr : Arr, ArrWithSize, first, range, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.collection.arrUtil : tail;
 import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : Comparison;
 import util.opt : force, has, Opt;
 import util.sexpr : Sexpr, tataArr, tataRecord, tataSym;
 import util.sourceRange : sexprOfSourceRange, SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.util : todo;
+import util.util : todo, unreachable;
 
 struct Token {
 	enum Kind {
@@ -152,21 +173,106 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 		a.body_,
 		(ref immutable StructDeclAst.Body.Builtin) {},
 		(ref immutable StructDeclAst.Body.ExternPtr) {},
-		(ref immutable StructDeclAst.Body.Record it) {
-			if (has(it.explicitByValOrRef))
-				add(alloc, tokens, immutable Token(Token.Kind.explicitByValOrRef, force(it.explicitByValOrRef).range));
-			foreach (ref immutable StructDeclAst.Body.Record.Field field; range(it.fields)) {
+		(ref immutable StructDeclAst.Body.Record record) {
+			if (has(record.explicitByValOrRef))
+				add(alloc, tokens, immutable Token(
+					Token.Kind.explicitByValOrRef, force(record.explicitByValOrRef).range));
+			foreach (ref immutable StructDeclAst.Body.Record.Field field; range(record.fields)) {
 				add(alloc, tokens, immutable Token(Token.Kind.fieldDef, field.name.range));
 				addTypeTokens(alloc, tokens, field.type);
 			}
 		},
-		(ref immutable StructDeclAst.Body.Union) {
-			todo!void("union tokens");
+		(ref immutable StructDeclAst.Body.Union union_) {
+			foreach (ref immutable TypeAst.InstStruct member; range(union_.members))
+				addInstStructTokens(alloc, tokens, member);
 		});
 }
 
 void addFunTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable FunDeclAst a) {
-	todo!void("getFunTokens");
+	addTypeParamsTokens(alloc, tokens, a.typeParams);
+	addSigTokens(alloc, tokens, a.sig);
+	foreach (ref immutable SpecUseAst specUse; range(a.specUses)) {
+		add(alloc, tokens, immutable Token(Token.Kind.specRef, specUse.spec.range));
+		addTypeArgsTokens(alloc, tokens, specUse.typeArgs);
+	}
+	matchFunBodyAst!void(
+		a.body_,
+		(ref immutable FunBodyAst.Builtin) {},
+		(ref immutable FunBodyAst.Extern) {},
+		(ref immutable ExprAst it) {
+			addExprTokens(alloc, tokens, it);
+		});
+}
+
+void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable ExprAst a) {
+	matchExprAstKind!void(
+		a.kind,
+		(ref immutable BogusAst) {},
+		(ref immutable CallAst it) {
+			void addName() {
+				add(alloc, tokens, immutable Token(Token.Kind.funRef, it.funName.range));
+				addTypeArgsTokens(alloc, tokens, it.typeArgs);
+			}
+
+			// NOTE: care about the call style!
+			final switch (it.style) {
+				case CallAst.Style.dot:
+				case CallAst.Style.infix:
+					addExprTokens(alloc, tokens, first(it.args));
+					addName();
+					addExprsTokens(alloc, tokens, tail(it.args));
+					break;
+				case CallAst.Style.prefix:
+				case CallAst.Style.single:
+					addName();
+					addExprsTokens(alloc, tokens, it.args);
+					break;
+			}
+		},
+		(ref immutable CreateArrAst) {
+			todo!void("create-arr");
+		},
+		(ref immutable CreateRecordAst) {
+			todo!void("create-record");
+		},
+		(ref immutable CreateRecordMultiLineAst) {
+			todo!void("create-record-multiline");
+		},
+		(ref immutable IdentifierAst) {
+			todo!void("identifier");
+		},
+		(ref immutable LambdaAst) {
+			todo!void("lambda");
+		},
+		(ref immutable LetAst) {
+			todo!void("let");
+		},
+		(ref immutable LiteralAst) {
+			todo!void("literal");
+		},
+		(ref immutable LiteralInnerAst) {
+			unreachable!void();
+		},
+		(ref immutable MatchAst) {
+			todo!void("match");
+		},
+		(ref immutable SeqAst) {
+			todo!void("seq");
+		},
+		(ref immutable RecordFieldSetAst) {
+			todo!void("record-field-set");
+		},
+		(ref immutable ThenAst) {
+			todo!void("then");
+		},
+		(ref immutable WhenAst) {
+			todo!void("when");
+		});
+}
+
+void addExprsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, immutable Arr!ExprAst exprs) {
+	foreach (ref immutable ExprAst expr; range(exprs))
+		addExprTokens(alloc, tokens, expr);
 }
 
 void assertTokensSorted(ref immutable Arr!Token tokens) {

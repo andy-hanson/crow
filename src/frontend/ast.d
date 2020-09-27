@@ -84,7 +84,14 @@ immutable(SourceRange) range(ref immutable TypeAst a) {
 struct BogusAst {}
 
 struct CallAst {
-	immutable Sym funName;
+	enum Style {
+		dot, // `a.b`
+		infix, // `a b`, `a b c`, `a b c, d`, etc.
+		prefix, // `a: b`, `a: b, c`, etc.
+		single, // `a<t>` (without the type arg, it would just be an Identifier)
+	}
+	immutable Style style;
+	immutable NameAndRange funName;
 	immutable ArrWithSize!TypeAst typeArgs;
 	immutable Arr!ExprAst args;
 }
@@ -175,7 +182,7 @@ struct SeqAst {
 
 struct RecordFieldSetAst {
 	immutable Ptr!ExprAst target;
-	immutable Sym fieldName;
+	immutable NameAndRange fieldName;
 	immutable Ptr!ExprAst value;
 }
 
@@ -334,7 +341,7 @@ struct ParamAst {
 
 struct SpecUseAst {
 	immutable SourceRange range;
-	immutable Sym spec;
+	immutable NameAndRange spec;
 	immutable ArrWithSize!TypeAst typeArgs;
 }
 
@@ -850,7 +857,8 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 			tataRecord(
 				alloc,
 				"call",
-				tataSym(e.funName),
+				tataSym(symOfCallAstStyle(e.style)),
+				sexprOfNameAndRange(alloc, e.funName),
 				tataArr(alloc, toArr(e.typeArgs), (ref immutable TypeAst it) =>
 					sexprOfTypeAst(alloc, it)),
 				tataArr(alloc, e.args, (ref immutable ExprAst it) =>
@@ -938,7 +946,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 				alloc,
 				"field-set",
 				sexprOfExprAst(alloc, it.target),
-				tataSym(it.fieldName),
+				sexprOfNameAndRange(alloc, it.fieldName),
 				sexprOfExprAst(alloc, it.value)),
 		(ref immutable ThenAst it) =>
 			tataRecord(
@@ -959,6 +967,19 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 						sexprOfExprAst(alloc, case_.then))),
 				tataOpt(alloc, e.else_, (ref immutable Ptr!ExprAst it) =>
 					sexprOfExprAst(alloc, it))));
+}
+
+immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
+	final switch (a) {
+		case CallAst.Style.dot:
+			return shortSymAlphaLiteral("dot");
+		case CallAst.Style.infix:
+			return shortSymAlphaLiteral("infix");
+		case CallAst.Style.prefix:
+			return shortSymAlphaLiteral("prefix");
+		case CallAst.Style.single:
+			return shortSymAlphaLiteral("single");
+	}
 }
 
 immutable(Sexpr) sexprOfLambdaParamAst(Alloc)(ref Alloc alloc, ref immutable LambdaAst.Param a) {

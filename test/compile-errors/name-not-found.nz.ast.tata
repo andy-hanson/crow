@@ -24,4 +24,6 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(range(41, 48), name-range(range(41, 44), foo), inststruct(range(45, 46), name-range(range(45, 46), t)), [])
-			body: seq-ast(seq-ast(x, call(y, [], [a])), call(z, [], [a, b])))])
+			body: seq-ast(
+				seq-ast(x, call(prefix, name-range(range(55, 56), y), [], [a]))
+				call(prefix, name-range(range(60, 61), z), [], [a, b])))])

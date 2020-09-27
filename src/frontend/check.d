@@ -757,7 +757,7 @@ immutable(Arr!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 	immutable TypeParamsScope typeParamsScope,
 ) {
 	return mapOp!(Ptr!SpecInst)(alloc, asts, (ref immutable SpecUseAst ast) {
-		immutable Opt!(Ptr!SpecDecl) opSpec = tryFindSpec(alloc, ctx, ast.spec, ast.range, specsMap);
+		immutable Opt!(Ptr!SpecDecl) opSpec = tryFindSpec(alloc, ctx, ast.spec.name, ast.range, specsMap);
 		if (has(opSpec)) {
 			immutable Ptr!SpecDecl spec = force(opSpec);
 			immutable Arr!Type typeArgs = typeArgsFromAsts(
@@ -774,7 +774,8 @@ immutable(Arr!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 			} else
 				return some(instantiateSpec(alloc, ctx.programState, SpecDeclAndArgs(spec, typeArgs)));
 		} else {
-			addDiag(alloc, ctx, ast.range, immutable Diag(Diag.NameNotFound(Diag.NameNotFound.Kind.spec, ast.spec)));
+			addDiag(alloc, ctx, ast.spec.range, immutable Diag(
+				immutable Diag.NameNotFound(Diag.NameNotFound.Kind.spec, ast.spec.name)));
 			return none!(Ptr!SpecInst);
 		}
 	});

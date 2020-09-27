@@ -18,6 +18,7 @@ import frontend.ast :
 	LiteralInnerAst,
 	MatchAst,
 	matchExprAstKind,
+	NameAndRange,
 	RecordFieldSetAst,
 	SeqAst,
 	ThenAst,
@@ -612,8 +613,10 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 		(!hasExpected(expected) && ast.literalKind == LiteralAst.Kind.string_))
 		return checkLiteralInner(alloc, ctx, range, inner, expected);
 	else {
+		// TODO: NEATER (don't create a synthetic AST)
 		immutable CallAst call = immutable CallAst(
-			shortSymAlphaLiteral("literal"),
+			CallAst.Style.dot,
+			immutable NameAndRange(range, shortSymAlphaLiteral("literal")),
 			emptyArrWithSize!TypeAst,
 			arrLiteral!ExprAst(alloc, immutable ExprAst(range, immutable ExprAstKind(inner))));
 		return checkCall(alloc, ctx, range, call, expected);
@@ -850,7 +853,7 @@ immutable(CheckedExpr) checkRecordFieldSet(Alloc)(
 	ref Expected expected,
 ) {
 	immutable ExprAndType target = checkAndInfer(alloc, ctx, ast.target);
-	immutable Opt!StructAndField opStructAndField = tryGetRecordField(target.type, ast.fieldName);
+	immutable Opt!StructAndField opStructAndField = tryGetRecordField(target.type, ast.fieldName.name);
 	if (has(opStructAndField)) {
 		immutable StructAndField structAndField = force(opStructAndField);
 		immutable Ptr!StructInst structInst = structAndField.structInst;
@@ -868,7 +871,7 @@ immutable(CheckedExpr) checkRecordFieldSet(Alloc)(
 			return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.void_), rfs);
 		}
 	} else {
-		addDiag2(alloc, ctx, range, immutable Diag(Diag.WriteToNonExistentField(target.type, ast.fieldName)));
+		addDiag2(alloc, ctx, range, immutable Diag(Diag.WriteToNonExistentField(target.type, ast.fieldName.name)));
 		return bogusWithType(expected, range, immutable Type(ctx.commonTypes.void_));
 	}
 }
@@ -886,8 +889,10 @@ immutable(CheckedExpr) checkThen(Alloc)(
 			//TODO: use temp alloc?
 			arrLiteral!(LambdaAst.Param)(alloc, ast.left),
 			ast.then)));
+	// TODO: NEATER (don't create a synthetic AST)
 	immutable CallAst call = CallAst(
-		shortSymAlphaLiteral("then"),
+		CallAst.Style.infix,
+		immutable NameAndRange(range, shortSymAlphaLiteral("then")),
 		emptyArrWithSize!TypeAst,
 		arrLiteral!ExprAst(alloc, ast.futExpr.deref, lambda));
 	return checkCall(alloc, ctx, range, call, expected);

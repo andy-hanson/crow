@@ -446,7 +446,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 			return nextSpecOrStop(
 				alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern2, mangle, canTakeNext);
 		}
-		switch (name.sym.value) {
+		switch (name.name.name.value) {
 			case shortSymAlphaLiteralValue("noctx"):
 				if (noCtx) todo!void("duplicate");
 				return nextSpecOrStop(
@@ -472,14 +472,14 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 			case shortSymAlphaLiteralValue("global"):
 				return setExtern(True);
 			default: {
-				addDiagOnReservedName(alloc, lexer, name.range, name.sym);
+				addDiagOnReservedName(alloc, lexer, name.name);
 				return nextSpecOrStop(
 					alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 			}
 		}
 	} else {
 		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
-		add(alloc, specUses, immutable SpecUseAst(range(lexer, start), name.sym, typeArgs));
+		add(alloc, specUses, immutable SpecUseAst(range(lexer, start), name.name, typeArgs));
 		return nextSpecOrStop(
 			alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 	}

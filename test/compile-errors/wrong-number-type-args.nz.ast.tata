@@ -28,4 +28,4 @@ file-ast(
 						range(47, 56)
 						name-range(range(47, 48), a)
 						inststruct(range(49, 56), name-range(range(49, 52), opt), [type-param(range(53, 56), in)]))])
-			body: call(magic, [type-param(range(67, 71), out)], [a]))])
+			body: call(prefix, name-range(range(61, 66), magic), [type-param(range(67, 71), out)], [a]))])

@@ -173,18 +173,18 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 	immutable Bool allowBlock
 ) {
 	immutable Pos start = curPos(lexer);
-	if (tryTake(lexer, '.')) {
-		immutable Sym funName = takeName(alloc, lexer);
-		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
-		immutable CallAst call = CallAst(funName, typeArgs, arrLiteral!ExprAst(alloc, target));
+	immutable Bool tookDot = tryTake(lexer, '.');
+	immutable NameAndRange funName = takeNameAndRange(alloc, lexer);
+	immutable Bool tookColon = !tookDot && tryTake(lexer, ':');
+	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
+	if (tookDot) {
+		immutable CallAst call = immutable CallAst(
+			CallAst.Style.dot, funName, typeArgs, arrLiteral!ExprAst(alloc, target));
 		return noDedent(immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
 	} else {
-		immutable Sym funName = takeName(alloc, lexer);
-		immutable Bool colon = tryTake(lexer, ':');
-		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
-		immutable ArgsAndMaybeDedent args = parseArgs(alloc, lexer, ArgCtx(allowBlock, colon));
+		immutable ArgsAndMaybeDedent args = parseArgs(alloc, lexer, ArgCtx(allowBlock, tookColon));
 		immutable ExprAstKind exprKind = immutable ExprAstKind(
-			immutable CallAst(funName, typeArgs, prepend(alloc, target, args.args)));
+			immutable CallAst(CallAst.Style.prefix, funName, typeArgs, prepend(alloc, target, args.args)));
 		return immutable ExprAndMaybeDedent(immutable ExprAst(range(lexer, start), exprKind), args.dedent);
 	}
 }
@@ -209,7 +209,8 @@ immutable(ExprAndMaybeDedent) parseCallsAndRecordFieldSets(Alloc, SymAlloc)(
 			todo!void("RecordFieldSet should have exactly 1 arg");
 		immutable Ptr!ExprAst target = allocExpr(alloc, call.args.only);
 		immutable ExprAndMaybeDedent value = parseExprArg(alloc, lexer, ArgCtx(allowBlock, True));
-		immutable RecordFieldSetAst rfs = RecordFieldSetAst(target, call.funName, allocExpr(alloc, value.expr));
+		immutable RecordFieldSetAst rfs = immutable RecordFieldSetAst(
+			target, call.funName, allocExpr(alloc, value.expr));
 		return immutable ExprAndMaybeDedent(
 			immutable ExprAst(range(lexer, start), immutable ExprAstKind(rfs)),
 			value.dedents);
@@ -269,9 +270,10 @@ immutable(ExprAst) tryParseDots(Alloc, SymAlloc)(
 ) {
 	immutable Pos start = curPos(lexer);
 	if (tryTake(lexer, '.')) {
-		immutable Sym name = takeName(alloc, lexer);
+		immutable NameAndRange name = takeNameAndRange(alloc, lexer);
 		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
-		immutable CallAst call = immutable CallAst(name, typeArgs, arrLiteral!ExprAst(alloc, initial));
+		immutable CallAst call = immutable CallAst(
+			CallAst.Style.dot, name, typeArgs, arrLiteral!ExprAst(alloc, initial));
 		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
 		return tryParseDots(alloc, lexer, expr);
 	} else
@@ -577,24 +579,24 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				? parseMatch(alloc, lexer, start)
 				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
 		case ExpressionToken.Kind.nameAndRange:
-			immutable Sym name = et.asNameAndRange.name;
+			immutable NameAndRange name = asNameAndRange(et);
 			immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 			immutable Bool tookColon = tryTake(lexer, ':');
 			if (tookColon) {
 				// Prefix call `foo: bar, baz`
 				immutable ArgsAndMaybeDedent ad = parseArgs(alloc, lexer, ctx);
-				immutable CallAst call = immutable CallAst(name, typeArgs, ad.args);
+				immutable CallAst call = immutable CallAst(CallAst.Style.prefix, name, typeArgs, ad.args);
 				return immutable ExprAndMaybeDedent(
 					immutable ExprAst(getRange(), immutable ExprAstKind(call)),
 					ad.dedent);
 			} else if (!empty(toArr(typeArgs))) {
 				return noDedent(immutable ExprAst(
 					getRange(),
-					immutable ExprAstKind(immutable CallAst(name, typeArgs, emptyArr!ExprAst))));
+					immutable ExprAstKind(immutable CallAst(CallAst.Style.single, name, typeArgs, emptyArr!ExprAst))));
 			} else {
 				immutable ExprAst expr = immutable ExprAst(
 					getRange(),
-					immutable ExprAstKind(immutable IdentifierAst(name)));
+					immutable ExprAstKind(immutable IdentifierAst(name.name)));
 				return noDedent(tryParseDots(alloc, lexer, expr));
 			}
 		case ExpressionToken.Kind.new_:

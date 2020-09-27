@@ -39,8 +39,44 @@ file-ast(
 					seq-ast(
 						seq-ast(
 							seq-ast(
-								call(assert, [], [call(==, [], [call(x, [], [m]), literal(numeric, "1")])])
-								call(assert, [], [call(==, [], [call(y, [], [m]), literal(numeric, "2")])]))
-							call(print-sync, [], [call(to-str, [], [call(x, [], [m])])]))
-						call(print-sync, [], [call(to-str, [], [call(y, [], [m])])]))
-					call(resolved, [], [literal(numeric, "0")]))))])
+								call(
+									prefix
+									name-range(range(105, 111), assert)
+									[]
+									[
+										call(
+											prefix
+											name-range(range(117, 119), ==)
+											[]
+											[call(dot, name-range(range(115, 116), x), [], [m]), literal(numeric, "1")])])
+								call(
+									prefix
+									name-range(range(123, 129), assert)
+									[]
+									[
+										call(
+											prefix
+											name-range(range(135, 137), ==)
+											[]
+											[call(dot, name-range(range(133, 134), y), [], [m]), literal(numeric, "2")])]))
+							call(
+								prefix
+								name-range(range(141, 151), print-sync)
+								[]
+								[
+									call(
+										dot
+										name-range(range(157, 163), to-str)
+										[]
+										[call(dot, name-range(range(155, 156), x), [], [m])])]))
+						call(
+							prefix
+							name-range(range(165, 175), print-sync)
+							[]
+							[
+								call(
+									dot
+									name-range(range(181, 187), to-str)
+									[]
+									[call(dot, name-range(range(179, 180), y), [], [m])])]))
+					call(prefix, name-range(range(189, 197), resolved), [], [literal(numeric, "0")]))))])
