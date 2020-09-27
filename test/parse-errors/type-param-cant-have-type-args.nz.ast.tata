@@ -7,5 +7,9 @@ file-ast(
 	funs: [
 		fun-decl(
 			public?: true
-			sig: sig-ast(range(0, 16), f, inststruct(range(2, 6), void), [param(range(7, 15), a, type-param(range(9, 15), a))])
+			sig: sig-ast(
+				range(0, 16)
+				name-range(range(0, 1), f)
+				inststruct(range(2, 6), name-range(range(2, 6), void))
+				[param(range(7, 15), a, type-param(range(9, 15), a))])
 			body: pass)])

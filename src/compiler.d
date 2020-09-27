@@ -8,6 +8,7 @@ import concretize.concretize : concretize;
 import diag : Diagnostics;
 import frontend.ast : FileAst, sexprOfAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
+import frontend.getTokens : getTokens, Token, sexprOfTokens;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : printDiagnostics;
 import lower.lower : lower;
@@ -48,6 +49,7 @@ struct ProgramDirAndMain {
 }
 
 enum PrintKind {
+	tokens,
 	ast,
 	model,
 	concreteModel,
@@ -62,6 +64,8 @@ immutable(int) print(SymAlloc)(
 	ref immutable ProgramDirAndMain programDirAndMain,
 ) {
 	final switch (kind) {
+		case PrintKind.tokens:
+			return printTokens(allSymbols, programDirAndMain, format);
 		case PrintKind.ast:
 			return printAst(allSymbols, programDirAndMain, format);
 		case PrintKind.model:
@@ -102,20 +106,40 @@ immutable(int) buildAndRun(SymAlloc)(
 
 private:
 
+immutable(int) printTokens(SymAlloc)(
+	ref AllSymbols!SymAlloc allSymbols,
+	ref immutable ProgramDirAndMain programDirAndMain,
+	immutable PrintFormat format,
+) {
+	StackAlloc!("printTokens", 1024 * 1024) alloc;
+	immutable FileAstAndDiagnostics astResult = getAst(alloc, allSymbols, programDirAndMain);
+	printDiagnostics(astResult.diagnostics);
+	immutable Arr!Token tokens = getTokens(alloc, astResult.ast);
+	printOutSexpr(sexprOfTokens(alloc, tokens), format);
+	return empty(astResult.diagnostics.diagnostics) ? 0 : 1;
+}
+
 immutable(int) printAst(SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	immutable PrintFormat format,
 ) {
 	StackAlloc!("printAst", 1024 * 1024) alloc;
-	ReadOnlyStorages storages = ReadOnlyStorages(
-		ReadOnlyStorage(programDirAndMain.programDir),
-		ReadOnlyStorage(programDirAndMain.programDir));
-	immutable FileAstAndDiagnostics astResult =
-		parseSingleAst(alloc, allSymbols, storages, programDirAndMain.mainPath);
+	immutable FileAstAndDiagnostics astResult = getAst(alloc, allSymbols, programDirAndMain);
 	printDiagnostics(astResult.diagnostics);
 	printOutAst(astResult.ast, format);
 	return empty(astResult.diagnostics.diagnostics) ? 0 : 1;
+}
+
+immutable(FileAstAndDiagnostics) getAst(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	ref immutable ProgramDirAndMain programDirAndMain,
+) {
+	ReadOnlyStorages storages = ReadOnlyStorages(
+		ReadOnlyStorage(programDirAndMain.programDir),
+		ReadOnlyStorage(programDirAndMain.programDir));
+	return parseSingleAst(alloc, allSymbols, storages, programDirAndMain.mainPath);
 }
 
 immutable(int) printModel(SymAlloc)(

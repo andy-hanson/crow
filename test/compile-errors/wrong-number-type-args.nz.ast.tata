@@ -9,15 +9,15 @@ file-ast(
 			public?: true
 			sig: sig-ast(
 				range(0, 25)
-				magic
-				inststruct(range(6, 14), opt, [type-param(range(10, 14), out)])
-				[param(range(15, 24), a, inststruct(range(17, 24), opt, [type-param(range(21, 24), in)]))])
+				name-range(range(0, 5), magic)
+				inststruct(range(6, 14), name-range(range(6, 9), opt), [type-param(range(10, 14), out)])
+				[param(range(15, 24), a, inststruct(range(17, 24), name-range(range(17, 20), opt), [type-param(range(21, 24), in)]))])
 			body: todo)
 		fun-decl(
 			public?: true
 			sig: sig-ast(
 				range(33, 57)
-				test
-				inststruct(range(38, 46), opt, [type-param(range(42, 46), out)])
-				[param(range(47, 56), a, inststruct(range(49, 56), opt, [type-param(range(53, 56), in)]))])
+				name-range(range(33, 37), test)
+				inststruct(range(38, 46), name-range(range(38, 41), opt), [type-param(range(42, 46), out)])
+				[param(range(47, 56), a, inststruct(range(49, 56), name-range(range(49, 52), opt), [type-param(range(53, 56), in)]))])
 			body: call(magic, [type-param(range(67, 71), out)], [a]))])

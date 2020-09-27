@@ -231,7 +231,9 @@ immutable(Command) parsePrintCommand(Alloc, SymAlloc)(
 }
 
 immutable(PrintKind) parsePrintKind(immutable Str a) {
-	return strEqLiteral(a, "ast")
+	return strEqLiteral(a, "tokens")
+		? PrintKind.tokens
+		: strEqLiteral(a, "ast")
 		? PrintKind.ast
 		: strEqLiteral(a, "model")
 		? PrintKind.model

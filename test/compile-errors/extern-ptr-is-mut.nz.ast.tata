@@ -5,5 +5,10 @@ file-ast(
 	aliases: []
 	structs: [
 		struct(range(0, 14), true, [], none, extern)
-		struct(range(14, 28), true, [], none, record(none, [field(range(24, 27), false, a, inststruct(range(26, 27), a))]))]
+		struct(
+			range(14, 28)
+			true
+			[]
+			none
+			record(none, [field(range(24, 27), false, a, inststruct(range(26, 27), name-range(range(26, 27), a)))]))]
 	funs: [])

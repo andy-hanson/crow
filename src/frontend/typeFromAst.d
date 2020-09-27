@@ -43,7 +43,7 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 	immutable Opt!StructOrAlias opDecl = tryFindT!(StructOrAlias, Alloc)(
 		alloc,
 		ctx,
-		ast.name,
+		ast.name.name,
 		ast.range,
 		structsAndAliasesMap,
 		Diag.DuplicateImports.Kind.type,

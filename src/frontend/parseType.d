@@ -2,8 +2,8 @@ module frontend.parseType;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast : matchTypeAst, range, TypeAst;
-import frontend.lexer : addDiag, addDiagAtChar, curPos, Lexer, range, takeName, takeOrAddDiagExpected, tryTake;
+import frontend.ast : matchTypeAst, NameAndRange, range, TypeAst;
+import frontend.lexer : addDiag, addDiagAtChar, curPos, Lexer, range, takeNameAndRange, takeOrAddDiagExpected, tryTake;
 
 import parseDiag : ParseDiag;
 
@@ -76,7 +76,7 @@ immutable(TypeAst) parseTypeWorker(Alloc, SymAlloc)(
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable Bool isTypeParam = tryTake(lexer, '?');
-	immutable Sym name = takeName(alloc, lexer);
+	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
 	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsWorker(alloc, lexer, isInner);
 	immutable Arr!TypeAst typeArgsArr = toArr(typeArgs);
 	if (isTypeParam && !empty(typeArgsArr))
@@ -84,6 +84,6 @@ immutable(TypeAst) parseTypeWorker(Alloc, SymAlloc)(
 			immutable ParseDiag(immutable ParseDiag.TypeParamCantHaveTypeArgs()));
 	immutable SourceRange rng = range(lexer, start);
 	return isTypeParam
-		? TypeAst(TypeAst.TypeParam(rng, name))
-		: TypeAst(TypeAst.InstStruct(rng, name, typeArgs));
+		? immutable TypeAst(immutable TypeAst.TypeParam(rng, name.name))
+		: immutable TypeAst(immutable TypeAst.InstStruct(rng, name, typeArgs));
 }

@@ -408,7 +408,7 @@ immutable(Sig) checkSig(Alloc)(
 		checkParams(alloc, ctx, toArr(ast.params), structsAndAliasesMap, typeParamsScope, delayStructInsts);
 	immutable Type returnType =
 		typeFromAst(alloc, ctx, ast.returnType, structsAndAliasesMap, typeParamsScope, delayStructInsts);
-	return Sig(ast.range, ast.name, returnType, params);
+	return Sig(ast.range, ast.name.name, returnType, params);
 }
 
 immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(immutable Sym name) {
@@ -453,8 +453,9 @@ immutable(Arr!SpecDecl) checkSpecDecls(Alloc)(
 ) {
 	return map!SpecDecl(alloc, asts, (ref immutable SpecDeclAst ast) {
 		immutable Arr!TypeParam typeParams = checkTypeParams(alloc, ctx, ast.typeParams);
-		immutable SpecBody body_ = checkSpecBody(alloc, ctx, typeParams, structsAndAliasesMap, ast.name, ast.body_);
-		return immutable SpecDecl(ast.range, ast.isPublic, ast.name, typeParams, body_);
+		immutable SpecBody body_ =
+			checkSpecBody(alloc, ctx, typeParams, structsAndAliasesMap, ast.name.name, ast.body_);
+		return immutable SpecDecl(ast.range, ast.isPublic, ast.name.name, typeParams, body_);
 	});
 }
 

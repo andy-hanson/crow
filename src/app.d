@@ -62,3 +62,12 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 
 	return cli(argc, argv);
 }
+
+private:
+
+pure void trustedPrint(int i) {
+	import core.stdc.stdio : printf;
+	debug {
+		printf("%d\n", i);
+	}
+}

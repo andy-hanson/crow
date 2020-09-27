@@ -7,5 +7,5 @@ file-ast(
 	funs: [
 		fun-decl(
 			public?: true
-			sig: sig-ast(range(0, 8), f, inststruct(range(2, 6), void), [])
+			sig: sig-ast(range(0, 8), name-range(range(0, 1), f), inststruct(range(2, 6), name-range(range(2, 6), void)), [])
 			body: let(name-range(range(10, 11), a), literal(numeric, "1"), bogus))])

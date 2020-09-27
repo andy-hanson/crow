@@ -1,0 +1,93 @@
+module util.collection.sortUtil;
+
+@safe @nogc pure nothrow:
+
+import util.bools : Bool;
+import util.collection.arr : Arr, at, empty, first, size;
+import util.collection.arrUtil : tail;
+import util.comparison : Comparer, Comparison;
+import util.opt : none, Opt, some;
+
+void eachSorted(T, A0, A1, A2, A3)(
+	immutable T lastComparable,
+	immutable Comparer!T comparer,
+	immutable Arr!A0 a0,
+	scope immutable(T) delegate(ref immutable A0) @safe @nogc pure nothrow getComparable0,
+	scope void delegate(ref immutable A0) @safe @nogc pure nothrow cb0,
+	immutable Arr!A1 a1,
+	scope immutable(T) delegate(ref immutable A1) @safe @nogc pure nothrow getComparable1,
+	scope void delegate(ref immutable A1) @safe @nogc pure nothrow cb1,
+	immutable Arr!A2 a2,
+	scope immutable(T) delegate(ref immutable A2) @safe @nogc pure nothrow getComparable2,
+	scope void delegate(ref immutable A2) @safe @nogc pure nothrow cb2,
+	immutable Arr!A3 a3,
+	scope immutable(T) delegate(ref immutable A3) @safe @nogc pure nothrow getComparable3,
+	scope void delegate(ref immutable A3) @safe @nogc pure nothrow cb3,
+) {
+	if (!empty(a0) || !empty(a1) || !empty(a2) || !empty(a3)) {
+		immutable T c0 = empty(a0) ? lastComparable : getComparable0(first(a0));
+		immutable T c1 = empty(a1) ? lastComparable : getComparable1(first(a1));
+		immutable Bool less01 = immutable Bool(comparer(c0, c1) != Comparison.greater);
+		immutable T min01 = less01 ? c0 : c1;
+		immutable T c2 = empty(a2) ? lastComparable : getComparable2(first(a2));
+		immutable T c3 = empty(a3) ? lastComparable : getComparable3(first(a3));
+		immutable Bool less23 = immutable Bool(comparer(c2, c3) != Comparison.greater);
+		immutable T min23 = less23 ? c2 : c3;
+		if (comparer(min01, min23) != Comparison.greater) {
+			if (less01) {
+				cb0(first(a0));
+				eachSorted!(T, A0, A1, A2, A3)(
+					lastComparable, comparer,
+					tail(a0), getComparable0, cb0,
+					a1, getComparable1, cb1,
+					a2, getComparable2, cb2,
+					a3, getComparable3, cb3);
+			} else {
+				cb1(first(a1));
+				eachSorted!(T, A0, A1, A2, A3)(
+					lastComparable, comparer,
+					a0, getComparable0, cb0,
+					tail(a1), getComparable1, cb1,
+					a2, getComparable2, cb2,
+					a3, getComparable3, cb3);
+			}
+		} else {
+			if (less23) {
+				cb2(first(a2));
+				eachSorted!(T, A0, A1, A2, A3)(
+					lastComparable, comparer,
+					a0, getComparable0, cb0,
+					a1, getComparable1, cb1,
+					tail(a2), getComparable2, cb2,
+					a3, getComparable3, cb3);
+			} else {
+				cb3(first(a3));
+				eachSorted!(T, A0, A1, A2, A3)(
+					lastComparable, comparer,
+					a0, getComparable0, cb0,
+					a1, getComparable1, cb1,
+					a2, getComparable2, cb2,
+					tail(a3), getComparable3, cb3);
+			}
+		}
+	}
+}
+
+struct UnsortedPair {
+	immutable size_t index0;
+	immutable size_t index1;
+}
+
+// Returns index of lower value
+immutable(Opt!UnsortedPair) findUnsortedPair(T)(ref immutable Arr!T a, immutable Comparer!T compare) {
+	foreach (immutable size_t i; 0..size(a) - 1) {
+		final switch (compare(at(a, i), at(a, i + 1))) {
+			case Comparison.less:
+			case Comparison.equal:
+				break;
+			case Comparison.greater:
+				return some(immutable UnsortedPair(i, i + 1));
+		}
+	}
+	return none!UnsortedPair;
+}

@@ -13,6 +13,7 @@ import frontend.ast :
 	FunBodyAst,
 	FunDeclAst,
 	ImportAst,
+	NameAndRange,
 	ParamAst,
 	PuritySpecifier,
 	SigAst,
@@ -41,6 +42,7 @@ import frontend.lexer :
 	takeIndentOrDiagTopLevel,
 	takeIndentOrDiagTopLevelAfterNewline,
 	takeName,
+	takeNameAndRange,
 	takeNameAllowReserved,
 	takeNewlineOrDedentAmount,
 	takeNewlineOrIndent_topLevel,
@@ -199,7 +201,7 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
-	immutable Sym name,
+	immutable NameAndRange name,
 ) {
 	immutable TypeAst returnType = parseType(alloc, lexer);
 	immutable ParamsAndMaybeDedent params = parseParams(alloc, lexer);
@@ -209,7 +211,7 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 
 immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
-	immutable Sym sigName = takeName(alloc, lexer);
+	immutable NameAndRange sigName = takeNameAndRange(alloc, lexer);
 	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 	immutable SigAstAndMaybeDedent s = parseSigAfterNameAndSpace(alloc, lexer, start, sigName);
 	immutable size_t dedents = s.dedents.has ? s.dedents.force : takeNewlineOrDedentAmount(alloc, lexer);
@@ -356,7 +358,7 @@ immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
 	ArrBuilder!(TypeAst.InstStruct) res;
 	do {
 		immutable Pos start = curPos(lexer);
-		immutable Sym name = takeName(alloc, lexer);
+		immutable NameAndRange name = takeNameAndRange(alloc, lexer);
 		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		add(alloc, res, immutable TypeAst.InstStruct(range(lexer, start), name, typeArgs));
 	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
@@ -563,7 +565,7 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable Bool isPublic,
 	immutable Pos start,
-	immutable Sym name,
+	immutable NameAndRange name,
 	immutable Arr!TypeParamAst typeParams,
 ) {
 	immutable SigAstAndMaybeDedent sig = parseSigAfterNameAndSpace(alloc, lexer, start, name);
@@ -588,6 +590,7 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 	}();
 	immutable SpecUsesAndSigFlagsAndKwBody extra = stuff.extra;
 	return FunDeclAst(
+		range(lexer, start),
 		typeParams,
 		sig.sig,
 		extra.specUses,
@@ -609,7 +612,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 	ref ArrBuilder!FunDeclAst funs,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable Sym name = takeName(alloc, lexer);
+	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
 	immutable Arr!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
 	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 
@@ -644,7 +647,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				add(
 					alloc,
 					structAliases,
-					immutable StructAliasAst(range(lexer, start), isPublic, name, typeParams, target));
+					immutable StructAliasAst(range(lexer, start), isPublic, name.name, typeParams, target));
 				break;
 			case NonFunKeyword.builtinSpec:
 				if (tookIndent)
@@ -709,7 +712,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				add(
 					alloc,
 					structs,
-					immutable StructDeclAst(range(lexer, start), isPublic, name, typeParams, purity, body_));
+					immutable StructDeclAst(range(lexer, start), isPublic, name.name, typeParams, purity, body_));
 				break;
 		}
 	} else {

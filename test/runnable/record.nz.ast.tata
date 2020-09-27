@@ -12,20 +12,29 @@ file-ast(
 			record(
 				none
 				[
-					field(range(29, 34), false, x, inststruct(range(31, 34), nat))
-					field(range(36, 41), false, y, inststruct(range(38, 41), nat))]))]
+					field(range(29, 34), false, x, inststruct(range(31, 34), name-range(range(31, 34), nat)))
+					field(range(36, 41), false, y, inststruct(range(38, 41), name-range(range(38, 41), nat)))]))]
 	funs: [
 		fun-decl(
 			public?: true
 			sig: sig-ast(
 				range(43, 71)
-				main
-				inststruct(range(48, 57), fut, [inststruct(range(52, 57), int32)])
-				[param(range(58, 70), args, inststruct(range(63, 70), arr, [inststruct(range(67, 70), str)]))])
+				name-range(range(43, 47), main)
+				inststruct(range(48, 57), name-range(range(48, 51), fut), [inststruct(range(52, 57), name-range(range(52, 57), int32))])
+				[
+					param(
+						range(58, 70)
+						args
+						inststruct(
+							range(63, 70)
+							name-range(range(63, 66), arr)
+							[inststruct(range(67, 70), name-range(range(67, 70), str))]))])
 			summon: true
 			body: let(
 				name-range(range(80, 81), m)
-				new-record(some(inststruct(range(88, 97), my-record)), [literal(numeric, "1"), literal(numeric, "2")])
+				new-record(
+					some(inststruct(range(88, 97), name-range(range(88, 97), my-record)))
+					[literal(numeric, "1"), literal(numeric, "2")])
 				seq-ast(
 					seq-ast(
 						seq-ast(

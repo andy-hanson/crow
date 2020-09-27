@@ -41,18 +41,12 @@ struct TypeAst {
 
 	struct InstStruct {
 		immutable SourceRange range;
-		immutable Sym name;
+		immutable NameAndRange name;
 		immutable ArrWithSize!TypeAst typeArgs;
 	}
 
-	@trusted this(immutable TypeParam t) {
-		kind = Kind.typeParam;
-		typeParam = t;
-	}
-	@trusted this(immutable InstStruct i) {
-		kind = Kind.instStruct;
-		instStruct = i;
-	}
+	@trusted immutable this(immutable TypeParam a) { kind = Kind.typeParam; typeParam = a; }
+	@trusted immutable this(immutable InstStruct a) { kind = Kind.instStruct; instStruct = a; }
 
 	private:
 
@@ -346,7 +340,7 @@ struct SpecUseAst {
 
 struct SigAst {
 	immutable SourceRange range;
-	immutable Sym name;
+	immutable NameAndRange name;
 	immutable TypeAst returnType;
 	immutable ArrWithSize!ParamAst params;
 }
@@ -486,7 +480,7 @@ struct SpecBodyAst {
 struct SpecDeclAst {
 	immutable SourceRange range;
 	immutable Bool isPublic;
-	immutable Sym name;
+	immutable NameAndRange name;
 	immutable Arr!TypeParamAst typeParams;
 	immutable SpecBodyAst body_;
 }
@@ -536,6 +530,7 @@ struct FunBodyAst {
 }
 
 struct FunDeclAst {
+	immutable SourceRange range;
 	immutable Arr!TypeParamAst typeParams; // If this is empty, infer type params
 	immutable Ptr!SigAst sig; // Ptr to keep this struct from getting too big
 	immutable Arr!SpecUseAst specUses;
@@ -757,7 +752,7 @@ immutable(Sexpr) sexprOfSig(Alloc)(ref Alloc alloc, ref immutable SigAst a) {
 		alloc,
 		"sig-ast",
 		sexprOfSourceRange(alloc, a.range),
-		tataSym(a.name),
+		sexprOfNameAndRange(alloc, a.name),
 		sexprOfTypeAst(alloc, a.returnType),
 		tataArr(alloc, toArr(a.params), (ref immutable ParamAst p) => sexprOfParamAst(alloc, p)));
 }
@@ -782,7 +777,7 @@ immutable(Sexpr) sexprOfOptTypeAst(Alloc)(ref Alloc alloc, immutable Opt!(Ptr!Ty
 
 immutable(Sexpr) sexprOfInstStructAst(Alloc)(ref Alloc alloc, ref immutable TypeAst.InstStruct a) {
 	immutable Sexpr range = sexprOfSourceRange(alloc, a.range);
-	immutable Sexpr name = tataSym(a.name);
+	immutable Sexpr name = sexprOfNameAndRange(alloc, a.name);
 	immutable Opt!Sexpr typeArgs = empty(toArr(a.typeArgs))
 		? none!Sexpr
 		: some(tataArr(alloc, toArr(a.typeArgs), (ref immutable TypeAst t) => sexprOfTypeAst(alloc, t)));

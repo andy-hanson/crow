@@ -12,7 +12,8 @@ struct SourceRange {
 	immutable Pos start;
 	immutable Pos end;
 
-	static immutable SourceRange empty = SourceRange(Pos(0), Pos(0));
+	static immutable SourceRange max = immutable SourceRange(Pos(u32.max), Pos(u32.max));
+	static immutable SourceRange empty = immutable SourceRange(Pos(0), Pos(0));
 }
 
 immutable(Sexpr) sexprOfSourceRange(Alloc)(ref Alloc alloc, immutable SourceRange a) {

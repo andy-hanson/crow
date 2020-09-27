@@ -13,6 +13,71 @@ body {
 	color: #004;
 }
 
+:root {
+	--font-size: 14px;
+	--line-height: 1.5em;
+}
+
+.noze {
+	margin: 0;
+	padding: 0;
+	width: 600px;
+	height: 400px;
+	position: relative;
+	-moz-tab-size: 4;
+	tab-size: 4;
+	font-family: monospace;
+	font-size: var(--font-size);
+	line-height: var(--line-height);
+	white-space: pre;
+}
+
+.noze .highlight {
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 10;
+	user-select: none;
+}
+
+.noze .highlight .tab {
+	width: 4em;
+}
+
+.noze .highlight .line {
+	/* Needed to ensure blank lines take up space */
+	height: var(--line-height);
+}
+
+.noze .highlight span.keyword {
+	color: blue;
+}
+
+.noze .highlight span.name {
+	color: green;
+}
+
+.noze textarea {
+	z-index: 0;
+	margin: 0;
+	padding: 0;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	/* Visible enough that I can tell if the highlight is not lined up,
+		but not visible enough to lessen the highlight. */
+	color: rgba(0, 0, 0, 0.1);
+	/* In contrast, cursor should remain 100% visible. */
+	caret-color: rgba(0, 0, 0, 1.0);
+	background-color: transparent;
+	border: none;
+	line-height: var(--line-height);
+	font-size: var(--font-size);
+}
+
 pre {
 	background-color: #aaa;
 }
