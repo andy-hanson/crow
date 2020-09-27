@@ -159,7 +159,7 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 	}();
 	immutable Ptr!ExprAst then = allocExpr(alloc, thenAndDedent.expr);
 	immutable ExprAstKind exprKind = isArrow
-		? immutable ExprAstKind(immutable ThenAst(immutable LambdaAst.Param(name.range, name.name), init, then))
+		? immutable ExprAstKind(immutable ThenAst(name, init, then))
 		: immutable ExprAstKind(immutable LetAst(name, init, then));
 	// Since we don't always expect a dedent here,
 	// the dedent isn't *extra*, so increment to get the correct number of dedents.
@@ -491,10 +491,9 @@ immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
 			} else
 				return tryTake(lexer, ' ');
 		}();
-		if (success) {
-			immutable NameAndRange nr = takeNameAndRange(alloc, lexer);
-			add(alloc, parameters, immutable LambdaAst.Param(nr.range, nr.name));
-		} else {
+		if (success)
+			add(alloc, parameters, takeNameAndRange(alloc, lexer));
+		else {
 			addDiagAtChar(alloc, lexer, immutable ParseDiag(
 				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.space)));
 			skipUntilNewlineNoDiag(lexer);
@@ -558,12 +557,11 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 		case ExpressionToken.Kind.lbrace:
 			immutable Ptr!ExprAst body_ = allocExpr(alloc, parseExprNoBlock(alloc, lexer));
 			takeOrAddDiagExpected(alloc, lexer, '}', ParseDiag.Expected.Kind.closingBrace);
-			immutable SourceRange range = getRange();
 			immutable Arr!(LambdaAst.Param) params = bodyUsesIt(body_)
-				? arrLiteral!(LambdaAst.Param)(alloc, LambdaAst.Param(range, shortSymAlphaLiteral("it")))
+				? arrLiteral!(LambdaAst.Param)(alloc, immutable LambdaAst.Param(start, shortSymAlphaLiteral("it")))
 				: emptyArr!(LambdaAst.Param);
 			immutable ExprAst expr = immutable ExprAst(
-				range,
+				getRange(),
 				immutable ExprAstKind(immutable LambdaAst(params, body_)));
 			return noDedent(tryParseDots(alloc, lexer, expr));
 		case ExpressionToken.Kind.literal:

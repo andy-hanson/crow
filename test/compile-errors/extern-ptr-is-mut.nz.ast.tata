@@ -10,7 +10,5 @@ file-ast(
 			true
 			[]
 			none
-			record(
-				none
-				[field(range(24, 27), false, name-range(range(24, 25), a), inststruct(range(26, 27), name-range(range(26, 27), a)))]))]
+			record(none, [field(range(24, 27), false, name-range(24, a), inststruct(range(26, 27), name-range(26, a)))]))]
 	funs: [])

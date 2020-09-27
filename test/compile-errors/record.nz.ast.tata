@@ -12,22 +12,18 @@ file-ast(
 			record(
 				none
 				[
-					field(range(18, 23), false, name-range(range(18, 19), x), inststruct(range(20, 23), name-range(range(20, 23), int)))
-					field(range(25, 30), false, name-range(range(25, 26), y), inststruct(range(27, 30), name-range(range(27, 30), int)))
-					field(range(32, 37), false, name-range(range(32, 33), z), inststruct(range(34, 37), name-range(range(34, 37), int)))
-					field(range(39, 44), false, name-range(range(39, 40), w), inststruct(range(41, 44), name-range(range(41, 44), int)))]))]
+					field(range(18, 23), false, name-range(18, x), inststruct(range(20, 23), name-range(20, int)))
+					field(range(25, 30), false, name-range(25, y), inststruct(range(27, 30), name-range(27, int)))
+					field(range(32, 37), false, name-range(32, z), inststruct(range(34, 37), name-range(34, int)))
+					field(range(39, 44), false, name-range(39, w), inststruct(range(41, 44), name-range(41, int)))]))]
 	funs: [
 		fun-decl(
 			public?: true
-			sig: sig-ast(
-				range(46, 72)
-				name-range(range(46, 60), make-my-record)
-				inststruct(range(61, 70), name-range(range(61, 70), my-record))
-				[])
+			sig: sig-ast(range(46, 72), make-my-record, inststruct(range(61, 70), name-range(61, my-record)), [])
 			body: new-record(
 				none
 				[
-					line(name-range(range(80, 81), x), literal(numeric, "1"))
-					line(name-range(range(87, 88), y), literal(numeric, "2"))
-					line(name-range(range(94, 97), zee), literal(numeric, "3"))
-					line(name-range(range(103, 104), w), literal(numeric, "4"))]))])
+					line(name-range(80, x), literal(numeric, "1"))
+					line(name-range(87, y), literal(numeric, "2"))
+					line(name-range(94, zee), literal(numeric, "3"))
+					line(name-range(103, w), literal(numeric, "4"))]))])

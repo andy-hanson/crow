@@ -22,14 +22,26 @@ import util.sexpr :
 	tataRecord,
 	tataStr,
 	tataSym;
-import util.sourceRange : sexprOfSourceRange, SourceRange;
-import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : u8;
+import util.sourceRange : Pos, sexprOfSourceRange, SourceRange;
+import util.sym : shortSymAlphaLiteral, Sym, symSize;
+import util.types : safeSizeTToU32, u8;
 import util.util : todo, unreachable, verify;
 
 struct NameAndRange {
-	immutable SourceRange range;
+	@safe @nogc pure nothrow:
+
 	immutable Sym name;
+	// Range length is given by size of name
+	immutable Pos start;
+
+	immutable this(immutable Pos s, immutable Sym n) {
+		name = n;
+		start = s;
+	}
+}
+
+immutable(SourceRange) rangeOfNameAndRange(immutable NameAndRange a) {
+	return immutable SourceRange(a.start, safeSizeTToU32(a.start + symSize(a.name)));
 }
 
 struct TypeAst {
@@ -84,16 +96,34 @@ immutable(SourceRange) range(ref immutable TypeAst a) {
 struct BogusAst {}
 
 struct CallAst {
+	@safe @nogc pure nothrow:
+
 	enum Style {
 		dot, // `a.b`
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
 		prefix, // `a: b`, `a: b, c`, etc.
 		single, // `a<t>` (without the type arg, it would just be an Identifier)
 	}
+	// For some reason we have to break this up to get the struct size lower
+	//immutable NameAndRange funName;
+	immutable Sym funNameName;
+	immutable Pos funNameStart;
 	immutable Style style;
-	immutable NameAndRange funName;
 	immutable ArrWithSize!TypeAst typeArgs;
 	immutable Arr!ExprAst args;
+
+	immutable this(
+		immutable Style s, immutable NameAndRange f, immutable ArrWithSize!TypeAst t, immutable Arr!ExprAst a) {
+		funNameName = f.name;
+		funNameStart = f.start;
+		style = s;
+		typeArgs = t;
+		args = a;
+	}
+
+	immutable(NameAndRange) funName() immutable {
+		return immutable NameAndRange(funNameStart, funNameName);
+	}
 }
 
 struct WhenAst {
@@ -131,11 +161,7 @@ struct IdentifierAst {
 }
 
 struct LambdaAst {
-	struct Param {
-		immutable SourceRange range;
-		immutable Sym name;
-	}
-
+	alias Param = NameAndRange;
 	immutable Arr!Param params;
 	immutable Ptr!ExprAst body_;
 }
@@ -346,8 +372,10 @@ struct SpecUseAst {
 }
 
 struct SigAst {
+	@safe @nogc pure nothrow:
+
 	immutable SourceRange range;
-	immutable NameAndRange name;
+	immutable Sym name; // Range starts at sig.range.start
 	immutable TypeAst returnType;
 	immutable ArrWithSize!ParamAst params;
 }
@@ -368,7 +396,7 @@ struct PuritySpecifierAndRange {
 struct StructAliasAst {
 	immutable SourceRange range;
 	immutable Bool isPublic;
-	immutable NameAndRange name;
+	immutable Sym name;
 	immutable Arr!TypeParamAst typeParams;
 	immutable TypeAst.InstStruct target;
 }
@@ -378,10 +406,24 @@ enum ExplicitByValOrRef {
 	byRef,
 }
 
+immutable(Sym) symOfExplicitByValOrRef(immutable ExplicitByValOrRef a) {
+	final switch (a) {
+		case ExplicitByValOrRef.byVal:
+			return shortSymAlphaLiteral("by-val");
+		case ExplicitByValOrRef.byRef:
+			return shortSymAlphaLiteral("by-ref");
+	}
+}
+
 struct ExplicitByValOrRefAndRange {
-	immutable SourceRange range;
+	immutable Pos start;
 	immutable ExplicitByValOrRef byValOrRef;
 }
+
+immutable(SourceRange) rangeOfExplicitByValOrRef(ref immutable ExplicitByValOrRefAndRange a) {
+	return immutable SourceRange(a.start, safeSizeTToU32(a.start + symSize(symOfExplicitByValOrRef(a.byValOrRef))));
+}
+
 
 struct StructDeclAst {
 	struct Body {
@@ -428,7 +470,7 @@ struct StructDeclAst {
 
 	immutable SourceRange range;
 	immutable Bool isPublic;
-	immutable NameAndRange name;
+	immutable Sym name; // start is range.start
 	immutable Arr!TypeParamAst typeParams;
 	immutable Opt!PuritySpecifierAndRange purity;
 	immutable Body body_;
@@ -497,7 +539,7 @@ struct SpecBodyAst {
 struct SpecDeclAst {
 	immutable SourceRange range;
 	immutable Bool isPublic;
-	immutable NameAndRange name;
+	immutable Sym name;
 	immutable Arr!TypeParamAst typeParams;
 	immutable SpecBodyAst body_;
 }
@@ -684,15 +726,8 @@ immutable(Sexpr) sexprOfOptExplicitByValOrRefAndRange(Alloc)(
 		tataRecord(
 			alloc,
 			"by-val-ref",
-			sexprOfSourceRange(alloc, it.range),
-			tataSym(() {
-				final switch (it.byValOrRef) {
-					case ExplicitByValOrRef.byVal:
-						return "by-val";
-					case ExplicitByValOrRef.byRef:
-						return "by-ref";
-				}
-			}())));
+			tataNat(it.start),
+			tataSym(symOfExplicitByValOrRef(it.byValOrRef))));
 }
 
 immutable(Sexpr) sexprOfField(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Record.Field a) {
@@ -782,7 +817,7 @@ immutable(Sexpr) sexprOfSig(Alloc)(ref Alloc alloc, ref immutable SigAst a) {
 		alloc,
 		"sig-ast",
 		sexprOfSourceRange(alloc, a.range),
-		sexprOfNameAndRange(alloc, a.name),
+		tataSym(a.name),
 		sexprOfTypeAst(alloc, a.returnType),
 		tataArr(alloc, toArr(a.params), (ref immutable ParamAst p) => sexprOfParamAst(alloc, p)));
 }
@@ -844,8 +879,8 @@ immutable(Sexpr) sexprOfExprAst(Alloc)(ref Alloc alloc, ref immutable ExprAst as
 	return sexprOfExprAstKind(alloc, ast.kind);
 }
 
-immutable(Sexpr) sexprOfNameAndRange(Alloc)(ref Alloc alloc, ref immutable NameAndRange a) {
-	return tataRecord(alloc, "name-range", sexprOfSourceRange(alloc, a.range), tataSym(a.name));
+immutable(Sexpr) sexprOfNameAndRange(Alloc)(ref Alloc alloc, immutable NameAndRange a) {
+	return tataRecord(alloc, "name-range", tataNat(a.start), tataSym(a.name));
 }
 
 immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKind ast) {
@@ -896,7 +931,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 				alloc,
 				"lambda",
 				tataArr(alloc, a.params, (ref immutable LambdaAst.Param it) =>
-					sexprOfLambdaParamAst(alloc, it))),
+					sexprOfNameAndRange(alloc, it))),
 		(ref immutable LetAst a) =>
 			tataRecord(
 				alloc,
@@ -952,7 +987,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 			tataRecord(
 				alloc,
 				"then-ast",
-				sexprOfLambdaParamAst(alloc, it.left),
+				sexprOfNameAndRange(alloc, it.left),
 				sexprOfExprAst(alloc, it.futExpr),
 				sexprOfExprAst(alloc, it.then)),
 		(ref immutable WhenAst e) =>
@@ -980,12 +1015,4 @@ immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 		case CallAst.Style.single:
 			return shortSymAlphaLiteral("single");
 	}
-}
-
-immutable(Sexpr) sexprOfLambdaParamAst(Alloc)(ref Alloc alloc, ref immutable LambdaAst.Param a) {
-	return tataRecord(
-		alloc,
-		"param",
-		sexprOfSourceRange(alloc, a.range),
-		tataSym(a.name));
 }

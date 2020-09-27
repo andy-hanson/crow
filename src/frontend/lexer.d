@@ -2,7 +2,7 @@ module frontend.lexer;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast : LiteralAst, NameAndRange;
+import frontend.ast : LiteralAst, NameAndRange, rangeOfNameAndRange;
 
 import parseDiag : ParseDiag, ParseDiagnostic;
 
@@ -76,7 +76,11 @@ immutable(char) curChar(SymAlloc)(ref const Lexer!SymAlloc lexer) {
 }
 
 immutable(Pos) curPos(SymAlloc)(ref const Lexer!SymAlloc lexer) {
-	return safeSizeTToU32(lexer.ptr - lexer.sourceBegin);
+	return posOfPtr(lexer, lexer.ptr);
+}
+
+immutable(Pos) posOfPtr(SymAlloc)(ref const Lexer!SymAlloc lexer, immutable CStr ptr) {
+	return safeSizeTToU32(ptr - lexer.sourceBegin);
 }
 
 void addDiag(Alloc, SymAlloc)(
@@ -344,7 +348,7 @@ void addDiagOnReservedName(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable NameAndRange name,
 ) {
-	return addDiag(alloc, lexer, name.range, immutable ParseDiag(immutable ParseDiag.ReservedName(name.name)));
+	addDiag(alloc, lexer, rangeOfNameAndRange(name), immutable ParseDiag(immutable ParseDiag.ReservedName(name.name)));
 }
 
 struct SymAndIsReserved {
@@ -356,10 +360,10 @@ immutable(SymAndIsReserved) takeNameAllowReserved(Alloc, SymAlloc)(ref Alloc all
 	immutable StrAndIsOperator s = takeNameAsTempStr(alloc, lexer);
 	if (s.isOperator) {
 		immutable Sym op = getSymFromOperator(lexer.allSymbols.deref, s.str);
-		return SymAndIsReserved(immutable NameAndRange(s.range, op), op.symEq(shortSymOperatorLiteral("=")));
+		return immutable SymAndIsReserved(immutable NameAndRange(s.start, op), op.symEq(shortSymOperatorLiteral("=")));
 	} else {
 		immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, s.str);
-		return SymAndIsReserved(immutable NameAndRange(s.range, name), name.isReservedName);
+		return immutable SymAndIsReserved(immutable NameAndRange(s.start, name), name.isReservedName);
 	}
 }
 
@@ -430,6 +434,7 @@ immutable(Bool) isNameAndRange(ref immutable ExpressionToken a) {
 
 immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable CStr begin = lexer.ptr;
+	immutable Pos start = curPos(lexer);
 	immutable char c = next(lexer);
 	switch (c) {
 		case '(':
@@ -452,7 +457,6 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 			else if (isAlphaIdentifierStart(c)) {
 				immutable Str nameStr = takeNameRest(lexer, begin);
 				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
-				immutable SourceRange nameRange = range(lexer, begin);
 				if (name.isReservedName)
 					switch (name.value) {
 						case shortSymAlphaLiteralValue("else"):
@@ -466,11 +470,11 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 						case shortSymAlphaLiteralValue("when"):
 							return immutable ExpressionToken(ExpressionToken.Kind.when);
 						default:
-							addDiagOnReservedName(alloc, lexer, immutable NameAndRange(nameRange, name));
+							addDiagOnReservedName(alloc, lexer, immutable NameAndRange(start, name));
 							return immutable ExpressionToken(ExpressionToken.Kind.unexpected);
 					}
 				else
-					return immutable ExpressionToken(immutable NameAndRange(nameRange, name));
+					return immutable ExpressionToken(immutable NameAndRange(start, name));
 			} else if (isDigit(c))
 				return takeNumber(alloc, lexer, begin);
 			else {
@@ -552,7 +556,9 @@ immutable(SourceRange) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr 
 
 immutable(ExpressionToken) takeOperator(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
 	immutable Str name = takeOperatorRest(lexer, begin);
-	return ExpressionToken(NameAndRange(range(lexer, begin), lexer.allSymbols.getSymFromOperator(name)));
+	return immutable ExpressionToken(
+		immutable NameAndRange(posOfPtr(lexer, begin),
+		getSymFromOperator(lexer.allSymbols, name)));
 }
 
 immutable(size_t) toHexDigit(immutable char c) {
@@ -642,7 +648,7 @@ immutable(size_t) toHexDigit(immutable char c) {
 		immutable u32 res = (lexer.ptr - begin).safeSizeTToU32;
 		return res;
 	} else {
-		immutable Pos start = lexer.curPos;
+		immutable Pos start = curPos(lexer);
 		while (*lexer.ptr == ' ')
 			lexer.ptr++;
 		if (*lexer.ptr == '\t')
@@ -726,29 +732,29 @@ immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(ref Alloc all
 
 struct StrAndIsOperator {
 	immutable Str str;
-	immutable SourceRange range;
+	immutable Pos start;
 	immutable Bool isOperator;
 }
 
 @trusted immutable(StrAndIsOperator) takeNameAsTempStr(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable CStr begin = lexer.ptr;
+	immutable Pos start = curPos(lexer);
 	if (isOperatorChar(*lexer.ptr)) {
 		lexer.ptr++;
 		immutable Str op = takeOperatorRest(lexer, begin);
-		return immutable StrAndIsOperator(op, range(lexer, begin), True);
+		return immutable StrAndIsOperator(op, start, True);
 	} else if (isAlphaIdentifierStart(*lexer.ptr)) {
 		lexer.ptr++;
 		immutable Str name = takeNameRest(lexer, begin);
-		return immutable StrAndIsOperator(name, range(lexer, begin), False);
+		return immutable StrAndIsOperator(name, start, False);
 	} else {
 		while (*lexer.ptr != ' ' && *lexer.ptr != '\n')
 			lexer.ptr++;
 		// Copy since it's used in a diag
 		immutable Str s = copyStr(alloc, arrOfRange(begin, lexer.ptr));
-		immutable SourceRange range = range(lexer, begin);
-		addDiag(alloc, lexer, range, immutable ParseDiag(
+		addDiag(alloc, lexer, range(lexer, begin), immutable ParseDiag(
 			immutable ParseDiag.InvalidName(s)));
-		return immutable StrAndIsOperator(s, range, False);
+		return immutable StrAndIsOperator(s, start, False);
 	}
 }
 

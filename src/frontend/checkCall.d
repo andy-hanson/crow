@@ -214,7 +214,7 @@ immutable(CheckedExpr) checkIdentifierCall(Alloc)(
 	//TODO:NEATER (don't make a synthetic AST, just directly call an appropriate function)
 	immutable CallAst callAst = immutable CallAst(
 		CallAst.Style.single,
-		immutable NameAndRange(range, name),
+		immutable NameAndRange(range.start, name),
 		emptyArrWithSize!TypeAst,
 		emptyArr!ExprAst);
 	return checkCall(alloc, ctx, range, callAst, expected);

@@ -9,7 +9,7 @@ file-ast(
 			public?: true
 			sig: sig-ast(
 				range(0, 16)
-				name-range(range(0, 1), f)
-				inststruct(range(2, 6), name-range(range(2, 6), void))
-				[param(range(7, 15), name-range(range(7, 8), a), type-param(range(9, 15), a))])
+				f
+				inststruct(range(2, 6), name-range(2, void))
+				[param(range(7, 15), name-range(7, a), type-param(range(9, 15), a))])
 			body: pass)])

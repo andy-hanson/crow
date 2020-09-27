@@ -7,13 +7,13 @@ file-ast(
 	funs: [
 		fun-decl(
 			public?: true
-			sig: sig-ast(range(0, 8), name-range(range(0, 1), f), inststruct(range(2, 6), name-range(range(2, 6), void)), [])
+			sig: sig-ast(range(0, 8), f, inststruct(range(2, 6), name-range(2, void)), [])
 			body: seq-ast(
 				seq-ast(
 					when([case(bogus, literal(numeric, "0"))], some(literal(numeric, "1")))
 					match(
 						some(bogus)
 						[
-							case(range(54, 66), name-range(range(54, 58), some), none, literal(numeric, "0"))
-							case(range(66, 77), name-range(range(66, 70), none), none, literal(numeric, "1"))]))
+							case(range(54, 66), name-range(54, some), none, literal(numeric, "0"))
+							case(range(66, 77), name-range(66, none), none, literal(numeric, "1"))]))
 				bogus))])

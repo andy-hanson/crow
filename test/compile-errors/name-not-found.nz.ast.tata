@@ -12,18 +12,16 @@ file-ast(
 			record(
 				none
 				[
-					field(range(10, 13), false, name-range(range(10, 11), f), inststruct(range(12, 13), name-range(range(12, 13), t)))
-					field(range(15, 19), false, name-range(range(15, 16), g), type-param(range(17, 19), a))
+					field(range(10, 13), false, name-range(10, f), inststruct(range(12, 13), name-range(12, t)))
+					field(range(15, 19), false, name-range(15, g), type-param(range(17, 19), a))
 					field(
 						range(21, 27)
 						false
-						name-range(range(21, 22), h)
-						inststruct(range(23, 27), name-range(range(23, 24), t), [type-param(range(25, 27), a)]))]))
-		struct(range(29, 41), true, [], none, union([inststruct(range(38, 39), name-range(range(38, 39), t))]))]
+						name-range(21, h)
+						inststruct(range(23, 27), name-range(23, t), [type-param(range(25, 27), a)]))]))
+		struct(range(29, 41), true, [], none, union([inststruct(range(38, 39), name-range(38, t))]))]
 	funs: [
 		fun-decl(
 			public?: true
-			sig: sig-ast(range(41, 48), name-range(range(41, 44), foo), inststruct(range(45, 46), name-range(range(45, 46), t)), [])
-			body: seq-ast(
-				seq-ast(x, call(prefix, name-range(range(55, 56), y), [], [a]))
-				call(prefix, name-range(range(60, 61), z), [], [a, b])))])
+			sig: sig-ast(range(41, 48), foo, inststruct(range(45, 46), name-range(45, t)), [])
+			body: seq-ast(seq-ast(x, call(infix, name-range(55, y), [], [a])), call(infix, name-range(60, z), [], [a, b])))])

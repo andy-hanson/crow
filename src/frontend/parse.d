@@ -209,7 +209,7 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
-	immutable NameAndRange name,
+	immutable Sym name,
 ) {
 	immutable TypeAst returnType = parseType(alloc, lexer);
 	immutable ParamsAndMaybeDedent params = parseParams(alloc, lexer);
@@ -219,7 +219,7 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 
 immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
-	immutable NameAndRange sigName = takeNameAndRange(alloc, lexer);
+	immutable Sym sigName = takeName(alloc, lexer);
 	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 	immutable SigAstAndMaybeDedent s = parseSigAfterNameAndSpace(alloc, lexer, start, sigName);
 	immutable size_t dedents = s.dedents.has ? s.dedents.force : takeNewlineOrDedentAmount(alloc, lexer);
@@ -344,7 +344,7 @@ immutable(StructDeclAst.Body.Record) parseFields(Alloc, SymAlloc)(
 						: ExplicitByValOrRef.byRef;
 					if (has(prevExplicitByValOrRef) || !arrBuilderIsEmpty(res))
 						todo!void("by-val or by-ref on later line");
-					return some(immutable ExplicitByValOrRefAndRange(name.range, value));
+					return some(immutable ExplicitByValOrRefAndRange(name.start, value));
 				default:
 					takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 					immutable Bool isMutable = tryTake(lexer, "mut ");
@@ -578,7 +578,7 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable Bool isPublic,
 	immutable Pos start,
-	immutable NameAndRange name,
+	immutable Sym name,
 	immutable Arr!TypeParamAst typeParams,
 ) {
 	immutable SigAstAndMaybeDedent sig = parseSigAfterNameAndSpace(alloc, lexer, start, name);
@@ -625,7 +625,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 	ref ArrBuilder!FunDeclAst funs,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
+	immutable Sym name = takeName(alloc, lexer);
 	immutable Arr!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
 	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 

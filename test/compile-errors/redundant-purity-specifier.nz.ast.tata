@@ -7,10 +7,5 @@ file-ast(
 		struct(range(0, 16), true, [], some(purity(range(10, 14), data)), builtin)
 		struct(range(16, 34), true, [], some(purity(range(29, 32), mut)), extern)
 		struct(range(34, 49), true, [], some(purity(range(43, 47), data)), record(none, []))
-		struct(
-			range(49, 65)
-			true
-			[]
-			some(purity(range(57, 61), data))
-			union([inststruct(range(63, 64), name-range(range(63, 64), r))]))]
+		struct(range(49, 65), true, [], some(purity(range(57, 61), data)), union([inststruct(range(63, 64), name-range(63, r))]))]
 	funs: [])

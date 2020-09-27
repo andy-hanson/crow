@@ -214,6 +214,7 @@ immutable(Comparison) compareType(ref immutable Type a, ref immutable Type b) {
 }
 
 struct Param {
+	//TODO: use NameAndRange (more compact)
 	immutable SourceRange range;
 	immutable Sym name;
 	immutable Type type;
@@ -1082,6 +1083,7 @@ struct Program {
 }
 
 struct Local {
+	//TODO: use NameAndRange (more compact)
 	immutable SourceRange range;
 	immutable Sym name;
 	immutable Type type;

@@ -18,6 +18,7 @@ import frontend.ast :
 	matchTypeAst,
 	ParamAst,
 	PuritySpecifier,
+	rangeOfNameAndRange,
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
@@ -409,7 +410,7 @@ immutable(Sig) checkSig(Alloc)(
 		checkParams(alloc, ctx, toArr(ast.params), structsAndAliasesMap, typeParamsScope, delayStructInsts);
 	immutable Type returnType =
 		typeFromAst(alloc, ctx, ast.returnType, structsAndAliasesMap, typeParamsScope, delayStructInsts);
-	return Sig(ast.range, ast.name.name, returnType, params);
+	return immutable Sig(ast.range, ast.name, returnType, params);
 }
 
 immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(immutable Sym name) {
@@ -455,8 +456,8 @@ immutable(Arr!SpecDecl) checkSpecDecls(Alloc)(
 	return map!SpecDecl(alloc, asts, (ref immutable SpecDeclAst ast) {
 		immutable Arr!TypeParam typeParams = checkTypeParams(alloc, ctx, ast.typeParams);
 		immutable SpecBody body_ =
-			checkSpecBody(alloc, ctx, typeParams, structsAndAliasesMap, ast.name.name, ast.body_);
-		return immutable SpecDecl(ast.range, ast.isPublic, ast.name.name, typeParams, body_);
+			checkSpecBody(alloc, ctx, typeParams, structsAndAliasesMap, ast.name, ast.body_);
+		return immutable SpecDecl(ast.range, ast.isPublic, ast.name, typeParams, body_);
 	});
 }
 
@@ -466,7 +467,7 @@ Arr!StructAlias checkStructAliasesInitial(Alloc)(
 	ref immutable Arr!StructAliasAst asts,
 ) {
 	return mapToMut!StructAlias(alloc, asts, (ref immutable StructAliasAst ast) =>
-		immutable StructAlias(ast.range, ast.isPublic, ast.name.name, checkTypeParams(alloc, ctx, ast.typeParams)));
+		immutable StructAlias(ast.range, ast.isPublic, ast.name, checkTypeParams(alloc, ctx, ast.typeParams)));
 }
 
 struct PurityAndForced {
@@ -532,7 +533,7 @@ Arr!StructDecl checkStructsInitial(Alloc)(
 		return immutable StructDecl(
 			ast.range,
 			ast.isPublic,
-			ast.name.name,
+			ast.name,
 			checkTypeParams(alloc, ctx, ast.typeParams),
 			p.purity,
 			p.forced);
@@ -774,7 +775,7 @@ immutable(Arr!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 			} else
 				return some(instantiateSpec(alloc, ctx.programState, SpecDeclAndArgs(spec, typeArgs)));
 		} else {
-			addDiag(alloc, ctx, ast.spec.range, immutable Diag(
+			addDiag(alloc, ctx, rangeOfNameAndRange(ast.spec), immutable Diag(
 				immutable Diag.NameNotFound(Diag.NameNotFound.Kind.spec, ast.spec.name)));
 			return none!(Ptr!SpecInst);
 		}
