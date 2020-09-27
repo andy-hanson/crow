@@ -328,7 +328,7 @@ struct TypeParamAst {
 
 struct ParamAst {
 	immutable SourceRange range;
-	immutable Sym name;
+	immutable NameAndRange name;
 	immutable TypeAst type;
 }
 
@@ -353,10 +353,15 @@ enum PuritySpecifier {
 	mut,
 }
 
+struct PuritySpecifierAndRange {
+	immutable SourceRange range;
+	immutable PuritySpecifier specifier;
+}
+
 struct StructAliasAst {
 	immutable SourceRange range;
 	immutable Bool isPublic;
-	immutable Sym name;
+	immutable NameAndRange name;
 	immutable Arr!TypeParamAst typeParams;
 	immutable TypeAst.InstStruct target;
 }
@@ -364,6 +369,11 @@ struct StructAliasAst {
 enum ExplicitByValOrRef {
 	byVal,
 	byRef,
+}
+
+struct ExplicitByValOrRefAndRange {
+	immutable SourceRange range;
+	immutable ExplicitByValOrRef byValOrRef;
 }
 
 struct StructDeclAst {
@@ -375,10 +385,10 @@ struct StructDeclAst {
 			struct Field {
 				immutable SourceRange range;
 				immutable Bool isMutable;
-				immutable Sym name;
+				immutable NameAndRange name;
 				immutable TypeAst type;
 			}
-			immutable Opt!ExplicitByValOrRef explicitByValOrRef;
+			immutable Opt!ExplicitByValOrRefAndRange explicitByValOrRef;
 			immutable Arr!Field fields;
 		}
 		struct Union {
@@ -411,9 +421,9 @@ struct StructDeclAst {
 
 	immutable SourceRange range;
 	immutable Bool isPublic;
-	immutable Sym name;
+	immutable NameAndRange name;
 	immutable Arr!TypeParamAst typeParams;
-	immutable Opt!PuritySpecifier purity;
+	immutable Opt!PuritySpecifierAndRange purity;
 	immutable Body body_;
 }
 
@@ -635,34 +645,47 @@ immutable(Sexpr) sexprOfStructAliasAst(Alloc)(ref Alloc alloc, ref immutable Str
 	return todo!(immutable Sexpr)("sexprOfImport");
 }
 
-immutable(Sexpr) sexprOfOptPurity(Alloc)(ref Alloc alloc, immutable Opt!PuritySpecifier purity) {
-	return tataOpt(alloc, purity, (ref immutable PuritySpecifier a) =>
-		tataSym(() {
-			final switch (force(purity)) {
-				case PuritySpecifier.data:
-					return "data";
-				case PuritySpecifier.forceData:
-					return "force-data";
-				case PuritySpecifier.sendable:
-					return "sendable";
-				case PuritySpecifier.forceSendable:
-					return "force-send";
-				case PuritySpecifier.mut:
-					return "mut";
-			}
-		}()));
+immutable(Sexpr) sexprOfOptPurity(Alloc)(ref Alloc alloc, immutable Opt!PuritySpecifierAndRange purity) {
+	return tataOpt(alloc, purity, (ref immutable PuritySpecifierAndRange it) =>
+		tataRecord(
+			alloc,
+			"purity",
+			sexprOfSourceRange(alloc, it.range),
+			tataSym(symOfPuritySpecifier(it.specifier))));
 }
 
-immutable(Sexpr) sexprOfOptExplicitByValOrRef(Alloc)(ref Alloc alloc, immutable Opt!ExplicitByValOrRef a) {
-	return tataOpt(alloc, a, (ref immutable ExplicitByValOrRef it) =>
-		tataSym(() {
-			final switch (it) {
-				case ExplicitByValOrRef.byVal:
-					return "by-val";
-				case ExplicitByValOrRef.byRef:
-					return "by-ref";
-			}
-		}()));
+immutable(Sym) symOfPuritySpecifier(immutable PuritySpecifier a) {
+	final switch (a) {
+		case PuritySpecifier.data:
+			return shortSymAlphaLiteral("data");
+		case PuritySpecifier.forceData:
+			return shortSymAlphaLiteral("force-data");
+		case PuritySpecifier.sendable:
+			return shortSymAlphaLiteral("sendable");
+		case PuritySpecifier.forceSendable:
+			return shortSymAlphaLiteral("force-send");
+		case PuritySpecifier.mut:
+			return shortSymAlphaLiteral("mut");
+	}
+}
+
+immutable(Sexpr) sexprOfOptExplicitByValOrRefAndRange(Alloc)(
+	ref Alloc alloc,
+	ref immutable Opt!ExplicitByValOrRefAndRange a,
+) {
+	return tataOpt(alloc, a, (ref immutable ExplicitByValOrRefAndRange it) =>
+		tataRecord(
+			alloc,
+			"by-val-ref",
+			sexprOfSourceRange(alloc, it.range),
+			tataSym(() {
+				final switch (it.byValOrRef) {
+					case ExplicitByValOrRef.byVal:
+						return "by-val";
+					case ExplicitByValOrRef.byRef:
+						return "by-ref";
+				}
+			}())));
 }
 
 immutable(Sexpr) sexprOfField(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Record.Field a) {
@@ -671,7 +694,7 @@ immutable(Sexpr) sexprOfField(Alloc)(ref Alloc alloc, ref immutable StructDeclAs
 		"field",
 		sexprOfSourceRange(alloc, a.range),
 		tataBool(a.isMutable),
-		tataSym(a.name),
+		sexprOfNameAndRange(alloc, a.name),
 		sexprOfTypeAst(alloc, a.type));
 }
 
@@ -679,7 +702,7 @@ immutable(Sexpr) sexprOfRecord(Alloc)(ref Alloc alloc, ref immutable StructDeclA
 	return tataRecord(
 		alloc,
 		"record",
-		sexprOfOptExplicitByValOrRef(alloc, a.explicitByValOrRef),
+		sexprOfOptExplicitByValOrRefAndRange(alloc, a.explicitByValOrRef),
 		tataArr(alloc, a.fields, (ref immutable StructDeclAst.Body.Record.Field it) =>
 			sexprOfField(alloc, it)));
 }
@@ -791,7 +814,7 @@ immutable(Sexpr) sexprOfParamAst(Alloc)(ref Alloc alloc, ref immutable ParamAst 
 		alloc,
 		"param",
 		sexprOfSourceRange(alloc, a.range),
-		tataSym(a.name),
+		sexprOfNameAndRange(alloc, a.name),
 		sexprOfTypeAst(alloc, a.type));
 }
 

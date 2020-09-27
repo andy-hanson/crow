@@ -7,6 +7,7 @@ import parseDiag : ParseDiagnostic;
 import frontend.ast :
 	emptyFileAst,
 	ExplicitByValOrRef,
+	ExplicitByValOrRefAndRange,
 	FileAst,
 	FileAstPart0,
 	FileAstPart1,
@@ -16,6 +17,7 @@ import frontend.ast :
 	NameAndRange,
 	ParamAst,
 	PuritySpecifier,
+	PuritySpecifierAndRange,
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
@@ -58,11 +60,11 @@ import parseDiag : ParseDiag;
 
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, emptyArr, emptyArrWithSize;
-import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
+import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, ArrWithSizeBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
 import util.collection.str : CStr, NulTerminatedStr, Str;
 import util.memory : nu;
-import util.opt : force, has, none, Opt, optOr, some;
+import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.path : childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos;
@@ -102,21 +104,27 @@ immutable(Arr!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc alloc, re
 		return emptyArr!TypeParamAst;
 }
 
-immutable(Opt!PuritySpecifier) parsePurity(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	if (tryTake(lexer, "data"))
-		return some(PuritySpecifier.data);
-	else if (tryTake(lexer, "mut"))
-		return some(PuritySpecifier.mut);
-	else if (tryTake(lexer, "sendable"))
-		return some(PuritySpecifier.sendable);
-	else if (tryTake(lexer, "force-data"))
-		return some(PuritySpecifier.forceData);
-	else if (tryTake(lexer, "force-sendable"))
-		return some(PuritySpecifier.forceSendable);
-	else {
-		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.purity)));
-		return none!PuritySpecifier;
-	}
+immutable(Opt!PuritySpecifierAndRange) parsePurity(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	immutable Pos start = curPos(lexer);
+	immutable Opt!PuritySpecifier specifier = () {
+		if (tryTake(lexer, "data"))
+			return some(PuritySpecifier.data);
+		else if (tryTake(lexer, "mut"))
+			return some(PuritySpecifier.mut);
+		else if (tryTake(lexer, "sendable"))
+			return some(PuritySpecifier.sendable);
+		else if (tryTake(lexer, "force-data"))
+			return some(PuritySpecifier.forceData);
+		else if (tryTake(lexer, "force-sendable"))
+			return some(PuritySpecifier.forceSendable);
+		else {
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(
+				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.purity)));
+			return none!PuritySpecifier;
+		}
+	}();
+	return mapOption(specifier, (ref immutable PuritySpecifier it) =>
+		immutable PuritySpecifierAndRange(range(lexer, start), it));
 }
 
 immutable(ImportAst) parseSingleImport(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -144,10 +152,10 @@ struct ParamsAndMaybeDedent {
 
 immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
-	immutable Sym name = takeName(alloc, lexer);
+	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
 	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 	immutable TypeAst type = parseType(alloc, lexer);
-	return ParamAst(range(lexer, start), name, type);
+	return immutable ParamAst(range(lexer, start), name, type);
 }
 
 immutable(ArrWithSize!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -324,31 +332,36 @@ immutable(StructDeclAst.Body.Record) parseFields(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 ) {
 	ArrBuilder!(StructDeclAst.Body.Record.Field) res;
-	Opt!ExplicitByValOrRef explicitByValOrRef = none!ExplicitByValOrRef;
-	Bool isFirstLine = True;
-	do {
+	immutable(StructDeclAst.Body.Record) recur(immutable Opt!ExplicitByValOrRefAndRange prevExplicitByValOrRef) {
 		immutable Pos start = curPos(lexer);
-		immutable Sym name = takeName(alloc, lexer);
-		switch (name.value) {
-			case shortSymAlphaLiteralValue("by-val"):
-				if (!isFirstLine) todo!void("by-val on later line");
-				verify(!explicitByValOrRef.has);
-				explicitByValOrRef = some(ExplicitByValOrRef.byVal);
-				break;
-			case shortSymAlphaLiteralValue("by-ref"):
-				if (!isFirstLine) todo!void("by-ref on later line");
-				verify(!explicitByValOrRef.has);
-				explicitByValOrRef = some(ExplicitByValOrRef.byRef);
-				break;
-			default:
-				takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
-				immutable Bool isMutable = tryTake(lexer, "mut ");
-				immutable TypeAst type = parseType(alloc, lexer);
-				add(alloc, res, immutable StructDeclAst.Body.Record.Field(range(lexer, start), isMutable, name, type));
+		immutable NameAndRange name = takeNameAndRange(alloc, lexer);
+		immutable Opt!ExplicitByValOrRefAndRange newExplicitByValOrRef = () {
+			switch (name.name.value) {
+				case shortSymAlphaLiteralValue("by-val"):
+				case shortSymAlphaLiteralValue("by-ref"):
+					immutable ExplicitByValOrRef value = name.name.value == shortSymAlphaLiteralValue("by-val")
+						? ExplicitByValOrRef.byVal
+						: ExplicitByValOrRef.byRef;
+					if (has(prevExplicitByValOrRef) || !arrBuilderIsEmpty(res))
+						todo!void("by-val or by-ref on later line");
+					return some(immutable ExplicitByValOrRefAndRange(name.range, value));
+				default:
+					takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
+					immutable Bool isMutable = tryTake(lexer, "mut ");
+					immutable TypeAst type = parseType(alloc, lexer);
+					add(alloc, res, immutable StructDeclAst.Body.Record.Field(
+						range(lexer, start), isMutable, name, type));
+					return prevExplicitByValOrRef;
+			}
+		}();
+		final switch (takeNewlineOrSingleDedent(alloc, lexer)) {
+			case NewlineOrDedent.newline:
+				return recur(newExplicitByValOrRef);
+			case NewlineOrDedent.dedent:
+				return StructDeclAst.Body.Record(newExplicitByValOrRef, finishArr(alloc, res));
 		}
-		isFirstLine = False;
-	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
-	return StructDeclAst.Body.Record(explicitByValOrRef, finishArr(alloc, res));
+	}
+	return recur(none!ExplicitByValOrRefAndRange);
 }
 
 immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
@@ -621,9 +634,9 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 		immutable NonFunKeywordAndIndent kwAndIndent = opKwAndIndent.force;
 		immutable NonFunKeyword kw = kwAndIndent.keyword;
 		immutable SpaceOrNewlineOrIndent after = kwAndIndent.after;
-		immutable Opt!PuritySpecifier purity = after == SpaceOrNewlineOrIndent.space
+		immutable Opt!PuritySpecifierAndRange purity = after == SpaceOrNewlineOrIndent.space
 			? parsePurity(alloc, lexer)
-			: none!PuritySpecifier;
+			: none!PuritySpecifierAndRange;
 
 		immutable Bool tookIndent = () {
 			final switch (after) {
@@ -647,7 +660,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				add(
 					alloc,
 					structAliases,
-					immutable StructAliasAst(range(lexer, start), isPublic, name.name, typeParams, target));
+					immutable StructAliasAst(range(lexer, start), isPublic, name, typeParams, target));
 				break;
 			case NonFunKeyword.builtinSpec:
 				if (tookIndent)
@@ -694,7 +707,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 							return immutable StructDeclAst.Body(tookIndent
 								? parseFields(alloc, lexer)
 								: immutable StructDeclAst.Body.Record(
-									none!ExplicitByValOrRef,
+									none!ExplicitByValOrRefAndRange,
 									emptyArr!(StructDeclAst.Body.Record.Field)));
 						case NonFunKeyword.union_:
 							return immutable StructDeclAst.Body(
@@ -712,7 +725,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				add(
 					alloc,
 					structs,
-					immutable StructDeclAst(range(lexer, start), isPublic, name.name, typeParams, purity, body_));
+					immutable StructDeclAst(range(lexer, start), isPublic, name, typeParams, purity, body_));
 				break;
 		}
 	} else {

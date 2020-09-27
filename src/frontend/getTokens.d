@@ -9,6 +9,7 @@ import frontend.ast :
 	funs,
 	imports,
 	matchSpecBodyAst,
+	matchStructDeclAstBody,
 	matchTypeAst,
 	NameAndRange,
 	ParamAst,
@@ -27,7 +28,7 @@ import util.collection.arr : Arr, ArrWithSize, range, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : Comparison;
-import util.opt : has, Opt;
+import util.opt : force, has, Opt;
 import util.sexpr : Sexpr, tataArr, tataRecord, tataSym;
 import util.sourceRange : sexprOfSourceRange, SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym;
@@ -35,13 +36,17 @@ import util.util : todo;
 
 struct Token {
 	enum Kind {
-		funDecl,
+		explicitByValOrRef,
+		fieldDef,
+		funDef,
 		funRef,
-		specDecl,
+		paramDef,
+		purity,
+		specDef,
 		specRef,
-		structDecl,
+		structDef,
 		structRef,
-		typeParamDecl,
+		typeParamDef,
 		typeParamRef,
 	}
 	immutable Kind kind;
@@ -79,7 +84,7 @@ immutable(Arr!Token) getTokens(Alloc)(ref Alloc alloc, ref immutable FileAst ast
 private:
 
 void addSpecTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable SpecDeclAst a) {
-	add(alloc, tokens, immutable Token(Token.Kind.specDecl, a.name.range));
+	add(alloc, tokens, immutable Token(Token.Kind.specDef, a.name.range));
 	addTypeParamsTokens(alloc, tokens, a.typeParams);
 	matchSpecBodyAst!void(
 		a.body_,
@@ -91,9 +96,10 @@ void addSpecTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 }
 
 void addSigTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable SigAst a) {
-	add(alloc, tokens, immutable Token(Token.Kind.funDecl, a.name.range));
+	add(alloc, tokens, immutable Token(Token.Kind.funDef, a.name.range));
 	addTypeTokens(alloc, tokens, a.returnType);
-	addParamsTokens(alloc, tokens, toArr(a.params));
+	foreach (ref immutable ParamAst param; range(toArr(a.params)))
+		addParamTokens(alloc, tokens, param);
 }
 
 void addTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable TypeAst a) {
@@ -103,9 +109,13 @@ void addTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			add(alloc, tokens, immutable Token(Token.Kind.typeParamRef, it.range));
 		},
 		(ref immutable TypeAst.InstStruct it) {
-			add(alloc, tokens, immutable Token(Token.Kind.structRef, it.name.range));
-			addTypeArgsTokens(alloc, tokens, it.typeArgs);
+			addInstStructTokens(alloc, tokens, it);
 		});
+}
+
+void addInstStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable TypeAst.InstStruct a) {
+	add(alloc, tokens, immutable Token(Token.Kind.structRef, a.name.range));
+	addTypeArgsTokens(alloc, tokens, a.typeArgs);
 }
 
 void addTypeArgsTokens(Alloc)(
@@ -117,21 +127,42 @@ void addTypeArgsTokens(Alloc)(
 		addTypeTokens(alloc, tokens, typeArg);
 }
 
-void addParamsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, immutable Arr!ParamAst a) {
-	todo!void("addParamsTokens");
+void addParamTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable ParamAst a) {
+	add(alloc, tokens, immutable Token(Token.Kind.paramDef, a.name.range));
+	addTypeTokens(alloc, tokens, a.type);
 }
 
 void addTypeParamsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable Arr!TypeParamAst a) {
 	foreach (ref immutable TypeParamAst typeParam; range(a))
-		add(alloc, tokens, immutable Token(Token.Kind.typeParamDecl, typeParam.range));
+		add(alloc, tokens, immutable Token(Token.Kind.typeParamDef, typeParam.range));
 }
 
 void addStructAliasTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable StructAliasAst a) {
-	todo!void("getStructAliasTokens");
+	add(alloc, tokens, immutable Token(Token.Kind.structDef, a.name.range));
+	addTypeParamsTokens(alloc, tokens, a.typeParams);
+	addInstStructTokens(alloc, tokens, a.target);
 }
 
 void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable StructDeclAst a) {
-	todo!void("getStructTokens");
+	add(alloc, tokens, immutable Token(Token.Kind.structDef, a.name.range));
+	addTypeParamsTokens(alloc, tokens, a.typeParams);
+	if (has(a.purity))
+		add(alloc, tokens, immutable Token(Token.Kind.purity, force(a.purity).range));
+	matchStructDeclAstBody!void(
+		a.body_,
+		(ref immutable StructDeclAst.Body.Builtin) {},
+		(ref immutable StructDeclAst.Body.ExternPtr) {},
+		(ref immutable StructDeclAst.Body.Record it) {
+			if (has(it.explicitByValOrRef))
+				add(alloc, tokens, immutable Token(Token.Kind.explicitByValOrRef, force(it.explicitByValOrRef).range));
+			foreach (ref immutable StructDeclAst.Body.Record.Field field; range(it.fields)) {
+				add(alloc, tokens, immutable Token(Token.Kind.fieldDef, field.name.range));
+				addTypeTokens(alloc, tokens, field.type);
+			}
+		},
+		(ref immutable StructDeclAst.Body.Union) {
+			todo!void("union tokens");
+		});
 }
 
 void addFunTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable FunDeclAst a) {
@@ -153,22 +184,30 @@ immutable(Comparison) compareSourceRange(ref immutable SourceRange a, ref immuta
 
 immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 	final switch (kind) {
-		case Token.Kind.funDecl:
-			return shortSymAlphaLiteral("fun-decl");
+		case Token.Kind.explicitByValOrRef:
+			return shortSymAlphaLiteral("by-val-ref");
+		case Token.Kind.fieldDef:
+			return shortSymAlphaLiteral("field-def");
+		case Token.Kind.funDef:
+			return shortSymAlphaLiteral("fun-def");
 		case Token.Kind.funRef:
 			return shortSymAlphaLiteral("fun-ref");
-		case Token.Kind.specDecl:
-			return shortSymAlphaLiteral("spec-decl");
+		case Token.Kind.paramDef:
+			return shortSymAlphaLiteral("param-def");
+		case Token.Kind.purity:
+			return shortSymAlphaLiteral("purity");
+		case Token.Kind.specDef:
+			return shortSymAlphaLiteral("spec-def");
 		case Token.Kind.specRef:
 			return shortSymAlphaLiteral("spec-ref");
-		case Token.Kind.structDecl:
-			return shortSymAlphaLiteral("structdecl");
+		case Token.Kind.structDef:
+			return shortSymAlphaLiteral("structdef");
 		case Token.Kind.structRef:
 			return shortSymAlphaLiteral("struct-ref");
-		case Token.Kind.typeParamDecl:
-			return shortSymAlphaLiteral("typrm-decl");
+		case Token.Kind.typeParamDef:
+			return shortSymAlphaLiteral("tparam-def");
 		case Token.Kind.typeParamRef:
-			return shortSymAlphaLiteral("typrm-ref");
+			return shortSymAlphaLiteral("tparam-ref");
 	}
 }
 

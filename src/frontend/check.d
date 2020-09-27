@@ -4,6 +4,7 @@ module frontend.check;
 
 import frontend.ast :
 	ExplicitByValOrRef,
+	ExplicitByValOrRefAndRange,
 	exports,
 	ExprAst,
 	FileAst,
@@ -383,7 +384,7 @@ immutable(Arr!Param) checkParams(Alloc)(
 				structsAndAliasesMap,
 				typeParamsScope,
 				delayStructInsts);
-			return immutable Param(ast.range, ast.name, type, index);
+			return immutable Param(ast.range, ast.name.name, type, index);
 		});
 	foreach (immutable size_t i; 0..size(params))
 		foreach (immutable size_t prev_i; 0..i) {
@@ -465,7 +466,7 @@ Arr!StructAlias checkStructAliasesInitial(Alloc)(
 	ref immutable Arr!StructAliasAst asts,
 ) {
 	return mapToMut!StructAlias(alloc, asts, (ref immutable StructAliasAst ast) =>
-		immutable StructAlias(ast.range, ast.isPublic, ast.name, checkTypeParams(alloc, ctx, ast.typeParams)));
+		immutable StructAlias(ast.range, ast.isPublic, ast.name.name, checkTypeParams(alloc, ctx, ast.typeParams)));
 }
 
 struct PurityAndForced {
@@ -491,7 +492,7 @@ immutable(PurityAndForced) getPurityFromAst(Alloc)(
 	// Note: purity is taken for granted here, and verified later when we check the body.
 	if (has(ast.purity)) {
 		immutable PurityAndForced res = () {
-			final switch (force(ast.purity)) {
+			final switch (force(ast.purity).specifier) {
 				case PuritySpecifier.data:
 					return PurityAndForced(Purity.data, False);
 				case PuritySpecifier.forceData:
@@ -531,7 +532,7 @@ Arr!StructDecl checkStructsInitial(Alloc)(
 		return immutable StructDecl(
 			ast.range,
 			ast.isPublic,
-			ast.name,
+			ast.name.name,
 			checkTypeParams(alloc, ctx, ast.typeParams),
 			p.purity,
 			p.forced);
@@ -582,9 +583,9 @@ void everyPair(T)(
 			cb(at(a, i), at(a, j));
 }
 
-immutable(Opt!ForcedByValOrRef) getForcedByValOrRef(immutable Opt!ExplicitByValOrRef e) {
+immutable(Opt!ForcedByValOrRef) getForcedByValOrRef(ref immutable Opt!ExplicitByValOrRefAndRange e) {
 	if (has(e))
-		final switch (force(e)) {
+		final switch (force(e).byValOrRef) {
 			case ExplicitByValOrRef.byVal:
 				return some(ForcedByValOrRef.byVal);
 			case ExplicitByValOrRef.byRef:
@@ -627,7 +628,7 @@ immutable(StructBody) checkRecord(Alloc)(
 				if (has(reason))
 					addDiag(alloc, ctx, field.range, immutable Diag(Diag.MutFieldNotAllowed(force(reason))));
 			}
-			return immutable RecordField(field.range, field.isMutable, field.name, fieldType, index);
+			return immutable RecordField(field.range, field.isMutable, field.name.name, fieldType, index);
 		});
 	everyPair(fields, (ref immutable RecordField a, ref immutable RecordField b) {
 		if (symEq(a.name, b.name))
