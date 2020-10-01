@@ -415,8 +415,8 @@ immutable(Opt!(Ptr!T)) findPtr(T)(
 }
 
 @trusted immutable(Result!(Arr!OutSuccess, OutFailure)) mapOrFail(OutSuccess, OutFailure, In, Alloc)(
-	immutable Arr!In inputs,
 	ref Alloc alloc,
+	immutable Arr!In inputs,
 	scope immutable(Result!(OutSuccess, OutFailure)) delegate(ref immutable In) @safe @nogc pure nothrow cb
 ) {
 	OutSuccess* res = cast(OutSuccess*) alloc.allocate(OutSuccess.sizeof * inputs.size);

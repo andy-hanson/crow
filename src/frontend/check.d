@@ -135,7 +135,7 @@ immutable(Result!(BootstrapCheck, Diags)) checkBootstrapNz(Alloc)(
 	ref ProgramState programState,
 	immutable PathAndAst pathAndAst,
 ) {
-	verify(empty(pathAndAst.ast.imports) && empty(pathAndAst.ast.exports));
+	verify(!has(pathAndAst.ast.imports) && !has(pathAndAst.ast.exports));
 	return checkWorker(
 		alloc,
 		programState,

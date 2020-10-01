@@ -9,7 +9,7 @@ import util.collection.arr : Arr;
 import util.collection.str : CStr, NulTerminatedStr, nulTerminatedStrOfCStr;
 import util.ptr : ptrTrustMe_mut;
 import util.result : matchResultImpure, Result;
-import util.sexpr : Sexpr, tataArr, tataRecord, writeSexprJSON;
+import util.sexpr : Sexpr, tataArr, tataNamedRecord, writeSexprJSON;
 import sexprOfParseDiag : sexprOfParseDiagnostic;
 import util.sym : AllSymbols;
 import util.writer : finishWriterToCStr, Writer;
@@ -45,11 +45,11 @@ immutable(CStr) getTokensAndDiagnosticsJSON(Alloc)(ref Alloc alloc, ref immutabl
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, allSymbols, str);
 	immutable Arr!Token tokens = tokensOfAst(alloc, ast.ast);
-	immutable Sexpr sexpr = tataRecord(
+	immutable Sexpr sexpr = tataNamedRecord(
 		alloc,
 		"tkns-diags",
-		sexprOfTokens(alloc, tokens),
-		tataArr(alloc, ast.diagnostics, (ref immutable ParseDiagnostic it) =>
+		"tokens", sexprOfTokens(alloc, tokens),
+		"diags", tataArr(alloc, ast.diagnostics, (ref immutable ParseDiagnostic it) =>
 			sexprOfParseDiagnostic(alloc, it)));
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	writeSexprJSON(writer, sexpr);
@@ -68,11 +68,11 @@ char[bufferSize] buffer;
 }
 
 immutable(Sexpr) sexprOfAstAndParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable FileAstAndParseDiagnostics a) {
-	return tataRecord(
+	return tataNamedRecord(
 		alloc,
 		"ast-diags",
-		sexprOfAst(alloc, a.ast),
-		tataArr(alloc, a.diagnostics, (ref immutable ParseDiagnostic it) =>
+		"ast", sexprOfAst(alloc, a.ast),
+		"diags", tataArr(alloc, a.diagnostics, (ref immutable ParseDiagnostic it) =>
 			sexprOfParseDiagnostic(alloc, it)));
 }
 

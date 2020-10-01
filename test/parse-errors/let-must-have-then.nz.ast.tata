@@ -1,6 +1,4 @@
 file-ast(
-	imports: []
-	exports: []
 	specs: []
 	aliases: []
 	structs: []

@@ -50,9 +50,64 @@ body {
 	height: var(--line-height);
 }
 
+/*
+* Defs are brighter colors than refs
+* functions are red, specs are green, types are blue
+*/
+
+.noze .highlight span.no-token {
+	font-weight: light;
+	color: lightgray;
+}
+
 .noze .highlight span.keyword {
+	font-weight: bold;
+	color: indigo;
+}
+.noze .highlight span.import {
 	color: blue;
 }
+.noze .highlight span.fun-def {
+	color: crimson;
+}
+.noze .highlight span.fun-ref {
+	color: firebrick;
+}
+.noze .highlight span.struct-def {
+	font-style: italic;
+	color: dodgerblue;
+}
+.noze .highlight span.struct-ref {
+	font-style: italic;
+	color: navy;
+}
+.noze .highlight span.tparam-def {
+	font-style: italic;
+	color: cyan;
+}
+.noze .highlight span.tparam-ref {
+	font-style: italic;
+	color: darkturquoise;
+}
+.noze .highlight span.spec-def {
+	color: greenyellow;
+}
+.noze .highlight span.spec-ref {
+	color: green;
+}
+.noze .highlight span.param-def {
+	color: brown;
+}
+.noze .highlight span.lit-num {
+	color: darkorchid;
+}
+.noze .highlight span.field-def {
+	color: coral;
+}
+.noze .highlight span.field-ref {
+	color: indianred;
+}
+
 
 .noze .highlight span.name {
 	color: green;

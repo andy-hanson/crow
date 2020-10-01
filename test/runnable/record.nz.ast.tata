@@ -1,6 +1,5 @@
 file-ast(
-	imports: [import-ast(0, "/io")]
-	exports: []
+	imports: ports(range(0, 10), [import-ast(0, "/io")])
 	specs: []
 	aliases: []
 	structs: [

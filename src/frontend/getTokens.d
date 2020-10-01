@@ -15,7 +15,9 @@ import frontend.ast :
 	FunDeclAst,
 	funs,
 	IdentifierAst,
+	ImportAst,
 	imports,
+	ImportsOrExportsAst,
 	LambdaAst,
 	LetAst,
 	LiteralAst,
@@ -54,7 +56,7 @@ import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr;
-import util.sexpr : Sexpr, tataArr, tataRecord, tataSym;
+import util.sexpr : Sexpr, tataArr, tataNamedRecord, tataSym;
 import util.sourceRange : Pos, sexprOfSourceRange, SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32;
@@ -68,6 +70,8 @@ struct Token {
 		funDef,
 		funRef,
 		identifier,
+		importPath,
+		keyword,
 		localDef,
 		literalNumber,
 		literalString,
@@ -91,6 +95,10 @@ immutable(Sexpr) sexprOfTokens(Alloc)(ref Alloc alloc, ref immutable Arr!Token t
 
 immutable(Arr!Token) tokensOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
 	ArrBuilder!Token tokens;
+
+	addImportTokens!Alloc(alloc, tokens, imports(ast), shortSymAlphaLiteral("import"));
+	addImportTokens!Alloc(alloc, tokens, exports(ast), shortSymAlphaLiteral("export"));
+
 	eachSorted!(SourceRange, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst)(
 		SourceRange.max,
 		(ref immutable SourceRange a, ref immutable SourceRange b) =>
@@ -116,6 +124,21 @@ private:
 
 immutable(SourceRange) rangeAtName(immutable Pos start, immutable Sym name) {
 	return immutable SourceRange(start, safeSizeTToU32(start + symSize(name)));
+}
+
+void addImportTokens(Alloc)(
+	ref Alloc alloc,
+	ref ArrBuilder!Token tokens,
+	ref immutable Opt!ImportsOrExportsAst a,
+	immutable Sym keyword,
+) {
+	if (has(a)) {
+		add(alloc, tokens, immutable Token(Token.Kind.keyword, rangeAtName(force(a).range.start, keyword)));
+		foreach (ref immutable ImportAst path; range(force(a).paths))
+			add(alloc, tokens, immutable Token(
+				Token.Kind.importPath,
+				immutable SourceRange(path.range.start + path.nDots, path.range.end)));
+	}
 }
 
 void addSpecTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable SpecDeclAst a) {
@@ -361,6 +384,10 @@ immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 			return shortSymAlphaLiteral("fun-ref");
 		case Token.Kind.identifier:
 			return shortSymAlphaLiteral("identifier");
+		case Token.Kind.importPath:
+			return shortSymAlphaLiteral("import");
+		case Token.Kind.keyword:
+			return shortSymAlphaLiteral("keyword");
 		case Token.Kind.literalNumber:
 			return shortSymAlphaLiteral("lit-num");
 		case Token.Kind.literalString:
@@ -387,5 +414,9 @@ immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 }
 
 immutable(Sexpr) sexprOfToken(Alloc)(ref Alloc alloc, ref immutable Token token) {
-	return tataRecord(alloc, "token", tataSym(symOfTokenKind(token.kind)), sexprOfSourceRange(alloc, token.range));
+	return tataNamedRecord(
+		alloc,
+		"token",
+		"kind", tataSym(symOfTokenKind(token.kind)),
+		"range", sexprOfSourceRange(alloc, token.range));
 }

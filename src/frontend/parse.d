@@ -14,6 +14,7 @@ import frontend.ast :
 	FunBodyAst,
 	FunDeclAst,
 	ImportAst,
+	ImportsOrExportsAst,
 	NameAndRange,
 	ParamAst,
 	PuritySpecifier,
@@ -96,7 +97,7 @@ immutable(ArrWithSize!TypeParamAst) parseTypeParams(Alloc, SymAlloc)(ref Alloc a
 			immutable Pos start = curPos(lexer);
 			takeOrAddDiagExpected(alloc, lexer, '?', ParseDiag.Expected.Kind.typeParamQuestionMark);
 			immutable Sym name = takeName(alloc, lexer);
-			add(alloc, res, TypeParamAst(range(lexer, start), name));
+			add(alloc, res, immutable TypeParamAst(range(lexer, start), name));
 		} while (tryTake(lexer, ", "));
 		takeTypeArgsEnd(alloc, lexer);
 		return finishArr(alloc, res);
@@ -733,19 +734,27 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 	}
 }
 
+immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable CStr kwSpace,
+	immutable CStr kwNl,
+) {
+	immutable Pos start = curPos(lexer);
+	immutable Opt!(Arr!ImportAst) imports = tryTake(lexer, kwSpace)
+		? some(parseImportsNonIndented(alloc, lexer))
+		: tryTake(lexer, kwNl)
+		? some(parseImportsIndented(alloc, lexer))
+		: none!(Arr!ImportAst);
+	return mapOption(imports, (ref immutable Arr!ImportAst it) =>
+		immutable ImportsOrExportsAst(range(lexer, start), it));
+}
+
 immutable(FileAst) parseFileInner(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	skipShebang(lexer);
 	skipBlankLines(alloc, lexer);
-	immutable Arr!ImportAst imports = tryTake(lexer, "import ")
-		? parseImportsNonIndented(alloc, lexer)
-		: tryTake(lexer, "import\n")
-		? parseImportsIndented(alloc, lexer)
-		: emptyArr!ImportAst;
-	immutable Arr!ImportAst exports = tryTake(lexer, "export ")
-		? parseImportsNonIndented(alloc, lexer)
-		: tryTake(lexer, "export\n")
-		? parseImportsIndented(alloc, lexer)
-		: emptyArr!ImportAst;
+	immutable Opt!ImportsOrExportsAst imports = parseImportsOrExports(alloc, lexer, "import ", "import\n");
+	immutable Opt!ImportsOrExportsAst exports = parseImportsOrExports(alloc, lexer, "export ", "export\n");
 
 	ArrBuilder!SpecDeclAst specs;
 	ArrBuilder!StructAliasAst structAliases;

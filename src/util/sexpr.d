@@ -102,6 +102,20 @@ immutable(Sexpr) tataNamedRecord(immutable string name, immutable Arr!NameAndSex
 	return immutable Sexpr(immutable SexprNamedRecord(shortSymAlphaLiteral(name), children));
 }
 
+immutable(Sexpr) tataNamedRecord(Alloc)(
+	ref Alloc alloc,
+	immutable string name,
+	immutable string field0Name,
+	immutable Sexpr field0Value,
+	immutable string field1Name,
+	immutable Sexpr field1Value,
+) {
+	return tataNamedRecord(name, arrLiteral!NameAndSexpr(
+		alloc,
+		nameAndTata(field0Name, field0Value),
+		nameAndTata(field1Name, field1Value)));
+}
+
 immutable(Sexpr) tataArr(T, Alloc)(
 	ref Alloc alloc,
 	immutable Arr!T xs,

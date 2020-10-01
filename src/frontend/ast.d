@@ -626,10 +626,15 @@ struct ImportAst {
 	immutable Ptr!Path path;
 }
 
+struct ImportsOrExportsAst {
+	immutable SourceRange range;
+	immutable Arr!ImportAst paths;
+}
+
 // TODO: I'm doing this because the wasm compilation generates a call to 'memset' whenever there's a big struct.
 struct FileAstPart0 {
-	immutable Arr!ImportAst imports;
-	immutable Arr!ImportAst exports;
+	immutable Opt!ImportsOrExportsAst imports;
+	immutable Opt!ImportsOrExportsAst exports;
 	immutable Arr!SpecDeclAst specs;
 }
 
@@ -644,19 +649,21 @@ struct FileAst {
 	immutable Ptr!FileAstPart1 part1;
 }
 
+private immutable ImportsOrExportsAst emptyImportsOrExports =
+	immutable ImportsOrExportsAst(SourceRange.empty, emptyArr!ImportAst);
 private immutable FileAstPart0 emptyFileAstPart0 =
-	immutable FileAstPart0(emptyArr!ImportAst, emptyArr!ImportAst, emptyArr!SpecDeclAst);
+	immutable FileAstPart0(some(emptyImportsOrExports), some(emptyImportsOrExports), emptyArr!SpecDeclAst);
 private immutable FileAstPart1 emptyFileAstPart1 =
 	immutable FileAstPart1(emptyArr!StructAliasAst, emptyArr!StructDeclAst, emptyArr!FunDeclAst);
 immutable FileAst emptyFileAst = immutable FileAst(
 	immutable Ptr!FileAstPart0(&emptyFileAstPart0),
 	immutable Ptr!FileAstPart1(&emptyFileAstPart1));
 
-ref immutable(Arr!ImportAst) imports(return scope ref immutable FileAst a) {
+ref immutable(Opt!ImportsOrExportsAst) imports(return scope ref immutable FileAst a) {
 	return a.part0.imports;
 }
 
-ref immutable(Arr!ImportAst) exports(return scope ref immutable FileAst a) {
+ref immutable(Opt!ImportsOrExportsAst) exports(return scope ref immutable FileAst a) {
 	return a.part0.exports;
 }
 
@@ -677,25 +684,32 @@ ref immutable(Arr!FunDeclAst) funs(return scope ref immutable FileAst a) {
 }
 
 immutable(Sexpr) sexprOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
-	return tataNamedRecord(
-		"file-ast",
-		arrLiteral!NameAndSexpr(
-			alloc,
-			nameAndTata("imports", tataArr(alloc, ast.imports, (ref immutable ImportAst a) =>
-				sexprOfImportAst(alloc, a))),
-			nameAndTata("exports", tataArr(alloc, ast.exports, (ref immutable ImportAst a) =>
-				sexprOfImportAst(alloc, a))),
-			nameAndTata("specs", tataArr(alloc, ast.specs, (ref immutable SpecDeclAst a) =>
-				sexprOfSpecDeclAst(alloc, a))),
-			nameAndTata("aliases", tataArr(alloc, ast.structAliases, (ref immutable StructAliasAst a) =>
-				sexprOfStructAliasAst(alloc, a))),
-			nameAndTata("structs", tataArr(alloc, ast.structs, (ref immutable StructDeclAst a) =>
-				sexprOfStructDeclAst(alloc, a))),
-			nameAndTata("funs", tataArr(alloc, ast.funs, (ref immutable FunDeclAst a) =>
-				sexprOfFunDeclAst(alloc, a)))));
+	ArrBuilder!NameAndSexpr args;
+	if (has(ast.imports))
+		add(alloc, args, nameAndTata("imports", sexprOfImportsOrExports(alloc, force(ast.imports))));
+	if (has(ast.exports))
+		add(alloc, args, nameAndTata("exports", sexprOfImportsOrExports(alloc, force(ast.exports))));
+	add(alloc, args, nameAndTata("specs", tataArr(alloc, ast.specs, (ref immutable SpecDeclAst a) =>
+		sexprOfSpecDeclAst(alloc, a))));
+	add(alloc, args, nameAndTata("aliases", tataArr(alloc, ast.structAliases, (ref immutable StructAliasAst a) =>
+		sexprOfStructAliasAst(alloc, a))));
+	add(alloc, args, nameAndTata("structs", tataArr(alloc, ast.structs, (ref immutable StructDeclAst a) =>
+		sexprOfStructDeclAst(alloc, a))));
+	add(alloc, args, nameAndTata("funs", tataArr(alloc, ast.funs, (ref immutable FunDeclAst a) =>
+		sexprOfFunDeclAst(alloc, a))));
+	return tataNamedRecord("file-ast", finishArr(alloc, args));
 }
 
 private:
+
+immutable(Sexpr) sexprOfImportsOrExports(Alloc)(ref Alloc alloc, ref immutable ImportsOrExportsAst a) {
+	return tataRecord(
+		alloc,
+		"ports",
+		sexprOfSourceRange(alloc, a.range),
+		tataArr(alloc, a.paths, (ref immutable ImportAst a) =>
+			sexprOfImportAst(alloc, a)));
+}
 
 immutable(Sexpr) sexprOfImportAst(Alloc)(ref Alloc alloc, ref immutable ImportAst a) {
 	return tataRecord(

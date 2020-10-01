@@ -17,7 +17,7 @@ import model :
 	StructInst;
 import parseDiag : ParseDiagnostic;
 
-import frontend.ast : emptyFileAst, exports, FileAst, funs, ImportAst, imports, specs, structAliases, structs;
+import frontend.ast : emptyFileAst, exports, FileAst, ImportAst, imports, ImportsOrExportsAst, specs, structAliases, structs;
 import frontend.check : BootstrapCheck, check, checkBootstrapNz, PathAndAst;
 import frontend.instantiate : instantiateNonTemplateStruct;
 import frontend.lang : nozeExtension;
@@ -27,7 +27,7 @@ import frontend.readOnlyStorage : absolutePathsGetter, choose, ReadOnlyStorage, 
 
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool;
-import util.collection.arr : Arr, empty, range;
+import util.collection.arr : Arr, empty, emptyArr, range;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, find, map, mapOrFail, prepend;
 import util.collection.dict : mustGetAt;
@@ -376,9 +376,10 @@ immutable(Result!(Arr!ResolvedImport, Diags)) resolveImportsOrExports(ModelAlloc
 	ref ModelAlloc modelAlloc,
 	ref AstAlloc astAlloc,
 	immutable PathAndStorageKind from,
-	immutable Arr!ImportAst importsOrExports,
+	ref immutable Opt!ImportsOrExportsAst importsOrExports,
 ) {
-	return importsOrExports.mapOrFail(astAlloc, (ref immutable ImportAst i) =>
+	immutable Arr!ImportAst paths = has(importsOrExports) ? force(importsOrExports).paths : emptyArr!ImportAst;
+	return mapOrFail(astAlloc, paths, (ref immutable ImportAst i) =>
 		tryResolveImport(modelAlloc, from, i));
 }
 
@@ -386,8 +387,8 @@ immutable(Result!(ImportAndExportPaths, Diags)) resolveImportsAndExports(ModelAl
 	ref ModelAlloc modelAlloc,
 	ref AstAlloc astAlloc,
 	immutable PathAndStorageKind from,
-	immutable Arr!ImportAst imports,
-	immutable Arr!ImportAst exports
+	ref immutable Opt!ImportsOrExportsAst imports,
+	ref immutable Opt!ImportsOrExportsAst exports,
 ) {
 	immutable Result!(Arr!ResolvedImport, Diags) a = resolveImportsOrExports(modelAlloc, astAlloc, from, imports);
 	immutable Result!(Arr!ResolvedImport, Diags) b = resolveImportsOrExports(modelAlloc, astAlloc, from, exports);
@@ -442,8 +443,9 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 	Late!CommonTypes commonTypes = late!CommonTypes;
 	StackAlloc!("compiled dict", 4 * 1024) compiledAlloc;
 	MutDict!(PathAndStorageKind, immutable Ptr!Module, comparePathAndStorageKind) compiled;
-	immutable Result!(Arr!(Ptr!Module), Diags) res = fileAsts.mapOrFail!(Ptr!Module, Diags)(
+	immutable Result!(Arr!(Ptr!Module), Diags) res = mapOrFail!(Ptr!Module, Diags)(
 		modelAlloc,
+		fileAsts,
 		(ref immutable PathAndAstAndResolvedImports ast) {
 			immutable Result!(Ptr!Module, Diags) res = (() {
 				if (commonTypes.lateIsSet) {
