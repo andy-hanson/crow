@@ -19,7 +19,6 @@ dmd -debug -g -ofbin/noze -betterC \
 	src/sexprOfConcreteModel.d \
 	src/sexprOfLowModel.d \
 	src/sexprOfModel.d \
-	src/sexprOfParseDiag.d \
 	src/*/*.d \
 	src/*/*/*.d \
 	-I=src/

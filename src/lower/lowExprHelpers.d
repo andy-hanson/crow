@@ -9,9 +9,10 @@ import lowModel :
 	LowExpr,
 	LowExprKind,
 	LowField,
+	LowFun,
 	LowFunIndex,
 	LowLocal,
-	LowParam,
+	LowParamIndex,
 	LowType,
 	PrimitiveType;
 import util.collection.arr : Arr, emptyArr;
@@ -205,8 +206,15 @@ immutable(LowExpr) genLet(Alloc)(
 			allocate(alloc, then))));
 }
 
-immutable(LowExpr) paramRef(ref immutable SourceRange range, immutable Ptr!LowParam param) {
-	return immutable LowExpr(param.type, range, immutable LowExprKind(immutable LowExprKind.ParamRef(param)));
+immutable(LowExpr) paramRef(
+	ref immutable SourceRange range,
+	ref immutable LowType type,
+	immutable LowParamIndex param,
+) {
+	return immutable LowExpr(
+		type,
+		range,
+		immutable LowExprKind(immutable LowExprKind.ParamRef(param)));
 }
 
 immutable(LowExpr) wrapMulNat64(Alloc)(

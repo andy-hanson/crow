@@ -136,14 +136,16 @@ immutable(Bool) takeOrAddDiagExpected(Alloc, SymAlloc)(
 	return res;
 }
 
-void takeOrAddDiagExpected(Alloc, SymAlloc)(
+immutable(Bool) takeOrAddDiagExpected(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable CStr c,
 	immutable ParseDiag.Expected.Kind kind,
 ) {
-	if (!tryTake(lexer, c))
+	immutable Bool res = tryTake(lexer, c);
+	if (!res)
 		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
+	return res;
 }
 
 void takeOrAddDiag(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer, immutable char c) {
@@ -754,7 +756,7 @@ struct StrAndIsOperator {
 		immutable Str s = copyStr(alloc, arrOfRange(begin, lexer.ptr));
 		addDiag(alloc, lexer, range(lexer, begin), immutable ParseDiag(
 			immutable ParseDiag.InvalidName(s)));
-		return immutable StrAndIsOperator(s, start, False);
+		return immutable StrAndIsOperator(strLiteral("bogus"), start, False);
 	}
 }
 

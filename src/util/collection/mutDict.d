@@ -22,7 +22,8 @@ import util.opt : force, has, none, Opt, some;
 import util.util : verify;
 
 struct MutDict(K, V, alias cmp) {
-	MutArr!(KeyValuePair!(K, V)) pairs; // TODO:PRIVATE
+	private:
+	MutArr!(KeyValuePair!(K, V)) pairs;
 }
 
 immutable(Arr!V) moveMutDictToValues(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, immutable V, cmp) a) {
@@ -31,7 +32,7 @@ immutable(Arr!V) moveMutDictToValues(Alloc, K, V, alias cmp)(ref Alloc alloc, re
 		pair.value);
 }
 
-immutable(Opt!V) getAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) d, immutable K key) {
+const(Opt!V) getAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) d, immutable K key) {
 	foreach (ref const KeyValuePair!(K, V) pair; mutArrRange(d.pairs))
 		if (cmp(pair.key, key) == Comparison.equal)
 			return some!V(pair.value);
@@ -54,7 +55,7 @@ void setInDict(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, V, cmp) 
 			overwriteMemory(&pair.value, value);
 			return;
 		}
-	push(alloc, d.pairs, immutable KeyValuePair!(K, V)(key, value));
+	push(alloc, d.pairs, KeyValuePair!(K, V)(key, value));
 }
 
 

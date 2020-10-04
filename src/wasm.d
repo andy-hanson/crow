@@ -1,16 +1,17 @@
 @safe @nogc nothrow: // not pure
 
+import frontend.ast : FileAst, sexprOfAst;
 import frontend.getTokens : tokensOfAst, sexprOfTokens, Token;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
-import frontend.ast : FileAst, sexprOfAst;
+import frontend.showDiag : strOfParseDiag;
 import parseDiag : ParseDiagnostic;
 import util.alloc.globalAlloc : GlobalAlloc;
 import util.collection.arr : Arr;
 import util.collection.str : CStr, NulTerminatedStr, nulTerminatedStrOfCStr;
 import util.ptr : ptrTrustMe_mut;
 import util.result : matchResultImpure, Result;
-import util.sexpr : Sexpr, tataArr, tataNamedRecord, writeSexprJSON;
-import sexprOfParseDiag : sexprOfParseDiagnostic;
+import util.sexpr : nameAndTata, Sexpr, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
+import util.sourceRange : sexprOfSourceRange;
 import util.sym : AllSymbols;
 import util.writer : finishWriterToCStr, Writer;
 
@@ -40,6 +41,14 @@ extern(C) immutable(size_t) getBufferSize() {
 }
 
 private:
+
+immutable(Sexpr) sexprOfParseDiagnostic(Alloc)(ref Alloc alloc, ref immutable ParseDiagnostic a) {
+	return tataNamedRecord(
+		alloc,
+		"diagnostic",
+		"range", sexprOfSourceRange(alloc, a.range),
+		"message", tataStr(strOfParseDiag(alloc, a.diag)));
+}
 
 immutable(CStr) getTokensAndDiagnosticsJSON(Alloc)(ref Alloc alloc, ref immutable NulTerminatedStr str) {
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));

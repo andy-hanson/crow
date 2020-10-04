@@ -61,7 +61,7 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 		(ref immutable Command.Print a) =>
 			print(allSymbols, a.kind, a.format, nozeDir, a.programDirAndMain),
 		(ref immutable Command.Run r) =>
-			buildAndRun(allSymbols, nozeDir, r.programDirAndMain, r.programArgs, args.environ),
+			buildAndRun(r.interpret, allSymbols, nozeDir, r.programDirAndMain, r.programArgs, args.environ),
 		(ref immutable Command.Version) {
 			printVersion();
 			return 0;
@@ -154,6 +154,7 @@ struct Command {
 	}
 	// Also builds first
 	struct Run {
+		immutable Bool interpret;
 		immutable ProgramDirAndMain programDirAndMain;
 		immutable Arr!Str programArgs;
 	}
@@ -265,10 +266,17 @@ immutable(Command) parseRunCommand(Alloc, SymAlloc)(
 		return immutable Command(Command.HelpRun());
 	else {
 		immutable ProgramDirAndMain programDirAndMain = parseProgramDirAndMain(alloc, allSymbols, cwd, args.first);
-		return args.size == 1
-			? immutable Command(Command.Run(programDirAndMain, emptyArr!Str))
-			: strEqLiteral(args.at(1), "--")
-			? immutable Command(Command.Run(programDirAndMain, args.slice(2)))
+		struct InterpretAndRemainingArgs {
+			immutable Bool interpret;
+			immutable Arr!Str remainingArgs;
+		}
+		immutable InterpretAndRemainingArgs ira = !empty(args) && strEqLiteral(at(args, 0), "--interpret")
+			? immutable InterpretAndRemainingArgs(True, tail(args))
+			: immutable InterpretAndRemainingArgs(False, args);
+		return ira.remainingArgs.size == 1
+			? immutable Command(Command.Run(ira.interpret, programDirAndMain, emptyArr!Str))
+			: strEqLiteral(ira.remainingArgs.at(1), "--")
+			? immutable Command(Command.Run(ira.interpret, programDirAndMain, ira.remainingArgs.slice(2)))
 			: immutable Command(Command.HelpRun());
 	}
 }
@@ -296,7 +304,7 @@ immutable(Command) parseCommand(Alloc, SymAlloc)(
 			? parseRunCommand(alloc, allSymbols, cwd, cmdArgs)
 			// Allow `noze foo.nz args` to translate to `noze run foo.nz -- args`
 			: endsWith(arg0, nozeExtension)
-			? immutable Command(Command.Run(parseProgramDirAndMain(alloc, allSymbols, cwd, arg0), args.tail))
+			? immutable Command(Command.Run(True, parseProgramDirAndMain(alloc, allSymbols, cwd, arg0), args.tail))
 			: immutable Command(Command.Help(True));
 	}
 }

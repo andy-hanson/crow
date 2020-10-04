@@ -2,7 +2,6 @@ module util.diff;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, only, range, size;
 import util.collection.arrUtil : arrMax, arrMaxIndex, contains, slice;
@@ -22,13 +21,13 @@ import util.writer : Writer, writeRed, writeReset, writeStatic;
 import util.writerUtils : writeNlIndent, writeSpaces, writeSymPadded;
 import util.util : max, todo, verify;
 
-void diffSymbols(Alloc)(
+void diffSymbols(TempAlloc, Alloc)(
+	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
 	immutable Arr!Sym a,
 	immutable Arr!Sym b
 ) {
-	StackAlloc!("diffSymbols", 1024) temp;
-	printDiff(writer, a, b, longestCommonSubsequence(temp, a, b));
+	printDiff(writer, a, b, longestCommonSubsequence(tempAlloc, a, b));
 }
 
 private:
@@ -144,8 +143,7 @@ immutable(Arr!Sym) longestCommonSubsequence(Alloc)(
 	ref immutable Arr!Sym a,
 	ref immutable Arr!Sym b,
 ) {
-	StackAlloc!("longestCommonSubsequence", 1024) temp;
-	MutSlice!size_t scratch = newUninitializedMutSlice!size_t(temp, (size(b) + 1) * 2);
+	MutSlice!size_t scratch = newUninitializedMutSlice!size_t(alloc, (size(b) + 1) * 2);
 	ArrBuilder!Sym res;
 	longestCommonSubsequenceRecur(alloc, a, b, scratch, res);
 	return finishArr(alloc, res);

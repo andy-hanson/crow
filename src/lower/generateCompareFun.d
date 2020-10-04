@@ -15,6 +15,7 @@ import lowModel :
 	LowFunIndex,
 	LowLocal,
 	LowParam,
+	LowParamIndex,
 	LowRecord,
 	LowType,
 	LowUnion,
@@ -69,8 +70,8 @@ immutable(LowFun) generateCompareFun(Alloc)(
 		alloc,
 		immutable LowParam(strLiteral("a"), paramType),
 		immutable LowParam(strLiteral("b"), paramType));
-	immutable LowExpr a = paramRef(range, ptrAt(params, 0));
-	immutable LowExpr b = paramRef(range, ptrAt(params, 1));
+	immutable LowExpr a = paramRef(range, paramType, immutable LowParamIndex(0));
+	immutable LowExpr b = paramRef(range, paramType, immutable LowParamIndex(1));
 	immutable LowFunExprBody body_ = typeIsArr
 		? arrCompareBody(alloc, range, allTypes, comparisonTypes, compareFuns, paramType, thisFunIndex, a, b)
 		: compareBody(alloc, range, allTypes, comparisonTypes, compareFuns, paramType, a, b);

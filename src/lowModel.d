@@ -26,6 +26,8 @@ struct LowUnion {
 }
 
 struct LowFunPtrType {
+	@safe @nogc pure nothrow:
+
 	immutable Str mangledName;
 	immutable LowType returnType;
 	immutable Arr!LowType paramTypes;
@@ -280,8 +282,8 @@ immutable(Bool) isGlobal(ref immutable LowFunBody a) {
 }
 
 struct LowFun {
-	immutable(Str) mangledName;
-	immutable(LowType) returnType;
+	immutable Str mangledName;
+	immutable LowType returnType;
 	immutable Arr!LowParam params;
 	immutable LowFunBody body_;
 }
@@ -293,6 +295,10 @@ struct LowExpr {
 }
 
 struct LowFunIndex {
+	immutable size_t index;
+}
+
+struct LowParamIndex {
 	immutable size_t index;
 }
 
@@ -340,7 +346,7 @@ struct LowExprKind {
 	}
 
 	struct ParamRef {
-		immutable Ptr!LowParam param;
+		immutable LowParamIndex index;
 	}
 
 	struct PtrCast {

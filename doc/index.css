@@ -30,6 +30,8 @@ body {
 	font-size: var(--font-size);
 	line-height: var(--line-height);
 	white-space: pre;
+	border: 1px solid black;
+	border-radius: 1em;
 }
 
 .noze .highlight {
@@ -38,7 +40,6 @@ body {
 	width: 100%;
 	height: 100%;
 	z-index: 10;
-	user-select: none;
 }
 
 .noze .highlight .tab {
@@ -48,6 +49,33 @@ body {
 .noze .highlight .line {
 	/* Needed to ensure blank lines take up space */
 	height: var(--line-height);
+}
+
+.noze .highlight .diag {
+	text-decoration-line: underline;
+	text-decoration-style: wavy;
+	text-decoration-color: red;
+}
+
+.noze:hover .diag:after {
+	content: attr(data-tooltip);
+}
+
+.diag {
+	position: relative;
+	cursor: pointer;
+}
+.noze:hover .diag:after {
+	content: attr(data-tooltip);
+	position: absolute;
+	white-space: nowrap;
+	background: #80000080;
+	padding: 0.5ex 0.5em;
+	color: white;
+	border-radius: 0.5em;
+	margin-left: -1em;
+	margin-top: -0.5ex;
+	top: 3ex;
 }
 
 /*

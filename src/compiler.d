@@ -10,7 +10,8 @@ import frontend.ast : FileAst, sexprOfAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
 import frontend.getTokens : Token, tokensOfAst, sexprOfTokens;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
-import frontend.showDiag : printDiagnostics;
+import frontend.showDiag : cStrOfDiagnostics;
+import interpret.bytecode : ByteCode, generateBytecode;
 import lower.lower : lower;
 import lowModel : LowProgram;
 import model : Module, Program;
@@ -35,7 +36,8 @@ import util.path :
 	rootPath,
 	withExtension;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.result : matchResultImpure, Result;
+import util.print : printErr;
+import util.result : mapSuccess, matchResultImpure, Result;
 import util.sexpr : Sexpr;
 import util.sexprPrint : PrintFormat, printOutSexpr;
 import util.sym : AllSymbols, shortSymAlphaLiteral;
@@ -89,19 +91,37 @@ immutable(int) build(SymAlloc)(
 }
 
 immutable(int) buildAndRun(SymAlloc)(
+	immutable Bool interpret,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Str nozeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable Arr!Str programArgs,
 	ref immutable Environ environ,
 ) {
-	ExePathAlloc exePathAlloc;
-	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, nozeDir, programDirAndMain, environ);
-	if (exePath.has) {
-		replaceCurrentProcess(exePath.force, programArgs, environ);
-		return unreachable!int;
-	} else
-		return 1;
+	if (interpret) {
+		Mallocator mallocator;
+		LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
+		immutable Result!(LowProgram, Diagnostics) lowProgramResult =
+			buildToLowProgram(lowAlloc, allSymbols, nozeDir, programDirAndMain);
+		return matchResultImpure!(int, LowProgram, Diagnostics)(
+			lowProgramResult,
+			(ref immutable LowProgram lowProgram) {
+				immutable ByteCode byteCode = generateBytecode(lowAlloc, lowProgram);
+				return todo!int("run the bytecode");
+			},
+			(ref immutable Diagnostics diagnostics) {
+				printDiagnostics(diagnostics);
+				return 1;
+			});
+	} else {
+		ExePathAlloc exePathAlloc;
+		immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, nozeDir, programDirAndMain, environ);
+		if (exePath.has) {
+			replaceCurrentProcess(exePath.force, programArgs, environ);
+			return unreachable!int;
+		} else
+			return 1;
+	}
 }
 
 private:
@@ -254,22 +274,41 @@ immutable(Opt!AbsolutePath) buildWorker(Alloc, SymAlloc)(
 	ref immutable Environ environ
 ) {
 	Mallocator mallocator;
-	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
-	immutable Result!(Program, Diagnostics) programResult =
-		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
-	return matchResultImpure!(Opt!AbsolutePath, Program, Diagnostics)(
+	LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
+	immutable Result!(LowProgram, Diagnostics) programResult =
+		buildToLowProgram(lowAlloc, allSymbols, nozeDir, programDirAndMain);
+	return matchResultImpure!(Opt!AbsolutePath, LowProgram, Diagnostics)(
 		programResult,
-		(ref immutable Program program) {
+		(ref immutable LowProgram lowProgram) {
 			immutable AbsolutePath fullMainPath =
-				AbsolutePath(programDirAndMain.programDir, programDirAndMain.mainPath, emptyStr);
+				immutable AbsolutePath(programDirAndMain.programDir, programDirAndMain.mainPath, emptyStr);
 			immutable AbsolutePath fullMainCPath = withExtension(fullMainPath, strLiteral(".c"));
-			emitProgram(program, fullMainCPath);
+			emitProgram(lowProgram, fullMainCPath);
 			compileC(fullMainCPath, fullMainPath, environ);
 			return some(fullMainPath);
 		},
 		(ref immutable Diagnostics diagnostics) {
 			printDiagnostics(diagnostics);
 			return none!AbsolutePath;
+		});
+}
+
+immutable(Result!(LowProgram, Diagnostics)) buildToLowProgram(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	ref immutable Str nozeDir,
+	ref immutable ProgramDirAndMain programDirAndMain,
+) {
+	Mallocator mallocator;
+	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
+	immutable Result!(Program, Diagnostics) programResult =
+		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
+	return mapSuccess!(LowProgram, Program, Diagnostics)(
+		programResult,
+		(ref immutable Program program) {
+			ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
+			immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
+			return lower(alloc, concreteProgram);
 		});
 }
 
@@ -314,13 +353,14 @@ void compileC(immutable AbsolutePath cPath, immutable AbsolutePath exePath, immu
 		todo!void("C compile error");
 }
 
-void emitProgram(ref immutable Program program, immutable AbsolutePath cPath) {
+void emitProgram(ref immutable LowProgram program, immutable AbsolutePath cPath) {
 	Mallocator mallocator;
-	ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
-	immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
-	LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
-	immutable LowProgram lowProgram = lower(lowAlloc, concreteProgram);
 	WriteAlloc writeAlloc = WriteAlloc(ptrTrustMe_mut(mallocator));
-	immutable Str emitted = writeToC(writeAlloc, lowProgram);
+	immutable Str emitted = writeToC(writeAlloc, program);
 	writeFileSync(cPath, emitted);
+}
+
+void printDiagnostics(ref immutable Diagnostics diagnostics) {
+	StackAlloc!("printDiagnostics", 1024 * 1024) tempAlloc;
+	printErr(cStrOfDiagnostics(tempAlloc, diagnostics));
 }

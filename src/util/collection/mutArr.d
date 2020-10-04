@@ -17,6 +17,12 @@ struct MutArr(T) {
 	size_t capacity_;
 }
 
+MutArr!T mutArrOfOne(T, Alloc)(ref Alloc alloc, T value) {
+	MutArr!T res;
+	push(alloc, res, value);
+	return res;
+}
+
 @system T* mutArrBegin(T)(ref MutArr!T a) {
 	return a.begin_;
 }

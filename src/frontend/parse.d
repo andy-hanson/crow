@@ -40,6 +40,7 @@ import frontend.lexer :
 	range,
 	skipBlankLines,
 	skipShebang,
+	skipUntilNewlineNoDiag,
 	SymAndIsReserved,
 	takeDedentFromIndent1,
 	takeIndentOrDiagTopLevel,
@@ -168,7 +169,10 @@ immutable(ArrWithSize!ParamAst) parseParenthesizedParams(Alloc, SymAlloc)(ref Al
 			add(alloc, res, parseSingleParam(alloc, lexer));
 			if (tryTake(lexer, ')'))
 				break;
-			takeOrAddDiagExpected(alloc, lexer, ", ", ParseDiag.Expected.Kind.comma);
+			if (!takeOrAddDiagExpected(alloc, lexer, ", ", ParseDiag.Expected.Kind.comma)) {
+				skipUntilNewlineNoDiag(lexer);
+				break;
+			}
 		}
 		return finishArr(alloc, res);
 	}

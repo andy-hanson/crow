@@ -155,7 +155,7 @@ immutable(Sexpr) tataOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExpr
 		(ref immutable LowExprKind.Match it) =>
 			tataOfMatch(alloc, it),
 		(ref immutable LowExprKind.ParamRef it) =>
-			tataRecord(alloc, "param-ref", tataStr(it.param.mangledName)),
+			tataRecord(alloc, "param-ref", tataNat(it.index.index)),
 		(ref immutable LowExprKind.PtrCast it) =>
 			tataRecord(alloc, "ptr-cast", tataOfLowExpr(alloc, it.target)),
 		(ref immutable LowExprKind.RecordFieldAccess it) =>

@@ -1,6 +1,6 @@
 module frontend.showDiag;
 
-@safe @nogc nothrow: // not pure
+@safe @nogc pure nothrow:
 
 import diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, PathAndStorageKindAndRange, TypeKind;
 import frontend.lang : nozeExtension;
@@ -31,22 +31,21 @@ import model :
 	writeType;
 import parseDiag : matchParseDiag, ParseDiag;
 
-import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, not, True;
 import util.collection.arr : Arr, empty, only, range, size;
 import util.collection.arrUtil : exists, map, sort;
 import util.collection.dict : mustGetAt;
-import util.collection.str : emptyStr, Str;
+import util.collection.str : CStr, emptyStr, Str;
 import util.diff : diffSymbols;
 import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetter;
 import util.opt : force, has;
 import util.path : PathAndStorageKind, pathToStr;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.print : printErr;
 import util.sourceRange : SourceRange;
 import util.sym : Sym, writeSym;
 import util.util : todo;
 import util.writer :
+	finishWriter,
 	finishWriterToCStr,
 	writeBold,
 	writeChar,
@@ -62,42 +61,40 @@ import util.writer :
 	Writer;
 import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRange, writeRelPath;
 
-void printDiagnostics(immutable Diagnostics diagnostics) {
-	PrintAlloc alloc;
-	Writer!PrintAlloc writer = Writer!PrintAlloc(ptrTrustMe_mut(alloc));
-	immutable Diags sorted = sort!(Diagnostic, PrintAlloc)(
+immutable(CStr) cStrOfDiagnostics(Alloc)(ref Alloc alloc, ref immutable Diagnostics diagnostics) {
+	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	immutable Diags sorted = sort!(Diagnostic, Alloc)(
 		alloc,
 		diagnostics.diagnostics,
 		(ref immutable Diagnostic a, ref immutable Diagnostic b) =>
 			// TOOD: sort by file position too
 			comparePathAndStorageKind(a.where.pathAndStorageKind, b.where.pathAndStorageKind));
 	foreach (ref immutable Diagnostic d; sorted.range)
-		showDiagnostic(writer, diagnostics.filesInfo, d);
-	printOutWriter(writer);
+		showDiagnostic(alloc, writer, diagnostics.filesInfo, d);
+	return finishWriterToCStr(writer);
+}
+
+public immutable(Str) strOfParseDiag(Alloc)(ref Alloc alloc, ref immutable ParseDiag a) {
+	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	writeParseDiag(writer, a);
+	return finishWriter(writer);
 }
 
 private:
 
-@trusted void printOutWriter(Alloc)(ref Writer!Alloc writer) {
-	printErr(finishWriterToCStr(writer));
-}
-
-pure:
-
-alias PrintAlloc = StackAlloc!("printDiagnostics", 1024 * 1024);
-
-void writeWhere(Alloc)(
+void writeWhere(TempAlloc, Alloc)(
+	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
 	ref immutable FilesInfo fi,
 	ref immutable PathAndStorageKindAndRange where,
 ) {
 	writeBold(writer);
-	alias TempAlloc = StackAlloc!("writeWhere", 1024);
-	TempAlloc temp;
 	writeHyperlink(
 		writer,
-		pathToStr(temp, getAbsolutePath(temp, fi.absolutePathsGetter, where.pathAndStorageKind, nozeExtension)),
-		pathToStr(temp, emptyStr, where.pathAndStorageKind.path, nozeExtension));
+		pathToStr(
+			tempAlloc,
+			getAbsolutePath(tempAlloc, fi.absolutePathsGetter, where.pathAndStorageKind, nozeExtension)),
+		pathToStr(tempAlloc, emptyStr, where.pathAndStorageKind.path, nozeExtension));
 	writeChar(writer, ' ');
 	writeRed(writer);
 
@@ -377,7 +374,12 @@ void writeCallNoMatch(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi
 	}
 }
 
-void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref immutable Diag d) {
+void writeDiag(TempAlloc, Alloc)(
+	ref TempAlloc tempAlloc,
+	ref Writer!Alloc writer,
+	ref immutable FilesInfo fi,
+	ref immutable Diag d,
+) {
 	matchDiag!void(
 		d,
 		(ref immutable Diag.CallMultipleMatches d) {
@@ -442,11 +444,10 @@ void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref i
 			writeStatic(writer, "didn't get expected fields of ");
 			writeName(writer, d.decl.name);
 			writeChar(writer, ':');
-			StackAlloc!("CreateRecordMultipleLineWrongFields", 1024) temp;
-			immutable Arr!Sym expected = map(temp, d.fields, (ref immutable RecordField f) {
+			immutable Arr!Sym expected = map(tempAlloc, d.fields, (ref immutable RecordField f) {
 				return f.name;
 			});
-			diffSymbols(writer, expected, d.providedFieldNames);
+			diffSymbols(tempAlloc, writer, expected, d.providedFieldNames);
 		},
 		(ref immutable Diag.DuplicateDeclaration d) {
 			writeStatic(writer, "duplicate ");
@@ -679,10 +680,15 @@ void writeDiag(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref i
 		});
 }
 
-void showDiagnostic(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref immutable Diagnostic d) {
-	writeWhere(writer, fi, d.where);
+void showDiagnostic(TempAlloc, Alloc)(
+	ref TempAlloc tempAlloc,
+	ref Writer!Alloc writer,
+	ref immutable FilesInfo fi,
+	ref immutable Diagnostic d,
+) {
+	writeWhere(tempAlloc, writer, fi, d.where);
 	writeChar(writer, ' ');
-	writeDiag(writer, fi, d.diag);
+	writeDiag(tempAlloc, writer, fi, d.diag);
 	writeNl(writer);
 }
 

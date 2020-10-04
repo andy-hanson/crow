@@ -15,6 +15,10 @@ alias i32 = int;
 
 alias ssize_t = long;
 
+immutable(u8) bottomU8OfU32(immutable u32 u) {
+	return cast(u8) (u & 0xff);
+}
+
 immutable(i32) safeI32FromU32(immutable u32 u) {
 	verify(u <= 999);
 	return cast(i32) u;

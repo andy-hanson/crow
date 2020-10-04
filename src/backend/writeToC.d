@@ -549,7 +549,7 @@ void writeExpr(Alloc)(
 			writeMatch(writer, indent, ctx, writeKind, type, it);
 		},
 		(ref immutable LowExprKind.ParamRef it) {
-			return_(() { writeParamRef(writer, it); });
+			return_(() { writeParamRef(writer, ctx, it); });
 		},
 		(ref immutable LowExprKind.PtrCast it) {
 			return_(() { writePtrCast(writer, indent, ctx, type, it); });
@@ -811,8 +811,18 @@ void writeAssignLocal(Alloc)(
 	writeExprExpr(writer, indent, ctx, value);
 }
 
-void writeParamRef(Alloc)(ref Writer!Alloc writer, ref immutable LowExprKind.ParamRef a) {
-	writeStr(writer, a.param.mangledName);
+void writeParamRef(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable FunBodyCtx ctx,
+	ref immutable LowExprKind.ParamRef a,
+) {
+	//TODO: main should just be a normal fun...
+	immutable Arr!LowParam params =
+		(ctx.curFun.index == size(ctx.ctx.program.allFuns)
+			? ctx.ctx.program.main
+			: at(ctx.ctx.program.allFuns, ctx.curFun.index)
+		).params;
+	writeStr(writer, at(params, a.index.index).mangledName);
 }
 
 void writePtrCast(Alloc)(

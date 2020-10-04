@@ -29,7 +29,7 @@ void writeChar(Alloc)(ref Writer!Alloc writer, immutable char c) {
 	add(writer.alloc, writer.res, c);
 }
 void writeStr(Alloc)(ref Writer!Alloc writer, immutable Str s) {
-	foreach (immutable char c; s.range)
+	foreach (immutable char c; range(s))
 		writeChar(writer, c);
 }
 void writeStatic(Alloc)(ref Writer!Alloc writer, immutable string c) {

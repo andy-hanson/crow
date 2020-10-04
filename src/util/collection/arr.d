@@ -96,7 +96,7 @@ immutable(Bool) empty(T)(const Arr!T a) {
 	return ptrAt(a, index).deref;
 }
 
-@trusted void setAt(T)(ref Arr!T a, immutable size_t index, immutable T value) {
+@trusted void setAt(T)(ref Arr!T a, immutable size_t index, T value) {
 	verify(index < a.size_);
 	overwriteMemory(a.begin_ + index, value);
 }

@@ -9,7 +9,7 @@ import lowModel :
 	isPrimitive,
 	LowExpr,
 	LowExprKind,
-	LowParam,
+	LowParamIndex,
 	LowType,
 	PrimitiveType;
 import lower.lowExprHelpers : ptrCastKind;
@@ -29,7 +29,7 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 	immutable LowType rt,
 	immutable Arr!LowExpr args,
 	immutable Arr!LowType typeArgs,
-	immutable Opt!(Ptr!LowParam) ctxParam,
+	immutable Opt!LowParamIndex ctxParam,
 ) {
 	immutable(LowExpr) arg0() {
 		return at(args, 0);

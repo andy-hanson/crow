@@ -69,7 +69,7 @@ immutable(Opt!Sym) tryGetSymFromStr(Alloc)(ref AllSymbols!Alloc allSymbols, immu
 
 immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
 	immutable Sym res = str.size <= maxShortAlphaIdentifierSize
-		? Sym(packAlphaIdentifier(str))
+		? immutable Sym(packAlphaIdentifier(str))
 		: getSymFromLongStr(allSymbols, str, False);
 	assertSym(res, str);
 	return res;
@@ -77,7 +77,7 @@ immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols,
 
 immutable(Sym) getSymFromOperator(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
 	immutable Sym res = str.size <= maxShortOperatorSize
-		? Sym(packOperator(str))
+		? immutable Sym(packOperator(str))
 		: getSymFromLongStr(allSymbols, str, True);
 	assertSym(res, str);
 	return res;

@@ -28,6 +28,12 @@ const assert = cond => {
  * @property {Range} range
  */
 
+/**
+ * @typedef Diagnostic
+ * @property {string} message
+ * @property {Range} range
+ */
+
  /**
   * @typedef TokensDiags
   * @property {ReadonlyArray<Token>} tokens
@@ -71,54 +77,211 @@ class Noze {
 	}
 }
 
-/** @type {function(ReadonlyArray<Token>, string): ReadonlyArray<Node>} */
-const tokensToNodes = (tokens, text) => {
-	console.log("TOKENS", tokens)
+/**
+ * @typedef AllContainer
+ * @property {"all"} type
+ * @property {Array<Node>} children
+ */
+
+/**
+ * @typedef LineContainer
+ * @property {"line"} type
+ * @property {Array<Node>} children
+ */
+
+/**
+ * @typedef DiagContainer
+ * @property {"diag"} type
+ * @property {Array<Node>} children
+ * @property {number} end
+ * @property {string} message
+ */
+
+/**
+ * @typedef {AllContainer | LineContainer | DiagContainer} Container
+ */
+
+/**
+ * @template T
+ * @param {ReadonlyArray<T>} xs
+ * @return {T}
+*/
+const last = xs => {
+	if (xs.length === 0) throw new Error()
+	return xs[xs.length - 1]
+}
+
+/**
+ * @template T
+ * @param {ReadonlyArray<T>} xs
+ * @return {T}
+ */
+const secondLast = xs => {
+	if (xs.length < 2) throw new Error()
+	return xs[xs.length - 2]
+}
+
+/**
+ * @template T
+ * @param {Array<T>} xs
+ * @return {T}
+ */
+const mustPop = xs => {
+	return nonNull(xs.pop())
+}
+
+/**
+ * @param {string} msg
+ * @return {never}
+ */
+const unreachable = msg => {
+	throw new Error(msg)
+}
+
+/** @type {function(string, ReadonlyArray<Node | string>): HTMLSpanElement} */
+const createDiagSpan = (message, children) => {
+	return createSpan({
+		attr: {"data-tooltip": message},
+		className: "diag",
+		children,
+	})
+}
+
+/** @type {function(ReadonlyArray<Token>, ReadonlyArray<Diagnostic>, string): ReadonlyArray<Node>} */
+const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	let pos = 0
-	/** @type {Array<Node>} */
-	const lines = []
-	/** @type {Array<Node>} */
-	let curLine = []
+	// Last entry is the most nested container
+	/** @type {Array<Container>} */
+	const containerStack = [
+		{type:"all", children:[]},
+	]
+
+	const popContainer = () => {
+		const popped = mustPop(containerStack)
+		const child = popped.type === "diag"
+				? createDiagSpan(popped.message, popped.children)
+			: popped.type === "line"
+				? createDiv({ className: "line", children: popped.children })
+			: unreachable(`Unexpected type ${popped.type}`);
+		const lastContainer = last(containerStack)
+		if (lastContainer.type === "text")
+			throw new Error() // text can't contain other nodes
+		lastContainer.children.push(child)
+	}
+
+	const startLine = () => {
+		containerStack.push({type:"line", children:[]})
+	}
+
+	const endLine = () => {
+		while (last(containerStack).type !== "line")
+			popContainer()
+		popContainer()
+	}
 
 	const nextLine = () => {
-		lines.push(createDiv({ className: "line", children: curLine }))
-		curLine = []
+		endLine()
+		startLine()
+	}
+
+	const finishText = () => {
+		const l = last(containerStack)
+		if (l.type === "text") {
+			mustPop(containerStack)
+			const newLast = last(containerStack)
+			if (newLast.type === "text")
+				throw new Error() // text can't contain other nodes
+			newLast.children.push(createSpan({ className: "no-token", children: [l.text] }))
+		}
+	}
+
+	/** @type {function(number): boolean} */
+	const maybeStartDiag = nextPos => {
+		if (diagIndex < diags.length) {
+			const diag = diags[diagIndex]
+			if (diag.range.args[0] < nextPos) {
+				// Ignore nested diags
+				if (last(containerStack).type !== "diag") {
+					finishText()
+					containerStack.push({type:"diag", children:[], end:diag.range.args[1], message:diag.message})
+				}
+				diagIndex++
+				return true
+			}
+		}
+		return false
+	}
+
+	/** @type {function(number): boolean} */
+	const shouldStopDiag = tokenEnd => {
+		const lastContainer = last(containerStack)
+		return lastContainer.type === "diag" && lastContainer.end <= tokenEnd
+	}
+
+	/** @type {function(number): void} */
+	const maybeStopDiag = tokenEnd => {
+		if (shouldStopDiag(tokenEnd)) {
+			popContainer()
+		}
+	}
+
+
+	/** @type {function(number): HTMLSpanElement} */
+	const noTokenNode = startPos => {
+		assert(startPos < pos)
+		return createSpan({ className: "no-token", children: [text.slice(startPos, pos)] })
 	}
 
 	/** @type {function(number): void} */
 	const walkTo = end => {
-		if (pos < end) {
-			const nl = text.indexOf('\n', pos)
-			if (nl < end) {
-				if (pos < nl)
-					curLine.push(createSpan('no-token', text.slice(pos, nl)))
-				pos = nl + 1
+		let startPos = pos
+		///** @type {TextContainer} */
+		//containerStack.push({type: "text", text:""})
+		while (pos < end) {
+			if (maybeStartDiag(pos)) {
+				if (startPos < pos) secondLast(containerStack).children.push(noTokenNode(startPos))
+				startPos = pos
+			}
+			if (text[pos] === '\n') {
+				if (startPos < pos) last(containerStack).children.push(noTokenNode(startPos))
+				startPos = pos + 1
 				nextLine()
-				walkTo(end)
-			} else {
-				curLine.push(createSpan('no-token', text.slice(pos, end)))
-				pos = end
+			}
+			pos++
+			if (shouldStopDiag(pos)) {
+				last(containerStack).children.push(noTokenNode(startPos))
+				startPos = pos
+				popContainer()
 			}
 		}
+		if (startPos < pos) last(containerStack).children.push(noTokenNode(startPos))
 	}
 
 	/** @type {function(string, number): void} */
 	const addSpan = (className, end) => {
 		assert(pos < end)
-		curLine.push(createSpan(className, text.slice(pos, end)))
+		last(containerStack).children.push(createSpan({ className, children: [text.slice(pos, end)] }))
 		pos = end
 	}
 
+	startLine()
+
+	let diagIndex = 0
 	for (const token of tokens) {
 		const tokenPos = token.range.args[0]
 		const tokenEnd = token.range.args[1]
 		walkTo(tokenPos)
+		maybeStartDiag(tokenPos)
 		addSpan(classForKind(token.kind), tokenEnd)
+		maybeStopDiag(tokenEnd)
 	}
 
 	walkTo(text.length)
-	nextLine()
-	return lines
+	console.log("?1", containerStack)
+	endLine()
+	console.log("?2", containerStack)
+	assert(containerStack.length === 1 && containerStack[0].type === "all")
+	return containerStack[0].children
 }
 
 
@@ -147,7 +310,7 @@ r record
 	x int
 
 to-int<?a> spec
-	to-int int(a ?a)
+	to-int int(a |foo bar<?a>)
 
 main void(r r)
 	r.x + 0
@@ -191,9 +354,10 @@ const removeAllChildren = em => {
 /** @type {function(Noze, Node, HTMLTextAreaElement): void} */
 const highlight = (noze, highlightDiv, ta) => {
 	const v = ta.value
-	const tokens = noze.getTokens(v).tokens
-	console.log("?", {v, tokens})
-	const nodes = tokensToNodes(tokens, v)
+	const {tokens, diags} = noze.getTokens(v)
+	console.log("DIAGS", diags)
+	const nodes = tokensAndDiagsToNodes(tokens, diags, v)
+
 	console.log("NODES", nodes)
 
 	//const valueLines = v.split("\n")
@@ -214,24 +378,38 @@ const highlight = (noze, highlightDiv, ta) => {
 	*/
 }
 
-/** @type {function({className?: string, children?: ReadonlyArray<Node>}): HTMLDivElement} */
-const createDiv = (options) => {
-	const div = document.createElement("div")
+/**
+ * @typedef CreateNodeOptions
+ * @property {{[name: string]: string}} [attr]
+ * @property {string} [className]
+ * @property {ReadonlyArray<Node | string>} [children]
+ */
+
+/**
+ * @template {keyof HTMLElementTagNameMap} K
+ * @param {K} tagName
+ * @param {CreateNodeOptions} options
+ * @return {HTMLElementTagNameMap[K]}
+ */
+const createNode = (tagName, options) => {
+	const node = document.createElement(tagName)
+	if (options.attr)
+		for (const key in options.attr)
+			node.setAttribute(key, options.attr[key])
 	if (options.className)
-		div.className = options.className
+		node.className = options.className
 	if (options.children)
-		for (const child of options.children)
-			div.appendChild(child)
-	return div
+		node.append(...options.children)
+	return node
 }
 
-/** @type {function(string, string): HTMLSpanElement} */
-const createSpan = (className, text) => {
-	const span = document.createElement("span")
-	span.className = className
-	span.innerText = text
-	return span
-}
+/** @type {function(CreateNodeOptions): HTMLDivElement} */
+const createDiv = options =>
+	createNode("div", options)
+
+/** @type {function(CreateNodeOptions): HTMLSpanElement} */
+const createSpan = options =>
+	createNode("span", options)
 
 /** @type {function(HTMLElement): Promise<void>} */
 const fillIn = async node => {

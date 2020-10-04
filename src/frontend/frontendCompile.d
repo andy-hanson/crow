@@ -17,7 +17,16 @@ import model :
 	StructInst;
 import parseDiag : ParseDiagnostic;
 
-import frontend.ast : emptyFileAst, exports, FileAst, ImportAst, imports, ImportsOrExportsAst, specs, structAliases, structs;
+import frontend.ast :
+	emptyFileAst,
+	exports,
+	FileAst,
+	ImportAst,
+	imports,
+	ImportsOrExportsAst,
+	specs,
+	structAliases,
+	structs;
 import frontend.check : BootstrapCheck, check, checkBootstrapNz, PathAndAst;
 import frontend.instantiate : instantiateNonTemplateStruct;
 import frontend.lang : nozeExtension;
