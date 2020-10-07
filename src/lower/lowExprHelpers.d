@@ -250,17 +250,18 @@ immutable(LowExpr) recordFieldAccess(Alloc)(
 	ref Alloc alloc,
 	ref immutable SourceRange range,
 	ref immutable LowExpr target,
-	immutable Ptr!LowField field,
+	immutable LowType fieldType,
+	immutable u8 fieldIndex,
 ) {
 	immutable LowType.Record recordType = asRecordType(isNonFunPtrType(target.type)
 		? asNonFunPtrType(target.type).pointee
 		: target.type);
-	return immutable LowExpr(field.type, range, immutable LowExprKind(
+	return immutable LowExpr(fieldType, range, immutable LowExprKind(
 		immutable LowExprKind.RecordFieldAccess(
 			allocate(alloc, target),
 			isNonFunPtrType(target.type),
 			recordType,
-			field)));
+			fieldIndex)));
 }
 
 immutable(LowExpr) seq(Alloc)(

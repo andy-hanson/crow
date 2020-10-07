@@ -40,6 +40,7 @@ import util.collection.fullIndexDict :
 import util.collection.str : Str, strEq, strLiteral;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.types : u8;
 import util.util : unreachable, verify;
 import util.writer :
 	finishWriter,
@@ -854,7 +855,7 @@ void writeRecordFieldAccess(Alloc)(
 	ref immutable FunBodyCtx ctx,
 	ref immutable LowExprKind.RecordFieldAccess a,
 ) {
-	writeRecordFieldAccess(writer, indent, ctx, a.target, a.targetIsPointer, a.field);
+	writeRecordFieldAccess(writer, indent, ctx, a.target, a.targetIsPointer, a.record, a.fieldIndex);
 }
 
 void writeRecordFieldAccess(Alloc)(
@@ -863,11 +864,12 @@ void writeRecordFieldAccess(Alloc)(
 	ref immutable FunBodyCtx ctx,
 	ref immutable LowExpr target,
 	immutable Bool targetIsPointer,
-	ref immutable LowField field,
+	immutable LowType.Record record,
+	immutable u8 fieldIndex,
 ) {
 	writeExprExpr(writer, indent, ctx, target);
 	writeStatic(writer, targetIsPointer ? "->" : ".");
-	writeStr(writer, field.mangledName);
+	writeStr(writer, at(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields, fieldIndex).mangledName);
 }
 
 void writeRecordFieldSet(Alloc)(
@@ -877,7 +879,7 @@ void writeRecordFieldSet(Alloc)(
 	ref immutable LowExprKind.RecordFieldSet a,
 ) {
 	writeChar(writer, '(');
-	writeRecordFieldAccess(writer, indent, ctx, a.target, a.targetIsPointer, a.field);
+	writeRecordFieldAccess(writer, indent, ctx, a.target, a.targetIsPointer, a.record, a.fieldIndex);
 	writeStatic(writer, " = ");
 	writeExprExpr(writer, indent, ctx, a.value);
 	writeStatic(writer, ", 0)");

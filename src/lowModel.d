@@ -359,14 +359,14 @@ struct LowExprKind {
 		immutable Ptr!LowExpr target;
 		immutable Bool targetIsPointer; // TODO: is this redundant?
 		immutable LowType.Record record; //TODO: this is just asRecordType(target.type)?
-		immutable Ptr!LowField field;
+		immutable u8 fieldIndex;
 	}
 
 	struct RecordFieldSet {
 		immutable Ptr!LowExpr target;
 		immutable Bool targetIsPointer; // TODO: this should always be true..
 		immutable LowType.Record record;
-		immutable Ptr!LowField field;
+		immutable u8 fieldIndex;
 		immutable Ptr!LowExpr value;
 	}
 

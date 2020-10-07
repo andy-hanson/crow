@@ -57,6 +57,7 @@ import util.memory : nu, nuMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sym : shortSymAlphaLiteralValue, Sym;
+import util.types : safeSizeTToU8;
 import util.util : min, max, roundUp, todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeStatic, writeStr;
 
@@ -516,7 +517,7 @@ void initializeConcreteStruct(Alloc)(
 			immutable Arr!ConcreteField fields =
 				mapWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, ref immutable RecordField f) =>
 					immutable ConcreteField(
-						index,
+						safeSizeTToU8(index),
 						f.isMutable,
 						mangleName(alloc, f.name),
 						getConcreteType(alloc, ctx, f.type, typeArgsScope)));

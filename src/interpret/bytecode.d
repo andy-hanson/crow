@@ -5,8 +5,8 @@ module interpret.bytecode;
 import util.collection.arr : Arr;
 import util.collection.mutArr : moveToArr, MutArr, mutArrSize, push, setAt;
 import util.ptr : Ptr;
-import util.types : bottomU8OfU32, safeSizeTToU32, safeU32ToU8, u8, u32;
-import util.util : verify;
+import util.types : bottomU8OfU32, catU4U4, safeSizeTToU32, safeU32ToU8, u8, u32;
+import util.util : divRoundUp, verify;
 
 struct ByteCode {
 	// NOTE: not every entry is an opcode
@@ -22,15 +22,17 @@ struct ByteCodeOffset {
 	immutable u8 offset;
 }
 
-immutable(ByteCode) finishByteCode(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex mainIndex) {
-	return immutable ByteCode(moveToArr(writer.alloc, writer.code), mainIndex);
-}
+immutable(u8) stackEntrySize = 8;
 
 struct ByteCodeWriter(Alloc) {
 	private:
 	Ptr!Alloc alloc;
 	MutArr!(immutable OpCode) code;
 	uint nextStackEntry = 0;
+}
+
+immutable(ByteCode) finishByteCode(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex mainIndex) {
+	return immutable ByteCode(moveToArr(writer.alloc, writer.code), mainIndex);
 }
 
 immutable(uint) getNextStackEntry(Alloc)(ref const ByteCodeWriter!Alloc writer) {
@@ -83,16 +85,44 @@ immutable(ByteCodeIndex) writeCallDelayed(Alloc)(
 	return fnAddress;
 }
 
-void writeGet(Alloc)(ref ByteCodeWriter!Alloc writer, immutable StackEntries entries) {
+// WARN: 'get' operation does not delete the thing that was got from (unlike 'read')
+void writeDup(Alloc)(ref ByteCodeWriter!Alloc writer, immutable StackEntries entries) {
 	foreach (immutable uint i; 0..entries.size) {
 		// curEntry is the *next* position on the stack.
 		// Gets are relative to the current top of stack (0 reads from curEntry - 1).
 		immutable uint stackEntry = entries.start + i;
 		verify(stackEntry < writer.nextStackEntry);
-		pushOpcode(writer, OpCode.get);
+		pushOpcode(writer, OpCode.dup);
 		pushU8(writer.alloc, writer.code, safeU32ToU8(writer.nextStackEntry - 1 - stackEntry));
 	}
 	writer.nextStackEntry += entries.size;
+}
+
+void writeDupPartial(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	immutable u8 stackEntryOffset,
+	immutable u8 byteOffset,
+	immutable u8 sizeBytes,
+) {
+	pushOpcode(writer, OpCode.dupPartial);
+	pushU8(writer.alloc, writer.code, safeU32ToU8(writer.nextStackEntry - 1 - stackEntryOffset));
+	pushU8(writer.alloc, writer.code, catU4U4(byteOffset, sizeBytes));
+	writer.nextStackEntry += 1;
+}
+
+void writeRead(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u8 offset, immutable u8 size) {
+	pushOpcode(writer, OpCode.read);
+	pushU8(writer.alloc, writer.code, offset);
+	pushU8(writer.alloc, writer.code, size);
+	writer.nextStackEntry -= 1;
+	writer.nextStackEntry += divRoundUp(size, stackEntrySize);
+}
+
+void writeWrite(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u8 offset, immutable u8 size) {
+	pushOpcode(writer, OpCode.write);
+	pushU8(writer.alloc, writer.code, offset);
+	pushU8(writer.alloc, writer.code, size);
+	writer.nextStackEntry -= 1 + divRoundUp(size, stackEntrySize);
 }
 
 void writePushU8(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u8 value) {
@@ -159,24 +189,43 @@ enum OpCode : u8 {
 	// args: u32 address
 	// pushes current address onto the stack and goes to the new function's address
 	call,
+
 	// args: u8 offset
 	// Gets a stack entry and duplicates it on the top of the stack.
-	get,
+	dup,
+
+	// args: u8 entryOffset, u4 byteOffset, u4 sizeBytes
+	// byteOffset + sizeBytes must be <= stackEntrySize
+	dupPartial,
+
 	jump,
+
 	// args: u8 value
 	pushU8,
+
 	// args: u32 value
 	// Push a literal u32 value. (Takes up a full 64-bit stack entry)
 	pushU32,
+
+	// args: u8 offset, u8 size
+	// Pops a pointer off the stack and reads `size` bytes from ptr + offset
+	read,
+
 	// args: u8 offset, u8 nEntries
 	// Removes the entries at the offset. Later entries are moved to there.
 	remove,
+
 	return_,
+
 	// args: u8[nCases] offsets
 	// This is a switch on the contiguous range from [0, nCases).
 	// (Offsets are relative to the bytecode index of the first offset.
 	// A 0th offset is needed because otherwise there's no way to know how many cases there are.)
 	switch_,
+
+	// args: u8 offset, u8 size
+	// Pops a pointer, then pops divRoundUp(size, stackEntrySize) stack entries and writes them to ptr + offset
+	write,
 }
 
 void pushOpcode(Alloc)(ref ByteCodeWriter!Alloc writer, immutable OpCode code) {

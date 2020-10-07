@@ -238,7 +238,7 @@ immutable(Bool) concreteTypeEq(ref immutable ConcreteType a, ref immutable Concr
 }
 
 struct ConcreteField {
-	immutable size_t index;
+	immutable u8 index;
 	immutable Bool isMutable;
 	immutable Str mangledName;
 	immutable ConcreteType type;

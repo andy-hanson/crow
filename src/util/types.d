@@ -58,4 +58,10 @@ immutable(size_t) safeSizeTFromSSizeT(immutable ssize_t s) {
 	return cast(size_t) s;
 }
 
+immutable(u8) catU4U4(immutable u8 a, immutable u8 b) {
+	verify(a <= 0xff);
+	verify(b <= 0xff);
+	return safeU32ToU8((a << 4) | b);
+}
+
 immutable u8 MAX_UINT8 = 255;

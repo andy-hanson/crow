@@ -925,7 +925,6 @@ immutable(LowExprKind) getParamRefExpr(Alloc)(
 struct FieldAndTargetIsPointer {
 	immutable Bool targetIsPointer;
 	immutable LowType.Record record;
-	immutable Ptr!LowField field;
 }
 
 immutable(FieldAndTargetIsPointer) getLowField(
@@ -937,7 +936,7 @@ immutable(FieldAndTargetIsPointer) getLowField(
 	immutable LowType.Record record = asRecordType(targetIsPointer ? asNonFunPtrType(targetType).pointee : targetType);
 	immutable Ptr!LowField field = ptrAt(fullIndexDictGet(ctx.allTypes.allRecords, record).fields, concreteField.index);
 	verify(strEq(field.mangledName, concreteField.mangledName));
-	return immutable FieldAndTargetIsPointer(targetIsPointer, record, field);
+	return immutable FieldAndTargetIsPointer(targetIsPointer, record);
 }
 
 immutable(LowExprKind) getRecordFieldAccessExpr(Alloc)(
@@ -952,7 +951,7 @@ immutable(LowExprKind) getRecordFieldAccessExpr(Alloc)(
 			allocate(alloc, target),
 			field.targetIsPointer,
 			field.record,
-			field.field));
+			a.field.index));
 }
 
 immutable(LowExprKind) getRecordFieldSetExpr(Alloc)(
@@ -966,6 +965,6 @@ immutable(LowExprKind) getRecordFieldSetExpr(Alloc)(
 		allocate(alloc, target),
 		field.targetIsPointer,
 		field.record,
-		field.field,
+		a.field.index,
 		allocate(alloc, getLowExpr(alloc, ctx, a.value))));
 }

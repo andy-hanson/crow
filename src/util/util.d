@@ -3,6 +3,7 @@ module util.util;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False;
+import util.types : safeU32ToU8, u8;
 //import util.print : print;
 
 T todo(T)(immutable char* message) {
@@ -28,6 +29,15 @@ immutable(T) max(T)(immutable T a, immutable T b) {
 immutable(T) roundUp(T)(immutable T a, immutable T b) {
 	verify(b != 0);
 	return a % b == 0 ? a : roundUp(cast(T) (a + 1), b);
+}
+
+immutable(u8) divRoundUp(immutable u8 a, immutable u8 b) {
+	assert(b != 0);
+	immutable u8 div = a / b;
+	immutable u8 mod = a % b;
+	immutable u8 res = safeU32ToU8(div + (mod == 0 ? 0 : 1));
+	verify(res * b >= a);
+	return res;
 }
 
 void verify(immutable bool condition) {

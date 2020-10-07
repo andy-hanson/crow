@@ -73,6 +73,7 @@ import util.opt : force, forcePtr, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
+import util.types : safeSizeTToU8;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, writeNat, Writer, writeStatic, writeStr;
 
@@ -280,7 +281,7 @@ immutable(Arr!ConcreteField) concretizeClosureFields(Alloc)(
 ) {
 	return mapWithIndex!ConcreteField(alloc, closure, (immutable size_t index, ref immutable Ptr!ClosureField it) =>
 		immutable ConcreteField(
-			index,
+			safeSizeTToU8(index),
 			False,
 			mangleName(alloc, it.name),
 			getConcreteType_fromConcretizeCtx(alloc, ctx, it.type, typeArgsScope)));

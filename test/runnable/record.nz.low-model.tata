@@ -301,7 +301,7 @@ program(
 																					range(741, 745)
 																					local-ref("gctx"))
 																				true
-																				"vats"
+																				1
 																				expr(
 																					record(28)
 																					range(754, 758)
@@ -605,7 +605,7 @@ program(
 																																							local-ref(
 																																								"gctx"))
 																																						true
-																																						"any_unhandled_exceptions__q"))
+																																						5))
 																																				expr(
 																																					int-32
 																																					range(
@@ -656,7 +656,7 @@ program(
 																																											local-ref(
 																																												"o"))
 																																										false
-																																										"value")))
+																																										0)))
 																																							case(
 																																								some("e")
 																																								expr(
@@ -718,9 +718,9 @@ program(
 																																																				local-ref(
 																																																					"e"))
 																																																			false
-																																																			"value"))
+																																																			0))
 																																																	false
-																																																	"message"))]))))
+																																																	0))]))))
 																																										expr(
 																																											int-32
 																																											range(
@@ -1058,22 +1058,19 @@ program(
 																	get-field(
 																		expr(record(6), range(2774, 2775), param-ref(1))
 																		false
-																		"message"))]))
+																		0))]))
 													expr(record(7), range(2794, 2813), str-lit("<<empty message>>"))
 													expr(
 														record(7)
 														range(2816, 2824)
-														get-field(
-															expr(record(6), range(2815, 2816), param-ref(1))
-															false
-															"message"))))]))))
+														get-field(expr(record(6), range(2815, 2816), param-ref(1)), false, 0))))]))))
 						expr(
 							void
 							range(2826, 2868)
 							set-field(
 								expr(ptr(record(15)), range(2826, 2834), call(35, [expr(ptr(record(0)), range(2826, 2834), param-ref(0))]))
 								true
-								"any_unhandled_exceptions__q"
+								5
 								expr(bool, range(2864, 2868), constant(true))))))))
 		23: fun(
 			"print_err_sync_no_newline___void__arr__char"
@@ -1129,11 +1126,11 @@ program(
 													expr(
 														ptr(char)
 														range(272, 277)
-														get-field(expr(record(7), range(271, 272), param-ref(1)), false, "data"))))
+														get-field(expr(record(7), range(271, 272), param-ref(1)), false, 1))))
 											expr(
 												nat-64
 												range(291, 296)
-												get-field(expr(record(7), range(290, 291), param-ref(1)), false, "size"))]))
+												get-field(expr(record(7), range(290, 291), param-ref(1)), false, 0))]))
 								expr(
 									void
 									range(298, 369)
@@ -1157,7 +1154,7 @@ program(
 																get-field(
 																	expr(record(7), range(312, 313), param-ref(1))
 																	false
-																	"size"))))]))
+																	0))))]))
 										expr(void, range(336, 340), constant(void))
 										expr(void, range(363, 367), call(28, []))))))))))
 		25: fun("write", int-64, [param("fd", int-32), param("buff", ptr(nat-8)), param("n_bytes", nat-64)], extern(false))
@@ -1258,7 +1255,7 @@ program(
 				expr(
 					bool
 					range(241, 246)
-					call(34, [expr(nat-64, range(235, 240), get-field(expr(record(7), range(234, 235), param-ref(0)), false, "size"))]))))
+					call(34, [expr(nat-64, range(235, 240), get-field(expr(record(7), range(234, 235), param-ref(0)), false, 0))]))))
 		34: fun(
 			"zero__q__bool__nat"
 			bool
@@ -1280,10 +1277,7 @@ program(
 					range(260, 266)
 					unary(
 						"as-ref"
-						expr(
-							ptr(nat-8)
-							range(250, 259)
-							get-field(expr(ptr(record(0)), range(243, 250), param-ref(0)), true, "gctx_ptr"))))))
+						expr(ptr(nat-8), range(250, 259), get-field(expr(ptr(record(0)), range(243, 250), param-ref(0)), true, 0))))))
 		36: fun(
 			"new_vat__vat__ptr_global_ctx__nat__nat__lambda0"
 			void
@@ -1326,7 +1320,7 @@ program(
 								ptr(nat-8)
 								range(4992, 5003)
 								unary("as-any-ptr", expr(ptr(record(15)), range(4988, 4992), param-ref(0))))
-							expr(nat-64, range(5017, 5020), get-field(expr(ptr(record(16)), range(5014, 5017), param-ref(2)), true, "id"))
+							expr(nat-64, range(5017, 5020), get-field(expr(ptr(record(16)), range(5014, 5017), param-ref(2)), true, 1))
 							expr(nat-64, range(5033, 5041), param-ref(3))
 							expr(
 								ptr(nat-8)
@@ -1350,7 +1344,7 @@ program(
 															get-field(
 																expr(ptr(record(16)), range(5056, 5059), param-ref(2))
 																true
-																"gc"))))]))))
+																2))))]))))
 							expr(
 								ptr(nat-8)
 								range(5134, 5145)
@@ -1359,7 +1353,7 @@ program(
 									expr(
 										ptr(record(33))
 										range(5120, 5134)
-										get-field(expr(ptr(record(39)), range(5117, 5120), param-ref(1)), true, "exception_ctx"))))]))))
+										get-field(expr(ptr(record(39)), range(5117, 5120), param-ref(1)), true, 0))))]))))
 		39: fun(
 			"get_gc_ctx__ptr_gc_ctx__ptr_gc"
 			ptr(record(18))
@@ -1389,7 +1383,7 @@ program(
 											expr(
 												record(2)
 												range(390, 393)
-												get-field(expr(ptr(record(17)), range(388, 390), param-ref(0)), true, "lk"))))]))
+												get-field(expr(ptr(record(17)), range(388, 390), param-ref(0)), true, 0))))]))
 						expr(
 							ptr(record(18))
 							range(419, 828)
@@ -1403,7 +1397,7 @@ program(
 										expr(
 											union(3)
 											range(433, 446)
-											get-field(expr(ptr(record(17)), range(431, 433), param-ref(0)), true, "context_head"))
+											get-field(expr(ptr(record(17)), range(431, 433), param-ref(0)), true, 1))
 										[
 											case(
 												none
@@ -1444,7 +1438,7 @@ program(
 																					range(669, 670)
 																					local-ref("c"))
 																				true
-																				"gc"
+																				0
 																				expr(
 																					ptr(record(17))
 																					range(677, 679)
@@ -1458,7 +1452,7 @@ program(
 																					range(683, 684)
 																					local-ref("c"))
 																				true
-																				"next_ctx"
+																				1
 																				expr(
 																					union(3)
 																					range(697, 701)
@@ -1482,7 +1476,7 @@ program(
 															get-field(
 																expr(record(19), range(723, 724), local-ref("s"))
 																false
-																"value"))
+																0))
 														expr(
 															ptr(record(18))
 															range(734, 792)
@@ -1500,7 +1494,7 @@ program(
 																					range(734, 736)
 																					param-ref(0))
 																				true
-																				"context_head"
+																				1
 																				expr(
 																					union(3)
 																					range(755, 763)
@@ -1510,7 +1504,7 @@ program(
 																							range(753, 754)
 																							local-ref("c1"))
 																						true
-																						"next_ctx"))))
+																						1))))
 																		expr(
 																			void
 																			range(767, 785)
@@ -1520,7 +1514,7 @@ program(
 																					range(767, 768)
 																					local-ref("c1"))
 																				true
-																				"next_ctx"
+																				1
 																				expr(
 																					union(3)
 																					range(781, 785)
@@ -1552,7 +1546,7 @@ program(
 																get-field(
 																	expr(ptr(record(17)), range(792, 794), param-ref(0))
 																	true
-																	"lk"))))]))
+																	0))))]))
 										expr(ptr(record(18)), range(823, 826), local-ref("res"))))))))))
 		40: fun(
 			"acquire_lock___void__ptr_lock"
@@ -1628,7 +1622,7 @@ program(
 									expr(
 										record(3)
 										range(683, 693)
-										get-field(expr(ptr(record(2)), range(682, 683), param-ref(0)), true, "is_locked"))))]))))
+										get-field(expr(ptr(record(2)), range(682, 683), param-ref(0)), true, 0))))]))))
 		43: fun(
 			"try_set__bool__ptr__atomic_bool"
 			bool
@@ -1655,10 +1649,7 @@ program(
 							range(317, 324)
 							unary(
 								"ptr-to"
-								expr(
-									bool
-									range(311, 317)
-									get-field(expr(ptr(record(3)), range(310, 311), param-ref(0)), true, "value"))))
+								expr(bool, range(311, 317), get-field(expr(ptr(record(3)), range(310, 311), param-ref(0)), true, 0))))
 						expr(ptr(bool), range(358, 365), unary("ptr-to", expr(bool, range(349, 358), param-ref(1))))
 						expr(bool, range(376, 380), unary("not", expr(bool, range(367, 376), param-ref(1))))))))
 		45: fun(
@@ -1900,7 +1891,7 @@ program(
 									expr(
 										record(3)
 										range(1246, 1256)
-										get-field(expr(ptr(record(2)), range(1245, 1246), param-ref(0)), true, "is_locked"))))]))))
+										get-field(expr(ptr(record(2)), range(1245, 1246), param-ref(0)), true, 0))))]))))
 		66: fun(
 			"must_unset___void__ptr__atomic_bool"
 			void
@@ -2281,7 +2272,7 @@ program(
 								expr(
 									ptr(nat-8)
 									range(1501, 1507)
-									get-field(expr(record(54), range(1500, 1501), local-ref("s")), false, "value")))]))))
+									get-field(expr(record(54), range(1500, 1501), local-ref("s")), false, 0)))]))))
 		74: fun(
 			"try_gc_alloc__opt__ptr__nat8__ptr_gc__nat"
 			union(9)
@@ -2319,7 +2310,7 @@ program(
 					get-field(
 						expr(ptr(record(18)), range(1097, 1107), call(78, [expr(ptr(record(0)), range(1097, 1107), param-ref(0))]))
 						true
-						"gc"))))
+						0))))
 		78: fun(
 			"get_gc_ctx__ptr_gc_ctx"
 			ptr(record(18))
@@ -2331,10 +2322,7 @@ program(
 					range(1069, 1075)
 					unary(
 						"as-ref"
-						expr(
-							ptr(nat-8)
-							range(1057, 1068)
-							get-field(expr(ptr(record(0)), range(1050, 1057), param-ref(0)), true, "gc_ctx_ptr"))))))
+						expr(ptr(nat-8), range(1057, 1068), get-field(expr(ptr(record(0)), range(1050, 1057), param-ref(0)), true, 3))))))
 		79: fun(
 			"then_void___void__ptr_fut___void__fun_mut1___void__result___void__exception"
 			void
@@ -2368,10 +2356,7 @@ program(
 													expr(
 														record(2)
 														range(1630, 1633)
-														get-field(
-															expr(ptr(record(42)), range(1629, 1630), param-ref(1))
-															true
-															"lk"))))]))
+														get-field(expr(ptr(record(42)), range(1629, 1630), param-ref(1)), true, 0))))]))
 								expr(
 									void
 									range(1659, 1869)
@@ -2380,7 +2365,7 @@ program(
 										expr(
 											union(6)
 											range(1666, 1672)
-											get-field(expr(ptr(record(42)), range(1665, 1666), param-ref(1)), true, "state"))
+											get-field(expr(ptr(record(42)), range(1665, 1666), param-ref(1)), true, 1))
 										[
 											case(
 												some("cbs")
@@ -2390,7 +2375,7 @@ program(
 													set-field(
 														expr(ptr(record(42)), range(1729, 1730), param-ref(1))
 														true
-														"state"
+														1
 														expr(
 															union(6)
 															range(1740, 1791)
@@ -2501,7 +2486,7 @@ program(
 																																				local-ref(
 																																					"cbs"))
 																																			false
-																																			"head"))]))))
+																																			0))]))))
 																												expr(
 																													ptr(
 																														record(
@@ -2541,7 +2526,7 @@ program(
 																							range(1826, 1827)
 																							local-ref("r"))
 																						false
-																						"value"))]))))])))
+																						0))]))))])))
 											case(
 												some("e")
 												expr(
@@ -2577,7 +2562,7 @@ program(
 											expr(
 												record(2)
 												range(1870, 1873)
-												get-field(expr(ptr(record(42)), range(1869, 1870), param-ref(1)), true, "lk"))))]))))))
+												get-field(expr(ptr(record(42)), range(1869, 1870), param-ref(1)), true, 0))))]))))))
 		80: fun(
 			"some__some__ptr_fut_callback_node___void__ptr_fut_callback_node___void"
 			record(47)
@@ -2610,15 +2595,9 @@ program(
 					n-ary(
 						"call fun ptr"
 						[
-							expr(
-								fun-ptr(5)
-								range(6998, 7006)
-								get-field(expr(record(46), range(6997, 6998), param-ref(1)), false, "fun_ptr"))
+							expr(fun-ptr(5), range(6998, 7006), get-field(expr(record(46), range(6997, 6998), param-ref(1)), false, 0))
 							expr(ptr(record(0)), range(7012, 7013), param-ref(0))
-							expr(
-								ptr(nat-8)
-								range(7016, 7024)
-								get-field(expr(record(46), range(7015, 7016), param-ref(1)), false, "closure"))
+							expr(ptr(nat-8), range(7016, 7024), get-field(expr(record(46), range(7015, 7016), param-ref(1)), false, 1))
 							expr(union(7), range(7026, 7028), param-ref(2))]))))
 		83: fun(
 			"ok__ok___void___void"
@@ -2727,10 +2706,7 @@ program(
 													expr(
 														record(2)
 														range(1630, 1633)
-														get-field(
-															expr(ptr(record(1)), range(1629, 1630), param-ref(1))
-															true
-															"lk"))))]))
+														get-field(expr(ptr(record(1)), range(1629, 1630), param-ref(1)), true, 0))))]))
 								expr(
 									void
 									range(1659, 1869)
@@ -2739,7 +2715,7 @@ program(
 										expr(
 											union(0)
 											range(1666, 1672)
-											get-field(expr(ptr(record(1)), range(1665, 1666), param-ref(1)), true, "state"))
+											get-field(expr(ptr(record(1)), range(1665, 1666), param-ref(1)), true, 1))
 										[
 											case(
 												some("cbs")
@@ -2749,7 +2725,7 @@ program(
 													set-field(
 														expr(ptr(record(1)), range(1729, 1730), param-ref(1))
 														true
-														"state"
+														1
 														expr(
 															union(0)
 															range(1740, 1791)
@@ -2860,7 +2836,7 @@ program(
 																																				local-ref(
 																																					"cbs"))
 																																			false
-																																			"head"))]))))
+																																			0))]))))
 																												expr(
 																													ptr(
 																														record(
@@ -2900,7 +2876,7 @@ program(
 																							range(1826, 1827)
 																							local-ref("r"))
 																						false
-																						"value"))]))))])))
+																						0))]))))])))
 											case(
 												some("e")
 												expr(
@@ -2936,7 +2912,7 @@ program(
 											expr(
 												record(2)
 												range(1870, 1873)
-												get-field(expr(ptr(record(1)), range(1869, 1870), param-ref(1)), true, "lk"))))]))))))
+												get-field(expr(ptr(record(1)), range(1869, 1870), param-ref(1)), true, 0))))]))))))
 		87: fun(
 			"some__some__ptr_fut_callback_node__int32__ptr_fut_callback_node__int32"
 			record(12)
@@ -2969,15 +2945,9 @@ program(
 					n-ary(
 						"call fun ptr"
 						[
-							expr(
-								fun-ptr(0)
-								range(6998, 7006)
-								get-field(expr(record(10), range(6997, 6998), param-ref(1)), false, "fun_ptr"))
+							expr(fun-ptr(0), range(6998, 7006), get-field(expr(record(10), range(6997, 6998), param-ref(1)), false, 0))
 							expr(ptr(record(0)), range(7012, 7013), param-ref(0))
-							expr(
-								ptr(nat-8)
-								range(7016, 7024)
-								get-field(expr(record(10), range(7015, 7016), param-ref(1)), false, "closure"))
+							expr(ptr(nat-8), range(7016, 7024), get-field(expr(record(10), range(7015, 7016), param-ref(1)), false, 1))
 							expr(union(1), range(7026, 7028), param-ref(2))]))))
 		90: fun(
 			"ok__ok__int32__int32"
@@ -3024,7 +2994,7 @@ program(
 																get-field(
 																	expr(ptr(record(1)), range(594, 595), param-ref(1))
 																	true
-																	"lk"))))]))
+																	0))))]))
 										expr(
 											void
 											range(624, 841)
@@ -3033,10 +3003,7 @@ program(
 												expr(
 													union(0)
 													range(631, 637)
-													get-field(
-														expr(ptr(record(1)), range(630, 631), param-ref(1))
-														true
-														"state"))
+													get-field(expr(ptr(record(1)), range(630, 631), param-ref(1)), true, 1))
 												[
 													case(
 														some("cbs")
@@ -3053,7 +3020,7 @@ program(
 																		get-field(
 																			expr(record(4), range(667, 670), local-ref("cbs"))
 																			false
-																			"head"))
+																			0))
 																	expr(union(1), range(700, 706), param-ref(2))])))
 													case(
 														none
@@ -3083,7 +3050,7 @@ program(
 									set-field(
 										expr(ptr(record(1)), range(841, 842), param-ref(1))
 										true
-										"state"
+										1
 										expr(
 											union(0)
 											range(852, 931)
@@ -3112,7 +3079,7 @@ program(
 																						range(903, 904)
 																						local-ref("o"))
 																					false
-																					"value"))])))))
+																					0))])))))
 													case(
 														some("e")
 														expr(
@@ -3126,7 +3093,7 @@ program(
 																	get-field(
 																		expr(record(9), range(922, 923), local-ref("e"))
 																		false
-																		"value")))))]))))))
+																		0)))))]))))))
 						expr(
 							void
 							range(947, 959)
@@ -3141,7 +3108,7 @@ program(
 											expr(
 												record(2)
 												range(932, 935)
-												get-field(expr(ptr(record(1)), range(931, 932), param-ref(1)), true, "lk"))))]))))))
+												get-field(expr(ptr(record(1)), range(931, 932), param-ref(1)), true, 0))))]))))))
 		92: fun(
 			"resolve_or_reject_recur___void__opt__ptr_fut_callback_node__int32__result__int32__exception"
 			void
@@ -3188,9 +3155,9 @@ program(
 																					range(1160, 1161)
 																					local-ref("s"))
 																				false
-																				"value"))
+																				0))
 																		true
-																		"cb"))
+																		0))
 																expr(union(1), range(1176, 1181), param-ref(2))]))]))
 										expr(
 											void
@@ -3209,9 +3176,9 @@ program(
 																get-field(
 																	expr(record(12), range(1185, 1186), local-ref("s"))
 																	false
-																	"value"))
+																	0))
 															true
-															"next_node"))
+															1))
 													expr(union(1), range(1227, 1232), param-ref(2))])))))]))))
 		93: fun("drop___void___void", void, [param("t", void)], expr-body([], expr(void, range(15076, 15080), constant(void))))
 		94: fun(
@@ -3230,7 +3197,7 @@ program(
 							expr(
 								ptr(record(1))
 								range(1963, 1965)
-								get-field(expr(ptr(record(56)), range(1963, 1965), param-ref(1)), true, "to"))
+								get-field(expr(ptr(record(56)), range(1963, 1965), param-ref(1)), true, 0))
 							expr(union(1), range(1984, 1986), param-ref(2))]))))
 		95: fun(
 			"call__ptr_fut__int32__fun_ref1__int32___void___void"
@@ -3257,12 +3224,9 @@ program(
 											expr(
 												record(50)
 												range(3058, 3072)
-												get-field(
-													expr(record(52), range(3057, 3058), param-ref(1))
-													false
-													"vat_and_actor"))
+												get-field(expr(record(52), range(3057, 3058), param-ref(1)), false, 0))
 											false
-											"vat"))]))
+											0))]))
 						expr(
 							ptr(record(1))
 							range(3086, 3225)
@@ -3296,9 +3260,9 @@ program(
 																			get-field(
 																				expr(record(52), range(3139, 3140), param-ref(1))
 																				false
-																				"vat_and_actor"))
+																				0))
 																		false
-																		"actor"))
+																		1))
 																expr(
 																	record(21)
 																	range(3162, 3220)
@@ -3425,7 +3389,7 @@ program(
 										range(303, 311)
 										call(35, [expr(ptr(record(0)), range(303, 311), param-ref(0))]))
 									true
-									"vats"))
+									1))
 							expr(nat-64, range(320, 326), param-ref(1))]))))
 		97: fun(
 			"at__ptr_vat__arr__ptr_vat__nat"
@@ -3454,7 +3418,7 @@ program(
 												expr(
 													nat-64
 													range(1456, 1461)
-													get-field(expr(record(28), range(1455, 1456), param-ref(1)), false, "size"))]))]))
+													get-field(expr(record(28), range(1455, 1456), param-ref(1)), false, 0))]))]))
 						expr(
 							ptr(record(16))
 							range(1465, 1479)
@@ -3552,14 +3516,14 @@ program(
 																					range(420, 427)
 																					local-ref("exn_ctx"))
 																				true
-																				"jmp_buf_ptr"))]))]))
+																				0))]))]))
 												expr(
 													void
 													range(447, 476)
 													set-field(
 														expr(ptr(record(33)), range(447, 454), local-ref("exn_ctx"))
 														true
-														"thrown_exception"
+														1
 														expr(record(6), range(475, 476), param-ref(1))))))
 										expr(
 											void
@@ -3573,7 +3537,7 @@ program(
 														get-field(
 															expr(ptr(record(33)), range(478, 485), local-ref("exn_ctx"))
 															true
-															"jmp_buf_ptr"))
+															0))
 													expr(
 														int-32
 														range(506, 521)
@@ -3590,10 +3554,7 @@ program(
 					range(292, 313)
 					unary(
 						"as-ref"
-						expr(
-							ptr(nat-8)
-							range(273, 291)
-							get-field(expr(ptr(record(0)), range(266, 273), param-ref(0)), true, "exception_ctx_ptr"))))))
+						expr(ptr(nat-8), range(273, 291), get-field(expr(ptr(record(0)), range(266, 273), param-ref(0)), true, 4))))))
 		103: fun(
 			"null__q__bool__ptr__jmp_buf_tag"
 			bool
@@ -3671,7 +3632,7 @@ program(
 												expr(
 													nat-64
 													range(1374, 1379)
-													get-field(expr(record(28), range(1373, 1374), param-ref(0)), false, "size"))]))]))
+													get-field(expr(record(28), range(1373, 1374), param-ref(0)), false, 0))]))]))
 						expr(
 							ptr(record(16))
 							range(1396, 1401)
@@ -3685,7 +3646,7 @@ program(
 										expr(
 											ptr(ptr(record(16)))
 											range(1382, 1387)
-											get-field(expr(record(28), range(1381, 1382), param-ref(0)), false, "data"))
+											get-field(expr(record(28), range(1381, 1382), param-ref(0)), false, 1))
 										expr(nat-64, range(1390, 1395), param-ref(1))))))))))
 		112: fun(
 			"add_task___void__ptr_vat__task"
@@ -3733,7 +3694,7 @@ program(
 																		get-field(
 																			expr(ptr(record(16)), range(3188, 3189), param-ref(1))
 																			true
-																			"tasks_lock"))))]))
+																			3))))]))
 												expr(
 													void
 													range(3245, 3253)
@@ -3751,7 +3712,7 @@ program(
 																		get-field(
 																			expr(ptr(record(16)), range(3226, 3227), param-ref(1))
 																			true
-																			"tasks"))))
+																			4))))
 															expr(ptr(record(23)), range(3249, 3253), local-ref("node"))]))))
 										expr(
 											void
@@ -3770,7 +3731,7 @@ program(
 																get-field(
 																	expr(ptr(record(16)), range(3255, 3256), param-ref(1))
 																	true
-																	"tasks_lock"))))]))))
+																	3))))]))))
 								expr(
 									void
 									range(3330, 3339)
@@ -3792,9 +3753,9 @@ program(
 																get-field(
 																	expr(ptr(record(16)), range(3294, 3295), param-ref(1))
 																	true
-																	"gctx"))
+																	0))
 															true
-															"may_be_work_to_do"))))]))))))))
+															3))))]))))))))
 		113: fun(
 			"new_mut_bag_node__ptr_mut_bag_node__task__task"
 			ptr(record(23))
@@ -3855,18 +3816,15 @@ program(
 							set-field(
 								expr(ptr(record(23)), range(527, 531), param-ref(1))
 								true
-								"next_node"
-								expr(
-									union(4)
-									range(548, 553)
-									get-field(expr(ptr(record(22)), range(545, 548), param-ref(0)), true, "head"))))
+								1
+								expr(union(4), range(548, 553), get-field(expr(ptr(record(22)), range(545, 548), param-ref(0)), true, 0))))
 						expr(
 							void
 							range(555, 576)
 							set-field(
 								expr(ptr(record(22)), range(555, 558), param-ref(0))
 								true
-								"head"
+								0
 								expr(
 									union(4)
 									range(572, 576)
@@ -3906,17 +3864,14 @@ program(
 													expr(
 														record(2)
 														range(1529, 1532)
-														get-field(
-															expr(ptr(record(29)), range(1528, 1529), param-ref(0))
-															true
-															"lk"))))]))
+														get-field(expr(ptr(record(29)), range(1528, 1529), param-ref(0)), true, 0))))]))
 								expr(
 									void
 									range(1558, 1587)
 									set-field(
 										expr(ptr(record(29)), range(1558, 1559), param-ref(0))
 										true
-										"value"
+										1
 										expr(
 											nat-64
 											range(1577, 1587)
@@ -3926,10 +3881,7 @@ program(
 													expr(
 														nat-64
 														range(1570, 1576)
-														get-field(
-															expr(ptr(record(29)), range(1569, 1570), param-ref(0))
-															true
-															"value"))]))))))
+														get-field(expr(ptr(record(29)), range(1569, 1570), param-ref(0)), true, 1))]))))))
 						expr(
 							void
 							range(1605, 1617)
@@ -3944,7 +3896,7 @@ program(
 											expr(
 												record(2)
 												range(1590, 1593)
-												get-field(expr(ptr(record(29)), range(1589, 1590), param-ref(0)), true, "lk"))))]))))))
+												get-field(expr(ptr(record(29)), range(1589, 1590), param-ref(0)), true, 0))))]))))))
 		117: fun(
 			"catch___void__fun_mut0___void__fun_mut1___void__exception"
 			void
@@ -3982,10 +3934,7 @@ program(
 					range(843, 1616)
 					let(
 						"old_thrown_exception"
-						expr(
-							record(6)
-							range(869, 885)
-							get-field(expr(ptr(record(33)), range(866, 868), param-ref(1)), true, "thrown_exception"))
+						expr(record(6), range(869, 885), get-field(expr(ptr(record(33)), range(866, 868), param-ref(1)), true, 1))
 						expr(
 							void
 							range(887, 1616)
@@ -3994,7 +3943,7 @@ program(
 								expr(
 									ptr(record(34))
 									range(904, 915)
-									get-field(expr(ptr(record(33)), range(901, 903), param-ref(1)), true, "jmp_buf_ptr"))
+									get-field(expr(ptr(record(33)), range(901, 903), param-ref(1)), true, 0))
 								expr(
 									void
 									range(917, 1616)
@@ -4018,7 +3967,7 @@ program(
 													set-field(
 														expr(ptr(record(33)), range(960, 962), param-ref(1))
 														true
-														"jmp_buf_ptr"
+														0
 														expr(
 															ptr(record(34))
 															range(984, 990)
@@ -4042,7 +3991,7 @@ program(
 																		get-field(
 																			expr(ptr(record(33)), range(1008, 1010), param-ref(1))
 																			true
-																			"jmp_buf_ptr"))]))
+																			0))]))
 														expr(
 															void
 															range(1031, 1616)
@@ -4095,7 +4044,7 @@ program(
 																									range(1168, 1170)
 																									param-ref(1))
 																								true
-																								"jmp_buf_ptr"
+																								0
 																								expr(
 																									ptr(record(34))
 																									range(1186, 1197)
@@ -4110,7 +4059,7 @@ program(
 																									range(1201, 1203)
 																									param-ref(1))
 																								true
-																								"thrown_exception"
+																								1
 																								expr(
 																									record(6)
 																									range(1224, 1244)
@@ -4171,7 +4120,7 @@ program(
 																							range(1405, 1407)
 																							param-ref(1))
 																						true
-																						"thrown_exception"))
+																						1))
 																				expr(
 																					void
 																					range(1502, 1616)
@@ -4190,7 +4139,7 @@ program(
 																											range(1502, 1504)
 																											param-ref(1))
 																										true
-																										"jmp_buf_ptr"
+																										0
 																										expr(
 																											ptr(
 																												record(34))
@@ -4207,7 +4156,7 @@ program(
 																											range(1535, 1537)
 																											param-ref(1))
 																										true
-																										"thrown_exception"
+																										1
 																										expr(
 																											record(6)
 																											range(1558, 1578)
@@ -4295,15 +4244,9 @@ program(
 					n-ary(
 						"call fun ptr"
 						[
-							expr(
-								fun-ptr(2)
-								range(6682, 6690)
-								get-field(expr(record(21), range(6681, 6682), param-ref(1)), false, "fun_ptr"))
+							expr(fun-ptr(2), range(6682, 6690), get-field(expr(record(21), range(6681, 6682), param-ref(1)), false, 0))
 							expr(ptr(record(0)), range(6696, 6697), param-ref(0))
-							expr(
-								ptr(nat-8)
-								range(6700, 6708)
-								get-field(expr(record(21), range(6699, 6700), param-ref(1)), false, "closure"))]))))
+							expr(ptr(nat-8), range(6700, 6708), get-field(expr(record(21), range(6699, 6700), param-ref(1)), false, 1))]))))
 		126: fun(
 			"call___void__fun_mut1___void__exception__exception"
 			void
@@ -4331,15 +4274,9 @@ program(
 					n-ary(
 						"call fun ptr"
 						[
-							expr(
-								fun-ptr(3)
-								range(6998, 7006)
-								get-field(expr(record(27), range(6997, 6998), param-ref(1)), false, "fun_ptr"))
+							expr(fun-ptr(3), range(6998, 7006), get-field(expr(record(27), range(6997, 6998), param-ref(1)), false, 0))
 							expr(ptr(record(0)), range(7012, 7013), param-ref(0))
-							expr(
-								ptr(nat-8)
-								range(7016, 7024)
-								get-field(expr(record(27), range(7015, 7016), param-ref(1)), false, "closure"))
+							expr(ptr(nat-8), range(7016, 7024), get-field(expr(record(27), range(7015, 7016), param-ref(1)), false, 1))
 							expr(record(6), range(7026, 7028), param-ref(2))]))))
 		128: fun(
 			"call__ptr_fut__int32__fun_mut1__ptr_fut__int32___void___void"
@@ -4368,15 +4305,9 @@ program(
 					n-ary(
 						"call fun ptr"
 						[
-							expr(
-								fun-ptr(7)
-								range(6998, 7006)
-								get-field(expr(record(53), range(6997, 6998), param-ref(1)), false, "fun_ptr"))
+							expr(fun-ptr(7), range(6998, 7006), get-field(expr(record(53), range(6997, 6998), param-ref(1)), false, 0))
 							expr(ptr(record(0)), range(7012, 7013), param-ref(0))
-							expr(
-								ptr(nat-8)
-								range(7016, 7024)
-								get-field(expr(record(53), range(7015, 7016), param-ref(1)), false, "closure"))
+							expr(ptr(nat-8), range(7016, 7024), get-field(expr(record(53), range(7015, 7016), param-ref(1)), false, 1))
 							expr(void, range(7026, 7028), param-ref(2))]))))
 		130: fun(
 			"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0__lambda0"
@@ -4405,17 +4336,17 @@ program(
 												expr(
 													record(52)
 													range(3167, 3168)
-													get-field(expr(ptr(record(58)), range(3167, 3168), param-ref(1)), true, "f"))
+													get-field(expr(ptr(record(58)), range(3167, 3168), param-ref(1)), true, 0))
 												false
-												"fun"))
+												1))
 										expr(
 											void
 											range(3178, 3180)
-											get-field(expr(ptr(record(58)), range(3178, 3180), param-ref(1)), true, "p0"))]))
+											get-field(expr(ptr(record(58)), range(3178, 3180), param-ref(1)), true, 1))]))
 							expr(
 								ptr(record(1))
 								range(3192, 3195)
-								get-field(expr(ptr(record(58)), range(3192, 3195), param-ref(1)), true, "res"))]))))
+								get-field(expr(ptr(record(58)), range(3192, 3195), param-ref(1)), true, 2))]))))
 		131: fun(
 			"reject___void__ptr_fut__int32__exception"
 			void
@@ -4450,7 +4381,7 @@ program(
 							expr(
 								ptr(record(1))
 								range(3204, 3207)
-								get-field(expr(ptr(record(59)), range(3204, 3207), param-ref(1)), true, "res"))
+								get-field(expr(ptr(record(59)), range(3204, 3207), param-ref(1)), true, 0))
 							expr(record(6), range(3215, 3217), param-ref(2))]))))
 		133: fun(
 			"call__ptr_fut__int32__fun_ref1__int32___void___void__lambda0"
@@ -4519,7 +4450,7 @@ program(
 																								range(3167, 3168)
 																								param-ref(1))
 																							true
-																							"f"))
+																							0))
 																					expr(
 																						void
 																						range(3178, 3180)
@@ -4529,7 +4460,7 @@ program(
 																								range(3178, 3180)
 																								param-ref(1))
 																							true
-																							"p0"))
+																							1))
 																					expr(
 																						ptr(record(1))
 																						range(3192, 3195)
@@ -4539,7 +4470,7 @@ program(
 																								range(3192, 3195)
 																								param-ref(1))
 																							true
-																							"res"))]))))
+																							2))]))))
 																expr(ptr(record(58)), range(3166, 3196), local-ref("temp0"))))))))]))
 							expr(
 								record(27)
@@ -4595,7 +4526,7 @@ program(
 																								range(3204, 3207)
 																								param-ref(1))
 																							true
-																							"res"))]))))
+																							2))]))))
 																expr(ptr(record(59)), range(3203, 3218), local-ref("temp1"))))))))]))]))))
 		134: fun(
 			"then__ptr_fut__int32__ptr_fut___void__fun_ref1__int32___void__lambda0"
@@ -4632,18 +4563,18 @@ program(
 															get-field(
 																expr(ptr(record(55)), range(2145, 2147), param-ref(1))
 																true
-																"cb"))
+																0))
 														expr(
 															void
 															range(2154, 2160)
 															get-field(
 																expr(record(45), range(2153, 2154), local-ref("o"))
 																false
-																"value"))]))
+																0))]))
 											expr(
 												ptr(record(1))
 												range(2172, 2175)
-												get-field(expr(ptr(record(55)), range(2172, 2175), param-ref(1)), true, "res"))])))
+												get-field(expr(ptr(record(55)), range(2172, 2175), param-ref(1)), true, 1))])))
 							case(
 								some("e")
 								expr(
@@ -4656,11 +4587,11 @@ program(
 											expr(
 												ptr(record(1))
 												range(2189, 2192)
-												get-field(expr(ptr(record(55)), range(2189, 2192), param-ref(1)), true, "res"))
+												get-field(expr(ptr(record(55)), range(2189, 2192), param-ref(1)), true, 1))
 											expr(
 												record(6)
 												range(2201, 2207)
-												get-field(expr(record(9), range(2200, 2201), local-ref("e")), false, "value"))])))]))))
+												get-field(expr(record(9), range(2200, 2201), local-ref("e")), false, 0))])))]))))
 		135: fun(
 			"call__ptr_fut__int32__fun_ref0__int32"
 			ptr(record(1))
@@ -4686,12 +4617,9 @@ program(
 											expr(
 												record(50)
 												range(2820, 2834)
-												get-field(
-													expr(record(49), range(2819, 2820), param-ref(1))
-													false
-													"vat_and_actor"))
+												get-field(expr(record(49), range(2819, 2820), param-ref(1)), false, 0))
 											false
-											"vat"))]))
+											0))]))
 						expr(
 							ptr(record(1))
 							range(2848, 2984)
@@ -4725,9 +4653,9 @@ program(
 																			get-field(
 																				expr(record(49), range(2901, 2902), param-ref(1))
 																				false
-																				"vat_and_actor"))
+																				0))
 																		false
-																		"actor"))
+																		1))
 																expr(
 																	record(21)
 																	range(2924, 2979)
@@ -4847,15 +4775,9 @@ program(
 					n-ary(
 						"call fun ptr"
 						[
-							expr(
-								fun-ptr(6)
-								range(6682, 6690)
-								get-field(expr(record(51), range(6681, 6682), param-ref(1)), false, "fun_ptr"))
+							expr(fun-ptr(6), range(6682, 6690), get-field(expr(record(51), range(6681, 6682), param-ref(1)), false, 0))
 							expr(ptr(record(0)), range(6696, 6697), param-ref(0))
-							expr(
-								ptr(nat-8)
-								range(6700, 6708)
-								get-field(expr(record(51), range(6699, 6700), param-ref(1)), false, "closure"))]))))
+							expr(ptr(nat-8), range(6700, 6708), get-field(expr(record(51), range(6699, 6700), param-ref(1)), false, 1))]))))
 		138: fun(
 			"call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda0"
 			void
@@ -4883,13 +4805,13 @@ program(
 												expr(
 													record(49)
 													range(2929, 2930)
-													get-field(expr(ptr(record(62)), range(2929, 2930), param-ref(1)), true, "f"))
+													get-field(expr(ptr(record(62)), range(2929, 2930), param-ref(1)), true, 0))
 												false
-												"fun"))]))
+												1))]))
 							expr(
 								ptr(record(1))
 								range(2951, 2954)
-								get-field(expr(ptr(record(62)), range(2951, 2954), param-ref(1)), true, "res"))]))))
+								get-field(expr(ptr(record(62)), range(2951, 2954), param-ref(1)), true, 1))]))))
 		139: fun(
 			"call__ptr_fut__int32__fun_ref0__int32__lambda0__lambda1"
 			void
@@ -4906,7 +4828,7 @@ program(
 							expr(
 								ptr(record(1))
 								range(2963, 2966)
-								get-field(expr(ptr(record(63)), range(2963, 2966), param-ref(1)), true, "res"))
+								get-field(expr(ptr(record(63)), range(2963, 2966), param-ref(1)), true, 0))
 							expr(record(6), range(2974, 2976), param-ref(2))]))))
 		140: fun(
 			"call__ptr_fut__int32__fun_ref0__int32__lambda0"
@@ -4975,7 +4897,7 @@ program(
 																								range(2929, 2930)
 																								param-ref(1))
 																							true
-																							"f"))
+																							0))
 																					expr(
 																						ptr(record(1))
 																						range(2951, 2954)
@@ -4985,7 +4907,7 @@ program(
 																								range(2951, 2954)
 																								param-ref(1))
 																							true
-																							"res"))]))))
+																							1))]))))
 																expr(ptr(record(62)), range(2928, 2955), local-ref("temp0"))))))))]))
 							expr(
 								record(27)
@@ -5041,7 +4963,7 @@ program(
 																								range(2963, 2966)
 																								param-ref(1))
 																							true
-																							"res"))]))))
+																							1))]))))
 																expr(ptr(record(63)), range(2962, 2977), local-ref("temp1"))))))))]))]))))
 		141: fun(
 			"then2__ptr_fut__int32__ptr_fut___void__fun_ref0__int32__lambda0"
@@ -5056,10 +4978,7 @@ program(
 						135
 						[
 							expr(ptr(record(0)), range(2457, 2461), param-ref(0))
-							expr(
-								record(49)
-								range(2454, 2456)
-								get-field(expr(ptr(record(60)), range(2454, 2456), param-ref(1)), true, "cb"))]))))
+							expr(record(49), range(2454, 2456), get-field(expr(ptr(record(60)), range(2454, 2456), param-ref(1)), true, 0))]))))
 		142: fun(
 			"cur_actor__vat_and_actor_id"
 			record(50)
@@ -5080,11 +4999,11 @@ program(
 									expr(
 										nat-64
 										range(473, 480)
-										get-field(expr(ptr(record(0)), range(472, 473), local-ref("c")), true, "vat_id"))
+										get-field(expr(ptr(record(0)), range(472, 473), local-ref("c")), true, 1))
 									expr(
 										nat-64
 										range(483, 492)
-										get-field(expr(ptr(record(0)), range(482, 483), local-ref("c")), true, "actor_id"))]))))))
+										get-field(expr(ptr(record(0)), range(482, 483), local-ref("c")), true, 2))]))))))
 		143: fun(
 			"resolved__ptr_fut___void___void"
 			ptr(record(42))
@@ -5204,7 +5123,7 @@ program(
 				expr(
 					bool
 					range(241, 246)
-					call(34, [expr(nat-64, range(235, 240), get-field(expr(record(40), range(234, 235), param-ref(0)), false, "size"))]))))
+					call(34, [expr(nat-64, range(235, 240), get-field(expr(record(40), range(234, 235), param-ref(0)), false, 0))]))))
 		148: fun(
 			"slice_starting_at__arr__ptr__char__arr__ptr__char__nat"
 			record(40)
@@ -5232,7 +5151,7 @@ program(
 												expr(
 													nat-64
 													range(576, 581)
-													get-field(expr(record(40), range(575, 576), param-ref(1)), false, "size"))]))]))
+													get-field(expr(record(40), range(575, 576), param-ref(1)), false, 0))]))]))
 						expr(
 							record(40)
 							range(585, 613)
@@ -5252,7 +5171,7 @@ program(
 												expr(
 													nat-64
 													range(600, 605)
-													get-field(expr(record(40), range(599, 600), param-ref(1)), false, "size"))
+													get-field(expr(record(40), range(599, 600), param-ref(1)), false, 0))
 												expr(nat-64, range(608, 613), param-ref(2))]))]))))))
 		149: fun(
 			"_op_less_equal__bool__nat__nat"
@@ -5304,7 +5223,7 @@ program(
 												expr(
 													nat-64
 													range(367, 372)
-													get-field(expr(record(40), range(366, 367), param-ref(1)), false, "size"))]))]))
+													get-field(expr(record(40), range(366, 367), param-ref(1)), false, 0))]))]))
 						expr(
 							record(40)
 							range(374, 398)
@@ -5319,7 +5238,7 @@ program(
 											expr(
 												ptr(ptr(char))
 												range(385, 390)
-												get-field(expr(record(40), range(384, 385), param-ref(1)), false, "data"))
+												get-field(expr(record(40), range(384, 385), param-ref(1)), false, 1))
 											expr(nat-64, range(393, 398), param-ref(2))))]))))))
 		151: fun(
 			"_op_plus__nat__nat__nat"
@@ -5430,7 +5349,7 @@ program(
 						155
 						[
 							expr(ptr(record(0)), range(10229, 10264), param-ref(0))
-							expr(nat-64, range(10223, 10228), get-field(expr(record(40), range(10222, 10223), param-ref(1)), false, "size"))
+							expr(nat-64, range(10223, 10228), get-field(expr(record(40), range(10222, 10223), param-ref(1)), false, 0))
 							expr(
 								record(66)
 								range(10238, 10264)
@@ -5522,7 +5441,7 @@ program(
 							set-field(
 								expr(ptr(record(67)), range(6818, 6819), param-ref(0))
 								true
-								"frozen__q"
+								0
 								expr(bool, range(6831, 6835), constant(true))))
 						expr(record(14), range(6839, 6852), call(157, [expr(ptr(record(67)), range(6837, 6838), param-ref(0))]))))))
 		157: fun(
@@ -5536,14 +5455,11 @@ program(
 					range(6755, 6773)
 					record(
 						[
-							expr(
-								nat-64
-								range(6760, 6765)
-								get-field(expr(ptr(record(67)), range(6759, 6760), param-ref(0)), true, "size"))
+							expr(nat-64, range(6760, 6765), get-field(expr(ptr(record(67)), range(6759, 6760), param-ref(0)), true, 1))
 							expr(
 								ptr(record(7))
 								range(6768, 6773)
-								get-field(expr(ptr(record(67)), range(6767, 6768), param-ref(0)), true, "data"))]))))
+								get-field(expr(ptr(record(67)), range(6767, 6768), param-ref(0)), true, 3))]))))
 		158: fun(
 			"make_mut_arr__ptr_mut_arr__arr__char__nat__fun_mut1__arr__char__nat"
 			ptr(record(67))
@@ -5671,7 +5587,7 @@ program(
 									expr(
 										nat-64
 										range(9506, 9511)
-										get-field(expr(ptr(record(67)), range(9505, 9506), param-ref(1)), true, "size"))]))
+										get-field(expr(ptr(record(67)), range(9505, 9506), param-ref(1)), true, 1))]))
 						expr(void, range(9515, 9519), constant(void))
 						expr(
 							void
@@ -5739,7 +5655,7 @@ program(
 												expr(
 													nat-64
 													range(4384, 4389)
-													get-field(expr(ptr(record(67)), range(4383, 4384), param-ref(1)), true, "size"))]))]))
+													get-field(expr(ptr(record(67)), range(4383, 4384), param-ref(1)), true, 1))]))]))
 						expr(
 							void
 							range(4393, 4418)
@@ -5775,7 +5691,7 @@ program(
 												expr(
 													nat-64
 													range(4276, 4281)
-													get-field(expr(ptr(record(67)), range(4275, 4276), param-ref(0)), true, "size"))]))]))
+													get-field(expr(ptr(record(67)), range(4275, 4276), param-ref(0)), true, 1))]))]))
 						expr(
 							void
 							range(4300, 4309)
@@ -5789,7 +5705,7 @@ program(
 										expr(
 											ptr(record(7))
 											range(4285, 4290)
-											get-field(expr(ptr(record(67)), range(4284, 4285), param-ref(0)), true, "data"))
+											get-field(expr(ptr(record(67)), range(4284, 4285), param-ref(0)), true, 3))
 										expr(nat-64, range(4293, 4298), param-ref(1))))
 								expr(record(7), range(4304, 4309), param-ref(2))))))))
 		164: fun(
@@ -5819,15 +5735,9 @@ program(
 					n-ary(
 						"call fun ptr"
 						[
-							expr(
-								fun-ptr(9)
-								range(6998, 7006)
-								get-field(expr(record(66), range(6997, 6998), param-ref(1)), false, "fun_ptr"))
+							expr(fun-ptr(9), range(6998, 7006), get-field(expr(record(66), range(6997, 6998), param-ref(1)), false, 0))
 							expr(ptr(record(0)), range(7012, 7013), param-ref(0))
-							expr(
-								ptr(nat-8)
-								range(7016, 7024)
-								get-field(expr(record(66), range(7015, 7016), param-ref(1)), false, "closure"))
+							expr(ptr(nat-8), range(7016, 7024), get-field(expr(record(66), range(7015, 7016), param-ref(1)), false, 1))
 							expr(nat-64, range(7026, 7028), param-ref(2))]))))
 		166: fun(
 			"incr__nat__nat"
@@ -5886,15 +5796,9 @@ program(
 					n-ary(
 						"call fun ptr"
 						[
-							expr(
-								fun-ptr(8)
-								range(6998, 7006)
-								get-field(expr(record(65), range(6997, 6998), param-ref(1)), false, "fun_ptr"))
+							expr(fun-ptr(8), range(6998, 7006), get-field(expr(record(65), range(6997, 6998), param-ref(1)), false, 0))
 							expr(ptr(record(0)), range(7012, 7013), param-ref(0))
-							expr(
-								ptr(nat-8)
-								range(7016, 7024)
-								get-field(expr(record(65), range(7015, 7016), param-ref(1)), false, "closure"))
+							expr(ptr(nat-8), range(7016, 7024), get-field(expr(record(65), range(7015, 7016), param-ref(1)), false, 1))
 							expr(ptr(char), range(7026, 7028), param-ref(2))]))))
 		169: fun(
 			"at__ptr__char__arr__ptr__char__nat"
@@ -5923,7 +5827,7 @@ program(
 												expr(
 													nat-64
 													range(1456, 1461)
-													get-field(expr(record(40), range(1455, 1456), param-ref(1)), false, "size"))]))]))
+													get-field(expr(record(40), range(1455, 1456), param-ref(1)), false, 0))]))]))
 						expr(
 							ptr(char)
 							range(1465, 1479)
@@ -5954,7 +5858,7 @@ program(
 												expr(
 													nat-64
 													range(1374, 1379)
-													get-field(expr(record(40), range(1373, 1374), param-ref(0)), false, "size"))]))]))
+													get-field(expr(record(40), range(1373, 1374), param-ref(0)), false, 0))]))]))
 						expr(
 							ptr(char)
 							range(1396, 1401)
@@ -5968,7 +5872,7 @@ program(
 										expr(
 											ptr(ptr(char))
 											range(1382, 1387)
-											get-field(expr(record(40), range(1381, 1382), param-ref(0)), false, "data"))
+											get-field(expr(record(40), range(1381, 1382), param-ref(0)), false, 1))
 										expr(nat-64, range(1390, 1395), param-ref(1))))))))))
 		171: fun(
 			"map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char__lambda0"
@@ -5983,10 +5887,7 @@ program(
 						167
 						[
 							expr(ptr(record(0)), range(10250, 10262), param-ref(0))
-							expr(
-								record(65)
-								range(10243, 10249)
-								get-field(expr(ptr(record(68)), range(10243, 10249), param-ref(1)), true, "mapper"))
+							expr(record(65), range(10243, 10249), get-field(expr(ptr(record(68)), range(10243, 10249), param-ref(1)), true, 0))
 							expr(
 								ptr(char)
 								range(10258, 10262)
@@ -5997,7 +5898,7 @@ program(
 										expr(
 											record(40)
 											range(10256, 10257)
-											get-field(expr(ptr(record(68)), range(10256, 10257), param-ref(1)), true, "a"))
+											get-field(expr(ptr(record(68)), range(10256, 10257), param-ref(1)), true, 1))
 										expr(nat-64, range(10261, 10262), param-ref(2))]))]))))
 		172: fun(
 			"to_str__arr__char__ptr__char"
@@ -6199,7 +6100,7 @@ program(
 												expr(
 													nat-64
 													range(1374, 1379)
-													get-field(expr(record(7), range(1373, 1374), param-ref(0)), false, "size"))]))]))
+													get-field(expr(record(7), range(1373, 1374), param-ref(0)), false, 0))]))]))
 						expr(
 							char
 							range(1396, 1401)
@@ -6213,7 +6114,7 @@ program(
 										expr(
 											ptr(char)
 											range(1382, 1387)
-											get-field(expr(record(7), range(1381, 1382), param-ref(0)), false, "data"))
+											get-field(expr(record(7), range(1381, 1382), param-ref(0)), false, 1))
 										expr(nat-64, range(1390, 1395), param-ref(1))))))))))
 		181: fun(
 			"todo__ptr__char"
@@ -6256,7 +6157,7 @@ program(
 									expr(
 										record(40)
 										range(2246, 2254)
-										get-field(expr(ptr(record(64)), range(2246, 2254), param-ref(1)), true, "all_args"))]))
+										get-field(expr(ptr(record(64)), range(2246, 2254), param-ref(1)), true, 0))]))
 						expr(
 							ptr(record(1))
 							range(2271, 2306)
@@ -6266,7 +6167,7 @@ program(
 									expr(
 										fun-ptr(1)
 										range(2262, 2270)
-										get-field(expr(ptr(record(64)), range(2262, 2270), param-ref(1)), true, "main_ptr"))
+										get-field(expr(ptr(record(64)), range(2262, 2270), param-ref(1)), true, 1))
 									expr(ptr(record(0)), range(2277, 2284), param-ref(0))
 									expr(
 										record(14)
@@ -6320,15 +6221,9 @@ program(
 					n-ary(
 						"call fun ptr"
 						[
-							expr(
-								fun-ptr(4)
-								range(7182, 7190)
-								get-field(expr(record(41), range(7181, 7182), param-ref(1)), false, "fun_ptr"))
+							expr(fun-ptr(4), range(7182, 7190), get-field(expr(record(41), range(7181, 7182), param-ref(1)), false, 0))
 							expr(ptr(record(0)), range(7196, 7197), param-ref(0))
-							expr(
-								ptr(nat-8)
-								range(7200, 7208)
-								get-field(expr(record(41), range(7199, 7200), param-ref(1)), false, "closure"))
+							expr(ptr(nat-8), range(7200, 7208), get-field(expr(record(41), range(7199, 7200), param-ref(1)), false, 1))
 							expr(record(40), range(7210, 7212), param-ref(2))
 							expr(fun-ptr(1), range(7214, 7216), param-ref(3))]))))
 		187: fun(
@@ -6618,24 +6513,15 @@ program(
 											expr(
 												fun-ptr(10)
 												range(3619, 3623)
-												get-field(
-													expr(ptr(record(69)), range(3615, 3619), local-ref("args"))
-													true
-													"fun"))
+												get-field(expr(ptr(record(69)), range(3615, 3619), local-ref("args")), true, 0))
 											expr(
 												nat-64
 												range(3633, 3643)
-												get-field(
-													expr(ptr(record(69)), range(3629, 3633), local-ref("args"))
-													true
-													"thread_id"))
+												get-field(expr(ptr(record(69)), range(3629, 3633), local-ref("args")), true, 1))
 											expr(
 												ptr(record(15))
 												range(3649, 3653)
-												get-field(
-													expr(ptr(record(69)), range(3645, 3649), local-ref("args"))
-													true
-													"arg"))]))
+												get-field(expr(ptr(record(69)), range(3645, 3649), local-ref("args")), true, 2))]))
 								expr(ptr(nat-8), range(3655, 3659), constant(null))))))))
 		191: fun(
 			"run_threads_recur___void__nat__nat__ptr__nat__ptr__thread_args__ptr_global_ctx__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx__lambda0"
@@ -6871,9 +6757,7 @@ program(
 			"get__ptr__nat8__ptr_cell__ptr__nat8"
 			ptr(nat-8)
 			[param("c", ptr(record(71)))]
-			expr-body(
-				[]
-				expr(ptr(nat-8), range(180, 186), get-field(expr(ptr(record(71)), range(179, 180), param-ref(0)), true, "value"))))
+			expr-body([], expr(ptr(nat-8), range(180, 186), get-field(expr(ptr(record(71)), range(179, 180), param-ref(0)), true, 0))))
 		204: fun(
 			"unmanaged_free___void__ptr__nat"
 			void
@@ -6948,10 +6832,7 @@ program(
 					range(3800, 4870)
 					trinary(
 						"if"
-						expr(
-							bool
-							range(3812, 3824)
-							get-field(expr(ptr(record(15)), range(3807, 3811), param-ref(1)), true, "is_shut_down"))
+						expr(bool, range(3812, 3824), get-field(expr(ptr(record(15)), range(3807, 3811), param-ref(1)), true, 4))
 						expr(
 							void
 							range(3828, 4052)
@@ -6981,14 +6862,14 @@ program(
 																		get-field(
 																			expr(ptr(record(15)), range(3828, 3832), param-ref(1))
 																			true
-																			"lk"))))]))
+																			0))))]))
 												expr(
 													void
 													range(3915, 3968)
 													set-field(
 														expr(ptr(record(15)), range(3915, 3919), param-ref(1))
 														true
-														"n_live_threads"
+														2
 														expr(
 															nat-64
 															range(3958, 3968)
@@ -7001,7 +6882,7 @@ program(
 																		get-field(
 																			expr(ptr(record(15)), range(3938, 3942), param-ref(1))
 																			true
-																			"n_live_threads"))]))))))
+																			2))]))))))
 										expr(
 											void
 											range(3972, 4014)
@@ -7012,10 +6893,7 @@ program(
 													expr(
 														record(28)
 														range(4009, 4014)
-														get-field(
-															expr(ptr(record(15)), range(4005, 4009), param-ref(1))
-															true
-															"vats"))]))))
+														get-field(expr(ptr(record(15)), range(4005, 4009), param-ref(1)), true, 1))]))))
 								expr(
 									void
 									range(4037, 4049)
@@ -7030,10 +6908,7 @@ program(
 													expr(
 														record(2)
 														range(4022, 4025)
-														get-field(
-															expr(ptr(record(15)), range(4018, 4022), param-ref(1))
-															true
-															"lk"))))]))))
+														get-field(expr(ptr(record(15)), range(4018, 4022), param-ref(1)), true, 0))))]))))
 						expr(
 							void
 							range(4060, 4870)
@@ -7056,7 +6931,7 @@ program(
 															get-field(
 																expr(ptr(record(15)), range(4073, 4077), param-ref(1))
 																true
-																"n_live_threads"))
+																2))
 														expr(nat-64, range(4095, 4099), constant(0))]))]))
 								expr(
 									void
@@ -7080,7 +6955,7 @@ program(
 																get-field(
 																	expr(ptr(record(15)), range(4151, 4155), param-ref(1))
 																	true
-																	"may_be_work_to_do"))))]))
+																	3))))]))
 										expr(
 											void
 											range(4206, 4870)
@@ -7114,7 +6989,7 @@ program(
 																						range(4274, 4288)
 																						local-ref("ok_chosen_task"))
 																					false
-																					"value"))])))
+																					0))])))
 															case(
 																some("e")
 																expr(
@@ -7151,9 +7026,9 @@ program(
 																													local-ref(
 																														"e"))
 																												false
-																												"value"))
+																												0))
 																										false
-																										"last_thread_out"))
+																										0))
 																								expr(
 																									void
 																									range(4352, 4529)
@@ -7186,7 +7061,7 @@ program(
 																																		param-ref(
 																																			1))
 																																	true
-																																	"is_shut_down"))]))
+																																	4))]))
 																												expr(
 																													void
 																													range(
@@ -7203,7 +7078,7 @@ program(
 																															param-ref(
 																																1))
 																														true
-																														"is_shut_down"
+																														4
 																														expr(
 																															bool
 																															range(
@@ -7243,7 +7118,7 @@ program(
 																																		param-ref(
 																																			1))
 																																	true
-																																	"may_be_work_to_do"))))]))))
+																																	3))))]))))
 																								expr(
 																									void
 																									range(4575, 4595)
@@ -7276,7 +7151,7 @@ program(
 																																param-ref(
 																																	1))
 																															true
-																															"may_be_work_to_do"))))
+																															3))))
 																											expr(
 																												nat-64
 																												range(
@@ -7311,7 +7186,7 @@ program(
 																														param-ref(
 																															1))
 																													true
-																													"lk"))))]))))
+																													0))))]))))
 																				expr(
 																					void
 																					range(4709, 4762)
@@ -7321,7 +7196,7 @@ program(
 																							range(4709, 4713)
 																							param-ref(1))
 																						true
-																						"n_live_threads"
+																						2
 																						expr(
 																							nat-64
 																							range(4752, 4762)
@@ -7342,7 +7217,7 @@ program(
 																												param-ref(
 																													1))
 																											true
-																											"n_live_threads"))]))))))
+																											2))]))))))
 																		expr(
 																			void
 																			range(4787, 4799)
@@ -7363,7 +7238,7 @@ program(
 																										range(4768, 4772)
 																										param-ref(1))
 																									true
-																									"lk"))))])))))]))
+																									0))))])))))]))
 												expr(
 													void
 													range(4825, 4868)
@@ -7412,10 +7287,7 @@ program(
 								15
 								[
 									expr(nat-64, range(9931, 9932), param-ref(0))
-									expr(
-										nat-64
-										range(9940, 9945)
-										get-field(expr(record(28), range(9936, 9940), param-ref(1)), false, "size"))]))
+									expr(nat-64, range(9940, 9945), get-field(expr(record(28), range(9936, 9940), param-ref(1)), false, 0))]))
 						expr(void, range(9949, 9953), constant(void))
 						expr(
 							void
@@ -7468,7 +7340,7 @@ program(
 																										range(9990, 9993)
 																										local-ref("vat"))
 																									true
-																									"tasks_lock"))))]))
+																									3))))]))
 																		expr(
 																			void
 																			range(10032, 10071)
@@ -7498,9 +7370,9 @@ program(
 																												local-ref(
 																													"vat"))
 																											true
-																											"gc"))))
+																											2))))
 																							true
-																							"needs_gc"))]))))
+																							2))]))))
 																expr(
 																	void
 																	range(10075, 10115)
@@ -7522,7 +7394,7 @@ program(
 																									range(10088, 10091)
 																									local-ref("vat"))
 																								true
-																								"n_threads_running"))]))]))))
+																								6))]))]))))
 														expr(
 															void
 															range(10119, 10159)
@@ -7549,7 +7421,7 @@ program(
 																									range(10132, 10135)
 																									local-ref("vat"))
 																								true
-																								"tasks"))))]))]))))
+																								4))))]))]))))
 												expr(
 													void
 													range(10189, 10201)
@@ -7570,7 +7442,7 @@ program(
 																				range(10163, 10166)
 																				local-ref("vat"))
 																			true
-																			"tasks_lock"))))]))))
+																			3))))]))))
 										expr(
 											void
 											range(10206, 10251)
@@ -7591,9 +7463,7 @@ program(
 				expr(
 					bool
 					range(618, 624)
-					call(
-						212
-						[expr(union(4), range(612, 617), get-field(expr(ptr(record(22)), range(611, 612), param-ref(0)), true, "head"))]))))
+					call(212, [expr(union(4), range(612, 617), get-field(expr(ptr(record(22)), range(611, 612), param-ref(0)), true, 0))]))))
 		212: fun(
 			"empty__q__bool__opt__ptr_mut_bag_node__task"
 			bool
@@ -7628,9 +7498,7 @@ program(
 			"get_last_checked__nat__ptr_condition"
 			nat-64
 			[param("c", ptr(record(29)))]
-			expr-body(
-				[]
-				expr(nat-64, range(1695, 1701), get-field(expr(ptr(record(29)), range(1694, 1695), param-ref(0)), true, "value"))))
+			expr-body([], expr(nat-64, range(1695, 1701), get-field(expr(ptr(record(29)), range(1694, 1695), param-ref(0)), true, 1))))
 		215: fun(
 			"choose_task__result__chosen_task__no_chosen_task__ptr_global_ctx"
 			union(11)
@@ -7655,7 +7523,7 @@ program(
 											expr(
 												record(2)
 												range(6920, 6923)
-												get-field(expr(ptr(record(15)), range(6916, 6920), param-ref(0)), true, "lk"))))]))
+												get-field(expr(ptr(record(15)), range(6916, 6920), param-ref(0)), true, 0))))]))
 						expr(
 							union(11)
 							range(7101, 7590)
@@ -7675,10 +7543,7 @@ program(
 													expr(
 														record(28)
 														range(7158, 7163)
-														get-field(
-															expr(ptr(record(15)), range(7154, 7158), param-ref(0))
-															true
-															"vats"))
+														get-field(expr(ptr(record(15)), range(7154, 7158), param-ref(0)), true, 1))
 													expr(nat-64, range(7182, 7186), constant(0))]))
 										[
 											case(
@@ -7693,7 +7558,7 @@ program(
 															set-field(
 																expr(ptr(record(15)), range(7417, 7421), param-ref(0))
 																true
-																"n_live_threads"
+																2
 																expr(
 																	nat-64
 																	range(7459, 7470)
@@ -7709,7 +7574,7 @@ program(
 																						range(7440, 7444)
 																						param-ref(0))
 																					true
-																					"n_live_threads"))]))))
+																					2))]))))
 														expr(
 															union(11)
 															range(7474, 7524)
@@ -7746,7 +7611,7 @@ program(
 																												param-ref(
 																													0))
 																											true
-																											"n_live_threads"))]))]))])))))))
+																											2))]))]))])))))))
 											case(
 												some("s")
 												expr(
@@ -7766,7 +7631,7 @@ program(
 																		get-field(
 																			expr(record(77), range(7537, 7538), local-ref("s"))
 																			false
-																			"value"))])))))]))
+																			0))])))))]))
 								expr(
 									union(11)
 									range(7550, 7590)
@@ -7788,7 +7653,7 @@ program(
 																get-field(
 																	expr(ptr(record(15)), range(7550, 7554), param-ref(0))
 																	true
-																	"lk"))))]))
+																	0))))]))
 										expr(union(11), range(7584, 7587), local-ref("res"))))))))))
 		216: fun(
 			"choose_task_recur__opt__chosen_task__arr__ptr_vat__nat"
@@ -7808,10 +7673,7 @@ program(
 								15
 								[
 									expr(nat-64, range(7666, 7667), param-ref(1))
-									expr(
-										nat-64
-										range(7675, 7680)
-										get-field(expr(record(28), range(7671, 7675), param-ref(0)), false, "size"))]))
+									expr(nat-64, range(7675, 7680), get-field(expr(record(28), range(7671, 7675), param-ref(0)), false, 0))]))
 						expr(union(12), range(7684, 7688), to-union(0, expr(record(11), range(7684, 7688), call(18, []))))
 						expr(
 							union(12)
@@ -7878,7 +7740,7 @@ program(
 																							range(7847, 7848)
 																							local-ref("s"))
 																						false
-																						"value"))]))])))))]))))))))
+																						0))]))])))))]))))))))
 		217: fun(
 			"choose_task_in_vat__opt__opt__task__ptr_vat"
 			union(13)
@@ -7903,10 +7765,7 @@ program(
 											expr(
 												record(2)
 												range(7946, 7957)
-												get-field(
-													expr(ptr(record(16)), range(7943, 7946), param-ref(0))
-													true
-													"tasks_lock"))))]))
+												get-field(expr(ptr(record(16)), range(7943, 7946), param-ref(0)), true, 3))))]))
 						expr(
 							union(13)
 							range(7984, 8629)
@@ -7932,9 +7791,9 @@ program(
 															get-field(
 																expr(ptr(record(16)), range(8082, 8085), param-ref(0))
 																true
-																"gc"))))
+																2))))
 												true
-												"needs_gc"))
+												2))
 										expr(
 											union(13)
 											range(8112, 8357)
@@ -7952,7 +7811,7 @@ program(
 																get-field(
 																	expr(ptr(record(16)), range(8121, 8124), param-ref(0))
 																	true
-																	"n_threads_running"))]))
+																	6))]))
 												expr(
 													union(13)
 													range(8172, 8176)
@@ -8024,7 +7883,7 @@ program(
 																											local-ref(
 																												"s"))
 																										false
-																										"value"))]))))])))))]))))
+																										0))]))))])))))]))))
 								expr(
 									union(13)
 									range(8487, 8629)
@@ -8049,7 +7908,7 @@ program(
 															set-field(
 																expr(ptr(record(16)), range(8523, 8526), param-ref(0))
 																true
-																"n_threads_running"
+																6
 																expr(
 																	nat-64
 																	range(8569, 8580)
@@ -8065,7 +7924,7 @@ program(
 																						range(8548, 8551)
 																						param-ref(0))
 																					true
-																					"n_threads_running"))]))))))
+																					6))]))))))
 												expr(
 													void
 													range(8609, 8621)
@@ -8083,7 +7942,7 @@ program(
 																		get-field(
 																			expr(ptr(record(16)), range(8583, 8586), param-ref(0))
 																			true
-																			"tasks_lock"))))]))))
+																			3))))]))))
 										expr(union(13), range(8624, 8627), local-ref("res"))))))))))
 		218: fun(
 			"some__some__opt__task__opt__task"
@@ -8109,7 +7968,7 @@ program(
 								expr(
 									record(22)
 									range(8782, 8788)
-									get-field(expr(ptr(record(16)), range(8779, 8782), param-ref(0)), true, "tasks"))))
+									get-field(expr(ptr(record(16)), range(8779, 8782), param-ref(0)), true, 4))))
 						expr(
 							union(10)
 							range(8801, 8950)
@@ -8125,10 +7984,7 @@ program(
 											expr(
 												union(4)
 												range(8856, 8861)
-												get-field(
-													expr(ptr(record(22)), range(8851, 8856), local-ref("tasks"))
-													true
-													"head"))]))
+												get-field(expr(ptr(record(22)), range(8851, 8856), local-ref("tasks")), true, 0))]))
 								expr(
 									union(10)
 									range(8863, 8950)
@@ -8154,7 +8010,7 @@ program(
 															set-field(
 																expr(ptr(record(22)), range(8900, 8905), local-ref("tasks"))
 																true
-																"head"
+																0
 																expr(
 																	union(4)
 																	range(8921, 8927)
@@ -8168,9 +8024,9 @@ program(
 																					range(8914, 8915)
 																					local-ref("s"))
 																				false
-																				"value"))
+																				0))
 																		false
-																		"nodes"))))
+																		1))))
 														expr(
 															union(10)
 															range(8944, 8948)
@@ -8195,9 +8051,9 @@ program(
 																								range(8931, 8932)
 																								local-ref("s"))
 																							false
-																							"value"))
+																							0))
 																					false
-																					"task"))])))))))]))))))))
+																					0))])))))))]))))))))
 		220: fun(
 			"find_and_remove_first_doable_task_recur__opt__task_and_nodes__ptr_vat__opt__ptr_mut_bag_node__task"
 			union(14)
@@ -8231,7 +8087,7 @@ program(
 										expr(
 											ptr(record(23))
 											range(9115, 9121)
-											get-field(expr(record(24), range(9114, 9115), local-ref("s")), false, "value"))
+											get-field(expr(record(24), range(9114, 9115), local-ref("s")), false, 0))
 										expr(
 											union(14)
 											range(9125, 9858)
@@ -8240,10 +8096,7 @@ program(
 												expr(
 													record(20)
 													range(9136, 9142)
-													get-field(
-														expr(ptr(record(23)), range(9132, 9136), local-ref("node"))
-														true
-														"value"))
+													get-field(expr(ptr(record(23)), range(9132, 9136), local-ref("node")), true, 0))
 												expr(
 													union(14)
 													range(9304, 9858)
@@ -8260,7 +8113,7 @@ program(
 																	get-field(
 																		expr(ptr(record(16)), range(9313, 9316), param-ref(0))
 																		true
-																		"currently_running_actors"))))
+																		5))))
 														expr(
 															union(14)
 															range(9356, 9858)
@@ -8290,7 +8143,7 @@ program(
 																								range(9392, 9396)
 																								local-ref("task"))
 																							false
-																							"actor_id"))]))
+																							0))]))
 																		expr(bool, range(9411, 9416), constant(false))
 																		expr(
 																			bool
@@ -8316,7 +8169,7 @@ program(
 																										local-ref(
 																											"task"))
 																									false
-																									"actor_id"))]))
+																									0))]))
 																				expr(bool, range(9490, 9494), constant(true))))))
 																expr(
 																	union(14)
@@ -8359,7 +8212,7 @@ program(
 																													local-ref(
 																														"node"))
 																												true
-																												"next_node"))]))]))))
+																												1))]))]))))
 																		expr(
 																			union(14)
 																			range(9629, 9858)
@@ -8385,7 +8238,7 @@ program(
 																										local-ref(
 																											"node"))
 																									true
-																									"next_node"))]))
+																									1))]))
 																				[
 																					case(
 																						none
@@ -8415,7 +8268,7 @@ program(
 																											local-ref(
 																												"ss"))
 																										false
-																										"value"))
+																										0))
 																								expr(
 																									union(14)
 																									range(9778, 9858)
@@ -8434,7 +8287,7 @@ program(
 																													local-ref(
 																														"node"))
 																												true
-																												"next_node"
+																												1
 																												expr(
 																													union(
 																														4)
@@ -8451,7 +8304,7 @@ program(
 																															local-ref(
 																																"tn"))
 																														false
-																														"nodes"))))
+																														1))))
 																										expr(
 																											union(14)
 																											range(9812, 9856)
@@ -8490,7 +8343,7 @@ program(
 																																					local-ref(
 																																						"tn"))
 																																				false
-																																				"task"))
+																																				0))
 																																		expr(
 																																			union(
 																																				4)
@@ -8550,10 +8403,7 @@ program(
 								15
 								[
 									expr(nat-64, range(5130, 5131), param-ref(2))
-									expr(
-										nat-64
-										range(5136, 5141)
-										get-field(expr(record(81), range(5135, 5136), param-ref(0)), false, "size"))]))
+									expr(nat-64, range(5136, 5141), get-field(expr(record(81), range(5135, 5136), param-ref(0)), false, 0))]))
 						expr(bool, range(5145, 5150), constant(false))
 						expr(
 							bool
@@ -8610,7 +8460,7 @@ program(
 												expr(
 													nat-64
 													range(1374, 1379)
-													get-field(expr(record(81), range(1373, 1374), param-ref(0)), false, "size"))]))]))
+													get-field(expr(record(81), range(1373, 1374), param-ref(0)), false, 0))]))]))
 						expr(
 							nat-64
 							range(1396, 1401)
@@ -8624,7 +8474,7 @@ program(
 										expr(
 											ptr(nat-64)
 											range(1382, 1387)
-											get-field(expr(record(81), range(1381, 1382), param-ref(0)), false, "data"))
+											get-field(expr(record(81), range(1381, 1382), param-ref(0)), false, 1))
 										expr(nat-64, range(1390, 1395), param-ref(1))))))))))
 		224: fun(
 			"temp_as_arr__arr__nat__ptr_mut_arr__nat"
@@ -8637,14 +8487,8 @@ program(
 					range(3710, 3728)
 					record(
 						[
-							expr(
-								nat-64
-								range(3715, 3720)
-								get-field(expr(ptr(record(25)), range(3714, 3715), param-ref(0)), true, "size"))
-							expr(
-								ptr(nat-64)
-								range(3723, 3728)
-								get-field(expr(ptr(record(25)), range(3722, 3723), param-ref(0)), true, "data"))]))))
+							expr(nat-64, range(3715, 3720), get-field(expr(ptr(record(25)), range(3714, 3715), param-ref(0)), true, 1))
+							expr(ptr(nat-64), range(3723, 3728), get-field(expr(ptr(record(25)), range(3722, 3723), param-ref(0)), true, 3))]))))
 		225: fun(
 			"push_capacity_must_be_sufficient___void__ptr_mut_arr__nat__nat"
 			void
@@ -8670,23 +8514,17 @@ program(
 												expr(
 													nat-64
 													range(6113, 6118)
-													get-field(expr(ptr(record(25)), range(6112, 6113), param-ref(0)), true, "size"))
+													get-field(expr(ptr(record(25)), range(6112, 6113), param-ref(0)), true, 1))
 												expr(
 													nat-64
 													range(6122, 6131)
-													get-field(
-														expr(ptr(record(25)), range(6121, 6122), param-ref(0))
-														true
-														"capacity"))]))]))
+													get-field(expr(ptr(record(25)), range(6121, 6122), param-ref(0)), true, 2))]))]))
 						expr(
 							void
 							range(6133, 6215)
 							let(
 								"old_size"
-								expr(
-									nat-64
-									range(6145, 6150)
-									get-field(expr(ptr(record(25)), range(6144, 6145), param-ref(0)), true, "size"))
+								expr(nat-64, range(6145, 6150), get-field(expr(ptr(record(25)), range(6144, 6145), param-ref(0)), true, 1))
 								expr(
 									void
 									range(6152, 6215)
@@ -8697,7 +8535,7 @@ program(
 											set-field(
 												expr(ptr(record(25)), range(6152, 6153), param-ref(0))
 												true
-												"size"
+												1
 												expr(
 													nat-64
 													range(6170, 6181)
@@ -8737,7 +8575,7 @@ program(
 												expr(
 													nat-64
 													range(4276, 4281)
-													get-field(expr(ptr(record(25)), range(4275, 4276), param-ref(0)), true, "size"))]))]))
+													get-field(expr(ptr(record(25)), range(4275, 4276), param-ref(0)), true, 1))]))]))
 						expr(
 							void
 							range(4300, 4309)
@@ -8751,7 +8589,7 @@ program(
 										expr(
 											ptr(nat-64)
 											range(4285, 4290)
-											get-field(expr(ptr(record(25)), range(4284, 4285), param-ref(0)), true, "data"))
+											get-field(expr(ptr(record(25)), range(4284, 4285), param-ref(0)), true, 3))
 										expr(nat-64, range(4293, 4298), param-ref(1))))
 								expr(nat-64, range(4304, 4309), param-ref(2))))))))
 		227: fun(
@@ -8810,7 +8648,7 @@ program(
 					range(5319, 6589)
 					let(
 						"vat"
-						expr(ptr(record(16)), range(5336, 5340), get-field(expr(record(72), range(5325, 5336), param-ref(2)), false, "vat"))
+						expr(ptr(record(16)), range(5336, 5340), get-field(expr(record(72), range(5325, 5336), param-ref(2)), false, 0))
 						expr(
 							void
 							range(5342, 6589)
@@ -8831,10 +8669,7 @@ program(
 														expr(
 															union(10)
 															range(5359, 5370)
-															get-field(
-																expr(record(72), range(5348, 5359), param-ref(2))
-																false
-																"task_or_gc"))
+															get-field(expr(record(72), range(5348, 5359), param-ref(2)), false, 1))
 														[
 															case(
 																none
@@ -8863,7 +8698,7 @@ program(
 																										range(5507, 5511)
 																										param-ref(0))
 																									true
-																									"may_be_work_to_do"))))])))))
+																									3))))])))))
 															case(
 																some("some_task")
 																expr(
@@ -8880,7 +8715,7 @@ program(
 																					range(5578, 5587)
 																					local-ref("some_task"))
 																				false
-																				"value"))
+																				0))
 																		expr(
 																			void
 																			range(5597, 6071)
@@ -8914,7 +8749,7 @@ program(
 																										local-ref(
 																											"task"))
 																									false
-																									"actor_id"))]))
+																									0))]))
 																				expr(
 																					void
 																					range(5786, 6071)
@@ -8972,7 +8807,7 @@ program(
 																																		local-ref(
 																																			"task"))
 																																	false
-																																	"fun"))]))
+																																	1))]))
 																												expr(
 																													void
 																													range(
@@ -9007,7 +8842,7 @@ program(
 																																				local-ref(
 																																					"vat"))
 																																			true
-																																			"tasks_lock"))))]))))
+																																			3))))]))))
 																										expr(
 																											void
 																											range(5909, 5950)
@@ -9040,7 +8875,7 @@ program(
 																																		local-ref(
 																																			"vat"))
 																																	true
-																																	"currently_running_actors"))))
+																																	5))))
 																													expr(
 																														nat-64
 																														range(
@@ -9056,7 +8891,7 @@ program(
 																																local-ref(
 																																	"task"))
 																															false
-																															"actor_id"))]))))
+																															0))]))))
 																								expr(
 																									void
 																									range(5980, 5992)
@@ -9089,7 +8924,7 @@ program(
 																																local-ref(
 																																	"vat"))
 																															true
-																															"tasks_lock"))))]))))
+																															3))))]))))
 																						expr(
 																							void
 																							range(6011, 6021)
@@ -9128,14 +8963,14 @@ program(
 																				range(6071, 6074)
 																				local-ref("vat"))
 																			true
-																			"tasks_lock"))))]))))
+																			3))))]))))
 										expr(
 											void
 											range(6111, 6168)
 											set-field(
 												expr(ptr(record(16)), range(6111, 6114), local-ref("vat"))
 												true
-												"n_threads_running"
+												6
 												expr(
 													nat-64
 													range(6157, 6168)
@@ -9148,7 +8983,7 @@ program(
 																get-field(
 																	expr(ptr(record(16)), range(6136, 6139), local-ref("vat"))
 																	true
-																	"n_threads_running"))]))))))
+																	6))]))))))
 								expr(
 									void
 									range(6196, 6208)
@@ -9166,7 +9001,7 @@ program(
 														get-field(
 															expr(ptr(record(16)), range(6170, 6173), local-ref("vat"))
 															true
-															"tasks_lock"))))]))))))))
+															3))))]))))))))
 		234: fun(
 			"noctx_must_remove_unordered___void__ptr_mut_arr__nat__nat"
 			void
@@ -9203,7 +9038,7 @@ program(
 									expr(
 										nat-64
 										range(6329, 6334)
-										get-field(expr(ptr(record(25)), range(6328, 6329), param-ref(0)), true, "size"))]))
+										get-field(expr(ptr(record(25)), range(6328, 6329), param-ref(0)), true, 1))]))
 						expr(
 							void
 							range(6338, 6390)
@@ -9279,7 +9114,7 @@ program(
 												expr(
 													nat-64
 													range(6928, 6933)
-													get-field(expr(ptr(record(25)), range(6927, 6928), param-ref(0)), true, "size"))]))]))
+													get-field(expr(ptr(record(25)), range(6927, 6928), param-ref(0)), true, 1))]))]))
 						expr(
 							nat-64
 							range(6950, 6955)
@@ -9293,7 +9128,7 @@ program(
 										expr(
 											ptr(nat-64)
 											range(6936, 6941)
-											get-field(expr(ptr(record(25)), range(6935, 6936), param-ref(0)), true, "data"))
+											get-field(expr(ptr(record(25)), range(6935, 6936), param-ref(0)), true, 3))
 										expr(nat-64, range(6944, 6949), param-ref(1))))))))))
 		237: fun("drop___void__nat", void, [param("t", nat-64)], expr-body([], expr(void, range(15076, 15080), constant(void))))
 		238: fun(
@@ -9337,7 +9172,7 @@ program(
 											set-field(
 												expr(ptr(record(25)), range(4649, 4650), param-ref(0))
 												true
-												"size"
+												1
 												expr(
 													nat-64
 													range(4665, 4676)
@@ -9350,7 +9185,7 @@ program(
 																get-field(
 																	expr(ptr(record(25)), range(4659, 4660), param-ref(0))
 																	true
-																	"size"))]))))))
+																	1))]))))))
 								expr(nat-64, range(4678, 4681), local-ref("res"))))))))
 		239: fun(
 			"noctx_last__nat__ptr_mut_arr__nat"
@@ -9382,7 +9217,7 @@ program(
 												expr(
 													nat-64
 													range(4497, 4502)
-													get-field(expr(ptr(record(25)), range(4496, 4497), param-ref(0)), true, "size"))]))]))))))
+													get-field(expr(ptr(record(25)), range(4496, 4497), param-ref(0)), true, 1))]))]))))))
 		240: fun(
 			"empty__q__bool__ptr_mut_arr__nat"
 			bool
@@ -9392,9 +9227,7 @@ program(
 				expr(
 					bool
 					range(4134, 4139)
-					call(
-						34
-						[expr(nat-64, range(4128, 4133), get-field(expr(ptr(record(25)), range(4127, 4128), param-ref(0)), true, "size"))]))))
+					call(34, [expr(nat-64, range(4128, 4133), get-field(expr(ptr(record(25)), range(4127, 4128), param-ref(0)), true, 1))]))))
 		241: fun(
 			"return_ctx___void__ptr_ctx"
 			void
@@ -9415,7 +9248,7 @@ program(
 									expr(
 										ptr(nat-8)
 										range(5185, 5196)
-										get-field(expr(ptr(record(0)), range(5184, 5185), param-ref(0)), true, "gc_ctx_ptr"))))]))))
+										get-field(expr(ptr(record(0)), range(5184, 5185), param-ref(0)), true, 3))))]))))
 		242: fun(
 			"return_gc_ctx___void__ptr_gc_ctx"
 			void
@@ -9427,10 +9260,7 @@ program(
 					range(876, 1022)
 					let(
 						"gc"
-						expr(
-							ptr(record(17))
-							range(887, 890)
-							get-field(expr(ptr(record(18)), range(881, 887), param-ref(0)), true, "gc"))
+						expr(ptr(record(17)), range(887, 890), get-field(expr(ptr(record(18)), range(881, 887), param-ref(0)), true, 0))
 						expr(
 							void
 							range(892, 1022)
@@ -9463,28 +9293,28 @@ program(
 																				range(892, 894)
 																				local-ref("gc"))
 																			true
-																			"lk"))))]))
+																			0))))]))
 												expr(
 													void
 													range(923, 957)
 													set-field(
 														expr(ptr(record(18)), range(923, 929), param-ref(0))
 														true
-														"next_ctx"
+														1
 														expr(
 															union(3)
 															range(944, 957)
 															get-field(
 																expr(ptr(record(17)), range(942, 944), local-ref("gc"))
 																true
-																"context_head"))))))
+																1))))))
 										expr(
 											void
 											range(959, 989)
 											set-field(
 												expr(ptr(record(17)), range(959, 961), local-ref("gc"))
 												true
-												"context_head"
+												1
 												expr(
 													union(3)
 													range(985, 989)
@@ -9511,7 +9341,7 @@ program(
 														get-field(
 															expr(ptr(record(17)), range(991, 993), local-ref("gc"))
 															true
-															"lk"))))]))))))))
+															0))))]))))))))
 		243: fun(
 			"some__some__ptr_gc_ctx__ptr_gc_ctx"
 			record(19)
@@ -9537,7 +9367,7 @@ program(
 									expr(
 										nat-64
 										range(1973, 1979)
-										get-field(expr(ptr(record(29)), range(1972, 1973), param-ref(0)), true, "value"))
+										get-field(expr(ptr(record(29)), range(1972, 1973), param-ref(0)), true, 1))
 									expr(nat-64, range(1983, 1995), param-ref(1))]))
 						expr(
 							void
@@ -9574,7 +9404,7 @@ program(
 					range(265, 384)
 					match(
 						"matched"
-						expr(union(0), range(273, 278), get-field(expr(ptr(record(1)), range(271, 272), param-ref(0)), true, "state"))
+						expr(union(0), range(273, 278), get-field(expr(ptr(record(1)), range(271, 272), param-ref(0)), true, 1))
 						[
 							case(none, expr(union(1), range(304, 320), call(247, [])))
 							case(
@@ -9593,10 +9423,7 @@ program(
 													expr(
 														int-32
 														range(353, 358)
-														get-field(
-															expr(record(13), range(351, 352), local-ref("r"))
-															false
-															"value"))])))))
+														get-field(expr(record(13), range(351, 352), local-ref("r")), false, 0))])))))
 							case(
 								some("e")
 								expr(
@@ -9682,7 +9509,7 @@ program(
 																							range(113, 114)
 																							local-ref("m"))
 																						false
-																						"x"))
+																						0))
 																				expr(
 																					nat-64
 																					range(120, 121)
@@ -9719,7 +9546,7 @@ program(
 																							range(131, 132)
 																							local-ref("m"))
 																						false
-																						"y"))
+																						1))
 																				expr(
 																					nat-64
 																					range(138, 139)
@@ -9756,7 +9583,7 @@ program(
 																					range(153, 154)
 																					local-ref("m"))
 																				false
-																				"x"))]))]))))
+																				0))]))]))))
 										expr(
 											void
 											range(165, 187)
@@ -9776,7 +9603,7 @@ program(
 																	get-field(
 																		expr(record(82), range(177, 178), local-ref("m"))
 																		false
-																		"y"))]))]))))
+																		1))]))]))))
 								expr(
 									ptr(record(1))
 									range(189, 200)
@@ -9892,7 +9719,7 @@ program(
 												expr(
 													nat-64
 													range(1292, 1297)
-													get-field(expr(record(7), range(1291, 1292), param-ref(1)), false, "size"))]))]))))))
+													get-field(expr(record(7), range(1291, 1292), param-ref(1)), false, 0))]))]))))))
 		251: fun(
 			"slice__arr__char__arr__char__nat__nat"
 			record(7)
@@ -9928,7 +9755,7 @@ program(
 												expr(
 													nat-64
 													range(367, 372)
-													get-field(expr(record(7), range(366, 367), param-ref(1)), false, "size"))]))]))
+													get-field(expr(record(7), range(366, 367), param-ref(1)), false, 0))]))]))
 						expr(
 							record(7)
 							range(374, 398)
@@ -9943,7 +9770,7 @@ program(
 											expr(
 												ptr(char)
 												range(385, 390)
-												get-field(expr(record(7), range(384, 385), param-ref(1)), false, "data"))
+												get-field(expr(record(7), range(384, 385), param-ref(1)), false, 1))
 											expr(nat-64, range(393, 398), param-ref(2))))]))))))
 		252: fun(
 			"decr__nat__nat"
@@ -10375,7 +10202,7 @@ program(
 												expr(
 													nat-64
 													range(1157, 1162)
-													get-field(expr(record(7), range(1156, 1157), param-ref(1)), false, "size"))]))]))))))
+													get-field(expr(record(7), range(1156, 1157), param-ref(1)), false, 0))]))]))))))
 		259: fun(
 			"at__char__arr__char__nat"
 			char
@@ -10403,7 +10230,7 @@ program(
 												expr(
 													nat-64
 													range(1456, 1461)
-													get-field(expr(record(7), range(1455, 1456), param-ref(1)), false, "size"))]))]))
+													get-field(expr(record(7), range(1455, 1456), param-ref(1)), false, 0))]))]))
 						expr(
 							char
 							range(1465, 1479)
@@ -10908,11 +10735,11 @@ program(
 										expr(
 											nat-64
 											range(1719, 1724)
-											get-field(expr(record(7), range(1718, 1719), param-ref(1)), false, "size"))
+											get-field(expr(record(7), range(1718, 1719), param-ref(1)), false, 0))
 										expr(
 											nat-64
 											range(1728, 1733)
-											get-field(expr(record(7), range(1727, 1728), param-ref(2)), false, "size"))]))
+											get-field(expr(record(7), range(1727, 1728), param-ref(2)), false, 0))]))
 							expr(
 								record(83)
 								range(1743, 1808)
@@ -11004,7 +10831,7 @@ program(
 							set-field(
 								expr(ptr(record(84)), range(6818, 6819), param-ref(0))
 								true
-								"frozen__q"
+								0
 								expr(bool, range(6831, 6835), constant(true))))
 						expr(record(7), range(6839, 6852), call(268, [expr(ptr(record(84)), range(6837, 6838), param-ref(0))]))))))
 		268: fun(
@@ -11018,14 +10845,8 @@ program(
 					range(6755, 6773)
 					record(
 						[
-							expr(
-								nat-64
-								range(6760, 6765)
-								get-field(expr(ptr(record(84)), range(6759, 6760), param-ref(0)), true, "size"))
-							expr(
-								ptr(char)
-								range(6768, 6773)
-								get-field(expr(ptr(record(84)), range(6767, 6768), param-ref(0)), true, "data"))]))))
+							expr(nat-64, range(6760, 6765), get-field(expr(ptr(record(84)), range(6759, 6760), param-ref(0)), true, 1))
+							expr(ptr(char), range(6768, 6773), get-field(expr(ptr(record(84)), range(6767, 6768), param-ref(0)), true, 3))]))))
 		269: fun(
 			"make_mut_arr__ptr_mut_arr__char__nat__fun_mut1__char__nat"
 			ptr(record(84))
@@ -11153,7 +10974,7 @@ program(
 									expr(
 										nat-64
 										range(9506, 9511)
-										get-field(expr(ptr(record(84)), range(9505, 9506), param-ref(1)), true, "size"))]))
+										get-field(expr(ptr(record(84)), range(9505, 9506), param-ref(1)), true, 1))]))
 						expr(void, range(9515, 9519), constant(void))
 						expr(
 							void
@@ -11221,7 +11042,7 @@ program(
 												expr(
 													nat-64
 													range(4384, 4389)
-													get-field(expr(ptr(record(84)), range(4383, 4384), param-ref(1)), true, "size"))]))]))
+													get-field(expr(ptr(record(84)), range(4383, 4384), param-ref(1)), true, 1))]))]))
 						expr(
 							void
 							range(4393, 4418)
@@ -11257,7 +11078,7 @@ program(
 												expr(
 													nat-64
 													range(4276, 4281)
-													get-field(expr(ptr(record(84)), range(4275, 4276), param-ref(0)), true, "size"))]))]))
+													get-field(expr(ptr(record(84)), range(4275, 4276), param-ref(0)), true, 1))]))]))
 						expr(
 							void
 							range(4300, 4309)
@@ -11271,7 +11092,7 @@ program(
 										expr(
 											ptr(char)
 											range(4285, 4290)
-											get-field(expr(ptr(record(84)), range(4284, 4285), param-ref(0)), true, "data"))
+											get-field(expr(ptr(record(84)), range(4284, 4285), param-ref(0)), true, 3))
 										expr(nat-64, range(4293, 4298), param-ref(1))))
 								expr(char, range(4304, 4309), param-ref(2))))))))
 		275: fun(
@@ -11301,15 +11122,9 @@ program(
 					n-ary(
 						"call fun ptr"
 						[
-							expr(
-								fun-ptr(12)
-								range(6998, 7006)
-								get-field(expr(record(83), range(6997, 6998), param-ref(1)), false, "fun_ptr"))
+							expr(fun-ptr(12), range(6998, 7006), get-field(expr(record(83), range(6997, 6998), param-ref(1)), false, 0))
 							expr(ptr(record(0)), range(7012, 7013), param-ref(0))
-							expr(
-								ptr(nat-8)
-								range(7016, 7024)
-								get-field(expr(record(83), range(7015, 7016), param-ref(1)), false, "closure"))
+							expr(ptr(nat-8), range(7016, 7024), get-field(expr(record(83), range(7015, 7016), param-ref(1)), false, 1))
 							expr(nat-64, range(7026, 7028), param-ref(2))]))))
 		277: fun(
 			"_op_plus__arr__char__arr__char__arr__char__lambda0"
@@ -11336,9 +11151,9 @@ program(
 											expr(
 												record(7)
 												range(1760, 1761)
-												get-field(expr(ptr(record(85)), range(1760, 1761), param-ref(1)), true, "a"))
+												get-field(expr(ptr(record(85)), range(1760, 1761), param-ref(1)), true, 0))
 											false
-											"size"))]))
+											0))]))
 						expr(
 							char
 							range(1773, 1777)
@@ -11349,7 +11164,7 @@ program(
 									expr(
 										record(7)
 										range(1771, 1772)
-										get-field(expr(ptr(record(85)), range(1771, 1772), param-ref(1)), true, "a"))
+										get-field(expr(ptr(record(85)), range(1771, 1772), param-ref(1)), true, 0))
 									expr(nat-64, range(1776, 1777), param-ref(2))]))
 						expr(
 							char
@@ -11361,7 +11176,7 @@ program(
 									expr(
 										record(7)
 										range(1790, 1791)
-										get-field(expr(ptr(record(85)), range(1790, 1791), param-ref(1)), true, "b"))
+										get-field(expr(ptr(record(85)), range(1790, 1791), param-ref(1)), true, 1))
 									expr(
 										nat-64
 										range(1798, 1806)
@@ -11380,9 +11195,9 @@ program(
 															get-field(
 																expr(ptr(record(85)), range(1800, 1801), param-ref(1))
 																true
-																"a"))
+																0))
 														false
-														"size"))]))]))))))
+														0))]))]))))))
 		278: fun(
 			"resolved__ptr_fut__int32__int32"
 			ptr(record(1))
@@ -11617,7 +11432,7 @@ program(
 												expr(
 													nat-64
 													range(576, 581)
-													get-field(expr(record(7), range(575, 576), param-ref(1)), false, "size"))]))]))
+													get-field(expr(record(7), range(575, 576), param-ref(1)), false, 0))]))]))
 						expr(
 							record(7)
 							range(585, 613)
@@ -11637,7 +11452,7 @@ program(
 												expr(
 													nat-64
 													range(600, 605)
-													get-field(expr(record(7), range(599, 600), param-ref(1)), false, "size"))
+													get-field(expr(record(7), range(599, 600), param-ref(1)), false, 0))
 												expr(nat-64, range(608, 613), param-ref(2))]))]))))))
 		283: fun(
 			"neg___int__nat"

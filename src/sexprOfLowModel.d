@@ -174,14 +174,14 @@ immutable(Sexpr) tataOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExpr
 				"get-field",
 				tataOfLowExpr(alloc, it.target),
 				tataBool(it.targetIsPointer),
-				tataStr(it.field.mangledName)),
+				tataNat(it.fieldIndex)),
 		(ref immutable LowExprKind.RecordFieldSet it) =>
 			tataRecord(
 				alloc,
 				"set-field",
 				tataOfLowExpr(alloc, it.target),
 				tataBool(it.targetIsPointer),
-				tataStr(it.field.mangledName),
+				tataNat(it.fieldIndex),
 				tataOfLowExpr(alloc, it.value)),
 		(ref immutable LowExprKind.Seq it) =>
 			tataRecord(

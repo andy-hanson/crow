@@ -134,7 +134,9 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 				? immutable LowType(immutable LowType.NonFunPtr(ptrTrustMe(targetTypeNonPtr)))
 				: targetTypeNonPtr;
 			checkLowExpr(ctx, targetType, it.target);
-			checkTypeEqual(ctx.ctx, type, it.field.type);
+			immutable LowType fieldType =
+				at(fullIndexDictGet(ctx.ctx.program.allRecords, it.record).fields, it.fieldIndex).type;
+			checkTypeEqual(ctx.ctx, type, fieldType);
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
 			immutable LowType targetTypeNonPtr = immutable LowType(it.record);
@@ -142,7 +144,9 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 				? immutable LowType(immutable LowType.NonFunPtr(ptrTrustMe(targetTypeNonPtr)))
 				: targetTypeNonPtr;
 			checkLowExpr(ctx, targetType, it.target);
-			checkLowExpr(ctx, it.field.type, it.value);
+			immutable LowType fieldType =
+				at(fullIndexDictGet(ctx.ctx.program.allRecords, it.record).fields, it.fieldIndex).type;
+			checkLowExpr(ctx, fieldType, it.value);
 			checkTypeEqual(ctx.ctx, type, voidType);
 		},
 		(ref immutable LowExprKind.Seq it) {

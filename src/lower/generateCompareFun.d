@@ -48,6 +48,7 @@ import util.memory : allocate, nu;
 import util.opt : none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : SourceRange;
+import util.types : safeSizeTToU8, u8;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeStatic, writeNat;
 
@@ -104,18 +105,17 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 	immutable LowType.Record arrRecordType = asRecordType(arrType);
 	immutable LowRecord arrRecord = fullIndexDictGet(allTypes.allRecords, arrRecordType);
 	verify(size(arrRecord.fields) == 2);
-	immutable Ptr!LowField sizeField = ptrAt(arrRecord.fields, 0);
-	immutable Ptr!LowField dataField = ptrAt(arrRecord.fields, 1);
-	verify(strEqLiteral(sizeField.mangledName, "size"));
-	verify(strEqLiteral(dataField.mangledName, "data"));
-	immutable LowType elementPtrType = dataField.type;
+	verify(strEqLiteral(at(arrRecord.fields, 0).mangledName, "size"));
+	verify(strEqLiteral(at(arrRecord.fields, 1).mangledName, "data"));
+	immutable LowType sizeType = at(arrRecord.fields, 0).type;
+	immutable LowType elementPtrType = at(arrRecord.fields, 1).type;
 	immutable LowType elementType = asNonFunPtrType(elementPtrType).pointee;
 
 	immutable(LowExpr) genGetSize(ref immutable LowExpr arr) {
-		return recordFieldAccess(alloc, range, arr, sizeField);
+		return recordFieldAccess!Alloc(alloc, range, arr, sizeType, 0);
 	}
 	immutable(LowExpr) genGetData(ref immutable LowExpr arr) {
-		return recordFieldAccess(alloc, range, arr, dataField);
+		return recordFieldAccess(alloc, range, arr, elementPtrType, 1);
 	}
 	immutable(LowExpr) genTail(ref immutable LowExpr arr) {
 		immutable LowExpr curSize = genGetSize(arr);
@@ -375,9 +375,10 @@ immutable(LowFunExprBody) genCompareRecord(Alloc)(
 			return accum;
 		else {
 			// Generate the comparisons in reverse -- though the first field is the to actually be compared first
-			immutable Ptr!LowField field = ptrAt(fields, size(fields) - 1);
+			immutable u8 fieldIndex = safeSizeTToU8(size(fields) - 1);
+			immutable Ptr!LowField field = ptrAt(fields, fieldIndex);
 			immutable LowExpr compareThisField =
-				compareOneField(alloc, range, comparisonTypes, compareFuns, field, a, b);
+				compareOneField(alloc, range, comparisonTypes, compareFuns, field.type, fieldIndex, a, b);
 			immutable LowExpr e =
 				combineCompares(alloc, locals, range, comparisonTypes, field.mangledName, compareThisField, accum);
 			return recur(e, rtail(fields));
@@ -393,13 +394,14 @@ immutable(LowExpr) compareOneField(Alloc)(
 	ref immutable SourceRange range,
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const CompareFuns compareFuns,
-	immutable Ptr!LowField field,
+	immutable LowType fieldType,
+	immutable u8 fieldIndex,
 	ref immutable LowExpr a,
 	ref immutable LowExpr b,
 ) {
-	immutable LowExpr ax = recordFieldAccess(alloc, range, a, field);
-	immutable LowExpr bx = recordFieldAccess(alloc, range, b, field);
-	return genCompareExpr(alloc, range, compareFuns, comparisonTypes, field.type, ax, bx);
+	immutable LowExpr ax = recordFieldAccess(alloc, range, a, fieldType, fieldIndex);
+	immutable LowExpr bx = recordFieldAccess(alloc, range, b, fieldType, fieldIndex);
+	return genCompareExpr(alloc, range, compareFuns, comparisonTypes, fieldType, ax, bx);
 }
 
 immutable(LowExpr) genComparePrimitive(Alloc)(
