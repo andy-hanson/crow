@@ -23,26 +23,40 @@ import lowModel :
 	PrimitiveType,
 	symOfPrimitiveType;
 import util.collection.arr : size;
+import util.collection.arrUtil : arrLiteral;
 import util.collection.str : strLiteral;
 import util.ptr : Ptr;
-import util.sexpr : Sexpr, tataArr, tataBool, tataNat, tataOpt, tataRecord, tataStr, tataSym;
+import util.sexpr :
+	NameAndSexpr,
+	nameAndTata,
+	Sexpr,
+	tataArr,
+	tataBool,
+	tataFullIndexDict,
+	tataNamedRecord,
+	tataNat,
+	tataOpt,
+	tataRecord,
+	tataStr,
+	tataSym;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.sourceRange : sexprOfSourceRange;
 import util.util : todo;
 
 immutable(Sexpr) tataOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
-	return tataRecord(
-		alloc,
+	return tataNamedRecord(
 		"program",
-		tataArr(alloc, a.allFunPtrTypes, (immutable size_t index, ref immutable LowFunPtrType it) =>
-			tataOfLowFunPtrType(alloc, index, it)),
-		tataArr(alloc, a.allRecords, (immutable size_t index, ref immutable LowRecord it) =>
-			tataOfLowRecord(alloc, index, it)),
-		tataArr(alloc, a.allUnions, (immutable size_t index, ref immutable LowUnion it) =>
-			tataOfLowUnion(alloc, index, it)),
-		tataArr(alloc, a.allFuns, (immutable size_t index, ref immutable LowFun it) =>
-			tataOfLowFun(alloc, index, it)),
-		tataOfLowFun(alloc, size(a.allFuns), a.main));
+		arrLiteral!NameAndSexpr(
+			alloc,
+			nameAndTata("fun-ptrs", tataFullIndexDict(alloc, a.allFunPtrTypes, (ref immutable LowFunPtrType it) =>
+				tataOfLowFunPtrType(alloc, it))),
+			nameAndTata("records", tataFullIndexDict(alloc, a.allRecords, (ref immutable LowRecord it) =>
+				tataOfLowRecord(alloc, it))),
+			nameAndTata("unions", tataFullIndexDict(alloc, a.allUnions, (ref immutable LowUnion it) =>
+				tataOfLowUnion(alloc, it))),
+			nameAndTata("funs", tataFullIndexDict(alloc, a.allFuns, (ref immutable LowFun it) =>
+				tataOfLowFun(alloc, it))),
+			nameAndTata("main", tataOfLowFun(alloc, a.main))));
 }
 
 immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) {
@@ -64,42 +78,38 @@ immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) 
 
 private:
 
-immutable(Sexpr) tataOfLowFunPtrType(Alloc)(ref Alloc alloc, immutable size_t index, ref immutable LowFunPtrType a) {
+immutable(Sexpr) tataOfLowFunPtrType(Alloc)(ref Alloc alloc, ref immutable LowFunPtrType a) {
 	return tataRecord(
 		alloc,
 		"fun-ptr",
-		tataNat(index),
 		tataStr(a.mangledName),
 		tataOfLowType(alloc, a.returnType),
 		tataArr(alloc, a.paramTypes, (ref immutable LowType it) =>
 			tataOfLowType(alloc, it)));
 }
 
-immutable(Sexpr) tataOfLowRecord(Alloc)(ref Alloc alloc, immutable size_t index, ref immutable LowRecord a) {
+immutable(Sexpr) tataOfLowRecord(Alloc)(ref Alloc alloc, ref immutable LowRecord a) {
 	return tataRecord(
 		alloc,
 		"record",
-		tataNat(index),
 		tataStr(a.mangledName),
 		tataArr(alloc, a.fields, (ref immutable LowField field) =>
 			tataRecord(alloc, "field", tataStr(field.mangledName), tataOfLowType(alloc, field.type))));
 }
 
-immutable(Sexpr) tataOfLowUnion(Alloc)(ref Alloc alloc, immutable size_t index, ref immutable LowUnion a){
+immutable(Sexpr) tataOfLowUnion(Alloc)(ref Alloc alloc, ref immutable LowUnion a){
 	return tataRecord(
 		alloc,
 		"union",
-		tataNat(index),
 		tataStr(a.mangledName),
 		tataArr(alloc, a.members, (ref immutable LowType it) =>
 			tataOfLowType(alloc, it)));
 }
 
-immutable(Sexpr) tataOfLowFun(Alloc)(ref Alloc alloc, immutable size_t index, ref immutable LowFun a) {
+immutable(Sexpr) tataOfLowFun(Alloc)(ref Alloc alloc, ref immutable LowFun a) {
 	return tataRecord(
 		alloc,
 		"fun",
-		tataNat(index),
 		tataStr(a.mangledName),
 		tataOfLowType(alloc, a.returnType),
 		tataArr(alloc, a.params, (ref immutable LowParam it) =>

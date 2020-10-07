@@ -190,6 +190,11 @@ immutable(ArrWithSize!T) arrWithSizeLiteral(T, Alloc)(
 	return immutable Arr!T(cast(immutable) ptr, 17);
 }
 
+@system Arr!Out fillArrUninitialized(Out, Alloc)(ref Alloc alloc, immutable size_t size) {
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size);
+	return Arr!Out(res, size);
+}
+
 @trusted immutable(Arr!Out) fillArr(Out, Alloc)(
 	ref Alloc alloc,
 	immutable size_t size,
@@ -297,6 +302,14 @@ immutable(Opt!(Ptr!T)) findPtr(T)(
 	return none!(Ptr!T);
 }
 
+void eachWithIndex(T)(
+	immutable Arr!T a,
+	scope void delegate(immutable size_t, ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	foreach (immutable size_t i; 0..size(a))
+		cb(i, at(a, i));
+}
+
 @trusted immutable(Arr!Out) map(Out, In, Alloc)(
 	ref Alloc alloc,
 	immutable Arr!In a,
@@ -360,10 +373,19 @@ immutable(Opt!(Ptr!T)) findPtr(T)(
 	ref immutable Arr!In a,
 	scope immutable(Opt!Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
+	return mapOpWithIndex!(Out, In, Alloc)(alloc, a, (immutable size_t, ref immutable In x) =>
+		cb(x));
+}
+
+@trusted immutable(Arr!Out) mapOpWithIndex(Out, In, Alloc)(
+	ref Alloc alloc,
+	ref immutable Arr!In a,
+	scope immutable(Opt!Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
+) {
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
 	size_t resI = 0;
 	foreach (immutable size_t i; 0..size(a)) {
-		immutable Opt!Out o = cb(at(a, i));
+		immutable Opt!Out o = cb(i, at(a, i));
 		if (has(o)) {
 			initMemory(res + resI, force(o));
 			resI++;
@@ -687,14 +709,14 @@ immutable(T) fold(T, U)(
 		: fold!(T, U)(cb(start, first(arr)), tail(arr), cb);
 }
 
-immutable(size_t) arrMax(T)(
-	immutable size_t start,
+immutable(N) arrMax(N, T)(
+	immutable N start,
 	immutable Arr!T a,
-	scope immutable(size_t) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+	scope immutable(N) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return empty(a)
 		? start
-		: arrMax(max(start, cb(first(a))), tail(a), cb);
+		: arrMax!(N, T)(max(start, cb(first(a))), tail(a), cb);
 }
 
 immutable(size_t) sum(T)(

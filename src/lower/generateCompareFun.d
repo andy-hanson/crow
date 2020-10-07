@@ -42,6 +42,7 @@ import util.bools : Bool;
 import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, fillArr, mapWithIndex, rtail;
+import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.str : Str, strEqLiteral, strLiteral;
 import util.memory : allocate, nu;
 import util.opt : none, some;
@@ -101,7 +102,7 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 	ref immutable LowExpr b,
 ) {
 	immutable LowType.Record arrRecordType = asRecordType(arrType);
-	immutable LowRecord arrRecord = at(allTypes.allRecords, arrRecordType.index);
+	immutable LowRecord arrRecord = fullIndexDictGet(allTypes.allRecords, arrRecordType);
 	verify(size(arrRecord.fields) == 2);
 	immutable Ptr!LowField sizeField = ptrAt(arrRecord.fields, 0);
 	immutable Ptr!LowField dataField = ptrAt(arrRecord.fields, 1);
@@ -269,7 +270,7 @@ immutable(LowFunExprBody) compareBody(Alloc)(
 			range,
 			comparisonTypes,
 			compareFuns,
-			at(allTypes.allRecords, recordType.index).fields,
+			fullIndexDictGet(allTypes.allRecords, recordType).fields,
 			a,
 			b);
 	}
@@ -289,7 +290,14 @@ immutable(LowFunExprBody) compareBody(Alloc)(
 		(immutable LowType.Record it) =>
 			record(it),
 		(immutable LowType.Union it) =>
-			genCompareUnion(alloc, range, comparisonTypes, compareFuns, at(allTypes.allUnions, it.index), a, b));
+			genCompareUnion(
+				alloc,
+				range,
+				comparisonTypes,
+				compareFuns,
+				fullIndexDictGet(allTypes.allUnions, it),
+				a,
+				b));
 }
 
 immutable(LowFunExprBody) genCompareUnion(Alloc)(

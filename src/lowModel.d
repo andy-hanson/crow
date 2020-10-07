@@ -4,11 +4,13 @@ module lowModel;
 
 import util.bools : Bool;
 import util.collection.arr : Arr;
+import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.str : Str;
 import util.opt : Opt;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym;
+import util.types : u8;
 import util.util : verify;
 
 struct LowExternPtrType {
@@ -315,7 +317,7 @@ struct LowExprKind {
 	}
 
 	struct ConvertToUnion {
-		immutable size_t memberIndex;
+		immutable u8 memberIndex;
 		immutable Ptr!LowExpr arg;
 	}
 
@@ -340,7 +342,7 @@ struct LowExprKind {
 			immutable LowExpr then;
 		}
 
-		immutable Ptr!LowLocal matchedLocal;
+		immutable Ptr!LowLocal matchedLocal; // TODO: this is needed by C but not by interpreter, so don't have here?
 		immutable Ptr!LowExpr matchedValue;
 		immutable Arr!Case cases;
 	}
@@ -675,7 +677,7 @@ T matchSpecialConstant(T)(
 			return cbParamRef(a.paramRef);
 		case LowExprKind.Kind.ptrCast:
 			return cbPtrCast(a.ptrCast);
-		case LowExprKind.Kind.recordFieldAccess:
+	case LowExprKind.Kind.recordFieldAccess:
 			return cbRecordFieldAccess(a.recordFieldAccess);
 		case LowExprKind.Kind.recordFieldSet:
 			return cbRecordFieldSet(a.recordFieldSet);
@@ -701,10 +703,10 @@ T matchSpecialConstant(T)(
 }
 
 struct LowProgram {
-	immutable Arr!LowExternPtrType allExternPtrTypes;
-	immutable Arr!LowFunPtrType allFunPtrTypes;
-	immutable Arr!LowRecord allRecords;
-	immutable Arr!LowUnion allUnions;
-	immutable Arr!LowFun allFuns; // Does not include main
+	immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) allExternPtrTypes;
+	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;
+	immutable FullIndexDict!(LowType.Record, LowRecord) allRecords;
+	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions;
+	immutable FullIndexDict!(LowFunIndex, LowFun) allFuns; // Does not include main
 	immutable LowFun main;
 }

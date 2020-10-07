@@ -69,6 +69,7 @@ import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAt, arrBuilderSiz
 import util.collection.arrUtil : arrLiteral, map, mapOp, mapWithIndex, mapWithOptFirst, mapWithOptFirst2, slice, tail;
 import util.collection.dict : Dict, getAt, mustGetAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
+import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr, fullIndexDictSize;
 import util.collection.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
 import util.collection.mutDict : getOrAdd, MutDict, ValueAndDidAdd;
 import util.collection.str : copyStr, Str, strEq, strEqLiteral, strLiteral;
@@ -100,10 +101,10 @@ immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgra
 }
 
 struct AllLowTypes {
-	immutable Arr!LowExternPtrType allExternPtrTypes;
-	immutable Arr!LowFunPtrType allFunPtrTypes;
-	immutable Arr!LowRecord allRecords;
-	immutable Arr!LowUnion allUnions;
+	immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) allExternPtrTypes;
+	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;
+	immutable FullIndexDict!(LowType.Record, LowRecord) allRecords;
+	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions;
 }
 
 struct AllLowTypesWithCtx {
@@ -136,7 +137,7 @@ immutable(LowFunIndex) getCompareFun(ref const CompareFuns compareFuns, ref immu
 private:
 
 struct AllLowFuns {
-	immutable Arr!LowFun allLowFuns; // Does not include main
+	immutable FullIndexDict!(LowFunIndex, LowFun) allLowFuns; // Does not include main (TODO: that is stupid)
 	immutable LowFun main;
 }
 
@@ -225,31 +226,38 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr
 
 	GetLowTypeCtx getLowTypeCtx = GetLowTypeCtx(finishDictShouldBeNoConflict(alloc, concreteStructToTypeBuilder));
 
-	immutable Arr!LowFunPtrType allFunPtrs =
-		map(alloc, finishArr(alloc, allFunPtrSources), (ref immutable FunPtrSource it) {
-			immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, first(it.body_.typeArgs));
-			immutable Arr!LowType paramTypes =
-				map(alloc, tail(it.body_.typeArgs), (ref immutable ConcreteType typeArg) =>
-					lowTypeFromConcreteType(alloc, getLowTypeCtx, typeArg));
-			return immutable LowFunPtrType(copyStr(alloc, it.mangledName), returnType, paramTypes);
-		});
-	immutable Arr!LowRecord allRecords =
-		map(alloc, finishArr(alloc, allRecordSources), (ref immutable RecordSource it) =>
-			immutable LowRecord(
-				copyStr(alloc, it.mangledName),
-				map(alloc, it.body_.fields, (ref immutable ConcreteField field) =>
-					immutable LowField(
-						copyStr(alloc, field.mangledName),
-						lowTypeFromConcreteType(alloc, getLowTypeCtx, field.type)))));
-	immutable Arr!LowUnion allUnions =
-		map(alloc, finishArr(alloc, allUnionSources), (ref immutable UnionSource it) =>
-			immutable LowUnion(
-				copyStr(alloc, it.mangledName),
-				map(alloc, it.body_.members, (ref immutable ConcreteType member) =>
-					lowTypeFromConcreteType(alloc, getLowTypeCtx, member))));
+	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrs =
+		fullIndexDictOfArr!(LowType.FunPtr, LowFunPtrType)(
+			map(alloc, finishArr(alloc, allFunPtrSources), (ref immutable FunPtrSource it) {
+				immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, first(it.body_.typeArgs));
+				immutable Arr!LowType paramTypes =
+					map(alloc, tail(it.body_.typeArgs), (ref immutable ConcreteType typeArg) =>
+						lowTypeFromConcreteType(alloc, getLowTypeCtx, typeArg));
+				return immutable LowFunPtrType(copyStr(alloc, it.mangledName), returnType, paramTypes);
+			}));
+	immutable FullIndexDict!(LowType.Record, LowRecord) allRecords =
+		fullIndexDictOfArr!(LowType.Record, LowRecord)(
+			map(alloc, finishArr(alloc, allRecordSources), (ref immutable RecordSource it) =>
+				immutable LowRecord(
+					copyStr(alloc, it.mangledName),
+					map(alloc, it.body_.fields, (ref immutable ConcreteField field) =>
+						immutable LowField(
+							copyStr(alloc, field.mangledName),
+							lowTypeFromConcreteType(alloc, getLowTypeCtx, field.type))))));
+	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions =
+		fullIndexDictOfArr!(LowType.Union, LowUnion)(
+			map(alloc, finishArr(alloc, allUnionSources), (ref immutable UnionSource it) =>
+				immutable LowUnion(
+					copyStr(alloc, it.mangledName),
+					map(alloc, it.body_.members, (ref immutable ConcreteType member) =>
+						lowTypeFromConcreteType(alloc, getLowTypeCtx, member)))));
 
 	return AllLowTypesWithCtx(
-		immutable AllLowTypes(finishArr(alloc, allExternPtrTypes), allFunPtrs, allRecords, allUnions),
+		immutable AllLowTypes(
+			fullIndexDictOfArr!(LowType.ExternPtr, LowExternPtrType)(finishArr(alloc, allExternPtrTypes)),
+			allFunPtrs,
+			allRecords,
+			allUnions),
 		getLowTypeCtx);
 }
 
@@ -342,9 +350,12 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	DictBuilder!(Ptr!ConcreteFun, LowFunIndex, comparePtr!ConcreteFun) concreteFunToLowFunIndexBuilder;
 	StackAlloc!("getAllLowFuns", 1024 * 1024) tempAlloc;
 	CompareFuns compareFuns = CompareFuns(
-		newMutIndexDict!(immutable LowType.Record, immutable LowFunIndex)(tempAlloc, size(allTypes.allRecords)),
-		newMutIndexDict!(immutable LowType.Record, immutable LowFunIndex)(tempAlloc, size(allTypes.allRecords)),
-		newMutIndexDict!(immutable LowType.Union, immutable LowFunIndex)(tempAlloc, size(allTypes.allUnions)),
+		newMutIndexDict!(immutable LowType.Record, immutable LowFunIndex)(
+			tempAlloc, fullIndexDictSize(allTypes.allRecords)),
+		newMutIndexDict!(immutable LowType.Record, immutable LowFunIndex)(
+			tempAlloc, fullIndexDictSize(allTypes.allRecords)),
+		newMutIndexDict!(immutable LowType.Union, immutable LowFunIndex)(
+			tempAlloc, fullIndexDictSize(allTypes.allUnions)),
 		newMutIndexDict!(immutable PrimitiveTypeIndex, immutable LowFunIndex)(tempAlloc, nPrimitiveTypes));
 	ArrBuilder!LowFunSource lowFunSourcesBuilder;
 
@@ -362,7 +373,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 		}
 
 		void generateCompareForFields(immutable LowType.Record record) {
-			foreach (ref immutable LowField field; arrRange(at(allTypes.allRecords, record.index).fields))
+			foreach (ref immutable LowField field; arrRange(fullIndexDictGet(allTypes.allRecords, record).fields))
 				generateCompareForType(field.type);
 		}
 
@@ -391,9 +402,9 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				return some(index.value);
 			},
 			(immutable LowType.Record it) {
-				//TODO: better way to detect arr!
-				immutable LowRecord record = at(allTypes.allRecords, it.index);
+				immutable LowRecord record = fullIndexDictGet(allTypes.allRecords, it);
 				immutable Str mangledName = record.mangledName;
+				//TODO: better way to detect arr!
 				immutable Bool typeIsArr = strEqLiteral(slice(mangledName, 0, 3), "arr");
 				immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
 					compareFuns.recordValToCompare,
@@ -412,7 +423,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				immutable ValueAndDidAdd!(immutable LowFunIndex) index =
 					getOrAddAndDidAdd(compareFuns.unionToCompare, it, () => addIt(False));
 				if (index.didAdd)
-					foreach (ref immutable LowType member; arrRange(at(allTypes.allUnions, it.index).members))
+					foreach (ref immutable LowType member; arrRange(fullIndexDictGet(allTypes.allUnions, it).members))
 						generateCompareForType(member);
 				return some(index.value);
 			});
@@ -449,7 +460,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
 		finishDictShouldBeNoConflict(alloc, concreteFunToLowFunIndexBuilder);
 
-	immutable Arr!LowFun allLowFuns =
+	immutable FullIndexDict!(LowFunIndex, LowFun) allLowFuns = fullIndexDictOfArr!(LowFunIndex, LowFun)(
 		mapWithIndex(alloc, lowFunSources, (immutable size_t index, ref immutable LowFunSource source) =>
 			matchLowFunSource!(immutable LowFun)(
 				source,
@@ -494,7 +505,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 						immutable LowParamIndex((has(ctxParamIndex) ? 1 : 0) + (has(closureParamIndex) ? 1 : 0)),
 						body_(cf));
 					return immutable LowFun(copyStr(alloc, cf.mangledName), returnType, params, body_);
-				}));
+				})));
 
 	immutable LowFunIndex userMainIndex = mustGetAt(concreteFunToLowFunIndex, program.userMain);
 	immutable LowFunIndex rtMainIndex = mustGetAt(concreteFunToLowFunIndex, program.rtMain);
@@ -503,7 +514,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 		getLowTypeCtx,
 		rtMainIndex,
 		userMainIndex,
-		at(allLowFuns, rtMainIndex.index));
+		fullIndexDictGet(allLowFuns, rtMainIndex));
 	return immutable AllLowFuns(allLowFuns, mainFun);
 }
 
@@ -512,7 +523,7 @@ immutable(ComparisonTypes) getComparisonTypes(
 	immutable LowType comparisonType,
 ) {
 	immutable LowType.Union comparison = asUnionType(comparisonType);
-	immutable LowUnion unionBody = at(allTypes.allUnions, comparison.index);
+	immutable LowUnion unionBody = fullIndexDictGet(allTypes.allUnions, comparison);
 	immutable(LowType.Record) getMember(immutable size_t index) {
 		return asRecordType(at(unionBody.members, index));
 	}
@@ -847,7 +858,7 @@ immutable(LowExprKind) getLambdaExpr(Alloc)(
 		return funPtr;
 	else {
 		immutable LowType.Record recordType = asRecordType(type);
-		immutable Ptr!LowRecord record = ptrAt(ctx.allTypes.allRecords, recordType.index);
+		immutable LowRecord record = fullIndexDictGet(ctx.allTypes.allRecords, recordType);
 		verify(size(record.fields) == 2);
 		immutable LowType funPtrType = immutable LowType(asFunPtrType(at(record.fields, 0).type));
 		immutable LowExpr closure = ptrCast(alloc, anyPtrType, range, getLowExpr(alloc, ctx, force(a.closure)));
@@ -924,7 +935,7 @@ immutable(FieldAndTargetIsPointer) getLowField(
 ) {
 	immutable Bool targetIsPointer = isNonFunPtrType(targetType);
 	immutable LowType.Record record = asRecordType(targetIsPointer ? asNonFunPtrType(targetType).pointee : targetType);
-	immutable Ptr!LowField field = ptrAt(at(ctx.allTypes.allRecords, record.index).fields, concreteField.index);
+	immutable Ptr!LowField field = ptrAt(fullIndexDictGet(ctx.allTypes.allRecords, record).fields, concreteField.index);
 	verify(strEq(field.mangledName, concreteField.mangledName));
 	return immutable FieldAndTargetIsPointer(targetIsPointer, record, field);
 }

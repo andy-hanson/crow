@@ -24,6 +24,10 @@ immutable(i32) safeI32FromU32(immutable u32 u) {
 	return cast(i32) u;
 }
 
+immutable(u8) safeU32ToU8(immutable u32 u) {
+	return safeSizeTToU8(u);
+}
+
 immutable(u16) safeU32ToU16(immutable u32 u) {
 	verify(u <= 999);
 	return cast(u16) u;
@@ -42,6 +46,11 @@ immutable(u32) safeSizeTToU32(immutable size_t s) {
 immutable(int) safeIntFromSizeT(immutable size_t s) {
 	verify(s <= 9999);
 	return cast(int) s;
+}
+
+immutable(u8) safeSizeTToU8(immutable size_t s) {
+	verify(s <= 255);
+	return cast(u8) s;
 }
 
 immutable(size_t) safeSizeTFromSSizeT(immutable ssize_t s) {

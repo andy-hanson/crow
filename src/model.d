@@ -17,6 +17,7 @@ import util.path : AbsolutePath, addManyChildren, baseName, comparePath, PathAnd
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : SourceRange;
 import util.sym : compareSym, shortSymAlphaLiteral, Sym, writeSym;
+import util.types : u8;
 import util.util : todo, verify;
 import util.writer : writeChar, Writer, writeStatic;
 
@@ -1128,7 +1129,7 @@ struct Expr {
 
 	struct ImplicitConvertToUnion {
 		immutable Ptr!StructInst unionType;
-		immutable size_t memberIndex;
+		immutable u8 memberIndex;
 		immutable Ptr!Expr inner;
 	}
 

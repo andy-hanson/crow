@@ -11,7 +11,8 @@ import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseS
 import frontend.getTokens : Token, tokensOfAst, sexprOfTokens;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : cStrOfDiagnostics;
-import interpret.bytecode : ByteCode, generateBytecode;
+import interpret.bytecode : ByteCode;
+import interpret.generateBytecode : generateBytecode;
 import lower.lower : lower;
 import lowModel : LowProgram;
 import model : Module, Program;

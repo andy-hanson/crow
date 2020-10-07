@@ -19,6 +19,7 @@ import util.collection.arr : Arr, emptyArr;
 import util.memory : allocate;
 import util.ptr : Ptr;
 import util.sourceRange : SourceRange;
+import util.types : u8;
 import util.util : todo;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
@@ -132,7 +133,7 @@ immutable(LowExpr) genCreateUnion(Alloc)(
 	ref Alloc alloc,
 	ref immutable SourceRange range,
 	immutable LowType.Union union_,
-	immutable size_t memberIndex,
+	immutable u8 memberIndex,
 	immutable LowExpr member,
 ) {
 	return immutable LowExpr(

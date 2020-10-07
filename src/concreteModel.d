@@ -11,6 +11,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals;
 import util.sourceRange : SourceRange;
 import util.sym : shortSymAlphaLiteral, Sym;
+import util.types : u8;
 import util.util : todo, unreachable, verify;
 
 enum BuiltinStructKind {
@@ -405,7 +406,7 @@ struct ConcreteExpr {
 	}
 
 	struct ConvertToUnion {
-		immutable size_t memberIndex;
+		immutable u8 memberIndex;
 		immutable Ptr!ConcreteExpr arg;
 	}
 

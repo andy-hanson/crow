@@ -27,7 +27,7 @@ struct ArrWithSize(T) {
 struct Arr(T) {
 	private:
 	T* begin_;
-	immutable size_t size_;
+	size_t size_;
 	@disable this();
 
 	public:

@@ -2,35 +2,11 @@ module interpret.bytecode;
 
 @safe @nogc pure nothrow:
 
-import lowModel :
-	LowField,
-	LowFun,
-	LowFunExprBody,
-	LowFunIndex,
-	LowLocal,
-	LowProgram,
-	LowType,
-	LowUnion,
-	matchLowExprKind,
-	matchLowFunBody,
-	matchLowType;
-
-import util.alloc.stackAlloc : StackAlloc;
-import util.collection.arr : Arr, at, range, size;
-import util.collection.arrUtil : arrMax, mapWithIndex, sum;
-import util.collection.mutIndexDict;
+import util.collection.arr : Arr;
 import util.collection.mutArr : moveToArr, MutArr, mutArrSize, push, setAt;
-import util.collection.mutDict : addToMutDict, getAt_mut, MutDict;
-import util.collection.mutIndexDict : MutIndexDict;
-import util.collection.mutIndexMultiDict :
-	MutIndexMultiDict,
-	mutIndexMultiDictAdd,
-	mutIndexMultiDictMustGetAt,
-	newMutIndexMultiDict;
-import util.comparison : Comparison;
-import util.ptr : comparePtr, Ptr, ptrTrustMe_mut;
-import util.types : bottomU8OfU32, safeSizeTToU32, u8, u32;
-import util.util : todo;
+import util.ptr : Ptr;
+import util.types : bottomU8OfU32, safeSizeTToU32, safeU32ToU8, u8, u32;
+import util.util : verify;
 
 struct ByteCode {
 	// NOTE: not every entry is an opcode
@@ -38,216 +14,207 @@ struct ByteCode {
 	immutable ByteCodeIndex main;
 }
 
-enum OpCode : u8 {
-	return_,
+struct ByteCodeIndex {
+	immutable u32 index;
 }
 
-immutable(ByteCode) generateBytecode(Alloc)(ref Alloc codeAlloc, ref immutable LowProgram program) {
+struct ByteCodeOffset {
+	immutable u8 offset;
+}
+
+immutable(ByteCode) finishByteCode(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex mainIndex) {
+	return immutable ByteCode(moveToArr(writer.alloc, writer.code), mainIndex);
+}
+
+struct ByteCodeWriter(Alloc) {
+	private:
+	Ptr!Alloc alloc;
 	MutArr!(immutable OpCode) code;
+	uint nextStackEntry = 0;
+}
 
-	alias TempAlloc = StackAlloc!("generateBytecode", 1024 * 1024);
-	TempAlloc tempAlloc;
+immutable(uint) getNextStackEntry(Alloc)(ref const ByteCodeWriter!Alloc writer) {
+	return writer.nextStackEntry;
+}
 
-	MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences =
-		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, size(program.allFuns));
+void setNextStackEntry(Alloc)(ref ByteCodeWriter!Alloc writer, immutable uint entry) {
+	writer.nextStackEntry = entry;
+}
 
-	immutable Arr!ByteCodeIndex funToDefinition = mapWithIndex!(ByteCodeIndex, LowFun, TempAlloc)(
-		tempAlloc,
-		program.allFuns,
-		(immutable size_t index, ref immutable LowFun fun) {
-			immutable size_t start = mutArrSize(code);
+void setStackEntryAfterParameters(Alloc)(ref ByteCodeWriter!Alloc writer, immutable uint entry) {
+	verify(writer.nextStackEntry == 0);
+	writer.nextStackEntry = entry;
+}
 
-			todo!void("write the function!");
+void assertStackEmpty(Alloc)(ref const ByteCodeWriter!Alloc writer) {
+	verify(writer.nextStackEntry == 0);
+}
 
-			return immutable ByteCodeIndex(safeSizeTToU32(start));
-	});
+//TODO: name 'nextByteCodeIndex'
+immutable(ByteCodeIndex) curByteCodeIndex(Alloc)(ref const ByteCodeWriter!Alloc writer) {
+	return immutable ByteCodeIndex(safeSizeTToU32(mutArrSize(writer.code)));
+}
 
-	/*
- 	NOTE: We'll start with a mutable array for bytecodes.
-		That way we can leave function indices to fill in later.
-		We'll have a map from a function index to all the places to write its bytecode index.
+void fillDelayedU8(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	immutable ByteCodeIndex index,
+	immutable ByteCodeOffset offset,
+) {
+	writeU8(writer.code, index.index, offset.offset);
+}
 
+void fillDelayedU32(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	immutable ByteCodeIndex index,
+	immutable ByteCodeIndex value,
+) {
+	writeU32(writer.code, index.index, value.index);
+}
 
-	PLAN:
-	* Map from a LowFunIndex to bytecode locations for that fn.
-	*/
+immutable(ByteCodeIndex) writeCallDelayed(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	immutable uint stackEntryBeforeArgs,
+	immutable uint nEntriesForReturnType,
+) {
+	pushOpcode(writer, OpCode.call);
+	immutable ByteCodeIndex fnAddress = curByteCodeIndex(writer);
+	pushU32(writer.alloc, writer.code, 0);
+	writer.nextStackEntry = stackEntryBeforeArgs + nEntriesForReturnType;
+	return fnAddress;
+}
 
-
-	foreach (immutable size_t idx; 0..size(funToDefinition)) {
-		immutable LowFunIndex index = LowFunIndex(idx);
-		immutable ByteCodeIndex definition = at(funToDefinition, idx);
-		foreach (immutable ByteCodeIndex reference; range(mutIndexMultiDictMustGetAt(funToReferences, index))) {
-			writeU32(code, reference.index, definition.index);
-		}
+void writeGet(Alloc)(ref ByteCodeWriter!Alloc writer, immutable StackEntries entries) {
+	foreach (immutable uint i; 0..entries.size) {
+		// curEntry is the *next* position on the stack.
+		// Gets are relative to the current top of stack (0 reads from curEntry - 1).
+		immutable uint stackEntry = entries.start + i;
+		verify(stackEntry < writer.nextStackEntry);
+		pushOpcode(writer, OpCode.get);
+		pushU8(writer.alloc, writer.code, safeU32ToU8(writer.nextStackEntry - 1 - stackEntry));
 	}
+	writer.nextStackEntry += entries.size;
+}
 
-	immutable ByteCodeIndex mainIndex = todo!(immutable ByteCodeIndex)("mainIndex");
+void writePushU8(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u8 value) {
+	pushOpcode(writer, OpCode.pushU8);
+	pushU8(writer.alloc, writer.code, value);
+	writer.nextStackEntry++;
+}
 
-	return immutable ByteCode(moveToArr(codeAlloc, code), mainIndex);
+void writePushU32(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u32 value) {
+	writePushU32Common(writer, value);
+}
+
+void writeReturn(Alloc)(ref ByteCodeWriter!Alloc writer) {
+	pushOpcode(writer, OpCode.return_);
+}
+
+immutable(ByteCodeIndex) writePushU32Delayed(Alloc)(ref ByteCodeWriter!Alloc writer) {
+	return writePushU32Common(writer, 0);
+}
+
+private immutable(ByteCodeIndex) writePushU32Common(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u32 value) {
+	pushOpcode(writer, OpCode.pushU32);
+	immutable ByteCodeIndex fnAddress = curByteCodeIndex(writer);
+	pushU32(writer.alloc, writer.code, value);
+	writer.nextStackEntry++;
+	return fnAddress;
+}
+
+void writeRemove(Alloc)(ref ByteCodeWriter!Alloc writer, immutable StackEntries entries) {
+	pushOpcode(writer, OpCode.remove);
+	pushU8(writer.alloc, writer.code, safeU32ToU8(writer.nextStackEntry - entries.start));
+	pushU8(writer.alloc, writer.code, entries.size);
+	writer.nextStackEntry -= entries.size;
+}
+
+immutable(ByteCodeIndex) writeJumpDelayed(Alloc)(ref ByteCodeWriter!Alloc writer) {
+	pushOpcode(writer, OpCode.jump);
+	immutable ByteCodeIndex jumpOffsetIndex = curByteCodeIndex(writer);
+	pushU8(writer.alloc, writer.code, 0);
+	return jumpOffsetIndex;
+}
+
+void fillInJumpDelayed(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex jumpIndex) {
+	writeU8(writer.code, jumpIndex.index, safeU32ToU8(curByteCodeIndex(writer).index - jumpIndex.index));
+}
+
+immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(ref ByteCodeWriter!Alloc writer, immutable size_t nCases) {
+	pushOpcode(writer, OpCode.switch_);
+	immutable ByteCodeIndex addresses = curByteCodeIndex(writer);
+	foreach (immutable size_t i; 0..nCases)
+		pushU8(writer.alloc, writer.code, 0);
+	return addresses;
+}
+
+struct StackEntries {
+	immutable uint start; // Index of first entry
+	immutable u8 size; // Number of entries
 }
 
 private:
 
-// NOTE: we should lay out structs so that no primitive field straddles multiple stack entries.
-
-immutable(size_t) nStackEntriesForType(ref immutable LowProgram program, ref immutable LowType t) {
-	return matchLowType!(immutable size_t)(
-		t,
-		(immutable LowType.ExternPtr) => immutable size_t(1),
-		(immutable LowType.FunPtr) => immutable size_t(1),
-		(immutable LowType.NonFunPtr) => immutable size_t(1),
-		(immutable PrimitiveType) => immutable size_t(1),
-		(immutable LowType.Record record) =>
-			// TODO: for perf, would be better if record fields could share stack entries.
-			sum(at(program.allRecords, record.index).fields, (ref immutable LowField field) =>
-				nStackEntriesForType(program, field.type)),
-		(immutable LowType.Union it) =>
-			// Union kind takes up an entire stack entry
-			1 + arrMax(0, at(program.allUnions, it.index).members, (ref immutable LowType t) =>
-				nStackEntriesForType(program, t)));
+//TODO:PRIVATE
+enum OpCode : u8 {
+	// args: u32 address
+	// pushes current address onto the stack and goes to the new function's address
+	call,
+	// args: u8 offset
+	// Gets a stack entry and duplicates it on the top of the stack.
+	get,
+	jump,
+	// args: u8 value
+	pushU8,
+	// args: u32 value
+	// Push a literal u32 value. (Takes up a full 64-bit stack entry)
+	pushU32,
+	// args: u8 offset, u8 nEntries
+	// Removes the entries at the offset. Later entries are moved to there.
+	remove,
+	return_,
+	// args: u8[nCases] offsets
+	// This is a switch on the contiguous range from [0, nCases).
+	// (Offsets are relative to the bytecode index of the first offset.
+	// A 0th offset is needed because otherwise there's no way to know how many cases there are.)
+	switch_,
 }
 
-void generateBytecodeForFun(Alloc)(
-	ref Alloc codeAlloc,
-	ref MutArr!(immutable u8) code,
-	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
-	ref immutable LowFun fun,
-) {
-	matchLowFunBody!void(
-		fun.body_,
-		(ref immutable LowFunBody.Extern body_) {
-			generateExternCall(body_);
-		},
-		(ref immutable LowFunExprBody body_) {
-			uint stackEntry = 0;
-			immutable Arr!StackEntries parameters = map(fun.params, (ref immutable LowParam it) {
-				immutable uint start = stackEntry;
-				immutable uint n = nStackEntriesForType(it.type);
-				stackEntry += n;
-				return immutable StackEntry(start, n);
-			});
-			// Note: not doing it for locals because they might be unrelated and occupy the same stack entry
-			ExprCtx ctx = ExprCtx(ptrTrustMe_mut(code), parameters, stackEntry);
-			generateExpr(codeAlloc, ctx, body_.expr);
-			push(codeAlloc, code, ByteCode.return_);
-		});
+void pushOpcode(Alloc)(ref ByteCodeWriter!Alloc writer, immutable OpCode code) {
+	push(writer.alloc, writer.code, code);
 }
 
-struct ExprCtx {
-	immutable Ptr!LowProgram program;
-	Ptr!(MutArr!(immutable u8)) code;
-	immutable Arr!(immutable StackEntries) parameterEntries;
-	// Note: Stack is immutable and grows downward only.
-	uint curStackEntry;
-	MutDict!(Ptr!LowLocal, immutable StackEntries, comparePtr!LowLocal) localEntries;
+
+void pushStackOffset(Alloc)(ref Alloc alloc, ref MutArr!(immutable OpCode) code, immutable u32 value) {
+	pushU8(alloc, code, safeU32ToU8(value));
 }
 
-struct StackEntries {
-	uint start; // Index of first entry
-	uint size; // Number of entries
+void pushU8(Alloc)(ref Alloc alloc, ref MutArr!(immutable OpCode) code, immutable u8 value) {
+	push(alloc, code, cast(immutable OpCode) value);
 }
 
-void generateExpr(Alloc)(
-	ref Alloc codeAlloc,
-	ref ExprCtx ctx,
-	ref immutable LowExpr expr,
-) {
-	return matchLowExprKind(
-		expr.kind,
-		(ref immutable LowExprKind.Call) {
-			todo!void("");
-		},
-		(ref immutable LowExprKind.CreateRecord) {
-			todo!void("create-record");
-		},
-		(ref immutable LowExprKind.ConvertToUnion) {
-			todo!void("convert-to-union");
-		},
-		(ref immutable LowExprKind.FunPtr) {
-			todo!void("fun-ptr");
-		},
-		(ref immutable LowExprKind.Let it) {
-			generateExpr(codeAlloc, ctx, it.first);
-			immutable uint nEntries = nEntriesForType(ctx.program, it.local.type);
-			addToMutDict(
-				alloc,
-				ctx.localEntries,
-				it.local,
-				immutable StackEntries(ctx.curStackEntry - nEntries, nEntries));
-			generateExpr(codeAlloc, ctx, it.then);
-		},
-		(ref immutable LowExprKind.LocalRef it) {
-			immutable StackEntry entry = getAt_mut(ctx.localPositions, it.local);
-			writeGetEntry(codeAlloc, ctx.code, entry);
-			ctx.curStackEntry += entry.size;
-		},
-		(ref immutable LowExprKind.Match) {
-			todo!void("match");
-		},
-		(ref immutable LowExprKind.ParamRef it) {
-			immutable StackEntry entry = at(ctx.parameterEntries, it.index);
-			writeGetEntry(codeAlloc, ctx.code, entry);
-			ctx.curStackEntry += entry.size;
-			todo!void("param");
-		},
-		(ref immutable LowExprKind.PtrCast) {
-			// Do nothing
-		},
-		(ref immutable LowExprKind.RecordFieldAccess) {
-			todo!void("field-access");
-		},
-		(ref immutable LowExprKind.RecordFieldSet) {
-			todo!void("field-set");
-		},
-		(ref immutable LowExprKind.Seq it) {
-			generateExpr(codeAlloc, ctx, it.first);
-			generateExpr(codeAlloc, ctx, it.then);
-		},
-		(ref immutable LowExprKind.SizeOf) {
-			todo!void("size-of");
-		},
-		(ref immutable LowExprKind.SpecialConstant) {
-			todo!void("special-constant");
-		},
-		(ref immutable LowExprKind.Special0Ary) {
-			todo!void("special-0ary");
-		},
-		(ref immutable LowExprKind.SpecialUnary) {
-			todo!void("unary");
-		},
-		(ref immutable LowExprKind.SpecialBinary) {
-			// Remember to treat 'or' and 'and' specially
-			todo!void("binary");
-		},
-		(ref immutable LowExprKind.SpecialTrinary) {
-			//Remember to treat 'if' specially
-			todo!void("trinary");
-		},
-		(ref immutable LowExprKind.SpecialNAry) {
-			todo!void("nary");
-		},
-		(ref immutable LowExprKind.StringLiteral) {
-			todo!void("literal");
-		});
+void pushU32(Alloc)(ref Alloc alloc, ref MutArr!(immutable OpCode) code, immutable u32 value) {
+	eachByteOfU32(value, (immutable size_t, immutable u8 valueByte) {
+		pushU8(alloc, code, valueByte);
+	});
 }
 
-void writeGetEntry(Alloc)(ref Alloc alloc, ref MutArr!OpCode byteCode, immutable Entry entry) {
-	foreach (immutable uint i; 0..entry.size)
-		writeGetSingle(codeAlloc, ctx.code, entry.start + i);
-}
-
-void writeGetSingle(Alloc)(ref Alloc alloc, ref MutArr!OpCode byteCode, immutable uint entry) {
-	todo!void("writeGet");
+void writeU8(ref MutArr!(immutable OpCode) code, immutable size_t index, immutable u8 value) {
+	setAt(code, index, cast(immutable OpCode) value);
 }
 
 void writeU32(ref MutArr!(immutable OpCode) code, immutable size_t index, immutable u32 value) {
-	assert(index + 4 <= mutArrSize(code));
-	setAt(code, index, cast(immutable OpCode) bottomU8OfU32(value >> 24));
-	setAt(code, index + 1, cast(immutable OpCode) bottomU8OfU32(value >> 16));
-	setAt(code, index + 2, cast(immutable OpCode) bottomU8OfU32(value >> 8));
-	setAt(code, index + 3, cast(immutable OpCode) bottomU8OfU32(value));
+	verify(index + 4 <= mutArrSize(code));
+	eachByteOfU32(value, (immutable size_t valueIndex, immutable u8 valueByte) {
+		writeU8(code, index + valueIndex, valueByte);
+	});
 }
 
-struct ByteCodeIndex {
-	immutable u32 index;
+void eachByteOfU32(
+	immutable u32 value,
+	scope immutable(void) delegate(immutable size_t, immutable u8) @safe @nogc pure nothrow cb,
+) {
+	cb(0, bottomU8OfU32(value >> 24));
+	cb(1, bottomU8OfU32(value >> 16));
+	cb(2, bottomU8OfU32(value >> 8));
+	cb(3, bottomU8OfU32(value));
 }

@@ -2,9 +2,10 @@ module util.sexpr;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
-import util.collection.arr : Arr, empty, emptyArr, first, range, size;
+import util.bools : Bool, False, True;
+import util.collection.arr : Arr, at, empty, emptyArr, first, range, size;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
+import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.str : Str;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
@@ -121,7 +122,7 @@ immutable(Sexpr) tataArr(T, Alloc)(
 	immutable Arr!T xs,
 	scope immutable(Sexpr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return immutable Sexpr(map(alloc, xs, cb), true);
+	return immutable Sexpr(immutable SexprArr(False, map(alloc, xs, cb)), true);
 }
 
 immutable(Sexpr) tataArr(T, Alloc)(
@@ -129,7 +130,15 @@ immutable(Sexpr) tataArr(T, Alloc)(
 	immutable Arr!T xs,
 	scope immutable(Sexpr) delegate(immutable size_t, ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return immutable Sexpr(mapWithIndex(alloc, xs, cb), true);
+	return immutable Sexpr(immutable SexprArr(False, mapWithIndex(alloc, xs, cb)), true);
+}
+
+immutable(Sexpr) tataFullIndexDict(K, V, Alloc)(
+	ref Alloc alloc,
+	ref immutable FullIndexDict!(K, V) a,
+	scope immutable(Sexpr) delegate(ref immutable V) @safe @nogc pure nothrow cb,
+) {
+	return immutable Sexpr(immutable SexprArr(True, map(alloc, a.values, cb)), true);
 }
 
 immutable(Sexpr) tataBool(immutable Bool a) {
@@ -175,6 +184,11 @@ struct NameAndSexpr {
 	immutable Sexpr value;
 }
 
+struct SexprArr {
+	immutable Bool showIndices;
+	immutable Arr!Sexpr arr;
+}
+
 struct Sexpr {
 	@safe @nogc pure nothrow:
 	private:
@@ -190,7 +204,7 @@ struct Sexpr {
 	}
 	immutable Kind kind;
 	union {
-		immutable Arr!Sexpr arr;
+		immutable SexprArr arr;
 		immutable Bool bool_;
 		immutable SexprNamedRecord namedRecord;
 		immutable size_t nat;
@@ -200,7 +214,7 @@ struct Sexpr {
 		immutable Sym symbol;
 	}
 
-	@trusted this(immutable Arr!Sexpr a, bool b) immutable { kind = Kind.arr; arr = a; }
+	@trusted this(immutable SexprArr a, bool b) immutable { kind = Kind.arr; arr = a; }
 	this(immutable Bool a) immutable { kind = Kind.bool_; bool_ = a; }
 	@trusted this(immutable SexprNamedRecord a) immutable { kind = Kind.namedRecord; namedRecord = a; }
 	@trusted this(immutable size_t a) immutable { kind = Kind.nat; nat = a; }
@@ -212,7 +226,7 @@ struct Sexpr {
 
 @trusted T matchSexpr(T)(
 	ref immutable Sexpr a,
-	scope T delegate(ref immutable Arr!Sexpr) @safe @nogc pure nothrow cbArr,
+	scope T delegate(ref immutable SexprArr) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Bool) @safe @nogc pure nothrow cbBool,
 	scope T delegate(immutable size_t) @safe @nogc pure nothrow cbNat,
 	scope T delegate(ref immutable SexprNamedRecord) @safe @nogc pure nothrow cbNamedRecord,
@@ -253,9 +267,9 @@ void writeSexpr(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
 void writeSexprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
 	matchSexpr!void(
 		a,
-		(ref immutable Arr!Sexpr it) {
+		(ref immutable SexprArr it) {
 			writeChar(writer, '[');
-			writeWithCommas(writer, it, (ref immutable Sexpr em) {
+			writeWithCommas(writer, it.arr, (ref immutable Sexpr em) {
 				writeSexprJSON(writer, em);
 			});
 			writeChar(writer, ']');
@@ -322,16 +336,20 @@ void writeSexpr(Alloc)(
 ) {
 	matchSexpr!void(
 		a,
-		(ref immutable Arr!Sexpr s) {
+		(ref immutable SexprArr s) {
 			if (measureSexprArr(s, availableWidth) < 0) {
 				writeChar(writer, '[');
-				foreach (ref immutable Sexpr element; s.range) {
+				foreach (immutable size_t index; 0..size(s.arr)) {
 					newline(writer, indent + 1);
-					writeSexpr(writer, indent + 1, availableWidth - indentSize, element);
+					if (s.showIndices) {
+						writeNat(writer, index);
+						writeStatic(writer, ": ");
+					}
+					writeSexpr(writer, indent + 1, availableWidth - indentSize, at(s.arr, index));
 				}
 				writeChar(writer, ']');
 			} else
-				writeSexprArrSingleLine(writer, s);
+				writeSexprArrSingleLine(writer, s.arr);
 		},
 		(immutable Bool s) {
 			writeSexprBool(writer, s);
@@ -385,7 +403,7 @@ void writeSexpr(Alloc)(
 immutable(int) measureSexprSingleLine(ref immutable Sexpr a, immutable int available) {
 	return matchSexpr!(immutable int)(
 		a,
-		(ref immutable Arr!Sexpr s) =>
+		(ref immutable SexprArr s) =>
 			measureSexprArr(s, available),
 		(immutable Bool s) =>
 			available - measureSexprBool(s),
@@ -405,8 +423,8 @@ immutable(int) measureSexprSingleLine(ref immutable Sexpr a, immutable int avail
 			available - safeIntFromSizeT(symSize(s)));
 }
 
-immutable(int) measureSexprArr(ref immutable Arr!Sexpr a, immutable int available) {
-	return measureCommaSeparatedChildren(a, available - safeIntFromSizeT("[]".length));
+immutable(int) measureSexprArr(ref immutable SexprArr a, immutable int available) {
+	return measureCommaSeparatedChildren(a.arr, available - safeIntFromSizeT("[]".length));
 }
 
 immutable(int) measureSexprNamedRecord(ref immutable SexprNamedRecord a, immutable int available) {
@@ -447,8 +465,8 @@ immutable(int) measureCommaSeparatedChildren(immutable Arr!Sexpr xs, immutable i
 void writeSexprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
 	matchSexpr(
 		a,
-		(ref immutable Arr!Sexpr s) {
-			writeSexprArrSingleLine(writer, s);
+		(ref immutable SexprArr s) {
+			writeSexprArrSingleLine(writer, s.arr);
 		},
 		(immutable Bool s) {
 			writeSexprBool(writer, s);

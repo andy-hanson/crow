@@ -49,6 +49,7 @@ import util.opt : has, force, none, noneMut, Opt, some;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : SourceRange;
 import util.sym : Sym, symEq;
+import util.types : safeSizeTToU8, u8;
 import util.util : todo, verify;
 
 immutable(Ptr!Expr) allocExpr(Alloc)(ref Alloc alloc, immutable Expr e) {
@@ -295,7 +296,7 @@ immutable(CheckedExpr) check(Alloc)(
 			immutable Opt!size_t opMemberIndex = findIndex(members, (ref immutable Ptr!StructInst it) =>
 				ptrEquals(it.decl, exprStruct.decl));
 			if (has(opMemberIndex)) {
-				immutable size_t memberIndex = force(opMemberIndex);
+				immutable u8 memberIndex = safeSizeTToU8(force(opMemberIndex));
 				immutable Ptr!StructInst instantiatedExpectedUnionMember =
 					instantiateStructInst(alloc, programState(ctx), at(members, memberIndex), expectedStruct);
 				immutable(SetTypeResult) setTypeResult = setTypeNoDiagnosticWorker_forStructInst(

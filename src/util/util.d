@@ -17,17 +17,17 @@ void repeat(immutable size_t times, scope void delegate() @safe @nogc pure nothr
 		cb();
 }
 
-immutable(size_t) min(immutable size_t a, immutable size_t b) {
+immutable(T) min(T)(immutable T a, immutable T b) {
 	return a < b ? a : b;
 }
 
-immutable(size_t) max(immutable size_t a, immutable size_t b) {
+immutable(T) max(T)(immutable T a, immutable T b) {
 	return a > b ? a : b;
 }
 
-immutable(size_t) roundUp(immutable size_t a, immutable size_t b) {
+immutable(T) roundUp(T)(immutable T a, immutable T b) {
 	verify(b != 0);
-	return a % b == 0 ? a : roundUp(a + 1, b);
+	return a % b == 0 ? a : roundUp(cast(T) (a + 1), b);
 }
 
 void verify(immutable bool condition) {

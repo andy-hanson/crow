@@ -28,6 +28,7 @@ import lowModel :
 	symOfPrimitiveType;
 import util.collection.arr : Arr, at, range, sizeEq;
 import util.collection.arrUtil : tail, zip;
+import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe;
 import util.sexpr : Sexpr, tataRecord, tataStr, tataSym;
@@ -35,8 +36,9 @@ import util.util : todo, verify;
 
 void checkLowProgram(ref immutable LowProgram a) {
 	immutable Ctx ctx = immutable Ctx(ptrTrustMe(a));
-	foreach (ref immutable LowFun fun; range(a.allFuns))
+	fullIndexDictEachValue(a.allFuns, (ref immutable LowFun fun) {
 		checkLowFun(ctx, fun);
+	});
 	checkLowFun(ctx, a.main);
 }
 
@@ -66,7 +68,7 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 	matchLowExprKind(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
-			immutable LowFun fun = at(ctx.ctx.program.allFuns, it.called.index);
+			immutable LowFun fun = fullIndexDictGet(ctx.ctx.program.allFuns, it.called);
 			checkTypeEqual(ctx.ctx, type, fun.returnType);
 			verify(sizeEq(fun.params, it.args));
 			zip(fun.params, it.args, (ref immutable LowParam param, ref immutable LowExpr arg) {
@@ -74,20 +76,20 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 			});
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
-			immutable LowRecord record = at(ctx.ctx.program.allRecords, asRecordType(type).index);
+			immutable LowRecord record = fullIndexDictGet(ctx.ctx.program.allRecords, asRecordType(type));
 			verify(sizeEq(record.fields, it.args));
 			zip(record.fields, it.args, (ref immutable LowField field, ref immutable LowExpr arg) {
 				checkLowExpr(ctx, field.type, arg);
 			});
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
-			immutable LowUnion union_ = at(ctx.ctx.program.allUnions, asUnionType(type).index);
+			immutable LowUnion union_ = fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(type));
 			immutable LowType member = at(union_.members, it.memberIndex);
 			checkLowExpr(ctx, member, it.arg);
 		},
 		(ref immutable LowExprKind.FunPtr it) {
-			immutable LowFun fun = at(ctx.ctx.program.allFuns, it.fun.index);
-			immutable LowFunPtrType funType = at(ctx.ctx.program.allFunPtrTypes, asFunPtrType(type).index);
+			immutable LowFun fun = fullIndexDictGet(ctx.ctx.program.allFuns, it.fun);
+			immutable LowFunPtrType funType = fullIndexDictGet(ctx.ctx.program.allFunPtrTypes, asFunPtrType(type));
 			verify(sizeEq(fun.params, funType.paramTypes));
 			size_t index = 0;
 			zip(fun.params, funType.paramTypes, (ref immutable LowParam param, ref immutable LowType paramType) {
@@ -108,7 +110,7 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 		},
 		(ref immutable LowExprKind.Match it) {
 			checkLowExpr(ctx, it.matchedLocal.type, it.matchedValue);
-			immutable LowUnion union_ = at(ctx.ctx.program.allUnions, asUnionType(it.matchedLocal.type).index);
+			immutable LowUnion union_ = fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(it.matchedLocal.type));
 			verify(sizeEq(union_.members, it.cases));
 			zip(
 				union_.members,
@@ -196,7 +198,7 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 				case LowExprKind.SpecialNAry.Kind.callFunPtr:
 					immutable LowExpr funPtr = at(it.args, 0);
 					immutable LowFunPtrType funPtrType =
-						at(ctx.ctx.program.allFunPtrTypes, asFunPtrType(funPtr.type).index);
+						fullIndexDictGet(ctx.ctx.program.allFunPtrTypes, asFunPtrType(funPtr.type));
 					checkTypeEqual(ctx.ctx, type, funPtrType.returnType);
 					verify(sizeEq(funPtrType.paramTypes, tail(it.args)));
 					zip(
