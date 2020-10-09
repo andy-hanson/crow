@@ -2,20 +2,30 @@ module interpret.bytecode;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr;
-import util.collection.mutArr : moveToArr, MutArr, mutArrSize, push, setAt;
+import util.collection.arr : Arr, begin, size;
+import util.collection.mutArr : moveToArr, MutArr, mutArrRange, mutArrSize, push, pushAll, setAt;
+import util.collection.str : Str;
 import util.ptr : Ptr;
-import util.types : bottomU8OfU32, catU4U4, safeSizeTToU32, safeU32ToU8, u8, u32;
+import util.types : bottomU8OfU32, bottomU32OfU64, catU4U4, maxU32, safeSizeTToU32, safeU32ToU8, u8, u32, u64;
 import util.util : divRoundUp, verify;
 
 struct ByteCode {
 	// NOTE: not every entry is an opcode
 	immutable Arr!OpCode byteCode;
+	immutable Arr!char text;
 	immutable ByteCodeIndex main;
 }
 
 struct ByteCodeIndex {
 	immutable u32 index;
+}
+
+immutable(ByteCodeIndex) addByteCodeIndex(immutable ByteCodeIndex a, immutable u32 b) {
+	return immutable ByteCodeIndex(a.index + b);
+}
+
+immutable(ByteCodeOffset) subtractByteCodeIndex(immutable ByteCodeIndex a, immutable ByteCodeIndex b) {
+	return immutable ByteCodeOffset(safeU32ToU8(a.index - b.index));
 }
 
 struct ByteCodeOffset {
@@ -28,11 +38,21 @@ struct ByteCodeWriter(Alloc) {
 	private:
 	Ptr!Alloc alloc;
 	MutArr!(immutable OpCode) code;
+	MutArr!(immutable char) text;
+	MutArr!(immutable ByteCodeIndexAndTextIndex) delayedTextPtrs;
 	uint nextStackEntry = 0;
 }
 
-immutable(ByteCode) finishByteCode(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex mainIndex) {
-	return immutable ByteCode(moveToArr(writer.alloc, writer.code), mainIndex);
+private struct ByteCodeIndexAndTextIndex {
+	immutable ByteCodeIndex byteCodeIndex;
+	immutable uint textIndex;
+}
+
+@trusted immutable(ByteCode) finishByteCode(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex mainIndex) {
+	immutable Arr!char text = moveToArr(writer.alloc, writer.text);
+	foreach (immutable ByteCodeIndexAndTextIndex idxs; mutArrRange(writer.delayedTextPtrs))
+		writeU64(writer.code, idxs.byteCodeIndex.index, cast(u64) begin(text) + idxs.textIndex);
+	return immutable ByteCode(moveToArr(writer.alloc, writer.code), text, mainIndex);
 }
 
 immutable(uint) getNextStackEntry(Alloc)(ref const ByteCodeWriter!Alloc writer) {
@@ -85,6 +105,17 @@ immutable(ByteCodeIndex) writeCallDelayed(Alloc)(
 	return fnAddress;
 }
 
+void writeCallFunPtr(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	// This is before the fun-ptr arg, which should be the first
+	immutable uint stackEntryBeforeArgs,
+	immutable uint nEntriesForReturnType,
+) {
+	pushOpcode(writer, OpCode.callFunPtr);
+	pushU8(writer.alloc, writer.code, safeU32ToU8(stackEntryBeforeArgs - 1 - getNextStackEntry(writer)));
+	writer.nextStackEntry = stackEntryBeforeArgs + nEntriesForReturnType;
+}
+
 // WARN: 'get' operation does not delete the thing that was got from (unlike 'read')
 void writeDup(Alloc)(ref ByteCodeWriter!Alloc writer, immutable StackEntries entries) {
 	foreach (immutable uint i; 0..entries.size) {
@@ -125,14 +156,33 @@ void writeWrite(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u8 offset, imm
 	writer.nextStackEntry -= 1 + divRoundUp(size, stackEntrySize);
 }
 
-void writePushU8(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u8 value) {
-	pushOpcode(writer, OpCode.pushU8);
-	pushU8(writer.alloc, writer.code, value);
-	writer.nextStackEntry++;
+void writePushConstant(Alloc)(ref ByteCodeWriter!Alloc writer, immutable size_t value) {
+	if (value <= maxU32) {
+		writePushU32(writer, safeSizeTToU32(value));
+	} else {
+		writePushU64(writer, value);
+	}
 }
 
-void writePushU32(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u32 value) {
+void writePushConstantStr(Alloc)(ref ByteCodeWriter!Alloc writer, immutable Str value) {
+	pushOpcode(writer, OpCode.pushU32);
+	pushU32(writer.alloc, writer.code, safeSizeTToU32(size(value)));
+	pushOpcode(writer, OpCode.pushU64);
+	immutable ByteCodeIndex delayed = writePushU64Delayed(writer);
+	immutable u32 textIndex = safeSizeTToU32(mutArrSize(writer.text));
+	pushAll(writer.alloc, writer.text, value);
+	//TODO: could use temp alloc
+	push(writer.alloc, writer.delayedTextPtrs, immutable ByteCodeIndexAndTextIndex(delayed, textIndex));
+}
+
+private void writePushU32(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u32 value) {
 	writePushU32Common(writer, value);
+}
+
+private void writePushU64(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u64 value) {
+	pushOpcode(writer, OpCode.pushU64);
+	pushU64(writer.alloc, writer.code, value);
+	writer.nextStackEntry++;
 }
 
 void writeReturn(Alloc)(ref ByteCodeWriter!Alloc writer) {
@@ -151,6 +201,18 @@ private immutable(ByteCodeIndex) writePushU32Common(Alloc)(ref ByteCodeWriter!Al
 	return fnAddress;
 }
 
+immutable(ByteCodeIndex) writePushU64Delayed(Alloc)(ref ByteCodeWriter!Alloc writer) {
+	return writePushU64Common(writer, 0);
+}
+
+private immutable(ByteCodeIndex) writePushU64Common(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u32 value) {
+	pushOpcode(writer, OpCode.pushU64);
+	immutable ByteCodeIndex address = curByteCodeIndex(writer);
+	pushU64(writer.alloc, writer.code, value);
+	writer.nextStackEntry++;
+	return address;
+}
+
 void writeRemove(Alloc)(ref ByteCodeWriter!Alloc writer, immutable StackEntries entries) {
 	pushOpcode(writer, OpCode.remove);
 	pushU8(writer.alloc, writer.code, safeU32ToU8(writer.nextStackEntry - entries.start));
@@ -166,7 +228,7 @@ immutable(ByteCodeIndex) writeJumpDelayed(Alloc)(ref ByteCodeWriter!Alloc writer
 }
 
 void fillInJumpDelayed(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex jumpIndex) {
-	writeU8(writer.code, jumpIndex.index, safeU32ToU8(curByteCodeIndex(writer).index - jumpIndex.index));
+	writeU8(writer.code, jumpIndex.index, safeU32ToU8(curByteCodeIndex(writer).index - 1 - jumpIndex.index));
 }
 
 immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(ref ByteCodeWriter!Alloc writer, immutable size_t nCases) {
@@ -182,13 +244,123 @@ struct StackEntries {
 	immutable u8 size; // Number of entries
 }
 
+enum FnOp : u8 {
+	addFloat64,
+	addInt64OrNat64,
+	bitShiftLeftInt32,
+	bitShiftLeftNat32,
+	bitShiftRightInt32,
+	bitShiftRightNat32,
+	bitwiseAnd,
+	bitwiseOr,
+	eqNat,
+	float64FromInt64,
+	float64FromNat64,
+	hardFail,
+	lessFloat64,
+	lessInt8,
+	lessInt16,
+	lessInt32,
+	lessInt64,
+	lessNat,
+	mulFloat64,
+	not,
+	ptrToOrRefOfVal,
+	subFloat64,
+	truncateToInt64FromFloat64,
+	unsafeDivFloat64,
+	unsafeDivInt64,
+	unsafeDivNat64,
+	unsafeModNat64,
+	wrapAddInt16,
+	wrapAddInt32,
+	wrapAddInt64,
+	wrapAddNat16,
+	wrapAddNat32,
+	wrapAddNat64,
+	wrapMulInt16,
+	wrapMulInt32,
+	wrapMulInt64,
+	wrapMulNat16,
+	wrapMulNat32,
+	wrapMulNat64,
+	wrapSubInt16,
+	wrapSubInt32,
+	wrapSubInt64,
+	wrapSubNat16,
+	wrapSubNat32,
+	wrapSubNat64,
+}
+
+void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, immutable FnOp fn) {
+	pushOpcode(writer, OpCode.fn);
+	pushU8(writer.alloc, writer.code, fn);
+	immutable int stackEffect = () {
+		final switch (fn) {
+			case FnOp.addFloat64:
+			case FnOp.addInt64OrNat64:
+			case FnOp.bitShiftLeftInt32:
+			case FnOp.bitShiftLeftNat32:
+			case FnOp.bitShiftRightInt32:
+			case FnOp.bitShiftRightNat32:
+			case FnOp.bitwiseAnd:
+			case FnOp.bitwiseOr:
+			case FnOp.eqNat:
+			case FnOp.lessFloat64:
+			case FnOp.lessInt8:
+			case FnOp.lessInt16:
+			case FnOp.lessInt32:
+			case FnOp.lessInt64:
+			case FnOp.lessNat:
+			case FnOp.mulFloat64:
+			case FnOp.subFloat64:
+			case FnOp.unsafeDivFloat64:
+			case FnOp.unsafeDivInt64:
+			case FnOp.unsafeDivNat64:
+			case FnOp.unsafeModNat64:
+			case FnOp.wrapAddInt16:
+			case FnOp.wrapAddInt32:
+			case FnOp.wrapAddInt64:
+			case FnOp.wrapAddNat16:
+			case FnOp.wrapAddNat32:
+			case FnOp.wrapAddNat64:
+			case FnOp.wrapMulInt16:
+			case FnOp.wrapMulInt32:
+			case FnOp.wrapMulInt64:
+			case FnOp.wrapMulNat16:
+			case FnOp.wrapMulNat32:
+			case FnOp.wrapMulNat64:
+			case FnOp.wrapSubInt16:
+			case FnOp.wrapSubInt32:
+			case FnOp.wrapSubInt64:
+			case FnOp.wrapSubNat16:
+			case FnOp.wrapSubNat32:
+			case FnOp.wrapSubNat64:
+				return -1;
+			case FnOp.float64FromInt64:
+			case FnOp.float64FromNat64:
+			case FnOp.not:
+			case FnOp.truncateToInt64FromFloat64:
+				return 0;
+			case FnOp.ptrToOrRefOfVal:
+				return 1;
+			case FnOp.hardFail:
+				return 2; // string takes 2 stack entries
+		}
+	}();
+	writer.nextStackEntry += stackEffect;
+}
+
 private:
 
-//TODO:PRIVATE
 enum OpCode : u8 {
 	// args: u32 address
-	// pushes current address onto the stack and goes to the new function's address
+	// pushes current address onto the function stack and goes to the new function's address
 	call,
+
+	// args: u8 stackOffsetOfFunPtr
+	// Removes a fun-ptr from the stack at the given offset and calls that
+	callFunPtr,
 
 	// args: u8 offset
 	// Gets a stack entry and duplicates it on the top of the stack.
@@ -198,14 +370,21 @@ enum OpCode : u8 {
 	// byteOffset + sizeBytes must be <= stackEntrySize
 	dupPartial,
 
+	// args: FnOp fnOp
+	// reads another byte and interprets as a FnOp
+	fn,
+
+	// args: u8 offset
+	// (note: an offset of 0 still takes you to the next instruction)
 	jump,
 
-	// args: u8 value
-	pushU8,
-
 	// args: u32 value
-	// Push a literal u32 value. (Takes up a full 64-bit stack entry)
+	// Push a constant u32 value. (Takes up a full 64-bit stack entry)
 	pushU32,
+
+	// args: u64 value
+	// Push a constant u64 value.
+	pushU64,
 
 	// args: u8 offset, u8 size
 	// Pops a pointer off the stack and reads `size` bytes from ptr + offset
@@ -215,6 +394,8 @@ enum OpCode : u8 {
 	// Removes the entries at the offset. Later entries are moved to there.
 	remove,
 
+	// args: none
+	// Pops an address of the function stack and goes to that
 	return_,
 
 	// args: u8[nCases] offsets
@@ -224,7 +405,7 @@ enum OpCode : u8 {
 	switch_,
 
 	// args: u8 offset, u8 size
-	// Pops a pointer, then pops divRoundUp(size, stackEntrySize) stack entries and writes them to ptr + offset
+	// Pops a pointer, then pops divRoundUp(size, stackEntrySize) stack entries, then writes them to ptr + offset
 	write,
 }
 
@@ -247,13 +428,24 @@ void pushU32(Alloc)(ref Alloc alloc, ref MutArr!(immutable OpCode) code, immutab
 	});
 }
 
+void pushU64(Alloc)(ref Alloc alloc, ref MutArr!(immutable OpCode) code, immutable u64 value) {
+	eachByteOfU64(value, (immutable size_t, immutable u8 valueByte) {
+		pushU8(alloc, code, valueByte);
+	});
+}
+
 void writeU8(ref MutArr!(immutable OpCode) code, immutable size_t index, immutable u8 value) {
 	setAt(code, index, cast(immutable OpCode) value);
 }
 
 void writeU32(ref MutArr!(immutable OpCode) code, immutable size_t index, immutable u32 value) {
-	verify(index + 4 <= mutArrSize(code));
 	eachByteOfU32(value, (immutable size_t valueIndex, immutable u8 valueByte) {
+		writeU8(code, index + valueIndex, valueByte);
+	});
+}
+
+void writeU64(ref MutArr!(immutable OpCode) code, immutable size_t index, immutable u64 value) {
+	eachByteOfU64(value, (immutable size_t valueIndex, immutable u8 valueByte) {
 		writeU8(code, index + valueIndex, valueByte);
 	});
 }
@@ -266,4 +458,12 @@ void eachByteOfU32(
 	cb(1, bottomU8OfU32(value >> 16));
 	cb(2, bottomU8OfU32(value >> 8));
 	cb(3, bottomU8OfU32(value));
+}
+
+void eachByteOfU64(
+	immutable u64 value,
+	scope immutable(void) delegate(immutable size_t, immutable u8) @safe @nogc pure nothrow cb,
+) {
+	eachByteOfU32(bottomU32OfU64(value >> 32), cb);
+	eachByteOfU32(bottomU32OfU64(value), cb);
 }

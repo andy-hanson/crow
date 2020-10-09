@@ -3,6 +3,7 @@ module interpret.generateBytecode;
 @safe @nogc pure nothrow:
 
 import interpret.bytecode :
+	addByteCodeIndex,
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeOffset,
@@ -12,16 +13,20 @@ import interpret.bytecode :
 	fillDelayedU32,
 	fillInJumpDelayed,
 	finishByteCode,
+	FnOp,
 	getNextStackEntry,
 	setNextStackEntry,
 	setStackEntryAfterParameters,
 	StackEntries,
 	stackEntrySize,
+	subtractByteCodeIndex,
 	writeCallDelayed,
+	writeCallFunPtr,
 	writeDup,
 	writeDupPartial,
-	writePushU8,
-	writePushU32,
+	writeFn,
+	writePushConstant,
+	writePushConstantStr,
 	writePushU32Delayed,
 	writeJumpDelayed,
 	writeRead,
@@ -29,6 +34,7 @@ import interpret.bytecode :
 	writeReturn,
 	writeSwitchDelay,
 	writeWrite;
+import lower.lowExprHelpers : genBool;
 import lowModel :
 	LowExpr,
 	LowExprKind,
@@ -46,8 +52,10 @@ import lowModel :
 	matchLowExprKind,
 	matchLowFunBody,
 	matchLowType,
+	matchSpecialConstant,
 	PrimitiveType;
 import util.alloc.stackAlloc : StackAlloc;
+import util.bools : False, True;
 import util.collection.arr : Arr, at, range, size;
 import util.collection.arrUtil : arrMax, map, mapOpWithIndex, sum;
 import util.collection.fullIndexDict :
@@ -75,6 +83,7 @@ import util.collection.mutIndexMultiDict :
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.sourceRange : SourceRange;
 import util.types : safeSizeTToU8, safeSizeTToU32, safeU32ToU8, u8;
 import util.util : divRoundUp, roundUp, todo, verify;
 
@@ -216,6 +225,19 @@ immutable(u8) sizeOfType(Alloc)(
 		});
 }
 
+immutable(u8) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
+	return matchLowType!(immutable u8)(
+		t,
+		(immutable LowType.ExternPtr) => externPtrSize,
+		(immutable LowType.FunPtr) => funPtrSize,
+		(immutable LowType.NonFunPtr) => ptrSize,
+		(immutable PrimitiveType it) => primitiveSize(it),
+		(immutable LowType.Record index) =>
+			fullIndexDictGet(ctx.typeLayout.recordSizes, index),
+		(immutable LowType.Union index) =>
+			fullIndexDictGet(ctx.typeLayout.unionSizes, index));
+}
+
 immutable(u8) primitiveSize(immutable PrimitiveType a) {
 	return todo!(immutable u8)("primitiveSize");
 }
@@ -311,7 +333,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
 			//immutable uint offset = nStackEntriesForUnionTypeExcludingKind(ctx.program, asUnionType(it.type));
-			writePushU8(writer, it.memberIndex);
+			writePushConstant(writer, it.memberIndex);
 			generateExpr(tempAlloc, writer, ctx, it.arg);
 		},
 		(ref immutable LowExprKind.FunPtr it) {
@@ -349,9 +371,8 @@ void generateExpr(CodeAlloc, TempAlloc)(
 				(immutable size_t caseIndex, ref immutable LowExprKind.Match.Case case_) {
 					fillDelayedU8(
 						writer,
-						immutable ByteCodeIndex(safeSizeTToU32(indexOfFirstCaseOffset.index + caseIndex)),
-						immutable ByteCodeOffset(
-							safeU32ToU8(curByteCodeIndex(writer).index - indexOfFirstCaseOffset.index)));
+						addByteCodeIndex(indexOfFirstCaseOffset, safeSizeTToU32(caseIndex)),
+						subtractByteCodeIndex(curByteCodeIndex(writer), indexOfFirstCaseOffset));
 					curByteCodeIndex(writer);
 					if (has(case_.local)) {
 						immutable uint nEntries = nStackEntriesForType(ctx, force(case_.local).type);
@@ -422,31 +443,26 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			generateExpr(tempAlloc, writer, ctx, it.first);
 			generateExpr(tempAlloc, writer, ctx, it.then);
 		},
-		(ref immutable LowExprKind.SizeOf) {
-			todo!void("size-of");
+		(ref immutable LowExprKind.SizeOf it) {
+			writePushConstant(writer, sizeOfType(ctx, it.type));
 		},
-		(ref immutable LowExprKind.SpecialConstant) {
-			todo!void("special-constant");
+		(ref immutable LowExprKind.SpecialConstant it) {
+			generateSpecialConstant(writer, it);
 		},
-		(ref immutable LowExprKind.Special0Ary) {
-			todo!void("special-0ary");
+		(ref immutable LowExprKind.Special0Ary it) {
+			generateSpecial0Ary(writer, it);
 		},
-		(ref immutable LowExprKind.SpecialUnary) {
-			todo!void("unary");
+		(ref immutable LowExprKind.SpecialUnary it) {
+			generateSpecialUnary(tempAlloc, writer, ctx, it);
 		},
-		(ref immutable LowExprKind.SpecialBinary) {
-			// Remember to treat 'or' and 'and' specially
-			todo!void("binary");
+		(ref immutable LowExprKind.SpecialBinary it) {
+			generateSpecialBinary(tempAlloc, writer, ctx, expr.range, it);
 		},
-		(ref immutable LowExprKind.SpecialTrinary) {
-			//Remember to treat 'if' specially
-			todo!void("trinary");
+		(ref immutable LowExprKind.SpecialTrinary it) {
+			generateSpecialTrinary(tempAlloc, writer, ctx, it);
 		},
-		(ref immutable LowExprKind.SpecialNAry) {
-			todo!void("nary");
-		},
-		(ref immutable LowExprKind.StringLiteral) {
-			todo!void("literal");
+		(ref immutable LowExprKind.SpecialNAry it) {
+			generateSpecialNAry(tempAlloc, writer, ctx, expr, it);
 		});
 }
 
@@ -475,4 +491,310 @@ void registerFunAddress(TempAlloc)(
 	immutable ByteCodeIndex index,
 ) {
 	mutIndexMultiDictAdd(tempAlloc, ctx.funToReferences, fun, index);
+}
+
+void generateSpecialConstant(CodeAlloc)(
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref immutable LowExprKind.SpecialConstant constant,
+) {
+	matchSpecialConstant(
+		constant,
+		(immutable LowExprKind.SpecialConstant.BoolConstant it) {
+			writePushConstant(writer, it.value ? 1 : 0);
+		},
+		(immutable LowExprKind.SpecialConstant.Integral it) {
+			writePushConstant(writer, it.value);
+		},
+		(immutable LowExprKind.SpecialConstant.Null) {
+			writePushConstant(writer, 0);
+		},
+		(immutable LowExprKind.SpecialConstant.StrConstant it) {
+			writePushConstantStr(writer, it.value);
+		},
+		(immutable LowExprKind.SpecialConstant.Void) {
+			// do nothing
+		});
+}
+
+void generateSpecial0Ary(CodeAlloc)(ref ByteCodeWriter!CodeAlloc writer, ref immutable LowExprKind.Special0Ary it) {
+	final switch (it.kind) {
+		case LowExprKind.Special0Ary.Kind.getErrno:
+			todo!void("generate getErrno");
+	}
+}
+
+void generateSpecialUnary(CodeAlloc, TempAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable LowExprKind.SpecialUnary a,
+) {
+	generateExpr(tempAlloc, writer, ctx, a.arg);
+	final switch (a.kind) {
+		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
+		case LowExprKind.SpecialUnary.Kind.asRef:
+		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
+		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
+		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
+		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
+		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
+		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
+		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
+		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32:
+		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64:
+		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64:
+		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8:
+		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16:
+		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32:
+			// do nothing (doesn't change the bits, just their type)
+			// Some of these widen, but all fit within the one stack entry so nothing to do
+			break;
+		case LowExprKind.SpecialUnary.Kind.deref:
+			// TODO: this is a 'read' operation, depends on the size of the type
+			todo!void("deref");
+			break;
+		case LowExprKind.SpecialUnary.Kind.hardFail:
+			writeFn(writer, FnOp.hardFail);
+			break;
+		case LowExprKind.SpecialUnary.Kind.not:
+			writeFn(writer, FnOp.not);
+			break;
+		case LowExprKind.SpecialUnary.Kind.ptrTo:
+		case LowExprKind.SpecialUnary.Kind.refOfVal:
+			writeFn(writer, FnOp.ptrToOrRefOfVal);
+			break;
+		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64: // FnOp.float64FromInt64
+			writeFn(writer, FnOp.float64FromInt64);
+			break;
+		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
+			writeFn(writer, FnOp.float64FromNat64);
+			break;
+		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
+			writeFn(writer, FnOp.truncateToInt64FromFloat64);
+			break;
+	}
+}
+
+void generateSpecialBinary(TempAlloc, CodeAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable SourceRange range,
+	ref immutable LowExprKind.SpecialBinary a,
+) {
+	void fn(immutable FnOp fn) {
+		generateExpr(tempAlloc, writer, ctx, a.left);
+		generateExpr(tempAlloc, writer, ctx, a.right);
+		writeFn(writer, fn);
+	}
+
+	final switch (a.kind) {
+		case LowExprKind.SpecialBinary.Kind.addFloat64:
+			fn(FnOp.addFloat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.addPtr:
+			fn(FnOp.addInt64OrNat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.and:
+			immutable LowExpr falseExpr = genBool(range, False);
+			generateIf(tempAlloc, writer, ctx, a.left, a.right, falseExpr);
+			break;
+		case LowExprKind.SpecialBinary.Kind.bitShiftLeftInt32:
+			fn(FnOp.bitShiftLeftInt32);
+			break;
+		case LowExprKind.SpecialBinary.Kind.bitShiftLeftNat32:
+			fn(FnOp.bitShiftLeftNat32);
+			break;
+		case LowExprKind.SpecialBinary.Kind.bitShiftRightInt32:
+			fn(FnOp.bitShiftRightInt32);
+			break;
+		case LowExprKind.SpecialBinary.Kind.bitShiftRightNat32:
+			fn(FnOp.bitShiftRightNat32);
+			break;
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt32:
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt64:
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat8:
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat16:
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat32:
+		case LowExprKind.SpecialBinary.Kind.bitwiseAndNat64:
+			fn(FnOp.bitwiseAnd);
+			break;
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt8:
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt16:
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt32:
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrInt64:
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat8:
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat16:
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat32:
+		case LowExprKind.SpecialBinary.Kind.bitwiseOrNat64:
+			fn(FnOp.bitwiseOr);
+			break;
+		case LowExprKind.SpecialBinary.Kind.eqNat64:
+		case LowExprKind.SpecialBinary.Kind.eqPtr:
+			fn(FnOp.eqNat);
+			break;
+		case LowExprKind.SpecialBinary.Kind.less: // TODO:KILL
+		case LowExprKind.SpecialBinary.Kind.lessBool:
+		case LowExprKind.SpecialBinary.Kind.lessChar:
+		case LowExprKind.SpecialBinary.Kind.lessNat8:
+		case LowExprKind.SpecialBinary.Kind.lessNat16:
+		case LowExprKind.SpecialBinary.Kind.lessNat32:
+		case LowExprKind.SpecialBinary.Kind.lessNat64:
+			fn(FnOp.lessNat);
+			break;
+		case LowExprKind.SpecialBinary.Kind.lessFloat64:
+			fn(FnOp.lessFloat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.lessInt8:
+			fn(FnOp.lessInt8);
+			break;
+		case LowExprKind.SpecialBinary.Kind.lessInt16:
+			fn(FnOp.lessInt16);
+			break;
+		case LowExprKind.SpecialBinary.Kind.lessInt32:
+			fn(FnOp.lessInt32);
+			break;
+		case LowExprKind.SpecialBinary.Kind.lessInt64:
+			fn(FnOp.lessInt64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.mulFloat64:
+			fn(FnOp.mulFloat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.or:
+			immutable LowExpr trueExpr = genBool(range, True);
+			generateIf(tempAlloc, writer, ctx, a.left, trueExpr, a.right);
+			break;
+		case LowExprKind.SpecialBinary.Kind.subFloat64:
+			fn(FnOp.subFloat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.subPtrNat:
+			fn(FnOp.wrapSubNat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
+			fn(FnOp.unsafeDivFloat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
+			fn(FnOp.unsafeDivInt64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeDivNat64:
+			fn(FnOp.unsafeDivNat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeModNat64:
+			fn(FnOp.unsafeModNat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapAddInt16:
+			fn(FnOp.wrapAddInt16);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapAddInt32:
+			fn(FnOp.wrapAddInt32);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapAddInt64:
+			fn(FnOp.wrapAddInt64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapAddNat16:
+			fn(FnOp.wrapAddNat16);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapAddNat32:
+			fn(FnOp.wrapAddNat32);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapAddNat64:
+			fn(FnOp.wrapAddNat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapMulInt16:
+			fn(FnOp.wrapMulInt16);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapMulInt32:
+			fn(FnOp.wrapMulInt32);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapMulInt64:
+			fn(FnOp.wrapMulInt64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapMulNat16:
+			fn(FnOp.wrapMulNat16);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapMulNat32:
+			fn(FnOp.wrapMulNat32);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapMulNat64:
+			fn(FnOp.wrapMulNat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:
+			fn(FnOp.wrapSubInt16);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapSubInt32:
+			fn(FnOp.wrapSubInt32);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapSubInt64:
+			fn(FnOp.wrapSubInt64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
+			fn(FnOp.wrapSubNat16);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
+			fn(FnOp.wrapSubNat32);
+			break;
+		case LowExprKind.SpecialBinary.Kind.wrapSubNat64:
+			fn(FnOp.wrapSubNat64);
+			break;
+		case LowExprKind.SpecialBinary.Kind.writeToPtr:
+			generateExpr(tempAlloc, writer, ctx, a.left);
+			generateExpr(tempAlloc, writer, ctx, a.right);
+			writeWrite(writer, 0, sizeOfType(ctx, a.right.type));
+			break;
+	}
+}
+
+void generateSpecialTrinary(TempAlloc, CodeAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable LowExprKind.SpecialTrinary a,
+) {
+	final switch (a.kind) {
+		case LowExprKind.SpecialTrinary.Kind.if_:
+			generateIf(tempAlloc, writer, ctx, a.p0, a.p1, a.p2);
+			break;
+		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrong:
+			todo!void("cmp");
+			break;
+	}
+}
+
+void generateIf(TempAlloc, CodeAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable LowExpr cond,
+	ref immutable LowExpr then,
+	ref immutable LowExpr else_,
+) {
+	immutable uint startStack = getNextStackEntry(writer);
+	generateExpr(tempAlloc, writer, ctx, cond);
+	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, 2);
+	fillDelayedU8(writer, addByteCodeIndex(delayed, 0), subtractByteCodeIndex(curByteCodeIndex(writer), delayed));
+	generateExpr(tempAlloc, writer, ctx, else_);
+	setNextStackEntry(writer, startStack);
+	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(writer);
+	fillDelayedU8(writer, addByteCodeIndex(delayed, 1), subtractByteCodeIndex(curByteCodeIndex(writer), delayed));
+	generateExpr(tempAlloc, writer, ctx, then);
+	fillInJumpDelayed(writer, jumpIndex);
+}
+
+void generateSpecialNAry(TempAlloc, CodeAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable LowExpr expr,
+	ref immutable LowExprKind.SpecialNAry a,
+) {
+	final switch (a.kind) {
+		case LowExprKind.SpecialNAry.Kind.callFunPtr:
+			immutable uint stackEntryBeforeArgs = getNextStackEntry(writer);
+			foreach (ref immutable LowExpr arg; range(a.args))
+				generateExpr(tempAlloc, writer, ctx, expr);
+			writeCallFunPtr(writer, stackEntryBeforeArgs, nStackEntriesForType(ctx, expr.type));
+			break;
+	}
 }

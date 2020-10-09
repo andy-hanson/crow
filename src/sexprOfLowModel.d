@@ -225,9 +225,7 @@ immutable(Sexpr) tataOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExpr
 				"n-ary",
 				tataStr(strLiteral(strOfSpecialNAryKind(it.kind))),
 				tataArr(alloc, it.args, (ref immutable LowExpr arg) =>
-					tataOfLowExpr(alloc, arg))),
-		(ref immutable LowExprKind.StringLiteral it) =>
-			tataRecord(alloc, "str-lit", tataStr(it.literal)));
+					tataOfLowExpr(alloc, arg))));
 }
 
 immutable(Sexpr) tataOfMatch(Alloc)(ref Alloc alloc, ref immutable LowExprKind.Match a) {
@@ -254,6 +252,8 @@ immutable(Sexpr) tataOfSpecialConstant(Alloc)(ref Alloc alloc, ref immutable Low
 			tataNat(it.value),
 		(immutable LowExprKind.SpecialConstant.Null it) =>
 			tataSym("null"),
+		(immutable LowExprKind.SpecialConstant.StrConstant it) =>
+			tataStr(it.value),
 		(immutable LowExprKind.SpecialConstant.Void it) =>
 			tataSym("void"));
 	return tataRecord(alloc, "constant", constant);

@@ -390,6 +390,9 @@ struct LowExprKind {
 			immutable size_t value;
 		}
 		struct Null {}
+		struct StrConstant {
+			immutable Str value;
+		}
 		struct Void {}
 
 		private:
@@ -397,6 +400,7 @@ struct LowExprKind {
 			bool_,
 			integral,
 			null_,
+			str,
 			void_,
 		}
 		immutable Kind kind;
@@ -404,12 +408,14 @@ struct LowExprKind {
 			immutable BoolConstant bool_;
 			immutable Integral integral_;
 			immutable Null null_;
+			immutable StrConstant str_;
 			immutable Void void_;
 		}
 		public:
 		immutable this(immutable BoolConstant a) { kind = Kind.bool_; bool_ = a; }
 		immutable this(immutable Integral a) { kind = Kind.integral; integral_ = a; }
 		immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }
+		@trusted immutable this(immutable StrConstant a) { kind = Kind.str; str_ = a; }
 		immutable this(immutable Void a) { kind = Kind.void_; void_ = a; }
 	}
 
@@ -542,10 +548,6 @@ struct LowExprKind {
 		immutable Arr!LowExpr args;
 	}
 
-	struct StringLiteral {
-		immutable Str literal;
-	}
-
 	private:
 	enum Kind {
 		call,
@@ -567,7 +569,6 @@ struct LowExprKind {
 		specialBinary,
 		specialTrinary,
 		specialNAry,
-		stringLiteral,
 	}
 	immutable Kind kind;
 	union {
@@ -590,7 +591,6 @@ struct LowExprKind {
 		immutable SpecialBinary specialBinary;
 		immutable SpecialTrinary specialTrinary;
 		immutable SpecialNAry specialNAry;
-		immutable StringLiteral stringLiteral;
 	}
 
 	public:
@@ -613,14 +613,14 @@ struct LowExprKind {
 	@trusted immutable this(immutable SpecialBinary a) { kind = Kind.specialBinary; specialBinary = a; }
 	@trusted immutable this(immutable SpecialTrinary a) { kind = Kind.specialTrinary; specialTrinary = a; }
 	@trusted immutable this(immutable SpecialNAry a) { kind = Kind.specialNAry; specialNAry = a; }
-	@trusted immutable this(immutable StringLiteral a) { kind = Kind.stringLiteral; stringLiteral = a; }
 }
 
-T matchSpecialConstant(T)(
+@trusted T matchSpecialConstant(T)(
 	ref immutable LowExprKind.SpecialConstant a,
 	scope T delegate(immutable LowExprKind.SpecialConstant.BoolConstant) @safe @nogc pure nothrow cbBool,
 	scope T delegate(immutable LowExprKind.SpecialConstant.Integral) @safe @nogc pure nothrow cbIntegral,
 	scope T delegate(immutable LowExprKind.SpecialConstant.Null) @safe @nogc pure nothrow cbNull,
+	scope T delegate(immutable LowExprKind.SpecialConstant.StrConstant) @safe @nogc pure nothrow cbStr,
 	scope T delegate(immutable LowExprKind.SpecialConstant.Void) @safe @nogc pure nothrow cbVoid,
 ) {
 	final switch (a.kind) {
@@ -630,6 +630,8 @@ T matchSpecialConstant(T)(
 			return cbIntegral(a.integral_);
 		case LowExprKind.SpecialConstant.Kind.null_:
 			return cbNull(a.null_);
+		case LowExprKind.SpecialConstant.Kind.str:
+			return cbStr(a.str_);
 		case LowExprKind.SpecialConstant.Kind.void_:
 			return cbVoid(a.void_);
 	}
@@ -656,7 +658,6 @@ T matchSpecialConstant(T)(
 	scope T delegate(ref immutable LowExprKind.SpecialBinary) @safe @nogc pure nothrow cbSpecialBinary,
 	scope T delegate(ref immutable LowExprKind.SpecialTrinary) @safe @nogc pure nothrow cbSpecialTrinary,
 	scope T delegate(ref immutable LowExprKind.SpecialNAry) @safe @nogc pure nothrow cbSpecialNAry,
-	scope T delegate(ref immutable LowExprKind.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
 ) {
 	final switch (a.kind) {
 		case LowExprKind.Kind.call:
@@ -677,7 +678,7 @@ T matchSpecialConstant(T)(
 			return cbParamRef(a.paramRef);
 		case LowExprKind.Kind.ptrCast:
 			return cbPtrCast(a.ptrCast);
-	case LowExprKind.Kind.recordFieldAccess:
+		case LowExprKind.Kind.recordFieldAccess:
 			return cbRecordFieldAccess(a.recordFieldAccess);
 		case LowExprKind.Kind.recordFieldSet:
 			return cbRecordFieldSet(a.recordFieldSet);
@@ -697,8 +698,6 @@ T matchSpecialConstant(T)(
 			return cbSpecialTrinary(a.specialTrinary);
 		case LowExprKind.Kind.specialNAry:
 			return cbSpecialNAry(a.specialNAry);
-		case LowExprKind.Kind.stringLiteral:
-			return cbStringLiteral(a.stringLiteral);
 	}
 }
 

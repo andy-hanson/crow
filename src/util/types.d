@@ -15,8 +15,17 @@ alias i32 = int;
 
 alias ssize_t = long;
 
+immutable u8 maxU4 = 0xf;
+immutable u8 maxU8 = 0xff;
+immutable u16 maxU16 = 0xffff;
+immutable u32 maxU32 = 0xffffffff;
+
 immutable(u8) bottomU8OfU32(immutable u32 u) {
-	return cast(u8) (u & 0xff);
+	return cast(u8) (u & maxU8);
+}
+
+immutable(u32) bottomU32OfU64(immutable u64 u) {
+	return cast(u32) (u & maxU32);
 }
 
 immutable(i32) safeI32FromU32(immutable u32 u) {
@@ -59,8 +68,8 @@ immutable(size_t) safeSizeTFromSSizeT(immutable ssize_t s) {
 }
 
 immutable(u8) catU4U4(immutable u8 a, immutable u8 b) {
-	verify(a <= 0xff);
-	verify(b <= 0xff);
+	verify(a <= maxU4);
+	verify(b <= maxU4);
 	return safeU32ToU8((a << 4) | b);
 }
 

@@ -168,6 +168,9 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 				(immutable LowExprKind.SpecialConstant.Null) {
 					// TODO
 				},
+				(immutable LowExprKind.SpecialConstant.StrConstant) {
+					// TODO
+				},
 				(immutable LowExprKind.SpecialConstant.Void) {
 					checkTypeEqual(ctx.ctx, type, voidType);
 				});
@@ -212,9 +215,6 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 							checkLowExpr(ctx, paramType, arg);
 						});
 			}
-		},
-		(ref immutable LowExprKind.StringLiteral) {
-			// TODO
 		});
 }
 

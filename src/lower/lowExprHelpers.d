@@ -15,6 +15,7 @@ import lowModel :
 	LowParamIndex,
 	LowType,
 	PrimitiveType;
+import util.bools : Bool;
 import util.collection.arr : Arr, emptyArr;
 import util.memory : allocate;
 import util.ptr : Ptr;
@@ -92,6 +93,14 @@ immutable(LowExpr) genNat64Eq0(Alloc)(
 	immutable LowExpr a,
 ) {
 	return genBinary(alloc, range, boolType, LowExprKind.SpecialBinary.Kind.eqNat64, a, constantNat64(range, 0));
+}
+
+immutable(LowExpr) genBool(ref immutable SourceRange range, immutable Bool value) {
+	return immutable LowExpr(
+		boolType,
+		range,
+		immutable LowExprKind(immutable LowExprKind.SpecialConstant(
+			immutable LowExprKind.SpecialConstant.BoolConstant(value))));
 }
 
 immutable(LowExpr) incrPointer(Alloc)(

@@ -5,7 +5,7 @@ module util.collection.mutArr;
 import std.traits : Unqual;
 
 import util.bools : Bool;
-import util.collection.arr : Arr;
+import util.collection.arr : Arr, range;
 import util.memory : initMemory, memcpy, overwriteMemory;
 import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
 import util.util : verify;
@@ -62,6 +62,12 @@ immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 	a.size_++;
 	verify(a.size_ <= a.capacity_);
 }
+
+void pushAll(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a, immutable Arr!T values) {
+	foreach (ref immutable T value; range(values))
+		push(alloc, a, value);
+}
+
 
 @trusted Opt!T pop(T)(ref MutArr!T a) {
 	if (a.size_ == 0)

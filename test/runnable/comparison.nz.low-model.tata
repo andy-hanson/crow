@@ -680,7 +680,7 @@ program(
 																																																range(
 																																																	1513
 																																																	1528)
-																																																str-lit(
+																																																constant(
 																																																	"main failed: "))]))
 																																												expr(
 																																													void
@@ -896,7 +896,7 @@ program(
 						expr(
 							void
 							range(15167, 15177)
-							unary("hard-fail", expr(record(7), range(15148, 15167), str-lit("Assertion failed!"))))))))
+							unary("hard-fail", expr(record(7), range(15148, 15167), constant("Assertion failed!"))))))))
 		14: fun(
 			"null__q__bool__ptr__nat8"
 			bool
@@ -1029,7 +1029,7 @@ program(
 								expr(
 									void
 									range(2707, 2756)
-									call(23, [expr(record(7), range(2734, 2756), str-lit("uncaught exception: "))]))
+									call(23, [expr(record(7), range(2734, 2756), constant("uncaught exception: "))]))
 								expr(
 									void
 									range(2758, 2824)
@@ -1054,7 +1054,7 @@ program(
 																		expr(record(6), range(2774, 2775), param-ref(1))
 																		false
 																		0))]))
-													expr(record(7), range(2794, 2813), str-lit("<<empty message>>"))
+													expr(record(7), range(2794, 2813), constant("<<empty message>>"))
 													expr(
 														record(7)
 														range(2816, 2824)
@@ -1209,7 +1209,7 @@ program(
 			"todo___void"
 			void
 			[]
-			expr-body([], expr(void, range(211, 228), unary("hard-fail", expr(record(7), range(222, 228), str-lit("TODO"))))))
+			expr-body([], expr(void, range(211, 228), unary("hard-fail", expr(record(7), range(222, 228), constant("TODO"))))))
 		29: fun("stderr_fd__int32", int-32, [], expr-body([], expr(int-32, range(5359, 5362), call(30, []))))
 		30: fun(
 			"two__int32"
@@ -1240,7 +1240,7 @@ program(
 					range(686, 747)
 					seq(
 						expr(void, range(688, 713), call(23, [expr(record(7), range(686, 687), param-ref(0))]))
-						expr(void, range(720, 745), call(23, [expr(record(7), range(715, 719), str-lit("\n"))]))))))
+						expr(void, range(720, 745), call(23, [expr(record(7), range(715, 719), constant("\n"))]))))))
 		33: fun(
 			"empty__q__bool__arr__char"
 			bool
@@ -1295,7 +1295,7 @@ program(
 					record(
 						[
 							expr(ptr(record(34)), range(210, 214), constant(null))
-							expr(record(6), range(216, 222), record([expr(record(7), range(220, 222), str-lit(""))]))]))))
+							expr(record(6), range(216, 222), record([expr(record(7), range(220, 222), constant(""))]))]))))
 		38: fun(
 			"new_ctx__ctx__ptr_global_ctx__ptr_thread_local_stuff__ptr_vat__nat"
 			record(0)
@@ -1580,7 +1580,7 @@ program(
 									range(899, 950)
 									unary(
 										"hard-fail"
-										expr(record(7), range(910, 950), str-lit("Couldn't acquire lock after 1000 tries"))))
+										expr(record(7), range(910, 950), constant("Couldn't acquire lock after 1000 tries"))))
 								expr(
 									void
 									range(961, 1018)
@@ -2292,7 +2292,7 @@ program(
 			"todo__ptr__nat8"
 			ptr(nat-8)
 			[]
-			expr-body([], expr(ptr(nat-8), range(211, 228), unary("hard-fail", expr(record(7), range(222, 228), str-lit("TODO"))))))
+			expr-body([], expr(ptr(nat-8), range(211, 228), unary("hard-fail", expr(record(7), range(222, 228), constant("TODO"))))))
 		77: fun(
 			"get_gc__ptr_gc"
 			ptr(record(17))
@@ -3027,7 +3027,7 @@ program(
 																expr(
 																	record(7)
 																	range(742, 777)
-																	str-lit("resolving an already-resolved fut")))))
+																	constant("resolving an already-resolved fut")))))
 													case(
 														none
 														expr(
@@ -3038,7 +3038,7 @@ program(
 																expr(
 																	record(7)
 																	range(804, 839)
-																	str-lit("resolving an already-resolved fut")))))]))))
+																	constant("resolving an already-resolved fut")))))]))))
 								expr(
 									void
 									range(841, 931)
@@ -3432,7 +3432,7 @@ program(
 						[
 							expr(ptr(record(0)), range(1695, 1717), param-ref(0))
 							expr(bool, range(1685, 1694), param-ref(1))
-							expr(record(7), range(1702, 1717), str-lit("assert failed"))]))))
+							expr(record(7), range(1702, 1717), constant("assert failed"))]))))
 		99: fun(
 			"assert___void__bool__arr__char"
 			void
@@ -5089,7 +5089,7 @@ program(
 						[
 							expr(ptr(record(0)), range(1888, 1910), param-ref(0))
 							expr(bool, range(1878, 1887), param-ref(1))
-							expr(record(7), range(1895, 1910), str-lit("forbid failed"))]))))
+							expr(record(7), range(1895, 1910), constant("forbid failed"))]))))
 		146: fun(
 			"forbid___void__bool__arr__char"
 			void
@@ -5961,7 +5961,7 @@ program(
 						176
 						[
 							expr(ptr(char), range(445, 446), param-ref(0))
-							expr(char, range(465, 469), call(179, [expr(record(7), range(465, 469), str-lit("\0"))]))]))))
+							expr(char, range(465, 469), call(179, [expr(record(7), range(465, 469), constant("\0"))]))]))))
 		176: fun(
 			"find_char_in_cstr__ptr__char__ptr__char__char"
 			ptr(char)
@@ -5997,7 +5997,7 @@ program(
 												char
 												range(314, 320)
 												unary("deref", expr(ptr(char), range(313, 314), param-ref(0))))
-											expr(char, range(324, 328), call(179, [expr(record(7), range(324, 328), str-lit("\0"))]))]))
+											expr(char, range(324, 328), call(179, [expr(record(7), range(324, 328), constant("\0"))]))]))
 								expr(ptr(char), range(359, 363), call(181, []))
 								expr(
 									ptr(char)
@@ -6115,7 +6115,7 @@ program(
 			"todo__ptr__char"
 			ptr(char)
 			[]
-			expr-body([], expr(ptr(char), range(211, 228), unary("hard-fail", expr(record(7), range(222, 228), str-lit("TODO"))))))
+			expr-body([], expr(ptr(char), range(211, 228), unary("hard-fail", expr(record(7), range(222, 228), constant("TODO"))))))
 		182: fun(
 			"incr__ptr__char__ptr__char"
 			ptr(char)
@@ -9039,7 +9039,7 @@ program(
 							range(6338, 6390)
 							unary(
 								"hard-fail"
-								expr(record(7), range(6349, 6390), str-lit("Did not find the element in the mut-arr"))))
+								expr(record(7), range(6349, 6390), constant("Did not find the element in the mut-arr"))))
 						expr(
 							void
 							range(6312, 6538)
@@ -9433,7 +9433,7 @@ program(
 			[]
 			expr-body(
 				[]
-				expr(union(1), range(117, 141), unary("hard-fail", expr(record(7), range(128, 141), str-lit("unreachable"))))))
+				expr(union(1), range(117, 141), unary("hard-fail", expr(record(7), range(128, 141), constant("unreachable"))))))
 		248: fun(
 			"main__ptr_fut__int32__arr__arr__char"
 			ptr(record(1))
@@ -9469,7 +9469,7 @@ program(
 											272
 											[
 												expr(ptr(record(0)), range(1022, 1023), param-ref(0))
-												expr(record(7), range(1022, 1023), str-lit("0"))]))]))))))
+												expr(record(7), range(1022, 1023), constant("0"))]))]))))))
 		249: fun(
 			"test_compare_records___void"
 			void
@@ -9493,7 +9493,7 @@ program(
 											250
 											[
 												expr(ptr(record(0)), range(212, 213), param-ref(0))
-												expr(record(7), range(212, 213), str-lit("1"))]))
+												expr(record(7), range(212, 213), constant("1"))]))
 									expr(
 										nat-64
 										range(215, 216)
@@ -9501,7 +9501,7 @@ program(
 											250
 											[
 												expr(ptr(record(0)), range(215, 216), param-ref(0))
-												expr(record(7), range(215, 216), str-lit("2"))]))]))
+												expr(record(7), range(215, 216), constant("2"))]))]))
 						expr(
 							void
 							range(218, 377)
@@ -9519,7 +9519,7 @@ program(
 													250
 													[
 														expr(ptr(record(0)), range(237, 238), param-ref(0))
-														expr(record(7), range(237, 238), str-lit("1"))]))
+														expr(record(7), range(237, 238), constant("1"))]))
 											expr(
 												nat-64
 												range(240, 241)
@@ -9527,7 +9527,7 @@ program(
 													250
 													[
 														expr(ptr(record(0)), range(240, 241), param-ref(0))
-														expr(record(7), range(240, 241), str-lit("3"))]))]))
+														expr(record(7), range(240, 241), constant("3"))]))]))
 								expr(
 									void
 									range(243, 377)
@@ -9545,7 +9545,7 @@ program(
 															250
 															[
 																expr(ptr(record(0)), range(262, 263), param-ref(0))
-																expr(record(7), range(262, 263), str-lit("1"))]))
+																expr(record(7), range(262, 263), constant("1"))]))
 													expr(
 														nat-64
 														range(265, 266)
@@ -9553,7 +9553,7 @@ program(
 															250
 															[
 																expr(ptr(record(0)), range(265, 266), param-ref(0))
-																expr(record(7), range(265, 266), str-lit("2"))]))]))
+																expr(record(7), range(265, 266), constant("2"))]))]))
 										expr(
 											void
 											range(268, 377)
@@ -9571,7 +9571,7 @@ program(
 																	250
 																	[
 																		expr(ptr(record(0)), range(287, 288), param-ref(0))
-																		expr(record(7), range(287, 288), str-lit("0"))]))
+																		expr(record(7), range(287, 288), constant("0"))]))
 															expr(
 																nat-64
 																range(290, 291)
@@ -9579,7 +9579,7 @@ program(
 																	250
 																	[
 																		expr(ptr(record(0)), range(290, 291), param-ref(0))
-																		expr(record(7), range(290, 291), str-lit("3"))]))]))
+																		expr(record(7), range(290, 291), constant("3"))]))]))
 												expr(
 													void
 													range(293, 377)
@@ -10004,7 +10004,7 @@ program(
 								177
 								[
 									expr(char, range(806, 807), param-ref(0))
-									expr(char, range(811, 814), call(179, [expr(record(7), range(811, 814), str-lit("0"))]))]))
+									expr(char, range(811, 814), call(179, [expr(record(7), range(811, 814), constant("0"))]))]))
 						expr(nat-64, range(818, 822), constant(0))
 						expr(
 							nat-64
@@ -10018,7 +10018,7 @@ program(
 										177
 										[
 											expr(char, range(825, 826), param-ref(0))
-											expr(char, range(830, 833), call(179, [expr(record(7), range(830, 833), str-lit("1"))]))]))
+											expr(char, range(830, 833), call(179, [expr(record(7), range(830, 833), constant("1"))]))]))
 								expr(nat-64, range(837, 840), constant(1))
 								expr(
 									nat-64
@@ -10035,7 +10035,7 @@ program(
 													expr(
 														char
 														range(848, 851)
-														call(179, [expr(record(7), range(848, 851), str-lit("2"))]))]))
+														call(179, [expr(record(7), range(848, 851), constant("2"))]))]))
 										expr(nat-64, range(855, 858), call(1, []))
 										expr(
 											nat-64
@@ -10052,7 +10052,7 @@ program(
 															expr(
 																char
 																range(866, 869)
-																call(179, [expr(record(7), range(866, 869), str-lit("3"))]))]))
+																call(179, [expr(record(7), range(866, 869), constant("3"))]))]))
 												expr(nat-64, range(873, 878), call(54, []))
 												expr(
 													nat-64
@@ -10071,7 +10071,7 @@ program(
 																		range(886, 889)
 																		call(
 																			179
-																			[expr(record(7), range(886, 889), str-lit("4"))]))]))
+																			[expr(record(7), range(886, 889), constant("4"))]))]))
 														expr(nat-64, range(893, 897), call(53, []))
 														expr(
 															nat-64
@@ -10094,7 +10094,7 @@ program(
 																						expr(
 																							record(7)
 																							range(905, 908)
-																							str-lit("5"))]))]))
+																							constant("5"))]))]))
 																expr(nat-64, range(912, 916), call(52, []))
 																expr(
 																	nat-64
@@ -10117,7 +10117,7 @@ program(
 																								expr(
 																									record(7)
 																									range(924, 927)
-																									str-lit("6"))]))]))
+																									constant("6"))]))]))
 																		expr(nat-64, range(931, 934), call(51, []))
 																		expr(
 																			nat-64
@@ -10143,7 +10143,8 @@ program(
 																										expr(
 																											record(7)
 																											range(942, 945)
-																											str-lit("7"))]))]))
+																											constant(
+																												"7"))]))]))
 																				expr(nat-64, range(949, 954), call(50, []))
 																				expr(
 																					nat-64
@@ -10172,7 +10173,7 @@ program(
 																													range(
 																														962
 																														965)
-																													str-lit(
+																													constant(
 																														"8"))]))]))
 																						expr(
 																							nat-64
@@ -10210,7 +10211,7 @@ program(
 																															range(
 																																982
 																																985)
-																															str-lit(
+																															constant(
 																																"9"))]))]))
 																								expr(
 																									nat-64
@@ -10224,7 +10225,7 @@ program(
 			"todo__nat"
 			nat-64
 			[]
-			expr-body([], expr(nat-64, range(211, 228), unary("hard-fail", expr(record(7), range(222, 228), str-lit("TODO"))))))
+			expr-body([], expr(nat-64, range(211, 228), unary("hard-fail", expr(record(7), range(222, 228), constant("TODO"))))))
 		259: fun(
 			"last__char__arr__char"
 			char
@@ -10305,7 +10306,7 @@ program(
 					range(497, 550)
 					seq(
 						expr(void, range(499, 520), call(262, [expr(record(7), range(497, 498), param-ref(0))]))
-						expr(void, range(527, 548), call(262, [expr(record(7), range(522, 526), str-lit("\n"))]))))))
+						expr(void, range(527, 548), call(262, [expr(record(7), range(522, 526), constant("\n"))]))))))
 		262: fun(
 			"print_sync_no_newline___void__arr__char"
 			void
@@ -10330,9 +10331,9 @@ program(
 						"matched"
 						expr(union(5), range(2161, 2162), param-ref(1))
 						[
-							case(none, expr(record(7), range(2173, 2179), str-lit("less")))
-							case(none, expr(record(7), range(2191, 2198), str-lit("equal")))
-							case(none, expr(record(7), range(2212, 2221), str-lit("greater")))]))))
+							case(none, expr(record(7), range(2173, 2179), constant("less")))
+							case(none, expr(record(7), range(2191, 2198), constant("equal")))
+							case(none, expr(record(7), range(2212, 2221), constant("greater")))]))))
 		265: fun(
 			"compare265"
 			union(5)
@@ -10453,7 +10454,7 @@ program(
 																	250
 																	[
 																		expr(ptr(record(0)), range(444, 445), param-ref(0))
-																		expr(record(7), range(444, 445), str-lit("1"))]))
+																		expr(record(7), range(444, 445), constant("1"))]))
 															expr(
 																nat-64
 																range(447, 448)
@@ -10461,7 +10462,7 @@ program(
 																	250
 																	[
 																		expr(ptr(record(0)), range(447, 448), param-ref(0))
-																		expr(record(7), range(447, 448), str-lit("2"))]))]))))
+																		expr(record(7), range(447, 448), constant("2"))]))]))))
 										expr(ptr(record(83)), range(423, 448), local-ref("temp0"))))))
 						expr(
 							void
@@ -10510,7 +10511,7 @@ program(
 																					ptr(record(0))
 																					range(475, 476)
 																					param-ref(0))
-																				expr(record(7), range(475, 476), str-lit("1"))]))
+																				expr(record(7), range(475, 476), constant("1"))]))
 																	expr(
 																		nat-64
 																		range(478, 479)
@@ -10521,7 +10522,7 @@ program(
 																					ptr(record(0))
 																					range(478, 479)
 																					param-ref(0))
-																				expr(record(7), range(478, 479), str-lit("3"))]))]))))
+																				expr(record(7), range(478, 479), constant("3"))]))]))))
 												expr(ptr(record(83)), range(454, 479), local-ref("temp1"))))))
 								expr(
 									void
@@ -10573,7 +10574,7 @@ program(
 																						expr(
 																							record(7)
 																							range(506, 507)
-																							str-lit("1"))]))
+																							constant("1"))]))
 																			expr(
 																				nat-64
 																				range(509, 510)
@@ -10587,7 +10588,7 @@ program(
 																						expr(
 																							record(7)
 																							range(509, 510)
-																							str-lit("2"))]))]))))
+																							constant("2"))]))]))))
 														expr(ptr(record(83)), range(485, 510), local-ref("temp2"))))))
 										expr(
 											void
@@ -10642,7 +10643,7 @@ program(
 																								expr(
 																									record(7)
 																									range(537, 538)
-																									str-lit("0"))]))
+																									constant("0"))]))
 																					expr(
 																						nat-64
 																						range(540, 541)
@@ -10656,7 +10657,7 @@ program(
 																								expr(
 																									record(7)
 																									range(540, 541)
-																									str-lit("3"))]))]))))
+																									constant("3"))]))]))))
 																expr(ptr(record(83)), range(516, 541), local-ref("temp3"))))))
 												expr(
 													void
@@ -10852,7 +10853,7 @@ program(
 													250
 													[
 														expr(ptr(record(0)), range(695, 696), param-ref(0))
-														expr(record(7), range(695, 696), str-lit("1"))]))
+														expr(record(7), range(695, 696), constant("1"))]))
 											expr(
 												nat-64
 												range(698, 699)
@@ -10860,7 +10861,7 @@ program(
 													250
 													[
 														expr(ptr(record(0)), range(698, 699), param-ref(0))
-														expr(record(7), range(698, 699), str-lit("2"))]))]))))
+														expr(record(7), range(698, 699), constant("2"))]))]))))
 						expr(
 							void
 							range(701, 904)
@@ -10889,7 +10890,7 @@ program(
 																	250
 																	[
 																		expr(ptr(record(0)), range(774, 775), param-ref(0))
-																		expr(record(7), range(774, 775), str-lit("1"))]))
+																		expr(record(7), range(774, 775), constant("1"))]))
 															expr(
 																nat-64
 																range(777, 778)
@@ -10897,7 +10898,7 @@ program(
 																	250
 																	[
 																		expr(ptr(record(0)), range(777, 778), param-ref(0))
-																		expr(record(7), range(777, 778), str-lit("2"))]))]))))
+																		expr(record(7), range(777, 778), constant("2"))]))]))))
 										expr(
 											void
 											range(780, 904)
@@ -10923,7 +10924,7 @@ program(
 																					ptr(record(0))
 																					range(813, 814)
 																					param-ref(0))
-																				expr(record(7), range(813, 814), str-lit("1"))]))
+																				expr(record(7), range(813, 814), constant("1"))]))
 																	expr(
 																		nat-64
 																		range(816, 817)
@@ -10934,7 +10935,7 @@ program(
 																					ptr(record(0))
 																					range(816, 817)
 																					param-ref(0))
-																				expr(record(7), range(816, 817), str-lit("1"))]))]))))
+																				expr(record(7), range(816, 817), constant("1"))]))]))))
 												expr(
 													void
 													range(820, 904)
@@ -11206,7 +11207,7 @@ program(
 										177
 										[
 											expr(char, range(1348, 1351), local-ref("fst"))
-											expr(char, range(1355, 1358), call(179, [expr(record(7), range(1355, 1358), str-lit("-"))]))]))
+											expr(char, range(1355, 1358), call(179, [expr(record(7), range(1355, 1358), constant("-"))]))]))
 								expr(
 									int-64
 									range(1362, 1401)
@@ -11250,7 +11251,7 @@ program(
 													expr(
 														char
 														range(1408, 1411)
-														call(179, [expr(record(7), range(1408, 1411), str-lit("+"))]))]))
+														call(179, [expr(record(7), range(1408, 1411), constant("+"))]))]))
 										expr(
 											int-64
 											range(1438, 1444)

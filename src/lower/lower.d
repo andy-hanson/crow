@@ -737,7 +737,9 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 				allocate(alloc, getLowExpr(alloc, ctx, it.left)),
 				allocate(alloc, getLowExpr(alloc, ctx, it.right)))),
 		(ref immutable ConcreteExpr.StringLiteral it) =>
-			immutable LowExprKind(immutable LowExprKind.StringLiteral(copyStr(alloc, it.literal))));
+			immutable LowExprKind(
+				immutable LowExprKind.SpecialConstant(
+					immutable LowExprKind.SpecialConstant.StrConstant(copyStr(alloc, it.literal)))));
 }
 
 immutable(LowExpr) getAllocateExpr(Alloc)(

@@ -460,8 +460,6 @@ immutable(Bool) hasTailCalls(immutable LowFunIndex curFun, ref immutable LowExpr
 				it.kind == LowExprKind.SpecialTrinary.Kind.if_ &&
 				(hasTailCalls(curFun, it.p1) || hasTailCalls(curFun, it.p2))),
 		(ref immutable LowExprKind.SpecialNAry) =>
-			False,
-		(ref immutable LowExprKind.StringLiteral) =>
 			False);
 }
 
@@ -594,7 +592,7 @@ void writeExpr(Alloc)(
 			});
 		},
 		(ref immutable LowExprKind.SpecialConstant it) {
-			return_(() { writeSpecialConstant(writer, it); });
+			return_(() { writeSpecialConstant(writer, ctx, type, it); });
 		},
 		(ref immutable LowExprKind.Special0Ary it) {
 			return_(() { writeSpecial0Ary(writer, it.kind); });
@@ -610,16 +608,6 @@ void writeExpr(Alloc)(
 		},
 		(ref immutable LowExprKind.SpecialNAry it) {
 			return_(() { writeSpecialNAry(writer, indent, ctx, it); });
-		},
-		(ref immutable LowExprKind.StringLiteral it) {
-			return_(() {
-				writeCastToType(writer, ctx.ctx, type);
-				writeChar(writer, '{');
-				writeNat(writer, size(it.literal));
-				writeStatic(writer, ", ");
-				writeQuotedStr(writer, it.literal);
-				writeChar(writer, '}');
-			});
 		});
 }
 
@@ -898,6 +886,8 @@ void writeArgs(Alloc)(
 
 void writeSpecialConstant(Alloc)(
 	ref Writer!Alloc writer,
+	ref immutable FunBodyCtx ctx,
+	ref immutable LowType type,
 	immutable LowExprKind.SpecialConstant a,
 ) {
 	matchSpecialConstant(
@@ -910,6 +900,14 @@ void writeSpecialConstant(Alloc)(
 		},
 		(immutable LowExprKind.SpecialConstant.Null) {
 			writeStatic(writer, "NULL");
+		},
+		(immutable LowExprKind.SpecialConstant.StrConstant it) {
+			writeCastToType(writer, ctx.ctx, type);
+			writeChar(writer, '{');
+			writeNat(writer, size(it.value));
+			writeStatic(writer, ", ");
+			writeQuotedStr(writer, it.value);
+			writeChar(writer, '}');
 		},
 		(immutable LowExprKind.SpecialConstant.Void) {
 			writeChar(writer, '0');
