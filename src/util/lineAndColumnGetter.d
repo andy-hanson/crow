@@ -7,7 +7,7 @@ import util.collection.arrUtil : slice;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : emptyStr, Str;
 import util.sourceRange : Pos;
-import util.types : MAX_UINT8, safeSizeTToU16, safeSizeTToU32, safeU32ToU16, u8, u16, u32;
+import util.types : maxU8, safeSizeTToU16, safeSizeTToU32, safeU32ToU16, u8, u16, u32;
 import util.util : verify;
 
 struct LineAndColumn {
@@ -95,7 +95,7 @@ u16 mid(immutable u16 a, immutable u16 b) {
 
 u8 getNTabs(immutable Str text) {
 	u8 i = 0;
-	while (i < MAX_UINT8
+	while (i < maxU8
 		&& i < text.size
 		&& text.at(i) == '\t'
 	) {

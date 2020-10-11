@@ -19,6 +19,7 @@ immutable u8 maxU4 = 0xf;
 immutable u8 maxU8 = 0xff;
 immutable u16 maxU16 = 0xffff;
 immutable u32 maxU32 = 0xffffffff;
+immutable u64 maxU64 = 0xffffffffffffffff;
 
 immutable(u8) bottomU8OfU32(immutable u32 u) {
 	return cast(u8) (u & maxU8);
@@ -73,4 +74,11 @@ immutable(u8) catU4U4(immutable u8 a, immutable u8 b) {
 	return safeU32ToU8((a << 4) | b);
 }
 
-immutable u8 MAX_UINT8 = 255;
+struct U4U4 {
+	immutable u8 a;
+	immutable u8 b;
+}
+
+immutable(U4U4) u4u4OfU8(immutable u8 a) {
+	return immutable U4U4(a >> 4, a & maxU4);
+}
