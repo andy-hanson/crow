@@ -7,7 +7,7 @@ import util.bools : Bool, False, True;
 import util.collection.arr : at, first, range, size;
 import util.collection.arrUtil : slice, sliceFromTo;
 import util.collection.mutArr : moveToArr, newUninitializedMutArr, setAt;
-import util.collection.str : asCStr, CStr, emptyStr, MutStr, NulTerminatedStr, Str;
+import util.collection.str : asCStr, copyStr, CStr, emptyStr, MutStr, NulTerminatedStr, Str;
 import util.comparison : Comparison, compareOr;
 import util.opt : compareOpt, has, flatMapOption, force, forceOrTodo, mapOption, matchOpt, none, Opt, some;
 import util.ptr : Ptr;
@@ -31,9 +31,16 @@ struct Path {
 }
 
 struct AbsolutePath {
-	immutable(Str) root;
+	immutable Str root;
 	immutable Ptr!Path path;
-	immutable(Str) extension;
+	immutable Str extension;
+}
+
+immutable(Str) parentStr(Alloc)(ref Alloc alloc, ref immutable AbsolutePath path) {
+	immutable Opt!(Ptr!Path) p = parent(path.path);
+	return has(p)
+		? pathToStr(alloc, path.root, force(p), emptyStr)
+		: copyStr(alloc, path.root);
 }
 
 immutable(AbsolutePath) withExtension(ref immutable AbsolutePath a, immutable Str newExtension) {
@@ -316,7 +323,7 @@ private immutable(Opt!RootAndPath) parseAbsoluteOrRelPathWithoutExtension(Alloc,
 			return todo!(Opt!RootAndPath)("unc path?");
 		default:
 			// Treat a plain string without '/' in front as a relative path
-			return s.at(1) == ':'
+			return size(s) >= 2 && s.at(1) == ':'
 				? todo!(Opt!RootAndPath)("C:/ ?")
 				: some(immutable RootAndPath(cwd, parsePath(alloc, allSymbols, s)));
 	}
@@ -333,14 +340,14 @@ private immutable(Str) dropParents(immutable Str path, immutable u8 nParents) {
 
 private struct StrAndExtension {
 	immutable Str withoutExtension;
-	immutable Str extension;
+	immutable Str extension; // Includes the '.' (if it exists)
 }
 
 private immutable(StrAndExtension) removeExtension(immutable Str s) {
 	// Deliberately not allowing i == 0
 	for (size_t i = s.size - 1; i > 0; i--)
 		if (s.at(i) == '.')
-			return StrAndExtension(s.slice(0, i), s.slice(i + 1));
+			return StrAndExtension(s.slice(0, i), s.slice(i));
 	return StrAndExtension(s, emptyStr);
 }
 

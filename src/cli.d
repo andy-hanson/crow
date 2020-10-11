@@ -13,8 +13,8 @@ import util.opt : force, forceOrTodo, has, Opt;
 import util.path :
 	AbsolutePath,
 	baseName,
+	parentStr,
 	parseAbsoluteOrRelPath,
-	parent,
 	Path,
 	pathBaseName,
 	pathParent,
@@ -198,8 +198,7 @@ immutable(ProgramDirAndMain) parseProgramDirAndMain(Alloc, SymAlloc)(
 ) {
 	immutable Opt!AbsolutePath mainAbsolutePathOption = parseAbsoluteOrRelPath(alloc, allSymbols, cwd, arg);
 	immutable AbsolutePath mainAbsolutePath = forceOrTodo(mainAbsolutePathOption);
-	immutable Opt!AbsolutePath parent = mainAbsolutePath.parent;
-	immutable Str dir = pathToStr(alloc, forceOrTodo(parent));
+	immutable Str dir = parentStr(alloc, mainAbsolutePath);
 	immutable Sym name = mainAbsolutePath.baseName;
 	return ProgramDirAndMain(dir, rootPath(alloc, name));
 }
@@ -265,18 +264,20 @@ immutable(Command) parseRunCommand(Alloc, SymAlloc)(
 	if (args.size == 0 || isHelp(args.first))
 		return immutable Command(Command.HelpRun());
 	else {
-		immutable ProgramDirAndMain programDirAndMain = parseProgramDirAndMain(alloc, allSymbols, cwd, args.first);
+		immutable ProgramDirAndMain programDirAndMain = parseProgramDirAndMain(alloc, allSymbols, cwd, first(args));
+		immutable Arr!Str argsAfterMain = tail(args);
 		struct InterpretAndRemainingArgs {
 			immutable Bool interpret;
 			immutable Arr!Str remainingArgs;
 		}
-		immutable InterpretAndRemainingArgs ira = !empty(args) && strEqLiteral(at(args, 0), "--interpret")
-			? immutable InterpretAndRemainingArgs(True, tail(args))
-			: immutable InterpretAndRemainingArgs(False, args);
-		return ira.remainingArgs.size == 1
+		immutable InterpretAndRemainingArgs ira =
+			!empty(argsAfterMain) && strEqLiteral(at(argsAfterMain, 0), "--interpret")
+				? immutable InterpretAndRemainingArgs(True, tail(argsAfterMain))
+				: immutable InterpretAndRemainingArgs(False, argsAfterMain);
+		return empty(ira.remainingArgs)
 			? immutable Command(Command.Run(ira.interpret, programDirAndMain, emptyArr!Str))
-			: strEqLiteral(ira.remainingArgs.at(1), "--")
-			? immutable Command(Command.Run(ira.interpret, programDirAndMain, ira.remainingArgs.slice(2)))
+			: strEqLiteral(ira.remainingArgs.at(0), "--")
+			? immutable Command(Command.Run(ira.interpret, programDirAndMain, ira.remainingArgs.slice(1)))
 			: immutable Command(Command.HelpRun());
 	}
 }

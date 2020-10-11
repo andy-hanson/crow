@@ -4,8 +4,8 @@ module util.collection.arrUtil;
 
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
-import util.collection.arrBuilder : add, ArrWithSizeBuilder, finishArr;
-import util.collection.mutArr : moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
+import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAt, arrBuilderSize, ArrWithSizeBuilder, finishArr;
+import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
@@ -542,6 +542,7 @@ immutable(Arr!T) rtail(T)(immutable Arr!T a) {
 	return a.slice(0, a.size - 1);
 }
 
+//TODO:PERF More efficient than bubble sort..
 immutable(Arr!T) sort(T, Alloc)(
 	ref Alloc alloc,
 	ref immutable Arr!T a,
@@ -549,23 +550,22 @@ immutable(Arr!T) sort(T, Alloc)(
 ) {
 	MutArr!(immutable T) res;
 
-	void addSingle(ref immutable T x) {
+	void addOne(ref immutable T x) {
 		foreach (immutable size_t i; 0..mutArrSize(res)) {
 			final switch (compare(x, mutArrAt(res, i))) {
 				case Comparison.less:
-					todo!void("insert here");
+					insert!(immutable T, Alloc)(alloc, res, i, x);
 					return;
 				case Comparison.equal:
 				case Comparison.greater:
 					break;
 			}
 		}
-		// Greater than everything in the list -- add it to the end
 		push(alloc, res, x);
 	}
 
-	foreach (ref immutable T x; a.range)
-		addSingle(x);
+	foreach (ref immutable T x; range(a))
+		addOne(x);
 
 	return moveToArr(alloc, res);
 }

@@ -212,11 +212,6 @@ struct ByteCodeOffset {
 
 immutable(u8) stackEntrySize = 8;
 
-struct StackEntries {
-	immutable uint start; // Index of first entry
-	immutable u8 size; // Number of entries
-}
-
 enum FnOp : u8 {
 	addFloat64,
 	addInt64OrNat64,

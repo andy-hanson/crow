@@ -48,6 +48,13 @@ immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 	return Bool(a.size_ == 0);
 }
 
+void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T value) {
+	push(alloc, a, value);
+	foreach_reverse (immutable size_t i; mutArrSize(a)..pos + 1)
+		setAt(a, i, mutArrAt(a, i - 1));
+	setAt(a, pos, value);
+}
+
 @trusted void push(T, Alloc)(ref Alloc alloc, ref MutArr!T a, T value) {
 	if (a.size_ == a.capacity_) {
 		immutable size_t newCapacity = a.size_ == 0 ? 2 : a.size_ * 2;

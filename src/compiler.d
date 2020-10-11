@@ -301,9 +301,11 @@ immutable(Result!(LowProgram, Diagnostics)) buildToLowProgram(Alloc, SymAlloc)(
 	ref immutable ProgramDirAndMain programDirAndMain,
 ) {
 	Mallocator mallocator;
-	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
+	// TODO:PERF
+	// If there are diagnostics, we need to keep around the model as they may refer to it.
+	// But if not, delete the model after lowering.
 	immutable Result!(Program, Diagnostics) programResult =
-		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
+		frontendCompileProgram(alloc, allSymbols, nozeDir, programDirAndMain);
 	return mapSuccess!(LowProgram, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {

@@ -8,7 +8,6 @@ import interpret.bytecode :
 	ByteCodeIndex,
 	ByteCodeOffset,
 	FnOp,
-	StackEntries,
 	stackEntrySize,
 	subtractByteCodeIndex;
 import interpret.bytecodeWriter :
@@ -21,6 +20,7 @@ import interpret.bytecodeWriter :
 	getNextStackEntry,
 	setNextStackEntry,
 	setStackEntryAfterParameters,
+	StackEntries,
 	writeCallDelayed,
 	writeCallFunPtr,
 	writeDup,
@@ -240,7 +240,25 @@ immutable(u8) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
 }
 
 immutable(u8) primitiveSize(immutable PrimitiveType a) {
-	return todo!(immutable u8)("primitiveSize");
+	final switch (a) {
+		case PrimitiveType.void_:
+			return 0;
+		case PrimitiveType.bool_:
+		case PrimitiveType.char_:
+		case PrimitiveType.int8:
+		case PrimitiveType.nat8:
+			return 1;
+		case PrimitiveType.int16:
+		case PrimitiveType.nat16:
+			return 2;
+		case PrimitiveType.int32:
+		case PrimitiveType.nat32:
+			return 4;
+		case PrimitiveType.float64:
+		case PrimitiveType.int64:
+		case PrimitiveType.nat64:
+			return 8;
+	}
 }
 
 immutable(u8) nStackEntriesForType(ref const ExprCtx ctx, ref immutable LowType t) {
@@ -345,6 +363,17 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			immutable StackEntries localEntries =
 				immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, it.local.type));
 			generateExpr(tempAlloc, writer, ctx, it.value);
+
+			debug {
+				import core.stdc.stdio : printf;
+				import util.collection.arr : begin;
+				import util.collection.str : Str;
+				immutable Str mn = it.local.mangledName;
+				printf("COMPILING LET %.*s\n", cast(int) size(mn), begin(mn));
+				printf("First entry: %u\n", localEntries.start);
+				printf("Size: %u\n", localEntries.size);
+				printf("New next entry is: %u\n", getNextStackEntry(writer));
+			}
 			verify(getNextStackEntry(writer) == localEntries.start + localEntries.size);
 			addToMutDict(tempAlloc, ctx.localEntries, it.local, localEntries);
 			generateExpr(tempAlloc, writer, ctx, it.then);

@@ -2,7 +2,7 @@ module interpret.bytecodeWriter;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeOffset, FnOp, StackEntries, stackEntrySize;
+import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeOffset, FnOp, stackEntrySize;
 import interpret.opcode : OpCode;
 import util.collection.arr : Arr, begin, size;
 import util.collection.mutArr : moveToArr, MutArr, mutArrRange, mutArrSize, push, pushAll, setAt;
@@ -23,6 +23,11 @@ struct ByteCodeWriter(Alloc) {
 private struct ByteCodeIndexAndTextIndex {
 	immutable ByteCodeIndex byteCodeIndex;
 	immutable uint textIndex;
+}
+
+struct StackEntries {
+	immutable uint start; // Index of first entry
+	immutable u8 size; // Number of entries
 }
 
 @trusted immutable(ByteCode) finishByteCode(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex mainIndex) {
