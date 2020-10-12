@@ -6,7 +6,7 @@ import interpret.opcode : OpCode;
 import util.collection.arr : Arr;
 import util.types : safeU32ToU8, u8, u32, u64;
 
-T matchOperation(T)(
+@trusted T matchOperation(T)(
 	ref immutable Operation a,
 	scope T delegate(ref immutable Operation.Call) @safe @nogc nothrow cbCall,
 	scope T delegate(ref immutable Operation.CallFunPtr) @safe @nogc nothrow cbCallFunPtr,
@@ -14,10 +14,12 @@ T matchOperation(T)(
 	scope T delegate(ref immutable Operation.DupPartial) @safe @nogc nothrow cbDupPartial,
 	scope T delegate(ref immutable Operation.Fn) @safe @nogc nothrow cbFn,
 	scope T delegate(ref immutable Operation.Jump) @safe @nogc nothrow cbJump,
+	scope T delegate(ref immutable Operation.Pack) @safe @nogc nothrow cbPack,
 	scope T delegate(ref immutable Operation.PushValue) @safe @nogc nothrow cbPushValue,
 	scope T delegate(ref immutable Operation.Read) @safe @nogc nothrow cbRead,
 	scope T delegate(ref immutable Operation.Remove) @safe @nogc nothrow cbRemove,
 	scope T delegate(ref immutable Operation.Return) @safe @nogc nothrow cbReturn,
+	scope T delegate(ref immutable Operation.StackRef) @safe @nogc nothrow cbStackRef,
 	scope T delegate(ref immutable Operation.Switch) @safe @nogc nothrow cbSwitch,
 	scope T delegate(ref immutable Operation.Write) @safe @nogc nothrow cbWrite,
 ) {
@@ -34,6 +36,8 @@ T matchOperation(T)(
 			return cbFn(a.fn_);
 		case Operation.Kind.jump:
 			return cbJump(a.jump_);
+		case Operation.Kind.pack:
+			return cbPack(a.pack_);
 		case Operation.Kind.pushValue:
 			return cbPushValue(a.pushValue_);
 		case Operation.Kind.read:
@@ -42,6 +46,8 @@ T matchOperation(T)(
 			return cbRemove(a.remove_);
 		case Operation.Kind.return_:
 			return cbReturn(a.return_);
+		case Operation.Kind.stackRef_:
+			return cbStackRef(a.stackRef_);
 		case Operation.Kind.switch_:
 			return cbSwitch(a.switch_);
 		case Operation.Kind.write:
@@ -100,6 +106,10 @@ struct Operation {
 		immutable u8 offset;
 	}
 
+	struct Pack {
+		immutable Arr!u8 sizes;
+	}
+
 	// Push the value onto the stack.
 	struct PushValue {
 		immutable u64 value;
@@ -119,6 +129,10 @@ struct Operation {
 
 	// Pop an address from the function stack and jump to there.
 	struct Return {}
+
+	struct StackRef {
+		immutable StackOffset offset;
+	}
 
 	// Pop a number off the stack, look it up in 'offsets', and jump forward that much.
 	// Offsets are relative to the bytecode index of the first offset.
@@ -142,10 +156,12 @@ struct Operation {
 		dupPartial,
 		fn,
 		jump,
+		pack,
 		pushValue,
 		read,
 		remove,
 		return_,
+		stackRef_,
 		switch_,
 		write,
 	}
@@ -157,10 +173,12 @@ struct Operation {
 		immutable DupPartial dupPartial_;
 		immutable Fn fn_;
 		immutable Jump jump_;
+		immutable Pack pack_;
 		immutable PushValue pushValue_;
 		immutable Read read_;
 		immutable Remove remove_;
 		immutable Return return_;
+		immutable StackRef stackRef_;
 		immutable Switch switch_;
 		immutable Write write_;
 	}
@@ -172,11 +190,13 @@ struct Operation {
 	immutable this(immutable DupPartial a) { kind_ = Kind.dupPartial; dupPartial_ = a; }
 	immutable this(immutable Fn a) { kind_ = Kind.fn; fn_ = a; }
 	immutable this(immutable Jump a) { kind_ = Kind.jump; jump_ = a; }
+	@trusted immutable this(immutable Pack a) { kind_ = Kind.pack; pack_ = a; }
 	immutable this(immutable PushValue a) { kind_ = Kind.pushValue; pushValue_ = a; }
 	immutable this(immutable Read a) { kind_ = Kind.read; read_ = a; }
 	immutable this(immutable Remove a) { kind_ = Kind.remove; remove_ = a; }
 	immutable this(immutable Return a) { kind_ = Kind.return_; return_ = a; }
-	@trusted immutable this(immutable Switch a) { kind_ = Kind.switch_; switch_ = a; }
+	immutable this(immutable StackRef a) { kind_ = Kind.stackRef_; stackRef_ = a; }
+	immutable this(immutable Switch a) { kind_ = Kind.switch_; switch_ = a; }
 	immutable this(immutable Write a) { kind_ = Kind.write; write_ = a; }
 }
 
@@ -231,6 +251,7 @@ enum FnOp : u8 {
 	lessInt32,
 	lessInt64,
 	lessNat,
+	malloc,
 	mulFloat64,
 	not,
 	ptrToOrRefOfVal,

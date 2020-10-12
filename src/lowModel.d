@@ -570,7 +570,7 @@ struct LowExprKind {
 		specialTrinary,
 		specialNAry,
 	}
-	immutable Kind kind;
+	public immutable Kind kind; //TODO:PRIVATE
 	union {
 		immutable Call call;
 		immutable CreateRecord createRecord;
@@ -699,6 +699,24 @@ struct LowExprKind {
 		case LowExprKind.Kind.specialNAry:
 			return cbSpecialNAry(a.specialNAry);
 	}
+}
+
+immutable(Bool) isLocalRef(ref immutable LowExprKind a) {
+	return immutable Bool(a.kind == LowExprKind.Kind.localRef);
+}
+
+@trusted ref immutable(LowExprKind.LocalRef) asLocalRef(return scope ref immutable LowExprKind a) {
+	verify(isLocalRef(a));
+	return a.localRef;
+}
+
+immutable(Bool) isRecordFieldAccess(ref immutable LowExprKind a) {
+	return immutable Bool(a.kind == LowExprKind.Kind.recordFieldAccess);
+}
+
+@trusted ref immutable(LowExprKind.RecordFieldAccess) asRecordFieldAccess(return scope ref immutable LowExprKind a) {
+	verify(isRecordFieldAccess(a));
+	return a.recordFieldAccess;
 }
 
 struct LowProgram {

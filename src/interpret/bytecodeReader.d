@@ -4,6 +4,7 @@ module interpret.bytecodeReader;
 
 import interpret.bytecode : ByteCode, FnOp, Operation, StackOffset;
 import interpret.opcode : OpCode;
+import util.collection.arr : Arr;
 import util.ptr : Ptr;
 import util.types : U4U4, u4u4OfU8, u8, u32, u64;
 
@@ -28,6 +29,8 @@ immutable(Operation) readOperation(ref ByteCodeReader reader) {
 			return immutable Operation(immutable Operation.Fn(cast(immutable FnOp) readU8(reader)));
 		case OpCode.jump:
 			return immutable Operation(immutable Operation.Jump(readU8(reader)));
+		case OpCode.pack:
+			return immutable Operation(immutable Operation.Pack(readU8Array(reader, readU8(reader))));
 		case OpCode.pushU32:
 			return immutable Operation(immutable Operation.PushValue(readU32(reader)));
 		case OpCode.pushU64:
@@ -38,6 +41,8 @@ immutable(Operation) readOperation(ref ByteCodeReader reader) {
 			return immutable Operation(immutable Operation.Remove(readStackOffset(reader), readU8(reader)));
 		case OpCode.return_:
 			return immutable Operation(immutable Operation.Return());
+		case OpCode.stackRef:
+			return immutable Operation(immutable Operation.StackRef(readStackOffset(reader)));
 		case OpCode.switch_:
 			return immutable Operation(immutable Operation.Switch());
 		case OpCode.write:
@@ -55,6 +60,13 @@ immutable(Operation) readOperation(ref ByteCodeReader reader) {
 }
 
 private:
+
+@trusted immutable(Arr!u8) readU8Array(ref ByteCodeReader reader, immutable u8 size) {
+	immutable u8* ptr = cast(immutable u8*) reader.ptr;
+	immutable Arr!u8 res = immutable Arr!u8(ptr, size);
+	reader.ptr = cast(immutable OpCode*) (ptr + size);
+	return res;
+}
 
 immutable(StackOffset) readStackOffset(ref ByteCodeReader reader) {
 	return immutable StackOffset(readU8(reader));

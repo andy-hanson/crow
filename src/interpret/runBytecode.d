@@ -18,7 +18,7 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 	static T[capacity] values = void;
 	static size_t size = 0;
 
-	immutable(Bool) isEmpty() {
+	immutable(Bool) isEmpty() const {
 		return immutable Bool(size == 0);
 	}
 
@@ -28,7 +28,7 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 		size++;
 	}
 
-	immutable(T) peek(immutable u8 offset) {
+	immutable(T) peek(immutable u8 offset) const {
 		verify(offset + 1 < size);
 		return values[size - 1 - offset];
 	}
@@ -44,7 +44,7 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 		return values[size];
 	}
 
-	immutable(T) get(immutable u8 offset) {
+	immutable(T) get(immutable u8 offset) const {
 		verify(offset + 1 < size);
 		return values[size - 1 - offset];
 	}
@@ -70,6 +70,10 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 		foreach (immutable size_t i; size - 1 - offset..size - nEntries)
 			values[i] = values[i + nEntries];
 		size -= nEntries;
+	}
+
+	T* stackRef(immutable StackOffset offset) {
+		return &values[size - 1 - offset.offset];
 	}
 }
 
@@ -130,6 +134,10 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 			readerJump(interpreter.reader, it.offset);
 			return StepResult.continue_;
 		},
+		(ref immutable Operation.Pack it) {
+			todo!void("PACK");
+			return StepResult.continue_;
+		},
 		(ref immutable Operation.PushValue it) {
 			interpreter.dataStack.push(it.value);
 			return StepResult.continue_;
@@ -150,6 +158,10 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 				return StepResult.continue_;
 			}
 		},
+		(ref immutable Operation.StackRef it) {
+			pushStackRef(interpreter.dataStack, it.offset);
+			return StepResult.continue_;
+		},
 		(ref immutable Operation.Switch) {
 			readerSwitch(interpreter.reader, interpreter.dataStack.pop());
 			return StepResult.continue_;
@@ -158,6 +170,10 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 			write(interpreter.dataStack, it.offset, it.size);
 			return StepResult.continue_;
 		});
+}
+
+void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
+	dataStack.push(cast(immutable u64) dataStack.stackRef(offset));
 }
 
 @trusted void read(ref DataStack data, immutable u8 offset, immutable u8 size) {

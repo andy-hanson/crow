@@ -266,7 +266,8 @@ immutable(string) strOfSpecial0AryKind(immutable LowExprKind.Special0Ary.Kind a)
 	}
 }
 
-immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind a) {
+//TODO:PRIVATE
+public immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind a) {
 	final switch (a) {
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 			return "as-any-ptr";
@@ -317,7 +318,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 	}
 }
 
-immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kind a) {
+//TODO:PRIVATE
+public immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kind a) {
 	final switch (a) {
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 			return "+ (float-64)";

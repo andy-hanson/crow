@@ -26,10 +26,14 @@ import interpret.bytecodeWriter :
 	writeDup,
 	writeDupPartial,
 	writeFn,
+	writeFnHardFail,
 	writePushConstant,
 	writePushConstantStr,
+	writePushEmptySpace,
 	writePushU32Delayed,
 	writeJumpDelayed,
+	writePack,
+	writeStackRef,
 	writeRead,
 	writeRemove,
 	writeReturn,
@@ -37,6 +41,11 @@ import interpret.bytecodeWriter :
 	writeWrite;
 import lower.lowExprHelpers : genBool;
 import lowModel :
+	asLocalRef,
+	asRecordFieldAccess,
+	asRecordType,
+	isLocalRef,
+	isRecordFieldAccess,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -58,7 +67,7 @@ import lowModel :
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : False, True;
 import util.collection.arr : Arr, at, range, size;
-import util.collection.arrUtil : arrMax, map, mapOpWithIndex, sum;
+import util.collection.arrUtil : arrMax, eachWithIndex, map, mapOpWithIndex, slice, sum, zip;
 import util.collection.fullIndexDict :
 	FullIndexDict,
 	fullIndexDictEach,
@@ -81,6 +90,7 @@ import util.collection.mutIndexMultiDict :
 	mutIndexMultiDictAdd,
 	mutIndexMultiDictMustGetAt,
 	newMutIndexMultiDict;
+import util.collection.str : strEqLiteral;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
@@ -227,16 +237,24 @@ immutable(u8) sizeOfType(Alloc)(
 }
 
 immutable(u8) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
+	return sizeOfType(ctx.typeLayout, t);
+}
+
+immutable(u8) sizeOfType(ref immutable TypeLayout typeLayout, ref immutable LowType t) {
 	return matchLowType!(immutable u8)(
 		t,
-		(immutable LowType.ExternPtr) => externPtrSize,
-		(immutable LowType.FunPtr) => funPtrSize,
-		(immutable LowType.NonFunPtr) => ptrSize,
-		(immutable PrimitiveType it) => primitiveSize(it),
+		(immutable LowType.ExternPtr) =>
+			externPtrSize,
+		(immutable LowType.FunPtr) =>
+			funPtrSize,
+		(immutable LowType.NonFunPtr) =>
+			ptrSize,
+		(immutable PrimitiveType it) =>
+			primitiveSize(it),
 		(immutable LowType.Record index) =>
-			fullIndexDictGet(ctx.typeLayout.recordSizes, index),
+			fullIndexDictGet(typeLayout.recordSizes, index),
 		(immutable LowType.Union index) =>
-			fullIndexDictGet(ctx.typeLayout.unionSizes, index));
+			fullIndexDictGet(typeLayout.unionSizes, index));
 }
 
 immutable(u8) primitiveSize(immutable PrimitiveType a) {
@@ -266,19 +284,7 @@ immutable(u8) nStackEntriesForType(ref const ExprCtx ctx, ref immutable LowType 
 }
 
 immutable(u8) nStackEntriesForType(ref immutable TypeLayout typeLayout, ref immutable LowType t) {
-	return matchLowType!(immutable u8)(
-		t,
-		(immutable LowType.ExternPtr) => immutable u8(1),
-		(immutable LowType.FunPtr) => immutable u8(1),
-		(immutable LowType.NonFunPtr) => immutable u8(1),
-		(immutable PrimitiveType it) {
-			assert(primitiveSize(it) <= stackEntrySize);
-			return immutable u8(1);
-		},
-		(immutable LowType.Record it) =>
-			divRoundUp(fullIndexDictGet(typeLayout.recordSizes, it), stackEntrySize),
-		(immutable LowType.Union it) =>
-			divRoundUp(fullIndexDictGet(typeLayout.unionSizes, it), stackEntrySize));
+	return divRoundUp(sizeOfType(typeLayout, t), stackEntrySize);
 }
 
 void generateBytecodeForFun(TempAlloc, CodeAlloc)(
@@ -289,10 +295,15 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 	ref immutable LowProgram program,
 	ref immutable LowFun fun,
 ) {
+	debug {
+		immutable Str mn = fun.mangledName;
+		printf("\n\n=== Start compiling fun: %.*s ===\n", cast(int) size(mn), begin(mn));
+	}
+
 	matchLowFunBody!void(
 		fun.body_,
 		(ref immutable LowFunBody.Extern body_) {
-			generateExternCall(body_);
+			generateExternCall(tempAlloc, writer, fun, body_);
 		},
 		(ref immutable LowFunExprBody body_) {
 			uint stackEntry = 0;
@@ -306,6 +317,7 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 					return immutable StackEntries(start, n);
 				});
 			setStackEntryAfterParameters(writer, stackEntry);
+			immutable uint stackEntryAfterParameters = stackEntry;
 			// Note: not doing it for locals because they might be unrelated and occupy the same stack entry
 			ExprCtx ctx = ExprCtx(
 				ptrTrustMe(program),
@@ -314,11 +326,30 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 				parameters);
 			generateExpr(tempAlloc, writer, ctx, body_.expr);
 			writeReturn(writer);
+
+			immutable uint returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
+			debug {
+				printf("RETURNING: stackEntryAfterParameters: %d, returnEntries: %d, nextStackEntry: %d\n",
+					stackEntryAfterParameters,
+					returnEntries,
+					getNextStackEntry(writer));
+			}
+			verify(stackEntryAfterParameters + returnEntries == getNextStackEntry(writer));
+			writeRemove(writer, immutable StackEntries(0, safeU32ToU8(stackEntryAfterParameters)));
+			verify(getNextStackEntry(writer) == returnEntries);
+			setNextStackEntry(writer, 0);
 		});
 }
 
-void generateExternCall(ref immutable LowFunBody.Extern a) {
-	todo!void("generateExternCall");
+void generateExternCall(TempAlloc, CodeAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref immutable LowFun fun,
+	ref immutable LowFunBody.Extern a,
+) {
+	if (strEqLiteral(fun.mangledName, "malloc")) {
+		writeFn(writer, FnOp.malloc);
+	}
 }
 
 struct ExprCtx {
@@ -328,6 +359,11 @@ struct ExprCtx {
 	immutable Arr!StackEntries parameterEntries;
 	MutDict!(immutable Ptr!LowLocal, immutable StackEntries, comparePtr!LowLocal) localEntries;
 }
+
+//TODO:KILL (for debug)
+import core.stdc.stdio : printf;
+import util.collection.arr : begin;
+import util.collection.str : Str;
 
 void generateExpr(CodeAlloc, TempAlloc)(
 	ref TempAlloc tempAlloc,
@@ -339,37 +375,116 @@ void generateExpr(CodeAlloc, TempAlloc)(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
 			immutable uint stackEntryBeforeArgs = getNextStackEntry(writer);
+			immutable uint expectedStackEffect = nStackEntriesForType(ctx, expr.type);
+
+			debug {
+				immutable Str mn = fullIndexDictGet(ctx.program.allFuns, it.called).mangledName;
+				printf("START COMPILING CALL %.*s\n", cast(int) size(mn), begin(mn));
+				printf("Stack before: %i\n", stackEntryBeforeArgs);
+			}
+
 			foreach (ref immutable LowExpr arg; range(it.args))
 				generateExpr(tempAlloc, writer, ctx, arg);
 			registerFunAddress(tempAlloc, ctx, it.called,
-				writeCallDelayed(writer, stackEntryBeforeArgs, nStackEntriesForType(ctx, expr.type)));
+				writeCallDelayed(writer, stackEntryBeforeArgs, expectedStackEffect));
+
+			debug {
+				printf("DONE COMPILING CALL %.*s\n", cast(int) size(mn), begin(mn));
+				printf("Stack after: %i\n", getNextStackEntry(writer));
+			}
+			verify(stackEntryBeforeArgs + expectedStackEffect == getNextStackEntry(writer));
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
-			// WARN: this works because we store every record field in separate entries.
-			// When allocating to the heap we'll compact them according to the record layout.
-			foreach (ref immutable LowExpr arg; range(it.args))
-				generateExpr(tempAlloc, writer, ctx, arg);
+			debug {
+				printf("\nCOMPILING CREATERECORD\n");
+			}
+
+			immutable uint before = getNextStackEntry(writer);
+
+			void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
+				if (has(packStart)) {
+					debug {
+						printf("Packing! start=%lu, end=%lu\n", force(packStart), packEnd);
+						printf("Packing stack entry before: %d\n", getNextStackEntry(writer));
+					}
+					// Need to give the instruction the field sizes
+					immutable Arr!u8 fieldSizes = map(
+						tempAlloc,
+						slice(it.args, force(packStart), packEnd - force(packStart)),
+						(ref immutable LowExpr arg) => safeSizeTToU8(sizeOfType(ctx, arg.type)));
+					writePack(writer, fieldSizes);
+					debug {
+						printf("Packing stack entry after: %d\n", getNextStackEntry(writer));
+					}
+				}
+			}
+
+			void recur(immutable Opt!size_t packStart, immutable size_t fieldIndex) {
+				if (fieldIndex == size(it.args)) {
+					maybePack(packStart, fieldIndex);
+				} else {
+					immutable size_t fieldSize = sizeOfType(ctx, at(it.args, fieldIndex).type);
+					debug {
+						printf("Compiling field %lu, size %lu\n", fieldIndex, fieldSize);
+						printf("field kind is %d\n", cast(int)at(it.args, fieldIndex).kind.kind);
+						printf("Cur stack entry: %d\n", getNextStackEntry(writer));
+					}
+					if (fieldSize < 8) {
+						generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
+						recur(has(packStart) ? packStart : some(fieldIndex), fieldIndex + 1);
+					} else {
+						verify(fieldSize % 8 == 0);
+						maybePack(packStart, fieldIndex);
+						generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
+						recur(none!size_t, fieldIndex + 1);
+					}
+				}
+			}
+
+			recur(none!size_t, 0);
+
+			immutable uint after = getNextStackEntry(writer);
+			immutable uint stackEntriesForType = nStackEntriesForType(ctx, expr.type);
+			debug {
+				printf(
+					"CreateRecord; before: %d, after: %d, stackEntriesForType: %d\n",
+					before, after, stackEntriesForType);
+			}
+			verify(after - before == stackEntriesForType);
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
 			//immutable uint offset = nStackEntriesForUnionTypeExcludingKind(ctx.program, asUnionType(it.type));
+			immutable uint before = getNextStackEntry(writer);
+			immutable uint size = nStackEntriesForType(ctx, expr.type);
 			writePushConstant(writer, it.memberIndex);
 			generateExpr(tempAlloc, writer, ctx, it.arg);
+			immutable uint after = getNextStackEntry(writer);
+			if (before + size != after) {
+				// Some members of a union are smaller than the union.
+				verify(before + size > after);
+				writePushEmptySpace(writer, before + size - after);
+			}
 		},
 		(ref immutable LowExprKind.FunPtr it) {
+			debug {
+				printf("compiling funptr\n");
+			}
 			registerFunAddress(tempAlloc, ctx, it.fun,
 				writePushU32Delayed(writer));
 		},
 		(ref immutable LowExprKind.Let it) {
+			debug {
+
+				immutable Str mn = it.local.mangledName;
+				printf("START COMPILING LET %.*s\n", cast(int) size(mn), begin(mn));
+			}
+
 			immutable StackEntries localEntries =
 				immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, it.local.type));
 			generateExpr(tempAlloc, writer, ctx, it.value);
 
 			debug {
-				import core.stdc.stdio : printf;
-				import util.collection.arr : begin;
-				import util.collection.str : Str;
-				immutable Str mn = it.local.mangledName;
-				printf("COMPILING LET %.*s\n", cast(int) size(mn), begin(mn));
+				printf("MID COMPILING LET %.*s\n", cast(int) size(mn), begin(mn));
 				printf("First entry: %u\n", localEntries.start);
 				printf("Size: %u\n", localEntries.size);
 				printf("New next entry is: %u\n", getNextStackEntry(writer));
@@ -379,6 +494,12 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			generateExpr(tempAlloc, writer, ctx, it.then);
 			mustDelete(ctx.localEntries, it.local);
 			writeRemove(writer, localEntries);
+
+			debug {
+				printf(
+					"DONE COMPILING LET %.*s: next stack entry %d\n",
+					cast(int) size(mn), begin(mn), getNextStackEntry(writer));
+			}
 		},
 		(ref immutable LowExprKind.LocalRef it) {
 			writeDup(writer, mustGetAt_mut(ctx.localEntries, it.local));
@@ -414,7 +535,8 @@ void generateExpr(CodeAlloc, TempAlloc)(
 							immutable StackEntries(matchedEntriesWithoutKind.start, nEntries));
 					}
 					generateExpr(tempAlloc, writer, ctx, case_.then);
-					mustDelete(ctx.localEntries, force(case_.local));
+					if (has(case_.local))
+						mustDelete(ctx.localEntries, force(case_.local));
 					if (caseIndex != size(it.cases) - 1) {
 						setNextStackEntry(writer, stackAfterMatched);
 						return some(writeJumpDelayed(writer));
@@ -430,28 +552,36 @@ void generateExpr(CodeAlloc, TempAlloc)(
 		(ref immutable LowExprKind.ParamRef it) {
 			writeDup(writer, at(ctx.parameterEntries, it.index.index));
 		},
-		(ref immutable LowExprKind.PtrCast) {
-			// Do nothing
+		(ref immutable LowExprKind.PtrCast it) {
+			generateExpr(tempAlloc, writer, ctx, it.target);
 		},
 		(ref immutable LowExprKind.RecordFieldAccess it) {
+			debug {
+				immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, it.record);
+				immutable LowField field = at(record.fields, it.fieldIndex);
+				printf("compiling RecordFieldAccess, record=%.*s, field=%.*s\n",
+					cast(int) size(record.mangledName), begin(record.mangledName),
+					cast(int) size(field.mangledName), begin(field.mangledName));
+			}
 			immutable uint targetEntry = getNextStackEntry(writer);
 			generateExpr(tempAlloc, writer, ctx, it.target);
 			immutable StackEntries targetEntries = immutable StackEntries(
 				targetEntry,
 				safeU32ToU8(getNextStackEntry(writer) - targetEntry));
-			immutable FieldOffsetAndSize offsetAndSize =
-				getFieldOffsetAndSize(ctx.typeLayout, it.record, it.fieldIndex);
+			immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
 			if (it.targetIsPointer) {
 				writeRead(writer, offsetAndSize.offset, offsetAndSize.size);
 			} else {
-				if (offsetAndSize.offset % stackEntrySize == 0) {
-					assert(offsetAndSize.size % stackEntrySize == 0);
+				debug {
+					printf("Field offset is %d, size is %d\n", offsetAndSize.offset, offsetAndSize.size);
+				}
+				if (offsetAndSize.size % stackEntrySize == 0) {
+					verify(offsetAndSize.offset % stackEntrySize == 0);
 					immutable StackEntries entries = immutable StackEntries(
 						targetEntry + (offsetAndSize.offset / stackEntrySize),
 						offsetAndSize.size / stackEntrySize);
 					writeDup(writer, entries);
 				} else {
-					verify(offsetAndSize.offset < stackEntrySize);
 					writeDupPartial(
 						writer,
 						safeU32ToU8(targetEntry + (offsetAndSize.offset / stackEntrySize)),
@@ -462,12 +592,26 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			}
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
+			immutable uint before = getNextStackEntry(writer);
+
 			verify(it.targetIsPointer);
 			generateExpr(tempAlloc, writer, ctx, it.target);
+			immutable uint mid = getNextStackEntry(writer);
 			generateExpr(tempAlloc, writer, ctx, it.value);
-			immutable FieldOffsetAndSize offsetAndSize =
-				getFieldOffsetAndSize(ctx.typeLayout, it.record, it.fieldIndex);
+			immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
+			debug {
+				printf("Compiling RecordFieldSet: before: %d, mid: %d, field size (bytes): %d, now: %d\n",
+					before, mid, offsetAndSize.size, getNextStackEntry(writer));
+			}
+			verify(mid + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer));
 			writeWrite(writer, offsetAndSize.offset, offsetAndSize.size);
+
+			debug {
+				printf("Compiling RecordFieldSet: before: %d, after: %d\n",
+					before,
+					getNextStackEntry(writer));
+			}
+			verify(getNextStackEntry(writer) == before);
 		},
 		(ref immutable LowExprKind.Seq it) {
 			generateExpr(tempAlloc, writer, ctx, it.first);
@@ -483,7 +627,15 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			generateSpecial0Ary(writer, it);
 		},
 		(ref immutable LowExprKind.SpecialUnary it) {
-			generateSpecialUnary(tempAlloc, writer, ctx, it);
+			debug {
+				import sexprOfLowModel : strOfSpecialUnaryKind;
+				immutable string kind = strOfSpecialUnaryKind(it.kind);
+				printf("Unary %.*s stack before: %d\n", cast(int) kind.length, kind.ptr, getNextStackEntry(writer));
+			}
+			generateSpecialUnary(tempAlloc, writer, ctx, expr, it);
+			debug {
+				printf("Unary %.*s stack after: %d\n", cast(int) kind.length, kind.ptr, getNextStackEntry(writer));
+			}
 		},
 		(ref immutable LowExprKind.SpecialBinary it) {
 			generateSpecialBinary(tempAlloc, writer, ctx, expr.range, it);
@@ -502,15 +654,13 @@ struct FieldOffsetAndSize {
 }
 
 immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
-	ref immutable TypeLayout typeLayout,
+	ref const ExprCtx ctx,
 	immutable LowType.Record record,
 	immutable u8 fieldIndex,
 ) {
-	immutable Arr!u8 fieldOffsets = fullIndexDictGet(typeLayout.fieldOffsets, record);
+	immutable Arr!u8 fieldOffsets = fullIndexDictGet(ctx.typeLayout.fieldOffsets, record);
 	immutable u8 offset = at(fieldOffsets, fieldIndex);
-	immutable u8 size = fieldIndex == size(fieldOffsets) - 1
-		? fullIndexDictGet(typeLayout.recordSizes, record)
-		: at(fieldOffsets, fieldIndex + 1);
+	immutable u8 size = sizeOfType(ctx, at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).type);
 	return immutable FieldOffsetAndSize(offset, size);
 }
 
@@ -539,7 +689,13 @@ void generateSpecialConstant(CodeAlloc)(
 			writePushConstant(writer, 0);
 		},
 		(immutable LowExprKind.SpecialConstant.StrConstant it) {
+			debug {
+				printf("Compiling str constant, stack before: %d\n", getNextStackEntry(writer));
+			}
 			writePushConstantStr(writer, it.value);
+			debug {
+				printf("Str constant stack after: %d\n", getNextStackEntry(writer));
+			}
 		},
 		(immutable LowExprKind.SpecialConstant.Void) {
 			// do nothing
@@ -557,9 +713,14 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
+	ref immutable LowExpr expr,
 	ref immutable LowExprKind.SpecialUnary a,
 ) {
-	generateExpr(tempAlloc, writer, ctx, a.arg);
+	void fn(immutable FnOp fnOp) {
+		generateExpr(tempAlloc, writer, ctx, a.arg);
+		writeFn(writer, fnOp);
+	}
+
 	final switch (a.kind) {
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 		case LowExprKind.SpecialUnary.Kind.asRef:
@@ -578,30 +739,44 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32:
 			// do nothing (doesn't change the bits, just their type)
 			// Some of these widen, but all fit within the one stack entry so nothing to do
+			generateExpr(tempAlloc, writer, ctx, a.arg);
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			// TODO: this is a 'read' operation, depends on the size of the type
 			todo!void("deref");
 			break;
 		case LowExprKind.SpecialUnary.Kind.hardFail:
-			writeFn(writer, FnOp.hardFail);
+			generateExpr(tempAlloc, writer, ctx, a.arg);
+			writeFnHardFail(writer, nStackEntriesForType(ctx, expr.type));
 			break;
 		case LowExprKind.SpecialUnary.Kind.not:
-			writeFn(writer, FnOp.not);
+			fn(FnOp.not);
 			break;
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
-			writeFn(writer, FnOp.ptrToOrRefOfVal);
+			generateRefOfVal(writer, ctx, a.arg);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64: // FnOp.float64FromInt64
-			writeFn(writer, FnOp.float64FromInt64);
+			fn(FnOp.float64FromInt64);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
-			writeFn(writer, FnOp.float64FromNat64);
+			fn(FnOp.float64FromNat64);
 			break;
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
-			writeFn(writer, FnOp.truncateToInt64FromFloat64);
+			fn(FnOp.truncateToInt64FromFloat64);
 			break;
+	}
+}
+
+void generateRefOfVal(CodeAlloc)(ref ByteCodeWriter!CodeAlloc writer, ref ExprCtx ctx, ref immutable LowExpr arg) {
+	if (isLocalRef(arg.kind)) {
+		immutable Ptr!LowLocal local = asLocalRef(arg.kind).local;
+		writeStackRef(writer, mustGetAt_mut(ctx.localEntries, local).start);
+	} else if (isRecordFieldAccess(arg.kind)) {
+		asRecordFieldAccess(arg.kind);
+		todo!void("RECORDFIELDACCESS");
+	} else {
+		todo!void("ref-of-val -- not a local or record field");
 	}
 }
 

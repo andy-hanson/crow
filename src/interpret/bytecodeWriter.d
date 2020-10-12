@@ -2,14 +2,24 @@ module interpret.bytecodeWriter;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeOffset, FnOp, stackEntrySize;
+import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeOffset, FnOp, stackEntrySize, StackOffset;
 import interpret.opcode : OpCode;
-import util.collection.arr : Arr, begin, size;
+import util.collection.arr : Arr, begin, empty, range, size;
 import util.collection.mutArr : moveToArr, MutArr, mutArrRange, mutArrSize, push, pushAll, setAt;
 import util.collection.str : Str;
 import util.ptr : Ptr;
-import util.types : bottomU8OfU32, bottomU32OfU64, catU4U4, maxU32, safeSizeTToU32, safeU32ToU8, u8, u32, u64;
-import util.util : divRoundUp, verify;
+import util.types :
+	bottomU8OfU32,
+	bottomU32OfU64,
+	catU4U4,
+	maxU32,
+	safeSizeTToU8,
+	safeSizeTToU32,
+	safeU32ToU8,
+	u8,
+	u32,
+	u64;
+import util.util : divRoundUp, unreachable, verify;
 
 struct ByteCodeWriter(Alloc) {
 	private:
@@ -127,8 +137,14 @@ void writeRead(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u8 offset, immu
 	pushOpcode(writer, OpCode.read);
 	pushU8(writer.alloc, writer.code, offset);
 	pushU8(writer.alloc, writer.code, size);
-	writer.nextStackEntry -= 1;
-	writer.nextStackEntry += divRoundUp(size, stackEntrySize);
+	writer.nextStackEntry += divRoundUp(size, stackEntrySize) - 1;
+}
+
+void writeStackRef(Alloc)(ref ByteCodeWriter!Alloc writer, immutable uint stackEntry) {
+	pushOpcode(writer, OpCode.stackRef);
+	immutable StackOffset offset = immutable StackOffset(safeU32ToU8(writer.nextStackEntry - 1 - stackEntry));
+	pushU8(writer.alloc, writer.code, offset.offset);
+	writer.nextStackEntry += 1;
 }
 
 void writeWrite(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u8 offset, immutable u8 size) {
@@ -136,6 +152,12 @@ void writeWrite(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u8 offset, imm
 	pushU8(writer.alloc, writer.code, offset);
 	pushU8(writer.alloc, writer.code, size);
 	writer.nextStackEntry -= 1 + divRoundUp(size, stackEntrySize);
+}
+
+// Consume stack space without caring what's in it. Useful for unions.
+void writePushEmptySpace(Alloc)(ref ByteCodeWriter!Alloc writer, immutable size_t nSpaces) {
+	foreach (immutable size_t i; 0..nSpaces)
+		writePushConstant(writer, 0);
 }
 
 void writePushConstant(Alloc)(ref ByteCodeWriter!Alloc writer, immutable size_t value) {
@@ -147,9 +169,7 @@ void writePushConstant(Alloc)(ref ByteCodeWriter!Alloc writer, immutable size_t 
 }
 
 void writePushConstantStr(Alloc)(ref ByteCodeWriter!Alloc writer, immutable Str value) {
-	pushOpcode(writer, OpCode.pushU32);
-	pushU32(writer.alloc, writer.code, safeSizeTToU32(size(value)));
-	pushOpcode(writer, OpCode.pushU64);
+	writePushU32(writer, safeSizeTToU32(size(value)));
 	immutable ByteCodeIndex delayed = writePushU64Delayed(writer);
 	immutable u32 textIndex = safeSizeTToU32(mutArrSize(writer.text));
 	pushAll(writer.alloc, writer.text, value);
@@ -213,6 +233,15 @@ void fillInJumpDelayed(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCod
 	writeU8(writer.code, jumpIndex.index, safeU32ToU8(curByteCodeIndex(writer).index - 1 - jumpIndex.index));
 }
 
+void writePack(Alloc)(ref ByteCodeWriter!Alloc writer, immutable Arr!u8 sizes) {
+	verify(!empty(sizes));
+	pushOpcode(writer, OpCode.pack);
+	pushU8(writer.alloc, writer.code, safeSizeTToU8(size(sizes)));
+	foreach (immutable u8 size; range(sizes))
+		pushU8(writer.alloc, writer.code, size);
+	writer.nextStackEntry -= (size(sizes) - 1);
+}
+
 immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(ref ByteCodeWriter!Alloc writer, immutable size_t nCases) {
 	pushOpcode(writer, OpCode.switch_);
 	immutable ByteCodeIndex addresses = curByteCodeIndex(writer);
@@ -222,8 +251,6 @@ immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(ref ByteCodeWriter!Alloc writer
 }
 
 void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, immutable FnOp fn) {
-	pushOpcode(writer, OpCode.fn);
-	pushU8(writer.alloc, writer.code, fn);
 	immutable int stackEffect = () {
 		final switch (fn) {
 			case FnOp.addFloat64:
@@ -268,19 +295,30 @@ void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, immutable FnOp fn) {
 				return -1;
 			case FnOp.float64FromInt64:
 			case FnOp.float64FromNat64:
+			case FnOp.malloc:
 			case FnOp.not:
 			case FnOp.truncateToInt64FromFloat64:
 				return 0;
 			case FnOp.ptrToOrRefOfVal:
 				return 1;
 			case FnOp.hardFail:
-				return 2; // string takes 2 stack entries
+				return unreachable!int(); // Use writeFnHardFail instead
 		}
 	}();
-	writer.nextStackEntry += stackEffect;
+	writeFnCommon(writer, fn, stackEffect);
+}
+
+void writeFnHardFail(Alloc)(ref ByteCodeWriter!Alloc writer, immutable uint stackEntriesForReturnType) {
+	writeFnCommon(writer, FnOp.hardFail, (cast(int) stackEntriesForReturnType) - 2);
 }
 
 private:
+
+void writeFnCommon(Alloc)(ref ByteCodeWriter!Alloc writer, immutable FnOp fnOp, immutable int stackEffect) {
+	pushOpcode(writer, OpCode.fn);
+	pushU8(writer.alloc, writer.code, fnOp);
+	writer.nextStackEntry += stackEffect;
+}
 
 void pushOpcode(Alloc)(ref ByteCodeWriter!Alloc writer, immutable OpCode code) {
 	push(writer.alloc, writer.code, code);

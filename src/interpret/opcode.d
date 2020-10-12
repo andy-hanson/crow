@@ -15,7 +15,7 @@ enum OpCode : u8 {
 	// args: u8 stackOffsetOfFunPtr
 	callFunPtr,
 
-	// args: u8 offset
+	// args: u8 stackOffset
 	dup,
 
 	// args: u8 entryOffset, u4 byteOffset, u4 sizeBytes
@@ -28,6 +28,10 @@ enum OpCode : u8 {
 	// args: u8 offset
 	// (note: an offset of 0 still takes you to the next instruction)
 	jump,
+
+	// args: u8 nToPack, u8[nToPack] sizes
+	// Sum of sizes is <= 8
+	pack,
 
 	// args: u32 value
 	// Push a constant u32 value. (Takes up a full 64-bit stack entry)
@@ -45,6 +49,9 @@ enum OpCode : u8 {
 
 	// args: none
 	return_,
+
+	// args: u8 stackOffset
+	stackRef,
 
 	// args: u8[nCases] offsets
 	switch_,
