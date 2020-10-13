@@ -66,7 +66,15 @@ import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, first, only, ptrAt, arrRange = range, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAt, arrBuilderSize, finishArr;
-import util.collection.arrUtil : arrLiteral, map, mapOp, mapWithIndex, mapWithOptFirst, mapWithOptFirst2, slice, tail;
+import util.collection.arrUtil :
+	arrLiteral,
+	map,
+	mapOp,
+	mapWithIndexAndConcatOne,
+	mapWithOptFirst,
+	mapWithOptFirst2,
+	slice,
+	tail;
 import util.collection.dict : Dict, getAt, mustGetAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr, fullIndexDictSize;
@@ -137,8 +145,8 @@ immutable(LowFunIndex) getCompareFun(ref const CompareFuns compareFuns, ref immu
 private:
 
 struct AllLowFuns {
-	immutable FullIndexDict!(LowFunIndex, LowFun) allLowFuns; // Does not include main (TODO: that is stupid)
-	immutable LowFun main;
+	immutable FullIndexDict!(LowFunIndex, LowFun) allLowFuns;
+	immutable LowFunIndex main;
 }
 
 struct GetLowTypeCtx {
@@ -460,62 +468,89 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
 		finishDictShouldBeNoConflict(alloc, concreteFunToLowFunIndexBuilder);
 
-	immutable FullIndexDict!(LowFunIndex, LowFun) allLowFuns = fullIndexDictOfArr!(LowFunIndex, LowFun)(
-		mapWithIndex(alloc, lowFunSources, (immutable size_t index, ref immutable LowFunSource source) =>
-			matchLowFunSource!(immutable LowFun)(
-				source,
-				(ref immutable LowFunSource.Compare it) =>
-					generateCompareFun(
-						alloc,
-						SourceRange.empty,
-						allTypes,
-						comparisonTypes,
-						compareFuns,
-						immutable LowFunIndex(index),
-						it.type,
-						it.typeIsArr),
-				(immutable Ptr!ConcreteFun cf) {
-					immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, cf.returnType);
-					immutable Opt!LowParam ctxParam = cf.needsCtx
-						? some(immutable LowParam(strLiteral("ctx"), ctxType))
-						: none!LowParam;
-					immutable Opt!LowParam closureParam = mapOption(cf.closureParam, (ref immutable ConcreteParam it) =>
-						getLowParam(alloc, getLowTypeCtx, it));
-					immutable Arr!LowParam params = mapWithOptFirst2!(LowParam, ConcreteParam, Alloc)(
-						alloc,
-						ctxParam,
-						closureParam,
-						cf.paramsExcludingCtxAndClosure,
-						(ref immutable ConcreteParam it) =>
-							getLowParam(alloc, getLowTypeCtx, it));
-					immutable Opt!LowParamIndex ctxParamIndex = has(ctxParam)
-						? some(immutable LowParamIndex(0))
-						: none!LowParamIndex;
-					immutable Opt!LowParamIndex closureParamIndex = has(cf.closureParam)
-						? some(immutable LowParamIndex(cf.needsCtx ? 1 : 0))
-						: none!LowParamIndex;
-					immutable LowFunBody body_ = getLowFunBody!Alloc(
-						alloc,
-						allTypes,
-						getLowTypeCtx,
-						concreteFunToLowFunIndex,
-						ctxType,
-						ctxParamIndex,
-						closureParamIndex,
-						immutable LowParamIndex((has(ctxParamIndex) ? 1 : 0) + (has(closureParamIndex) ? 1 : 0)),
-						body_(cf));
-					return immutable LowFun(copyStr(alloc, cf.mangledName), returnType, params, body_);
-				})));
+	immutable LowType userMainFunPtrType =
+		lowTypeFromConcreteType(alloc, getLowTypeCtx, at(program.rtMain.paramsExcludingCtxAndClosure, 2).type);
 
-	immutable LowFunIndex userMainIndex = mustGetAt(concreteFunToLowFunIndex, program.userMain);
-	immutable LowFunIndex rtMainIndex = mustGetAt(concreteFunToLowFunIndex, program.rtMain);
-	immutable LowFun mainFun = mainFun!Alloc(
-		alloc,
-		getLowTypeCtx,
-		rtMainIndex,
-		userMainIndex,
-		fullIndexDictGet(allLowFuns, rtMainIndex));
-	return immutable AllLowFuns(allLowFuns, mainFun);
+	immutable FullIndexDict!(LowFunIndex, LowFun) allLowFuns = fullIndexDictOfArr!(LowFunIndex, LowFun)(
+		mapWithIndexAndConcatOne(
+			alloc,
+			lowFunSources,
+			(immutable size_t index, ref immutable LowFunSource source) =>
+				lowFunFromSource(
+					alloc,
+					allTypes,
+					getLowTypeCtx,
+					ctxType,
+					concreteFunToLowFunIndex,
+					compareFuns,
+					comparisonTypes,
+					index,
+					source),
+			mainFun(
+				alloc,
+				getLowTypeCtx,
+				mustGetAt(concreteFunToLowFunIndex, program.rtMain),
+				mustGetAt(concreteFunToLowFunIndex, program.userMain),
+				userMainFunPtrType)));
+
+	return immutable AllLowFuns(allLowFuns, immutable LowFunIndex(size(lowFunSources)));
+}
+
+immutable(LowFun) lowFunFromSource(Alloc)(
+	ref Alloc alloc,
+	ref immutable AllLowTypes allTypes,
+	ref GetLowTypeCtx getLowTypeCtx,
+	ref immutable LowType ctxType,
+	ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
+	ref const CompareFuns compareFuns,
+	ref immutable ComparisonTypes comparisonTypes,
+	immutable size_t index,
+	ref immutable LowFunSource source,
+) {
+	return matchLowFunSource!(immutable LowFun)(
+		source,
+		(ref immutable LowFunSource.Compare it) =>
+			generateCompareFun(
+				alloc,
+				SourceRange.empty,
+				allTypes,
+				comparisonTypes,
+				compareFuns,
+				immutable LowFunIndex(index),
+				it.type,
+				it.typeIsArr),
+		(immutable Ptr!ConcreteFun cf) {
+			immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, cf.returnType);
+			immutable Opt!LowParam ctxParam = cf.needsCtx
+				? some(immutable LowParam(strLiteral("ctx"), ctxType))
+				: none!LowParam;
+			immutable Opt!LowParam closureParam = mapOption(cf.closureParam, (ref immutable ConcreteParam it) =>
+				getLowParam(alloc, getLowTypeCtx, it));
+			immutable Arr!LowParam params = mapWithOptFirst2!(LowParam, ConcreteParam, Alloc)(
+				alloc,
+				ctxParam,
+				closureParam,
+				cf.paramsExcludingCtxAndClosure,
+				(ref immutable ConcreteParam it) =>
+					getLowParam(alloc, getLowTypeCtx, it));
+			immutable Opt!LowParamIndex ctxParamIndex = has(ctxParam)
+				? some(immutable LowParamIndex(0))
+				: none!LowParamIndex;
+			immutable Opt!LowParamIndex closureParamIndex = has(cf.closureParam)
+				? some(immutable LowParamIndex(cf.needsCtx ? 1 : 0))
+				: none!LowParamIndex;
+			immutable LowFunBody body_ = getLowFunBody!Alloc(
+				alloc,
+				allTypes,
+				getLowTypeCtx,
+				concreteFunToLowFunIndex,
+				ctxType,
+				ctxParamIndex,
+				closureParamIndex,
+				immutable LowParamIndex((has(ctxParamIndex) ? 1 : 0) + (has(closureParamIndex) ? 1 : 0)),
+				body_(cf));
+			return immutable LowFun(copyStr(alloc, cf.mangledName), returnType, params, body_);
+		});
 }
 
 immutable(ComparisonTypes) getComparisonTypes(
@@ -535,7 +570,7 @@ immutable(LowFun) mainFun(Alloc)(
 	ref const GetLowTypeCtx ctx,
 	immutable LowFunIndex rtMainIndex,
 	immutable LowFunIndex userMainIndex,
-	ref immutable LowFun rtMain,
+	ref immutable LowType userMainFunPtrType,
 ) {
 	immutable Arr!LowParam params = arrLiteral!LowParam(
 		alloc,
@@ -543,7 +578,6 @@ immutable(LowFun) mainFun(Alloc)(
 		immutable LowParam(strLiteral("argv"), charPtrPtrType));
 	immutable LowParamIndex argc = immutable LowParamIndex(0);
 	immutable LowParamIndex argv = immutable LowParamIndex(1);
-	immutable LowType userMainFunPtrType = at(rtMain.params, 2).type;
 	immutable LowExpr userMainFunPtr = immutable LowExpr(
 		userMainFunPtrType,
 		SourceRange.empty,

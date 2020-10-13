@@ -39,7 +39,6 @@ void checkLowProgram(ref immutable LowProgram a) {
 	fullIndexDictEachValue(a.allFuns, (ref immutable LowFun fun) {
 		checkLowFun(ctx, fun);
 	});
-	checkLowFun(ctx, a.main);
 }
 
 private:

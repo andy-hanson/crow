@@ -1738,6 +1738,7 @@ uint8_t print_bold___void(struct ctx* ctx);
 uint8_t print_reset___void(struct ctx* ctx);
 uint8_t print_failures__int32__result__arr__char__arr__ptr_failure__test_options__lambda0(struct ctx* ctx, uint8_t* _closure, struct failure* it);
 int32_t to_int32__int32__nat(struct ctx* ctx, uint64_t n);
+int32_t main(int32_t argc, char** argv);
 int32_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(int32_t argc, char** argv, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr) {
 	uint64_t n_threads;
 	struct global_ctx gctx_by_val;

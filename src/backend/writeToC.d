@@ -79,10 +79,6 @@ immutable(Str) writeToC(Alloc)(
 		writeFunDefinition(writer, funBodyCtx, funIndex, fun);
 	});
 
-	immutable LowFunIndex mainIndex = immutable LowFunIndex(fullIndexDictSize(program.allFuns));
-	immutable FunBodyCtx mainFunBodyCtx = immutable FunBodyCtx(ptrTrustMe(ctx), mainIndex);
-	writeFunDefinition(writer, mainFunBodyCtx, mainIndex, program.main);
-
 	return finishWriter(writer);
 }
 
@@ -817,13 +813,7 @@ void writeParamRef(Alloc)(
 	ref immutable FunBodyCtx ctx,
 	ref immutable LowExprKind.ParamRef a,
 ) {
-	//TODO: main should just be a normal fun...
-	immutable Arr!LowParam params =
-		(ctx.curFun.index == fullIndexDictSize(ctx.ctx.program.allFuns)
-			? ctx.ctx.program.main
-			: fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun)
-		).params;
-	writeStr(writer, at(params, a.index.index).mangledName);
+	writeStr(writer, at(fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params, a.index.index).mangledName);
 }
 
 void writePtrCast(Alloc)(

@@ -733,6 +733,6 @@ struct LowProgram {
 	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;
 	immutable FullIndexDict!(LowType.Record, LowRecord) allRecords;
 	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions;
-	immutable FullIndexDict!(LowFunIndex, LowFun) allFuns; // Does not include main
-	immutable LowFun main;
+	immutable FullIndexDict!(LowFunIndex, LowFun) allFuns;
+	immutable LowFunIndex main;
 }

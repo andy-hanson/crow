@@ -56,7 +56,7 @@ immutable(Sexpr) tataOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgr
 				tataOfLowUnion(alloc, it))),
 			nameAndTata("funs", tataFullIndexDict(alloc, a.allFuns, (ref immutable LowFun it) =>
 				tataOfLowFun(alloc, it))),
-			nameAndTata("main", tataOfLowFun(alloc, a.main))));
+			nameAndTata("main", tataNat(a.main.index))));
 }
 
 immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) {

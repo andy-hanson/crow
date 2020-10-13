@@ -11683,19 +11683,20 @@ program(
 										call(
 											62
 											[expr(nat-64, range(1860, 1861), param-ref(1)), expr(nat-64, range(1864, 1871), call(64, []))]))]))
-						expr(int-64, range(1875, 1888), unary("unsafe-nat64-to-int64", expr(nat-64, range(1873, 1874), param-ref(1))))))))]
-	main: fun(
-		"main"
-		int-32
-		[param("argc", int-32), param("argv", ptr(ptr(char)))]
-		expr-body(
-			[]
-			expr(
-				int-32
-				range(0, 0)
-				call(
-					0
-					[
-						expr(int-32, range(0, 0), param-ref(0))
-						expr(ptr(ptr(char)), range(0, 0), param-ref(1))
-						expr(fun-ptr(1), range(0, 0), fun-ptr(248))])))))
+						expr(int-64, range(1875, 1888), unary("unsafe-nat64-to-int64", expr(nat-64, range(1873, 1874), param-ref(1))))))))
+		298: fun(
+			"main"
+			int-32
+			[param("argc", int-32), param("argv", ptr(ptr(char)))]
+			expr-body(
+				[]
+				expr(
+					int-32
+					range(0, 0)
+					call(
+						0
+						[
+							expr(int-32, range(0, 0), param-ref(0))
+							expr(ptr(ptr(char)), range(0, 0), param-ref(1))
+							expr(fun-ptr(1), range(0, 0), fun-ptr(248))]))))]
+	main: 298)

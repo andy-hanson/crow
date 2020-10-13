@@ -858,6 +858,7 @@ int64_t three___int();
 int64_t two___int();
 int64_t neg_one___int();
 int64_t to_int___int__nat(struct ctx* ctx, uint64_t n);
+int32_t main(int32_t argc, char** argv);
 int32_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(int32_t argc, char** argv, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr) {
 	uint64_t n_threads;
 	struct global_ctx gctx_by_val;

@@ -11587,19 +11587,20 @@ program(
 																record(13)
 																range(233, 266)
 																record([expr(int-32, range(261, 266), param-ref(1))]))))]))))
-								expr(ptr(record(1)), range(219, 266), local-ref("temp0"))))))))]
-	main: fun(
-		"main"
-		int-32
-		[param("argc", int-32), param("argv", ptr(ptr(char)))]
-		expr-body(
-			[]
-			expr(
-				int-32
-				range(0, 0)
-				call(
-					0
-					[
-						expr(int-32, range(0, 0), param-ref(0))
-						expr(ptr(ptr(char)), range(0, 0), param-ref(1))
-						expr(fun-ptr(1), range(0, 0), fun-ptr(248))])))))
+								expr(ptr(record(1)), range(219, 266), local-ref("temp0"))))))))
+		307: fun(
+			"main"
+			int-32
+			[param("argc", int-32), param("argv", ptr(ptr(char)))]
+			expr-body(
+				[]
+				expr(
+					int-32
+					range(0, 0)
+					call(
+						0
+						[
+							expr(int-32, range(0, 0), param-ref(0))
+							expr(ptr(ptr(char)), range(0, 0), param-ref(1))
+							expr(fun-ptr(1), range(0, 0), fun-ptr(248))]))))]
+	main: 307)

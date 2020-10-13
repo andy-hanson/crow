@@ -399,7 +399,7 @@ void eachWithIndex(T)(
 	immutable Arr!In a,
 	scope immutable(Opt!Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
-	Out* res = cast(Out*) alloc.allocate(Out.sizeof * a.size);
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
 	foreach (immutable size_t i; 0..size(a)) {
 		immutable Opt!Out o = cb(at(a, i));
 		if (has(o))
@@ -414,7 +414,7 @@ void eachWithIndex(T)(
 	ref const Arr!In a,
 	scope immutable(Opt!Out) delegate(ref const In) @safe @nogc pure nothrow cb,
 ) {
-	Out* res = cast(Out*) alloc.allocate(Out.sizeof * a.size);
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
 	foreach (immutable size_t i; 0..size(a)) {
 		immutable Opt!Out o = cb(at(a, i));
 		if (has(o))
@@ -425,15 +425,29 @@ void eachWithIndex(T)(
 	return some(immutable Arr!Out(cast(immutable) res, size(a)));
 }
 
+@trusted immutable(Arr!Out) mapWithIndexAndConcatOne(Out, In, Alloc)(
+	ref Alloc alloc,
+	immutable Arr!In a,
+	scope immutable(Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
+	immutable Out concatOne,
+) {
+	immutable size_t outSize = size(a) + 1;
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * outSize);
+	foreach (immutable size_t i; 0..size(a))
+		initMemory(res + i, cb(i, at(a, i)));
+	initMemory(res + size(a), concatOne);
+	return immutable Arr!Out(cast(immutable) res, outSize);
+}
+
 @trusted immutable(Arr!Out) mapWithIndex(Out, In, Alloc)(
 	ref Alloc alloc,
 	immutable Arr!In a,
 	scope immutable(Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
 ) {
-	Out* res = cast(Out*) alloc.allocate(Out.sizeof * a.size);
-	foreach (immutable size_t i; 0..a.size)
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
+	foreach (immutable size_t i; 0..size(a))
 		initMemory(res + i, cb(i, at(a, i)));
-	return immutable Arr!Out(cast(immutable) res, a.size);
+	return immutable Arr!Out(cast(immutable) res, size(a));
 }
 
 @trusted immutable(Result!(Arr!OutSuccess, OutFailure)) mapOrFail(OutSuccess, OutFailure, In, Alloc)(
@@ -455,12 +469,12 @@ void eachWithIndex(T)(
 }
 
 @trusted immutable(Arr!T) cat(T, Alloc)(ref Alloc alloc, immutable Arr!T a, immutable Arr!T b) {
-	immutable size_t resSize = a.size + b.size;
+	immutable size_t resSize = size(a) + size(b);
 	T* res = cast(T*) alloc.allocate(T.sizeof * resSize);
-	foreach (immutable size_t i; 0..a.size)
+	foreach (immutable size_t i; 0..size(a))
 		initMemory(res + i, a.at(i));
-	foreach (immutable size_t i; 0..b.size)
-		initMemory(res + a.size + i, b.at(i));
+	foreach (immutable size_t i; 0..size(b))
+		initMemory(res + size(a) + i, b.at(i));
 	return immutable Arr!T(cast(immutable) res, resSize);
 }
 
@@ -471,52 +485,52 @@ void eachWithIndex(T)(
 	immutable Arr!T c,
 	immutable Arr!T d,
 ) {
-	immutable size_t resSize = a.size + b.size + c.size + d.size;
+	immutable size_t resSize = size(a) + size(b) + c.size + d.size;
 	T* res = cast(T*) alloc.allocate(T.sizeof * resSize);
-	foreach (immutable size_t i; 0..a.size)
+	foreach (immutable size_t i; 0..size(a))
 		initMemory(res + i, a.at(i));
-	foreach (immutable size_t i; 0..b.size)
-		initMemory(res + a.size + i, b.at(i));
+	foreach (immutable size_t i; 0..size(b))
+		initMemory(res + size(a) + i, b.at(i));
 	foreach (immutable size_t i; 0..c.size)
-		initMemory(res + a.size + b.size + i, c.at(i));
+		initMemory(res + size(a) + size(b) + i, c.at(i));
 	foreach (immutable size_t i; 0..d.size)
-		initMemory(res + a.size + b.size + c.size + i, d.at(i));
+		initMemory(res + size(a) + size(b) + c.size + i, d.at(i));
 	return immutable Arr!T(cast(immutable) res, resSize);
 }
 
 @trusted immutable(Arr!T) prepend(T, Alloc)(ref Alloc alloc, immutable T a, immutable Arr!T b) {
-	immutable size_t resSize = 1 + b.size;
+	immutable size_t resSize = 1 + size(b);
 	T* res = cast(T*) alloc.allocate(T.sizeof * resSize);
 	initMemory(res + 0, a);
-	foreach (immutable size_t i; 0..b.size)
+	foreach (immutable size_t i; 0..size(b))
 		initMemory(res + 1 + i, b.at(i));
 	return immutable Arr!T(cast(immutable) res, resSize);
 }
 
 @trusted immutable(Arr!T) slice(T)(immutable Arr!T a, immutable size_t begin, immutable size_t newSize) {
-	verify(begin + newSize <= a.size);
+	verify(begin + newSize <= size(a));
 	return immutable Arr!T(a.begin + begin, newSize);
 }
 @trusted const(Arr!T) slice(T)(const Arr!T a, immutable size_t begin, immutable size_t newSize) {
-	verify(begin + newSize <= a.size);
+	verify(begin + newSize <= size(a));
 	return const Arr!T(a.begin + begin, newSize);
 }
 @trusted Arr!T slice(T)(Arr!T a, immutable size_t begin, immutable size_t newSize) {
-	verify(begin + newSize <= a.size);
+	verify(begin + newSize <= size(a));
 	return Arr!T(a.begin + begin, newSize);
 }
 
 immutable(Arr!T) slice(T)(immutable Arr!T a, immutable size_t begin) {
-	verify(begin <= a.size);
-	return slice(a, begin, a.size - begin);
+	verify(begin <= size(a));
+	return slice(a, begin, size(a) - begin);
 }
 const(Arr!T) slice(T)(const Arr!T a, immutable size_t begin) {
-	verify(begin <= a.size);
-	return slice(a, begin, a.size - begin);
+	verify(begin <= size(a));
+	return slice(a, begin, size(a) - begin);
 }
 Arr!T slice(T)(Arr!T a, immutable size_t begin) {
-	verify(begin <= a.size);
-	return slice(a, begin, a.size - begin);
+	verify(begin <= size(a));
+	return slice(a, begin, size(a) - begin);
 }
 
 immutable(Arr!T) sliceFromTo(T)(ref immutable Arr!T a, immutable size_t lo, immutable size_t hi) {
@@ -525,21 +539,21 @@ immutable(Arr!T) sliceFromTo(T)(ref immutable Arr!T a, immutable size_t lo, immu
 }
 
 immutable(Arr!T) tail(T)(immutable Arr!T a) {
-	verify(a.size != 0);
+	verify(size(a) != 0);
 	return slice(a, 1);
 }
 const(Arr!T) tail(T)(const Arr!T a) {
-	verify(a.size != 0);
+	verify(size(a) != 0);
 	return slice(a, 1);
 }
 Arr!T tail(T)(Arr!T a) {
-	verify(a.size != 0);
+	verify(size(a) != 0);
 	return slice(a, 1);
 }
 
 immutable(Arr!T) rtail(T)(immutable Arr!T a) {
-	verify(a.size != 0);
-	return a.slice(0, a.size - 1);
+	verify(size(a) != 0);
+	return a.slice(0, size(a) - 1);
 }
 
 //TODO:PERF More efficient than bubble sort..
