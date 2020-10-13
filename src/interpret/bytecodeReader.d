@@ -2,11 +2,11 @@ module interpret.bytecodeReader;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : ByteCode, FnOp, Operation, StackOffset;
+import interpret.bytecode : ByteCode, ByteCodeOffset, FnOp, Operation, StackOffset;
 import interpret.opcode : OpCode;
 import util.collection.arr : Arr;
 import util.ptr : Ptr;
-import util.types : U4U4, u4u4OfU8, u8, u32, u64;
+import util.types : U4U4, u4u4OfU8, u8, u16, u32, u64;
 
 struct ByteCodeReader {
 	immutable(OpCode)* ptr;
@@ -28,7 +28,7 @@ immutable(Operation) readOperation(ref ByteCodeReader reader) {
 		case OpCode.fn:
 			return immutable Operation(immutable Operation.Fn(cast(immutable FnOp) readU8(reader)));
 		case OpCode.jump:
-			return immutable Operation(immutable Operation.Jump(readU8(reader)));
+			return immutable Operation(immutable Operation.Jump(immutable ByteCodeOffset(readU16(reader))));
 		case OpCode.pack:
 			return immutable Operation(immutable Operation.Pack(readU8Array(reader, readU8(reader))));
 		case OpCode.pushU32:
@@ -50,12 +50,12 @@ immutable(Operation) readOperation(ref ByteCodeReader reader) {
 	}
 }
 
-@trusted void readerJump(ref ByteCodeReader reader, immutable u8 jump) {
-	reader.ptr += jump;
+@trusted void readerJump(ref ByteCodeReader reader, immutable ByteCodeOffset jump) {
+	reader.ptr += jump.offset;
 }
 
 @trusted void readerSwitch(ref ByteCodeReader reader, immutable u64 value) {
-	immutable u8 jump = *((cast(immutable u8*) reader.ptr) + value);
+	immutable ByteCodeOffset jump = *((cast(immutable ByteCodeOffset*) reader.ptr) + value);
 	readerJump(reader, jump);
 }
 
@@ -75,20 +75,27 @@ immutable(StackOffset) readStackOffset(ref ByteCodeReader reader) {
 @trusted immutable(u8) readU8(ref ByteCodeReader reader) {
 	immutable(u8)* ptr = cast(immutable(u8)*) reader.ptr;
 	immutable u8 res = *ptr;
-	reader.ptr = cast(immutable(OpCode)*) ptr + 1;
+	reader.ptr = cast(immutable(OpCode)*) (ptr + 1);
+	return res;
+}
+
+@trusted immutable(u16) readU16(ref ByteCodeReader reader) {
+	immutable(u16)* ptr = cast(immutable(u16)*) reader.ptr;
+	immutable u16 res = *ptr;
+	reader.ptr = cast(immutable(OpCode)*) (ptr + 1);
 	return res;
 }
 
 @trusted immutable(u32) readU32(ref ByteCodeReader reader) {
 	immutable(u32)* ptr = cast(immutable(u32)*) reader.ptr;
 	immutable u32 res = *ptr;
-	reader.ptr = cast(immutable(OpCode)*) ptr + 1;
+	reader.ptr = cast(immutable(OpCode)*) (ptr + 1);
 	return res;
 }
 
 @trusted immutable(u64) readU64(ref ByteCodeReader reader) {
 	immutable(u64)* ptr = cast(immutable(u64)*) reader.ptr;
 	immutable u64 res = *ptr;
-	reader.ptr = cast(immutable(OpCode)*) ptr + 1;
+	reader.ptr = cast(immutable(OpCode)*) (ptr + 1);
 	return res;
 }

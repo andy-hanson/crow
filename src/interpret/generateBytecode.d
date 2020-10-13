@@ -13,7 +13,7 @@ import interpret.bytecode :
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	curByteCodeIndex,
-	fillDelayedU8,
+	fillDelayedU16,
 	fillDelayedU32,
 	fillInJumpDelayed,
 	finishByteCode,
@@ -21,6 +21,7 @@ import interpret.bytecodeWriter :
 	setNextStackEntry,
 	setStackEntryAfterParameters,
 	StackEntries,
+	writeAddConstantNat64,
 	writeCallDelayed,
 	writeCallFunPtr,
 	writeDup,
@@ -42,9 +43,11 @@ import interpret.bytecodeWriter :
 import lower.lowExprHelpers : genBool;
 import lowModel :
 	asLocalRef,
+	asParamRef,
 	asRecordFieldAccess,
 	asRecordType,
 	isLocalRef,
+	isParamRef,
 	isRecordFieldAccess,
 	LowExpr,
 	LowExprKind,
@@ -520,7 +523,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 				tempAlloc,
 				it.cases,
 				(immutable size_t caseIndex, ref immutable LowExprKind.Match.Case case_) {
-					fillDelayedU8(
+					fillDelayedU16(
 						writer,
 						addByteCodeIndex(indexOfFirstCaseOffset, safeSizeTToU32(caseIndex)),
 						subtractByteCodeIndex(curByteCodeIndex(writer), indexOfFirstCaseOffset));
@@ -556,40 +559,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			generateExpr(tempAlloc, writer, ctx, it.target);
 		},
 		(ref immutable LowExprKind.RecordFieldAccess it) {
-			debug {
-				immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, it.record);
-				immutable LowField field = at(record.fields, it.fieldIndex);
-				printf("compiling RecordFieldAccess, record=%.*s, field=%.*s\n",
-					cast(int) size(record.mangledName), begin(record.mangledName),
-					cast(int) size(field.mangledName), begin(field.mangledName));
-			}
-			immutable uint targetEntry = getNextStackEntry(writer);
-			generateExpr(tempAlloc, writer, ctx, it.target);
-			immutable StackEntries targetEntries = immutable StackEntries(
-				targetEntry,
-				safeU32ToU8(getNextStackEntry(writer) - targetEntry));
-			immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
-			if (it.targetIsPointer) {
-				writeRead(writer, offsetAndSize.offset, offsetAndSize.size);
-			} else {
-				debug {
-					printf("Field offset is %d, size is %d\n", offsetAndSize.offset, offsetAndSize.size);
-				}
-				if (offsetAndSize.size % stackEntrySize == 0) {
-					verify(offsetAndSize.offset % stackEntrySize == 0);
-					immutable StackEntries entries = immutable StackEntries(
-						targetEntry + (offsetAndSize.offset / stackEntrySize),
-						offsetAndSize.size / stackEntrySize);
-					writeDup(writer, entries);
-				} else {
-					writeDupPartial(
-						writer,
-						safeU32ToU8(targetEntry + (offsetAndSize.offset / stackEntrySize)),
-						offsetAndSize.offset % stackEntrySize,
-						offsetAndSize.size);
-				}
-				writeRemove(writer, targetEntries);
-			}
+			generateRecordFieldAccess(tempAlloc, writer, ctx, it);
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
 			immutable uint before = getNextStackEntry(writer);
@@ -653,15 +623,18 @@ struct FieldOffsetAndSize {
 	immutable u8 size;
 }
 
+immutable(u8) getFieldOffset(ref const ExprCtx ctx, immutable LowType.Record record, immutable u8 fieldIndex) {
+	immutable Arr!u8 fieldOffsets = fullIndexDictGet(ctx.typeLayout.fieldOffsets, record);
+	return at(fieldOffsets, fieldIndex);
+}
+
 immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	ref const ExprCtx ctx,
 	immutable LowType.Record record,
 	immutable u8 fieldIndex,
 ) {
-	immutable Arr!u8 fieldOffsets = fullIndexDictGet(ctx.typeLayout.fieldOffsets, record);
-	immutable u8 offset = at(fieldOffsets, fieldIndex);
 	immutable u8 size = sizeOfType(ctx, at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).type);
-	return immutable FieldOffsetAndSize(offset, size);
+	return immutable FieldOffsetAndSize(getFieldOffset(ctx, record, fieldIndex), size);
 }
 
 void registerFunAddress(TempAlloc)(
@@ -716,8 +689,12 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 	ref immutable LowExpr expr,
 	ref immutable LowExprKind.SpecialUnary a,
 ) {
-	void fn(immutable FnOp fnOp) {
+	void generateArg() {
 		generateExpr(tempAlloc, writer, ctx, a.arg);
+	}
+
+	void fn(immutable FnOp fnOp) {
+		generateArg();
 		writeFn(writer, fnOp);
 	}
 
@@ -739,14 +716,14 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32:
 			// do nothing (doesn't change the bits, just their type)
 			// Some of these widen, but all fit within the one stack entry so nothing to do
-			generateExpr(tempAlloc, writer, ctx, a.arg);
+			generateArg();
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
-			// TODO: this is a 'read' operation, depends on the size of the type
-			todo!void("deref");
+			generateArg();
+			writeRead(writer, 0, sizeOfType(ctx, expr.type));
 			break;
 		case LowExprKind.SpecialUnary.Kind.hardFail:
-			generateExpr(tempAlloc, writer, ctx, a.arg);
+			generateArg();
 			writeFnHardFail(writer, nStackEntriesForType(ctx, expr.type));
 			break;
 		case LowExprKind.SpecialUnary.Kind.not:
@@ -754,7 +731,7 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 			break;
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
-			generateRefOfVal(writer, ctx, a.arg);
+			generateRefOfVal(tempAlloc, writer, ctx, a.arg);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64: // FnOp.float64FromInt64
 			fn(FnOp.float64FromInt64);
@@ -768,15 +745,78 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 	}
 }
 
-void generateRefOfVal(CodeAlloc)(ref ByteCodeWriter!CodeAlloc writer, ref ExprCtx ctx, ref immutable LowExpr arg) {
-	if (isLocalRef(arg.kind)) {
-		immutable Ptr!LowLocal local = asLocalRef(arg.kind).local;
-		writeStackRef(writer, mustGetAt_mut(ctx.localEntries, local).start);
-	} else if (isRecordFieldAccess(arg.kind)) {
-		asRecordFieldAccess(arg.kind);
-		todo!void("RECORDFIELDACCESS");
-	} else {
+void generateRefOfVal(TempAlloc, CodeAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable LowExpr arg,
+) {
+	if (isLocalRef(arg.kind))
+		writeStackRef(writer, mustGetAt_mut(ctx.localEntries, asLocalRef(arg.kind).local).start);
+	else if (isParamRef(arg.kind))
+		writeStackRef(writer, at(ctx.parameterEntries, asParamRef(arg.kind).index.index).start);
+	else if (isRecordFieldAccess(arg.kind))
+		generatePtrToRecordFieldAccess(tempAlloc, writer, ctx, asRecordFieldAccess(arg.kind));
+	else {
 		todo!void("ref-of-val -- not a local or record field");
+	}
+}
+
+void generateRecordFieldAccess(TempAlloc, CodeAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable LowExprKind.RecordFieldAccess it,
+) {
+	//debug {
+	//	immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, it.record);
+	//	immutable LowField field = at(record.fields, it.fieldIndex);
+	//	printf("compiling RecordFieldAccess, record=%.*s, field=%.*s\n",
+	//		cast(int) size(record.mangledName), begin(record.mangledName),
+	//		cast(int) size(field.mangledName), begin(field.mangledName));
+	//}
+	immutable uint targetEntry = getNextStackEntry(writer);
+	generateExpr(tempAlloc, writer, ctx, it.target);
+	immutable StackEntries targetEntries = immutable StackEntries(
+		targetEntry,
+		safeU32ToU8(getNextStackEntry(writer) - targetEntry));
+	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
+	if (it.targetIsPointer) {
+		writeRead(writer, offsetAndSize.offset, offsetAndSize.size);
+	} else {
+		//debug {
+		//	printf("Field offset is %d, size is %d\n", offsetAndSize.offset, offsetAndSize.size);
+		//}
+		if (offsetAndSize.size % stackEntrySize == 0) {
+			verify(offsetAndSize.offset % stackEntrySize == 0);
+			immutable StackEntries entries = immutable StackEntries(
+				targetEntry + (offsetAndSize.offset / stackEntrySize),
+				offsetAndSize.size / stackEntrySize);
+			writeDup(writer, entries);
+		} else {
+			writeDupPartial(
+				writer,
+				safeU32ToU8(targetEntry + (offsetAndSize.offset / stackEntrySize)),
+				offsetAndSize.offset % stackEntrySize,
+				offsetAndSize.size);
+		}
+		writeRemove(writer, targetEntries);
+	}
+}
+
+void generatePtrToRecordFieldAccess(TempAlloc, CodeAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable LowExprKind.RecordFieldAccess it,
+) {
+	generateExpr(tempAlloc, writer, ctx, it.target);
+	immutable u8 offset = getFieldOffset(ctx, it.record, it.fieldIndex);
+	if (it.targetIsPointer)
+		writeAddConstantNat64(writer, offset);
+	else {
+		// This only works if it's a local .. or another recordfieldaccess
+		todo!void("ptr-to-record-field-access");
 	}
 }
 
@@ -962,7 +1002,10 @@ void generateSpecialTrinary(TempAlloc, CodeAlloc)(
 			generateIf(tempAlloc, writer, ctx, a.p0, a.p1, a.p2);
 			break;
 		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrong:
-			todo!void("cmp");
+			generateExpr(tempAlloc, writer, ctx, a.p0);
+			generateExpr(tempAlloc, writer, ctx, a.p1);
+			generateExpr(tempAlloc, writer, ctx, a.p2);
+			writeFn(writer, FnOp.compareExchangeStrong);
 			break;
 	}
 }
@@ -978,11 +1021,11 @@ void generateIf(TempAlloc, CodeAlloc)(
 	immutable uint startStack = getNextStackEntry(writer);
 	generateExpr(tempAlloc, writer, ctx, cond);
 	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, 2);
-	fillDelayedU8(writer, addByteCodeIndex(delayed, 0), subtractByteCodeIndex(curByteCodeIndex(writer), delayed));
+	fillDelayedU16(writer, addByteCodeIndex(delayed, 0), subtractByteCodeIndex(curByteCodeIndex(writer), delayed));
 	generateExpr(tempAlloc, writer, ctx, else_);
 	setNextStackEntry(writer, startStack);
 	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(writer);
-	fillDelayedU8(writer, addByteCodeIndex(delayed, 1), subtractByteCodeIndex(curByteCodeIndex(writer), delayed));
+	fillDelayedU16(writer, addByteCodeIndex(delayed, 1), subtractByteCodeIndex(curByteCodeIndex(writer), delayed));
 	generateExpr(tempAlloc, writer, ctx, then);
 	fillInJumpDelayed(writer, jumpIndex);
 }
@@ -998,7 +1041,7 @@ void generateSpecialNAry(TempAlloc, CodeAlloc)(
 		case LowExprKind.SpecialNAry.Kind.callFunPtr:
 			immutable uint stackEntryBeforeArgs = getNextStackEntry(writer);
 			foreach (ref immutable LowExpr arg; range(a.args))
-				generateExpr(tempAlloc, writer, ctx, expr);
+				generateExpr(tempAlloc, writer, ctx, arg);
 			writeCallFunPtr(writer, stackEntryBeforeArgs, nStackEntriesForType(ctx, expr.type));
 			break;
 	}

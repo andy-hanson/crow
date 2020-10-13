@@ -710,6 +710,15 @@ immutable(Bool) isLocalRef(ref immutable LowExprKind a) {
 	return a.localRef;
 }
 
+immutable(Bool) isParamRef(ref immutable LowExprKind a) {
+	return immutable Bool(a.kind == LowExprKind.Kind.paramRef);
+}
+
+ref immutable(LowExprKind.ParamRef) asParamRef(return scope ref immutable LowExprKind a) {
+	verify(isParamRef(a));
+	return a.paramRef;
+}
+
 immutable(Bool) isRecordFieldAccess(ref immutable LowExprKind a) {
 	return immutable Bool(a.kind == LowExprKind.Kind.recordFieldAccess);
 }

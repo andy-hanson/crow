@@ -4,7 +4,8 @@ module interpret.bytecode;
 
 import interpret.opcode : OpCode;
 import util.collection.arr : Arr;
-import util.types : safeU32ToU8, u8, u32, u64;
+import util.types : safeU32ToU16, u8, u16, u32, u64;
+import util.util : verify;
 
 @trusted T matchOperation(T)(
 	ref immutable Operation a,
@@ -103,7 +104,7 @@ struct Operation {
 
 	// Jumps forward `offset` bytes. (Also adds 1 after reading any instruction, including 'jump'.)
 	struct Jump {
-		immutable u8 offset;
+		immutable ByteCodeOffset offset;
 	}
 
 	struct Pack {
@@ -139,7 +140,7 @@ struct Operation {
 	// A 0th offset is needed because otherwise there's no way to know how many cases there are.
 	struct Switch {
 		// The reader can't return the offsets since it doesn't have a length
-		// immutable Arr!u8 offsets;
+		// immutable Arr!u16 offsets;
 	}
 
 	// Pop divRoundUp(size, stackEntrySize) stack entries, then pop a pointer, then write to ptr + offset
@@ -223,11 +224,16 @@ immutable(ByteCodeIndex) addByteCodeIndex(immutable ByteCodeIndex a, immutable u
 }
 
 immutable(ByteCodeOffset) subtractByteCodeIndex(immutable ByteCodeIndex a, immutable ByteCodeIndex b) {
-	return immutable ByteCodeOffset(safeU32ToU8(a.index - b.index));
+	verify(a.index >= b.index);
+	debug {
+		import core.stdc.stdio : printf;
+		printf("SUBTRACT %d - %d\n", a.index, b.index);
+	}
+	return immutable ByteCodeOffset(safeU32ToU16(a.index - b.index));
 }
 
 struct ByteCodeOffset {
-	immutable u8 offset;
+	immutable u16 offset;
 }
 
 immutable(u8) stackEntrySize = 8;
@@ -241,6 +247,7 @@ enum FnOp : u8 {
 	bitShiftRightNat32,
 	bitwiseAnd,
 	bitwiseOr,
+	compareExchangeStrong,
 	eqNat,
 	float64FromInt64,
 	float64FromNat64,

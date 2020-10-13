@@ -25,7 +25,7 @@ enum OpCode : u8 {
 	// reads another byte and interprets as a FnOp
 	fn,
 
-	// args: u8 offset
+	// args: u16 offset
 	// (note: an offset of 0 still takes you to the next instruction)
 	jump,
 
@@ -53,7 +53,7 @@ enum OpCode : u8 {
 	// args: u8 stackOffset
 	stackRef,
 
-	// args: u8[nCases] offsets
+	// args: u16[nCases] offsets
 	switch_,
 
 	// args: u8 offset, u8 size
