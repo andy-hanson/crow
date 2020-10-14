@@ -14,7 +14,6 @@ import util.collection.fullIndexDict :
 import util.opt : none, Opt, some;
 import util.util : verify;
 
-//TODO:MOVE
 struct FullIndexDictBuilder(K, V) {
 	private:
 	FullIndexDict!(K, immutable V) values;

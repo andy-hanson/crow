@@ -13,6 +13,7 @@ import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : cStrOfDiagnostics;
 import interpret.bytecode : ByteCode;
 import interpret.generateBytecode : generateBytecode;
+import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
 import lowModel : LowProgram;
 import model : Module, Program;
@@ -108,7 +109,7 @@ immutable(int) buildAndRun(SymAlloc)(
 			lowProgramResult,
 			(ref immutable LowProgram lowProgram) {
 				immutable ByteCode byteCode = generateBytecode(lowAlloc, lowProgram);
-				return todo!int("run the bytecode");
+				return runBytecode(byteCode);
 			},
 			(ref immutable Diagnostics diagnostics) {
 				printDiagnostics(diagnostics);

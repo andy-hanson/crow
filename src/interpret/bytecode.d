@@ -4,10 +4,12 @@ module interpret.bytecode;
 
 import interpret.opcode : OpCode;
 import util.collection.arr : Arr;
+import util.collection.str : Str, strLiteral;
+import util.sexpr : Sexpr, tataArr, tataNat, tataRecord, tataStr, tataSym;
 import util.types : safeU32ToU16, u8, u16, u32, u64;
-import util.util : verify;
+import util.util : todo, verify;
 
-@trusted T matchOperation(T)(
+@trusted T matchOperationImpure(T)(
 	ref immutable Operation a,
 	scope T delegate(ref immutable Operation.Call) @safe @nogc nothrow cbCall,
 	scope T delegate(ref immutable Operation.CallFunPtr) @safe @nogc nothrow cbCallFunPtr,
@@ -58,9 +60,95 @@ import util.util : verify;
 
 pure:
 
+@trusted T matchOperation(T)(
+	ref immutable Operation a,
+	scope T delegate(ref immutable Operation.Call) @safe @nogc pure nothrow cbCall,
+	scope T delegate(ref immutable Operation.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
+	scope T delegate(ref immutable Operation.Dup) @safe @nogc pure nothrow cbDup,
+	scope T delegate(ref immutable Operation.DupPartial) @safe @nogc pure nothrow cbDupPartial,
+	scope T delegate(ref immutable Operation.Fn) @safe @nogc pure nothrow cbFn,
+	scope T delegate(ref immutable Operation.Jump) @safe @nogc pure nothrow cbJump,
+	scope T delegate(ref immutable Operation.Pack) @safe @nogc pure nothrow cbPack,
+	scope T delegate(ref immutable Operation.PushValue) @safe @nogc pure nothrow cbPushValue,
+	scope T delegate(ref immutable Operation.Read) @safe @nogc pure nothrow cbRead,
+	scope T delegate(ref immutable Operation.Remove) @safe @nogc pure nothrow cbRemove,
+	scope T delegate(ref immutable Operation.Return) @safe @nogc pure nothrow cbReturn,
+	scope T delegate(ref immutable Operation.StackRef) @safe @nogc pure nothrow cbStackRef,
+	scope T delegate(ref immutable Operation.Switch) @safe @nogc pure nothrow cbSwitch,
+	scope T delegate(ref immutable Operation.Write) @safe @nogc pure nothrow cbWrite,
+) {
+	final switch (a.kind_) {
+		case Operation.Kind.call:
+			return cbCall(a.call_);
+		case Operation.Kind.callFunPtr:
+			return cbCallFunPtr(a.callFunPtr_);
+		case Operation.Kind.dup:
+			return cbDup(a.dup_);
+		case Operation.Kind.dupPartial:
+			return cbDupPartial(a.dupPartial_);
+		case Operation.Kind.fn:
+			return cbFn(a.fn_);
+		case Operation.Kind.jump:
+			return cbJump(a.jump_);
+		case Operation.Kind.pack:
+			return cbPack(a.pack_);
+		case Operation.Kind.pushValue:
+			return cbPushValue(a.pushValue_);
+		case Operation.Kind.read:
+			return cbRead(a.read_);
+		case Operation.Kind.remove:
+			return cbRemove(a.remove_);
+		case Operation.Kind.return_:
+			return cbReturn(a.return_);
+		case Operation.Kind.stackRef_:
+			return cbStackRef(a.stackRef_);
+		case Operation.Kind.switch_:
+			return cbSwitch(a.switch_);
+		case Operation.Kind.write:
+			return cbWrite(a.write_);
+	}
+}
+
+immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operation a) {
+	return matchOperation(
+		a,
+		(ref immutable Operation.Call it) =>
+			tataRecord(alloc, "call", tataNat(it.address)),
+		(ref immutable Operation.CallFunPtr it)  =>
+			tataRecord(alloc, "call-ptr", tataNat(it.stackOffsetOfFunPtr.offset)),
+		(ref immutable Operation.Dup it)  =>
+			tataRecord(alloc, "dup", tataNat(it.offset.offset)),
+		(ref immutable Operation.DupPartial it)  =>
+			tataRecord(
+				alloc,
+				"dup-part",
+				tataNat(it.entryOffset.offset),
+				tataNat(it.byteOffset),
+				tataNat(it.sizeBytes)),
+		(ref immutable Operation.Fn it)  =>
+			tataRecord(alloc, "fn", tataStr(strOfFnOp(it.fnOp))),
+		(ref immutable Operation.Jump it)  =>
+			tataRecord(alloc, "jump", tataNat(it.offset.offset)),
+		(ref immutable Operation.Pack it)  =>
+			tataRecord(alloc, "pack", tataArr(alloc, it.sizes, (ref immutable u8 size) => tataNat(size))),
+		(ref immutable Operation.PushValue it)  =>
+			tataRecord(alloc, "push-val", tataNat(it.value)),
+		(ref immutable Operation.Read it)  =>
+			tataRecord(alloc, "read", tataNat(it.offset), tataNat(it.size)),
+		(ref immutable Operation.Remove it)  =>
+			tataRecord(alloc, "remove", tataNat(it.offset.offset), tataNat(it.nEntries)),
+		(ref immutable Operation.Return it)  =>
+			tataSym("return"),
+		(ref immutable Operation.StackRef it)  =>
+			tataRecord(alloc, "stack-ref", tataNat(it.offset.offset)),
+		(ref immutable Operation.Switch it) =>
+			tataSym("switch"),
+		(ref immutable Operation.Write it) =>
+			tataRecord(alloc, "write", tataNat(it.offset), tataNat(it.offset)));
+}
+
 struct ByteCode {
-	// NOTE: not every entry is an opcode
-	immutable Arr!OpCode byteCode;
+	immutable Arr!u8 byteCode;
 	immutable Arr!char text;
 	immutable ByteCodeIndex main;
 }
@@ -201,20 +289,6 @@ struct Operation {
 	immutable this(immutable Write a) { kind_ = Kind.write; write_ = a; }
 }
 
-@trusted T matchTypeAst(T)(
-	ref immutable TypeAst a,
-	scope T delegate(ref immutable TypeAst.TypeParam) @safe @nogc pure nothrow cbTypeParam,
-	scope T delegate(ref immutable TypeAst.InstStruct) @safe @nogc pure nothrow cbInstStruct
-) {
-	final switch (a.kind) {
-		case TypeAst.Kind.typeParam:
-			return cbTypeParam(a.typeParam);
-		case TypeAst.Kind.instStruct:
-			return cbInstStruct(a.instStruct);
-	}
-}
-
-
 struct ByteCodeIndex {
 	immutable u32 index;
 }
@@ -225,10 +299,6 @@ immutable(ByteCodeIndex) addByteCodeIndex(immutable ByteCodeIndex a, immutable u
 
 immutable(ByteCodeOffset) subtractByteCodeIndex(immutable ByteCodeIndex a, immutable ByteCodeIndex b) {
 	verify(a.index >= b.index);
-	debug {
-		import core.stdc.stdio : printf;
-		printf("SUBTRACT %d - %d\n", a.index, b.index);
-	}
 	return immutable ByteCodeOffset(safeU32ToU16(a.index - b.index));
 }
 
@@ -286,4 +356,57 @@ enum FnOp : u8 {
 	wrapSubNat16,
 	wrapSubNat32,
 	wrapSubNat64,
+}
+
+immutable(Str) strOfFnOp(immutable FnOp fnOp) {
+	return strLiteral(() { final switch (fnOp) {
+		case FnOp.addFloat64:
+		case FnOp.addInt64OrNat64:
+		case FnOp.bitShiftLeftInt32:
+		case FnOp.bitShiftLeftNat32:
+		case FnOp.bitShiftRightInt32:
+		case FnOp.bitShiftRightNat32:
+		case FnOp.bitwiseAnd:
+		case FnOp.bitwiseOr:
+		case FnOp.compareExchangeStrong:
+		case FnOp.eqNat:
+		case FnOp.float64FromInt64:
+		case FnOp.float64FromNat64:
+		case FnOp.hardFail:
+		case FnOp.lessFloat64:
+		case FnOp.lessInt8:
+		case FnOp.lessInt16:
+		case FnOp.lessInt32:
+		case FnOp.lessInt64:
+		case FnOp.lessNat:
+		case FnOp.malloc:
+		case FnOp.mulFloat64:
+		case FnOp.not:
+		case FnOp.ptrToOrRefOfVal:
+		case FnOp.subFloat64:
+		case FnOp.truncateToInt64FromFloat64:
+		case FnOp.unsafeDivFloat64:
+		case FnOp.unsafeDivInt64:
+		case FnOp.unsafeDivNat64:
+		case FnOp.unsafeModNat64:
+		case FnOp.wrapAddInt16:
+		case FnOp.wrapAddInt32:
+		case FnOp.wrapAddInt64:
+		case FnOp.wrapAddNat16:
+		case FnOp.wrapAddNat32:
+		case FnOp.wrapAddNat64:
+		case FnOp.wrapMulInt16:
+		case FnOp.wrapMulInt32:
+		case FnOp.wrapMulInt64:
+		case FnOp.wrapMulNat16:
+		case FnOp.wrapMulNat32:
+		case FnOp.wrapMulNat64:
+		case FnOp.wrapSubInt16:
+		case FnOp.wrapSubInt32:
+		case FnOp.wrapSubInt64:
+		case FnOp.wrapSubNat16:
+		case FnOp.wrapSubNat32:
+		case FnOp.wrapSubNat64:
+			return todo!(immutable string)("strOfFnOp");
+	} }());
 }

@@ -2,13 +2,20 @@ module interpret.runBytecode;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.bytecode : ByteCode, FnOp, matchOperation, Operation, StackOffset;
-import interpret.bytecodeReader : ByteCodeReader, readerJump, readOperation, readerSwitch;
+import interpret.bytecode : ByteCode, FnOp, matchOperationImpure, Operation, sexprOfOperation, StackOffset;
+import interpret.bytecodeReader :
+	ByteCodeReader,
+	getReaderPtr,
+	newByteCodeReader,
+	readerJump,
+	readOperation,
+	readerSwitch,
+	setReaderPtr;
 import interpret.opcode : OpCode;
 import util.bools : Bool;
 import util.collection.arr : begin, ptrAt;
 import util.ptr : Ptr, ptrTrustMe;
-import util.types : maxU64, u8, u16, u32, u64;
+import util.types : maxU64, safeIntFromU64, u8, u16, u32, u64;
 import util.util : todo, unreachable, verify;
 
 //TODO:MOVE
@@ -77,14 +84,16 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 	}
 }
 
-@system void run(ref immutable ByteCode byteCode) {
-	Interpreter interpreter = Interpreter(ptrTrustMe(byteCode), ByteCodeReader(begin(byteCode.byteCode)));
+@trusted immutable(int) runBytecode(ref immutable ByteCode byteCode) {
+	Interpreter interpreter = Interpreter(ptrTrustMe(byteCode), newByteCodeReader(begin(byteCode.byteCode)));
 	while (true) {
 		final switch (step(interpreter)) {
 			case StepResult.continue_:
 				break;
 			case StepResult.exit:
-				return;
+				immutable u64 returnCode = interpreter.dataStack.pop();
+				verify(interpreter.dataStack.isEmpty());
+				return safeIntFromU64(returnCode);
 		}
 	}
 }
@@ -102,12 +111,22 @@ struct Interpreter {
 	immutable Ptr!ByteCode byteCode;
 	ByteCodeReader reader;
 	DataStack dataStack;
-	GlobalAllocatedStack!(immutable(OpCode)*, 1024) returnStack;
+	GlobalAllocatedStack!(immutable(u8)*, 1024) returnStack;
 }
 
 immutable(StepResult) step(ref Interpreter interpreter) {
 	immutable Operation operation = readOperation(interpreter.reader);
-	return matchOperation!(immutable StepResult)(
+
+	debug {
+		import core.stdc.stdio : printf;
+		import util.sexprPrint : PrintFormat, printOutSexpr;
+		import util.alloc.stackAlloc : StackAlloc;
+		StackAlloc!("temp", 1024) temp;
+		printf("STEP\n", );
+		printOutSexpr(sexprOfOperation(temp, operation), PrintFormat.sexpr);
+	}
+
+	return matchOperationImpure!(immutable StepResult)(
 		operation,
 		(ref immutable Operation.Call it) {
 			call(interpreter, it.address);
@@ -154,7 +173,7 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 			if (interpreter.returnStack.isEmpty())
 				return StepResult.exit;
 			else {
-				interpreter.reader.ptr = interpreter.returnStack.pop();
+				setReaderPtr(interpreter.reader, interpreter.returnStack.pop());
 				return StepResult.continue_;
 			}
 		},
@@ -248,8 +267,8 @@ immutable(u64) getBytes(immutable u64 a, immutable u8 byteOffset, immutable u8 s
 }
 
 void call(ref Interpreter interpreter, immutable u64 address) {
-	interpreter.returnStack.push(interpreter.reader.ptr);
-	interpreter.reader.ptr = ptrAt(interpreter.byteCode.byteCode, address).rawPtr();
+	interpreter.returnStack.push(getReaderPtr(interpreter.reader));
+	setReaderPtr(interpreter.reader, ptrAt(interpreter.byteCode.byteCode, address).rawPtr());
 }
 
 immutable(u64) removeAtStackOffset(ref Interpreter interpreter, immutable StackOffset offset) {

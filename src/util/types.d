@@ -58,6 +58,8 @@ immutable(int) safeIntFromSizeT(immutable size_t s) {
 	return cast(int) s;
 }
 
+alias safeIntFromU64 = safeIntFromSizeT;
+
 immutable(u8) safeSizeTToU8(immutable size_t s) {
 	verify(s <= 255);
 	return cast(u8) s;

@@ -18,6 +18,7 @@ import interpret.bytecodeWriter :
 	fillInJumpDelayed,
 	finishByteCode,
 	getNextStackEntry,
+	newByteCodeWriter,
 	setNextStackEntry,
 	setStackEntryAfterParameters,
 	StackEntries,
@@ -92,6 +93,7 @@ import util.collection.mutIndexMultiDict :
 	MutIndexMultiDict,
 	mutIndexMultiDictAdd,
 	mutIndexMultiDictMustGetAt,
+	mutIndexMultiDictSize,
 	newMutIndexMultiDict;
 import util.collection.str : strEqLiteral;
 import util.comparison : Comparison;
@@ -110,7 +112,7 @@ immutable(ByteCode) generateBytecode(CodeAlloc)(ref CodeAlloc codeAlloc, ref imm
 	MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences =
 		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, fullIndexDictSize(program.allFuns));
 
-	ByteCodeWriter!CodeAlloc writer = ByteCodeWriter!CodeAlloc(ptrTrustMe_mut(codeAlloc));
+	ByteCodeWriter!CodeAlloc writer = newByteCodeWriter(ptrTrustMe_mut(codeAlloc));
 
 	immutable FullIndexDict!(LowFunIndex, ByteCodeIndex) funToDefinition =
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun, TempAlloc)(
@@ -127,9 +129,7 @@ immutable(ByteCode) generateBytecode(CodeAlloc)(ref CodeAlloc codeAlloc, ref imm
 			fillDelayedU32(writer, reference, definition);
 	});
 
-	immutable ByteCodeIndex mainIndex = todo!(immutable ByteCodeIndex)("mainIndex");
-
-	return finishByteCode(writer, mainIndex);
+	return finishByteCode(writer, fullIndexDictGet(funToDefinition, program.main));
 }
 
 private:
@@ -298,11 +298,6 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 	ref immutable LowProgram program,
 	ref immutable LowFun fun,
 ) {
-	debug {
-		immutable Str mn = fun.mangledName;
-		printf("\n\n=== Start compiling fun: %.*s ===\n", cast(int) size(mn), begin(mn));
-	}
-
 	matchLowFunBody!void(
 		fun.body_,
 		(ref immutable LowFunBody.Extern body_) {
@@ -331,12 +326,6 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 			writeReturn(writer);
 
 			immutable uint returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
-			debug {
-				printf("RETURNING: stackEntryAfterParameters: %d, returnEntries: %d, nextStackEntry: %d\n",
-					stackEntryAfterParameters,
-					returnEntries,
-					getNextStackEntry(writer));
-			}
 			verify(stackEntryAfterParameters + returnEntries == getNextStackEntry(writer));
 			writeRemove(writer, immutable StackEntries(0, safeU32ToU8(stackEntryAfterParameters)));
 			verify(getNextStackEntry(writer) == returnEntries);
@@ -363,11 +352,6 @@ struct ExprCtx {
 	MutDict!(immutable Ptr!LowLocal, immutable StackEntries, comparePtr!LowLocal) localEntries;
 }
 
-//TODO:KILL (for debug)
-import core.stdc.stdio : printf;
-import util.collection.arr : begin;
-import util.collection.str : Str;
-
 void generateExpr(CodeAlloc, TempAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
@@ -379,46 +363,23 @@ void generateExpr(CodeAlloc, TempAlloc)(
 		(ref immutable LowExprKind.Call it) {
 			immutable uint stackEntryBeforeArgs = getNextStackEntry(writer);
 			immutable uint expectedStackEffect = nStackEntriesForType(ctx, expr.type);
-
-			debug {
-				immutable Str mn = fullIndexDictGet(ctx.program.allFuns, it.called).mangledName;
-				printf("START COMPILING CALL %.*s\n", cast(int) size(mn), begin(mn));
-				printf("Stack before: %i\n", stackEntryBeforeArgs);
-			}
-
 			foreach (ref immutable LowExpr arg; range(it.args))
 				generateExpr(tempAlloc, writer, ctx, arg);
 			registerFunAddress(tempAlloc, ctx, it.called,
 				writeCallDelayed(writer, stackEntryBeforeArgs, expectedStackEffect));
-
-			debug {
-				printf("DONE COMPILING CALL %.*s\n", cast(int) size(mn), begin(mn));
-				printf("Stack after: %i\n", getNextStackEntry(writer));
-			}
 			verify(stackEntryBeforeArgs + expectedStackEffect == getNextStackEntry(writer));
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
-			debug {
-				printf("\nCOMPILING CREATERECORD\n");
-			}
-
 			immutable uint before = getNextStackEntry(writer);
 
 			void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
 				if (has(packStart)) {
-					debug {
-						printf("Packing! start=%lu, end=%lu\n", force(packStart), packEnd);
-						printf("Packing stack entry before: %d\n", getNextStackEntry(writer));
-					}
 					// Need to give the instruction the field sizes
 					immutable Arr!u8 fieldSizes = map(
 						tempAlloc,
 						slice(it.args, force(packStart), packEnd - force(packStart)),
 						(ref immutable LowExpr arg) => safeSizeTToU8(sizeOfType(ctx, arg.type)));
 					writePack(writer, fieldSizes);
-					debug {
-						printf("Packing stack entry after: %d\n", getNextStackEntry(writer));
-					}
 				}
 			}
 
@@ -427,11 +388,6 @@ void generateExpr(CodeAlloc, TempAlloc)(
 					maybePack(packStart, fieldIndex);
 				} else {
 					immutable size_t fieldSize = sizeOfType(ctx, at(it.args, fieldIndex).type);
-					debug {
-						printf("Compiling field %lu, size %lu\n", fieldIndex, fieldSize);
-						printf("field kind is %d\n", cast(int)at(it.args, fieldIndex).kind.kind);
-						printf("Cur stack entry: %d\n", getNextStackEntry(writer));
-					}
 					if (fieldSize < 8) {
 						generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
 						recur(has(packStart) ? packStart : some(fieldIndex), fieldIndex + 1);
@@ -448,11 +404,6 @@ void generateExpr(CodeAlloc, TempAlloc)(
 
 			immutable uint after = getNextStackEntry(writer);
 			immutable uint stackEntriesForType = nStackEntriesForType(ctx, expr.type);
-			debug {
-				printf(
-					"CreateRecord; before: %d, after: %d, stackEntriesForType: %d\n",
-					before, after, stackEntriesForType);
-			}
 			verify(after - before == stackEntriesForType);
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
@@ -469,40 +420,18 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			}
 		},
 		(ref immutable LowExprKind.FunPtr it) {
-			debug {
-				printf("compiling funptr\n");
-			}
 			registerFunAddress(tempAlloc, ctx, it.fun,
 				writePushU32Delayed(writer));
 		},
 		(ref immutable LowExprKind.Let it) {
-			debug {
-
-				immutable Str mn = it.local.mangledName;
-				printf("START COMPILING LET %.*s\n", cast(int) size(mn), begin(mn));
-			}
-
 			immutable StackEntries localEntries =
 				immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, it.local.type));
 			generateExpr(tempAlloc, writer, ctx, it.value);
-
-			debug {
-				printf("MID COMPILING LET %.*s\n", cast(int) size(mn), begin(mn));
-				printf("First entry: %u\n", localEntries.start);
-				printf("Size: %u\n", localEntries.size);
-				printf("New next entry is: %u\n", getNextStackEntry(writer));
-			}
 			verify(getNextStackEntry(writer) == localEntries.start + localEntries.size);
 			addToMutDict(tempAlloc, ctx.localEntries, it.local, localEntries);
 			generateExpr(tempAlloc, writer, ctx, it.then);
 			mustDelete(ctx.localEntries, it.local);
 			writeRemove(writer, localEntries);
-
-			debug {
-				printf(
-					"DONE COMPILING LET %.*s: next stack entry %d\n",
-					cast(int) size(mn), begin(mn), getNextStackEntry(writer));
-			}
 		},
 		(ref immutable LowExprKind.LocalRef it) {
 			writeDup(writer, mustGetAt_mut(ctx.localEntries, it.local));
@@ -569,18 +498,8 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			immutable uint mid = getNextStackEntry(writer);
 			generateExpr(tempAlloc, writer, ctx, it.value);
 			immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
-			debug {
-				printf("Compiling RecordFieldSet: before: %d, mid: %d, field size (bytes): %d, now: %d\n",
-					before, mid, offsetAndSize.size, getNextStackEntry(writer));
-			}
 			verify(mid + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer));
 			writeWrite(writer, offsetAndSize.offset, offsetAndSize.size);
-
-			debug {
-				printf("Compiling RecordFieldSet: before: %d, after: %d\n",
-					before,
-					getNextStackEntry(writer));
-			}
 			verify(getNextStackEntry(writer) == before);
 		},
 		(ref immutable LowExprKind.Seq it) {
@@ -597,15 +516,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			generateSpecial0Ary(writer, it);
 		},
 		(ref immutable LowExprKind.SpecialUnary it) {
-			debug {
-				import sexprOfLowModel : strOfSpecialUnaryKind;
-				immutable string kind = strOfSpecialUnaryKind(it.kind);
-				printf("Unary %.*s stack before: %d\n", cast(int) kind.length, kind.ptr, getNextStackEntry(writer));
-			}
 			generateSpecialUnary(tempAlloc, writer, ctx, expr, it);
-			debug {
-				printf("Unary %.*s stack after: %d\n", cast(int) kind.length, kind.ptr, getNextStackEntry(writer));
-			}
 		},
 		(ref immutable LowExprKind.SpecialBinary it) {
 			generateSpecialBinary(tempAlloc, writer, ctx, expr.range, it);
@@ -662,13 +573,7 @@ void generateSpecialConstant(CodeAlloc)(
 			writePushConstant(writer, 0);
 		},
 		(immutable LowExprKind.SpecialConstant.StrConstant it) {
-			debug {
-				printf("Compiling str constant, stack before: %d\n", getNextStackEntry(writer));
-			}
 			writePushConstantStr(writer, it.value);
-			debug {
-				printf("Str constant stack after: %d\n", getNextStackEntry(writer));
-			}
 		},
 		(immutable LowExprKind.SpecialConstant.Void) {
 			// do nothing
@@ -768,13 +673,6 @@ void generateRecordFieldAccess(TempAlloc, CodeAlloc)(
 	ref ExprCtx ctx,
 	ref immutable LowExprKind.RecordFieldAccess it,
 ) {
-	//debug {
-	//	immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, it.record);
-	//	immutable LowField field = at(record.fields, it.fieldIndex);
-	//	printf("compiling RecordFieldAccess, record=%.*s, field=%.*s\n",
-	//		cast(int) size(record.mangledName), begin(record.mangledName),
-	//		cast(int) size(field.mangledName), begin(field.mangledName));
-	//}
 	immutable uint targetEntry = getNextStackEntry(writer);
 	generateExpr(tempAlloc, writer, ctx, it.target);
 	immutable StackEntries targetEntries = immutable StackEntries(
@@ -784,9 +682,6 @@ void generateRecordFieldAccess(TempAlloc, CodeAlloc)(
 	if (it.targetIsPointer) {
 		writeRead(writer, offsetAndSize.offset, offsetAndSize.size);
 	} else {
-		//debug {
-		//	printf("Field offset is %d, size is %d\n", offsetAndSize.offset, offsetAndSize.size);
-		//}
 		if (offsetAndSize.size % stackEntrySize == 0) {
 			verify(offsetAndSize.offset % stackEntrySize == 0);
 			immutable StackEntries entries = immutable StackEntries(

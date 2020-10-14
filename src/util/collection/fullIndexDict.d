@@ -17,7 +17,7 @@ FullIndexDict!(K, V) emptyFullIndexDict_mut(K, V)() {
 	return fullIndexDictOfArr_mut!(K, V)(emptyArr_mut!V);
 }
 
-immutable(size_t) fullIndexDictSize(K, V)(ref immutable FullIndexDict!(K, V) a) {
+immutable(size_t) fullIndexDictSize(K, V)(ref const FullIndexDict!(K, V) a) {
 	return size(a.values);
 }
 
@@ -57,6 +57,9 @@ ref immutable(V) fullIndexDictGet(K, V)(ref immutable FullIndexDict!(K, V) a, im
 	return at(a.values, key.index);
 }
 ref const(V) fullIndexDictGet(K, V)(ref const FullIndexDict!(K, V) a, immutable K key) {
+	return at(a.values, key.index);
+}
+ref V fullIndexDictGet(K, V)(ref FullIndexDict!(K, V) a, immutable K key) {
 	return at(a.values, key.index);
 }
 

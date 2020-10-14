@@ -17,14 +17,13 @@ struct MutArr(T) {
 	size_t capacity_;
 }
 
-MutArr!T mutArrOfOne(T, Alloc)(ref Alloc alloc, T value) {
-	MutArr!T res;
-	push(alloc, res, value);
-	return res;
-}
-
 @system T* mutArrBegin(T)(ref MutArr!T a) {
 	return a.begin_;
+}
+
+@system T* mutArrPtrAt(T)(ref MutArr!T a, immutable size_t index) {
+	verify(index < a.size_);
+	return a.begin_ + index;
 }
 
 @trusted ref T mutArrAt(T)(ref MutArr!T a, immutable size_t index) {
@@ -74,7 +73,6 @@ void pushAll(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a, immutable Ar
 	foreach (ref immutable T value; range(values))
 		push(alloc, a, value);
 }
-
 
 @trusted Opt!T pop(T)(ref MutArr!T a) {
 	if (a.size_ == 0)
