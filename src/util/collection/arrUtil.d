@@ -1,7 +1,5 @@
 module util.collection.arrUtil;
 
-@safe @nogc pure nothrow:
-
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAt, arrBuilderSize, ArrWithSizeBuilder, finishArr;
@@ -12,6 +10,28 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.result : asFailure, asSuccess, fail, isSuccess, Result, success;
 import util.util : max, todo, verify;
+
+@safe @nogc nothrow:
+
+@trusted immutable(Result!(Arr!OutSuccess, OutFailure)) mapOrFailImpure(OutSuccess, OutFailure, In, Alloc)(
+	ref Alloc alloc,
+	immutable Arr!In inputs,
+	scope immutable(Result!(OutSuccess, OutFailure)) delegate(ref immutable In) @safe @nogc nothrow cb
+) {
+	OutSuccess* res = cast(OutSuccess*) alloc.allocate(OutSuccess.sizeof * inputs.size);
+	foreach (immutable size_t i; 0..inputs.size) {
+		immutable Result!(OutSuccess, OutFailure) r = cb(inputs.at(i));
+		if (r.isSuccess)
+			initMemory(res + i, r.asSuccess);
+		else {
+			alloc.free(cast(ubyte*) res, OutSuccess.sizeof * inputs.size);
+			return fail!(Arr!OutSuccess, OutFailure)(r.asFailure);
+		}
+	}
+	return success!(Arr!OutSuccess, OutFailure)(immutable Arr!OutSuccess(cast(immutable) res, inputs.size));
+}
+
+pure:
 
 @trusted immutable(Arr!T) arrLiteral(T, Alloc)(ref Alloc alloc, immutable T value) {
 	T* ptr = cast(T*) alloc.allocate(T.sizeof * 1);
@@ -449,6 +469,30 @@ void eachWithIndex(T)(
 		initMemory(res + i, cb(i, at(a, i)));
 	return immutable Arr!Out(cast(immutable) res, size(a));
 }
+
+@trusted immutable(Result!(Arr!OutSuccess, OutFailure)) mapOrFailWithSoFar(OutSuccess, OutFailure, In, Alloc)(
+	ref Alloc alloc,
+	immutable Arr!In inputs,
+	scope immutable(Result!(OutSuccess, OutFailure)) delegate(
+		ref immutable In,
+		ref immutable Arr!OutSuccess,
+		immutable size_t,
+	) @safe @nogc pure nothrow cb
+) {
+	OutSuccess* res = cast(OutSuccess*) alloc.allocate(OutSuccess.sizeof * inputs.size);
+	foreach (immutable size_t i; 0..inputs.size) {
+		immutable Arr!OutSuccess soFar = immutable Arr!OutSuccess(cast(immutable) res, i);
+		immutable Result!(OutSuccess, OutFailure) r = cb(inputs.at(i), soFar, i);
+		if (r.isSuccess)
+			initMemory(res + i, r.asSuccess);
+		else {
+			alloc.free(cast(ubyte*) res, OutSuccess.sizeof * inputs.size);
+			return fail!(Arr!OutSuccess, OutFailure)(r.asFailure);
+		}
+	}
+	return success!(Arr!OutSuccess, OutFailure)(immutable Arr!OutSuccess(cast(immutable) res, inputs.size));
+}
+
 
 @trusted immutable(Result!(Arr!OutSuccess, OutFailure)) mapOrFail(OutSuccess, OutFailure, In, Alloc)(
 	ref Alloc alloc,

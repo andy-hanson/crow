@@ -39,7 +39,7 @@ import util.sexpr :
 	tataRecord,
 	tataStr,
 	tataSym;
-import util.sourceRange : sexprOfSourceRange;
+import util.sourceRange : sexprOfFileAndRange;
 import util.util : unreachable;
 
 immutable(Sexpr) tataOfConcreteProgram(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
@@ -193,13 +193,13 @@ immutable(Sexpr) tataOfConcreteFunExprBody(Alloc)(ref Alloc alloc, ref immutable
 }
 
 immutable(Sexpr) tataOfConcreteExpr(Alloc)(ref Alloc alloc, ref immutable ConcreteExpr a) {
-	// For brevity.. (change back once we have tail recursion and noze can handle long strings)
+	// TODO: For brevity.. (change back once we have tail recursion and noze can handle long strings)
 	return tataOfConcreteExprKind(alloc, a);
 	//return tataRecord(
 	//	alloc,
 	//	"expr",
 	//	tataOfConcreteType(alloc, a.type),
-	//	sexprOfSourceRange(alloc, a.range),
+	//	sexprOfFileAndRange(alloc, a.range),
 	//	tataOfConcreteExprKind(alloc, a));
 }
 

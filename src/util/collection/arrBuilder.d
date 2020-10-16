@@ -4,7 +4,7 @@ module util.collection.arrBuilder;
 
 import util.bools : Bool;
 import util.collection.arr : Arr, ArrWithSize, begin, emptyArrWithSize, range, size;
-import util.collection.mutArr : tempAsArr, moveToArr, MutArr, mutArrAt, mutArrIsEmpty, mutArrSize, push;
+import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrIsEmpty, mutArrSize, push, pushAll, tempAsArr;
 import util.memory : initMemory;
 import util.util : verify;
 
@@ -18,6 +18,10 @@ ref immutable(T) arrBuilderAt(T)(ref ArrBuilder!T a, immutable size_t index) {
 
 void add(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
 	push(alloc, a.data, value);
+}
+
+void addAll(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable Arr!T value) {
+	pushAll(alloc, a.data, value);
 }
 
 immutable(Arr!T) finishArr_immutable(T, Alloc)(ref Alloc alloc, ref ArrBuilder!(immutable T) a) {

@@ -57,7 +57,7 @@ import util.comparison : compareNat32, Comparison;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr;
 import util.sexpr : Sexpr, tataArr, tataNamedRecord, tataSym;
-import util.sourceRange : Pos, sexprOfSourceRange, SourceRange;
+import util.sourceRange : Pos, RangeWithinFile, sexprOfRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32;
 import util.util : todo, unreachable;
@@ -85,7 +85,7 @@ struct Token {
 		typeParamRef,
 	}
 	immutable Kind kind;
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 }
 
 immutable(Sexpr) sexprOfTokens(Alloc)(ref Alloc alloc, ref immutable Arr!Token tokens) {
@@ -99,10 +99,10 @@ immutable(Arr!Token) tokensOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst a
 	addImportTokens!Alloc(alloc, tokens, imports(ast), shortSymAlphaLiteral("import"));
 	addImportTokens!Alloc(alloc, tokens, exports(ast), shortSymAlphaLiteral("export"));
 
-	eachSorted!(SourceRange, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst)(
-		SourceRange.max,
-		(ref immutable SourceRange a, ref immutable SourceRange b) =>
-			compareSourceRange(a, b),
+	eachSorted!(RangeWithinFile, SpecDeclAst, StructAliasAst, StructDeclAst, FunDeclAst)(
+		RangeWithinFile.max,
+		(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) =>
+			compareRangeWithinFile(a, b),
 		specs(ast), (ref immutable SpecDeclAst it) => it.range, (ref immutable SpecDeclAst it) {
 			addSpecTokens(alloc, tokens, it);
 		},
@@ -122,8 +122,8 @@ immutable(Arr!Token) tokensOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst a
 
 private:
 
-immutable(SourceRange) rangeAtName(immutable Pos start, immutable Sym name) {
-	return immutable SourceRange(start, safeSizeTToU32(start + symSize(name)));
+immutable(RangeWithinFile) rangeAtName(immutable Pos start, immutable Sym name) {
+	return immutable RangeWithinFile(start, safeSizeTToU32(start + symSize(name)));
 }
 
 void addImportTokens(Alloc)(
@@ -137,7 +137,7 @@ void addImportTokens(Alloc)(
 		foreach (ref immutable ImportAst path; range(force(a).paths))
 			add(alloc, tokens, immutable Token(
 				Token.Kind.importPath,
-				immutable SourceRange(path.range.start + path.nDots, path.range.end)));
+				immutable RangeWithinFile(path.range.start + path.nDots, path.range.end)));
 	}
 }
 
@@ -360,13 +360,13 @@ void addExprsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, immutab
 
 void assertTokensSorted(ref immutable Arr!Token tokens) {
 	immutable Opt!UnsortedPair pair = findUnsortedPair!Token(tokens, (ref immutable Token a, ref immutable Token b) =>
-		compareSourceRange(a.range, b.range));
+		compareRangeWithinFile(a.range, b.range));
 	if (has(pair))
 		// To debug, just disable this assertion and look for the unsorted token in the output
 		todo!void("tokens not sorted!");
 }
 
-immutable(Comparison) compareSourceRange(ref immutable SourceRange a, ref immutable SourceRange b) {
+immutable(Comparison) compareRangeWithinFile(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) {
 	return compareNat32(a.start, b.start);
 }
 
@@ -418,5 +418,5 @@ immutable(Sexpr) sexprOfToken(Alloc)(ref Alloc alloc, ref immutable Token token)
 		alloc,
 		"token",
 		"kind", tataSym(symOfTokenKind(token.kind)),
-		"range", sexprOfSourceRange(alloc, token.range));
+		"range", sexprOfRangeWithinFile(alloc, token.range));
 }

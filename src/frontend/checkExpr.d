@@ -44,6 +44,7 @@ import frontend.inferringType :
 	isExpectingString,
 	LambdaInfo,
 	programState,
+	rangeInFile2,
 	shallowInstantiateType,
 	StructAndField,
 	tryGetDeeplyInstantiatedType,
@@ -120,7 +121,7 @@ import util.collection.str : copyStr;
 import util.memory : nu;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
 import util.util : todo, unreachable, verify;
 
@@ -213,7 +214,7 @@ immutable(Expr) checkAndExpect(Alloc)(
 immutable(CheckedExpr) checkWhen(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable WhenAst ast,
 	ref Expected expected,
 ) {
@@ -223,7 +224,7 @@ immutable(CheckedExpr) checkWhen(Alloc)(
 immutable(CheckedExpr) checkWhenRecur(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable Arr!(WhenAst.Case) cases,
 	immutable Ptr!ExprAst else_,
 	ref Expected expected,
@@ -249,7 +250,7 @@ struct ArrExpectedType {
 immutable(CheckedExpr) checkCreateArr(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable CreateArrAst ast,
 	ref Expected expected,
 ) {
@@ -297,7 +298,7 @@ struct RecordAndIsBuiltinByVal {
 immutable(CheckedExpr) checkCreateRecordCommon(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable Opt!(Ptr!TypeAst) type,
 	ref Expected expected,
 	scope immutable(Opt!(Arr!Expr)) delegate(
@@ -378,7 +379,7 @@ immutable(CheckedExpr) checkCreateRecordCommon(Alloc)(
 immutable(CheckedExpr) checkCreateRecord(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable CreateRecordAst ast,
 	ref Expected expected,
 ) {
@@ -407,7 +408,7 @@ immutable(CheckedExpr) checkCreateRecord(Alloc)(
 immutable(CheckedExpr) checkCreateRecordMultiLine(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable CreateRecordMultiLineAst ast,
 	ref Expected expected
 ) {
@@ -449,7 +450,7 @@ struct ExpectedLambdaType {
 immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref Expected expected,
 ) {
 	immutable Opt!Type expectedType = shallowInstantiateType(expected);
@@ -490,7 +491,7 @@ immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(Alloc)(
 }
 
 immutable(Opt!Expr) getIdentifierInLambda(
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable Sym name,
 	const Ptr!LambdaInfo lambda,
 ) {
@@ -515,7 +516,7 @@ struct IdentifierAndLambdas {
 
 Opt!IdentifierAndLambdas getIdentifierNonCall(
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable Sym name,
 ) {
 	// Innermost lambda first
@@ -537,7 +538,7 @@ Opt!IdentifierAndLambdas getIdentifierNonCall(
 }
 
 immutable(Bool) nameIsParameterOrLocalInScope(ref ExprCtx ctx, immutable Sym name) {
-	return has(getIdentifierNonCall(ctx, SourceRange.empty, name));
+	return has(getIdentifierNonCall(ctx, FileAndRange.empty, name));
 }
 
 immutable(CheckedExpr) checkRef(Alloc)(
@@ -574,7 +575,7 @@ immutable(CheckedExpr) checkRef(Alloc)(
 immutable(CheckedExpr) checkIdentifier(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable IdentifierAst ast,
 	ref Expected expected,
 ) {
@@ -594,7 +595,7 @@ immutable(CheckedExpr) checkIdentifier(Alloc)(
 immutable(CheckedExpr) checkLiteralInner(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LiteralInnerAst ast,
 	ref Expected expected,
 ) {
@@ -605,7 +606,7 @@ immutable(CheckedExpr) checkLiteralInner(Alloc)(
 immutable(CheckedExpr) checkLiteral(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable LiteralAst ast,
 	ref Expected expected,
 ) {
@@ -617,9 +618,9 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 		// TODO: NEATER (don't create a synthetic AST)
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.dot,
-			immutable NameAndRange(range.start, shortSymAlphaLiteral("literal")),
+			immutable NameAndRange(range.range.start, shortSymAlphaLiteral("literal")),
 			emptyArrWithSize!TypeAst,
-			arrLiteral!ExprAst(alloc, immutable ExprAst(range, immutable ExprAstKind(inner))));
+			arrLiteral!ExprAst(alloc, immutable ExprAst(range.range, immutable ExprAstKind(inner))));
 		return checkCall(alloc, ctx, range, call, expected);
 	}
 }
@@ -634,7 +635,7 @@ immutable(Expr) checkWithLocal(Alloc)(
 	// Look for a parameter with the name
 	if (nameIsParameterOrLocalInScope(ctx, local.name)) {
 		addDiag2(alloc, ctx, local.range, Diag(Diag.LocalShadowsPrevious(local.name)));
-		return bogus(expected, ast.range).expr;
+		return bogus(expected, rangeInFile2(ctx, ast.range)).expr;
 	} else {
 		Ptr!(MutArr!(immutable Ptr!Local)) locals = mutArrIsEmpty(ctx.lambdas)
 			? ptrTrustMe_mut(ctx.messageOrFunctionLocals)
@@ -649,6 +650,7 @@ immutable(Expr) checkWithLocal(Alloc)(
 
 immutable(Arr!Param) checkFunOrSendFunParamsForLambda(Alloc)(
 	ref Alloc alloc,
+	ref const ExprCtx ctx,
 	immutable Arr!(LambdaAst.Param) paramAsts,
 	immutable Arr!Type expectedParamTypes,
 ) {
@@ -657,13 +659,13 @@ immutable(Arr!Param) checkFunOrSendFunParamsForLambda(Alloc)(
 		paramAsts,
 		expectedParamTypes,
 		(ref immutable LambdaAst.Param ast, ref immutable Type expectedParamType, immutable size_t index) =>
-			immutable Param(rangeOfNameAndRange(ast), ast.name, expectedParamType, index));
+			immutable Param(rangeInFile2(ctx, rangeOfNameAndRange(ast)), ast.name, expectedParamType, index));
 }
 
 immutable(CheckedExpr) checkLambda(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable LambdaAst ast,
 	ref Expected expected,
 ) {
@@ -679,7 +681,7 @@ immutable(CheckedExpr) checkLambda(Alloc)(
 		return bogus(expected, range);
 	}
 
-	immutable Arr!Param params = checkFunOrSendFunParamsForLambda(alloc, ast.params, et.paramTypes);
+	immutable Arr!Param params = checkFunOrSendFunParamsForLambda(alloc, ctx, ast.params, et.paramTypes);
 	LambdaInfo info = LambdaInfo(kind, params);
 	Expected returnTypeInferrer = copyWithNewExpectedType(expected, et.nonInstantiatedPossiblyFutReturnType);
 
@@ -741,14 +743,14 @@ immutable(CheckedExpr) checkLambda(Alloc)(
 immutable(CheckedExpr) checkLet(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable LetAst ast,
 	ref Expected expected,
 ) {
 	immutable ExprAndType init = checkAndInfer(alloc, ctx, ast.initializer);
 	immutable Ptr!Local local = nu!Local(
 		alloc,
-		rangeOfNameAndRange(ast.name),
+		rangeInFile2(ctx, rangeOfNameAndRange(ast.name)),
 		ast.name.name,
 		init.type);
 	immutable Ptr!Expr then = allocExpr(alloc, checkWithLocal(alloc, ctx, local, ast.then, expected));
@@ -786,7 +788,7 @@ immutable(Opt!UnionAndMembers) getUnionBody(ref immutable Type t) {
 immutable(CheckedExpr) checkMatch(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable MatchAst ast,
 	ref Expected expected,
 ) {
@@ -795,8 +797,12 @@ immutable(CheckedExpr) checkMatch(Alloc)(
 	immutable Opt!UnionAndMembers unionAndMembers = getUnionBody(matchedAndType.type);
 	if (!has(unionAndMembers)) {
 		if (!isBogus(matchedAndType.type))
-			addDiag2(alloc, ctx, matched.range, immutable Diag(Diag.MatchOnNonUnion(matchedAndType.type)));
-		return bogus(expected, matched.range);
+			addDiag2(
+				alloc,
+				ctx,
+				rangeInFile2(ctx, matched.range),
+				immutable Diag(immutable Diag.MatchOnNonUnion(matchedAndType.type)));
+		return bogus(expected, rangeInFile2(ctx, matched.range));
 	} else {
 		immutable Ptr!StructInst matchedUnion = force(unionAndMembers).matchedUnion;
 		immutable Arr!(Ptr!StructInst) members = force(unionAndMembers).members;
@@ -816,7 +822,7 @@ immutable(CheckedExpr) checkMatch(Alloc)(
 					immutable Opt!(Ptr!Local) local = has(caseAst.local)
 						? some(nu!Local(
 							alloc,
-							rangeOfNameAndRange(force(caseAst.local)),
+							rangeInFile2(ctx, rangeOfNameAndRange(force(caseAst.local))),
 							force(caseAst.local).name,
 							immutable Type(member)))
 						: none!(Ptr!Local);
@@ -837,7 +843,7 @@ immutable(CheckedExpr) checkMatch(Alloc)(
 immutable(CheckedExpr) checkSeq(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable SeqAst ast,
 	ref Expected expected,
 ) {
@@ -849,7 +855,7 @@ immutable(CheckedExpr) checkSeq(Alloc)(
 immutable(CheckedExpr) checkRecordFieldSet(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable RecordFieldSetAst ast,
 	ref Expected expected,
 ) {
@@ -880,12 +886,12 @@ immutable(CheckedExpr) checkRecordFieldSet(Alloc)(
 immutable(CheckedExpr) checkThen(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ThenAst ast,
 	ref Expected expected,
 ) {
 	immutable ExprAst lambda = immutable ExprAst(
-		range,
+		range.range,
 		immutable ExprAstKind(immutable LambdaAst(
 			//TODO: use temp alloc?
 			arrLiteral!(LambdaAst.Param)(alloc, ast.left),
@@ -893,7 +899,7 @@ immutable(CheckedExpr) checkThen(Alloc)(
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
-		immutable NameAndRange(range.start, shortSymAlphaLiteral("then")),
+		immutable NameAndRange(range.range.start, shortSymAlphaLiteral("then")),
 		emptyArrWithSize!TypeAst,
 		arrLiteral!ExprAst(alloc, ast.futExpr.deref, lambda));
 	return checkCall(alloc, ctx, range, call, expected);
@@ -905,7 +911,7 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 	ref immutable ExprAst ast,
 	ref Expected expected,
 ) {
-	immutable SourceRange range = ast.range;
+	immutable FileAndRange range = rangeInFile2(ctx, ast.range);
 	return matchExprAstKind!(immutable CheckedExpr)(
 		ast.kind,
 		(ref immutable BogusAst) =>

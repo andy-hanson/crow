@@ -11,6 +11,7 @@ import util.collection.str : asCStr, copyStr, CStr, emptyStr, MutStr, NulTermina
 import util.comparison : Comparison, compareOr;
 import util.opt : compareOpt, has, flatMapOption, force, forceOrTodo, mapOption, matchOpt, none, Opt, some;
 import util.ptr : Ptr;
+import util.sourceRange : RangeWithinFile;
 import util.sym :
 	AllSymbols,
 	compareSym,
@@ -431,6 +432,11 @@ immutable(Sym) storageKindSym(immutable StorageKind a) {
 struct PathAndStorageKind {
 	immutable Ptr!Path path;
 	immutable StorageKind storageKind;
+}
+
+struct PathAndRange {
+	immutable PathAndStorageKind path;
+	immutable RangeWithinFile range;
 }
 
 //TODO:KILL?

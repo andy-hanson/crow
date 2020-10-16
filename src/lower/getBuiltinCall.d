@@ -18,13 +18,13 @@ import util.collection.arr : Arr, at, empty, size;
 import util.memory : allocate;
 import util.opt : force, Opt;
 import util.ptr : Ptr;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteralValue, shortSymOperatorLiteralValue, Sym, symEqLongAlphaLiteral;
 import util.util : todo, verify;
 
 immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable Sym name,
 	immutable LowType rt,
 	immutable Arr!LowExpr args,

@@ -9,7 +9,7 @@ import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateSet;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : u8;
 import util.util : todo, unreachable, verify;
@@ -525,7 +525,7 @@ struct ConcreteExpr {
 	}
 
 	immutable ConcreteType type;
-	immutable SourceRange range;
+	immutable FileAndRange range;
 	immutable Kind kind;
 	private:
 	enum Kind {
@@ -570,58 +570,58 @@ struct ConcreteExpr {
 	}
 
 	public:
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable Alloc a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Alloc a) {
 		type = t; range = r; kind = Kind.alloc; alloc = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable Call a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Call a) {
 		type = t; range = r; kind = Kind.call; call = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable Cond a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Cond a) {
 		type = t; range = r; kind = Kind.cond; cond = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable CreateArr a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable CreateArr a) {
 		type = t; range = r; kind = Kind.createArr; createArr = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable CreateRecord a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable CreateRecord a) {
 		type = t; range = r; kind = Kind.createRecord; createRecord = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable ConvertToUnion a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable ConvertToUnion a) {
 		type = t; range = r; kind = Kind.convertToUnion; convertToUnion = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable Lambda a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Lambda a) {
 		type = t; range = r; kind = Kind.lambda; lambda = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable Let a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Let a) {
 		type = t; range = r; kind = Kind.let; let = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable LocalRef a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable LocalRef a) {
 		type = t; range = r; kind = Kind.localRef; localRef = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable Match a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Match a) {
 		type = t; range = r; kind = Kind.match; match = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable ParamRef a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable ParamRef a) {
 		type = t; range = r; kind = Kind.paramRef; paramRef = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable RecordFieldAccess a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable RecordFieldAccess a) {
 		type = t; range = r; kind = Kind.recordFieldAccess; recordFieldAccess = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable RecordFieldSet a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable RecordFieldSet a) {
 		type = t; range = r; kind = Kind.recordFieldSet; recordFieldSet = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable Seq a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Seq a) {
 		type = t; range = r; kind = Kind.seq; seq = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable SpecialConstant a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable SpecialConstant a) {
 		type = t; range = r; kind = Kind.specialConstant; specialConstant = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable SpecialUnary a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable SpecialUnary a) {
 		type = t; range = r; kind = Kind.specialUnary; specialUnary = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable SpecialBinary a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable SpecialBinary a) {
 		type = t; range = r; kind = Kind.specialBinary; specialBinary = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable SourceRange r, immutable StringLiteral a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable StringLiteral a) {
 		type = t; range = r; kind = Kind.stringLiteral; stringLiteral = a;
 	}
 }

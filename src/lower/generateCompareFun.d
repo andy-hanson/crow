@@ -47,14 +47,14 @@ import util.collection.str : Str, strEqLiteral, strLiteral;
 import util.memory : allocate, nu;
 import util.opt : none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange;
 import util.types : safeSizeTToU8, u8;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeStatic, writeNat;
 
 immutable(LowFun) generateCompareFun(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable AllLowTypes allTypes,
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const CompareFuns compareFuns,
@@ -93,7 +93,7 @@ struct ComparisonTypes {
 
 immutable(LowFunExprBody) arrCompareBody(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable AllLowTypes allTypes,
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const CompareFuns compareFuns,
@@ -179,7 +179,7 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 immutable(LowExpr) combineCompares(Alloc)(
 	ref Alloc alloc,
 	ref ArrBuilder!(Ptr!LowLocal) locals,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ComparisonTypes comparisonTypes,
 	immutable Str tempMangledName,
 	immutable LowExpr compareFirst,
@@ -214,7 +214,7 @@ immutable(Ptr!LowLocal) addLocal(Alloc)(
 
 immutable(LowExpr) genCompareExpr(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref const CompareFuns compareFuns,
 	ref immutable ComparisonTypes comparisonTypes,
 	ref immutable LowType type,
@@ -232,7 +232,7 @@ immutable(LowExpr) genCompareExpr(Alloc)(
 
 immutable(LowExpr) genComparisonLess(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ComparisonTypes comparisonTypes,
 ) {
 	return genCreateUnion(alloc, range, comparisonTypes.comparison, 0, genCreateRecord(range, comparisonTypes.less));
@@ -240,7 +240,7 @@ immutable(LowExpr) genComparisonLess(Alloc)(
 
 immutable(LowExpr) genComparisonEqual(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ComparisonTypes comparisonTypes,
 ) {
 	return genCreateUnion(alloc, range, comparisonTypes.comparison, 1, genCreateRecord(range, comparisonTypes.equal));
@@ -248,7 +248,7 @@ immutable(LowExpr) genComparisonEqual(Alloc)(
 
 immutable(LowExpr) genComparisonGreater(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ComparisonTypes comparisonTypes,
 ) {
 	return genCreateUnion(alloc, range, comparisonTypes.comparison, 2, genCreateRecord(range, comparisonTypes.greater));
@@ -256,7 +256,7 @@ immutable(LowExpr) genComparisonGreater(Alloc)(
 
 immutable(LowFunExprBody) compareBody(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable AllLowTypes allTypes,
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const CompareFuns compareFuns,
@@ -302,7 +302,7 @@ immutable(LowFunExprBody) compareBody(Alloc)(
 
 immutable(LowFunExprBody) genCompareUnion(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const CompareFuns compareFuns,
 	immutable LowUnion union_,
@@ -361,7 +361,7 @@ immutable(Str) localName(Alloc)(ref Alloc alloc, immutable string a, immutable s
 
 immutable(LowFunExprBody) genCompareRecord(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const CompareFuns compareFuns,
 	immutable Arr!LowField allFields,
@@ -391,7 +391,7 @@ immutable(LowFunExprBody) genCompareRecord(Alloc)(
 
 immutable(LowExpr) compareOneField(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const CompareFuns compareFuns,
 	immutable LowType fieldType,
@@ -406,7 +406,7 @@ immutable(LowExpr) compareOneField(Alloc)(
 
 immutable(LowExpr) genComparePrimitive(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ComparisonTypes comparisonTypes,
 	immutable PrimitiveType type,
 	ref immutable LowExpr a,

@@ -1,153 +1,144 @@
 module(
-	path: path-sk("/comparison", local)
-	imports: [path-sk("/std", global), path-sk("/io", global)]
+	path: 20
+	imports: [18, 12]
 	exports: []
 	structs: [
-		struct(range: range(11, 43), public?: true, name: my-record)
-		struct(range: range(43, 89), public?: true, name: my-byref-record)
-		struct(range: range(89, 113), public?: true, name: my-other-record)
-		struct(range: range(113, 157), public?: true, name: my-union)]
+		struct(range: file-range(20, range(11, 43)), public?: true, name: my-record)
+		struct(range: file-range(20, range(43, 89)), public?: true, name: my-byref-record)
+		struct(range: file-range(20, range(89, 113)), public?: true, name: my-other-record)
+		struct(range: file-range(20, range(113, 157)), public?: true, name: my-union)]
 	specs: []
 	funs: [
 		fun(
 			public?: true
 			summon: true
-			sig: sig(range(157, 184), test-compare-records, void(), [])
+			sig: sig(file-range(20, range(157, 184)), test-compare-records, void(), [])
 			body: let(
-				local(range(193, 194), a, my-record())
+				local(file-range(20, range(193, 194)), a, my-record())
 				record(
 					my-record()
 					[
-						call(fun-inst(module: str-conv, name: literal), [string-lit("1")])
-						call(fun-inst(module: str-conv, name: literal), [string-lit("2")])])
+						call(fun-inst(module: 11, name: literal), [string-lit("1")])
+						call(fun-inst(module: 11, name: literal), [string-lit("2")])])
 				let(
-					local(range(218, 219), b, my-record())
+					local(file-range(20, range(218, 219)), b, my-record())
 					record(
 						my-record()
 						[
-							call(fun-inst(module: str-conv, name: literal), [string-lit("1")])
-							call(fun-inst(module: str-conv, name: literal), [string-lit("3")])])
+							call(fun-inst(module: 11, name: literal), [string-lit("1")])
+							call(fun-inst(module: 11, name: literal), [string-lit("3")])])
 					let(
-						local(range(243, 244), c, my-record())
+						local(file-range(20, range(243, 244)), c, my-record())
 						record(
 							my-record()
 							[
-								call(fun-inst(module: str-conv, name: literal), [string-lit("1")])
-								call(fun-inst(module: str-conv, name: literal), [string-lit("2")])])
+								call(fun-inst(module: 11, name: literal), [string-lit("1")])
+								call(fun-inst(module: 11, name: literal), [string-lit("2")])])
 						let(
-							local(range(268, 269), d, my-record())
+							local(file-range(20, range(268, 269)), d, my-record())
 							record(
 								my-record()
 								[
-									call(fun-inst(module: str-conv, name: literal), [string-lit("0")])
-									call(fun-inst(module: str-conv, name: literal), [string-lit("3")])])
+									call(fun-inst(module: 11, name: literal), [string-lit("0")])
+									call(fun-inst(module: 11, name: literal), [string-lit("3")])])
 							seq(
 								seq(
 									call(
-										fun-inst(module: io, name: print-sync)
+										fun-inst(module: 12, name: print-sync)
 										[
 											call(
-												fun-inst(module: bootstrap, name: to-str)
+												fun-inst(module: 0, name: to-str)
 												[
 													call(
-														fun-inst(module: bootstrap, name: <=>, type-args: [my-record()])
+														fun-inst(module: 0, name: <=>, type-args: [my-record()])
 														[local-ref(a), local-ref(b)])])])
 									call(
-										fun-inst(module: io, name: print-sync)
+										fun-inst(module: 12, name: print-sync)
 										[
 											call(
-												fun-inst(module: bootstrap, name: to-str)
+												fun-inst(module: 0, name: to-str)
 												[
 													call(
-														fun-inst(module: bootstrap, name: <=>, type-args: [my-record()])
+														fun-inst(module: 0, name: <=>, type-args: [my-record()])
 														[local-ref(a), local-ref(c)])])]))
 								call(
-									fun-inst(module: io, name: print-sync)
+									fun-inst(module: 12, name: print-sync)
 									[
 										call(
-											fun-inst(module: bootstrap, name: to-str)
+											fun-inst(module: 0, name: to-str)
 											[
 												call(
-													fun-inst(module: bootstrap, name: <=>, type-args: [my-record()])
+													fun-inst(module: 0, name: <=>, type-args: [my-record()])
 													[local-ref(a), local-ref(d)])])])))))))
 		fun(
 			public?: true
 			summon: true
-			sig: sig(range(377, 410), test-compare-byref-records, void(), [])
+			sig: sig(file-range(20, range(377, 410)), test-compare-byref-records, void(), [])
 			body: let(
-				local(range(419, 420), a, my-byref-record())
+				local(file-range(20, range(419, 420)), a, my-byref-record())
 				record(
 					my-byref-record()
 					[
-						call(fun-inst(module: str-conv, name: literal), [string-lit("1")])
-						call(fun-inst(module: str-conv, name: literal), [string-lit("2")])])
+						call(fun-inst(module: 11, name: literal), [string-lit("1")])
+						call(fun-inst(module: 11, name: literal), [string-lit("2")])])
 				let(
-					local(range(450, 451), b, my-byref-record())
+					local(file-range(20, range(450, 451)), b, my-byref-record())
 					record(
 						my-byref-record()
 						[
-							call(fun-inst(module: str-conv, name: literal), [string-lit("1")])
-							call(fun-inst(module: str-conv, name: literal), [string-lit("3")])])
+							call(fun-inst(module: 11, name: literal), [string-lit("1")])
+							call(fun-inst(module: 11, name: literal), [string-lit("3")])])
 					let(
-						local(range(481, 482), c, my-byref-record())
+						local(file-range(20, range(481, 482)), c, my-byref-record())
 						record(
 							my-byref-record()
 							[
-								call(fun-inst(module: str-conv, name: literal), [string-lit("1")])
-								call(fun-inst(module: str-conv, name: literal), [string-lit("2")])])
+								call(fun-inst(module: 11, name: literal), [string-lit("1")])
+								call(fun-inst(module: 11, name: literal), [string-lit("2")])])
 						let(
-							local(range(512, 513), d, my-byref-record())
+							local(file-range(20, range(512, 513)), d, my-byref-record())
 							record(
 								my-byref-record()
 								[
-									call(fun-inst(module: str-conv, name: literal), [string-lit("0")])
-									call(fun-inst(module: str-conv, name: literal), [string-lit("3")])])
+									call(fun-inst(module: 11, name: literal), [string-lit("0")])
+									call(fun-inst(module: 11, name: literal), [string-lit("3")])])
 							seq(
 								seq(
 									call(
-										fun-inst(module: io, name: print-sync)
+										fun-inst(module: 12, name: print-sync)
 										[
 											call(
-												fun-inst(module: bootstrap, name: to-str)
+												fun-inst(module: 0, name: to-str)
 												[
 													call(
-														fun-inst(
-															module: bootstrap
-															name: <=>
-															type-args: [my-byref-record()])
+														fun-inst(module: 0, name: <=>, type-args: [my-byref-record()])
 														[local-ref(a), local-ref(b)])])])
 									call(
-										fun-inst(module: io, name: print-sync)
+										fun-inst(module: 12, name: print-sync)
 										[
 											call(
-												fun-inst(module: bootstrap, name: to-str)
+												fun-inst(module: 0, name: to-str)
 												[
 													call(
-														fun-inst(
-															module: bootstrap
-															name: <=>
-															type-args: [my-byref-record()])
+														fun-inst(module: 0, name: <=>, type-args: [my-byref-record()])
 														[local-ref(a), local-ref(c)])])]))
 								call(
-									fun-inst(module: io, name: print-sync)
+									fun-inst(module: 12, name: print-sync)
 									[
 										call(
-											fun-inst(module: bootstrap, name: to-str)
+											fun-inst(module: 0, name: to-str)
 											[
 												call(
-													fun-inst(
-														module: bootstrap
-														name: <=>
-														type-args: [my-byref-record()])
+													fun-inst(module: 0, name: <=>, type-args: [my-byref-record()])
 													[local-ref(a), local-ref(d)])])])))))))
 		fun(
 			public?: true
 			summon: true
-			sig: sig(range(627, 653), test-compare-unions, void(), [])
+			sig: sig(file-range(20, range(627, 653)), test-compare-unions, void(), [])
 			body: let(
-				local(range(662, 663), a, my-union())
+				local(file-range(20, range(662, 663)), a, my-union())
 				call(
-					fun-inst(module: bootstrap, name: as, type-args: [my-union()])
+					fun-inst(module: 0, name: as, type-args: [my-union()])
 					[
 						to-union(
 							my-union()
@@ -155,17 +146,17 @@ module(
 							record(
 								my-record()
 								[
-									call(fun-inst(module: str-conv, name: literal), [string-lit("1")])
-									call(fun-inst(module: str-conv, name: literal), [string-lit("2")])]))])
+									call(fun-inst(module: 11, name: literal), [string-lit("1")])
+									call(fun-inst(module: 11, name: literal), [string-lit("2")])]))])
 				let(
-					local(range(701, 702), b, my-union())
+					local(file-range(20, range(701, 702)), b, my-union())
 					call(
-						fun-inst(module: bootstrap, name: as, type-args: [my-union()])
+						fun-inst(module: 0, name: as, type-args: [my-union()])
 						[to-union(my-union(), 1, record(my-other-record(), []))])
 					let(
-						local(range(741, 742), c, my-union())
+						local(file-range(20, range(741, 742)), c, my-union())
 						call(
-							fun-inst(module: bootstrap, name: as, type-args: [my-union()])
+							fun-inst(module: 0, name: as, type-args: [my-union()])
 							[
 								to-union(
 									my-union()
@@ -173,12 +164,12 @@ module(
 									record(
 										my-record()
 										[
-											call(fun-inst(module: str-conv, name: literal), [string-lit("1")])
-											call(fun-inst(module: str-conv, name: literal), [string-lit("2")])]))])
+											call(fun-inst(module: 11, name: literal), [string-lit("1")])
+											call(fun-inst(module: 11, name: literal), [string-lit("2")])]))])
 						let(
-							local(range(780, 781), d, my-union())
+							local(file-range(20, range(780, 781)), d, my-union())
 							call(
-								fun-inst(module: bootstrap, name: as, type-args: [my-union()])
+								fun-inst(module: 0, name: as, type-args: [my-union()])
 								[
 									to-union(
 										my-union()
@@ -186,47 +177,47 @@ module(
 										record(
 											my-record()
 											[
-												call(fun-inst(module: str-conv, name: literal), [string-lit("1")])
-												call(fun-inst(module: str-conv, name: literal), [string-lit("1")])]))])
+												call(fun-inst(module: 11, name: literal), [string-lit("1")])
+												call(fun-inst(module: 11, name: literal), [string-lit("1")])]))])
 							seq(
 								seq(
 									call(
-										fun-inst(module: io, name: print-sync)
+										fun-inst(module: 12, name: print-sync)
 										[
 											call(
-												fun-inst(module: bootstrap, name: to-str)
+												fun-inst(module: 0, name: to-str)
 												[
 													call(
-														fun-inst(module: bootstrap, name: <=>, type-args: [my-union()])
+														fun-inst(module: 0, name: <=>, type-args: [my-union()])
 														[local-ref(a), local-ref(b)])])])
 									call(
-										fun-inst(module: io, name: print-sync)
+										fun-inst(module: 12, name: print-sync)
 										[
 											call(
-												fun-inst(module: bootstrap, name: to-str)
+												fun-inst(module: 0, name: to-str)
 												[
 													call(
-														fun-inst(module: bootstrap, name: <=>, type-args: [my-union()])
+														fun-inst(module: 0, name: <=>, type-args: [my-union()])
 														[local-ref(a), local-ref(c)])])]))
 								call(
-									fun-inst(module: io, name: print-sync)
+									fun-inst(module: 12, name: print-sync)
 									[
 										call(
-											fun-inst(module: bootstrap, name: to-str)
+											fun-inst(module: 0, name: to-str)
 											[
 												call(
-													fun-inst(module: bootstrap, name: <=>, type-args: [my-union()])
+													fun-inst(module: 0, name: <=>, type-args: [my-union()])
 													[local-ref(a), local-ref(d)])])])))))))
 		fun(
 			public?: true
 			summon: true
-			sig: sig(range(904, 932), main, fut(int32()), [param(range(919, 931), args, arr(arr(char())))])
+			sig: sig(file-range(20, range(904, 932)), main, fut(int32()), [param(file-range(20, range(919, 931)), args, arr(arr(char())))])
 			body: seq(
 				seq(
 					seq(
-						call(fun-inst(module: comparison, name: test-compare-records), [])
-						call(fun-inst(module: comparison, name: test-compare-byref-records), []))
-					call(fun-inst(module: comparison, name: test-compare-unions), []))
+						call(fun-inst(module: 20, name: test-compare-records), [])
+						call(fun-inst(module: 20, name: test-compare-byref-records), []))
+					call(fun-inst(module: 20, name: test-compare-unions), []))
 				call(
-					fun-inst(module: fut-utils, name: resolved, type-args: [int32()])
-					[call(fun-inst(module: str-conv, name: literal), [string-lit("0")])])))])
+					fun-inst(module: 16, name: resolved, type-args: [int32()])
+					[call(fun-inst(module: 11, name: literal), [string-lit("0")])])))])

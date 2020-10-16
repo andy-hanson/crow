@@ -6,7 +6,7 @@ import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColu
 import util.opt : force, has;
 import util.path : baseName, nParents, parent, path, Path, PathAndStorageKind, RelPath;
 import util.ptr : Ptr;
-import util.sourceRange : Pos, SourceRange;
+import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : Sym, writeSym, writeSymAndGetSize;
 import util.util : repeat, todo;
 import util.writer : writeChar, writeNat, Writer, writeStatic;
@@ -40,7 +40,11 @@ void writePos(Alloc)(ref Writer!Alloc writer, ref immutable LineAndColumnGetter 
 	writeLineAndColumn(writer, lineAndColumnAtPos(lc, pos));
 }
 
-void writeRange(Alloc)(ref Writer!Alloc writer, ref immutable LineAndColumnGetter lc, immutable SourceRange range) {
+void writeRangeWithinFile(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable LineAndColumnGetter lc,
+	ref immutable RangeWithinFile range,
+) {
 	writePos(writer, lc, range.start);
 	writeChar(writer, '-');
 	writePos(writer, lc, range.end);

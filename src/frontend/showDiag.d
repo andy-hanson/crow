@@ -2,7 +2,7 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
-import diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, PathAndStorageKindAndRange, TypeKind;
+import diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, TypeKind;
 import frontend.lang : nozeExtension;
 import model :
 	arity,
@@ -35,13 +35,14 @@ import util.bools : Bool, not, True;
 import util.collection.arr : Arr, empty, only, range, size;
 import util.collection.arrUtil : exists, map, sort;
 import util.collection.dict : mustGetAt;
+import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.str : CStr, emptyStr, Str;
 import util.diff : diffSymbols;
 import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetter;
 import util.opt : force, has;
 import util.path : PathAndStorageKind, pathToStr;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange, FileIndex, FilePaths;
 import util.sym : Sym, writeSym;
 import util.util : todo;
 import util.writer :
@@ -59,16 +60,19 @@ import util.writer :
 	writeStr,
 	writeWithCommas,
 	Writer;
-import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRange, writeRelPath;
+import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRangeWithinFile, writeRelPath;
 
 immutable(CStr) cStrOfDiagnostics(Alloc)(ref Alloc alloc, ref immutable Diagnostics diagnostics) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	immutable FilePaths filePaths = diagnostics.filesInfo.filePaths;
 	immutable Diags sorted = sort!(Diagnostic, Alloc)(
 		alloc,
 		diagnostics.diagnostics,
 		(ref immutable Diagnostic a, ref immutable Diagnostic b) =>
 			// TOOD: sort by file position too
-			comparePathAndStorageKind(a.where.pathAndStorageKind, b.where.pathAndStorageKind));
+			comparePathAndStorageKind(
+				fullIndexDictGet(filePaths, a.where.fileIndex),
+				fullIndexDictGet(filePaths, b.where.fileIndex)));
 	foreach (ref immutable Diagnostic d; sorted.range)
 		showDiagnostic(alloc, writer, diagnostics.filesInfo, d);
 	return finishWriterToCStr(writer);
@@ -86,42 +90,46 @@ void writeWhere(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
 	ref immutable FilesInfo fi,
-	ref immutable PathAndStorageKindAndRange where,
+	ref immutable FileAndRange where,
 ) {
 	writeBold(writer);
+	immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, where.fileIndex);
 	writeHyperlink(
 		writer,
-		pathToStr(
-			tempAlloc,
-			getAbsolutePath(tempAlloc, fi.absolutePathsGetter, where.pathAndStorageKind, nozeExtension)),
-		pathToStr(tempAlloc, emptyStr, where.pathAndStorageKind.path, nozeExtension));
+		pathToStr(tempAlloc, getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, nozeExtension)),
+		pathToStr(tempAlloc, emptyStr, path.path, nozeExtension));
 	writeChar(writer, ' ');
 	writeRed(writer);
 
-	immutable LineAndColumnGetter lcg = mustGetAt(fi.lineAndColumnGetters, where.pathAndStorageKind);
-	writeRange(writer, lcg, where.range);
+	writeRangeWithinFile(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.range);
 	writeReset(writer);
+}
+
+immutable(Str) getAbsolutePathStr(Alloc)(ref Alloc alloc, ref immutable FilesInfo fi, immutable FileIndex file) {
+	return ;
 }
 
 void writeLineNumber(Alloc)(
 	ref Writer!Alloc writer,
 	immutable FilesInfo fi,
-	ref immutable Module module_,
-	immutable SourceRange range,
+	immutable FileAndRange range,
 ) {
-	immutable PathAndStorageKind where = module_.pathAndStorageKind;
+	immutable PathAndStorageKind where = fullIndexDictGet(fi.filePaths, range.fileIndex);
 	writeBold(writer);
 	writePathAndStorageKind(writer, where);
 	writeStatic(writer, ".nz");
 	writeReset(writer);
 	writeStatic(writer, " line ");
-	immutable LineAndColumnGetter lcg = mustGetAt(fi.lineAndColumnGetters, where);
-	immutable size_t line = lineAndColumnAtPos(lcg, range.start).line;
+	immutable size_t line = lineAndColumnAtPos(
+		fullIndexDictGet(fi.lineAndColumnGetters, range.fileIndex),
+		range.range.start,
+	).line;
 	writeNat(writer, line + 1);
 }
 
 void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
-	matchParseDiag(d,
+	matchParseDiag!void(
+		d,
 		(ref immutable ParseDiag.Expected it) {
 			final switch (it.kind) {
 				case ParseDiag.Expected.Kind.bodyKeyword:
@@ -164,6 +172,14 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 					break;
 				case ParseDiag.Expected.Kind.typeParamQuestionMark:
 					writeStatic(writer, "expected type parameter name to start with '?'");
+			}
+		},
+		(ref immutable ParseDiag.FileDoesNotExist d) {
+			writeStatic(writer, "file does not exist");
+			if (has(d.importedFrom)) {
+				writeStatic(writer, " (imported from ");
+				writePathAndStorageKind(writer, force(d.importedFrom).path);
+				writeChar(writer, ')');
 			}
 		},
 		(ref immutable ParseDiag.IndentNotDivisible d) {
@@ -211,6 +227,12 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 		},
 		(ref immutable ParseDiag.MustEndInBlankLine) {
 			writeStatic(writer, "file must end in a blank line");
+		},
+		(ref immutable ParseDiag.RelativeImportReachesPastRoot d) {
+			writeStatic(writer, "importing ");
+			writeRelPath(writer, d.imported);
+			writeStatic(writer, " reaches above the source directory");
+			//TODO: recommend a compiler option to fix this
 		},
 		(ref immutable ParseDiag.ReservedName d) {
 			writeName(writer, d.name);
@@ -278,7 +300,7 @@ void writeCalledDecl(Alloc)(ref Writer!Alloc writer, immutable FilesInfo fi, imm
 		c,
 		(immutable Ptr!FunDecl funDecl) {
 			writeStatic(writer, " (from ");
-			writeLineNumber(writer, fi, funDecl.containingModule.deref, funDecl.range);
+			writeLineNumber(writer, fi, range(funDecl));
 			writeChar(writer, ')');
 		},
 		(ref immutable SpecSig specSig) {
@@ -484,20 +506,6 @@ void writeDiag(TempAlloc, Alloc)(
 		(ref immutable Diag.ExternPtrHasTypeParams) {
 			writeStatic(writer, "an 'extern-ptr' type should not be a template");
 		},
-		(ref immutable Diag.FileDoesNotExist d) {
-			final switch (d.kind) {
-				case Diag.FileDoesNotExist.Kind.root:
-					writeStatic(writer, "root path ");
-					writePathAndStorageKind(writer, d.path);
-					writeStatic(writer, " does not exist");
-					break;
-				case Diag.FileDoesNotExist.Kind.import_:
-					writeStatic(writer, "import resolves to ");
-					writePathAndStorageKind(writer, d.path);
-					writeStatic(writer, ", but file does not exist\n");
-					break;
-			}
-		},
 		(ref immutable Diag.LambdaCantInferParamTypes) {
 			writeStatic(writer, "can't infer parameter types for lambda.\nconsider prefixing with 'as<...>:'");
 		},
@@ -601,12 +609,6 @@ void writeDiag(TempAlloc, Alloc)(
 			writeStatic(writer, " is already the default for ");
 			writeStatic(writer, aOrAnTypeKind(d.typeKind));
 			writeStatic(writer, " type");
-		},
-		(ref immutable Diag.RelativeImportReachesPastRoot d) {
-			writeStatic(writer, "importing ");
-			writeRelPath(writer, d.imported);
-			writeStatic(writer, " reaches above the source directory");
-			//TODO: recommend a compiler option to fix this
 		},
 		(ref immutable Diag.SendFunDoesNotReturnFut d) {
 			writeStatic(writer, "a fun-ref should return a fut, but returns ");

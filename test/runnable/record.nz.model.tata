@@ -1,50 +1,47 @@
 module(
-	path: path-sk("/record", local)
-	imports: [path-sk("/std", global), path-sk("/io", global)]
+	path: 20
+	imports: [18, 12]
 	exports: []
-	structs: [struct(range: range(11, 43), public?: true, name: my-record)]
+	structs: [struct(range: file-range(20, range(11, 43)), public?: true, name: my-record)]
 	specs: []
 	funs: [
 		fun(
 			public?: true
 			summon: true
-			sig: sig(range(43, 71), main, fut(int32()), [param(range(58, 70), args, arr(arr(char())))])
+			sig: sig(file-range(20, range(43, 71)), main, fut(int32()), [param(file-range(20, range(58, 70)), args, arr(arr(char())))])
 			body: let(
-				local(range(80, 81), m, my-record())
+				local(file-range(20, range(80, 81)), m, my-record())
 				record(
 					my-record()
 					[
-						call(fun-inst(module: str-conv, name: literal), [string-lit("1")])
-						call(fun-inst(module: str-conv, name: literal), [string-lit("2")])])
+						call(fun-inst(module: 11, name: literal), [string-lit("1")])
+						call(fun-inst(module: 11, name: literal), [string-lit("2")])])
 				seq(
 					seq(
 						seq(
 							seq(
 								call(
-									fun-inst(module: exceptions, name: assert)
+									fun-inst(module: 5, name: assert)
 									[
 										call(
-											fun-inst(module: bootstrap, name: ==, type-args: [nat()])
+											fun-inst(module: 0, name: ==, type-args: [nat()])
 											[
 												field-acc(local-ref(m), my-record(), x)
-												call(fun-inst(module: str-conv, name: literal), [string-lit("1")])])])
+												call(fun-inst(module: 11, name: literal), [string-lit("1")])])])
 								call(
-									fun-inst(module: exceptions, name: assert)
+									fun-inst(module: 5, name: assert)
 									[
 										call(
-											fun-inst(module: bootstrap, name: ==, type-args: [nat()])
+											fun-inst(module: 0, name: ==, type-args: [nat()])
 											[
 												field-acc(local-ref(m), my-record(), y)
-												call(fun-inst(module: str-conv, name: literal), [string-lit("2")])])]))
+												call(fun-inst(module: 11, name: literal), [string-lit("2")])])]))
 							call(
-								fun-inst(module: io, name: print-sync)
-								[
-									call(
-										fun-inst(module: str-conv, name: to-str)
-										[field-acc(local-ref(m), my-record(), x)])]))
+								fun-inst(module: 12, name: print-sync)
+								[call(fun-inst(module: 11, name: to-str), [field-acc(local-ref(m), my-record(), x)])]))
 						call(
-							fun-inst(module: io, name: print-sync)
-							[call(fun-inst(module: str-conv, name: to-str), [field-acc(local-ref(m), my-record(), y)])]))
+							fun-inst(module: 12, name: print-sync)
+							[call(fun-inst(module: 11, name: to-str), [field-acc(local-ref(m), my-record(), y)])]))
 					call(
-						fun-inst(module: fut-utils, name: resolved, type-args: [int32()])
-						[call(fun-inst(module: str-conv, name: literal), [string-lit("0")])]))))])
+						fun-inst(module: 16, name: resolved, type-args: [int32()])
+						[call(fun-inst(module: 11, name: literal), [string-lit("0")])]))))])

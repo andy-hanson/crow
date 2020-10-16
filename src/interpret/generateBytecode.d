@@ -99,7 +99,7 @@ import util.collection.str : strEqLiteral;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange;
 import util.types : safeSizeTToU8, safeSizeTToU32, safeU32ToU8, u8;
 import util.util : divRoundUp, roundUp, todo, verify;
 
@@ -719,7 +719,7 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable LowExprKind.SpecialBinary a,
 ) {
 	void fn(immutable FnOp fn) {

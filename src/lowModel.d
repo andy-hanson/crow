@@ -8,7 +8,7 @@ import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.str : Str;
 import util.opt : Opt;
 import util.ptr : Ptr;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : u8;
 import util.util : verify;
@@ -292,7 +292,7 @@ struct LowFun {
 
 struct LowExpr {
 	immutable LowType type;
-	immutable SourceRange range;
+	immutable FileAndRange range;
 	immutable LowExprKind kind;
 }
 

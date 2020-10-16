@@ -22,7 +22,7 @@ import util.sexpr :
 	tataRecord,
 	tataStr,
 	tataSym;
-import util.sourceRange : Pos, sexprOfSourceRange, SourceRange;
+import util.sourceRange : Pos, sexprOfRangeWithinFile, RangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32, u8;
 import util.util : todo, unreachable, verify;
@@ -40,19 +40,19 @@ struct NameAndRange {
 	}
 }
 
-immutable(SourceRange) rangeOfNameAndRange(immutable NameAndRange a) {
-	return immutable SourceRange(a.start, safeSizeTToU32(a.start + symSize(a.name)));
+immutable(RangeWithinFile) rangeOfNameAndRange(immutable NameAndRange a) {
+	return immutable RangeWithinFile(a.start, safeSizeTToU32(a.start + symSize(a.name)));
 }
 
 struct TypeAst {
 	@safe @nogc pure nothrow:
 	struct TypeParam {
-		immutable SourceRange range;
+		immutable RangeWithinFile range;
 		immutable Sym name;
 	}
 
 	struct InstStruct {
-		immutable SourceRange range;
+		immutable RangeWithinFile range;
 		immutable NameAndRange name;
 		immutable ArrWithSize!TypeAst typeArgs;
 	}
@@ -86,7 +86,7 @@ struct TypeAst {
 	}
 }
 
-immutable(SourceRange) range(ref immutable TypeAst a) {
+immutable(RangeWithinFile) range(ref immutable TypeAst a) {
 	return matchTypeAst(
 		a,
 		(ref immutable TypeAst.TypeParam it) => it.range,
@@ -191,7 +191,7 @@ struct LiteralInnerAst {
 
 struct MatchAst {
 	struct CaseAst {
-		immutable SourceRange range;
+		immutable RangeWithinFile range;
 		immutable NameAndRange structName;
 		immutable Opt!NameAndRange local;
 		immutable Ptr!ExprAst then;
@@ -349,24 +349,24 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 }
 
 struct ExprAst {
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 	immutable ExprAstKind kind;
 }
 
 // This is the declaration, TypeAst.TypeParam is the use
 struct TypeParamAst {
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 	immutable Sym name;
 }
 
 struct ParamAst {
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 	immutable NameAndRange name;
 	immutable TypeAst type;
 }
 
 struct SpecUseAst {
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 	immutable NameAndRange spec;
 	immutable ArrWithSize!TypeAst typeArgs;
 }
@@ -374,7 +374,7 @@ struct SpecUseAst {
 struct SigAst {
 	@safe @nogc pure nothrow:
 
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 	immutable Sym name; // Range starts at sig.range.start
 	immutable TypeAst returnType;
 	immutable ArrWithSize!ParamAst params;
@@ -408,12 +408,12 @@ struct PuritySpecifierAndRange {
 	immutable PuritySpecifier specifier;
 }
 
-immutable(SourceRange) rangeOfPuritySpecifier(ref immutable PuritySpecifierAndRange a) {
-	return immutable SourceRange(a.start, safeSizeTToU32(a.start + symSize(symOfPuritySpecifier(a.specifier))));
+immutable(RangeWithinFile) rangeOfPuritySpecifier(ref immutable PuritySpecifierAndRange a) {
+	return immutable RangeWithinFile(a.start, safeSizeTToU32(a.start + symSize(symOfPuritySpecifier(a.specifier))));
 }
 
 struct StructAliasAst {
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 	immutable Bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParamAst typeParams;
@@ -439,8 +439,8 @@ struct ExplicitByValOrRefAndRange {
 	immutable ExplicitByValOrRef byValOrRef;
 }
 
-immutable(SourceRange) rangeOfExplicitByValOrRef(ref immutable ExplicitByValOrRefAndRange a) {
-	return immutable SourceRange(a.start, safeSizeTToU32(a.start + symSize(symOfExplicitByValOrRef(a.byValOrRef))));
+immutable(RangeWithinFile) rangeOfExplicitByValOrRef(ref immutable ExplicitByValOrRefAndRange a) {
+	return immutable RangeWithinFile(a.start, safeSizeTToU32(a.start + symSize(symOfExplicitByValOrRef(a.byValOrRef))));
 }
 
 
@@ -451,7 +451,7 @@ struct StructDeclAst {
 		struct ExternPtr {}
 		struct Record {
 			struct Field {
-				immutable SourceRange range;
+				immutable RangeWithinFile range;
 				immutable Bool isMutable;
 				immutable Sym name;
 				immutable TypeAst type;
@@ -487,7 +487,7 @@ struct StructDeclAst {
 		@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
 	}
 
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 	immutable Bool isPublic;
 	immutable Sym name; // start is range.start
 	immutable ArrWithSize!TypeParamAst typeParams;
@@ -556,7 +556,7 @@ struct SpecBodyAst {
 }
 
 struct SpecDeclAst {
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 	immutable Bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParamAst typeParams;
@@ -608,7 +608,7 @@ struct FunBodyAst {
 }
 
 struct FunDeclAst {
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 	immutable ArrWithSize!TypeParamAst typeParams; // If this is empty, infer type params
 	immutable Ptr!SigAst sig; // Ptr to keep this struct from getting too big
 	immutable Arr!SpecUseAst specUses;
@@ -621,13 +621,13 @@ struct FunDeclAst {
 }
 
 struct ImportAst {
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 	immutable u8 nDots;
 	immutable Ptr!Path path;
 }
 
 struct ImportsOrExportsAst {
-	immutable SourceRange range;
+	immutable RangeWithinFile range;
 	immutable Arr!ImportAst paths;
 }
 
@@ -650,7 +650,7 @@ struct FileAst {
 }
 
 private immutable ImportsOrExportsAst emptyImportsOrExports =
-	immutable ImportsOrExportsAst(SourceRange.empty, emptyArr!ImportAst);
+	immutable ImportsOrExportsAst(RangeWithinFile.empty, emptyArr!ImportAst);
 private immutable FileAstPart0 emptyFileAstPart0 =
 	immutable FileAstPart0(some(emptyImportsOrExports), some(emptyImportsOrExports), emptyArr!SpecDeclAst);
 private immutable FileAstPart1 emptyFileAstPart1 =
@@ -706,7 +706,7 @@ immutable(Sexpr) sexprOfImportsOrExports(Alloc)(ref Alloc alloc, ref immutable I
 	return tataRecord(
 		alloc,
 		"ports",
-		sexprOfSourceRange(alloc, a.range),
+		sexprOfRangeWithinFile(alloc, a.range),
 		tataArr(alloc, a.paths, (ref immutable ImportAst a) =>
 			sexprOfImportAst(alloc, a)));
 }
@@ -752,7 +752,7 @@ immutable(Sexpr) sexprOfField(Alloc)(ref Alloc alloc, ref immutable StructDeclAs
 	return tataRecord(
 		alloc,
 		"field",
-		sexprOfSourceRange(alloc, a.range),
+		sexprOfRangeWithinFile(alloc, a.range),
 		tataBool(a.isMutable),
 		tataSym(a.name),
 		sexprOfTypeAst(alloc, a.type));
@@ -792,7 +792,7 @@ immutable(Sexpr) sexprOfStructDeclAst(Alloc)(ref Alloc alloc, ref immutable Stru
 	return tataRecord(
 		alloc,
 		"struct",
-		sexprOfSourceRange(alloc, a.range),
+		sexprOfRangeWithinFile(alloc, a.range),
 		tataBool(a.isPublic),
 		tataArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst a) =>
 			sexprOfTypeParamAst(alloc, a)),
@@ -828,7 +828,7 @@ immutable(Sexpr) sexprOfTypeParamAst(Alloc)(ref Alloc alloc, ref immutable TypeP
 	return tataRecord(
 		alloc,
 		"type-param",
-		sexprOfSourceRange(alloc, a.range),
+		sexprOfRangeWithinFile(alloc, a.range),
 		tataSym(a.name));
 }
 
@@ -836,7 +836,7 @@ immutable(Sexpr) sexprOfSig(Alloc)(ref Alloc alloc, ref immutable SigAst a) {
 	return tataRecord(
 		alloc,
 		"sig-ast",
-		sexprOfSourceRange(alloc, a.range),
+		sexprOfRangeWithinFile(alloc, a.range),
 		tataSym(a.name),
 		sexprOfTypeAst(alloc, a.returnType),
 		tataArr(alloc, toArr(a.params), (ref immutable ParamAst p) => sexprOfParamAst(alloc, p)));
@@ -850,7 +850,7 @@ immutable(Sexpr) sexprOfTypeAst(Alloc)(ref Alloc alloc, ref immutable TypeAst a)
 	return matchTypeAst!(immutable Sexpr)(
 		a,
 		(ref immutable TypeAst.TypeParam p) =>
-			tataRecord(alloc, "type-param", sexprOfSourceRange(alloc, p.range), tataSym(p.name)),
+			tataRecord(alloc, "type-param", sexprOfRangeWithinFile(alloc, p.range), tataSym(p.name)),
 		(ref immutable TypeAst.InstStruct i) =>
 			sexprOfInstStructAst(alloc, i));
 }
@@ -861,7 +861,7 @@ immutable(Sexpr) sexprOfOptTypeAst(Alloc)(ref Alloc alloc, immutable Opt!(Ptr!Ty
 }
 
 immutable(Sexpr) sexprOfInstStructAst(Alloc)(ref Alloc alloc, ref immutable TypeAst.InstStruct a) {
-	immutable Sexpr range = sexprOfSourceRange(alloc, a.range);
+	immutable Sexpr range = sexprOfRangeWithinFile(alloc, a.range);
 	immutable Sexpr name = sexprOfNameAndRange(alloc, a.name);
 	immutable Opt!Sexpr typeArgs = empty(toArr(a.typeArgs))
 		? none!Sexpr
@@ -875,7 +875,7 @@ immutable(Sexpr) sexprOfParamAst(Alloc)(ref Alloc alloc, ref immutable ParamAst 
 	return tataRecord(
 		alloc,
 		"param",
-		sexprOfSourceRange(alloc, a.range),
+		sexprOfRangeWithinFile(alloc, a.range),
 		sexprOfNameAndRange(alloc, a.name),
 		sexprOfTypeAst(alloc, a.type));
 }
@@ -985,7 +985,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 					tataRecord(
 						alloc,
 						"case",
-						sexprOfSourceRange(alloc, case_.range),
+						sexprOfRangeWithinFile(alloc, case_.range),
 						sexprOfNameAndRange(alloc, case_.structName),
 						tataOpt(alloc, case_.local, (ref immutable NameAndRange nr) =>
 							sexprOfNameAndRange(alloc, nr)),

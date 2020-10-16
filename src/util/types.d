@@ -16,10 +16,10 @@ alias i32 = int;
 alias ssize_t = long;
 
 immutable u8 maxU4 = 0xf;
-immutable u8 maxU8 = 0xff;
-immutable u16 maxU16 = 0xffff;
-immutable u32 maxU32 = 0xffffffff;
-immutable u64 maxU64 = 0xffffffffffffffff;
+immutable u8 maxU8 = 0xff; // TODO: just use u8.max
+immutable u16 maxU16 = 0xffff; // TODO: just use u16.max
+immutable u32 maxU32 = 0xffffffff; // TODO: just use u32.max
+immutable u64 maxU64 = 0xffffffffffffffff; // TODO: just use u64.max
 
 immutable(u8) bottomU8OfU32(immutable u32 u) {
 	return cast(u8) (u & maxU8);

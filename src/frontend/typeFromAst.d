@@ -28,7 +28,7 @@ import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map, tail;
 import util.collection.dict : Dict, getAt;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
-import util.sourceRange : SourceRange;
+import util.sourceRange : RangeWithinFile;
 import util.sym : compareSym, Sym, symEq;
 import util.util : todo;
 
@@ -130,7 +130,7 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable Sym name,
-	immutable SourceRange range,
+	immutable RangeWithinFile range,
 	ref immutable SpecsMap specsMap,
 ) {
 	return tryFindT(
@@ -194,7 +194,7 @@ immutable(Opt!TDecl) tryFindT(TDecl, Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable Sym name,
-	immutable SourceRange range,
+	immutable RangeWithinFile range,
 	immutable Dict!(Sym, TDecl, compareSym) dict,
 	immutable Diag.DuplicateImports.Kind duplicateImportKind,
 	immutable Diag.NameNotFound.Kind nameNotFoundKind,

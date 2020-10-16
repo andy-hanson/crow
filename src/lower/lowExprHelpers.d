@@ -19,7 +19,7 @@ import util.bools : Bool;
 import util.collection.arr : Arr, emptyArr;
 import util.memory : allocate;
 import util.ptr : Ptr;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange;
 import util.types : u8;
 import util.util : todo;
 
@@ -36,7 +36,7 @@ immutable LowType voidType = immutable LowType(PrimitiveType.void_);
 immutable(LowExpr) addPtr(Alloc)(
 	ref Alloc alloc,
 	ref immutable LowType ptrType,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable LowExpr ptr,
 	immutable size_t value,
 ) {
@@ -51,7 +51,7 @@ immutable(LowExpr) addPtr(Alloc)(
 
 immutable(LowExpr) genDeref(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LowExpr ptr,
 ) {
 	return genUnary(alloc, range, asNonFunPtrType(ptr.type).pointee, LowExprKind.SpecialUnary.Kind.deref, ptr);
@@ -59,7 +59,7 @@ immutable(LowExpr) genDeref(Alloc)(
 
 immutable(LowExpr) genUnary(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LowType type,
 	immutable LowExprKind.SpecialUnary.Kind kind,
 	immutable LowExpr arg,
@@ -72,7 +72,7 @@ immutable(LowExpr) genUnary(Alloc)(
 
 immutable(LowExpr) genIf(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LowExpr cond,
 	immutable LowExpr then,
 	immutable LowExpr else_,
@@ -89,13 +89,13 @@ immutable(LowExpr) genIf(Alloc)(
 
 immutable(LowExpr) genNat64Eq0(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LowExpr a,
 ) {
 	return genBinary(alloc, range, boolType, LowExprKind.SpecialBinary.Kind.eqNat64, a, constantNat64(range, 0));
 }
 
-immutable(LowExpr) genBool(ref immutable SourceRange range, immutable Bool value) {
+immutable(LowExpr) genBool(ref immutable FileAndRange range, immutable Bool value) {
 	return immutable LowExpr(
 		boolType,
 		range,
@@ -105,7 +105,7 @@ immutable(LowExpr) genBool(ref immutable SourceRange range, immutable Bool value
 
 immutable(LowExpr) incrPointer(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable LowType ptrType,
 	ref immutable LowExpr ptr,
 ) {
@@ -113,7 +113,7 @@ immutable(LowExpr) incrPointer(Alloc)(
 }
 
 immutable(LowExpr) constantNat64(
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable size_t value,
 ) {
 	return immutable LowExpr(
@@ -124,7 +124,7 @@ immutable(LowExpr) constantNat64(
 }
 
 immutable(LowExpr) genCreateRecord(
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LowType.Record record,
 	immutable Arr!LowExpr args,
 ) {
@@ -134,13 +134,13 @@ immutable(LowExpr) genCreateRecord(
 		immutable LowExprKind(immutable LowExprKind.CreateRecord(args)));
 }
 
-immutable(LowExpr) genCreateRecord(ref immutable SourceRange range, immutable LowType.Record record) {
+immutable(LowExpr) genCreateRecord(ref immutable FileAndRange range, immutable LowType.Record record) {
 	return genCreateRecord(range, record, emptyArr!LowExpr);
 }
 
 immutable(LowExpr) genCreateUnion(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LowType.Union union_,
 	immutable u8 memberIndex,
 	immutable LowExpr member,
@@ -153,7 +153,7 @@ immutable(LowExpr) genCreateUnion(Alloc)(
 
 immutable(LowExpr) genBinary(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LowType returnType,
 	immutable LowExprKind.SpecialBinary.Kind kind,
 	immutable LowExpr a,
@@ -167,7 +167,7 @@ immutable(LowExpr) genBinary(Alloc)(
 
 immutable(LowExpr) decrNat64(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LowExpr arg,
 ) {
 	return immutable LowExpr(
@@ -181,7 +181,7 @@ immutable(LowExpr) decrNat64(Alloc)(
 
 immutable(LowExpr) genCall(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LowFunIndex called,
 	immutable LowType returnType,
 	immutable Arr!LowExpr args,
@@ -192,17 +192,17 @@ immutable(LowExpr) genCall(Alloc)(
 		immutable LowExprKind(immutable LowExprKind.Call(called, args)));
 }
 
-immutable(LowExpr) getSizeOf(immutable SourceRange range, immutable LowType t) {
+immutable(LowExpr) getSizeOf(immutable FileAndRange range, immutable LowType t) {
 	return immutable LowExpr(nat64Type, range, immutable LowExprKind(immutable LowExprKind.SizeOf(t)));
 }
 
-immutable(LowExpr) localRef(Alloc)(ref Alloc alloc, ref immutable SourceRange range, immutable Ptr!LowLocal local) {
+immutable(LowExpr) localRef(Alloc)(ref Alloc alloc, ref immutable FileAndRange range, immutable Ptr!LowLocal local) {
 	return immutable LowExpr(local.type, range, immutable LowExprKind(immutable LowExprKind.LocalRef(local)));
 }
 
 immutable(LowExpr) genLet(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable Ptr!LowLocal local,
 	immutable LowExpr value,
 	immutable LowExpr then,
@@ -217,7 +217,7 @@ immutable(LowExpr) genLet(Alloc)(
 }
 
 immutable(LowExpr) paramRef(
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable LowType type,
 	immutable LowParamIndex param,
 ) {
@@ -229,7 +229,7 @@ immutable(LowExpr) paramRef(
 
 immutable(LowExpr) wrapMulNat64(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable LowExpr left,
 	ref immutable LowExpr right,
 ) {
@@ -245,7 +245,7 @@ immutable(LowExpr) wrapMulNat64(Alloc)(
 immutable(LowExpr) ptrCast(Alloc)(
 	ref Alloc alloc,
 	ref immutable LowType type,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LowExpr inner,
 ) {
 	return immutable LowExpr(type, range, ptrCastKind(alloc, inner));
@@ -257,7 +257,7 @@ immutable(LowExprKind) ptrCastKind(Alloc)(ref Alloc alloc, immutable LowExpr inn
 
 immutable(LowExpr) recordFieldAccess(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable LowExpr target,
 	immutable LowType fieldType,
 	immutable u8 fieldIndex,
@@ -275,7 +275,7 @@ immutable(LowExpr) recordFieldAccess(Alloc)(
 
 immutable(LowExpr) seq(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable LowExpr first,
 	immutable LowExpr then,
 ) {
@@ -287,7 +287,7 @@ immutable(LowExpr) seq(Alloc)(
 
 immutable(LowExpr) writeToPtr(Alloc)(
 	ref Alloc alloc,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable LowExpr ptr,
 	ref immutable LowExpr value,
 ) {

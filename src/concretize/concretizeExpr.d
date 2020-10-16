@@ -71,7 +71,7 @@ import util.collection.str : copyStr, Str, strEq, strEqLiteral, strLiteral;
 import util.memory : allocate, nu;
 import util.opt : force, forcePtr, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
 import util.types : safeSizeTToU8;
 import util.util : todo, unreachable, verify;
@@ -168,7 +168,7 @@ immutable(ConcreteFunInst) getConcreteFunKeyFromCalled(Alloc)(
 immutable(ConcreteExpr) concretizeCall(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable Expr.Call e,
 ) {
 	immutable Ptr!ConcreteFun concreteCalled = getConcreteFunFromCalled(alloc, ctx, e.called);
@@ -207,7 +207,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(Alloc)(
 immutable(ConcreteExpr) concretizeClosureFieldRef(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable Expr.ClosureFieldRef e,
 ) {
 	immutable Ptr!ConcreteParam closureParam = forcePtr(ptrTrustMe(ctx.currentConcreteFun.closureParam));
@@ -248,7 +248,7 @@ immutable(ConcreteExpr) createAllocExpr(Alloc)(
 immutable(ConcreteExpr) concretizeCreateRecord(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable Expr.CreateRecord e,
 ) {
 	immutable ConcreteType type = getConcreteType_forStructInst(alloc, ctx, e.structInst);
@@ -265,7 +265,7 @@ immutable(ConcreteExpr) getGetVatAndActor(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable ConcreteType type,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 ) {
 	return immutable ConcreteExpr(
 		type,
@@ -290,7 +290,7 @@ immutable(Arr!ConcreteField) concretizeClosureFields(Alloc)(
 immutable(ConcreteExpr) concretizeLambda(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable Expr.Lambda e,
 ) {
 	immutable TypeArgsScope tScope = typeScope(ctx);
@@ -442,7 +442,7 @@ immutable(ConcreteExpr) concretizeWithLocal(Alloc)(
 immutable(ConcreteExpr) concretizeLet(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable Expr.Let e,
 ) {
 	immutable Ptr!ConcreteExpr value = allocExpr(alloc, concretizeExpr(alloc, ctx, e.value));
@@ -454,7 +454,7 @@ immutable(ConcreteExpr) concretizeLet(Alloc)(
 immutable(ConcreteExpr) concretizeMatch(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable Expr.Match e,
 ) {
 	immutable ConcreteExpr matched = concretizeExpr(alloc, ctx, e.matched);
@@ -483,7 +483,7 @@ immutable(ConcreteExpr) concretizeMatch(Alloc)(
 immutable(ConcreteExpr) concretizeParamRef(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable Expr.ParamRef e,
 ) {
 	immutable size_t paramIndex = e.param.index;
@@ -510,7 +510,7 @@ immutable(Ptr!ConcreteField) getMatchingField(Alloc)(
 immutable(ConcreteExpr) concretizeRecordFieldAccess(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable Expr.RecordFieldAccess e,
 ) {
 	immutable Ptr!ConcreteExpr target = allocExpr(alloc, concretizeExpr(alloc, ctx, e.target));
@@ -525,7 +525,7 @@ immutable(ConcreteExpr) concretizeRecordFieldAccess(Alloc)(
 immutable(ConcreteExpr) concretizeRecordFieldSet(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable Expr.RecordFieldSet e,
 ) {
 	immutable Ptr!ConcreteExpr target = allocExpr(alloc, concretizeExpr(alloc, ctx, e.target));
@@ -541,7 +541,7 @@ immutable(ConcreteExpr) concretizeRecordFieldSet(Alloc)(
 }
 
 immutable(ConcreteExpr) concretizeExpr(Alloc)(ref Alloc alloc, ref ConcretizeExprCtx ctx, ref immutable Expr e) {
-	immutable SourceRange range = range(e);
+	immutable FileAndRange range = range(e);
 	return matchExpr(
 		e,
 		(ref immutable Expr.Bogus) =>

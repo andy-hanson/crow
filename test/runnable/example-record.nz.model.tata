@@ -1,36 +1,36 @@
 module(
-	path: path-sk("/example-record", local)
-	imports: [path-sk("/std", global), path-sk("/io", global)]
+	path: 20
+	imports: [18, 12]
 	exports: []
-	structs: [struct(range: range(37, 133), public?: true, name: point)]
+	structs: [struct(range: file-range(20, range(37, 133)), public?: true, name: point)]
 	specs: []
 	funs: [
 		fun(
 			public?: true
-			sig: sig(range(133, 153), create-point, point(), [])
+			sig: sig(file-range(20, range(133, 153)), create-point, point(), [])
 			body: record(
 				point()
 				[
-					call(fun-inst(module: str-conv, name: literal), [string-lit("1")])
-					call(fun-inst(module: str-conv, name: literal), [string-lit("2")])]))
+					call(fun-inst(module: 11, name: literal), [string-lit("1")])
+					call(fun-inst(module: 11, name: literal), [string-lit("2")])]))
 		fun(
 			public?: true
-			sig: sig(range(336, 356), get-x, float(), [param(range(348, 355), a, point())])
+			sig: sig(file-range(20, range(336, 356)), get-x, float(), [param(file-range(20, range(348, 355)), a, point())])
 			body: field-acc(param-ref(a), point(), x))
 		fun(
 			public?: true
 			summon: true
-			sig: sig(range(508, 540), main, fut(int32()), [param(range(527, 539), args, arr(arr(char())))])
+			sig: sig(file-range(20, range(508, 540)), main, fut(int32()), [param(file-range(20, range(527, 539)), args, arr(arr(char())))])
 			body: let(
-				local(range(611, 612), p, point())
-				call(fun-inst(module: example-record, name: create-point), [])
+				local(file-range(20, range(611, 612)), p, point())
+				call(fun-inst(module: 20, name: create-point), [])
 				let(
-					local(range(666, 669), p-x, float())
-					call(fun-inst(module: example-record, name: get-x), [local-ref(p)])
+					local(file-range(20, range(666, 669)), p-x, float())
+					call(fun-inst(module: 20, name: get-x), [local-ref(p)])
 					seq(
 						call(
-							fun-inst(module: io, name: print-sync)
-							[call(fun-inst(module: str-conv, name: to-str), [local-ref(p-x)])])
+							fun-inst(module: 12, name: print-sync)
+							[call(fun-inst(module: 11, name: to-str), [local-ref(p-x)])])
 						call(
-							fun-inst(module: fut-utils, name: resolved, type-args: [int32()])
-							[call(fun-inst(module: bootstrap, name: zero), [])])))))])
+							fun-inst(module: 16, name: resolved, type-args: [int32()])
+							[call(fun-inst(module: 0, name: zero), [])])))))])

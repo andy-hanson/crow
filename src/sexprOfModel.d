@@ -57,7 +57,7 @@ import util.sexpr :
 	tataRecord,
 	tataStr,
 	tataSym;
-import util.sourceRange : sexprOfSourceRange;
+import util.sourceRange : sexprOfFileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.util : todo;
 import util.writer : Writer;
@@ -68,11 +68,11 @@ immutable(Sexpr) sexprOfModule(Alloc)(ref Alloc alloc, ref immutable Module a) {
 		"module",
 		arrLiteral!NameAndSexpr(
 			alloc,
-			nameAndTata("path", sexprOfPathAndStorageKind(alloc, a.pathAndStorageKind)),
+			nameAndTata("path", tataNat(a.fileIndex.index)),
 			nameAndTata("imports", tataArr(alloc, a.imports, (ref immutable Ptr!Module m) =>
-				sexprOfPathAndStorageKind(alloc, m.pathAndStorageKind))),
+				tataNat(m.fileIndex.index))),
 			nameAndTata("exports", tataArr(alloc, a.exports, (ref immutable Ptr!Module m) =>
-				sexprOfPathAndStorageKind(alloc, m.pathAndStorageKind))),
+				tataNat(m.fileIndex.index))),
 			nameAndTata("structs", tataArr(alloc, a.structs, (ref immutable StructDecl s) =>
 				sexprOfStructDecl(alloc, ctx, s))),
 			nameAndTata("specs", tataArr(alloc, a.specs, (ref immutable SpecDecl s) =>
@@ -85,7 +85,6 @@ private:
 
 struct Ctx {
 	immutable Ptr!Module curModule;
-	MutDict!(immutable Ptr!Module, immutable Sym, comparePtr!Module) sexprOfModulePtr;
 }
 
 immutable(Sexpr) sexprOfPathAndStorageKind(Alloc)(ref Alloc alloc, ref immutable PathAndStorageKind a) {
@@ -96,17 +95,13 @@ immutable(Sexpr) sexprOfPathAndStorageKind(Alloc)(ref Alloc alloc, ref immutable
 		tataSym(storageKindSym(a.storageKind)));
 }
 
-immutable(Sexpr) sexprOfModulePtr(Alloc)(ref Alloc alloc, ref Ctx ctx, immutable Ptr!Module a) {
-	return tataSym(getOrAdd(
-		alloc,
-		ctx.sexprOfModulePtr,
-		a,
-		() => baseName(a.pathAndStorageKind.path)));
+immutable(Sexpr) sexprOfModulePtr(immutable Ptr!Module a) {
+	return tataNat(a.fileIndex.index);
 }
 
 immutable(Sexpr) sexprOfStructDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable StructDecl a) {
 	ArrBuilder!NameAndSexpr fields;
-	add(alloc, fields, nameAndTata("range", sexprOfSourceRange(alloc, a.range)));
+	add(alloc, fields, nameAndTata("range", sexprOfFileAndRange(alloc, a.range)));
 	add(alloc, fields, nameAndTata("public?", tataBool(a.isPublic)));
 	add(alloc, fields, nameAndTata("name", tataSym(a.name)));
 	if (!empty(a.typeParams))
@@ -153,7 +148,7 @@ immutable(Sexpr) sexprOfSig(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable S
 	return tataRecord(
 		alloc,
 		"sig",
-		sexprOfSourceRange(alloc, a.range),
+		sexprOfFileAndRange(alloc, a.range),
 		tataSym(a.name),
 		sexprOfType(alloc, ctx, a.returnType),
 		tataArr(alloc, a.params, (ref immutable Param it) =>
@@ -164,7 +159,7 @@ immutable(Sexpr) sexprOfParam(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable
 	return tataRecord(
 		alloc,
 		"param",
-		sexprOfSourceRange(alloc, a.range),
+		sexprOfFileAndRange(alloc, a.range),
 		tataSym(a.name),
 		sexprOfType(alloc, ctx, a.type));
 }
@@ -335,7 +330,7 @@ immutable(Sexpr) sexprOfLocal(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable
 	return tataRecord(
 		alloc,
 		"local",
-		sexprOfSourceRange(alloc, a.range),
+		sexprOfFileAndRange(alloc, a.range),
 		tataSym(a.name),
 		sexprOfType(alloc, ctx, a.type));
 }
@@ -351,7 +346,7 @@ immutable(Sexpr) sexprOfCalled(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutabl
 
 immutable(Sexpr) sexprOfFunInst(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable FunInst a) {
 	ArrBuilder!NameAndSexpr args;
-	add(alloc, args, nameAndTata("module", sexprOfModulePtr(alloc, ctx, decl(a).containingModule)));
+	add(alloc, args, nameAndTata("module", sexprOfModulePtr(decl(a).containingModule)));
 	add(alloc, args, nameAndTata("name", tataSym(name(decl(a).deref))));
 	if (!empty(typeArgs(a)))
 		add(alloc, args, nameAndTata("type-args", tataArr(alloc, typeArgs(a), (ref immutable Type it) =>

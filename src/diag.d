@@ -22,7 +22,7 @@ import util.collection.str : Str;
 import util.opt : Opt;
 import util.path : PathAndStorageKind, RelPath;
 import util.ptr : Ptr;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange, FilePaths;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.util : verify;
 
@@ -127,14 +127,6 @@ struct Diag {
 		immutable Opt!Type expectedType;
 	}
 	struct ExternPtrHasTypeParams {}
-	struct FileDoesNotExist {
-		enum Kind {
-			root,
-			import_,
-		}
-		immutable Kind kind;
-		immutable PathAndStorageKind path;
-	}
 	struct LambdaCantInferParamTypes {}
 	struct LambdaClosesOverMut {
 		immutable Ptr!ClosureField field;
@@ -191,9 +183,6 @@ struct Diag {
 	struct PuritySpecifierRedundant {
 		immutable Purity purity;
 		immutable TypeKind typeKind;
-	}
-	struct RelativeImportReachesPastRoot {
-		immutable RelPath imported;
 	}
 	struct SendFunDoesNotReturnFut {
 		immutable Type actualReturnType;
@@ -256,7 +245,6 @@ struct Diag {
 		duplicateImports,
 		expectedTypeIsNotALambda,
 		externPtrHasTypeParams,
-		fileDoesNotExist,
 		lambdaCantInferParamTypes,
 		lambdaClosesOverMut,
 		lambdaForFunPtrHasClosure,
@@ -271,7 +259,6 @@ struct Diag {
 		purityOfFieldWorseThanRecord,
 		purityOfMemberWorseThanUnion,
 		puritySpecifierRedundant,
-		relativeImportReachesPastRoot,
 		sendFunDoesNotReturnFut,
 		specBuiltinNotSatisfied,
 		specImplHasSpecs,
@@ -302,7 +289,6 @@ struct Diag {
 		immutable DuplicateImports duplicateImports;
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
-		immutable FileDoesNotExist fileDoesNotExist;
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
 		immutable LambdaClosesOverMut lambdaClosesOverMut;
 		immutable LambdaForFunPtrHasClosure lambdaForFunPtrHasClosure;
@@ -317,7 +303,6 @@ struct Diag {
 		immutable PurityOfFieldWorseThanRecord purityOfFieldWorseThanRecord;
 		immutable PurityOfMemberWorseThanUnion purityOfMemberWorseThanUnion;
 		immutable PuritySpecifierRedundant puritySpecifierRedundant;
-		immutable RelativeImportReachesPastRoot relativeImportReachesPastRoot;
 		immutable SendFunDoesNotReturnFut sendFunDoesNotReturnFut;
 		immutable SpecBuiltinNotSatisfied specBuiltinNotSatisfied;
 		immutable SpecImplHasSpecs specImplHasSpecs;
@@ -367,9 +352,6 @@ struct Diag {
 	immutable this(immutable ExternPtrHasTypeParams a) {
 		kind = Kind.externPtrHasTypeParams; externPtrHasTypeParams = a;
 	}
-	@trusted immutable this(immutable FileDoesNotExist a) {
-		kind = Kind.fileDoesNotExist; fileDoesNotExist = a;
-	}
 	@trusted immutable this(immutable LambdaCantInferParamTypes a) {
 		kind = Kind.lambdaCantInferParamTypes; lambdaCantInferParamTypes = a;
 	}
@@ -411,9 +393,6 @@ struct Diag {
 	}
 	immutable this(immutable PuritySpecifierRedundant a) {
 		kind = Kind.puritySpecifierRedundant; puritySpecifierRedundant = a;
-	}
-	@trusted immutable this(immutable RelativeImportReachesPastRoot a) {
-		kind = Kind.relativeImportReachesPastRoot; relativeImportReachesPastRoot = a;
 	}
 	@trusted immutable this(immutable SendFunDoesNotReturnFut a) {
 		kind = Kind.sendFunDoesNotReturnFut; sendFunDoesNotReturnFut = a;
@@ -485,9 +464,6 @@ struct Diag {
 		ref immutable Diag.ExternPtrHasTypeParams
 	) @safe @nogc pure nothrow cbExternPtrHasTypeParams,
 	scope immutable(Out) delegate(
-		ref immutable Diag.FileDoesNotExist
-	) @safe @nogc pure nothrow cbFileDoesNotExist,
-	scope immutable(Out) delegate(
 		ref immutable Diag.LambdaCantInferParamTypes
 	) @safe @nogc pure nothrow cbLambdaCantInferParamTypes,
 	scope immutable(Out) delegate(
@@ -529,9 +505,6 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.PuritySpecifierRedundant
 	) @safe @nogc pure nothrow cbPuritySpecifierRedundant,
-	scope immutable(Out) delegate(
-		ref immutable Diag.RelativeImportReachesPastRoot
-	) @safe @nogc pure nothrow cbRelativeImportReachesPastRoot,
 	scope immutable(Out) delegate(
 		ref immutable Diag.SendFunDoesNotReturnFut
 	) @safe @nogc pure nothrow cbSendFunDoesNotReturnFut,
@@ -597,8 +570,6 @@ struct Diag {
 			return cbExpectedTypeIsNotALambda(a.expectedTypeIsNotALambda);
 		case Diag.Kind.externPtrHasTypeParams:
 			return cbExternPtrHasTypeParams(a.externPtrHasTypeParams);
-		case Diag.Kind.fileDoesNotExist:
-			return cbFileDoesNotExist(a.fileDoesNotExist);
 		case Diag.Kind.lambdaCantInferParamTypes:
 			return cbLambdaCantInferParamTypes(a.lambdaCantInferParamTypes);
 		case Diag.Kind.lambdaClosesOverMut:
@@ -627,8 +598,6 @@ struct Diag {
 			return cbPurityOfMemberWorseThanUnion(a.purityOfMemberWorseThanUnion);
 		case Diag.Kind.puritySpecifierRedundant:
 			return cbPuritySpecifierRedundant(a.puritySpecifierRedundant);
-		case Diag.Kind.relativeImportReachesPastRoot:
-			return cbRelativeImportReachesPastRoot(a.relativeImportReachesPastRoot);
 		case Diag.Kind.sendFunDoesNotReturnFut:
 			return cbSendFunDoesNotReturnFut(a.sendFunDoesNotReturnFut);
 		case Diag.Kind.specBuiltinNotSatisfied:
@@ -654,17 +623,13 @@ struct Diag {
 	}
 }
 
-struct PathAndStorageKindAndRange {
-	immutable PathAndStorageKind pathAndStorageKind;
-	immutable SourceRange range;
-}
-
 struct Diagnostic {
-	immutable PathAndStorageKindAndRange where;
+	immutable FileAndRange where;
 	immutable Diag diag;
 }
 
 struct FilesInfo {
+	immutable FilePaths filePaths;
 	immutable AbsolutePathsGetter absolutePathsGetter;
 	immutable LineAndColumnGetters lineAndColumnGetters;
 }

@@ -40,7 +40,7 @@ import util.sexpr :
 	tataStr,
 	tataSym;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.sourceRange : sexprOfSourceRange;
+import util.sourceRange : sexprOfFileAndRange;
 import util.util : todo;
 
 immutable(Sexpr) tataOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
@@ -136,7 +136,7 @@ immutable(Sexpr) tataOfLowExpr(Alloc)(ref Alloc alloc, ref immutable LowExpr a) 
 		alloc,
 		"expr",
 		tataOfLowType(alloc, a.type),
-		sexprOfSourceRange(alloc, a.range),
+		sexprOfFileAndRange(alloc, a.range),
 		tataOfLowExprKind(alloc, a.kind));
 }
 

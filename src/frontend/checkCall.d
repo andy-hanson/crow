@@ -115,14 +115,14 @@ import util.collection.mutArr :
 	tempAsArr_mut;
 import util.opt : force, has, mapOption_const, none, Opt, some;
 import util.ptr : Ptr, ptrEquals;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange;
 import util.sym : mutSymSetHas, Sym, symEq;
 import util.util : todo, unreachable, verify;
 
 immutable(CheckedExpr) checkCall(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable CallAst ast,
 	ref Expected expected,
 ) {
@@ -207,14 +207,14 @@ immutable(CheckedExpr) checkCall(Alloc)(
 immutable(CheckedExpr) checkIdentifierCall(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable Sym name,
 	ref Expected expected,
 ) {
 	//TODO:NEATER (don't make a synthetic AST, just directly call an appropriate function)
 	immutable CallAst callAst = immutable CallAst(
 		CallAst.Style.single,
-		immutable NameAndRange(range.start, name),
+		immutable NameAndRange(range.range.start, name),
 		emptyArrWithSize!TypeAst,
 		emptyArr!ExprAst);
 	return checkCall(alloc, ctx, range, callAst, expected);
@@ -458,7 +458,7 @@ immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
 void checkCallFlags(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable Ptr!FunDecl called,
 	immutable Ptr!FunDecl caller,
 	const Opt!(Ptr!LambdaInfo) callerLambda,
@@ -485,7 +485,7 @@ void checkCalledDeclFlags(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable CalledDecl res,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 ) {
 	return matchCalledDecl(
 		res,
@@ -534,7 +534,7 @@ void filterByParamType(Alloc)(
 immutable(Opt!Called) findSpecSigImplementation(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable Sig specSig,
 ) {
 	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, specSig.name, emptyArr!Type, arity(specSig));
@@ -577,7 +577,7 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	immutable Ptr!FunDecl called,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable SpecBody.Builtin.Kind kind,
 	ref immutable Type typeArg,
  ) {
@@ -601,7 +601,7 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 @trusted immutable(Opt!(Arr!Called)) checkSpecImpls(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable Ptr!FunDecl called,
 	immutable Arr!Type typeArgz,
 	immutable Bool allowSpecs,
@@ -649,7 +649,7 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 immutable(Opt!(Arr!Type)) finishCandidateTypeArgs(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref const Candidate candidate,
 ) {
 	immutable Opt!(Arr!Type) res = mapOrNone_const!Type(alloc, candidate.typeArgs, (ref const SingleInferringType i) =>
@@ -662,7 +662,7 @@ immutable(Opt!(Arr!Type)) finishCandidateTypeArgs(Alloc)(
 immutable(Opt!Called) getCalledFromCandidate(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref const Candidate candidate,
 	immutable Bool allowSpecs,
 ) {
@@ -692,7 +692,7 @@ immutable(CheckedExpr) checkCallAfterChoosingOverload(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref const Candidate candidate,
-	immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable Arr!Expr args,
 	ref Expected expected,
 ) {

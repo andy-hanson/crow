@@ -61,7 +61,7 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
-import util.sourceRange : Pos, SourceRange;
+import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
 import util.util : todo, unreachable, verify;
 
@@ -78,7 +78,7 @@ immutable(ExprAst) parseFunExprBody(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!
 
 private:
 
-immutable(ExprAst) bogusExpr(immutable SourceRange range) {
+immutable(ExprAst) bogusExpr(immutable RangeWithinFile range) {
 	return immutable ExprAst(range, immutable ExprAstKind(immutable BogusAst()));
 }
 
@@ -151,7 +151,7 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 	immutable Ptr!ExprAst init = allocExpr(alloc, initAndDedent.expr);
 	immutable ExprAndDedent thenAndDedent = () {
 		if (initAndDedent.dedents != 0) {
-			immutable SourceRange range = range(lexer, start);
+			immutable RangeWithinFile range = range(lexer, start);
 			addDiag(alloc, lexer, range, ParseDiag(ParseDiag.LetMustHaveThen()));
 			return immutable ExprAndDedent(bogusExpr(range), initAndDedent.dedents - 1);
 		} else
@@ -450,7 +450,7 @@ immutable(ExprAndDedent) takeIndentOrFail_ExprAndDedent(Alloc, SymAlloc)(
 ) {
 	return takeIndentOrFailGeneric!ExprAndDedent(
 		alloc, lexer, cbIndent,
-		(immutable SourceRange range, immutable size_t nDedents) =>
+		(immutable RangeWithinFile range, immutable size_t nDedents) =>
 			immutable ExprAndDedent(bogusExpr(range), nDedents));
 }
 
@@ -461,7 +461,7 @@ immutable(ExprAndMaybeDedent) takeIndentOrFail_ExprAndMaybeDedent(Alloc, SymAllo
 ) {
 	return takeIndentOrFailGeneric!ExprAndMaybeDedent(
 		alloc, lexer, cbIndent,
-		(immutable SourceRange range, immutable size_t nDedents) =>
+		(immutable RangeWithinFile range, immutable size_t nDedents) =>
 			immutable ExprAndMaybeDedent(bogusExpr(range), some(nDedents)));
 }
 
@@ -533,7 +533,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 	immutable ExpressionToken et,
 	immutable ArgCtx ctx,
 ) {
-	immutable(SourceRange) getRange() {
+	immutable(RangeWithinFile) getRange() {
 		return range(lexer, start);
 	}
 

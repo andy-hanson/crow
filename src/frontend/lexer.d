@@ -16,7 +16,7 @@ import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.result : fail, Result, success;
-import util.sourceRange : Pos, SourceRange;
+import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
 	AllSymbols,
 	getSymFromAlphaIdentifier,
@@ -66,7 +66,7 @@ struct Lexer(SymAlloc) {
 		detectIndentKind(useStr),
 		0);
 	if (!endsInBlankLine)
-		addDiag(alloc, lexer, immutable SourceRange(len - 1, len), immutable ParseDiag(
+		addDiag(alloc, lexer, immutable RangeWithinFile(len - 1, len), immutable ParseDiag(
 			immutable ParseDiag.MustEndInBlankLine()));
 	return lexer;
 }
@@ -86,7 +86,7 @@ immutable(Pos) posOfPtr(SymAlloc)(ref const Lexer!SymAlloc lexer, immutable CStr
 void addDiag(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable SourceRange range,
+	immutable RangeWithinFile range,
 	immutable ParseDiag diag,
 ) {
 	add(alloc, lexer.diags, immutable ParseDiagnostic(range, diag));
@@ -98,7 +98,7 @@ immutable(Arr!ParseDiagnostic) finishDiags(Alloc, SymAlloc)(ref Alloc alloc, ref
 
 void addDiagAtChar(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer, immutable ParseDiag diag) {
 	immutable Pos a = lexer.curPos;
-	addDiag(alloc, lexer, immutable SourceRange(a, lexer.curChar == '\0' ? a : a + 1), diag);
+	addDiag(alloc, lexer, immutable RangeWithinFile(a, lexer.curChar == '\0' ? a : a + 1), diag);
 }
 
 void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -201,7 +201,7 @@ immutable(Bool) takeIndentOrDiagTopLevel(Alloc, SymAlloc)(ref Alloc alloc, ref L
 		alloc,
 		lexer,
 		() => True,
-		(immutable SourceRange, immutable size_t dedent) {
+		(immutable RangeWithinFile, immutable size_t dedent) {
 			verify(dedent == 0);
 			return False;
 		});
@@ -218,7 +218,7 @@ immutable(Bool) takeIndentOrDiagTopLevelAfterNewline(Alloc, SymAlloc)(ref Alloc 
 			addDiag(
 				alloc,
 				lexer,
-				immutable SourceRange(start, start + 1),
+				immutable RangeWithinFile(start, start + 1),
 				immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 			return False;
 		},
@@ -229,7 +229,7 @@ immutable(T) takeIndentOrFailGeneric(T, Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	scope immutable(T) delegate() @safe @nogc pure nothrow cbIndent,
-	scope immutable(T) delegate(immutable SourceRange, immutable size_t) @safe @nogc pure nothrow cbFail,
+	scope immutable(T) delegate(immutable RangeWithinFile, immutable size_t) @safe @nogc pure nothrow cbFail,
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable IndentDelta delta = takeNewlineAndReturnIndentDelta(alloc, lexer);
@@ -239,7 +239,7 @@ immutable(T) takeIndentOrFailGeneric(T, Alloc, SymAlloc)(
 			addDiag(
 				alloc,
 				lexer,
-				immutable SourceRange(start, start + 1),
+				immutable RangeWithinFile(start, start + 1),
 				immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
 			return cbFail(range(lexer, start), dedent.nDedents);
 		},
@@ -340,9 +340,9 @@ immutable(NewlineOrDedent) takeNewlineOrSingleDedent(Alloc, SymAlloc)(ref Alloc 
 	}
 }
 
-immutable(SourceRange) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Pos begin) {
+immutable(RangeWithinFile) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Pos begin) {
 	verify(begin <= lexer.curPos);
-	return SourceRange(begin, lexer.curPos);
+	return immutable RangeWithinFile(begin, lexer.curPos);
 }
 
 void addDiagOnReservedName(Alloc, SymAlloc)(
@@ -535,7 +535,7 @@ IndentKind detectIndentKind(immutable Str str) {
 	return res;
 }
 
-immutable(SourceRange) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
+immutable(RangeWithinFile) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
 	verify(begin >= lexer.sourceBegin);
 	return range(lexer, safeSizeTToU32(begin - lexer.sourceBegin));
 }

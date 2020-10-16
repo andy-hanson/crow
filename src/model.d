@@ -2,10 +2,12 @@ module model;
 
 @safe @nogc pure nothrow:
 
+import diag : FilesInfo; // TODO: move that here?
 import util.bools : and, Bool, False, True;
 import util.collection.arr : Arr, empty, emptyArr, first, only, range, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, compareArr, exists, map;
 import util.collection.dict : Dict;
+import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.multiDict : MultiDict;
 import util.collection.mutArr : MutArr;
 import util.collection.str : Str;
@@ -15,7 +17,7 @@ import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.opt : none, Opt, some;
 import util.path : AbsolutePath, addManyChildren, baseName, comparePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange, FileIndex;
 import util.sym : compareSym, shortSymAlphaLiteral, Sym, writeSym;
 import util.types : u8;
 import util.util : todo, verify;
@@ -54,7 +56,7 @@ immutable(AbsolutePath) getAbsolutePath(Alloc)(
 	return AbsolutePath(a.getBasePath(p.storageKind), p.path, extension);
 }
 
-alias LineAndColumnGetters = immutable Dict!(PathAndStorageKind, LineAndColumnGetter, comparePathAndStorageKind);
+alias LineAndColumnGetters = immutable FullIndexDict!(FileIndex, LineAndColumnGetter);
 
 enum Purity {
 	data,
@@ -91,11 +93,11 @@ immutable(Purity) worsePurity(immutable Purity a, immutable Purity b) {
 struct TypeParam {
 	@safe @nogc pure nothrow:
 
-	immutable SourceRange range;
+	immutable FileAndRange range;
 	immutable Sym name;
 	immutable size_t index;
 
-	immutable this(immutable SourceRange r, immutable Sym n, immutable size_t i) {
+	immutable this(immutable FileAndRange r, immutable Sym n, immutable size_t i) {
 		range = r;
 		name = n;
 		index = i;
@@ -216,7 +218,7 @@ immutable(Comparison) compareType(ref immutable Type a, ref immutable Type b) {
 
 struct Param {
 	//TODO: use NameAndRange (more compact)
-	immutable SourceRange range;
+	immutable FileAndRange range;
 	immutable Sym name;
 	immutable Type type;
 	immutable size_t index;
@@ -227,7 +229,8 @@ immutable(Param) withType(ref immutable Param a, immutable Type t) {
 }
 
 struct Sig {
-	immutable SourceRange range;
+	//TODO: use NameAndRange (more compact)
+	immutable FileAndRange range;
 	immutable Sym name;
 	immutable Type returnType;
 	immutable Arr!Param params;
@@ -238,7 +241,8 @@ immutable(size_t) arity(ref const Sig a) {
 }
 
 struct RecordField {
-	immutable SourceRange range;
+	//TODO: use NameAndRange (more compact)
+	immutable FileAndRange range;
 	immutable Bool isMutable;
 	immutable Sym name;
 	immutable Type type;
@@ -337,7 +341,8 @@ immutable(Bool) isUnion(ref immutable StructBody a) {
 
 struct StructAlias {
 	@safe @nogc pure nothrow:
-	immutable SourceRange range;
+	// TODO: use NameAndRange (more compact)
+	immutable FileAndRange range;
 	immutable Bool isPublic;
 	immutable Sym name;
 	immutable Arr!TypeParam typeParams;
@@ -345,14 +350,6 @@ struct StructAlias {
 	private:
 	// This will be none if the alias target is not found
 	Late!(immutable Opt!(Ptr!StructInst)) target_;
-
-	public:
-	this(immutable SourceRange r, immutable Bool p, immutable Sym n, immutable Arr!TypeParam tp) immutable {
-		range = r;
-		isPublic = p;
-		name = n;
-		typeParams = tp;
-	}
 }
 
 immutable(Opt!(Ptr!StructInst)) target(ref immutable StructAlias a) {
@@ -364,7 +361,8 @@ void setTarget(ref StructAlias a, immutable Opt!(Ptr!StructInst) value) {
 
 struct StructDecl {
 	@safe @nogc pure nothrow:
-	immutable SourceRange range;
+	// TODO: use NameAndRange (more compact)
+	immutable FileAndRange range;
 	immutable Bool isPublic;
 	immutable Sym name;
 	immutable Arr!TypeParam typeParams;
@@ -497,7 +495,8 @@ immutable(size_t) nSigs(ref immutable SpecBody a) {
 }
 
 struct SpecDecl {
-	immutable SourceRange range;
+	// TODO: use NameAndRange (more compact)
+	immutable FileAndRange range;
 	immutable Bool isPublic;
 	immutable Sym name;
 	immutable Arr!TypeParam typeParams;
@@ -607,7 +606,7 @@ immutable(FunFlags) funFlagsNone() {
 }
 
 struct FunDecl {
-	immutable Ptr!Module containingModule;
+	immutable Ptr!Module containingModule; //TODO:NEVER USED!
 	immutable Bool isPublic;
 	immutable FunFlags flags;
 	immutable Sig sig;
@@ -624,7 +623,7 @@ void setBody(ref FunDecl a, immutable FunBody b) {
 	return a._body_.lateSet(b);
 }
 
-ref immutable(SourceRange) range(return scope ref immutable FunDecl a) {
+ref immutable(FileAndRange) range(return scope ref immutable FunDecl a) {
 	return a.sig.range;
 }
 
@@ -994,7 +993,7 @@ immutable(Arr!TypeParam) typeParams(ref immutable StructOrAlias a) {
 		(immutable Ptr!StructDecl d) => d.typeParams);
 }
 
-immutable(SourceRange) range(ref immutable StructOrAlias a) {
+immutable(FileAndRange) range(ref immutable StructOrAlias a) {
 	return matchStructOrAlias(
 		a,
 		(immutable Ptr!StructAlias al) => al.range,
@@ -1020,7 +1019,7 @@ alias SpecsMap = Dict!(Sym, Ptr!SpecDecl, compareSym);
 alias FunsMap = MultiDict!(Sym, Ptr!FunDecl, compareSym);
 
 struct Module {
-	immutable PathAndStorageKind pathAndStorageKind;
+	immutable FileIndex fileIndex;
 	immutable Arr!(Ptr!Module) imports;
 	immutable Arr!(Ptr!Module) exports;
 	immutable Arr!StructDecl structs;
@@ -1029,10 +1028,6 @@ struct Module {
 	immutable StructsAndAliasesMap structsAndAliasesMap;
 	immutable SpecsMap specsMap;
 	immutable FunsMap funsMap;
-}
-
-immutable(Sym) name(ref immutable Module a) {
-	return a.pathAndStorageKind.path.baseName;
 }
 
 enum FunKind {
@@ -1071,6 +1066,7 @@ immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable P
 }
 
 struct Program {
+	immutable FilesInfo filesInfo;
 	immutable Ptr!Module allocModule;
 	immutable Ptr!Module bootstrapModule;
 	immutable Ptr!Module runtimeModule;
@@ -1080,12 +1076,11 @@ struct Program {
 	immutable Arr!(Ptr!Module) allModules;
 	immutable CommonTypes commonTypes;
 	immutable Ptr!StructInst ctxStructInst;
-	immutable LineAndColumnGetters lineAndColumnGetters;
 }
 
 struct Local {
 	//TODO: use NameAndRange (more compact)
-	immutable SourceRange range;
+	immutable FileAndRange range;
 	immutable Sym name;
 	immutable Type type;
 }
@@ -1227,7 +1222,7 @@ struct Expr {
 		stringLiteral,
 	}
 
-	immutable SourceRange range_;
+	immutable FileAndRange range_;
 	immutable Kind kind;
 	union {
 		immutable Bogus bogus;
@@ -1249,38 +1244,40 @@ struct Expr {
 	}
 
 	public:
-	immutable this(immutable SourceRange r, immutable Bogus a) { range_ = r; kind = Kind.bogus; bogus = a; }
-	@trusted immutable this(immutable SourceRange r, immutable Call a) { range_ = r; kind = Kind.call; call = a; }
-	@trusted immutable this(immutable SourceRange r, immutable ClosureFieldRef a) {
+	immutable this(immutable FileAndRange r, immutable Bogus a) { range_ = r; kind = Kind.bogus; bogus = a; }
+	@trusted immutable this(immutable FileAndRange r, immutable Call a) { range_ = r; kind = Kind.call; call = a; }
+	@trusted immutable this(immutable FileAndRange r, immutable ClosureFieldRef a) {
 		range_ = r; kind = Kind.closureFieldRef; closureFieldRef = a;
 	}
-	@trusted immutable this(immutable SourceRange r, immutable Cond a) { range_ = r; kind = Kind.cond; cond = a; }
-	@trusted immutable this(immutable SourceRange r, immutable CreateArr a) {
+	@trusted immutable this(immutable FileAndRange r, immutable Cond a) { range_ = r; kind = Kind.cond; cond = a; }
+	@trusted immutable this(immutable FileAndRange r, immutable CreateArr a) {
 		range_ = r; kind = Kind.createArr; createArr = a;
 	}
-	@trusted immutable this(immutable SourceRange r, immutable CreateRecord a) {
+	@trusted immutable this(immutable FileAndRange r, immutable CreateRecord a) {
 		range_ = r; kind = Kind.createRecord; createRecord = a;
 	}
-	@trusted immutable this(immutable SourceRange r, immutable ImplicitConvertToUnion a) {
+	@trusted immutable this(immutable FileAndRange r, immutable ImplicitConvertToUnion a) {
 		range_ = r; kind = Kind.implicitConvertToUnion; implicitConvertToUnion = a;
 	}
-	@trusted immutable this(immutable SourceRange r, immutable Lambda a) { range_ = r; kind = Kind.lambda; lambda = a; }
-	@trusted immutable this(immutable SourceRange r, immutable Let a) { range_ = r; kind = Kind.let; let = a; }
-	@trusted immutable this(immutable SourceRange r, immutable LocalRef a) {
+	@trusted immutable this(immutable FileAndRange r, immutable Lambda a) {
+		range_ = r; kind = Kind.lambda; lambda = a;
+	}
+	@trusted immutable this(immutable FileAndRange r, immutable Let a) { range_ = r; kind = Kind.let; let = a; }
+	@trusted immutable this(immutable FileAndRange r, immutable LocalRef a) {
 		range_ = r; kind = Kind.localRef; localRef = a;
 	}
-	@trusted immutable this(immutable SourceRange r, immutable Match a) { range_ = r; kind = Kind.match; match_ = a; }
-	@trusted immutable this(immutable SourceRange r, immutable ParamRef a) {
+	@trusted immutable this(immutable FileAndRange r, immutable Match a) { range_ = r; kind = Kind.match; match_ = a; }
+	@trusted immutable this(immutable FileAndRange r, immutable ParamRef a) {
 		range_ = r; kind = Kind.paramRef; paramRef = a;
 	}
-	@trusted immutable this(immutable SourceRange r, immutable RecordFieldAccess a) {
+	@trusted immutable this(immutable FileAndRange r, immutable RecordFieldAccess a) {
 		range_ = r; kind = Kind.recordFieldAccess; recordFieldAccess = a;
 	}
-	@trusted immutable this(immutable SourceRange r, immutable RecordFieldSet a) {
+	@trusted immutable this(immutable FileAndRange r, immutable RecordFieldSet a) {
 		range_ = r; kind = Kind.recordFieldSet; recordFieldSet = a;
 	}
-	@trusted immutable this(immutable SourceRange r, immutable Seq a) { range_ = r; kind = Kind.seq; seq = a; }
-	@trusted immutable this(immutable SourceRange r, immutable StringLiteral a) {
+	@trusted immutable this(immutable FileAndRange r, immutable Seq a) { range_ = r; kind = Kind.seq; seq = a; }
+	@trusted immutable this(immutable FileAndRange r, immutable StringLiteral a) {
 		range_ = r; kind = Kind.stringLiteral; stringLiteral = a;
 	}
 }
@@ -1308,7 +1305,7 @@ immutable(Sym) fieldName(ref immutable Expr.RecordFieldAccess a) {
 	return a.field.name;
 }
 
-ref immutable(SourceRange) range(return ref immutable Expr a) {
+ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	return a.range_;
 }
 

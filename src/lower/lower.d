@@ -85,7 +85,7 @@ import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, shortSymOperatorLiteral, Sym, symEq;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, writeNat, Writer, writeStatic;
@@ -512,7 +512,7 @@ immutable(LowFun) lowFunFromSource(Alloc)(
 		(ref immutable LowFunSource.Compare it) =>
 			generateCompareFun(
 				alloc,
-				SourceRange.empty,
+				FileAndRange.empty,
 				allTypes,
 				comparisonTypes,
 				compareFuns,
@@ -580,17 +580,17 @@ immutable(LowFun) mainFun(Alloc)(
 	immutable LowParamIndex argv = immutable LowParamIndex(1);
 	immutable LowExpr userMainFunPtr = immutable LowExpr(
 		userMainFunPtrType,
-		SourceRange.empty,
+		FileAndRange.empty,
 		immutable LowExprKind(immutable LowExprKind.FunPtr(userMainIndex)));
 	immutable LowExpr call = immutable LowExpr(
 		int32Type,
-		SourceRange.empty,
+		FileAndRange.empty,
 		immutable LowExprKind(immutable LowExprKind.Call(
 			rtMainIndex,
 			arrLiteral!LowExpr(
 				alloc,
-				paramRef(SourceRange.empty, int32Type, argc),
-				paramRef(SourceRange.empty, charPtrPtrType, argv),
+				paramRef(FileAndRange.empty, int32Type, argc),
+				paramRef(FileAndRange.empty, charPtrPtrType, argv),
 				userMainFunPtr))));
 	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(emptyArr!(Ptr!LowLocal), call));
 	return immutable LowFun(strLiteral("main"), int32Type, params, body_);
@@ -659,7 +659,7 @@ ref GetLowTypeCtx typeCtx(return scope ref GetLowExprCtx ctx) {
 immutable(LowExpr) getCtxParamRef(Alloc)(
 	ref Alloc alloc,
 	ref const GetLowExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 ) {
 	return paramRef(range, ctx.ctxType, force(ctx.ctxParam));
 }
@@ -779,7 +779,7 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 immutable(LowExpr) getAllocateExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	immutable Ptr!ConcreteFun allocFun,
 	ref immutable LowType ptrType,
 	ref immutable LowExpr size,
@@ -796,7 +796,7 @@ immutable(LowExpr) getAllocateExpr(Alloc)(
 immutable(LowExprKind) getAllocExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ConcreteExpr.Alloc a,
 ) {
 	// (temp0 = (T*) alloc(sizeof(T)), *temp0 = inner, temp0)
@@ -817,7 +817,7 @@ immutable(LowExprKind) getAllocExpr(Alloc)(
 immutable(LowExprKind) getCallExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ConcreteExpr.Call a,
 ) {
 	immutable Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, a.called);
@@ -842,7 +842,7 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 immutable(LowExprKind) getCreateArrExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ConcreteExpr.CreateArr a,
 ) {
 	// (temp = _alloc(ctx, sizeof(foo) * 2),
@@ -885,7 +885,7 @@ immutable(LowExprKind) getLambdaExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
 	ref immutable LowType type,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ConcreteExpr.Lambda a,
 ) {
 	immutable LowFunIndex lambdaFun = getLowFunIndex(ctx, a.fun);
@@ -918,7 +918,7 @@ immutable(Ptr!LowLocal) getLocal(ref GetLowExprCtx ctx, immutable Ptr!ConcreteLo
 immutable(LowExprKind) getLetExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
-	ref immutable SourceRange range,
+	ref immutable FileAndRange range,
 	ref immutable ConcreteExpr.Let a,
 ) {
 	return immutable LowExprKind(immutable LowExprKind.Let(

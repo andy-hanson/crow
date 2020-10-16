@@ -11,7 +11,7 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, at, empty, toArr;
 import util.collection.arrBuilder : add, ArrWithSizeBuilder, finishArr;
 import util.opt : none, Opt, some;
-import util.sourceRange : Pos, SourceRange;
+import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : Sym;
 import util.util : todo;
 
@@ -82,7 +82,7 @@ immutable(TypeAst) parseTypeWorker(Alloc, SymAlloc)(
 	if (isTypeParam && !empty(typeArgsArr))
 		addDiag(alloc, lexer, at(typeArgsArr, 0).range,
 			immutable ParseDiag(immutable ParseDiag.TypeParamCantHaveTypeArgs()));
-	immutable SourceRange rng = range(lexer, start);
+	immutable RangeWithinFile rng = range(lexer, start);
 	return isTypeParam
 		? immutable TypeAst(immutable TypeAst.TypeParam(rng, name.name))
 		: immutable TypeAst(immutable TypeAst.InstStruct(rng, name, typeArgs));

@@ -26,6 +26,10 @@ struct MutDict(K, V, alias cmp) {
 	MutArr!(KeyValuePair!(K, V)) pairs;
 }
 
+immutable(size_t) mutDictSize(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a) {
+	return mutArrSize(a.pairs);
+}
+
 immutable(Arr!V) moveMutDictToValues(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, immutable V, cmp) a) {
 	const Arr!(KeyValuePair!(K, immutable V)) pairs = moveToArr_const(alloc, a.pairs);
 	return map_const(alloc, pairs, (ref const KeyValuePair!(K, immutable V) pair) =>
@@ -126,8 +130,8 @@ immutable(V) getOrAddAndCopyKey(Alloc, K, V, alias cmp)(
 }
 
 immutable(Opt!V) tryDeleteAndGet(K, V, alias cmp)(ref MutDict!(K, V, cmp) d, immutable K key) {
-	foreach (immutable size_t i; 0..d.pairs.mutArrSize) {
-		immutable KeyValuePair!(K, V) pair = d.pairs.mutArrAt(i);
+	foreach (immutable size_t i; 0..mutDictSize(d)) {
+		immutable KeyValuePair!(K, V) pair = mutArrAt(d.pairs, i);
 		if (cmp(pair.key, key) == Comparison.equal) {
 			deleteAt(d.pairs, i);
 			return some!V(pair.value);

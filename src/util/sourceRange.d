@@ -3,19 +3,46 @@ module util.sourceRange;
 @safe @nogc pure nothrow:
 
 import util.collection.arrUtil : arrLiteral;
+import util.collection.fullIndexDict : FullIndexDict;
+import util.collection.str : Str;
+import util.path : PathAndStorageKind;
 import util.sexpr : Sexpr, tataNat, tataRecord;
-import util.types : u32;
+import util.types : u16, u32;
 
 alias Pos = u32;
 
-struct SourceRange {
+alias FilePaths = FullIndexDict!(FileIndex, PathAndStorageKind);
+
+struct FileIndex {
+	immutable u16 index;
+
+	static immutable FileIndex none = FileIndex(u16.max);
+}
+
+struct RangeWithinFile {
 	immutable Pos start;
 	immutable Pos end;
 
-	static immutable SourceRange max = immutable SourceRange(Pos(u32.max), Pos(u32.max));
-	static immutable SourceRange empty = immutable SourceRange(Pos(0), Pos(0));
+	static immutable RangeWithinFile max = immutable RangeWithinFile(immutable Pos(u32.max), immutable Pos(u32.max));
+	static immutable RangeWithinFile empty = immutable RangeWithinFile(immutable Pos(0), immutable Pos(0));
 }
 
-immutable(Sexpr) sexprOfSourceRange(Alloc)(ref Alloc alloc, immutable SourceRange a) {
+struct FileAndRange {
+	immutable FileIndex fileIndex;
+	immutable RangeWithinFile range;
+
+	static immutable FileAndRange empty = immutable FileAndRange(FileIndex.none, RangeWithinFile.empty);
+}
+
+immutable(Sexpr) sexprOfFileAndRange(Alloc)(ref Alloc alloc, immutable FileAndRange a) {
+	import util.util : todo;
+	return tataRecord(
+		alloc,
+		"file-range",
+		tataNat(a.fileIndex.index),
+		sexprOfRangeWithinFile(alloc, a.range));
+}
+
+immutable(Sexpr) sexprOfRangeWithinFile(Alloc)(ref Alloc alloc, immutable RangeWithinFile a) {
 	return tataRecord(alloc, "range", tataNat(a.start), tataNat(a.end));
 }

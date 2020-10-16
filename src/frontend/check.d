@@ -30,7 +30,7 @@ import frontend.ast :
 	structs,
 	TypeAst,
 	TypeParamAst;
-import frontend.checkCtx : addDiag, CheckCtx, diags, hasDiags;
+import frontend.checkCtx : addDiag, CheckCtx, diags, hasDiags, rangeInFile;
 import frontend.checkExpr : checkFunctionBody;
 import frontend.checkUtil : arrAsImmutable, ptrAsImmutable;
 import frontend.instantiate :
@@ -42,7 +42,7 @@ import frontend.instantiate :
 import frontend.programState : ProgramState;
 import frontend.typeFromAst : instStructFromAst, tryFindSpec, typeArgsFromAsts, typeFromAst;
 
-import diag : Diag, Diagnostic, Diags, PathAndStorageKindAndRange, TypeKind;
+import diag : Diag, Diagnostic, Diags, TypeKind;
 
 import model :
 	arity,
@@ -116,12 +116,12 @@ import util.opt : force, has, mapOption, none, noneMut, Opt, some, someMut;
 import util.path : PathAndStorageKind;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.result : fail, flatMapSuccess, mapSuccess, Result, success;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : addToMutSymSetOkIfPresent, compareSym, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
 import util.util : todo, verify;
 
-struct PathAndAst {
-	immutable PathAndStorageKind pathAndStorageKind;
+struct PathAndAst { //TODO:RENAME
+	immutable FileIndex fileIndex;
 	immutable FileAst ast;
 }
 
@@ -277,7 +277,7 @@ immutable(Result!(CommonTypes, Diags)) getCommonTypes(Alloc)(
 
 	if (!empty(missingArr)) {
 		immutable Diagnostic diag = Diagnostic(
-			PathAndStorageKindAndRange(ctx.path, SourceRange.empty),
+			immutable FileAndRange(ctx.fileIndex, RangeWithinFile.empty),
 			immutable Diag(Diag.CommonTypesMissing(missingArr)));
 		return fail!(CommonTypes, Diags)(arrLiteral!Diagnostic(alloc, diag));
 	} else {
@@ -332,7 +332,7 @@ immutable(Arr!TypeParam) checkTypeParams(Alloc)(
 ) {
 	immutable Arr!TypeParam typeParams =
 		mapWithIndex(alloc, toArr(asts), (immutable size_t index, ref immutable TypeParamAst ast) =>
-			immutable TypeParam(ast.range, ast.name, index));
+			immutable TypeParam(rangeInFile(ctx, ast.range), ast.name, index));
 	foreach (immutable size_t i; 0..size(typeParams))
 		foreach (immutable size_t prev_i; 0..i) {
 			immutable TypeParam tp = at(typeParams, i);
@@ -343,26 +343,31 @@ immutable(Arr!TypeParam) checkTypeParams(Alloc)(
 	return typeParams;
 }
 
-void collectTypeParamsInAst(Alloc)(ref Alloc alloc, ref immutable TypeAst ast, ref ArrBuilder!TypeParam res) {
+void collectTypeParamsInAst(Alloc)(
+	ref Alloc alloc,
+	ref const CheckCtx ctx,
+	ref immutable TypeAst ast,
+	ref ArrBuilder!TypeParam res,
+) {
 	matchTypeAst(
 		ast,
 		(ref immutable TypeAst.TypeParam tp) {
 			immutable Arr!TypeParam a = arrBuilderAsTempArr(res);
 			if (!exists(a, (ref immutable TypeParam it) => symEq(it.name, tp.name))) {
-				add(alloc, res, immutable TypeParam(tp.range, tp.name, arrBuilderSize(res)));
+				add(alloc, res, immutable TypeParam(rangeInFile(ctx, tp.range), tp.name, arrBuilderSize(res)));
 			}
 		},
 		(ref immutable TypeAst.InstStruct i) {
 			foreach (ref immutable TypeAst arg; range(toArr(i.typeArgs)))
-				collectTypeParamsInAst(alloc, arg, res);
+				collectTypeParamsInAst(alloc, ctx, arg, res);
 		});
 }
 
-immutable(Arr!TypeParam) collectTypeParams(Alloc)(ref Alloc alloc, ref immutable SigAst ast) {
+immutable(Arr!TypeParam) collectTypeParams(Alloc)(ref Alloc alloc, ref const CheckCtx ctx, ref immutable SigAst ast) {
 	ArrBuilder!TypeParam res;
-	collectTypeParamsInAst(alloc, ast.returnType, res);
+	collectTypeParamsInAst(alloc, ctx, ast.returnType, res);
 	foreach (ref immutable ParamAst p; range(toArr(ast.params)))
-		collectTypeParamsInAst(alloc, p.type, res);
+		collectTypeParamsInAst(alloc, ctx, p.type, res);
 	return finishArr(alloc, res);
 }
 
@@ -385,7 +390,7 @@ immutable(Arr!Param) checkParams(Alloc)(
 				structsAndAliasesMap,
 				typeParamsScope,
 				delayStructInsts);
-			return immutable Param(ast.range, ast.name.name, type, index);
+			return immutable Param(rangeInFile(ctx, ast.range), ast.name.name, type, index);
 		});
 	foreach (immutable size_t i; 0..size(params))
 		foreach (immutable size_t prev_i; 0..i) {
@@ -410,7 +415,7 @@ immutable(Sig) checkSig(Alloc)(
 		checkParams(alloc, ctx, toArr(ast.params), structsAndAliasesMap, typeParamsScope, delayStructInsts);
 	immutable Type returnType =
 		typeFromAst(alloc, ctx, ast.returnType, structsAndAliasesMap, typeParamsScope, delayStructInsts);
-	return immutable Sig(ast.range, ast.name, returnType, params);
+	return immutable Sig(rangeInFile(ctx, ast.range), ast.name, returnType, params);
 }
 
 immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(immutable Sym name) {
@@ -457,7 +462,7 @@ immutable(Arr!SpecDecl) checkSpecDecls(Alloc)(
 		immutable Arr!TypeParam typeParams = checkTypeParams(alloc, ctx, ast.typeParams);
 		immutable SpecBody body_ =
 			checkSpecBody(alloc, ctx, typeParams, structsAndAliasesMap, ast.name, ast.body_);
-		return immutable SpecDecl(ast.range, ast.isPublic, ast.name, typeParams, body_);
+		return immutable SpecDecl(rangeInFile(ctx, ast.range), ast.isPublic, ast.name, typeParams, body_);
 	});
 }
 
@@ -467,7 +472,11 @@ Arr!StructAlias checkStructAliasesInitial(Alloc)(
 	ref immutable Arr!StructAliasAst asts,
 ) {
 	return mapToMut!StructAlias(alloc, asts, (ref immutable StructAliasAst ast) =>
-		immutable StructAlias(ast.range, ast.isPublic, ast.name, checkTypeParams(alloc, ctx, ast.typeParams)));
+		immutable StructAlias(
+			rangeInFile(ctx, ast.range),
+			ast.isPublic,
+			ast.name,
+			checkTypeParams(alloc, ctx, ast.typeParams)));
 }
 
 struct PurityAndForced {
@@ -531,7 +540,7 @@ Arr!StructDecl checkStructsInitial(Alloc)(
 	return mapToMut!StructDecl(alloc, asts, (ref immutable StructDeclAst ast) {
 		immutable PurityAndForced p = getPurityFromAst(alloc, ctx, ast);
 		return immutable StructDecl(
-			ast.range,
+			rangeInFile(ctx, ast.range),
 			ast.isPublic,
 			ast.name,
 			checkTypeParams(alloc, ctx, ast.typeParams),
@@ -629,7 +638,7 @@ immutable(StructBody) checkRecord(Alloc)(
 				if (has(reason))
 					addDiag(alloc, ctx, field.range, immutable Diag(Diag.MutFieldNotAllowed(force(reason))));
 			}
-			return immutable RecordField(field.range, field.isMutable, field.name, fieldType, index);
+			return immutable RecordField(rangeInFile(ctx, field.range), field.isMutable, field.name, fieldType, index);
 		});
 	everyPair(fields, (ref immutable RecordField a, ref immutable RecordField b) {
 		if (symEq(a.name, b.name))
@@ -674,8 +683,7 @@ immutable(StructBody) checkUnion(Alloc)(
 				if (ptrEquals(decl(a), decl(b))) {
 					immutable Diag diag = immutable Diag(
 						Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.decl.name));
-					immutable SourceRange rg = at(un.members, bIndex).range;
-					addDiag(alloc, ctx, rg, diag);
+					addDiag(alloc, ctx, at(un.members, bIndex).range, diag);
 				}
 			});
 		return immutable StructBody(StructBody.Union(force(members)));
@@ -793,7 +801,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 ) {
 	Arr!FunDecl funs = mapToMut(alloc, asts, (ref immutable FunDeclAst funAst) {
 		immutable Arr!TypeParam typeParams = empty(toArr(funAst.typeParams))
-			? collectTypeParams(alloc, funAst.sig)
+			? collectTypeParams(alloc, ctx, funAst.sig)
 			: checkTypeParams(alloc, ctx, funAst.typeParams);
 		immutable Sig sig = checkSig(
 			alloc,
@@ -866,6 +874,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 	ref immutable StructsAndAliasesMap structsAndAliasesMap,
 	ref Arr!StructDecl structs,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
+	immutable FileIndex fileIndex,
 	ref immutable Arr!(Ptr!Module) imports,
 	ref immutable Arr!(Ptr!Module) exports,
 	ref immutable FileAst ast,
@@ -903,7 +912,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 
 	// Create a module unconditionally so every function will always have containingModule set, even in failure case
 	return mod.finish(
-		ctx.path,
+		fileIndex,
 		imports,
 		exports,
 		arrAsImmutable(structs),
@@ -951,7 +960,7 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 ) {
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe_mut(programState),
-		pathAndAst.pathAndStorageKind,
+		pathAndAst.fileIndex,
 		getFlattenedImports(alloc, imports));
 	immutable FileAst ast = pathAndAst.ast;
 
@@ -987,6 +996,7 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 					structsAndAliasesMap,
 					structs,
 					delayStructInsts,
+					pathAndAst.fileIndex,
 					imports,
 					exports,
 					ast);

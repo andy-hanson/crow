@@ -8,6 +8,7 @@ import util.collection.mutDict : ValueAndDidAdd;
 import util.bools : False, True;
 import util.memory : initMemory, overwriteMemory;
 import util.opt : force, has, noneMut, Opt, someMut;
+import util.util : verify;
 
 struct MutIndexDict(K, V) {
 	private:
@@ -27,15 +28,9 @@ ref const(V) mustGetAt(K, V)(ref const MutIndexDict!(K, V) a, immutable K key) {
 	return force(at(a.values_, key.index));
 }
 
-immutable(ValueAndDidAdd) addIfNotPresent(K, V)(
-	ref MutIndexDict!(K, V) a,
-	immutable K key,
-	scope V delegate() @safe @nogc pure nothrow getValue,
-) {
-	immutable Bool present = has(at(a.values_, key.index));
-	if (!present)
-		setAt(a.values_, key.index, some!V(getValue()));
-	return not(present);
+void addToMutIndexDict(Alloc, K, V)(ref Alloc alloc, ref MutIndexDict!(K, V) a, immutable K key, immutable V value) {
+	verify(!has(at(a.values_, key.index)));
+	setAt(a.values_, key.index, someMut(value));
 }
 
 void updateOrSet(K, V)(

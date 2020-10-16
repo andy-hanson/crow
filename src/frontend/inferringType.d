@@ -4,7 +4,7 @@ module frontend.inferringType;
 
 import diag : Diag;
 import frontend.ast : TypeAst;
-import frontend.checkCtx : addDiag, CheckCtx;
+import frontend.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.instantiate : instantiateStructNeverDelay, instantiateStructInst, tryGetTypeArg, TypeParamsScope;
 import frontend.programState : ProgramState;
 import frontend.typeFromAst : typeFromAst;
@@ -47,7 +47,7 @@ import util.collection.mutArr : MutArr;
 import util.memory : allocate;
 import util.opt : has, force, none, noneMut, Opt, some;
 import util.ptr : Ptr, ptrEquals;
-import util.sourceRange : SourceRange;
+import util.sourceRange : FileAndRange, RangeWithinFile;
 import util.sym : Sym, symEq;
 import util.types : safeSizeTToU8, u8;
 import util.util : todo, verify;
@@ -78,11 +78,15 @@ struct ExprCtx {
 	MutArr!(Ptr!LambdaInfo) lambdas = MutArr!(Ptr!LambdaInfo)();
 }
 
+immutable(FileAndRange) rangeInFile2(ref const ExprCtx ctx, immutable RangeWithinFile range) {
+	return rangeInFile(ctx.checkCtx, range);
+}
+
 ref ProgramState programState(ref ExprCtx ctx) {
 	return ctx.checkCtx.deref.programState.deref;
 }
 
-void addDiag2(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable SourceRange range, immutable Diag diag) {
+void addDiag2(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable FileAndRange range, immutable Diag diag) {
 	addDiag(alloc, ctx.checkCtx.deref, range, diag);
 }
 
@@ -246,20 +250,20 @@ immutable(Bool) hasExpected(ref const Expected expected) {
 	return has(tryGetInferred(expected));
 }
 
-immutable(CheckedExpr) bogusWithoutAffectingExpected(immutable SourceRange range) {
-	return CheckedExpr(Expr(range, Expr.Bogus()));
+immutable(CheckedExpr) bogusWithoutAffectingExpected(immutable FileAndRange range) {
+	return CheckedExpr(immutable Expr(range, immutable Expr.Bogus()));
 }
 
-immutable(CheckedExpr) bogusWithType(ref Expected expected, immutable SourceRange range, immutable Type setType) {
+immutable(CheckedExpr) bogusWithType(ref Expected expected, ref immutable FileAndRange range, immutable Type setType) {
 	cellSet(expected.type, some!Type(setType));
 	return bogusWithoutAffectingExpected(range);
 }
 
-immutable(CheckedExpr) bogus(ref Expected expected, immutable SourceRange range) {
+immutable(CheckedExpr) bogus(ref Expected expected, immutable FileAndRange range) {
 	return bogusWithType(expected, range, Type(Type.Bogus()));
 }
 
-immutable(CheckedExpr) bogusWithoutChangingExpected(ref Expected expected, immutable SourceRange range) {
+immutable(CheckedExpr) bogusWithoutChangingExpected(ref Expected expected, ref immutable FileAndRange range) {
 	return hasExpected(expected)
 		? bogusWithoutAffectingExpected(range)
 		: bogus(expected, range);
@@ -331,8 +335,8 @@ immutable(CheckedExpr) check(Alloc)(
 		return CheckedExpr(expr);
 	else {
 		// Failed to set type. This happens if there was already an inferred type.
-		addDiag2(alloc, ctx, expr.range(), immutable Diag(Diag.TypeConflict(force(t), exprType)));
-		return bogus(expected, expr.range());
+		addDiag2(alloc, ctx, range(expr), immutable Diag(Diag.TypeConflict(force(t), exprType)));
+		return bogus(expected, range(expr));
 	}
 }
 
