@@ -363,52 +363,98 @@ enum FnOp : u8 {
 immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 	return strLiteral(() { final switch (fnOp) {
 		case FnOp.addFloat64:
+			return "add-float-64";
 		case FnOp.addInt64OrNat64:
+			return "add-int-64-or-nat-64";
 		case FnOp.bitShiftLeftInt32:
+			return "bit-shift-left-int-32";
 		case FnOp.bitShiftLeftNat32:
+			return "bit-shift-left-nat-32";
 		case FnOp.bitShiftRightInt32:
+			return "bit-shift-right-int-32";
 		case FnOp.bitShiftRightNat32:
+			return "bit-shift-right-nat-32";
 		case FnOp.bitwiseAnd:
+			return "bitwise-and";
 		case FnOp.bitwiseOr:
+			return "bitwise-or";
 		case FnOp.compareExchangeStrong:
+			return "compare-exchange-strong";
 		case FnOp.eqNat:
+			return "== (nat)";
 		case FnOp.float64FromInt64:
+			return "float-64-from-int-64";
 		case FnOp.float64FromNat64:
+			return "float-64-from-nat-64";
 		case FnOp.hardFail:
+			return "hard-fail";
 		case FnOp.lessFloat64:
+			return "< (float-64)";
 		case FnOp.lessInt8:
+			return "< (int-8)";
 		case FnOp.lessInt16:
+			return "< (int-16)";
 		case FnOp.lessInt32:
+			return "< (int-32)";
 		case FnOp.lessInt64:
+			return "< (int-64)";
 		case FnOp.lessNat:
+			return "< (nat)";
 		case FnOp.malloc:
+			return "malloc";
 		case FnOp.mulFloat64:
+			return "* (float-64)";
 		case FnOp.not:
+			return "not";
 		case FnOp.ptrToOrRefOfVal:
+			return "ptr-to or ref-of-val";
 		case FnOp.subFloat64:
+			return "- (float-64)";
 		case FnOp.truncateToInt64FromFloat64:
+			return "truncate-to-int-64-from-float-64";
 		case FnOp.unsafeDivFloat64:
+			return "unsafe-div (float-64)";
 		case FnOp.unsafeDivInt64:
+			return "unsafe-div (int-64)";
 		case FnOp.unsafeDivNat64:
+			return "unsafe-div (nat-64)";
 		case FnOp.unsafeModNat64:
+			return "unsafe-mod (nat-64)";
 		case FnOp.wrapAddInt16:
+			return "wrap-add (int-16)";
 		case FnOp.wrapAddInt32:
+			return "wrap-add (int-32)";
 		case FnOp.wrapAddInt64:
+			return "wrap-add (int-64)";
 		case FnOp.wrapAddNat16:
+			return "wrap-add (nat-16)";
 		case FnOp.wrapAddNat32:
+			return "wrap-add (nat-32)";
 		case FnOp.wrapAddNat64:
+			return "wrap-add (nat-64)";
 		case FnOp.wrapMulInt16:
+			return "wrap-mul (int-16)";
 		case FnOp.wrapMulInt32:
+			return "wrap-mul (int-32)";
 		case FnOp.wrapMulInt64:
+			return "wrap-mul (int-64)";
 		case FnOp.wrapMulNat16:
+			return "wrap-mul (nat-16)";
 		case FnOp.wrapMulNat32:
+			return "wrap-mul (nat-32)";
 		case FnOp.wrapMulNat64:
+			return "wrap-mul (nat-64)";
 		case FnOp.wrapSubInt16:
+			return "wrap-sub (int-16)";
 		case FnOp.wrapSubInt32:
+			return "wrap-sub (int-32)";
 		case FnOp.wrapSubInt64:
+			return "wrap-sub (int-64)";
 		case FnOp.wrapSubNat16:
+			return "wrap-sub (nat-16)";
 		case FnOp.wrapSubNat32:
+			return "wrap-sub (nat-32)";
 		case FnOp.wrapSubNat64:
-			return todo!(immutable string)("strOfFnOp");
+			return "wrap-sub (nat-64)";
 	} }());
 }
