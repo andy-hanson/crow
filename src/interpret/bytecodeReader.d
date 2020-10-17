@@ -21,15 +21,15 @@ struct ByteCodeReader {
 	ByteReader reader;
 }
 
-ByteCodeReader newByteCodeReader(immutable(u8)* bytes) {
+ByteCodeReader newByteCodeReader(immutable u8* bytes) {
 	return ByteCodeReader(ByteReader(bytes));
 }
 
-immutable(u8)* getReaderPtr(ref ByteCodeReader reader) {
+immutable(u8)* getReaderPtr(ref const ByteCodeReader reader) {
 	return getPtr(reader.reader);
 }
 
-void setReaderPtr(ref ByteCodeReader reader, immutable(u8)* bytes) {
+void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 	setPtr(reader.reader, bytes);
 }
 

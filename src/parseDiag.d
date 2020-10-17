@@ -5,13 +5,17 @@ module parseDiag;
 import util.bools : Bool;
 import util.collection.str : Str;
 import util.opt : Opt;
-import util.path : PathAndRange, RelPath;
+import util.path : PathAndStorageKind, PathAndRange, RelPath;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym;
 import util.types : u32;
 
 struct ParseDiag {
 	@safe @nogc pure nothrow:
+	struct CircularImport {
+		immutable PathAndStorageKind from;
+		immutable PathAndStorageKind to;
+	}
 	struct Expected {
 		enum Kind {
 			bodyKeyword,
@@ -81,6 +85,7 @@ struct ParseDiag {
 
 	private:
 	enum Kind {
+		circularImport,
 		expected,
 		fileDoesNotExist,
 		indentNotDivisible,
@@ -101,6 +106,7 @@ struct ParseDiag {
 	}
 	immutable Kind kind;
 	union {
+		immutable CircularImport circularImport;
 		immutable Expected expected;
 		immutable FileDoesNotExist fileDoesNotExist;
 		immutable IndentNotDivisible indentNotDivisible;
@@ -121,6 +127,7 @@ struct ParseDiag {
 	}
 
 	public:
+	@trusted immutable this(immutable CircularImport a) { kind = Kind.circularImport; circularImport = a; }
 	immutable this(immutable Expected a) { kind = Kind.expected; expected = a; }
 	@trusted immutable this(immutable FileDoesNotExist a) { kind = Kind.fileDoesNotExist; fileDoesNotExist = a; }
 	immutable this(immutable IndentNotDivisible a) { kind = Kind.indentNotDivisible; indentNotDivisible = a; }
@@ -148,6 +155,7 @@ struct ParseDiag {
 
 @trusted T matchParseDiag(T)(
 	ref immutable ParseDiag a,
+	scope T delegate(ref immutable ParseDiag.CircularImport) @safe @nogc pure nothrow cbCircularImport,
 	scope T delegate(ref immutable ParseDiag.Expected) @safe @nogc pure nothrow cbExpected,
 	scope T delegate(ref immutable ParseDiag.FileDoesNotExist) @safe @nogc pure nothrow cbFileDoesNotExist,
 	scope T delegate(ref immutable ParseDiag.IndentNotDivisible) @safe @nogc pure nothrow cbIndentNotDivisible,
@@ -173,6 +181,8 @@ struct ParseDiag {
 	scope T delegate(ref immutable ParseDiag.WhenMustHaveElse) @safe @nogc pure nothrow cbWhenMustHaveElse,
 ) {
 	final switch (a.kind) {
+		case ParseDiag.Kind.circularImport:
+			return cbCircularImport(a.circularImport);
 		case ParseDiag.Kind.expected:
 			return cbExpected(a.expected);
 		case ParseDiag.Kind.fileDoesNotExist:

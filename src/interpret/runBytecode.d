@@ -2,6 +2,7 @@ module interpret.runBytecode;
 
 @safe @nogc nothrow: // not pure
 
+import diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import interpret.bytecode : ByteCode, FnOp, matchOperationImpure, Operation, sexprOfOperation, StackOffset;
 import interpret.bytecodeReader :
 	ByteCodeReader,
@@ -13,10 +14,25 @@ import interpret.bytecodeReader :
 	setReaderPtr;
 import interpret.opcode : OpCode;
 import util.bools : Bool;
-import util.collection.arr : begin, ptrAt;
-import util.ptr : Ptr, ptrTrustMe;
+import util.collection.arr : at, begin, ptrAt;
+import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.sourceRange : FileAndPos;
 import util.types : maxU64, safeIntFromU64, u8, u16, u32, u64;
 import util.util : todo, unreachable, verify;
+
+@trusted immutable(int) runBytecode(ref immutable ByteCode byteCode, ref immutable FilesInfo filesInfo) {
+	Interpreter interpreter = Interpreter(ptrTrustMe(byteCode), ptrTrustMe(filesInfo), newByteCodeReader(begin(byteCode.byteCode)));
+	while (true) {
+		final switch (step(interpreter)) {
+			case StepResult.continue_:
+				break;
+			case StepResult.exit:
+				immutable u64 returnCode = interpreter.dataStack.pop();
+				verify(interpreter.dataStack.isEmpty());
+				return safeIntFromU64(returnCode);
+		}
+	}
+}
 
 //TODO:MOVE
 struct GlobalAllocatedStack(T, size_t capacity) {
@@ -57,7 +73,7 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 	}
 
 	void dup(immutable u8 offset) {
-		verify(offset + 1 < size);
+		verify(offset < size);
 		verify(size != capacity);
 		values[size] = values[size - 1 - offset];
 		size++;
@@ -84,20 +100,6 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 	}
 }
 
-@trusted immutable(int) runBytecode(ref immutable ByteCode byteCode) {
-	Interpreter interpreter = Interpreter(ptrTrustMe(byteCode), newByteCodeReader(begin(byteCode.byteCode)));
-	while (true) {
-		final switch (step(interpreter)) {
-			case StepResult.continue_:
-				break;
-			case StepResult.exit:
-				immutable u64 returnCode = interpreter.dataStack.pop();
-				verify(interpreter.dataStack.isEmpty());
-				return safeIntFromU64(returnCode);
-		}
-	}
-}
-
 private:
 
 enum StepResult {
@@ -109,9 +111,15 @@ alias DataStack = GlobalAllocatedStack!(u64, 1024 * 4);
 
 struct Interpreter {
 	immutable Ptr!ByteCode byteCode;
+	immutable Ptr!FilesInfo filesInfo;
 	ByteCodeReader reader;
 	DataStack dataStack;
 	GlobalAllocatedStack!(immutable(u8)*, 1024) returnStack;
+}
+
+@trusted ref immutable(FileAndPos) curSource(ref const Interpreter interpreter) {
+	immutable size_t index = getReaderPtr(interpreter.reader) - begin(interpreter.byteCode.byteCode);
+	return at(interpreter.byteCode.sources, index);
 }
 
 immutable(StepResult) step(ref Interpreter interpreter) {
@@ -119,11 +127,20 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 
 	debug {
 		import core.stdc.stdio : printf;
-		import util.sexprPrint : PrintFormat, printOutSexpr;
 		import util.alloc.stackAlloc : StackAlloc;
-		StackAlloc!("temp", 1024) temp;
-		printf("STEP\n", );
-		printOutSexpr(sexprOfOperation(temp, operation), PrintFormat.sexpr);
+		import util.print : print;
+		import util.sexpr : writeSexpr;
+		import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
+
+		alias TempAlloc = StackAlloc!("temp", 1024 * 4);
+		TempAlloc temp;
+		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(temp));
+		writeStatic(writer, "STEP: ");
+		writeFileAndPos!(TempAlloc, TempAlloc)(temp, writer, interpreter.filesInfo, curSource(interpreter));
+		writeChar(writer, ' ');
+		writeSexpr(writer, sexprOfOperation(temp, operation));
+		writeChar(writer, '\n');
+		print(finishWriterToCStr(writer));
 	}
 
 	return matchOperationImpure!(immutable StepResult)(

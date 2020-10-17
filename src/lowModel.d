@@ -284,6 +284,7 @@ immutable(Bool) isGlobal(ref immutable LowFunBody a) {
 }
 
 struct LowFun {
+	immutable FileAndRange source;
 	immutable Str mangledName;
 	immutable LowType returnType;
 	immutable Arr!LowParam params;

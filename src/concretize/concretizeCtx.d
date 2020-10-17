@@ -36,6 +36,7 @@ import model :
 	noCtx,
 	Param,
 	params,
+	range,
 	RecordField,
 	returnType,
 	StructBody,
@@ -246,7 +247,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	ref immutable ConcreteFunKey containingConcreteFunKey,
 	immutable Ptr!Expr body_,
 ) {
-	Ptr!ConcreteFun res = nuMut!ConcreteFun(alloc, name, mangledName, returnType, needsCtx, closureParam, params);
+	Ptr!ConcreteFun res = nuMut!ConcreteFun(alloc, body_.range, name, mangledName, returnType, needsCtx, closureParam, params);
 	immutable ConcreteFunSource source = ConcreteFunSource(
 		castImmutable(res),
 		containingConcreteFunKey,
@@ -377,6 +378,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(Alloc)(
 	immutable Str mangledName = getMangledName(alloc, ctx, key, returnType, params);
 	Ptr!ConcreteFun res = nuMut!ConcreteFun(
 		alloc,
+		range(key.decl),
 		decl.name,
 		mangledName,
 		returnType,

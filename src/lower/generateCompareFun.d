@@ -78,6 +78,7 @@ immutable(LowFun) generateCompareFun(Alloc)(
 		? arrCompareBody(alloc, range, allTypes, comparisonTypes, compareFuns, paramType, thisFunIndex, a, b)
 		: compareBody(alloc, range, allTypes, comparisonTypes, compareFuns, paramType, a, b);
 	return immutable LowFun(
+		range,
 		mangledName,
 		immutable LowType(comparisonTypes.comparison),
 		params,

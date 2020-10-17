@@ -2,7 +2,7 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
-import diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, TypeKind;
+import diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
 import frontend.lang : nozeExtension;
 import model :
 	arity,
@@ -86,25 +86,6 @@ public immutable(Str) strOfParseDiag(Alloc)(ref Alloc alloc, ref immutable Parse
 
 private:
 
-void writeWhere(TempAlloc, Alloc)(
-	ref TempAlloc tempAlloc,
-	ref Writer!Alloc writer,
-	ref immutable FilesInfo fi,
-	ref immutable FileAndRange where,
-) {
-	writeBold(writer);
-	immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, where.fileIndex);
-	writeHyperlink(
-		writer,
-		pathToStr(tempAlloc, getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, nozeExtension)),
-		pathToStr(tempAlloc, emptyStr, path.path, nozeExtension));
-	writeChar(writer, ' ');
-	writeRed(writer);
-
-	writeRangeWithinFile(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.range);
-	writeReset(writer);
-}
-
 immutable(Str) getAbsolutePathStr(Alloc)(ref Alloc alloc, ref immutable FilesInfo fi, immutable FileIndex file) {
 	return ;
 }
@@ -130,6 +111,12 @@ void writeLineNumber(Alloc)(
 void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 	matchParseDiag!void(
 		d,
+		(ref immutable ParseDiag.CircularImport it) {
+			writeStatic(writer, "circular import from ");
+			writePathAndStorageKind(writer, it.from);
+			writeStatic(writer, " to ");
+			writePathAndStorageKind(writer, it.to);
+		},
 		(ref immutable ParseDiag.Expected it) {
 			final switch (it.kind) {
 				case ParseDiag.Expected.Kind.bodyKeyword:
@@ -441,12 +428,6 @@ void writeDiag(TempAlloc, Alloc)(
 		(ref immutable Diag.CantInferTypeArguments) {
 			writeStatic(writer, "can't infer type arguments");
 		},
-		(ref immutable Diag.CircularImport d) {
-			writeStatic(writer, "circular import from ");
-			writePathAndStorageKind(writer, d.from);
-			writeStatic(writer, " to ");
-			writePathAndStorageKind(writer, d.to);
-		},
 		(ref immutable Diag.CommonTypesMissing d) {
 			writeStatic(writer, "common types are missing from 'include.nz':");
 			foreach (immutable Str s; range(d.missing)) {
@@ -688,7 +669,7 @@ void showDiagnostic(TempAlloc, Alloc)(
 	ref immutable FilesInfo fi,
 	ref immutable Diagnostic d,
 ) {
-	writeWhere(tempAlloc, writer, fi, d.where);
+	writeFileAndRange(tempAlloc, writer, fi, d.where);
 	writeChar(writer, ' ');
 	writeDiag(tempAlloc, writer, fi, d.diag);
 	writeNl(writer);

@@ -31,6 +31,17 @@ import util.util : max, todo, verify;
 	return success!(Arr!OutSuccess, OutFailure)(immutable Arr!OutSuccess(cast(immutable) res, inputs.size));
 }
 
+@trusted immutable(Arr!Out) mapImpure(Out, In, Alloc)(
+	ref Alloc alloc,
+	immutable Arr!In a,
+	scope immutable(Out) delegate(ref immutable In) @safe @nogc nothrow cb,
+) {
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
+	foreach (immutable size_t i; 0..size(a))
+		initMemory(res + i, cb(at(a, i)));
+	return immutable Arr!Out(cast(immutable) res, size(a));
+}
+
 pure:
 
 @trusted immutable(Arr!T) arrLiteral(T, Alloc)(ref Alloc alloc, immutable T value) {

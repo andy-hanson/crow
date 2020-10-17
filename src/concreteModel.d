@@ -347,6 +347,7 @@ immutable(Bool) isGlobal(ref immutable ConcreteFunBody a) {
 // Each instantiation of a FunDecl
 // Each lambda inside an instantiation of a FunDecl
 struct ConcreteFun {
+	immutable FileAndRange source;
 	immutable Sym name;
 	immutable(Str) mangledName; // TODO:KILL
 	immutable(ConcreteType) returnType;

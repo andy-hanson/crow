@@ -5,7 +5,7 @@ module compiler;
 import backend.writeToC : writeToC;
 import concreteModel : ConcreteProgram;
 import concretize.concretize : concretize;
-import diag : Diagnostics;
+import diag : Diagnostics, FilesInfo;
 import frontend.ast : FileAst, sexprOfAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
 import frontend.getTokens : Token, tokensOfAst, sexprOfTokens;
@@ -103,13 +103,13 @@ immutable(int) buildAndRun(SymAlloc)(
 	if (interpret) {
 		Mallocator mallocator;
 		LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
-		immutable Result!(LowProgram, Diagnostics) lowProgramResult =
+		immutable Result!(LowProgramAndFilesInfo, Diagnostics) lowProgramResult =
 			buildToLowProgram(lowAlloc, allSymbols, nozeDir, programDirAndMain);
-		return matchResultImpure!(int, LowProgram, Diagnostics)(
+		return matchResultImpure!(int, LowProgramAndFilesInfo, Diagnostics)(
 			lowProgramResult,
-			(ref immutable LowProgram lowProgram) {
-				immutable ByteCode byteCode = generateBytecode(lowAlloc, lowProgram);
-				return runBytecode(byteCode);
+			(ref immutable LowProgramAndFilesInfo lowProgram) {
+				immutable ByteCode byteCode = generateBytecode(lowAlloc, lowProgram.program);
+				return runBytecode(byteCode, lowProgram.filesInfo);
 			},
 			(ref immutable Diagnostics diagnostics) {
 				printDiagnostics(diagnostics);
@@ -277,15 +277,15 @@ immutable(Opt!AbsolutePath) buildWorker(Alloc, SymAlloc)(
 ) {
 	Mallocator mallocator;
 	LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
-	immutable Result!(LowProgram, Diagnostics) programResult =
+	immutable Result!(LowProgramAndFilesInfo, Diagnostics) programResult =
 		buildToLowProgram(lowAlloc, allSymbols, nozeDir, programDirAndMain);
-	return matchResultImpure!(Opt!AbsolutePath, LowProgram, Diagnostics)(
+	return matchResultImpure!(Opt!AbsolutePath, LowProgramAndFilesInfo, Diagnostics)(
 		programResult,
-		(ref immutable LowProgram lowProgram) {
+		(ref immutable LowProgramAndFilesInfo lowProgram) {
 			immutable AbsolutePath fullMainPath =
 				immutable AbsolutePath(programDirAndMain.programDir, programDirAndMain.mainPath, emptyStr);
 			immutable AbsolutePath fullMainCPath = withExtension(fullMainPath, strLiteral(".c"));
-			emitProgram(lowProgram, fullMainCPath);
+			emitProgram(lowProgram.program, fullMainCPath);
 			compileC(fullMainCPath, fullMainPath, environ);
 			return some(fullMainPath);
 		},
@@ -295,7 +295,12 @@ immutable(Opt!AbsolutePath) buildWorker(Alloc, SymAlloc)(
 		});
 }
 
-immutable(Result!(LowProgram, Diagnostics)) buildToLowProgram(Alloc, SymAlloc)(
+struct LowProgramAndFilesInfo {
+	immutable LowProgram program;
+	immutable FilesInfo filesInfo;
+}
+
+immutable(Result!(LowProgramAndFilesInfo, Diagnostics)) buildToLowProgram(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Str nozeDir,
@@ -307,12 +312,12 @@ immutable(Result!(LowProgram, Diagnostics)) buildToLowProgram(Alloc, SymAlloc)(
 	// But if not, delete the model after lowering.
 	immutable Result!(Program, Diagnostics) programResult =
 		frontendCompileProgram(alloc, allSymbols, nozeDir, programDirAndMain);
-	return mapSuccess!(LowProgram, Program, Diagnostics)(
+	return mapSuccess!(LowProgramAndFilesInfo, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
 			ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
 			immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
-			return lower(alloc, concreteProgram);
+			return immutable LowProgramAndFilesInfo(lower(alloc, concreteProgram), program.filesInfo);
 		});
 }
 

@@ -27,6 +27,11 @@ struct RangeWithinFile {
 	static immutable RangeWithinFile empty = immutable RangeWithinFile(immutable Pos(0), immutable Pos(0));
 }
 
+struct FileAndPos {
+	immutable FileIndex fileIndex;
+	immutable Pos pos;
+}
+
 struct FileAndRange {
 	immutable FileIndex fileIndex;
 	immutable RangeWithinFile range;

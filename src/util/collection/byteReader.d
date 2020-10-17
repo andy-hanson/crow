@@ -10,7 +10,7 @@ struct ByteReader {
 	immutable(u8)* ptr;
 }
 
-immutable(u8)* getPtr(ref ByteReader reader) {
+immutable(u8*) getPtr(ref const ByteReader reader) {
 	return reader.ptr;
 }
 

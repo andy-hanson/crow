@@ -7,6 +7,7 @@ import util.collection.arr : Arr;
 import util.collection.str : Str, strLiteral;
 import util.sexpr : Sexpr, tataArr, tataNat, tataRecord, tataStr, tataSym;
 import util.types : safeU32ToU16, u8, u16, u32, u64;
+import util.sourceRange : FileAndPos;
 import util.util : todo, verify;
 
 @trusted T matchOperationImpure(T)(
@@ -149,6 +150,7 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 
 struct ByteCode {
 	immutable Arr!u8 byteCode;
+	immutable Arr!FileAndPos sources; // parallel to byteCode
 	immutable Arr!char text;
 	immutable ByteCodeIndex main;
 }

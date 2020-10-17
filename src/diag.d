@@ -20,7 +20,6 @@ import parseDiag : ParseDiag;
 import util.collection.arr : Arr, empty;
 import util.collection.str : Str;
 import util.opt : Opt;
-import util.path : PathAndStorageKind, RelPath;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange, FilePaths;
 import util.sym : shortSymAlphaLiteral, Sym;
@@ -89,10 +88,6 @@ struct Diag {
 
 	struct CantCreateRecordWithoutExpectedType {}
 	struct CantInferTypeArguments {}
-	struct CircularImport {
-		immutable PathAndStorageKind from;
-		immutable PathAndStorageKind to;
-	}
 	struct CommonTypesMissing {
 		immutable Arr!Str missing;
 	}
@@ -236,7 +231,6 @@ struct Diag {
 		cantCreateNonRecordType,
 		cantCreateRecordWithoutExpectedType,
 		cantInferTypeArguments,
-		circularImport,
 		commonTypesMissing,
 		createArrNoExpectedType,
 		createRecordByRefNoCtx,
@@ -280,7 +274,6 @@ struct Diag {
 		immutable CantCreateNonRecordType cantCreateNonRecordType;
 		immutable CantCreateRecordWithoutExpectedType cantCreateRecordWithoutExpectedType;
 		immutable CantInferTypeArguments cantInferTypeArguments;
-		immutable CircularImport circularImport;
 		immutable CommonTypesMissing commonTypesMissing;
 		immutable CreateArrNoExpectedType createArrNoExpectedType;
 		immutable CreateRecordByRefNoCtx createRecordByRefNoCtx;
@@ -331,7 +324,6 @@ struct Diag {
 	@trusted immutable this(immutable CantInferTypeArguments a) {
 		kind = Kind.cantInferTypeArguments; cantInferTypeArguments = a;
 	}
-	@trusted immutable this(immutable CircularImport a) { kind = Kind.circularImport; circularImport = a; }
 	@trusted immutable this(immutable CommonTypesMissing a) { kind = Kind.commonTypesMissing; commonTypesMissing = a; }
 	@trusted immutable this(immutable CreateArrNoExpectedType a) {
 		kind = Kind.createArrNoExpectedType; createArrNoExpectedType = a;
@@ -438,9 +430,6 @@ struct Diag {
 	scope immutable(Out) delegate(
 		ref immutable Diag.CantInferTypeArguments
 	) @safe @nogc pure nothrow cbCantInferTypeArguments,
-	scope immutable(Out) delegate(
-		ref immutable Diag.CircularImport
-	) @safe @nogc pure nothrow cbCircularImport,
 	scope immutable(Out) delegate(
 		ref immutable Diag.CommonTypesMissing
 	) @safe @nogc pure nothrow cbCommonTypesMissing,
@@ -552,8 +541,6 @@ struct Diag {
 			return cbCantCreateRecordWithoutExpectedType(a.cantCreateRecordWithoutExpectedType);
 		case Diag.Kind.cantInferTypeArguments:
 			return cbCantInferTypeArguments(a.cantInferTypeArguments);
-		case Diag.Kind.circularImport:
-			return cbCircularImport(a.circularImport);
 		case Diag.Kind.commonTypesMissing:
 			return cbCommonTypesMissing(a.commonTypesMissing);
 		case Diag.Kind.createArrNoExpectedType:
@@ -632,6 +619,55 @@ struct FilesInfo {
 	immutable FilePaths filePaths;
 	immutable AbsolutePathsGetter absolutePathsGetter;
 	immutable LineAndColumnGetters lineAndColumnGetters;
+}
+
+import model : getAbsolutePath;
+import util.sourceRange : FileAndPos;
+import util.collection.fullIndexDict : fullIndexDictGet;
+import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset;
+import util.writerUtils : writeRangeWithinFile, writePos;
+import util.path : PathAndStorageKind, pathToStr;
+import util.sourceRange : FileIndex;
+import frontend.lang : nozeExtension;
+import util.collection.str : emptyStr;
+
+void writeFileAndRange(TempAlloc, Alloc)(
+	ref TempAlloc tempAlloc,
+	ref Writer!Alloc writer,
+	ref immutable FilesInfo fi,
+	ref immutable FileAndRange where,
+) {
+	writeFile(tempAlloc, writer, fi, where.fileIndex);
+	writeRangeWithinFile(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.range);
+	writeReset(writer);
+}
+
+void writeFileAndPos(TempAlloc, Alloc)(
+	ref TempAlloc tempAlloc,
+	ref Writer!Alloc writer,
+	ref immutable FilesInfo fi,
+	ref immutable FileAndPos where,
+) {
+	writeFile(tempAlloc, writer, fi, where.fileIndex);
+	writePos(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.pos);
+	writeReset(writer);
+}
+
+// Private because it doesn't reset writer
+private void writeFile(TempAlloc, Alloc)(
+	ref TempAlloc tempAlloc,
+	ref Writer!Alloc writer,
+	ref immutable FilesInfo fi,
+	immutable FileIndex fileIndex,
+) {
+	writeBold(writer);
+	immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, fileIndex);
+	writeHyperlink(
+		writer,
+		pathToStr(tempAlloc, getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, nozeExtension)),
+		pathToStr(tempAlloc, emptyStr, path.path, nozeExtension));
+	writeChar(writer, ' ');
+	writeRed(writer);
 }
 
 alias Diags = Arr!Diagnostic;

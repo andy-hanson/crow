@@ -549,7 +549,7 @@ immutable(LowFun) lowFunFromSource(Alloc)(
 				closureParamIndex,
 				immutable LowParamIndex((has(ctxParamIndex) ? 1 : 0) + (has(closureParamIndex) ? 1 : 0)),
 				body_(cf));
-			return immutable LowFun(copyStr(alloc, cf.mangledName), returnType, params, body_);
+			return immutable LowFun(cf.source, copyStr(alloc, cf.mangledName), returnType, params, body_);
 		});
 }
 
@@ -593,7 +593,7 @@ immutable(LowFun) mainFun(Alloc)(
 				paramRef(FileAndRange.empty, charPtrPtrType, argv),
 				userMainFunPtr))));
 	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(emptyArr!(Ptr!LowLocal), call));
-	return immutable LowFun(strLiteral("main"), int32Type, params, body_);
+	return immutable LowFun(FileAndRange.empty, strLiteral("main"), int32Type, params, body_);
 }
 
 immutable(LowParam) getLowParam(Alloc)(ref Alloc alloc, ref GetLowTypeCtx ctx, ref immutable ConcreteParam a) {
