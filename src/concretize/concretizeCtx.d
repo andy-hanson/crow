@@ -247,7 +247,8 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	ref immutable ConcreteFunKey containingConcreteFunKey,
 	immutable Ptr!Expr body_,
 ) {
-	Ptr!ConcreteFun res = nuMut!ConcreteFun(alloc, body_.range, name, mangledName, returnType, needsCtx, closureParam, params);
+	Ptr!ConcreteFun res =
+		nuMut!ConcreteFun(alloc, body_.range, name, mangledName, returnType, needsCtx, closureParam, params);
 	immutable ConcreteFunSource source = ConcreteFunSource(
 		castImmutable(res),
 		containingConcreteFunKey,

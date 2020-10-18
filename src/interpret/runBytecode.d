@@ -2,6 +2,8 @@ module interpret.runBytecode;
 
 @safe @nogc nothrow: // not pure
 
+import core.stdc.stdio : printf;
+
 import diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import interpret.bytecode : ByteCode, FnOp, matchOperationImpure, Operation, sexprOfOperation, StackOffset;
 import interpret.bytecodeReader :
@@ -14,16 +16,26 @@ import interpret.bytecodeReader :
 	setReaderPtr;
 import interpret.opcode : OpCode;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, begin, ptrAt, size;
+import util.collection.arr : Arr, at, begin, ptrAt, range, size;
 import util.collection.arrUtil : zip;
-import util.collection.globalAllocatedStack : dup, GlobalAllocatedStack, isEmpty, peek, pop, popN, push, remove, stackRef;
+import util.collection.globalAllocatedStack :
+	asTempArr,
+	dup,
+	GlobalAllocatedStack,
+	isEmpty,
+	peek,
+	pop,
+	popN,
+	push,
+	remove,
+	stackRef;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos;
 import util.types : maxU64, safeIntFromU64, u8, u16, u32, u64;
 import util.util : todo, unreachable, verify;
 
-@trusted immutable(int) runBytecode(ref immutable ByteCode byteCode, ref immutable FilesInfo filesInfo) {
-	Interpreter interpreter = Interpreter(ptrTrustMe(byteCode), ptrTrustMe(filesInfo), newByteCodeReader(begin(byteCode.byteCode)));
+immutable(int) runBytecode(ref immutable ByteCode byteCode, ref immutable FilesInfo filesInfo) {
+	Interpreter interpreter = newInterpreter(ptrTrustMe(byteCode), ptrTrustMe(filesInfo));
 	while (true) {
 		final switch (step(interpreter)) {
 			case StepResult.continue_:
@@ -36,7 +48,9 @@ import util.util : todo, unreachable, verify;
 	}
 }
 
-private:
+pure @trusted Interpreter newInterpreter(immutable Ptr!ByteCode byteCode, immutable Ptr!FilesInfo filesInfo) {
+	return Interpreter(byteCode, filesInfo, newByteCodeReader(begin(byteCode.byteCode)));
+}
 
 enum StepResult {
 	continue_,
@@ -53,14 +67,35 @@ struct Interpreter {
 	GlobalAllocatedStack!(immutable(u8)*, 1024) returnStack;
 }
 
-@trusted ref immutable(FileAndPos) curSource(ref const Interpreter interpreter) {
-	immutable size_t index = getReaderPtr(interpreter.reader) - begin(interpreter.byteCode.byteCode);
+void printStack(ref const Interpreter interpreter) {
+	printDataArr(asTempArr(interpreter.dataStack));
+}
+
+@trusted void printDataArr(immutable Arr!u64 values) {
+	printf("data:");
+	foreach (ref immutable u64 value; range(values))
+		printf(" %lu", value);
+	printf("\n");
+}
+
+@trusted immutable(size_t) nextByteCodeIndex(ref const Interpreter interpreter) {
+	return getReaderPtr(interpreter.reader) - begin(interpreter.byteCode.byteCode);
+}
+
+ref immutable(FileAndPos) nextSource(ref const Interpreter interpreter) {
+	immutable size_t index = nextByteCodeIndex(interpreter);
+	debug {
+		printf("nextBytecodeIndex: %lu\n", index);
+		printf("size(interpreter.byteCode.byteCode): %lu\n", size(interpreter.byteCode.byteCode));
+		printf("size(interpreter.byteCode.sources): %lu\n", size(interpreter.byteCode.sources));
+		printStack(interpreter);
+	}
 	return at(interpreter.byteCode.sources, index);
 }
 
 immutable(StepResult) step(ref Interpreter interpreter) {
+	immutable FileAndPos source = nextSource(interpreter);
 	immutable Operation operation = readOperation(interpreter.reader);
-
 	debug {
 		import core.stdc.stdio : printf;
 		import util.alloc.stackAlloc : StackAlloc;
@@ -72,7 +107,7 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 		TempAlloc temp;
 		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(temp));
 		writeStatic(writer, "STEP: ");
-		writeFileAndPos!(TempAlloc, TempAlloc)(temp, writer, interpreter.filesInfo, curSource(interpreter));
+		writeFileAndPos!(TempAlloc, TempAlloc)(temp, writer, interpreter.filesInfo, source);
 		writeChar(writer, ' ');
 		writeSexpr(writer, sexprOfOperation(temp, operation));
 		writeChar(writer, '\n');
@@ -143,6 +178,8 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 			return StepResult.continue_;
 		});
 }
+
+private:
 
 void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	push(dataStack, cast(immutable u64) stackRef(dataStack, offset.offset));

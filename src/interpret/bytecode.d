@@ -3,7 +3,7 @@ module interpret.bytecode;
 @safe @nogc nothrow: // not pure
 
 import interpret.opcode : OpCode;
-import util.collection.arr : Arr;
+import util.collection.arr : Arr, sizeEq;
 import util.collection.str : Str, strLiteral;
 import util.sexpr : Sexpr, tataArr, tataNat, tataRecord, tataStr, tataSym;
 import util.types : safeU32ToU16, u8, u16, u32, u64;
@@ -149,10 +149,20 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 }
 
 struct ByteCode {
+	@safe @nogc pure nothrow:
+
 	immutable Arr!u8 byteCode;
 	immutable Arr!FileAndPos sources; // parallel to byteCode
 	immutable Arr!char text;
 	immutable ByteCodeIndex main;
+
+	immutable this(immutable Arr!u8 bc, immutable Arr!FileAndPos s, immutable Arr!char t, immutable ByteCodeIndex m) {
+		byteCode = bc;
+		sources = s;
+		text = t;
+		main = m;
+		verify(sizeEq(byteCode, sources));
+	}
 }
 
 struct StackOffset {

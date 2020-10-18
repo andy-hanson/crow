@@ -22,10 +22,12 @@ import interpret.bytecodeWriter :
 	setNextStackEntry,
 	setStackEntryAfterParameters,
 	StackEntries,
+	StackEntry,
 	writeAddConstantNat64,
 	writeCallDelayed,
 	writeCallFunPtr,
-	writeDup,
+	writeDupEntries,
+	writeDupEntry,
 	writeDupPartial,
 	writeFn,
 	writeFnHardFail,
@@ -309,13 +311,13 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 				tempAlloc,
 				fun.params,
 				(ref immutable LowParam it) {
-					immutable uint start = stackEntry;
+					immutable StackEntry start = immutable StackEntry(stackEntry);
 					immutable uint n = nStackEntriesForType(typeLayout, it.type);
 					stackEntry += n;
 					return immutable StackEntries(start, n);
 				});
-			setStackEntryAfterParameters(writer, stackEntry);
-			immutable uint stackEntryAfterParameters = stackEntry;
+			immutable StackEntry stackEntryAfterParameters = immutable StackEntry(stackEntry);
+			setStackEntryAfterParameters(writer, stackEntryAfterParameters);
 			// Note: not doing it for locals because they might be unrelated and occupy the same stack entry
 			ExprCtx ctx = ExprCtx(
 				ptrTrustMe(program),
@@ -326,10 +328,13 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 			writeReturn(writer, fun.source);
 
 			immutable uint returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
-			verify(stackEntryAfterParameters + returnEntries == getNextStackEntry(writer));
-			writeRemove(writer, fun.source, immutable StackEntries(0, safeU32ToU8(stackEntryAfterParameters)));
-			verify(getNextStackEntry(writer) == returnEntries);
-			setNextStackEntry(writer, 0);
+			verify(stackEntryAfterParameters.entry + returnEntries == getNextStackEntry(writer).entry);
+			writeRemove(
+				writer,
+				fun.source,
+				immutable StackEntries(immutable StackEntry(0), safeU32ToU8(stackEntryAfterParameters.entry)));
+			verify(getNextStackEntry(writer).entry == returnEntries);
+			setNextStackEntry(writer, immutable StackEntry(0));
 		});
 }
 
@@ -362,16 +367,16 @@ void generateExpr(CodeAlloc, TempAlloc)(
 	return matchLowExprKind(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
-			immutable uint stackEntryBeforeArgs = getNextStackEntry(writer);
+			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			immutable uint expectedStackEffect = nStackEntriesForType(ctx, expr.type);
 			foreach (ref immutable LowExpr arg; range(it.args))
 				generateExpr(tempAlloc, writer, ctx, arg);
 			registerFunAddress(tempAlloc, ctx, it.called,
 				writeCallDelayed(writer, source, stackEntryBeforeArgs, expectedStackEffect));
-			verify(stackEntryBeforeArgs + expectedStackEffect == getNextStackEntry(writer));
+			verify(stackEntryBeforeArgs.entry + expectedStackEffect == getNextStackEntry(writer).entry);
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
-			immutable uint before = getNextStackEntry(writer);
+			immutable StackEntry before = getNextStackEntry(writer);
 
 			void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
 				if (has(packStart)) {
@@ -403,21 +408,21 @@ void generateExpr(CodeAlloc, TempAlloc)(
 
 			recur(none!size_t, 0);
 
-			immutable uint after = getNextStackEntry(writer);
+			immutable StackEntry after = getNextStackEntry(writer);
 			immutable uint stackEntriesForType = nStackEntriesForType(ctx, expr.type);
-			verify(after - before == stackEntriesForType);
+			verify(after.entry - before.entry == stackEntriesForType);
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
 			//immutable uint offset = nStackEntriesForUnionTypeExcludingKind(ctx.program, asUnionType(it.type));
-			immutable uint before = getNextStackEntry(writer);
+			immutable StackEntry before = getNextStackEntry(writer);
 			immutable uint size = nStackEntriesForType(ctx, expr.type);
 			writePushConstant(writer, source, it.memberIndex);
 			generateExpr(tempAlloc, writer, ctx, it.arg);
-			immutable uint after = getNextStackEntry(writer);
-			if (before + size != after) {
+			immutable StackEntry after = getNextStackEntry(writer);
+			if (before.entry + size != after.entry) {
 				// Some members of a union are smaller than the union.
-				verify(before + size > after);
-				writePushEmptySpace(writer, source, before + size - after);
+				verify(before.entry + size > after.entry);
+				writePushEmptySpace(writer, source, before.entry + size - after.entry);
 			}
 		},
 		(ref immutable LowExprKind.FunPtr it) {
@@ -428,27 +433,27 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			immutable StackEntries localEntries =
 				immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, it.local.type));
 			generateExpr(tempAlloc, writer, ctx, it.value);
-			verify(getNextStackEntry(writer) == localEntries.start + localEntries.size);
+			verify(getNextStackEntry(writer).entry == localEntries.start.entry + localEntries.size);
 			addToMutDict(tempAlloc, ctx.localEntries, it.local, localEntries);
 			generateExpr(tempAlloc, writer, ctx, it.then);
 			mustDelete(ctx.localEntries, it.local);
 			writeRemove(writer, source, localEntries);
 		},
 		(ref immutable LowExprKind.LocalRef it) {
-			writeDup(writer, source, mustGetAt_mut(ctx.localEntries, it.local));
+			writeDupEntries(writer, source, mustGetAt_mut(ctx.localEntries, it.local));
 		},
 		(ref immutable LowExprKind.Match it) {
-			immutable uint startStack = getNextStackEntry(writer);
+			immutable StackEntry startStack = getNextStackEntry(writer);
 			generateExpr(tempAlloc, writer, ctx, it.matchedValue);
 			// Move the union kind to top of stack
-			writeDup(writer, source, immutable StackEntries(startStack, 1));
+			writeDupEntry(writer, source, startStack);
 			writeRemove(writer, source, immutable StackEntries(startStack, 1));
 			// Get the kind (always the first entry)
 			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, size(it.cases));
 			// Start of the union values is where the kind used to be.
-			immutable uint stackAfterMatched = getNextStackEntry(writer);
+			immutable StackEntry stackAfterMatched = getNextStackEntry(writer);
 			immutable StackEntries matchedEntriesWithoutKind =
-				immutable StackEntries(startStack, safeU32ToU8(stackAfterMatched - startStack));
+				immutable StackEntries(startStack, safeU32ToU8(stackAfterMatched.entry - startStack.entry));
 			immutable Arr!ByteCodeIndex delayedGotos = mapOpWithIndex!ByteCodeIndex(
 				tempAlloc,
 				it.cases,
@@ -483,7 +488,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			writeRemove(writer, source, matchedEntriesWithoutKind);
 		},
 		(ref immutable LowExprKind.ParamRef it) {
-			writeDup(writer, source, at(ctx.parameterEntries, it.index.index));
+			writeDupEntries(writer, source, at(ctx.parameterEntries, it.index.index));
 		},
 		(ref immutable LowExprKind.PtrCast it) {
 			generateExpr(tempAlloc, writer, ctx, it.target);
@@ -492,13 +497,13 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			generateRecordFieldAccess(tempAlloc, writer, ctx, source, it);
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
-			immutable uint before = getNextStackEntry(writer);
+			immutable StackEntry before = getNextStackEntry(writer);
 			verify(it.targetIsPointer);
 			generateExpr(tempAlloc, writer, ctx, it.target);
-			immutable uint mid = getNextStackEntry(writer);
+			immutable StackEntry mid = getNextStackEntry(writer);
 			generateExpr(tempAlloc, writer, ctx, it.value);
 			immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
-			verify(mid + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer));
+			verify(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
 			writeWrite(writer, source, offsetAndSize.offset, offsetAndSize.size);
 			verify(getNextStackEntry(writer) == before);
 		},
@@ -680,26 +685,26 @@ void generateRecordFieldAccess(TempAlloc, CodeAlloc)(
 	ref immutable FileAndRange source,
 	ref immutable LowExprKind.RecordFieldAccess it,
 ) {
-	immutable uint targetEntry = getNextStackEntry(writer);
+	immutable StackEntry targetEntry = getNextStackEntry(writer);
 	generateExpr(tempAlloc, writer, ctx, it.target);
 	immutable StackEntries targetEntries = immutable StackEntries(
 		targetEntry,
-		safeU32ToU8(getNextStackEntry(writer) - targetEntry));
+		safeU32ToU8(getNextStackEntry(writer).entry - targetEntry.entry));
 	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
 	if (it.targetIsPointer) {
 		writeRead(writer, source, offsetAndSize.offset, offsetAndSize.size);
 	} else {
+		immutable StackEntry firstEntry =
+			immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize));
 		if (offsetAndSize.size % stackEntrySize == 0) {
 			verify(offsetAndSize.offset % stackEntrySize == 0);
-			immutable StackEntries entries = immutable StackEntries(
-				targetEntry + (offsetAndSize.offset / stackEntrySize),
-				offsetAndSize.size / stackEntrySize);
-			writeDup(writer, source, entries);
+			immutable StackEntries entries = immutable StackEntries(firstEntry, offsetAndSize.size / stackEntrySize);
+			writeDupEntries(writer, source, entries);
 		} else {
 			writeDupPartial(
 				writer,
 				source,
-				safeU32ToU8(targetEntry + (offsetAndSize.offset / stackEntrySize)),
+				firstEntry,
 				offsetAndSize.offset % stackEntrySize,
 				offsetAndSize.size);
 		}
@@ -924,7 +929,7 @@ void generateIf(TempAlloc, CodeAlloc)(
 	ref immutable LowExpr then,
 	ref immutable LowExpr else_,
 ) {
-	immutable uint startStack = getNextStackEntry(writer);
+	immutable StackEntry startStack = getNextStackEntry(writer);
 	generateExpr(tempAlloc, writer, ctx, cond);
 	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, 2);
 	fillDelayedU16(writer, addByteCodeIndex(delayed, 0), subtractByteCodeIndex(nextByteCodeIndex(writer), delayed));
@@ -945,7 +950,7 @@ void generateSpecialNAry(TempAlloc, CodeAlloc)(
 ) {
 	final switch (a.kind) {
 		case LowExprKind.SpecialNAry.Kind.callFunPtr:
-			immutable uint stackEntryBeforeArgs = getNextStackEntry(writer);
+			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			foreach (ref immutable LowExpr arg; range(a.args))
 				generateExpr(tempAlloc, writer, ctx, arg);
 			writeCallFunPtr(writer, expr.range, stackEntryBeforeArgs, nStackEntriesForType(ctx, expr.type));

@@ -2,6 +2,7 @@ module cli;
 
 import compiler : build, buildAndRun, print, PrintKind, ProgramDirAndMain;
 import frontend.lang : nozeExtension;
+import test.test : test;
 import util.alloc.mallocator : Mallocator;
 import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
 import util.bools : Bool, False, True;
@@ -9,7 +10,7 @@ import util.collection.arr : Arr, at, empty, emptyArr, first, only, size;
 import util.collection.arrUtil : slice, sliceFromTo, tail;
 import util.collection.str : CStr, endsWith, Str, strEqLiteral, strLiteral;
 import util.io : getCwd, parseCommandLineArgs, CommandLineArgs;
-import util.opt : force, forceOrTodo, has, Opt;
+import util.opt : force, forceOrTodo, has, none, Opt, some;
 import util.path :
 	AbsolutePath,
 	baseName,
@@ -62,11 +63,12 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 			print(allSymbols, a.kind, a.format, nozeDir, a.programDirAndMain),
 		(ref immutable Command.Run r) =>
 			buildAndRun(r.interpret, allSymbols, nozeDir, r.programDirAndMain, r.programArgs, args.environ),
+		(ref immutable Command.Test it) =>
+			test(it.name),
 		(ref immutable Command.Version) {
 			printVersion();
 			return 0;
-		},
-	);
+		});
 }
 
 @trusted void printVersion() {
@@ -106,6 +108,7 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 	scope immutable(Out) delegate(ref immutable Command.HelpRun) @safe @nogc nothrow cbHelpRun,
 	scope immutable(Out) delegate(ref immutable Command.Print) @safe @nogc nothrow cbPrint,
 	scope immutable(Out) delegate(ref immutable Command.Run) @safe @nogc nothrow cbRun,
+	scope immutable(Out) delegate(ref immutable Command.Test) @safe @nogc nothrow cbTest,
 	scope immutable(Out) delegate(ref immutable Command.Version) @safe @nogc nothrow cbVersion,
 ) {
 	final switch (a.kind) {
@@ -121,6 +124,8 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 			return cbPrint(a.print);
 		case Command.Kind.run:
 			return cbRun(a.run);
+		case Command.Kind.test:
+			return cbTest(a.test);
 		case Command.Kind.version_:
 			return cbVersion(a.version_);
 	}
@@ -158,6 +163,9 @@ struct Command {
 		immutable ProgramDirAndMain programDirAndMain;
 		immutable Arr!Str programArgs;
 	}
+	struct Test {
+		immutable Opt!Str name;
+	}
 	struct Version {}
 
 	@trusted immutable this(immutable Build a) { kind = Kind.build; build = a; }
@@ -166,6 +174,7 @@ struct Command {
 	@trusted immutable this(immutable HelpRun a) { kind = Kind.helpRun; helpRun = a; }
 	@trusted immutable this(immutable Print a) { kind = Kind.print; print = a; }
 	@trusted immutable this(immutable Run a) { kind = Kind.run; run = a; }
+	@trusted immutable this(immutable Test a) { kind = Kind.test; test = a; }
 	@trusted immutable this(immutable Version a) { kind = Kind.version_; version_ = a; }
 
 	private:
@@ -176,6 +185,7 @@ struct Command {
 		helpRun,
 		print,
 		run,
+		test,
 		version_,
 	}
 	immutable Kind kind;
@@ -186,6 +196,7 @@ struct Command {
 		immutable HelpRun helpRun;
 		immutable Print print;
 		immutable Run run;
+		immutable Test test;
 		immutable Version version_;
 	}
 }
@@ -303,11 +314,22 @@ immutable(Command) parseCommand(Alloc, SymAlloc)(
 			? parseBuildCommand(alloc, allSymbols, cwd, cmdArgs)
 			: strEqLiteral(arg0, "run")
 			? parseRunCommand(alloc, allSymbols, cwd, cmdArgs)
+			: strEqLiteral(arg0, "test")
+			? parseTestCommand(alloc, cmdArgs)
 			// Allow `noze foo.nz args` to translate to `noze run foo.nz -- args`
 			: endsWith(arg0, nozeExtension)
 			? immutable Command(Command.Run(True, parseProgramDirAndMain(alloc, allSymbols, cwd, arg0), args.tail))
 			: immutable Command(Command.Help(True));
 	}
+}
+
+immutable(Command) parseTestCommand(Alloc)(ref Alloc alloc, immutable Arr!Str args) {
+	if (empty(args))
+		return immutable Command(immutable Command.Test(none!Str));
+	else if (size(args) == 1)
+		return immutable Command(immutable Command.Test(some(first(args))));
+	else
+		return immutable Command(immutable Command.Help(True));
 }
 
 immutable(Str) climbUpToNoze(immutable Str p) {

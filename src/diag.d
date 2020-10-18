@@ -624,7 +624,7 @@ struct FilesInfo {
 import model : getAbsolutePath;
 import util.sourceRange : FileAndPos;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset;
+import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
 import util.writerUtils : writeRangeWithinFile, writePos;
 import util.path : PathAndStorageKind, pathToStr;
 import util.sourceRange : FileIndex;
@@ -638,7 +638,8 @@ void writeFileAndRange(TempAlloc, Alloc)(
 	ref immutable FileAndRange where,
 ) {
 	writeFile(tempAlloc, writer, fi, where.fileIndex);
-	writeRangeWithinFile(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.range);
+	if (where.fileIndex != FileIndex.none)
+		writeRangeWithinFile(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.range);
 	writeReset(writer);
 }
 
@@ -649,7 +650,8 @@ void writeFileAndPos(TempAlloc, Alloc)(
 	ref immutable FileAndPos where,
 ) {
 	writeFile(tempAlloc, writer, fi, where.fileIndex);
-	writePos(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.pos);
+	if (where.fileIndex != FileIndex.none)
+		writePos(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.pos);
 	writeReset(writer);
 }
 
@@ -661,13 +663,17 @@ private void writeFile(TempAlloc, Alloc)(
 	immutable FileIndex fileIndex,
 ) {
 	writeBold(writer);
-	immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, fileIndex);
-	writeHyperlink(
-		writer,
-		pathToStr(tempAlloc, getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, nozeExtension)),
-		pathToStr(tempAlloc, emptyStr, path.path, nozeExtension));
-	writeChar(writer, ' ');
-	writeRed(writer);
+	if (fileIndex == FileIndex.none) {
+		writeStatic(writer, "<generated code> ");
+	} else {
+		immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, fileIndex);
+		writeHyperlink(
+			writer,
+			pathToStr(tempAlloc, getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, nozeExtension)),
+			pathToStr(tempAlloc, emptyStr, path.path, nozeExtension));
+		writeChar(writer, ' ');
+		writeRed(writer);
+	}
 }
 
 alias Diags = Arr!Diagnostic;

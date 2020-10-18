@@ -14,6 +14,10 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 	static size_t size = 0;
 }
 
+@trusted immutable(Arr!T) asTempArr(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
+	return immutable Arr!T(cast(immutable) a.values.ptr, a.size);
+}
+
 immutable(Bool) isEmpty(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
 	return immutable Bool(a.size == 0);
 }
@@ -25,7 +29,7 @@ void push(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, T value)
 }
 
 immutable(T) peek(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a, immutable u8 offset) {
-	verify(offset + 1 < a.size);
+	verify(offset < a.size);
 	return a.values[a.size - 1 - offset];
 }
 

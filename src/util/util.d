@@ -1,6 +1,13 @@
 module util.util;
 
-@safe @nogc pure nothrow:
+@safe @nogc nothrow:
+
+void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc nothrow cb) {
+	foreach (immutable size_t _; 0..times)
+		cb();
+}
+
+pure:
 
 import util.bools : Bool, False;
 import util.types : safeU32ToU8, u8;

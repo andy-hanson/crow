@@ -2,11 +2,7 @@
 
 import cli : cli;
 
-import test.testByteReaderWriter : testByteReaderWriter;
-
 extern(C) int main(immutable size_t argc, immutable char** argv) {
-	testByteReaderWriter();
-
 	if (false) { debug {
 		import core.stdc.stdio : printf;
 		import frontend.ast : CallAst, CreateArrAst,
