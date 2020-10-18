@@ -194,7 +194,7 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 					checkLowExpr(ctx, type, it.p1);
 					checkLowExpr(ctx, type, it.p2);
 					break;
-				case LowExprKind.SpecialTrinary.Kind.compareExchangeStrong:
+				case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
 					// TODO
 					break;
 			}
@@ -220,14 +220,14 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 void checkTypeEqual(ref immutable Ctx ctx, ref immutable LowType expected, ref immutable LowType actual) {
 	if (!lowTypeEqual(expected, actual)) {
 		debug {
-			//import core.stdc.stdio : printf;
-			//import util.alloc.stackAlloc : StackAlloc;
-			//import util.sexprPrint : printOutSexpr;
-			//printf("checkLowModel failed!\nExpected:\n");
-			//StackAlloc!("checkTypeEqual", 4 * 1024) alloc;
-			//printOutSexpr(tataOfLowType2(alloc, ctx, expected));
-			//printf("Actual:\n");
-			//printOutSexpr(tataOfLowType2(alloc, ctx, actual));
+			import core.stdc.stdio : printf;
+			import util.alloc.stackAlloc : StackAlloc;
+			import util.sexprPrint : printOutSexpr, PrintFormat;
+			printf("checkLowModel failed!\nExpected:\n");
+			StackAlloc!("checkTypeEqual", 4 * 1024) alloc;
+			printOutSexpr(tataOfLowType2(alloc, ctx, expected), PrintFormat.sexpr);
+			printf("Actual:\n");
+			printOutSexpr(tataOfLowType2(alloc, ctx, actual), PrintFormat.sexpr);
 		}
 
 		verify(0);
@@ -246,7 +246,7 @@ immutable(Sexpr) tataOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, i
 		(immutable PrimitiveType it) =>
 			tataSym(symOfPrimitiveType(it)),
 		(immutable LowType.Record it) =>
-			tataRecord(alloc, "record", tataStr(at(ctx.program.allRecords, it.index).mangledName)),
+			tataRecord(alloc, "record", tataStr(fullIndexDictGet(ctx.program.allRecords, it).mangledName)),
 		(immutable LowType.Union it) =>
-			tataRecord(alloc, "union", tataStr(at(ctx.program.allUnions, it.index).mangledName)));
+			tataRecord(alloc, "union", tataStr(fullIndexDictGet(ctx.program.allUnions, it).mangledName)));
 }

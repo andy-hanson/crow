@@ -616,10 +616,6 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 	final switch (a.kind) {
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 		case LowExprKind.SpecialUnary.Kind.asRef:
-		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
-		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
-		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
-		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
 		case LowExprKind.SpecialUnary.Kind.toNatFromPtr:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8:
 		case LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16:
@@ -631,7 +627,17 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32:
 			// do nothing (doesn't change the bits, just their type)
 			// Some of these widen, but all fit within the one stack entry so nothing to do
+			// NOTE: we treat the upper bits of <64-bit types as arbitrary, so those are no-ops too
 			generateArg();
+			break;
+		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
+		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
+		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
+		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
+		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
+			// Need to strip out the upper bits (arithmetic can change those)
+			// Could use a bits-and operation to do this
+			todo!void("!");
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
@@ -747,23 +753,17 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 			fn(FnOp.addFloat64);
 			break;
 		case LowExprKind.SpecialBinary.Kind.addPtr:
-			fn(FnOp.addInt64OrNat64);
+			fn(FnOp.wrapAddIntegral);
 			break;
 		case LowExprKind.SpecialBinary.Kind.and:
 			immutable LowExpr falseExpr = genBool(source, False);
 			generateIf(tempAlloc, writer, ctx, source, a.left, a.right, falseExpr);
 			break;
-		case LowExprKind.SpecialBinary.Kind.bitShiftLeftInt32:
-			fn(FnOp.bitShiftLeftInt32);
+		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
+			fn(FnOp.unsafeBitShiftLeftNat64);
 			break;
-		case LowExprKind.SpecialBinary.Kind.bitShiftLeftNat32:
-			fn(FnOp.bitShiftLeftNat32);
-			break;
-		case LowExprKind.SpecialBinary.Kind.bitShiftRightInt32:
-			fn(FnOp.bitShiftRightInt32);
-			break;
-		case LowExprKind.SpecialBinary.Kind.bitShiftRightNat32:
-			fn(FnOp.bitShiftRightNat32);
+		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64:
+			fn(FnOp.unsafeBitShiftRightNat64);
 			break;
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
@@ -787,7 +787,7 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 			break;
 		case LowExprKind.SpecialBinary.Kind.eqNat64:
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
-			fn(FnOp.eqNat);
+			fn(FnOp.eqBits);
 			break;
 		case LowExprKind.SpecialBinary.Kind.less: // TODO:KILL
 		case LowExprKind.SpecialBinary.Kind.lessBool:
@@ -824,7 +824,14 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 			fn(FnOp.subFloat64);
 			break;
 		case LowExprKind.SpecialBinary.Kind.subPtrNat:
-			fn(FnOp.wrapSubNat64);
+		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:
+		case LowExprKind.SpecialBinary.Kind.wrapSubInt32:
+		case LowExprKind.SpecialBinary.Kind.wrapSubInt64:
+		case LowExprKind.SpecialBinary.Kind.wrapSubNat8:
+		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
+		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
+		case LowExprKind.SpecialBinary.Kind.wrapSubNat64:
+			fn(FnOp.wrapSubIntegral);
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
 			fn(FnOp.unsafeDivFloat64);
@@ -839,58 +846,21 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 			fn(FnOp.unsafeModNat64);
 			break;
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt16:
-			fn(FnOp.wrapAddInt16);
-			break;
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt32:
-			fn(FnOp.wrapAddInt32);
-			break;
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt64:
-			fn(FnOp.wrapAddInt64);
-			break;
+		case LowExprKind.SpecialBinary.Kind.wrapAddNat8:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat16:
-			fn(FnOp.wrapAddNat16);
-			break;
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat32:
-			fn(FnOp.wrapAddNat32);
-			break;
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat64:
-			fn(FnOp.wrapAddNat64);
+			fn(FnOp.wrapAddIntegral);
 			break;
 		case LowExprKind.SpecialBinary.Kind.wrapMulInt16:
-			fn(FnOp.wrapMulInt16);
-			break;
 		case LowExprKind.SpecialBinary.Kind.wrapMulInt32:
-			fn(FnOp.wrapMulInt32);
-			break;
 		case LowExprKind.SpecialBinary.Kind.wrapMulInt64:
-			fn(FnOp.wrapMulInt64);
-			break;
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat16:
-			fn(FnOp.wrapMulNat16);
-			break;
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat32:
-			fn(FnOp.wrapMulNat32);
-			break;
 		case LowExprKind.SpecialBinary.Kind.wrapMulNat64:
-			fn(FnOp.wrapMulNat64);
-			break;
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:
-			fn(FnOp.wrapSubInt16);
-			break;
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt32:
-			fn(FnOp.wrapSubInt32);
-			break;
-		case LowExprKind.SpecialBinary.Kind.wrapSubInt64:
-			fn(FnOp.wrapSubInt64);
-			break;
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
-			fn(FnOp.wrapSubNat16);
-			break;
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
-			fn(FnOp.wrapSubNat32);
-			break;
-		case LowExprKind.SpecialBinary.Kind.wrapSubNat64:
-			fn(FnOp.wrapSubNat64);
+			fn(FnOp.wrapMulIntegral);
 			break;
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			generateExpr(tempAlloc, writer, ctx, a.left);
@@ -911,11 +881,11 @@ void generateSpecialTrinary(TempAlloc, CodeAlloc)(
 		case LowExprKind.SpecialTrinary.Kind.if_:
 			generateIf(tempAlloc, writer, ctx, source, a.p0, a.p1, a.p2);
 			break;
-		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrong:
+		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
 			generateExpr(tempAlloc, writer, ctx, a.p0);
 			generateExpr(tempAlloc, writer, ctx, a.p1);
 			generateExpr(tempAlloc, writer, ctx, a.p2);
-			writeFn(writer, source, FnOp.compareExchangeStrong);
+			writeFn(writer, source, FnOp.compareExchangeStrongBool);
 			break;
 	}
 }

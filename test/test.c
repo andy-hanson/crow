@@ -1191,8 +1191,6 @@ extern int32_t pthread_create(struct cell__nat* thread, uint8_t* attr, fun_ptr1_
 struct cell__nat* as_cell__ptr_cell__nat__ptr__nat(uint64_t* p);
 int32_t eagain__int32();
 int32_t ten__int32();
-int32_t nine__int32();
-int32_t eight__int32();
 uint8_t join_threads_recur___void__nat__nat__ptr__nat(uint64_t i, uint64_t n_threads, uint64_t* threads);
 uint8_t join_one_thread___void__nat(uint64_t tid);
 extern int32_t pthread_join(uint64_t thread, struct cell__ptr__nat8* thread_return);
@@ -1268,7 +1266,7 @@ struct arr__arr__char slice_up_to__arr__arr__char__arr__arr__char__nat(struct ct
 struct arr__arr__char slice__arr__arr__char__arr__arr__char__nat__nat(struct ctx* ctx, struct arr__arr__char a, uint64_t begin, uint64_t size);
 struct arr__arr__char slice_starting_at__arr__arr__char__arr__arr__char__nat(struct ctx* ctx, struct arr__arr__char a, uint64_t begin);
 uint8_t _op_equal_equal__bool__arr__char__arr__char(struct arr__char a, struct arr__char b);
-struct comparison compare273(struct arr__char a, struct arr__char b);
+struct comparison compare271(struct arr__char a, struct arr__char b);
 uint8_t parse_cmd_line_args_dynamic__ptr_parsed_cmd_line_args__arr__arr__char__lambda1(struct ctx* ctx, uint8_t* _closure, struct arr__char it);
 struct dict__arr__char__arr__arr__char* parse_named_args__ptr_dict__arr__char__arr__arr__char__arr__arr__char(struct ctx* ctx, struct arr__arr__char args);
 struct mut_dict__arr__char__arr__arr__char new_mut_dict__mut_dict__arr__char__arr__arr__char(struct ctx* ctx);
@@ -1462,7 +1460,7 @@ int32_t enoent__int32();
 struct opt__ptr_stat_t todo__opt__ptr_stat_t();
 uint8_t todo__bool();
 uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b);
-struct comparison compare467(uint32_t a, uint32_t b);
+struct comparison compare465(uint32_t a, uint32_t b);
 uint32_t s_ifmt__nat32(struct ctx* ctx);
 uint32_t two_pow__nat32__nat32(uint32_t pow);
 uint8_t zero__q__bool__nat32(uint32_t n);
@@ -1569,7 +1567,7 @@ int16_t pollin__int16(struct ctx* ctx);
 int16_t two_pow__int16__int16(int16_t pow);
 uint8_t zero__q__bool__int16(int16_t a);
 uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b);
-struct comparison compare574(int16_t a, int16_t b);
+struct comparison compare572(int16_t a, int16_t b);
 int16_t wrap_decr__int16__int16(int16_t a);
 int16_t two__int16();
 int16_t wrap_incr__int16__int16(int16_t a);
@@ -1613,10 +1611,15 @@ int32_t noctx_decr__int32__int32(int32_t a);
 int32_t two_pow__int32__int32(int32_t pow);
 int32_t wrap_decr__int32__int32(int32_t a);
 int32_t w_exit_status__int32__int32(struct ctx* ctx, int32_t status);
+int32_t bit_shift_right__int32__int32__int32(int32_t a, int32_t b);
+uint8_t _op_less__bool__int32__int32(int32_t a, int32_t b);
+int32_t todo__int32();
+int32_t thirty_two__int32();
+int32_t sixteen__int32();
 int32_t xff00__int32();
 int32_t xffff__int32();
-int32_t sixteen__int32();
 int32_t xff__int32();
+int32_t eight__int32();
 uint8_t w_if_signaled__bool__int32(struct ctx* ctx, int32_t status);
 uint8_t _op_bang_equal__bool__int32__int32(int32_t a, int32_t b);
 struct arr__char to_str__arr__char__int32(struct ctx* ctx, int32_t i);
@@ -1624,7 +1627,6 @@ struct arr__char to_str__arr__char___int(struct ctx* ctx, int64_t i);
 struct arr__char to_str__arr__char__nat(struct ctx* ctx, uint64_t n);
 uint64_t mod__nat__nat__nat(struct ctx* ctx, uint64_t a, uint64_t b);
 uint64_t abs__nat___int(struct ctx* ctx, int64_t i);
-int32_t todo__int32();
 uint8_t w_if_stopped__bool__int32(struct ctx* ctx, int32_t status);
 uint8_t w_if_continued__bool__int32(struct ctx* ctx, int32_t status);
 char** convert_args__ptr__ptr__char__ptr__char__arr__arr__char(struct ctx* ctx, char* exe_c_str, struct arr__arr__char args);
@@ -1667,8 +1669,9 @@ struct arr__ptr_failure empty_arr__arr__ptr_failure();
 struct arr__ptr_failure handle_output__arr__ptr_failure__arr__char__arr__char__arr__char__bool(struct ctx* ctx, struct arr__char original_path, struct arr__char output_path, struct arr__char actual, uint8_t overwrite_output__q);
 struct opt__arr__char try_read_file__opt__arr__char__arr__char(struct ctx* ctx, struct arr__char path);
 struct opt__arr__char try_read_file__opt__arr__char__ptr__char(struct ctx* ctx, char* path);
-extern int32_t open(char* path, int32_t oflag, int32_t permission);
-int32_t o_rdonly__int32(struct ctx* ctx);
+extern int32_t open(char* path, uint32_t oflag, uint32_t permission);
+uint32_t o_rdonly__nat32(struct ctx* ctx);
+uint32_t literal__nat32__arr__char(struct ctx* ctx, struct arr__char s);
 struct opt__arr__char todo__opt__arr__char();
 extern int64_t lseek(int32_t f, int64_t offset, int32_t whence);
 int32_t seek_end__int32(struct ctx* ctx);
@@ -1677,9 +1680,15 @@ uint8_t zero__q__bool___int(int64_t i);
 int32_t seek_set__int32(struct ctx* ctx);
 uint8_t write_file___void__arr__char__arr__char(struct ctx* ctx, struct arr__char path, struct arr__char content);
 uint8_t write_file___void__ptr__char__arr__char(struct ctx* ctx, char* path, struct arr__char content);
-int32_t o_creat__int32(struct ctx* ctx);
-int32_t o_wronly__int32(struct ctx* ctx);
-int32_t o_trunc__int32(struct ctx* ctx);
+uint32_t bit_shift_left__nat32__nat32__nat32(uint32_t a, uint32_t b);
+uint8_t _op_less__bool__nat32__nat32(uint32_t a, uint32_t b);
+uint32_t thirty_two__nat32();
+uint32_t sixteen__nat32();
+uint32_t o_creat__nat32(struct ctx* ctx);
+uint32_t o_wronly__nat32(struct ctx* ctx);
+uint32_t o_trunc__nat32(struct ctx* ctx);
+uint32_t nine__nat32();
+struct arr__char to_str__arr__char__nat32(struct ctx* ctx, uint32_t n);
 struct arr__char remove_colors__arr__char__arr__char(struct ctx* ctx, struct arr__char s);
 uint8_t remove_colors_recur___void__arr__char__ptr_mut_arr__char(struct ctx* ctx, struct arr__char s, struct mut_arr__char* out);
 uint8_t remove_colors_recur_2___void__arr__char__ptr_mut_arr__char(struct ctx* ctx, struct arr__char s, struct mut_arr__char* out);
@@ -2792,13 +2801,7 @@ int32_t eagain__int32() {
 	return (ten__int32() + 1);
 }
 int32_t ten__int32() {
-	return wrap_incr__int32__int32(nine__int32());
-}
-int32_t nine__int32() {
-	return wrap_incr__int32__int32(eight__int32());
-}
-int32_t eight__int32() {
-	return (four__int32() + four__int32());
+	return (five__int32() + five__int32());
 }
 uint8_t join_threads_recur___void__nat__nat__ptr__nat(uint64_t i, uint64_t n_threads, uint64_t* threads) {
 	uint64_t _tailCalli;
@@ -3462,7 +3465,7 @@ struct arr__arr__char slice_starting_at__arr__arr__char__arr__arr__char__nat(str
 }
 uint8_t _op_equal_equal__bool__arr__char__arr__char(struct arr__char a, struct arr__char b) {
 	struct comparison matched;
-	matched = compare273(a, b);
+	matched = compare271(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -3474,7 +3477,7 @@ uint8_t _op_equal_equal__bool__arr__char__arr__char(struct arr__char a, struct a
 			return (assert(0),0);
 	}
 }
-struct comparison compare273(struct arr__char a, struct arr__char b) {
+struct comparison compare271(struct arr__char a, struct arr__char b) {
 	struct comparison matchedelement;
 	struct arr__char _tailCalla;
 	struct arr__char _tailCallb;
@@ -4708,7 +4711,7 @@ uint8_t todo__bool() {
 }
 uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b) {
 	struct comparison matched;
-	matched = compare467(a, b);
+	matched = compare465(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -4720,7 +4723,7 @@ uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare467(uint32_t a, uint32_t b) {
+struct comparison compare465(uint32_t a, uint32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -4979,7 +4982,7 @@ uint64_t partition_recur__nat__ptr_mut_slice__arr__char__arr__char__nat__nat(str
 }
 uint8_t _op_less__bool__arr__char__arr__char(struct arr__char a, struct arr__char b) {
 	struct comparison matched;
-	matched = compare273(a, b);
+	matched = compare271(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 1;
@@ -5525,7 +5528,7 @@ uint8_t zero__q__bool__int16(int16_t a) {
 }
 uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b) {
 	struct comparison matched;
-	matched = compare574(a, b);
+	matched = compare572(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -5537,7 +5540,7 @@ uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare574(int16_t a, int16_t b) {
+struct comparison compare572(int16_t a, int16_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -5771,7 +5774,6 @@ int32_t x7f__int32() {
 	return noctx_decr__int32__int32(two_pow__int32__int32(seven__int32()));
 }
 int32_t noctx_decr__int32__int32(int32_t a) {
-	hard_forbid___void__bool(zero__q__bool__int32(a));
 	return (a - 1);
 }
 int32_t two_pow__int32__int32(int32_t pow) {
@@ -5785,7 +5787,45 @@ int32_t wrap_decr__int32__int32(int32_t a) {
 	return (a - 1);
 }
 int32_t w_exit_status__int32__int32(struct ctx* ctx, int32_t status) {
-	return ((status & xff00__int32()) >> eight__int32());
+	return bit_shift_right__int32__int32__int32((status & xff00__int32()), eight__int32());
+}
+int32_t bit_shift_right__int32__int32__int32(int32_t a, int32_t b) {
+	if (_op_less__bool__int32__int32(a, 0)) {
+		return todo__int32();
+	} else {
+		if (_op_less__bool__int32__int32(b, 0)) {
+			return todo__int32();
+		} else {
+			if (_op_less__bool__int32__int32(b, thirty_two__int32())) {
+				return (a >> b);
+			} else {
+				return todo__int32();
+			}
+		}
+	}
+}
+uint8_t _op_less__bool__int32__int32(int32_t a, int32_t b) {
+	struct comparison matched;
+	matched = compare60(a, b);
+	switch (matched.kind) {
+		case 0:
+			return 1;
+		case 1:
+			return 0;
+		case 2:
+			return 0;
+		default:
+			return (assert(0),0);
+	}
+}
+int32_t todo__int32() {
+	return (assert(0),0);
+}
+int32_t thirty_two__int32() {
+	return (sixteen__int32() + sixteen__int32());
+}
+int32_t sixteen__int32() {
+	return (ten__int32() + six__int32());
 }
 int32_t xff00__int32() {
 	return (xffff__int32() - xff__int32());
@@ -5793,11 +5833,11 @@ int32_t xff00__int32() {
 int32_t xffff__int32() {
 	return noctx_decr__int32__int32(two_pow__int32__int32(sixteen__int32()));
 }
-int32_t sixteen__int32() {
-	return (ten__int32() + six__int32());
-}
 int32_t xff__int32() {
 	return noctx_decr__int32__int32(two_pow__int32__int32(eight__int32()));
+}
+int32_t eight__int32() {
+	return (four__int32() + four__int32());
 }
 uint8_t w_if_signaled__bool__int32(struct ctx* ctx, int32_t status) {
 	int32_t ts;
@@ -5874,9 +5914,6 @@ uint64_t abs__nat___int(struct ctx* ctx, int64_t i) {
 	int64_t i_abs;
 	i_abs = (negative__q__bool___int(ctx, i) ? neg___int___int(ctx, i) : i);
 	return to_nat__nat___int(ctx, i_abs);
-}
-int32_t todo__int32() {
-	return (assert(0),0);
 }
 uint8_t w_if_stopped__bool__int32(struct ctx* ctx, int32_t status) {
 	return _op_equal_equal__bool__int32__int32((status & xff__int32()), x7f__int32());
@@ -6157,7 +6194,7 @@ struct opt__arr__char try_read_file__opt__arr__char__ptr__char(struct ctx* ctx, 
 	struct mut_arr__char* res;
 	int64_t n_bytes_read;
 	if (is_file__q__bool__ptr__char(ctx, path)) {
-		fd = open(path, o_rdonly__int32(ctx), literal__int32__arr__char(ctx, (struct arr__char) {1, "0"}));
+		fd = open(path, o_rdonly__nat32(ctx), literal__nat32__arr__char(ctx, (struct arr__char) {1, "0"}));
 		if (_op_equal_equal__bool__int32__int32(fd, neg_one__int32())) {
 			errno = errno;
 			if (_op_equal_equal__bool__int32__int32(errno, enoent__int32())) {
@@ -6185,8 +6222,11 @@ struct opt__arr__char try_read_file__opt__arr__char__ptr__char(struct ctx* ctx, 
 		return (struct opt__arr__char) {0, .as0 = none__none()};
 	}
 }
-int32_t o_rdonly__int32(struct ctx* ctx) {
+uint32_t o_rdonly__nat32(struct ctx* ctx) {
 	return 0;
+}
+uint32_t literal__nat32__arr__char(struct ctx* ctx, struct arr__char s) {
+	return literal__nat__arr__char(ctx, s);
 }
 struct opt__arr__char todo__opt__arr__char() {
 	return (assert(0),(struct opt__arr__char) {0});
@@ -6207,25 +6247,25 @@ uint8_t write_file___void__arr__char__arr__char(struct ctx* ctx, struct arr__cha
 	return write_file___void__ptr__char__arr__char(ctx, to_c_str__ptr__char__arr__char(ctx, path), content);
 }
 uint8_t write_file___void__ptr__char__arr__char(struct ctx* ctx, char* path, struct arr__char content) {
-	int32_t permission_rdwr;
-	int32_t permission_rd;
-	int32_t permission;
-	int32_t flags;
+	uint32_t permission_rdwr;
+	uint32_t permission_rd;
+	uint32_t permission;
+	uint32_t flags;
 	int32_t fd;
 	int32_t errno;
 	int64_t wrote_bytes;
 	int32_t err;
-	permission_rdwr = six__int32();
-	permission_rd = four__int32();
-	permission = (((permission_rdwr << six__int32()) | (permission_rd << three__int32())) | permission_rd);
-	flags = ((o_creat__int32(ctx) | o_wronly__int32(ctx)) | o_trunc__int32(ctx));
+	permission_rdwr = six__nat32();
+	permission_rd = four__nat32();
+	permission = ((bit_shift_left__nat32__nat32__nat32(permission_rdwr, six__nat32()) | bit_shift_left__nat32__nat32__nat32(permission_rd, three__nat32())) | permission_rd);
+	flags = ((o_creat__nat32(ctx) | o_wronly__nat32(ctx)) | o_trunc__nat32(ctx));
 	fd = open(path, flags, permission);
 	if (_op_equal_equal__bool__int32__int32(fd, neg_one__int32())) {
 		errno = errno;
 		print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {31, "failed to open file for write: "}, to_str__arr__char__ptr__char(path)));
 		print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {7, "errno: "}, to_str__arr__char__int32(ctx, errno)));
-		print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {7, "flags: "}, to_str__arr__char__int32(ctx, flags)));
-		print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {12, "permission: "}, to_str__arr__char__int32(ctx, permission)));
+		print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {7, "flags: "}, to_str__arr__char__nat32(ctx, flags)));
+		print_sync___void__arr__char(_op_plus__arr__char__arr__char__arr__char(ctx, (struct arr__char) {12, "permission: "}, to_str__arr__char__nat32(ctx, permission)));
 		return todo___void();
 	} else {
 		wrote_bytes = write(fd, (uint8_t*) content.data, content.size);
@@ -6246,14 +6286,47 @@ uint8_t write_file___void__ptr__char__arr__char(struct ctx* ctx, char* path, str
 		}
 	}
 }
-int32_t o_creat__int32(struct ctx* ctx) {
-	return (1 << six__int32());
+uint32_t bit_shift_left__nat32__nat32__nat32(uint32_t a, uint32_t b) {
+	if (_op_less__bool__nat32__nat32(b, thirty_two__nat32())) {
+		return (a << b);
+	} else {
+		return 0;
+	}
 }
-int32_t o_wronly__int32(struct ctx* ctx) {
+uint8_t _op_less__bool__nat32__nat32(uint32_t a, uint32_t b) {
+	struct comparison matched;
+	matched = compare465(a, b);
+	switch (matched.kind) {
+		case 0:
+			return 1;
+		case 1:
+			return 0;
+		case 2:
+			return 0;
+		default:
+			return (assert(0),0);
+	}
+}
+uint32_t thirty_two__nat32() {
+	return (sixteen__nat32() + sixteen__nat32());
+}
+uint32_t sixteen__nat32() {
+	return wrap_incr__nat32__nat32(fifteen__nat32());
+}
+uint32_t o_creat__nat32(struct ctx* ctx) {
+	return bit_shift_left__nat32__nat32__nat32(1, six__nat32());
+}
+uint32_t o_wronly__nat32(struct ctx* ctx) {
 	return 1;
 }
-int32_t o_trunc__int32(struct ctx* ctx) {
-	return (1 << nine__int32());
+uint32_t o_trunc__nat32(struct ctx* ctx) {
+	return bit_shift_left__nat32__nat32__nat32(1, nine__nat32());
+}
+uint32_t nine__nat32() {
+	return wrap_incr__nat32__nat32(eight__nat32());
+}
+struct arr__char to_str__arr__char__nat32(struct ctx* ctx, uint32_t n) {
+	return to_str__arr__char__nat(ctx, n);
 }
 struct arr__char remove_colors__arr__char__arr__char(struct ctx* ctx, struct arr__char s) {
 	struct mut_arr__char* out;

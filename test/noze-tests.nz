@@ -70,7 +70,6 @@ body
 		output-failures.empty? not
 			new true, output-failures
 		res.exit-code == 0
-			| TODO: test failure for this
 			assert: res.stderr == ""
 			new false, empty-arr
 		res.exit-code == 1

@@ -343,7 +343,7 @@ has-pollnval? bool(revents int16)
 	revents bits-intersect? pollnval
 
 oflag-t alias
-	int32
+	nat32
 
 | /usr/include/bits/fcntl-linux.h
 o-rdonly oflag-t()
@@ -358,7 +358,7 @@ o-trunc oflag-t()
 	one bit-shift-left nine
 
 
-open fd-t(path c-str, oflag oflag-t, permission int32) summon extern noctx
+open fd-t(path c-str, oflag oflag-t, permission nat32) summon extern noctx
 close err-t(fd fd-t) summon extern noctx
 lseek off-t(f fd-t, offset off-t, whence int32) summon extern noctx
 read ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) summon extern noctx

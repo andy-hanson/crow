@@ -758,8 +758,6 @@ extern int32_t pthread_create(struct cell__nat* thread, uint8_t* attr, fun_ptr1_
 struct cell__nat* as_cell__ptr_cell__nat__ptr__nat(uint64_t* p);
 int32_t eagain__int32();
 int32_t ten__int32();
-int32_t nine__int32();
-int32_t eight__int32();
 uint8_t join_threads_recur___void__nat__nat__ptr__nat(uint64_t i, uint64_t n_threads, uint64_t* threads);
 uint8_t join_one_thread___void__nat(uint64_t tid);
 extern int32_t pthread_join(uint64_t thread, struct cell__ptr__nat8* thread_return);
@@ -1921,13 +1919,7 @@ int32_t eagain__int32() {
 	return (ten__int32() + 1);
 }
 int32_t ten__int32() {
-	return wrap_incr__int32__int32(nine__int32());
-}
-int32_t nine__int32() {
-	return wrap_incr__int32__int32(eight__int32());
-}
-int32_t eight__int32() {
-	return (four__int32() + four__int32());
+	return (five__int32() + five__int32());
 }
 uint8_t join_threads_recur___void__nat__nat__ptr__nat(uint64_t i, uint64_t n_threads, uint64_t* threads) {
 	uint64_t _tailCalli;

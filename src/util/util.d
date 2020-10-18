@@ -9,6 +9,7 @@ void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc noth
 
 pure:
 
+import core.stdc.stdio : printf;
 import util.bools : Bool, False;
 import util.types : safeU32ToU8, u8;
 //import util.print : print;
@@ -50,6 +51,18 @@ immutable(u8) divRoundUp(immutable u8 a, immutable u8 b) {
 void verify(immutable bool condition) {
 	// TODO: In WASM assertions are turned off. Log somewhere instead?
 	assert(condition);
+}
+
+void verifyEq(T)(immutable T a, immutable T b) {
+	if (a != b)
+		debug {
+			static if (T.sizeof == 8) {
+				printf("%lu != %lu\n", a, b);
+			} else {
+				printf("%d != %d\n", a, b);
+			}
+		}
+	verify(a == b);
 }
 
 void verifyFail() {

@@ -103,11 +103,18 @@ to-int32 int32(n nat)
 	n.unsafe-to-int unsafe-to-int32
 
 to-nat nat(i int)
-	forbid: i.negative?
+	forbid: i negative?
 	i unsafe-to-nat
 
 to-nat nat(i int32)
-	i.to-int.to-nat
+	i.to-int to-nat
+
+to-nat32 nat32(n nat)
+	when
+		n < max-nat32.to-nat
+			n unsafe-to-nat32
+		else
+			todo
 
 negative? bool(i int)
 	i < zero

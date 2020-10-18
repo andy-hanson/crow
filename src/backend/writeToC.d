@@ -962,6 +962,7 @@ void writeSpecialUnary(Alloc)(
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
+		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
 		case LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64:
@@ -1064,6 +1065,7 @@ void writeSpecialBinary(Alloc)(
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt16:
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt32:
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt64:
+		case LowExprKind.SpecialBinary.Kind.wrapAddNat8:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat16:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat32:
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat64:
@@ -1071,14 +1073,6 @@ void writeSpecialBinary(Alloc)(
 			break;
 		case LowExprKind.SpecialBinary.Kind.and:
 			writeLogicalOperator(writer, indent, ctx, writeKind, LogicalOperator.and, it.left, it.right);
-			break;
-		case LowExprKind.SpecialBinary.Kind.bitShiftLeftInt32:
-		case LowExprKind.SpecialBinary.Kind.bitShiftLeftNat32:
-			operator("<<");
-			break;
-		case LowExprKind.SpecialBinary.Kind.bitShiftRightInt32:
-		case LowExprKind.SpecialBinary.Kind.bitShiftRightNat32:
-			operator(">>");
 			break;
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
@@ -1135,10 +1129,17 @@ void writeSpecialBinary(Alloc)(
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt32:
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt64:
+		case LowExprKind.SpecialBinary.Kind.wrapSubNat8:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat64:
 			operator("-");
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
+			operator("<<");
+			break;
+		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64:
+			operator(">>");
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
 		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
@@ -1258,7 +1259,7 @@ void writeSpecialTrinary(Alloc)(
 				writeChar(writer, '}');
 			}
 			break;
-		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrong:
+		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
 			writeReturn(writer, writeKind, () {
 				writeStatic(writer, "atomic_compare_exchange_strong(");
 				arg0();

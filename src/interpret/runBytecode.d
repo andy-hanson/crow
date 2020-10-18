@@ -5,6 +5,7 @@ module interpret.runBytecode;
 import core.stdc.stdio : printf;
 
 import diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
+import interpret.applyFn : applyFn;
 import interpret.bytecode : ByteCode, FnOp, matchOperationImpure, Operation, sexprOfOperation, StackOffset;
 import interpret.bytecodeReader :
 	ByteCodeReader,
@@ -20,6 +21,7 @@ import util.collection.arr : Arr, at, begin, ptrAt, range, size;
 import util.collection.arrUtil : zip;
 import util.collection.globalAllocatedStack :
 	asTempArr,
+	clearStack,
 	dup,
 	GlobalAllocatedStack,
 	isEmpty,
@@ -65,6 +67,12 @@ struct Interpreter {
 	ByteCodeReader reader;
 	DataStack dataStack;
 	GlobalAllocatedStack!(immutable(u8)*, 1024) returnStack;
+}
+
+@trusted void reset(ref Interpreter a) {
+	setReaderPtr(a.reader, begin(a.byteCode.byteCode));
+	clearStack(a.dataStack);
+	clearStack(a.returnStack);
 }
 
 void printStack(ref const Interpreter interpreter) {
@@ -134,7 +142,7 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Fn it) {
-			applyFn(interpreter, it.fnOp);
+			applyFn(interpreter.dataStack, it.fnOp);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Jump it) {
@@ -245,71 +253,21 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	}
 }
 
-void applyFn(ref Interpreter interpreter, immutable FnOp fn) {
-	final switch (fn) {
-		case FnOp.addFloat64:
-		case FnOp.addInt64OrNat64:
-		case FnOp.bitShiftLeftInt32:
-		case FnOp.bitShiftLeftNat32:
-		case FnOp.bitShiftRightInt32:
-		case FnOp.bitShiftRightNat32:
-		case FnOp.bitwiseAnd:
-		case FnOp.bitwiseOr:
-		case FnOp.compareExchangeStrong:
-		case FnOp.eqNat:
-		case FnOp.float64FromInt64:
-		case FnOp.float64FromNat64:
-		case FnOp.hardFail:
-		case FnOp.lessFloat64:
-		case FnOp.lessInt8:
-		case FnOp.lessInt16:
-		case FnOp.lessInt32:
-		case FnOp.lessInt64:
-		case FnOp.lessNat:
-		case FnOp.malloc:
-		case FnOp.mulFloat64:
-		case FnOp.not:
-		case FnOp.ptrToOrRefOfVal:
-		case FnOp.subFloat64:
-		case FnOp.truncateToInt64FromFloat64:
-		case FnOp.unsafeDivFloat64:
-		case FnOp.unsafeDivInt64:
-		case FnOp.unsafeDivNat64:
-		case FnOp.unsafeModNat64:
-		case FnOp.wrapAddInt16:
-		case FnOp.wrapAddInt32:
-		case FnOp.wrapAddInt64:
-		case FnOp.wrapAddNat16:
-		case FnOp.wrapAddNat32:
-			todo!void("!");
-			break;
-		case FnOp.wrapAddNat64:
-			immutable u64 a = pop(interpreter.dataStack);
-			immutable u64 b = pop(interpreter.dataStack);
-			push(interpreter.dataStack, a + b);
-			break;
-		case FnOp.wrapMulInt16:
-		case FnOp.wrapMulInt32:
-		case FnOp.wrapMulInt64:
-		case FnOp.wrapMulNat16:
-		case FnOp.wrapMulNat32:
-		case FnOp.wrapMulNat64:
-		case FnOp.wrapSubInt16:
-		case FnOp.wrapSubInt32:
-		case FnOp.wrapSubInt64:
-		case FnOp.wrapSubNat16:
-		case FnOp.wrapSubNat32:
-		case FnOp.wrapSubNat64:
-			todo!void("!");
-			break;
+immutable(u64) getBytes(immutable u64 a, immutable u8 byteOffset, immutable u8 sizeBytes) {
+	verify(byteOffset + sizeBytes <= u64.sizeof);
+	immutable u64 shift = bytesToBits(u64.sizeof - sizeBytes - byteOffset);
+	immutable u64 mask = maxU64 >> bytesToBits(8 - sizeBytes);
+	immutable u64 res = (a >> shift) & mask;
+	debug {
+		import core.stdc.stdio : printf;
+		printf("getBytes:\na=%lx\nbyteOffset=%x\nsizeBytes=%x\nshift=%lx\nmask=%lx\nres=%lx",
+			a, byteOffset, sizeBytes, shift, mask, res);
 	}
+	return res;
 }
 
-immutable(u64) getBytes(immutable u64 a, immutable u8 byteOffset, immutable u8 sizeBytes) {
-	verify(byteOffset + sizeBytes <= 8);
-	immutable u64 shift = 8 - sizeBytes - byteOffset;
-	immutable u64 mask = maxU64 >> (8 - sizeBytes);
-	return (a >> shift) & mask;
+immutable(u64) bytesToBits(immutable u64 bytes) {
+	return bytes * 8;
 }
 
 void call(ref Interpreter interpreter, immutable u64 address) {

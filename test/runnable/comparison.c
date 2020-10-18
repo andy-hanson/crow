@@ -756,8 +756,6 @@ extern int32_t pthread_create(struct cell__nat* thread, uint8_t* attr, fun_ptr1_
 struct cell__nat* as_cell__ptr_cell__nat__ptr__nat(uint64_t* p);
 int32_t eagain__int32();
 int32_t ten__int32();
-int32_t nine__int32();
-int32_t eight__int32();
 uint8_t join_threads_recur___void__nat__nat__ptr__nat(uint64_t i, uint64_t n_threads, uint64_t* threads);
 uint8_t join_one_thread___void__nat(uint64_t tid);
 extern int32_t pthread_join(uint64_t thread, struct cell__ptr__nat8* thread_return);
@@ -825,12 +823,12 @@ uint8_t print_sync___void__arr__char(struct arr__char s);
 uint8_t print_sync_no_newline___void__arr__char(struct arr__char s);
 int32_t stdout_fd__int32();
 struct arr__char to_str__arr__char__comparison(struct ctx* ctx, struct comparison c);
-struct comparison compare265(struct my_record a, struct my_record b);
+struct comparison compare263(struct my_record a, struct my_record b);
 uint8_t test_compare_byref_records___void(struct ctx* ctx);
-struct comparison compare267(struct my_byref_record* a, struct my_byref_record* b);
+struct comparison compare265(struct my_byref_record* a, struct my_byref_record* b);
 uint8_t test_compare_unions___void(struct ctx* ctx);
-struct comparison compare269(struct my_union a, struct my_union b);
-struct comparison compare270(struct my_other_record a, struct my_other_record b);
+struct comparison compare267(struct my_union a, struct my_union b);
+struct comparison compare268(struct my_other_record a, struct my_other_record b);
 struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value);
 int32_t literal__int32__arr__char(struct ctx* ctx, struct arr__char s);
 int64_t literal___int__arr__char(struct ctx* ctx, struct arr__char s);
@@ -1912,13 +1910,7 @@ int32_t eagain__int32() {
 	return (ten__int32() + 1);
 }
 int32_t ten__int32() {
-	return wrap_incr__int32__int32(nine__int32());
-}
-int32_t nine__int32() {
-	return wrap_incr__int32__int32(eight__int32());
-}
-int32_t eight__int32() {
-	return (four__int32() + four__int32());
+	return (five__int32() + five__int32());
 }
 uint8_t join_threads_recur___void__nat__nat__ptr__nat(uint64_t i, uint64_t n_threads, uint64_t* threads) {
 	uint64_t _tailCalli;
@@ -2406,9 +2398,9 @@ uint8_t test_compare_records___void(struct ctx* ctx) {
 	b = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "3"})};
 	c = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})};
 	d = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "0"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "3"})};
-	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare265(a, b)));
-	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare265(a, c)));
-	return print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare265(a, d)));
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare263(a, b)));
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare263(a, c)));
+	return print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare263(a, d)));
 }
 uint64_t literal__nat__arr__char(struct ctx* ctx, struct arr__char s) {
 	uint64_t higher_digits;
@@ -2527,7 +2519,7 @@ struct arr__char to_str__arr__char__comparison(struct ctx* ctx, struct compariso
 			return (assert(0),(struct arr__char) {0, NULL});
 	}
 }
-struct comparison compare265(struct my_record a, struct my_record b) {
+struct comparison compare263(struct my_record a, struct my_record b) {
 	struct comparison matchedy;
 	struct comparison matchedx;
 	matchedx = compare16(a.x, b.x);
@@ -2565,11 +2557,11 @@ uint8_t test_compare_byref_records___void(struct ctx* ctx) {
 	b = (temp1 = (struct my_byref_record*) alloc__ptr__nat8__nat(ctx, sizeof(struct my_byref_record)), ((*(temp1) = (struct my_byref_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "3"})}, 0), temp1));
 	c = (temp2 = (struct my_byref_record*) alloc__ptr__nat8__nat(ctx, sizeof(struct my_byref_record)), ((*(temp2) = (struct my_byref_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})}, 0), temp2));
 	d = (temp3 = (struct my_byref_record*) alloc__ptr__nat8__nat(ctx, sizeof(struct my_byref_record)), ((*(temp3) = (struct my_byref_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "0"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "3"})}, 0), temp3));
-	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare267(a, b)));
-	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare267(a, c)));
-	return print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare267(a, d)));
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare265(a, b)));
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare265(a, c)));
+	return print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare265(a, d)));
 }
-struct comparison compare267(struct my_byref_record* a, struct my_byref_record* b) {
+struct comparison compare265(struct my_byref_record* a, struct my_byref_record* b) {
 	struct comparison matchedy;
 	struct comparison matchedx;
 	matchedx = compare16(a->x, b->x);
@@ -2603,11 +2595,11 @@ uint8_t test_compare_unions___void(struct ctx* ctx) {
 	b = (struct my_union) {1, .as1 = (struct my_other_record) {0}};
 	c = (struct my_union) {0, .as0 = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "2"})}};
 	d = (struct my_union) {0, .as0 = (struct my_record) {literal__nat__arr__char(ctx, (struct arr__char) {1, "1"}), literal__nat__arr__char(ctx, (struct arr__char) {1, "1"})}};
-	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare269(a, b)));
-	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare269(a, c)));
-	return print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare269(a, d)));
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare267(a, b)));
+	print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare267(a, c)));
+	return print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare267(a, d)));
 }
-struct comparison compare269(struct my_union a, struct my_union b) {
+struct comparison compare267(struct my_union a, struct my_union b) {
 	struct my_union matchA;
 	struct my_record a0;
 	struct my_record b0;
@@ -2623,7 +2615,7 @@ struct comparison compare269(struct my_union a, struct my_union b) {
 			switch (matchB0.kind) {
 				case 0:
 					b0 = matchB0.as0;
-					return compare265(a0, b0);
+					return compare263(a0, b0);
 				case 1:
 					return (struct comparison) {0, .as0 = (struct less) {0}};
 				default:
@@ -2637,7 +2629,7 @@ struct comparison compare269(struct my_union a, struct my_union b) {
 					return (struct comparison) {2, .as2 = (struct greater) {0}};
 				case 1:
 					b1 = matchB1.as1;
-					return compare270(a1, b1);
+					return compare268(a1, b1);
 				default:
 					return (assert(0),(struct comparison) {0});
 			}
@@ -2645,7 +2637,7 @@ struct comparison compare269(struct my_union a, struct my_union b) {
 			return (assert(0),(struct comparison) {0});
 	}
 }
-struct comparison compare270(struct my_other_record a, struct my_other_record b) {
+struct comparison compare268(struct my_other_record a, struct my_other_record b) {
 	return (struct comparison) {1, .as1 = (struct equal) {0}};
 }
 struct fut__int32* resolved__ptr_fut__int32__int32(struct ctx* ctx, int32_t value) {

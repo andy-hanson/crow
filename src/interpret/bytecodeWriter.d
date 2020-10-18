@@ -217,7 +217,7 @@ void writeAddConstantNat64(Alloc)(
 	immutable u64 arg,
 ) {
 	writePushConstant(writer, source, arg);
-	writeFn(writer, source, FnOp.wrapAddNat64);
+	writeFn(writer, source, FnOp.wrapAddIntegral);
 }
 
 // Consume stack space without caring what's in it. Useful for unions.
@@ -329,7 +329,7 @@ void writeRemove(Alloc)(
 	immutable StackEntries entries,
 ) {
 	pushOpcode(writer, source, OpCode.remove);
-	pushU8(writer, source, safeU32ToU8(writer.nextStackEntry - entries.start.entry));
+	pushU8(writer, source, getStackOffsetTo(writer, entries.start));
 	pushU8(writer, source, entries.size);
 	writer.nextStackEntry -= entries.size;
 }
@@ -377,17 +377,12 @@ immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(
 void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source, immutable FnOp fn) {
 	immutable int stackEffect = () {
 		final switch (fn) {
-			case FnOp.compareExchangeStrong:
+			case FnOp.compareExchangeStrongBool:
 				return -2;
 			case FnOp.addFloat64:
-			case FnOp.addInt64OrNat64:
-			case FnOp.bitShiftLeftInt32:
-			case FnOp.bitShiftLeftNat32:
-			case FnOp.bitShiftRightInt32:
-			case FnOp.bitShiftRightNat32:
 			case FnOp.bitwiseAnd:
 			case FnOp.bitwiseOr:
-			case FnOp.eqNat:
+			case FnOp.eqBits:
 			case FnOp.lessFloat64:
 			case FnOp.lessInt8:
 			case FnOp.lessInt16:
@@ -396,28 +391,15 @@ void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange 
 			case FnOp.lessNat:
 			case FnOp.mulFloat64:
 			case FnOp.subFloat64:
+			case FnOp.unsafeBitShiftLeftNat64:
+			case FnOp.unsafeBitShiftRightNat64:
 			case FnOp.unsafeDivFloat64:
 			case FnOp.unsafeDivInt64:
 			case FnOp.unsafeDivNat64:
 			case FnOp.unsafeModNat64:
-			case FnOp.wrapAddInt16:
-			case FnOp.wrapAddInt32:
-			case FnOp.wrapAddInt64:
-			case FnOp.wrapAddNat16:
-			case FnOp.wrapAddNat32:
-			case FnOp.wrapAddNat64:
-			case FnOp.wrapMulInt16:
-			case FnOp.wrapMulInt32:
-			case FnOp.wrapMulInt64:
-			case FnOp.wrapMulNat16:
-			case FnOp.wrapMulNat32:
-			case FnOp.wrapMulNat64:
-			case FnOp.wrapSubInt16:
-			case FnOp.wrapSubInt32:
-			case FnOp.wrapSubInt64:
-			case FnOp.wrapSubNat16:
-			case FnOp.wrapSubNat32:
-			case FnOp.wrapSubNat64:
+			case FnOp.wrapAddIntegral:
+			case FnOp.wrapMulIntegral:
+			case FnOp.wrapSubIntegral:
 				return -1;
 			case FnOp.float64FromInt64:
 			case FnOp.float64FromNat64:
@@ -425,8 +407,6 @@ void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange 
 			case FnOp.not:
 			case FnOp.truncateToInt64FromFloat64:
 				return 0;
-			case FnOp.ptrToOrRefOfVal:
-				return 1;
 			case FnOp.hardFail:
 				return unreachable!int(); // Use writeFnHardFail instead
 		}

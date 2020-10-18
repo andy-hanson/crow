@@ -211,7 +211,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-range(20, range(904, 932)), main, fut(int32()), [param(file-range(20, range(919, 931)), args, arr(arr(char())))])
+			sig: sig(file-range(20, range(904, 936)), main, fut(int32()), [param(file-range(20, range(923, 935)), args, arr(arr(char())))])
 			body: seq(
 				seq(
 					seq(

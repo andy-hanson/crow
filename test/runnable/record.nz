@@ -4,7 +4,7 @@ my-record record
 	x nat
 	y nat
 
-main fut int32(args arr str) summon
+main fut exit-code(args arr str) summon
 	m = new<my-record> 1, 2
 	assert: m.x == 1
 	assert: m.y == 2

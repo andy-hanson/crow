@@ -112,7 +112,7 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr
 	if (!isArrStr(commonTypes, only(params).type))
 		todo!void("checkUserMainSignature doesn't take arr str");
 	if (!isFutInt32(commonTypes, returnType(mainFun)))
-		todo!void("checkUserMainSignature doesn't return fut int32");
+		todo!void("checkUserMainSignature doesn't return fut int-32");
 }
 
 immutable(Ptr!FunDecl) getRtMainFun(ref immutable Program program) {

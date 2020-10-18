@@ -65,7 +65,7 @@ print-failures exit-code(failures result str arr<failure>, options test-options)
 					"hit maximum of " + options.max-failures.to-str + " failures"
 				else
 					n-failures.to-str + " failures"
-			n-failures.to-int32
+			n-failures to-int32
 
 private
 

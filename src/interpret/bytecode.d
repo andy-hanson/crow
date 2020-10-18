@@ -322,15 +322,10 @@ immutable(u8) stackEntrySize = 8;
 
 enum FnOp : u8 {
 	addFloat64,
-	addInt64OrNat64,
-	bitShiftLeftInt32,
-	bitShiftLeftNat32,
-	bitShiftRightInt32,
-	bitShiftRightNat32,
 	bitwiseAnd,
 	bitwiseOr,
-	compareExchangeStrong,
-	eqNat,
+	compareExchangeStrongBool,
+	eqBits,
 	float64FromInt64,
 	float64FromNat64,
 	hardFail,
@@ -343,55 +338,32 @@ enum FnOp : u8 {
 	malloc,
 	mulFloat64,
 	not,
-	ptrToOrRefOfVal,
 	subFloat64,
 	truncateToInt64FromFloat64,
+	unsafeBitShiftLeftNat64,
+	unsafeBitShiftRightNat64,
 	unsafeDivFloat64,
 	unsafeDivInt64,
 	unsafeDivNat64,
 	unsafeModNat64,
-	wrapAddInt16,
-	wrapAddInt32,
-	wrapAddInt64,
-	wrapAddNat16,
-	wrapAddNat32,
-	wrapAddNat64,
-	wrapMulInt16,
-	wrapMulInt32,
-	wrapMulInt64,
-	wrapMulNat16,
-	wrapMulNat32,
-	wrapMulNat64,
-	wrapSubInt16,
-	wrapSubInt32,
-	wrapSubInt64,
-	wrapSubNat16,
-	wrapSubNat32,
-	wrapSubNat64,
+	// Works for all integral types. (Additional bits ignored)
+	wrapAddIntegral,
+	wrapMulIntegral,
+	wrapSubIntegral,
 }
 
 immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 	return strLiteral(() { final switch (fnOp) {
 		case FnOp.addFloat64:
 			return "add-float-64";
-		case FnOp.addInt64OrNat64:
-			return "add-int-64-or-nat-64";
-		case FnOp.bitShiftLeftInt32:
-			return "bit-shift-left-int-32";
-		case FnOp.bitShiftLeftNat32:
-			return "bit-shift-left-nat-32";
-		case FnOp.bitShiftRightInt32:
-			return "bit-shift-right-int-32";
-		case FnOp.bitShiftRightNat32:
-			return "bit-shift-right-nat-32";
 		case FnOp.bitwiseAnd:
 			return "bitwise-and";
 		case FnOp.bitwiseOr:
 			return "bitwise-or";
-		case FnOp.compareExchangeStrong:
-			return "compare-exchange-strong";
-		case FnOp.eqNat:
-			return "== (nat)";
+		case FnOp.compareExchangeStrongBool:
+			return "compare-exchange-strong (bool)";
+		case FnOp.eqBits:
+			return "== (integrals / pointers)";
 		case FnOp.float64FromInt64:
 			return "float-64-from-int-64";
 		case FnOp.float64FromNat64:
@@ -416,12 +388,14 @@ immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 			return "* (float-64)";
 		case FnOp.not:
 			return "not";
-		case FnOp.ptrToOrRefOfVal:
-			return "ptr-to or ref-of-val";
 		case FnOp.subFloat64:
 			return "- (float-64)";
 		case FnOp.truncateToInt64FromFloat64:
 			return "truncate-to-int-64-from-float-64";
+		case FnOp.unsafeBitShiftLeftNat64:
+			return "unsafe-bit-shift-left (nat-64)";
+		case FnOp.unsafeBitShiftRightNat64:
+			return "unsafe-bit-shift-right (nat-64)";
 		case FnOp.unsafeDivFloat64:
 			return "unsafe-div (float-64)";
 		case FnOp.unsafeDivInt64:
@@ -430,41 +404,11 @@ immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 			return "unsafe-div (nat-64)";
 		case FnOp.unsafeModNat64:
 			return "unsafe-mod (nat-64)";
-		case FnOp.wrapAddInt16:
-			return "wrap-add (int-16)";
-		case FnOp.wrapAddInt32:
-			return "wrap-add (int-32)";
-		case FnOp.wrapAddInt64:
-			return "wrap-add (int-64)";
-		case FnOp.wrapAddNat16:
-			return "wrap-add (nat-16)";
-		case FnOp.wrapAddNat32:
-			return "wrap-add (nat-32)";
-		case FnOp.wrapAddNat64:
-			return "wrap-add (nat-64)";
-		case FnOp.wrapMulInt16:
-			return "wrap-mul (int-16)";
-		case FnOp.wrapMulInt32:
-			return "wrap-mul (int-32)";
-		case FnOp.wrapMulInt64:
-			return "wrap-mul (int-64)";
-		case FnOp.wrapMulNat16:
-			return "wrap-mul (nat-16)";
-		case FnOp.wrapMulNat32:
-			return "wrap-mul (nat-32)";
-		case FnOp.wrapMulNat64:
-			return "wrap-mul (nat-64)";
-		case FnOp.wrapSubInt16:
-			return "wrap-sub (int-16)";
-		case FnOp.wrapSubInt32:
-			return "wrap-sub (int-32)";
-		case FnOp.wrapSubInt64:
-			return "wrap-sub (int-64)";
-		case FnOp.wrapSubNat16:
-			return "wrap-sub (nat-16)";
-		case FnOp.wrapSubNat32:
-			return "wrap-sub (nat-32)";
-		case FnOp.wrapSubNat64:
-			return "wrap-sub (nat-64)";
+		case FnOp.wrapAddIntegral:
+			return "wrap-add-integral";
+		case FnOp.wrapMulIntegral:
+			return "wrap-mul-integral";
+		case FnOp.wrapSubIntegral:
+			return "wrap-sub-integral";
 	} }());
 }

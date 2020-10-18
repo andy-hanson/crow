@@ -291,6 +291,8 @@ public immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnar
 			return "to-int (from int-16)";
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
 			return "to-int (from int-32)";
+		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
+			return "to-nat (from nat-8)";
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
 			return "to-nat (from nat-16)";
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
@@ -327,14 +329,6 @@ public immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBin
 			return "+ (ptr)";
 		case LowExprKind.SpecialBinary.Kind.and:
 			return "and";
-		case LowExprKind.SpecialBinary.Kind.bitShiftLeftInt32:
-			return "bit-shift-left (int-32)";
-		case LowExprKind.SpecialBinary.Kind.bitShiftLeftNat32:
-			return "bit-shift-left (nat-32)";
-		case LowExprKind.SpecialBinary.Kind.bitShiftRightInt32:
-			return "bit-shift-right (int-32)";
-		case LowExprKind.SpecialBinary.Kind.bitShiftRightNat32:
-			return "bit-shift-right (nat-32)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt8:
 			return "bitwise-and (int-8)";
 		case LowExprKind.SpecialBinary.Kind.bitwiseAndInt16:
@@ -403,6 +397,10 @@ public immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBin
 			return "- (float-64)";
 		case LowExprKind.SpecialBinary.Kind.subPtrNat:
 			return "- (ptr - nat-64)";
+		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
+			return "unsafe-bit-shift-left (nat-64)";
+		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64:
+			return "unsafe-bit-shift-left (nat-64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeDivFloat64:
 			return "unsafe-div (float-64)";
 		case LowExprKind.SpecialBinary.Kind.unsafeDivInt64:
@@ -417,6 +415,8 @@ public immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBin
 			return "wrap-add (int-32)";
 		case LowExprKind.SpecialBinary.Kind.wrapAddInt64:
 			return "wrap-add (int-64)";
+		case LowExprKind.SpecialBinary.Kind.wrapAddNat8:
+			return "wrap-add (nat-8)";
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat16:
 			return "wrap-add (nat-16)";
 		case LowExprKind.SpecialBinary.Kind.wrapAddNat32:
@@ -441,6 +441,8 @@ public immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBin
 			return "wrap-sub (int-32)";
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt64:
 			return "wrap-sub (int-64)";
+		case LowExprKind.SpecialBinary.Kind.wrapSubNat8:
+			return "wrap-sub (nat-8)";
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat16:
 			return "wrap-sub (nat-16)";
 		case LowExprKind.SpecialBinary.Kind.wrapSubNat32:
@@ -456,8 +458,8 @@ immutable(string) strOfSpecialTrinaryKind(immutable LowExprKind.SpecialTrinary.K
 	final switch (a) {
 		case LowExprKind.SpecialTrinary.Kind.if_:
 			return "if";
-		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrong:
-			return "compare-exchange-strong";
+		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
+			return "compare-exchange-strong (bool)";
 	}
 }
 

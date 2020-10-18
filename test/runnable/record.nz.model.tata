@@ -8,9 +8,9 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-range(20, range(43, 71)), main, fut(int32()), [param(file-range(20, range(58, 70)), args, arr(arr(char())))])
+			sig: sig(file-range(20, range(43, 75)), main, fut(int32()), [param(file-range(20, range(62, 74)), args, arr(arr(char())))])
 			body: let(
-				local(file-range(20, range(80, 81)), m, my-record())
+				local(file-range(20, range(84, 85)), m, my-record())
 				record(
 					my-record()
 					[

@@ -220,15 +220,15 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(904, 932)
+				range(904, 936)
 				main
-				inststruct(range(909, 918), name-range(909, fut), [inststruct(range(913, 918), name-range(913, int32))])
+				inststruct(range(909, 922), name-range(909, fut), [inststruct(range(913, 922), name-range(913, exit-code))])
 				[
 					param(
-						range(919, 931)
-						name-range(919, args)
-						inststruct(range(924, 931), name-range(924, arr), [inststruct(range(928, 931), name-range(928, str))]))])
+						range(923, 935)
+						name-range(923, args)
+						inststruct(range(928, 935), name-range(928, arr), [inststruct(range(932, 935), name-range(932, str))]))])
 			summon: true
 			body: seq-ast(
 				seq-ast(seq-ast(test-compare-records, test-compare-byref-records), test-compare-unions)
-				call(prefix, name-range(1012, resolved), [], [literal(numeric, "0")])))])
+				call(prefix, name-range(1016, resolved), [], [literal(numeric, "0")])))])

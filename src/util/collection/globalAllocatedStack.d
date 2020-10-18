@@ -3,7 +3,7 @@ module util.collection.globalAllocatedStack;
 @safe @nogc nothrow: // not pure (accesses global data)
 
 import util.bools : Bool;
-import util.collection.arr : Arr;
+import util.collection.arr : Arr, range;
 import util.types : u8, u64;
 import util.util : verify;
 
@@ -12,6 +12,14 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 
 	static T[capacity] values = void;
 	static size_t size = 0;
+
+	~this() {
+		verify(size == 0);
+	}
+}
+
+void clearStack(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
+	a.size = 0;
 }
 
 @trusted immutable(Arr!T) asTempArr(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
@@ -22,10 +30,15 @@ immutable(Bool) isEmpty(T, size_t capacity)(ref const GlobalAllocatedStack!(T, c
 	return immutable Bool(a.size == 0);
 }
 
-void push(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, T value) {
+void push(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable T value) {
 	verify(a.size != capacity);
 	a.values[a.size] = value;
 	a.size++;
+}
+
+void pushAll(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, scope immutable Arr!T values) {
+	foreach (ref immutable T value; range(values))
+		push(a, value);
 }
 
 immutable(T) peek(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a, immutable u8 offset) {
@@ -58,8 +71,8 @@ immutable(T) remove(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a
 
 void remove(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable u8 offset, immutable u8 nEntries) {
 	verify(nEntries != 0);
-	verify(offset <= nEntries);
-	verify(offset + 1 + nEntries < a.size);
+	verify(offset >= nEntries - 1);
+	verify(offset < a.size);
 	foreach (immutable size_t i; a.size - 1 - offset..a.size - nEntries)
 		a.values[i] = a.values[i + nEntries];
 	a.size -= nEntries;

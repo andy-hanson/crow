@@ -1,2 +1,2 @@
 /wrong-number-type-args.nz 5:7-5:18 there are functions named 'magic', but none takes 1 type arguments. candidates:
-opt<?out> magic(opt<?in>) (from wrong-number-type-args.nz line 1)
+magic opt<?out>(opt<?in>) (from wrong-number-type-args.nz line 1)

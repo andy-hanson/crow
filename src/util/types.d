@@ -11,7 +11,13 @@ alias u16 = ushort;
 alias u32 = uint;
 alias u64 = ulong;
 
+alias i8 = byte;
+alias i16 = short;
 alias i32 = int;
+alias i64 = long;
+
+alias float32 = float;
+alias float64 = double;
 
 alias ssize_t = long;
 
@@ -83,4 +89,24 @@ struct U4U4 {
 
 immutable(U4U4) u4u4OfU8(immutable u8 a) {
 	return immutable U4U4(a >> 4, a & maxU4);
+}
+
+immutable(u64) u64OfFloat64Bits(immutable float64 value) {
+	Converter64 conv;
+	conv.asFloat64 = value;
+	return conv.asU64;
+}
+
+immutable(float64) float64OfU64Bits(immutable u64 value) {
+	Converter64 conv;
+	conv.asU64 = value;
+	return conv.asFloat64;
+}
+
+private:
+
+union Converter64 {
+	i64 asI64;
+	u64 asU64;
+	float64 asFloat64;
 }

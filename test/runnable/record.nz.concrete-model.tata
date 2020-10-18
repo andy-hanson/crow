@@ -3900,21 +3900,7 @@ program(
 			type(false, "int32")
 			none
 			[]
-			expr-body([], call("wrap_incr__int32__int32", [call("nine__int32", [])])))
-		fun(
-			false
-			"nine__int32"
-			type(false, "int32")
-			none
-			[]
-			expr-body([], call("wrap_incr__int32__int32", [call("eight__int32", [])])))
-		fun(
-			false
-			"eight__int32"
-			type(false, "int32")
-			none
-			[]
-			expr-body([], call("wrap_add__int32__int32__int32", [call("four__int32", []), call("four__int32", [])])))
+			expr-body([], call("wrap_add__int32__int32__int32", [call("five__int32", []), call("five__int32", [])])))
 		fun(
 			false
 			"join_threads_recur___void__nat__nat__ptr__nat"

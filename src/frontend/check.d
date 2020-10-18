@@ -282,7 +282,7 @@ immutable(Result!(CommonTypes, Diags)) getCommonTypes(Alloc)(
 		return fail!(CommonTypes, Diags)(arrLiteral!Diagnostic(alloc, diag));
 	} else {
 		return success!(CommonTypes, Diags)(
-			CommonTypes(
+			immutable CommonTypes(
 				force(bool_),
 				force(char_),
 				force(int32),

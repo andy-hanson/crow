@@ -2,6 +2,7 @@ module test.test;
 
 @safe @nogc nothrow: // not pure
 
+import test.testApplyFn : testApplyFn;
 import test.testByteReaderWriter : testByteReaderWriter;
 import test.testInterpreter : testInterpreter;
 import util.collection.str : Str, strEqLiteral;
@@ -17,6 +18,7 @@ int test(immutable Opt!Str name) {
 private:
 
 immutable NameAndTest[] allTests = [
+	immutable NameAndTest("apply-fn", &testApplyFn),
 	immutable NameAndTest("byte-reader-writer", &testByteReaderWriter),
 	immutable NameAndTest("interpreter", &testInterpreter),
 ];

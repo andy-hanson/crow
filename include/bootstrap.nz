@@ -347,12 +347,32 @@ unsafe-to-nat8 nat8(a nat) noctx builtin
 unsafe-to-nat16 nat16(a nat) noctx builtin
 unsafe-to-nat32 nat32(a nat) noctx builtin
 
+to-nat16 nat16(a nat8) noctx trusted
+	a.to-nat unsafe-to-nat16
+
 | UB for positive numbers >= 2 ** 63
 unsafe-to-int int(a nat) noctx builtin
 unsafe-to-int8 int8(a int) noctx builtin
 unsafe-to-int16 int16(a int) noctx builtin
 unsafe-to-int32 int32(a int) noctx builtin
 
+max-nat8 nat8() noctx
+	(fifteen bit-shift-left four) bits-or fifteen
+max-nat16 nat16() noctx
+	max-nat8.to-nat16 bit-shift-left eight bits-or max-nat8.to-nat16
+max-nat32 nat32() noctx
+	max-nat16.to-nat32 bit-shift-left sixteen bits-or max-nat16.to-nat32
+
+to-nat32 nat32(a nat16) noctx trusted
+	a.to-nat unsafe-to-nat32
+to-nat32 nat32(a nat) noctx trusted
+	when
+		a < max-nat32.to-nat
+			a unsafe-to-nat32
+		else
+			todo
+
+to-nat nat(n nat8) noctx builtin
 to-nat nat(n nat16) noctx builtin
 to-nat nat(n nat32) noctx builtin
 
@@ -366,11 +386,15 @@ truncate-to-int int64(a float) noctx builtin
 
 wrap-add int(a int, b int) noctx builtin
 wrap-add nat(a nat, b nat) noctx builtin
+wrap-add nat8(a nat8, b nat8) noctx builtin
+wrap-add nat16(a nat16, b nat16) noctx builtin
 wrap-add nat32(a nat32, b nat32) noctx builtin
 
 wrap-sub int(a int, b int) noctx builtin
 wrap-sub int16(a int16, b int16) noctx builtin
 wrap-sub nat(a nat, b nat) noctx builtin
+wrap-sub nat8(a nat8, b nat8) noctx builtin
+wrap-sub nat16(a nat16, b nat16) noctx builtin
 wrap-sub nat32(a nat32, b nat32) noctx builtin
 
 wrap-mul int(a int, b int) noctx builtin
@@ -414,6 +438,10 @@ two int16() noctx
 	one wrap-incr
 two int32() noctx
 	one wrap-incr
+two nat8() noctx
+	one wrap-add one
+two nat16() noctx
+	one wrap-add one
 two nat() noctx
 	one wrap-incr
 two nat32() noctx
@@ -436,6 +464,10 @@ four int16() noctx
 	three wrap-incr
 four int32() noctx
 	three wrap-incr
+four nat8() noctx
+	two wrap-add two
+four nat16() noctx
+	two wrap-add two
 four nat() noctx
 	three wrap-incr
 four nat32() noctx
@@ -476,12 +508,16 @@ eight int32() noctx
 	four wrap-add four
 eight nat() noctx
 	seven wrap-incr
+eight nat8() noctx
+	four wrap-add four
+eight nat16() noctx
+	four wrap-add four
 eight nat32() noctx
 	seven wrap-incr
 
 nine int() noctx
 	eight wrap-incr
-nine int32() noctx
+nine nat32() noctx
 	eight wrap-incr
 nine nat() noctx
 	eight wrap-incr
@@ -489,7 +525,7 @@ nine nat() noctx
 ten int() noctx
 	nine wrap-incr
 ten int32() noctx
-	nine wrap-incr
+	five wrap-add five
 ten nat() noctx
 	nine wrap-incr
 
@@ -502,9 +538,23 @@ thirteen int32() noctx
 fourteen nat32() noctx
 	twelve wrap-add two
 
+fifteen nat8() noctx
+	sixteen wrap-decr
 fifteen nat32() noctx
 	fourteen wrap-incr
 
+sixteen nat32() noctx
+	fifteen wrap-incr
+
+thirty-two int32() noctx
+	sixteen wrap-add sixteen
+thirty-two nat32() noctx
+	sixteen wrap-add sixteen
+
+sixteen nat8() noctx
+	eight wrap-add eight
+sixteen nat16() noctx
+	eight wrap-add eight
 sixteen int32() noctx
 	ten wrap-add six
 
@@ -559,11 +609,46 @@ bits-intersect? bool(a int16, b int16) noctx
 	not: a bits-and b zero?
 bits-intersect? bool(a int32, b int32) noctx
 	not: a bits-and b zero?
+bits-intersect? bool(a nat32, b nat32) noctx
+	not: a bits-and b zero?
 
-bit-shift-left int32(a int32, b int32) noctx builtin
-bit-shift-left nat32(a nat32, b nat32) noctx builtin
-bit-shift-right int32(a int32, b int32) noctx builtin
-bit-shift-right nat32(a nat32, b nat32) noctx builtin
+unsafe-bit-shift-left nat(a nat, b nat) noctx builtin unsafe
+unsafe-bit-shift-right nat(a nat, b nat) noctx builtin unsafe
+bit-shift-left nat8(a nat8, b nat8) noctx trusted
+	when
+		b < eight
+			a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat8
+		else
+			zero
+bit-shift-left nat16(a nat16, b nat16) noctx trusted
+	when
+		b < sixteen
+			a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat16
+		else
+			zero
+bit-shift-left nat32(a nat32, b nat32) noctx trusted
+	when
+		b < thirty-two
+			a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat32
+		else
+			zero
+bit-shift-right nat32(a nat32, b nat32) noctx trusted
+	when
+		b < thirty-two
+			a.to-nat unsafe-bit-shift-right b.to-nat unsafe-to-nat32
+		else
+			zero
+bit-shift-right int32(a int32, b int32) noctx trusted
+	when
+		a < zero
+			todo
+		b < zero
+			todo
+		b < thirty-two
+			unsafe-to-int32: a.to-int.unsafe-to-nat unsafe-bit-shift-right b.to-int.unsafe-to-nat unsafe-to-int
+		else
+			todo
+
 
 | TODO: generic
 zero? bool(n nat) noctx
@@ -601,6 +686,8 @@ wrap-decr int(a int) noctx
 wrap-decr int16(a int16) noctx
 	a wrap-sub one
 wrap-decr int32(a int32) noctx
+	a wrap-sub one
+wrap-decr nat8(a nat8) noctx
 	a wrap-sub one
 wrap-decr nat(a nat) noctx
 	a wrap-sub one
@@ -648,6 +735,8 @@ decr ptr ?t(p ptr ?t) noctx unsafe
 	p - one
 
 noctx-decr int32(a int32) noctx unsafe
+	a wrap-sub one
+noctx-decr nat32(a nat32) noctx unsafe
 	hard-forbid: a zero?
 	a wrap-sub one
 noctx-decr nat(n nat) noctx unsafe

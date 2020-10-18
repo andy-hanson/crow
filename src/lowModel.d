@@ -440,6 +440,7 @@ struct LowExprKind {
 			toFloat64FromNat64,
 			toIntFromInt16,
 			toIntFromInt32,
+			toNatFromNat8,
 			toNatFromNat16,
 			toNatFromNat32,
 			toNatFromPtr,
@@ -462,10 +463,6 @@ struct LowExprKind {
 			addFloat64,
 			addPtr,
 			and,
-			bitShiftLeftInt32,
-			bitShiftLeftNat32,
-			bitShiftRightInt32,
-			bitShiftRightNat32,
 			bitwiseAndInt8,
 			bitwiseAndInt16,
 			bitwiseAndInt32,
@@ -500,6 +497,8 @@ struct LowExprKind {
 			or,
 			subFloat64,
 			subPtrNat,
+			unsafeBitShiftLeftNat64,
+			unsafeBitShiftRightNat64,
 			unsafeDivFloat64,
 			unsafeDivInt64,
 			unsafeDivNat64,
@@ -507,6 +506,7 @@ struct LowExprKind {
 			wrapAddInt16,
 			wrapAddInt32,
 			wrapAddInt64,
+			wrapAddNat8,
 			wrapAddNat16,
 			wrapAddNat32,
 			wrapAddNat64,
@@ -519,6 +519,7 @@ struct LowExprKind {
 			wrapSubInt16,
 			wrapSubInt32,
 			wrapSubInt64,
+			wrapSubNat8,
 			wrapSubNat16,
 			wrapSubNat32,
 			wrapSubNat64,
@@ -532,8 +533,7 @@ struct LowExprKind {
 	struct SpecialTrinary {
 		enum Kind {
 			if_,
-			//TODO: why is this special?
-			compareExchangeStrong,
+			compareExchangeStrongBool,
 		}
 		immutable Kind kind;
 		immutable Ptr!LowExpr p0;

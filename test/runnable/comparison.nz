@@ -43,7 +43,7 @@ test-compare-unions void() summon
 	print-sync: a <=> c to-str
 	print-sync: a <=> d to-str
 
-main fut int32(args arr str) summon
+main fut exit-code(args arr str) summon
 	test-compare-records
 	test-compare-byref-records
 	test-compare-unions

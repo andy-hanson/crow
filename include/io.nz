@@ -128,8 +128,8 @@ write-file void(path str, content str) summon
 	path.to-c-str write-file content
 
 write-file void(path c-str, content str) summon trusted
-	permission-rdwr = six as<int32>
-	permission-rd = four as<int32>
+	permission-rdwr = six as<nat32>
+	permission-rd = four as<nat32>
 	permission = (permission-rdwr bit-shift-left six) bits-or (permission-rd bit-shift-left three) bits-or permission-rd
 	flags = o-creat bits-or o-wronly bits-or o-trunc
 	fd = path open flags, permission
@@ -267,7 +267,7 @@ spawn-and-wait-result process-result(exe str, args arr str, environ environ) tru
 			fail: exe + " is not a file"
 
 | This one shares stdout and stderr with parent process
-spawn-and-wait int32(exe str, args arr str, environ environ) trusted summon
+spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
 	when
 		| TODO: kill, handle that error properly
 		exe is-file?

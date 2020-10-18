@@ -7,10 +7,11 @@ import diag : FilesInfo;
 import model : AbsolutePathsGetter;
 import interpret.bytecode : ByteCode, ByteCodeIndex;
 import interpret.runBytecode :
+	DataStack,
 	nextByteCodeIndex,
 	Interpreter,
 	newInterpreter,
-	printDataArr,
+	reset,
 	runBytecode,
 	step,
 	StepResult;
@@ -23,15 +24,16 @@ import interpret.bytecodeWriter :
 	StackEntry,
 	writeDupEntries,
 	writeDupEntry,
+	writeDupPartial,
 	writePushConstant,
 	writePushConstants,
+	writeRemove,
 	writeReturn;
+import test.testUtil : expectStack;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool;
 import util.collection.arr : Arr, range;
-import util.collection.arrUtil : eachCorresponds;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
-import util.collection.globalAllocatedStack : asTempArr;
 import util.collection.str : emptyStr;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.opt : none;
@@ -44,6 +46,8 @@ import util.util : repeatImpure, verify;
 
 void testInterpreter() {
 	testDup();
+	testRemove();
+	testDupPartial();
 }
 
 private:
@@ -75,6 +79,7 @@ void doTest(
 
 	Interpreter interpreter = newInterpreter(ptrTrustMe(byteCode), ptrTrustMe(filesInfo));
 	runInterpreter(interpreter);
+	reset(interpreter);
 }
 
 void testDup() {
@@ -89,18 +94,55 @@ void testDup() {
 			writeReturn(writer, source);
 		},
 		(ref Interpreter interpreter) {
-			verify(nextByteCodeIndex(interpreter) == 0);
-			repeatImpure(3, () { step(interpreter); });
-			expectStack(interpreter, [55, 65, 75]);
-			stepContinue(interpreter);
-			expectStack(interpreter, [55, 65, 75, 55]);
-			stepContinue(interpreter);
-			expectStack(interpreter, [55, 65, 75, 55, 75]);
-			stepContinue(interpreter);
-			expectStack(interpreter, [55, 65, 75, 55, 75, 55]);
+			stepNAndExpect(interpreter, 3, [55, 65, 75]);
+			stepAndExpect(interpreter, [55, 65, 75, 55]);
+			stepAndExpect(interpreter, [55, 65, 75, 55, 75]);
+			stepAndExpect(interpreter, [55, 65, 75, 55, 75, 55]);
 			stepExit(interpreter);
-			//verify(nextByteCodeIndex(interpreter) == 3);
 		});
+}
+
+void testRemove() {
+	doTest(
+		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+			writePushConstants(writer, source, [0, 1, 2, 3, 4]);
+			writeRemove(writer, source, immutable StackEntries(immutable StackEntry(1), 2));
+			writeReturn(writer, source);
+		},
+		(ref Interpreter interpreter) {
+			stepNAndExpect(interpreter, 5, [0, 1, 2, 3, 4]);
+			stepAndExpect(interpreter, [0, 3, 4]);
+			stepExit(interpreter);
+		});
+}
+
+void testDupPartial() {
+	doTest(
+		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+			writePushConstants(writer, source, [0x0123456789abcdef]);
+			writeDupPartial(writer, source, immutable StackEntry(0), 4, 4);
+			writeDupPartial(writer, source, immutable StackEntry(1), 6, 2);
+			writeDupPartial(writer, source, immutable StackEntry(2), 7, 1);
+			writeDupPartial(writer, source, immutable StackEntry(0), 0, 1);
+			writeReturn(writer, source);
+		},
+		(ref Interpreter interpreter) {
+			stepAndExpect(interpreter, [0x0123456789abcdef]);
+			stepAndExpect(interpreter, [0x0123456789abcdef, 0x89abcdef]);
+			stepAndExpect(interpreter, [0x0123456789abcdef, 0x89abcdef, 0xcdef]);
+			stepAndExpect(interpreter, [0x0123456789abcdef, 0x89abcdef, 0xcdef, 0xef]);
+			stepAndExpect(interpreter, [0x0123456789abcdef, 0x89abcdef, 0xcdef, 0xef, 0x01]);
+			stepExit(interpreter);
+		});
+}
+
+void stepNAndExpect(ref Interpreter interpreter, immutable uint n, scope immutable u64[] expected) {
+	repeatImpure(n, () { stepContinue(interpreter); });
+	expectStack(interpreter, expected);
+}
+
+void stepAndExpect(ref Interpreter interpreter, scope immutable u64[] expected) {
+	stepNAndExpect(interpreter, 1, expected);
 }
 
 void verifyStackEntry(Alloc)(ref ByteCodeWriter!Alloc writer, immutable uint n) {
@@ -117,21 +159,10 @@ void stepExit(ref Interpreter interpreter) {
 	verify(result == StepResult.exit);
 }
 
-@trusted void expectStack(size_t size)(ref Interpreter interpreter, immutable u64[size] expected) {
-	expectStack(interpreter, immutable Arr!u64(expected.ptr, size));
-}
+//@trusted void expectStack(size_t size)(ref Interpreter interpreter, immutable u64[] expected) {
+//	expectStack(interpreter, immutable Arr!u64(expected.ptr, size));
+//}
 
-void expectStack(ref Interpreter interpreter, immutable Arr!u64 expected) {
-	immutable Arr!u64 stack = asTempArr(interpreter.dataStack);
-	immutable Bool eq = eachCorresponds!(u64, u64)(stack, expected, (ref immutable u64 a, ref immutable u64 b) =>
-		immutable Bool(a == b));
-	if (!eq) {
-		debug {
-			printf("expected:\n");
-			printDataArr(expected);
-			printf("\nactual:\n");
-			printDataArr(stack);
-		}
-		verify(false);
-	}
+void expectStack(ref Interpreter interpreter, scope immutable u64[] expected) {
+	expectStack(interpreter.dataStack, expected);
 }

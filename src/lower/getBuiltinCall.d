@@ -212,7 +212,9 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 				? LowExprKind.SpecialUnary.Kind.toIntFromInt32
 				: failUnary());
 		case shortSymAlphaLiteralValue("to-nat"):
-			return unary(isNat16(arg0().type)
+			return unary(isNat8(arg0().type)
+				? LowExprKind.SpecialUnary.Kind.toNatFromNat8
+				: isNat16(arg0().type)
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat16
 				: isNat32(arg0().type)
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat32
@@ -236,6 +238,8 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 				? LowExprKind.SpecialBinary.Kind.wrapAddInt32
 				: isInt64(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapAddInt64
+				: isNat8(rt)
+				? LowExprKind.SpecialBinary.Kind.wrapAddNat8
 				: isNat16(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapAddNat16
 				: isNat32(rt)
@@ -264,6 +268,8 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 				? LowExprKind.SpecialBinary.Kind.wrapSubInt32
 				: isInt64(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapSubInt64
+				: isNat8(rt)
+				? LowExprKind.SpecialBinary.Kind.wrapSubNat8
 				: isNat16(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapSubNat16
 				: isNat32(rt)
@@ -276,21 +282,14 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 		case shortSymAlphaLiteralValue("unsafe-mod"):
 			return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeModNat64) : fail();
 		default:
-			if (symEqLongAlphaLiteral(name, "bit-shift-left"))
-				return binary(isInt32(rt)
-					? LowExprKind.SpecialBinary.Kind.bitShiftLeftInt32
-					: isNat32(rt)
-					? LowExprKind.SpecialBinary.Kind.bitShiftLeftNat32
-					: failBinary());
-			else if (symEqLongAlphaLiteral(name, "bit-shift-right"))
-				return binary(isInt32(rt)
-					? LowExprKind.SpecialBinary.Kind.bitShiftRightInt32
-					: isNat32(rt)
-					? LowExprKind.SpecialBinary.Kind.bitShiftRightNat32
-					: failBinary());
+			if (symEqLongAlphaLiteral(name, "unsafe-bit-shift-left"))
+				return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64) : fail();
+			else if (symEqLongAlphaLiteral(name, "unsafe-bit-shift-right"))
+				return isNat64(rt)
+					? binary(LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64)
+					: fail();
 			else if (symEqLongAlphaLiteral(name, "compare-exchange-strong"))
-				//TODO: why was this not just an extern fn?
-				return trinary(LowExprKind.SpecialTrinary.Kind.compareExchangeStrong);
+				return trinary(LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool);
 			else if (symEqLongAlphaLiteral(name, "is-reference-type"))
 				return todo!(immutable LowExprKind)("is-reference-type");
 			else if (symEqLongAlphaLiteral(name, "truncate-to-int"))

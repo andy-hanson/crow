@@ -271,9 +271,9 @@ void writePurity(Alloc)(ref Writer!Alloc writer, immutable Purity p) {
 }
 
 void writeSig(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
-	writeType(writer, s.returnType);
-	writeChar(writer, ' ');
 	writeSym(writer, s.name);
+	writeChar(writer, ' ');
+	writeType(writer, s.returnType);
 	writeChar(writer, '(');
 	writeWithCommas(writer, s.params, (ref immutable Param p) {
 		writeType(writer, p.type);
