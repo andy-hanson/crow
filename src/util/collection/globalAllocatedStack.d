@@ -10,12 +10,17 @@ import util.util : verify;
 struct GlobalAllocatedStack(T, size_t capacity) {
 	@safe @nogc nothrow:
 
-	static T[capacity] values = void;
-	static size_t size = 0;
-
 	~this() {
 		verify(size == 0);
 	}
+
+	private:
+	static T[capacity] values = void;
+	static size_t size = 0;
+}
+
+@system const(T*) begin(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
+	return a.values.ptr;
 }
 
 void clearStack(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {

@@ -25,15 +25,19 @@ import interpret.bytecodeWriter :
 	writeDupEntries,
 	writeDupEntry,
 	writeDupPartial,
+	writePack,
 	writePushConstant,
 	writePushConstants,
 	writeRemove,
-	writeReturn;
+	writeReturn,
+	writeStackRef,
+	writeWrite;
 import test.testUtil : expectStack;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool;
-import util.collection.arr : Arr, range;
+import util.collection.arr : Arr, arrOfD, range;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
+import util.collection.globalAllocatedStack : begin;
 import util.collection.str : emptyStr;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.opt : none;
@@ -41,13 +45,17 @@ import util.path : Path, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, FileIndex;
 import util.sym : shortSymAlphaLiteral;
-import util.types : u64;
-import util.util : repeatImpure, verify;
+import util.types : u8, u16, u32, u64;
+import util.util : repeatImpure, verify, verifyEq;
 
 void testInterpreter() {
 	testDup();
 	testRemove();
 	testDupPartial();
+	testPack();
+	testStackRef();
+	testWriteSubword();
+	testWriteWords();
 }
 
 private:
@@ -136,6 +144,105 @@ void testDupPartial() {
 		});
 }
 
+void testPack() {
+	doTest(
+		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+			writePushConstants(writer, source, [0x01234567, 0x89ab, 0xcd]);
+			immutable u8[3] a = [4, 2, 1];
+			writePack(writer, source, arrOfD(a));
+			writeReturn(writer, source);
+		},
+		(ref Interpreter interpreter) {
+			stepNAndExpect(interpreter, 3, [0x01234567, 0x89ab, 0xcd]);
+			stepAndExpect(interpreter, [0x0123456789abcd00]);
+		});
+}
+
+void testStackRef() {
+	doTest(
+		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+			writePushConstants(writer, source, [1, 2]);
+			writeStackRef(writer, source, immutable StackEntry(0), 0);
+			writeStackRef(writer, source, immutable StackEntry(1), 4);
+		},
+		(ref Interpreter interpreter) {
+			testStackRefInner(interpreter);
+		});
+}
+
+@trusted void testStackRefInner(ref Interpreter interpreter) {
+	stepNAndExpect(interpreter, 2, [1, 2]);
+	stepAndExpect(interpreter, [1, 2, cast(immutable u64) begin(interpreter.dataStack)]);
+	stepAndExpect(interpreter, [
+		1,
+		2,
+		cast(immutable u64) begin(interpreter.dataStack),
+		cast(immutable u64) (begin(interpreter.dataStack) + 1),
+	]);
+	stepAndExpect(interpreter, [
+		1,
+		2,
+		cast(immutable u64) begin(interpreter.dataStack),
+		cast(immutable u64) (begin(interpreter.dataStack) + 1),
+		4,
+	]);
+	stepAndExpect(interpreter, [
+		1,
+		2,
+		cast(immutable u64) begin(interpreter.dataStack),
+		cast(immutable u64) (cast(immutable u32*) begin(interpreter.dataStack) + 3),
+	]);
+}
+
+@trusted void testWriteSubword() {
+	struct S {
+		u32 a;
+		u16 b;
+		u8 c;
+		u8 d;
+	}
+	S value;
+	immutable u64 valuePtr = cast(immutable u64) &value;
+	doTest(
+		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+			writePushConstants(writer, source, [valuePtr, 0x0123456789abcdef]);
+			writeWrite(writer, source, 0, 4);
+			writePushConstants(writer, source, [valuePtr, 0x0123456789abcdef]);
+			writeWrite(writer, source, 4, 2);
+			writePushConstants(writer, source, [valuePtr, 0x0123456789abcdef]);
+			writeWrite(writer, source, 6, 1);
+		},
+		(ref Interpreter interpreter) {
+			stepNAndExpect(interpreter, 2, [valuePtr, 0x0123456789abcdef]);
+			stepAndExpect(interpreter, []);
+			verify(value == immutable S(0x89abcdef, 0, 0, 0));
+
+			stepNAndExpect(interpreter, 2, [valuePtr, 0x0123456789abcdef]);
+			stepAndExpect(interpreter, []);
+			verify(value == immutable S(0x89abcdef, 0xcdef, 0, 0));
+
+			stepNAndExpect(interpreter, 2, [valuePtr, 0x0123456789abcdef]);
+			stepAndExpect(interpreter, []);
+			verify(value == immutable S(0x89abcdef, 0xcdef, 0xef, 0));
+		});
+}
+
+@trusted void testWriteWords() {
+	struct S { u64 a; u64 b; }
+	S value;
+	immutable u64 valuePtr = cast(immutable u64) &value;
+	doTest(
+		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+			writePushConstants(writer, source, [valuePtr, 1, 2]);
+			writeWrite(writer, source, 0, 16);
+		},
+		(ref Interpreter interpreter) {
+			stepNAndExpect(interpreter, 3, [valuePtr, 1, 2]);
+			stepAndExpect(interpreter, []);
+			verify(value == immutable S(1, 2));
+		});
+}
+
 void stepNAndExpect(ref Interpreter interpreter, immutable uint n, scope immutable u64[] expected) {
 	repeatImpure(n, () { stepContinue(interpreter); });
 	expectStack(interpreter, expected);
@@ -158,10 +265,6 @@ void stepExit(ref Interpreter interpreter) {
 	immutable StepResult result = step(interpreter);
 	verify(result == StepResult.exit);
 }
-
-//@trusted void expectStack(size_t size)(ref Interpreter interpreter, immutable u64[] expected) {
-//	expectStack(interpreter, immutable Arr!u64(expected.ptr, size));
-//}
 
 void expectStack(ref Interpreter interpreter, scope immutable u64[] expected) {
 	expectStack(interpreter.dataStack, expected);

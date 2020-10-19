@@ -328,6 +328,7 @@ enum FnOp : u8 {
 	eqBits,
 	float64FromInt64,
 	float64FromNat64,
+	free,
 	hardFail,
 	lessFloat64,
 	lessInt8,
@@ -364,6 +365,8 @@ immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 			return "compare-exchange-strong (bool)";
 		case FnOp.eqBits:
 			return "== (integrals / pointers)";
+		case FnOp.free:
+			return "free";
 		case FnOp.float64FromInt64:
 			return "float-64-from-int-64";
 		case FnOp.float64FromNat64:

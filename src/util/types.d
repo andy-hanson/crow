@@ -36,7 +36,7 @@ immutable(u32) bottomU32OfU64(immutable u64 u) {
 }
 
 immutable(i32) safeI32FromU32(immutable u32 u) {
-	verify(u <= 999);
+	verify(u <= i32.max);
 	return cast(i32) u;
 }
 
@@ -45,22 +45,22 @@ immutable(u8) safeU32ToU8(immutable u32 u) {
 }
 
 immutable(u16) safeU32ToU16(immutable u32 u) {
-	verify(u <= 999);
+	verify(u <= u16.max);
 	return cast(u16) u;
 }
 
 immutable(u16) safeSizeTToU16(immutable size_t s) {
-	verify(s <= 999);
+	verify(s <= u16.max);
 	return cast(u16) s;
 }
 
 immutable(u32) safeSizeTToU32(immutable size_t s) {
-	verify(s <= 99999);
+	verify(s <= u32.max);
 	return cast(u32) s;
 }
 
 immutable(int) safeIntFromSizeT(immutable size_t s) {
-	verify(s <= 9999);
+	verify(s <= int.max);
 	return cast(int) s;
 }
 
@@ -101,6 +101,12 @@ immutable(float64) float64OfU64Bits(immutable u64 value) {
 	Converter64 conv;
 	conv.asU64 = value;
 	return conv.asFloat64;
+}
+
+immutable(u64) bottomNBytes(immutable u64 value, immutable u8 nBytes) {
+	immutable u64 nBits = nBytes * 8;
+	immutable u64 mask = (1uL << nBits) - 1;
+	return value & mask;
 }
 
 private:

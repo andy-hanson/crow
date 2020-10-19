@@ -3,6 +3,7 @@ module interpret.applyFn;
 @safe @nogc nothrow: // not pure
 
 import core.atomic : cas;
+import core.stdc.stdlib : free, malloc;
 
 import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
@@ -40,6 +41,9 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 			unary(dataStack, (immutable u64 a) =>
 				u64OfFloat64Bits(cast(float64) a));
 			break;
+		case FnOp.free:
+			doFree(dataStack);
+			break;
 		case FnOp.hardFail:
 			todo!void("!");
 			break;
@@ -68,7 +72,7 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 				u64OfBool(a < b));
 			break;
 		case FnOp.malloc:
-			todo!void("!");
+			doMalloc(dataStack);
 			break;
 		case FnOp.mulFloat64:
 			binaryFloats(dataStack, (immutable float64 a, immutable float64 b) =>
@@ -122,6 +126,14 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 }
 
 private:
+
+@trusted void doFree(ref DataStack dataStack) {
+	free(cast(ubyte*) pop(dataStack));
+}
+
+@trusted void doMalloc(ref DataStack dataStack) {
+	push(dataStack, cast(immutable u64) malloc(pop(dataStack)));
+}
 
 pure @trusted immutable(u64) compareExchangeStrongBool(immutable u64 a, immutable u64 b, immutable u64 c) {
 	bool* valuePtr = cast(bool*) a;

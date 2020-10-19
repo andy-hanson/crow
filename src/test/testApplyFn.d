@@ -7,12 +7,14 @@ import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
 import test.testUtil : expectStack;
 import util.collection.arr : arrOfD;
-import util.collection.globalAllocatedStack : clearStack, pop, pushAll;
+import util.collection.globalAllocatedStack : clearStack, peek, pop, push, pushAll;
 import util.types : float64, i8, i16, i32, i64, u8, u16, u32, u64, u64OfFloat64Bits;
 import util.util : verifyEq;
 
 void testApplyFn() {
 	u64 one = 1; // https://issues.dlang.org/show_bug.cgi?id=17778
+
+	testMallocAndFree();
 
 	testFn([u64OfFloat64Bits(-1.5), u64OfFloat64Bits(2.6)], FnOp.addFloat64, [u64OfFloat64Bits(1.1)]);
 
@@ -82,6 +84,17 @@ void testApplyFn() {
 }
 
 private:
+
+@trusted void testMallocAndFree() {
+	DataStack dataStack;
+	push(dataStack, 8);
+	applyFn(dataStack, FnOp.malloc);
+	u64* ptr = cast(u64*) peek(dataStack, 0);
+	expectStack(dataStack, [cast(immutable u64) ptr]);
+	*ptr = 1;
+	applyFn(dataStack, FnOp.free);
+	expectStack(dataStack, []);
+}
 
 @trusted void testCompareExchangeStrong() {
 	bool b0 = false;

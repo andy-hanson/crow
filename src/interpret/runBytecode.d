@@ -33,7 +33,7 @@ import util.collection.globalAllocatedStack :
 	stackRef;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos;
-import util.types : maxU64, safeIntFromU64, u8, u16, u32, u64;
+import util.types : bottomNBytes, maxU64, safeIntFromU64, u8, u16, u32, u64;
 import util.util : todo, unreachable, verify;
 
 immutable(int) runBytecode(ref immutable ByteCode byteCode, ref immutable FilesInfo filesInfo) {
@@ -216,13 +216,13 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 		immutable u8 sizeWords = size / 8;
 		u64* ptr = (cast(u64*) peek(data, sizeWords)) + (offset / 8);
 		foreach (immutable size_t i; 0..sizeWords)
-			*ptr = peek(data, cast(immutable u8) (sizeWords - 1 - i));
+			ptr[i] = peek(data, cast(immutable u8) (sizeWords - 1 - i));
 		popN(data, sizeWords + 1);
 	}
 }
 
 @trusted immutable(u64) readPartialBytes(immutable u8* ptr, immutable u8 size) {
-	//TODO: Just have separate ops for separate sizes?
+	//TODO: Just have separate ops for separate sizes
 	switch (size) {
 		case 1:
 			return *(cast(immutable u8*) ptr);
@@ -236,7 +236,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 }
 
 @trusted void writePartialBytes(u8* ptr, immutable u64 value, immutable u8 size) {
-	//TODO: Just have separate ops for separate sizes?
+	//TODO: Just have separate ops for separate sizes
 	switch (size) {
 		case 1:
 			*(cast(u8*) ptr) = cast(immutable u8) value;
@@ -258,11 +258,6 @@ immutable(u64) getBytes(immutable u64 a, immutable u8 byteOffset, immutable u8 s
 	immutable u64 shift = bytesToBits(u64.sizeof - sizeBytes - byteOffset);
 	immutable u64 mask = maxU64 >> bytesToBits(8 - sizeBytes);
 	immutable u64 res = (a >> shift) & mask;
-	debug {
-		import core.stdc.stdio : printf;
-		printf("getBytes:\na=%lx\nbyteOffset=%x\nsizeBytes=%x\nshift=%lx\nmask=%lx\nres=%lx",
-			a, byteOffset, sizeBytes, shift, mask, res);
-	}
 	return res;
 }
 
@@ -287,14 +282,17 @@ immutable(u64) pack(immutable Arr!u64 values, immutable Arr!u8 sizes) {
 	zip!(u64, u8)(values, sizes, (ref immutable u64 value, ref immutable u8 size) {
 		res = (res << (size * 8)) | bottomNBytes(value, size);
 		totalSize += size;
+		debug {
+			printf("after step: value=%lu, size=%d, res=%lu, totalSize=%lu\n", value, size, res, totalSize);
+		}
 	});
 	verify(totalSize <= 8);
 	immutable u64 remainingBytes = 8 - totalSize;
-	return res << (remainingBytes * 8);
-}
-
-//TODO:MOVE
-immutable(u64) bottomNBytes(immutable u64 value, immutable u8 n) {
-	return value & ((1 << (n * 8)) - 1);
+	immutable u64 r = res << (remainingBytes * 8);
+	debug {
+		printf("PACK | res=%lu, totalSize=%lu, remainingBytes=%lu, r=%lu\n",
+			res, totalSize, remainingBytes, r);
+	}
+	return r;
 }
 

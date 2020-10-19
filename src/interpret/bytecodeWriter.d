@@ -383,6 +383,7 @@ void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange 
 			case FnOp.bitwiseAnd:
 			case FnOp.bitwiseOr:
 			case FnOp.eqBits:
+			case FnOp.free:
 			case FnOp.lessFloat64:
 			case FnOp.lessInt8:
 			case FnOp.lessInt16:
