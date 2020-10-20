@@ -6,7 +6,14 @@ import core.stdc.stdio : printf;
 
 import diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import interpret.applyFn : applyFn;
-import interpret.bytecode : ByteCode, FnOp, matchOperationImpure, Operation, sexprOfOperation, StackOffset;
+import interpret.bytecode :
+	ByteCode,
+	ByteCodeIndex,
+	FnOp,
+	matchOperationImpure,
+	Operation,
+	sexprOfOperation,
+	StackOffset;
 import interpret.bytecodeReader :
 	ByteCodeReader,
 	getReaderPtr,
@@ -33,7 +40,7 @@ import util.collection.globalAllocatedStack :
 	stackRef;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos;
-import util.types : bottomNBytes, maxU64, safeIntFromU64, u8, u16, u32, u64;
+import util.types : bottomNBytes, maxU64, safeIntFromU64, safeSizeTToU32, u8, u16, u32, u64;
 import util.util : todo, unreachable, verify;
 
 immutable(int) runBytecode(ref immutable ByteCode byteCode, ref immutable FilesInfo filesInfo) {
@@ -60,13 +67,14 @@ enum StepResult {
 }
 
 alias DataStack = GlobalAllocatedStack!(u64, 1024 * 4);
+alias ReturnStack = GlobalAllocatedStack!(immutable(u8)*, 1024);
 
 struct Interpreter {
 	immutable Ptr!ByteCode byteCode;
 	immutable Ptr!FilesInfo filesInfo;
 	ByteCodeReader reader;
 	DataStack dataStack;
-	GlobalAllocatedStack!(immutable(u8)*, 1024) returnStack;
+	ReturnStack returnStack;
 }
 
 @trusted void reset(ref Interpreter a) {
@@ -86,19 +94,20 @@ void printStack(ref const Interpreter interpreter) {
 	printf("\n");
 }
 
-@trusted immutable(size_t) nextByteCodeIndex(ref const Interpreter interpreter) {
-	return getReaderPtr(interpreter.reader) - begin(interpreter.byteCode.byteCode);
+@trusted immutable(ByteCodeIndex) nextByteCodeIndex(ref const Interpreter interpreter) {
+	return byteCodeIndexOfPtr(interpreter, getReaderPtr(interpreter.reader));
+}
+
+pure @trusted immutable(ByteCodeIndex) byteCodeIndexOfPtr(ref const Interpreter interpreter, immutable u8* ptr) {
+	return immutable ByteCodeIndex(safeSizeTToU32(ptr - begin(interpreter.byteCode.byteCode)));
 }
 
 ref immutable(FileAndPos) nextSource(ref const Interpreter interpreter) {
-	immutable size_t index = nextByteCodeIndex(interpreter);
+	immutable ByteCodeIndex index = nextByteCodeIndex(interpreter);
 	debug {
-		printf("nextBytecodeIndex: %lu\n", index);
-		printf("size(interpreter.byteCode.byteCode): %lu\n", size(interpreter.byteCode.byteCode));
-		printf("size(interpreter.byteCode.sources): %lu\n", size(interpreter.byteCode.sources));
 		printStack(interpreter);
 	}
-	return at(interpreter.byteCode.sources, index);
+	return at(interpreter.byteCode.sources, index.index);
 }
 
 immutable(StepResult) step(ref Interpreter interpreter) {

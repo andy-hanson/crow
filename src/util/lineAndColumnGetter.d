@@ -28,7 +28,7 @@ struct LineAndColumnGetter {
 	immutable Arr!Pos lineToPos;
 	immutable Arr!u8 lineToNTabs;
 
-	this(immutable Arr!Pos lp, immutable Arr!u8 lnt) {
+	immutable this(immutable Arr!Pos lp, immutable Arr!u8 lnt) {
 		lineToPos = lp;
 		lineToNTabs = lnt;
 		verify(lineToPos.size == lineToNTabs.size);
@@ -49,7 +49,7 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForText(Alloc)(ref Alloc alloc
 		}
 	}
 
-	return LineAndColumnGetter(finishArr(alloc, lineToPos), finishArr(alloc, lineToNTabs));
+	return immutable LineAndColumnGetter(finishArr(alloc, lineToPos), finishArr(alloc, lineToNTabs));
 }
 
 immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(Alloc)(ref Alloc alloc) {

@@ -5,7 +5,7 @@ module test.testApplyFn;
 import interpret.applyFn : applyFn;
 import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
-import test.testUtil : expectStack;
+import test.testUtil : expectDataStack;
 import util.collection.arr : arrOfD;
 import util.collection.globalAllocatedStack : clearStack, peek, pop, push, pushAll;
 import util.types : float64, i8, i16, i32, i64, u8, u16, u32, u64, u64OfFloat64Bits;
@@ -90,10 +90,10 @@ private:
 	push(dataStack, 8);
 	applyFn(dataStack, FnOp.malloc);
 	u64* ptr = cast(u64*) peek(dataStack, 0);
-	expectStack(dataStack, [cast(immutable u64) ptr]);
+	expectDataStack(dataStack, [cast(immutable u64) ptr]);
 	*ptr = 1;
 	applyFn(dataStack, FnOp.free);
-	expectStack(dataStack, []);
+	expectDataStack(dataStack, []);
 }
 
 @trusted void testCompareExchangeStrong() {
@@ -133,6 +133,6 @@ void testFn(scope immutable u64[] stackIn, immutable FnOp fnOp, scope immutable 
 	DataStack dataStack;
 	pushAll(dataStack, arrOfD(stackIn));
 	applyFn(dataStack, fnOp);
-	expectStack(dataStack, stackOut);
+	expectDataStack(dataStack, stackOut);
 	clearStack(dataStack);
 }

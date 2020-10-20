@@ -741,7 +741,7 @@ void zipWithIndex(In0, In1)(
 
 immutable(Bool) eachCorresponds(T, U)(
 	immutable Arr!T a,
-	immutable Arr!T b,
+	immutable Arr!U b,
 	scope immutable(Bool) delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(a, b));

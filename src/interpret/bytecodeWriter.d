@@ -92,7 +92,7 @@ immutable(ByteCodeIndex) nextByteCodeIndex(Alloc)(ref const ByteCodeWriter!Alloc
 	return immutable ByteCodeIndex(safeSizeTToU32(nextByteIndex(writer.byteWriter)));
 }
 
-void fillDelayedU16(Alloc)(
+private void fillDelayedU16(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	immutable ByteCodeIndex index,
 	immutable ByteCodeOffset offset,
@@ -100,7 +100,7 @@ void fillDelayedU16(Alloc)(
 	writeU16(writer.byteWriter, index.index, offset.offset);
 }
 
-void fillDelayedU32(Alloc)(
+private void fillDelayedU32(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	immutable ByteCodeIndex index,
 	immutable ByteCodeIndex value,
@@ -119,6 +119,14 @@ immutable(ByteCodeIndex) writeCallDelayed(Alloc)(
 	pushU32(writer, source, 0);
 	writer.nextStackEntry = stackEntryBeforeArgs.entry + nEntriesForReturnType;
 	return fnAddress;
+}
+
+void fillDelayedCall(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	immutable ByteCodeIndex index,
+	immutable ByteCodeIndex value,
+) {
+	fillDelayedU32(writer, index, value);
 }
 
 void writeCallFunPtr(Alloc)(
@@ -285,7 +293,7 @@ void writeReturn(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRa
 	pushOpcode(writer, source, OpCode.return_);
 }
 
-immutable(ByteCodeIndex) writePushU32Delayed(Alloc)(
+immutable(ByteCodeIndex) writePushFunPtrDelayed(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable FileAndRange source,
 ) {
@@ -342,15 +350,17 @@ immutable(ByteCodeIndex) writeJumpDelayed(Alloc)(ref ByteCodeWriter!Alloc writer
 }
 
 void fillInJumpDelayed(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex jumpIndex) {
-	writeU16(writer.byteWriter, jumpIndex.index, getByteCodeOffset(writer, jumpIndex).offset);
+	writeU16(writer.byteWriter, jumpIndex.index, getByteCodeOffsetForJump(writer, jumpIndex).offset);
 }
 
-immutable(ByteCodeOffset) getByteCodeOffset(Alloc)(
+private immutable(ByteCodeOffset) getByteCodeOffsetForJump(Alloc)(
 	ref const ByteCodeWriter!Alloc writer,
 	immutable ByteCodeIndex jumpIndex,
 ) {
 	verify(jumpIndex.index < nextByteCodeIndex(writer).index);
-	return subtractByteCodeIndex(nextByteCodeIndex(writer), addByteCodeIndex(jumpIndex, + 1));
+	// We add the jump offset after having read the jump value
+	immutable ByteCodeIndex jumpEnd = addByteCodeIndex(jumpIndex, ByteCodeOffset.sizeof);
+	return subtractByteCodeIndex(nextByteCodeIndex(writer), jumpEnd);
 }
 
 void writePack(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source, immutable Arr!u8 sizes) {
@@ -369,9 +379,24 @@ immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(
 ) {
 	pushOpcode(writer, source, OpCode.switch_);
 	immutable ByteCodeIndex addresses = nextByteCodeIndex(writer);
-	foreach (immutable size_t i; 0..nCases)
+	foreach (immutable size_t i; 0..nCases) {
+		static assert(ByteCodeOffset.sizeof == 2);
 		pushU16(writer, source, 0);
+	}
 	return addresses;
+}
+
+void fillDelayedSwitchEntry(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	immutable ByteCodeIndex switchCasesIndex,
+	immutable u8 switchEntry,
+) {
+	immutable ByteCodeIndex case_ = addByteCodeIndex(switchCasesIndex, switchEntry * ByteCodeOffset.sizeof);
+	immutable ByteCodeIndex caseEnd = addByteCodeIndex(case_, ByteCodeOffset.sizeof);
+	fillDelayedU16(
+		writer,
+		case_,
+		subtractByteCodeIndex(nextByteCodeIndex(writer), caseEnd));
 }
 
 void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source, immutable FnOp fn) {

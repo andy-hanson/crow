@@ -13,8 +13,8 @@ import interpret.bytecode :
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	nextByteCodeIndex,
-	fillDelayedU16,
-	fillDelayedU32,
+	fillDelayedCall,
+	fillDelayedSwitchEntry,
 	fillInJumpDelayed,
 	finishByteCode,
 	getNextStackEntry,
@@ -34,7 +34,7 @@ import interpret.bytecodeWriter :
 	writePushConstant,
 	writePushConstantStr,
 	writePushEmptySpace,
-	writePushU32Delayed,
+	writePushFunPtrDelayed,
 	writeJumpDelayed,
 	writePack,
 	writeStackRef,
@@ -102,7 +102,7 @@ import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.types : safeSizeTToU8, safeSizeTToU32, safeU32ToU8, u8;
+import util.types : safeSizeTToU8, safeU32ToU8, u8;
 import util.util : divRoundUp, roundUp, todo, verify;
 
 immutable(ByteCode) generateBytecode(CodeAlloc)(ref CodeAlloc codeAlloc, ref immutable LowProgram program) {
@@ -128,7 +128,7 @@ immutable(ByteCode) generateBytecode(CodeAlloc)(ref CodeAlloc codeAlloc, ref imm
 
 	fullIndexDictEach(funToDefinition, (immutable LowFunIndex index, ref immutable ByteCodeIndex definition) {
 		foreach (immutable ByteCodeIndex reference; range(mutIndexMultiDictMustGetAt(funToReferences, index)))
-			fillDelayedU32(writer, reference, definition);
+			fillDelayedCall(writer, reference, definition);
 	});
 
 	return finishByteCode(writer, fullIndexDictGet(funToDefinition, program.main));
@@ -427,7 +427,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 		},
 		(ref immutable LowExprKind.FunPtr it) {
 			registerFunAddress(tempAlloc, ctx, it.fun,
-				writePushU32Delayed(writer, source));
+				writePushFunPtrDelayed(writer, source));
 		},
 		(ref immutable LowExprKind.Let it) {
 			immutable StackEntries localEntries =
@@ -458,10 +458,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 				tempAlloc,
 				it.cases,
 				(immutable size_t caseIndex, ref immutable LowExprKind.Match.Case case_) {
-					fillDelayedU16(
-						writer,
-						addByteCodeIndex(indexOfFirstCaseOffset, safeSizeTToU32(caseIndex)),
-						subtractByteCodeIndex(nextByteCodeIndex(writer), indexOfFirstCaseOffset));
+					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, safeSizeTToU8(caseIndex));
 					nextByteCodeIndex(writer);
 					if (has(case_.local)) {
 						immutable uint nEntries = nStackEntriesForType(ctx, force(case_.local).type);
@@ -902,11 +899,11 @@ void generateIf(TempAlloc, CodeAlloc)(
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	generateExpr(tempAlloc, writer, ctx, cond);
 	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, 2);
-	fillDelayedU16(writer, addByteCodeIndex(delayed, 0), subtractByteCodeIndex(nextByteCodeIndex(writer), delayed));
+	fillDelayedSwitchEntry(writer, delayed, 0);
 	generateExpr(tempAlloc, writer, ctx, else_);
 	setNextStackEntry(writer, startStack);
 	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(writer, source);
-	fillDelayedU16(writer, addByteCodeIndex(delayed, 1), subtractByteCodeIndex(nextByteCodeIndex(writer), delayed));
+	fillDelayedSwitchEntry(writer, delayed, 1);
 	generateExpr(tempAlloc, writer, ctx, then);
 	fillInJumpDelayed(writer, jumpIndex);
 }

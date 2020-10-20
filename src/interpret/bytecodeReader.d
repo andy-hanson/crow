@@ -77,7 +77,8 @@ immutable(Operation) readOperation(ref ByteCodeReader reader) {
 
 @trusted void readerSwitch(ref ByteCodeReader reader, immutable u64 value) {
 	skipBytes(reader.reader, ByteCodeOffset.sizeof * value);
-	readerJump(reader, immutable ByteCodeOffset(readU16(reader.reader)));
+	immutable ByteCodeOffset offset = immutable ByteCodeOffset(readU16(reader.reader));
+	readerJump(reader, offset);
 }
 
 private:
