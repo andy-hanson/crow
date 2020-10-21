@@ -7,7 +7,9 @@ import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeOffset,
+	FileToFuns,
 	FnOp,
+	FunNameAndPos,
 	stackEntrySize,
 	subtractByteCodeIndex;
 import interpret.bytecodeWriter :
@@ -70,6 +72,7 @@ import lowModel :
 	matchLowType,
 	matchSpecialConstant,
 	PrimitiveType;
+import model : FunDecl, Module, name, Program, range;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : False, True;
 import util.collection.arr : Arr, at, range, size;
@@ -101,11 +104,15 @@ import util.collection.str : strEqLiteral;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : FileAndRange;
-import util.types : safeSizeTToU8, safeU32ToU8, u8;
+import util.sourceRange : FileAndRange, FileIndex;
+import util.types : safeSizeTToU8, safeU32ToU8, u8, u16, u32;
 import util.util : divRoundUp, roundUp, todo, verify;
 
-immutable(ByteCode) generateBytecode(CodeAlloc)(ref CodeAlloc codeAlloc, ref immutable LowProgram program) {
+immutable(ByteCode) generateBytecode(CodeAlloc)(
+	ref CodeAlloc codeAlloc,
+	ref immutable Program modelProgram,
+	ref immutable LowProgram program,
+) {
 	alias TempAlloc = StackAlloc!("generateBytecode", 1024 * 1024);
 	TempAlloc tempAlloc;
 
@@ -131,10 +138,23 @@ immutable(ByteCode) generateBytecode(CodeAlloc)(ref CodeAlloc codeAlloc, ref imm
 			fillDelayedCall(writer, reference, definition);
 	});
 
-	return finishByteCode(writer, fullIndexDictGet(funToDefinition, program.main));
+	return finishByteCode(writer, fullIndexDictGet(funToDefinition, program.main), fileToFuns(codeAlloc, modelProgram));
 }
 
 private:
+
+import util.collection.mutIndexMultiDict : MutIndexMultiDict;
+
+immutable(FileToFuns) fileToFuns(Alloc)(ref Alloc alloc, ref immutable Program program) {
+	immutable FullIndexDict!(FileIndex, Ptr!Module) modulesDict =
+		fullIndexDictOfArr!(FileIndex, Ptr!Module)(program.allModules);
+	return mapFullIndexDict!(FileIndex, Arr!FunNameAndPos, Ptr!Module, Alloc)(
+		alloc,
+		modulesDict,
+		(immutable FileIndex, ref immutable Ptr!Module module_) =>
+			map(alloc, module_.funs, (ref immutable FunDecl it) =>
+				immutable FunNameAndPos(name(it), range(it).range.start)));
+}
 
 // NOTE: we should lay out structs so that no primitive field straddles multiple stack entries.
 struct TypeLayout {
@@ -347,6 +367,8 @@ void generateExternCall(TempAlloc, CodeAlloc)(
 	if (strEqLiteral(fun.mangledName, "malloc")) {
 		writeFn(writer, fun.source, FnOp.malloc);
 	}
+
+	writeReturn(writer, fun.source);
 }
 
 struct ExprCtx {
@@ -601,13 +623,15 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 	ref immutable LowExpr expr,
 	ref immutable LowExprKind.SpecialUnary a,
 ) {
+	immutable FileAndRange source = expr.range;
+
 	void generateArg() {
 		generateExpr(tempAlloc, writer, ctx, a.arg);
 	}
 
 	void fn(immutable FnOp fnOp) {
 		generateArg();
-		writeFn(writer, expr.range, fnOp);
+		writeFn(writer, source, fnOp);
 	}
 
 	final switch (a.kind) {
@@ -627,22 +651,38 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 			// NOTE: we treat the upper bits of <64-bit types as arbitrary, so those are no-ops too
 			generateArg();
 			break;
-		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
-		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
-		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
+
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
+			fn(FnOp.intFromInt16);
+			break;
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
-			// Need to strip out the upper bits (arithmetic can change those)
-			// Could use a bits-and operation to do this
-			todo!void("!");
+			fn(FnOp.intFromInt32);
+			break;
+		// Normal operations on <64-bit values treat other bits as garbage
+		// (they may be written to, such as in a wrap-add operation that overflows)
+		// So we must mask out just the lower bits now.
+		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
+			generateArg();
+			writePushConstant(writer, source, u8.max);
+			writeFn(writer, source, FnOp.bitwiseAnd);
+			break;
+		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
+			generateArg();
+			writePushConstant(writer, source, u16.max);
+			writeFn(writer, source, FnOp.bitwiseAnd);
+			break;
+		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
+			generateArg();
+			writePushConstant(writer, source, u32.max);
+			writeFn(writer, source, FnOp.bitwiseAnd);
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
-			writeRead(writer, expr.range, 0, sizeOfType(ctx, expr.type));
+			writeRead(writer, source, 0, sizeOfType(ctx, expr.type));
 			break;
 		case LowExprKind.SpecialUnary.Kind.hardFail:
 			generateArg();
-			writeFnHardFail(writer, expr.range, nStackEntriesForType(ctx, expr.type));
+			writeFnHardFail(writer, source, nStackEntriesForType(ctx, expr.type));
 			break;
 		case LowExprKind.SpecialUnary.Kind.not:
 			fn(FnOp.not);

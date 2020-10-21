@@ -3,11 +3,14 @@ module interpret.bytecode;
 @safe @nogc nothrow: // not pure
 
 import interpret.opcode : OpCode;
-import util.collection.arr : Arr, sizeEq;
+import util.bools : Bool;
+import util.collection.arr : Arr, size;
+import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.str : Str, strLiteral;
 import util.sexpr : Sexpr, tataArr, tataNat, tataRecord, tataStr, tataSym;
+import util.sym : Sym;
 import util.types : safeU32ToU16, u8, u16, u32, u64;
-import util.sourceRange : FileAndPos;
+import util.sourceRange : FileAndPos, FileIndex, Pos;
 import util.util : todo, verify;
 
 @trusted T matchOperationImpure(T)(
@@ -114,7 +117,7 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 	return matchOperation(
 		a,
 		(ref immutable Operation.Call it) =>
-			tataRecord(alloc, "call", tataNat(it.address)),
+			tataRecord(alloc, "call", tataNat(it.address.index)),
 		(ref immutable Operation.CallFunPtr it)  =>
 			tataRecord(alloc, "call-ptr", tataNat(it.stackOffsetOfFunPtr.offset)),
 		(ref immutable Operation.Dup it)  =>
@@ -148,20 +151,36 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 			tataRecord(alloc, "write", tataNat(it.offset), tataNat(it.offset)));
 }
 
+//TODO:MOVE
+struct FunNameAndPos {
+	immutable Sym funName;
+	immutable Pos pos;
+}
+
+alias FileToFuns = FullIndexDict!(FileIndex, Arr!FunNameAndPos);
+
 struct ByteCode {
 	@safe @nogc pure nothrow:
 
 	immutable Arr!u8 byteCode;
-	immutable Arr!FileAndPos sources; // parallel to byteCode
+	immutable FullIndexDict!(ByteCodeIndex, FileAndPos) sources; // parallel to byteCode
+	immutable FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
 	immutable Arr!char text;
 	immutable ByteCodeIndex main;
 
-	immutable this(immutable Arr!u8 bc, immutable Arr!FileAndPos s, immutable Arr!char t, immutable ByteCodeIndex m) {
+	immutable this(
+		immutable Arr!u8 bc,
+		immutable FullIndexDict!(ByteCodeIndex, FileAndPos) s,
+		immutable FileToFuns ff,
+		immutable Arr!char t,
+		immutable ByteCodeIndex m,
+	) {
 		byteCode = bc;
 		sources = s;
+		fileToFuns = ff;
 		text = t;
 		main = m;
-		verify(sizeEq(byteCode, sources));
+		verify(size(byteCode) == fullIndexDictSize(sources));
 	}
 }
 
@@ -175,7 +194,7 @@ struct Operation {
 
 	// pushes current address onto the function stack and goes to the new function's address
 	struct Call {
-		immutable u32 address;
+		immutable ByteCodeIndex address;
 	}
 
 	// Removes a fun-ptr from the stack at the given offset and calls that
@@ -301,6 +320,15 @@ struct Operation {
 	immutable this(immutable Write a) { kind_ = Kind.write; write_ = a; }
 }
 
+immutable(Bool) isCall(ref immutable Operation op) {
+	return immutable Bool(op.kind_ == Operation.Kind.call);
+}
+
+immutable(Operation.Call) asCall(ref immutable Operation op) {
+	verify(isCall(op));
+	return op.call_;
+}
+
 struct ByteCodeIndex {
 	immutable u32 index;
 }
@@ -330,6 +358,8 @@ enum FnOp : u8 {
 	float64FromNat64,
 	free,
 	hardFail,
+	intFromInt16,
+	intFromInt32,
 	lessFloat64,
 	lessInt8,
 	lessInt16,
@@ -373,6 +403,10 @@ immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 			return "float-64-from-nat-64";
 		case FnOp.hardFail:
 			return "hard-fail";
+		case FnOp.intFromInt16:
+			return "to-int (from int-16)";
+		case FnOp.intFromInt32:
+			return "to-int (from int-32)";
 		case FnOp.lessFloat64:
 			return "< (float-64)";
 		case FnOp.lessInt8:

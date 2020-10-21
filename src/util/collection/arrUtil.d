@@ -1,7 +1,7 @@
 module util.collection.arrUtil;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
+import util.collection.arr : Arr, ArrWithSize, at, begin, empty, first, last, ptrAt, ptrsRange, range, size, sizeEq;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAt, arrBuilderSize, ArrWithSizeBuilder, finishArr;
 import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
@@ -847,4 +847,14 @@ immutable(size_t) arrMaxIndexRecur(T, U)(
 			? arrMaxIndexRecur!(T, U)(index, valueHere, a, index + 1, cb, compare)
 			: arrMaxIndexRecur!(T, U)(indexOfMax, maxValue, a, index + 1, cb, compare);
 	}
+}
+
+immutable(Opt!T) lastWhere(T)(
+	ref immutable Arr!T a,
+	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	foreach (immutable size_t i; 0..size(a))
+		if (!cb(at(a, i)))
+			return i == 0 ? none!T : some(at(a, i - 1));
+	return empty(a) ? none!T : some(last(a));
 }

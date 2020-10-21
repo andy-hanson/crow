@@ -7,6 +7,7 @@ import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeOffset,
+	FileToFuns,
 	FnOp,
 	stackEntrySize,
 	StackOffset,
@@ -26,6 +27,7 @@ import util.collection.byteWriter :
 import interpret.opcode : OpCode;
 import util.collection.arr : Arr, begin, empty, range, size, sizeEq;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.collection.mutArr : moveToArr, MutArr, mutArrRange, mutArrSize, push, pushAll, setAt;
 import util.collection.str : Str;
 import util.ptr : Ptr;
@@ -61,14 +63,18 @@ struct StackEntries {
 	immutable u8 size; // Number of entries
 }
 
-@trusted immutable(ByteCode) finishByteCode(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex mainIndex) {
+@trusted immutable(ByteCode) finishByteCode(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	immutable ByteCodeIndex mainIndex,
+	immutable FileToFuns fileToFuns,
+) {
 	immutable Arr!char text = moveToArr(writer.alloc, writer.text);
 	foreach (immutable ByteCodeIndexAndTextIndex indices; mutArrRange(writer.delayedTextPtrs))
 		writeU64(writer.byteWriter, indices.byteCodeIndex.index, cast(u64) begin(text) + indices.textIndex);
 	immutable Arr!u8 bytes = finishByteWriter(writer.byteWriter);
-	immutable Arr!FileAndPos sources = finishArr(writer.alloc, writer.sources);
-	verify(sizeEq(bytes, sources));
-	return immutable ByteCode(bytes, sources, text, mainIndex);
+	immutable FullIndexDict!(ByteCodeIndex, FileAndPos) sources =
+		fullIndexDictOfArr!(ByteCodeIndex, FileAndPos)(finishArr(writer.alloc, writer.sources));
+	return immutable ByteCode(bytes, sources, fileToFuns, text, mainIndex);
 }
 
 immutable(StackEntry) getNextStackEntry(Alloc)(ref const ByteCodeWriter!Alloc writer) {
@@ -336,10 +342,12 @@ void writeRemove(Alloc)(
 	ref immutable FileAndRange source,
 	immutable StackEntries entries,
 ) {
-	pushOpcode(writer, source, OpCode.remove);
-	pushU8(writer, source, getStackOffsetTo(writer, entries.start));
-	pushU8(writer, source, entries.size);
-	writer.nextStackEntry -= entries.size;
+	if (entries.size != 0) {
+		pushOpcode(writer, source, OpCode.remove);
+		pushU8(writer, source, getStackOffsetTo(writer, entries.start));
+		pushU8(writer, source, entries.size);
+		writer.nextStackEntry -= entries.size;
+	}
 }
 
 immutable(ByteCodeIndex) writeJumpDelayed(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
@@ -378,6 +386,7 @@ immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(
 	immutable size_t nCases,
 ) {
 	pushOpcode(writer, source, OpCode.switch_);
+	writer.nextStackEntry -= 1;
 	immutable ByteCodeIndex addresses = nextByteCodeIndex(writer);
 	foreach (immutable size_t i; 0..nCases) {
 		static assert(ByteCodeOffset.sizeof == 2);
@@ -429,6 +438,8 @@ void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange 
 				return -1;
 			case FnOp.float64FromInt64:
 			case FnOp.float64FromNat64:
+			case FnOp.intFromInt16:
+			case FnOp.intFromInt32:
 			case FnOp.malloc:
 			case FnOp.not:
 			case FnOp.truncateToInt64FromFloat64:

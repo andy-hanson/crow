@@ -259,8 +259,12 @@ immutable(Ptr!Sexpr) allocSexpr(Alloc)(ref Alloc alloc, immutable Sexpr s) {
 	return allocate!Sexpr(alloc, s);
 }
 
-void writeSexpr(Alloc)(ref Writer!Alloc writer, immutable Sexpr a) {
+void writeSexprNoNewline(Alloc)(ref Writer!Alloc writer, immutable Sexpr a) {
 	writeSexpr(writer, 0, maxWidth, a);
+}
+
+void writeSexpr(Alloc)(ref Writer!Alloc writer, immutable Sexpr a) {
+	writeSexprNoNewline(writer, a);
 	writeChar(writer, '\n');
 }
 

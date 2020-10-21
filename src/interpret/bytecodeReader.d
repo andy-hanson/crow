@@ -2,7 +2,7 @@ module interpret.bytecodeReader;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : ByteCode, ByteCodeOffset, FnOp, Operation, StackOffset;
+import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeOffset, FnOp, Operation, StackOffset;
 import interpret.opcode : OpCode;
 import util.collection.byteReader :
 	ByteReader,
@@ -37,7 +37,7 @@ immutable(Operation) readOperation(ref ByteCodeReader reader) {
 	immutable OpCode code = cast(immutable OpCode) readU8(reader.reader);
 	final switch (code) {
 		case OpCode.call:
-			return immutable Operation(immutable Operation.Call(readU32(reader.reader)));
+			return immutable Operation(immutable Operation.Call(immutable ByteCodeIndex(readU32(reader.reader))));
 		case OpCode.callFunPtr:
 			return immutable Operation(immutable Operation.CallFunPtr(readStackOffset(reader)));
 		case OpCode.dup:

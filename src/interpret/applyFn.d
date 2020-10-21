@@ -8,7 +8,18 @@ import core.stdc.stdlib : free, malloc;
 import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
 import util.collection.globalAllocatedStack : pop, push;
-import util.types : i8, i16, i32, i64, u32, u64, float64, float64OfU64Bits, u64OfFloat64Bits;
+import util.types :
+	bottomU16OfU64,
+	bottomU32OfU64,
+	i8,
+	i16,
+	i32,
+	i64,
+	u32,
+	u64,
+	float64,
+	float64OfU64Bits,
+	u64OfFloat64Bits;
 import util.util : todo, verify;
 
 public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
@@ -40,6 +51,14 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 		case FnOp.float64FromNat64:
 			unary(dataStack, (immutable u64 a) =>
 				u64OfFloat64Bits(cast(float64) a));
+			break;
+		case FnOp.intFromInt16:
+			unary(dataStack, (immutable u64 a) =>
+				cast(u64) (cast(i64) (cast(i16) (bottomU16OfU64(a)))));
+			break;
+		case FnOp.intFromInt32:
+			unary(dataStack, (immutable u64 a) =>
+				cast(u64) (cast(i64) (cast(i32) (bottomU32OfU64(a)))));
 			break;
 		case FnOp.free:
 			doFree(dataStack);
@@ -132,7 +151,14 @@ private:
 }
 
 @trusted void doMalloc(ref DataStack dataStack) {
-	push(dataStack, cast(immutable u64) malloc(pop(dataStack)));
+	immutable u64 nBytes = pop(dataStack);
+	verify(nBytes != 0);
+	void* ptr = malloc(nBytes);
+	debug {
+		import core.stdc.stdio : printf;
+		printf("doMalloc: nbytes=%lu, ptr=%p\n", nBytes, ptr);
+	}
+	push(dataStack, cast(immutable u64) ptr);
 }
 
 pure @trusted immutable(u64) compareExchangeStrongBool(immutable u64 a, immutable u64 b, immutable u64 c) {

@@ -5,7 +5,7 @@ module test.testInterpreter;
 import core.stdc.stdio : printf;
 import diag : FilesInfo;
 import model : AbsolutePathsGetter;
-import interpret.bytecode : ByteCode, ByteCodeIndex, FnOp;
+import interpret.bytecode : ByteCode, ByteCodeIndex, FileToFuns, FnOp, FunNameAndPos;
 import interpret.runBytecode :
 	DataStack,
 	nextByteCodeIndex,
@@ -55,7 +55,7 @@ import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmp
 import util.opt : none;
 import util.path : Path, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : FileAndRange, FileIndex;
+import util.sourceRange : FileAndRange, FileIndex, Pos;
 import util.sym : shortSymAlphaLiteral;
 import util.types : u8, u16, u32, u64;
 import util.util : repeatImpure, verify, verifyEq;
@@ -88,7 +88,14 @@ immutable(ByteCode) makeByteCode(Alloc)(
 ) {
 	ByteCodeWriter!Alloc writer = newByteCodeWriter(ptrTrustMe_mut(alloc));
 	writeBytecode(writer, FileAndRange.empty);
-	return finishByteCode(writer, immutable ByteCodeIndex(0));
+	return finishByteCode(writer, immutable ByteCodeIndex(0), dummyFileToFuns());
+}
+
+immutable(FileToFuns) dummyFileToFuns() {
+	static immutable FunNameAndPos dummy = immutable FunNameAndPos(shortSymAlphaLiteral("a"), immutable Pos(0));
+	static immutable Arr!FunNameAndPos dummyArr = immutable Arr!FunNameAndPos(&dummy, 1);
+	return fullIndexDictOfArr!(FileIndex, Arr!FunNameAndPos)(
+		immutable Arr!(Arr!FunNameAndPos)(&dummyArr, 1));
 }
 
 void doInterpret(
@@ -147,7 +154,7 @@ void testCall() {
 	writeReturn(writer, source);
 
 	fillDelayedCall(writer, delayed, fIndex);
-	immutable ByteCode byteCode = finishByteCode(writer, immutable ByteCodeIndex(0));
+	immutable ByteCode byteCode = finishByteCode(writer, immutable ByteCodeIndex(0), dummyFileToFuns());
 
 	doInterpret(byteCode, (ref Interpreter interpreter) {
 		stepNAndExpect(interpreter, 2, [1, 2]);
@@ -189,7 +196,7 @@ void testCallFunPtr() {
 	writeReturn(writer, source);
 
 	fillDelayedCall(writer, delayed, fIndex);
-	immutable ByteCode byteCode = finishByteCode(writer, immutable ByteCodeIndex(0));
+	immutable ByteCode byteCode = finishByteCode(writer, immutable ByteCodeIndex(0), dummyFileToFuns());
 
 	doInterpret(byteCode, (ref Interpreter interpreter) {
 		stepNAndExpect(interpreter, 3, [fIndex.index, 1, 2]);
@@ -235,7 +242,7 @@ void testSwitchAndJump() {
 	fillInJumpDelayed(writer, jumpIndex);
 	immutable ByteCodeIndex bottom = nextByteCodeIndex(writer);
 	writeReturn(writer, source);
-	immutable ByteCode byteCode = finishByteCode(writer, immutable ByteCodeIndex(0));
+	immutable ByteCode byteCode = finishByteCode(writer, immutable ByteCodeIndex(0), dummyFileToFuns());
 
 	doInterpret(byteCode, (ref Interpreter interpreter) {
 		stepAndExpect(interpreter, [0]);

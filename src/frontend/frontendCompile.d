@@ -106,9 +106,10 @@ immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, SymAlloc)(
 		immutable Diagnostics(diagnostics, filesInfo));
 }
 
-struct FileAstAndArrDiagnostic {
+struct FileAstAndArrDiagnosticAndLineAndColumnGetter {
 	immutable FileAst ast;
 	immutable Arr!ParseDiagnostic diagnostics;
+	immutable LineAndColumnGetter lineAndColumnGetter;
 }
 
 struct FileAstAndDiagnostics {
@@ -123,20 +124,19 @@ immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, SymAlloc)(
 	immutable Ptr!Path path,
 ) {
 	StackAlloc!("single file", 1024 * 1024) fileAlloc;
-	LineAndColumnGettersBuilder lineAndColumnGetters;
 	// In this case model alloc and AST alloc are the same
 	immutable Opt!NulTerminatedStr opFileContent =
 		getFile(fileAlloc, PathAndStorageKind(path, StorageKind.local), storages);
 	immutable PathAndStorageKind pathAndStorageKind = immutable PathAndStorageKind(path, StorageKind.local);
-	immutable FileAstAndArrDiagnostic res = parseSingle!(Alloc, Alloc, SymAlloc)(
+	immutable FileAstAndArrDiagnosticAndLineAndColumnGetter res = parseSingle!(Alloc, Alloc, SymAlloc)(
 		alloc,
 		alloc,
 		allSymbols,
 		none!PathAndRange,
-		lineAndColumnGetters,
 		opFileContent);
 	immutable LineAndColumnGetters lc =
-		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(finishArr(alloc, lineAndColumnGetters));
+		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
+			arrLiteral!LineAndColumnGetter(alloc, res.lineAndColumnGetter));
 	immutable FilePaths filePaths =
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(arrLiteral!PathAndStorageKind(alloc, pathAndStorageKind));
 	return immutable FileAstAndDiagnostics(
@@ -305,11 +305,13 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 	immutable(FileIndex) addFileIndex(
 		immutable AstAndResolvedImports result,
 		immutable Arr!ParseDiagnostic parseDiags,
+		ref immutable LineAndColumnGetter lineAndColumnGetter,
 	) {
 		immutable FileIndex index = immutable FileIndex(safeSizeTToU16(arrBuilderSize(fileIndexToPath)));
 		verify(index.index == arrBuilderSize(res));
 		add(modelAlloc, fileIndexToPath, path);
 		add(astAlloc, res, result);
+		add(modelAlloc, lineAndColumnGetters, lineAndColumnGetter);
 		setInDict(
 			astAlloc,
 			statuses,
@@ -320,10 +322,10 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 	}
 
 	immutable Opt!NulTerminatedStr opFileContent = getFile(astAlloc, path, storages);
-	immutable FileAstAndArrDiagnostic parseResult =
-		parseSingle(modelAlloc, astAlloc, allSymbols, importedFrom, lineAndColumnGetters, opFileContent);
+	immutable FileAstAndArrDiagnosticAndLineAndColumnGetter parseResult =
+		parseSingle(modelAlloc, astAlloc, allSymbols, importedFrom, opFileContent);
 	if (!empty(parseResult.diagnostics))
-		return addFileIndex(AstAndResolvedImports.empty, parseResult.diagnostics);
+		return addFileIndex(AstAndResolvedImports.empty, parseResult.diagnostics, parseResult.lineAndColumnGetter);
 	else {
 		immutable FileAst ast = parseResult.ast;
 		immutable ImportAndExportPaths importsAndExports =
@@ -348,7 +350,8 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 											immutable ParseDiagnostic(
 												import_.importedFrom,
 												immutable ParseDiag(
-													immutable ParseDiag.CircularImport(path, resolvedPath))))),
+													immutable ParseDiag.CircularImport(path, resolvedPath)))),
+											parseResult.lineAndColumnGetter),
 								(ref immutable ParseStatus.Done it) =>
 									it.fileIndex);
 						else
@@ -373,7 +376,8 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 		immutable Arr!FileIndex resolvedExports = resolveImportsOrExports(importsAndExports.exports);
 		return addFileIndex(
 			immutable AstAndResolvedImports(ast, path.storageKind, resolvedImports, resolvedExports),
-			importsAndExports.parseDiags);
+			importsAndExports.parseDiags,
+			parseResult.lineAndColumnGetter);
 	}
 }
 
@@ -418,38 +422,31 @@ immutable(Diags) parseDiagnostics(Alloc)(
 
 alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter; // TODO: OrderedFullIndexDictBuilder?
 
-void addEmptyLineAndColumnGetter(Alloc)(
-	ref Alloc alloc,
-	ref LineAndColumnGettersBuilder lineAndColumnGetters,
-	immutable PathAndStorageKind where,
-) {
-	// Even a non-existent path needs LineAndColumnGetter since that's where the diagnostic is
-	addToDict(alloc, lineAndColumnGetters, where, lineAndColumnGetterForEmptyFile(alloc));
-}
-
-immutable(FileAstAndArrDiagnostic) parseSingle(ModelAlloc, AstAlloc, SymAlloc)(
+immutable(FileAstAndArrDiagnosticAndLineAndColumnGetter) parseSingle(ModelAlloc, AstAlloc, SymAlloc)(
 	ref ModelAlloc modelAlloc,
 	ref AstAlloc astAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	immutable Opt!PathAndRange importedFrom,
-	ref LineAndColumnGettersBuilder lineAndColumnGetters,
 	immutable Opt!NulTerminatedStr opFileContent,
 ) {
-	add(modelAlloc, lineAndColumnGetters, has(opFileContent)
+	immutable LineAndColumnGetter lcg = has(opFileContent)
 		? lineAndColumnGetterForText(modelAlloc, stripNulTerminator(force(opFileContent)))
-		: lineAndColumnGetterForEmptyFile(modelAlloc));
+		: lineAndColumnGetterForEmptyFile(modelAlloc);
 
 	// File content must go in astAlloc because we refer to strings without copying
 	if (has(opFileContent)) {
 		immutable NulTerminatedStr text = opFileContent.force;
 		immutable FileAstAndParseDiagnostics result = parseFile(astAlloc, allSymbols, text);
-		return immutable FileAstAndArrDiagnostic(result.ast, result.diagnostics);
+		return immutable FileAstAndArrDiagnosticAndLineAndColumnGetter(result.ast, result.diagnostics, lcg);
 	} else
-		return immutable FileAstAndArrDiagnostic(emptyFileAst, arrLiteral!ParseDiagnostic(
-			modelAlloc,
-			immutable ParseDiagnostic(
-				RangeWithinFile.empty,
-				immutable ParseDiag(ParseDiag.FileDoesNotExist(importedFrom)))));
+		return immutable FileAstAndArrDiagnosticAndLineAndColumnGetter(
+			emptyFileAst,
+			arrLiteral!ParseDiagnostic(
+				modelAlloc,
+				immutable ParseDiagnostic(
+					RangeWithinFile.empty,
+					immutable ParseDiag(ParseDiag.FileDoesNotExist(importedFrom)))),
+			lcg);
 }
 
 struct ResolvedImport {

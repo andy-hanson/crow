@@ -4,7 +4,7 @@ module util.collection.fullIndexDict;
 
 import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, setAt, size;
 import util.collection.arrUtil : mapWithIndex;
-import util.types : safeSizeTToU32;
+import util.types : safeSizeTToU16, safeSizeTToU32;
 
 struct FullIndexDict(K, V) {
 	Arr!V values;
@@ -74,6 +74,6 @@ immutable(FullIndexDict!(K, VOut)) mapFullIndexDict(K, VOut, VIn, Alloc)(
 ) {
 	return fullIndexDictOfArr!(K, VOut)(
 		mapWithIndex(alloc, a.values, (immutable size_t index, ref immutable VIn v) =>
-			cb(immutable K(safeSizeTToU32(index)), v)));
+			cb(immutable K(K.sizeof == 4 ? safeSizeTToU32(index) : safeSizeTToU16(index)), v)));
 }
 
