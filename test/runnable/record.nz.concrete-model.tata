@@ -526,17 +526,6 @@ program(
 					local("gctx", type(true, "global_ctx"))
 					local("vat_by_val", type(false, "vat"))
 					local("vat", type(true, "vat"))
-					local("vats", type(false, "arr__ptr_vat"))
-					local("ectx", type(false, "exception_ctx"))
-					local("tls", type(false, "thread_local_stuff"))
-					local("ctx_by_val", type(false, "ctx"))
-					local("ctx", type(true, "ctx"))
-					local(
-						"add"
-						type(
-							false
-							"fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))
-					local("all_args", type(false, "arr__ptr__char"))
 					local("main_fut", type(true, "fut__int32"))
 					local("o", type(false, "ok__int32"))
 					local("e", type(false, "err__exception"))
@@ -565,110 +554,57 @@ program(
 								let(
 									"vat"
 									call("ref_of_val__ptr_vat__vat", [local-ref("vat_by_val")])
-									let(
-										"vats"
-										record(
-											[
-												call("one__nat", [])
-												call("ptr_to__ptr__ptr_vat__ptr_vat", [local-ref("vat")])])
-										seq(
-											set-field(local-ref("gctx"), "vats", local-ref("vats"))
-											let(
-												"ectx"
-												call("new_exception_ctx__exception_ctx", [])
-												let(
-													"tls"
-													record(
-														[
-															call(
-																"ref_of_val__ptr_exception_ctx__exception_ctx"
-																[local-ref("ectx")])])
-													let(
-														"ctx_by_val"
+									seq(
+										set-field(
+											local-ref("gctx")
+											"vats"
+											record(
+												[
+													call("one__nat", [])
+													call("ptr_to__ptr__ptr_vat__ptr_vat", [local-ref("vat")])]))
+										let(
+											"main_fut"
+											call(
+												"do_main__ptr_fut__int32__ptr_global_ctx__ptr_vat__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+												[
+													local-ref("gctx")
+													local-ref("vat")
+													param-ref("argc")
+													param-ref("argv")
+													param-ref("main_ptr")])
+											seq(
+												call(
+													"run_threads___void__nat__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx"
+													[
+														local-ref("n_threads")
+														local-ref("gctx")
+														lambda(
+															"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
+															none)])
+												cond(
+													get-field(local-ref("gctx"), "any_unhandled_exceptions__q")
+													call("one__int32", [])
+													match(
+														"matched"
 														call(
-															"new_ctx__ctx__ptr_global_ctx__ptr_thread_local_stuff__ptr_vat__nat"
-															[
-																local-ref("gctx")
-																call(
-																	"ref_of_val__ptr_thread_local_stuff__thread_local_stuff"
-																	[local-ref("tls")])
-																local-ref("vat")
-																call("zero__nat", [])])
-														let(
-															"ctx"
-															call("ref_of_val__ptr_ctx__ctx", [local-ref("ctx_by_val")])
-															let(
-																"add"
-																call(
-																	"as__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
-																	[
-																		lambda(
-																			"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
-																			some(call("null__ptr__bool", [])))])
-																let(
-																	"all_args"
-																	record(
-																		[
-																			call(
-																				"unsafe_to_nat__nat___int"
-																				[
-																					call(
-																						"to_int___int__int32"
-																						[param-ref("argc")])])
-																			param-ref("argv")])
-																	let(
-																		"main_fut"
+															"must_be_resolved__result__int32__exception__ptr_fut__int32"
+															[local-ref("main_fut")])
+														[
+															case(some("o"), get-field(local-ref("o"), "value"))
+															case(
+																some("e")
+																seq(
+																	seq(
 																		call(
-																			"call_with_ctx__ptr_fut__int32__ptr_ctx__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+																			"print_err_sync_no_newline___void__arr__char"
+																			[str-lit("main failed: ")])
+																		call(
+																			"print_err_sync___void__arr__char"
 																			[
-																				local-ref("ctx")
-																				local-ref("add")
-																				local-ref("all_args")
-																				param-ref("main_ptr")])
-																		seq(
-																			call(
-																				"run_threads___void__nat__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx"
-																				[
-																					local-ref("n_threads")
-																					local-ref("gctx")
-																					lambda(
-																						"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda1"
-																						none)])
-																			cond(
 																				get-field(
-																					local-ref("gctx")
-																					"any_unhandled_exceptions__q")
-																				call("one__int32", [])
-																				match(
-																					"matched"
-																					call(
-																						"must_be_resolved__result__int32__exception__ptr_fut__int32"
-																						[local-ref("main_fut")])
-																					[
-																						case(
-																							some("o")
-																							get-field(
-																								local-ref("o")
-																								"value"))
-																						case(
-																							some("e")
-																							seq(
-																								seq(
-																									call(
-																										"print_err_sync_no_newline___void__arr__char"
-																										[
-																											str-lit(
-																												"main failed: ")])
-																									call(
-																										"print_err_sync___void__arr__char"
-																										[
-																											get-field(
-																												get-field(
-																													local-ref(
-																														"e")
-																													"value")
-																												"message")]))
-																								call("one__int32", [])))])))))))))))))))))))
+																					get-field(local-ref("e"), "value")
+																					"message")]))
+																	call("one__int32", [])))]))))))))))))
 		fun(
 			false
 			"as__nat__nat"
@@ -1150,6 +1086,70 @@ program(
 			none
 			[param("t", type(true, "vat"))]
 			builtin([type(true, "vat")]))
+		fun(
+			false
+			"do_main__ptr_fut__int32__ptr_global_ctx__ptr_vat__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+			type(true, "fut__int32")
+			none
+			[
+				param("gctx", type(true, "global_ctx"))
+				param("vat", type(true, "vat"))
+				param("argc", type(false, "int32"))
+				param("argv", type(false, "ptr__ptr__char"))
+				param("main_ptr", type(false, "fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))]
+			expr-body(
+				[
+					local("ectx", type(false, "exception_ctx"))
+					local("tls", type(false, "thread_local_stuff"))
+					local("ctx_by_val", type(false, "ctx"))
+					local("ctx", type(true, "ctx"))
+					local(
+						"add"
+						type(
+							false
+							"fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"))
+					local("all_args", type(false, "arr__ptr__char"))]
+				let(
+					"ectx"
+					call("new_exception_ctx__exception_ctx", [])
+					let(
+						"tls"
+						record([call("ref_of_val__ptr_exception_ctx__exception_ctx", [local-ref("ectx")])])
+						let(
+							"ctx_by_val"
+							call(
+								"new_ctx__ctx__ptr_global_ctx__ptr_thread_local_stuff__ptr_vat__nat"
+								[
+									param-ref("gctx")
+									call("ref_of_val__ptr_thread_local_stuff__thread_local_stuff", [local-ref("tls")])
+									param-ref("vat")
+									call("zero__nat", [])])
+							let(
+								"ctx"
+								call("ref_of_val__ptr_ctx__ctx", [local-ref("ctx_by_val")])
+								let(
+									"add"
+									call(
+										"as__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+										[
+											lambda(
+												"do_main__ptr_fut__int32__ptr_global_ctx__ptr_vat__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
+												some(call("null__ptr__bool", [])))])
+									let(
+										"all_args"
+										record(
+											[
+												call(
+													"unsafe_to_nat__nat___int"
+													[call("to_int___int__int32", [param-ref("argc")])])
+												param-ref("argv")])
+										call(
+											"call_with_ctx__ptr_fut__int32__ptr_ctx__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char"
+											[
+												local-ref("ctx")
+												local-ref("add")
+												local-ref("all_args")
+												param-ref("main_ptr")])))))))))
 		fun(
 			false
 			"new_exception_ctx__exception_ctx"
@@ -3583,7 +3583,7 @@ program(
 										some(call("null__ptr__bool", [])))])]))))
 		fun(
 			true
-			"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
+			"do_main__ptr_fut__int32__ptr_global_ctx__ptr_vat__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
 			type(true, "fut__int32")
 			some(param("_closure", type(false, "ptr__nat8")))
 			[
@@ -5056,7 +5056,7 @@ program(
 					call("pass___void", []))))
 		fun(
 			false
-			"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda1"
+			"rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0"
 			type(false, "_void")
 			none
 			[param("thread_id", type(false, "nat")), param("gctx", type(true, "global_ctx"))]

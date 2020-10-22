@@ -26,6 +26,7 @@ import interpret.bytecodeWriter :
 	StackEntries,
 	StackEntry,
 	writeAddConstantNat64,
+	writeAssertStackSize,
 	writeCallDelayed,
 	writeCallFunPtr,
 	writeDupEntries,
@@ -165,8 +166,8 @@ struct TypeLayout {
 }
 
 struct TypeLayoutBuilder {
-	FullIndexDictBuilder!(LowType.Record, u8) resultSizes;
-	FullIndexDictBuilder!(LowType.Record, Arr!u8) resultFieldOffsets;
+	FullIndexDictBuilder!(LowType.Record, u8) recordSizes;
+	FullIndexDictBuilder!(LowType.Record, Arr!u8) recordFieldOffsets;
 	FullIndexDictBuilder!(LowType.Union, u8) unionSizes;
 }
 
@@ -176,7 +177,7 @@ immutable(TypeLayout) layOutTypes(Alloc)(ref Alloc alloc, ref immutable LowProgr
 		newFullIndexDictBuilder!(LowType.Record, Arr!u8)(alloc, fullIndexDictSize(program.allRecords)),
 		newFullIndexDictBuilder!(LowType.Union, u8)(alloc, fullIndexDictSize(program.allUnions)));
 	fullIndexDictEach(program.allRecords, (immutable LowType.Record index, ref immutable LowRecord record) {
-		if (!fullIndexDictBuilderHas(builder.resultSizes, index))
+		if (!fullIndexDictBuilderHas(builder.recordSizes, index))
 			fillRecordSize!Alloc(alloc, program, index, record, builder);
 	});
 	fullIndexDictEach(program.allUnions, (immutable LowType.Union index, ref immutable LowUnion union_) {
@@ -184,8 +185,8 @@ immutable(TypeLayout) layOutTypes(Alloc)(ref Alloc alloc, ref immutable LowProgr
 			fillUnionSize!Alloc(alloc, program, index, union_, builder);
 	});
 	return immutable TypeLayout(
-		finishFullIndexDict(builder.resultSizes),
-		finishFullIndexDict(builder.resultFieldOffsets),
+		finishFullIndexDict(builder.recordSizes),
+		finishFullIndexDict(builder.recordFieldOffsets),
 		finishFullIndexDict(builder.unionSizes));
 }
 
@@ -210,9 +211,9 @@ immutable(u8) fillRecordSize(Alloc)(
 		offset += fieldSize;
 		return res;
 	});
-	immutable u8 size = offset;
-	fullIndexDictBuilderAdd(builder.resultSizes, index, size);
-	fullIndexDictBuilderAdd(builder.resultFieldOffsets, index, fieldOffsets);
+	immutable u8 size = offset <= 8 ? offset : safeSizeTToU8(roundUp(offset, 8));
+	fullIndexDictBuilderAdd(builder.recordSizes, index, size);
+	fullIndexDictBuilderAdd(builder.recordFieldOffsets, index, fieldOffsets);
 	return size;
 }
 
@@ -248,7 +249,7 @@ immutable(u8) sizeOfType(Alloc)(
 		(immutable LowType.NonFunPtr) => ptrSize,
 		(immutable PrimitiveType it) => primitiveSize(it),
 		(immutable LowType.Record index) {
-			immutable Opt!u8 size = fullIndexDictBuilderOptGet(builder.resultSizes, index);
+			immutable Opt!u8 size = fullIndexDictBuilderOptGet(builder.recordSizes, index);
 			return has(size)
 				? force(size)
 				: fillRecordSize(alloc, program, index, fullIndexDictGet(program.allRecords, index), builder);
@@ -345,7 +346,6 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 				ptrTrustMe_mut(funToReferences),
 				parameters);
 			generateExpr(tempAlloc, writer, ctx, body_.expr);
-			writeReturn(writer, fun.source);
 
 			immutable uint returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
 			verify(stackEntryAfterParameters.entry + returnEntries == getNextStackEntry(writer).entry);
@@ -354,6 +354,8 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 				fun.source,
 				immutable StackEntries(immutable StackEntry(0), safeU32ToU8(stackEntryAfterParameters.entry)));
 			verify(getNextStackEntry(writer).entry == returnEntries);
+			writeReturn(writer, fun.source);
+
 			setNextStackEntry(writer, immutable StackEntry(0));
 		});
 }
@@ -366,6 +368,8 @@ void generateExternCall(TempAlloc, CodeAlloc)(
 ) {
 	if (strEqLiteral(fun.mangledName, "malloc")) {
 		writeFn(writer, fun.source, FnOp.malloc);
+	} else {
+		todo!void("unhandled extern function");
 	}
 
 	writeReturn(writer, fun.source);
@@ -386,6 +390,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 	ref immutable LowExpr expr,
 ) {
 	immutable FileAndRange source = expr.range;
+	writeAssertStackSize(writer, source);
 	return matchLowExprKind(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
@@ -764,9 +769,10 @@ void generatePtrToRecordFieldAccess(TempAlloc, CodeAlloc)(
 ) {
 	generateExpr(tempAlloc, writer, ctx, it.target);
 	immutable u8 offset = getFieldOffset(ctx, it.record, it.fieldIndex);
-	if (it.targetIsPointer)
-		writeAddConstantNat64(writer, source, offset);
-	else {
+	if (it.targetIsPointer) {
+		if (offset != 0)
+			writeAddConstantNat64(writer, source, offset);
+	} else {
 		// This only works if it's a local .. or another recordfieldaccess
 		todo!void("ptr-to-record-field-access");
 	}

@@ -2,7 +2,7 @@ module interpret.bytecodeReader;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeOffset, FnOp, Operation, StackOffset;
+import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeOffset, DebugOperation, FnOp, Operation, StackOffset;
 import interpret.opcode : OpCode;
 import util.collection.byteReader :
 	ByteReader,
@@ -15,14 +15,15 @@ import util.collection.byteReader :
 	setPtr,
 	skipBytes;
 import util.types : U4U4, u4u4OfU8, u8, u16, u32, u64;
+import util.util : unreachable;
 
 struct ByteCodeReader {
 	private:
 	ByteReader reader;
 }
 
-ByteCodeReader newByteCodeReader(immutable u8* bytes) {
-	return ByteCodeReader(ByteReader(bytes));
+@trusted ByteCodeReader newByteCodeReader(immutable u8* bytes, immutable size_t start) {
+	return ByteCodeReader(ByteReader(bytes + start));
 }
 
 immutable(u8)* getReaderPtr(ref const ByteCodeReader reader) {
@@ -36,10 +37,20 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 immutable(Operation) readOperation(ref ByteCodeReader reader) {
 	immutable OpCode code = cast(immutable OpCode) readU8(reader.reader);
 	final switch (code) {
+		case OpCode.reserved0:
+		case OpCode.reserved1:
+		case OpCode.reserved2:
+		case OpCode.reserved3:
+			return unreachable!(immutable Operation)();
+		case OpCode.assertStackSize:
+			return immutable Operation(immutable Operation.Debug(
+				immutable DebugOperation(immutable DebugOperation.AssertStackSize(readU16(reader.reader)))));
 		case OpCode.call:
-			return immutable Operation(immutable Operation.Call(immutable ByteCodeIndex(readU32(reader.reader))));
+			return immutable Operation(immutable Operation.Call(
+				immutable ByteCodeIndex(readU32(reader.reader)),
+				readU8(reader.reader)));
 		case OpCode.callFunPtr:
-			return immutable Operation(immutable Operation.CallFunPtr(readStackOffset(reader)));
+			return immutable Operation(immutable Operation.CallFunPtr(readU8(reader.reader)));
 		case OpCode.dup:
 			return immutable Operation(immutable Operation.Dup(readStackOffset(reader)));
 		case OpCode.dupPartial:

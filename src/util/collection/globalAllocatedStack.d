@@ -23,6 +23,10 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 	return a.values.ptr;
 }
 
+immutable(size_t) stackSize(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
+	return a.size;
+}
+
 void clearStack(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
 	a.size = 0;
 }
@@ -46,7 +50,7 @@ void pushAll(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, scope
 		push(a, value);
 }
 
-immutable(T) peek(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a, immutable u8 offset) {
+immutable(T) peek(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a, immutable u8 offset = 0) {
 	verify(offset < a.size);
 	return a.values[a.size - 1 - offset];
 }
@@ -65,6 +69,10 @@ immutable(T) pop(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
 }
 
 void dup(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable u8 offset) {
+	debug {
+		import core.stdc.stdio : printf;
+		printf("GAS size: %lu, peek %d\n",  a.size, offset);
+	}
 	push(a, peek(a, offset));
 }
 

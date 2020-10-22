@@ -1032,6 +1032,7 @@ uint8_t empty__q__bool__arr__char(struct arr__char a);
 uint8_t zero__q__bool__nat(uint64_t n);
 struct global_ctx* get_gctx__ptr_global_ctx(struct ctx* ctx);
 uint8_t new_vat__vat__ptr_global_ctx__nat__nat__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception it);
+struct fut__int32* do_main__ptr_fut__int32__ptr_global_ctx__ptr_vat__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(struct global_ctx* gctx, struct vat* vat, int32_t argc, char** argv, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr);
 struct exception_ctx new_exception_ctx__exception_ctx();
 struct ctx new_ctx__ctx__ptr_global_ctx__ptr_thread_local_stuff__ptr_vat__nat(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id);
 struct gc_ctx* get_gc_ctx__ptr_gc_ctx__ptr_gc(struct gc* gc);
@@ -1055,7 +1056,7 @@ extern int32_t pthread_yield();
 extern void usleep(uint64_t micro_seconds);
 uint8_t zero__q__bool__int32(int32_t i);
 uint8_t _op_equal_equal__bool__int32__int32(int32_t a, int32_t b);
-struct comparison compare60(int32_t a, int32_t b);
+struct comparison compare61(int32_t a, int32_t b);
 uint64_t noctx_incr__nat__nat(uint64_t n);
 uint8_t _op_less__bool__nat__nat(uint64_t a, uint64_t b);
 uint64_t billion__nat();
@@ -1173,14 +1174,14 @@ uint64_t _op_minus__nat__ptr__char__ptr__char(char* a, char* b);
 char* find_cstr_end__ptr__char__ptr__char(char* a);
 char* find_char_in_cstr__ptr__char__ptr__char__char(char* a, char c);
 uint8_t _op_equal_equal__bool__char__char(char a, char b);
-struct comparison compare178(char a, char b);
+struct comparison compare179(char a, char b);
 char literal__char__arr__char(struct arr__char a);
 char noctx_at__char__arr__char__nat(struct arr__char a, uint64_t index);
 char* todo__ptr__char();
 char* incr__ptr__char__ptr__char(char* p);
 struct arr__char add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0__lambda0(struct ctx* ctx, uint8_t* _closure, char* it);
 struct fut__int32* add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0(struct ctx* ctx, struct add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0___closure* _closure);
-struct fut__int32* rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__ptr__char all_args, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr);
+struct fut__int32* do_main__ptr_fut__int32__ptr_global_ctx__ptr_vat__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__ptr__char all_args, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr);
 struct fut__int32* call_with_ctx__ptr_fut__int32__ptr_ctx__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(struct ctx* c, struct fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char f, struct arr__ptr__char p0, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char p1);
 uint8_t run_threads___void__nat__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx(uint64_t n_threads, struct global_ctx* arg, fun_ptr2___void__nat__ptr_global_ctx fun);
 struct thread_args__ptr_global_ctx* unmanaged_alloc_elements__ptr__thread_args__ptr_global_ctx__nat(uint64_t size_elements);
@@ -1238,7 +1239,7 @@ uint8_t return_ctx___void__ptr_ctx(struct ctx* c);
 uint8_t return_gc_ctx___void__ptr_gc_ctx(struct gc_ctx* gc_ctx);
 struct some__ptr_gc_ctx some__some__ptr_gc_ctx__ptr_gc_ctx(struct gc_ctx* t);
 uint8_t wait_on___void__ptr_condition__nat(struct condition* c, uint64_t last_checked);
-uint8_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda1(uint64_t thread_id, struct global_ctx* gctx);
+uint8_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0(uint64_t thread_id, struct global_ctx* gctx);
 struct result__int32__exception must_be_resolved__result__int32__exception__ptr_fut__int32(struct fut__int32* f);
 struct result__int32__exception hard_unreachable__result__int32__exception();
 struct fut__int32* main__ptr_fut__int32__arr__arr__char(struct ctx* ctx, struct arr__arr__char args);
@@ -1266,7 +1267,7 @@ struct arr__arr__char slice_up_to__arr__arr__char__arr__arr__char__nat(struct ct
 struct arr__arr__char slice__arr__arr__char__arr__arr__char__nat__nat(struct ctx* ctx, struct arr__arr__char a, uint64_t begin, uint64_t size);
 struct arr__arr__char slice_starting_at__arr__arr__char__arr__arr__char__nat(struct ctx* ctx, struct arr__arr__char a, uint64_t begin);
 uint8_t _op_equal_equal__bool__arr__char__arr__char(struct arr__char a, struct arr__char b);
-struct comparison compare271(struct arr__char a, struct arr__char b);
+struct comparison compare272(struct arr__char a, struct arr__char b);
 uint8_t parse_cmd_line_args_dynamic__ptr_parsed_cmd_line_args__arr__arr__char__lambda1(struct ctx* ctx, uint8_t* _closure, struct arr__char it);
 struct dict__arr__char__arr__arr__char* parse_named_args__ptr_dict__arr__char__arr__arr__char__arr__arr__char(struct ctx* ctx, struct arr__arr__char args);
 struct mut_dict__arr__char__arr__arr__char new_mut_dict__mut_dict__arr__char__arr__arr__char(struct ctx* ctx);
@@ -1460,7 +1461,7 @@ int32_t enoent__int32();
 struct opt__ptr_stat_t todo__opt__ptr_stat_t();
 uint8_t todo__bool();
 uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b);
-struct comparison compare465(uint32_t a, uint32_t b);
+struct comparison compare466(uint32_t a, uint32_t b);
 uint32_t s_ifmt__nat32(struct ctx* ctx);
 uint32_t two_pow__nat32__nat32(uint32_t pow);
 uint8_t zero__q__bool__nat32(uint32_t n);
@@ -1567,7 +1568,7 @@ int16_t pollin__int16(struct ctx* ctx);
 int16_t two_pow__int16__int16(int16_t pow);
 uint8_t zero__q__bool__int16(int16_t a);
 uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b);
-struct comparison compare572(int16_t a, int16_t b);
+struct comparison compare573(int16_t a, int16_t b);
 int16_t wrap_decr__int16__int16(int16_t a);
 int16_t two__int16();
 int16_t wrap_incr__int16__int16(int16_t a);
@@ -1754,13 +1755,6 @@ int32_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx
 	struct global_ctx* gctx;
 	struct vat vat_by_val;
 	struct vat* vat;
-	struct arr__ptr_vat vats;
-	struct exception_ctx ectx;
-	struct thread_local_stuff tls;
-	struct ctx ctx_by_val;
-	struct ctx* ctx;
-	struct fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char add;
-	struct arr__ptr__char all_args;
 	struct fut__int32* main_fut;
 	struct ok__int32 o;
 	struct err__exception e;
@@ -1770,16 +1764,9 @@ int32_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx
 	gctx = (&(gctx_by_val));
 	vat_by_val = new_vat__vat__ptr_global_ctx__nat__nat(gctx, 0, n_threads);
 	vat = (&(vat_by_val));
-	vats = (struct arr__ptr_vat) {1, (&(vat))};
-	(gctx->vats = vats, 0);
-	ectx = new_exception_ctx__exception_ctx();
-	tls = (struct thread_local_stuff) {(&(ectx))};
-	ctx_by_val = new_ctx__ctx__ptr_global_ctx__ptr_thread_local_stuff__ptr_vat__nat(gctx, (&(tls)), vat, 0);
-	ctx = (&(ctx_by_val));
-	add = (struct fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char) {(fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char) rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0, (uint8_t*) NULL};
-	all_args = (struct arr__ptr__char) {argc, argv};
-	main_fut = call_with_ctx__ptr_fut__int32__ptr_ctx__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(ctx, add, all_args, main_ptr);
-	run_threads___void__nat__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx(n_threads, gctx, rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda1);
+	(gctx->vats = (struct arr__ptr_vat) {1, (&(vat))}, 0);
+	main_fut = do_main__ptr_fut__int32__ptr_global_ctx__ptr_vat__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(gctx, vat, argc, argv, main_ptr);
+	run_threads___void__nat__ptr_global_ctx__fun_ptr2___void__nat__ptr_global_ctx(n_threads, gctx, rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0);
 	if (gctx->any_unhandled_exceptions__q) {
 		return 1;
 	} else {
@@ -1959,6 +1946,21 @@ struct global_ctx* get_gctx__ptr_global_ctx(struct ctx* ctx) {
 uint8_t new_vat__vat__ptr_global_ctx__nat__nat__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception it) {
 	return default_exception_handler___void__exception(ctx, it);
 }
+struct fut__int32* do_main__ptr_fut__int32__ptr_global_ctx__ptr_vat__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(struct global_ctx* gctx, struct vat* vat, int32_t argc, char** argv, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr) {
+	struct exception_ctx ectx;
+	struct thread_local_stuff tls;
+	struct ctx ctx_by_val;
+	struct ctx* ctx;
+	struct fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char add;
+	struct arr__ptr__char all_args;
+	ectx = new_exception_ctx__exception_ctx();
+	tls = (struct thread_local_stuff) {(&(ectx))};
+	ctx_by_val = new_ctx__ctx__ptr_global_ctx__ptr_thread_local_stuff__ptr_vat__nat(gctx, (&(tls)), vat, 0);
+	ctx = (&(ctx_by_val));
+	add = (struct fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char) {(fun_ptr4__ptr_fut__int32__ptr_ctx__ptr__nat8__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char) do_main__ptr_fut__int32__ptr_global_ctx__ptr_vat__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0, (uint8_t*) NULL};
+	all_args = (struct arr__ptr__char) {argc, argv};
+	return call_with_ctx__ptr_fut__int32__ptr_ctx__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(ctx, add, all_args, main_ptr);
+}
 struct exception_ctx new_exception_ctx__exception_ctx() {
 	return (struct exception_ctx) {NULL, (struct exception) {(struct arr__char) {0, ""}}};
 }
@@ -2048,7 +2050,7 @@ uint8_t zero__q__bool__int32(int32_t i) {
 }
 uint8_t _op_equal_equal__bool__int32__int32(int32_t a, int32_t b) {
 	struct comparison matched;
-	matched = compare60(a, b);
+	matched = compare61(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -2060,7 +2062,7 @@ uint8_t _op_equal_equal__bool__int32__int32(int32_t a, int32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare60(int32_t a, int32_t b) {
+struct comparison compare61(int32_t a, int32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -2677,7 +2679,7 @@ char* find_char_in_cstr__ptr__char__ptr__char__char(char* a, char c) {
 }
 uint8_t _op_equal_equal__bool__char__char(char a, char b) {
 	struct comparison matched;
-	matched = compare178(a, b);
+	matched = compare179(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -2689,7 +2691,7 @@ uint8_t _op_equal_equal__bool__char__char(char a, char b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare178(char a, char b) {
+struct comparison compare179(char a, char b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -2721,7 +2723,7 @@ struct fut__int32* add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr
 	args = tail__arr__ptr__char__arr__ptr__char(ctx, _closure->all_args);
 	return _closure->main_ptr(ctx, map__arr__arr__char__arr__ptr__char__fun_mut1__arr__char__ptr__char(ctx, args, (struct fun_mut1__arr__char__ptr__char) {(fun_ptr3__arr__char__ptr_ctx__ptr__nat8__ptr__char) add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0__lambda0, (uint8_t*) NULL}));
 }
-struct fut__int32* rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__ptr__char all_args, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr) {
+struct fut__int32* do_main__ptr_fut__int32__ptr_global_ctx__ptr_vat__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr__ptr__char all_args, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char main_ptr) {
 	return add_first_task__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(ctx, all_args, main_ptr);
 }
 struct fut__int32* call_with_ctx__ptr_fut__int32__ptr_ctx__fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char(struct ctx* c, struct fun2__ptr_fut__int32__arr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char f, struct arr__ptr__char p0, fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char p1) {
@@ -3250,7 +3252,7 @@ uint8_t wait_on___void__ptr_condition__nat(struct condition* c, uint64_t last_ch
 		return 0;
 	}
 }
-uint8_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda1(uint64_t thread_id, struct global_ctx* gctx) {
+uint8_t rt_main__int32__int32__ptr__ptr__char__fun_ptr2__ptr_fut__int32__ptr_ctx__arr__arr__char__lambda0(uint64_t thread_id, struct global_ctx* gctx) {
 	return thread_function___void__nat__ptr_global_ctx(thread_id, gctx);
 }
 struct result__int32__exception must_be_resolved__result__int32__exception__ptr_fut__int32(struct fut__int32* f) {
@@ -3465,7 +3467,7 @@ struct arr__arr__char slice_starting_at__arr__arr__char__arr__arr__char__nat(str
 }
 uint8_t _op_equal_equal__bool__arr__char__arr__char(struct arr__char a, struct arr__char b) {
 	struct comparison matched;
-	matched = compare271(a, b);
+	matched = compare272(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -3477,7 +3479,7 @@ uint8_t _op_equal_equal__bool__arr__char__arr__char(struct arr__char a, struct a
 			return (assert(0),0);
 	}
 }
-struct comparison compare271(struct arr__char a, struct arr__char b) {
+struct comparison compare272(struct arr__char a, struct arr__char b) {
 	struct comparison matchedelement;
 	struct arr__char _tailCalla;
 	struct arr__char _tailCallb;
@@ -3492,7 +3494,7 @@ struct comparison compare271(struct arr__char a, struct arr__char b) {
 		if ((b.size == 0)) {
 			return (struct comparison) {2, .as2 = (struct greater) {0}};
 		} else {
-			matchedelement = compare178((*(a.data)), (*(b.data)));
+			matchedelement = compare179((*(a.data)), (*(b.data)));
 			switch (matchedelement.kind) {
 				case 0:
 					return (struct comparison) {0, .as0 = (struct less) {0}};
@@ -4711,7 +4713,7 @@ uint8_t todo__bool() {
 }
 uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b) {
 	struct comparison matched;
-	matched = compare465(a, b);
+	matched = compare466(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -4723,7 +4725,7 @@ uint8_t _op_equal_equal__bool__nat32__nat32(uint32_t a, uint32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare465(uint32_t a, uint32_t b) {
+struct comparison compare466(uint32_t a, uint32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -4982,7 +4984,7 @@ uint64_t partition_recur__nat__ptr_mut_slice__arr__char__arr__char__nat__nat(str
 }
 uint8_t _op_less__bool__arr__char__arr__char(struct arr__char a, struct arr__char b) {
 	struct comparison matched;
-	matched = compare271(a, b);
+	matched = compare272(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 1;
@@ -5528,7 +5530,7 @@ uint8_t zero__q__bool__int16(int16_t a) {
 }
 uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b) {
 	struct comparison matched;
-	matched = compare572(a, b);
+	matched = compare573(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 0;
@@ -5540,7 +5542,7 @@ uint8_t _op_equal_equal__bool__int16__int16(int16_t a, int16_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare572(int16_t a, int16_t b) {
+struct comparison compare573(int16_t a, int16_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -5806,7 +5808,7 @@ int32_t bit_shift_right__int32__int32__int32(int32_t a, int32_t b) {
 }
 uint8_t _op_less__bool__int32__int32(int32_t a, int32_t b) {
 	struct comparison matched;
-	matched = compare60(a, b);
+	matched = compare61(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 1;
@@ -6295,7 +6297,7 @@ uint32_t bit_shift_left__nat32__nat32__nat32(uint32_t a, uint32_t b) {
 }
 uint8_t _op_less__bool__nat32__nat32(uint32_t a, uint32_t b) {
 	struct comparison matched;
-	matched = compare465(a, b);
+	matched = compare466(a, b);
 	switch (matched.kind) {
 		case 0:
 			return 1;

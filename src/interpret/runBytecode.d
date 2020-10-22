@@ -10,9 +10,11 @@ import interpret.bytecode :
 	asCall,
 	ByteCode,
 	ByteCodeIndex,
+	DebugOperation,
 	isCall,
 	FnOp,
 	FunNameAndPos,
+	matchDebugOperationImpure,
 	matchOperationImpure,
 	Operation,
 	sexprOfOperation,
@@ -41,16 +43,24 @@ import util.collection.globalAllocatedStack :
 	popN,
 	push,
 	remove,
-	stackRef;
+	stackRef,
+	stackSize;
+import util.collection.str : Str;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, FileIndex;
 import util.sym : Sym;
-import util.types : bottomNBytes, maxU64, safeIntFromU64, safeSizeTToU32, u8, u16, u32, u64;
-import util.util : todo, unreachable, verify;
+import util.types : bottomNBytes, maxU64, safeIntFromU64, safeSizeTToU16, safeSizeTToU32, u8, u16, u32, u64;
+import util.util : todo, unreachable, verify, verifyEq;
 
-immutable(int) runBytecode(ref immutable ByteCode byteCode, ref immutable FilesInfo filesInfo) {
+@trusted immutable(int) runBytecode(
+	ref immutable ByteCode byteCode,
+	ref immutable FilesInfo filesInfo,
+	immutable Arr!Str args,
+) {
 	Interpreter interpreter = newInterpreter(ptrTrustMe(byteCode), ptrTrustMe(filesInfo));
+	push(interpreter.dataStack, size(args)); // TODO: this is an i32, add safety checks
+	push(interpreter.dataStack, cast(immutable u64) begin(args));
 	while (true) {
 		final switch (step(interpreter)) {
 			case StepResult.continue_:
@@ -64,7 +74,7 @@ immutable(int) runBytecode(ref immutable ByteCode byteCode, ref immutable FilesI
 }
 
 pure @trusted Interpreter newInterpreter(immutable Ptr!ByteCode byteCode, immutable Ptr!FilesInfo filesInfo) {
-	return Interpreter(byteCode, filesInfo, newByteCodeReader(begin(byteCode.byteCode)));
+	return Interpreter(byteCode, filesInfo, newByteCodeReader(begin(byteCode.byteCode), byteCode.main.index));
 }
 
 enum StepResult {
@@ -74,6 +84,8 @@ enum StepResult {
 
 alias DataStack = GlobalAllocatedStack!(u64, 1024 * 4);
 alias ReturnStack = GlobalAllocatedStack!(immutable(u8)*, 1024);
+// Gives start stack position of each function
+alias StackStartStack = GlobalAllocatedStack!(u16, 1024);
 
 struct Interpreter {
 	immutable Ptr!ByteCode byteCode;
@@ -81,12 +93,15 @@ struct Interpreter {
 	ByteCodeReader reader;
 	DataStack dataStack;
 	ReturnStack returnStack;
+	// Parallel to return stack. Has the stack entry before the function's arguments.
+	StackStartStack stackStartStack;
 }
 
 @trusted void reset(ref Interpreter a) {
 	setReaderPtr(a.reader, begin(a.byteCode.byteCode));
 	clearStack(a.dataStack);
 	clearStack(a.returnStack);
+	clearStack(a.stackStartStack);
 }
 
 void printStack(ref const Interpreter interpreter) {
@@ -127,9 +142,6 @@ void writeFunNameAtByteCodePtr(Alloc)(ref Writer!Alloc writer, ref const Interpr
 }
 
 immutable(FileAndPos) fileAndPosAtIndex(ref const Interpreter interpreter, immutable ByteCodeIndex index) {
-	debug {
-		printf("fileAndPosAtIndex %d / %lu\n", index.index, fullIndexDictSize(interpreter.byteCode.sources));
-	}
 	return fullIndexDictGet(interpreter.byteCode.sources, index);
 }
 
@@ -204,12 +216,26 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 	return matchOperationImpure!(immutable StepResult)(
 		operation,
 		(ref immutable Operation.Call it) {
-			call(interpreter, it.address);
+			call(interpreter, it.address, it.parametersSize);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.CallFunPtr it) {
-			call(interpreter, immutable ByteCodeIndex(
-				safeSizeTToU32(removeAtStackOffset(interpreter, it.stackOffsetOfFunPtr))));
+			call(
+				interpreter,
+				immutable ByteCodeIndex(safeSizeTToU32(
+					removeAtStackOffset(interpreter, immutable StackOffset(it.parametersSize)))),
+				it.parametersSize);
+			return StepResult.continue_;
+		},
+		(ref immutable Operation.Debug dbg) {
+			matchDebugOperationImpure!void(
+				dbg.debugOperation,
+				(ref immutable DebugOperation.AssertStackSize it) {
+					immutable u16 stackStart = isEmpty(interpreter.stackStartStack)
+						? 0
+						: peek(interpreter.stackStartStack);
+					verifyEq(stackSize(interpreter.dataStack) - stackStart, it.stackSize);
+				});
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Dup it) {
@@ -250,6 +276,7 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 				return StepResult.exit;
 			else {
 				setReaderPtr(interpreter.reader, pop(interpreter.returnStack));
+				pop(interpreter.stackStartStack);
 				return StepResult.continue_;
 			}
 		},
@@ -345,8 +372,9 @@ immutable(u64) bytesToBits(immutable u64 bytes) {
 	return bytes * 8;
 }
 
-void call(ref Interpreter interpreter, immutable ByteCodeIndex address) {
+void call(ref Interpreter interpreter, immutable ByteCodeIndex address, immutable u16 parametersSize) {
 	push(interpreter.returnStack, getReaderPtr(interpreter.reader));
+	push(interpreter.stackStartStack, safeSizeTToU16(stackSize(interpreter.dataStack) - parametersSize));
 	setReaderPtr(interpreter.reader, ptrAt(interpreter.byteCode.byteCode, address.index).rawPtr());
 }
 

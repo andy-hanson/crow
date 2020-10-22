@@ -13,10 +13,21 @@ import util.types : safeU32ToU16, u8, u16, u32, u64;
 import util.sourceRange : FileAndPos, FileIndex, Pos;
 import util.util : todo, verify;
 
+T matchDebugOperationImpure(T)(
+	ref immutable DebugOperation a,
+	scope T delegate(ref immutable DebugOperation.AssertStackSize) @safe @nogc nothrow cbAssertStackSize,
+) {
+	final switch (a.kind_) {
+		case DebugOperation.Kind.assertStackSize:
+			return cbAssertStackSize(a.assertStackSize_);
+	}
+}
+
 @trusted T matchOperationImpure(T)(
 	ref immutable Operation a,
 	scope T delegate(ref immutable Operation.Call) @safe @nogc nothrow cbCall,
 	scope T delegate(ref immutable Operation.CallFunPtr) @safe @nogc nothrow cbCallFunPtr,
+	scope T delegate(ref immutable Operation.Debug) @safe @nogc nothrow cbDebug,
 	scope T delegate(ref immutable Operation.Dup) @safe @nogc nothrow cbDup,
 	scope T delegate(ref immutable Operation.DupPartial) @safe @nogc nothrow cbDupPartial,
 	scope T delegate(ref immutable Operation.Fn) @safe @nogc nothrow cbFn,
@@ -35,6 +46,8 @@ import util.util : todo, verify;
 			return cbCall(a.call_);
 		case Operation.Kind.callFunPtr:
 			return cbCallFunPtr(a.callFunPtr_);
+		case Operation.Kind.debug_:
+			return cbDebug(a.debug_);
 		case Operation.Kind.dup:
 			return cbDup(a.dup_);
 		case Operation.Kind.dupPartial:
@@ -68,6 +81,7 @@ pure:
 	ref immutable Operation a,
 	scope T delegate(ref immutable Operation.Call) @safe @nogc pure nothrow cbCall,
 	scope T delegate(ref immutable Operation.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
+	scope T delegate(ref immutable Operation.Debug) @safe @nogc pure nothrow cbAssertStackSize,
 	scope T delegate(ref immutable Operation.Dup) @safe @nogc pure nothrow cbDup,
 	scope T delegate(ref immutable Operation.DupPartial) @safe @nogc pure nothrow cbDupPartial,
 	scope T delegate(ref immutable Operation.Fn) @safe @nogc pure nothrow cbFn,
@@ -86,6 +100,8 @@ pure:
 			return cbCall(a.call_);
 		case Operation.Kind.callFunPtr:
 			return cbCallFunPtr(a.callFunPtr_);
+		case Operation.Kind.debug_:
+			return cbAssertStackSize(a.debug_);
 		case Operation.Kind.dup:
 			return cbDup(a.dup_);
 		case Operation.Kind.dupPartial:
@@ -117,9 +133,11 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 	return matchOperation(
 		a,
 		(ref immutable Operation.Call it) =>
-			tataRecord(alloc, "call", tataNat(it.address.index)),
+			tataRecord(alloc, "call", tataNat(it.address.index), tataNat(it.parametersSize)),
 		(ref immutable Operation.CallFunPtr it)  =>
-			tataRecord(alloc, "call-ptr", tataNat(it.stackOffsetOfFunPtr.offset)),
+			tataRecord(alloc, "call-ptr", tataNat(it.parametersSize)),
+		(ref immutable Operation.Debug it) =>
+			tataRecord(alloc, "debug", sexprOfDebugOperation(alloc, it.debugOperation)),
 		(ref immutable Operation.Dup it)  =>
 			tataRecord(alloc, "dup", tataNat(it.offset.offset)),
 		(ref immutable Operation.DupPartial it)  =>
@@ -148,7 +166,14 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 		(ref immutable Operation.Switch it) =>
 			tataSym("switch"),
 		(ref immutable Operation.Write it) =>
-			tataRecord(alloc, "write", tataNat(it.offset), tataNat(it.offset)));
+			tataRecord(alloc, "write", tataNat(it.offset), tataNat(it.size)));
+}
+
+immutable(Sexpr) sexprOfDebugOperation(Alloc)(ref Alloc alloc, ref immutable DebugOperation a) {
+	return matchDebugOperation(
+		a,
+		(ref immutable DebugOperation.AssertStackSize it) =>
+			tataRecord(alloc, "assertstck", tataNat(it.stackSize)));
 }
 
 //TODO:MOVE
@@ -189,17 +214,51 @@ struct StackOffset {
 	immutable u8 offset;
 }
 
+struct DebugOperation {
+	@safe @nogc pure nothrow:
+
+	struct AssertStackSize {
+		immutable u16 stackSize;
+	}
+
+	immutable this(immutable AssertStackSize a) { kind_ = Kind.assertStackSize; assertStackSize_ = a; }
+
+	private:
+	enum Kind {
+		assertStackSize,
+	}
+	immutable Kind kind_;
+	union {
+		immutable AssertStackSize assertStackSize_;
+	}
+}
+
+T matchDebugOperation(T)(
+	ref immutable DebugOperation a,
+	scope T delegate(ref immutable DebugOperation.AssertStackSize) @safe @nogc pure nothrow cbAssertStackSize,
+) {
+	final switch (a.kind_) {
+		case DebugOperation.Kind.assertStackSize:
+			return cbAssertStackSize(a.assertStackSize_);
+	}
+}
+
 struct Operation {
 	@safe @nogc pure nothrow:
 
 	// pushes current address onto the function stack and goes to the new function's address
 	struct Call {
 		immutable ByteCodeIndex address;
+		immutable u8 parametersSize; // For debugging -- how big the parameters are (in stack entries)
 	}
 
 	// Removes a fun-ptr from the stack at the given offset and calls that
 	struct CallFunPtr {
-		immutable StackOffset stackOffsetOfFunPtr;
+		immutable u8 parametersSize; // Need this to get the fun-ptr
+	}
+
+	struct Debug {
+		immutable DebugOperation debugOperation;
 	}
 
 	// Gets a stack entry and duplicates it on the top of the stack.
@@ -264,14 +323,24 @@ struct Operation {
 
 	// Pop divRoundUp(size, stackEntrySize) stack entries, then pop a pointer, then write to ptr + offset
 	struct Write {
+		@safe @nogc pure nothrow:
+
 		immutable u8 offset;
 		immutable u8 size;
+
+		immutable this(immutable u8 o, immutable u8 s) {
+			offset = o;
+			size = s;
+			verify(size != 0);
+			verify(size == 1 || size == 2 || size == 4 || size % 8 == 0);
+		}
 	}
 
 	private:
 	enum Kind {
 		call,
 		callFunPtr,
+		debug_,
 		dup,
 		dupPartial,
 		fn,
@@ -289,6 +358,7 @@ struct Operation {
 	union {
 		immutable Call call_;
 		immutable CallFunPtr callFunPtr_;
+		immutable Debug debug_;
 		immutable Dup dup_;
 		immutable DupPartial dupPartial_;
 		immutable Fn fn_;
@@ -306,6 +376,7 @@ struct Operation {
 	public:
 	immutable this(immutable Call a) { kind_ = Kind.call; call_ = a; }
 	immutable this(immutable CallFunPtr a) { kind_ = Kind.callFunPtr; callFunPtr_ = a; }
+	immutable this(immutable Debug a) { kind_ = Kind.debug_; debug_ = a; }
 	immutable this(immutable Dup a) { kind_ = Kind.dup; dup_ = a; }
 	immutable this(immutable DupPartial a) { kind_ = Kind.dupPartial; dupPartial_ = a; }
 	immutable this(immutable Fn a) { kind_ = Kind.fn; fn_ = a; }

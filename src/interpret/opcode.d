@@ -9,6 +9,15 @@ import util.types : u8;
 // An Operation may map to multiple OpCodes to make the encoding more efficient.
 
 enum OpCode : u8 {
+	// reserve small numbers since they can appear by accident
+	reserved0,
+	reserved1,
+	reserved2,
+	reserved3,
+
+	// args: u16 size
+	assertStackSize,
+
 	// args: u32 address
 	call,
 

@@ -33,7 +33,7 @@ import util.collection.str : Str;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange;
 import util.util : divRoundUp, repeat, unreachable, verify;
-import util.types : catU4U4, u8, u16, u32, u64, maxU32, safeSizeTToU8, safeSizeTToU32, safeU32ToU8;
+import util.types : catU4U4, u8, u16, u32, u64, maxU32, safeSizeTToU8, safeSizeTToU32, safeU32ToU8, safeU32ToU16;
 
 struct ByteCodeWriter(Alloc) {
 	private:
@@ -114,6 +114,11 @@ private void fillDelayedU32(Alloc)(
 	writeU32(writer.byteWriter, index.index, value.index);
 }
 
+void writeAssertStackSize(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+	pushOpcode(writer, source, OpCode.assertStackSize);
+	pushU16(writer, source, safeU32ToU16(writer.nextStackEntry));
+}
+
 immutable(ByteCodeIndex) writeCallDelayed(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable FileAndRange source,
@@ -123,6 +128,7 @@ immutable(ByteCodeIndex) writeCallDelayed(Alloc)(
 	pushOpcode(writer, source, OpCode.call);
 	immutable ByteCodeIndex fnAddress = nextByteCodeIndex(writer);
 	pushU32(writer, source, 0);
+	pushU8(writer, source, safeU32ToU8(writer.nextStackEntry - stackEntryBeforeArgs.entry));
 	writer.nextStackEntry = stackEntryBeforeArgs.entry + nEntriesForReturnType;
 	return fnAddress;
 }
@@ -230,6 +236,7 @@ void writeAddConstantNat64(Alloc)(
 	ref immutable FileAndRange source,
 	immutable u64 arg,
 ) {
+	verify(arg != 0);
 	writePushConstant(writer, source, arg);
 	writeFn(writer, source, FnOp.wrapAddIntegral);
 }
