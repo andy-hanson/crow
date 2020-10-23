@@ -14,7 +14,7 @@ import util.collection.byteReader :
 	readU64,
 	setPtr,
 	skipBytes;
-import util.types : U4U4, u4u4OfU8, u8, u16, u32, u64;
+import util.types : Nat32, Nat64, U4U4, u4u4OfU8, u8, u16, u32, u64;
 import util.util : unreachable;
 
 struct ByteCodeReader {
@@ -22,8 +22,8 @@ struct ByteCodeReader {
 	ByteReader reader;
 }
 
-@trusted ByteCodeReader newByteCodeReader(immutable u8* bytes, immutable size_t start) {
-	return ByteCodeReader(ByteReader(bytes + start));
+@trusted ByteCodeReader newByteCodeReader(immutable u8* bytes, immutable Nat32 start) {
+	return ByteCodeReader(ByteReader(bytes + start.raw()));
 }
 
 immutable(u8)* getReaderPtr(ref const ByteCodeReader reader) {
@@ -35,7 +35,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 }
 
 immutable(Operation) readOperation(ref ByteCodeReader reader) {
-	immutable OpCode code = cast(immutable OpCode) readU8(reader.reader);
+	immutable OpCode code = cast(immutable OpCode) readU8(reader.reader).raw();
 	final switch (code) {
 		case OpCode.reserved0:
 		case OpCode.reserved1:
@@ -58,13 +58,14 @@ immutable(Operation) readOperation(ref ByteCodeReader reader) {
 			immutable U4U4 offsetAndSize = u4u4OfU8(readU8(reader.reader));
 			return immutable Operation(immutable Operation.DupPartial(offset, offsetAndSize.a, offsetAndSize.b));
 		case OpCode.fn:
-			return immutable Operation(immutable Operation.Fn(cast(immutable FnOp) readU8(reader.reader)));
+			return immutable Operation(immutable Operation.Fn(cast(immutable FnOp) readU8(reader.reader).raw()));
 		case OpCode.jump:
 			return immutable Operation(immutable Operation.Jump(immutable ByteCodeOffset(readU16(reader.reader))));
 		case OpCode.pack:
-			return immutable Operation(immutable Operation.Pack(readU8Array(reader.reader, readU8(reader.reader))));
+			return immutable Operation(
+				immutable Operation.Pack(readU8Array(reader.reader, readU8(reader.reader).raw())));
 		case OpCode.pushU32:
-			return immutable Operation(immutable Operation.PushValue(readU32(reader.reader)));
+			return immutable Operation(immutable Operation.PushValue(readU32(reader.reader).to64()));
 		case OpCode.pushU64:
 			return immutable Operation(immutable Operation.PushValue(readU64(reader.reader)));
 		case OpCode.read:
@@ -83,11 +84,11 @@ immutable(Operation) readOperation(ref ByteCodeReader reader) {
 }
 
 @trusted void readerJump(ref ByteCodeReader reader, immutable ByteCodeOffset jump) {
-	skipBytes(reader.reader, jump.offset);
+	skipBytes(reader.reader, jump.offset.raw());
 }
 
-@trusted void readerSwitch(ref ByteCodeReader reader, immutable u64 value) {
-	skipBytes(reader.reader, ByteCodeOffset.sizeof * value);
+@trusted void readerSwitch(ref ByteCodeReader reader, immutable Nat64 value) {
+	skipBytes(reader.reader, ByteCodeOffset.sizeof * value.raw());
 	immutable ByteCodeOffset offset = immutable ByteCodeOffset(readU16(reader.reader));
 	readerJump(reader, offset);
 }

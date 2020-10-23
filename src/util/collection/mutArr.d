@@ -9,6 +9,7 @@ import util.collection.arr : Arr, range;
 import util.memory : initMemory, memcpy, overwriteMemory;
 import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
 import util.util : verify;
+import util.types : Nat64;
 
 struct MutArr(T) {
 	private:
@@ -37,6 +38,10 @@ struct MutArr(T) {
 
 ref T mutArrFirst(T)(ref MutArr!T a) {
 	return mutArrAt(a, 0);
+}
+
+immutable(Nat64) mutArrSizeNat(T)(ref const MutArr!T a) {
+	return immutable Nat64(a.size_);
 }
 
 immutable(size_t) mutArrSize(T)(ref const MutArr!T a) {

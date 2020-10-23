@@ -15,11 +15,13 @@ import util.types :
 	i16,
 	i32,
 	i64,
-	u32,
-	u64,
 	float64,
 	float64OfU64Bits,
-	u64OfFloat64Bits;
+	Nat64,
+	u32,
+	u64,
+	u64OfFloat64Bits,
+	zero;
 import util.util : todo, verify;
 
 public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
@@ -30,11 +32,11 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 			break;
 		case FnOp.bitwiseAnd:
 			binary(dataStack, (immutable u64 a, immutable u64 b) =>
-				a & b);
+				immutable Nat64(a & b));
 			break;
 		case FnOp.bitwiseOr:
 			binary(dataStack, (immutable u64 a, immutable u64 b) =>
-				a | b);
+				immutable Nat64(a | b));
 			break;
 		case FnOp.compareExchangeStrongBool:
 			trinary(dataStack, (immutable u64 a, immutable u64 b, immutable u64 c) =>
@@ -54,11 +56,11 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 			break;
 		case FnOp.intFromInt16:
 			unary(dataStack, (immutable u64 a) =>
-				cast(u64) (cast(i64) (cast(i16) (bottomU16OfU64(a)))));
+				immutable Nat64(cast(u64) (cast(i64) (cast(i16) (bottomU16OfU64(a))))));
 			break;
 		case FnOp.intFromInt32:
 			unary(dataStack, (immutable u64 a) =>
-				cast(u64) (cast(i64) (cast(i32) (bottomU32OfU64(a)))));
+				immutable Nat64(cast(u64) (cast(i64) (cast(i32) (bottomU32OfU64(a))))));
 			break;
 		case FnOp.free:
 			doFree(dataStack);
@@ -105,18 +107,19 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 				a - b);
 			break;
 		case FnOp.truncateToInt64FromFloat64:
-			unary(dataStack, (immutable u64 a) => cast(u64) cast(i64) float64OfU64Bits(a));
+			unary(dataStack, (immutable u64 a) =>
+				immutable Nat64(cast(u64) cast(i64) float64OfU64Bits(a)));
 			break;
 		case FnOp.unsafeBitShiftLeftNat64:
 			binary(dataStack, (immutable u64 a, immutable u64 b) {
 				verify(b < 64);
-				return a << b;
+				return immutable Nat64(a << b);
 			});
 			break;
 		case FnOp.unsafeBitShiftRightNat64:
 			binary(dataStack, (immutable u64 a, immutable u64 b) {
 				verify(b < 64);
-				return a >> b;
+				return immutable Nat64(a >> b);
 			});
 			break;
 		case FnOp.unsafeDivFloat64:
@@ -124,22 +127,28 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 				a / b);
 			break;
 		case FnOp.unsafeDivInt64:
-			binary(dataStack, (immutable u64 a, immutable u64 b) => cast(u64) ((cast(i64) a) / (cast(i64) b)));
+			binary(dataStack, (immutable u64 a, immutable u64 b) =>
+				immutable Nat64(cast(u64) ((cast(i64) a) / (cast(i64) b))));
 			break;
 		case FnOp.unsafeDivNat64:
-			binary(dataStack, (immutable u64 a, immutable u64 b) => a / b);
+			binary(dataStack, (immutable u64 a, immutable u64 b) =>
+				immutable Nat64(a / b));
 			break;
 		case FnOp.unsafeModNat64:
-			binary(dataStack, (immutable u64 a, immutable u64 b) => a % b);
+			binary(dataStack, (immutable u64 a, immutable u64 b) =>
+				immutable Nat64(a % b));
 			break;
 		case FnOp.wrapAddIntegral:
-			binary(dataStack, (immutable u64 a, immutable u64 b) => a + b);
+			binary(dataStack, (immutable u64 a, immutable u64 b) =>
+				immutable Nat64(a + b));
 			break;
 		case FnOp.wrapMulIntegral:
-			binary(dataStack, (immutable u64 a, immutable u64 b) => a * b);
+			binary(dataStack, (immutable u64 a, immutable u64 b) =>
+				immutable Nat64(a * b));
 			break;
 		case FnOp.wrapSubIntegral:
-			binary(dataStack, (immutable u64 a, immutable u64 b) => a - b);
+			binary(dataStack, (immutable u64 a, immutable u64 b) =>
+				immutable Nat64(a - b));
 			break;
 	}
 }
@@ -147,18 +156,18 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 private:
 
 @trusted void doFree(ref DataStack dataStack) {
-	free(cast(ubyte*) pop(dataStack));
+	free(cast(ubyte*) pop(dataStack).raw());
 }
 
 @trusted void doMalloc(ref DataStack dataStack) {
-	immutable u64 nBytes = pop(dataStack);
-	verify(nBytes != 0);
-	void* ptr = malloc(nBytes);
+	immutable Nat64 nBytes = pop(dataStack);
+	verify(!zero(nBytes));
+	void* ptr = malloc(nBytes.raw());
 	debug {
 		import core.stdc.stdio : printf;
-		printf("doMalloc: nbytes=%lu, ptr=%p\n", nBytes, ptr);
+		printf("doMalloc: nbytes=%lu, ptr=%p\n", nBytes.raw(), ptr);
 	}
-	push(dataStack, cast(immutable u64) ptr);
+	push(dataStack, immutable Nat64(cast(immutable u64) ptr));
 }
 
 pure @trusted immutable(u64) compareExchangeStrongBool(immutable u64 a, immutable u64 b, immutable u64 c) {
@@ -168,20 +177,20 @@ pure @trusted immutable(u64) compareExchangeStrongBool(immutable u64 a, immutabl
 	return cas(valuePtr, expected, desired);
 }
 
-pure immutable(u64) u64OfBool(immutable bool value) {
-	return value ? 1 : 0;
+pure immutable(Nat64) u64OfBool(immutable bool value) {
+	return immutable Nat64(value ? 1 : 0);
 }
 
-void unary(ref DataStack dataStack, scope immutable(u64) delegate(immutable u64) @safe @nogc pure nothrow cb) {
-	push(dataStack, cb(pop(dataStack)));
+void unary(ref DataStack dataStack, scope immutable(Nat64) delegate(immutable u64) @safe @nogc pure nothrow cb) {
+	push(dataStack, cb(pop(dataStack).raw()));
 }
 
 void binary(
 	ref DataStack dataStack,
-	scope immutable(u64) delegate(immutable u64, immutable u64) @safe @nogc pure nothrow cb,
+	scope immutable(Nat64) delegate(immutable u64, immutable u64) @safe @nogc pure nothrow cb,
 ) {
-	immutable u64 b = pop(dataStack);
-	immutable u64 a = pop(dataStack);
+	immutable u64 b = pop(dataStack).raw();
+	immutable u64 a = pop(dataStack).raw();
 	push(dataStack, cb(a, b));
 }
 
@@ -189,10 +198,10 @@ void trinary(
 	ref DataStack dataStack,
 	scope immutable(u64) delegate(immutable u64, immutable u64, immutable u64) @safe @nogc pure nothrow cb,
 ) {
-	immutable u64 c = pop(dataStack);
-	immutable u64 b = pop(dataStack);
-	immutable u64 a = pop(dataStack);
-	push(dataStack, cb(a, b, c));
+	immutable u64 c = pop(dataStack).raw();
+	immutable u64 b = pop(dataStack).raw();
+	immutable u64 a = pop(dataStack).raw();
+	push(dataStack, immutable Nat64(cb(a, b, c)));
 }
 
 void binaryFloats(

@@ -5,7 +5,7 @@ module util.collection.byteWriter;
 import util.collection.arr : Arr;
 import util.collection.mutArr : moveToArr, MutArr, mutArrPtrAt, mutArrSize, push, pushAll;
 import util.ptr : Ptr;
-import util.types : bottomU8OfU32, bottomU32OfU64, u8, u16, u32, u64;
+import util.types : bottomU8OfU32, bottomU32OfU64, Nat8, Nat16, Nat32, Nat64, u8;
 import util.util : verify;
 
 // NOTE: When this writes a u16/u32/u64, it is written in platform-dependent order.
@@ -28,36 +28,36 @@ immutable(Arr!u8) finishByteWriter(Alloc)(ref ByteWriter!Alloc writer) {
 	return moveToArr(writer.alloc, writer.bytes);
 }
 
-void pushU8(Alloc)(ref ByteWriter!Alloc writer, immutable u8 value) {
-	push(writer.alloc, writer.bytes, value);
+void pushU8(Alloc)(ref ByteWriter!Alloc writer, immutable Nat8 value) {
+	push(writer.alloc, writer.bytes, value.raw());
 }
 
-void pushU16(Alloc)(ref ByteWriter!Alloc writer, immutable u16 value) {
-	pushBytes!u16(writer, value);
+void pushU16(Alloc)(ref ByteWriter!Alloc writer, immutable Nat16 value) {
+	pushBytes!Nat16(writer, value);
 }
 
-void pushU32(Alloc)(ref ByteWriter!Alloc writer, immutable u32 value) {
-	pushBytes!u32(writer, value);
+void pushU32(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 value) {
+	pushBytes!Nat32(writer, value);
 }
 
-void pushU64(Alloc)(ref ByteWriter!Alloc writer, immutable u64 value) {
-	pushBytes!u64(writer, value);
+void pushU64(Alloc)(ref ByteWriter!Alloc writer, immutable Nat64 value) {
+	pushBytes!Nat64(writer, value);
 }
 
-void writeU8(Alloc)(ref ByteWriter!Alloc writer, immutable size_t index, immutable u8 value) {
+void writeU8(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutable Nat8 value) {
 	setAt(writer.bytes, index, value);
 }
 
-void writeU16(Alloc)(ref ByteWriter!Alloc writer, immutable size_t index, immutable u16 value) {
-	writeBytes!u16(writer, index, value);
+void writeU16(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutable Nat16 value) {
+	writeBytes!Nat16(writer, index, value);
 }
 
-void writeU32(Alloc)(ref ByteWriter!Alloc writer, immutable size_t index, immutable u32 value) {
-	writeBytes!u32(writer, index, value);
+void writeU32(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutable Nat32 value) {
+	writeBytes!Nat32(writer, index, value);
 }
 
-void writeU64(Alloc)(ref ByteWriter!Alloc writer, immutable size_t index, immutable u64 value) {
-	writeBytes!u64(writer, index, value);
+void writeU64(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutable Nat64 value) {
+	writeBytes!Nat64(writer, index, value);
 }
 
 private:
@@ -70,7 +70,7 @@ private:
 	return immutable Arr!u8(cast(immutable u8*) value, T.sizeof);
 }
 
-@trusted void writeBytes(T, Alloc)(ref ByteWriter!Alloc writer, immutable size_t index, immutable T value) {
-	verify(index + T.sizeof <= mutArrSize(writer.bytes));
-	*(cast(T*) mutArrPtrAt(writer.bytes, index)) = value;
+@trusted void writeBytes(T, Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutable T value) {
+	verify(index.raw() + T.sizeof <= mutArrSize(writer.bytes));
+	*(cast(T*) mutArrPtrAt(writer.bytes, index.raw())) = value;
 }

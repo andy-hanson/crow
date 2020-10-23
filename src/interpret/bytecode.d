@@ -9,7 +9,7 @@ import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.str : Str, strLiteral;
 import util.sexpr : Sexpr, tataArr, tataNat, tataRecord, tataStr, tataSym;
 import util.sym : Sym;
-import util.types : safeU32ToU16, u8, u16, u32, u64;
+import util.types : Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, zero;
 import util.sourceRange : FileAndPos, FileIndex, Pos;
 import util.util : todo, verify;
 
@@ -152,7 +152,7 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 		(ref immutable Operation.Jump it)  =>
 			tataRecord(alloc, "jump", tataNat(it.offset.offset)),
 		(ref immutable Operation.Pack it)  =>
-			tataRecord(alloc, "pack", tataArr(alloc, it.sizes, (ref immutable u8 size) => tataNat(size))),
+			tataRecord(alloc, "pack", tataArr(alloc, it.sizes, (ref immutable Nat8 size) => tataNat(size))),
 		(ref immutable Operation.PushValue it)  =>
 			tataRecord(alloc, "push-val", tataNat(it.value)),
 		(ref immutable Operation.Read it)  =>
@@ -211,14 +211,14 @@ struct ByteCode {
 
 struct StackOffset {
 	// 0 is the top entry on the stack, 1 is the one before that, etc.
-	immutable u8 offset;
+	immutable Nat8 offset;
 }
 
 struct DebugOperation {
 	@safe @nogc pure nothrow:
 
 	struct AssertStackSize {
-		immutable u16 stackSize;
+		immutable Nat16 stackSize;
 	}
 
 	immutable this(immutable AssertStackSize a) { kind_ = Kind.assertStackSize; assertStackSize_ = a; }
@@ -249,12 +249,12 @@ struct Operation {
 	// pushes current address onto the function stack and goes to the new function's address
 	struct Call {
 		immutable ByteCodeIndex address;
-		immutable u8 parametersSize; // For debugging -- how big the parameters are (in stack entries)
+		immutable Nat8 parametersSize; // For debugging -- how big the parameters are (in stack entries)
 	}
 
 	// Removes a fun-ptr from the stack at the given offset and calls that
 	struct CallFunPtr {
-		immutable u8 parametersSize; // Need this to get the fun-ptr
+		immutable Nat8 parametersSize; // Need this to get the fun-ptr
 	}
 
 	struct Debug {
@@ -271,8 +271,8 @@ struct Operation {
 	struct DupPartial {
 		immutable StackOffset entryOffset;
 		// Encoded as u4
-		immutable u8 byteOffset;
-		immutable u8 sizeBytes;
+		immutable Nat8 byteOffset;
+		immutable Nat8 sizeBytes;
 	}
 
 	// Runs a special function (stack effect determined by the function)
@@ -286,24 +286,24 @@ struct Operation {
 	}
 
 	struct Pack {
-		immutable Arr!u8 sizes;
+		immutable Arr!Nat8 sizes;
 	}
 
 	// Push the value onto the stack.
 	struct PushValue {
-		immutable u64 value;
+		immutable Nat64 value;
 	}
 
 	// Pop a pointer off the stack, add 'offset', read 'size' bytes, and push to the stack.
 	struct Read {
-		immutable u8 offset;
-		immutable u8 size;
+		immutable Nat8 offset;
+		immutable Nat8 size;
 	}
 
 	// Remove entries from the stack, shifting higher entries down.
 	struct Remove {
 		immutable StackOffset offset;
-		immutable u8 nEntries;
+		immutable Nat8 nEntries;
 	}
 
 	// Pop an address from the function stack and jump to there.
@@ -325,14 +325,18 @@ struct Operation {
 	struct Write {
 		@safe @nogc pure nothrow:
 
-		immutable u8 offset;
-		immutable u8 size;
+		immutable Nat8 offset;
+		immutable Nat8 size;
 
-		immutable this(immutable u8 o, immutable u8 s) {
+		immutable this(immutable Nat8 o, immutable Nat8 s) {
 			offset = o;
 			size = s;
-			verify(size != 0);
-			verify(size == 1 || size == 2 || size == 4 || size % 8 == 0);
+			verify(!zero(size));
+			verify(
+				size == immutable Nat8(1) ||
+				size == immutable Nat8(2) ||
+				size == immutable Nat8(4) ||
+				zero(size % immutable Nat8(8)));
 		}
 	}
 
@@ -401,23 +405,23 @@ immutable(Operation.Call) asCall(ref immutable Operation op) {
 }
 
 struct ByteCodeIndex {
-	immutable u32 index;
+	immutable Nat32 index;
 }
 
-immutable(ByteCodeIndex) addByteCodeIndex(immutable ByteCodeIndex a, immutable u32 b) {
+immutable(ByteCodeIndex) addByteCodeIndex(immutable ByteCodeIndex a, immutable Nat32 b) {
 	return immutable ByteCodeIndex(a.index + b);
 }
 
 immutable(ByteCodeOffset) subtractByteCodeIndex(immutable ByteCodeIndex a, immutable ByteCodeIndex b) {
 	verify(a.index >= b.index);
-	return immutable ByteCodeOffset(safeU32ToU16(a.index - b.index));
+	return immutable ByteCodeOffset((a.index - b.index).to16());
 }
 
 struct ByteCodeOffset {
-	immutable u16 offset;
+	immutable Nat16 offset;
 }
 
-immutable(u8) stackEntrySize = 8;
+immutable Nat8 stackEntrySize = immutable Nat8(8);
 
 enum FnOp : u8 {
 	addFloat64,

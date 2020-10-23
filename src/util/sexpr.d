@@ -11,7 +11,7 @@ import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr;
 import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
-import util.types : safeIntFromSizeT;
+import util.types : NatN, safeIntFromSizeT;
 import util.util : todo, unreachable;
 import util.writer :
 	newline,
@@ -143,6 +143,10 @@ immutable(Sexpr) tataFullIndexDict(K, V, Alloc)(
 
 immutable(Sexpr) tataBool(immutable Bool a) {
 	return immutable Sexpr(a);
+}
+
+immutable(Sexpr) tataNat(T)(immutable NatN!T a) {
+	return tataNat(a.raw());
 }
 
 immutable(Sexpr) tataNat(immutable size_t a) {

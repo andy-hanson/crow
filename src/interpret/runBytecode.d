@@ -29,7 +29,7 @@ import interpret.bytecodeReader :
 	setReaderPtr;
 import interpret.opcode : OpCode;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, begin, ptrAt, range, size;
+import util.collection.arr : Arr, at, begin, ptrAt, range, sizeNat;
 import util.collection.arrUtil : lastWhere, zip;
 import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
 import util.collection.globalAllocatedStack :
@@ -50,8 +50,8 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndPos, FileIndex;
 import util.sym : Sym;
-import util.types : bottomNBytes, maxU64, safeIntFromU64, safeSizeTToU16, safeSizeTToU32, u8, u16, u32, u64;
-import util.util : todo, unreachable, verify, verifyEq;
+import util.types : bottomNBytes, decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, u8, u16, u32, u64, zero;
+import util.util : todo, unreachable, verify;
 
 @trusted immutable(int) runBytecode(
 	ref immutable ByteCode byteCode,
@@ -59,16 +59,16 @@ import util.util : todo, unreachable, verify, verifyEq;
 	immutable Arr!Str args,
 ) {
 	Interpreter interpreter = newInterpreter(ptrTrustMe(byteCode), ptrTrustMe(filesInfo));
-	push(interpreter.dataStack, size(args)); // TODO: this is an i32, add safety checks
-	push(interpreter.dataStack, cast(immutable u64) begin(args));
+	push(interpreter.dataStack, sizeNat(args)); // TODO: this is an i32, add safety checks
+	push(interpreter.dataStack, immutable Nat64(cast(immutable u64) begin(args)));
 	while (true) {
 		final switch (step(interpreter)) {
 			case StepResult.continue_:
 				break;
 			case StepResult.exit:
-				immutable u64 returnCode = pop(interpreter.dataStack);
+				immutable Nat64 returnCode = pop(interpreter.dataStack);
 				verify(isEmpty(interpreter.dataStack));
-				return safeIntFromU64(returnCode);
+				return safeIntFromNat64(returnCode);
 		}
 	}
 }
@@ -82,10 +82,10 @@ enum StepResult {
 	exit,
 }
 
-alias DataStack = GlobalAllocatedStack!(u64, 1024 * 4);
+alias DataStack = GlobalAllocatedStack!(Nat64, 1024 * 4);
 alias ReturnStack = GlobalAllocatedStack!(immutable(u8)*, 1024);
 // Gives start stack position of each function
-alias StackStartStack = GlobalAllocatedStack!(u16, 1024);
+alias StackStartStack = GlobalAllocatedStack!(Nat16, 1024);
 
 struct Interpreter {
 	immutable Ptr!ByteCode byteCode;
@@ -108,10 +108,10 @@ void printStack(ref const Interpreter interpreter) {
 	printDataArr(asTempArr(interpreter.dataStack));
 }
 
-@trusted void printDataArr(immutable Arr!u64 values) {
+@trusted void printDataArr(immutable Arr!Nat64 values) {
 	printf("data:");
-	foreach (ref immutable u64 value; range(values))
-		printf(" %lu", value);
+	foreach (immutable Nat64 value; range(values))
+		printf(" %lu", value.raw());
 	printf("\n");
 }
 
@@ -170,7 +170,8 @@ immutable(Opt!Sym) getFunNameAtIndex(ref const Interpreter interpreter, immutabl
 }
 
 pure @trusted immutable(ByteCodeIndex) byteCodeIndexOfPtr(ref const Interpreter interpreter, immutable u8* ptr) {
-	return immutable ByteCodeIndex(safeSizeTToU32(ptr - begin(interpreter.byteCode.byteCode)));
+	immutable Nat64 index = immutable Nat64(ptr - begin(interpreter.byteCode.byteCode));
+	return immutable ByteCodeIndex(index.to32());
 }
 
 immutable(FileAndPos) nextSource(ref const Interpreter interpreter) {
@@ -220,21 +221,19 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.CallFunPtr it) {
-			call(
-				interpreter,
-				immutable ByteCodeIndex(safeSizeTToU32(
-					removeAtStackOffset(interpreter, immutable StackOffset(it.parametersSize)))),
-				it.parametersSize);
+			immutable ByteCodeIndex address = immutable ByteCodeIndex(
+				removeAtStackOffset(interpreter, immutable StackOffset(it.parametersSize)).to32());
+			call(interpreter, address, it.parametersSize);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Debug dbg) {
 			matchDebugOperationImpure!void(
 				dbg.debugOperation,
 				(ref immutable DebugOperation.AssertStackSize it) {
-					immutable u16 stackStart = isEmpty(interpreter.stackStartStack)
-						? 0
+					immutable Nat16 stackStart = isEmpty(interpreter.stackStartStack)
+						? immutable Nat16(0)
 						: peek(interpreter.stackStartStack);
-					verifyEq(stackSize(interpreter.dataStack) - stackStart, it.stackSize);
+					verify(stackSize(interpreter.dataStack) - stackStart.to32() == it.stackSize.to32());
 				});
 			return StepResult.continue_;
 		},
@@ -243,7 +242,8 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.DupPartial it) {
-			push(interpreter.dataStack,
+			push(
+				interpreter.dataStack,
 				getBytes(peek(interpreter.dataStack, it.entryOffset.offset), it.byteOffset, it.sizeBytes));
 			return StepResult.continue_;
 		},
@@ -256,7 +256,7 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Pack it) {
-			push(interpreter.dataStack, pack(popN(interpreter.dataStack, size(it.sizes)), it.sizes));
+			push(interpreter.dataStack, pack(popN(interpreter.dataStack, sizeNat(it.sizes).to8()), it.sizes));
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.PushValue it) {
@@ -297,48 +297,48 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 private:
 
 void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
-	push(dataStack, cast(immutable u64) stackRef(dataStack, offset.offset));
+	push(dataStack, immutable Nat64(cast(immutable u64) stackRef(dataStack, offset.offset)));
 }
 
-@trusted void read(ref DataStack data, immutable u8 offset, immutable u8 size) {
-	immutable u64* ptr = cast(immutable u64*) pop(data);
-	if (size < 8) { //TODO: just have 2 different ops then
-		push(data, readPartialBytes((cast(immutable u8*) ptr) + offset, size));
+@trusted void read(ref DataStack data, immutable Nat8 offset, immutable Nat8 size) {
+	immutable u8* ptr = cast(immutable u8*) pop(data).raw();
+	if (size < immutable Nat8(8)) { //TODO: just have 2 different ops then
+		push(data, readPartialBytes(ptr + offset.raw(), size.raw()));
 	} else {
-		verify(size % 8 == 0);
-		verify(offset % 8 == 0);
-		foreach (immutable size_t i; 0..(size / 8))
-			push(data, (ptr + (offset / 8))[i]);
+		verify(zero(size % immutable Nat8(8)));
+		verify(zero(offset % immutable Nat8(8)));
+		foreach (immutable size_t i; 0..(size.raw() / 8))
+			push(data, ((cast(immutable Nat64*) ptr) + (offset.raw() / 8))[i]);
 	}
 }
 
-@trusted void write(ref DataStack data, immutable u8 offset, immutable u8 size) {
-	if (size < 8) { //TODO: just have 2 different ops then
-		immutable u64 value = pop(data);
-		u64* ptr = cast(u64*) pop(data);
-		writePartialBytes((cast(u8*) ptr) + offset, value, size);
+@trusted void write(ref DataStack data, immutable Nat8 offset, immutable Nat8 size) {
+	if (size < immutable Nat8(8)) { //TODO: just have 2 different ops then
+		immutable Nat64 value = pop(data);
+		u8* ptr = cast(u8*) pop(data).raw();
+		writePartialBytes(ptr + offset.raw(), value.raw(), size.raw());
 	} else {
-		verify(size % 8 == 0);
-		verify(offset % 8 == 0);
-		immutable u8 sizeWords = size / 8;
-		u64* ptr = (cast(u64*) peek(data, sizeWords)) + (offset / 8);
-		foreach (immutable size_t i; 0..sizeWords)
-			ptr[i] = peek(data, cast(immutable u8) (sizeWords - 1 - i));
-		popN(data, sizeWords + 1);
+		verify(zero(size % immutable Nat8(8)));
+		verify(zero(offset % immutable Nat8(8)));
+		immutable Nat8 sizeWords = size / immutable Nat8(8);
+		Nat64* ptr = (cast(Nat64*) peek(data, sizeWords).raw()) + (offset.raw() / 8);
+		foreach (immutable u8 i; 0..sizeWords.raw())
+			ptr[i] = peek(data, decr(sizeWords) - immutable Nat8(i));
+		popN(data, incr(sizeWords));
 	}
 }
 
-@trusted immutable(u64) readPartialBytes(immutable u8* ptr, immutable u8 size) {
+@trusted immutable(Nat64) readPartialBytes(immutable u8* ptr, immutable u8 size) {
 	//TODO: Just have separate ops for separate sizes
 	switch (size) {
 		case 1:
-			return *(cast(immutable u8*) ptr);
+			return (*(cast(immutable Nat8*) ptr)).to64();
 		case 2:
-			return *(cast(immutable u16*) ptr);
+			return (*(cast(immutable Nat16*) ptr)).to64();
 		case 4:
-			return *(cast(immutable u32*) ptr);
+			return (*(cast(immutable Nat32*) ptr)).to64();
 		default:
-			return unreachable!(immutable u64);
+			return unreachable!(immutable Nat64);
 	}
 }
 
@@ -360,47 +360,39 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	}
 }
 
-immutable(u64) getBytes(immutable u64 a, immutable u8 byteOffset, immutable u8 sizeBytes) {
-	verify(byteOffset + sizeBytes <= u64.sizeof);
-	immutable u64 shift = bytesToBits(u64.sizeof - sizeBytes - byteOffset);
-	immutable u64 mask = maxU64 >> bytesToBits(8 - sizeBytes);
-	immutable u64 res = (a >> shift) & mask;
-	return res;
+//TODO:MOVE?
+immutable(Nat64) getBytes(immutable Nat64 a, immutable Nat8 byteOffset, immutable Nat8 sizeBytes) {
+	verify(byteOffset + sizeBytes <= immutable Nat8(u64.sizeof));
+	immutable Nat64 shift = bytesToBits((immutable Nat8(u64.sizeof) - sizeBytes - byteOffset).to64());
+	immutable Nat64 mask = Nat64.max >> bytesToBits((immutable Nat8(u64.sizeof) - sizeBytes).to64());
+	return (a >> shift) & mask;
 }
 
-immutable(u64) bytesToBits(immutable u64 bytes) {
-	return bytes * 8;
-}
-
-void call(ref Interpreter interpreter, immutable ByteCodeIndex address, immutable u16 parametersSize) {
+void call(ref Interpreter interpreter, immutable ByteCodeIndex address, immutable Nat8 parametersSize) {
 	push(interpreter.returnStack, getReaderPtr(interpreter.reader));
-	push(interpreter.stackStartStack, safeSizeTToU16(stackSize(interpreter.dataStack) - parametersSize));
-	setReaderPtr(interpreter.reader, ptrAt(interpreter.byteCode.byteCode, address.index).rawPtr());
+	push(interpreter.stackStartStack, (stackSize(interpreter.dataStack) - parametersSize.to32()).to16());
+	setReaderPtr(interpreter.reader, ptrAt(interpreter.byteCode.byteCode, address.index.raw()).rawPtr());
 }
 
-immutable(u64) removeAtStackOffset(ref Interpreter interpreter, immutable StackOffset offset) {
+immutable(Nat64) removeAtStackOffset(ref Interpreter interpreter, immutable StackOffset offset) {
 	return remove(interpreter.dataStack, offset.offset);
 }
 
 pure: // TODO: many more are pure actually..
 
-immutable(u64) pack(immutable Arr!u64 values, immutable Arr!u8 sizes) {
-	u64 res = 0;
-	u64 totalSize = 0;
-	zip!(u64, u8)(values, sizes, (ref immutable u64 value, ref immutable u8 size) {
-		res = (res << (size * 8)) | bottomNBytes(value, size);
-		totalSize += size;
-		debug {
-			printf("after step: value=%lu, size=%d, res=%lu, totalSize=%lu\n", value, size, res, totalSize);
-		}
+immutable(Nat64) bytesToBits(immutable Nat64 bytes) {
+	return bytes * immutable Nat64(8);
+}
+
+immutable(Nat64) pack(immutable Arr!Nat64 values, immutable Arr!Nat8 sizes) {
+	Nat64 res = immutable Nat64(0);
+	Nat64 totalSize = immutable Nat64(0);
+	zip!(Nat64, Nat8)(values, sizes, (ref immutable Nat64 value, ref immutable Nat8 size) {
+		res = (res << bytesToBits(size.to64())) | bottomNBytes(value, size);
+		totalSize += size.to64();
 	});
-	verify(totalSize <= 8);
-	immutable u64 remainingBytes = 8 - totalSize;
-	immutable u64 r = res << (remainingBytes * 8);
-	debug {
-		printf("PACK | res=%lu, totalSize=%lu, remainingBytes=%lu, r=%lu\n",
-			res, totalSize, remainingBytes, r);
-	}
-	return r;
+	verify(totalSize <= immutable Nat64(8));
+	immutable Nat64 remainingBytes = immutable Nat64(8) - totalSize;
+	return res << bytesToBits(remainingBytes);
 }
 

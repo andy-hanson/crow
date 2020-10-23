@@ -5,6 +5,7 @@ module util.collection.arr;
 import util.bools : Bool;
 import util.ptr : Ptr;
 import util.memory : myEmplace, overwriteMemory;
+import util.types : Nat8, Nat32, Nat64;
 import util.util : verify;
 
 struct ArrWithSize(T) {
@@ -63,6 +64,10 @@ Arr!T emptyArr_mut(T)() {
 	return a.begin_;
 }
 
+immutable(Nat64) sizeNat(T)(const Arr!T a) {
+	return immutable Nat64(a.size_);
+}
+
 immutable(size_t) size(T)(const Arr!T a) {
 	return a.size_;
 }
@@ -89,12 +94,17 @@ immutable(Bool) empty(T)(const Arr!T a) {
 	verify(index < a.size_);
 	return immutable Ptr!T(a.begin_ + index);
 }
-
 @trusted ref T at(T)(ref Arr!T a, immutable size_t index) {
 	return ptrAt(a, index).deref;
 }
 @trusted ref const(T) at(T)(ref const Arr!T a, immutable size_t index) {
 	return ptrAt(a, index).deref;
+}
+@trusted ref immutable(T) at(T)(ref immutable Arr!T a, immutable Nat8 index) {
+	return at(a, index.raw());
+}
+@trusted ref immutable(T) at(T)(ref immutable Arr!T a, immutable Nat32 index) {
+	return at(a, index.raw());
 }
 @trusted ref immutable(T) at(T)(ref immutable Arr!T a, immutable size_t index) {
 	return ptrAt(a, index).deref;

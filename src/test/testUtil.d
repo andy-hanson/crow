@@ -9,15 +9,15 @@ import util.bools : Bool;
 import util.collection.arr : Arr, arrOfD, range, sizeEq;
 import util.collection.arrUtil : eachCorresponds;
 import util.collection.globalAllocatedStack : asTempArr;
-import util.types : u8, u64;
+import util.types : Nat64, u8, u64;
 import util.util : todo, verify;
 
-void expectDataStack(ref const DataStack dataStack, scope immutable u64[] expected) {
-	immutable Arr!u64 stack = asTempArr(dataStack);
-	immutable Arr!u64 expectedArr = arrOfD(expected);
+void expectDataStack(ref const DataStack dataStack, scope immutable Nat64[] expected) {
+	immutable Arr!Nat64 stack = asTempArr(dataStack);
+	immutable Arr!Nat64 expectedArr = arrOfD(expected);
 	immutable Bool eq = immutable Bool(
 		sizeEq(stack, expectedArr) &&
-		eachCorresponds!(u64, u64)(stack, expectedArr, (ref immutable u64 a, ref immutable u64 b) =>
+		eachCorresponds!(Nat64, Nat64)(stack, expectedArr, (ref immutable Nat64 a, ref immutable Nat64 b) =>
 			immutable Bool(a == b)));
 	if (!eq) {
 		debug {
@@ -45,11 +45,11 @@ void expectReturnStack(ref const Interpreter interpreter, scope immutable ByteCo
 			printf("expected:\n");
 			printf("return:");
 			foreach (immutable u8* ptr; range(stack))
-				printf(" %d", byteCodeIndexOfPtr(interpreter, ptr).index);
+				printf(" %d", byteCodeIndexOfPtr(interpreter, ptr).index.raw());
 			printf("\nactual:\n");
 			printf("return:");
 			foreach (immutable ByteCodeIndex index; expected)
-				printf(" %d", index.index);
+				printf(" %d", index.index.raw());
 			printf("\n");
 		}
 		todo!void("useful error message");

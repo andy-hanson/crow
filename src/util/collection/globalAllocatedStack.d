@@ -4,27 +4,27 @@ module util.collection.globalAllocatedStack;
 
 import util.bools : Bool;
 import util.collection.arr : Arr, range;
-import util.types : u8, u64;
+import util.types : decr, Nat8, Nat32, Nat64, zero;
 import util.util : verify;
 
 struct GlobalAllocatedStack(T, size_t capacity) {
 	@safe @nogc nothrow:
 
 	~this() {
-		verify(size == 0);
+		verify(zero(size));
 	}
 
 	private:
 	static T[capacity] values = void;
-	static size_t size = 0;
+	static uint size = 0;
 }
 
 @system const(T*) begin(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
 	return a.values.ptr;
 }
 
-immutable(size_t) stackSize(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
-	return a.size;
+immutable(Nat32) stackSize(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
+	return immutable Nat32(a.size);
 }
 
 void clearStack(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
@@ -50,16 +50,19 @@ void pushAll(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, scope
 		push(a, value);
 }
 
-immutable(T) peek(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a, immutable u8 offset = 0) {
-	verify(offset < a.size);
-	return a.values[a.size - 1 - offset];
+immutable(T) peek(T, size_t capacity)(
+	ref const GlobalAllocatedStack!(T, capacity) a,
+	immutable Nat8 offset = immutable Nat8(0),
+) {
+	verify(offset.raw() < a.size);
+	return a.values[a.size - 1 - offset.raw()];
 }
 
 // WARN: result is temporary!
-@trusted immutable(Arr!u64) popN(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable size_t n) {
-	verify(a.size >= n);
-	a.size -= n;
-	return immutable Arr!u64(cast(immutable) (a.values.ptr + a.size), n);
+@trusted immutable(Arr!Nat64) popN(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Nat8 n) {
+	verify(a.size >= n.raw());
+	a.size -= n.raw();
+	return immutable Arr!Nat64(cast(immutable) (a.values.ptr + a.size), n.raw());
 }
 
 immutable(T) pop(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
@@ -68,29 +71,33 @@ immutable(T) pop(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
 	return a.values[a.size];
 }
 
-void dup(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable u8 offset) {
+void dup(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Nat8 offset) {
 	debug {
 		import core.stdc.stdio : printf;
-		printf("GAS size: %lu, peek %d\n",  a.size, offset);
+		printf("GAS size: %u, peek %d\n", a.size, offset.raw());
 	}
 	push(a, peek(a, offset));
 }
 
-immutable(T) remove(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable u8 offset) {
+immutable(T) remove(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Nat8 offset) {
 	immutable T res = peek(a, offset);
-	remove(a, offset, 1);
+	remove(a, offset, immutable Nat8(1));
 	return res;
 }
 
-void remove(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable u8 offset, immutable u8 nEntries) {
-	verify(nEntries != 0);
-	verify(offset >= nEntries - 1);
-	verify(offset < a.size);
-	foreach (immutable size_t i; a.size - 1 - offset..a.size - nEntries)
-		a.values[i] = a.values[i + nEntries];
-	a.size -= nEntries;
+void remove(T, size_t capacity)(
+	ref GlobalAllocatedStack!(T, capacity) a,
+	immutable Nat8 offset,
+	immutable Nat8 nEntries,
+) {
+	verify(!zero(nEntries));
+	verify(offset >= decr(nEntries));
+	verify(offset.raw() < a.size);
+	foreach (immutable size_t i; a.size - 1 - offset.raw()..a.size - nEntries.raw())
+		a.values[i] = a.values[i + nEntries.raw()];
+	a.size -= nEntries.raw();
 }
 
-T* stackRef(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable u8 offset) {
-	return &a.values[a.size - 1 - offset];
+T* stackRef(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Nat8 offset) {
+	return &a.values[a.size - 1 - offset.raw()];
 }

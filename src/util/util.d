@@ -11,7 +11,7 @@ pure:
 
 import core.stdc.stdio : printf;
 import util.bools : Bool, False;
-import util.types : safeU32ToU8, u8;
+import util.types : incr, Nat8, zero;
 //import util.print : print;
 
 T todo(T)(immutable char* message) {
@@ -35,15 +35,15 @@ immutable(T) max(T)(immutable T a, immutable T b) {
 }
 
 immutable(T) roundUp(T)(immutable T a, immutable T b) {
-	verify(b != 0);
-	return a % b == 0 ? a : roundUp(cast(T) (a + 1), b);
+	verify(!zero(b));
+	return zero(a % b) ? a : roundUp(incr(a), b);
 }
 
-immutable(u8) divRoundUp(immutable u8 a, immutable u8 b) {
-	assert(b != 0);
-	immutable u8 div = a / b;
-	immutable u8 mod = a % b;
-	immutable u8 res = safeU32ToU8(div + (mod == 0 ? 0 : 1));
+immutable(Nat8) divRoundUp(immutable Nat8 a, immutable Nat8 b) {
+	assert(!zero(b));
+	immutable Nat8 div = a / b;
+	immutable Nat8 mod = a % b;
+	immutable Nat8 res = div + immutable Nat8(zero(mod) ? 0 : 1);
 	verify(res * b >= a);
 	return res;
 }

@@ -106,7 +106,7 @@ import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, FileIndex;
-import util.types : safeSizeTToU8, safeU32ToU8, u8, u16, u32;
+import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, safeU32ToU8, u8, u16, u32, zero;
 import util.util : divRoundUp, roundUp, todo, verify;
 
 immutable(ByteCode) generateBytecode(CodeAlloc)(
@@ -160,22 +160,22 @@ immutable(FileToFuns) fileToFuns(Alloc)(ref Alloc alloc, ref immutable Program p
 // NOTE: we should lay out structs so that no primitive field straddles multiple stack entries.
 struct TypeLayout {
 	// All in bytes
-	immutable FullIndexDict!(LowType.Record, u8) recordSizes;
-	immutable FullIndexDict!(LowType.Record, Arr!u8) fieldOffsets;
-	immutable FullIndexDict!(LowType.Union, u8) unionSizes;
+	immutable FullIndexDict!(LowType.Record, Nat8) recordSizes;
+	immutable FullIndexDict!(LowType.Record, Arr!Nat8) fieldOffsets;
+	immutable FullIndexDict!(LowType.Union, Nat8) unionSizes;
 }
 
 struct TypeLayoutBuilder {
-	FullIndexDictBuilder!(LowType.Record, u8) recordSizes;
-	FullIndexDictBuilder!(LowType.Record, Arr!u8) recordFieldOffsets;
-	FullIndexDictBuilder!(LowType.Union, u8) unionSizes;
+	FullIndexDictBuilder!(LowType.Record, Nat8) recordSizes;
+	FullIndexDictBuilder!(LowType.Record, Arr!Nat8) recordFieldOffsets;
+	FullIndexDictBuilder!(LowType.Union, Nat8) unionSizes;
 }
 
 immutable(TypeLayout) layOutTypes(Alloc)(ref Alloc alloc, ref immutable LowProgram program) {
 	TypeLayoutBuilder builder = TypeLayoutBuilder(
-		newFullIndexDictBuilder!(LowType.Record, u8)(alloc, fullIndexDictSize(program.allRecords)),
-		newFullIndexDictBuilder!(LowType.Record, Arr!u8)(alloc, fullIndexDictSize(program.allRecords)),
-		newFullIndexDictBuilder!(LowType.Union, u8)(alloc, fullIndexDictSize(program.allUnions)));
+		newFullIndexDictBuilder!(LowType.Record, Nat8)(alloc, fullIndexDictSize(program.allRecords)),
+		newFullIndexDictBuilder!(LowType.Record, Arr!Nat8)(alloc, fullIndexDictSize(program.allRecords)),
+		newFullIndexDictBuilder!(LowType.Union, Nat8)(alloc, fullIndexDictSize(program.allUnions)));
 	fullIndexDictEach(program.allRecords, (immutable LowType.Record index, ref immutable LowRecord record) {
 		if (!fullIndexDictBuilderHas(builder.recordSizes, index))
 			fillRecordSize!Alloc(alloc, program, index, record, builder);
@@ -190,84 +190,88 @@ immutable(TypeLayout) layOutTypes(Alloc)(ref Alloc alloc, ref immutable LowProgr
 		finishFullIndexDict(builder.unionSizes));
 }
 
-immutable u8 fieldBoundary = 8;
+immutable Nat8 fieldBoundary = immutable Nat8(8);
 
-immutable(u8) fillRecordSize(Alloc)(
+immutable(Nat8) fillRecordSize(Alloc)(
 	ref Alloc alloc,
 	ref immutable LowProgram program,
 	immutable LowType.Record index,
 	ref immutable LowRecord record,
 	ref TypeLayoutBuilder builder,
 ) {
-	u8 offset = 0;
-	immutable Arr!u8 fieldOffsets = map(alloc, record.fields, (ref immutable LowField field) {
-		immutable u8 fieldSize = sizeOfType(alloc, program, field.type, builder);
+	Nat8 offset = immutable Nat8(0);
+	immutable Arr!Nat8 fieldOffsets = map(alloc, record.fields, (ref immutable LowField field) {
+		immutable Nat8 fieldSize = sizeOfType(alloc, program, field.type, builder);
 		// If field would stretch across a boundary, move offset up to the next boundary
-		immutable u8 mod = offset % fieldBoundary;
-		if (mod != 0 && mod + fieldSize > fieldBoundary) {
+		immutable Nat8 mod = offset % fieldBoundary;
+		if (!zero(mod) && mod + fieldSize > fieldBoundary) {
 			offset = roundUp(offset, fieldBoundary);
 		}
-		immutable u8 res = offset;
+		immutable Nat8 res = offset;
 		offset += fieldSize;
 		return res;
 	});
-	immutable u8 size = offset <= 8 ? offset : safeSizeTToU8(roundUp(offset, 8));
+	immutable Nat8 size = offset <= immutable Nat8(8) ? offset : roundUp(offset, immutable Nat8(8));
 	fullIndexDictBuilderAdd(builder.recordSizes, index, size);
 	fullIndexDictBuilderAdd(builder.recordFieldOffsets, index, fieldOffsets);
 	return size;
 }
 
-immutable(u8) fillUnionSize(Alloc)(
+immutable(Nat8) fillUnionSize(Alloc)(
 	ref Alloc alloc,
 	ref immutable LowProgram program,
 	immutable LowType.Union index,
 	ref immutable LowUnion union_,
 	ref TypeLayoutBuilder builder,
 ) {
-	immutable u8 maxMemberSize = arrMax(immutable u8(0), union_.members, (ref immutable LowType t) =>
+	immutable Nat8 maxMemberSize = arrMax(immutable Nat8(0), union_.members, (ref immutable LowType t) =>
 		sizeOfType(alloc, program, t, builder));
-	immutable u8 size = safeSizeTToU8(unionKindSize + maxMemberSize);
+	immutable Nat8 size = unionKindSize + maxMemberSize;
 	fullIndexDictBuilderAdd(builder.unionSizes, index, size);
 	return size;
 }
 
-immutable u8 externPtrSize = (void*).sizeof;
-immutable u8 ptrSize = (void*).sizeof;
-immutable u8 funPtrSize = 4;
-immutable u8 unionKindSize = 8;
+immutable Nat8 externPtrSize = immutable Nat8((void*).sizeof);
+immutable Nat8 ptrSize = immutable Nat8((void*).sizeof);
+immutable Nat8 funPtrSize = immutable Nat8(4);
+immutable Nat8 unionKindSize = immutable Nat8(8);
 
-immutable(u8) sizeOfType(Alloc)(
+immutable(Nat8) sizeOfType(Alloc)(
 	ref Alloc alloc,
 	ref immutable LowProgram program,
 	ref immutable LowType t,
 	ref TypeLayoutBuilder builder,
 ) {
-	return matchLowType!(immutable u8)(
+	return matchLowType!(immutable Nat8)(
 		t,
-		(immutable LowType.ExternPtr) => externPtrSize,
-		(immutable LowType.FunPtr) => funPtrSize,
-		(immutable LowType.NonFunPtr) => ptrSize,
-		(immutable PrimitiveType it) => primitiveSize(it),
+		(immutable LowType.ExternPtr) =>
+			externPtrSize,
+		(immutable LowType.FunPtr) =>
+			funPtrSize,
+		(immutable LowType.NonFunPtr) =>
+			ptrSize,
+		(immutable PrimitiveType it) =>
+			primitiveSize(it),
 		(immutable LowType.Record index) {
-			immutable Opt!u8 size = fullIndexDictBuilderOptGet(builder.recordSizes, index);
+			immutable Opt!Nat8 size = fullIndexDictBuilderOptGet(builder.recordSizes, index);
 			return has(size)
 				? force(size)
 				: fillRecordSize(alloc, program, index, fullIndexDictGet(program.allRecords, index), builder);
 		},
 		(immutable LowType.Union index) {
-			immutable Opt!u8 size = fullIndexDictBuilderOptGet(builder.unionSizes, index);
+			immutable Opt!Nat8 size = fullIndexDictBuilderOptGet(builder.unionSizes, index);
 			return has(size)
 				? force(size)
 				: fillUnionSize(alloc, program, index, fullIndexDictGet(program.allUnions, index), builder);
 		});
 }
 
-immutable(u8) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
+immutable(Nat8) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
 	return sizeOfType(ctx.typeLayout, t);
 }
 
-immutable(u8) sizeOfType(ref immutable TypeLayout typeLayout, ref immutable LowType t) {
-	return matchLowType!(immutable u8)(
+immutable(Nat8) sizeOfType(ref immutable TypeLayout typeLayout, ref immutable LowType t) {
+	return matchLowType!(immutable Nat8)(
 		t,
 		(immutable LowType.ExternPtr) =>
 			externPtrSize,
@@ -283,33 +287,33 @@ immutable(u8) sizeOfType(ref immutable TypeLayout typeLayout, ref immutable LowT
 			fullIndexDictGet(typeLayout.unionSizes, index));
 }
 
-immutable(u8) primitiveSize(immutable PrimitiveType a) {
+immutable(Nat8) primitiveSize(immutable PrimitiveType a) {
 	final switch (a) {
 		case PrimitiveType.void_:
-			return 0;
+			return immutable Nat8(0);
 		case PrimitiveType.bool_:
 		case PrimitiveType.char_:
 		case PrimitiveType.int8:
 		case PrimitiveType.nat8:
-			return 1;
+			return immutable Nat8(1);
 		case PrimitiveType.int16:
 		case PrimitiveType.nat16:
-			return 2;
+			return immutable Nat8(2);
 		case PrimitiveType.int32:
 		case PrimitiveType.nat32:
-			return 4;
+			return immutable Nat8(4);
 		case PrimitiveType.float64:
 		case PrimitiveType.int64:
 		case PrimitiveType.nat64:
-			return 8;
+			return immutable Nat8(8);
 	}
 }
 
-immutable(u8) nStackEntriesForType(ref const ExprCtx ctx, ref immutable LowType t) {
+immutable(Nat8) nStackEntriesForType(ref const ExprCtx ctx, ref immutable LowType t) {
 	return nStackEntriesForType(ctx.typeLayout, t);
 }
 
-immutable(u8) nStackEntriesForType(ref immutable TypeLayout typeLayout, ref immutable LowType t) {
+immutable(Nat8) nStackEntriesForType(ref immutable TypeLayout typeLayout, ref immutable LowType t) {
 	return divRoundUp(sizeOfType(typeLayout, t), stackEntrySize);
 }
 
@@ -327,14 +331,14 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 			generateExternCall(tempAlloc, writer, fun, body_);
 		},
 		(ref immutable LowFunExprBody body_) {
-			uint stackEntry = 0;
+			Nat16 stackEntry = Nat16(0);
 			immutable Arr!StackEntries parameters = map!StackEntries(
 				tempAlloc,
 				fun.params,
 				(ref immutable LowParam it) {
 					immutable StackEntry start = immutable StackEntry(stackEntry);
-					immutable uint n = nStackEntriesForType(typeLayout, it.type);
-					stackEntry += n;
+					immutable Nat8 n = nStackEntriesForType(typeLayout, it.type);
+					stackEntry += n.to16();
 					return immutable StackEntries(start, n);
 				});
 			immutable StackEntry stackEntryAfterParameters = immutable StackEntry(stackEntry);
@@ -347,16 +351,18 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 				parameters);
 			generateExpr(tempAlloc, writer, ctx, body_.expr);
 
-			immutable uint returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
-			verify(stackEntryAfterParameters.entry + returnEntries == getNextStackEntry(writer).entry);
+			immutable Nat8 returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
+			verify(stackEntryAfterParameters.entry + returnEntries.to16() == getNextStackEntry(writer).entry);
 			writeRemove(
 				writer,
 				fun.source,
-				immutable StackEntries(immutable StackEntry(0), safeU32ToU8(stackEntryAfterParameters.entry)));
-			verify(getNextStackEntry(writer).entry == returnEntries);
+				immutable StackEntries(
+					immutable StackEntry(immutable Nat16(0)),
+					stackEntryAfterParameters.entry.to8()));
+			verify(getNextStackEntry(writer).entry == returnEntries.to16());
 			writeReturn(writer, fun.source);
 
-			setNextStackEntry(writer, immutable StackEntry(0));
+			setNextStackEntry(writer, immutable StackEntry(immutable Nat16(0)));
 		});
 }
 
@@ -395,12 +401,12 @@ void generateExpr(CodeAlloc, TempAlloc)(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
-			immutable uint expectedStackEffect = nStackEntriesForType(ctx, expr.type);
+			immutable Nat8 expectedStackEffect = nStackEntriesForType(ctx, expr.type);
 			foreach (ref immutable LowExpr arg; range(it.args))
 				generateExpr(tempAlloc, writer, ctx, arg);
 			registerFunAddress(tempAlloc, ctx, it.called,
 				writeCallDelayed(writer, source, stackEntryBeforeArgs, expectedStackEffect));
-			verify(stackEntryBeforeArgs.entry + expectedStackEffect == getNextStackEntry(writer).entry);
+			verify(stackEntryBeforeArgs.entry + expectedStackEffect.to16() == getNextStackEntry(writer).entry);
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			immutable StackEntry before = getNextStackEntry(writer);
@@ -408,10 +414,10 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
 				if (has(packStart)) {
 					// Need to give the instruction the field sizes
-					immutable Arr!u8 fieldSizes = map(
+					immutable Arr!Nat8 fieldSizes = map!Nat8(
 						tempAlloc,
 						slice(it.args, force(packStart), packEnd - force(packStart)),
-						(ref immutable LowExpr arg) => safeSizeTToU8(sizeOfType(ctx, arg.type)));
+						(ref immutable LowExpr arg) => sizeOfType(ctx, arg.type));
 					writePack(writer, source, fieldSizes);
 				}
 			}
@@ -420,12 +426,12 @@ void generateExpr(CodeAlloc, TempAlloc)(
 				if (fieldIndex == size(it.args)) {
 					maybePack(packStart, fieldIndex);
 				} else {
-					immutable size_t fieldSize = sizeOfType(ctx, at(it.args, fieldIndex).type);
-					if (fieldSize < 8) {
+					immutable Nat8 fieldSize = sizeOfType(ctx, at(it.args, fieldIndex).type);
+					if (fieldSize < immutable Nat8(8)) {
 						generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
 						recur(has(packStart) ? packStart : some(fieldIndex), fieldIndex + 1);
 					} else {
-						verify(fieldSize % 8 == 0);
+						verify(fieldSize % immutable Nat8(8) == immutable Nat8(0));
 						maybePack(packStart, fieldIndex);
 						generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
 						recur(none!size_t, fieldIndex + 1);
@@ -436,20 +442,20 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			recur(none!size_t, 0);
 
 			immutable StackEntry after = getNextStackEntry(writer);
-			immutable uint stackEntriesForType = nStackEntriesForType(ctx, expr.type);
-			verify(after.entry - before.entry == stackEntriesForType);
+			immutable Nat8 stackEntriesForType = nStackEntriesForType(ctx, expr.type);
+			verify(after.entry - before.entry == stackEntriesForType.to16());
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
 			//immutable uint offset = nStackEntriesForUnionTypeExcludingKind(ctx.program, asUnionType(it.type));
 			immutable StackEntry before = getNextStackEntry(writer);
-			immutable uint size = nStackEntriesForType(ctx, expr.type);
-			writePushConstant(writer, source, it.memberIndex);
+			immutable Nat8 size = nStackEntriesForType(ctx, expr.type);
+			writePushConstant(writer, source, immutable Nat8(it.memberIndex));
 			generateExpr(tempAlloc, writer, ctx, it.arg);
 			immutable StackEntry after = getNextStackEntry(writer);
-			if (before.entry + size != after.entry) {
+			if (before.entry + size.to16() != after.entry) {
 				// Some members of a union are smaller than the union.
-				verify(before.entry + size > after.entry);
-				writePushEmptySpace(writer, source, before.entry + size - after.entry);
+				verify(before.entry + size.to16() > after.entry);
+				writePushEmptySpace(writer, source, before.entry + size.to16() - after.entry);
 			}
 		},
 		(ref immutable LowExprKind.FunPtr it) {
@@ -460,7 +466,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			immutable StackEntries localEntries =
 				immutable StackEntries(getNextStackEntry(writer), nStackEntriesForType(ctx, it.local.type));
 			generateExpr(tempAlloc, writer, ctx, it.value);
-			verify(getNextStackEntry(writer).entry == localEntries.start.entry + localEntries.size);
+			verify(getNextStackEntry(writer).entry == localEntries.start.entry + localEntries.size.to16());
 			addToMutDict(tempAlloc, ctx.localEntries, it.local, localEntries);
 			generateExpr(tempAlloc, writer, ctx, it.then);
 			mustDelete(ctx.localEntries, it.local);
@@ -474,21 +480,21 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			generateExpr(tempAlloc, writer, ctx, it.matchedValue);
 			// Move the union kind to top of stack
 			writeDupEntry(writer, source, startStack);
-			writeRemove(writer, source, immutable StackEntries(startStack, 1));
+			writeRemove(writer, source, immutable StackEntries(startStack, immutable Nat8(1)));
 			// Get the kind (always the first entry)
 			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, size(it.cases));
 			// Start of the union values is where the kind used to be.
 			immutable StackEntry stackAfterMatched = getNextStackEntry(writer);
 			immutable StackEntries matchedEntriesWithoutKind =
-				immutable StackEntries(startStack, safeU32ToU8(stackAfterMatched.entry - startStack.entry));
+				immutable StackEntries(startStack, (stackAfterMatched.entry - startStack.entry).to8());
 			immutable Arr!ByteCodeIndex delayedGotos = mapOpWithIndex!ByteCodeIndex(
 				tempAlloc,
 				it.cases,
 				(immutable size_t caseIndex, ref immutable LowExprKind.Match.Case case_) {
-					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, safeSizeTToU8(caseIndex));
+					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat8(safeSizeTToU8(caseIndex)));
 					nextByteCodeIndex(writer);
 					if (has(case_.local)) {
-						immutable uint nEntries = nStackEntriesForType(ctx, force(case_.local).type);
+						immutable Nat8 nEntries = nStackEntriesForType(ctx, force(case_.local).type);
 						verify(nEntries <= matchedEntriesWithoutKind.size);
 						addToMutDict(
 							tempAlloc,
@@ -526,8 +532,11 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			generateExpr(tempAlloc, writer, ctx, it.target);
 			immutable StackEntry mid = getNextStackEntry(writer);
 			generateExpr(tempAlloc, writer, ctx, it.value);
-			immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
-			verify(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
+			immutable FieldOffsetAndSize offsetAndSize =
+				getFieldOffsetAndSize(ctx, it.record, immutable Nat8(it.fieldIndex));
+			verify(
+				mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize).to16() ==
+					getNextStackEntry(writer).entry);
 			writeWrite(writer, source, offsetAndSize.offset, offsetAndSize.size);
 			verify(getNextStackEntry(writer) == before);
 		},
@@ -559,21 +568,21 @@ void generateExpr(CodeAlloc, TempAlloc)(
 }
 
 struct FieldOffsetAndSize {
-	immutable u8 offset;
-	immutable u8 size;
+	immutable Nat8 offset;
+	immutable Nat8 size;
 }
 
-immutable(u8) getFieldOffset(ref const ExprCtx ctx, immutable LowType.Record record, immutable u8 fieldIndex) {
-	immutable Arr!u8 fieldOffsets = fullIndexDictGet(ctx.typeLayout.fieldOffsets, record);
+immutable(Nat8) getFieldOffset(ref const ExprCtx ctx, immutable LowType.Record record, immutable Nat8 fieldIndex) {
+	immutable Arr!Nat8 fieldOffsets = fullIndexDictGet(ctx.typeLayout.fieldOffsets, record);
 	return at(fieldOffsets, fieldIndex);
 }
 
 immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	ref const ExprCtx ctx,
 	immutable LowType.Record record,
-	immutable u8 fieldIndex,
+	immutable Nat8 fieldIndex,
 ) {
-	immutable u8 size = sizeOfType(ctx, at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).type);
+	immutable Nat8 size = sizeOfType(ctx, at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).type);
 	return immutable FieldOffsetAndSize(getFieldOffset(ctx, record, fieldIndex), size);
 }
 
@@ -594,13 +603,13 @@ void generateSpecialConstant(CodeAlloc)(
 	matchSpecialConstant(
 		constant,
 		(immutable LowExprKind.SpecialConstant.BoolConstant it) {
-			writePushConstant(writer, source, it.value ? 1 : 0);
+			writePushConstant(writer, source, immutable Nat8(it.value ? 1 : 0));
 		},
 		(immutable LowExprKind.SpecialConstant.Integral it) {
-			writePushConstant(writer, source, it.value);
+			writePushConstant(writer, source, immutable Nat64(it.value));
 		},
 		(immutable LowExprKind.SpecialConstant.Null) {
-			writePushConstant(writer, source, 0);
+			writePushConstant(writer, source, immutable Nat8(0));
 		},
 		(immutable LowExprKind.SpecialConstant.StrConstant it) {
 			writePushConstantStr(writer, source, it.value);
@@ -668,22 +677,22 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 		// So we must mask out just the lower bits now.
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
 			generateArg();
-			writePushConstant(writer, source, u8.max);
+			writePushConstant(writer, source, Nat8.max);
 			writeFn(writer, source, FnOp.bitwiseAnd);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
 			generateArg();
-			writePushConstant(writer, source, u16.max);
+			writePushConstant(writer, source, Nat16.max);
 			writeFn(writer, source, FnOp.bitwiseAnd);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
 			generateArg();
-			writePushConstant(writer, source, u32.max);
+			writePushConstant(writer, source, Nat32.max);
 			writeFn(writer, source, FnOp.bitwiseAnd);
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
-			writeRead(writer, source, 0, sizeOfType(ctx, expr.type));
+			writeRead(writer, source, immutable Nat8(0), sizeOfType(ctx, expr.type));
 			break;
 		case LowExprKind.SpecialUnary.Kind.hardFail:
 			generateArg();
@@ -737,15 +746,15 @@ void generateRecordFieldAccess(TempAlloc, CodeAlloc)(
 	generateExpr(tempAlloc, writer, ctx, it.target);
 	immutable StackEntries targetEntries = immutable StackEntries(
 		targetEntry,
-		safeU32ToU8(getNextStackEntry(writer).entry - targetEntry.entry));
-	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, it.fieldIndex);
+		(getNextStackEntry(writer).entry - targetEntry.entry).to8());
+	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, immutable Nat8(it.fieldIndex));
 	if (it.targetIsPointer) {
 		writeRead(writer, source, offsetAndSize.offset, offsetAndSize.size);
 	} else {
 		immutable StackEntry firstEntry =
-			immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize));
-		if (offsetAndSize.size % stackEntrySize == 0) {
-			verify(offsetAndSize.offset % stackEntrySize == 0);
+			immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize).to16());
+		if (zero(offsetAndSize.size % stackEntrySize)) {
+			verify(zero(offsetAndSize.offset % stackEntrySize));
 			immutable StackEntries entries = immutable StackEntries(firstEntry, offsetAndSize.size / stackEntrySize);
 			writeDupEntries(writer, source, entries);
 		} else {
@@ -768,14 +777,13 @@ void generatePtrToRecordFieldAccess(TempAlloc, CodeAlloc)(
 	ref immutable LowExprKind.RecordFieldAccess it,
 ) {
 	generateExpr(tempAlloc, writer, ctx, it.target);
-	immutable u8 offset = getFieldOffset(ctx, it.record, it.fieldIndex);
+	immutable Nat8 offset = getFieldOffset(ctx, it.record, immutable Nat8(it.fieldIndex));
 	if (it.targetIsPointer) {
-		if (offset != 0)
-			writeAddConstantNat64(writer, source, offset);
-	} else {
+		if (!zero(offset))
+			writeAddConstantNat64(writer, source, offset.to64());
+	} else
 		// This only works if it's a local .. or another recordfieldaccess
 		todo!void("ptr-to-record-field-access");
-	}
 }
 
 void generateSpecialBinary(TempAlloc, CodeAlloc)(
@@ -908,7 +916,7 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			generateExpr(tempAlloc, writer, ctx, a.left);
 			generateExpr(tempAlloc, writer, ctx, a.right);
-			writeWrite(writer, source, 0, sizeOfType(ctx, a.right.type));
+			writeWrite(writer, source, immutable Nat8(0), sizeOfType(ctx, a.right.type));
 			break;
 	}
 }
@@ -945,11 +953,11 @@ void generateIf(TempAlloc, CodeAlloc)(
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	generateExpr(tempAlloc, writer, ctx, cond);
 	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, 2);
-	fillDelayedSwitchEntry(writer, delayed, 0);
+	fillDelayedSwitchEntry(writer, delayed, immutable Nat8(0));
 	generateExpr(tempAlloc, writer, ctx, else_);
 	setNextStackEntry(writer, startStack);
 	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(writer, source);
-	fillDelayedSwitchEntry(writer, delayed, 1);
+	fillDelayedSwitchEntry(writer, delayed, immutable Nat8(1));
 	generateExpr(tempAlloc, writer, ctx, then);
 	fillInJumpDelayed(writer, jumpIndex);
 }
