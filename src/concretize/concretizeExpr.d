@@ -319,7 +319,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 				shortSymAlphaLiteral("closure"),
 				typeMangledName));
 	immutable Opt!ConcreteParam closureParam = has(closureType)
-		? some(immutable ConcreteParam(none!size_t, strLiteral("_closure"), force(closureType)))
+		? some(immutable ConcreteParam(42, none!size_t, strLiteral("_closure"), force(closureType)))
 		: none!ConcreteParam;
 	immutable Opt!(Ptr!ConcreteExpr) closure = e.kind == FunKind.ptr
 		? none!(Ptr!ConcreteExpr)

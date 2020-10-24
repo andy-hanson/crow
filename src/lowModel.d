@@ -2,6 +2,7 @@ module lowModel;
 
 @safe @nogc pure nothrow:
 
+import concreteModel : ConcreteField, ConcreteFun, ConcreteLocal, ConcreteParam, ConcreteStruct;
 import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.collection.fullIndexDict : FullIndexDict;
@@ -18,19 +19,19 @@ struct LowExternPtrType {
 }
 
 struct LowRecord {
-	immutable Str mangledName;
+	immutable Ptr!ConcreteStruct source;
 	immutable Arr!LowField fields;
 }
 
 struct LowUnion {
-	immutable Str mangledName;
+	immutable Ptr!ConcreteStruct source;
 	immutable Arr!LowType members;
 }
 
 struct LowFunPtrType {
 	@safe @nogc pure nothrow:
 
-	immutable Str mangledName;
+	immutable Ptr!ConcreteStruct source;
 	immutable LowType returnType;
 	immutable Arr!LowType paramTypes;
 }
@@ -220,17 +221,90 @@ immutable(LowType.Union) asUnionType(ref immutable LowType a) {
 }
 
 struct LowField {
-	immutable Str mangledName;
+	immutable Ptr!ConcreteField source;
 	immutable LowType type;
+}
+
+struct LowParamSource {
+	@safe @nogc pure nothrow:
+
+	struct Generated {
+		immutable Sym name;
+	}
+
+	@trusted immutable this(immutable Ptr!ConcreteParam a) { kind_ = Kind.concreteParam; concreteParam_ = a; }
+	immutable this(immutable Generated a) { kind_ = Kind.generated; generated_ = a; }
+
+	private:
+	enum Kind {
+		concreteParam,
+		generated,
+	}
+	immutable Kind kind_;
+	union {
+		immutable Ptr!ConcreteParam concreteParam_;
+		immutable Generated generated_;
+	}
+}
+
+@trusted T matchLowParamSource(T)(
+	ref immutable LowParamSource a,
+	scope T delegate(immutable Ptr!ConcreteParam) @safe @nogc pure nothrow cbConcreteParam,
+	scope T delegate(ref immutable LowParamSource.Generated) @safe @nogc pure nothrow cbGenerated,
+) {
+	final switch (a.kind_) {
+		case LowParamSource.Kind.concreteParam:
+			return cbConcreteParam(a.concreteParam_);
+		case LowParamSource.Kind.generated:
+			return cbGenerated(a.generated_);
+	}
 }
 
 struct LowParam {
-	immutable Str mangledName;
+	immutable LowParamSource source;
 	immutable LowType type;
 }
 
+struct LowLocalSource {
+	@safe @nogc pure nothrow:
+
+	struct Generated {
+		immutable Sym name;
+		// Used to disambiguate locals that would otherwise have the same name.
+		immutable size_t index; // TODO: Nat8
+	}
+
+	@trusted immutable this(immutable Ptr!ConcreteLocal a) { kind_ = Kind.concreteLocal; concreteLocal_ = a; }
+	immutable this(immutable Generated a) { kind_ = Kind.generated; generated_ = a; }
+
+	private:
+	enum Kind {
+		concreteLocal,
+		generated,
+	}
+	immutable Kind kind_;
+	union {
+		immutable Ptr!ConcreteLocal concreteLocal_;
+		immutable Generated generated_;
+	}
+}
+
+@trusted T matchLowLocalSource(T)(
+	ref immutable LowLocalSource a,
+	scope T delegate(immutable Ptr!ConcreteLocal) @safe @nogc pure nothrow cbConcreteLocal,
+	scope T delegate(ref immutable LowLocalSource.Generated) @safe @nogc pure nothrow cbGenerated,
+) {
+	final switch (a.kind_) {
+		case LowLocalSource.Kind.concreteLocal:
+			return cbConcreteLocal(a.concreteLocal_);
+		case LowLocalSource.Kind.generated:
+			return cbGenerated(a.generated_);
+	}
+}
+
+
 struct LowLocal {
-	immutable Str mangledName;
+	immutable LowLocalSource source;
 	immutable LowType type;
 }
 
@@ -283,17 +357,68 @@ immutable(Bool) isGlobal(ref immutable LowFunBody a) {
 	}
 }
 
+struct LowFunSource {
+	@safe @nogc pure nothrow:
+
+	struct Generated {
+		immutable Str mangledName;
+	}
+
+	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind_ = Kind.concreteFun; concreteFun_ = a; }
+	@trusted immutable this(immutable Generated a) { kind_ = Kind.generated; generated_ = a; }
+
+	private:
+	enum Kind {
+		concreteFun,
+		generated,
+	}
+	immutable Kind kind_;
+	union {
+		immutable Ptr!ConcreteFun concreteFun_;
+		immutable Generated generated_;
+	}
+}
+
+@trusted T matchLowFunSource(T)(
+	ref immutable LowFunSource a,
+	scope T delegate(immutable Ptr!ConcreteFun) @safe @nogc pure nothrow cbConcreteFun,
+	scope T delegate(ref immutable LowFunSource.Generated) @safe @nogc pure nothrow cbGenerated,
+) {
+	final switch (a.kind_) {
+		case LowFunSource.Kind.concreteFun:
+			return cbConcreteFun(a.concreteFun_);
+		case LowFunSource.Kind.generated:
+			return cbGenerated(a.generated_);
+	}
+}
+
+immutable(Str) lowFunSourceMangledName(ref immutable LowFunSource a) {
+	return matchLowFunSource(
+		a,
+		(immutable Ptr!ConcreteFun it) =>
+			it.mangledName,
+		(ref immutable LowFunSource.Generated it) =>
+			it.mangledName);
+}
+
+@trusted immutable(Ptr!ConcreteFun) asConcreteFun(ref immutable LowFunSource a) {
+	verify(a.kind_ == LowFunSource.Kind.concreteFun);
+	return a.concreteFun_;
+}
+
 struct LowFun {
-	immutable FileAndRange source;
-	immutable Str mangledName;
+	immutable LowFunSource source;
 	immutable LowType returnType;
 	immutable Arr!LowParam params;
 	immutable LowFunBody body_;
 }
 
+// TODO: use Ptr!ConcreteExpr
+alias LowExprSource = FileAndRange;
+
 struct LowExpr {
 	immutable LowType type;
-	immutable FileAndRange range;
+	immutable LowExprSource source;
 	immutable LowExprKind kind;
 }
 

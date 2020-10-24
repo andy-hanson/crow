@@ -1058,7 +1058,7 @@ struct CommonTypes {
 
 immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable Ptr!StructDecl s) {
 	//TODO: use arrUtils
-	foreach (immutable ref FunKindAndStructs fs; a.funKindsAndStructs.range)
+	foreach (ref immutable FunKindAndStructs fs; a.funKindsAndStructs.range)
 		foreach (immutable Ptr!StructDecl funStruct; fs.structs.range)
 			if (ptrEquals(s, funStruct))
 				return some(fs.kind);

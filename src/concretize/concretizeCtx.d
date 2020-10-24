@@ -589,6 +589,7 @@ immutable(Arr!ConcreteParam) concretizeParams(Alloc)(
 ) {
 	return mapWithIndex!ConcreteParam(alloc, params, (immutable size_t index, ref immutable Param p) =>
 		immutable ConcreteParam(
+			42,
 			some!size_t(index),
 			mangleName(alloc, p.name),
 			getConcreteType(alloc, ctx, p.type, typeArgsScope)));

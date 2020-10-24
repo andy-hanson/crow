@@ -65,11 +65,12 @@ struct SingleHeapAlloc(ParentAlloc, string debugName, size_t capacity) {
 	@trusted ubyte* allocate(immutable size_t nBytes) {
 		if (cur + nBytes > capacity) {
 			debug {
+				import core.stdc.stdio : printf;
 				import util.print : print;
 				print("SingleHeapAlloc ran out of space\n");
 				print(debugName);
 				print("\n");
-				//print("capacity: %zd, already filled: %zd, tried to allocate: %zd\n", capacity, cur, nBytes);
+				printf("capacity: %zd, already filled: %zd, tried to allocate: %zd\n", capacity, cur, nBytes);
 			}
 			verifyFail(); // TODO
 		}

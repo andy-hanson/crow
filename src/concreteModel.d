@@ -245,13 +245,14 @@ struct ConcreteField {
 }
 
 struct ConcreteParam {
+	immutable uint fourtyTwo; //TODO:KILL
 	immutable Opt!size_t index; // not present for ctx/ closure param
 	immutable Str mangledName;
 	immutable ConcreteType type;
 }
 
 immutable(ConcreteParam) withType(ref immutable ConcreteParam a, ref immutable ConcreteType newType) {
-	return immutable ConcreteParam(a.index, a.mangledName, newType);
+	return immutable ConcreteParam(42, a.index, a.mangledName, newType);
 }
 
 struct ConcreteLocal {

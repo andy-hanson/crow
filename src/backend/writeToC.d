@@ -2,6 +2,8 @@ module backend.writeToC;
 
 @safe @nogc pure nothrow:
 
+import concreteModel : ConcreteLocal, ConcreteParam;
+import concretize.mangleName : writeMangledName;
 import lowModel :
 	isExtern,
 	isGlobal,
@@ -15,14 +17,19 @@ import lowModel :
 	LowFunExprBody,
 	LowFunIndex,
 	LowFunPtrType,
+	lowFunSourceMangledName,
 	LowLocal,
+	LowLocalSource,
 	LowParam,
+	LowParamSource,
 	LowProgram,
 	LowRecord,
 	LowType,
 	LowUnion,
 	matchLowExprKind,
 	matchLowFunBody,
+	matchLowLocalSource,
+	matchLowParamSource,
 	matchLowType,
 	matchSpecialConstant,
 	PrimitiveType;
@@ -100,7 +107,7 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immuta
 			writeChar(writer, '*');
 		},
 		(immutable LowType.FunPtr it) {
-			writeStr(writer, fullIndexDictGet(ctx.program.allFunPtrTypes, it).mangledName);
+			writeStr(writer, fullIndexDictGet(ctx.program.allFunPtrTypes, it).source.mangledName);
 		},
 		(immutable LowType.NonFunPtr it) {
 			writeType(writer, ctx, it.pointee);
@@ -111,11 +118,11 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immuta
 		},
 		(immutable LowType.Record it) {
 			writeStatic(writer, "struct ");
-			writeStr(writer, fullIndexDictGet(ctx.program.allRecords, it).mangledName);
+			writeStr(writer, fullIndexDictGet(ctx.program.allRecords, it).source.mangledName);
 		},
 		(immutable LowType.Union it) {
 			writeStatic(writer, "struct ");
-			writeStr(writer, fullIndexDictGet(ctx.program.allUnions, it).mangledName);
+			writeStr(writer, fullIndexDictGet(ctx.program.allUnions, it).source.mangledName);
 		});
 }
 
@@ -128,7 +135,18 @@ void writeCastToType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref 
 void doWriteParam(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowParam a) {
 	writeType(writer, ctx, a.type);
 	writeChar(writer, ' ');
-	writeStr(writer, a.mangledName);
+	writeLowParamName(writer, a);
+}
+
+void writeLowParamName(Alloc)(ref Writer!Alloc writer, ref immutable LowParam a) {
+	matchLowParamSource!void(
+		a.source,
+		(immutable Ptr!ConcreteParam it) {
+			writeStr(writer, it.mangledName);
+		},
+		(ref immutable LowParamSource.Generated it) {
+			writeMangledName(writer, it.name);
+		});
 }
 
 void writeStructHead(Alloc)(ref Writer!Alloc writer, immutable Str mangledName) {
@@ -142,7 +160,7 @@ void writeStructEnd(Alloc)(ref Writer!Alloc writer) {
 }
 
 void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowRecord a) {
-	writeStructHead(writer, a.mangledName);
+	writeStructHead(writer, a.source.mangledName);
 	if (empty(a.fields))
 		// An empty structure is undefined behavior in C.
 		writeStatic(writer, "\n\tuint8_t __mustBeNonEmpty;\n};\n");
@@ -151,7 +169,7 @@ void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immu
 			writeStatic(writer, "\n\t");
 			writeType(writer, ctx, field.type);
 			writeChar(writer, ' ');
-			writeStr(writer, field.mangledName);
+			writeStr(writer, field.source.mangledName);
 			writeChar(writer, ';');
 		}
 		writeStructEnd(writer);
@@ -159,7 +177,7 @@ void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immu
 }
 
 void writeUnion(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowUnion a) {
-	writeStructHead(writer, a.mangledName);
+	writeStructHead(writer, a.source.mangledName);
 	writeStatic(writer, "\n\tint kind;");
 	writeStatic(writer, "\n\tunion {");
 	foreach (immutable size_t memberIndex; 0..size(a.members)) {
@@ -250,7 +268,7 @@ immutable(Bool) tryWriteFunPtrDeclaration(Alloc)(
 		writeStatic(writer, "typedef ");
 		writeType(writer, ctx, funPtr.returnType);
 		writeStatic(writer, " (*");
-		writeStr(writer, funPtr.mangledName);
+		writeStr(writer, funPtr.source.mangledName);
 		writeStatic(writer, ")(");
 		writeWithCommas(writer, funPtr.paramTypes, (ref immutable LowType paramType) {
 			writeType(writer, ctx, paramType);
@@ -273,7 +291,7 @@ immutable(StructState) writeRecordDeclarationOrDefinition(Alloc)(
 		writeRecord(writer, ctx, record);
 		return StructState.defined;
 	} else {
-		declareStruct(writer, record.mangledName);
+		declareStruct(writer, record.source.mangledName);
 		return StructState.declared;
 	}
 }
@@ -291,7 +309,7 @@ immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
 		writeUnion(writer, ctx, union_);
 		return StructState.defined;
 	} else {
-		declareStruct(writer, union_.mangledName);
+		declareStruct(writer, union_.source.mangledName);
 		return StructState.declared;
 	}
 }
@@ -364,7 +382,7 @@ void writeFunReturnTypeNameAndParams(Alloc)(ref Writer!Alloc writer, ref immutab
 	else
 		writeType(writer, ctx, fun.returnType);
 	writeChar(writer, ' ');
-	writeStr(writer, fun.mangledName);
+	writeStr(writer, lowFunSourceMangledName(fun.source));
 	if (!isGlobal(fun.body_)) {
 		writeChar(writer, '(');
 		if (!empty(fun.params)) {
@@ -380,7 +398,7 @@ void writeFunReturnTypeNameAndParams(Alloc)(ref Writer!Alloc writer, ref immutab
 
 void writeFunDeclaration(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowFun fun) {
 	//TODO:HAX: printf apparently *must* be declared as variadic
-	if (strEq(fun.mangledName, strLiteral("printf")))
+	if (strEq(lowFunSourceMangledName(fun.source), strLiteral("printf")))
 		writeStatic(writer, "int printf(const char* format, ...);\n");
 	else {
 		if (isExtern(fun.body_))
@@ -490,7 +508,7 @@ void declareTailCallLocals(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx
 	foreach (ref immutable LowParam param; range(params)) {
 		writeType(writer, ctx, param.type);
 		writeStatic(writer, " _tailCall");
-		writeStr(writer, param.mangledName);
+		writeLowParamName(writer, param);
 		writeStatic(writer, ";\n\t");
 	}
 }
@@ -619,10 +637,6 @@ void writeReturn(Alloc)(
 		writeChar(writer, ';');
 }
 
-void writeFunName(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable LowFunIndex fun) {
-	writeStr(writer, at(ctx.program.allFuns, fun.index).mangledName);
-}
-
 void writeCallExpr(Alloc)(
 	ref Writer!Alloc writer,
 	immutable size_t indent,
@@ -639,7 +653,7 @@ void writeCallExpr(Alloc)(
 			if (isCVoid)
 				//TODO: this is unnecessary if writeKind is not 'expr'
 				writeChar(writer, '(');
-			writeStr(writer, called.mangledName);
+			writeStr(writer, lowFunSourceMangledName(called.source));
 			if (!isGlobal(called.body_)) {
 				writeChar(writer, '(');
 				writeArgs(writer, indent, ctx, a.args);
@@ -662,16 +676,16 @@ void writeTailCall(Alloc)(
 	foreach (immutable size_t argIndex; 0..size(a.args)) {
 		immutable LowExpr arg = at(a.args, argIndex);
 		writeStatic(writer, "_tailCall");
-		writeStr(writer, at(params, argIndex).mangledName);
+		writeLowParamName(writer, at(params, argIndex));
 		writeStatic(writer, " = ");
 		writeExprExpr(writer, indent, ctx, arg);
 		writeChar(writer, ';');
 		newline(writer, indent);
 	}
 	foreach (immutable size_t argIndex; 0..size(a.args)) {
-		writeStr(writer, at(params, argIndex).mangledName);
+		writeLowParamName(writer, at(params, argIndex));
 		writeStatic(writer, " = _tailCall");
-		writeStr(writer, at(params, argIndex).mangledName);
+		writeLowParamName(writer, at(params, argIndex));
 		writeChar(writer, ';');
 		newline(writer, indent);
 	}
@@ -713,11 +727,19 @@ void writeConvertToUnion(Alloc)(
 }
 
 void writeFunPtr(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowExprKind.FunPtr a) {
-	writeStr(writer, fullIndexDictGet(ctx.program.allFuns, a.fun).mangledName);
+	writeStr(writer, lowFunSourceMangledName(fullIndexDictGet(ctx.program.allFuns, a.fun).source));
 }
 
 void writeLocalRef(Alloc)(ref Writer!Alloc writer, immutable Ptr!LowLocal a) {
-	writeStr(writer, a.mangledName);
+	matchLowLocalSource!void(
+		a.source,
+		(immutable Ptr!ConcreteLocal it) {
+			writeStr(writer, it.mangledName);
+		},
+		(ref immutable LowLocalSource.Generated it) {
+			writeMangledName(writer, it.name);
+			writeNat(writer, it.index);
+		});
 }
 
 void writeMatch(Alloc)(
@@ -813,7 +835,7 @@ void writeParamRef(Alloc)(
 	ref immutable FunBodyCtx ctx,
 	ref immutable LowExprKind.ParamRef a,
 ) {
-	writeStr(writer, at(fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params, a.index.index).mangledName);
+	writeLowParamName(writer, at(fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params, a.index.index));
 }
 
 void writePtrCast(Alloc)(
@@ -847,7 +869,7 @@ void writeRecordFieldAccess(Alloc)(
 ) {
 	writeExprExpr(writer, indent, ctx, target);
 	writeStatic(writer, targetIsPointer ? "->" : ".");
-	writeStr(writer, at(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields, fieldIndex).mangledName);
+	writeStr(writer, at(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields, fieldIndex).source.mangledName);
 }
 
 void writeRecordFieldSet(Alloc)(

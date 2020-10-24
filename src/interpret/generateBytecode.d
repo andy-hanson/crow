@@ -2,6 +2,7 @@ module interpret.generateBytecode;
 
 @safe @nogc pure nothrow:
 
+import concreteModel : ConcreteFun;
 import interpret.bytecode :
 	addByteCodeIndex,
 	ByteCode,
@@ -48,6 +49,7 @@ import interpret.bytecodeWriter :
 	writeWrite;
 import lower.lowExprHelpers : genBool;
 import lowModel :
+	asConcreteFun,
 	asLocalRef,
 	asParamRef,
 	asRecordFieldAccess,
@@ -61,6 +63,7 @@ import lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
+	LowFunSource,
 	LowFunIndex,
 	LowLocal,
 	LowParam,
@@ -70,6 +73,7 @@ import lowModel :
 	LowUnion,
 	matchLowExprKind,
 	matchLowFunBody,
+	matchLowFunSource,
 	matchLowType,
 	matchSpecialConstant,
 	PrimitiveType;
@@ -353,16 +357,26 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 
 			immutable Nat8 returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
 			verify(stackEntryAfterParameters.entry + returnEntries.to16() == getNextStackEntry(writer).entry);
+			immutable FileAndRange convertedSource = convertLowFunSource(fun.source);
 			writeRemove(
 				writer,
-				fun.source,
+				convertedSource,
 				immutable StackEntries(
 					immutable StackEntry(immutable Nat16(0)),
 					stackEntryAfterParameters.entry.to8()));
 			verify(getNextStackEntry(writer).entry == returnEntries.to16());
-			writeReturn(writer, fun.source);
+			writeReturn(writer, convertedSource);
 
 			setNextStackEntry(writer, immutable StackEntry(immutable Nat16(0)));
+		});
+}
+
+//TODO:KILL when we use ExprSource consistently
+immutable(FileAndRange) convertLowFunSource(ref immutable LowFunSource a) {
+	return matchLowFunSource(a,
+		(immutable Ptr!ConcreteFun it) => it.source,
+		(ref immutable LowFunSource.Generated) {
+			return FileAndRange.empty;
 		});
 }
 
@@ -372,13 +386,14 @@ void generateExternCall(TempAlloc, CodeAlloc)(
 	ref immutable LowFun fun,
 	ref immutable LowFunBody.Extern a,
 ) {
-	if (strEqLiteral(fun.mangledName, "malloc")) {
-		writeFn(writer, fun.source, FnOp.malloc);
+	immutable Ptr!ConcreteFun cf = asConcreteFun(fun.source);
+	if (strEqLiteral(cf.mangledName, "malloc")) {
+		writeFn(writer, cf.source, FnOp.malloc);
 	} else {
 		todo!void("unhandled extern function");
 	}
 
-	writeReturn(writer, fun.source);
+	writeReturn(writer, cf.source);
 }
 
 struct ExprCtx {
@@ -395,7 +410,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 	ref ExprCtx ctx,
 	ref immutable LowExpr expr,
 ) {
-	immutable FileAndRange source = expr.range;
+	immutable FileAndRange source = expr.source;
 	writeAssertStackSize(writer, source);
 	return matchLowExprKind(
 		expr.kind,
@@ -637,7 +652,7 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 	ref immutable LowExpr expr,
 	ref immutable LowExprKind.SpecialUnary a,
 ) {
-	immutable FileAndRange source = expr.range;
+	immutable FileAndRange source = expr.source;
 
 	void generateArg() {
 		generateExpr(tempAlloc, writer, ctx, a.arg);
@@ -703,7 +718,7 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 			break;
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
-			generateRefOfVal(tempAlloc, writer, ctx, expr.range, a.arg);
+			generateRefOfVal(tempAlloc, writer, ctx, expr.source, a.arg);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64: // FnOp.float64FromInt64
 			fn(FnOp.float64FromInt64);
@@ -974,7 +989,7 @@ void generateSpecialNAry(TempAlloc, CodeAlloc)(
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			foreach (ref immutable LowExpr arg; range(a.args))
 				generateExpr(tempAlloc, writer, ctx, arg);
-			writeCallFunPtr(writer, expr.range, stackEntryBeforeArgs, nStackEntriesForType(ctx, expr.type));
+			writeCallFunPtr(writer, expr.source, stackEntryBeforeArgs, nStackEntriesForType(ctx, expr.type));
 			break;
 	}
 }

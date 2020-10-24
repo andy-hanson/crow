@@ -369,23 +369,32 @@ void eachWithIndex(T)(
 	return Arr!Out(res, size(a));
 }
 
+@trusted immutable(Arr!Out) mapPtrs(Out, In, Alloc)(
+	ref Alloc alloc,
+	ref immutable Arr!In a,
+	scope immutable(Out) delegate(immutable Ptr!In) @safe @nogc pure nothrow cb,
+) {
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
+	foreach (immutable size_t i; 0..size(a))
+		initMemory(res + i, cb(ptrAt(a, i)));
+	return immutable Arr!Out(cast(immutable) res, size(a));
+}
+
 @trusted immutable(Arr!Out) mapWithOptFirst2(Out, In, Alloc)(
 	ref Alloc alloc,
 	ref immutable Opt!Out optFirst0,
 	ref immutable Opt!Out optFirst1,
 	ref immutable Arr!In a,
-	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+	scope immutable(Out) delegate(immutable Ptr!In) @safe @nogc pure nothrow cb,
 ) {
 	immutable size_t offset = (has(optFirst0) ? 1 : 0) + (has(optFirst1) ? 1 : 0);
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * (offset + size(a)));
-	if (has(optFirst0)) {
+	if (has(optFirst0))
 		initMemory(res, force(optFirst0));
-	}
-	if (has(optFirst1)) {
+	if (has(optFirst1))
 		initMemory(res + (has(optFirst0) ? 1 : 0), force(optFirst1));
-	}
 	foreach (immutable size_t i; 0..size(a))
-		initMemory(res + offset + i, cb(at(a, i)));
+		initMemory(res + offset + i, cb(ptrAt(a, i)));
 	return immutable Arr!Out(cast(immutable) res, offset + size(a));
 }
 
@@ -393,7 +402,7 @@ void eachWithIndex(T)(
 	ref Alloc alloc,
 	ref immutable Opt!Out optFirst,
 	ref immutable Arr!In a,
-	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+	scope immutable(Out) delegate(immutable Ptr!In) @safe @nogc pure nothrow cb,
 ) {
 	immutable Opt!Out opt2 = none!Out;
 	return mapWithOptFirst2!(Out, In, Alloc)(alloc, optFirst, opt2, a, cb);

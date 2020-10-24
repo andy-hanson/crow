@@ -103,11 +103,11 @@ immutable(int) buildAndRun(SymAlloc)(
 	if (interpret) {
 		Mallocator mallocator;
 		LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
-		immutable Result!(ProgramAndLowProgramAndFilesInfo, Diagnostics) lowProgramResult =
+		immutable Result!(ProgramsAndFilesInfo, Diagnostics) lowProgramResult =
 			buildToLowProgram(lowAlloc, allSymbols, nozeDir, programDirAndMain);
-		return matchResultImpure!(int, ProgramAndLowProgramAndFilesInfo, Diagnostics)(
+		return matchResultImpure!(int, ProgramsAndFilesInfo, Diagnostics)(
 			lowProgramResult,
-			(ref immutable ProgramAndLowProgramAndFilesInfo it) {
+			(ref immutable ProgramsAndFilesInfo it) {
 				immutable ByteCode byteCode = generateBytecode(lowAlloc, it.program, it.lowProgram);
 				return runBytecode(byteCode, it.filesInfo, programArgs);
 			},
@@ -264,7 +264,7 @@ alias ConcreteAlloc = SingleHeapAlloc!(Mallocator, "concrete-model", 64 * 1024 *
 alias LowAlloc = SingleHeapAlloc!(Mallocator, "low-model", 64 * 1024 * 1024);
 alias ConcreteSexprAlloc = SingleHeapAlloc!(Mallocator, "concrete-model-repr", 64 * 1024 * 1024);
 alias LowSexprAlloc = SingleHeapAlloc!(Mallocator, "low-model-repr", 64 * 1024 * 1024);
-alias WriteAlloc = SingleHeapAlloc!(Mallocator, "write-to-c", 64 * 1024 * 1024);
+alias WriteAlloc = SingleHeapAlloc!(Mallocator, "write-to-c", 128 * 1024 * 1024);
 
 // mainPath is relative to programDir
 // Returns exePath
@@ -277,11 +277,11 @@ immutable(Opt!AbsolutePath) buildWorker(Alloc, SymAlloc)(
 ) {
 	Mallocator mallocator;
 	LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
-	immutable Result!(ProgramAndLowProgramAndFilesInfo, Diagnostics) programResult =
+	immutable Result!(ProgramsAndFilesInfo, Diagnostics) programResult =
 		buildToLowProgram(lowAlloc, allSymbols, nozeDir, programDirAndMain);
 	return matchResultImpure!(Opt!AbsolutePath)(
 		programResult,
-		(ref immutable ProgramAndLowProgramAndFilesInfo lowProgram) {
+		(ref immutable ProgramsAndFilesInfo lowProgram) {
 			immutable AbsolutePath fullMainPath =
 				immutable AbsolutePath(programDirAndMain.programDir, programDirAndMain.mainPath, emptyStr);
 			immutable AbsolutePath fullMainCPath = withExtension(fullMainPath, strLiteral(".c"));
@@ -295,28 +295,28 @@ immutable(Opt!AbsolutePath) buildWorker(Alloc, SymAlloc)(
 		});
 }
 
-struct ProgramAndLowProgramAndFilesInfo {
+struct ProgramsAndFilesInfo {
 	immutable Program program;
+	immutable ConcreteProgram concreteProgram;
 	immutable LowProgram lowProgram;
 	immutable FilesInfo filesInfo;
 }
 
-immutable(Result!(ProgramAndLowProgramAndFilesInfo, Diagnostics)) buildToLowProgram(Alloc, SymAlloc)(
+immutable(Result!(ProgramsAndFilesInfo, Diagnostics)) buildToLowProgram(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Str nozeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
 ) {
-	Mallocator mallocator;
 	immutable Result!(Program, Diagnostics) programResult =
 		frontendCompileProgram(alloc, allSymbols, nozeDir, programDirAndMain);
-	return mapSuccess!(ProgramAndLowProgramAndFilesInfo, Program, Diagnostics)(
+	return mapSuccess!(ProgramsAndFilesInfo, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
-			ConcreteAlloc concreteAlloc = ConcreteAlloc(ptrTrustMe_mut(mallocator));
-			immutable ConcreteProgram concreteProgram = concretize(concreteAlloc, program);
-			return immutable ProgramAndLowProgramAndFilesInfo(
+			immutable ConcreteProgram concreteProgram = concretize(alloc, program);
+			return immutable ProgramsAndFilesInfo(
 				program,
+				concreteProgram,
 				lower(alloc, concreteProgram),
 				program.filesInfo);
 		});

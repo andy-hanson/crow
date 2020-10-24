@@ -2522,15 +2522,15 @@ struct arr__char to_str__arr__char__comparison(struct ctx* ctx, struct compariso
 	}
 }
 struct comparison compare264(struct my_record a, struct my_record b) {
-	struct comparison matchedy;
-	struct comparison matchedx;
-	matchedx = compare16(a.x, b.x);
-	switch (matchedx.kind) {
+	struct comparison temp1;
+	struct comparison temp0;
+	temp0 = compare16(a.x, b.x);
+	switch (temp0.kind) {
 		case 0:
 			return (struct comparison) {0, .as0 = (struct less) {0}};
 		case 1:
-			matchedy = compare16(a.y, b.y);
-			switch (matchedy.kind) {
+			temp1 = compare16(a.y, b.y);
+			switch (temp1.kind) {
 				case 0:
 					return (struct comparison) {0, .as0 = (struct less) {0}};
 				case 1:
@@ -2564,15 +2564,15 @@ uint8_t test_compare_byref_records___void(struct ctx* ctx) {
 	return print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare266(a, d)));
 }
 struct comparison compare266(struct my_byref_record* a, struct my_byref_record* b) {
-	struct comparison matchedy;
-	struct comparison matchedx;
-	matchedx = compare16(a->x, b->x);
-	switch (matchedx.kind) {
+	struct comparison temp1;
+	struct comparison temp0;
+	temp0 = compare16(a->x, b->x);
+	switch (temp0.kind) {
 		case 0:
 			return (struct comparison) {0, .as0 = (struct less) {0}};
 		case 1:
-			matchedy = compare16(a->y, b->y);
-			switch (matchedy.kind) {
+			temp1 = compare16(a->y, b->y);
+			switch (temp1.kind) {
 				case 0:
 					return (struct comparison) {0, .as0 = (struct less) {0}};
 				case 1:
@@ -2602,21 +2602,21 @@ uint8_t test_compare_unions___void(struct ctx* ctx) {
 	return print_sync___void__arr__char(to_str__arr__char__comparison(ctx, compare268(a, d)));
 }
 struct comparison compare268(struct my_union a, struct my_union b) {
-	struct my_union matchA;
+	struct my_union match_a0;
 	struct my_record a0;
 	struct my_record b0;
-	struct my_union matchB0;
+	struct my_union match_b0;
 	struct my_other_record a1;
 	struct my_other_record b1;
-	struct my_union matchB1;
-	matchA = a;
-	switch (matchA.kind) {
+	struct my_union match_b1;
+	match_a0 = a;
+	switch (match_a0.kind) {
 		case 0:
-			a0 = matchA.as0;
-			matchB0 = b;
-			switch (matchB0.kind) {
+			a0 = match_a0.as0;
+			match_b0 = b;
+			switch (match_b0.kind) {
 				case 0:
-					b0 = matchB0.as0;
+					b0 = match_b0.as0;
 					return compare264(a0, b0);
 				case 1:
 					return (struct comparison) {0, .as0 = (struct less) {0}};
@@ -2624,13 +2624,13 @@ struct comparison compare268(struct my_union a, struct my_union b) {
 					return (assert(0),(struct comparison) {0});
 			}
 		case 1:
-			a1 = matchA.as1;
-			matchB1 = b;
-			switch (matchB1.kind) {
+			a1 = match_a0.as1;
+			match_b1 = b;
+			switch (match_b1.kind) {
 				case 0:
 					return (struct comparison) {2, .as2 = (struct greater) {0}};
 				case 1:
-					b1 = matchB1.as1;
+					b1 = match_b1.as1;
 					return compare269(a1, b1);
 				default:
 					return (assert(0),(struct comparison) {0});

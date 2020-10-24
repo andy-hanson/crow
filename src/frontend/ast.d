@@ -495,15 +495,15 @@ struct StructDeclAst {
 	immutable Body body_;
 }
 
-immutable(Bool) isRecord(immutable ref StructDeclAst.Body a) {
+immutable(Bool) isRecord(ref immutable StructDeclAst.Body a) {
 	return Bool(a.kind == StructDeclAst.Body.Kind.record);
 }
-immutable(Bool) isUnion(immutable ref StructDeclAst.Body a) {
+immutable(Bool) isUnion(ref immutable StructDeclAst.Body a) {
 	return Bool(a.kind == StructDeclAst.Body.Kind.union_);
 }
 
 @trusted T matchStructDeclAstBody(T)(
-	immutable ref StructDeclAst.Body a,
+	ref immutable StructDeclAst.Body a,
 	scope T delegate(ref immutable StructDeclAst.Body.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope T delegate(ref immutable StructDeclAst.Body.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
 	scope T delegate(ref immutable StructDeclAst.Body.Record) @safe @nogc pure nothrow cbRecord,
@@ -543,7 +543,7 @@ struct SpecBodyAst {
 }
 
 @trusted T matchSpecBodyAst(T)(
-	immutable ref SpecBodyAst a,
+	ref immutable SpecBodyAst a,
 	scope T delegate(ref immutable SpecBodyAst.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope T delegate(ref immutable Arr!SigAst) @safe @nogc pure nothrow cbSigs,
 ) {
@@ -592,7 +592,7 @@ struct FunBodyAst {
 }
 
 @trusted T matchFunBodyAst(T)(
-	immutable ref FunBodyAst a,
+	ref immutable FunBodyAst a,
 	scope T delegate(ref immutable FunBodyAst.Builtin) @safe @nogc pure nothrow cbBuiltin,
 	scope T delegate(ref immutable FunBodyAst.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(ref immutable ExprAst) @safe @nogc pure nothrow cbExprAst,

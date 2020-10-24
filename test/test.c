@@ -3480,7 +3480,7 @@ uint8_t _op_equal_equal__bool__arr__char__arr__char(struct arr__char a, struct a
 	}
 }
 struct comparison compare272(struct arr__char a, struct arr__char b) {
-	struct comparison matchedelement;
+	struct comparison temp0;
 	struct arr__char _tailCalla;
 	struct arr__char _tailCallb;
 	top:
@@ -3494,8 +3494,8 @@ struct comparison compare272(struct arr__char a, struct arr__char b) {
 		if ((b.size == 0)) {
 			return (struct comparison) {2, .as2 = (struct greater) {0}};
 		} else {
-			matchedelement = compare179((*(a.data)), (*(b.data)));
-			switch (matchedelement.kind) {
+			temp0 = compare179((*(a.data)), (*(b.data)));
+			switch (temp0.kind) {
 				case 0:
 					return (struct comparison) {0, .as0 = (struct less) {0}};
 				case 1:

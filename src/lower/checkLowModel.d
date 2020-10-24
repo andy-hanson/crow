@@ -246,7 +246,7 @@ immutable(Sexpr) tataOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, i
 		(immutable PrimitiveType it) =>
 			tataSym(symOfPrimitiveType(it)),
 		(immutable LowType.Record it) =>
-			tataRecord(alloc, "record", tataStr(fullIndexDictGet(ctx.program.allRecords, it).mangledName)),
+			tataRecord(alloc, "record", tataStr(fullIndexDictGet(ctx.program.allRecords, it).source.mangledName)),
 		(immutable LowType.Union it) =>
-			tataRecord(alloc, "union", tataStr(fullIndexDictGet(ctx.program.allUnions, it).mangledName)));
+			tataRecord(alloc, "union", tataStr(fullIndexDictGet(ctx.program.allUnions, it).source.mangledName)));
 }
