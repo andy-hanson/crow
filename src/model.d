@@ -14,11 +14,12 @@ import util.collection.str : Str;
 import util.comparison : compareEnum, compareOr, Comparison, ptrEquals;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
+import util.memory : nu;
 import util.opt : none, Opt, some;
 import util.path : AbsolutePath, addManyChildren, baseName, comparePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange, FileIndex;
-import util.sym : compareSym, shortSymAlphaLiteral, Sym, writeSym;
+import util.sym : compareSym, shortSymAlphaLiteral, shortSymOperatorLiteral, Sym, symEq, writeSym;
 import util.types : u8;
 import util.util : todo, verify;
 import util.writer : writeChar, Writer, writeStatic;
@@ -428,6 +429,15 @@ struct StructInst {
 	}
 }
 
+immutable(Bool) isArr(ref immutable StructInst i) {
+	// TODO: only do this for the arr in bootstrap, not anything named 'arr'
+	return symEq(decl(i).name, shortSymAlphaLiteral("arr"));
+}
+
+immutable(Sym) name(ref immutable StructInst i) {
+	return decl(i).name;
+}
+
 const(Ptr!StructDecl) decl(ref const StructInst i) {
 	return i.declAndArgs.decl;
 }
@@ -539,7 +549,7 @@ struct FunBody {
 	struct Builtin {}
 	struct Extern {
 		immutable Bool isGlobal;
-		immutable Opt!Str mangledName;
+		immutable Str externName;
 	}
 
 	private:
@@ -710,6 +720,15 @@ immutable(Comparison) compareFunDeclAndArgs(ref immutable FunDeclAndArgs a, ref 
 struct FunInst {
 	immutable FunDeclAndArgs funDeclAndArgs;
 	immutable Sig sig;
+}
+
+immutable(Bool) isCompareFun(ref immutable FunInst a) {
+	// TODO: only do this for the '<=>' in bootstrap
+	return symEq(name(decl(a).deref()), shortSymOperatorLiteral("<=>"));
+}
+
+immutable(Ptr!FunInst) nonTemplateFunInst(Alloc)(ref Alloc alloc, immutable Ptr!FunDecl decl) {
+	return nu!FunInst(alloc, immutable FunDeclAndArgs(decl, emptyArr!Type, emptyArr!Called), decl.sig);
 }
 
 immutable(Sym) name(ref immutable FunInst a) {

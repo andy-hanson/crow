@@ -840,9 +840,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 					todo!void("'extern' fun must be 'noctx'");
 				if (e.isGlobal && arity(fun) != 0)
 					todo!void("'extern' fun has parameters");
-				immutable Opt!Str mangledName = mapOption!Str(e.mangledName, (ref immutable Str s) =>
-					copyStr(alloc, s));
-				return immutable FunBody(FunBody.Extern(e.isGlobal, mangledName));
+				return immutable FunBody(FunBody.Extern(e.isGlobal, copyStr(alloc, e.externName)));
 			},
 			(ref immutable ExprAst e) =>
 				immutable FunBody(checkFunctionBody!Alloc(

@@ -44,6 +44,9 @@ deref ?t(p ptr ?t) noctx unsafe builtin
 set void(p ptr ?t, value ?t) noctx unsafe builtin
 
 null ptr ?t() noctx builtin
+| Used by the compiler
+null-any ptr bool() noctx
+	null
 
 null? bool(a ptr ?t) noctx trusted
 	a.to-nat == (null<?t>).to-nat

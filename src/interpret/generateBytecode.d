@@ -2,7 +2,7 @@ module interpret.generateBytecode;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : ConcreteFun;
+import concreteModel : ConcreteFun, ConcreteFunSource, matchConcreteFunSource;
 import interpret.bytecode :
 	addByteCodeIndex,
 	ByteCode,
@@ -77,7 +77,7 @@ import lowModel :
 	matchLowType,
 	matchSpecialConstant,
 	PrimitiveType;
-import model : FunDecl, Module, name, Program, range;
+import model : decl, FunDecl, FunInst, Module, name, Program, range;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : False, True;
 import util.collection.arr : Arr, at, range, size;
@@ -373,11 +373,12 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 
 //TODO:KILL when we use ExprSource consistently
 immutable(FileAndRange) convertLowFunSource(ref immutable LowFunSource a) {
-	return matchLowFunSource(a,
-		(immutable Ptr!ConcreteFun it) => it.source,
-		(ref immutable LowFunSource.Generated) {
-			return FileAndRange.empty;
-		});
+	return matchLowFunSource!(immutable FileAndRange)(
+		a,
+		(immutable Ptr!ConcreteFun it) =>
+			convertConcreteFunSource(it.source),
+		(ref immutable LowFunSource.Generated) =>
+			FileAndRange.empty);
 }
 
 void generateExternCall(TempAlloc, CodeAlloc)(
@@ -387,13 +388,23 @@ void generateExternCall(TempAlloc, CodeAlloc)(
 	ref immutable LowFunBody.Extern a,
 ) {
 	immutable Ptr!ConcreteFun cf = asConcreteFun(fun.source);
-	if (strEqLiteral(cf.mangledName, "malloc")) {
-		writeFn(writer, cf.source, FnOp.malloc);
+	immutable FileAndRange range = convertConcreteFunSource(cf.source);
+	if (strEqLiteral(a.externName, "malloc")) {
+		writeFn(writer, range, FnOp.malloc);
 	} else {
 		todo!void("unhandled extern function");
 	}
+	writeReturn(writer, range);
+}
 
-	writeReturn(writer, cf.source);
+//TODO:KILL (when we don't just use FileAndrange as the source)
+immutable(FileAndRange) convertConcreteFunSource(ref immutable ConcreteFunSource a) {
+	return matchConcreteFunSource!(immutable FileAndRange)(
+		a,
+		(immutable Ptr!FunInst it) =>
+			range(decl(it).deref()),
+		(ref immutable ConcreteFunSource.Lambda it) =>
+			it.range);
 }
 
 struct ExprCtx {

@@ -64,7 +64,7 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, ArrWithSizeBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
-import util.collection.str : CStr, NulTerminatedStr, Str;
+import util.collection.str : CStr, emptyStr, NulTerminatedStr, Str;
 import util.memory : nu;
 import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.path : childPath, Path, rootPath;
@@ -412,13 +412,18 @@ struct SpecUsesAndSigFlagsAndKwBodyBuilder {
 	immutable Opt!Str mangle = none!Str;
 }
 
-immutable(Opt!Str) tryTakeMangledName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(Str) takeExternName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	if (tryTake(lexer, '<')) {
-		immutable Str mangledName = takeQuotedStr(lexer, alloc);
+		immutable Str res = takeQuotedStr(lexer, alloc);
 		takeTypeArgsEnd(alloc, lexer);
-		return some(mangledName);
-	} else
-		return none!Str;
+		return res;
+	} else {
+		addDiagAtChar(
+			alloc,
+			lexer,
+			immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.externName)));
+		return emptyStr;
+	}
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) finishSpecs(Alloc)(
@@ -446,7 +451,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 		scope immutable(SpecUsesAndSigFlagsAndKwBody) setExtern(immutable Bool isGlobal) {
 			if (extern_.has)
 				todo!void("duplicate");
-			immutable Opt!Str mangledName = tryTakeMangledName(alloc, lexer);
+			immutable Str mangledName = takeExternName(alloc, lexer);
 			immutable Opt!(FunBodyAst.Extern) extern2 = some(immutable FunBodyAst.Extern(isGlobal, mangledName));
 			return nextSpecOrStop(
 				alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern2, mangle, canTakeNext);
@@ -688,7 +693,12 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 				add(
 					alloc,
 					specs,
-					immutable SpecDeclAst(range(lexer, start), isPublic, name, typeParams, SpecBodyAst(sigs)));
+					immutable SpecDeclAst(
+						range(lexer, start),
+						isPublic,
+						name,
+						typeParams,
+						immutable SpecBodyAst(sigs)));
 				break;
 			case NonFunKeyword.builtin:
 			case NonFunKeyword.externPtr:

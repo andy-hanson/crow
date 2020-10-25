@@ -9,6 +9,7 @@ import concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
+	ConcreteFunSource,
 	ConcreteParam,
 	ConcreteType,
 	concreteType_fromStruct,
@@ -16,6 +17,7 @@ import concreteModel :
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructInfo,
+	ConcreteStructSource,
 	sizeOrPointerSizeBytes;
 import concretize.concretizeExpr : concretizeExpr;
 import concretize.mangleName : mangleExternFunName, mangleName, writeMangledName;
@@ -28,6 +30,7 @@ import model :
 	ForcedByValOrRef,
 	FunBody,
 	FunDecl,
+	FunInst,
 	isExtern,
 	matchFunBody,
 	matchStructBody,
@@ -51,7 +54,7 @@ import util.collection.arrBuilder : add, ArrBuilder;
 import util.collection.arrUtil : arrLiteral, arrMax, compareArr, exists, map, mapWithIndex;
 import util.collection.mutArr : MutArr;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
-import util.collection.str : copyStr, Str;
+import util.collection.str : strLiteral;
 import util.comparison : Comparison;
 import util.late : Late, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : nu, nuMut;
@@ -60,14 +63,6 @@ import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals, ptrTru
 import util.sym : shortSymAlphaLiteralValue, Sym;
 import util.types : safeSizeTToU8;
 import util.util : min, max, roundUp, todo, unreachable, verify;
-import util.writer : finishWriter, Writer, writeStatic, writeStr;
-
-void writeConcreteTypeForMangle(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteType t) {
-	writeStatic(writer, "__");
-	if (t.isPointer)
-		writeStatic(writer, "ptr_");
-	writeStr(writer, t.struct_.mangledName);
-}
 
 struct TypeArgsScope {
 	@safe @nogc pure nothrow:
@@ -111,21 +106,26 @@ immutable(Comparison) compareConcreteStructKey(ref const ConcreteStructKey a, re
 }
 
 struct ConcreteFunKey {
-	immutable Ptr!FunDecl decl;
+	// We only need a FunDecl since we have the typeArgs and specImpls.
+	// FunInst is for debug info
+	immutable Ptr!FunInst inst;
 	immutable Arr!ConcreteType typeArgs;
 	immutable Arr!(Ptr!ConcreteFun) specImpls;
 }
 
 immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunKey a) {
-	return immutable TypeArgsScope(a.decl.typeParams, a.typeArgs);
+	return immutable TypeArgsScope(a.inst.decl.typeParams, a.typeArgs);
 }
 
 immutable(ConcreteFunKey) withTypeArgs(ref immutable ConcreteFunKey a, immutable Arr!ConcreteType newTypeArgs) {
-	return ConcreteFunKey(a.decl, newTypeArgs, a.specImpls);
+	return immutable ConcreteFunKey(a.inst, newTypeArgs, a.specImpls);
 }
 
 immutable(Comparison) compareConcreteFunKey(ref immutable ConcreteFunKey a, ref immutable ConcreteFunKey b) {
-	immutable Comparison cmpDecl = comparePtr(a.decl, b.decl);
+	// Compare decls, not insts.
+	// Two different FunInsts may concretize to the same thing.
+	// (e.g. f<?t> and f<bool> if ?t = bool)
+	immutable Comparison cmpDecl = comparePtr(a.inst.decl, b.inst.decl);
 	if (cmpDecl != Comparison.equal)
 		return cmpDecl;
 	else {
@@ -140,7 +140,7 @@ immutable(Comparison) compareConcreteFunKey(ref immutable ConcreteFunKey a, ref 
 	}
 }
 
-struct ConcreteFunSource {
+struct ConcreteFunBodyInputs {
 	immutable Ptr!ConcreteFun concreteFun;
 	// NOTE: for a lambda, this is for the *outermost* fun (the one with type args and spec impls).
 	// The FunDecl is needed for its TypeParam declataions.
@@ -148,33 +148,28 @@ struct ConcreteFunSource {
 	// Similarly, body of the current fun, not the outer one.
 	// For a lambda this is always an Expr.
 	immutable FunBody body_;
-
 }
 
-immutable(Ptr!FunDecl) containingFunDecl(ref immutable ConcreteFunSource a) {
-	return a.containingConcreteFunKey.decl;
-}
-
-ref immutable(Arr!ConcreteType) typeArgs(return scope ref immutable ConcreteFunSource a) {
+ref immutable(Arr!ConcreteType) typeArgs(return scope ref immutable ConcreteFunBodyInputs a) {
 	return a.containingConcreteFunKey.typeArgs;
 }
 
-immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunSource a) {
+immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunBodyInputs a) {
 	return typeArgsScope(a.containingConcreteFunKey);
 }
 
-ref immutable(Arr!(Ptr!ConcreteFun)) specImpls(return scope ref immutable ConcreteFunSource a) {
+ref immutable(Arr!(Ptr!ConcreteFun)) specImpls(return scope ref immutable ConcreteFunBodyInputs a) {
 	return a.containingConcreteFunKey.specImpls;
 }
 
 struct ConcretizeCtx {
 	@safe @nogc pure nothrow:
 
-	immutable Ptr!FunDecl allocFun;
-	immutable Ptr!FunDecl getVatAndActorFun;
+	immutable Ptr!FunInst allocFun;
+	immutable Ptr!FunInst getVatAndActorFun;
 	immutable Arr!(Ptr!FunDecl) ifFuns;
 	immutable Arr!(Ptr!FunDecl) callFuns;
-	immutable Ptr!FunDecl nullFun;
+	immutable Ptr!FunInst nullAnyPtrFun;
 	immutable Ptr!StructInst ctxStructInst;
 	immutable Ptr!CommonTypes commonTypes;
 	MutDict!(
@@ -189,7 +184,11 @@ struct ConcretizeCtx {
 	// Funs we still need to write the bodies for
 	MutArr!(Ptr!ConcreteFun) concreteFunsQueue;
 	// This will only have an entry while a ConcreteFun hasn't had it's body filled in yet.
-	MutDict!(immutable Ptr!ConcreteFun, immutable ConcreteFunSource, comparePtr!ConcreteFun) concreteFunToSource;
+	MutDict!(
+		immutable Ptr!ConcreteFun,
+		immutable ConcreteFunBodyInputs,
+		comparePtr!ConcreteFun,
+	) concreteFunToBodyInputs;
 	// TODO: do these eagerly
 	Late!(immutable ConcreteType) _boolType;
 	Late!(immutable ConcreteType) _charType;
@@ -239,8 +238,8 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	immutable Bool needsCtx,
-	immutable Sym name,
-	ref immutable Str mangledName,
+	immutable Ptr!ConcreteFun containingConcreteFun,
+	immutable size_t index,
 	immutable ConcreteType returnType,
 	ref immutable Opt!ConcreteParam closureParam,
 	ref immutable Arr!ConcreteParam params,
@@ -248,12 +247,18 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	immutable Ptr!Expr body_,
 ) {
 	Ptr!ConcreteFun res =
-		nuMut!ConcreteFun(alloc, body_.range, name, mangledName, returnType, needsCtx, closureParam, params);
-	immutable ConcreteFunSource source = ConcreteFunSource(
+		nuMut!ConcreteFun(
+			alloc,
+			immutable ConcreteFunSource(immutable ConcreteFunSource.Lambda(body_.range, containingConcreteFun, index)),
+			returnType,
+			needsCtx,
+			closureParam,
+			params);
+	immutable ConcreteFunBodyInputs bodyInputs = immutable ConcreteFunBodyInputs(
 		castImmutable(res),
 		containingConcreteFunKey,
 		immutable FunBody(body_));
-	addToMutDict(alloc, ctx.concreteFunToSource, castImmutable(res), source);
+	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	fillInConcreteFunBody(alloc, ctx, res);
 	add(alloc, ctx.allConcreteFuns, castImmutable(res));
 	return castImmutable(res);
@@ -262,9 +267,9 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 immutable(Ptr!ConcreteFun) getOrAddNonTemplateConcreteFunAndFillBody(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	immutable Ptr!FunDecl decl,
+	immutable Ptr!FunInst decl,
 ) {
-	immutable ConcreteFunKey key = ConcreteFunKey(decl, emptyArr!ConcreteType, emptyArr!(Ptr!ConcreteFun));
+	immutable ConcreteFunKey key = immutable ConcreteFunKey(decl, emptyArr!ConcreteType, emptyArr!(Ptr!ConcreteFun));
 	return getOrAddConcreteFunAndFillBody(alloc, ctx, key);
 }
 
@@ -283,8 +288,7 @@ immutable(ConcreteType) getConcreteType_forStructInst(Alloc)(
 			getOrAddAndDidAdd(alloc, ctx.nonLambdaConcreteStructs, key, () {
 				immutable Ptr!ConcreteStruct res = nu!ConcreteStruct(
 					alloc,
-					i.decl.name,
-					getConcreteStructMangledName(alloc, i.decl.name, key.typeArgs));
+					immutable ConcreteStructSource(immutable ConcreteStructSource.Inst(i, key.typeArgs)));
 				add(alloc, ctx.allConcreteStructs, res);
 				return res;
 			});
@@ -327,11 +331,10 @@ immutable(ConcreteType) concreteTypeFromFields_alwaysPointer(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	ref immutable Arr!ConcreteField fields,
-	immutable Sym name,
-	immutable Str mangledName,
+	immutable ConcreteStructSource source,
 ) {
 	verify(!empty(fields));
-	Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, name, mangledName);
+	Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, source);
 	lateSet(cs.info_, getConcreteStructInfoForFields(none!ForcedByValOrRef, fields));
 	add(alloc, ctx.allConcreteStructs, castImmutable(cs));
 	return concreteType_pointer(castImmutable(cs));
@@ -343,14 +346,6 @@ immutable(Ptr!ConcreteFun) getAllocFun(Alloc)(ref Alloc alloc, ref ConcretizeCtx
 
 immutable(Ptr!ConcreteFun) getGetVatAndActorFun(Alloc)(ref Alloc alloc, ref ConcretizeCtx ctx) {
 	return getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, ctx.getVatAndActorFun);
-}
-
-immutable(Ptr!ConcreteFun) getNullAnyPtrFun(Alloc)(ref Alloc alloc, ref ConcretizeCtx ctx) {
-	//TODO: allocating this over and over will take up space..
-	// Type we choose is arbitrary
-	immutable Arr!ConcreteType typeArgs = arrLiteral!ConcreteType(alloc, boolType(alloc, ctx));
-	immutable ConcreteFunKey key = immutable ConcreteFunKey(ctx.nullFun, typeArgs, emptyArr!(Ptr!ConcreteFun));
-	return getOrAddConcreteFunAndFillBody(alloc, ctx, key);
 }
 
 private:
@@ -372,25 +367,22 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(Alloc)(
 	ref ConcretizeCtx ctx,
 	ref immutable ConcreteFunKey key,
 ) {
-	immutable Ptr!FunDecl decl = key.decl;
+	immutable Ptr!FunDecl decl = key.inst.decl;
 	immutable TypeArgsScope typeScope = typeArgsScope(key);
 	immutable ConcreteType returnType = getConcreteType(alloc, ctx, returnType(decl), typeScope);
 	immutable Arr!ConcreteParam params = concretizeParams(alloc, ctx, params(decl), typeScope);
-	immutable Str mangledName = getMangledName(alloc, ctx, key, returnType, params);
 	Ptr!ConcreteFun res = nuMut!ConcreteFun(
 		alloc,
-		range(key.decl),
-		decl.name,
-		mangledName,
+		immutable ConcreteFunSource(key.inst),
 		returnType,
 		not(noCtx(decl)),
 		none!ConcreteParam,
 		params);
-	immutable ConcreteFunSource source = ConcreteFunSource(
+	immutable ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		castImmutable(res),
 		key,
 		body_(decl));
-	addToMutDict(alloc, ctx.concreteFunToSource, castImmutable(res), source);
+	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	return castImmutable(res);
 }
 
@@ -398,39 +390,6 @@ immutable(Comparison) compareConcreteTypeArr(ref immutable Arr!ConcreteType a, r
 	return compareArr!ConcreteType(a, b, (ref immutable ConcreteType x, ref immutable ConcreteType y) =>
 		compareConcreteType(x, y));
 }
-
-immutable(Str) getConcreteStructMangledName(Alloc)(
-	ref Alloc alloc,
-	immutable Sym declName,
-	immutable Arr!ConcreteType typeArgs,
-) {
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-	writeMangledName(writer, declName);
-	foreach (ref immutable ConcreteType ta; range(typeArgs))
-		writeConcreteTypeForMangle(writer, ta);
-	return finishWriter(writer);
-}
-
-// Don't need to take typeArgs here, since we have the concrete return type and param types anyway.
-immutable(Str) getConcreteFunMangledName(Alloc)(
-	ref Alloc alloc,
-	immutable Sym declName,
-	ref immutable ConcreteType returnType,
-	ref immutable Arr!ConcreteParam params,
-	ref immutable Arr!(Ptr!ConcreteFun) specImpls,
-) {
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-	writeMangledName(writer, declName);
-	writeConcreteTypeForMangle(writer, returnType);
-	foreach (ref immutable ConcreteParam p; range(params))
-		writeConcreteTypeForMangle(writer, p.type);
-	foreach (immutable Ptr!ConcreteFun si; range(specImpls)) {
-		writeStatic(writer, "__");
-		writeStr(writer, si.mangledName);
-	}
-	return finishWriter(writer);
-}
-
 
 size_t sizeFromConcreteFields(immutable Arr!ConcreteField fields) {
 	// TODO: this is definitely not accurate. Luckily I use static asserts in the generated code to check this.
@@ -542,24 +501,6 @@ void initializeConcreteStruct(Alloc)(
 	lateSetOverwrite(res.info_, info);
 }
 
-immutable(Str) getMangledName(Alloc)(
-	ref Alloc alloc,
-	ref ConcretizeCtx ctx,
-	immutable ConcreteFunKey key,
-	immutable ConcreteType returnType,
-	immutable Arr!ConcreteParam params,
-) {
-	immutable Ptr!FunDecl decl = key.decl;
-	immutable Sym name = name(decl);
-	if (isExtern(decl)) {
-		immutable FunBody.Extern e = asExtern(body_(decl));
-		return has(e.mangledName)
-			? copyStr(alloc, force(e.mangledName))
-			: mangleExternFunName(alloc, name);
-	} else
-		return getConcreteFunMangledName(alloc, name, returnType, params, key.specImpls);
-}
-
 void fillInConcreteFunBody(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
@@ -567,16 +508,17 @@ void fillInConcreteFunBody(Alloc)(
 ) {
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf._body_)) {
-		lateSet(cf._body_, immutable ConcreteFunBody(ConcreteFunBody.Extern(False))); // set to arbitrary temporarily
-		immutable ConcreteFunSource source = mustDelete(ctx.concreteFunToSource, castImmutable(cf));
+		// set to arbitrary temporarily
+		lateSet(cf._body_, immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(False, strLiteral("<<temp>>"))));
+		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
-			source.body_,
+			inputs.body_,
 			(ref immutable FunBody.Builtin) =>
-				immutable ConcreteFunBody(ConcreteFunBody.Builtin(typeArgs(source))),
+				immutable ConcreteFunBody(ConcreteFunBody.Builtin(typeArgs(inputs))),
 			(ref immutable FunBody.Extern e) =>
-				immutable ConcreteFunBody(ConcreteFunBody.Extern(e.isGlobal)),
+				immutable ConcreteFunBody(ConcreteFunBody.Extern(e.isGlobal, e.externName)),
 			(immutable Ptr!Expr e) =>
-				concretizeExpr!Alloc(alloc, ctx, source, castImmutable(cf), e.deref));
+				concretizeExpr(alloc, ctx, inputs, castImmutable(cf), e.deref));
 		lateSetOverwrite(cf._body_, body_);
 	}
 }

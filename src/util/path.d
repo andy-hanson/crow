@@ -243,7 +243,7 @@ immutable(Ptr!Path) parsePath(Alloc, SymAlloc)(ref Alloc alloc, ref AllSymbols!S
 		while (i < len && str.at(i) != '/')
 			i++;
 		verify(i != begin);
-		return rootPath(alloc, symbols.getSymFromAlphaIdentifier(sliceFromTo(str, begin, i)));
+		return rootPath(alloc, getSymFromAlphaIdentifier(symbols, sliceFromTo(str, begin, i)));
 	}();
 
 	immutable(Ptr!Path) recur(size_t i, immutable Ptr!Path path) {
@@ -256,7 +256,7 @@ immutable(Ptr!Path) parsePath(Alloc, SymAlloc)(ref Alloc alloc, ref AllSymbols!S
 		immutable size_t begin = i;
 		while (i < len && str.at(i) != '/')
 			i++;
-		return recur(i, childPath(alloc, path, symbols.getSymFromAlphaIdentifier(sliceFromTo(str, begin, i))));
+		return recur(i, childPath(alloc, path, getSymFromAlphaIdentifier(symbols, sliceFromTo(str, begin, i))));
 	}
 	return recur(i, path);
 }

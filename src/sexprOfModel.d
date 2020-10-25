@@ -174,12 +174,7 @@ immutable(Sexpr) sexprOfFunBody(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutab
 		(ref immutable FunBody.Builtin) =>
 			tataSym("builtin"),
 		(ref immutable FunBody.Extern it) =>
-			tataRecord(
-				alloc,
-				"extern",
-				tataBool(it.isGlobal),
-				tataOpt(alloc, it.mangledName, (ref immutable Str s) =>
-					tataStr(s))),
+			tataRecord(alloc, "extern", tataBool(it.isGlobal), tataStr(it.externName)),
 		(immutable Ptr!Expr it) =>
 			sexprOfExpr(alloc, ctx, it));
 }

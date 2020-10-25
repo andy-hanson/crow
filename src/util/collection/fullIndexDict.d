@@ -3,7 +3,7 @@ module util.collection.fullIndexDict;
 @safe @nogc pure nothrow:
 
 import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, setAt, size;
-import util.collection.arrUtil : mapWithIndex;
+import util.collection.arrUtil : fillArr, mapWithIndex;
 import util.types : safeSizeTToU16, safeSizeTToU32;
 
 struct FullIndexDict(K, V) {
@@ -76,4 +76,17 @@ immutable(FullIndexDict!(K, VOut)) mapFullIndexDict(K, VOut, VIn, Alloc)(
 		mapWithIndex(alloc, a.values, (immutable size_t index, ref immutable VIn v) =>
 			cb(immutable K(K.sizeof == 4 ? safeSizeTToU32(index) : safeSizeTToU16(index)), v)));
 }
+
+FullIndexDict!(K, VOut) mapFullIndexDict_mut(K, VOut, VIn, Alloc)(
+	ref Alloc alloc,
+	ref immutable FullIndexDict!(K, VIn) a,
+	scope immutable(VOut) delegate(immutable K, ref immutable VIn) @safe @nogc pure nothrow cb,
+) {
+	return fullIndexDictOfArr_mut!(K, VOut)(
+		mapWithIndex(alloc, a.values, (immutable size_t index, ref immutable VIn v) =>
+			cb(immutable K(K.sizeof == 4 ? safeSizeTToU32(index) : safeSizeTToU16(index)), v)));
+}
+
+
+
 

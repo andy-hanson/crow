@@ -2,6 +2,7 @@ module concreteModel;
 
 @safe @nogc pure nothrow:
 
+import model : FunInst, isArr, isCompareFun, StructInst;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, empty, size, sizeEq;
 import util.collection.str : Str;
@@ -165,12 +166,61 @@ struct ConcreteStructInfo {
 	immutable Bool defaultIsPointer;
 }
 
+struct ConcreteStructSource {
+	@safe @nogc pure nothrow:
+
+	struct Inst {
+		immutable Ptr!StructInst inst;
+		immutable Arr!ConcreteType typeArgs;
+	}
+
+	struct Lambda {
+		immutable Ptr!ConcreteFun containingFun;
+		immutable size_t index;
+	}
+
+	@trusted immutable this(immutable Lambda a) { kind_ = Kind.lambda; lambda_ = a; }
+	@trusted immutable this(immutable Inst a) { kind_ = Kind.inst; inst_ = a; }
+
+	private:
+	enum Kind {
+		inst,
+		lambda,
+	}
+	immutable Kind kind_;
+	union {
+		immutable Inst inst_;
+		immutable Lambda lambda_;
+	}
+}
+
+@trusted T matchConcreteStructSource(T)(
+	ref immutable ConcreteStructSource a,
+	scope T delegate(ref immutable ConcreteStructSource.Inst) @safe @nogc pure nothrow cbInst,
+	scope T delegate(ref immutable ConcreteStructSource.Lambda) @safe @nogc pure nothrow cbLambda,
+) {
+	final switch (a.kind_) {
+		case ConcreteStructSource.Kind.inst:
+			return cbInst(a.inst_);
+		case ConcreteStructSource.Kind.lambda:
+			return cbLambda(a.lambda_);
+	}
+}
+
 struct ConcreteStruct {
 	@safe @nogc pure nothrow:
 
-	immutable Sym name;
-	immutable Str mangledName; // TODO:KILL
+	immutable ConcreteStructSource source;
 	Late!(immutable ConcreteStructInfo) info_;
+}
+
+immutable(Bool) isArr(ref immutable ConcreteStruct a) {
+	return matchConcreteStructSource(
+		a.source,
+		(ref immutable ConcreteStructSource.Inst it) =>
+			isArr(it.inst),
+		(ref immutable ConcreteStructSource.Lambda it) =>
+			False);
 }
 
 ref immutable(ConcreteStructInfo) info(return scope ref const ConcreteStruct a) {
@@ -274,6 +324,7 @@ struct ConcreteFunBody {
 	}
 	struct Extern {
 		immutable Bool isGlobal;
+		immutable Str externName;
 	}
 
 	private:
@@ -291,7 +342,7 @@ struct ConcreteFunBody {
 
 	public:
 	@trusted immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
+	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable ConcreteFunExprBody a) {
 		kind = Kind.concreteFunExprBody; concreteFunExprBody = a;
 	}
@@ -344,18 +395,62 @@ immutable(Bool) isGlobal(ref immutable ConcreteFunBody a) {
 	return Bool(isExtern(a) && asExtern(a).isGlobal);
 }
 
+struct ConcreteFunSource {
+	@safe @nogc pure nothrow:
+
+	struct Lambda {
+		immutable FileAndRange range;
+		immutable Ptr!ConcreteFun containingFun;
+		immutable size_t index; // nth lambda in the containing function
+	}
+
+	@trusted immutable this(immutable Ptr!FunInst a) { kind_ = Kind.funInst; funInst_ = a; }
+	@trusted immutable this(immutable Lambda a) { kind_ = Kind.lambda; lambda_ = a; }
+
+	private:
+	enum Kind {
+		funInst,
+		lambda,
+	}
+	immutable Kind kind_;
+	union {
+		immutable Ptr!FunInst funInst_;
+		immutable Lambda lambda_;
+	}
+}
+
+@trusted T matchConcreteFunSource(T)(
+	ref immutable ConcreteFunSource a,
+	scope T delegate(immutable Ptr!FunInst) @safe @nogc pure nothrow cbFunInst,
+	scope T delegate(ref immutable ConcreteFunSource.Lambda) @safe @nogc pure nothrow cbLambda,
+) {
+	final switch (a.kind_) {
+		case ConcreteFunSource.Kind.funInst:
+			return cbFunInst(a.funInst_);
+		case ConcreteFunSource.Kind.lambda:
+			return cbLambda(a.lambda_);
+	}
+}
+
 // We generate a ConcreteFun for:
 // Each instantiation of a FunDecl
 // Each lambda inside an instantiation of a FunDecl
 struct ConcreteFun {
-	immutable FileAndRange source;
-	immutable Sym name;
-	immutable(Str) mangledName; // TODO:KILL
-	immutable(ConcreteType) returnType;
+	immutable ConcreteFunSource source;
+	immutable ConcreteType returnType;
 	immutable Bool needsCtx;
 	immutable Opt!ConcreteParam closureParam;
 	immutable Arr!ConcreteParam paramsExcludingCtxAndClosure;
 	Late!(immutable ConcreteFunBody) _body_;
+}
+
+immutable(Bool) isCompareFun(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource!(immutable Bool)(
+		a.source,
+		(immutable Ptr!FunInst it) =>
+			isCompareFun(it),
+		(ref immutable ConcreteFunSource.Lambda) =>
+			False);
 }
 
 ref immutable(ConcreteFunBody) body_(return scope ref const ConcreteFun a) {

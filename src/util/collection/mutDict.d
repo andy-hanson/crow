@@ -62,7 +62,6 @@ void setInDict(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, V, cmp) 
 	push(alloc, d.pairs, KeyValuePair!(K, V)(key, value));
 }
 
-
 void addToMutDict(Alloc, K, V, alias cmp)(
 	ref Alloc alloc,
 	ref MutDict!(K, V, cmp) d,
@@ -95,6 +94,23 @@ V getOrAdd(Alloc, K, V, alias compare)(
 	scope V delegate() @safe @nogc pure nothrow getValue,
 ) {
 	return getOrAddAndDidAdd(alloc, d, key, getValue).value;
+}
+
+V insertOrUpdate(Alloc, K, V, alias compare)(
+	ref Alloc alloc,
+	ref MutDict!(K, V, compare) d,
+	immutable K key,
+	scope V delegate() @safe @nogc pure nothrow cbInsert,
+	scope V delegate(ref const V) @safe @nogc pure nothrow cbUpdate,
+) {
+	foreach (ref KeyValuePair!(K, V) pair; mutArrRangeMut(d.pairs))
+		if (compare(pair.key, key) == Comparison.equal) {
+			overwriteMemory(&pair.value, cbUpdate(pair.value));
+			return pair.value;
+		}
+	V value = cbInsert();
+	push(alloc, d.pairs, KeyValuePair!(K, V)(key, value));
+	return value;
 }
 
 ValueAndDidAdd!V getOrAddAndDidAdd(Alloc, K, V, alias compare)(

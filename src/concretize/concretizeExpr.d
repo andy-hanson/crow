@@ -16,6 +16,7 @@ import concreteModel :
 	ConcreteParam,
 	ConcreteStruct,
 	ConcreteStructBody,
+	ConcreteStructSource,
 	ConcreteType,
 	concreteType_byValue,
 	mustBeNonPointer,
@@ -26,15 +27,13 @@ import concretize.concretizeCtx :
 	charType,
 	ConcretizeCtx,
 	ConcreteFunKey,
-	ConcreteFunSource,
+	ConcreteFunBodyInputs,
 	concreteTypeFromFields_alwaysPointer,
 	concretizeParams,
-	containingFunDecl,
 	getAllocFun,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteType_forStructInst_fromConcretizeCtx = getConcreteType_forStructInst,
 	getGetVatAndActorFun,
-	getNullAnyPtrFun,
 	getOrAddConcreteFunAndFillBody,
 	getConcreteFunForLambdaAndFillBody,
 	specImpls,
@@ -80,11 +79,11 @@ import util.writer : finishWriter, writeNat, Writer, writeStatic, writeStr;
 immutable(ConcreteFunBody) concretizeExpr(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	ref immutable ConcreteFunSource source,
+	ref immutable ConcreteFunBodyInputs inputs,
 	immutable Ptr!ConcreteFun cf,
 	ref immutable Expr e,
 ) {
-	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), source, cf);
+	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), inputs, cf);
 	immutable ConcreteExpr res = concretizeExpr(alloc, exprCtx, e);
 	return immutable ConcreteFunBody(
 		immutable ConcreteFunExprBody(
@@ -100,7 +99,7 @@ private:
 
 struct ConcretizeExprCtx {
 	Ptr!ConcretizeCtx concretizeCtx;
-	immutable ConcreteFunSource concreteFunSource;
+	immutable ConcreteFunBodyInputs concreteFunBodyInputs;
 	immutable Ptr!ConcreteFun currentConcreteFun; // This is the ConcreteFun* for a lambda, not its containing fun
 	size_t nextLambdaIndex = 0;
 
@@ -134,11 +133,7 @@ immutable(Arr!ConcreteType) typesToConcreteTypes(Alloc)(
 }
 
 immutable(TypeArgsScope) typeScope(ref ConcretizeExprCtx ctx) {
-	return typeArgsScope(ctx.concreteFunSource);
-}
-
-immutable(Ptr!FunDecl) containingFunDecl(ref ConcretizeExprCtx ctx) {
-	return containingFunDecl(ctx.concreteFunSource);
+	return typeArgsScope(ctx.concreteFunBodyInputs);
 }
 
 immutable(ConcreteFunKey) getConcreteFunKeyFromFunInst(Alloc)(
@@ -149,7 +144,7 @@ immutable(ConcreteFunKey) getConcreteFunKeyFromFunInst(Alloc)(
 	immutable Arr!ConcreteFunInst specImpls =
 		map!ConcreteFunInst(alloc, specImpls(funInst), (ref immutable Called it) =>
 			getConcreteFunFromCalled(alloc, ctx, it));
-	return ConcreteFunKey(funInst.decl, typesToConcreteTypes(ctx, funInst.typeArgs), specImpls);
+	return immutable ConcreteFunKey(funInst, typesToConcreteTypes(ctx, funInst.typeArgs), specImpls);
 }
 
 immutable(ConcreteFunInst) getConcreteFunKeyFromCalled(Alloc)(
@@ -162,7 +157,7 @@ immutable(ConcreteFunInst) getConcreteFunKeyFromCalled(Alloc)(
 		(immutable Ptr!FunInst funInst) =>
 			getConcreteFunFromFunInst(ctx, funInst),
 		(ref immutable SpecSig specSig) =>
-			at(specImpls(ctx.concreteFunSource), specSig.indexOverAllSpecUses));
+			at(specImpls(ctx.concreteFunBodyInputs), specSig.indexOverAllSpecUses));
 }
 
 immutable(ConcreteExpr) concretizeCall(Alloc)(
@@ -187,7 +182,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromCalled(Alloc)(
 		(immutable Ptr!FunInst funInst) =>
 			getConcreteFunFromFunInst(alloc, ctx, funInst),
 		(ref immutable SpecSig specSig) =>
-			at(specImpls(ctx.concreteFunSource), specSig.indexOverAllSpecUses));
+			at(specImpls(ctx.concreteFunBodyInputs), specSig.indexOverAllSpecUses));
 }
 
 immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(Alloc)(
@@ -200,7 +195,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(Alloc)(
 		alloc,
 		specImpls(funInst),
 		(ref immutable Called it) => getConcreteFunFromCalled(alloc, ctx, it));
-	immutable ConcreteFunKey key = immutable ConcreteFunKey(decl(funInst), typeArgs, specImpls);
+	immutable ConcreteFunKey key = immutable ConcreteFunKey(funInst, typeArgs, specImpls);
 	return getOrAddConcreteFunAndFillBody(alloc, ctx.concretizeCtx, key);
 }
 
@@ -293,21 +288,14 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 	ref immutable FileAndRange range,
 	ref immutable Expr.Lambda e,
 ) {
+	immutable size_t lambdaIndex = ctx.nextLambdaIndex;
+	ctx.nextLambdaIndex++;
+
 	immutable TypeArgsScope tScope = typeScope(ctx);
 	immutable Arr!ConcreteParam params = concretizeParams(alloc, ctx.concretizeCtx, e.params, tScope);
-	immutable Str lambdaMangledName = () {
-		Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-		writeStr(writer, ctx.currentConcreteFun.mangledName);
-		writeStatic(writer, "__lambda");
-		writeNat(writer, ctx.nextLambdaIndex);
-		ctx.nextLambdaIndex++;
-		return finishWriter(writer);
-	}();
-
 	immutable Arr!ConcreteExpr closureArgs = map!ConcreteExpr(alloc, e.closure, (ref immutable Ptr!ClosureField f) =>
 		concretizeExpr(alloc, ctx, f.expr));
 	immutable Arr!ConcreteField closureFields = concretizeClosureFields(alloc, ctx.concretizeCtx, e.closure, tScope);
-	immutable Str typeMangledName = cat(alloc, lambdaMangledName, strLiteral("___closure"));
 	immutable Opt!ConcreteType closureType = e.kind == FunKind.ptr
 		? none!ConcreteType
 		: some!ConcreteType(empty(closureArgs)
@@ -316,8 +304,8 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 				alloc,
 				ctx.concretizeCtx,
 				closureFields,
-				shortSymAlphaLiteral("closure"),
-				typeMangledName));
+				immutable ConcreteStructSource(
+					immutable ConcreteStructSource.Lambda(ctx.currentConcreteFun, lambdaIndex))));
 	immutable Opt!ConcreteParam closureParam = has(closureType)
 		? some(immutable ConcreteParam(42, none!size_t, strLiteral("_closure"), force(closureType)))
 		: none!ConcreteParam;
@@ -329,7 +317,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 					byRef(boolType(alloc, ctx.concretizeCtx)),
 					range,
 					immutable ConcreteExpr.Call(
-						getNullAnyPtrFun(alloc, ctx.concretizeCtx),
+						getNullAnyPtrFun(alloc, ctx),
 						emptyArr!ConcreteExpr)))
 				: allocExpr(alloc, createAllocExpr(alloc, ctx.concretizeCtx, immutable ConcreteExpr(
 					byVal(force(closureType)),
@@ -348,16 +336,16 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 		}()
 		: possiblySendType;
 
-	immutable Ptr!ConcreteFun fun = getConcreteFunForLambdaAndFillBody!Alloc(
+	immutable Ptr!ConcreteFun fun = getConcreteFunForLambdaAndFillBody(
 		alloc,
 		ctx.concretizeCtx,
-		Bool(e.kind != FunKind.ptr),
-		shortSymAlphaLiteral("lambda"),
-		lambdaMangledName,
+		immutable Bool(e.kind != FunKind.ptr),
+		ctx.currentConcreteFun,
+		lambdaIndex,
 		getConcreteType(alloc, ctx, e.returnType),
 		closureParam,
 		params,
-		ctx.concreteFunSource.containingConcreteFunKey,
+		ctx.concreteFunBodyInputs.containingConcreteFunKey,
 		ptrTrustMe(e.body_));
 	immutable ConcreteExpr res = immutable ConcreteExpr(funType, range, immutable ConcreteExpr.Lambda(fun, closure));
 
@@ -371,6 +359,10 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 			immutable ConcreteExpr.CreateRecord(arrLiteral!ConcreteExpr(alloc, vatAndActor, res)));
 	} else
 		return res;
+}
+
+immutable(Ptr!ConcreteFun) getNullAnyPtrFun(Alloc)(ref Alloc alloc, ref ConcretizeExprCtx ctx) {
+	return getConcreteFunFromFunInst(alloc, ctx, ctx.concretizeCtx.nullAnyPtrFun);
 }
 
 immutable(Str) chooseUniqueName(Alloc)(

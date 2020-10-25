@@ -111,13 +111,13 @@ pthread-create err-t
 	arg any-ptr
 spec
 	unsafe
-	extern
+	extern<"pthread_create">
 	noctx
 
 | writes to `thread-return`
-pthread-join err-t(thread pthread-t, thread-return cell any-ptr) unsafe extern noctx
+pthread-join err-t(thread pthread-t, thread-return cell any-ptr) unsafe extern<"pthread_join"> noctx
 
-pthread-yield err-t() unsafe extern noctx
+pthread-yield err-t() unsafe extern<"pthread-yield"> noctx
 
 | based on my /usr/include/x86_64-linux-gnu/asm/stat.h `struct stat64`
 stat-t record mut
@@ -156,7 +156,7 @@ esrch err-t() noctx
 
 get-errno err-t() summon builtin
 
-stat int32(path c-str, buf stat-t) extern noctx
+stat int32(path c-str, buf stat-t) extern<"stat"> noctx
 
 empty-stat stat-t()
 	new
@@ -204,12 +204,12 @@ posix-spawn err-t
 	environ ptr c-str
 spec
 	unsafe
-	extern
+	extern<"posix_spawn">
 	noctx
 	summon
 
 | /usr/include/x86_64-linux-gnu/sys/wait.h
-waitpid pid-t(pid pid-t, wait-status cell status-t, options int32) unsafe extern noctx summon
+waitpid pid-t(pid pid-t, wait-status cell status-t, options int32) unsafe extern<"waitpid"> noctx summon
 
 status-t alias
 	int32
@@ -267,8 +267,18 @@ fd-t alias
 
 | /usr/include/spawn.h
 | TODO: these functions are marked __THROW, what does that do?
-posix-spawn-file-actions-init err-t(file-actions posix-spawn-file-actions-t) summon extern noctx
-posix-spawn-file-actions-destroy err-t(file-actions posix-spawn-file-actions-t) summon extern noctx
+posix-spawn-file-actions-init err-t
+	file-actions posix-spawn-file-actions-t
+spec
+	summon
+	extern<"posix_spawn_file_actions_init">
+	noctx
+posix-spawn-file-actions-destroy err-t
+	file-actions posix-spawn-file-actions-t
+spec
+	summon
+	extern<"posix_spawn_file_actions_destroy">
+	noctx
 posix-spawn-file-actions-addopen err-t
 	file-actions posix-spawn-file-actions-t
 	fd fd-t
@@ -277,16 +287,22 @@ posix-spawn-file-actions-addopen err-t
 	mode mode-t
 spec
 	summon
-	extern
+	extern<"posix_spawn_file_actions_addopen">
 	noctx
-posix-spawn-file-actions-addclose err-t(file-actions posix-spawn-file-actions-t, fd fd-t) summon extern noctx
+posix-spawn-file-actions-addclose err-t
+	file-actions posix-spawn-file-actions-t
+	fd fd-t
+spec
+	summon
+	extern<"posix_spawn_file_actions_addclose">
+	noctx
 posix-spawn-file-actions-adddup2 err-t
 	file-actions posix-spawn-file-actions-t
 	fd fd-t
 	new-fd fd-t
 spec
 	summon
-	extern
+	extern<"posix_spawn_file_actions_adddup2">
 	noctx
 
 | The headers just use int[2], but this is easier to use from noze
@@ -296,7 +312,7 @@ pipes record mut
 
 | /usr/include/unistd.h
 | TODO: this is __THROW
-pipe err-t(pipes pipes) summon extern noctx
+pipe err-t(pipes pipes) summon extern<"pipe"> noctx
 
 stdin-fd fd-t() noctx
 	zero
@@ -326,7 +342,7 @@ pollnval int16()
 	five two-pow
 
 | /usr/include/x86_64-linux-gnu/sys/poll.h
-poll int32(fds ptr by-val<pollfd>, n-fds u-long, timeout int32) summon extern noctx
+poll int32(fds ptr by-val<pollfd>, n-fds u-long, timeout int32) summon extern<"poll"> noctx
 
 
 has-pollin? bool(revents int16)
@@ -358,15 +374,15 @@ o-trunc oflag-t()
 	one bit-shift-left nine
 
 
-open fd-t(path c-str, oflag oflag-t, permission nat32) summon extern noctx
-close err-t(fd fd-t) summon extern noctx
-lseek off-t(f fd-t, offset off-t, whence int32) summon extern noctx
-read ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) summon extern noctx
+open fd-t(path c-str, oflag oflag-t, permission nat32) summon extern<"open"> noctx
+close err-t(fd fd-t) summon extern<"close"> noctx
+lseek off-t(f fd-t, offset off-t, whence int32) summon extern<"lseek"> noctx
+read ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) summon extern<"read"> noctx
 | TODO: summon
-write ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) extern noctx
+write ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) extern<"write"> noctx
 
 | /usr/include/unistd.h
-getcwd c-str(buf c-str, size size-t) unsafe extern noctx summon
+getcwd c-str(buf c-str, size size-t) unsafe extern<"getcwd"> noctx summon
 
 | /usr/include/x86_64-linux-gnu/bits/sockaddr.h
 sa-family-t alias
@@ -403,16 +419,25 @@ sock-stream int32()
 	one
 
 | /usr/include/x86_64-linux-gnu/sys/socket.h
-socket fd-t(domain int32, type int32, protocol int32) unsafe extern noctx summon
+socket fd-t(domain int32, type int32, protocol int32) unsafe extern<"socket"> noctx summon
 
-connect int32(fd fd-t, addr sockaddr, len socklen-t) unsafe extern noctx summon
+connect int32(fd fd-t, addr sockaddr, len socklen-t) unsafe extern<"connect"> noctx summon
 
 | /usr/include/netdb.h
 | Remember to call 'freeaddrinfo'!
 | Writes to 'pai'
-getaddrinfo int32(name c-str, service c-str, req ptr addrinfo, pai cell ptr<addrinfo>) unsafe extern noctx summon
-freeaddrinfo void(ai ptr addrinfo) unsafe extern noctx
-gai-strerror c-str(ecode int32) extern noctx
+getaddrinfo int32
+	name c-str
+	service c-str
+	req ptr addrinfo
+	pai cell ptr<addrinfo>
+spec
+	unsafe
+	extern<"getaddrinfo">
+	noctx
+	summon
+freeaddrinfo void(ai ptr addrinfo) unsafe extern<"freeaddrinfo"> noctx
+gai-strerror c-str(ecode int32) extern<"gai-strerror"> noctx
 
 | /usr/include/x86_64-linux-gnu/bits/sigset.h
 sigset-t alias
@@ -440,7 +465,7 @@ sighandler-t alias
 	fun-ptr1 void int
 
 | /usr/include/signal.h
-sigignore int(sig signal-t) extern noctx summon
+sigignore int(sig signal-t) extern<"sigignore"> noctx summon
 
 | /usr/include/setjmp.h
 jmp-buf-tag record
@@ -456,13 +481,13 @@ jmp-buf alias
 	ptr jmp-buf-tag
 
 | TODO: this is marked __THROWNL, what does that do?
-setjmp int32(env jmp-buf) unsafe extern noctx
+setjmp int32(env jmp-buf) unsafe extern<"setjmp"> noctx
 
 | TODO: this is marked __THROWNL, what does that do?
-longjmp void(env jmp-buf, val int32) unsafe extern noctx
+longjmp void(env jmp-buf, val int32) unsafe extern<"longjmp"> noctx
 
-malloc any-ptr(size nat) unsafe extern noctx
-free void(p any-ptr) unsafe extern noctx
+malloc any-ptr(size nat) unsafe extern<"malloc"> noctx
+free void(p any-ptr) unsafe extern<"free"> noctx
 
 
 dirp alias
@@ -477,15 +502,15 @@ dirent record mut
 	d-name mut bytes256
 
 | /usr/include/dirent.h
-opendir dirp(name c-str) summon extern noctx
-readdir-r int32(dirp dirp, entry dirent, result cell dirent) summon extern noctx
+opendir dirp(name c-str) summon extern<"opendir"> noctx
+readdir-r int32(dirp dirp, entry dirent, result cell dirent) summon extern<"readdir_r"> noctx
 
 | /usr/include/unistd.h
-readlink ssize-t(path c-str, buf c-str, len size-t) summon extern noctx
+readlink ssize-t(path c-str, buf c-str, len size-t) summon extern<"readlink"> noctx
 
 
-usleep void(micro-seconds nat) extern noctx
+usleep void(micro-seconds nat) extern<"usleep"> noctx
 
-environ ptr c-str() unsafe global noctx
+environ ptr c-str() unsafe global<"environ"> noctx
 
 

@@ -3,14 +3,17 @@ module concretize.concretize;
 @safe @nogc pure nothrow:
 
 import concreteModel : ConcreteFun, ConcreteProgram, ConcreteStruct;
-import concretize.concretizeCtx : ConcretizeCtx, ConcreteFunSource, ctxType, getOrAddNonTemplateConcreteFunAndFillBody;
+import concretize.concretizeCtx : ConcretizeCtx, ctxType, getOrAddNonTemplateConcreteFunAndFillBody;
 import model :
 	asStructInst,
 	CommonTypes,
 	decl,
 	FunDecl,
+	FunDeclAndArgs,
+	FunInst,
 	FunKind,
 	getFunStructInfo,
+	nonTemplateFunInst,
 	isStructInst,
 	isTemplate,
 	noCtx,
@@ -35,22 +38,22 @@ import util.util : todo, verify;
 
 immutable(ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	ConcretizeCtx ctx = ConcretizeCtx(
-		getAllocFun(program),
-		getGetVatAndActorFun(program),
+		getAllocFun(alloc, program),
+		getGetVatAndActorFun(alloc, program),
 		getIfFuns(program),
 		getCallFuns(alloc, program),
-		getNullFun(program),
+		getNullAnyPtrFun(alloc, program),
 		program.ctxStructInst,
 		ptrTrustMe(program.commonTypes));
 	immutable Ptr!ConcreteStruct ctxStruct = ctxType(alloc, ctx).struct_;
 	immutable Ptr!ConcreteFun rtMainConcreteFun =
-		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getRtMainFun(program));
+		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getRtMainFun(alloc, program));
 	// We remove items from these dicts when we process them.
-	verify(mutDictIsEmpty(ctx.concreteFunToSource));
+	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 	immutable Ptr!ConcreteFun userMainConcreteFun =
-		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getUserMainFun(program));
+		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getUserMainFun(alloc, program));
 	// We remove items from these dicts when we process them.
-	verify(mutDictIsEmpty(ctx.concreteFunToSource));
+	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
 	return ConcreteProgram(
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
@@ -115,7 +118,7 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr
 		todo!void("checkUserMainSignature doesn't return fut int-32");
 }
 
-immutable(Ptr!FunDecl) getRtMainFun(ref immutable Program program) {
+immutable(Ptr!FunInst) getRtMainFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	immutable Arr!(Ptr!FunDecl) mainFuns = multiDictGetAt(
 		program.runtimeMainModule.funsMap,
 		shortSymAlphaLiteral("rt-main"));
@@ -123,33 +126,33 @@ immutable(Ptr!FunDecl) getRtMainFun(ref immutable Program program) {
 		todo!void("wrong number rt-main funs");
 	immutable Ptr!FunDecl mainFun = only(mainFuns);
 	checkRtMainSignature(program.commonTypes, mainFun);
-	return mainFun;
+	return nonTemplateFunInst(alloc, mainFun);
 }
 
-immutable(Ptr!FunDecl) getUserMainFun(ref immutable Program program) {
+immutable(Ptr!FunInst) getUserMainFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	immutable Arr!(Ptr!FunDecl) mainFuns = multiDictGetAt(program.mainModule.funsMap, shortSymAlphaLiteral("main"));
 	if (size(mainFuns) != 1)
 		todo!void("wrong number main funs");
 	immutable Ptr!FunDecl mainFun = only(mainFuns);
 	checkUserMainSignature(program.commonTypes, mainFun);
-	return mainFun;
+	return nonTemplateFunInst(alloc, mainFun);
 }
 
-immutable(Ptr!FunDecl) getAllocFun(ref immutable Program program) {
+immutable(Ptr!FunInst) getAllocFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	immutable Arr!(Ptr!FunDecl) allocFuns = multiDictGetAt(program.allocModule.funsMap, shortSymAlphaLiteral("alloc"));
 	if (size(allocFuns) != 1)
 		todo!void("wrong number alloc funs");
 	immutable Ptr!FunDecl allocFun = only(allocFuns);
 	// TODO: check the signature!
-	return allocFun;
+	return nonTemplateFunInst(alloc, allocFun);
 }
 
 //TODO: should be called 'getCurActorFun'?
-immutable(Ptr!FunDecl) getGetVatAndActorFun(ref immutable Program program) {
+immutable(Ptr!FunInst) getGetVatAndActorFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	immutable Arr!(Ptr!FunDecl) funs = multiDictGetAt(program.runtimeModule.funsMap, shortSymAlphaLiteral("cur-actor"));
 	if (size(funs) != 1)
 		todo!void("wrong number cur-actor funs");
-	return only(funs);
+	return nonTemplateFunInst(alloc, only(funs));
 }
 
 immutable(Arr!(Ptr!FunDecl)) getIfFuns(ref immutable Program program) {
@@ -186,10 +189,10 @@ immutable(Arr!(Ptr!FunDecl)) getCallFuns(Alloc)(ref Alloc alloc, ref immutable P
 	return res;
 }
 
-immutable(Ptr!FunDecl) getNullFun(ref immutable Program program) {
+immutable(Ptr!FunInst) getNullAnyPtrFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	immutable Arr!(Ptr!FunDecl) nullFuns =
-		multiDictGetAt(program.bootstrapModule.funsMap, shortSymAlphaLiteral("null"));
+		multiDictGetAt(program.bootstrapModule.funsMap, shortSymAlphaLiteral("null-any"));
 	if (size(nullFuns) != 1)
 		todo!void("wrong number 'null' funs");
-	return only(nullFuns);
+	return nonTemplateFunInst(alloc, only(nullFuns));
 }

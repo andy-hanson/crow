@@ -2,7 +2,15 @@ module backend.writeToC;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : ConcreteLocal, ConcreteParam;
+import concreteModel :
+	ConcreteFun,
+	ConcreteFunSource,
+	ConcreteLocal,
+	ConcreteParam,
+	ConcreteStruct,
+	ConcreteStructSource,
+	matchConcreteFunSource,
+	matchConcreteStructSource;
 import concretize.mangleName : writeMangledName;
 import lowModel :
 	isExtern,
@@ -17,7 +25,7 @@ import lowModel :
 	LowFunExprBody,
 	LowFunIndex,
 	LowFunPtrType,
-	lowFunSourceMangledName,
+	LowFunSource,
 	LowLocal,
 	LowLocalSource,
 	LowParam,
@@ -28,25 +36,32 @@ import lowModel :
 	LowUnion,
 	matchLowExprKind,
 	matchLowFunBody,
+	matchLowFunSource,
 	matchLowLocalSource,
 	matchLowParamSource,
 	matchLowType,
 	matchSpecialConstant,
 	PrimitiveType;
-
+import model : FunInst, name;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, first, range, setAt, size;
 import util.collection.arrUtil : every, exists, fillArr_mut, tail;
+import util.collection.dict : Dict, getAt, mustGetAt;
+import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.fullIndexDict :
+	FullIndexDict,
 	fullIndexDictEach,
 	fullIndexDictEachKey,
 	fullIndexDictEachValue,
 	fullIndexDictGet,
-	fullIndexDictSize;
+	fullIndexDictSize,
+	mapFullIndexDict;
+import util.collection.mutDict : insertOrUpdate, MutDict, setInDict;
 import util.collection.str : Str, strEq, strLiteral;
-import util.opt : force, has;
-import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.opt : force, has, Opt;
+import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.sym : compareSym, shortSymAlphaLiteral,Sym, symEq;
 import util.types : u8;
 import util.util : unreachable, verify;
 import util.writer :
@@ -73,12 +88,12 @@ immutable(Str) writeToC(Alloc)(
 	writeStatic(writer, "#include <stddef.h>\n"); // for NULL
 	writeStatic(writer, "#include <stdint.h>\n");
 
-	immutable Ctx ctx = immutable Ctx(ptrTrustMe(program));
+	immutable Ctx ctx = immutable Ctx(ptrTrustMe(program), buildMangledNames(alloc, program));
 
 	writeStructs(writer, ctx);
 
-	fullIndexDictEachValue(program.allFuns, (ref immutable LowFun fun) {
-		writeFunDeclaration(writer, ctx, fun);
+	fullIndexDictEach(program.allFuns, (immutable LowFunIndex funIndex, ref immutable LowFun fun) {
+		writeFunDeclaration(writer, ctx, funIndex, fun);
 	});
 
 	fullIndexDictEach(program.allFuns, (immutable LowFunIndex funIndex, ref immutable LowFun fun) {
@@ -89,8 +104,132 @@ immutable(Str) writeToC(Alloc)(
 	return finishWriter(writer);
 }
 
+struct MangledNames {
+	immutable Dict!(Ptr!ConcreteFun, size_t, comparePtr!ConcreteFun) funToNameIndex;
+	//TODO:PERF we could use separate FullIndexDict for record, union, etc.
+	immutable Dict!(Ptr!ConcreteStruct, size_t, comparePtr!ConcreteStruct) structToNameIndex;
+}
+
+struct FunPrevOrIndex {
+	@safe @nogc pure nothrow:
+
+	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind_ = Kind.concreteFun; concreteFun_ = a;}
+	immutable this(immutable size_t a) { kind_ = Kind.index; index_ = a; }
+
+	private:
+	enum Kind {
+		concreteFun,
+		index,
+	}
+	immutable Kind kind_;
+	union {
+		immutable Ptr!ConcreteFun concreteFun_;
+		immutable size_t index_;
+	}
+}
+
+@trusted T matchFunPrevOrIndex(T)(
+	ref immutable FunPrevOrIndex a,
+	scope T delegate(immutable Ptr!ConcreteFun) @safe @nogc pure nothrow cbConcreteFun,
+	scope T delegate(immutable size_t) @safe @nogc pure nothrow cbIndex,
+) {
+	final switch (a.kind_) {
+		case FunPrevOrIndex.Kind.concreteFun:
+			return cbConcreteFun(a.concreteFun_);
+		case FunPrevOrIndex.Kind.index:
+			return cbIndex(a.index_);
+	}
+}
+
+immutable(MangledNames) buildMangledNames(Alloc)(ref Alloc alloc, ref immutable LowProgram program) {
+	// First time we see a fun with a name, we'll store the fun-ptr here in case it's not overloaded.
+	// After that, we'll start putting them in funToNameIndex, and store the next index here.
+	MutDict!(immutable Sym, immutable FunPrevOrIndex, compareSym) funNameToIndex;
+	// This will not have an entry for non-overloaded funs.
+	DictBuilder!(Ptr!ConcreteFun, size_t, comparePtr!ConcreteFun) funToNameIndex;
+	// HAX: Ensure "main" has that name.
+	setInDict(alloc, funNameToIndex, shortSymAlphaLiteral("main"), immutable FunPrevOrIndex(0));
+	fullIndexDictEachValue(program.allFuns, (ref immutable LowFun it) {
+		matchLowFunSource!void(
+			it.source,
+			(immutable Ptr!ConcreteFun cf) {
+				matchConcreteFunSource!void(
+					cf.source,
+					(immutable Ptr!FunInst i) {
+						//TODO: use temp alloc
+						insertOrUpdate!(Alloc, immutable Sym, immutable FunPrevOrIndex, compareSym)(
+							alloc,
+							funNameToIndex,
+							name(i),
+							() =>
+								immutable FunPrevOrIndex(cf),
+							(ref immutable FunPrevOrIndex it) =>
+								immutable FunPrevOrIndex(matchFunPrevOrIndex!(immutable size_t)(
+									it,
+									(immutable Ptr!ConcreteFun prev) {
+										addToDict(alloc, funToNameIndex, prev, 0);
+										addToDict(alloc, funToNameIndex, cf, 1);
+										return immutable size_t(2);
+									},
+									(immutable size_t index) {
+										addToDict(alloc, funToNameIndex, cf, index);
+										return index + 1;
+									})));
+					},
+					(ref immutable ConcreteFunSource.Lambda) {});
+			},
+			(ref immutable LowFunSource.Generated it) {});
+	});
+
+	MutDict!(Sym, size_t, compareSym) structNameToIndex;
+	DictBuilder!(Ptr!ConcreteStruct, size_t, comparePtr!ConcreteStruct) structToNameIndex;
+
+	void build(immutable Ptr!ConcreteStruct s) {
+		matchConcreteStructSource!void(
+			s.source,
+			(ref immutable ConcreteStructSource.Inst it) {
+				addToDict(alloc, structToNameIndex, s, getNextIndex(alloc, structNameToIndex, name(it.inst)));
+			},
+			(ref immutable ConcreteStructSource.Lambda) {});
+	}
+	fullIndexDictEachValue(program.allExternPtrTypes, (ref immutable LowExternPtrType it) {
+		build(it.source);
+	});
+	fullIndexDictEachValue(program.allFunPtrTypes, (ref immutable LowFunPtrType it) {
+		build(it.source);
+	});
+	fullIndexDictEachValue(program.allRecords, (ref immutable LowRecord it) {
+		build(it.source);
+	});
+	fullIndexDictEachValue(program.allUnions, (ref immutable LowUnion it) {
+		build(it.source);
+	});
+
+	return immutable MangledNames(
+		finishDictShouldBeNoConflict(alloc, funToNameIndex),
+		finishDictShouldBeNoConflict(alloc, structToNameIndex));
+
+}
+
+//TODO:KILL
+immutable(size_t) getNextIndex(Alloc)(
+	ref Alloc alloc,
+	ref MutDict!(Sym, size_t, compareSym) nameToIndex,
+	immutable Sym name,
+) {
+	return insertOrUpdate!(Alloc, Sym, size_t, compareSym)(
+		alloc,
+		nameToIndex,
+		name,
+		() =>
+			immutable size_t(0),
+		(ref const size_t i) =>
+			i + 1);
+}
+
 struct Ctx {
 	immutable Ptr!LowProgram program;
+	immutable MangledNames mangledNames;
 }
 
 struct FunBodyCtx {
@@ -103,11 +242,11 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immuta
 		t,
 		(immutable LowType.ExternPtr it) {
 			writeStatic(writer, "struct ");
-			writeStr(writer, fullIndexDictGet(ctx.program.allExternPtrTypes, it).mangledName);
+			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allExternPtrTypes, it).source);
 			writeChar(writer, '*');
 		},
 		(immutable LowType.FunPtr it) {
-			writeStr(writer, fullIndexDictGet(ctx.program.allFunPtrTypes, it).source.mangledName);
+			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allFunPtrTypes, it).source);
 		},
 		(immutable LowType.NonFunPtr it) {
 			writeType(writer, ctx, it.pointee);
@@ -118,11 +257,11 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immuta
 		},
 		(immutable LowType.Record it) {
 			writeStatic(writer, "struct ");
-			writeStr(writer, fullIndexDictGet(ctx.program.allRecords, it).source.mangledName);
+			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allRecords, it).source);
 		},
 		(immutable LowType.Union it) {
 			writeStatic(writer, "struct ");
-			writeStr(writer, fullIndexDictGet(ctx.program.allUnions, it).source.mangledName);
+			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allUnions, it).source);
 		});
 }
 
@@ -149,9 +288,9 @@ void writeLowParamName(Alloc)(ref Writer!Alloc writer, ref immutable LowParam a)
 		});
 }
 
-void writeStructHead(Alloc)(ref Writer!Alloc writer, immutable Str mangledName) {
+void writeStructHead(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
 	writeStatic(writer, "struct ");
-	writeStr(writer, mangledName);
+	writeStructMangledName(writer, ctx, source);
 	writeStatic(writer, " {");
 }
 
@@ -160,7 +299,7 @@ void writeStructEnd(Alloc)(ref Writer!Alloc writer) {
 }
 
 void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowRecord a) {
-	writeStructHead(writer, a.source.mangledName);
+	writeStructHead(writer, ctx, a.source);
 	if (empty(a.fields))
 		// An empty structure is undefined behavior in C.
 		writeStatic(writer, "\n\tuint8_t __mustBeNonEmpty;\n};\n");
@@ -177,7 +316,7 @@ void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immu
 }
 
 void writeUnion(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowUnion a) {
-	writeStructHead(writer, a.source.mangledName);
+	writeStructHead(writer, ctx, a.source);
 	writeStatic(writer, "\n\tint kind;");
 	writeStatic(writer, "\n\tunion {");
 	foreach (immutable size_t memberIndex; 0..size(a.members)) {
@@ -247,11 +386,69 @@ immutable(Bool) canReferenceTypeAsPointee(
 			immutable Bool(at(states.unionStates, it.index) != StructState.none));
 }
 
-void declareStruct(Alloc)(ref Writer!Alloc writer, ref immutable Str mangledName) {
+void declareStruct(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
 	writeStatic(writer, "struct ");
-	writeStr(writer, mangledName);
+	writeStructMangledName(writer, ctx, source);
 	writeStatic(writer, ";\n");
 }
+
+void writeStructMangledName(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable Ctx ctx,
+	immutable Ptr!ConcreteStruct source,
+) {
+	matchConcreteStructSource!void(
+		source.source,
+		(ref immutable ConcreteStructSource.Inst it) {
+			writeMangledName(writer, name(it.inst));
+			writeChar(writer, '_');
+			writeNat(writer, mustGetAt(ctx.mangledNames.structToNameIndex, source));
+		},
+		(ref immutable ConcreteStructSource.Lambda it) {
+			writeFunMangledName(writer, ctx, it.containingFun);
+			writeChar(writer, '_');
+			writeNat(writer, it.index);
+		});
+}
+
+void writeLowFunMangledName(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable Ctx ctx,
+	immutable LowFunIndex funIndex,
+	ref immutable LowFun fun,
+) {
+	matchLowFunSource!void(
+		fun.source,
+		(immutable Ptr!ConcreteFun it) {
+			writeFunMangledName(writer, ctx, it);
+		},
+		(ref immutable LowFunSource.Generated it) {
+			writeMangledName(writer, it.name);
+			if (!symEq(it.name, shortSymAlphaLiteral("main"))) {
+				writeChar(writer, '_');
+				writeNat(writer, funIndex.index);
+			}
+		});
+}
+
+void writeFunMangledName(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable Ptr!ConcreteFun source) {
+	matchConcreteFunSource!void(
+		source.source,
+		(immutable Ptr!FunInst it) {
+			writeMangledName(writer, name(it));
+			immutable Opt!size_t index = getAt(ctx.mangledNames.funToNameIndex, source);
+			if (has(index)) {
+				writeChar(writer, '_');
+				writeNat(writer, force(index));
+			}
+		},
+		(ref immutable ConcreteFunSource.Lambda it) {
+			writeFunMangledName(writer, ctx, it.containingFun);
+			writeChar(writer, '_');
+			writeNat(writer, it.index);
+		});
+}
+
 
 immutable(Bool) tryWriteFunPtrDeclaration(Alloc)(
 	ref Writer!Alloc writer,
@@ -268,7 +465,7 @@ immutable(Bool) tryWriteFunPtrDeclaration(Alloc)(
 		writeStatic(writer, "typedef ");
 		writeType(writer, ctx, funPtr.returnType);
 		writeStatic(writer, " (*");
-		writeStr(writer, funPtr.source.mangledName);
+		writeStructMangledName(writer, ctx, funPtr.source);
 		writeStatic(writer, ")(");
 		writeWithCommas(writer, funPtr.paramTypes, (ref immutable LowType paramType) {
 			writeType(writer, ctx, paramType);
@@ -291,7 +488,7 @@ immutable(StructState) writeRecordDeclarationOrDefinition(Alloc)(
 		writeRecord(writer, ctx, record);
 		return StructState.defined;
 	} else {
-		declareStruct(writer, record.source.mangledName);
+		declareStruct(writer, ctx, record.source);
 		return StructState.declared;
 	}
 }
@@ -309,7 +506,7 @@ immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
 		writeUnion(writer, ctx, union_);
 		return StructState.defined;
 	} else {
-		declareStruct(writer, union_.source.mangledName);
+		declareStruct(writer, ctx, union_.source);
 		return StructState.declared;
 	}
 }
@@ -319,7 +516,7 @@ void writeStructs(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx) {
 	TempAlloc tempAlloc;
 	// Write extern-ptr types first
 	fullIndexDictEachValue(ctx.program.allExternPtrTypes, (ref immutable LowExternPtrType it) {
-		declareStruct(writer, it.mangledName);
+		declareStruct(writer, ctx, it.source);
 	});
 
 	StructStates structStates = StructStates(
@@ -376,13 +573,18 @@ void writeStructs(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx) {
 	writeChar(writer, '\n');
 }
 
-void writeFunReturnTypeNameAndParams(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowFun fun) {
+void writeFunReturnTypeNameAndParams(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable Ctx ctx,
+	immutable LowFunIndex funIndex,
+	ref immutable LowFun fun,
+) {
 	if (isExtern(fun.body_) && isVoid(fun.returnType))
 		writeStatic(writer, "void");
 	else
 		writeType(writer, ctx, fun.returnType);
 	writeChar(writer, ' ');
-	writeStr(writer, lowFunSourceMangledName(fun.source));
+	writeLowFunMangledName(writer, ctx, funIndex, fun);
 	if (!isGlobal(fun.body_)) {
 		writeChar(writer, '(');
 		if (!empty(fun.params)) {
@@ -396,16 +598,36 @@ void writeFunReturnTypeNameAndParams(Alloc)(ref Writer!Alloc writer, ref immutab
 	}
 }
 
-void writeFunDeclaration(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowFun fun) {
+void writeFunDeclaration(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable Ctx ctx,
+	immutable LowFunIndex funIndex,
+	ref immutable LowFun fun,
+) {
 	//TODO:HAX: printf apparently *must* be declared as variadic
-	if (strEq(lowFunSourceMangledName(fun.source), strLiteral("printf")))
+	if (isPrintf(fun))
 		writeStatic(writer, "int printf(const char* format, ...);\n");
 	else {
 		if (isExtern(fun.body_))
 			writeStatic(writer, "extern ");
-		writeFunReturnTypeNameAndParams(writer, ctx, fun);
+		writeFunReturnTypeNameAndParams(writer, ctx, funIndex, fun);
 		writeStatic(writer, ";\n");
 	}
+}
+
+//TODO:KILL (handle printf properly)
+immutable(Bool) isPrintf(ref immutable LowFun fun) {
+	return matchLowFunSource!(immutable Bool)(
+		fun.source,
+		(immutable Ptr!ConcreteFun it) =>
+			matchConcreteFunSource!(immutable Bool)(
+				it.source,
+				(immutable Ptr!FunInst inst) =>
+					symEq(name(inst), shortSymAlphaLiteral("printf")),
+				(ref immutable ConcreteFunSource.Lambda) =>
+					False),
+		(ref immutable LowFunSource.Generated) =>
+			False);
 }
 
 void writeFunDefinition(Alloc)(
@@ -484,7 +706,7 @@ void writeFunWithExprBody(Alloc)(
 	ref immutable LowFun fun,
 	ref immutable LowFunExprBody body_,
 ) {
-	writeFunReturnTypeNameAndParams(writer, ctx.ctx, fun);
+	writeFunReturnTypeNameAndParams(writer, ctx.ctx, funIndex, fun);
 	writeStatic(writer, " {\n\t");
 	declareLocals(writer, ctx.ctx, body_.allLocals);
 	if (hasTailCalls(funIndex, body_.expr)) {
@@ -653,7 +875,7 @@ void writeCallExpr(Alloc)(
 			if (isCVoid)
 				//TODO: this is unnecessary if writeKind is not 'expr'
 				writeChar(writer, '(');
-			writeStr(writer, lowFunSourceMangledName(called.source));
+			writeLowFunMangledName(writer, ctx.ctx, a.called, called);
 			if (!isGlobal(called.body_)) {
 				writeChar(writer, '(');
 				writeArgs(writer, indent, ctx, a.args);
@@ -727,7 +949,7 @@ void writeConvertToUnion(Alloc)(
 }
 
 void writeFunPtr(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowExprKind.FunPtr a) {
-	writeStr(writer, lowFunSourceMangledName(fullIndexDictGet(ctx.program.allFuns, a.fun).source));
+	writeLowFunMangledName(writer, ctx, a.fun, fullIndexDictGet(ctx.program.allFuns, a.fun));
 }
 
 void writeLocalRef(Alloc)(ref Writer!Alloc writer, immutable Ptr!LowLocal a) {

@@ -9,19 +9,24 @@ import concreteModel :
 	ConcreteFun,
 	ConcreteFunBody,
 	ConcreteFunExprBody,
+	ConcreteFunSource,
 	ConcreteLocal,
 	ConcreteParam,
 	ConcreteProgram,
 	ConcreteStruct,
 	ConcreteStructBody,
+	ConcreteStructSource,
 	ConcreteType,
 	defaultIsPointer,
 	isSelfMutable,
 	matchConcreteExpr,
 	matchConcreteFunBody,
+	matchConcreteFunSource,
 	matchConcreteStructBody,
+	matchConcreteStructSource,
 	returnType,
 	symOfBuiltinStructKind;
+import model : FunInst, name;
 import util.bools : True;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : strLiteral;
@@ -40,7 +45,7 @@ import util.sexpr :
 	tataStr,
 	tataSym;
 import util.sourceRange : sexprOfFileAndRange;
-import util.util : unreachable;
+import util.util : todo, unreachable;
 
 immutable(Sexpr) tataOfConcreteProgram(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	return tataRecord(
@@ -50,22 +55,35 @@ immutable(Sexpr) tataOfConcreteProgram(Alloc)(ref Alloc alloc, ref immutable Con
 			tataOfConcreteStruct(alloc, it)),
 		tataArr(alloc, a.allFuns, (ref immutable Ptr!ConcreteFun it) =>
 			tataOfConcreteFun(alloc, it)),
-		tataOfConcreteFunPtr(alloc, a.rtMain),
-		tataOfConcreteFunPtr(alloc, a.userMain),
-		tataOfConcreteStructPtr(alloc, a.ctxType));
+		tataOfConcreteFunRef(alloc, a.rtMain),
+		tataOfConcreteFunRef(alloc, a.userMain),
+		tataOfConcreteStructRef(alloc, a.ctxType));
 }
 
 private:
 
 immutable(Sexpr) tataOfConcreteStruct(Alloc)(ref Alloc alloc, ref immutable ConcreteStruct a) {
 	ArrBuilder!NameAndSexpr fields;
-	add(alloc, fields, nameAndTata("name", tataStr(a.mangledName)));
+	add(alloc, fields, nameAndTata("name", tataOfConcreteStructSource(alloc, a.source)));
 	if (isSelfMutable(a))
 		add(alloc, fields, nameAndTata("mut?", tataBool(True)));
 	if (defaultIsPointer(a))
 		add(alloc, fields, nameAndTata("ptr?", tataBool(True)));
 	add(alloc, fields, nameAndTata("body", tataOfConcreteStructBody(alloc, body_(a))));
 	return tataNamedRecord("struct", finishArr(alloc, fields));
+}
+
+immutable(Sexpr) tataOfConcreteStructSource(Alloc)(ref Alloc alloc, ref immutable ConcreteStructSource a) {
+	return matchConcreteStructSource!(immutable Sexpr)(
+		a,
+		(ref immutable ConcreteStructSource.Inst it) =>
+			tataSym(name(it.inst)),
+		(ref immutable ConcreteStructSource.Lambda it) =>
+			tataRecord(alloc, "lambda", tataOfConcreteFunRef(alloc, it.containingFun), tataNat(it.index)));
+}
+
+public immutable(Sexpr) tataOfConcreteStructRef(Alloc)(ref Alloc alloc, immutable Ptr!ConcreteStruct a) {
+	return tataOfConcreteStructSource(alloc, a.source);
 }
 
 immutable(Sexpr) tataOfSpecialStructInfo(Alloc)(ref Alloc alloc, ref immutable SpecialStructInfo a) {
@@ -108,7 +126,7 @@ immutable(Sexpr) tataOfConcreteType(Alloc)(ref Alloc alloc, ref immutable Concre
 		alloc,
 		"type",
 		tataBool(a.isPointer),
-		tataStr(a.struct_.mangledName));
+		tataOfConcreteStructRef(alloc, a.struct_));
 }
 
 immutable(Sexpr) tataOfConcreteStructBodyRecord(Alloc)(ref Alloc alloc, ref immutable ConcreteStructBody.Record a) {
@@ -135,7 +153,7 @@ immutable(Sexpr) tataOfConcreteFun(Alloc)(ref Alloc alloc, ref immutable Concret
 		alloc,
 		"fun",
 		tataBool(a.needsCtx),
-		tataStr(a.mangledName),
+		tataOfConcreteFunSource(alloc, a.source),
 		tataOfConcreteType(alloc, a.returnType),
 		tataOpt(alloc, a.closureParam, (ref immutable ConcreteParam it) =>
 			tataOfParam(alloc, it)),
@@ -144,20 +162,29 @@ immutable(Sexpr) tataOfConcreteFun(Alloc)(ref Alloc alloc, ref immutable Concret
 		tataOfConcreteFunBody(alloc, body_(a)));
 }
 
+immutable(Sexpr) tataOfConcreteFunSource(Alloc)(ref Alloc alloc, ref immutable ConcreteFunSource a) {
+	return matchConcreteFunSource!(immutable Sexpr)(
+		a,
+		(immutable Ptr!FunInst it) =>
+			tataSym(name(it)),
+		(ref immutable ConcreteFunSource.Lambda it) =>
+			tataRecord(
+				alloc,
+				"lambda",
+				tataOfConcreteFunRef(alloc, it.containingFun),
+				tataNat(it.index)));
+}
+
+public immutable(Sexpr) tataOfConcreteFunRef(Alloc)(ref Alloc alloc, immutable Ptr!ConcreteFun a) {
+	return tataOfConcreteFunSource(alloc, a.source);
+}
+
 immutable(Sexpr) tataOfParam(Alloc)(ref Alloc alloc, ref immutable ConcreteParam a) {
 	return tataRecord(
 		alloc,
 		"param",
 		tataStr(a.mangledName),
 		tataOfConcreteType(alloc, a.type));
-}
-
-immutable(Sexpr) tataOfConcreteStructPtr(Alloc)(ref Alloc alloc, immutable Ptr!ConcreteStruct a) {
-	return tataStr(a.mangledName);
-}
-
-immutable(Sexpr) tataOfConcreteFunPtr(Alloc)(ref Alloc alloc, immutable Ptr!ConcreteFun a) {
-	return tataStr(a.mangledName);
 }
 
 immutable(Sexpr) tataOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable ConcreteFunBody a) {
@@ -192,6 +219,10 @@ immutable(Sexpr) tataOfConcreteFunExprBody(Alloc)(ref Alloc alloc, ref immutable
 		tataOfConcreteExpr(alloc, a.expr));
 }
 
+immutable(Sexpr) tataOfConcreteLocalRef(Alloc)(ref Alloc alloc, immutable Ptr!ConcreteLocal a) {
+	return todo!(immutable Sexpr)("!");
+}
+
 immutable(Sexpr) tataOfConcreteExpr(Alloc)(ref Alloc alloc, ref immutable ConcreteExpr a) {
 	// TODO: For brevity.. (change back once we have tail recursion and noze can handle long strings)
 	return tataOfConcreteExprKind(alloc, a);
@@ -210,13 +241,13 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 			tataRecord(
 				alloc,
 				"alloc",
-				tataStr(it.alloc.mangledName),
+				tataOfConcreteFunRef(alloc, it.alloc),
 				tataOfConcreteExpr(alloc, it.inner)),
 		(ref immutable ConcreteExpr.Call it) =>
 			tataRecord(
 				alloc,
 				"call",
-				tataStr(it.called.mangledName),
+				tataOfConcreteFunRef(alloc, it.called),
 				tataArr(alloc, it.args, (ref immutable ConcreteExpr arg) =>
 					tataOfConcreteExpr(alloc, arg))),
 		(ref immutable ConcreteExpr.Cond it) =>
@@ -230,10 +261,10 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 			tataRecord(
 				alloc,
 				"create-arr",
-				tataStr(it.arrType.mangledName),
+				tataOfConcreteStructRef(alloc, it.arrType),
 				tataOfConcreteType(alloc, it.elementType),
-				tataStr(it.alloc.mangledName),
-				tataStr(it.local.mangledName),
+				tataOfConcreteFunRef(alloc, it.alloc),
+				tataOfConcreteLocalRef(alloc, it.local),
 				tataArr(alloc, it.args, (ref immutable ConcreteExpr arg) =>
 					tataOfConcreteExpr(alloc, arg))),
 		(ref immutable ConcreteExpr.CreateRecord it) =>
@@ -249,7 +280,7 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 			tataRecord(
 				alloc,
 				"lambda",
-				tataStr(it.fun.mangledName),
+				tataOfConcreteFunRef(alloc, it.fun),
 				tataOpt(alloc, it.closure, (ref immutable Ptr!ConcreteExpr closure) =>
 					tataOfConcreteExpr(alloc, closure))),
 		(ref immutable ConcreteExpr.Let it) =>

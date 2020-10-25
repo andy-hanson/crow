@@ -26,6 +26,7 @@ import lowModel :
 	matchSpecialConstant,
 	PrimitiveType,
 	symOfPrimitiveType;
+import sexprOfConcreteModel : tataOfConcreteStructRef;
 import util.collection.arr : Arr, at, range, sizeEq;
 import util.collection.arrUtil : tail, zip;
 import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet;
@@ -246,7 +247,7 @@ immutable(Sexpr) tataOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, i
 		(immutable PrimitiveType it) =>
 			tataSym(symOfPrimitiveType(it)),
 		(immutable LowType.Record it) =>
-			tataRecord(alloc, "record", tataStr(fullIndexDictGet(ctx.program.allRecords, it).source.mangledName)),
+			tataOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allRecords, it).source),
 		(immutable LowType.Union it) =>
-			tataRecord(alloc, "union", tataStr(fullIndexDictGet(ctx.program.allUnions, it).source.mangledName)));
+			tataOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allUnions, it).source));
 }

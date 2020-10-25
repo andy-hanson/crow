@@ -67,12 +67,6 @@ immutable(LowFun) generateCompareFun(Alloc)(
 	immutable Bool typeIsArr,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
-	immutable Str mangledName = () {
-		Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-		writeStatic(writer, "compare");
-		writeNat(writer, thisFunIndex.index);
-		return finishWriter(writer);
-	}();
 	immutable Arr!LowParam params = arrLiteral!LowParam(
 		alloc,
 		immutable LowParam(
@@ -87,7 +81,7 @@ immutable(LowFun) generateCompareFun(Alloc)(
 		? arrCompareBody(alloc, range, allTypes, comparisonTypes, compareFuns, paramType, thisFunIndex, a, b)
 		: compareBody(alloc, range, allTypes, comparisonTypes, compareFuns, paramType, a, b);
 	return immutable LowFun(
-		immutable LowFunSource(immutable LowFunSource.Generated(mangledName)),
+		immutable LowFunSource(immutable LowFunSource.Generated(shortSymAlphaLiteral("compare"))),
 		immutable LowType(comparisonTypes.comparison),
 		params,
 		immutable LowFunBody(body_));

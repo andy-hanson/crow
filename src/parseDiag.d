@@ -23,6 +23,7 @@ struct ParseDiag {
 			closingParen,
 			comma,
 			endOfLine,
+			externName,
 			dedent,
 			indent,
 			multiLineArrSeparator,

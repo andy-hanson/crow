@@ -538,8 +538,8 @@ struct SpecBodyAst {
 	}
 
 	public:
-	this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted this(immutable Arr!SigAst a) { kind = Kind.sigs; sigs = a; }
+	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	@trusted immutable this(immutable Arr!SigAst a) { kind = Kind.sigs; sigs = a; }
 }
 
 @trusted T matchSpecBodyAst(T)(
@@ -568,8 +568,8 @@ struct FunBodyAst {
 
 	struct Builtin {}
 	struct Extern {
-		Bool isGlobal;
-		Opt!Str mangledName;
+		immutable Bool isGlobal;
+		immutable Str externName;
 	}
 
 	private:
@@ -586,9 +586,9 @@ struct FunBodyAst {
 	}
 
 	public:
-	this(immutable Builtin a) immutable { kind = Kind.builtin; builtin = a; }
-	@trusted this(immutable Extern a) immutable { kind = Kind.extern_; extern_ = a; }
-	@trusted this(immutable ExprAst a) immutable { kind = Kind.exprAst; exprAst = a; }
+	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
+	@trusted immutable this(immutable ExprAst a) { kind = Kind.exprAst; exprAst = a; }
 }
 
 @trusted T matchFunBodyAst(T)(
@@ -887,9 +887,7 @@ immutable(Sexpr) sexprOfFunBodyAst(Alloc)(ref Alloc alloc, ref immutable FunBody
 			tataRecord("builtin"),
 		(ref immutable FunBodyAst.Extern e) {
 			immutable Sexpr isGlobal = tataBool(e.isGlobal);
-			return tataRecord("extern", has(e.mangledName)
-				? arrLiteral!Sexpr(alloc, isGlobal, tataStr(force(e.mangledName)))
-				: arrLiteral!Sexpr(alloc, isGlobal));
+			return tataRecord(alloc, "extern", isGlobal, tataStr(e.externName));
 		},
 		(ref immutable ExprAst e) =>
 			sexprOfExprAst(alloc, e));

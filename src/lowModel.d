@@ -2,7 +2,7 @@ module lowModel;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : ConcreteField, ConcreteFun, ConcreteLocal, ConcreteParam, ConcreteStruct;
+import concreteModel : ConcreteField, ConcreteFun, ConcreteLocal, ConcreteParam, ConcreteStruct, isArr;
 import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.collection.fullIndexDict : FullIndexDict;
@@ -15,12 +15,16 @@ import util.types : u8;
 import util.util : verify;
 
 struct LowExternPtrType {
-	immutable Str mangledName;
+	immutable Ptr!ConcreteStruct source;
 }
 
 struct LowRecord {
 	immutable Ptr!ConcreteStruct source;
 	immutable Arr!LowField fields;
+}
+
+immutable(Bool) isArr(ref immutable LowRecord a) {
+	return isArr(a.source.deref());
 }
 
 struct LowUnion {
@@ -319,6 +323,7 @@ struct LowFunBody {
 
 	struct Extern {
 		immutable Bool isGlobal;
+		immutable Str externName;
 	}
 
 	enum Kind {
@@ -332,7 +337,7 @@ struct LowFunBody {
 	}
 
 	public:
-	immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
+	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable LowFunExprBody a) { kind = Kind.expr; expr_ = a; }
 }
 
@@ -340,7 +345,7 @@ immutable(Bool) isExtern(ref immutable LowFunBody a) {
 	return immutable Bool(a.kind == LowFunBody.Kind.extern_);
 }
 
-immutable(Bool) isGlobal(ref immutable LowFunBody a) {
+@trusted immutable(Bool) isGlobal(ref immutable LowFunBody a) {
 	return immutable Bool(isExtern(a) && a.extern_.isGlobal);
 }
 
@@ -361,7 +366,7 @@ struct LowFunSource {
 	@safe @nogc pure nothrow:
 
 	struct Generated {
-		immutable Str mangledName;
+		immutable Sym name;
 	}
 
 	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind_ = Kind.concreteFun; concreteFun_ = a; }
@@ -390,15 +395,6 @@ struct LowFunSource {
 		case LowFunSource.Kind.generated:
 			return cbGenerated(a.generated_);
 	}
-}
-
-immutable(Str) lowFunSourceMangledName(ref immutable LowFunSource a) {
-	return matchLowFunSource(
-		a,
-		(immutable Ptr!ConcreteFun it) =>
-			it.mangledName,
-		(ref immutable LowFunSource.Generated it) =>
-			it.mangledName);
 }
 
 @trusted immutable(Ptr!ConcreteFun) asConcreteFun(ref immutable LowFunSource a) {
