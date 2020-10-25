@@ -41,7 +41,7 @@ immutable(Bool) arrBuilderIsEmpty(T)(ref const ArrBuilder!T a) {
 	return immutable Arr!T(begin(arr), size(arr));
 }
 
-immutable(size_t) arrBuilderSize(T)(ref ArrBuilder!T a) {
+immutable(size_t) arrBuilderSize(T)(ref const ArrBuilder!T a) {
 	return mutArrSize(a.data);
 }
 

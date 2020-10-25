@@ -47,7 +47,7 @@ import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, first, range, setAt, size;
 import util.collection.arrUtil : every, exists, fillArr_mut, tail;
-import util.collection.dict : Dict, getAt, mustGetAt;
+import util.collection.dict : Dict, dictSize, getAt, mustGetAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.fullIndexDict :
 	FullIndexDict,
@@ -110,33 +110,33 @@ struct MangledNames {
 	immutable Dict!(Ptr!ConcreteStruct, size_t, comparePtr!ConcreteStruct) structToNameIndex;
 }
 
-struct FunPrevOrIndex {
+struct PrevOrIndex(T) {
 	@safe @nogc pure nothrow:
 
-	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind_ = Kind.concreteFun; concreteFun_ = a;}
+	@trusted immutable this(immutable Ptr!T a) { kind_ = Kind.prev; prev_ = a;}
 	immutable this(immutable size_t a) { kind_ = Kind.index; index_ = a; }
 
 	private:
 	enum Kind {
-		concreteFun,
+		prev,
 		index,
 	}
 	immutable Kind kind_;
 	union {
-		immutable Ptr!ConcreteFun concreteFun_;
+		immutable Ptr!T prev_;
 		immutable size_t index_;
 	}
 }
 
-@trusted T matchFunPrevOrIndex(T)(
-	ref immutable FunPrevOrIndex a,
-	scope T delegate(immutable Ptr!ConcreteFun) @safe @nogc pure nothrow cbConcreteFun,
+@trusted T matchPrevOrIndex(T, P)(
+	ref immutable PrevOrIndex!P a,
+	scope T delegate(immutable Ptr!P) @safe @nogc pure nothrow cbPrev,
 	scope T delegate(immutable size_t) @safe @nogc pure nothrow cbIndex,
 ) {
 	final switch (a.kind_) {
-		case FunPrevOrIndex.Kind.concreteFun:
-			return cbConcreteFun(a.concreteFun_);
-		case FunPrevOrIndex.Kind.index:
+		case PrevOrIndex!P.Kind.prev:
+			return cbPrev(a.prev_);
+		case PrevOrIndex!P.Kind.index:
 			return cbIndex(a.index_);
 	}
 }
@@ -144,11 +144,11 @@ struct FunPrevOrIndex {
 immutable(MangledNames) buildMangledNames(Alloc)(ref Alloc alloc, ref immutable LowProgram program) {
 	// First time we see a fun with a name, we'll store the fun-ptr here in case it's not overloaded.
 	// After that, we'll start putting them in funToNameIndex, and store the next index here.
-	MutDict!(immutable Sym, immutable FunPrevOrIndex, compareSym) funNameToIndex;
+	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteFun, compareSym) funNameToIndex;
 	// This will not have an entry for non-overloaded funs.
 	DictBuilder!(Ptr!ConcreteFun, size_t, comparePtr!ConcreteFun) funToNameIndex;
 	// HAX: Ensure "main" has that name.
-	setInDict(alloc, funNameToIndex, shortSymAlphaLiteral("main"), immutable FunPrevOrIndex(0));
+	setInDict(alloc, funNameToIndex, shortSymAlphaLiteral("main"), immutable PrevOrIndex!ConcreteFun(0));
 	fullIndexDictEachValue(program.allFuns, (ref immutable LowFun it) {
 		matchLowFunSource!void(
 			it.source,
@@ -157,38 +157,22 @@ immutable(MangledNames) buildMangledNames(Alloc)(ref Alloc alloc, ref immutable 
 					cf.source,
 					(immutable Ptr!FunInst i) {
 						//TODO: use temp alloc
-						insertOrUpdate!(Alloc, immutable Sym, immutable FunPrevOrIndex, compareSym)(
-							alloc,
-							funNameToIndex,
-							name(i),
-							() =>
-								immutable FunPrevOrIndex(cf),
-							(ref immutable FunPrevOrIndex it) =>
-								immutable FunPrevOrIndex(matchFunPrevOrIndex!(immutable size_t)(
-									it,
-									(immutable Ptr!ConcreteFun prev) {
-										addToDict(alloc, funToNameIndex, prev, 0);
-										addToDict(alloc, funToNameIndex, cf, 1);
-										return immutable size_t(2);
-									},
-									(immutable size_t index) {
-										addToDict(alloc, funToNameIndex, cf, index);
-										return index + 1;
-									})));
+						addToPrevOrIndex!(ConcreteFun, Alloc)(alloc, funNameToIndex, funToNameIndex, cf, name(i));
 					},
 					(ref immutable ConcreteFunSource.Lambda) {});
 			},
 			(ref immutable LowFunSource.Generated it) {});
 	});
 
-	MutDict!(Sym, size_t, compareSym) structNameToIndex;
+	MutDict!(immutable Sym, immutable PrevOrIndex!ConcreteStruct, compareSym) structNameToIndex;
+	// This will not have an entry for non-overloaded structs.
 	DictBuilder!(Ptr!ConcreteStruct, size_t, comparePtr!ConcreteStruct) structToNameIndex;
 
 	void build(immutable Ptr!ConcreteStruct s) {
 		matchConcreteStructSource!void(
 			s.source,
 			(ref immutable ConcreteStructSource.Inst it) {
-				addToDict(alloc, structToNameIndex, s, getNextIndex(alloc, structNameToIndex, name(it.inst)));
+				addToPrevOrIndex!(ConcreteStruct, Alloc)(alloc, structNameToIndex, structToNameIndex, s, name(it.inst));
 			},
 			(ref immutable ConcreteStructSource.Lambda) {});
 	}
@@ -208,23 +192,33 @@ immutable(MangledNames) buildMangledNames(Alloc)(ref Alloc alloc, ref immutable 
 	return immutable MangledNames(
 		finishDictShouldBeNoConflict(alloc, funToNameIndex),
 		finishDictShouldBeNoConflict(alloc, structToNameIndex));
-
 }
 
-//TODO:KILL
-immutable(size_t) getNextIndex(Alloc)(
+void addToPrevOrIndex(T, Alloc)(
 	ref Alloc alloc,
-	ref MutDict!(Sym, size_t, compareSym) nameToIndex,
+	ref MutDict!(immutable Sym, immutable PrevOrIndex!T, compareSym) nameToIndex,
+	ref DictBuilder!(Ptr!T, size_t, comparePtr!T) toNameIndex,
+	immutable Ptr!T cur,
 	immutable Sym name,
 ) {
-	return insertOrUpdate!(Alloc, Sym, size_t, compareSym)(
+	insertOrUpdate!(Alloc, immutable Sym, immutable PrevOrIndex!T, compareSym)(
 		alloc,
 		nameToIndex,
 		name,
 		() =>
-			immutable size_t(0),
-		(ref const size_t i) =>
-			i + 1);
+			immutable PrevOrIndex!T(cur),
+		(ref immutable PrevOrIndex!T it) =>
+			immutable PrevOrIndex!T(matchPrevOrIndex!(immutable size_t)(
+				it,
+				(immutable Ptr!T prev) {
+					addToDict(alloc, toNameIndex, prev, 0);
+					addToDict(alloc, toNameIndex, cur, 1);
+					return immutable size_t(2);
+				},
+				(immutable size_t index) {
+					addToDict(alloc, toNameIndex, cur, index);
+					return index + 1;
+				})));
 }
 
 struct Ctx {
@@ -401,12 +395,11 @@ void writeStructMangledName(Alloc)(
 		source.source,
 		(ref immutable ConcreteStructSource.Inst it) {
 			writeMangledName(writer, name(it.inst));
-			writeChar(writer, '_');
-			writeNat(writer, mustGetAt(ctx.mangledNames.structToNameIndex, source));
+			maybeWriteIndexSuffix(writer, getAt(ctx.mangledNames.structToNameIndex, source));
 		},
 		(ref immutable ConcreteStructSource.Lambda it) {
 			writeFunMangledName(writer, ctx, it.containingFun);
-			writeChar(writer, '_');
+			writeStatic(writer, "__lambda");
 			writeNat(writer, it.index);
 		});
 }
@@ -436,19 +429,21 @@ void writeFunMangledName(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, 
 		source.source,
 		(immutable Ptr!FunInst it) {
 			writeMangledName(writer, name(it));
-			immutable Opt!size_t index = getAt(ctx.mangledNames.funToNameIndex, source);
-			if (has(index)) {
-				writeChar(writer, '_');
-				writeNat(writer, force(index));
-			}
+			maybeWriteIndexSuffix(writer, getAt(ctx.mangledNames.funToNameIndex, source));
 		},
 		(ref immutable ConcreteFunSource.Lambda it) {
 			writeFunMangledName(writer, ctx, it.containingFun);
-			writeChar(writer, '_');
+			writeStatic(writer, "__lambda");
 			writeNat(writer, it.index);
 		});
 }
 
+void maybeWriteIndexSuffix(Alloc)(ref Writer!Alloc writer, immutable Opt!size_t index) {
+	if (has(index)) {
+		writeChar(writer, '_');
+		writeNat(writer, force(index));
+	}
+}
 
 immutable(Bool) tryWriteFunPtrDeclaration(Alloc)(
 	ref Writer!Alloc writer,

@@ -4,14 +4,22 @@ module util.collection.dictBuilder;
 
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, size;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push;
 import util.collection.dict : Dict, KeyValuePair;
 import util.comparison : Comparison;
 import util.util : verify;
 
 struct DictBuilder(K, V, alias cmp) {
+	@disable this(ref const DictBuilder!(K, V, cmp)) {}
+
+	private:
 	ArrBuilder!(KeyValuePair!(K, V)) builder;
+}
+
+//TODO:KILL
+immutable(size_t) dictBuilderSize(K, V, alias cmp)(ref const DictBuilder!(K, V, cmp) a) {
+	return arrBuilderSize(a.builder);
 }
 
 void addToDict(Alloc, K, V, alias cmp)(
