@@ -7,9 +7,11 @@ import concreteModel :
 	ConcreteFunSource,
 	ConcreteLocal,
 	ConcreteParam,
+	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructSource,
 	matchConcreteFunSource,
+	matchConcreteParamSource,
 	matchConcreteStructSource;
 import concretize.mangleName : writeMangledName;
 import lowModel :
@@ -43,7 +45,7 @@ import lowModel :
 	matchSpecialConstant,
 	name,
 	PrimitiveType;
-import model : FunInst, name;
+import model : FunInst, name, Param;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, first, range, setAt, size;
@@ -275,8 +277,15 @@ void doWriteParam(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref imm
 void writeLowParamName(Alloc)(ref Writer!Alloc writer, ref immutable LowParam a) {
 	matchLowParamSource!void(
 		a.source,
-		(immutable Ptr!ConcreteParam it) {
-			writeStr(writer, it.mangledName);
+		(immutable Ptr!ConcreteParam cp) {
+			matchConcreteParamSource!void(
+				cp.source,
+				(ref immutable ConcreteParamSource.Closure) {
+					writeStatic(writer, "_closure");
+				},
+				(immutable Ptr!Param p) {
+					writeMangledName(writer, p.name);
+				});
 		},
 		(ref immutable LowParamSource.Generated it) {
 			writeMangledName(writer, it.name);

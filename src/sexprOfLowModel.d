@@ -30,7 +30,7 @@ import lowModel :
 	name,
 	PrimitiveType,
 	symOfPrimitiveType;
-import sexprOfConcreteModel : tataOfConcreteFunRef, tataOfConcreteStructRef;
+import sexprOfConcreteModel : tataOfConcreteFunRef, tataOfConcreteParamRef, tataOfConcreteStructRef;
 import util.collection.arr : size;
 import util.collection.arrUtil : arrLiteral;
 import util.collection.str : strLiteral;
@@ -142,7 +142,7 @@ immutable(Sexpr) tataOfLowParamSource(ref immutable LowParamSource a) {
 	return matchLowParamSource!(immutable Sexpr)(
 		a,
 		(immutable Ptr!ConcreteParam it) =>
-			tataStr(it.mangledName),
+			tataOfConcreteParamRef(it),
 		(ref immutable LowParamSource.Generated it) =>
 			tataSym(it.name));
 }

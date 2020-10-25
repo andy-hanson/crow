@@ -12,6 +12,7 @@ import concreteModel :
 	ConcreteFunSource,
 	ConcreteLocal,
 	ConcreteParam,
+	ConcreteParamSource,
 	ConcreteProgram,
 	ConcreteStruct,
 	ConcreteStructBody,
@@ -22,12 +23,13 @@ import concreteModel :
 	matchConcreteExpr,
 	matchConcreteFunBody,
 	matchConcreteFunSource,
+	matchConcreteParamSource,
 	matchConcreteStructBody,
 	matchConcreteStructSource,
 	name,
 	returnType,
 	symOfBuiltinStructKind;
-import model : FunInst, name;
+import model : FunInst, name, Param;
 import util.bools : True;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : strLiteral;
@@ -184,8 +186,17 @@ immutable(Sexpr) tataOfParam(Alloc)(ref Alloc alloc, ref immutable ConcreteParam
 	return tataRecord(
 		alloc,
 		"param",
-		tataStr(a.mangledName),
+		tataOfConcreteParamRef(a),
 		tataOfConcreteType(alloc, a.type));
+}
+
+public immutable(Sexpr) tataOfConcreteParamRef(ref immutable ConcreteParam a) {
+	return matchConcreteParamSource!(immutable Sexpr)(
+		a.source,
+		(ref immutable ConcreteParamSource.Closure) =>
+			tataStr("<<closure>>"),
+		(immutable Ptr!Param a) =>
+			tataSym(a.name));
 }
 
 immutable(Sexpr) tataOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable ConcreteFunBody a) {
@@ -310,7 +321,7 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 							tataStr(local.mangledName)),
 						tataOfConcreteExpr(alloc, case_.then)))),
 		(ref immutable ConcreteExpr.ParamRef it) =>
-			tataRecord(alloc, "param-ref", tataStr(it.param.mangledName)),
+			tataRecord(alloc, "param-ref", tataOfConcreteParamRef(it.param)),
 		(ref immutable ConcreteExpr.RecordFieldAccess it) =>
 			tataRecord(
 				alloc,

@@ -6,7 +6,7 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, first, range, size;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
 import util.collection.fullIndexDict : FullIndexDict;
-import util.collection.str : Str;
+import util.collection.str : Str, strLiteral;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr;
@@ -155,6 +155,10 @@ immutable(Sexpr) tataNat(immutable size_t a) {
 
 immutable(Sexpr) tataStr(immutable Str a) {
 	return immutable Sexpr(a);
+}
+
+immutable(Sexpr) tataStr(immutable string a) {
+	return tataStr(strLiteral(a));
 }
 
 immutable(Sexpr) tataSym(immutable Sym a) {

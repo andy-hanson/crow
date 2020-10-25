@@ -15,6 +15,7 @@ import concreteModel :
 	ConcreteFunExprBody,
 	ConcreteLocal,
 	ConcreteParam,
+	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructSource,
@@ -309,7 +310,10 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 				immutable ConcreteStructSource(
 					immutable ConcreteStructSource.Lambda(ctx.currentConcreteFun, lambdaIndex))));
 	immutable Opt!ConcreteParam closureParam = has(closureType)
-		? some(immutable ConcreteParam(42, none!size_t, strLiteral("_closure"), force(closureType)))
+		? some(immutable ConcreteParam(
+			immutable ConcreteParamSource(immutable ConcreteParamSource.Closure()),
+			none!size_t,
+			force(closureType)))
 		: none!ConcreteParam;
 	immutable Opt!(Ptr!ConcreteExpr) closure = e.kind == FunKind.ptr
 		? none!(Ptr!ConcreteExpr)

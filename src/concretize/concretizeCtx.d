@@ -12,6 +12,7 @@ import concreteModel :
 	ConcreteFunBody,
 	ConcreteFunSource,
 	ConcreteParam,
+	ConcreteParamSource,
 	ConcreteType,
 	concreteType_fromStruct,
 	concreteType_pointer,
@@ -21,7 +22,6 @@ import concreteModel :
 	ConcreteStructSource,
 	sizeOrPointerSizeBytes;
 import concretize.concretizeExpr : concretizeExpr;
-import concretize.mangleName : mangleExternFunName, mangleName, writeMangledName;
 import model :
 	asExtern,
 	body_,
@@ -52,7 +52,7 @@ import model :
 import util.bools : Bool, False, not, True;
 import util.collection.arr : Arr, at, empty, emptyArr, only, ptrAt, range, sizeEq;
 import util.collection.arrBuilder : add, ArrBuilder;
-import util.collection.arrUtil : arrLiteral, arrMax, compareArr, exists, map, mapPtrsWithIndex, mapWithIndex;
+import util.collection.arrUtil : arrLiteral, arrMax, compareArr, exists, map, mapPtrsWithIndex;
 import util.collection.mutArr : MutArr;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.collection.str : strLiteral;
@@ -530,11 +530,10 @@ immutable(Arr!ConcreteParam) concretizeParams(Alloc)(
 	ref immutable Arr!Param params,
 	ref immutable TypeArgsScope typeArgsScope,
 ) {
-	return mapWithIndex!ConcreteParam(alloc, params, (immutable size_t index, ref immutable Param p) =>
+	return mapPtrsWithIndex!ConcreteParam(alloc, params, (immutable size_t index, immutable Ptr!Param p) =>
 		immutable ConcreteParam(
-			42,
+			immutable ConcreteParamSource(p),
 			some!size_t(index),
-			mangleName(alloc, p.name),
 			getConcreteType(alloc, ctx, p.type, typeArgsScope)));
 }
 

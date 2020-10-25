@@ -20,6 +20,7 @@ import concreteModel :
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteType,
+	isClosure,
 	isCompareFun,
 	matchConcreteExpr,
 	matchConcreteFunBody,
@@ -958,7 +959,7 @@ immutable(LowExprKind) getParamRefExpr(Alloc)(
 ) {
 	if (!has(a.param.index)) {
 		//TODO: don't generate ParamRef in ConcreteModel for closure field access. Do that in lowering.
-		verify(strEq(a.param.mangledName, strLiteral("_closure")));
+		verify(isClosure(a.param.source));
 		return immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.closureParam)));
 	}
 

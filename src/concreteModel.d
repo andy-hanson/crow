@@ -2,7 +2,7 @@ module concreteModel;
 
 @safe @nogc pure nothrow:
 
-import model : ClosureField, FunInst, isArr, isCompareFun, RecordField, StructInst;
+import model : ClosureField, FunInst, isArr, isCompareFun, Param, RecordField, StructInst;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, empty, size, sizeEq;
 import util.collection.str : Str;
@@ -328,15 +328,47 @@ immutable(Sym) name(ref immutable ConcreteField a) {
 			it.name);
 }
 
-struct ConcreteParam {
-	immutable uint fourtyTwo; //TODO:KILL
-	immutable Opt!size_t index; // not present for ctx/ closure param
-	immutable Str mangledName;
-	immutable ConcreteType type;
+struct ConcreteParamSource {
+	@safe @nogc pure nothrow:
+
+	struct Closure {}
+
+	immutable this(immutable Closure a) { kind_ = Kind.closure; closure_ = a; }
+	@trusted immutable this(immutable Ptr!Param a) { kind_ = Kind.param; param_ = a; }
+
+	private:
+	enum Kind {
+		closure,
+		param,
+	}
+	immutable Kind kind_;
+	union {
+		Closure closure_;
+		Ptr!Param param_;
+	}
 }
 
-immutable(ConcreteParam) withType(ref immutable ConcreteParam a, ref immutable ConcreteType newType) {
-	return immutable ConcreteParam(42, a.index, a.mangledName, newType);
+immutable(Bool) isClosure(ref immutable ConcreteParamSource a) {
+	return immutable Bool(a.kind_ == ConcreteParamSource.Kind.closure);
+}
+
+@trusted T matchConcreteParamSource(T)(
+	ref immutable ConcreteParamSource a,
+	scope T delegate(ref immutable ConcreteParamSource.Closure) @safe @nogc pure nothrow cbClosure,
+	scope T delegate(immutable Ptr!Param) @safe @nogc pure nothrow cbParam,
+) {
+	final switch (a.kind_) {
+		case ConcreteParamSource.Kind.closure:
+			return cbClosure(a.closure_);
+		case ConcreteParamSource.Kind.param:
+			return cbParam(a.param_);
+	}
+}
+
+struct ConcreteParam {
+	immutable ConcreteParamSource source;
+	immutable Opt!size_t index; // not present for ctx/ closure param
+	immutable ConcreteType type;
 }
 
 struct ConcreteLocal {
