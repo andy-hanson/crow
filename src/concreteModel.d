@@ -2,7 +2,7 @@ module concreteModel;
 
 @safe @nogc pure nothrow:
 
-import model : FunInst, isArr, isCompareFun, StructInst;
+import model : ClosureField, FunInst, isArr, isCompareFun, RecordField, StructInst;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, empty, size, sizeEq;
 import util.collection.str : Str;
@@ -272,12 +272,6 @@ immutable(ConcreteType) concreteType_fromStruct(immutable Ptr!ConcreteStruct s) 
 	return immutable ConcreteType(defaultIsPointer(s), s);
 }
 
-void writeConcreteType(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteType t) {
-	writeStr(writer, t.struct_.mangledName);
-	if (t.isPointer)
-		writeChar(writer, '*');
-}
-
 immutable(Comparison) compareConcreteType(ref immutable ConcreteType a, ref immutable ConcreteType b) {
 	immutable Comparison res = comparePtr(a.struct_, b.struct_);
 	return res != Comparison.equal ? res : compareBool(a.isPointer, b.isPointer);
@@ -287,11 +281,51 @@ immutable(Bool) concreteTypeEq(ref immutable ConcreteType a, ref immutable Concr
 	return Bool(compareConcreteType(a, b) == Comparison.equal);
 }
 
+struct ConcreteFieldSource {
+	@safe @nogc pure nothrow:
+
+	@trusted immutable this(immutable Ptr!ClosureField a) { kind_ = Kind.closureField; closureField_ = a; }
+	@trusted immutable this(immutable Ptr!RecordField a) { kind_ = Kind.recordField; recordField_ = a; }
+
+	private:
+	enum Kind {
+		closureField,
+		recordField,
+	}
+	immutable Kind kind_;
+	union {
+		immutable Ptr!ClosureField closureField_;
+		immutable Ptr!RecordField recordField_;
+	}
+}
+
+@trusted T matchConcreteFieldSource(T)(
+	ref immutable ConcreteFieldSource a,
+	scope T delegate(immutable Ptr!ClosureField) @safe @nogc pure nothrow cbClosureField,
+	scope T delegate(immutable Ptr!RecordField) @safe @nogc pure nothrow cbRecordField,
+) {
+	final switch (a.kind_) {
+		case ConcreteFieldSource.Kind.closureField:
+			return cbClosureField(a.closureField_);
+		case ConcreteFieldSource.Kind.recordField:
+			return cbRecordField(a.recordField_);
+	}
+}
+
 struct ConcreteField {
+	immutable ConcreteFieldSource source;
 	immutable u8 index;
 	immutable Bool isMutable;
-	immutable Str mangledName;
 	immutable ConcreteType type;
+}
+
+immutable(Sym) name(ref immutable ConcreteField a) {
+	return matchConcreteFieldSource(
+		a.source,
+		(immutable Ptr!ClosureField it) =>
+			it.name,
+		(immutable Ptr!RecordField it) =>
+			it.name);
 }
 
 struct ConcreteParam {

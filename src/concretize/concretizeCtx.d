@@ -7,6 +7,7 @@ import concreteModel :
 	byVal,
 	compareConcreteType,
 	ConcreteField,
+	ConcreteFieldSource,
 	ConcreteFun,
 	ConcreteFunBody,
 	ConcreteFunSource,
@@ -51,7 +52,7 @@ import model :
 import util.bools : Bool, False, not, True;
 import util.collection.arr : Arr, at, empty, emptyArr, only, ptrAt, range, sizeEq;
 import util.collection.arrBuilder : add, ArrBuilder;
-import util.collection.arrUtil : arrLiteral, arrMax, compareArr, exists, map, mapWithIndex;
+import util.collection.arrUtil : arrLiteral, arrMax, compareArr, exists, map, mapPtrsWithIndex, mapWithIndex;
 import util.collection.mutArr : MutArr;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.collection.str : strLiteral;
@@ -477,11 +478,11 @@ void initializeConcreteStruct(Alloc)(
 				False),
 		(ref immutable StructBody.Record r) {
 			immutable Arr!ConcreteField fields =
-				mapWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, ref immutable RecordField f) =>
+				mapPtrsWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, immutable Ptr!RecordField f) =>
 					immutable ConcreteField(
+						immutable ConcreteFieldSource(f),
 						safeSizeTToU8(index),
 						f.isMutable,
-						mangleName(alloc, f.name),
 						getConcreteType(alloc, ctx, f.type, typeArgsScope)));
 			return getConcreteStructInfoForFields(r.forcedByValOrRef, fields);
 		},

@@ -24,6 +24,7 @@ import concreteModel :
 	matchConcreteFunSource,
 	matchConcreteStructBody,
 	matchConcreteStructSource,
+	name,
 	returnType,
 	symOfBuiltinStructKind;
 import model : FunInst, name;
@@ -138,8 +139,8 @@ immutable(Sexpr) tataOfConcreteField(Alloc)(ref Alloc alloc, ref immutable Concr
 	return tataRecord(
 		alloc,
 		"field",
+		tataSym(name(a)),
 		tataBool(a.isMutable),
-		tataStr(a.mangledName),
 		tataOfConcreteType(alloc, a.type));
 }
 
@@ -315,13 +316,13 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 				alloc,
 				"get-field",
 				tataOfConcreteExpr(alloc, it.target),
-				tataStr(it.field.mangledName)),
+				tataSym(name(it.field))),
 		(ref immutable ConcreteExpr.RecordFieldSet it) =>
 			tataRecord(
 				alloc,
 				"set-field",
 				tataOfConcreteExpr(alloc, it.target),
-				tataStr(it.field.mangledName),
+				tataSym(name(it.field)),
 				tataOfConcreteExpr(alloc, it.value)),
 		(ref immutable ConcreteExpr.Seq it) =>
 			tataRecord(

@@ -2,7 +2,7 @@ module lowModel;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : ConcreteField, ConcreteFun, ConcreteLocal, ConcreteParam, ConcreteStruct, isArr;
+import concreteModel : ConcreteField, ConcreteFun, ConcreteLocal, ConcreteParam, ConcreteStruct, isArr, name;
 import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.collection.fullIndexDict : FullIndexDict;
@@ -227,6 +227,10 @@ immutable(LowType.Union) asUnionType(ref immutable LowType a) {
 struct LowField {
 	immutable Ptr!ConcreteField source;
 	immutable LowType type;
+}
+
+immutable(Sym) name(ref immutable LowField a) {
+	return name(a.source);
 }
 
 struct LowParamSource {

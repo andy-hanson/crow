@@ -27,6 +27,7 @@ import lowModel :
 	matchLowParamSource,
 	matchLowType,
 	matchSpecialConstant,
+	name,
 	PrimitiveType,
 	symOfPrimitiveType;
 import sexprOfConcreteModel : tataOfConcreteFunRef, tataOfConcreteStructRef;
@@ -102,7 +103,7 @@ immutable(Sexpr) tataOfLowRecord(Alloc)(ref Alloc alloc, ref immutable LowRecord
 		"record",
 		tataOfConcreteStructRef(alloc, a.source),
 		tataArr(alloc, a.fields, (ref immutable LowField field) =>
-			tataRecord(alloc, "field", tataStr(field.source.mangledName), tataOfLowType(alloc, field.type))));
+			tataRecord(alloc, "field", tataSym(name(field)), tataOfLowType(alloc, field.type))));
 }
 
 immutable(Sexpr) tataOfLowUnion(Alloc)(ref Alloc alloc, ref immutable LowUnion a){

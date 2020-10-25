@@ -41,6 +41,7 @@ import lowModel :
 	matchLowParamSource,
 	matchLowType,
 	matchSpecialConstant,
+	name,
 	PrimitiveType;
 import model : FunInst, name;
 import util.alloc.stackAlloc : StackAlloc;
@@ -302,7 +303,7 @@ void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immu
 			writeStatic(writer, "\n\t");
 			writeType(writer, ctx, field.type);
 			writeChar(writer, ' ');
-			writeStr(writer, field.source.mangledName);
+			writeMangledName(writer, name(field));
 			writeChar(writer, ';');
 		}
 		writeStructEnd(writer);
@@ -1086,7 +1087,7 @@ void writeRecordFieldAccess(Alloc)(
 ) {
 	writeExprExpr(writer, indent, ctx, target);
 	writeStatic(writer, targetIsPointer ? "->" : ".");
-	writeStr(writer, at(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields, fieldIndex).source.mangledName);
+	writeMangledName(writer, name(at(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields, fieldIndex)));
 }
 
 void writeRecordFieldSet(Alloc)(

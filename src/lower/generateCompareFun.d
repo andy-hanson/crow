@@ -24,6 +24,7 @@ import lowModel :
 	LowType,
 	LowUnion,
 	matchLowType,
+	name,
 	PrimitiveType;
 import lower.lower : AllLowTypes, CompareFuns, getCompareFun;
 import lower.lowExprHelpers :
@@ -52,7 +53,7 @@ import util.memory : allocate, nu;
 import util.opt : none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, Sym;
+import util.sym : shortSymAlphaLiteral, Sym, symEq;
 import util.types : safeSizeTToU8, u8;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeStatic, writeNat;
@@ -108,8 +109,8 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 	immutable LowType.Record arrRecordType = asRecordType(arrType);
 	immutable LowRecord arrRecord = fullIndexDictGet(allTypes.allRecords, arrRecordType);
 	verify(size(arrRecord.fields) == 2);
-	verify(strEqLiteral(at(arrRecord.fields, 0).source.mangledName, "size"));
-	verify(strEqLiteral(at(arrRecord.fields, 1).source.mangledName, "data"));
+	verify(symEq(name(at(arrRecord.fields, 0)), shortSymAlphaLiteral("size")));
+	verify(symEq(name(at(arrRecord.fields, 1)), shortSymAlphaLiteral("data")));
 	immutable LowType sizeType = at(arrRecord.fields, 0).type;
 	immutable LowType elementPtrType = at(arrRecord.fields, 1).type;
 	immutable LowType elementType = asNonFunPtrType(elementPtrType).pointee;

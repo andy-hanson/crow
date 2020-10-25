@@ -9,6 +9,7 @@ import concreteModel :
 	byVal,
 	ConcreteExpr,
 	ConcreteField,
+	ConcreteFieldSource,
 	ConcreteFun,
 	ConcreteFunBody,
 	ConcreteFunExprBody,
@@ -20,6 +21,7 @@ import concreteModel :
 	ConcreteType,
 	concreteType_byValue,
 	mustBeNonPointer,
+	name,
 	returnType;
 import concretize.concretizeCtx :
 	anyPtrType,
@@ -71,7 +73,7 @@ import util.memory : allocate, nu;
 import util.opt : force, forcePtr, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, Sym, symEq;
+import util.sym : shortSymAlphaLiteral, Sym, symEq, symEqLongAlphaLiteral;
 import util.types : safeSizeTToU8;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, writeNat, Writer, writeStatic, writeStr;
@@ -276,9 +278,9 @@ immutable(Arr!ConcreteField) concretizeClosureFields(Alloc)(
 ) {
 	return mapWithIndex!ConcreteField(alloc, closure, (immutable size_t index, ref immutable Ptr!ClosureField it) =>
 		immutable ConcreteField(
+			immutable ConcreteFieldSource(it),
 			safeSizeTToU8(index),
 			False,
-			mangleName(alloc, it.name),
 			getConcreteType_fromConcretizeCtx(alloc, ctx, it.type, typeArgsScope)));
 }
 
@@ -331,7 +333,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 			immutable Arr!ConcreteField fields = asRecord(body_(possiblySendType.struct_)).fields;
 			verify(size(fields) == 2);
 			immutable ConcreteField funField = at(fields, 1);
-			verify(strEqLiteral(funField.mangledName, "fun"));
+			verify(symEq(name(funField), shortSymAlphaLiteral("fun")));
 			return funField.type;
 		}()
 		: possiblySendType;
@@ -351,7 +353,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 
 	if (e.kind == FunKind.ref_) {
 		immutable ConcreteField vatAndActorField = at(asRecord(body_(possiblySendType.struct_)).fields, 0);
-		verify(strEqLiteral(vatAndActorField.mangledName, "vat_and_actor"));
+		verify(symEqLongAlphaLiteral(name(vatAndActorField), "vat-and-actor"));
 		immutable ConcreteExpr vatAndActor = getGetVatAndActor(alloc, ctx, vatAndActorField.type, range);
 		return immutable ConcreteExpr(
 			possiblySendType,

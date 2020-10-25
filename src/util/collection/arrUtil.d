@@ -490,6 +490,17 @@ void eachWithIndex(T)(
 	return immutable Arr!Out(cast(immutable) res, size(a));
 }
 
+@trusted immutable(Arr!Out) mapPtrsWithIndex(Out, In, Alloc)(
+	ref Alloc alloc,
+	immutable Arr!In a,
+	scope immutable(Out) delegate(immutable size_t, immutable Ptr!In) @safe @nogc pure nothrow cb,
+) {
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
+	foreach (immutable size_t i; 0..size(a))
+		initMemory(res + i, cb(i, ptrAt(a, i)));
+	return immutable Arr!Out(cast(immutable) res, size(a));
+}
+
 @trusted immutable(Result!(Arr!OutSuccess, OutFailure)) mapOrFailWithSoFar(OutSuccess, OutFailure, In, Alloc)(
 	ref Alloc alloc,
 	immutable Arr!In inputs,
