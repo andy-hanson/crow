@@ -278,7 +278,6 @@ struct LowLocalSource {
 
 	struct Generated {
 		immutable Sym name;
-		// Used to disambiguate locals that would otherwise have the same name.
 		immutable size_t index; // TODO: Nat8
 	}
 

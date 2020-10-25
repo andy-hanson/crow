@@ -2,7 +2,7 @@ module concreteModel;
 
 @safe @nogc pure nothrow:
 
-import model : ClosureField, FunInst, isArr, isCompareFun, Param, RecordField, StructInst;
+import model : ClosureField, FunInst, isArr, isCompareFun, Local, Param, RecordField, StructInst;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, empty, size, sizeEq;
 import util.collection.str : Str;
@@ -343,8 +343,8 @@ struct ConcreteParamSource {
 	}
 	immutable Kind kind_;
 	union {
-		Closure closure_;
-		Ptr!Param param_;
+		immutable Closure closure_;
+		immutable Ptr!Param param_;
 	}
 }
 
@@ -371,9 +371,49 @@ struct ConcreteParam {
 	immutable ConcreteType type;
 }
 
+struct ConcreteLocalSource {
+	@safe @nogc pure nothrow:
+
+	struct Arr {}
+	struct Matched {}
+
+	immutable this(immutable Arr a) { kind_ = Kind.arr; arr_ = a; }
+	@trusted immutable this(immutable Ptr!Local a) { kind_ = Kind.local; local_ = a; }
+	immutable this(immutable Matched a) { kind_ = Kind.matched; matched_ = a; }
+
+	private:
+	enum Kind {
+		arr,
+		local,
+		matched,
+	}
+	immutable Kind kind_;
+	union {
+		immutable Arr arr_;
+		immutable Ptr!Local local_;
+		immutable Matched matched_;
+	}
+}
+
+@trusted T matchConcreteLocalSource(T)(
+	ref immutable ConcreteLocalSource a,
+	scope T delegate(ref immutable ConcreteLocalSource.Arr) @safe @nogc pure nothrow cbArr,
+	scope T delegate(immutable Ptr!Local) @safe @nogc pure nothrow cbLocal,
+	scope T delegate(ref immutable ConcreteLocalSource.Matched) @safe @nogc pure nothrow cbMatched,
+) {
+	final switch (a.kind_) {
+		case ConcreteLocalSource.Kind.arr:
+			return cbArr(a.arr_);
+		case ConcreteLocalSource.Kind.local:
+			return cbLocal(a.local_);
+		case ConcreteLocalSource.Kind.matched:
+			return cbMatched(a.matched_);
+	}
+}
+
 struct ConcreteLocal {
-	immutable size_t index;
-	immutable Str mangledName;
+	immutable ConcreteLocalSource source;
+	immutable size_t index; // TODO: who needs this?
 	immutable ConcreteType type;
 }
 

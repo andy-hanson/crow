@@ -158,26 +158,26 @@ program(
 			[param(argc, int-32), param(argv, ptr(ptr(char))), param(main-ptr, fun-ptr(1))]
 			expr-body(
 				[
-					local("n_threads", nat-64)
-					local("gctx_by_val", record(15))
-					local("gctx", ptr(record(15)))
-					local("vat_by_val", record(16))
-					local("vat", ptr(record(16)))
-					local("main_fut", ptr(record(1)))
-					local("o", record(8))
-					local("e", record(9))
-					local("matched", union(1))]
+					local(n-threads, nat-64)
+					local(gctx-by-val, record(15))
+					local(gctx, ptr(record(15)))
+					local(vat-by-val, record(16))
+					local(vat, ptr(record(16)))
+					local(main-fut, ptr(record(1)))
+					local(o, record(8))
+					local(e, record(9))
+					local("<<matched>>", union(1))]
 				expr(
 					int-32
 					file-range(19, range(374, 1094))
 					let(
-						"n_threads"
+						n-threads
 						expr(nat-64, file-range(19, range(390, 397)), call(1, []))
 						expr(
 							int-32
 							file-range(19, range(399, 1094))
 							let(
-								"gctx_by_val"
+								gctx-by-val
 								expr(
 									record(15)
 									file-range(19, range(413, 596))
@@ -185,7 +185,7 @@ program(
 										[
 											expr(record(2), file-range(19, range(443, 451)), call(3, []))
 											expr(record(28), file-range(19, range(460, 474)), call(5, []))
-											expr(nat-64, file-range(19, range(493, 502)), local-ref("n_threads"))
+											expr(nat-64, file-range(19, range(493, 502)), local-ref(n-threads))
 											expr(record(29), file-range(19, range(524, 537)), call(6, []))
 											expr(bool, file-range(19, range(554, 559)), constant(false))
 											expr(bool, file-range(19, range(589, 594)), constant(false))]))
@@ -193,18 +193,18 @@ program(
 									int-32
 									file-range(19, range(596, 1094))
 									let(
-										"gctx"
+										gctx
 										expr(
 											ptr(record(15))
 											file-range(19, range(615, 625))
 											unary(
 												"ref-of-val"
-												expr(record(15), file-range(19, range(603, 614)), local-ref("gctx_by_val"))))
+												expr(record(15), file-range(19, range(603, 614)), local-ref(gctx-by-val))))
 										expr(
 											int-32
 											file-range(19, range(627, 1094))
 											let(
-												"vat_by_val"
+												vat-by-val
 												expr(
 													record(16)
 													file-range(19, range(640, 670))
@@ -214,17 +214,14 @@ program(
 															expr(
 																ptr(record(15))
 																file-range(19, range(649, 653))
-																local-ref("gctx"))
+																local-ref(gctx))
 															expr(nat-64, file-range(19, range(655, 659)), constant(0))
-															expr(
-																nat-64
-																file-range(19, range(661, 670))
-																local-ref("n_threads"))]))
+															expr(nat-64, file-range(19, range(661, 670)), local-ref(n-threads))]))
 												expr(
 													int-32
 													file-range(19, range(672, 1094))
 													let(
-														"vat"
+														vat
 														expr(
 															ptr(record(16))
 															file-range(19, range(689, 699))
@@ -233,7 +230,7 @@ program(
 																expr(
 																	record(16)
 																	file-range(19, range(678, 688))
-																	local-ref("vat_by_val"))))
+																	local-ref(vat-by-val))))
 														expr(
 															int-32
 															file-range(19, range(702, 1094))
@@ -245,7 +242,7 @@ program(
 																		expr(
 																			ptr(record(15))
 																			file-range(19, range(702, 706))
-																			local-ref("gctx"))
+																			local-ref(gctx))
 																		true
 																		1
 																		expr(
@@ -265,12 +262,12 @@ program(
 																							expr(
 																								ptr(record(16))
 																								file-range(19, range(734, 737))
-																								local-ref("vat"))))]))))
+																								local-ref(vat))))]))))
 																expr(
 																	int-32
 																	file-range(19, range(747, 1094))
 																	let(
-																		"main_fut"
+																		main-fut
 																		expr(
 																			ptr(record(1))
 																			file-range(19, range(763, 796))
@@ -280,11 +277,11 @@ program(
 																					expr(
 																						ptr(record(15))
 																						file-range(19, range(758, 762))
-																						local-ref("gctx"))
+																						local-ref(gctx))
 																					expr(
 																						ptr(record(16))
 																						file-range(19, range(771, 774))
-																						local-ref("vat"))
+																						local-ref(vat))
 																					expr(
 																						int-32
 																						file-range(19, range(776, 780))
@@ -310,11 +307,11 @@ program(
 																							expr(
 																								nat-64
 																								file-range(19, range(799, 808))
-																								local-ref("n_threads"))
+																								local-ref(n-threads))
 																							expr(
 																								ptr(record(15))
 																								file-range(19, range(821, 825))
-																								local-ref("gctx"))
+																								local-ref(gctx))
 																							expr(
 																								fun-ptr(10)
 																								file-range(19, range(827, 880))
@@ -333,7 +330,7 @@ program(
 																									file-range(
 																										19
 																										range(887, 891))
-																									local-ref("gctx"))
+																									local-ref(gctx))
 																								true
 																								5))
 																						expr(
@@ -344,7 +341,7 @@ program(
 																							int-32
 																							file-range(19, range(935, 1094))
 																							match(
-																								"matched"
+																								"<<matched>>"
 																								expr(
 																									union(1)
 																									file-range(
@@ -363,10 +360,10 @@ program(
 																														941
 																														949))
 																												local-ref(
-																													"main_fut"))]))
+																													main-fut))]))
 																								[
 																									case(
-																										some("o")
+																										some(o)
 																										expr(
 																											int-32
 																											file-range(
@@ -384,11 +381,11 @@ program(
 																															981
 																															982))
 																													local-ref(
-																														"o"))
+																														o))
 																												false
 																												0)))
 																									case(
-																										some("e")
+																										some(e)
 																										expr(
 																											int-32
 																											file-range(
@@ -462,7 +459,7 @@ program(
 																																								1068
 																																								1069))
 																																						local-ref(
-																																							"e"))
+																																							e))
 																																					false
 																																					0))
 																																			false
@@ -541,12 +538,12 @@ program(
 			record(16)
 			[param(gctx, ptr(record(15))), param(id, nat-64), param(max-threads, nat-64)]
 			expr-body(
-				[local("actors", record(25))]
+				[local(actors, record(25))]
 				expr(
 					record(16)
 					file-range(15, range(2323, 2648))
 					let(
-						"actors"
+						actors
 						expr(
 							record(25)
 							file-range(15, range(2344, 2408))
@@ -561,7 +558,7 @@ program(
 									expr(record(17), file-range(15, range(2442, 2448)), call(17, []))
 									expr(record(2), file-range(15, range(2463, 2471)), call(3, []))
 									expr(record(22), file-range(15, range(2481, 2492)), call(19, []))
-									expr(record(25), file-range(15, range(2521, 2527)), local-ref("actors"))
+									expr(record(25), file-range(15, range(2521, 2527)), local-ref(actors))
 									expr(nat-64, file-range(15, range(2549, 2553)), constant(0))
 									expr(record(26), file-range(15, range(2571, 2594)), call(20, []))
 									expr(
@@ -600,12 +597,12 @@ program(
 			ptr(nat-64)
 			[param(size-elements, nat-64)]
 			expr-body(
-				[local("bytes", ptr(nat-8))]
+				[local(bytes, ptr(nat-8))]
 				expr(
 					ptr(nat-64)
 					file-range(4, range(1759, 1841))
 					let(
-						"bytes"
+						bytes
 						expr(
 							ptr(nat-8)
 							file-range(4, range(1802, 1823))
@@ -622,18 +619,18 @@ program(
 						expr(
 							ptr(nat-64)
 							file-range(4, range(1831, 1839))
-							ptr-cast(expr(ptr(nat-8), file-range(4, range(1825, 1830)), local-ref("bytes"))))))))
+							ptr-cast(expr(ptr(nat-8), file-range(4, range(1825, 1830)), local-ref(bytes))))))))
 		10: fun(
 			unmanaged-alloc-bytes
 			ptr(nat-8)
 			[param(size, nat-64)]
 			expr-body(
-				[local("res", ptr(nat-8))]
+				[local(res, ptr(nat-8))]
 				expr(
 					ptr(nat-8)
 					file-range(4, range(1617, 1665))
 					let(
-						"res"
+						res
 						expr(
 							ptr(nat-8)
 							file-range(4, range(1628, 1634))
@@ -651,8 +648,8 @@ program(
 											expr(
 												bool
 												file-range(4, range(1653, 1658))
-												call(14, [expr(ptr(nat-8), file-range(4, range(1649, 1652)), local-ref("res"))]))]))
-								expr(ptr(nat-8), file-range(4, range(1660, 1663)), local-ref("res"))))))))
+												call(14, [expr(ptr(nat-8), file-range(4, range(1649, 1652)), local-ref(res))]))]))
+								expr(ptr(nat-8), file-range(4, range(1660, 1663)), local-ref(res))))))))
 		11: fun(malloc, ptr(nat-8), [param(size, nat-64)], extern(false))
 		12: fun(
 			hard-forbid
@@ -712,12 +709,12 @@ program(
 			bool
 			[param(a, nat-64), param(b, nat-64)]
 			expr-body(
-				[local("matched", union(5))]
+				[local("<<matched>>", union(5))]
 				expr(
 					bool
 					file-range(0, range(2365, 2431))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(
 							union(5)
 							file-range(0, range(2373, 2378))
@@ -915,7 +912,7 @@ program(
 			void
 			[param(fd, int-32), param(s, record(7))]
 			expr-body(
-				[local("res", int-64)]
+				[local(res, int-64)]
 				expr(
 					void
 					file-range(12, range(211, 369))
@@ -938,7 +935,7 @@ program(
 							void
 							file-range(12, range(256, 369))
 							let(
-								"res"
+								res
 								expr(
 									int-64
 									file-range(12, range(265, 296))
@@ -973,7 +970,7 @@ program(
 											call(
 												27
 												[
-													expr(int-64, file-range(12, range(305, 308)), local-ref("res"))
+													expr(int-64, file-range(12, range(305, 308)), local-ref(res))
 													expr(
 														int-64
 														file-range(12, range(318, 332))
@@ -994,12 +991,12 @@ program(
 			bool
 			[param(a, int-64), param(b, int-64)]
 			expr-body(
-				[local("matched", union(5))]
+				[local("<<matched>>", union(5))]
 				expr(
 					bool
 					file-range(0, range(2365, 2431))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(
 							union(5)
 							file-range(0, range(2373, 2378))
@@ -1173,23 +1170,23 @@ program(
 				param(main-ptr, fun-ptr(1))]
 			expr-body(
 				[
-					local("ectx", record(33))
-					local("tls", record(39))
-					local("ctx_by_val", record(0))
-					local("ctx", ptr(record(0)))
-					local("add", record(41))
-					local("all_args", record(40))]
+					local(ectx, record(33))
+					local(tls, record(39))
+					local(ctx-by-val, record(0))
+					local(ctx, ptr(record(0)))
+					local(add, record(41))
+					local(all-args, record(40))]
 				expr(
 					ptr(record(1))
 					file-range(19, range(1333, 1712))
 					let(
-						"ectx"
+						ectx
 						expr(record(33), file-range(19, range(1340, 1357)), call(39, []))
 						expr(
 							ptr(record(1))
 							file-range(19, range(1359, 1712))
 							let(
-								"tls"
+								tls
 								expr(
 									record(39)
 									file-range(19, range(1365, 1412))
@@ -1200,12 +1197,12 @@ program(
 												file-range(19, range(1401, 1412))
 												unary(
 													"ref-of-val"
-													expr(record(33), file-range(19, range(1397, 1401)), local-ref("ectx"))))]))
+													expr(record(33), file-range(19, range(1397, 1401)), local-ref(ectx))))]))
 								expr(
 									ptr(record(1))
 									file-range(19, range(1414, 1712))
 									let(
-										"ctx_by_val"
+										ctx-by-val
 										expr(
 											record(0)
 											file-range(19, range(1427, 1467))
@@ -1218,25 +1215,25 @@ program(
 														file-range(19, range(1445, 1456))
 														unary(
 															"ref-of-val"
-															expr(record(39), file-range(19, range(1442, 1445)), local-ref("tls"))))
+															expr(record(39), file-range(19, range(1442, 1445)), local-ref(tls))))
 													expr(ptr(record(16)), file-range(19, range(1458, 1461)), param-ref(1))
 													expr(nat-64, file-range(19, range(1463, 1467)), constant(0))]))
 										expr(
 											ptr(record(1))
 											file-range(19, range(1469, 1712))
 											let(
-												"ctx"
+												ctx
 												expr(
 													ptr(record(0))
 													file-range(19, range(1486, 1496))
 													unary(
 														"ref-of-val"
-														expr(record(0), file-range(19, range(1475, 1485)), local-ref("ctx_by_val"))))
+														expr(record(0), file-range(19, range(1475, 1485)), local-ref(ctx-by-val))))
 												expr(
 													ptr(record(1))
 													file-range(19, range(1498, 1712))
 													let(
-														"add"
+														add
 														expr(
 															record(41)
 															file-range(19, range(1504, 1609))
@@ -1262,7 +1259,7 @@ program(
 															ptr(record(1))
 															file-range(19, range(1609, 1712))
 															let(
-																"all_args"
+																all-args
 																expr(
 																	record(40)
 																	file-range(19, range(1620, 1667))
@@ -1295,15 +1292,15 @@ program(
 																			expr(
 																				ptr(record(0))
 																				file-range(19, range(1669, 1672))
-																				local-ref("ctx"))
+																				local-ref(ctx))
 																			expr(
 																				record(41)
 																				file-range(19, range(1687, 1690))
-																				local-ref("add"))
+																				local-ref(add))
 																			expr(
 																				record(40)
 																				file-range(19, range(1692, 1700))
-																				local-ref("all_args"))
+																				local-ref(all-args))
 																			expr(
 																				fun-ptr(1)
 																				file-range(19, range(1702, 1710))
@@ -1385,11 +1382,11 @@ program(
 			[param(gc, ptr(record(17)))]
 			expr-body(
 				[
-					local("c", ptr(record(18)))
-					local("s", record(19))
-					local("c1", ptr(record(18)))
-					local("matched", union(3))
-					local("res", ptr(record(18)))]
+					local(c, ptr(record(18)))
+					local(s, record(19))
+					local(c, ptr(record(18)))
+					local("<<matched>>", union(3))
+					local(res, ptr(record(18)))]
 				expr(
 					ptr(record(18))
 					file-range(4, range(388, 828))
@@ -1416,12 +1413,12 @@ program(
 							ptr(record(18))
 							file-range(4, range(419, 828))
 							let(
-								"res"
+								res
 								expr(
 									ptr(record(18))
 									file-range(4, range(425, 792))
 									match(
-										"matched"
+										"<<matched>>"
 										expr(
 											union(3)
 											file-range(4, range(433, 446))
@@ -1433,7 +1430,7 @@ program(
 													ptr(record(18))
 													file-range(4, range(622, 709))
 													let(
-														"c"
+														c
 														expr(
 															ptr(record(18))
 															file-range(4, range(651, 665))
@@ -1464,7 +1461,7 @@ program(
 																				expr(
 																					ptr(record(18))
 																					file-range(4, range(669, 670))
-																					local-ref("c"))
+																					local-ref(c))
 																				true
 																				0
 																				expr(
@@ -1478,7 +1475,7 @@ program(
 																				expr(
 																					ptr(record(18))
 																					file-range(4, range(683, 684))
-																					local-ref("c"))
+																					local-ref(c))
 																				true
 																				1
 																				expr(
@@ -1493,19 +1490,19 @@ program(
 																expr(
 																	ptr(record(18))
 																	file-range(4, range(705, 706))
-																	local-ref("c")))))))
+																	local-ref(c)))))))
 											case(
-												some("s")
+												some(s)
 												expr(
 													ptr(record(18))
 													file-range(4, range(719, 792))
 													let(
-														"c1"
+														c
 														expr(
 															ptr(record(18))
 															file-range(4, range(724, 730))
 															get-field(
-																expr(record(19), file-range(4, range(723, 724)), local-ref("s"))
+																expr(record(19), file-range(4, range(723, 724)), local-ref(s))
 																false
 																0))
 														expr(
@@ -1533,7 +1530,7 @@ program(
 																						expr(
 																							ptr(record(18))
 																							file-range(4, range(753, 754))
-																							local-ref("c1"))
+																							local-ref(c))
 																						true
 																						1))))
 																		expr(
@@ -1543,7 +1540,7 @@ program(
 																				expr(
 																					ptr(record(18))
 																					file-range(4, range(767, 768))
-																					local-ref("c1"))
+																					local-ref(c))
 																				true
 																				1
 																				expr(
@@ -1558,7 +1555,7 @@ program(
 																expr(
 																	ptr(record(18))
 																	file-range(4, range(789, 790))
-																	local-ref("c1")))))))]))
+																	local-ref(c)))))))]))
 								expr(
 									ptr(record(18))
 									file-range(4, range(792, 828))
@@ -1584,7 +1581,7 @@ program(
 																		param-ref(0))
 																	true
 																	0))))]))
-										expr(ptr(record(18)), file-range(4, range(823, 826)), local-ref("res"))))))))))
+										expr(ptr(record(18)), file-range(4, range(823, 826)), local-ref(res))))))))))
 		42: fun(
 			acquire-lock
 			void
@@ -1803,12 +1800,12 @@ program(
 			void
 			[]
 			expr-body(
-				[local("err", int-32)]
+				[local(err, int-32)]
 				expr(
 					void
 					file-range(3, range(1052, 1205))
 					let(
-						"err"
+						err
 						expr(int-32, file-range(3, range(1058, 1071)), call(58, []))
 						expr(
 							void
@@ -1827,7 +1824,7 @@ program(
 											expr(
 												bool
 												file-range(3, range(1198, 1203))
-												call(60, [expr(int-32, file-range(3, range(1194, 1197)), local-ref("err"))]))]))))))))
+												call(60, [expr(int-32, file-range(3, range(1194, 1197)), local-ref(err))]))]))))))))
 		58: fun(pthread-yield, int-32, [], extern(false))
 		59: fun(usleep, void, [param(micro-seconds, nat-64)], extern(false))
 		60: fun(
@@ -1849,12 +1846,12 @@ program(
 			bool
 			[param(a, int-32), param(b, int-32)]
 			expr-body(
-				[local("matched", union(5))]
+				[local("<<matched>>", union(5))]
 				expr(
 					bool
 					file-range(0, range(2365, 2431))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(
 							union(5)
 							file-range(0, range(2373, 2378))
@@ -1942,12 +1939,12 @@ program(
 			bool
 			[param(a, nat-64), param(b, nat-64)]
 			expr-body(
-				[local("matched", union(5))]
+				[local("<<matched>>", union(5))]
 				expr(
 					bool
 					file-range(0, range(2514, 2580))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(
 							union(5)
 							file-range(0, range(2522, 2527))
@@ -2012,12 +2009,12 @@ program(
 			void
 			[param(a, ptr(record(3)))]
 			expr-body(
-				[local("did_unset", bool)]
+				[local(did-unset, bool)]
 				expr(
 					void
 					file-range(3, range(538, 586))
 					let(
-						"did_unset"
+						did-unset
 						expr(
 							bool
 							file-range(3, range(552, 561))
@@ -2025,7 +2022,7 @@ program(
 						expr(
 							void
 							file-range(3, range(573, 584))
-							call(13, [expr(bool, file-range(3, range(563, 572)), local-ref("did_unset"))]))))))
+							call(13, [expr(bool, file-range(3, range(563, 572)), local-ref(did-unset))]))))))
 		69: fun(
 			try-unset
 			bool
@@ -2232,12 +2229,12 @@ program(
 			ptr(record(1))
 			[param(ctx, ptr(record(0))), param(f, ptr(record(42))), param(cb, record(52))]
 			expr-body(
-				[local("res", ptr(record(1))), local(generated(temp, 0), ptr(record(55)))]
+				[local(res, ptr(record(1))), local(generated(temp, 0), ptr(record(55)))]
 				expr(
 					ptr(record(1))
 					file-range(16, range(2066, 2368))
 					let(
-						"res"
+						res
 						expr(
 							ptr(record(1))
 							file-range(16, range(2072, 2096))
@@ -2320,12 +2317,12 @@ program(
 																										file-range(
 																											16
 																											range(2172, 2175))
-																										local-ref("res"))]))))
+																										local-ref(res))]))))
 																				expr(
 																					ptr(record(55))
 																					file-range(16, range(2110, 2209))
 																					local-ref(generated(temp, 0)))))))))]))]))
-								expr(ptr(record(1)), file-range(16, range(2209, 2212)), local-ref("res"))))))))
+								expr(ptr(record(1)), file-range(16, range(2209, 2212)), local-ref(res))))))))
 		73: fun(
 			new-unresolved-fut
 			ptr(record(1))
@@ -2408,12 +2405,12 @@ program(
 			ptr(nat-8)
 			[param(ctx, ptr(record(0))), param(gc, ptr(record(17))), param(size, nat-64)]
 			expr-body(
-				[local("s", record(54)), local("matched", union(9))]
+				[local(s, record(54)), local("<<matched>>", union(9))]
 				expr(
 					ptr(nat-8)
 					file-range(4, range(1409, 1509))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(
 							union(9)
 							file-range(4, range(1418, 1435))
@@ -2425,11 +2422,11 @@ program(
 						[
 							case(none, expr(ptr(nat-8), file-range(4, range(1483, 1487)), call(78, [])))
 							case(
-								some("s")
+								some(s)
 								expr(
 									ptr(nat-8)
 									file-range(4, range(1501, 1507))
-									get-field(expr(record(54), file-range(4, range(1500, 1501)), local-ref("s")), false, 0)))]))))
+									get-field(expr(record(54), file-range(4, range(1500, 1501)), local-ref(s)), false, 0)))]))))
 		76: fun(
 			try-gc-alloc
 			union(9)
@@ -2508,10 +2505,10 @@ program(
 			[param(ctx, ptr(record(0))), param(f, ptr(record(42))), param(cb, record(46))]
 			expr-body(
 				[
-					local("cbs", record(43))
-					local("r", record(48))
-					local("e", record(6))
-					local("matched", union(6))
+					local(cbs, record(43))
+					local(r, record(48))
+					local(e, record(6))
+					local("<<matched>>", union(6))
 					local(generated(temp, 0), ptr(record(44)))]
 				expr(
 					void
@@ -2543,14 +2540,14 @@ program(
 									void
 									file-range(16, range(1659, 1869))
 									match(
-										"matched"
+										"<<matched>>"
 										expr(
 											union(6)
 											file-range(16, range(1666, 1672))
 											get-field(expr(ptr(record(42)), file-range(16, range(1665, 1666)), param-ref(1)), true, 1))
 										[
 											case(
-												some("cbs")
+												some(cbs)
 												expr(
 													void
 													file-range(16, range(1729, 1791))
@@ -2698,7 +2695,7 @@ program(
 																																						1783
 																																						1786))
 																																				local-ref(
-																																					"cbs"))
+																																					cbs))
 																																			false
 																																			0))]))))
 																												expr(
@@ -2715,7 +2712,7 @@ program(
 																															temp
 																															0)))))))]))))])))))))
 											case(
-												some("r")
+												some(r)
 												expr(
 													void
 													file-range(16, range(1821, 1836))
@@ -2742,11 +2739,11 @@ program(
 																						expr(
 																							record(48)
 																							file-range(16, range(1826, 1827))
-																							local-ref("r"))
+																							local-ref(r))
 																						false
 																						0))]))))])))
 											case(
-												some("e")
+												some(e)
 												expr(
 													void
 													file-range(16, range(1857, 1867))
@@ -2769,7 +2766,7 @@ program(
 																				expr(
 																					record(6)
 																					file-range(16, range(1862, 1863))
-																					local-ref("e"))]))))])))]))))
+																					local-ref(e))]))))])))]))))
 						expr(
 							void
 							file-range(16, range(1885, 1897))
@@ -2931,10 +2928,10 @@ program(
 			[param(ctx, ptr(record(0))), param(f, ptr(record(1))), param(cb, record(10))]
 			expr-body(
 				[
-					local("cbs", record(4))
-					local("r", record(13))
-					local("e", record(6))
-					local("matched", union(0))
+					local(cbs, record(4))
+					local(r, record(13))
+					local(e, record(6))
+					local("<<matched>>", union(0))
 					local(generated(temp, 0), ptr(record(5)))]
 				expr(
 					void
@@ -2966,14 +2963,14 @@ program(
 									void
 									file-range(16, range(1659, 1869))
 									match(
-										"matched"
+										"<<matched>>"
 										expr(
 											union(0)
 											file-range(16, range(1666, 1672))
 											get-field(expr(ptr(record(1)), file-range(16, range(1665, 1666)), param-ref(1)), true, 1))
 										[
 											case(
-												some("cbs")
+												some(cbs)
 												expr(
 													void
 													file-range(16, range(1729, 1791))
@@ -3121,7 +3118,7 @@ program(
 																																						1783
 																																						1786))
 																																				local-ref(
-																																					"cbs"))
+																																					cbs))
 																																			false
 																																			0))]))))
 																												expr(
@@ -3138,7 +3135,7 @@ program(
 																															temp
 																															0)))))))]))))])))))))
 											case(
-												some("r")
+												some(r)
 												expr(
 													void
 													file-range(16, range(1821, 1836))
@@ -3165,11 +3162,11 @@ program(
 																						expr(
 																							record(13)
 																							file-range(16, range(1826, 1827))
-																							local-ref("r"))
+																							local-ref(r))
 																						false
 																						0))]))))])))
 											case(
-												some("e")
+												some(e)
 												expr(
 													void
 													file-range(16, range(1857, 1867))
@@ -3192,7 +3189,7 @@ program(
 																				expr(
 																					record(6)
 																					file-range(16, range(1862, 1863))
-																					local-ref("e"))]))))])))]))))
+																					local-ref(e))]))))])))]))))
 						expr(
 							void
 							file-range(16, range(1885, 1897))
@@ -3271,11 +3268,11 @@ program(
 			[param(ctx, ptr(record(0))), param(f, ptr(record(1))), param(result, union(1))]
 			expr-body(
 				[
-					local("cbs", record(4))
-					local("matched", union(0))
-					local("o", record(8))
-					local("e", record(9))
-					local("matched1", union(1))]
+					local(cbs, record(4))
+					local("<<matched>>", union(0))
+					local(o, record(8))
+					local(e, record(9))
+					local("<<matched>>", union(1))]
 				expr(
 					void
 					file-range(13, range(594, 961))
@@ -3313,7 +3310,7 @@ program(
 											void
 											file-range(13, range(624, 841))
 											match(
-												"matched"
+												"<<matched>>"
 												expr(
 													union(0)
 													file-range(13, range(631, 637))
@@ -3323,7 +3320,7 @@ program(
 														1))
 												[
 													case(
-														some("cbs")
+														some(cbs)
 														expr(
 															void
 															file-range(13, range(676, 706))
@@ -3341,7 +3338,7 @@ program(
 																			expr(
 																				record(4)
 																				file-range(13, range(667, 670))
-																				local-ref("cbs"))
+																				local-ref(cbs))
 																			false
 																			0))
 																	expr(union(1), file-range(13, range(700, 706)), param-ref(2))])))
@@ -3378,11 +3375,11 @@ program(
 											union(0)
 											file-range(13, range(852, 931))
 											match(
-												"matched1"
+												"<<matched>>"
 												expr(union(1), file-range(13, range(858, 864)), param-ref(2))
 												[
 													case(
-														some("o")
+														some(o)
 														expr(
 															union(0)
 															file-range(13, range(875, 910))
@@ -3400,11 +3397,11 @@ program(
 																					expr(
 																						record(8)
 																						file-range(13, range(903, 904))
-																						local-ref("o"))
+																						local-ref(o))
 																					false
 																					0))])))))
 													case(
-														some("e")
+														some(e)
 														expr(
 															union(0)
 															file-range(13, range(923, 929))
@@ -3417,7 +3414,7 @@ program(
 																		expr(
 																			record(9)
 																			file-range(13, range(922, 923))
-																			local-ref("e"))
+																			local-ref(e))
 																		false
 																		0)))))]))))))
 						expr(
@@ -3443,17 +3440,17 @@ program(
 			void
 			[param(ctx, ptr(record(0))), param(node, union(2)), param(value, union(1))]
 			expr-body(
-				[local("s", record(12)), local("matched", union(2))]
+				[local(s, record(12)), local("<<matched>>", union(2))]
 				expr(
 					void
 					file-range(13, range(1059, 1233))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(union(2), file-range(13, range(1065, 1069)), param-ref(1))
 						[
 							case(none, expr(void, file-range(13, range(1080, 1084)), constant(void)))
 							case(
-								some("s")
+								some(s)
 								expr(
 									void
 									file-range(13, range(1154, 1233))
@@ -3485,7 +3482,7 @@ program(
 																				expr(
 																					record(12)
 																					file-range(13, range(1160, 1161))
-																					local-ref("s"))
+																					local-ref(s))
 																				false
 																				0))
 																		true
@@ -3509,7 +3506,7 @@ program(
 																	expr(
 																		record(12)
 																		file-range(13, range(1185, 1186))
-																		local-ref("s"))
+																		local-ref(s))
 																	false
 																	0))
 															true
@@ -3539,12 +3536,12 @@ program(
 			ptr(record(1))
 			[param(ctx, ptr(record(0))), param(f, record(52)), param(p0, void)]
 			expr-body(
-				[local("vat", ptr(record(16))), local("res", ptr(record(1))), local(generated(temp, 0), ptr(record(57)))]
+				[local(vat, ptr(record(16))), local(res, ptr(record(1))), local(generated(temp, 0), ptr(record(57)))]
 				expr(
 					ptr(record(1))
 					file-range(16, range(3051, 3225))
 					let(
-						"vat"
+						vat
 						expr(
 							ptr(record(16))
 							file-range(16, range(3077, 3084))
@@ -3566,7 +3563,7 @@ program(
 							ptr(record(1))
 							file-range(16, range(3086, 3225))
 							let(
-								"res"
+								res
 								expr(
 									ptr(record(1))
 									file-range(16, range(3092, 3114))
@@ -3582,7 +3579,7 @@ program(
 												114
 												[
 													expr(ptr(record(0)), file-range(16, range(3120, 3220)), param-ref(0))
-													expr(ptr(record(16)), file-range(16, range(3116, 3119)), local-ref("vat"))
+													expr(ptr(record(16)), file-range(16, range(3116, 3119)), local-ref(vat))
 													expr(
 														record(20)
 														file-range(16, range(3129, 3220))
@@ -3721,7 +3718,7 @@ program(
 																																	3192
 																																	3195))
 																															local-ref(
-																																"res"))]))))
+																																res))]))))
 																									expr(
 																										ptr(record(57))
 																										file-range(
@@ -3731,7 +3728,7 @@ program(
 																											generated(
 																												temp
 																												0)))))))))]))]))]))
-										expr(ptr(record(1)), file-range(16, range(3220, 3223)), local-ref("res"))))))))))
+										expr(ptr(record(1)), file-range(16, range(3220, 3223)), local-ref(res))))))))))
 		98: fun(
 			get-vat
 			ptr(record(16))
@@ -3853,12 +3850,12 @@ program(
 			void
 			[param(ctx, ptr(record(0))), param(e, record(6))]
 			expr-body(
-				[local("exn_ctx", ptr(record(33)))]
+				[local(exn-ctx, ptr(record(33)))]
 				expr(
 					void
 					file-range(5, range(378, 544))
 					let(
-						"exn_ctx"
+						exn-ctx
 						expr(
 							ptr(record(33))
 							file-range(5, range(388, 405))
@@ -3894,17 +3891,14 @@ program(
 																				expr(
 																					ptr(record(33))
 																					file-range(5, range(420, 427))
-																					local-ref("exn_ctx"))
+																					local-ref(exn-ctx))
 																				true
 																				0))]))]))
 												expr(
 													void
 													file-range(5, range(447, 476))
 													set-field(
-														expr(
-															ptr(record(33))
-															file-range(5, range(447, 454))
-															local-ref("exn_ctx"))
+														expr(ptr(record(33)), file-range(5, range(447, 454)), local-ref(exn-ctx))
 														true
 														1
 														expr(record(6), file-range(5, range(475, 476)), param-ref(1))))))
@@ -3921,7 +3915,7 @@ program(
 															expr(
 																ptr(record(33))
 																file-range(5, range(478, 485))
-																local-ref("exn_ctx"))
+																local-ref(exn-ctx))
 															true
 															0))
 													expr(
@@ -4057,12 +4051,12 @@ program(
 			void
 			[param(ctx, ptr(record(0))), param(v, ptr(record(16))), param(t, record(20))]
 			expr-body(
-				[local("node", ptr(record(23)))]
+				[local(node, ptr(record(23)))]
 				expr(
 					void
 					file-range(15, range(3160, 3341))
 					let(
-						"node"
+						node
 						expr(
 							ptr(record(23))
 							file-range(15, range(3169, 3185))
@@ -4128,7 +4122,7 @@ program(
 															expr(
 																ptr(record(23))
 																file-range(15, range(3249, 3253))
-																local-ref("node"))]))))
+																local-ref(node))]))))
 										expr(
 											void
 											file-range(15, range(3279, 3291))
@@ -4363,17 +4357,17 @@ program(
 			[param(ctx, ptr(record(0))), param(ec, ptr(record(33))), param(try, record(21)), param(catcher, record(27))]
 			expr-body(
 				[
-					local("old_thrown_exception", record(6))
-					local("old_jmp_buf", ptr(record(34)))
-					local("store", record(34))
-					local("setjmp_result", int-32)
-					local("res", void)
-					local("thrown_exception", record(6))]
+					local(old-thrown-exception, record(6))
+					local(old-jmp-buf, ptr(record(34)))
+					local(store, record(34))
+					local(setjmp-result, int-32)
+					local(res, void)
+					local(thrown-exception, record(6))]
 				expr(
 					void
 					file-range(5, range(843, 1616))
 					let(
-						"old_thrown_exception"
+						old-thrown-exception
 						expr(
 							record(6)
 							file-range(5, range(869, 885))
@@ -4382,7 +4376,7 @@ program(
 							void
 							file-range(5, range(887, 1616))
 							let(
-								"old_jmp_buf"
+								old-jmp-buf
 								expr(
 									ptr(record(34))
 									file-range(5, range(904, 915))
@@ -4391,7 +4385,7 @@ program(
 									void
 									file-range(5, range(917, 1616))
 									let(
-										"store"
+										store
 										expr(
 											record(34)
 											file-range(5, range(925, 958))
@@ -4419,12 +4413,12 @@ program(
 																expr(
 																	record(34)
 																	file-range(5, range(978, 983))
-																	local-ref("store"))))))
+																	local-ref(store))))))
 												expr(
 													void
 													file-range(5, range(992, 1616))
 													let(
-														"setjmp_result"
+														setjmp-result
 														expr(
 															int-32
 															file-range(5, range(1023, 1029))
@@ -4455,7 +4449,7 @@ program(
 																			expr(
 																				int-32
 																				file-range(5, range(1038, 1051))
-																				local-ref("setjmp_result"))
+																				local-ref(setjmp-result))
 																			expr(
 																				int-32
 																				file-range(5, range(1055, 1059))
@@ -4464,7 +4458,7 @@ program(
 																	void
 																	file-range(5, range(1150, 1254))
 																	let(
-																		"res"
+																		res
 																		expr(
 																			void
 																			file-range(5, range(1160, 1164))
@@ -4505,7 +4499,7 @@ program(
 																										5
 																										range(1186, 1197))
 																									local-ref(
-																										"old_jmp_buf"))))
+																										old-jmp-buf))))
 																						expr(
 																							void
 																							file-range(5, range(1201, 1244))
@@ -4524,11 +4518,11 @@ program(
 																										5
 																										range(1224, 1244))
 																									local-ref(
-																										"old_thrown_exception"))))))
+																										old-thrown-exception))))))
 																				expr(
 																					void
 																					file-range(5, range(1248, 1251))
-																					local-ref("res"))))))
+																					local-ref(res))))))
 																expr(
 																	void
 																	file-range(5, range(1300, 1616))
@@ -4555,7 +4549,7 @@ program(
 																										5
 																										range(1308, 1321))
 																									local-ref(
-																										"setjmp_result"))
+																										setjmp-result))
 																								expr(
 																									int-32
 																									file-range(
@@ -4579,7 +4573,7 @@ program(
 																			void
 																			file-range(5, range(1386, 1616))
 																			let(
-																				"thrown_exception"
+																				thrown-exception
 																				expr(
 																					record(6)
 																					file-range(5, range(1408, 1424))
@@ -4624,7 +4618,7 @@ program(
 																													1520
 																													1531))
 																											local-ref(
-																												"old_jmp_buf"))))
+																												old-jmp-buf))))
 																								expr(
 																									void
 																									file-range(
@@ -4650,7 +4644,7 @@ program(
 																													1558
 																													1578))
 																											local-ref(
-																												"old_thrown_exception"))))))
+																												old-thrown-exception))))))
 																						expr(
 																							void
 																							file-range(5, range(1590, 1611))
@@ -4675,7 +4669,7 @@ program(
 																											5
 																											range(1595, 1611))
 																										local-ref(
-																											"thrown_exception"))]))))))))))))))))))))))
+																											thrown-exception))]))))))))))))))))))))))
 		121: fun(
 			zero
 			record(35)
@@ -5094,16 +5088,16 @@ program(
 			void
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(55))), param(result, union(7))]
 			expr-body(
-				[local("o", record(45)), local("e", record(9)), local("matched", union(7))]
+				[local(o, record(45)), local(e, record(9)), local("<<matched>>", union(7))]
 				expr(
 					void
 					file-range(16, range(2120, 2209))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(union(7), file-range(16, range(2126, 2132)), param-ref(2))
 						[
 							case(
-								some("o")
+								some(o)
 								expr(
 									void
 									file-range(16, range(2161, 2175))
@@ -5132,7 +5126,7 @@ program(
 															void
 															file-range(16, range(2154, 2160))
 															get-field(
-																expr(record(45), file-range(16, range(2153, 2154)), local-ref("o"))
+																expr(record(45), file-range(16, range(2153, 2154)), local-ref(o))
 																false
 																0))]))
 											expr(
@@ -5143,7 +5137,7 @@ program(
 													true
 													1))])))
 							case(
-								some("e")
+								some(e)
 								expr(
 									void
 									file-range(16, range(2193, 2207))
@@ -5162,7 +5156,7 @@ program(
 												record(6)
 												file-range(16, range(2201, 2207))
 												get-field(
-													expr(record(9), file-range(16, range(2200, 2201)), local-ref("e"))
+													expr(record(9), file-range(16, range(2200, 2201)), local-ref(e))
 													false
 													0))])))]))))
 		137: fun(
@@ -5170,12 +5164,12 @@ program(
 			ptr(record(1))
 			[param(ctx, ptr(record(0))), param(f, record(49))]
 			expr-body(
-				[local("vat", ptr(record(16))), local("res", ptr(record(1))), local(generated(temp, 0), ptr(record(61)))]
+				[local(vat, ptr(record(16))), local(res, ptr(record(1))), local(generated(temp, 0), ptr(record(61)))]
 				expr(
 					ptr(record(1))
 					file-range(16, range(2813, 2984))
 					let(
-						"vat"
+						vat
 						expr(
 							ptr(record(16))
 							file-range(16, range(2839, 2846))
@@ -5197,7 +5191,7 @@ program(
 							ptr(record(1))
 							file-range(16, range(2848, 2984))
 							let(
-								"res"
+								res
 								expr(
 									ptr(record(1))
 									file-range(16, range(2854, 2876))
@@ -5213,7 +5207,7 @@ program(
 												114
 												[
 													expr(ptr(record(0)), file-range(16, range(2882, 2979)), param-ref(0))
-													expr(ptr(record(16)), file-range(16, range(2878, 2881)), local-ref("vat"))
+													expr(ptr(record(16)), file-range(16, range(2878, 2881)), local-ref(vat))
 													expr(
 														record(20)
 														file-range(16, range(2891, 2979))
@@ -5343,7 +5337,7 @@ program(
 																																	2951
 																																	2954))
 																															local-ref(
-																																"res"))]))))
+																																res))]))))
 																									expr(
 																										ptr(record(61))
 																										file-range(
@@ -5353,7 +5347,7 @@ program(
 																											generated(
 																												temp
 																												0)))))))))]))]))]))
-										expr(ptr(record(1)), file-range(16, range(2979, 2982)), local-ref("res"))))))))))
+										expr(ptr(record(1)), file-range(16, range(2979, 2982)), local-ref(res))))))))))
 		138: fun(
 			call
 			ptr(record(1))
@@ -5625,12 +5619,12 @@ program(
 			record(50)
 			[param(ctx, ptr(record(0)))]
 			expr-body(
-				[local("c", ptr(record(0)))]
+				[local(c, ptr(record(0)))]
 				expr(
 					record(50)
 					file-range(15, range(455, 494))
 					let(
-						"c"
+						c
 						expr(ptr(record(0)), file-range(15, range(459, 466)), param-ref(0))
 						expr(
 							record(50)
@@ -5640,11 +5634,11 @@ program(
 									expr(
 										nat-64
 										file-range(15, range(473, 480))
-										get-field(expr(ptr(record(0)), file-range(15, range(472, 473)), local-ref("c")), true, 1))
+										get-field(expr(ptr(record(0)), file-range(15, range(472, 473)), local-ref(c)), true, 1))
 									expr(
 										nat-64
 										file-range(15, range(483, 492))
-										get-field(expr(ptr(record(0)), file-range(15, range(482, 483)), local-ref("c")), true, 2))]))))))
+										get-field(expr(ptr(record(0)), file-range(15, range(482, 483)), local-ref(c)), true, 2))]))))))
 		145: fun(
 			resolved
 			ptr(record(42))
@@ -5911,12 +5905,12 @@ program(
 			nat-64
 			[param(ctx, ptr(record(0))), param(a, nat-64), param(b, nat-64)]
 			expr-body(
-				[local("res", nat-64)]
+				[local(res, nat-64)]
 				expr(
 					nat-64
 					file-range(6, range(471, 527))
 					let(
-						"res"
+						res
 						expr(
 							nat-64
 							file-range(6, range(479, 489))
@@ -5946,7 +5940,7 @@ program(
 														call(
 															154
 															[
-																expr(nat-64, file-range(6, range(499, 502)), local-ref("res"))
+																expr(nat-64, file-range(6, range(499, 502)), local-ref(res))
 																expr(nat-64, file-range(6, range(506, 507)), param-ref(1))]))
 													expr(
 														bool
@@ -5954,9 +5948,9 @@ program(
 														call(
 															154
 															[
-																expr(nat-64, file-range(6, range(513, 516)), local-ref("res"))
+																expr(nat-64, file-range(6, range(513, 516)), local-ref(res))
 																expr(nat-64, file-range(6, range(520, 521)), param-ref(2))]))))]))
-								expr(nat-64, file-range(6, range(523, 526)), local-ref("res"))))))))
+								expr(nat-64, file-range(6, range(523, 526)), local-ref(res))))))))
 		154: fun(
 			>=
 			bool
@@ -6158,12 +6152,12 @@ program(
 			ptr(record(67))
 			[param(ctx, ptr(record(0))), param(size, nat-64), param(f, record(66))]
 			expr-body(
-				[local("res", ptr(record(67)))]
+				[local(res, ptr(record(67)))]
 				expr(
 					ptr(record(67))
 					file-range(8, range(9198, 9279))
 					let(
-						"res"
+						res
 						expr(
 							ptr(record(67))
 							file-range(8, range(9204, 9239))
@@ -6183,10 +6177,10 @@ program(
 										163
 										[
 											expr(ptr(record(0)), file-range(8, range(9245, 9272)), param-ref(0))
-											expr(ptr(record(67)), file-range(8, range(9241, 9244)), local-ref("res"))
+											expr(ptr(record(67)), file-range(8, range(9241, 9244)), local-ref(res))
 											expr(nat-64, file-range(8, range(9265, 9269)), constant(0))
 											expr(record(66), file-range(8, range(9271, 9272)), param-ref(2))]))
-								expr(ptr(record(67)), file-range(8, range(9274, 9277)), local-ref("res"))))))))
+								expr(ptr(record(67)), file-range(8, range(9274, 9277)), local-ref(res))))))))
 		161: fun(
 			new-uninitialized-mut-arr
 			ptr(record(67))
@@ -6245,12 +6239,12 @@ program(
 			ptr(record(7))
 			[param(ctx, ptr(record(0))), param(size, nat-64)]
 			expr-body(
-				[local("bptr", ptr(nat-8))]
+				[local(bptr, ptr(nat-8))]
 				expr(
 					ptr(record(7))
 					file-range(8, range(3774, 3839))
 					let(
-						"bptr"
+						bptr
 						expr(
 							ptr(nat-8)
 							file-range(8, range(3807, 3812))
@@ -6268,7 +6262,7 @@ program(
 						expr(
 							ptr(record(7))
 							file-range(8, range(3819, 3837))
-							ptr-cast(expr(ptr(nat-8), file-range(8, range(3814, 3818)), local-ref("bptr"))))))))
+							ptr-cast(expr(ptr(nat-8), file-range(8, range(3814, 3818)), local-ref(bptr))))))))
 		163: fun(
 			make-mut-arr-worker
 			void
@@ -6770,12 +6764,12 @@ program(
 			bool
 			[param(a, char), param(b, char)]
 			expr-body(
-				[local("matched", union(5))]
+				[local("<<matched>>", union(5))]
 				expr(
 					bool
 					file-range(0, range(2365, 2431))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(
 							union(5)
 							file-range(0, range(2373, 2378))
@@ -6924,12 +6918,12 @@ program(
 			ptr(record(1))
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(64)))]
 			expr-body(
-				[local("args", record(40))]
+				[local(args, record(40))]
 				expr(
 					ptr(record(1))
 					file-range(19, range(2375, 2544))
 					let(
-						"args"
+						args
 						expr(
 							record(40)
 							file-range(19, range(2391, 2395))
@@ -6959,7 +6953,7 @@ program(
 											156
 											[
 												expr(ptr(record(0)), file-range(19, range(2427, 2442)), param-ref(0))
-												expr(record(40), file-range(19, range(2422, 2426)), local-ref("args"))
+												expr(record(40), file-range(19, range(2422, 2426)), local-ref(args))
 												expr(
 													record(65)
 													file-range(19, range(2431, 2442))
@@ -7022,12 +7016,12 @@ program(
 			void
 			[param(n-threads, nat-64), param(arg, ptr(record(15))), param(fun, fun-ptr(10))]
 			expr-body(
-				[local("threads", ptr(nat-64)), local("thread_args", ptr(record(69)))]
+				[local(threads, ptr(nat-64)), local(thread-args, ptr(record(69)))]
 				expr(
 					void
 					file-range(19, range(2624, 2920))
 					let(
-						"threads"
+						threads
 						expr(
 							ptr(nat-64)
 							file-range(19, range(2644, 2679))
@@ -7036,7 +7030,7 @@ program(
 							void
 							file-range(19, range(2681, 2920))
 							let(
-								"thread_args"
+								thread-args
 								expr(
 									ptr(record(69))
 									file-range(19, range(2705, 2754))
@@ -7064,11 +7058,11 @@ program(
 																	expr(
 																		ptr(nat-64)
 																		file-range(19, range(2791, 2798))
-																		local-ref("threads"))
+																		local-ref(threads))
 																	expr(
 																		ptr(record(69))
 																		file-range(19, range(2800, 2811))
-																		local-ref("thread_args"))
+																		local-ref(thread-args))
 																	expr(
 																		ptr(record(15))
 																		file-range(19, range(2813, 2816))
@@ -7088,34 +7082,30 @@ program(
 																	expr(
 																		ptr(nat-64)
 																		file-range(19, range(2858, 2865))
-																		local-ref("threads"))]))))
+																		local-ref(threads))]))))
 												expr(
 													void
 													file-range(19, range(2876, 2890))
 													call(
 														204
-														[
-															expr(
-																ptr(nat-64)
-																file-range(19, range(2868, 2875))
-																local-ref("threads"))]))))
+														[expr(ptr(nat-64), file-range(19, range(2868, 2875)), local-ref(threads))]))))
 										expr(
 											void
 											file-range(19, range(2904, 2918))
 											call(
 												206
-												[expr(ptr(record(69)), file-range(19, range(2892, 2903)), local-ref("thread_args"))]))))))))))
+												[expr(ptr(record(69)), file-range(19, range(2892, 2903)), local-ref(thread-args))]))))))))))
 		190: fun(
 			unmanaged-alloc-elements
 			ptr(record(69))
 			[param(size-elements, nat-64)]
 			expr-body(
-				[local("bytes", ptr(nat-8))]
+				[local(bytes, ptr(nat-8))]
 				expr(
 					ptr(record(69))
 					file-range(4, range(1759, 1841))
 					let(
-						"bytes"
+						bytes
 						expr(
 							ptr(nat-8)
 							file-range(4, range(1802, 1823))
@@ -7132,7 +7122,7 @@ program(
 						expr(
 							ptr(record(69))
 							file-range(4, range(1831, 1839))
-							ptr-cast(expr(ptr(nat-8), file-range(4, range(1825, 1830)), local-ref("bytes"))))))))
+							ptr-cast(expr(ptr(nat-8), file-range(4, range(1825, 1830)), local-ref(bytes))))))))
 		191: fun(
 			run-threads-recur
 			void
@@ -7145,10 +7135,10 @@ program(
 				param(fun, fun-ptr(10))]
 			expr-body(
 				[
-					local("thread_arg_ptr", ptr(record(69)))
-					local("thread_ptr", ptr(nat-64))
-					local("fn", fun-ptr(11))
-					local("err", int-32)]
+					local(thread-arg-ptr, ptr(record(69)))
+					local(thread-ptr, ptr(nat-64))
+					local(fn, fun-ptr(11))
+					local(err, int-32)]
 				expr(
 					void
 					file-range(19, range(3089, 3655))
@@ -7167,7 +7157,7 @@ program(
 							void
 							file-range(19, range(3129, 3655))
 							let(
-								"thread_arg_ptr"
+								thread-arg-ptr
 								expr(
 									ptr(record(69))
 									file-range(19, range(3158, 3161))
@@ -7184,10 +7174,7 @@ program(
 											file-range(19, range(3180, 3199))
 											binary(
 												"wriite to ptr"
-												expr(
-													ptr(record(69))
-													file-range(19, range(3165, 3179))
-													local-ref("thread_arg_ptr"))
+												expr(ptr(record(69)), file-range(19, range(3165, 3179)), local-ref(thread-arg-ptr))
 												expr(
 													record(69)
 													file-range(19, range(3184, 3199))
@@ -7200,7 +7187,7 @@ program(
 											void
 											file-range(19, range(3203, 3655))
 											let(
-												"thread_ptr"
+												thread-ptr
 												expr(
 													ptr(nat-64)
 													file-range(19, range(3224, 3227))
@@ -7212,13 +7199,13 @@ program(
 													void
 													file-range(19, range(3231, 3655))
 													let(
-														"fn"
+														fn
 														expr(fun-ptr(11), file-range(19, range(3236, 3309)), fun-ptr(193))
 														expr(
 															void
 															file-range(19, range(3309, 3655))
 															let(
-																"err"
+																err
 																expr(
 																	int-32
 																	file-range(19, range(3334, 3384))
@@ -7234,7 +7221,7 @@ program(
 																						expr(
 																							ptr(nat-64)
 																							file-range(19, range(3315, 3325))
-																							local-ref("thread_ptr"))]))
+																							local-ref(thread-ptr))]))
 																			expr(
 																				ptr(nat-8)
 																				file-range(19, range(3349, 3353))
@@ -7242,7 +7229,7 @@ program(
 																			expr(
 																				fun-ptr(11)
 																				file-range(19, range(3355, 3357))
-																				local-ref("fn"))
+																				local-ref(fn))
 																			expr(
 																				ptr(nat-8)
 																				file-range(19, range(3373, 3384))
@@ -7251,7 +7238,7 @@ program(
 																					expr(
 																						ptr(record(69))
 																						file-range(19, range(3359, 3373))
-																						local-ref("thread_arg_ptr"))))]))
+																						local-ref(thread-arg-ptr))))]))
 																expr(
 																	void
 																	file-range(19, range(3388, 3655))
@@ -7266,7 +7253,7 @@ program(
 																					expr(
 																						int-32
 																						file-range(19, range(3397, 3400))
-																						local-ref("err"))]))
+																						local-ref(err))]))
 																		expr(
 																			void
 																			file-range(19, range(3425, 3484))
@@ -7319,7 +7306,7 @@ program(
 																							expr(
 																								int-32
 																								file-range(19, range(3489, 3492))
-																								local-ref("err"))
+																								local-ref(err))
 																							expr(
 																								int-32
 																								file-range(19, range(3496, 3502))
@@ -7337,12 +7324,12 @@ program(
 			ptr(nat-8)
 			[param(args-ptr, ptr(nat-8))]
 			expr-body(
-				[local("args", ptr(record(69)))]
+				[local(args, ptr(record(69)))]
 				expr(
 					ptr(nat-8)
 					file-range(19, range(3710, 3797))
 					let(
-						"args"
+						args
 						expr(
 							ptr(record(69))
 							file-range(19, range(3726, 3749))
@@ -7361,21 +7348,21 @@ program(
 												fun-ptr(10)
 												file-range(19, range(3755, 3759))
 												get-field(
-													expr(ptr(record(69)), file-range(19, range(3751, 3755)), local-ref("args"))
+													expr(ptr(record(69)), file-range(19, range(3751, 3755)), local-ref(args))
 													true
 													0))
 											expr(
 												nat-64
 												file-range(19, range(3769, 3779))
 												get-field(
-													expr(ptr(record(69)), file-range(19, range(3765, 3769)), local-ref("args"))
+													expr(ptr(record(69)), file-range(19, range(3765, 3769)), local-ref(args))
 													true
 													1))
 											expr(
 												ptr(record(15))
 												file-range(19, range(3785, 3789))
 												get-field(
-													expr(ptr(record(69)), file-range(19, range(3781, 3785)), local-ref("args"))
+													expr(ptr(record(69)), file-range(19, range(3781, 3785)), local-ref(args))
 													true
 													2))]))
 								expr(ptr(nat-8), file-range(19, range(3791, 3795)), constant(null))))))))
@@ -7498,12 +7485,12 @@ program(
 			void
 			[param(tid, nat-64)]
 			expr-body(
-				[local("thread_return", record(71)), local("err", int-32)]
+				[local(thread-return, record(71)), local(err, int-32)]
 				expr(
 					void
 					file-range(19, range(4061, 4295))
 					let(
-						"thread_return"
+						thread-return
 						expr(
 							record(71)
 							file-range(19, range(4077, 4108))
@@ -7512,7 +7499,7 @@ program(
 							void
 							file-range(19, range(4110, 4295))
 							let(
-								"err"
+								err
 								expr(
 									int-32
 									file-range(19, range(4120, 4157))
@@ -7525,7 +7512,7 @@ program(
 												file-range(19, range(4146, 4157))
 												unary(
 													"ref-of-val"
-													expr(record(71), file-range(19, range(4133, 4146)), local-ref("thread_return"))))]))
+													expr(record(71), file-range(19, range(4133, 4146)), local-ref(thread-return))))]))
 								expr(
 									void
 									file-range(19, range(4159, 4295))
@@ -7538,7 +7525,7 @@ program(
 												expr(
 													bool
 													file-range(19, range(4170, 4175))
-													call(60, [expr(int-32, file-range(19, range(4166, 4169)), local-ref("err"))]))
+													call(60, [expr(int-32, file-range(19, range(4166, 4169)), local-ref(err))]))
 												expr(void, file-range(19, range(4179, 4183)), constant(void))
 												expr(
 													void
@@ -7554,7 +7541,7 @@ program(
 																	expr(
 																		int-32
 																		file-range(19, range(4186, 4189))
-																		local-ref("err"))
+																		local-ref(err))
 																	expr(int-32, file-range(19, range(4193, 4199)), call(201, []))]))
 														expr(void, file-range(19, range(4203, 4207)), call(29, []))
 														expr(
@@ -7571,7 +7558,7 @@ program(
 																			expr(
 																				int-32
 																				file-range(19, range(4210, 4213))
-																				local-ref("err"))
+																				local-ref(err))
 																			expr(
 																				int-32
 																				file-range(19, range(4217, 4222))
@@ -7604,7 +7591,7 @@ program(
 																					expr(
 																						record(71)
 																						file-range(19, range(4260, 4273))
-																						local-ref("thread_return"))))]))]))]))))))))))
+																						local-ref(thread-return))))]))]))]))))))))))
 		200: fun(pthread-join, int-32, [param(thread, nat-64), param(thread-return, ptr(record(71)))], extern(false))
 		201: fun(
 			einval
@@ -7674,18 +7661,18 @@ program(
 			void
 			[param(thread-id, nat-64), param(gctx, ptr(record(15)))]
 			expr-body(
-				[local("ectx", record(33)), local("tls", record(39))]
+				[local(ectx, record(33)), local(tls, record(39))]
 				expr(
 					void
 					file-range(15, range(3555, 3696))
 					let(
-						"ectx"
+						ectx
 						expr(record(33), file-range(15, range(3562, 3579)), call(39, []))
 						expr(
 							void
 							file-range(15, range(3581, 3696))
 							let(
-								"tls"
+								tls
 								expr(
 									record(39)
 									file-range(15, range(3587, 3638))
@@ -7696,7 +7683,7 @@ program(
 												file-range(15, range(3627, 3638))
 												unary(
 													"ref-of-val"
-													expr(record(33), file-range(15, range(3623, 3627)), local-ref("ectx"))))]))
+													expr(record(33), file-range(15, range(3623, 3627)), local-ref(ectx))))]))
 								expr(
 									void
 									file-range(15, range(3640, 3694))
@@ -7710,17 +7697,17 @@ program(
 												file-range(15, range(3683, 3694))
 												unary(
 													"ref-of-val"
-													expr(record(39), file-range(15, range(3680, 3683)), local-ref("tls"))))]))))))))
+													expr(record(39), file-range(15, range(3680, 3683)), local-ref(tls))))]))))))))
 		208: fun(
 			thread-function-recur
 			void
 			[param(thread-id, nat-64), param(gctx, ptr(record(15))), param(tls, ptr(record(39)))]
 			expr-body(
 				[
-					local("last_checked", nat-64)
-					local("ok_chosen_task", record(75))
-					local("e", record(76))
-					local("matched", union(11))]
+					local(last-checked, nat-64)
+					local(ok-chosen-task, record(75))
+					local(e, record(76))
+					local("<<matched>>", union(11))]
 				expr(
 					void
 					file-range(15, range(3800, 4870))
@@ -7849,7 +7836,7 @@ program(
 									void
 									file-range(15, range(4136, 4870))
 									let(
-										"last_checked"
+										last-checked
 										expr(
 											nat-64
 											file-range(15, range(4185, 4201))
@@ -7879,7 +7866,7 @@ program(
 													void
 													file-range(15, range(4206, 4825))
 													match(
-														"matched"
+														"<<matched>>"
 														expr(
 															union(11)
 															file-range(15, range(4217, 4228))
@@ -7892,7 +7879,7 @@ program(
 																		param-ref(1))]))
 														[
 															case(
-																some("ok_chosen_task")
+																some(ok-chosen-task)
 																expr(
 																	void
 																	file-range(15, range(4261, 4294))
@@ -7914,11 +7901,11 @@ program(
 																					expr(
 																						record(75)
 																						file-range(15, range(4274, 4288))
-																						local-ref("ok_chosen_task"))
+																						local-ref(ok-chosen-task))
 																					false
 																					0))])))
 															case(
-																some("e")
+																some(e)
 																expr(
 																	void
 																	file-range(15, range(4310, 4825))
@@ -7959,7 +7946,7 @@ program(
 																															4321
 																															4322))
 																													local-ref(
-																														"e"))
+																														e))
 																												false
 																												0))
 																										false
@@ -8131,7 +8118,7 @@ program(
 																														4583
 																														4595))
 																												local-ref(
-																													"last_checked"))]))))
+																													last-checked))]))))
 																						expr(
 																							void
 																							file-range(15, range(4621, 4633))
@@ -8265,7 +8252,7 @@ program(
 			void
 			[param(i, nat-64), param(vats, record(28))]
 			expr-body(
-				[local("vat", ptr(record(16)))]
+				[local(vat, ptr(record(16)))]
 				expr(
 					void
 					file-range(15, range(9924, 10252))
@@ -8287,7 +8274,7 @@ program(
 							void
 							file-range(15, range(9964, 10252))
 							let(
-								"vat"
+								vat
 								expr(
 									ptr(record(16))
 									file-range(15, range(9975, 9985))
@@ -8336,7 +8323,7 @@ program(
 																										file-range(
 																											15
 																											range(9990, 9993))
-																										local-ref("vat"))
+																										local-ref(vat))
 																									true
 																									3))))]))
 																		expr(
@@ -8370,7 +8357,7 @@ program(
 																														10045
 																														10048))
 																												local-ref(
-																													"vat"))
+																													vat))
 																											true
 																											2))))
 																							true
@@ -8396,7 +8383,7 @@ program(
 																									file-range(
 																										15
 																										range(10088, 10091))
-																									local-ref("vat"))
+																									local-ref(vat))
 																								true
 																								6))]))]))))
 														expr(
@@ -8425,7 +8412,7 @@ program(
 																									file-range(
 																										15
 																										range(10132, 10135))
-																									local-ref("vat"))
+																									local-ref(vat))
 																								true
 																								4))))]))]))))
 												expr(
@@ -8446,7 +8433,7 @@ program(
 																			expr(
 																				ptr(record(16))
 																				file-range(15, range(10163, 10166))
-																				local-ref("vat"))
+																				local-ref(vat))
 																			true
 																			3))))]))))
 										expr(
@@ -8481,16 +8468,16 @@ program(
 			bool
 			[param(a, union(4))]
 			expr-body(
-				[local("n", record(11)), local("s", record(24)), local("matched", union(4))]
+				[local(n, record(11)), local(s, record(24)), local("<<matched>>", union(4))]
 				expr(
 					bool
 					file-range(0, range(17656, 17700))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(union(4), file-range(0, range(17662, 17663)), param-ref(0))
 						[
-							case(some("n"), expr(bool, file-range(0, range(17676, 17680)), constant(true)))
-							case(some("s"), expr(bool, file-range(0, range(17693, 17698)), constant(false)))]))))
+							case(some(n), expr(bool, file-range(0, range(17676, 17680)), constant(true)))
+							case(some(s), expr(bool, file-range(0, range(17693, 17698)), constant(false)))]))))
 		213: fun(
 			>
 			bool
@@ -8525,7 +8512,7 @@ program(
 			union(11)
 			[param(gctx, ptr(record(15)))]
 			expr-body(
-				[local("s", record(77)), local("matched", union(12)), local("res", union(11))]
+				[local(s, record(77)), local("<<matched>>", union(12)), local(res, union(11))]
 				expr(
 					union(11)
 					file-range(15, range(6916, 7590))
@@ -8552,12 +8539,12 @@ program(
 							union(11)
 							file-range(15, range(7101, 7590))
 							let(
-								"res"
+								res
 								expr(
 									union(11)
 									file-range(15, range(7107, 7550))
 									match(
-										"matched"
+										"<<matched>>"
 										expr(
 											union(12)
 											file-range(15, range(7164, 7186))
@@ -8647,7 +8634,7 @@ program(
 																											true
 																											2))]))]))])))))))
 											case(
-												some("s")
+												some(s)
 												expr(
 													union(11)
 													file-range(15, range(7545, 7547))
@@ -8666,7 +8653,7 @@ program(
 																			expr(
 																				record(77)
 																				file-range(15, range(7537, 7538))
-																				local-ref("s"))
+																				local-ref(s))
 																			false
 																			0))])))))]))
 								expr(
@@ -8694,13 +8681,13 @@ program(
 																		param-ref(0))
 																	true
 																	0))))]))
-										expr(union(11), file-range(15, range(7584, 7587)), local-ref("res"))))))))))
+										expr(union(11), file-range(15, range(7584, 7587)), local-ref(res))))))))))
 		216: fun(
 			choose-task-recur
 			union(12)
 			[param(vats, record(28)), param(i, nat-64)]
 			expr-body(
-				[local("vat", ptr(record(16))), local("s", record(78)), local("matched", union(13))]
+				[local(vat, ptr(record(16))), local(s, record(78)), local("<<matched>>", union(13))]
 				expr(
 					union(12)
 					file-range(15, range(7659, 7886))
@@ -8725,7 +8712,7 @@ program(
 							union(12)
 							file-range(15, range(7699, 7886))
 							let(
-								"vat"
+								vat
 								expr(
 									ptr(record(16))
 									file-range(15, range(7710, 7720))
@@ -8738,11 +8725,11 @@ program(
 									union(12)
 									file-range(15, range(7724, 7886))
 									match(
-										"matched"
+										"<<matched>>"
 										expr(
 											union(13)
 											file-range(15, range(7734, 7752))
-											call(217, [expr(ptr(record(16)), file-range(15, range(7730, 7733)), local-ref("vat"))]))
+											call(217, [expr(ptr(record(16)), file-range(15, range(7730, 7733)), local-ref(vat))]))
 										[
 											case(
 												none
@@ -8760,7 +8747,7 @@ program(
 																	63
 																	[expr(nat-64, file-range(15, range(7790, 7791)), param-ref(1))]))])))
 											case(
-												some("s")
+												some(s)
 												expr(
 													union(12)
 													file-range(15, range(7819, 7854))
@@ -8780,7 +8767,7 @@ program(
 																				expr(
 																					ptr(record(16))
 																					file-range(15, range(7842, 7845))
-																					local-ref("vat"))
+																					local-ref(vat))
 																				expr(
 																					union(10)
 																					file-range(15, range(7848, 7854))
@@ -8788,7 +8775,7 @@ program(
 																						expr(
 																							record(78)
 																							file-range(15, range(7847, 7848))
-																							local-ref("s"))
+																							local-ref(s))
 																						false
 																						0))]))])))))]))))))))
 		217: fun(
@@ -8796,7 +8783,7 @@ program(
 			union(13)
 			[param(vat, ptr(record(16)))]
 			expr-body(
-				[local("s", record(73)), local("matched", union(10)), local("res", union(13))]
+				[local(s, record(73)), local("<<matched>>", union(10)), local(res, union(13))]
 				expr(
 					union(13)
 					file-range(15, range(7943, 8629))
@@ -8823,7 +8810,7 @@ program(
 							union(13)
 							file-range(15, range(7984, 8629))
 							let(
-								"res"
+								res
 								expr(
 									union(13)
 									file-range(15, range(7990, 8487))
@@ -8899,7 +8886,7 @@ program(
 											union(13)
 											file-range(15, range(8365, 8487))
 											match(
-												"matched"
+												"<<matched>>"
 												expr(
 													union(10)
 													file-range(15, range(8375, 8408))
@@ -8914,7 +8901,7 @@ program(
 																0
 																expr(record(11), file-range(15, range(8446, 8450)), call(18, [])))))
 													case(
-														some("s")
+														some(s)
 														expr(
 															union(13)
 															file-range(15, range(8480, 8484))
@@ -8950,8 +8937,7 @@ program(
 																												range(
 																													8467
 																													8468))
-																											local-ref(
-																												"s"))
+																											local-ref(s))
 																										false
 																										0))]))))])))))]))))
 								expr(
@@ -8972,11 +8958,7 @@ program(
 															file-range(15, range(8498, 8504))
 															call(
 																229
-																[
-																	expr(
-																		union(13)
-																		file-range(15, range(8494, 8497))
-																		local-ref("res"))]))
+																[expr(union(13), file-range(15, range(8494, 8497)), local-ref(res))]))
 														expr(void, file-range(15, range(8508, 8512)), constant(void))
 														expr(
 															void
@@ -9025,7 +9007,7 @@ program(
 																				param-ref(0))
 																			true
 																			3))))]))))
-										expr(union(13), file-range(15, range(8624, 8627)), local-ref("res"))))))))))
+										expr(union(13), file-range(15, range(8624, 8627)), local-ref(res))))))))))
 		218: fun(
 			some
 			record(78)
@@ -9038,12 +9020,12 @@ program(
 			union(10)
 			[param(vat, ptr(record(16)))]
 			expr-body(
-				[local("tasks", ptr(record(22))), local("res", union(14)), local("s", record(80)), local("matched", union(14))]
+				[local(tasks, ptr(record(22))), local(res, union(14)), local(s, record(80)), local("<<matched>>", union(14))]
 				expr(
 					union(10)
 					file-range(15, range(8771, 8950))
 					let(
-						"tasks"
+						tasks
 						expr(
 							ptr(record(22))
 							file-range(15, range(8788, 8799))
@@ -9057,7 +9039,7 @@ program(
 							union(10)
 							file-range(15, range(8801, 8950))
 							let(
-								"res"
+								res
 								expr(
 									union(14)
 									file-range(15, range(8811, 8861))
@@ -9069,15 +9051,15 @@ program(
 												union(4)
 												file-range(15, range(8856, 8861))
 												get-field(
-													expr(ptr(record(22)), file-range(15, range(8851, 8856)), local-ref("tasks"))
+													expr(ptr(record(22)), file-range(15, range(8851, 8856)), local-ref(tasks))
 													true
 													0))]))
 								expr(
 									union(10)
 									file-range(15, range(8863, 8950))
 									match(
-										"matched"
-										expr(union(14), file-range(15, range(8869, 8872)), local-ref("res"))
+										"<<matched>>"
+										expr(union(14), file-range(15, range(8869, 8872)), local-ref(res))
 										[
 											case(
 												none
@@ -9086,7 +9068,7 @@ program(
 													file-range(15, range(8883, 8887))
 													to-union(0, expr(record(11), file-range(15, range(8883, 8887)), call(18, [])))))
 											case(
-												some("s")
+												some(s)
 												expr(
 													union(10)
 													file-range(15, range(8900, 8950))
@@ -9098,7 +9080,7 @@ program(
 																expr(
 																	ptr(record(22))
 																	file-range(15, range(8900, 8905))
-																	local-ref("tasks"))
+																	local-ref(tasks))
 																true
 																0
 																expr(
@@ -9112,7 +9094,7 @@ program(
 																				expr(
 																					record(80)
 																					file-range(15, range(8914, 8915))
-																					local-ref("s"))
+																					local-ref(s))
 																				false
 																				0))
 																		false
@@ -9139,7 +9121,7 @@ program(
 																							expr(
 																								record(80)
 																								file-range(15, range(8931, 8932))
-																								local-ref("s"))
+																								local-ref(s))
 																							false
 																							0))
 																					false
@@ -9150,20 +9132,20 @@ program(
 			[param(vat, ptr(record(16))), param(opt-node, union(4))]
 			expr-body(
 				[
-					local("s", record(24))
-					local("node", ptr(record(23)))
-					local("task", record(20))
-					local("actors", ptr(record(25)))
-					local("task_ok", bool)
-					local("ss", record(80))
-					local("tn", record(79))
-					local("matched", union(14))
-					local("matched1", union(4))]
+					local(s, record(24))
+					local(node, ptr(record(23)))
+					local(task, record(20))
+					local(actors, ptr(record(25)))
+					local(task-ok, bool)
+					local(ss, record(80))
+					local(tn, record(79))
+					local("<<matched>>", union(14))
+					local("<<matched>>", union(4))]
 				expr(
 					union(14)
 					file-range(15, range(9065, 9858))
 					match(
-						"matched1"
+						"<<matched>>"
 						expr(union(4), file-range(15, range(9071, 9079)), param-ref(1))
 						[
 							case(
@@ -9173,33 +9155,33 @@ program(
 									file-range(15, range(9090, 9094))
 									to-union(0, expr(record(11), file-range(15, range(9090, 9094)), call(18, [])))))
 							case(
-								some("s")
+								some(s)
 								expr(
 									union(14)
 									file-range(15, range(9107, 9858))
 									let(
-										"node"
+										node
 										expr(
 											ptr(record(23))
 											file-range(15, range(9115, 9121))
-											get-field(expr(record(24), file-range(15, range(9114, 9115)), local-ref("s")), false, 0))
+											get-field(expr(record(24), file-range(15, range(9114, 9115)), local-ref(s)), false, 0))
 										expr(
 											union(14)
 											file-range(15, range(9125, 9858))
 											let(
-												"task"
+												task
 												expr(
 													record(20)
 													file-range(15, range(9136, 9142))
 													get-field(
-														expr(ptr(record(23)), file-range(15, range(9132, 9136)), local-ref("node"))
+														expr(ptr(record(23)), file-range(15, range(9132, 9136)), local-ref(node))
 														true
 														0))
 												expr(
 													union(14)
 													file-range(15, range(9304, 9858))
 													let(
-														"actors"
+														actors
 														expr(
 															ptr(record(25))
 															file-range(15, range(9342, 9352))
@@ -9219,7 +9201,7 @@ program(
 															union(14)
 															file-range(15, range(9356, 9858))
 															let(
-																"task_ok"
+																task-ok
 																expr(
 																	bool
 																	file-range(15, range(9366, 9498))
@@ -9234,7 +9216,7 @@ program(
 																					expr(
 																						ptr(record(25))
 																						file-range(15, range(9375, 9381))
-																						local-ref("actors"))
+																						local-ref(actors))
 																					expr(
 																						nat-64
 																						file-range(15, range(9396, 9405))
@@ -9242,7 +9224,7 @@ program(
 																							expr(
 																								record(20)
 																								file-range(15, range(9392, 9396))
-																								local-ref("task"))
+																								local-ref(task))
 																							false
 																							0))]))
 																		expr(
@@ -9262,7 +9244,7 @@ program(
 																							expr(
 																								ptr(record(25))
 																								file-range(15, range(9431, 9437))
-																								local-ref("actors"))
+																								local-ref(actors))
 																							expr(
 																								nat-64
 																								file-range(15, range(9475, 9484))
@@ -9272,8 +9254,7 @@ program(
 																										file-range(
 																											15
 																											range(9471, 9475))
-																										local-ref(
-																											"task"))
+																										local-ref(task))
 																									false
 																									0))]))
 																				expr(
@@ -9288,7 +9269,7 @@ program(
 																		expr(
 																			bool
 																			file-range(15, range(9507, 9514))
-																			local-ref("task_ok"))
+																			local-ref(task-ok))
 																		expr(
 																			union(14)
 																			file-range(15, range(9568, 9614))
@@ -9313,7 +9294,7 @@ program(
 																													9594
 																													9598))
 																											local-ref(
-																												"task"))
+																												task))
 																										expr(
 																											union(4)
 																											file-range(
@@ -9332,14 +9313,14 @@ program(
 																															9600
 																															9604))
 																													local-ref(
-																														"node"))
+																														node))
 																												true
 																												1))]))]))))
 																		expr(
 																			union(14)
 																			file-range(15, range(9629, 9858))
 																			match(
-																				"matched"
+																				"<<matched>>"
 																				expr(
 																					union(14)
 																					file-range(15, range(9639, 9693))
@@ -9359,8 +9340,7 @@ program(
 																										file-range(
 																											15
 																											range(9679, 9683))
-																										local-ref(
-																											"node"))
+																										local-ref(node))
 																									true
 																									1))]))
 																				[
@@ -9378,12 +9358,12 @@ program(
 																										range(9712, 9716))
 																									call(18, [])))))
 																					case(
-																						some("ss")
+																						some(ss)
 																						expr(
 																							union(14)
 																							file-range(15, range(9738, 9858))
 																							let(
-																								"tn"
+																								tn
 																								expr(
 																									record(79)
 																									file-range(
@@ -9398,7 +9378,7 @@ program(
 																													9743
 																													9745))
 																											local-ref(
-																												"ss"))
+																												ss))
 																										false
 																										0))
 																								expr(
@@ -9425,7 +9405,7 @@ program(
 																															9778
 																															9782))
 																													local-ref(
-																														"node"))
+																														node))
 																												true
 																												1
 																												expr(
@@ -9446,7 +9426,7 @@ program(
 																																	9796
 																																	9798))
 																															local-ref(
-																																"tn"))
+																																tn))
 																														false
 																														1))))
 																										expr(
@@ -9497,7 +9477,7 @@ program(
 																																							9838
 																																							9840))
 																																					local-ref(
-																																						"tn"))
+																																						tn))
 																																				false
 																																				0))
 																																		expr(
@@ -9531,7 +9511,7 @@ program(
 																																										9847
 																																										9851))
 																																								local-ref(
-																																									"node"))]))))]))])))))))))])))))))))))))]))))
+																																									node))]))))]))])))))))))])))))))))))))]))))
 		221: fun(
 			contains?
 			bool
@@ -9674,7 +9654,7 @@ program(
 			void
 			[param(a, ptr(record(25))), param(value, nat-64)]
 			expr-body(
-				[local("old_size", nat-64)]
+				[local(old-size, nat-64)]
 				expr(
 					void
 					file-range(8, range(6099, 6215))
@@ -9709,7 +9689,7 @@ program(
 							void
 							file-range(8, range(6133, 6215))
 							let(
-								"old_size"
+								old-size
 								expr(
 									nat-64
 									file-range(8, range(6145, 6150))
@@ -9728,9 +9708,7 @@ program(
 												expr(
 													nat-64
 													file-range(8, range(6170, 6181))
-													call(
-														63
-														[expr(nat-64, file-range(8, range(6162, 6170)), local-ref("old_size"))]))))
+													call(63, [expr(nat-64, file-range(8, range(6162, 6170)), local-ref(old-size))]))))
 										expr(
 											void
 											file-range(8, range(6185, 6213))
@@ -9738,7 +9716,7 @@ program(
 												226
 												[
 													expr(ptr(record(25)), file-range(8, range(6183, 6184)), param-ref(0))
-													expr(nat-64, file-range(8, range(6198, 6206)), local-ref("old_size"))
+													expr(nat-64, file-range(8, range(6198, 6206)), local-ref(old-size))
 													expr(nat-64, file-range(8, range(6208, 6213)), param-ref(1))]))))))))))
 		226: fun(
 			noctx-set-at
@@ -9805,16 +9783,16 @@ program(
 			bool
 			[param(a, union(13))]
 			expr-body(
-				[local("n", record(11)), local("s", record(78)), local("matched", union(13))]
+				[local(n, record(11)), local(s, record(78)), local("<<matched>>", union(13))]
 				expr(
 					bool
 					file-range(0, range(17656, 17700))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(union(13), file-range(0, range(17662, 17663)), param-ref(0))
 						[
-							case(some("n"), expr(bool, file-range(0, range(17676, 17680)), constant(true)))
-							case(some("s"), expr(bool, file-range(0, range(17693, 17698)), constant(false)))]))))
+							case(some(n), expr(bool, file-range(0, range(17676, 17680)), constant(true)))
+							case(some(s), expr(bool, file-range(0, range(17693, 17698)), constant(false)))]))))
 		230: fun(
 			some
 			record(77)
@@ -9842,16 +9820,16 @@ program(
 			[param(gctx, ptr(record(15))), param(tls, ptr(record(39))), param(chosen-task, record(72))]
 			expr-body(
 				[
-					local("vat", ptr(record(16)))
-					local("some_task", record(73))
-					local("task", record(20))
-					local("ctx", record(0))
-					local("matched", union(10))]
+					local(vat, ptr(record(16)))
+					local(some-task, record(73))
+					local(task, record(20))
+					local(ctx, record(0))
+					local("<<matched>>", union(10))]
 				expr(
 					void
 					file-range(15, range(5319, 6589))
 					let(
-						"vat"
+						vat
 						expr(
 							ptr(record(16))
 							file-range(15, range(5336, 5340))
@@ -9872,7 +9850,7 @@ program(
 													void
 													file-range(15, range(5342, 6071))
 													match(
-														"matched"
+														"<<matched>>"
 														expr(
 															union(10)
 															file-range(15, range(5359, 5370))
@@ -9912,12 +9890,12 @@ program(
 																									true
 																									3))))])))))
 															case(
-																some("some_task")
+																some(some-task)
 																expr(
 																	void
 																	file-range(15, range(5571, 6071))
 																	let(
-																		"task"
+																		task
 																		expr(
 																			record(20)
 																			file-range(15, range(5587, 5593))
@@ -9925,14 +9903,14 @@ program(
 																				expr(
 																					record(73)
 																					file-range(15, range(5578, 5587))
-																					local-ref("some_task"))
+																					local-ref(some-task))
 																				false
 																				0))
 																		expr(
 																			void
 																			file-range(15, range(5597, 6071))
 																			let(
-																				"ctx"
+																				ctx
 																				expr(
 																					record(0)
 																					file-range(15, range(5603, 5641))
@@ -9950,7 +9928,7 @@ program(
 																							expr(
 																								ptr(record(16))
 																								file-range(15, range(5623, 5626))
-																								local-ref("vat"))
+																								local-ref(vat))
 																							expr(
 																								nat-64
 																								file-range(15, range(5632, 5641))
@@ -9960,8 +9938,7 @@ program(
 																										file-range(
 																											15
 																											range(5628, 5632))
-																										local-ref(
-																											"task"))
+																										local-ref(task))
 																									false
 																									0))]))
 																				expr(
@@ -10016,7 +9993,7 @@ program(
 																																				5786
 																																				5789))
 																																		local-ref(
-																																			"ctx"))))
+																																			ctx))))
 																															expr(
 																																record(
 																																	21)
@@ -10035,7 +10012,7 @@ program(
 																																				5815
 																																				5819))
 																																		local-ref(
-																																			"task"))
+																																			task))
 																																	false
 																																	1))]))
 																												expr(
@@ -10078,7 +10055,7 @@ program(
 																																						5827
 																																						5830))
 																																				local-ref(
-																																					"vat"))
+																																					vat))
 																																			true
 																																			3))))]))))
 																										expr(
@@ -10121,7 +10098,7 @@ program(
 																																				5869
 																																				5872))
 																																		local-ref(
-																																			"vat"))
+																																			vat))
 																																	true
 																																	5))))
 																													expr(
@@ -10141,7 +10118,7 @@ program(
 																																		5937
 																																		5941))
 																																local-ref(
-																																	"task"))
+																																	task))
 																															false
 																															0))]))))
 																								expr(
@@ -10182,7 +10159,7 @@ program(
 																																		5954
 																																		5957))
 																																local-ref(
-																																	"vat"))
+																																	vat))
 																															true
 																															3))))]))))
 																						expr(
@@ -10206,7 +10183,7 @@ program(
 																														5996
 																														5999))
 																												local-ref(
-																													"ctx"))))])))))))))]))
+																													ctx))))])))))))))]))
 												expr(
 													void
 													file-range(15, range(6097, 6109))
@@ -10225,14 +10202,14 @@ program(
 																			expr(
 																				ptr(record(16))
 																				file-range(15, range(6071, 6074))
-																				local-ref("vat"))
+																				local-ref(vat))
 																			true
 																			3))))]))))
 										expr(
 											void
 											file-range(15, range(6111, 6168))
 											set-field(
-												expr(ptr(record(16)), file-range(15, range(6111, 6114)), local-ref("vat"))
+												expr(ptr(record(16)), file-range(15, range(6111, 6114)), local-ref(vat))
 												true
 												6
 												expr(
@@ -10248,7 +10225,7 @@ program(
 																	expr(
 																		ptr(record(16))
 																		file-range(15, range(6136, 6139))
-																		local-ref("vat"))
+																		local-ref(vat))
 																	true
 																	6))]))))))
 								expr(
@@ -10266,10 +10243,7 @@ program(
 														record(2)
 														file-range(15, range(6173, 6184))
 														get-field(
-															expr(
-																ptr(record(16))
-																file-range(15, range(6170, 6173))
-																local-ref("vat"))
+															expr(ptr(record(16)), file-range(15, range(6170, 6173)), local-ref(vat))
 															true
 															3))))]))))))))
 		234: fun(
@@ -10415,12 +10389,12 @@ program(
 			nat-64
 			[param(a, ptr(record(25))), param(index, nat-64)]
 			expr-body(
-				[local("res", nat-64)]
+				[local(res, nat-64)]
 				expr(
 					nat-64
 					file-range(8, range(4589, 4684))
 					let(
-						"res"
+						res
 						expr(
 							nat-64
 							file-range(8, range(4597, 4611))
@@ -10474,7 +10448,7 @@ program(
 																		param-ref(0))
 																	true
 																	1))]))))))
-								expr(nat-64, file-range(8, range(4678, 4681)), local-ref("res"))))))))
+								expr(nat-64, file-range(8, range(4678, 4681)), local-ref(res))))))))
 		239: fun(
 			noctx-last
 			nat-64
@@ -10557,12 +10531,12 @@ program(
 			void
 			[param(gc-ctx, ptr(record(18)))]
 			expr-body(
-				[local("gc", ptr(record(17)))]
+				[local(gc, ptr(record(17)))]
 				expr(
 					void
 					file-range(4, range(876, 1022))
 					let(
-						"gc"
+						gc
 						expr(
 							ptr(record(17))
 							file-range(4, range(887, 890))
@@ -10597,7 +10571,7 @@ program(
 																			expr(
 																				ptr(record(17))
 																				file-range(4, range(892, 894))
-																				local-ref("gc"))
+																				local-ref(gc))
 																			true
 																			0))))]))
 												expr(
@@ -10614,14 +10588,14 @@ program(
 																expr(
 																	ptr(record(17))
 																	file-range(4, range(942, 944))
-																	local-ref("gc"))
+																	local-ref(gc))
 																true
 																1))))))
 										expr(
 											void
 											file-range(4, range(959, 989))
 											set-field(
-												expr(ptr(record(17)), file-range(4, range(959, 961)), local-ref("gc"))
+												expr(ptr(record(17)), file-range(4, range(959, 961)), local-ref(gc))
 												true
 												1
 												expr(
@@ -10654,10 +10628,7 @@ program(
 														record(2)
 														file-range(4, range(993, 996))
 														get-field(
-															expr(
-																ptr(record(17))
-																file-range(4, range(991, 993))
-																local-ref("gc"))
+															expr(ptr(record(17)), file-range(4, range(991, 993)), local-ref(gc))
 															true
 															0))))]))))))))
 		243: fun(
@@ -10725,12 +10696,12 @@ program(
 			union(1)
 			[param(f, ptr(record(1)))]
 			expr-body(
-				[local("r", record(13)), local("e", record(6)), local("matched", union(0))]
+				[local(r, record(13)), local(e, record(6)), local("<<matched>>", union(0))]
 				expr(
 					union(1)
 					file-range(13, range(265, 384))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(
 							union(0)
 							file-range(13, range(273, 278))
@@ -10738,7 +10709,7 @@ program(
 						[
 							case(none, expr(union(1), file-range(13, range(304, 320)), call(247, [])))
 							case(
-								some("r")
+								some(r)
 								expr(
 									union(1)
 									file-range(13, range(347, 358))
@@ -10754,11 +10725,11 @@ program(
 														int-32
 														file-range(13, range(353, 358))
 														get-field(
-															expr(record(13), file-range(13, range(351, 352)), local-ref("r"))
+															expr(record(13), file-range(13, range(351, 352)), local-ref(r))
 															false
 															0))])))))
 							case(
-								some("e")
+								some(e)
 								expr(
 									union(1)
 									file-range(13, range(376, 382))
@@ -10767,7 +10738,7 @@ program(
 										expr(
 											record(9)
 											file-range(13, range(376, 382))
-											call(86, [expr(record(6), file-range(13, range(381, 382)), local-ref("e"))])))))]))))
+											call(86, [expr(record(6), file-range(13, range(381, 382)), local-ref(e))])))))]))))
 		247: fun(
 			hard-unreachable
 			union(1)
@@ -10828,12 +10799,12 @@ program(
 			void
 			[param(ctx, ptr(record(0)))]
 			expr-body(
-				[local("a", record(82)), local("b", record(82)), local("c", record(82)), local("d", record(82))]
+				[local(a, record(82)), local(b, record(82)), local(c, record(82)), local(d, record(82))]
 				expr(
 					void
 					file-range(20, range(193, 377))
 					let(
-						"a"
+						a
 						expr(
 							record(82)
 							file-range(20, range(197, 216))
@@ -10859,7 +10830,7 @@ program(
 							void
 							file-range(20, range(218, 377))
 							let(
-								"b"
+								b
 								expr(
 									record(82)
 									file-range(20, range(222, 241))
@@ -10885,7 +10856,7 @@ program(
 									void
 									file-range(20, range(243, 377))
 									let(
-										"c"
+										c
 										expr(
 											record(82)
 											file-range(20, range(247, 266))
@@ -10917,7 +10888,7 @@ program(
 											void
 											file-range(20, range(268, 377))
 											let(
-												"d"
+												d
 												expr(
 													record(82)
 													file-range(20, range(272, 291))
@@ -10986,13 +10957,13 @@ program(
 																										file-range(
 																											20
 																											range(305, 306))
-																										local-ref("a"))
+																										local-ref(a))
 																									expr(
 																										record(82)
 																										file-range(
 																											20
 																											range(311, 312))
-																										local-ref("b"))]))]))]))
+																										local-ref(b))]))]))]))
 																expr(
 																	void
 																	file-range(20, range(321, 347))
@@ -11020,13 +10991,13 @@ program(
 																										file-range(
 																											20
 																											range(333, 334))
-																										local-ref("a"))
+																										local-ref(a))
 																									expr(
 																										record(82)
 																										file-range(
 																											20
 																											range(339, 340))
-																										local-ref("c"))]))]))]))))
+																										local-ref(c))]))]))]))))
 														expr(
 															void
 															file-range(20, range(349, 375))
@@ -11052,17 +11023,17 @@ program(
 																							expr(
 																								record(82)
 																								file-range(20, range(361, 362))
-																								local-ref("a"))
+																								local-ref(a))
 																							expr(
 																								record(82)
 																								file-range(20, range(367, 368))
-																								local-ref("d"))]))]))]))))))))))))))
+																								local-ref(d))]))]))]))))))))))))))
 		250: fun(
 			literal
 			nat-64
 			[param(ctx, ptr(record(0))), param(s, record(7))]
 			expr-body(
-				[local("higher_digits", nat-64)]
+				[local(higher-digits, nat-64)]
 				expr(
 					nat-64
 					file-range(11, range(1030, 1152))
@@ -11077,7 +11048,7 @@ program(
 							nat-64
 							file-range(11, range(1064, 1152))
 							let(
-								"higher_digits"
+								higher-digits
 								expr(
 									nat-64
 									file-range(11, range(1096, 1103))
@@ -11107,10 +11078,7 @@ program(
 													255
 													[
 														expr(ptr(record(0)), file-range(11, range(1121, 1126)), param-ref(0))
-														expr(
-															nat-64
-															file-range(11, range(1107, 1120))
-															local-ref("higher_digits"))
+														expr(nat-64, file-range(11, range(1107, 1120)), local-ref(higher-digits))
 														expr(nat-64, file-range(11, range(1123, 1126)), call(49, []))]))
 											expr(
 												nat-64
@@ -11271,7 +11239,7 @@ program(
 			nat-64
 			[param(ctx, ptr(record(0))), param(a, nat-64), param(b, nat-64)]
 			expr-body(
-				[local("res", nat-64)]
+				[local(res, nat-64)]
 				expr(
 					nat-64
 					file-range(6, range(627, 746))
@@ -11295,7 +11263,7 @@ program(
 							nat-64
 							file-range(6, range(672, 746))
 							let(
-								"res"
+								res
 								expr(
 									nat-64
 									file-range(6, range(680, 690))
@@ -11337,7 +11305,7 @@ program(
 																					expr(
 																						nat-64
 																						file-range(6, range(702, 705))
-																						local-ref("res"))
+																						local-ref(res))
 																					expr(
 																						nat-64
 																						file-range(6, range(708, 709))
@@ -11372,7 +11340,7 @@ program(
 																					expr(
 																						nat-64
 																						file-range(6, range(726, 729))
-																						local-ref("res"))
+																						local-ref(res))
 																					expr(
 																						nat-64
 																						file-range(6, range(732, 733))
@@ -11381,7 +11349,7 @@ program(
 																			nat-64
 																			file-range(6, range(737, 738))
 																			param-ref(2))]))]))))
-										expr(nat-64, file-range(6, range(742, 745)), local-ref("res"))))))))))
+										expr(nat-64, file-range(6, range(742, 745)), local-ref(res))))))))))
 		256: fun(
 			/
 			nat-64
@@ -11827,12 +11795,12 @@ program(
 			record(7)
 			[param(ctx, ptr(record(0))), param(c, union(5))]
 			expr-body(
-				[local("matched", union(5))]
+				[local("<<matched>>", union(5))]
 				expr(
 					record(7)
 					file-range(0, range(2210, 2278))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(union(5), file-range(0, range(2216, 2217)), param-ref(1))
 						[
 							case(none, expr(record(7), file-range(0, range(2228, 2234)), constant("less")))
@@ -11928,10 +11896,10 @@ program(
 			[param(ctx, ptr(record(0)))]
 			expr-body(
 				[
-					local("a", ptr(record(83)))
-					local("b", ptr(record(83)))
-					local("c", ptr(record(83)))
-					local("d", ptr(record(83)))
+					local(a, ptr(record(83)))
+					local(b, ptr(record(83)))
+					local(c, ptr(record(83)))
+					local(d, ptr(record(83)))
 					local(generated(temp, 0), ptr(record(83)))
 					local(generated(temp, 1), ptr(record(83)))
 					local(generated(temp, 2), ptr(record(83)))
@@ -11940,7 +11908,7 @@ program(
 					void
 					file-range(20, range(419, 627))
 					let(
-						"a"
+						a
 						expr(
 							ptr(record(83))
 							file-range(20, range(423, 448))
@@ -12009,7 +11977,7 @@ program(
 							void
 							file-range(20, range(450, 627))
 							let(
-								"b"
+								b
 								expr(
 									ptr(record(83))
 									file-range(20, range(454, 479))
@@ -12081,7 +12049,7 @@ program(
 									void
 									file-range(20, range(481, 627))
 									let(
-										"c"
+										c
 										expr(
 											ptr(record(83))
 											file-range(20, range(485, 510))
@@ -12159,7 +12127,7 @@ program(
 											void
 											file-range(20, range(512, 627))
 											let(
-												"d"
+												d
 												expr(
 													ptr(record(83))
 													file-range(20, range(516, 541))
@@ -12276,13 +12244,13 @@ program(
 																										file-range(
 																											20
 																											range(555, 556))
-																										local-ref("a"))
+																										local-ref(a))
 																									expr(
 																										ptr(record(83))
 																										file-range(
 																											20
 																											range(561, 562))
-																										local-ref("b"))]))]))]))
+																										local-ref(b))]))]))]))
 																expr(
 																	void
 																	file-range(20, range(571, 597))
@@ -12310,13 +12278,13 @@ program(
 																										file-range(
 																											20
 																											range(583, 584))
-																										local-ref("a"))
+																										local-ref(a))
 																									expr(
 																										ptr(record(83))
 																										file-range(
 																											20
 																											range(589, 590))
-																										local-ref("c"))]))]))]))))
+																										local-ref(c))]))]))]))))
 														expr(
 															void
 															file-range(20, range(599, 625))
@@ -12342,11 +12310,11 @@ program(
 																							expr(
 																								ptr(record(83))
 																								file-range(20, range(611, 612))
-																								local-ref("a"))
+																								local-ref(a))
 																							expr(
 																								ptr(record(83))
 																								file-range(20, range(617, 618))
-																								local-ref("d"))]))]))]))))))))))))))
+																								local-ref(d))]))]))]))))))))))))))
 		267: fun(
 			generated(compare)
 			union(5)
@@ -12436,12 +12404,12 @@ program(
 			void
 			[param(ctx, ptr(record(0)))]
 			expr-body(
-				[local("a", union(15)), local("b", union(15)), local("c", union(15)), local("d", union(15))]
+				[local(a, union(15)), local(b, union(15)), local(c, union(15)), local(d, union(15))]
 				expr(
 					void
 					file-range(20, range(662, 904))
 					let(
-						"a"
+						a
 						expr(
 							union(15)
 							file-range(20, range(666, 699))
@@ -12472,7 +12440,7 @@ program(
 							void
 							file-range(20, range(701, 904))
 							let(
-								"b"
+								b
 								expr(
 									union(15)
 									file-range(20, range(705, 741))
@@ -12481,7 +12449,7 @@ program(
 									void
 									file-range(20, range(741, 904))
 									let(
-										"c"
+										c
 										expr(
 											union(15)
 											file-range(20, range(745, 778))
@@ -12524,7 +12492,7 @@ program(
 											void
 											file-range(20, range(780, 904))
 											let(
-												"d"
+												d
 												expr(
 													union(15)
 													file-range(20, range(784, 817))
@@ -12598,13 +12566,13 @@ program(
 																										file-range(
 																											20
 																											range(832, 833))
-																										local-ref("a"))
+																										local-ref(a))
 																									expr(
 																										union(15)
 																										file-range(
 																											20
 																											range(838, 839))
-																										local-ref("b"))]))]))]))
+																										local-ref(b))]))]))]))
 																expr(
 																	void
 																	file-range(20, range(848, 874))
@@ -12632,13 +12600,13 @@ program(
 																										file-range(
 																											20
 																											range(860, 861))
-																										local-ref("a"))
+																										local-ref(a))
 																									expr(
 																										union(15)
 																										file-range(
 																											20
 																											range(866, 867))
-																										local-ref("c"))]))]))]))))
+																										local-ref(c))]))]))]))))
 														expr(
 															void
 															file-range(20, range(876, 902))
@@ -12664,11 +12632,11 @@ program(
 																							expr(
 																								union(15)
 																								file-range(20, range(888, 889))
-																								local-ref("a"))
+																								local-ref(a))
 																							expr(
 																								union(15)
 																								file-range(20, range(894, 895))
-																								local-ref("d"))]))]))]))))))))))))))
+																								local-ref(d))]))]))]))))))))))))))
 		269: fun(
 			generated(compare)
 			union(5)
@@ -12832,12 +12800,12 @@ program(
 			int-64
 			[param(ctx, ptr(record(0))), param(s, record(7))]
 			expr-body(
-				[local("fst", char), local("n", nat-64)]
+				[local(fst, char), local(n, nat-64)]
 				expr(
 					int-64
 					file-range(11, range(1324, 1481))
 					let(
-						"fst"
+						fst
 						expr(
 							char
 							file-range(11, range(1332, 1339))
@@ -12858,7 +12826,7 @@ program(
 									call(
 										179
 										[
-											expr(char, file-range(11, range(1348, 1351)), local-ref("fst"))
+											expr(char, file-range(11, range(1348, 1351)), local-ref(fst))
 											expr(
 												char
 												file-range(11, range(1355, 1358))
@@ -12867,7 +12835,7 @@ program(
 									int-64
 									file-range(11, range(1362, 1401))
 									let(
-										"n"
+										n
 										expr(
 											nat-64
 											file-range(11, range(1366, 1389))
@@ -12893,7 +12861,7 @@ program(
 												276
 												[
 													expr(ptr(record(0)), file-range(11, range(1395, 1398)), param-ref(0))
-													expr(nat-64, file-range(11, range(1393, 1394)), local-ref("n"))]))))
+													expr(nat-64, file-range(11, range(1393, 1394)), local-ref(n))]))))
 								expr(
 									int-64
 									file-range(11, range(1341, 1481))
@@ -12905,7 +12873,7 @@ program(
 											call(
 												179
 												[
-													expr(char, file-range(11, range(1401, 1404)), local-ref("fst"))
+													expr(char, file-range(11, range(1401, 1404)), local-ref(fst))
 													expr(
 														char
 														file-range(11, range(1408, 1411))
@@ -13224,12 +13192,12 @@ program(
 			bool
 			[param(a, int-64), param(b, int-64)]
 			expr-body(
-				[local("matched", union(5))]
+				[local("<<matched>>", union(5))]
 				expr(
 					bool
 					file-range(0, range(2514, 2580))
 					match(
-						"matched"
+						"<<matched>>"
 						expr(
 							union(5)
 							file-range(0, range(2522, 2527))

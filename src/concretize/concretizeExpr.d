@@ -14,6 +14,7 @@ import concreteModel :
 	ConcreteFunBody,
 	ConcreteFunExprBody,
 	ConcreteLocal,
+	ConcreteLocalSource,
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteStruct,
@@ -44,7 +45,6 @@ import concretize.concretizeCtx :
 	TypeArgsScope,
 	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes,
 	voidType;
-import concretize.mangleName : mangleName;
 import model :
 	Called,
 	ClosureField,
@@ -371,33 +371,16 @@ immutable(Ptr!ConcreteFun) getNullAnyPtrFun(Alloc)(ref Alloc alloc, ref Concreti
 	return getConcreteFunFromFunInst(alloc, ctx, ctx.concretizeCtx.nullAnyPtrFun);
 }
 
-immutable(Str) chooseUniqueName(Alloc)(
-	ref Alloc alloc,
-	immutable Str mangledName,
-	immutable Arr!(Ptr!ConcreteLocal) allLocals,
-) {
-	immutable Bool alreadyExists =
-		exists!(Ptr!ConcreteLocal)(allLocals, (ref immutable Ptr!ConcreteLocal l) =>
-			strEq(l.mangledName, mangledName));
-	return alreadyExists
-		? chooseUniqueName(alloc, cat(alloc, mangledName, strLiteral("1")), allLocals)
-		: mangledName;
-}
-
 immutable(Ptr!ConcreteLocal) makeLocalWorker(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	immutable Sym name,
+	immutable ConcreteLocalSource source,
 	immutable ConcreteType type,
 ) {
-	immutable Str mangledName = chooseUniqueName!Alloc(
-		alloc,
-		mangleName(alloc, name),
-		arrBuilderAsTempArr(ctx.allLocalsInThisFun));
 	immutable Ptr!ConcreteLocal res = nu!ConcreteLocal(
 		alloc,
+		source,
 		arrBuilderSize(ctx.allLocalsInThisFun),
-		mangledName,
 		type);
 	add(alloc, ctx.allLocalsInThisFun, res);
 	return res;
@@ -408,7 +391,7 @@ immutable(Ptr!ConcreteLocal) concretizeLocal(Alloc)(
 	ref ConcretizeExprCtx ctx,
 	immutable Ptr!Local local,
 ) {
-	return makeLocalWorker(alloc, ctx, local.name, getConcreteType(alloc, ctx, local.type));
+	return makeLocalWorker(alloc, ctx, immutable ConcreteLocalSource(local), getConcreteType(alloc, ctx, local.type));
 }
 
 immutable(Ptr!ConcreteLocal) getMatchedLocal(Alloc)(
@@ -419,7 +402,7 @@ immutable(Ptr!ConcreteLocal) getMatchedLocal(Alloc)(
 	return makeLocalWorker(
 		alloc,
 		ctx,
-		shortSymAlphaLiteral("matched"),
+		immutable ConcreteLocalSource(immutable ConcreteLocalSource.Matched()),
 		concreteType_byValue(matchedUnion));
 }
 
@@ -561,7 +544,11 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(ref Alloc alloc, ref ConcretizeExp
 			immutable ConcreteType arrayType = getConcreteType_forStructInst(alloc, ctx, e.arrType);
 			immutable Ptr!ConcreteStruct arrayStruct = mustBeNonPointer(arrayType);
 			immutable ConcreteType elementType = getConcreteType(alloc, ctx, elementType(e));
-			immutable Ptr!ConcreteLocal local = makeLocalWorker(alloc, ctx, shortSymAlphaLiteral("arr"), arrayType);
+			immutable Ptr!ConcreteLocal local = makeLocalWorker(
+				alloc,
+				ctx,
+				immutable ConcreteLocalSource(immutable ConcreteLocalSource.Arr()),
+				arrayType);
 			return immutable ConcreteExpr(
 				arrayType,
 				range,

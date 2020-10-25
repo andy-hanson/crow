@@ -11,6 +11,7 @@ import concreteModel :
 	ConcreteFunExprBody,
 	ConcreteFunSource,
 	ConcreteLocal,
+	ConcreteLocalSource,
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteProgram,
@@ -23,13 +24,14 @@ import concreteModel :
 	matchConcreteExpr,
 	matchConcreteFunBody,
 	matchConcreteFunSource,
+	matchConcreteLocalSource,
 	matchConcreteParamSource,
 	matchConcreteStructBody,
 	matchConcreteStructSource,
 	name,
 	returnType,
 	symOfBuiltinStructKind;
-import model : FunInst, name, Param;
+import model : FunInst, name, Local, Param;
 import util.bools : True;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : strLiteral;
@@ -226,13 +228,20 @@ immutable(Sexpr) tataOfConcreteFunExprBody(Alloc)(ref Alloc alloc, ref immutable
 			tataRecord(
 				alloc,
 				"local",
-				tataStr(it.mangledName),
+				tataOfConcreteLocalRef(it),
 				tataOfConcreteType(alloc, it.type))),
 		tataOfConcreteExpr(alloc, a.expr));
 }
 
-immutable(Sexpr) tataOfConcreteLocalRef(Alloc)(ref Alloc alloc, immutable Ptr!ConcreteLocal a) {
-	return todo!(immutable Sexpr)("!");
+public immutable(Sexpr) tataOfConcreteLocalRef(immutable Ptr!ConcreteLocal a) {
+	return matchConcreteLocalSource!(immutable Sexpr)(
+		a.source,
+		(ref immutable ConcreteLocalSource.Arr) =>
+			tataStr("<<arr>>"),
+		(immutable Ptr!Local it) =>
+			tataSym(it.name),
+		(ref immutable ConcreteLocalSource.Matched) =>
+			tataStr("<<matched>>"));
 }
 
 immutable(Sexpr) tataOfConcreteExpr(Alloc)(ref Alloc alloc, ref immutable ConcreteExpr a) {
@@ -276,7 +285,7 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 				tataOfConcreteStructRef(alloc, it.arrType),
 				tataOfConcreteType(alloc, it.elementType),
 				tataOfConcreteFunRef(alloc, it.alloc),
-				tataOfConcreteLocalRef(alloc, it.local),
+				tataOfConcreteLocalRef(it.local),
 				tataArr(alloc, it.args, (ref immutable ConcreteExpr arg) =>
 					tataOfConcreteExpr(alloc, arg))),
 		(ref immutable ConcreteExpr.CreateRecord it) =>
@@ -299,26 +308,26 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 			tataRecord(
 				alloc,
 				"let",
-				tataStr(it.local.mangledName),
+				tataOfConcreteLocalRef(it.local),
 				tataOfConcreteExpr(alloc, it.value),
 				tataOfConcreteExpr(alloc, it.then)),
 		(ref immutable ConcreteExpr.LocalRef it) =>
 			tataRecord(
 				alloc,
 				"local-ref",
-				tataStr(it.local.mangledName)),
+				tataOfConcreteLocalRef(it.local)),
 		(ref immutable ConcreteExpr.Match it) =>
 			tataRecord(
 				alloc,
 				"match",
-				tataStr(it.matchedLocal.mangledName),
+				tataOfConcreteLocalRef(it.matchedLocal),
 				tataOfConcreteExpr(alloc, it.matchedValue),
 				tataArr(alloc, it.cases, (ref immutable ConcreteExpr.Match.Case case_) =>
 					tataRecord(
 						alloc,
 						"case",
 						tataOpt(alloc, case_.local, (ref immutable Ptr!ConcreteLocal local) =>
-							tataStr(local.mangledName)),
+							tataOfConcreteLocalRef(local)),
 						tataOfConcreteExpr(alloc, case_.then)))),
 		(ref immutable ConcreteExpr.ParamRef it) =>
 			tataRecord(alloc, "param-ref", tataOfConcreteParamRef(it.param)),

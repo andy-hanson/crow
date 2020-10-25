@@ -6,14 +6,15 @@ import concreteModel :
 	ConcreteFun,
 	ConcreteFunSource,
 	ConcreteLocal,
+	ConcreteLocalSource,
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructSource,
 	matchConcreteFunSource,
 	matchConcreteParamSource,
+	matchConcreteLocalSource,
 	matchConcreteStructSource;
-import concretize.mangleName : writeMangledName;
 import lowModel :
 	isExtern,
 	isGlobal,
@@ -45,7 +46,7 @@ import lowModel :
 	matchSpecialConstant,
 	name,
 	PrimitiveType;
-import model : FunInst, name, Param;
+import model : FunInst, Local, name, Param;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, first, range, setAt, size;
@@ -64,7 +65,15 @@ import util.collection.mutDict : insertOrUpdate, MutDict, setInDict;
 import util.collection.str : Str, strEq, strLiteral;
 import util.opt : force, has, Opt;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.sym : compareSym, shortSymAlphaLiteral,Sym, symEq;
+import util.sym :
+	compareSym,
+	eachCharInSym,
+	isSymOperator,
+	shortSymAlphaLiteral,
+	shortSymAlphaLiteralValue,
+	Sym,
+	symEq,
+	symEqLongAlphaLiteral;
 import util.types : u8;
 import util.util : unreachable, verify;
 import util.writer :
@@ -961,7 +970,18 @@ void writeLocalRef(Alloc)(ref Writer!Alloc writer, immutable Ptr!LowLocal a) {
 	matchLowLocalSource!void(
 		a.source,
 		(immutable Ptr!ConcreteLocal it) {
-			writeStr(writer, it.mangledName);
+			matchConcreteLocalSource!void(
+				it.source,
+				(ref immutable ConcreteLocalSource.Arr) {
+					writeStatic(writer, "_arr");
+				},
+				(immutable Ptr!Local it) {
+					writeMangledName(writer, it.name);
+				},
+				(ref immutable ConcreteLocalSource.Matched) {
+					writeStatic(writer, "_matched");
+				});
+			writeNat(writer, it.index);
 		},
 		(ref immutable LowLocalSource.Generated it) {
 			writeMangledName(writer, it.name);
@@ -1567,4 +1587,53 @@ void writePrimitiveType(Alloc)(ref Writer!Alloc writer, immutable PrimitiveType 
 				return "uint8_t";
 		}
 	}());
+}
+
+void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
+	if (isSymOperator(name)) {
+		writeStatic(writer, "_op");
+		eachCharInSym(name, (immutable char c) {
+			writeStatic(writer, () {
+				final switch (c) {
+					case '-': return "_minus";
+					case '+': return "_plus";
+					case '*': return "_times";
+					case '/': return "_div";
+					case '<': return "_less";
+					case '>': return "_greater";
+					case '=': return "_equal";
+					case '!': return "_bang";
+				}
+			}());
+		});
+	} else {
+		if (conflictsWithCName(name))
+			writeChar(writer, '_');
+		eachCharInSym(name, (immutable char c) {
+			switch (c) {
+				case '-':
+					writeChar(writer, '_');
+					break;
+				case '?':
+					writeStatic(writer, "__q");
+					break;
+				default:
+					writeChar(writer, c);
+					break;
+			}
+		});
+	}
+}
+
+immutable(Bool) conflictsWithCName(immutable Sym name) {
+	switch (name.value) {
+		case shortSymAlphaLiteralValue("default"):
+		case shortSymAlphaLiteralValue("float"):
+		case shortSymAlphaLiteralValue("int"):
+		case shortSymAlphaLiteralValue("void"):
+			return True;
+		default:
+			// avoid conflicting with c's "atomic_bool" type
+			return symEqLongAlphaLiteral(name, "atomic-bool");
+	}
 }

@@ -30,7 +30,11 @@ import lowModel :
 	name,
 	PrimitiveType,
 	symOfPrimitiveType;
-import sexprOfConcreteModel : tataOfConcreteFunRef, tataOfConcreteParamRef, tataOfConcreteStructRef;
+import sexprOfConcreteModel :
+	tataOfConcreteFunRef,
+	tataOfConcreteLocalRef,
+	tataOfConcreteParamRef,
+	tataOfConcreteStructRef;
 import util.collection.arr : size;
 import util.collection.arrUtil : arrLiteral;
 import util.collection.str : strLiteral;
@@ -169,7 +173,7 @@ immutable(Sexpr) tataOfLowLocalSource(Alloc)(ref Alloc alloc, ref immutable LowL
 	return matchLowLocalSource!(immutable Sexpr)(
 		a,
 		(immutable Ptr!ConcreteLocal it) =>
-			tataStr(it.mangledName),
+			tataOfConcreteLocalRef(it),
 		(ref immutable LowLocalSource.Generated it) =>
 			tataRecord(alloc, "generated", tataSym(it.name), tataNat(it.index)));
 }

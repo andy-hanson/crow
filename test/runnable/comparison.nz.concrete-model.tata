@@ -341,49 +341,49 @@ program(
 			[param(argc, type(false, int32)), param(argv, type(false, ptr)), param(main-ptr, type(false, fun-ptr2))]
 			expr-body(
 				[
-					local("n_threads", type(false, nat))
-					local("gctx_by_val", type(false, global-ctx))
-					local("gctx", type(true, global-ctx))
-					local("vat_by_val", type(false, vat))
-					local("vat", type(true, vat))
-					local("main_fut", type(true, fut))
-					local("o", type(false, ok))
-					local("e", type(false, err))
-					local("matched", type(false, result))]
+					local(n-threads, type(false, nat))
+					local(gctx-by-val, type(false, global-ctx))
+					local(gctx, type(true, global-ctx))
+					local(vat-by-val, type(false, vat))
+					local(vat, type(true, vat))
+					local(main-fut, type(true, fut))
+					local(o, type(false, ok))
+					local(e, type(false, err))
+					local("<<matched>>", type(false, result))]
 				let(
-					"n_threads"
+					n-threads
 					call(as, [call(two, [])])
 					let(
-						"gctx_by_val"
+						gctx-by-val
 						record(
 							[
 								call(new-lock, [])
 								call(empty-arr, [])
-								local-ref("n_threads")
+								local-ref(n-threads)
 								call(new-condition, [])
 								call(false, [])
 								call(false, [])])
 						let(
-							"gctx"
-							call(ref-of-val, [local-ref("gctx_by_val")])
+							gctx
+							call(ref-of-val, [local-ref(gctx-by-val)])
 							let(
-								"vat_by_val"
-								call(new-vat, [local-ref("gctx"), call(zero, []), local-ref("n_threads")])
+								vat-by-val
+								call(new-vat, [local-ref(gctx), call(zero, []), local-ref(n-threads)])
 								let(
-									"vat"
-									call(ref-of-val, [local-ref("vat_by_val")])
+									vat
+									call(ref-of-val, [local-ref(vat-by-val)])
 									seq(
 										set-field(
-											local-ref("gctx")
+											local-ref(gctx)
 											vats
-											record([call(one, []), call(ptr-to, [local-ref("vat")])]))
+											record([call(one, []), call(ptr-to, [local-ref(vat)])]))
 										let(
-											"main_fut"
+											main-fut
 											call(
 												do-main
 												[
-													local-ref("gctx")
-													local-ref("vat")
+													local-ref(gctx)
+													local-ref(vat)
 													param-ref(argc)
 													param-ref(argv)
 													param-ref(main-ptr)])
@@ -391,19 +391,19 @@ program(
 												call(
 													run-threads
 													[
-														local-ref("n_threads")
-														local-ref("gctx")
+														local-ref(n-threads)
+														local-ref(gctx)
 														lambda(lambda(rt-main, 0), none)])
 												cond(
-													get-field(local-ref("gctx"), any-unhandled-exceptions?)
+													get-field(local-ref(gctx), any-unhandled-exceptions?)
 													call(one, [])
 													match(
-														"matched"
-														call(must-be-resolved, [local-ref("main_fut")])
+														"<<matched>>"
+														call(must-be-resolved, [local-ref(main-fut)])
 														[
-															case(some("o"), get-field(local-ref("o"), value))
+															case(some(o), get-field(local-ref(o), value))
 															case(
-																some("e")
+																some(e)
 																seq(
 																	seq(
 																		call(
@@ -413,7 +413,7 @@ program(
 																			print-err-sync
 																			[
 																				get-field(
-																					get-field(local-ref("e"), value)
+																					get-field(local-ref(e), value)
 																					message)]))
 																	call(one, [])))]))))))))))))
 		fun(false, as, type(false, nat), none, [param(value, type(false, nat))], builtin([type(false, nat)]))
@@ -460,9 +460,9 @@ program(
 			none
 			[param(gctx, type(true, global-ctx)), param(id, type(false, nat)), param(max-threads, type(false, nat))]
 			expr-body(
-				[local("actors", type(false, mut-arr))]
+				[local(actors, type(false, mut-arr))]
 				let(
-					"actors"
+					actors
 					call(new-mut-arr-by-val-with-capacity-from-unmanaged-memory, [param-ref(max-threads)])
 					record(
 						[
@@ -471,7 +471,7 @@ program(
 							call(new-gc, [])
 							call(new-lock, [])
 							call(new-mut-bag, [])
-							local-ref("actors")
+							local-ref(actors)
 							call(zero, [])
 							call(new-thread-safe-counter, [])
 							lambda(lambda(new-vat, 0), some(call(null-any, [])))]))))
@@ -496,11 +496,11 @@ program(
 			none
 			[param(size-elements, type(false, nat))]
 			expr-body(
-				[local("bytes", type(false, ptr))]
+				[local(bytes, type(false, ptr))]
 				let(
-					"bytes"
+					bytes
 					call(unmanaged-alloc-bytes, [call(wrap-mul, [param-ref(size-elements), call(size-of, [])])])
-					call(ptr-cast, [local-ref("bytes")]))))
+					call(ptr-cast, [local-ref(bytes)]))))
 		fun(
 			false
 			unmanaged-alloc-bytes
@@ -508,11 +508,11 @@ program(
 			none
 			[param(size, type(false, nat))]
 			expr-body(
-				[local("res", type(false, ptr))]
+				[local(res, type(false, ptr))]
 				let(
-					"res"
+					res
 					call(malloc, [param-ref(size)])
-					seq(call(hard-forbid, [call(null?, [local-ref("res")])]), local-ref("res")))))
+					seq(call(hard-forbid, [call(null?, [local-ref(res)])]), local-ref(res)))))
 		fun(false, malloc, type(false, ptr), none, [param(size, type(false, nat))], extern(false))
 		fun(
 			false
@@ -554,9 +554,9 @@ program(
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			expr-body(
-				[local("matched", type(false, comparison))]
+				[local("<<matched>>", type(false, comparison))]
 				match(
-					"matched"
+					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
 		fun(
@@ -653,11 +653,11 @@ program(
 			none
 			[param(fd, type(false, int32)), param(s, type(false, arr))]
 			expr-body(
-				[local("res", type(false, int))]
+				[local(res, type(false, int))]
 				seq(
 					call(hard-assert, [call(==, [call(size-of, []), call(size-of, [])])])
 					let(
-						"res"
+						res
 						call(
 							write
 							[
@@ -665,7 +665,7 @@ program(
 								call(as-any-ptr, [get-field(param-ref(s), data)])
 								get-field(param-ref(s), size)])
 						cond(
-							call(==, [local-ref("res"), call(unsafe-to-int, [get-field(param-ref(s), size)])])
+							call(==, [local-ref(res), call(unsafe-to-int, [get-field(param-ref(s), size)])])
 							call(pass, [])
 							call(todo, []))))))
 		fun(false, size-of, type(false, nat), none, [], builtin([type(false, char)]))
@@ -685,9 +685,9 @@ program(
 			none
 			[param(a, type(false, int)), param(b, type(false, int))]
 			expr-body(
-				[local("matched", type(false, comparison))]
+				[local("<<matched>>", type(false, comparison))]
 				match(
-					"matched"
+					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
 		fun(
@@ -783,40 +783,36 @@ program(
 				param(main-ptr, type(false, fun-ptr2))]
 			expr-body(
 				[
-					local("ectx", type(false, exception-ctx))
-					local("tls", type(false, thread-local-stuff))
-					local("ctx_by_val", type(false, ctx))
-					local("ctx", type(true, ctx))
-					local("add", type(false, fun2))
-					local("all_args", type(false, arr))]
+					local(ectx, type(false, exception-ctx))
+					local(tls, type(false, thread-local-stuff))
+					local(ctx-by-val, type(false, ctx))
+					local(ctx, type(true, ctx))
+					local(add, type(false, fun2))
+					local(all-args, type(false, arr))]
 				let(
-					"ectx"
+					ectx
 					call(new-exception-ctx, [])
 					let(
-						"tls"
-						record([call(ref-of-val, [local-ref("ectx")])])
+						tls
+						record([call(ref-of-val, [local-ref(ectx)])])
 						let(
-							"ctx_by_val"
+							ctx-by-val
 							call(
 								new-ctx
-								[param-ref(gctx), call(ref-of-val, [local-ref("tls")]), param-ref(vat), call(zero, [])])
+								[param-ref(gctx), call(ref-of-val, [local-ref(tls)]), param-ref(vat), call(zero, [])])
 							let(
-								"ctx"
-								call(ref-of-val, [local-ref("ctx_by_val")])
+								ctx
+								call(ref-of-val, [local-ref(ctx-by-val)])
 								let(
-									"add"
+									add
 									call(as, [lambda(lambda(do-main, 0), some(call(null-any, [])))])
 									let(
-										"all_args"
+										all-args
 										record(
 											[call(unsafe-to-nat, [call(to-int, [param-ref(argc)])]), param-ref(argv)])
 										call(
 											call-with-ctx
-											[
-												local-ref("ctx")
-												local-ref("add")
-												local-ref("all_args")
-												param-ref(main-ptr)])))))))))
+											[local-ref(ctx), local-ref(add), local-ref(all-args), param-ref(main-ptr)])))))))))
 		fun(
 			false
 			new-exception-ctx
@@ -873,43 +869,43 @@ program(
 			[param(gc, type(true, gc))]
 			expr-body(
 				[
-					local("c", type(true, gc-ctx))
-					local("s", type(false, some))
-					local("c1", type(true, gc-ctx))
-					local("matched", type(false, opt))
-					local("res", type(true, gc-ctx))]
+					local(c, type(true, gc-ctx))
+					local(s, type(false, some))
+					local(c, type(true, gc-ctx))
+					local("<<matched>>", type(false, opt))
+					local(res, type(true, gc-ctx))]
 				seq(
 					call(acquire-lock, [call(ref-of-val, [get-field(param-ref(gc), lk)])])
 					let(
-						"res"
+						res
 						match(
-							"matched"
+							"<<matched>>"
 							get-field(param-ref(gc), context-head)
 							[
 								case(
 									none
 									let(
-										"c"
+										c
 										call(as-ref, [call(malloc, [call(size-of, [])])])
 										seq(
 											seq(
-												set-field(local-ref("c"), gc, param-ref(gc))
-												set-field(local-ref("c"), next-ctx, to-union(0, call(none, []))))
-											local-ref("c"))))
+												set-field(local-ref(c), gc, param-ref(gc))
+												set-field(local-ref(c), next-ctx, to-union(0, call(none, []))))
+											local-ref(c))))
 								case(
-									some("s")
+									some(s)
 									let(
-										"c1"
-										get-field(local-ref("s"), value)
+										c
+										get-field(local-ref(s), value)
 										seq(
 											seq(
 												set-field(
 													param-ref(gc)
 													context-head
-													get-field(local-ref("c1"), next-ctx))
-												set-field(local-ref("c1"), next-ctx, to-union(0, call(none, []))))
-											local-ref("c1"))))])
-						seq(call(release-lock, [call(ref-of-val, [get-field(param-ref(gc), lk)])]), local-ref("res"))))))
+													get-field(local-ref(c), next-ctx))
+												set-field(local-ref(c), next-ctx, to-union(0, call(none, []))))
+											local-ref(c))))])
+						seq(call(release-lock, [call(ref-of-val, [get-field(param-ref(gc), lk)])]), local-ref(res))))))
 		fun(
 			false
 			acquire-lock
@@ -1003,11 +999,11 @@ program(
 			none
 			[]
 			expr-body(
-				[local("err", type(false, int32))]
+				[local(err, type(false, int32))]
 				let(
-					"err"
+					err
 					call(pthread-yield, [])
-					seq(call(usleep, [call(thousand, [])]), call(hard-assert, [call(zero?, [local-ref("err")])])))))
+					seq(call(usleep, [call(thousand, [])]), call(hard-assert, [call(zero?, [local-ref(err)])])))))
 		fun(false, pthread-yield, type(false, int32), none, [], extern(false))
 		fun(false, usleep, type(false, void), none, [param(micro-seconds, type(false, nat))], extern(false))
 		fun(
@@ -1024,9 +1020,9 @@ program(
 			none
 			[param(a, type(false, int32)), param(b, type(false, int32))]
 			expr-body(
-				[local("matched", type(false, comparison))]
+				[local("<<matched>>", type(false, comparison))]
 				match(
-					"matched"
+					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
 		fun(
@@ -1053,9 +1049,9 @@ program(
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			expr-body(
-				[local("matched", type(false, comparison))]
+				[local("<<matched>>", type(false, comparison))]
 				match(
-					"matched"
+					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
 		fun(
@@ -1089,8 +1085,8 @@ program(
 			none
 			[param(a, type(true, atomic-bool))]
 			expr-body(
-				[local("did_unset", type(false, bool))]
-				let("did_unset", call(try-unset, [param-ref(a)]), call(hard-assert, [local-ref("did_unset")]))))
+				[local(did-unset, type(false, bool))]
+				let(did-unset, call(try-unset, [param-ref(a)]), call(hard-assert, [local-ref(did-unset)]))))
 		fun(
 			false
 			try-unset
@@ -1154,17 +1150,17 @@ program(
 			none
 			[param(f, type(true, fut)), param(cb, type(false, fun-ref1))]
 			expr-body(
-				[local("res", type(true, fut))]
+				[local(res, type(true, fut))]
 				let(
-					"res"
+					res
 					call(new-unresolved-fut, [])
 					seq(
 						call(
 							then-void
 							[
 								param-ref(f)
-								lambda(lambda(then, 0), some(alloc(alloc, record([param-ref(cb), local-ref("res")]))))])
-						local-ref("res")))))
+								lambda(lambda(then, 0), some(alloc(alloc, record([param-ref(cb), local-ref(res)]))))])
+						local-ref(res)))))
 		fun(
 			true
 			new-unresolved-fut
@@ -1186,11 +1182,11 @@ program(
 			none
 			[param(gc, type(true, gc)), param(size, type(false, nat))]
 			expr-body(
-				[local("s", type(false, some)), local("matched", type(false, opt))]
+				[local(s, type(false, some)), local("<<matched>>", type(false, opt))]
 				match(
-					"matched"
+					"<<matched>>"
 					call(try-gc-alloc, [param-ref(gc), param-ref(size)])
-					[case(none, call(todo, [])), case(some("s"), get-field(local-ref("s"), value))])))
+					[case(none, call(todo, [])), case(some(s), get-field(local-ref(s), value))])))
 		fun(
 			false
 			try-gc-alloc
@@ -1217,19 +1213,19 @@ program(
 			[param(f, type(true, fut)), param(cb, type(false, fun-mut1))]
 			expr-body(
 				[
-					local("cbs", type(false, fut-state-callbacks))
-					local("r", type(false, fut-state-resolved))
-					local("e", type(false, exception))
-					local("matched", type(false, fut-state))]
+					local(cbs, type(false, fut-state-callbacks))
+					local(r, type(false, fut-state-resolved))
+					local(e, type(false, exception))
+					local("<<matched>>", type(false, fut-state))]
 				seq(
 					seq(
 						call(acquire-lock, [call(ref-of-val, [get-field(param-ref(f), lk)])])
 						match(
-							"matched"
+							"<<matched>>"
 							get-field(param-ref(f), state)
 							[
 								case(
-									some("cbs")
+									some(cbs)
 									set-field(
 										param-ref(f)
 										state
@@ -1245,15 +1241,11 @@ program(
 																alloc(
 																	alloc
 																	record(
-																		[
-																			param-ref(cb)
-																			get-field(local-ref("cbs"), head)]))]))]))))
+																		[param-ref(cb), get-field(local-ref(cbs), head)]))]))]))))
 								case(
-									some("r")
-									call(
-										call
-										[param-ref(cb), to-union(0, call(ok, [get-field(local-ref("r"), value)]))]))
-								case(some("e"), call(call, [param-ref(cb), to-union(1, call(err, [local-ref("e")]))]))]))
+									some(r)
+									call(call, [param-ref(cb), to-union(0, call(ok, [get-field(local-ref(r), value)]))]))
+								case(some(e), call(call, [param-ref(cb), to-union(1, call(err, [local-ref(e)]))]))]))
 					call(release-lock, [call(ref-of-val, [get-field(param-ref(f), lk)])]))))
 		fun(
 			false
@@ -1318,19 +1310,19 @@ program(
 			[param(f, type(true, fut)), param(cb, type(false, fun-mut1))]
 			expr-body(
 				[
-					local("cbs", type(false, fut-state-callbacks))
-					local("r", type(false, fut-state-resolved))
-					local("e", type(false, exception))
-					local("matched", type(false, fut-state))]
+					local(cbs, type(false, fut-state-callbacks))
+					local(r, type(false, fut-state-resolved))
+					local(e, type(false, exception))
+					local("<<matched>>", type(false, fut-state))]
 				seq(
 					seq(
 						call(acquire-lock, [call(ref-of-val, [get-field(param-ref(f), lk)])])
 						match(
-							"matched"
+							"<<matched>>"
 							get-field(param-ref(f), state)
 							[
 								case(
-									some("cbs")
+									some(cbs)
 									set-field(
 										param-ref(f)
 										state
@@ -1346,15 +1338,11 @@ program(
 																alloc(
 																	alloc
 																	record(
-																		[
-																			param-ref(cb)
-																			get-field(local-ref("cbs"), head)]))]))]))))
+																		[param-ref(cb), get-field(local-ref(cbs), head)]))]))]))))
 								case(
-									some("r")
-									call(
-										call
-										[param-ref(cb), to-union(0, call(ok, [get-field(local-ref("r"), value)]))]))
-								case(some("e"), call(call, [param-ref(cb), to-union(1, call(err, [local-ref("e")]))]))]))
+									some(r)
+									call(call, [param-ref(cb), to-union(0, call(ok, [get-field(local-ref(r), value)]))]))
+								case(some(e), call(call, [param-ref(cb), to-union(1, call(err, [local-ref(e)]))]))]))
 					call(release-lock, [call(ref-of-val, [get-field(param-ref(f), lk)])]))))
 		fun(
 			false
@@ -1401,35 +1389,35 @@ program(
 			[param(f, type(true, fut)), param(result, type(false, result))]
 			expr-body(
 				[
-					local("cbs", type(false, fut-state-callbacks))
-					local("matched", type(false, fut-state))
-					local("o", type(false, ok))
-					local("e", type(false, err))
-					local("matched1", type(false, result))]
+					local(cbs, type(false, fut-state-callbacks))
+					local("<<matched>>", type(false, fut-state))
+					local(o, type(false, ok))
+					local(e, type(false, err))
+					local("<<matched>>", type(false, result))]
 				seq(
 					seq(
 						seq(
 							call(acquire-lock, [call(ref-of-val, [get-field(param-ref(f), lk)])])
 							match(
-								"matched"
+								"<<matched>>"
 								get-field(param-ref(f), state)
 								[
 									case(
-										some("cbs")
+										some(cbs)
 										call(
 											resolve-or-reject-recur
-											[get-field(local-ref("cbs"), head), param-ref(result)]))
+											[get-field(local-ref(cbs), head), param-ref(result)]))
 									case(none, call(hard-fail, [str-lit("resolving an already-resolved fut")]))
 									case(none, call(hard-fail, [str-lit("resolving an already-resolved fut")]))]))
 						set-field(
 							param-ref(f)
 							state
 							match(
-								"matched1"
+								"<<matched>>"
 								param-ref(result)
 								[
-									case(some("o"), to-union(1, record([get-field(local-ref("o"), value)])))
-									case(some("e"), to-union(2, get-field(local-ref("e"), value)))])))
+									case(some(o), to-union(1, record([get-field(local-ref(o), value)])))
+									case(some(e), to-union(2, get-field(local-ref(e), value)))])))
 					call(release-lock, [call(ref-of-val, [get-field(param-ref(f), lk)])]))))
 		fun(
 			true
@@ -1438,21 +1426,21 @@ program(
 			none
 			[param(node, type(false, opt)), param(value, type(false, result))]
 			expr-body(
-				[local("s", type(false, some)), local("matched", type(false, opt))]
+				[local(s, type(false, some)), local("<<matched>>", type(false, opt))]
 				match(
-					"matched"
+					"<<matched>>"
 					param-ref(node)
 					[
 						case(none, call(pass, []))
 						case(
-							some("s")
+							some(s)
 							seq(
 								call(
 									drop
-									[call(call, [get-field(get-field(local-ref("s"), value), cb), param-ref(value)])])
+									[call(call, [get-field(get-field(local-ref(s), value), cb), param-ref(value)])])
 								call(
 									resolve-or-reject-recur
-									[get-field(get-field(local-ref("s"), value), next-node), param-ref(value)])))])))
+									[get-field(get-field(local-ref(s), value), next-node), param-ref(value)])))])))
 		fun(false, drop, type(false, void), none, [param(t, type(false, void))], expr-body([], call(pass, [])))
 		fun(
 			true
@@ -1468,25 +1456,25 @@ program(
 			none
 			[param(f, type(false, fun-ref1)), param(p0, type(false, void))]
 			expr-body(
-				[local("vat", type(true, vat)), local("res", type(true, fut))]
+				[local(vat, type(true, vat)), local(res, type(true, fut))]
 				let(
-					"vat"
+					vat
 					call(get-vat, [get-field(get-field(param-ref(f), vat-and-actor), vat)])
 					let(
-						"res"
+						res
 						call(new-unresolved-fut, [])
 						seq(
 							call(
 								add-task
 								[
-									local-ref("vat")
+									local-ref(vat)
 									record(
 										[
 											get-field(get-field(param-ref(f), vat-and-actor), actor)
 											lambda(
 												lambda(call, 0)
-												some(alloc(alloc, record([param-ref(f), param-ref(p0), local-ref("res")]))))])])
-							local-ref("res"))))))
+												some(alloc(alloc, record([param-ref(f), param-ref(p0), local-ref(res)]))))])])
+							local-ref(res))))))
 		fun(
 			true
 			get-vat
@@ -1533,16 +1521,16 @@ program(
 			none
 			[param(e, type(false, exception))]
 			expr-body(
-				[local("exn_ctx", type(true, exception-ctx))]
+				[local(exn-ctx, type(true, exception-ctx))]
 				let(
-					"exn_ctx"
+					exn-ctx
 					call(get-exception-ctx, [])
 					seq(
 						seq(
 							seq(
-								call(hard-forbid, [call(null?, [get-field(local-ref("exn_ctx"), jmp-buf-ptr)])])
-								set-field(local-ref("exn_ctx"), thrown-exception, param-ref(e)))
-							call(longjmp, [get-field(local-ref("exn_ctx"), jmp-buf-ptr), call(number-to-throw, [])]))
+								call(hard-forbid, [call(null?, [get-field(local-ref(exn-ctx), jmp-buf-ptr)])])
+								set-field(local-ref(exn-ctx), thrown-exception, param-ref(e)))
+							call(longjmp, [get-field(local-ref(exn-ctx), jmp-buf-ptr), call(number-to-throw, [])]))
 						call(todo, [])))))
 		fun(
 			true
@@ -1605,15 +1593,15 @@ program(
 			none
 			[param(v, type(true, vat)), param(t, type(false, task))]
 			expr-body(
-				[local("node", type(true, mut-bag-node))]
+				[local(node, type(true, mut-bag-node))]
 				let(
-					"node"
+					node
 					call(new-mut-bag-node, [param-ref(t)])
 					seq(
 						seq(
 							seq(
 								call(acquire-lock, [call(ref-of-val, [get-field(param-ref(v), tasks-lock)])])
-								call(add, [call(ref-of-val, [get-field(param-ref(v), tasks)]), local-ref("node")]))
+								call(add, [call(ref-of-val, [get-field(param-ref(v), tasks)]), local-ref(node)]))
 							call(release-lock, [call(ref-of-val, [get-field(param-ref(v), tasks-lock)])]))
 						call(
 							broadcast
@@ -1690,54 +1678,54 @@ program(
 				param(catcher, type(false, fun-mut1))]
 			expr-body(
 				[
-					local("old_thrown_exception", type(false, exception))
-					local("old_jmp_buf", type(false, ptr))
-					local("store", type(false, jmp-buf-tag))
-					local("setjmp_result", type(false, int32))
-					local("res", type(false, void))
-					local("thrown_exception", type(false, exception))]
+					local(old-thrown-exception, type(false, exception))
+					local(old-jmp-buf, type(false, ptr))
+					local(store, type(false, jmp-buf-tag))
+					local(setjmp-result, type(false, int32))
+					local(res, type(false, void))
+					local(thrown-exception, type(false, exception))]
 				let(
-					"old_thrown_exception"
+					old-thrown-exception
 					get-field(param-ref(ec), thrown-exception)
 					let(
-						"old_jmp_buf"
+						old-jmp-buf
 						get-field(param-ref(ec), jmp-buf-ptr)
 						let(
-							"store"
+							store
 							record([call(zero, []), call(zero, []), call(zero, [])])
 							seq(
-								set-field(param-ref(ec), jmp-buf-ptr, call(ptr-to, [local-ref("store")]))
+								set-field(param-ref(ec), jmp-buf-ptr, call(ptr-to, [local-ref(store)]))
 								let(
-									"setjmp_result"
+									setjmp-result
 									call(setjmp, [get-field(param-ref(ec), jmp-buf-ptr)])
 									cond(
-										call(==, [local-ref("setjmp_result"), call(zero, [])])
+										call(==, [local-ref(setjmp-result), call(zero, [])])
 										let(
-											"res"
+											res
 											call(call, [param-ref(try)])
 											seq(
 												seq(
-													set-field(param-ref(ec), jmp-buf-ptr, local-ref("old_jmp_buf"))
+													set-field(param-ref(ec), jmp-buf-ptr, local-ref(old-jmp-buf))
 													set-field(
 														param-ref(ec)
 														thrown-exception
-														local-ref("old_thrown_exception")))
-												local-ref("res")))
+														local-ref(old-thrown-exception)))
+												local-ref(res)))
 										seq(
 											call(
 												assert
-												[call(==, [local-ref("setjmp_result"), call(number-to-throw, [])])])
+												[call(==, [local-ref(setjmp-result), call(number-to-throw, [])])])
 											let(
-												"thrown_exception"
+												thrown-exception
 												get-field(param-ref(ec), thrown-exception)
 												seq(
 													seq(
-														set-field(param-ref(ec), jmp-buf-ptr, local-ref("old_jmp_buf"))
+														set-field(param-ref(ec), jmp-buf-ptr, local-ref(old-jmp-buf))
 														set-field(
 															param-ref(ec)
 															thrown-exception
-															local-ref("old_thrown_exception")))
-													call(call, [param-ref(catcher), local-ref("thrown_exception")]))))))))))))
+															local-ref(old-thrown-exception)))
+													call(call, [param-ref(catcher), local-ref(thrown-exception)]))))))))))))
 		fun(false, zero, type(false, bytes64), none, [], expr-body([], record([call(zero, []), call(zero, [])])))
 		fun(false, zero, type(false, bytes32), none, [], expr-body([], record([call(zero, []), call(zero, [])])))
 		fun(false, zero, type(false, bytes16), none, [], expr-body([], record([call(zero, []), call(zero, [])])))
@@ -1892,23 +1880,23 @@ program(
 			some(param("<<closure>>", type(true, lambda(then, 0))))
 			[param(result, type(false, result))]
 			expr-body(
-				[local("o", type(false, ok)), local("e", type(false, err)), local("matched", type(false, result))]
+				[local(o, type(false, ok)), local(e, type(false, err)), local("<<matched>>", type(false, result))]
 				match(
-					"matched"
+					"<<matched>>"
 					param-ref(result)
 					[
 						case(
-							some("o")
+							some(o)
 							call(
 								forward-to
 								[
 									call(
 										call
-										[get-field(param-ref("<<closure>>"), cb), get-field(local-ref("o"), value)])
+										[get-field(param-ref("<<closure>>"), cb), get-field(local-ref(o), value)])
 									get-field(param-ref("<<closure>>"), res)]))
 						case(
-							some("e")
-							call(reject, [get-field(param-ref("<<closure>>"), res), get-field(local-ref("e"), value)]))])))
+							some(e)
+							call(reject, [get-field(param-ref("<<closure>>"), res), get-field(local-ref(e), value)]))])))
 		fun(
 			true
 			call
@@ -1916,25 +1904,25 @@ program(
 			none
 			[param(f, type(false, fun-ref0))]
 			expr-body(
-				[local("vat", type(true, vat)), local("res", type(true, fut))]
+				[local(vat, type(true, vat)), local(res, type(true, fut))]
 				let(
-					"vat"
+					vat
 					call(get-vat, [get-field(get-field(param-ref(f), vat-and-actor), vat)])
 					let(
-						"res"
+						res
 						call(new-unresolved-fut, [])
 						seq(
 							call(
 								add-task
 								[
-									local-ref("vat")
+									local-ref(vat)
 									record(
 										[
 											get-field(get-field(param-ref(f), vat-and-actor), actor)
 											lambda(
 												lambda(call, 0)
-												some(alloc(alloc, record([param-ref(f), local-ref("res")]))))])])
-							local-ref("res"))))))
+												some(alloc(alloc, record([param-ref(f), local-ref(res)]))))])])
+							local-ref(res))))))
 		fun(
 			true
 			call
@@ -2012,11 +2000,8 @@ program(
 			none
 			[]
 			expr-body(
-				[local("c", type(true, ctx))]
-				let(
-					"c"
-					call(get-ctx, [])
-					record([get-field(local-ref("c"), vat-id), get-field(local-ref("c"), actor-id)]))))
+				[local(c, type(true, ctx))]
+				let(c, call(get-ctx, []), record([get-field(local-ref(c), vat-id), get-field(local-ref(c), actor-id)]))))
 		fun(false, as, type(true, fut), none, [param(value, type(true, fut))], builtin([type(true, fut)]))
 		fun(
 			true
@@ -2097,9 +2082,9 @@ program(
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			expr-body(
-				[local("res", type(false, nat))]
+				[local(res, type(false, nat))]
 				let(
-					"res"
+					res
 					call(wrap-add, [param-ref(a), param-ref(b)])
 					seq(
 						call(
@@ -2107,10 +2092,8 @@ program(
 							[
 								call(
 									and
-									[
-										call(>=, [local-ref("res"), param-ref(a)])
-										call(>=, [local-ref("res"), param-ref(b)])])])
-						local-ref("res")))))
+									[call(>=, [local-ref(res), param-ref(a)]), call(>=, [local-ref(res), param-ref(b)])])])
+						local-ref(res)))))
 		fun(
 			false
 			and
@@ -2198,11 +2181,11 @@ program(
 			none
 			[param(size, type(false, nat)), param(f, type(false, fun-mut1))]
 			expr-body(
-				[local("res", type(true, mut-arr))]
+				[local(res, type(true, mut-arr))]
 				let(
-					"res"
+					res
 					call(new-uninitialized-mut-arr, [param-ref(size)])
-					seq(call(make-mut-arr-worker, [local-ref("res"), call(zero, []), param-ref(f)]), local-ref("res")))))
+					seq(call(make-mut-arr-worker, [local-ref(res), call(zero, []), param-ref(f)]), local-ref(res)))))
 		fun(
 			true
 			new-uninitialized-mut-arr
@@ -2222,11 +2205,11 @@ program(
 			none
 			[param(size, type(false, nat))]
 			expr-body(
-				[local("bptr", type(false, ptr))]
+				[local(bptr, type(false, ptr))]
 				let(
-					"bptr"
+					bptr
 					call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
-					call(ptr-cast, [local-ref("bptr")]))))
+					call(ptr-cast, [local-ref(bptr)]))))
 		fun(false, size-of, type(false, nat), none, [], builtin([type(false, arr)]))
 		fun(
 			false
@@ -2448,9 +2431,9 @@ program(
 			none
 			[param(a, type(false, char)), param(b, type(false, char))]
 			expr-body(
-				[local("matched", type(false, comparison))]
+				[local("<<matched>>", type(false, comparison))]
 				match(
-					"matched"
+					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
 		fun(
@@ -2509,9 +2492,9 @@ program(
 			some(param("<<closure>>", type(true, lambda(add-first-task, 0))))
 			[]
 			expr-body(
-				[local("args", type(false, arr))]
+				[local(args, type(false, arr))]
 				let(
-					"args"
+					args
 					call(tail, [get-field(param-ref("<<closure>>"), all-args)])
 					call(
 						call
@@ -2520,9 +2503,7 @@ program(
 							call(get-ctx, [])
 							call(
 								map
-								[
-									local-ref("args")
-									lambda(lambda(lambda(add-first-task, 0), 0), some(call(null-any, [])))])]))))
+								[local-ref(args), lambda(lambda(lambda(add-first-task, 0), 0), some(call(null-any, [])))])]))))
 		fun(
 			true
 			lambda(do-main, 0)
@@ -2571,12 +2552,12 @@ program(
 			none
 			[param(n-threads, type(false, nat)), param(arg, type(true, global-ctx)), param(fun, type(false, fun-ptr2))]
 			expr-body(
-				[local("threads", type(false, ptr)), local("thread_args", type(false, ptr))]
+				[local(threads, type(false, ptr)), local(thread-args, type(false, ptr))]
 				let(
-					"threads"
+					threads
 					call(unmanaged-alloc-elements, [param-ref(n-threads)])
 					let(
-						"thread_args"
+						thread-args
 						call(unmanaged-alloc-elements, [param-ref(n-threads)])
 						seq(
 							seq(
@@ -2586,15 +2567,13 @@ program(
 										[
 											call(zero, [])
 											param-ref(n-threads)
-											local-ref("threads")
-											local-ref("thread_args")
+											local-ref(threads)
+											local-ref(thread-args)
 											param-ref(arg)
 											param-ref(fun)])
-									call(
-										join-threads-recur
-										[call(zero, []), param-ref(n-threads), local-ref("threads")]))
-								call(unmanaged-free, [local-ref("threads")]))
-							call(unmanaged-free, [local-ref("thread_args")]))))))
+									call(join-threads-recur, [call(zero, []), param-ref(n-threads), local-ref(threads)]))
+								call(unmanaged-free, [local-ref(threads)]))
+							call(unmanaged-free, [local-ref(thread-args)]))))))
 		fun(
 			false
 			unmanaged-alloc-elements
@@ -2602,11 +2581,11 @@ program(
 			none
 			[param(size-elements, type(false, nat))]
 			expr-body(
-				[local("bytes", type(false, ptr))]
+				[local(bytes, type(false, ptr))]
 				let(
-					"bytes"
+					bytes
 					call(unmanaged-alloc-bytes, [call(wrap-mul, [param-ref(size-elements), call(size-of, [])])])
-					call(ptr-cast, [local-ref("bytes")]))))
+					call(ptr-cast, [local-ref(bytes)]))))
 		fun(false, size-of, type(false, nat), none, [], builtin([type(false, thread-args)]))
 		fun(
 			false
@@ -2629,37 +2608,37 @@ program(
 				param(fun, type(false, fun-ptr2))]
 			expr-body(
 				[
-					local("thread_arg_ptr", type(false, ptr))
-					local("thread_ptr", type(false, ptr))
-					local("fn", type(false, fun-ptr1))
-					local("err", type(false, int32))]
+					local(thread-arg-ptr, type(false, ptr))
+					local(thread-ptr, type(false, ptr))
+					local(fn, type(false, fun-ptr1))
+					local(err, type(false, int32))]
 				cond(
 					call(==, [param-ref(i), param-ref(n-threads)])
 					call(pass, [])
 					let(
-						"thread_arg_ptr"
+						thread-arg-ptr
 						call(+, [param-ref(thread-args), param-ref(i)])
 						seq(
 							call(
 								set
-								[local-ref("thread_arg_ptr"), record([param-ref(fun), param-ref(i), param-ref(arg)])])
+								[local-ref(thread-arg-ptr), record([param-ref(fun), param-ref(i), param-ref(arg)])])
 							let(
-								"thread_ptr"
+								thread-ptr
 								call(+, [param-ref(threads), param-ref(i)])
 								let(
-									"fn"
+									fn
 									call(as, [lambda(lambda(run-threads-recur, 0), none)])
 									let(
-										"err"
+										err
 										call(
 											pthread-create
 											[
-												call(as-cell, [local-ref("thread_ptr")])
+												call(as-cell, [local-ref(thread-ptr)])
 												call(null, [])
-												local-ref("fn")
-												call(as-any-ptr, [local-ref("thread_arg_ptr")])])
+												local-ref(fn)
+												call(as-any-ptr, [local-ref(thread-arg-ptr)])])
 										cond(
-											call(zero?, [local-ref("err")])
+											call(zero?, [local-ref(err)])
 											call(
 												run-threads-recur
 												[
@@ -2670,7 +2649,7 @@ program(
 													param-ref(arg)
 													param-ref(fun)])
 											cond(
-												call(==, [local-ref("err"), call(eagain, [])])
+												call(==, [local-ref(err), call(eagain, [])])
 												call(todo, [])
 												call(todo, [])))))))))))
 		fun(
@@ -2708,17 +2687,17 @@ program(
 			none
 			[param(args-ptr, type(false, ptr))]
 			expr-body(
-				[local("args", type(true, thread-args))]
+				[local(args, type(true, thread-args))]
 				let(
-					"args"
+					args
 					call(as-ref, [param-ref(args-ptr)])
 					seq(
 						call(
 							call
 							[
-								get-field(local-ref("args"), fun)
-								get-field(local-ref("args"), thread-id)
-								get-field(local-ref("args"), arg)])
+								get-field(local-ref(args), fun)
+								get-field(local-ref(args), thread-id)
+								get-field(local-ref(args), arg)])
 						call(null, [])))))
 		fun(
 			false
@@ -2787,24 +2766,24 @@ program(
 			none
 			[param(tid, type(false, nat))]
 			expr-body(
-				[local("thread_return", type(false, cell)), local("err", type(false, int32))]
+				[local(thread-return, type(false, cell)), local(err, type(false, int32))]
 				let(
-					"thread_return"
+					thread-return
 					record([call(null, [])])
 					let(
-						"err"
-						call(pthread-join, [param-ref(tid), call(ref-of-val, [local-ref("thread_return")])])
+						err
+						call(pthread-join, [param-ref(tid), call(ref-of-val, [local-ref(thread-return)])])
 						seq(
 							cond(
-								call(zero?, [local-ref("err")])
+								call(zero?, [local-ref(err)])
 								call(pass, [])
 								cond(
-									call(==, [local-ref("err"), call(einval, [])])
+									call(==, [local-ref(err), call(einval, [])])
 									call(todo, [])
-									cond(call(==, [local-ref("err"), call(esrch, [])]), call(todo, []), call(todo, []))))
+									cond(call(==, [local-ref(err), call(esrch, [])]), call(todo, []), call(todo, []))))
 							call(
 								hard-assert
-								[call(null?, [call(get, [call(ref-of-val, [local-ref("thread_return")])])])]))))))
+								[call(null?, [call(get, [call(ref-of-val, [local-ref(thread-return)])])])]))))))
 		fun(
 			false
 			pthread-join
@@ -2865,16 +2844,16 @@ program(
 			none
 			[param(thread-id, type(false, nat)), param(gctx, type(true, global-ctx))]
 			expr-body(
-				[local("ectx", type(false, exception-ctx)), local("tls", type(false, thread-local-stuff))]
+				[local(ectx, type(false, exception-ctx)), local(tls, type(false, thread-local-stuff))]
 				let(
-					"ectx"
+					ectx
 					call(new-exception-ctx, [])
 					let(
-						"tls"
-						call(as, [record([call(ref-of-val, [local-ref("ectx")])])])
+						tls
+						call(as, [record([call(ref-of-val, [local-ref(ectx)])])])
 						call(
 							thread-function-recur
-							[param-ref(thread-id), param-ref(gctx), call(ref-of-val, [local-ref("tls")])])))))
+							[param-ref(thread-id), param-ref(gctx), call(ref-of-val, [local-ref(tls)])])))))
 		fun(
 			false
 			as
@@ -2893,10 +2872,10 @@ program(
 				param(tls, type(true, thread-local-stuff))]
 			expr-body(
 				[
-					local("last_checked", type(false, nat))
-					local("ok_chosen_task", type(false, ok))
-					local("e", type(false, err))
-					local("matched", type(false, result))]
+					local(last-checked, type(false, nat))
+					local(ok-chosen-task, type(false, ok))
+					local(e, type(false, err))
+					local("<<matched>>", type(false, result))]
 				cond(
 					get-field(param-ref(gctx), is-shut-down)
 					seq(
@@ -2912,28 +2891,28 @@ program(
 					seq(
 						call(hard-assert, [call(>, [get-field(param-ref(gctx), n-live-threads), call(zero, [])])])
 						let(
-							"last_checked"
+							last-checked
 							call(get-last-checked, [call(ref-of-val, [get-field(param-ref(gctx), may-be-work-to-do)])])
 							seq(
 								match(
-									"matched"
+									"<<matched>>"
 									call(choose-task, [param-ref(gctx)])
 									[
 										case(
-											some("ok_chosen_task")
+											some(ok-chosen-task)
 											call(
 												do-task
 												[
 													param-ref(gctx)
 													param-ref(tls)
-													get-field(local-ref("ok_chosen_task"), value)]))
+													get-field(local-ref(ok-chosen-task), value)]))
 										case(
-											some("e")
+											some(e)
 											seq(
 												seq(
 													seq(
 														cond(
-															get-field(get-field(local-ref("e"), value), last-thread-out)
+															get-field(get-field(local-ref(e), value), last-thread-out)
 															seq(
 																seq(
 																	call(
@@ -2958,7 +2937,7 @@ program(
 																	call(
 																		ref-of-val
 																		[get-field(param-ref(gctx), may-be-work-to-do)])
-																	local-ref("last_checked")]))
+																	local-ref(last-checked)]))
 														call(
 															acquire-lock
 															[call(ref-of-val, [get-field(param-ref(gctx), lk)])]))
@@ -2984,12 +2963,12 @@ program(
 			none
 			[param(i, type(false, nat)), param(vats, type(false, arr))]
 			expr-body(
-				[local("vat", type(true, vat))]
+				[local(vat, type(true, vat))]
 				cond(
 					call(==, [param-ref(i), get-field(param-ref(vats), size)])
 					call(pass, [])
 					let(
-						"vat"
+						vat
 						call(noctx-at, [param-ref(vats), param-ref(i)])
 						seq(
 							seq(
@@ -2998,20 +2977,15 @@ program(
 										seq(
 											call(
 												acquire-lock
-												[call(ref-of-val, [get-field(local-ref("vat"), tasks-lock)])])
+												[call(ref-of-val, [get-field(local-ref(vat), tasks-lock)])])
 											call(
 												hard-forbid
-												[
-													get-field(
-														call(ref-of-val, [get-field(local-ref("vat"), gc)])
-														needs-gc)]))
-										call(
-											hard-assert
-											[call(zero?, [get-field(local-ref("vat"), n-threads-running)])]))
+												[get-field(call(ref-of-val, [get-field(local-ref(vat), gc)]), needs-gc)]))
+										call(hard-assert, [call(zero?, [get-field(local-ref(vat), n-threads-running)])]))
 									call(
 										hard-assert
-										[call(empty?, [call(ref-of-val, [get-field(local-ref("vat"), tasks)])])]))
-								call(release-lock, [call(ref-of-val, [get-field(local-ref("vat"), tasks-lock)])]))
+										[call(empty?, [call(ref-of-val, [get-field(local-ref(vat), tasks)])])]))
+								call(release-lock, [call(ref-of-val, [get-field(local-ref(vat), tasks-lock)])]))
 							call(assert-vats-are-shut-down, [call(noctx-incr, [param-ref(i)]), param-ref(vats)]))))))
 		fun(
 			false
@@ -3027,8 +3001,8 @@ program(
 			none
 			[param(a, type(false, opt))]
 			expr-body(
-				[local("n", type(false, none)), local("s", type(false, some)), local("matched", type(false, opt))]
-				match("matched", param-ref(a), [case(some("n"), call(true, [])), case(some("s"), call(false, []))])))
+				[local(n, type(false, none)), local(s, type(false, some)), local("<<matched>>", type(false, opt))]
+				match("<<matched>>", param-ref(a), [case(some(n), call(true, [])), case(some(s), call(false, []))])))
 		fun(
 			false
 			>
@@ -3050,16 +3024,16 @@ program(
 			none
 			[param(gctx, type(true, global-ctx))]
 			expr-body(
-				[local("s", type(false, some)), local("matched", type(false, opt)), local("res", type(false, result))]
+				[local(s, type(false, some)), local("<<matched>>", type(false, opt)), local(res, type(false, result))]
 				seq(
 					call(acquire-lock, [call(ref-of-val, [get-field(param-ref(gctx), lk)])])
 					let(
-						"res"
+						res
 						call(
 							as
 							[
 								match(
-									"matched"
+									"<<matched>>"
 									call(choose-task-recur, [get-field(param-ref(gctx), vats), call(zero, [])])
 									[
 										case(
@@ -3079,8 +3053,8 @@ program(
 																	call(
 																		zero?
 																		[get-field(param-ref(gctx), n-live-threads)])])]))))
-										case(some("s"), to-union(0, call(ok, [get-field(local-ref("s"), value)])))])])
-						seq(call(release-lock, [call(ref-of-val, [get-field(param-ref(gctx), lk)])]), local-ref("res"))))))
+										case(some(s), to-union(0, call(ok, [get-field(local-ref(s), value)])))])])
+						seq(call(release-lock, [call(ref-of-val, [get-field(param-ref(gctx), lk)])]), local-ref(res))))))
 		fun(false, as, type(false, result), none, [param(value, type(false, result))], builtin([type(false, result)]))
 		fun(
 			false
@@ -3089,23 +3063,21 @@ program(
 			none
 			[param(vats, type(false, arr)), param(i, type(false, nat))]
 			expr-body(
-				[local("vat", type(true, vat)), local("s", type(false, some)), local("matched", type(false, opt))]
+				[local(vat, type(true, vat)), local(s, type(false, some)), local("<<matched>>", type(false, opt))]
 				cond(
 					call(==, [param-ref(i), get-field(param-ref(vats), size)])
 					to-union(0, call(none, []))
 					let(
-						"vat"
+						vat
 						call(noctx-at, [param-ref(vats), param-ref(i)])
 						match(
-							"matched"
-							call(choose-task-in-vat, [local-ref("vat")])
+							"<<matched>>"
+							call(choose-task-in-vat, [local-ref(vat)])
 							[
 								case(none, call(choose-task-recur, [param-ref(vats), call(noctx-incr, [param-ref(i)])]))
 								case(
-									some("s")
-									to-union(
-										1
-										call(some, [record([local-ref("vat"), get-field(local-ref("s"), value)])])))])))))
+									some(s)
+									to-union(1, call(some, [record([local-ref(vat), get-field(local-ref(s), value)])])))])))))
 		fun(
 			false
 			choose-task-in-vat
@@ -3113,11 +3085,11 @@ program(
 			none
 			[param(vat, type(true, vat))]
 			expr-body(
-				[local("s", type(false, some)), local("matched", type(false, opt)), local("res", type(false, opt))]
+				[local(s, type(false, some)), local("<<matched>>", type(false, opt)), local(res, type(false, opt))]
 				seq(
 					call(acquire-lock, [call(ref-of-val, [get-field(param-ref(vat), tasks-lock)])])
 					let(
-						"res"
+						res
 						call(
 							as
 							[
@@ -3128,28 +3100,28 @@ program(
 										to-union(1, call(some, [to-union(0, call(none, []))]))
 										to-union(0, call(none, [])))
 									match(
-										"matched"
+										"<<matched>>"
 										call(find-and-remove-first-doable-task, [param-ref(vat)])
 										[
 											case(none, to-union(0, call(none, [])))
 											case(
-												some("s")
+												some(s)
 												to-union(
 													1
 													call(
 														some
-														[to-union(1, call(some, [get-field(local-ref("s"), value)]))])))]))])
+														[to-union(1, call(some, [get-field(local-ref(s), value)]))])))]))])
 						seq(
 							seq(
 								cond(
-									call(empty?, [local-ref("res")])
+									call(empty?, [local-ref(res)])
 									call(pass, [])
 									set-field(
 										param-ref(vat)
 										n-threads-running
 										call(noctx-incr, [get-field(param-ref(vat), n-threads-running)])))
 								call(release-lock, [call(ref-of-val, [get-field(param-ref(vat), tasks-lock)])]))
-							local-ref("res"))))))
+							local-ref(res))))))
 		fun(false, as, type(false, opt), none, [param(value, type(false, opt))], builtin([type(false, opt)]))
 		fun(false, some, type(false, some), none, [param(t, type(false, opt))], expr-body([], record([param-ref(t)])))
 		fun(
@@ -3160,31 +3132,31 @@ program(
 			[param(vat, type(true, vat))]
 			expr-body(
 				[
-					local("tasks", type(true, mut-bag))
-					local("res", type(false, opt))
-					local("s", type(false, some))
-					local("matched", type(false, opt))]
+					local(tasks, type(true, mut-bag))
+					local(res, type(false, opt))
+					local(s, type(false, some))
+					local("<<matched>>", type(false, opt))]
 				let(
-					"tasks"
+					tasks
 					call(ref-of-val, [get-field(param-ref(vat), tasks)])
 					let(
-						"res"
+						res
 						call(
 							find-and-remove-first-doable-task-recur
-							[param-ref(vat), get-field(local-ref("tasks"), head)])
+							[param-ref(vat), get-field(local-ref(tasks), head)])
 						match(
-							"matched"
-							local-ref("res")
+							"<<matched>>"
+							local-ref(res)
 							[
 								case(none, to-union(0, call(none, [])))
 								case(
-									some("s")
+									some(s)
 									seq(
 										set-field(
-											local-ref("tasks")
+											local-ref(tasks)
 											head
-											get-field(get-field(local-ref("s"), value), nodes))
-										to-union(1, call(some, [get-field(get-field(local-ref("s"), value), task)]))))])))))
+											get-field(get-field(local-ref(s), value), nodes))
+										to-union(1, call(some, [get-field(get-field(local-ref(s), value), task)]))))])))))
 		fun(
 			false
 			find-and-remove-first-doable-task-recur
@@ -3193,71 +3165,69 @@ program(
 			[param(vat, type(true, vat)), param(opt-node, type(false, opt))]
 			expr-body(
 				[
-					local("s", type(false, some))
-					local("node", type(true, mut-bag-node))
-					local("task", type(false, task))
-					local("actors", type(true, mut-arr))
-					local("task_ok", type(false, bool))
-					local("ss", type(false, some))
-					local("tn", type(false, task-and-nodes))
-					local("matched", type(false, opt))
-					local("matched1", type(false, opt))]
+					local(s, type(false, some))
+					local(node, type(true, mut-bag-node))
+					local(task, type(false, task))
+					local(actors, type(true, mut-arr))
+					local(task-ok, type(false, bool))
+					local(ss, type(false, some))
+					local(tn, type(false, task-and-nodes))
+					local("<<matched>>", type(false, opt))
+					local("<<matched>>", type(false, opt))]
 				match(
-					"matched1"
+					"<<matched>>"
 					param-ref(opt-node)
 					[
 						case(none, to-union(0, call(none, [])))
 						case(
-							some("s")
+							some(s)
 							let(
-								"node"
-								get-field(local-ref("s"), value)
+								node
+								get-field(local-ref(s), value)
 								let(
-									"task"
-									get-field(local-ref("node"), value)
+									task
+									get-field(local-ref(node), value)
 									let(
-										"actors"
+										actors
 										call(ref-of-val, [get-field(param-ref(vat), currently-running-actors)])
 										let(
-											"task_ok"
+											task-ok
 											cond(
 												call(
 													contains?
-													[local-ref("actors"), get-field(local-ref("task"), actor-id)])
+													[local-ref(actors), get-field(local-ref(task), actor-id)])
 												call(false, [])
 												seq(
 													call(
 														push-capacity-must-be-sufficient
-														[local-ref("actors"), get-field(local-ref("task"), actor-id)])
+														[local-ref(actors), get-field(local-ref(task), actor-id)])
 													call(true, [])))
 											cond(
-												local-ref("task_ok")
+												local-ref(task-ok)
 												to-union(
 													1
 													call(
 														some
 														[
 															record(
-																[
-																	local-ref("task")
-																	get-field(local-ref("node"), next-node)])]))
+																[local-ref(task), get-field(local-ref(node), next-node)])]))
 												match(
-													"matched"
+													"<<matched>>"
 													call(
 														find-and-remove-first-doable-task-recur
-														[param-ref(vat), get-field(local-ref("node"), next-node)])
+														[param-ref(vat), get-field(local-ref(node), next-node)])
 													[
 														case(none, to-union(0, call(none, [])))
 														case(
-															some("ss")
+															some(ss)
 															let(
-																"tn"
-																call(as, [get-field(local-ref("ss"), value)])
+																tn
+																call(as, [get-field(local-ref(ss), value)])
 																seq(
 																	set-field(
-																		local-ref("node")
+																		local-ref(node)
 																		next-node
-																		get-field(local-ref("tn"), nodes))
+																		get-field(local-ref(tn), nodes))
 																	to-union(
 																		1
 																		call(
@@ -3265,12 +3235,12 @@ program(
 																			[
 																				record(
 																					[
-																						get-field(local-ref("tn"), task)
+																						get-field(local-ref(tn), task)
 																						to-union(
 																							1
 																							call(
 																								some
-																								[local-ref("node")]))])])))))])))))))])))
+																								[local-ref(node)]))])])))))])))))))])))
 		fun(
 			false
 			ref-of-val
@@ -3327,15 +3297,15 @@ program(
 			none
 			[param(a, type(true, mut-arr)), param(value, type(false, nat))]
 			expr-body(
-				[local("old_size", type(false, nat))]
+				[local(old-size, type(false, nat))]
 				seq(
 					call(hard-assert, [call(<, [get-field(param-ref(a), size), get-field(param-ref(a), capacity)])])
 					let(
-						"old_size"
+						old-size
 						get-field(param-ref(a), size)
 						seq(
-							set-field(param-ref(a), size, call(noctx-incr, [local-ref("old_size")]))
-							call(noctx-set-at, [param-ref(a), local-ref("old_size"), param-ref(value)]))))))
+							set-field(param-ref(a), size, call(noctx-incr, [local-ref(old-size)]))
+							call(noctx-set-at, [param-ref(a), local-ref(old-size), param-ref(value)]))))))
 		fun(
 			false
 			noctx-set-at
@@ -3376,8 +3346,8 @@ program(
 			none
 			[param(a, type(false, opt))]
 			expr-body(
-				[local("n", type(false, none)), local("s", type(false, some)), local("matched", type(false, opt))]
-				match("matched", param-ref(a), [case(some("n"), call(true, [])), case(some("s"), call(false, []))])))
+				[local(n, type(false, none)), local(s, type(false, some)), local("<<matched>>", type(false, opt))]
+				match("<<matched>>", param-ref(a), [case(some(n), call(true, [])), case(some(s), call(false, []))])))
 		fun(
 			false
 			some
@@ -3410,19 +3380,19 @@ program(
 				param(chosen-task, type(false, chosen-task))]
 			expr-body(
 				[
-					local("vat", type(true, vat))
-					local("some_task", type(false, some))
-					local("task", type(false, task))
-					local("ctx", type(false, ctx))
-					local("matched", type(false, opt))]
+					local(vat, type(true, vat))
+					local(some-task, type(false, some))
+					local(task, type(false, task))
+					local(ctx, type(false, ctx))
+					local("<<matched>>", type(false, opt))]
 				let(
-					"vat"
+					vat
 					get-field(param-ref(chosen-task), vat)
 					seq(
 						seq(
 							seq(
 								match(
-									"matched"
+									"<<matched>>"
 									get-field(param-ref(chosen-task), task-or-gc)
 									[
 										case(
@@ -3433,19 +3403,19 @@ program(
 													broadcast
 													[call(ref-of-val, [get-field(param-ref(gctx), may-be-work-to-do)])])))
 										case(
-											some("some_task")
+											some(some-task)
 											let(
-												"task"
-												get-field(local-ref("some_task"), value)
+												task
+												get-field(local-ref(some-task), value)
 												let(
-													"ctx"
+													ctx
 													call(
 														new-ctx
 														[
 															param-ref(gctx)
 															param-ref(tls)
-															local-ref("vat")
-															get-field(local-ref("task"), actor-id)])
+															local-ref(vat)
+															get-field(local-ref(task), actor-id)])
 													seq(
 														seq(
 															seq(
@@ -3453,17 +3423,14 @@ program(
 																	call(
 																		call-with-ctx
 																		[
-																			call(ref-of-val, [local-ref("ctx")])
-																			get-field(local-ref("task"), fun)])
+																			call(ref-of-val, [local-ref(ctx)])
+																			get-field(local-ref(task), fun)])
 																	call(
 																		acquire-lock
 																		[
 																			call(
 																				ref-of-val
-																				[
-																					get-field(
-																						local-ref("vat")
-																						tasks-lock)])]))
+																				[get-field(local-ref(vat), tasks-lock)])]))
 																call(
 																	noctx-must-remove-unordered
 																	[
@@ -3471,22 +3438,22 @@ program(
 																			ref-of-val
 																			[
 																				get-field(
-																					local-ref("vat")
+																					local-ref(vat)
 																					currently-running-actors)])
-																		get-field(local-ref("task"), actor-id)]))
+																		get-field(local-ref(task), actor-id)]))
 															call(
 																release-lock
 																[
 																	call(
 																		ref-of-val
-																		[get-field(local-ref("vat"), tasks-lock)])]))
-														call(return-ctx, [call(ref-of-val, [local-ref("ctx")])])))))])
-								call(acquire-lock, [call(ref-of-val, [get-field(local-ref("vat"), tasks-lock)])]))
+																		[get-field(local-ref(vat), tasks-lock)])]))
+														call(return-ctx, [call(ref-of-val, [local-ref(ctx)])])))))])
+								call(acquire-lock, [call(ref-of-val, [get-field(local-ref(vat), tasks-lock)])]))
 							set-field(
-								local-ref("vat")
+								local-ref(vat)
 								n-threads-running
-								call(noctx-decr, [get-field(local-ref("vat"), n-threads-running)])))
-						call(release-lock, [call(ref-of-val, [get-field(local-ref("vat"), tasks-lock)])])))))
+								call(noctx-decr, [get-field(local-ref(vat), n-threads-running)])))
+						call(release-lock, [call(ref-of-val, [get-field(local-ref(vat), tasks-lock)])])))))
 		fun(
 			false
 			noctx-must-remove-unordered
@@ -3530,15 +3497,15 @@ program(
 			none
 			[param(a, type(true, mut-arr)), param(index, type(false, nat))]
 			expr-body(
-				[local("res", type(false, nat))]
+				[local(res, type(false, nat))]
 				let(
-					"res"
+					res
 					call(noctx-at, [param-ref(a), param-ref(index)])
 					seq(
 						seq(
 							call(noctx-set-at, [param-ref(a), param-ref(index), call(noctx-last, [param-ref(a)])])
 							set-field(param-ref(a), size, call(noctx-decr, [get-field(param-ref(a), size)])))
-						local-ref("res")))))
+						local-ref(res)))))
 		fun(
 			false
 			noctx-last
@@ -3571,17 +3538,17 @@ program(
 			none
 			[param(gc-ctx, type(true, gc-ctx))]
 			expr-body(
-				[local("gc", type(true, gc))]
+				[local(gc, type(true, gc))]
 				let(
-					"gc"
+					gc
 					get-field(param-ref(gc-ctx), gc)
 					seq(
 						seq(
 							seq(
-								call(acquire-lock, [call(ref-of-val, [get-field(local-ref("gc"), lk)])])
-								set-field(param-ref(gc-ctx), next-ctx, get-field(local-ref("gc"), context-head)))
-							set-field(local-ref("gc"), context-head, to-union(1, call(some, [param-ref(gc-ctx)]))))
-						call(release-lock, [call(ref-of-val, [get-field(local-ref("gc"), lk)])])))))
+								call(acquire-lock, [call(ref-of-val, [get-field(local-ref(gc), lk)])])
+								set-field(param-ref(gc-ctx), next-ctx, get-field(local-ref(gc), context-head)))
+							set-field(local-ref(gc), context-head, to-union(1, call(some, [param-ref(gc-ctx)]))))
+						call(release-lock, [call(ref-of-val, [get-field(local-ref(gc), lk)])])))))
 		fun(false, some, type(false, some), none, [param(t, type(true, gc-ctx))], expr-body([], record([param-ref(t)])))
 		fun(
 			false
@@ -3610,16 +3577,16 @@ program(
 			[param(f, type(true, fut))]
 			expr-body(
 				[
-					local("r", type(false, fut-state-resolved))
-					local("e", type(false, exception))
-					local("matched", type(false, fut-state))]
+					local(r, type(false, fut-state-resolved))
+					local(e, type(false, exception))
+					local("<<matched>>", type(false, fut-state))]
 				match(
-					"matched"
+					"<<matched>>"
 					get-field(param-ref(f), state)
 					[
 						case(none, call(hard-unreachable, []))
-						case(some("r"), to-union(0, call(ok, [get-field(local-ref("r"), value)])))
-						case(some("e"), to-union(1, call(err, [local-ref("e")])))])))
+						case(some(r), to-union(0, call(ok, [get-field(local-ref(r), value)])))
+						case(some(e), to-union(1, call(err, [local-ref(e)])))])))
 		fun(
 			false
 			hard-unreachable
@@ -3655,27 +3622,27 @@ program(
 			[]
 			expr-body(
 				[
-					local("a", type(false, my-record))
-					local("b", type(false, my-record))
-					local("c", type(false, my-record))
-					local("d", type(false, my-record))]
+					local(a, type(false, my-record))
+					local(b, type(false, my-record))
+					local(c, type(false, my-record))
+					local(d, type(false, my-record))]
 				let(
-					"a"
+					a
 					record([call(literal, [str-lit("1")]), call(literal, [str-lit("2")])])
 					let(
-						"b"
+						b
 						record([call(literal, [str-lit("1")]), call(literal, [str-lit("3")])])
 						let(
-							"c"
+							c
 							record([call(literal, [str-lit("1")]), call(literal, [str-lit("2")])])
 							let(
-								"d"
+								d
 								record([call(literal, [str-lit("0")]), call(literal, [str-lit("3")])])
 								seq(
 									seq(
-										call(print-sync, [call(to-str, [call(<=>, [local-ref("a"), local-ref("b")])])])
-										call(print-sync, [call(to-str, [call(<=>, [local-ref("a"), local-ref("c")])])]))
-									call(print-sync, [call(to-str, [call(<=>, [local-ref("a"), local-ref("d")])])]))))))))
+										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(b)])])])
+										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(c)])])]))
+									call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(d)])])]))))))))
 		fun(
 			true
 			literal
@@ -3683,17 +3650,17 @@ program(
 			none
 			[param(s, type(false, arr))]
 			expr-body(
-				[local("higher_digits", type(false, nat))]
+				[local(higher-digits, type(false, nat))]
 				cond(
 					call(empty?, [param-ref(s)])
 					call(zero, [])
 					let(
-						"higher_digits"
+						higher-digits
 						call(as, [call(literal, [call(rtail, [param-ref(s)])])])
 						call(
 							+
 							[
-								call(*, [local-ref("higher_digits"), call(ten, [])])
+								call(*, [local-ref(higher-digits), call(ten, [])])
 								call(char-to-nat, [call(last, [param-ref(s)])])])))))
 		fun(
 			true
@@ -3740,18 +3707,18 @@ program(
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			expr-body(
-				[local("res", type(false, nat))]
+				[local(res, type(false, nat))]
 				cond(
 					call(or, [call(zero?, [param-ref(a)]), call(zero?, [param-ref(b)])])
 					call(zero, [])
 					let(
-						"res"
+						res
 						call(wrap-mul, [param-ref(a), param-ref(b)])
 						seq(
 							seq(
-								call(assert, [call(==, [call(/, [local-ref("res"), param-ref(b)]), param-ref(a)])])
-								call(assert, [call(==, [call(/, [local-ref("res"), param-ref(a)]), param-ref(b)])]))
-							local-ref("res"))))))
+								call(assert, [call(==, [call(/, [local-ref(res), param-ref(b)]), param-ref(a)])])
+								call(assert, [call(==, [call(/, [local-ref(res), param-ref(a)]), param-ref(b)])]))
+							local-ref(res))))))
 		fun(
 			true
 			/
@@ -3853,9 +3820,9 @@ program(
 			none
 			[param(c, type(false, comparison))]
 			expr-body(
-				[local("matched", type(false, comparison))]
+				[local("<<matched>>", type(false, comparison))]
 				match(
-					"matched"
+					"<<matched>>"
 					param-ref(c)
 					[case(none, str-lit("less")), case(none, str-lit("equal")), case(none, str-lit("greater"))])))
 		fun(
@@ -3873,27 +3840,27 @@ program(
 			[]
 			expr-body(
 				[
-					local("a", type(true, my-byref-record))
-					local("b", type(true, my-byref-record))
-					local("c", type(true, my-byref-record))
-					local("d", type(true, my-byref-record))]
+					local(a, type(true, my-byref-record))
+					local(b, type(true, my-byref-record))
+					local(c, type(true, my-byref-record))
+					local(d, type(true, my-byref-record))]
 				let(
-					"a"
+					a
 					alloc(alloc, record([call(literal, [str-lit("1")]), call(literal, [str-lit("2")])]))
 					let(
-						"b"
+						b
 						alloc(alloc, record([call(literal, [str-lit("1")]), call(literal, [str-lit("3")])]))
 						let(
-							"c"
+							c
 							alloc(alloc, record([call(literal, [str-lit("1")]), call(literal, [str-lit("2")])]))
 							let(
-								"d"
+								d
 								alloc(alloc, record([call(literal, [str-lit("0")]), call(literal, [str-lit("3")])]))
 								seq(
 									seq(
-										call(print-sync, [call(to-str, [call(<=>, [local-ref("a"), local-ref("b")])])])
-										call(print-sync, [call(to-str, [call(<=>, [local-ref("a"), local-ref("c")])])]))
-									call(print-sync, [call(to-str, [call(<=>, [local-ref("a"), local-ref("d")])])]))))))))
+										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(b)])])])
+										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(c)])])]))
+									call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(d)])])]))))))))
 		fun(
 			false
 			<=>
@@ -3909,31 +3876,31 @@ program(
 			[]
 			expr-body(
 				[
-					local("a", type(false, my-union))
-					local("b", type(false, my-union))
-					local("c", type(false, my-union))
-					local("d", type(false, my-union))]
+					local(a, type(false, my-union))
+					local(b, type(false, my-union))
+					local(c, type(false, my-union))
+					local(d, type(false, my-union))]
 				let(
-					"a"
+					a
 					call(as, [to-union(0, record([call(literal, [str-lit("1")]), call(literal, [str-lit("2")])]))])
 					let(
-						"b"
+						b
 						call(as, [to-union(1, record([]))])
 						let(
-							"c"
+							c
 							call(
 								as
 								[to-union(0, record([call(literal, [str-lit("1")]), call(literal, [str-lit("2")])]))])
 							let(
-								"d"
+								d
 								call(
 									as
 									[to-union(0, record([call(literal, [str-lit("1")]), call(literal, [str-lit("1")])]))])
 								seq(
 									seq(
-										call(print-sync, [call(to-str, [call(<=>, [local-ref("a"), local-ref("b")])])])
-										call(print-sync, [call(to-str, [call(<=>, [local-ref("a"), local-ref("c")])])]))
-									call(print-sync, [call(to-str, [call(<=>, [local-ref("a"), local-ref("d")])])]))))))))
+										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(b)])])])
+										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(c)])])]))
+									call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(d)])])]))))))))
 		fun(
 			false
 			as
@@ -3971,15 +3938,15 @@ program(
 			none
 			[param(s, type(false, arr))]
 			expr-body(
-				[local("fst", type(false, char)), local("n", type(false, nat))]
+				[local(fst, type(false, char)), local(n, type(false, nat))]
 				let(
-					"fst"
+					fst
 					call(at, [param-ref(s), call(zero, [])])
 					cond(
-						call(==, [local-ref("fst"), call(literal, [str-lit("-")])])
-						let("n", call(as, [call(literal, [call(tail, [param-ref(s)])])]), call(neg, [local-ref("n")]))
+						call(==, [local-ref(fst), call(literal, [str-lit("-")])])
+						let(n, call(as, [call(literal, [call(tail, [param-ref(s)])])]), call(neg, [local-ref(n)]))
 						cond(
-							call(==, [local-ref("fst"), call(literal, [str-lit("+")])])
+							call(==, [local-ref(fst), call(literal, [str-lit("+")])])
 							call(to-int, [call(as, [call(literal, [call(tail, [param-ref(s)])])])])
 							call(to-int, [call(as, [call(literal, [param-ref(s)])])]))))))
 		fun(
@@ -4058,9 +4025,9 @@ program(
 			none
 			[param(a, type(false, int)), param(b, type(false, int))]
 			expr-body(
-				[local("matched", type(false, comparison))]
+				[local("<<matched>>", type(false, comparison))]
 				match(
-					"matched"
+					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
 		fun(
