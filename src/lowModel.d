@@ -2,7 +2,18 @@ module lowModel;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : ConcreteField, ConcreteFun, ConcreteLocal, ConcreteParam, ConcreteStruct, isArr, name;
+import concreteModel :
+	ConcreteField,
+	ConcreteFun,
+	concreteFunRange,
+	ConcreteFunSource,
+	ConcreteLocal,
+	ConcreteParam,
+	ConcreteStruct,
+	isArr,
+	matchConcreteFunSource,
+	name;
+import model : decl, FunInst, range;
 import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.collection.fullIndexDict : FullIndexDict;
@@ -410,6 +421,15 @@ struct LowFun {
 	immutable LowType returnType;
 	immutable Arr!LowParam params;
 	immutable LowFunBody body_;
+}
+
+immutable(FileAndRange) lowFunRange(ref immutable LowFun a) {
+	return matchLowFunSource!(immutable FileAndRange)(
+		a.source,
+		(immutable Ptr!ConcreteFun cf) =>
+			concreteFunRange(cf),
+		(ref immutable LowFunSource.Generated) =>
+			FileAndRange.empty);
 }
 
 // TODO: use Ptr!ConcreteExpr

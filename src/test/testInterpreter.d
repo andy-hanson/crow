@@ -5,7 +5,7 @@ module test.testInterpreter;
 import core.stdc.stdio : printf;
 import diag : FilesInfo;
 import model : AbsolutePathsGetter;
-import interpret.bytecode : ByteCode, ByteCodeIndex, FileToFuns, FnOp, FunNameAndPos;
+import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, FileToFuns, FnOp, FunNameAndPos;
 import interpret.runBytecode :
 	DataStack,
 	nextByteCodeIndex,
@@ -44,18 +44,31 @@ import interpret.bytecodeWriter :
 	writeStackRef,
 	writeSwitchDelay,
 	writeWrite;
+import lower.lowExprHelpers : nat64Type;
+import lowModel :
+	LowExternPtrType,
+	LowFun,
+	LowFunBody,
+	LowFunIndex,
+	LowFunPtrType,
+	LowFunSource,
+	LowParam,
+	LowProgram,
+	LowRecord,
+	LowType,
+	LowUnion;
 import test.testUtil : expectDataStack, expectReturnStack;
 import util.alloc.stackAlloc : StackAlloc;
-import util.bools : Bool;
-import util.collection.arr : Arr, arrOfD, range;
+import util.bools : Bool, False;
+import util.collection.arr : Arr, arrOfD, emptyArr, range;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.globalAllocatedStack : begin, pop, push;
-import util.collection.str : emptyStr;
+import util.collection.str : emptyStr, strLiteral;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.opt : none;
 import util.path : Path, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : FileAndRange, FileIndex, Pos;
+import util.sourceRange : FileIndex, Pos;
 import util.sym : shortSymAlphaLiteral;
 import util.types : Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64;
 import util.util : repeatImpure, verify, verifyEq;
@@ -83,11 +96,11 @@ immutable(ByteCode) makeByteCode(Alloc)(
 	ref Alloc alloc,
 	scope void delegate(
 		ref ByteCodeWriter!Alloc,
-		ref immutable FileAndRange source,
+		ref immutable ByteCodeSource source,
 	) @safe @nogc pure nothrow writeBytecode,
 ) {
 	ByteCodeWriter!Alloc writer = newByteCodeWriter(ptrTrustMe_mut(alloc));
-	writeBytecode(writer, FileAndRange.empty);
+	writeBytecode(writer, emptyByteCodeSource);
 	return finishByteCode(writer, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 }
 
@@ -112,7 +125,19 @@ void doInterpret(
 		immutable AbsolutePathsGetter(emptyStr, emptyStr),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			immutable Arr!LineAndColumnGetter(ptrTrustMe(lcg).rawPtr(), 1)));
-	Interpreter interpreter = newInterpreter(ptrTrustMe(byteCode), ptrTrustMe(filesInfo));
+	immutable LowFun lowFun = immutable LowFun(
+		immutable LowFunSource(immutable LowFunSource.Generated(shortSymAlphaLiteral("test"))),
+		nat64Type,
+		emptyArr!LowParam,
+		immutable LowFunBody(immutable LowFunBody.Extern(False, strLiteral("test"))));
+	immutable LowProgram lowProgram = immutable LowProgram(
+		emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
+		emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
+		emptyFullIndexDict!(LowType.Record, LowRecord),
+		emptyFullIndexDict!(LowType.Union, LowUnion),
+		fullIndexDictOfArr!(LowFunIndex, LowFun)(immutable Arr!LowFun(ptrTrustMe(lowFun).rawPtr(), 1)),
+		immutable LowFunIndex(0));
+	Interpreter interpreter = newInterpreter(ptrTrustMe(lowProgram), ptrTrustMe(byteCode), ptrTrustMe(filesInfo));
 	runInterpreter(interpreter);
 	reset(interpreter);
 }
@@ -120,7 +145,7 @@ void doInterpret(
 void doTest(
 	scope void delegate(
 		ref ByteCodeWriter!Alloc,
-		ref immutable FileAndRange source,
+		ref immutable ByteCodeSource source,
 	) @safe @nogc pure nothrow writeBytecode,
 	scope void delegate(ref Interpreter) @safe @nogc nothrow runInterpreter,
 ) {
@@ -129,10 +154,12 @@ void doTest(
 	doInterpret(byteCode, runInterpreter);
 }
 
+immutable ByteCodeSource emptyByteCodeSource = immutable ByteCodeSource(immutable LowFunIndex(0), immutable Pos(0));
+
 void testCall() {
 	Alloc alloc;
 	ByteCodeWriter!Alloc writer = newByteCodeWriter(ptrTrustMe_mut(alloc));
-	immutable FileAndRange source = FileAndRange.empty;
+	immutable ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:
 	// push 1, 2
@@ -173,7 +200,7 @@ void testCall() {
 void testCallFunPtr() {
 	Alloc alloc;
 	ByteCodeWriter!Alloc writer = newByteCodeWriter(ptrTrustMe_mut(alloc));
-	immutable FileAndRange source = FileAndRange.empty;
+	immutable ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:
 	// push address of 'f'
@@ -217,7 +244,7 @@ void testCallFunPtr() {
 void testSwitchAndJump() {
 	Alloc alloc;
 	ByteCodeWriter!Alloc writer = newByteCodeWriter(ptrTrustMe_mut(alloc));
-	immutable FileAndRange source = FileAndRange.empty;
+	immutable ByteCodeSource source = emptyByteCodeSource;
 
 	// Code is:
 	// switch (2 cases)
@@ -272,7 +299,7 @@ void testSwitchAndJump() {
 
 void testDup() {
 	doTest(
-		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstants(writer, source, [immutable Nat64(55), immutable Nat64(65), immutable Nat64(75)]);
 			verifyStackEntry(writer, 3);
 			writeDupEntry(writer, source, immutable StackEntry(immutable Nat16(0)));
@@ -310,7 +337,7 @@ void testDup() {
 
 void testRemove() {
 	doTest(
-		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstants(writer, source, [
 				immutable Nat64(0), immutable Nat64(1), immutable Nat64(2), immutable Nat64(3), immutable Nat64(4)]);
 			writeRemove(
@@ -333,7 +360,7 @@ void testRemove() {
 
 void testDupPartial() {
 	doTest(
-		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstants(writer, source, [immutable Nat64(0x0123456789abcdef)]);
 			writeDupPartial(
 				writer,
@@ -385,7 +412,7 @@ void testDupPartial() {
 
 void testPack() {
 	doTest(
-		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstants(writer, source, [
 				immutable Nat64(0x01234567),
 				immutable Nat64(0x89ab),
@@ -405,7 +432,7 @@ void testPack() {
 
 void testStackRef() {
 	doTest(
-		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstants(writer, source, [immutable Nat64(1), immutable Nat64(2)]);
 			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)), immutable Nat8(0));
 			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(1)), immutable Nat8(4));
@@ -452,7 +479,7 @@ void testStackRef() {
 	immutable S value = immutable S(0x01234567, 0x89ab, 0xcd, 0xef);
 	immutable Nat64 valuePtr = immutable Nat64(cast(immutable u64) &value);
 	doTest(
-		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstant(writer, source, valuePtr);
 			writeRead(writer, source, immutable Nat8(0), immutable Nat8(4));
 			writePushConstant(writer, source, valuePtr);
@@ -477,7 +504,7 @@ void testStackRef() {
 	immutable S value = immutable S(1, 2, 3);
 	immutable Nat64 valuePtr = immutable Nat64(cast(immutable u64) &value);
 	doTest(
-		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstant(writer, source, valuePtr);
 			writeRead(writer, source, immutable Nat8(8), immutable Nat8(16));
 			writeReturn(writer, source);
@@ -499,7 +526,7 @@ void testStackRef() {
 	S value;
 	immutable Nat64 valuePtr = immutable Nat64(cast(immutable u64) &value);
 	doTest(
-		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstants(writer, source, [valuePtr, immutable Nat64(0x0123456789abcdef)]);
 			writeWrite(writer, source, immutable Nat8(0), immutable Nat8(4));
 			writePushConstants(writer, source, [valuePtr, immutable Nat64(0x0123456789abcdef)]);
@@ -530,7 +557,7 @@ void testStackRef() {
 	S value;
 	immutable Nat64 valuePtr = immutable Nat64(cast(immutable u64) &value);
 	doTest(
-		(ref ByteCodeWriter!Alloc writer, ref immutable FileAndRange source) {
+		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstants(writer, source, [valuePtr, immutable Nat64(1), immutable Nat64(2)]);
 			writeWrite(writer, source, immutable Nat8(8), immutable Nat8(16));
 			writeReturn(writer, source);

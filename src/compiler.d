@@ -109,7 +109,7 @@ immutable(int) buildAndRun(SymAlloc)(
 			lowProgramResult,
 			(ref immutable ProgramsAndFilesInfo it) {
 				immutable ByteCode byteCode = generateBytecode(lowAlloc, it.program, it.lowProgram);
-				return runBytecode(byteCode, it.filesInfo, programArgs);
+				return runBytecode(it.lowProgram, byteCode, it.filesInfo, programArgs);
 			},
 			(ref immutable Diagnostics diagnostics) {
 				printDiagnostics(diagnostics);

@@ -3,6 +3,7 @@ module interpret.bytecode;
 @safe @nogc nothrow: // not pure
 
 import interpret.opcode : OpCode;
+import lowModel : LowFunIndex;
 import util.bools : Bool;
 import util.collection.arr : Arr, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
@@ -10,7 +11,7 @@ import util.collection.str : Str, strLiteral;
 import util.sexpr : Sexpr, tataArr, tataNat, tataRecord, tataStr, tataSym;
 import util.sym : Sym;
 import util.types : Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, zero;
-import util.sourceRange : FileAndPos, FileIndex, Pos;
+import util.sourceRange : FileIndex, Pos;
 import util.util : todo, verify;
 
 T matchDebugOperationImpure(T)(
@@ -184,18 +185,23 @@ struct FunNameAndPos {
 
 alias FileToFuns = FullIndexDict!(FileIndex, Arr!FunNameAndPos);
 
+struct ByteCodeSource {
+	immutable LowFunIndex fun;
+	immutable Pos pos;
+}
+
 struct ByteCode {
 	@safe @nogc pure nothrow:
 
 	immutable Arr!u8 byteCode;
-	immutable FullIndexDict!(ByteCodeIndex, FileAndPos) sources; // parallel to byteCode
+	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources; // parallel to byteCode
 	immutable FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
 	immutable Arr!char text;
 	immutable ByteCodeIndex main;
 
 	immutable this(
 		immutable Arr!u8 bc,
-		immutable FullIndexDict!(ByteCodeIndex, FileAndPos) s,
+		immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) s,
 		immutable FileToFuns ff,
 		immutable Arr!char t,
 		immutable ByteCodeIndex m,

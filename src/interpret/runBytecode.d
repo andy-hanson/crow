@@ -4,12 +4,14 @@ module interpret.runBytecode;
 
 import core.stdc.stdio : printf;
 
+import concreteModel : ConcreteFun, concreteFunRange, ConcreteFunSource, matchConcreteFunSource;
 import diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import interpret.applyFn : applyFn;
 import interpret.bytecode :
 	asCall,
 	ByteCode,
 	ByteCodeIndex,
+	ByteCodeSource,
 	DebugOperation,
 	isCall,
 	FnOp,
@@ -28,6 +30,7 @@ import interpret.bytecodeReader :
 	readerSwitch,
 	setReaderPtr;
 import interpret.opcode : OpCode;
+import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, matchLowFunSource;
 import util.bools : Bool;
 import util.collection.arr : Arr, at, begin, ptrAt, range, sizeNat;
 import util.collection.arrUtil : lastWhere, zip;
@@ -48,17 +51,18 @@ import util.collection.globalAllocatedStack :
 import util.collection.str : Str;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : FileAndPos, FileIndex;
+import util.sourceRange : FileIndex, FileAndPos;
 import util.sym : Sym;
 import util.types : bottomNBytes, decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, u8, u16, u32, u64, zero;
 import util.util : todo, unreachable, verify;
 
 @trusted immutable(int) runBytecode(
+	ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
 	ref immutable FilesInfo filesInfo,
 	immutable Arr!Str args,
 ) {
-	Interpreter interpreter = newInterpreter(ptrTrustMe(byteCode), ptrTrustMe(filesInfo));
+	Interpreter interpreter = newInterpreter(ptrTrustMe(lowProgram), ptrTrustMe(byteCode), ptrTrustMe(filesInfo));
 	push(interpreter.dataStack, sizeNat(args)); // TODO: this is an i32, add safety checks
 	push(interpreter.dataStack, immutable Nat64(cast(immutable u64) begin(args)));
 	while (true) {
@@ -73,8 +77,16 @@ import util.util : todo, unreachable, verify;
 	}
 }
 
-pure @trusted Interpreter newInterpreter(immutable Ptr!ByteCode byteCode, immutable Ptr!FilesInfo filesInfo) {
-	return Interpreter(byteCode, filesInfo, newByteCodeReader(begin(byteCode.byteCode), byteCode.main.index));
+pure @trusted Interpreter newInterpreter(
+	immutable Ptr!LowProgram lowProgram,
+	immutable Ptr!ByteCode byteCode,
+	immutable Ptr!FilesInfo filesInfo,
+) {
+	return Interpreter(
+		lowProgram,
+		byteCode,
+		filesInfo,
+		newByteCodeReader(begin(byteCode.byteCode), byteCode.main.index));
 }
 
 enum StepResult {
@@ -88,6 +100,7 @@ alias ReturnStack = GlobalAllocatedStack!(immutable(u8)*, 1024);
 alias StackStartStack = GlobalAllocatedStack!(Nat16, 1024);
 
 struct Interpreter {
+	immutable Ptr!LowProgram lowProgram;
 	immutable Ptr!ByteCode byteCode;
 	immutable Ptr!FilesInfo filesInfo;
 	ByteCodeReader reader;
@@ -133,36 +146,59 @@ import util.writer : finishWriterToCStr, Writer, writeChar, writeStatic;
 	printf("%s\n", finishWriterToCStr(writer));
 }
 
-void writeFunNameAtByteCodePtr(Alloc)(ref Writer!Alloc writer, ref const Interpreter interpreter, immutable u8* ptr) {
-	immutable Opt!Sym funName = getFunNameAtByteCodePtr(interpreter, ptr);
-	if (has(funName))
-		writeSym(writer, force(funName));
-	else
-		writeStatic(writer, "<generated>");
+void writeByteCodeSource(TempAlloc, Alloc)(
+	ref TempAlloc temp,
+	ref Writer!Alloc writer,
+	ref immutable LowProgram lowProgram,
+	ref immutable FilesInfo filesInfo,
+	ref immutable ByteCodeSource source,
+) {
+	matchLowFunSource!void(
+		fullIndexDictGet(lowProgram.allFuns, source.fun).source,
+		(immutable Ptr!ConcreteFun it) {
+			writeConcreteFunSource(writer, it.source);
+			immutable FileAndPos where = immutable FileAndPos(concreteFunRange(it).fileIndex, source.pos);
+			writeFileAndPos!(TempAlloc, Alloc)(temp, writer, filesInfo, where);
+		},
+		(ref immutable LowFunSource.Generated) {
+			writeStatic(writer, "<generated>");
+		});
 }
 
-immutable(FileAndPos) fileAndPosAtIndex(ref const Interpreter interpreter, immutable ByteCodeIndex index) {
+void writeFunNameAtIndex(Alloc)(
+	ref Writer!Alloc writer,
+	ref const Interpreter interpreter,
+	immutable ByteCodeIndex index,
+) {
+	writeFunName(writer, interpreter.lowProgram, byteCodeSourceAtIndex(interpreter, index).fun);
+}
+
+void writeFunNameAtByteCodePtr(Alloc)(ref Writer!Alloc writer, ref const Interpreter interpreter, immutable u8* ptr) {
+	writeFunNameAtIndex(writer, interpreter, byteCodeIndexOfPtr(interpreter, ptr));
+}
+
+void writeFunName(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram lowProgram, immutable LowFunIndex fun) {
+	matchLowFunSource!void(
+		fullIndexDictGet(lowProgram.allFuns, fun).source,
+		(immutable Ptr!ConcreteFun it) {
+			writeConcreteFunSource(writer, it.source);
+		},
+		(ref immutable LowFunSource.Generated it) {
+			writeSym(writer, it.name);
+			writeStatic(writer, " (generated)");
+		});
+}
+
+void writeConcreteFunSource(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFunSource a) {
+	todo!void("writeConcreteFunSource");
+}
+
+immutable(ByteCodeSource) byteCodeSourceAtIndex(ref const Interpreter interpreter, immutable ByteCodeIndex index) {
 	return fullIndexDictGet(interpreter.byteCode.sources, index);
 }
 
-immutable(FileAndPos) fileAndPosAtPtr(ref const Interpreter interpreter, immutable u8* ptr) {
-	return fileAndPosAtIndex(interpreter, byteCodeIndexOfPtr(interpreter, ptr));
-}
-
-immutable(Opt!Sym) getFunNameAtByteCodePtr(ref const Interpreter interpreter, immutable u8* ptr) {
-	return getFunNameAtIndex(interpreter, byteCodeIndexOfPtr(interpreter, ptr));
-}
-
-immutable(Opt!Sym) getFunNameAtIndex(ref const Interpreter interpreter, immutable ByteCodeIndex index) {
-	immutable FileAndPos fileAndPos = fileAndPosAtIndex(interpreter, index);
-	if (fileAndPos.fileIndex == FileIndex.none)
-		return none!Sym;
-	else {
-		immutable Arr!FunNameAndPos funs = fullIndexDictGet(interpreter.byteCode.fileToFuns, fileAndPos.fileIndex);
-		immutable Opt!FunNameAndPos opt = lastWhere(funs, (ref immutable FunNameAndPos fp) =>
-			immutable Bool(fp.pos <= fileAndPos.pos));
-		return some(force(opt).funName);
-	}
+immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(ref const Interpreter interpreter, immutable u8* ptr) {
+	return byteCodeSourceAtIndex(interpreter, byteCodeIndexOfPtr(interpreter, ptr));
 }
 
 @trusted immutable(ByteCodeIndex) nextByteCodeIndex(ref const Interpreter interpreter) {
@@ -174,12 +210,12 @@ pure @trusted immutable(ByteCodeIndex) byteCodeIndexOfPtr(ref const Interpreter 
 	return immutable ByteCodeIndex(index.to32());
 }
 
-immutable(FileAndPos) nextSource(ref const Interpreter interpreter) {
-	return fileAndPosAtPtr(interpreter, getReaderPtr(interpreter.reader));
+immutable(ByteCodeSource) nextSource(ref const Interpreter interpreter) {
+	return byteCodeSourceAtByteCodePtr(interpreter, getReaderPtr(interpreter.reader));
 }
 
 immutable(StepResult) step(ref Interpreter interpreter) {
-	immutable FileAndPos source = nextSource(interpreter);
+	immutable ByteCodeSource source = nextSource(interpreter);
 	debug {
 		printf("\n");
 		printStack(interpreter);
@@ -198,17 +234,14 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 		TempAlloc temp;
 		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(temp));
 		writeStatic(writer, "STEP: ");
-		writeFileAndPos!(TempAlloc, TempAlloc)(temp, writer, interpreter.filesInfo, source);
+		writeByteCodeSource(temp, writer, interpreter.lowProgram, interpreter.filesInfo, source);
 		writeChar(writer, ' ');
 		writeSexprNoNewline(writer, sexprOfOperation(temp, operation));
 		if (isCall(operation)) {
 			immutable Operation.Call call = asCall(operation);
-			immutable Opt!Sym funName = getFunNameAtIndex(interpreter, call.address);
-			if (has(funName)) {
-				writeStatic(writer, " (");
-				writeSym(writer, force(funName));
-				writeChar(writer, ')');
-			}
+			writeStatic(writer, "(");
+			writeFunNameAtIndex(writer, interpreter, call.address);
+			writeChar(writer, ')');
 		}
 		writeChar(writer, '\n');
 		print(finishWriterToCStr(writer));
@@ -365,7 +398,13 @@ immutable(Nat64) getBytes(immutable Nat64 a, immutable Nat8 byteOffset, immutabl
 	verify(byteOffset + sizeBytes <= immutable Nat8(u64.sizeof));
 	immutable Nat64 shift = bytesToBits((immutable Nat8(u64.sizeof) - sizeBytes - byteOffset).to64());
 	immutable Nat64 mask = Nat64.max >> bytesToBits((immutable Nat8(u64.sizeof) - sizeBytes).to64());
-	return (a >> shift) & mask;
+	immutable Nat64 res = (a >> shift) & mask;
+	debug {
+		import core.stdc.stdio : printf;
+		printf("getBytes(%lx, %x, %x)\n", a.raw(), byteOffset.raw(), sizeBytes.raw());
+		printf("shift= %lx, mask = %lx, res = %lx\n", shift.raw(), mask.raw(), res.raw());
+	}
+	return res;
 }
 
 void call(ref Interpreter interpreter, immutable ByteCodeIndex address, immutable Nat8 parametersSize) {

@@ -2,7 +2,7 @@ module concreteModel;
 
 @safe @nogc pure nothrow:
 
-import model : ClosureField, FunInst, isArr, isCompareFun, Local, Param, RecordField, StructInst;
+import model : ClosureField, decl, FunInst, isArr, isCompareFun, Local, Param, range, RecordField, StructInst;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, empty, size, sizeEq;
 import util.collection.str : Str;
@@ -548,6 +548,15 @@ struct ConcreteFun {
 	immutable Opt!ConcreteParam closureParam;
 	immutable Arr!ConcreteParam paramsExcludingCtxAndClosure;
 	Late!(immutable ConcreteFunBody) _body_;
+}
+
+immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource(
+		a.source,
+		(immutable Ptr!FunInst it) =>
+			range(decl(it).deref()),
+		(ref immutable ConcreteFunSource.Lambda it) =>
+			it.range);
 }
 
 immutable(Bool) isCompareFun(ref immutable ConcreteFun a) {

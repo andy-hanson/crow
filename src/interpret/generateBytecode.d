@@ -8,6 +8,7 @@ import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeOffset,
+	ByteCodeSource,
 	FileToFuns,
 	FnOp,
 	FunNameAndPos,
@@ -63,6 +64,7 @@ import lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
+	lowFunRange,
 	LowFunSource,
 	LowFunIndex,
 	LowLocal,
@@ -79,7 +81,7 @@ import lowModel :
 	PrimitiveType;
 import model : decl, FunDecl, FunInst, Module, name, Program, range;
 import util.alloc.stackAlloc : StackAlloc;
-import util.bools : False, True;
+import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, range, size;
 import util.collection.arrUtil : arrMax, eachWithIndex, map, mapOpWithIndex, slice, sum, zip;
 import util.collection.fullIndexDict :
@@ -132,9 +134,9 @@ immutable(ByteCode) generateBytecode(CodeAlloc)(
 		mapFullIndexDict!(LowFunIndex, ByteCodeIndex, LowFun, TempAlloc)(
 			tempAlloc,
 			program.allFuns,
-			(immutable LowFunIndex, ref immutable LowFun fun) {
+			(immutable LowFunIndex funIndex, ref immutable LowFun fun) {
 				immutable ByteCodeIndex funPos = nextByteCodeIndex(writer);
-				generateBytecodeForFun(tempAlloc, writer, funToReferences, typeLayout, program, fun);
+				generateBytecodeForFun(tempAlloc, writer, funToReferences, typeLayout, program, funIndex, fun);
 				return funPos;
 		});
 
@@ -327,12 +329,13 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
 	ref immutable TypeLayout typeLayout,
 	ref immutable LowProgram program,
+	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 ) {
 	matchLowFunBody!void(
 		fun.body_,
 		(ref immutable LowFunBody.Extern body_) {
-			generateExternCall(tempAlloc, writer, fun, body_);
+			generateExternCall(tempAlloc, writer, funIndex, fun, body_);
 		},
 		(ref immutable LowFunExprBody body_) {
 			Nat16 stackEntry = Nat16(0);
@@ -351,65 +354,48 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 			ExprCtx ctx = ExprCtx(
 				ptrTrustMe(program),
 				ptrTrustMe(typeLayout),
+				funIndex,
 				ptrTrustMe_mut(funToReferences),
 				parameters);
 			generateExpr(tempAlloc, writer, ctx, body_.expr);
 
 			immutable Nat8 returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
 			verify(stackEntryAfterParameters.entry + returnEntries.to16() == getNextStackEntry(writer).entry);
-			immutable FileAndRange convertedSource = convertLowFunSource(fun.source);
+			immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 			writeRemove(
 				writer,
-				convertedSource,
+				source,
 				immutable StackEntries(
 					immutable StackEntry(immutable Nat16(0)),
 					stackEntryAfterParameters.entry.to8()));
 			verify(getNextStackEntry(writer).entry == returnEntries.to16());
-			writeReturn(writer, convertedSource);
+			writeReturn(writer, source);
 
 			setNextStackEntry(writer, immutable StackEntry(immutable Nat16(0)));
 		});
 }
 
-//TODO:KILL when we use ExprSource consistently
-immutable(FileAndRange) convertLowFunSource(ref immutable LowFunSource a) {
-	return matchLowFunSource!(immutable FileAndRange)(
-		a,
-		(immutable Ptr!ConcreteFun it) =>
-			convertConcreteFunSource(it.source),
-		(ref immutable LowFunSource.Generated) =>
-			FileAndRange.empty);
-}
-
 void generateExternCall(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
+	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 	ref immutable LowFunBody.Extern a,
 ) {
-	immutable Ptr!ConcreteFun cf = asConcreteFun(fun.source);
-	immutable FileAndRange range = convertConcreteFunSource(cf.source);
+	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 	if (strEqLiteral(a.externName, "malloc")) {
-		writeFn(writer, range, FnOp.malloc);
+		writeFn(writer, source, FnOp.malloc);
 	} else {
 		todo!void("unhandled extern function");
 	}
-	writeReturn(writer, range);
+	writeReturn(writer, source);
 }
 
-//TODO:KILL (when we don't just use FileAndrange as the source)
-immutable(FileAndRange) convertConcreteFunSource(ref immutable ConcreteFunSource a) {
-	return matchConcreteFunSource!(immutable FileAndRange)(
-		a,
-		(immutable Ptr!FunInst it) =>
-			range(decl(it).deref()),
-		(ref immutable ConcreteFunSource.Lambda it) =>
-			it.range);
-}
 
 struct ExprCtx {
 	immutable Ptr!LowProgram program;
 	immutable Ptr!TypeLayout typeLayout;
+	immutable LowFunIndex curFunIndex;
 	Ptr!(MutIndexMultiDict!(LowFunIndex, ByteCodeIndex)) funToReferences;
 	immutable Arr!StackEntries parameterEntries;
 	MutDict!(immutable Ptr!LowLocal, immutable StackEntries, comparePtr!LowLocal) localEntries;
@@ -421,7 +407,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 	ref ExprCtx ctx,
 	ref immutable LowExpr expr,
 ) {
-	immutable FileAndRange source = expr.source;
+	immutable ByteCodeSource source = immutable ByteCodeSource(ctx.curFunIndex, expr.source.range.start);
 	writeAssertStackSize(writer, source);
 	return matchLowExprKind(
 		expr.kind,
@@ -580,7 +566,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			generateSpecial0Ary(writer, source, it);
 		},
 		(ref immutable LowExprKind.SpecialUnary it) {
-			generateSpecialUnary(tempAlloc, writer, ctx, expr, it);
+			generateSpecialUnary(tempAlloc, writer, ctx, source, expr.type, it);
 		},
 		(ref immutable LowExprKind.SpecialBinary it) {
 			generateSpecialBinary(tempAlloc, writer, ctx, source, it);
@@ -589,7 +575,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			generateSpecialTrinary(tempAlloc, writer, ctx, source, it);
 		},
 		(ref immutable LowExprKind.SpecialNAry it) {
-			generateSpecialNAry(tempAlloc, writer, ctx, expr, it);
+			generateSpecialNAry(tempAlloc, writer, ctx, source, expr.type, it);
 		});
 }
 
@@ -623,13 +609,13 @@ void registerFunAddress(TempAlloc)(
 
 void generateSpecialConstant(CodeAlloc)(
 	ref ByteCodeWriter!CodeAlloc writer,
-	ref immutable FileAndRange source,
+	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.SpecialConstant constant,
 ) {
 	matchSpecialConstant(
 		constant,
 		(immutable LowExprKind.SpecialConstant.BoolConstant it) {
-			writePushConstant(writer, source, immutable Nat8(it.value ? 1 : 0));
+			writeBoolConstant(writer, source, it.value);
 		},
 		(immutable LowExprKind.SpecialConstant.Integral it) {
 			writePushConstant(writer, source, immutable Nat64(it.value));
@@ -645,9 +631,17 @@ void generateSpecialConstant(CodeAlloc)(
 		});
 }
 
+void writeBoolConstant(CodeAlloc)(
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref immutable ByteCodeSource source,
+	immutable Bool value,
+) {
+	writePushConstant(writer, source, immutable Nat8(value ? 1 : 0));
+}
+
 void generateSpecial0Ary(CodeAlloc)(
 	ref ByteCodeWriter!CodeAlloc writer,
-	ref immutable FileAndRange source,
+	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.Special0Ary it,
 ) {
 	final switch (it.kind) {
@@ -660,11 +654,10 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
-	ref immutable LowExpr expr,
+	ref immutable ByteCodeSource source,
+	ref immutable LowType type,
 	ref immutable LowExprKind.SpecialUnary a,
 ) {
-	immutable FileAndRange source = expr.source;
-
 	void generateArg() {
 		generateExpr(tempAlloc, writer, ctx, a.arg);
 	}
@@ -718,18 +711,18 @@ void generateSpecialUnary(CodeAlloc, TempAlloc)(
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
-			writeRead(writer, source, immutable Nat8(0), sizeOfType(ctx, expr.type));
+			writeRead(writer, source, immutable Nat8(0), sizeOfType(ctx, type));
 			break;
 		case LowExprKind.SpecialUnary.Kind.hardFail:
 			generateArg();
-			writeFnHardFail(writer, source, nStackEntriesForType(ctx, expr.type));
+			writeFnHardFail(writer, source, nStackEntriesForType(ctx, type));
 			break;
 		case LowExprKind.SpecialUnary.Kind.not:
 			fn(FnOp.not);
 			break;
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
-			generateRefOfVal(tempAlloc, writer, ctx, expr.source, a.arg);
+			generateRefOfVal(tempAlloc, writer, ctx, source, a.arg);
 			break;
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromInt64: // FnOp.float64FromInt64
 			fn(FnOp.float64FromInt64);
@@ -747,7 +740,7 @@ void generateRefOfVal(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
-	ref immutable FileAndRange source,
+	ref immutable ByteCodeSource source,
 	ref immutable LowExpr arg,
 ) {
 	if (isLocalRef(arg.kind))
@@ -765,7 +758,7 @@ void generateRecordFieldAccess(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
-	ref immutable FileAndRange source,
+	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.RecordFieldAccess it,
 ) {
 	immutable StackEntry targetEntry = getNextStackEntry(writer);
@@ -799,7 +792,7 @@ void generatePtrToRecordFieldAccess(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
-	ref immutable FileAndRange source,
+	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.RecordFieldAccess it,
 ) {
 	generateExpr(tempAlloc, writer, ctx, it.target);
@@ -816,7 +809,7 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
-	ref immutable FileAndRange source,
+	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.SpecialBinary a,
 ) {
 	void fn(immutable FnOp fn) {
@@ -833,8 +826,18 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 			fn(FnOp.wrapAddIntegral);
 			break;
 		case LowExprKind.SpecialBinary.Kind.and:
-			immutable LowExpr falseExpr = genBool(source, False);
-			generateIf(tempAlloc, writer, ctx, source, a.left, a.right, falseExpr);
+			generateIf(
+				tempAlloc,
+				writer,
+				ctx,
+				source,
+				a.left,
+				() {
+					generateExpr(tempAlloc, writer, ctx, a.right);
+				},
+				() {
+					writeBoolConstant(writer, source, False);
+				});
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
 			fn(FnOp.unsafeBitShiftLeftNat64);
@@ -894,8 +897,18 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 			fn(FnOp.mulFloat64);
 			break;
 		case LowExprKind.SpecialBinary.Kind.or:
-			immutable LowExpr trueExpr = genBool(source, True);
-			generateIf(tempAlloc, writer, ctx, source, a.left, trueExpr, a.right);
+			generateIf(
+				tempAlloc,
+				writer,
+				ctx,
+				source,
+				a.left,
+				() {
+					writeBoolConstant(writer, source, True);
+				},
+				() {
+					generateExpr(tempAlloc, writer, ctx, a.right);
+				});
 			break;
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 			fn(FnOp.subFloat64);
@@ -951,12 +964,23 @@ void generateSpecialTrinary(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
-	ref immutable FileAndRange source,
+	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.SpecialTrinary a,
 ) {
 	final switch (a.kind) {
 		case LowExprKind.SpecialTrinary.Kind.if_:
-			generateIf(tempAlloc, writer, ctx, source, a.p0, a.p1, a.p2);
+			generateIf(
+				tempAlloc,
+				writer,
+				ctx,
+				source,
+				a.p0,
+				() {
+					generateExpr(tempAlloc, writer, ctx, a.p1);
+				},
+				() {
+					generateExpr(tempAlloc, writer, ctx, a.p2);
+				});
 			break;
 		case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
 			generateExpr(tempAlloc, writer, ctx, a.p0);
@@ -971,20 +995,20 @@ void generateIf(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
-	ref immutable FileAndRange source,
+	ref immutable ByteCodeSource source,
 	ref immutable LowExpr cond,
-	ref immutable LowExpr then,
-	ref immutable LowExpr else_,
+	scope void delegate() @safe @nogc pure nothrow cbThen,
+	scope void delegate() @safe @nogc pure nothrow cbElse,
 ) {
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	generateExpr(tempAlloc, writer, ctx, cond);
 	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, 2);
 	fillDelayedSwitchEntry(writer, delayed, immutable Nat8(0));
-	generateExpr(tempAlloc, writer, ctx, else_);
+	cbElse();
 	setNextStackEntry(writer, startStack);
 	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(writer, source);
 	fillDelayedSwitchEntry(writer, delayed, immutable Nat8(1));
-	generateExpr(tempAlloc, writer, ctx, then);
+	cbThen();
 	fillInJumpDelayed(writer, jumpIndex);
 }
 
@@ -992,7 +1016,8 @@ void generateSpecialNAry(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
-	ref immutable LowExpr expr,
+	ref immutable ByteCodeSource source,
+	ref immutable LowType type,
 	ref immutable LowExprKind.SpecialNAry a,
 ) {
 	final switch (a.kind) {
@@ -1000,7 +1025,7 @@ void generateSpecialNAry(TempAlloc, CodeAlloc)(
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			foreach (ref immutable LowExpr arg; range(a.args))
 				generateExpr(tempAlloc, writer, ctx, arg);
-			writeCallFunPtr(writer, expr.source, stackEntryBeforeArgs, nStackEntriesForType(ctx, expr.type));
+			writeCallFunPtr(writer, source, stackEntryBeforeArgs, nStackEntriesForType(ctx, type));
 			break;
 	}
 }

@@ -21,7 +21,7 @@ import util.collection.arr : Arr, empty;
 import util.collection.str : Str;
 import util.opt : Opt;
 import util.ptr : Ptr;
-import util.sourceRange : FileAndRange, FilePaths;
+import util.sourceRange : FileAndPos, FileAndRange, FilePaths;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.util : verify;
 
@@ -622,7 +622,6 @@ struct FilesInfo {
 }
 
 import model : getAbsolutePath;
-import util.sourceRange : FileAndPos;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
 import util.writerUtils : writeRangeWithinFile, writePos;

@@ -49,7 +49,7 @@ struct NatN(T) {
 			return immutable NatN!T(value | b.value);
 		} else static if (op == "<<") {
 			// TODO: this will fail to detect overflow for Nat64
-			immutable size_t res = (cast(immutable size_t) value) * (cast(immutable size_t) b.value);
+			immutable size_t res = (cast(immutable size_t) value) << (cast(immutable size_t) b.value);
 			verify(res <= T.max);
 			return immutable NatN!T(cast(immutable T) res);
 		} else static if (op == ">>") {
@@ -85,7 +85,11 @@ struct NatN(T) {
 	}
 
 	immutable(int) opCmp(immutable NatN!T b) const {
-		return (cast(int) value) - (cast(int) b.value);
+		return value < b.value
+			? -1
+			: value > b.value
+			? 1
+			: 0;
 	}
 
 	static if (!is(T == ubyte)) {
