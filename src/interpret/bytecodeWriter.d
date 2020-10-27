@@ -8,6 +8,7 @@ import interpret.bytecode :
 	ByteCodeIndex,
 	ByteCodeOffset,
 	ByteCodeSource,
+	ExternOp,
 	FileToFuns,
 	FnOp,
 	stackEntrySize,
@@ -443,6 +444,22 @@ void fillDelayedSwitchEntry(Alloc)(
 		subtractByteCodeIndex(nextByteCodeIndex(writer), caseEnd));
 }
 
+void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable ExternOp op) {
+	immutable int stackEffect = () {
+		final switch (op) {
+			case ExternOp.write:
+				return -2;
+			case ExternOp.free:
+				return -1;
+			case ExternOp.malloc:
+				return 0;
+		}
+	}();
+	pushOpcode(writer, source, OpCode.extern_);
+	pushU8(writer, source, immutable Nat8(op));
+	writer.nextStackEntry += stackEffect;
+}
+
 void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable FnOp fn) {
 	immutable int stackEffect = () {
 		final switch (fn) {
@@ -452,7 +469,6 @@ void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSourc
 			case FnOp.bitwiseAnd:
 			case FnOp.bitwiseOr:
 			case FnOp.eqBits:
-			case FnOp.free:
 			case FnOp.lessFloat64:
 			case FnOp.lessInt8:
 			case FnOp.lessInt16:
@@ -475,7 +491,6 @@ void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSourc
 			case FnOp.float64FromNat64:
 			case FnOp.intFromInt16:
 			case FnOp.intFromInt32:
-			case FnOp.malloc:
 			case FnOp.not:
 			case FnOp.truncateToInt64FromFloat64:
 				return 0;

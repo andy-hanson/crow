@@ -29,6 +29,7 @@ import interpret.bytecodeReader :
 	readOperation,
 	readerSwitch,
 	setReaderPtr;
+import interpret.externOps : applyExternOp, Extern, newExtern;
 import interpret.opcode : OpCode;
 import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, matchLowFunSource;
 import util.bools : Bool;
@@ -56,13 +57,18 @@ import util.sym : Sym;
 import util.types : bottomNBytes, decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, u8, u16, u32, u64, zero;
 import util.util : todo, unreachable, verify;
 
-@trusted immutable(int) runBytecode(
+@trusted immutable(int) runBytecode(Alloc)(
+	ref Alloc alloc,
 	ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
 	ref immutable FilesInfo filesInfo,
 	immutable Arr!Str args,
 ) {
-	Interpreter interpreter = newInterpreter(ptrTrustMe(lowProgram), ptrTrustMe(byteCode), ptrTrustMe(filesInfo));
+	Interpreter!Alloc interpreter = newInterpreter(
+		ptrTrustMe_mut(alloc),
+		ptrTrustMe(lowProgram),
+		ptrTrustMe(byteCode),
+		ptrTrustMe(filesInfo));
 	push(interpreter.dataStack, sizeNat(args)); // TODO: this is an i32, add safety checks
 	push(interpreter.dataStack, immutable Nat64(cast(immutable u64) begin(args)));
 	while (true) {
@@ -77,16 +83,18 @@ import util.util : todo, unreachable, verify;
 	}
 }
 
-pure @trusted Interpreter newInterpreter(
+pure @trusted Interpreter!Alloc newInterpreter(Alloc)(
+	Ptr!Alloc alloc,
 	immutable Ptr!LowProgram lowProgram,
 	immutable Ptr!ByteCode byteCode,
 	immutable Ptr!FilesInfo filesInfo,
 ) {
-	return Interpreter(
+	return Interpreter!Alloc(
 		lowProgram,
 		byteCode,
 		filesInfo,
-		newByteCodeReader(begin(byteCode.byteCode), byteCode.main.index));
+		newByteCodeReader(begin(byteCode.byteCode), byteCode.main.index),
+		newExtern(alloc));
 }
 
 enum StepResult {
@@ -99,25 +107,26 @@ alias ReturnStack = GlobalAllocatedStack!(immutable(u8)*, 1024);
 // Gives start stack position of each function
 alias StackStartStack = GlobalAllocatedStack!(Nat16, 1024);
 
-struct Interpreter {
+struct Interpreter(Alloc) {
 	immutable Ptr!LowProgram lowProgram;
 	immutable Ptr!ByteCode byteCode;
 	immutable Ptr!FilesInfo filesInfo;
 	ByteCodeReader reader;
+	Extern!Alloc extern_;
 	DataStack dataStack;
 	ReturnStack returnStack;
 	// Parallel to return stack. Has the stack entry before the function's arguments.
 	StackStartStack stackStartStack;
 }
 
-@trusted void reset(ref Interpreter a) {
+@trusted void reset(Alloc)(ref Interpreter!Alloc a) {
 	setReaderPtr(a.reader, begin(a.byteCode.byteCode));
 	clearStack(a.dataStack);
 	clearStack(a.returnStack);
 	clearStack(a.stackStartStack);
 }
 
-void printStack(ref const Interpreter interpreter) {
+void printStack(Alloc)(ref const Interpreter!Alloc interpreter) {
 	printDataArr(asTempArr(interpreter.dataStack));
 }
 
@@ -132,7 +141,7 @@ import util.alloc.stackAlloc : StackAlloc;
 import util.sym : writeSym;
 import util.writer : finishWriterToCStr, Writer, writeChar, writeStatic;
 
-@trusted void printReturnStack(ref const Interpreter interpreter) {
+@trusted void printReturnStack(Alloc)(ref const Interpreter!Alloc interpreter) {
 	alias Alloc = StackAlloc!("printReturnStack", 1024);
 	Alloc alloc;
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
@@ -165,15 +174,19 @@ void writeByteCodeSource(TempAlloc, Alloc)(
 		});
 }
 
-void writeFunNameAtIndex(Alloc)(
-	ref Writer!Alloc writer,
-	ref const Interpreter interpreter,
+void writeFunNameAtIndex(WriterAlloc, InterpreterAlloc)(
+	ref Writer!WriterAlloc writer,
+	ref const Interpreter!InterpreterAlloc interpreter,
 	immutable ByteCodeIndex index,
 ) {
 	writeFunName(writer, interpreter.lowProgram, byteCodeSourceAtIndex(interpreter, index).fun);
 }
 
-void writeFunNameAtByteCodePtr(Alloc)(ref Writer!Alloc writer, ref const Interpreter interpreter, immutable u8* ptr) {
+void writeFunNameAtByteCodePtr(WriterAlloc, InterpreterAlloc)(
+	ref Writer!WriterAlloc writer,
+	ref const Interpreter!InterpreterAlloc interpreter,
+	immutable u8* ptr,
+) {
 	writeFunNameAtIndex(writer, interpreter, byteCodeIndexOfPtr(interpreter, ptr));
 }
 
@@ -193,28 +206,37 @@ void writeConcreteFunSource(Alloc)(ref Writer!Alloc writer, ref immutable Concre
 	todo!void("writeConcreteFunSource");
 }
 
-immutable(ByteCodeSource) byteCodeSourceAtIndex(ref const Interpreter interpreter, immutable ByteCodeIndex index) {
+immutable(ByteCodeSource) byteCodeSourceAtIndex(Alloc)(
+	ref const Interpreter!Alloc interpreter,
+	immutable ByteCodeIndex index,
+) {
 	return fullIndexDictGet(interpreter.byteCode.sources, index);
 }
 
-immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(ref const Interpreter interpreter, immutable u8* ptr) {
+immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(Alloc)(
+	ref const Interpreter!Alloc interpreter,
+	immutable u8* ptr,
+) {
 	return byteCodeSourceAtIndex(interpreter, byteCodeIndexOfPtr(interpreter, ptr));
 }
 
-@trusted immutable(ByteCodeIndex) nextByteCodeIndex(ref const Interpreter interpreter) {
+@trusted immutable(ByteCodeIndex) nextByteCodeIndex(Alloc)(ref const Interpreter!Alloc interpreter) {
 	return byteCodeIndexOfPtr(interpreter, getReaderPtr(interpreter.reader));
 }
 
-pure @trusted immutable(ByteCodeIndex) byteCodeIndexOfPtr(ref const Interpreter interpreter, immutable u8* ptr) {
+pure @trusted immutable(ByteCodeIndex) byteCodeIndexOfPtr(Alloc)(
+	ref const Interpreter!Alloc interpreter,
+	immutable u8* ptr,
+) {
 	immutable Nat64 index = immutable Nat64(ptr - begin(interpreter.byteCode.byteCode));
 	return immutable ByteCodeIndex(index.to32());
 }
 
-immutable(ByteCodeSource) nextSource(ref const Interpreter interpreter) {
+immutable(ByteCodeSource) nextSource(Alloc)(ref const Interpreter!Alloc interpreter) {
 	return byteCodeSourceAtByteCodePtr(interpreter, getReaderPtr(interpreter.reader));
 }
 
-immutable(StepResult) step(ref Interpreter interpreter) {
+immutable(StepResult) step(Alloc)(ref Interpreter!Alloc interpreter) {
 	immutable ByteCodeSource source = nextSource(interpreter);
 	debug {
 		printf("\n");
@@ -278,6 +300,10 @@ immutable(StepResult) step(ref Interpreter interpreter) {
 			push(
 				interpreter.dataStack,
 				getBytes(peek(interpreter.dataStack, it.entryOffset.offset), it.byteOffset, it.sizeBytes));
+			return StepResult.continue_;
+		},
+		(ref immutable Operation.Extern it) {
+			applyExternOp(interpreter.extern_, interpreter.dataStack, it.op);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Fn it) {
@@ -407,13 +433,13 @@ immutable(Nat64) getBytes(immutable Nat64 a, immutable Nat8 byteOffset, immutabl
 	return res;
 }
 
-void call(ref Interpreter interpreter, immutable ByteCodeIndex address, immutable Nat8 parametersSize) {
+void call(Alloc)(ref Interpreter!Alloc interpreter, immutable ByteCodeIndex address, immutable Nat8 parametersSize) {
 	push(interpreter.returnStack, getReaderPtr(interpreter.reader));
 	push(interpreter.stackStartStack, (stackSize(interpreter.dataStack) - parametersSize.to32()).to16());
 	setReaderPtr(interpreter.reader, ptrAt(interpreter.byteCode.byteCode, address.index.raw()).rawPtr());
 }
 
-immutable(Nat64) removeAtStackOffset(ref Interpreter interpreter, immutable StackOffset offset) {
+immutable(Nat64) removeAtStackOffset(Alloc)(ref Interpreter!Alloc interpreter, immutable StackOffset offset) {
 	return remove(interpreter.dataStack, offset.offset);
 }
 

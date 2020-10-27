@@ -111,14 +111,16 @@ immutable(FileToFuns) dummyFileToFuns() {
 		immutable Arr!(Arr!FunNameAndPos)(&dummyArr, 1));
 }
 
+alias TestAlloc = StackAlloc!("test", 1024);
+
 void doInterpret(
 	ref immutable ByteCode byteCode,
-	scope void delegate(ref Interpreter) @safe @nogc nothrow runInterpreter,
+	scope void delegate(ref Interpreter!TestAlloc) @safe @nogc nothrow runInterpreter,
 ) {
 	immutable Path emptyPath = immutable Path(none!(Ptr!Path), shortSymAlphaLiteral("test"));
 	immutable PathAndStorageKind pk = immutable PathAndStorageKind(ptrTrustMe(emptyPath), StorageKind.global);
-	StackAlloc!("lcg", 1024) lcgAlloc;
-	immutable LineAndColumnGetter lcg = lineAndColumnGetterForEmptyFile(lcgAlloc);
+	TestAlloc alloc;
+	immutable LineAndColumnGetter lcg = lineAndColumnGetterForEmptyFile(alloc);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
 			immutable Arr!PathAndStorageKind(ptrTrustMe(pk).rawPtr(), 1)),
@@ -137,7 +139,11 @@ void doInterpret(
 		emptyFullIndexDict!(LowType.Union, LowUnion),
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(immutable Arr!LowFun(ptrTrustMe(lowFun).rawPtr(), 1)),
 		immutable LowFunIndex(0));
-	Interpreter interpreter = newInterpreter(ptrTrustMe(lowProgram), ptrTrustMe(byteCode), ptrTrustMe(filesInfo));
+	Interpreter!TestAlloc interpreter = newInterpreter(
+		ptrTrustMe_mut(alloc),
+		ptrTrustMe(lowProgram),
+		ptrTrustMe(byteCode),
+		ptrTrustMe(filesInfo));
 	runInterpreter(interpreter);
 	reset(interpreter);
 }
@@ -147,7 +153,7 @@ void doTest(
 		ref ByteCodeWriter!Alloc,
 		ref immutable ByteCodeSource source,
 	) @safe @nogc pure nothrow writeBytecode,
-	scope void delegate(ref Interpreter) @safe @nogc nothrow runInterpreter,
+	scope void delegate(ref Interpreter!TestAlloc) @safe @nogc nothrow runInterpreter,
 ) {
 	Alloc alloc;
 	immutable ByteCode byteCode = makeByteCode(alloc, writeBytecode);
@@ -184,7 +190,7 @@ void testCall() {
 	immutable ByteCode byteCode =
 		finishByteCode(writer, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
-	doInterpret(byteCode, (ref Interpreter interpreter) {
+	doInterpret(byteCode, (ref Interpreter!TestAlloc interpreter) {
 		stepNAndExpect(interpreter, 2, [immutable Nat64(1), immutable Nat64(2)]);
 		stepAndExpect(interpreter, [immutable Nat64(1), immutable Nat64(2)]);
 		expectReturnStack(interpreter, [afterCall]);
@@ -227,7 +233,7 @@ void testCallFunPtr() {
 	immutable ByteCode byteCode =
 		finishByteCode(writer, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
-	doInterpret(byteCode, (ref Interpreter interpreter) {
+	doInterpret(byteCode, (ref Interpreter!TestAlloc interpreter) {
 		stepNAndExpect(interpreter, 3, [fIndex.index.to64(), immutable Nat64(1), immutable Nat64(2)]);
 		stepAndExpect(interpreter, [immutable Nat64(1), immutable Nat64(2)]); // call-fun-ptr
 		expectReturnStack(interpreter, [afterCall]);
@@ -239,7 +245,6 @@ void testCallFunPtr() {
 		stepExit(interpreter);
 	});
 }
-
 
 void testSwitchAndJump() {
 	Alloc alloc;
@@ -274,7 +279,7 @@ void testSwitchAndJump() {
 	immutable ByteCode byteCode =
 		finishByteCode(writer, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
-	doInterpret(byteCode, (ref Interpreter interpreter) {
+	doInterpret(byteCode, (ref Interpreter!TestAlloc interpreter) {
 		stepAndExpect(interpreter, [immutable Nat64(0)]);
 		stepAndExpect(interpreter, []);
 		verify(nextByteCodeIndex(interpreter) == firstCase);
@@ -311,7 +316,7 @@ void testDup() {
 			verifyStackEntry(writer, 6);
 			writeReturn(writer, source);
 		},
-		(ref Interpreter interpreter) {
+		(ref Interpreter!TestAlloc interpreter) {
 			stepNAndExpect(interpreter, 3, [immutable Nat64(55), immutable Nat64(65), immutable Nat64(75)]);
 			stepAndExpect(interpreter, [
 				immutable Nat64(55),
@@ -346,7 +351,7 @@ void testRemove() {
 				immutable StackEntries(immutable StackEntry(immutable Nat16(1)), immutable Nat8(2)));
 			writeReturn(writer, source);
 		},
-		(ref Interpreter interpreter) {
+		(ref Interpreter!TestAlloc interpreter) {
 			stepNAndExpect(interpreter, 5, [
 				immutable Nat64(0),
 				immutable Nat64(1),
@@ -388,7 +393,7 @@ void testDupPartial() {
 				immutable Nat8(1));
 			writeReturn(writer, source);
 		},
-		(ref Interpreter interpreter) {
+		(ref Interpreter!TestAlloc interpreter) {
 			stepAndExpect(interpreter, [immutable Nat64(0x0123456789abcdef)]);
 			stepAndExpect(interpreter, [immutable Nat64(0x0123456789abcdef), immutable Nat64(0x89abcdef)]);
 			stepAndExpect(interpreter, [
@@ -421,7 +426,7 @@ void testPack() {
 			writePack(writer, source, arrOfD(a));
 			writeReturn(writer, source);
 		},
-		(ref Interpreter interpreter) {
+		(ref Interpreter!TestAlloc interpreter) {
 			stepNAndExpect(interpreter, 3, [
 				immutable Nat64(0x01234567),
 				immutable Nat64(0x89ab),
@@ -437,12 +442,12 @@ void testStackRef() {
 			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)), immutable Nat8(0));
 			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(1)), immutable Nat8(4));
 		},
-		(ref Interpreter interpreter) {
+		(ref Interpreter!TestAlloc interpreter) {
 			testStackRefInner(interpreter);
 		});
 }
 
-@trusted void testStackRefInner(ref Interpreter interpreter) {
+@trusted void testStackRefInner(ref Interpreter!TestAlloc interpreter) {
 	stepNAndExpect(interpreter, 2, [immutable Nat64(1), immutable Nat64(2)]);
 	stepAndExpect(interpreter, [
 		immutable Nat64(1),
@@ -488,7 +493,7 @@ void testStackRef() {
 			writeRead(writer, source, immutable Nat8(6), immutable Nat8(1));
 			writeReturn(writer, source);
 		},
-		(ref Interpreter interpreter) {
+		(ref Interpreter!TestAlloc interpreter) {
 			stepAndExpect(interpreter, [valuePtr]);
 			stepAndExpect(interpreter, [immutable Nat64(0x01234567)]);
 			stepAndExpect(interpreter, [immutable Nat64(0x01234567), valuePtr]);
@@ -509,7 +514,7 @@ void testStackRef() {
 			writeRead(writer, source, immutable Nat8(8), immutable Nat8(16));
 			writeReturn(writer, source);
 		},
-		(ref Interpreter interpreter) {
+		(ref Interpreter!TestAlloc interpreter) {
 			stepAndExpect(interpreter, [valuePtr]);
 			stepAndExpect(interpreter, [immutable Nat64(2), immutable Nat64(3)]);
 			stepExit(interpreter);
@@ -535,7 +540,7 @@ void testStackRef() {
 			writeWrite(writer, source, immutable Nat8(6), immutable Nat8(1));
 			writeReturn(writer, source);
 		},
-		(ref Interpreter interpreter) {
+		(ref Interpreter!TestAlloc interpreter) {
 			stepNAndExpect(interpreter, 2, [valuePtr, immutable Nat64(0x0123456789abcdef)]);
 			stepAndExpect(interpreter, []);
 			verify(value == immutable S(0x89abcdef, 0, 0, 0));
@@ -562,7 +567,7 @@ void testStackRef() {
 			writeWrite(writer, source, immutable Nat8(8), immutable Nat8(16));
 			writeReturn(writer, source);
 		},
-		(ref Interpreter interpreter) {
+		(ref Interpreter!TestAlloc interpreter) {
 			stepNAndExpect(interpreter, 3, [valuePtr, immutable Nat64(1), immutable Nat64(2)]);
 			stepAndExpect(interpreter, []);
 			verify(value == immutable S(0, 1, 2));
@@ -570,12 +575,12 @@ void testStackRef() {
 		});
 }
 
-void stepNAndExpect(ref Interpreter interpreter, immutable uint n, scope immutable Nat64[] expected) {
+void stepNAndExpect(Alloc)(ref Interpreter!Alloc interpreter, immutable uint n, scope immutable Nat64[] expected) {
 	repeatImpure(n, () { stepContinue(interpreter); });
 	expectStack(interpreter, expected);
 }
 
-void stepAndExpect(ref Interpreter interpreter, scope immutable Nat64[] expected) {
+void stepAndExpect(Alloc)(ref Interpreter!Alloc interpreter, scope immutable Nat64[] expected) {
 	stepNAndExpect(interpreter, 1, expected);
 }
 
@@ -583,16 +588,16 @@ void verifyStackEntry(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u16 n) {
 	verify(getNextStackEntry(writer) == immutable StackEntry(immutable Nat16(n)));
 }
 
-void stepContinue(ref Interpreter interpreter) {
+void stepContinue(Alloc)(ref Interpreter!Alloc interpreter) {
 	immutable StepResult result = step(interpreter);
 	verify(result == StepResult.continue_);
 }
 
-void stepExit(ref Interpreter interpreter) {
+void stepExit(Alloc)(ref Interpreter!Alloc interpreter) {
 	immutable StepResult result = step(interpreter);
 	verify(result == StepResult.exit);
 }
 
-void expectStack(ref Interpreter interpreter, scope immutable Nat64[] expected) {
+void expectStack(Alloc)(ref Interpreter!Alloc interpreter, scope immutable Nat64[] expected) {
 	expectDataStack(interpreter.dataStack, expected);
 }

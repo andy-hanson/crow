@@ -618,30 +618,10 @@ void writeFunDeclaration(Alloc)(
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 ) {
-	//TODO:HAX: printf apparently *must* be declared as variadic
-	if (isPrintf(fun))
-		writeStatic(writer, "int printf(const char* format, ...);\n");
-	else {
-		if (isExtern(fun.body_))
-			writeStatic(writer, "extern ");
-		writeFunReturnTypeNameAndParams(writer, ctx, funIndex, fun);
-		writeStatic(writer, ";\n");
-	}
-}
-
-//TODO:KILL (handle printf properly)
-immutable(Bool) isPrintf(ref immutable LowFun fun) {
-	return matchLowFunSource!(immutable Bool)(
-		fun.source,
-		(immutable Ptr!ConcreteFun it) =>
-			matchConcreteFunSource!(immutable Bool)(
-				it.source,
-				(immutable Ptr!FunInst inst) =>
-					symEq(name(inst), shortSymAlphaLiteral("printf")),
-				(ref immutable ConcreteFunSource.Lambda) =>
-					False),
-		(ref immutable LowFunSource.Generated) =>
-			False);
+	if (isExtern(fun.body_))
+		writeStatic(writer, "extern ");
+	writeFunReturnTypeNameAndParams(writer, ctx, funIndex, fun);
+	writeStatic(writer, ";\n");
 }
 
 void writeFunDefinition(Alloc)(

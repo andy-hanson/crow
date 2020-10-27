@@ -30,6 +30,8 @@ enum OpCode : u8 {
 	// args: u8 entryOffset, u4 byteOffset, u4 sizeBytes
 	dupPartial,
 
+	extern_,
+
 	// args: FnOp fnOp
 	// reads another byte and interprets as a FnOp
 	fn,

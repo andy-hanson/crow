@@ -53,9 +53,13 @@ immutable(Bool) ptrEquals(T)(const Ptr!T a, const Ptr!T b) {
 }
 
 immutable(Comparison) comparePtr(T)(const Ptr!T a, const Ptr!T b) {
-	return a.ptr < b.ptr
+	return comparePtrRaw(a.ptr, b.ptr);
+}
+
+immutable(Comparison) comparePtrRaw(T)(const T* a, const T* b) {
+	return a < b
 		? Comparison.less
-		: a.ptr > b.ptr
+		: a > b
 		? Comparison.greater
 		: Comparison.equal;
 }

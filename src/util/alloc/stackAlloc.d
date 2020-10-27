@@ -8,11 +8,12 @@ import util.alloc.mallocator : Mallocator;
 
 struct StackAlloc(immutable char* debugName, size_t capacity) {
 	@safe @nogc pure nothrow:
-	private:
-	ubyte[capacity] data_ = void;
-	size_t cur;
 
 	public:
+	@system const(ubyte*) TEST_data() const {
+		return data_.ptr;
+	}
+
 	@trusted ubyte* allocate(immutable size_t nBytes) {
 		if (cur + nBytes > capacity) {
 			debug {
@@ -38,6 +39,10 @@ struct StackAlloc(immutable char* debugName, size_t capacity) {
 	void free(ubyte*, immutable size_t) {
 		// do nothing
 	}
+
+	private:
+	ubyte[capacity] data_ = void;
+	size_t cur;
 }
 
 // Behaves exactly like StackAlloc, but not on stack

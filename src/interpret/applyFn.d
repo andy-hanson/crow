@@ -62,9 +62,6 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 			unary(dataStack, (immutable u64 a) =>
 				immutable Nat64(cast(u64) (cast(i64) (cast(i32) (bottomU32OfU64(a))))));
 			break;
-		case FnOp.free:
-			doFree(dataStack);
-			break;
 		case FnOp.hardFail:
 			todo!void("!");
 			break;
@@ -91,9 +88,6 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 		case FnOp.lessNat:
 			binary(dataStack, (immutable u64 a, immutable u64 b) =>
 				u64OfBool(a < b));
-			break;
-		case FnOp.malloc:
-			doMalloc(dataStack);
 			break;
 		case FnOp.mulFloat64:
 			binaryFloats(dataStack, (immutable float64 a, immutable float64 b) =>
@@ -154,21 +148,6 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 }
 
 private:
-
-@trusted void doFree(ref DataStack dataStack) {
-	free(cast(ubyte*) pop(dataStack).raw());
-}
-
-@trusted void doMalloc(ref DataStack dataStack) {
-	immutable Nat64 nBytes = pop(dataStack);
-	verify(!zero(nBytes));
-	void* ptr = malloc(nBytes.raw());
-	debug {
-		import core.stdc.stdio : printf;
-		printf("doMalloc: nbytes=%lu, ptr=%p\n", nBytes.raw(), ptr);
-	}
-	push(dataStack, immutable Nat64(cast(immutable u64) ptr));
-}
 
 pure @trusted immutable(u64) compareExchangeStrongBool(immutable u64 a, immutable u64 b, immutable u64 c) {
 	bool* valuePtr = cast(bool*) a;

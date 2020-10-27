@@ -9,6 +9,7 @@ import interpret.bytecode :
 	ByteCodeIndex,
 	ByteCodeOffset,
 	ByteCodeSource,
+	ExternOp,
 	FileToFuns,
 	FnOp,
 	FunNameAndPos,
@@ -34,6 +35,7 @@ import interpret.bytecodeWriter :
 	writeDupEntries,
 	writeDupEntry,
 	writeDupPartial,
+	writeExtern,
 	writeFn,
 	writeFnHardFail,
 	writePushConstant,
@@ -383,9 +385,33 @@ void generateExternCall(TempAlloc, CodeAlloc)(
 	ref immutable LowFunBody.Extern a,
 ) {
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
-	if (strEqLiteral(a.externName, "malloc")) {
-		writeFn(writer, source, FnOp.malloc);
-	} else {
+	if (strEqLiteral(a.externName, "free"))
+		writeExtern(writer, source, ExternOp.free);
+	else if (strEqLiteral(a.externName, "malloc"))
+		writeExtern(writer, source, ExternOp.malloc);
+	else if (strEqLiteral(a.externName, "write"))
+		writeExtern(writer, source, ExternOp.write);
+	else {
+		debug {
+			import core.stdc.stdio : printf;
+			import util.alloc.stackAlloc : StackAlloc;
+			import util.sym : Sym, symToCStr;
+			import util.util : unreachable;
+
+			immutable Sym name = matchLowFunSource(
+				fun.source,
+				(immutable Ptr!ConcreteFun cf) =>
+					matchConcreteFunSource(
+						cf.source,
+						(immutable Ptr!FunInst it) =>
+							name(it),
+						(ref immutable ConcreteFunSource.Lambda) =>
+							unreachable!(immutable Sym)()),
+				(ref immutable LowFunSource.Generated) =>
+					unreachable!(immutable Sym)());
+			StackAlloc!("debug", 1024) alloc;
+			printf("Unhandled extern function %s\n", symToCStr(alloc, name));
+		}
 		todo!void("unhandled extern function");
 	}
 	writeReturn(writer, source);

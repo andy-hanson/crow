@@ -1,6 +1,6 @@
 module test.testApplyFn;
 
-@safe @nogc nothrow: // not pure
+@safe @nogc nothrow: // not pure (DataStack uses globals)
 
 import interpret.applyFn : applyFn;
 import interpret.bytecode : FnOp;
@@ -13,8 +13,6 @@ import util.util : verify,verifyEq;
 
 void testApplyFn() {
 	immutable Nat64 one = immutable Nat64(1); // https://issues.dlang.org/show_bug.cgi?id=17778
-
-	testMallocAndFree();
 
 	testFn([u64OfFloat64Bits(-1.5), u64OfFloat64Bits(2.6)], FnOp.addFloat64, [u64OfFloat64Bits(1.1)]);
 
@@ -94,17 +92,6 @@ void testApplyFn() {
 }
 
 private:
-
-@trusted void testMallocAndFree() {
-	DataStack dataStack;
-	push(dataStack, immutable Nat64(8));
-	applyFn(dataStack, FnOp.malloc);
-	u64* ptr = cast(u64*) peek(dataStack).raw();
-	expectDataStack(dataStack, [immutable Nat64(cast(immutable u64) ptr)]);
-	*ptr = 1;
-	applyFn(dataStack, FnOp.free);
-	expectDataStack(dataStack, []);
-}
 
 @trusted void testCompareExchangeStrong() {
 	bool b0 = false;

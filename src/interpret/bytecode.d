@@ -9,7 +9,7 @@ import util.collection.arr : Arr, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.str : Str, strLiteral;
 import util.sexpr : Sexpr, tataArr, tataNat, tataRecord, tataStr, tataSym;
-import util.sym : Sym;
+import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, zero;
 import util.sourceRange : FileIndex, Pos;
 import util.util : todo, verify;
@@ -31,6 +31,7 @@ T matchDebugOperationImpure(T)(
 	scope T delegate(ref immutable Operation.Debug) @safe @nogc nothrow cbDebug,
 	scope T delegate(ref immutable Operation.Dup) @safe @nogc nothrow cbDup,
 	scope T delegate(ref immutable Operation.DupPartial) @safe @nogc nothrow cbDupPartial,
+	scope T delegate(ref immutable Operation.Extern) @safe @nogc nothrow cbExtern,
 	scope T delegate(ref immutable Operation.Fn) @safe @nogc nothrow cbFn,
 	scope T delegate(ref immutable Operation.Jump) @safe @nogc nothrow cbJump,
 	scope T delegate(ref immutable Operation.Pack) @safe @nogc nothrow cbPack,
@@ -53,6 +54,8 @@ T matchDebugOperationImpure(T)(
 			return cbDup(a.dup_);
 		case Operation.Kind.dupPartial:
 			return cbDupPartial(a.dupPartial_);
+		case Operation.Kind.extern_:
+			return cbExtern(a.extern_);
 		case Operation.Kind.fn:
 			return cbFn(a.fn_);
 		case Operation.Kind.jump:
@@ -85,6 +88,7 @@ pure:
 	scope T delegate(ref immutable Operation.Debug) @safe @nogc pure nothrow cbAssertStackSize,
 	scope T delegate(ref immutable Operation.Dup) @safe @nogc pure nothrow cbDup,
 	scope T delegate(ref immutable Operation.DupPartial) @safe @nogc pure nothrow cbDupPartial,
+	scope T delegate(ref immutable Operation.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(ref immutable Operation.Fn) @safe @nogc pure nothrow cbFn,
 	scope T delegate(ref immutable Operation.Jump) @safe @nogc pure nothrow cbJump,
 	scope T delegate(ref immutable Operation.Pack) @safe @nogc pure nothrow cbPack,
@@ -107,6 +111,8 @@ pure:
 			return cbDup(a.dup_);
 		case Operation.Kind.dupPartial:
 			return cbDupPartial(a.dupPartial_);
+		case Operation.Kind.extern_:
+			return cbExtern(a.extern_);
 		case Operation.Kind.fn:
 			return cbFn(a.fn_);
 		case Operation.Kind.jump:
@@ -148,6 +154,8 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 				tataNat(it.entryOffset.offset),
 				tataNat(it.byteOffset),
 				tataNat(it.sizeBytes)),
+		(ref immutable Operation.Extern it) =>
+			tataRecord(alloc, "extern", tataSym(symOfExternOp(it.op))),
 		(ref immutable Operation.Fn it)  =>
 			tataRecord(alloc, "fn", tataStr(strOfFnOp(it.fnOp))),
 		(ref immutable Operation.Jump it)  =>
@@ -281,6 +289,10 @@ struct Operation {
 		immutable Nat8 sizeBytes;
 	}
 
+	struct Extern {
+		immutable ExternOp op;
+	}
+
 	// Runs a special function (stack effect determined by the function)
 	struct Fn {
 		immutable FnOp fnOp;
@@ -353,6 +365,7 @@ struct Operation {
 		debug_,
 		dup,
 		dupPartial,
+		extern_,
 		fn,
 		jump,
 		pack,
@@ -371,6 +384,7 @@ struct Operation {
 		immutable Debug debug_;
 		immutable Dup dup_;
 		immutable DupPartial dupPartial_;
+		immutable Extern extern_;
 		immutable Fn fn_;
 		immutable Jump jump_;
 		immutable Pack pack_;
@@ -389,6 +403,7 @@ struct Operation {
 	immutable this(immutable Debug a) { kind_ = Kind.debug_; debug_ = a; }
 	immutable this(immutable Dup a) { kind_ = Kind.dup; dup_ = a; }
 	immutable this(immutable DupPartial a) { kind_ = Kind.dupPartial; dupPartial_ = a; }
+	immutable this(immutable Extern a) { kind_ = Kind.extern_; extern_ = a; }
 	immutable this(immutable Fn a) { kind_ = Kind.fn; fn_ = a; }
 	immutable this(immutable Jump a) { kind_ = Kind.jump; jump_ = a; }
 	@trusted immutable this(immutable Pack a) { kind_ = Kind.pack; pack_ = a; }
@@ -429,6 +444,13 @@ struct ByteCodeOffset {
 
 immutable Nat8 stackEntrySize = immutable Nat8(8);
 
+enum ExternOp : u8 {
+	free,
+	malloc,
+	// posix write
+	write,
+}
+
 enum FnOp : u8 {
 	addFloat64,
 	bitwiseAnd,
@@ -437,7 +459,6 @@ enum FnOp : u8 {
 	eqBits,
 	float64FromInt64,
 	float64FromNat64,
-	free,
 	hardFail,
 	intFromInt16,
 	intFromInt32,
@@ -447,7 +468,6 @@ enum FnOp : u8 {
 	lessInt32,
 	lessInt64,
 	lessNat,
-	malloc,
 	mulFloat64,
 	not,
 	subFloat64,
@@ -464,6 +484,19 @@ enum FnOp : u8 {
 	wrapSubIntegral,
 }
 
+immutable(Sym) symOfExternOp(immutable ExternOp op) {
+	return shortSymAlphaLiteral(() {
+		final switch (op) {
+			case ExternOp.free:
+				return "free";
+			case ExternOp.malloc:
+				return "malloc";
+			case ExternOp.write:
+				return "write";
+		}
+	}());
+}
+
 immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 	return strLiteral(() { final switch (fnOp) {
 		case FnOp.addFloat64:
@@ -476,8 +509,6 @@ immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 			return "compare-exchange-strong (bool)";
 		case FnOp.eqBits:
 			return "== (integrals / pointers)";
-		case FnOp.free:
-			return "free";
 		case FnOp.float64FromInt64:
 			return "float-64-from-int-64";
 		case FnOp.float64FromNat64:
@@ -500,8 +531,6 @@ immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 			return "< (int-64)";
 		case FnOp.lessNat:
 			return "< (nat)";
-		case FnOp.malloc:
-			return "malloc";
 		case FnOp.mulFloat64:
 			return "* (float-64)";
 		case FnOp.not:
