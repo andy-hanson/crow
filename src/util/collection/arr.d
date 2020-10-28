@@ -37,6 +37,10 @@ struct Arr(T) {
 	this(T* b, immutable size_t s) { begin_ = b; size_ = s; }
 }
 
+immutable(Arr!T) asImmutable(T)(Arr!(immutable T) a) {
+	return immutable Arr!T(a.begin_, a.size_);
+}
+
 @trusted immutable(Arr!T) arrOfD(T)(scope immutable T[] a) {
 	return immutable Arr!T(a.ptr, a.length);
 }

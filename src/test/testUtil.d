@@ -30,7 +30,7 @@ void expectDataStack(ref const DataStack dataStack, scope immutable Nat64[] expe
 	}
 }
 
-void expectReturnStack(Alloc)(ref const Interpreter!Alloc interpreter, scope immutable ByteCodeIndex[] expected) {
+void expectReturnStack(Extern)(ref const Interpreter!Extern interpreter, scope immutable ByteCodeIndex[] expected) {
 	immutable Arr!(immutable(u8)*) stack = asTempArr(interpreter.returnStack);
 	immutable Arr!ByteCodeIndex expectedArr = arrOfD(expected);
 	immutable Bool eq = immutable Bool(

@@ -88,25 +88,29 @@ void pushAll(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a, immutable Ar
 	}
 }
 
+void clear(T)(ref MutArr!T a) {
+	a.size_ = 0;
+}
+
 T mustPop(T)(ref MutArr!T a) {
 	Opt!T p = pop(a);
 	return force(p);
 }
 
-@trusted const(Opt!T) peek(T)(ref MutArr!T m) {
-	return mutArrIsEmpty(m)
+@trusted const(Opt!T) peek(T)(ref MutArr!T a) {
+	return mutArrIsEmpty(a)
 		? noneConst!T
-		: someConst(mustPeek(m));
+		: someConst(mustPeek(a));
 }
 
-@trusted ref const(T) mustPeek(T)(ref const MutArr!T m) {
-	verify(m.size_ != 0);
-	return m.begin_[m.size_ - 1];
+@trusted ref const(T) mustPeek(T)(ref const MutArr!T a) {
+	verify(a.size_ != 0);
+	return a.begin_[a.size_ - 1];
 }
 
-@trusted ref T mustPeek_mut(T)(ref MutArr!T m) {
-	verify(m.size_ != 0);
-	return m.begin_[m.size_ - 1];
+@trusted ref T mustPeek_mut(T)(ref MutArr!T a) {
+	verify(a.size_ != 0);
+	return a.begin_[a.size_ - 1];
 }
 
 @trusted void setAt(T)(ref MutArr!T a, immutable size_t index, T value) {
@@ -149,11 +153,11 @@ T mustPop(T)(ref MutArr!T a) {
 	return MutArr!T(cast(T*) alloc.allocate(T.sizeof * size), size, size);
 }
 
-const(Arr!T) tempAsArr(T)(ref const MutArr!T m) {
-	return const Arr!T(m.begin_, m.size_);
+const(Arr!T) tempAsArr(T)(ref const MutArr!T a) {
+	return const Arr!T(a.begin_, a.size_);
 }
-Arr!T tempAsArr_mut(T)(ref MutArr!T m) {
-	return Arr!T(m.begin_, m.size_);
+Arr!T tempAsArr_mut(T)(ref MutArr!T a) {
+	return Arr!T(a.begin_, a.size_);
 }
 
 @trusted void deleteAt(T)(ref MutArr!T a, immutable size_t index) {

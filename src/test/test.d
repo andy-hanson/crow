@@ -4,7 +4,7 @@ module test.test;
 
 import test.testApplyFn : testApplyFn;
 import test.testByteReaderWriter : testByteReaderWriter;
-import test.testExternOps : testExternOps;
+import test.testFakeExtern : testFakeExtern;
 import test.testInterpreter : testInterpreter;
 import test.testLineAndColumnGetter : testLineAndColumnGetter;
 import util.collection.str : Str, strEqLiteral;
@@ -27,7 +27,7 @@ private:
 immutable NameAndTest[] allTests = [
 	immutable NameAndTest("apply-fn", &testApplyFn),
 	immutable NameAndTest("byte-reader-writer", &testByteReaderWriter),
-	immutable NameAndTest("extern-ops", &testExternOps),
+	immutable NameAndTest("fake-extern", &testFakeExtern),
 	immutable NameAndTest("interpreter", &testInterpreter),
 	immutable NameAndTest("line-and-column-getter", &testLineAndColumnGetter),
 ];

@@ -12,6 +12,7 @@ import frontend.getTokens : Token, tokensOfAst, sexprOfTokens;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : cStrOfDiagnostics;
 import interpret.bytecode : ByteCode;
+import interpret.fakeExtern : FakeExtern, newFakeExtern;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
@@ -109,7 +110,13 @@ immutable(int) buildAndRun(SymAlloc)(
 			lowProgramResult,
 			(ref immutable ProgramsAndFilesInfo it) {
 				immutable ByteCode byteCode = generateBytecode(lowAlloc, it.program, it.lowProgram);
-				return runBytecode(mallocator, it.lowProgram, byteCode, it.filesInfo, programArgs);
+				FakeExtern!Mallocator fakeExtern = newFakeExtern(ptrTrustMe_mut(mallocator));
+				return runBytecode!(FakeExtern!Mallocator)(
+					fakeExtern,
+					it.lowProgram,
+					byteCode,
+					it.filesInfo,
+					programArgs);
 			},
 			(ref immutable Diagnostics diagnostics) {
 				printDiagnostics(diagnostics);

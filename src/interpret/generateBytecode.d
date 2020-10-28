@@ -334,24 +334,27 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 ) {
+	Nat16 stackEntry = Nat16(0);
+	immutable Arr!StackEntries parameters = map!StackEntries(
+		tempAlloc,
+		fun.params,
+		(ref immutable LowParam it) {
+			immutable StackEntry start = immutable StackEntry(stackEntry);
+			immutable Nat8 n = nStackEntriesForType(typeLayout, it.type);
+			stackEntry += n.to16();
+			return immutable StackEntries(start, n);
+		});
+	immutable StackEntry stackEntryAfterParameters = immutable StackEntry(stackEntry);
+	setStackEntryAfterParameters(writer, stackEntryAfterParameters);
+	immutable Nat8 returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
+	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
+
 	matchLowFunBody!void(
 		fun.body_,
 		(ref immutable LowFunBody.Extern body_) {
 			generateExternCall(tempAlloc, writer, funIndex, fun, body_);
 		},
 		(ref immutable LowFunExprBody body_) {
-			Nat16 stackEntry = Nat16(0);
-			immutable Arr!StackEntries parameters = map!StackEntries(
-				tempAlloc,
-				fun.params,
-				(ref immutable LowParam it) {
-					immutable StackEntry start = immutable StackEntry(stackEntry);
-					immutable Nat8 n = nStackEntriesForType(typeLayout, it.type);
-					stackEntry += n.to16();
-					return immutable StackEntries(start, n);
-				});
-			immutable StackEntry stackEntryAfterParameters = immutable StackEntry(stackEntry);
-			setStackEntryAfterParameters(writer, stackEntryAfterParameters);
 			// Note: not doing it for locals because they might be unrelated and occupy the same stack entry
 			ExprCtx ctx = ExprCtx(
 				ptrTrustMe(program),
@@ -360,21 +363,17 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 				ptrTrustMe_mut(funToReferences),
 				parameters);
 			generateExpr(tempAlloc, writer, ctx, body_.expr);
-
-			immutable Nat8 returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
 			verify(stackEntryAfterParameters.entry + returnEntries.to16() == getNextStackEntry(writer).entry);
-			immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 			writeRemove(
 				writer,
 				source,
 				immutable StackEntries(
 					immutable StackEntry(immutable Nat16(0)),
 					stackEntryAfterParameters.entry.to8()));
-			verify(getNextStackEntry(writer).entry == returnEntries.to16());
-			writeReturn(writer, source);
-
-			setNextStackEntry(writer, immutable StackEntry(immutable Nat16(0)));
 		});
+	verify(getNextStackEntry(writer).entry == returnEntries.to16());
+	writeReturn(writer, source);
+	setNextStackEntry(writer, immutable StackEntry(immutable Nat16(0)));
 }
 
 void generateExternCall(TempAlloc, CodeAlloc)(
