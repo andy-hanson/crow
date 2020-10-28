@@ -350,49 +350,6 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 				"seq",
 				tataOfConcreteExpr(alloc, it.first),
 				tataOfConcreteExpr(alloc, it.then)),
-		(ref immutable ConcreteExpr.SpecialConstant it) =>
-			tataRecord(
-				alloc,
-				"special",
-				tataSym(() {
-					final switch (it.kind) {
-						case ConcreteExpr.SpecialConstant.Kind.one:
-							return "one";
-						case ConcreteExpr.SpecialConstant.Kind.zero:
-							return "zero";
-					}
-				}())),
-		(ref immutable ConcreteExpr.SpecialUnary it) =>
-			tataRecord(
-				alloc,
-				"special",
-				tataSym(() {
-					final switch (it.kind) {
-						case ConcreteExpr.SpecialUnary.Kind.deref:
-							return "deref";
-					}
-				}()),
-				tataOfConcreteExpr(alloc, it.arg)),
-		(ref immutable ConcreteExpr.SpecialBinary it) =>
-			tataRecord(
-				alloc,
-				"special",
-				tataStr(strLiteral(() {
-					final switch (it.kind) {
-						case ConcreteExpr.SpecialBinary.Kind.eqNat64:
-							return "eqNat64";
-						case ConcreteExpr.SpecialBinary.Kind.less:
-							return "less";
-						case ConcreteExpr.SpecialBinary.Kind.or:
-							return "or";
-						case ConcreteExpr.SpecialBinary.Kind.wrapAddNat64:
-							return "wrapAddNat64";
-						case ConcreteExpr.SpecialBinary.Kind.wrapSubNat64:
-							return "wrapSubNat64";
-					}
-				}())),
-				tataOfConcreteExpr(alloc, it.left),
-				tataOfConcreteExpr(alloc, it.right)),
 		(ref immutable ConcreteExpr.StringLiteral it) =>
 			tataRecord(alloc, "str-lit", tataStr(it.literal)));
 }

@@ -894,7 +894,6 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
 			fn(FnOp.eqBits);
 			break;
-		case LowExprKind.SpecialBinary.Kind.less: // TODO:KILL
 		case LowExprKind.SpecialBinary.Kind.lessBool:
 		case LowExprKind.SpecialBinary.Kind.lessChar:
 		case LowExprKind.SpecialBinary.Kind.lessNat8:

@@ -738,42 +738,6 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 			immutable LowExprKind(immutable LowExprKind.Seq(
 				allocate(alloc, getLowExpr(alloc, ctx, it.first)),
 				allocate(alloc, getLowExpr(alloc, ctx, it.then)))),
-		(ref immutable ConcreteExpr.SpecialConstant it) =>
-			immutable LowExprKind(immutable LowExprKind.SpecialConstant(() {
-				final switch (it.kind) {
-					case ConcreteExpr.SpecialConstant.Kind.one:
-						return immutable LowExprKind.SpecialConstant.Integral(1);
-					case ConcreteExpr.SpecialConstant.Kind.zero:
-						return immutable LowExprKind.SpecialConstant.Integral(0);
-				}
-			}())),
-		(ref immutable ConcreteExpr.SpecialUnary it) =>
-			immutable LowExprKind(immutable LowExprKind.SpecialUnary(
-				() {
-					final switch (it.kind) {
-						case ConcreteExpr.SpecialUnary.Kind.deref:
-							return LowExprKind.SpecialUnary.Kind.deref;
-					}
-				}(),
-				allocate(alloc, getLowExpr(alloc, ctx, it.arg)))),
-		(ref immutable ConcreteExpr.SpecialBinary it) =>
-			immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-				() {
-					final switch (it.kind) {
-						case ConcreteExpr.SpecialBinary.Kind.eqNat64:
-							return LowExprKind.SpecialBinary.Kind.eqNat64;
-						case ConcreteExpr.SpecialBinary.Kind.less:
-							return LowExprKind.SpecialBinary.Kind.less;
-						case ConcreteExpr.SpecialBinary.Kind.or:
-							return LowExprKind.SpecialBinary.Kind.or;
-						case ConcreteExpr.SpecialBinary.Kind.wrapAddNat64:
-							return LowExprKind.SpecialBinary.Kind.wrapAddNat64;
-						case ConcreteExpr.SpecialBinary.Kind.wrapSubNat64:
-							return LowExprKind.SpecialBinary.Kind.wrapSubNat64;
-					}
-				}(),
-				allocate(alloc, getLowExpr(alloc, ctx, it.left)),
-				allocate(alloc, getLowExpr(alloc, ctx, it.right)))),
 		(ref immutable ConcreteExpr.StringLiteral it) =>
 			immutable LowExprKind(
 				immutable LowExprKind.SpecialConstant(

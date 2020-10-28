@@ -703,35 +703,6 @@ struct ConcreteExpr {
 		immutable Ptr!ConcreteExpr then;
 	}
 
-	struct SpecialConstant {
-		enum Kind {
-			one,
-			zero,
-		}
-		immutable Kind kind;
-	}
-
-	struct SpecialUnary {
-		enum Kind {
-			deref,
-		}
-		immutable Kind kind;
-		immutable Ptr!ConcreteExpr arg;
-	}
-
-	struct SpecialBinary {
-		enum Kind {
-			eqNat64,
-			less,
-			or,
-			wrapAddNat64,
-			wrapSubNat64,
-		}
-		immutable Kind kind;
-		immutable Ptr!ConcreteExpr left;
-		immutable Ptr!ConcreteExpr right;
-	}
-
 	struct StringLiteral {
 		immutable Str literal;
 	}
@@ -755,9 +726,6 @@ struct ConcreteExpr {
 		recordFieldAccess,
 		recordFieldSet,
 		seq,
-		specialConstant,
-		specialUnary,
-		specialBinary,
 		stringLiteral,
 	}
 	union {
@@ -775,9 +743,6 @@ struct ConcreteExpr {
 		immutable RecordFieldAccess recordFieldAccess;
 		immutable RecordFieldSet recordFieldSet;
 		immutable Seq seq;
-		immutable SpecialConstant specialConstant;
-		immutable SpecialUnary specialUnary;
-		immutable SpecialBinary specialBinary;
 		immutable StringLiteral stringLiteral;
 	}
 
@@ -824,15 +789,6 @@ struct ConcreteExpr {
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Seq a) {
 		type = t; range = r; kind = Kind.seq; seq = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable SpecialConstant a) {
-		type = t; range = r; kind = Kind.specialConstant; specialConstant = a;
-	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable SpecialUnary a) {
-		type = t; range = r; kind = Kind.specialUnary; specialUnary = a;
-	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable SpecialBinary a) {
-		type = t; range = r; kind = Kind.specialBinary; specialBinary = a;
-	}
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable StringLiteral a) {
 		type = t; range = r; kind = Kind.stringLiteral; stringLiteral = a;
 	}
@@ -870,9 +826,6 @@ immutable(Bool) isCond(ref immutable ConcreteExpr a) {
 	scope T delegate(ref immutable ConcreteExpr.RecordFieldAccess) @safe @nogc pure nothrow cbRecordFieldAccess,
 	scope T delegate(ref immutable ConcreteExpr.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 	scope T delegate(ref immutable ConcreteExpr.Seq) @safe @nogc pure nothrow cbSeq,
-	scope T delegate(ref immutable ConcreteExpr.SpecialConstant) @safe @nogc pure nothrow cbSpecialConstant,
-	scope T delegate(ref immutable ConcreteExpr.SpecialUnary) @safe @nogc pure nothrow cbSpecialUnary,
-	scope T delegate(ref immutable ConcreteExpr.SpecialBinary) @safe @nogc pure nothrow cbSpecialBinary,
 	scope T delegate(ref immutable ConcreteExpr.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
 ) {
 	final switch (a.kind) {
@@ -904,12 +857,6 @@ immutable(Bool) isCond(ref immutable ConcreteExpr a) {
 			return cbRecordFieldSet(a.recordFieldSet);
 		case ConcreteExpr.Kind.seq:
 			return cbSeq(a.seq);
-		case ConcreteExpr.Kind.specialConstant:
-			return cbSpecialConstant(a.specialConstant);
-		case ConcreteExpr.Kind.specialUnary:
-			return cbSpecialUnary(a.specialUnary);
-		case ConcreteExpr.Kind.specialBinary:
-			return cbSpecialBinary(a.specialBinary);
 		case ConcreteExpr.Kind.stringLiteral:
 			return cbStringLiteral(a.stringLiteral);
 	}

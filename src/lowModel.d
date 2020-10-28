@@ -625,7 +625,6 @@ struct LowExprKind {
 			bitwiseOrNat64,
 			eqNat64,
 			eqPtr,
-			less, // TODO:KILL
 			lessBool,
 			lessChar,
 			lessFloat64,

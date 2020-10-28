@@ -1347,7 +1347,6 @@ void writeSpecialBinary(Alloc)(
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
 			operator("==");
 			break;
-		case LowExprKind.SpecialBinary.Kind.less:
 		case LowExprKind.SpecialBinary.Kind.lessBool:
 		case LowExprKind.SpecialBinary.Kind.lessChar:
 		case LowExprKind.SpecialBinary.Kind.lessFloat64:
