@@ -446,8 +446,12 @@ immutable Nat8 stackEntrySize = immutable Nat8(8);
 
 enum ExternOp : u8 {
 	free,
+	getNProcs,
+	longjmp,
 	malloc,
-	// posix write
+	pthreadYield,
+	setjmp,
+	usleep,
 	write,
 }
 
@@ -489,8 +493,18 @@ immutable(Sym) symOfExternOp(immutable ExternOp op) {
 		final switch (op) {
 			case ExternOp.free:
 				return "free";
+			case ExternOp.getNProcs:
+				return "get-nprocs";
+			case ExternOp.longjmp:
+				return "longjmp";
 			case ExternOp.malloc:
 				return "malloc";
+			case ExternOp.pthreadYield:
+				return "pthread-yield";
+			case ExternOp.setjmp:
+				return "setjmp";
+			case ExternOp.usleep:
+				return "usleep";
 			case ExternOp.write:
 				return "write";
 		}

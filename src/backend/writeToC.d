@@ -3,6 +3,8 @@ module backend.writeToC;
 @safe @nogc pure nothrow:
 
 import concreteModel :
+	asExtern,
+	body_,
 	ConcreteFun,
 	ConcreteFunSource,
 	ConcreteLocal,
@@ -11,6 +13,7 @@ import concreteModel :
 	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructSource,
+	isExtern,
 	matchConcreteFunSource,
 	matchConcreteParamSource,
 	matchConcreteLocalSource,
@@ -447,8 +450,12 @@ void writeFunMangledName(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, 
 	matchConcreteFunSource!void(
 		source.source,
 		(immutable Ptr!FunInst it) {
-			writeMangledName(writer, name(it));
-			maybeWriteIndexSuffix(writer, getAt(ctx.mangledNames.funToNameIndex, source));
+			if (isExtern(body_(source)))
+				writeStr(writer, asExtern(body_(source)).externName);
+			else {
+				writeMangledName(writer, name(it));
+				maybeWriteIndexSuffix(writer, getAt(ctx.mangledNames.funToNameIndex, source));
+			}
 		},
 		(ref immutable ConcreteFunSource.Lambda it) {
 			writeFunMangledName(writer, ctx, it.containingFun);

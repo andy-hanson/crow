@@ -10,7 +10,7 @@ import util.collection.mutDict : addToMutDict, mustDelete, MutDict, mutDictIsEmp
 import util.collection.str : Str;
 import util.ptr : comparePtrRaw, Ptr;
 import util.types : u8;
-import util.util : verify;
+import util.util : todo, verify;
 
 struct FakeExtern(Alloc) {
 	@safe @nogc pure nothrow:
@@ -55,6 +55,18 @@ struct FakeExtern(Alloc) {
 	void clearOutput() {
 		clear(stdout);
 		clear(stderr);
+	}
+
+	immutable(size_t) getNProcs() const {
+		return 1;
+	}
+
+	immutable(size_t) pthreadYield() const {
+		return todo!(immutable size_t)("only 1 proc, so shouldn't be called");
+	}
+
+	void usleep(immutable size_t microseconds) {
+		todo!void("usleep");
 	}
 }
 

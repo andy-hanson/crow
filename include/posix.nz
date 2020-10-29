@@ -117,7 +117,7 @@ spec
 | writes to `thread-return`
 pthread-join err-t(thread pthread-t, thread-return cell any-ptr) unsafe extern<"pthread_join"> noctx
 
-pthread-yield err-t() unsafe extern<"pthread-yield"> noctx
+pthread-yield err-t() unsafe extern<"pthread_yield"> noctx
 
 | based on my /usr/include/x86_64-linux-gnu/asm/stat.h `struct stat64`
 stat-t record mut
@@ -514,3 +514,9 @@ usleep void(micro-seconds nat) extern<"usleep"> noctx
 environ ptr c-str() unsafe global<"environ"> noctx
 
 
+
+| TODO: this is not posix
+
+| sysinfo.h
+
+get-nprocs nat() summon extern<"get_nprocs"> noctx

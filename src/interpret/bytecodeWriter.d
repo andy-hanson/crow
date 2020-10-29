@@ -168,6 +168,7 @@ void writeDupEntries(Alloc)(
 	ref immutable ByteCodeSource source,
 	immutable StackEntries entries,
 ) {
+	verify(!zero(entries.size));
 	foreach (immutable ushort i; 0..entries.size.raw())
 		writeDupEntry(writer, source, immutable StackEntry(entries.start.entry + immutable Nat16(i)));
 }
@@ -189,6 +190,7 @@ void writeDupPartial(Alloc)(
 	immutable Nat8 byteOffset,
 	immutable Nat8 sizeBytes,
 ) {
+	verify(!zero(sizeBytes));
 	pushOpcode(writer, source, OpCode.dupPartial);
 	pushU8(writer, source, getStackOffsetTo(writer, stackEntry));
 	pushU8(writer, source, catU4U4(byteOffset, sizeBytes));
@@ -201,6 +203,7 @@ void writeRead(Alloc)(
 	immutable Nat8 offset,
 	immutable Nat8 size,
 ) {
+	verify(!zero(size));
 	pushOpcode(writer, source, OpCode.read);
 	pushU8(writer, source, offset);
 	pushU8(writer, source, size);
@@ -229,6 +232,7 @@ void writeWrite(Alloc)(
 	immutable Nat8 offset,
 	immutable Nat8 size,
 ) {
+	verify(!zero(size));
 	pushOpcode(writer, source, OpCode.write);
 	pushU8(writer, source, offset);
 	pushU8(writer, source, size);
@@ -447,12 +451,18 @@ void fillDelayedSwitchEntry(Alloc)(
 void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable ExternOp op) {
 	immutable int stackEffect = () {
 		final switch (op) {
+			case ExternOp.longjmp:
 			case ExternOp.write:
 				return -2;
 			case ExternOp.free:
+			case ExternOp.usleep:
 				return -1;
 			case ExternOp.malloc:
+			case ExternOp.setjmp:
 				return 0;
+			case ExternOp.getNProcs:
+			case ExternOp.pthreadYield:
+				return 1;
 		}
 	}();
 	pushOpcode(writer, source, OpCode.extern_);

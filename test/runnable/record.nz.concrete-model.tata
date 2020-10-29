@@ -366,7 +366,7 @@ program(
 					local("<<matched>>", type(false, result))]
 				let(
 					n-threads
-					call(as, [call(two, [])])
+					call(get-nprocs, [])
 					let(
 						gctx-by-val
 						record(
@@ -430,23 +430,7 @@ program(
 																					get-field(local-ref(e), value)
 																					message)]))
 																	call(one, [])))]))))))))))))
-		fun(false, as, type(false, nat), none, [param(value, type(false, nat))], builtin([type(false, nat)]))
-		fun(false, two, type(false, nat), none, [], expr-body([], call(wrap-incr, [call(one, [])])))
-		fun(
-			false
-			wrap-incr
-			type(false, nat)
-			none
-			[param(a, type(false, nat))]
-			expr-body([], call(wrap-add, [param-ref(a), call(one, [])])))
-		fun(
-			false
-			wrap-add
-			type(false, nat)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			builtin([]))
-		fun(false, one, type(false, nat), none, [], builtin([]))
+		fun(false, get-nprocs, type(false, nat), none, [], extern(false))
 		fun(false, new-lock, type(false, lock), none, [], expr-body([], record([call(new-atomic-bool, [])])))
 		fun(false, new-atomic-bool, type(false, atomic-bool), none, [], expr-body([], record([call(false, [])])))
 		fun(false, false, type(false, bool), none, [], builtin([]))
@@ -783,6 +767,7 @@ program(
 			[param(it, type(false, exception))]
 			expr-body([], call(default-exception-handler, [param-ref(it)])))
 		fun(false, ref-of-val, type(true, vat), none, [param(b, type(false, vat))], builtin([type(true, vat)]))
+		fun(false, one, type(false, nat), none, [], builtin([]))
 		fun(false, ptr-to, type(false, ptr), none, [param(t, type(true, vat))], builtin([type(true, vat)]))
 		fun(
 			false
@@ -999,6 +984,20 @@ program(
 			expr-body([], call(wrap-mul, [call(hundred, []), call(ten, [])])))
 		fun(false, hundred, type(false, nat), none, [], expr-body([], call(wrap-mul, [call(ten, []), call(ten, [])])))
 		fun(false, ten, type(false, nat), none, [], expr-body([], call(wrap-incr, [call(nine, [])])))
+		fun(
+			false
+			wrap-incr
+			type(false, nat)
+			none
+			[param(a, type(false, nat))]
+			expr-body([], call(wrap-add, [param-ref(a), call(one, [])])))
+		fun(
+			false
+			wrap-add
+			type(false, nat)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			builtin([]))
 		fun(false, nine, type(false, nat), none, [], expr-body([], call(wrap-incr, [call(eight, [])])))
 		fun(false, eight, type(false, nat), none, [], expr-body([], call(wrap-incr, [call(seven, [])])))
 		fun(false, seven, type(false, nat), none, [], expr-body([], call(wrap-incr, [call(six, [])])))
@@ -1006,6 +1005,7 @@ program(
 		fun(false, five, type(false, nat), none, [], expr-body([], call(wrap-incr, [call(four, [])])))
 		fun(false, four, type(false, nat), none, [], expr-body([], call(wrap-incr, [call(three, [])])))
 		fun(false, three, type(false, nat), none, [], expr-body([], call(wrap-incr, [call(two, [])])))
+		fun(false, two, type(false, nat), none, [], expr-body([], call(wrap-incr, [call(one, [])])))
 		fun(
 			false
 			yield-thread
@@ -3658,6 +3658,7 @@ program(
 							[
 								call(*, [local-ref(higher-digits), call(ten, [])])
 								call(char-to-nat, [call(last, [param-ref(s)])])])))))
+		fun(false, as, type(false, nat), none, [param(value, type(false, nat))], builtin([type(false, nat)]))
 		fun(
 			true
 			rtail

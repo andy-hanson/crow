@@ -18,7 +18,7 @@ main-ptr alias
 | Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
 	| TODO: detect # hardware processors to use for n-threads
-	n-threads = two as<nat>
+	n-threads = get-nprocs
 	gctx-by-val = new<by-val<global-ctx>>
 		lk. new-lock
 		vats. empty-arr<vat>

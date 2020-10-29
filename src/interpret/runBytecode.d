@@ -438,8 +438,23 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 		case ExternOp.free:
 			a.free(cast(u8*) pop(dataStack).raw());
 			break;
+		case ExternOp.getNProcs:
+			push(dataStack, immutable Nat64(a.getNProcs()));
+			break;
+		case ExternOp.longjmp:
+			todo!void("longjmp");
+			break;
 		case ExternOp.malloc:
 			push(dataStack, immutable Nat64(cast(immutable size_t) a.malloc(pop(dataStack).raw())));
+			break;
+		case ExternOp.pthreadYield:
+			push(dataStack, immutable Nat64(a.pthreadYield()));
+			break;
+		case ExternOp.setjmp:
+			todo!void("setjmp");
+			break;
+		case ExternOp.usleep:
+			a.usleep(pop(dataStack).raw());
 			break;
 		case ExternOp.write:
 			// Emulate output streams stdout and stderr.

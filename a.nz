@@ -1,5 +1,7 @@
 import
 	io
+	posix
 
 main fut exit-code(args arr str) summon
+	print-sync: get-nprocs to-str
 	0 resolved

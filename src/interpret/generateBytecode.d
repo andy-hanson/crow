@@ -2,7 +2,13 @@ module interpret.generateBytecode;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : ConcreteFun, ConcreteFunSource, matchConcreteFunSource;
+import concreteModel :
+	ConcreteFun,
+	ConcreteFunSource,
+	ConcreteStructSource,
+	matchConcreteFieldSource,
+	matchConcreteFunSource,
+	matchConcreteStructSource;
 import interpret.bytecode :
 	addByteCodeIndex,
 	ByteCode,
@@ -109,7 +115,7 @@ import util.collection.mutIndexMultiDict :
 	mutIndexMultiDictMustGetAt,
 	mutIndexMultiDictSize,
 	newMutIndexMultiDict;
-import util.collection.str : strEqLiteral;
+import util.collection.str : Str, strEqLiteral;
 import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
@@ -349,6 +355,16 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 	immutable Nat8 returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 
+	debug {
+		import core.stdc.stdio : printf;
+		import util.collection.str : CStr;
+		import util.sym : symToCStr;
+		import util.writer : finishWriterToCStr;
+		Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+		writeFunctionName(w, fun);
+		printf("Generating bytecode for function %s\n", finishWriterToCStr(w));
+	}
+
 	matchLowFunBody!void(
 		fun.body_,
 		(ref immutable LowFunBody.Extern body_) {
@@ -376,6 +392,69 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 	setNextStackEntry(writer, immutable StackEntry(immutable Nat16(0)));
 }
 
+//TODO:MOVE
+import util.collection.arr : empty;
+import util.writer : Writer, writeChar, writeNat, writeStatic;
+import util.sym : writeSym;
+void writeFunctionName(Alloc)(ref Writer!Alloc writer, ref immutable LowFun a) {
+	matchLowFunSource!void(
+		a.source,
+		(immutable Ptr!ConcreteFun it) {
+			writeConcreteFunName(writer, it);
+		},
+		(ref immutable LowFunSource.Generated) {
+			writeStatic(writer, "<<generated>>");
+		});
+}
+void writeConcreteFunName(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFun a) {
+	matchConcreteFunSource!void(
+		a.source,
+		(immutable Ptr!FunInst it) =>
+			writeSym(writer, name(it)),
+		(ref immutable ConcreteFunSource.Lambda it) {
+			writeConcreteFunName(writer, it.containingFun);
+			writeStatic(writer, ".lambda");
+			writeNat(writer, it.index);
+		});
+}
+void writeRecordName(Alloc)(ref Writer!Alloc writer, ref immutable LowRecord a) {
+	writeConcreteStruct(writer, a.source);
+}
+void writeConcreteStruct(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteStruct a) {
+	matchConcreteStructSource!void(
+		a.source,
+		(ref immutable ConcreteStructSource.Inst it) {
+			writeSym(writer, decl(it.inst).name);
+			if (!empty(it.typeArgs)) {
+				writeChar(writer, '<');
+				foreach (ref immutable ConcreteType t; range(it.typeArgs))
+					writeConcreteType(writer, t);
+				writeChar(writer, '>');
+			}
+		},
+		(ref immutable ConcreteStructSource.Lambda it) {
+			writeConcreteFunName(writer, it.containingFun);
+			writeStatic(writer, ".lambda");
+			writeNat(writer, it.index);
+		});
+}
+import concreteModel : ConcreteStruct, ConcreteType;
+void writeConcreteType(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteType a) {
+	//TODO: if it doesn't have the usual by-ref or by-val we should write that
+	writeConcreteStruct(writer, a.struct_);
+}
+import model : ClosureField, RecordField;
+void writeFieldName(Alloc)(ref Writer!Alloc writer, ref immutable LowField a) {
+	matchConcreteFieldSource!void(
+		a.source.source,
+		(immutable Ptr!ClosureField it) {
+			writeSym(writer, it.name);
+		},
+		(immutable Ptr!RecordField it) {
+			writeSym(writer, it.name);
+		});
+}
+
 void generateExternCall(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
@@ -384,36 +463,35 @@ void generateExternCall(TempAlloc, CodeAlloc)(
 	ref immutable LowFunBody.Extern a,
 ) {
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
-	if (strEqLiteral(a.externName, "free"))
-		writeExtern(writer, source, ExternOp.free);
-	else if (strEqLiteral(a.externName, "malloc"))
-		writeExtern(writer, source, ExternOp.malloc);
-	else if (strEqLiteral(a.externName, "write"))
-		writeExtern(writer, source, ExternOp.write);
-	else {
-		debug {
-			import core.stdc.stdio : printf;
-			import util.alloc.stackAlloc : StackAlloc;
-			import util.sym : Sym, symToCStr;
-			import util.util : unreachable;
-
-			immutable Sym name = matchLowFunSource(
-				fun.source,
-				(immutable Ptr!ConcreteFun cf) =>
-					matchConcreteFunSource(
-						cf.source,
-						(immutable Ptr!FunInst it) =>
-							name(it),
-						(ref immutable ConcreteFunSource.Lambda) =>
-							unreachable!(immutable Sym)()),
-				(ref immutable LowFunSource.Generated) =>
-					unreachable!(immutable Sym)());
-			StackAlloc!("debug", 1024) alloc;
-			printf("Unhandled extern function %s\n", symToCStr(alloc, name));
-		}
-		todo!void("unhandled extern function");
-	}
+	writeExtern(writer, source, externOpFromName(a.externName));
 	writeReturn(writer, source);
+}
+
+immutable(ExternOp) externOpFromName(immutable Str a) {
+	return strEqLiteral(a, "free")
+			? ExternOp.free
+		: strEqLiteral(a, "get_nprocs")
+			? ExternOp.getNProcs
+		: strEqLiteral(a, "longjmp")
+			? ExternOp.longjmp
+		: strEqLiteral(a, "malloc")
+			? ExternOp.malloc
+		: strEqLiteral(a, "pthread_yield")
+			? ExternOp.pthreadYield
+		: strEqLiteral(a, "setjmp")
+			? ExternOp.setjmp
+		: strEqLiteral(a, "usleep")
+			? ExternOp.usleep
+		: strEqLiteral(a, "write")
+			? ExternOp.write
+		: () {
+			debug {
+				import core.stdc.stdio : printf;
+				import util.collection.arr : begin;
+				printf("Unhandled extern function %.*s\n", cast(int) size(a), begin(a));
+			}
+			return todo!(immutable ExternOp)("unhandled extern function");
+		}();
 }
 
 
@@ -510,7 +588,9 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			writeRemove(writer, source, localEntries);
 		},
 		(ref immutable LowExprKind.LocalRef it) {
-			writeDupEntries(writer, source, mustGetAt_mut(ctx.localEntries, it.local));
+			immutable StackEntries entries = mustGetAt_mut(ctx.localEntries, it.local);
+			if (!zero(entries.size))
+				writeDupEntries(writer, source, entries);
 		},
 		(ref immutable LowExprKind.Match it) {
 			immutable StackEntry startStack = getNextStackEntry(writer);
@@ -555,7 +635,9 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			writeRemove(writer, source, matchedEntriesWithoutKind);
 		},
 		(ref immutable LowExprKind.ParamRef it) {
-			writeDupEntries(writer, source, at(ctx.parameterEntries, it.index.index));
+			immutable StackEntries entries = at(ctx.parameterEntries, it.index.index);
+			if (!zero(entries.size))
+				writeDupEntries(writer, source, entries);
 		},
 		(ref immutable LowExprKind.PtrCast it) {
 			generateExpr(tempAlloc, writer, ctx, it.target);
@@ -619,7 +701,20 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	immutable LowType.Record record,
 	immutable Nat8 fieldIndex,
 ) {
-	immutable Nat8 size = sizeOfType(ctx, at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).type);
+	immutable LowRecord r = fullIndexDictGet(ctx.program.allRecords, record);
+	immutable LowField f = at(r.fields, fieldIndex);
+	immutable Nat8 size = sizeOfType(ctx, f.type);
+	debug {
+		import core.stdc.stdio : printf;
+		import util.writer : finishWriterToCStr, writeChar;
+		alias TempAlloc = StackAlloc!("temp", 1024);
+		TempAlloc tempAlloc;
+		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+		writeRecordName(writer, r);
+		writeChar(writer, '#');
+		writeFieldName(writer, f);
+		printf("getFieldOffsetAndSize of %s\n", finishWriterToCStr(writer));
+	}
 	return immutable FieldOffsetAndSize(getFieldOffset(ctx, record, fieldIndex), size);
 }
 
@@ -793,21 +888,26 @@ void generateRecordFieldAccess(TempAlloc, CodeAlloc)(
 		(getNextStackEntry(writer).entry - targetEntry.entry).to8());
 	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, immutable Nat8(it.fieldIndex));
 	if (it.targetIsPointer) {
-		writeRead(writer, source, offsetAndSize.offset, offsetAndSize.size);
+		if (!zero(offsetAndSize.size)) {
+			writeRead(writer, source, offsetAndSize.offset, offsetAndSize.size);
+		}
 	} else {
-		immutable StackEntry firstEntry =
-			immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize).to16());
-		if (zero(offsetAndSize.size % stackEntrySize)) {
-			verify(zero(offsetAndSize.offset % stackEntrySize));
-			immutable StackEntries entries = immutable StackEntries(firstEntry, offsetAndSize.size / stackEntrySize);
-			writeDupEntries(writer, source, entries);
-		} else {
-			writeDupPartial(
-				writer,
-				source,
-				firstEntry,
-				offsetAndSize.offset % stackEntrySize,
-				offsetAndSize.size);
+		if (!zero(offsetAndSize.size)) {
+			immutable StackEntry firstEntry =
+				immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize).to16());
+			if (zero(offsetAndSize.size % stackEntrySize)) {
+				verify(zero(offsetAndSize.offset % stackEntrySize));
+				immutable StackEntries entries =
+					immutable StackEntries(firstEntry, offsetAndSize.size / stackEntrySize);
+				writeDupEntries(writer, source, entries);
+			} else {
+				writeDupPartial(
+					writer,
+					source,
+					firstEntry,
+					offsetAndSize.offset % stackEntrySize,
+					offsetAndSize.size);
+			}
 		}
 		writeRemove(writer, source, targetEntries);
 	}
