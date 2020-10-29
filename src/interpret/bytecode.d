@@ -155,7 +155,7 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 				tataNat(it.byteOffset),
 				tataNat(it.sizeBytes)),
 		(ref immutable Operation.Extern it) =>
-			tataRecord(alloc, "extern", tataSym(symOfExternOp(it.op))),
+			tataRecord(alloc, "extern", tataStr(strOfExternOp(it.op))),
 		(ref immutable Operation.Fn it)  =>
 			tataRecord(alloc, "fn", tataStr(strOfFnOp(it.fnOp))),
 		(ref immutable Operation.Jump it)  =>
@@ -449,6 +449,8 @@ enum ExternOp : u8 {
 	getNProcs,
 	longjmp,
 	malloc,
+	pthreadCreate,
+	pthreadJoin,
 	pthreadYield,
 	setjmp,
 	usleep,
@@ -488,19 +490,23 @@ enum FnOp : u8 {
 	wrapSubIntegral,
 }
 
-immutable(Sym) symOfExternOp(immutable ExternOp op) {
-	return shortSymAlphaLiteral(() {
+immutable(Str) strOfExternOp(immutable ExternOp op) {
+	return strLiteral(() {
 		final switch (op) {
 			case ExternOp.free:
 				return "free";
 			case ExternOp.getNProcs:
-				return "get-nprocs";
+				return "get_nprocs";
 			case ExternOp.longjmp:
 				return "longjmp";
 			case ExternOp.malloc:
 				return "malloc";
+			case ExternOp.pthreadCreate:
+				return "pthread_create";
+			case ExternOp.pthreadJoin:
+				return "pthread_join";
 			case ExternOp.pthreadYield:
-				return "pthread-yield";
+				return "pthread_yield";
 			case ExternOp.setjmp:
 				return "setjmp";
 			case ExternOp.usleep:

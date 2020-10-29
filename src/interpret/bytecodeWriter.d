@@ -452,10 +452,13 @@ void fillDelayedSwitchEntry(Alloc)(
 void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable ExternOp op) {
 	immutable int stackEffect = () {
 		final switch (op) {
+			case ExternOp.pthreadCreate:
+				return -3;
 			case ExternOp.longjmp:
 			case ExternOp.write:
 				return -2;
 			case ExternOp.free:
+			case ExternOp.pthreadJoin:
 			case ExternOp.usleep:
 				return -1;
 			case ExternOp.malloc:

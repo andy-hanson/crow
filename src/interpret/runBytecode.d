@@ -30,6 +30,7 @@ import interpret.bytecodeReader :
 	readOperation,
 	readerSwitch,
 	setReaderPtr;
+import interpret.debugging : writeFunName;
 import interpret.opcode : OpCode;
 import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, matchLowFunSource;
 import util.bools : Bool;
@@ -162,16 +163,14 @@ void writeByteCodeSource(TempAlloc, Alloc)(
 	ref immutable FilesInfo filesInfo,
 	ref immutable ByteCodeSource source,
 ) {
+	writeFunName(writer, lowProgram, source.fun);
 	matchLowFunSource!void(
 		fullIndexDictGet(lowProgram.allFuns, source.fun).source,
 		(immutable Ptr!ConcreteFun it) {
-			writeConcreteFunSource(writer, it.source);
 			immutable FileAndPos where = immutable FileAndPos(concreteFunRange(it).fileIndex, source.pos);
 			writeFileAndPos!(TempAlloc, Alloc)(temp, writer, filesInfo, where);
 		},
-		(ref immutable LowFunSource.Generated) {
-			writeStatic(writer, "<generated>");
-		});
+		(ref immutable LowFunSource.Generated) {});
 }
 
 void writeFunNameAtIndex(Alloc, Extern)(
@@ -188,22 +187,6 @@ void writeFunNameAtByteCodePtr(Alloc, Extern)(
 	immutable u8* ptr,
 ) {
 	writeFunNameAtIndex(writer, interpreter, byteCodeIndexOfPtr(interpreter, ptr));
-}
-
-void writeFunName(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram lowProgram, immutable LowFunIndex fun) {
-	matchLowFunSource!void(
-		fullIndexDictGet(lowProgram.allFuns, fun).source,
-		(immutable Ptr!ConcreteFun it) {
-			writeConcreteFunSource(writer, it.source);
-		},
-		(ref immutable LowFunSource.Generated it) {
-			writeSym(writer, it.name);
-			writeStatic(writer, " (generated)");
-		});
-}
-
-void writeConcreteFunSource(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFunSource a) {
-	todo!void("writeConcreteFunSource");
 }
 
 immutable(ByteCodeSource) byteCodeSourceAtIndex(Extern)(ref const Interpreter!Extern a, immutable ByteCodeIndex index) {
@@ -447,8 +430,14 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 		case ExternOp.malloc:
 			push(dataStack, immutable Nat64(cast(immutable size_t) a.malloc(pop(dataStack).raw())));
 			break;
+		case ExternOp.pthreadCreate:
+			todo!void("pthread_create");
+			break;
+		case ExternOp.pthreadJoin:
+			todo!void("pthread_join");
+			break;
 		case ExternOp.pthreadYield:
-			push(dataStack, immutable Nat64(a.pthreadYield()));
+			todo!void("pthread_yield");
 			break;
 		case ExternOp.setjmp:
 			todo!void("setjmp");

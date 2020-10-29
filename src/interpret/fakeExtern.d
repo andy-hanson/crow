@@ -61,10 +61,6 @@ struct FakeExtern(Alloc) {
 		return 1;
 	}
 
-	immutable(size_t) pthreadYield() const {
-		return todo!(immutable size_t)("only 1 proc, so shouldn't be called");
-	}
-
 	void usleep(immutable size_t microseconds) {
 		todo!void("usleep");
 	}
