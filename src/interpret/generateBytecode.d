@@ -5,9 +5,12 @@ module interpret.generateBytecode;
 import concreteModel :
 	ConcreteFun,
 	ConcreteFunSource,
+	ConcreteLocal,
+	ConcreteLocalSource,
 	ConcreteStructSource,
 	matchConcreteFieldSource,
 	matchConcreteFunSource,
+	matchConcreteLocalSource,
 	matchConcreteStructSource;
 import interpret.bytecode :
 	addByteCodeIndex,
@@ -76,6 +79,7 @@ import lowModel :
 	LowFunSource,
 	LowFunIndex,
 	LowLocal,
+	LowLocalSource,
 	LowParam,
 	LowProgram,
 	LowRecord,
@@ -85,9 +89,10 @@ import lowModel :
 	matchLowFunBody,
 	matchLowFunSource,
 	matchLowType,
+	matchLowLocalSource,
 	matchSpecialConstant,
 	PrimitiveType;
-import model : decl, FunDecl, FunInst, Module, name, Program, range;
+import model : decl, FunDecl, FunInst, Local, Module, name, Program, range;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, range, size;
@@ -213,6 +218,14 @@ immutable(Nat8) fillRecordSize(Alloc)(
 	ref immutable LowRecord record,
 	ref TypeLayoutBuilder builder,
 ) {
+	//debug {
+	//	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	//	immutable LowType t = immutable LowType(index);
+	//	writeStatic(writer, "fillRecordSize ");
+	//	writeType(writer, program, t);
+	//	writeStatic(writer, ": ");
+	//}
+
 	Nat8 offset = immutable Nat8(0);
 	immutable Arr!Nat8 fieldOffsets = map(alloc, record.fields, (ref immutable LowField field) {
 		immutable Nat8 fieldSize = sizeOfType(alloc, program, field.type, builder);
@@ -223,11 +236,24 @@ immutable(Nat8) fillRecordSize(Alloc)(
 		}
 		immutable Nat8 res = offset;
 		offset += fieldSize;
+		//debug {
+		//	writeStatic(writer, ", ");
+		//	writeFieldName(writer, field);
+		//	writeStatic(writer, ": ");
+		//	writeNat(writer, res.raw());
+		//}
 		return res;
 	});
 	immutable Nat8 size = offset <= immutable Nat8(8) ? offset : roundUp(offset, immutable Nat8(8));
 	fullIndexDictBuilderAdd(builder.recordSizes, index, size);
 	fullIndexDictBuilderAdd(builder.recordFieldOffsets, index, fieldOffsets);
+
+	//debug {
+	//	writeStatic(writer, ", full size: ");
+	//	writeNat(writer, size.raw());
+	//	import core.stdc.stdio : printf;
+	//	printf("%s\n", finishWriterToCStr(writer));
+	//}
 	return size;
 }
 
@@ -359,7 +385,6 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 		import core.stdc.stdio : printf;
 		import util.collection.str : CStr;
 		import util.sym : symToCStr;
-		import util.writer : finishWriterToCStr;
 		Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 		writeFunctionName(w, fun);
 		printf("Generating bytecode for function %s\n", finishWriterToCStr(w));
@@ -394,7 +419,7 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 
 //TODO:MOVE
 import util.collection.arr : empty;
-import util.writer : Writer, writeChar, writeNat, writeStatic;
+import util.writer : finishWriterToCStr, Writer, writeChar, writeNat, writeStatic;
 import util.sym : writeSym;
 void writeFunctionName(Alloc)(ref Writer!Alloc writer, ref immutable LowFun a) {
 	matchLowFunSource!void(
@@ -419,6 +444,28 @@ void writeConcreteFunName(Alloc)(ref Writer!Alloc writer, ref immutable Concrete
 }
 void writeRecordName(Alloc)(ref Writer!Alloc writer, ref immutable LowRecord a) {
 	writeConcreteStruct(writer, a.source);
+}
+void writeType(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram program, ref immutable LowType a) {
+	matchLowType(
+		a,
+		(immutable LowType.ExternPtr) {
+			todo!void("!");
+		},
+		(immutable LowType.FunPtr) {
+			todo!void("!");
+		},
+		(immutable LowType.NonFunPtr) {
+			todo!void("!");
+		},
+		(immutable PrimitiveType) {
+			todo!void("!");
+		},
+		(immutable LowType.Record it) {
+			writeConcreteStruct(writer, fullIndexDictGet(program.allRecords, it).source);
+		},
+		(immutable LowType.Union) {
+			todo!void("!");
+		});
 }
 void writeConcreteStruct(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteStruct a) {
 	matchConcreteStructSource!void(
@@ -454,6 +501,27 @@ void writeFieldName(Alloc)(ref Writer!Alloc writer, ref immutable LowField a) {
 			writeSym(writer, it.name);
 		});
 }
+void writeLocalName(Alloc)(ref Writer!Alloc writer, ref immutable LowLocal a) {
+	matchLowLocalSource!void(
+		a.source,
+		(immutable Ptr!ConcreteLocal it) {
+			matchConcreteLocalSource!void(
+				it.source,
+				(ref immutable ConcreteLocalSource.Arr) {
+					writeStatic(writer, "<<arr>>");
+				},
+				(immutable Ptr!Local it) {
+					writeSym(writer, it.name);
+				},
+				(ref immutable ConcreteLocalSource.Matched) {
+					writeStatic(writer, "<<matched>>");
+				});
+		},
+		(ref immutable LowLocalSource.Generated) {
+			writeStatic(writer, "<<generated>>");
+		});
+}
+
 
 void generateExternCall(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
@@ -558,6 +626,14 @@ void generateExpr(CodeAlloc, TempAlloc)(
 
 			immutable StackEntry after = getNextStackEntry(writer);
 			immutable Nat8 stackEntriesForType = nStackEntriesForType(ctx, expr.type);
+			//debug {
+			//	import core.stdc.stdio : printf;
+			//	Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+			//	writeType(writer, ctx.program, expr.type);
+			//	printf("creating record %s\n", finishWriterToCStr(writer));
+			//	printf("before: %u, after: %u, entries for type: %u\n",
+			//		before.entry.raw(), after.entry.raw(), stackEntriesForType.raw());
+			//}
 			verify(after.entry - before.entry == stackEntriesForType.to16());
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
@@ -593,6 +669,11 @@ void generateExpr(CodeAlloc, TempAlloc)(
 				writeDupEntries(writer, source, entries);
 		},
 		(ref immutable LowExprKind.Match it) {
+			//debug {
+			//	import core.stdc.stdio : printf;
+			//	printf("generating match\n");
+			//}
+
 			immutable StackEntry startStack = getNextStackEntry(writer);
 			generateExpr(tempAlloc, writer, ctx, it.matchedValue);
 			// Move the union kind to top of stack
@@ -704,17 +785,16 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	immutable LowRecord r = fullIndexDictGet(ctx.program.allRecords, record);
 	immutable LowField f = at(r.fields, fieldIndex);
 	immutable Nat8 size = sizeOfType(ctx, f.type);
-	debug {
-		import core.stdc.stdio : printf;
-		import util.writer : finishWriterToCStr, writeChar;
-		alias TempAlloc = StackAlloc!("temp", 1024);
-		TempAlloc tempAlloc;
-		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-		writeRecordName(writer, r);
-		writeChar(writer, '#');
-		writeFieldName(writer, f);
-		printf("getFieldOffsetAndSize of %s\n", finishWriterToCStr(writer));
-	}
+	//debug {
+	//	import core.stdc.stdio : printf;
+	//	alias TempAlloc = StackAlloc!("temp", 1024);
+	//	TempAlloc tempAlloc;
+	//	Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+	//	writeRecordName(writer, r);
+	//	writeChar(writer, '#');
+	//	writeFieldName(writer, f);
+	//	printf("getFieldOffsetAndSize of %s\n", finishWriterToCStr(writer));
+	//}
 	return immutable FieldOffsetAndSize(getFieldOffset(ctx, record, fieldIndex), size);
 }
 
@@ -888,9 +968,10 @@ void generateRecordFieldAccess(TempAlloc, CodeAlloc)(
 		(getNextStackEntry(writer).entry - targetEntry.entry).to8());
 	immutable FieldOffsetAndSize offsetAndSize = getFieldOffsetAndSize(ctx, it.record, immutable Nat8(it.fieldIndex));
 	if (it.targetIsPointer) {
-		if (!zero(offsetAndSize.size)) {
+		if (zero(offsetAndSize.size))
+			writeRemove(writer, source, targetEntries);
+		else
 			writeRead(writer, source, offsetAndSize.offset, offsetAndSize.size);
-		}
 	} else {
 		if (!zero(offsetAndSize.size)) {
 			immutable StackEntry firstEntry =

@@ -169,6 +169,7 @@ void writeDupEntries(Alloc)(
 	immutable StackEntries entries,
 ) {
 	verify(!zero(entries.size));
+	verify(entries.start.entry + entries.size.to16() <= getNextStackEntry(writer).entry);
 	foreach (immutable ushort i; 0..entries.size.raw())
 		writeDupEntry(writer, source, immutable StackEntry(entries.start.entry + immutable Nat16(i)));
 }
