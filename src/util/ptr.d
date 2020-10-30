@@ -3,6 +3,7 @@ module util.ptr;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
+import util.collection.arr : Arr, begin, end;
 import util.comparison : Comparison;
 import util.util : verify;
 
@@ -70,4 +71,17 @@ immutable(Comparison) comparePtrRaw(T)(const T* a, const T* b) {
 
 @trusted Ptr!T castMutable(T)(immutable Ptr!T a) {
 	return cast(Ptr!T) a;
+}
+
+struct PtrRange {
+	const ubyte* begin;
+	const ubyte* end;
+}
+
+@trusted const(PtrRange) ptrRangeOfArr(T)(const Arr!T a) {
+	return const PtrRange(cast(const ubyte*) begin(a), cast(const ubyte*) end(a));
+}
+
+immutable(Bool) contains(const PtrRange a, const PtrRange b) {
+	return immutable Bool(a.begin <= b.begin && b.end <= a.end);
 }

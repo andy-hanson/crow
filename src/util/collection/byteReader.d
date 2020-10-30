@@ -54,3 +54,7 @@ void setPtr(ref ByteReader reader, immutable(u8)* ptr) {
 	skipBytes(reader, size);
 	return res;
 }
+
+@trusted immutable(Arr!Nat16) readU16ArrayDoNotSkipBytes(ref ByteReader reader, immutable size_t size) {
+	return immutable Arr!Nat16(cast(immutable Nat16*) reader.ptr, size);
+}

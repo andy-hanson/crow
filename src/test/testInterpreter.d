@@ -267,7 +267,7 @@ void testSwitchAndJump() {
 	//TODO: want to test both sides of the switch...
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	writePushConstant(writer, source, immutable Nat64(0));
-	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, 2);
+	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, immutable Nat8(2));
 	fillDelayedSwitchEntry(writer, delayed, immutable Nat8(0));
 	immutable ByteCodeIndex firstCase = nextByteCodeIndex(writer);
 	writePushConstant(writer, source, immutable Nat64(3));

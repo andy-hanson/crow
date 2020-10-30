@@ -50,7 +50,7 @@ join fut ?out(a fut ?in0, b fut ?in1, fun fun-ref2 ?out ?in0 ?in1) trusted send<
 | NOTE: The function will be called with whatever ctx the fut terminates with!!!
 then-void void(f fut ?t, cb fun-mut1 void result<?t, exception>) unsafe
 	f.lk.ref-of-val acquire-lock
-	match f.state
+	match f state
 		fut-state-callbacks cbs
 			| create a new callback
 			f.state := new<fut-state-callbacks<?t>> some: new cb, cbs.head

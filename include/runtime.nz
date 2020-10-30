@@ -230,6 +230,8 @@ choose-task result chosen-task no-chosen-task(gctx global-ctx) noctx unsafe
 			| this is fine as we're about to wait on a condition and will immediately wake up if so.)
 			| Need to do this here while we hold the lock
 			gctx.n-live-threads := gctx.n-live-threads.noctx-decr
+			| TODO:KILL
+			hard-assert: gctx.n-live-threads zero?
 			err: new<no-chosen-task> gctx.n-live-threads zero?
 		some s
 			s.value ok
@@ -272,7 +274,6 @@ choose-task-in-vat opt task-or-gc(vat vat) noctx unsafe
 		else
 			match vat find-and-remove-first-doable-task
 				none
-					| No tasks to run
 					none
 				some s
 					s.value.some some
@@ -293,7 +294,8 @@ task-and-nodes record mut
 	nodes opt mut-bag-node<task>
 
 find-and-remove-first-doable-task opt task(vat vat) noctx unsafe
-	tasks = vat.tasks.ref-of-val
+	tasks = vat.tasks ref-of-val
+	th = tasks.head
 	res = vat find-and-remove-first-doable-task-recur tasks.head
 	match res
 		none

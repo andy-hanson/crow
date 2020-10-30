@@ -113,10 +113,12 @@ spec
 	unsafe
 	extern<"pthread_create">
 	noctx
+	summon
 
 | writes to `thread-return`
-pthread-join err-t(thread pthread-t, thread-return cell any-ptr) unsafe extern<"pthread_join"> noctx
+pthread-join err-t(thread pthread-t, thread-return cell any-ptr) unsafe extern<"pthread_join"> noctx summon
 
+| TODO: summon?
 pthread-yield err-t() unsafe extern<"pthread_yield"> noctx
 
 | based on my /usr/include/x86_64-linux-gnu/asm/stat.h `struct stat64`

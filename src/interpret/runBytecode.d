@@ -34,13 +34,15 @@ import interpret.debugging : writeFunName;
 import interpret.opcode : OpCode;
 import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, matchLowFunSource;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, begin, ptrAt, range, sizeNat;
+import util.collection.arr : Arr, at, begin, end, ptrAt, range, sizeNat;
 import util.collection.arrUtil : lastWhere, zip;
 import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
 import util.collection.globalAllocatedStack :
 	asTempArr,
+	begin,
 	clearStack,
 	dup,
+	end,
 	GlobalAllocatedStack,
 	isEmpty,
 	peek,
@@ -48,11 +50,12 @@ import util.collection.globalAllocatedStack :
 	popN,
 	push,
 	remove,
+	stackPtrRange,
 	stackRef,
 	stackSize;
 import util.collection.str : Str;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, FileAndPos;
 import util.sym : Sym;
 import util.types : bottomNBytes, decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, u8, u16, u32, u64, zero;
@@ -134,16 +137,16 @@ void printStack(Extern)(ref const Interpreter!Extern a) {
 @trusted void printDataArr(immutable Arr!Nat64 values) {
 	printf("data:");
 	foreach (immutable Nat64 value; range(values))
-		printf(" %lu", value.raw());
+		printf(" %lx", value.raw());
 	printf("\n");
 }
 
 import util.alloc.stackAlloc : StackAlloc;
 import util.sym : writeSym;
-import util.writer : finishWriterToCStr, Writer, writeChar, writeStatic;
+import util.writer : finishWriterToCStr, Writer, writeChar, writePtrRange, writeStatic;
 
 @trusted void printReturnStack(Extern)(ref const Interpreter!Extern a) {
-	alias Alloc = StackAlloc!("printReturnStack", 1024);
+	alias Alloc = StackAlloc!("printReturnStack", 1024 * 8);
 	Alloc alloc;
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	writeStatic(writer, "call stack:");
@@ -296,7 +299,7 @@ immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Read it) {
-			read(a.dataStack, it.offset, it.size);
+			read(a.dataStack, a.extern_, a.byteCode, it.offset, it.size);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Remove it) {
@@ -316,12 +319,12 @@ immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 			pushStackRef(a.dataStack, it.offset);
 			return StepResult.continue_;
 		},
-		(ref immutable Operation.Switch) {
-			readerSwitch(a.reader, pop(a.dataStack));
+		(ref immutable Operation.Switch it) {
+			readerSwitch(a.reader, pop(a.dataStack), it.offsets);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Write it) {
-			write(a.dataStack, it.offset, it.size);
+			write(a.dataStack, a.extern_, a.byteCode, it.offset, it.size);
 			return StepResult.continue_;
 		});
 }
@@ -332,8 +335,15 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	push(dataStack, immutable Nat64(cast(immutable u64) stackRef(dataStack, offset.offset)));
 }
 
-@trusted void read(ref DataStack data, immutable Nat8 offset, immutable Nat8 size) {
+@trusted void read(Extern)(
+	ref DataStack data,
+	ref const Extern extern_,
+	ref immutable ByteCode byteCode,
+	immutable Nat8 offset,
+	immutable Nat8 size,
+) {
 	immutable u8* ptr = cast(immutable u8*) pop(data).raw();
+	checkPtr!Extern(data, extern_, byteCode, ptr, offset, size);
 	if (size < immutable Nat8(8)) { //TODO: just have 2 different ops then
 		push(data, readPartialBytes(ptr + offset.raw(), size.raw()));
 	} else {
@@ -344,16 +354,60 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	}
 }
 
-@trusted void write(ref DataStack data, immutable Nat8 offset, immutable Nat8 size) {
+@system void checkPtr(Extern)(
+	ref const DataStack data,
+	ref const Extern extern_,
+	ref immutable ByteCode byteCode,
+	const u8* ptrWithoutOffset,
+	immutable Nat8 offset,
+	immutable Nat8 size,
+) {
+	const u8* ptr = ptrWithoutOffset + offset.raw();
+	const PtrRange ptrRange = const PtrRange(ptr, ptr + size.raw());
+	const PtrRange textPtrRange = ptrRangeOfArr(byteCode.text);
+	if (!contains(stackPtrRange(data), ptrRange)
+		&& !extern_.hasMallocedPtr(ptrRange)
+		&& !contains(textPtrRange, ptrRange)) {
+
+		debug {
+			import util.print : print;
+			alias Alloc = StackAlloc!("debug", 1024 * 8);
+			Alloc alloc;
+			Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+			writeStatic(writer, "want to access: ");
+			writePtrRange(writer, ptrRange);
+			writeStatic(writer, "\ndata: ");
+			writePtrRange(writer, stackPtrRange(data));
+			writeStatic(writer, "\nmalloced:\n");
+			extern_.writeMallocedRanges(writer);
+			writeStatic(writer, "\ntext:\n");
+			writePtrRange(writer, textPtrRange);
+			writeChar(writer, '\n');
+			print(finishWriterToCStr(writer));
+		}
+
+		todo!void("ptr not valid");
+	}
+}
+
+@trusted void write(Extern)(
+	ref DataStack data,
+	ref const Extern extern_,
+	ref immutable ByteCode byteCode,
+	immutable Nat8 offset,
+	immutable Nat8 size,
+) {
 	if (size < immutable Nat8(8)) { //TODO: just have 2 different ops then
 		immutable Nat64 value = pop(data);
 		u8* ptr = cast(u8*) pop(data).raw();
+		checkPtr(data, extern_, byteCode, ptr, offset, size);
 		writePartialBytes(ptr + offset.raw(), value.raw(), size.raw());
 	} else {
 		verify(zero(size % immutable Nat8(8)));
 		verify(zero(offset % immutable Nat8(8)));
 		immutable Nat8 sizeWords = size / immutable Nat8(8);
 		Nat64* ptr = (cast(Nat64*) peek(data, sizeWords).raw()) + (offset.raw() / 8);
+		checkPtr(data, extern_, byteCode, cast(const u8*) ptr, offset, size);
 		foreach (immutable u8 i; 0..sizeWords.raw())
 			ptr[i] = peek(data, decr(sizeWords) - immutable Nat8(i));
 		popN(data, incr(sizeWords));
@@ -437,7 +491,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			todo!void("pthread_join");
 			break;
 		case ExternOp.pthreadYield:
-			todo!void("pthread_yield");
+			push(dataStack, immutable Nat64(a.pthreadYield()));
 			break;
 		case ExternOp.setjmp:
 			todo!void("setjmp");

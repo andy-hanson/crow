@@ -2,6 +2,6 @@ import
 	io
 	posix
 
-main fut exit-code(args arr str) summon
+main fut exit-code(args arr str) summon trusted
 	print-sync: get-nprocs to-str
 	0 resolved

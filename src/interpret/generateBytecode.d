@@ -83,7 +83,7 @@ import lowModel :
 import model : decl, FunDecl, FunInst, Local, Module, name, Program, range;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, range, size;
+import util.collection.arr : Arr, at, range, size, sizeNat;
 import util.collection.arrUtil : arrMax, eachWithIndex, map, mapOpWithIndex, slice, sum, zip;
 import util.collection.fullIndexDict :
 	FullIndexDict,
@@ -568,7 +568,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			writeDupEntry(writer, source, startStack);
 			writeRemove(writer, source, immutable StackEntries(startStack, immutable Nat8(1)));
 			// Get the kind (always the first entry)
-			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, size(it.cases));
+			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, sizeNat(it.cases).to8());
 			// Start of the union values is where the kind used to be.
 			immutable StackEntry stackAfterMatched = getNextStackEntry(writer);
 			immutable StackEntries matchedEntriesWithoutKind =
@@ -1095,7 +1095,7 @@ void generateIf(TempAlloc, CodeAlloc)(
 ) {
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	generateExpr(tempAlloc, writer, ctx, cond);
-	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, 2);
+	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, immutable Nat8(2));
 	fillDelayedSwitchEntry(writer, delayed, immutable Nat8(0));
 	cbElse();
 	setNextStackEntry(writer, startStack);

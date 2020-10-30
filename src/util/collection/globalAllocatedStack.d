@@ -4,7 +4,8 @@ module util.collection.globalAllocatedStack;
 
 import util.bools : Bool;
 import util.collection.arr : Arr, range;
-import util.types : decr, Nat8, Nat32, Nat64, zero;
+import util.ptr : PtrRange;
+import util.types : decr, Nat8, Nat32, Nat64, u8, zero;
 import util.util : verify;
 
 struct GlobalAllocatedStack(T, size_t capacity) {
@@ -21,6 +22,14 @@ struct GlobalAllocatedStack(T, size_t capacity) {
 
 @system const(T*) begin(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
 	return a.values.ptr;
+}
+
+@system const(T*) end(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
+	return a.values.ptr + a.size;
+}
+
+@system const(PtrRange) stackPtrRange(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
+	return const PtrRange(cast(const u8*) a.values.ptr, cast(const u8*) (a.values.ptr + a.size));
 }
 
 immutable(Nat32) stackSize(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {

@@ -15,7 +15,8 @@ import util.collection.mutArr :
 	mutArrRange,
 	mutArrRangeMut,
 	mutArrSize,
-	push;
+	push,
+	tempAsArr;
 import util.comparison : Comparison;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
@@ -24,6 +25,10 @@ import util.util : verify;
 struct MutDict(K, V, alias cmp) {
 	private:
 	MutArr!(KeyValuePair!(K, V)) pairs;
+}
+
+const(Arr!(KeyValuePair!(K, V))) tempPairs(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a) {
+	return tempAsArr(a.pairs);
 }
 
 immutable(size_t) mutDictSize(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a) {

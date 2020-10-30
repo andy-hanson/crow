@@ -68,6 +68,10 @@ Arr!T emptyArr_mut(T)() {
 	return a.begin_;
 }
 
+@system const(T*) end(T)(const Arr!T a) {
+	return a.begin_ + a.size_;
+}
+
 immutable(Nat64) sizeNat(T)(const Arr!T a) {
 	return immutable Nat64(a.size_);
 }

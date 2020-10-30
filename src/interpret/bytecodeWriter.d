@@ -423,13 +423,14 @@ void writePack(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSou
 immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable size_t nCases,
+	immutable Nat8 nCases,
 ) {
 	pushOpcode(writer, source, OpCode.switch_);
+	pushU8(writer, source, nCases);
 	writer.nextStackEntry -= 1;
 	immutable ByteCodeIndex addresses = nextByteCodeIndex(writer);
-	foreach (immutable size_t i; 0..nCases) {
-		static assert(ByteCodeOffset.sizeof == 2);
+	foreach (immutable size_t i; 0..nCases.raw()) {
+		static assert(ByteCodeOffset.sizeof == Nat16.sizeof);
 		pushU16(writer, source, immutable Nat16(0));
 	}
 	return addresses;

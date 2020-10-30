@@ -42,8 +42,6 @@ acquire-lock-recur void(a lock, n-tries nat) noctx unsafe
 
 yield-thread void() noctx unsafe
 	err = pthread-yield
-	| TODO: remove this. I'm using this to reduce the number of recurisve calls in run-tests.
-	thousand usleep
 	hard-assert: err zero?
 
 release-lock void(l lock) noctx unsafe

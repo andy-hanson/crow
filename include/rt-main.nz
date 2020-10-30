@@ -18,7 +18,8 @@ main-ptr alias
 | Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
 	| TODO: detect # hardware processors to use for n-threads
-	n-threads = get-nprocs
+	| TODO: get-nprocs
+	n-threads = one as<nat>
 	gctx-by-val = new<by-val<global-ctx>>
 		lk. new-lock
 		vats. empty-arr<vat>
@@ -34,8 +35,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 
 	main-fut = gctx do-main vat, argc, argv, main-ptr
 
-	n-threads run-threads gctx, \thread-id gctx
-		thread-function: thread-id, gctx
+	n-threads run-threads gctx
 
 	when
 		gctx any-unhandled-exceptions?
@@ -61,11 +61,10 @@ do-main fut exit-code(gctx global-ctx, vat vat, argc int32, argv ptr c-str, main
 	all-args = new<arr<c-str>> argc.to-int.unsafe-to-nat, argv
 	ctx call-with-ctx add, all-args, main-ptr
 
-thread-args<?t> record
+thread-args record mut
 	by-ref
-	fun fun-ptr2 void nat ?t
 	thread-id nat
-	arg ?t
+	gctx global-ctx
 
 | TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 | We want main-fut to be available immediately, not after having run some user code.
@@ -73,47 +72,52 @@ thread-args<?t> record
 add-first-task fut exit-code(all-args arr c-str, main-ptr fun-ptr2 fut<exit-code> ctx arr<str>) unsafe
 	| 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	| TODO: 'then' overload for fut<void> taking lambda with 0 params
-	pass.resolved.as<fut<void>> then2 \
+	f = pass.resolved.as<fut<void>>
+	s = f state
+	f then2 \
 		| First argument is the path to this executable.
 		args = all-args tail
 		main-ptr call: get-ctx, args map {it.to-str}
 
 | Each thread will get the thread ID, and the common arguments.
 | TODO: ?t must be a reference type
-run-threads void(n-threads nat, arg ?t, fun fun-ptr2 void nat ?t) noctx unsafe
+run-threads void(n-threads nat, gctx global-ctx) noctx unsafe summon
 	threads = n-threads unmanaged-alloc-elements<pthread-t>
-	thread-args = n-threads unmanaged-alloc-elements<by-val<thread-args<?t>>>
+	thread-args = n-threads unmanaged-alloc-elements<by-val<thread-args>>
 
-	zero run-threads-recur n-threads, threads, thread-args, arg, fun
-	zero join-threads-recur n-threads, threads
+	actual-n-threads = n-threads noctx-decr
+
+	start-threads-recur: zero, actual-n-threads, threads, thread-args, gctx
+	thread-function: actual-n-threads, gctx
+	join-threads-recur: zero, actual-n-threads, threads
 
 	threads unmanaged-free
 	thread-args unmanaged-free
 
-run-threads-recur void
+start-threads-recur void
 	i nat
 	n-threads nat
 	threads ptr pthread-t
-	thread-args ptr by-val<thread-args<?t>>
-	arg ?t
-	fun fun-ptr2 void nat ?t
+	thread-args ptr by-val<thread-args>
+	gctx global-ctx
 spec
 	noctx
 	unsafe
+	summon
 body
 	when
 		i == n-threads
 			pass
 		else
 			thread-arg-ptr = thread-args + i
-			thread-arg-ptr set new fun, i, arg
+			thread-arg-ptr set new i, gctx
 			thread-ptr = threads + i
 			fn = as<fun-ptr1<any-ptr, any-ptr>>: \args-ptr
-				args-ptr thread-fun<?t>
+				args-ptr thread-fun
 			err = thread-ptr.as-cell pthread-create null, fn, thread-arg-ptr.as-any-ptr
 			when
 				err zero?
-					i.noctx-incr run-threads-recur n-threads, threads, thread-args, arg, fun
+					i.noctx-incr start-threads-recur n-threads, threads, thread-args, gctx
 				err == eagain
 					| TODO: warn and make do with the threads it does let us create (so long as there's at least one)
 					todo
@@ -121,12 +125,12 @@ body
 					| Fatal error
 					todo
 
-thread-fun<?t> any-ptr(args-ptr any-ptr) noctx unsafe
-	args = args-ptr as-ref<thread-args<?t>>
-	args.fun call args.thread-id, args.arg
+thread-fun any-ptr(args-ptr any-ptr) noctx unsafe summon
+	args = args-ptr as-ref<thread-args>
+	args.thread-id thread-function args.gctx
 	null
 
-join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsafe
+join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsafe summon
 	when
 		i == n-threads
 			pass
@@ -134,7 +138,7 @@ join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsaf
 			(threads + i).deref join-one-thread
 			i.noctx-incr join-threads-recur n-threads, threads
 
-join-one-thread void(tid pthread-t) noctx unsafe
+join-one-thread void(tid pthread-t) noctx unsafe summon
 	thread-return = new<by-val<cell<any-ptr>>> null
 	err = tid pthread-join thread-return.ref-of-val
 	when

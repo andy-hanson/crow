@@ -336,7 +336,7 @@ struct Operation {
 	// A 0th offset is needed because otherwise there's no way to know how many cases there are.
 	struct Switch {
 		// The reader can't return the offsets since it doesn't have a length
-		// immutable Arr!u16 offsets;
+		immutable Arr!ByteCodeOffset offsets;
 	}
 
 	// Pop divRoundUp(size, stackEntrySize) stack entries, then pop a pointer, then write to ptr + offset
@@ -412,7 +412,7 @@ struct Operation {
 	immutable this(immutable Remove a) { kind_ = Kind.remove; remove_ = a; }
 	immutable this(immutable Return a) { kind_ = Kind.return_; return_ = a; }
 	immutable this(immutable StackRef a) { kind_ = Kind.stackRef_; stackRef_ = a; }
-	immutable this(immutable Switch a) { kind_ = Kind.switch_; switch_ = a; }
+	@trusted immutable this(immutable Switch a) { kind_ = Kind.switch_; switch_ = a; }
 	immutable this(immutable Write a) { kind_ = Kind.write; write_ = a; }
 }
 

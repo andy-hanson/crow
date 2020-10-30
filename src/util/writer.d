@@ -7,6 +7,7 @@ import util.ptr : Ptr;
 import util.collection.arr : Arr, at, begin, range, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, Str, strLiteral;
+import util.ptr : PtrRange;
 import util.types : u16;
 
 struct Writer(Alloc) {
@@ -34,6 +35,23 @@ void writeStr(Alloc)(ref Writer!Alloc writer, immutable Str s) {
 }
 void writeStatic(Alloc)(ref Writer!Alloc writer, immutable string c) {
 	writeStr(writer, strLiteral(c));
+}
+
+void writeHex(Alloc)(ref Writer!Alloc writer, immutable size_t n) {
+	if (n >= 16)
+		writeHex(writer, n / 16);
+	writeChar(writer, hexChar(n % 16));
+}
+
+immutable(char) hexChar(immutable size_t digit) {
+	return digit < 10 ? cast(char) ('0' + digit % 16) : cast(char) ('a' + (digit - 10));
+}
+
+//TODO:MOVE
+void writePtrRange(Alloc)(ref Writer!Alloc writer, const PtrRange a) {
+	writeHex(writer, cast(immutable size_t) a.begin);
+	writeChar(writer, '-');
+	writeHex(writer, cast(immutable size_t) a.end);
 }
 
 void writeNat(Alloc)(ref Writer!Alloc writer, immutable size_t n) {
