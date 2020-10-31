@@ -408,6 +408,17 @@ void eachWithIndex(T)(
 	return mapWithOptFirst2!(Out, In, Alloc)(alloc, optFirst, opt2, a, cb);
 }
 
+@trusted immutable(Arr!Out) mapWithFirst(Out, In, Alloc)(
+	ref Alloc alloc,
+	ref immutable Out first,
+	ref immutable Arr!In a,
+	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+) {
+	immutable Opt!Out someFirst = some!Out(first);
+	return mapWithOptFirst!(Out, In, Alloc)(alloc, someFirst, a, (immutable Ptr!In it) =>
+		cb(it));
+}
+
 @trusted immutable(Arr!Out) mapOp(Out, In, Alloc)(
 	ref Alloc alloc,
 	immutable Arr!In a,

@@ -104,10 +104,6 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 
 @trusted void readerSwitch(ref ByteCodeReader reader, immutable Nat64 value, immutable Arr!ByteCodeOffset offsets) {
 	immutable ByteCodeOffset offset = at(offsets, value.raw());
-	debug {
-		import core.stdc.stdio : printf;
-		printf("readerSwitch -- value: %lu, offset: %u\n", value.raw(), offset.offset.raw());
-	}
 	// Jump is relative to after value.
 	immutable Nat16 fullOffset = (incr(value) * immutable Nat64(ByteCodeOffset.sizeof)).to16() + offset.offset;
 	readerJump(reader, immutable ByteCodeOffset(fullOffset));

@@ -9,6 +9,7 @@ import diag : Diagnostics, FilesInfo;
 import frontend.ast : FileAst, sexprOfAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
 import frontend.getTokens : Token, tokensOfAst, sexprOfTokens;
+import frontend.lang : nozeExtension;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : cStrOfDiagnostics;
 import interpret.bytecode : ByteCode;
@@ -116,6 +117,7 @@ immutable(int) buildAndRun(SymAlloc)(
 					it.lowProgram,
 					byteCode,
 					it.filesInfo,
+					getExecutablePath(mallocator, programDirAndMain),
 					programArgs);
 			},
 			(ref immutable Diagnostics diagnostics) {
@@ -134,6 +136,10 @@ immutable(int) buildAndRun(SymAlloc)(
 }
 
 private:
+
+immutable(Str) getExecutablePath(Alloc)(ref Alloc alloc, ref immutable ProgramDirAndMain programDirAndMain) {
+	return pathToStr(alloc, programDirAndMain.programDir, programDirAndMain.mainPath, nozeExtension);
+}
 
 immutable(int) printTokens(SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,

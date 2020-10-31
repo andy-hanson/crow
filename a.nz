@@ -3,5 +3,5 @@ import
 	posix
 
 main fut exit-code(args arr str) summon trusted
-	print-sync: get-nprocs to-str
+	print-sync: "Hello, interpreted world!"
 	0 resolved

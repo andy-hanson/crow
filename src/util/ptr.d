@@ -36,6 +36,7 @@ struct Ptr(T) {
 		return *ptr;
 	}
 
+	const(T*) rawPtr() const { return ptr; }
 	immutable(T*) rawPtr() immutable { return ptr; }
 
 	alias deref this;

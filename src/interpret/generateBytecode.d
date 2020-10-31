@@ -370,14 +370,16 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 
 	debug {
-		import core.stdc.stdio : printf;
-		import interpret.debugging : writeFunName;
-		import util.collection.str : CStr;
-		import util.sym : symToCStr;
-		import util.writer : finishWriterToCStr, Writer;
-		Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-		writeFunName!TempAlloc(w, fun);
-		printf("Generating bytecode for function %s\n", finishWriterToCStr(w));
+		if (false) {
+			import core.stdc.stdio : printf;
+			import interpret.debugging : writeFunName;
+			import util.collection.str : CStr;
+			import util.sym : symToCStr;
+			import util.writer : finishWriterToCStr, Writer;
+			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+			writeFunName!TempAlloc(w, fun);
+			printf("Generating bytecode for function %s\n", finishWriterToCStr(w));
+		}
 	}
 
 	matchLowFunBody!void(
@@ -643,10 +645,6 @@ void generateCreateRecord(CodeAlloc, TempAlloc)(
 			maybePack(packStart, fieldIndex);
 		} else {
 			immutable Nat8 fieldSize = sizeOfType(ctx, at(it.args, fieldIndex).type);
-			debug {
-				import core.stdc.stdio : printf;
-				printf("field size: %u\n", fieldSize.raw());
-			}
 			if (fieldSize < immutable Nat8(8)) {
 				generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
 				recur(has(packStart) ? packStart : some(fieldIndex), fieldIndex + 1);

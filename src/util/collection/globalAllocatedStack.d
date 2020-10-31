@@ -81,10 +81,6 @@ immutable(T) pop(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
 }
 
 void dup(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Nat8 offset) {
-	debug {
-		import core.stdc.stdio : printf;
-		printf("GAS size: %u, peek %d\n", a.size, offset.raw());
-	}
 	push(a, peek(a, offset));
 }
 

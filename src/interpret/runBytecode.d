@@ -31,11 +31,12 @@ import interpret.bytecodeReader :
 	readerSwitch,
 	setReaderPtr;
 import interpret.debugging : writeFunName;
+import interpret.fakeExtern : AllocExtern;
 import interpret.opcode : OpCode;
 import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, matchLowFunSource;
 import util.bools : Bool;
 import util.collection.arr : Arr, at, begin, end, ptrAt, range, sizeNat;
-import util.collection.arrUtil : lastWhere, zipSystem;
+import util.collection.arrUtil : lastWhere, mapWithFirst, zipSystem;
 import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
 import util.collection.globalAllocatedStack :
 	asTempArr,
@@ -53,7 +54,7 @@ import util.collection.globalAllocatedStack :
 	stackPtrRange,
 	stackRef,
 	stackSize;
-import util.collection.str : Str;
+import util.collection.str : CStr, Str, strToCStr;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, FileAndPos;
@@ -66,6 +67,7 @@ import util.util : todo, unreachable, verify;
 	ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
 	ref immutable FilesInfo filesInfo,
+	immutable Str executablePath,
 	immutable Arr!Str args,
 ) {
 	Interpreter!Extern interpreter = newInterpreter(
@@ -73,8 +75,20 @@ import util.util : todo, unreachable, verify;
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
 		ptrTrustMe(filesInfo));
-	push(interpreter.dataStack, sizeNat(args)); // TODO: this is an i32, add safety checks
-	push(interpreter.dataStack, immutable Nat64(cast(immutable u64) begin(args)));
+
+	debug {
+		import util.collection.arr : size;
+		printf("executablePath is %.*s\n", cast(int) size(executablePath), begin(executablePath));
+	}
+
+	AllocExtern!Extern allocExtern = AllocExtern!Extern(ptrTrustMe_mut(extern_));
+	immutable CStr firstArg = strToCStr(allocExtern, executablePath);
+	immutable Arr!CStr allArgs = mapWithFirst!(CStr, Str)(allocExtern, firstArg, args, (ref immutable Str arg) =>
+		strToCStr(allocExtern, arg));
+
+	push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
+	// These need to be CStrs
+	push(interpreter.dataStack, immutable Nat64(cast(immutable u64) begin(allArgs)));
 	while (true) {
 		final switch (step(interpreter)) {
 			case StepResult.continue_:
@@ -214,35 +228,39 @@ immutable(ByteCodeSource) nextSource(Extern)(ref const Interpreter!Extern a) {
 
 immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 	immutable ByteCodeSource source = nextSource(a);
-	debug {
-		printf("\n");
-		printStack(a);
-		printReturnStack(a);
+	if (false) {
+		debug {
+			printf("\n");
+			printStack(a);
+			printReturnStack(a);
+		}
 	}
 	immutable Operation operation = readOperation(a.reader);
-	debug {
-		import core.stdc.stdio : printf;
-		import util.alloc.stackAlloc : StackAlloc;
-		import util.print : print;
-		import util.sexpr : writeSexprNoNewline;
-		import util.sym : writeSym;
-		import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
+	if (false) {
+		debug {
+			import core.stdc.stdio : printf;
+			import util.alloc.stackAlloc : StackAlloc;
+			import util.print : print;
+			import util.sexpr : writeSexprNoNewline;
+			import util.sym : writeSym;
+			import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 
-		alias TempAlloc = StackAlloc!("temp", 1024 * 4);
-		TempAlloc temp;
-		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(temp));
-		writeStatic(writer, "STEP: ");
-		writeByteCodeSource(temp, writer, a.lowProgram, a.filesInfo, source);
-		writeChar(writer, ' ');
-		writeSexprNoNewline(writer, sexprOfOperation(temp, operation));
-		if (isCall(operation)) {
-			immutable Operation.Call call = asCall(operation);
-			writeStatic(writer, "(");
-			writeFunNameAtIndex(writer, a, call.address);
-			writeChar(writer, ')');
+			alias TempAlloc = StackAlloc!("temp", 1024 * 4);
+			TempAlloc temp;
+			Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(temp));
+			writeStatic(writer, "STEP: ");
+			writeByteCodeSource(temp, writer, a.lowProgram, a.filesInfo, source);
+			writeChar(writer, ' ');
+			writeSexprNoNewline(writer, sexprOfOperation(temp, operation));
+			if (isCall(operation)) {
+				immutable Operation.Call call = asCall(operation);
+				writeStatic(writer, "(");
+				writeFunNameAtIndex(writer, a, call.address);
+				writeChar(writer, ')');
+			}
+			writeChar(writer, '\n');
+			print(finishWriterToCStr(writer));
 		}
-		writeChar(writer, '\n');
-		print(finishWriterToCStr(writer));
 	}
 
 	return matchOperationImpure!(immutable StepResult)(
@@ -265,12 +283,6 @@ immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 						? immutable Nat16(0)
 						: peek(a.stackStartStack);
 					immutable Nat32 actualStackSize = stackSize(a.dataStack) - stackStart.to32();
-					debug {
-						printf(
-							"expected stack size: %u, actual: %u\n(full size: %u, start: %u)\n",
-							it.stackSize.raw(), actualStackSize.raw(),
-							stackSize(a.dataStack).raw(), stackStart.raw());
-					}
 					verify(actualStackSize == it.stackSize.to32());
 				});
 			return StepResult.continue_;
@@ -302,10 +314,6 @@ immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.PushValue it) {
-			debug {
-				import core.stdc.stdio : printf;
-				printf("Pushing %lu\n", it.value.raw());
-			}
 			push(a.dataStack, it.value);
 			return StepResult.continue_;
 		},
@@ -373,27 +381,21 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	immutable Nat8 offset,
 	immutable Nat8 size,
 ) {
-	debug {
-		printf("checkPtr %p, %u, %u\n", ptrWithoutOffset, offset.raw(), size.raw());
-	}
-
 	const u8* ptr = ptrWithoutOffset + offset.raw();
 	const PtrRange ptrRange = const PtrRange(ptr, ptr + size.raw());
-
-	debug {
-		import util.print : print;
-		alias Alloc = StackAlloc!("debug", 1024 * 8);
-		Alloc alloc;
-		Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-		writeStatic(writer, "want to access: ");
-		writePtrRange(writer, ptrRange);
-		writePtrRanges(writer, data, extern_, byteCode);
-		print(finishWriterToCStr(writer));
-	}
-
 	if (!contains(stackPtrRange(data), ptrRange)
 		&& !extern_.hasMallocedPtr(ptrRange)
 		&& !contains(ptrRangeOfArr(byteCode.text), ptrRange)) {
+		debug {
+			import util.print : print;
+			alias Alloc = StackAlloc!("debug", 1024 * 8);
+			Alloc alloc;
+			Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+			writeStatic(writer, "want to access: ");
+			writePtrRange(writer, ptrRange);
+			writePtrRanges(writer, data, extern_, byteCode);
+			print(finishWriterToCStr(writer));
+		}
 		todo!void("ptr not valid");
 	}
 }
@@ -432,13 +434,8 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 		Nat64* ptrWithoutOffset = (cast(Nat64*) peek(data, sizeWords).raw());
 		checkPtr(data, extern_, byteCode, cast(const u8*) ptrWithoutOffset, offset, size);
 		Nat64* ptr = ptrWithoutOffset + (offset.raw() / 8);
-		foreach (immutable u8 i; 0..sizeWords.raw()) {
-			immutable Nat64 value = peek(data, decr(sizeWords) - immutable Nat8(i));
-			debug {
-				printf("write64 %p = %lx\n\n", ptr + i, value.raw());
-			}
-			ptr[i] = value;
-		}
+		foreach (immutable u8 i; 0..sizeWords.raw())
+			ptr[i] = peek(data, decr(sizeWords) - immutable Nat8(i));
 		popN(data, incr(sizeWords));
 	}
 }
@@ -515,15 +512,20 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			push(dataStack, immutable Nat64(a.pthreadYield()));
 			break;
 		case ExternOp.setjmp:
-			todo!void("setjmp");
+			// TODO: this will be more complicated if longjmp is implemented.
+			immutable Nat64 jmpBufPtr = pop(dataStack);
+			push(dataStack, immutable Nat64(0));
 			break;
 		case ExternOp.usleep:
 			a.usleep(pop(dataStack).raw());
 			break;
 		case ExternOp.write:
-			// Emulate output streams stdout and stderr.
-			// Assert error on invalid output stream.
-			todo!void("write");
+			immutable size_t nBytes = pop(dataStack).raw();
+			immutable char* buf = cast(immutable char*) pop(dataStack).raw();
+			immutable int fd = cast(int) pop(dataStack).to32().raw();
+			immutable long res = a.write(fd, buf, nBytes);
+			push(dataStack, immutable Nat64(res));
+			break;
 	}
 }
 

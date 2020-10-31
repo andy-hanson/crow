@@ -11,7 +11,7 @@ import util.collection.dict : KeyValuePair;
 import util.collection.mutArr : clear, MutArr, pushAll, tempAsArr;
 import util.collection.mutDict : addToMutDict, mustDelete, MutDict, mutDictIsEmpty, tempPairs;
 import util.collection.str : Str;
-import util.ptr : comparePtrRaw, contains, Ptr, PtrRange;
+import util.ptr : comparePtrRaw, contains, Ptr, PtrRange, ptrTrustMe_mut;
 import util.types : u8;
 import util.util : todo, verify;
 import util.writer : writePtrRange, Writer, writeStatic;
@@ -27,16 +27,20 @@ struct FakeExtern(Alloc) {
 
 	public:
 	~this() {
-		verify(mutDictIsEmpty(allocations));
+		// TODO:
+		// verify(mutDictIsEmpty(allocations));
+		// (Need GC to work first..)
 	}
 
 	//TODO: not @trusted
 	@trusted void free(u8* ptr) {
 		immutable size_t size = mustDelete!(u8*, immutable size_t, comparePtrRaw!u8)(allocations, ptr);
 		alloc.free(ptr, size);
-		debug {
-			import core.stdc.stdio : printf;
-			printf("freed %p-%p\n", ptr, ptr + size);
+		if (false) {
+			debug {
+				import core.stdc.stdio : printf;
+				printf("freed %p-%p\n", ptr, ptr + size);
+			}
 		}
 	}
 
@@ -44,9 +48,11 @@ struct FakeExtern(Alloc) {
 	@trusted u8* malloc(immutable size_t size) {
 		u8* ptr = alloc.allocate(size);
 		addToMutDict(alloc, allocations, ptr, size);
-		debug {
-			import core.stdc.stdio : printf;
-			printf("malloced %p-%p\n", ptr, ptr + size);
+		if (false) {
+			debug {
+				import core.stdc.stdio : printf;
+				printf("malloced %p-%p\n", ptr, ptr + size);
+			}
 		}
 		return ptr;
 	}
@@ -55,6 +61,10 @@ struct FakeExtern(Alloc) {
 		immutable Arr!char arr = immutable Arr!char(buf, nBytes);
 		verify(fd == 1 || fd == 2);
 		pushAll!(char, Alloc)(alloc.deref(), fd == 1 ? stdout : stderr, arr);
+		debug {
+			import core.stdc.stdio : printf;
+			printf("WROTE TO %d: %.*s\n", fd, cast(int) nBytes, buf);
+		}
 		return nBytes;
 	}
 
@@ -103,6 +113,14 @@ struct FakeExtern(Alloc) {
 
 FakeExtern!Alloc newFakeExtern(Alloc)(Ptr!Alloc alloc) {
 	return FakeExtern!Alloc(alloc);
+}
+
+//TODO: own module
+struct AllocExtern(Extern) {
+	Ptr!Extern extern_;
+	ubyte* allocate(immutable size_t nBytes) {
+		return extern_.malloc(nBytes);
+	}
 }
 
 private:
