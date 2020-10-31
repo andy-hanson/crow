@@ -72,9 +72,7 @@ thread-args record mut
 add-first-task fut exit-code(all-args arr c-str, main-ptr fun-ptr2 fut<exit-code> ctx arr<str>) unsafe
 	| 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	| TODO: 'then' overload for fut<void> taking lambda with 0 params
-	f = pass.resolved.as<fut<void>>
-	s = f state
-	f then2 \
+	pass.resolved.as<fut<void>> then2 \
 		| First argument is the path to this executable.
 		args = all-args tail
 		main-ptr call: get-ctx, args map {it.to-str}

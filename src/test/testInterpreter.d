@@ -418,6 +418,8 @@ void testDupPartial() {
 		});
 }
 
+// TODO: this test will break on big-endian systems
+// (The code is right, the test just needs to have different assertions for different systems)
 void testPack() {
 	doTest(
 		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
@@ -434,7 +436,7 @@ void testPack() {
 				immutable Nat64(0x01234567),
 				immutable Nat64(0x89ab),
 				immutable Nat64(0xcd)]);
-			stepAndExpect(interpreter, [immutable Nat64(0x0123456789abcd00)]);
+			stepAndExpect(interpreter, [immutable Nat64(0x00cd89ab01234567)]);
 		});
 }
 
@@ -442,7 +444,7 @@ void testStackRef() {
 	doTest(
 		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstants(writer, source, [immutable Nat64(1), immutable Nat64(2)]);
-			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)), immutable Nat8(0));
+			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)));
 			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(1)), immutable Nat8(4));
 		},
 		(ref Interpreter!TestFakeExtern interpreter) {
@@ -479,103 +481,147 @@ void testStackRef() {
 
 @trusted void testReadSubword() {
 	struct S {
-		immutable u32 a;
-		immutable u16 b;
-		immutable u8 c;
-		immutable u8 d;
+		u32 a;
+		u16 b;
+		u8 c;
+		u8 d;
 	}
-	immutable S value = immutable S(0x01234567, 0x89ab, 0xcd, 0xef);
-	immutable Nat64 valuePtr = immutable Nat64(cast(immutable u64) &value);
+	union U {
+		S s;
+		Nat64 value;
+	}
+	U u;
+	u.s = immutable S(0x01234567, 0x89ab, 0xcd, 0xef);
 	doTest(
 		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
-			writePushConstant(writer, source, valuePtr);
+			writePushConstant(writer, source, u.value);
+			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)));
 			writeRead(writer, source, immutable Nat8(0), immutable Nat8(4));
-			writePushConstant(writer, source, valuePtr);
+			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)));
 			writeRead(writer, source, immutable Nat8(4), immutable Nat8(2));
-			writePushConstant(writer, source, valuePtr);
+			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)));
 			writeRead(writer, source, immutable Nat8(6), immutable Nat8(1));
 			writeReturn(writer, source);
 		},
 		(ref Interpreter!TestFakeExtern interpreter) {
-			stepAndExpect(interpreter, [valuePtr]);
-			stepAndExpect(interpreter, [immutable Nat64(0x01234567)]);
-			stepAndExpect(interpreter, [immutable Nat64(0x01234567), valuePtr]);
-			stepAndExpect(interpreter, [immutable Nat64(0x01234567), immutable Nat64(0x89ab)]);
-			stepAndExpect(interpreter, [immutable Nat64(0x01234567), immutable Nat64(0x89ab), valuePtr]);
-			stepAndExpect(interpreter, [immutable Nat64(0x01234567), immutable Nat64(0x89ab), immutable Nat64(0xcd)]);
-			stepExit(interpreter);
+			testReadSubwordInner(interpreter, u.value);
 		});
 }
 
+@trusted void testReadSubwordInner(ref Interpreter!TestFakeExtern interpreter, immutable Nat64 value) {
+	stepAndExpect(interpreter, [value]);
+	immutable Nat64 ptr = immutable Nat64(cast(immutable u64) begin(interpreter.dataStack));
+	stepAndExpect(interpreter, [value, ptr]);
+	stepAndExpect(interpreter, [value, immutable Nat64(0x01234567)]);
+	stepAndExpect(interpreter, [value, immutable Nat64(0x01234567), ptr]);
+	stepAndExpect(interpreter, [value, immutable Nat64(0x01234567), immutable Nat64(0x89ab)]);
+	stepAndExpect(interpreter, [value, immutable Nat64(0x01234567), immutable Nat64(0x89ab), ptr]);
+	stepAndExpect(interpreter, [value, immutable Nat64(0x01234567), immutable Nat64(0x89ab), immutable Nat64(0xcd)]);
+	stepExit(interpreter);
+}
+
 @trusted void testReadWords() {
-	struct S { immutable u64 a; immutable u64 b; immutable u64 c; }
-	immutable S value = immutable S(1, 2, 3);
-	immutable Nat64 valuePtr = immutable Nat64(cast(immutable u64) &value);
 	doTest(
 		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
-			writePushConstant(writer, source, valuePtr);
+			writePushConstants(writer, source, [immutable Nat64(1), immutable Nat64(2), immutable Nat64(3)]);
+			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)));
 			writeRead(writer, source, immutable Nat8(8), immutable Nat8(16));
 			writeReturn(writer, source);
 		},
 		(ref Interpreter!TestFakeExtern interpreter) {
-			stepAndExpect(interpreter, [valuePtr]);
-			stepAndExpect(interpreter, [immutable Nat64(2), immutable Nat64(3)]);
-			stepExit(interpreter);
+			testReadWordsInner(interpreter);
 		});
 }
 
+@trusted void testReadWordsInner(ref Interpreter!TestFakeExtern interpreter) {
+	stepNAndExpect(interpreter, 3, [immutable Nat64(1), immutable Nat64(2), immutable Nat64(3)]);
+	immutable Nat64 ptr = immutable Nat64(cast(immutable u64) begin(interpreter.dataStack));
+	stepAndExpect(interpreter, [immutable Nat64(1), immutable Nat64(2), immutable Nat64(3), ptr]);
+	stepAndExpect(
+		interpreter,
+		[immutable Nat64(1), immutable Nat64(2), immutable Nat64(3), immutable Nat64(2), immutable Nat64(3)]);
+	stepExit(interpreter);
+}
+
 @trusted void testWriteSubword() {
+	doTest(
+		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+			writePushConstant(writer, source, immutable Nat64(0));
+			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)));
+			writePushConstant(writer, source, immutable Nat64(0x0123456789abcdef));
+			writeWrite(writer, source, immutable Nat8(0), immutable Nat8(4));
+			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)));
+			writePushConstant(writer, source, immutable Nat64(0x0123456789abcdef));
+			writeWrite(writer, source, immutable Nat8(4), immutable Nat8(2));
+			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)));
+			writePushConstant(writer, source, immutable Nat64(0x0123456789abcdef));
+			writeWrite(writer, source, immutable Nat8(6), immutable Nat8(1));
+			writeReturn(writer, source);
+		},
+		(ref Interpreter!TestFakeExtern interpreter) {
+			testWriteSubwordInner(interpreter);
+		});
+}
+
+@trusted void testWriteSubwordInner(ref Interpreter!TestFakeExtern interpreter) {
 	struct S {
 		u32 a;
 		u16 b;
 		u8 c;
 		u8 d;
 	}
-	S value;
-	immutable Nat64 valuePtr = immutable Nat64(cast(immutable u64) &value);
-	doTest(
-		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
-			writePushConstants(writer, source, [valuePtr, immutable Nat64(0x0123456789abcdef)]);
-			writeWrite(writer, source, immutable Nat8(0), immutable Nat8(4));
-			writePushConstants(writer, source, [valuePtr, immutable Nat64(0x0123456789abcdef)]);
-			writeWrite(writer, source, immutable Nat8(4), immutable Nat8(2));
-			writePushConstants(writer, source, [valuePtr, immutable Nat64(0x0123456789abcdef)]);
-			writeWrite(writer, source, immutable Nat8(6), immutable Nat8(1));
-			writeReturn(writer, source);
-		},
-		(ref Interpreter!TestFakeExtern interpreter) {
-			stepNAndExpect(interpreter, 2, [valuePtr, immutable Nat64(0x0123456789abcdef)]);
-			stepAndExpect(interpreter, []);
-			verify(value == immutable S(0x89abcdef, 0, 0, 0));
+	union U {
+		S s;
+		Nat64 value;
+	}
+	immutable(Nat64) toNat(immutable S s) {
+		U u;
+		u.s = s;
+		return u.value;
+	}
 
-			stepNAndExpect(interpreter, 2, [valuePtr, immutable Nat64(0x0123456789abcdef)]);
-			stepAndExpect(interpreter, []);
-			verify(value == immutable S(0x89abcdef, 0xcdef, 0, 0));
+	stepAndExpect(interpreter, [immutable Nat64(0)]);
+	immutable Nat64 ptr = immutable Nat64(cast(immutable u64) begin(interpreter.dataStack));
+	stepAndExpect(interpreter, [immutable Nat64(0), ptr]);
+	stepAndExpect(interpreter, [immutable Nat64(0), ptr, immutable Nat64(0x0123456789abcdef)]);
+	stepAndExpect(interpreter, [toNat(immutable S(0x89abcdef, 0, 0, 0))]);
 
-			stepNAndExpect(interpreter, 2, [valuePtr, immutable Nat64(0x0123456789abcdef)]);
-			stepAndExpect(interpreter, []);
-			verify(value == immutable S(0x89abcdef, 0xcdef, 0xef, 0));
+	stepNAndExpect(interpreter, 2, [toNat(immutable S(0x89abcdef, 0, 0, 0)), ptr, immutable Nat64(0x0123456789abcdef)]);
+	stepAndExpect(interpreter, [toNat(immutable S(0x89abcdef, 0xcdef, 0, 0))]);
 
-			stepExit(interpreter);
-		});
+	stepNAndExpect(
+		interpreter,
+		2,
+		[toNat(immutable S(0x89abcdef, 0xcdef, 0, 0)), ptr, immutable Nat64(0x0123456789abcdef)]);
+	stepAndExpect(interpreter, [toNat(immutable S(0x89abcdef, 0xcdef, 0xef, 0))]);
+
+	stepExit(interpreter);
 }
 
 @trusted void testWriteWords() {
-	struct S { u64 a; u64 b; u64 c; }
-	S value;
-	immutable Nat64 valuePtr = immutable Nat64(cast(immutable u64) &value);
 	doTest(
 		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
-			writePushConstants(writer, source, [valuePtr, immutable Nat64(1), immutable Nat64(2)]);
+			writePushConstants(writer, source, [immutable Nat64(0), immutable Nat64(0), immutable Nat64(0)]);
+			writeStackRef(writer, source, immutable StackEntry(immutable Nat16(0)));
+			writePushConstants(writer, source, [immutable Nat64(1), immutable Nat64(2)]);
 			writeWrite(writer, source, immutable Nat8(8), immutable Nat8(16));
 			writeReturn(writer, source);
 		},
 		(ref Interpreter!TestFakeExtern interpreter) {
-			stepNAndExpect(interpreter, 3, [valuePtr, immutable Nat64(1), immutable Nat64(2)]);
-			stepAndExpect(interpreter, []);
-			verify(value == immutable S(0, 1, 2));
-			stepExit(interpreter);
+			testWriteWordsInner(interpreter);
 		});
+}
+
+@trusted void testWriteWordsInner(ref Interpreter!TestFakeExtern interpreter) {
+	stepNAndExpect(interpreter, 3, [immutable Nat64(0), immutable Nat64(0), immutable Nat64(0)]);
+	immutable Nat64 ptr = immutable Nat64(cast(immutable u64) begin(interpreter.dataStack));
+	stepAndExpect(interpreter, [immutable Nat64(0), immutable Nat64(0), immutable Nat64(0), ptr]);
+	stepNAndExpect(
+		interpreter,
+		2,
+		[immutable Nat64(0), immutable Nat64(0), immutable Nat64(0), ptr, immutable Nat64(1), immutable Nat64(2)]);
+	stepAndExpect(interpreter, [immutable Nat64(0), immutable Nat64(1), immutable Nat64(2)]);
+	stepExit(interpreter);
 }
 
 void stepNAndExpect(Extern)(ref Interpreter!Extern interpreter, immutable uint n, scope immutable Nat64[] expected) {

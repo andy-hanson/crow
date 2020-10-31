@@ -254,7 +254,7 @@ immutable(Nat8) fillUnionSize(Alloc)(
 ) {
 	immutable Nat8 maxMemberSize = arrMax(immutable Nat8(0), union_.members, (ref immutable LowType t) =>
 		sizeOfType(alloc, program, t, builder));
-	immutable Nat8 size = unionKindSize + maxMemberSize;
+	immutable Nat8 size = unionKindSize + roundUp(maxMemberSize, unionKindSize);
 	fullIndexDictBuilderAdd(builder.unionSizes, index, size);
 	return size;
 }
@@ -480,49 +480,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			verify(stackEntryBeforeArgs.entry + expectedStackEffect.to16() == getNextStackEntry(writer).entry);
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
-			immutable StackEntry before = getNextStackEntry(writer);
-
-			void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
-				if (has(packStart)) {
-					// Need to give the instruction the field sizes
-					immutable Arr!Nat8 fieldSizes = map!Nat8(
-						tempAlloc,
-						slice(it.args, force(packStart), packEnd - force(packStart)),
-						(ref immutable LowExpr arg) => sizeOfType(ctx, arg.type));
-					writePack(writer, source, fieldSizes);
-				}
-			}
-
-			void recur(immutable Opt!size_t packStart, immutable size_t fieldIndex) {
-				if (fieldIndex == size(it.args)) {
-					maybePack(packStart, fieldIndex);
-				} else {
-					immutable Nat8 fieldSize = sizeOfType(ctx, at(it.args, fieldIndex).type);
-					if (fieldSize < immutable Nat8(8)) {
-						generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
-						recur(has(packStart) ? packStart : some(fieldIndex), fieldIndex + 1);
-					} else {
-						verify(fieldSize % immutable Nat8(8) == immutable Nat8(0));
-						maybePack(packStart, fieldIndex);
-						generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
-						recur(none!size_t, fieldIndex + 1);
-					}
-				}
-			}
-
-			recur(none!size_t, 0);
-
-			immutable StackEntry after = getNextStackEntry(writer);
-			immutable Nat8 stackEntriesForType = nStackEntriesForType(ctx, expr.type);
-			//debug {
-			//	import core.stdc.stdio : printf;
-			//	Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-			//	writeType(writer, ctx.program, expr.type);
-			//	printf("creating record %s\n", finishWriterToCStr(writer));
-			//	printf("before: %u, after: %u, entries for type: %u\n",
-			//		before.entry.raw(), after.entry.raw(), stackEntriesForType.raw());
-			//}
-			verify(after.entry - before.entry == stackEntriesForType.to16());
+			generateCreateRecord(tempAlloc, writer, ctx, expr.type, source, it);
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
 			//immutable uint offset = nStackEntriesForUnionTypeExcludingKind(ctx.program, asUnionType(it.type));
@@ -653,6 +611,63 @@ void generateExpr(CodeAlloc, TempAlloc)(
 		(ref immutable LowExprKind.SpecialNAry it) {
 			generateSpecialNAry(tempAlloc, writer, ctx, source, expr.type, it);
 		});
+}
+
+void generateCreateRecord(CodeAlloc, TempAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable LowType type,
+	ref immutable ByteCodeSource source,
+	ref immutable LowExprKind.CreateRecord it,
+) {
+	immutable StackEntry before = getNextStackEntry(writer);
+
+	void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
+		if (has(packStart)) {
+			// Need to give the instruction the field sizes
+			immutable Arr!Nat8 fieldSizes = map!Nat8(
+				tempAlloc,
+				slice(it.args, force(packStart), packEnd - force(packStart)),
+				(ref immutable LowExpr arg) => sizeOfType(ctx, arg.type));
+			writePack(writer, source, fieldSizes);
+		}
+	}
+
+	void recur(immutable Opt!size_t packStart, immutable size_t fieldIndex) {
+		if (fieldIndex == size(it.args)) {
+			maybePack(packStart, fieldIndex);
+		} else {
+			immutable Nat8 fieldSize = sizeOfType(ctx, at(it.args, fieldIndex).type);
+			debug {
+				import core.stdc.stdio : printf;
+				printf("field size: %u\n", fieldSize.raw());
+			}
+			if (fieldSize < immutable Nat8(8)) {
+				generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
+				recur(has(packStart) ? packStart : some(fieldIndex), fieldIndex + 1);
+			} else {
+				verify(fieldSize % immutable Nat8(8) == immutable Nat8(0));
+				maybePack(packStart, fieldIndex);
+				generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
+				recur(none!size_t, fieldIndex + 1);
+			}
+		}
+	}
+
+	recur(none!size_t, 0);
+
+	immutable StackEntry after = getNextStackEntry(writer);
+	immutable Nat8 stackEntriesForType = nStackEntriesForType(ctx, type);
+	//debug {
+	//	import core.stdc.stdio : printf;
+	//	Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+	//	writeType(writer, ctx.program, expr.type);
+	//	printf("creating record %s\n", finishWriterToCStr(writer));
+	//	printf("before: %u, after: %u, entries for type: %u\n",
+	//		before.entry.raw(), after.entry.raw(), stackEntriesForType.raw());
+	//}
+	verify(after.entry - before.entry == stackEntriesForType.to16());
 }
 
 struct FieldOffsetAndSize {

@@ -35,7 +35,7 @@ import interpret.opcode : OpCode;
 import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, matchLowFunSource;
 import util.bools : Bool;
 import util.collection.arr : Arr, at, begin, end, ptrAt, range, sizeNat;
-import util.collection.arrUtil : lastWhere, zip;
+import util.collection.arrUtil : lastWhere, zipSystem;
 import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
 import util.collection.globalAllocatedStack :
 	asTempArr,
@@ -264,7 +264,14 @@ immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 					immutable Nat16 stackStart = isEmpty(a.stackStartStack)
 						? immutable Nat16(0)
 						: peek(a.stackStartStack);
-					verify(stackSize(a.dataStack) - stackStart.to32() == it.stackSize.to32());
+					immutable Nat32 actualStackSize = stackSize(a.dataStack) - stackStart.to32();
+					debug {
+						printf(
+							"expected stack size: %u, actual: %u\n(full size: %u, start: %u)\n",
+							it.stackSize.raw(), actualStackSize.raw(),
+							stackSize(a.dataStack).raw(), stackStart.raw());
+					}
+					verify(actualStackSize == it.stackSize.to32());
 				});
 			return StepResult.continue_;
 		},
@@ -362,32 +369,44 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	immutable Nat8 offset,
 	immutable Nat8 size,
 ) {
+	debug {
+		printf("checkPtr %p, %u, %u\n", ptrWithoutOffset, offset.raw(), size.raw());
+	}
+
 	const u8* ptr = ptrWithoutOffset + offset.raw();
 	const PtrRange ptrRange = const PtrRange(ptr, ptr + size.raw());
-	const PtrRange textPtrRange = ptrRangeOfArr(byteCode.text);
+
+	debug {
+		import util.print : print;
+		alias Alloc = StackAlloc!("debug", 1024 * 8);
+		Alloc alloc;
+		Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+		writeStatic(writer, "want to access: ");
+		writePtrRange(writer, ptrRange);
+		writePtrRanges(writer, data, extern_, byteCode);
+		print(finishWriterToCStr(writer));
+	}
+
 	if (!contains(stackPtrRange(data), ptrRange)
 		&& !extern_.hasMallocedPtr(ptrRange)
-		&& !contains(textPtrRange, ptrRange)) {
-
-		debug {
-			import util.print : print;
-			alias Alloc = StackAlloc!("debug", 1024 * 8);
-			Alloc alloc;
-			Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-			writeStatic(writer, "want to access: ");
-			writePtrRange(writer, ptrRange);
-			writeStatic(writer, "\ndata: ");
-			writePtrRange(writer, stackPtrRange(data));
-			writeStatic(writer, "\nmalloced:\n");
-			extern_.writeMallocedRanges(writer);
-			writeStatic(writer, "\ntext:\n");
-			writePtrRange(writer, textPtrRange);
-			writeChar(writer, '\n');
-			print(finishWriterToCStr(writer));
-		}
-
+		&& !contains(ptrRangeOfArr(byteCode.text), ptrRange)) {
 		todo!void("ptr not valid");
 	}
+}
+
+@system void writePtrRanges(Alloc, Extern)(
+	ref Writer!Alloc writer,
+	ref const DataStack data,
+	ref const Extern extern_,
+	ref immutable ByteCode byteCode,
+) {
+	writeStatic(writer, "\ndata: ");
+	writePtrRange(writer, stackPtrRange(data));
+	writeStatic(writer, "\nmalloced:\n");
+	extern_.writeMallocedRanges(writer);
+	writeStatic(writer, "\ntext:\n");
+	writePtrRange(writer, ptrRangeOfArr(byteCode.text));
+	writeChar(writer, '\n');
 }
 
 @trusted void write(Extern)(
@@ -406,10 +425,16 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 		verify(zero(size % immutable Nat8(8)));
 		verify(zero(offset % immutable Nat8(8)));
 		immutable Nat8 sizeWords = size / immutable Nat8(8);
-		Nat64* ptr = (cast(Nat64*) peek(data, sizeWords).raw()) + (offset.raw() / 8);
-		checkPtr(data, extern_, byteCode, cast(const u8*) ptr, offset, size);
-		foreach (immutable u8 i; 0..sizeWords.raw())
-			ptr[i] = peek(data, decr(sizeWords) - immutable Nat8(i));
+		Nat64* ptrWithoutOffset = (cast(Nat64*) peek(data, sizeWords).raw());
+		checkPtr(data, extern_, byteCode, cast(const u8*) ptrWithoutOffset, offset, size);
+		Nat64* ptr = ptrWithoutOffset + (offset.raw() / 8);
+		foreach (immutable u8 i; 0..sizeWords.raw()) {
+			immutable Nat64 value = peek(data, decr(sizeWords) - immutable Nat8(i));
+			debug {
+				printf("write64 %p = %lx\n\n", ptr + i, value.raw());
+			}
+			ptr[i] = value;
+		}
 		popN(data, incr(sizeWords));
 	}
 }
@@ -512,14 +537,23 @@ immutable(Nat64) bytesToBits(immutable Nat64 bytes) {
 	return bytes * immutable Nat64(8);
 }
 
-immutable(Nat64) pack(immutable Arr!Nat64 values, immutable Arr!Nat8 sizes) {
-	Nat64 res = immutable Nat64(0);
+@trusted immutable(Nat64) pack(immutable Arr!Nat64 values, immutable Arr!Nat8 sizes) {
+	u64 res;
+	u8* bytePtr = cast(u8*) &res;
 	Nat64 totalSize = immutable Nat64(0);
-	zip!(Nat64, Nat8)(values, sizes, (ref immutable Nat64 value, ref immutable Nat8 size) {
-		res = (res << bytesToBits(size.to64())) | bottomNBytes(value, size);
+	zipSystem!(Nat64, Nat8)(values, sizes, (ref immutable Nat64 value, ref immutable Nat8 size) {
+		//TODO: use a 'size' type
+		if (size == immutable Nat8(1))
+			*bytePtr = value.to8().raw();
+		else if (size == immutable Nat8(2))
+			*(cast(u16*) bytePtr) = value.to16().raw();
+		else if (size == immutable Nat8(4))
+			*(cast(u32*) bytePtr) = value.to32().raw();
+		else
+			unreachable!void();
+		bytePtr += size.raw();
 		totalSize += size.to64();
 	});
 	verify(totalSize <= immutable Nat64(8));
-	immutable Nat64 remainingBytes = immutable Nat64(8) - totalSize;
-	return res << bytesToBits(remainingBytes);
+	return immutable Nat64(res);
 }

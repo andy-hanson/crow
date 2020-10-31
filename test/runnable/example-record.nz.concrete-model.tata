@@ -208,8 +208,6 @@ program(
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
 		struct(name: some, body: record([field(value, false, type(true, fut-callback-node))]))
 		struct(name: fut-state-resolved, body: record([field(value, false, type(false, void))]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(false, ptr))]))
 		struct(
 			name: fun-ref0
 			body: record(
@@ -1119,68 +1117,17 @@ program(
 			none
 			[param(all-args, type(false, arr)), param(main-ptr, type(false, fun-ptr2))]
 			expr-body(
-				[local(f, type(true, fut)), local(s, type(false, fut-state))]
-				let(
-					f
-					call(as, [call(resolved, [call(pass, [])])])
-					let(
-						s
-						get-field(local-ref(f), state)
-						call(
-							then2
+				[]
+				call(
+					then2
+					[
+						call(as, [call(resolved, [call(pass, [])])])
+						record(
 							[
-								local-ref(f)
-								record(
-									[
-										call(cur-actor, [])
-										lambda(
-											lambda(add-first-task, 0)
-											some(alloc(alloc, record([param-ref(all-args), param-ref(main-ptr)]))))])])))))
-		fun(false, as, type(true, fut), none, [param(value, type(true, fut))], builtin([type(true, fut)]))
-		fun(
-			true
-			resolved
-			type(true, fut)
-			none
-			[param(value, type(false, void))]
-			expr-body([], alloc(alloc, record([call(new-lock, []), to-union(1, record([param-ref(value)]))]))))
-		fun(
-			true
-			alloc
-			type(false, ptr)
-			none
-			[param(size, type(false, nat))]
-			expr-body([], call(gc-alloc, [call(get-gc, []), param-ref(size)])))
-		fun(
-			true
-			gc-alloc
-			type(false, ptr)
-			none
-			[param(gc, type(true, gc)), param(size, type(false, nat))]
-			expr-body(
-				[local(s, type(false, some)), local("<<matched>>", type(false, opt))]
-				match(
-					"<<matched>>"
-					call(try-gc-alloc, [param-ref(gc), param-ref(size)])
-					[case(none, call(todo, [])), case(some(s), get-field(local-ref(s), value))])))
-		fun(
-			false
-			try-gc-alloc
-			type(false, opt)
-			none
-			[param(gc, type(true, gc)), param(size, type(false, nat))]
-			expr-body([], to-union(1, call(some, [call(unmanaged-alloc-bytes, [param-ref(size)])]))))
-		fun(false, some, type(false, some), none, [param(t, type(false, ptr))], expr-body([], record([param-ref(t)])))
-		fun(false, todo, type(false, ptr), none, [], expr-body([], call(hard-fail, [str-lit("TODO")])))
-		fun(false, hard-fail, type(false, ptr), none, [param(reason, type(false, arr))], builtin([type(false, ptr)]))
-		fun(true, get-gc, type(true, gc), none, [], expr-body([], get-field(call(get-gc-ctx, []), gc)))
-		fun(
-			true
-			get-gc-ctx
-			type(true, gc-ctx)
-			none
-			[]
-			expr-body([], call(as-ref, [get-field(call(get-ctx, []), gc-ctx-ptr)])))
+								call(cur-actor, [])
+								lambda(
+									lambda(add-first-task, 0)
+									some(alloc(alloc, record([param-ref(all-args), param-ref(main-ptr)]))))])])))
 		fun(
 			true
 			then2
@@ -1220,6 +1167,28 @@ program(
 			none
 			[]
 			expr-body([], alloc(alloc, record([call(new-lock, []), to-union(0, record([to-union(0, call(none, []))]))]))))
+		fun(
+			true
+			alloc
+			type(false, ptr)
+			none
+			[param(size, type(false, nat))]
+			expr-body([], call(gc-alloc, [call(get-gc, []), param-ref(size)])))
+		fun(
+			true
+			gc-alloc
+			type(false, ptr)
+			none
+			[param(gc, type(true, gc)), param(size, type(false, nat))]
+			expr-body([], call(unmanaged-alloc-bytes, [param-ref(size)])))
+		fun(true, get-gc, type(true, gc), none, [], expr-body([], get-field(call(get-gc-ctx, []), gc)))
+		fun(
+			true
+			get-gc-ctx
+			type(true, gc-ctx)
+			none
+			[]
+			expr-body([], call(as-ref, [get-field(call(get-ctx, []), gc-ctx-ptr)])))
 		fun(
 			true
 			then-void
@@ -2017,6 +1986,14 @@ program(
 			expr-body(
 				[local(c, type(true, ctx))]
 				let(c, call(get-ctx, []), record([get-field(local-ref(c), vat-id), get-field(local-ref(c), actor-id)]))))
+		fun(false, as, type(true, fut), none, [param(value, type(true, fut))], builtin([type(true, fut)]))
+		fun(
+			true
+			resolved
+			type(true, fut)
+			none
+			[param(value, type(false, void))]
+			expr-body([], alloc(alloc, record([call(new-lock, []), to-union(1, record([param-ref(value)]))]))))
 		fun(
 			true
 			tail

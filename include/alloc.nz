@@ -59,13 +59,14 @@ try-gc-alloc opt any-ptr(gc gc, size nat) noctx trusted
 	| TODO: allocate from gc memory!
 	size.unmanaged-alloc-bytes some
 
-gc-alloc any-ptr(gc gc, size nat)
-	match gc try-gc-alloc size
-		none
-			| TODO: throw an exception on OOM
-			todo
-		some s
-			s.value
+gc-alloc any-ptr(gc gc, size nat) trusted
+	size unmanaged-alloc-bytes
+	| match gc try-gc-alloc size
+	|	none
+	|		| TODO: throw an exception on OOM
+	|		todo
+	|	some s
+	|		s.value
 
 alloc any-ptr(size nat) unsafe
 	get-gc gc-alloc size
