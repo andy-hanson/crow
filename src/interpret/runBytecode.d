@@ -31,11 +31,11 @@ import interpret.bytecodeReader :
 	readerSwitch,
 	setReaderPtr;
 import interpret.debugging : writeFunName;
-import interpret.fakeExtern : AllocExtern;
+import interpret.externAlloc : ExternAlloc;
 import interpret.opcode : OpCode;
 import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, matchLowFunSource;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, begin, end, ptrAt, range, sizeNat;
+import util.collection.arr : Arr, at, begin, end, freeArr, ptrAt, range, sizeNat;
 import util.collection.arrUtil : lastWhere, mapWithFirst, zipSystem;
 import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
 import util.collection.globalAllocatedStack :
@@ -54,7 +54,7 @@ import util.collection.globalAllocatedStack :
 	stackPtrRange,
 	stackRef,
 	stackSize;
-import util.collection.str : CStr, Str, strToCStr;
+import util.collection.str : CStr, freeCStr, Str, strToCStr;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, FileAndPos;
@@ -81,10 +81,10 @@ import util.util : todo, unreachable, verify;
 		printf("executablePath is %.*s\n", cast(int) size(executablePath), begin(executablePath));
 	}
 
-	AllocExtern!Extern allocExtern = AllocExtern!Extern(ptrTrustMe_mut(extern_));
-	immutable CStr firstArg = strToCStr(allocExtern, executablePath);
-	immutable Arr!CStr allArgs = mapWithFirst!(CStr, Str)(allocExtern, firstArg, args, (ref immutable Str arg) =>
-		strToCStr(allocExtern, arg));
+	ExternAlloc!Extern externAlloc = ExternAlloc!Extern(ptrTrustMe_mut(extern_));
+	immutable CStr firstArg = strToCStr(externAlloc, executablePath);
+	immutable Arr!CStr allArgs = mapWithFirst!(CStr, Str)(externAlloc, firstArg, args, (ref immutable Str arg) =>
+		strToCStr(externAlloc, arg));
 
 	push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
 	// These need to be CStrs
@@ -99,6 +99,10 @@ import util.util : todo, unreachable, verify;
 				return safeIntFromNat64(returnCode);
 		}
 	}
+
+	foreach (immutable CStr arg; range(allArgs))
+		freeCStr(externAlloc, arg);
+	freeArr(externAlloc, allArgs);
 }
 
 pure @trusted Interpreter!Extern newInterpreter(Extern)(

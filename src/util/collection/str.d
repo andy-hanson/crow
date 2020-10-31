@@ -3,7 +3,7 @@ module util.collection.str;
 @safe @nogc pure nothrow:
 
 import util.bools : and, Bool, False, True;
-import util.collection.arr : Arr, at, begin, empty, emptyArr, first, size;
+import util.collection.arr : Arr, at, begin, empty, emptyArr, first, freeArr, size;
 import util.collection.arrUtil : rtail, slice, tail;
 import util.collection.mutArr : MutArr;
 import util.comparison : compareChar, compareOr, Comparison;
@@ -21,6 +21,10 @@ immutable(NulTerminatedStr) emptyNulTerminatedStr() {
 
 @trusted private immutable(CStr) end(immutable CStr c) {
 	return *c == '\0' ? c : end(c + 1);
+}
+
+@system void freeCStr(Alloc)(ref Alloc alloc, immutable CStr c) {
+	freeArr(alloc, nulTerminatedStrOfCStr(c).str);
 }
 
 @trusted immutable(Str) strLiteral(immutable string s) {

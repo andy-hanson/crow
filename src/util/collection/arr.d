@@ -37,6 +37,10 @@ struct Arr(T) {
 	this(T* b, immutable size_t s) { begin_ = b; size_ = s; }
 }
 
+@system void freeArr(Alloc, T)(ref Alloc alloc, immutable Arr!T a) {
+	alloc.free(cast(ubyte*) begin(a), size(a) * T.sizeof);
+}
+
 immutable(Arr!T) asImmutable(T)(Arr!(immutable T) a) {
 	return immutable Arr!T(a.begin_, a.size_);
 }

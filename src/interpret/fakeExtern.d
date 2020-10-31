@@ -115,14 +115,6 @@ FakeExtern!Alloc newFakeExtern(Alloc)(Ptr!Alloc alloc) {
 	return FakeExtern!Alloc(alloc);
 }
 
-//TODO: own module
-struct AllocExtern(Extern) {
-	Ptr!Extern extern_;
-	ubyte* allocate(immutable size_t nBytes) {
-		return extern_.malloc(nBytes);
-	}
-}
-
 private:
 
 @trusted immutable(Bool) ptrInRange(ref const KeyValuePair!(u8*, immutable size_t) pair, ref const PtrRange range) {
