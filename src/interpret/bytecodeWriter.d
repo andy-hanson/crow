@@ -413,6 +413,13 @@ private immutable(ByteCodeOffset) getByteCodeOffsetForJump(Alloc)(
 
 void writePack(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Arr!Nat8 sizes) {
 	verify(!empty(sizes));
+	Nat8 sizeSum = immutable Nat8(0);
+	foreach (immutable Nat8 size; range(sizes)) {
+		// TODO: size type
+		verify(size == immutable Nat8(1) || size == immutable Nat8(2) || size == immutable Nat8(4));
+		sizeSum += size;
+	}
+	verify(sizeSum <= immutable Nat8(8));
 	pushOpcode(writer, source, OpCode.pack);
 	pushU8(writer, source, sizeNat(sizes).to8());
 	foreach (immutable Nat8 size; range(sizes))

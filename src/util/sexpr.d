@@ -145,12 +145,16 @@ immutable(Sexpr) tataBool(immutable Bool a) {
 	return immutable Sexpr(a);
 }
 
+immutable(Sexpr) tataHex(T)(immutable NatN!T a) {
+	return immutable Sexpr(immutable SexprNat(a.raw(), 16));
+}
+
 immutable(Sexpr) tataNat(T)(immutable NatN!T a) {
 	return tataNat(a.raw());
 }
 
 immutable(Sexpr) tataNat(immutable size_t a) {
-	return immutable Sexpr(a);
+	return immutable Sexpr(immutable SexprNat(a, 10));
 }
 
 immutable(Sexpr) tataStr(immutable Str a) {
@@ -197,6 +201,11 @@ struct SexprArr {
 	immutable Arr!Sexpr arr;
 }
 
+struct SexprNat {
+	immutable size_t nat;
+	immutable size_t base;
+}
+
 struct Sexpr {
 	@safe @nogc pure nothrow:
 	private:
@@ -215,7 +224,7 @@ struct Sexpr {
 		immutable SexprArr arr;
 		immutable Bool bool_;
 		immutable SexprNamedRecord namedRecord;
-		immutable size_t nat;
+		immutable SexprNat nat;
 		immutable Opt!(Ptr!Sexpr) opt;
 		immutable SexprRecord record;
 		immutable Str str;
@@ -225,7 +234,7 @@ struct Sexpr {
 	@trusted this(immutable SexprArr a, bool b) immutable { kind = Kind.arr; arr = a; }
 	this(immutable Bool a) immutable { kind = Kind.bool_; bool_ = a; }
 	@trusted this(immutable SexprNamedRecord a) immutable { kind = Kind.namedRecord; namedRecord = a; }
-	@trusted this(immutable size_t a) immutable { kind = Kind.nat; nat = a; }
+	@trusted this(immutable SexprNat a) immutable { kind = Kind.nat; nat = a; }
 	@trusted this(immutable Opt!(Ptr!Sexpr) a) immutable { kind = Kind.opt; opt = a; }
 	@trusted this(immutable SexprRecord a) immutable { kind = Kind.record; record = a; }
 	@trusted this(immutable Str a) immutable { kind = Kind.str; str = a; }
@@ -236,7 +245,7 @@ struct Sexpr {
 	ref immutable Sexpr a,
 	scope T delegate(ref immutable SexprArr) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Bool) @safe @nogc pure nothrow cbBool,
-	scope T delegate(immutable size_t) @safe @nogc pure nothrow cbNat,
+	scope T delegate(immutable SexprNat) @safe @nogc pure nothrow cbNat,
 	scope T delegate(ref immutable SexprNamedRecord) @safe @nogc pure nothrow cbNamedRecord,
 	scope T delegate(immutable Opt!(Ptr!Sexpr)) @safe @nogc pure nothrow cbOpt,
 	scope T delegate(ref immutable SexprRecord) @safe @nogc pure nothrow cbRecord,
@@ -289,8 +298,8 @@ void writeSexprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
 		(immutable Bool it) {
 			writeSexprBool(writer, it);
 		},
-		(immutable size_t it) {
-			writeNat(writer, it);
+		(immutable SexprNat it) {
+			writeSexprNat(writer, it);
 		},
 		(ref immutable SexprNamedRecord it) {
 			writeStatic(writer, "{\"_type\":");
@@ -366,8 +375,8 @@ void writeSexpr(Alloc)(
 		(immutable Bool s) {
 			writeSexprBool(writer, s);
 		},
-		(immutable size_t s) {
-			writeNat(writer, s);
+		(immutable SexprNat it) {
+			writeSexprNat(writer, it);
 		},
 		(ref immutable SexprNamedRecord it) {
 			if (measureSexprNamedRecord(it, availableWidth) < 0) {
@@ -419,7 +428,7 @@ immutable(int) measureSexprSingleLine(ref immutable Sexpr a, immutable int avail
 			measureSexprArr(s, available),
 		(immutable Bool s) =>
 			available - measureSexprBool(s),
-		(immutable size_t s) =>
+		(immutable SexprNat s) =>
 			available - measureSexprNat(s),
 		(ref immutable SexprNamedRecord s) =>
 			measureSexprNamedRecord(s, available),
@@ -475,7 +484,7 @@ immutable(int) measureCommaSeparatedChildren(immutable Arr!Sexpr xs, immutable i
 }
 
 void writeSexprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
-	matchSexpr(
+	matchSexpr!void(
 		a,
 		(ref immutable SexprArr s) {
 			writeSexprArrSingleLine(writer, s.arr);
@@ -483,8 +492,8 @@ void writeSexprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a)
 		(immutable Bool s) {
 			writeSexprBool(writer, s);
 		},
-		(immutable size_t s) {
-			writeNat(writer, s);
+		(immutable SexprNat it) {
+			writeSexprNat(writer, it);
 		},
 		(ref immutable SexprNamedRecord s) {
 			writeSexprNamedRecordSingleLine(writer, s);
@@ -546,13 +555,19 @@ void writeSexprBool(Alloc)(ref Writer!Alloc writer, ref immutable Bool s) {
 	writeStatic(writer, s ? "true" : "false");
 }
 
-immutable(int) measureSexprNat(immutable size_t s) {
+immutable(int) measureSexprNat(immutable SexprNat s) {
 	uint recur(immutable uint size, immutable size_t a) {
-		return a == 0 ? 0 : recur(size + 1, a / 10);
+		return a == 0 ? 0 : recur(size + 1, a / s.base);
 	}
-	return recur(1, s / 10);
+	return recur(1, s.nat / s.base);
 }
 
 immutable(int) measureQuotedStr(ref immutable Str s) {
 	return 2 + safeIntFromSizeT(size(s));
+}
+
+void writeSexprNat(Alloc)(ref Writer!Alloc writer, ref immutable SexprNat a) {
+	if (a.base == 16)
+		writeStatic(writer, "0x");
+	writeNat(writer, a.nat, a.base);
 }

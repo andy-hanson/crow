@@ -8,7 +8,7 @@ import util.bools : Bool;
 import util.collection.arr : Arr, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.str : Str, strLiteral;
-import util.sexpr : Sexpr, tataArr, tataNat, tataRecord, tataStr, tataSym;
+import util.sexpr : Sexpr, tataArr, tataHex, tataNat, tataRecord, tataStr, tataSym;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, zero;
 import util.sourceRange : FileIndex, Pos;
@@ -163,7 +163,7 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 		(ref immutable Operation.Pack it)  =>
 			tataRecord(alloc, "pack", tataArr(alloc, it.sizes, (ref immutable Nat8 size) => tataNat(size))),
 		(ref immutable Operation.PushValue it)  =>
-			tataRecord(alloc, "push-val", tataNat(it.value)),
+			tataRecord(alloc, "push-val", tataHex(it.value)),
 		(ref immutable Operation.Read it)  =>
 			tataRecord(alloc, "read", tataNat(it.offset), tataNat(it.size)),
 		(ref immutable Operation.Remove it)  =>

@@ -38,13 +38,7 @@ void writeStatic(Alloc)(ref Writer!Alloc writer, immutable string c) {
 }
 
 void writeHex(Alloc)(ref Writer!Alloc writer, immutable size_t n) {
-	if (n >= 16)
-		writeHex(writer, n / 16);
-	writeChar(writer, hexChar(n % 16));
-}
-
-immutable(char) hexChar(immutable size_t digit) {
-	return digit < 10 ? cast(char) ('0' + digit % 16) : cast(char) ('a' + (digit - 10));
+	writeNat(writer, n, 16);
 }
 
 //TODO:MOVE
@@ -54,10 +48,14 @@ void writePtrRange(Alloc)(ref Writer!Alloc writer, const PtrRange a) {
 	writeHex(writer, cast(immutable size_t) a.end);
 }
 
-void writeNat(Alloc)(ref Writer!Alloc writer, immutable size_t n) {
-	if (n >= 10)
-		writeNat(writer, n / 10);
-	writeChar(writer, '0' + n % 10);
+void writeNat(Alloc)(ref Writer!Alloc writer, immutable size_t n, immutable size_t base = 10) {
+	if (n >= base)
+		writeNat(writer, n / base, base);
+	writeChar(writer, digitChar(n % base));
+}
+
+private immutable(char) digitChar(immutable size_t digit) {
+	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
 }
 
 void writeInt(Alloc)(ref Writer!Alloc writer, immutable ssize_t i) {

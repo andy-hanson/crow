@@ -83,8 +83,8 @@ import lowModel :
 import model : decl, FunDecl, FunInst, Local, Module, name, Program, range;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, range, size, sizeNat;
-import util.collection.arrUtil : arrMax, eachWithIndex, map, mapOpWithIndex, slice, sum, zip;
+import util.collection.arr : Arr, at, empty, range, size, sizeNat;
+import util.collection.arrUtil : arrMax, eachWithIndex, map, mapOp, mapOpWithIndex, slice, sum, zip;
 import util.collection.fullIndexDict :
 	FullIndexDict,
 	fullIndexDictEach,
@@ -626,11 +626,15 @@ void generateCreateRecord(CodeAlloc, TempAlloc)(
 	void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
 		if (has(packStart)) {
 			// Need to give the instruction the field sizes
-			immutable Arr!Nat8 fieldSizes = map!Nat8(
+			immutable Arr!Nat8 fieldSizes = mapOp!(Nat8, LowExpr, TempAlloc)(
 				tempAlloc,
 				slice(it.args, force(packStart), packEnd - force(packStart)),
-				(ref immutable LowExpr arg) => sizeOfType(ctx, arg.type));
-			writePack(writer, source, fieldSizes);
+				(ref immutable LowExpr arg) {
+					immutable Nat8 size = sizeOfType(ctx, arg.type);
+					return zero(size) ? none!Nat8 : some(size);
+				});
+			if (!empty(fieldSizes))
+				writePack(writer, source, fieldSizes);
 		}
 	}
 

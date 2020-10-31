@@ -302,6 +302,10 @@ immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.PushValue it) {
+			debug {
+				import core.stdc.stdio : printf;
+				printf("Pushing %lu\n", it.value.raw());
+			}
 			push(a.dataStack, it.value);
 			return StepResult.continue_;
 		},
@@ -472,17 +476,9 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 }
 
 //TODO:MOVE?
-immutable(Nat64) getBytes(immutable Nat64 a, immutable Nat8 byteOffset, immutable Nat8 sizeBytes) {
+@trusted immutable(Nat64) getBytes(immutable Nat64 a, immutable Nat8 byteOffset, immutable Nat8 sizeBytes) {
 	verify(byteOffset + sizeBytes <= immutable Nat8(u64.sizeof));
-	immutable Nat64 shift = bytesToBits((immutable Nat8(u64.sizeof) - sizeBytes - byteOffset).to64());
-	immutable Nat64 mask = Nat64.max >> bytesToBits((immutable Nat8(u64.sizeof) - sizeBytes).to64());
-	immutable Nat64 res = (a >> shift) & mask;
-	debug {
-		import core.stdc.stdio : printf;
-		printf("getBytes(%lx, %x, %x)\n", a.raw(), byteOffset.raw(), sizeBytes.raw());
-		printf("shift= %lx, mask = %lx, res = %lx\n", shift.raw(), mask.raw(), res.raw());
-	}
-	return res;
+	return readPartialBytes((cast(immutable u8*) &a) + byteOffset.raw(), sizeBytes.raw());
 }
 
 void call(Extern)(ref Interpreter!Extern a, immutable ByteCodeIndex address, immutable Nat8 parametersSize) {

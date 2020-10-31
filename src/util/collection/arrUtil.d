@@ -410,7 +410,7 @@ void eachWithIndex(T)(
 
 @trusted immutable(Arr!Out) mapOp(Out, In, Alloc)(
 	ref Alloc alloc,
-	ref immutable Arr!In a,
+	immutable Arr!In a,
 	scope immutable(Opt!Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	return mapOpWithIndex!(Out, In, Alloc)(alloc, a, (immutable size_t, ref immutable In x) =>

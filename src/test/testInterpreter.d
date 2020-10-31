@@ -367,59 +367,51 @@ void testRemove() {
 }
 
 void testDupPartial() {
+	struct S {
+		Nat32 a;
+		Nat16 b;
+		Nat8 c;
+	}
+	union U {
+		S s;
+		Nat64 n;
+	}
+	U u;
+	u.s = immutable S(immutable Nat32(0x01234567), immutable Nat16(0x89ab), immutable Nat8(0xcd));
 	doTest(
 		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
-			writePushConstants(writer, source, [immutable Nat64(0x0123456789abcdef)]);
-			writeDupPartial(
-				writer,
-				source,
-				immutable StackEntry(immutable Nat16(0)),
-				immutable Nat8(4),
-				immutable Nat8(4));
-			writeDupPartial(
-				writer,
-				source,
-				immutable StackEntry(immutable Nat16(1)),
-				immutable Nat8(6),
-				immutable Nat8(2));
-			writeDupPartial(
-				writer,
-				source,
-				immutable StackEntry(immutable Nat16(2)),
-				immutable Nat8(7),
-				immutable Nat8(1));
+			writePushConstants(writer, source, [u.n]);
 			writeDupPartial(
 				writer,
 				source,
 				immutable StackEntry(immutable Nat16(0)),
 				immutable Nat8(0),
+				immutable Nat8(4));
+			writeDupPartial(
+				writer,
+				source,
+				immutable StackEntry(immutable Nat16(0)),
+				immutable Nat8(4),
+				immutable Nat8(2));
+			writeDupPartial(
+				writer,
+				source,
+				immutable StackEntry(immutable Nat16(0)),
+				immutable Nat8(6),
 				immutable Nat8(1));
 			writeReturn(writer, source);
 		},
 		(ref Interpreter!TestFakeExtern interpreter) {
-			stepAndExpect(interpreter, [immutable Nat64(0x0123456789abcdef)]);
-			stepAndExpect(interpreter, [immutable Nat64(0x0123456789abcdef), immutable Nat64(0x89abcdef)]);
-			stepAndExpect(interpreter, [
-				immutable Nat64(0x0123456789abcdef),
-				immutable Nat64(0x89abcdef),
-				immutable Nat64(0xcdef)]);
-			stepAndExpect(interpreter, [
-				immutable Nat64(0x0123456789abcdef),
-				immutable Nat64(0x89abcdef),
-				immutable Nat64(0xcdef),
-				immutable Nat64(0xef)]);
-			stepAndExpect(interpreter, [
-				immutable Nat64(0x0123456789abcdef),
-				immutable Nat64(0x89abcdef),
-				immutable Nat64(0xcdef),
-				immutable Nat64(0xef),
-				immutable Nat64(0x01)]);
+			stepAndExpect(interpreter, [u.n]);
+			stepAndExpect(interpreter, [u.n, immutable Nat64(0x01234567)]);
+			stepAndExpect(interpreter, [u.n, immutable Nat64(0x01234567), immutable Nat64(0x89ab)]);
+			stepAndExpect(
+				interpreter,
+				[u.n, immutable Nat64(0x01234567), immutable Nat64(0x89ab), immutable Nat64(0xcd)]);
 			stepExit(interpreter);
 		});
 }
 
-// TODO: this test will break on big-endian systems
-// (The code is right, the test just needs to have different assertions for different systems)
 void testPack() {
 	doTest(
 		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
@@ -436,8 +428,20 @@ void testPack() {
 				immutable Nat64(0x01234567),
 				immutable Nat64(0x89ab),
 				immutable Nat64(0xcd)]);
-			stepAndExpect(interpreter, [immutable Nat64(0x00cd89ab01234567)]);
+			struct S {
+				Nat32 a;
+				Nat16 b;
+				Nat8 c;
+			}
+			union U {
+				S s;
+				Nat64 n;
+			}
+			U u;
+			u.s = immutable S(immutable Nat32(0x01234567), immutable Nat16(0x89ab), immutable Nat8(0xcd));
+			stepAndExpect(interpreter, [u.n]);
 		});
+
 }
 
 void testStackRef() {
