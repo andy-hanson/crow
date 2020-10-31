@@ -215,6 +215,9 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 							checkLowExpr(ctx, paramType, arg);
 						});
 			}
+		},
+		(ref immutable LowExprKind.TailRecur) {
+			// TODO
 		});
 }
 

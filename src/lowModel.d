@@ -328,6 +328,7 @@ struct LowLocal {
 
 struct LowFunExprBody {
 	immutable Arr!(Ptr!LowLocal) allLocals;
+	immutable Bool hasTailRecur;
 	immutable LowExpr expr;
 }
 
@@ -381,6 +382,8 @@ struct LowFunSource {
 
 	struct Generated {
 		immutable Sym name;
+		// Present for 'compare', missing for 'main'
+		immutable Opt!LowType typeArg;
 	}
 
 	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind_ = Kind.concreteFun; concreteFun_ = a; }
@@ -692,6 +695,11 @@ struct LowExprKind {
 		immutable Arr!LowExpr args;
 	}
 
+	struct TailRecur {
+		// Note: This omits the ctx param since it doesn't change.
+		immutable Arr!LowExpr args;
+	}
+
 	private:
 	enum Kind {
 		call,
@@ -713,6 +721,7 @@ struct LowExprKind {
 		specialBinary,
 		specialTrinary,
 		specialNAry,
+		tailRecur,
 	}
 	public immutable Kind kind; //TODO:PRIVATE
 	union {
@@ -735,6 +744,7 @@ struct LowExprKind {
 		immutable SpecialBinary specialBinary;
 		immutable SpecialTrinary specialTrinary;
 		immutable SpecialNAry specialNAry;
+		immutable TailRecur tailRecur;
 	}
 
 	public:
@@ -757,6 +767,7 @@ struct LowExprKind {
 	@trusted immutable this(immutable SpecialBinary a) { kind = Kind.specialBinary; specialBinary = a; }
 	@trusted immutable this(immutable SpecialTrinary a) { kind = Kind.specialTrinary; specialTrinary = a; }
 	@trusted immutable this(immutable SpecialNAry a) { kind = Kind.specialNAry; specialNAry = a; }
+	@trusted immutable this(immutable TailRecur a) { kind = Kind.tailRecur; tailRecur = a; }
 }
 
 @trusted T matchSpecialConstant(T)(
@@ -802,6 +813,7 @@ struct LowExprKind {
 	scope T delegate(ref immutable LowExprKind.SpecialBinary) @safe @nogc pure nothrow cbSpecialBinary,
 	scope T delegate(ref immutable LowExprKind.SpecialTrinary) @safe @nogc pure nothrow cbSpecialTrinary,
 	scope T delegate(ref immutable LowExprKind.SpecialNAry) @safe @nogc pure nothrow cbSpecialNAry,
+	scope T delegate(ref immutable LowExprKind.TailRecur) @safe @nogc pure nothrow cbTailRecur,
 ) {
 	final switch (a.kind) {
 		case LowExprKind.Kind.call:
@@ -842,6 +854,8 @@ struct LowExprKind {
 			return cbSpecialTrinary(a.specialTrinary);
 		case LowExprKind.Kind.specialNAry:
 			return cbSpecialNAry(a.specialNAry);
+		case LowExprKind.Kind.tailRecur:
+			return cbTailRecur(a.tailRecur);
 	}
 }
 

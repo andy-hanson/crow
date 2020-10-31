@@ -1615,8 +1615,7 @@ program(
 										expr(
 											void
 											file-range(3, range(979, 1016))
-											call(
-												41
+											tail-recur(
 												[
 													expr(ptr(record(2)), file-range(3, range(977, 978)), param-ref(0))
 													expr(
@@ -3414,8 +3413,7 @@ program(
 										expr(
 											void
 											file-range(13, range(1203, 1232))
-											call(
-												90
+											tail-recur(
 												[
 													expr(ptr(record(0)), file-range(13, range(1203, 1232)), param-ref(0))
 													expr(
@@ -6234,8 +6232,7 @@ program(
 								expr(
 									void
 									file-range(8, range(9557, 9586))
-									call(
-										159
+									tail-recur(
 										[
 											expr(ptr(record(0)), file-range(8, range(9557, 9586)), param-ref(0))
 											expr(ptr(record(66)), file-range(8, range(9555, 9556)), param-ref(1))
@@ -6674,8 +6671,7 @@ program(
 								expr(
 									ptr(char)
 									file-range(10, range(381, 400))
-									call(
-										174
+									tail-recur(
 										[
 											expr(
 												ptr(char)
@@ -7248,8 +7244,7 @@ program(
 																		expr(
 																			void
 																			file-range(19, range(3442, 3499))
-																			call(
-																				188
+																			tail-recur(
 																				[
 																					expr(
 																						nat-64
@@ -7904,8 +7899,7 @@ program(
 												expr(
 													void
 													file-range(15, range(4825, 4868))
-													call(
-														191
+													tail-recur(
 														[
 															expr(nat-64, file-range(15, range(4848, 4857)), param-ref(0))
 															expr(ptr(record(15)), file-range(15, range(4859, 4863)), param-ref(1))
@@ -8102,8 +8096,7 @@ program(
 										expr(
 											void
 											file-range(15, range(10257, 10302))
-											call(
-												192
+											tail-recur(
 												[
 													expr(
 														nat-64
@@ -8427,8 +8420,7 @@ program(
 												expr(
 													union(11)
 													file-range(15, range(7829, 7859))
-													call(
-														198
+													tail-recur(
 														[
 															expr(record(28), file-range(15, range(7824, 7828)), param-ref(0))
 															expr(
@@ -9288,8 +9280,7 @@ program(
 								expr(
 									bool
 									file-range(8, range(5189, 5224))
-									call(
-										204
+									tail-recur(
 										[
 											expr(record(78), file-range(8, range(5187, 5188)), param-ref(0))
 											expr(nat-64, file-range(8, range(5205, 5210)), param-ref(1))
@@ -10041,8 +10032,7 @@ program(
 								expr(
 									void
 									file-range(8, range(6479, 6536))
-									call(
-										217
+									tail-recur(
 										[
 											expr(ptr(record(25)), file-range(8, range(6477, 6478)), param-ref(0))
 											expr(
@@ -10383,8 +10373,7 @@ program(
 								expr(
 									void
 									file-range(3, range(1909, 1929))
-									call(
-										226
+									tail-recur(
 										[
 											expr(ptr(record(29)), file-range(3, range(1907, 1908)), param-ref(0))
 											expr(nat-64, file-range(3, range(1917, 1929)), param-ref(1))]))))
@@ -10494,8 +10483,7 @@ program(
 								expr(
 									void
 									file-range(19, range(3995, 4032))
-									call(
-										232
+									tail-recur(
 										[
 											expr(
 												nat-64

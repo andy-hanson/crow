@@ -377,7 +377,7 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 			import util.sym : symToCStr;
 			import util.writer : finishWriterToCStr, Writer;
 			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-			writeFunName!TempAlloc(w, fun);
+			writeFunName!TempAlloc(w, program, fun);
 			printf("Generating bytecode for function %s\n", finishWriterToCStr(w));
 		}
 	}
@@ -612,6 +612,9 @@ void generateExpr(CodeAlloc, TempAlloc)(
 		},
 		(ref immutable LowExprKind.SpecialNAry it) {
 			generateSpecialNAry(tempAlloc, writer, ctx, source, expr.type, it);
+		},
+		(ref immutable LowExprKind.TailRecur it) {
+			todo!void("tail recurse");
 		});
 }
 

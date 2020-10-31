@@ -130,7 +130,7 @@ void doInterpret(
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			immutable Arr!LineAndColumnGetter(ptrTrustMe(lcg).rawPtr(), 1)));
 	immutable LowFun lowFun = immutable LowFun(
-		immutable LowFunSource(immutable LowFunSource.Generated(shortSymAlphaLiteral("test"))),
+		immutable LowFunSource(immutable LowFunSource.Generated(shortSymAlphaLiteral("test"), none!LowType)),
 		nat64Type,
 		emptyArr!LowParam,
 		immutable LowFunBody(immutable LowFunBody.Extern(False, strLiteral("test"))));

@@ -12,7 +12,8 @@ import util.types : u16;
 
 struct Writer(Alloc) {
 	private:
-	Ptr!Alloc alloc;
+	//TODO:PRIVATE
+	public Ptr!Alloc alloc;
 	ArrBuilder!char res;
 }
 

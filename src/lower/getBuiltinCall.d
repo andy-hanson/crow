@@ -22,81 +22,137 @@ import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteralValue, shortSymOperatorLiteralValue, Sym, symEqLongAlphaLiteral;
 import util.util : todo, verify;
 
-immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
-	ref Alloc alloc,
-	ref immutable FileAndRange range,
-	immutable Sym name,
-	immutable LowType rt,
-	immutable Arr!LowExpr args,
-	immutable Arr!LowType typeArgs,
-	immutable Opt!LowParamIndex ctxParam,
+struct BuiltinKind {
+	@safe @nogc pure nothrow:
+
+	struct As {}
+	struct GetCtx {}
+	struct PtrCast {}
+	struct SizeOf {}
+
+	immutable this(immutable As a) { kind_ = Kind.as; as_ = a; }
+	immutable this(immutable GetCtx a) { kind_ = Kind.getCtx; getCtx_ = a; }
+	@trusted immutable this(immutable LowExprKind.SpecialConstant a) { kind_ = Kind.constant; constant_ = a; }
+	immutable this(immutable LowExprKind.Special0Ary.Kind a) { kind_ = Kind.zeroAry; zeroAry_ = a; }
+	immutable this(immutable LowExprKind.SpecialUnary.Kind a) { kind_ = Kind.unary; unary_ = a; }
+	immutable this(immutable LowExprKind.SpecialBinary.Kind a) { kind_ = Kind.binary; binary_ = a; }
+	immutable this(immutable LowExprKind.SpecialTrinary.Kind a) { kind_ = Kind.trinary; trinary_ = a; }
+	immutable this(immutable LowExprKind.SpecialNAry.Kind a) { kind_ = Kind.nary; nary_ = a; }
+	immutable this(immutable PtrCast a) { kind_ = Kind.ptrCast; ptrCast_ = a; }
+	immutable this(immutable SizeOf a) { kind_ = Kind.sizeOf; sizeOf_ = a; }
+
+	private:
+	enum Kind {
+		as,
+		getCtx,
+		constant,
+		zeroAry,
+		unary,
+		binary,
+		trinary,
+		nary,
+		ptrCast,
+		sizeOf,
+	}
+	immutable Kind kind_;
+	union {
+		immutable As as_;
+		immutable GetCtx getCtx_;
+		immutable LowExprKind.SpecialConstant constant_;
+		immutable LowExprKind.Special0Ary.Kind zeroAry_;
+		immutable LowExprKind.SpecialUnary.Kind unary_;
+		immutable LowExprKind.SpecialBinary.Kind binary_;
+		immutable LowExprKind.SpecialTrinary.Kind trinary_;
+		immutable LowExprKind.SpecialNAry.Kind nary_;
+		immutable SizeOf sizeOf_;
+		immutable PtrCast ptrCast_;
+	}
+}
+
+@trusted T matchBuiltinKind(T)(
+	ref immutable BuiltinKind a,
+	scope T delegate(ref immutable BuiltinKind.As) @safe @nogc pure nothrow cbAs,
+	scope T delegate(ref immutable BuiltinKind.GetCtx) @safe @nogc pure nothrow cbGetCtx,
+	scope T delegate(ref immutable LowExprKind.SpecialConstant) @safe @nogc pure nothrow cbConstant,
+	scope T delegate(immutable LowExprKind.Special0Ary.Kind) @safe @nogc pure nothrow cb0Ary,
+	scope T delegate(immutable LowExprKind.SpecialUnary.Kind) @safe @nogc pure nothrow cbUnary,
+	scope T delegate(immutable LowExprKind.SpecialBinary.Kind) @safe @nogc pure nothrow cbBinary,
+	scope T delegate(immutable LowExprKind.SpecialTrinary.Kind) @safe @nogc pure nothrow cbTrinary,
+	scope T delegate(immutable LowExprKind.SpecialNAry.Kind) @safe @nogc pure nothrow cbNary,
+	scope T delegate(ref immutable BuiltinKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
+	scope T delegate(ref immutable BuiltinKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
 ) {
-	immutable(LowExpr) arg0() {
-		return at(args, 0);
+	final switch (a.kind_) {
+		case BuiltinKind.Kind.as:
+			return cbAs(a.as_);
+		case BuiltinKind.Kind.getCtx:
+			return cbGetCtx(a.getCtx_);
+		case BuiltinKind.Kind.constant:
+			return cbConstant(a.constant_);
+		case BuiltinKind.Kind.zeroAry:
+			return cb0Ary(a.zeroAry_);
+		case BuiltinKind.Kind.unary:
+			return cbUnary(a.unary_);
+		case BuiltinKind.Kind.binary:
+			return cbBinary(a.binary_);
+		case BuiltinKind.Kind.trinary:
+			return cbTrinary(a.trinary_);
+		case BuiltinKind.Kind.nary:
+			return cbNary(a.nary_);
+		case BuiltinKind.Kind.ptrCast:
+			return cbPtrCast(a.ptrCast_);
+		case BuiltinKind.Kind.sizeOf:
+			return cbSizeOf(a.sizeOf_);
 	}
-	immutable(LowExpr) arg1() {
-		return at(args, 1);
+}
+
+immutable(BuiltinKind) getBuiltinKind(
+	immutable Sym name,
+	ref immutable LowType rt,
+	ref immutable LowType p0,
+	ref immutable LowType p1,
+) {
+	immutable(BuiltinKind) constant(immutable LowExprKind.SpecialConstant kind) {
+		return immutable BuiltinKind(kind);
 	}
-	immutable(LowExpr) arg2() {
-		return at(args, 2);
-	}
-	immutable(LowType) typeArg0() {
-		return at(typeArgs, 0);
-	}
-	immutable(LowExprKind) constant(immutable LowExprKind.SpecialConstant kind) {
-		return immutable LowExprKind(kind);
-	}
-	immutable(LowExprKind) constantBool(immutable Bool value) {
-		return immutable LowExprKind(
+	immutable(BuiltinKind) constantBool(immutable Bool value) {
+		return immutable BuiltinKind(
 			immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.BoolConstant(value)));
 	}
-	immutable(LowExprKind) constantIntegral(int value) {
+	immutable(BuiltinKind) constantIntegral(int value) {
 		return constant(immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.Integral(value)));
 	}
-	immutable(LowExprKind) special0Ary(immutable LowExprKind.Special0Ary.Kind kind) {
-		verify(empty(args));
-		return immutable LowExprKind(immutable LowExprKind.Special0Ary(kind));
+	immutable(BuiltinKind) unary(immutable LowExprKind.SpecialUnary.Kind kind) {
+		return immutable BuiltinKind(kind);
 	}
-	immutable(LowExprKind) unary(immutable LowExprKind.SpecialUnary.Kind kind) {
-		verify(size(args) == 1);
-		return immutable LowExprKind(immutable LowExprKind.SpecialUnary(
-			kind,
-			allocate(alloc, arg0())));
+	immutable(BuiltinKind) binary(immutable LowExprKind.SpecialBinary.Kind kind) {
+		return immutable BuiltinKind(kind);
 	}
-	immutable(LowExprKind) binary(immutable LowExprKind.SpecialBinary.Kind kind) {
-		verify(size(args) == 2);
-		return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-			kind,
-			allocate(alloc, arg0()),
-			allocate(alloc, arg1())));
+	immutable(BuiltinKind) trinary(immutable LowExprKind.SpecialTrinary.Kind kind) {
+		return immutable BuiltinKind(kind);
 	}
-	immutable(LowExprKind) trinary(immutable LowExprKind.SpecialTrinary.Kind kind) {
-		verify(size(args) == 3);
-		return immutable LowExprKind(immutable LowExprKind.SpecialTrinary(
-			kind,
-			allocate(alloc, arg0()),
-			allocate(alloc, arg1()),
-			allocate(alloc, arg2())));
+	immutable(BuiltinKind) nAry(immutable LowExprKind.SpecialNAry.Kind kind) {
+		return immutable BuiltinKind(kind);
 	}
-	immutable(LowExprKind) nAry(immutable LowExprKind.SpecialNAry.Kind kind) {
-		return immutable LowExprKind(immutable LowExprKind.SpecialNAry(kind, args));
-	}
+
 	immutable(T) failT(T)() {
 		debug {
+			import util.alloc.stackAlloc : StackAlloc;
 			import util.sym : symToCStr;
 			import util.print : print;
+			StackAlloc!("temp", 1024) alloc;
 			print(symToCStr(alloc, name));
 		}
 		return todo!T("not a builtin fun");
 	}
-	immutable(LowExprKind) fail() {
-		return failT!(immutable LowExprKind);
-	}
-	immutable(LowExprKind.SpecialBinary.Kind) failBinary() {
-		return failT!(immutable LowExprKind.SpecialBinary.Kind);
+	immutable(BuiltinKind) fail() {
+		return failT!(immutable BuiltinKind);
 	}
 	immutable(LowExprKind.SpecialUnary.Kind) failUnary() {
 		return failT!(immutable LowExprKind.SpecialUnary.Kind);
+	}
+	immutable(LowExprKind.SpecialBinary.Kind) failBinary() {
+		return failT!(immutable LowExprKind.SpecialBinary.Kind);
 	}
 
 	switch (name.value) {
@@ -109,7 +165,7 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 		case shortSymOperatorLiteralValue("-"):
 			return binary(isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.subFloat64
-				: isNonFunPtrType(arg0().type) && isNat64(arg1().type)
+				: isNonFunPtrType(p0) && isNat64(p1)
 				? LowExprKind.SpecialBinary.Kind.subPtrNat
 				: failBinary());
 		case shortSymOperatorLiteralValue("*"):
@@ -119,8 +175,7 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 		case shortSymAlphaLiteralValue("and"):
 			return binary(LowExprKind.SpecialBinary.Kind.and);
 		case shortSymAlphaLiteralValue("as"):
-			verify(size(args) == 1);
-			return arg0().kind;
+			return immutable BuiltinKind(immutable BuiltinKind.As());
 		case shortSymAlphaLiteralValue("as-ref"):
 			return unary(LowExprKind.SpecialUnary.Kind.asRef);
 		case shortSymAlphaLiteralValue("bits-and"):
@@ -160,7 +215,7 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 				? LowExprKind.SpecialBinary.Kind.bitwiseOrNat64
 				: failBinary());
 		case shortSymAlphaLiteralValue("call"):
-			return isFunPtrType(arg0().type)
+			return isFunPtrType(p0)
 				? nAry(LowExprKind.SpecialNAry.Kind.callFunPtr)
 				: fail();
 		case shortSymAlphaLiteralValue("deref"):
@@ -168,9 +223,9 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 		case shortSymAlphaLiteralValue("false"):
 			return constantBool(False);
 		case shortSymAlphaLiteralValue("get-ctx"):
-			return immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctxParam)));
+			return immutable BuiltinKind(immutable BuiltinKind.GetCtx());
 		case shortSymAlphaLiteralValue("get-errno"):
-			return special0Ary(LowExprKind.Special0Ary.Kind.getErrno);
+			return immutable BuiltinKind(LowExprKind.Special0Ary.Kind.getErrno);
 		case shortSymAlphaLiteralValue("hard-fail"):
 			return unary(LowExprKind.SpecialUnary.Kind.hardFail);
 		case shortSymAlphaLiteralValue("if"):
@@ -186,8 +241,7 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 		case shortSymAlphaLiteralValue("pass"):
 			return constant(immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.Void()));
 		case shortSymAlphaLiteralValue("ptr-cast"):
-			verify(size(args) == 1 && size(typeArgs) == 2);
-			return ptrCastKind(alloc, arg0());
+			return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
 		case shortSymAlphaLiteralValue("ptr-eq"):
 			return binary(LowExprKind.SpecialBinary.Kind.eqPtr);
 		case shortSymAlphaLiteralValue("ptr-to"):
@@ -195,30 +249,29 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 		case shortSymAlphaLiteralValue("ref-of-val"):
 			return unary(LowExprKind.SpecialUnary.Kind.refOfVal);
 		case shortSymAlphaLiteralValue("set"):
-			return isNonFunPtrType(arg0().type) ? binary(LowExprKind.SpecialBinary.Kind.writeToPtr) : fail();
+			return isNonFunPtrType(p0) ? binary(LowExprKind.SpecialBinary.Kind.writeToPtr) : fail();
 		case shortSymAlphaLiteralValue("size-of"):
-			verify(empty(args) && size(typeArgs) == 1);
-			return immutable LowExprKind(immutable LowExprKind.SizeOf(typeArg0()));
+			return immutable BuiltinKind(immutable BuiltinKind.SizeOf());
 		case shortSymAlphaLiteralValue("to-float"):
-			return unary(isInt64(arg0().type)
+			return unary(isInt64(p0)
 				? LowExprKind.SpecialUnary.Kind.toFloat64FromInt64
-				: isNat64(arg0().type)
+				: isNat64(p0)
 				? LowExprKind.SpecialUnary.Kind.toFloat64FromNat64
 				: failUnary());
 		case shortSymAlphaLiteralValue("to-int"):
-			return unary(isInt16(arg0().type)
+			return unary(isInt16(p0)
 				? LowExprKind.SpecialUnary.Kind.toIntFromInt16
-				: isInt32(arg0().type)
+				: isInt32(p0)
 				? LowExprKind.SpecialUnary.Kind.toIntFromInt32
 				: failUnary());
 		case shortSymAlphaLiteralValue("to-nat"):
-			return unary(isNat8(arg0().type)
+			return unary(isNat8(p0)
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat8
-				: isNat16(arg0().type)
+				: isNat16(p0)
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat16
-				: isNat32(arg0().type)
+				: isNat32(p0)
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat32
-				: isNonFunPtrType(arg0().type)
+				: isNonFunPtrType(p0)
 				? LowExprKind.SpecialUnary.Kind.toNatFromPtr
 				: failUnary());
 		case shortSymAlphaLiteralValue("true"):
@@ -290,26 +343,26 @@ immutable(LowExprKind) getBuiltinCallExpr(Alloc)(
 					: fail();
 			else if (symEqLongAlphaLiteral(name, "compare-exchange-strong"))
 				return trinary(LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool);
-			else if (symEqLongAlphaLiteral(name, "is-reference-type"))
-				return todo!(immutable LowExprKind)("is-reference-type");
+			else if (symEqLongAlphaLiteral(name, "is-reference-type?"))
+				return todo!(immutable BuiltinKind)("is-reference-type?");
 			else if (symEqLongAlphaLiteral(name, "truncate-to-int"))
 				return unary(LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64);
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int"))
-				return isNat64(arg0().type) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64) : fail();
+				return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int8"))
-				return isInt64(arg0().type) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8) : fail();
+				return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt8) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int16"))
-				return isInt64(arg0().type) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16) : fail();
+				return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt16) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int32"))
-				return isInt64(arg0().type) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32) : fail();
+				return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToInt32) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat"))
-				return isInt64(arg0().type) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64) : fail();
+				return isInt64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeInt64ToNat64) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat8"))
-				return isNat64(arg0().type) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8) : fail();
+				return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat8) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat16"))
-				return isNat64(arg0().type) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16): fail();
+				return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat16): fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-nat32"))
-				return isNat64(arg0().type) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32) : fail();
+				return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToNat32) : fail();
 			else
 				return fail();
 	}

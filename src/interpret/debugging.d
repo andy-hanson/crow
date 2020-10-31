@@ -14,19 +14,21 @@ import concreteModel :
 	matchConcreteFunSource,
 	matchConcreteLocalSource,
 	matchConcreteStructSource;
-import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, matchLowFunSource;
-import model : ClosureField, FunInst, name, RecordField;
-import util.collection.arr : empty;
+import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, matchLowFunSource, matchLowType;
+import model : ClosureField, decl, FunInst, name, RecordField;
+import util.collection.arr : empty, range;
 import util.collection.fullIndexDict : fullIndexDictGet;
+import util.opt : force, has;
 import util.ptr : Ptr;
 import util.writer : finishWriterToCStr, Writer, writeChar, writeNat, writeStatic;
 import util.sym : writeSym;
+import util.util : todo;
 
 void writeFunName(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram lowProgram, immutable LowFunIndex fun) {
-	writeFunName(writer, fullIndexDictGet(lowProgram.allFuns, fun));
+	writeFunName(writer, lowProgram, fullIndexDictGet(lowProgram.allFuns, fun));
 }
 
-void writeFunName(Alloc)(ref Writer!Alloc writer, ref immutable LowFun a) {
+void writeFunName(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram lowProgram, ref immutable LowFun a) {
 	matchLowFunSource!void(
 		a.source,
 		(immutable Ptr!ConcreteFun it) {
@@ -34,6 +36,11 @@ void writeFunName(Alloc)(ref Writer!Alloc writer, ref immutable LowFun a) {
 		},
 		(ref immutable LowFunSource.Generated it) {
 			writeSym(writer, it.name);
+			if (has(it.typeArg)) {
+				writeChar(writer, '<');
+				writeType(writer, lowProgram, force(it.typeArg));
+				writeChar(writer, '>');
+			}
 			writeStatic(writer, " (generated)");
 		});
 }
@@ -55,7 +62,7 @@ void writeRecordName(Alloc)(ref Writer!Alloc writer, ref immutable LowRecord a) 
 }
 
 void writeType(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram program, ref immutable LowType a) {
-	matchLowType(
+	matchLowType!void(
 		a,
 		(immutable LowType.ExternPtr) {
 			todo!void("!");

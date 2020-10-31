@@ -112,8 +112,7 @@ immutable(Str) writeToC(Alloc)(
 	});
 
 	fullIndexDictEach(program.allFuns, (immutable LowFunIndex funIndex, ref immutable LowFun fun) {
-		immutable FunBodyCtx funBodyCtx = immutable FunBodyCtx(ptrTrustMe(ctx), funIndex);
-		writeFunDefinition(writer, funBodyCtx, funIndex, fun);
+		writeFunDefinition(writer, ctx, funIndex, fun);
 	});
 
 	return finishWriter(writer);
@@ -243,6 +242,7 @@ struct Ctx {
 
 struct FunBodyCtx {
 	immutable Ptr!Ctx ctx;
+	immutable Bool hasTailRecur;
 	immutable LowFunIndex curFun;
 }
 
@@ -633,7 +633,7 @@ void writeFunDeclaration(Alloc)(
 
 void writeFunDefinition(Alloc)(
 	ref Writer!Alloc writer,
-	ref immutable FunBodyCtx ctx,
+	ref immutable Ctx ctx,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 ) {
@@ -647,74 +647,22 @@ void writeFunDefinition(Alloc)(
 		});
 }
 
-immutable(Bool) hasTailCalls(immutable LowFunIndex curFun, ref immutable LowExpr a) {
-	return matchLowExprKind!(immutable Bool)(
-		a.kind,
-		(ref immutable LowExprKind.Call it) =>
-			immutable Bool(it.called == curFun),
-		(ref immutable LowExprKind.CreateRecord) =>
-			False,
-		(ref immutable LowExprKind.ConvertToUnion) =>
-			False,
-		(ref immutable LowExprKind.FunPtr) =>
-			False,
-		(ref immutable LowExprKind.Let it) =>
-			hasTailCalls(curFun, it.then),
-		(ref immutable LowExprKind.LocalRef) =>
-			False,
-		(ref immutable LowExprKind.Match it) =>
-			exists(it.cases, (ref immutable LowExprKind.Match.Case case_) =>
-				hasTailCalls(curFun, case_.then)),
-		(ref immutable LowExprKind.ParamRef) =>
-			False,
-		(ref immutable LowExprKind.PtrCast) =>
-			False,
-		(ref immutable LowExprKind.RecordFieldAccess) =>
-			False,
-		(ref immutable LowExprKind.RecordFieldSet) =>
-			False,
-		(ref immutable LowExprKind.Seq it) =>
-			hasTailCalls(curFun, it.then),
-		(ref immutable LowExprKind.SizeOf) =>
-			False,
-		(ref immutable LowExprKind.SpecialConstant) =>
-			False,
-		(ref immutable LowExprKind.Special0Ary) =>
-			False,
-		(ref immutable LowExprKind.SpecialUnary) =>
-			False,
-		(ref immutable LowExprKind.SpecialBinary it) {
-			switch (it.kind) {
-				case LowExprKind.SpecialBinary.Kind.and:
-				case LowExprKind.SpecialBinary.Kind.or:
-					return hasTailCalls(curFun, it.right);
-				default:
-					return False;
-			}
-		},
-		(ref immutable LowExprKind.SpecialTrinary it) =>
-			immutable Bool(
-				it.kind == LowExprKind.SpecialTrinary.Kind.if_ &&
-				(hasTailCalls(curFun, it.p1) || hasTailCalls(curFun, it.p2))),
-		(ref immutable LowExprKind.SpecialNAry) =>
-			False);
-}
-
 void writeFunWithExprBody(Alloc)(
 	ref Writer!Alloc writer,
-	ref immutable FunBodyCtx ctx,
+	ref immutable Ctx ctx,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
 	ref immutable LowFunExprBody body_,
 ) {
-	writeFunReturnTypeNameAndParams(writer, ctx.ctx, funIndex, fun);
+	writeFunReturnTypeNameAndParams(writer, ctx, funIndex, fun);
 	writeStatic(writer, " {\n\t");
-	declareLocals(writer, ctx.ctx, body_.allLocals);
-	if (hasTailCalls(funIndex, body_.expr)) {
-		declareTailCallLocals(writer, ctx.ctx, fun.params);
+	declareLocals(writer, ctx, body_.allLocals);
+	if (body_.hasTailRecur) {
+		declareTailCallLocals(writer, ctx, fun.params);
 		writeStatic(writer, "top:\n\t");
 	}
-	writeExpr(writer, 1, ctx, WriteKind.returnStatement, body_.expr);
+	immutable FunBodyCtx bodyCtx = immutable FunBodyCtx(ptrTrustMe(ctx), body_.hasTailRecur, funIndex);
+	writeExpr(writer, 1, bodyCtx, WriteKind.returnStatement, body_.expr);
 	writeStatic(writer, "\n}\n");
 }
 
@@ -845,6 +793,10 @@ void writeExpr(Alloc)(
 		},
 		(ref immutable LowExprKind.SpecialNAry it) {
 			return_(() { writeSpecialNAry(writer, indent, ctx, it); });
+		},
+		(ref immutable LowExprKind.TailRecur it) {
+			verify(writeKind == WriteKind.returnStatement);
+			writeTailRecur(writer, indent, ctx, it);
 		});
 }
 
@@ -868,31 +820,40 @@ void writeCallExpr(Alloc)(
 	ref immutable LowExprKind.Call a,
 ) {
 	if (writeKind == WriteKind.returnStatement && a.called == ctx.curFun) {
-		writeTailCall(writer, indent, ctx, a);
-	} else {
-		writeReturn(writer, writeKind, () {
-			immutable LowFun called = fullIndexDictGet(ctx.ctx.program.allFuns, a.called);
-			immutable Bool isCVoid = isExtern(called.body_) && isVoid(called.returnType);
-			if (isCVoid)
-				//TODO: this is unnecessary if writeKind is not 'expr'
-				writeChar(writer, '(');
-			writeLowFunMangledName(writer, ctx.ctx, a.called, called);
-			if (!isGlobal(called.body_)) {
-				writeChar(writer, '(');
-				writeArgs(writer, indent, ctx, a.args);
-				writeChar(writer, ')');
-			}
-			if (isCVoid)
-				writeStatic(writer, ", 0)");
-		});
+		debug {
+			import core.stdc.stdio : printf;
+			import interpret.debugging : writeFunName;
+			import util.writer : finishWriterToCStr;
+			Writer!Alloc w2 = Writer!Alloc(writer.alloc);
+			writeFunName(w2, ctx.ctx.program, a.called);
+			printf(
+				"writeCallExpr: Should be a TailRecur, not a call (for function %s)\n",
+				finishWriterToCStr(w2));
+		}
 	}
+	verify(!(writeKind == WriteKind.returnStatement && a.called == ctx.curFun)); // This should be a TailRecur
+	writeReturn(writer, writeKind, () {
+		immutable LowFun called = fullIndexDictGet(ctx.ctx.program.allFuns, a.called);
+		immutable Bool isCVoid = isExtern(called.body_) && isVoid(called.returnType);
+		if (isCVoid)
+			//TODO: this is unnecessary if writeKind is not 'expr'
+			writeChar(writer, '(');
+		writeLowFunMangledName(writer, ctx.ctx, a.called, called);
+		if (!isGlobal(called.body_)) {
+			writeChar(writer, '(');
+			writeArgs(writer, indent, ctx, a.args);
+			writeChar(writer, ')');
+		}
+		if (isCVoid)
+			writeStatic(writer, ", 0)");
+	});
 }
 
-void writeTailCall(Alloc)(
+void writeTailRecur(Alloc)(
 	ref Writer!Alloc writer,
 	immutable size_t indent,
 	ref immutable FunBodyCtx ctx,
-	ref immutable LowExprKind.Call a,
+	ref immutable LowExprKind.TailRecur a,
 ) {
 	immutable Arr!LowParam params = fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params;
 	// For each arg: Make a 'new' version. Then assign them.
@@ -1428,9 +1389,9 @@ void writeLogicalOperator(Alloc)(
 	ref immutable LowExpr left,
 	ref immutable LowExpr right,
 ) {
-	if (writeKind == WriteKind.returnStatement && hasTailCalls(ctx.curFun, right)) {
+	if (writeKind == WriteKind.returnStatement && ctx.hasTailRecur) {
 		/*
-		Ensure a tail call of RHS.
+		Ensure tail recursion is possible for RHS.
 		`a && b` ==> `if (a) { return b; } else { return 0; }`
 		`a || b` ==> `if (a) { return 1; } else { return b; }`
 		*/

@@ -86,7 +86,7 @@ immutable(ConcreteFunBody) concretizeExpr(Alloc)(
 	immutable Ptr!ConcreteFun cf,
 	ref immutable Expr e,
 ) {
-	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), inputs, cf);
+	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), inputs, cf, False);
 	immutable ConcreteExpr res = concretizeExpr(alloc, exprCtx, e);
 	return immutable ConcreteFunBody(
 		immutable ConcreteFunExprBody(
@@ -170,8 +170,7 @@ immutable(ConcreteExpr) concretizeCall(Alloc)(
 	ref immutable Expr.Call e,
 ) {
 	immutable Ptr!ConcreteFun concreteCalled = getConcreteFunFromCalled(alloc, ctx, e.called);
-	immutable Arr!ConcreteExpr args = map(alloc, e.args, (ref immutable Expr arg) =>
-		concretizeExpr(alloc, ctx, arg));
+	immutable Arr!ConcreteExpr args = getArgs(alloc, ctx, e.args);
 	return immutable ConcreteExpr(concreteCalled.returnType, range, immutable ConcreteExpr.Call(concreteCalled, args));
 }
 
@@ -521,7 +520,11 @@ immutable(ConcreteExpr) concretizeRecordFieldSet(Alloc)(
 		immutable ConcreteExpr.RecordFieldSet(target, field, value));
 }
 
-immutable(ConcreteExpr) concretizeExpr(Alloc)(ref Alloc alloc, ref ConcretizeExprCtx ctx, ref immutable Expr e) {
+immutable(ConcreteExpr) concretizeExpr(Alloc)(
+	ref Alloc alloc,
+	ref ConcretizeExprCtx ctx,
+	ref immutable Expr e,
+) {
 	immutable FileAndRange range = range(e);
 	return matchExpr(
 		e,

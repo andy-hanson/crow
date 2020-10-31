@@ -272,6 +272,12 @@ immutable(Sexpr) tataOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExpr
 				"n-ary",
 				tataStr(strLiteral(strOfSpecialNAryKind(it.kind))),
 				tataArr(alloc, it.args, (ref immutable LowExpr arg) =>
+					tataOfLowExpr(alloc, arg))),
+		(ref immutable LowExprKind.TailRecur it) =>
+			tataRecord(
+				alloc,
+				"tail-recur",
+				tataArr(alloc, it.args, (ref immutable LowExpr arg) =>
 					tataOfLowExpr(alloc, arg))));
 }
 
