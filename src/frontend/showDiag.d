@@ -183,7 +183,7 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 			writeStatic(writer, "indented too far");
 		},
 		(ref immutable ParseDiag.IndentWrongCharacter d) {
-			writeStatic(writer, "expected indentation by");
+			writeStatic(writer, "expected indentation by ");
 			writeStatic(writer, d.expectedTabs ? "tabs" : "spaces");
 			writeStatic(writer, " (based on first indented line), but here there is a ");
 			writeStatic(writer, d.expectedTabs ? "space" : "tab");

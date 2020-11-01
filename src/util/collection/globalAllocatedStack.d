@@ -3,9 +3,10 @@ module util.collection.globalAllocatedStack;
 @safe @nogc nothrow: // not pure (accesses global data)
 
 import util.bools : Bool;
-import util.collection.arr : Arr, range;
+import util.collection.arr : Arr, at, range, size;
+import util.collection.arrUtil : copyArr;
 import util.ptr : PtrRange;
-import util.types : decr, Nat8, Nat32, Nat64, u8, zero;
+import util.types : decr, Nat8, Nat32, Nat64, safeSizeTToU32, u8, zero;
 import util.util : verify;
 
 struct GlobalAllocatedStack(T, size_t capacity) {
@@ -36,12 +37,28 @@ immutable(Nat32) stackSize(T, size_t capacity)(ref const GlobalAllocatedStack!(T
 	return immutable Nat32(a.size);
 }
 
+void reduceStackSize(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable uint newSize) {
+	verify(newSize <= a.size);
+	a.size = newSize;
+}
+
 void clearStack(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
 	a.size = 0;
 }
 
 @trusted immutable(Arr!T) asTempArr(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
 	return immutable Arr!T(cast(immutable) a.values.ptr, a.size);
+}
+
+immutable(Arr!T) toArr(Alloc, T, size_t capacity)(ref Alloc alloc, ref const GlobalAllocatedStack!(T, capacity) a) {
+	return copyArr(alloc, asTempArr(a));
+}
+
+void setToArr(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Arr!T arr) {
+	verify(size(arr) < capacity);
+	foreach (immutable size_t i; 0..size(arr))
+		a.values[i] = at(arr, i);
+	a.size = safeSizeTToU32(size(arr));
 }
 
 immutable(Bool) isEmpty(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {

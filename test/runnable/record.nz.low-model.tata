@@ -3836,13 +3836,13 @@ program(
 				[]
 				expr(
 					void
-					file-range(5, range(1695, 1717))
+					file-range(5, range(1692, 1714))
 					call(
 						97
 						[
-							expr(ptr(record(0)), file-range(5, range(1695, 1717)), param-ref(0))
-							expr(bool, file-range(5, range(1685, 1694)), param-ref(1))
-							expr(record(7), file-range(5, range(1702, 1717)), constant("assert failed"))]))))
+							expr(ptr(record(0)), file-range(5, range(1692, 1714)), param-ref(0))
+							expr(bool, file-range(5, range(1682, 1691)), param-ref(1))
+							expr(record(7), file-range(5, range(1699, 1714)), constant("assert failed"))]))))
 		97: fun(
 			assert
 			void
@@ -3852,19 +3852,19 @@ program(
 				[]
 				expr(
 					void
-					file-range(5, range(1826, 1847))
+					file-range(5, range(1816, 1837))
 					trinary(
 						"if"
-						expr(bool, file-range(5, range(1816, 1825)), param-ref(1))
-						expr(void, file-range(5, range(1829, 1833)), constant(void))
+						expr(bool, file-range(5, range(1806, 1815)), param-ref(1))
+						expr(void, file-range(5, range(1819, 1823)), constant(void))
 						expr(
 							void
-							file-range(5, range(1842, 1847))
+							file-range(5, range(1832, 1837))
 							call(
 								98
 								[
-									expr(ptr(record(0)), file-range(5, range(1842, 1847)), param-ref(0))
-									expr(record(7), file-range(5, range(1835, 1842)), param-ref(2))]))))))
+									expr(ptr(record(0)), file-range(5, range(1832, 1837)), param-ref(0))
+									expr(record(7), file-range(5, range(1825, 1832)), param-ref(2))]))))))
 		98: fun(
 			fail
 			void
@@ -3874,15 +3874,15 @@ program(
 				[]
 				expr(
 					void
-					file-range(5, range(1637, 1654))
+					file-range(5, range(1634, 1651))
 					call(
 						99
 						[
-							expr(ptr(record(0)), file-range(5, range(1637, 1654)), param-ref(0))
+							expr(ptr(record(0)), file-range(5, range(1634, 1651)), param-ref(0))
 							expr(
 								record(6)
-								file-range(5, range(1644, 1654))
-								record([expr(record(7), file-range(5, range(1648, 1654)), param-ref(1))]))]))))
+								file-range(5, range(1641, 1651))
+								record([expr(record(7), file-range(5, range(1645, 1651)), param-ref(1))]))]))))
 		99: fun(
 			throw
 			void
@@ -4425,7 +4425,7 @@ program(
 					local(thrown-exception, record(6))]
 				expr(
 					void
-					file-range(5, range(843, 1616))
+					file-range(5, range(843, 1613))
 					let(
 						old-thrown-exception
 						expr(
@@ -4434,7 +4434,7 @@ program(
 							get-field(expr(ptr(record(33)), file-range(5, range(866, 868)), param-ref(1)), true, 1))
 						expr(
 							void
-							file-range(5, range(887, 1616))
+							file-range(5, range(887, 1613))
 							let(
 								old-jmp-buf
 								expr(
@@ -4443,7 +4443,7 @@ program(
 									get-field(expr(ptr(record(33)), file-range(5, range(901, 903)), param-ref(1)), true, 0))
 								expr(
 									void
-									file-range(5, range(917, 1616))
+									file-range(5, range(917, 1613))
 									let(
 										store
 										expr(
@@ -4456,7 +4456,7 @@ program(
 													expr(record(38), file-range(5, range(954, 958)), call(120, []))]))
 										expr(
 											void
-											file-range(5, range(960, 1616))
+											file-range(5, range(960, 1613))
 											seq(
 												expr(
 													void
@@ -4476,7 +4476,7 @@ program(
 																	local-ref(store))))))
 												expr(
 													void
-													file-range(5, range(992, 1616))
+													file-range(5, range(992, 1613))
 													let(
 														setjmp-result
 														expr(
@@ -4497,7 +4497,7 @@ program(
 																			0))]))
 														expr(
 															void
-															file-range(5, range(1031, 1616))
+															file-range(5, range(1031, 1613))
 															trinary(
 																"if"
 																expr(
@@ -4585,7 +4585,7 @@ program(
 																					local-ref(res))))))
 																expr(
 																	void
-																	file-range(5, range(1300, 1616))
+																	file-range(5, range(1300, 1613))
 																	seq(
 																		expr(
 																			void
@@ -4631,7 +4631,7 @@ program(
 																													0))]))]))]))
 																		expr(
 																			void
-																			file-range(5, range(1386, 1616))
+																			file-range(5, range(1386, 1613))
 																			let(
 																				thrown-exception
 																				expr(
@@ -4646,7 +4646,7 @@ program(
 																						1))
 																				expr(
 																					void
-																					file-range(5, range(1502, 1616))
+																					file-range(5, range(1502, 1613))
 																					seq(
 																						expr(
 																							void
@@ -5813,13 +5813,13 @@ program(
 				[]
 				expr(
 					void
-					file-range(5, range(1888, 1910))
+					file-range(5, range(1878, 1900))
 					call(
 						144
 						[
-							expr(ptr(record(0)), file-range(5, range(1888, 1910)), param-ref(0))
-							expr(bool, file-range(5, range(1878, 1887)), param-ref(1))
-							expr(record(7), file-range(5, range(1895, 1910)), constant("forbid failed"))]))))
+							expr(ptr(record(0)), file-range(5, range(1878, 1900)), param-ref(0))
+							expr(bool, file-range(5, range(1868, 1877)), param-ref(1))
+							expr(record(7), file-range(5, range(1885, 1900)), constant("forbid failed"))]))))
 		144: fun(
 			forbid
 			void
@@ -5829,19 +5829,19 @@ program(
 				[]
 				expr(
 					void
-					file-range(5, range(1964, 1985))
+					file-range(5, range(1954, 1975))
 					trinary(
 						"if"
-						expr(bool, file-range(5, range(1954, 1963)), param-ref(1))
+						expr(bool, file-range(5, range(1944, 1953)), param-ref(1))
 						expr(
 							void
-							file-range(5, range(1974, 1979))
+							file-range(5, range(1964, 1969))
 							call(
 								98
 								[
-									expr(ptr(record(0)), file-range(5, range(1974, 1979)), param-ref(0))
-									expr(record(7), file-range(5, range(1967, 1974)), param-ref(2))]))
-						expr(void, file-range(5, range(1981, 1985)), constant(void))))))
+									expr(ptr(record(0)), file-range(5, range(1964, 1969)), param-ref(0))
+									expr(record(7), file-range(5, range(1957, 1964)), param-ref(2))]))
+						expr(void, file-range(5, range(1971, 1975)), constant(void))))))
 		145: fun(
 			empty?
 			bool

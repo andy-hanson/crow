@@ -52,16 +52,13 @@ catch-with-exception-ctx ?t(ec exception-ctx, try fun-mut0 ?t, catcher fun-mut1 
 			ec.thrown-exception := old-thrown-exception
 			catcher call thrown-exception
 
-
-
-
 fail ?t(reason str)
 	throw: new reason
 
 assert void(condition bool)
 	condition assert "assert failed"
 
-assert-unreachable ?t()
+unreachable ?t()
 	"should be unreachable" fail
 
 assert void(condition bool, message str)

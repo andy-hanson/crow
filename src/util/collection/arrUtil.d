@@ -341,6 +341,10 @@ void eachWithIndex(T)(
 		cb(i, at(a, i));
 }
 
+immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
+	return map(alloc, a, (ref immutable T it) => it);
+}
+
 @trusted immutable(Arr!Out) map(Out, In, Alloc)(
 	ref Alloc alloc,
 	immutable Arr!In a,

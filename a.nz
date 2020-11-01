@@ -2,15 +2,24 @@ import
 	io
 	posix
 
-sample-recursion void(n nat) summon
+test-it int32() summon unsafe
+	tag = new<jmp-buf-tag> zero, zero, zero
+	jmp-buf = as<jmp-buf>: tag ptr-to
+	a = jmp-buf setjmp
 	when
-		n zero?
-			pass
+		a == zero
+			jmp-buf longjmp one
+			todo
 		else
-			print-sync: n.to-str
-			sample-recursion: n decr
+			a
 
 main fut exit-code(args arr str) summon trusted
-	sample-recursion: ten
-	print-sync: "Hello, interpreted world!"
+	print-sync: test-it to-str
+	c = catch: {fail<void>: "message"}
+	match c
+		ok
+			unreachable
+		err e
+			ex = as<exception>: e.value
+			print-sync: "caught it: " + ex.message
 	0 resolved
