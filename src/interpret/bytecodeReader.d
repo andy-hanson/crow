@@ -6,6 +6,7 @@ import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeOffset,
+	ByteCodeOffsetUnsigned,
 	DebugOperation,
 	ExternOp,
 	FnOp,
@@ -16,6 +17,7 @@ import util.collection.arr : Arr, at;
 import util.collection.byteReader :
 	ByteReader,
 	getPtr,
+	readInt16,
 	readU8,
 	readU8Array,
 	readU16ArrayDoNotSkipBytes,
@@ -55,6 +57,9 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 		case OpCode.assertStackSize:
 			return immutable Operation(immutable Operation.Debug(
 				immutable DebugOperation(immutable DebugOperation.AssertStackSize(readU16(reader.reader)))));
+		case OpCode.assertUnreachable:
+			return immutable Operation(immutable Operation.Debug(
+				immutable DebugOperation(immutable DebugOperation.AssertUnreachable())));
 		case OpCode.call:
 			return immutable Operation(immutable Operation.Call(
 				immutable ByteCodeIndex(readU32(reader.reader)),
@@ -73,7 +78,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 		case OpCode.fn:
 			return immutable Operation(immutable Operation.Fn(cast(immutable FnOp) readU8(reader.reader).raw()));
 		case OpCode.jump:
-			return immutable Operation(immutable Operation.Jump(immutable ByteCodeOffset(readU16(reader.reader))));
+			return immutable Operation(immutable Operation.Jump(immutable ByteCodeOffset(readInt16(reader.reader))));
 		case OpCode.pack:
 			return immutable Operation(
 				immutable Operation.Pack(readU8Array(reader.reader, readU8(reader.reader).raw())));
@@ -92,7 +97,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 		case OpCode.switch_:
 			immutable Nat8 size = readU8(reader.reader);
 			immutable Arr!Nat16 offsets = readU16ArrayDoNotSkipBytes(reader.reader, size.raw());
-			return immutable Operation(immutable Operation.Switch(cast(immutable Arr!ByteCodeOffset) offsets));
+			return immutable Operation(immutable Operation.Switch(cast(immutable Arr!ByteCodeOffsetUnsigned) offsets));
 		case OpCode.write:
 			return immutable Operation(immutable Operation.Write(readU8(reader.reader), readU8(reader.reader)));
 	}
@@ -102,11 +107,15 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 	skipBytes(reader.reader, jump.offset.raw());
 }
 
-@trusted void readerSwitch(ref ByteCodeReader reader, immutable Nat64 value, immutable Arr!ByteCodeOffset offsets) {
-	immutable ByteCodeOffset offset = at(offsets, value.raw());
+@trusted void readerSwitch(
+	ref ByteCodeReader reader,
+	immutable Nat64 value,
+	immutable Arr!ByteCodeOffsetUnsigned offsets,
+) {
+	immutable ByteCodeOffsetUnsigned offset = at(offsets, value.raw());
 	// Jump is relative to after value.
-	immutable Nat16 fullOffset = (incr(value) * immutable Nat64(ByteCodeOffset.sizeof)).to16() + offset.offset;
-	readerJump(reader, immutable ByteCodeOffset(fullOffset));
+	immutable Nat16 fullOffset = (incr(value) * immutable Nat64(ByteCodeOffsetUnsigned.sizeof)).to16() + offset.offset;
+	readerJump(reader, immutable ByteCodeOffset(fullOffset.toInt16()));
 }
 
 private:

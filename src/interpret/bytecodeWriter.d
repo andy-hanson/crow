@@ -7,6 +7,7 @@ import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeOffset,
+	ByteCodeOffsetUnsigned,
 	ByteCodeSource,
 	ExternOp,
 	FileToFuns,
@@ -19,10 +20,12 @@ import util.collection.byteWriter :
 	finishByteWriter,
 	newByteWriter,
 	nextByteIndex,
+	bytePushInt16 = pushInt16,
 	bytePushU8 = pushU8,
 	bytePushU16 = pushU16,
 	bytePushU32 = pushU32,
 	bytePushU64 = pushU64,
+	writeInt16,
 	writeU16,
 	writeU32,
 	writeU64;
@@ -34,7 +37,7 @@ import util.collection.mutArr : moveToArr, MutArr, mutArrRange, mutArrSizeNat, p
 import util.collection.str : Str;
 import util.ptr : Ptr;
 import util.util : divRoundUp, repeat, unreachable, verify;
-import util.types : catU4U4, decr, incr, Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, maxU32, zero;
+import util.types : catU4U4, decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, maxU32, zero;
 
 struct ByteCodeWriter(Alloc) {
 	private:
@@ -102,10 +105,18 @@ immutable(ByteCodeIndex) nextByteCodeIndex(Alloc)(ref const ByteCodeWriter!Alloc
 	return immutable ByteCodeIndex((immutable Nat64(nextByteIndex(writer.byteWriter))).to32());
 }
 
-private void fillDelayedU16(Alloc)(
+private void fillDelayedInt16(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	immutable ByteCodeIndex index,
 	immutable ByteCodeOffset offset,
+) {
+	writeInt16(writer.byteWriter, index.index, offset.offset);
+}
+
+private void fillDelayedU16(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	immutable ByteCodeIndex index,
+	immutable ByteCodeOffsetUnsigned offset,
 ) {
 	writeU16(writer.byteWriter, index.index, offset.offset);
 }
@@ -121,6 +132,10 @@ private void fillDelayedU32(Alloc)(
 void writeAssertStackSize(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 	pushOpcode(writer, source, OpCode.assertStackSize);
 	pushU16(writer, source, writer.nextStackEntry);
+}
+
+void writeAssertUnreachable(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+	pushOpcode(writer, source, OpCode.assertUnreachable);
 }
 
 immutable(ByteCodeIndex) writeCallDelayed(Alloc)(
@@ -390,18 +405,30 @@ void writeRemove(Alloc)(
 	}
 }
 
+void writeJump(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	ref immutable ByteCodeSource source,
+	immutable ByteCodeIndex target,
+) {
+	pushOpcode(writer, source, OpCode.jump);
+	// We take the jump after having read the jump value
+	pushInt16(writer, source, subtractByteCodeIndex(
+		target,
+		immutable ByteCodeIndex(nextByteCodeIndex(writer).index + immutable Nat32(Int16.sizeof))).offset);
+}
+
 immutable(ByteCodeIndex) writeJumpDelayed(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 	pushOpcode(writer, source, OpCode.jump);
 	immutable ByteCodeIndex jumpOffsetIndex = nextByteCodeIndex(writer);
-	pushU16(writer, source, immutable Nat16(0));
+	pushInt16(writer, source, immutable Int16(0));
 	return jumpOffsetIndex;
 }
 
 void fillInJumpDelayed(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ByteCodeIndex jumpIndex) {
-	writeU16(writer.byteWriter, jumpIndex.index, getByteCodeOffsetForJump(writer, jumpIndex).offset);
+	writeInt16(writer.byteWriter, jumpIndex.index, getByteCodeOffsetForJumpToCurrent(writer, jumpIndex).offset);
 }
 
-private immutable(ByteCodeOffset) getByteCodeOffsetForJump(Alloc)(
+private immutable(ByteCodeOffset) getByteCodeOffsetForJumpToCurrent(Alloc)(
 	ref const ByteCodeWriter!Alloc writer,
 	immutable ByteCodeIndex jumpIndex,
 ) {
@@ -454,7 +481,7 @@ void fillDelayedSwitchEntry(Alloc)(
 	fillDelayedU16(
 		writer,
 		case_,
-		subtractByteCodeIndex(nextByteCodeIndex(writer), caseEnd));
+		subtractByteCodeIndex(nextByteCodeIndex(writer), caseEnd).unsigned());
 }
 
 void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable ExternOp op) {
@@ -546,6 +573,11 @@ void writeFnCommon(Alloc)(
 
 void pushOpcode(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable OpCode code) {
 	pushU8(writer, source, immutable Nat8(code));
+}
+
+void pushInt16(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Int16 value) {
+	bytePushInt16(writer.byteWriter, value);
+	repeat(Int16.sizeof, () { pushSource(writer, source); });
 }
 
 void pushU8(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat8 value) {

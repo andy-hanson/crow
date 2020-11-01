@@ -1346,7 +1346,6 @@ uint8_t resolve_or_reject(struct ctx* ctx, struct fut_0* f, struct result_0 resu
 uint8_t resolve_or_reject_recur(struct ctx* ctx, struct opt_0 node, struct result_0 value) {
 	struct some_0 s0;
 	struct opt_0 _matched1;
-	struct ctx* _tailCallctx;
 	struct opt_0 _tailCallnode;
 	struct result_0 _tailCallvalue;
 	top:
@@ -1357,10 +1356,8 @@ uint8_t resolve_or_reject_recur(struct ctx* ctx, struct opt_0 node, struct resul
 		case 1:
 			s0 = _matched1.as1;
 			drop_0(call_1(ctx, s0.value->cb, value));
-			_tailCallctx = ctx;
 			_tailCallnode = s0.value->next_node;
 			_tailCallvalue = value;
-			ctx = _tailCallctx;
 			node = _tailCallnode;
 			value = _tailCallvalue;
 			goto top;
@@ -1666,7 +1663,6 @@ struct arr_0* uninitialized_data(struct ctx* ctx, uint64_t size) {
 	return (struct arr_0*) bptr0;
 }
 uint8_t make_mut_arr_worker(struct ctx* ctx, struct mut_arr_1* m, uint64_t i, struct fun_mut1_5 f) {
-	struct ctx* _tailCallctx;
 	struct mut_arr_1* _tailCallm;
 	uint64_t _tailCalli;
 	struct fun_mut1_5 _tailCallf;
@@ -1675,11 +1671,9 @@ uint8_t make_mut_arr_worker(struct ctx* ctx, struct mut_arr_1* m, uint64_t i, st
 		return 0;
 	} else {
 		set_at(ctx, m, i, call_8(ctx, f, i));
-		_tailCallctx = ctx;
 		_tailCallm = m;
 		_tailCalli = incr_0(ctx, i);
 		_tailCallf = f;
-		ctx = _tailCallctx;
 		m = _tailCallm;
 		i = _tailCalli;
 		f = _tailCallf;

@@ -59,6 +59,7 @@ import lowModel :
 	LowFunBody,
 	LowFunExprBody,
 	LowFunIndex,
+	LowFunParamsKind,
 	LowFunPtrType,
 	LowFunSource,
 	LowLocal,
@@ -547,7 +548,12 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 				immutable LowParamIndex((has(ctxParamIndex) ? 1 : 0) + (has(closureParamIndex) ? 1 : 0)),
 				thisFunIndex,
 				body_(cf));
-			return immutable LowFun(immutable LowFunSource(cf), returnType, params, body_);
+			return immutable LowFun(
+				immutable LowFunSource(cf),
+				returnType,
+				immutable LowFunParamsKind(has(ctxParam), has(closureParam)),
+				params,
+				body_);
 		});
 }
 
@@ -600,6 +606,7 @@ immutable(LowFun) mainFun(Alloc)(
 			shortSymAlphaLiteral("main"),
 			none!LowType)),
 		int32Type,
+		immutable LowFunParamsKind(False, False),
 		params,
 		body_);
 }
@@ -812,14 +819,16 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 ) {
 	immutable Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, a.called);
 	if (has(opCalled)) {
-		immutable Opt!LowExpr ctxArg = a.called.needsCtx ? some(getCtxParamRef(alloc, ctx, range)) : none!LowExpr;
+		immutable Bool isTailRecur = force(opCalled) == ctx.currentFun && exprPos == ExprPos.tail;
+		if (isTailRecur) ctx.hasTailRecur = True;
+		immutable Opt!LowExpr ctxArg = !isTailRecur && a.called.needsCtx
+			? some(getCtxParamRef(alloc, ctx, range))
+			: none!LowExpr;
 		immutable Arr!LowExpr args = mapWithOptFirst(alloc, ctxArg, a.args, (immutable Ptr!ConcreteExpr it) =>
 			getLowExpr(alloc, ctx, it, ExprPos.nonTail));
-		if (force(opCalled) == ctx.currentFun && exprPos == ExprPos.tail) {
-			ctx.hasTailRecur = True;
-			return immutable LowExprKind(immutable LowExprKind.TailRecur(args));
-		} else
-			return immutable LowExprKind(immutable LowExprKind.Call(force(opCalled), args));
+		return isTailRecur
+			? immutable LowExprKind(immutable LowExprKind.TailRecur(args))
+			: immutable LowExprKind(immutable LowExprKind.Call(force(opCalled), args));
 	} else {
 		immutable Sym name = matchConcreteFunSource!(immutable Sym)(
 			a.called.source,

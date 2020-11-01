@@ -14,7 +14,16 @@ import concreteModel :
 	matchConcreteFunSource,
 	matchConcreteLocalSource,
 	matchConcreteStructSource;
-import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, LowType, matchLowFunSource, matchLowType;
+import lowModel :
+	LowFun,
+	LowFunIndex,
+	LowFunSource,
+	LowProgram,
+	LowType,
+	matchLowFunSource,
+	matchLowType,
+	PrimitiveType,
+	symOfPrimitiveType;
 import model : ClosureField, decl, FunInst, name, RecordField;
 import util.collection.arr : empty, range;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -73,8 +82,8 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram program,
 		(immutable LowType.NonFunPtr) {
 			todo!void("!");
 		},
-		(immutable PrimitiveType) {
-			todo!void("!");
+		(immutable PrimitiveType it) {
+			writeSym(writer, symOfPrimitiveType(it));
 		},
 		(immutable LowType.Record it) {
 			writeConcreteStruct(writer, fullIndexDictGet(program.allRecords, it).source);

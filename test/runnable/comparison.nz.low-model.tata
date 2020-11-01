@@ -152,6 +152,7 @@ program(
 		0: fun(
 			rt-main
 			int-32
+			param-kind(ctx: false, closure: false)
 			[param(argc, int-32), param(argv, ptr(ptr(char))), param(main-ptr, fun-ptr(1))]
 			expr-body(
 				[
@@ -469,6 +470,7 @@ program(
 		1: fun(
 			new-lock
 			record(2)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -476,6 +478,7 @@ program(
 		2: fun(
 			new-atomic-bool
 			record(3)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -483,6 +486,7 @@ program(
 		3: fun(
 			empty-arr
 			record(28)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -496,6 +500,7 @@ program(
 		4: fun(
 			new-condition
 			record(29)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -509,6 +514,7 @@ program(
 		5: fun(
 			new-vat
 			record(16)
+			param-kind(ctx: false, closure: false)
 			[param(gctx, ptr(record(15))), param(id, nat-64), param(max-threads, nat-64)]
 			expr-body(
 				[local(actors, record(25))]
@@ -550,6 +556,7 @@ program(
 		6: fun(
 			new-mut-arr-by-val-with-capacity-from-unmanaged-memory
 			record(25)
+			param-kind(ctx: false, closure: false)
 			[param(capacity, nat-64)]
 			expr-body(
 				[]
@@ -568,6 +575,7 @@ program(
 		7: fun(
 			unmanaged-alloc-elements
 			ptr(nat-64)
+			param-kind(ctx: false, closure: false)
 			[param(size-elements, nat-64)]
 			expr-body(
 				[local(bytes, ptr(nat-8))]
@@ -596,6 +604,7 @@ program(
 		8: fun(
 			unmanaged-alloc-bytes
 			ptr(nat-8)
+			param-kind(ctx: false, closure: false)
 			[param(size, nat-64)]
 			expr-body(
 				[local(res, ptr(nat-8))]
@@ -623,10 +632,11 @@ program(
 												file-range(4, range(1712, 1717))
 												call(12, [expr(ptr(nat-8), file-range(4, range(1708, 1711)), local-ref(res))]))]))
 								expr(ptr(nat-8), file-range(4, range(1719, 1722)), local-ref(res))))))))
-		9: fun(malloc, ptr(nat-8), [param(size, nat-64)], extern(false))
+		9: fun(malloc, ptr(nat-8), param-kind(ctx: false, closure: false), [param(size, nat-64)], extern(false))
 		10: fun(
 			hard-forbid
 			void
+			param-kind(ctx: false, closure: false)
 			[param(condition, bool)]
 			expr-body(
 				[]
@@ -643,6 +653,7 @@ program(
 		11: fun(
 			hard-assert
 			void
+			param-kind(ctx: false, closure: false)
 			[param(condition, bool)]
 			expr-body(
 				[]
@@ -660,6 +671,7 @@ program(
 		12: fun(
 			null?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(nat-8))]
 			expr-body(
 				[]
@@ -680,6 +692,7 @@ program(
 		13: fun(
 			==
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, nat-64), param(b, nat-64)]
 			expr-body(
 				[local("<<matched>>", union(5))]
@@ -703,6 +716,7 @@ program(
 		14: fun(
 			generated(compare)
 			union(5)
+			param-kind(ctx: false, closure: false)
 			[param(a, nat-64), param(b, nat-64)]
 			expr-body(
 				[]
@@ -745,6 +759,7 @@ program(
 		15: fun(
 			new-gc
 			record(17)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -762,10 +777,16 @@ program(
 							expr(bool, file-range(4, range(1227, 1232)), constant(false))
 							expr(ptr(nat-8), file-range(4, range(1242, 1246)), constant(null))
 							expr(ptr(nat-8), file-range(4, range(1260, 1264)), constant(null))]))))
-		16: fun(none, record(11), [], expr-body([], expr(record(11), file-range(0, range(17616, 17627)), record([]))))
+		16: fun(
+			none
+			record(11)
+			param-kind(ctx: false, closure: false)
+			[]
+			expr-body([], expr(record(11), file-range(0, range(17616, 17627)), record([]))))
 		17: fun(
 			new-mut-bag
 			record(22)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -781,6 +802,7 @@ program(
 		18: fun(
 			new-thread-safe-counter
 			record(26)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -788,6 +810,7 @@ program(
 		19: fun(
 			new-thread-safe-counter
 			record(26)
+			param-kind(ctx: false, closure: false)
 			[param(init, nat-64)]
 			expr-body(
 				[]
@@ -798,10 +821,16 @@ program(
 						[
 							expr(record(2), file-range(3, range(2233, 2241)), call(1, []))
 							expr(nat-64, file-range(3, range(2243, 2247)), param-ref(0))]))))
-		20: fun(null-any, ptr(bool), [], expr-body([], expr(ptr(bool), file-range(0, range(1459, 1463)), constant(null))))
+		20: fun(
+			null-any
+			ptr(bool)
+			param-kind(ctx: false, closure: false)
+			[]
+			expr-body([], expr(ptr(bool), file-range(0, range(1459, 1463)), constant(null))))
 		21: fun(
 			default-exception-handler
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(e, record(6))]
 			expr-body(
 				[]
@@ -869,6 +898,7 @@ program(
 		22: fun(
 			print-err-sync-no-newline
 			void
+			param-kind(ctx: false, closure: false)
 			[param(s, record(7))]
 			expr-body(
 				[]
@@ -883,6 +913,7 @@ program(
 		23: fun(
 			write-sync-no-newline
 			void
+			param-kind(ctx: false, closure: false)
 			[param(fd, int-32), param(s, record(7))]
 			expr-body(
 				[local(res, int-64)]
@@ -958,10 +989,16 @@ program(
 																	0))))]))
 										expr(void, file-range(12, range(336, 340)), constant(void))
 										expr(void, file-range(12, range(363, 367)), call(27, []))))))))))
-		24: fun(write, int-64, [param(fd, int-32), param(buff, ptr(nat-8)), param(n-bytes, nat-64)], extern(false))
+		24: fun(
+			write
+			int-64
+			param-kind(ctx: false, closure: false)
+			[param(fd, int-32), param(buff, ptr(nat-8)), param(n-bytes, nat-64)]
+			extern(false))
 		25: fun(
 			==
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, int-64), param(b, int-64)]
 			expr-body(
 				[local("<<matched>>", union(5))]
@@ -985,6 +1022,7 @@ program(
 		26: fun(
 			generated(compare)
 			union(5)
+			param-kind(ctx: false, closure: false)
 			[param(a, int-64), param(b, int-64)]
 			expr-body(
 				[]
@@ -1027,6 +1065,7 @@ program(
 		27: fun(
 			todo
 			void
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1034,10 +1073,16 @@ program(
 					void
 					file-range(0, range(211, 228))
 					unary("hard-fail", expr(record(7), file-range(0, range(222, 228)), constant("TODO"))))))
-		28: fun(stderr-fd, int-32, [], expr-body([], expr(int-32, file-range(2, range(5685, 5688)), call(29, []))))
+		28: fun(
+			stderr-fd
+			int-32
+			param-kind(ctx: false, closure: false)
+			[]
+			expr-body([], expr(int-32, file-range(2, range(5685, 5688)), call(29, []))))
 		29: fun(
 			two
 			int-32
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1045,6 +1090,7 @@ program(
 		30: fun(
 			wrap-incr
 			int-32
+			param-kind(ctx: false, closure: false)
 			[param(a, int-32)]
 			expr-body(
 				[]
@@ -1058,6 +1104,7 @@ program(
 		31: fun(
 			print-err-sync
 			void
+			param-kind(ctx: false, closure: false)
 			[param(s, record(7))]
 			expr-body(
 				[]
@@ -1076,6 +1123,7 @@ program(
 		32: fun(
 			empty?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, record(7))]
 			expr-body(
 				[]
@@ -1092,6 +1140,7 @@ program(
 		33: fun(
 			zero?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(n, nat-64)]
 			expr-body(
 				[]
@@ -1106,6 +1155,7 @@ program(
 		34: fun(
 			get-gctx
 			ptr(record(15))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0)))]
 			expr-body(
 				[]
@@ -1121,6 +1171,7 @@ program(
 		35: fun(
 			lambda(new-vat, 0)
 			void
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(nat-8)), param(it, record(6))]
 			expr-body(
 				[]
@@ -1135,6 +1186,7 @@ program(
 		36: fun(
 			do-main
 			ptr(record(1))
+			param-kind(ctx: false, closure: false)
 			[
 				param(gctx, ptr(record(15)))
 				param(vat, ptr(record(16)))
@@ -1281,6 +1333,7 @@ program(
 		37: fun(
 			new-exception-ctx
 			record(33)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1297,6 +1350,7 @@ program(
 		38: fun(
 			new-ctx
 			record(0)
+			param-kind(ctx: false, closure: false)
 			[param(gctx, ptr(record(15))), param(tls, ptr(record(39))), param(vat, ptr(record(16))), param(actor-id, nat-64)]
 			expr-body(
 				[]
@@ -1352,6 +1406,7 @@ program(
 		39: fun(
 			get-gc-ctx
 			ptr(record(18))
+			param-kind(ctx: false, closure: false)
 			[param(gc, ptr(record(17)))]
 			expr-body(
 				[
@@ -1558,6 +1613,7 @@ program(
 		40: fun(
 			acquire-lock
 			void
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(2)))]
 			expr-body(
 				[]
@@ -1572,6 +1628,7 @@ program(
 		41: fun(
 			acquire-lock-recur
 			void
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(2))), param(n-tries, nat-64)]
 			expr-body(
 				[]
@@ -1625,6 +1682,7 @@ program(
 		42: fun(
 			try-acquire-lock
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(2)))]
 			expr-body(
 				[]
@@ -1646,6 +1704,7 @@ program(
 		43: fun(
 			try-set
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(3)))]
 			expr-body(
 				[]
@@ -1660,6 +1719,7 @@ program(
 		44: fun(
 			try-change
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(3))), param(old-value, bool)]
 			expr-body(
 				[]
@@ -1688,6 +1748,7 @@ program(
 		45: fun(
 			thousand
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1701,6 +1762,7 @@ program(
 		46: fun(
 			hundred
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1714,6 +1776,7 @@ program(
 		47: fun(
 			ten
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1721,6 +1784,7 @@ program(
 		48: fun(
 			wrap-incr
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[param(a, nat-64)]
 			expr-body(
 				[]
@@ -1734,6 +1798,7 @@ program(
 		49: fun(
 			nine
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1741,6 +1806,7 @@ program(
 		50: fun(
 			eight
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1748,6 +1814,7 @@ program(
 		51: fun(
 			seven
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1755,6 +1822,7 @@ program(
 		52: fun(
 			six
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1762,6 +1830,7 @@ program(
 		53: fun(
 			five
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1769,6 +1838,7 @@ program(
 		54: fun(
 			four
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1776,6 +1846,7 @@ program(
 		55: fun(
 			three
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1783,6 +1854,7 @@ program(
 		56: fun(
 			two
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1790,6 +1862,7 @@ program(
 		57: fun(
 			yield-thread
 			void
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[local(err, int-32)]
@@ -1809,10 +1882,11 @@ program(
 										bool
 										file-range(3, range(1090, 1095))
 										call(59, [expr(int-32, file-range(3, range(1086, 1089)), local-ref(err))]))]))))))
-		58: fun(pthread-yield, int-32, [], extern(false))
+		58: fun(pthread-yield, int-32, param-kind(ctx: false, closure: false), [], extern(false))
 		59: fun(
 			zero?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(i, int-32)]
 			expr-body(
 				[]
@@ -1827,6 +1901,7 @@ program(
 		60: fun(
 			==
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, int-32), param(b, int-32)]
 			expr-body(
 				[local("<<matched>>", union(5))]
@@ -1850,6 +1925,7 @@ program(
 		61: fun(
 			generated(compare)
 			union(5)
+			param-kind(ctx: false, closure: false)
 			[param(a, int-32), param(b, int-32)]
 			expr-body(
 				[]
@@ -1892,6 +1968,7 @@ program(
 		62: fun(
 			noctx-incr
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[param(n, nat-64)]
 			expr-body(
 				[]
@@ -1920,6 +1997,7 @@ program(
 		63: fun(
 			<
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, nat-64), param(b, nat-64)]
 			expr-body(
 				[local("<<matched>>", union(5))]
@@ -1943,6 +2021,7 @@ program(
 		64: fun(
 			billion
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1956,6 +2035,7 @@ program(
 		65: fun(
 			million
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -1969,6 +2049,7 @@ program(
 		66: fun(
 			release-lock
 			void
+			param-kind(ctx: false, closure: false)
 			[param(l, ptr(record(2)))]
 			expr-body(
 				[]
@@ -1990,6 +2071,7 @@ program(
 		67: fun(
 			must-unset
 			void
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(3)))]
 			expr-body(
 				[local(did-unset, bool)]
@@ -2009,6 +2091,7 @@ program(
 		68: fun(
 			try-unset
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(3)))]
 			expr-body(
 				[]
@@ -2023,6 +2106,7 @@ program(
 		69: fun(
 			add-first-task
 			ptr(record(1))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(all-args, record(40)), param(main-ptr, fun-ptr(1))]
 			expr-body(
 				[local(generated(temp, 0), ptr(record(63)))]
@@ -2123,6 +2207,7 @@ program(
 		70: fun(
 			then2
 			ptr(record(1))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, ptr(record(42))), param(cb, record(49))]
 			expr-body(
 				[local(generated(temp, 0), ptr(record(59)))]
@@ -2210,6 +2295,7 @@ program(
 		71: fun(
 			then
 			ptr(record(1))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, ptr(record(42))), param(cb, record(52))]
 			expr-body(
 				[local(res, ptr(record(1))), local(generated(temp, 0), ptr(record(54)))]
@@ -2309,6 +2395,7 @@ program(
 		72: fun(
 			new-unresolved-fut
 			ptr(record(1))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0)))]
 			expr-body(
 				[local(generated(temp, 0), ptr(record(1)))]
@@ -2368,6 +2455,7 @@ program(
 		73: fun(
 			alloc
 			ptr(nat-8)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(size, nat-64)]
 			expr-body(
 				[]
@@ -2386,6 +2474,7 @@ program(
 		74: fun(
 			gc-alloc
 			ptr(nat-8)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(gc, ptr(record(17))), param(size, nat-64)]
 			expr-body(
 				[]
@@ -2393,6 +2482,7 @@ program(
 		75: fun(
 			get-gc
 			ptr(record(17))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0)))]
 			expr-body(
 				[]
@@ -2409,6 +2499,7 @@ program(
 		76: fun(
 			get-gc-ctx
 			ptr(record(18))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0)))]
 			expr-body(
 				[]
@@ -2424,6 +2515,7 @@ program(
 		77: fun(
 			then-void
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, ptr(record(42))), param(cb, record(46))]
 			expr-body(
 				[
@@ -2710,6 +2802,7 @@ program(
 		78: fun(
 			some
 			record(47)
+			param-kind(ctx: false, closure: false)
 			[param(t, ptr(record(44)))]
 			expr-body(
 				[]
@@ -2720,6 +2813,7 @@ program(
 		79: fun(
 			call
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, record(46)), param(p0, union(7))]
 			expr-body(
 				[]
@@ -2735,6 +2829,7 @@ program(
 		80: fun(
 			call-with-ctx
 			void
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(0))), param(f, record(46)), param(p0, union(7))]
 			expr-body(
 				[]
@@ -2757,6 +2852,7 @@ program(
 		81: fun(
 			ok
 			record(45)
+			param-kind(ctx: false, closure: false)
 			[param(t, void)]
 			expr-body(
 				[]
@@ -2764,6 +2860,7 @@ program(
 		82: fun(
 			err
 			record(9)
+			param-kind(ctx: false, closure: false)
 			[param(t, record(6))]
 			expr-body(
 				[]
@@ -2771,6 +2868,7 @@ program(
 		83: fun(
 			forward-to
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(from, ptr(record(1))), param(to, ptr(record(1)))]
 			expr-body(
 				[local(generated(temp, 0), ptr(record(55)))]
@@ -2847,6 +2945,7 @@ program(
 		84: fun(
 			then-void
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, ptr(record(1))), param(cb, record(10))]
 			expr-body(
 				[
@@ -3133,6 +3232,7 @@ program(
 		85: fun(
 			some
 			record(12)
+			param-kind(ctx: false, closure: false)
 			[param(t, ptr(record(5)))]
 			expr-body(
 				[]
@@ -3143,6 +3243,7 @@ program(
 		86: fun(
 			call
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, record(10)), param(p0, union(1))]
 			expr-body(
 				[]
@@ -3158,6 +3259,7 @@ program(
 		87: fun(
 			call-with-ctx
 			void
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(0))), param(f, record(10)), param(p0, union(1))]
 			expr-body(
 				[]
@@ -3180,6 +3282,7 @@ program(
 		88: fun(
 			ok
 			record(8)
+			param-kind(ctx: false, closure: false)
 			[param(t, int-32)]
 			expr-body(
 				[]
@@ -3187,6 +3290,7 @@ program(
 		89: fun(
 			resolve-or-reject
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, ptr(record(1))), param(result, union(1))]
 			expr-body(
 				[
@@ -3360,6 +3464,7 @@ program(
 		90: fun(
 			resolve-or-reject-recur
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(node, union(2)), param(value, union(1))]
 			expr-body(
 				[local(s, record(12)), local("<<matched>>", union(2))]
@@ -3415,7 +3520,6 @@ program(
 											file-range(13, range(1203, 1232))
 											tail-recur(
 												[
-													expr(ptr(record(0)), file-range(13, range(1203, 1232)), param-ref(0))
 													expr(
 														union(2)
 														file-range(13, range(1192, 1202))
@@ -3433,10 +3537,16 @@ program(
 															true
 															1))
 													expr(union(1), file-range(13, range(1227, 1232)), param-ref(2))])))))]))))
-		91: fun(drop, void, [param(t, void)], expr-body([], expr(void, file-range(0, range(17232, 17236)), constant(void))))
+		91: fun(
+			drop
+			void
+			param-kind(ctx: false, closure: false)
+			[param(t, void)]
+			expr-body([], expr(void, file-range(0, range(17232, 17236)), constant(void))))
 		92: fun(
 			lambda(forward-to, 0)
 			void
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(55))), param(it, union(1))]
 			expr-body(
 				[]
@@ -3455,6 +3565,7 @@ program(
 		93: fun(
 			call
 			ptr(record(1))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, record(52)), param(p0, void)]
 			expr-body(
 				[local(vat, ptr(record(16))), local(res, ptr(record(1))), local(generated(temp, 0), ptr(record(56)))]
@@ -3653,6 +3764,7 @@ program(
 		94: fun(
 			get-vat
 			ptr(record(16))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(vat-id, nat-64)]
 			expr-body(
 				[]
@@ -3677,6 +3789,7 @@ program(
 		95: fun(
 			at
 			ptr(record(16))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(28)), param(index, nat-64)]
 			expr-body(
 				[]
@@ -3716,6 +3829,7 @@ program(
 		96: fun(
 			assert
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(condition, bool)]
 			expr-body(
 				[]
@@ -3731,6 +3845,7 @@ program(
 		97: fun(
 			assert
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(condition, bool), param(message, record(7))]
 			expr-body(
 				[]
@@ -3752,6 +3867,7 @@ program(
 		98: fun(
 			fail
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(reason, record(7))]
 			expr-body(
 				[]
@@ -3769,6 +3885,7 @@ program(
 		99: fun(
 			throw
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(e, record(6))]
 			expr-body(
 				[local(exn-ctx, ptr(record(33)))]
@@ -3849,6 +3966,7 @@ program(
 		100: fun(
 			get-exception-ctx
 			ptr(record(33))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0)))]
 			expr-body(
 				[]
@@ -3864,6 +3982,7 @@ program(
 		101: fun(
 			null?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(34)))]
 			expr-body(
 				[]
@@ -3881,15 +4000,22 @@ program(
 								nat-64
 								file-range(0, range(1523, 1530))
 								unary("to-nat (from ptr)", expr(ptr(record(34)), file-range(0, range(1514, 1522)), constant(null))))]))))
-		102: fun(longjmp, void, [param(env, ptr(record(34))), param(val, int-32)], extern(false))
+		102: fun(
+			longjmp
+			void
+			param-kind(ctx: false, closure: false)
+			[param(env, ptr(record(34))), param(val, int-32)]
+			extern(false))
 		103: fun(
 			number-to-throw
 			int-32
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0)))]
 			expr-body([], expr(int-32, file-range(5, range(340, 345)), call(104, []))))
 		104: fun(
 			seven
 			int-32
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -3897,6 +4023,7 @@ program(
 		105: fun(
 			six
 			int-32
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -3904,6 +4031,7 @@ program(
 		106: fun(
 			five
 			int-32
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -3911,6 +4039,7 @@ program(
 		107: fun(
 			four
 			int-32
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -3918,6 +4047,7 @@ program(
 		108: fun(
 			three
 			int-32
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -3925,6 +4055,7 @@ program(
 		109: fun(
 			noctx-at
 			ptr(record(16))
+			param-kind(ctx: false, closure: false)
 			[param(a, record(28)), param(index, nat-64)]
 			expr-body(
 				[]
@@ -3970,6 +4101,7 @@ program(
 		110: fun(
 			add-task
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(v, ptr(record(16))), param(t, record(20))]
 			expr-body(
 				[local(node, ptr(record(23)))]
@@ -4095,6 +4227,7 @@ program(
 		111: fun(
 			new-mut-bag-node
 			ptr(record(23))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(value, record(20))]
 			expr-body(
 				[local(generated(temp, 0), ptr(record(23)))]
@@ -4139,6 +4272,7 @@ program(
 		112: fun(
 			add
 			void
+			param-kind(ctx: false, closure: false)
 			[param(bag, ptr(record(22))), param(node, ptr(record(23)))]
 			expr-body(
 				[]
@@ -4176,6 +4310,7 @@ program(
 		113: fun(
 			some
 			record(24)
+			param-kind(ctx: false, closure: false)
 			[param(t, ptr(record(23)))]
 			expr-body(
 				[]
@@ -4186,6 +4321,7 @@ program(
 		114: fun(
 			broadcast
 			void
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(29)))]
 			expr-body(
 				[]
@@ -4256,6 +4392,7 @@ program(
 		115: fun(
 			catch
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(try, record(21)), param(catcher, record(27))]
 			expr-body(
 				[]
@@ -4275,6 +4412,7 @@ program(
 		116: fun(
 			catch-with-exception-ctx
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(ec, ptr(record(33))), param(try, record(21)), param(catcher, record(27))]
 			expr-body(
 				[
@@ -4594,6 +4732,7 @@ program(
 		117: fun(
 			zero
 			record(35)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -4607,6 +4746,7 @@ program(
 		118: fun(
 			zero
 			record(36)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -4620,6 +4760,7 @@ program(
 		119: fun(
 			zero
 			record(37)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -4633,6 +4774,7 @@ program(
 		120: fun(
 			zero
 			record(38)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -4643,10 +4785,11 @@ program(
 						[
 							expr(record(35), file-range(2, range(1139, 1143)), call(117, []))
 							expr(record(35), file-range(2, range(1145, 1149)), call(117, []))]))))
-		121: fun(setjmp, int-32, [param(env, ptr(record(34)))], extern(false))
+		121: fun(setjmp, int-32, param-kind(ctx: false, closure: false), [param(env, ptr(record(34)))], extern(false))
 		122: fun(
 			call
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, record(21))]
 			expr-body(
 				[]
@@ -4661,6 +4804,7 @@ program(
 		123: fun(
 			call-with-ctx
 			void
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(0))), param(f, record(21))]
 			expr-body(
 				[]
@@ -4682,6 +4826,7 @@ program(
 		124: fun(
 			call
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, record(27)), param(p0, record(6))]
 			expr-body(
 				[]
@@ -4697,6 +4842,7 @@ program(
 		125: fun(
 			call-with-ctx
 			void
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(0))), param(f, record(27)), param(p0, record(6))]
 			expr-body(
 				[]
@@ -4719,6 +4865,7 @@ program(
 		126: fun(
 			call
 			ptr(record(1))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, record(53)), param(p0, void)]
 			expr-body(
 				[]
@@ -4734,6 +4881,7 @@ program(
 		127: fun(
 			call-with-ctx
 			ptr(record(1))
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(0))), param(f, record(53)), param(p0, void)]
 			expr-body(
 				[]
@@ -4756,6 +4904,7 @@ program(
 		128: fun(
 			lambda(lambda(call, 0), 0)
 			void
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(57)))]
 			expr-body(
 				[]
@@ -4797,6 +4946,7 @@ program(
 		129: fun(
 			reject
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, ptr(record(1))), param(e, record(6))]
 			expr-body(
 				[]
@@ -4820,6 +4970,7 @@ program(
 		130: fun(
 			lambda(lambda(call, 0), 1)
 			void
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(58))), param(it, record(6))]
 			expr-body(
 				[]
@@ -4838,6 +4989,7 @@ program(
 		131: fun(
 			lambda(call, 0)
 			void
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(56)))]
 			expr-body(
 				[local(generated(temp, 0), ptr(record(57))), local(generated(temp, 1), ptr(record(58)))]
@@ -5007,6 +5159,7 @@ program(
 		132: fun(
 			lambda(then, 0)
 			void
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(54))), param(result, union(7))]
 			expr-body(
 				[local(o, record(45)), local(e, record(9)), local("<<matched>>", union(7))]
@@ -5083,6 +5236,7 @@ program(
 		133: fun(
 			call
 			ptr(record(1))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, record(49))]
 			expr-body(
 				[local(vat, ptr(record(16))), local(res, ptr(record(1))), local(generated(temp, 0), ptr(record(60)))]
@@ -5272,6 +5426,7 @@ program(
 		134: fun(
 			call
 			ptr(record(1))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, record(51))]
 			expr-body(
 				[]
@@ -5286,6 +5441,7 @@ program(
 		135: fun(
 			call-with-ctx
 			ptr(record(1))
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(0))), param(f, record(51))]
 			expr-body(
 				[]
@@ -5307,6 +5463,7 @@ program(
 		136: fun(
 			lambda(lambda(call, 0), 0)
 			void
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(61)))]
 			expr-body(
 				[]
@@ -5344,6 +5501,7 @@ program(
 		137: fun(
 			lambda(lambda(call, 0), 1)
 			void
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(62))), param(it, record(6))]
 			expr-body(
 				[]
@@ -5362,6 +5520,7 @@ program(
 		138: fun(
 			lambda(call, 0)
 			void
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(60)))]
 			expr-body(
 				[local(generated(temp, 0), ptr(record(61))), local(generated(temp, 1), ptr(record(62)))]
@@ -5521,6 +5680,7 @@ program(
 		139: fun(
 			lambda(then2, 0)
 			ptr(record(1))
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(59))), param(ignore, void)]
 			expr-body(
 				[]
@@ -5538,6 +5698,7 @@ program(
 		140: fun(
 			cur-actor
 			record(50)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0)))]
 			expr-body(
 				[local(c, ptr(record(0)))]
@@ -5563,6 +5724,7 @@ program(
 		141: fun(
 			resolved
 			ptr(record(42))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(value, void)]
 			expr-body(
 				[local(generated(temp, 0), ptr(record(42)))]
@@ -5613,6 +5775,7 @@ program(
 		142: fun(
 			tail
 			record(40)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(40))]
 			expr-body(
 				[]
@@ -5643,6 +5806,7 @@ program(
 		143: fun(
 			forbid
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(condition, bool)]
 			expr-body(
 				[]
@@ -5658,6 +5822,7 @@ program(
 		144: fun(
 			forbid
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(condition, bool), param(message, record(7))]
 			expr-body(
 				[]
@@ -5679,6 +5844,7 @@ program(
 		145: fun(
 			empty?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, record(40))]
 			expr-body(
 				[]
@@ -5695,6 +5861,7 @@ program(
 		146: fun(
 			slice-starting-at
 			record(40)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(40)), param(begin, nat-64)]
 			expr-body(
 				[]
@@ -5750,6 +5917,7 @@ program(
 		147: fun(
 			<=
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, nat-64), param(b, nat-64)]
 			expr-body(
 				[]
@@ -5769,6 +5937,7 @@ program(
 		148: fun(
 			slice
 			record(40)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(40)), param(begin, nat-64), param(size, nat-64)]
 			expr-body(
 				[]
@@ -5824,6 +5993,7 @@ program(
 		149: fun(
 			+
 			nat-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, nat-64), param(b, nat-64)]
 			expr-body(
 				[local(res, nat-64)]
@@ -5875,6 +6045,7 @@ program(
 		150: fun(
 			>=
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, nat-64), param(b, nat-64)]
 			expr-body(
 				[]
@@ -5894,6 +6065,7 @@ program(
 		151: fun(
 			-
 			nat-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, nat-64), param(b, nat-64)]
 			expr-body(
 				[]
@@ -5926,6 +6098,7 @@ program(
 		152: fun(
 			map
 			record(14)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(40)), param(mapper, record(64))]
 			expr-body(
 				[local(generated(temp, 0), ptr(record(67)))]
@@ -6009,6 +6182,7 @@ program(
 		153: fun(
 			make-arr
 			record(14)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(size, nat-64), param(f, record(65))]
 			expr-body(
 				[]
@@ -6030,6 +6204,7 @@ program(
 		154: fun(
 			freeze
 			record(14)
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(66)))]
 			expr-body(
 				[]
@@ -6052,6 +6227,7 @@ program(
 		155: fun(
 			unsafe-as-arr
 			record(14)
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(66)))]
 			expr-body(
 				[]
@@ -6071,6 +6247,7 @@ program(
 		156: fun(
 			make-mut-arr
 			ptr(record(66))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(size, nat-64), param(f, record(65))]
 			expr-body(
 				[local(res, ptr(record(66)))]
@@ -6105,6 +6282,7 @@ program(
 		157: fun(
 			new-uninitialized-mut-arr
 			ptr(record(66))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(size, nat-64)]
 			expr-body(
 				[local(generated(temp, 0), ptr(record(66)))]
@@ -6158,6 +6336,7 @@ program(
 		158: fun(
 			uninitialized-data
 			ptr(record(7))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(size, nat-64)]
 			expr-body(
 				[local(bptr, ptr(nat-8))]
@@ -6187,6 +6366,7 @@ program(
 		159: fun(
 			make-mut-arr-worker
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(m, ptr(record(66))), param(i, nat-64), param(f, record(65))]
 			expr-body(
 				[]
@@ -6234,7 +6414,6 @@ program(
 									file-range(8, range(9557, 9586))
 									tail-recur(
 										[
-											expr(ptr(record(0)), file-range(8, range(9557, 9586)), param-ref(0))
 											expr(ptr(record(66)), file-range(8, range(9555, 9556)), param-ref(1))
 											expr(
 												nat-64
@@ -6248,6 +6427,7 @@ program(
 		160: fun(
 			set-at
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, ptr(record(66))), param(index, nat-64), param(value, record(7))]
 			expr-body(
 				[]
@@ -6288,6 +6468,7 @@ program(
 		161: fun(
 			noctx-set-at
 			void
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(66))), param(index, nat-64), param(value, record(7))]
 			expr-body(
 				[]
@@ -6334,6 +6515,7 @@ program(
 		162: fun(
 			call
 			record(7)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, record(65)), param(p0, nat-64)]
 			expr-body(
 				[]
@@ -6349,6 +6531,7 @@ program(
 		163: fun(
 			call-with-ctx
 			record(7)
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(0))), param(f, record(65)), param(p0, nat-64)]
 			expr-body(
 				[]
@@ -6371,6 +6554,7 @@ program(
 		164: fun(
 			incr
 			nat-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(n, nat-64)]
 			expr-body(
 				[]
@@ -6403,6 +6587,7 @@ program(
 		165: fun(
 			call
 			record(7)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(f, record(64)), param(p0, ptr(char))]
 			expr-body(
 				[]
@@ -6418,6 +6603,7 @@ program(
 		166: fun(
 			call-with-ctx
 			record(7)
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(0))), param(f, record(64)), param(p0, ptr(char))]
 			expr-body(
 				[]
@@ -6440,6 +6626,7 @@ program(
 		167: fun(
 			at
 			ptr(char)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(40)), param(index, nat-64)]
 			expr-body(
 				[]
@@ -6479,6 +6666,7 @@ program(
 		168: fun(
 			noctx-at
 			ptr(char)
+			param-kind(ctx: false, closure: false)
 			[param(a, record(40)), param(index, nat-64)]
 			expr-body(
 				[]
@@ -6524,6 +6712,7 @@ program(
 		169: fun(
 			lambda(map, 0)
 			record(7)
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(67))), param(i, nat-64)]
 			expr-body(
 				[]
@@ -6553,6 +6742,7 @@ program(
 		170: fun(
 			to-str
 			record(7)
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(char))]
 			expr-body(
 				[]
@@ -6570,6 +6760,7 @@ program(
 		171: fun(
 			arr-from-begin-end
 			record(7)
+			param-kind(ctx: false, closure: false)
 			[param(begin, ptr(char)), param(end, ptr(char))]
 			expr-body(
 				[]
@@ -6590,6 +6781,7 @@ program(
 		172: fun(
 			-
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(char)), param(b, ptr(char))]
 			expr-body(
 				[]
@@ -6611,6 +6803,7 @@ program(
 		173: fun(
 			find-cstr-end
 			ptr(char)
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(char))]
 			expr-body(
 				[]
@@ -6628,6 +6821,7 @@ program(
 		174: fun(
 			find-char-in-cstr
 			ptr(char)
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(char)), param(c, char)]
 			expr-body(
 				[]
@@ -6681,6 +6875,7 @@ program(
 		175: fun(
 			==
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, char), param(b, char)]
 			expr-body(
 				[local("<<matched>>", union(5))]
@@ -6704,6 +6899,7 @@ program(
 		176: fun(
 			generated(compare)
 			union(5)
+			param-kind(ctx: false, closure: false)
 			[param(a, char), param(b, char)]
 			expr-body(
 				[]
@@ -6746,6 +6942,7 @@ program(
 		177: fun(
 			literal
 			char
+			param-kind(ctx: false, closure: false)
 			[param(a, record(7))]
 			expr-body(
 				[]
@@ -6760,6 +6957,7 @@ program(
 		178: fun(
 			noctx-at
 			char
+			param-kind(ctx: false, closure: false)
 			[param(a, record(7)), param(index, nat-64)]
 			expr-body(
 				[]
@@ -6805,6 +7003,7 @@ program(
 		179: fun(
 			todo
 			ptr(char)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -6815,6 +7014,7 @@ program(
 		180: fun(
 			incr
 			ptr(char)
+			param-kind(ctx: false, closure: false)
 			[param(p, ptr(char))]
 			expr-body(
 				[]
@@ -6828,6 +7028,7 @@ program(
 		181: fun(
 			lambda(lambda(add-first-task, 0), 0)
 			record(7)
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(nat-8)), param(it, ptr(char))]
 			expr-body(
 				[]
@@ -6835,6 +7036,7 @@ program(
 		182: fun(
 			lambda(add-first-task, 0)
 			ptr(record(1))
+			param-kind(ctx: true, closure: true)
 			[param(ctx, ptr(record(0))), param("<<closure>>", ptr(record(63)))]
 			expr-body(
 				[local(args, record(40))]
@@ -6891,6 +7093,7 @@ program(
 		183: fun(
 			lambda(do-main, 0)
 			ptr(record(1))
+			param-kind(ctx: true, closure: true)
 			[
 				param(ctx, ptr(record(0)))
 				param("<<closure>>", ptr(nat-8))
@@ -6910,6 +7113,7 @@ program(
 		184: fun(
 			call-with-ctx
 			ptr(record(1))
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(0))), param(f, record(41)), param(p0, record(40)), param(p1, fun-ptr(1))]
 			expr-body(
 				[]
@@ -6933,6 +7137,7 @@ program(
 		185: fun(
 			run-threads
 			void
+			param-kind(ctx: false, closure: false)
 			[param(n-threads, nat-64), param(gctx, ptr(record(15)))]
 			expr-body(
 				[local(threads, ptr(nat-64)), local(thread-args, ptr(record(68))), local(actual-n-threads, nat-64)]
@@ -7060,6 +7265,7 @@ program(
 		186: fun(
 			unmanaged-alloc-elements
 			ptr(record(68))
+			param-kind(ctx: false, closure: false)
 			[param(size-elements, nat-64)]
 			expr-body(
 				[local(bytes, ptr(nat-8))]
@@ -7088,6 +7294,7 @@ program(
 		187: fun(
 			noctx-decr
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[param(n, nat-64)]
 			expr-body(
 				[]
@@ -7115,6 +7322,7 @@ program(
 		188: fun(
 			start-threads-recur
 			void
+			param-kind(ctx: false, closure: false)
 			[
 				param(i, nat-64)
 				param(n-threads, nat-64)
@@ -7304,6 +7512,7 @@ program(
 		189: fun(
 			thread-fun
 			ptr(nat-8)
+			param-kind(ctx: false, closure: false)
 			[param(args-ptr, ptr(nat-8))]
 			expr-body(
 				[local(args, ptr(record(68)))]
@@ -7344,6 +7553,7 @@ program(
 		190: fun(
 			thread-function
 			void
+			param-kind(ctx: false, closure: false)
 			[param(thread-id, nat-64), param(gctx, ptr(record(15)))]
 			expr-body(
 				[local(ectx, record(33)), local(tls, record(39))]
@@ -7386,6 +7596,7 @@ program(
 		191: fun(
 			thread-function-recur
 			void
+			param-kind(ctx: false, closure: false)
 			[param(thread-id, nat-64), param(gctx, ptr(record(15))), param(tls, ptr(record(39)))]
 			expr-body(
 				[
@@ -7907,6 +8118,7 @@ program(
 		192: fun(
 			assert-vats-are-shut-down
 			void
+			param-kind(ctx: false, closure: false)
 			[param(i, nat-64), param(vats, record(28))]
 			expr-body(
 				[local(vat, ptr(record(16)))]
@@ -8106,6 +8318,7 @@ program(
 		193: fun(
 			empty?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(m, ptr(record(22)))]
 			expr-body(
 				[]
@@ -8122,6 +8335,7 @@ program(
 		194: fun(
 			empty?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, union(4))]
 			expr-body(
 				[local(n, record(11)), local(s, record(24)), local("<<matched>>", union(4))]
@@ -8137,6 +8351,7 @@ program(
 		195: fun(
 			>
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, nat-64), param(b, nat-64)]
 			expr-body(
 				[]
@@ -8156,6 +8371,7 @@ program(
 		196: fun(
 			get-last-checked
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(29)))]
 			expr-body(
 				[]
@@ -8166,6 +8382,7 @@ program(
 		197: fun(
 			choose-task
 			union(10)
+			param-kind(ctx: false, closure: false)
 			[param(gctx, ptr(record(15)))]
 			expr-body(
 				[local(s, record(74)), local("<<matched>>", union(11)), local(res, union(10))]
@@ -8369,6 +8586,7 @@ program(
 		198: fun(
 			choose-task-recur
 			union(11)
+			param-kind(ctx: false, closure: false)
 			[param(vats, record(28)), param(i, nat-64)]
 			expr-body(
 				[local(vat, ptr(record(16))), local(s, record(75)), local("<<matched>>", union(12))]
@@ -8464,6 +8682,7 @@ program(
 		199: fun(
 			choose-task-in-vat
 			union(12)
+			param-kind(ctx: false, closure: false)
 			[param(vat, ptr(record(16)))]
 			expr-body(
 				[local(s, record(70)), local("<<matched>>", union(9)), local(res, union(12))]
@@ -8694,6 +8913,7 @@ program(
 		200: fun(
 			some
 			record(75)
+			param-kind(ctx: false, closure: false)
 			[param(t, union(9))]
 			expr-body(
 				[]
@@ -8701,6 +8921,7 @@ program(
 		201: fun(
 			find-and-remove-first-doable-task
 			union(9)
+			param-kind(ctx: false, closure: false)
 			[param(vat, ptr(record(16)))]
 			expr-body(
 				[
@@ -8833,6 +9054,7 @@ program(
 		202: fun(
 			find-and-remove-first-doable-task-recur
 			union(13)
+			param-kind(ctx: false, closure: false)
 			[param(vat, ptr(record(16))), param(opt-node, union(4))]
 			expr-body(
 				[
@@ -9219,6 +9441,7 @@ program(
 		203: fun(
 			contains?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(25))), param(value, nat-64)]
 			expr-body(
 				[]
@@ -9237,6 +9460,7 @@ program(
 		204: fun(
 			contains-recur?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, record(78)), param(value, nat-64), param(i, nat-64)]
 			expr-body(
 				[]
@@ -9291,6 +9515,7 @@ program(
 		205: fun(
 			noctx-at
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[param(a, record(78)), param(index, nat-64)]
 			expr-body(
 				[]
@@ -9336,6 +9561,7 @@ program(
 		206: fun(
 			temp-as-arr
 			record(78)
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(25)))]
 			expr-body(
 				[]
@@ -9355,6 +9581,7 @@ program(
 		207: fun(
 			push-capacity-must-be-sufficient
 			void
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(25))), param(value, nat-64)]
 			expr-body(
 				[local(old-size, nat-64)]
@@ -9424,6 +9651,7 @@ program(
 		208: fun(
 			noctx-set-at
 			void
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(25))), param(index, nat-64), param(value, nat-64)]
 			expr-body(
 				[]
@@ -9470,6 +9698,7 @@ program(
 		209: fun(
 			some
 			record(77)
+			param-kind(ctx: false, closure: false)
 			[param(t, record(76))]
 			expr-body(
 				[]
@@ -9477,6 +9706,7 @@ program(
 		210: fun(
 			some
 			record(70)
+			param-kind(ctx: false, closure: false)
 			[param(t, record(20))]
 			expr-body(
 				[]
@@ -9484,6 +9714,7 @@ program(
 		211: fun(
 			empty?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, union(12))]
 			expr-body(
 				[local(n, record(11)), local(s, record(75)), local("<<matched>>", union(12))]
@@ -9499,6 +9730,7 @@ program(
 		212: fun(
 			some
 			record(74)
+			param-kind(ctx: false, closure: false)
 			[param(t, record(69))]
 			expr-body(
 				[]
@@ -9506,6 +9738,7 @@ program(
 		213: fun(
 			err
 			record(73)
+			param-kind(ctx: false, closure: false)
 			[param(t, record(71))]
 			expr-body(
 				[]
@@ -9513,6 +9746,7 @@ program(
 		214: fun(
 			ok
 			record(72)
+			param-kind(ctx: false, closure: false)
 			[param(t, record(69))]
 			expr-body(
 				[]
@@ -9520,6 +9754,7 @@ program(
 		215: fun(
 			do-task
 			void
+			param-kind(ctx: false, closure: false)
 			[param(gctx, ptr(record(15))), param(tls, ptr(record(39))), param(chosen-task, record(69))]
 			expr-body(
 				[
@@ -9952,6 +10187,7 @@ program(
 		216: fun(
 			noctx-must-remove-unordered
 			void
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(25))), param(value, nat-64)]
 			expr-body(
 				[]
@@ -9967,6 +10203,7 @@ program(
 		217: fun(
 			noctx-must-remove-unordered-recur
 			void
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(25))), param(index, nat-64), param(value, nat-64)]
 			expr-body(
 				[]
@@ -10043,6 +10280,7 @@ program(
 		218: fun(
 			noctx-at
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(25))), param(index, nat-64)]
 			expr-body(
 				[]
@@ -10085,10 +10323,16 @@ program(
 											file-range(8, range(6936, 6941))
 											get-field(expr(ptr(record(25)), file-range(8, range(6935, 6936)), param-ref(0)), true, 3))
 										expr(nat-64, file-range(8, range(6944, 6949)), param-ref(1))))))))))
-		219: fun(drop, void, [param(t, nat-64)], expr-body([], expr(void, file-range(0, range(17232, 17236)), constant(void))))
+		219: fun(
+			drop
+			void
+			param-kind(ctx: false, closure: false)
+			[param(t, nat-64)]
+			expr-body([], expr(void, file-range(0, range(17232, 17236)), constant(void))))
 		220: fun(
 			noctx-remove-unordered-at-index
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(25))), param(index, nat-64)]
 			expr-body(
 				[local(res, nat-64)]
@@ -10154,6 +10398,7 @@ program(
 		221: fun(
 			noctx-last
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(25)))]
 			expr-body(
 				[]
@@ -10194,6 +10439,7 @@ program(
 		222: fun(
 			empty?
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(25)))]
 			expr-body(
 				[]
@@ -10210,6 +10456,7 @@ program(
 		223: fun(
 			return-ctx
 			void
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(0)))]
 			expr-body(
 				[]
@@ -10231,6 +10478,7 @@ program(
 		224: fun(
 			return-gc-ctx
 			void
+			param-kind(ctx: false, closure: false)
 			[param(gc-ctx, ptr(record(18)))]
 			expr-body(
 				[local(gc, ptr(record(17)))]
@@ -10336,6 +10584,7 @@ program(
 		225: fun(
 			some
 			record(19)
+			param-kind(ctx: false, closure: false)
 			[param(t, ptr(record(18)))]
 			expr-body(
 				[]
@@ -10346,6 +10595,7 @@ program(
 		226: fun(
 			wait-on
 			void
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(29))), param(last-checked, nat-64)]
 			expr-body(
 				[]
@@ -10381,6 +10631,7 @@ program(
 		227: fun(
 			lambda(start-threads-recur, 0)
 			ptr(nat-8)
+			param-kind(ctx: false, closure: false)
 			[param(args-ptr, ptr(nat-8))]
 			expr-body(
 				[]
@@ -10391,6 +10642,7 @@ program(
 		228: fun(
 			pthread-create
 			int-32
+			param-kind(ctx: false, closure: false)
 			[
 				param(thread, ptr(record(79)))
 				param(attr, ptr(nat-8))
@@ -10400,6 +10652,7 @@ program(
 		229: fun(
 			as-cell
 			ptr(record(79))
+			param-kind(ctx: false, closure: false)
 			[param(p, ptr(nat-64))]
 			expr-body(
 				[]
@@ -10415,6 +10668,7 @@ program(
 		230: fun(
 			eagain
 			int-32
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -10428,6 +10682,7 @@ program(
 		231: fun(
 			ten
 			int-32
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -10441,6 +10696,7 @@ program(
 		232: fun(
 			join-threads-recur
 			void
+			param-kind(ctx: false, closure: false)
 			[param(i, nat-64), param(n-threads, nat-64), param(threads, ptr(nat-64))]
 			expr-body(
 				[]
@@ -10494,6 +10750,7 @@ program(
 		233: fun(
 			join-one-thread
 			void
+			param-kind(ctx: false, closure: false)
 			[param(tid, nat-64)]
 			expr-body(
 				[local(thread-return, record(80)), local(err, int-32)]
@@ -10603,10 +10860,16 @@ program(
 																						record(80)
 																						file-range(19, range(4290, 4303))
 																						local-ref(thread-return))))]))]))]))))))))))
-		234: fun(pthread-join, int-32, [param(thread, nat-64), param(thread-return, ptr(record(80)))], extern(false))
+		234: fun(
+			pthread-join
+			int-32
+			param-kind(ctx: false, closure: false)
+			[param(thread, nat-64), param(thread-return, ptr(record(80)))]
+			extern(false))
 		235: fun(
 			einval
 			int-32
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -10623,10 +10886,16 @@ program(
 								expr(int-32, file-range(2, range(2273, 2276)), call(231, []))
 								expr(int-32, file-range(2, range(2286, 2289)), call(231, []))))
 						expr(int-32, file-range(2, range(2299, 2302)), call(29, []))))))
-		236: fun(esrch, int-32, [], expr-body([], expr(int-32, file-range(2, range(2324, 2329)), call(108, []))))
+		236: fun(
+			esrch
+			int-32
+			param-kind(ctx: false, closure: false)
+			[]
+			expr-body([], expr(int-32, file-range(2, range(2324, 2329)), call(108, []))))
 		237: fun(
 			get
 			ptr(nat-8)
+			param-kind(ctx: false, closure: false)
 			[param(c, ptr(record(80)))]
 			expr-body(
 				[]
@@ -10637,6 +10906,7 @@ program(
 		238: fun(
 			unmanaged-free
 			void
+			param-kind(ctx: false, closure: false)
 			[param(p, ptr(nat-64))]
 			expr-body(
 				[]
@@ -10650,10 +10920,11 @@ program(
 								ptr(nat-8)
 								file-range(4, range(1945, 1954))
 								ptr-cast(expr(ptr(nat-64), file-range(4, range(1944, 1945)), param-ref(0))))]))))
-		239: fun(free, void, [param(p, ptr(nat-8))], extern(false))
+		239: fun(free, void, param-kind(ctx: false, closure: false), [param(p, ptr(nat-8))], extern(false))
 		240: fun(
 			unmanaged-free
 			void
+			param-kind(ctx: false, closure: false)
 			[param(p, ptr(record(68)))]
 			expr-body(
 				[]
@@ -10670,6 +10941,7 @@ program(
 		241: fun(
 			must-be-resolved
 			union(1)
+			param-kind(ctx: false, closure: false)
 			[param(f, ptr(record(1)))]
 			expr-body(
 				[local(r, record(13)), local(e, record(6)), local("<<matched>>", union(0))]
@@ -10718,6 +10990,7 @@ program(
 		242: fun(
 			hard-unreachable
 			union(1)
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -10728,6 +11001,7 @@ program(
 		243: fun(
 			main
 			ptr(record(1))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(args, record(14))]
 			expr-body(
 				[]
@@ -10773,6 +11047,7 @@ program(
 		244: fun(
 			test-compare-records
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0)))]
 			expr-body(
 				[local(a, record(81)), local(b, record(81)), local(c, record(81)), local(d, record(81))]
@@ -11007,6 +11282,7 @@ program(
 		245: fun(
 			literal
 			nat-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(s, record(7))]
 			expr-body(
 				[local(higher-digits, nat-64)]
@@ -11076,6 +11352,7 @@ program(
 		246: fun(
 			rtail
 			record(7)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(7))]
 			expr-body(
 				[]
@@ -11120,6 +11397,7 @@ program(
 		247: fun(
 			slice
 			record(7)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(7)), param(begin, nat-64), param(size, nat-64)]
 			expr-body(
 				[]
@@ -11175,6 +11453,7 @@ program(
 		248: fun(
 			decr
 			nat-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, nat-64)]
 			expr-body(
 				[]
@@ -11200,6 +11479,7 @@ program(
 		249: fun(
 			wrap-decr
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[param(a, nat-64)]
 			expr-body(
 				[]
@@ -11213,6 +11493,7 @@ program(
 		250: fun(
 			*
 			nat-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, nat-64), param(b, nat-64)]
 			expr-body(
 				[local(res, nat-64)]
@@ -11329,6 +11610,7 @@ program(
 		251: fun(
 			/
 			nat-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, nat-64), param(b, nat-64)]
 			expr-body(
 				[]
@@ -11357,6 +11639,7 @@ program(
 		252: fun(
 			char-to-nat
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[param(c, char)]
 			expr-body(
 				[]
@@ -11644,6 +11927,7 @@ program(
 		253: fun(
 			todo
 			nat-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -11654,6 +11938,7 @@ program(
 		254: fun(
 			last
 			char
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(7))]
 			expr-body(
 				[]
@@ -11697,6 +11982,7 @@ program(
 		255: fun(
 			at
 			char
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(7)), param(index, nat-64)]
 			expr-body(
 				[]
@@ -11736,6 +12022,7 @@ program(
 		256: fun(
 			print-sync
 			void
+			param-kind(ctx: false, closure: false)
 			[param(s, record(7))]
 			expr-body(
 				[]
@@ -11754,6 +12041,7 @@ program(
 		257: fun(
 			print-sync-no-newline
 			void
+			param-kind(ctx: false, closure: false)
 			[param(s, record(7))]
 			expr-body(
 				[]
@@ -11765,10 +12053,16 @@ program(
 						[
 							expr(int-32, file-range(12, range(425, 434)), call(258, []))
 							expr(record(7), file-range(12, range(457, 458)), param-ref(0))]))))
-		258: fun(stdout-fd, int-32, [], expr-body([], expr(int-32, file-range(2, range(5657, 5660)), constant(1))))
+		258: fun(
+			stdout-fd
+			int-32
+			param-kind(ctx: false, closure: false)
+			[]
+			expr-body([], expr(int-32, file-range(2, range(5657, 5660)), constant(1))))
 		259: fun(
 			to-str
 			record(7)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(c, union(5))]
 			expr-body(
 				[local("<<matched>>", union(5))]
@@ -11785,6 +12079,7 @@ program(
 		260: fun(
 			generated(compare)
 			union(5)
+			param-kind(ctx: false, closure: false)
 			[param(a, record(81)), param(b, record(81))]
 			expr-body(
 				[local(generated(temp, 1), union(5)), local(generated(temp, 0), union(5))]
@@ -11869,6 +12164,7 @@ program(
 		261: fun(
 			test-compare-byref-records
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0)))]
 			expr-body(
 				[
@@ -12294,6 +12590,7 @@ program(
 		262: fun(
 			generated(compare)
 			union(5)
+			param-kind(ctx: false, closure: false)
 			[param(a, ptr(record(82))), param(b, ptr(record(82)))]
 			expr-body(
 				[local(generated(temp, 1), union(5)), local(generated(temp, 0), union(5))]
@@ -12378,6 +12675,7 @@ program(
 		263: fun(
 			test-compare-unions
 			void
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0)))]
 			expr-body(
 				[local(a, union(14)), local(b, union(14)), local(c, union(14)), local(d, union(14))]
@@ -12616,6 +12914,7 @@ program(
 		264: fun(
 			generated(compare)
 			union(5)
+			param-kind(ctx: false, closure: false)
 			[param(a, union(14)), param(b, union(14))]
 			expr-body(
 				[
@@ -12698,6 +12997,7 @@ program(
 		265: fun(
 			generated(compare)
 			union(5)
+			param-kind(ctx: false, closure: false)
 			[param(a, record(83)), param(b, record(83))]
 			expr-body(
 				[]
@@ -12705,6 +13005,7 @@ program(
 		266: fun(
 			resolved
 			ptr(record(1))
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(value, int-32)]
 			expr-body(
 				[local(generated(temp, 0), ptr(record(1)))]
@@ -12755,6 +13056,7 @@ program(
 		267: fun(
 			literal
 			int-32
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(s, record(7))]
 			expr-body(
 				[]
@@ -12774,6 +13076,7 @@ program(
 		268: fun(
 			literal
 			int-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(s, record(7))]
 			expr-body(
 				[local(fst, char), local(n, nat-64)]
@@ -12906,6 +13209,7 @@ program(
 		269: fun(
 			tail
 			record(7)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(7))]
 			expr-body(
 				[]
@@ -12936,6 +13240,7 @@ program(
 		270: fun(
 			slice-starting-at
 			record(7)
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, record(7)), param(begin, nat-64)]
 			expr-body(
 				[]
@@ -12991,6 +13296,7 @@ program(
 		271: fun(
 			neg
 			int-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(n, nat-64)]
 			expr-body(
 				[]
@@ -13012,6 +13318,7 @@ program(
 		272: fun(
 			neg
 			int-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(i, int-64)]
 			expr-body(
 				[]
@@ -13027,6 +13334,7 @@ program(
 		273: fun(
 			*
 			int-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(a, int-64), param(b, int-64)]
 			expr-body(
 				[]
@@ -13128,6 +13436,7 @@ program(
 		274: fun(
 			>
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, int-64), param(b, int-64)]
 			expr-body(
 				[]
@@ -13147,6 +13456,7 @@ program(
 		275: fun(
 			<=
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, int-64), param(b, int-64)]
 			expr-body(
 				[]
@@ -13166,6 +13476,7 @@ program(
 		276: fun(
 			<
 			bool
+			param-kind(ctx: false, closure: false)
 			[param(a, int-64), param(b, int-64)]
 			expr-body(
 				[local("<<matched>>", union(5))]
@@ -13189,6 +13500,7 @@ program(
 		277: fun(
 			neg-million
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13202,6 +13514,7 @@ program(
 		278: fun(
 			million
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13215,6 +13528,7 @@ program(
 		279: fun(
 			thousand
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13228,6 +13542,7 @@ program(
 		280: fun(
 			hundred
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13241,6 +13556,7 @@ program(
 		281: fun(
 			ten
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13248,6 +13564,7 @@ program(
 		282: fun(
 			wrap-incr
 			int-64
+			param-kind(ctx: false, closure: false)
 			[param(a, int-64)]
 			expr-body(
 				[]
@@ -13261,6 +13578,7 @@ program(
 		283: fun(
 			nine
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13268,6 +13586,7 @@ program(
 		284: fun(
 			eight
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13275,6 +13594,7 @@ program(
 		285: fun(
 			seven
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13282,6 +13602,7 @@ program(
 		286: fun(
 			six
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13289,6 +13610,7 @@ program(
 		287: fun(
 			five
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13296,6 +13618,7 @@ program(
 		288: fun(
 			four
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13303,6 +13626,7 @@ program(
 		289: fun(
 			three
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13310,6 +13634,7 @@ program(
 		290: fun(
 			two
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13317,6 +13642,7 @@ program(
 		291: fun(
 			neg-one
 			int-64
+			param-kind(ctx: false, closure: false)
 			[]
 			expr-body(
 				[]
@@ -13330,6 +13656,7 @@ program(
 		292: fun(
 			to-int
 			int-64
+			param-kind(ctx: true, closure: false)
 			[param(ctx, ptr(record(0))), param(n, nat-64)]
 			expr-body(
 				[]
@@ -13359,6 +13686,7 @@ program(
 		293: fun(
 			generated(main)
 			int-32
+			param-kind(ctx: false, closure: false)
 			[param(argc, int-32), param(argv, ptr(ptr(char)))]
 			expr-body(
 				[]

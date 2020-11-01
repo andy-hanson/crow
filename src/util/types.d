@@ -119,10 +119,54 @@ struct NatN(T) {
 		}
 	}
 
+	immutable(Int16) toInt16() const {
+		verify(value <= short.max);
+		return immutable Int16(cast(immutable short) value);
+	}
+
+	immutable(Int32) toInt32() const {
+		verify(value <= int.max);
+		return immutable Int32(cast(immutable int) value);
+	}
+
 	private:
 	T value;
 }
 
+struct IntN(T) {
+	@safe @nogc pure nothrow:
+
+	immutable(IntN!T) opBinary(string op)(immutable IntN!T b) const {
+		static if (op == "-") {
+			// TODO: check for overflow
+			return immutable IntN!T(cast(immutable T) (value - b.value));
+		} else {
+			static assert(false);
+		}
+	}
+
+	immutable(T) raw() const {
+		return value;
+	}
+
+	//TODO:support more types
+	static if(is(T == short)) {
+		immutable(Nat16) unsigned() const {
+			verify(value >= 0);
+			return immutable Nat16(cast(immutable ushort) value);
+		}
+	}
+
+	static if (!is(T == short)) {
+		immutable(Int16) to16() const {
+			verify(value >= short.min && value <= short.max);
+			return immutable Int16(cast(immutable short) value);
+		}
+	}
+
+	private:
+	T value;
+}
 
 immutable(NatN!T) decr(T)(immutable NatN!T a) {
 	return a - immutable NatN!T(1);
@@ -148,6 +192,10 @@ alias Nat8 = NatN!ubyte;
 alias Nat16 = NatN!ushort;
 alias Nat32 = NatN!uint;
 alias Nat64 = NatN!ulong;
+alias Int8 = IntN!byte;
+alias Int16 = IntN!short;
+alias Int32 = IntN!int;
+alias Int64 = IntN!long;
 
 immutable u8 maxU4 = 0xf;
 immutable u8 maxU8 = 0xff; // TODO: just use u8.max
@@ -209,6 +257,10 @@ immutable(u8) safeSizeTToU8(immutable size_t s) {
 immutable(size_t) safeSizeTFromSSizeT(immutable ssize_t s) {
 	verify(s >= 0);
 	return cast(size_t) s;
+}
+
+immutable(size_t) abs(immutable ssize_t s) {
+	return s < 0 ? -s : s;
 }
 
 immutable(Nat8) catU4U4(immutable Nat8 a, immutable Nat8 b) {

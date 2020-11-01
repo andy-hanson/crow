@@ -10,6 +10,7 @@ import lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
+	LowFunParamsKind,
 	LowFunPtrType,
 	LowFunSource,
 	LowLocal,
@@ -125,9 +126,19 @@ immutable(Sexpr) tataOfLowFun(Alloc)(ref Alloc alloc, ref immutable LowFun a) {
 		"fun",
 		tataOfLowFunSource(alloc, a.source),
 		tataOfLowType(alloc, a.returnType),
+		tataOfLowFunParamsKind(alloc, a.paramsKind),
 		tataArr(alloc, a.params, (ref immutable LowParam it) =>
 			tataRecord(alloc, "param", tataOfLowParamSource(it.source), tataOfLowType(alloc, it.type))),
 		tataOfLowFunBody(alloc, a.body_));
+}
+
+immutable(Sexpr) tataOfLowFunParamsKind(Alloc)(ref Alloc alloc, ref immutable LowFunParamsKind a) {
+	return tataNamedRecord(
+		"param-kind",
+		arrLiteral!NameAndSexpr(
+			alloc,
+			nameAndTata("ctx", tataBool(a.hasCtx)),
+			nameAndTata("closure", tataBool(a.hasClosure))));
 }
 
 immutable(Sexpr) tataOfLowFunSource(Alloc)(ref Alloc alloc, ref immutable LowFunSource a) {

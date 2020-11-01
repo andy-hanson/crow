@@ -51,6 +51,7 @@ import lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunIndex,
+	LowFunParamsKind,
 	LowFunPtrType,
 	LowFunSource,
 	LowParam,
@@ -132,6 +133,7 @@ void doInterpret(
 	immutable LowFun lowFun = immutable LowFun(
 		immutable LowFunSource(immutable LowFunSource.Generated(shortSymAlphaLiteral("test"), none!LowType)),
 		nat64Type,
+		immutable LowFunParamsKind(False, False),
 		emptyArr!LowParam,
 		immutable LowFunBody(immutable LowFunBody.Extern(False, strLiteral("test"))));
 	immutable LowProgram lowProgram = immutable LowProgram(

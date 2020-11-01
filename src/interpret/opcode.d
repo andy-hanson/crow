@@ -18,6 +18,9 @@ enum OpCode : u8 {
 	// args: u16 size
 	assertStackSize,
 
+	// no args
+	assertUnreachable,
+
 	// args: u32 address
 	call,
 

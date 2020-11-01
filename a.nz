@@ -2,6 +2,15 @@ import
 	io
 	posix
 
+sample-recursion void(n nat) summon
+	when
+		n zero?
+			pass
+		else
+			print-sync: n.to-str
+			sample-recursion: n decr
+
 main fut exit-code(args arr str) summon trusted
+	sample-recursion: ten
 	print-sync: "Hello, interpreted world!"
 	0 resolved

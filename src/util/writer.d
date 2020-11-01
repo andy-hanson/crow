@@ -8,7 +8,7 @@ import util.collection.arr : Arr, at, begin, range, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, Str, strLiteral;
 import util.ptr : PtrRange;
-import util.types : u16;
+import util.types : abs, u16;
 
 struct Writer(Alloc) {
 	private:
@@ -59,10 +59,10 @@ private immutable(char) digitChar(immutable size_t digit) {
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
 }
 
-void writeInt(Alloc)(ref Writer!Alloc writer, immutable ssize_t i) {
+void writeInt(Alloc)(ref Writer!Alloc writer, immutable long i, immutable size_t base) {
 	if (i < 0)
 		writeChar(writer, '-');
-	writeNat(writer, i);
+	writeNat(writer, abs(i), base);
 }
 
 void writeBool(Alloc)(ref Writer!Alloc writer, immutable Bool b) {

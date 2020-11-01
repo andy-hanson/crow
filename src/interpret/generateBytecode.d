@@ -29,6 +29,7 @@ import interpret.bytecodeWriter :
 	StackEntry,
 	writeAddConstantNat64,
 	writeAssertStackSize,
+	writeAssertUnreachable,
 	writeCallDelayed,
 	writeCallFunPtr,
 	writeDupEntries,
@@ -41,6 +42,7 @@ import interpret.bytecodeWriter :
 	writePushConstantStr,
 	writePushEmptySpace,
 	writePushFunPtrDelayed,
+	writeJump,
 	writeJumpDelayed,
 	writePack,
 	writeStackRef,
@@ -56,6 +58,7 @@ import lowModel :
 	asParamRef,
 	asRecordFieldAccess,
 	asRecordType,
+	firstRegularParamIndex,
 	isLocalRef,
 	isParamRef,
 	isRecordFieldAccess,
@@ -389,11 +392,18 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 		},
 		(ref immutable LowFunExprBody body_) {
 			// Note: not doing it for locals because they might be unrelated and occupy the same stack entry
+			immutable size_t firstRegularParameterIndex = firstRegularParamIndex(fun);
+			immutable StackEntry regularParametersStart = firstRegularParameterIndex == size(parameters)
+				? stackEntryAfterParameters
+				: at(parameters, firstRegularParameterIndex).start;
 			ExprCtx ctx = ExprCtx(
 				ptrTrustMe(program),
 				ptrTrustMe(typeLayout),
 				funIndex,
+				returnEntries,
 				ptrTrustMe_mut(funToReferences),
+				nextByteCodeIndex(writer),
+				regularParametersStart,
 				parameters);
 			generateExpr(tempAlloc, writer, ctx, body_.expr);
 			verify(stackEntryAfterParameters.entry + returnEntries.to16() == getNextStackEntry(writer).entry);
@@ -457,7 +467,10 @@ struct ExprCtx {
 	immutable Ptr!LowProgram program;
 	immutable Ptr!TypeLayout typeLayout;
 	immutable LowFunIndex curFunIndex;
+	immutable Nat8 returnTypeSizeInStackEntries;
 	Ptr!(MutIndexMultiDict!(LowFunIndex, ByteCodeIndex)) funToReferences;
+	immutable ByteCodeIndex startOfCurrentFun;
+	immutable StackEntry regularParametersStart;
 	immutable Arr!StackEntries parameterEntries;
 	MutDict!(immutable Ptr!LowLocal, immutable StackEntries, comparePtr!LowLocal) localEntries;
 }
@@ -475,8 +488,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 		(ref immutable LowExprKind.Call it) {
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
 			immutable Nat8 expectedStackEffect = nStackEntriesForType(ctx, expr.type);
-			foreach (ref immutable LowExpr arg; range(it.args))
-				generateExpr(tempAlloc, writer, ctx, arg);
+			generateArgs(tempAlloc, writer, ctx, it.args);
 			registerFunAddress(tempAlloc, ctx, it.called,
 				writeCallDelayed(writer, source, stackEntryBeforeArgs, expectedStackEffect));
 			verify(stackEntryBeforeArgs.entry + expectedStackEffect.to16() == getNextStackEntry(writer).entry);
@@ -614,8 +626,28 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			generateSpecialNAry(tempAlloc, writer, ctx, source, expr.type, it);
 		},
 		(ref immutable LowExprKind.TailRecur it) {
-			todo!void("tail recurse");
+			immutable StackEntry before = getNextStackEntry(writer);
+			generateArgs(tempAlloc, writer, ctx, it.args);
+			// Delete the original parameters and anything else on the stack except for the new args
+			writeRemove(writer, source, immutable StackEntries(
+				ctx.regularParametersStart,
+				(before.entry - ctx.regularParametersStart.entry).to8()));
+			writeJump(writer, source, ctx.startOfCurrentFun);
+			// We'll continue to write code after the jump for cleaning up the stack, but it's unreachable.
+			// Set the stack entry as if this was a regular call returning.
+			setNextStackEntry(writer, immutable StackEntry(before.entry + ctx.returnTypeSizeInStackEntries.to16()));
+			writeAssertUnreachable(writer, source);
 		});
+}
+
+void generateArgs(CodeAlloc, TempAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	ref immutable Arr!LowExpr args,
+) {
+	foreach (ref immutable LowExpr arg; range(args))
+		generateExpr(tempAlloc, writer, ctx, arg);
 }
 
 void generateCreateRecord(CodeAlloc, TempAlloc)(
@@ -1136,8 +1168,7 @@ void generateSpecialNAry(TempAlloc, CodeAlloc)(
 	final switch (a.kind) {
 		case LowExprKind.SpecialNAry.Kind.callFunPtr:
 			immutable StackEntry stackEntryBeforeArgs = getNextStackEntry(writer);
-			foreach (ref immutable LowExpr arg; range(a.args))
-				generateExpr(tempAlloc, writer, ctx, arg);
+			generateArgs(tempAlloc, writer, ctx, a.args);
 			writeCallFunPtr(writer, source, stackEntryBeforeArgs, nStackEntriesForType(ctx, type));
 			break;
 	}

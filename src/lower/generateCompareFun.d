@@ -14,6 +14,7 @@ import lowModel :
 	LowFunBody,
 	LowFunExprBody,
 	LowFunIndex,
+	LowFunParamsKind,
 	LowFunSource,
 	LowLocal,
 	LowLocalSource,
@@ -83,6 +84,7 @@ immutable(LowFun) generateCompareFun(Alloc)(
 	return immutable LowFun(
 		immutable LowFunSource(immutable LowFunSource.Generated(shortSymAlphaLiteral("compare"), some(paramType))),
 		immutable LowType(comparisonTypes.comparison),
+		immutable LowFunParamsKind(False, False),
 		params,
 		immutable LowFunBody(body_));
 }

@@ -16,6 +16,7 @@ import concreteModel :
 import model : decl, FunInst, range;
 import util.bools : Bool;
 import util.collection.arr : Arr;
+import util.collection.arrUtil : slice;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.str : Str;
 import util.opt : Opt;
@@ -419,11 +420,25 @@ struct LowFunSource {
 	return a.concreteFun_;
 }
 
+struct LowFunParamsKind {
+	immutable Bool hasCtx;
+	immutable Bool hasClosure;
+}
+
 struct LowFun {
 	immutable LowFunSource source;
 	immutable LowType returnType;
+	immutable LowFunParamsKind paramsKind;
 	immutable Arr!LowParam params;
 	immutable LowFunBody body_;
+}
+
+immutable(size_t) firstRegularParamIndex(ref immutable LowFun a) {
+	return (a.paramsKind.hasCtx ? 1 : 0) + (a.paramsKind.hasClosure ? 1 : 0);
+}
+
+immutable(Arr!LowParam) regularParams(ref immutable LowFun a) {
+	return slice(a.params, firstRegularParamIndex(a));
 }
 
 immutable(FileAndRange) lowFunRange(ref immutable LowFun a) {

@@ -48,7 +48,8 @@ import lowModel :
 	matchLowType,
 	matchSpecialConstant,
 	name,
-	PrimitiveType;
+	PrimitiveType,
+	regularParams;
 import model : FunInst, Local, name, Param;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
@@ -658,7 +659,7 @@ void writeFunWithExprBody(Alloc)(
 	writeStatic(writer, " {\n\t");
 	declareLocals(writer, ctx, body_.allLocals);
 	if (body_.hasTailRecur) {
-		declareTailCallLocals(writer, ctx, fun.params);
+		declareTailCallLocals(writer, ctx, fun);
 		writeStatic(writer, "top:\n\t");
 	}
 	immutable FunBodyCtx bodyCtx = immutable FunBodyCtx(ptrTrustMe(ctx), body_.hasTailRecur, funIndex);
@@ -675,8 +676,8 @@ void declareLocals(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref im
 	}
 }
 
-void declareTailCallLocals(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable Arr!LowParam params) {
-	foreach (ref immutable LowParam param; range(params)) {
+void declareTailCallLocals(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowFun fun) {
+	foreach (ref immutable LowParam param; range(regularParams(fun))) {
 		writeType(writer, ctx, param.type);
 		writeStatic(writer, " _tailCall");
 		writeLowParamName(writer, param);
@@ -855,7 +856,7 @@ void writeTailRecur(Alloc)(
 	ref immutable FunBodyCtx ctx,
 	ref immutable LowExprKind.TailRecur a,
 ) {
-	immutable Arr!LowParam params = fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun).params;
+	immutable Arr!LowParam params = regularParams(fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun));
 	// For each arg: Make a 'new' version. Then assign them.
 	foreach (immutable size_t argIndex; 0..size(a.args)) {
 		immutable LowExpr arg = at(a.args, argIndex);

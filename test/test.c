@@ -2237,7 +2237,6 @@ uint8_t resolve_or_reject(struct ctx* ctx, struct fut_0* f, struct result_0 resu
 uint8_t resolve_or_reject_recur(struct ctx* ctx, struct opt_0 node, struct result_0 value) {
 	struct some_0 s0;
 	struct opt_0 _matched1;
-	struct ctx* _tailCallctx;
 	struct opt_0 _tailCallnode;
 	struct result_0 _tailCallvalue;
 	top:
@@ -2248,10 +2247,8 @@ uint8_t resolve_or_reject_recur(struct ctx* ctx, struct opt_0 node, struct resul
 		case 1:
 			s0 = _matched1.as1;
 			drop_0(call_1(ctx, s0.value->cb, value));
-			_tailCallctx = ctx;
 			_tailCallnode = s0.value->next_node;
 			_tailCallvalue = value;
-			ctx = _tailCallctx;
 			node = _tailCallnode;
 			value = _tailCallvalue;
 			goto top;
@@ -2557,7 +2554,6 @@ struct arr_0* uninitialized_data_0(struct ctx* ctx, uint64_t size) {
 	return (struct arr_0*) bptr0;
 }
 uint8_t make_mut_arr_worker_0(struct ctx* ctx, struct mut_arr_1* m, uint64_t i, struct fun_mut1_5 f) {
-	struct ctx* _tailCallctx;
 	struct mut_arr_1* _tailCallm;
 	uint64_t _tailCalli;
 	struct fun_mut1_5 _tailCallf;
@@ -2566,11 +2562,9 @@ uint8_t make_mut_arr_worker_0(struct ctx* ctx, struct mut_arr_1* m, uint64_t i, 
 		return 0;
 	} else {
 		set_at_0(ctx, m, i, call_8(ctx, f, i));
-		_tailCallctx = ctx;
 		_tailCallm = m;
 		_tailCalli = incr_0(ctx, i);
 		_tailCallf = f;
-		ctx = _tailCallctx;
 		m = _tailCallm;
 		i = _tailCalli;
 		f = _tailCallf;
@@ -3314,7 +3308,6 @@ struct opt_10 find_index(struct ctx* ctx, struct arr_1 a, struct fun_mut1_6 pred
 	return find_index_recur(ctx, a, 0, pred);
 }
 struct opt_10 find_index_recur(struct ctx* ctx, struct arr_1 a, uint64_t index, struct fun_mut1_6 pred) {
-	struct ctx* _tailCallctx;
 	struct arr_1 _tailCalla;
 	uint64_t _tailCallindex;
 	struct fun_mut1_6 _tailCallpred;
@@ -3325,11 +3318,9 @@ struct opt_10 find_index_recur(struct ctx* ctx, struct arr_1 a, uint64_t index, 
 		if (call_10(ctx, pred, at_2(ctx, a, index))) {
 			return (struct opt_10) {1, .as1 = some_8(index)};
 		} else {
-			_tailCallctx = ctx;
 			_tailCalla = a;
 			_tailCallindex = incr_0(ctx, index);
 			_tailCallpred = pred;
-			ctx = _tailCallctx;
 			a = _tailCalla;
 			index = _tailCallindex;
 			pred = _tailCallpred;
@@ -3358,7 +3349,6 @@ uint8_t starts_with__q(struct ctx* ctx, struct arr_0 a, struct arr_0 start) {
 	return (_op_greater_equal(a.size, start.size) && arr_eq__q(ctx, slice_1(ctx, a, 0, start.size), start));
 }
 uint8_t arr_eq__q(struct ctx* ctx, struct arr_0 a, struct arr_0 b) {
-	struct ctx* _tailCallctx;
 	struct arr_0 _tailCalla;
 	struct arr_0 _tailCallb;
 	top:
@@ -3367,10 +3357,8 @@ uint8_t arr_eq__q(struct ctx* ctx, struct arr_0 a, struct arr_0 b) {
 			return 1;
 		} else {
 			if (_op_equal_equal_3(first_0(ctx, a), first_0(ctx, b))) {
-				_tailCallctx = ctx;
 				_tailCalla = tail_1(ctx, a);
 				_tailCallb = tail_1(ctx, b);
-				ctx = _tailCallctx;
 				a = _tailCalla;
 				b = _tailCallb;
 				goto top;
@@ -3506,7 +3494,6 @@ uint8_t parse_named_args_recur(struct ctx* ctx, struct arr_1 args, struct mut_di
 	struct some_10 s2;
 	uint64_t next_named_arg_index3;
 	struct opt_10 _matched4;
-	struct ctx* _tailCallctx;
 	struct arr_1 _tailCallargs;
 	struct mut_dict_0 _tailCallbuilder;
 	top:
@@ -3520,10 +3507,8 @@ uint8_t parse_named_args_recur(struct ctx* ctx, struct arr_1 args, struct mut_di
 			s2 = _matched4.as1;
 			next_named_arg_index3 = s2.value;
 			add_1(ctx, builder, first_name0, slice_up_to_0(ctx, tl1, next_named_arg_index3));
-			_tailCallctx = ctx;
 			_tailCallargs = slice_starting_at_2(ctx, args, next_named_arg_index3);
 			_tailCallbuilder = builder;
-			ctx = _tailCallctx;
 			args = _tailCallargs;
 			builder = _tailCallbuilder;
 			goto top;
@@ -3622,7 +3607,6 @@ struct opt_9 get_1(struct ctx* ctx, struct dict_0* d, struct arr_0 key) {
 	return get_recursive_0(ctx, d->keys, d->values, 0, key);
 }
 struct opt_9 get_recursive_0(struct ctx* ctx, struct arr_1 keys, struct arr_6 values, uint64_t idx, struct arr_0 key) {
-	struct ctx* _tailCallctx;
 	struct arr_1 _tailCallkeys;
 	struct arr_6 _tailCallvalues;
 	uint64_t _tailCallidx;
@@ -3634,12 +3618,10 @@ struct opt_9 get_recursive_0(struct ctx* ctx, struct arr_1 keys, struct arr_6 va
 		if (_op_equal_equal_4(key, at_2(ctx, keys, idx))) {
 			return (struct opt_9) {1, .as1 = some_10(at_4(ctx, values, idx))};
 		} else {
-			_tailCallctx = ctx;
 			_tailCallkeys = keys;
 			_tailCallvalues = values;
 			_tailCallidx = incr_0(ctx, idx);
 			_tailCallkey = key;
-			ctx = _tailCallctx;
 			keys = _tailCallkeys;
 			values = _tailCallvalues;
 			idx = _tailCallidx;
@@ -3689,7 +3671,6 @@ uint8_t increase_capacity_to_0(struct ctx* ctx, struct mut_arr_1* a, uint64_t ne
 }
 uint8_t copy_data_from_0(struct ctx* ctx, struct arr_0* to, struct arr_0* from, uint64_t len) {
 	uint64_t hl0;
-	struct ctx* _tailCallctx;
 	struct arr_0* _tailCallto;
 	struct arr_0* _tailCallfrom;
 	uint64_t _tailCalllen;
@@ -3699,11 +3680,9 @@ uint8_t copy_data_from_0(struct ctx* ctx, struct arr_0* to, struct arr_0* from, 
 	} else {
 		hl0 = _op_div(ctx, len, two_1());
 		copy_data_from_0(ctx, to, from, hl0);
-		_tailCallctx = ctx;
 		_tailCallto = (to + hl0);
 		_tailCallfrom = (from + hl0);
 		_tailCalllen = _op_minus_0(ctx, len, hl0);
-		ctx = _tailCallctx;
 		to = _tailCallto;
 		from = _tailCallfrom;
 		len = _tailCalllen;
@@ -3754,17 +3733,14 @@ uint64_t round_up_to_power_of_two(struct ctx* ctx, uint64_t n) {
 	return round_up_to_power_of_two_recur(ctx, 1, n);
 }
 uint64_t round_up_to_power_of_two_recur(struct ctx* ctx, uint64_t acc, uint64_t n) {
-	struct ctx* _tailCallctx;
 	uint64_t _tailCallacc;
 	uint64_t _tailCalln;
 	top:
 	if (_op_greater_equal(acc, n)) {
 		return acc;
 	} else {
-		_tailCallctx = ctx;
 		_tailCallacc = _op_times_0(ctx, acc, two_1());
 		_tailCalln = n;
-		ctx = _tailCallctx;
 		acc = _tailCallacc;
 		n = _tailCalln;
 		goto top;
@@ -3796,7 +3772,6 @@ struct arr_1* uninitialized_data_1(struct ctx* ctx, uint64_t size) {
 }
 uint8_t copy_data_from_1(struct ctx* ctx, struct arr_1* to, struct arr_1* from, uint64_t len) {
 	uint64_t hl0;
-	struct ctx* _tailCallctx;
 	struct arr_1* _tailCallto;
 	struct arr_1* _tailCallfrom;
 	uint64_t _tailCalllen;
@@ -3806,11 +3781,9 @@ uint8_t copy_data_from_1(struct ctx* ctx, struct arr_1* to, struct arr_1* from, 
 	} else {
 		hl0 = _op_div(ctx, len, two_1());
 		copy_data_from_1(ctx, to, from, hl0);
-		_tailCallctx = ctx;
 		_tailCallto = (to + hl0);
 		_tailCallfrom = (from + hl0);
 		_tailCalllen = _op_minus_0(ctx, len, hl0);
-		ctx = _tailCallctx;
 		to = _tailCallto;
 		from = _tailCallfrom;
 		len = _tailCalllen;
@@ -3870,7 +3843,6 @@ struct opt_9* uninitialized_data_2(struct ctx* ctx, uint64_t size) {
 	return (struct opt_9*) bptr0;
 }
 uint8_t make_mut_arr_worker_1(struct ctx* ctx, struct mut_arr_3* m, uint64_t i, struct fun_mut1_7 f) {
-	struct ctx* _tailCallctx;
 	struct mut_arr_3* _tailCallm;
 	uint64_t _tailCalli;
 	struct fun_mut1_7 _tailCallf;
@@ -3879,11 +3851,9 @@ uint8_t make_mut_arr_worker_1(struct ctx* ctx, struct mut_arr_3* m, uint64_t i, 
 		return 0;
 	} else {
 		set_at_1(ctx, m, i, call_11(ctx, f, i));
-		_tailCallctx = ctx;
 		_tailCallm = m;
 		_tailCalli = incr_0(ctx, i);
 		_tailCallf = f;
-		ctx = _tailCallctx;
 		m = _tailCallm;
 		i = _tailCalli;
 		f = _tailCallf;
@@ -3915,7 +3885,6 @@ struct cell_2* new_cell_0(struct ctx* ctx, uint8_t value) {
 }
 uint8_t each_0(struct ctx* ctx, struct dict_0* d, struct fun_mut2_0 f) {
 	struct dict_0* temp0;
-	struct ctx* _tailCallctx;
 	struct dict_0* _tailCalld;
 	struct fun_mut2_0 _tailCallf;
 	top:
@@ -3923,10 +3892,8 @@ uint8_t each_0(struct ctx* ctx, struct dict_0* d, struct fun_mut2_0 f) {
 		return 0;
 	} else {
 		call_12(ctx, f, first_1(ctx, d->keys), first_2(ctx, d->values));
-		_tailCallctx = ctx;
 		_tailCalld = (temp0 = (struct dict_0*) alloc(ctx, sizeof(struct dict_0)), ((*(temp0) = (struct dict_0) {tail_2(ctx, d->keys), tail_3(ctx, d->values)}, 0), temp0));
 		_tailCallf = f;
-		ctx = _tailCallctx;
 		d = _tailCalld;
 		f = _tailCallf;
 		goto top;
@@ -4002,7 +3969,6 @@ char* uninitialized_data_3(struct ctx* ctx, uint64_t size) {
 	return (char*) bptr0;
 }
 uint8_t make_mut_arr_worker_2(struct ctx* ctx, struct mut_arr_4* m, uint64_t i, struct fun_mut1_8 f) {
-	struct ctx* _tailCallctx;
 	struct mut_arr_4* _tailCallm;
 	uint64_t _tailCalli;
 	struct fun_mut1_8 _tailCallf;
@@ -4011,11 +3977,9 @@ uint8_t make_mut_arr_worker_2(struct ctx* ctx, struct mut_arr_4* m, uint64_t i, 
 		return 0;
 	} else {
 		set_at_2(ctx, m, i, call_13(ctx, f, i));
-		_tailCallctx = ctx;
 		_tailCallm = m;
 		_tailCalli = incr_0(ctx, i);
 		_tailCallf = f;
-		ctx = _tailCallctx;
 		m = _tailCallm;
 		i = _tailCalli;
 		f = _tailCallf;
@@ -4347,7 +4311,6 @@ struct opt_10 find_rindex(struct ctx* ctx, struct arr_0 a, struct fun_mut1_9 pre
 	}
 }
 struct opt_10 find_rindex_recur(struct ctx* ctx, struct arr_0 a, uint64_t index, struct fun_mut1_9 pred) {
-	struct ctx* _tailCallctx;
 	struct arr_0 _tailCalla;
 	uint64_t _tailCallindex;
 	struct fun_mut1_9 _tailCallpred;
@@ -4358,11 +4321,9 @@ struct opt_10 find_rindex_recur(struct ctx* ctx, struct arr_0 a, uint64_t index,
 		if (zero__q_0(index)) {
 			return (struct opt_10) {0, .as0 = none()};
 		} else {
-			_tailCallctx = ctx;
 			_tailCalla = a;
 			_tailCallindex = decr(ctx, index);
 			_tailCallpred = pred;
-			ctx = _tailCallctx;
 			a = _tailCalla;
 			index = _tailCallindex;
 			pred = _tailCallpred;
@@ -4431,7 +4392,6 @@ struct mut_dict_1 new_mut_dict_1(struct ctx* ctx) {
 	return (struct mut_dict_1) {new_mut_arr_0(ctx), new_mut_arr_0(ctx)};
 }
 uint8_t get_environ_recur(struct ctx* ctx, char** env, struct mut_dict_1 res) {
-	struct ctx* _tailCallctx;
 	char** _tailCallenv;
 	struct mut_dict_1 _tailCallres;
 	top:
@@ -4439,10 +4399,8 @@ uint8_t get_environ_recur(struct ctx* ctx, char** env, struct mut_dict_1 res) {
 		return 0;
 	} else {
 		add_2(ctx, res, parse_environ_entry(ctx, (*(env))));
-		_tailCallctx = ctx;
 		_tailCallenv = incr_4(env);
 		_tailCallres = res;
-		ctx = _tailCallctx;
 		env = _tailCallenv;
 		res = _tailCallres;
 		goto top;
@@ -4488,7 +4446,6 @@ struct opt_11 get_3(struct ctx* ctx, struct dict_1* d, struct arr_0 key) {
 	return get_recursive_1(ctx, d->keys, d->values, 0, key);
 }
 struct opt_11 get_recursive_1(struct ctx* ctx, struct arr_1 keys, struct arr_1 values, uint64_t idx, struct arr_0 key) {
-	struct ctx* _tailCallctx;
 	struct arr_1 _tailCallkeys;
 	struct arr_1 _tailCallvalues;
 	uint64_t _tailCallidx;
@@ -4500,12 +4457,10 @@ struct opt_11 get_recursive_1(struct ctx* ctx, struct arr_1 keys, struct arr_1 v
 		if (_op_equal_equal_4(key, at_2(ctx, keys, idx))) {
 			return (struct opt_11) {1, .as1 = some_9(at_2(ctx, values, idx))};
 		} else {
-			_tailCallctx = ctx;
 			_tailCallkeys = keys;
 			_tailCallvalues = values;
 			_tailCallidx = incr_0(ctx, idx);
 			_tailCallkey = key;
-			ctx = _tailCallctx;
 			keys = _tailCallkeys;
 			values = _tailCallvalues;
 			idx = _tailCallidx;
@@ -4753,7 +4708,6 @@ uint32_t s_ifdir(struct ctx* ctx) {
 	return two_pow_0(fourteen());
 }
 uint8_t each_1(struct ctx* ctx, struct arr_1 a, struct fun_mut1_11 f) {
-	struct ctx* _tailCallctx;
 	struct arr_1 _tailCalla;
 	struct fun_mut1_11 _tailCallf;
 	top:
@@ -4761,10 +4715,8 @@ uint8_t each_1(struct ctx* ctx, struct arr_1 a, struct fun_mut1_11 f) {
 		return 0;
 	} else {
 		call_18(ctx, f, first_1(ctx, a));
-		_tailCallctx = ctx;
 		_tailCalla = tail_2(ctx, a);
 		_tailCallf = f;
-		ctx = _tailCallctx;
 		a = _tailCalla;
 		f = _tailCallf;
 		goto top;
@@ -4794,7 +4746,6 @@ uint8_t read_dir_recur(struct ctx* ctx, uint8_t* dirp, struct mut_arr_1* res) {
 	int32_t err2;
 	struct arr_0 name3;
 	struct dirent* temp0;
-	struct ctx* _tailCallctx;
 	uint8_t* _tailCalldirp;
 	struct mut_arr_1* _tailCallres;
 	top:
@@ -4812,10 +4763,8 @@ uint8_t read_dir_recur(struct ctx* ctx, uint8_t* dirp, struct mut_arr_1* res) {
 		} else {
 			push_0(ctx, res, get_dirent_name(entry0));
 		}
-		_tailCallctx = ctx;
 		_tailCalldirp = dirp;
 		_tailCallres = res;
-		ctx = _tailCallctx;
 		dirp = _tailCalldirp;
 		res = _tailCallres;
 		goto top;
@@ -4863,7 +4812,6 @@ uint8_t sort_2(struct ctx* ctx, struct mut_slice* a) {
 	struct arr_0 pivot0;
 	uint64_t index_of_first_value_gt_pivot1;
 	uint64_t new_pivot_index2;
-	struct ctx* _tailCallctx;
 	struct mut_slice* _tailCalla;
 	top:
 	if (_op_less_equal_0(a->size, 1)) {
@@ -4875,9 +4823,7 @@ uint8_t sort_2(struct ctx* ctx, struct mut_slice* a) {
 		new_pivot_index2 = decr(ctx, index_of_first_value_gt_pivot1);
 		swap_0(ctx, a, 0, new_pivot_index2);
 		sort_2(ctx, slice_4(ctx, a, 0, new_pivot_index2));
-		_tailCallctx = ctx;
 		_tailCalla = slice_5(ctx, a, incr_0(ctx, new_pivot_index2));
-		ctx = _tailCallctx;
 		a = _tailCalla;
 		goto top;
 	}
@@ -4906,7 +4852,6 @@ uint8_t set_at_3(struct ctx* ctx, struct mut_slice* a, uint64_t index, struct ar
 }
 uint64_t partition_recur(struct ctx* ctx, struct mut_slice* a, struct arr_0 pivot, uint64_t l, uint64_t r) {
 	struct arr_0 em0;
-	struct ctx* _tailCallctx;
 	struct mut_slice* _tailCalla;
 	struct arr_0 _tailCallpivot;
 	uint64_t _tailCalll;
@@ -4917,12 +4862,10 @@ uint64_t partition_recur(struct ctx* ctx, struct mut_slice* a, struct arr_0 pivo
 	if (_op_less_equal_0(l, r)) {
 		em0 = at_7(ctx, a, l);
 		if (_op_less_2(em0, pivot)) {
-			_tailCallctx = ctx;
 			_tailCalla = a;
 			_tailCallpivot = pivot;
 			_tailCalll = incr_0(ctx, l);
 			_tailCallr = r;
-			ctx = _tailCallctx;
 			a = _tailCalla;
 			pivot = _tailCallpivot;
 			l = _tailCalll;
@@ -4930,12 +4873,10 @@ uint64_t partition_recur(struct ctx* ctx, struct mut_slice* a, struct arr_0 pivo
 			goto top;
 		} else {
 			swap_0(ctx, a, l, r);
-			_tailCallctx = ctx;
 			_tailCalla = a;
 			_tailCallpivot = pivot;
 			_tailCalll = l;
 			_tailCallr = decr(ctx, r);
-			ctx = _tailCallctx;
 			a = _tailCalla;
 			pivot = _tailCallpivot;
 			l = _tailCalll;
@@ -5000,7 +4941,6 @@ struct opt_11 get_extension(struct ctx* ctx, struct arr_0 name) {
 	}
 }
 struct opt_10 last_index_of(struct ctx* ctx, struct arr_0 s, char c) {
-	struct ctx* _tailCallctx;
 	struct arr_0 _tailCalls;
 	char _tailCallc;
 	top:
@@ -5010,10 +4950,8 @@ struct opt_10 last_index_of(struct ctx* ctx, struct arr_0 s, char c) {
 		if (_op_equal_equal_3(last(ctx, s), c)) {
 			return (struct opt_10) {1, .as1 = some_8(decr(ctx, s.size))};
 		} else {
-			_tailCallctx = ctx;
 			_tailCalls = rtail(ctx, s);
 			_tailCallc = c;
-			ctx = _tailCallctx;
 			s = _tailCalls;
 			c = _tailCallc;
 			goto top;
@@ -5075,7 +5013,6 @@ uint8_t push_all(struct ctx* ctx, struct mut_arr_5* a, struct arr_7 values) {
 	return each_2(ctx, values, (struct fun_mut1_13) {(fun_ptr3_14) push_all__lambda0, (uint8_t*) (temp0 = (struct push_all__lambda0*) alloc(ctx, sizeof(struct push_all__lambda0)), ((*(temp0) = (struct push_all__lambda0) {a}, 0), temp0))});
 }
 uint8_t each_2(struct ctx* ctx, struct arr_7 a, struct fun_mut1_13 f) {
-	struct ctx* _tailCallctx;
 	struct arr_7 _tailCalla;
 	struct fun_mut1_13 _tailCallf;
 	top:
@@ -5083,10 +5020,8 @@ uint8_t each_2(struct ctx* ctx, struct arr_7 a, struct fun_mut1_13 f) {
 		return 0;
 	} else {
 		call_19(ctx, f, first_3(ctx, a));
-		_tailCallctx = ctx;
 		_tailCalla = tail_4(ctx, a);
 		_tailCallf = f;
-		ctx = _tailCallctx;
 		a = _tailCalla;
 		f = _tailCallf;
 		goto top;
@@ -5151,7 +5086,6 @@ struct failure** uninitialized_data_4(struct ctx* ctx, uint64_t size) {
 }
 uint8_t copy_data_from_2(struct ctx* ctx, struct failure** to, struct failure** from, uint64_t len) {
 	uint64_t hl0;
-	struct ctx* _tailCallctx;
 	struct failure** _tailCallto;
 	struct failure** _tailCallfrom;
 	uint64_t _tailCalllen;
@@ -5161,11 +5095,9 @@ uint8_t copy_data_from_2(struct ctx* ctx, struct failure** to, struct failure** 
 	} else {
 		hl0 = _op_div(ctx, len, two_1());
 		copy_data_from_2(ctx, to, from, hl0);
-		_tailCallctx = ctx;
 		_tailCallto = (to + hl0);
 		_tailCallfrom = (from + hl0);
 		_tailCalllen = _op_minus_0(ctx, len, hl0);
-		ctx = _tailCallctx;
 		to = _tailCallto;
 		from = _tailCallfrom;
 		len = _tailCalllen;
@@ -5248,7 +5180,6 @@ struct arr_7 run_single_noze_test(struct ctx* ctx, struct arr_0 path_to_noze, st
 struct opt_13 first_some(struct ctx* ctx, struct arr_1 a, struct fun_mut1_14 cb) {
 	struct some_13 s0;
 	struct opt_13 _matched1;
-	struct ctx* _tailCallctx;
 	struct arr_1 _tailCalla;
 	struct fun_mut1_14 _tailCallcb;
 	top:
@@ -5258,10 +5189,8 @@ struct opt_13 first_some(struct ctx* ctx, struct arr_1 a, struct fun_mut1_14 cb)
 		_matched1 = call_21(ctx, cb, first_1(ctx, a));
 		switch (_matched1.kind) {
 			case 0:
-				_tailCallctx = ctx;
 				_tailCalla = tail_2(ctx, a);
 				_tailCallcb = cb;
-				ctx = _tailCallctx;
 				a = _tailCalla;
 				cb = _tailCallcb;
 				goto top;
@@ -5333,7 +5262,6 @@ struct process_result* spawn_and_wait_result_0(struct ctx* ctx, struct arr_0 exe
 	}
 }
 struct arr_0 fold(struct ctx* ctx, struct arr_0 val, struct arr_1 a, struct fun_mut2_1 combine) {
-	struct ctx* _tailCallctx;
 	struct arr_0 _tailCallval;
 	struct arr_1 _tailCalla;
 	struct fun_mut2_1 _tailCallcombine;
@@ -5341,11 +5269,9 @@ struct arr_0 fold(struct ctx* ctx, struct arr_0 val, struct arr_1 a, struct fun_
 	if (empty__q_6(a)) {
 		return val;
 	} else {
-		_tailCallctx = ctx;
 		_tailCallval = call_22(ctx, combine, val, first_1(ctx, a));
 		_tailCalla = tail_2(ctx, a);
 		_tailCallcombine = combine;
-		ctx = _tailCallctx;
 		val = _tailCallval;
 		a = _tailCalla;
 		combine = _tailCallcombine;
@@ -5446,7 +5372,6 @@ uint8_t keep_polling(struct ctx* ctx, int32_t stdout_pipe, int32_t stderr_pipe, 
 	struct handle_revents_result a5;
 	struct handle_revents_result b6;
 	struct pollfd* temp0;
-	struct ctx* _tailCallctx;
 	int32_t _tailCallstdout_pipe;
 	int32_t _tailCallstderr_pipe;
 	struct mut_arr_4* _tailCallstdout_builder;
@@ -5465,12 +5390,10 @@ uint8_t keep_polling(struct ctx* ctx, int32_t stdout_pipe, int32_t stderr_pipe, 
 		if ((a5.hung_up__q && b6.hung_up__q)) {
 			return 0;
 		} else {
-			_tailCallctx = ctx;
 			_tailCallstdout_pipe = stdout_pipe;
 			_tailCallstderr_pipe = stderr_pipe;
 			_tailCallstdout_builder = stdout_builder;
 			_tailCallstderr_builder = stderr_builder;
-			ctx = _tailCallctx;
 			stdout_pipe = _tailCallstdout_pipe;
 			stderr_pipe = _tailCallstderr_pipe;
 			stdout_builder = _tailCallstdout_builder;
@@ -5562,7 +5485,6 @@ uint8_t read_to_buffer_until_eof(struct ctx* ctx, int32_t fd, struct mut_arr_4* 
 	uint64_t read_max0;
 	char* add_data_to1;
 	int64_t n_bytes_read2;
-	struct ctx* _tailCallctx;
 	int32_t _tailCallfd;
 	struct mut_arr_4* _tailCallbuffer;
 	top:
@@ -5578,10 +5500,8 @@ uint8_t read_to_buffer_until_eof(struct ctx* ctx, int32_t fd, struct mut_arr_4* 
 		} else {
 			assert_0(ctx, _op_less_equal_0(to_nat_0(ctx, n_bytes_read2), read_max0));
 			unsafe_increase_size(ctx, buffer, to_nat_0(ctx, n_bytes_read2));
-			_tailCallctx = ctx;
 			_tailCallfd = fd;
 			_tailCallbuffer = buffer;
-			ctx = _tailCallctx;
 			fd = _tailCallfd;
 			buffer = _tailCallbuffer;
 			goto top;
@@ -5612,7 +5532,6 @@ uint8_t increase_capacity_to_3(struct ctx* ctx, struct mut_arr_4* a, uint64_t ne
 }
 uint8_t copy_data_from_3(struct ctx* ctx, char* to, char* from, uint64_t len) {
 	uint64_t hl0;
-	struct ctx* _tailCallctx;
 	char* _tailCallto;
 	char* _tailCallfrom;
 	uint64_t _tailCalllen;
@@ -5622,11 +5541,9 @@ uint8_t copy_data_from_3(struct ctx* ctx, char* to, char* from, uint64_t len) {
 	} else {
 		hl0 = _op_div(ctx, len, two_1());
 		copy_data_from_3(ctx, to, from, hl0);
-		_tailCallctx = ctx;
 		_tailCallto = (to + hl0);
 		_tailCallfrom = (from + hl0);
 		_tailCalllen = _op_minus_0(ctx, len, hl0);
-		ctx = _tailCallctx;
 		to = _tailCallto;
 		from = _tailCallfrom;
 		len = _tailCalllen;
@@ -5927,7 +5844,6 @@ char** uninitialized_data_5(struct ctx* ctx, uint64_t size) {
 	return (char**) bptr0;
 }
 uint8_t make_mut_arr_worker_3(struct ctx* ctx, struct mut_arr_6* m, uint64_t i, struct fun_mut1_15 f) {
-	struct ctx* _tailCallctx;
 	struct mut_arr_6* _tailCallm;
 	uint64_t _tailCalli;
 	struct fun_mut1_15 _tailCallf;
@@ -5936,11 +5852,9 @@ uint8_t make_mut_arr_worker_3(struct ctx* ctx, struct mut_arr_6* m, uint64_t i, 
 		return 0;
 	} else {
 		set_at_4(ctx, m, i, call_23(ctx, f, i));
-		_tailCallctx = ctx;
 		_tailCallm = m;
 		_tailCalli = incr_0(ctx, i);
 		_tailCallf = f;
-		ctx = _tailCallctx;
 		m = _tailCallm;
 		i = _tailCalli;
 		f = _tailCallf;
@@ -6005,7 +5919,6 @@ struct mut_arr_6* new_mut_arr_4(struct ctx* ctx) {
 }
 uint8_t each_3(struct ctx* ctx, struct dict_1* d, struct fun_mut2_2 f) {
 	struct dict_1* temp0;
-	struct ctx* _tailCallctx;
 	struct dict_1* _tailCalld;
 	struct fun_mut2_2 _tailCallf;
 	top:
@@ -6013,10 +5926,8 @@ uint8_t each_3(struct ctx* ctx, struct dict_1* d, struct fun_mut2_2 f) {
 		return 0;
 	} else {
 		call_25(ctx, f, first_1(ctx, d->keys), first_1(ctx, d->values));
-		_tailCallctx = ctx;
 		_tailCalld = (temp0 = (struct dict_1*) alloc(ctx, sizeof(struct dict_1)), ((*(temp0) = (struct dict_1) {tail_2(ctx, d->keys), tail_2(ctx, d->values)}, 0), temp0));
 		_tailCallf = f;
-		ctx = _tailCallctx;
 		d = _tailCalld;
 		f = _tailCallf;
 		goto top;
@@ -6052,7 +5963,6 @@ uint8_t increase_capacity_to_4(struct ctx* ctx, struct mut_arr_6* a, uint64_t ne
 }
 uint8_t copy_data_from_4(struct ctx* ctx, char** to, char** from, uint64_t len) {
 	uint64_t hl0;
-	struct ctx* _tailCallctx;
 	char** _tailCallto;
 	char** _tailCallfrom;
 	uint64_t _tailCalllen;
@@ -6062,11 +5972,9 @@ uint8_t copy_data_from_4(struct ctx* ctx, char** to, char** from, uint64_t len) 
 	} else {
 		hl0 = _op_div(ctx, len, two_1());
 		copy_data_from_4(ctx, to, from, hl0);
-		_tailCallctx = ctx;
 		_tailCallto = (to + hl0);
 		_tailCallfrom = (from + hl0);
 		_tailCalllen = _op_minus_0(ctx, len, hl0);
-		ctx = _tailCallctx;
 		to = _tailCallto;
 		from = _tailCallfrom;
 		len = _tailCalllen;
@@ -6301,7 +6209,6 @@ struct arr_0 remove_colors(struct ctx* ctx, struct arr_0 s) {
 	return freeze_3(out0);
 }
 uint8_t remove_colors_recur(struct ctx* ctx, struct arr_0 s, struct mut_arr_4* out) {
-	struct ctx* _tailCallctx;
 	struct arr_0 _tailCalls;
 	struct mut_arr_4* _tailCallout;
 	top:
@@ -6312,10 +6219,8 @@ uint8_t remove_colors_recur(struct ctx* ctx, struct arr_0 s, struct mut_arr_4* o
 			return remove_colors_recur_2(ctx, tail_1(ctx, s), out);
 		} else {
 			push_4(ctx, out, first_0(ctx, s));
-			_tailCallctx = ctx;
 			_tailCalls = tail_1(ctx, s);
 			_tailCallout = out;
-			ctx = _tailCallctx;
 			s = _tailCalls;
 			out = _tailCallout;
 			goto top;
@@ -6323,7 +6228,6 @@ uint8_t remove_colors_recur(struct ctx* ctx, struct arr_0 s, struct mut_arr_4* o
 	}
 }
 uint8_t remove_colors_recur_2(struct ctx* ctx, struct arr_0 s, struct mut_arr_4* out) {
-	struct ctx* _tailCallctx;
 	struct arr_0 _tailCalls;
 	struct mut_arr_4* _tailCallout;
 	top:
@@ -6333,10 +6237,8 @@ uint8_t remove_colors_recur_2(struct ctx* ctx, struct arr_0 s, struct mut_arr_4*
 		if (_op_equal_equal_3(first_0(ctx, s), literal_0((struct arr_0) {1, "m"}))) {
 			return remove_colors_recur(ctx, tail_1(ctx, s), out);
 		} else {
-			_tailCallctx = ctx;
 			_tailCalls = tail_1(ctx, s);
 			_tailCallout = out;
-			ctx = _tailCallctx;
 			s = _tailCalls;
 			out = _tailCallout;
 			goto top;
@@ -6433,7 +6335,6 @@ uint8_t excluded_from_lint__q(struct ctx* ctx, struct arr_0 name) {
 	return (_op_equal_equal_3(first_0(ctx, name), literal_0((struct arr_0) {1, "."})) || (_op_equal_equal_4(name, (struct arr_0) {7, "libfirm"}) || some__q(ctx, bad_exts1, (struct fun_mut1_6) {(fun_ptr3_7) excluded_from_lint__q__lambda0, (uint8_t*) (temp1 = (struct excluded_from_lint__q__lambda0*) alloc(ctx, sizeof(struct excluded_from_lint__q__lambda0)), ((*(temp1) = (struct excluded_from_lint__q__lambda0) {name}, 0), temp1))})));
 }
 uint8_t some__q(struct ctx* ctx, struct arr_1 a, struct fun_mut1_6 pred) {
-	struct ctx* _tailCallctx;
 	struct arr_1 _tailCalla;
 	struct fun_mut1_6 _tailCallpred;
 	top:
@@ -6441,10 +6342,8 @@ uint8_t some__q(struct ctx* ctx, struct arr_1 a, struct fun_mut1_6 pred) {
 		if (call_10(ctx, pred, first_1(ctx, a))) {
 			return 1;
 		} else {
-			_tailCallctx = ctx;
 			_tailCalla = tail_2(ctx, a);
 			_tailCallpred = pred;
-			ctx = _tailCallctx;
 			a = _tailCalla;
 			pred = _tailCallpred;
 			goto top;
@@ -6552,7 +6451,6 @@ uint8_t each_with_index_0(struct ctx* ctx, struct arr_1 a, struct fun_mut2_3 f) 
 	return each_with_index_recur_0(ctx, a, f, 0);
 }
 uint8_t each_with_index_recur_0(struct ctx* ctx, struct arr_1 a, struct fun_mut2_3 f, uint64_t n) {
-	struct ctx* _tailCallctx;
 	struct arr_1 _tailCalla;
 	struct fun_mut2_3 _tailCallf;
 	uint64_t _tailCalln;
@@ -6561,11 +6459,9 @@ uint8_t each_with_index_recur_0(struct ctx* ctx, struct arr_1 a, struct fun_mut2
 		return 0;
 	} else {
 		call_26(ctx, f, at_2(ctx, a, n), n);
-		_tailCallctx = ctx;
 		_tailCalla = a;
 		_tailCallf = f;
 		_tailCalln = incr_0(ctx, n);
-		ctx = _tailCallctx;
 		a = _tailCalla;
 		f = _tailCallf;
 		n = _tailCalln;
@@ -6598,7 +6494,6 @@ uint8_t each_with_index_1(struct ctx* ctx, struct arr_0 a, struct fun_mut2_4 f) 
 	return each_with_index_recur_1(ctx, a, f, 0);
 }
 uint8_t each_with_index_recur_1(struct ctx* ctx, struct arr_0 a, struct fun_mut2_4 f, uint64_t n) {
-	struct ctx* _tailCallctx;
 	struct arr_0 _tailCalla;
 	struct fun_mut2_4 _tailCallf;
 	uint64_t _tailCalln;
@@ -6607,11 +6502,9 @@ uint8_t each_with_index_recur_1(struct ctx* ctx, struct arr_0 a, struct fun_mut2
 		return 0;
 	} else {
 		call_27(ctx, f, at_3(ctx, a, n), n);
-		_tailCallctx = ctx;
 		_tailCalla = a;
 		_tailCallf = f;
 		_tailCalln = incr_0(ctx, n);
-		ctx = _tailCallctx;
 		a = _tailCalla;
 		f = _tailCallf;
 		n = _tailCalln;
@@ -6654,13 +6547,10 @@ uint8_t has__q_7(struct arr_0 a) {
 	return !empty__q_0(a);
 }
 struct arr_0 lstrip(struct ctx* ctx, struct arr_0 a) {
-	struct ctx* _tailCallctx;
 	struct arr_0 _tailCalla;
 	top:
 	if ((has__q_7(a) && _op_equal_equal_3(first_0(ctx, a), literal_0((struct arr_0) {1, " "})))) {
-		_tailCallctx = ctx;
 		_tailCalla = tail_1(ctx, a);
-		ctx = _tailCallctx;
 		a = _tailCalla;
 		goto top;
 	} else {

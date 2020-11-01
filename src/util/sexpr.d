@@ -11,11 +11,12 @@ import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr;
 import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
-import util.types : NatN, safeIntFromSizeT;
+import util.types : abs, IntN, NatN, safeIntFromSizeT;
 import util.util : todo, unreachable;
 import util.writer :
 	newline,
 	writeChar,
+	writeInt,
 	writeNat,
 	Writer,
 	writeQuotedStr,
@@ -146,7 +147,11 @@ immutable(Sexpr) tataBool(immutable Bool a) {
 }
 
 immutable(Sexpr) tataHex(T)(immutable NatN!T a) {
-	return immutable Sexpr(immutable SexprNat(a.raw(), 16));
+	return immutable Sexpr(immutable SexprInt(a.raw(), 16));
+}
+
+immutable(Sexpr) tataInt(T)(immutable IntN!T a) {
+	return immutable Sexpr(immutable SexprInt(a.raw(), 16));
 }
 
 immutable(Sexpr) tataNat(T)(immutable NatN!T a) {
@@ -154,7 +159,7 @@ immutable(Sexpr) tataNat(T)(immutable NatN!T a) {
 }
 
 immutable(Sexpr) tataNat(immutable size_t a) {
-	return immutable Sexpr(immutable SexprNat(a, 10));
+	return immutable Sexpr(immutable SexprInt(a, 10));
 }
 
 immutable(Sexpr) tataStr(immutable Str a) {
@@ -201,8 +206,8 @@ struct SexprArr {
 	immutable Arr!Sexpr arr;
 }
 
-struct SexprNat {
-	immutable size_t nat;
+struct SexprInt {
+	immutable long value;
 	immutable size_t base;
 }
 
@@ -213,7 +218,7 @@ struct Sexpr {
 		arr,
 		bool_,
 		namedRecord,
-		nat,
+		int_,
 		opt,
 		record,
 		str,
@@ -224,7 +229,7 @@ struct Sexpr {
 		immutable SexprArr arr;
 		immutable Bool bool_;
 		immutable SexprNamedRecord namedRecord;
-		immutable SexprNat nat;
+		immutable SexprInt int_;
 		immutable Opt!(Ptr!Sexpr) opt;
 		immutable SexprRecord record;
 		immutable Str str;
@@ -234,7 +239,7 @@ struct Sexpr {
 	@trusted this(immutable SexprArr a, bool b) immutable { kind = Kind.arr; arr = a; }
 	this(immutable Bool a) immutable { kind = Kind.bool_; bool_ = a; }
 	@trusted this(immutable SexprNamedRecord a) immutable { kind = Kind.namedRecord; namedRecord = a; }
-	@trusted this(immutable SexprNat a) immutable { kind = Kind.nat; nat = a; }
+	@trusted this(immutable SexprInt a) immutable { kind = Kind.int_; int_ = a; }
 	@trusted this(immutable Opt!(Ptr!Sexpr) a) immutable { kind = Kind.opt; opt = a; }
 	@trusted this(immutable SexprRecord a) immutable { kind = Kind.record; record = a; }
 	@trusted this(immutable Str a) immutable { kind = Kind.str; str = a; }
@@ -245,7 +250,7 @@ struct Sexpr {
 	ref immutable Sexpr a,
 	scope T delegate(ref immutable SexprArr) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Bool) @safe @nogc pure nothrow cbBool,
-	scope T delegate(immutable SexprNat) @safe @nogc pure nothrow cbNat,
+	scope T delegate(immutable SexprInt) @safe @nogc pure nothrow cbInt,
 	scope T delegate(ref immutable SexprNamedRecord) @safe @nogc pure nothrow cbNamedRecord,
 	scope T delegate(immutable Opt!(Ptr!Sexpr)) @safe @nogc pure nothrow cbOpt,
 	scope T delegate(ref immutable SexprRecord) @safe @nogc pure nothrow cbRecord,
@@ -259,8 +264,8 @@ struct Sexpr {
 			return cbBool(a.bool_);
 		case Sexpr.Kind.namedRecord:
 			return cbNamedRecord(a.namedRecord);
-		case Sexpr.Kind.nat:
-			return cbNat(a.nat);
+		case Sexpr.Kind.int_:
+			return cbInt(a.int_);
 		case Sexpr.Kind.opt:
 			return cbOpt(a.opt);
 		case Sexpr.Kind.record:
@@ -298,8 +303,8 @@ void writeSexprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
 		(immutable Bool it) {
 			writeSexprBool(writer, it);
 		},
-		(immutable SexprNat it) {
-			writeSexprNat(writer, it);
+		(immutable SexprInt it) {
+			writeSexprInt(writer, it);
 		},
 		(ref immutable SexprNamedRecord it) {
 			writeStatic(writer, "{\"_type\":");
@@ -375,8 +380,8 @@ void writeSexpr(Alloc)(
 		(immutable Bool s) {
 			writeSexprBool(writer, s);
 		},
-		(immutable SexprNat it) {
-			writeSexprNat(writer, it);
+		(immutable SexprInt it) {
+			writeSexprInt(writer, it);
 		},
 		(ref immutable SexprNamedRecord it) {
 			if (measureSexprNamedRecord(it, availableWidth) < 0) {
@@ -428,8 +433,8 @@ immutable(int) measureSexprSingleLine(ref immutable Sexpr a, immutable int avail
 			measureSexprArr(s, available),
 		(immutable Bool s) =>
 			available - measureSexprBool(s),
-		(immutable SexprNat s) =>
-			available - measureSexprNat(s),
+		(immutable SexprInt s) =>
+			available - measureSexprInt(s),
 		(ref immutable SexprNamedRecord s) =>
 			measureSexprNamedRecord(s, available),
 		(immutable Opt!(Ptr!Sexpr) s) =>
@@ -492,8 +497,8 @@ void writeSexprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a)
 		(immutable Bool s) {
 			writeSexprBool(writer, s);
 		},
-		(immutable SexprNat it) {
-			writeSexprNat(writer, it);
+		(immutable SexprInt it) {
+			writeSexprInt(writer, it);
 		},
 		(ref immutable SexprNamedRecord s) {
 			writeSexprNamedRecordSingleLine(writer, s);
@@ -555,19 +560,19 @@ void writeSexprBool(Alloc)(ref Writer!Alloc writer, ref immutable Bool s) {
 	writeStatic(writer, s ? "true" : "false");
 }
 
-immutable(int) measureSexprNat(immutable SexprNat s) {
+immutable(int) measureSexprInt(immutable SexprInt s) {
 	uint recur(immutable uint size, immutable size_t a) {
 		return a == 0 ? 0 : recur(size + 1, a / s.base);
 	}
-	return recur(1, s.nat / s.base);
+	return (s.value < 0 ? 1 : 0) + recur(1, abs(s.value) / s.base);
 }
 
 immutable(int) measureQuotedStr(ref immutable Str s) {
 	return 2 + safeIntFromSizeT(size(s));
 }
 
-void writeSexprNat(Alloc)(ref Writer!Alloc writer, ref immutable SexprNat a) {
+void writeSexprInt(Alloc)(ref Writer!Alloc writer, ref immutable SexprInt a) {
 	if (a.base == 16)
 		writeStatic(writer, "0x");
-	writeNat(writer, a.nat, a.base);
+	writeInt(writer, a.value, a.base);
 }

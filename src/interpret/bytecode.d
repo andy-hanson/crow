@@ -8,19 +8,22 @@ import util.bools : Bool;
 import util.collection.arr : Arr, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.str : Str, strLiteral;
-import util.sexpr : Sexpr, tataArr, tataHex, tataNat, tataRecord, tataStr, tataSym;
+import util.sexpr : Sexpr, tataArr, tataHex, tataInt, tataNat, tataRecord, tataStr, tataSym;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, zero;
+import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, zero;
 import util.sourceRange : FileIndex, Pos;
 import util.util : todo, verify;
 
 T matchDebugOperationImpure(T)(
 	ref immutable DebugOperation a,
 	scope T delegate(ref immutable DebugOperation.AssertStackSize) @safe @nogc nothrow cbAssertStackSize,
+	scope T delegate(ref immutable DebugOperation.AssertUnreachable) @safe @nogc nothrow cbAssertUnreachable,
 ) {
 	final switch (a.kind_) {
 		case DebugOperation.Kind.assertStackSize:
 			return cbAssertStackSize(a.assertStackSize_);
+		case DebugOperation.Kind.assertUnreachable:
+			return cbAssertUnreachable(a.assertUnreachable_);
 	}
 }
 
@@ -159,7 +162,7 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 		(ref immutable Operation.Fn it)  =>
 			tataRecord(alloc, "fn", tataStr(strOfFnOp(it.fnOp))),
 		(ref immutable Operation.Jump it)  =>
-			tataRecord(alloc, "jump", tataNat(it.offset.offset)),
+			tataRecord(alloc, "jump", tataInt(it.offset.offset)),
 		(ref immutable Operation.Pack it)  =>
 			tataRecord(alloc, "pack", tataArr(alloc, it.sizes, (ref immutable Nat8 size) => tataNat(size))),
 		(ref immutable Operation.PushValue it)  =>
@@ -182,7 +185,9 @@ immutable(Sexpr) sexprOfDebugOperation(Alloc)(ref Alloc alloc, ref immutable Deb
 	return matchDebugOperation(
 		a,
 		(ref immutable DebugOperation.AssertStackSize it) =>
-			tataRecord(alloc, "assertstck", tataNat(it.stackSize)));
+			tataRecord(alloc, "assertstck", tataNat(it.stackSize)),
+		(ref immutable DebugOperation.AssertUnreachable it) =>
+			tataSym("unreachabl"));
 }
 
 //TODO:MOVE
@@ -235,25 +240,33 @@ struct DebugOperation {
 		immutable Nat16 stackSize;
 	}
 
+	struct AssertUnreachable {}
+
 	immutable this(immutable AssertStackSize a) { kind_ = Kind.assertStackSize; assertStackSize_ = a; }
+	immutable this(immutable AssertUnreachable a) { kind_ = Kind.assertUnreachable; assertUnreachable_ = a; }
 
 	private:
 	enum Kind {
 		assertStackSize,
+		assertUnreachable,
 	}
 	immutable Kind kind_;
 	union {
 		immutable AssertStackSize assertStackSize_;
+		immutable AssertUnreachable assertUnreachable_;
 	}
 }
 
 T matchDebugOperation(T)(
 	ref immutable DebugOperation a,
 	scope T delegate(ref immutable DebugOperation.AssertStackSize) @safe @nogc pure nothrow cbAssertStackSize,
+	scope T delegate(ref immutable DebugOperation.AssertUnreachable) @safe @nogc pure nothrow cbAssertUnreachable,
 ) {
 	final switch (a.kind_) {
 		case DebugOperation.Kind.assertStackSize:
 			return cbAssertStackSize(a.assertStackSize_);
+		case DebugOperation.Kind.assertUnreachable:
+			return cbAssertUnreachable(a.assertUnreachable_);
 	}
 }
 
@@ -336,7 +349,7 @@ struct Operation {
 	// A 0th offset is needed because otherwise there's no way to know how many cases there are.
 	struct Switch {
 		// The reader can't return the offsets since it doesn't have a length
-		immutable Arr!ByteCodeOffset offsets;
+		immutable Arr!ByteCodeOffsetUnsigned offsets;
 	}
 
 	// Pop divRoundUp(size, stackEntrySize) stack entries, then pop a pointer, then write to ptr + offset
@@ -434,12 +447,21 @@ immutable(ByteCodeIndex) addByteCodeIndex(immutable ByteCodeIndex a, immutable N
 }
 
 immutable(ByteCodeOffset) subtractByteCodeIndex(immutable ByteCodeIndex a, immutable ByteCodeIndex b) {
-	verify(a.index >= b.index);
-	return immutable ByteCodeOffset((a.index - b.index).to16());
+	return immutable ByteCodeOffset((a.index.toInt32() - b.index.toInt32()).to16());
+}
+
+struct ByteCodeOffsetUnsigned {
+	immutable Nat16 offset;
 }
 
 struct ByteCodeOffset {
-	immutable Nat16 offset;
+	@safe @nogc pure nothrow:
+
+	immutable Int16 offset;
+
+	immutable(ByteCodeOffsetUnsigned) unsigned() const {
+		return immutable ByteCodeOffsetUnsigned(offset.unsigned());
+	}
 }
 
 immutable Nat8 stackEntrySize = immutable Nat8(8);

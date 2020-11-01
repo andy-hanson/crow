@@ -34,7 +34,7 @@ import interpret.debugging : writeFunName;
 import interpret.externAlloc : ExternAlloc;
 import interpret.opcode : OpCode;
 import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, matchLowFunSource;
-import util.bools : Bool;
+import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, begin, end, freeArr, ptrAt, range, sizeNat;
 import util.collection.arrUtil : lastWhere, mapWithFirst, zipSystem;
 import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
@@ -230,9 +230,11 @@ immutable(ByteCodeSource) nextSource(Extern)(ref const Interpreter!Extern a) {
 	return byteCodeSourceAtByteCodePtr(a, getReaderPtr(a.reader));
 }
 
+immutable Bool PRINT = False;
+
 immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 	immutable ByteCodeSource source = nextSource(a);
-	if (false) {
+	if (PRINT) {
 		debug {
 			printf("\n");
 			printStack(a);
@@ -240,7 +242,7 @@ immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 		}
 	}
 	immutable Operation operation = readOperation(a.reader);
-	if (false) {
+	if (PRINT) {
 		debug {
 			import core.stdc.stdio : printf;
 			import util.alloc.stackAlloc : StackAlloc;
@@ -287,7 +289,17 @@ immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 						? immutable Nat16(0)
 						: peek(a.stackStartStack);
 					immutable Nat32 actualStackSize = stackSize(a.dataStack) - stackStart.to32();
+					debug {
+						if (actualStackSize != it.stackSize.to32()) {
+							printf(
+								"actual stack size: %u, expected stack size: %u\n",
+								actualStackSize.raw(), it.stackSize.raw());
+						}
+					}
 					verify(actualStackSize == it.stackSize.to32());
+				},
+				(ref immutable DebugOperation.AssertUnreachable) {
+					unreachable!void();
 				});
 			return StepResult.continue_;
 		},
