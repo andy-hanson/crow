@@ -2,26 +2,21 @@ module interpret.fakeExtern;
 
 @safe @nogc pure nothrow:
 
-import interpret.bytecode : ExternOp;
-import interpret.runBytecode : DataStack;
-import util.bools : Bool, False, True;
+import interpret.allocTracker : AllocTracker;
+import util.bools : Bool;
 import util.collection.arr : Arr, asImmutable, range;
-import util.collection.arrUtil : exists;
-import util.collection.dict : KeyValuePair;
 import util.collection.mutArr : clear, MutArr, pushAll, tempAsArr;
-import util.collection.mutDict : addToMutDict, mustDelete, MutDict, mutDictIsEmpty, tempPairs;
 import util.collection.str : Str;
-import util.ptr : comparePtrRaw, contains, Ptr, PtrRange, ptrTrustMe_mut;
-import util.types : u8;
+import util.ptr : Ptr, PtrRange;
 import util.util : todo, verify;
-import util.writer : writePtrRange, Writer, writeStatic;
+import util.writer : Writer;
 
 struct FakeExtern(Alloc) {
 	@safe @nogc pure nothrow:
 
 	private:
 	Ptr!Alloc alloc;
-	MutDict!(u8*, immutable size_t, comparePtrRaw!u8) allocations;
+	AllocTracker allocTracker;
 	MutArr!(immutable char) stdout;
 	MutArr!(immutable char) stderr;
 
@@ -33,27 +28,15 @@ struct FakeExtern(Alloc) {
 	}
 
 	//TODO: not @trusted
-	@trusted void free(u8* ptr) {
-		immutable size_t size = mustDelete!(u8*, immutable size_t, comparePtrRaw!u8)(allocations, ptr);
+	@trusted void free(ubyte* ptr) {
+		immutable size_t size = allocTracker.markFree(ptr);
 		alloc.free(ptr, size);
-		if (false) {
-			debug {
-				import core.stdc.stdio : printf;
-				printf("freed %p-%p\n", ptr, ptr + size);
-			}
-		}
 	}
 
 	//TODO: not @trusted
-	@trusted u8* malloc(immutable size_t size) {
-		u8* ptr = alloc.allocate(size);
-		addToMutDict(alloc, allocations, ptr, size);
-		if (false) {
-			debug {
-				import core.stdc.stdio : printf;
-				printf("malloced %p-%p\n", ptr, ptr + size);
-			}
-		}
+	@trusted ubyte* malloc(immutable size_t size) {
+		ubyte* ptr = alloc.allocate(size);
+		allocTracker.markAlloced(alloc, ptr, size);
 		return ptr;
 	}
 
@@ -95,28 +78,14 @@ struct FakeExtern(Alloc) {
 	}
 
 	immutable(Bool) hasMallocedPtr(ref const PtrRange range) const {
-		return exists(tempPairs(allocations), (ref const KeyValuePair!(u8*, immutable size_t) pair) =>
-			ptrInRange(pair, range));
+		return allocTracker.hasAllocedPtr(range);
 	}
 
 	@trusted void writeMallocedRanges(WriterAlloc)(ref Writer!WriterAlloc writer) const {
-		Bool first = True;
-		foreach (ref const KeyValuePair!(u8*, immutable size_t) pair; range(tempPairs(allocations))) {
-			if (first)
-				first = False;
-			else
-				writeStatic(writer, ", ");
-			writePtrRange(writer, const PtrRange(pair.key, pair.key + pair.value));
-		}
+		allocTracker.writeMallocedRanges(writer);
 	}
 }
 
 FakeExtern!Alloc newFakeExtern(Alloc)(Ptr!Alloc alloc) {
 	return FakeExtern!Alloc(alloc);
-}
-
-private:
-
-@trusted immutable(Bool) ptrInRange(ref const KeyValuePair!(u8*, immutable size_t) pair, ref const PtrRange range) {
-	return contains(const PtrRange(pair.key, pair.key + pair.value), range);
 }

@@ -39,7 +39,12 @@ body
 	match op
 		none
 			options.print-tests? if ("noze run " + path print-sync), pass
-			path-to-noze run-single-runnable-test env, path, options.overwrite-output?
+			interpret-failures = path-to-noze run-single-runnable-test env, path, true, options.overwrite-output?
+			when
+				interpret-failures.empty?
+					path-to-noze run-single-runnable-test env, path, false, options.overwrite-output?
+				else
+					interpret-failures
 		some s
 			s value
 
@@ -84,11 +89,13 @@ run-single-runnable-test arr failure
 	path-to-noze str
 	env environ
 	path str
+	interpret? bool
 	overwrite-output? bool
 spec
 	summon
 body
-	res = path-to-noze spawn-and-wait-result (new-arr "run", path), env
+	args = as<arr<str>>: interpret? if (new-arr "run", path, "--interpret"), (new-arr "run", path)
+	res = path-to-noze spawn-and-wait-result args, env
 	when
 		res.exit-code == 0 and: res.stderr == ""
 			path handle-output (path + ".stdout"), res.stdout, overwrite-output?

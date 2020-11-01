@@ -80,11 +80,6 @@ import util.util : todo, unreachable, verify;
 		ptrTrustMe(byteCode),
 		ptrTrustMe(filesInfo));
 
-	debug {
-		import util.collection.arr : size;
-		printf("executablePath is %.*s\n", cast(int) size(executablePath), begin(executablePath));
-	}
-
 	ExternAlloc!Extern externAlloc = ExternAlloc!Extern(ptrTrustMe_mut(extern_));
 	immutable CStr firstArg = strToCStr(externAlloc, executablePath);
 	immutable Arr!CStr allArgs = mapWithFirst!(CStr, Str)(externAlloc, firstArg, args, (ref immutable Str arg) =>

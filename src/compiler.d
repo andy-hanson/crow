@@ -13,7 +13,7 @@ import frontend.lang : nozeExtension;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : cStrOfDiagnostics;
 import interpret.bytecode : ByteCode;
-import interpret.fakeExtern : FakeExtern, newFakeExtern;
+import interpret.realExtern : RealExtern;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
@@ -111,9 +111,9 @@ immutable(int) buildAndRun(SymAlloc)(
 			lowProgramResult,
 			(ref immutable ProgramsAndFilesInfo it) {
 				immutable ByteCode byteCode = generateBytecode(lowAlloc, it.program, it.lowProgram);
-				FakeExtern!Mallocator fakeExtern = newFakeExtern(ptrTrustMe_mut(mallocator));
-				return runBytecode!(FakeExtern!Mallocator)(
-					fakeExtern,
+				RealExtern extern_ = RealExtern();
+				return runBytecode(
+					extern_,
 					it.lowProgram,
 					byteCode,
 					it.filesInfo,

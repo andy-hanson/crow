@@ -1679,7 +1679,7 @@ uint8_t remove_colors_recur_2(struct ctx* ctx, struct arr_0 s, struct mut_arr_4*
 uint8_t push_4(struct ctx* ctx, struct mut_arr_4* a, char value);
 struct some_13 some_13(struct arr_7 t);
 struct opt_13 run_single_noze_test__lambda0(struct ctx* ctx, struct run_single_noze_test__lambda0* _closure, struct arr_0 print_kind);
-struct arr_7 run_single_runnable_test(struct ctx* ctx, struct arr_0 path_to_noze, struct dict_1* env, struct arr_0 path, uint8_t overwrite_output__q);
+struct arr_7 run_single_runnable_test(struct ctx* ctx, struct arr_0 path_to_noze, struct dict_1* env, struct arr_0 path, uint8_t interpret__q, uint8_t overwrite_output__q);
 struct arr_7 run_noze_tests__lambda0(struct ctx* ctx, struct run_noze_tests__lambda0* _closure, struct arr_0 test);
 uint8_t has__q_6(struct arr_7 a);
 struct err_2 err_2(struct arr_7 t);
@@ -5156,23 +5156,29 @@ struct arr_7 unsafe_as_arr_4(struct mut_arr_5* a) {
 struct arr_7 run_single_noze_test(struct ctx* ctx, struct arr_0 path_to_noze, struct dict_1* env, struct arr_0 path, struct test_options options) {
 	struct arr_1 _arr0;
 	struct opt_13 op1;
-	struct some_13 s2;
-	struct opt_13 _matched3;
+	struct arr_7 interpret_failures2;
+	struct some_13 s3;
+	struct opt_13 _matched4;
 	struct arr_0* temp0;
 	struct run_single_noze_test__lambda0* temp1;
 	op1 = first_some(ctx, (temp0 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 4)), ((*((temp0 + 0)) = (struct arr_0) {3, "ast"}, 0), ((*((temp0 + 1)) = (struct arr_0) {5, "model"}, 0), ((*((temp0 + 2)) = (struct arr_0) {14, "concrete-model"}, 0), ((*((temp0 + 3)) = (struct arr_0) {9, "low-model"}, 0), (struct arr_1) {4, temp0}))))), (struct fun_mut1_14) {(fun_ptr3_15) run_single_noze_test__lambda0, (uint8_t*) (temp1 = (struct run_single_noze_test__lambda0*) alloc(ctx, sizeof(struct run_single_noze_test__lambda0)), ((*(temp1) = (struct run_single_noze_test__lambda0) {options, path, path_to_noze, env}, 0), temp1))});
-	_matched3 = op1;
-	switch (_matched3.kind) {
+	_matched4 = op1;
+	switch (_matched4.kind) {
 		case 0:
 			if (options.print_tests__q) {
 				print_sync(_op_plus_1(ctx, (struct arr_0) {9, "noze run "}, path));
 			} else {
 				0;
 			}
-			return run_single_runnable_test(ctx, path_to_noze, env, path, options.overwrite_output__q);
+			interpret_failures2 = run_single_runnable_test(ctx, path_to_noze, env, path, 1, options.overwrite_output__q);
+			if (empty__q_11(interpret_failures2)) {
+				return run_single_runnable_test(ctx, path_to_noze, env, path, 0, options.overwrite_output__q);
+			} else {
+				return interpret_failures2;
+			}
 		case 1:
-			s2 = _matched3.as1;
-			return s2.value;
+			s3 = _matched4.as1;
+			return s3.value;
 		default:
 			return (assert(0),(struct arr_7) {0, NULL});
 	}
@@ -6273,22 +6279,26 @@ struct opt_13 run_single_noze_test__lambda0(struct ctx* ctx, struct run_single_n
 		return (struct opt_13) {0, .as0 = none()};
 	}
 }
-struct arr_7 run_single_runnable_test(struct ctx* ctx, struct arr_0 path_to_noze, struct dict_1* env, struct arr_0 path, uint8_t overwrite_output__q) {
+struct arr_7 run_single_runnable_test(struct ctx* ctx, struct arr_0 path_to_noze, struct dict_1* env, struct arr_0 path, uint8_t interpret__q, uint8_t overwrite_output__q) {
 	struct arr_1 _arr0;
-	struct process_result* res1;
-	struct arr_0 message2;
-	struct arr_7 _arr3;
+	struct arr_1 _arr1;
+	struct arr_1 args2;
+	struct process_result* res3;
+	struct arr_0 message4;
+	struct arr_7 _arr5;
 	struct arr_0* temp0;
-	struct failure** temp1;
-	struct failure* temp2;
-	res1 = spawn_and_wait_result_0(ctx, path_to_noze, (temp0 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 2)), ((*((temp0 + 0)) = (struct arr_0) {3, "run"}, 0), ((*((temp0 + 1)) = path, 0), (struct arr_1) {2, temp0}))), env);
-	if ((_op_equal_equal_2(res1->exit_code, literal_2(ctx, (struct arr_0) {1, "0"})) && _op_equal_equal_4(res1->stderr, (struct arr_0) {0, ""}))) {
-		return handle_output(ctx, path, _op_plus_1(ctx, path, (struct arr_0) {7, ".stdout"}), res1->stdout, overwrite_output__q);
+	struct arr_0* temp1;
+	struct failure** temp2;
+	struct failure* temp3;
+	args2 = (interpret__q ? (temp0 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 3)), ((*((temp0 + 0)) = (struct arr_0) {3, "run"}, 0), ((*((temp0 + 1)) = path, 0), ((*((temp0 + 2)) = (struct arr_0) {11, "--interpret"}, 0), (struct arr_1) {3, temp0})))) : (temp1 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 2)), ((*((temp1 + 0)) = (struct arr_0) {3, "run"}, 0), ((*((temp1 + 1)) = path, 0), (struct arr_1) {2, temp1}))));
+	res3 = spawn_and_wait_result_0(ctx, path_to_noze, args2, env);
+	if ((_op_equal_equal_2(res3->exit_code, literal_2(ctx, (struct arr_0) {1, "0"})) && _op_equal_equal_4(res3->stderr, (struct arr_0) {0, ""}))) {
+		return handle_output(ctx, path, _op_plus_1(ctx, path, (struct arr_0) {7, ".stdout"}), res3->stdout, overwrite_output__q);
 	} else {
-		message2 = _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {8, "status: "}, to_str_1(ctx, res1->exit_code)), (struct arr_0) {9, "\nstdout:\n"}), res1->stdout), (struct arr_0) {8, "stderr:\n"}), res1->stderr);
-		temp1 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1));
-		(*((temp1 + 0)) = (temp2 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp2) = (struct failure) {path, message2}, 0), temp2)), 0);
-		return (struct arr_7) {1, temp1};
+		message4 = _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {8, "status: "}, to_str_1(ctx, res3->exit_code)), (struct arr_0) {9, "\nstdout:\n"}), res3->stdout), (struct arr_0) {8, "stderr:\n"}), res3->stderr);
+		temp2 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1));
+		(*((temp2 + 0)) = (temp3 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp3) = (struct failure) {path, message4}, 0), temp3)), 0);
+		return (struct arr_7) {1, temp2};
 	}
 }
 struct arr_7 run_noze_tests__lambda0(struct ctx* ctx, struct run_noze_tests__lambda0* _closure, struct arr_0 test) {
