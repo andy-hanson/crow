@@ -5,8 +5,7 @@ module frontend.checkCtx;
 import diag : Diag, Diagnostic, Diags;
 
 import frontend.programState : ProgramState;
-
-import model : Module;
+import model : ModuleAndNameReferents;
 import util.bools : Bool, not;
 import util.collection.arr : Arr;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, finishArr;
@@ -17,7 +16,7 @@ import util.sourceRange : FileAndRange, FileIndex, RangeWithinFile;
 struct CheckCtx {
 	Ptr!ProgramState programState;
 	immutable FileIndex fileIndex;
-	immutable Arr!(Ptr!Module) allFlattenedImports;
+	immutable Arr!ModuleAndNameReferents allFlattenedImports;
 	ArrBuilder!Diagnostic diagsBuilder;
 }
 

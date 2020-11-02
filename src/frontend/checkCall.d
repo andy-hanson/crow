@@ -53,7 +53,8 @@ import model :
 	matchCalledDecl,
 	matchSpecBody,
 	matchType,
-	Module,
+	ModuleAndNameReferents,
+	NameAndReferents,
 	nSigs,
 	params,
 	Purity,
@@ -242,10 +243,18 @@ void eachFunInScope(
 	foreach (immutable Ptr!FunDecl f; arrRange(multiDictGetAt(ctx.funsMap, funName)))
 		cb(immutable CalledDecl(f));
 
-	foreach (immutable Ptr!Module m; arrRange(ctx.checkCtx.allFlattenedImports))
-		foreach (immutable Ptr!FunDecl f; arrRange(multiDictGetAt(m.funsMap, funName)))
-			if (f.isPublic)
-				cb(immutable CalledDecl(f));
+	foreach (ref immutable ModuleAndNameReferents m; arrRange(ctx.checkCtx.allFlattenedImports)) {
+		if (has(m.namesAndReferents)) {
+			foreach (ref immutable NameAndReferents nr; arrRange(force(m.namesAndReferents)))
+				if (nr.name == funName)
+					foreach (immutable Ptr!FunDecl f; arrRange(nr.funs))
+						cb(immutable CalledDecl(f));
+		} else {
+			foreach (immutable Ptr!FunDecl f; arrRange(multiDictGetAt(m.module_.funsMap, funName)))
+				if (f.isPublic)
+					cb(immutable CalledDecl(f));
+		}
+	}
 }
 
 // If we call `foo: \x ...` where `foo` is a function that doesn't exist,

@@ -59,13 +59,16 @@ import model :
 	FunKind,
 	FunKindAndStructs,
 	FunsMap,
+	isPublic,
 	isPurityWorse,
 	isRecord,
 	isUnion,
 	matchStructBody,
 	matchStructOrAlias,
 	Module,
+	ModuleAndNameReferents,
 	name,
+	NameAndReferents,
 	noCtx,
 	Param,
 	Purity,
@@ -109,6 +112,7 @@ import util.collection.arrUtil :
 import util.collection.dict : getAt, KeyValuePair;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDict;
 import util.collection.dictUtil : buildDict, buildMultiDict;
+import util.collection.multiDict : multiDictGetAt;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty, mutArrRangeMut;
 import util.collection.str : copyStr, Str, strLiteral;
 import util.memory : DelayInit, delayInit;
@@ -130,6 +134,11 @@ struct BootstrapCheck {
 	immutable CommonTypes commonTypes;
 }
 
+struct ModuleAndNames {
+	immutable Ptr!Module module_;
+	immutable Opt!(Arr!Sym) names;
+}
+
 immutable(Result!(BootstrapCheck, Diags)) checkBootstrapNz(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
@@ -139,8 +148,8 @@ immutable(Result!(BootstrapCheck, Diags)) checkBootstrapNz(Alloc)(
 	return checkWorker(
 		alloc,
 		programState,
-		emptyArr!(Ptr!Module),
-		emptyArr!(Ptr!Module),
+		emptyArr!ModuleAndNames,
+		emptyArr!ModuleAndNames,
 		pathAndAst,
 		(ref CheckCtx ctx,
 		ref immutable StructsAndAliasesMap structsAndAliasesMap,
@@ -151,8 +160,8 @@ immutable(Result!(BootstrapCheck, Diags)) checkBootstrapNz(Alloc)(
 immutable(Result!(Ptr!Module, Diags)) check(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	ref immutable Arr!(Ptr!Module) imports,
-	ref immutable Arr!(Ptr!Module) exports,
+	ref immutable Arr!ModuleAndNames imports,
+	ref immutable Arr!ModuleAndNames exports,
 	immutable PathAndAst pathAndAst,
 	immutable CommonTypes commonTypes,
 ) {
@@ -873,8 +882,8 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 	ref Arr!StructDecl structs,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 	immutable FileIndex fileIndex,
-	ref immutable Arr!(Ptr!Module) imports,
-	ref immutable Arr!(Ptr!Module) exports,
+	ref immutable Arr!ModuleAndNameReferents imports,
+	ref immutable Arr!ModuleAndNameReferents exports,
 	ref immutable FileAst ast,
 ) {
 	checkStructBodies!Alloc(alloc, ctx, structsAndAliasesMap, structs, ast.structs, delayStructInsts);
@@ -923,32 +932,60 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 
 void recurAddImport(Alloc)(
 	ref Alloc alloc,
-	ref ArrBuilder!(Ptr!Module) res,
+	ref ArrBuilder!ModuleAndNameReferents res,
 	immutable Ptr!Module module_,
+	immutable Opt!(Arr!Sym) names,
 ) {
-	immutable Arr!(Ptr!Module) resTemp = arrBuilderAsTempArr(res);
-	if (!contains(resTemp, module_, (ref immutable Ptr!Module a, ref immutable Ptr!Module b) => ptrEquals(a, b))) {
-		add(alloc, res, module_);
-		foreach (immutable Ptr!Module e; range(module_.exports))
-			recurAddImport(alloc, res, e);
+	immutable Opt!(Arr!NameAndReferents) nameReferents = mapOption(names, (ref immutable Arr!Sym names) =>
+		map(alloc, names, (ref immutable Sym name) {
+			immutable NameAndReferents res = getNameReferents(module_, name);
+			return res;
+		}));
+	add(alloc, res, immutable ModuleAndNameReferents(module_, nameReferents));
+	foreach (immutable ModuleAndNameReferents e; range(module_.exports)) {
+		if (has(e.namesAndReferents))
+			// if we're importing specific names, check for overlap.
+			// If not, import the specific names being re-exported.
+			todo!void("!");
+		recurAddImport(alloc, res, e.module_, names);
 	}
 }
 
-immutable(Arr!(Ptr!Module)) getFlattenedImports(Alloc)(
+immutable(NameAndReferents) getNameReferents(ref immutable Module module_, immutable Sym name) {
+	immutable NameAndReferents res = immutable NameAndReferents(
+		name,
+		getAt(module_.structsAndAliasesMap, name),
+		getAt(module_.specsMap, name),
+		multiDictGetAt(module_.funsMap, name));
+	// TODO: it should be illegal to have public and private members with the same name
+	// (so don't worry about it here, but elsewhere)
+	if (has(res.structOrAlias) && !isPublic(force(res.structOrAlias)))
+		todo!void("not public");
+	if (has(res.spec) && !force(res.spec).isPublic)
+		todo!void("not public");
+	foreach (immutable Ptr!FunDecl fun; range(res.funs))
+		if (!fun.isPublic)
+			todo!void("not public");
+	if (!has(res.structOrAlias) && !has(res.spec) && empty(res.funs))
+		todo!void("diagnostic: name refers to nothing");
+	return res;
+}
+
+immutable(Arr!ModuleAndNameReferents) getFlattenedImports(Alloc)(
 	ref Alloc alloc,
-	ref immutable Arr!(Ptr!Module) imports,
+	ref immutable Arr!ModuleAndNames imports,
 ) {
-	ArrBuilder!(Ptr!Module) res;
-	foreach (immutable Ptr!Module m; range(imports))
-		recurAddImport(alloc, res, m);
+	ArrBuilder!ModuleAndNameReferents res;
+	foreach (ref immutable ModuleAndNames m; range(imports))
+		recurAddImport(alloc, res, m.module_, m.names);
 	return finishArr(alloc, res);
 }
 
 immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	immutable Arr!(Ptr!Module) imports,
-	immutable Arr!(Ptr!Module) exports,
+	immutable Arr!ModuleAndNames imports,
+	immutable Arr!ModuleAndNames exports,
 	ref immutable PathAndAst pathAndAst,
 	scope immutable(Result!(CommonTypes, Diags)) delegate(
 		ref CheckCtx,
@@ -956,10 +993,12 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 		ref MutArr!(Ptr!StructInst),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
+	immutable Arr!ModuleAndNameReferents convertedImports = getFlattenedImports(alloc, imports);
+	immutable Arr!ModuleAndNameReferents convertedExports = getFlattenedImports(alloc, exports);
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe_mut(programState),
 		pathAndAst.fileIndex,
-		getFlattenedImports(alloc, imports));
+		convertedImports);
 	immutable FileAst ast = pathAndAst.ast;
 
 	// Since structs may refer to each other, first get a structsAndAliasesMap, *then* fill in bodies
@@ -995,8 +1034,8 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 					structs,
 					delayStructInsts,
 					pathAndAst.fileIndex,
-					imports,
-					exports,
+					convertedImports,
+					convertedExports,
 					ast);
 				return hasDiags(ctx)
 					? fail!(BootstrapCheck, Diags)(diags(alloc, ctx))

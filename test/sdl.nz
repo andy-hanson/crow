@@ -1,7 +1,5 @@
 import
-	arr-utils
 	io
-	str-utils
 	thread-utils
 
 c-int alias

@@ -1,6 +1,6 @@
 import
-	io
-	posix
+	io: exit-code print-sync
+	posix: jmp-buf jmp-buf-tag longjmp setjmp zero
 
 test-it int32() summon unsafe
 	tag = new<jmp-buf-tag> zero, zero, zero

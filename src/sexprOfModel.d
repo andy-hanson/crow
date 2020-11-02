@@ -18,7 +18,9 @@ import model :
 	matchFunBody,
 	matchType,
 	Module,
+	ModuleAndNameReferents,
 	name,
+	NameAndReferents,
 	noCtx,
 	Param,
 	Purity,
@@ -37,7 +39,7 @@ import model :
 	TypeParam,
 	unsafe;
 import util.bools : True;
-import util.collection.arr : empty;
+import util.collection.arr : Arr, empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, findIndex, map;
 import util.collection.mutDict : getOrAdd, MutDict;
@@ -69,10 +71,10 @@ immutable(Sexpr) sexprOfModule(Alloc)(ref Alloc alloc, ref immutable Module a) {
 		arrLiteral!NameAndSexpr(
 			alloc,
 			nameAndTata("path", tataNat(a.fileIndex.index)),
-			nameAndTata("imports", tataArr(alloc, a.imports, (ref immutable Ptr!Module m) =>
-				tataNat(m.fileIndex.index))),
-			nameAndTata("exports", tataArr(alloc, a.exports, (ref immutable Ptr!Module m) =>
-				tataNat(m.fileIndex.index))),
+			nameAndTata("imports", tataArr(alloc, a.imports, (ref immutable ModuleAndNameReferents m) =>
+				sexprOfModuleAndNameReferents(alloc, m))),
+			nameAndTata("exports", tataArr(alloc, a.exports, (ref immutable ModuleAndNameReferents m) =>
+				sexprOfModuleAndNameReferents(alloc, m))),
 			nameAndTata("structs", tataArr(alloc, a.structs, (ref immutable StructDecl s) =>
 				sexprOfStructDecl(alloc, ctx, s))),
 			nameAndTata("specs", tataArr(alloc, a.specs, (ref immutable SpecDecl s) =>
@@ -82,6 +84,16 @@ immutable(Sexpr) sexprOfModule(Alloc)(ref Alloc alloc, ref immutable Module a) {
 }
 
 private:
+
+immutable(Sexpr) sexprOfModuleAndNameReferents(Alloc)(ref Alloc alloc, ref immutable ModuleAndNameReferents a) {
+	return tataRecord(
+		alloc,
+		"import",
+		tataNat(a.module_.fileIndex.index),
+		tataOpt(alloc, a.namesAndReferents, (ref immutable Arr!NameAndReferents names) =>
+			tataArr(alloc, names, (ref immutable NameAndReferents nr) =>
+				tataSym(nr.name))));
+}
 
 struct Ctx {
 	immutable Ptr!Module curModule;

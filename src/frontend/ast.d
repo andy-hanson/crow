@@ -624,6 +624,7 @@ struct ImportAst {
 	immutable RangeWithinFile range;
 	immutable u8 nDots;
 	immutable Ptr!Path path;
+	immutable Opt!(Arr!Sym) names;
 }
 
 struct ImportsOrExportsAst {
@@ -716,7 +717,10 @@ immutable(Sexpr) sexprOfImportAst(Alloc)(ref Alloc alloc, ref immutable ImportAs
 		alloc,
 		"import-ast",
 		tataNat(a.nDots),
-		tataStr(pathToStr(alloc, emptyStr, a.path, emptyStr)));
+		tataStr(pathToStr(alloc, emptyStr, a.path, emptyStr)),
+		tataOpt(alloc, a.names, (ref immutable Arr!Sym names) =>
+			tataArr(alloc, names, (ref immutable Sym name) =>
+				tataSym(name))));
 }
 
 immutable(Sexpr) sexprOfSpecDeclAst(Alloc)(ref Alloc alloc, ref immutable SpecDeclAst a) {

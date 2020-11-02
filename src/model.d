@@ -15,7 +15,7 @@ import util.comparison : compareEnum, compareOr, Comparison, ptrEquals;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.memory : nu;
-import util.opt : none, Opt, some;
+import util.opt : has, none, Opt, some;
 import util.path : AbsolutePath, addManyChildren, baseName, comparePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange, FileIndex;
@@ -1039,14 +1039,28 @@ alias FunsMap = MultiDict!(Sym, Ptr!FunDecl, compareSym);
 
 struct Module {
 	immutable FileIndex fileIndex;
-	immutable Arr!(Ptr!Module) imports;
-	immutable Arr!(Ptr!Module) exports;
+	immutable Arr!ModuleAndNameReferents imports;
+	immutable Arr!ModuleAndNameReferents exports;
 	immutable Arr!StructDecl structs;
 	immutable Arr!SpecDecl specs;
 	immutable Arr!FunDecl funs;
+	// WARN: maps include private names
 	immutable StructsAndAliasesMap structsAndAliasesMap;
 	immutable SpecsMap specsMap;
 	immutable FunsMap funsMap;
+}
+
+struct ModuleAndNameReferents {
+	immutable Ptr!Module module_;
+	immutable Opt!(Arr!NameAndReferents) namesAndReferents;
+}
+
+struct NameAndReferents {
+	immutable Sym name;
+	// These may all be empty if the name didn't refer to anything
+	immutable Opt!(StructOrAlias) structOrAlias;
+	immutable Opt!(Ptr!SpecDecl) spec;
+	immutable Arr!(Ptr!FunDecl) funs;
 }
 
 enum FunKind {

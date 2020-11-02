@@ -1,5 +1,5 @@
 file-ast(
-	imports: ports(range(0, 28), [import-ast(1, "/circular-import-b")])
+	imports: ports(range(0, 28), [import-ast(1, "/circular-import-b", none)])
 	specs: []
 	aliases: []
 	structs: []

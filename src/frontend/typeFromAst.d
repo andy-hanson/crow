@@ -10,6 +10,8 @@ import model :
 	CommonTypes,
 	matchStructOrAlias,
 	Module,
+	ModuleAndNameReferents,
+	NameAndReferents,
 	SpecDecl,
 	SpecsMap,
 	StructAlias,
@@ -23,7 +25,7 @@ import model :
 	TypeParam,
 	typeParams;
 import frontend.programState : ProgramState;
-import util.collection.arr : Arr, empty, first, size, toArr;
+import util.collection.arr : Arr, empty, first, range, size, toArr;
 import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map, tail;
 import util.collection.dict : Dict, getAt;
 import util.opt : force, has, none, Opt, some;
@@ -48,7 +50,10 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 		structsAndAliasesMap,
 		Diag.DuplicateImports.Kind.type,
 		Diag.NameNotFound.Kind.type,
-		(immutable Ptr!Module m) => m.structsAndAliasesMap);
+		(immutable Ptr!Module m) =>
+			m.structsAndAliasesMap,
+		(ref immutable NameAndReferents nr) =>
+			nr.structOrAlias);
 	if (!has(opDecl))
 		return none!(Ptr!StructInst);
 	else {
@@ -141,7 +146,10 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
 		specsMap,
 		Diag.DuplicateImports.Kind.spec,
 		Diag.NameNotFound.Kind.spec,
-		(immutable Ptr!Module m) => m.specsMap);
+		(immutable Ptr!Module m) =>
+			m.specsMap,
+		(ref immutable NameAndReferents nr) =>
+			nr.spec);
 }
 
 immutable(Arr!Type) typeArgsFromAsts(Alloc)(
@@ -199,10 +207,11 @@ immutable(Opt!TDecl) tryFindT(TDecl, Alloc)(
 	immutable Diag.DuplicateImports.Kind duplicateImportKind,
 	immutable Diag.NameNotFound.Kind nameNotFoundKind,
 	scope immutable(Dict!(Sym, TDecl, compareSym)) delegate(immutable Ptr!Module) @safe @nogc pure nothrow getTMap,
+	scope immutable(Opt!TDecl) delegate(ref immutable NameAndReferents) @safe @nogc pure nothrow getFromNameReferents,
 ) {
 	alias DAndM = DeclAndModule!TDecl;
 
-	immutable(Opt!TDecl) recur(immutable Opt!DAndM res, immutable Arr!(Ptr!Module) modules) {
+	immutable(Opt!TDecl) recur(immutable Opt!DAndM res, immutable Arr!ModuleAndNameReferents modules) {
 		if (empty(modules)) {
 			if (has(res))
 				return some!TDecl(force(res).decl);
@@ -211,8 +220,10 @@ immutable(Opt!TDecl) tryFindT(TDecl, Alloc)(
 				return none!TDecl;
 			}
 		} else {
-			immutable Ptr!Module m = first(modules);
-			immutable Opt!TDecl fromModule = getAt!(Sym, TDecl, compareSym)(getTMap(m), name);
+			immutable ModuleAndNameReferents m = first(modules);
+			immutable Opt!TDecl fromModule = has(m.namesAndReferents)
+				? getFromNames(force(m.namesAndReferents), name, getFromNameReferents)
+				: getAt!(Sym, TDecl, compareSym)(getTMap(m.module_), name);
 			if (has(fromModule)) {
 				if (has(res)) {
 					immutable DAndM already = force(res);
@@ -220,7 +231,7 @@ immutable(Opt!TDecl) tryFindT(TDecl, Alloc)(
 					addDiag(alloc, ctx, range, immutable Diag(Diag.DuplicateImports(duplicateImportKind, name)));
 					return none!TDecl;
 				} else
-					return recur(some(immutable DAndM(force(fromModule), some(m))), tail(modules));
+					return recur(some(immutable DAndM(force(fromModule), some(m.module_))), tail(modules));
 			} else
 				return recur(res, tail(modules));
 		}
@@ -230,4 +241,15 @@ immutable(Opt!TDecl) tryFindT(TDecl, Alloc)(
 	return recur(
 		has(here) ? some(immutable DAndM(force(here), none!(Ptr!Module))) : none!DAndM,
 		ctx.allFlattenedImports);
+}
+
+immutable(Opt!TDecl) getFromNames(TDecl)(
+	ref immutable Arr!NameAndReferents names,
+	immutable Sym name,
+	scope immutable(Opt!TDecl) delegate(ref immutable NameAndReferents) @safe @nogc pure nothrow getFromNameReferents,
+) {
+	foreach (ref immutable NameAndReferents nr; range(names))
+		if (symEq(nr.name, name))
+			return getFromNameReferents(nr);
+	return none!TDecl;
 }

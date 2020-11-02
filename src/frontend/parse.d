@@ -129,7 +129,11 @@ immutable(Opt!PuritySpecifierAndRange) parsePurity(Alloc, SymAlloc)(ref Alloc al
 		immutable PuritySpecifierAndRange(start, it));
 }
 
-immutable(ImportAst) parseSingleImport(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(ImportAst) parseSingleImport(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Bool allowNames,
+) {
 	immutable Pos start = curPos(lexer);
 	u8 nDots = 0;
 	while (tryTake(lexer, '.')) {
@@ -143,7 +147,23 @@ immutable(ImportAst) parseSingleImport(Alloc, SymAlloc)(ref Alloc alloc, ref Lex
 			: path;
 	}
 	immutable Ptr!Path path = addPathComponents(rootPath(alloc, takeName(alloc, lexer)));
-	return ImportAst(range(lexer, start), nDots, path);
+
+	immutable Opt!(Arr!Sym) names = allowNames ? parseSingleImportNames(alloc, lexer) : none!(Arr!Sym);
+	return ImportAst(range(lexer, start), nDots, path, names);
+}
+
+immutable(Opt!(Arr!Sym)) parseSingleImportNames(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	if (tryTake(lexer, ": ")) {
+		ArrBuilder!Sym names;
+		void recur() {
+			add(alloc, names, takeName(alloc, lexer));
+			if (tryTake(lexer, ' '))
+				recur();
+		}
+		recur();
+		return some(finishArr(alloc, names));
+	} else
+		return none!(Arr!Sym);
 }
 
 struct ParamsAndMaybeDedent {
@@ -234,7 +254,7 @@ immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!
 immutable(Arr!ImportAst) parseImportsNonIndented(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	ArrBuilder!ImportAst res;
 	do {
-		add(alloc, res, parseSingleImport(alloc, lexer));
+		add(alloc, res, parseSingleImport(alloc, lexer, False));
 	} while (tryTake(lexer, ' '));
 	takeOrAddDiagExpected(alloc, lexer, '\n', ParseDiag.Expected.Kind.endOfLine);
 	return finishArr(alloc, res);
@@ -244,7 +264,7 @@ immutable(Arr!ImportAst) parseImportsIndented(Alloc, SymAlloc)(ref Alloc alloc, 
 	ArrBuilder!ImportAst res;
 	if (takeIndentOrDiagTopLevelAfterNewline(alloc, lexer)) {
 		do {
-			add(alloc, res, parseSingleImport(alloc, lexer));
+			add(alloc, res, parseSingleImport(alloc, lexer, True));
 		} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
 	}
 	return finishArr(alloc, res);

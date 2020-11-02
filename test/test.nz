@@ -1,14 +1,9 @@
 #!/usr/bin/env noze
 
 import
-	arr-utils
 	command-line-parser
-	dict
-	fut-utils
 	io
 	posix
-	runtime
-	str-utils
 	.failure
 	.lint
 	.noze-tests
