@@ -4,7 +4,7 @@ module util.collection.arr;
 
 import util.bools : Bool;
 import util.ptr : Ptr;
-import util.memory : myEmplace, overwriteMemory;
+import util.memory : overwriteMemory;
 import util.types : Nat8, Nat32, Nat64;
 import util.util : verify;
 

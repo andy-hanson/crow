@@ -6,7 +6,6 @@ import util.collection.arr : Arr, at, setAt, size;
 import util.collection.arrUtil : fillArr_mut;
 import util.collection.mutDict : ValueAndDidAdd;
 import util.bools : False, True;
-import util.memory : initMemory, overwriteMemory;
 import util.opt : force, has, noneMut, Opt, someMut;
 import util.util : verify;
 

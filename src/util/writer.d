@@ -8,7 +8,7 @@ import util.collection.arr : Arr, at, begin, range, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, Str, strLiteral;
 import util.ptr : PtrRange;
-import util.types : abs, u16;
+import util.types : abs;
 
 struct Writer(Alloc) {
 	private:

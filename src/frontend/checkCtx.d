@@ -9,8 +9,7 @@ import model : ModuleAndNameReferents;
 import util.bools : Bool, not;
 import util.collection.arr : Arr;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, finishArr;
-import util.collection.mutDict : MutDict;
-import util.ptr : comparePtr, Ptr;
+import util.ptr : Ptr;
 import util.sourceRange : FileAndRange, FileIndex, RangeWithinFile;
 
 struct CheckCtx {

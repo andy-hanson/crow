@@ -6,14 +6,11 @@ import concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	concreteFunRange,
-	ConcreteFunSource,
 	ConcreteLocal,
 	ConcreteParam,
 	ConcreteStruct,
 	isArr,
-	matchConcreteFunSource,
 	name;
-import model : decl, FunInst, range;
 import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.collection.arrUtil : slice;

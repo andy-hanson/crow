@@ -2,18 +2,15 @@ module test.testInterpreter;
 
 @safe @nogc nothrow: // not pure
 
-import core.stdc.stdio : printf;
 import diag : FilesInfo;
 import model : AbsolutePathsGetter;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, FileToFuns, FnOp, FunNameAndPos;
 import interpret.fakeExtern : FakeExtern, newFakeExtern;
 import interpret.runBytecode :
-	DataStack,
 	nextByteCodeIndex,
 	Interpreter,
 	newInterpreter,
 	reset,
-	runBytecode,
 	step,
 	StepResult;
 import interpret.bytecodeWriter :
@@ -61,8 +58,8 @@ import lowModel :
 	LowUnion;
 import test.testUtil : expectDataStack, expectReturnStack;
 import util.alloc.stackAlloc : StackAlloc;
-import util.bools : Bool, False;
-import util.collection.arr : Arr, arrOfD, emptyArr, range;
+import util.bools : False;
+import util.collection.arr : Arr, arrOfD, emptyArr;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.globalAllocatedStack : begin, pop, push;
 import util.collection.str : emptyStr, strLiteral;
@@ -73,7 +70,7 @@ import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : shortSymAlphaLiteral;
 import util.types : Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64;
-import util.util : repeatImpure, verify, verifyEq;
+import util.util : repeatImpure, verify;
 
 void testInterpreter() {
 	testCall();

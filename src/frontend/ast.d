@@ -5,9 +5,9 @@ module frontend.ast;
 import util.bools : Bool, True;
 import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil : arrLiteral, map;
+import util.collection.arrUtil : arrLiteral;
 import util.collection.str : emptyStr, Str;
-import util.opt : force, has, mapOption, none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.path : Path, pathToStr;
 import util.ptr : Ptr;
 import util.sexpr :

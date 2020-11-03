@@ -29,7 +29,7 @@ import util.collection.arr : empty, range;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : force, has;
 import util.ptr : Ptr;
-import util.writer : finishWriterToCStr, Writer, writeChar, writeNat, writeStatic;
+import util.writer : Writer, writeChar, writeNat, writeStatic;
 import util.sym : writeSym;
 import util.util : todo;
 

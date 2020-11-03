@@ -54,8 +54,8 @@ import model : FunInst, Local, name, Param;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, first, range, setAt, size;
-import util.collection.arrUtil : every, exists, fillArr_mut, tail;
-import util.collection.dict : Dict, dictSize, getAt, mustGetAt;
+import util.collection.arrUtil : every, fillArr_mut, tail;
+import util.collection.dict : Dict, getAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.fullIndexDict :
 	FullIndexDict,
@@ -63,10 +63,9 @@ import util.collection.fullIndexDict :
 	fullIndexDictEachKey,
 	fullIndexDictEachValue,
 	fullIndexDictGet,
-	fullIndexDictSize,
-	mapFullIndexDict;
+	fullIndexDictSize;
 import util.collection.mutDict : insertOrUpdate, MutDict, setInDict;
-import util.collection.str : Str, strEq, strLiteral;
+import util.collection.str : Str;
 import util.opt : force, has, Opt;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sym :
@@ -79,12 +78,11 @@ import util.sym :
 	symEq,
 	symEqLongAlphaLiteral;
 import util.types : u8;
-import util.util : unreachable, verify;
+import util.util : verify;
 import util.writer :
 	finishWriter,
 	newline,
 	writeChar,
-	writeEscapedChar,
 	writeNat,
 	Writer,
 	writeQuotedStr,

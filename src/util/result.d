@@ -92,15 +92,3 @@ immutable(Result!(OutSuccess, Failure)) flatMapSuccess(OutSuccess, InSuccess, Fa
 	);
 }
 
-immutable(Result!(OutSuccess, Failure)) joinResults(OutSuccess, InSuccess0, InSuccess1, Failure)(
-	ref immutable Result!(InSuccess0, Failure) r0,
-	ref immutable Result!(InSuccess1, Failure) r1,
-	scope immutable(OutSuccess) delegate(
-		ref immutable InSuccess0,
-		ref immutable InSuccess1,
-	) @safe @nogc pure nothrow cb,
-) {
-	return flatMapSuccess!(OutSuccess, InSuccess0, Failure)(r0, (ref immutable InSuccess0 success0) =>
-		mapSuccess!(OutSuccess, InSuccess1, Failure)(r1, (ref immutable InSuccess1 success1) =>
-			cb(success0, success1)));
-}

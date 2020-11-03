@@ -203,10 +203,6 @@ immutable u16 maxU16 = 0xffff; // TODO: just use u16.max
 immutable u32 maxU32 = 0xffffffff; // TODO: just use u32.max
 immutable u64 maxU64 = 0xffffffffffffffff; // TODO: just use u64.max
 
-immutable(u8) bottomU8OfU32(immutable u32 u) {
-	return cast(u8) (u & maxU8);
-}
-
 immutable(u16) bottomU16OfU64(immutable u64 u) {
 	return cast(u16) (u & maxU16);
 }

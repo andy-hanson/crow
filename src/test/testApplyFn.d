@@ -7,7 +7,7 @@ import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
 import test.testUtil : expectDataStack;
 import util.collection.arr : arrOfD;
-import util.collection.globalAllocatedStack : clearStack, peek, pop, push, pushAll;
+import util.collection.globalAllocatedStack : clearStack, pushAll;
 import util.types : float64, i8, i16, i32, i64, Nat64, u8, u16, u32, u64, u64OfFloat64Bits;
 import util.util : verify,verifyEq;
 

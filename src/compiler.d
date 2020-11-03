@@ -32,9 +32,6 @@ import util.io : Environ, replaceCurrentProcess, spawnAndWaitSync, writeFileSync
 import util.opt : force, has, none, Opt, some;
 import util.path :
 	AbsolutePath,
-	addManyChildren,
-	childPath,
-	parseAbsoluteOrRelPath,
 	Path,
 	pathToStr,
 	rootPath,
@@ -42,7 +39,6 @@ import util.path :
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.print : printErr;
 import util.result : mapSuccess, matchResultImpure, Result;
-import util.sexpr : Sexpr;
 import util.sexprPrint : PrintFormat, printOutSexpr;
 import util.sym : AllSymbols, shortSymAlphaLiteral;
 import util.util : todo, unreachable;

@@ -2,17 +2,15 @@ module util.collection.str;
 
 @safe @nogc pure nothrow:
 
-import util.bools : and, Bool, False, True;
+import util.bools : Bool;
 import util.collection.arr : Arr, at, begin, empty, emptyArr, first, freeArr, size;
 import util.collection.arrUtil : rtail, slice, tail;
-import util.collection.mutArr : MutArr;
 import util.comparison : compareChar, compareOr, Comparison;
 import util.memory : memcpy;
-import util.util : todo, verify;
+import util.util : verify;
 
 alias CStr = immutable(char)*;
 alias Str = Arr!char;
-alias MutStr = MutArr!char;
 
 immutable Str emptyStr = emptyArr!char;
 immutable(NulTerminatedStr) emptyNulTerminatedStr() {

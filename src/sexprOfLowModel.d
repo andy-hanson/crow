@@ -53,9 +53,7 @@ import util.sexpr :
 	tataRecord,
 	tataStr,
 	tataSym;
-import util.sym : shortSymAlphaLiteral, Sym;
 import util.sourceRange : sexprOfFileAndRange;
-import util.util : todo;
 
 immutable(Sexpr) tataOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
 	return tataNamedRecord(
@@ -318,7 +316,7 @@ immutable(Sexpr) tataOfSpecialConstant(Alloc)(ref Alloc alloc, ref immutable Low
 			tataSym("null"),
 		(immutable LowExprKind.SpecialConstant.StrConstant it) =>
 			tataStr(it.value),
-		(immutable LowExprKind.SpecialConstant.Void it) =>
+		(immutable LowExprKind.SpecialConstant.Void) =>
 			tataSym("void"));
 	return tataRecord(alloc, "constant", constant);
 }

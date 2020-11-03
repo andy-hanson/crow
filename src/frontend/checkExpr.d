@@ -123,7 +123,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
-import util.util : todo, unreachable, verify;
+import util.util : unreachable, verify;
 
 immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 	ref Alloc alloc,

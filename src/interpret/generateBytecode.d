@@ -3,17 +3,14 @@ module interpret.generateBytecode;
 @safe @nogc pure nothrow:
 
 import interpret.bytecode :
-	addByteCodeIndex,
 	ByteCode,
 	ByteCodeIndex,
-	ByteCodeOffset,
 	ByteCodeSource,
 	ExternOp,
 	FileToFuns,
 	FnOp,
 	FunNameAndPos,
-	stackEntrySize,
-	subtractByteCodeIndex;
+	stackEntrySize;
 import interpret.bytecodeWriter :
 	ByteCodeWriter,
 	nextByteCodeIndex,
@@ -51,13 +48,10 @@ import interpret.bytecodeWriter :
 	writeReturn,
 	writeSwitchDelay,
 	writeWrite;
-import lower.lowExprHelpers : genBool;
 import lowModel :
-	asConcreteFun,
 	asLocalRef,
 	asParamRef,
 	asRecordFieldAccess,
-	asRecordType,
 	firstRegularParamIndex,
 	isLocalRef,
 	isParamRef,
@@ -69,10 +63,8 @@ import lowModel :
 	LowFunBody,
 	LowFunExprBody,
 	lowFunRange,
-	LowFunSource,
 	LowFunIndex,
 	LowLocal,
-	LowLocalSource,
 	LowParam,
 	LowProgram,
 	LowRecord,
@@ -83,11 +75,11 @@ import lowModel :
 	matchLowType,
 	matchSpecialConstant,
 	PrimitiveType;
-import model : decl, FunDecl, FunInst, Local, Module, name, Program, range;
+import model : FunDecl, Module, name, Program, range;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, range, size, sizeNat;
-import util.collection.arrUtil : arrMax, eachWithIndex, map, mapOp, mapOpWithIndex, slice, sum, zip;
+import util.collection.arrUtil : arrMax, map, mapOp, mapOpWithIndex, slice;
 import util.collection.fullIndexDict :
 	FullIndexDict,
 	fullIndexDictEach,
@@ -102,21 +94,17 @@ import util.collection.fullIndexDictBuilder :
 	fullIndexDictBuilderHas,
 	fullIndexDictBuilderOptGet,
 	newFullIndexDictBuilder;
-import util.collection.mutIndexDict;
 import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutDict;
-import util.collection.mutIndexDict : MutIndexDict;
 import util.collection.mutIndexMultiDict :
 	MutIndexMultiDict,
 	mutIndexMultiDictAdd,
 	mutIndexMultiDictMustGetAt,
-	mutIndexMultiDictSize,
 	newMutIndexMultiDict;
 import util.collection.str : Str, strEqLiteral;
-import util.comparison : Comparison;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : FileAndRange, FileIndex;
-import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, safeU32ToU8, u8, u16, u32, zero;
+import util.sourceRange : FileIndex;
+import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, zero;
 import util.util : divRoundUp, roundUp, todo, verify;
 
 immutable(ByteCode) generateBytecode(CodeAlloc)(
@@ -153,8 +141,6 @@ immutable(ByteCode) generateBytecode(CodeAlloc)(
 }
 
 private:
-
-import util.collection.mutIndexMultiDict : MutIndexMultiDict;
 
 immutable(FileToFuns) fileToFuns(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	immutable FullIndexDict!(FileIndex, Ptr!Module) modulesDict =

@@ -1,6 +1,6 @@
 @safe @nogc nothrow: // not pure
 
-import frontend.ast : FileAst, sexprOfAst;
+import frontend.ast : sexprOfAst;
 import frontend.getTokens : tokensOfAst, sexprOfTokens, Token;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.showDiag : strOfParseDiag;
@@ -9,8 +9,7 @@ import util.alloc.globalAlloc : GlobalAlloc;
 import util.collection.arr : Arr;
 import util.collection.str : CStr, NulTerminatedStr, nulTerminatedStrOfCStr;
 import util.ptr : ptrTrustMe_mut;
-import util.result : matchResultImpure, Result;
-import util.sexpr : nameAndTata, Sexpr, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
+import util.sexpr : Sexpr, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
 import util.sourceRange : sexprOfSourceRange;
 import util.sym : AllSymbols;
 import util.writer : finishWriterToCStr, Writer;

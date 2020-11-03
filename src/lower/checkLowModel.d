@@ -27,12 +27,12 @@ import lowModel :
 	PrimitiveType,
 	symOfPrimitiveType;
 import sexprOfConcreteModel : tataOfConcreteStructRef;
-import util.collection.arr : Arr, at, range, sizeEq;
+import util.collection.arr : at, sizeEq;
 import util.collection.arrUtil : tail, zip;
 import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe;
-import util.sexpr : Sexpr, tataRecord, tataStr, tataSym;
+import util.sexpr : Sexpr, tataRecord, tataSym;
 import util.util : todo, verify;
 
 void checkLowProgram(ref immutable LowProgram a) {

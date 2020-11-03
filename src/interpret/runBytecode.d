@@ -4,7 +4,7 @@ module interpret.runBytecode;
 
 import core.stdc.stdio : printf;
 
-import concreteModel : ConcreteFun, concreteFunRange, ConcreteFunSource, matchConcreteFunSource;
+import concreteModel : ConcreteFun, concreteFunRange;
 import diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import interpret.applyFn : applyFn;
 import interpret.bytecode :
@@ -15,8 +15,6 @@ import interpret.bytecode :
 	DebugOperation,
 	isCall,
 	ExternOp,
-	FnOp,
-	FunNameAndPos,
 	matchDebugOperationImpure,
 	matchOperationImpure,
 	Operation,
@@ -32,18 +30,17 @@ import interpret.bytecodeReader :
 	setReaderPtr;
 import interpret.debugging : writeFunName;
 import interpret.externAlloc : ExternAlloc;
-import interpret.opcode : OpCode;
-import lowModel : LowFun, LowFunIndex, LowFunSource, LowProgram, matchLowFunSource;
-import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, begin, end, freeArr, ptrAt, range, sizeNat;
-import util.collection.arrUtil : lastWhere, mapWithFirst, zipSystem;
-import util.collection.fullIndexDict : fullIndexDictGet, fullIndexDictSize;
+import lowModel : LowFunSource, LowProgram, matchLowFunSource;
+import util.alloc.stackAlloc : StackAlloc;
+import util.bools : Bool, False;
+import util.collection.arr : Arr, begin, freeArr, ptrAt, range, sizeNat;
+import util.collection.arrUtil : mapWithFirst, zipSystem;
+import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.globalAllocatedStack :
 	asTempArr,
 	begin,
 	clearStack,
 	dup,
-	end,
 	GlobalAllocatedStack,
 	isEmpty,
 	peek,
@@ -59,12 +56,13 @@ import util.collection.globalAllocatedStack :
 	toArr;
 import util.collection.str : CStr, freeCStr, Str, strToCStr;
 import util.memory : allocate, overwriteMemory;
-import util.opt : force, has, none, Opt, some;
+import util.opt : has;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : FileIndex, FileAndPos;
-import util.sym : Sym;
-import util.types : bottomNBytes, decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, u8, u16, u32, u64, zero;
+import util.sourceRange : FileAndPos;
+import util.sym : writeSym;
+import util.types : decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, u8, u16, u32, u64, zero;
 import util.util : todo, unreachable, verify;
+import util.writer : finishWriterToCStr, Writer, writeChar, writePtrRange, writeStatic;
 
 @trusted immutable(int) runBytecode(Extern)(
 	ref Extern extern_,
@@ -88,7 +86,7 @@ import util.util : todo, unreachable, verify;
 	push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
 	// These need to be CStrs
 	push(interpreter.dataStack, immutable Nat64(cast(immutable u64) begin(allArgs)));
-	while (true) {
+	for (;;) {
 		final switch (step(interpreter)) {
 			case StepResult.continue_:
 				break;
@@ -184,10 +182,6 @@ void printStack(Extern)(ref const Interpreter!Extern a) {
 		printf(" %lx", value.raw());
 	printf("\n");
 }
-
-import util.alloc.stackAlloc : StackAlloc;
-import util.sym : writeSym;
-import util.writer : finishWriterToCStr, Writer, writeChar, writePtrRange, writeStatic;
 
 @trusted void printReturnStack(Extern)(ref const Interpreter!Extern a) {
 	alias Alloc = StackAlloc!("printReturnStack", 1024 * 8);

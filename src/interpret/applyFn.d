@@ -3,7 +3,6 @@ module interpret.applyFn;
 @safe @nogc nothrow: // not pure
 
 import core.atomic : cas;
-import core.stdc.stdlib : free, malloc;
 
 import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
@@ -18,10 +17,8 @@ import util.types :
 	float64,
 	float64OfU64Bits,
 	Nat64,
-	u32,
 	u64,
-	u64OfFloat64Bits,
-	zero;
+	u64OfFloat64Bits;
 import util.util : todo, verify;
 
 public void applyFn(ref DataStack dataStack, immutable FnOp fn) {

@@ -4,16 +4,16 @@ module concreteModel;
 
 import model : ClosureField, decl, FunInst, isArr, isCompareFun, Local, Param, range, RecordField, StructInst;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, empty, size, sizeEq;
+import util.collection.arr : Arr, size, sizeEq;
 import util.collection.str : Str;
 import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateSet;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt;
 import util.ptr : comparePtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : u8;
-import util.util : todo, unreachable, verify;
+import util.util : verify;
 
 enum BuiltinStructKind {
 	bool_,

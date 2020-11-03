@@ -82,26 +82,24 @@ import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAt, arrBuilderSiz
 import util.collection.arrUtil :
 	arrLiteral,
 	map,
-	mapOp,
 	mapPtrs,
 	mapWithIndexAndConcatOne,
 	mapWithOptFirst,
 	mapWithOptFirst2,
-	slice,
 	tail;
 import util.collection.dict : Dict, getAt, mustGetAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr, fullIndexDictSize;
 import util.collection.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
 import util.collection.mutDict : getOrAdd, MutDict, ValueAndDidAdd;
-import util.collection.str : copyStr, Str, strEq, strEqLiteral, strLiteral;
+import util.collection.str : copyStr;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, mapOptionPtr, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, shortSymOperatorLiteral, Sym, symEq;
-import util.util : todo, unreachable, verify;
+import util.sym : shortSymAlphaLiteral, Sym;
+import util.util : unreachable, verify;
 
 immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a.allStructs);

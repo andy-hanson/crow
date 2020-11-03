@@ -41,12 +41,9 @@ import model :
 import util.bools : True;
 import util.collection.arr : Arr, empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil : arrLiteral, findIndex, map;
-import util.collection.mutDict : getOrAdd, MutDict;
-import util.collection.str : Str, strLiteral;
-import util.opt : mapOption;
-import util.path : baseName, PathAndStorageKind, pathToStrNoRoot, storageKindSym;
-import util.ptr : comparePtr, Ptr, ptrTrustMe;
+import util.collection.arrUtil : arrLiteral, map;
+import util.path : PathAndStorageKind, pathToStrNoRoot, storageKindSym;
+import util.ptr : Ptr, ptrTrustMe;
 import util.sexpr :
 	nameAndTata,
 	NameAndSexpr,
@@ -62,7 +59,6 @@ import util.sexpr :
 import util.sourceRange : sexprOfFileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.util : todo;
-import util.writer : Writer;
 
 immutable(Sexpr) sexprOfModule(Alloc)(ref Alloc alloc, ref immutable Module a) {
 	Ctx ctx = Ctx(ptrTrustMe(a));

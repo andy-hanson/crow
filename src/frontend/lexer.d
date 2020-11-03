@@ -6,16 +6,13 @@ import frontend.ast : LiteralAst, NameAndRange, rangeOfNameAndRange;
 
 import parseDiag : ParseDiag, ParseDiagnostic;
 
-import util.alloc.alloc : nu;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail, slice;
-import util.collection.str : copyStr, CStr, emptyStr, MutStr, NulTerminatedStr, Str, stripNulTerminator,  strLiteral;
-import util.memory : initMemory;
-import util.opt : force, has, none, Opt, some;
+import util.collection.str : copyStr, CStr, emptyStr, NulTerminatedStr, Str, stripNulTerminator,  strLiteral;
+import util.opt : none, Opt, some;
 import util.ptr : Ptr;
-import util.result : fail, Result, success;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
 	AllSymbols,
@@ -29,7 +26,7 @@ import util.sym :
 	shortSymOperatorLiteral,
 	Sym,
 	symEq;
-import util.types : i32, u32, Void, safeI32FromU32, safeSizeTToU32;
+import util.types : i32, u32, safeI32FromU32, safeSizeTToU32;
 import util.util : todo, unreachable, verify;
 
 enum IndentKind {

@@ -9,7 +9,7 @@ import util.bools : Bool;
 import util.collection.arr : Arr, arrOfD, range, sizeEq;
 import util.collection.arrUtil : eachCorresponds;
 import util.collection.globalAllocatedStack : asTempArr;
-import util.types : Nat64, u8, u64;
+import util.types : Nat64, u8;
 import util.util : todo, verify;
 
 void expectDataStack(ref const DataStack dataStack, scope immutable Nat64[] expected) {

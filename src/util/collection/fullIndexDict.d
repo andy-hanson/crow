@@ -3,7 +3,7 @@ module util.collection.fullIndexDict;
 @safe @nogc pure nothrow:
 
 import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, setAt, size;
-import util.collection.arrUtil : fillArr, mapWithIndex;
+import util.collection.arrUtil : mapWithIndex;
 import util.types : safeSizeTToU16, safeSizeTToU32;
 
 struct FullIndexDict(K, V) {

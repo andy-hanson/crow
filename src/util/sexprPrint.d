@@ -4,7 +4,6 @@ module util.sexprPrint;
 
 import util.alloc.mallocator : Mallocator;
 import util.alloc.stackAlloc : SingleHeapAlloc;
-import util.collection.str : CStr;
 import util.ptr : ptrTrustMe_mut;
 import util.print : print;
 import util.sexpr : Sexpr, writeSexpr, writeSexprJSON;

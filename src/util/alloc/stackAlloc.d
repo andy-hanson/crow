@@ -4,7 +4,6 @@ module util.alloc.stackAlloc;
 
 import util.ptr : Ptr;
 import util.util : verify, verifyFail;
-import util.alloc.mallocator : Mallocator;
 
 struct StackAlloc(immutable char* debugName, size_t capacity) {
 	@safe @nogc pure nothrow:

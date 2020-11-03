@@ -2,7 +2,6 @@ module util.collection.mutFullIndexDict;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrSize, push, setAt;
 
 //TODO: maybe should name this 'MutDefaultIndexDict'

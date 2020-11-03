@@ -2,9 +2,7 @@ module util.sourceRange;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arrUtil : arrLiteral;
 import util.collection.fullIndexDict : FullIndexDict;
-import util.collection.str : Str;
 import util.path : PathAndStorageKind;
 import util.sexpr : Sexpr, tataNat, tataRecord;
 import util.types : u16, u32;
@@ -40,7 +38,6 @@ struct FileAndRange {
 }
 
 immutable(Sexpr) sexprOfFileAndRange(Alloc)(ref Alloc alloc, immutable FileAndRange a) {
-	import util.util : todo;
 	return tataRecord(
 		alloc,
 		"file-range",

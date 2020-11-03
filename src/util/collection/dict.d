@@ -2,9 +2,9 @@ module util.collection.dict;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr, emptyArr, range, size;
+import util.collection.arr : Arr, range, size;
 import util.comparison : Comparison;
-import util.opt : force, has, none, Opt, optOr, some;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 
 struct KeyValuePair(K, V) {

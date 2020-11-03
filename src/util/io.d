@@ -5,7 +5,6 @@ module util.io;
 import core.stdc.errno : ENOENT, errno;
 import core.stdc.stdio : fprintf, printf, SEEK_END, SEEK_SET, stderr;
 import core.stdc.string : strerror;
-import core.sys.posix.sys.stat : stat, stat_t;
 import core.sys.posix.fcntl : open, O_CREAT, O_RDONLY, O_TRUNC, O_WRONLY, pid_t;
 import core.sys.posix.spawn : posix_spawn;
 import core.sys.posix.sys.wait : waitpid;
@@ -14,7 +13,6 @@ import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, write;
 import std.process : execvpe;
 
 import util.alloc.stackAlloc : StackAlloc;
-import util.bools : Bool, False, True;
 import util.collection.arr : Arr, arrOfRange, begin, range, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, map, tail;
@@ -25,7 +23,6 @@ import util.collection.str :
 	copyStr,
 	CStr,
 	emptyNulTerminatedStr,
-	MutStr,
 	NulTerminatedStr,
 	nulTerminatedStrOfCStr,
 	Str,

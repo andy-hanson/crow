@@ -3,7 +3,6 @@ module interpret.bytecodeReader;
 @safe @nogc pure nothrow:
 
 import interpret.bytecode :
-	ByteCode,
 	ByteCodeIndex,
 	ByteCodeOffset,
 	ByteCodeOffsetUnsigned,
@@ -26,7 +25,7 @@ import util.collection.byteReader :
 	readU64,
 	setPtr,
 	skipBytes;
-import util.types : incr, Nat8, Nat16, Nat32, Nat64, U4U4, u4u4OfU8, u8, u16, u32, u64;
+import util.types : incr, Nat8, Nat16, Nat32, Nat64, U4U4, u4u4OfU8, u8;
 import util.util : unreachable;
 
 struct ByteCodeReader {

@@ -3,7 +3,7 @@ module util.collection.byteReader;
 @safe @nogc pure nothrow:
 
 import util.collection.arr : Arr;
-import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64;
+import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8;
 
 struct ByteReader {
 	private:

@@ -2,8 +2,7 @@ module util.collection.fullIndexDictBuilder;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, False, True;
-import util.collection.arr : Arr;
+import util.bools : Bool, True;
 import util.collection.arrUtil : fillArr_mut, fillArrUninitialized;
 import util.collection.fullIndexDict :
 	emptyFullIndexDict_mut,

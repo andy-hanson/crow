@@ -99,26 +99,23 @@ import util.collection.arr : Arr, ArrWithSize, at, empty, emptyArr, ptrsRange, r
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAsTempArr, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
-	contains,
 	exists,
 	map,
 	mapOp,
 	mapOrNone,
 	mapToMut,
 	mapWithIndex,
-	zip,
 	zipFirstMut,
 	zipMutPtrFirst;
 import util.collection.dict : getAt, KeyValuePair;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDict;
 import util.collection.dictUtil : buildDict, buildMultiDict;
 import util.collection.multiDict : multiDictGetAt;
-import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty, mutArrRangeMut;
+import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.str : copyStr, Str, strLiteral;
 import util.memory : DelayInit, delayInit;
 import util.opt : force, has, mapOption, none, noneMut, Opt, some, someMut;
-import util.path : PathAndStorageKind;
-import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
+import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.result : fail, flatMapSuccess, mapSuccess, Result, success;
 import util.sourceRange : FileAndRange, FileIndex, RangeWithinFile;
 import util.sym : addToMutSymSetOkIfPresent, compareSym, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;

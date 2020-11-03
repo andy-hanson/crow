@@ -3,7 +3,7 @@ module util.alloc.mallocator;
 @safe @nogc pure nothrow:
 
 import core.memory : pureFree, pureMalloc;
-import util.util : todo, verify;
+import util.util : verify;
 
 struct Mallocator {
 	@safe @nogc pure nothrow:

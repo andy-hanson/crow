@@ -1,15 +1,14 @@
 module util.collection.arrUtil;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, at, begin, empty, first, last, ptrAt, ptrsRange, range, size, sizeEq;
-import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAt, arrBuilderSize, ArrWithSizeBuilder, finishArr;
+import util.collection.arr : Arr, at, begin, empty, first, last, ptrAt, ptrsRange, range, size, sizeEq;
 import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.result : asFailure, asSuccess, fail, isSuccess, Result, success;
-import util.util : max, todo, verify;
+import util.util : max, verify;
 
 @safe @nogc nothrow:
 
@@ -48,15 +47,6 @@ pure:
 	T* ptr = cast(T*) alloc.allocate(T.sizeof * 1);
 	initMemory(ptr, value);
 	return immutable Arr!T(cast(immutable) ptr, 1);
-}
-
-immutable(ArrWithSize!T) arrWithSizeLiteral(T, Alloc)(
-	ref Alloc alloc,
-	immutable T v0,
-) {
-	ArrWithSizeBuilder!T builder;
-	add(alloc, builder, v0);
-	return finishArr(alloc, builder);
 }
 
 @trusted immutable(Arr!T) arrLiteral(T, Alloc)(
@@ -331,14 +321,6 @@ immutable(Opt!(Ptr!T)) findPtr(T)(
 		if (cb(x))
 			return some!(Ptr!T)(x);
 	return none!(Ptr!T);
-}
-
-void eachWithIndex(T)(
-	immutable Arr!T a,
-	scope void delegate(immutable size_t, ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	foreach (immutable size_t i; 0..size(a))
-		cb(i, at(a, i));
 }
 
 immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {

@@ -7,7 +7,7 @@ import model : AbsolutePathsGetter;
 import util.collection.str : NulTerminatedStr, Str;
 import util.io : ioTryReadFile = tryReadFile;
 import util.opt : Opt;
-import util.path : AbsolutePath, addManyChildren, Path, StorageKind;
+import util.path : AbsolutePath, Path, StorageKind;
 import util.ptr : Ptr;
 
 struct ReadOnlyStorage {

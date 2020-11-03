@@ -8,8 +8,6 @@ import lowModel :
 	isNonFunPtrType,
 	LowExpr,
 	LowExprKind,
-	LowField,
-	LowFun,
 	LowFunIndex,
 	LowLocal,
 	LowParamIndex,
@@ -21,7 +19,6 @@ import util.memory : allocate;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.types : u8;
-import util.util : todo;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
 immutable LowType charType = immutable LowType(PrimitiveType.char_);

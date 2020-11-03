@@ -107,12 +107,10 @@ import util.collection.mutArr :
 	moveToArr_const,
 	MutArr,
 	mutArrIsEmpty,
-	mutArrSize,
 	newUninitializedMutArr,
 	peek,
 	push,
 	setAt,
-	tempAsArr,
 	tempAsArr_mut;
 import util.opt : force, has, mapOption_const, none, Opt, some;
 import util.ptr : Ptr, ptrEquals;

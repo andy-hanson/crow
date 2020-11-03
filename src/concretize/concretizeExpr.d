@@ -48,10 +48,8 @@ import concretize.concretizeCtx :
 import model :
 	Called,
 	ClosureField,
-	decl,
 	elementType,
 	Expr,
-	FunDecl,
 	FunInst,
 	FunKind,
 	Local,
@@ -66,18 +64,17 @@ import model :
 	typeArgs;
 import util.bools : Bool, False;
 import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
-import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAsTempArr, arrBuilderSize, finishArr;
-import util.collection.arrUtil : arrLiteral, cat, exists, map, mapWithIndex;
+import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
+import util.collection.arrUtil : arrLiteral, map, mapWithIndex;
 import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutDict;
-import util.collection.str : copyStr, Str, strEq, strEqLiteral, strLiteral;
+import util.collection.str : copyStr;
 import util.memory : allocate, nu;
 import util.opt : force, forcePtr, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, Sym, symEq, symEqLongAlphaLiteral;
+import util.sym : shortSymAlphaLiteral, symEq, symEqLongAlphaLiteral;
 import util.types : safeSizeTToU8;
-import util.util : todo, unreachable, verify;
-import util.writer : finishWriter, writeNat, Writer, writeStatic, writeStr;
+import util.util : unreachable, verify;
 
 immutable(ConcreteFunBody) concretizeExpr(Alloc)(
 	ref Alloc alloc,

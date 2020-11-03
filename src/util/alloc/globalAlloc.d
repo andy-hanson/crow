@@ -3,7 +3,6 @@ module util.alloc.globalAlloc;
 // Intended for use by WASM which has problems with StackAlloc
 // (tries to call 'memset' to initialize it, but that function doesn't exist)
 
-import util.ptr : Ptr;
 import util.util : verifyFail;
 
 @nogc nothrow: // not @safe, not pure

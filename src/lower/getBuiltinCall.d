@@ -7,20 +7,13 @@ import lowModel :
 	isFunPtrType,
 	isNonFunPtrType,
 	isPrimitive,
-	LowExpr,
 	LowExprKind,
-	LowParamIndex,
 	LowType,
 	PrimitiveType;
-import lower.lowExprHelpers : ptrCastKind;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, size;
-import util.memory : allocate;
-import util.opt : force, Opt;
-import util.ptr : Ptr;
-import util.sourceRange : FileAndRange;
+import util.collection.arr : size;
 import util.sym : shortSymAlphaLiteralValue, shortSymOperatorLiteralValue, Sym, symEqLongAlphaLiteral;
-import util.util : todo, verify;
+import util.util : todo;
 
 struct BuiltinKind {
 	@safe @nogc pure nothrow:

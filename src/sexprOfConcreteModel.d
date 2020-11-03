@@ -34,8 +34,6 @@ import concreteModel :
 import model : FunInst, name, Local, Param;
 import util.bools : True;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : strLiteral;
-import util.opt : force, has;
 import util.ptr : Ptr;
 import util.sexpr :
 	NameAndSexpr,
@@ -50,7 +48,6 @@ import util.sexpr :
 	tataStr,
 	tataSym;
 import util.sourceRange : sexprOfFileAndRange;
-import util.util : todo, unreachable;
 
 immutable(Sexpr) tataOfConcreteProgram(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	return tataRecord(

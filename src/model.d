@@ -5,7 +5,7 @@ module model;
 import diag : FilesInfo; // TODO: move that here?
 import util.bools : and, Bool, False, True;
 import util.collection.arr : Arr, empty, emptyArr, first, only, range, size, sizeEq;
-import util.collection.arrUtil : arrLiteral, compareArr, exists, map;
+import util.collection.arrUtil : compareArr, exists;
 import util.collection.dict : Dict;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.multiDict : MultiDict;
@@ -16,7 +16,7 @@ import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.memory : nu;
 import util.opt : has, none, Opt, some;
-import util.path : AbsolutePath, addManyChildren, baseName, comparePath, PathAndStorageKind, StorageKind;
+import util.path : AbsolutePath, comparePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange, FileIndex;
 import util.sym : compareSym, shortSymAlphaLiteral, shortSymOperatorLiteral, Sym, symEq, writeSym;
@@ -28,10 +28,6 @@ immutable(Comparison) comparePathAndStorageKind(immutable PathAndStorageKind a, 
 	return compareOr(
 		compareEnum(a.storageKind, b.storageKind),
 		() => comparePath(a.path, b.path));
-}
-
-immutable(Bool) pathAndStorageKindEq(immutable PathAndStorageKind a, immutable PathAndStorageKind b) {
-	return Bool(comparePathAndStorageKind(a, b) == Comparison.equal);
 }
 
 struct AbsolutePathsGetter {

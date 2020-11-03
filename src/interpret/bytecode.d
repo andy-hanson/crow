@@ -2,17 +2,16 @@ module interpret.bytecode;
 
 @safe @nogc nothrow: // not pure
 
-import interpret.opcode : OpCode;
 import lowModel : LowFunIndex;
 import util.bools : Bool;
 import util.collection.arr : Arr, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.str : Str, strLiteral;
 import util.sexpr : Sexpr, tataArr, tataHex, tataInt, tataNat, tataRecord, tataStr, tataSym;
-import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, zero;
+import util.sym : Sym;
+import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8, zero;
 import util.sourceRange : FileIndex, Pos;
-import util.util : todo, verify;
+import util.util : verify;
 
 T matchDebugOperationImpure(T)(
 	ref immutable DebugOperation a,

@@ -3,7 +3,7 @@ module test.testLineAndColumnGetter;
 @safe @nogc nothrow: // not pure
 
 import util.alloc.stackAlloc : StackAlloc;
-import util.collection.str : asCStr, NulTerminatedStr, strLiteral;
+import util.collection.str : NulTerminatedStr, strLiteral;
 import util.io : tryReadFile;
 import util.opt : force, none, Opt;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText;

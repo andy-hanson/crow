@@ -13,7 +13,7 @@ import util.comparison : Comparison;
 import util.opt : Opt, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.types : u64;
-import util.util : todo, unreachable, verify;
+import util.util : unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer;
 
 immutable(Bool) isAlphaIdentifierStart(immutable char c) {

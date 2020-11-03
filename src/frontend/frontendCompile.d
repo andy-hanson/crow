@@ -5,13 +5,11 @@ module frontend.frontendCompile;
 import diag : Diag, Diags, Diagnostic, Diagnostics, FilesInfo;
 
 import model :
-	AbsolutePathsGetter,
 	asStructDecl,
 	CommonTypes,
 	comparePathAndStorageKind,
 	LineAndColumnGetters,
 	Module,
-	pathAndStorageKindEq,
 	Program,
 	StructDecl,
 	StructInst;
@@ -23,43 +21,28 @@ import frontend.ast :
 	FileAst,
 	ImportAst,
 	imports,
-	ImportsOrExportsAst,
-	specs,
-	structAliases,
-	structs;
+	ImportsOrExportsAst;
 import frontend.check : BootstrapCheck, check, checkBootstrapNz, ModuleAndNames, PathAndAst;
 import frontend.instantiate : instantiateNonTemplateStruct;
 import frontend.lang : nozeExtension;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
-import frontend.readOnlyStorage : absolutePathsGetter, choose, ReadOnlyStorage, ReadOnlyStorages, tryReadFile;
+import frontend.readOnlyStorage : absolutePathsGetter, choose, ReadOnlyStorages, tryReadFile;
 
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, empty, emptyArr, range, size;
+import util.collection.arr : Arr, at, empty, emptyArr, range;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, arrBuilderSize, finishArr;
-import util.collection.arrUtil : arrLiteral, cat, copyArr, find, map, mapImpure, mapOrFailWithSoFar, prepend;
+import util.collection.arrUtil : arrLiteral, cat, copyArr, map, mapImpure, mapOrFailWithSoFar, prepend;
 import util.collection.dict : mustGetAt;
-import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr;
-import util.collection.mutDict :
-	addToMutDict,
-	getAt_mut,
-	getOrAddAndDidAdd,
-	hasKey_mut,
-	mustGetAt_mut,
-	MutDict,
-	mutDictSize,
-	setInDict,
-	ValueAndDidAdd;
-import util.collection.mutIndexDict : addToMutIndexDict, mustGetAt, MutIndexDict, newMutIndexDict;
-import util.collection.mutFullIndexDict : MutFullIndexDict, mutFullIndexDictGet, mutFullIndexDictSet;
-import util.collection.str : NulTerminatedStr, Str, stripNulTerminator, strLiteral;
+import util.collection.mutDict : getAt_mut, MutDict, setInDict;
+import util.collection.mutIndexDict : mustGetAt;
+import util.collection.str : NulTerminatedStr, stripNulTerminator;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
-import util.opt : force, has, mapOption, Opt, optOr, matchOpt, none, some;
+import util.opt : force, has, mapOption, Opt, none, some;
 import util.path :
-	baseName,
 	copyPath,
 	parent,
 	Path,
@@ -73,15 +56,10 @@ import util.ptr : Ptr;
 import util.result :
 	asSuccess,
 	fail,
-	flatMapSuccess,
 	isSuccess,
-	joinResults,
 	mapFailure,
 	mapSuccess,
-	matchResult,
-	matchResultImpure,
-	Result,
-	success;
+	Result;
 import util.sourceRange : FileAndRange, FileIndex, FilePaths, RangeWithinFile;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
 import util.types : safeSizeTToU16;

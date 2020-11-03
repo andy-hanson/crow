@@ -2,11 +2,9 @@ module lower.generateCompareFun;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : ConcreteParam;
 import lowModel :
 	asNonFunPtrType,
 	asRecordType,
-	asUnionType,
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -37,9 +35,7 @@ import lower.lowExprHelpers :
 	genCreateUnion,
 	genDeref,
 	genIf,
-	genLet,
 	genNat64Eq0,
-	genUnary,
 	incrPointer,
 	localRef,
 	paramRef,
@@ -47,16 +43,16 @@ import lower.lowExprHelpers :
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil : arrLiteral, cat, fillArr, mapWithIndex, rtail;
+import util.collection.arrUtil : arrLiteral, fillArr, mapWithIndex, rtail;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.collection.str : Str, strEqLiteral, strLiteral;
+import util.collection.str : Str;
 import util.memory : allocate, nu;
 import util.opt : none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
 import util.types : safeSizeTToU8, u8;
-import util.util : todo, unreachable, verify;
+import util.util : unreachable, verify;
 import util.writer : finishWriter, Writer, writeStatic, writeNat;
 
 immutable(LowFun) generateCompareFun(Alloc)(

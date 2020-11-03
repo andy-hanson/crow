@@ -5,7 +5,7 @@ module util.collection.byteWriter;
 import util.collection.arr : Arr;
 import util.collection.mutArr : moveToArr, MutArr, mutArrPtrAt, mutArrSize, push, pushAll;
 import util.ptr : Ptr;
-import util.types : bottomU8OfU32, bottomU32OfU64, Int16, Nat8, Nat16, Nat32, Nat64, u8;
+import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8;
 import util.util : verify;
 
 // NOTE: When this writes a u16/u32/u64, it is written in platform-dependent order.

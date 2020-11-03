@@ -10,7 +10,7 @@ void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc noth
 pure:
 
 import core.stdc.stdio : printf;
-import util.bools : Bool, False;
+import util.bools : False;
 import util.types : incr, Nat8, zero;
 //import util.print : print;
 

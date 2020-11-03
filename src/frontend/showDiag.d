@@ -3,7 +3,6 @@ module frontend.showDiag;
 @safe @nogc pure nothrow:
 
 import diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
-import frontend.lang : nozeExtension;
 import model :
 	arity,
 	bestCasePurity,
@@ -11,9 +10,7 @@ import model :
 	comparePathAndStorageKind,
 	decl,
 	FunDecl,
-	getAbsolutePath,
 	matchCalledDecl,
-	Module,
 	name,
 	nTypeParams,
 	Param,
@@ -34,33 +31,29 @@ import parseDiag : matchParseDiag, ParseDiag;
 import util.bools : Bool, not, True;
 import util.collection.arr : Arr, empty, only, range, size;
 import util.collection.arrUtil : exists, map, sort;
-import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.collection.str : CStr, emptyStr, Str;
+import util.collection.str : CStr, Str;
 import util.diff : diffSymbols;
-import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetter;
+import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has;
-import util.path : PathAndStorageKind, pathToStr;
+import util.path : PathAndStorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sourceRange : FileAndRange, FileIndex, FilePaths;
+import util.sourceRange : FileAndRange, FilePaths;
 import util.sym : Sym, writeSym;
-import util.util : todo;
 import util.writer :
 	finishWriter,
 	finishWriterToCStr,
 	writeBold,
 	writeChar,
 	writeEscapedChar,
-	writeHyperlink,
 	writeNat,
 	writeQuotedStr,
-	writeRed,
 	writeReset,
 	writeStatic,
 	writeStr,
 	writeWithCommas,
 	Writer;
-import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRangeWithinFile, writeRelPath;
+import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRelPath;
 
 immutable(CStr) cStrOfDiagnostics(Alloc)(ref Alloc alloc, ref immutable Diagnostics diagnostics) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
@@ -85,10 +78,6 @@ public immutable(Str) strOfParseDiag(Alloc)(ref Alloc alloc, ref immutable Parse
 }
 
 private:
-
-immutable(Str) getAbsolutePathStr(Alloc)(ref Alloc alloc, ref immutable FilesInfo fi, immutable FileIndex file) {
-	return ;
-}
 
 void writeLineNumber(Alloc)(
 	ref Writer!Alloc writer,

@@ -9,7 +9,6 @@ import model :
 	CommonTypes,
 	decl,
 	FunDecl,
-	FunDeclAndArgs,
 	FunInst,
 	FunKind,
 	getFunStructInfo,
@@ -29,10 +28,10 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, first, only, size;
 import util.collection.arrBuilder : finishArr_immutable;
 import util.collection.arrUtil : filter;
-import util.collection.mutDict : mutDictIsEmpty, moveMutDictToValues;
+import util.collection.mutDict : mutDictIsEmpty;
 import util.collection.multiDict : multiDictGetAt;
 import util.opt : force, has, Opt;
-import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe;
+import util.ptr : Ptr, ptrEquals, ptrTrustMe;
 import util.sym : shortSymAlphaLiteral;
 import util.util : todo, verify;
 

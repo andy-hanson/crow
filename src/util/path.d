@@ -6,8 +6,7 @@ import util.alloc.alloc : nu;
 import util.bools : Bool, False, True;
 import util.collection.arr : at, first, range, size;
 import util.collection.arrUtil : slice, sliceFromTo;
-import util.collection.mutArr : moveToArr, newUninitializedMutArr, setAt;
-import util.collection.str : asCStr, copyStr, CStr, emptyStr, MutStr, NulTerminatedStr, Str;
+import util.collection.str : asCStr, copyStr, CStr, emptyStr, NulTerminatedStr, Str;
 import util.comparison : Comparison, compareOr;
 import util.opt : compareOpt, has, flatMapOption, force, forceOrTodo, mapOption, matchOpt, none, Opt, some;
 import util.ptr : Ptr;
@@ -138,11 +137,11 @@ immutable(Ptr!Path) addManyChildren(Alloc)(ref Alloc alloc, immutable Ptr!Path a
 		b.parent,
 		(ref immutable Ptr!Path parent) => addManyChildren(alloc, a, parent),
 		() => a);
-	return childPath(alloc, p, b.baseName);
+	return childPath(alloc, p, baseName(b));
 }
 
 private void walkPathBackwards(immutable Ptr!Path p, scope void delegate(immutable Sym) @safe @nogc pure nothrow cb) {
-	cb(p.baseName_);
+	cb(baseName(p));
 	matchOpt!(void, Ptr!Path)(
 		p.parent,
 		(ref immutable Ptr!Path parent) { walkPathBackwards(parent, cb); },
@@ -410,7 +409,7 @@ private immutable(Opt!ParentAndBaseName) pathParentAndBaseName(immutable Str s) 
 
 immutable(Comparison) comparePath(immutable Ptr!Path a, immutable Ptr!Path b) {
 	return compareOr(
-		compareSym(a.baseName, b.baseName),
+		compareSym(baseName(a), baseName(b)),
 		() => compareOpt!(Ptr!Path)(a.parent, b.parent, (ref immutable Ptr!Path x, ref immutable Ptr!Path y) =>
 			comparePath(x, y)));
 }
@@ -446,5 +445,5 @@ immutable(Ptr!Path) copyPath(Alloc)(ref Alloc alloc, immutable Ptr!Path a) {
 		has(a.parent)
 			? some(copyPath(alloc, force(a.parent)))
 			: none!(Ptr!Path),
-		a.baseName);
+		baseName(a));
 }

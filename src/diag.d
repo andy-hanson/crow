@@ -2,11 +2,13 @@ module diag;
 
 @safe @nogc pure nothrow:
 
+import frontend.lang : nozeExtension;
 import model :
 	AbsolutePathsGetter,
 	CalledDecl,
 	ClosureField,
 	FunDecl,
+	getAbsolutePath,
 	LineAndColumnGetters,
 	Purity,
 	RecordField,
@@ -17,13 +19,18 @@ import model :
 	StructOrAlias,
 	Type;
 import parseDiag : ParseDiag;
-import util.collection.arr : Arr, empty;
-import util.collection.str : Str;
+import util.collection.arr : Arr;
+import util.collection.fullIndexDict : fullIndexDictGet;
+import util.collection.str : emptyStr, Str;
 import util.opt : Opt;
+import util.path : PathAndStorageKind, pathToStr;
 import util.ptr : Ptr;
-import util.sourceRange : FileAndPos, FileAndRange, FilePaths;
+import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.util : verify;
+import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
+import util.writerUtils : writeRangeWithinFile, writePos;
+
+
 
 enum TypeKind {
 	builtin,
@@ -621,14 +628,6 @@ struct FilesInfo {
 	immutable LineAndColumnGetters lineAndColumnGetters;
 }
 
-import model : getAbsolutePath;
-import util.collection.fullIndexDict : fullIndexDictGet;
-import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
-import util.writerUtils : writeRangeWithinFile, writePos;
-import util.path : PathAndStorageKind, pathToStr;
-import util.sourceRange : FileIndex;
-import frontend.lang : nozeExtension;
-import util.collection.str : emptyStr;
 
 void writeFileAndRange(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,

@@ -2,34 +2,33 @@
 
 import cli : cli;
 
+import core.stdc.stdio : printf;
+import frontend.ast : CallAst, CreateArrAst,
+	CreateRecordAst,
+	CreateRecordMultiLineAst,
+	ExprAst,
+	ExprAstKind,
+	IdentifierAst,
+	LambdaAst,
+	LetAst,
+	LiteralAst,
+	LiteralInnerAst,
+	MatchAst,
+	SeqAst,
+	RecordFieldSetAst,
+	ThenAst,
+	FileAst,
+	SigAst,
+	StructDeclAst,
+	TypeAst,
+	WhenAst,
+	FunDeclAst,
+	FunBodyAst;
+import parseDiag : ParseDiagnostic;
+import util.result : Result;
+
 extern(C) int main(immutable size_t argc, immutable char** argv) {
 	if (false) { debug {
-		import core.stdc.stdio : printf;
-		import frontend.ast : CallAst, CreateArrAst,
-			CreateRecordAst,
-			CreateRecordMultiLineAst,
-			ExprAst,
-			ExprAstKind,
-			IdentifierAst,
-			LambdaAst,
-			LetAst,
-			LiteralAst,
-			LiteralInnerAst,
-			MatchAst,
-			SeqAst,
-			RecordFieldSetAst,
-			ThenAst,
-			ExprAstKind,
-			FileAst,
-			SigAst,
-			StructDeclAst,
-			TypeAst,
-			WhenAst,
-			FunDeclAst,
-			FunBodyAst;
-		import parseDiag : ParseDiagnostic;
-		import util.collection.arrBuilder : ArrBuilder;
-		import util.result : Result;
 		printf("ExprAst: %lu\n", ExprAst.sizeof);
 		printf("ExprAstKind: %lu\n", ExprAstKind.sizeof);
 		printf("	CallAst: %lu\n", CallAst.sizeof);
@@ -65,13 +64,4 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 	} }
 
 	return cli(argc, argv);
-}
-
-private:
-
-pure void trustedPrint(int i) {
-	import core.stdc.stdio : printf;
-	debug {
-		printf("%d\n", i);
-	}
 }

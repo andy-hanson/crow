@@ -3,7 +3,7 @@ module util.collection.arrBuilder;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
-import util.collection.arr : Arr, ArrWithSize, begin, emptyArrWithSize, range, size;
+import util.collection.arr : Arr, ArrWithSize, begin, emptyArrWithSize, size;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrIsEmpty, mutArrSize, push, pushAll, tempAsArr;
 import util.memory : initMemory;
 import util.util : verify;

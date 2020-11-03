@@ -12,7 +12,6 @@ import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr;
 import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
 import util.types : abs, IntN, NatN, safeIntFromSizeT;
-import util.util : todo, unreachable;
 import util.writer :
 	newline,
 	writeChar,
@@ -21,7 +20,6 @@ import util.writer :
 	Writer,
 	writeQuotedStr,
 	writeStatic,
-	writeStr,
 	writeWithCommas;
 
 immutable(Sexpr) tataRecord(immutable Sym name, immutable Arr!Sexpr children) {

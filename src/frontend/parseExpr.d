@@ -43,7 +43,6 @@ import frontend.lexer :
 	takeExpressionToken,
 	takeIndentOrDiagTopLevel,
 	takeIndentOrFailGeneric,
-	takeName,
 	takeNameAndRange,
 	takeNewlineOrDedentAmount,
 	takeOrAddDiagExpected,
@@ -56,13 +55,13 @@ import parseDiag : ParseDiag;
 import util.alloc.alloc : nu2;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, only, size, toArr;
-import util.collection.arrUtil : arrLiteral, arrWithSizeLiteral, exists, prepend;
+import util.collection.arrUtil : arrLiteral, exists, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : shortSymAlphaLiteral, Sym, symEq;
+import util.sym : shortSymAlphaLiteral, symEq;
 import util.util : todo, unreachable, verify;
 
 immutable(ExprAst) parseFunExprBody(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {

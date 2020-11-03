@@ -28,7 +28,6 @@ import frontend.ast :
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
 	matchTypeAst,
-	NameAndRange,
 	ParamAst,
 	rangeOfExplicitByValOrRef,
 	rangeOfNameAndRange,

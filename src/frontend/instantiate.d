@@ -26,7 +26,6 @@ import model :
 	setBody,
 	Sig,
 	SpecBody,
-	SpecDecl,
 	SpecDeclAndArgs,
 	SpecInst,
 	SpecSig,
@@ -42,14 +41,14 @@ import model :
 	worstCasePurity;
 
 import util.bools : Bool, False;
-import util.collection.arr : Arr, begin, emptyArr, ptrAt, size, sizeEq;
+import util.collection.arr : Arr, emptyArr, ptrAt, size, sizeEq;
 import util.collection.arrUtil : fold, map;
 import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
 import util.collection.mutArr : MutArr, push;
 import util.memory : nu, nuMut;
 import util.opt : force, has, none, noneMut, Opt, some, someConst, someMut;
 import util.ptr : Ptr, ptrEquals;
-import util.util : todo, verify;
+import util.util : verify;
 
 struct TypeParamsScope {
 	// TODO: consistent naming

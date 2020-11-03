@@ -19,7 +19,7 @@ import util.comparison : compareSizeT;
 import util.sym : shortSymAlphaLiteral, Sym, symEq, symSize, writeSym;
 import util.writer : Writer, writeRed, writeReset, writeStatic;
 import util.writerUtils : writeNlIndent, writeSpaces, writeSymPadded;
-import util.util : max, todo, verify;
+import util.util : max, verify;
 
 void diffSymbols(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,

@@ -2,8 +2,6 @@ module util.collection.mutArr;
 
 @safe @nogc pure nothrow:
 
-import std.traits : Unqual;
-
 import util.bools : Bool;
 import util.collection.arr : Arr, range;
 import util.memory : initMemory, memcpy, overwriteMemory;

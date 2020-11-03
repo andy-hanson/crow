@@ -2,13 +2,12 @@ module interpret.realExtern;
 
 @safe @nogc nothrow: // not pure
 
-import core.sys.linux.sys.sysinfo : get_nprocs;
+// import core.sys.linux.sys.sysinfo : get_nprocs;
 import core.sys.posix.unistd : posixUsleep = usleep, posixWrite = write;
 
 import interpret.allocTracker : AllocTracker;
 import util.alloc.mallocator : Mallocator;
 import util.bools : Bool;
-import util.collection.mutDict : mustDelete;
 import util.ptr : PtrRange;
 import util.writer : Writer;
 

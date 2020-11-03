@@ -3,7 +3,7 @@ module frontend.parseType;
 @safe @nogc pure nothrow:
 
 import frontend.ast : matchTypeAst, NameAndRange, range, TypeAst;
-import frontend.lexer : addDiag, addDiagAtChar, curPos, Lexer, range, takeNameAndRange, takeOrAddDiagExpected, tryTake;
+import frontend.lexer : addDiag, curPos, Lexer, range, takeNameAndRange, takeOrAddDiagExpected, tryTake;
 
 import parseDiag : ParseDiag;
 
@@ -12,7 +12,6 @@ import util.collection.arr : Arr, ArrWithSize, at, empty, toArr;
 import util.collection.arrBuilder : add, ArrWithSizeBuilder, finishArr;
 import util.opt : none, Opt, some;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : Sym;
 import util.util : todo;
 
 immutable(ArrWithSize!TypeAst) tryParseTypeArgs(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {

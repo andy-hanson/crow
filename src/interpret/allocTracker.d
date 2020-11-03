@@ -6,7 +6,7 @@ import util.bools : Bool, False, True;
 import util.collection.arr : range;
 import util.collection.arrUtil : exists;
 import util.collection.dict : KeyValuePair;
-import util.collection.mutDict : addToMutDict, mustDelete, MutDict, mutDictIsEmpty, tempPairs;
+import util.collection.mutDict : addToMutDict, mustDelete, MutDict, tempPairs;
 import util.ptr : comparePtrRaw, contains, PtrRange;
 import util.writer : Writer, writePtrRange, writeStatic;
 

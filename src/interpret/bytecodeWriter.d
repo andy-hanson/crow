@@ -30,14 +30,14 @@ import util.collection.byteWriter :
 	writeU32,
 	writeU64;
 import interpret.opcode : OpCode;
-import util.collection.arr : Arr, begin, empty, range, sizeNat, sizeEq;
+import util.collection.arr : Arr, begin, empty, range, sizeNat;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
-import util.collection.mutArr : moveToArr, MutArr, mutArrRange, mutArrSizeNat, push, pushAll, setAt;
+import util.collection.mutArr : moveToArr, MutArr, mutArrRange, mutArrSizeNat, push, pushAll;
 import util.collection.str : Str;
 import util.ptr : Ptr;
 import util.util : divRoundUp, repeat, unreachable, verify;
-import util.types : catU4U4, decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, maxU32, zero;
+import util.types : catU4U4, decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, zero;
 
 struct ByteCodeWriter(Alloc) {
 	private:

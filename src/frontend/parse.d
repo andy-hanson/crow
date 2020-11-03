@@ -5,7 +5,6 @@ module frontend.parse;
 import parseDiag : ParseDiagnostic;
 
 import frontend.ast :
-	emptyFileAst,
 	ExplicitByValOrRef,
 	ExplicitByValOrRefAndRange,
 	FileAst,
@@ -63,7 +62,6 @@ import parseDiag : ParseDiag;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, ArrWithSizeBuilder, finishArr;
-import util.collection.arrUtil : arrLiteral;
 import util.collection.str : CStr, emptyStr, NulTerminatedStr, Str;
 import util.memory : nu;
 import util.opt : force, has, mapOption, none, Opt, optOr, some;

@@ -23,7 +23,6 @@ import concreteModel :
 	sizeOrPointerSizeBytes;
 import concretize.concretizeExpr : concretizeExpr;
 import model :
-	asExtern,
 	body_,
 	CommonTypes,
 	decl,
@@ -32,7 +31,6 @@ import model :
 	FunBody,
 	FunDecl,
 	FunInst,
-	isExtern,
 	matchFunBody,
 	matchStructBody,
 	matchType,
@@ -52,7 +50,7 @@ import model :
 import util.bools : Bool, False, not, True;
 import util.collection.arr : Arr, at, empty, emptyArr, only, ptrAt, range, sizeEq;
 import util.collection.arrBuilder : add, ArrBuilder;
-import util.collection.arrUtil : arrLiteral, arrMax, compareArr, exists, map, mapPtrsWithIndex;
+import util.collection.arrUtil : arrMax, compareArr, exists, map, mapPtrsWithIndex;
 import util.collection.mutArr : MutArr;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.collection.str : strLiteral;
@@ -60,7 +58,7 @@ import util.comparison : Comparison;
 import util.late : Late, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : nu, nuMut;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals, ptrTrustMe_mut;
+import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals;
 import util.sym : shortSymAlphaLiteralValue, Sym;
 import util.types : safeSizeTToU8;
 import util.util : min, max, roundUp, todo, unreachable, verify;

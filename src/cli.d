@@ -7,8 +7,8 @@ import util.alloc.mallocator : Mallocator;
 import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, first, only, size;
-import util.collection.arrUtil : slice, sliceFromTo, tail;
-import util.collection.str : CStr, endsWith, Str, strEqLiteral, strLiteral;
+import util.collection.arrUtil : slice, tail;
+import util.collection.str : CStr, endsWith, Str, strEqLiteral;
 import util.io : getCwd, parseCommandLineArgs, CommandLineArgs;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
 import util.path :
@@ -16,17 +16,13 @@ import util.path :
 	baseName,
 	parentStr,
 	parseAbsoluteOrRelPath,
-	Path,
 	pathBaseName,
 	pathParent,
-	pathToStr,
-	RelPath,
-	resolvePath,
 	rootPath;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.print : print;
 import util.sexprPrint : PrintFormat;
-import util.sym : AllSymbols, shortSymAlphaLiteral, Sym, symEq;
+import util.sym : AllSymbols, Sym;
 import util.util : todo;
 
 @safe @nogc nothrow: // not pure
