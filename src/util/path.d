@@ -2,12 +2,12 @@ module util.path;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.alloc : nu;
 import util.bools : Bool, False, True;
 import util.collection.arr : at, first, range, size;
 import util.collection.arrUtil : slice, sliceFromTo;
 import util.collection.str : asCStr, copyStr, CStr, emptyStr, NulTerminatedStr, Str;
 import util.comparison : Comparison, compareOr;
+import util.memory : nu;
 import util.opt : compareOpt, has, flatMapOption, force, forceOrTodo, mapOption, matchOpt, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;

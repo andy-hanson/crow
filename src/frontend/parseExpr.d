@@ -52,7 +52,6 @@ import frontend.parseType : tryParseTypeArg, tryParseTypeArgs;
 
 import parseDiag : ParseDiag;
 
-import util.alloc.alloc : nu2;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, only, size, toArr;
 import util.collection.arrUtil : arrLiteral, exists, prepend;
@@ -82,7 +81,7 @@ immutable(ExprAst) bogusExpr(immutable RangeWithinFile range) {
 }
 
 immutable(Ptr!ExprAst) allocExpr(Alloc)(ref Alloc alloc, immutable ExprAst e) {
-	return nu2(alloc, e);
+	return allocate(alloc, e);
 }
 
 struct ArgCtx {
