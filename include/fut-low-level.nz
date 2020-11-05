@@ -1,4 +1,6 @@
-import .bootstrap .thread-utils
+import
+	.bootstrap: call drop err exception fut fut-callback-node fut-state-callbacks fut-state-resolved hard-fail hard-unreachable none opt ok pass ref-of-val result void
+	.thread-utils: acquire-lock new-lock release-lock
 
 | Considered unsafe because normally it should not be possible to never resolve a fut
 new-unresolved-fut fut ?t() unsafe

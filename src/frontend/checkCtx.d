@@ -16,7 +16,7 @@ struct CheckCtx {
 	Ptr!ProgramState programState;
 	immutable FileIndex fileIndex;
 	immutable Arr!ModuleAndNameReferents allFlattenedImports;
-	ArrBuilder!Diagnostic diagsBuilder;
+	Ptr!(ArrBuilder!Diagnostic) diagsBuilder;
 }
 
 immutable(FileAndRange) rangeInFile(ref const CheckCtx ctx, immutable RangeWithinFile range) {
@@ -39,13 +39,5 @@ void addDiag(Alloc)(
 	immutable Diag diag,
 ) {
 	addDiag(alloc, ctx, immutable FileAndRange(ctx.fileIndex, range), diag);
-}
-
-immutable(Bool) hasDiags(ref const CheckCtx ctx) {
-	return not(arrBuilderIsEmpty(ctx.diagsBuilder));
-}
-
-immutable(Diags) diags(Alloc)(ref Alloc alloc, ref CheckCtx ctx) {
-	return finishArr(alloc, ctx.diagsBuilder);
 }
 

@@ -350,7 +350,7 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 							// We should have already added a parse diagnostic when resolving the import
 							return FileIndex.none;
 					}();
-					return immutable FileIndexAndNames(fi, import_.names);
+					return immutable FileIndexAndNames(fi, import_.importedFrom, import_.names);
 				});
 		}
 		immutable Arr!FileIndexAndNames resolvedImports = resolveImportsOrExports(importsAndExports.imports);
@@ -531,6 +531,7 @@ struct AstAndResolvedImports {
 
 struct FileIndexAndNames {
 	immutable FileIndex fileIndex;
+	immutable RangeWithinFile range;
 	immutable Opt!(Arr!Sym) names;
 }
 
@@ -546,11 +547,8 @@ immutable(Arr!ModuleAndNames) mapImportsOrExports(ModelAlloc)(
 	ref immutable Arr!FileIndexAndNames paths,
 	ref immutable FullIndexDict!(FileIndex, Ptr!Module) compiled,
 ) {
-	return map(
-		modelAlloc,
-		paths,
-		(ref immutable FileIndexAndNames importPath) =>
-			immutable ModuleAndNames(fullIndexDictGet(compiled, importPath.fileIndex), importPath.names));
+	return map(modelAlloc, paths, (ref immutable FileIndexAndNames it) =>
+		immutable ModuleAndNames(fullIndexDictGet(compiled, it.fileIndex), it.range, it.names));
 }
 
 struct ModulesAndCommonTypes {
@@ -577,7 +575,10 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 				immutable Bool isInInclude = Bool(ast.storageKind == StorageKind.global);
 				immutable Arr!FileIndexAndNames allImports = isInInclude
 					? ast.resolvedImports
-					: prepend(modelAlloc, immutable FileIndexAndNames(stdIndex, none!(Arr!Sym)), ast.resolvedImports);
+					: prepend(
+						modelAlloc,
+						immutable FileIndexAndNames(stdIndex, RangeWithinFile.empty, none!(Arr!Sym)),
+						ast.resolvedImports);
 				immutable Arr!ModuleAndNames mappedImports =
 					mapImportsOrExports(modelAlloc, allImports, compiled);
 				immutable Arr!ModuleAndNames mappedExports =

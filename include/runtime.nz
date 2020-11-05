@@ -1,18 +1,18 @@
 | .str-utils for c-str.to-str
 | TODO: don't import .io or .number-utils
 import
-	.alloc
-	.arr-utils
-	.bootstrap
-	.cell
-	.exceptions
-	.fut-low-level
-	.io
-	.mut-bag
-	.number-utils
-	.posix
-	.str-utils
-	.thread-utils
+	.alloc: gc get-gc-ctx new-gc return-gc-ctx unmanaged-alloc-elements
+	.arr-utils: at contains? empty? mut-arr noctx-at noctx-must-remove-unordered push-capacity-must-be-sufficient
+	.bootstrap: == > actor-id arr as as-any-ptr as-ref bool by-val call-with-ctx ctx empty? err exception false fun-mut0 fun-mut1 get-ctx hard-assert hard-forbid if lock nat noctx-decr noctx-incr none ok opt pass ref-of-val result some todo true vat-and-actor-id vat-id void zero zero?
+|	.cell
+	.exceptions: exception-ctx new-exception-ctx
+|	.fut-low-level
+	.io: print-err-sync print-err-sync-no-newline
+	.mut-bag: add empty? mut-bag mut-bag-node new-mut-bag new-mut-bag-node
+|	.number-utils
+|	.posix
+|	.str-utils
+	.thread-utils: acquire-lock broadcast condition get-and-increment get-last-checked new-lock new-thread-safe-counter release-lock thread-safe-counter wait-on
 
 get-gctx global-ctx() unsafe
 	get-ctx.gctx-ptr as-ref

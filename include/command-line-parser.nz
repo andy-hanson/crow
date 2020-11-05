@@ -1,4 +1,9 @@
-import .arr-utils .bootstrap .cell .dict .exceptions .str-utils
+import
+	.arr-utils: + at empty? empty-arr fill-mut-arr find-index first freeze index-of remove-start set-at slice-after slice-starting-at slice-up-to starts-with? tail
+	.bootstrap: == + arr bool call false fun1 has? none opt some str true void
+	.cell: new-cell get set
+	.dict: add dict each empty-dict freeze mut-dict new-mut-dict
+	.exceptions: assert fail forbid
 
 | TODO: this would be neater if we had reflection!
 parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1 ?t arr<opt<arr<str>>>)
@@ -17,7 +22,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1 ?t arr<opt
 					else
 						fail: "Unexpected arg " + key
 			some s
-				idx = s.value
+				idx = s value
 				| TODO: duplicate argument error
 				forbid: values at idx has?
 				values set-at idx, value.some
@@ -61,7 +66,7 @@ parse-named-args dict str arr<str>(args arr str)
 
 parse-named-args-recur void(args arr str, builder mut-dict str arr<str>)
 	first-name = args.first remove-start "--"
-	tl = args.tail
+	tl = args tail
 	match tl find-index {it starts-with? "--"}
 		none
 			builder add first-name, tl

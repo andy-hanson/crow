@@ -1573,13 +1573,13 @@ void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
 
 immutable(Bool) conflictsWithCName(immutable Sym name) {
 	switch (name.value) {
+		case shortSymAlphaLiteralValue("atomic-bool"): // avoid conflicting with c's "atomic_bool" type
 		case shortSymAlphaLiteralValue("default"):
 		case shortSymAlphaLiteralValue("float"):
 		case shortSymAlphaLiteralValue("int"):
 		case shortSymAlphaLiteralValue("void"):
 			return True;
 		default:
-			// avoid conflicting with c's "atomic_bool" type
-			return symEqLongAlphaLiteral(name, "atomic-bool");
+			return False;
 	}
 }

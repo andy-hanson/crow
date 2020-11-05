@@ -30,7 +30,7 @@ import frontend.ast :
 	structs,
 	TypeAst,
 	TypeParamAst;
-import frontend.checkCtx : addDiag, CheckCtx, diags, hasDiags, rangeInFile;
+import frontend.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.checkExpr : checkFunctionBody;
 import frontend.checkUtil : arrAsImmutable, ptrAsImmutable;
 import frontend.instantiate :
@@ -95,8 +95,8 @@ import model :
 	typeParams;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, at, empty, emptyArr, ptrsRange, range, size, sizeEq, toArr;
-import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAsTempArr, arrBuilderSize, finishArr;
+import util.collection.arr : Arr, ArrWithSize, at, empty, emptyArr, ptrsRange, arrRange = range, size, sizeEq, toArr;
+import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAsTempArr, arrBuilderIsEmpty, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
 	exists,
@@ -133,6 +133,7 @@ struct BootstrapCheck {
 
 struct ModuleAndNames {
 	immutable Ptr!Module module_;
+	immutable RangeWithinFile range;
 	immutable Opt!(Arr!Sym) names;
 }
 
@@ -364,7 +365,7 @@ void collectTypeParamsInAst(Alloc)(
 			}
 		},
 		(ref immutable TypeAst.InstStruct i) {
-			foreach (ref immutable TypeAst arg; range(toArr(i.typeArgs)))
+			foreach (ref immutable TypeAst arg; arrRange(toArr(i.typeArgs)))
 				collectTypeParamsInAst(alloc, ctx, arg, res);
 		});
 }
@@ -372,7 +373,7 @@ void collectTypeParamsInAst(Alloc)(
 immutable(Arr!TypeParam) collectTypeParams(Alloc)(ref Alloc alloc, ref const CheckCtx ctx, ref immutable SigAst ast) {
 	ArrBuilder!TypeParam res;
 	collectTypeParamsInAst(alloc, ctx, ast.returnType, res);
-	foreach (ref immutable ParamAst p; range(toArr(ast.params)))
+	foreach (ref immutable ParamAst p; arrRange(toArr(ast.params)))
 		collectTypeParamsInAst(alloc, ctx, p.type, res);
 	return finishArr(alloc, res);
 }
@@ -722,7 +723,7 @@ void checkStructBodies(Alloc)(
 		setBody(struct_, body_);
 	});
 
-	foreach (ref immutable StructDecl struct_; range(arrAsImmutable(structs))) {
+	foreach (ref immutable StructDecl struct_; arrRange(arrAsImmutable(structs))) {
 		matchStructBody!void(
 			body_(struct_),
 			(ref immutable StructBody.Bogus) {},
@@ -730,7 +731,7 @@ void checkStructBodies(Alloc)(
 			(ref immutable StructBody.ExternPtr) {},
 			(ref immutable StructBody.Record) {},
 			(ref immutable StructBody.Union u) {
-				foreach (ref immutable Ptr!StructInst member; range(u.members))
+				foreach (ref immutable Ptr!StructInst member; arrRange(u.members))
 					if (isUnion(body_(member.decl.deref)))
 						todo!void("unions can't contain unions");
 			});
@@ -833,7 +834,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 		(immutable Ptr!FunDecl it) =>
 			immutable KeyValuePair!(Sym, Ptr!FunDecl)(name(it), it));
 
-	foreach (ref const FunDecl f; range(funs))
+	foreach (ref const FunDecl f; arrRange(funs))
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.funNames, name(f));
 
 	zipMutPtrFirst(funs, asts, (Ptr!FunDecl fun, ref immutable FunDeclAst funAst) {
@@ -884,9 +885,9 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 	ref immutable FileAst ast,
 ) {
 	checkStructBodies!Alloc(alloc, ctx, structsAndAliasesMap, structs, ast.structs, delayStructInsts);
-	foreach (ref const StructDecl s; range(structs))
+	foreach (ref const StructDecl s; arrRange(structs))
 		if (isRecord(s.body_))
-			foreach (ref immutable RecordField f; range(asRecord(s.body_).fields))
+			foreach (ref immutable RecordField f; arrRange(asRecord(s.body_).fields))
 				addToMutSymSetOkIfPresent(alloc, ctx.programState.recordFieldNames, f.name);
 
 	while (!mutArrIsEmpty(delayStructInsts)) {
@@ -900,7 +901,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 
 	immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, structsAndAliasesMap, ast.specs);
 	immutable SpecsMap specsMap = buildSpecsDict(alloc, ctx, specs);
-	foreach (ref immutable SpecDecl s; range(specs))
+	foreach (ref immutable SpecDecl s; arrRange(specs))
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.specNames, s.name);
 
 	DelayInit!Module mod = delayInit!Module(alloc);
@@ -929,26 +930,32 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 
 void recurAddImport(Alloc)(
 	ref Alloc alloc,
+	ref ArrBuilder!Diagnostic diags,
 	ref ArrBuilder!ModuleAndNameReferents res,
 	immutable Ptr!Module module_,
+	ref immutable FileAndRange range,
 	immutable Opt!(Arr!Sym) names,
 ) {
 	immutable Opt!(Arr!NameAndReferents) nameReferents = mapOption(names, (ref immutable Arr!Sym names) =>
-		map(alloc, names, (ref immutable Sym name) {
-			immutable NameAndReferents res = getNameReferents(module_, name);
-			return res;
-		}));
+		map(alloc, names, (ref immutable Sym name) =>
+			getNameReferents(alloc, diags, module_, range, name)));
 	add(alloc, res, immutable ModuleAndNameReferents(module_, nameReferents));
-	foreach (immutable ModuleAndNameReferents e; range(module_.exports)) {
+	foreach (immutable ModuleAndNameReferents e; arrRange(module_.exports)) {
 		if (has(e.namesAndReferents))
 			// if we're importing specific names, check for overlap.
 			// If not, import the specific names being re-exported.
 			todo!void("!");
-		recurAddImport(alloc, res, e.module_, names);
+		recurAddImport(alloc, diags, res, e.module_, range, names);
 	}
 }
 
-immutable(NameAndReferents) getNameReferents(ref immutable Module module_, immutable Sym name) {
+immutable(NameAndReferents) getNameReferents(Alloc)(
+	ref Alloc alloc,
+	ref ArrBuilder!Diagnostic diags,
+	ref immutable Module module_,
+	ref immutable FileAndRange range,
+	immutable Sym name,
+) {
 	immutable NameAndReferents res = immutable NameAndReferents(
 		name,
 		getAt(module_.structsAndAliasesMap, name),
@@ -960,21 +967,25 @@ immutable(NameAndReferents) getNameReferents(ref immutable Module module_, immut
 		todo!void("not public");
 	if (has(res.spec) && !force(res.spec).isPublic)
 		todo!void("not public");
-	foreach (immutable Ptr!FunDecl fun; range(res.funs))
+	foreach (immutable Ptr!FunDecl fun; arrRange(res.funs))
 		if (!fun.isPublic)
 			todo!void("not public");
 	if (!has(res.structOrAlias) && !has(res.spec) && empty(res.funs))
-		todo!void("diagnostic: name refers to nothing");
+		add(alloc, diags, immutable Diagnostic(range, immutable Diag(immutable Diag.ImportRefersToNothing(name))));
 	return res;
 }
 
 immutable(Arr!ModuleAndNameReferents) getFlattenedImports(Alloc)(
 	ref Alloc alloc,
+	ref ArrBuilder!Diagnostic diags,
+	immutable FileIndex thisFile,
 	ref immutable Arr!ModuleAndNames imports,
 ) {
 	ArrBuilder!ModuleAndNameReferents res;
-	foreach (ref immutable ModuleAndNames m; range(imports))
-		recurAddImport(alloc, res, m.module_, m.names);
+	foreach (ref immutable ModuleAndNames m; arrRange(imports)) {
+		immutable FileAndRange fr = immutable FileAndRange(thisFile, m.range);
+		recurAddImport(alloc, diags, res, m.module_, fr, m.names);
+	}
 	return finishArr(alloc, res);
 }
 
@@ -990,20 +1001,24 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 		ref MutArr!(Ptr!StructInst),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
-	immutable Arr!ModuleAndNameReferents convertedImports = getFlattenedImports(alloc, imports);
-	immutable Arr!ModuleAndNameReferents convertedExports = getFlattenedImports(alloc, exports);
+	ArrBuilder!Diagnostic diagsBuilder;
+	immutable Arr!ModuleAndNameReferents convertedImports =
+		getFlattenedImports(alloc, diagsBuilder, pathAndAst.fileIndex, imports);
+	immutable Arr!ModuleAndNameReferents convertedExports =
+		getFlattenedImports(alloc, diagsBuilder, pathAndAst.fileIndex, exports);
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe_mut(programState),
 		pathAndAst.fileIndex,
-		convertedImports);
+		convertedImports,
+		ptrTrustMe_mut(diagsBuilder));
 	immutable FileAst ast = pathAndAst.ast;
 
 	// Since structs may refer to each other, first get a structsAndAliasesMap, *then* fill in bodies
 	Arr!StructDecl structs = checkStructsInitial(alloc, ctx, ast.structs);
-	foreach (ref const StructDecl s; range(structs))
+	foreach (ref const StructDecl s; arrRange(structs))
 		addToMutSymSetOkIfPresent(alloc, programState.structAndAliasNames, s.name);
 	Arr!StructAlias structAliases = checkStructAliasesInitial(alloc, ctx, ast.structAliases);
-	foreach (ref const StructAlias a; range(structAliases))
+	foreach (ref const StructAlias a; arrRange(structAliases))
 		addToMutSymSetOkIfPresent(alloc, programState.structAndAliasNames, a.name);
 	immutable StructsAndAliasesMap structsAndAliasesMap =
 		buildStructsAndAliasesDict(alloc, ctx, arrAsImmutable(structs), arrAsImmutable(structAliases));
@@ -1015,8 +1030,8 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 	MutArr!(Ptr!StructInst) delayStructInsts;
 	checkStructAliasTargets!Alloc(alloc, ctx, structsAndAliasesMap, structAliases, ast.structAliases, delayStructInsts);
 
-	if (hasDiags(ctx))
-		return fail!(BootstrapCheck, Diags)(diags(alloc, ctx));
+	if (!arrBuilderIsEmpty(diagsBuilder))
+		return fail!(BootstrapCheck, Diags)(finishArr(alloc, diagsBuilder));
 	else {
 		immutable Result!(CommonTypes, Diags) commonTypesResult =
 			getCommonTypes(ctx, structsAndAliasesMap, delayStructInsts);
@@ -1034,9 +1049,10 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 					convertedImports,
 					convertedExports,
 					ast);
-				return hasDiags(ctx)
-					? fail!(BootstrapCheck, Diags)(diags(alloc, ctx))
-					: success!(BootstrapCheck, Diags)(BootstrapCheck(mod, commonTypes));
+				immutable Diags diags = finishArr(alloc, diagsBuilder);
+				return empty(diags)
+					? success!(BootstrapCheck, Diags)(immutable BootstrapCheck(mod, commonTypes))
+					: fail!(BootstrapCheck, Diags)(diags);
 			});
 	}
 }

@@ -1,5 +1,8 @@
-import .bootstrap .cell .exceptions .number-utils
-
+import
+	.bootstrap: == <= bool call drop fun-mut0 fun-mut1 nat none opt pass some void
+	.cell: cell get new-cell set
+	.exceptions: assert forbid
+	.number-utils: + incr
 
 | TODO: Depend on a spec, then move to cell.nz
 get-and-incr nat(c cell nat)
@@ -51,7 +54,7 @@ iter iterator nat(r range-nat)
 				n.get-and-incr some
 
 to range-nat(lo nat, hi nat)
-	lo <= hi assert
+	assert: lo <= hi
 	new lo, hi
 
 empty? bool(r range-nat) noctx

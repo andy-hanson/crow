@@ -12,9 +12,9 @@ module(
 		import(6, none)
 		import(7, none)
 		import(15, none)
+		import(12, none)
 		import(11, none)
-		import(10, none)
-		import(12, none)]
+		import(13, none)]
 	exports: []
 	structs: [struct(range: file-range(20, range(37, 133)), public?: true, name: point)]
 	specs: []
@@ -25,8 +25,8 @@ module(
 			body: record(
 				point()
 				[
-					call(fun-inst(module: 11, name: literal), [string-lit("1")])
-					call(fun-inst(module: 11, name: literal), [string-lit("2")])]))
+					call(fun-inst(module: 12, name: literal), [string-lit("1")])
+					call(fun-inst(module: 12, name: literal), [string-lit("2")])]))
 		fun(
 			public?: true
 			sig: sig(file-range(20, range(336, 356)), get-x, float(), [param(file-range(20, range(348, 355)), a, point())])
@@ -43,8 +43,8 @@ module(
 					call(fun-inst(module: 20, name: get-x), [local-ref(p)])
 					seq(
 						call(
-							fun-inst(module: 12, name: print-sync)
-							[call(fun-inst(module: 11, name: to-str), [local-ref(p-x)])])
+							fun-inst(module: 13, name: print-sync)
+							[call(fun-inst(module: 12, name: to-str), [local-ref(p-x)])])
 						call(
 							fun-inst(module: 16, name: resolved, type-args: [int32()])
 							[call(fun-inst(module: 0, name: zero), [])])))))])

@@ -1,4 +1,11 @@
-import .bootstrap .exceptions .io .fut-low-level .opt-utils .runtime .thread-utils
+import
+	.bootstrap: by-val call err exception fun-mut1 fun0 fun-ref0 fun-ref1 fun-ref2 fut fut-state-callbacks fut-state-resolved hard-unreachable none ok opt pass ref-of-val result send some todo two void
+	.exceptions: catch
+	.fut-low-level: new-unresolved-fut reject resolve-or-reject
+	.opt-utils: force
+	.runtime: add-task get-cur-vat get-vat new-actor-id task
+	.thread-utils: acquire-lock decrement new-lock new-thread-safe-counter release-lock thread-safe-counter
+|	.io
 
 | Used to make code run after the actor's next step. Equivalent to `sleep 0`.
 delay fut void() noctx

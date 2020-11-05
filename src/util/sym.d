@@ -5,7 +5,7 @@ module util.sym;
 import util.bitUtils : allBitsSet, bitsOverlap, getBitsShifted, singleBit;
 import util.bools : Bool, False, not, True;
 import util.collection.arr : at, empty, first, last, range, size;
-import util.collection.arrUtil : every, tail;
+import util.collection.arrUtil : every, slice, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet, mutSetHas;
 import util.collection.str : CStr, Str, strEqCStr, strEqLiteral, strLiteral, strOfCStr, strToCStr;
@@ -13,7 +13,7 @@ import util.comparison : Comparison;
 import util.opt : Opt, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.types : u64;
-import util.util : unreachable, verify;
+import util.util : min, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer;
 
 immutable(Bool) isAlphaIdentifierStart(immutable char c) {
@@ -41,14 +41,10 @@ immutable(Bool) isOperatorChar(immutable char c) {
 }
 
 immutable(Bool) isAlphaIdentifierContinue(immutable char c) {
-	return Bool(isAlphaIdentifierStart(c) || c == '-' || c.isDigit);
+	return immutable Bool(isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '?');
 }
 
 struct Sym {
-	// Short alpha identifier: packed representation, marked with shortAlphaIdentifierMarker
-	// Short operator: even more packed representation (there are fewer operator chars), marked with shortOperatorMarker
-	// Long alpha identifier: a CStr
-	// Long operator: a CStr tagged with longOperatorMarker
 	immutable u64 value;
 }
 
@@ -60,7 +56,8 @@ struct AllSymbols(Alloc) {
 immutable(Opt!Sym) tryGetSymFromStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
 	return empty(str)
 		? none!Sym
-		: isAlphaIdentifierStart(first(str)) && every(tail(str), (ref immutable char c) => isAlphaIdentifierContinue(c))
+		: isAlphaIdentifierStart(first(str)) && every(tail(str), (ref immutable char c) =>
+			isAlphaIdentifierContinue(c))
 		? some(getSymFromAlphaIdentifier(allSymbols, str))
 		: every(str, (ref immutable char c) => isOperatorChar(c))
 		? some(getSymFromOperator(allSymbols, str))
@@ -68,29 +65,31 @@ immutable(Opt!Sym) tryGetSymFromStr(Alloc)(ref AllSymbols!Alloc allSymbols, immu
 }
 
 immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
-	immutable Sym res = str.size <= maxShortAlphaIdentifierSize
+	immutable Sym res = canPackAlphaIdentifier(str)
 		? immutable Sym(packAlphaIdentifier(str))
 		: getSymFromLongStr(allSymbols, str, False);
 	assertSym(res, str);
+	verify(!isSymOperator(res));
 	return res;
 }
 
 immutable(Sym) getSymFromOperator(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
-	immutable Sym res = str.size <= maxShortOperatorSize
+	immutable Sym res = size(str) <= maxShortOperatorSize
 		? immutable Sym(packOperator(str))
 		: getSymFromLongStr(allSymbols, str, True);
 	assertSym(res, str);
+	verify(isSymOperator(res));
 	return res;
 }
 
 void eachCharInSym(immutable Sym a, scope void delegate(immutable char) @safe @nogc pure nothrow cb) {
-	if (isShortAlpha(a))
-		unpackShortAlphaIdentifier!cb(a.value);
-	else if (isShortOperator(a))
-		unpackShortOperator!cb(a.value);
-	else
+	if (isLongSym(a))
 		foreach (immutable char c; asLong(a).range)
 			cb(c);
+	else if (isSymOperator(a))
+		unpackShortOperator(a.value, cb);
+	else
+		unpackShortAlphaIdentifier(a.value, cb);
 }
 
 immutable(size_t) symSize(immutable Sym a) {
@@ -117,7 +116,7 @@ immutable(Bool) symEq(immutable Sym a, immutable Sym b) {
 }
 
 immutable(Sym) shortSymAlphaLiteral(immutable string name) {
-	verify(strLiteral(name).size <= maxShortAlphaIdentifierSize);
+	verify(canPackAlphaIdentifier(strLiteral(name)));
 	return Sym(packAlphaIdentifier(strLiteral(name)));
 }
 
@@ -126,7 +125,7 @@ immutable(u64) shortSymAlphaLiteralValue(immutable string name) {
 }
 
 immutable(Sym) shortSymOperatorLiteral(immutable string name) {
-	verify(strLiteral(name).size <= maxShortOperatorSize);
+	verify(size(strLiteral(name)) <= maxShortOperatorSize);
 	return Sym(packOperator(strLiteral(name)));
 }
 
@@ -135,14 +134,12 @@ immutable(u64) shortSymOperatorLiteralValue(immutable string name) {
 }
 
 immutable(Bool) symEqLongAlphaLiteral(immutable Sym a, immutable string lit) {
-	immutable Str str = strLiteral(lit);
-	verify(str.size > maxShortAlphaIdentifierSize);
+	verify(!canPackAlphaIdentifier(strLiteral(lit)));
 	return Bool(isLongSym(a) && strEqLiteral(asLong(a), lit));
 }
 
 immutable(Bool) symEqLongOperatorLiteral(immutable Sym a, immutable string lit) {
-	immutable Str str = strLiteral(lit);
-	verify(str.size > maxShortOperatorSize);
+	verify(size(strLiteral(lit)) > maxShortOperatorSize);
 	return Bool(isLongSym(a) && strEqLiteral(asLong(a), lit));
 }
 
@@ -170,7 +167,7 @@ immutable(CStr) symToCStr(Alloc)(ref Alloc alloc, immutable Sym a) {
 }
 
 immutable(Bool) isSymOperator(immutable Sym a) {
-	return bitsOverlap(a.value, shortOrLongOperatorMarker);
+	return bitsOverlap(a.value, operatorMarker);
 }
 
 immutable(Bool) mutSymSetHas(ref const MutSymSet set, immutable Sym sym) {
@@ -187,26 +184,37 @@ void addToMutSymSetOkIfPresent(Alloc)(
 
 private:
 
-immutable u64 bitsPerAlphaChar =6;
 immutable u64 bitsPerOperatorChar = 4;
 
-immutable(u64) packAlphaChar(immutable char c) {
-	// We need 0 to tell us that the string is over, so never return that.
-	immutable u64 res = 'a' <= c && c <= 'z' ? 1 + c - 'a' :
-		'0' <= c && c <= '9' ? 1 + 26 + c - '0' :
-		c == '-' ? 1 + 26 + 10 :
-		c == '?' ? 1 + 26 + 10 + 1 :
+immutable(Bool) canPackAlphaChar5(immutable char c) {
+	return immutable Bool(
+		('a' <= c && c <= 'z') ||
+		c == '-' ||
+		('0' <= c && c <= '3'));
+}
+
+immutable(u64) packAlphaChar5(immutable char c) {
+	// 0 means no character, so start at 1
+	return 'a' <= c && c <= 'z' ? 1 + c - 'a' :
+		c == '-' ? 1 + 26 :
+		'0' <= c && c <= '3' ? 1 + 26 + 1 + c - '0' :
 		unreachable!u64;
-	verify(res < (1 << bitsPerAlphaChar));
-	return res;
+}
+
+immutable(u64) packAlphaChar6(immutable char c) {
+	return 'a' <= c && c <= 'z' ? 1 + c - 'a' :
+		c == '-' ? 1 + 26 :
+		'0' <= c && c <= '9' ? 1 + 26 + 1 + c - '0' :
+		c == '?' ? 1 + 26 + 1 + 10 :
+		unreachable!u64;
 }
 
 immutable(char) unpackAlphaChar(immutable u64 n) {
 	verify(n != 0);
 	return n < 1 + 26 ? cast(char) ('a' + (n - 1)) :
-		n < 1 + 26 + 10 ? cast(char) ('0' + (n - 1 - 26)) :
-		n == 1 + 26 + 10 ? '-' :
-		n == 1 + 26 + 10 + 1 ? '?' :
+		n == 1 + 26 ? '-' :
+		n < 1 + 26 + 1 + 10 ? cast(char) ('0' + (n - 1 - 26 - 1)) :
+		n == 1 + 26 + 1 + 10 ? '?' :
 		unreachable!char;
 }
 
@@ -241,57 +249,83 @@ immutable(char) unpackOperatorChar(immutable u64 n) {
 // and shifting left by 6 * the char's index.
 // Note this puts the encoded characters "backwards" as char 0 is rightmost.
 
-// Short strings leave the top 3 bits untouched.
-immutable u64 shortStringAvailableBits = 64 - 3;
-immutable u64 maxShortAlphaIdentifierSize = shortStringAvailableBits / bitsPerAlphaChar;
+// Short strings leave the top 2 bits untouched.
+immutable u64 shortStringAvailableBits = 64 - 2;
 // Bit to be set when the sym is short
-immutable u64 shortAlphaOrOperatorMarker = 0x8000000000000000;
-// Bit to be set when the sym is alpha
-// (NOTE: this is redundant as alpha == not operator
-immutable u64 shortOrLongAlphaMarker     = 0x4000000000000000;
+immutable u64 shortMarker = 0x8000000000000000;
 // Bit to be set when the sym is an operator
-immutable u64 shortOrLongOperatorMarker  = 0x2000000000000000;
-// 8 = b1000
-immutable u64 shortAlphaIdentifierMarker = shortAlphaOrOperatorMarker | shortOrLongAlphaMarker;
+immutable u64 operatorMarker = 0x4000000000000000;
 
 immutable u64 maxShortOperatorSize = shortStringAvailableBits / bitsPerOperatorChar;
-immutable u64 shortOperatorMarker = shortAlphaOrOperatorMarker | shortOrLongOperatorMarker;
-
-immutable u64 highestPossibleAlphaBit = singleBit(bitsPerAlphaChar * (maxShortAlphaIdentifierSize - 1));
-static assert((shortAlphaIdentifierMarker & highestPossibleAlphaBit) == 0, "!");
+immutable u64 shortOperatorMarker = shortMarker | operatorMarker;
 
 immutable u64 highestPossibleOperatorBit = singleBit(bitsPerOperatorChar * (maxShortOperatorSize - 1));
 static assert((shortOperatorMarker & highestPossibleOperatorBit) == 0, "1");
 
+immutable(Bool) canPackAlphaIdentifier(immutable Str str) {
+	return immutable Bool(
+		size(str) <= 12 &&
+		(size(str) <= 2 || every(slice(str, 0, size(str) - 2), (ref immutable char c) =>
+			canPackAlphaChar5(c))));
+}
+
 immutable(u64) packAlphaIdentifier(immutable Str str) {
-	verify(str.size <= maxShortAlphaIdentifierSize);
+	verify(canPackAlphaIdentifier(str));
+
+	// We store chars in reverse, the last chars are in the highest bits.
+	// Represenation is:
+	// 2 6 6 5 5 5 5 5 5 5 5 5 5
+
 	u64 res = 0;
-	foreach (immutable u64 i; 0..str.size)
-		res |= packAlphaChar(str.at(i)) << (bitsPerAlphaChar * i);
-	verify((res & shortAlphaIdentifierMarker) == 0);
-	return res | shortAlphaIdentifierMarker;
+	foreach (immutable size_t i; 0..12) {
+		immutable Bool is6Bit = i < 2;
+		immutable size_t value = () {
+			if (i < size(str)) {
+				immutable char c = at(str, size(str) - 1 - i);
+				return is6Bit ? packAlphaChar6(c) : packAlphaChar5(c);
+			} else
+				return 0;
+		}();
+		res = res << (is6Bit ? 6 : 5);
+		res |= value;
+	}
+	verify((res & shortMarker) == 0);
+	return res | shortMarker;
 }
 
 immutable(u64) packOperator(immutable Str str) {
-	verify(str.size <= maxShortOperatorSize);
+	verify(size(str) <= maxShortOperatorSize);
 	u64 res = 0;
-	foreach (immutable u64 i; 0..str.size)
+	foreach (immutable u64 i; 0..size(str))
 		res |= packOperatorChar(str.at(i)) << (bitsPerOperatorChar * i);
 	verify((res & shortOperatorMarker) == 0);
 	return res | shortOperatorMarker;
 }
 
-void unpackShortAlphaIdentifier(alias cb)(immutable u64 packedStr) {
-	verify((packedStr & shortAlphaIdentifierMarker) == shortAlphaIdentifierMarker);
-	foreach (immutable u64 i; 0..maxShortAlphaIdentifierSize) {
-		immutable u64 packedChar = getBitsShifted(packedStr, bitsPerAlphaChar * i, bitsPerAlphaChar);
-		if (packedChar == 0)
-			break;
-		cb(unpackAlphaChar(packedChar));
+void unpackShortAlphaIdentifier(
+	immutable u64 packedStr,
+	scope void delegate(immutable char) @safe @nogc pure nothrow cb,
+) {
+	verify((packedStr & shortMarker) == shortMarker);
+	u64 p = packedStr;
+	foreach (immutable size_t i; 0..10) {
+		immutable size_t c = p & 0b11111;
+		if (c != 0)
+			cb(unpackAlphaChar(c));
+		p = p >> 5;
+	}
+	foreach (immutable size_t i; 0..2) {
+		immutable size_t c = p & 0b111111;
+		if (c != 0)
+			cb(unpackAlphaChar(c));
+		p = p >> 6;
 	}
 }
 
-void unpackShortOperator(alias cb)(immutable u64 packedStr) {
+void unpackShortOperator(
+	immutable u64 packedStr,
+	scope void delegate(immutable char) @safe @nogc pure nothrow cb,
+) {
 	verify((packedStr & shortOperatorMarker) == shortOperatorMarker);
 	foreach (immutable u64 i; 0..maxShortOperatorSize) {
 		immutable u64 packedChar = getBitsShifted(packedStr, bitsPerOperatorChar * i, bitsPerOperatorChar);
@@ -301,22 +335,15 @@ void unpackShortOperator(alias cb)(immutable u64 packedStr) {
 	}
 }
 
-immutable(Bool) isLongSym(immutable Sym a) {
-	return bitsOverlap(a.value, shortAlphaOrOperatorMarker).not;
+// Exposed for testing only
+public immutable(Bool) isLongSym(immutable Sym a) {
+	return not(bitsOverlap(a.value, shortMarker));
 }
 
 @trusted immutable(Str) asLong(immutable Sym a) {
 	verify(isLongSym(a));
-	immutable u64 value = a.value & ~(shortOrLongAlphaMarker | shortOrLongOperatorMarker);
+	immutable u64 value = a.value & ~operatorMarker;
 	return strOfCStr(cast(immutable CStr) value);
-}
-
-immutable(Bool) isShortAlpha(immutable Sym a) {
-	return allBitsSet(a.value, shortAlphaIdentifierMarker);
-}
-
-immutable(Bool) isShortOperator(immutable Sym a) {
-	return allBitsSet(a.value, shortOperatorMarker);
 }
 
 immutable(CStr) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
@@ -329,18 +356,18 @@ immutable(CStr) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutabl
 
 immutable(Sym) getSymFromLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str, immutable Bool isOperator) {
 	immutable CStr cstr = getOrAddLongStr(allSymbols, str);
-	immutable u64 marker = isOperator ? shortOrLongOperatorMarker : shortOrLongAlphaMarker;
+	immutable u64 marker = isOperator ? operatorMarker : 0;
 	immutable u64 res = (cast(immutable u64) cstr) | marker;
-	verify((res & shortAlphaOrOperatorMarker) == 0);
+	verify((res & shortMarker) == 0);
 	return Sym(res);
 }
 
 void assertSym(immutable Sym sym, immutable Str str) {
 	//TODO:KILL
 	size_t idx = 0;
-	sym.eachCharInSym((immutable char c) {
+	eachCharInSym(sym, (immutable char c) {
 		immutable char expected = at(str, idx++);
 		verify(c == expected);
 	});
-	verify(idx == str.size);
+	verify(idx == size(str));
 }

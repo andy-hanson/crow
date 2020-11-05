@@ -1,4 +1,8 @@
-import .arr-utils .bootstrap .number-utils .str-utils
+import
+	.arr-utils: + at empty? last rtail tail
+	.bootstrap: == as bool char eight false five float four if int int16 int32 nat nat16 nat32 nine one seven six str ten three todo to-float to-int to-nat true truncate-to-int two unsafe-to-int32 unsafe-to-nat16 unsafe-to-nat32 zero
+	.number-utils: + * / abs mod neg negative? to-int
+	.str-utils: literal
 
 to-str str(b bool)
 	b if "true", "false"

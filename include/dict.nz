@@ -1,4 +1,8 @@
-import .arr-utils .bootstrap .exceptions .number-utils
+import
+	.arr-utils: at empty? empty-arr first freeze map mut-arr new-mut-arr push tail unsafe-as-arr
+	.bootstrap: == arr bool call data fun-mut1 fun-mut2 has? nat none opt pass some todo void zero
+	.exceptions: forbid
+	.number-utils: incr
 
 key-value-pair<?k, ?v> record
 	key ?k

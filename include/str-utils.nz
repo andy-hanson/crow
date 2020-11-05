@@ -1,4 +1,6 @@
-import .arr-utils .bootstrap .opt-utils
+import
+	.arr-utils: + arr-from-begin-end first has? noctx-at tail
+	.bootstrap: == and char c-str deref incr str todo zero
 
 literal char(a str) noctx
 	a noctx-at zero

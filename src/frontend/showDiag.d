@@ -479,6 +479,11 @@ void writeDiag(TempAlloc, Alloc)(
 		(ref immutable Diag.ExternPtrHasTypeParams) {
 			writeStatic(writer, "an 'extern-ptr' type should not be a template");
 		},
+		(ref immutable Diag.ImportRefersToNothing it) {
+			writeStatic(writer, "imported name ");
+			writeName(writer, it.name);
+			writeStatic(writer, " does not refer to anything");
+		},
 		(ref immutable Diag.LambdaCantInferParamTypes) {
 			writeStatic(writer, "can't infer parameter types for lambda.\nconsider prefixing with 'as<...>:'");
 		},

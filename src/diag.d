@@ -30,8 +30,6 @@ import util.sym : shortSymAlphaLiteral, Sym;
 import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
 import util.writerUtils : writeRangeWithinFile, writePos;
 
-
-
 enum TypeKind {
 	builtin,
 	externPtr,
@@ -129,6 +127,9 @@ struct Diag {
 		immutable Opt!Type expectedType;
 	}
 	struct ExternPtrHasTypeParams {}
+	struct ImportRefersToNothing {
+		immutable Sym name;
+	}
 	struct LambdaCantInferParamTypes {}
 	struct LambdaClosesOverMut {
 		immutable Ptr!ClosureField field;
@@ -246,6 +247,7 @@ struct Diag {
 		duplicateImports,
 		expectedTypeIsNotALambda,
 		externPtrHasTypeParams,
+		importRefersToNothing,
 		lambdaCantInferParamTypes,
 		lambdaClosesOverMut,
 		lambdaForFunPtrHasClosure,
@@ -289,6 +291,7 @@ struct Diag {
 		immutable DuplicateImports duplicateImports;
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
 		immutable ExternPtrHasTypeParams externPtrHasTypeParams;
+		immutable ImportRefersToNothing importRefersToNothing;
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
 		immutable LambdaClosesOverMut lambdaClosesOverMut;
 		immutable LambdaForFunPtrHasClosure lambdaForFunPtrHasClosure;
@@ -351,6 +354,7 @@ struct Diag {
 	immutable this(immutable ExternPtrHasTypeParams a) {
 		kind = Kind.externPtrHasTypeParams; externPtrHasTypeParams = a;
 	}
+	immutable this(immutable ImportRefersToNothing a) { kind = Kind.importRefersToNothing; importRefersToNothing = a; }
 	@trusted immutable this(immutable LambdaCantInferParamTypes a) {
 		kind = Kind.lambdaCantInferParamTypes; lambdaCantInferParamTypes = a;
 	}
@@ -460,6 +464,9 @@ struct Diag {
 		ref immutable Diag.ExternPtrHasTypeParams
 	) @safe @nogc pure nothrow cbExternPtrHasTypeParams,
 	scope immutable(Out) delegate(
+		ref immutable Diag.ImportRefersToNothing
+	) @safe @nogc pure nothrow cbImportRefersToNothing,
+	scope immutable(Out) delegate(
 		ref immutable Diag.LambdaCantInferParamTypes
 	) @safe @nogc pure nothrow cbLambdaCantInferParamTypes,
 	scope immutable(Out) delegate(
@@ -564,6 +571,8 @@ struct Diag {
 			return cbExpectedTypeIsNotALambda(a.expectedTypeIsNotALambda);
 		case Diag.Kind.externPtrHasTypeParams:
 			return cbExternPtrHasTypeParams(a.externPtrHasTypeParams);
+		case Diag.Kind.importRefersToNothing:
+			return cbImportRefersToNothing(a.importRefersToNothing);
 		case Diag.Kind.lambdaCantInferParamTypes:
 			return cbLambdaCantInferParamTypes(a.lambdaCantInferParamTypes);
 		case Diag.Kind.lambdaClosesOverMut:

@@ -1,4 +1,5 @@
-import .bootstrap
+import
+	.bootstrap: bool by-val empty? none opt some void
 
 | NOTE: currently this is a linked list, but we actually want to pseudorandomly take out nodes.
 

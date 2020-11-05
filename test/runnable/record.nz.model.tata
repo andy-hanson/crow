@@ -12,9 +12,9 @@ module(
 		import(6, none)
 		import(7, none)
 		import(15, none)
+		import(12, none)
 		import(11, none)
-		import(10, none)
-		import(12, none)]
+		import(13, none)]
 	exports: []
 	structs: [struct(range: file-range(20, range(11, 43)), public?: true, name: my-record)]
 	specs: []
@@ -28,8 +28,8 @@ module(
 				record(
 					my-record()
 					[
-						call(fun-inst(module: 11, name: literal), [string-lit("1")])
-						call(fun-inst(module: 11, name: literal), [string-lit("2")])])
+						call(fun-inst(module: 12, name: literal), [string-lit("1")])
+						call(fun-inst(module: 12, name: literal), [string-lit("2")])])
 				seq(
 					seq(
 						seq(
@@ -41,7 +41,7 @@ module(
 											fun-inst(module: 0, name: ==, type-args: [nat()])
 											[
 												field-acc(local-ref(m), my-record(), x)
-												call(fun-inst(module: 11, name: literal), [string-lit("1")])])])
+												call(fun-inst(module: 12, name: literal), [string-lit("1")])])])
 								call(
 									fun-inst(module: 5, name: assert)
 									[
@@ -49,13 +49,13 @@ module(
 											fun-inst(module: 0, name: ==, type-args: [nat()])
 											[
 												field-acc(local-ref(m), my-record(), y)
-												call(fun-inst(module: 11, name: literal), [string-lit("2")])])]))
+												call(fun-inst(module: 12, name: literal), [string-lit("2")])])]))
 							call(
-								fun-inst(module: 12, name: print-sync)
-								[call(fun-inst(module: 11, name: to-str), [field-acc(local-ref(m), my-record(), x)])]))
+								fun-inst(module: 13, name: print-sync)
+								[call(fun-inst(module: 12, name: to-str), [field-acc(local-ref(m), my-record(), x)])]))
 						call(
-							fun-inst(module: 12, name: print-sync)
-							[call(fun-inst(module: 11, name: to-str), [field-acc(local-ref(m), my-record(), y)])]))
+							fun-inst(module: 13, name: print-sync)
+							[call(fun-inst(module: 12, name: to-str), [field-acc(local-ref(m), my-record(), y)])]))
 					call(
 						fun-inst(module: 16, name: resolved, type-args: [int32()])
-						[call(fun-inst(module: 11, name: literal), [string-lit("0")])]))))])
+						[call(fun-inst(module: 12, name: literal), [string-lit("0")])]))))])

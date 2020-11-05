@@ -7,6 +7,7 @@ import test.testByteReaderWriter : testByteReaderWriter;
 import test.testFakeExtern : testFakeExtern;
 import test.testInterpreter : testInterpreter;
 import test.testLineAndColumnGetter : testLineAndColumnGetter;
+import test.testSym : testSym;
 import util.collection.str : Str, strEqLiteral;
 import util.opt : force, has, Opt;
 
@@ -30,6 +31,7 @@ immutable NameAndTest[] allTests = [
 	immutable NameAndTest("fake-extern", &testFakeExtern),
 	immutable NameAndTest("interpreter", &testInterpreter),
 	immutable NameAndTest("line-and-column-getter", &testLineAndColumnGetter),
+	immutable NameAndTest("sym", &testSym),
 ];
 
 
