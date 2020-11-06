@@ -426,7 +426,7 @@ public immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBin
 		case LowExprKind.SpecialBinary.Kind.eqNat64:
 			return "== (nat-64)";
 		case LowExprKind.SpecialBinary.Kind.eqPtr:
-			return "ptr-eq";
+			return "ptr-eq?";
 		case LowExprKind.SpecialBinary.Kind.lessBool:
 			return "< (bool)";
 		case LowExprKind.SpecialBinary.Kind.lessChar:

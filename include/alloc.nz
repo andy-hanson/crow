@@ -1,5 +1,7 @@
 import
-	.bootstrap: any-ptr as-ref bool byte by-val false get-ctx hard-forbid lock nat none null null? opt ptr ptr-cast ref-of-val size-of some void wrap-mul
+	.bootstrap
+		any-ptr as-ref bool byte by-val false get-ctx hard-forbid lock nat none null null? opt ptr
+		ptr-cast ref-of-val size-of some void wrap-mul
 	.posix: free malloc
 	.thread-utils: acquire-lock new-lock release-lock
 

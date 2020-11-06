@@ -25,10 +25,10 @@ as-ref ?t(p any-ptr) noctx unsafe builtin
 ref-of-ptr ?t(p ptr by-val<?t>) noctx unsafe
 	p.deref ref-of-val
 
-ptr-eq bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
+ptr-eq? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
 
-ref-eq bool(a ?t, b ?t) noctx unsafe
-	a.as-any-ptr ptr-eq b.as-any-ptr
+ref-eq? bool(a ?t, b ?t) noctx unsafe
+	a.as-any-ptr ptr-eq? b.as-any-ptr
 
 | Since this fun is not marked 'noctx', it simply returns the ctx that already exists.
 get-ctx ctx() unsafe builtin

@@ -259,12 +259,6 @@ private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(Alloc, S
 	return skipLinesAndGetIndentDelta(alloc, lexer);
 }
 
-private void skipToFirstNonIndentedLine(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	verify(lexer.indent == 1);
-	immutable IndentDelta delta = skiplinesAndGetIndentDelta(alloc, lexer);
-
-}
-
 void takeDedentFromIndent1(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	verify(lexer.indent == 1);
 	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer);
@@ -701,7 +695,8 @@ public @trusted T matchIndentDelta(T)(
 // Returns the change in indent (and updates the indent)
 // Note: does nothing if not looking at a newline!
 // NOTE: never returns a value > 1 as double-indent is always illegal.
-immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+// TODO:PRIVATE
+public immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	// comment / region counts as a blank line no matter its indent level.
 	immutable u32 newIndent = takeIndentAmount(alloc, lexer);
 

@@ -1,5 +1,7 @@
 import
-	.arr-utils: + at empty? empty-arr fill-mut-arr find-index first freeze index-of remove-start set-at slice-after slice-starting-at slice-up-to starts-with? tail
+	.arr-utils
+		+ at empty? empty-arr fill-mut-arr find-index first freeze index-of remove-start set-at
+		slice-after slice-starting-at slice-up-to starts-with? tail
 	.bootstrap: == + arr bool call false fun1 has? none opt some str true void
 	.cell: new-cell get set
 	.dict: add dict each empty-dict freeze mut-dict new-mut-dict

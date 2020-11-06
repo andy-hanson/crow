@@ -235,7 +235,7 @@ immutable(BuiltinKind) getBuiltinKind(
 			return constant(immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.Void()));
 		case shortSymAlphaLiteralValue("ptr-cast"):
 			return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
-		case shortSymAlphaLiteralValue("ptr-eq"):
+		case shortSymAlphaLiteralValue("ptr-eq?"):
 			return binary(LowExprKind.SpecialBinary.Kind.eqPtr);
 		case shortSymAlphaLiteralValue("ptr-to"):
 			return unary(LowExprKind.SpecialUnary.Kind.ptrTo);

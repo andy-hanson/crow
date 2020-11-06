@@ -622,6 +622,7 @@ struct FunDeclAst {
 
 struct ImportAst {
 	immutable RangeWithinFile range;
+	// Not using RelPath here because if nDots == 0, it's not a relative path
 	immutable u8 nDots;
 	immutable Ptr!Path path;
 	immutable Opt!(Arr!Sym) names;

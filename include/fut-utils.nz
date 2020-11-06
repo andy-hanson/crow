@@ -1,5 +1,8 @@
 import
-	.bootstrap: by-val call err exception fun-mut1 fun0 fun-ref0 fun-ref1 fun-ref2 fut fut-state-callbacks fut-state-resolved hard-unreachable none ok opt pass ref-of-val result send some todo two void
+	.bootstrap
+		by-val call err exception fun-mut1 fun0 fun-ref0 fun-ref1 fun-ref2 fut fut-state-callbacks
+		fut-state-resolved hard-unreachable none ok opt pass ref-of-val result send some todo two
+		void
 	.exceptions: catch
 	.fut-low-level: new-unresolved-fut reject resolve-or-reject
 	.opt-utils: force

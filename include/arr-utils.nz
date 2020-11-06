@@ -1,6 +1,9 @@
 import
 	.alloc: alloc
-	.bootstrap: + - == < <= > >= and arr bool byte by-val call data deref drop eight false four fun-mut1 fun-mut2 hard-assert hard-fail hard-forbid if incr nat noctx-decr noctx-incr none not null one opt or pass ptr ptr-cast ref-of-ptr set size-of some two true void wrap-mul zero zero?
+	.bootstrap
+		+ - == < <= > >= and arr bool byte by-val call data deref drop eight false four fun-mut1
+		fun-mut2 hard-assert hard-fail hard-forbid if incr nat noctx-decr noctx-incr none not null
+		one opt or pass ptr ptr-cast ref-of-ptr set size-of some two true void wrap-mul zero zero?
 	.exceptions: assert forbid
 	.number-utils: + - * / decr incr
 	.opt-utils: force
@@ -82,10 +85,10 @@ ref-of-val-at ?t(a arr by-val<?t>, index nat) trusted
 	assert: index < a.size
 	a.data + index ref-of-ptr
 
-cons arr ?t(a ?t, b arr ?t)
+prepend arr ?t(a ?t, b arr ?t)
 	(new-arr a) + b
 
-rcons arr ?t(a arr ?t, b ?t)
+append arr ?t(a arr ?t, b ?t)
 	a + (new-arr b)
 
 + arr ?t(a arr ?t, b arr ?t) trusted

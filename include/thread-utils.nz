@@ -1,5 +1,7 @@
 import
-	.bootstrap: == atomic-bool bool by-val call drop false fun0 hard-assert hard-fail hard-forbid lock nat noctx-decr noctx-incr not pass ptr ptr-to ref-of-val thousand true void wrap-mul zero zero?
+	.bootstrap
+		== atomic-bool bool by-val call drop false fun0 hard-assert hard-fail hard-forbid lock nat
+		noctx-decr noctx-incr not pass ptr ptr-to ref-of-val thousand true void wrap-mul zero zero?
 	.posix: pthread-yield usleep
 
 region atomic

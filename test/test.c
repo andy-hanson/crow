@@ -1472,7 +1472,7 @@ struct bytes256 zero_4();
 struct cell_3* new_cell_1(struct ctx* ctx, struct dirent* value);
 extern int32_t readdir_r(uint8_t* dirp, struct dirent* entry, struct cell_3* result);
 struct dirent* get_4(struct cell_3* c);
-uint8_t ref_eq(struct dirent* a, struct dirent* b);
+uint8_t ref_eq__q(struct dirent* a, struct dirent* b);
 struct arr_0 get_dirent_name(struct dirent* d);
 struct arr_1 sort_0(struct ctx* ctx, struct arr_1 a);
 struct mut_arr_1* to_mut_arr(struct ctx* ctx, struct arr_1 a);
@@ -1614,7 +1614,7 @@ uint64_t abs(struct ctx* ctx, int64_t i);
 uint8_t w_if_stopped(struct ctx* ctx, int32_t status);
 uint8_t w_if_continued(struct ctx* ctx, int32_t status);
 char** convert_args(struct ctx* ctx, char* exe_c_str, struct arr_1 args);
-struct arr_3 cons(struct ctx* ctx, char* a, struct arr_3 b);
+struct arr_3 prepend(struct ctx* ctx, char* a, struct arr_3 b);
 struct arr_3 _op_plus_2(struct ctx* ctx, struct arr_3 a, struct arr_3 b);
 struct arr_3 make_arr_2(struct ctx* ctx, uint64_t size, struct fun_mut1_15 f);
 struct arr_3 freeze_7(struct mut_arr_6* a);
@@ -1628,7 +1628,7 @@ uint8_t noctx_set_at_4(struct mut_arr_6* a, uint64_t index, char* value);
 char* call_23(struct ctx* ctx, struct fun_mut1_15 f, uint64_t p0);
 char* call_with_ctx_22(struct ctx* c, struct fun_mut1_15 f, uint64_t p0);
 char* _op_plus_2__lambda0(struct ctx* ctx, struct _op_plus_2__lambda0* _closure, uint64_t i);
-struct arr_3 rcons(struct ctx* ctx, struct arr_3 a, char* b);
+struct arr_3 append(struct ctx* ctx, struct arr_3 a, char* b);
 struct arr_3 map_1(struct ctx* ctx, struct arr_1 a, struct fun_mut1_16 mapper);
 char* call_24(struct ctx* ctx, struct fun_mut1_16 f, struct arr_0 p0);
 char* call_with_ctx_23(struct ctx* c, struct fun_mut1_16 f, struct arr_0 p0);
@@ -4756,7 +4756,7 @@ uint8_t read_dir_recur(struct ctx* ctx, uint8_t* dirp, struct mut_arr_1* res) {
 	if (null__q_0((uint8_t*) get_4(result1))) {
 		return 0;
 	} else {
-		assert_0(ctx, ref_eq(get_4(result1), entry0));
+		assert_0(ctx, ref_eq__q(get_4(result1), entry0));
 		name3 = get_dirent_name(entry0);
 		if ((_op_equal_equal_4(name3, (struct arr_0) {1, "."}) || _op_equal_equal_4(name3, (struct arr_0) {2, ".."}))) {
 			0;
@@ -4782,7 +4782,7 @@ struct cell_3* new_cell_1(struct ctx* ctx, struct dirent* value) {
 struct dirent* get_4(struct cell_3* c) {
 	return c->value;
 }
-uint8_t ref_eq(struct dirent* a, struct dirent* b) {
+uint8_t ref_eq__q(struct dirent* a, struct dirent* b) {
 	return ((uint8_t*) a == (uint8_t*) b);
 }
 struct arr_0 get_dirent_name(struct dirent* d) {
@@ -5811,9 +5811,9 @@ uint8_t w_if_continued(struct ctx* ctx, int32_t status) {
 	return _op_equal_equal_2(status, xffff());
 }
 char** convert_args(struct ctx* ctx, char* exe_c_str, struct arr_1 args) {
-	return cons(ctx, exe_c_str, rcons(ctx, map_1(ctx, args, (struct fun_mut1_16) {(fun_ptr3_17) convert_args__lambda0, (uint8_t*) null_any()}), NULL)).data;
+	return prepend(ctx, exe_c_str, append(ctx, map_1(ctx, args, (struct fun_mut1_16) {(fun_ptr3_17) convert_args__lambda0, (uint8_t*) null_any()}), NULL)).data;
 }
-struct arr_3 cons(struct ctx* ctx, char* a, struct arr_3 b) {
+struct arr_3 prepend(struct ctx* ctx, char* a, struct arr_3 b) {
 	struct arr_3 _arr0;
 	char** temp0;
 	return _op_plus_2(ctx, (temp0 = (char**) alloc(ctx, (sizeof(char*) * 1)), ((*((temp0 + 0)) = a, 0), (struct arr_3) {1, temp0})), b);
@@ -5888,7 +5888,7 @@ char* _op_plus_2__lambda0(struct ctx* ctx, struct _op_plus_2__lambda0* _closure,
 		return at_1(ctx, _closure->b, _op_minus_0(ctx, i, _closure->a.size));
 	}
 }
-struct arr_3 rcons(struct ctx* ctx, struct arr_3 a, char* b) {
+struct arr_3 append(struct ctx* ctx, struct arr_3 a, char* b) {
 	struct arr_3 _arr0;
 	char** temp0;
 	return _op_plus_2(ctx, a, (temp0 = (char**) alloc(ctx, (sizeof(char*) * 1)), ((*((temp0 + 0)) = b, 0), (struct arr_3) {1, temp0})));

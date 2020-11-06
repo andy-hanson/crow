@@ -1,5 +1,8 @@
 import
-	.bootstrap: == < > >= billion bool and float if int int32 max-nat32 million nat nat32 neg-million neg-one one or todo to-int to-nat unsafe-div unsafe-mod unsafe-to-int unsafe-to-int32 unsafe-to-nat unsafe-to-nat32 wrap-add wrap-decr wrap-mul wrap-sub zero zero?
+	.bootstrap
+		== < > >= billion bool and float if int int32 max-nat32 million nat nat32 neg-million
+		neg-one one or todo to-int to-nat unsafe-div unsafe-mod unsafe-to-int unsafe-to-int32
+		unsafe-to-nat unsafe-to-nat32 wrap-add wrap-decr wrap-mul wrap-sub zero zero?
 	.exceptions: assert forbid
 
 is-multiple? bool(a nat, b nat)

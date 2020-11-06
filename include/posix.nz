@@ -1,5 +1,9 @@
 import
-	.bootstrap: == != and any-ptr bits-and bit-shift-left bit-shift-right bits-intersect? bool by-val char c-str eight five four fun-ptr1 int int16 int32 int64 nat nat16 nat32 nat64 nine noctx-decr one ptr seven six sixteen ten twelve two fifteen fourteen wrap-add wrap-mul wrap-sub void thirteen three two-pow zero zero?
+	.bootstrap
+		== != and any-ptr bits-and bit-shift-left bit-shift-right bits-intersect? bool by-val char
+		c-str eight five four fun-ptr1 int int16 int32 int64 nat nat16 nat32 nat64 nine noctx-decr
+		one ptr seven six sixteen ten twelve two fifteen fourteen wrap-add wrap-mul wrap-sub void
+		thirteen three two-pow zero zero?
 	.cell: cell
 
 | TODO:
