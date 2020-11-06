@@ -1,1 +1,1 @@
-./build && ./bin/noze $@
+make bin/noze --quiet && ./bin/noze $@

@@ -1,5 +1,3 @@
-// rdmd lint.d
-
 module lint;
 
 @safe: // not pure, not @nogc, not nothrow

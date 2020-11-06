@@ -1,30 +1,20 @@
 ### Build and install
 
-Build with `./build`.
-
+Run `make all`. Noze will be built to `bin/noze` and tested.
 
 ### Debugging the compiler
 
-`gdb app`
-
-
-### Run all tests
-
-`./run-test`
-
-The compiler has no internal unit tests of its own.
-Instead, the tests are written in noze which invokes the compiler executable.
-
-## Debugging the compiler
-
-`./noze print --help` is a useful command to see compiler stages.
-
+Use `make debug`.
 
 ### Debugging noze code
 
+Noze is easiest to debug when compiling to C. By default it compiles the C code with debug symbols.
+
+For example:
+
 ```
-cd test
-gdb test
+noze build a.nz
+gdb a
 rbreak throw
 run
 ```
@@ -43,7 +33,8 @@ bash -llc 'ln -s `pwd`/syntaxes/tata.sublime-syntax ~/.config/sublime-text-3/Pac
 
 ## Viewing docs
 
-`./build-wasm`
-`./doc-server`
+(In progress)
 
-Then visit http://localhost:8080/doc .
+`make doc-server`
+
+Then in another terminal, visit http://localhost:8080/doc .
