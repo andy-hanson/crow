@@ -2,7 +2,7 @@ module util.sym;
 
 @safe @nogc pure nothrow:
 
-import util.bitUtils : allBitsSet, bitsOverlap, getBitsShifted, singleBit;
+import util.bitUtils : bitsOverlap, getBitsShifted, singleBit;
 import util.bools : Bool, False, not, True;
 import util.collection.arr : at, empty, first, last, range, size;
 import util.collection.arrUtil : every, slice, tail;
@@ -13,7 +13,7 @@ import util.comparison : Comparison;
 import util.opt : Opt, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.types : u64;
-import util.util : min, unreachable, verify;
+import util.util : unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer;
 
 immutable(Bool) isAlphaIdentifierStart(immutable char c) {
@@ -138,11 +138,6 @@ immutable(Bool) symEqLongAlphaLiteral(immutable Sym a, immutable string lit) {
 	return Bool(isLongSym(a) && strEqLiteral(asLong(a), lit));
 }
 
-immutable(Bool) symEqLongOperatorLiteral(immutable Sym a, immutable string lit) {
-	verify(size(strLiteral(lit)) > maxShortOperatorSize);
-	return Bool(isLongSym(a) && strEqLiteral(asLong(a), lit));
-}
-
 immutable(Str) strOfSym(Alloc)(ref Alloc alloc, immutable Sym a) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut!Alloc(alloc));
 	writeSym(writer, a);
@@ -160,10 +155,6 @@ immutable(size_t) writeSymAndGetSize(Alloc)(ref Writer!Alloc writer, immutable S
 
 void writeSym(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
 	writeSymAndGetSize(writer, a);
-}
-
-immutable(CStr) symToCStr(Alloc)(ref Alloc alloc, immutable Sym a) {
-	return strToCStr(alloc, strOfSym(alloc, a));
 }
 
 immutable(Bool) isSymOperator(immutable Sym a) {

@@ -363,7 +363,6 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 			import core.stdc.stdio : printf;
 			import interpret.debugging : writeFunName;
 			import util.collection.str : CStr;
-			import util.sym : symToCStr;
 			import util.writer : finishWriterToCStr, Writer;
 			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 			writeFunName!TempAlloc(w, program, fun);

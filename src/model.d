@@ -5,7 +5,7 @@ module model;
 import diag : FilesInfo; // TODO: move that here?
 import util.bools : and, Bool, False, True;
 import util.collection.arr : Arr, empty, emptyArr, first, only, range, size, sizeEq;
-import util.collection.arrUtil : compareArr, exists;
+import util.collection.arrUtil : compareArr;
 import util.collection.dict : Dict;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.multiDict : MultiDict;
@@ -35,7 +35,7 @@ struct AbsolutePathsGetter {
 	immutable Str localPath;
 }
 
-immutable(Str) getBasePath(ref immutable AbsolutePathsGetter a, immutable StorageKind sk) {
+private immutable(Str) getBasePath(ref immutable AbsolutePathsGetter a, immutable StorageKind sk) {
 	final switch (sk) {
 		case StorageKind.global:
 			return a.globalPath;
@@ -74,9 +74,6 @@ immutable(Sym) symOfPurity(immutable Purity a) {
 		case Purity.mut:
 			return shortSymAlphaLiteral("mut");
 	}
-}
-immutable(char*) boolStr(immutable Bool a) {
-	return a ? "true" : "false";
 }
 
 immutable(Bool) isPurityWorse(immutable Purity a, immutable Purity b) {
@@ -158,18 +155,6 @@ immutable(Bool) isStructInst(ref immutable Type a) {
 	return a.structInst;
 }
 
-immutable(Bool) containsUnresolvedTypeParams(ref immutable Type a) {
-	return matchType(
-		a,
-		(ref immutable Type.Bogus) =>
-			True,
-		(immutable Ptr!TypeParam) =>
-			True,
-		(immutable Ptr!StructInst i) =>
-			i.declAndArgs.typeArgs.exists((ref immutable Type t) =>
-				t.containsUnresolvedTypeParams));
-}
-
 immutable(Purity) bestCasePurity(ref immutable Type a) {
 	return matchType!(immutable Purity)(
 		a,
@@ -195,7 +180,7 @@ immutable(Bool) typeEquals(immutable Type a, immutable Type b) {
 		(immutable Ptr!StructInst i) => and!(() => isStructInst(b), () => ptrEquals(i, asStructInst(b))));
 }
 
-immutable(Comparison) compareType(ref immutable Type a, ref immutable Type b) {
+private immutable(Comparison) compareType(ref immutable Type a, ref immutable Type b) {
 	return matchType!(immutable Comparison)(
 		a,
 		(ref immutable Type.Bogus) => isBogus(b) ? Comparison.equal : Comparison.less,
@@ -295,9 +280,6 @@ struct StructBody {
 
 immutable(Bool) isBogus(ref immutable StructBody a) {
 	return Bool(a.kind == StructBody.Kind.bogus);
-}
-immutable(Bool) isBuiltin(ref immutable StructBody a) {
-	return Bool(a.kind == StructBody.Kind.builtin);
 }
 immutable(Bool) isRecord(ref const StructBody a) {
 	return Bool(a.kind == StructBody.Kind.record);
@@ -567,16 +549,8 @@ struct FunBody {
 	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
 }
 
-immutable(Bool) isBuiltin(ref immutable FunBody a) {
-	return Bool(a.kind == FunBody.Kind.builtin);
-}
-
 immutable(Bool) isExtern(ref immutable FunBody a) {
 	return Bool(a.kind == FunBody.Kind.extern_);
-}
-
-immutable(Bool) isExpr(ref immutable FunBody a) {
-	return Bool(a.kind == FunBody.Kind.expr);
 }
 
 @trusted immutable(FunBody.Extern) asExtern(ref immutable FunBody a) {
@@ -607,10 +581,6 @@ struct FunFlags {
 	immutable Bool trusted;
 }
 
-immutable(FunFlags) funFlagsNone() {
-	return FunFlags(False, False, False, False);
-}
-
 struct FunDecl {
 	immutable Ptr!Module containingModule; //TODO:NEVER USED!
 	immutable Bool isPublic;
@@ -633,9 +603,6 @@ ref immutable(FileAndRange) range(return scope ref immutable FunDecl a) {
 	return a.sig.range;
 }
 
-immutable(Bool) isBuiltin(ref immutable FunDecl a) {
-	return a.body_.isBuiltin;
-}
 immutable(Bool) isExtern(ref immutable FunDecl a) {
 	return a.body_.isExtern;
 }
@@ -665,7 +632,7 @@ ref immutable(Arr!Param) params(return scope ref immutable FunDecl a) {
 	return a.sig.params;
 }
 
-immutable(size_t) nSpecImpls(ref immutable FunDecl a) {
+private immutable(size_t) nSpecImpls(ref immutable FunDecl a) {
 	size_t n = 0;
 	foreach (immutable Ptr!SpecInst s; a.specs.range)
 		n += s.body_.nSigs;
@@ -676,16 +643,8 @@ immutable(Bool) isTemplate(ref immutable FunDecl a) {
 	return Bool(!empty(a.typeParams) || !empty(a.specs));
 }
 
-immutable(Bool) isSummon(ref immutable FunDecl a) {
-	return a.flags.summon;
-}
-
 immutable(size_t) arity(ref const FunDecl a) {
 	return arity(a.sig);
-}
-
-immutable(size_t) typeArity(ref immutable FunDecl a) {
-	return a.typeParams.size;
 }
 
 struct FunDeclAndArgs {
@@ -700,7 +659,7 @@ struct FunDeclAndArgs {
 		typeArgs = ta;
 		specImpls = si;
 		verify(typeArgs.sizeEq(decl.typeParams));
-		verify(specImpls.size == decl.nSpecImpls);
+		verify(size(specImpls) == nSpecImpls(decl));
 	}
 }
 
@@ -765,7 +724,7 @@ struct SpecSig {
 	immutable size_t indexOverAllSpecUses; // this is redundant to specInst and sig
 }
 
-immutable(Comparison) compareSpecSig(ref immutable SpecSig a, ref immutable SpecSig b) {
+private immutable(Comparison) compareSpecSig(ref immutable SpecSig a, ref immutable SpecSig b) {
 	// Don't bother with indexOverAllSpecUses, it's redundant if we checked sig
 	return compareOr(
 		comparePtr(a.specInst, b.specInst),
@@ -882,7 +841,7 @@ struct Called {
 	}
 }
 
-immutable(Comparison) compareCalled(ref immutable Called a, ref immutable Called b) {
+private immutable(Comparison) compareCalled(ref immutable Called a, ref immutable Called b) {
 	return matchCalled!(immutable Comparison)(
 		a,
 		(immutable Ptr!FunInst fa) =>
@@ -970,21 +929,8 @@ struct StructOrAlias {
 	}
 }
 
-immutable(Bool) isAlias(ref immutable StructOrAlias a) {
-	return Bool(a.kind == StructOrAlias.Kind.alias_);
-}
-
-immutable(Bool) isStructDecl(ref immutable StructOrAlias a) {
-	return Bool(a.kind == StructOrAlias.Kind.structDecl);
-}
-
-@trusted immutable(Ptr!StructAlias) asAlias(immutable StructOrAlias a) {
-	verify(a.isAlias);
-	return a.alias_;
-}
-
 @trusted immutable(Ptr!StructDecl) asStructDecl(immutable StructOrAlias a) {
-	verify(a.isStructDecl);
+	verify(a.kind == StructOrAlias.Kind.structDecl);
 	return a.structDecl_;
 }
 
@@ -1311,27 +1257,13 @@ struct Expr {
 	}
 }
 
-immutable(size_t) index(ref immutable Expr.ClosureFieldRef a) {
-	return a.field.index;
-}
-
 ref immutable(Type) elementType(ref immutable Expr.CreateArr a) {
 	return only(typeArgs(a.arrType));
-}
-
-// For FunKind.send this includes 'fut' wrapper
-
-ref immutable(Type) nonFutReturnType(ref immutable Expr.Lambda a) {
-	return first(typeArgs(a.type));
 }
 
 //TODO:KILL (just write field.type everywhere)
 immutable(Type) accessedFieldType(ref immutable Expr.RecordFieldAccess a) {
 	return a.field.type;
-}
-
-immutable(Sym) fieldName(ref immutable Expr.RecordFieldAccess a) {
-	return a.field.name;
 }
 
 ref immutable(FileAndRange) range(return ref immutable Expr a) {

@@ -31,14 +31,6 @@ immutable(Comparison) compareOr(
 		compareOr(cb0(), cb1));
 }
 
-immutable(Comparison) compareInt(immutable int a, immutable int b) {
-	return a < b
-			? Comparison.less
-		: a > b
-			? Comparison.greater
-		: Comparison.equal;
-}
-
 immutable(Comparison) compareNat32(immutable uint a, immutable uint b) {
 	return compareSizeT(a, b);
 }
@@ -51,12 +43,8 @@ immutable(Comparison) compareSizeT(immutable size_t a, immutable size_t b) {
 		: Comparison.equal;
 }
 
-immutable(Comparison) compareChar(immutable char a, immutable char b) {
-	return compareInt(a, b);
-}
-
 immutable(Comparison) compareEnum(E)(immutable E a, immutable E b) {
-	return compareInt(int(a), int(b));
+	return compareNat32(uint(a), uint(b));
 }
 
 immutable(Comparison) compareBool(immutable Bool a, immutable Bool b) {

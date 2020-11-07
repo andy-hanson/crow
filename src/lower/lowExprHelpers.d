@@ -13,7 +13,6 @@ import lowModel :
 	LowParamIndex,
 	LowType,
 	PrimitiveType;
-import util.bools : Bool;
 import util.collection.arr : Arr, emptyArr;
 import util.memory : allocate;
 import util.ptr : Ptr;
@@ -22,11 +21,12 @@ import util.types : u8;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
 immutable LowType charType = immutable LowType(PrimitiveType.char_);
-immutable LowType charPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charType)));
+private immutable LowType charPtrType =
+	immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charType)));
 immutable LowType charPtrPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charPtrType)));
 immutable LowType int32Type = immutable LowType(PrimitiveType.int32);
-immutable LowType nat8Type = immutable LowType(PrimitiveType.nat8);
 immutable LowType nat64Type = immutable LowType(PrimitiveType.nat64);
+private immutable LowType nat8Type = immutable LowType(PrimitiveType.nat8);
 immutable LowType anyPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&nat8Type)));
 immutable LowType voidType = immutable LowType(PrimitiveType.void_);
 
@@ -54,7 +54,7 @@ immutable(LowExpr) genDeref(Alloc)(
 	return genUnary(alloc, range, asNonFunPtrType(ptr.type).pointee, LowExprKind.SpecialUnary.Kind.deref, ptr);
 }
 
-immutable(LowExpr) genUnary(Alloc)(
+private immutable(LowExpr) genUnary(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowType type,
@@ -90,14 +90,6 @@ immutable(LowExpr) genNat64Eq0(Alloc)(
 	immutable LowExpr a,
 ) {
 	return genBinary(alloc, range, boolType, LowExprKind.SpecialBinary.Kind.eqNat64, a, constantNat64(range, 0));
-}
-
-immutable(LowExpr) genBool(ref immutable FileAndRange range, immutable Bool value) {
-	return immutable LowExpr(
-		boolType,
-		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialConstant(
-			immutable LowExprKind.SpecialConstant.BoolConstant(value))));
 }
 
 immutable(LowExpr) incrPointer(Alloc)(
@@ -195,22 +187,6 @@ immutable(LowExpr) getSizeOf(immutable FileAndRange range, immutable LowType t) 
 
 immutable(LowExpr) localRef(Alloc)(ref Alloc alloc, ref immutable FileAndRange range, immutable Ptr!LowLocal local) {
 	return immutable LowExpr(local.type, range, immutable LowExprKind(immutable LowExprKind.LocalRef(local)));
-}
-
-immutable(LowExpr) genLet(Alloc)(
-	ref Alloc alloc,
-	ref immutable FileAndRange range,
-	immutable Ptr!LowLocal local,
-	immutable LowExpr value,
-	immutable LowExpr then,
-) {
-	return immutable LowExpr(
-		then.type,
-		range,
-		immutable LowExprKind(immutable LowExprKind.Let(
-			local,
-			allocate(alloc, value),
-			allocate(alloc, then))));
 }
 
 immutable(LowExpr) paramRef(

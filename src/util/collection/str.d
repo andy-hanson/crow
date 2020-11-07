@@ -3,9 +3,8 @@ module util.collection.str;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
-import util.collection.arr : Arr, at, begin, empty, emptyArr, first, freeArr, size;
+import util.collection.arr : Arr, at, begin, emptyArr, first, freeArr, size;
 import util.collection.arrUtil : rtail, slice, tail;
-import util.comparison : compareChar, compareOr, Comparison;
 import util.memory : memcpy;
 import util.util : verify;
 
@@ -47,7 +46,7 @@ struct NulTerminatedStr {
 	}
 }
 
-@trusted immutable(NulTerminatedStr) strToNulTerminatedStr(Alloc)(ref Alloc alloc, immutable Str s) {
+private @trusted immutable(NulTerminatedStr) strToNulTerminatedStr(Alloc)(ref Alloc alloc, immutable Str s) {
 	char* res = cast(char*) alloc.allocate(size(s) + 1);
 	memcpy(cast(ubyte*) res, cast(ubyte*) begin(s), size(s));
 	res[size(s)] = '\0';
@@ -75,22 +74,8 @@ immutable(Bool) strEqLiteral(immutable Str a, immutable string b) {
 	return strEq(a, strLiteral(b));
 }
 
-immutable(Bool) strEq(immutable Str a, immutable Str b) {
+private immutable(Bool) strEq(immutable Str a, immutable Str b) {
 	return Bool(a.size == b.size && (a.size == 0 || (a.at(0) == b.at(0) && strEq(a.tail, b.tail))));
-}
-
-//TODO:KILL?
-immutable(Comparison) compareStr(immutable Str a, immutable Str b) {
-	return a.empty
-		? b.empty
-			? Comparison.equal
-			: Comparison.less
-		: b.empty
-			? Comparison.greater
-			: compareOr(
-				compareChar(a.first, b.first),
-				() => compareStr(a.tail, b.tail));
-
 }
 
 immutable(Str) stripNulTerminator(immutable NulTerminatedStr a) {

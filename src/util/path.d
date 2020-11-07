@@ -89,11 +89,6 @@ immutable(Ptr!Path) path(ref immutable RelPath a) {
 	return a.path_;
 }
 
-struct RelPathWithExtension {
-	immutable RelPath relPath;
-	immutable Str extension;
-}
-
 immutable(Opt!(Ptr!Path)) resolvePath(Alloc)(
 	ref Alloc alloc,
 	immutable Opt!(Ptr!Path) path,
@@ -132,7 +127,7 @@ immutable(Opt!(Ptr!Path)) resolvePath(Alloc)(ref Alloc alloc, immutable Ptr!Path
 }
 
 
-immutable(Ptr!Path) addManyChildren(Alloc)(ref Alloc alloc, immutable Ptr!Path a, immutable Ptr!Path b) {
+private immutable(Ptr!Path) addManyChildren(Alloc)(ref Alloc alloc, immutable Ptr!Path a, immutable Ptr!Path b) {
 	immutable Ptr!Path p = matchOpt(
 		b.parent,
 		(ref immutable Ptr!Path parent) => addManyChildren(alloc, a, parent),
@@ -214,7 +209,7 @@ immutable(CStr) pathToCStr(Alloc)(
 	return pathToNulTerminatedStr(alloc, root, path, extension).asCStr();
 }
 
-immutable(NulTerminatedStr) pathToNulTerminatedStr(Alloc)(
+private immutable(NulTerminatedStr) pathToNulTerminatedStr(Alloc)(
 	ref Alloc alloc,
 	immutable Str root,
 	immutable Ptr!Path path,
@@ -230,7 +225,11 @@ immutable(CStr) pathToCStr(Alloc)(ref Alloc alloc, immutable AbsolutePath path) 
 	return pathToNulTerminatedStr(alloc, path.root, path.path, path.extension).asCStr();
 }
 
-immutable(Ptr!Path) parsePath(Alloc, SymAlloc)(ref Alloc alloc, ref AllSymbols!SymAlloc symbols, immutable Str str) {
+private immutable(Ptr!Path) parsePath(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc symbols,
+	immutable Str str,
+) {
 	immutable size_t len = str.size;
 	size_t i = 0;
 	if (i < len && str.at(i) == '/')
@@ -288,10 +287,6 @@ immutable(Opt!AbsolutePath) parent(ref immutable AbsolutePath a) {
 
 immutable(Sym) baseName(ref immutable AbsolutePath a) {
 	return baseName(a.path);
-}
-
-immutable(AbsolutePath) addManyChildren(Alloc)(ref Alloc alloc, immutable AbsolutePath a, immutable Ptr!Path b) {
-	return AbsolutePath(a.root, addManyChildren(alloc, a.path, b), a.extension);
 }
 
 immutable(Opt!AbsolutePath) parseAbsoluteOrRelPath(Alloc, SymAlloc)(
@@ -379,7 +374,7 @@ immutable(AbsolutePath) childPath(Alloc)(ref Alloc alloc, immutable AbsolutePath
 	return AbsolutePath(parent.root, childPath(alloc, parent.path, name), parent.extension);
 }
 
-immutable(Opt!size_t) pathSlashIndex(immutable Str s) {
+private immutable(Opt!size_t) pathSlashIndex(immutable Str s) {
 	for (size_t i = s.size - 1; i > 0; i--)
 		if (s.at(i) == '/')
 			return some(i);

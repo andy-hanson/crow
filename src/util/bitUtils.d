@@ -14,21 +14,16 @@ immutable(Bool) bitsOverlap(immutable u64 a, immutable u64 b) {
 	return Bool((a & b) != 0);
 }
 
-// Tests if 'a' has *all* bits from 'b' set
-immutable(Bool) allBitsSet(immutable u64 a, immutable u64 b) {
-	return Bool((a & b) == b);
-}
-
-immutable(Bool) getBit(immutable u64 n, immutable u64 bitIndex) {
+private immutable(Bool) getBit(immutable u64 n, immutable u64 bitIndex) {
 	return bitsOverlap(n, singleBit(bitIndex));
 }
 
-immutable(u64) setBit(immutable u64 n, immutable u64 bitIndex) {
+private immutable(u64) setBit(immutable u64 n, immutable u64 bitIndex) {
 	return n | singleBit(bitIndex);
 }
 
 // Bits are counted such that the rightmost bit is bit 0. (Since it is the 2^0th place)
-immutable(u64) getBitsUnshifted(immutable u64 n, immutable uint firstBitIndex, immutable uint nBits) {
+private immutable(u64) getBitsUnshifted(immutable u64 n, immutable uint firstBitIndex, immutable uint nBits) {
 	u64 mask = 0;
 	foreach (immutable size_t i; firstBitIndex..firstBitIndex + nBits)
 		mask = setBit(mask, i);

@@ -4,11 +4,9 @@ module util.collection.mutDict;
 
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr;
-import util.collection.arrUtil : map_const;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutArr :
 	deleteAt,
-	moveToArr_const,
 	MutArr,
 	mutArrAt,
 	mutArrIsEmpty,
@@ -31,26 +29,11 @@ const(Arr!(KeyValuePair!(K, V))) tempPairs(K, V, alias cmp)(ref const MutDict!(K
 	return tempAsArr(a.pairs);
 }
 
-immutable(size_t) mutDictSize(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a) {
-	return mutArrSize(a.pairs);
-}
-
-immutable(Arr!V) moveMutDictToValues(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, immutable V, cmp) a) {
-	const Arr!(KeyValuePair!(K, immutable V)) pairs = moveToArr_const(alloc, a.pairs);
-	return map_const(alloc, pairs, (ref const KeyValuePair!(K, immutable V) pair) =>
-		pair.value);
-}
-
 const(Opt!V) getAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, const K key) {
 	foreach (ref const KeyValuePair!(K, V) pair; mutArrRange(a.pairs))
 		if (cmp(pair.key, key) == Comparison.equal)
 			return some!V(pair.value);
 	return none!V;
-}
-
-immutable(Bool) hasKey_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, const K key) {
-	immutable Opt!V opt = getAt_mut(a, key);
-	return opt.has;
 }
 
 immutable(V) mustGetAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, const K key) {
@@ -76,15 +59,6 @@ void addToMutDict(Alloc, K, V, alias cmp)(
 	immutable Bool has = hasKey_mut(a, key);
 	verify(!has);
 	push(alloc, a.pairs, KeyValuePair!(K, V)(key, value));
-}
-
-immutable(Bool) tryAddToMutDict(Alloc, K, V, alias cmp)(
-	ref Alloc alloc,
-	ref MutDict!(K, V, cmp) a,
-	immutable K key,
-	scope V delegate() @safe @nogc pure nothrow getValue,
-) {
-	return getOrAddAndDidAdd(alloc, a, key, getValue).didAdd;
 }
 
 struct ValueAndDidAdd(V) {
@@ -132,25 +106,7 @@ ValueAndDidAdd!V getOrAddAndDidAdd(Alloc, K, V, alias compare)(
 	return ValueAndDidAdd!V(value, True);
 }
 
-// Like getOrAdd, but the key is allowed to be temporary; if we need to add we'll make a copy then
-immutable(V) getOrAddAndCopyKey(Alloc, K, V, alias cmp)(
-	ref Alloc alloc,
-	ref MutDict!(K, V, cmp) a,
-	immutable K key,
-	scope immutable(K) delegate() @safe @nogc pure nothrow getKeyCopy,
-	scope immutable(V) delegate() @safe @nogc pure nothrow getValue,
-) {
-	foreach (ref const KeyValuePair!(K, V) pair; mutArrRange(a.pairs))
-		if (cmp(pair.key, key) == Comparison.equal)
-			return pair.value;
-	immutable K keyCopy = getKeyCopy();
-	verify(cmp(keyCopy, key) == Comparison.equal);
-	immutable V value = getValue();
-	a.pairs.push(alloc, KeyValuePair!(K, V)(key, value));
-	return value;
-}
-
-immutable(Opt!V) tryDeleteAndGet(K, V, alias cmp)(ref MutDict!(K, V, cmp) a, const K key) {
+private immutable(Opt!V) tryDeleteAndGet(K, V, alias cmp)(ref MutDict!(K, V, cmp) a, const K key) {
 	foreach (immutable size_t i; 0..mutDictSize(a)) {
 		const KeyValuePair!(K, V) pair = mutArrAt(a.pairs, i);
 		if (cmp(pair.key, key) == Comparison.equal) {
@@ -168,4 +124,15 @@ immutable(V) mustDelete(K, V, alias cmp)(ref MutDict!(K, V, cmp) a, const K key)
 
 immutable(Bool) mutDictIsEmpty(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a) {
 	return mutArrIsEmpty(a.pairs);
+}
+
+private:
+
+immutable(Bool) hasKey_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, const K key) {
+	immutable Opt!V opt = getAt_mut(a, key);
+	return has(opt);
+}
+
+immutable(size_t) mutDictSize(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a) {
+	return mutArrSize(a.pairs);
 }

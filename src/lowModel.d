@@ -49,10 +49,6 @@ struct LowFunPtrType {
 	immutable Arr!LowType paramTypes;
 }
 
-struct LowPtrType {
-	immutable Ptr!LowType pointee;
-}
-
 enum PrimitiveType {
 	bool_,
 	char_,
@@ -412,11 +408,6 @@ struct LowFunSource {
 	}
 }
 
-@trusted immutable(Ptr!ConcreteFun) asConcreteFun(ref immutable LowFunSource a) {
-	verify(a.kind_ == LowFunSource.Kind.concreteFun);
-	return a.concreteFun_;
-}
-
 struct LowFunParamsKind {
 	immutable Bool hasCtx;
 	immutable Bool hasClosure;
@@ -448,7 +439,7 @@ immutable(FileAndRange) lowFunRange(ref immutable LowFun a) {
 }
 
 // TODO: use Ptr!ConcreteExpr
-alias LowExprSource = FileAndRange;
+private alias LowExprSource = FileAndRange;
 
 struct LowExpr {
 	immutable LowType type;

@@ -388,7 +388,7 @@ enum PuritySpecifier {
 	mut,
 }
 
-immutable(Sym) symOfPuritySpecifier(immutable PuritySpecifier a) {
+private immutable(Sym) symOfPuritySpecifier(immutable PuritySpecifier a) {
 	final switch (a) {
 		case PuritySpecifier.data:
 			return shortSymAlphaLiteral("data");
@@ -425,7 +425,7 @@ enum ExplicitByValOrRef {
 	byRef,
 }
 
-immutable(Sym) symOfExplicitByValOrRef(immutable ExplicitByValOrRef a) {
+private immutable(Sym) symOfExplicitByValOrRef(immutable ExplicitByValOrRef a) {
 	final switch (a) {
 		case ExplicitByValOrRef.byVal:
 			return shortSymAlphaLiteral("by-val");

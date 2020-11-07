@@ -182,7 +182,7 @@ immutable(Sexpr) tataOpt(Alloc, T)(
 	scope immutable(Sexpr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return immutable Sexpr(mapOption(opt, (ref immutable T t) =>
-		allocSexpr(alloc, cb(t))));
+		allocate!Sexpr(alloc, cb(t))));
 }
 
 private struct SexprNamedRecord {
@@ -199,12 +199,12 @@ struct NameAndSexpr {
 	immutable Sexpr value;
 }
 
-struct SexprArr {
+private struct SexprArr {
 	immutable Bool showIndices;
 	immutable Arr!Sexpr arr;
 }
 
-struct SexprInt {
+private struct SexprInt {
 	immutable long value;
 	immutable size_t base;
 }
@@ -244,7 +244,7 @@ struct Sexpr {
 	this(immutable Sym a) immutable { kind = Kind.symbol; symbol = a; }
 }
 
-@trusted T matchSexpr(T)(
+private @trusted T matchSexpr(T)(
 	ref immutable Sexpr a,
 	scope T delegate(ref immutable SexprArr) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Bool) @safe @nogc pure nothrow cbBool,
@@ -273,10 +273,6 @@ struct Sexpr {
 		case Sexpr.Kind.symbol:
 			return cbSym(a.symbol);
 	}
-}
-
-immutable(Ptr!Sexpr) allocSexpr(Alloc)(ref Alloc alloc, immutable Sexpr s) {
-	return allocate!Sexpr(alloc, s);
 }
 
 void writeSexprNoNewline(Alloc)(ref Writer!Alloc writer, immutable Sexpr a) {

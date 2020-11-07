@@ -220,7 +220,7 @@ immutable(Opt!Type) shallowInstantiateType(ref const Expected expected) {
 	immutable Opt!Type t = cellGet(expected.type);
 	if (has(t) && isTypeParam(force(t))) {
 		const Opt!(Ptr!SingleInferringType) typeArg =
-			tryGetTypeArgFromInferringTypeArgs(expected.inferringTypeArgs, asTypeParam(force(t)));
+			tryGetTypeArgFromInferringTypeArgs_const(expected.inferringTypeArgs, asTypeParam(force(t)));
 		return has(typeArg) ? tryGetInferred(force(typeArg)) : none!Type;
 	} else
 		return t;
@@ -250,7 +250,7 @@ immutable(Bool) hasExpected(ref const Expected expected) {
 	return has(tryGetInferred(expected));
 }
 
-immutable(CheckedExpr) bogusWithoutAffectingExpected(immutable FileAndRange range) {
+private immutable(CheckedExpr) bogusWithoutAffectingExpected(immutable FileAndRange range) {
 	return CheckedExpr(immutable Expr(range, immutable Expr.Bogus()));
 }
 
@@ -341,7 +341,7 @@ immutable(CheckedExpr) check(Alloc)(
 }
 
 // Note: this may infer type parameters
-immutable(Bool) setTypeNoDiagnostic(Alloc)(
+private immutable(Bool) setTypeNoDiagnostic(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref Expected expected,
@@ -398,7 +398,7 @@ immutable(Opt!StructAndField) tryGetRecordField(immutable Type targetType, immut
 					none!StructAndField));
 }
 
-Opt!(Ptr!SingleInferringType) tryGetTypeArgFromInferringTypeArgs(
+private Opt!(Ptr!SingleInferringType) tryGetTypeArgFromInferringTypeArgs(
 	ref InferringTypeArgs inferringTypeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
@@ -406,13 +406,6 @@ Opt!(Ptr!SingleInferringType) tryGetTypeArgFromInferringTypeArgs(
 }
 
 const(Opt!(Ptr!SingleInferringType)) tryGetTypeArgFromInferringTypeArgs_const(
-	ref const InferringTypeArgs inferringTypeArgs,
-	immutable Ptr!TypeParam typeParam,
-) {
-	return tryGetTypeArg!SingleInferringType(inferringTypeArgs.params, inferringTypeArgs.args, typeParam);
-}
-
-const(Opt!(Ptr!SingleInferringType)) tryGetTypeArgFromInferringTypeArgs(
 	ref const InferringTypeArgs inferringTypeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
@@ -547,7 +540,7 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(Alloc)(
 		(ref immutable Type.Bogus) =>
 			some(immutable Type(Type.Bogus())),
 		(immutable Ptr!TypeParam p) {
-			const Opt!(Ptr!SingleInferringType) ta = tryGetTypeArgFromInferringTypeArgs(inferringTypeArgs, p);
+			const Opt!(Ptr!SingleInferringType) ta = tryGetTypeArgFromInferringTypeArgs_const(inferringTypeArgs, p);
 			// If it's not one of the inferring types, it's instantiated enough to return.
 			return has(ta) ? tryGetInferred(force(ta)) : some(t);
 		},

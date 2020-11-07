@@ -51,7 +51,7 @@ immutable(Bool) isSuccess(S, F)(ref immutable Result!(S, F) a) {
 	return a.failure_;
 }
 
-@trusted immutable(Out) matchResult(Out, S, F)(
+private @trusted immutable(Out) matchResult(Out, S, F)(
 	ref immutable Result!(S, F) a,
 	scope immutable(Out) delegate(ref immutable S) @safe @nogc pure nothrow cbSuccess,
 	scope immutable(Out) delegate(ref immutable F) @safe @nogc pure nothrow cbFailure,

@@ -2,13 +2,12 @@ module frontend.checkCtx;
 
 @safe @nogc pure nothrow:
 
-import diag : Diag, Diagnostic, Diags;
+import diag : Diag, Diagnostic;
 
 import frontend.programState : ProgramState;
 import model : ModuleAndNameReferents;
-import util.bools : Bool, not;
 import util.collection.arr : Arr;
-import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, finishArr;
+import util.collection.arrBuilder : add, ArrBuilder;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange, FileIndex, RangeWithinFile;
 

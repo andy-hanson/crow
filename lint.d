@@ -2,49 +2,127 @@ module lint;
 
 @safe: // not pure, not @nogc, not nothrow
 
+import std.algorithm.searching : any;
 import std.algorithm.sorting : sort;
 import std.array : array;
 import std.file : dirEntries, DirEntry, isDir, readText, SpanMode;
+import std.process : execute;
 import std.stdio : writeln;
-import std.string : indexOf, indexOfAny;
-
-immutable string SAMPLE = "import x : PathAndRange; none!PathAndRange;";
+import std.string : indexOf, indexOfAny, splitLines;
 
 @trusted void main() {
-	foreach (DirEntry entry; dirEntries("src", SpanMode.depth)) {
-		if (entry.isFile()) {
-			lintFile(entry.name());
+	// For each file, get the public exports.
+	// Test for usage in all files.
+
+	immutable File[] files = allFiles();
+
+	foreach (ref immutable File file; files) {
+		foreach (immutable string publicExport; file.members.public_) {
+			if (!any!(otherFile => publicExport in otherFile.imports)(files)) {
+				writeln(file.path, " export not used: ", publicExport);
+			}
 		}
 	}
+	//TODO: also test that each private member is used!
+
+	foreach (ref immutable File file; files)
+		lintImportsInFile(file);
 }
 
 private:
 
-void lintFile(immutable string path) {
-	immutable string s = readText(path);
-	ImportsAndRest importsAndRest = findImports(s);
+struct Void {}
 
-	eachWord(importsAndRest.rest, (immutable string word) {
-		if (word in importsAndRest.imports)
-			importsAndRest.imports[word] = true;
+struct File {
+	immutable string path;
+	immutable Members members;
+	immutable Void[immutable string] imports;
+	immutable string textAfterImports;
+}
+
+struct Members {
+	immutable string[] public_;
+	immutable string[] private_;
+}
+
+@trusted immutable(File[]) allFiles() {
+	immutable(File)[] res;
+	foreach (DirEntry entry; dirEntries("src", SpanMode.depth)) {
+		if (entry.isFile()) {
+			immutable string path = entry.name();
+			immutable Members members = getMembers(path);
+			immutable string text = readText(path);
+			immutable ImportsAndRest importsAndRest = findImports(text);
+			res ~= immutable File(path, members, importsAndRest.imports, importsAndRest.rest);
+		}
+	}
+	return res;
+}
+
+immutable(Members) getMembers(immutable string path) {
+	immutable auto res = execute(["dub", "run", "dscanner", "--", "--ctags", path]);
+	if (res.status != 0) writeln("FAILED?");
+
+	immutable string lookFor = "!_TAG_PROGRAM_URL	https://github.com/dlang-community/D-Scanner/\n";
+	immutable ptrdiff_t index = indexOf(res.output, lookFor);
+	if (index == -1) {
+		writeln("Didn't find it?");
+		assert(0);
+	}
+
+	immutable(string)[] public_;
+	immutable(string)[] private_;
+
+	foreach (immutable string line; splitLines(res.output[index + lookFor.length..$])) {
+		if (!(contains(line, "enum:") || contains(line, "struct:"))) {
+			immutable ptrdiff_t space = indexOfAny(line, " \t");
+			if (space == -1) {
+				writeln("No space in line?");
+				writeln(line);
+				assert(0);
+			}
+			immutable string name = line[0..space];
+			if (contains(line, "access:public")) {
+				public_ ~= name;
+				// For some reason dscanner doesn't give Converter64 access:private
+			} else if (contains(line, "access:private") || name == "Converter64") {
+				private_ ~= name;
+			} else {
+				// extern is neither public nor private
+				assert(path == "src/app.d" || path == "src/wasm.d");
+			}
+		}
+	}
+
+	return immutable Members(public_, private_);
+}
+
+immutable(bool) contains(immutable string a, immutable string b) {
+	return indexOf(a, b) != -1;
+}
+
+
+void lintImportsInFile(ref immutable File file) {
+	immutable(Void)[immutable string] importsNotUsed = file.imports.dup;
+
+	eachWord(file.textAfterImports, (immutable string word) {
+		importsNotUsed.remove(word);
 	});
 
-	foreach (ref const kv; importsAndRest.imports.byKeyValue) {
-		if (!kv.value) {
-			writeln(path, ": unused import ", kv.key);
-		}
+	foreach (ref const key; importsNotUsed.byKey) {
+		writeln(file.path, ": unused import ", key);
 	}
 }
 
 pure:
 
 struct ImportsAndRest {
-	bool[immutable string] imports;
+	Void[immutable string] imports;
 	immutable string rest;
 }
 
 ImportsAndRest findImports(immutable string s) {
-	bool[immutable string] res;
+	Void[immutable string] res;
 	size_t lastImport = 0;
 	ptrdiff_t i = 0;
 	while (true) {
@@ -70,7 +148,7 @@ ImportsAndRest findImports(immutable string s) {
 		if (endI == -1)
 			break;
 		eachWord(s[i..i + endI], (immutable string word) {
-			res[word] = false;
+			res[word] = immutable Void();
 		});
 		i += endI + 1;
 		lastImport = i;

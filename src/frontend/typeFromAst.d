@@ -92,16 +92,6 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 	}
 }
 
-immutable(Opt!(Ptr!StructInst)) instStructFromAstNeverDelay(Alloc)(
-	ref Alloc alloc,
-	ref CheckCtx ctx,
-	ref immutable TypeAst.InstStruct ast,
-	ref immutable StructsAndAliasesMap structsAndAliasesMap,
-	ref immutable TypeParamsScope typeParamsScope,
-) {
-	return instStructFromAst(alloc, ctx, ast, structsAndAliasesMap, typeParamsScope, none!(MutArr!(Ptr!StructInst)));
-}
-
 immutable(Type) typeFromAst(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,

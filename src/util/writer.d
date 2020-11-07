@@ -26,23 +26,23 @@ immutable(Str) finishWriter(Alloc)(ref Writer!Alloc writer) {
 	return begin(finishArr(writer.alloc, writer.res));
 }
 
-//TODO:KILL
 void writeChar(Alloc)(ref Writer!Alloc writer, immutable char c) {
 	add(writer.alloc, writer.res, c);
 }
+
 void writeStr(Alloc)(ref Writer!Alloc writer, immutable Str s) {
 	foreach (immutable char c; range(s))
 		writeChar(writer, c);
 }
+
 void writeStatic(Alloc)(ref Writer!Alloc writer, immutable string c) {
 	writeStr(writer, strLiteral(c));
 }
 
-void writeHex(Alloc)(ref Writer!Alloc writer, immutable size_t n) {
+private void writeHex(Alloc)(ref Writer!Alloc writer, immutable size_t n) {
 	writeNat(writer, n, 16);
 }
 
-//TODO:MOVE
 void writePtrRange(Alloc)(ref Writer!Alloc writer, const PtrRange a) {
 	writeHex(writer, cast(immutable size_t) a.begin);
 	writeChar(writer, '-');
@@ -63,10 +63,6 @@ void writeInt(Alloc)(ref Writer!Alloc writer, immutable long i, immutable size_t
 	if (i < 0)
 		writeChar(writer, '-');
 	writeNat(writer, abs(i), base);
-}
-
-void writeBool(Alloc)(ref Writer!Alloc writer, immutable Bool b) {
-	writeStatic(writer, b ? "true" : "false");
 }
 
 void writeWithCommas(Alloc, T)(

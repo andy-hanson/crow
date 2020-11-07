@@ -29,7 +29,7 @@ import util.sym :
 import util.types : i32, u32, safeI32FromU32, safeSizeTToU32;
 import util.util : todo, unreachable, verify;
 
-enum IndentKind {
+private enum IndentKind {
 	tabs,
 	spaces2,
 	spaces4,
@@ -76,7 +76,7 @@ immutable(Pos) curPos(SymAlloc)(ref const Lexer!SymAlloc lexer) {
 	return posOfPtr(lexer, lexer.ptr);
 }
 
-immutable(Pos) posOfPtr(SymAlloc)(ref const Lexer!SymAlloc lexer, immutable CStr ptr) {
+private immutable(Pos) posOfPtr(SymAlloc)(ref const Lexer!SymAlloc lexer, immutable CStr ptr) {
 	return safeSizeTToU32(ptr - lexer.sourceBegin);
 }
 
@@ -98,7 +98,7 @@ void addDiagAtChar(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer, i
 	addDiag(alloc, lexer, immutable RangeWithinFile(a, lexer.curChar == '\0' ? a : a + 1), diag);
 }
 
-void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+private void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.UnexpectedCharacter(curChar(lexer))));
 }
 
@@ -143,11 +143,6 @@ immutable(Bool) takeOrAddDiagExpected(Alloc, SymAlloc)(
 	if (!res)
 		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
 	return res;
-}
-
-void takeOrAddDiag(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer, immutable char c) {
-	if (!tryTake(lexer, c))
-		addDiagUnexpected(alloc, lexer);
 }
 
 void skipShebang(SymAlloc)(ref Lexer!SymAlloc lexer) {
@@ -371,10 +366,6 @@ immutable(Sym) takeName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lex
 	return takeNameAndRange(alloc, lexer).name;
 }
 
-immutable(Str) takeNameAsStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
-	return copyStr(alloc, takeNameAsTempStr(lexer, str));
-}
-
 immutable(Str) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
 	return takeOrAddDiagExpected(alloc, lexer, '"', ParseDiag.Expected.Kind.quote)
 		? takeStringLiteralAfterQuote(lexer, alloc)
@@ -483,12 +474,12 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 		lexer.ptr++;
 }
 
+private:
+
 @trusted void skipRestOfLineAndNewline(SymAlloc)(ref Lexer!SymAlloc lexer) {
 	skipUntilNewlineNoDiag(lexer);
 	lexer.ptr++;
 }
-
-private:
 
 // Note: Not issuing any diagnostics here. We'll fail later if we detect the wrong indent kind.
 IndentKind detectIndentKind(immutable Str str) {

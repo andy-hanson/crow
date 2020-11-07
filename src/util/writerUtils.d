@@ -11,7 +11,7 @@ import util.sym : Sym, writeSym, writeSymAndGetSize;
 import util.util : repeat, todo;
 import util.writer : writeChar, writeNat, Writer, writeStatic;
 
-void writePath(Alloc)(ref Writer!Alloc writer, immutable Ptr!Path p) {
+private void writePath(Alloc)(ref Writer!Alloc writer, immutable Ptr!Path p) {
 	if (has(p.parent)) {
 		writePath(writer, force(p.parent));
 		writeChar(writer, '/');
@@ -30,7 +30,7 @@ void writePathAndStorageKind(Alloc)(ref Writer!Alloc writer, ref immutable PathA
 	writePath(writer, p.path);
 }
 
-void writeLineAndColumn(Alloc)(ref Writer!Alloc writer, immutable LineAndColumn lc) {
+private void writeLineAndColumn(Alloc)(ref Writer!Alloc writer, immutable LineAndColumn lc) {
 	writeNat(writer, lc.line + 1);
 	writeChar(writer, ':');
 	writeNat(writer, lc.column + 1);
@@ -83,13 +83,9 @@ void writeSpaces(Alloc)(ref Writer!Alloc writer, immutable size_t nSpaces) {
 	});
 }
 
-void writeIndent(Alloc)(ref Writer!Alloc writer) {
-	writeSpaces(writer, 2);
-}
-
 void writeNlIndent(Alloc)(ref Writer!Alloc writer) {
 	writeNl(writer);
-	writeIndent(writer);
+	writeSpaces(writer, 2);
 }
 
 void writeSymPadded(Alloc)(ref Writer!Alloc writer, immutable Sym name, immutable size_t size) {

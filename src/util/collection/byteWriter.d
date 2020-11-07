@@ -48,10 +48,6 @@ void pushU64(Alloc)(ref ByteWriter!Alloc writer, immutable Nat64 value) {
 	pushBytes!Nat64(writer, value);
 }
 
-void writeU8(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutable Nat8 value) {
-	setAt(writer.bytes, index, value);
-}
-
 void writeInt16(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutable Int16 value) {
 	writeBytes!Int16(writer, index, value);
 }

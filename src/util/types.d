@@ -5,8 +5,6 @@ module util.types;
 import util.bools : Bool;
 import util.util : verify;
 
-struct Void {}
-
 alias u8 = ubyte;
 alias u16 = ushort;
 alias u32 = uint;
@@ -17,7 +15,6 @@ alias i16 = short;
 alias i32 = int;
 alias i64 = long;
 
-alias float32 = float;
 alias float64 = double;
 
 alias ssize_t = long;
@@ -192,32 +189,22 @@ alias Nat8 = NatN!ubyte;
 alias Nat16 = NatN!ushort;
 alias Nat32 = NatN!uint;
 alias Nat64 = NatN!ulong;
-alias Int8 = IntN!byte;
+private alias Int8 = IntN!byte;
 alias Int16 = IntN!short;
-alias Int32 = IntN!int;
-alias Int64 = IntN!long;
-
-immutable u8 maxU4 = 0xf;
-immutable u8 maxU8 = 0xff; // TODO: just use u8.max
-immutable u16 maxU16 = 0xffff; // TODO: just use u16.max
-immutable u32 maxU32 = 0xffffffff; // TODO: just use u32.max
-immutable u64 maxU64 = 0xffffffffffffffff; // TODO: just use u64.max
+private alias Int32 = IntN!int;
+private alias Int64 = IntN!long;
 
 immutable(u16) bottomU16OfU64(immutable u64 u) {
-	return cast(u16) (u & maxU16);
+	return cast(u16) (u & ushort.max);
 }
 
 immutable(u32) bottomU32OfU64(immutable u64 u) {
-	return cast(u32) (u & maxU32);
+	return cast(u32) (u & uint.max);
 }
 
 immutable(i32) safeI32FromU32(immutable u32 u) {
 	verify(u <= i32.max);
 	return cast(i32) u;
-}
-
-immutable(u8) safeU32ToU8(immutable u32 u) {
-	return safeSizeTToU8(u);
 }
 
 immutable(u16) safeU32ToU16(immutable u32 u) {
@@ -259,6 +246,8 @@ immutable(size_t) abs(immutable ssize_t s) {
 	return s < 0 ? -s : s;
 }
 
+private immutable u8 maxU4 = 0xf;
+
 immutable(Nat8) catU4U4(immutable Nat8 a, immutable Nat8 b) {
 	verify(a.value <= maxU4);
 	verify(b.value <= maxU4);
@@ -284,12 +273,6 @@ immutable(float64) float64OfU64Bits(immutable u64 value) {
 	Converter64 conv;
 	conv.asU64 = immutable Nat64(value);
 	return conv.asFloat64;
-}
-
-immutable(Nat64) bottomNBytes(immutable Nat64 value, immutable Nat8 nBytes) {
-	immutable Nat64 nBits = nBytes.to64() * immutable Nat64(8);
-	immutable Nat64 mask = decr(immutable Nat64(1) << nBits);
-	return value & mask;
 }
 
 private:

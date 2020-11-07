@@ -170,7 +170,7 @@ ref immutable(T) last(T)(ref immutable Arr!T a) {
 	return PtrsRange!T(a.begin_, a.begin_ + a.size);
 }
 
-struct PtrsRange(T) {
+private struct PtrsRange(T) {
 	immutable(T)* begin;
 	immutable(T)* end;
 

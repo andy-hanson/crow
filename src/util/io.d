@@ -163,14 +163,14 @@ immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
 	}
 }
 
+private:
+
 @trusted immutable(Environ) getEnviron(Alloc)(ref Alloc alloc) {
 	ArrBuilder!(KeyValuePair!(Str, Str)) res;
 	for (immutable(char*)* env = cast(immutable) environ; *env != null; env++)
 		add(alloc, res, parseEnvironEntry(*env));
 	return finishArr(alloc, res);
 }
-
-private:
 
 alias PathAlloc = StackAlloc!("temp path", 8 * 1024);
 alias PathAndEnvironAlloc = StackAlloc!("temp path and environ", 8 * 1024);

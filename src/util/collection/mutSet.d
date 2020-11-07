@@ -5,7 +5,6 @@ module util.collection.mutSet;
 import util.bools : Bool, False, not, True;
 import util.collection.mutArr : MutArr, mutArrRange, push;
 import util.comparison : Comparison;
-import util.util : verify;
 
 struct MutSet(T, alias cmp) {
 	MutArr!T arr;
@@ -18,16 +17,11 @@ immutable(Bool) mutSetHas(T, alias cmp)(ref const MutSet!(T, cmp) s, immutable T
 	return False;
 }
 
-immutable(Bool) tryAddToMutSet(T, alias cmp, Alloc)(ref Alloc alloc, ref MutSet!(T, cmp) s, immutable T value) {
+private immutable(Bool) tryAddToMutSet(T, alias cmp, Alloc)(ref Alloc alloc, ref MutSet!(T, cmp) s, immutable T value) {
 	immutable Bool h = s.mutSetHas(value);
 	if (not(h))
 		push(alloc, s.arr, value);
 	return not(h);
-}
-
-void addToMutSet(T, alias cmp, Alloc)(ref Alloc alloc, ref MutSet!(T, cmp) s, immutable T value) {
-	immutable Bool added = tryAddToMutSet!(T, cmp)(alloc, s, value);
-	verify(added);
 }
 
 void addToMutSetOkIfPresent(T, alias cmp, Alloc)(ref Alloc alloc, ref MutSet!(T, cmp) s, immutable T value) {

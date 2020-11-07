@@ -1,7 +1,7 @@
 module util.collection.arrUtil;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, begin, empty, first, last, ptrAt, ptrsRange, range, size, sizeEq;
+import util.collection.arr : Arr, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
 import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory;
@@ -11,24 +11,6 @@ import util.result : asFailure, asSuccess, fail, isSuccess, Result, success;
 import util.util : max, verify;
 
 @safe @nogc nothrow:
-
-@trusted immutable(Result!(Arr!OutSuccess, OutFailure)) mapOrFailImpure(OutSuccess, OutFailure, In, Alloc)(
-	ref Alloc alloc,
-	immutable Arr!In inputs,
-	scope immutable(Result!(OutSuccess, OutFailure)) delegate(ref immutable In) @safe @nogc nothrow cb
-) {
-	OutSuccess* res = cast(OutSuccess*) alloc.allocate(OutSuccess.sizeof * inputs.size);
-	foreach (immutable size_t i; 0..inputs.size) {
-		immutable Result!(OutSuccess, OutFailure) r = cb(inputs.at(i));
-		if (r.isSuccess)
-			initMemory(res + i, r.asSuccess);
-		else {
-			alloc.free(cast(ubyte*) res, OutSuccess.sizeof * inputs.size);
-			return fail!(Arr!OutSuccess, OutFailure)(r.asFailure);
-		}
-	}
-	return success!(Arr!OutSuccess, OutFailure)(immutable Arr!OutSuccess(cast(immutable) res, inputs.size));
-}
 
 @trusted immutable(Arr!Out) mapImpure(Out, In, Alloc)(
 	ref Alloc alloc,
@@ -521,25 +503,6 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	return success!(Arr!OutSuccess, OutFailure)(immutable Arr!OutSuccess(cast(immutable) res, inputs.size));
 }
 
-
-@trusted immutable(Result!(Arr!OutSuccess, OutFailure)) mapOrFail(OutSuccess, OutFailure, In, Alloc)(
-	ref Alloc alloc,
-	immutable Arr!In inputs,
-	scope immutable(Result!(OutSuccess, OutFailure)) delegate(ref immutable In) @safe @nogc pure nothrow cb
-) {
-	OutSuccess* res = cast(OutSuccess*) alloc.allocate(OutSuccess.sizeof * inputs.size);
-	foreach (immutable size_t i; 0..inputs.size) {
-		immutable Result!(OutSuccess, OutFailure) r = cb(inputs.at(i));
-		if (r.isSuccess)
-			initMemory(res + i, r.asSuccess);
-		else {
-			alloc.free(cast(ubyte*) res, OutSuccess.sizeof * inputs.size);
-			return fail!(Arr!OutSuccess, OutFailure)(r.asFailure);
-		}
-	}
-	return success!(Arr!OutSuccess, OutFailure)(immutable Arr!OutSuccess(cast(immutable) res, inputs.size));
-}
-
 @trusted immutable(Arr!T) cat(T, Alloc)(ref Alloc alloc, immutable Arr!T a, immutable Arr!T b) {
 	immutable size_t resSize = size(a) + size(b);
 	T* res = cast(T*) alloc.allocate(T.sizeof * resSize);
@@ -756,16 +719,6 @@ immutable(Bool) zipSome(In0, In1)(
 	return False;
 }
 
-void zipWithIndex(In0, In1)(
-	ref immutable Arr!In0 in0,
-	ref immutable Arr!In1 in1,
-	scope void delegate(ref immutable In0, ref immutable In1, immutable size_t) @safe @nogc pure nothrow cb,
-) {
-	verify(sizeEq(in0, in1));
-	foreach (immutable size_t i; 0..size(in0))
-		cb(at(in0, i), at(in1, i), i);
-}
-
 immutable(Bool) eachCorresponds(T, U)(
 	immutable Arr!T a,
 	immutable Arr!U b,
@@ -858,7 +811,7 @@ immutable(size_t) arrMaxIndex(T, U)(
 	return arrMaxIndexRecur!(T, U)(0, cb(first(a), 0), a, 1, cb, compare);
 }
 
-immutable(size_t) arrMaxIndexRecur(T, U)(
+private immutable(size_t) arrMaxIndexRecur(T, U)(
 	immutable size_t indexOfMax,
 	immutable T maxValue,
 	ref const Arr!U a,
@@ -874,14 +827,4 @@ immutable(size_t) arrMaxIndexRecur(T, U)(
 			? arrMaxIndexRecur!(T, U)(index, valueHere, a, index + 1, cb, compare)
 			: arrMaxIndexRecur!(T, U)(indexOfMax, maxValue, a, index + 1, cb, compare);
 	}
-}
-
-immutable(Opt!T) lastWhere(T)(
-	ref immutable Arr!T a,
-	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	foreach (immutable size_t i; 0..size(a))
-		if (!cb(at(a, i)))
-			return i == 0 ? none!T : some(at(a, i - 1));
-	return empty(a) ? none!T : some(last(a));
 }

@@ -68,7 +68,7 @@ import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, ArrWithS
 import util.collection.str : CStr, emptyStr, NulTerminatedStr, Str;
 import util.memory : nu;
 import util.opt : force, has, mapOption, none, Opt, optOr, some;
-import util.path : childPath, Path, RelPath, rootPath;
+import util.path : childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, shortSymAlphaLiteralValue, Sym;

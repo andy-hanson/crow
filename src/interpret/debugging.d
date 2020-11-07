@@ -54,22 +54,6 @@ void writeFunName(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram lowPr
 		});
 }
 
-void writeConcreteFunName(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFun a) {
-	matchConcreteFunSource!void(
-		a.source,
-		(immutable Ptr!FunInst it) =>
-			writeSym(writer, name(it)),
-		(ref immutable ConcreteFunSource.Lambda it) {
-			writeConcreteFunName(writer, it.containingFun);
-			writeStatic(writer, ".lambda");
-			writeNat(writer, it.index);
-		});
-}
-
-void writeRecordName(Alloc)(ref Writer!Alloc writer, ref immutable LowRecord a) {
-	writeConcreteStruct(writer, a.source);
-}
-
 void writeType(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram program, ref immutable LowType a) {
 	matchLowType!void(
 		a,
@@ -91,6 +75,24 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram program,
 		(immutable LowType.Union) {
 			todo!void("!");
 		});
+}
+
+private:
+
+void writeConcreteFunName(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFun a) {
+	matchConcreteFunSource!void(
+		a.source,
+		(immutable Ptr!FunInst it) =>
+			writeSym(writer, name(it)),
+		(ref immutable ConcreteFunSource.Lambda it) {
+			writeConcreteFunName(writer, it.containingFun);
+			writeStatic(writer, ".lambda");
+			writeNat(writer, it.index);
+		});
+}
+
+void writeRecordName(Alloc)(ref Writer!Alloc writer, ref immutable LowRecord a) {
+	writeConcreteStruct(writer, a.source);
 }
 
 void writeConcreteStruct(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteStruct a) {

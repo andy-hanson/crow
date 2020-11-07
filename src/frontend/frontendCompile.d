@@ -84,7 +84,7 @@ immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, SymAlloc)(
 		immutable Diagnostics(diagnostics, filesInfo));
 }
 
-struct FileAstAndArrDiagnosticAndLineAndColumnGetter {
+private struct FileAstAndArrDiagnosticAndLineAndColumnGetter {
 	immutable FileAst ast;
 	immutable Arr!ParseDiagnostic diagnostics;
 	immutable LineAndColumnGetter lineAndColumnGetter;

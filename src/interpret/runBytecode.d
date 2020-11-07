@@ -57,9 +57,10 @@ import util.collection.globalAllocatedStack :
 import util.collection.str : CStr, freeCStr, Str, strToCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : has;
+import util.print : print;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
+import util.sexpr : writeSexprNoNewline;
 import util.sourceRange : FileAndPos;
-import util.sym : writeSym;
 import util.types : decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, u8, u16, u32, u64, zero;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriterToCStr, Writer, writeChar, writePtrRange, writeStatic;
@@ -122,9 +123,9 @@ enum StepResult {
 }
 
 alias DataStack = GlobalAllocatedStack!(Nat64, 1024 * 4);
-alias ReturnStack = GlobalAllocatedStack!(immutable(u8)*, 1024);
+private alias ReturnStack = GlobalAllocatedStack!(immutable(u8)*, 1024);
 // Gives start stack position of each function
-alias StackStartStack = GlobalAllocatedStack!(Nat16, 1024);
+private alias StackStartStack = GlobalAllocatedStack!(Nat16, 1024);
 
 struct Interpreter(Extern) {
 	immutable Ptr!LowProgram lowProgram;
@@ -140,7 +141,7 @@ struct Interpreter(Extern) {
 }
 
 // WARN: Does not restore data. Just mean for setjmp/longjmp.
-struct InterpreterRestore {
+private struct InterpreterRestore {
 	// This is the stack sizes and byte code index to be restored by longjmp
 	immutable ByteCodeIndex nextByteCodeIndex;
 	immutable Nat32 dataStackSize;
@@ -148,7 +149,7 @@ struct InterpreterRestore {
 	immutable Arr!Nat16 restoreStackStartStack;
 }
 
-immutable(InterpreterRestore*) createInterpreterRestore(Extern)(ref Interpreter!Extern a) {
+private immutable(InterpreterRestore*) createInterpreterRestore(Extern)(ref Interpreter!Extern a) {
 	ExternAlloc!Extern externAlloc = ExternAlloc!Extern(ptrTrustMe_mut(a.extern_));
 	immutable InterpreterRestore value = immutable InterpreterRestore(
 		nextByteCodeIndex(a),
@@ -158,7 +159,7 @@ immutable(InterpreterRestore*) createInterpreterRestore(Extern)(ref Interpreter!
 	return allocate(externAlloc, value).rawPtr();
 }
 
-void applyInterpreterRestore(Extern)(ref Interpreter!Extern a, ref immutable InterpreterRestore restore) {
+private void applyInterpreterRestore(Extern)(ref Interpreter!Extern a, ref immutable InterpreterRestore restore) {
 	setNextByteCodeIndex(a, restore.nextByteCodeIndex);
 	reduceStackSize(a.dataStack, restore.dataStackSize.raw());
 	setToArr(a.returnStack, restore.restoreReturnStack);
@@ -172,7 +173,7 @@ void applyInterpreterRestore(Extern)(ref Interpreter!Extern a, ref immutable Int
 	clearStack(a.stackStartStack);
 }
 
-void printStack(Extern)(ref const Interpreter!Extern a) {
+private void printStack(Extern)(ref const Interpreter!Extern a) {
 	printDataArr(asTempArr(a.dataStack));
 }
 
@@ -183,7 +184,7 @@ void printStack(Extern)(ref const Interpreter!Extern a) {
 	printf("\n");
 }
 
-@trusted void printReturnStack(Extern)(ref const Interpreter!Extern a) {
+private @trusted void printReturnStack(Extern)(ref const Interpreter!Extern a) {
 	alias Alloc = StackAlloc!("printReturnStack", 1024 * 8);
 	Alloc alloc;
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
@@ -197,7 +198,7 @@ void printStack(Extern)(ref const Interpreter!Extern a) {
 	printf("%s\n", finishWriterToCStr(writer));
 }
 
-void writeByteCodeSource(TempAlloc, Alloc)(
+private void writeByteCodeSource(TempAlloc, Alloc)(
 	ref TempAlloc temp,
 	ref Writer!Alloc writer,
 	ref immutable LowProgram lowProgram,
@@ -214,7 +215,7 @@ void writeByteCodeSource(TempAlloc, Alloc)(
 		(ref immutable LowFunSource.Generated) {});
 }
 
-void writeFunNameAtIndex(Alloc, Extern)(
+private void writeFunNameAtIndex(Alloc, Extern)(
 	ref Writer!Alloc writer,
 	ref const Interpreter!Extern interpreter,
 	immutable ByteCodeIndex index,
@@ -222,7 +223,7 @@ void writeFunNameAtIndex(Alloc, Extern)(
 	writeFunName(writer, interpreter.lowProgram, byteCodeSourceAtIndex(interpreter, index).fun);
 }
 
-void writeFunNameAtByteCodePtr(Alloc, Extern)(
+private void writeFunNameAtByteCodePtr(Alloc, Extern)(
 	ref Writer!Alloc writer,
 	ref const Interpreter!Extern interpreter,
 	immutable u8* ptr,
@@ -230,11 +231,17 @@ void writeFunNameAtByteCodePtr(Alloc, Extern)(
 	writeFunNameAtIndex(writer, interpreter, byteCodeIndexOfPtr(interpreter, ptr));
 }
 
-immutable(ByteCodeSource) byteCodeSourceAtIndex(Extern)(ref const Interpreter!Extern a, immutable ByteCodeIndex index) {
+private immutable(ByteCodeSource) byteCodeSourceAtIndex(Extern)(
+	ref const Interpreter!Extern a,
+	immutable ByteCodeIndex index,
+) {
 	return fullIndexDictGet(a.byteCode.sources, index);
 }
 
-immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(Extern)(ref const Interpreter!Extern a, immutable u8* ptr) {
+private immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(Extern)(
+	ref const Interpreter!Extern a,
+	immutable u8* ptr,
+) {
 	return byteCodeSourceAtIndex(a, byteCodeIndexOfPtr(a, ptr));
 }
 
@@ -242,7 +249,7 @@ immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(Extern)(ref const Interpre
 	return byteCodeIndexOfPtr(a, getReaderPtr(a.reader));
 }
 
-void setNextByteCodeIndex(Extern)(ref Interpreter!Extern a, immutable ByteCodeIndex index) {
+private void setNextByteCodeIndex(Extern)(ref Interpreter!Extern a, immutable ByteCodeIndex index) {
 	setReaderPtr(a.reader, ptrAt(a.byteCode.byteCode, index.index.raw()).rawPtr());
 }
 
@@ -250,11 +257,9 @@ pure @trusted immutable(ByteCodeIndex) byteCodeIndexOfPtr(Extern)(ref const Inte
 	return immutable ByteCodeIndex((immutable Nat64(ptr - begin(a.byteCode.byteCode))).to32());
 }
 
-immutable(ByteCodeSource) nextSource(Extern)(ref const Interpreter!Extern a) {
+private immutable(ByteCodeSource) nextSource(Extern)(ref const Interpreter!Extern a) {
 	return byteCodeSourceAtByteCodePtr(a, getReaderPtr(a.reader));
 }
-
-immutable Bool PRINT = False;
 
 immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 	immutable ByteCodeSource source = nextSource(a);
@@ -268,13 +273,6 @@ immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 	immutable Operation operation = readOperation(a.reader);
 	if (PRINT) {
 		debug {
-			import core.stdc.stdio : printf;
-			import util.alloc.stackAlloc : StackAlloc;
-			import util.print : print;
-			import util.sexpr : writeSexprNoNewline;
-			import util.sym : writeSym;
-			import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
-
 			alias TempAlloc = StackAlloc!("temp", 1024 * 4);
 			TempAlloc temp;
 			Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(temp));
@@ -389,6 +387,8 @@ immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 }
 
 private:
+
+immutable Bool PRINT = False;
 
 void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	push(dataStack, immutable Nat64(cast(immutable u64) stackRef(dataStack, offset.offset)));

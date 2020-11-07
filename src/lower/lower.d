@@ -119,6 +119,8 @@ immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgra
 	return res;
 }
 
+private:
+
 struct AllLowTypes {
 	immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) allExternPtrTypes;
 	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;

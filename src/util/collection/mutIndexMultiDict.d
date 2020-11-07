@@ -4,7 +4,7 @@ module util.collection.mutIndexMultiDict;
 
 import util.collection.arr : Arr;
 import util.collection.arrUtil : fillArr_mut;
-import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr_mut, fullIndexDictSize;
+import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr_mut;
 import util.collection.mutArr : MutArr, push, tempAsArr;
 
 struct MutIndexMultiDict(K, V) {
@@ -25,10 +25,6 @@ void mutIndexMultiDictAdd(K, V, Alloc)(
 	immutable V value,
 ) {
 	push(alloc, fullIndexDictGet(a.inner, key), value);
-}
-
-immutable(size_t) mutIndexMultiDictSize(K, V)(const ref MutIndexMultiDict!(K, V) a) {
-	return fullIndexDictSize(a.inner);
 }
 
 // WARN: result is temporary only!

@@ -83,7 +83,7 @@ T matchDebugOperationImpure(T)(
 
 pure:
 
-@trusted T matchOperation(T)(
+private @trusted T matchOperation(T)(
 	ref immutable Operation a,
 	scope T delegate(ref immutable Operation.Call) @safe @nogc pure nothrow cbCall,
 	scope T delegate(ref immutable Operation.CallFunPtr) @safe @nogc pure nothrow cbCallFunPtr,
@@ -180,7 +180,7 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 			tataRecord(alloc, "write", tataNat(it.offset), tataNat(it.size)));
 }
 
-immutable(Sexpr) sexprOfDebugOperation(Alloc)(ref Alloc alloc, ref immutable DebugOperation a) {
+private immutable(Sexpr) sexprOfDebugOperation(Alloc)(ref Alloc alloc, ref immutable DebugOperation a) {
 	return matchDebugOperation(
 		a,
 		(ref immutable DebugOperation.AssertStackSize it) =>
@@ -256,7 +256,7 @@ struct DebugOperation {
 	}
 }
 
-T matchDebugOperation(T)(
+private T matchDebugOperation(T)(
 	ref immutable DebugOperation a,
 	scope T delegate(ref immutable DebugOperation.AssertStackSize) @safe @nogc pure nothrow cbAssertStackSize,
 	scope T delegate(ref immutable DebugOperation.AssertUnreachable) @safe @nogc pure nothrow cbAssertUnreachable,
@@ -511,7 +511,7 @@ enum FnOp : u8 {
 	wrapSubIntegral,
 }
 
-immutable(Str) strOfExternOp(immutable ExternOp op) {
+private immutable(Str) strOfExternOp(immutable ExternOp op) {
 	return strLiteral(() {
 		final switch (op) {
 			case ExternOp.free:
@@ -538,7 +538,7 @@ immutable(Str) strOfExternOp(immutable ExternOp op) {
 	}());
 }
 
-immutable(Str) strOfFnOp(immutable FnOp fnOp) {
+private immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 	return strLiteral(() { final switch (fnOp) {
 		case FnOp.addFloat64:
 			return "add-float-64";

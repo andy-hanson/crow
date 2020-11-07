@@ -7,20 +7,12 @@ import util.collection.arrUtil : slice;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : emptyStr, Str;
 import util.sourceRange : Pos;
-import util.types : maxU8, safeSizeTToU16, safeSizeTToU32, safeU32ToU16, u8, u16, u32;
+import util.types : safeSizeTToU16, safeSizeTToU32, safeU32ToU16, u8, u16, u32;
 import util.util : verify;
 
 struct LineAndColumn {
 	immutable u16 line;
 	immutable u16 column;
-}
-
-struct PosAndNTabs {
-	immutable Pos pos;
-	// We need to know the number of tabs a line starts with
-	// because that effects the column count.
-	// (Tabs aren't allowed anywhere but the beginning of a line.)
-	immutable u8 nTabs;
 }
 
 struct LineAndColumnGetter {
@@ -95,7 +87,7 @@ u16 mid(immutable u16 a, immutable u16 b) {
 
 u8 getNTabs(immutable Str text) {
 	u8 i = 0;
-	while (i < maxU8
+	while (i < ubyte.max
 		&& i < text.size
 		&& text.at(i) == '\t'
 	) {

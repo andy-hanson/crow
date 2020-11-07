@@ -16,10 +16,6 @@ struct MutArr(T) {
 	size_t capacity_;
 }
 
-@system T* mutArrBegin(T)(ref MutArr!T a) {
-	return a.begin_;
-}
-
 @system T* mutArrPtrAt(T)(ref MutArr!T a, immutable size_t index) {
 	verify(index < a.size_);
 	return a.begin_ + index;
@@ -32,10 +28,6 @@ struct MutArr(T) {
 @trusted ref const(T) mutArrAt(T)(ref const MutArr!T a, immutable size_t index) {
 	verify(index < a.size_);
 	return a.begin_[index];
-}
-
-ref T mutArrFirst(T)(ref MutArr!T a) {
-	return mutArrAt(a, 0);
 }
 
 immutable(Nat64) mutArrSizeNat(T)(ref const MutArr!T a) {
@@ -98,12 +90,7 @@ T mustPop(T)(ref MutArr!T a) {
 @trusted const(Opt!T) peek(T)(ref MutArr!T a) {
 	return mutArrIsEmpty(a)
 		? noneConst!T
-		: someConst(mustPeek(a));
-}
-
-@trusted ref const(T) mustPeek(T)(ref const MutArr!T a) {
-	verify(a.size_ != 0);
-	return a.begin_[a.size_ - 1];
+		: someConst(a.begin_[a.size_ - 1]);
 }
 
 @trusted ref T mustPeek_mut(T)(ref MutArr!T a) {

@@ -92,6 +92,8 @@ struct ComparisonTypes {
 	immutable LowType.Record greater;
 }
 
+private:
+
 immutable(LowFunExprBody) arrCompareBody(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,

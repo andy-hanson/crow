@@ -97,10 +97,6 @@ void setStackEntryAfterParameters(Alloc)(ref ByteCodeWriter!Alloc writer, immuta
 	writer.nextStackEntry = entry.entry;
 }
 
-void assertStackEmpty(Alloc)(ref const ByteCodeWriter!Alloc writer) {
-	verify(writer.nextStackEntry == 0);
-}
-
 immutable(ByteCodeIndex) nextByteCodeIndex(Alloc)(ref const ByteCodeWriter!Alloc writer) {
 	return immutable ByteCodeIndex((immutable Nat64(nextByteIndex(writer.byteWriter))).to32());
 }
@@ -172,7 +168,10 @@ void writeCallFunPtr(Alloc)(
 	writer.nextStackEntry = stackEntryBeforeArgs.entry + nEntriesForReturnType.to16();
 }
 
-immutable(Nat8) getStackOffsetTo(Alloc)(ref const ByteCodeWriter!Alloc writer, immutable StackEntry stackEntry) {
+private immutable(Nat8) getStackOffsetTo(Alloc)(
+	ref const ByteCodeWriter!Alloc writer,
+	immutable StackEntry stackEntry,
+) {
 	verify(stackEntry.entry < getNextStackEntry(writer).entry);
 	return (decr(getNextStackEntry(writer).entry) - stackEntry.entry).to8();
 }
@@ -373,7 +372,7 @@ private immutable(ByteCodeIndex) writePushU32Common(Alloc)(
 	return fnAddress;
 }
 
-immutable(ByteCodeIndex) writePushU64Delayed(Alloc)(
+private immutable(ByteCodeIndex) writePushU64Delayed(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
 ) {

@@ -71,6 +71,8 @@ immutable(Sexpr) tataOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgr
 			nameAndTata("main", tataNat(a.main.index))));
 }
 
+private:
+
 immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) {
 	return matchLowType!(immutable Sexpr)(
 		a,
@@ -87,8 +89,6 @@ immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) 
 		(immutable LowType.Union it) =>
 			tataRecord(alloc, "union", tataNat(it.index)));
 }
-
-private:
 
 immutable(Sexpr) tataOfLowFunPtrType(Alloc)(ref Alloc alloc, ref immutable LowFunPtrType a) {
 	return tataRecord(
@@ -328,8 +328,7 @@ immutable(string) strOfSpecial0AryKind(immutable LowExprKind.Special0Ary.Kind a)
 	}
 }
 
-//TODO:PRIVATE
-public immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind a) {
+immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind a) {
 	final switch (a) {
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 			return "as-any-ptr";
@@ -382,8 +381,7 @@ public immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnar
 	}
 }
 
-//TODO:PRIVATE
-public immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kind a) {
+immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kind a) {
 	final switch (a) {
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 			return "+ (float-64)";

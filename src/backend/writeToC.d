@@ -75,8 +75,7 @@ import util.sym :
 	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
 	Sym,
-	symEq,
-	symEqLongAlphaLiteral;
+	symEq;
 import util.types : u8;
 import util.util : verify;
 import util.writer :
@@ -116,6 +115,8 @@ immutable(Str) writeToC(Alloc)(
 
 	return finishWriter(writer);
 }
+
+private:
 
 struct MangledNames {
 	immutable Dict!(Ptr!ConcreteFun, size_t, comparePtr!ConcreteFun) funToNameIndex;

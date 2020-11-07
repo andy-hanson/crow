@@ -105,7 +105,7 @@ Opt!(Ptr!T) tryGetTypeArg(T)(
 		: noneMut!(Ptr!T);
 }
 
-immutable(Opt!Type) tryGetTypeArgFromTypeParamsAndArgs(
+private immutable(Opt!Type) tryGetTypeArgFromTypeParamsAndArgs(
 	ref immutable TypeParamsAndArgs typeParamsAndArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
@@ -117,7 +117,7 @@ immutable(Opt!Type) tryGetTypeArgFromTypeParamsAndArgs(
 
 alias DelayStructInsts = Opt!(Ptr!(MutArr!(Ptr!StructInst)));
 
-immutable(Type) instantiateType(Alloc)(
+private immutable(Type) instantiateType(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable Type type,
@@ -136,7 +136,7 @@ immutable(Type) instantiateType(Alloc)(
 			immutable Type(instantiateStructInst(alloc, programState, i, typeParamsAndArgs, delayStructInsts)));
 }
 
-immutable(Type) instantiateType(Alloc)(
+private immutable(Type) instantiateType(Alloc)(
 	ref Alloc alloc,
 	ref immutable Type type,
 	ref immutable StructInst structInst,

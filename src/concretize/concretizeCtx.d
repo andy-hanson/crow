@@ -94,12 +94,12 @@ struct TypeArgsScope {
 	}
 }
 
-struct ConcreteStructKey {
+private struct ConcreteStructKey {
 	immutable Ptr!StructDecl decl;
 	immutable Arr!ConcreteType typeArgs;
 }
 
-immutable(Comparison) compareConcreteStructKey(ref const ConcreteStructKey a, ref const ConcreteStructKey b) {
+private immutable(Comparison) compareConcreteStructKey(ref const ConcreteStructKey a, ref const ConcreteStructKey b) {
 	immutable Comparison res = comparePtr(a.decl, b.decl);
 	return res != Comparison.equal ? res : compareConcreteTypeArr(a.typeArgs, b.typeArgs);
 }
@@ -116,11 +116,7 @@ immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunKey a) {
 	return immutable TypeArgsScope(a.inst.decl.typeParams, a.typeArgs);
 }
 
-immutable(ConcreteFunKey) withTypeArgs(ref immutable ConcreteFunKey a, immutable Arr!ConcreteType newTypeArgs) {
-	return immutable ConcreteFunKey(a.inst, newTypeArgs, a.specImpls);
-}
-
-immutable(Comparison) compareConcreteFunKey(ref immutable ConcreteFunKey a, ref immutable ConcreteFunKey b) {
+private immutable(Comparison) compareConcreteFunKey(ref immutable ConcreteFunKey a, ref immutable ConcreteFunKey b) {
 	// Compare decls, not insts.
 	// Two different FunInsts may concretize to the same thing.
 	// (e.g. f<?t> and f<bool> if ?t = bool)
@@ -432,7 +428,7 @@ immutable(ConcreteStructInfo) getConcreteStructInfoForFields(
 	immutable size_t sizeBytes = sizeFromConcreteFields(fields);
 	immutable Bool isSelfMutable = exists(fields, (ref immutable ConcreteField fld) =>
 		fld.isMutable);
-	return ConcreteStructInfo(
+	return immutable ConcreteStructInfo(
 		immutable ConcreteStructBody(ConcreteStructBody.Record(fields)),
 		sizeBytes,
 		isSelfMutable,

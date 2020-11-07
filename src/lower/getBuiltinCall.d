@@ -131,10 +131,10 @@ immutable(BuiltinKind) getBuiltinKind(
 	immutable(T) failT(T)() {
 		debug {
 			import util.alloc.stackAlloc : StackAlloc;
-			import util.sym : symToCStr;
+			import util.sym : strOfSym;
 			import util.print : print;
 			StackAlloc!("temp", 1024) alloc;
-			print(symToCStr(alloc, name));
+			print(strOfSym(alloc, name));
 		}
 		return todo!T("not a builtin fun");
 	}
@@ -360,6 +360,8 @@ immutable(BuiltinKind) getBuiltinKind(
 				return fail();
 	}
 }
+
+private:
 
 immutable(Bool) isPrimitiveType(ref immutable LowType t, immutable PrimitiveType p) {
 	return immutable Bool(isPrimitive(t) && asPrimitive(t) == p);

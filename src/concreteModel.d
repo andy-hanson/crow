@@ -4,12 +4,12 @@ module concreteModel;
 
 import model : ClosureField, decl, FunInst, isArr, isCompareFun, Local, Param, range, RecordField, StructInst;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, size, sizeEq;
+import util.collection.arr : Arr, sizeEq;
 import util.collection.str : Str;
 import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateSet;
 import util.opt : force, has, none, Opt;
-import util.ptr : comparePtr, Ptr, ptrEquals;
+import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : u8;
@@ -142,17 +142,6 @@ struct ConcreteType {
 	immutable Ptr!ConcreteStruct struct_;
 }
 
-immutable(Bool) concreteTypeEqual(ref immutable ConcreteType a, ref immutable ConcreteType b) {
-	return Bool(
-		a.isPointer == b.isPointer &&
-		ptrEquals(a.struct_, b.struct_));
-}
-
-immutable(Ptr!ConcreteStruct) mustBePointer(immutable ConcreteType a) {
-	verify(a.isPointer);
-	return a.struct_;
-}
-
 // Union should never be a pointer
 immutable(Ptr!ConcreteStruct) mustBeNonPointer(immutable ConcreteType a) {
 	verify(!a.isPointer);
@@ -223,7 +212,7 @@ immutable(Bool) isArr(ref immutable ConcreteStruct a) {
 			False);
 }
 
-ref immutable(ConcreteStructInfo) info(return scope ref const ConcreteStruct a) {
+private ref immutable(ConcreteStructInfo) info(return scope ref const ConcreteStruct a) {
 	return lateGet(a.info_);
 }
 
@@ -231,7 +220,7 @@ ref immutable(ConcreteStructBody) body_(return scope ref immutable ConcreteStruc
 	return info(a).body_;
 }
 
-immutable(size_t) sizeBytes(ref immutable ConcreteStruct a) {
+private immutable(size_t) sizeBytes(ref immutable ConcreteStruct a) {
 	return info(a).sizeBytes;
 }
 
@@ -263,11 +252,6 @@ immutable(ConcreteType) byVal(ref immutable ConcreteType t) {
 	return concreteType_byValue(t.struct_);
 }
 
-immutable(ConcreteType) changeToByRef(ref immutable ConcreteType t) {
-	verify(!t.isPointer);
-	return byRef(t);
-}
-
 immutable(ConcreteType) concreteType_fromStruct(immutable Ptr!ConcreteStruct s) {
 	return immutable ConcreteType(defaultIsPointer(s), s);
 }
@@ -275,10 +259,6 @@ immutable(ConcreteType) concreteType_fromStruct(immutable Ptr!ConcreteStruct s) 
 immutable(Comparison) compareConcreteType(ref immutable ConcreteType a, ref immutable ConcreteType b) {
 	immutable Comparison res = comparePtr(a.struct_, b.struct_);
 	return res != Comparison.equal ? res : compareBool(a.isPointer, b.isPointer);
-}
-
-immutable(Bool) concreteTypeEq(ref immutable ConcreteType a, ref immutable ConcreteType b) {
-	return Bool(compareConcreteType(a, b) == Comparison.equal);
 }
 
 struct ConcreteFieldSource {
@@ -454,31 +434,18 @@ struct ConcreteFunBody {
 	}
 }
 
-immutable(Bool) isBuiltin(ref immutable ConcreteFunBody a) {
-	return Bool(a.kind == ConcreteFunBody.Kind.builtin);
-}
-
 immutable(Bool) isExtern(ref immutable ConcreteFunBody a) {
 	return Bool(a.kind == ConcreteFunBody.Kind.extern_);
 }
 
-immutable(Bool) isConcreteFunExprBody(ref immutable ConcreteFunBody a) {
-	return Bool(a.kind == ConcreteFunBody.Kind.concreteFunExprBody);
-}
-
 @trusted ref immutable(ConcreteFunBody.Builtin) asBuiltin(return scope ref immutable ConcreteFunBody a) {
-	verify(isBuiltin(a));
+	verify(a.kind == ConcreteFunBody.Kind.builtin);
 	return a.builtin;
 }
 
 @trusted ref immutable(ConcreteFunBody.Extern) asExtern(return scope ref immutable ConcreteFunBody a) {
 	verify(isExtern(a));
 	return a.extern_;
-}
-
-@trusted ref immutable(ConcreteFunExprBody) asConcreteFunExprBody(return scope ref immutable ConcreteFunBody a) {
-	verify(isConcreteFunExprBody(a));
-	return a.concreteFunExprBody;
 }
 
 @trusted T matchConcreteFunBody(T)(
@@ -798,16 +765,8 @@ ref immutable(ConcreteType) returnType(return scope ref immutable ConcreteExpr.C
 	return a.called.returnType;
 }
 
-immutable(size_t) sizeBytes(ref immutable ConcreteExpr.CreateArr a) {
-	return size(a.args) * sizeOrPointerSizeBytes(a.elementType);
-}
-
-ref immutable(Arr!ConcreteType) matchedUnionMembers(return scope ref const ConcreteExpr.Match a) {
+private ref immutable(Arr!ConcreteType) matchedUnionMembers(return scope ref const ConcreteExpr.Match a) {
 	return asUnion(body_(mustBeNonPointer(a.matchedLocal.type).deref)).members;
-}
-
-immutable(Bool) isCond(ref immutable ConcreteExpr a) {
-	return Bool(a.kind == ConcreteExpr.Kind.cond);
 }
 
 @trusted T matchConcreteExpr(T)(

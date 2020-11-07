@@ -26,7 +26,7 @@ import util.opt : Opt;
 import util.path : PathAndStorageKind, pathToStr;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths;
-import util.sym : shortSymAlphaLiteral, Sym;
+import util.sym : Sym;
 import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
 import util.writerUtils : writeRangeWithinFile, writePos;
 
@@ -35,21 +35,6 @@ enum TypeKind {
 	externPtr,
 	record,
 	union_,
-}
-
-immutable(Sym) symOfTypeKind(immutable TypeKind a) {
-	return shortSymAlphaLiteral(() {
-		final switch (a) {
-			case TypeKind.builtin:
-				return "builtin";
-			case TypeKind.externPtr:
-				return "extern-ptr";
-			case TypeKind.record:
-				return "record";
-			case TypeKind.union_:
-				return "union";
-		}
-	}());
 }
 
 struct Diag {
