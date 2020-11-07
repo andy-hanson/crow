@@ -362,10 +362,6 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 	}
 }
 
-immutable(Arr!PathAndStorageKind) stripRange(Alloc)(ref Alloc alloc, immutable Arr!ResolvedImport a) {
-	return map(alloc, a, (ref immutable ResolvedImport i) => i.resolvedPath);
-}
-
 pure:
 
 immutable(PathAndStorageKind) pathInInclude(Alloc)(ref Alloc alloc, immutable Sym name) {
@@ -533,12 +529,6 @@ struct FileIndexAndNames {
 	immutable FileIndex fileIndex;
 	immutable RangeWithinFile range;
 	immutable Opt!(Arr!Sym) names;
-}
-
-struct ImportsAndExports {
-	// This includes implicit import of 'std.nz' if this file is not itself in 'include'
-	immutable Arr!(Ptr!Module) allImports;
-	immutable Arr!(Ptr!Module) exports;
 }
 
 //TODO:INLINE

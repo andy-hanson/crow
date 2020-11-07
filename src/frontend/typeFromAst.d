@@ -168,20 +168,6 @@ immutable(Type) makeFutType(Alloc)(
 
 private:
 
-immutable(Opt!(Ptr!T)) findInEither(T)(
-	ref immutable Arr!T a,
-	ref immutable Arr!T b,
-	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
-) {
-	foreach (immutable size_t i; 0..size(a))
-		if (cb(at(a, i)))
-			return some(ptrAt(a, i));
-	foreach (immutable size_t i; 0..size(b))
-		if (cb(at(b, i)))
-			return some(ptrAt(b, i));
-	return none!(Ptr!T);
-}
-
 struct DeclAndModule(TDecl) {
 	immutable(TDecl) decl;
 	// none for the current module (which isn't created yet)

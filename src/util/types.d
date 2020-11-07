@@ -189,10 +189,8 @@ alias Nat8 = NatN!ubyte;
 alias Nat16 = NatN!ushort;
 alias Nat32 = NatN!uint;
 alias Nat64 = NatN!ulong;
-private alias Int8 = IntN!byte;
 alias Int16 = IntN!short;
 private alias Int32 = IntN!int;
-private alias Int64 = IntN!long;
 
 immutable(u16) bottomU16OfU64(immutable u64 u) {
 	return cast(u16) (u & ushort.max);
@@ -278,7 +276,6 @@ immutable(float64) float64OfU64Bits(immutable u64 value) {
 private:
 
 union Converter64 {
-	i64 asI64;
 	Nat64 asU64;
 	float64 asFloat64;
 }

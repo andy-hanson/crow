@@ -310,25 +310,6 @@ immutable(Ptr!SpecInst) instantiateSpecInst(Alloc)(
 
 private:
 
-immutable(Bool) calledEquals(ref immutable Called a, ref immutable Called b) {
-	return matchCalled(
-		a,
-		(immutable Ptr!FunInst f) =>
-			immutable Bool(isFunInst(b) && ptrEquals(f, asFunInst(b))),
-		(ref immutable SpecSig s) {
-			if (isSpecSig(b)) {
-				immutable SpecSig bs = asSpecSig(b);
-				if (ptrEquals(s.specInst, bs.specInst)) {
-					immutable Bool res = ptrEquals(s.sig, bs.sig);
-					verify(res == Bool(s.indexOverAllSpecUses == bs.indexOverAllSpecUses));
-					return res;
-				} else
-					return False;
-			} else
-				return False;
-		});
-}
-
 immutable(Sig) instantiateSig(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,

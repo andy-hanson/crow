@@ -23,6 +23,22 @@ import std.string : indexOf, indexOfAny, splitLines;
 			}
 		}
 	}
+
+	foreach (ref immutable File file; files) {
+		foreach (immutable string privateMember; file.members.private_) {
+			final switch (file.uses[privateMember]) {
+				case Uses.none:
+					assert(0);
+					break;
+				case Uses.one:
+					writeln(file.path, " private member not used: ", privateMember);
+					break;
+				case Uses.many:
+					break;
+			}
+		}
+	}
+
 	//TODO: also test that each private member is used!
 
 	foreach (ref immutable File file; files)
@@ -37,7 +53,7 @@ struct File {
 	immutable string path;
 	immutable Members members;
 	immutable Void[immutable string] imports;
-	immutable string textAfterImports;
+	immutable Uses[immutable string] uses;
 }
 
 struct Members {
@@ -53,7 +69,7 @@ struct Members {
 			immutable Members members = getMembers(path);
 			immutable string text = readText(path);
 			immutable ImportsAndRest importsAndRest = findImports(text);
-			res ~= immutable File(path, members, importsAndRest.imports, importsAndRest.rest);
+			res ~= immutable File(path, members, importsAndRest.imports, getUses(importsAndRest.rest));
 		}
 	}
 	return res;
@@ -101,27 +117,30 @@ immutable(bool) contains(immutable string a, immutable string b) {
 	return indexOf(a, b) != -1;
 }
 
-
 void lintImportsInFile(ref immutable File file) {
 	immutable(Void)[immutable string] importsNotUsed = file.imports.dup;
 
-	eachWord(file.textAfterImports, (immutable string word) {
-		importsNotUsed.remove(word);
-	});
+	foreach (immutable string key; file.uses.byKey)
+		importsNotUsed.remove(key);
 
-	foreach (ref const key; importsNotUsed.byKey) {
+	foreach (ref const key; importsNotUsed.byKey)
 		writeln(file.path, ": unused import ", key);
-	}
 }
 
 pure:
 
+enum Uses {
+	none,
+	one,
+	many,
+}
+
 struct ImportsAndRest {
-	Void[immutable string] imports;
+	immutable Void[immutable string] imports;
 	immutable string rest;
 }
 
-ImportsAndRest findImports(immutable string s) {
+immutable(ImportsAndRest) findImports(immutable string s) {
 	Void[immutable string] res;
 	size_t lastImport = 0;
 	ptrdiff_t i = 0;
@@ -153,10 +172,33 @@ ImportsAndRest findImports(immutable string s) {
 		i += endI + 1;
 		lastImport = i;
 	}
-	return ImportsAndRest(res, s[lastImport..$]);
+
+	return immutable ImportsAndRest(castImmutable(res), s[lastImport..$]);
 }
 
-void eachWord(immutable string s, scope void delegate(immutable string) @safe pure nothrow cb) {
+@trusted immutable(Void[immutable string]) castImmutable(Void[immutable string] a) {
+	return cast(immutable) a;
+}
+
+immutable(Uses) incr(immutable Uses a) {
+	final switch (a) {
+		case Uses.none:
+			return Uses.one;
+		case Uses.one:
+		case Uses.many:
+			return Uses.many;
+	}
+}
+
+immutable(Uses[immutable string]) getUses(immutable string s) {
+	Uses[immutable string] res;
+	eachWord(s, (immutable string word) {
+		res[word] = incr(res.get(word, Uses.none));
+	});
+	return res;
+}
+
+void eachWord(immutable string s, scope void delegate(immutable string) @safe pure cb) {
 	long wordStart = -1;
 	foreach (immutable size_t i; 0..s.length) {
 		if (isIdentifierChar(s[i])) {

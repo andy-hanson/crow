@@ -136,30 +136,6 @@ immutable(TypeArgsScope) typeScope(ref ConcretizeExprCtx ctx) {
 	return typeArgsScope(ctx.concreteFunBodyInputs);
 }
 
-immutable(ConcreteFunKey) getConcreteFunKeyFromFunInst(Alloc)(
-	ref Alloc alloc,
-	ref ConcretizeExprCtx ctx,
-	immutable Ptr!FunInst funInst,
-) {
-	immutable Arr!ConcreteFunInst specImpls =
-		map!ConcreteFunInst(alloc, specImpls(funInst), (ref immutable Called it) =>
-			getConcreteFunFromCalled(alloc, ctx, it));
-	return immutable ConcreteFunKey(funInst, typesToConcreteTypes(ctx, funInst.typeArgs), specImpls);
-}
-
-immutable(ConcreteFunInst) getConcreteFunKeyFromCalled(Alloc)(
-	ref Alloc alloc,
-	ref ConcretizeExprCtx ctx,
-	ref immutable Called called,
-) {
-	return matchCalled(
-		called,
-		(immutable Ptr!FunInst funInst) =>
-			getConcreteFunFromFunInst(ctx, funInst),
-		(ref immutable SpecSig specSig) =>
-			at(specImpls(ctx.concreteFunBodyInputs), specSig.indexOverAllSpecUses));
-}
-
 immutable(ConcreteExpr) concretizeCall(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,

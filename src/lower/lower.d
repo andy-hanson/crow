@@ -155,8 +155,6 @@ immutable(LowFunIndex) getCompareFun(ref const CompareFuns compareFuns, ref immu
 			mustGetAt(compareFuns.unionToCompare, it));
 }
 
-private:
-
 struct AllLowFuns {
 	immutable FullIndexDict!(LowFunIndex, LowFun) allLowFuns;
 	immutable LowFunIndex main;
