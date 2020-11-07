@@ -45,15 +45,13 @@ import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, fillArr, mapWithIndex, rtail;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.collection.str : Str;
 import util.memory : allocate, nu;
 import util.opt : none, some;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
 import util.types : safeSizeTToU8, u8;
 import util.util : unreachable, verify;
-import util.writer : finishWriter, Writer, writeStatic, writeNat;
 
 immutable(LowFun) generateCompareFun(Alloc)(
 	ref Alloc alloc,
@@ -363,13 +361,6 @@ immutable(LowFunExprBody) genCompareUnion(Alloc)(
 		range,
 		immutable LowExprKind(immutable LowExprKind.Match(aMatchedLocal, allocate(alloc, a), aCases)));
 	return immutable LowFunExprBody(finishArr(alloc, locals), False, expr);
-}
-
-immutable(Str) localName(Alloc)(ref Alloc alloc, immutable string a, immutable size_t n) {
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-	writeStatic(writer, a);
-	writeNat(writer, n);
-	return finishWriter(writer);
 }
 
 immutable(LowFunExprBody) genCompareRecord(Alloc)(

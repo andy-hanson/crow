@@ -14,6 +14,9 @@ import util.sourceRange : sexprOfSourceRange;
 import util.sym : AllSymbols;
 import util.writer : finishWriterToCStr, Writer;
 
+// seems to be the required entry point
+extern(C) void _start() {}
+
 extern(C) immutable(size_t) getBufferSize() {
 	return bufferSize;
 }
@@ -84,11 +87,6 @@ immutable(Sexpr) sexprOfAstAndParseDiagnostics(Alloc)(ref Alloc alloc, ref immut
 			sexprOfParseDiagnostic(alloc, it)));
 }
 
-//TODO: not trusted
-@trusted void writeEmptyResult() {
-	writeResult("{}");
-}
-
 @system void writeResult(immutable(char)* str) {
 	const char* end = buffer.ptr + buffer.length;
 	for (char* ptr = buffer.ptr; ptr < end; ptr++) {
@@ -99,6 +97,3 @@ immutable(Sexpr) sexprOfAstAndParseDiagnostics(Alloc)(ref Alloc alloc, ref immut
 		str++;
 	}
 }
-
-// seems to be the required entry point
-extern(C) void _start() {}

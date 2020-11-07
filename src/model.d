@@ -856,24 +856,6 @@ private immutable(Comparison) compareCalled(ref immutable Called a, ref immutabl
 				(ref immutable SpecSig sb) => compareSpecSig(sa, sb)));
 }
 
-immutable(Bool) isFunInst(ref immutable Called a) {
-	return Bool(a.kind == Called.Kind.funInst);
-}
-
-immutable(Bool) isSpecSig(ref immutable Called a) {
-	return Bool(a.kind == Called.Kind.specSig);
-}
-
-@trusted immutable(Ptr!FunInst) asFunInst(ref immutable Called a) {
-	verify(a.isFunInst);
-	return a.funInst;
-}
-
-@trusted immutable(SpecSig) asSpecSig(ref immutable Called a) {
-	verify(a.isSpecSig);
-	return a.specSig;
-}
-
 @trusted ref immutable(Sig) sig(ref immutable Called a) {
 	final switch (a.kind) {
 		case Called.Kind.funInst:

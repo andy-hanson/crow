@@ -31,7 +31,11 @@ import std.string : indexOf, indexOfAny, splitLines;
 					assert(0);
 					break;
 				case Uses.one:
-					writeln(file.path, " private member not used: ", privateMember);
+					// TODO: adding these exceptions for now
+					if (privateMember != "writeFieldName" &&
+						privateMember != "writeLocalName" &&
+						privateMember != "writeRecordName")
+						writeln(file.path, " private member not used: ", privateMember);
 					break;
 				case Uses.many:
 					break;

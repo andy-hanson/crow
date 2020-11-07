@@ -5,18 +5,12 @@ module frontend.instantiate;
 import frontend.checkUtil : ptrAsImmutable;
 import frontend.programState : ProgramState;
 import model :
-	asFunInst,
-	asSpecSig,
 	bestCasePurity,
 	body_,
 	bodyIsSet,
-	Called,
 	decl,
 	FunDeclAndArgs,
 	FunInst,
-	isFunInst,
-	isSpecSig,
-	matchCalled,
 	matchSpecBody,
 	matchStructBody,
 	matchType,
@@ -28,7 +22,6 @@ import model :
 	SpecBody,
 	SpecDeclAndArgs,
 	SpecInst,
-	SpecSig,
 	StructBody,
 	StructDecl,
 	StructDeclAndArgs,
@@ -40,7 +33,7 @@ import model :
 	worsePurity,
 	worstCasePurity;
 
-import util.bools : Bool, False;
+import util.bools : Bool;
 import util.collection.arr : Arr, emptyArr, ptrAt, size, sizeEq;
 import util.collection.arrUtil : fold, map;
 import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;

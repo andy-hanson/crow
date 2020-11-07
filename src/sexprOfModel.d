@@ -42,7 +42,6 @@ import util.bools : True;
 import util.collection.arr : Arr, empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, map;
-import util.path : PathAndStorageKind, pathToStrNoRoot, storageKindSym;
 import util.ptr : Ptr, ptrTrustMe;
 import util.sexpr :
 	nameAndTata,
@@ -93,14 +92,6 @@ immutable(Sexpr) sexprOfModuleAndNameReferents(Alloc)(ref Alloc alloc, ref immut
 
 struct Ctx {
 	immutable Ptr!Module curModule;
-}
-
-immutable(Sexpr) sexprOfPathAndStorageKind(Alloc)(ref Alloc alloc, ref immutable PathAndStorageKind a) {
-	return tataRecord(
-		alloc,
-		"path-sk",
-		tataStr(pathToStrNoRoot(alloc, a.path)),
-		tataSym(storageKindSym(a.storageKind)));
 }
 
 immutable(Sexpr) sexprOfModulePtr(immutable Ptr!Module a) {

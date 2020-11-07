@@ -560,10 +560,6 @@ pure: // TODO: many more are pure actually..
 // This isn't the structure the posix jmp-buf-tag has, but it fits inside it
 alias JmpBufTag = immutable InterpreterRestore*;
 
-immutable(Nat64) bytesToBits(immutable Nat64 bytes) {
-	return bytes * immutable Nat64(8);
-}
-
 @trusted immutable(Nat64) pack(immutable Arr!Nat64 values, immutable Arr!Nat8 sizes) {
 	u64 res;
 	u8* bytePtr = cast(u8*) &res;

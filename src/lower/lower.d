@@ -119,6 +119,23 @@ immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgra
 	return res;
 }
 
+immutable(LowFunIndex) getCompareFun(ref const CompareFuns compareFuns, ref immutable LowType type) {
+	return matchLowType!(immutable LowFunIndex)(
+		type,
+		(immutable LowType.ExternPtr) =>
+			unreachable!(immutable LowFunIndex),
+		(immutable LowType.FunPtr) =>
+			unreachable!(immutable LowFunIndex),
+		(immutable LowType.NonFunPtr it) =>
+			mustGetAt(compareFuns.recordPtrToCompare, asRecordType(it.pointee)),
+		(immutable PrimitiveType it) =>
+			mustGetAt(compareFuns.primitiveToCompare, immutable PrimitiveTypeIndex(sizeTOfPrimitiveType(it))),
+		(immutable LowType.Record it) =>
+			mustGetAt(compareFuns.recordValToCompare, it),
+		(immutable LowType.Union it) =>
+			mustGetAt(compareFuns.unionToCompare, it));
+}
+
 private:
 
 struct AllLowTypes {
@@ -138,21 +155,6 @@ struct CompareFuns {
 	MutIndexDict!(immutable LowType.Record, immutable LowFunIndex) recordValToCompare;
 	MutIndexDict!(immutable LowType.Union, immutable LowFunIndex) unionToCompare;
 	MutIndexDict!(immutable PrimitiveTypeIndex, immutable LowFunIndex) primitiveToCompare;
-}
-
-immutable(LowFunIndex) getCompareFun(ref const CompareFuns compareFuns, ref immutable LowType type) {
-	return matchLowType!(immutable LowFunIndex)(
-		type,
-		(immutable LowType.ExternPtr) => unreachable!(immutable LowFunIndex),
-		(immutable LowType.FunPtr) => unreachable!(immutable LowFunIndex),
-		(immutable LowType.NonFunPtr it) =>
-			mustGetAt(compareFuns.recordPtrToCompare, asRecordType(it.pointee)),
-		(immutable PrimitiveType it) =>
-			mustGetAt(compareFuns.primitiveToCompare, immutable PrimitiveTypeIndex(sizeTOfPrimitiveType(it))),
-		(immutable LowType.Record it) =>
-			mustGetAt(compareFuns.recordValToCompare, it),
-		(immutable LowType.Union it) =>
-			mustGetAt(compareFuns.unionToCompare, it));
 }
 
 struct AllLowFuns {
@@ -311,6 +313,10 @@ struct LowFunCause {
 		immutable LowType type;
 		immutable Bool typeIsArr;
 	}
+
+	@trusted immutable this(immutable Compare a) { kind = Kind.compare; compare_ = a; }
+	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind = Kind.expr; expr_ = a; }
+
 	private:
 	enum Kind {
 		compare,
@@ -321,9 +327,6 @@ struct LowFunCause {
 		immutable Compare compare_;
 		immutable Ptr!ConcreteFun expr_;
 	}
-	public:
-	@trusted immutable this(immutable Compare a) { kind = Kind.compare; compare_ = a; }
-	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind = Kind.expr; expr_ = a; }
 }
 
 @trusted T matchLowFunCause(T)(

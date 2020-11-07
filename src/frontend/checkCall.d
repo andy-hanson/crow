@@ -90,7 +90,6 @@ import util.collection.arr :
 	toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil :
-	eachCorresponds,
 	every,
 	exists,
 	fillArr_mut,
@@ -113,7 +112,7 @@ import util.collection.mutArr :
 	setAt,
 	tempAsArr_mut;
 import util.opt : force, has, mapOption_const, none, Opt, some;
-import util.ptr : Ptr, ptrEquals;
+import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : mutSymSetHas, Sym, symEq;
 import util.util : todo, unreachable, verify;
@@ -476,16 +475,6 @@ void checkCallFlags(Alloc)(
 		mapOption_const(callerLambda, (ref const Ptr!LambdaInfo it) => it.funKind));
 	if (has(reason))
 		addDiag(alloc, ctx, range, immutable Diag(Diag.CantCall(force(reason), called, caller)));
-}
-
-immutable(Bool) structInstsEqual(
-	ref immutable Ptr!StructInst a,
-	ref immutable Ptr!StructInst b,
-	scope immutable(Bool) delegate(ref immutable Type, ref immutable Type) @safe @nogc pure nothrow typeArgsEqual,
-) {
-	return immutable Bool(
-		ptrEquals(decl(a), decl(b)) &&
-		eachCorresponds(typeArgs(a), typeArgs(b), typeArgsEqual));
 }
 
 void checkCalledDeclFlags(Alloc)(

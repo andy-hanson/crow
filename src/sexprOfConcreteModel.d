@@ -88,19 +88,6 @@ public immutable(Sexpr) tataOfConcreteStructRef(Alloc)(ref Alloc alloc, immutabl
 	return tataOfConcreteStructSource(alloc, a.source);
 }
 
-immutable(Sexpr) tataOfSpecialStructInfo(Alloc)(ref Alloc alloc, ref immutable SpecialStructInfo a) {
-	return tataRecord(
-		alloc,
-		"special",
-		tataSym(() {
-			final switch (a.kind) {
-				case SpecialStructInfo.Kind.arr:
-					return "arr";
-			}
-		}()),
-		tataOfConcreteType(alloc, a.elementType));
-}
-
 immutable(Sexpr) tataOfConcreteStructBody(Alloc)(ref Alloc alloc, ref immutable ConcreteStructBody a) {
 	return matchConcreteStructBody(
 		a,

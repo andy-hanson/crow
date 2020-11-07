@@ -515,17 +515,6 @@ immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 		False,
 		none!(Ptr!FunBodyAst));
 
-struct SpecUsesAndSigFlagsAndKwBodyBuilder {
-	ArrBuilder!SpecUseAst specUses;
-	immutable Bool noCtx = False;
-	immutable Bool summon = False;
-	immutable Bool unsafe = False;
-	immutable Bool trusted = False;
-	immutable Bool builtin = False;
-	immutable Opt!(FunBodyAst.Extern) extern_ = none!(FunBodyAst.Extern);
-	immutable Opt!Str mangle = none!Str;
-}
-
 immutable(Str) takeExternName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	if (tryTake(lexer, '<')) {
 		immutable Str res = takeQuotedStr(lexer, alloc);
@@ -538,12 +527,6 @@ immutable(Str) takeExternName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAll
 			immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.externName)));
 		return emptyStr;
 	}
-}
-
-immutable(SpecUsesAndSigFlagsAndKwBody) finishSpecs(Alloc)(
-	ref SpecUsesAndSigFlagsAndKwBodyBuilder builder,
-	ref Alloc alloc,
-) {
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(

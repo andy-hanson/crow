@@ -101,14 +101,6 @@ immutable(ByteCodeIndex) nextByteCodeIndex(Alloc)(ref const ByteCodeWriter!Alloc
 	return immutable ByteCodeIndex((immutable Nat64(nextByteIndex(writer.byteWriter))).to32());
 }
 
-private void fillDelayedInt16(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
-	immutable ByteCodeIndex index,
-	immutable ByteCodeOffset offset,
-) {
-	writeInt16(writer.byteWriter, index.index, offset.offset);
-}
-
 private void fillDelayedU16(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	immutable ByteCodeIndex index,
