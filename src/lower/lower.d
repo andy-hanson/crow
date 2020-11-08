@@ -20,6 +20,7 @@ import concreteModel :
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteType,
+	Constant,
 	isClosure,
 	isCompareFun,
 	matchConcreteExpr,
@@ -99,7 +100,7 @@ import util.opt : force, has, mapOption, mapOptionPtr, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.util : unreachable, verify;
+import util.util : todo, unreachable, verify;
 
 immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a.allStructs);
@@ -738,6 +739,8 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 				allocate(alloc, getLowExpr(alloc, ctx, it.cond, ExprPos.nonTail)),
 				allocate(alloc, getLowExpr(alloc, ctx, it.then, exprPos)),
 				allocate(alloc, getLowExpr(alloc, ctx, it.else_, exprPos)))),
+		(ref immutable Constant it) =>
+			todo!(immutable LowExprKind)("!"),
 		(ref immutable ConcreteExpr.CreateArr it) =>
 			getCreateArrExpr(alloc, ctx, expr.range, it),
 		(ref immutable ConcreteExpr.CreateRecord it) =>

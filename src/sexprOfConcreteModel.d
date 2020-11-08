@@ -19,6 +19,7 @@ import concreteModel :
 	ConcreteStructBody,
 	ConcreteStructSource,
 	ConcreteType,
+	Constant,
 	defaultIsPointer,
 	isSelfMutable,
 	matchConcreteExpr,
@@ -48,6 +49,7 @@ import util.sexpr :
 	tataStr,
 	tataSym;
 import util.sourceRange : sexprOfFileAndRange;
+import util.util : todo;
 
 immutable(Sexpr) tataOfConcreteProgram(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	return tataRecord(
@@ -262,6 +264,8 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 				tataOfConcreteExpr(alloc, it.cond),
 				tataOfConcreteExpr(alloc, it.then),
 				tataOfConcreteExpr(alloc, it.else_)),
+		(ref immutable Constant it) =>
+			todo!(immutable Sexpr)("!"),
 		(ref immutable ConcreteExpr.CreateArr it) =>
 			tataRecord(
 				alloc,

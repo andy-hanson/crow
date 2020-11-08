@@ -98,7 +98,7 @@ struct RealExtern {
 		verify(ptr != null);
 
 		dcReset(dcVm);
-		zipImpureSystem!(Nat64, DynCallType)(parameters, parameterTypes, (ref immutable Nat64 value, ref immutable DynCallType type) {
+		zipImpureSystem(parameters, parameterTypes, (ref immutable Nat64 value, ref immutable DynCallType type) {
 			final switch (type) {
 				case DynCallType.bool_:
 					todo!void("handle this type");

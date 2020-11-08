@@ -3,6 +3,7 @@ module concretize.concretizeExpr;
 @safe @nogc pure nothrow:
 
 import concreteModel :
+	asConstant,
 	asRecord,
 	body_,
 	byRef,
@@ -22,8 +23,12 @@ import concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	concreteType_byValue,
+	Constant,
+	isConstant,
+	isSummon,
 	mustBeNonPointer,
 	name,
+	purity,
 	returnType;
 import concretize.concretizeCtx :
 	anyPtrType,
@@ -55,6 +60,7 @@ import model :
 	Local,
 	matchCalled,
 	matchExpr,
+	Purity,
 	range,
 	RecordField,
 	specImpls,
@@ -65,7 +71,7 @@ import model :
 import util.bools : Bool, False;
 import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
-import util.collection.arrUtil : arrLiteral, map, mapWithIndex;
+import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
 import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutDict;
 import util.collection.str : copyStr;
 import util.memory : allocate, nu;
@@ -74,7 +80,7 @@ import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, symEq, symEqLongAlphaLiteral;
 import util.types : safeSizeTToU8;
-import util.util : unreachable, verify;
+import util.util : todo, unreachable, verify;
 
 immutable(ConcreteFunBody) concretizeExpr(Alloc)(
 	ref Alloc alloc,
@@ -144,7 +150,42 @@ immutable(ConcreteExpr) concretizeCall(Alloc)(
 ) {
 	immutable Ptr!ConcreteFun concreteCalled = getConcreteFunFromCalled(alloc, ctx, e.called);
 	immutable Arr!ConcreteExpr args = getArgs(alloc, ctx, e.args);
-	return immutable ConcreteExpr(concreteCalled.returnType, range, immutable ConcreteExpr.Call(concreteCalled, args));
+	debug {
+		if (false) {
+			import core.stdc.stdio : printf;
+			import util.alloc.stackAlloc : StackAlloc;
+			import util.writer : Writer, writeStatic, finishWriterToCStr;
+			import util.ptr : ptrTrustMe_mut;
+			import util.sym : writeSym;
+			import interpret.debugging : writeConcreteFunName;
+			import model : symOfPurity;
+			alias Alloc = StackAlloc!("temp", 1024);
+			Alloc al;
+			Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(al));
+			writeStatic(writer, "concretizeCall of ");
+			writeConcreteFunName(writer, concreteCalled);
+			writeStatic(writer, ": isSummon=");
+			writeStatic(writer, isSummon(concreteCalled) ? "true" : "false");
+			writeStatic(writer, ", purity=");
+			writeSym(writer, symOfPurity(purity(concreteCalled.returnType)));
+			printf("%s\n", finishWriterToCStr(writer));
+		}
+	}
+	if (!isSummon(concreteCalled) &&
+		purity(concreteCalled.returnType) == Purity.data &&
+		every(args, (ref immutable ConcreteExpr arg) => isConstant(arg))
+		&& false) { // TODO
+		return immutable ConcreteExpr(
+			concreteCalled.returnType,
+			range,
+			evalConstant(
+				concreteCalled,
+				map(alloc, args, (ref immutable ConcreteExpr arg) => asConstant(arg))));
+	} else
+		return immutable ConcreteExpr(
+			concreteCalled.returnType,
+			range,
+			immutable ConcreteExpr.Call(concreteCalled, args));
 }
 
 immutable(Ptr!ConcreteFun) getConcreteFunFromCalled(Alloc)(
@@ -199,7 +240,7 @@ immutable(Arr!ConcreteExpr) getArgs(Alloc)(
 	ref ConcretizeExprCtx ctx,
 	ref immutable Arr!Expr argExprs,
 ) {
-	return map!ConcreteExpr(alloc, argExprs, (ref immutable Expr arg) =>
+	return map(alloc, argExprs, (ref immutable Expr arg) =>
 		concretizeExpr(alloc, ctx, arg));
 }
 
@@ -581,3 +622,6 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 		});
 }
 
+immutable(Constant) evalConstant(ref immutable ConcreteFun fn, immutable Arr!Constant parameters) {
+	return todo!(immutable Constant)("!");
+}

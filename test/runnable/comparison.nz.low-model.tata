@@ -526,15 +526,15 @@ program(
 				[]
 				expr(
 					record(7)
-					file-range(11, range(277, 311))
+					file-range(11, range(275, 309))
 					call(
 						3
 						[
-							expr(ptr(char), file-range(11, range(275, 276)), param-ref(0))
+							expr(ptr(char), file-range(11, range(273, 274)), param-ref(0))
 							expr(
 								ptr(char)
-								file-range(11, range(297, 311))
-								call(5, [expr(ptr(char), file-range(11, range(296, 297)), param-ref(0))]))]))))
+								file-range(11, range(295, 309))
+								call(5, [expr(ptr(char), file-range(11, range(294, 295)), param-ref(0))]))]))))
 		3: fun(
 			arr-from-begin-end
 			record(7)
@@ -587,15 +587,15 @@ program(
 				[]
 				expr(
 					ptr(char)
-					file-range(11, range(529, 551))
+					file-range(11, range(527, 549))
 					call(
 						6
 						[
-							expr(ptr(char), file-range(11, range(527, 528)), param-ref(0))
+							expr(ptr(char), file-range(11, range(525, 526)), param-ref(0))
 							expr(
 								char
-								file-range(11, range(547, 551))
-								call(9, [expr(record(7), file-range(11, range(547, 551)), constant("\0"))]))]))))
+								file-range(11, range(545, 549))
+								call(9, [expr(record(7), file-range(11, range(545, 549)), constant("\0"))]))]))))
 		6: fun(
 			find-char-in-cstr
 			ptr(char)
@@ -605,51 +605,51 @@ program(
 				[]
 				expr(
 					ptr(char)
-					file-range(11, range(368, 484))
+					file-range(11, range(366, 482))
 					trinary(
 						"if"
 						expr(
 							bool
-							file-range(11, range(383, 387))
+							file-range(11, range(381, 385))
 							call(
 								7
 								[
 									expr(
 										char
-										file-range(11, range(376, 382))
-										unary("deref", expr(ptr(char), file-range(11, range(375, 376)), param-ref(0))))
-									expr(char, file-range(11, range(386, 387)), param-ref(1))]))
-						expr(ptr(char), file-range(11, range(391, 392)), param-ref(0))
+										file-range(11, range(374, 380))
+										unary("deref", expr(ptr(char), file-range(11, range(373, 374)), param-ref(0))))
+									expr(char, file-range(11, range(384, 385)), param-ref(1))]))
+						expr(ptr(char), file-range(11, range(389, 390)), param-ref(0))
 						expr(
 							ptr(char)
-							file-range(11, range(368, 484))
+							file-range(11, range(366, 482))
 							trinary(
 								"if"
 								expr(
 									bool
-									file-range(11, range(403, 410))
+									file-range(11, range(401, 408))
 									call(
 										7
 										[
 											expr(
 												char
-												file-range(11, range(396, 402))
-												unary("deref", expr(ptr(char), file-range(11, range(395, 396)), param-ref(0))))
+												file-range(11, range(394, 400))
+												unary("deref", expr(ptr(char), file-range(11, range(393, 394)), param-ref(0))))
 											expr(
 												char
-												file-range(11, range(406, 410))
-												call(9, [expr(record(7), file-range(11, range(406, 410)), constant("\0"))]))]))
-								expr(ptr(char), file-range(11, range(441, 445)), call(14, []))
+												file-range(11, range(404, 408))
+												call(9, [expr(record(7), file-range(11, range(404, 408)), constant("\0"))]))]))
+								expr(ptr(char), file-range(11, range(439, 443)), call(14, []))
 								expr(
 									ptr(char)
-									file-range(11, range(463, 482))
+									file-range(11, range(461, 480))
 									tail-recur(
 										[
 											expr(
 												ptr(char)
-												file-range(11, range(457, 462))
-												call(15, [expr(ptr(char), file-range(11, range(456, 457)), param-ref(0))]))
-											expr(char, file-range(11, range(481, 482)), param-ref(1))]))))))))
+												file-range(11, range(455, 460))
+												call(15, [expr(ptr(char), file-range(11, range(454, 455)), param-ref(0))]))
+											expr(char, file-range(11, range(479, 480)), param-ref(1))]))))))))
 		7: fun(
 			==
 			bool
@@ -4171,13 +4171,13 @@ program(
 				[]
 				expr(
 					void
-					file-range(5, range(1885, 1907))
+					file-range(5, range(1919, 1941))
 					call(
 						109
 						[
-							expr(ptr(record(0)), file-range(5, range(1885, 1907)), param-ref(0))
-							expr(bool, file-range(5, range(1875, 1884)), param-ref(1))
-							expr(record(7), file-range(5, range(1892, 1907)), constant("assert failed"))]))))
+							expr(ptr(record(0)), file-range(5, range(1919, 1941)), param-ref(0))
+							expr(bool, file-range(5, range(1909, 1918)), param-ref(1))
+							expr(record(7), file-range(5, range(1926, 1941)), constant("assert failed"))]))))
 		109: fun(
 			assert
 			void
@@ -4187,19 +4187,19 @@ program(
 				[]
 				expr(
 					void
-					file-range(5, range(2009, 2030))
+					file-range(5, range(2043, 2064))
 					trinary(
 						"if"
-						expr(bool, file-range(5, range(1999, 2008)), param-ref(1))
-						expr(void, file-range(5, range(2012, 2016)), constant(void))
+						expr(bool, file-range(5, range(2033, 2042)), param-ref(1))
+						expr(void, file-range(5, range(2046, 2050)), constant(void))
 						expr(
 							void
-							file-range(5, range(2025, 2030))
+							file-range(5, range(2059, 2064))
 							call(
 								110
 								[
-									expr(ptr(record(0)), file-range(5, range(2025, 2030)), param-ref(0))
-									expr(record(7), file-range(5, range(2018, 2025)), param-ref(2))]))))))
+									expr(ptr(record(0)), file-range(5, range(2059, 2064)), param-ref(0))
+									expr(record(7), file-range(5, range(2052, 2059)), param-ref(2))]))))))
 		110: fun(
 			fail
 			void
@@ -4209,15 +4209,15 @@ program(
 				[]
 				expr(
 					void
-					file-range(5, range(1827, 1844))
+					file-range(5, range(1861, 1878))
 					call(
 						111
 						[
-							expr(ptr(record(0)), file-range(5, range(1827, 1844)), param-ref(0))
+							expr(ptr(record(0)), file-range(5, range(1861, 1878)), param-ref(0))
 							expr(
 								record(6)
-								file-range(5, range(1834, 1844))
-								record([expr(record(7), file-range(5, range(1838, 1844)), param-ref(1))]))]))))
+								file-range(5, range(1868, 1878))
+								record([expr(record(7), file-range(5, range(1872, 1878)), param-ref(1))]))]))))
 		111: fun(
 			throw
 			void
@@ -4227,78 +4227,78 @@ program(
 				[local(exn-ctx, ptr(record(33)))]
 				expr(
 					void
-					file-range(5, range(571, 737))
+					file-range(5, range(605, 771))
 					let(
 						exn-ctx
 						expr(
 							ptr(record(33))
-							file-range(5, range(581, 598))
-							call(112, [expr(ptr(record(0)), file-range(5, range(581, 598)), param-ref(0))]))
+							file-range(5, range(615, 632))
+							call(112, [expr(ptr(record(0)), file-range(5, range(615, 632)), param-ref(0))]))
 						expr(
 							void
-							file-range(5, range(600, 737))
+							file-range(5, range(634, 771))
 							seq(
 								expr(
 									void
-									file-range(5, range(600, 731))
+									file-range(5, range(634, 765))
 									seq(
 										expr(
 											void
-											file-range(5, range(600, 671))
+											file-range(5, range(634, 705))
 											seq(
 												expr(
 													void
-													file-range(5, range(600, 638))
+													file-range(5, range(634, 672))
 													call(
 														25
 														[
 															expr(
 																bool
-																file-range(5, range(633, 638))
+																file-range(5, range(667, 672))
 																call(
 																	113
 																	[
 																		expr(
 																			ptr(record(34))
-																			file-range(5, range(620, 632))
+																			file-range(5, range(654, 666))
 																			get-field(
 																				expr(
 																					ptr(record(33))
-																					file-range(5, range(613, 620))
+																					file-range(5, range(647, 654))
 																					local-ref(exn-ctx))
 																				true
 																				0))]))]))
 												expr(
 													void
-													file-range(5, range(640, 669))
+													file-range(5, range(674, 703))
 													set-field(
-														expr(ptr(record(33)), file-range(5, range(640, 647)), local-ref(exn-ctx))
+														expr(ptr(record(33)), file-range(5, range(674, 681)), local-ref(exn-ctx))
 														true
 														1
-														expr(record(6), file-range(5, range(668, 669)), param-ref(1))))))
+														expr(record(6), file-range(5, range(702, 703)), param-ref(1))))))
 										expr(
 											void
-											file-range(5, range(691, 714))
+											file-range(5, range(725, 748))
 											call(
 												114
 												[
 													expr(
 														ptr(record(34))
-														file-range(5, range(678, 690))
+														file-range(5, range(712, 724))
 														get-field(
 															expr(
 																ptr(record(33))
-																file-range(5, range(671, 678))
+																file-range(5, range(705, 712))
 																local-ref(exn-ctx))
 															true
 															0))
 													expr(
 														int-32
-														file-range(5, range(699, 714))
+														file-range(5, range(733, 748))
 														call(
 															115
-															[expr(ptr(record(0)), file-range(5, range(699, 714)), param-ref(0))]))]))))
-								expr(void, file-range(5, range(731, 735)), call(40, []))))))))
+															[expr(ptr(record(0)), file-range(5, range(733, 748)), param-ref(0))]))]))))
+								expr(void, file-range(5, range(765, 769)), call(40, []))))))))
 		112: fun(
 			get-exception-ctx
 			ptr(record(33))
@@ -4734,17 +4734,17 @@ program(
 				[]
 				expr(
 					void
-					file-range(5, range(895, 932))
+					file-range(5, range(929, 966))
 					call(
 						128
 						[
-							expr(ptr(record(0)), file-range(5, range(895, 932)), param-ref(0))
+							expr(ptr(record(0)), file-range(5, range(929, 966)), param-ref(0))
 							expr(
 								ptr(record(33))
-								file-range(5, range(877, 894))
-								call(112, [expr(ptr(record(0)), file-range(5, range(877, 894)), param-ref(0))]))
-							expr(record(24), file-range(5, range(920, 923)), param-ref(1))
-							expr(record(30), file-range(5, range(925, 932)), param-ref(2))]))))
+								file-range(5, range(911, 928))
+								call(112, [expr(ptr(record(0)), file-range(5, range(911, 928)), param-ref(0))]))
+							expr(record(24), file-range(5, range(954, 957)), param-ref(1))
+							expr(record(30), file-range(5, range(959, 966)), param-ref(2))]))))
 		128: fun(
 			catch-with-exception-ctx
 			void
@@ -4760,131 +4760,131 @@ program(
 					local(thrown-exception, record(6))]
 				expr(
 					void
-					file-range(5, range(1036, 1806))
+					file-range(5, range(1070, 1840))
 					let(
 						old-thrown-exception
 						expr(
 							record(6)
-							file-range(5, range(1062, 1078))
-							get-field(expr(ptr(record(33)), file-range(5, range(1059, 1061)), param-ref(1)), true, 1))
+							file-range(5, range(1096, 1112))
+							get-field(expr(ptr(record(33)), file-range(5, range(1093, 1095)), param-ref(1)), true, 1))
 						expr(
 							void
-							file-range(5, range(1080, 1806))
+							file-range(5, range(1114, 1840))
 							let(
 								old-jmp-buf
 								expr(
 									ptr(record(34))
-									file-range(5, range(1097, 1108))
-									get-field(expr(ptr(record(33)), file-range(5, range(1094, 1096)), param-ref(1)), true, 0))
+									file-range(5, range(1131, 1142))
+									get-field(expr(ptr(record(33)), file-range(5, range(1128, 1130)), param-ref(1)), true, 0))
 								expr(
 									void
-									file-range(5, range(1110, 1806))
+									file-range(5, range(1144, 1840))
 									let(
 										store
 										expr(
 											record(34)
-											file-range(5, range(1118, 1151))
+											file-range(5, range(1152, 1185))
 											record(
 												[
-													expr(record(35), file-range(5, range(1135, 1139)), call(129, []))
-													expr(int-32, file-range(5, range(1141, 1145)), constant(0))
-													expr(record(38), file-range(5, range(1147, 1151)), call(132, []))]))
+													expr(record(35), file-range(5, range(1169, 1173)), call(129, []))
+													expr(int-32, file-range(5, range(1175, 1179)), constant(0))
+													expr(record(38), file-range(5, range(1181, 1185)), call(132, []))]))
 										expr(
 											void
-											file-range(5, range(1153, 1806))
+											file-range(5, range(1187, 1840))
 											seq(
 												expr(
 													void
-													file-range(5, range(1153, 1183))
+													file-range(5, range(1187, 1217))
 													set-field(
-														expr(ptr(record(33)), file-range(5, range(1153, 1155)), param-ref(1))
+														expr(ptr(record(33)), file-range(5, range(1187, 1189)), param-ref(1))
 														true
 														0
 														expr(
 															ptr(record(34))
-															file-range(5, range(1177, 1183))
+															file-range(5, range(1211, 1217))
 															unary(
 																"ptr-to"
 																expr(
 																	record(34)
-																	file-range(5, range(1171, 1176))
+																	file-range(5, range(1205, 1210))
 																	local-ref(store))))))
 												expr(
 													void
-													file-range(5, range(1185, 1806))
+													file-range(5, range(1219, 1840))
 													let(
 														setjmp-result
 														expr(
 															int-32
-															file-range(5, range(1216, 1222))
+															file-range(5, range(1250, 1256))
 															call(
 																133
 																[
 																	expr(
 																		ptr(record(34))
-																		file-range(5, range(1203, 1215))
+																		file-range(5, range(1237, 1249))
 																		get-field(
 																			expr(
 																				ptr(record(33))
-																				file-range(5, range(1201, 1203))
+																				file-range(5, range(1235, 1237))
 																				param-ref(1))
 																			true
 																			0))]))
 														expr(
 															void
-															file-range(5, range(1224, 1806))
+															file-range(5, range(1258, 1840))
 															trinary(
 																"if"
 																expr(
 																	bool
-																	file-range(5, range(1245, 1252))
+																	file-range(5, range(1279, 1286))
 																	call(
 																		73
 																		[
 																			expr(
 																				int-32
-																				file-range(5, range(1231, 1244))
+																				file-range(5, range(1265, 1278))
 																				local-ref(setjmp-result))
 																			expr(
 																				int-32
-																				file-range(5, range(1248, 1252))
+																				file-range(5, range(1282, 1286))
 																				constant(0))]))
 																expr(
 																	void
-																	file-range(5, range(1343, 1447))
+																	file-range(5, range(1377, 1481))
 																	let(
 																		res
 																		expr(
 																			void
-																			file-range(5, range(1353, 1357))
+																			file-range(5, range(1387, 1391))
 																			call(
 																				134
 																				[
 																					expr(
 																						ptr(record(0))
-																						file-range(5, range(1353, 1357))
+																						file-range(5, range(1387, 1391))
 																						param-ref(0))
 																					expr(
 																						record(24)
-																						file-range(5, range(1349, 1352))
+																						file-range(5, range(1383, 1386))
 																						param-ref(2))]))
 																		expr(
 																			void
-																			file-range(5, range(1361, 1447))
+																			file-range(5, range(1395, 1481))
 																			seq(
 																				expr(
 																					void
-																					file-range(5, range(1361, 1441))
+																					file-range(5, range(1395, 1475))
 																					seq(
 																						expr(
 																							void
-																							file-range(5, range(1361, 1390))
+																							file-range(5, range(1395, 1424))
 																							set-field(
 																								expr(
 																									ptr(record(33))
 																									file-range(
 																										5
-																										range(1361, 1363))
+																										range(1395, 1397))
 																									param-ref(1))
 																								true
 																								0
@@ -4892,18 +4892,18 @@ program(
 																									ptr(record(34))
 																									file-range(
 																										5
-																										range(1379, 1390))
+																										range(1413, 1424))
 																									local-ref(
 																										old-jmp-buf))))
 																						expr(
 																							void
-																							file-range(5, range(1394, 1437))
+																							file-range(5, range(1428, 1471))
 																							set-field(
 																								expr(
 																									ptr(record(33))
 																									file-range(
 																										5
-																										range(1394, 1396))
+																										range(1428, 1430))
 																									param-ref(1))
 																								true
 																								1
@@ -4911,30 +4911,30 @@ program(
 																									record(6)
 																									file-range(
 																										5
-																										range(1417, 1437))
+																										range(1451, 1471))
 																									local-ref(
 																										old-thrown-exception))))))
 																				expr(
 																					void
-																					file-range(5, range(1441, 1444))
+																					file-range(5, range(1475, 1478))
 																					local-ref(res))))))
 																expr(
 																	void
-																	file-range(5, range(1493, 1806))
+																	file-range(5, range(1527, 1840))
 																	seq(
 																		expr(
 																			void
-																			file-range(5, range(1493, 1533))
+																			file-range(5, range(1527, 1567))
 																			call(
 																				108
 																				[
 																					expr(
 																						ptr(record(0))
-																						file-range(5, range(1493, 1533))
+																						file-range(5, range(1527, 1567))
 																						param-ref(0))
 																					expr(
 																						bool
-																						file-range(5, range(1515, 1533))
+																						file-range(5, range(1549, 1567))
 																						call(
 																							73
 																							[
@@ -4942,14 +4942,14 @@ program(
 																									int-32
 																									file-range(
 																										5
-																										range(1501, 1514))
+																										range(1535, 1548))
 																									local-ref(
 																										setjmp-result))
 																								expr(
 																									int-32
 																									file-range(
 																										5
-																										range(1518, 1533))
+																										range(1552, 1567))
 																									call(
 																										115
 																										[
@@ -4960,38 +4960,38 @@ program(
 																												file-range(
 																													5
 																													range(
-																														1518
-																														1533))
+																														1552
+																														1567))
 																												param-ref(
 																													0))]))]))]))
 																		expr(
 																			void
-																			file-range(5, range(1579, 1806))
+																			file-range(5, range(1613, 1840))
 																			let(
 																				thrown-exception
 																				expr(
 																					record(6)
-																					file-range(5, range(1601, 1617))
+																					file-range(5, range(1635, 1651))
 																					get-field(
 																						expr(
 																							ptr(record(33))
-																							file-range(5, range(1598, 1600))
+																							file-range(5, range(1632, 1634))
 																							param-ref(1))
 																						true
 																						1))
 																				expr(
 																					void
-																					file-range(5, range(1695, 1806))
+																					file-range(5, range(1729, 1840))
 																					seq(
 																						expr(
 																							void
-																							file-range(5, range(1695, 1775))
+																							file-range(5, range(1729, 1809))
 																							seq(
 																								expr(
 																									void
 																									file-range(
 																										5
-																										range(1695, 1724))
+																										range(1729, 1758))
 																									set-field(
 																										expr(
 																											ptr(
@@ -4999,8 +4999,8 @@ program(
 																											file-range(
 																												5
 																												range(
-																													1695
-																													1697))
+																													1729
+																													1731))
 																											param-ref(1))
 																										true
 																										0
@@ -5010,15 +5010,15 @@ program(
 																											file-range(
 																												5
 																												range(
-																													1713
-																													1724))
+																													1747
+																													1758))
 																											local-ref(
 																												old-jmp-buf))))
 																								expr(
 																									void
 																									file-range(
 																										5
-																										range(1728, 1771))
+																										range(1762, 1805))
 																									set-field(
 																										expr(
 																											ptr(
@@ -5026,8 +5026,8 @@ program(
 																											file-range(
 																												5
 																												range(
-																													1728
-																													1730))
+																													1762
+																													1764))
 																											param-ref(1))
 																										true
 																										1
@@ -5036,13 +5036,13 @@ program(
 																											file-range(
 																												5
 																												range(
-																													1751
-																													1771))
+																													1785
+																													1805))
 																											local-ref(
 																												old-thrown-exception))))))
 																						expr(
 																							void
-																							file-range(5, range(1783, 1804))
+																							file-range(5, range(1817, 1838))
 																							call(
 																								136
 																								[
@@ -5050,19 +5050,19 @@ program(
 																										ptr(record(0))
 																										file-range(
 																											5
-																											range(1783, 1804))
+																											range(1817, 1838))
 																										param-ref(0))
 																									expr(
 																										record(30)
 																										file-range(
 																											5
-																											range(1775, 1782))
+																											range(1809, 1816))
 																										param-ref(3))
 																									expr(
 																										record(6)
 																										file-range(
 																											5
-																											range(1788, 1804))
+																											range(1822, 1838))
 																										local-ref(
 																											thrown-exception))]))))))))))))))))))))))
 		129: fun(
@@ -6148,13 +6148,13 @@ program(
 				[]
 				expr(
 					void
-					file-range(5, range(2071, 2093))
+					file-range(5, range(2105, 2127))
 					call(
 						156
 						[
-							expr(ptr(record(0)), file-range(5, range(2071, 2093)), param-ref(0))
-							expr(bool, file-range(5, range(2061, 2070)), param-ref(1))
-							expr(record(7), file-range(5, range(2078, 2093)), constant("forbid failed"))]))))
+							expr(ptr(record(0)), file-range(5, range(2105, 2127)), param-ref(0))
+							expr(bool, file-range(5, range(2095, 2104)), param-ref(1))
+							expr(record(7), file-range(5, range(2112, 2127)), constant("forbid failed"))]))))
 		156: fun(
 			forbid
 			void
@@ -6164,19 +6164,19 @@ program(
 				[]
 				expr(
 					void
-					file-range(5, range(2147, 2168))
+					file-range(5, range(2181, 2202))
 					trinary(
 						"if"
-						expr(bool, file-range(5, range(2137, 2146)), param-ref(1))
+						expr(bool, file-range(5, range(2171, 2180)), param-ref(1))
 						expr(
 							void
-							file-range(5, range(2157, 2162))
+							file-range(5, range(2191, 2196))
 							call(
 								110
 								[
-									expr(ptr(record(0)), file-range(5, range(2157, 2162)), param-ref(0))
-									expr(record(7), file-range(5, range(2150, 2157)), param-ref(2))]))
-						expr(void, file-range(5, range(2164, 2168)), constant(void))))))
+									expr(ptr(record(0)), file-range(5, range(2191, 2196)), param-ref(0))
+									expr(record(7), file-range(5, range(2184, 2191)), param-ref(2))]))
+						expr(void, file-range(5, range(2198, 2202)), constant(void))))))
 		157: fun(
 			empty?
 			bool

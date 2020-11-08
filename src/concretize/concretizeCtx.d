@@ -20,6 +20,7 @@ import concreteModel :
 	ConcreteStructBody,
 	ConcreteStructInfo,
 	ConcreteStructSource,
+	purity,
 	sizeOrPointerSizeBytes;
 import concretize.concretizeExpr : concretizeExpr;
 import model :
@@ -38,6 +39,7 @@ import model :
 	noCtx,
 	Param,
 	params,
+	Purity,
 	range,
 	RecordField,
 	returnType,
@@ -46,11 +48,12 @@ import model :
 	StructInst,
 	Type,
 	typeArgs,
-	TypeParam;
+	TypeParam,
+	worsePurity;
 import util.bools : Bool, False, not, True;
 import util.collection.arr : Arr, at, empty, emptyArr, only, ptrAt, range, sizeEq;
 import util.collection.arrBuilder : add, ArrBuilder;
-import util.collection.arrUtil : arrMax, compareArr, exists, map, mapPtrsWithIndex;
+import util.collection.arrUtil : arrMax, compareArr, exists, fold, map, mapPtrsWithIndex;
 import util.collection.mutArr : MutArr;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.collection.str : strLiteral;
@@ -281,8 +284,14 @@ immutable(ConcreteType) getConcreteType_forStructInst(Alloc)(
 		immutable ConcreteStructKey key = ConcreteStructKey(i.decl, typeArgs);
 		immutable ValueAndDidAdd!(immutable Ptr!ConcreteStruct) res =
 			getOrAddAndDidAdd(alloc, ctx.nonLambdaConcreteStructs, key, () {
+				immutable Purity purity = fold(
+					i.bestCasePurity,
+					typeArgs,
+					(ref immutable Purity p, ref immutable ConcreteType ta) =>
+						worsePurity(p, purity(ta)));
 				immutable Ptr!ConcreteStruct res = nu!ConcreteStruct(
 					alloc,
+					purity,
 					immutable ConcreteStructSource(immutable ConcreteStructSource.Inst(i, key.typeArgs)));
 				add(alloc, ctx.allConcreteStructs, res);
 				return res;
@@ -329,7 +338,11 @@ immutable(ConcreteType) concreteTypeFromFields_alwaysPointer(Alloc)(
 	immutable ConcreteStructSource source,
 ) {
 	verify(!empty(fields));
-	Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, source);
+	immutable Purity purity = fold(Purity.data, fields, (ref immutable Purity p, ref immutable ConcreteField f) {
+		verify(!f.isMutable); // TODO: lambda fields are never mutable, use a different type?
+		return worsePurity(p, purity(f.type));
+	});
+	Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, purity, source);
 	lateSet(cs.info_, getConcreteStructInfoForFields(none!ForcedByValOrRef, fields));
 	add(alloc, ctx.allConcreteStructs, castImmutable(cs));
 	return concreteType_pointer(castImmutable(cs));

@@ -2,7 +2,19 @@ module concreteModel;
 
 @safe @nogc pure nothrow:
 
-import model : ClosureField, decl, FunInst, isArr, isCompareFun, Local, Param, range, RecordField, StructInst;
+import model :
+	ClosureField,
+	decl,
+	FunInst,
+	isArr,
+	isCompareFun,
+	Local,
+	Param,
+	Purity,
+	range,
+	RecordField,
+	StructInst,
+	summon;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, sizeEq;
 import util.collection.str : Str;
@@ -142,6 +154,10 @@ struct ConcreteType {
 	immutable Ptr!ConcreteStruct struct_;
 }
 
+immutable(Purity) purity(ref immutable ConcreteType a) {
+	return a.struct_.purity;
+}
+
 // Union should never be a pointer
 immutable(Ptr!ConcreteStruct) mustBeNonPointer(immutable ConcreteType a) {
 	verify(!a.isPointer);
@@ -199,6 +215,7 @@ struct ConcreteStructSource {
 struct ConcreteStruct {
 	@safe @nogc pure nothrow:
 
+	immutable Purity purity;
 	immutable ConcreteStructSource source;
 	Late!(immutable ConcreteStructInfo) info_;
 }
@@ -517,8 +534,17 @@ struct ConcreteFun {
 	Late!(immutable ConcreteFunBody) _body_;
 }
 
+immutable(Bool) isSummon(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource!(immutable Bool)(
+		a.source,
+		(immutable Ptr!FunInst it) =>
+			summon(decl(it).deref()),
+		(ref immutable ConcreteFunSource.Lambda it) =>
+			isSummon(it.containingFun));
+}
+
 immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource(
+	return matchConcreteFunSource!(immutable FileAndRange)(
 		a.source,
 		(immutable Ptr!FunInst it) =>
 			range(decl(it).deref()),
@@ -549,6 +575,68 @@ immutable(Bool) isExtern(ref immutable ConcreteFun a) {
 
 immutable(Bool) isGlobal(ref immutable ConcreteFun a) {
 	return isGlobal(body_(a));
+}
+
+struct Constant {
+	@safe @nogc pure nothrow:
+
+	struct ArrConstant {
+		immutable Arr!Constant values;
+	}
+	struct BoolConstant {
+		immutable Bool value;
+	}
+	// For int and nat types
+	struct Integral {
+		immutable size_t value;
+	}
+	struct Null {}
+	struct Void {}
+
+	private:
+	enum Kind {
+		arr,
+		bool_,
+		integral,
+		null_,
+		void_,
+	}
+	immutable Kind kind;
+	union {
+		immutable ArrConstant arr_;
+		immutable BoolConstant bool_;
+		immutable Integral integral_;
+		immutable Null null_;
+		immutable Void void_;
+	}
+	public:
+	@trusted immutable this(immutable ArrConstant a) { kind = Kind.arr; arr_ = a; }
+	immutable this(immutable BoolConstant a) { kind = Kind.bool_; bool_ = a; }
+	immutable this(immutable Integral a) { kind = Kind.integral; integral_ = a; }
+	immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }
+	immutable this(immutable Void a) { kind = Kind.void_; void_ = a; }
+}
+
+@trusted T matchConstant(T)(
+	ref immutable Constant a,
+	scope T delegate(immutable Constant.ArrConstant) @safe @nogc pure nothrow cbArr,
+	scope T delegate(immutable Constant.BoolConstant) @safe @nogc pure nothrow cbBool,
+	scope T delegate(immutable Constant.Integral) @safe @nogc pure nothrow cbIntegral,
+	scope T delegate(immutable Constant.Null) @safe @nogc pure nothrow cbNull,
+	scope T delegate(immutable Constant.Void) @safe @nogc pure nothrow cbVoid,
+) {
+	final switch (a.kind) {
+		case Constant.Kind.arr_:
+			return cbArr(a.arr_);
+		case Constant.Kind.bool_:
+			return cbBool(a.bool_);
+		case Constant.Kind.integral:
+			return cbIntegral(a.integral_);
+		case Constant.Kind.null_:
+			return cbNull(a.null_);
+		case Constant.Kind.void_:
+			return cbVoid(a.void_);
+	}
 }
 
 struct ConcreteExpr {
@@ -682,6 +770,7 @@ struct ConcreteExpr {
 		alloc,
 		call,
 		cond,
+		constant,
 		createArr,
 		createRecord,
 		convertToUnion,
@@ -700,6 +789,7 @@ struct ConcreteExpr {
 		immutable Call call;
 		immutable Cond cond;
 		immutable CreateArr createArr;
+		immutable Constant constant;
 		immutable CreateRecord createRecord;
 		immutable ConvertToUnion convertToUnion;
 		immutable Lambda lambda;
@@ -725,6 +815,9 @@ struct ConcreteExpr {
 	}
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable CreateArr a) {
 		type = t; range = r; kind = Kind.createArr; createArr = a;
+	}
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Constant a) {
+		type = t; range = r; kind = Kind.constant; constant = a;
 	}
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable CreateRecord a) {
 		type = t; range = r; kind = Kind.createRecord; createRecord = a;
@@ -769,11 +862,21 @@ private ref immutable(Arr!ConcreteType) matchedUnionMembers(return scope ref con
 	return asUnion(body_(mustBeNonPointer(a.matchedLocal.type).deref)).members;
 }
 
+immutable(Bool) isConstant(ref immutable ConcreteExpr a) {
+	return immutable Bool(a.kind == ConcreteExpr.Kind.constant);
+}
+
+@trusted ref immutable(Constant) asConstant(return scope ref immutable ConcreteExpr a) {
+	verify(isConstant(a));
+	return a.constant;
+}
+
 @trusted T matchConcreteExpr(T)(
 	ref immutable ConcreteExpr a,
 	scope T delegate(ref immutable ConcreteExpr.Alloc) @safe @nogc pure nothrow cbAlloc,
 	scope T delegate(ref immutable ConcreteExpr.Call) @safe @nogc pure nothrow cbCall,
 	scope T delegate(ref immutable ConcreteExpr.Cond) @safe @nogc pure nothrow cbCond,
+	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
 	scope T delegate(ref immutable ConcreteExpr.CreateArr) @safe @nogc pure nothrow cbCreateArr,
 	scope T delegate(ref immutable ConcreteExpr.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable ConcreteExpr.ConvertToUnion) @safe @nogc pure nothrow cbConvertToUnion,
@@ -794,6 +897,8 @@ private ref immutable(Arr!ConcreteType) matchedUnionMembers(return scope ref con
 			return cbCall(a.call);
 		case ConcreteExpr.Kind.cond:
 			return cbCond(a.cond);
+		case ConcreteExpr.Kind.constant:
+			return cbConstant(a.constant);
 		case ConcreteExpr.Kind.createArr:
 			return cbCreateArr(a.createArr);
 		case ConcreteExpr.Kind.createRecord:
