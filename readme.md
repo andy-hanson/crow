@@ -38,3 +38,11 @@ bash -llc 'ln -s `pwd`/syntaxes/tata.sublime-syntax ~/.config/sublime-text-3/Pac
 `make doc-server`
 
 Then in another terminal, visit http://localhost:8080/doc .
+
+
+## Running tests
+
+`make test` runs tests.
+Tests generate many output files; to overwrite these files use `make test-overwrite`.
+(Use `git add .` first to save the old state of files.)
+

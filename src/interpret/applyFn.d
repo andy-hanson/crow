@@ -21,7 +21,7 @@ import util.types :
 	u64OfFloat64Bits;
 import util.util : todo, verify;
 
-public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
+void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 	final switch (fn) {
 		case FnOp.addFloat64:
 			binaryFloats(dataStack, (immutable float64 a, immutable float64 b) =>
@@ -57,7 +57,7 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 			break;
 		case FnOp.intFromInt32:
 			unary(dataStack, (immutable u64 a) =>
-				immutable Nat64(cast(u64) (cast(i64) (cast(i32) (bottomU32OfU64(a))))));
+				nat64OfI32(cast(i32) (bottomU32OfU64(a))));
 			break;
 		case FnOp.hardFail:
 			todo!void("!");
@@ -142,6 +142,10 @@ public void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 				immutable Nat64(a - b));
 			break;
 	}
+}
+
+pure immutable(Nat64) nat64OfI32(immutable i32 a) {
+	return immutable Nat64(cast(u64) (cast(i64) a));
 }
 
 private:

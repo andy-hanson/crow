@@ -3,16 +3,21 @@ module interpret.fakeExtern;
 @safe @nogc pure nothrow:
 
 import interpret.allocTracker : AllocTracker;
+import interpret.bytecode : DynCallType;
 import util.bools : Bool;
 import util.collection.arr : Arr, asImmutable, range;
 import util.collection.mutArr : clear, MutArr, pushAll, tempAsArr;
-import util.collection.str : Str;
+import util.collection.str : NulTerminatedStr, Str;
 import util.ptr : Ptr, PtrRange;
+import util.types : Nat64;
 import util.util : todo, verify;
 import util.writer : Writer;
 
 struct FakeExtern(Alloc) {
 	@safe @nogc pure nothrow:
+
+	@disable this(ref const FakeExtern);
+	this(Ptr!Alloc a) { alloc = a; }
 
 	private:
 	Ptr!Alloc alloc;
@@ -73,16 +78,21 @@ struct FakeExtern(Alloc) {
 		return 0;
 	}
 
-	void usleep(immutable size_t microseconds) {
-		todo!void("usleep");
-	}
-
 	immutable(Bool) hasMallocedPtr(ref const PtrRange range) const {
 		return allocTracker.hasAllocedPtr(range);
 	}
 
 	@trusted void writeMallocedRanges(WriterAlloc)(ref Writer!WriterAlloc writer) const {
 		allocTracker.writeMallocedRanges(writer);
+	}
+
+	immutable(Nat64) doDynCall(
+		ref immutable NulTerminatedStr name,
+		immutable DynCallType returnType,
+		ref immutable Arr!Nat64 parameters,
+		ref immutable Arr!DynCallType parameterTypes,
+	) {
+		return todo!(immutable Nat64)("not for fake");
 	}
 }
 

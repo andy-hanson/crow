@@ -8,6 +8,8 @@ import util.util : verify;
 struct Mallocator {
 	@safe @nogc pure nothrow:
 
+	@disable this(ref const Mallocator);
+
 	@trusted ubyte* allocate(immutable size_t size) {
 		ubyte* res = cast(ubyte*) pureMalloc(size);
 		verify(res != null);

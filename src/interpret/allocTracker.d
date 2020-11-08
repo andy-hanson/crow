@@ -13,6 +13,8 @@ import util.writer : Writer, writePtrRange, writeStatic;
 struct AllocTracker {
 	@safe @nogc pure nothrow:
 
+	@disable this(ref const AllocTracker);
+
 	MutDict!(const ubyte*, immutable size_t, comparePtrRaw!ubyte) allocations;
 
 	immutable(size_t) markFree(const ubyte* ptr) {

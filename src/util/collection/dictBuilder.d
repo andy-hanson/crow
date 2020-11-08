@@ -11,7 +11,7 @@ import util.comparison : Comparison;
 import util.util : verify;
 
 struct DictBuilder(K, V, alias cmp) {
-	@disable this(ref const DictBuilder!(K, V, cmp)) {}
+	@disable this(ref const DictBuilder!(K, V, cmp));
 
 	private:
 	ArrBuilder!(KeyValuePair!(K, V)) builder;

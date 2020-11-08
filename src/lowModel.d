@@ -611,7 +611,7 @@ struct LowExprKind {
 	struct SpecialBinary {
 		enum Kind {
 			addFloat64,
-			addPtr,
+			addPtr, // RHS is multiplied by size of pointee first
 			and,
 			bitwiseAndInt8,
 			bitwiseAndInt16,
@@ -645,7 +645,7 @@ struct LowExprKind {
 			mulFloat64,
 			or,
 			subFloat64,
-			subPtrNat,
+			subPtrNat, // RHS is multiplied by size of pointee first
 			unsafeBitShiftLeftNat64,
 			unsafeBitShiftRightNat64,
 			unsafeDivFloat64,

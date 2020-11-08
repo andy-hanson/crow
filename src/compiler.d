@@ -13,7 +13,7 @@ import frontend.lang : nozeExtension;
 import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : cStrOfDiagnostics;
 import interpret.bytecode : ByteCode;
-import interpret.realExtern : RealExtern;
+import interpret.realExtern : newRealExtern, RealExtern;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
@@ -107,7 +107,7 @@ immutable(int) buildAndRun(SymAlloc)(
 			lowProgramResult,
 			(ref immutable ProgramsAndFilesInfo it) {
 				immutable ByteCode byteCode = generateBytecode(lowAlloc, it.program, it.lowProgram);
-				RealExtern extern_ = RealExtern();
+				RealExtern extern_ = newRealExtern();
 				return runBytecode(
 					extern_,
 					it.lowProgram,

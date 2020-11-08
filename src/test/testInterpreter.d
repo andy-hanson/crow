@@ -9,7 +9,6 @@ import interpret.fakeExtern : FakeExtern, newFakeExtern;
 import interpret.runBytecode :
 	nextByteCodeIndex,
 	Interpreter,
-	newInterpreter,
 	reset,
 	step,
 	StepResult;
@@ -141,7 +140,7 @@ void doInterpret(
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(immutable Arr!LowFun(ptrTrustMe(lowFun).rawPtr(), 1)),
 		immutable LowFunIndex(0));
 	TestFakeExtern extern_ = newFakeExtern(ptrTrustMe_mut(alloc));
-	Interpreter!TestFakeExtern interpreter = newInterpreter(
+	Interpreter!TestFakeExtern interpreter = Interpreter!TestFakeExtern(
 		ptrTrustMe_mut(extern_),
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),

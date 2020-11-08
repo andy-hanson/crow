@@ -6,6 +6,7 @@ import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
 	ByteCodeSource,
+	DynCallType,
 	ExternOp,
 	FileToFuns,
 	FnOp,
@@ -33,8 +34,10 @@ import interpret.bytecodeWriter :
 	writeDupEntry,
 	writeDupPartial,
 	writeExtern,
+	writeExternDynCall,
 	writeFn,
 	writeFnHardFail,
+	writeMulConstantNat64,
 	writePushConstant,
 	writePushConstantStr,
 	writePushEmptySpace,
@@ -50,6 +53,7 @@ import interpret.bytecodeWriter :
 	writeWrite;
 import lowModel :
 	asLocalRef,
+	asNonFunPtrType,
 	asParamRef,
 	asRecordFieldAccess,
 	firstRegularParamIndex,
@@ -105,7 +109,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
 import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, zero;
-import util.util : divRoundUp, roundUp, todo, verify;
+import util.util : divRoundUp, roundUp, todo, unreachable, verify;
 
 immutable(ByteCode) generateBytecode(CodeAlloc)(
 	ref CodeAlloc codeAlloc,
@@ -412,39 +416,81 @@ void generateExternCall(TempAlloc, CodeAlloc)(
 	ref immutable LowFunBody.Extern a,
 ) {
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
-	writeExtern(writer, source, externOpFromName(a.externName));
+	immutable Opt!ExternOp op = externOpFromName(a.externName);
+	if (has(op))
+		writeExtern(writer, source, force(op));
+	else {
+		immutable Arr!DynCallType parameterTypes = map(tempAlloc, fun.params, (ref immutable LowParam it) =>
+			toDynCallType(it.type));
+		immutable DynCallType returnType = toDynCallType(fun.returnType);
+		writeExternDynCall(writer, source, a.externName, returnType, parameterTypes);
+	}
 	writeReturn(writer, source);
 }
 
-immutable(ExternOp) externOpFromName(immutable Str a) {
-	return strEqLiteral(a, "free")
-			? ExternOp.free
-		: strEqLiteral(a, "get_nprocs")
-			? ExternOp.getNProcs
-		: strEqLiteral(a, "longjmp")
-			? ExternOp.longjmp
-		: strEqLiteral(a, "malloc")
-			? ExternOp.malloc
-		: strEqLiteral(a, "pthread_create")
-			? ExternOp.pthreadCreate
-		: strEqLiteral(a, "pthread_join")
-			? ExternOp.pthreadJoin
-		: strEqLiteral(a, "pthread_yield")
-			? ExternOp.pthreadYield
-		: strEqLiteral(a, "setjmp")
-			? ExternOp.setjmp
-		: strEqLiteral(a, "usleep")
-			? ExternOp.usleep
-		: strEqLiteral(a, "write")
-			? ExternOp.write
-		: () {
-			debug {
-				import core.stdc.stdio : printf;
-				import util.collection.arr : begin;
-				printf("Unhandled extern function %.*s\n", cast(int) size(a), begin(a));
+immutable(DynCallType) toDynCallType(ref immutable LowType a) {
+	return matchLowType!(immutable DynCallType)(
+		a,
+		(immutable LowType.ExternPtr) =>
+			DynCallType.pointer,
+		(immutable LowType.FunPtr) =>
+			DynCallType.pointer,
+		(immutable LowType.NonFunPtr) =>
+			DynCallType.pointer,
+		(immutable PrimitiveType it) {
+			final switch (it) {
+				case PrimitiveType.bool_:
+					return DynCallType.bool_;
+				case PrimitiveType.char_:
+					return DynCallType.char_;
+				case PrimitiveType.float64:
+					return DynCallType.float64;
+				case PrimitiveType.int8:
+					return DynCallType.int8;
+				case PrimitiveType.int16:
+					return DynCallType.int16;
+				case PrimitiveType.int32:
+					return DynCallType.int32;
+				case PrimitiveType.int64:
+					return DynCallType.int64;
+				case PrimitiveType.nat8:
+					return DynCallType.nat8;
+				case PrimitiveType.nat16:
+					return DynCallType.nat16;
+				case PrimitiveType.nat32:
+					return DynCallType.nat32;
+				case PrimitiveType.nat64:
+					return DynCallType.nat64;
+				case PrimitiveType.void_:
+					return DynCallType.void_;
 			}
-			return todo!(immutable ExternOp)("unhandled extern function");
-		}();
+		},
+		(immutable LowType.Record) =>
+			unreachable!(immutable DynCallType),
+		(immutable LowType.Union) =>
+			unreachable!(immutable DynCallType));
+}
+
+immutable(Opt!ExternOp) externOpFromName(immutable Str a) {
+	return strEqLiteral(a, "free")
+			? some(ExternOp.free)
+		: strEqLiteral(a, "get_nprocs")
+			? some(ExternOp.getNProcs)
+		: strEqLiteral(a, "longjmp")
+			? some(ExternOp.longjmp)
+		: strEqLiteral(a, "malloc")
+			? some(ExternOp.malloc)
+		: strEqLiteral(a, "pthread_create")
+			? some(ExternOp.pthreadCreate)
+		: strEqLiteral(a, "pthread_join")
+			? some(ExternOp.pthreadJoin)
+		: strEqLiteral(a, "pthread_yield")
+			? some(ExternOp.pthreadYield)
+		: strEqLiteral(a, "setjmp")
+			? some(ExternOp.setjmp)
+		: strEqLiteral(a, "write")
+			? some(ExternOp.write)
+		: none!ExternOp;
 }
 
 
@@ -467,7 +513,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 	ref immutable LowExpr expr,
 ) {
 	immutable ByteCodeSource source = immutable ByteCodeSource(ctx.curFunIndex, expr.source.range.start);
-	writeAssertStackSize(writer, source);
+	//writeAssertStackSize(writer, source);
 	return matchLowExprKind(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
@@ -950,11 +996,21 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 	}
 
 	final switch (a.kind) {
+		case LowExprKind.SpecialBinary.Kind.addPtr:
+		case LowExprKind.SpecialBinary.Kind.subPtrNat:
+			immutable LowType pointee = asNonFunPtrType(a.left.type).pointee;
+			generateExpr(tempAlloc, writer, ctx, a.left);
+			generateExpr(tempAlloc, writer, ctx, a.right);
+			immutable Nat8 pointeeSize = sizeOfType(ctx, pointee);
+			if (pointeeSize != immutable Nat8(1))
+				writeMulConstantNat64(writer, source, pointeeSize.to64());
+			writeFn(
+				writer,
+				source,
+				a.kind == LowExprKind.SpecialBinary.Kind.addPtr ? FnOp.wrapAddIntegral : FnOp.wrapSubIntegral);
+			break;
 		case LowExprKind.SpecialBinary.Kind.addFloat64:
 			fn(FnOp.addFloat64);
-			break;
-		case LowExprKind.SpecialBinary.Kind.addPtr:
-			fn(FnOp.wrapAddIntegral);
 			break;
 		case LowExprKind.SpecialBinary.Kind.and:
 			generateIf(
@@ -1043,7 +1099,6 @@ void generateSpecialBinary(TempAlloc, CodeAlloc)(
 		case LowExprKind.SpecialBinary.Kind.subFloat64:
 			fn(FnOp.subFloat64);
 			break;
-		case LowExprKind.SpecialBinary.Kind.subPtrNat:
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt16:
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt32:
 		case LowExprKind.SpecialBinary.Kind.wrapSubInt64:

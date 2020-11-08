@@ -6,9 +6,9 @@ import lowModel : LowFunIndex;
 import util.bools : Bool;
 import util.collection.arr : Arr, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
-import util.collection.str : Str, strLiteral;
+import util.collection.str : NulTerminatedStr, Str, strLiteral, strOfNulTerminatedStr;
 import util.sexpr : Sexpr, tataArr, tataHex, tataInt, tataNat, tataRecord, tataStr, tataSym;
-import util.sym : Sym;
+import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8, zero;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
@@ -34,6 +34,7 @@ T matchDebugOperationImpure(T)(
 	scope T delegate(ref immutable Operation.Dup) @safe @nogc nothrow cbDup,
 	scope T delegate(ref immutable Operation.DupPartial) @safe @nogc nothrow cbDupPartial,
 	scope T delegate(ref immutable Operation.Extern) @safe @nogc nothrow cbExtern,
+	scope T delegate(ref immutable Operation.ExternDynCall) @safe @nogc nothrow cbExternDynCall,
 	scope T delegate(ref immutable Operation.Fn) @safe @nogc nothrow cbFn,
 	scope T delegate(ref immutable Operation.Jump) @safe @nogc nothrow cbJump,
 	scope T delegate(ref immutable Operation.Pack) @safe @nogc nothrow cbPack,
@@ -58,6 +59,8 @@ T matchDebugOperationImpure(T)(
 			return cbDupPartial(a.dupPartial_);
 		case Operation.Kind.extern_:
 			return cbExtern(a.extern_);
+		case Operation.Kind.externDynCall:
+			return cbExternDynCall(a.externDynCall);
 		case Operation.Kind.fn:
 			return cbFn(a.fn_);
 		case Operation.Kind.jump:
@@ -91,6 +94,7 @@ private @trusted T matchOperation(T)(
 	scope T delegate(ref immutable Operation.Dup) @safe @nogc pure nothrow cbDup,
 	scope T delegate(ref immutable Operation.DupPartial) @safe @nogc pure nothrow cbDupPartial,
 	scope T delegate(ref immutable Operation.Extern) @safe @nogc pure nothrow cbExtern,
+	scope T delegate(ref immutable Operation.ExternDynCall) @safe @nogc pure nothrow cbExternDynCall,
 	scope T delegate(ref immutable Operation.Fn) @safe @nogc pure nothrow cbFn,
 	scope T delegate(ref immutable Operation.Jump) @safe @nogc pure nothrow cbJump,
 	scope T delegate(ref immutable Operation.Pack) @safe @nogc pure nothrow cbPack,
@@ -115,6 +119,8 @@ private @trusted T matchOperation(T)(
 			return cbDupPartial(a.dupPartial_);
 		case Operation.Kind.extern_:
 			return cbExtern(a.extern_);
+		case Operation.Kind.externDynCall:
+			return cbExternDynCall(a.externDynCall);
 		case Operation.Kind.fn:
 			return cbFn(a.fn_);
 		case Operation.Kind.jump:
@@ -158,7 +164,15 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 				tataNat(it.sizeBytes)),
 		(ref immutable Operation.Extern it) =>
 			tataRecord(alloc, "extern", tataStr(strOfExternOp(it.op))),
-		(ref immutable Operation.Fn it)  =>
+		(ref immutable Operation.ExternDynCall it) =>
+			tataRecord(
+				alloc,
+				"extern-dyn",
+				tataStr(strOfNulTerminatedStr(it.name)),
+				tataSym(symOfDynCallType(it.returnType)),
+				tataArr(alloc, it.parameterTypes, (ref immutable DynCallType t) =>
+					tataSym(symOfDynCallType(t)))),
+		(ref immutable Operation.Fn it) =>
 			tataRecord(alloc, "fn", tataStr(strOfFnOp(it.fnOp))),
 		(ref immutable Operation.Jump it)  =>
 			tataRecord(alloc, "jump", tataInt(it.offset.offset)),
@@ -178,6 +192,41 @@ immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operatio
 			tataSym("switch"),
 		(ref immutable Operation.Write it) =>
 			tataRecord(alloc, "write", tataNat(it.offset), tataNat(it.size)));
+}
+
+private immutable(Sym) symOfDynCallType(immutable DynCallType a) {
+	return shortSymAlphaLiteral(() {
+		final switch (a) {
+			case DynCallType.bool_:
+				return "bool";
+			case DynCallType.char_:
+				return "char";
+			case DynCallType.int8:
+				return "int-8";
+			case DynCallType.int16:
+				return "int-16";
+			case DynCallType.int32:
+				return "int-32";
+			case DynCallType.int64:
+				return "int-64";
+			case DynCallType.float32:
+				return "float-32";
+			case DynCallType.float64:
+				return "float-64";
+			case DynCallType.nat8:
+				return "nat-8";
+			case DynCallType.nat16:
+				return "nat-16";
+			case DynCallType.nat32:
+				return "nat-32";
+			case DynCallType.nat64:
+				return "nat-64";
+			case DynCallType.pointer:
+				return "pointer";
+			case DynCallType.void_:
+				return "void";
+		}
+	}());
 }
 
 private immutable(Sexpr) sexprOfDebugOperation(Alloc)(ref Alloc alloc, ref immutable DebugOperation a) {
@@ -269,6 +318,24 @@ private T matchDebugOperation(T)(
 	}
 }
 
+// These should all fit in a single stack entry (except 'void')
+enum DynCallType : ubyte {
+	bool_,
+	char_,
+	int8,
+	int16,
+	int32,
+	int64,
+	float32,
+	float64,
+	nat8,
+	nat16,
+	nat32,
+	nat64,
+	pointer,
+	void_,
+}
+
 struct Operation {
 	@safe @nogc pure nothrow:
 
@@ -303,6 +370,12 @@ struct Operation {
 
 	struct Extern {
 		immutable ExternOp op;
+	}
+
+	struct ExternDynCall {
+		immutable NulTerminatedStr name;
+		immutable DynCallType returnType;
+		immutable Arr!DynCallType parameterTypes;
 	}
 
 	// Runs a special function (stack effect determined by the function)
@@ -378,6 +451,7 @@ struct Operation {
 		dup,
 		dupPartial,
 		extern_,
+		externDynCall,
 		fn,
 		jump,
 		pack,
@@ -397,6 +471,7 @@ struct Operation {
 		immutable Dup dup_;
 		immutable DupPartial dupPartial_;
 		immutable Extern extern_;
+		immutable ExternDynCall externDynCall;
 		immutable Fn fn_;
 		immutable Jump jump_;
 		immutable Pack pack_;
@@ -416,6 +491,7 @@ struct Operation {
 	immutable this(immutable Dup a) { kind_ = Kind.dup; dup_ = a; }
 	immutable this(immutable DupPartial a) { kind_ = Kind.dupPartial; dupPartial_ = a; }
 	immutable this(immutable Extern a) { kind_ = Kind.extern_; extern_ = a; }
+	@trusted immutable this(immutable ExternDynCall a) { kind_ = Kind.externDynCall; externDynCall = a; }
 	immutable this(immutable Fn a) { kind_ = Kind.fn; fn_ = a; }
 	immutable this(immutable Jump a) { kind_ = Kind.jump; jump_ = a; }
 	@trusted immutable this(immutable Pack a) { kind_ = Kind.pack; pack_ = a; }
@@ -474,7 +550,6 @@ enum ExternOp : u8 {
 	pthreadJoin,
 	pthreadYield,
 	setjmp,
-	usleep,
 	write,
 }
 
@@ -530,8 +605,6 @@ private immutable(Str) strOfExternOp(immutable ExternOp op) {
 				return "pthread_yield";
 			case ExternOp.setjmp:
 				return "setjmp";
-			case ExternOp.usleep:
-				return "usleep";
 			case ExternOp.write:
 				return "write";
 		}

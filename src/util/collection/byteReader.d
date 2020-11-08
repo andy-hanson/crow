@@ -2,7 +2,8 @@ module util.collection.byteReader;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr;
+import util.collection.arr : Arr, end;
+import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr;
 import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8;
 
 struct ByteReader {
@@ -56,12 +57,19 @@ void setPtr(ref ByteReader reader, immutable(u8)* ptr) {
 	return res;
 }
 
-@trusted immutable(Arr!Nat8) readU8Array(ref ByteReader reader, immutable size_t size) {
-	immutable Arr!Nat8 res = immutable Arr!Nat8(cast(immutable Nat8*) reader.ptr, size);
-	skipBytes(reader, size);
+@trusted immutable(Arr!T) readArray(T)(ref ByteReader reader, immutable size_t size) {
+	immutable Arr!T res = immutable Arr!T(cast(immutable T*) reader.ptr, size);
+	skipBytes(reader, size * T.sizeof);
 	return res;
 }
 
-@trusted immutable(Arr!Nat16) readU16ArrayDoNotSkipBytes(ref ByteReader reader, immutable size_t size) {
-	return immutable Arr!Nat16(cast(immutable Nat16*) reader.ptr, size);
+@trusted immutable(Arr!T) readArrayDoNotSkipBytes(T)(ref ByteReader reader, immutable size_t size) {
+	return immutable Arr!T(cast(immutable T*) reader.ptr, size);
+}
+
+@trusted immutable(NulTerminatedStr) readNulTerminatedStr(ref ByteReader reader) {
+	immutable char* begin = cast(immutable char*) reader.ptr;
+	immutable NulTerminatedStr res = nulTerminatedStrOfCStr(begin);
+	setPtr(reader, cast(immutable u8*) end(res.str));
+	return res;
 }

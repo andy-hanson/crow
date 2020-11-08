@@ -7,6 +7,7 @@ import interpret.bytecode :
 	ByteCodeOffset,
 	ByteCodeOffsetUnsigned,
 	DebugOperation,
+	DynCallType,
 	ExternOp,
 	FnOp,
 	Operation,
@@ -17,14 +18,16 @@ import util.collection.byteReader :
 	ByteReader,
 	getPtr,
 	readInt16,
+	readArray,
+	readArrayDoNotSkipBytes,
+	readNulTerminatedStr,
 	readU8,
-	readU8Array,
-	readU16ArrayDoNotSkipBytes,
 	readU16,
 	readU32,
 	readU64,
 	setPtr,
 	skipBytes;
+import util.collection.str : NulTerminatedStr;
 import util.types : incr, Nat8, Nat16, Nat32, Nat64, U4U4, u4u4OfU8, u8;
 import util.util : unreachable;
 
@@ -74,13 +77,20 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 		case OpCode.extern_:
 			return immutable Operation(immutable Operation.Extern(
 				cast(immutable ExternOp) readU8(reader.reader).raw()));
+		case OpCode.externDynCall:
+			immutable NulTerminatedStr name = readNulTerminatedStr(reader.reader);
+			static assert(DynCallType.sizeof == Nat8.sizeof);
+			immutable DynCallType returnType = cast(immutable DynCallType) readU8(reader.reader).raw();
+			immutable Arr!DynCallType parameterTypes =
+				readArray!DynCallType(reader.reader, readU8(reader.reader).raw());
+			return immutable Operation(immutable Operation.ExternDynCall(name, returnType, parameterTypes));
 		case OpCode.fn:
 			return immutable Operation(immutable Operation.Fn(cast(immutable FnOp) readU8(reader.reader).raw()));
 		case OpCode.jump:
 			return immutable Operation(immutable Operation.Jump(immutable ByteCodeOffset(readInt16(reader.reader))));
 		case OpCode.pack:
 			return immutable Operation(
-				immutable Operation.Pack(readU8Array(reader.reader, readU8(reader.reader).raw())));
+				immutable Operation.Pack(readArray!Nat8(reader.reader, readU8(reader.reader).raw())));
 		case OpCode.pushU32:
 			return immutable Operation(immutable Operation.PushValue(readU32(reader.reader).to64()));
 		case OpCode.pushU64:
@@ -95,7 +105,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 			return immutable Operation(immutable Operation.StackRef(readStackOffset(reader)));
 		case OpCode.switch_:
 			immutable Nat8 size = readU8(reader.reader);
-			immutable Arr!Nat16 offsets = readU16ArrayDoNotSkipBytes(reader.reader, size.raw());
+			immutable Arr!Nat16 offsets = readArrayDoNotSkipBytes!Nat16(reader.reader, size.raw());
 			return immutable Operation(immutable Operation.Switch(cast(immutable Arr!ByteCodeOffsetUnsigned) offsets));
 		case OpCode.write:
 			return immutable Operation(immutable Operation.Write(readU8(reader.reader), readU8(reader.reader)));

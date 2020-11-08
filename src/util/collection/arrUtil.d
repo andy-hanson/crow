@@ -23,6 +23,16 @@ import util.util : max, verify;
 	return immutable Arr!Out(cast(immutable) res, size(a));
 }
 
+void zipImpure(T, U)(
+	immutable Arr!T a,
+	immutable Arr!U b,
+	scope void delegate(ref immutable T, ref immutable U) @safe @nogc nothrow cb,
+) {
+	verify(sizeEq(a, b));
+	foreach (immutable size_t i; 0..size(a))
+		cb(at(a, i), at(b, i));
+}
+
 pure:
 
 @trusted immutable(Arr!T) arrLiteral(T, Alloc)(ref Alloc alloc, immutable T value) {

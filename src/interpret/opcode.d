@@ -34,6 +34,7 @@ enum OpCode : u8 {
 	dupPartial,
 
 	extern_,
+	externDynCall,
 
 	// args: FnOp fnOp
 	// reads another byte and interprets as a FnOp

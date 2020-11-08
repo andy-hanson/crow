@@ -1,8 +1,8 @@
 import
 	.alloc
-	.arr-utils: empty-arr map tail
+	.arr-utils: empty-arr map noctx-at tail
 	.bootstrap
-		== + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref false fun2
+		== + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref drop false fun2
 		fun-ptr1 fun-ptr2 fut get-ctx hard-assert int32 nat noctx-decr noctx-incr null null? one
 		pass ptr ptr-to ref-of-val set str todo to-int unsafe-to-nat void zero zero?
 	.cell: as-cell cell get
@@ -20,6 +20,8 @@ main-ptr alias
 
 | Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
+	drop: argv.deref to-str
+
 	| TODO: detect # hardware processors to use for n-threads
 	| TODO: get-nprocs
 	n-threads = one as<nat>

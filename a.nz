@@ -1,6 +1,6 @@
 import
 	io: exit-code print-sync
-	posix: jmp-buf jmp-buf-tag longjmp setjmp zero
+	posix: jmp-buf jmp-buf-tag longjmp setjmp zero usleep
 
 test-it int32() summon unsafe
 	tag = new<jmp-buf-tag> zero, zero, zero
@@ -14,6 +14,8 @@ test-it int32() summon unsafe
 			a
 
 main fut exit-code(args arr str) summon trusted
+	print-sync: "now sleep:"
+	usleep: 2000000
 	print-sync: test-it to-str
 	c = catch: {fail<void>: "message"}
 	match c

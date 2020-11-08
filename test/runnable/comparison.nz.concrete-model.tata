@@ -52,6 +52,10 @@ program(
 		struct(name: arr, body: record([field(size, false, type(false, nat)), field(data, false, type(false, ptr))]))
 		struct(name: ptr, body: builtin(ptr, [type(false, arr)]))
 		struct(name: fun-ptr2, body: builtin(fun-ptr, [type(true, fut), type(true, ctx), type(false, arr)]))
+		struct(name: comparison, body: union([type(false, less), type(false, equal), type(false, greater)]))
+		struct(name: less, body: record([]))
+		struct(name: equal, body: record([]))
+		struct(name: greater, body: record([]))
 		struct(
 			name: global-ctx
 			mut?: true
@@ -142,10 +146,6 @@ program(
 			mut?: true
 			ptr?: true
 			body: record([field(lk, false, type(false, lock)), field(value, true, type(false, nat))]))
-		struct(name: comparison, body: union([type(false, less), type(false, equal), type(false, greater)]))
-		struct(name: less, body: record([]))
-		struct(name: equal, body: record([]))
-		struct(name: greater, body: record([]))
 		struct(name: ptr, body: builtin(ptr, [type(false, bool)]))
 		struct(name: int, body: builtin(int-64, []))
 		struct(
@@ -343,74 +343,221 @@ program(
 					local(o, type(false, ok))
 					local(e, type(false, err))
 					local("<<matched>>", type(false, result))]
-				let(
-					n-threads
-					call(as, [call(one, [])])
+				seq(
+					call(drop, [call(to-str, [call(deref, [param-ref(argv)])])])
 					let(
-						gctx-by-val
-						record(
-							[
-								call(new-lock, [])
-								call(empty-arr, [])
-								local-ref(n-threads)
-								call(new-condition, [])
-								call(false, [])
-								call(false, [])])
+						n-threads
+						call(as, [call(one, [])])
 						let(
-							gctx
-							call(ref-of-val, [local-ref(gctx-by-val)])
+							gctx-by-val
+							record(
+								[
+									call(new-lock, [])
+									call(empty-arr, [])
+									local-ref(n-threads)
+									call(new-condition, [])
+									call(false, [])
+									call(false, [])])
 							let(
-								vat-by-val
-								call(new-vat, [local-ref(gctx), call(zero, []), local-ref(n-threads)])
+								gctx
+								call(ref-of-val, [local-ref(gctx-by-val)])
 								let(
-									vat
-									call(ref-of-val, [local-ref(vat-by-val)])
-									seq(
-										set-field(
-											local-ref(gctx)
-											vats
-											record([call(one, []), call(ptr-to, [local-ref(vat)])]))
-										let(
-											main-fut
-											call(
-												do-main
-												[
-													local-ref(gctx)
-													local-ref(vat)
-													param-ref(argc)
-													param-ref(argv)
-													param-ref(main-ptr)])
-											seq(
-												call(run-threads, [local-ref(n-threads), local-ref(gctx)])
-												cond(
-													get-field(local-ref(gctx), any-unhandled-exceptions?)
-													call(one, [])
-													match(
-														"<<matched>>"
-														call(must-be-resolved, [local-ref(main-fut)])
-														[
-															case(some(o), get-field(local-ref(o), value))
-															case(
-																some(e)
-																seq(
+									vat-by-val
+									call(new-vat, [local-ref(gctx), call(zero, []), local-ref(n-threads)])
+									let(
+										vat
+										call(ref-of-val, [local-ref(vat-by-val)])
+										seq(
+											set-field(
+												local-ref(gctx)
+												vats
+												record([call(one, []), call(ptr-to, [local-ref(vat)])]))
+											let(
+												main-fut
+												call(
+													do-main
+													[
+														local-ref(gctx)
+														local-ref(vat)
+														param-ref(argc)
+														param-ref(argv)
+														param-ref(main-ptr)])
+												seq(
+													call(run-threads, [local-ref(n-threads), local-ref(gctx)])
+													cond(
+														get-field(local-ref(gctx), any-unhandled-exceptions?)
+														call(one, [])
+														match(
+															"<<matched>>"
+															call(must-be-resolved, [local-ref(main-fut)])
+															[
+																case(some(o), get-field(local-ref(o), value))
+																case(
+																	some(e)
 																	seq(
-																		call(
-																			print-err-sync-no-newline
-																			[str-lit("main failed: ")])
-																		call(
-																			print-err-sync
-																			[
-																				get-field(
-																					get-field(local-ref(e), value)
-																					message)]))
-																	call(one, [])))]))))))))))))
-		fun(false, as, type(false, nat), none, [param(value, type(false, nat))], builtin([type(false, nat)]))
+																		seq(
+																			call(
+																				print-err-sync-no-newline
+																				[str-lit("main failed: ")])
+																			call(
+																				print-err-sync
+																				[
+																					get-field(
+																						get-field(local-ref(e), value)
+																						message)]))
+																		call(one, [])))])))))))))))))
+		fun(false, drop, type(false, void), none, [param(t, type(false, arr))], expr-body([], call(pass, [])))
+		fun(false, pass, type(false, void), none, [], builtin([]))
+		fun(
+			false
+			to-str
+			type(false, arr)
+			none
+			[param(a, type(false, ptr))]
+			expr-body([], call(arr-from-begin-end, [param-ref(a), call(find-cstr-end, [param-ref(a)])])))
+		fun(
+			false
+			arr-from-begin-end
+			type(false, arr)
+			none
+			[param(begin, type(false, ptr)), param(end, type(false, ptr))]
+			expr-body([], record([call(-, [param-ref(end), param-ref(begin)]), param-ref(begin)])))
+		fun(
+			false
+			-
+			type(false, nat)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body([], call(to-nat, [call(-, [param-ref(a), call(to-nat, [param-ref(b)])])])))
+		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, char)]))
+		fun(
+			false
+			-
+			type(false, ptr)
+			none
+			[param(p, type(false, ptr)), param(offset, type(false, nat))]
+			builtin([type(false, char)]))
+		fun(
+			false
+			find-cstr-end
+			type(false, ptr)
+			none
+			[param(a, type(false, ptr))]
+			expr-body([], call(find-char-in-cstr, [param-ref(a), call(literal, [str-lit("\0")])])))
+		fun(
+			false
+			find-char-in-cstr
+			type(false, ptr)
+			none
+			[param(a, type(false, ptr)), param(c, type(false, char))]
+			expr-body(
+				[]
+				cond(
+					call(==, [call(deref, [param-ref(a)]), param-ref(c)])
+					param-ref(a)
+					cond(
+						call(==, [call(deref, [param-ref(a)]), call(literal, [str-lit("\0")])])
+						call(todo, [])
+						call(find-char-in-cstr, [call(incr, [param-ref(a)]), param-ref(c)])))))
+		fun(
+			false
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, char)), param(b, type(false, char))]
+			expr-body(
+				[local("<<matched>>", type(false, comparison))]
+				match(
+					"<<matched>>"
+					call(<=>, [param-ref(a), param-ref(b)])
+					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
+		fun(
+			false
+			<=>
+			type(false, comparison)
+			none
+			[param(a, type(false, char)), param(b, type(false, char))]
+			builtin([type(false, char)]))
+		fun(false, false, type(false, bool), none, [], builtin([]))
+		fun(false, true, type(false, bool), none, [], builtin([]))
+		fun(false, deref, type(false, char), none, [param(p, type(false, ptr))], builtin([type(false, char)]))
+		fun(
+			false
+			literal
+			type(false, char)
+			none
+			[param(a, type(false, arr))]
+			expr-body([], call(noctx-at, [param-ref(a), call(zero, [])])))
+		fun(
+			false
+			noctx-at
+			type(false, char)
+			none
+			[param(a, type(false, arr)), param(index, type(false, nat))]
+			expr-body(
+				[]
+				seq(
+					call(hard-assert, [call(<, [param-ref(index), get-field(param-ref(a), size)])])
+					call(deref, [call(+, [get-field(param-ref(a), data), param-ref(index)])]))))
+		fun(
+			false
+			hard-assert
+			type(false, void)
+			none
+			[param(condition, type(false, bool))]
+			expr-body(
+				[]
+				call(if, [param-ref(condition), call(pass, []), call(hard-fail, [str-lit("Assertion failed!")])])))
+		fun(
+			false
+			if
+			type(false, void)
+			none
+			[param(cond, type(false, bool)), param(if-true, type(false, void)), param(if-false, type(false, void))]
+			builtin([type(false, void)]))
+		fun(false, hard-fail, type(false, void), none, [param(reason, type(false, arr))], builtin([type(false, void)]))
+		fun(
+			false
+			<
+			type(false, bool)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			expr-body(
+				[local("<<matched>>", type(false, comparison))]
+				match(
+					"<<matched>>"
+					call(<=>, [param-ref(a), param-ref(b)])
+					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
+		fun(
+			false
+			<=>
+			type(false, comparison)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			builtin([type(false, nat)]))
+		fun(
+			false
+			+
+			type(false, ptr)
+			none
+			[param(p, type(false, ptr)), param(offset, type(false, nat))]
+			builtin([type(false, char)]))
+		fun(false, zero, type(false, nat), none, [], builtin([]))
+		fun(false, todo, type(false, ptr), none, [], expr-body([], call(hard-fail, [str-lit("TODO")])))
+		fun(false, hard-fail, type(false, ptr), none, [param(reason, type(false, arr))], builtin([type(false, ptr)]))
+		fun(
+			false
+			incr
+			type(false, ptr)
+			none
+			[param(p, type(false, ptr))]
+			expr-body([], call(+, [param-ref(p), call(one, [])])))
 		fun(false, one, type(false, nat), none, [], builtin([]))
+		fun(false, deref, type(false, ptr), none, [param(p, type(false, ptr))], builtin([type(false, ptr)]))
+		fun(false, as, type(false, nat), none, [param(value, type(false, nat))], builtin([type(false, nat)]))
 		fun(false, new-lock, type(false, lock), none, [], expr-body([], record([call(new-atomic-bool, [])])))
 		fun(false, new-atomic-bool, type(false, atomic-bool), none, [], expr-body([], record([call(false, [])])))
-		fun(false, false, type(false, bool), none, [], builtin([]))
 		fun(false, empty-arr, type(false, arr), none, [], expr-body([], record([call(zero, []), call(null, [])])))
-		fun(false, zero, type(false, nat), none, [], builtin([]))
 		fun(false, null, type(false, ptr), none, [], builtin([type(true, vat)]))
 		fun(
 			false
@@ -494,24 +641,6 @@ program(
 			none
 			[param(condition, type(false, bool))]
 			expr-body([], call(hard-assert, [call(not, [param-ref(condition)])])))
-		fun(
-			false
-			hard-assert
-			type(false, void)
-			none
-			[param(condition, type(false, bool))]
-			expr-body(
-				[]
-				call(if, [param-ref(condition), call(pass, []), call(hard-fail, [str-lit("Assertion failed!")])])))
-		fun(
-			false
-			if
-			type(false, void)
-			none
-			[param(cond, type(false, bool)), param(if-true, type(false, void)), param(if-false, type(false, void))]
-			builtin([type(false, void)]))
-		fun(false, pass, type(false, void), none, [], builtin([]))
-		fun(false, hard-fail, type(false, void), none, [param(reason, type(false, arr))], builtin([type(false, void)]))
 		fun(false, not, type(false, bool), none, [param(a, type(false, bool))], builtin([]))
 		fun(
 			false
@@ -532,14 +661,6 @@ program(
 					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
-		fun(
-			false
-			<=>
-			type(false, comparison)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			builtin([type(false, nat)]))
-		fun(false, true, type(false, bool), none, [], builtin([]))
 		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, nat8)]))
 		fun(false, null, type(false, ptr), none, [], builtin([type(false, nat8)]))
 		fun(
@@ -1026,18 +1147,6 @@ program(
 			expr-body(
 				[]
 				seq(call(hard-assert, [call(<, [param-ref(n), call(billion, [])])]), call(wrap-incr, [param-ref(n)]))))
-		fun(
-			false
-			<
-			type(false, bool)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			expr-body(
-				[local("<<matched>>", type(false, comparison))]
-				match(
-					"<<matched>>"
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
 		fun(
 			false
 			billion
@@ -2328,7 +2437,6 @@ program(
 				seq(
 					call(hard-assert, [call(<, [param-ref(index), get-field(param-ref(a), size)])])
 					call(deref, [call(+, [get-field(param-ref(a), data), param-ref(index)])]))))
-		fun(false, deref, type(false, ptr), none, [param(p, type(false, ptr))], builtin([type(false, ptr)]))
 		fun(
 			true
 			lambda(map, 0)
@@ -2342,111 +2450,6 @@ program(
 					[
 						get-field(param-ref("<<closure>>"), mapper)
 						call(at, [get-field(param-ref("<<closure>>"), a), param-ref(i)])])))
-		fun(
-			false
-			to-str
-			type(false, arr)
-			none
-			[param(a, type(false, ptr))]
-			expr-body([], call(arr-from-begin-end, [param-ref(a), call(find-cstr-end, [param-ref(a)])])))
-		fun(
-			false
-			arr-from-begin-end
-			type(false, arr)
-			none
-			[param(begin, type(false, ptr)), param(end, type(false, ptr))]
-			expr-body([], record([call(-, [param-ref(end), param-ref(begin)]), param-ref(begin)])))
-		fun(
-			false
-			-
-			type(false, nat)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body([], call(to-nat, [call(-, [param-ref(a), call(to-nat, [param-ref(b)])])])))
-		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, char)]))
-		fun(
-			false
-			-
-			type(false, ptr)
-			none
-			[param(p, type(false, ptr)), param(offset, type(false, nat))]
-			builtin([type(false, char)]))
-		fun(
-			false
-			find-cstr-end
-			type(false, ptr)
-			none
-			[param(a, type(false, ptr))]
-			expr-body([], call(find-char-in-cstr, [param-ref(a), call(literal, [str-lit("\0")])])))
-		fun(
-			false
-			find-char-in-cstr
-			type(false, ptr)
-			none
-			[param(a, type(false, ptr)), param(c, type(false, char))]
-			expr-body(
-				[]
-				cond(
-					call(==, [call(deref, [param-ref(a)]), param-ref(c)])
-					param-ref(a)
-					cond(
-						call(==, [call(deref, [param-ref(a)]), call(literal, [str-lit("\0")])])
-						call(todo, [])
-						call(find-char-in-cstr, [call(incr, [param-ref(a)]), param-ref(c)])))))
-		fun(
-			false
-			==
-			type(false, bool)
-			none
-			[param(a, type(false, char)), param(b, type(false, char))]
-			expr-body(
-				[local("<<matched>>", type(false, comparison))]
-				match(
-					"<<matched>>"
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
-		fun(
-			false
-			<=>
-			type(false, comparison)
-			none
-			[param(a, type(false, char)), param(b, type(false, char))]
-			builtin([type(false, char)]))
-		fun(false, deref, type(false, char), none, [param(p, type(false, ptr))], builtin([type(false, char)]))
-		fun(
-			false
-			literal
-			type(false, char)
-			none
-			[param(a, type(false, arr))]
-			expr-body([], call(noctx-at, [param-ref(a), call(zero, [])])))
-		fun(
-			false
-			noctx-at
-			type(false, char)
-			none
-			[param(a, type(false, arr)), param(index, type(false, nat))]
-			expr-body(
-				[]
-				seq(
-					call(hard-assert, [call(<, [param-ref(index), get-field(param-ref(a), size)])])
-					call(deref, [call(+, [get-field(param-ref(a), data), param-ref(index)])]))))
-		fun(
-			false
-			+
-			type(false, ptr)
-			none
-			[param(p, type(false, ptr)), param(offset, type(false, nat))]
-			builtin([type(false, char)]))
-		fun(false, todo, type(false, ptr), none, [], expr-body([], call(hard-fail, [str-lit("TODO")])))
-		fun(false, hard-fail, type(false, ptr), none, [param(reason, type(false, arr))], builtin([type(false, ptr)]))
-		fun(
-			false
-			incr
-			type(false, ptr)
-			none
-			[param(p, type(false, ptr))]
-			expr-body([], call(+, [param-ref(p), call(one, [])])))
 		fun(
 			true
 			lambda(lambda(add-first-task, 0), 0)

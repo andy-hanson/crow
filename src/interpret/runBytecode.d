@@ -13,6 +13,7 @@ import interpret.bytecode :
 	ByteCodeIndex,
 	ByteCodeSource,
 	DebugOperation,
+	DynCallType,
 	isCall,
 	ExternOp,
 	matchDebugOperationImpure,
@@ -73,7 +74,7 @@ import util.writer : finishWriterToCStr, Writer, writeChar, writePtrRange, write
 	immutable Str executablePath,
 	immutable Arr!Str args,
 ) {
-	Interpreter!Extern interpreter = newInterpreter(
+	Interpreter!Extern interpreter = Interpreter!Extern(
 		ptrTrustMe_mut(extern_),
 		ptrTrustMe(lowProgram),
 		ptrTrustMe(byteCode),
@@ -103,20 +104,6 @@ import util.writer : finishWriterToCStr, Writer, writeChar, writePtrRange, write
 	freeArr(externAlloc, allArgs);
 }
 
-pure @trusted Interpreter!Extern newInterpreter(Extern)(
-	Ptr!Extern extern_,
-	immutable Ptr!LowProgram lowProgram,
-	immutable Ptr!ByteCode byteCode,
-	immutable Ptr!FilesInfo filesInfo,
-) {
-	return Interpreter!Extern(
-		lowProgram,
-		byteCode,
-		filesInfo,
-		newByteCodeReader(begin(byteCode.byteCode), byteCode.main.index),
-		extern_);
-}
-
 enum StepResult {
 	continue_,
 	exit,
@@ -128,11 +115,22 @@ private alias ReturnStack = GlobalAllocatedStack!(immutable(u8)*, 1024);
 private alias StackStartStack = GlobalAllocatedStack!(Nat16, 1024);
 
 struct Interpreter(Extern) {
+	@safe @nogc pure nothrow:
+	@disable this(ref const Interpreter);
+
+	@trusted this(Ptr!Extern e, immutable Ptr!LowProgram p, immutable Ptr!ByteCode b, immutable Ptr!FilesInfo f) {
+		extern_ = e;
+		lowProgram = p;
+		byteCode = b;
+		filesInfo = f;
+		reader = newByteCodeReader(begin(byteCode.byteCode), byteCode.main.index);
+	}
+
+	Ptr!Extern extern_;
 	immutable Ptr!LowProgram lowProgram;
 	immutable Ptr!ByteCode byteCode;
 	immutable Ptr!FilesInfo filesInfo;
 	ByteCodeReader reader;
-	Extern extern_;
 	DataStack dataStack;
 	ReturnStack returnStack;
 	// Parallel to return stack. Has the stack entry before the function's arguments.
@@ -339,6 +337,10 @@ immutable(StepResult) step(Extern)(ref Interpreter!Extern a) {
 			applyExternOp(a, it.op);
 			return StepResult.continue_;
 		},
+		(ref immutable Operation.ExternDynCall it) {
+			applyExternDynCall(a, it);
+			return StepResult.continue_;
+		},
 		(ref immutable Operation.Fn it) {
 			applyFn(a.dataStack, it.fnOp);
 			return StepResult.continue_;
@@ -542,9 +544,6 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			overwriteMemory(jmpBufPtr, createInterpreterRestore(a));
 			push(a.dataStack, immutable Nat64(0));
 			break;
-		case ExternOp.usleep:
-			a.extern_.usleep(pop(a.dataStack).raw());
-			break;
 		case ExternOp.write:
 			immutable size_t nBytes = pop(a.dataStack).raw();
 			immutable char* buf = cast(immutable char*) pop(a.dataStack).raw();
@@ -553,6 +552,13 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			push(a.dataStack, immutable Nat64(res));
 			break;
 	}
+}
+
+void applyExternDynCall(Extern)(ref Interpreter!Extern a, ref immutable Operation.ExternDynCall op) {
+	immutable Arr!Nat64 params = popN(a.dataStack, sizeNat(op.parameterTypes).to8());
+	immutable Nat64 value = a.extern_.doDynCall(op.name, op.returnType, params, op.parameterTypes);
+	if (op.returnType != DynCallType.void_)
+		push(a.dataStack, value);
 }
 
 pure: // TODO: many more are pure actually..

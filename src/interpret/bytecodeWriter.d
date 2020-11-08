@@ -9,6 +9,7 @@ import interpret.bytecode :
 	ByteCodeOffset,
 	ByteCodeOffsetUnsigned,
 	ByteCodeSource,
+	DynCallType,
 	ExternOp,
 	FileToFuns,
 	FnOp,
@@ -256,6 +257,16 @@ void writeAddConstantNat64(Alloc)(
 	writeFn(writer, source, FnOp.wrapAddIntegral);
 }
 
+void writeMulConstantNat64(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	ref immutable ByteCodeSource source,
+	immutable Nat64 arg,
+) {
+	verify(!zero(arg) && arg != immutable Nat64(1));
+	writePushConstant(writer, source, arg);
+	writeFn(writer, source, FnOp.wrapMulIntegral);
+}
+
 // Consume stack space without caring what's in it. Useful for unions.
 void writePushEmptySpace(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
@@ -485,7 +496,6 @@ void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeS
 				return -2;
 			case ExternOp.free:
 			case ExternOp.pthreadJoin:
-			case ExternOp.usleep:
 				return -1;
 			case ExternOp.malloc:
 			case ExternOp.setjmp:
@@ -498,6 +508,28 @@ void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeS
 	pushOpcode(writer, source, OpCode.extern_);
 	pushU8(writer, source, immutable Nat8(op));
 	writer.nextStackEntry += stackEffect;
+}
+
+void writeExternDynCall(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	ref immutable ByteCodeSource source,
+	immutable Str name,
+	immutable DynCallType returnType,
+	immutable Arr!DynCallType parameterTypes,
+) {
+	pushOpcode(writer, source, OpCode.externDynCall);
+	foreach (immutable char c; range(name))
+		pushU8(writer, source, immutable Nat8(c));
+	pushU8(writer, source, immutable Nat8('\0'));
+	pushU8(writer, source, immutable Nat8(returnType));
+	pushU8(writer, source, sizeNat(parameterTypes).to8());
+	foreach (immutable DynCallType t; range(parameterTypes)) {
+		verify(t != DynCallType.void_);
+		pushU8(writer, source, immutable Nat8(t));
+	}
+
+	writer.nextStackEntry -= sizeNat(parameterTypes).to16();
+	writer.nextStackEntry += returnType == DynCallType.void_ ? immutable Nat16(0) : immutable Nat16(1);
 }
 
 void writeFn(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable FnOp fn) {

@@ -46,6 +46,10 @@ struct NulTerminatedStr {
 	}
 }
 
+immutable(Str) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
+	return rtail(a.str);
+}
+
 private @trusted immutable(NulTerminatedStr) strToNulTerminatedStr(Alloc)(ref Alloc alloc, immutable Str s) {
 	char* res = cast(char*) alloc.allocate(size(s) + 1);
 	memcpy(cast(ubyte*) res, cast(ubyte*) begin(s), size(s));
