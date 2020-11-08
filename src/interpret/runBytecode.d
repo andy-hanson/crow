@@ -425,12 +425,12 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 			alias Alloc = StackAlloc!("debug", 1024 * 8);
 			Alloc alloc;
 			Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-			writeStatic(writer, "want to access: ");
+			writeStatic(writer, "accessing potentially invalid pointer: ");
 			writePtrRange(writer, ptrRange);
 			writePtrRanges(writer, a);
 			print(finishWriterToCStr(writer));
 		}
-		todo!void("ptr not valid");
+		//todo!void("ptr not valid");
 	}
 }
 

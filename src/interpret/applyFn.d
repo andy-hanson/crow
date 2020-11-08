@@ -144,8 +144,13 @@ void applyFn(ref DataStack dataStack, immutable FnOp fn) {
 	}
 }
 
+//TODO:MOVE
 pure immutable(Nat64) nat64OfI32(immutable i32 a) {
-	return immutable Nat64(cast(u64) (cast(i64) a));
+	return nat64OfI64(a);
+}
+
+pure immutable(Nat64) nat64OfI64(immutable i64 a) {
+	return immutable Nat64(cast(u64) a);
 }
 
 private:

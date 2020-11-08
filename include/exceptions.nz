@@ -18,6 +18,9 @@ get-exception-ctx exception-ctx() unsafe
 number-to-throw int32()
 	seven
 
+rethrow ?t(e exception)
+	e throw
+
 throw ?t(e exception) trusted
 	exn-ctx = get-exception-ctx
 	hard-forbid: exn-ctx.jmp-buf-ptr null?

@@ -23,10 +23,10 @@ import util.util : max, verify;
 	return immutable Arr!Out(cast(immutable) res, size(a));
 }
 
-void zipImpure(T, U)(
+@system void zipImpureSystem(T, U)(
 	immutable Arr!T a,
 	immutable Arr!U b,
-	scope void delegate(ref immutable T, ref immutable U) @safe @nogc nothrow cb,
+	scope void delegate(ref immutable T, ref immutable U) @nogc nothrow cb,
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0..size(a))

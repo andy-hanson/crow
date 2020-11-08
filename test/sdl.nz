@@ -45,8 +45,8 @@ sdl-rect record
 
 | SDL_render.h
 
-sdl-create-renderer ptr sdl-renderer
-	window ptr sdl-window
+sdl-create-renderer sdl-renderer
+	window sdl-window
 	index c-int
 	flags sdl-flags
 spec
@@ -55,24 +55,24 @@ spec
 	summon
 	unsafe
 
-sdl-create-texture-from-surface ptr sdl-texture
-	renderer ptr sdl-renderer
-	surface ptr sdl-surface
+sdl-create-texture-from-surface sdl-texture
+	renderer sdl-renderer
+	surface sdl-surface
 spec
 	extern<"SDL_CreateTextureFromSurface">
 	noctx
 	summon
 	unsafe
 
-sdl-destroy-renderer void(renderer ptr sdl-renderer) extern<"SDL_DestroyRenderer"> noctx summon unsafe
+sdl-destroy-renderer void(renderer sdl-renderer) extern<"SDL_DestroyRenderer"> noctx summon unsafe
 
-sdl-destroy-texture void(texture ptr sdl-texture) extern<"SDL_DestroyTexture"> noctx summon unsafe
+sdl-destroy-texture void(texture sdl-texture) extern<"SDL_DestroyTexture"> noctx summon unsafe
 
-sdl-render-clear c-int(renderer ptr sdl-renderer) extern<"SDL_RenderClear"> noctx summon unsafe
+sdl-render-clear c-int(renderer sdl-renderer) extern<"SDL_RenderClear"> noctx summon unsafe
 
 sdl-render-copy c-int
-	renderer ptr sdl-renderer
-	texture ptr sdl-texture
+	renderer sdl-renderer
+	texture sdl-texture
 	src-rect ptr sdl-rect
 	dest-rect ptr sdl-rect
 spec
@@ -89,7 +89,7 @@ sdl-renderer-accelerated sdl-flags()
 sdl-renderer-present-vsync sdl-flags()
 	4
 
-sdl-render-present void(renderer ptr sdl-renderer) extern<"SDL_RenderPresent"> noctx summon unsafe
+sdl-render-present void(renderer sdl-renderer) extern<"SDL_RenderPresent"> noctx summon unsafe
 
 sdl-texture extern-ptr
 
@@ -97,17 +97,17 @@ sdl-texture extern-ptr
 
 sdl-rwops extern-ptr
 
-sdl-rw-from-file ptr sdl-rwops(file c-str, mode c-str) extern<"SDL_RWFromFile"> noctx summon unsafe
+sdl-rw-from-file sdl-rwops(file c-str, mode c-str) extern<"SDL_RWFromFile"> noctx summon unsafe
 
 | SDL_surface.h
 
-sdl-free-surface void(surface ptr sdl-surface) extern<"SDL_FreeSurface"> noctx summon unsafe
+sdl-free-surface void(surface sdl-surface) extern<"SDL_FreeSurface"> noctx summon unsafe
 
 sdl-surface extern-ptr
 
-sdl-load-bmp-rw ptr sdl-surface(src ptr sdl-rwops, freesrc c-int) extern<"SDL_LoadBMP_RW"> noctx summon unsafe
+sdl-load-bmp-rw sdl-surface(src sdl-rwops, freesrc c-int) extern<"SDL_LoadBMP_RW"> noctx summon unsafe
 
-sdl-load-bmp ptr sdl-surface(file str) summon unsafe
+sdl-load-bmp sdl-surface(file str) summon unsafe
 	file.to-c-str sdl-rw-from-file "rb" sdl-load-bmp-rw 1
 
 | SDL_scancode.h
@@ -131,11 +131,11 @@ sdl-num-scancodes sdl-scancode()
 
 | SDL_video.h
 
-sdl-destroy-window void(window ptr sdl-window) extern<"SDL_DestroyWindow"> noctx summon unsafe
+sdl-destroy-window void(window sdl-window) extern<"SDL_DestroyWindow"> noctx summon unsafe
 
 sdl-window extern-ptr
 
-sdl-create-window ptr sdl-window
+sdl-create-window sdl-window
 	title c-str
 	x c-int
 	y c-int
@@ -153,53 +153,17 @@ sdl-window-shown sdl-flags()
 
 | Not lib code
 
+
 main fut exit-code(args arr str) summon trusted
 	"sdl-init-video" handle-sdl-error: sdl-init-video sdl-init
 	window = "Hello World!" sdl-create-window 100, 100, 640, 480, sdl-window-shown
-	window.null? if: "sdl-create-window".fail-sdl-error, pass
-	renderer = window sdl-create-renderer: -1, sdl-renderer-accelerated bits-or sdl-renderer-present-vsync
-	when
-		renderer null?
-			window sdl-destroy-window
-			"sdl-create-renderer" fail-sdl-error
-		else
-			pass
+	window.as-any-ptr.null? if: "sdl-create-window".fail-sdl-error, pass
+	renderer = window new-renderer
+	texture = renderer create-texture
 
-	image-path = "hello.bmp"
-	bmp = image-path sdl-load-bmp
-	when
-		bmp null?
-			renderer sdl-destroy-renderer
-			window sdl-destroy-window
-			"sdl-loadbmp-error" fail-sdl-error
-		else
-			pass
+	20 repeat {renderer main-loop texture}
 
-	texture = renderer sdl-create-texture-from-surface bmp
-	bmp sdl-free-surface
-	when
-		texture null?
-			renderer sdl-destroy-renderer
-			window sdl-destroy-window
-			"sdl-create-texture-from-surface" fail-sdl-error
-		else
-			pass
-
-	20 repeat \
-		sdl-pump-events
-		key-states-ptr = null sdl-get-keyboard-state
-		key-states = sdl-num-scancodes ptr-as-arr key-states-ptr
-		when
-			key-states at sdl-scancode-return zero?
-				print-sync: "no return"
-			else
-				print-sync: "return is pressed"
-
-		"sdl-render-clear" handle-sdl-error: renderer sdl-render-clear
-		"sdl-render-copy" handle-sdl-error: renderer sdl-render-copy texture, null, null
-		renderer sdl-render-present
-		100 sleep-ms-sync
-
+	| TODO: use 'finally'
 	texture sdl-destroy-texture
 	renderer sdl-destroy-renderer
 	window sdl-destroy-window
@@ -208,6 +172,46 @@ main fut exit-code(args arr str) summon trusted
 	print-sync: "Bye bye"
 	zero resolved
 
+main-loop void(renderer sdl-renderer, texture sdl-texture) summon trusted
+	sdl-pump-events
+	key-states-ptr = null sdl-get-keyboard-state
+	key-states = sdl-num-scancodes ptr-as-arr key-states-ptr
+	when
+		key-states at sdl-scancode-return zero?
+			print-sync: "no return"
+		else
+			print-sync: "return is pressed"
+
+	"sdl-render-clear" handle-sdl-error: renderer sdl-render-clear
+	"sdl-render-copy" handle-sdl-error: renderer sdl-render-copy texture, null, null
+	renderer sdl-render-present
+	100 sleep-ms-sync
+
+new-renderer sdl-renderer(window sdl-window) summon trusted
+	renderer = window sdl-create-renderer: -1, sdl-renderer-accelerated bits-or sdl-renderer-present-vsync
+	when
+		renderer.as-any-ptr null?
+			"sdl-create-renderer" fail-sdl-error
+		else
+			pass
+	renderer
+
+create-texture sdl-texture(renderer sdl-renderer) summon trusted
+	image-path = "hello.bmp"
+	bmp = image-path sdl-load-bmp
+	when
+		bmp.as-any-ptr null?
+			"sdl-loadbmp-error" fail-sdl-error
+		else
+			pass
+	texture = renderer sdl-create-texture-from-surface bmp
+	bmp sdl-free-surface
+	when
+		texture.as-any-ptr null?
+			"sdl-create-texture-from-surface" fail-sdl-error
+		else
+			pass
+	texture
 
 
 handle-sdl-error void(operation str, err c-int) summon trusted

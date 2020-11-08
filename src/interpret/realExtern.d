@@ -6,12 +6,12 @@ module interpret.realExtern;
 import core.sys.posix.unistd : posixWrite = write;
 
 import interpret.allocTracker : AllocTracker;
-import interpret.applyFn : nat64OfI32;
+import interpret.applyFn : nat64OfI32, nat64OfI64;
 import interpret.bytecode : DynCallType;
 import util.alloc.mallocator : Mallocator;
 import util.bools : Bool;
 import util.collection.arr : Arr;
-import util.collection.arrUtil : zipImpure;
+import util.collection.arrUtil : zipImpureSystem;
 import util.collection.str : asCStr, NulTerminatedStr;
 import util.ptr : PtrRange;
 import util.types : Nat64;
@@ -87,7 +87,7 @@ struct RealExtern {
 		allocTracker.writeMallocedRanges!WriterAlloc(writer);
 	}
 
-	immutable(Nat64) doDynCall(
+	@trusted immutable(Nat64) doDynCall(
 		ref immutable NulTerminatedStr name,
 		immutable DynCallType returnType,
 		ref immutable Arr!Nat64 parameters,
@@ -98,26 +98,44 @@ struct RealExtern {
 		verify(ptr != null);
 
 		dcReset(dcVm);
-		zipImpure(parameters, parameterTypes, (ref immutable Nat64 value, ref immutable DynCallType type) {
+		zipImpureSystem!(Nat64, DynCallType)(parameters, parameterTypes, (ref immutable Nat64 value, ref immutable DynCallType type) {
 			final switch (type) {
 				case DynCallType.bool_:
-				case DynCallType.char_:
-				case DynCallType.int8:
-				case DynCallType.int16:
-				case DynCallType.int32:
-				case DynCallType.int64:
-				case DynCallType.float32:
-				case DynCallType.float64:
-				case DynCallType.nat8:
-				case DynCallType.nat16:
-				case DynCallType.nat32:
 					todo!void("handle this type");
 					break;
+				case DynCallType.char_:
+					todo!void("handle this type");
+					break;
+				case DynCallType.int8:
+					todo!void("handle this type");
+					break;
+				case DynCallType.int16:
+					todo!void("handle this type");
+					break;
+				case DynCallType.int32:
+					todo!void("handle this type");
+					break;
+				case DynCallType.float32:
+					todo!void("handle this type");
+					break;
+				case DynCallType.float64:
+					todo!void("handle this type");
+					break;
+				case DynCallType.nat8:
+					todo!void("handle this type");
+					break;
+				case DynCallType.nat16:
+					todo!void("handle this type");
+					break;
+				case DynCallType.nat32:
+					dcArgInt(dcVm, cast(uint) value.raw());
+					break;
+				case DynCallType.int64:
 				case DynCallType.nat64:
 					dcArgLong(dcVm, value.raw());
 					break;
 				case DynCallType.pointer:
-					todo!void("handle this type");
+					dcArgPointer(dcVm, cast(void*) value.raw());
 					break;
 				case DynCallType.void_:
 					unreachable!void();
@@ -127,21 +145,31 @@ struct RealExtern {
 		immutable Nat64 res = () {
 			final switch (returnType) {
 				case DynCallType.bool_:
+					return todo!(immutable Nat64)("handle this type");
 				case DynCallType.char_:
+					return todo!(immutable Nat64)("handle this type");
 				case DynCallType.int8:
+					return todo!(immutable Nat64)("handle this type");
 				case DynCallType.int16:
 					return todo!(immutable Nat64)("handle this type");
 				case DynCallType.int32:
 					return nat64OfI32(dcCallInt(dcVm, ptr));
 				case DynCallType.int64:
+					return nat64OfI64(dcCallLong(dcVm, ptr));
 				case DynCallType.float32:
-				case DynCallType.float64:
-				case DynCallType.nat8:
-				case DynCallType.nat16:
-				case DynCallType.nat32:
-				case DynCallType.nat64:
-				case DynCallType.pointer:
 					return todo!(immutable Nat64)("handle this type");
+				case DynCallType.float64:
+					return todo!(immutable Nat64)("handle this type");
+				case DynCallType.nat8:
+					return todo!(immutable Nat64)("handle this type");
+				case DynCallType.nat16:
+					return todo!(immutable Nat64)("handle this type");
+				case DynCallType.nat32:
+					return todo!(immutable Nat64)("handle this type");
+				case DynCallType.nat64:
+					return todo!(immutable Nat64)("handle this type");
+				case DynCallType.pointer:
+					return immutable Nat64(cast(size_t) dcCallPointer(dcVm, ptr));
 				case DynCallType.void_:
 					dcCallVoid(dcVm, ptr);
 					return immutable Nat64(0);

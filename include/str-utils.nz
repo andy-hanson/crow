@@ -5,8 +5,8 @@ import
 literal char(a str) noctx
 	a noctx-at zero
 
-literal c-str(a str) noctx
-	a data
+literal c-str(a str)
+	a to-c-str
 
 to-c-str c-str(a str)
 	a + "\0" data
