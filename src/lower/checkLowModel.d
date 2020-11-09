@@ -2,6 +2,7 @@ module lower.checkLowModel;
 
 @safe @nogc pure nothrow:
 
+import concreteModel : Constant, matchConstant;
 import lower.lowExprHelpers : boolType, int32Type, nat64Type, voidType;
 import lowModel :
 	asFunPtrType,
@@ -23,7 +24,6 @@ import lowModel :
 	matchLowExprKind,
 	matchLowFunBody,
 	matchLowType,
-	matchSpecialConstant,
 	PrimitiveType,
 	symOfPrimitiveType;
 import sexprOfConcreteModel : tataOfConcreteStructRef;
@@ -156,24 +156,8 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 		(ref immutable LowExprKind.SizeOf it) {
 			checkTypeEqual(ctx.ctx, type, nat64Type);
 		},
-		(ref immutable LowExprKind.SpecialConstant it) {
-			matchSpecialConstant!void(
-				it,
-				(immutable LowExprKind.SpecialConstant.BoolConstant) {
-					checkTypeEqual(ctx.ctx, type, boolType);
-				},
-				(immutable LowExprKind.SpecialConstant.Integral) {
-					// TODO
-				},
-				(immutable LowExprKind.SpecialConstant.Null) {
-					// TODO
-				},
-				(immutable LowExprKind.SpecialConstant.StrConstant) {
-					// TODO
-				},
-				(immutable LowExprKind.SpecialConstant.Void) {
-					checkTypeEqual(ctx.ctx, type, voidType);
-				});
+		(ref immutable Constant it) {
+			// Constants are untyped, so can't check more
 		},
 		(ref immutable LowExprKind.Special0Ary it) {
 			final switch (it.kind) {

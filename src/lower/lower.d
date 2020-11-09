@@ -3,6 +3,8 @@ module lower.lower;
 @safe @nogc pure nothrow:
 
 import concreteModel :
+	AllConstantsConcrete,
+	ArrTypeAndConstantsConcrete,
 	asBuiltin,
 	asRecord,
 	asUnion,
@@ -26,7 +28,8 @@ import concreteModel :
 	matchConcreteExpr,
 	matchConcreteFunBody,
 	matchConcreteFunSource,
-	matchConcreteStructBody;
+	matchConcreteStructBody,
+	PointerTypeAndConstantsConcrete;
 import lower.checkLowModel : checkLowProgram;
 import lower.generateCompareFun : ComparisonTypes, generateCompareFun;
 import lower.getBuiltinCall : BuiltinKind, getBuiltinKind, matchBuiltinKind;
@@ -46,6 +49,8 @@ import lower.lowExprHelpers :
 	wrapMulNat64,
 	writeToPtr;
 import lowModel :
+	AllConstantsLow,
+	ArrTypeAndConstantsLow,
 	asFunPtrType,
 	asNonFunPtrType,
 	asRecordType,
@@ -74,6 +79,7 @@ import lowModel :
 	LowUnion,
 	matchLowType,
 	nPrimitiveTypes,
+	PointerTypeAndConstantsLow,
 	PrimitiveType;
 import model : decl, FunInst, name;
 import util.alloc.stackAlloc : StackAlloc;
@@ -104,12 +110,14 @@ import util.util : todo, unreachable, verify;
 
 immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a.allStructs);
+	immutable AllConstantsLow allConstants = convertAllConstants(alloc, allTypes.getLowTypeCtx, a.allConstants);
 	immutable AllLowFuns allFuns = getAllLowFuns!Alloc(
 		alloc,
 		allTypes.allTypes,
 		allTypes.getLowTypeCtx,
 		a);
 	immutable LowProgram res = immutable LowProgram(
+		allConstants,
 		allTypes.allTypes.allExternPtrTypes,
 		allTypes.allTypes.allFunPtrTypes,
 		allTypes.allTypes.allRecords,
@@ -138,6 +146,21 @@ immutable(LowFunIndex) getCompareFun(ref const CompareFuns compareFuns, ref immu
 }
 
 private:
+
+immutable(AllConstantsLow) convertAllConstants(Alloc)(
+	ref Alloc alloc,
+	ref GetLowTypeCtx ctx,
+	ref immutable AllConstantsConcrete a,
+) {
+	immutable Arr!ArrTypeAndConstantsLow arrs = map(alloc, a.arrs, (ref immutable ArrTypeAndConstantsConcrete it) {
+		immutable LowType arrType = lowTypeFromConcreteStruct(alloc, ctx, it.arrType);
+		immutable LowType elementType = lowTypeFromConcreteType(alloc, ctx, it.elementType);
+		return immutable ArrTypeAndConstantsLow(asRecordType(arrType), elementType, it.constants);
+	});
+	immutable Arr!PointerTypeAndConstantsLow records = map(alloc, a.pointers, (ref immutable PointerTypeAndConstantsConcrete it) =>
+		immutable PointerTypeAndConstantsLow(lowTypeFromConcreteStruct(alloc, ctx, it.pointeeType), it.constants));
+	return immutable AllConstantsLow(arrs, records);
+}
 
 struct AllLowTypes {
 	immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) allExternPtrTypes;
@@ -740,7 +763,7 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 				allocate(alloc, getLowExpr(alloc, ctx, it.then, exprPos)),
 				allocate(alloc, getLowExpr(alloc, ctx, it.else_, exprPos)))),
 		(ref immutable Constant it) =>
-			todo!(immutable LowExprKind)("!"),
+			immutable LowExprKind(it),
 		(ref immutable ConcreteExpr.CreateArr it) =>
 			getCreateArrExpr(alloc, ctx, expr.range, it),
 		(ref immutable ConcreteExpr.CreateRecord it) =>
@@ -768,11 +791,7 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 		(ref immutable ConcreteExpr.Seq it) =>
 			immutable LowExprKind(immutable LowExprKind.Seq(
 				allocate(alloc, getLowExpr(alloc, ctx, it.first, ExprPos.nonTail)),
-				allocate(alloc, getLowExpr(alloc, ctx, it.then, exprPos)))),
-		(ref immutable ConcreteExpr.StringLiteral it) =>
-			immutable LowExprKind(
-				immutable LowExprKind.SpecialConstant(
-					immutable LowExprKind.SpecialConstant.StrConstant(copyStr(alloc, it.literal)))));
+				allocate(alloc, getLowExpr(alloc, ctx, it.then, exprPos)))));
 }
 
 immutable(LowExpr) getAllocateExpr(Alloc)(
@@ -860,7 +879,7 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 				getLowExpr(alloc, ctx, at(a.args, 0), exprPos).kind,
 			(ref immutable BuiltinKind.GetCtx) =>
 				immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.ctxParam))),
-			(ref immutable LowExprKind.SpecialConstant it) =>
+			(ref immutable Constant it) =>
 				immutable LowExprKind(it),
 			(immutable LowExprKind.Special0Ary.Kind kind) =>
 				immutable LowExprKind(immutable LowExprKind.Special0Ary(kind)),

@@ -353,7 +353,7 @@ void compileC(immutable AbsolutePath cPath, immutable AbsolutePath exePath, immu
 		strLiteral("-Wextra"),
 		strLiteral("-Wall"),
 		strLiteral("-ansi"),
-		strLiteral("-pedantic"),
+		// strLiteral("-pedantic"), // TODO?
 		strLiteral("-std=c11"),
 		strLiteral("-Wno-unused-parameter"),
 		strLiteral("-Wno-unused-but-set-variable"),

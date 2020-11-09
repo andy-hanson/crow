@@ -29,6 +29,7 @@ import concreteModel :
 	matchConcreteParamSource,
 	matchConcreteStructBody,
 	matchConcreteStructSource,
+	matchConstant,
 	name,
 	returnType,
 	symOfBuiltinStructKind;
@@ -42,6 +43,7 @@ import util.sexpr :
 	Sexpr,
 	tataArr,
 	tataBool,
+	tataInt,
 	tataNamedRecord,
 	tataNat,
 	tataOpt,
@@ -62,6 +64,28 @@ immutable(Sexpr) tataOfConcreteProgram(Alloc)(ref Alloc alloc, ref immutable Con
 		tataOfConcreteFunRef(alloc, a.rtMain),
 		tataOfConcreteFunRef(alloc, a.userMain),
 		tataOfConcreteStructRef(alloc, a.ctxType));
+}
+
+immutable(Sexpr) tataOfConstant(Alloc)(ref Alloc alloc, ref immutable Constant a) {
+	return matchConstant!(immutable Sexpr)(
+		a,
+		(ref immutable Constant.ArrConstant it) =>
+			tataRecord(alloc, "arr", tataNat(it.size), tataNat(it.index)),
+		(immutable Constant.BoolConstant it) =>
+			tataBool(it.value),
+		(immutable Constant.Integral it) =>
+			tataNat(it.value),
+		(immutable Constant.Null) =>
+			tataSym("null"),
+		(immutable Constant.Pointer it) =>
+			tataRecord(alloc, "pointer", tataNat(it.index)),
+		(ref immutable Constant.Record it) =>
+			tataRecord(alloc, "record", tataArr(alloc, it.args, (ref immutable Constant arg) =>
+				tataOfConstant(alloc, arg))),
+		(ref immutable Constant.Union it) =>
+			tataRecord(alloc, "union", tataNat(it.memberIndex), tataOfConstant(alloc, it.arg)),
+		(immutable Constant.Void) =>
+			tataSym("void"));
 }
 
 private:
@@ -265,7 +289,7 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 				tataOfConcreteExpr(alloc, it.then),
 				tataOfConcreteExpr(alloc, it.else_)),
 		(ref immutable Constant it) =>
-			todo!(immutable Sexpr)("!"),
+			tataOfConstant(alloc, it),
 		(ref immutable ConcreteExpr.CreateArr it) =>
 			tataRecord(
 				alloc,
@@ -337,7 +361,5 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 				alloc,
 				"seq",
 				tataOfConcreteExpr(alloc, it.first),
-				tataOfConcreteExpr(alloc, it.then)),
-		(ref immutable ConcreteExpr.StringLiteral it) =>
-			tataRecord(alloc, "str-lit", tataStr(it.literal)));
+				tataOfConcreteExpr(alloc, it.then)));
 }

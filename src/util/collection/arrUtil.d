@@ -5,7 +5,7 @@ import util.collection.arr : Arr, at, begin, empty, first, ptrAt, ptrsRange, ran
 import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, some, someConst;
 import util.ptr : Ptr;
 import util.result : asFailure, asSuccess, fail, isSuccess, Result, success;
 import util.util : max, verify;
@@ -180,9 +180,8 @@ pure:
 	immutable T v13,
 	immutable T v14,
 	immutable T v15,
-	immutable T v16,
 ) {
-	T* ptr = cast(T*) alloc.allocate(T.sizeof * 17);
+	T* ptr = cast(T*) alloc.allocate(T.sizeof * 16);
 	initMemory(ptr +  0,  v0);
 	initMemory(ptr +  1,  v1);
 	initMemory(ptr +  2,  v2);
@@ -199,8 +198,7 @@ pure:
 	initMemory(ptr + 13, v13);
 	initMemory(ptr + 14, v14);
 	initMemory(ptr + 15, v15);
-	initMemory(ptr + 16, v16);
-	return immutable Arr!T(cast(immutable) ptr, 17);
+	return immutable Arr!T(cast(immutable) ptr, 16);
 }
 
 @system Arr!Out fillArrUninitialized(Out, Alloc)(ref Alloc alloc, immutable size_t size) {
@@ -286,7 +284,7 @@ immutable(Bool) contains(T)(
 }
 
 immutable(Opt!T) find(T)(
-	ref immutable Arr!T a,
+	immutable Arr!T a,
 	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref immutable T x; range(a))
@@ -298,6 +296,16 @@ immutable(Opt!T) find(T)(
 immutable(Opt!size_t) findIndex(T)(
 	ref immutable Arr!T a,
 	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	foreach (immutable size_t i; 0..size(a))
+		if (cb(at(a, i)))
+			return some(i);
+	return none!size_t;
+}
+
+immutable(Opt!size_t) findIndex_const(T)(
+	const Arr!T a,
+	scope immutable(Bool) delegate(ref const T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t i; 0..size(a))
 		if (cb(at(a, i)))
@@ -319,6 +327,16 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	return map(alloc, a, (ref immutable T it) => it);
 }
 
+@trusted immutable(Arr!Out) createArr(Out)(
+	immutable size_t size,
+	scope immutable(Out) delegate() @safe @nogc pure nothrow cb,
+) {
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
+	foreach (immutable size_t i; 0..size(a))
+		initMemory(res + i, cb());
+	return immutable Arr!Out(cast(immutable) res, size(a));
+}
+
 @trusted immutable(Arr!Out) map(Out, In, Alloc)(
 	ref Alloc alloc,
 	immutable Arr!In a,
@@ -330,6 +348,16 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	ref Alloc alloc,
 	const Arr!In a,
 	scope immutable(Out) delegate(ref const In) @safe @nogc pure nothrow cb,
+) {
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
+	foreach (immutable size_t i; 0..size(a))
+		initMemory(res + i, cb(at(a, i)));
+	return immutable Arr!Out(cast(immutable) res, size(a));
+}
+@trusted immutable(Arr!Out) map_mut(Out, In, Alloc)(
+	ref Alloc alloc,
+	Arr!In a,
+	scope immutable(Out) delegate(ref In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
 	foreach (immutable size_t i; 0..size(a))
@@ -739,6 +767,14 @@ immutable(Bool) eachCorresponds(T, U)(
 		if (!cb(at(a, i), at(b, i)))
 			return False;
 	return True;
+}
+
+immutable(Bool) arrEqual(T)(
+	ref immutable Arr!T a,
+	ref immutable Arr!T b,
+	scope immutable(Bool) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow elementEqual,
+) {
+	return immutable Bool(sizeEq(a, b) && eachCorresponds(a, b, elementEqual));
 }
 
 immutable(Comparison) compareArr(T)(

@@ -2,6 +2,7 @@ module lower.getBuiltinCall;
 
 @safe @nogc pure nothrow:
 
+import concreteModel : Constant;
 import lowModel :
 	asPrimitive,
 	isFunPtrType,
@@ -25,7 +26,7 @@ struct BuiltinKind {
 
 	immutable this(immutable As a) { kind_ = Kind.as; as_ = a; }
 	immutable this(immutable GetCtx a) { kind_ = Kind.getCtx; getCtx_ = a; }
-	@trusted immutable this(immutable LowExprKind.SpecialConstant a) { kind_ = Kind.constant; constant_ = a; }
+	@trusted immutable this(immutable Constant a) { kind_ = Kind.constant; constant_ = a; }
 	immutable this(immutable LowExprKind.Special0Ary.Kind a) { kind_ = Kind.zeroAry; zeroAry_ = a; }
 	immutable this(immutable LowExprKind.SpecialUnary.Kind a) { kind_ = Kind.unary; unary_ = a; }
 	immutable this(immutable LowExprKind.SpecialBinary.Kind a) { kind_ = Kind.binary; binary_ = a; }
@@ -51,7 +52,7 @@ struct BuiltinKind {
 	union {
 		immutable As as_;
 		immutable GetCtx getCtx_;
-		immutable LowExprKind.SpecialConstant constant_;
+		immutable Constant constant_;
 		immutable LowExprKind.Special0Ary.Kind zeroAry_;
 		immutable LowExprKind.SpecialUnary.Kind unary_;
 		immutable LowExprKind.SpecialBinary.Kind binary_;
@@ -66,7 +67,7 @@ struct BuiltinKind {
 	ref immutable BuiltinKind a,
 	scope T delegate(ref immutable BuiltinKind.As) @safe @nogc pure nothrow cbAs,
 	scope T delegate(ref immutable BuiltinKind.GetCtx) @safe @nogc pure nothrow cbGetCtx,
-	scope T delegate(ref immutable LowExprKind.SpecialConstant) @safe @nogc pure nothrow cbConstant,
+	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
 	scope T delegate(immutable LowExprKind.Special0Ary.Kind) @safe @nogc pure nothrow cb0Ary,
 	scope T delegate(immutable LowExprKind.SpecialUnary.Kind) @safe @nogc pure nothrow cbUnary,
 	scope T delegate(immutable LowExprKind.SpecialBinary.Kind) @safe @nogc pure nothrow cbBinary,
@@ -105,15 +106,14 @@ immutable(BuiltinKind) getBuiltinKind(
 	ref immutable LowType p0,
 	ref immutable LowType p1,
 ) {
-	immutable(BuiltinKind) constant(immutable LowExprKind.SpecialConstant kind) {
+	immutable(BuiltinKind) constant(immutable Constant kind) {
 		return immutable BuiltinKind(kind);
 	}
 	immutable(BuiltinKind) constantBool(immutable Bool value) {
-		return immutable BuiltinKind(
-			immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.BoolConstant(value)));
+		return constant(immutable Constant(immutable Constant.BoolConstant(value)));
 	}
 	immutable(BuiltinKind) constantIntegral(int value) {
-		return constant(immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.Integral(value)));
+		return constant(immutable Constant(immutable Constant.Integral(value)));
 	}
 	immutable(BuiltinKind) unary(immutable LowExprKind.SpecialUnary.Kind kind) {
 		return immutable BuiltinKind(kind);
@@ -226,13 +226,13 @@ immutable(BuiltinKind) getBuiltinKind(
 		case shortSymAlphaLiteralValue("not"):
 			return unary(LowExprKind.SpecialUnary.Kind.not);
 		case shortSymAlphaLiteralValue("null"):
-			return constant(immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.Null()));
+			return constant(immutable Constant(immutable Constant.Null()));
 		case shortSymAlphaLiteralValue("one"):
 			return isIntegral(rt) ? constantIntegral(1) : fail();
 		case shortSymAlphaLiteralValue("or"):
 			return binary(LowExprKind.SpecialBinary.Kind.or);
 		case shortSymAlphaLiteralValue("pass"):
-			return constant(immutable LowExprKind.SpecialConstant(immutable LowExprKind.SpecialConstant.Void()));
+			return constant(immutable Constant(immutable Constant.Void()));
 		case shortSymAlphaLiteralValue("ptr-cast"):
 			return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
 		case shortSymAlphaLiteralValue("ptr-eq?"):

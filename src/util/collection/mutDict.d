@@ -7,6 +7,7 @@ import util.collection.arr : Arr;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutArr :
 	deleteAt,
+	last,
 	MutArr,
 	mutArrAt,
 	mutArrIsEmpty,
@@ -14,7 +15,8 @@ import util.collection.mutArr :
 	mutArrRangeMut,
 	mutArrSize,
 	push,
-	tempAsArr;
+	tempAsArr,
+	tempAsArr_mut;
 import util.comparison : Comparison;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
@@ -23,6 +25,10 @@ import util.util : verify;
 struct MutDict(K, V, alias cmp) {
 	private:
 	MutArr!(KeyValuePair!(K, V)) pairs;
+}
+
+Arr!(KeyValuePair!(K, V)) tempPairs_mut(K, V, alias cmp)(ref MutDict!(K, V, cmp) a) {
+	return tempAsArr_mut(a.pairs);
 }
 
 const(Arr!(KeyValuePair!(K, V))) tempPairs(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a) {
@@ -66,13 +72,18 @@ struct ValueAndDidAdd(V) {
 	immutable Bool didAdd;
 }
 
-V getOrAdd(Alloc, K, V, alias compare)(
+ref V getOrAdd(Alloc, K, V, alias compare)(
 	ref Alloc alloc,
-	ref MutDict!(K, V, compare) a,
+	return scope ref MutDict!(K, V, compare) a,
 	immutable K key,
 	scope V delegate() @safe @nogc pure nothrow getValue,
 ) {
-	return getOrAddAndDidAdd(alloc, a, key, getValue).value;
+	foreach (ref KeyValuePair!(K, V) pair; mutArrRangeMut(a.pairs))
+		if (compare(pair.key, key) == Comparison.equal)
+			return pair.value;
+	V value = getValue();
+	push(alloc, a.pairs, KeyValuePair!(K, V)(key, value));
+	return last(a.pairs).value;
 }
 
 V insertOrUpdate(Alloc, K, V, alias compare)(

@@ -2,6 +2,7 @@ module lower.lowExprHelpers;
 
 @safe @nogc pure nothrow:
 
+import concreteModel : Constant;
 import lowModel :
 	asNonFunPtrType,
 	asRecordType,
@@ -108,8 +109,7 @@ immutable(LowExpr) constantNat64(
 	return immutable LowExpr(
 		nat64Type,
 		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialConstant(
-			immutable LowExprKind.SpecialConstant.Integral(value))));
+		immutable LowExprKind(immutable Constant(immutable Constant.Integral(value))));
 }
 
 immutable(LowExpr) genCreateRecord(

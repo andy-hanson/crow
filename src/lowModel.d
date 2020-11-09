@@ -9,6 +9,7 @@ import concreteModel :
 	ConcreteLocal,
 	ConcreteParam,
 	ConcreteStruct,
+	Constant,
 	isArr,
 	name;
 import util.bools : Bool;
@@ -170,6 +171,10 @@ immutable(Bool) isPrimitive(ref immutable LowType a) {
 immutable(PrimitiveType) asPrimitive(ref immutable LowType a) {
 	verify(isPrimitive(a));
 	return a.primitive_;
+}
+
+immutable(Bool) isChar(ref immutable LowType a) {
+	return immutable Bool(isPrimitive(a) && asPrimitive(a) == PrimitiveType.char_);
 }
 
 immutable(Bool) isVoid(ref immutable LowType a) {
@@ -530,46 +535,6 @@ struct LowExprKind {
 		immutable LowType type;
 	}
 
-	struct SpecialConstant {
-		@safe @nogc pure nothrow:
-
-		struct BoolConstant {
-			immutable Bool value;
-		}
-		// For int and nat types
-		struct Integral {
-			immutable size_t value;
-		}
-		struct Null {}
-		struct StrConstant {
-			immutable Str value;
-		}
-		struct Void {}
-
-		private:
-		enum Kind {
-			bool_,
-			integral,
-			null_,
-			str,
-			void_,
-		}
-		immutable Kind kind;
-		union {
-			immutable BoolConstant bool_;
-			immutable Integral integral_;
-			immutable Null null_;
-			immutable StrConstant str_;
-			immutable Void void_;
-		}
-		public:
-		immutable this(immutable BoolConstant a) { kind = Kind.bool_; bool_ = a; }
-		immutable this(immutable Integral a) { kind = Kind.integral; integral_ = a; }
-		immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }
-		@trusted immutable this(immutable StrConstant a) { kind = Kind.str; str_ = a; }
-		immutable this(immutable Void a) { kind = Kind.void_; void_ = a; }
-	}
-
 	struct Special0Ary {
 		enum Kind {
 			getErrno,
@@ -718,7 +683,7 @@ struct LowExprKind {
 		recordFieldSet,
 		seq,
 		sizeOf,
-		specialConstant,
+		constant,
 		special0Ary,
 		specialUnary,
 		specialBinary,
@@ -741,7 +706,7 @@ struct LowExprKind {
 		immutable RecordFieldSet recordFieldSet;
 		immutable Seq seq;
 		immutable SizeOf sizeOf;
-		immutable SpecialConstant specialConstant;
+		immutable Constant constant;
 		immutable Special0Ary special0Ary;
 		immutable SpecialUnary specialUnary;
 		immutable SpecialBinary specialBinary;
@@ -764,35 +729,13 @@ struct LowExprKind {
 	@trusted immutable this(immutable RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 	@trusted immutable this(immutable Seq a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable SizeOf a) { kind = Kind.sizeOf; sizeOf = a; }
-	@trusted immutable this(immutable SpecialConstant a) { kind = Kind.specialConstant; specialConstant = a; }
+	@trusted immutable this(immutable Constant a) { kind = Kind.constant; constant = a; }
 	@trusted immutable this(immutable Special0Ary a) { kind = Kind.special0Ary; special0Ary = a; }
 	@trusted immutable this(immutable SpecialUnary a) { kind = Kind.specialUnary; specialUnary = a; }
 	@trusted immutable this(immutable SpecialBinary a) { kind = Kind.specialBinary; specialBinary = a; }
 	@trusted immutable this(immutable SpecialTrinary a) { kind = Kind.specialTrinary; specialTrinary = a; }
 	@trusted immutable this(immutable SpecialNAry a) { kind = Kind.specialNAry; specialNAry = a; }
 	@trusted immutable this(immutable TailRecur a) { kind = Kind.tailRecur; tailRecur = a; }
-}
-
-@trusted T matchSpecialConstant(T)(
-	ref immutable LowExprKind.SpecialConstant a,
-	scope T delegate(immutable LowExprKind.SpecialConstant.BoolConstant) @safe @nogc pure nothrow cbBool,
-	scope T delegate(immutable LowExprKind.SpecialConstant.Integral) @safe @nogc pure nothrow cbIntegral,
-	scope T delegate(immutable LowExprKind.SpecialConstant.Null) @safe @nogc pure nothrow cbNull,
-	scope T delegate(immutable LowExprKind.SpecialConstant.StrConstant) @safe @nogc pure nothrow cbStr,
-	scope T delegate(immutable LowExprKind.SpecialConstant.Void) @safe @nogc pure nothrow cbVoid,
-) {
-	final switch (a.kind) {
-		case LowExprKind.SpecialConstant.Kind.bool_:
-			return cbBool(a.bool_);
-		case LowExprKind.SpecialConstant.Kind.integral:
-			return cbIntegral(a.integral_);
-		case LowExprKind.SpecialConstant.Kind.null_:
-			return cbNull(a.null_);
-		case LowExprKind.SpecialConstant.Kind.str:
-			return cbStr(a.str_);
-		case LowExprKind.SpecialConstant.Kind.void_:
-			return cbVoid(a.void_);
-	}
 }
 
 @trusted T matchLowExprKind(T)(
@@ -810,7 +753,7 @@ struct LowExprKind {
 	scope T delegate(ref immutable LowExprKind.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 	scope T delegate(ref immutable LowExprKind.Seq) @safe @nogc pure nothrow cbSeq,
 	scope T delegate(ref immutable LowExprKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
-	scope T delegate(ref immutable LowExprKind.SpecialConstant) @safe @nogc pure nothrow cbSpecialConstant,
+	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
 	scope T delegate(ref immutable LowExprKind.Special0Ary) @safe @nogc pure nothrow cbSpecial0Ary,
 	scope T delegate(ref immutable LowExprKind.SpecialUnary) @safe @nogc pure nothrow cbSpecialUnary,
 	scope T delegate(ref immutable LowExprKind.SpecialBinary) @safe @nogc pure nothrow cbSpecialBinary,
@@ -845,8 +788,8 @@ struct LowExprKind {
 			return cbSeq(a.seq);
 		case LowExprKind.Kind.sizeOf:
 			return cbSizeOf(a.sizeOf);
-		case LowExprKind.Kind.specialConstant:
-			return cbSpecialConstant(a.specialConstant);
+		case LowExprKind.Kind.constant:
+			return cbConstant(a.constant);
 		case LowExprKind.Kind.special0Ary:
 			return cbSpecial0Ary(a.special0Ary);
 		case LowExprKind.Kind.specialUnary:
@@ -889,7 +832,26 @@ immutable(Bool) isRecordFieldAccess(ref immutable LowExprKind a) {
 	return a.recordFieldAccess;
 }
 
+struct ArrTypeAndConstantsLow {
+	immutable LowType.Record arrType;
+	immutable LowType elementType;
+	immutable Arr!(Arr!Constant) constants;
+}
+
+struct PointerTypeAndConstantsLow {
+	immutable LowType pointeeType;
+	immutable Arr!(Ptr!Constant) constants;
+}
+
+// TODO: rename -- this is not all constants, just the ones by-ref
+struct AllConstantsLow {
+	immutable Arr!ArrTypeAndConstantsLow arrs;
+	// These are just the by-ref records
+	immutable Arr!PointerTypeAndConstantsLow pointers;
+}
+
 struct LowProgram {
+	immutable AllConstantsLow allConstants;
 	immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) allExternPtrTypes;
 	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;
 	immutable FullIndexDict!(LowType.Record, LowRecord) allRecords;

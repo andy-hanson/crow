@@ -43,6 +43,8 @@ import interpret.bytecodeWriter :
 	writeWrite;
 import lower.lowExprHelpers : nat64Type;
 import lowModel :
+	ArrTypeAndConstantsLow,
+	AllConstantsLow,
 	LowExternPtrType,
 	LowFun,
 	LowFunBody,
@@ -54,7 +56,8 @@ import lowModel :
 	LowProgram,
 	LowRecord,
 	LowType,
-	LowUnion;
+	LowUnion,
+	PointerTypeAndConstantsLow;
 import test.testUtil : expectDataStack, expectReturnStack;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : False;
@@ -133,6 +136,7 @@ void doInterpret(
 		emptyArr!LowParam,
 		immutable LowFunBody(immutable LowFunBody.Extern(False, strLiteral("test"))));
 	immutable LowProgram lowProgram = immutable LowProgram(
+		immutable AllConstantsLow(emptyArr!ArrTypeAndConstantsLow, emptyArr!PointerTypeAndConstantsLow),
 		emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
 		emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
 		emptyFullIndexDict!(LowType.Record, LowRecord),

@@ -2,6 +2,7 @@ module interpret.generateBytecode;
 
 @safe @nogc pure nothrow:
 
+import concreteModel : Constant, matchConstant;
 import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
@@ -77,7 +78,6 @@ import lowModel :
 	matchLowExprKind,
 	matchLowFunBody,
 	matchLowType,
-	matchSpecialConstant,
 	PrimitiveType;
 import model : FunDecl, Module, name, Program, range;
 import util.alloc.stackAlloc : StackAlloc;
@@ -638,8 +638,8 @@ void generateExpr(CodeAlloc, TempAlloc)(
 		(ref immutable LowExprKind.SizeOf it) {
 			writePushConstant(writer, source, sizeOfType(ctx, it.type));
 		},
-		(ref immutable LowExprKind.SpecialConstant it) {
-			generateSpecialConstant(writer, source, it);
+		(ref immutable Constant it) {
+			generateConstant(writer, source, it);
 		},
 		(ref immutable LowExprKind.Special0Ary it) {
 			generateSpecial0Ary(writer, source, it);
@@ -778,26 +778,41 @@ void registerFunAddress(TempAlloc)(
 	mutIndexMultiDictAdd(tempAlloc, ctx.funToReferences, fun, index);
 }
 
-void generateSpecialConstant(CodeAlloc)(
+void generateConstant(CodeAlloc)(
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref immutable ByteCodeSource source,
-	ref immutable LowExprKind.SpecialConstant constant,
+	ref immutable Constant constant,
 ) {
-	matchSpecialConstant(
+	matchConstant!void(
 		constant,
-		(immutable LowExprKind.SpecialConstant.BoolConstant it) {
+		(ref immutable Constant.ArrConstant it) {
+			// Need to look up where we write the arr to text
+			todo!void("!");
+		},
+		(immutable Constant.BoolConstant it) {
 			writeBoolConstant(writer, source, it.value);
 		},
-		(immutable LowExprKind.SpecialConstant.Integral it) {
+		(immutable Constant.Integral it) {
 			writePushConstant(writer, source, immutable Nat64(it.value));
 		},
-		(immutable LowExprKind.SpecialConstant.Null) {
+		(immutable Constant.Null) {
 			writePushConstant(writer, source, immutable Nat8(0));
 		},
-		(immutable LowExprKind.SpecialConstant.StrConstant it) {
-			writePushConstantStr(writer, source, it.value);
+		(immutable Constant.Pointer) {
+			// Need to look up where we wrote the pointee to text
+			todo!void("!");
 		},
-		(immutable LowExprKind.SpecialConstant.Void) {
+		(ref immutable Constant.Record it) {
+			// Need to pack the fields
+			//foreach (ref immutable Constant arg; range(it.args)) {
+			//}
+			todo!void("!");
+		},
+		(ref immutable Constant.Union it) {
+			writePushConstant(writer, source, immutable Nat8(it.memberIndex));
+			generateConstant(writer, source, it.arg);
+		},
+		(immutable Constant.Void) {
 			// do nothing
 		});
 }

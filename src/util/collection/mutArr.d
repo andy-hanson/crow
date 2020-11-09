@@ -129,7 +129,7 @@ T mustPop(T)(ref MutArr!T a) {
 	return res;
 }
 
-@trusted ref const(T) last(T)(ref const MutArr!T a) {
+@trusted ref T last(T)(ref MutArr!T a) {
 	verify(a.size_ != 0);
 	return a.begin_[a.size_ - 1];
 }

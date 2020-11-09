@@ -22,6 +22,7 @@ import concreteModel :
 	ConcreteStructSource,
 	purity,
 	sizeOrPointerSizeBytes;
+import concretize.allConstantsBuilder : AllConstantsBuilder;
 import concretize.concretizeExpr : concretizeExpr;
 import model :
 	body_,
@@ -170,6 +171,7 @@ struct ConcretizeCtx {
 	immutable Ptr!FunInst nullAnyPtrFun;
 	immutable Ptr!StructInst ctxStructInst;
 	immutable Ptr!CommonTypes commonTypes;
+	AllConstantsBuilder allConstants;
 	MutDict!(
 		immutable ConcreteStructKey,
 		immutable Ptr!ConcreteStruct,

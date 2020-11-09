@@ -3,6 +3,7 @@ module concretize.concretizeExpr;
 @safe @nogc pure nothrow:
 
 import concreteModel :
+	asBool,
 	asConstant,
 	asRecord,
 	body_,
@@ -30,6 +31,7 @@ import concreteModel :
 	name,
 	purity,
 	returnType;
+import concretize.allConstantsBuilder : getConstantArr, getConstantPtr, getConstantStr;
 import concretize.concretizeCtx :
 	anyPtrType,
 	boolType,
@@ -149,7 +151,10 @@ immutable(ConcreteExpr) concretizeCall(Alloc)(
 	ref immutable Expr.Call e,
 ) {
 	immutable Ptr!ConcreteFun concreteCalled = getConcreteFunFromCalled(alloc, ctx, e.called);
-	immutable Arr!ConcreteExpr args = getArgs(alloc, ctx, e.args);
+	immutable ConstantsOrExprs args =
+		!isSummon(concreteCalled) && purity(concreteCalled.returnType) == Purity.data && false // TODO
+			? getConstantsOrExprs(alloc, ctx, e.args)
+			: immutable ConstantsOrExprs(getArgs(alloc, ctx, e.args));
 	debug {
 		if (false) {
 			import core.stdc.stdio : printf;
@@ -171,21 +176,16 @@ immutable(ConcreteExpr) concretizeCall(Alloc)(
 			printf("%s\n", finishWriterToCStr(writer));
 		}
 	}
-	if (!isSummon(concreteCalled) &&
-		purity(concreteCalled.returnType) == Purity.data &&
-		every(args, (ref immutable ConcreteExpr arg) => isConstant(arg))
-		&& false) { // TODO
-		return immutable ConcreteExpr(
+	return matchConstantsOrExprs!(immutable ConcreteExpr)(
+		args,
+		(ref immutable Arr!Constant constants) => immutable ConcreteExpr(
 			concreteCalled.returnType,
 			range,
-			evalConstant(
-				concreteCalled,
-				map(alloc, args, (ref immutable ConcreteExpr arg) => asConstant(arg))));
-	} else
-		return immutable ConcreteExpr(
+			evalConstant(concreteCalled, constants)),
+		(ref immutable Arr!ConcreteExpr exprs) => immutable ConcreteExpr(
 			concreteCalled.returnType,
 			range,
-			immutable ConcreteExpr.Call(concreteCalled, args));
+			immutable ConcreteExpr.Call(concreteCalled, exprs)));
 }
 
 immutable(Ptr!ConcreteFun) getConcreteFunFromCalled(Alloc)(
@@ -235,6 +235,48 @@ immutable(ConcreteExpr) concretizeClosureFieldRef(Alloc)(
 		immutable ConcreteExpr.RecordFieldAccess(allocExpr(alloc, closureParamRef), field));
 }
 
+struct ConstantsOrExprs {
+	@safe @nogc pure nothrow:
+
+	@trusted immutable this(immutable Arr!Constant a) { kind_ = Kind.constants; constants = a; }
+	@trusted immutable this(immutable Arr!ConcreteExpr a) { kind_ = Kind.exprs; exprs = a; }
+
+	private:
+	enum Kind {
+		constants,
+		exprs,
+	}
+	immutable Kind kind_;
+	union {
+		immutable Arr!Constant constants;
+		immutable Arr!ConcreteExpr exprs;
+	}
+}
+
+@trusted T matchConstantsOrExprs(T)(
+	ref immutable ConstantsOrExprs a,
+	scope T delegate(ref immutable Arr!Constant) @safe @nogc pure nothrow cbConstants,
+	scope T delegate(ref immutable Arr!ConcreteExpr) @safe @nogc pure nothrow cbExprs,
+) {
+	final switch (a.kind_) {
+		case ConstantsOrExprs.Kind.constants:
+			return cbConstants(a.constants);
+		case ConstantsOrExprs.Kind.exprs:
+			return cbExprs(a.exprs);
+	}
+}
+
+immutable(ConstantsOrExprs) getConstantsOrExprs(Alloc)(
+	ref Alloc alloc,
+	ref ConcretizeExprCtx ctx,
+	ref immutable Arr!Expr argExprs,
+) {
+	immutable Arr!ConcreteExpr exprs = getArgs(alloc, ctx, argExprs);
+	return every(exprs, (ref immutable ConcreteExpr arg) => isConstant(arg))
+		? immutable ConstantsOrExprs(map(alloc, exprs, (ref immutable ConcreteExpr arg) => asConstant(arg)))
+		: immutable ConstantsOrExprs(exprs);
+}
+
 immutable(Arr!ConcreteExpr) getArgs(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
@@ -263,13 +305,25 @@ immutable(ConcreteExpr) concretizeCreateRecord(Alloc)(
 	ref immutable Expr.CreateRecord e,
 ) {
 	immutable ConcreteType type = getConcreteType_forStructInst(alloc, ctx, e.structInst);
-	immutable ConcreteExpr value = immutable ConcreteExpr(
-		byVal(type),
-		range,
-		immutable ConcreteExpr.CreateRecord(getArgs(alloc, ctx, e.args)));
-	return type.isPointer
-		? createAllocExpr(alloc, ctx.concretizeCtx, value)
-		: value;
+	immutable ConstantsOrExprs args = getConstantsOrExprs(alloc, ctx, e.args);
+	return matchConstantsOrExprs!(immutable ConcreteExpr)(
+		args,
+		(ref immutable Arr!Constant constants) {
+			immutable Constant record = immutable Constant.Record(constants);
+			return immutable ConcreteExpr(
+				type,
+				range,
+				type.isPointer ? getConstantPtr!Alloc(alloc, ctx.concretizeCtx.allConstants, type.struct_, record) : record);
+		},
+		(ref immutable Arr!ConcreteExpr exprs) {
+			immutable ConcreteExpr value = immutable ConcreteExpr(
+				byVal(type),
+				range,
+				immutable ConcreteExpr.CreateRecord(exprs));
+			return type.isPointer
+				? createAllocExpr(alloc, ctx.concretizeCtx, value)
+				: value;
+		});
 }
 
 immutable(ConcreteExpr) getGetVatAndActor(Alloc)(
@@ -540,7 +594,7 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 	ref immutable Expr e,
 ) {
 	immutable FileAndRange range = range(e);
-	return matchExpr(
+	return matchExpr!(immutable ConcreteExpr)(
 		e,
 		(ref immutable Expr.Bogus) =>
 			unreachable!(immutable ConcreteExpr),
@@ -548,43 +602,59 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 			concretizeCall(alloc, ctx, range, e),
 		(ref immutable Expr.ClosureFieldRef e) =>
 			concretizeClosureFieldRef(alloc, ctx, range, e),
-		(ref immutable Expr.Cond e) =>
-			immutable ConcreteExpr(
-				getConcreteType(alloc, ctx, e.type),
-				range,
-				immutable ConcreteExpr.Cond(
-					allocExpr(alloc, concretizeExpr(alloc, ctx, e.cond)),
-					allocExpr(alloc, concretizeExpr(alloc, ctx, e.then)),
-					allocExpr(alloc, concretizeExpr(alloc, ctx, e.else_)))),
+		(ref immutable Expr.Cond e) {
+			immutable ConcreteExpr cond = concretizeExpr(alloc, ctx, e.cond);
+			return isConstant(cond)
+				? concretizeExpr(alloc, ctx, asBool(asConstant(cond)) ? e.then : e.else_)
+				: immutable ConcreteExpr(
+					getConcreteType(alloc, ctx, e.type),
+					range,
+					immutable ConcreteExpr.Cond(
+						allocExpr(alloc, cond),
+						allocExpr(alloc, concretizeExpr(alloc, ctx, e.then)),
+						allocExpr(alloc, concretizeExpr(alloc, ctx, e.else_))));
+		},
 		(ref immutable Expr.CreateArr e) {
-			immutable Arr!ConcreteExpr args = getArgs(alloc, ctx, e.args);
+			immutable ConstantsOrExprs args = getConstantsOrExprs(alloc, ctx, e.args);
 			immutable ConcreteType arrayType = getConcreteType_forStructInst(alloc, ctx, e.arrType);
 			immutable Ptr!ConcreteStruct arrayStruct = mustBeNonPointer(arrayType);
 			immutable ConcreteType elementType = getConcreteType(alloc, ctx, elementType(e));
-			immutable Ptr!ConcreteLocal local = makeLocalWorker(
-				alloc,
-				ctx,
-				immutable ConcreteLocalSource(immutable ConcreteLocalSource.Arr()),
-				arrayType);
-			return immutable ConcreteExpr(
-				arrayType,
-				range,
-				immutable ConcreteExpr.CreateArr(
-					arrayStruct,
-					elementType,
-					getAllocFun(alloc, ctx.concretizeCtx),
-					local,
-					args));
+			return matchConstantsOrExprs!(immutable ConcreteExpr)(
+				args,
+				(ref immutable Arr!Constant constants) =>
+					immutable ConcreteExpr(arrayType, range, getConstantArr(alloc, ctx.concretizeCtx.allConstants, arrayStruct, elementType, constants)),
+				(ref immutable Arr!ConcreteExpr exprs) {
+					immutable Ptr!ConcreteLocal local = makeLocalWorker(
+						alloc,
+						ctx,
+						immutable ConcreteLocalSource(immutable ConcreteLocalSource.Arr()),
+						arrayType);
+					return immutable ConcreteExpr(
+						arrayType,
+						range,
+						immutable ConcreteExpr.CreateArr(
+							arrayStruct,
+							elementType,
+							getAllocFun(alloc, ctx.concretizeCtx),
+							local,
+							exprs));
+				});
 		},
 		(ref immutable Expr.CreateRecord e) =>
 			concretizeCreateRecord(alloc, ctx, range, e),
 		(ref immutable Expr.ImplicitConvertToUnion e) {
 			immutable ConcreteExpr inner = concretizeExpr(alloc, ctx, e.inner);
 			immutable ConcreteType unionType = getConcreteType_forStructInst(alloc, ctx, e.unionType);
-			return immutable ConcreteExpr(
-				unionType,
-				range,
-				immutable ConcreteExpr.ConvertToUnion(e.memberIndex, allocExpr(alloc, inner)));
+			if (isConstant(inner))
+				return immutable ConcreteExpr(
+					unionType,
+					range,
+					immutable Constant(immutable Constant.Union(e.memberIndex, allocate(alloc, asConstant(inner)))));
+			else
+				return immutable ConcreteExpr(
+					unionType,
+					range,
+					immutable ConcreteExpr.ConvertToUnion(e.memberIndex, allocExpr(alloc, inner)));
 		},
 		(ref immutable Expr.Lambda e) =>
 			concretizeLambda(alloc, ctx, range, e),
@@ -615,10 +685,11 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 			//TODO: Use ctx->concretizeCtx->strType() like we do for char
 			immutable ConcreteType strType =
 				getConcreteType_forStructInst(alloc, ctx, ctx.concretizeCtx.commonTypes.str);
+			immutable Ptr!ConcreteStruct strStruct = mustBeNonPointer(strType);
 			return immutable ConcreteExpr(
 				strType,
 				range,
-				immutable ConcreteExpr.StringLiteral(copyStr(alloc, e.literal)));
+				getConstantStr(alloc, ctx.concretizeCtx.allConstants, strStruct, charType, e.literal));
 		});
 }
 

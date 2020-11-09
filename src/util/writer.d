@@ -4,11 +4,12 @@ module util.writer;
 
 import util.bools : Bool, False;
 import util.ptr : Ptr;
-import util.collection.arr : Arr, at, begin, range, size;
+import util.collection.arr : Arr, at, begin, range, size, sizeEq;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, Str, strLiteral;
 import util.ptr : PtrRange;
 import util.types : abs;
+import util.util : verify;
 
 struct Writer(Alloc) {
 	private:
@@ -79,10 +80,22 @@ void writeWithCommas(Alloc, T)(
 	immutable Bool leadingComma,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0..a.size) {
+	foreach (immutable size_t i; 0..size(a)) {
 		if (leadingComma || i != 0)
 			writeStatic(writer, ", ");
-		cb(a.at(i));
+		cb(at(a, i));
+	}
+}
+
+void writeWithCommas(Alloc)(
+	ref Writer!Alloc writer,
+	immutable size_t n,
+	scope void delegate(immutable size_t) @safe @nogc pure nothrow cb,
+) {
+	foreach (immutable size_t i; 0..n) {
+		if (i != 0)
+			writeStatic(writer, ", ");
+		cb(i);
 	}
 }
 
@@ -100,7 +113,7 @@ void writeEscapedChar(Alloc)(ref Writer!Alloc writer, immutable char c) {
 		writeEscapedChar_inner(writer, c);
 }
 
-private void writeEscapedChar_inner(Alloc)(ref Writer!Alloc writer, immutable char c) {
+void writeEscapedChar_inner(Alloc)(ref Writer!Alloc writer, immutable char c) {
 	switch (c) {
 		case '\n':
 			writeStatic(writer, "\\n");

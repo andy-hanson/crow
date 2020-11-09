@@ -17,11 +17,12 @@ import model :
 	summon;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, sizeEq;
+import util.collection.arrUtil : arrEqual, eachCorresponds;
 import util.collection.str : Str;
 import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateSet;
 import util.opt : force, has, none, Opt;
-import util.ptr : comparePtr, Ptr;
+import util.ptr : comparePtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : u8;
@@ -158,7 +159,6 @@ immutable(Purity) purity(ref immutable ConcreteType a) {
 	return a.struct_.purity;
 }
 
-// Union should never be a pointer
 immutable(Ptr!ConcreteStruct) mustBeNonPointer(immutable ConcreteType a) {
 	verify(!a.isPointer);
 	return a.struct_;
@@ -577,13 +577,19 @@ immutable(Bool) isGlobal(ref immutable ConcreteFun a) {
 	return isGlobal(body_(a));
 }
 
+// WARN: The type of a constant is implicit (given by context).
+// This means two constants that look equal may not be the same constant if they have different types
+// (e.g., Constant.Integral has different sizes.)
+// WARN: A Constant.Record is *by value* even if the record usually isn't. Use Constant.Ptr for a pointer.
 struct Constant {
 	@safe @nogc pure nothrow:
 
+	//TODO: separate type for empty and non-empty?
 	struct ArrConstant {
-		immutable Arr!Constant values;
+		immutable size_t size;
+		immutable size_t index; // Index into AllConstants#arrs for this type. Ignore if size is 0!
 	}
-	struct BoolConstant {
+	struct BoolConstant { // TODO: just use Integral?
 		immutable Bool value;
 	}
 	// For int and nat types
@@ -591,6 +597,17 @@ struct Constant {
 		immutable size_t value;
 	}
 	struct Null {}
+	struct Pointer {
+		immutable size_t index; // Index into AllConstants#pointers for this type
+	}
+	// This is a record by-value.
+	struct Record {
+		immutable Arr!Constant args;
+	}
+	struct Union {
+		immutable u8 memberIndex;
+		immutable Ptr!Constant arg;
+	}
 	struct Void {}
 
 	private:
@@ -599,6 +616,9 @@ struct Constant {
 		bool_,
 		integral,
 		null_,
+		pointer,
+		record,
+		union_,
 		void_,
 	}
 	immutable Kind kind;
@@ -607,6 +627,9 @@ struct Constant {
 		immutable BoolConstant bool_;
 		immutable Integral integral_;
 		immutable Null null_;
+		immutable Pointer pointer;
+		immutable Record record;
+		immutable Union union_;
 		immutable Void void_;
 	}
 	public:
@@ -614,19 +637,58 @@ struct Constant {
 	immutable this(immutable BoolConstant a) { kind = Kind.bool_; bool_ = a; }
 	immutable this(immutable Integral a) { kind = Kind.integral; integral_ = a; }
 	immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }
+	@trusted immutable this(immutable Pointer a) { kind = Kind.pointer; pointer = a; }
+	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
+	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
 	immutable this(immutable Void a) { kind = Kind.void_; void_ = a; }
+}
+
+immutable(Bool) asBool(ref immutable Constant a) {
+	verify(a.kind == Constant.Kind.bool_);
+	return a.bool_.value;
+}
+
+immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
+	verify(a.kind == Constant.Kind.integral);
+	return a.integral_;
+}
+
+// WARN: Only do this with constants known to have the same type
+@trusted immutable(Bool) constantEqual(ref immutable Constant a, ref immutable Constant b) {
+	verify(a.kind == b.kind);
+	final switch (a.kind) {
+		case Constant.Kind.arr:
+			return immutable Bool(a.arr_.index == b.arr_.index);
+		case Constant.Kind.bool_:
+			return immutable Bool(a.bool_ == b.bool_);
+		case Constant.Kind.integral:
+			return immutable Bool(a.integral_ == b.integral_);
+		case Constant.Kind.null_:
+		case Constant.Kind.void_:
+			return True;
+		case Constant.Kind.pointer:
+			return immutable Bool(a.pointer.index == b.pointer.index);
+		case Constant.Kind.record:
+			return eachCorresponds(a.record.args, b.record.args, (ref immutable Constant x, ref immutable Constant y) =>
+				constantEqual(x, y));
+		case Constant.Kind.union_:
+			return immutable Bool(a.union_.memberIndex == b.union_.memberIndex && constantEqual(a.union_.arg, b.union_.arg));
+	}
 }
 
 @trusted T matchConstant(T)(
 	ref immutable Constant a,
-	scope T delegate(immutable Constant.ArrConstant) @safe @nogc pure nothrow cbArr,
+	scope T delegate(ref immutable Constant.ArrConstant) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Constant.BoolConstant) @safe @nogc pure nothrow cbBool,
 	scope T delegate(immutable Constant.Integral) @safe @nogc pure nothrow cbIntegral,
 	scope T delegate(immutable Constant.Null) @safe @nogc pure nothrow cbNull,
+	scope T delegate(immutable Constant.Pointer) @safe @nogc pure nothrow cbPointer,
+	scope T delegate(ref immutable Constant.Record) @safe @nogc pure nothrow cbRecord,
+	scope T delegate(ref immutable Constant.Union) @safe @nogc pure nothrow cbUnion,
 	scope T delegate(immutable Constant.Void) @safe @nogc pure nothrow cbVoid,
 ) {
 	final switch (a.kind) {
-		case Constant.Kind.arr_:
+		case Constant.Kind.arr:
 			return cbArr(a.arr_);
 		case Constant.Kind.bool_:
 			return cbBool(a.bool_);
@@ -634,6 +696,12 @@ struct Constant {
 			return cbIntegral(a.integral_);
 		case Constant.Kind.null_:
 			return cbNull(a.null_);
+		case Constant.Kind.pointer:
+			return cbPointer(a.pointer);
+		case Constant.Kind.record:
+			return cbRecord(a.record);
+		case Constant.Kind.union_:
+			return cbUnion(a.union_);
 		case Constant.Kind.void_:
 			return cbVoid(a.void_);
 	}
@@ -758,10 +826,6 @@ struct ConcreteExpr {
 		immutable Ptr!ConcreteExpr then;
 	}
 
-	struct StringLiteral {
-		immutable Str literal;
-	}
-
 	immutable ConcreteType type;
 	immutable FileAndRange range;
 	immutable Kind kind;
@@ -782,7 +846,6 @@ struct ConcreteExpr {
 		recordFieldAccess,
 		recordFieldSet,
 		seq,
-		stringLiteral,
 	}
 	union {
 		immutable Alloc alloc;
@@ -800,7 +863,6 @@ struct ConcreteExpr {
 		immutable RecordFieldAccess recordFieldAccess;
 		immutable RecordFieldSet recordFieldSet;
 		immutable Seq seq;
-		immutable StringLiteral stringLiteral;
 	}
 
 	public:
@@ -849,9 +911,6 @@ struct ConcreteExpr {
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Seq a) {
 		type = t; range = r; kind = Kind.seq; seq = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable StringLiteral a) {
-		type = t; range = r; kind = Kind.stringLiteral; stringLiteral = a;
-	}
 }
 
 ref immutable(ConcreteType) returnType(return scope ref immutable ConcreteExpr.Call a) {
@@ -888,7 +947,6 @@ immutable(Bool) isConstant(ref immutable ConcreteExpr a) {
 	scope T delegate(ref immutable ConcreteExpr.RecordFieldAccess) @safe @nogc pure nothrow cbRecordFieldAccess,
 	scope T delegate(ref immutable ConcreteExpr.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 	scope T delegate(ref immutable ConcreteExpr.Seq) @safe @nogc pure nothrow cbSeq,
-	scope T delegate(ref immutable ConcreteExpr.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
 ) {
 	final switch (a.kind) {
 		case ConcreteExpr.Kind.alloc:
@@ -921,12 +979,29 @@ immutable(Bool) isConstant(ref immutable ConcreteExpr a) {
 			return cbRecordFieldSet(a.recordFieldSet);
 		case ConcreteExpr.Kind.seq:
 			return cbSeq(a.seq);
-		case ConcreteExpr.Kind.stringLiteral:
-			return cbStringLiteral(a.stringLiteral);
 	}
 }
 
+struct ArrTypeAndConstantsConcrete {
+	immutable Ptr!ConcreteStruct arrType;
+	immutable ConcreteType elementType;
+	immutable Arr!(Arr!Constant) constants;
+}
+
+struct PointerTypeAndConstantsConcrete {
+	immutable Ptr!ConcreteStruct pointeeType;
+	immutable Arr!(Ptr!Constant) constants;
+}
+
+// TODO: rename -- this is not all constants, just the ones by-ref
+struct AllConstantsConcrete {
+	immutable Arr!ArrTypeAndConstantsConcrete arrs;
+	// These are just the by-ref records
+	immutable Arr!PointerTypeAndConstantsConcrete pointers;
+}
+
 struct ConcreteProgram {
+	immutable AllConstantsConcrete allConstants;
 	immutable Arr!(Ptr!ConcreteStruct) allStructs;
 	immutable Arr!(Ptr!ConcreteFun) allFuns;
 	immutable Ptr!ConcreteFun rtMain;

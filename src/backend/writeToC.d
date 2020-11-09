@@ -4,6 +4,7 @@ module backend.writeToC;
 
 import concreteModel :
 	asExtern,
+	asIntegral,
 	body_,
 	ConcreteFun,
 	ConcreteFunSource,
@@ -13,12 +14,20 @@ import concreteModel :
 	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructSource,
+	Constant,
 	isExtern,
 	matchConcreteFunSource,
 	matchConcreteParamSource,
 	matchConcreteLocalSource,
-	matchConcreteStructSource;
+	matchConcreteStructSource,
+	matchConstant;
 import lowModel :
+	AllConstantsLow,
+	ArrTypeAndConstantsLow,
+	asNonFunPtrType,
+	asRecordType,
+	asUnionType,
+	isChar,
 	isExtern,
 	isGlobal,
 	isVoid,
@@ -46,14 +55,14 @@ import lowModel :
 	matchLowLocalSource,
 	matchLowParamSource,
 	matchLowType,
-	matchSpecialConstant,
 	name,
+	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	regularParams;
 import model : FunInst, Local, name, Param;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, first, range, setAt, size;
+import util.collection.arr : Arr, at, empty, first, range, setAt, size, sizeEq;
 import util.collection.arrUtil : every, fillArr_mut, tail;
 import util.collection.dict : Dict, getAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
@@ -77,11 +86,12 @@ import util.sym :
 	Sym,
 	symEq;
 import util.types : u8;
-import util.util : verify;
+import util.util : todo, verify;
 import util.writer :
 	finishWriter,
 	newline,
 	writeChar,
+	writeEscapedChar_inner,
 	writeNat,
 	Writer,
 	writeQuotedStr,
@@ -105,6 +115,8 @@ immutable(Str) writeToC(Alloc)(
 
 	writeStructs(writer, ctx);
 
+	writeConstants(writer, ctx, program.allConstants);
+
 	fullIndexDictEach(program.allFuns, (immutable LowFunIndex funIndex, ref immutable LowFun fun) {
 		writeFunDeclaration(writer, ctx, funIndex, fun);
 	});
@@ -117,6 +129,104 @@ immutable(Str) writeToC(Alloc)(
 }
 
 private:
+
+void writeConstants(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable AllConstantsLow allConstants) {
+	foreach (ref immutable ArrTypeAndConstantsLow a; range(allConstants.arrs)) {
+		foreach (immutable size_t i; 0..size(a.constants)) {
+			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, size(at(a.constants, i)));
+			writeStatic(writer, ";\n");
+		}
+	}
+
+	foreach (ref immutable PointerTypeAndConstantsLow a; range(allConstants.pointers)) {
+		foreach (immutable size_t i; 0..size(a.constants)) {
+			declareConstantPointerStorage(writer, ctx, a.pointeeType, i);
+			writeStatic(writer, ";\n");
+		}
+	}
+
+	foreach (ref immutable ArrTypeAndConstantsLow a; range(allConstants.arrs)) {
+		foreach (immutable size_t i; 0..size(a.constants)) {
+			immutable Arr!Constant elements = at(a.constants, i);
+			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, size(elements));
+			writeStatic(writer, " = ");
+			if (isChar(a.elementType)) {
+				writeChar(writer, '"');
+				foreach (immutable Constant element; range(elements))
+					writeEscapedChar_inner(writer, cast(immutable char) asIntegral(element).value);
+				writeChar(writer, '"');
+			} else {
+				writeChar(writer, '{');
+				writeWithCommas(writer, elements, (ref immutable Constant element) {
+					writeConstantRef!Alloc(writer, ctx, a.elementType, element);
+				});
+				writeChar(writer, '}');
+			}
+			writeStatic(writer, ";\n");
+		}
+	}
+
+	foreach (ref immutable PointerTypeAndConstantsLow a; range(allConstants.pointers)) {
+		foreach (immutable size_t i; 0..size(a.constants)) {
+			declareConstantPointerStorage(writer, ctx, a.pointeeType, i);
+			writeStatic(writer, " = ");
+			writeConstantRef(writer, ctx, a.pointeeType, at(a.constants, i));
+			writeStatic(writer, ";\n");
+		}
+	}
+}
+
+void declareConstantArrStorage(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable Ctx ctx,
+	immutable LowType.Record arrType,
+	immutable LowType elementType,
+	immutable size_t index,
+	immutable size_t nElements,
+) {
+	writeType(writer, ctx, elementType);
+	writeChar(writer, ' ');
+	writeConstantArrStorageName(writer, ctx, arrType, index);
+	writeChar(writer, '[');
+	writeNat(writer, nElements);
+	writeChar(writer, ']');
+}
+
+void writeConstantArrStorageName(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable Ctx ctx,
+	immutable LowType.Record arrType,
+	immutable size_t index,
+) {
+	writeStatic(writer, "constant");
+	writeRecordName(writer, ctx, arrType);
+	writeChar(writer, '_');
+	writeNat(writer, index);
+}
+
+void declareConstantPointerStorage(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable Ctx ctx,
+	immutable LowType pointeeType,
+	immutable size_t index,
+) {
+	//TODO: some day we may support non-record pointee?
+	writeRecordType(writer, ctx, asRecordType(pointeeType));
+	writeStatic(writer, "* ");
+	writeConstantPointerStorageName(writer, ctx, pointeeType, index);
+}
+
+void writeConstantPointerStorageName(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable Ctx ctx,
+	immutable LowType pointeeType,
+	immutable size_t index,
+) {
+	writeStatic(writer, "constant");
+	writeRecordName(writer, ctx, asRecordType(pointeeType));
+	writeChar(writer, '_');
+	writeNat(writer, index);
+}
 
 struct MangledNames {
 	immutable Dict!(Ptr!ConcreteFun, size_t, comparePtr!ConcreteFun) funToNameIndex;
@@ -265,13 +375,21 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immuta
 			writePrimitiveType(writer, it);
 		},
 		(immutable LowType.Record it) {
-			writeStatic(writer, "struct ");
-			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allRecords, it).source);
+			writeRecordType(writer, ctx, it);
 		},
 		(immutable LowType.Union it) {
 			writeStatic(writer, "struct ");
 			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allUnions, it).source);
 		});
+}
+
+void writeRecordType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable LowType.Record a) {
+	writeStatic(writer, "struct ");
+	writeRecordName(writer, ctx, a);
+}
+
+void writeRecordName(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable LowType.Record a) {
+	writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allRecords, a).source);
 }
 
 void writeCastToType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType type) {
@@ -716,10 +834,18 @@ void writeExpr(Alloc)(
 			writeCallExpr(writer, indent, ctx, writeKind, it);
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
-			return_(() { writeCreateRecord(writer, indent, ctx, type, it); });
+			return_(() {
+				writeCreateRecord(writer, ctx.ctx, type, size(it.args), (immutable size_t argIndex) {
+					writeExprExpr(writer, indent, ctx, at(it.args, argIndex));
+				});
+			});
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
-			return_(() { writeConvertToUnion(writer, indent, ctx, type, it); });
+			return_(() {
+				writeConvertToUnion(writer, ctx.ctx, type, it.memberIndex, () {
+					writeExprExpr(writer, indent, ctx, it.arg);
+				});
+			});
 		},
 		(ref immutable LowExprKind.FunPtr it) {
 			return_(() { writeFunPtr(writer, ctx.ctx, it); });
@@ -776,8 +902,8 @@ void writeExpr(Alloc)(
 				writeChar(writer, ')');
 			});
 		},
-		(ref immutable LowExprKind.SpecialConstant it) {
-			return_(() { writeSpecialConstant(writer, ctx, type, it); });
+		(ref immutable Constant it) {
+			return_(() { writeConstantRef(writer, ctx.ctx, type, it); });
 		},
 		(ref immutable LowExprKind.Special0Ary it) {
 			return_(() { writeSpecial0Ary(writer, it.kind); });
@@ -878,35 +1004,35 @@ void writeTailRecur(Alloc)(
 
 void writeCreateRecord(Alloc)(
 	ref Writer!Alloc writer,
-	immutable size_t indent,
-	ref immutable FunBodyCtx ctx,
+	ref immutable Ctx ctx,
 	ref immutable LowType type,
-	ref immutable LowExprKind.CreateRecord a,
+	immutable size_t nArgs,
+	scope void delegate(immutable size_t) @safe @nogc pure nothrow cbWriteArg,
 ) {
-	writeCastToType(writer, ctx.ctx, type);
+	writeCastToType(writer, ctx, type);
 	writeChar(writer, '{');
-	if (empty(a.args))
+	if (nArgs == 0)
 		// C forces structs to be non-empty
 		writeChar(writer, '0');
 	else
-		writeArgs(writer, indent, ctx, a.args);
+		writeWithCommas(writer, nArgs, cbWriteArg);
 	writeChar(writer, '}');
 }
 
 void writeConvertToUnion(Alloc)(
 	ref Writer!Alloc writer,
-	immutable size_t indent,
-	ref immutable FunBodyCtx ctx,
+	ref immutable Ctx ctx,
 	ref immutable LowType type,
-	ref immutable LowExprKind.ConvertToUnion a,
+	immutable size_t memberIndex,
+	scope void delegate() @safe @nogc pure nothrow cbWriteMember,
 ) {
-	writeCastToType(writer, ctx.ctx, type);
+	writeCastToType(writer, ctx, type);
 	writeChar(writer, '{');
-	writeNat(writer, a.memberIndex);
+	writeNat(writer, memberIndex);
 	writeStatic(writer, ", .as");
-	writeNat(writer, a.memberIndex);
+	writeNat(writer, memberIndex);
 	writeStatic(writer, " = ");
-	writeExprExpr(writer, indent, ctx, a.arg);
+	cbWriteMember();
 	writeChar(writer, '}');
 }
 
@@ -1091,32 +1217,52 @@ void writeArgs(Alloc)(
 	});
 }
 
-void writeSpecialConstant(Alloc)(
+void writeConstantRef(Alloc)(
 	ref Writer!Alloc writer,
-	ref immutable FunBodyCtx ctx,
+	ref immutable Ctx ctx,
 	ref immutable LowType type,
-	immutable LowExprKind.SpecialConstant a,
+	ref immutable Constant a,
 ) {
-	matchSpecialConstant(
+	matchConstant!void(
 		a,
-		(immutable LowExprKind.SpecialConstant.BoolConstant it) {
-			writeChar(writer, it.value ? '1' : '0');
-		},
-		(immutable LowExprKind.SpecialConstant.Integral it) {
-			writeNat(writer, it.value);
-		},
-		(immutable LowExprKind.SpecialConstant.Null) {
-			writeStatic(writer, "NULL");
-		},
-		(immutable LowExprKind.SpecialConstant.StrConstant it) {
-			writeCastToType(writer, ctx.ctx, type);
+		(ref immutable Constant.ArrConstant it) {
+			writeCastToType(writer, ctx, type);
 			writeChar(writer, '{');
-			writeNat(writer, size(it.value));
+			writeNat(writer, it.size);
 			writeStatic(writer, ", ");
-			writeQuotedStr(writer, it.value);
+			if (it.size == 0)
+				writeStatic(writer, "NULL");
+			else
+				writeConstantArrStorageName(writer, ctx, asRecordType(type), it.index);
 			writeChar(writer, '}');
 		},
-		(immutable LowExprKind.SpecialConstant.Void) {
+		(immutable Constant.BoolConstant it) {
+			writeChar(writer, it.value ? '1' : '0');
+		},
+		(immutable Constant.Integral it) {
+			writeNat(writer, it.value);
+		},
+		(immutable Constant.Null) {
+			writeStatic(writer, "NULL");
+		},
+		(immutable Constant.Pointer it) {
+			writeChar(writer, '&');
+			writeConstantPointerStorageName(writer, ctx, asNonFunPtrType(type).pointee, it.index);
+		},
+		(ref immutable Constant.Record it) {
+			immutable Arr!LowField fields = fullIndexDictGet(ctx.program.allRecords, asRecordType(type)).fields;
+			verify(sizeEq(fields, it.args));
+			writeCreateRecord(writer, ctx, type, size(it.args), (immutable size_t i) {
+				writeConstantRef(writer, ctx, at(fields, i).type, at(it.args, i));
+			});
+		},
+		(ref immutable Constant.Union it) {
+			immutable LowType memberType = at(fullIndexDictGet(ctx.program.allUnions, asUnionType(type)).members, it.memberIndex);
+			writeConvertToUnion(writer, ctx, type, it.memberIndex, () {
+				writeConstantRef(writer, ctx, memberType, it.arg);
+			});
+		},
+		(immutable Constant.Void) {
 			writeChar(writer, '0');
 		});
 }

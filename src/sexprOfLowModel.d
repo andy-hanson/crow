@@ -2,7 +2,7 @@ module sexprOfLowModel;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : ConcreteFun, ConcreteLocal, ConcreteParam;
+import concreteModel : ConcreteFun, ConcreteLocal, ConcreteParam, Constant;
 import lowModel :
 	LowExpr,
 	LowExprKind,
@@ -27,7 +27,6 @@ import lowModel :
 	matchLowLocalSource,
 	matchLowParamSource,
 	matchLowType,
-	matchSpecialConstant,
 	name,
 	PrimitiveType,
 	symOfPrimitiveType;
@@ -35,7 +34,8 @@ import sexprOfConcreteModel :
 	tataOfConcreteFunRef,
 	tataOfConcreteLocalRef,
 	tataOfConcreteParamRef,
-	tataOfConcreteStructRef;
+	tataOfConcreteStructRef,
+	tataOfConstant;
 import util.collection.arr : size;
 import util.collection.arrUtil : arrLiteral;
 import util.collection.str : strLiteral;
@@ -250,8 +250,8 @@ immutable(Sexpr) tataOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExpr
 				alloc,
 				"size-of",
 				tataOfLowType(alloc, it.type)),
-		(ref immutable LowExprKind.SpecialConstant it) =>
-			tataOfSpecialConstant(alloc, it),
+		(ref immutable Constant it) =>
+			tataOfConstant(alloc, it),
 		(ref immutable LowExprKind.Special0Ary it) =>
 			tataRecord(alloc, "zero-ary", tataStr(strLiteral(strOfSpecial0AryKind(it.kind)))),
 		(ref immutable LowExprKind.SpecialUnary it) =>

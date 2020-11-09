@@ -3,6 +3,7 @@ module concretize.concretize;
 @safe @nogc pure nothrow:
 
 import concreteModel : ConcreteFun, ConcreteProgram, ConcreteStruct;
+import concretize.allConstantsBuilder : AllConstantsBuilder, finishAllConstants;
 import concretize.concretizeCtx : ConcretizeCtx, ctxType, getOrAddNonTemplateConcreteFunAndFillBody;
 import model :
 	asStructInst,
@@ -55,6 +56,7 @@ immutable(ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable Prog
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
 	return ConcreteProgram(
+		finishAllConstants(alloc, ctx.allConstants),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		finishArr_immutable(alloc, ctx.allConcreteFuns),
 		rtMainConcreteFun,
