@@ -16,6 +16,10 @@ struct MutArr(T) {
 	size_t capacity_;
 }
 
+@system MutArr!T newUninitializedMutArr(T, Alloc)(ref Alloc alloc, immutable size_t size) {
+	return MutArr!T(cast(T*) alloc.allocate(T.sizeof * size), size, size);
+}
+
 @system T* mutArrPtrAt(T)(ref MutArr!T a, immutable size_t index) {
 	verify(index < a.size_);
 	return a.begin_ + index;
@@ -59,7 +63,7 @@ void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T v
 		a.capacity_ = newCapacity;
 	}
 
-	initMemory(a.begin_ + a.size_, value);
+	initMemory!T(a.begin_ + a.size_, value);
 	a.size_++;
 	verify(a.size_ <= a.capacity_);
 }
@@ -132,10 +136,6 @@ T mustPop(T)(ref MutArr!T a) {
 @trusted ref T last(T)(ref MutArr!T a) {
 	verify(a.size_ != 0);
 	return a.begin_[a.size_ - 1];
-}
-
-@system MutArr!T newUninitializedMutArr(T, Alloc)(ref Alloc alloc, immutable size_t size) {
-	return MutArr!T(cast(T*) alloc.allocate(T.sizeof * size), size, size);
 }
 
 const(Arr!T) tempAsArr(T)(ref const MutArr!T a) {

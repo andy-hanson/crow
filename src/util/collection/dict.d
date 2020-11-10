@@ -5,6 +5,7 @@ module util.collection.dict;
 import util.collection.arr : Arr, range;
 import util.comparison : Comparison;
 import util.opt : force, none, Opt, some;
+import util.util : unreachable;
 
 struct KeyValuePair(K, V) {
 	K key;
@@ -26,4 +27,11 @@ immutable(Opt!V) getAt(K, V, alias cmp)(immutable Dict!(K, V, cmp) d, immutable 
 immutable(V) mustGetAt(K, V, alias cmp)(ref immutable Dict!(K, V, cmp) d, immutable K key) {
 	immutable Opt!V opt = getAt(d, key);
 	return opt.force;
+}
+
+ref V mustGetAt_mut(K, V, alias cmp)(return scope ref Dict!(K, V, cmp) d, immutable K key) {
+	foreach (ref KeyValuePair!(K, V) pair; d.pairs.range)
+		if (cmp(pair.key, key) == Comparison.equal)
+			return pair.value;
+	return unreachable!V();
 }

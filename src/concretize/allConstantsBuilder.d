@@ -18,22 +18,28 @@ import util.collection.arr : Arr, asImmutable, empty, size;
 import util.collection.arrUtil : arrEqual, createArr, exists, findIndex_const, map, map_mut;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutArr : last, moveToArr, MutArr, mutArrSize, push, tempAsArr;
-import util.collection.mutDict : getOrAdd, MutDict, tempPairs_mut;
+import util.collection.mutDict : getOrAdd, MutDict, mutDictSize, tempPairs_mut;
 import util.collection.str : Str;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.ptr : comparePtr, Ptr;
+import util.ptr : comparePtr, Ptr, ptrTrustMe_mut;
 
 struct AllConstantsBuilder {
 	private:
 	MutDict!(immutable ConcreteType, ArrTypeAndConstants, compareConcreteType) arrs;
-	MutDict!(immutable Ptr!ConcreteStruct, MutArr!(immutable Ptr!Constant), comparePtr!ConcreteStruct) ptrs;
+	MutDict!(immutable Ptr!ConcreteStruct, PointerTypeAndConstants, comparePtr!ConcreteStruct) pointers;
 }
 
 private struct ArrTypeAndConstants {
 	immutable Ptr!ConcreteStruct arrType;
 	immutable ConcreteType elementType;
+	immutable size_t typeIndex; // order this was inserted into 'arrs'
 	MutArr!(immutable Arr!Constant) constants;
+}
+
+private struct PointerTypeAndConstants {
+	immutable size_t typeIndex;
+	MutArr!(immutable Ptr!Constant) constants;
 }
 
 immutable(AllConstantsConcrete) finishAllConstants(Alloc)(ref Alloc alloc, ref AllConstantsBuilder a) {
@@ -44,8 +50,10 @@ immutable(AllConstantsConcrete) finishAllConstants(Alloc)(ref Alloc alloc, ref A
 				pair.value.elementType,
 				asImmutable(moveToArr!(immutable Arr!Constant, Alloc)(alloc, pair.value.constants))));
 	immutable Arr!PointerTypeAndConstantsConcrete records =
-		map_mut(alloc, tempPairs_mut(a.ptrs), (ref KeyValuePair!(immutable Ptr!ConcreteStruct, MutArr!(immutable Ptr!Constant)) pair) =>
-			immutable PointerTypeAndConstantsConcrete(pair.key, asImmutable(moveToArr!(immutable Ptr!Constant, Alloc)(alloc, pair.value))));
+		map_mut(alloc, tempPairs_mut(a.pointers), (ref KeyValuePair!(immutable Ptr!ConcreteStruct, PointerTypeAndConstants) pair) =>
+			immutable PointerTypeAndConstantsConcrete(
+				pair.key,
+				asImmutable(moveToArr!(immutable Ptr!Constant, Alloc)(alloc, pair.value.constants))));
 	return immutable AllConstantsConcrete(arrs, records);
 }
 
@@ -55,10 +63,11 @@ immutable(Constant) getConstantPtr(Alloc)(
 	immutable Ptr!ConcreteStruct struct_,
 	ref immutable Constant value,
 ) {
-	return immutable Constant(immutable Constant.Pointer(findOrPush!(immutable Ptr!Constant, Alloc)(
+	Ptr!PointerTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.pointers, struct_, () =>
+		PointerTypeAndConstants(mutDictSize(allConstants.pointers), MutArr!(immutable Ptr!Constant)())));
+	return immutable Constant(immutable Constant.Pointer(d.typeIndex, findOrPush!(immutable Ptr!Constant, Alloc)(
 		alloc,
-		getOrAdd(alloc, allConstants.ptrs, struct_, () =>
-			MutArr!(immutable Ptr!Constant)()),
+		d.constants,
 		(ref immutable Ptr!Constant a) =>
 			constantEqual(a, value),
 		() =>
@@ -73,17 +82,18 @@ immutable(Constant) getConstantArr(Alloc)(
 	ref immutable Arr!Constant elements,
 ) {
 	if (empty(elements))
-		return immutable Constant(immutable Constant.ArrConstant(0, 0));
+		return immutable Constant(immutable Constant.ArrConstant(0, 0, 0));
 	else {
+		Ptr!ArrTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.arrs, elementType, () =>
+			ArrTypeAndConstants(arrStruct, elementType, mutDictSize(allConstants.arrs), MutArr!(immutable Arr!Constant)())));
 		immutable size_t index = findOrPush!(immutable Arr!Constant, Alloc)(
 			alloc,
-			getOrAdd(alloc, allConstants.arrs, elementType, () =>
-				ArrTypeAndConstants(arrStruct, elementType, MutArr!(immutable Arr!Constant)())).constants,
+			d.constants,
 			(ref immutable Arr!Constant it) =>
 				constantArrEqual(it, elements),
 			() =>
 				elements);
-		return immutable Constant(immutable Constant.ArrConstant(size(elements), index));
+		return immutable Constant(immutable Constant.ArrConstant(size(elements), d.typeIndex, index));
 	}
 }
 

@@ -532,7 +532,7 @@ immutable(Str) takeExternName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAll
 immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	ArrBuilder!SpecUseAst specUses,
+	ref ArrBuilder!SpecUseAst specUses,
 	immutable Bool noCtx,
 	immutable Bool summon,
 	immutable Bool unsafe,
@@ -595,7 +595,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	ArrBuilder!SpecUseAst specUses,
+	ref ArrBuilder!SpecUseAst specUses,
 	immutable Bool noCtx,
 	immutable Bool summon,
 	immutable Bool unsafe,
@@ -606,7 +606,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(Alloc, SymAlloc)(
 	scope immutable(Bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
 	if (canTakeNext())
-		return parseNextSpec(
+		return parseNextSpec!(Alloc, SymAlloc)(
 			alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 	else {
 		if (unsafe && trusted)
@@ -632,11 +632,12 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	if (takeIndentOrDiagTopLevel(alloc, lexer))
+	if (takeIndentOrDiagTopLevel(alloc, lexer)) {
+		ArrBuilder!SpecUseAst builder;
 		return parseNextSpec(
 			alloc,
 			lexer,
-			ArrBuilder!SpecUseAst(),
+			builder,
 			False,
 			False,
 			False,
@@ -645,7 +646,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(Alloc, SymAlloc)(
 			none!(FunBodyAst.Extern),
 			none!Str,
 			() => immutable Bool(takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline));
-	else
+	} else
 		return immutable SpecUsesAndSigFlagsAndKwBody(
 			emptyArr!SpecUseAst,
 			False,
@@ -660,10 +661,11 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(Alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
 	// Unlike indented specs, we check for a separator on first spec, so use nextSpecOrStop instead of parseNextSpec
+	ArrBuilder!SpecUseAst builder;
 	return nextSpecOrStop(
 		alloc,
 		lexer,
-		ArrBuilder!SpecUseAst(),
+		builder,
 		False,
 		False,
 		False,

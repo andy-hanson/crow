@@ -5,7 +5,6 @@ module util.memory;
 import util.ptr : Ptr;
 
 @trusted void initMemory(T)(T* ptr, T value) {
-	static assert(__traits(isPOD, T));
 	// ptr may contain immutable members, so use memcpy to work around that.
 	//memcpy(cast(void*) ptr, cast(const void*) &value, T.sizeof);
 	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);

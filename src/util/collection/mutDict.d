@@ -81,8 +81,7 @@ ref V getOrAdd(Alloc, K, V, alias compare)(
 	foreach (ref KeyValuePair!(K, V) pair; mutArrRangeMut(a.pairs))
 		if (compare(pair.key, key) == Comparison.equal)
 			return pair.value;
-	V value = getValue();
-	push(alloc, a.pairs, KeyValuePair!(K, V)(key, value));
+	push(alloc, a.pairs, KeyValuePair!(K, V)(key, getValue()));
 	return last(a.pairs).value;
 }
 
@@ -137,13 +136,13 @@ immutable(Bool) mutDictIsEmpty(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a)
 	return mutArrIsEmpty(a.pairs);
 }
 
+immutable(size_t) mutDictSize(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a) {
+	return mutArrSize(a.pairs);
+}
+
 private:
 
 immutable(Bool) hasKey_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, const K key) {
 	immutable Opt!V opt = getAt_mut(a, key);
 	return has(opt);
-}
-
-immutable(size_t) mutDictSize(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a) {
-	return mutArrSize(a.pairs);
 }

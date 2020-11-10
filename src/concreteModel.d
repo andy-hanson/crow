@@ -586,7 +586,8 @@ struct Constant {
 
 	//TODO: separate type for empty and non-empty?
 	struct ArrConstant {
-		immutable size_t size;
+		immutable size_t size; // TODO:KILL? can look up based on typeIndex and index
+		immutable size_t typeIndex; // Index of the arr type in AllConstants
 		immutable size_t index; // Index into AllConstants#arrs for this type. Ignore if size is 0!
 	}
 	struct BoolConstant { // TODO: just use Integral?
@@ -598,6 +599,7 @@ struct Constant {
 	}
 	struct Null {}
 	struct Pointer {
+		immutable size_t typeIndex;
 		immutable size_t index; // Index into AllConstants#pointers for this type
 	}
 	// This is a record by-value.
