@@ -102,7 +102,7 @@ immutable(ByteCode) makeByteCode(Alloc)(
 ) {
 	ByteCodeWriter!Alloc writer = newByteCodeWriter(ptrTrustMe_mut(alloc));
 	writeBytecode(writer, emptyByteCodeSource);
-	return finishByteCode(writer, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
+	return finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 }
 
 immutable(FileToFuns) dummyFileToFuns() {
@@ -193,7 +193,7 @@ void testCall() {
 
 	fillDelayedCall(writer, delayed, fIndex);
 	immutable ByteCode byteCode =
-		finishByteCode(writer, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
+		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
 	doInterpret(byteCode, (ref Interpreter!TestFakeExtern interpreter) {
 		stepNAndExpect(interpreter, 2, [immutable Nat64(1), immutable Nat64(2)]);
@@ -236,7 +236,7 @@ void testCallFunPtr() {
 
 	fillDelayedCall(writer, delayed, fIndex);
 	immutable ByteCode byteCode =
-		finishByteCode(writer, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
+		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
 	doInterpret(byteCode, (ref Interpreter!TestFakeExtern interpreter) {
 		stepNAndExpect(interpreter, 3, [fIndex.index.to64(), immutable Nat64(1), immutable Nat64(2)]);
@@ -282,7 +282,7 @@ void testSwitchAndJump() {
 	immutable ByteCodeIndex bottom = nextByteCodeIndex(writer);
 	writeReturn(writer, source);
 	immutable ByteCode byteCode =
-		finishByteCode(writer, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
+		finishByteCode(writer, emptyArr!ubyte, immutable ByteCodeIndex(immutable Nat32(0)), dummyFileToFuns());
 
 	doInterpret(byteCode, (ref Interpreter!TestFakeExtern interpreter) {
 		stepAndExpect(interpreter, [immutable Nat64(0)]);

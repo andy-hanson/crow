@@ -63,8 +63,10 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram program,
 		(immutable LowType.FunPtr) {
 			todo!void("!");
 		},
-		(immutable LowType.NonFunPtr) {
-			todo!void("!");
+		(immutable LowType.NonFunPtr it) {
+			writeStatic(writer, "ptr(");
+			writeType(writer, program, it.pointee);
+			writeChar(writer, ')');
 		},
 		(immutable PrimitiveType it) {
 			writeSym(writer, symOfPrimitiveType(it));
@@ -72,8 +74,8 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram program,
 		(immutable LowType.Record it) {
 			writeConcreteStruct(writer, fullIndexDictGet(program.allRecords, it).source);
 		},
-		(immutable LowType.Union) {
-			todo!void("!");
+		(immutable LowType.Union it) {
+			writeConcreteStruct(writer, fullIndexDictGet(program.allUnions, it).source);
 		});
 }
 

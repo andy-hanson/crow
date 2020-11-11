@@ -45,18 +45,11 @@ struct ByteCodeWriter(Alloc) {
 	Ptr!Alloc alloc;
 	ByteWriter!Alloc byteWriter;
 	ArrBuilder!ByteCodeSource sources;
-	MutArr!(immutable char) text;
-	MutArr!(immutable ByteCodeIndexAndTextIndex) delayedTextPtrs;
 	Nat16 nextStackEntry = immutable Nat16(0);
 }
 
 ByteCodeWriter!Alloc newByteCodeWriter(Alloc)(Ptr!Alloc alloc) {
 	return ByteCodeWriter!Alloc(alloc, newByteWriter!Alloc(alloc));
-}
-
-private struct ByteCodeIndexAndTextIndex {
-	immutable ByteCodeIndex byteCodeIndex;
-	immutable Nat32 textIndex;
 }
 
 struct StackEntry {
@@ -70,15 +63,10 @@ struct StackEntries {
 
 @trusted immutable(ByteCode) finishByteCode(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
+	immutable Arr!ubyte text,
 	immutable ByteCodeIndex mainIndex,
 	immutable FileToFuns fileToFuns,
 ) {
-	immutable Arr!char text = moveToArr(writer.alloc, writer.text);
-	foreach (immutable ByteCodeIndexAndTextIndex indices; mutArrRange(writer.delayedTextPtrs))
-		writeU64(
-			writer.byteWriter,
-			indices.byteCodeIndex.index,
-			immutable Nat64(cast(u64) begin(text)) + indices.textIndex.to64());
 	immutable Arr!u8 bytes = finishByteWriter(writer.byteWriter);
 	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources =
 		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(writer.alloc, writer.sources));
@@ -321,17 +309,12 @@ void writePushConstant(Alloc)(
 		writePushU64(writer, source, value);
 }
 
-void writePushConstantStr(Alloc)(
+void writePushConstantPointer(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable Str value,
+	immutable ubyte* value,
 ) {
-	writePushU32(writer, source, sizeNat(value).to32());
-	immutable ByteCodeIndex delayed = writePushU64Delayed(writer, source);
-	immutable Nat32 textIndex = mutArrSizeNat(writer.text).to32();
-	pushAll(writer.alloc, writer.text, value);
-	//TODO: could use temp alloc
-	push(writer.alloc, writer.delayedTextPtrs, immutable ByteCodeIndexAndTextIndex(delayed, textIndex));
+	writePushConstant(writer, source, immutable Nat64(cast(size_t) value));
 }
 
 private void writePushU32(Alloc)(

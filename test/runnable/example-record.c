@@ -549,6 +549,54 @@ struct opt_6 {
 	};
 };
 
+char constantarr_0_0[17];
+char constantarr_0_1[1];
+char constantarr_0_2[4];
+char constantarr_0_3[20];
+char constantarr_0_4[1];
+char constantarr_0_5[17];
+char constantarr_0_6[38];
+char constantarr_0_7[33];
+char constantarr_0_8[13];
+char constantarr_0_9[13];
+char constantarr_0_10[39];
+char constantarr_0_11[11];
+char constantarr_0_12[13];
+char constantarr_0_13[1];
+char constantarr_0_14[1];
+char constantarr_0_15[1];
+char constantarr_0_16[1];
+char constantarr_0_17[1];
+char constantarr_0_18[1];
+char constantarr_0_19[1];
+char constantarr_0_20[1];
+char constantarr_0_21[1];
+char constantarr_0_22[1];
+char constantarr_0_23[1];
+char constantarr_0_0[17] = "Assertion failed!";
+char constantarr_0_1[1] = "\0";
+char constantarr_0_2[4] = "TODO";
+char constantarr_0_3[20] = "uncaught exception: ";
+char constantarr_0_4[1] = "\n";
+char constantarr_0_5[17] = "<<empty message>>";
+char constantarr_0_6[38] = "Couldn't acquire lock after 1000 tries";
+char constantarr_0_7[33] = "resolving an already-resolved fut";
+char constantarr_0_8[13] = "assert failed";
+char constantarr_0_9[13] = "forbid failed";
+char constantarr_0_10[39] = "Did not find the element in the mut-arr";
+char constantarr_0_11[11] = "unreachable";
+char constantarr_0_12[13] = "main failed: ";
+char constantarr_0_13[1] = "0";
+char constantarr_0_14[1] = "1";
+char constantarr_0_15[1] = "2";
+char constantarr_0_16[1] = "3";
+char constantarr_0_17[1] = "4";
+char constantarr_0_18[1] = "5";
+char constantarr_0_19[1] = "6";
+char constantarr_0_20[1] = "7";
+char constantarr_0_21[1] = "8";
+char constantarr_0_22[1] = "9";
+char constantarr_0_23[1] = "-";
 int32_t rt_main(int32_t argc, char** argv, fun_ptr2_0 main_ptr);
 uint8_t drop_0(struct arr_0 t);
 struct arr_0 to_str_0(char* a);
@@ -882,7 +930,7 @@ int32_t rt_main(int32_t argc, char** argv, fun_ptr2_0 main_ptr) {
 				return o6.value;
 			case 1:
 				e7 = _matched8.as1;
-				print_err_sync_no_newline((struct arr_0) {13, "main failed: "});
+				print_err_sync_no_newline((struct arr_0) {13, constantarr_0_12});
 				print_err_sync(e7.value.message);
 				return 1;
 			default:
@@ -903,7 +951,7 @@ uint64_t _op_minus_0(char* a, char* b) {
 	return (uint64_t) (a - (uint64_t) b);
 }
 char* find_cstr_end(char* a) {
-	return find_char_in_cstr(a, literal_0((struct arr_0) {1, "\0"}));
+	return find_char_in_cstr(a, literal_0((struct arr_0) {1, constantarr_0_1}));
 }
 char* find_char_in_cstr(char* a, char c) {
 	char* _tailCalla;
@@ -912,7 +960,7 @@ char* find_char_in_cstr(char* a, char c) {
 	if (_op_equal_equal_0((*(a)), c)) {
 		return a;
 	} else {
-		if (_op_equal_equal_0((*(a)), literal_0((struct arr_0) {1, "\0"}))) {
+		if (_op_equal_equal_0((*(a)), literal_0((struct arr_0) {1, constantarr_0_1}))) {
 			return todo_0();
 		} else {
 			_tailCalla = incr_0(a);
@@ -1063,8 +1111,8 @@ uint8_t* null_any() {
 	return NULL;
 }
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e) {
-	print_err_sync_no_newline((struct arr_0) {20, "uncaught exception: "});
-	print_err_sync((empty__q_0(e.message) ? (struct arr_0) {17, "<<empty message>>"} : e.message));
+	print_err_sync_no_newline((struct arr_0) {20, constantarr_0_3});
+	print_err_sync((empty__q_0(e.message) ? (struct arr_0) {17, constantarr_0_5} : e.message));
 	return (get_gctx(ctx)->any_unhandled_exceptions__q = 1, 0);
 }
 uint8_t print_err_sync_no_newline(struct arr_0 s) {
@@ -1119,7 +1167,7 @@ int32_t wrap_incr_0(int32_t a) {
 }
 uint8_t print_err_sync(struct arr_0 s) {
 	print_err_sync_no_newline(s);
-	return print_err_sync_no_newline((struct arr_0) {1, "\n"});
+	return print_err_sync_no_newline((struct arr_0) {1, constantarr_0_4});
 }
 uint8_t empty__q_0(struct arr_0 a) {
 	return zero__q_0(a.size);
@@ -1149,7 +1197,7 @@ struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, ch
 	return call_with_ctx_8(ctx3, add4, all_args5, main_ptr);
 }
 struct exception_ctx new_exception_ctx() {
-	return (struct exception_ctx) {NULL, (struct exception) {(struct arr_0) {0, ""}}};
+	return (struct exception_ctx) {NULL, (struct exception) {(struct arr_0) {0, NULL}}};
 }
 struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id) {
 	return (struct ctx) {(uint8_t*) gctx, vat->id, actor_id, (uint8_t*) get_gc_ctx_0((&(vat->gc))), (uint8_t*) tls->exception_ctx};
@@ -1472,7 +1520,7 @@ struct vat* at_0(struct ctx* ctx, struct arr_2 a, uint64_t index) {
 	return noctx_at_1(a, index);
 }
 uint8_t assert_0(struct ctx* ctx, uint8_t condition) {
-	return assert_1(ctx, condition, (struct arr_0) {13, "assert failed"});
+	return assert_1(ctx, condition, (struct arr_0) {13, constantarr_0_8});
 }
 uint8_t assert_1(struct ctx* ctx, uint8_t condition, struct arr_0 message) {
 	if (condition) {
@@ -1679,7 +1727,7 @@ struct arr_3 tail(struct ctx* ctx, struct arr_3 a) {
 	return slice_starting_at(ctx, a, 1);
 }
 uint8_t forbid_0(struct ctx* ctx, uint8_t condition) {
-	return forbid_1(ctx, condition, (struct arr_0) {13, "forbid failed"});
+	return forbid_1(ctx, condition, (struct arr_0) {13, constantarr_0_9});
 }
 uint8_t forbid_1(struct ctx* ctx, uint8_t condition, struct arr_0 message) {
 	if (condition) {
@@ -2368,7 +2416,7 @@ struct fut_0* main_0(struct ctx* ctx, struct arr_1 args) {
 	return resolved_1(ctx, 0);
 }
 struct point create_point(struct ctx* ctx) {
-	return (struct point) {literal_1(ctx, (struct arr_0) {1, "1"}), literal_1(ctx, (struct arr_0) {1, "2"})};
+	return (struct point) {literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_15})};
 }
 double literal_1(struct ctx* ctx, struct arr_0 a) {
 	return literal_2(ctx, a);
@@ -2413,34 +2461,34 @@ uint64_t _op_div(struct ctx* ctx, uint64_t a, uint64_t b) {
 	return (a / b);
 }
 uint64_t char_to_nat(char c) {
-	if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, "0"}))) {
+	if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, constantarr_0_13}))) {
 		return 0;
 	} else {
-		if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, "1"}))) {
+		if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, constantarr_0_14}))) {
 			return 1;
 		} else {
-			if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, "2"}))) {
+			if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, constantarr_0_15}))) {
 				return two_1();
 			} else {
-				if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, "3"}))) {
+				if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, constantarr_0_16}))) {
 					return three_0();
 				} else {
-					if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, "4"}))) {
+					if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, constantarr_0_17}))) {
 						return four_0();
 					} else {
-						if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, "5"}))) {
+						if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, constantarr_0_18}))) {
 							return five_0();
 						} else {
-							if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, "6"}))) {
+							if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, constantarr_0_19}))) {
 								return six_0();
 							} else {
-								if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, "7"}))) {
+								if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, constantarr_0_20}))) {
 									return seven_0();
 								} else {
-									if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, "8"}))) {
+									if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, constantarr_0_21}))) {
 										return eight_0();
 									} else {
-										if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, "9"}))) {
+										if (_op_equal_equal_0(c, literal_0((struct arr_0) {1, constantarr_0_22}))) {
 											return nine_0();
 										} else {
 											return todo_2();
@@ -2471,7 +2519,7 @@ double get_x(struct ctx* ctx, struct point a) {
 }
 uint8_t print_sync(struct arr_0 s) {
 	print_sync_no_newline(s);
-	return print_sync_no_newline((struct arr_0) {1, "\n"});
+	return print_sync_no_newline((struct arr_0) {1, constantarr_0_4});
 }
 uint8_t print_sync_no_newline(struct arr_0 s) {
 	return write_sync_no_newline(stdout_fd(), s);
@@ -2486,7 +2534,7 @@ struct arr_0 to_str_2(struct ctx* ctx, int64_t i) {
 	struct arr_0 a0;
 	a0 = to_str_3(ctx, abs(ctx, i));
 	if (negative__q(ctx, i)) {
-		return _op_plus_1(ctx, (struct arr_0) {1, "-"}, a0);
+		return _op_plus_1(ctx, (struct arr_0) {1, constantarr_0_23}, a0);
 	} else {
 		return a0;
 	}
@@ -2494,35 +2542,35 @@ struct arr_0 to_str_2(struct ctx* ctx, int64_t i) {
 struct arr_0 to_str_3(struct ctx* ctx, uint64_t n) {
 	struct arr_0 hi0;
 	struct arr_0 lo1;
-	if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, "0"}))) {
-		return (struct arr_0) {1, "0"};
+	if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, constantarr_0_13}))) {
+		return (struct arr_0) {1, constantarr_0_13};
 	} else {
-		if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, "1"}))) {
-			return (struct arr_0) {1, "1"};
+		if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, constantarr_0_14}))) {
+			return (struct arr_0) {1, constantarr_0_14};
 		} else {
-			if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, "2"}))) {
-				return (struct arr_0) {1, "2"};
+			if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, constantarr_0_15}))) {
+				return (struct arr_0) {1, constantarr_0_15};
 			} else {
-				if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, "3"}))) {
-					return (struct arr_0) {1, "3"};
+				if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, constantarr_0_16}))) {
+					return (struct arr_0) {1, constantarr_0_16};
 				} else {
-					if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, "4"}))) {
-						return (struct arr_0) {1, "4"};
+					if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, constantarr_0_17}))) {
+						return (struct arr_0) {1, constantarr_0_17};
 					} else {
-						if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, "5"}))) {
-							return (struct arr_0) {1, "5"};
+						if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, constantarr_0_18}))) {
+							return (struct arr_0) {1, constantarr_0_18};
 						} else {
-							if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, "6"}))) {
-								return (struct arr_0) {1, "6"};
+							if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, constantarr_0_19}))) {
+								return (struct arr_0) {1, constantarr_0_19};
 							} else {
-								if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, "7"}))) {
-									return (struct arr_0) {1, "7"};
+								if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, constantarr_0_20}))) {
+									return (struct arr_0) {1, constantarr_0_20};
 								} else {
-									if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, "8"}))) {
-										return (struct arr_0) {1, "8"};
+									if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, constantarr_0_21}))) {
+										return (struct arr_0) {1, constantarr_0_21};
 									} else {
-										if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, "9"}))) {
-											return (struct arr_0) {1, "9"};
+										if (_op_equal_equal_1(n, literal_2(ctx, (struct arr_0) {1, constantarr_0_22}))) {
+											return (struct arr_0) {1, constantarr_0_22};
 										} else {
 											hi0 = to_str_3(ctx, _op_div(ctx, n, ten_0()));
 											lo1 = to_str_3(ctx, mod(ctx, n, ten_0()));

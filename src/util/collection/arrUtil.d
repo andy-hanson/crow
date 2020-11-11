@@ -342,7 +342,10 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	immutable Arr!In a,
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
-	return cast(immutable) mapToMut(alloc, a, cb);
+	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
+	foreach (immutable size_t i; 0..size(a))
+		initMemory(res + i, cb(at(a, i)));
+	return immutable Arr!Out(cast(immutable) res, size(a));
 }
 @trusted immutable(Arr!Out) map_const(Out, In, Alloc)(
 	ref Alloc alloc,
@@ -367,7 +370,7 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 @trusted Arr!Out mapToMut(Out, In, Alloc)(
 	ref Alloc alloc,
 	immutable Arr!In a,
-	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+	scope Out delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
 	foreach (immutable size_t i; 0..size(a))

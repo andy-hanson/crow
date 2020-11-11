@@ -45,11 +45,15 @@ immutable(Arr!T) asImmutable(T)(Arr!(immutable T) a) {
 	return immutable Arr!T(a.begin_, a.size_);
 }
 
+@trusted immutable(Arr!T) castImmutable(T)(Arr!T a) {
+	return immutable Arr!T(cast(immutable) a.begin_, a.size_);
+}
+
 @trusted immutable(Arr!T) arrOfD(T)(scope immutable T[] a) {
 	return immutable Arr!T(a.ptr, a.length);
 }
 
-immutable(Arr!T) arrOfRange(T)(immutable T* begin, immutable T* end) {
+@system immutable(Arr!T) arrOfRange(T)(immutable T* begin, immutable T* end) {
 	verify(begin <= end);
 	return immutable Arr!T(begin, end - begin);
 }

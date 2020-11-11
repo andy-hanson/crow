@@ -40,7 +40,7 @@ import interpret.bytecodeWriter :
 	writeFnHardFail,
 	writeMulConstantNat64,
 	writePushConstant,
-	writePushConstantStr,
+	writePushConstantPointer,
 	writePushEmptySpace,
 	writePushFunPtrDelayed,
 	writeJump,
@@ -52,6 +52,8 @@ import interpret.bytecodeWriter :
 	writeReturn,
 	writeSwitchDelay,
 	writeWrite;
+import interpret.debugging : writeFunName, writeType;
+import interpret.generateText : generateText, getTextInfoForArray, TextAndInfo, TextArrInfo;
 import interpret.typeLayout : layOutTypes, nStackEntriesForType, sizeOfType, TypeLayout;
 import lowModel :
 	AllConstantsLow,
@@ -59,6 +61,8 @@ import lowModel :
 	asNonFunPtrType,
 	asParamRef,
 	asRecordFieldAccess,
+	asRecordType,
+	asUnionType,
 	firstRegularParamIndex,
 	isLocalRef,
 	isParamRef,
@@ -76,6 +80,7 @@ import lowModel :
 	LowProgram,
 	LowRecord,
 	LowType,
+	lowTypeEqual,
 	LowUnion,
 	matchLowExprKind,
 	matchLowFunBody,
@@ -109,9 +114,11 @@ import util.collection.mutIndexMultiDict :
 import util.collection.str : Str, strEqLiteral;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.print : print;
 import util.sourceRange : FileIndex;
 import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, zero;
 import util.util : divRoundUp, roundUp, todo, unreachable, verify;
+import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 
 immutable(ByteCode) generateBytecode(CodeAlloc)(
 	ref CodeAlloc codeAlloc,
@@ -122,6 +129,7 @@ immutable(ByteCode) generateBytecode(CodeAlloc)(
 	TempAlloc tempAlloc;
 
 	immutable TypeLayout typeLayout = layOutTypes(tempAlloc, program);
+	immutable TextAndInfo text = generateText(codeAlloc, typeLayout, program.allConstants);
 
 	MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences =
 		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, fullIndexDictSize(program.allFuns));
@@ -134,7 +142,7 @@ immutable(ByteCode) generateBytecode(CodeAlloc)(
 			program.allFuns,
 			(immutable LowFunIndex funIndex, ref immutable LowFun fun) {
 				immutable ByteCodeIndex funPos = nextByteCodeIndex(writer);
-				generateBytecodeForFun(tempAlloc, writer, funToReferences, typeLayout, program, funIndex, fun);
+				generateBytecodeForFun(tempAlloc, writer, funToReferences, typeLayout, text, program, funIndex, fun);
 				return funPos;
 		});
 
@@ -143,7 +151,7 @@ immutable(ByteCode) generateBytecode(CodeAlloc)(
 			fillDelayedCall(writer, reference, definition);
 	});
 
-	return finishByteCode(writer, fullIndexDictGet(funToDefinition, program.main), fileToFuns(codeAlloc, modelProgram));
+	return finishByteCode(writer, text.text, fullIndexDictGet(funToDefinition, program.main), fileToFuns(codeAlloc, modelProgram));
 }
 
 private:
@@ -167,11 +175,22 @@ immutable(Nat8) nStackEntriesForType(ref const ExprCtx ctx, ref immutable LowTyp
 	return nStackEntriesForType(ctx.typeLayout, t);
 }
 
+immutable(Nat8) nStackEntriesForRecordType(ref const ExprCtx ctx, ref immutable LowType.Record t) {
+	immutable LowType type = immutable LowType(t);
+	return nStackEntriesForType(ctx, type);
+}
+
+immutable(Nat8) nStackEntriesForUnionType(ref const ExprCtx ctx, ref immutable LowType.Union t) {
+	immutable LowType type = immutable LowType(t);
+	return nStackEntriesForType(ctx, type);
+}
+
 void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences,
 	ref immutable TypeLayout typeLayout,
+	ref immutable TextAndInfo textInfo,
 	ref immutable LowProgram program,
 	immutable LowFunIndex funIndex,
 	ref immutable LowFun fun,
@@ -193,13 +212,11 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 
 	debug {
 		if (false) {
-			import core.stdc.stdio : printf;
-			import interpret.debugging : writeFunName;
-			import util.collection.str : CStr;
-			import util.writer : finishWriterToCStr, Writer;
 			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-			writeFunName!TempAlloc(w, program, fun);
-			printf("Generating bytecode for function %s\n", finishWriterToCStr(w));
+			writeStatic(w, "Generating bytecode for function ");
+			writeFunName(w, program, fun);
+			writeChar(w, '\n');
+			print(finishWriterToCStr(w));
 		}
 	}
 
@@ -217,6 +234,7 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 			ExprCtx ctx = ExprCtx(
 				ptrTrustMe(program),
 				ptrTrustMe(typeLayout),
+				ptrTrustMe(textInfo),
 				funIndex,
 				returnEntries,
 				ptrTrustMe_mut(funToReferences),
@@ -326,6 +344,7 @@ immutable(Opt!ExternOp) externOpFromName(immutable Str a) {
 struct ExprCtx {
 	immutable Ptr!LowProgram program;
 	immutable Ptr!TypeLayout typeLayout;
+	immutable Ptr!TextAndInfo textInfo;
 	immutable LowFunIndex curFunIndex;
 	immutable Nat8 returnTypeSizeInStackEntries;
 	Ptr!(MutIndexMultiDict!(LowFunIndex, ByteCodeIndex)) funToReferences;
@@ -354,24 +373,13 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			verify(stackEntryBeforeArgs.entry + expectedStackEffect.to16() == getNextStackEntry(writer).entry);
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
-			generateCreateRecord(tempAlloc, writer, ctx, expr.type, source, it);
+			generateCreateRecord(tempAlloc, writer, ctx, asRecordType(expr.type), source, it);
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
-			//immutable uint offset = nStackEntriesForUnionTypeExcludingKind(ctx.program, asUnionType(it.type));
-			immutable StackEntry before = getNextStackEntry(writer);
-			immutable Nat8 size = nStackEntriesForType(ctx, expr.type);
-			writePushConstant(writer, source, immutable Nat8(it.memberIndex));
-			generateExpr(tempAlloc, writer, ctx, it.arg);
-			immutable StackEntry after = getNextStackEntry(writer);
-			if (before.entry + size.to16() != after.entry) {
-				// Some members of a union are smaller than the union.
-				verify(before.entry + size.to16() > after.entry);
-				writePushEmptySpace(writer, source, before.entry + size.to16() - after.entry);
-			}
+			generateConvertToUnion(tempAlloc, writer, ctx, asUnionType(expr.type), source, it);
 		},
 		(ref immutable LowExprKind.FunPtr it) {
-			registerFunAddress(tempAlloc, ctx, it.fun,
-				writePushFunPtrDelayed(writer, source));
+			registerFunAddress(tempAlloc, ctx, it.fun, writePushFunPtrDelayed(writer, source));
 		},
 		(ref immutable LowExprKind.Let it) {
 			immutable StackEntries localEntries =
@@ -468,7 +476,7 @@ void generateExpr(CodeAlloc, TempAlloc)(
 			writePushConstant(writer, source, sizeOfType(ctx, it.type));
 		},
 		(ref immutable Constant it) {
-			generateConstant(writer, source, it);
+			generateConstant(tempAlloc, writer, ctx, source, expr.type, it);
 		},
 		(ref immutable LowExprKind.Special0Ary it) {
 			generateSpecial0Ary(writer, source, it);
@@ -514,20 +522,38 @@ void generateCreateRecord(CodeAlloc, TempAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
-	ref immutable LowType type,
+	immutable LowType.Record type,
 	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.CreateRecord it,
 ) {
-	immutable StackEntry before = getNextStackEntry(writer);
+	generateCreateRecordOrConstantRecord(tempAlloc, writer, ctx, type, size(it.args), source, (immutable size_t fieldIndex, ref immutable LowType fieldType) {
+		immutable LowExpr arg = at(it.args, fieldIndex);
+		verify(lowTypeEqual(arg.type, fieldType));
+		generateExpr(tempAlloc, writer, ctx, arg);
+	});
+}
 
+void generateCreateRecordOrConstantRecord(CodeAlloc, TempAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref const ExprCtx ctx,
+	immutable LowType.Record type,
+	immutable size_t nArgs,
+	ref immutable ByteCodeSource source,
+	scope void delegate(immutable size_t, ref immutable LowType) @safe @nogc pure nothrow cbGenerateField,
+) {
+	immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, type);
+
+	immutable StackEntry before = getNextStackEntry(writer);
+	// TODO: if generating a record constant, could do the pack at compile time..
 	void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
 		if (has(packStart)) {
-			// Need to give the instruction the field sizes
-			immutable Arr!Nat8 fieldSizes = mapOp!(Nat8, LowExpr, TempAlloc)(
+			// TODO: could just write these to a MaxArr!Nat8 when making in the first place (instead of Opt!size_t packStart, have MaxArr!(size_t, 3))
+			immutable Arr!Nat8 fieldSizes = mapOp!(Nat8, LowField, TempAlloc)(
 				tempAlloc,
-				slice(it.args, force(packStart), packEnd - force(packStart)),
-				(ref immutable LowExpr arg) {
-					immutable Nat8 size = sizeOfType(ctx, arg.type);
+				slice(record.fields, force(packStart), packEnd - force(packStart)),
+				(ref immutable LowField field) {
+					immutable Nat8 size = sizeOfType(ctx, field.type);
 					return zero(size) ? none!Nat8 : some(size);
 				});
 			if (!empty(fieldSizes))
@@ -536,35 +562,66 @@ void generateCreateRecord(CodeAlloc, TempAlloc)(
 	}
 
 	void recur(immutable Opt!size_t packStart, immutable size_t fieldIndex) {
-		if (fieldIndex == size(it.args)) {
+		if (fieldIndex == nArgs) {
 			maybePack(packStart, fieldIndex);
 		} else {
-			immutable Nat8 fieldSize = sizeOfType(ctx, at(it.args, fieldIndex).type);
-			if (fieldSize < immutable Nat8(8)) {
-				generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
-				recur(has(packStart) ? packStart : some(fieldIndex), fieldIndex + 1);
-			} else {
-				verify(fieldSize % immutable Nat8(8) == immutable Nat8(0));
-				maybePack(packStart, fieldIndex);
-				generateExpr(tempAlloc, writer, ctx, at(it.args, fieldIndex));
-				recur(none!size_t, fieldIndex + 1);
-			}
+			//TODO: use field offsets instead of getting size?
+			immutable LowType fieldType = at(record.fields, fieldIndex).type;
+			immutable Nat8 fieldSize = sizeOfType(ctx, fieldType);
+			immutable Opt!size_t nextPackStart = () {
+				if (fieldSize < immutable Nat8(8)) {
+					return has(packStart) ? packStart : some(fieldIndex);
+				} else {
+					verify(fieldSize % immutable Nat8(8) == immutable Nat8(0));
+					maybePack(packStart, fieldIndex);
+					return none!size_t;
+				}
+			}();
+			cbGenerateField(fieldIndex, fieldType);
+			recur(nextPackStart, fieldIndex + 1);
 		}
 	}
 
 	recur(none!size_t, 0);
 
 	immutable StackEntry after = getNextStackEntry(writer);
-	immutable Nat8 stackEntriesForType = nStackEntriesForType(ctx, type);
-	//debug {
-	//	import core.stdc.stdio : printf;
-	//	Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-	//	writeType(writer, ctx.program, expr.type);
-	//	printf("creating record %s\n", finishWriterToCStr(writer));
-	//	printf("before: %u, after: %u, entries for type: %u\n",
-	//		before.entry.raw(), after.entry.raw(), stackEntriesForType.raw());
-	//}
+	immutable Nat8 stackEntriesForType = nStackEntriesForRecordType(ctx, type);
 	verify(after.entry - before.entry == stackEntriesForType.to16());
+}
+
+void generateConvertToUnion(CodeAlloc, TempAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref ExprCtx ctx,
+	immutable LowType.Union type,
+	ref immutable ByteCodeSource source,
+	ref immutable LowExprKind.ConvertToUnion it,
+) {
+	generateConvertToUnionOrConstantUnion(tempAlloc, writer, ctx, type, it.memberIndex, source, (ref immutable LowType) {
+		generateExpr(tempAlloc, writer, ctx, it.arg);
+	});
+}
+
+void generateConvertToUnionOrConstantUnion(CodeAlloc, TempAlloc)(
+	ref TempAlloc tempAlloc,
+	ref ByteCodeWriter!CodeAlloc writer,
+	ref const ExprCtx ctx,
+	immutable LowType.Union type,
+	immutable ubyte memberIndex,
+	ref immutable ByteCodeSource source,
+	scope void delegate(ref immutable LowType) @safe @nogc pure nothrow cbGenerateMember,
+) {
+	immutable StackEntry before = getNextStackEntry(writer);
+	immutable Nat8 size = nStackEntriesForUnionType(ctx, type);
+	writePushConstant(writer, source, immutable Nat8(memberIndex));
+	immutable LowType memberType = at(fullIndexDictGet(ctx.program.allUnions, type).members, memberIndex);
+	cbGenerateMember(memberType);
+	immutable StackEntry after = getNextStackEntry(writer);
+	if (before.entry + size.to16() != after.entry) {
+		// Some members of a union are smaller than the union.
+		verify(before.entry + size.to16() > after.entry);
+		writePushEmptySpace(writer, source, before.entry + size.to16() - after.entry);
+	}
 }
 
 struct FieldOffsetAndSize {
@@ -607,16 +664,30 @@ void registerFunAddress(TempAlloc)(
 	mutIndexMultiDictAdd(tempAlloc, ctx.funToReferences, fun, index);
 }
 
-void generateConstant(CodeAlloc)(
+void generateConstant(CodeAlloc, TempAlloc)(
+	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
+	ref const ExprCtx ctx,
 	ref immutable ByteCodeSource source,
+	ref immutable LowType type,
 	ref immutable Constant constant,
 ) {
+	debug {
+		if (false) {
+			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+			writeStatic(w, "generateConstant of type ");
+			writeType(w, ctx.program, type);
+			writeChar(w, '\n');
+			print(finishWriterToCStr(w));
+		}
+	}
+
 	matchConstant!void(
 		constant,
 		(ref immutable Constant.ArrConstant it) {
-			// Need to look up where we write the arr to text
-			todo!void("!");
+			immutable TextArrInfo info = getTextInfoForArray(ctx.textInfo, ctx.program.allConstants, it);
+			writePushConstant(writer, source, immutable Nat64(info.size));
+			writePushConstantPointer(writer, source, info.textPtr);
 		},
 		(immutable Constant.BoolConstant it) {
 			writeBoolConstant(writer, source, it.value);
@@ -632,14 +703,14 @@ void generateConstant(CodeAlloc)(
 			todo!void("!");
 		},
 		(ref immutable Constant.Record it) {
-			// Need to pack the fields
-			//foreach (ref immutable Constant arg; range(it.args)) {
-			//}
-			todo!void("!");
+			generateCreateRecordOrConstantRecord(tempAlloc, writer, ctx, asRecordType(type), size(it.args), source, (immutable size_t argIndex, ref immutable LowType argType) {
+				generateConstant(tempAlloc, writer, ctx, source, argType, at(it.args, argIndex));
+			});
 		},
 		(ref immutable Constant.Union it) {
-			writePushConstant(writer, source, immutable Nat8(it.memberIndex));
-			generateConstant(writer, source, it.arg);
+			generateConvertToUnionOrConstantUnion!(CodeAlloc, TempAlloc)(tempAlloc, writer, ctx, asUnionType(type), it.memberIndex, source, (ref immutable LowType memberType) {
+				generateConstant(tempAlloc, writer, ctx, source, memberType, it.arg);
+			});
 		},
 		(immutable Constant.Void) {
 			// do nothing

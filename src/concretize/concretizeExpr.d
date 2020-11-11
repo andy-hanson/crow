@@ -70,7 +70,7 @@ import model :
 	StructInst,
 	Type,
 	typeArgs;
-import util.bools : Bool, False;
+import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
@@ -104,6 +104,9 @@ immutable(Ptr!ConcreteExpr) allocExpr(Alloc)(ref Alloc alloc, immutable Concrete
 }
 
 private:
+
+// TODO: command line flag? (default to true)
+immutable Bool inlineConstants = True;
 
 struct ConcretizeExprCtx {
 	Ptr!ConcretizeCtx concretizeCtx;
@@ -238,7 +241,7 @@ immutable(ConcreteExpr) concretizeClosureFieldRef(Alloc)(
 struct ConstantsOrExprs {
 	@safe @nogc pure nothrow:
 
-	@trusted immutable this(immutable Arr!Constant a) { kind_ = Kind.constants; constants = a; }
+	@trusted immutable this(immutable Arr!Constant a) { verify(inlineConstants); kind_ = Kind.constants; constants = a; }
 	@trusted immutable this(immutable Arr!ConcreteExpr a) { kind_ = Kind.exprs; exprs = a; }
 
 	private:
@@ -272,7 +275,7 @@ immutable(ConstantsOrExprs) getConstantsOrExprs(Alloc)(
 	ref immutable Arr!Expr argExprs,
 ) {
 	immutable Arr!ConcreteExpr exprs = getArgs(alloc, ctx, argExprs);
-	return every(exprs, (ref immutable ConcreteExpr arg) => isConstant(arg))
+	return inlineConstants && every(exprs, (ref immutable ConcreteExpr arg) => isConstant(arg))
 		? immutable ConstantsOrExprs(map(alloc, exprs, (ref immutable ConcreteExpr arg) => asConstant(arg)))
 		: immutable ConstantsOrExprs(exprs);
 }
@@ -604,7 +607,7 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 			concretizeClosureFieldRef(alloc, ctx, range, e),
 		(ref immutable Expr.Cond e) {
 			immutable ConcreteExpr cond = concretizeExpr(alloc, ctx, e.cond);
-			return isConstant(cond)
+			return inlineConstants && isConstant(cond)
 				? concretizeExpr(alloc, ctx, asBool(asConstant(cond)) ? e.then : e.else_)
 				: immutable ConcreteExpr(
 					getConcreteType(alloc, ctx, e.type),
@@ -645,7 +648,7 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 		(ref immutable Expr.ImplicitConvertToUnion e) {
 			immutable ConcreteExpr inner = concretizeExpr(alloc, ctx, e.inner);
 			immutable ConcreteType unionType = getConcreteType_forStructInst(alloc, ctx, e.unionType);
-			if (isConstant(inner))
+			if (inlineConstants && isConstant(inner))
 				return immutable ConcreteExpr(
 					unionType,
 					range,

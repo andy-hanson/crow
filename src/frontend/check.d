@@ -479,7 +479,7 @@ Arr!StructAlias checkStructAliasesInitial(Alloc)(
 	ref immutable Arr!StructAliasAst asts,
 ) {
 	return mapToMut!StructAlias(alloc, asts, (ref immutable StructAliasAst ast) =>
-		immutable StructAlias(
+		StructAlias(
 			rangeInFile(ctx, ast.range),
 			ast.isPublic,
 			ast.name,
@@ -546,7 +546,7 @@ Arr!StructDecl checkStructsInitial(Alloc)(
 ) {
 	return mapToMut!StructDecl(alloc, asts, (ref immutable StructDeclAst ast) {
 		immutable PurityAndForced p = getPurityFromAst(alloc, ctx, ast);
-		return immutable StructDecl(
+		return StructDecl(
 			rangeInFile(ctx, ast.range),
 			ast.isPublic,
 			ast.name,
@@ -825,7 +825,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 			specsMap,
 			TypeParamsScope(typeParams));
 		immutable FunFlags flags = FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted);
-		return immutable FunDecl(containingModule, funAst.isPublic, flags, sig, typeParams, specUses);
+		return FunDecl(containingModule, funAst.isPublic, flags, sig, typeParams, specUses);
 	});
 
 	immutable FunsMap funsMap = buildMultiDict!(Sym, Ptr!FunDecl, compareSym, FunDecl, Alloc)(

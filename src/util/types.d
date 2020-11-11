@@ -192,12 +192,16 @@ alias Nat64 = NatN!ulong;
 alias Int16 = IntN!short;
 private alias Int32 = IntN!int;
 
+immutable(u8) bottomU8OfU64(immutable u64 u) {
+	return cast(u8) u;
+}
+
 immutable(u16) bottomU16OfU64(immutable u64 u) {
-	return cast(u16) (u & ushort.max);
+	return cast(u16) u;
 }
 
 immutable(u32) bottomU32OfU64(immutable u64 u) {
-	return cast(u32) (u & uint.max);
+	return cast(u32) u;
 }
 
 immutable(i32) safeI32FromU32(immutable u32 u) {

@@ -410,9 +410,7 @@ program(
 																	some(e)
 																	seq(
 																		seq(
-																			call(
-																				print-err-sync-no-newline
-																				[str-lit("main failed: ")])
+																			call(print-err-sync-no-newline, [arr(13, 12)])
 																			call(
 																				print-err-sync
 																				[
@@ -457,7 +455,7 @@ program(
 			type(false, ptr)
 			none
 			[param(a, type(false, ptr))]
-			expr-body([], call(find-char-in-cstr, [param-ref(a), call(literal, [str-lit("\0")])])))
+			expr-body([], call(find-char-in-cstr, [param-ref(a), call(literal, [arr(1, 1)])])))
 		fun(
 			false
 			find-char-in-cstr
@@ -470,7 +468,7 @@ program(
 					call(==, [call(deref, [param-ref(a)]), param-ref(c)])
 					param-ref(a)
 					cond(
-						call(==, [call(deref, [param-ref(a)]), call(literal, [str-lit("\0")])])
+						call(==, [call(deref, [param-ref(a)]), call(literal, [arr(1, 1)])])
 						call(todo, [])
 						call(find-char-in-cstr, [call(incr, [param-ref(a)]), param-ref(c)])))))
 		fun(
@@ -519,9 +517,7 @@ program(
 			type(false, void)
 			none
 			[param(condition, type(false, bool))]
-			expr-body(
-				[]
-				call(if, [param-ref(condition), call(pass, []), call(hard-fail, [str-lit("Assertion failed!")])])))
+			expr-body([], call(if, [param-ref(condition), call(pass, []), call(hard-fail, [arr(17, 0)])])))
 		fun(
 			false
 			if
@@ -557,7 +553,7 @@ program(
 			[param(p, type(false, ptr)), param(offset, type(false, nat))]
 			builtin([type(false, char)]))
 		fun(false, zero, type(false, nat), none, [], builtin([]))
-		fun(false, todo, type(false, ptr), none, [], expr-body([], call(hard-fail, [str-lit("TODO")])))
+		fun(false, todo, type(false, ptr), none, [], expr-body([], call(hard-fail, [arr(4, 2)])))
 		fun(false, hard-fail, type(false, ptr), none, [param(reason, type(false, arr))], builtin([type(false, ptr)]))
 		fun(
 			false
@@ -736,7 +732,7 @@ program(
 				[]
 				seq(
 					seq(
-						call(print-err-sync-no-newline, [str-lit("uncaught exception: ")])
+						call(print-err-sync-no-newline, [arr(20, 3)])
 						call(
 							print-err-sync
 							[
@@ -744,7 +740,7 @@ program(
 									if
 									[
 										call(empty?, [get-field(param-ref(e), message)])
-										str-lit("<<empty message>>")
+										arr(17, 5)
 										get-field(param-ref(e), message)])]))
 					set-field(call(get-gctx, []), any-unhandled-exceptions?, call(true, [])))))
 		fun(
@@ -806,7 +802,7 @@ program(
 			[param(a, type(false, int)), param(b, type(false, int))]
 			builtin([type(false, int)]))
 		fun(false, unsafe-to-int, type(false, int), none, [param(a, type(false, nat))], builtin([]))
-		fun(false, todo, type(false, void), none, [], expr-body([], call(hard-fail, [str-lit("TODO")])))
+		fun(false, todo, type(false, void), none, [], expr-body([], call(hard-fail, [arr(4, 2)])))
 		fun(false, stderr-fd, type(false, int32), none, [], expr-body([], call(two, [])))
 		fun(false, two, type(false, int32), none, [], expr-body([], call(wrap-incr, [call(one, [])])))
 		fun(
@@ -832,7 +828,7 @@ program(
 			[param(s, type(false, arr))]
 			expr-body(
 				[]
-				seq(call(print-err-sync-no-newline, [param-ref(s)]), call(print-err-sync-no-newline, [str-lit("\n")]))))
+				seq(call(print-err-sync-no-newline, [param-ref(s)]), call(print-err-sync-no-newline, [arr(1, 4)]))))
 		fun(
 			false
 			if
@@ -927,7 +923,7 @@ program(
 			type(false, exception-ctx)
 			none
 			[]
-			expr-body([], record([call(null, []), record([str-lit("")])])))
+			expr-body([], record([call(null, []), record([arr(0, 0)])])))
 		fun(false, null, type(false, ptr), none, [], builtin([type(false, jmp-buf-tag)]))
 		fun(
 			false
@@ -1034,7 +1030,7 @@ program(
 					call(pass, [])
 					cond(
 						call(==, [param-ref(n-tries), call(thousand, [])])
-						call(hard-fail, [str-lit("Couldn't acquire lock after 1000 tries")])
+						call(hard-fail, [arr(38, 6)])
 						seq(
 							call(yield-thread, [])
 							call(acquire-lock-recur, [param-ref(a), call(noctx-incr, [param-ref(n-tries)])]))))))
@@ -1499,8 +1495,8 @@ program(
 										call(
 											resolve-or-reject-recur
 											[get-field(local-ref(cbs), head), param-ref(result)]))
-									case(none, call(hard-fail, [str-lit("resolving an already-resolved fut")]))
-									case(none, call(hard-fail, [str-lit("resolving an already-resolved fut")]))]))
+									case(none, call(hard-fail, [arr(33, 7)]))
+									case(none, call(hard-fail, [arr(33, 7)]))]))
 						set-field(
 							param-ref(f)
 							state
@@ -1591,7 +1587,7 @@ program(
 			type(false, void)
 			none
 			[param(condition, type(false, bool))]
-			expr-body([], call(assert, [param-ref(condition), str-lit("assert failed")])))
+			expr-body([], call(assert, [param-ref(condition), arr(13, 8)])))
 		fun(
 			true
 			assert
@@ -2119,7 +2115,7 @@ program(
 			type(false, void)
 			none
 			[param(condition, type(false, bool))]
-			expr-body([], call(forbid, [param-ref(condition), str-lit("forbid failed")])))
+			expr-body([], call(forbid, [param-ref(condition), arr(13, 9)])))
 		fun(
 			true
 			forbid
@@ -3335,7 +3331,7 @@ program(
 				[]
 				cond(
 					call(==, [param-ref(index), get-field(param-ref(a), size)])
-					call(hard-fail, [str-lit("Did not find the element in the mut-arr")])
+					call(hard-fail, [arr(39, 10)])
 					cond(
 						call(==, [call(noctx-at, [param-ref(a), param-ref(index)]), param-ref(value)])
 						call(drop, [call(noctx-remove-unordered-at-index, [param-ref(a), param-ref(index)])])
@@ -3567,13 +3563,7 @@ program(
 						case(none, call(hard-unreachable, []))
 						case(some(r), to-union(0, call(ok, [get-field(local-ref(r), value)])))
 						case(some(e), to-union(1, call(err, [local-ref(e)])))])))
-		fun(
-			false
-			hard-unreachable
-			type(false, result)
-			none
-			[]
-			expr-body([], call(hard-fail, [str-lit("unreachable")])))
+		fun(false, hard-unreachable, type(false, result), none, [], expr-body([], call(hard-fail, [arr(11, 11)])))
 		fun(
 			false
 			hard-fail
@@ -3591,20 +3581,16 @@ program(
 				[local(m, type(false, my-record))]
 				let(
 					m
-					record([call(literal, [str-lit("1")]), call(literal, [str-lit("2")])])
+					record([call(literal, [arr(1, 14)]), call(literal, [arr(1, 15)])])
 					seq(
 						seq(
 							seq(
 								seq(
-									call(
-										assert
-										[call(==, [get-field(local-ref(m), x), call(literal, [str-lit("1")])])])
-									call(
-										assert
-										[call(==, [get-field(local-ref(m), y), call(literal, [str-lit("2")])])]))
+									call(assert, [call(==, [get-field(local-ref(m), x), call(literal, [arr(1, 14)])])])
+									call(assert, [call(==, [get-field(local-ref(m), y), call(literal, [arr(1, 15)])])]))
 								call(print-sync, [call(to-str, [get-field(local-ref(m), x)])]))
 							call(print-sync, [call(to-str, [get-field(local-ref(m), y)])]))
-						call(resolved, [call(literal, [str-lit("0")])])))))
+						call(resolved, [call(literal, [arr(1, 13)])])))))
 		fun(
 			true
 			literal
@@ -3706,37 +3692,37 @@ program(
 			expr-body(
 				[]
 				cond(
-					call(==, [param-ref(c), call(literal, [str-lit("0")])])
+					call(==, [param-ref(c), call(literal, [arr(1, 13)])])
 					call(zero, [])
 					cond(
-						call(==, [param-ref(c), call(literal, [str-lit("1")])])
+						call(==, [param-ref(c), call(literal, [arr(1, 14)])])
 						call(one, [])
 						cond(
-							call(==, [param-ref(c), call(literal, [str-lit("2")])])
+							call(==, [param-ref(c), call(literal, [arr(1, 15)])])
 							call(two, [])
 							cond(
-								call(==, [param-ref(c), call(literal, [str-lit("3")])])
+								call(==, [param-ref(c), call(literal, [arr(1, 16)])])
 								call(three, [])
 								cond(
-									call(==, [param-ref(c), call(literal, [str-lit("4")])])
+									call(==, [param-ref(c), call(literal, [arr(1, 17)])])
 									call(four, [])
 									cond(
-										call(==, [param-ref(c), call(literal, [str-lit("5")])])
+										call(==, [param-ref(c), call(literal, [arr(1, 18)])])
 										call(five, [])
 										cond(
-											call(==, [param-ref(c), call(literal, [str-lit("6")])])
+											call(==, [param-ref(c), call(literal, [arr(1, 19)])])
 											call(six, [])
 											cond(
-												call(==, [param-ref(c), call(literal, [str-lit("7")])])
+												call(==, [param-ref(c), call(literal, [arr(1, 20)])])
 												call(seven, [])
 												cond(
-													call(==, [param-ref(c), call(literal, [str-lit("8")])])
+													call(==, [param-ref(c), call(literal, [arr(1, 21)])])
 													call(eight, [])
 													cond(
-														call(==, [param-ref(c), call(literal, [str-lit("9")])])
+														call(==, [param-ref(c), call(literal, [arr(1, 22)])])
 														call(nine, [])
 														call(todo, [])))))))))))))
-		fun(false, todo, type(false, nat), none, [], expr-body([], call(hard-fail, [str-lit("TODO")])))
+		fun(false, todo, type(false, nat), none, [], expr-body([], call(hard-fail, [arr(4, 2)])))
 		fun(false, hard-fail, type(false, nat), none, [param(reason, type(false, arr))], builtin([type(false, nat)]))
 		fun(
 			true
@@ -3766,7 +3752,7 @@ program(
 			type(false, void)
 			none
 			[param(s, type(false, arr))]
-			expr-body([], seq(call(print-sync-no-newline, [param-ref(s)]), call(print-sync-no-newline, [str-lit("\n")]))))
+			expr-body([], seq(call(print-sync-no-newline, [param-ref(s)]), call(print-sync-no-newline, [arr(1, 4)]))))
 		fun(
 			false
 			print-sync-no-newline
@@ -3784,35 +3770,35 @@ program(
 			expr-body(
 				[local(hi, type(false, arr)), local(lo, type(false, arr))]
 				cond(
-					call(==, [param-ref(n), call(literal, [str-lit("0")])])
-					str-lit("0")
+					call(==, [param-ref(n), call(literal, [arr(1, 13)])])
+					arr(1, 13)
 					cond(
-						call(==, [param-ref(n), call(literal, [str-lit("1")])])
-						str-lit("1")
+						call(==, [param-ref(n), call(literal, [arr(1, 14)])])
+						arr(1, 14)
 						cond(
-							call(==, [param-ref(n), call(literal, [str-lit("2")])])
-							str-lit("2")
+							call(==, [param-ref(n), call(literal, [arr(1, 15)])])
+							arr(1, 15)
 							cond(
-								call(==, [param-ref(n), call(literal, [str-lit("3")])])
-								str-lit("3")
+								call(==, [param-ref(n), call(literal, [arr(1, 16)])])
+								arr(1, 16)
 								cond(
-									call(==, [param-ref(n), call(literal, [str-lit("4")])])
-									str-lit("4")
+									call(==, [param-ref(n), call(literal, [arr(1, 17)])])
+									arr(1, 17)
 									cond(
-										call(==, [param-ref(n), call(literal, [str-lit("5")])])
-										str-lit("5")
+										call(==, [param-ref(n), call(literal, [arr(1, 18)])])
+										arr(1, 18)
 										cond(
-											call(==, [param-ref(n), call(literal, [str-lit("6")])])
-											str-lit("6")
+											call(==, [param-ref(n), call(literal, [arr(1, 19)])])
+											arr(1, 19)
 											cond(
-												call(==, [param-ref(n), call(literal, [str-lit("7")])])
-												str-lit("7")
+												call(==, [param-ref(n), call(literal, [arr(1, 20)])])
+												arr(1, 20)
 												cond(
-													call(==, [param-ref(n), call(literal, [str-lit("8")])])
-													str-lit("8")
+													call(==, [param-ref(n), call(literal, [arr(1, 21)])])
+													arr(1, 21)
 													cond(
-														call(==, [param-ref(n), call(literal, [str-lit("9")])])
-														str-lit("9")
+														call(==, [param-ref(n), call(literal, [arr(1, 22)])])
+														arr(1, 22)
 														let(
 															hi
 															call(to-str, [call(/, [param-ref(n), call(ten, [])])])
@@ -4029,10 +4015,10 @@ program(
 					fst
 					call(at, [param-ref(s), call(zero, [])])
 					cond(
-						call(==, [local-ref(fst), call(literal, [str-lit("-")])])
+						call(==, [local-ref(fst), call(literal, [arr(1, 23)])])
 						let(n, call(as, [call(literal, [call(tail, [param-ref(s)])])]), call(neg, [local-ref(n)]))
 						cond(
-							call(==, [local-ref(fst), call(literal, [str-lit("+")])])
+							call(==, [local-ref(fst), call(literal, [arr(1, 24)])])
 							call(to-int, [call(as, [call(literal, [call(tail, [param-ref(s)])])])])
 							call(to-int, [call(as, [call(literal, [param-ref(s)])])]))))))
 		fun(

@@ -257,14 +257,14 @@ struct ByteCode {
 	immutable Arr!u8 byteCode;
 	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources; // parallel to byteCode
 	immutable FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
-	immutable Arr!char text;
+	immutable Arr!ubyte text;
 	immutable ByteCodeIndex main;
 
 	immutable this(
 		immutable Arr!u8 bc,
 		immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) s,
 		immutable FileToFuns ff,
-		immutable Arr!char t,
+		immutable Arr!ubyte t,
 		immutable ByteCodeIndex m,
 	) {
 		byteCode = bc;
