@@ -75,7 +75,6 @@ import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
 import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutDict;
-import util.collection.str : copyStr;
 import util.memory : allocate, nu;
 import util.opt : force, forcePtr, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
@@ -158,27 +157,6 @@ immutable(ConcreteExpr) concretizeCall(Alloc)(
 		!isSummon(concreteCalled) && purity(concreteCalled.returnType) == Purity.data && false // TODO
 			? getConstantsOrExprs(alloc, ctx, e.args)
 			: immutable ConstantsOrExprs(getArgs(alloc, ctx, e.args));
-	debug {
-		if (false) {
-			import core.stdc.stdio : printf;
-			import util.alloc.stackAlloc : StackAlloc;
-			import util.writer : Writer, writeStatic, finishWriterToCStr;
-			import util.ptr : ptrTrustMe_mut;
-			import util.sym : writeSym;
-			import interpret.debugging : writeConcreteFunName;
-			import model : symOfPurity;
-			alias Alloc = StackAlloc!("temp", 1024);
-			Alloc al;
-			Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(al));
-			writeStatic(writer, "concretizeCall of ");
-			writeConcreteFunName(writer, concreteCalled);
-			writeStatic(writer, ": isSummon=");
-			writeStatic(writer, isSummon(concreteCalled) ? "true" : "false");
-			writeStatic(writer, ", purity=");
-			writeSym(writer, symOfPurity(purity(concreteCalled.returnType)));
-			printf("%s\n", finishWriterToCStr(writer));
-		}
-	}
 	return matchConstantsOrExprs!(immutable ConcreteExpr)(
 		args,
 		(ref immutable Arr!Constant constants) => immutable ConcreteExpr(
@@ -241,7 +219,11 @@ immutable(ConcreteExpr) concretizeClosureFieldRef(Alloc)(
 struct ConstantsOrExprs {
 	@safe @nogc pure nothrow:
 
-	@trusted immutable this(immutable Arr!Constant a) { verify(inlineConstants); kind_ = Kind.constants; constants = a; }
+	@trusted immutable this(immutable Arr!Constant a) {
+		verify(inlineConstants);
+		kind_ = Kind.constants;
+		constants = a;
+	}
 	@trusted immutable this(immutable Arr!ConcreteExpr a) { kind_ = Kind.exprs; exprs = a; }
 
 	private:
@@ -313,10 +295,9 @@ immutable(ConcreteExpr) concretizeCreateRecord(Alloc)(
 		args,
 		(ref immutable Arr!Constant constants) {
 			immutable Constant record = immutable Constant.Record(constants);
-			return immutable ConcreteExpr(
-				type,
-				range,
-				type.isPointer ? getConstantPtr!Alloc(alloc, ctx.concretizeCtx.allConstants, type.struct_, record) : record);
+			return immutable ConcreteExpr(type, range, type.isPointer
+				? getConstantPtr!Alloc(alloc, ctx.concretizeCtx.allConstants, type.struct_, record)
+				: record);
 		},
 		(ref immutable Arr!ConcreteExpr exprs) {
 			immutable ConcreteExpr value = immutable ConcreteExpr(
@@ -625,7 +606,10 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 			return matchConstantsOrExprs!(immutable ConcreteExpr)(
 				args,
 				(ref immutable Arr!Constant constants) =>
-					immutable ConcreteExpr(arrayType, range, getConstantArr(alloc, ctx.concretizeCtx.allConstants, arrayStruct, elementType, constants)),
+					immutable ConcreteExpr(
+						arrayType,
+						range,
+						getConstantArr(alloc, ctx.concretizeCtx.allConstants, arrayStruct, elementType, constants)),
 				(ref immutable Arr!ConcreteExpr exprs) {
 					immutable Ptr!ConcreteLocal local = makeLocalWorker(
 						alloc,

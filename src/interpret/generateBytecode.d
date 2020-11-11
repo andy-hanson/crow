@@ -56,7 +56,6 @@ import interpret.debugging : writeFunName, writeType;
 import interpret.generateText : generateText, getTextInfoForArray, TextAndInfo, TextArrInfo;
 import interpret.typeLayout : layOutTypes, nStackEntriesForType, sizeOfType, TypeLayout;
 import lowModel :
-	AllConstantsLow,
 	asLocalRef,
 	asNonFunPtrType,
 	asParamRef,
@@ -81,7 +80,6 @@ import lowModel :
 	LowRecord,
 	LowType,
 	lowTypeEqual,
-	LowUnion,
 	matchLowExprKind,
 	matchLowFunBody,
 	matchLowType,
@@ -90,7 +88,7 @@ import model : FunDecl, Module, name, Program, range;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, range, size, sizeNat;
-import util.collection.arrUtil : arrMax, map, mapOp, mapOpWithIndex, slice;
+import util.collection.arrUtil : map, mapOp, mapOpWithIndex, slice;
 import util.collection.fullIndexDict :
 	FullIndexDict,
 	fullIndexDictEach,
@@ -98,13 +96,6 @@ import util.collection.fullIndexDict :
 	fullIndexDictOfArr,
 	fullIndexDictSize,
 	mapFullIndexDict;
-import util.collection.fullIndexDictBuilder :
-	finishFullIndexDict,
-	FullIndexDictBuilder,
-	fullIndexDictBuilderAdd,
-	fullIndexDictBuilderHas,
-	fullIndexDictBuilderOptGet,
-	newFullIndexDictBuilder;
 import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutDict;
 import util.collection.mutIndexMultiDict :
 	MutIndexMultiDict,
@@ -117,7 +108,7 @@ import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.print : print;
 import util.sourceRange : FileIndex;
 import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, zero;
-import util.util : divRoundUp, roundUp, todo, unreachable, verify;
+import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 
 immutable(ByteCode) generateBytecode(CodeAlloc)(
@@ -151,7 +142,11 @@ immutable(ByteCode) generateBytecode(CodeAlloc)(
 			fillDelayedCall(writer, reference, definition);
 	});
 
-	return finishByteCode(writer, text.text, fullIndexDictGet(funToDefinition, program.main), fileToFuns(codeAlloc, modelProgram));
+	return finishByteCode(
+		writer,
+		text.text,
+		fullIndexDictGet(funToDefinition, program.main),
+		fileToFuns(codeAlloc, modelProgram));
 }
 
 private:
@@ -526,11 +521,18 @@ void generateCreateRecord(CodeAlloc, TempAlloc)(
 	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.CreateRecord it,
 ) {
-	generateCreateRecordOrConstantRecord(tempAlloc, writer, ctx, type, size(it.args), source, (immutable size_t fieldIndex, ref immutable LowType fieldType) {
-		immutable LowExpr arg = at(it.args, fieldIndex);
-		verify(lowTypeEqual(arg.type, fieldType));
-		generateExpr(tempAlloc, writer, ctx, arg);
-	});
+	generateCreateRecordOrConstantRecord(
+		tempAlloc,
+		writer,
+		ctx,
+		type,
+		size(it.args),
+		source,
+		(immutable size_t fieldIndex, ref immutable LowType fieldType) {
+			immutable LowExpr arg = at(it.args, fieldIndex);
+			verify(lowTypeEqual(arg.type, fieldType));
+			generateExpr(tempAlloc, writer, ctx, arg);
+		});
 }
 
 void generateCreateRecordOrConstantRecord(CodeAlloc, TempAlloc)(
@@ -548,7 +550,8 @@ void generateCreateRecordOrConstantRecord(CodeAlloc, TempAlloc)(
 	// TODO: if generating a record constant, could do the pack at compile time..
 	void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
 		if (has(packStart)) {
-			// TODO: could just write these to a MaxArr!Nat8 when making in the first place (instead of Opt!size_t packStart, have MaxArr!(size_t, 3))
+			// TODO: could just write these to a MaxArr!Nat8 when making in the first place
+			// (instead of Opt!size_t packStart, have MaxArr!(size_t, 3))
 			immutable Arr!Nat8 fieldSizes = mapOp!(Nat8, LowField, TempAlloc)(
 				tempAlloc,
 				slice(record.fields, force(packStart), packEnd - force(packStart)),
@@ -597,9 +600,16 @@ void generateConvertToUnion(CodeAlloc, TempAlloc)(
 	ref immutable ByteCodeSource source,
 	ref immutable LowExprKind.ConvertToUnion it,
 ) {
-	generateConvertToUnionOrConstantUnion(tempAlloc, writer, ctx, type, it.memberIndex, source, (ref immutable LowType) {
-		generateExpr(tempAlloc, writer, ctx, it.arg);
-	});
+	generateConvertToUnionOrConstantUnion(
+		tempAlloc,
+		writer,
+		ctx,
+		type,
+		it.memberIndex,
+		source,
+		(ref immutable LowType) {
+			generateExpr(tempAlloc, writer, ctx, it.arg);
+		});
 }
 
 void generateConvertToUnionOrConstantUnion(CodeAlloc, TempAlloc)(
@@ -703,14 +713,28 @@ void generateConstant(CodeAlloc, TempAlloc)(
 			todo!void("!");
 		},
 		(ref immutable Constant.Record it) {
-			generateCreateRecordOrConstantRecord(tempAlloc, writer, ctx, asRecordType(type), size(it.args), source, (immutable size_t argIndex, ref immutable LowType argType) {
-				generateConstant(tempAlloc, writer, ctx, source, argType, at(it.args, argIndex));
-			});
+			generateCreateRecordOrConstantRecord(
+				tempAlloc,
+				writer,
+				ctx,
+				asRecordType(type),
+				size(it.args),
+				source,
+				(immutable size_t argIndex, ref immutable LowType argType) {
+					generateConstant(tempAlloc, writer, ctx, source, argType, at(it.args, argIndex));
+				});
 		},
 		(ref immutable Constant.Union it) {
-			generateConvertToUnionOrConstantUnion!(CodeAlloc, TempAlloc)(tempAlloc, writer, ctx, asUnionType(type), it.memberIndex, source, (ref immutable LowType memberType) {
-				generateConstant(tempAlloc, writer, ctx, source, memberType, it.arg);
-			});
+			generateConvertToUnionOrConstantUnion(
+				tempAlloc,
+				writer,
+				ctx,
+				asUnionType(type),
+				it.memberIndex,
+				source,
+				(ref immutable LowType memberType) {
+					generateConstant(tempAlloc, writer, ctx, source, memberType, it.arg);
+				});
 		},
 		(immutable Constant.Void) {
 			// do nothing

@@ -81,7 +81,7 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram program,
 
 private:
 
-public void writeConcreteFunName(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFun a) {
+void writeConcreteFunName(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFun a) {
 	matchConcreteFunSource!void(
 		a.source,
 		(immutable Ptr!FunInst it) =>

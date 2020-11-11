@@ -10,18 +10,16 @@ import concreteModel :
 	Constant,
 	compareConcreteType,
 	constantEqual,
-	matchConstant,
 	PointerTypeAndConstantsConcrete;
 import util.bools : Bool;
-import util.comparison : Comparison;
 import util.collection.arr : Arr, asImmutable, empty, size;
-import util.collection.arrUtil : arrEqual, createArr, exists, findIndex_const, map, map_mut;
+import util.collection.arrUtil : arrEqual, findIndex_const, map, map_mut;
 import util.collection.dict : KeyValuePair;
-import util.collection.mutArr : last, moveToArr, MutArr, mutArrSize, push, tempAsArr;
+import util.collection.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
 import util.collection.mutDict : getOrAdd, MutDict, mutDictSize, tempPairs_mut;
 import util.collection.str : Str;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, Opt;
 import util.ptr : comparePtr, Ptr, ptrTrustMe_mut;
 
 struct AllConstantsBuilder {
@@ -50,10 +48,13 @@ immutable(AllConstantsConcrete) finishAllConstants(Alloc)(ref Alloc alloc, ref A
 				pair.value.elementType,
 				asImmutable(moveToArr!(immutable Arr!Constant, Alloc)(alloc, pair.value.constants))));
 	immutable Arr!PointerTypeAndConstantsConcrete records =
-		map_mut(alloc, tempPairs_mut(a.pointers), (ref KeyValuePair!(immutable Ptr!ConcreteStruct, PointerTypeAndConstants) pair) =>
-			immutable PointerTypeAndConstantsConcrete(
-				pair.key,
-				asImmutable(moveToArr!(immutable Ptr!Constant, Alloc)(alloc, pair.value.constants))));
+		map_mut(
+			alloc,
+			tempPairs_mut(a.pointers),
+			(ref KeyValuePair!(immutable Ptr!ConcreteStruct, PointerTypeAndConstants) pair) =>
+				immutable PointerTypeAndConstantsConcrete(
+					pair.key,
+					asImmutable(moveToArr!(immutable Ptr!Constant, Alloc)(alloc, pair.value.constants))));
 	return immutable AllConstantsConcrete(arrs, records);
 }
 
@@ -85,7 +86,10 @@ immutable(Constant) getConstantArr(Alloc)(
 		return immutable Constant(immutable Constant.ArrConstant(0, 0, 0));
 	else {
 		Ptr!ArrTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.arrs, elementType, () =>
-			ArrTypeAndConstants(arrStruct, elementType, mutDictSize(allConstants.arrs), MutArr!(immutable Arr!Constant)())));
+			ArrTypeAndConstants(
+				arrStruct,
+				elementType,
+				mutDictSize(allConstants.arrs), MutArr!(immutable Arr!Constant)())));
 		immutable size_t index = findOrPush!(immutable Arr!Constant, Alloc)(
 			alloc,
 			d.constants,

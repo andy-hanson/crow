@@ -5,7 +5,7 @@ import util.collection.arr : Arr, at, begin, empty, first, ptrAt, ptrsRange, ran
 import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory;
-import util.opt : force, has, none, Opt, some, someConst;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.result : asFailure, asSuccess, fail, isSuccess, Result, success;
 import util.util : max, verify;
@@ -325,16 +325,6 @@ immutable(Opt!(Ptr!T)) findPtr(T)(
 
 immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	return map(alloc, a, (ref immutable T it) => it);
-}
-
-@trusted immutable(Arr!Out) createArr(Out)(
-	immutable size_t size,
-	scope immutable(Out) delegate() @safe @nogc pure nothrow cb,
-) {
-	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
-	foreach (immutable size_t i; 0..size(a))
-		initMemory(res + i, cb());
-	return immutable Arr!Out(cast(immutable) res, size(a));
 }
 
 @trusted immutable(Arr!Out) map(Out, In, Alloc)(

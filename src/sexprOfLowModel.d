@@ -305,22 +305,6 @@ immutable(Sexpr) tataOfMatch(Alloc)(ref Alloc alloc, ref immutable LowExprKind.M
 				tataOfLowExpr(alloc, case_.then))));
 }
 
-immutable(Sexpr) tataOfSpecialConstant(Alloc)(ref Alloc alloc, ref immutable LowExprKind.SpecialConstant a) {
-	immutable Sexpr constant = matchSpecialConstant!(immutable Sexpr)(
-		a,
-		(immutable LowExprKind.SpecialConstant.BoolConstant it) =>
-			tataBool(it.value),
-		(immutable LowExprKind.SpecialConstant.Integral it) =>
-			tataNat(it.value),
-		(immutable LowExprKind.SpecialConstant.Null it) =>
-			tataSym("null"),
-		(immutable LowExprKind.SpecialConstant.StrConstant it) =>
-			tataStr(it.value),
-		(immutable LowExprKind.SpecialConstant.Void) =>
-			tataSym("void"));
-	return tataRecord(alloc, "constant", constant);
-}
-
 immutable(string) strOfSpecial0AryKind(immutable LowExprKind.Special0Ary.Kind a) {
 	final switch (a) {
 		case LowExprKind.Special0Ary.Kind.getErrno:

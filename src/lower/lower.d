@@ -99,14 +99,13 @@ import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeN
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr, fullIndexDictSize;
 import util.collection.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
 import util.collection.mutDict : getOrAdd, MutDict, ValueAndDidAdd;
-import util.collection.str : copyStr;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, mapOptionPtr, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.util : todo, unreachable, verify;
+import util.util : unreachable, verify;
 
 immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a.allStructs);
@@ -157,8 +156,9 @@ immutable(AllConstantsLow) convertAllConstants(Alloc)(
 		immutable LowType elementType = lowTypeFromConcreteType(alloc, ctx, it.elementType);
 		return immutable ArrTypeAndConstantsLow(asRecordType(arrType), elementType, it.constants);
 	});
-	immutable Arr!PointerTypeAndConstantsLow records = map(alloc, a.pointers, (ref immutable PointerTypeAndConstantsConcrete it) =>
-		immutable PointerTypeAndConstantsLow(lowTypeFromConcreteStruct(alloc, ctx, it.pointeeType), it.constants));
+	immutable Arr!PointerTypeAndConstantsLow records =
+		map(alloc, a.pointers, (ref immutable PointerTypeAndConstantsConcrete it) =>
+			immutable PointerTypeAndConstantsLow(lowTypeFromConcreteStruct(alloc, ctx, it.pointeeType), it.constants));
 	return immutable AllConstantsLow(arrs, records);
 }
 

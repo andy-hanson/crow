@@ -43,7 +43,6 @@ import util.sexpr :
 	Sexpr,
 	tataArr,
 	tataBool,
-	tataInt,
 	tataNamedRecord,
 	tataNat,
 	tataOpt,
@@ -51,7 +50,6 @@ import util.sexpr :
 	tataStr,
 	tataSym;
 import util.sourceRange : sexprOfFileAndRange;
-import util.util : todo;
 
 immutable(Sexpr) tataOfConcreteProgram(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	return tataRecord(

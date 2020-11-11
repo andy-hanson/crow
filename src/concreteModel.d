@@ -17,12 +17,12 @@ import model :
 	summon;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, sizeEq;
-import util.collection.arrUtil : arrEqual, eachCorresponds;
+import util.collection.arrUtil : eachCorresponds;
 import util.collection.str : Str;
 import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateSet;
 import util.opt : force, has, none, Opt;
-import util.ptr : comparePtr, Ptr, ptrEquals;
+import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : u8;
@@ -674,7 +674,9 @@ immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
 			return eachCorresponds(a.record.args, b.record.args, (ref immutable Constant x, ref immutable Constant y) =>
 				constantEqual(x, y));
 		case Constant.Kind.union_:
-			return immutable Bool(a.union_.memberIndex == b.union_.memberIndex && constantEqual(a.union_.arg, b.union_.arg));
+			return immutable Bool(
+				a.union_.memberIndex == b.union_.memberIndex &&
+				constantEqual(a.union_.arg, b.union_.arg));
 	}
 }
 

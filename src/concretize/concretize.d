@@ -3,7 +3,7 @@ module concretize.concretize;
 @safe @nogc pure nothrow:
 
 import concreteModel : ConcreteFun, ConcreteProgram, ConcreteStruct;
-import concretize.allConstantsBuilder : AllConstantsBuilder, finishAllConstants;
+import concretize.allConstantsBuilder : finishAllConstants;
 import concretize.concretizeCtx : ConcretizeCtx, ctxType, getOrAddNonTemplateConcreteFunAndFillBody;
 import model :
 	asStructInst,

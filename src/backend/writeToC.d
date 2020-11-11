@@ -86,7 +86,7 @@ import util.sym :
 	Sym,
 	symEq;
 import util.types : u8;
-import util.util : todo, verify;
+import util.util : verify;
 import util.writer :
 	finishWriter,
 	newline,
@@ -94,7 +94,6 @@ import util.writer :
 	writeEscapedChar_inner,
 	writeNat,
 	Writer,
-	writeQuotedStr,
 	writeStatic,
 	writeStr,
 	writeWithCommas;
@@ -1257,7 +1256,9 @@ void writeConstantRef(Alloc)(
 			});
 		},
 		(ref immutable Constant.Union it) {
-			immutable LowType memberType = at(fullIndexDictGet(ctx.program.allUnions, asUnionType(type)).members, it.memberIndex);
+			immutable LowType memberType = at(
+				fullIndexDictGet(ctx.program.allUnions, asUnionType(type)).members,
+				it.memberIndex);
 			writeConvertToUnion(writer, ctx, type, it.memberIndex, () {
 				writeConstantRef(writer, ctx, memberType, it.arg);
 			});

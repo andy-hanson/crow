@@ -28,13 +28,11 @@ import util.collection.byteWriter :
 	bytePushU64 = pushU64,
 	writeInt16,
 	writeU16,
-	writeU32,
-	writeU64;
+	writeU32;
 import interpret.opcode : OpCode;
-import util.collection.arr : Arr, begin, empty, range, sizeNat;
+import util.collection.arr : Arr, empty, range, sizeNat;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
-import util.collection.mutArr : moveToArr, MutArr, mutArrRange, mutArrSizeNat, push, pushAll;
 import util.collection.str : Str;
 import util.ptr : Ptr;
 import util.util : divRoundUp, repeat, unreachable, verify;
@@ -356,25 +354,6 @@ private immutable(ByteCodeIndex) writePushU32Common(Alloc)(
 	pushU32(writer, source, value);
 	writer.nextStackEntry++;
 	return fnAddress;
-}
-
-private immutable(ByteCodeIndex) writePushU64Delayed(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
-	ref immutable ByteCodeSource source,
-) {
-	return writePushU64Common(writer, source, immutable Nat64(0));
-}
-
-private immutable(ByteCodeIndex) writePushU64Common(Alloc)(
-	ref ByteCodeWriter!Alloc writer,
-	ref immutable ByteCodeSource source,
-	immutable Nat64 value,
-) {
-	pushOpcode(writer, source, OpCode.pushU64);
-	immutable ByteCodeIndex address = nextByteCodeIndex(writer);
-	pushU64(writer, source, value);
-	writer.nextStackEntry++;
-	return address;
 }
 
 void writeRemove(Alloc)(

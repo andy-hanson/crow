@@ -60,10 +60,6 @@ void writeU32(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutab
 	writeBytes!Nat32(writer, index, value);
 }
 
-void writeU64(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutable Nat64 value) {
-	writeBytes!Nat64(writer, index, value);
-}
-
 private:
 
 @trusted void pushBytes(T, Alloc)(ref ByteWriter!Alloc writer, immutable T value) {

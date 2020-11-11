@@ -10,16 +10,12 @@ import lowModel :
 	asNonFunPtrType,
 	asPrimitive,
 	asRecordType,
-	LowField,
-	LowProgram,
 	LowType,
 	lowTypeEqual,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
 import util.collection.arr : Arr, arrOfRange, at, castImmutable, empty, ptrAt, range, setAt, size;
-import util.collection.arrUtil : createArr, map, mapToMut, sum;
-import util.collection.dict : Dict, KeyValuePair, mustGetAt_mut;
-import util.collection.fullIndexDict : fullIndexDictGet;
+import util.collection.arrUtil : mapToMut, sum;
 import util.ptr : Ptr, ptrTrustMe;
 import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, u8, u16, u32, u64;
 import util.util : todo, unreachable, verify;
@@ -71,12 +67,22 @@ immutable(TextAndInfo) generateText(Alloc)(
 	foreach (immutable size_t arrTypeIndex; 0..size(allConstants.arrs)) {
 		immutable ArrTypeAndConstantsLow typeAndConstants = at(allConstants.arrs, arrTypeIndex);
 		foreach (immutable size_t constantIndex; 0..size(typeAndConstants.constants))
-			recurWriteArr(ctx, arrTypeIndex, typeAndConstants.elementType, constantIndex, at(typeAndConstants.constants, constantIndex));
+			recurWriteArr(
+				ctx,
+				arrTypeIndex,
+				typeAndConstants.elementType,
+				constantIndex,
+				at(typeAndConstants.constants, constantIndex));
 	}
 	foreach (immutable size_t pointeeTypeIndex; 0..size(allConstants.pointers)) {
 		immutable PointerTypeAndConstantsLow typeAndConstants = at(allConstants.pointers, pointeeTypeIndex);
 		foreach (immutable size_t constantIndex; 0..size(typeAndConstants.constants))
-			recurWritePointer(ctx, pointeeTypeIndex, typeAndConstants.pointeeType, constantIndex, at(typeAndConstants.constants, constantIndex));
+			recurWritePointer(
+				ctx,
+				pointeeTypeIndex,
+				typeAndConstants.pointeeType,
+				constantIndex,
+				at(typeAndConstants.constants, constantIndex));
 	}
 
 	return immutable TextAndInfo(
@@ -84,6 +90,8 @@ immutable(TextAndInfo) generateText(Alloc)(
 		castImmutable(ctx.arrTypeIndexToConstantIndexToTextIndex),
 		castImmutable(ctx.pointeeTypeIndexToIndexToTextIndex));
 }
+
+private:
 
 struct Ctx {
 	immutable Ptr!AllConstantsLow allConstants;
@@ -157,11 +165,10 @@ void recurWritePointer(
 	}
 }
 
-private:
-
 immutable(size_t) getAllConstantsSize(ref immutable TypeLayout typeLayout, ref immutable AllConstantsLow allConstants) {
 	immutable size_t arrsSize = sum(allConstants.arrs, (ref immutable ArrTypeAndConstantsLow arrs) =>
-		sizeOfType(typeLayout, arrs.elementType).raw() * sum(arrs.constants, (ref immutable Arr!Constant elements) => size(elements)));
+		sizeOfType(typeLayout, arrs.elementType).raw() *
+		sum(arrs.constants, (ref immutable Arr!Constant elements) => size(elements)));
 	immutable size_t pointersSize = sum(allConstants.pointers, (ref immutable PointerTypeAndConstantsLow pointers) =>
 		sizeOfType(typeLayout, pointers.pointeeType).raw() * size(pointers.constants));
 	return arrsSize + pointersSize;
@@ -175,7 +182,7 @@ void writeConstant(ref Ctx ctx, ref immutable LowType type, ref immutable Consta
 			immutable size_t constantSize = size(at(at(ctx.allConstants.arrs, it.typeIndex).constants, it.index));
 			add64(ctx.text, constantSize);
 			immutable size_t textIndex = at(at(ctx.arrTypeIndexToConstantIndexToTextIndex, it.typeIndex), it.index);
-			add64TextPtr(ctx.text, textIndex);
+		add64TextPtr(ctx.text, textIndex);
 		},
 		(immutable Constant.BoolConstant it) {
 			add(ctx.text, it.value ? 1 : 0);
@@ -225,13 +232,6 @@ void writeConstant(ref Ctx ctx, ref immutable LowType type, ref immutable Consta
 		(immutable Constant.Void) {
 			todo!void("!"); // should only happen if there's a pointer to void..
 		});
-}
-
-//TODO:MOVE
-immutable(LowType) elementTypeFromArrType(ref immutable LowProgram program, ref immutable LowType t) {
-	immutable Arr!LowField fields = fullIndexDictGet(program.allRecords, asRecordType(t)).fields;
-	verify(size(fields) == 2);
-	return asNonFunPtrType(at(fields, 1).type).pointee;
 }
 
 //TODO:MOVE

@@ -4,12 +4,11 @@ module util.writer;
 
 import util.bools : Bool, False;
 import util.ptr : Ptr;
-import util.collection.arr : Arr, at, begin, range, size, sizeEq;
+import util.collection.arr : Arr, at, begin, range, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, Str, strLiteral;
 import util.ptr : PtrRange;
 import util.types : abs;
-import util.util : verify;
 
 struct Writer(Alloc) {
 	private:
