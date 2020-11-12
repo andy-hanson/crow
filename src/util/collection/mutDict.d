@@ -42,7 +42,7 @@ const(Opt!V) getAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, const K
 	return none!V;
 }
 
-ref immutable(V) mustGetAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, const K key) {
+ref const(V) mustGetAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, const K key) {
 	foreach (ref const KeyValuePair!(K, V) pair; mutArrRange(a.pairs))
 		if (cmp(pair.key, key) == Comparison.equal)
 			return pair.value;

@@ -15,12 +15,13 @@ import util.bools : Bool;
 import util.collection.arr : Arr, asImmutable, empty, size;
 import util.collection.arrUtil : arrEqual, findIndex_const, map, map_mut;
 import util.collection.dict : KeyValuePair;
-import util.collection.mutArr : moveToArr, MutArr, mutArrSize, push, tempAsArr;
-import util.collection.mutDict : getOrAdd, MutDict, mutDictSize, tempPairs_mut;
+import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
+import util.collection.mutDict : getOrAdd, MutDict, mustGetAt_mut, mutDictSize, tempPairs_mut;
 import util.collection.str : Str;
 import util.memory : allocate;
 import util.opt : force, has, Opt;
 import util.ptr : comparePtr, Ptr, ptrTrustMe_mut;
+import util.util : verify;
 
 struct AllConstantsBuilder {
 	private:
@@ -56,6 +57,15 @@ immutable(AllConstantsConcrete) finishAllConstants(Alloc)(ref Alloc alloc, ref A
 					pair.key,
 					asImmutable(moveToArr!(immutable Ptr!Constant, Alloc)(alloc, pair.value.constants))));
 	return immutable AllConstantsConcrete(arrs, records);
+}
+
+ref immutable(Constant) derefConstantPointer(
+	ref AllConstantsBuilder a,
+	ref immutable Constant.Pointer pointer,
+	immutable Ptr!ConcreteStruct pointeeType,
+) {
+	verify(mustGetAt_mut(a.pointers, pointeeType).typeIndex == pointer.typeIndex);
+	return mutArrAt(mustGetAt_mut(a.pointers, pointeeType).constants, pointer.index);
 }
 
 immutable(Constant) getConstantPtr(Alloc)(

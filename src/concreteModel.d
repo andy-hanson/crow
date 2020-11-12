@@ -655,6 +655,16 @@ immutable(Constant.Integral) asIntegral(ref immutable Constant a) {
 	return a.integral_;
 }
 
+immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
+	verify(a.kind == Constant.Kind.pointer);
+	return a.pointer;
+}
+
+@trusted immutable(Constant.Record) asRecord(ref immutable Constant a) {
+	verify(a.kind == Constant.Kind.record);
+	return a.record;
+}
+
 // WARN: Only do this with constants known to have the same type
 @trusted immutable(Bool) constantEqual(ref immutable Constant a, ref immutable Constant b) {
 	verify(a.kind == b.kind);

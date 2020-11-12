@@ -5,6 +5,7 @@ module concretize.concretizeExpr;
 import concreteModel :
 	asBool,
 	asConstant,
+	asPointer,
 	asRecord,
 	body_,
 	byRef,
@@ -31,7 +32,7 @@ import concreteModel :
 	name,
 	purity,
 	returnType;
-import concretize.allConstantsBuilder : getConstantArr, getConstantPtr, getConstantStr;
+import concretize.allConstantsBuilder : derefConstantPointer, getConstantArr, getConstantPtr, getConstantStr;
 import concretize.concretizeCtx :
 	anyPtrType,
 	boolType,
@@ -585,10 +586,19 @@ immutable(ConcreteExpr) concretizeRecordFieldAccess(Alloc)(
 	immutable Ptr!ConcreteExpr target = allocExpr(alloc, concretizeExpr(alloc, ctx, e.target));
 	immutable ConcreteType targetType = getConcreteType_forStructInst(alloc, ctx, e.targetType);
 	immutable Ptr!ConcreteField field = getMatchingField(targetType.struct_, e.field.index);
-	return immutable ConcreteExpr(
-		field.type,
-		range,
-		immutable ConcreteExpr.RecordFieldAccess(target, field));
+	if (isConstant(target)) {
+		immutable Constant.Record record = targetType.isPointer
+			? () {
+				immutable Constant.Pointer pointer = asPointer(asConstant(target));
+				return asRecord(derefConstantPointer(ctx.concretizeCtx.allConstants, pointer, targetType.struct_));
+			}()
+			: asRecord(asConstant(target));
+		return immutable ConcreteExpr(field.type, range, at(record.args, field.index));
+	} else
+		return immutable ConcreteExpr(
+			field.type,
+			range,
+			immutable ConcreteExpr.RecordFieldAccess(target, field));
 }
 
 immutable(ConcreteExpr) concretizeRecordFieldSet(Alloc)(
