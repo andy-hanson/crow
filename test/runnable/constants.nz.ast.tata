@@ -1,0 +1,51 @@
+file-ast(
+	imports: ports(range(0, 34), [import-ast(0, "/io", some([exit-code, print-sync]))])
+	specs: []
+	aliases: []
+	structs: [
+		struct(
+			range(34, 66)
+			true
+			[]
+			none
+			record(
+				none
+				[
+					field(range(52, 57), false, a, inststruct(range(54, 57), name-range(54, str)))
+					field(range(59, 64), false, b, inststruct(range(61, 64), name-range(61, str)))]))]
+	funs: [
+		fun-decl(
+			public?: true
+			sig: sig-ast(
+				range(66, 87)
+				foo
+				inststruct(range(70, 74), name-range(70, void))
+				[param(range(75, 86), name-range(75, r), inststruct(range(77, 86), name-range(77, my-record)))])
+			summon: true
+			body: seq-ast(
+				call(prefix, name-range(96, print-sync), [], [call(infix, name-range(110, a), [], [r])])
+				call(prefix, name-range(113, print-sync), [], [call(infix, name-range(127, b), [], [r])])))
+		fun-decl(
+			public?: true
+			sig: sig-ast(
+				range(130, 162)
+				main
+				inststruct(range(135, 148), name-range(135, fut), [inststruct(range(139, 148), name-range(139, exit-code))])
+				[
+					param(
+						range(149, 161)
+						name-range(149, args)
+						inststruct(range(154, 161), name-range(154, arr), [inststruct(range(158, 161), name-range(158, str))]))])
+			summon: true
+			body: let(
+				name-range(171, r)
+				new-record(
+					some(inststruct(range(179, 188), name-range(179, my-record)))
+					[literal(string, "a"), literal(string, "b")])
+				seq-ast(
+					seq-ast(
+						seq-ast(
+							call(prefix, name-range(200, foo), [], [r])
+							call(prefix, name-range(208, print-sync), [], [call(infix, name-range(222, a), [], [r])]))
+						call(prefix, name-range(225, print-sync), [], [call(infix, name-range(239, b), [], [r])]))
+					call(prefix, name-range(242, resolved), [], [literal(numeric, "0")]))))])

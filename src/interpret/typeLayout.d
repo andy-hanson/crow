@@ -4,8 +4,8 @@ module interpret.typeLayout;
 
 import interpret.bytecode : stackEntrySize;
 import lowModel : LowField, LowProgram, LowRecord, LowType, LowUnion, matchLowType, PrimitiveType;
-import util.collection.arr : Arr;
-import util.collection.arrUtil : arrMax, map;
+import util.collection.arr : Arr, at, empty, size;
+import util.collection.arrUtil : arrMax, map, mapOp, slice;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictGet, fullIndexDictSize;
 import util.collection.fullIndexDictBuilder :
 	finishFullIndexDict,
@@ -14,9 +14,9 @@ import util.collection.fullIndexDictBuilder :
 	fullIndexDictBuilderHas,
 	fullIndexDictBuilderOptGet,
 	newFullIndexDictBuilder;
-import util.opt : force, has, Opt;
+import util.opt : force, has, none, Opt, some;
 import util.types : Nat8, zero;
-import util.util : divRoundUp, roundUp;
+import util.util : divRoundUp, roundUp, verify;
 
 // NOTE: we should lay out structs so that no primitive field straddles multiple stack entries.
 struct TypeLayout {
@@ -64,6 +64,58 @@ immutable(TypeLayout) layOutTypes(Alloc)(ref Alloc alloc, ref immutable LowProgr
 		finishFullIndexDict(builder.recordSizes),
 		finishFullIndexDict(builder.recordFieldOffsets),
 		finishFullIndexDict(builder.unionSizes));
+}
+
+// 'cbSingleField' is called for every field.
+// While doing so, 'cbPack' is called after a group of fields that should be packed together.
+void walkRecordFields(TempAlloc)(
+	ref TempAlloc tempAlloc,
+	ref immutable LowProgram program,
+	ref immutable TypeLayout typeLayout,
+	immutable LowType.Record type,
+	scope void delegate(ref immutable Arr!Nat8) @safe @nogc pure nothrow cbPack,
+	scope void delegate(immutable size_t, ref immutable LowType, immutable Nat8) @safe @nogc pure nothrow cbSingleField,
+) {
+	immutable LowRecord record = fullIndexDictGet(program.allRecords, type);
+
+	void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
+		if (has(packStart)) {
+			// TODO: could just write these to a MaxArr!Nat8 when making in the first place
+			// (instead of Opt!size_t packStart, have MaxArr!(size_t, 3))
+			immutable Arr!Nat8 fieldSizes = mapOp(
+				tempAlloc,
+				slice(record.fields, force(packStart), packEnd - force(packStart)),
+				(ref immutable LowField field) {
+					immutable Nat8 size = sizeOfType(typeLayout, field.type);
+					return zero(size) ? none!Nat8 : some(size);
+				});
+			if (!empty(fieldSizes))
+				cbPack(fieldSizes);
+		}
+	}
+
+	void recur(immutable Opt!size_t packStart, immutable size_t fieldIndex) {
+		if (fieldIndex == size(record.fields)) {
+			maybePack(packStart, fieldIndex);
+		} else {
+			//TODO: use field offsets instead of getting size?
+			immutable LowType fieldType = at(record.fields, fieldIndex).type;
+			immutable Nat8 fieldSize = sizeOfType(typeLayout, fieldType);
+			immutable Opt!size_t nextPackStart = () {
+				if (fieldSize < immutable Nat8(8)) {
+					return has(packStart) ? packStart : some(fieldIndex);
+				} else {
+					verify(fieldSize % immutable Nat8(8) == immutable Nat8(0));
+					maybePack(packStart, fieldIndex);
+					return none!size_t;
+				}
+			}();
+			cbSingleField(fieldIndex, fieldType, fieldSize);
+			recur(nextPackStart, fieldIndex + 1);
+		}
+	}
+
+	recur(none!size_t, 0);
 }
 
 private:

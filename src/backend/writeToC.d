@@ -157,7 +157,7 @@ void writeConstants(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref i
 			} else {
 				writeChar(writer, '{');
 				writeWithCommas(writer, elements, (ref immutable Constant element) {
-					writeConstantRef!Alloc(writer, ctx, a.elementType, element);
+					writeConstantRef(writer, ctx, ConstantRefPos.inner, a.elementType, element);
 				});
 				writeChar(writer, '}');
 			}
@@ -169,7 +169,7 @@ void writeConstants(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref i
 		foreach (immutable size_t i; 0..size(a.constants)) {
 			declareConstantPointerStorage(writer, ctx, a.pointeeType, i);
 			writeStatic(writer, " = ");
-			writeConstantRef(writer, ctx, a.pointeeType, at(a.constants, i));
+			writeConstantRef(writer, ctx, ConstantRefPos.inner, a.pointeeType, at(a.constants, i));
 			writeStatic(writer, ";\n");
 		}
 	}
@@ -211,7 +211,7 @@ void declareConstantPointerStorage(Alloc)(
 ) {
 	//TODO: some day we may support non-record pointee?
 	writeRecordType(writer, ctx, asRecordType(pointeeType));
-	writeStatic(writer, "* ");
+	writeChar(writer, ' ');
 	writeConstantPointerStorageName(writer, ctx, pointeeType, index);
 }
 
@@ -834,14 +834,20 @@ void writeExpr(Alloc)(
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			return_(() {
-				writeCreateRecord(writer, ctx.ctx, type, size(it.args), (immutable size_t argIndex) {
-					writeExprExpr(writer, indent, ctx, at(it.args, argIndex));
-				});
+				writeCreateRecord(
+					writer,
+					ctx.ctx,
+					ConstantRefPos.outer,
+					type,
+					size(it.args),
+					(immutable size_t argIndex) {
+						writeExprExpr(writer, indent, ctx, at(it.args, argIndex));
+					});
 			});
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
 			return_(() {
-				writeConvertToUnion(writer, ctx.ctx, type, it.memberIndex, () {
+				writeConvertToUnion(writer, ctx.ctx, ConstantRefPos.outer, type, it.memberIndex, () {
 					writeExprExpr(writer, indent, ctx, it.arg);
 				});
 			});
@@ -902,7 +908,7 @@ void writeExpr(Alloc)(
 			});
 		},
 		(ref immutable Constant it) {
-			return_(() { writeConstantRef(writer, ctx.ctx, type, it); });
+			return_(() { writeConstantRef(writer, ctx.ctx, ConstantRefPos.outer, type, it); });
 		},
 		(ref immutable LowExprKind.Special0Ary it) {
 			return_(() { writeSpecial0Ary(writer, it.kind); });
@@ -1004,11 +1010,13 @@ void writeTailRecur(Alloc)(
 void writeCreateRecord(Alloc)(
 	ref Writer!Alloc writer,
 	ref immutable Ctx ctx,
+	immutable ConstantRefPos pos,
 	ref immutable LowType type,
 	immutable size_t nArgs,
 	scope void delegate(immutable size_t) @safe @nogc pure nothrow cbWriteArg,
 ) {
-	writeCastToType(writer, ctx, type);
+	if (pos == ConstantRefPos.outer)
+		writeCastToType(writer, ctx, type);
 	writeChar(writer, '{');
 	if (nArgs == 0)
 		// C forces structs to be non-empty
@@ -1021,11 +1029,12 @@ void writeCreateRecord(Alloc)(
 void writeConvertToUnion(Alloc)(
 	ref Writer!Alloc writer,
 	ref immutable Ctx ctx,
+	immutable ConstantRefPos pos,
 	ref immutable LowType type,
 	immutable size_t memberIndex,
 	scope void delegate() @safe @nogc pure nothrow cbWriteMember,
 ) {
-	writeCastToType(writer, ctx, type);
+	if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
 	writeChar(writer, '{');
 	writeNat(writer, memberIndex);
 	writeStatic(writer, ", .as");
@@ -1216,16 +1225,24 @@ void writeArgs(Alloc)(
 	});
 }
 
+// For some reason, providing a type for a record makes it non-constant.
+// But that is mandatory at the outermost level.
+enum ConstantRefPos {
+	outer,
+	inner,
+}
+
 void writeConstantRef(Alloc)(
 	ref Writer!Alloc writer,
 	ref immutable Ctx ctx,
+	immutable ConstantRefPos pos,
 	ref immutable LowType type,
 	ref immutable Constant a,
 ) {
 	matchConstant!void(
 		a,
 		(ref immutable Constant.ArrConstant it) {
-			writeCastToType(writer, ctx, type);
+			if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
 			writeChar(writer, '{');
 			writeNat(writer, it.size);
 			writeStatic(writer, ", ");
@@ -1251,16 +1268,16 @@ void writeConstantRef(Alloc)(
 		(ref immutable Constant.Record it) {
 			immutable Arr!LowField fields = fullIndexDictGet(ctx.program.allRecords, asRecordType(type)).fields;
 			verify(sizeEq(fields, it.args));
-			writeCreateRecord(writer, ctx, type, size(it.args), (immutable size_t i) {
-				writeConstantRef(writer, ctx, at(fields, i).type, at(it.args, i));
+			writeCreateRecord(writer, ctx, pos, type, size(it.args), (immutable size_t i) {
+				writeConstantRef(writer, ctx, ConstantRefPos.inner, at(fields, i).type, at(it.args, i));
 			});
 		},
 		(ref immutable Constant.Union it) {
 			immutable LowType memberType = at(
 				fullIndexDictGet(ctx.program.allUnions, asUnionType(type)).members,
 				it.memberIndex);
-			writeConvertToUnion(writer, ctx, type, it.memberIndex, () {
-				writeConstantRef(writer, ctx, memberType, it.arg);
+			writeConvertToUnion(writer, ctx, pos, type, it.memberIndex, () {
+				writeConstantRef(writer, ctx, ConstantRefPos.inner, memberType, it.arg);
 			});
 		},
 		(immutable Constant.Void) {

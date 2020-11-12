@@ -1202,10 +1202,10 @@ char constantarr_0_104[4] = "\x1b[1m";
 char constantarr_0_105[3] = "\x1b[m";
 char constantarr_0_106[15] = "hit maximum of ";
 char constantarr_0_107[9] = " failures";
-struct arr_0 constantarr_1_0[3] = {(struct arr_0) {11, constantarr_0_13}, (struct arr_0) {16, constantarr_0_14}, (struct arr_0) {12, constantarr_0_15}};
-struct arr_0 constantarr_1_1[4] = {(struct arr_0) {3, constantarr_0_46}, (struct arr_0) {5, constantarr_0_47}, (struct arr_0) {14, constantarr_0_48}, (struct arr_0) {9, constantarr_0_49}};
-struct arr_0 constantarr_1_2[5] = {(struct arr_0) {4, constantarr_0_82}, (struct arr_0) {4, constantarr_0_68}, (struct arr_0) {4, constantarr_0_83}, (struct arr_0) {5, constantarr_0_57}, (struct arr_0) {5, constantarr_0_84}};
-struct arr_0 constantarr_1_3[6] = {(struct arr_0) {1, constantarr_0_86}, (struct arr_0) {4, constantarr_0_87}, (struct arr_0) {1, constantarr_0_88}, (struct arr_0) {3, constantarr_0_89}, (struct arr_0) {4, constantarr_0_90}, (struct arr_0) {10, constantarr_0_91}};
+struct arr_0 constantarr_1_0[3] = {{11, constantarr_0_13}, {16, constantarr_0_14}, {12, constantarr_0_15}};
+struct arr_0 constantarr_1_1[4] = {{3, constantarr_0_46}, {5, constantarr_0_47}, {14, constantarr_0_48}, {9, constantarr_0_49}};
+struct arr_0 constantarr_1_2[5] = {{4, constantarr_0_82}, {4, constantarr_0_68}, {4, constantarr_0_83}, {5, constantarr_0_57}, {5, constantarr_0_84}};
+struct arr_0 constantarr_1_3[6] = {{1, constantarr_0_86}, {4, constantarr_0_87}, {1, constantarr_0_88}, {3, constantarr_0_89}, {4, constantarr_0_90}, {10, constantarr_0_91}};
 int32_t rt_main(int32_t argc, char** argv, fun_ptr2_0 main_ptr);
 uint8_t drop_0(struct arr_0 t);
 struct arr_0 to_str_0(char* a);
@@ -2249,7 +2249,7 @@ struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, ch
 	return call_with_ctx_8(ctx3, add4, all_args5, main_ptr);
 }
 struct exception_ctx new_exception_ctx() {
-	return (struct exception_ctx) {NULL, (struct exception) {(struct arr_0) {0, NULL}}};
+	return (struct exception_ctx) {NULL, (struct exception) {{0, NULL}}};
 }
 struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id) {
 	return (struct ctx) {(uint8_t*) gctx, vat->id, actor_id, (uint8_t*) get_gc_ctx_0((&(vat->gc))), (uint8_t*) tls->exception_ctx};

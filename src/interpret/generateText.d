@@ -3,21 +3,25 @@ module interpret.generateText;
 @safe @nogc pure nothrow:
 
 import concreteModel : Constant, matchConstant;
-import interpret.typeLayout : sizeOfType, TypeLayout;
+import interpret.typeLayout : sizeOfType, TypeLayout, walkRecordFields;
 import lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,
 	asNonFunPtrType,
 	asPrimitive,
 	asRecordType,
+	LowField,
+	LowProgram,
+	LowRecord,
 	LowType,
 	lowTypeEqual,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
 import util.collection.arr : Arr, arrOfRange, at, castImmutable, empty, ptrAt, range, setAt, size;
-import util.collection.arrUtil : mapToMut, sum;
+import util.collection.arrUtil : mapToMut, sum, zip;
+import util.collection.fullIndexDict : fullIndexDictGet;
 import util.ptr : Ptr, ptrTrustMe;
-import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, u8, u16, u32, u64;
+import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat8, u8, u16, u32, u64, zero;
 import util.util : todo, unreachable, verify;
 
 struct TextAndInfo {
@@ -41,13 +45,22 @@ immutable(TextArrInfo) getTextInfoForArray(
 	return immutable TextArrInfo(constantSize, ptrAt(info.text, textIndex).rawPtr());
 }
 
-immutable(TextAndInfo) generateText(Alloc)(
+immutable(ubyte*) getTextPointer(ref immutable TextAndInfo info, immutable Constant.Pointer a) {
+	immutable size_t textIndex = at(at(info.pointeeTypeIndexToIndexToTextIndex, a.typeIndex), a.index);
+	return ptrAt(info.text, textIndex).rawPtr();
+}
+
+immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 	ref Alloc alloc,
+	ref TempAlloc tempAlloc,
+	ref immutable LowProgram program,
 	ref immutable TypeLayout typeLayout,
 	ref immutable AllConstantsLow allConstants,
 ) {
 	Ctx ctx = Ctx(
+		ptrTrustMe(program),
 		ptrTrustMe(allConstants),
+		ptrTrustMe(typeLayout),
 		// '1 +' because we add a dummy byte at 0
 		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(typeLayout, allConstants)),
 		mapToMut!(Arr!size_t, ArrTypeAndConstantsLow, Alloc)(
@@ -68,6 +81,7 @@ immutable(TextAndInfo) generateText(Alloc)(
 		immutable ArrTypeAndConstantsLow typeAndConstants = at(allConstants.arrs, arrTypeIndex);
 		foreach (immutable size_t constantIndex; 0..size(typeAndConstants.constants))
 			recurWriteArr(
+				tempAlloc,
 				ctx,
 				arrTypeIndex,
 				typeAndConstants.elementType,
@@ -78,6 +92,7 @@ immutable(TextAndInfo) generateText(Alloc)(
 		immutable PointerTypeAndConstantsLow typeAndConstants = at(allConstants.pointers, pointeeTypeIndex);
 		foreach (immutable size_t constantIndex; 0..size(typeAndConstants.constants))
 			recurWritePointer(
+				tempAlloc,
 				ctx,
 				pointeeTypeIndex,
 				typeAndConstants.pointeeType,
@@ -94,20 +109,27 @@ immutable(TextAndInfo) generateText(Alloc)(
 private:
 
 struct Ctx {
+	immutable Ptr!LowProgram program;
 	immutable Ptr!AllConstantsLow allConstants;
+	immutable Ptr!TypeLayout typeLayout;
 	ExactSizeArrBuilder!ubyte text;
 	Arr!(Arr!size_t) arrTypeIndexToConstantIndexToTextIndex;
 	Arr!(Arr!size_t) pointeeTypeIndexToIndexToTextIndex;
 }
 
 // Write out any constants that this points to.
-void ensureConstant(ref Ctx ctx, ref immutable LowType t, ref immutable Constant c) {
+void ensureConstant(TempAlloc)(
+	ref TempAlloc tempAlloc,
+	ref Ctx ctx,
+	ref immutable LowType t,
+	ref immutable Constant c,
+) {
 	matchConstant!void(
 		c,
 		(ref immutable Constant.ArrConstant it) {
 			immutable ArrTypeAndConstantsLow arrs = at(ctx.allConstants.arrs, it.typeIndex);
 			verify(arrs.arrType == asRecordType(t));
-			recurWriteArr(ctx, it.typeIndex, arrs.elementType, it.index, at(arrs.constants, it.index));
+			recurWriteArr(tempAlloc, ctx, it.typeIndex, arrs.elementType, it.index, at(arrs.constants, it.index));
 		},
 		(immutable Constant.BoolConstant) {},
 		(immutable Constant.Integral) {},
@@ -115,10 +137,13 @@ void ensureConstant(ref Ctx ctx, ref immutable LowType t, ref immutable Constant
 		(immutable Constant.Pointer it) {
 			immutable PointerTypeAndConstantsLow ptrs = at(ctx.allConstants.pointers, it.typeIndex);
 			verify(lowTypeEqual(ptrs.pointeeType, asNonFunPtrType(t).pointee));
-			recurWritePointer(ctx, it.typeIndex, ptrs.pointeeType, it.index, at(ptrs.constants, it.index));
+			recurWritePointer(tempAlloc, ctx, it.typeIndex, ptrs.pointeeType, it.index, at(ptrs.constants, it.index));
 		},
-		(ref immutable Constant.Record) {
-			todo!void("!");
+		(ref immutable Constant.Record it) {
+			immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, asRecordType(t));
+			zip(record.fields, it.args, (ref immutable LowField field, ref immutable Constant arg) {
+				ensureConstant(tempAlloc, ctx, field.type, arg);
+			});
 		},
 		(ref immutable Constant.Union) {
 			todo!void("!");
@@ -126,7 +151,8 @@ void ensureConstant(ref Ctx ctx, ref immutable LowType t, ref immutable Constant
 		(immutable Constant.Void) {});
 }
 
-void recurWriteArr(
+void recurWriteArr(TempAlloc)(
+	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
 	immutable size_t arrTypeIndex,
 	immutable LowType elementType,
@@ -137,15 +163,15 @@ void recurWriteArr(
 	Arr!size_t indexToTextIndex = at(ctx.arrTypeIndexToConstantIndexToTextIndex, arrTypeIndex);
 	if (at(indexToTextIndex, index) == 0) {
 		foreach (ref immutable Constant it; range(elements))
-			ensureConstant(ctx, elementType, it);
-		immutable size_t textIndex = exactSizeArrBuilderCurSize(ctx.text);
-		setAt(indexToTextIndex, index, textIndex);
+			ensureConstant(tempAlloc, ctx, elementType, it);
+		setAt(indexToTextIndex, index, exactSizeArrBuilderCurSize(ctx.text));
 		foreach (ref immutable Constant it; range(elements))
-			writeConstant(ctx, elementType, it);
+			writeConstant(tempAlloc, ctx, elementType, it);
 	}
 }
 
-void recurWritePointer(
+void recurWritePointer(TempAlloc)(
+	ref TempAlloc tempAlloc,
 	ref Ctx ctx,
 	immutable size_t pointeeTypeIndex,
 	immutable LowType pointeeType,
@@ -154,14 +180,9 @@ void recurWritePointer(
 ) {
 	Arr!size_t indexToTextIndex = at(ctx.pointeeTypeIndexToIndexToTextIndex, pointeeTypeIndex);
 	if (at(indexToTextIndex, index) == 0) {
-		ensureConstant(ctx, pointeeType, pointee);
-		immutable size_t textIndex = exactSizeArrBuilderCurSize(ctx.text);
-		debug {
-			import core.stdc.stdio : printf;
-			printf("recurWritePointer: typeIndex=%lu, index=%lu, textIndex=%lu\n", pointeeTypeIndex, index, textIndex);
-		}
-		setAt(indexToTextIndex, index, textIndex);
-		writeConstant(ctx, pointeeType, pointee);
+		ensureConstant(tempAlloc, ctx, pointeeType, pointee);
+		setAt(indexToTextIndex, index, exactSizeArrBuilderCurSize(ctx.text));
+		writeConstant(tempAlloc, ctx, pointeeType, pointee);
 	}
 }
 
@@ -174,7 +195,12 @@ immutable(size_t) getAllConstantsSize(ref immutable TypeLayout typeLayout, ref i
 	return arrsSize + pointersSize;
 }
 
-void writeConstant(ref Ctx ctx, ref immutable LowType type, ref immutable Constant constant) {
+void writeConstant(TempAlloc)(
+	ref TempAlloc tempAlloc,
+	ref Ctx ctx,
+	ref immutable LowType type,
+	ref immutable Constant constant,
+) {
 	matchConstant!void(
 		constant,
 		(ref immutable Constant.ArrConstant it) {
@@ -182,7 +208,7 @@ void writeConstant(ref Ctx ctx, ref immutable LowType type, ref immutable Consta
 			immutable size_t constantSize = size(at(at(ctx.allConstants.arrs, it.typeIndex).constants, it.index));
 			add64(ctx.text, constantSize);
 			immutable size_t textIndex = at(at(ctx.arrTypeIndexToConstantIndexToTextIndex, it.typeIndex), it.index);
-		add64TextPtr(ctx.text, textIndex);
+			add64TextPtr(ctx.text, textIndex);
 		},
 		(immutable Constant.BoolConstant it) {
 			add(ctx.text, it.value ? 1 : 0);
@@ -221,10 +247,19 @@ void writeConstant(ref Ctx ctx, ref immutable LowType type, ref immutable Consta
 			immutable size_t textIndex = at(at(ctx.pointeeTypeIndexToIndexToTextIndex, it.typeIndex), it.index);
 			add64TextPtr(ctx.text, textIndex);
 		},
-		(ref immutable Constant.Record) {
-			// Remember to add padding!
-			// Should generate the type layout first and pass it along to here
-			todo!void("!");
+		(ref immutable Constant.Record it) {
+			walkRecordFields(
+				tempAlloc,
+				ctx.program,
+				ctx.typeLayout,
+				asRecordType(type),
+				(ref immutable Arr!Nat8) {
+					todo!void("pack it");
+				},
+				(immutable size_t fieldIndex, ref immutable LowType fieldType, immutable Nat8 fieldSize) {
+					verify(zero(fieldSize % immutable Nat8(8))); // TODO: 'size' type so don't need this assertion
+					writeConstant(tempAlloc, ctx, fieldType, at(it.args, fieldIndex));
+				});
 		},
 		(ref immutable Constant.Union) {
 			todo!void("!");

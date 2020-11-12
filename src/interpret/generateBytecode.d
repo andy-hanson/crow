@@ -53,8 +53,8 @@ import interpret.bytecodeWriter :
 	writeSwitchDelay,
 	writeWrite;
 import interpret.debugging : writeFunName, writeType;
-import interpret.generateText : generateText, getTextInfoForArray, TextAndInfo, TextArrInfo;
-import interpret.typeLayout : layOutTypes, nStackEntriesForType, sizeOfType, TypeLayout;
+import interpret.generateText : generateText, getTextInfoForArray, getTextPointer, TextAndInfo, TextArrInfo;
+import interpret.typeLayout : layOutTypes, nStackEntriesForType, sizeOfType, TypeLayout, walkRecordFields;
 import lowModel :
 	asLocalRef,
 	asNonFunPtrType,
@@ -87,8 +87,8 @@ import lowModel :
 import model : FunDecl, Module, name, Program, range;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, range, size, sizeNat;
-import util.collection.arrUtil : map, mapOp, mapOpWithIndex, slice;
+import util.collection.arr : Arr, at, range, size, sizeNat;
+import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.fullIndexDict :
 	FullIndexDict,
 	fullIndexDictEach,
@@ -120,7 +120,7 @@ immutable(ByteCode) generateBytecode(CodeAlloc)(
 	TempAlloc tempAlloc;
 
 	immutable TypeLayout typeLayout = layOutTypes(tempAlloc, program);
-	immutable TextAndInfo text = generateText(codeAlloc, typeLayout, program.allConstants);
+	immutable TextAndInfo text = generateText(codeAlloc, tempAlloc, program, typeLayout, program.allConstants);
 
 	MutIndexMultiDict!(LowFunIndex, ByteCodeIndex) funToReferences =
 		newMutIndexMultiDict!(LowFunIndex, ByteCodeIndex)(tempAlloc, fullIndexDictSize(program.allFuns));
@@ -526,7 +526,6 @@ void generateCreateRecord(CodeAlloc, TempAlloc)(
 		writer,
 		ctx,
 		type,
-		size(it.args),
 		source,
 		(immutable size_t fieldIndex, ref immutable LowType fieldType) {
 			immutable LowExpr arg = at(it.args, fieldIndex);
@@ -540,52 +539,23 @@ void generateCreateRecordOrConstantRecord(CodeAlloc, TempAlloc)(
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref const ExprCtx ctx,
 	immutable LowType.Record type,
-	immutable size_t nArgs,
 	ref immutable ByteCodeSource source,
 	scope void delegate(immutable size_t, ref immutable LowType) @safe @nogc pure nothrow cbGenerateField,
 ) {
-	immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, type);
-
 	immutable StackEntry before = getNextStackEntry(writer);
-	// TODO: if generating a record constant, could do the pack at compile time..
-	void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
-		if (has(packStart)) {
-			// TODO: could just write these to a MaxArr!Nat8 when making in the first place
-			// (instead of Opt!size_t packStart, have MaxArr!(size_t, 3))
-			immutable Arr!Nat8 fieldSizes = mapOp!(Nat8, LowField, TempAlloc)(
-				tempAlloc,
-				slice(record.fields, force(packStart), packEnd - force(packStart)),
-				(ref immutable LowField field) {
-					immutable Nat8 size = sizeOfType(ctx, field.type);
-					return zero(size) ? none!Nat8 : some(size);
-				});
-			if (!empty(fieldSizes))
-				writePack(writer, source, fieldSizes);
-		}
-	}
 
-	void recur(immutable Opt!size_t packStart, immutable size_t fieldIndex) {
-		if (fieldIndex == nArgs) {
-			maybePack(packStart, fieldIndex);
-		} else {
-			//TODO: use field offsets instead of getting size?
-			immutable LowType fieldType = at(record.fields, fieldIndex).type;
-			immutable Nat8 fieldSize = sizeOfType(ctx, fieldType);
-			immutable Opt!size_t nextPackStart = () {
-				if (fieldSize < immutable Nat8(8)) {
-					return has(packStart) ? packStart : some(fieldIndex);
-				} else {
-					verify(fieldSize % immutable Nat8(8) == immutable Nat8(0));
-					maybePack(packStart, fieldIndex);
-					return none!size_t;
-				}
-			}();
+	walkRecordFields(
+		tempAlloc,
+		ctx.program,
+		ctx.typeLayout,
+		type,
+		(ref immutable Arr!Nat8 fieldSizes) {
+			// TODO:PERF: if generating a record constant, could do the pack at compile time
+			writePack(writer, source, fieldSizes);
+		},
+		(immutable size_t fieldIndex, ref immutable LowType fieldType, immutable Nat8) {
 			cbGenerateField(fieldIndex, fieldType);
-			recur(nextPackStart, fieldIndex + 1);
-		}
-	}
-
-	recur(none!size_t, 0);
+		});
 
 	immutable StackEntry after = getNextStackEntry(writer);
 	immutable Nat8 stackEntriesForType = nStackEntriesForRecordType(ctx, type);
@@ -708,9 +678,9 @@ void generateConstant(CodeAlloc, TempAlloc)(
 		(immutable Constant.Null) {
 			writePushConstant(writer, source, immutable Nat8(0));
 		},
-		(immutable Constant.Pointer) {
-			// Need to look up where we wrote the pointee to text
-			todo!void("!");
+		(immutable Constant.Pointer it) {
+			immutable ubyte* pointer = getTextPointer(ctx.textInfo, it);
+			writePushConstantPointer(writer, source, pointer);
 		},
 		(ref immutable Constant.Record it) {
 			generateCreateRecordOrConstantRecord(
@@ -718,7 +688,6 @@ void generateConstant(CodeAlloc, TempAlloc)(
 				writer,
 				ctx,
 				asRecordType(type),
-				size(it.args),
 				source,
 				(immutable size_t argIndex, ref immutable LowType argType) {
 					generateConstant(tempAlloc, writer, ctx, source, argType, at(it.args, argIndex));

@@ -1190,7 +1190,7 @@ struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, ch
 	return call_with_ctx_8(ctx3, add4, all_args5, main_ptr);
 }
 struct exception_ctx new_exception_ctx() {
-	return (struct exception_ctx) {NULL, (struct exception) {(struct arr_0) {0, NULL}}};
+	return (struct exception_ctx) {NULL, (struct exception) {{0, NULL}}};
 }
 struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id) {
 	return (struct ctx) {(uint8_t*) gctx, vat->id, actor_id, (uint8_t*) get_gc_ctx_0((&(vat->gc))), (uint8_t*) tls->exception_ctx};
@@ -2609,7 +2609,7 @@ uint8_t test_compare_unions(struct ctx* ctx) {
 	struct my_union c2;
 	struct my_union d3;
 	a0 = (struct my_union) {0, .as0 = (struct my_record) {literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_15})}};
-	b1 = (struct my_union) {1, .as1 = (struct my_other_record) {0}};
+	b1 = (struct my_union) {1, .as1 = {0}};
 	c2 = (struct my_union) {0, .as0 = (struct my_record) {literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_15})}};
 	d3 = (struct my_union) {0, .as0 = (struct my_record) {literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_14})}};
 	print_sync(to_str_1(ctx, compare_264(a0, b1)));

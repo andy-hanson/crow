@@ -1,0 +1,17 @@
+import
+	io: exit-code print-sync
+
+my-record record
+	a str
+	b str
+
+foo void(r my-record) summon
+	print-sync: r a
+	print-sync: r b
+
+main fut exit-code(args arr str) summon
+	r = new<my-record> "a", "b"
+	foo: r
+	print-sync: r a
+	print-sync: r b
+	resolved: 0

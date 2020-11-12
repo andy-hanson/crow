@@ -429,7 +429,7 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 
 @trusted immutable(Arr!Out) mapOpWithIndex(Out, In, Alloc)(
 	ref Alloc alloc,
-	ref immutable Arr!In a,
+	immutable Arr!In a,
 	scope immutable(Opt!Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
