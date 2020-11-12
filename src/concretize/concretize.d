@@ -42,7 +42,6 @@ immutable(ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable Prog
 		getGetVatAndActorFun(alloc, program),
 		getIfFuns(program),
 		getCallFuns(alloc, program),
-		getNullAnyPtrFun(alloc, program),
 		program.ctxStructInst,
 		ptrTrustMe(program.commonTypes));
 	immutable Ptr!ConcreteStruct ctxStruct = ctxType(alloc, ctx).struct_;
@@ -188,12 +187,4 @@ immutable(Arr!(Ptr!FunDecl)) getCallFuns(Alloc)(ref Alloc alloc, ref immutable P
 	// fun0, fun1, fun2, fun3, same for funMut
 	verify(size(res) == 8);
 	return res;
-}
-
-immutable(Ptr!FunInst) getNullAnyPtrFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) nullFuns =
-		multiDictGetAt(program.bootstrapModule.funsMap, shortSymAlphaLiteral("null-any"));
-	if (size(nullFuns) != 1)
-		todo!void("wrong number 'null' funs");
-	return nonTemplateFunInst(alloc, only(nullFuns));
 }

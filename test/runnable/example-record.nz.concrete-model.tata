@@ -146,7 +146,6 @@ program(
 			mut?: true
 			ptr?: true
 			body: record([field(lk, false, type(false, lock)), field(value, true, type(false, nat))]))
-		struct(name: ptr, body: builtin(ptr, [type(false, bool)]))
 		struct(name: int, body: builtin(int-64, []))
 		struct(
 			name: exception-ctx
@@ -175,6 +174,7 @@ program(
 			name: thread-local-stuff
 			ptr?: true
 			body: record([field(exception-ctx, false, type(true, exception-ctx))]))
+		struct(name: ptr, body: builtin(ptr, [type(false, bool)]))
 		struct(name: arr, body: record([field(size, false, type(false, nat)), field(data, false, type(false, ptr))]))
 		struct(
 			name: fun2
@@ -605,7 +605,7 @@ program(
 							local-ref(actors)
 							call(zero, [])
 							call(new-thread-safe-counter, [])
-							lambda(lambda(new-vat, 0), some(call(null-any, [])))]))))
+							lambda(lambda(new-vat, 0), some(null))]))))
 		fun(
 			false
 			new-mut-arr-by-val-with-capacity-from-unmanaged-memory
@@ -721,8 +721,6 @@ program(
 			none
 			[param(init, type(false, nat))]
 			expr-body([], record([call(new-lock, []), param-ref(init)])))
-		fun(false, null-any, type(false, ptr), none, [], expr-body([], call(null, [])))
-		fun(false, null, type(false, ptr), none, [], builtin([type(false, bool)]))
 		fun(
 			true
 			default-exception-handler
@@ -910,7 +908,7 @@ program(
 								call(ref-of-val, [local-ref(ctx-by-val)])
 								let(
 									add
-									call(as, [lambda(lambda(do-main, 0), some(call(null-any, [])))])
+									call(as, [lambda(lambda(do-main, 0), some(null))])
 									let(
 										all-args
 										record(
@@ -2484,9 +2482,7 @@ program(
 						[
 							get-field(param-ref("<<closure>>"), main-ptr)
 							call(get-ctx, [])
-							call(
-								map
-								[local-ref(args), lambda(lambda(lambda(add-first-task, 0), 0), some(call(null-any, [])))])]))))
+							call(map, [local-ref(args), lambda(lambda(lambda(add-first-task, 0), 0), some(null))])]))))
 		fun(
 			true
 			lambda(do-main, 0)

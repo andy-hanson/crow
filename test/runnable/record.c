@@ -632,13 +632,12 @@ struct none none();
 struct mut_bag new_mut_bag();
 struct thread_safe_counter new_thread_safe_counter_0();
 struct thread_safe_counter new_thread_safe_counter_1(uint64_t init);
-uint8_t* null_any();
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e);
 uint8_t print_err_sync_no_newline(struct arr_0 s);
 uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s);
 extern int64_t write(int32_t fd, uint8_t* buff, uint64_t n_bytes);
 uint8_t _op_equal_equal_2(int64_t a, int64_t b);
-struct comparison compare_39(int64_t a, int64_t b);
+struct comparison compare_38(int64_t a, int64_t b);
 uint8_t todo_1();
 int32_t stderr_fd();
 int32_t two_0();
@@ -673,7 +672,7 @@ uint8_t yield_thread();
 extern int32_t pthread_yield();
 uint8_t zero__q_1(int32_t i);
 uint8_t _op_equal_equal_3(int32_t a, int32_t b);
-struct comparison compare_74(int32_t a, int32_t b);
+struct comparison compare_73(int32_t a, int32_t b);
 uint64_t noctx_incr(uint64_t n);
 uint64_t billion();
 uint64_t million_0();
@@ -1056,7 +1055,7 @@ struct condition new_condition() {
 struct vat new_vat(struct global_ctx* gctx, uint64_t id, uint64_t max_threads) {
 	struct mut_arr_0 actors0;
 	actors0 = new_mut_arr_by_val_with_capacity_from_unmanaged_memory(max_threads);
-	return (struct vat) {gctx, id, new_gc(), new_lock(), new_mut_bag(), actors0, 0, new_thread_safe_counter_0(), (struct fun_mut1_1) {(fun_ptr3_1) new_vat__lambda0, (uint8_t*) null_any()}};
+	return (struct vat) {gctx, id, new_gc(), new_lock(), new_mut_bag(), actors0, 0, new_thread_safe_counter_0(), (struct fun_mut1_1) {(fun_ptr3_1) new_vat__lambda0, (uint8_t*) NULL}};
 }
 struct mut_arr_0 new_mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity) {
 	return (struct mut_arr_0) {0, 0, capacity, unmanaged_alloc_elements_0(capacity)};
@@ -1107,9 +1106,6 @@ struct thread_safe_counter new_thread_safe_counter_0() {
 struct thread_safe_counter new_thread_safe_counter_1(uint64_t init) {
 	return (struct thread_safe_counter) {new_lock(), init};
 }
-uint8_t* null_any() {
-	return NULL;
-}
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e) {
 	print_err_sync_no_newline((struct arr_0) {20, constantarr_0_3});
 	print_err_sync((empty__q_0(e.message) ? (struct arr_0) {17, constantarr_0_5} : e.message));
@@ -1130,7 +1126,7 @@ uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s) {
 }
 uint8_t _op_equal_equal_2(int64_t a, int64_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_39(a, b);
+	_matched0 = compare_38(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 0;
@@ -1142,7 +1138,7 @@ uint8_t _op_equal_equal_2(int64_t a, int64_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_39(int64_t a, int64_t b) {
+struct comparison compare_38(int64_t a, int64_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -1192,7 +1188,7 @@ struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, ch
 	tls1 = (struct thread_local_stuff) {(&(ectx0))};
 	ctx_by_val2 = new_ctx(gctx, (&(tls1)), vat, 0);
 	ctx3 = (&(ctx_by_val2));
-	add4 = (struct fun2) {(fun_ptr4) do_main__lambda0, (uint8_t*) null_any()};
+	add4 = (struct fun2) {(fun_ptr4) do_main__lambda0, (uint8_t*) NULL};
 	all_args5 = (struct arr_3) {argc, argv};
 	return call_with_ctx_8(ctx3, add4, all_args5, main_ptr);
 }
@@ -1290,7 +1286,7 @@ uint8_t zero__q_1(int32_t i) {
 }
 uint8_t _op_equal_equal_3(int32_t a, int32_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_74(a, b);
+	_matched0 = compare_73(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 0;
@@ -1302,7 +1298,7 @@ uint8_t _op_equal_equal_3(int32_t a, int32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_74(int32_t a, int32_t b) {
+struct comparison compare_73(int32_t a, int32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -1853,7 +1849,7 @@ struct arr_0 add_first_task__lambda0__lambda0(struct ctx* ctx, uint8_t* _closure
 struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__lambda0* _closure) {
 	struct arr_3 args0;
 	args0 = tail_0(ctx, _closure->all_args);
-	return _closure->main_ptr(ctx, map(ctx, args0, (struct fun_mut1_4) {(fun_ptr3_4) add_first_task__lambda0__lambda0, (uint8_t*) null_any()}));
+	return _closure->main_ptr(ctx, map(ctx, args0, (struct fun_mut1_4) {(fun_ptr3_4) add_first_task__lambda0__lambda0, (uint8_t*) NULL}));
 }
 struct fut_0* do_main__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr_3 all_args, fun_ptr2_0 main_ptr) {
 	return add_first_task(ctx, all_args, main_ptr);
@@ -2693,7 +2689,7 @@ uint8_t _op_less_equal_1(int64_t a, int64_t b) {
 }
 uint8_t _op_less_1(int64_t a, int64_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_39(a, b);
+	_matched0 = compare_38(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 1;

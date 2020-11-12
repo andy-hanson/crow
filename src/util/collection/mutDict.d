@@ -20,7 +20,7 @@ import util.collection.mutArr :
 import util.comparison : Comparison;
 import util.memory : overwriteMemory;
 import util.opt : force, has, none, Opt, some;
-import util.util : verify;
+import util.util : unreachable, verify;
 
 struct MutDict(K, V, alias cmp) {
 	private:
@@ -42,9 +42,12 @@ const(Opt!V) getAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, const K
 	return none!V;
 }
 
-immutable(V) mustGetAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, const K key) {
-	immutable Opt!V opt = getAt_mut(a, key);
-	return opt.force;
+ref immutable(V) mustGetAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, const K key) {
+	foreach (ref const KeyValuePair!(K, V) pair; mutArrRange(a.pairs))
+		if (cmp(pair.key, key) == Comparison.equal)
+			return pair.value;
+	unreachable!void(); // TODO: Can't return ref from unreachable?
+	assert(0);
 }
 
 void setInDict(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, V, cmp) a, immutable K key, immutable V value) {
