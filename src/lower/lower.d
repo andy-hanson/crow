@@ -22,7 +22,6 @@ import concreteModel :
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteType,
-	Constant,
 	isClosure,
 	isCompareFun,
 	matchConcreteExpr,
@@ -30,6 +29,7 @@ import concreteModel :
 	matchConcreteFunSource,
 	matchConcreteStructBody,
 	PointerTypeAndConstantsConcrete;
+import constant : Constant;
 import lower.checkLowModel : checkLowProgram;
 import lower.generateCompareFun : ComparisonTypes, generateCompareFun;
 import lower.getBuiltinCall : BuiltinKind, getBuiltinKind, matchBuiltinKind;

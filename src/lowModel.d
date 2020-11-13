@@ -9,9 +9,9 @@ import concreteModel :
 	ConcreteLocal,
 	ConcreteParam,
 	ConcreteStruct,
-	Constant,
 	isArr,
 	name;
+import constant : Constant;
 import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.collection.arrUtil : slice;

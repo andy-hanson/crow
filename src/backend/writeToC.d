@@ -4,7 +4,6 @@ module backend.writeToC;
 
 import concreteModel :
 	asExtern,
-	asIntegral,
 	body_,
 	ConcreteFun,
 	ConcreteFunSource,
@@ -14,13 +13,12 @@ import concreteModel :
 	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructSource,
-	Constant,
 	isExtern,
 	matchConcreteFunSource,
 	matchConcreteParamSource,
 	matchConcreteLocalSource,
-	matchConcreteStructSource,
-	matchConstant;
+	matchConcreteStructSource;
+import constant : asIntegral, Constant, matchConstant;
 import lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,

@@ -2,7 +2,7 @@ module interpret.generateBytecode;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : Constant, matchConstant;
+import constant : Constant, matchConstant;
 import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,

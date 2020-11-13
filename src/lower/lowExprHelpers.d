@@ -2,7 +2,7 @@ module lower.lowExprHelpers;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : Constant;
+import constant : Constant;
 import lowModel :
 	asNonFunPtrType,
 	asRecordType,

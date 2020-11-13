@@ -2,7 +2,7 @@ module lower.checkLowModel;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : Constant;
+import constant : Constant;
 import lower.lowExprHelpers : boolType, int32Type, nat64Type, voidType;
 import lowModel :
 	asFunPtrType,

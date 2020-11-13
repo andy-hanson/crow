@@ -19,7 +19,6 @@ import concreteModel :
 	ConcreteStructBody,
 	ConcreteStructSource,
 	ConcreteType,
-	Constant,
 	defaultIsPointer,
 	isSelfMutable,
 	matchConcreteExpr,
@@ -29,11 +28,12 @@ import concreteModel :
 	matchConcreteParamSource,
 	matchConcreteStructBody,
 	matchConcreteStructSource,
-	matchConstant,
 	name,
 	returnType,
 	symOfBuiltinStructKind;
+import constant : Constant;
 import model : FunInst, name, Local, Param;
+import sexprOfConstant : tataOfConstant;
 import util.bools : True;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.ptr : Ptr;
@@ -62,28 +62,6 @@ immutable(Sexpr) tataOfConcreteProgram(Alloc)(ref Alloc alloc, ref immutable Con
 		tataOfConcreteFunRef(alloc, a.rtMain),
 		tataOfConcreteFunRef(alloc, a.userMain),
 		tataOfConcreteStructRef(alloc, a.ctxType));
-}
-
-immutable(Sexpr) tataOfConstant(Alloc)(ref Alloc alloc, ref immutable Constant a) {
-	return matchConstant!(immutable Sexpr)(
-		a,
-		(ref immutable Constant.ArrConstant it) =>
-			tataRecord(alloc, "arr", tataNat(it.size), tataNat(it.index)),
-		(immutable Constant.BoolConstant it) =>
-			tataBool(it.value),
-		(immutable Constant.Integral it) =>
-			tataNat(it.value),
-		(immutable Constant.Null) =>
-			tataSym("null"),
-		(immutable Constant.Pointer it) =>
-			tataRecord(alloc, "pointer", tataNat(it.index)),
-		(ref immutable Constant.Record it) =>
-			tataRecord(alloc, "record", tataArr(alloc, it.args, (ref immutable Constant arg) =>
-				tataOfConstant(alloc, arg))),
-		(ref immutable Constant.Union it) =>
-			tataRecord(alloc, "union", tataNat(it.memberIndex), tataOfConstant(alloc, it.arg)),
-		(immutable Constant.Void) =>
-			tataSym("void"));
 }
 
 private:

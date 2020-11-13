@@ -2,7 +2,7 @@ module interpret.generateText;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : Constant, matchConstant;
+import constant : Constant, matchConstant;
 import interpret.typeLayout : sizeOfType, TypeLayout, walkRecordFields;
 import lowModel :
 	AllConstantsLow,

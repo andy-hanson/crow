@@ -2,7 +2,7 @@ module lower.getBuiltinCall;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : Constant;
+import constant : Constant;
 import lowModel :
 	asPrimitive,
 	isFunPtrType,

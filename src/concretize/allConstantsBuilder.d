@@ -7,10 +7,9 @@ import concreteModel :
 	ArrTypeAndConstantsConcrete,
 	ConcreteStruct,
 	ConcreteType,
-	Constant,
 	compareConcreteType,
-	constantEqual,
 	PointerTypeAndConstantsConcrete;
+import constant : Constant, constantEqual;
 import util.bools : Bool;
 import util.collection.arr : Arr, asImmutable, empty, size;
 import util.collection.arrUtil : arrEqual, findIndex_const, map, map_mut;

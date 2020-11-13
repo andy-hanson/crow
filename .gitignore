@@ -3,8 +3,7 @@
 *
 !/**/
 !*.*
-!build
-!build-wasm
+!Makefile
 !run
 !run-test
 *.o

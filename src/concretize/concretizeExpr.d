@@ -3,10 +3,9 @@ module concretize.concretizeExpr;
 @safe @nogc pure nothrow:
 
 import concreteModel :
-	asBool,
 	asConstant,
-	asPointer,
 	asRecord,
+	asUnion,
 	body_,
 	byRef,
 	byVal,
@@ -25,13 +24,13 @@ import concreteModel :
 	ConcreteStructSource,
 	ConcreteType,
 	concreteType_byValue,
-	Constant,
 	isConstant,
 	isSummon,
 	mustBeNonPointer,
 	name,
 	purity,
 	returnType;
+import constant : asBool, asPointer, asRecord, asUnion, Constant;
 import concretize.allConstantsBuilder : derefConstantPointer, getConstantArr, getConstantPtr, getConstantStr;
 import concretize.concretizeCtx :
 	anyPtrType,
@@ -379,6 +378,9 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 	ref immutable FileAndRange range,
 	ref immutable Expr.Lambda e,
 ) {
+	// TODO: handle constants in closure
+	// (do *not* include in the closure type, instead remember them for when compiling the lambda fn)
+
 	immutable size_t lambdaIndex = ctx.nextLambdaIndex;
 	ctx.nextLambdaIndex++;
 
@@ -530,24 +532,35 @@ immutable(ConcreteExpr) concretizeMatch(Alloc)(
 	immutable Ptr!ConcreteStruct matchedUnion =
 		mustBeNonPointer(getConcreteType_forStructInst(alloc, ctx, e.matchedUnion));
 	immutable ConcreteType type = getConcreteType(alloc, ctx, e.type);
-	immutable Arr!(ConcreteExpr.Match.Case) cases = map!(ConcreteExpr.Match.Case)(
-		alloc,
-		e.cases,
-		(ref immutable Expr.Match.Case case_) {
-			if (has(case_.local)) {
-				immutable Ptr!ConcreteLocal local = concretizeLocal(alloc, ctx, force(case_.local));
-				immutable LocalOrConstant lc = immutable LocalOrConstant(local);
-				immutable ConcreteExpr then = concretizeWithLocal(alloc, ctx, force(case_.local), lc, case_.then);
-				return immutable ConcreteExpr.Match.Case(some(local), then);
-			} else
-				return immutable ConcreteExpr.Match.Case(
-					none!(Ptr!ConcreteLocal),
-					concretizeExpr(alloc, ctx, case_.then));
-		});
-	return immutable ConcreteExpr(
-		type,
-		range,
-		immutable ConcreteExpr.Match(getMatchedLocal(alloc, ctx, matchedUnion), allocExpr(alloc, matched), cases));
+	if (isConstant(matched)) {
+		immutable Constant.Union u = asUnion(asConstant(matched));
+		immutable Expr.Match.Case case_ = at(e.cases, u.memberIndex);
+		if (has(case_.local)) {
+			immutable ConcreteType caseType = at(asUnion(body_(matchedUnion)).members, u.memberIndex);
+			immutable LocalOrConstant lc = immutable LocalOrConstant(immutable TypedConstant(caseType, u.arg));
+			return concretizeWithLocal(alloc, ctx, force(case_.local), lc, case_.then);
+		} else
+			return concretizeExpr(alloc, ctx, case_.then);
+	} else {
+		immutable Arr!(ConcreteExpr.Match.Case) cases = map!(ConcreteExpr.Match.Case)(
+			alloc,
+			e.cases,
+			(ref immutable Expr.Match.Case case_) {
+				if (has(case_.local)) {
+					immutable Ptr!ConcreteLocal local = concretizeLocal(alloc, ctx, force(case_.local));
+					immutable LocalOrConstant lc = immutable LocalOrConstant(local);
+					immutable ConcreteExpr then = concretizeWithLocal(alloc, ctx, force(case_.local), lc, case_.then);
+					return immutable ConcreteExpr.Match.Case(some(local), then);
+				} else
+					return immutable ConcreteExpr.Match.Case(
+						none!(Ptr!ConcreteLocal),
+						concretizeExpr(alloc, ctx, case_.then));
+			});
+		return immutable ConcreteExpr(
+			type,
+			range,
+			immutable ConcreteExpr.Match(getMatchedLocal(alloc, ctx, matchedUnion), allocExpr(alloc, matched), cases));
+	}
 }
 
 immutable(ConcreteExpr) concretizeParamRef(Alloc)(
@@ -712,10 +725,12 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 		(ref immutable Expr.Seq e) {
 			immutable ConcreteExpr first = concretizeExpr(alloc, ctx, e.first);
 			immutable ConcreteExpr then = concretizeExpr(alloc, ctx, e.then);
-			return immutable ConcreteExpr(
-				then.type,
-				range,
-				immutable ConcreteExpr.Seq(allocExpr(alloc, first), allocExpr(alloc, then)));
+			return isConstant(first)
+				? then
+				: immutable ConcreteExpr(
+					then.type,
+					range,
+					immutable ConcreteExpr.Seq(allocExpr(alloc, first), allocExpr(alloc, then)));
 		},
 		(ref immutable Expr.StringLiteral e) {
 			immutable ConcreteType charType = charType(alloc, ctx.concretizeCtx);
