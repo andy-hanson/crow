@@ -1,35 +1,35 @@
 file-ast(
-	imports: ports(range(0, 10), [import-ast(0, "/io", none)])
+	imports: ports(range(0, 34), [import-ast(0, "/io", some([exit-code, print-sync]))])
 	specs: []
 	aliases: []
 	structs: [
 		struct(
-			range(11, 43)
+			range(34, 66)
 			true
 			[]
 			none
 			record(
 				none
 				[
-					field(range(29, 34), false, x, inststruct(range(31, 34), name-range(31, nat)))
-					field(range(36, 41), false, y, inststruct(range(38, 41), name-range(38, nat)))]))]
+					field(range(52, 57), false, x, inststruct(range(54, 57), name-range(54, nat)))
+					field(range(59, 64), false, y, inststruct(range(61, 64), name-range(61, nat)))]))]
 	funs: [
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(43, 75)
+				range(66, 98)
 				main
-				inststruct(range(48, 61), name-range(48, fut), [inststruct(range(52, 61), name-range(52, exit-code))])
+				inststruct(range(71, 84), name-range(71, fut), [inststruct(range(75, 84), name-range(75, exit-code))])
 				[
 					param(
-						range(62, 74)
-						name-range(62, args)
-						inststruct(range(67, 74), name-range(67, arr), [inststruct(range(71, 74), name-range(71, str))]))])
+						range(85, 97)
+						name-range(85, args)
+						inststruct(range(90, 97), name-range(90, arr), [inststruct(range(94, 97), name-range(94, str))]))])
 			summon: true
 			body: let(
-				name-range(84, m)
+				name-range(107, m)
 				new-record(
-					some(inststruct(range(92, 101), name-range(92, my-record)))
+					some(inststruct(range(115, 124), name-range(115, my-record)))
 					[literal(numeric, "1"), literal(numeric, "2")])
 				seq-ast(
 					seq-ast(
@@ -37,32 +37,32 @@ file-ast(
 							seq-ast(
 								call(
 									prefix
-									name-range(109, assert)
+									name-range(132, assert)
 									[]
 									[
 										call(
 											infix
-											name-range(121, ==)
+											name-range(144, ==)
 											[]
-											[call(dot, name-range(119, x), [], [m]), literal(numeric, "1")])])
+											[call(dot, name-range(142, x), [], [m]), literal(numeric, "1")])])
 								call(
 									prefix
-									name-range(127, assert)
+									name-range(150, assert)
 									[]
 									[
 										call(
 											infix
-											name-range(139, ==)
+											name-range(162, ==)
 											[]
-											[call(dot, name-range(137, y), [], [m]), literal(numeric, "2")])]))
+											[call(dot, name-range(160, y), [], [m]), literal(numeric, "2")])]))
 							call(
 								prefix
-								name-range(145, print-sync)
+								name-range(168, print-sync)
 								[]
-								[call(dot, name-range(161, to-str), [], [call(dot, name-range(159, x), [], [m])])]))
+								[call(dot, name-range(184, to-str), [], [call(dot, name-range(182, x), [], [m])])]))
 						call(
 							prefix
-							name-range(169, print-sync)
+							name-range(192, print-sync)
 							[]
-							[call(dot, name-range(185, to-str), [], [call(dot, name-range(183, y), [], [m])])]))
-					call(prefix, name-range(193, resolved), [], [literal(numeric, "0")]))))])
+							[call(dot, name-range(208, to-str), [], [call(dot, name-range(206, y), [], [m])])]))
+					call(prefix, name-range(216, resolved), [], [literal(numeric, "0")]))))])

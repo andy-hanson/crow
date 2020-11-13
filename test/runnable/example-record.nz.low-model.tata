@@ -10997,55 +10997,55 @@ program(
 				[local(p, record(81)), local(p-x, float-64)]
 				expr(
 					ptr(record(1))
-					file-range(20, range(611, 971))
+					file-range(20, range(633, 993))
 					let(
 						p
 						expr(
 							record(81)
-							file-range(20, range(615, 627))
-							call(244, [expr(ptr(record(0)), file-range(20, range(615, 627)), param-ref(0))]))
+							file-range(20, range(637, 649))
+							call(244, [expr(ptr(record(0)), file-range(20, range(637, 649)), param-ref(0))]))
 						expr(
 							ptr(record(1))
-							file-range(20, range(666, 971))
+							file-range(20, range(688, 993))
 							let(
 								p-x
 								expr(
 									float-64
-									file-range(20, range(674, 679))
+									file-range(20, range(696, 701))
 									call(
 										257
 										[
-											expr(ptr(record(0)), file-range(20, range(674, 679)), param-ref(0))
-											expr(record(81), file-range(20, range(672, 673)), local-ref(p))]))
+											expr(ptr(record(0)), file-range(20, range(696, 701)), param-ref(0))
+											expr(record(81), file-range(20, range(694, 695)), local-ref(p))]))
 								expr(
 									ptr(record(1))
-									file-range(20, range(933, 971))
+									file-range(20, range(955, 993))
 									seq(
 										expr(
 											void
-											file-range(20, range(933, 955))
+											file-range(20, range(955, 977))
 											call(
 												258
 												[
 													expr(
 														record(7)
-														file-range(20, range(949, 955))
+														file-range(20, range(971, 977))
 														call(
 															261
 															[
 																expr(
 																	ptr(record(0))
-																	file-range(20, range(949, 955))
+																	file-range(20, range(971, 977))
 																	param-ref(0))
-																expr(float-64, file-range(20, range(945, 948)), local-ref(p-x))]))]))
+																expr(float-64, file-range(20, range(967, 970)), local-ref(p-x))]))]))
 										expr(
 											ptr(record(1))
-											file-range(20, range(962, 970))
+											file-range(20, range(984, 992))
 											call(
 												301
 												[
-													expr(ptr(record(0)), file-range(20, range(962, 970)), param-ref(0))
-													expr(int-32, file-range(20, range(957, 961)), 0)]))))))))))
+													expr(ptr(record(0)), file-range(20, range(984, 992)), param-ref(0))
+													expr(int-32, file-range(20, range(979, 983)), 0)]))))))))))
 		244: fun(
 			create-point
 			record(81)
@@ -11055,25 +11055,25 @@ program(
 				[]
 				expr(
 					record(81)
-					file-range(20, range(243, 251))
+					file-range(20, range(265, 273))
 					record(
 						[
 							expr(
 								float-64
-								file-range(20, range(247, 248))
+								file-range(20, range(269, 270))
 								call(
 									245
 									[
-										expr(ptr(record(0)), file-range(20, range(247, 248)), param-ref(0))
-										expr(record(7), file-range(20, range(247, 248)), arr(1, 14))]))
+										expr(ptr(record(0)), file-range(20, range(269, 270)), param-ref(0))
+										expr(record(7), file-range(20, range(269, 270)), arr(1, 14))]))
 							expr(
 								float-64
-								file-range(20, range(250, 251))
+								file-range(20, range(272, 273))
 								call(
 									245
 									[
-										expr(ptr(record(0)), file-range(20, range(250, 251)), param-ref(0))
-										expr(record(7), file-range(20, range(250, 251)), arr(1, 15))]))]))))
+										expr(ptr(record(0)), file-range(20, range(272, 273)), param-ref(0))
+										expr(record(7), file-range(20, range(272, 273)), arr(1, 15))]))]))))
 		245: fun(
 			literal
 			float-64
@@ -11840,8 +11840,8 @@ program(
 				[]
 				expr(
 					float-64
-					file-range(20, range(433, 434))
-					get-field(expr(record(81), file-range(20, range(431, 432)), param-ref(1)), false, 0))))
+					file-range(20, range(455, 456))
+					get-field(expr(record(81), file-range(20, range(453, 454)), param-ref(1)), false, 0))))
 		258: fun(
 			print-sync
 			void

@@ -1,4 +1,5 @@
-import io
+import
+	io: exit-code print-sync
 
 my-record record
 	x nat

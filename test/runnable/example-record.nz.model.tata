@@ -14,14 +14,14 @@ module(
 		import(15, none)
 		import(12, none)
 		import(11, none)
-		import(13, none)]
+		import(13, some([exit-code, print-sync]))]
 	exports: []
-	structs: [struct(range: file-range(20, range(37, 133)), public?: true, name: point)]
+	structs: [struct(range: file-range(20, range(59, 155)), public?: true, name: point)]
 	specs: []
 	funs: [
 		fun(
 			public?: true
-			sig: sig(file-range(20, range(133, 153)), create-point, point(), [])
+			sig: sig(file-range(20, range(155, 175)), create-point, point(), [])
 			body: record(
 				point()
 				[
@@ -29,17 +29,17 @@ module(
 					call(fun-inst(module: 12, name: literal), [string-lit("2")])]))
 		fun(
 			public?: true
-			sig: sig(file-range(20, range(336, 356)), get-x, float(), [param(file-range(20, range(348, 355)), a, point())])
+			sig: sig(file-range(20, range(358, 378)), get-x, float(), [param(file-range(20, range(370, 377)), a, point())])
 			body: field-acc(param-ref(a), point(), x))
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-range(20, range(508, 540)), main, fut(int32()), [param(file-range(20, range(527, 539)), args, arr(arr(char())))])
+			sig: sig(file-range(20, range(530, 562)), main, fut(int32()), [param(file-range(20, range(549, 561)), args, arr(arr(char())))])
 			body: let(
-				local(file-range(20, range(611, 612)), p, point())
+				local(file-range(20, range(633, 634)), p, point())
 				call(fun-inst(module: 20, name: create-point), [])
 				let(
-					local(file-range(20, range(666, 669)), p-x, float())
+					local(file-range(20, range(688, 691)), p-x, float())
 					call(fun-inst(module: 20, name: get-x), [local-ref(p)])
 					seq(
 						call(
