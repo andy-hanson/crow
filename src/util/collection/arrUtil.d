@@ -863,7 +863,8 @@ private immutable(size_t) arrMaxIndexRecur(T, U)(
 	else {
 		immutable T valueHere = cb(at(a, index), index);
 		return compare(valueHere, maxValue) == Comparison.greater
-			? arrMaxIndexRecur!(T, U)(index, valueHere, a, index + 1, cb, compare)
+			// Using `index + 0` to avoid dscanner warning about 'index' not being the 0th parameter
+			? arrMaxIndexRecur!(T, U)(index + 0, valueHere, a, index + 1, cb, compare)
 			: arrMaxIndexRecur!(T, U)(indexOfMax, maxValue, a, index + 1, cb, compare);
 	}
 }

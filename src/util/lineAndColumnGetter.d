@@ -67,7 +67,7 @@ immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc
 
 	immutable u16 line = lowLine;
 	immutable Pos lineStart = lc.lineToPos.at(line);
-	verify(pos >= lineStart && line == lc.lineToPos.size - 1 || pos <= lc.lineToPos.at(line + 1));
+	verify((pos >= lineStart && line == lc.lineToPos.size - 1) || pos <= lc.lineToPos.at(line + 1));
 
 	immutable u32 nCharsIntoLine = pos - lineStart;
 	immutable u8 nTabs = lc.lineToNTabs.at(line);

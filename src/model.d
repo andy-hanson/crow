@@ -873,7 +873,7 @@ private immutable(Comparison) compareCalled(ref immutable Called a, ref immutabl
 immutable(Sym) name(ref immutable Called a) {
 	return matchCalled(
 		a,
-		(immutable Ptr!FunInst f) => a.name,
+		(immutable Ptr!FunInst) => a.name,
 		(ref immutable SpecSig s) => a.name);
 }
 

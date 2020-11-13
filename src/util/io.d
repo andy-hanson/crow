@@ -59,7 +59,7 @@ import util.util : todo, verify;
 	if (fileSize == -1)
 		return todo!Ret("lseek fialed");
 
-	if (fileSize > 99999)
+	if (fileSize > 99_999)
 		return todo!Ret("size suspiciously large");
 
 	if (fileSize == 0)
@@ -88,7 +88,7 @@ import util.util : todo, verify;
 }
 
 @trusted void writeFileSync(immutable AbsolutePath path, immutable Str content) {
-	immutable int fd = tryOpen(path, O_CREAT | O_WRONLY | O_TRUNC, 0b110100100);
+	immutable int fd = tryOpen(path, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
 	scope(exit) close(fd);
 
 	immutable ssize_t wroteBytes = write(fd, content.begin, content.size);

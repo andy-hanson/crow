@@ -202,7 +202,6 @@ immutable(Opt!TDecl) tryFindT(TDecl, Alloc)(
 				: getAt!(Sym, TDecl, compareSym)(getTMap(m.module_), name);
 			if (has(fromModule)) {
 				if (has(res)) {
-					immutable DAndM already = force(res);
 					//TODO: include both modules in the diag
 					addDiag(alloc, ctx, range, immutable Diag(Diag.DuplicateImports(duplicateImportKind, name)));
 					return none!TDecl;

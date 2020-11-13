@@ -6,6 +6,7 @@ doc-server: bin/noze.wasm
 	python -m SimpleHTTPServer 8080
 
 lint:
+	dub run dscanner -- --styleCheck src/*.d src/*/*.d src/*/*/*.d
 	rdmd lint.d
 
 debug: bin/noze

@@ -200,15 +200,6 @@ immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, SymAlloc)(
 	immutable PathAndStorageKind stdPath = stdPath(modelAlloc);
 	immutable PathAndStorageKind runtimePath = runtimePath(modelAlloc);
 	immutable PathAndStorageKind runtimeMainPath = runtimeMainPath(modelAlloc);
-	immutable Arr!PathAndStorageKind rootPaths = arrLiteral!PathAndStorageKind(
-		astAlloc,
-		// Ensure bootstrap.nz is parsed first
-		bootstrapPath,
-		// Ensure std.nz is available
-		stdPath,
-		runtimePath,
-		runtimeMainPath,
-		mainPath);
 	immutable(FileIndex) parsePath(immutable PathAndStorageKind path) {
 		immutable Opt!ParseStatus parseStatus = getAt_mut(statuses, path);
 		if (has(parseStatus)) {

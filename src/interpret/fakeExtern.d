@@ -87,10 +87,10 @@ struct FakeExtern(Alloc) {
 	}
 
 	immutable(Nat64) doDynCall(
-		ref immutable NulTerminatedStr name,
-		immutable DynCallType returnType,
-		ref immutable Arr!Nat64 parameters,
-		ref immutable Arr!DynCallType parameterTypes,
+		ref immutable NulTerminatedStr,
+		immutable DynCallType,
+		ref immutable Arr!Nat64,
+		ref immutable Arr!DynCallType,
 	) {
 		return todo!(immutable Nat64)("not for fake");
 	}

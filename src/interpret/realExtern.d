@@ -47,7 +47,7 @@ struct RealExtern {
 	public:
 
 	~this() {
-		int err = dlclose(sdlHandle);
+		immutable int err = dlclose(sdlHandle);
 		verify(err == 0);
 		dcFree(dcVm);
 	}

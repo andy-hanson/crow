@@ -51,10 +51,14 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 			build(allSymbols, nozeDir, b.programDirAndMain, args.environ),
 		(ref immutable Command.Help h) =>
 			help(h.isDueToCommandParseError),
-		(ref immutable Command.HelpBuild) =>
-			helpBuild(),
-		(ref immutable Command.HelpRun) =>
-			helpRun(),
+		(ref immutable Command.HelpBuild) {
+			helpBuild();
+			return 0;
+		},
+		(ref immutable Command.HelpRun) {
+			helpRun();
+			return 0;
+		},
 		(ref immutable Command.Print a) =>
 			print(allSymbols, a.kind, a.format, nozeDir, a.programDirAndMain),
 		(ref immutable Command.Run r) =>
@@ -67,27 +71,25 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 		});
 }
 
-@trusted void printVersion() {
+void printVersion() {
 	print("Approximately 0.000\n");
 }
 
-@trusted immutable(int) helpBuild() {
+void helpBuild() {
 	print("Command: noze build [PATH]\n" ~
 		"\tCompiles the program at [PATH] to a '.cpp' and executable file with the same name.\n" ~
 		"\tNo options.\n");
-	return 0;
 }
 
-@trusted immutable(int) helpRun() {
+void helpRun() {
 	print("Command: noze run [PATH]\n" ~
 		"Command: noze run [PATH] -- args\n" ~
 		"\tDoes the same as 'noze build [PATH]', then runs the executable it created.\n" ~
 		"\tNo options.\n" ~
 		"\tArguments after `--` will be sent to the program.\n");
-	return 0;
 }
 
-@trusted immutable(int) help(immutable Bool isDueToCommandParseError) {
+immutable(int) help(immutable Bool isDueToCommandParseError) {
 	print("Command: noze [PATH ENDING IN '.nz'] args\n" ~
 		"\tSame as `noze run [PATH] -- args\n");
 	helpBuild();

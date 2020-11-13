@@ -16,7 +16,7 @@ struct Mallocator {
 		return res;
 	}
 
-	@trusted void free(ubyte* ptr, immutable size_t size) {
+	@trusted void free(ubyte* ptr, immutable size_t) {
 		pureFree(cast(void*) ptr);
 	}
 }

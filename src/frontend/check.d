@@ -685,7 +685,7 @@ immutable(StructBody) checkUnion(Alloc)(
 			// Must name the ignored parameter due to https://issues.dlang.org/show_bug.cgi?id=21165
 			(ref immutable Ptr!StructInst a,
 			ref immutable Ptr!StructInst b,
-			immutable size_t _ignoreMe,
+			immutable size_t _,
 			immutable size_t bIndex) {
 				if (ptrEquals(decl(a), decl(b))) {
 					immutable Diag diag = immutable Diag(

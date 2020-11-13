@@ -6,7 +6,7 @@ import util.alloc.stackAlloc : StackAlloc;
 import util.collection.str : NulTerminatedStr, strLiteral;
 import util.io : tryReadFile;
 import util.opt : force, none, Opt;
-import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText;
+import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText;
 import util.path : AbsolutePath, Path;
 import util.ptr : Ptr, ptrTrustMe;
 import util.sourceRange : Pos;
@@ -24,7 +24,7 @@ void testLineAndColumnGetter() {
 
 	immutable LineAndColumnGetter lcg = lineAndColumnGetterForText(alloc, text.str);
 
-	immutable LineAndColumn lc = lineAndColumnAtPos(lcg, immutable Pos(2000));
+	lineAndColumnAtPos(lcg, immutable Pos(2000));
 
 	//debug {
 	//	import core.stdc.stdio : printf;

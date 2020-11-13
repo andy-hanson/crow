@@ -84,7 +84,7 @@ import lowModel :
 import model : decl, FunInst, name;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, emptyArr, first, only, ptrAt, arrRange = range, size;
+import util.collection.arr : Arr, at, empty, emptyArr, first, only, arrRange = range, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAt, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
@@ -1055,20 +1055,15 @@ immutable(LowExprKind) getParamRefExpr(Alloc)(
 	return immutable LowExprKind(immutable LowExprKind.ParamRef(param));
 }
 
-struct FieldAndTargetIsPointer {
-	immutable Bool targetIsPointer;
+struct FieldAccessInfo {
 	immutable LowType.Record record;
+	immutable Bool targetIsPointer;
 }
 
-immutable(FieldAndTargetIsPointer) getLowField(
-	ref GetLowExprCtx ctx,
-	immutable LowType targetType,
-	immutable Ptr!ConcreteField concreteField,
-) {
+immutable(FieldAccessInfo) fieldAccessInfo(ref const GetLowExprCtx ctx, immutable LowType targetType) {
 	immutable Bool targetIsPointer = isNonFunPtrType(targetType);
 	immutable LowType.Record record = asRecordType(targetIsPointer ? asNonFunPtrType(targetType).pointee : targetType);
-	immutable Ptr!LowField field = ptrAt(fullIndexDictGet(ctx.allTypes.allRecords, record).fields, concreteField.index);
-	return immutable FieldAndTargetIsPointer(targetIsPointer, record);
+	return immutable FieldAccessInfo(record, targetIsPointer);
 }
 
 immutable(LowExprKind) getRecordFieldAccessExpr(Alloc)(
@@ -1077,12 +1072,12 @@ immutable(LowExprKind) getRecordFieldAccessExpr(Alloc)(
 	ref immutable ConcreteExpr.RecordFieldAccess a,
 ) {
 	immutable LowExpr target = getLowExpr(alloc, ctx, a.target, ExprPos.nonTail);
-	immutable FieldAndTargetIsPointer field = getLowField(ctx, target.type, a.field);
+	immutable FieldAccessInfo info = fieldAccessInfo(ctx, target.type);
 	return immutable LowExprKind(
 		immutable LowExprKind.RecordFieldAccess(
 			allocate(alloc, target),
-			field.targetIsPointer,
-			field.record,
+			info.targetIsPointer,
+			info.record,
 			a.field.index));
 }
 
@@ -1092,11 +1087,11 @@ immutable(LowExprKind) getRecordFieldSetExpr(Alloc)(
 	ref immutable ConcreteExpr.RecordFieldSet a,
 ) {
 	immutable LowExpr target = getLowExpr(alloc, ctx, a.target, ExprPos.nonTail);
-	immutable FieldAndTargetIsPointer field = getLowField(ctx, target.type, a.field);
+	immutable FieldAccessInfo info = fieldAccessInfo(ctx, target.type);
 	return immutable LowExprKind(immutable LowExprKind.RecordFieldSet(
 		allocate(alloc, target),
-		field.targetIsPointer,
-		field.record,
+		info.targetIsPointer,
+		info.record,
 		a.field.index,
 		allocate(alloc, getLowExpr(alloc, ctx, a.value, ExprPos.nonTail))));
 }
