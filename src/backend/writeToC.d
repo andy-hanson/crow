@@ -908,9 +908,6 @@ void writeExpr(Alloc)(
 		(ref immutable Constant it) {
 			return_(() { writeConstantRef(writer, ctx.ctx, ConstantRefPos.outer, type, it); });
 		},
-		(ref immutable LowExprKind.Special0Ary it) {
-			return_(() { writeSpecial0Ary(writer, it.kind); });
-		},
 		(ref immutable LowExprKind.SpecialUnary it) {
 			return_(() { writeSpecialUnary(writer, indent, ctx, type, it); });
 		},
@@ -1281,17 +1278,6 @@ void writeConstantRef(Alloc)(
 		(immutable Constant.Void) {
 			writeChar(writer, '0');
 		});
-}
-
-void writeSpecial0Ary(Alloc)(
-	ref Writer!Alloc writer,
-	immutable LowExprKind.Special0Ary.Kind it,
-) {
-	final switch (it) {
-		case LowExprKind.Special0Ary.Kind.getErrno:
-			writeStatic(writer, "errno");
-			break;
-	}
 }
 
 void writeSpecialUnary(Alloc)(

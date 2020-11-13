@@ -1623,6 +1623,7 @@ extern int64_t readlink(char* path, char* buf, uint64_t len);
 char* to_c_str(struct ctx* ctx, struct arr_0 a);
 uint8_t check_errno_if_neg_one(struct ctx* ctx, int64_t e);
 uint8_t check_posix_error(struct ctx* ctx, int32_t e);
+extern int32_t errno;
 uint8_t hard_unreachable_1();
 uint64_t to_nat_0(struct ctx* ctx, int64_t i);
 uint8_t negative__q(struct ctx* ctx, int64_t i);
@@ -1668,7 +1669,7 @@ int32_t enoent();
 struct opt_12 todo_4();
 uint8_t todo_5();
 uint8_t _op_equal_equal_5(uint32_t a, uint32_t b);
-struct comparison compare_462(uint32_t a, uint32_t b);
+struct comparison compare_463(uint32_t a, uint32_t b);
 uint32_t s_ifmt(struct ctx* ctx);
 uint32_t two_pow_0(uint32_t pow);
 uint8_t zero__q_2(uint32_t n);
@@ -1775,7 +1776,7 @@ int16_t pollin(struct ctx* ctx);
 int16_t two_pow_1(int16_t pow);
 uint8_t zero__q_3(int16_t a);
 uint8_t _op_equal_equal_6(int16_t a, int16_t b);
-struct comparison compare_569(int16_t a, int16_t b);
+struct comparison compare_570(int16_t a, int16_t b);
 int16_t wrap_decr_2(int16_t a);
 int16_t two_4();
 int16_t wrap_incr_4(int16_t a);
@@ -4815,15 +4816,13 @@ uint8_t is_dir__q_1(struct ctx* ctx, char* path) {
 struct opt_12 get_stat(struct ctx* ctx, char* path) {
 	struct stat_t* s0;
 	int32_t err1;
-	int32_t errno2;
 	s0 = empty_stat(ctx);
 	err1 = stat(path, s0);
 	if (_op_equal_equal_3(err1, 0)) {
 		return (struct opt_12) {1, .as1 = some_12(s0)};
 	} else {
 		assert_0(ctx, _op_equal_equal_3(err1, neg_one_1()));
-		errno2 = errno;
-		if (_op_equal_equal_3(errno2, enoent())) {
+		if (_op_equal_equal_3(errno, enoent())) {
 			return (struct opt_12) {0, .as0 = none()};
 		} else {
 			return todo_4();
@@ -4853,7 +4852,7 @@ uint8_t todo_5() {
 }
 uint8_t _op_equal_equal_5(uint32_t a, uint32_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_462(a, b);
+	_matched0 = compare_463(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 0;
@@ -4865,7 +4864,7 @@ uint8_t _op_equal_equal_5(uint32_t a, uint32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_462(uint32_t a, uint32_t b) {
+struct comparison compare_463(uint32_t a, uint32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -5642,7 +5641,7 @@ uint8_t zero__q_3(int16_t a) {
 }
 uint8_t _op_equal_equal_6(int16_t a, int16_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_569(a, b);
+	_matched0 = compare_570(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 0;
@@ -5654,7 +5653,7 @@ uint8_t _op_equal_equal_6(int16_t a, int16_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_569(int16_t a, int16_t b) {
+struct comparison compare_570(int16_t a, int16_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -6286,36 +6285,34 @@ struct opt_11 try_read_file_0(struct ctx* ctx, struct arr_0 path) {
 }
 struct opt_11 try_read_file_1(struct ctx* ctx, char* path) {
 	int32_t fd0;
-	int32_t errno1;
-	int64_t file_size2;
-	int64_t off3;
-	uint64_t file_size_nat4;
-	struct mut_arr_4* res5;
-	int64_t n_bytes_read6;
+	int64_t file_size1;
+	int64_t off2;
+	uint64_t file_size_nat3;
+	struct mut_arr_4* res4;
+	int64_t n_bytes_read5;
 	if (is_file__q_1(ctx, path)) {
 		fd0 = open(path, o_rdonly(ctx), literal_4(ctx, (struct arr_0) {1, constantarr_0_21}));
 		if (_op_equal_equal_3(fd0, neg_one_1())) {
-			errno1 = errno;
-			if (_op_equal_equal_3(errno1, enoent())) {
+			if (_op_equal_equal_3(errno, enoent())) {
 				return (struct opt_11) {0, .as0 = none()};
 			} else {
 				print_sync(_op_plus_1(ctx, (struct arr_0) {20, constantarr_0_58}, to_str_0(path)));
 				return todo_8();
 			}
 		} else {
-			file_size2 = lseek(fd0, 0, seek_end(ctx));
-			forbid_0(ctx, _op_equal_equal_2(file_size2, neg_one_0()));
-			assert_0(ctx, _op_less_1(file_size2, billion_1()));
-			forbid_0(ctx, zero__q_4(file_size2));
-			off3 = lseek(fd0, 0, seek_set(ctx));
-			assert_0(ctx, _op_equal_equal_2(off3, 0));
-			file_size_nat4 = to_nat_0(ctx, file_size2);
-			res5 = new_uninitialized_mut_arr_2(ctx, file_size_nat4);
-			n_bytes_read6 = read(fd0, (uint8_t*) res5->data, file_size_nat4);
-			forbid_0(ctx, _op_equal_equal_2(n_bytes_read6, neg_one_0()));
-			assert_0(ctx, _op_equal_equal_2(n_bytes_read6, file_size2));
+			file_size1 = lseek(fd0, 0, seek_end(ctx));
+			forbid_0(ctx, _op_equal_equal_2(file_size1, neg_one_0()));
+			assert_0(ctx, _op_less_1(file_size1, billion_1()));
+			forbid_0(ctx, zero__q_4(file_size1));
+			off2 = lseek(fd0, 0, seek_set(ctx));
+			assert_0(ctx, _op_equal_equal_2(off2, 0));
+			file_size_nat3 = to_nat_0(ctx, file_size1);
+			res4 = new_uninitialized_mut_arr_2(ctx, file_size_nat3);
+			n_bytes_read5 = read(fd0, (uint8_t*) res4->data, file_size_nat3);
+			forbid_0(ctx, _op_equal_equal_2(n_bytes_read5, neg_one_0()));
+			assert_0(ctx, _op_equal_equal_2(n_bytes_read5, file_size1));
 			check_posix_error(ctx, close(fd0));
-			return (struct opt_11) {1, .as1 = some_9(freeze_3(res5))};
+			return (struct opt_11) {1, .as1 = some_9(freeze_3(res4))};
 		}
 	} else {
 		return (struct opt_11) {0, .as0 = none()};
@@ -6351,34 +6348,32 @@ uint8_t write_file_1(struct ctx* ctx, char* path, struct arr_0 content) {
 	uint32_t permission2;
 	uint32_t flags3;
 	int32_t fd4;
-	int32_t errno5;
-	int64_t wrote_bytes6;
-	int32_t err7;
+	int64_t wrote_bytes5;
+	int32_t err6;
 	permission_rdwr0 = six_3();
 	permission_rd1 = four_3();
 	permission2 = ((bit_shift_left(permission_rdwr0, six_3()) | bit_shift_left(permission_rd1, three_3())) | permission_rd1);
 	flags3 = ((o_creat(ctx) | o_wronly(ctx)) | o_trunc(ctx));
 	fd4 = open(path, flags3, permission2);
 	if (_op_equal_equal_3(fd4, neg_one_1())) {
-		errno5 = errno;
 		print_sync(_op_plus_1(ctx, (struct arr_0) {31, constantarr_0_59}, to_str_0(path)));
-		print_sync(_op_plus_1(ctx, (struct arr_0) {7, constantarr_0_60}, to_str_1(ctx, errno5)));
+		print_sync(_op_plus_1(ctx, (struct arr_0) {7, constantarr_0_60}, to_str_1(ctx, errno)));
 		print_sync(_op_plus_1(ctx, (struct arr_0) {7, constantarr_0_61}, to_str_4(ctx, flags3)));
 		print_sync(_op_plus_1(ctx, (struct arr_0) {12, constantarr_0_62}, to_str_4(ctx, permission2)));
 		return todo_1();
 	} else {
-		wrote_bytes6 = write(fd4, (uint8_t*) content.data, content.size);
-		if (_op_equal_equal_2(wrote_bytes6, to_int(ctx, content.size))) {
+		wrote_bytes5 = write(fd4, (uint8_t*) content.data, content.size);
+		if (_op_equal_equal_2(wrote_bytes5, to_int(ctx, content.size))) {
 			0;
 		} else {
-			if (_op_equal_equal_2(wrote_bytes6, literal_3(ctx, (struct arr_0) {2, constantarr_0_63}))) {
+			if (_op_equal_equal_2(wrote_bytes5, literal_3(ctx, (struct arr_0) {2, constantarr_0_63}))) {
 				todo_1();
 			} else {
 				todo_1();
 			}
 		}
-		err7 = close(fd4);
-		if (_op_equal_equal_3(err7, 0)) {
+		err6 = close(fd4);
+		if (_op_equal_equal_3(err6, 0)) {
 			return 0;
 		} else {
 			return todo_1();
@@ -6394,7 +6389,7 @@ uint32_t bit_shift_left(uint32_t a, uint32_t b) {
 }
 uint8_t _op_less_4(uint32_t a, uint32_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_462(a, b);
+	_matched0 = compare_463(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 1;

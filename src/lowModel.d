@@ -535,13 +535,6 @@ struct LowExprKind {
 		immutable LowType type;
 	}
 
-	struct Special0Ary {
-		enum Kind {
-			getErrno,
-		}
-		immutable Kind kind;
-	}
-
 	struct SpecialUnary {
 		enum Kind {
 			asAnyPtr,
@@ -684,7 +677,6 @@ struct LowExprKind {
 		seq,
 		sizeOf,
 		constant,
-		special0Ary,
 		specialUnary,
 		specialBinary,
 		specialTrinary,
@@ -707,7 +699,6 @@ struct LowExprKind {
 		immutable Seq seq;
 		immutable SizeOf sizeOf;
 		immutable Constant constant;
-		immutable Special0Ary special0Ary;
 		immutable SpecialUnary specialUnary;
 		immutable SpecialBinary specialBinary;
 		immutable SpecialTrinary specialTrinary;
@@ -730,7 +721,6 @@ struct LowExprKind {
 	@trusted immutable this(immutable Seq a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable SizeOf a) { kind = Kind.sizeOf; sizeOf = a; }
 	@trusted immutable this(immutable Constant a) { kind = Kind.constant; constant = a; }
-	@trusted immutable this(immutable Special0Ary a) { kind = Kind.special0Ary; special0Ary = a; }
 	@trusted immutable this(immutable SpecialUnary a) { kind = Kind.specialUnary; specialUnary = a; }
 	@trusted immutable this(immutable SpecialBinary a) { kind = Kind.specialBinary; specialBinary = a; }
 	@trusted immutable this(immutable SpecialTrinary a) { kind = Kind.specialTrinary; specialTrinary = a; }
@@ -754,7 +744,6 @@ struct LowExprKind {
 	scope T delegate(ref immutable LowExprKind.Seq) @safe @nogc pure nothrow cbSeq,
 	scope T delegate(ref immutable LowExprKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
 	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
-	scope T delegate(ref immutable LowExprKind.Special0Ary) @safe @nogc pure nothrow cbSpecial0Ary,
 	scope T delegate(ref immutable LowExprKind.SpecialUnary) @safe @nogc pure nothrow cbSpecialUnary,
 	scope T delegate(ref immutable LowExprKind.SpecialBinary) @safe @nogc pure nothrow cbSpecialBinary,
 	scope T delegate(ref immutable LowExprKind.SpecialTrinary) @safe @nogc pure nothrow cbSpecialTrinary,
@@ -790,8 +779,6 @@ struct LowExprKind {
 			return cbSizeOf(a.sizeOf);
 		case LowExprKind.Kind.constant:
 			return cbConstant(a.constant);
-		case LowExprKind.Kind.special0Ary:
-			return cbSpecial0Ary(a.special0Ary);
 		case LowExprKind.Kind.specialUnary:
 			return cbSpecialUnary(a.specialUnary);
 		case LowExprKind.Kind.specialBinary:

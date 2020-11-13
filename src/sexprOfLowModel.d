@@ -253,8 +253,6 @@ immutable(Sexpr) tataOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExpr
 				tataOfLowType(alloc, it.type)),
 		(ref immutable Constant it) =>
 			tataOfConstant(alloc, it),
-		(ref immutable LowExprKind.Special0Ary it) =>
-			tataRecord(alloc, "zero-ary", tataStr(strLiteral(strOfSpecial0AryKind(it.kind)))),
 		(ref immutable LowExprKind.SpecialUnary it) =>
 			tataRecord(
 				alloc,
@@ -304,13 +302,6 @@ immutable(Sexpr) tataOfMatch(Alloc)(ref Alloc alloc, ref immutable LowExprKind.M
 				tataOpt(alloc, case_.local, (ref immutable Ptr!LowLocal it) =>
 					tataOfLowLocalSource(alloc, it.source)),
 				tataOfLowExpr(alloc, case_.then))));
-}
-
-immutable(string) strOfSpecial0AryKind(immutable LowExprKind.Special0Ary.Kind a) {
-	final switch (a) {
-		case LowExprKind.Special0Ary.Kind.getErrno:
-			return "get-errno";
-	}
 }
 
 immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind a) {

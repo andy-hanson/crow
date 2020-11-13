@@ -1248,12 +1248,12 @@ program(
 				[]
 				expr(
 					void
-					file-range(13, range(2007, 2030))
+					file-range(13, range(2003, 2026))
 					call(
 						35
 						[
-							expr(int-32, file-range(13, range(1997, 2006)), call(40, []))
-							expr(record(7), file-range(13, range(2029, 2030)), param-ref(0))]))))
+							expr(int-32, file-range(13, range(1993, 2002)), call(40, []))
+							expr(record(7), file-range(13, range(2025, 2026)), param-ref(0))]))))
 		35: fun(
 			write-sync-no-newline
 			void
@@ -1263,76 +1263,76 @@ program(
 				[local(res, int-64)]
 				expr(
 					void
-					file-range(13, range(1598, 1756))
+					file-range(13, range(1594, 1752))
 					seq(
 						expr(
 							void
-							file-range(13, range(1598, 1641))
+							file-range(13, range(1594, 1637))
 							call(
 								11
 								[
 									expr(
 										bool
-										file-range(13, range(1625, 1641))
+										file-range(13, range(1621, 1637))
 										call(
 											27
 											[
-												expr(nat-64, file-range(13, range(1611, 1624)), size-of(char))
-												expr(nat-64, file-range(13, range(1628, 1641)), size-of(nat-8))]))]))
+												expr(nat-64, file-range(13, range(1607, 1620)), size-of(char))
+												expr(nat-64, file-range(13, range(1624, 1637)), size-of(nat-8))]))]))
 						expr(
 							void
-							file-range(13, range(1643, 1756))
+							file-range(13, range(1639, 1752))
 							let(
 								res
 								expr(
 									int-64
-									file-range(13, range(1652, 1683))
+									file-range(13, range(1648, 1679))
 									call(
 										36
 										[
-											expr(int-32, file-range(13, range(1649, 1651)), param-ref(0))
+											expr(int-32, file-range(13, range(1645, 1647)), param-ref(0))
 											expr(
 												ptr(nat-8)
-												file-range(13, range(1664, 1675))
+												file-range(13, range(1660, 1671))
 												unary(
 													"as-any-ptr"
 													expr(
 														ptr(char)
-														file-range(13, range(1659, 1664))
+														file-range(13, range(1655, 1660))
 														get-field(
-															expr(record(7), file-range(13, range(1658, 1659)), param-ref(1))
+															expr(record(7), file-range(13, range(1654, 1655)), param-ref(1))
 															false
 															1))))
 											expr(
 												nat-64
-												file-range(13, range(1678, 1683))
-												get-field(expr(record(7), file-range(13, range(1677, 1678)), param-ref(1)), false, 0))]))
+												file-range(13, range(1674, 1679))
+												get-field(expr(record(7), file-range(13, range(1673, 1674)), param-ref(1)), false, 0))]))
 								expr(
 									void
-									file-range(13, range(1685, 1756))
+									file-range(13, range(1681, 1752))
 									trinary(
 										"if"
 										expr(
 											bool
-											file-range(13, range(1696, 1719))
+											file-range(13, range(1692, 1715))
 											call(
 												37
 												[
-													expr(int-64, file-range(13, range(1692, 1695)), local-ref(res))
+													expr(int-64, file-range(13, range(1688, 1691)), local-ref(res))
 													expr(
 														int-64
-														file-range(13, range(1705, 1719))
+														file-range(13, range(1701, 1715))
 														unary(
 															"unsafe-nat64-to-int64"
 															expr(
 																nat-64
-																file-range(13, range(1700, 1705))
+																file-range(13, range(1696, 1701))
 																get-field(
-																	expr(record(7), file-range(13, range(1699, 1700)), param-ref(1))
+																	expr(record(7), file-range(13, range(1695, 1696)), param-ref(1))
 																	false
 																	0))))]))
-										expr(void, file-range(13, range(1723, 1727)), void)
-										expr(void, file-range(13, range(1750, 1754)), call(39, []))))))))))
+										expr(void, file-range(13, range(1719, 1723)), void)
+										expr(void, file-range(13, range(1746, 1750)), call(39, []))))))))))
 		36: fun(
 			write
 			int-64
@@ -1422,7 +1422,7 @@ program(
 			int-32
 			param-kind(ctx: false, closure: false)
 			[]
-			expr-body([], expr(int-32, file-range(2, range(6007, 6010)), call(41, []))))
+			expr-body([], expr(int-32, file-range(2, range(6017, 6020)), call(41, []))))
 		41: fun(
 			two
 			int-32
@@ -1452,13 +1452,13 @@ program(
 				[]
 				expr(
 					void
-					file-range(13, range(2073, 2134))
+					file-range(13, range(2069, 2130))
 					seq(
 						expr(
 							void
-							file-range(13, range(2075, 2100))
-							call(34, [expr(record(7), file-range(13, range(2073, 2074)), param-ref(0))]))
-						expr(void, file-range(13, range(2107, 2132)), call(34, [expr(record(7), file-range(13, range(2102, 2106)), arr(1, 4))]))))))
+							file-range(13, range(2071, 2096))
+							call(34, [expr(record(7), file-range(13, range(2069, 2070)), param-ref(0))]))
+						expr(void, file-range(13, range(2103, 2128)), call(34, [expr(record(7), file-range(13, range(2098, 2102)), arr(1, 4))]))))))
 		44: fun(
 			empty?
 			bool
@@ -11930,13 +11930,13 @@ program(
 				[]
 				expr(
 					void
-					file-range(13, range(1884, 1937))
+					file-range(13, range(1880, 1933))
 					seq(
 						expr(
 							void
-							file-range(13, range(1886, 1907))
-							call(256, [expr(record(7), file-range(13, range(1884, 1885)), param-ref(0))]))
-						expr(void, file-range(13, range(1914, 1935)), call(256, [expr(record(7), file-range(13, range(1909, 1913)), arr(1, 4))]))))))
+							file-range(13, range(1882, 1903))
+							call(256, [expr(record(7), file-range(13, range(1880, 1881)), param-ref(0))]))
+						expr(void, file-range(13, range(1910, 1931)), call(256, [expr(record(7), file-range(13, range(1905, 1909)), arr(1, 4))]))))))
 		256: fun(
 			print-sync-no-newline
 			void
@@ -11946,18 +11946,18 @@ program(
 				[]
 				expr(
 					void
-					file-range(13, range(1822, 1845))
+					file-range(13, range(1818, 1841))
 					call(
 						35
 						[
-							expr(int-32, file-range(13, range(1812, 1821)), call(257, []))
-							expr(record(7), file-range(13, range(1844, 1845)), param-ref(0))]))))
+							expr(int-32, file-range(13, range(1808, 1817)), call(257, []))
+							expr(record(7), file-range(13, range(1840, 1841)), param-ref(0))]))))
 		257: fun(
 			stdout-fd
 			int-32
 			param-kind(ctx: false, closure: false)
 			[]
-			expr-body([], expr(int-32, file-range(2, range(5979, 5982)), 1)))
+			expr-body([], expr(int-32, file-range(2, range(5989, 5992)), 1)))
 		258: fun(
 			to-str
 			record(7)

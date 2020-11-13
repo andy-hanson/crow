@@ -473,9 +473,6 @@ void generateExpr(CodeAlloc, TempAlloc)(
 		(ref immutable Constant it) {
 			generateConstant(tempAlloc, writer, ctx, source, expr.type, it);
 		},
-		(ref immutable LowExprKind.Special0Ary it) {
-			generateSpecial0Ary(writer, source, it);
-		},
 		(ref immutable LowExprKind.SpecialUnary it) {
 			generateSpecialUnary(tempAlloc, writer, ctx, source, expr.type, it);
 		},
@@ -716,17 +713,6 @@ void writeBoolConstant(CodeAlloc)(
 	immutable Bool value,
 ) {
 	writePushConstant(writer, source, immutable Nat8(value ? 1 : 0));
-}
-
-void generateSpecial0Ary(CodeAlloc)(
-	ref ByteCodeWriter!CodeAlloc writer,
-	ref immutable ByteCodeSource source,
-	ref immutable LowExprKind.Special0Ary it,
-) {
-	final switch (it.kind) {
-		case LowExprKind.Special0Ary.Kind.getErrno:
-			todo!void("generate getErrno");
-	}
 }
 
 void generateSpecialUnary(CodeAlloc, TempAlloc)(

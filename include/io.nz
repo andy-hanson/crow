@@ -14,8 +14,8 @@ import
 	number-utils: + to-int to-nat
 	.opt-utils: force
 	.posix
-		addrinfo af-unspec close connect dirent dirp enoent empty-stat environ err-t fd-t
-		freeaddrinfo getaddrinfo getcwd get-errno has-pollin? has-pollerr? has-pollhup?
+		addrinfo af-unspec close connect dirent dirp enoent empty-stat environ errno err-t fd-t
+		freeaddrinfo getaddrinfo getcwd has-pollin? has-pollerr? has-pollhup?
 		has-pollnval? has-pollout? has-pollpri? ino-t lseek o-creat off-t open opendir o-rdonly
 		o-trunc o-wronly pid-t pipe pipes poll pollfd pollin posix-spawn
 		posix-spawn-file-actions-addclose posix-spawn-file-actions-adddup2
@@ -159,7 +159,6 @@ write-file void(path c-str, content str) summon trusted
 	fd = path open flags, permission
 	when
 		fd == neg-one
-			errno = get-errno
 			print-sync: "failed to open file for write: " + path.to-str
 			print-sync: "errno: " + errno.to-str
 			print-sync: "flags: " + flags.to-str
@@ -191,7 +190,6 @@ try-read-file opt str(path c-str) summon trusted
 			fd = path open o-rdonly, 0
 			when
 				fd == neg-one
-					errno = get-errno
 					when
 						errno == enoent
 							none
@@ -446,7 +444,6 @@ get-stat opt stat-t(path c-str) summon trusted
 			s some
 		else
 			assert: err == neg-one
-			errno = get-errno
 			when
 				errno == enoent
 					none
@@ -460,7 +457,7 @@ check-posix-error void(e err-t)
 check-errno-if-neg-one void(e int) summon trusted
 	when
 		e == neg-one
-			get-errno check-posix-error
+			errno check-posix-error
 			hard-unreachable
 		else
 			pass
@@ -470,7 +467,7 @@ check-errno-if-not-zero void(e int) summon trusted
 		e zero?
 			pass
 		else
-			get-errno check-posix-error
+			errno check-posix-error
 			hard-unreachable
 
 make-pipes pipes() summon

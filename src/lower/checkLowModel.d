@@ -3,7 +3,7 @@ module lower.checkLowModel;
 @safe @nogc pure nothrow:
 
 import constant : Constant;
-import lower.lowExprHelpers : boolType, int32Type, nat64Type, voidType;
+import lower.lowExprHelpers : boolType, nat64Type, voidType;
 import lowModel :
 	asFunPtrType,
 	asRecordType,
@@ -158,13 +158,6 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 		},
 		(ref immutable Constant it) {
 			// Constants are untyped, so can't check more
-		},
-		(ref immutable LowExprKind.Special0Ary it) {
-			final switch (it.kind) {
-				case LowExprKind.Special0Ary.Kind.getErrno:
-					checkTypeEqual(ctx.ctx, type, int32Type);
-					break;
-			}
 		},
 		(ref immutable LowExprKind.SpecialUnary it) {
 			// TODO

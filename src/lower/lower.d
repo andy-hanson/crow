@@ -881,8 +881,6 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 				immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.ctxParam))),
 			(ref immutable Constant it) =>
 				immutable LowExprKind(it),
-			(immutable LowExprKind.Special0Ary.Kind kind) =>
-				immutable LowExprKind(immutable LowExprKind.Special0Ary(kind)),
 			(immutable LowExprKind.SpecialUnary.Kind kind) {
 				verify(size(a.args) == 1);
 				return immutable LowExprKind(
