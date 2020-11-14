@@ -12,8 +12,11 @@ lint:
 debug: bin/noze
 	gdb ./bin/noze
 
-test: bin/noze
-	./bin/noze test && ./bin/noze run test/test.nz
+unit-test: bin/noze
+	./bin/noze test
+
+test: unit-test
+	./bin/noze run test/test.nz
 
 test-overwrite: bin/noze
 	./bin/noze run test/test.nz -- --overwrite-output

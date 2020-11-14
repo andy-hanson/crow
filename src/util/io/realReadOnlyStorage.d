@@ -30,7 +30,7 @@ struct RealReadOnlyStorage(Alloc) {
 			}
 		}();
 		immutable AbsolutePath ap = immutable AbsolutePath(root, pk.path, extension);
-		return tryReadFile(alloc, ap, cb);
+		return tryReadFile(alloc, alloc, ap, cb);
 	}
 
 	private:

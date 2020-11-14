@@ -2,16 +2,13 @@ module test.testSym;
 
 @safe @nogc pure nothrow:
 
-import util.alloc.stackAlloc : StackAlloc;
 import util.collection.str : strLiteral, strEqLiteral;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols, isLongSym, strOfSym, Sym, symEq, tryGetSymFromStr;
 import util.util : verify;
 
-void testSym() {
-	alias Alloc = StackAlloc!("test", 1024);
-	Alloc alloc;
+void testSym(Alloc)(ref Alloc alloc) {
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 
 	immutable(Sym) getSym(immutable string a) {

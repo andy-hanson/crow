@@ -1,32 +1,22 @@
 module test.testLineAndColumnGetter;
 
-@safe @nogc nothrow: // not pure
+@safe @nogc pure nothrow:
 
-import util.alloc.stackAlloc : StackAlloc;
-import util.collection.str : NulTerminatedStr, strLiteral;
-import util.opt : force, none, Opt;
-import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText;
-import util.path : AbsolutePath, Path;
-import util.ptr : Ptr, ptrTrustMe;
+import util.collection.str : Str, strLiteral;
+import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText;
 import util.sourceRange : Pos;
-import util.sym : shortSymAlphaLiteral;
+import util.util : verifyEq;
 
-void testLineAndColumnGetter() {
-	//StackAlloc!("testLineAndColumnGetter", 1024 * 1024) alloc;
-	//immutable Path path = immutable Path(none!(Ptr!Path), shortSymAlphaLiteral("runtime"));
-	//immutable AbsolutePath absPath = immutable AbsolutePath(
-	//	strLiteral("./include"),
-	//	ptrTrustMe(path),
-	//	strLiteral(".nz"));
-	//immutable Opt!NulTerminatedStr opText = tryReadFile(alloc, absPath);
-	//immutable NulTerminatedStr text = force(opText).str;
-	//
-	//immutable LineAndColumnGetter lcg = lineAndColumnGetterForText(alloc, text.str);
-	//
-	//lineAndColumnAtPos(lcg, immutable Pos(2000));
-
-	//debug {
-	//	import core.stdc.stdio : printf;
-	//	printf("line: %d, column: %d\n", lc.line, lc.column);
-	//}
+void testLineAndColumnGetter(Alloc)(ref Alloc alloc) {
+	immutable Str text = strLiteral("a\n\tbb\nc\n");
+	immutable LineAndColumnGetter lcg = lineAndColumnGetterForText(alloc, text);
+	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(0)), immutable LineAndColumn(0, 0));
+	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(1)), immutable LineAndColumn(0, 1));
+	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(2)), immutable LineAndColumn(1, 0));
+	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(3)), immutable LineAndColumn(1, 4));
+	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(4)), immutable LineAndColumn(1, 5));
+	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(5)), immutable LineAndColumn(1, 6));
+	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(6)), immutable LineAndColumn(2, 0));
+	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(7)), immutable LineAndColumn(2, 1));
+	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(8)), immutable LineAndColumn(3, 0));
 }

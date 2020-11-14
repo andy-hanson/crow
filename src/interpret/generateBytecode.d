@@ -85,7 +85,6 @@ import model.lowModel :
 	matchLowType,
 	PrimitiveType;
 import model.model : FunDecl, Module, name, Program, range;
-import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, range, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
@@ -111,14 +110,12 @@ import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, zero;
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
 
-immutable(ByteCode) generateBytecode(CodeAlloc)(
+immutable(ByteCode) generateBytecode(CodeAlloc, TempAlloc)(
 	ref CodeAlloc codeAlloc,
+	ref TempAlloc tempAlloc,
 	ref immutable Program modelProgram,
 	ref immutable LowProgram program,
 ) {
-	alias TempAlloc = StackAlloc!("generateBytecode", 1024 * 1024);
-	TempAlloc tempAlloc;
-
 	immutable TypeLayout typeLayout = layOutTypes(tempAlloc, program);
 	immutable TextAndInfo text = generateText(codeAlloc, tempAlloc, program, typeLayout, program.allConstants);
 

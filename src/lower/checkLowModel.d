@@ -199,20 +199,7 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 }
 
 void checkTypeEqual(ref immutable Ctx ctx, ref immutable LowType expected, ref immutable LowType actual) {
-	if (!lowTypeEqual(expected, actual)) {
-		debug {
-			import core.stdc.stdio : printf;
-			import util.alloc.stackAlloc : StackAlloc;
-			import util.sexprPrint : printOutSexpr, PrintFormat;
-			printf("checkLowModel failed!\nExpected:\n");
-			StackAlloc!("checkTypeEqual", 4 * 1024) alloc;
-			printOutSexpr(tataOfLowType2(alloc, ctx, expected), PrintFormat.sexpr);
-			printf("Actual:\n");
-			printOutSexpr(tataOfLowType2(alloc, ctx, actual), PrintFormat.sexpr);
-		}
-
-		verify(0);
-	}
+	verify(lowTypeEqual(expected, actual));
 }
 
 immutable(Sexpr) tataOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, immutable LowType a) {

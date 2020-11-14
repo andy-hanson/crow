@@ -11,7 +11,7 @@ import util.collection.globalAllocatedStack : clearStack, pushAll;
 import util.types : float64, i8, i16, i32, i64, Nat64, u8, u16, u32, u64, u64OfFloat64Bits;
 import util.util : verify,verifyEq;
 
-void testApplyFn() {
+void testApplyFn(Alloc)(ref Alloc) {
 	immutable Nat64 one = immutable Nat64(1); // https://issues.dlang.org/show_bug.cgi?id=17778
 
 	testFn([u64OfFloat64Bits(-1.5), u64OfFloat64Bits(2.6)], FnOp.addFloat64, [u64OfFloat64Bits(1.1)]);

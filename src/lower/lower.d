@@ -82,7 +82,7 @@ import model.lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
 import model.model : decl, FunInst, name;
-import util.alloc.stackAlloc : StackAlloc;
+import util.alloc.arena : Arena;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, first, only, arrRange = range, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAt, arrBuilderSize, finishArr;
@@ -380,7 +380,8 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	immutable LowType ctxType =
 		lowTypeFromConcreteType(alloc, getLowTypeCtx, immutable ConcreteType(True, program.ctxType));
 	DictBuilder!(Ptr!ConcreteFun, LowFunIndex, comparePtr!ConcreteFun) concreteFunToLowFunIndexBuilder;
-	StackAlloc!("getAllLowFuns", 1024 * 1024) tempAlloc;
+	alias TempAlloc = Arena!(Alloc, "getAllLowFuns");
+	TempAlloc tempAlloc = TempAlloc(ptrTrustMe_mut(alloc));
 	CompareFuns compareFuns = CompareFuns(
 		newMutIndexDict!(immutable LowType.Record, immutable LowFunIndex)(
 			tempAlloc, fullIndexDictSize(allTypes.allRecords)),

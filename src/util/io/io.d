@@ -12,7 +12,6 @@ import core.sys.posix.sys.types : off_t;
 import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, write;
 import std.process : execvpe;
 
-import util.alloc.stackAlloc : StackAlloc;
 import util.collection.arr : Arr, arrOfRange, begin, range, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, map, tail;
@@ -34,13 +33,13 @@ import util.path : AbsolutePath, pathToCStr;
 import util.types : safeSizeTFromSSizeT, ssize_t;
 import util.util : todo, verify;
 
-@trusted immutable(T) tryReadFile(T, Alloc)(
+@trusted immutable(T) tryReadFile(T, Alloc, TempAlloc)(
 	ref Alloc alloc,
+	ref TempAlloc tempAlloc,
 	immutable AbsolutePath path,
 	scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 ) {
-	PathAlloc temp;
-	immutable CStr pathCStr = pathToCStr(temp, path);
+	immutable CStr pathCStr = pathToCStr(tempAlloc, path);
 
 	immutable int fd = open(pathCStr, O_RDONLY);
 	if (fd == -1) {
@@ -92,8 +91,12 @@ import util.util : todo, verify;
 	return cb(s);
 }
 
-@trusted void writeFileSync(immutable AbsolutePath path, immutable Str content) {
-	immutable int fd = tryOpen(path, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
+@trusted void writeFileSync(TempAlloc)(
+	ref TempAlloc tempAlloc,
+	ref immutable AbsolutePath path,
+	ref immutable Str content,
+) {
+	immutable int fd = tryOpen(tempAlloc, path, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
 	scope(exit) close(fd);
 
 	immutable ssize_t wroteBytes = write(fd, content.begin, content.size);
@@ -108,32 +111,32 @@ alias Environ = Arr!(KeyValuePair!(Str, Str));
 
 // Returns the child process' error code.
 // WARN: A first arg will be prepended that is the executable path.
-@trusted int spawnAndWaitSync(
+@trusted int spawnAndWaitSync(TempAlloc)(
+	ref TempAlloc tempAlloc,
 	immutable AbsolutePath executable,
 	immutable Arr!Str args,
 	immutable Environ environ
 ) {
-	PathAndEnvironAlloc temp;
-	immutable CStr executableCStr = pathToCStr(temp, executable);
+	immutable CStr executableCStr = pathToCStr(tempAlloc, executable);
 	return spawnAndWaitSync(
 		executableCStr,
-		convertArgs(temp, executableCStr, args),
-		convertEnviron(temp, environ));
+		convertArgs(tempAlloc, executableCStr, args),
+		convertEnviron(tempAlloc, environ));
 }
 
 // Replaces this process with the given executable.
 // DOES NOT RETURN!
-@trusted void replaceCurrentProcess(
+@trusted void replaceCurrentProcess(TempAlloc)(
+	ref TempAlloc tempAlloc,
 	immutable AbsolutePath executable,
 	immutable Arr!Str args,
 	immutable Environ environ,
 ) {
-	PathAlloc temp;
-	immutable CStr executableCStr = pathToCStr(temp, executable);
+	immutable CStr executableCStr = pathToCStr(tempAlloc, executable);
 	immutable int err = execvpe(
 		executableCStr,
-		convertArgs(temp, executableCStr, args),
-		convertEnviron(temp, environ));
+		convertArgs(tempAlloc, executableCStr, args),
+		convertEnviron(tempAlloc, environ));
 	// 'execvpe' only returns if we failed to create the process (maybe executable does not exist?)
 	verify(err == -1);
 	fprintf(stderr, "Failed to launch %s: error %s\n", executableCStr, strerror(errno));
@@ -177,12 +180,13 @@ private:
 	return finishArr(alloc, res);
 }
 
-alias PathAlloc = StackAlloc!("temp path", 8 * 1024);
-alias PathAndEnvironAlloc = StackAlloc!("temp path and environ", 8 * 1024);
-
-@system int tryOpen(immutable AbsolutePath path, immutable int flags, immutable int moreFlags) {
-	PathAlloc temp;
-	immutable int fd = open(pathToCStr(temp, path), flags, moreFlags);
+@system int tryOpen(TempAlloc)(
+	ref TempAlloc tempAlloc,
+	ref immutable AbsolutePath path,
+	immutable int flags,
+	immutable int moreFlags,
+) {
+	immutable int fd = open(pathToCStr(tempAlloc, path), flags, moreFlags);
 	if (fd == -1)
 		todo!void("can't write to file");
 	return fd;

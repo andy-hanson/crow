@@ -123,13 +123,6 @@ immutable(BuiltinKind) getBuiltinKind(
 	}
 
 	immutable(T) failT(T)() {
-		debug {
-			import util.alloc.stackAlloc : StackAlloc;
-			import util.sym : strOfSym;
-			import util.print : print;
-			StackAlloc!("temp", 1024) alloc;
-			print(strOfSym(alloc, name));
-		}
 		return todo!T("not a builtin fun");
 	}
 	immutable(BuiltinKind) fail() {

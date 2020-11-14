@@ -58,7 +58,7 @@ import model.lowModel :
 	PrimitiveType,
 	regularParams;
 import model.model : FunInst, Local, name, Param;
-import util.alloc.stackAlloc : StackAlloc;
+import util.alloc.arena : Arena;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, first, range, setAt, size, sizeEq;
 import util.collection.arrUtil : every, fillArr_mut, tail;
@@ -110,7 +110,7 @@ immutable(Str) writeToC(Alloc)(
 
 	immutable Ctx ctx = immutable Ctx(ptrTrustMe(program), buildMangledNames(alloc, program));
 
-	writeStructs(writer, ctx);
+	writeStructs(alloc, writer, ctx);
 
 	writeConstants(writer, ctx, program.allConstants);
 
@@ -647,9 +647,9 @@ immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
 	}
 }
 
-void writeStructs(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx) {
-	alias TempAlloc = StackAlloc!("struct-states", 1024 * 1024);
-	TempAlloc tempAlloc;
+void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc writer, ref immutable Ctx ctx) {
+	alias TempAlloc = Arena!(Alloc, "struct-states");
+	TempAlloc tempAlloc = TempAlloc(ptrTrustMe_mut(alloc));
 	// Write extern-ptr types first
 	fullIndexDictEachValue(ctx.program.allExternPtrTypes, (ref immutable LowExternPtrType it) {
 		declareStruct(writer, ctx, it.source);
@@ -945,18 +945,6 @@ void writeCallExpr(Alloc)(
 	immutable WriteKind writeKind,
 	ref immutable LowExprKind.Call a,
 ) {
-	if (writeKind == WriteKind.returnStatement && a.called == ctx.curFun) {
-		debug {
-			import core.stdc.stdio : printf;
-			import interpret.debugging : writeFunName;
-			import util.writer : finishWriterToCStr;
-			Writer!Alloc w2 = Writer!Alloc(writer.alloc);
-			writeFunName(w2, ctx.ctx.program, a.called);
-			printf(
-				"writeCallExpr: Should be a TailRecur, not a call (for function %s)\n",
-				finishWriterToCStr(w2));
-		}
-	}
 	verify(!(writeKind == WriteKind.returnStatement && a.called == ctx.curFun)); // This should be a TailRecur
 	writeReturn(writer, writeKind, () {
 		immutable LowFun called = fullIndexDictGet(ctx.ctx.program.allFuns, a.called);

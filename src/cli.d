@@ -3,8 +3,8 @@ module cli;
 import compiler : build, buildAndRun, print, PrintKind;
 import frontend.lang : nozeExtension;
 import test.test : test;
+import util.alloc.arena : Arena;
 import util.alloc.mallocator : Mallocator;
-import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, first, only, size;
 import util.collection.arrUtil : cat, slice, tail;
@@ -31,31 +31,30 @@ import util.util : todo;
 
 int cli(immutable size_t argc, immutable CStr* argv) {
 	Mallocator mallocator;
-	CliAlloc alloc;
-	alias SymAlloc = SingleHeapAlloc!(Mallocator, "symAlloc", 1024 * 1024);
+	alias SymAlloc = Arena!(Mallocator, "symAlloc");
 	SymAlloc symAlloc = SymAlloc(ptrTrustMe_mut(mallocator));
-	immutable CommandLineArgs args = parseCommandLineArgs(alloc, argc, argv);
+	immutable CommandLineArgs args = parseCommandLineArgs(mallocator, argc, argv);
 	AllSymbols!SymAlloc allSymbols = AllSymbols!SymAlloc(ptrTrustMe_mut(symAlloc));
-	return go(allSymbols, args);
+	return go(mallocator,allSymbols, args);
 }
 
 private:
 
-alias CliAlloc = StackAlloc!("commandLineArgs", 32 * 1024);
-
-immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable CommandLineArgs args) {
-	StackAlloc!("command", 1024) alloc;
+immutable(int) go(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	ref immutable CommandLineArgs args,
+) {
 	immutable Str nozeDir = getNozeDirectory(args.pathToThisExecutable);
 	immutable Command command = parseCommand(alloc, allSymbols, getCwd(alloc), args.args);
 	immutable Str include = cat(alloc, nozeDir, strLiteral("/include"));
-	Mallocator mallocator;
 
 	return matchCommand!int(
 		command,
 		(ref immutable Command.Build it) {
-			RealReadOnlyStorage!Mallocator storage =
-				RealReadOnlyStorage!Mallocator(ptrTrustMe_mut(mallocator), include, it.programDirAndMain.programDir);
-			return build(mallocator, allSymbols, storage, it.programDirAndMain.mainPath, args.environ);
+			RealReadOnlyStorage!Alloc storage =
+				RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, it.programDirAndMain.programDir);
+			return build(alloc, allSymbols, storage, it.programDirAndMain.mainPath, args.environ);
 		},
 		(ref immutable Command.Help it) =>
 			help(it.isDueToCommandParseError),
@@ -68,15 +67,15 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 			return 0;
 		},
 		(ref immutable Command.Print it) {
-			RealReadOnlyStorage!Mallocator storage =
-				RealReadOnlyStorage!Mallocator(ptrTrustMe_mut(mallocator), include, it.programDirAndMain.programDir);
-			return print(mallocator, allSymbols, storage, it.kind, it.format, it.programDirAndMain.mainPath);
+			RealReadOnlyStorage!Alloc storage =
+				RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, it.programDirAndMain.programDir);
+			return print(alloc, allSymbols, storage, it.kind, it.format, it.programDirAndMain.mainPath);
 		},
 		(ref immutable Command.Run it) {
-			RealReadOnlyStorage!Mallocator storage =
-				RealReadOnlyStorage!Mallocator(ptrTrustMe_mut(mallocator), include, it.programDirAndMain.programDir);
+			RealReadOnlyStorage!Alloc storage =
+				RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, it.programDirAndMain.programDir);
 			return buildAndRun(
-				mallocator,
+				alloc,
 				it.interpret,
 				allSymbols,
 				storage,
@@ -85,7 +84,7 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 				args.environ);
 		},
 		(ref immutable Command.Test it) =>
-			test(it.name),
+			test(alloc, it.name),
 		(ref immutable Command.Version) {
 			printVersion();
 			return 0;

@@ -2,8 +2,7 @@ module util.sexprPrint;
 
 @safe @nogc nothrow: // not pure
 
-import util.alloc.mallocator : Mallocator;
-import util.alloc.stackAlloc : SingleHeapAlloc;
+import util.alloc.arena : Arena;
 import util.ptr : ptrTrustMe_mut;
 import util.print : print;
 import util.sexpr : Sexpr, writeSexpr, writeSexprJSON;
@@ -14,10 +13,9 @@ enum PrintFormat {
 	json,
 }
 
-void printOutSexpr(immutable Sexpr a, immutable PrintFormat format) {
-	Mallocator mallocator;
-	alias StrAlloc = SingleHeapAlloc!(Mallocator, "printOutSexpr", 4 * 1024 * 1024);
-	StrAlloc strAlloc = StrAlloc(ptrTrustMe_mut(mallocator));
+void printOutSexpr(Alloc)(ref Alloc alloc, immutable Sexpr a, immutable PrintFormat format) {
+	alias StrAlloc = Arena!(Alloc, "printOutSexpr");
+	StrAlloc strAlloc = StrAlloc(ptrTrustMe_mut(alloc));
 	Writer!StrAlloc writer = Writer!StrAlloc(ptrTrustMe_mut(strAlloc));
 	final switch (format) {
 		case PrintFormat.sexpr:
