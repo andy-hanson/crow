@@ -2,8 +2,7 @@ module frontend.readOnlyStorage;
 
 @safe @nogc nothrow: // not pure
 
-import model : AbsolutePathsGetter;
-
+import model.model : AbsolutePathsGetter;
 import util.collection.str : NulTerminatedStr, Str;
 import util.io : ioTryReadFile = tryReadFile;
 import util.opt : Opt;

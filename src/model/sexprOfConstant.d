@@ -1,8 +1,8 @@
-module sexprOfConstant;
+module model.sexprOfConstant;
 
 @safe @nogc pure nothrow:
 
-import constant : Constant, matchConstant;
+import model.constant : Constant, matchConstant;
 import util.sexpr : Sexpr, tataArr, tataBool, tataNat, tataRecord, tataSym;
 
 immutable(Sexpr) tataOfConstant(Alloc)(ref Alloc alloc, ref immutable Constant a) {

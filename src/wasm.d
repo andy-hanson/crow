@@ -4,7 +4,7 @@ import frontend.ast : sexprOfAst;
 import frontend.getTokens : tokensOfAst, sexprOfTokens, Token;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.showDiag : strOfParseDiag;
-import parseDiag : ParseDiagnostic;
+import model.parseDiag : ParseDiagnostic;
 import util.alloc.globalAlloc : GlobalAlloc;
 import util.collection.arr : Arr;
 import util.collection.str : CStr, NulTerminatedStr, nulTerminatedStrOfCStr;

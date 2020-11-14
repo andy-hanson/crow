@@ -1,9 +1,9 @@
-module concreteModel;
+module model.concreteModel;
 
 @safe @nogc pure nothrow:
 
-import constant : Constant;
-import model :
+import model.constant : Constant;
+import model.model :
 	ClosureField,
 	decl,
 	FunInst,

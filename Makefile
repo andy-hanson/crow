@@ -24,16 +24,6 @@ bin/noze: src/*.d src/*/*.d src/*/*/*.d
 		src/app.d \
 		src/cli.d \
 		src/compiler.d \
-		src/concreteModel.d \
-		src/constant.d \
-		src/diag.d \
-		src/lowModel.d \
-		src/model.d \
-		src/parseDiag.d \
-		src/sexprOfConcreteModel.d \
-		src/sexprOfConstant.d \
-		src/sexprOfLowModel.d \
-		src/sexprOfModel.d \
 		src/*/*.d \
 		src/*/*/*.d \
 		-I=src/ \
@@ -57,7 +47,7 @@ bin/noze.wasm: src/**/*.d
 		src/frontend/lang.d \
 		src/frontend/lexer.d \
 		src/frontend/showDiag.d \
-		src/model.d \
+		src/model/*.d \
 		src/parseDiag.d \
 		src/util/alloc/alloc.d \
 		src/util/alloc/globalAlloc.d \

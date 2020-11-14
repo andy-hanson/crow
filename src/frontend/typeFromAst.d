@@ -2,11 +2,12 @@ module frontend.typeFromAst;
 
 @safe @nogc pure nothrow:
 
-import diag : Diag;
 import frontend.ast : matchTypeAst, TypeAst;
 import frontend.checkCtx : addDiag, CheckCtx;
 import frontend.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
-import model :
+import frontend.programState : ProgramState;
+import model.diag : Diag;
+import model.model :
 	CommonTypes,
 	matchStructOrAlias,
 	Module,
@@ -24,7 +25,6 @@ import model :
 	Type,
 	TypeParam,
 	typeParams;
-import frontend.programState : ProgramState;
 import util.collection.arr : Arr, empty, first, range, size, toArr;
 import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map, tail;
 import util.collection.dict : Dict, getAt;

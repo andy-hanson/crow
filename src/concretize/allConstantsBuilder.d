@@ -2,14 +2,14 @@ module concretize.allConstantsBuilder;
 
 @safe @nogc pure nothrow:
 
-import concreteModel :
+import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
 	ConcreteStruct,
 	ConcreteType,
 	compareConcreteType,
 	PointerTypeAndConstantsConcrete;
-import constant : Constant, constantEqual;
+import model.constant : Constant, constantEqual;
 import util.bools : Bool;
 import util.collection.arr : Arr, asImmutable, empty, size;
 import util.collection.arrUtil : arrEqual, findIndex_const, map, map_mut;

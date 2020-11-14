@@ -1,4 +1,4 @@
-module constant;
+module model.constant;
 
 @safe @nogc pure nothrow:
 

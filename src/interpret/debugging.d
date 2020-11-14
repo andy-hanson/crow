@@ -2,7 +2,7 @@ module interpret.debugging;
 
 @safe @nogc pure nothrow:
 
-import concreteModel :
+import model.concreteModel :
 	ConcreteFun,
 	ConcreteFunSource,
 	ConcreteLocal,
@@ -14,7 +14,7 @@ import concreteModel :
 	matchConcreteFunSource,
 	matchConcreteLocalSource,
 	matchConcreteStructSource;
-import lowModel :
+import model.lowModel :
 	LowFun,
 	LowFunIndex,
 	LowFunSource,
@@ -24,7 +24,7 @@ import lowModel :
 	matchLowType,
 	PrimitiveType,
 	symOfPrimitiveType;
-import model : ClosureField, decl, FunInst, name, RecordField;
+import model.model : ClosureField, decl, FunInst, name, RecordField;
 import util.collection.arr : empty, range;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : force, has;

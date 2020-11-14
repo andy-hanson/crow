@@ -2,9 +2,8 @@ module frontend.frontendCompile;
 
 @safe @nogc nothrow: // not pure
 
-import diag : Diag, Diags, Diagnostic, Diagnostics, FilesInfo;
-
-import model :
+import model.diag : Diag, Diags, Diagnostic, Diagnostics, FilesInfo;
+import model.model :
 	asStructDecl,
 	CommonTypes,
 	comparePathAndStorageKind,
@@ -13,8 +12,7 @@ import model :
 	Program,
 	StructDecl,
 	StructInst;
-import parseDiag : ParseDiag, ParseDiagnostic;
-
+import model.parseDiag : ParseDiag, ParseDiagnostic;
 import frontend.ast :
 	emptyFileAst,
 	exports,
@@ -28,7 +26,6 @@ import frontend.lang : nozeExtension;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
 import frontend.readOnlyStorage : absolutePathsGetter, choose, ReadOnlyStorages, tryReadFile;
-
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool;
 import util.collection.arr : Arr, at, empty, emptyArr, range;

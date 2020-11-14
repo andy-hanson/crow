@@ -1,8 +1,8 @@
-module lowModel;
+module model.lowModel;
 
 @safe @nogc pure nothrow:
 
-import concreteModel :
+import model.concreteModel :
 	ConcreteField,
 	ConcreteFun,
 	concreteFunRange,
@@ -11,7 +11,7 @@ import concreteModel :
 	ConcreteStruct,
 	isArr,
 	name;
-import constant : Constant;
+import model.constant : Constant;
 import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.collection.arrUtil : slice;

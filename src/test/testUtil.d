@@ -3,6 +3,7 @@ module test.testUtil;
 @safe @nogc nothrow: // not pure
 
 import core.stdc.stdio : printf;
+
 import interpret.bytecode : ByteCodeIndex;
 import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, printDataArr;
 import util.bools : Bool;

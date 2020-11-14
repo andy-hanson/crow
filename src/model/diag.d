@@ -1,9 +1,9 @@
-module diag;
+module model.diag;
 
 @safe @nogc pure nothrow:
 
 import frontend.lang : nozeExtension;
-import model :
+import model.model :
 	AbsolutePathsGetter,
 	CalledDecl,
 	ClosureField,
@@ -18,7 +18,7 @@ import model :
 	StructInst,
 	StructOrAlias,
 	Type;
-import parseDiag : ParseDiag;
+import model.parseDiag : ParseDiag;
 import util.collection.arr : Arr;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.str : emptyStr, Str;

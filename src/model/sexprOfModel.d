@@ -1,8 +1,8 @@
-module sexprOfModel;
+module model.sexprOfModel;
 
 @safe @nogc pure nothrow:
 
-import model :
+import model.model :
 	body_,
 	Called,
 	ClosureField,

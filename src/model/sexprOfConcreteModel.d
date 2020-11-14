@@ -1,8 +1,8 @@
-module sexprOfConcreteModel;
+module model.sexprOfConcreteModel;
 
 @safe @nogc pure nothrow:
 
-import concreteModel :
+import model.concreteModel :
 	body_,
 	ConcreteExpr,
 	ConcreteField,
@@ -31,9 +31,9 @@ import concreteModel :
 	name,
 	returnType,
 	symOfBuiltinStructKind;
-import constant : Constant;
-import model : FunInst, name, Local, Param;
-import sexprOfConstant : tataOfConstant;
+import model.constant : Constant;
+import model.model : FunInst, name, Local, Param;
+import model.sexprOfConstant : tataOfConstant;
 import util.bools : True;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.ptr : Ptr;

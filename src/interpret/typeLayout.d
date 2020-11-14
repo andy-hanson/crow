@@ -3,7 +3,7 @@ module interpret.typeLayout;
 @safe @nogc pure nothrow:
 
 import interpret.bytecode : stackEntrySize;
-import lowModel : LowField, LowProgram, LowRecord, LowType, LowUnion, matchLowType, PrimitiveType;
+import model.lowModel : LowField, LowProgram, LowRecord, LowType, LowUnion, matchLowType, PrimitiveType;
 import util.collection.arr : Arr, at, empty, size;
 import util.collection.arrUtil : arrMax, map, mapOp, slice;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictGet, fullIndexDictSize;

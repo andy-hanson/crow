@@ -2,7 +2,7 @@ module interpret.bytecode;
 
 @safe @nogc nothrow: // not pure
 
-import lowModel : LowFunIndex;
+import model.lowModel : LowFunIndex;
 import util.bools : Bool;
 import util.collection.arr : Arr, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;

@@ -2,7 +2,9 @@ module concretize.concretizeCtx;
 
 @safe @nogc pure nothrow:
 
-import concreteModel :
+import concretize.allConstantsBuilder : AllConstantsBuilder;
+import concretize.concretizeExpr : concretizeExpr;
+import model.concreteModel :
 	BuiltinStructKind,
 	byVal,
 	compareConcreteType,
@@ -22,9 +24,7 @@ import concreteModel :
 	ConcreteStructSource,
 	purity,
 	sizeOrPointerSizeBytes;
-import concretize.allConstantsBuilder : AllConstantsBuilder;
-import concretize.concretizeExpr : concretizeExpr;
-import model :
+import model.model :
 	body_,
 	CommonTypes,
 	decl,

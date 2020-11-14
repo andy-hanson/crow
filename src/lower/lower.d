@@ -2,7 +2,25 @@ module lower.lower;
 
 @safe @nogc pure nothrow:
 
-import concreteModel :
+import lower.checkLowModel : checkLowProgram;
+import lower.generateCompareFun : ComparisonTypes, generateCompareFun;
+import lower.getBuiltinCall : BuiltinKind, getBuiltinKind, matchBuiltinKind;
+import lower.lowExprHelpers :
+	addPtr,
+	anyPtrType,
+	charPtrPtrType,
+	constantNat64,
+	getSizeOf,
+	int32Type,
+	localRef,
+	paramRef,
+	ptrCast,
+	ptrCastKind,
+	seq,
+	voidType,
+	wrapMulNat64,
+	writeToPtr;
+import model.concreteModel :
 	AllConstantsConcrete,
 	ArrTypeAndConstantsConcrete,
 	asBuiltin,
@@ -29,26 +47,8 @@ import concreteModel :
 	matchConcreteFunSource,
 	matchConcreteStructBody,
 	PointerTypeAndConstantsConcrete;
-import constant : Constant;
-import lower.checkLowModel : checkLowProgram;
-import lower.generateCompareFun : ComparisonTypes, generateCompareFun;
-import lower.getBuiltinCall : BuiltinKind, getBuiltinKind, matchBuiltinKind;
-import lower.lowExprHelpers :
-	addPtr,
-	anyPtrType,
-	charPtrPtrType,
-	constantNat64,
-	getSizeOf,
-	int32Type,
-	localRef,
-	paramRef,
-	ptrCast,
-	ptrCastKind,
-	seq,
-	voidType,
-	wrapMulNat64,
-	writeToPtr;
-import lowModel :
+import model.constant : Constant;
+import model.lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,
 	asFunPtrType,
@@ -81,7 +81,7 @@ import lowModel :
 	nPrimitiveTypes,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import model : decl, FunInst, name;
+import model.model : decl, FunInst, name;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, first, only, arrRange = range, size;

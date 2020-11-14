@@ -2,8 +2,8 @@ module lower.lowExprHelpers;
 
 @safe @nogc pure nothrow:
 
-import constant : Constant;
-import lowModel :
+import model.constant : Constant;
+import model.lowModel :
 	asNonFunPtrType,
 	asRecordType,
 	isNonFunPtrType,

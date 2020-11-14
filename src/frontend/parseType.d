@@ -4,9 +4,7 @@ module frontend.parseType;
 
 import frontend.ast : matchTypeAst, NameAndRange, range, TypeAst;
 import frontend.lexer : addDiag, curPos, Lexer, range, takeNameAndRange, takeOrAddDiagExpected, tryTake;
-
-import parseDiag : ParseDiag;
-
+import model.parseDiag : ParseDiag;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, at, empty, toArr;
 import util.collection.arrBuilder : add, ArrWithSizeBuilder, finishArr;

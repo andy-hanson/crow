@@ -41,10 +41,8 @@ import frontend.instantiate :
 	TypeParamsScope;
 import frontend.programState : ProgramState;
 import frontend.typeFromAst : instStructFromAst, tryFindSpec, typeArgsFromAsts, typeFromAst;
-
-import diag : Diag, Diagnostic, Diags, TypeKind;
-
-import model :
+import model.diag : Diag, Diagnostic, Diags, TypeKind;
+import model.model :
 	arity,
 	asRecord,
 	asStructDecl,
@@ -93,7 +91,6 @@ import model :
 	Type,
 	TypeParam,
 	typeParams;
-
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, at, empty, emptyArr, ptrsRange, arrRange = range, size, sizeEq, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAsTempArr, arrBuilderIsEmpty, arrBuilderSize, finishArr;

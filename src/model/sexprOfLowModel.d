@@ -1,10 +1,10 @@
-module sexprOfLowModel;
+module model.sexprOfLowModel;
 
 @safe @nogc pure nothrow:
 
-import concreteModel : ConcreteFun, ConcreteLocal, ConcreteParam;
-import constant : Constant;
-import lowModel :
+import model.concreteModel : ConcreteFun, ConcreteLocal, ConcreteParam;
+import model.constant : Constant;
+import model.lowModel :
 	LowExpr,
 	LowExprKind,
 	LowField,
@@ -31,12 +31,12 @@ import lowModel :
 	name,
 	PrimitiveType,
 	symOfPrimitiveType;
-import sexprOfConcreteModel :
+import model.sexprOfConcreteModel :
 	tataOfConcreteFunRef,
 	tataOfConcreteLocalRef,
 	tataOfConcreteParamRef,
 	tataOfConcreteStructRef;
-import sexprOfConstant : tataOfConstant;
+import model.sexprOfConstant : tataOfConstant;
 import util.collection.arr : size;
 import util.collection.arrUtil : arrLiteral;
 import util.collection.str : strLiteral;

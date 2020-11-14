@@ -2,7 +2,28 @@ module concretize.concretizeExpr;
 
 @safe @nogc pure nothrow:
 
-import concreteModel :
+import concretize.allConstantsBuilder : derefConstantPointer, getConstantArr, getConstantPtr, getConstantStr;
+import concretize.concretizeCtx :
+	anyPtrType,
+	boolType,
+	charType,
+	ConcretizeCtx,
+	ConcreteFunKey,
+	ConcreteFunBodyInputs,
+	concreteTypeFromFields_alwaysPointer,
+	concretizeParams,
+	getAllocFun,
+	getConcreteType_fromConcretizeCtx = getConcreteType,
+	getConcreteType_forStructInst_fromConcretizeCtx = getConcreteType_forStructInst,
+	getGetVatAndActorFun,
+	getOrAddConcreteFunAndFillBody,
+	getConcreteFunForLambdaAndFillBody,
+	specImpls,
+	typeArgsScope,
+	TypeArgsScope,
+	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes,
+	voidType;
+import model.concreteModel :
 	asConstant,
 	asRecord,
 	asUnion,
@@ -30,29 +51,8 @@ import concreteModel :
 	name,
 	purity,
 	returnType;
-import constant : asBool, asPointer, asRecord, asUnion, Constant;
-import concretize.allConstantsBuilder : derefConstantPointer, getConstantArr, getConstantPtr, getConstantStr;
-import concretize.concretizeCtx :
-	anyPtrType,
-	boolType,
-	charType,
-	ConcretizeCtx,
-	ConcreteFunKey,
-	ConcreteFunBodyInputs,
-	concreteTypeFromFields_alwaysPointer,
-	concretizeParams,
-	getAllocFun,
-	getConcreteType_fromConcretizeCtx = getConcreteType,
-	getConcreteType_forStructInst_fromConcretizeCtx = getConcreteType_forStructInst,
-	getGetVatAndActorFun,
-	getOrAddConcreteFunAndFillBody,
-	getConcreteFunForLambdaAndFillBody,
-	specImpls,
-	typeArgsScope,
-	TypeArgsScope,
-	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes,
-	voidType;
-import model :
+import model.constant : asBool, asPointer, asRecord, asUnion, Constant;
+import model.model :
 	Called,
 	ClosureField,
 	elementType,

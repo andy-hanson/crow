@@ -2,13 +2,13 @@ module frontend.inferringType;
 
 @safe @nogc pure nothrow:
 
-import diag : Diag;
 import frontend.ast : TypeAst;
 import frontend.checkCtx : addDiag, CheckCtx, rangeInFile;
 import frontend.instantiate : instantiateStructNeverDelay, instantiateStructInst, tryGetTypeArg, TypeParamsScope;
 import frontend.programState : ProgramState;
 import frontend.typeFromAst : typeFromAst;
-import model :
+import model.diag : Diag;
+import model.model :
 	asStructInst,
 	asTypeParam,
 	asUnion,

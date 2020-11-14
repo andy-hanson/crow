@@ -49,9 +49,7 @@ import frontend.lexer :
 	tryTake,
 	tryTakeIndentOrDedent;
 import frontend.parseType : tryParseTypeArg, tryParseTypeArgs;
-
-import parseDiag : ParseDiag;
-
+import model.parseDiag : ParseDiag;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, only, size, toArr;
 import util.collection.arrUtil : arrLiteral, exists, prepend;

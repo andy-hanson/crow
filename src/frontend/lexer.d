@@ -3,9 +3,7 @@ module frontend.lexer;
 @safe @nogc pure nothrow:
 
 import frontend.ast : LiteralAst, NameAndRange, rangeOfNameAndRange;
-
-import parseDiag : ParseDiag, ParseDiagnostic;
-
+import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;

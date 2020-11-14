@@ -3,9 +3,7 @@ module compiler;
 @safe @nogc nothrow: // not pure
 
 import backend.writeToC : writeToC;
-import concreteModel : ConcreteProgram;
 import concretize.concretize : concretize;
-import diag : Diagnostics, FilesInfo;
 import frontend.ast : FileAst, sexprOfAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
 import frontend.getTokens : Token, tokensOfAst, sexprOfTokens;
@@ -17,11 +15,13 @@ import interpret.realExtern : newRealExtern, RealExtern;
 import interpret.generateBytecode : generateBytecode;
 import interpret.runBytecode : runBytecode;
 import lower.lower : lower;
-import lowModel : LowProgram;
-import model : Module, Program;
-import sexprOfConcreteModel : tataOfConcreteProgram;
-import sexprOfLowModel : tataOfLowProgram;
-import sexprOfModel : sexprOfModule;
+import model.concreteModel : ConcreteProgram;
+import model.diag : Diagnostics, FilesInfo;
+import model.lowModel : LowProgram;
+import model.model : Module, Program;
+import model.sexprOfConcreteModel : tataOfConcreteProgram;
+import model.sexprOfLowModel : tataOfLowProgram;
+import model.sexprOfModel : sexprOfModule;
 import util.alloc.mallocator : Mallocator;
 import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
 import util.bools : Bool;

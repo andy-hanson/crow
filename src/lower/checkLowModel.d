@@ -2,9 +2,9 @@ module lower.checkLowModel;
 
 @safe @nogc pure nothrow:
 
-import constant : Constant;
 import lower.lowExprHelpers : boolType, nat64Type, voidType;
-import lowModel :
+import model.constant : Constant;
+import model.lowModel :
 	asFunPtrType,
 	asRecordType,
 	asUnionType,
@@ -26,7 +26,7 @@ import lowModel :
 	matchLowType,
 	PrimitiveType,
 	symOfPrimitiveType;
-import sexprOfConcreteModel : tataOfConcreteStructRef;
+import model.sexprOfConcreteModel : tataOfConcreteStructRef;
 import util.collection.arr : at, sizeEq;
 import util.collection.arrUtil : tail, zip;
 import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet;

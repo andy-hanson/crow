@@ -47,7 +47,6 @@ import frontend.ast :
 	TypeAst,
 	TypeParamAst,
 	WhenAst;
-
 import util.collection.arr : Arr, ArrWithSize, first, range, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : tail;

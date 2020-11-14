@@ -2,7 +2,6 @@ module frontend.checkExpr;
 
 @safe @nogc pure nothrow:
 
-import diag : Diag;
 import frontend.ast :
 	BogusAst,
 	CallAst,
@@ -53,7 +52,8 @@ import frontend.inferringType :
 	typeFromAst2;
 import frontend.instantiate : instantiateStructNeverDelay;
 import frontend.typeFromAst : makeFutType;
-import model :
+import model.diag : Diag;
+import model.model :
 	asRecord,
 	asStructInst,
 	asUnion,

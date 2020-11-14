@@ -1,4 +1,4 @@
-module parseDiag;
+module model.parseDiag;
 
 @safe @nogc pure nothrow:
 

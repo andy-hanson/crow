@@ -2,7 +2,7 @@ module frontend.programState;
 
 @safe @nogc pure nothrow:
 
-import model :
+import model.model :
 	compareFunDeclAndArgs,
 	compareSpecDeclAndArgs,
 	compareStructDeclAndArgs,

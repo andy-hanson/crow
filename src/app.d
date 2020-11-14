@@ -24,7 +24,7 @@ import frontend.ast : CallAst, CreateArrAst,
 	WhenAst,
 	FunDeclAst,
 	FunBodyAst;
-import parseDiag : ParseDiagnostic;
+import model.parseDiag : ParseDiagnostic;
 import util.result : Result;
 
 extern(C) int main(immutable size_t argc, immutable char** argv) {

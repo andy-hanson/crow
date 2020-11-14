@@ -2,10 +2,9 @@ module frontend.checkCtx;
 
 @safe @nogc pure nothrow:
 
-import diag : Diag, Diagnostic;
-
 import frontend.programState : ProgramState;
-import model : ModuleAndNameReferents;
+import model.diag : Diag, Diagnostic;
+import model.model : ModuleAndNameReferents;
 import util.collection.arr : Arr;
 import util.collection.arrBuilder : add, ArrBuilder;
 import util.ptr : Ptr;

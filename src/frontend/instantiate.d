@@ -4,7 +4,7 @@ module frontend.instantiate;
 
 import frontend.checkUtil : ptrAsImmutable;
 import frontend.programState : ProgramState;
-import model :
+import model.model :
 	bestCasePurity,
 	body_,
 	bodyIsSet,
@@ -32,7 +32,6 @@ import model :
 	withType,
 	worsePurity,
 	worstCasePurity;
-
 import util.bools : Bool;
 import util.collection.arr : Arr, emptyArr, ptrAt, size, sizeEq;
 import util.collection.arrUtil : fold, map;

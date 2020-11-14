@@ -1,8 +1,8 @@
-module model;
+module model.model;
 
 @safe @nogc pure nothrow:
 
-import diag : FilesInfo; // TODO: move that here?
+import model.diag : FilesInfo; // TODO: move that here?
 import util.bools : and, Bool, False, True;
 import util.collection.arr : Arr, empty, emptyArr, first, only, range, size, sizeEq;
 import util.collection.arrUtil : compareArr;

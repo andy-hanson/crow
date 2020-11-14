@@ -4,8 +4,6 @@ module interpret.runBytecode;
 
 import core.stdc.stdio : printf;
 
-import concreteModel : ConcreteFun, concreteFunRange;
-import diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import interpret.applyFn : applyFn;
 import interpret.bytecode :
 	asCall,
@@ -31,7 +29,9 @@ import interpret.bytecodeReader :
 	setReaderPtr;
 import interpret.debugging : writeFunName;
 import interpret.externAlloc : ExternAlloc;
-import lowModel : LowFunSource, LowProgram, matchLowFunSource;
+import model.concreteModel : ConcreteFun, concreteFunRange;
+import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
+import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False;
 import util.collection.arr : Arr, begin, freeArr, ptrAt, range, sizeNat;

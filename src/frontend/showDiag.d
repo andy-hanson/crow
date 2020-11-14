@@ -2,8 +2,8 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
-import diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
-import model :
+import model.diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
+import model.model :
 	arity,
 	bestCasePurity,
 	CalledDecl,
@@ -26,8 +26,7 @@ import model :
 	Type,
 	writeStructInst,
 	writeType;
-import parseDiag : matchParseDiag, ParseDiag;
-
+import model.parseDiag : matchParseDiag, ParseDiag;
 import util.bools : Bool, not, True;
 import util.collection.arr : Arr, empty, only, range, size;
 import util.collection.arrUtil : exists, map, sort;

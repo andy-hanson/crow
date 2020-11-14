@@ -2,8 +2,6 @@ module frontend.parse;
 
 @safe @nogc pure nothrow:
 
-import parseDiag : ParseDiagnostic;
-
 import frontend.ast :
 	ExplicitByValOrRef,
 	ExplicitByValOrRefAndRange,
@@ -59,9 +57,7 @@ import frontend.lexer :
 	tryTakeIndentAfterNewline_topLevel;
 import frontend.parseExpr : parseFunExprBody;
 import frontend.parseType : parseStructType, parseType, takeTypeArgsEnd, tryParseTypeArgs;
-
-import parseDiag : ParseDiag;
-
+import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, ArrWithSizeBuilder, finishArr;

@@ -2,7 +2,6 @@ module frontend.checkCall;
 
 @safe @nogc pure nothrow:
 
-import diag : Diag;
 import frontend.ast :
 	CallAst,
 	ExprAst,
@@ -36,7 +35,8 @@ import frontend.inferringType :
 	typeArgsFromAsts;
 import frontend.instantiate : instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeParamsAndArgs;
 import frontend.programState : ProgramState;
-import model :
+import model.diag : Diag;
+import model.model :
 	accessedFieldType,
 	arity,
 	body_,

@@ -2,7 +2,22 @@ module lower.generateCompareFun;
 
 @safe @nogc pure nothrow:
 
-import lowModel :
+import lower.lower : AllLowTypes, CompareFuns, getCompareFun;
+import lower.lowExprHelpers :
+	boolType,
+	decrNat64,
+	genBinary,
+	genCall,
+	genCreateRecord,
+	genCreateUnion,
+	genDeref,
+	genIf,
+	genNat64Eq0,
+	incrPointer,
+	localRef,
+	paramRef,
+	recordFieldAccess;
+import model.lowModel :
 	asNonFunPtrType,
 	asRecordType,
 	LowExpr,
@@ -25,21 +40,6 @@ import lowModel :
 	matchLowType,
 	name,
 	PrimitiveType;
-import lower.lower : AllLowTypes, CompareFuns, getCompareFun;
-import lower.lowExprHelpers :
-	boolType,
-	decrNat64,
-	genBinary,
-	genCall,
-	genCreateRecord,
-	genCreateUnion,
-	genDeref,
-	genIf,
-	genNat64Eq0,
-	incrPointer,
-	localRef,
-	paramRef,
-	recordFieldAccess;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;

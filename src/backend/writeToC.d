@@ -2,7 +2,7 @@ module backend.writeToC;
 
 @safe @nogc pure nothrow:
 
-import concreteModel :
+import model.concreteModel :
 	asExtern,
 	body_,
 	ConcreteFun,
@@ -18,8 +18,8 @@ import concreteModel :
 	matchConcreteParamSource,
 	matchConcreteLocalSource,
 	matchConcreteStructSource;
-import constant : asIntegral, Constant, matchConstant;
-import lowModel :
+import model.constant : asIntegral, Constant, matchConstant;
+import model.lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,
 	asNonFunPtrType,
@@ -57,7 +57,7 @@ import lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
 	regularParams;
-import model : FunInst, Local, name, Param;
+import model.model : FunInst, Local, name, Param;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, first, range, setAt, size, sizeEq;

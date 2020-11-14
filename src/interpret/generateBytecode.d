@@ -2,7 +2,6 @@ module interpret.generateBytecode;
 
 @safe @nogc pure nothrow:
 
-import constant : Constant, matchConstant;
 import interpret.bytecode :
 	ByteCode,
 	ByteCodeIndex,
@@ -55,7 +54,8 @@ import interpret.bytecodeWriter :
 import interpret.debugging : writeFunName, writeType;
 import interpret.generateText : generateText, getTextInfoForArray, getTextPointer, TextAndInfo, TextArrInfo;
 import interpret.typeLayout : layOutTypes, nStackEntriesForType, sizeOfType, TypeLayout, walkRecordFields;
-import lowModel :
+import model.constant : Constant, matchConstant;
+import model.lowModel :
 	asLocalRef,
 	asNonFunPtrType,
 	asParamRef,
@@ -84,7 +84,7 @@ import lowModel :
 	matchLowFunBody,
 	matchLowType,
 	PrimitiveType;
-import model : FunDecl, Module, name, Program, range;
+import model.model : FunDecl, Module, name, Program, range;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, range, size, sizeNat;

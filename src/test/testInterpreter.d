@@ -2,8 +2,6 @@ module test.testInterpreter;
 
 @safe @nogc nothrow: // not pure
 
-import diag : FilesInfo;
-import model : AbsolutePathsGetter;
 import interpret.bytecode : ByteCode, ByteCodeIndex, ByteCodeSource, FileToFuns, FnOp, FunNameAndPos;
 import interpret.fakeExtern : FakeExtern, newFakeExtern;
 import interpret.runBytecode :
@@ -42,7 +40,9 @@ import interpret.bytecodeWriter :
 	writeSwitchDelay,
 	writeWrite;
 import lower.lowExprHelpers : nat64Type;
-import lowModel :
+import model.diag : FilesInfo;
+import model.model : AbsolutePathsGetter;
+import model.lowModel :
 	ArrTypeAndConstantsLow,
 	AllConstantsLow,
 	LowExternPtrType,
