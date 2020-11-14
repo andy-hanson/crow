@@ -25,7 +25,6 @@ import frontend.instantiate : instantiateNonTemplateStruct;
 import frontend.lang : nozeExtension;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
-import frontend.readOnlyStorage : absolutePathsGetter, choose, ReadOnlyStorages, tryReadFile;
 import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool;
 import util.collection.arr : Arr, at, empty, emptyArr, range;
@@ -62,18 +61,18 @@ import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
 import util.types : safeSizeTToU16;
 import util.util : unreachable, verify;
 
-immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, SymAlloc)(
+immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, SymAlloc, ReadOnlyStorage)(
 	ref ModelAlloc modelAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	ReadOnlyStorages storages,
+	ref immutable ReadOnlyStorage storage,
 	immutable Ptr!Path mainPath,
 ) {
 	StackAlloc!("asts", 4 * 1024 * 1024) astsAlloc;
 
 	immutable PathAndStorageKind main = PathAndStorageKind(mainPath, StorageKind.local);
-	immutable ParsedEverything parsed = parseEverything(modelAlloc, allSymbols, storages, main, astsAlloc);
+	immutable ParsedEverything parsed = parseEverything(modelAlloc, allSymbols, storage, main, astsAlloc);
 	immutable FilesInfo filesInfo =
-		immutable FilesInfo(parsed.filePaths, storages.absolutePathsGetter, parsed.lineAndColumnGetters);
+		immutable FilesInfo(parsed.filePaths, storage.absolutePathsGetter(), parsed.lineAndColumnGetters);
 	immutable Result!(Program, Diags) res = empty(parsed.diagnostics)
 		? checkEverything(modelAlloc, parsed.asts, filesInfo, parsed.commonModuleIndices)
 		: fail!(Program, Diags)(parsed.diagnostics);
@@ -92,16 +91,16 @@ struct FileAstAndDiagnostics {
 	immutable Diagnostics diagnostics;
 }
 
-immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, SymAlloc)(
+immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, SymAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	ref ReadOnlyStorages storages,
+	ref immutable ReadOnlyStorage storage,
 	immutable Ptr!Path path,
 ) {
 	StackAlloc!("single file", 1024 * 1024) fileAlloc;
 	// In this case model alloc and AST alloc are the same
 	immutable Opt!NulTerminatedStr opFileContent =
-		getFile(fileAlloc, PathAndStorageKind(path, StorageKind.local), storages);
+		getFile(fileAlloc, PathAndStorageKind(path, StorageKind.local), storage);
 	immutable PathAndStorageKind pathAndStorageKind = immutable PathAndStorageKind(path, StorageKind.local);
 	immutable FileAstAndArrDiagnosticAndLineAndColumnGetter res = parseSingle!(Alloc, Alloc, SymAlloc)(
 		alloc,
@@ -118,7 +117,7 @@ immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, SymAlloc)(
 		res.ast,
 		immutable Diagnostics(
 			parseDiagnostics(alloc, immutable FileIndex(0), res.diagnostics),
-			immutable FilesInfo(filePaths, storages.absolutePathsGetter, lc)));
+			immutable FilesInfo(filePaths, storage.absolutePathsGetter(), lc)));
 }
 
 private:
@@ -180,11 +179,11 @@ struct CommonModuleIndices {
 // Starts at 'main' and recursively parses all imports too.
 // Result will be in import order -- asts at lower indices are imported by asts at higher indices.
 // So, don't have to worry about circularity when checking.
-immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, SymAlloc)(
+immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, SymAlloc, ReadOnlyStorage)(
 	ref ModelAlloc modelAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	ref ReadOnlyStorages storages,
-	immutable PathAndStorageKind mainPath,
+	ref immutable ReadOnlyStorage storage,
+	ref immutable PathAndStorageKind mainPath,
 	ref AstAlloc astAlloc,
 ) {
 	LineAndColumnGettersBuilder lineAndColumnGetters;
@@ -211,7 +210,7 @@ immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, SymAlloc)(
 				modelAlloc,
 				astAlloc,
 				allSymbols,
-				storages,
+				storage,
 				lineAndColumnGetters,
 				res,
 				fileIndexToPath,
@@ -243,19 +242,20 @@ immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, SymAlloc)(
 		finishArr(modelAlloc, diagnostics));
 }
 
-immutable(Opt!NulTerminatedStr) getFile(Alloc)(
+//TODO:INLINE
+immutable(Opt!NulTerminatedStr) getFile(Alloc, ReadOnlyStorage)(
 	ref Alloc fileAlloc,
 	immutable PathAndStorageKind pk,
-	ref ReadOnlyStorages storages,
+	ref immutable ReadOnlyStorage storage,
 ) {
-	return storages.choose(pk.storageKind).tryReadFile(fileAlloc, pk.path, nozeExtension);
+	return storage.tryReadFile(fileAlloc, pk, nozeExtension);
 }
 
-immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
+immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc, ReadOnlyStorage)(
 	ref ModelAlloc modelAlloc,
 	ref AstAlloc astAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	ref ReadOnlyStorages storages,
+	ref immutable ReadOnlyStorage storage,
 	ref LineAndColumnGettersBuilder lineAndColumnGetters,
 	ref ArrBuilder!AstAndResolvedImports res,
 	ref ArrBuilder!PathAndStorageKind fileIndexToPath,
@@ -287,7 +287,7 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 		return index;
 	}
 
-	immutable Opt!NulTerminatedStr opFileContent = getFile(astAlloc, path, storages);
+	immutable Opt!NulTerminatedStr opFileContent = getFile(astAlloc, path, storage);
 	immutable FileAstAndArrDiagnosticAndLineAndColumnGetter parseResult =
 		parseSingle(modelAlloc, astAlloc, allSymbols, importedFrom, opFileContent);
 	if (!empty(parseResult.diagnostics))
@@ -326,7 +326,7 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc)(
 									modelAlloc,
 									astAlloc,
 									allSymbols,
-									storages,
+									storage,
 									lineAndColumnGetters,
 									res,
 									fileIndexToPath,

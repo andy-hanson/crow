@@ -1,25 +1,27 @@
 module cli;
 
-import compiler : build, buildAndRun, print, PrintKind, ProgramDirAndMain;
+import compiler : build, buildAndRun, print, PrintKind;
 import frontend.lang : nozeExtension;
 import test.test : test;
 import util.alloc.mallocator : Mallocator;
 import util.alloc.stackAlloc : SingleHeapAlloc, StackAlloc;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, first, only, size;
-import util.collection.arrUtil : slice, tail;
-import util.collection.str : CStr, endsWith, Str, strEqLiteral;
-import util.io : getCwd, parseCommandLineArgs, CommandLineArgs;
+import util.collection.arrUtil : cat, slice, tail;
+import util.collection.str : CStr, endsWith, Str, strLiteral, strEqLiteral;
+import util.io.io : getCwd, parseCommandLineArgs, CommandLineArgs;
+import util.io.realReadOnlyStorage : RealReadOnlyStorage;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
 import util.path :
 	AbsolutePath,
 	baseName,
 	parentStr,
 	parseAbsoluteOrRelPath,
+	Path,
 	pathBaseName,
 	pathParent,
 	rootPath;
-import util.ptr : ptrTrustMe_mut;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.print : print;
 import util.sexprPrint : PrintFormat;
 import util.sym : AllSymbols, Sym;
@@ -45,12 +47,16 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 	StackAlloc!("command", 1024) alloc;
 	immutable Str nozeDir = getNozeDirectory(args.pathToThisExecutable);
 	immutable Command command = parseCommand(alloc, allSymbols, getCwd(alloc), args.args);
+	immutable Str include = cat(alloc, nozeDir, strLiteral("/include"));
+
 	return matchCommand!int(
 		command,
-		(ref immutable Command.Build b) =>
-			build(allSymbols, nozeDir, b.programDirAndMain, args.environ),
-		(ref immutable Command.Help h) =>
-			help(h.isDueToCommandParseError),
+		(ref immutable Command.Build it) {
+			immutable RealReadOnlyStorage storage = RealReadOnlyStorage(include, it.programDirAndMain.programDir);
+			return build(allSymbols, storage, it.programDirAndMain.mainPath, args.environ);
+		},
+		(ref immutable Command.Help it) =>
+			help(it.isDueToCommandParseError),
 		(ref immutable Command.HelpBuild) {
 			helpBuild();
 			return 0;
@@ -59,10 +65,20 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 			helpRun();
 			return 0;
 		},
-		(ref immutable Command.Print a) =>
-			print(allSymbols, a.kind, a.format, nozeDir, a.programDirAndMain),
-		(ref immutable Command.Run r) =>
-			buildAndRun(r.interpret, allSymbols, nozeDir, r.programDirAndMain, r.programArgs, args.environ),
+		(ref immutable Command.Print it) {
+			immutable RealReadOnlyStorage storage = RealReadOnlyStorage(include, it.programDirAndMain.programDir);
+			return print(allSymbols, storage, it.kind, it.format, it.programDirAndMain.mainPath);
+		},
+		(ref immutable Command.Run it) {
+			immutable RealReadOnlyStorage storage = RealReadOnlyStorage(include, it.programDirAndMain.programDir);
+			return buildAndRun(
+				it.interpret,
+				allSymbols,
+				storage,
+				it.programDirAndMain.mainPath,
+				it.programArgs,
+				args.environ);
+		},
 		(ref immutable Command.Test it) =>
 			test(it.name),
 		(ref immutable Command.Version) {
@@ -197,6 +213,11 @@ struct Command {
 		immutable Test test;
 		immutable Version version_;
 	}
+}
+
+struct ProgramDirAndMain {
+	immutable Str programDir;
+	immutable Ptr!Path mainPath;
 }
 
 immutable(ProgramDirAndMain) parseProgramDirAndMain(Alloc, SymAlloc)(

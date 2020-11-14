@@ -47,7 +47,7 @@ private immutable(Str) getBasePath(ref immutable AbsolutePathsGetter a, immutabl
 immutable(AbsolutePath) getAbsolutePath(Alloc)(
 	ref Alloc alloc,
 	ref immutable AbsolutePathsGetter a,
-	immutable PathAndStorageKind p,
+	ref immutable PathAndStorageKind p,
 	immutable Str extension,
 ) {
 	return AbsolutePath(a.getBasePath(p.storageKind), p.path, extension);

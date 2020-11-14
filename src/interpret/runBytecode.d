@@ -58,6 +58,7 @@ import util.collection.globalAllocatedStack :
 import util.collection.str : CStr, freeCStr, Str, strToCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : has;
+import util.path : AbsolutePath, pathToCStr;
 import util.print : print;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
 import util.sexpr : writeSexprNoNewline;
@@ -71,8 +72,8 @@ import util.writer : finishWriterToCStr, Writer, writeChar, writePtrRange, write
 	ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
 	ref immutable FilesInfo filesInfo,
-	immutable Str executablePath,
-	immutable Arr!Str args,
+	ref immutable AbsolutePath executablePath,
+	ref immutable Arr!Str args,
 ) {
 	Interpreter!Extern interpreter = Interpreter!Extern(
 		ptrTrustMe_mut(extern_),
@@ -81,7 +82,7 @@ import util.writer : finishWriterToCStr, Writer, writeChar, writePtrRange, write
 		ptrTrustMe(filesInfo));
 
 	ExternAlloc!Extern externAlloc = ExternAlloc!Extern(ptrTrustMe_mut(extern_));
-	immutable CStr firstArg = strToCStr(externAlloc, executablePath);
+	immutable CStr firstArg = pathToCStr(externAlloc, executablePath);
 	immutable Arr!CStr allArgs = mapWithFirst!(CStr, Str)(externAlloc, firstArg, args, (ref immutable Str arg) =>
 		strToCStr(externAlloc, arg));
 

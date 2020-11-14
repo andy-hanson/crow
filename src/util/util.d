@@ -9,13 +9,12 @@ void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc noth
 
 pure:
 
-import core.stdc.stdio : printf;
 import util.bools : False;
 import util.types : incr, Nat8, zero;
-//import util.print : print;
 
 T todo(T)(immutable char* message) {
 	debug {
+		//can't printf in wasm builds
 		//print("TODO: %s\n", message);
 	}
 	assert(0);
@@ -54,14 +53,14 @@ void verify(immutable bool condition) {
 }
 
 void verifyEq(T)(immutable T a, immutable T b) {
-	if (a != b)
-		debug {
-			static if (T.sizeof == 8) {
-				printf("%lu != %lu\n", a, b);
-			} else {
-				printf("%d != %d\n", a, b);
-			}
-		}
+	//if (a != b)
+	//	debug {
+	//		static if (T.sizeof == 8) {
+	//			printf("%lu != %lu\n", a, b);
+	//		} else {
+	//			printf("%d != %d\n", a, b);
+	//		}
+	//	}
 	verify(a == b);
 }
 

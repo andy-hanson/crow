@@ -4,7 +4,7 @@ module test.testLineAndColumnGetter;
 
 import util.alloc.stackAlloc : StackAlloc;
 import util.collection.str : NulTerminatedStr, strLiteral;
-import util.io : tryReadFile;
+import util.io.io : tryReadFile;
 import util.opt : force, none, Opt;
 import util.lineAndColumnGetter : lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText;
 import util.path : AbsolutePath, Path;

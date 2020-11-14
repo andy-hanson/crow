@@ -38,31 +38,13 @@ bin/noze.wasm: src/**/*.d
 		-mtriple=wasm32-unknown-unknown-wasm \
 		-betterC \
 		--enable-asserts=false \
-		src/diag.d \
-		src/frontend/ast.d \
-		src/frontend/getTokens.d \
-		src/frontend/parse.d \
-		src/frontend/parseExpr.d \
-		src/frontend/parseType.d \
-		src/frontend/lang.d \
-		src/frontend/lexer.d \
-		src/frontend/showDiag.d \
+		src/frontend/*.d \
 		src/model/*.d \
-		src/parseDiag.d \
-		src/util/alloc/alloc.d \
 		src/util/alloc/globalAlloc.d \
 		src/util/bitUtils.d \
 		src/util/bools.d \
-		src/util/collection/arr.d \
-		src/util/collection/arrBuilder.d \
-		src/util/collection/arrUtil.d \
-		src/util/collection/dict.d \
-		src/util/collection/multiDict.d \
-		src/util/collection/mutArr.d \
-		src/util/collection/mutSet.d \
-		src/util/collection/mutSlice.d \
-		src/util/collection/sortUtil.d \
-		src/util/collection/str.d \
+		src/util/cell.d \
+		src/util/collection/*.d \
 		src/util/comparison.d \
 		src/util/diff.d \
 		src/util/ptr.d \

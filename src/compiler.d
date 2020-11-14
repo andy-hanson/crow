@@ -8,7 +8,6 @@ import frontend.ast : FileAst, sexprOfAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
 import frontend.getTokens : Token, tokensOfAst, sexprOfTokens;
 import frontend.lang : nozeExtension;
-import frontend.readOnlyStorage : ReadOnlyStorage, ReadOnlyStorages;
 import frontend.showDiag : cStrOfDiagnostics;
 import interpret.bytecode : ByteCode;
 import interpret.realExtern : newRealExtern, RealExtern;
@@ -18,7 +17,7 @@ import lower.lower : lower;
 import model.concreteModel : ConcreteProgram;
 import model.diag : Diagnostics, FilesInfo;
 import model.lowModel : LowProgram;
-import model.model : Module, Program;
+import model.model : AbsolutePathsGetter, getAbsolutePath, Module, Program;
 import model.sexprOfConcreteModel : tataOfConcreteProgram;
 import model.sexprOfLowModel : tataOfLowProgram;
 import model.sexprOfModel : sexprOfModule;
@@ -28,13 +27,15 @@ import util.bools : Bool;
 import util.collection.arr : Arr, empty;
 import util.collection.arrUtil : arrLiteral, cat;
 import util.collection.str : emptyStr, Str, strLiteral;
-import util.io : Environ, replaceCurrentProcess, spawnAndWaitSync, writeFileSync;
+import util.io.io : Environ, replaceCurrentProcess, spawnAndWaitSync, writeFileSync;
 import util.opt : force, has, none, Opt, some;
 import util.path :
 	AbsolutePath,
 	Path,
+	PathAndStorageKind,
 	pathToStr,
 	rootPath,
+	StorageKind,
 	withExtension;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.print : printErr;
@@ -45,11 +46,6 @@ import util.util : todo, unreachable;
 
 // These return program exit codes
 
-struct ProgramDirAndMain {
-	immutable Str programDir;
-	immutable Ptr!Path mainPath;
-}
-
 enum PrintKind {
 	tokens,
 	ast,
@@ -58,43 +54,43 @@ enum PrintKind {
 	lowModel,
 }
 
-immutable(int) print(SymAlloc)(
+immutable(int) print(SymAlloc, ReadOnlyStorage)(
 	ref AllSymbols!SymAlloc allSymbols,
+	ref immutable ReadOnlyStorage storage,
 	immutable PrintKind kind,
 	immutable PrintFormat format,
-	ref immutable Str nozeDir,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	immutable Ptr!Path mainPath,
 ) {
 	final switch (kind) {
 		case PrintKind.tokens:
-			return printTokens(allSymbols, programDirAndMain, format);
+			return printTokens(allSymbols, storage, mainPath, format);
 		case PrintKind.ast:
-			return printAst(allSymbols, programDirAndMain, format);
+			return printAst(allSymbols, storage, mainPath, format);
 		case PrintKind.model:
-			return printModel(allSymbols, nozeDir, programDirAndMain, format);
+			return printModel(allSymbols, storage, mainPath, format);
 		case PrintKind.concreteModel:
-			return printConcreteModel(allSymbols, nozeDir, programDirAndMain, format);
+			return printConcreteModel(allSymbols, storage, mainPath, format);
 		case PrintKind.lowModel:
-			return printLowModel(allSymbols, nozeDir, programDirAndMain, format);
+			return printLowModel(allSymbols, storage, mainPath, format);
 	}
 }
 
-immutable(int) build(SymAlloc)(
+immutable(int) build(SymAlloc, ReadOnlyStorage)(
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable Str nozeDir,
-	ref immutable ProgramDirAndMain programDirAndMain,
-	immutable Environ environ,
+	ref immutable ReadOnlyStorage storage,
+	immutable Ptr!Path mainPath,
+	ref immutable Environ environ,
 ) {
 	ExePathAlloc exePathAlloc;
-	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, nozeDir, programDirAndMain, environ);
+	immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, storage, mainPath, environ);
 	return exePath.has ? 0 : 1;
 }
 
-immutable(int) buildAndRun(SymAlloc)(
+immutable(int) buildAndRun(SymAlloc, ReadOnlyStorage)(
 	immutable Bool interpret,
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable Str nozeDir,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ReadOnlyStorage storage,
+	immutable Ptr!Path mainPath,
 	ref immutable Arr!Str programArgs,
 	ref immutable Environ environ,
 ) {
@@ -102,19 +98,15 @@ immutable(int) buildAndRun(SymAlloc)(
 		Mallocator mallocator;
 		LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
 		immutable Result!(ProgramsAndFilesInfo, Diagnostics) lowProgramResult =
-			buildToLowProgram(lowAlloc, allSymbols, nozeDir, programDirAndMain);
+			buildToLowProgram(lowAlloc, allSymbols, storage, mainPath);
 		return matchResultImpure!(int, ProgramsAndFilesInfo, Diagnostics)(
 			lowProgramResult,
 			(ref immutable ProgramsAndFilesInfo it) {
 				immutable ByteCode byteCode = generateBytecode(lowAlloc, it.program, it.lowProgram);
 				RealExtern extern_ = newRealExtern();
-				return runBytecode(
-					extern_,
-					it.lowProgram,
-					byteCode,
-					it.filesInfo,
-					getExecutablePath(mallocator, programDirAndMain),
-					programArgs);
+				immutable AbsolutePath mainAbsolutePath =
+					getAbsolutePathFromStorage(mallocator, storage, mainPath, nozeExtension);
+				return runBytecode(extern_, it.lowProgram, byteCode, it.filesInfo, mainAbsolutePath, programArgs);
 			},
 			(ref immutable Diagnostics diagnostics) {
 				printDiagnostics(diagnostics);
@@ -122,7 +114,7 @@ immutable(int) buildAndRun(SymAlloc)(
 			});
 	} else {
 		ExePathAlloc exePathAlloc;
-		immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, nozeDir, programDirAndMain, environ);
+		immutable Opt!AbsolutePath exePath = buildWorker(exePathAlloc, allSymbols, storage, mainPath, environ);
 		if (exePath.has) {
 			replaceCurrentProcess(exePath.force, programArgs, environ);
 			return unreachable!int;
@@ -133,56 +125,52 @@ immutable(int) buildAndRun(SymAlloc)(
 
 private:
 
-immutable(Str) getExecutablePath(Alloc)(ref Alloc alloc, ref immutable ProgramDirAndMain programDirAndMain) {
-	return pathToStr(alloc, programDirAndMain.programDir, programDirAndMain.mainPath, nozeExtension);
-}
-
-immutable(int) printTokens(SymAlloc)(
+immutable(int) printTokens(SymAlloc, ReadOnlyStorage)(
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ReadOnlyStorage storage,
+	immutable Ptr!Path mainPath,
 	immutable PrintFormat format,
 ) {
 	StackAlloc!("printTokens", 1024 * 1024) alloc;
-	immutable FileAstAndDiagnostics astResult = getAst(alloc, allSymbols, programDirAndMain);
+	immutable FileAstAndDiagnostics astResult = getAst(alloc, allSymbols, storage, mainPath);
 	printDiagnostics(astResult.diagnostics);
 	immutable Arr!Token tokens = tokensOfAst(alloc, astResult.ast);
 	printOutSexpr(sexprOfTokens(alloc, tokens), format);
 	return empty(astResult.diagnostics.diagnostics) ? 0 : 1;
 }
 
-immutable(int) printAst(SymAlloc)(
+immutable(int) printAst(SymAlloc, ReadOnlyStorage)(
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ReadOnlyStorage storage,
+	immutable Ptr!Path mainPath,
 	immutable PrintFormat format,
 ) {
 	StackAlloc!("printAst", 1024 * 1024) alloc;
-	immutable FileAstAndDiagnostics astResult = getAst(alloc, allSymbols, programDirAndMain);
+	immutable FileAstAndDiagnostics astResult = getAst(alloc, allSymbols, storage, mainPath);
 	printDiagnostics(astResult.diagnostics);
 	printOutAst(astResult.ast, format);
 	return empty(astResult.diagnostics.diagnostics) ? 0 : 1;
 }
 
-immutable(FileAstAndDiagnostics) getAst(Alloc, SymAlloc)(
+immutable(FileAstAndDiagnostics) getAst(Alloc, SymAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ReadOnlyStorage storage,
+	immutable Ptr!Path mainPath,
 ) {
-	ReadOnlyStorages storages = ReadOnlyStorages(
-		ReadOnlyStorage(programDirAndMain.programDir),
-		ReadOnlyStorage(programDirAndMain.programDir));
-	return parseSingleAst(alloc, allSymbols, storages, programDirAndMain.mainPath);
+	return parseSingleAst(alloc, allSymbols, storage, mainPath);
 }
 
-immutable(int) printModel(SymAlloc)(
+immutable(int) printModel(SymAlloc, ReadOnlyStorage)(
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable Str nozeDir,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ReadOnlyStorage storage,
+	immutable Ptr!Path mainPath,
 	immutable PrintFormat format,
 ) {
 	Mallocator mallocator;
 	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
 	immutable Result!(Program, Diagnostics) programResult =
-		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
+		frontendCompileProgram(modelAlloc, allSymbols, storage, mainPath);
 	return matchResultImpure!(int, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
@@ -195,16 +183,16 @@ immutable(int) printModel(SymAlloc)(
 		});
 }
 
-immutable(int) printConcreteModel(SymAlloc)(
+immutable(int) printConcreteModel(SymAlloc, ReadOnlyStorage)(
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable Str nozeDir,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ReadOnlyStorage storage,
+	immutable Ptr!Path mainPath,
 	immutable PrintFormat format,
 ) {
 	Mallocator mallocator;
 	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
 	immutable Result!(Program, Diagnostics) programResult =
-		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
+		frontendCompileProgram(modelAlloc, allSymbols, storage, mainPath);
 	return matchResultImpure!(int, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
@@ -220,16 +208,16 @@ immutable(int) printConcreteModel(SymAlloc)(
 
 }
 
-immutable(int) printLowModel(SymAlloc)(
+immutable(int) printLowModel(SymAlloc, ReadOnlyStorage)(
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable Str nozeDir,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ReadOnlyStorage storage,
+	immutable Ptr!Path mainPath,
 	immutable PrintFormat format,
 ) {
 	Mallocator mallocator;
 	ModelAlloc modelAlloc = ModelAlloc(ptrTrustMe_mut(mallocator));
 	immutable Result!(Program, Diagnostics) programResult =
-		frontendCompileProgram(modelAlloc, allSymbols, nozeDir, programDirAndMain);
+		frontendCompileProgram(modelAlloc, allSymbols, storage, mainPath);
 	return matchResultImpure!(int, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
@@ -277,22 +265,21 @@ alias WriteAlloc = SingleHeapAlloc!(Mallocator, "write-to-c", 128 * 1024 * 1024)
 
 // mainPath is relative to programDir
 // Returns exePath
-immutable(Opt!AbsolutePath) buildWorker(Alloc, SymAlloc)(
+immutable(Opt!AbsolutePath) buildWorker(Alloc, SymAlloc, ReadOnlyStorage)(
 	ref Alloc outputAlloc, // Just for exePath
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable Str nozeDir,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ReadOnlyStorage storage,
+	immutable Ptr!Path mainPath,
 	ref immutable Environ environ
 ) {
 	Mallocator mallocator;
 	LowAlloc lowAlloc = LowAlloc(ptrTrustMe_mut(mallocator));
 	immutable Result!(ProgramsAndFilesInfo, Diagnostics) programResult =
-		buildToLowProgram(lowAlloc, allSymbols, nozeDir, programDirAndMain);
+		buildToLowProgram(lowAlloc, allSymbols, storage, mainPath);
 	return matchResultImpure!(Opt!AbsolutePath)(
 		programResult,
 		(ref immutable ProgramsAndFilesInfo lowProgram) {
-			immutable AbsolutePath fullMainPath =
-				immutable AbsolutePath(programDirAndMain.programDir, programDirAndMain.mainPath, emptyStr);
+			immutable AbsolutePath fullMainPath = getAbsolutePathFromStorage(outputAlloc, storage, mainPath, emptyStr);
 			immutable AbsolutePath fullMainCPath = withExtension(fullMainPath, strLiteral(".c"));
 			emitProgram(lowProgram.lowProgram, fullMainCPath);
 			compileC(fullMainCPath, fullMainPath, environ);
@@ -311,14 +298,14 @@ struct ProgramsAndFilesInfo {
 	immutable FilesInfo filesInfo;
 }
 
-immutable(Result!(ProgramsAndFilesInfo, Diagnostics)) buildToLowProgram(Alloc, SymAlloc)(
+immutable(Result!(ProgramsAndFilesInfo, Diagnostics)) buildToLowProgram(Alloc, SymAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable Str nozeDir,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ReadOnlyStorage storage,
+	immutable Ptr!Path mainPath,
 ) {
 	immutable Result!(Program, Diagnostics) programResult =
-		frontendCompileProgram(alloc, allSymbols, nozeDir, programDirAndMain);
+		frontendCompileProgram(alloc, allSymbols, storage, mainPath);
 	return mapSuccess!(ProgramsAndFilesInfo, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
@@ -331,16 +318,14 @@ immutable(Result!(ProgramsAndFilesInfo, Diagnostics)) buildToLowProgram(Alloc, S
 		});
 }
 
-immutable(Result!(Program, Diagnostics)) frontendCompileProgram(ModelAlloc, SymAlloc)(
+//TODO:INLINE
+immutable(Result!(Program, Diagnostics)) frontendCompileProgram(ModelAlloc, SymAlloc, ReadOnlyStorage)(
 	ref ModelAlloc modelAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable Str nozeDir,
-	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable ReadOnlyStorage storage,
+	immutable Ptr!Path mainPath,
 ) {
-	immutable Str include = cat(modelAlloc, nozeDir, strLiteral("/include")); // NOTE: could be a temp alloc..
-	immutable ReadOnlyStorages storages =
-		ReadOnlyStorages(ReadOnlyStorage(include), ReadOnlyStorage(programDirAndMain.programDir));
-	return frontendCompile(modelAlloc, allSymbols, storages, programDirAndMain.mainPath);
+	return frontendCompile(modelAlloc, allSymbols, storage, mainPath);
 }
 
 void compileC(immutable AbsolutePath cPath, immutable AbsolutePath exePath, immutable Environ environ) {
@@ -382,4 +367,15 @@ void emitProgram(ref immutable LowProgram program, immutable AbsolutePath cPath)
 void printDiagnostics(ref immutable Diagnostics diagnostics) {
 	StackAlloc!("printDiagnostics", 1024 * 1024) tempAlloc;
 	printErr(cStrOfDiagnostics(tempAlloc, diagnostics));
+}
+
+immutable(AbsolutePath) getAbsolutePathFromStorage(Alloc, Storage)(
+	ref Alloc alloc,
+	ref immutable Storage storage,
+	immutable Ptr!Path path,
+	immutable Str extension,
+) {
+	immutable AbsolutePathsGetter abs = storage.absolutePathsGetter();
+	immutable PathAndStorageKind pk = immutable PathAndStorageKind(path, StorageKind.local);
+	return getAbsolutePath(alloc, abs, pk, extension);
 }
