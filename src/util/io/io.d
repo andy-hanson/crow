@@ -34,22 +34,22 @@ import util.path : AbsolutePath, pathToCStr;
 import util.types : safeSizeTFromSSizeT, ssize_t;
 import util.util : todo, verify;
 
-@trusted immutable(Opt!NulTerminatedStr) tryReadFile(Alloc)(
+@trusted immutable(T) tryReadFile(T, Alloc)(
 	ref Alloc alloc,
 	immutable AbsolutePath path,
+	scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 ) {
-	alias Ret = immutable Opt!NulTerminatedStr;
-
 	PathAlloc temp;
 	immutable CStr pathCStr = pathToCStr(temp, path);
 
 	immutable int fd = open(pathCStr, O_RDONLY);
 	if (fd == -1) {
-		if (errno == ENOENT)
-			return none!NulTerminatedStr;
-		else {
+		if (errno == ENOENT) {
+			immutable Opt!NulTerminatedStr n = none!NulTerminatedStr;
+			return cb(n);
+		} else {
 			fprintf(stderr, "Failed to open file %s\n", pathCStr);
-			return todo!Ret("fail");
+			return todo!T("fail");
 		}
 	}
 
@@ -57,34 +57,39 @@ import util.util : todo, verify;
 
 	immutable off_t fileSize = lseek(fd, 0, SEEK_END);
 	if (fileSize == -1)
-		return todo!Ret("lseek fialed");
+		return todo!T("lseek fialed");
 
 	if (fileSize > 99_999)
-		return todo!Ret("size suspiciously large");
+		return todo!T("size suspiciously large");
 
-	if (fileSize == 0)
-		return some!NulTerminatedStr(emptyNulTerminatedStr);
+	if (fileSize == 0) {
+		immutable Opt!NulTerminatedStr s = some(emptyNulTerminatedStr);
+		return cb(s);
+	}
 
 	// Go back to the beginning so we can read
 	immutable off_t off = lseek(fd, 0, SEEK_SET);
 	if (off == -1)
-		return todo!Ret("lseek failed");
+		return todo!T("lseek failed");
 
 	verify(off == 0);
 
-	immutable size_t resSize = fileSize + 1;
-	char* res = cast(char*) alloc.allocate(char.sizeof * resSize); // + 1 for the '\0'
-	immutable ssize_t nBytesRead = read(fd, res, fileSize);
+	immutable size_t contentSize = fileSize + 1;
+	char* content = cast(char*) alloc.allocate(char.sizeof * contentSize); // + 1 for the '\0'
+	scope (exit) alloc.free(cast(ubyte*) content, char.sizeof * contentSize);
+	immutable ssize_t nBytesRead = read(fd, content, fileSize);
 
 	if (nBytesRead == -1)
-		return todo!Ret("read failed");
+		return todo!T("read failed");
 
 	if (nBytesRead != fileSize)
-		return todo!Ret("nBytesRead not right?");
+		return todo!T("nBytesRead not right?");
 
-	res[fileSize] = '\0';
+	content[fileSize] = '\0';
 
-	return some(immutable NulTerminatedStr(immutable Str(cast(immutable) res, resSize)));
+	immutable Opt!NulTerminatedStr s =
+		some(immutable NulTerminatedStr(immutable Str(cast(immutable) content, contentSize)));
+	return cb(s);
 }
 
 @trusted void writeFileSync(immutable AbsolutePath path, immutable Str content) {

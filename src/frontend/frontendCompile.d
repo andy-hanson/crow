@@ -25,7 +25,6 @@ import frontend.instantiate : instantiateNonTemplateStruct;
 import frontend.lang : nozeExtension;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
-import util.alloc.stackAlloc : StackAlloc;
 import util.bools : Bool;
 import util.collection.arr : Arr, at, empty, emptyArr, range;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, arrBuilderSize, finishArr;
@@ -61,14 +60,13 @@ import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
 import util.types : safeSizeTToU16;
 import util.util : unreachable, verify;
 
-immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, SymAlloc, ReadOnlyStorage)(
+immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, AstsAlloc, SymAlloc, ReadOnlyStorage)(
 	ref ModelAlloc modelAlloc,
+	ref AstsAlloc astsAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable ReadOnlyStorage storage,
+	ref ReadOnlyStorage storage,
 	immutable Ptr!Path mainPath,
 ) {
-	StackAlloc!("asts", 4 * 1024 * 1024) astsAlloc;
-
 	immutable PathAndStorageKind main = PathAndStorageKind(mainPath, StorageKind.local);
 	immutable ParsedEverything parsed = parseEverything(modelAlloc, allSymbols, storage, main, astsAlloc);
 	immutable FilesInfo filesInfo =
@@ -94,30 +92,33 @@ struct FileAstAndDiagnostics {
 immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, SymAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable ReadOnlyStorage storage,
+	ref ReadOnlyStorage storage,
 	immutable Ptr!Path path,
 ) {
-	StackAlloc!("single file", 1024 * 1024) fileAlloc;
 	// In this case model alloc and AST alloc are the same
-	immutable Opt!NulTerminatedStr opFileContent =
-		getFile(fileAlloc, PathAndStorageKind(path, StorageKind.local), storage);
-	immutable PathAndStorageKind pathAndStorageKind = immutable PathAndStorageKind(path, StorageKind.local);
-	immutable FileAstAndArrDiagnosticAndLineAndColumnGetter res = parseSingle!(Alloc, Alloc, SymAlloc)(
-		alloc,
-		alloc,
-		allSymbols,
-		none!PathAndRange,
-		opFileContent);
-	immutable LineAndColumnGetters lc =
-		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
-			arrLiteral!LineAndColumnGetter(alloc, res.lineAndColumnGetter));
-	immutable FilePaths filePaths =
-		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(arrLiteral!PathAndStorageKind(alloc, pathAndStorageKind));
-	return immutable FileAstAndDiagnostics(
-		res.ast,
-		immutable Diagnostics(
-			parseDiagnostics(alloc, immutable FileIndex(0), res.diagnostics),
-			immutable FilesInfo(filePaths, storage.absolutePathsGetter(), lc)));
+	immutable PathAndStorageKind pk = immutable PathAndStorageKind(path, StorageKind.local);
+	return storage.withFile!(immutable FileAstAndDiagnostics)(
+		pk,
+		nozeExtension,
+		(ref immutable Opt!NulTerminatedStr opFileContent) {
+			immutable PathAndStorageKind pathAndStorageKind = immutable PathAndStorageKind(path, StorageKind.local);
+			immutable FileAstAndArrDiagnosticAndLineAndColumnGetter res = parseSingle!(Alloc, Alloc, SymAlloc)(
+				alloc,
+				alloc,
+				allSymbols,
+				none!PathAndRange,
+				opFileContent);
+			immutable LineAndColumnGetters lc =
+				fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
+					arrLiteral!LineAndColumnGetter(alloc, res.lineAndColumnGetter));
+			immutable FilePaths filePaths = fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
+				arrLiteral!PathAndStorageKind(alloc, pathAndStorageKind));
+			return immutable FileAstAndDiagnostics(
+				res.ast,
+				immutable Diagnostics(
+					parseDiagnostics(alloc, immutable FileIndex(0), res.diagnostics),
+					immutable FilesInfo(filePaths, storage.absolutePathsGetter(), lc)));
+		});
 }
 
 private:
@@ -182,7 +183,7 @@ struct CommonModuleIndices {
 immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, SymAlloc, ReadOnlyStorage)(
 	ref ModelAlloc modelAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable ReadOnlyStorage storage,
+	ref ReadOnlyStorage storage,
 	ref immutable PathAndStorageKind mainPath,
 	ref AstAlloc astAlloc,
 ) {
@@ -242,20 +243,11 @@ immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, SymAlloc, Read
 		finishArr(modelAlloc, diagnostics));
 }
 
-//TODO:INLINE
-immutable(Opt!NulTerminatedStr) getFile(Alloc, ReadOnlyStorage)(
-	ref Alloc fileAlloc,
-	immutable PathAndStorageKind pk,
-	ref immutable ReadOnlyStorage storage,
-) {
-	return storage.tryReadFile(fileAlloc, pk, nozeExtension);
-}
-
 immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc, ReadOnlyStorage)(
 	ref ModelAlloc modelAlloc,
 	ref AstAlloc astAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable ReadOnlyStorage storage,
+	ref ReadOnlyStorage storage,
 	ref LineAndColumnGettersBuilder lineAndColumnGetters,
 	ref ArrBuilder!AstAndResolvedImports res,
 	ref ArrBuilder!PathAndStorageKind fileIndexToPath,
@@ -287,67 +279,78 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc, ReadOnlyStorage)
 		return index;
 	}
 
-	immutable Opt!NulTerminatedStr opFileContent = getFile(astAlloc, path, storage);
-	immutable FileAstAndArrDiagnosticAndLineAndColumnGetter parseResult =
-		parseSingle(modelAlloc, astAlloc, allSymbols, importedFrom, opFileContent);
-	if (!empty(parseResult.diagnostics))
-		return addFileIndex(AstAndResolvedImports.empty, parseResult.diagnostics, parseResult.lineAndColumnGetter);
-	else {
-		immutable FileAst ast = parseResult.ast;
-		immutable ImportAndExportPaths importsAndExports =
-			resolveImportAndExportPaths!(ModelAlloc, AstAlloc)(modelAlloc, astAlloc, path, ast.imports, ast.exports);
+	return storage.withFile!(immutable FileIndex)(
+		path,
+		nozeExtension,
+		(ref immutable Opt!NulTerminatedStr opFileContent) {
+			immutable FileAstAndArrDiagnosticAndLineAndColumnGetter parseResult =
+				parseSingle(modelAlloc, astAlloc, allSymbols, importedFrom, opFileContent);
+			if (!empty(parseResult.diagnostics))
+				return addFileIndex(
+					AstAndResolvedImports.empty,
+					parseResult.diagnostics,
+					parseResult.lineAndColumnGetter);
+			else {
+				immutable FileAst ast = parseResult.ast;
+				immutable ImportAndExportPaths importsAndExports =
+					resolveImportAndExportPaths(modelAlloc, astAlloc, path, ast.imports, ast.exports);
 
-		immutable(Arr!FileIndexAndNames) resolveImportsOrExports(ref immutable Arr!ResolvedImport importsOrExports) {
-			return mapImpure!FileIndexAndNames(
-				modelAlloc,
-				importsOrExports,
-				(ref immutable ResolvedImport import_) {
-					immutable FileIndex fi = () {
-						if (has(import_.resolvedPath)) {
-							immutable PathAndStorageKind resolvedPath = force(import_.resolvedPath);
-							immutable Opt!ParseStatus parseStatus = getAt_mut(statuses, resolvedPath);
-							if (has(parseStatus))
-								return matchParseStatusImpure!(immutable FileIndex)(
-									force(parseStatus),
-									(ref immutable ParseStatus.Started) =>
-										addFileIndex(
-											AstAndResolvedImports.empty,
-											arrLiteral!ParseDiagnostic(
-												modelAlloc,
-												immutable ParseDiagnostic(
-													import_.importedFrom,
-													immutable ParseDiag(
-														immutable ParseDiag.CircularImport(path, resolvedPath)))),
-												parseResult.lineAndColumnGetter),
-									(ref immutable ParseStatus.Done it) =>
-										it.fileIndex);
-							else
-								return parseRecur!(ModelAlloc, AstAlloc, SymAlloc)(
-									modelAlloc,
-									astAlloc,
-									allSymbols,
-									storage,
-									lineAndColumnGetters,
-									res,
-									fileIndexToPath,
-									diags,
-									statuses,
-									some(immutable PathAndRange(path, import_.importedFrom)),
-									resolvedPath);
-						} else
-							// We should have already added a parse diagnostic when resolving the import
-							return FileIndex.none;
-					}();
-					return immutable FileIndexAndNames(fi, import_.importedFrom, import_.names);
-				});
-		}
-		immutable Arr!FileIndexAndNames resolvedImports = resolveImportsOrExports(importsAndExports.imports);
-		immutable Arr!FileIndexAndNames resolvedExports = resolveImportsOrExports(importsAndExports.exports);
-		return addFileIndex(
-			immutable AstAndResolvedImports(ast, path.storageKind, resolvedImports, resolvedExports),
-			importsAndExports.parseDiags,
-			parseResult.lineAndColumnGetter);
-	}
+				immutable(Arr!FileIndexAndNames) resolveImportsOrExports(
+					ref immutable Arr!ResolvedImport importsOrExports,
+				) {
+					return mapImpure!FileIndexAndNames(
+						modelAlloc,
+						importsOrExports,
+						(ref immutable ResolvedImport import_) {
+							immutable FileIndex fi = () {
+								if (has(import_.resolvedPath)) {
+									immutable PathAndStorageKind resolvedPath = force(import_.resolvedPath);
+									immutable Opt!ParseStatus parseStatus = getAt_mut(statuses, resolvedPath);
+									if (has(parseStatus))
+										return matchParseStatusImpure!(immutable FileIndex)(
+											force(parseStatus),
+											(ref immutable ParseStatus.Started) =>
+												addFileIndex(
+													AstAndResolvedImports.empty,
+													arrLiteral!ParseDiagnostic(
+														modelAlloc,
+														immutable ParseDiagnostic(
+															import_.importedFrom,
+															immutable ParseDiag(
+																immutable ParseDiag.CircularImport(
+																	path,
+																	resolvedPath)))),
+														parseResult.lineAndColumnGetter),
+											(ref immutable ParseStatus.Done it) =>
+												it.fileIndex);
+									else
+										return parseRecur!(ModelAlloc, AstAlloc, SymAlloc)(
+											modelAlloc,
+											astAlloc,
+											allSymbols,
+											storage,
+											lineAndColumnGetters,
+											res,
+											fileIndexToPath,
+											diags,
+											statuses,
+											some(immutable PathAndRange(path, import_.importedFrom)),
+											resolvedPath);
+								} else
+									// We should have already added a parse diagnostic when resolving the import
+									return FileIndex.none;
+							}();
+							return immutable FileIndexAndNames(fi, import_.importedFrom, import_.names);
+						});
+				}
+				immutable Arr!FileIndexAndNames resolvedImports = resolveImportsOrExports(importsAndExports.imports);
+				immutable Arr!FileIndexAndNames resolvedExports = resolveImportsOrExports(importsAndExports.exports);
+				return addFileIndex(
+					immutable AstAndResolvedImports(ast, path.storageKind, resolvedImports, resolvedExports),
+					importsAndExports.parseDiags,
+					parseResult.lineAndColumnGetter);
+			}
+		});
 }
 
 pure:

@@ -48,12 +48,14 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 	immutable Str nozeDir = getNozeDirectory(args.pathToThisExecutable);
 	immutable Command command = parseCommand(alloc, allSymbols, getCwd(alloc), args.args);
 	immutable Str include = cat(alloc, nozeDir, strLiteral("/include"));
+	Mallocator mallocator;
 
 	return matchCommand!int(
 		command,
 		(ref immutable Command.Build it) {
-			immutable RealReadOnlyStorage storage = RealReadOnlyStorage(include, it.programDirAndMain.programDir);
-			return build(allSymbols, storage, it.programDirAndMain.mainPath, args.environ);
+			RealReadOnlyStorage!Mallocator storage =
+				RealReadOnlyStorage!Mallocator(ptrTrustMe_mut(mallocator), include, it.programDirAndMain.programDir);
+			return build(mallocator, allSymbols, storage, it.programDirAndMain.mainPath, args.environ);
 		},
 		(ref immutable Command.Help it) =>
 			help(it.isDueToCommandParseError),
@@ -66,12 +68,15 @@ immutable(int) go(SymAlloc)(ref AllSymbols!SymAlloc allSymbols, ref immutable Co
 			return 0;
 		},
 		(ref immutable Command.Print it) {
-			immutable RealReadOnlyStorage storage = RealReadOnlyStorage(include, it.programDirAndMain.programDir);
-			return print(allSymbols, storage, it.kind, it.format, it.programDirAndMain.mainPath);
+			RealReadOnlyStorage!Mallocator storage =
+				RealReadOnlyStorage!Mallocator(ptrTrustMe_mut(mallocator), include, it.programDirAndMain.programDir);
+			return print(mallocator, allSymbols, storage, it.kind, it.format, it.programDirAndMain.mainPath);
 		},
 		(ref immutable Command.Run it) {
-			immutable RealReadOnlyStorage storage = RealReadOnlyStorage(include, it.programDirAndMain.programDir);
+			RealReadOnlyStorage!Mallocator storage =
+				RealReadOnlyStorage!Mallocator(ptrTrustMe_mut(mallocator), include, it.programDirAndMain.programDir);
 			return buildAndRun(
+				mallocator,
 				it.interpret,
 				allSymbols,
 				storage,

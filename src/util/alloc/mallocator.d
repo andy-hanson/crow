@@ -19,4 +19,7 @@ struct Mallocator {
 	@trusted void free(ubyte* ptr, immutable size_t) {
 		pureFree(cast(void*) ptr);
 	}
+
+	@trusted void freePartial(ubyte* ptr, immutable size_t) {
+	}
 }

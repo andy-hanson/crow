@@ -4,22 +4,23 @@ module util.io.realReadOnlyStorage;
 
 import model.model : AbsolutePathsGetter;
 import util.collection.str : NulTerminatedStr, Str;
-import util.io.io : ioTryReadFile = tryReadFile;
+import util.io.io : tryReadFile;
 import util.opt : Opt;
 import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
+import util.ptr : Ptr;
 
-struct RealReadOnlyStorage {
+struct RealReadOnlyStorage(Alloc) {
 	@safe @nogc nothrow: // not pure
 
-	immutable(AbsolutePathsGetter) absolutePathsGetter() immutable {
+	immutable(AbsolutePathsGetter) absolutePathsGetter() const {
 		return immutable AbsolutePathsGetter(include, user);
 	}
 
-	immutable(Opt!NulTerminatedStr) tryReadFile(Alloc)(
-		ref Alloc alloc,
+	immutable(T) withFile(T)(
 		ref immutable PathAndStorageKind pk,
 		immutable Str extension,
-	) immutable {
+		scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
+	) {
 		immutable Str root = () {
 			final switch (pk.storageKind) {
 				case StorageKind.global:
@@ -28,10 +29,12 @@ struct RealReadOnlyStorage {
 					return user;
 			}
 		}();
-		return ioTryReadFile(alloc, AbsolutePath(root, pk.path, extension));
+		immutable AbsolutePath ap = immutable AbsolutePath(root, pk.path, extension);
+		return tryReadFile(alloc, ap, cb);
 	}
 
 	private:
+	Ptr!Alloc alloc;
 	immutable Str include;
 	immutable Str user;
 }
