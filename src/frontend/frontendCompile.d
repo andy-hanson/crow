@@ -538,7 +538,7 @@ immutable(Arr!ModuleAndNames) mapImportsOrExports(ModelAlloc)(
 
 struct ModulesAndCommonTypes {
 	immutable Arr!(Ptr!Module) modules;
-	immutable CommonTypes commonTypes;
+	immutable Ptr!CommonTypes commonTypes;
 }
 
 // Result does not include the 'bootstrap' module.
@@ -548,7 +548,7 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 	immutable FileIndex stdIndex,
 	ref immutable Arr!AstAndResolvedImports fileAsts,
 ) {
-	Late!CommonTypes commonTypes = late!CommonTypes;
+	Late!(immutable Ptr!CommonTypes) commonTypes = late!(immutable Ptr!CommonTypes);
 	immutable Result!(Arr!(Ptr!Module), Diags) res = mapOrFailWithSoFar!(Ptr!Module, Diags)(
 		modelAlloc,
 		fileAsts,
@@ -556,7 +556,7 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 			immutable FullIndexDict!(FileIndex, Ptr!Module) compiled =
 				fullIndexDictOfArr!(FileIndex, Ptr!Module)(soFar);
 			immutable PathAndAst pathAndAst = immutable PathAndAst(immutable FileIndex(safeSizeTToU16(index)), ast.ast);
-			if (commonTypes.lateIsSet) {
+			if (lateIsSet(commonTypes)) {
 				immutable Bool isInInclude = Bool(ast.storageKind == StorageKind.global);
 				immutable Arr!FileIndexAndNames allImports = isInInclude
 					? ast.resolvedImports
@@ -568,26 +568,26 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 					mapImportsOrExports(modelAlloc, allImports, compiled);
 				immutable Arr!ModuleAndNames mappedExports =
 					mapImportsOrExports(modelAlloc, ast.resolvedExports, compiled);
-				return check(
+				return check!ModelAlloc(
 					modelAlloc,
 					programState,
 					mappedImports,
 					mappedExports,
 					pathAndAst,
-					commonTypes.lateGet);
+					lateGet(commonTypes));
 			} else {
 				// The first module to check is always 'bootstrap.nz'
 				verify(ast.resolvedImports.empty);
 				immutable Result!(BootstrapCheck, Diags) res =
 					checkBootstrapNz(modelAlloc, programState, pathAndAst);
 				if (res.isSuccess)
-					commonTypes.lateSet(res.asSuccess.commonTypes);
+					lateSet(commonTypes, res.asSuccess.commonTypes);
 				return mapSuccess(res, (ref immutable BootstrapCheck c) => c.module_);
 			}
 		});
 	return mapSuccess!(ModulesAndCommonTypes, Arr!(Ptr!Module), Diags)(
 		res,
-		(ref immutable Arr!(Ptr!Module) modules) => immutable ModulesAndCommonTypes(modules, commonTypes.lateGet));
+		(ref immutable Arr!(Ptr!Module) modules) => immutable ModulesAndCommonTypes(modules, lateGet(commonTypes)));
 }
 
 immutable(Result!(Ptr!Program, Diags)) checkEverything(ModelAlloc)(

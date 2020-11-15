@@ -21,29 +21,29 @@ immutable(Bool) lateIsSet(T)(ref const Late!T a) {
 }
 
 @trusted ref immutable(T) lateGet(T)(ref immutable Late!T a) {
-	verify(a.lateIsSet);
+	verify(lateIsSet(a));
 	return a.value_;
 }
 
 @trusted ref const(T) lateGet(T)(ref const Late!T a) {
-	verify(a.lateIsSet);
+	verify(lateIsSet(a));
 	return a.value_;
 }
 
 @trusted void lateSet(T)(ref Late!T a, immutable T value) {
-	verify(!a.lateIsSet);
+	verify(!lateIsSet(a));
 	initMemory(&a.value_, value);
 	a.isSet_ = True;
 }
 
 @trusted void lateSetOverwrite(T)(ref Late!T a, T value) {
-	verify(a.lateIsSet);
+	verify(lateIsSet(a));
 	initMemory(&a.value_, value);
 	a.isSet_ = True;
 }
 
 ref const(T) lazilySet(T)(ref Late!T a, scope T delegate() @safe @nogc pure nothrow cb) {
-	if (!a.lateIsSet)
-		a.lateSet(cb());
-	return a.lateGet;
+	if (!lateIsSet(a))
+		lateSet!T(a, cb());
+	return lateGet!T(a);
 }

@@ -125,7 +125,7 @@ struct PathAndAst { //TODO:RENAME
 
 struct BootstrapCheck {
 	immutable Ptr!Module module_;
-	immutable CommonTypes commonTypes;
+	immutable Ptr!CommonTypes commonTypes;
 }
 
 struct ModuleAndNames {
@@ -157,8 +157,8 @@ immutable(Result!(Ptr!Module, Diags)) check(Alloc)(
 	ref ProgramState programState,
 	ref immutable Arr!ModuleAndNames imports,
 	ref immutable Arr!ModuleAndNames exports,
-	immutable PathAndAst pathAndAst,
-	immutable CommonTypes commonTypes,
+	ref immutable PathAndAst pathAndAst,
+	immutable Ptr!CommonTypes commonTypes,
 ) {
 	immutable Result!(BootstrapCheck, Diags) res = checkWorker(
 		alloc,
@@ -167,7 +167,7 @@ immutable(Result!(Ptr!Module, Diags)) check(Alloc)(
 		exports,
 		pathAndAst,
 		(ref CheckCtx, ref immutable StructsAndAliasesMap, ref MutArr!(Ptr!StructInst)) =>
-			success!(CommonTypes, Diags)(commonTypes));
+			success!(Ptr!CommonTypes, Diags)(commonTypes));
 	return mapSuccess(res, (ref immutable BootstrapCheck ic) => ic.module_);
 }
 
@@ -214,7 +214,7 @@ immutable(Opt!(Ptr!StructInst)) getCommonNonTemplateType(Alloc)(
 	}
 }
 
-immutable(Result!(CommonTypes, Diags)) getCommonTypes(Alloc)(
+immutable(Result!(Ptr!CommonTypes, Diags)) getCommonTypes(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable StructsAndAliasesMap structsAndAliasesMap,
@@ -283,10 +283,11 @@ immutable(Result!(CommonTypes, Diags)) getCommonTypes(Alloc)(
 		immutable Diagnostic diag = Diagnostic(
 			immutable FileAndRange(ctx.fileIndex, RangeWithinFile.empty),
 			nu!Diag(alloc, immutable Diag.CommonTypesMissing(missingArr)));
-		return fail!(CommonTypes, Diags)(arrLiteral!Diagnostic(alloc, diag));
+		return fail!(Ptr!CommonTypes, Diags)(arrLiteral!Diagnostic(alloc, diag));
 	} else {
-		return success!(CommonTypes, Diags)(
-			immutable CommonTypes(
+		return success!(Ptr!CommonTypes, Diags)(
+			nu!CommonTypes(
+				alloc,
 				force(bool_),
 				force(char_),
 				force(int32),
@@ -992,7 +993,7 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 	immutable Arr!ModuleAndNames imports,
 	immutable Arr!ModuleAndNames exports,
 	ref immutable PathAndAst pathAndAst,
-	scope immutable(Result!(CommonTypes, Diags)) delegate(
+	scope immutable(Result!(Ptr!CommonTypes, Diags)) delegate(
 		ref CheckCtx,
 		ref immutable StructsAndAliasesMap,
 		ref MutArr!(Ptr!StructInst),
@@ -1030,11 +1031,11 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 	if (!arrBuilderIsEmpty(diagsBuilder))
 		return fail!(BootstrapCheck, Diags)(finishArr(alloc, diagsBuilder));
 	else {
-		immutable Result!(CommonTypes, Diags) commonTypesResult =
+		immutable Result!(Ptr!CommonTypes, Diags) commonTypesResult =
 			getCommonTypes(ctx, structsAndAliasesMap, delayStructInsts);
-		return flatMapSuccess!(BootstrapCheck, CommonTypes, Diags)(
+		return flatMapSuccess!(BootstrapCheck, Ptr!CommonTypes, Diags)(
 			commonTypesResult,
-			(ref immutable CommonTypes commonTypes) {
+			(ref immutable Ptr!CommonTypes commonTypes) {
 				immutable Ptr!Module mod = checkWorkerAfterCommonTypes(
 					alloc,
 					ctx,

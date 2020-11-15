@@ -332,10 +332,10 @@ struct StructAlias {
 }
 
 immutable(Opt!(Ptr!StructInst)) target(ref immutable StructAlias a) {
-	return a.target_.lateGet;
+	return lateGet(a.target_);
 }
 void setTarget(ref StructAlias a, immutable Opt!(Ptr!StructInst) value) {
-	a.target_.lateSet(value);
+	lateSet(a.target_, value);
 }
 
 struct StructDecl {
@@ -354,14 +354,14 @@ struct StructDecl {
 }
 
 immutable(Bool) bodyIsSet(ref const StructDecl a) {
-	return a._body_.lateIsSet;
+	return lateIsSet(a._body_);
 }
 
 ref const(StructBody) body_(return scope ref const StructDecl a) {
-	return a._body_.lateGet;
+	return lateGet(a._body_);
 }
 ref immutable(StructBody) body_(return scope ref immutable StructDecl a) {
-	return a._body_.lateGet;
+	return lateGet(a._body_);
 }
 
 void setBody(ref StructDecl a, immutable StructBody value) {
@@ -428,11 +428,11 @@ immutable(Arr!Type) typeArgs(ref immutable StructInst i) {
 }
 
 ref immutable(StructBody) body_(return scope ref immutable StructInst a) {
-	return a._body_.lateGet;
+	return lateGet(a._body_);
 }
 
 void setBody(ref StructInst a, immutable StructBody value) {
-	a._body_.lateSet(value);
+	lateSet(a._body_, value);
 }
 
 struct SpecBody {
@@ -593,10 +593,10 @@ struct FunDecl {
 }
 
 ref immutable(FunBody) body_(return scope ref immutable FunDecl a) {
-	return a._body_.lateGet;
+	return lateGet(a._body_);
 }
 void setBody(ref FunDecl a, immutable FunBody b) {
-	return a._body_.lateSet(b);
+	return lateSet(a._body_, b);
 }
 
 ref immutable(FileAndRange) range(return scope ref immutable FunDecl a) {
@@ -1000,6 +1000,35 @@ struct FunKindAndStructs {
 }
 
 struct CommonTypes {
+	@safe @nogc pure nothrow:
+
+	@disable this(ref const CommonTypes);
+	immutable this(
+		immutable Ptr!StructInst b,
+		immutable Ptr!StructInst c,
+		immutable Ptr!StructInst i32,
+		immutable Ptr!StructInst s,
+		immutable Ptr!StructInst v,
+		immutable Ptr!StructInst ap,
+		immutable Arr!(Ptr!StructDecl) o,
+		immutable Ptr!StructDecl bv,
+		immutable Ptr!StructDecl a,
+		immutable Ptr!StructDecl f,
+		immutable Arr!FunKindAndStructs fks,
+	) {
+		bool_ = b;
+		char_ = c;
+		int32 = i32;
+		str = s;
+		void_ = v;
+		anyPtr = ap;
+		optionSomeNone = o;
+		byVal = bv;
+		arr = a;
+		fut = f;
+		funKindsAndStructs = fks;
+	}
+
 	immutable Ptr!StructInst bool_;
 	immutable Ptr!StructInst char_;
 	immutable Ptr!StructInst int32;
@@ -1023,15 +1052,39 @@ immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable P
 }
 
 struct Program {
+	@safe @nogc pure nothrow:
+
+	@disable this(ref const Program);
+	immutable this(
+		immutable FilesInfo f,
+		immutable Ptr!Module a,
+		immutable Ptr!Module b,
+		immutable Ptr!Module r,
+		immutable Ptr!Module rm,
+		immutable Ptr!Module m,
+		immutable Arr!(Ptr!Module) all,
+		immutable Ptr!CommonTypes ct,
+		immutable Ptr!StructInst ctx,
+	) {
+		filesInfo = f;
+		allocModule = a;
+		bootstrapModule = b;
+		runtimeModule = r;
+		runtimeMainModule = rm;
+		mainModule = m;
+		allModules = all;
+		commonTypes = ct;
+		ctxStructInst = ctx;
+	}
+
 	immutable FilesInfo filesInfo;
 	immutable Ptr!Module allocModule;
 	immutable Ptr!Module bootstrapModule;
 	immutable Ptr!Module runtimeModule;
 	immutable Ptr!Module runtimeMainModule;
 	immutable Ptr!Module mainModule;
-	// Includes 'include.nz'
 	immutable Arr!(Ptr!Module) allModules;
-	immutable CommonTypes commonTypes;
+	immutable Ptr!CommonTypes commonTypes;
 	immutable Ptr!StructInst ctxStructInst;
 }
 

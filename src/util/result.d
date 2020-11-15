@@ -26,16 +26,16 @@ struct Result(Success, Failure) {
 		immutable Failure failure_;
 	}
 
-	@trusted this(immutable Success a) { isSuccess_ = True; success_ = a; }
-	@trusted this(immutable bool tag, immutable Failure a) { isSuccess_ = False; failure_ = a; }
+	@trusted immutable this(immutable Success a) { isSuccess_ = True; success_ = a; }
+	@trusted immutable this(immutable bool tag, immutable Failure a) { isSuccess_ = False; failure_ = a; }
 }
 
 immutable(Result!(S, F)) success(S, F)(immutable S s) {
-	return Result!(S, F)(s);
+	return immutable Result!(S, F)(s);
 }
 
 immutable(Result!(S, F)) fail(S, F)(immutable F f) {
-	return Result!(S, F)(true, f);
+	return immutable Result!(S, F)(true, f);
 }
 
 

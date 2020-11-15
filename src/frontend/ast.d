@@ -657,7 +657,7 @@ private immutable FileAstPart0 emptyFileAstPart0 =
 	immutable FileAstPart0(some(emptyImportsOrExports), some(emptyImportsOrExports), emptyArr!SpecDeclAst);
 private immutable FileAstPart1 emptyFileAstPart1 =
 	immutable FileAstPart1(emptyArr!StructAliasAst, emptyArr!StructDeclAst, emptyArr!FunDeclAst);
-immutable FileAst emptyFileAstStorage = immutable FileAst(
+private immutable FileAst emptyFileAstStorage = immutable FileAst(
 	immutable Ptr!FileAstPart0(&emptyFileAstPart0),
 	immutable Ptr!FileAstPart1(&emptyFileAstPart1));
 immutable Ptr!FileAst emptyFileAst = immutable Ptr!FileAst(&emptyFileAstStorage);
