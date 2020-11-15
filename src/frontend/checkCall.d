@@ -63,6 +63,7 @@ import model.model :
 	Sig,
 	SpecBody,
 	SpecInst,
+	specs,
 	SpecSig,
 	StructDeclAndArgs,
 	StructInst,
@@ -605,7 +606,7 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 	immutable Bool allowSpecs,
 ) {
 	// We store the impls in a flat array. Calculate the size ahead of time.
-	immutable size_t nImpls = sum(called.specs, (ref immutable Ptr!SpecInst specInst) =>
+	immutable size_t nImpls = sum(specs(called), (ref immutable Ptr!SpecInst specInst) =>
 		nSigs(specInst.body_));
 	if (nImpls != 0 && !allowSpecs) {
 		addDiag2(alloc, ctx, range, immutable Diag(Diag.SpecImplHasSpecs()));

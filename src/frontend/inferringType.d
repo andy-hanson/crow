@@ -38,7 +38,8 @@ import model.model :
 	Type,
 	typeArgs,
 	typeEquals,
-	TypeParam;
+	TypeParam,
+	typeParams;
 import util.bools : Bool, False, True;
 import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, size, sizeEq;
@@ -100,7 +101,7 @@ immutable(Type) typeFromAst2(Alloc)(ref Alloc alloc, ref ExprCtx ctx, ref immuta
 		ctx.checkCtx.deref,
 		typeAst,
 		ctx.structsAndAliasesMap,
-		TypeParamsScope(ctx.outermostFun.typeParams),
+		immutable TypeParamsScope(typeParams(ctx.outermostFun)),
 		noneMut!(Ptr!(MutArr!(Ptr!(StructInst)))));
 }
 

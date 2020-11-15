@@ -4,7 +4,7 @@ module model.model;
 
 import model.diag : FilesInfo; // TODO: move that here?
 import util.bools : and, Bool, False, True;
-import util.collection.arr : Arr, empty, emptyArr, first, only, range, size, sizeEq;
+import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, first, only, range, size, sizeEq, toArr;
 import util.collection.arrUtil : compareArr;
 import util.collection.dict : Dict;
 import util.collection.fullIndexDict : FullIndexDict;
@@ -332,11 +332,15 @@ struct StructAlias {
 	immutable FileAndRange range;
 	immutable Bool isPublic;
 	immutable Sym name;
-	immutable Arr!TypeParam typeParams;
+	immutable ArrWithSize!TypeParam typeParams_;
 
 	private:
 	// This will be none if the alias target is not found
 	Late!(immutable Opt!(Ptr!StructInst)) target_;
+}
+
+immutable(Arr!TypeParam) typeParams(ref const StructAlias a) {
+	return toArr(a.typeParams_);
 }
 
 immutable(Opt!(Ptr!StructInst)) target(ref immutable StructAlias a) {
@@ -352,13 +356,17 @@ struct StructDecl {
 	immutable FileAndRange range;
 	immutable Bool isPublic;
 	immutable Sym name;
-	immutable Arr!TypeParam typeParams;
+	immutable ArrWithSize!TypeParam typeParams_;
 	// Note: purity on the decl does not take type args into account
 	immutable Purity purity;
 	immutable Bool purityIsForced;
 
 	private:
 	Late!(immutable StructBody) _body_;
+}
+
+immutable(Arr!TypeParam) typeParams(ref immutable StructDecl a) {
+	return toArr(a.typeParams_);
 }
 
 immutable(Bool) bodyIsSet(ref const StructDecl a) {
@@ -495,9 +503,13 @@ struct SpecDecl {
 	immutable FileAndRange range;
 	immutable Bool isPublic;
 	immutable Sym name;
-	immutable Arr!TypeParam typeParams;
+	immutable ArrWithSize!TypeParam typeParams_;
 	immutable SpecBody body_;
 	MutArr!(immutable Ptr!SpecInst) insts;
+}
+
+immutable(Arr!TypeParam) typeParams(ref immutable SpecDecl a) {
+	return toArr(a.typeParams_);
 }
 
 struct SpecDeclAndArgs {
@@ -547,15 +559,16 @@ struct FunBody {
 	immutable Kind kind;
 	union {
 		immutable Builtin builtin;
-		immutable Extern extern_;
+		immutable Ptr!Extern extern_;
 		immutable Ptr!Expr expr;
 	}
 
 	public:
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
+	@trusted immutable this(immutable Ptr!Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
 }
+static assert(FunBody.sizeof <= 16);
 
 immutable(Bool) isExtern(ref immutable FunBody a) {
 	return Bool(a.kind == FunBody.Kind.extern_);
@@ -588,6 +601,7 @@ struct FunFlags {
 	immutable Bool unsafe;
 	immutable Bool trusted;
 }
+static assert(FunFlags.sizeof == 4);
 
 struct FunDecl {
 	@safe @nogc pure nothrow:
@@ -596,31 +610,32 @@ struct FunDecl {
 	this(
 		immutable Bool ip,
 		immutable FunFlags f,
-		immutable Sig s,
-		immutable Arr!TypeParam tps,
-		immutable Arr!(Ptr!SpecInst) sps,
+		immutable Ptr!Sig s,
+		immutable ArrWithSize!TypeParam tps,
+		immutable ArrWithSize!(Ptr!SpecInst) sps,
 	) {
 		isPublic = ip;
 		flags = f;
 		sig = s;
-		typeParams = tps;
-		specs = sps;
+		typeParams_ = tps;
+		specs_ = sps;
+		body_ = immutable FunBody(immutable FunBody.Builtin());
 	}
 
 	immutable Bool isPublic;
 	immutable FunFlags flags;
-	immutable Sig sig;
-	immutable Arr!TypeParam typeParams;
-	immutable Arr!(Ptr!SpecInst) specs;
-	private:
-	Late!(immutable FunBody) _body_;
+	immutable Ptr!Sig sig;
+	immutable ArrWithSize!TypeParam typeParams_;
+	immutable ArrWithSize!(Ptr!SpecInst) specs_;
+	FunBody body_;
 }
+static assert(FunDecl.sizeof <= 48);
 
-ref immutable(FunBody) body_(return scope ref immutable FunDecl a) {
-	return lateGet(a._body_);
+immutable(Arr!TypeParam) typeParams(ref immutable FunDecl a) {
+	return toArr(a.typeParams_);
 }
-void setBody(ref FunDecl a, immutable FunBody b) {
-	return lateSet(a._body_, b);
+immutable(Arr!(Ptr!SpecInst)) specs(ref immutable FunDecl a) {
+	return toArr(a.specs_);
 }
 
 immutable(FileAndRange) range(return scope ref immutable FunDecl a) {

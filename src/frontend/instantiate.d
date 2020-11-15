@@ -29,6 +29,7 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	typeParams,
 	withType,
 	worsePurity,
 	worstCasePurity;
@@ -162,7 +163,7 @@ immutable(StructBody) instantiateStructBody(Alloc)(
 	DelayStructInsts delayStructInsts,
 ) {
 	immutable TypeParamsAndArgs typeParamsAndArgs =
-		immutable TypeParamsAndArgs(declAndArgs.decl.typeParams, declAndArgs.typeArgs);
+		immutable TypeParamsAndArgs(typeParams(declAndArgs.decl.deref()), declAndArgs.typeArgs);
 	return matchStructBody!(immutable StructBody)(
 		body_(declAndArgs.decl),
 		(ref immutable StructBody.Bogus) =>
@@ -253,7 +254,7 @@ immutable(Ptr!StructInst) instantiateStructInst(Alloc)(
 	ref immutable StructInst contextStructInst,
 ) {
 	immutable TypeParamsAndArgs ta = immutable TypeParamsAndArgs(
-		contextStructInst.decl.typeParams,
+		typeParams(contextStructInst.decl.deref()),
 		contextStructInst.typeArgs);
 	return instantiateStructInst(alloc, programState, structInst, ta, noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }

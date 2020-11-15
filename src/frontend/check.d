@@ -93,15 +93,25 @@ import model.model :
 	typeParams;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, at, empty, emptyArr, ptrsRange, arrRange = range, size, sizeEq, toArr;
-import util.collection.arrBuilder : add, ArrBuilder, arrBuilderAsTempArr, arrBuilderIsEmpty, arrBuilderSize, finishArr;
+import util.collection.arrBuilder :
+	add,
+	ArrBuilder,
+	arrBuilderAsTempArr,
+	arrBuilderIsEmpty,
+	arrBuilderSize,
+	ArrWithSizeBuilder,
+	arrWithSizeBuilderAsTempArr,
+	arrWithSizeBuilderSize,
+	finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
 	exists,
 	map,
-	mapOp,
+	mapOpWithSize,
 	mapOrNone,
 	mapToMut,
 	mapWithIndex,
+	mapWithSizeWithIndex,
 	zipFirstMut,
 	zipMutPtrFirst;
 import util.collection.dict : getAt, KeyValuePair;
@@ -110,7 +120,7 @@ import util.collection.dictUtil : buildDict, buildMultiDict;
 import util.collection.multiDict : multiDictGetAt;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.str : copyStr, Str, strLiteral;
-import util.memory : nu;
+import util.memory : allocate, nu, overwriteMemory;
 import util.opt : force, has, mapOption, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.result : fail, flatMapSuccess, mapSuccess, Result, success;
@@ -300,7 +310,7 @@ immutable(Result!(Ptr!CommonTypes, Diags)) getCommonTypes(Alloc)(
 				force(fut),
 				arrLiteral!FunKindAndStructs(
 					alloc,
-					FunKindAndStructs(FunKind.ptr, arrLiteral!(Ptr!StructDecl)(
+					immutable FunKindAndStructs(FunKind.ptr, arrLiteral!(Ptr!StructDecl)(
 						alloc,
 						force(funPtr0),
 						force(funPtr1),
@@ -309,19 +319,19 @@ immutable(Result!(Ptr!CommonTypes, Diags)) getCommonTypes(Alloc)(
 						force(funPtr4),
 						force(funPtr5),
 						force(funPtr6))),
-					FunKindAndStructs(FunKind.plain, arrLiteral!(Ptr!StructDecl)(
+					immutable FunKindAndStructs(FunKind.plain, arrLiteral!(Ptr!StructDecl)(
 						alloc,
 						force(fun0),
 						force(fun1),
 						force(fun2),
 						force(fun3))),
-					FunKindAndStructs(FunKind.mut, arrLiteral!(Ptr!StructDecl)(
+					immutable FunKindAndStructs(FunKind.mut, arrLiteral!(Ptr!StructDecl)(
 						alloc,
 						force(funMut0),
 						force(funMut1),
 						force(funMut2),
 						force(funMut3))),
-					FunKindAndStructs(FunKind.ref_, arrLiteral!(Ptr!StructDecl)(
+					immutable FunKindAndStructs(FunKind.ref_, arrLiteral!(Ptr!StructDecl)(
 						alloc,
 						force(funRef0),
 						force(funRef1),
@@ -330,14 +340,15 @@ immutable(Result!(Ptr!CommonTypes, Diags)) getCommonTypes(Alloc)(
 	}
 }
 
-immutable(Arr!TypeParam) checkTypeParams(Alloc)(
+immutable(ArrWithSize!TypeParam) checkTypeParams(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable ArrWithSize!TypeParamAst asts,
 ) {
-	immutable Arr!TypeParam typeParams =
-		mapWithIndex(alloc, toArr(asts), (immutable size_t index, ref immutable TypeParamAst ast) =>
+	immutable ArrWithSize!TypeParam res =
+		mapWithSizeWithIndex(alloc, toArr(asts), (immutable size_t index, ref immutable TypeParamAst ast) =>
 			immutable TypeParam(rangeInFile(ctx, ast.range), ast.name, index));
+	immutable Arr!TypeParam typeParams = toArr(res);
 	foreach (immutable size_t i; 0..size(typeParams))
 		foreach (immutable size_t prev_i; 0..i) {
 			immutable TypeParam tp = at(typeParams, i);
@@ -345,21 +356,21 @@ immutable(Arr!TypeParam) checkTypeParams(Alloc)(
 				addDiag(alloc, ctx, tp.range, Diag(
 					Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.typeParam, tp.name)));
 		}
-	return typeParams;
+	return res;
 }
 
 void collectTypeParamsInAst(Alloc)(
 	ref Alloc alloc,
 	ref const CheckCtx ctx,
 	ref immutable TypeAst ast,
-	ref ArrBuilder!TypeParam res,
+	ref ArrWithSizeBuilder!TypeParam res,
 ) {
 	matchTypeAst(
 		ast,
 		(ref immutable TypeAst.TypeParam tp) {
-			immutable Arr!TypeParam a = arrBuilderAsTempArr(res);
+			immutable Arr!TypeParam a = arrWithSizeBuilderAsTempArr(res);
 			if (!exists(a, (ref immutable TypeParam it) => symEq(it.name, tp.name))) {
-				add(alloc, res, immutable TypeParam(rangeInFile(ctx, tp.range), tp.name, arrBuilderSize(res)));
+				add(alloc, res, immutable TypeParam(rangeInFile(ctx, tp.range), tp.name, arrWithSizeBuilderSize(res)));
 			}
 		},
 		(ref immutable TypeAst.InstStruct i) {
@@ -368,8 +379,12 @@ void collectTypeParamsInAst(Alloc)(
 		});
 }
 
-immutable(Arr!TypeParam) collectTypeParams(Alloc)(ref Alloc alloc, ref const CheckCtx ctx, ref immutable SigAst ast) {
-	ArrBuilder!TypeParam res;
+immutable(ArrWithSize!TypeParam) collectTypeParams(Alloc)(
+	ref Alloc alloc,
+	ref const CheckCtx ctx,
+	ref immutable SigAst ast,
+) {
+	ArrWithSizeBuilder!TypeParam res;
 	collectTypeParamsInAst(alloc, ctx, ast.returnType, res);
 	foreach (ref immutable ParamAst p; arrRange(toArr(ast.params)))
 		collectTypeParamsInAst(alloc, ctx, p.type, res);
@@ -411,7 +426,7 @@ immutable(Sig) checkSig(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable SigAst ast,
-	ref immutable Arr!TypeParam typeParams,
+	immutable Arr!TypeParam typeParams,
 	ref immutable StructsAndAliasesMap structsAndAliasesMap,
 	DelayStructInsts delayStructInsts
 ) {
@@ -437,7 +452,7 @@ immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(immutable Sym name) {
 immutable(SpecBody) checkSpecBody(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	ref immutable Arr!TypeParam typeParams,
+	ref immutable ArrWithSize!TypeParam typeParams,
 	ref immutable StructsAndAliasesMap structsAndAliasesMap,
 	immutable Sym name,
 	ref immutable SpecBodyAst ast,
@@ -452,7 +467,7 @@ immutable(SpecBody) checkSpecBody(Alloc)(
 					alloc,
 					ctx,
 					it,
-					typeParams,
+					toArr(typeParams),
 					structsAndAliasesMap,
 					noneMut!(Ptr!(MutArr!(Ptr!StructInst)))))));
 }
@@ -464,7 +479,7 @@ immutable(Arr!SpecDecl) checkSpecDecls(Alloc)(
 	ref immutable Arr!SpecDeclAst asts,
 ) {
 	return map!SpecDecl(alloc, asts, (ref immutable SpecDeclAst ast) {
-		immutable Arr!TypeParam typeParams = checkTypeParams(alloc, ctx, ast.typeParams);
+		immutable ArrWithSize!TypeParam typeParams = checkTypeParams(alloc, ctx, ast.typeParams);
 		immutable SpecBody body_ =
 			checkSpecBody(alloc, ctx, typeParams, structsAndAliasesMap, ast.name, ast.body_);
 		return immutable SpecDecl(rangeInFile(ctx, ast.range), ast.isPublic, ast.name, typeParams, body_);
@@ -568,7 +583,7 @@ void checkStructAliasTargets(Alloc)(
 			ctx,
 			ast.target,
 			structsAndAliasesMap,
-			TypeParamsScope(structAlias.typeParams),
+			immutable TypeParamsScope(typeParams(structAlias)),
 			someMut!(Ptr!(MutArr!(Ptr!StructInst)))(ptrTrustMe_mut(delayStructInsts))));
 	});
 }
@@ -744,7 +759,7 @@ immutable(StructsAndAliasesMap) buildStructsAndAliasesDict(Alloc)(
 ) {
 	DictBuilder!(Sym, StructOrAlias, compareSym) d;
 	foreach (immutable Ptr!StructDecl decl; ptrsRange(structs)) {
-		verify(size(decl.typeParams) < 10); //TODO:KILL
+		verify(size(typeParams(decl.deref())) < 10); //TODO:KILL
 		addToDict(alloc, d, decl.name, immutable StructOrAlias(decl));
 	}
 	foreach (immutable Ptr!StructAlias a; ptrsRange(aliases))
@@ -762,7 +777,7 @@ struct FunsAndMap {
 	immutable FunsMap funsMap;
 }
 
-immutable(Arr!(Ptr!SpecInst)) checkSpecUses(Alloc)(
+immutable(ArrWithSize!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable Arr!SpecUseAst asts,
@@ -770,7 +785,7 @@ immutable(Arr!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 	ref immutable SpecsMap specsMap,
 	immutable TypeParamsScope typeParamsScope,
 ) {
-	return mapOp!(Ptr!SpecInst)(alloc, asts, (ref immutable SpecUseAst ast) {
+	return mapOpWithSize!(Ptr!SpecInst)(alloc, asts, (ref immutable SpecUseAst ast) {
 		immutable Opt!(Ptr!SpecDecl) opSpec = tryFindSpec(alloc, ctx, ast.spec.name, ast.range, specsMap);
 		if (has(opSpec)) {
 			immutable Ptr!SpecDecl spec = force(opSpec);
@@ -804,23 +819,23 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 	ref immutable Arr!FunDeclAst asts,
 ) {
 	Arr!FunDecl funs = mapToMut(alloc, asts, (ref immutable FunDeclAst funAst) {
-		immutable Arr!TypeParam typeParams = empty(toArr(funAst.typeParams))
+		immutable ArrWithSize!TypeParam typeParams = empty(toArr(funAst.typeParams))
 			? collectTypeParams(alloc, ctx, funAst.sig)
 			: checkTypeParams(alloc, ctx, funAst.typeParams);
-		immutable Sig sig = checkSig(
+		immutable Ptr!Sig sig = allocate(alloc, checkSig(
 			alloc,
 			ctx,
 			funAst.sig,
-			typeParams,
+			toArr(typeParams),
 			structsAndAliasesMap,
-			noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
-		immutable Arr!(Ptr!SpecInst) specUses = checkSpecUses(
+			noneMut!(Ptr!(MutArr!(Ptr!StructInst)))));
+		immutable ArrWithSize!(Ptr!SpecInst) specUses = checkSpecUses(
 			alloc,
 			ctx,
 			funAst.specUses,
 			structsAndAliasesMap,
 			specsMap,
-			TypeParamsScope(typeParams));
+			immutable TypeParamsScope(toArr(typeParams)));
 		immutable FunFlags flags = FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted);
 		return FunDecl(funAst.isPublic, flags, sig, typeParams, specUses);
 	});
@@ -835,7 +850,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.funNames, name(f));
 
 	zipMutPtrFirst(funs, asts, (Ptr!FunDecl fun, ref immutable FunDeclAst funAst) {
-		setBody(fun, matchFunBodyAst(
+		overwriteMemory(&fun.body_, matchFunBodyAst(
 			funAst.body_,
 			(ref immutable FunBodyAst.Builtin) =>
 				immutable FunBody(FunBody.Builtin()),
@@ -844,7 +859,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 					todo!void("'extern' fun must be 'noctx'");
 				if (e.isGlobal && arity(fun) != 0)
 					todo!void("'extern' fun has parameters");
-				return immutable FunBody(FunBody.Extern(e.isGlobal, copyStr(alloc, e.externName)));
+				return immutable FunBody(nu!(FunBody.Extern)(alloc, e.isGlobal, copyStr(alloc, e.externName)));
 			},
 			(ref immutable ExprAst e) =>
 				immutable FunBody(checkFunctionBody!Alloc(

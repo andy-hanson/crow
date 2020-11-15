@@ -36,7 +36,7 @@ immutable(Bool) arrBuilderIsEmpty(T)(ref const ArrBuilder!T a) {
 	return mutArrIsEmpty(a.data);
 }
 
-@trusted immutable(Arr!T) arrBuilderAsTempArr(T)(ref ArrBuilder!T a) {
+@trusted immutable(Arr!T) arrBuilderAsTempArr(T)(ref const ArrBuilder!T a) {
 	const Arr!(immutable T) arr = tempAsArr(a.data);
 	return immutable Arr!T(begin(arr), size(arr));
 }
@@ -47,13 +47,17 @@ immutable(size_t) arrBuilderSize(T)(ref const ArrBuilder!T a) {
 
 //TODO:MOVE?
 struct ArrWithSizeBuilder(T) {
-	private ubyte* data_ = null;
-	private size_t size_ = 0;
-	private size_t capacity_ = 0;
+	private:
+	ubyte* data_ = null;
+	size_t size_ = 0;
+	size_t capacity_ = 0;
 }
 
 private @system T* begin(T)(ref ArrWithSizeBuilder!T a) {
 	return cast(T*) (a.data_ + size_t.sizeof);
+}
+private @system const(T*) begin(T)(ref const ArrWithSizeBuilder!T a) {
+	return cast(const T*) (a.data_ + size_t.sizeof);
 }
 
 @trusted void add(T, Alloc)(ref Alloc alloc, ref ArrWithSizeBuilder!T a, immutable T value) {
@@ -67,6 +71,14 @@ private @system T* begin(T)(ref ArrWithSizeBuilder!T a) {
 	verify(a.size_ < a.capacity_);
 	initMemory(begin(a) + a.size_, value);
 	a.size_ += 1;
+}
+
+immutable(size_t) arrWithSizeBuilderSize(T)(ref const ArrWithSizeBuilder!T a) {
+	return a.size_;
+}
+
+@trusted immutable(Arr!T) arrWithSizeBuilderAsTempArr(T)(ref const ArrWithSizeBuilder!T a) {
+	return immutable Arr!T(cast(immutable) begin(a), a.size_);
 }
 
 @trusted immutable(ArrWithSize!T) finishArr(T, Alloc)(ref Alloc alloc, ref ArrWithSizeBuilder!T a) {

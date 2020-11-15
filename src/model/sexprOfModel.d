@@ -28,6 +28,7 @@ import model.model :
 	SpecDecl,
 	specImpls,
 	SpecInst,
+	specs,
 	SpecSig,
 	StructDecl,
 	StructInst,
@@ -37,6 +38,7 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	typeParams,
 	unsafe;
 import util.bools : True;
 import util.collection.arr : Arr, empty;
@@ -99,8 +101,8 @@ immutable(Sexpr) sexprOfStructDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immu
 	add(alloc, fields, nameAndTata("range", sexprOfFileAndRange(alloc, a.range)));
 	add(alloc, fields, nameAndTata("public?", tataBool(a.isPublic)));
 	add(alloc, fields, nameAndTata("name", tataSym(a.name)));
-	if (!empty(a.typeParams))
-		add(alloc, fields, nameAndTata("typeparams", tataArr(alloc, a.typeParams, (ref immutable TypeParam it) =>
+	if (!empty(typeParams(a)))
+		add(alloc, fields, nameAndTata("typeparams", tataArr(alloc, typeParams(a), (ref immutable TypeParam it) =>
 			sexprOfTypeParam(alloc, it))));
 	if (a.purity != Purity.data)
 		add(alloc, fields, nameAndTata("purity", tataSym(symOfPurity(a.purity))));
@@ -125,13 +127,13 @@ immutable(Sexpr) sexprOfFunDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutab
 	if (trusted(a))
 		add(alloc, fields, nameAndTata("trusted", tataBool(True)));
 	add(alloc, fields, nameAndTata("sig", sexprOfSig(alloc, ctx, a.sig)));
-	if (!empty(a.typeParams))
-		add(alloc, fields, nameAndTata("typeparams", tataArr(alloc, a.typeParams, (ref immutable TypeParam it) =>
+	if (!empty(typeParams(a)))
+		add(alloc, fields, nameAndTata("typeparams", tataArr(alloc, typeParams(a), (ref immutable TypeParam it) =>
 			sexprOfTypeParam(alloc, it))));
-	if (!empty(a.specs))
-		add(alloc, fields, nameAndTata("specs", tataArr(alloc, a.specs, (ref immutable Ptr!SpecInst it) =>
+	if (!empty(specs(a)))
+		add(alloc, fields, nameAndTata("specs", tataArr(alloc, specs(a), (ref immutable Ptr!SpecInst it) =>
 			sexprOfSpecInst(alloc, ctx, it))));
-	add(alloc, fields, nameAndTata("body", sexprOfFunBody(alloc, ctx, body_(a))));
+	add(alloc, fields, nameAndTata("body", sexprOfFunBody(alloc, ctx, a.body_)));
 	return tataNamedRecord("fun", finishArr(alloc, fields));
 }
 

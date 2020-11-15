@@ -50,6 +50,7 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam,
+	typeParams,
 	worsePurity;
 import util.bools : Bool, False, not, True;
 import util.collection.arr : Arr, at, empty, emptyArr, only, ptrAt, range, sizeEq;
@@ -117,7 +118,7 @@ struct ConcreteFunKey {
 }
 
 immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunKey a) {
-	return immutable TypeArgsScope(a.inst.decl.typeParams, a.typeArgs);
+	return immutable TypeArgsScope(typeParams(a.inst.decl.deref()), a.typeArgs);
 }
 
 private immutable(Comparison) compareConcreteFunKey(ref immutable ConcreteFunKey a, ref immutable ConcreteFunKey b) {
@@ -390,7 +391,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(Alloc)(
 	immutable ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		castImmutable(res),
 		key,
-		body_(decl));
+		decl.body_);
 	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	return castImmutable(res);
 }

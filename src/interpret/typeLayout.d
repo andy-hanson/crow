@@ -82,7 +82,7 @@ void walkRecordFields(TempAlloc)(
 		if (has(packStart)) {
 			// TODO: could just write these to a MaxArr!Nat8 when making in the first place
 			// (instead of Opt!size_t packStart, have MaxArr!(size_t, 3))
-			immutable Arr!Nat8 fieldSizes = mapOp(
+			immutable Arr!Nat8 fieldSizes = mapOp!Nat8(
 				tempAlloc,
 				slice(record.fields, force(packStart), packEnd - force(packStart)),
 				(ref immutable LowField field) {

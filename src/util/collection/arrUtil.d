@@ -1,7 +1,7 @@
 module util.collection.arrUtil;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
+import util.collection.arr : Arr, ArrWithSize, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
 import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory, initMemory_mut;
@@ -427,6 +427,25 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 		cb(x));
 }
 
+@trusted immutable(ArrWithSize!Out) mapOpWithSize(Out, In, Alloc)(
+	ref Alloc alloc,
+	immutable Arr!In a,
+	scope immutable(Opt!Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
+) {
+	ubyte* res = alloc.allocate(size_t.sizeof + Out.sizeof * size(a));
+	Out* elements = cast(Out*) (res + size_t.sizeof);
+	size_t resI = 0;
+	foreach (immutable size_t i; 0..size(a)) {
+		immutable Opt!Out o = cb(at(a, i));
+		if (has(o)) {
+			initMemory(elements + resI, force(o));
+			resI++;
+		}
+	}
+	*(cast(size_t*) res) = resI;
+	return immutable ArrWithSize!Out(cast(immutable) res);
+}
+
 @trusted immutable(Arr!Out) mapOpWithIndex(Out, In, Alloc)(
 	ref Alloc alloc,
 	immutable Arr!In a,
@@ -498,6 +517,19 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	foreach (immutable size_t i; 0..size(a))
 		initMemory(res + i, cb(i, at(a, i)));
 	return immutable Arr!Out(cast(immutable) res, size(a));
+}
+
+@trusted immutable(ArrWithSize!Out) mapWithSizeWithIndex(Out, In, Alloc)(
+	ref Alloc alloc,
+	immutable Arr!In a,
+	scope immutable(Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
+) {
+	ubyte* res = alloc.allocate(size_t.sizeof + Out.sizeof * size(a));
+	*(cast(size_t*) res) = size(a);
+	Out* elements = cast(Out*) (res + size_t.sizeof);
+	foreach (immutable size_t i; 0..size(a))
+		initMemory(elements + i, cb(i, at(a, i)));
+	return immutable ArrWithSize!Out(cast(immutable) res);
 }
 
 @trusted immutable(Arr!Out) mapPtrsWithIndex(Out, In, Alloc)(
