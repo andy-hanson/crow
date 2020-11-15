@@ -70,6 +70,7 @@ import util.collection.fullIndexDict :
 	fullIndexDictEachKey,
 	fullIndexDictEachValue,
 	fullIndexDictGet,
+	fullIndexDictGetPtr,
 	fullIndexDictSize;
 import util.collection.mutDict : insertOrUpdate, MutDict, setInDict;
 import util.collection.str : Str;
@@ -947,7 +948,7 @@ void writeCallExpr(Alloc)(
 ) {
 	verify(!(writeKind == WriteKind.returnStatement && a.called == ctx.curFun)); // This should be a TailRecur
 	writeReturn(writer, writeKind, () {
-		immutable LowFun called = fullIndexDictGet(ctx.ctx.program.allFuns, a.called);
+		immutable Ptr!LowFun called = fullIndexDictGetPtr(ctx.ctx.program.allFuns, a.called);
 		immutable Bool isCVoid = isExtern(called.body_) && isVoid(called.returnType);
 		if (isCVoid)
 			//TODO: this is unnecessary if writeKind is not 'expr'

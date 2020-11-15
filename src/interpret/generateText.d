@@ -78,7 +78,7 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 	add(ctx.text, 0);
 
 	foreach (immutable size_t arrTypeIndex; 0..size(allConstants.arrs)) {
-		immutable ArrTypeAndConstantsLow typeAndConstants = at(allConstants.arrs, arrTypeIndex);
+		immutable Ptr!ArrTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
 		foreach (immutable size_t constantIndex; 0..size(typeAndConstants.constants))
 			recurWriteArr(
 				tempAlloc,
@@ -89,7 +89,7 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 				at(typeAndConstants.constants, constantIndex));
 	}
 	foreach (immutable size_t pointeeTypeIndex; 0..size(allConstants.pointers)) {
-		immutable PointerTypeAndConstantsLow typeAndConstants = at(allConstants.pointers, pointeeTypeIndex);
+		immutable Ptr!PointerTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.pointers, pointeeTypeIndex);
 		foreach (immutable size_t constantIndex; 0..size(typeAndConstants.constants))
 			recurWritePointer(
 				tempAlloc,
@@ -127,7 +127,7 @@ void ensureConstant(TempAlloc)(
 	matchConstant!void(
 		c,
 		(ref immutable Constant.ArrConstant it) {
-			immutable ArrTypeAndConstantsLow arrs = at(ctx.allConstants.arrs, it.typeIndex);
+			immutable Ptr!ArrTypeAndConstantsLow arrs = ptrAt(ctx.allConstants.arrs, it.typeIndex);
 			verify(arrs.arrType == asRecordType(t));
 			recurWriteArr(tempAlloc, ctx, it.typeIndex, arrs.elementType, it.index, at(arrs.constants, it.index));
 		},
@@ -135,7 +135,7 @@ void ensureConstant(TempAlloc)(
 		(immutable Constant.Integral) {},
 		(immutable Constant.Null) {},
 		(immutable Constant.Pointer it) {
-			immutable PointerTypeAndConstantsLow ptrs = at(ctx.allConstants.pointers, it.typeIndex);
+			immutable Ptr!PointerTypeAndConstantsLow ptrs = ptrAt(ctx.allConstants.pointers, it.typeIndex);
 			verify(lowTypeEqual(ptrs.pointeeType, asNonFunPtrType(t).pointee));
 			recurWritePointer(tempAlloc, ctx, it.typeIndex, ptrs.pointeeType, it.index, at(ptrs.constants, it.index));
 		},

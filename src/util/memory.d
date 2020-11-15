@@ -4,9 +4,18 @@ module util.memory;
 
 import util.ptr : Ptr;
 
-@trusted void initMemory(T)(T* ptr, T value) {
+@trusted void initMemory(T)(T* ptr, immutable T value) {
 	// ptr may contain immutable members, so use memcpy to work around that.
 	//memcpy(cast(void*) ptr, cast(const void*) &value, T.sizeof);
+	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);
+}
+@trusted void initMemory(T)(T* ptr, ref immutable T value) {
+	// ptr may contain immutable members, so use memcpy to work around that.
+	//memcpy(cast(void*) ptr, cast(const void*) &value, T.sizeof);
+	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);
+}
+
+@trusted void initMemory_mut(T)(T* ptr, T value) {
 	*(cast(byte[T.sizeof]*) ptr) = *(cast(const byte[T.sizeof]*) &value);
 }
 
@@ -16,7 +25,7 @@ import util.ptr : Ptr;
 }
 
 void overwriteMemory(T)(T* ptr, T value) {
-	initMemory(ptr, value);
+	initMemory_mut!T(ptr, value);
 }
 
 struct DelayInit(T) {

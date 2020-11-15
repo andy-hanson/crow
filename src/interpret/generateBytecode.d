@@ -68,7 +68,6 @@ import model.lowModel :
 	isRecordFieldAccess,
 	LowExpr,
 	LowExprKind,
-	LowField,
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
@@ -77,7 +76,6 @@ import model.lowModel :
 	LowLocal,
 	LowParam,
 	LowProgram,
-	LowRecord,
 	LowType,
 	lowTypeEqual,
 	matchLowExprKind,
@@ -613,9 +611,7 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	immutable LowType.Record record,
 	immutable Nat8 fieldIndex,
 ) {
-	immutable LowRecord r = fullIndexDictGet(ctx.program.allRecords, record);
-	immutable LowField f = at(r.fields, fieldIndex);
-	immutable Nat8 size = sizeOfType(ctx, f.type);
+	immutable Nat8 size = sizeOfType(ctx, at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).type);
 	return immutable FieldOffsetAndSize(getFieldOffset(ctx, record, fieldIndex), size);
 }
 

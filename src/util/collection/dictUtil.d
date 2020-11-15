@@ -7,7 +7,7 @@ import util.collection.arr : Arr, ptrAt, ptrsRange, range, size;
 import util.collection.dict : Dict, KeyValuePair;
 import util.collection.multiDict : MultiDict;
 import util.comparison : Comparison;
-import util.memory : initMemory;
+import util.memory : initMemory, initMemory_mut;
 import util.ptr : Ptr;
 import util.util : verify;
 
@@ -57,10 +57,10 @@ import util.util : verify;
 		}
 		for (size_t j = i; j > insertAt; j--) {
 			initMemory(keys + j, keys[j - 1]);
-			initMemory(values + j, values[j - 1]);
+			initMemory_mut(values + j, values[j - 1]);
 		}
 		initMemory(keys + insertAt, pair.key);
-		initMemory(values + insertAt, pair.value);
+		initMemory_mut(values + insertAt, pair.value);
 	}
 	return immutable MultiDict!(K, V, compare)(size(inputs), cast(immutable) keys, cast(immutable) values);
 }

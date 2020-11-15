@@ -44,7 +44,7 @@ void writePtrRange(Alloc)(ref Writer!Alloc writer, const PtrRange a) {
 	writeHex(writer, cast(immutable size_t) a.end);
 }
 
-void writeNat(Alloc)(ref Writer!Alloc writer, immutable size_t n, immutable size_t base = 10) {
+void writeNat(Alloc)(ref Writer!Alloc writer, immutable ulong n, immutable size_t base = 10) {
 	if (n >= base)
 		writeNat(writer, n / base, base);
 	writeChar(writer, digitChar(n % base));

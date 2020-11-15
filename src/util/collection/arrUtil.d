@@ -4,7 +4,7 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
 import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
-import util.memory : initMemory;
+import util.memory : initMemory, initMemory_mut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.result : asFailure, asSuccess, fail, isSuccess, Result, success;
@@ -47,8 +47,8 @@ pure:
 	immutable T v1,
 ) {
 	T* ptr = cast(T*) alloc.allocate(T.sizeof * 2);
-	initMemory(ptr + 0, v0);
-	initMemory(ptr + 1, v1);
+	initMemory!T(ptr + 0, v0);
+	initMemory!T(ptr + 1, v1);
 	return immutable Arr!T(cast(immutable) ptr, 2);
 }
 
@@ -224,7 +224,7 @@ pure:
 ) {
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size);
 	foreach (immutable size_t i; 0..size)
-		initMemory(res + i, cb(i));
+		initMemory_mut!Out(res + i, cb(i));
 	return Arr!Out(res, size);
 }
 
@@ -364,7 +364,7 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 ) {
 	Out* res = cast(Out*) alloc.allocate(Out.sizeof * size(a));
 	foreach (immutable size_t i; 0..size(a))
-		initMemory(res + i, cb(at(a, i)));
+		initMemory_mut(res + i, cb(at(a, i)));
 	return Arr!Out(res, size(a));
 }
 

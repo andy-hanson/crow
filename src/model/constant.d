@@ -109,9 +109,9 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 		case Constant.Kind.arr:
 			return immutable Bool(a.arr_.index == b.arr_.index);
 		case Constant.Kind.bool_:
-			return immutable Bool(a.bool_ == b.bool_);
+			return immutable Bool(a.bool_.value.value == b.bool_.value.value);
 		case Constant.Kind.integral:
-			return immutable Bool(a.integral_ == b.integral_);
+			return immutable Bool(a.integral_.value == b.integral_.value);
 		case Constant.Kind.null_:
 		case Constant.Kind.void_:
 			return True;

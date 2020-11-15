@@ -460,7 +460,7 @@ void initializeConcreteStruct(Alloc)(
 	// Initially make this a by-ref type, so we don't recurse infinitely when computing size
 	// TODO: is this a bug? We compute the size based on assuming it's a pointer,
 	// then make it not be a pointer and that would change the size?
-	lateSet(res.info_, ConcreteStructInfo(
+	lateSet(res.info_, immutable ConcreteStructInfo(
 		immutable ConcreteStructBody(ConcreteStructBody.Record(emptyArr!ConcreteField)),
 		/*sizeBytes*/ 9999,
 		/*isSelfMutable*/ True,

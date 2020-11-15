@@ -6,13 +6,14 @@ import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.showDiag : strOfParseDiag;
 import model.parseDiag : ParseDiagnostic;
 import util.alloc.globalAlloc : GlobalAlloc;
-import util.collection.arr : Arr;
-import util.collection.str : CStr, NulTerminatedStr, nulTerminatedStrOfCStr;
+import util.collection.arr : Arr, at, size;
+import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, Str;
 import util.ptr : ptrTrustMe_mut;
 import util.sexpr : Sexpr, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
 import util.sourceRange : sexprOfRangeWithinFile;
 import util.sym : AllSymbols;
-import util.writer : Writer;
+import util.util : verify;
+import util.writer : finishWriter, Writer;
 
 // seems to be the required entry point
 extern(C) void _start() {}
@@ -29,7 +30,7 @@ extern(C) immutable(size_t) getBufferSize() {
 	alias Alloc = GlobalAlloc!("getTokens");
 	Alloc alloc;
 	immutable NulTerminatedStr str = nulTerminatedStrOfCStr(cast(immutable) buffer.ptr);
-	immutable CStr result = getTokensAndDiagnosticsJSON(alloc, str);
+	immutable Str result = getTokensAndDiagnosticsJSON(alloc, str);
 	writeResult(result);
 }
 
@@ -52,7 +53,7 @@ immutable(Sexpr) sexprOfParseDiagnostic(Alloc)(ref Alloc alloc, ref immutable Pa
 		"message", tataStr(strOfParseDiag(alloc, a.diag)));
 }
 
-immutable(CStr) getTokensAndDiagnosticsJSON(Alloc)(ref Alloc alloc, ref immutable NulTerminatedStr str) {
+immutable(Str) getTokensAndDiagnosticsJSON(Alloc)(ref Alloc alloc, ref immutable NulTerminatedStr str) {
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, allSymbols, str);
 	immutable Arr!Token tokens = tokensOfAst(alloc, ast.ast);
@@ -87,13 +88,10 @@ immutable(Sexpr) sexprOfAstAndParseDiagnostics(Alloc)(ref Alloc alloc, ref immut
 			sexprOfParseDiagnostic(alloc, it)));
 }
 
-@system void writeResult(immutable(char)* str) {
-	const char* end = buffer.ptr + buffer.length;
-	for (char* ptr = buffer.ptr; ptr < end; ptr++) {
-		immutable char c = *str;
-		*ptr = c;
-		if (c == '\0')
-			break;
-		str++;
+@system void writeResult(immutable Str str) {
+	verify(size(str) < bufferSize);
+	foreach (immutable size_t i; 0..size(str)) {
+		buffer[i] = at(str, i);
 	}
+	buffer[size(str) + 1] = '\0';
 }

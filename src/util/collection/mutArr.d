@@ -4,7 +4,7 @@ module util.collection.mutArr;
 
 import util.bools : Bool;
 import util.collection.arr : Arr, range;
-import util.memory : initMemory, memcpy, overwriteMemory;
+import util.memory : initMemory_mut, memcpy, overwriteMemory;
 import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
 import util.util : verify;
 
@@ -58,7 +58,7 @@ void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T v
 		a.capacity_ = newCapacity;
 	}
 
-	initMemory!T(a.begin_ + a.size_, value);
+	initMemory_mut!T(a.begin_ + a.size_, value);
 	a.size_++;
 	verify(a.size_ <= a.capacity_);
 }

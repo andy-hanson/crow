@@ -31,12 +31,13 @@ import util.collection.arrBuilder : finishArr_immutable;
 import util.collection.arrUtil : filter;
 import util.collection.mutDict : mutDictIsEmpty;
 import util.collection.multiDict : multiDictGetAt;
+import util.memory : nu;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe;
 import util.sym : shortSymAlphaLiteral;
 import util.util : todo, verify;
 
-immutable(ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable Program program) {
+immutable(Ptr!ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	ConcretizeCtx ctx = ConcretizeCtx(
 		getAllocFun(alloc, program),
 		getGetVatAndActorFun(alloc, program),
@@ -54,7 +55,8 @@ immutable(ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable Prog
 	// We remove items from these dicts when we process them.
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
-	return ConcreteProgram(
+	return nu!ConcreteProgram(
+		alloc,
 		finishAllConstants(alloc, ctx.allConstants),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		finishArr_immutable(alloc, ctx.allConcreteFuns),

@@ -30,7 +30,7 @@ immutable(Bool) lateIsSet(T)(ref const Late!T a) {
 	return a.value_;
 }
 
-@trusted void lateSet(T)(ref Late!T a, T value) {
+@trusted void lateSet(T)(ref Late!T a, immutable T value) {
 	verify(!a.lateIsSet);
 	initMemory(&a.value_, value);
 	a.isSet_ = True;

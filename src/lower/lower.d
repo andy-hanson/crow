@@ -100,14 +100,14 @@ import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullInde
 import util.collection.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
 import util.collection.mutDict : getOrAdd, MutDict, ValueAndDidAdd;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
-import util.memory : allocate;
+import util.memory : allocate, nu;
 import util.opt : force, has, mapOption, mapOptionPtr, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.util : unreachable, verify;
 
-immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
+immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a.allStructs);
 	immutable AllConstantsLow allConstants = convertAllConstants(alloc, allTypes.getLowTypeCtx, a.allConstants);
 	immutable AllLowFuns allFuns = getAllLowFuns!Alloc(
@@ -115,7 +115,8 @@ immutable(LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgra
 		allTypes.allTypes,
 		allTypes.getLowTypeCtx,
 		a);
-	immutable LowProgram res = immutable LowProgram(
+	immutable Ptr!LowProgram res = nu!LowProgram(
+		alloc,
 		allConstants,
 		allTypes.allTypes.allExternPtrTypes,
 		allTypes.allTypes.allFunPtrTypes,
@@ -151,11 +152,12 @@ immutable(AllConstantsLow) convertAllConstants(Alloc)(
 	ref GetLowTypeCtx ctx,
 	ref immutable AllConstantsConcrete a,
 ) {
-	immutable Arr!ArrTypeAndConstantsLow arrs = map(alloc, a.arrs, (ref immutable ArrTypeAndConstantsConcrete it) {
-		immutable LowType arrType = lowTypeFromConcreteStruct(alloc, ctx, it.arrType);
-		immutable LowType elementType = lowTypeFromConcreteType(alloc, ctx, it.elementType);
-		return immutable ArrTypeAndConstantsLow(asRecordType(arrType), elementType, it.constants);
-	});
+	immutable Arr!ArrTypeAndConstantsLow arrs =
+		map!ArrTypeAndConstantsLow(alloc, a.arrs, (ref immutable ArrTypeAndConstantsConcrete it) {
+			immutable LowType arrType = lowTypeFromConcreteStruct(alloc, ctx, it.arrType);
+			immutable LowType elementType = lowTypeFromConcreteType(alloc, ctx, it.elementType);
+			return immutable ArrTypeAndConstantsLow(asRecordType(arrType), elementType, it.constants);
+		});
 	immutable Arr!PointerTypeAndConstantsLow records =
 		map(alloc, a.pointers, (ref immutable PointerTypeAndConstantsConcrete it) =>
 			immutable PointerTypeAndConstantsLow(lowTypeFromConcreteStruct(alloc, ctx, it.pointeeType), it.constants));
@@ -588,9 +590,9 @@ immutable(ComparisonTypes) getComparisonTypes(
 	immutable LowType comparisonType,
 ) {
 	immutable LowType.Union comparison = asUnionType(comparisonType);
-	immutable LowUnion unionBody = fullIndexDictGet(allTypes.allUnions, comparison);
+	immutable Arr!LowType members = fullIndexDictGet(allTypes.allUnions, comparison).members;
 	immutable(LowType.Record) getMember(immutable size_t index) {
-		return asRecordType(at(unionBody.members, index));
+		return asRecordType(at(members, index));
 	}
 	return immutable ComparisonTypes(comparison, getMember(0), getMember(1), getMember(2));
 }

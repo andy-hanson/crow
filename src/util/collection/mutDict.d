@@ -47,7 +47,7 @@ ref const(V) mustGetAt_mut(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a, con
 		if (cmp(pair.key, key) == Comparison.equal)
 			return pair.value;
 	unreachable!void(); // TODO: Can't return ref from unreachable?
-	assert(0);
+	return mutArrAt(a.pairs, 0).value;
 }
 
 void setInDict(Alloc, K, V, alias cmp)(ref Alloc alloc, ref MutDict!(K, V, cmp) a, immutable K key, immutable V value) {

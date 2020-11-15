@@ -32,15 +32,17 @@ bin/noze: src/*.d src/*/*.d src/*/*/*.d
 		-I=src/ \
 		-L=-ldl -L=-ldyncall_s
 
-bin/noze.wasm: src/**/*.d
+bin/noze.wasm: src/*.d src/*/*.d src/*/*/*.d
 	# Unfortunately it fails with `undefined symbol: __assert` regardless of the `--checkaction` setting without `--enable-asserts=false`
 	# --static would be nice, but doesn't seem to work: `lld: error: unknown argument: -static`
+	# Need '--boundscheck=off' to avoid `undefined symbol: __assert` on D array access
 	ldc2 \
 		-g \
 		-ofbin/noze.wasm \
 		-mtriple=wasm32-unknown-unknown-wasm \
 		-betterC \
 		--enable-asserts=false \
+		--boundscheck=off \
 		src/wasm.d \
 		src/compiler.d \
 		src/backend/*.d \

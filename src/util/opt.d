@@ -8,8 +8,6 @@ import util.ptr : Ptr, ptrTrustMe;
 import util.util : todo, verify;
 
 struct Opt(T) {
-	static assert(__traits(isPOD, T)); // TODO: handling types with destructors
-
 	private:
 	this(BeNone) {
 		has_ = False;

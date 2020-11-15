@@ -2,8 +2,9 @@ module util.collection.fullIndexDict;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, setAt, size;
+import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, ptrAt, setAt, size;
 import util.collection.arrUtil : mapWithIndex;
+import util.ptr : Ptr;
 import util.types : safeSizeTToU16, safeSizeTToU32;
 
 struct FullIndexDict(K, V) {
@@ -55,6 +56,9 @@ void fullIndexDictEach(K, V)(
 
 ref immutable(V) fullIndexDictGet(K, V)(ref immutable FullIndexDict!(K, V) a, immutable K key) {
 	return at(a.values, key.index);
+}
+immutable(Ptr!V) fullIndexDictGetPtr(K, V)(ref immutable FullIndexDict!(K, V) a, immutable K key) {
+	return ptrAt(a.values, key.index);
 }
 ref const(V) fullIndexDictGet(K, V)(ref const FullIndexDict!(K, V) a, immutable K key) {
 	return at(a.values, key.index);

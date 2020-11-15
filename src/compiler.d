@@ -153,11 +153,11 @@ immutable(DiagsAndResultStrs) printModel(Alloc, SymAlloc, ReadOnlyStorage)(
 ) {
 	alias TempAlloc = Arena!(Alloc, "printModel");
 	TempAlloc tempAlloc = TempAlloc(ptrTrustMe_mut(alloc));
-	immutable Result!(Program, Diagnostics) programResult =
+	immutable Result!(Ptr!Program, Diagnostics) programResult =
 		frontendCompile(tempAlloc, tempAlloc, allSymbols, storage, mainPath);
-	return matchResult!(immutable DiagsAndResultStrs, Program, Diagnostics)(
+	return matchResult!(immutable DiagsAndResultStrs, Ptr!Program, Diagnostics)(
 		programResult,
-		(ref immutable Program program) =>
+		(ref immutable Ptr!Program program) =>
 			immutable DiagsAndResultStrs(emptyStr, showModule(alloc, program.mainModule, format)),
 		(ref immutable Diagnostics diagnostics) =>
 			immutable DiagsAndResultStrs(strOfDiagnostics(alloc, diagnostics), emptyStr));
@@ -172,11 +172,11 @@ immutable(DiagsAndResultStrs) printConcreteModel(Alloc, SymAlloc, ReadOnlyStorag
 ) {
 	alias TempAlloc = Arena!(Alloc, "printModel");
 	TempAlloc tempAlloc = TempAlloc(ptrTrustMe_mut(alloc));
-	immutable Result!(Program, Diagnostics) programResult =
+	immutable Result!(Ptr!Program, Diagnostics) programResult =
 		frontendCompile(tempAlloc, tempAlloc, allSymbols, storage, mainPath);
-	return matchResult!(immutable DiagsAndResultStrs, Program, Diagnostics)(
+	return matchResult!(immutable DiagsAndResultStrs, Ptr!Program, Diagnostics)(
 		programResult,
-		(ref immutable Program program) {
+		(ref immutable Ptr!Program program) {
 			immutable ConcreteProgram concreteProgram = concretize(tempAlloc, program);
 			return immutable DiagsAndResultStrs(emptyStr, showConcreteProgram(alloc, concreteProgram, format));
 		},
@@ -194,13 +194,13 @@ immutable(DiagsAndResultStrs) printLowModel(Alloc, SymAlloc, ReadOnlyStorage)(
 ) {
 	alias TempAlloc = Arena!(Alloc, "printModel");
 	TempAlloc tempAlloc = TempAlloc(ptrTrustMe_mut(alloc));
-	immutable Result!(Program, Diagnostics) programResult =
+	immutable Result!(Ptr!Program, Diagnostics) programResult =
 		frontendCompile(tempAlloc, tempAlloc, allSymbols, storage, mainPath);
-	return matchResultImpure!(immutable DiagsAndResultStrs, Program, Diagnostics)(
+	return matchResultImpure!(immutable DiagsAndResultStrs, Ptr!Program, Diagnostics)(
 		programResult,
-		(ref immutable Program program) {
+		(ref immutable Ptr!Program program) {
 			immutable ConcreteProgram concreteProgram = concretize(tempAlloc, program);
-			immutable LowProgram lowProgram = lower(tempAlloc, concreteProgram);
+			immutable Ptr!LowProgram lowProgram = lower(tempAlloc, concreteProgram);
 			return immutable DiagsAndResultStrs(emptyStr, showLowProgram(alloc, lowProgram, format));
 		},
 		(ref immutable Diagnostics diagnostics) =>
@@ -250,9 +250,9 @@ public immutable(Result!(Str, Str)) buildToC(Alloc, SymAlloc, ReadOnlyStorage)(
 }
 
 struct ProgramsAndFilesInfo {
-	immutable Program program;
-	immutable ConcreteProgram concreteProgram;
-	immutable LowProgram lowProgram;
+	immutable Ptr!Program program;
+	immutable Ptr!ConcreteProgram concreteProgram;
+	immutable Ptr!LowProgram lowProgram;
 	immutable FilesInfo filesInfo;
 }
 
@@ -264,12 +264,12 @@ immutable(Result!(ProgramsAndFilesInfo, Diagnostics)) buildToLowProgram(Alloc, S
 ) {
 	alias AstsAlloc = Arena!(Alloc, "asts");
 	AstsAlloc astsAlloc = AstsAlloc(ptrTrustMe_mut(alloc));
-	immutable Result!(Program, Diagnostics) programResult =
+	immutable Result!(Ptr!Program, Diagnostics) programResult =
 		frontendCompile(alloc, astsAlloc, allSymbols, storage, mainPath);
-	return mapSuccess!(ProgramsAndFilesInfo, Program, Diagnostics)(
+	return mapSuccess!(ProgramsAndFilesInfo, Ptr!Program, Diagnostics)(
 		programResult,
-		(ref immutable Program program) {
-			immutable ConcreteProgram concreteProgram = concretize(alloc, program);
+		(ref immutable Ptr!Program program) {
+			immutable Ptr!ConcreteProgram concreteProgram = concretize(alloc, program);
 			return immutable ProgramsAndFilesInfo(
 				program,
 				concreteProgram,

@@ -555,7 +555,7 @@ void writeSexprBool(Alloc)(ref Writer!Alloc writer, ref immutable Bool s) {
 }
 
 immutable(int) measureSexprInt(immutable SexprInt s) {
-	uint recur(immutable uint size, immutable size_t a) {
+	uint recur(immutable uint size, immutable ulong a) {
 		return a == 0 ? 0 : recur(size + 1, a / s.base);
 	}
 	return (s.value < 0 ? 1 : 0) + recur(1, abs(s.value) / s.base);

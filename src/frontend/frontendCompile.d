@@ -36,6 +36,7 @@ import util.collection.mutIndexDict : mustGetAt;
 import util.collection.str : NulTerminatedStr, stripNulTerminator;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
+import util.memory : nu;
 import util.opt : force, has, mapOption, Opt, none, some;
 import util.path :
 	copyPath,
@@ -60,7 +61,7 @@ import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
 import util.types : safeSizeTToU16;
 import util.util : unreachable, verify;
 
-immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, AstsAlloc, SymAlloc, ReadOnlyStorage)(
+immutable(Result!(Ptr!Program, Diagnostics)) frontendCompile(ModelAlloc, AstsAlloc, SymAlloc, ReadOnlyStorage)(
 	ref ModelAlloc modelAlloc,
 	ref AstsAlloc astsAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
@@ -71,10 +72,10 @@ immutable(Result!(Program, Diagnostics)) frontendCompile(ModelAlloc, AstsAlloc, 
 	immutable ParsedEverything parsed = parseEverything(modelAlloc, allSymbols, storage, main, astsAlloc);
 	immutable FilesInfo filesInfo =
 		immutable FilesInfo(parsed.filePaths, storage.absolutePathsGetter(), parsed.lineAndColumnGetters);
-	immutable Result!(Program, Diags) res = empty(parsed.diagnostics)
+	immutable Result!(Ptr!Program, Diags) res = empty(parsed.diagnostics)
 		? checkEverything(modelAlloc, parsed.asts, filesInfo, parsed.commonModuleIndices)
-		: fail!(Program, Diags)(parsed.diagnostics);
-	return mapFailure!(Diagnostics, Program, Diags)(res, (ref immutable Diags diagnostics) =>
+		: fail!(Ptr!Program, Diags)(parsed.diagnostics);
+	return mapFailure!(Diagnostics, Ptr!Program, Diags)(res, (ref immutable Diags diagnostics) =>
 		immutable Diagnostics(diagnostics, filesInfo));
 }
 
@@ -586,7 +587,7 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 		(ref immutable Arr!(Ptr!Module) modules) => immutable ModulesAndCommonTypes(modules, commonTypes.lateGet));
 }
 
-immutable(Result!(Program, Diags)) checkEverything(ModelAlloc)(
+immutable(Result!(Ptr!Program, Diags)) checkEverything(ModelAlloc)(
 	ref ModelAlloc modelAlloc,
 	ref immutable Arr!AstAndResolvedImports allAsts,
 	ref immutable FilesInfo filesInfo,
@@ -601,7 +602,8 @@ immutable(Result!(Program, Diags)) checkEverything(ModelAlloc)(
 		immutable Ptr!StructDecl ctxStructDecl =
 			bootstrapModule.structsAndAliasesMap.mustGetAt(shortSymAlphaLiteral("ctx")).asStructDecl;
 		immutable Ptr!StructInst ctxStructInst = instantiateNonTemplateStruct(modelAlloc, programState, ctxStructDecl);
-		return immutable Program(
+		return nu!Program(
+			modelAlloc,
 			filesInfo,
 			at(modules, moduleIndices.alloc.index),
 			bootstrapModule,

@@ -21,35 +21,39 @@ alias ssize_t = long;
 
 struct NatN(T) {
 	immutable(NatN!T) opBinary(string op)(immutable NatN!T b) const {
-		static if (op == "+") {
-			// TODO: this will fail to detect overflow for Nat64
-			immutable size_t res = (cast(immutable size_t) value) + (cast(immutable size_t) b.value);
-			verify(res <= T.max);
-			return immutable NatN!T(cast(immutable T) res);
-		} else static if (op == "-") {
-			verify(value >= b.value);
-			return immutable NatN!T(cast(immutable T) (value - b.value));
-		} else static if (op == "*") {
-			// TODO: this will fail to detect overflow for Nat64
-			immutable size_t res = (cast(immutable size_t) value) * (cast(immutable size_t) b.value);
-			verify(res <= T.max);
-			return immutable NatN!T(cast(immutable T) res);
-		} else static if (op == "/") {
-			verify(b.value != 0);
-			return immutable NatN!T(value / b.value);
-		} else static if (op == "%") {
-			verify(b.value != 0);
-			return immutable NatN!T(value % b.value);
-		} else static if (op == "&") {
-			return immutable NatN!T(value & b.value);
-		} else static if (op == "|") {
-			return immutable NatN!T(value | b.value);
-		} else static if (op == "<<") {
+		// Can't use '==' to compare strings due to https://github.com/ldc-developers/ldc/issues/3615
+		static if (op.length == 1) {
+			static if (op[0] == '+') {
+				// TODO: this will fail to detect overflow for Nat64
+				immutable size_t res = (cast(immutable size_t) value) + (cast(immutable size_t) b.value);
+				verify(res <= T.max);
+				return immutable NatN!T(cast(immutable T) res);
+			} else static if (op[0] == '-') {
+				verify(value >= b.value);
+				return immutable NatN!T(cast(immutable T) (value - b.value));
+			} else static if (op[0] == '*') {
+				// TODO: this will fail to detect overflow for Nat64
+				immutable size_t res = (cast(immutable size_t) value) * (cast(immutable size_t) b.value);
+				verify(res <= T.max);
+				return immutable NatN!T(cast(immutable T) res);
+			} else static if (op[0] == '/') {
+				verify(b.value != 0);
+				return immutable NatN!T(value / b.value);
+			} else static if (op[0] == '%') {
+				verify(b.value != 0);
+				return immutable NatN!T(value % b.value);
+			} else static if (op[0] == '&') {
+				return immutable NatN!T(value & b.value);
+			} else static if (op[0] == '|') {
+				return immutable NatN!T(value | b.value);
+			} else
+				static assert(0, "Operator "~op~" not implemented");
+		} else static if (op.length == 2 && op[0] == '<' && op[1] == '<') {
 			// TODO: this will fail to detect overflow for Nat64
 			immutable size_t res = (cast(immutable size_t) value) << (cast(immutable size_t) b.value);
 			verify(res <= T.max);
 			return immutable NatN!T(cast(immutable T) res);
-		} else static if (op == ">>") {
+		} else static if (op.length == 2 && op[0] == '>' && op[1] == '>') {
 			return immutable NatN!T(value >> b.value);
 		} else
 			static assert(0, "Operator "~op~" not implemented");
@@ -67,10 +71,10 @@ struct NatN(T) {
 		value = opBinary!op(b).value;
 	}
 	void opOpAssign(string op)(immutable int b) {
-		static if (op == "+") {
+		static if (op.length == 1 && op[0] == '+') {
 			// TODO: detect overflow
 			value = cast(immutable T) (value + b);
-		} else static if (op == "-") {
+		} else static if (op.length == 1 && op[0] == '-') {
 			// TODO: detect overflow
 			value = cast(immutable T) (value - b);
 		} else
@@ -134,7 +138,7 @@ struct IntN(T) {
 	@safe @nogc pure nothrow:
 
 	immutable(IntN!T) opBinary(string op)(immutable IntN!T b) const {
-		static if (op == "-") {
+		static if (op.length == 1 && op[0] == '-') {
 			// TODO: check for overflow
 			return immutable IntN!T(cast(immutable T) (value - b.value));
 		} else {
@@ -244,7 +248,7 @@ immutable(size_t) safeSizeTFromSSizeT(immutable ssize_t s) {
 	return cast(size_t) s;
 }
 
-immutable(size_t) abs(immutable ssize_t s) {
+immutable(u64) abs(immutable i64 s) {
 	return s < 0 ? -s : s;
 }
 

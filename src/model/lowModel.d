@@ -43,8 +43,6 @@ struct LowUnion {
 }
 
 struct LowFunPtrType {
-	@safe @nogc pure nothrow:
-
 	immutable Ptr!ConcreteStruct source;
 	immutable LowType returnType;
 	immutable Arr!LowType paramTypes;
@@ -321,6 +319,13 @@ struct LowLocalSource {
 
 
 struct LowLocal {
+	@safe @nogc pure nothrow:
+	@disable this(ref const LowLocal);
+	immutable this(immutable LowLocalSource s, immutable LowType t) {
+		source = s;
+		type = t;
+	}
+
 	immutable LowLocalSource source;
 	immutable LowType type;
 }
@@ -419,6 +424,23 @@ struct LowFunParamsKind {
 }
 
 struct LowFun {
+	@safe @nogc pure nothrow:
+
+	@disable this(ref const LowFun);
+	immutable this(
+		immutable LowFunSource s,
+		immutable LowType r,
+		immutable LowFunParamsKind pk,
+		immutable Arr!LowParam pm,
+		immutable LowFunBody b,
+	) {
+		source = s;
+		returnType = r;
+		paramsKind = pk;
+		params = pm;
+		body_ = b;
+	}
+
 	immutable LowFunSource source;
 	immutable LowType returnType;
 	immutable LowFunParamsKind paramsKind;
@@ -820,12 +842,26 @@ immutable(Bool) isRecordFieldAccess(ref immutable LowExprKind a) {
 }
 
 struct ArrTypeAndConstantsLow {
+	@safe @nogc pure nothrow:
+
+	@disable this(ref const ArrTypeAndConstantsLow);
+	immutable this(immutable LowType.Record a, immutable LowType e, immutable Arr!(Arr!Constant) c) {
+		arrType = a; elementType = e; constants = c;
+	}
+
 	immutable LowType.Record arrType;
 	immutable LowType elementType;
 	immutable Arr!(Arr!Constant) constants;
 }
 
 struct PointerTypeAndConstantsLow {
+	@safe @nogc pure nothrow:
+
+	@disable this(ref const PointerTypeAndConstantsLow);
+	immutable this(immutable LowType p, immutable Arr!(Ptr!Constant) c) {
+		pointeeType = p; constants = c;
+	}
+
 	immutable LowType pointeeType;
 	immutable Arr!(Ptr!Constant) constants;
 }
@@ -838,6 +874,27 @@ struct AllConstantsLow {
 }
 
 struct LowProgram {
+	@safe @nogc pure nothrow:
+
+	@disable this(ref const LowProgram);
+	immutable this(
+		immutable AllConstantsLow ac,
+		immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) ae,
+		immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) aft,
+		immutable FullIndexDict!(LowType.Record, LowRecord) ar,
+		immutable FullIndexDict!(LowType.Union, LowUnion) au,
+		immutable FullIndexDict!(LowFunIndex, LowFun) af,
+		immutable LowFunIndex m,
+	) {
+		allConstants = ac;
+		allExternPtrTypes = ae;
+		allFunPtrTypes = aft;
+		allRecords = ar;
+		allUnions = au;
+		allFuns = af;
+		main = m;
+	}
+
 	immutable AllConstantsLow allConstants;
 	immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) allExternPtrTypes;
 	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;

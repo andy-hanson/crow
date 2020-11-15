@@ -121,7 +121,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 	immutable Nat64 value,
 	immutable Arr!ByteCodeOffsetUnsigned offsets,
 ) {
-	immutable ByteCodeOffsetUnsigned offset = at(offsets, value.raw());
+	immutable ByteCodeOffsetUnsigned offset = at(offsets, cast(immutable size_t) value.raw());
 	// Jump is relative to after value.
 	immutable Nat16 fullOffset = (incr(value) * immutable Nat64(ByteCodeOffsetUnsigned.sizeof)).to16() + offset.offset;
 	readerJump(reader, immutable ByteCodeOffset(fullOffset.toInt16()));

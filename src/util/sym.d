@@ -270,7 +270,7 @@ immutable(u64) packAlphaIdentifier(immutable Str str) {
 	u64 res = 0;
 	foreach (immutable size_t i; 0..12) {
 		immutable Bool is6Bit = i < 2;
-		immutable size_t value = () {
+		immutable u64 value = () {
 			if (i < size(str)) {
 				immutable char c = at(str, size(str) - 1 - i);
 				return is6Bit ? packAlphaChar6(c) : packAlphaChar5(c);

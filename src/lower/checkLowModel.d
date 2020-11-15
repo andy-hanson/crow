@@ -17,19 +17,17 @@ import model.lowModel :
 	LowFunPtrType,
 	LowParam,
 	LowProgram,
-	LowRecord,
 	LowType,
 	lowTypeEqual,
-	LowUnion,
 	matchLowExprKind,
 	matchLowFunBody,
 	matchLowType,
 	PrimitiveType,
 	symOfPrimitiveType;
 import model.sexprOfConcreteModel : tataOfConcreteStructRef;
-import util.collection.arr : at, sizeEq;
+import util.collection.arr : Arr, at, sizeEq;
 import util.collection.arrUtil : tail, zip;
-import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet;
+import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe;
 import util.sexpr : Sexpr, tataRecord, tataSym;
@@ -68,7 +66,7 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 	matchLowExprKind(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
-			immutable LowFun fun = fullIndexDictGet(ctx.ctx.program.allFuns, it.called);
+			immutable Ptr!LowFun fun = fullIndexDictGetPtr(ctx.ctx.program.allFuns, it.called);
 			checkTypeEqual(ctx.ctx, type, fun.returnType);
 			verify(sizeEq(fun.params, it.args));
 			zip(fun.params, it.args, (ref immutable LowParam param, ref immutable LowExpr arg) {
@@ -76,20 +74,21 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 			});
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
-			immutable LowRecord record = fullIndexDictGet(ctx.ctx.program.allRecords, asRecordType(type));
-			verify(sizeEq(record.fields, it.args));
-			zip(record.fields, it.args, (ref immutable LowField field, ref immutable LowExpr arg) {
+			immutable Arr!LowField fields = fullIndexDictGet(ctx.ctx.program.allRecords, asRecordType(type)).fields;
+			zip(fields, it.args, (ref immutable LowField field, ref immutable LowExpr arg) {
 				checkLowExpr(ctx, field.type, arg);
 			});
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
-			immutable LowUnion union_ = fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(type));
-			immutable LowType member = at(union_.members, it.memberIndex);
+			immutable LowType member = at(
+				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(type)).members,
+				it.memberIndex);
 			checkLowExpr(ctx, member, it.arg);
 		},
 		(ref immutable LowExprKind.FunPtr it) {
-			immutable LowFun fun = fullIndexDictGet(ctx.ctx.program.allFuns, it.fun);
-			immutable LowFunPtrType funType = fullIndexDictGet(ctx.ctx.program.allFunPtrTypes, asFunPtrType(type));
+			immutable Ptr!LowFun fun = fullIndexDictGetPtr(ctx.ctx.program.allFuns, it.fun);
+			immutable Ptr!LowFunPtrType funType =
+				fullIndexDictGetPtr(ctx.ctx.program.allFunPtrTypes, asFunPtrType(type));
 			verify(sizeEq(fun.params, funType.paramTypes));
 			size_t index = 0;
 			zip(fun.params, funType.paramTypes, (ref immutable LowParam param, ref immutable LowType paramType) {
@@ -110,10 +109,8 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 		},
 		(ref immutable LowExprKind.Match it) {
 			checkLowExpr(ctx, it.matchedLocal.type, it.matchedValue);
-			immutable LowUnion union_ = fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(it.matchedLocal.type));
-			verify(sizeEq(union_.members, it.cases));
 			zip(
-				union_.members,
+				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(it.matchedLocal.type)).members,
 				it.cases,
 				(ref immutable LowType memberType, ref immutable LowExprKind.Match.Case case_) {
 					if (has(case_.local))
@@ -181,8 +178,8 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 			final switch (it.kind) {
 				case LowExprKind.SpecialNAry.Kind.callFunPtr:
 					immutable LowExpr funPtr = at(it.args, 0);
-					immutable LowFunPtrType funPtrType =
-						fullIndexDictGet(ctx.ctx.program.allFunPtrTypes, asFunPtrType(funPtr.type));
+					immutable Ptr!LowFunPtrType funPtrType =
+						fullIndexDictGetPtr(ctx.ctx.program.allFunPtrTypes, asFunPtrType(funPtr.type));
 					checkTypeEqual(ctx.ctx, type, funPtrType.returnType);
 					verify(sizeEq(funPtrType.paramTypes, tail(it.args)));
 					zip(
