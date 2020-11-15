@@ -5,7 +5,6 @@ module test.testSym;
 import test.testUtil : Test;
 import util.collection.str : strLiteral, strEqLiteral;
 import util.opt : force, has, Opt;
-import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols, isLongSym, strOfSym, Sym, symEq, tryGetSymFromStr;
 import util.util : verify;
 

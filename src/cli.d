@@ -1,6 +1,15 @@
 module cli;
 
-import compiler : buildAndInterpret, buildToC, getAbsolutePathFromStorage, print, PrintKind;
+import core.stdc.stdio : fprintf, printf, stderr;
+
+import compiler :
+	buildAndInterpret,
+	buildToC,
+	DiagsAndResultStrs,
+	getAbsolutePathFromStorage,
+	print,
+	PrintFormat,
+	PrintKind;
 import frontend.lang : nozeExtension;
 import io.io :
 	CommandLineArgs,
@@ -10,13 +19,13 @@ import io.io :
 	replaceCurrentProcess,
 	spawnAndWaitSync,
 	writeFileSync;
+import io.mallocator : Mallocator;
 import io.realExtern : newRealExtern, RealExtern;
 import io.realReadOnlyStorage : RealReadOnlyStorage;
 import test.test : test;
 import util.alloc.arena : Arena;
-import util.alloc.mallocator : Mallocator;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, emptyArr, first, only, size;
+import util.collection.arr : Arr, at, begin, empty, emptyArr, first, only, size;
 import util.collection.arrUtil : arrLiteral, cat, slice, tail;
 import util.collection.str : CStr, emptyStr, endsWith, Str, strLiteral, strEqLiteral;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
@@ -32,9 +41,7 @@ import util.path :
 	rootPath,
 	withExtension;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.print : print, printErr;
 import util.result : matchResultImpure, Result;
-import util.sexprPrint : PrintFormat;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
 import util.util : todo, unreachable;
 
@@ -80,7 +87,11 @@ immutable(int) go(Alloc, SymAlloc)(
 		(ref immutable Command.Print it) {
 			RealReadOnlyStorage!Alloc storage =
 				RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, it.programDirAndMain.programDir);
-			return print(alloc, allSymbols, storage, it.kind, it.format, it.programDirAndMain.mainPath);
+			immutable DiagsAndResultStrs printed =
+				print(alloc, allSymbols, storage, it.kind, it.format, it.programDirAndMain.mainPath);
+			if (!empty(printed.diagnostics)) printErr(printed.diagnostics);
+			if (!empty(printed.result)) print(printed.result);
+			return empty(printed.diagnostics) ? 0 : 1;
 		},
 		(ref immutable Command.Run it) {
 			RealReadOnlyStorage!Alloc storage =
@@ -228,6 +239,18 @@ void compileC(Alloc)(
 	immutable int err = spawnAndWaitSync(alloc, cCompiler, args, environ);
 	if (err != 0)
 		todo!void("C compile error");
+}
+
+@trusted void print(immutable Str a) {
+	printf("%.*s", cast(int) size(a), begin(a));
+}
+
+void print(immutable string a) {
+	print(strLiteral(a));
+}
+
+@trusted void printErr(immutable Str a) {
+	fprintf(stderr, "%.*s", cast(int) size(a), begin(a));
 }
 
 pure:

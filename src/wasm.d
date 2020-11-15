@@ -12,7 +12,7 @@ import util.ptr : ptrTrustMe_mut;
 import util.sexpr : Sexpr, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
 import util.sourceRange : sexprOfRangeWithinFile;
 import util.sym : AllSymbols;
-import util.writer : finishWriterToCStr, Writer;
+import util.writer : Writer;
 
 // seems to be the required entry point
 extern(C) void _start() {}
@@ -64,7 +64,7 @@ immutable(CStr) getTokensAndDiagnosticsJSON(Alloc)(ref Alloc alloc, ref immutabl
 			sexprOfParseDiagnostic(alloc, it)));
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	writeSexprJSON(writer, sexpr);
-	return finishWriterToCStr(writer);
+	return finishWriter(writer);
 }
 
 immutable size_t bufferSize = 1024 * 1024;
@@ -75,7 +75,7 @@ char[bufferSize] buffer;
 	immutable Sexpr sexpr = sexprOfAstAndParseDiagnostics(alloc, ast);
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	writeSexprJSON(writer, sexpr);
-	writeResult(finishWriterToCStr(writer));
+	writeResult(finishWriter(writer));
 }
 
 immutable(Sexpr) sexprOfAstAndParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable FileAstAndParseDiagnostics a) {

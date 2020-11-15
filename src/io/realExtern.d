@@ -5,10 +5,10 @@ module io.realExtern;
 // import core.sys.linux.sys.sysinfo : get_nprocs;
 import core.sys.posix.unistd : posixWrite = write;
 
+import io.mallocator : Mallocator;
 import interpret.allocTracker : AllocTracker;
 import interpret.applyFn : nat64OfI32, nat64OfI64;
 import interpret.bytecode : DynCallType;
-import util.alloc.mallocator : Mallocator;
 import util.bools : Bool;
 import util.collection.arr : Arr;
 import util.collection.arrUtil : zipImpureSystem;

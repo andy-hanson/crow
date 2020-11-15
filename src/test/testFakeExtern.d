@@ -6,7 +6,6 @@ import interpret.fakeExtern : FakeExtern, newFakeExtern;
 import test.testUtil : Test;
 import util.collection.arr : empty;
 import util.collection.str : strEqLiteral;
-import util.ptr : ptrTrustMe_mut;
 import util.types : u8;
 import util.util : verify;
 

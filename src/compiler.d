@@ -21,16 +21,19 @@ import model.sexprOfConcreteModel : tataOfConcreteProgram;
 import model.sexprOfLowModel : tataOfLowProgram;
 import model.sexprOfModel : sexprOfModule;
 import util.alloc.arena : Arena;
-import util.collection.arr : Arr, empty;
-import util.collection.str : Str;
+import util.collection.arr : Arr, begin, size;
+import util.collection.str : emptyStr, Str;
 import util.path : AbsolutePath, Path, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.print : printErr;
 import util.result : fail, mapSuccess, matchResult, matchResultImpure, Result, success;
-import util.sexprPrint : PrintFormat, printOutSexpr;
+import util.sexpr : Sexpr, writeSexpr, writeSexprJSON;
 import util.sym : AllSymbols;
+import util.writer : finishWriter, Writer;
 
-// These return program exit codes
+enum PrintFormat {
+	sexpr,
+	json,
+}
 
 enum PrintKind {
 	tokens,
@@ -40,7 +43,12 @@ enum PrintKind {
 	lowModel,
 }
 
-immutable(int) print(Alloc, SymAlloc, ReadOnlyStorage)(
+struct DiagsAndResultStrs {
+	immutable Str diagnostics;
+	immutable Str result;
+}
+
+immutable(DiagsAndResultStrs) print(Alloc, SymAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref ReadOnlyStorage storage,
@@ -61,6 +69,8 @@ immutable(int) print(Alloc, SymAlloc, ReadOnlyStorage)(
 			return printLowModel(alloc, allSymbols, storage, mainPath, format);
 	}
 }
+
+// These return program exit codes
 
 immutable(int) buildAndInterpret(Alloc, SymAlloc, ReadOnlyStorage, Extern)(
 	ref Alloc alloc,
@@ -90,14 +100,24 @@ immutable(int) buildAndInterpret(Alloc, SymAlloc, ReadOnlyStorage, Extern)(
 				programArgs);
 		},
 		(ref immutable Diagnostics diagnostics) {
-			printDiagnostics(alloc, diagnostics);
+			writeDiagsToExtern(alloc, extern_, diagnostics);
 			return 1;
 		});
 }
 
 private:
 
-immutable(int) printTokens(Alloc, SymAlloc, ReadOnlyStorage)(
+@trusted void writeDiagsToExtern(Alloc, Extern)(
+	ref Alloc alloc,
+	ref Extern extern_,
+	ref immutable Diagnostics diagnostics,
+) {
+	immutable int stderr = 2;
+	immutable Str s = strOfDiagnostics(alloc, diagnostics);
+	extern_.write(stderr, begin(s), size(s));
+}
+
+immutable(DiagsAndResultStrs) printTokens(Alloc, SymAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref ReadOnlyStorage storage,
@@ -105,13 +125,13 @@ immutable(int) printTokens(Alloc, SymAlloc, ReadOnlyStorage)(
 	immutable PrintFormat format,
 ) {
 	immutable FileAstAndDiagnostics astResult = parseSingleAst(alloc, allSymbols, storage, mainPath);
-	printDiagnostics(alloc, astResult.diagnostics);
 	immutable Arr!Token tokens = tokensOfAst(alloc, astResult.ast);
-	printOutSexpr(alloc, sexprOfTokens(alloc, tokens), format);
-	return empty(astResult.diagnostics.diagnostics) ? 0 : 1;
+	return immutable DiagsAndResultStrs(
+		strOfDiagnostics(alloc, astResult.diagnostics),
+		showSexpr(alloc, sexprOfTokens(alloc, tokens), format));
 }
 
-immutable(int) printAst(Alloc, SymAlloc, ReadOnlyStorage)(
+immutable(DiagsAndResultStrs) printAst(Alloc, SymAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref ReadOnlyStorage storage,
@@ -119,12 +139,12 @@ immutable(int) printAst(Alloc, SymAlloc, ReadOnlyStorage)(
 	immutable PrintFormat format,
 ) {
 	immutable FileAstAndDiagnostics astResult = parseSingleAst(alloc, allSymbols, storage, mainPath);
-	printDiagnostics(alloc, astResult.diagnostics);
-	printOutAst(alloc, astResult.ast, format);
-	return empty(astResult.diagnostics.diagnostics) ? 0 : 1;
+	return immutable DiagsAndResultStrs(
+		strOfDiagnostics(alloc, astResult.diagnostics),
+		showAst(alloc, astResult.ast, format));
 }
 
-immutable(int) printModel(Alloc, SymAlloc, ReadOnlyStorage)(
+immutable(DiagsAndResultStrs) printModel(Alloc, SymAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref ReadOnlyStorage storage,
@@ -135,19 +155,15 @@ immutable(int) printModel(Alloc, SymAlloc, ReadOnlyStorage)(
 	TempAlloc tempAlloc = TempAlloc(ptrTrustMe_mut(alloc));
 	immutable Result!(Program, Diagnostics) programResult =
 		frontendCompile(tempAlloc, tempAlloc, allSymbols, storage, mainPath);
-	return matchResultImpure!(int, Program, Diagnostics)(
+	return matchResult!(immutable DiagsAndResultStrs, Program, Diagnostics)(
 		programResult,
-		(ref immutable Program program) {
-			printOutModule(alloc, program.mainModule, format);
-			return 0;
-		},
-		(ref immutable Diagnostics diagnostics) {
-			printDiagnostics(alloc, diagnostics);
-			return 1;
-		});
+		(ref immutable Program program) =>
+			immutable DiagsAndResultStrs(emptyStr, showModule(alloc, program.mainModule, format)),
+		(ref immutable Diagnostics diagnostics) =>
+			immutable DiagsAndResultStrs(strOfDiagnostics(alloc, diagnostics), emptyStr));
 }
 
-immutable(int) printConcreteModel(Alloc, SymAlloc, ReadOnlyStorage)(
+immutable(DiagsAndResultStrs) printConcreteModel(Alloc, SymAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref ReadOnlyStorage storage,
@@ -158,21 +174,18 @@ immutable(int) printConcreteModel(Alloc, SymAlloc, ReadOnlyStorage)(
 	TempAlloc tempAlloc = TempAlloc(ptrTrustMe_mut(alloc));
 	immutable Result!(Program, Diagnostics) programResult =
 		frontendCompile(tempAlloc, tempAlloc, allSymbols, storage, mainPath);
-	return matchResultImpure!(int, Program, Diagnostics)(
+	return matchResult!(immutable DiagsAndResultStrs, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
 			immutable ConcreteProgram concreteProgram = concretize(tempAlloc, program);
-			printOutConcreteProgram(tempAlloc, concreteProgram, format);
-			return 0;
+			return immutable DiagsAndResultStrs(emptyStr, showConcreteProgram(alloc, concreteProgram, format));
 		},
-		(ref immutable Diagnostics diagnostics) {
-			printDiagnostics(tempAlloc, diagnostics);
-			return 1;
-		});
+		(ref immutable Diagnostics diagnostics) =>
+			immutable DiagsAndResultStrs(strOfDiagnostics(alloc, diagnostics), emptyStr));
 
 }
 
-immutable(int) printLowModel(Alloc, SymAlloc, ReadOnlyStorage)(
+immutable(DiagsAndResultStrs) printLowModel(Alloc, SymAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref ReadOnlyStorage storage,
@@ -183,34 +196,39 @@ immutable(int) printLowModel(Alloc, SymAlloc, ReadOnlyStorage)(
 	TempAlloc tempAlloc = TempAlloc(ptrTrustMe_mut(alloc));
 	immutable Result!(Program, Diagnostics) programResult =
 		frontendCompile(tempAlloc, tempAlloc, allSymbols, storage, mainPath);
-	return matchResultImpure!(int, Program, Diagnostics)(
+	return matchResultImpure!(immutable DiagsAndResultStrs, Program, Diagnostics)(
 		programResult,
 		(ref immutable Program program) {
 			immutable ConcreteProgram concreteProgram = concretize(tempAlloc, program);
 			immutable LowProgram lowProgram = lower(tempAlloc, concreteProgram);
-			printOutLowProgram(tempAlloc, lowProgram, format);
-			return 0;
+			return immutable DiagsAndResultStrs(emptyStr, showLowProgram(alloc, lowProgram, format));
 		},
-		(ref immutable Diagnostics diagnostics) {
-			printDiagnostics(tempAlloc, diagnostics);
-			return 1;
-		});
+		(ref immutable Diagnostics diagnostics) =>
+			immutable DiagsAndResultStrs(strOfDiagnostics(tempAlloc, diagnostics), emptyStr));
 }
 
-void printOutAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast, immutable PrintFormat format) {
-	printOutSexpr(alloc, sexprOfAst(alloc, ast), format);
+//TODO:INLINE
+immutable(Str) showAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast, immutable PrintFormat format) {
+	return showSexpr(alloc, sexprOfAst(alloc, ast), format);
 }
 
-void printOutModule(Alloc)(ref Alloc alloc, ref immutable Module a, immutable PrintFormat format) {
-	printOutSexpr(alloc, sexprOfModule(alloc, a), format);
+//TODO:INLINE
+immutable(Str) showModule(Alloc)(ref Alloc alloc, ref immutable Module a, immutable PrintFormat format) {
+	return showSexpr(alloc, sexprOfModule(alloc, a), format);
 }
 
-void printOutConcreteProgram(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a, immutable PrintFormat format) {
-	printOutSexpr(alloc, tataOfConcreteProgram(alloc, a), format);
+//TODO:INLINE
+immutable(Str) showConcreteProgram(Alloc)(
+	ref Alloc alloc,
+	ref immutable ConcreteProgram a,
+	immutable PrintFormat format,
+) {
+	return showSexpr(alloc, tataOfConcreteProgram(alloc, a), format);
 }
 
-void printOutLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a, immutable PrintFormat format) {
-	printOutSexpr(alloc, tataOfLowProgram(alloc, a), format);
+//TODO:INLINE
+immutable(Str) showLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a, immutable PrintFormat format) {
+	return showSexpr(alloc, tataOfLowProgram(alloc, a), format);
 }
 
 public immutable(Result!(Str, Str)) buildToC(Alloc, SymAlloc, ReadOnlyStorage)(
@@ -260,10 +278,6 @@ immutable(Result!(ProgramsAndFilesInfo, Diagnostics)) buildToLowProgram(Alloc, S
 		});
 }
 
-void printDiagnostics(Alloc)(ref Alloc alloc, ref immutable Diagnostics diagnostics) {
-	printErr(strOfDiagnostics(alloc, diagnostics));
-}
-
 public immutable(AbsolutePath) getAbsolutePathFromStorage(Alloc, Storage)(
 	ref Alloc alloc,
 	ref Storage storage,
@@ -273,4 +287,17 @@ public immutable(AbsolutePath) getAbsolutePathFromStorage(Alloc, Storage)(
 	immutable AbsolutePathsGetter abs = storage.absolutePathsGetter();
 	immutable PathAndStorageKind pk = immutable PathAndStorageKind(path, StorageKind.local);
 	return getAbsolutePath(alloc, abs, pk, extension);
+}
+
+immutable(Str) showSexpr(Alloc)(ref Alloc alloc, immutable Sexpr a, immutable PrintFormat format) {
+	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	final switch (format) {
+		case PrintFormat.sexpr:
+			writeSexpr(writer, a);
+			break;
+		case PrintFormat.json:
+			writeSexprJSON(writer, a);
+			break;
+	}
+	return finishWriter(writer);
 }

@@ -30,7 +30,6 @@ import interpret.externAlloc : ExternAlloc;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
-import util.alloc.arena : Arena;
 import util.bools : Bool, False;
 import util.collection.arr : Arr, begin, freeArr, ptrAt, range, sizeNat;
 import util.collection.arrUtil : mapWithFirst, zipSystem;
@@ -58,7 +57,6 @@ import util.memory : allocate, overwriteMemory;
 import util.opt : has;
 import util.path : AbsolutePath, pathToCStr;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
-import util.print : print;
 import util.sexpr : writeSexprNoNewline;
 import util.sourceRange : FileAndPos;
 import util.types : decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, u8, u16, u32, u64, zero;
@@ -264,7 +262,8 @@ immutable(StepResult) step(TempAlloc, Extern)(ref TempAlloc tempAlloc, ref Inter
 			Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 			showStack(writer, a);
 			showReturnStack(writer, a);
-			print(finishWriter(writer));
+			//print()
+			finishWriter(writer);
 		}
 	}
 	immutable Operation operation = readOperation(a.reader);
@@ -282,7 +281,8 @@ immutable(StepResult) step(TempAlloc, Extern)(ref TempAlloc tempAlloc, ref Inter
 				writeChar(writer, ')');
 			}
 			writeChar(writer, '\n');
-			print(finishWriter(writer));
+			//print()
+			finishWriter(writer);
 		}
 	}
 
@@ -421,7 +421,8 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 			writeStatic(writer, "accessing potentially invalid pointer: ");
 			writePtrRange(writer, ptrRange);
 			writePtrRanges(writer, a);
-			print(finishWriter(writer));
+			//print()
+			finishWriter(writer);
 		}
 		//todo!void("ptr not valid");
 	}

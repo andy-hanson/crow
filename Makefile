@@ -43,5 +43,12 @@ bin/noze.wasm: src/**/*.d
 		--enable-asserts=false \
 		src/wasm.d \
 		src/compiler.d \
-		src/*/*.d \
-		src/*/*/*.d \
+		src/backend/*.d \
+		src/concretize/*.d \
+		src/frontend/*.d \
+		src/interpret/*.d \
+		src/lower/*.d \
+		src/model/*.d \
+		src/test/*.d \
+		src/util/*.d \
+		src/util/*/*.d

@@ -6,7 +6,6 @@ import test.testUtil : Test;
 import util.collection.arr : Arr, begin;
 import util.collection.byteReader : ByteReader, readU8, readU16, readU32, readU64;
 import util.collection.byteWriter : ByteWriter, finishByteWriter, newByteWriter, pushU8, pushU16, pushU32, pushU64;
-import util.ptr : ptrTrustMe_mut;
 import util.types : Nat8, Nat16, Nat32, Nat64, u8;
 import util.util : verify;
 

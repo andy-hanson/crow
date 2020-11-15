@@ -9,10 +9,9 @@ import util.collection.arr : Arr, arrOfD, range, sizeEq;
 import util.collection.arrUtil : eachCorresponds;
 import util.collection.globalAllocatedStack : asTempArr;
 import util.collection.str : Str;
-import util.print : print;
 import util.ptr : Ptr;
 import util.types : Nat64, u8;
-import util.util : todo, verify;
+import util.util : verify;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
 struct Test(Alloc) {
@@ -22,8 +21,7 @@ struct Test(Alloc) {
 		return Writer!Alloc(alloc);
 	}
 
-	void fail(immutable Str reason) {
-		print(reason);
+	void fail(immutable Str) {
 		verify(false);
 	}
 }

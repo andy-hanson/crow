@@ -17,10 +17,10 @@ int test(Alloc)(ref Alloc alloc, immutable Opt!Str name) {
 	Test!Alloc test = Test!Alloc(ptrTrustMe_mut(alloc));
 	foreach (ref immutable NameAndTest!Alloc it; allTests!Alloc)
 		if (!has(name) || strEqLiteral(force(name), it.name)) {
-			debug {
-				import core.stdc.stdio : printf;
-				printf("Running test %.*s\n", cast(int) it.name.length, it.name.ptr);
-			}
+			//debug {
+			//	import core.stdc.stdio : printf;
+			//	printf("Running test %.*s\n", cast(int) it.name.length, it.name.ptr);
+			//}
 			it.test(test);
 		}
 	return 0;

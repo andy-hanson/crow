@@ -135,14 +135,6 @@ immutable(Nat8) fillRecordSize(Alloc)(
 	ref immutable LowRecord record,
 	ref TypeLayoutBuilder builder,
 ) {
-	//debug {
-	//	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-	//	immutable LowType t = immutable LowType(index);
-	//	writeStatic(writer, "fillRecordSize ");
-	//	writeType(writer, program, t);
-	//	writeStatic(writer, ": ");
-	//}
-
 	Nat8 offset = immutable Nat8(0);
 	immutable Arr!Nat8 fieldOffsets = map(alloc, record.fields, (ref immutable LowField field) {
 		immutable Nat8 fieldSize = sizeOfType(alloc, program, field.type, builder);
@@ -153,24 +145,11 @@ immutable(Nat8) fillRecordSize(Alloc)(
 		}
 		immutable Nat8 res = offset;
 		offset += fieldSize;
-		//debug {
-		//	writeStatic(writer, ", ");
-		//	writeFieldName(writer, field);
-		//	writeStatic(writer, ": ");
-		//	writeNat(writer, res.raw());
-		//}
 		return res;
 	});
 	immutable Nat8 size = offset <= immutable Nat8(8) ? offset : roundUp(offset, immutable Nat8(8));
 	fullIndexDictBuilderAdd(builder.recordSizes, index, size);
 	fullIndexDictBuilderAdd(builder.recordFieldOffsets, index, fieldOffsets);
-
-	//debug {
-	//	writeStatic(writer, ", full size: ");
-	//	writeNat(writer, size.raw());
-	//	import core.stdc.stdio : printf;
-	//	printf("%s\n", finishWriterToCStr(writer));
-	//}
 	return size;
 }
 

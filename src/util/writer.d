@@ -4,9 +4,9 @@ module util.writer;
 
 import util.bools : Bool, False;
 import util.ptr : Ptr;
-import util.collection.arr : Arr, at, begin, range, size;
+import util.collection.arr : Arr, at, range, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : CStr, Str, strLiteral;
+import util.collection.str : Str, strLiteral;
 import util.ptr : PtrRange;
 import util.types : abs;
 
@@ -19,11 +19,6 @@ struct Writer(Alloc) {
 
 immutable(Str) finishWriter(Alloc)(ref Writer!Alloc writer) {
 	return finishArr(writer.alloc.deref, writer.res);
-}
-
-@trusted immutable(CStr) finishWriterToCStr(Alloc)(ref Writer!Alloc writer) {
-	add(writer.alloc, writer.res, '\0');
-	return begin(finishArr(writer.alloc, writer.res));
 }
 
 void writeChar(Alloc)(ref Writer!Alloc writer, immutable char c) {

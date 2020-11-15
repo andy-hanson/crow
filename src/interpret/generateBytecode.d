@@ -104,11 +104,10 @@ import util.collection.mutIndexMultiDict :
 import util.collection.str : Str, strEqLiteral;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
-import util.print : print;
 import util.sourceRange : FileIndex;
 import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, zero;
 import util.util : divRoundUp, todo, unreachable, verify;
-import util.writer : finishWriterToCStr, writeChar, Writer, writeStatic;
+import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
 immutable(ByteCode) generateBytecode(CodeAlloc, TempAlloc)(
 	ref CodeAlloc codeAlloc,
@@ -208,7 +207,8 @@ void generateBytecodeForFun(TempAlloc, CodeAlloc)(
 			writeStatic(w, "Generating bytecode for function ");
 			writeFunName(w, program, fun);
 			writeChar(w, '\n');
-			print(finishWriterToCStr(w));
+			//print()
+			finishWriter(w);
 		}
 	}
 
@@ -616,16 +616,6 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	immutable LowRecord r = fullIndexDictGet(ctx.program.allRecords, record);
 	immutable LowField f = at(r.fields, fieldIndex);
 	immutable Nat8 size = sizeOfType(ctx, f.type);
-	//debug {
-	//	import core.stdc.stdio : printf;
-	//	alias TempAlloc = StackAlloc!("temp", 1024);
-	//	TempAlloc tempAlloc;
-	//	Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-	//	writeRecordName(writer, r);
-	//	writeChar(writer, '#');
-	//	writeFieldName(writer, f);
-	//	printf("getFieldOffsetAndSize of %s\n", finishWriterToCStr(writer));
-	//}
 	return immutable FieldOffsetAndSize(getFieldOffset(ctx, record, fieldIndex), size);
 }
 
@@ -652,7 +642,8 @@ void generateConstant(CodeAlloc, TempAlloc)(
 			writeStatic(w, "generateConstant of type ");
 			writeType(w, ctx.program, type);
 			writeChar(w, '\n');
-			print(finishWriterToCStr(w));
+			//print()
+			finishWriter(w);
 		}
 	}
 
