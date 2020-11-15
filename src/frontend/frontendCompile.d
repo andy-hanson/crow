@@ -80,7 +80,7 @@ immutable(Result!(Ptr!Program, Diagnostics)) frontendCompile(ModelAlloc, AstsAll
 }
 
 private struct FileAstAndArrDiagnosticAndLineAndColumnGetter {
-	immutable FileAst ast;
+	immutable Ptr!FileAst ast;
 	immutable Arr!ParseDiagnostic diagnostics;
 	immutable LineAndColumnGetter lineAndColumnGetter;
 }
@@ -292,7 +292,7 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc, ReadOnlyStorage)
 					parseResult.diagnostics,
 					parseResult.lineAndColumnGetter);
 			else {
-				immutable FileAst ast = parseResult.ast;
+				immutable Ptr!FileAst ast = parseResult.ast;
 				immutable ImportAndExportPaths importsAndExports =
 					resolveImportAndExportPaths(modelAlloc, astAlloc, path, ast.imports, ast.exports);
 
@@ -508,7 +508,7 @@ immutable(ImportAndExportPaths) resolveImportAndExportPaths(ModelAlloc, AstAlloc
 }
 
 struct AstAndResolvedImports {
-	immutable FileAst ast;
+	immutable Ptr!FileAst ast;
 	immutable StorageKind storageKind; // Needed to determine which are in 'include'
 	immutable Arr!FileIndexAndNames resolvedImports;
 	immutable Arr!FileIndexAndNames resolvedExports;
@@ -596,7 +596,7 @@ immutable(Result!(Ptr!Program, Diags)) checkEverything(ModelAlloc)(
 	ref immutable FilesInfo filesInfo,
 	ref immutable CommonModuleIndices moduleIndices,
 ) {
-	ProgramState programState;
+	ProgramState programState = ProgramState(modelAlloc);
 	immutable Result!(ModulesAndCommonTypes, Diags) modulesResult =
 		getModules(modelAlloc, programState, moduleIndices.std, allAsts);
 	return modulesResult.mapSuccess((ref immutable ModulesAndCommonTypes modulesAndCommonTypes) {

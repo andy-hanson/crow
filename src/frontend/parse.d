@@ -72,7 +72,7 @@ import util.types : u8;
 import util.util : todo, unreachable, verify;
 
 struct FileAstAndParseDiagnostics {
-	immutable FileAst ast;
+	immutable Ptr!FileAst ast;
 	immutable Arr!ParseDiagnostic diagnostics;
 }
 
@@ -82,7 +82,7 @@ immutable(FileAstAndParseDiagnostics) parseFile(Alloc, SymAlloc)(
 	immutable NulTerminatedStr source,
 ) {
 	Lexer!SymAlloc lexer = createLexer(alloc, ptrTrustMe_mut(allSymbols), source);
-	immutable FileAst ast = parseFileInner(alloc, lexer);
+	immutable Ptr!FileAst ast = parseFileInner(alloc, lexer);
 	return immutable FileAstAndParseDiagnostics(ast, finishDiags(alloc, lexer));
 }
 
@@ -859,7 +859,7 @@ immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(Alloc, SymAlloc)(
 		immutable ImportsOrExportsAst(range(lexer, start), it));
 }
 
-immutable(FileAst) parseFileInner(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(Ptr!FileAst) parseFileInner(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	skipShebang(lexer);
 	skipBlankLines(alloc, lexer);
 	immutable Opt!ImportsOrExportsAst imports = parseImportsOrExports(alloc, lexer, "import ", "import\n");
@@ -884,7 +884,8 @@ immutable(FileAst) parseFileInner(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!Sy
 		parseSpecOrStructOrFun!(Alloc, SymAlloc)(alloc, lexer, isPublic, specs, structAliases, structs, funs);
 	}
 
-	return immutable FileAst(
+	return nu!FileAst(
+		alloc,
 		nu!FileAstPart0(alloc, imports, exports, finishArr(alloc, specs)),
 		nu!FileAstPart1(alloc, finishArr(alloc, structAliases), finishArr(alloc, structs), finishArr(alloc, funs)));
 }

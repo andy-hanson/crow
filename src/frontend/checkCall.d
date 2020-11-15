@@ -139,7 +139,7 @@ immutable(CheckedExpr) checkCall(Alloc)(
 	immutable Bool mightBePropertyAccess = Bool(
 		arity == 1 &&
 		exprMightHaveProperties(only(ast.args)) &&
-		mutSymSetHas(programState(ctx).recordFieldNames, funName));
+		mutSymSetHas(programState(ctx).names.recordFieldNames, funName));
 
 	ArrBuilder!Type actualArgTypes;
 	Bool someArgIsBogus = False;

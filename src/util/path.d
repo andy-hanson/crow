@@ -118,7 +118,7 @@ immutable(Opt!(Ptr!Path)) resolvePath(Alloc)(ref Alloc alloc, immutable Ptr!Path
 	return resolvePath(alloc, some!(Ptr!Path)(path), relPath);
 }
 
-immutable(Ptr!Path) addManyChildren(Alloc)(ref Alloc alloc, immutable Ptr!Path a, immutable Ptr!Path b) {
+private immutable(Ptr!Path) addManyChildren(Alloc)(ref Alloc alloc, immutable Ptr!Path a, immutable Ptr!Path b) {
 	immutable Ptr!Path p = matchOpt(
 		b.parent,
 		(ref immutable Ptr!Path parent) => addManyChildren(alloc, a, parent),

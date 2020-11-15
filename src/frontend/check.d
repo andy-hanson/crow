@@ -832,7 +832,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 			immutable KeyValuePair!(Sym, Ptr!FunDecl)(name(it), it));
 
 	foreach (ref const FunDecl f; arrRange(funs))
-		addToMutSymSetOkIfPresent(alloc, ctx.programState.funNames, name(f));
+		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.funNames, name(f));
 
 	zipMutPtrFirst(funs, asts, (Ptr!FunDecl fun, ref immutable FunDeclAst funAst) {
 		setBody(fun, matchFunBodyAst(
@@ -885,7 +885,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 	foreach (ref const StructDecl s; arrRange(structs))
 		if (isRecord(s.body_))
 			foreach (ref immutable RecordField f; arrRange(asRecord(s.body_).fields))
-				addToMutSymSetOkIfPresent(alloc, ctx.programState.recordFieldNames, f.name);
+				addToMutSymSetOkIfPresent(alloc, ctx.programState.names.recordFieldNames, f.name);
 
 	while (!mutArrIsEmpty(delayStructInsts)) {
 		Ptr!StructInst i = mustPop(delayStructInsts);
@@ -899,7 +899,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 	immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, structsAndAliasesMap, ast.specs);
 	immutable SpecsMap specsMap = buildSpecsDict(alloc, ctx, specs);
 	foreach (ref immutable SpecDecl s; arrRange(specs))
-		addToMutSymSetOkIfPresent(alloc, ctx.programState.specNames, s.name);
+		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.specNames, s.name);
 
 	DelayInit!Module mod = delayInit!Module(alloc);
 
@@ -1013,10 +1013,10 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 	// Since structs may refer to each other, first get a structsAndAliasesMap, *then* fill in bodies
 	Arr!StructDecl structs = checkStructsInitial(alloc, ctx, ast.structs);
 	foreach (ref const StructDecl s; arrRange(structs))
-		addToMutSymSetOkIfPresent(alloc, programState.structAndAliasNames, s.name);
+		addToMutSymSetOkIfPresent(alloc, programState.names.structAndAliasNames, s.name);
 	Arr!StructAlias structAliases = checkStructAliasesInitial(alloc, ctx, ast.structAliases);
 	foreach (ref const StructAlias a; arrRange(structAliases))
-		addToMutSymSetOkIfPresent(alloc, programState.structAndAliasNames, a.name);
+		addToMutSymSetOkIfPresent(alloc, programState.names.structAndAliasNames, a.name);
 	immutable StructsAndAliasesMap structsAndAliasesMap =
 		buildStructsAndAliasesDict(alloc, ctx, arrAsImmutable(structs), arrAsImmutable(structAliases));
 

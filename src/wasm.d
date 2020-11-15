@@ -186,7 +186,7 @@ void eat(ref Reader a, immutable char c) {
 	return res;
 }
 
-void skip(ref Reader a) {
+@trusted void skip(ref Reader a) {
 	a.ptr++;
 }
 

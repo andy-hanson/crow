@@ -12,7 +12,7 @@ test-it int32() summon unsafe
 			todo
 		else
 			a
-b
+
 main fut exit-code(args arr str) summon trusted
 	print-sync: "now sleep:"
 	usleep: 2000000
