@@ -594,14 +594,12 @@ struct FunDecl {
 
 	@disable this(ref const FunDecl);
 	this(
-		immutable Ptr!Module cm,
 		immutable Bool ip,
 		immutable FunFlags f,
 		immutable Sig s,
 		immutable Arr!TypeParam tps,
 		immutable Arr!(Ptr!SpecInst) sps,
 	) {
-		containingModule = cm;
 		isPublic = ip;
 		flags = f;
 		sig = s;
@@ -609,7 +607,6 @@ struct FunDecl {
 		specs = sps;
 	}
 
-	immutable Ptr!Module containingModule; //TODO:NEVER USED!
 	immutable Bool isPublic;
 	immutable FunFlags flags;
 	immutable Sig sig;

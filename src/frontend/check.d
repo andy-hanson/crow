@@ -110,7 +110,7 @@ import util.collection.dictUtil : buildDict, buildMultiDict;
 import util.collection.multiDict : multiDictGetAt;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.str : copyStr, Str, strLiteral;
-import util.memory : DelayInit, delayInit, nu;
+import util.memory : nu;
 import util.opt : force, has, mapOption, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.result : fail, flatMapSuccess, mapSuccess, Result, success;
@@ -798,7 +798,6 @@ immutable(Arr!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 immutable(FunsAndMap) checkFuns(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	immutable Ptr!Module containingModule,
 	ref immutable CommonTypes commonTypes,
 	ref immutable SpecsMap specsMap,
 	ref immutable StructsAndAliasesMap structsAndAliasesMap,
@@ -823,7 +822,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 			specsMap,
 			TypeParamsScope(typeParams));
 		immutable FunFlags flags = FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted);
-		return FunDecl(containingModule, funAst.isPublic, flags, sig, typeParams, specUses);
+		return FunDecl(funAst.isPublic, flags, sig, typeParams, specUses);
 	});
 
 	immutable FunsMap funsMap = buildMultiDict!(Sym, Ptr!FunDecl, compareSym, FunDecl, Alloc)(
@@ -902,19 +901,17 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 	foreach (ref immutable SpecDecl s; arrRange(specs))
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.specNames, s.name);
 
-	DelayInit!Module mod = delayInit!Module(alloc);
-
 	immutable FunsAndMap funsAndMap = checkFuns(
 		alloc,
 		ctx,
-		mod.ptr,
 		commonTypes,
 		specsMap,
 		structsAndAliasesMap,
 		ast.funs);
 
 	// Create a module unconditionally so every function will always have containingModule set, even in failure case
-	return mod.finish(
+	return nu!Module(
+		alloc,
 		fileIndex,
 		imports,
 		exports,

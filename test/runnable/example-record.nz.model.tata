@@ -24,9 +24,7 @@ module(
 			sig: sig(file-pos(20, 155), create-point, point(), [])
 			body: record(
 				point()
-				[
-					call(fun-inst(module: 12, name: literal), [string-lit("1")])
-					call(fun-inst(module: 12, name: literal), [string-lit("2")])]))
+				[call(fun-inst(name: literal), [string-lit("1")]), call(fun-inst(name: literal), [string-lit("2")])]))
 		fun(
 			public?: true
 			sig: sig(file-pos(20, 358), get-x, float(), [param(file-range(20, range(370, 377)), a, point())])
@@ -37,14 +35,10 @@ module(
 			sig: sig(file-pos(20, 530), main, fut(int32()), [param(file-range(20, range(549, 561)), args, arr(arr(char())))])
 			body: let(
 				local(file-range(20, range(633, 634)), p, point())
-				call(fun-inst(module: 20, name: create-point), [])
+				call(fun-inst(name: create-point), [])
 				let(
 					local(file-range(20, range(688, 691)), p-x, float())
-					call(fun-inst(module: 20, name: get-x), [local-ref(p)])
+					call(fun-inst(name: get-x), [local-ref(p)])
 					seq(
-						call(
-							fun-inst(module: 13, name: print-sync)
-							[call(fun-inst(module: 12, name: to-str), [local-ref(p-x)])])
-						call(
-							fun-inst(module: 16, name: resolved, type-args: [int32()])
-							[call(fun-inst(module: 0, name: zero), [])])))))])
+						call(fun-inst(name: print-sync), [call(fun-inst(name: to-str), [local-ref(p-x)])])
+						call(fun-inst(name: resolved, type-args: [int32()]), [call(fun-inst(name: zero), [])])))))])

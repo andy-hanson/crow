@@ -94,10 +94,6 @@ struct Ctx {
 	immutable Ptr!Module curModule;
 }
 
-immutable(Sexpr) sexprOfModulePtr(immutable Ptr!Module a) {
-	return tataNat(a.fileIndex.index);
-}
-
 immutable(Sexpr) sexprOfStructDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable StructDecl a) {
 	ArrBuilder!NameAndSexpr fields;
 	add(alloc, fields, nameAndTata("range", sexprOfFileAndRange(alloc, a.range)));
@@ -340,7 +336,6 @@ immutable(Sexpr) sexprOfCalled(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutabl
 
 immutable(Sexpr) sexprOfFunInst(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable FunInst a) {
 	ArrBuilder!NameAndSexpr args;
-	add(alloc, args, nameAndTata("module", sexprOfModulePtr(decl(a).containingModule)));
 	add(alloc, args, nameAndTata("name", tataSym(name(decl(a).deref))));
 	if (!empty(typeArgs(a)))
 		add(alloc, args, nameAndTata("type-args", tataArr(alloc, typeArgs(a), (ref immutable Type it) =>

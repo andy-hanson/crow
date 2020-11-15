@@ -27,35 +27,33 @@ module(
 				local(file-range(20, range(107, 108)), m, my-record())
 				record(
 					my-record()
-					[
-						call(fun-inst(module: 12, name: literal), [string-lit("1")])
-						call(fun-inst(module: 12, name: literal), [string-lit("2")])])
+					[call(fun-inst(name: literal), [string-lit("1")]), call(fun-inst(name: literal), [string-lit("2")])])
 				seq(
 					seq(
 						seq(
 							seq(
 								call(
-									fun-inst(module: 5, name: assert)
+									fun-inst(name: assert)
 									[
 										call(
-											fun-inst(module: 0, name: ==, type-args: [nat()])
+											fun-inst(name: ==, type-args: [nat()])
 											[
 												field-acc(local-ref(m), my-record(), x)
-												call(fun-inst(module: 12, name: literal), [string-lit("1")])])])
+												call(fun-inst(name: literal), [string-lit("1")])])])
 								call(
-									fun-inst(module: 5, name: assert)
+									fun-inst(name: assert)
 									[
 										call(
-											fun-inst(module: 0, name: ==, type-args: [nat()])
+											fun-inst(name: ==, type-args: [nat()])
 											[
 												field-acc(local-ref(m), my-record(), y)
-												call(fun-inst(module: 12, name: literal), [string-lit("2")])])]))
+												call(fun-inst(name: literal), [string-lit("2")])])]))
 							call(
-								fun-inst(module: 13, name: print-sync)
-								[call(fun-inst(module: 12, name: to-str), [field-acc(local-ref(m), my-record(), x)])]))
+								fun-inst(name: print-sync)
+								[call(fun-inst(name: to-str), [field-acc(local-ref(m), my-record(), x)])]))
 						call(
-							fun-inst(module: 13, name: print-sync)
-							[call(fun-inst(module: 12, name: to-str), [field-acc(local-ref(m), my-record(), y)])]))
+							fun-inst(name: print-sync)
+							[call(fun-inst(name: to-str), [field-acc(local-ref(m), my-record(), y)])]))
 					call(
-						fun-inst(module: 16, name: resolved, type-args: [int32()])
-						[call(fun-inst(module: 12, name: literal), [string-lit("0")])]))))])
+						fun-inst(name: resolved, type-args: [int32()])
+						[call(fun-inst(name: literal), [string-lit("0")])]))))])

@@ -28,23 +28,6 @@ void overwriteMemory(T)(T* ptr, T value) {
 	initMemory_mut!T(ptr, value);
 }
 
-struct DelayInit(T) {
-	private T* ptr_;
-
-	@trusted immutable(Ptr!T) ptr() const {
-		return immutable Ptr!T(cast(immutable) ptr_);
-	}
-
-	@trusted immutable(Ptr!T) finish(Args...)(Args args) {
-		myEmplace(ptr_, args);
-		return immutable Ptr!T(cast(immutable) ptr_);
-	}
-}
-
-@trusted DelayInit!T delayInit(T, Alloc)(ref Alloc alloc) {
-	return DelayInit!T(cast(T*) alloc.allocate(T.sizeof));
-}
-
 @trusted immutable(Ptr!T) nu(T, Alloc, Args...)(ref Alloc alloc, Args args) {
 	T* ptr = cast(T*) alloc.allocate(T.sizeof);
 	myEmplace(ptr, args);
