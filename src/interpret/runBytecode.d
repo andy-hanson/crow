@@ -59,7 +59,7 @@ import util.path : AbsolutePath, pathToCStr;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
 import util.sexpr : writeSexprNoNewline;
 import util.sourceRange : FileAndPos;
-import util.types : decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, u8, u16, u32, u64, zero;
+import util.types : decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, safeSizeTFromU64, u8, u16, u32, u64, zero;
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, writeStatic;
 
@@ -535,7 +535,8 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			push(a.dataStack, val);
 			break;
 		case ExternOp.malloc:
-			push(a.dataStack, immutable Nat64(cast(immutable size_t) a.extern_.malloc(pop(a.dataStack).raw())));
+			immutable size_t nBytes = safeSizeTFromU64(pop(a.dataStack).raw());
+			push(a.dataStack, immutable Nat64(cast(immutable u64) a.extern_.malloc(nBytes)));
 			break;
 		case ExternOp.pthreadCreate:
 			todo!void("pthread_create");
@@ -553,7 +554,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			push(a.dataStack, immutable Nat64(0));
 			break;
 		case ExternOp.write:
-			immutable size_t nBytes = pop(a.dataStack).raw();
+			immutable size_t nBytes = safeSizeTFromU64(pop(a.dataStack).raw());
 			immutable char* buf = cast(immutable char*) pop(a.dataStack).raw();
 			immutable int fd = cast(int) pop(a.dataStack).to32().raw();
 			immutable long res = a.extern_.write(fd, buf, nBytes);

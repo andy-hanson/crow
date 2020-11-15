@@ -63,7 +63,7 @@ void checkLowFun(ref immutable Ctx ctx, ref immutable LowFun fun) {
 
 void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immutable LowExpr expr) {
 	checkTypeEqual(ctx.ctx, type, expr.type);
-	matchLowExprKind(
+	matchLowExprKind!void(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
 			immutable Ptr!LowFun fun = fullIndexDictGetPtr(ctx.ctx.program.allFuns, it.called);

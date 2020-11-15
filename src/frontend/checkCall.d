@@ -112,6 +112,7 @@ import util.collection.mutArr :
 	setAt,
 	tempAsArr_mut;
 import util.opt : force, has, mapOption_const, none, Opt, some;
+import util.memory : nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : mutSymSetHas, Sym, symEq;
@@ -184,7 +185,8 @@ immutable(CheckedExpr) checkCall(Alloc)(
 	if (!has(args) || size(candidatesArr) != 1) {
 		if (empty(candidatesArr)) {
 			immutable Arr!CalledDecl allCandidates = getAllCandidatesAsCalledDecls(alloc, ctx, funName);
-			addDiag2(alloc, ctx, range, immutable Diag(Diag.CallNoMatch(
+			addDiag2(alloc, ctx, range, immutable Diag(nu!(Diag.CallNoMatch)(
+				alloc,
 				funName,
 				expectedReturnType,
 				size(explicitTypeArgs),
@@ -588,7 +590,7 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 		}
 	}() || findBuiltinSpecOnType(ctx, kind, typeArg));
 	if (!typeIsGood)
-		addDiag2(alloc, ctx, range, immutable Diag(Diag.SpecBuiltinNotSatisfied(kind, typeArg, called)));
+		addDiag2(alloc, ctx, range, immutable Diag(nu!(Diag.SpecBuiltinNotSatisfied)(alloc, kind, typeArg, called)));
 	return typeIsGood;
 }
 

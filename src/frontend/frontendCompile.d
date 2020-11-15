@@ -36,7 +36,7 @@ import util.collection.mutIndexDict : mustGetAt;
 import util.collection.str : NulTerminatedStr, stripNulTerminator;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
-import util.memory : nu;
+import util.memory : allocate, nu;
 import util.opt : force, has, mapOption, Opt, none, some;
 import util.path :
 	copyPath,
@@ -318,7 +318,8 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc, ReadOnlyStorage)
 														immutable ParseDiagnostic(
 															import_.importedFrom,
 															immutable ParseDiag(
-																immutable ParseDiag.CircularImport(
+																nu!(ParseDiag.CircularImport)(
+																	modelAlloc,
 																	path,
 																	resolvedPath)))),
 														parseResult.lineAndColumnGetter),
@@ -386,7 +387,9 @@ immutable(Diags) parseDiagnostics(Alloc)(
 	immutable Arr!ParseDiagnostic diags,
 ) {
 	return map(modelAlloc, diags, (ref immutable ParseDiagnostic it) =>
-		immutable Diagnostic(immutable FileAndRange(where, it.range), immutable Diag(it.diag)));
+		immutable Diagnostic(
+			immutable FileAndRange(where, it.range),
+			nu!Diag(modelAlloc, allocate(modelAlloc, it.diag))));
 }
 
 alias LineAndColumnGettersBuilder = ArrBuilder!LineAndColumnGetter; // TODO: OrderedFullIndexDictBuilder?
@@ -414,7 +417,7 @@ immutable(FileAstAndArrDiagnosticAndLineAndColumnGetter) parseSingle(ModelAlloc,
 				modelAlloc,
 				immutable ParseDiagnostic(
 					RangeWithinFile.empty,
-					immutable ParseDiag(ParseDiag.FileDoesNotExist(importedFrom)))),
+					immutable ParseDiag(nu!(ParseDiag.FileDoesNotExist)(modelAlloc, importedFrom)))),
 			lcg);
 }
 

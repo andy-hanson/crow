@@ -110,7 +110,7 @@ import util.collection.dictUtil : buildDict, buildMultiDict;
 import util.collection.multiDict : multiDictGetAt;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.str : copyStr, Str, strLiteral;
-import util.memory : DelayInit, delayInit;
+import util.memory : DelayInit, delayInit, nu;
 import util.opt : force, has, mapOption, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.result : fail, flatMapSuccess, mapSuccess, Result, success;
@@ -282,7 +282,7 @@ immutable(Result!(CommonTypes, Diags)) getCommonTypes(Alloc)(
 	if (!empty(missingArr)) {
 		immutable Diagnostic diag = Diagnostic(
 			immutable FileAndRange(ctx.fileIndex, RangeWithinFile.empty),
-			immutable Diag(Diag.CommonTypesMissing(missingArr)));
+			nu!Diag(alloc, immutable Diag.CommonTypesMissing(missingArr)));
 		return fail!(CommonTypes, Diags)(arrLiteral!Diagnostic(alloc, diag));
 	} else {
 		return success!(CommonTypes, Diags)(
@@ -968,7 +968,7 @@ immutable(NameAndReferents) getNameReferents(Alloc)(
 		if (!fun.isPublic)
 			todo!void("not public");
 	if (!has(res.structOrAlias) && !has(res.spec) && empty(res.funs))
-		add(alloc, diags, immutable Diagnostic(range, immutable Diag(immutable Diag.ImportRefersToNothing(name))));
+		add(alloc, diags, immutable Diagnostic(range, nu!Diag(alloc, immutable Diag.ImportRefersToNothing(name))));
 	return res;
 }
 

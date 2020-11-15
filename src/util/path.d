@@ -118,8 +118,7 @@ immutable(Opt!(Ptr!Path)) resolvePath(Alloc)(ref Alloc alloc, immutable Ptr!Path
 	return resolvePath(alloc, some!(Ptr!Path)(path), relPath);
 }
 
-
-private immutable(Ptr!Path) addManyChildren(Alloc)(ref Alloc alloc, immutable Ptr!Path a, immutable Ptr!Path b) {
+immutable(Ptr!Path) addManyChildren(Alloc)(ref Alloc alloc, immutable Ptr!Path a, immutable Ptr!Path b) {
 	immutable Ptr!Path p = matchOpt(
 		b.parent,
 		(ref immutable Ptr!Path parent) => addManyChildren(alloc, a, parent),
@@ -215,7 +214,7 @@ immutable(CStr) pathToCStr(Alloc)(ref Alloc alloc, immutable AbsolutePath path) 
 	return pathToNulTerminatedStr(alloc, path.root, path.path, path.extension).asCStr();
 }
 
-private immutable(Ptr!Path) parsePath(Alloc, SymAlloc)(
+immutable(Ptr!Path) parsePath(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc symbols,
 	immutable Str str,

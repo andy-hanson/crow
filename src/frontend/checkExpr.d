@@ -433,7 +433,11 @@ immutable(CheckedExpr) checkCreateRecordMultiLine(Alloc)(
 				immutable Arr!Sym names =
 					map!Sym(alloc, ast.lines, (ref immutable CreateRecordMultiLineAst.Line line) =>
 						line.name.name);
-				addDiag2(alloc, ctx, range, immutable Diag(Diag.CreateRecordMultiLineWrongFields(decl, fields, names)));
+				addDiag2(
+					alloc,
+					ctx,
+					range,
+					immutable Diag(nu!(Diag.CreateRecordMultiLineWrongFields)(alloc, decl, fields, names)));
 			}
 			return res;
 		});

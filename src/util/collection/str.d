@@ -78,7 +78,7 @@ immutable(Bool) strEqLiteral(immutable Str a, immutable string b) {
 	return strEq(a, strLiteral(b));
 }
 
-private immutable(Bool) strEq(immutable Str a, immutable Str b) {
+immutable(Bool) strEq(immutable Str a, immutable Str b) {
 	return Bool(a.size == b.size && (a.size == 0 || (a.at(0) == b.at(0) && strEq(a.tail, b.tail))));
 }
 

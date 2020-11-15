@@ -7,6 +7,7 @@ import model.diag : Diag, Diagnostic;
 import model.model : ModuleAndNameReferents;
 import util.collection.arr : Arr;
 import util.collection.arrBuilder : add, ArrBuilder;
+import util.memory : allocate;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange, FileIndex, RangeWithinFile;
 
@@ -27,7 +28,7 @@ void addDiag(Alloc)(
 	immutable FileAndRange range,
 	immutable Diag diag,
 ) {
-	add(alloc, ctx.diagsBuilder, immutable Diagnostic(range, diag));
+	add(alloc, ctx.diagsBuilder, immutable Diagnostic(range, allocate(alloc, diag)));
 }
 
 void addDiag(Alloc)(

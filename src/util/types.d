@@ -197,55 +197,60 @@ alias Int16 = IntN!short;
 private alias Int32 = IntN!int;
 
 immutable(u8) bottomU8OfU64(immutable u64 u) {
-	return cast(u8) u;
+	return cast(immutable u8) u;
 }
 
 immutable(u16) bottomU16OfU64(immutable u64 u) {
-	return cast(u16) u;
+	return cast(immutable u16) u;
 }
 
 immutable(u32) bottomU32OfU64(immutable u64 u) {
-	return cast(u32) u;
+	return cast(immutable u32) u;
 }
 
 immutable(i32) safeI32FromU32(immutable u32 u) {
 	verify(u <= i32.max);
-	return cast(i32) u;
+	return cast(immutable i32) u;
 }
 
 immutable(u16) safeU32ToU16(immutable u32 u) {
 	verify(u <= u16.max);
-	return cast(u16) u;
+	return cast(immutable u16) u;
 }
 
 immutable(u16) safeSizeTToU16(immutable size_t s) {
 	verify(s <= u16.max);
-	return cast(u16) s;
+	return cast(immutable u16) s;
 }
 
 immutable(u32) safeSizeTToU32(immutable size_t s) {
 	verify(s <= u32.max);
-	return cast(u32) s;
+	return cast(immutable u32) s;
 }
 
 immutable(int) safeIntFromSizeT(immutable size_t s) {
 	verify(s <= int.max);
-	return cast(int) s;
+	return cast(immutable int) s;
 }
 
 immutable(int) safeIntFromNat64(immutable Nat64 a) {
 	verify(a.value <= int.max);
-	return cast(int) a.value;
+	return cast(immutable int) a.value;
 }
 
 immutable(u8) safeSizeTToU8(immutable size_t s) {
 	verify(s <= 255);
-	return cast(u8) s;
+	return cast(immutable u8) s;
 }
 
 immutable(size_t) safeSizeTFromSSizeT(immutable ssize_t s) {
 	verify(s >= 0);
-	return cast(size_t) s;
+	return cast(immutable size_t) s;
+}
+
+immutable(size_t) safeSizeTFromU64(immutable u64 a) {
+	verify(a <= size_t.max);
+	return cast(immutable size_t) a;
 }
 
 immutable(u64) abs(immutable i64 s) {

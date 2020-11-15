@@ -42,6 +42,6 @@ struct GlobalAlloc(immutable char* debugName) {
 
 private:
 
-immutable size_t capacity = 1024 * 1024;
+immutable size_t capacity = 256 * 1024 * 1024;
 static ubyte[capacity] data_ = void;
 static size_t cur;

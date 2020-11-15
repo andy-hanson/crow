@@ -44,7 +44,7 @@ import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, size, sizeEq;
 import util.collection.arrUtil : find, findIndex, findPtr, map, mapOrNone, mapZipOrNone;
 import util.collection.mutArr : MutArr;
-import util.memory : allocate;
+import util.memory : allocate, nu;
 import util.opt : has, force, none, noneMut, Opt, some;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
@@ -324,7 +324,11 @@ immutable(CheckedExpr) check(Alloc)(
 							allocExpr(alloc, expr))));
 					},
 					(ref immutable SetTypeResult.Fail) {
-						addDiag2(alloc, ctx, range(expr), immutable Diag(Diag.TypeConflict(force(t), exprType)));
+						addDiag2(
+							alloc,
+							ctx,
+							range(expr),
+							immutable Diag(nu!(Diag.TypeConflict)(alloc, force(t), exprType)));
 						return immutable CheckedExpr(Expr(range(expr), Expr.Bogus()));
 					});
 			}
@@ -335,7 +339,7 @@ immutable(CheckedExpr) check(Alloc)(
 		return CheckedExpr(expr);
 	else {
 		// Failed to set type. This happens if there was already an inferred type.
-		addDiag2(alloc, ctx, range(expr), immutable Diag(Diag.TypeConflict(force(t), exprType)));
+		addDiag2(alloc, ctx, range(expr), immutable Diag(nu!(Diag.TypeConflict)(alloc, force(t), exprType)));
 		return bogus(expected, range(expr));
 	}
 }

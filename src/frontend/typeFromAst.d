@@ -32,6 +32,7 @@ import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : compareSym, Sym, symEq;
+import util.types : safeSizeTToU8;
 import util.util : todo;
 
 immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
@@ -64,7 +65,10 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 			immutable size_t nActualTypeArgs = size(typeArgAsts);
 			if (nActualTypeArgs != nExpectedTypeArgs) {
 				addDiag(alloc, ctx, ast.range, immutable Diag(
-					Diag.WrongNumberTypeArgsForStruct(sOrA, nExpectedTypeArgs, nActualTypeArgs)));
+					immutable Diag.WrongNumberTypeArgsForStruct(
+						sOrA,
+						safeSizeTToU8(nExpectedTypeArgs),
+						safeSizeTToU8(nActualTypeArgs))));
 				return fillArr!Type(alloc, nExpectedTypeArgs, (immutable size_t) => immutable Type(Type.Bogus()));
 			} else
 				return typeArgsFromAsts(

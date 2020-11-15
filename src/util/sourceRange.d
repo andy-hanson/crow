@@ -36,6 +36,7 @@ struct FileAndRange {
 
 	static immutable FileAndRange empty = immutable FileAndRange(FileIndex.none, RangeWithinFile.empty);
 }
+static assert(FileAndRange.sizeof == 12);
 
 immutable(Sexpr) sexprOfFileAndRange(Alloc)(ref Alloc alloc, immutable FileAndRange a) {
 	return tataRecord(

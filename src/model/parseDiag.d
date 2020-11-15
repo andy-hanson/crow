@@ -6,6 +6,7 @@ import util.bools : Bool;
 import util.collection.str : Str;
 import util.opt : Opt;
 import util.path : PathAndStorageKind, PathAndRange, RelPath;
+import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym;
 import util.types : u32;
@@ -107,9 +108,9 @@ struct ParseDiag {
 	}
 	immutable Kind kind;
 	union {
-		immutable CircularImport circularImport;
+		immutable Ptr!CircularImport circularImport;
 		immutable Expected expected;
-		immutable FileDoesNotExist fileDoesNotExist;
+		immutable Ptr!FileDoesNotExist fileDoesNotExist;
 		immutable IndentNotDivisible indentNotDivisible;
 		immutable IndentTooMuch indentTooMuch;
 		immutable IndentWrongCharacter indentWrongCharacter;
@@ -128,9 +129,9 @@ struct ParseDiag {
 	}
 
 	public:
-	@trusted immutable this(immutable CircularImport a) { kind = Kind.circularImport; circularImport = a; }
+	@trusted immutable this(immutable Ptr!CircularImport a) { kind = Kind.circularImport; circularImport = a; }
 	immutable this(immutable Expected a) { kind = Kind.expected; expected = a; }
-	@trusted immutable this(immutable FileDoesNotExist a) { kind = Kind.fileDoesNotExist; fileDoesNotExist = a; }
+	@trusted immutable this(immutable Ptr!FileDoesNotExist a) { kind = Kind.fileDoesNotExist; fileDoesNotExist = a; }
 	immutable this(immutable IndentNotDivisible a) { kind = Kind.indentNotDivisible; indentNotDivisible = a; }
 	immutable this(immutable IndentTooMuch a) { kind = Kind.indentTooMuch; indentTooMuch = a; }
 	immutable this(immutable IndentWrongCharacter a) { kind = Kind.indentWrongCharacter; indentWrongCharacter = a; }
@@ -153,6 +154,7 @@ struct ParseDiag {
 	immutable this(immutable UnionCantBeEmpty a) { kind = Kind.unionCantBeEmpty; unionCantBeEmpty = a; }
 	immutable this(immutable WhenMustHaveElse a) { kind = Kind.whenMustHaveElse; whenMustHaveElse = a; }
 }
+static assert(ParseDiag.sizeof <= 32);
 
 @trusted T matchParseDiag(T)(
 	ref immutable ParseDiag a,
@@ -225,3 +227,4 @@ struct ParseDiagnostic {
 	immutable RangeWithinFile range;
 	immutable ParseDiag diag;
 }
+static assert(ParseDiagnostic.sizeof <= 32);

@@ -27,6 +27,7 @@ import util.path : PathAndStorageKind, pathToStr;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths;
 import util.sym : Sym;
+import util.types : u8;
 import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
 import util.writerUtils : writeRangeWithinFile, writePos;
 
@@ -212,8 +213,8 @@ struct Diag {
 	}
 	struct WrongNumberTypeArgsForStruct {
 		immutable StructOrAlias decl;
-		immutable size_t nExpectedTypeArgs;
-		immutable size_t nActualTypeArgs;
+		immutable u8 nExpectedTypeArgs;
+		immutable u8 nActualTypeArgs;
 	}
 
 	private:
@@ -263,7 +264,7 @@ struct Diag {
 	immutable Kind kind;
 	union {
 		immutable CallMultipleMatches callMultipleMatches;
-		immutable CallNoMatch callNoMatch;
+		immutable Ptr!CallNoMatch callNoMatch;
 		immutable CantCall cantCall;
 		immutable CantCreateNonRecordType cantCreateNonRecordType;
 		immutable CantCreateRecordWithoutExpectedType cantCreateRecordWithoutExpectedType;
@@ -271,7 +272,7 @@ struct Diag {
 		immutable CommonTypesMissing commonTypesMissing;
 		immutable CreateArrNoExpectedType createArrNoExpectedType;
 		immutable CreateRecordByRefNoCtx createRecordByRefNoCtx;
-		immutable CreateRecordMultiLineWrongFields createRecordMultiLineWrongFields;
+		immutable Ptr!CreateRecordMultiLineWrongFields createRecordMultiLineWrongFields;
 		immutable DuplicateDeclaration duplicateDeclaration;
 		immutable DuplicateImports duplicateImports;
 		immutable ExpectedTypeIsNotALambda expectedTypeIsNotALambda;
@@ -287,15 +288,15 @@ struct Diag {
 		immutable MutFieldNotAllowed mutFieldNotAllowed;
 		immutable NameNotFound nameNotFound;
 		immutable ParamShadowsPrevious paramShadowsPrevious;
-		immutable ParseDiag parseDiag;
+		immutable Ptr!ParseDiag parseDiag;
 		immutable PurityOfFieldWorseThanRecord purityOfFieldWorseThanRecord;
 		immutable PurityOfMemberWorseThanUnion purityOfMemberWorseThanUnion;
 		immutable PuritySpecifierRedundant puritySpecifierRedundant;
 		immutable SendFunDoesNotReturnFut sendFunDoesNotReturnFut;
-		immutable SpecBuiltinNotSatisfied specBuiltinNotSatisfied;
+		immutable Ptr!SpecBuiltinNotSatisfied specBuiltinNotSatisfied;
 		immutable SpecImplHasSpecs specImplHasSpecs;
 		immutable SpecImplNotFound specImplNotFound;
-		immutable TypeConflict typeConflict;
+		immutable Ptr!TypeConflict typeConflict;
 		immutable TypeNotSendable typeNotSendable;
 		immutable WriteToNonExistentField writeToNonExistentField;
 		immutable WriteToNonMutableField writeToNonMutableField;
@@ -308,7 +309,7 @@ struct Diag {
 	@trusted immutable this(immutable CallMultipleMatches a) {
 		kind = Kind.callMultipleMatches; callMultipleMatches = a;
 	}
-	@trusted immutable this(immutable CallNoMatch a) { kind = Kind.callNoMatch; callNoMatch = a; }
+	@trusted immutable this(immutable Ptr!CallNoMatch a) { kind = Kind.callNoMatch; callNoMatch = a; }
 	@trusted immutable this(immutable CantCall a) { kind = Kind.cantCall; cantCall = a; }
 	@trusted immutable this(immutable CantCreateNonRecordType a) {
 		kind = Kind.cantCreateNonRecordType; cantCreateNonRecordType = a;
@@ -326,7 +327,7 @@ struct Diag {
 	@trusted immutable this(immutable CreateRecordByRefNoCtx a) {
 		kind = Kind.createRecordByRefNoCtx; createRecordByRefNoCtx = a;
 	}
-	@trusted immutable this(immutable CreateRecordMultiLineWrongFields a) {
+	@trusted immutable this(immutable Ptr!CreateRecordMultiLineWrongFields a) {
 		kind = Kind.createRecordMultiLineWrongFields; createRecordMultiLineWrongFields = a;
 	}
 	@trusted immutable this(immutable DuplicateDeclaration a) {
@@ -370,7 +371,7 @@ struct Diag {
 	@trusted immutable this(immutable ParamShadowsPrevious a) {
 		kind = Kind.paramShadowsPrevious; paramShadowsPrevious = a;
 	}
-	@trusted immutable this(immutable ParseDiag a) {
+	@trusted immutable this(immutable Ptr!ParseDiag a) {
 		kind = Kind.parseDiag; parseDiag = a;
 	}
 	@trusted immutable this(immutable PurityOfFieldWorseThanRecord a) {
@@ -385,12 +386,12 @@ struct Diag {
 	@trusted immutable this(immutable SendFunDoesNotReturnFut a) {
 		kind = Kind.sendFunDoesNotReturnFut; sendFunDoesNotReturnFut = a;
 	}
-	@trusted immutable this(immutable SpecBuiltinNotSatisfied a) {
+	@trusted immutable this(immutable Ptr!SpecBuiltinNotSatisfied a) {
 		kind = Kind.specBuiltinNotSatisfied; specBuiltinNotSatisfied = a;
 	}
 	@trusted immutable this(immutable SpecImplHasSpecs a) { kind = Kind.specImplHasSpecs; specImplHasSpecs = a; }
 	@trusted immutable this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
-	@trusted immutable this(immutable TypeConflict a) { kind = Kind.typeConflict; typeConflict = a; }
+	@trusted immutable this(immutable Ptr!TypeConflict a) { kind = Kind.typeConflict; typeConflict = a; }
 	@trusted immutable this(immutable TypeNotSendable a) { kind = Kind.typeNotSendable; typeNotSendable = a; }
 	@trusted immutable this(immutable WriteToNonExistentField a) {
 		kind = Kind.writeToNonExistentField; writeToNonExistentField = a;
@@ -408,7 +409,7 @@ struct Diag {
 		kind = Kind.wrongNumberTypeArgsForStruct; wrongNumberTypeArgsForStruct = a;
 	}
 }
-
+static assert(Diag.sizeof <= 32);
 
 @trusted immutable(Out) matchDiag(Out)(
 	immutable Diag a,
@@ -613,8 +614,9 @@ struct Diag {
 
 struct Diagnostic {
 	immutable FileAndRange where;
-	immutable Diag diag;
+	immutable Ptr!Diag diag;
 }
+static assert(Diagnostic.sizeof <= 32);
 
 struct FilesInfo {
 	immutable FilePaths filePaths;
