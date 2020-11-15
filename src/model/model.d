@@ -211,6 +211,21 @@ immutable(Param) withType(ref immutable Param a, immutable Type t) {
 }
 
 struct Sig {
+	@safe @nogc pure nothrow:
+
+	@disable this(ref const CommonTypes);
+	immutable this(
+		immutable FileAndRange r,
+		immutable Sym n,
+		immutable Type rt,
+		immutable Arr!Param p,
+	) {
+		range = r;
+		name = n;
+		returnType = rt;
+		params = p;
+	}
+
 	//TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
 	immutable Sym name;
@@ -582,6 +597,25 @@ struct FunFlags {
 }
 
 struct FunDecl {
+	@safe @nogc pure nothrow:
+
+	@disable this(ref const CommonTypes);
+	this(
+		immutable Ptr!Module cm,
+		immutable Bool ip,
+		immutable FunFlags f,
+		immutable Sig s,
+		immutable Arr!TypeParam tps,
+		immutable Arr!(Ptr!SpecInst) sps,
+	) {
+		containingModule = cm;
+		isPublic = ip;
+		flags = f;
+		sig = s;
+		typeParams = tps;
+		specs = sps;
+	}
+
 	immutable Ptr!Module containingModule; //TODO:NEVER USED!
 	immutable Bool isPublic;
 	immutable FunFlags flags;
