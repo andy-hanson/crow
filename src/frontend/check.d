@@ -30,7 +30,7 @@ import frontend.ast :
 	structs,
 	TypeAst,
 	TypeParamAst;
-import frontend.checkCtx : addDiag, CheckCtx, rangeInFile;
+import frontend.checkCtx : addDiag, CheckCtx, posInFile, rangeInFile;
 import frontend.checkExpr : checkFunctionBody;
 import frontend.checkUtil : arrAsImmutable, ptrAsImmutable;
 import frontend.instantiate :
@@ -420,7 +420,7 @@ immutable(Sig) checkSig(Alloc)(
 		checkParams(alloc, ctx, toArr(ast.params), structsAndAliasesMap, typeParamsScope, delayStructInsts);
 	immutable Type returnType =
 		typeFromAst(alloc, ctx, ast.returnType, structsAndAliasesMap, typeParamsScope, delayStructInsts);
-	return immutable Sig(rangeInFile(ctx, ast.range), ast.name, returnType, params);
+	return immutable Sig(posInFile(ctx, ast.range.start), ast.name, returnType, params);
 }
 
 immutable(SpecBody.Builtin.Kind) getSpecBodyBuiltinKind(immutable Sym name) {

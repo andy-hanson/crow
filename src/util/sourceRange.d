@@ -38,7 +38,15 @@ struct FileAndRange {
 }
 static assert(FileAndRange.sizeof == 12);
 
-immutable(Sexpr) sexprOfFileAndRange(Alloc)(ref Alloc alloc, immutable FileAndRange a) {
+immutable(Sexpr) sexprOfFileAndPos(Alloc)(ref Alloc alloc, ref immutable FileAndPos a) {
+	return tataRecord(
+		alloc,
+		"file-pos",
+		tataNat(a.fileIndex.index),
+		tataNat(a.pos));
+}
+
+immutable(Sexpr) sexprOfFileAndRange(Alloc)(ref Alloc alloc, ref immutable FileAndRange a) {
 	return tataRecord(
 		alloc,
 		"file-range",

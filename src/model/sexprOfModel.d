@@ -55,7 +55,7 @@ import util.sexpr :
 	tataRecord,
 	tataStr,
 	tataSym;
-import util.sourceRange : sexprOfFileAndRange;
+import util.sourceRange : sexprOfFileAndPos, sexprOfFileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.util : todo;
 
@@ -147,7 +147,7 @@ immutable(Sexpr) sexprOfSig(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable S
 	return tataRecord(
 		alloc,
 		"sig",
-		sexprOfFileAndRange(alloc, a.range),
+		sexprOfFileAndPos(alloc, a.fileAndPos),
 		tataSym(a.name),
 		sexprOfType(alloc, ctx, a.returnType),
 		tataArr(alloc, a.params, (ref immutable Param it) =>

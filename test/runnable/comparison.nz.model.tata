@@ -26,7 +26,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-range(20, range(180, 207)), test-compare-records, void(), [])
+			sig: sig(file-pos(20, 180), test-compare-records, void(), [])
 			body: let(
 				local(file-range(20, range(216, 217)), a, my-record())
 				record(
@@ -87,7 +87,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-range(20, range(400, 433)), test-compare-byref-records, void(), [])
+			sig: sig(file-pos(20, 400), test-compare-byref-records, void(), [])
 			body: let(
 				local(file-range(20, range(442, 443)), a, my-byref-record())
 				record(
@@ -148,7 +148,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-range(20, range(650, 676)), test-compare-unions, void(), [])
+			sig: sig(file-pos(20, 650), test-compare-unions, void(), [])
 			body: let(
 				local(file-range(20, range(685, 686)), a, my-union())
 				call(
@@ -225,7 +225,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-range(20, range(927, 959)), main, fut(int32()), [param(file-range(20, range(946, 958)), args, arr(arr(char())))])
+			sig: sig(file-pos(20, 927), main, fut(int32()), [param(file-range(20, range(946, 958)), args, arr(arr(char())))])
 			body: seq(
 				seq(
 					seq(

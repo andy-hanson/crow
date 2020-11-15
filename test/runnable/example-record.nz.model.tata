@@ -21,7 +21,7 @@ module(
 	funs: [
 		fun(
 			public?: true
-			sig: sig(file-range(20, range(155, 175)), create-point, point(), [])
+			sig: sig(file-pos(20, 155), create-point, point(), [])
 			body: record(
 				point()
 				[
@@ -29,12 +29,12 @@ module(
 					call(fun-inst(module: 12, name: literal), [string-lit("2")])]))
 		fun(
 			public?: true
-			sig: sig(file-range(20, range(358, 378)), get-x, float(), [param(file-range(20, range(370, 377)), a, point())])
+			sig: sig(file-pos(20, 358), get-x, float(), [param(file-range(20, range(370, 377)), a, point())])
 			body: field-acc(param-ref(a), point(), x))
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-range(20, range(530, 562)), main, fut(int32()), [param(file-range(20, range(549, 561)), args, arr(arr(char())))])
+			sig: sig(file-pos(20, 530), main, fut(int32()), [param(file-range(20, range(549, 561)), args, arr(arr(char())))])
 			body: let(
 				local(file-range(20, range(633, 634)), p, point())
 				call(fun-inst(module: 20, name: create-point), [])

@@ -9,7 +9,7 @@ import util.collection.arr : Arr;
 import util.collection.arrBuilder : add, ArrBuilder;
 import util.memory : allocate;
 import util.ptr : Ptr;
-import util.sourceRange : FileAndRange, FileIndex, RangeWithinFile;
+import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, RangeWithinFile;
 
 struct CheckCtx {
 	Ptr!ProgramState programState;
@@ -18,7 +18,11 @@ struct CheckCtx {
 	Ptr!(ArrBuilder!Diagnostic) diagsBuilder;
 }
 
-immutable(FileAndRange) rangeInFile(ref const CheckCtx ctx, immutable RangeWithinFile range) {
+immutable(FileAndPos) posInFile(ref const CheckCtx ctx, ref immutable Pos pos) {
+	return immutable FileAndPos(ctx.fileIndex, pos);
+}
+
+immutable(FileAndRange) rangeInFile(ref const CheckCtx ctx, ref immutable RangeWithinFile range) {
 	return immutable FileAndRange(ctx.fileIndex, range);
 }
 

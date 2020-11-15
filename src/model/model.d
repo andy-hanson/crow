@@ -18,9 +18,9 @@ import util.memory : nu;
 import util.opt : has, none, Opt, some;
 import util.path : AbsolutePath, comparePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
-import util.sourceRange : FileAndRange, FileIndex;
-import util.sym : compareSym, shortSymAlphaLiteral, shortSymOperatorLiteral, Sym, symEq, writeSym;
-import util.types : u8;
+import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
+import util.sym : compareSym, shortSymAlphaLiteral, shortSymOperatorLiteral, Sym, symEq, symSize, writeSym;
+import util.types : u8, safeSizeTToU32;
 import util.util : todo, verify;
 import util.writer : writeChar, Writer, writeStatic;
 
@@ -213,24 +213,17 @@ immutable(Param) withType(ref immutable Param a, immutable Type t) {
 struct Sig {
 	@safe @nogc pure nothrow:
 
-	@disable this(ref const CommonTypes);
-	immutable this(
-		immutable FileAndRange r,
-		immutable Sym n,
-		immutable Type rt,
-		immutable Arr!Param p,
-	) {
-		range = r;
-		name = n;
-		returnType = rt;
-		params = p;
-	}
-
-	//TODO: use NameAndRange (more compact)
-	immutable FileAndRange range;
+	immutable FileAndPos fileAndPos;
 	immutable Sym name;
 	immutable Type returnType;
 	immutable Arr!Param params;
+}
+static assert(Sig.sizeof <= 48);
+
+immutable(FileAndRange) range(ref immutable Sig a) {
+	return immutable FileAndRange(
+		a.fileAndPos.fileIndex,
+		immutable RangeWithinFile(a.fileAndPos.pos, safeSizeTToU32(a.fileAndPos.pos + symSize(a.name))));
 }
 
 immutable(size_t) arity(ref const Sig a) {
@@ -599,7 +592,7 @@ struct FunFlags {
 struct FunDecl {
 	@safe @nogc pure nothrow:
 
-	@disable this(ref const CommonTypes);
+	@disable this(ref const FunDecl);
 	this(
 		immutable Ptr!Module cm,
 		immutable Bool ip,
@@ -633,8 +626,8 @@ void setBody(ref FunDecl a, immutable FunBody b) {
 	return lateSet(a._body_, b);
 }
 
-ref immutable(FileAndRange) range(return scope ref immutable FunDecl a) {
-	return a.sig.range;
+immutable(FileAndRange) range(return scope ref immutable FunDecl a) {
+	return range(a.sig);
 }
 
 immutable(Bool) isExtern(ref immutable FunDecl a) {

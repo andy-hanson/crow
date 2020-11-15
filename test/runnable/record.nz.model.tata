@@ -22,7 +22,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-range(20, range(66, 98)), main, fut(int32()), [param(file-range(20, range(85, 97)), args, arr(arr(char())))])
+			sig: sig(file-pos(20, 66), main, fut(int32()), [param(file-range(20, range(85, 97)), args, arr(arr(char())))])
 			body: let(
 				local(file-range(20, range(107, 108)), m, my-record())
 				record(

@@ -22,14 +22,14 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-range(20, range(66, 87)), foo, void(), [param(file-range(20, range(75, 86)), r, my-record())])
+			sig: sig(file-pos(20, 66), foo, void(), [param(file-range(20, range(75, 86)), r, my-record())])
 			body: seq(
 				call(fun-inst(module: 13, name: print-sync), [field-acc(param-ref(r), my-record(), a)])
 				call(fun-inst(module: 13, name: print-sync), [field-acc(param-ref(r), my-record(), b)])))
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-range(20, range(130, 162)), main, fut(int32()), [param(file-range(20, range(149, 161)), args, arr(arr(char())))])
+			sig: sig(file-pos(20, 130), main, fut(int32()), [param(file-range(20, range(149, 161)), args, arr(arr(char())))])
 			body: let(
 				local(file-range(20, range(171, 172)), r, my-record())
 				record(my-record(), [string-lit("a"), string-lit("b")])

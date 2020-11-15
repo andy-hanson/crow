@@ -317,5 +317,5 @@ immutable(Sig) instantiateSig(Alloc)(
 			p.type,
 			typeParamsAndArgs,
 			noneMut!(Ptr!(MutArr!(Ptr!StructInst))))));
-	return immutable Sig(sig.range, sig.name, returnType, params);
+	return immutable Sig(sig.fileAndPos, sig.name, returnType, params);
 }
