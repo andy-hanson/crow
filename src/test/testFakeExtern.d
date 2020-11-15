@@ -3,21 +3,22 @@ module test.testFakeExtern;
 @safe @nogc nothrow: // not pure
 
 import interpret.fakeExtern : FakeExtern, newFakeExtern;
+import test.testUtil : Test;
 import util.collection.arr : empty;
 import util.collection.str : strEqLiteral;
 import util.ptr : ptrTrustMe_mut;
 import util.types : u8;
 import util.util : verify;
 
-void testFakeExtern(Alloc)(ref Alloc alloc) {
-	testMallocAndFree(alloc);
-	testWrite(alloc);
+void testFakeExtern(Alloc)(ref Test!Alloc test) {
+	testMallocAndFree(test);
+	testWrite(test);
 }
 
 private:
 
-@trusted void testMallocAndFree(Alloc)(ref Alloc alloc) {
-	FakeExtern!Alloc extern_ = newFakeExtern!Alloc(ptrTrustMe_mut(alloc));
+@trusted void testMallocAndFree(Alloc)(ref Test!Alloc test) {
+	FakeExtern!Alloc extern_ = newFakeExtern!Alloc(test.alloc);
 	u8* ptr = extern_.malloc(8);
 	u8* ptr2 = extern_.malloc(16);
 	*ptr = 1;
@@ -27,8 +28,8 @@ private:
 	extern_.free(ptr);
 }
 
-void testWrite(Alloc)(ref Alloc alloc) {
-	FakeExtern!Alloc extern_ = newFakeExtern!Alloc(ptrTrustMe_mut(alloc));
+void testWrite(Alloc)(ref Test!Alloc test) {
+	FakeExtern!Alloc extern_ = newFakeExtern!Alloc(test.alloc);
 
 	extern_.write(1, "gnarly", 4);
 	extern_.write(2, "tubular", 2);

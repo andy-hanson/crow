@@ -2,6 +2,7 @@ module test.testByteReaderWriter;
 
 @safe @nogc pure nothrow:
 
+import test.testUtil : Test;
 import util.collection.arr : Arr, begin;
 import util.collection.byteReader : ByteReader, readU8, readU16, readU32, readU64;
 import util.collection.byteWriter : ByteWriter, finishByteWriter, newByteWriter, pushU8, pushU16, pushU32, pushU64;
@@ -9,8 +10,8 @@ import util.ptr : ptrTrustMe_mut;
 import util.types : Nat8, Nat16, Nat32, Nat64, u8;
 import util.util : verify;
 
-@trusted void testByteReaderWriter(Alloc)(ref Alloc alloc) {
-	ByteWriter!Alloc writer = newByteWriter(ptrTrustMe_mut(alloc));
+@trusted void testByteReaderWriter(Alloc)(ref Test!Alloc test) {
+	ByteWriter!Alloc writer = newByteWriter(test.alloc);
 
 	pushU8(writer, immutable Nat8(0xab));
 	pushU16(writer, immutable Nat16(0xabcd));

@@ -15,6 +15,6 @@ import util.collection.str : Str;
 	printf("%s", s);
 }
 
-@trusted void printErr(immutable char* s) {
-	fprintf(stderr, "%s", s);
+@trusted void printErr(immutable Str s) {
+	fprintf(stderr, "%.*s", cast(int) size(s), begin(s));
 }

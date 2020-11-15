@@ -1,10 +1,10 @@
-module util.io.realReadOnlyStorage;
+module io.realReadOnlyStorage;
 
 @safe @nogc nothrow: // not pure
 
+import io.io : tryReadFile;
 import model.model : AbsolutePathsGetter;
 import util.collection.str : NulTerminatedStr, Str;
-import util.io.io : tryReadFile;
 import util.opt : Opt;
 import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr;

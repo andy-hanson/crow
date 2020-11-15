@@ -49,10 +49,6 @@ struct FakeExtern(Alloc) {
 		immutable Arr!char arr = immutable Arr!char(buf, nBytes);
 		verify(fd == 1 || fd == 2);
 		pushAll!(char, Alloc)(alloc.deref(), fd == 1 ? stdout : stderr, arr);
-		debug {
-			import core.stdc.stdio : printf;
-			printf("WROTE TO %d: %.*s\n", fd, cast(int) nBytes, buf);
-		}
 		return nBytes;
 	}
 

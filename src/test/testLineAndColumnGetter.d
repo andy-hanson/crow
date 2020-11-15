@@ -2,14 +2,15 @@ module test.testLineAndColumnGetter;
 
 @safe @nogc pure nothrow:
 
+import test.testUtil : Test;
 import util.collection.str : Str, strLiteral;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter, lineAndColumnGetterForText;
 import util.sourceRange : Pos;
 import util.util : verifyEq;
 
-void testLineAndColumnGetter(Alloc)(ref Alloc alloc) {
+void testLineAndColumnGetter(Alloc)(ref Test!Alloc test) {
 	immutable Str text = strLiteral("a\n\tbb\nc\n");
-	immutable LineAndColumnGetter lcg = lineAndColumnGetterForText(alloc, text);
+	immutable LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, text);
 	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(0)), immutable LineAndColumn(0, 0));
 	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(1)), immutable LineAndColumn(0, 1));
 	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(2)), immutable LineAndColumn(1, 0));

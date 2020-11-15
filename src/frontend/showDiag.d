@@ -31,7 +31,7 @@ import util.bools : Bool, not, True;
 import util.collection.arr : Arr, empty, only, range, size;
 import util.collection.arrUtil : exists, map, sort;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.collection.str : CStr, Str;
+import util.collection.str : Str;
 import util.diff : diffSymbols;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has;
@@ -41,7 +41,6 @@ import util.sourceRange : FileAndRange, FilePaths;
 import util.sym : Sym, writeSym;
 import util.writer :
 	finishWriter,
-	finishWriterToCStr,
 	writeBold,
 	writeChar,
 	writeEscapedChar,
@@ -54,7 +53,7 @@ import util.writer :
 	Writer;
 import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRelPath;
 
-immutable(CStr) cStrOfDiagnostics(Alloc)(ref Alloc alloc, ref immutable Diagnostics diagnostics) {
+immutable(Str) strOfDiagnostics(Alloc)(ref Alloc alloc, ref immutable Diagnostics diagnostics) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	immutable FilePaths filePaths = diagnostics.filesInfo.filePaths;
 	immutable Diags sorted = sort!(Diagnostic, Alloc)(
@@ -67,7 +66,7 @@ immutable(CStr) cStrOfDiagnostics(Alloc)(ref Alloc alloc, ref immutable Diagnost
 				fullIndexDictGet(filePaths, b.where.fileIndex)));
 	foreach (ref immutable Diagnostic d; sorted.range)
 		showDiagnostic(alloc, writer, diagnostics.filesInfo, d);
-	return finishWriterToCStr(writer);
+	return finishWriter(writer);
 }
 
 public immutable(Str) strOfParseDiag(Alloc)(ref Alloc alloc, ref immutable ParseDiag a) {

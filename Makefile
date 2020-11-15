@@ -41,27 +41,7 @@ bin/noze.wasm: src/**/*.d
 		-mtriple=wasm32-unknown-unknown-wasm \
 		-betterC \
 		--enable-asserts=false \
-		src/frontend/*.d \
-		src/model/*.d \
-		src/util/alloc/globalAlloc.d \
-		src/util/bitUtils.d \
-		src/util/bools.d \
-		src/util/cell.d \
-		src/util/collection/*.d \
-		src/util/comparison.d \
-		src/util/diff.d \
-		src/util/ptr.d \
-		src/util/late.d \
-		src/util/lineAndColumnGetter.d \
-		src/util/memory.d \
-		src/util/opt.d \
-		src/util/path.d \
-		src/util/result.d \
-		src/util/sexpr.d \
-		src/util/sourceRange.d \
-		src/util/sym.d \
-		src/util/types.d \
-		src/util/util.d \
-		src/util/writer.d \
-		src/util/writerUtils.d \
-		src/wasm.d
+		src/wasm.d \
+		src/compiler.d \
+		src/*/*.d \
+		src/*/*/*.d \

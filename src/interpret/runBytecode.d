@@ -2,8 +2,6 @@ module interpret.runBytecode;
 
 @safe @nogc nothrow: // not pure
 
-import core.stdc.stdio : printf;
-
 import interpret.applyFn : applyFn;
 import interpret.bytecode :
 	asCall,
@@ -59,14 +57,13 @@ import util.collection.str : CStr, freeCStr, Str, strToCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : has;
 import util.path : AbsolutePath, pathToCStr;
-import util.print : print;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
 import util.print : print;
 import util.sexpr : writeSexprNoNewline;
 import util.sourceRange : FileAndPos;
 import util.types : decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, u8, u16, u32, u64, zero;
 import util.util : todo, unreachable, verify;
-import util.writer : finishWriterToCStr, Writer, writeChar, writePtrRange, writeStatic;
+import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, writeStatic;
 
 @trusted immutable(int) runBytecode(TempAlloc, Extern)(
 	ref TempAlloc tempAlloc,
@@ -174,21 +171,20 @@ private void applyInterpreterRestore(Extern)(ref Interpreter!Extern a, ref immut
 	clearStack(a.stackStartStack);
 }
 
-private void printStack(Extern)(ref const Interpreter!Extern a) {
-	printDataArr(asTempArr(a.dataStack));
+private void showStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpreter!Extern a) {
+	return showDataArr(writer, asTempArr(a.dataStack));
 }
 
-@trusted void printDataArr(immutable Arr!Nat64 values) {
-	printf("data:");
-	foreach (immutable Nat64 value; range(values))
-		printf(" %lx", value.raw());
-	printf("\n");
+@trusted void showDataArr(Alloc)(ref Writer!Alloc writer, immutable Arr!Nat64 values) {
+	writeStatic(writer, "data: ");
+	foreach (immutable Nat64 value; range(values)) {
+		writeChar(writer, ' ');
+		writeHex(writer, value.raw());
+	}
+	writeChar(writer, '\n');
 }
 
-private @trusted void printReturnStack(Alloc, Extern)(ref Alloc alloc, ref const Interpreter!Extern a) {
-	alias TempAlloc = Arena!(Alloc, "printReturnStack");
-	TempAlloc tempAlloc = TempAlloc(ptrTrustMe_mut(alloc));
-	Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+private @trusted void showReturnStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpreter!Extern a) {
 	writeStatic(writer, "call stack:");
 	foreach (immutable u8* ptr; range(asTempArr(a.returnStack))) {
 		writeChar(writer, ' ');
@@ -196,7 +192,6 @@ private @trusted void printReturnStack(Alloc, Extern)(ref Alloc alloc, ref const
 	}
 	writeChar(writer, ' ');
 	writeFunNameAtByteCodePtr(writer, a, getReaderPtr(a.reader));
-	printf("%s\n", finishWriterToCStr(writer));
 }
 
 private void writeByteCodeSource(TempAlloc, Alloc)(
@@ -266,9 +261,10 @@ immutable(StepResult) step(TempAlloc, Extern)(ref TempAlloc tempAlloc, ref Inter
 	immutable ByteCodeSource source = nextSource(a);
 	if (PRINT) {
 		debug {
-			printf("\n");
-			printStack(a);
-			printReturnStack(tempAlloc, a);
+			Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+			showStack(writer, a);
+			showReturnStack(writer, a);
+			print(finishWriter(writer));
 		}
 	}
 	immutable Operation operation = readOperation(a.reader);
@@ -286,7 +282,7 @@ immutable(StepResult) step(TempAlloc, Extern)(ref TempAlloc tempAlloc, ref Inter
 				writeChar(writer, ')');
 			}
 			writeChar(writer, '\n');
-			print(finishWriterToCStr(writer));
+			print(finishWriter(writer));
 		}
 	}
 
@@ -310,13 +306,6 @@ immutable(StepResult) step(TempAlloc, Extern)(ref TempAlloc tempAlloc, ref Inter
 						? immutable Nat16(0)
 						: peek(a.stackStartStack);
 					immutable Nat32 actualStackSize = stackSize(a.dataStack) - stackStart.to32();
-					debug {
-						if (actualStackSize != it.stackSize.to32()) {
-							printf(
-								"actual stack size: %u, expected stack size: %u\n",
-								actualStackSize.raw(), it.stackSize.raw());
-						}
-					}
 					verify(actualStackSize == it.stackSize.to32());
 				},
 				(ref immutable DebugOperation.AssertUnreachable) {
@@ -432,7 +421,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 			writeStatic(writer, "accessing potentially invalid pointer: ");
 			writePtrRange(writer, ptrRange);
 			writePtrRanges(writer, a);
-			print(finishWriterToCStr(writer));
+			print(finishWriter(writer));
 		}
 		//todo!void("ptr not valid");
 	}

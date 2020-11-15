@@ -2,18 +2,33 @@ module test.testUtil;
 
 @safe @nogc nothrow: // not pure
 
-import core.stdc.stdio : printf;
-
 import interpret.bytecode : ByteCodeIndex;
-import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, printDataArr;
+import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, showDataArr;
 import util.bools : Bool;
 import util.collection.arr : Arr, arrOfD, range, sizeEq;
 import util.collection.arrUtil : eachCorresponds;
 import util.collection.globalAllocatedStack : asTempArr;
+import util.collection.str : Str;
+import util.print : print;
+import util.ptr : Ptr;
 import util.types : Nat64, u8;
 import util.util : todo, verify;
+import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
-void expectDataStack(ref const DataStack dataStack, scope immutable Nat64[] expected) {
+struct Test(Alloc) {
+	Ptr!Alloc alloc;
+
+	Writer!Alloc writer() {
+		return Writer!Alloc(alloc);
+	}
+
+	void fail(immutable Str reason) {
+		print(reason);
+		verify(false);
+	}
+}
+
+void expectDataStack(Alloc)(ref Test!Alloc test, ref const DataStack dataStack, scope immutable Nat64[] expected) {
 	immutable Arr!Nat64 stack = asTempArr(dataStack);
 	immutable Arr!Nat64 expectedArr = arrOfD(expected);
 	immutable Bool eq = immutable Bool(
@@ -22,16 +37,21 @@ void expectDataStack(ref const DataStack dataStack, scope immutable Nat64[] expe
 			immutable Bool(a == b)));
 	if (!eq) {
 		debug {
-			printf("expected:\n");
-			printDataArr(expectedArr);
-			printf("\nactual:\n");
-			printDataArr(stack);
+			Writer!Alloc writer = test.writer();
+			writeStatic(writer, "expected:\n");
+			showDataArr(writer, expectedArr);
+			writeStatic(writer, "\nactual:\n");
+			showDataArr(writer, stack);
+			test.fail(finishWriter(writer));
 		}
-		verify(false);
 	}
 }
 
-void expectReturnStack(Extern)(ref const Interpreter!Extern interpreter, scope immutable ByteCodeIndex[] expected) {
+void expectReturnStack(Alloc, Extern)(
+	ref Test!Alloc test,
+	ref const Interpreter!Extern interpreter,
+	scope immutable ByteCodeIndex[] expected,
+) {
 	immutable Arr!(immutable(u8)*) stack = asTempArr(interpreter.returnStack);
 	immutable Arr!ByteCodeIndex expectedArr = arrOfD(expected);
 	immutable Bool eq = immutable Bool(
@@ -43,17 +63,20 @@ void expectReturnStack(Extern)(ref const Interpreter!Extern interpreter, scope i
 				immutable Bool(byteCodeIndexOfPtr(interpreter, a) == b)));
 	if (!eq) {
 		debug {
-			printf("expected:\n");
-			printf("return:");
-			foreach (immutable u8* ptr; range(stack))
-				printf(" %d", byteCodeIndexOfPtr(interpreter, ptr).index.raw());
-			printf("\nactual:\n");
-			printf("return:");
-			foreach (immutable ByteCodeIndex index; expected)
-				printf(" %d", index.index.raw());
-			printf("\n");
+			Writer!Alloc writer = test.writer();
+			writeStatic(writer, "expected:\nreturn:");
+			foreach (immutable u8* ptr; range(stack)) {
+				writeChar(writer, ' ');
+				writeNat(writer, byteCodeIndexOfPtr(interpreter, ptr).index.raw());
+			}
+			writeStatic(writer, "\nactual:\nreturn:");
+			foreach (immutable ByteCodeIndex index; expected) {
+				writeChar(writer, ' ');
+				writeNat(writer, index.index.raw());
+			}
+			writeChar(writer, '\n');
+			test.fail(finishWriter(writer));
 		}
-		todo!void("useful error message");
 		verify(false);
 	}
 }

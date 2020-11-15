@@ -2,19 +2,20 @@ module test.testSym;
 
 @safe @nogc pure nothrow:
 
+import test.testUtil : Test;
 import util.collection.str : strLiteral, strEqLiteral;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols, isLongSym, strOfSym, Sym, symEq, tryGetSymFromStr;
 import util.util : verify;
 
-void testSym(Alloc)(ref Alloc alloc) {
-	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
+void testSym(Alloc)(ref Test!Alloc test) {
+	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(test.alloc);
 
 	immutable(Sym) getSym(immutable string a) {
 		immutable Opt!Sym opt = tryGetSymFromStr(allSymbols, strLiteral(a));
 		immutable Sym res = force(opt);
-		verify(strEqLiteral(strOfSym(alloc, res), a));
+		verify(strEqLiteral(strOfSym(test.alloc, res), a));
 		return res;
 	}
 

@@ -10,7 +10,7 @@ import util.collection.arr : Arr;
 import util.collection.str : CStr, NulTerminatedStr, nulTerminatedStrOfCStr;
 import util.ptr : ptrTrustMe_mut;
 import util.sexpr : Sexpr, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
-import util.sourceRange : sexprOfSourceRange;
+import util.sourceRange : sexprOfRangeWithinFile;
 import util.sym : AllSymbols;
 import util.writer : finishWriterToCStr, Writer;
 
@@ -48,7 +48,7 @@ immutable(Sexpr) sexprOfParseDiagnostic(Alloc)(ref Alloc alloc, ref immutable Pa
 	return tataNamedRecord(
 		alloc,
 		"diagnostic",
-		"range", sexprOfSourceRange(alloc, a.range),
+		"range", sexprOfRangeWithinFile(alloc, a.range),
 		"message", tataStr(strOfParseDiag(alloc, a.diag)));
 }
 

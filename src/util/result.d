@@ -1,5 +1,7 @@
 module util.result;
 
+@safe @nogc nothrow: // not pure
+
 @nogc nothrow @trusted immutable(Out) matchResultImpure(Out, S, F)(
 	ref immutable Result!(S, F) a,
 	scope immutable(Out) delegate(ref immutable S) @safe @nogc nothrow cbSuccess,
@@ -10,7 +12,7 @@ module util.result;
 		: cbFailure(a.failure_);
 }
 
-@safe @nogc pure nothrow:
+pure:
 
 import util.bools : Bool, False, True;
 import util.util : verify;
@@ -25,7 +27,7 @@ struct Result(Success, Failure) {
 	}
 
 	@trusted this(immutable Success a) { isSuccess_ = True; success_ = a; }
-	@trusted this(immutable Failure a) { isSuccess_ = False; failure_ = a; }
+	@trusted this(immutable bool tag, immutable Failure a) { isSuccess_ = False; failure_ = a; }
 }
 
 immutable(Result!(S, F)) success(S, F)(immutable S s) {
@@ -33,7 +35,7 @@ immutable(Result!(S, F)) success(S, F)(immutable S s) {
 }
 
 immutable(Result!(S, F)) fail(S, F)(immutable F f) {
-	return Result!(S, F)(f);
+	return Result!(S, F)(true, f);
 }
 
 
@@ -51,7 +53,7 @@ immutable(Bool) isSuccess(S, F)(ref immutable Result!(S, F) a) {
 	return a.failure_;
 }
 
-private @trusted immutable(Out) matchResult(Out, S, F)(
+@trusted immutable(Out) matchResult(Out, S, F)(
 	ref immutable Result!(S, F) a,
 	scope immutable(Out) delegate(ref immutable S) @safe @nogc pure nothrow cbSuccess,
 	scope immutable(Out) delegate(ref immutable F) @safe @nogc pure nothrow cbFailure,

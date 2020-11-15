@@ -39,7 +39,7 @@ void writeStatic(Alloc)(ref Writer!Alloc writer, immutable string c) {
 	writeStr(writer, strLiteral(c));
 }
 
-private void writeHex(Alloc)(ref Writer!Alloc writer, immutable size_t n) {
+void writeHex(Alloc)(ref Writer!Alloc writer, immutable size_t n) {
 	writeNat(writer, n, 16);
 }
 

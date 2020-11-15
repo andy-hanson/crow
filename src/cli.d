@@ -1,16 +1,24 @@
 module cli;
 
-import compiler : build, buildAndRun, print, PrintKind;
+import compiler : buildAndInterpret, buildToC, getAbsolutePathFromStorage, print, PrintKind;
 import frontend.lang : nozeExtension;
+import io.io :
+	CommandLineArgs,
+	Environ,
+	getCwd,
+	parseCommandLineArgs,
+	replaceCurrentProcess,
+	spawnAndWaitSync,
+	writeFileSync;
+import io.realExtern : newRealExtern, RealExtern;
+import io.realReadOnlyStorage : RealReadOnlyStorage;
 import test.test : test;
 import util.alloc.arena : Arena;
 import util.alloc.mallocator : Mallocator;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, first, only, size;
-import util.collection.arrUtil : cat, slice, tail;
-import util.collection.str : CStr, endsWith, Str, strLiteral, strEqLiteral;
-import util.io.io : getCwd, parseCommandLineArgs, CommandLineArgs;
-import util.io.realReadOnlyStorage : RealReadOnlyStorage;
+import util.collection.arrUtil : arrLiteral, cat, slice, tail;
+import util.collection.str : CStr, emptyStr, endsWith, Str, strLiteral, strEqLiteral;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
 import util.path :
 	AbsolutePath,
@@ -20,12 +28,15 @@ import util.path :
 	Path,
 	pathBaseName,
 	pathParent,
-	rootPath;
+	pathToStr,
+	rootPath,
+	withExtension;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.print : print;
+import util.print : print, printErr;
+import util.result : matchResultImpure, Result;
 import util.sexprPrint : PrintFormat;
-import util.sym : AllSymbols, Sym;
-import util.util : todo;
+import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
+import util.util : todo, unreachable;
 
 @safe @nogc nothrow: // not pure
 
@@ -52,9 +63,9 @@ immutable(int) go(Alloc, SymAlloc)(
 	return matchCommand!int(
 		command,
 		(ref immutable Command.Build it) {
-			RealReadOnlyStorage!Alloc storage =
-				RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, it.programDirAndMain.programDir);
-			return build(alloc, allSymbols, storage, it.programDirAndMain.mainPath, args.environ);
+			immutable Opt!AbsolutePath exePath =
+				buildToCAndCompile(alloc, allSymbols, it.programDirAndMain, include, args.environ);
+			return has(exePath) ? 0 : 1;
 		},
 		(ref immutable Command.Help it) =>
 			help(it.isDueToCommandParseError),
@@ -74,20 +85,57 @@ immutable(int) go(Alloc, SymAlloc)(
 		(ref immutable Command.Run it) {
 			RealReadOnlyStorage!Alloc storage =
 				RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, it.programDirAndMain.programDir);
-			return buildAndRun(
-				alloc,
-				it.interpret,
-				allSymbols,
-				storage,
-				it.programDirAndMain.mainPath,
-				it.programArgs,
-				args.environ);
+			if (it.interpret) {
+				RealExtern extern_ = newRealExtern();
+				return buildAndInterpret(
+					alloc,
+					allSymbols,
+					storage,
+					extern_,
+					it.programDirAndMain.mainPath,
+					it.programArgs);
+			} else {
+				immutable Opt!AbsolutePath exePath =
+					buildToCAndCompile(alloc, allSymbols, it.programDirAndMain, include, args.environ);
+				if (!has(exePath))
+					return 1;
+				else {
+					replaceCurrentProcess(alloc, force(exePath), it.programArgs, args.environ);
+					return unreachable!int();
+				}
+			}
 		},
 		(ref immutable Command.Test it) =>
 			test(alloc, it.name),
 		(ref immutable Command.Version) {
 			printVersion();
 			return 0;
+		});
+}
+
+immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable Str include,
+	ref immutable Environ environ,
+) {
+	RealReadOnlyStorage!Alloc storage =
+		RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, programDirAndMain.programDir);
+	immutable AbsolutePath cPath =
+		getAbsolutePathFromStorage(alloc, storage, programDirAndMain.mainPath, strLiteral(".c"));
+	immutable Result!(Str, Str) result = buildToC(alloc, allSymbols, storage, programDirAndMain.mainPath);
+	return matchResultImpure!(immutable Opt!AbsolutePath, Str, Str)(
+		result,
+		(ref immutable Str cCode) {
+			writeFileSync(alloc, cPath, cCode);
+			immutable AbsolutePath exePath = withExtension(cPath, emptyStr);
+			compileC(alloc, cPath, exePath, environ);
+			return some(exePath);
+		},
+		(ref immutable Str diagnostics) {
+			printErr(diagnostics);
+			return none!AbsolutePath;
 		});
 }
 
@@ -147,6 +195,39 @@ immutable(int) help(immutable Bool isDueToCommandParseError) {
 		case Command.Kind.version_:
 			return cbVersion(a.version_);
 	}
+}
+
+void compileC(Alloc)(
+	ref Alloc alloc,
+	ref immutable AbsolutePath cPath,
+	ref immutable AbsolutePath exePath,
+	ref immutable Environ environ,
+) {
+	immutable AbsolutePath cCompiler =
+		AbsolutePath(strLiteral("/usr/bin"), rootPath(alloc, shortSymAlphaLiteral("cc")), emptyStr);
+	immutable Arr!Str args = arrLiteral!Str(
+		alloc,
+		strLiteral("-Werror"),
+		strLiteral("-Wextra"),
+		strLiteral("-Wall"),
+		strLiteral("-ansi"),
+		// strLiteral("-pedantic"), // TODO?
+		strLiteral("-std=c11"),
+		strLiteral("-Wno-unused-parameter"),
+		strLiteral("-Wno-unused-but-set-variable"),
+		strLiteral("-Wno-unused-variable"),
+		strLiteral("-Wno-unused-value"),
+		strLiteral("-Wno-builtin-declaration-mismatch"), //TODO:KILL?
+		strLiteral("-pthread"),
+		strLiteral("-lSDL2"),
+		// TODO: configurable whether we want debug or release
+		strLiteral("-g"),
+		pathToStr(alloc, cPath),
+		strLiteral("-o"),
+		pathToStr(alloc, exePath));
+	immutable int err = spawnAndWaitSync(alloc, cCompiler, args, environ);
+	if (err != 0)
+		todo!void("C compile error");
 }
 
 pure:
@@ -369,5 +450,3 @@ immutable(Str) getNozeDirectory(immutable Str pathToThisExecutable) {
 	immutable Opt!Str parent = pathParent(pathToThisExecutable);
 	return climbUpToNoze(forceOrTodo(parent));
 }
-
-
