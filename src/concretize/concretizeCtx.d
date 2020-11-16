@@ -12,6 +12,7 @@ import model.concreteModel :
 	ConcreteFieldSource,
 	ConcreteFun,
 	ConcreteFunBody,
+	ConcreteFunSig,
 	ConcreteFunSource,
 	ConcreteParam,
 	ConcreteParamSource,
@@ -241,7 +242,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	immutable Ptr!ConcreteFun containingConcreteFun,
 	immutable size_t index,
 	immutable ConcreteType returnType,
-	ref immutable Opt!ConcreteParam closureParam,
+	ref immutable Opt!(Ptr!ConcreteParam) closureParam,
 	ref immutable Arr!ConcreteParam params,
 	ref immutable ConcreteFunKey containingConcreteFunKey,
 	immutable Ptr!Expr body_,
@@ -249,11 +250,9 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	Ptr!ConcreteFun res =
 		nuMut!ConcreteFun(
 			alloc,
-			immutable ConcreteFunSource(immutable ConcreteFunSource.Lambda(body_.range, containingConcreteFun, index)),
-			returnType,
-			needsCtx,
-			closureParam,
-			params);
+			immutable ConcreteFunSource(
+				nu!(ConcreteFunSource.Lambda)(alloc, body_.range, containingConcreteFun, index)),
+			nu!ConcreteFunSig(alloc, returnType, needsCtx, closureParam, params));
 	immutable ConcreteFunBodyInputs bodyInputs = immutable ConcreteFunBodyInputs(
 		castImmutable(res),
 		containingConcreteFunKey,
@@ -384,10 +383,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(Alloc)(
 	Ptr!ConcreteFun res = nuMut!ConcreteFun(
 		alloc,
 		immutable ConcreteFunSource(key.inst),
-		returnType,
-		not(noCtx(decl)),
-		none!ConcreteParam,
-		params);
+		nu!ConcreteFunSig(alloc, returnType, not(noCtx(decl)), none!(Ptr!ConcreteParam), params));
 	immutable ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		castImmutable(res),
 		key,

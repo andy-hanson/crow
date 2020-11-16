@@ -399,12 +399,13 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 				closureFields,
 				immutable ConcreteStructSource(
 					immutable ConcreteStructSource.Lambda(ctx.currentConcreteFun, lambdaIndex))));
-	immutable Opt!ConcreteParam closureParam = has(closureType)
-		? some(immutable ConcreteParam(
+	immutable Opt!(Ptr!ConcreteParam) closureParam = has(closureType)
+		? some(nu!ConcreteParam(
+			alloc,
 			immutable ConcreteParamSource(immutable ConcreteParamSource.Closure()),
 			none!size_t,
 			force(closureType)))
-		: none!ConcreteParam;
+		: none!(Ptr!ConcreteParam);
 	immutable Opt!(Ptr!ConcreteExpr) closure = e.kind == FunKind.ptr
 		? none!(Ptr!ConcreteExpr)
 		: some!(Ptr!ConcreteExpr)(
@@ -559,7 +560,11 @@ immutable(ConcreteExpr) concretizeMatch(Alloc)(
 		return immutable ConcreteExpr(
 			type,
 			range,
-			immutable ConcreteExpr.Match(getMatchedLocal(alloc, ctx, matchedUnion), allocExpr(alloc, matched), cases));
+			nu!(ConcreteExpr.Match)(
+				alloc,
+				getMatchedLocal(alloc, ctx, matchedUnion),
+				allocExpr(alloc, matched),
+				cases));
 	}
 }
 
@@ -679,7 +684,8 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 					return immutable ConcreteExpr(
 						arrayType,
 						range,
-						immutable ConcreteExpr.CreateArr(
+						nu!(ConcreteExpr.CreateArr)(
+							alloc,
 							arrayStruct,
 							elementType,
 							getAllocFun(alloc, ctx.concretizeCtx),

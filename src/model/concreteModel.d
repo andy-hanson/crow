@@ -155,7 +155,7 @@ struct ConcreteType {
 	immutable Ptr!ConcreteStruct struct_;
 }
 
-immutable(Purity) purity(ref immutable ConcreteType a) {
+immutable(Purity) purity(immutable ConcreteType a) {
 	return a.struct_.purity;
 }
 
@@ -495,7 +495,7 @@ struct ConcreteFunSource {
 	}
 
 	@trusted immutable this(immutable Ptr!FunInst a) { kind_ = Kind.funInst; funInst_ = a; }
-	@trusted immutable this(immutable Lambda a) { kind_ = Kind.lambda; lambda_ = a; }
+	@trusted immutable this(immutable Ptr!Lambda a) { kind_ = Kind.lambda; lambda_ = a; }
 
 	private:
 	enum Kind {
@@ -505,9 +505,10 @@ struct ConcreteFunSource {
 	immutable Kind kind_;
 	union {
 		immutable Ptr!FunInst funInst_;
-		immutable Lambda lambda_;
+		immutable Ptr!Lambda lambda_;
 	}
 }
+static assert(ConcreteFunSource.sizeof <= 16);
 
 @trusted T matchConcreteFunSource(T)(
 	ref immutable ConcreteFunSource a,
@@ -526,13 +527,54 @@ struct ConcreteFunSource {
 // Each instantiation of a FunDecl
 // Each lambda inside an instantiation of a FunDecl
 struct ConcreteFun {
+	@safe @nogc pure nothrow:
+
 	immutable ConcreteFunSource source;
-	immutable ConcreteType returnType;
-	immutable Bool needsCtx;
-	immutable Opt!ConcreteParam closureParam;
-	immutable Arr!ConcreteParam paramsExcludingCtxAndClosure;
+	immutable Ptr!ConcreteFunSig sig;
 	Late!(immutable ConcreteFunBody) _body_;
+
+	//TODO: not instance
+	immutable(ConcreteType) returnType() immutable {
+		return immutable ConcreteType(sig.returnTypeNeedsPtr, sig.returnStruct);
+	}
+
+	ref immutable(Bool) needsCtx() immutable {
+		return sig.needsCtx;
+	}
+
+	ref immutable(Opt!(Ptr!ConcreteParam)) closureParam() immutable {
+		return sig.closureParam;
+	}
+
+	ref immutable(Arr!ConcreteParam) paramsExcludingCtxAndClosure() immutable {
+		return sig.paramsExcludingCtxAndClosure;
+	}
 }
+
+struct ConcreteFunSig {
+	@safe @nogc pure nothrow:
+
+	immutable this(
+		immutable ConcreteType returnType,
+		immutable Bool n,
+		immutable Opt!(Ptr!ConcreteParam) c,
+		immutable Arr!ConcreteParam p,
+	) {
+		returnStruct = returnType.struct_;
+		returnTypeNeedsPtr = returnType.isPointer;
+		needsCtx = n;
+		closureParam = c;
+		paramsExcludingCtxAndClosure = p;
+	}
+
+	// Breaking up `immutable ConcreteType returnType;` so bools can be stored together
+	immutable Ptr!ConcreteStruct returnStruct;
+	immutable Bool returnTypeNeedsPtr;
+	immutable Bool needsCtx;
+	immutable Opt!(Ptr!ConcreteParam) closureParam;
+	immutable Arr!ConcreteParam paramsExcludingCtxAndClosure;
+}
+static assert(ConcreteFunSig.sizeof <= 48);
 
 immutable(Bool) isSummon(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(immutable Bool)(
@@ -721,14 +763,14 @@ struct ConcreteExpr {
 		immutable Alloc alloc;
 		immutable Call call;
 		immutable Cond cond;
-		immutable CreateArr createArr;
+		immutable Ptr!CreateArr createArr;
 		immutable Constant constant;
 		immutable CreateRecord createRecord;
 		immutable ConvertToUnion convertToUnion;
 		immutable Lambda lambda;
 		immutable Let let;
 		immutable LocalRef localRef;
-		immutable Match match;
+		immutable Ptr!Match match;
 		immutable ParamRef paramRef;
 		immutable RecordFieldAccess recordFieldAccess;
 		immutable RecordFieldSet recordFieldSet;
@@ -745,7 +787,7 @@ struct ConcreteExpr {
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Cond a) {
 		type = t; range = r; kind = Kind.cond; cond = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable CreateArr a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Ptr!CreateArr a) {
 		type = t; range = r; kind = Kind.createArr; createArr = a;
 	}
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Constant a) {
@@ -766,7 +808,7 @@ struct ConcreteExpr {
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable LocalRef a) {
 		type = t; range = r; kind = Kind.localRef; localRef = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Match a) {
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Ptr!Match a) {
 		type = t; range = r; kind = Kind.match; match = a;
 	}
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable ParamRef a) {
@@ -783,7 +825,7 @@ struct ConcreteExpr {
 	}
 }
 
-ref immutable(ConcreteType) returnType(return scope ref immutable ConcreteExpr.Call a) {
+immutable(ConcreteType) returnType(return scope ref immutable ConcreteExpr.Call a) {
 	return a.called.returnType;
 }
 

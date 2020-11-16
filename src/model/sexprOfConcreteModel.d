@@ -112,7 +112,7 @@ immutable(Sexpr) tataOfConcreteStructBodyBuiltin(Alloc)(ref Alloc alloc, ref imm
 			tataOfConcreteType(alloc, it)));
 }
 
-immutable(Sexpr) tataOfConcreteType(Alloc)(ref Alloc alloc, ref immutable ConcreteType a) {
+immutable(Sexpr) tataOfConcreteType(Alloc)(ref Alloc alloc, immutable ConcreteType a) {
 	return tataRecord(
 		alloc,
 		"type",
@@ -146,7 +146,7 @@ immutable(Sexpr) tataOfConcreteFun(Alloc)(ref Alloc alloc, ref immutable Concret
 		tataBool(a.needsCtx),
 		tataOfConcreteFunSource(alloc, a.source),
 		tataOfConcreteType(alloc, a.returnType),
-		tataOpt(alloc, a.closureParam, (ref immutable ConcreteParam it) =>
+		tataOpt(alloc, a.closureParam, (ref immutable Ptr!ConcreteParam it) =>
 			tataOfParam(alloc, it)),
 		tataArr(alloc, a.paramsExcludingCtxAndClosure, (ref immutable ConcreteParam it) =>
 			tataOfParam(alloc, it)),

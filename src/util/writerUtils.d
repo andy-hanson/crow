@@ -43,7 +43,7 @@ void writePos(Alloc)(ref Writer!Alloc writer, ref immutable LineAndColumnGetter 
 void writeRangeWithinFile(Alloc)(
 	ref Writer!Alloc writer,
 	ref immutable LineAndColumnGetter lc,
-	ref immutable RangeWithinFile range,
+	immutable RangeWithinFile range,
 ) {
 	writePos(writer, lc, range.start);
 	writeChar(writer, '-');

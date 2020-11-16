@@ -76,6 +76,7 @@ struct Constant {
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
 	immutable this(immutable Void a) { kind = Kind.void_; void_ = a; }
 }
+static assert(Constant.sizeof <= 32);
 
 immutable(Bool) asBool(ref immutable Constant a) {
 	verify(a.kind == Constant.Kind.bool_);

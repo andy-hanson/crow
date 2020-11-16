@@ -111,13 +111,6 @@ immutable(Opt!Out) mapOption(Out, T)(
 	return has(a) ? some!Out(cb(force(a))) : none!Out;
 }
 
-immutable(Opt!Out) mapOptionPtr(Out, T)(
-	immutable Ptr!(Opt!T) a,
-	scope immutable(Out) delegate(immutable Ptr!T) @safe @nogc pure nothrow cb,
-) {
-	return has(a) ? some!Out(cb(forcePtr(a))) : none!Out;
-}
-
 immutable(Opt!Out) mapOption_const(Out, T)(
 	const Opt!T a,
 	scope immutable(Out) delegate(ref const T) @safe @nogc pure nothrow cb,

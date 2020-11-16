@@ -101,7 +101,7 @@ import util.collection.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict
 import util.collection.mutDict : getOrAdd, MutDict, ValueAndDidAdd;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, nu;
-import util.opt : force, has, mapOption, mapOptionPtr, none, Opt, optOr, some;
+import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
@@ -548,9 +548,9 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 					immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("ctx"))),
 					ctxType))
 				: none!LowParam;
-			immutable Opt!LowParam closureParam = mapOptionPtr(
+			immutable Opt!LowParam closureParam = mapOption(
 				ptrTrustMe(cf.closureParam),
-				(immutable Ptr!ConcreteParam it) =>
+				(ref immutable Ptr!ConcreteParam it) =>
 					getLowParam(alloc, getLowTypeCtx, it));
 			immutable Arr!LowParam params = mapWithOptFirst2!(LowParam, ConcreteParam, Alloc)(
 				alloc,
