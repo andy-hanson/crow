@@ -11,8 +11,8 @@ import model.concreteModel :
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
 import util.bools : Bool;
-import util.collection.arr : Arr, asImmutable, empty, size;
-import util.collection.arrUtil : arrEqual, findIndex_const, map, map_mut;
+import util.collection.arr : Arr, asImmutable, empty;
+import util.collection.arrUtil : arrEqual, arrLiteral, findIndex_const, map, map_mut;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
 import util.collection.mutDict : getOrAdd, MutDict, mustGetAt_mut, mutDictSize, tempPairs_mut;
@@ -84,6 +84,7 @@ immutable(Constant) getConstantPtr(Alloc)(
 			allocate(alloc, value))));
 }
 
+
 immutable(Constant) getConstantArr(Alloc)(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,
@@ -92,7 +93,11 @@ immutable(Constant) getConstantArr(Alloc)(
 	ref immutable Arr!Constant elements,
 ) {
 	if (empty(elements))
-		return immutable Constant(immutable Constant.ArrConstant(0, 0, 0));
+		//TODO: don't recreate this arrLiteral every time
+		return immutable Constant(immutable Constant.Record(arrLiteral!Constant(
+			alloc,
+			immutable Constant(immutable Constant.Integral(0)),
+			immutable Constant(immutable Constant.Null()))));
 	else {
 		Ptr!ArrTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.arrs, elementType, () =>
 			ArrTypeAndConstants(
@@ -106,7 +111,7 @@ immutable(Constant) getConstantArr(Alloc)(
 				constantArrEqual(it, elements),
 			() =>
 				elements);
-		return immutable Constant(immutable Constant.ArrConstant(size(elements), d.typeIndex, index));
+		return immutable Constant(immutable Constant.ArrConstant(d.typeIndex, index));
 	}
 }
 

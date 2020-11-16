@@ -1227,10 +1227,11 @@ void writeConstantRef(Alloc)(
 		a,
 		(ref immutable Constant.ArrConstant it) {
 			if (pos == ConstantRefPos.outer) writeCastToType(writer, ctx, type);
+			immutable size_t size = size(at(at(ctx.program.allConstants.arrs, it.typeIndex).constants, it.index));
 			writeChar(writer, '{');
-			writeNat(writer, it.size);
+			writeNat(writer, size);
 			writeStatic(writer, ", ");
-			if (it.size == 0)
+			if (size == 0)
 				writeStatic(writer, "NULL");
 			else
 				writeConstantArrStorageName(writer, ctx, asRecordType(type), it.index);

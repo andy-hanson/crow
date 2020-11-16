@@ -459,7 +459,7 @@ program(
 																																						1603
 																																						1618))
 																																				arr(
-																																					13
+																																					0
 																																					12))]))
 																																expr(
 																																	void
@@ -595,7 +595,7 @@ program(
 							expr(
 								char
 								file-range(11, range(545, 549))
-								call(9, [expr(record(7), file-range(11, range(545, 549)), arr(1, 1))]))]))))
+								call(9, [expr(record(7), file-range(11, range(545, 549)), arr(0, 1))]))]))))
 		6: fun(
 			find-char-in-cstr
 			ptr(char)
@@ -638,7 +638,7 @@ program(
 											expr(
 												char
 												file-range(11, range(404, 408))
-												call(9, [expr(record(7), file-range(11, range(404, 408)), arr(1, 1))]))]))
+												call(9, [expr(record(7), file-range(11, range(404, 408)), arr(0, 1))]))]))
 								expr(ptr(char), file-range(11, range(439, 443)), call(14, []))
 								expr(
 									ptr(char)
@@ -793,7 +793,7 @@ program(
 						expr(
 							void
 							file-range(0, range(17326, 17336))
-							unary("hard-fail", expr(record(7), file-range(0, range(17307, 17326)), arr(17, 0))))))))
+							unary("hard-fail", expr(record(7), file-range(0, range(17307, 17326)), arr(0, 0))))))))
 		12: fun(
 			<
 			bool
@@ -871,7 +871,7 @@ program(
 				expr(
 					ptr(char)
 					file-range(0, range(211, 228))
-					unary("hard-fail", expr(record(7), file-range(0, range(222, 228)), arr(4, 2))))))
+					unary("hard-fail", expr(record(7), file-range(0, range(222, 228)), arr(0, 2))))))
 		15: fun(
 			incr
 			ptr(char)
@@ -1191,7 +1191,7 @@ program(
 								expr(
 									void
 									file-range(15, range(3368, 3417))
-									call(34, [expr(record(7), file-range(15, range(3395, 3417)), arr(20, 3))]))
+									call(34, [expr(record(7), file-range(15, range(3395, 3417)), arr(0, 3))]))
 								expr(
 									void
 									file-range(15, range(3419, 3485))
@@ -1219,7 +1219,7 @@ program(
 																			param-ref(1))
 																		false
 																		0))]))
-													expr(record(7), file-range(15, range(3455, 3474)), arr(17, 5))
+													expr(record(7), file-range(15, range(3455, 3474)), arr(0, 5))
 													expr(
 														record(7)
 														file-range(15, range(3477, 3485))
@@ -1415,7 +1415,7 @@ program(
 				expr(
 					void
 					file-range(0, range(211, 228))
-					unary("hard-fail", expr(record(7), file-range(0, range(222, 228)), arr(4, 2))))))
+					unary("hard-fail", expr(record(7), file-range(0, range(222, 228)), arr(0, 2))))))
 		40: fun(
 			stderr-fd
 			int-32
@@ -1457,7 +1457,7 @@ program(
 							void
 							file-range(13, range(2071, 2096))
 							call(34, [expr(record(7), file-range(13, range(2069, 2070)), param-ref(0))]))
-						expr(void, file-range(13, range(2103, 2128)), call(34, [expr(record(7), file-range(13, range(2098, 2102)), arr(1, 4))]))))))
+						expr(void, file-range(13, range(2103, 2128)), call(34, [expr(record(7), file-range(13, range(2098, 2102)), arr(0, 4))]))))))
 		44: fun(
 			empty?
 			bool
@@ -1679,7 +1679,7 @@ program(
 					record(
 						[
 							expr(ptr(record(34)), file-range(5, range(403, 407)), null)
-							expr(record(6), file-range(5, range(409, 415)), record([arr(0, 0)]))]))))
+							expr(record(6), file-range(5, range(409, 415)), record([record([0, null])]))]))))
 		50: fun(
 			new-ctx
 			record(0)
@@ -1991,7 +1991,7 @@ program(
 								expr(
 									void
 									file-range(3, range(1110, 1161))
-									unary("hard-fail", expr(record(7), file-range(3, range(1121, 1161)), arr(38, 6))))
+									unary("hard-fail", expr(record(7), file-range(3, range(1121, 1161)), arr(0, 6))))
 								expr(
 									void
 									file-range(3, range(1172, 1229))
@@ -3675,7 +3675,7 @@ program(
 															file-range(10, range(925, 971))
 															unary(
 																"hard-fail"
-																expr(record(7), file-range(10, range(936, 971)), arr(33, 7)))))
+																expr(record(7), file-range(10, range(936, 971)), arr(0, 7)))))
 													case(
 														none
 														expr(
@@ -3683,7 +3683,7 @@ program(
 															file-range(10, range(987, 1033))
 															unary(
 																"hard-fail"
-																expr(record(7), file-range(10, range(998, 1033)), arr(33, 7)))))]))))
+																expr(record(7), file-range(10, range(998, 1033)), arr(0, 7)))))]))))
 								expr(
 									void
 									file-range(10, range(1035, 1125))
@@ -4135,7 +4135,7 @@ program(
 						[
 							expr(ptr(record(0)), file-range(5, range(1919, 1941)), param-ref(0))
 							expr(bool, file-range(5, range(1909, 1918)), param-ref(1))
-							expr(record(7), file-range(5, range(1926, 1941)), arr(13, 8))]))))
+							expr(record(7), file-range(5, range(1926, 1941)), arr(0, 8))]))))
 		108: fun(
 			assert
 			void
@@ -6106,7 +6106,7 @@ program(
 						[
 							expr(ptr(record(0)), file-range(5, range(2105, 2127)), param-ref(0))
 							expr(bool, file-range(5, range(2095, 2104)), param-ref(1))
-							expr(record(7), file-range(5, range(2112, 2127)), arr(13, 9))]))))
+							expr(record(7), file-range(5, range(2112, 2127)), arr(0, 9))]))))
 		155: fun(
 			forbid
 			void
@@ -10220,7 +10220,7 @@ program(
 						expr(
 							void
 							file-range(8, range(6672, 6724))
-							unary("hard-fail", expr(record(7), file-range(8, range(6683, 6724)), arr(39, 10))))
+							unary("hard-fail", expr(record(7), file-range(8, range(6683, 6724)), arr(0, 10))))
 						expr(
 							void
 							file-range(8, range(6646, 6872))
@@ -10986,7 +10986,7 @@ program(
 				expr(
 					union(1)
 					file-range(0, range(117, 141))
-					unary("hard-fail", expr(record(7), file-range(0, range(128, 141)), arr(11, 11))))))
+					unary("hard-fail", expr(record(7), file-range(0, range(128, 141)), arr(0, 11))))))
 		243: fun(
 			main
 			ptr(record(1))
@@ -11032,7 +11032,7 @@ program(
 											267
 											[
 												expr(ptr(record(0)), file-range(20, range(1049, 1050)), param-ref(0))
-												expr(record(7), file-range(20, range(1049, 1050)), arr(1, 13))]))]))))))
+												expr(record(7), file-range(20, range(1049, 1050)), arr(0, 13))]))]))))))
 		244: fun(
 			test-compare-records
 			void
@@ -11057,7 +11057,7 @@ program(
 											245
 											[
 												expr(ptr(record(0)), file-range(20, range(235, 236)), param-ref(0))
-												expr(record(7), file-range(20, range(235, 236)), arr(1, 14))]))
+												expr(record(7), file-range(20, range(235, 236)), arr(0, 14))]))
 									expr(
 										nat-64
 										file-range(20, range(238, 239))
@@ -11065,7 +11065,7 @@ program(
 											245
 											[
 												expr(ptr(record(0)), file-range(20, range(238, 239)), param-ref(0))
-												expr(record(7), file-range(20, range(238, 239)), arr(1, 15))]))]))
+												expr(record(7), file-range(20, range(238, 239)), arr(0, 15))]))]))
 						expr(
 							void
 							file-range(20, range(241, 400))
@@ -11083,7 +11083,7 @@ program(
 													245
 													[
 														expr(ptr(record(0)), file-range(20, range(260, 261)), param-ref(0))
-														expr(record(7), file-range(20, range(260, 261)), arr(1, 14))]))
+														expr(record(7), file-range(20, range(260, 261)), arr(0, 14))]))
 											expr(
 												nat-64
 												file-range(20, range(263, 264))
@@ -11091,7 +11091,7 @@ program(
 													245
 													[
 														expr(ptr(record(0)), file-range(20, range(263, 264)), param-ref(0))
-														expr(record(7), file-range(20, range(263, 264)), arr(1, 16))]))]))
+														expr(record(7), file-range(20, range(263, 264)), arr(0, 16))]))]))
 								expr(
 									void
 									file-range(20, range(266, 400))
@@ -11112,7 +11112,7 @@ program(
 																	ptr(record(0))
 																	file-range(20, range(285, 286))
 																	param-ref(0))
-																expr(record(7), file-range(20, range(285, 286)), arr(1, 14))]))
+																expr(record(7), file-range(20, range(285, 286)), arr(0, 14))]))
 													expr(
 														nat-64
 														file-range(20, range(288, 289))
@@ -11123,7 +11123,7 @@ program(
 																	ptr(record(0))
 																	file-range(20, range(288, 289))
 																	param-ref(0))
-																expr(record(7), file-range(20, range(288, 289)), arr(1, 15))]))]))
+																expr(record(7), file-range(20, range(288, 289)), arr(0, 15))]))]))
 										expr(
 											void
 											file-range(20, range(291, 400))
@@ -11144,7 +11144,7 @@ program(
 																			ptr(record(0))
 																			file-range(20, range(310, 311))
 																			param-ref(0))
-																		expr(record(7), file-range(20, range(310, 311)), arr(1, 13))]))
+																		expr(record(7), file-range(20, range(310, 311)), arr(0, 13))]))
 															expr(
 																nat-64
 																file-range(20, range(313, 314))
@@ -11155,7 +11155,7 @@ program(
 																			ptr(record(0))
 																			file-range(20, range(313, 314))
 																			param-ref(0))
-																		expr(record(7), file-range(20, range(313, 314)), arr(1, 16))]))]))
+																		expr(record(7), file-range(20, range(313, 314)), arr(0, 16))]))]))
 												expr(
 													void
 													file-range(20, range(316, 400))
@@ -11641,7 +11641,7 @@ program(
 									expr(
 										char
 										file-range(12, range(1113, 1116))
-										call(9, [expr(record(7), file-range(12, range(1113, 1116)), arr(1, 13))]))]))
+										call(9, [expr(record(7), file-range(12, range(1113, 1116)), arr(0, 13))]))]))
 						expr(nat-64, file-range(12, range(1120, 1124)), 0)
 						expr(
 							nat-64
@@ -11658,7 +11658,7 @@ program(
 											expr(
 												char
 												file-range(12, range(1132, 1135))
-												call(9, [expr(record(7), file-range(12, range(1132, 1135)), arr(1, 14))]))]))
+												call(9, [expr(record(7), file-range(12, range(1132, 1135)), arr(0, 14))]))]))
 								expr(nat-64, file-range(12, range(1139, 1142)), 1)
 								expr(
 									nat-64
@@ -11675,7 +11675,7 @@ program(
 													expr(
 														char
 														file-range(12, range(1150, 1153))
-														call(9, [expr(record(7), file-range(12, range(1150, 1153)), arr(1, 15))]))]))
+														call(9, [expr(record(7), file-range(12, range(1150, 1153)), arr(0, 15))]))]))
 										expr(nat-64, file-range(12, range(1157, 1160)), call(68, []))
 										expr(
 											nat-64
@@ -11694,7 +11694,7 @@ program(
 																file-range(12, range(1168, 1171))
 																call(
 																	9
-																	[expr(record(7), file-range(12, range(1168, 1171)), arr(1, 16))]))]))
+																	[expr(record(7), file-range(12, range(1168, 1171)), arr(0, 16))]))]))
 												expr(nat-64, file-range(12, range(1175, 1180)), call(67, []))
 												expr(
 													nat-64
@@ -11717,7 +11717,7 @@ program(
 																				expr(
 																					record(7)
 																					file-range(12, range(1188, 1191))
-																					arr(1, 17))]))]))
+																					arr(0, 17))]))]))
 														expr(nat-64, file-range(12, range(1195, 1199)), call(66, []))
 														expr(
 															nat-64
@@ -11743,7 +11743,7 @@ program(
 																						expr(
 																							record(7)
 																							file-range(12, range(1207, 1210))
-																							arr(1, 18))]))]))
+																							arr(0, 18))]))]))
 																expr(nat-64, file-range(12, range(1214, 1218)), call(65, []))
 																expr(
 																	nat-64
@@ -11771,7 +11771,7 @@ program(
 																									file-range(
 																										12
 																										range(1226, 1229))
-																									arr(1, 19))]))]))
+																									arr(0, 19))]))]))
 																		expr(
 																			nat-64
 																			file-range(12, range(1233, 1236))
@@ -11804,7 +11804,7 @@ program(
 																												range(
 																													1244
 																													1247))
-																											arr(1, 20))]))]))
+																											arr(0, 20))]))]))
 																				expr(
 																					nat-64
 																					file-range(12, range(1251, 1256))
@@ -11843,7 +11843,7 @@ program(
 																															1264
 																															1267))
 																													arr(
-																														1
+																														0
 																														21))]))]))
 																						expr(
 																							nat-64
@@ -11890,7 +11890,7 @@ program(
 																																	1284
 																																	1287))
 																															arr(
-																																1
+																																0
 																																22))]))]))
 																								expr(
 																									nat-64
@@ -11914,7 +11914,7 @@ program(
 				expr(
 					nat-64
 					file-range(0, range(211, 228))
-					unary("hard-fail", expr(record(7), file-range(0, range(222, 228)), arr(4, 2))))))
+					unary("hard-fail", expr(record(7), file-range(0, range(222, 228)), arr(0, 2))))))
 		254: fun(
 			last
 			char
@@ -12014,7 +12014,7 @@ program(
 							void
 							file-range(13, range(1882, 1903))
 							call(257, [expr(record(7), file-range(13, range(1880, 1881)), param-ref(0))]))
-						expr(void, file-range(13, range(1910, 1931)), call(257, [expr(record(7), file-range(13, range(1905, 1909)), arr(1, 4))]))))))
+						expr(void, file-range(13, range(1910, 1931)), call(257, [expr(record(7), file-range(13, range(1905, 1909)), arr(0, 4))]))))))
 		257: fun(
 			print-sync-no-newline
 			void
@@ -12050,9 +12050,9 @@ program(
 						"<<matched>>"
 						expr(union(3), file-range(0, range(2219, 2220)), param-ref(1))
 						[
-							case(none, expr(record(7), file-range(0, range(2231, 2237)), arr(4, 23)))
-							case(none, expr(record(7), file-range(0, range(2249, 2256)), arr(5, 24)))
-							case(none, expr(record(7), file-range(0, range(2270, 2279)), arr(7, 25)))]))))
+							case(none, expr(record(7), file-range(0, range(2231, 2237)), arr(0, 23)))
+							case(none, expr(record(7), file-range(0, range(2249, 2256)), arr(0, 24)))
+							case(none, expr(record(7), file-range(0, range(2270, 2279)), arr(0, 25)))]))))
 		260: fun(
 			generated(compare)
 			union(3)
@@ -12203,7 +12203,7 @@ program(
 																			ptr(record(0))
 																			file-range(20, range(467, 468))
 																			param-ref(0))
-																		expr(record(7), file-range(20, range(467, 468)), arr(1, 14))]))
+																		expr(record(7), file-range(20, range(467, 468)), arr(0, 14))]))
 															expr(
 																nat-64
 																file-range(20, range(470, 471))
@@ -12214,7 +12214,7 @@ program(
 																			ptr(record(0))
 																			file-range(20, range(470, 471))
 																			param-ref(0))
-																		expr(record(7), file-range(20, range(470, 471)), arr(1, 15))]))]))))
+																		expr(record(7), file-range(20, range(470, 471)), arr(0, 15))]))]))))
 										expr(ptr(record(82)), file-range(20, range(446, 471)), local-ref(generated(temp, 0)))))))
 						expr(
 							void
@@ -12269,7 +12269,7 @@ program(
 																				expr(
 																					record(7)
 																					file-range(20, range(498, 499))
-																					arr(1, 14))]))
+																					arr(0, 14))]))
 																	expr(
 																		nat-64
 																		file-range(20, range(501, 502))
@@ -12283,7 +12283,7 @@ program(
 																				expr(
 																					record(7)
 																					file-range(20, range(501, 502))
-																					arr(1, 16))]))]))))
+																					arr(0, 16))]))]))))
 												expr(
 													ptr(record(82))
 													file-range(20, range(477, 502))
@@ -12347,7 +12347,7 @@ program(
 																						expr(
 																							record(7)
 																							file-range(20, range(529, 530))
-																							arr(1, 14))]))
+																							arr(0, 14))]))
 																			expr(
 																				nat-64
 																				file-range(20, range(532, 533))
@@ -12361,7 +12361,7 @@ program(
 																						expr(
 																							record(7)
 																							file-range(20, range(532, 533))
-																							arr(1, 15))]))]))))
+																							arr(0, 15))]))]))))
 														expr(
 															ptr(record(82))
 															file-range(20, range(508, 533))
@@ -12429,7 +12429,7 @@ program(
 																									file-range(
 																										20
 																										range(560, 561))
-																									arr(1, 13))]))
+																									arr(0, 13))]))
 																					expr(
 																						nat-64
 																						file-range(20, range(563, 564))
@@ -12447,7 +12447,7 @@ program(
 																									file-range(
 																										20
 																										range(563, 564))
-																									arr(1, 16))]))]))))
+																									arr(0, 16))]))]))))
 																expr(
 																	ptr(record(82))
 																	file-range(20, range(539, 564))
@@ -12672,7 +12672,7 @@ program(
 													245
 													[
 														expr(ptr(record(0)), file-range(20, range(718, 719)), param-ref(0))
-														expr(record(7), file-range(20, range(718, 719)), arr(1, 14))]))
+														expr(record(7), file-range(20, range(718, 719)), arr(0, 14))]))
 											expr(
 												nat-64
 												file-range(20, range(721, 722))
@@ -12680,7 +12680,7 @@ program(
 													245
 													[
 														expr(ptr(record(0)), file-range(20, range(721, 722)), param-ref(0))
-														expr(record(7), file-range(20, range(721, 722)), arr(1, 15))]))]))))
+														expr(record(7), file-range(20, range(721, 722)), arr(0, 15))]))]))))
 						expr(
 							void
 							file-range(20, range(724, 927))
@@ -12712,7 +12712,7 @@ program(
 																			ptr(record(0))
 																			file-range(20, range(797, 798))
 																			param-ref(0))
-																		expr(record(7), file-range(20, range(797, 798)), arr(1, 14))]))
+																		expr(record(7), file-range(20, range(797, 798)), arr(0, 14))]))
 															expr(
 																nat-64
 																file-range(20, range(800, 801))
@@ -12723,7 +12723,7 @@ program(
 																			ptr(record(0))
 																			file-range(20, range(800, 801))
 																			param-ref(0))
-																		expr(record(7), file-range(20, range(800, 801)), arr(1, 15))]))]))))
+																		expr(record(7), file-range(20, range(800, 801)), arr(0, 15))]))]))))
 										expr(
 											void
 											file-range(20, range(803, 927))
@@ -12752,7 +12752,7 @@ program(
 																				expr(
 																					record(7)
 																					file-range(20, range(836, 837))
-																					arr(1, 14))]))
+																					arr(0, 14))]))
 																	expr(
 																		nat-64
 																		file-range(20, range(839, 840))
@@ -12766,7 +12766,7 @@ program(
 																				expr(
 																					record(7)
 																					file-range(20, range(839, 840))
-																					arr(1, 14))]))]))))
+																					arr(0, 14))]))]))))
 												expr(
 													void
 													file-range(20, range(843, 927))
@@ -13071,7 +13071,7 @@ program(
 											expr(
 												char
 												file-range(12, range(1657, 1660))
-												call(9, [expr(record(7), file-range(12, range(1657, 1660)), arr(1, 26))]))]))
+												call(9, [expr(record(7), file-range(12, range(1657, 1660)), arr(0, 26))]))]))
 								expr(
 									int-64
 									file-range(12, range(1664, 1703))
@@ -13118,7 +13118,7 @@ program(
 													expr(
 														char
 														file-range(12, range(1710, 1713))
-														call(9, [expr(record(7), file-range(12, range(1710, 1713)), arr(1, 27))]))]))
+														call(9, [expr(record(7), file-range(12, range(1710, 1713)), arr(0, 27))]))]))
 										expr(
 											int-64
 											file-range(12, range(1740, 1746))

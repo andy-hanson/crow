@@ -18,7 +18,6 @@ struct Constant {
 
 	//TODO: separate type for empty and non-empty?
 	struct ArrConstant {
-		immutable size_t size; // TODO:KILL? can look up based on typeIndex and index
 		immutable size_t typeIndex; // Index of the arr type in AllConstants
 		immutable size_t index; // Index into AllConstants#arrs for this type. Ignore if size is 0!
 	}
@@ -76,7 +75,7 @@ struct Constant {
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a; }
 	immutable this(immutable Void a) { kind = Kind.void_; void_ = a; }
 }
-static assert(Constant.sizeof <= 32);
+static assert(Constant.sizeof <= 24);
 
 immutable(Bool) asBool(ref immutable Constant a) {
 	verify(a.kind == Constant.Kind.bool_);

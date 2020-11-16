@@ -253,7 +253,7 @@ struct ProgramsAndFilesInfo {
 	immutable Ptr!Program program;
 	immutable Ptr!ConcreteProgram concreteProgram;
 	immutable Ptr!LowProgram lowProgram;
-	immutable FilesInfo filesInfo;
+	immutable Ptr!FilesInfo filesInfo;
 }
 
 immutable(Result!(ProgramsAndFilesInfo, Diagnostics)) buildToLowProgram(Alloc, SymAlloc, ReadOnlyStorage)(
