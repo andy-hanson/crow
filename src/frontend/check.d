@@ -64,6 +64,9 @@ import model.model :
 	matchStructBody,
 	matchStructOrAlias,
 	Module,
+	ModuleArrs,
+	ModuleDicts,
+	ModuleImportsExports,
 	ModuleAndNameReferents,
 	name,
 	NameAndReferents,
@@ -926,14 +929,9 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 	return nu!Module(
 		alloc,
 		fileIndex,
-		imports,
-		exports,
-		arrAsImmutable(structs),
-		specs,
-		funsAndMap.funs,
-		structsAndAliasesMap,
-		specsMap,
-		funsAndMap.funsMap);
+		nu!ModuleImportsExports(alloc, imports, exports),
+		nu!ModuleArrs(alloc, arrAsImmutable(structs), specs, funsAndMap.funs),
+		nu!ModuleDicts(alloc, structsAndAliasesMap, specsMap, funsAndMap.funsMap));
 }
 
 void recurAddImport(Alloc)(

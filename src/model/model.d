@@ -1001,17 +1001,68 @@ alias SpecsMap = Dict!(Sym, Ptr!SpecDecl, compareSym);
 alias FunsMap = MultiDict!(Sym, Ptr!FunDecl, compareSym);
 
 struct Module {
+	@safe @nogc pure nothrow:
+
 	immutable FileIndex fileIndex;
+	private:
+	immutable Ptr!ModuleImportsExports importsAndExports_;
+	immutable Ptr!ModuleArrs arrs_;
+	immutable Ptr!ModuleDicts dicts_;
+
+	public:
+	//TODO:NOT INSTANCE
+	ref immutable(Arr!ModuleAndNameReferents) imports() immutable {
+		return importsAndExports_.imports;
+	}
+
+	ref immutable(Arr!ModuleAndNameReferents) exports() immutable {
+		return importsAndExports_.exports;
+	}
+
+	ref immutable(Arr!StructDecl) structs() immutable {
+		return arrs_.structs;
+	}
+
+	ref immutable(Arr!SpecDecl) specs() immutable {
+		return arrs_.specs;
+	}
+
+	ref immutable(Arr!FunDecl) funs() immutable {
+		return arrs_.funs;
+	}
+
+	ref immutable(StructsAndAliasesMap) structsAndAliasesMap() immutable {
+		return dicts_.structsAndAliasesMap;
+	}
+
+	ref immutable(SpecsMap) specsMap() immutable {
+		return dicts_.specsMap;
+	}
+
+	ref immutable(FunsMap) funsMap() immutable {
+		return dicts_.funsMap;
+	}
+}
+static assert(Module.sizeof <= 48);
+
+struct ModuleImportsExports {
 	immutable Arr!ModuleAndNameReferents imports;
 	immutable Arr!ModuleAndNameReferents exports;
+}
+
+struct ModuleArrs {
 	immutable Arr!StructDecl structs;
 	immutable Arr!SpecDecl specs;
 	immutable Arr!FunDecl funs;
-	// WARN: maps include private names
+}
+
+struct ModuleDicts {
+	// WARN: these include private names
 	immutable StructsAndAliasesMap structsAndAliasesMap;
 	immutable SpecsMap specsMap;
 	immutable FunsMap funsMap;
 }
+
 
 struct ModuleAndNameReferents {
 	immutable Ptr!Module module_;

@@ -608,7 +608,7 @@ immutable(Result!(Ptr!Program, Diags)) checkEverything(ModelAlloc)(
 		immutable Arr!(Ptr!Module) modules = modulesAndCommonTypes.modules;
 		immutable Ptr!Module bootstrapModule = at(modules, moduleIndices.bootstrap.index);
 		immutable Ptr!StructDecl ctxStructDecl =
-			bootstrapModule.structsAndAliasesMap.mustGetAt(shortSymAlphaLiteral("ctx")).asStructDecl;
+			mustGetAt(bootstrapModule.structsAndAliasesMap, shortSymAlphaLiteral("ctx")).asStructDecl;
 		immutable Ptr!StructInst ctxStructInst = instantiateNonTemplateStruct(modelAlloc, programState, ctxStructDecl);
 		return nu!Program(
 			modelAlloc,
