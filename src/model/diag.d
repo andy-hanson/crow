@@ -620,10 +620,10 @@ static assert(Diagnostic.sizeof <= 32);
 
 struct FilesInfo {
 	immutable FilePaths filePaths;
-	immutable AbsolutePathsGetter absolutePathsGetter;
+	immutable Ptr!AbsolutePathsGetter absolutePathsGetter;
 	immutable LineAndColumnGetters lineAndColumnGetters;
 }
-
+static assert(FilesInfo.sizeof <= 48);
 
 void writeFileAndRange(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,

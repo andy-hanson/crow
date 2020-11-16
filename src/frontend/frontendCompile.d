@@ -10,6 +10,7 @@ import model.model :
 	LineAndColumnGetters,
 	Module,
 	Program,
+	SpecialModules,
 	StructDecl,
 	StructInst;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
@@ -70,8 +71,12 @@ immutable(Result!(Ptr!Program, Diagnostics)) frontendCompile(ModelAlloc, AstsAll
 ) {
 	immutable PathAndStorageKind main = PathAndStorageKind(mainPath, StorageKind.local);
 	immutable ParsedEverything parsed = parseEverything(modelAlloc, allSymbols, storage, main, astsAlloc);
-	immutable FilesInfo filesInfo =
-		immutable FilesInfo(parsed.filePaths, storage.absolutePathsGetter(), parsed.lineAndColumnGetters);
+	immutable Ptr!FilesInfo filesInfo =
+		nu!FilesInfo(
+			modelAlloc,
+			parsed.filePaths,
+			allocate(modelAlloc, storage.absolutePathsGetter()),
+			parsed.lineAndColumnGetters);
 	immutable Result!(Ptr!Program, Diags) res = empty(parsed.diagnostics)
 		? checkEverything(modelAlloc, parsed.asts, filesInfo, parsed.commonModuleIndices)
 		: fail!(Ptr!Program, Diags)(parsed.diagnostics);
@@ -118,7 +123,7 @@ immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, SymAlloc, ReadOnlyStorage
 				res.ast,
 				immutable Diagnostics(
 					parseDiagnostics(alloc, immutable FileIndex(0), res.diagnostics),
-					immutable FilesInfo(filePaths, storage.absolutePathsGetter(), lc)));
+					immutable FilesInfo(filePaths, allocate(alloc, storage.absolutePathsGetter()), lc)));
 		});
 }
 
@@ -593,7 +598,7 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 immutable(Result!(Ptr!Program, Diags)) checkEverything(ModelAlloc)(
 	ref ModelAlloc modelAlloc,
 	ref immutable Arr!AstAndResolvedImports allAsts,
-	ref immutable FilesInfo filesInfo,
+	immutable Ptr!FilesInfo filesInfo,
 	ref immutable CommonModuleIndices moduleIndices,
 ) {
 	ProgramState programState = ProgramState(modelAlloc);
@@ -608,11 +613,13 @@ immutable(Result!(Ptr!Program, Diags)) checkEverything(ModelAlloc)(
 		return nu!Program(
 			modelAlloc,
 			filesInfo,
-			at(modules, moduleIndices.alloc.index),
-			bootstrapModule,
-			at(modules, moduleIndices.runtime.index),
-			at(modules, moduleIndices.runtimeMain.index),
-			at(modules, moduleIndices.main.index),
+			nu!SpecialModules(
+				modelAlloc,
+				at(modules, moduleIndices.alloc.index),
+				bootstrapModule,
+				at(modules, moduleIndices.runtime.index),
+				at(modules, moduleIndices.runtimeMain.index),
+				at(modules, moduleIndices.main.index)),
 			modules,
 			modulesAndCommonTypes.commonTypes,
 			ctxStructInst);

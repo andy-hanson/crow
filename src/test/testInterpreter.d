@@ -117,10 +117,11 @@ void doInterpret(Alloc)(
 	immutable Path emptyPath = immutable Path(none!(Ptr!Path), shortSymAlphaLiteral("test"));
 	immutable PathAndStorageKind pk = immutable PathAndStorageKind(ptrTrustMe(emptyPath), StorageKind.global);
 	immutable LineAndColumnGetter lcg = lineAndColumnGetterForEmptyFile(test.alloc);
+	static immutable AbsolutePathsGetter emptyAbsolutePathsGetter = immutable AbsolutePathsGetter(emptyStr, emptyStr);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
 			immutable Arr!PathAndStorageKind(ptrTrustMe(pk).rawPtr(), 1)),
-		immutable AbsolutePathsGetter(emptyStr, emptyStr),
+		ptrTrustMe(emptyAbsolutePathsGetter),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			immutable Arr!LineAndColumnGetter(ptrTrustMe(lcg).rawPtr(), 1)));
 	immutable LowFun lowFun = immutable LowFun(

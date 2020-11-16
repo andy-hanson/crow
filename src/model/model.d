@@ -1095,36 +1095,33 @@ struct Program {
 
 	@disable this(ref const Program);
 	immutable this(
-		immutable FilesInfo f,
-		immutable Ptr!Module a,
-		immutable Ptr!Module b,
-		immutable Ptr!Module r,
-		immutable Ptr!Module rm,
-		immutable Ptr!Module m,
+		immutable Ptr!FilesInfo f,
+		immutable Ptr!SpecialModules s,
 		immutable Arr!(Ptr!Module) all,
 		immutable Ptr!CommonTypes ct,
 		immutable Ptr!StructInst ctx,
 	) {
 		filesInfo = f;
-		allocModule = a;
-		bootstrapModule = b;
-		runtimeModule = r;
-		runtimeMainModule = rm;
-		mainModule = m;
+		specialModules = s;
 		allModules = all;
 		commonTypes = ct;
 		ctxStructInst = ctx;
 	}
 
-	immutable FilesInfo filesInfo;
+	immutable Ptr!FilesInfo filesInfo;
+	immutable Ptr!SpecialModules specialModules;
+	immutable Arr!(Ptr!Module) allModules;
+	immutable Ptr!CommonTypes commonTypes;
+	immutable Ptr!StructInst ctxStructInst;
+}
+static assert(Program.sizeof <= 48);
+
+struct SpecialModules {
 	immutable Ptr!Module allocModule;
 	immutable Ptr!Module bootstrapModule;
 	immutable Ptr!Module runtimeModule;
 	immutable Ptr!Module runtimeMainModule;
 	immutable Ptr!Module mainModule;
-	immutable Arr!(Ptr!Module) allModules;
-	immutable Ptr!CommonTypes commonTypes;
-	immutable Ptr!StructInst ctxStructInst;
 }
 
 struct Local {

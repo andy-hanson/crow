@@ -96,9 +96,7 @@ import util.collection.arr : Arr, ArrWithSize, at, empty, emptyArr, ptrsRange, a
 import util.collection.arrBuilder :
 	add,
 	ArrBuilder,
-	arrBuilderAsTempArr,
 	arrBuilderIsEmpty,
-	arrBuilderSize,
 	ArrWithSizeBuilder,
 	arrWithSizeBuilderAsTempArr,
 	arrWithSizeBuilderSize,

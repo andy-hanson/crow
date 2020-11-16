@@ -122,7 +122,7 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr
 
 immutable(Ptr!FunInst) getRtMainFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	immutable Arr!(Ptr!FunDecl) mainFuns = multiDictGetAt(
-		program.runtimeMainModule.funsMap,
+		program.specialModules.runtimeMainModule.funsMap,
 		shortSymAlphaLiteral("rt-main"));
 	if (size(mainFuns) != 1)
 		todo!void("wrong number rt-main funs");
@@ -132,7 +132,8 @@ immutable(Ptr!FunInst) getRtMainFun(Alloc)(ref Alloc alloc, ref immutable Progra
 }
 
 immutable(Ptr!FunInst) getUserMainFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) mainFuns = multiDictGetAt(program.mainModule.funsMap, shortSymAlphaLiteral("main"));
+	immutable Arr!(Ptr!FunDecl) mainFuns =
+		multiDictGetAt(program.specialModules.mainModule.funsMap, shortSymAlphaLiteral("main"));
 	if (size(mainFuns) != 1)
 		todo!void("wrong number main funs");
 	immutable Ptr!FunDecl mainFun = only(mainFuns);
@@ -141,7 +142,8 @@ immutable(Ptr!FunInst) getUserMainFun(Alloc)(ref Alloc alloc, ref immutable Prog
 }
 
 immutable(Ptr!FunInst) getAllocFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) allocFuns = multiDictGetAt(program.allocModule.funsMap, shortSymAlphaLiteral("alloc"));
+	immutable Arr!(Ptr!FunDecl) allocFuns =
+		multiDictGetAt(program.specialModules.allocModule.funsMap, shortSymAlphaLiteral("alloc"));
 	if (size(allocFuns) != 1)
 		todo!void("wrong number alloc funs");
 	immutable Ptr!FunDecl allocFun = only(allocFuns);
@@ -151,14 +153,16 @@ immutable(Ptr!FunInst) getAllocFun(Alloc)(ref Alloc alloc, ref immutable Program
 
 //TODO: should be called 'getCurActorFun'?
 immutable(Ptr!FunInst) getGetVatAndActorFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) funs = multiDictGetAt(program.runtimeModule.funsMap, shortSymAlphaLiteral("cur-actor"));
+	immutable Arr!(Ptr!FunDecl) funs =
+		multiDictGetAt(program.specialModules.runtimeModule.funsMap, shortSymAlphaLiteral("cur-actor"));
 	if (size(funs) != 1)
 		todo!void("wrong number cur-actor funs");
 	return nonTemplateFunInst(alloc, only(funs));
 }
 
 immutable(Arr!(Ptr!FunDecl)) getIfFuns(ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) ifFuns = multiDictGetAt(program.bootstrapModule.funsMap, shortSymAlphaLiteral("if"));
+	immutable Arr!(Ptr!FunDecl) ifFuns =
+		multiDictGetAt(program.specialModules.bootstrapModule.funsMap, shortSymAlphaLiteral("if"));
 	if (size(ifFuns) != 2)
 		todo!void("wrong number 'if' funs");
 	return ifFuns;
@@ -170,7 +174,7 @@ immutable(Arr!(Ptr!FunDecl)) getIfFuns(ref immutable Program program) {
 
 immutable(Arr!(Ptr!FunDecl)) getCallFuns(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	immutable Arr!(Ptr!FunDecl) allCallFuns =
-		multiDictGetAt(program.bootstrapModule.funsMap, shortSymAlphaLiteral("call"));
+		multiDictGetAt(program.specialModules.bootstrapModule.funsMap, shortSymAlphaLiteral("call"));
 	immutable Arr!(Ptr!FunDecl) res = filter!(Alloc, Ptr!FunDecl)(alloc, allCallFuns, (ref immutable Ptr!FunDecl f) {
 		immutable Ptr!StructDecl decl = decl(asStructInst(first(params(f)).type).deref);
 		immutable Opt!FunKind kind = getFunStructInfo(program.commonTypes, decl);

@@ -158,7 +158,7 @@ immutable(DiagsAndResultStrs) printModel(Alloc, SymAlloc, ReadOnlyStorage)(
 	return matchResult!(immutable DiagsAndResultStrs, Ptr!Program, Diagnostics)(
 		programResult,
 		(ref immutable Ptr!Program program) =>
-			immutable DiagsAndResultStrs(emptyStr, showModule(alloc, program.mainModule, format)),
+			immutable DiagsAndResultStrs(emptyStr, showModule(alloc, program.specialModules.mainModule, format)),
 		(ref immutable Diagnostics diagnostics) =>
 			immutable DiagsAndResultStrs(strOfDiagnostics(alloc, diagnostics), emptyStr));
 }
