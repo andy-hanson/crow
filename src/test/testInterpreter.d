@@ -65,6 +65,7 @@ import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.globalAllocatedStack : begin, pop, push;
 import util.collection.str : emptyStr, strLiteral;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
+import util.memory : nu;
 import util.opt : none;
 import util.path : Path, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
@@ -125,7 +126,7 @@ void doInterpret(Alloc)(
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 			immutable Arr!LineAndColumnGetter(ptrTrustMe(lcg).rawPtr(), 1)));
 	immutable LowFun lowFun = immutable LowFun(
-		immutable LowFunSource(immutable LowFunSource.Generated(shortSymAlphaLiteral("test"), none!LowType)),
+		immutable LowFunSource(nu!(LowFunSource.Generated)(test.alloc, shortSymAlphaLiteral("test"), none!LowType)),
 		nat64Type,
 		immutable LowFunParamsKind(False, False),
 		emptyArr!LowParam,

@@ -5,8 +5,6 @@ module lower.lowExprHelpers;
 import model.constant : Constant;
 import model.lowModel :
 	asNonFunPtrType,
-	asRecordType,
-	isNonFunPtrType,
 	LowExpr,
 	LowExprKind,
 	LowFunIndex,
@@ -15,7 +13,7 @@ import model.lowModel :
 	LowType,
 	PrimitiveType;
 import util.collection.arr : Arr, emptyArr;
-import util.memory : allocate;
+import util.memory : allocate, nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.types : u8;
@@ -78,7 +76,8 @@ immutable(LowExpr) genIf(Alloc)(
 	return immutable LowExpr(
 		then.type,
 		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialTrinary(
+		immutable LowExprKind(nu!(LowExprKind.SpecialTrinary)(
+			alloc,
 			LowExprKind.SpecialTrinary.Kind.if_,
 			allocate(alloc, cond),
 			allocate(alloc, then),
@@ -235,14 +234,9 @@ immutable(LowExpr) recordFieldAccess(Alloc)(
 	immutable LowType fieldType,
 	immutable u8 fieldIndex,
 ) {
-	immutable LowType.Record recordType = asRecordType(isNonFunPtrType(target.type)
-		? asNonFunPtrType(target.type).pointee
-		: target.type);
 	return immutable LowExpr(fieldType, range, immutable LowExprKind(
 		immutable LowExprKind.RecordFieldAccess(
 			allocate(alloc, target),
-			isNonFunPtrType(target.type),
-			recordType,
 			fieldIndex)));
 }
 

@@ -142,6 +142,7 @@ struct LowType {
 	immutable this(immutable Record a) { kind_ = Kind.record; record_ = a; }
 	immutable this(immutable Union a) { kind_ = Kind.union_; union_ = a; }
 }
+static assert(LowType.sizeof <= 16);
 
 immutable(Bool) lowTypeEqual(ref immutable LowType a, ref immutable LowType b) {
 	return immutable Bool(a.kind_ == b.kind_ && () {
@@ -333,7 +334,7 @@ struct LowLocal {
 struct LowFunExprBody {
 	immutable Arr!(Ptr!LowLocal) allLocals;
 	immutable Bool hasTailRecur;
-	immutable LowExpr expr;
+	immutable Ptr!LowExpr expr;
 }
 
 // Unlike ConcreteFunBody, this is always an expr or extern.
@@ -359,6 +360,7 @@ struct LowFunBody {
 	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable LowFunExprBody a) { kind = Kind.expr; expr_ = a; }
 }
+static assert(LowFunBody.sizeof <= 48);
 
 immutable(Bool) isExtern(ref immutable LowFunBody a) {
 	return immutable Bool(a.kind == LowFunBody.Kind.extern_);
@@ -391,7 +393,7 @@ struct LowFunSource {
 	}
 
 	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind_ = Kind.concreteFun; concreteFun_ = a; }
-	@trusted immutable this(immutable Generated a) { kind_ = Kind.generated; generated_ = a; }
+	@trusted immutable this(immutable Ptr!Generated a) { kind_ = Kind.generated; generated_ = a; }
 
 	private:
 	enum Kind {
@@ -401,9 +403,10 @@ struct LowFunSource {
 	immutable Kind kind_;
 	union {
 		immutable Ptr!ConcreteFun concreteFun_;
-		immutable Generated generated_;
+		immutable Ptr!Generated generated_;
 	}
 }
+static assert(LowFunSource.sizeof <= 16);
 
 @trusted T matchLowFunSource(T)(
 	ref immutable LowFunSource a,
@@ -447,6 +450,7 @@ struct LowFun {
 	immutable Arr!LowParam params;
 	immutable LowFunBody body_;
 }
+//static assert(LowFun.sizeof <= 48);
 
 immutable(size_t) firstRegularParamIndex(ref immutable LowFun a) {
 	return (a.paramsKind.hasCtx ? 1 : 0) + (a.paramsKind.hasClosure ? 1 : 0);
@@ -534,18 +538,40 @@ struct LowExprKind {
 	}
 
 	struct RecordFieldAccess {
+		@safe @nogc pure nothrow:
+
 		immutable Ptr!LowExpr target;
-		immutable Bool targetIsPointer; // TODO: is this redundant?
-		immutable LowType.Record record; //TODO: this is just asRecordType(target.type)?
 		immutable u8 fieldIndex;
+
+		//TODO:NOT INSTANCE
+		immutable(Bool) targetIsPointer() immutable {
+			return isNonFunPtrType(target.type);
+		}
+
+		//TODO:NOT INSTANCE
+		immutable(LowType.Record) record() immutable {
+			return asRecordType(isNonFunPtrType(target.type)
+				? asNonFunPtrType(target.type).pointee
+				: target.type);
+		}
 	}
 
 	struct RecordFieldSet {
+		@safe @nogc pure nothrow:
+
 		immutable Ptr!LowExpr target;
-		immutable Bool targetIsPointer; // TODO: this should always be true..
-		immutable LowType.Record record;
 		immutable u8 fieldIndex;
 		immutable Ptr!LowExpr value;
+
+		//TODO:NOT INSTANCE
+		immutable(Bool) targetIsPointer() immutable {
+			return isNonFunPtrType(target.type);
+		}
+
+		//TODO:NOT INSTANCE
+		immutable(LowType.Record) record() immutable {
+			return asRecordType(asNonFunPtrType(target.type).pointee);
+		}
 	}
 
 	struct Seq {
@@ -713,7 +739,7 @@ struct LowExprKind {
 		immutable ConvertToUnion convertToUnion;
 		immutable Let let;
 		immutable LocalRef localRef;
-		immutable Match match;
+		immutable Ptr!Match match;
 		immutable ParamRef paramRef;
 		immutable PtrCast ptrCast;
 		immutable RecordFieldAccess recordFieldAccess;
@@ -723,7 +749,7 @@ struct LowExprKind {
 		immutable Constant constant;
 		immutable SpecialUnary specialUnary;
 		immutable SpecialBinary specialBinary;
-		immutable SpecialTrinary specialTrinary;
+		immutable Ptr!SpecialTrinary specialTrinary;
 		immutable SpecialNAry specialNAry;
 		immutable TailRecur tailRecur;
 	}
@@ -735,7 +761,7 @@ struct LowExprKind {
 	@trusted immutable this(immutable ConvertToUnion a) { kind = Kind.convertToUnion; convertToUnion = a; }
 	@trusted immutable this(immutable Let a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LocalRef a) { kind = Kind.localRef; localRef = a; }
-	@trusted immutable this(immutable Match a) { kind = Kind.match; match = a; }
+	@trusted immutable this(immutable Ptr!Match a) { kind = Kind.match; match = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
 	@trusted immutable this(immutable PtrCast a) { kind = Kind.ptrCast; ptrCast = a; }
 	@trusted immutable this(immutable RecordFieldAccess a) { kind = Kind.recordFieldAccess; recordFieldAccess = a; }
@@ -745,10 +771,11 @@ struct LowExprKind {
 	@trusted immutable this(immutable Constant a) { kind = Kind.constant; constant = a; }
 	@trusted immutable this(immutable SpecialUnary a) { kind = Kind.specialUnary; specialUnary = a; }
 	@trusted immutable this(immutable SpecialBinary a) { kind = Kind.specialBinary; specialBinary = a; }
-	@trusted immutable this(immutable SpecialTrinary a) { kind = Kind.specialTrinary; specialTrinary = a; }
+	@trusted immutable this(immutable Ptr!SpecialTrinary a) { kind = Kind.specialTrinary; specialTrinary = a; }
 	@trusted immutable this(immutable SpecialNAry a) { kind = Kind.specialNAry; specialNAry = a; }
 	@trusted immutable this(immutable TailRecur a) { kind = Kind.tailRecur; tailRecur = a; }
 }
+static assert(LowExprKind.sizeof <= 32);
 
 @trusted T matchLowExprKind(T)(
 	ref immutable LowExprKind a,
