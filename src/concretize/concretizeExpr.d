@@ -72,7 +72,6 @@ import model.model :
 	typeArgs;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
-import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
 import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutDict;
 import util.memory : allocate, nu;
@@ -93,9 +92,7 @@ immutable(ConcreteFunBody) concretizeExpr(Alloc)(
 	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), inputs, cf, False);
 	immutable ConcreteExpr res = concretizeExpr(alloc, exprCtx, e);
 	return immutable ConcreteFunBody(
-		immutable ConcreteFunExprBody(
-			finishArr(alloc, exprCtx.allLocalsInThisFun),
-			allocExpr(alloc, res)));
+		immutable ConcreteFunExprBody(allocExpr(alloc, res)));
 }
 
 immutable(Ptr!ConcreteExpr) allocExpr(Alloc)(ref Alloc alloc, immutable ConcreteExpr e) {
@@ -112,11 +109,10 @@ struct ConcretizeExprCtx {
 	immutable ConcreteFunBodyInputs concreteFunBodyInputs;
 	immutable Ptr!ConcreteFun currentConcreteFun; // This is the ConcreteFun* for a lambda, not its containing fun
 	size_t nextLambdaIndex = 0;
+	size_t nextLocalIndex = 0;
 
-	// Note: this dict contains only the locals that are currently in scope.
+	// Contains only the locals that are currently in scope.
 	MutDict!(immutable Ptr!Local, immutable LocalOrConstant, comparePtr!Local) locals;
-	// Contains *all* locals
-	ArrBuilder!(Ptr!ConcreteLocal) allLocalsInThisFun;
 }
 
 struct TypedConstant {
@@ -462,12 +458,8 @@ immutable(Ptr!ConcreteLocal) makeLocalWorker(Alloc)(
 	immutable ConcreteLocalSource source,
 	immutable ConcreteType type,
 ) {
-	immutable Ptr!ConcreteLocal res = nu!ConcreteLocal(
-		alloc,
-		source,
-		arrBuilderSize(ctx.allLocalsInThisFun),
-		type);
-	add(alloc, ctx.allLocalsInThisFun, res);
+	immutable Ptr!ConcreteLocal res = nu!ConcreteLocal(alloc, source, ctx.nextLocalIndex, type);
+	ctx.nextLocalIndex++;
 	return res;
 }
 

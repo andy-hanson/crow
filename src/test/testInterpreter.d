@@ -51,6 +51,7 @@ import model.lowModel :
 	LowFunIndex,
 	LowFunParamsKind,
 	LowFunPtrType,
+	LowFunSig,
 	LowFunSource,
 	LowParam,
 	LowProgram,
@@ -127,10 +128,12 @@ void doInterpret(Alloc)(
 			immutable Arr!LineAndColumnGetter(ptrTrustMe(lcg).rawPtr(), 1)));
 	immutable LowFun lowFun = immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(test.alloc, shortSymAlphaLiteral("test"), none!LowType)),
-		nat64Type,
-		immutable LowFunParamsKind(False, False),
-		emptyArr!LowParam,
-		immutable LowFunBody(immutable LowFunBody.Extern(False, strLiteral("test"))));
+		nu!LowFunSig(
+			test.alloc,
+			nat64Type,
+			immutable LowFunParamsKind(False, False),
+			emptyArr!LowParam),
+		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc, False, strLiteral("test"))));
 	immutable LowProgram lowProgram = immutable LowProgram(
 		immutable AllConstantsLow(emptyArr!ArrTypeAndConstantsLow, emptyArr!PointerTypeAndConstantsLow),
 		emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),

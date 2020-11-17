@@ -772,23 +772,94 @@ void writeFunWithExprBody(Alloc)(
 ) {
 	writeFunReturnTypeNameAndParams(writer, ctx, funIndex, fun);
 	writeStatic(writer, " {\n\t");
-	declareLocals(writer, ctx, body_.allLocals);
+
+	eachLocal(body_.expr, (ref immutable LowLocal local) {
+		writeType(writer, ctx, local.type);
+		writeChar(writer, ' ');
+		writeLocalRef(writer, local);
+		writeStatic(writer, ";\n\t");
+	});
 	if (body_.hasTailRecur) {
 		declareTailCallLocals(writer, ctx, fun);
 		writeStatic(writer, "top:\n\t");
 	}
+
 	immutable FunBodyCtx bodyCtx = immutable FunBodyCtx(ptrTrustMe(ctx), body_.hasTailRecur, funIndex);
 	writeExpr(writer, 1, bodyCtx, WriteKind.returnStatement, body_.expr);
 	writeStatic(writer, "\n}\n");
 }
 
-void declareLocals(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable Arr!(Ptr!LowLocal) locals) {
-	foreach (immutable Ptr!LowLocal local; range(locals)) {
-		writeType(writer, ctx, local.type);
-		writeChar(writer, ' ');
-		writeLocalRef(writer, local);
-		writeStatic(writer, ";\n\t");
-	}
+//TODO:MOVE?
+void eachLocal(
+	ref immutable LowExpr a,
+	scope void delegate(ref immutable LowLocal) @safe @nogc pure nothrow cb,
+) {
+	matchLowExprKind!void(
+		a.kind,
+		(ref immutable LowExprKind.Call it) {
+			foreach (ref immutable LowExpr arg; range(it.args))
+				eachLocal(arg, cb);
+		},
+		(ref immutable LowExprKind.CreateRecord it) {
+			foreach (ref immutable LowExpr arg; range(it.args))
+				eachLocal(arg, cb);
+		},
+		(ref immutable LowExprKind.ConvertToUnion it) {
+			eachLocal(it.arg, cb);
+		},
+		(ref immutable LowExprKind.FunPtr) {},
+		(ref immutable LowExprKind.Let it) {
+			cb(it.local);
+			eachLocal(it.value, cb);
+			eachLocal(it.then, cb);
+		},
+		(ref immutable LowExprKind.LocalRef) {},
+		(ref immutable LowExprKind.Match it) {
+			eachLocal(it.matchedValue, cb);
+			cb(it.matchedLocal);
+			foreach (ref immutable LowExprKind.Match.Case case_; range(it.cases)) {
+				if (has(case_.local))
+					cb(force(case_.local));
+				eachLocal(case_.then, cb);
+			}
+		},
+		(ref immutable LowExprKind.ParamRef) {},
+		(ref immutable LowExprKind.PtrCast it) {
+			eachLocal(it.target, cb);
+		},
+		(ref immutable LowExprKind.RecordFieldAccess it) {
+			eachLocal(it.target, cb);
+		},
+		(ref immutable LowExprKind.RecordFieldSet it) {
+			eachLocal(it.target, cb);
+			eachLocal(it.value, cb);
+		},
+		(ref immutable LowExprKind.Seq it) {
+			eachLocal(it.first, cb);
+			eachLocal(it.then, cb);
+		},
+		(ref immutable LowExprKind.SizeOf) {},
+		(ref immutable Constant) {},
+		(ref immutable LowExprKind.SpecialUnary it) {
+			eachLocal(it.arg, cb);
+		},
+		(ref immutable LowExprKind.SpecialBinary it) {
+			eachLocal(it.left, cb);
+			eachLocal(it.right, cb);
+		},
+		(ref immutable LowExprKind.SpecialTrinary it) {
+			eachLocal(it.p0, cb);
+			eachLocal(it.p1, cb);
+			eachLocal(it.p2, cb);
+		},
+		(ref immutable LowExprKind.SpecialNAry it) {
+			foreach (ref immutable LowExpr arg; range(it.args))
+				eachLocal(arg, cb);
+		},
+		(ref immutable LowExprKind.TailRecur it) {
+			foreach (ref immutable LowExpr arg; range(it.args))
+				eachLocal(arg, cb);
+		});
 }
 
 void declareTailCallLocals(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowFun fun) {
@@ -1032,7 +1103,7 @@ void writeFunPtr(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immu
 	writeLowFunMangledName(writer, ctx, a.fun, fullIndexDictGet(ctx.program.allFuns, a.fun));
 }
 
-void writeLocalRef(Alloc)(ref Writer!Alloc writer, immutable Ptr!LowLocal a) {
+void writeLocalRef(Alloc)(ref Writer!Alloc writer, ref immutable LowLocal a) {
 	matchLowLocalSource!void(
 		a.source,
 		(immutable Ptr!ConcreteLocal it) {

@@ -332,7 +332,6 @@ struct LowLocal {
 }
 
 struct LowFunExprBody {
-	immutable Arr!(Ptr!LowLocal) allLocals;
 	immutable Bool hasTailRecur;
 	immutable Ptr!LowExpr expr;
 }
@@ -352,15 +351,15 @@ struct LowFunBody {
 	}
 	immutable Kind kind;
 	union {
-		immutable Extern extern_;
+		immutable Ptr!Extern extern_;
 		immutable LowFunExprBody expr_;
 	}
 
 	public:
-	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
+	@trusted immutable this(immutable Ptr!Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable LowFunExprBody a) { kind = Kind.expr; expr_ = a; }
 }
-static assert(LowFunBody.sizeof <= 48);
+static assert(LowFunBody.sizeof <= 24);
 
 immutable(Bool) isExtern(ref immutable LowFunBody a) {
 	return immutable Bool(a.kind == LowFunBody.Kind.extern_);
@@ -431,26 +430,37 @@ struct LowFun {
 
 	@disable this(ref const LowFun);
 	immutable this(
-		immutable LowFunSource s,
-		immutable LowType r,
-		immutable LowFunParamsKind pk,
-		immutable Arr!LowParam pm,
+		immutable LowFunSource src,
+		immutable Ptr!LowFunSig sg,
 		immutable LowFunBody b,
 	) {
-		source = s;
-		returnType = r;
-		paramsKind = pk;
-		params = pm;
+		source = src;
+		sig = sg;
 		body_ = b;
 	}
 
 	immutable LowFunSource source;
+	immutable Ptr!LowFunSig sig;
+	immutable LowFunBody body_;
+
+	//TODO:NOT INSTANCE
+	ref immutable(LowType) returnType() immutable {
+		return sig.returnType;
+	}
+	ref immutable(LowFunParamsKind) paramsKind() immutable {
+		return sig.paramsKind;
+	}
+	ref immutable(Arr!LowParam) params() immutable {
+		return sig.params;
+	}
+}
+static assert(LowFun.sizeof <= 48);
+
+struct LowFunSig {
 	immutable LowType returnType;
 	immutable LowFunParamsKind paramsKind;
 	immutable Arr!LowParam params;
-	immutable LowFunBody body_;
 }
-//static assert(LowFun.sizeof <= 48);
 
 immutable(size_t) firstRegularParamIndex(ref immutable LowFun a) {
 	return (a.paramsKind.hasCtx ? 1 : 0) + (a.paramsKind.hasClosure ? 1 : 0);

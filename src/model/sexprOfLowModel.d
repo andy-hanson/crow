@@ -167,16 +167,7 @@ immutable(Sexpr) tataOfLowFunBody(Alloc)(ref Alloc alloc, ref immutable LowFunBo
 		(ref immutable LowFunBody.Extern it) =>
 			tataRecord(alloc, "extern", tataBool(it.isGlobal)),
 		(ref immutable LowFunExprBody it) =>
-			tataRecord(
-				alloc,
-				"expr-body",
-				tataArr(alloc, it.allLocals, (ref immutable Ptr!LowLocal local) =>
-					tataRecord(
-						alloc,
-						"local",
-						tataOfLowLocalSource(alloc, local.source),
-						tataOfLowType(alloc, local.type))),
-				tataOfLowExpr(alloc, it.expr)));
+			tataRecord(alloc, "expr-body", tataOfLowExpr(alloc, it.expr)));
 }
 
 immutable(Sexpr) tataOfLowLocalSource(Alloc)(ref Alloc alloc, ref immutable LowLocalSource a) {

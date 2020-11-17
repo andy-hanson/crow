@@ -410,12 +410,12 @@ struct ConcreteLocalSource {
 
 struct ConcreteLocal {
 	immutable ConcreteLocalSource source;
-	immutable size_t index; // TODO: who needs this?
+	// Needed to distinguish two locals with the same name when compiling to C
+	immutable size_t index;
 	immutable ConcreteType type;
 }
 
 struct ConcreteFunExprBody {
-	immutable Arr!(Ptr!ConcreteLocal) allLocals;
 	immutable ConcreteExpr expr;
 }
 

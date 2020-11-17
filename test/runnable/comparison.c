@@ -904,9 +904,9 @@ int32_t rt_main(int32_t argc, char** argv, fun_ptr2_0 main_ptr) {
 	struct vat vat_by_val3;
 	struct vat* vat4;
 	struct fut_0* main_fut5;
+	struct result_0 _matched8;
 	struct ok_0 o6;
 	struct err_0 e7;
-	struct result_0 _matched8;
 	drop_0(to_str_0((*(argv))));
 	n_threads0 = 1;
 	gctx_by_val1 = (struct global_ctx) {new_lock(), empty_arr(), n_threads0, new_condition(), 0, 0};
@@ -1196,11 +1196,11 @@ struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, stru
 	return (struct ctx) {(uint8_t*) gctx, vat->id, actor_id, (uint8_t*) get_gc_ctx_0((&(vat->gc))), (uint8_t*) tls->exception_ctx};
 }
 struct gc_ctx* get_gc_ctx_0(struct gc* gc) {
+	struct gc_ctx* res4;
+	struct opt_1 _matched3;
 	struct gc_ctx* c0;
 	struct some_1 s1;
 	struct gc_ctx* c2;
-	struct opt_1 _matched3;
-	struct gc_ctx* res4;
 	acquire_lock((&(gc->lk)));
 	res4 = (_matched3 = gc->context_head, _matched3.kind == 0 ? (c0 = (struct gc_ctx*) malloc(sizeof(struct gc_ctx)), (((c0->gc = gc, 0), (c0->next_ctx = (struct opt_1) {0, .as0 = none()}, 0)), c0)) : _matched3.kind == 1 ? (s1 = _matched3.as1, (c2 = s1.value, (((gc->context_head = c2->next_ctx, 0), (c2->next_ctx = (struct opt_1) {0, .as0 = none()}, 0)), c2))) : (assert(0),NULL));
 	release_lock((&(gc->lk)));
@@ -1361,11 +1361,11 @@ struct gc_ctx* get_gc_ctx_1(struct ctx* ctx) {
 	return (struct gc_ctx*) ctx->gc_ctx_ptr;
 }
 uint8_t then_void_0(struct ctx* ctx, struct fut_1* f, struct fun_mut1_2 cb) {
+	struct fut_state_1 _matched3;
 	struct fut_state_callbacks_1 cbs0;
+	struct fut_callback_node_1* temp0;
 	struct fut_state_resolved_1 r1;
 	struct exception e2;
-	struct fut_state_1 _matched3;
-	struct fut_callback_node_1* temp0;
 	acquire_lock((&(f->lk)));
 	_matched3 = f->state;
 	switch (_matched3.kind) {
@@ -1406,11 +1406,11 @@ uint8_t forward_to(struct ctx* ctx, struct fut_0* from, struct fut_0* to) {
 	return then_void_1(ctx, from, (struct fun_mut1_0) {(fun_ptr3_0) forward_to__lambda0, (uint8_t*) (temp0 = (struct forward_to__lambda0*) alloc(ctx, sizeof(struct forward_to__lambda0)), ((*(temp0) = (struct forward_to__lambda0) {to}, 0), temp0))});
 }
 uint8_t then_void_1(struct ctx* ctx, struct fut_0* f, struct fun_mut1_0 cb) {
+	struct fut_state_0 _matched3;
 	struct fut_state_callbacks_0 cbs0;
+	struct fut_callback_node_0* temp0;
 	struct fut_state_resolved_0 r1;
 	struct exception e2;
-	struct fut_state_0 _matched3;
-	struct fut_callback_node_0* temp0;
 	acquire_lock((&(f->lk)));
 	_matched3 = f->state;
 	switch (_matched3.kind) {
@@ -1444,11 +1444,11 @@ struct ok_0 ok_1(int32_t t) {
 	return (struct ok_0) {t};
 }
 uint8_t resolve_or_reject(struct ctx* ctx, struct fut_0* f, struct result_0 result) {
-	struct fut_state_callbacks_0 cbs0;
 	struct fut_state_0 _matched1;
+	struct fut_state_callbacks_0 cbs0;
+	struct result_0 _matched4;
 	struct ok_0 o2;
 	struct err_0 e3;
-	struct result_0 _matched4;
 	acquire_lock((&(f->lk)));
 	_matched1 = f->state;
 	switch (_matched1.kind) {
@@ -1469,8 +1469,8 @@ uint8_t resolve_or_reject(struct ctx* ctx, struct fut_0* f, struct result_0 resu
 	return release_lock((&(f->lk)));
 }
 uint8_t resolve_or_reject_recur(struct ctx* ctx, struct opt_0 node, struct result_0 value) {
-	struct some_0 s0;
 	struct opt_0 _matched1;
+	struct some_0 s0;
 	struct opt_0 _tailCallnode;
 	struct result_0 _tailCallvalue;
 	top:
@@ -1660,9 +1660,9 @@ uint8_t call_2__lambda0(struct ctx* ctx, struct call_2__lambda0* _closure) {
 	return catch(ctx, (struct fun_mut0_0) {(fun_ptr2_1) call_2__lambda0__lambda0, (uint8_t*) (temp0 = (struct call_2__lambda0__lambda0*) alloc(ctx, sizeof(struct call_2__lambda0__lambda0)), ((*(temp0) = (struct call_2__lambda0__lambda0) {_closure->f, _closure->p0, _closure->res}, 0), temp0))}, (struct fun_mut1_1) {(fun_ptr3_1) call_2__lambda0__lambda1, (uint8_t*) (temp1 = (struct call_2__lambda0__lambda1*) alloc(ctx, sizeof(struct call_2__lambda0__lambda1)), ((*(temp1) = (struct call_2__lambda0__lambda1) {_closure->res}, 0), temp1))});
 }
 uint8_t then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, struct result_1 result) {
+	struct result_1 _matched2;
 	struct ok_1 o0;
 	struct err_0 e1;
-	struct result_1 _matched2;
 	_matched2 = result;
 	switch (_matched2.kind) {
 		case 0:
@@ -1931,9 +1931,9 @@ uint8_t thread_function(uint64_t thread_id, struct global_ctx* gctx) {
 }
 uint8_t thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struct thread_local_stuff* tls) {
 	uint64_t last_checked0;
+	struct result_2 _matched3;
 	struct ok_2 ok_chosen_task1;
 	struct err_1 e2;
-	struct result_2 _matched3;
 	uint64_t _tailCallthread_id;
 	struct global_ctx* _tailCallgctx;
 	struct thread_local_stuff* _tailCalltls;
@@ -2002,9 +2002,9 @@ uint8_t empty__q_2(struct mut_bag* m) {
 	return empty__q_3(m->head);
 }
 uint8_t empty__q_3(struct opt_2 a) {
+	struct opt_2 _matched2;
 	struct none n0;
 	struct some_2 s1;
-	struct opt_2 _matched2;
 	_matched2 = a;
 	switch (_matched2.kind) {
 		case 0:
@@ -2024,9 +2024,9 @@ uint64_t get_last_checked(struct condition* c) {
 	return c->value;
 }
 struct result_2 choose_task(struct global_ctx* gctx) {
-	struct some_5 s0;
-	struct opt_5 _matched1;
 	struct result_2 res2;
+	struct opt_5 _matched1;
+	struct some_5 s0;
 	acquire_lock((&(gctx->lk)));
 	res2 = (_matched1 = choose_task_recur(gctx->vats, 0), _matched1.kind == 0 ? (((gctx->n_live_threads = noctx_decr(gctx->n_live_threads), 0), hard_assert(zero__q_0(gctx->n_live_threads))), (struct result_2) {1, .as1 = err_1((struct no_chosen_task) {zero__q_0(gctx->n_live_threads)})}) : _matched1.kind == 1 ? (s0 = _matched1.as1, (struct result_2) {0, .as0 = ok_2(s0.value)}) : (assert(0),(struct result_2) {0}));
 	release_lock((&(gctx->lk)));
@@ -2034,8 +2034,8 @@ struct result_2 choose_task(struct global_ctx* gctx) {
 }
 struct opt_5 choose_task_recur(struct arr_2 vats, uint64_t i) {
 	struct vat* vat0;
-	struct some_6 s1;
 	struct opt_6 _matched2;
+	struct some_6 s1;
 	struct arr_2 _tailCallvats;
 	uint64_t _tailCalli;
 	top:
@@ -2060,9 +2060,9 @@ struct opt_5 choose_task_recur(struct arr_2 vats, uint64_t i) {
 	}
 }
 struct opt_6 choose_task_in_vat(struct vat* vat) {
-	struct some_4 s0;
-	struct opt_4 _matched1;
 	struct opt_6 res2;
+	struct opt_4 _matched1;
+	struct some_4 s0;
 	acquire_lock((&(vat->tasks_lock)));
 	res2 = ((&(vat->gc))->needs_gc ? (zero__q_0(vat->n_threads_running) ? (struct opt_6) {1, .as1 = some_3((struct opt_4) {0, .as0 = none()})} : (struct opt_6) {0, .as0 = none()}) : (_matched1 = find_and_remove_first_doable_task(vat), _matched1.kind == 0 ? (struct opt_6) {0, .as0 = none()} : _matched1.kind == 1 ? (s0 = _matched1.as1, (struct opt_6) {1, .as1 = some_3((struct opt_4) {1, .as1 = some_5(s0.value)})}) : (assert(0),(struct opt_6) {0})));
 	if (empty__q_4(res2)) {
@@ -2080,8 +2080,8 @@ struct opt_4 find_and_remove_first_doable_task(struct vat* vat) {
 	struct mut_bag* tasks0;
 	struct opt_2 th1;
 	struct opt_7 res2;
-	struct some_7 s3;
 	struct opt_7 _matched4;
+	struct some_7 s3;
 	tasks0 = (&(vat->tasks));
 	th1 = tasks0->head;
 	res2 = find_and_remove_first_doable_task_recur(vat, tasks0->head);
@@ -2098,15 +2098,15 @@ struct opt_4 find_and_remove_first_doable_task(struct vat* vat) {
 	}
 }
 struct opt_7 find_and_remove_first_doable_task_recur(struct vat* vat, struct opt_2 opt_node) {
+	struct opt_2 _matched8;
 	struct some_2 s0;
 	struct mut_bag_node* node1;
 	struct task task2;
 	struct mut_arr_0* actors3;
 	uint8_t task_ok4;
+	struct opt_7 _matched7;
 	struct some_7 ss5;
 	struct task_and_nodes tn6;
-	struct opt_7 _matched7;
-	struct opt_2 _matched8;
 	_matched8 = opt_node;
 	switch (_matched8.kind) {
 		case 0:
@@ -2186,9 +2186,9 @@ struct some_4 some_5(struct task t) {
 	return (struct some_4) {t};
 }
 uint8_t empty__q_4(struct opt_6 a) {
+	struct opt_6 _matched2;
 	struct none n0;
 	struct some_6 s1;
-	struct opt_6 _matched2;
 	_matched2 = a;
 	switch (_matched2.kind) {
 		case 0:
@@ -2212,10 +2212,10 @@ struct ok_2 ok_2(struct chosen_task t) {
 }
 uint8_t do_task(struct global_ctx* gctx, struct thread_local_stuff* tls, struct chosen_task chosen_task) {
 	struct vat* vat0;
+	struct opt_4 _matched4;
 	struct some_4 some_task1;
 	struct task task2;
 	struct ctx ctx3;
-	struct opt_4 _matched4;
 	vat0 = chosen_task.vat;
 	_matched4 = chosen_task.task_or_gc;
 	switch (_matched4.kind) {
@@ -2380,9 +2380,9 @@ uint8_t unmanaged_free_1(struct thread_args* p) {
 	return (free((uint8_t*) p), 0);
 }
 struct result_0 must_be_resolved(struct fut_0* f) {
+	struct fut_state_0 _matched2;
 	struct fut_state_resolved_0 r0;
 	struct exception e1;
-	struct fut_state_0 _matched2;
 	_matched2 = f->state;
 	switch (_matched2.kind) {
 		case 0:
@@ -2537,8 +2537,8 @@ struct arr_0 to_str_1(struct ctx* ctx, struct comparison c) {
 	}
 }
 struct comparison compare_260(struct my_record a, struct my_record b) {
-	struct comparison temp1;
 	struct comparison temp0;
+	struct comparison temp1;
 	temp0 = compare_13(a.x, b.x);
 	switch (temp0.kind) {
 		case 0:
@@ -2563,12 +2563,12 @@ struct comparison compare_260(struct my_record a, struct my_record b) {
 }
 uint8_t test_compare_byref_records(struct ctx* ctx) {
 	struct my_byref_record* a0;
-	struct my_byref_record* b1;
-	struct my_byref_record* c2;
-	struct my_byref_record* d3;
 	struct my_byref_record* temp0;
+	struct my_byref_record* b1;
 	struct my_byref_record* temp1;
+	struct my_byref_record* c2;
 	struct my_byref_record* temp2;
+	struct my_byref_record* d3;
 	struct my_byref_record* temp3;
 	a0 = (temp0 = (struct my_byref_record*) alloc(ctx, sizeof(struct my_byref_record)), ((*(temp0) = (struct my_byref_record) {literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_15})}, 0), temp0));
 	b1 = (temp1 = (struct my_byref_record*) alloc(ctx, sizeof(struct my_byref_record)), ((*(temp1) = (struct my_byref_record) {literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_16})}, 0), temp1));
@@ -2579,8 +2579,8 @@ uint8_t test_compare_byref_records(struct ctx* ctx) {
 	return print_sync(to_str_1(ctx, compare_262(a0, d3)));
 }
 struct comparison compare_262(struct my_byref_record* a, struct my_byref_record* b) {
-	struct comparison temp1;
 	struct comparison temp0;
+	struct comparison temp1;
 	temp0 = compare_13(a->x, b->x);
 	switch (temp0.kind) {
 		case 0:
@@ -2619,11 +2619,11 @@ uint8_t test_compare_unions(struct ctx* ctx) {
 struct comparison compare_264(struct my_union a, struct my_union b) {
 	struct my_union match_a0;
 	struct my_record a0;
-	struct my_record b0;
 	struct my_union match_b0;
+	struct my_record b0;
 	struct my_other_record a1;
-	struct my_other_record b1;
 	struct my_union match_b1;
+	struct my_other_record b1;
 	match_a0 = a;
 	switch (match_a0.kind) {
 		case 0:

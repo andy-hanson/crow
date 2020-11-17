@@ -207,16 +207,7 @@ immutable(Sexpr) tataOfConcreteFunBodyBuiltin(Alloc)(ref Alloc alloc, ref immuta
 }
 
 immutable(Sexpr) tataOfConcreteFunExprBody(Alloc)(ref Alloc alloc, ref immutable ConcreteFunExprBody a) {
-	return tataRecord(
-		alloc,
-		"expr-body",
-		tataArr(alloc, a.allLocals, (ref immutable Ptr!ConcreteLocal it) =>
-			tataRecord(
-				alloc,
-				"local",
-				tataOfConcreteLocalRef(it),
-				tataOfConcreteType(alloc, it.type))),
-		tataOfConcreteExpr(alloc, a.expr));
+	return tataRecord(alloc, "expr-body", tataOfConcreteExpr(alloc, a.expr));
 }
 
 public immutable(Sexpr) tataOfConcreteLocalRef(immutable Ptr!ConcreteLocal a) {
