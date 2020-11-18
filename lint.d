@@ -1,5 +1,3 @@
-module lint;
-
 @safe: // not pure, not @nogc, not nothrow
 
 import std.algorithm.searching : any;

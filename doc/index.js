@@ -1,5 +1,7 @@
 export {}
 
+import {Compiler, Container, Diagnostic, Files, Token, RunResult} from './compiler.js'
+
 window.onload = () => {
 	main().catch(e => { console.error(e) })
 }
@@ -8,98 +10,6 @@ window.onload = () => {
 const assert = cond => {
 	if (!cond) throw new Error('Assertion failed')
 }
-
-/**
- * @typedef Exports
- * @property {function(): number} getBufferSize
- * @property {function(): number} getBuffer
- * @property {function(): void} getTokens
- * @property {WebAssembly.Memory} memory
- */
-
-/**
- * @typedef Range
- * @property {[number, number]} args
- */
-
-/**
- * @typedef Token
- * @property {string} kind
- * @property {Range} range
- */
-
-/**
- * @typedef Diagnostic
- * @property {string} message
- * @property {Range} range
- */
-
- /**
-  * @typedef TokensDiags
-  * @property {ReadonlyArray<Token>} tokens
-  * @property {ReadonlyArray<Diagnostic>} diags
-  */
-
-class Noze {
-	static async make() {
-		const bytes = await (await fetch("../bin/noze.wasm")).arrayBuffer()
-		const result = await WebAssembly.instantiate(bytes, {})
-		const { exports } = result.instance;
-		exports.memory;
-		return new Noze(/** @type {Exports} */ (exports))
-	}
-
-	/** @param {Exports} exports */
-	constructor(exports) {
-		/** @type {Exports} */
-		this._exports = exports
-		const { getBufferSize, getBuffer, memory } = exports
-		const view = new DataView(memory.buffer)
-		const bufferSize = getBufferSize()
-		const buffer = getBuffer()
-		/** @type {function(string): void} */
-		this._setStr = str =>
-			writeString(view, buffer, bufferSize, str)
-		/** @type {function(): string} */
-		this._getStr = () =>
-			readString(view, buffer, bufferSize)
-	}
-
-	/**
-	 * @param {string} src
-	 * @return {TokensDiags}
-	 */
-	getTokens(src) {
-		this._setStr(src)
-		this._exports.getTokens()
-		const json = this._getStr()
-		return JSON.parse(json)
-	}
-}
-
-/**
- * @typedef AllContainer
- * @property {"all"} type
- * @property {Array<Node>} children
- */
-
-/**
- * @typedef LineContainer
- * @property {"line"} type
- * @property {Array<Node>} children
- */
-
-/**
- * @typedef DiagContainer
- * @property {"diag"} type
- * @property {Array<Node>} children
- * @property {number} end
- * @property {string} message
- */
-
-/**
- * @typedef {AllContainer | LineContainer | DiagContainer} Container
- */
 
 /**
  * @template T
@@ -284,8 +194,6 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	return containerStack[0].children
 }
 
-
-
 /** @type {function(string): string} */
 const classForKind = kind => {
 	return kind
@@ -306,25 +214,37 @@ const TEST_SRC = `
 import
 	io
 
-r record
-	x int
-
-to-int<?a> spec
-	to-int int(a |foo bar<?a>)
-
-main void(r r)
-	r.x + 0
+main fut exit-code(args arr str) summon trusted
+	print-sync: "now sleep:"
+	0 resolved
 `
 
 const main = async () => {
-	const noze = await Noze.make()
+	const includeFiles = await getIncludeFiles()
+	console.log("INCLUDE FILES", includeFiles)
 
-	const nozeDiv = nonNull(document.querySelector(".noze"))
+	const compiler = await Compiler.make()
+
+	const runResult = runCode(compiler, includeFiles, TEST_SRC)
+	console.log("RUN RESULT", runResult)
+
+	/*const nozeDiv = nonNull(document.querySelector(".noze"))
+
+	//const button = document.createElement("button")
+	//button.textContent = "run"
+	//nozeDiv.appendChild(button)
+
+	/*
+	const nozeCodeDiv = document.createElement("div")
+	nozeCodeDiv.className = 'code'
+	nozeDiv.appendChild(nozeCodeDiv)
+
+
 	const highlightDiv = document.createElement("div")
 	highlightDiv.className = "highlight"
-	nozeDiv.appendChild(highlightDiv)
+	nozeCodeDiv.appendChild(highlightDiv)
 	const ta = document.createElement("textarea")
-	nozeDiv.appendChild(ta)
+	nozeCodeDiv.appendChild(ta)
 	ta.value = TEST_SRC
 	ta.setAttribute("spellcheck", "false")
 
@@ -335,15 +255,44 @@ const main = async () => {
 			e.preventDefault()
 			ta.value = value.slice(0, selectionStart) + "\t" + value.slice(selectionEnd)
 			ta.setSelectionRange(selectionStart + 1, selectionStart + 1);
-			highlight(noze, highlightDiv, ta)
+			highlight(compiler, highlightDiv, ta)
 		}
 	})
 	ta.addEventListener("input", () => {
-		highlight(noze, highlightDiv, ta)
+		highlight(compiler, highlightDiv, ta)
 	})
-	highlight(noze, highlightDiv, ta)
+	highlight(compiler, highlightDiv, ta)
 	console.log("DONE")
+	*/
 }
+
+/** @type {function(Compiler, Files, string): RunResult} */
+const runCode = (compiler, includeFiles, text) => {
+	const allFiles = {
+		include: includeFiles,
+		user: {'main.nz': text,}
+	}
+	return compiler.run(allFiles)
+}
+
+
+/** @type {function(): Promise<ReadonlyArray<string>>} */
+const listInclude = async () => {
+	return (await (await fetch('includeList.txt')).text()).trim().split('\n')
+}
+
+/** @type {function(): Promise<Files>} */
+const getIncludeFiles = async () => {
+	const list = await listInclude()
+	return Object.fromEntries(await Promise.all(list.map(nameAndText)))
+}
+
+/** @type {function(string): Promise<[string, string]>} */
+const nameAndText = async name =>
+	[name, await (await fetch(`../include/${name}`)).text()]
+
+
+
 
 /** @type {function(Node): void} */
 const removeAllChildren = em => {
@@ -351,10 +300,10 @@ const removeAllChildren = em => {
 		em.removeChild(em.lastChild)
 }
 
-/** @type {function(Noze, Node, HTMLTextAreaElement): void} */
-const highlight = (noze, highlightDiv, ta) => {
+/** @type {function(Compiler, Node, HTMLTextAreaElement): void} */
+const highlight = (compiler, highlightDiv, ta) => {
 	const v = ta.value
-	const {tokens, diags} = noze.getTokens(v)
+	const {tokens, diags} = compiler.getTokens(v)
 	console.log("DIAGS", diags)
 	const nodes = tokensAndDiagsToNodes(tokens, diags, v)
 
@@ -417,28 +366,4 @@ const fillIn = async node => {
 	console.log(src)
 	const text = await (await fetch(`../test/runnable/${src}`)).text()
 	node.innerText = text
-}
-
-/** @type {function(DataView, number, number, string): void} */
-function writeString(view, buffer, bufferSize, str) {
-	if (str.length >= bufferSize)
-		throw new Error("input too long")
-	for (let i = 0; i < str.length; i++)
-		view.setUint8(buffer + i, str.charCodeAt(i))
-	view.setUint8(buffer + str.length, 0)
-}
-
-/** @type {function(DataView, number, number): string} */
-function readString(view, buffer, bufferSize) {
-	let s = ""
-	let i;
-	for (i = 0; i < bufferSize; i++) {
-		const code = view.getUint8(buffer + i)
-		if (code === 0)
-			break
-		s += String.fromCharCode(code)
-	}
-	if (i == bufferSize)
-		throw new Error("TOO LONG")
-	return s
 }

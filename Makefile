@@ -2,7 +2,10 @@
 
 all: test lint
 
-doc-server: bin/noze.wasm
+doc/includeList.txt: include/*.nz
+	ls doc/include > doc/includeList.txt
+
+doc-server: doc/includeList.txt bin/noze.wasm
 	python -m SimpleHTTPServer 8080
 
 lint:
@@ -27,6 +30,7 @@ bin/noze: src/*.d src/*/*.d src/*/*/*.d
 		src/app.d \
 		src/cli.d \
 		src/compiler.d \
+		src/wasmUtils.d \
 		src/*/*.d \
 		src/*/*/*.d \
 		-I=src/ \
@@ -45,6 +49,7 @@ bin/noze.wasm: src/*.d src/*/*.d src/*/*/*.d
 		--boundscheck=off \
 		src/wasm.d \
 		src/compiler.d \
+		src/wasmUtils.d \
 		src/backend/*.d \
 		src/concretize/*.d \
 		src/frontend/*.d \

@@ -11,9 +11,8 @@ private ubyte* allocateImpl(immutable char* debugName)(
 	ref GlobalAlloc!(debugName) alloc,
 	immutable size_t nBytes,
 ) {
-	if (cur + nBytes > capacity) {
+	if (cur + nBytes > capacity)
 		verifyFail();
-	}
 	ubyte* res = data_.ptr + cur;
 	cur += nBytes;
 	return res;
