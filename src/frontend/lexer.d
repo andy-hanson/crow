@@ -565,7 +565,7 @@ immutable(size_t) toHexDigit(immutable char c) {
 	}
 
 	immutable size_t size = (lexer.ptr - begin) - nEscapedCharacters;
-	char* res = cast(char*) alloc.allocate(char.sizeof * size);
+	char* res = cast(char*) alloc.allocateBytes(char.sizeof * size);
 
 	size_t outI = 0;
 	lexer.ptr = begin;

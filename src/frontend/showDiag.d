@@ -53,7 +53,15 @@ import util.writer :
 	Writer;
 import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRelPath;
 
-immutable(Str) strOfDiagnostics(Alloc)(ref Alloc alloc, ref immutable Diagnostics diagnostics) {
+struct ShowDiagOptions {
+	immutable Bool color;
+}
+
+immutable(Str) strOfDiagnostics(Alloc)(
+	ref Alloc alloc,
+	ref immutable ShowDiagOptions options,
+	ref immutable Diagnostics diagnostics,
+) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	immutable FilePaths filePaths = diagnostics.filesInfo.filePaths;
 	immutable Diags sorted = sort!(Diagnostic, Alloc)(
@@ -65,11 +73,15 @@ immutable(Str) strOfDiagnostics(Alloc)(ref Alloc alloc, ref immutable Diagnostic
 				fullIndexDictGet(filePaths, a.where.fileIndex),
 				fullIndexDictGet(filePaths, b.where.fileIndex)));
 	foreach (ref immutable Diagnostic d; sorted.range)
-		showDiagnostic(alloc, writer, diagnostics.filesInfo, d);
+		showDiagnostic(alloc, writer, options, diagnostics.filesInfo, d);
 	return finishWriter(writer);
 }
 
-public immutable(Str) strOfParseDiag(Alloc)(ref Alloc alloc, ref immutable ParseDiag a) {
+public immutable(Str) strOfParseDiag(Alloc)(
+	ref Alloc alloc,
+	ref immutable ShowDiagOptions options,
+	ref immutable ParseDiag a,
+) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	writeParseDiag(writer, a);
 	return finishWriter(writer);
@@ -79,14 +91,17 @@ private:
 
 void writeLineNumber(Alloc)(
 	ref Writer!Alloc writer,
+	ref immutable ShowDiagOptions options,
 	immutable FilesInfo fi,
 	immutable FileAndRange range,
 ) {
 	immutable PathAndStorageKind where = fullIndexDictGet(fi.filePaths, range.fileIndex);
-	writeBold(writer);
+	if (options.color)
+		writeBold(writer);
 	writePathAndStorageKind(writer, where);
 	writeStatic(writer, ".nz");
-	writeReset(writer);
+	if (options.color)
+		writeReset(writer);
 	writeStatic(writer, " line ");
 	immutable size_t line = lineAndColumnAtPos(
 		fullIndexDictGet(fi.lineAndColumnGetters, range.fileIndex),
@@ -271,13 +286,18 @@ void writeSig(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
 	writeChar(writer, ')');
 }
 
-void writeCalledDecl(Alloc)(ref Writer!Alloc writer, immutable FilesInfo fi, immutable CalledDecl c) {
+void writeCalledDecl(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable ShowDiagOptions options,
+	immutable FilesInfo fi,
+	immutable CalledDecl c,
+) {
 	writeSig(writer, c.sig);
 	return matchCalledDecl(
 		c,
 		(immutable Ptr!FunDecl funDecl) {
 			writeStatic(writer, " (from ");
-			writeLineNumber(writer, fi, range(funDecl));
+			writeLineNumber(writer, options, fi, range(funDecl));
 			writeChar(writer, ')');
 		},
 		(ref immutable SpecSig specSig) {
@@ -289,6 +309,7 @@ void writeCalledDecl(Alloc)(ref Writer!Alloc writer, immutable FilesInfo fi, imm
 
 void writeCalledDecls(Alloc)(
 	ref Writer!Alloc writer,
+	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Arr!CalledDecl cs,
 	scope immutable(Bool) delegate(ref immutable CalledDecl) @safe @nogc pure nothrow filter,
@@ -296,15 +317,25 @@ void writeCalledDecls(Alloc)(
 	foreach (ref immutable CalledDecl c; cs.range)
 		if (filter(c)) {
 			writeNl(writer);
-			writeCalledDecl(writer, fi, c);
+			writeCalledDecl(writer, options, fi, c);
 		}
 }
 
-void writeCalledDecls(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref immutable Arr!CalledDecl cs) {
-	writeCalledDecls(writer, fi, cs, (ref immutable CalledDecl) => True);
+void writeCalledDecls(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable ShowDiagOptions options,
+	ref immutable FilesInfo fi,
+	ref immutable Arr!CalledDecl cs,
+) {
+	writeCalledDecls(writer, options, fi, cs, (ref immutable CalledDecl) => True);
 }
 
-void writeCallNoMatch(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi, ref immutable Diag.CallNoMatch d) {
+void writeCallNoMatch(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable ShowDiagOptions options,
+	ref immutable FilesInfo fi,
+	ref immutable Diag.CallNoMatch d,
+) {
 	immutable Bool someCandidateHasCorrectNTypeArgs = Bool(
 		d.actualNTypeArgs == 0 ||
 		exists(d.allCandidates, (ref immutable CalledDecl c) =>
@@ -340,7 +371,7 @@ void writeCallNoMatch(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi
 			writeStatic(writer, " type");
 		}
 		writeStatic(writer, " arguments. candidates:");
-		writeCalledDecls(writer, fi, d.allCandidates);
+		writeCalledDecls(writer, options, fi, d.allCandidates);
 	} else {
 		writeStatic(writer, "there are functions named ");
 		writeName(writer, d.funName);
@@ -367,15 +398,15 @@ void writeCallNoMatch(Alloc)(ref Writer!Alloc writer, ref immutable FilesInfo fi
 		writeStatic(writer, "\ncandidates (with ");
 		writeNat(writer, d.actualArity);
 		writeStatic(writer, " arguments):");
-		writeCalledDecls(writer, fi, d.allCandidates, (ref immutable CalledDecl c) {
-			return immutable Bool(arity(c) == d.actualArity);
-		});
+		writeCalledDecls(writer, options, fi, d.allCandidates, (ref immutable CalledDecl c) =>
+			immutable Bool(arity(c) == d.actualArity));
 	}
 }
 
 void writeDiag(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Diag d,
 ) {
@@ -385,10 +416,10 @@ void writeDiag(TempAlloc, Alloc)(
 			writeStatic(writer, "cannot choose an overload of ");
 			writeName(writer, d.funName);
 			writeStatic(writer, ". multiple functions match:");
-			writeCalledDecls(writer, fi, d.matches);
+			writeCalledDecls(writer, options, fi, d.matches);
 		},
 		(ref immutable Diag.CallNoMatch d) {
-			writeCallNoMatch(writer, fi, d);
+			writeCallNoMatch(writer, options, fi, d);
 		},
 		(ref immutable Diag.CantCall c) {
 			immutable string descr = () {
@@ -437,10 +468,8 @@ void writeDiag(TempAlloc, Alloc)(
 			writeStatic(writer, "didn't get expected fields of ");
 			writeName(writer, d.decl.name);
 			writeChar(writer, ':');
-			immutable Arr!Sym expected = map(tempAlloc, d.fields, (ref immutable RecordField f) {
-				return f.name;
-			});
-			diffSymbols(tempAlloc, writer, expected, d.providedFieldNames);
+			immutable Arr!Sym expected = map(tempAlloc, d.fields, (ref immutable RecordField it) => it.name);
+			diffSymbols(tempAlloc, writer, options.color, expected, d.providedFieldNames);
 		},
 		(ref immutable Diag.DuplicateDeclaration d) {
 			writeStatic(writer, "duplicate ");
@@ -661,12 +690,13 @@ void writeDiag(TempAlloc, Alloc)(
 void showDiagnostic(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Diagnostic d,
 ) {
-	writeFileAndRange(tempAlloc, writer, fi, d.where);
+	writeFileAndRange(tempAlloc, writer, options, fi, d.where);
 	writeChar(writer, ' ');
-	writeDiag(tempAlloc, writer, fi, d.diag);
+	writeDiag(tempAlloc, writer, options, fi, d.diag);
 	writeNl(writer);
 }
 

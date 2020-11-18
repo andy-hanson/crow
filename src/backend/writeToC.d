@@ -58,7 +58,6 @@ import model.lowModel :
 	PrimitiveType,
 	regularParams;
 import model.model : FunInst, Local, name, Param;
-import util.alloc.arena : Arena;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, first, range, setAt, size, sizeEq;
 import util.collection.arrUtil : every, fillArr_mut, tail;
@@ -649,19 +648,17 @@ immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
 }
 
 void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc writer, ref immutable Ctx ctx) {
-	alias TempAlloc = Arena!(Alloc, "struct-states");
-	TempAlloc tempAlloc = TempAlloc(ptrTrustMe_mut(alloc));
 	// Write extern-ptr types first
 	fullIndexDictEachValue(ctx.program.allExternPtrTypes, (ref immutable LowExternPtrType it) {
 		declareStruct(writer, ctx, it.source);
 	});
 
 	StructStates structStates = StructStates(
-		fillArr_mut!(Bool, TempAlloc)(tempAlloc, fullIndexDictSize(ctx.program.allFunPtrTypes), (immutable size_t) =>
+		fillArr_mut!Bool(alloc, fullIndexDictSize(ctx.program.allFunPtrTypes), (immutable size_t) =>
 			Bool(false)),
-		fillArr_mut!StructState(tempAlloc, fullIndexDictSize(ctx.program.allRecords), (immutable size_t) =>
+		fillArr_mut!StructState(alloc, fullIndexDictSize(ctx.program.allRecords), (immutable size_t) =>
 			StructState.none),
-		fillArr_mut!StructState(tempAlloc, fullIndexDictSize(ctx.program.allUnions), (immutable size_t) =>
+		fillArr_mut!StructState(alloc, fullIndexDictSize(ctx.program.allUnions), (immutable size_t) =>
 			StructState.none));
 	for (;;) {
 		Bool madeProgress = False;

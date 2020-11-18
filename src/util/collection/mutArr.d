@@ -16,7 +16,7 @@ struct MutArr(T) {
 }
 
 @system MutArr!T newUninitializedMutArr(T, Alloc)(ref Alloc alloc, immutable size_t size) {
-	return MutArr!T(cast(T*) alloc.allocate(T.sizeof * size), size, size);
+	return MutArr!T(cast(T*) alloc.allocateBytes(T.sizeof * size), size, size);
 }
 
 @system T* mutArrPtrAt(T)(ref MutArr!T a, immutable size_t index) {
@@ -51,9 +51,9 @@ void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T v
 @trusted void push(T, Alloc)(ref Alloc alloc, ref MutArr!T a, T value) {
 	if (a.size_ == a.capacity_) {
 		immutable size_t newCapacity = a.size_ == 0 ? 2 : a.size_ * 2;
-		T* newBegin = cast(T*) alloc.allocate(newCapacity * T.sizeof);
+		T* newBegin = cast(T*) alloc.allocateBytes(newCapacity * T.sizeof);
 		memcpy(cast(ubyte*) newBegin, cast(ubyte*) a.begin_, a.size_ * T.sizeof);
-		alloc.free(cast(ubyte*) a.begin_, a.size_ * T.sizeof);
+		alloc.freeBytes(cast(ubyte*) a.begin_, a.size_ * T.sizeof);
 		a.begin_ = newBegin;
 		a.capacity_ = newCapacity;
 	}
@@ -112,7 +112,7 @@ T mustPop(T)(ref MutArr!T a) {
 
 @trusted immutable(Arr!T) moveToArr(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a) {
 	immutable Arr!T res = immutable Arr!T(cast(immutable) a.begin_, a.size_);
-	alloc.freePartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
+	alloc.freeBytesPartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
 	a.size_ = 0;
 	a.capacity_ = 0;
@@ -121,7 +121,7 @@ T mustPop(T)(ref MutArr!T a) {
 
 @trusted const(Arr!T) moveToArr_const(T, Alloc)(ref Alloc alloc, ref MutArr!T a) {
 	const Arr!T res = const Arr!T(a.begin_, a.size_);
-	alloc.freePartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
+	alloc.freeBytesPartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
 	a.size_ = 0;
 	a.capacity_ = 0;

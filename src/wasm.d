@@ -1,33 +1,20 @@
 @safe @nogc nothrow: // not pure
 
-import compiler : buildAndInterpret;
 import frontend.ast : sexprOfAst;
 import frontend.getTokens : tokensOfAst, sexprOfTokens, Token;
-import frontend.lang : nozeExtension;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
-import frontend.showDiag : strOfParseDiag;
-import interpret.fakeExtern : FakeExtern;
+import frontend.showDiag : ShowDiagOptions, strOfParseDiag;
 import model.parseDiag : ParseDiagnostic;
-import util.alloc.globalAlloc : GlobalAlloc;
-import util.collection.arr : Arr, arrOfRange, at, emptyArr, size;
-import util.collection.dict : Dict, getAt;
-import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
-import util.collection.str :
-	NulTerminatedStr,
-	nulTerminatedStrOfCStr,
-	Str,
-	strEq,
-	strEqLiteral,
-	strLiteral,
-	strOfNulTerminatedStr;
-import util.opt : Opt, some;
-import util.path : childPath, comparePath, parsePath, Path, PathAndStorageKind, rootPath, StorageKind;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.alloc.globalAlloc : globalAlloc, GlobalAlloc;
+import util.bools : False;
+import util.collection.arr : Arr, at, size;
+import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, Str;
+import util.ptr : ptrTrustMe_mut;
 import util.sexpr : Sexpr, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
 import util.sourceRange : sexprOfRangeWithinFile;
-import util.sym : AllSymbols, shortSymAlphaLiteral;
+import util.sym : AllSymbols;
 import util.util : verify;
-import util.writer : finishWriter, writeChar, writeNat, writeQuotedStr, Writer, writeStatic;
+import util.writer : finishWriter, Writer;
 import wasmUtils : wasmRun;
 
 // seems to be the required entry point
@@ -42,37 +29,36 @@ extern(C) immutable(size_t) getBufferSize() {
 }
 
 @system extern(C) void getTokens() {
-	alias Alloc = GlobalAlloc!("getTokens");
-	Alloc alloc;
+	GlobalAlloc alloc = globalAlloc();
 	immutable NulTerminatedStr str = nulTerminatedStrOfCStr(cast(immutable) buffer.ptr);
 	immutable Str result = getTokensAndDiagnosticsJSON(alloc, str);
 	writeResult(result);
 }
 
 @system extern(C) void getAst() {
-	alias Alloc = GlobalAlloc!("getAst");
-	Alloc alloc;
-	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
+	GlobalAlloc alloc = globalAlloc();
+	AllSymbols!GlobalAlloc allSymbols = AllSymbols!GlobalAlloc(ptrTrustMe_mut(alloc));
 	immutable NulTerminatedStr str = nulTerminatedStrOfCStr(cast(immutable) buffer.ptr);
 	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, allSymbols, str);
 	writeAstResult(alloc, ast);
 }
 
 @system extern(C) void run() {
-	alias Alloc = GlobalAlloc!"run";
-	Alloc alloc;
+	GlobalAlloc alloc = globalAlloc();
 	immutable Str result = wasmRun(alloc, buffer.ptr);
 	writeResult(result);
 }
 
 private:
 
+immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
+
 immutable(Sexpr) sexprOfParseDiagnostic(Alloc)(ref Alloc alloc, ref immutable ParseDiagnostic a) {
 	return tataNamedRecord(
 		alloc,
 		"diagnostic",
 		"range", sexprOfRangeWithinFile(alloc, a.range),
-		"message", tataStr(strOfParseDiag(alloc, a.diag)));
+		"message", tataStr(strOfParseDiag(alloc, showDiagOptions, a.diag)));
 }
 
 immutable(Str) getTokensAndDiagnosticsJSON(Alloc)(ref Alloc alloc, ref immutable NulTerminatedStr str) {

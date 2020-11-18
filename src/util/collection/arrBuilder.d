@@ -4,7 +4,7 @@ module util.collection.arrBuilder;
 
 import util.bools : Bool;
 import util.collection.arr : Arr, ArrWithSize, begin, emptyArrWithSize;
-import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrIsEmpty, mutArrSize, push, pushAll;
+import util.collection.mutArr : moveToArr, MutArr, mutArrIsEmpty, mutArrSize, push, pushAll;
 import util.memory : initMemory;
 import util.util : verify;
 
@@ -55,7 +55,7 @@ private @system const(T*) begin(T)(ref const ArrWithSizeBuilder!T a) {
 	if (a.size_ == a.capacity_) {
 		const ubyte* oldData = a.data_;
 		a.capacity_ = a.capacity_ == 0 ? 4 : a.capacity_ * 2;
-		a.data_ = alloc.allocate(size_t.sizeof + T.sizeof * a.capacity_);
+		a.data_ = alloc.allocateBytes(size_t.sizeof + T.sizeof * a.capacity_);
 		foreach (immutable size_t i; 0..a.size_)
 			initMemory(begin(a) + i, (cast(immutable T*) (oldData + size_t.sizeof))[i]);
 	}
@@ -76,7 +76,7 @@ immutable(size_t) arrWithSizeBuilderSize(T)(ref const ArrWithSizeBuilder!T a) {
 	if (a.data_ == null)
 		return emptyArrWithSize!T;
 	else {
-		alloc.freePartial(cast(ubyte*) (begin(a) + a.size_), a.capacity_ - a.size_);
+		alloc.freeBytesPartial(cast(ubyte*) (begin(a) + a.size_), a.capacity_ - a.size_);
 		*(cast(size_t*) a.data_) = a.size_;
 		return immutable ArrWithSize!T(cast(immutable) a.data_);
 	}

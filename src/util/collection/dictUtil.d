@@ -18,7 +18,7 @@ import util.util : verify;
 	scope void delegate(ref immutable K, ref immutable V, ref immutable V) @safe @nogc pure nothrow onConflict,
 ) {
 	alias Pair = KeyValuePair!(K, V);
-	Pair* res = cast(Pair*) alloc.allocate(Pair.sizeof * size(inputs));
+	Pair* res = cast(Pair*) alloc.allocateBytes(Pair.sizeof * size(inputs));
 	size_t resI = 0;
 	foreach (immutable Ptr!T input; ptrsRange(inputs)) {
 		immutable Pair pair = getPair(input);
@@ -36,7 +36,7 @@ import util.util : verify;
 		}
 	}
 	verify(resI <= size(inputs));
-	alloc.freePartial(cast(ubyte*) (res + resI), Pair.sizeof * (size(inputs) - resI));
+	alloc.freeBytesPartial(cast(ubyte*) (res + resI), Pair.sizeof * (size(inputs) - resI));
 	return immutable Dict!(K, V, compare)(immutable Arr!Pair(cast(immutable) res, resI));
 }
 
@@ -45,8 +45,8 @@ import util.util : verify;
 	immutable Arr!T inputs,
 	scope immutable(KeyValuePair!(K, V)) delegate(immutable Ptr!T) @safe @nogc pure nothrow getPair,
 ) {
-	K* keys = cast(K*) alloc.allocate(K.sizeof * size(inputs));
-	V* values = cast(V*) alloc.allocate(V.sizeof * size(inputs));
+	K* keys = cast(K*) alloc.allocateBytes(K.sizeof * size(inputs));
+	V* values = cast(V*) alloc.allocateBytes(V.sizeof * size(inputs));
 	foreach (immutable size_t i; 0..size(inputs)) {
 		immutable KeyValuePair!(K, V) pair = getPair(ptrAt(inputs, i));
 		// Insert at the first place it's > the previous value.

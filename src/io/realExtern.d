@@ -55,12 +55,12 @@ struct RealExtern {
 	// TODO: not trusted
 	@trusted pure void free(ubyte* ptr) {
 		immutable size_t size = allocTracker.markFree(ptr);
-		alloc.free(ptr, size);
+		alloc.freeBytes(ptr, size);
 	}
 
 	// TODO: not trusted
 	@trusted pure ubyte* malloc(immutable size_t size) {
-		ubyte* ptr = alloc.allocate(size);
+		ubyte* ptr = alloc.allocateBytes(size);
 		allocTracker.markAlloced(alloc, ptr, size);
 		return ptr;
 	}

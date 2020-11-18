@@ -38,7 +38,7 @@ struct Arr(T) {
 }
 
 @system void freeArr(Alloc, T)(ref Alloc alloc, immutable Arr!T a) {
-	alloc.free(cast(ubyte*) begin(a), size(a) * T.sizeof);
+	alloc.freeBytes(cast(ubyte*) begin(a), size(a) * T.sizeof);
 }
 
 immutable(Arr!T) asImmutable(T)(Arr!(immutable T) a) {

@@ -10,16 +10,16 @@ struct Mallocator {
 
 	@disable this(ref const Mallocator);
 
-	@trusted ubyte* allocate(immutable size_t size) {
+	@trusted ubyte* allocateBytes(immutable size_t size) {
 		ubyte* res = cast(ubyte*) pureMalloc(size);
 		verify(res != null);
 		return res;
 	}
 
-	@trusted void free(ubyte* ptr, immutable size_t) {
+	@trusted void freeBytes(ubyte* ptr, immutable size_t) {
 		pureFree(cast(void*) ptr);
 	}
 
-	@trusted void freePartial(ubyte* ptr, immutable size_t) {
+	@trusted void freeBytesPartial(ubyte* ptr, immutable size_t) {
 	}
 }

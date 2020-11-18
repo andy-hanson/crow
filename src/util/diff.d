@@ -24,10 +24,11 @@ import util.util : max, verify;
 void diffSymbols(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	immutable Bool color,
 	immutable Arr!Sym a,
 	immutable Arr!Sym b
 ) {
-	printDiff(writer, a, b, longestCommonSubsequence(tempAlloc, a, b));
+	printDiff(writer, color, a, b, longestCommonSubsequence(tempAlloc, a, b));
 }
 
 private:
@@ -151,6 +152,7 @@ immutable(Arr!Sym) longestCommonSubsequence(Alloc)(
 
 void printDiff(Alloc)(
 	ref Writer!Alloc writer,
+	immutable Bool color,
 	ref immutable Arr!Sym a,
 	ref immutable Arr!Sym b,
 	immutable Arr!Sym commonSyms,
@@ -169,25 +171,31 @@ void printDiff(Alloc)(
 	size_t bi = 0;
 	void extraA() {
 		writeNlIndent(writer);
-		writeRed(writer);
+		if (color)
+			writeRed(writer);
 		writeSym(writer, at(a, ai));
-		writeReset(writer);
+		if (color)
+			writeReset(writer);
 		ai++;
 	}
 	void extraB() {
 		writeNlIndent(writer);
 		writeSpaces(writer, columnSize);
-		writeRed(writer);
+		if (color)
+			writeRed(writer);
 		writeSym(writer, at(b, bi));
-		writeReset(writer);
+		if (color)
+			writeReset(writer);
 		bi++;
 	}
 	void misspelling() {
 		writeNlIndent(writer);
-		writeRed(writer);
+		if (color)
+			writeRed(writer);
 		writeSymPadded(writer, at(a, ai), columnSize);
 		writeSym(writer, at(b, bi));
-		writeReset(writer);
+		if (color)
+			writeReset(writer);
 		ai++;
 		bi++;
 	}

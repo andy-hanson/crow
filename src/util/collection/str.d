@@ -51,7 +51,7 @@ immutable(Str) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 }
 
 private @trusted immutable(NulTerminatedStr) strToNulTerminatedStr(Alloc)(ref Alloc alloc, immutable Str s) {
-	char* res = cast(char*) alloc.allocate(size(s) + 1);
+	char* res = cast(char*) alloc.allocateBytes(size(s) + 1);
 	memcpy(cast(ubyte*) res, cast(ubyte*) begin(s), size(s));
 	res[size(s)] = '\0';
 	return immutable NulTerminatedStr(immutable Str(cast(immutable) res, s.size + 1));
@@ -87,7 +87,7 @@ immutable(Str) stripNulTerminator(immutable NulTerminatedStr a) {
 }
 
 @trusted immutable(Str) copyStr(Alloc)(ref Alloc alloc, immutable Str s) {
-	char* begin = cast(char*) alloc.allocate(char.sizeof * s.size);
+	char* begin = cast(char*) alloc.allocateBytes(char.sizeof * s.size);
 	foreach (immutable size_t i; 0..s.size)
 		begin[i] = s.at(i);
 	return immutable Str(cast(immutable) begin, s.size);

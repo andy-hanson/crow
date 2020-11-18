@@ -351,7 +351,6 @@ void setTarget(ref StructAlias a, immutable Opt!(Ptr!StructInst) value) {
 }
 
 struct StructDecl {
-	@safe @nogc pure nothrow:
 	// TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
 	immutable Bool isPublic;
@@ -414,13 +413,6 @@ struct StructInst {
 	private:
 	// Like decl.body but has type args filled in.
 	Late!(immutable StructBody) _body_;
-
-	public:
-	this(immutable StructDeclAndArgs da, immutable Purity bp, immutable Purity wp) {
-		declAndArgs = da;
-		bestCasePurity = bp;
-		worstCasePurity = wp;
-	}
 }
 
 immutable(Bool) isArr(ref immutable StructInst i) {

@@ -3,7 +3,9 @@ export {}
 import {Compiler, Container, Diagnostic, Files, Token, RunResult} from './compiler.js'
 
 window.onload = () => {
-	main().catch(e => { console.error(e) })
+	main().catch(e => {
+		console.error(e.stack)
+	})
 }
 
 /** @type {function(boolean): void} cond */

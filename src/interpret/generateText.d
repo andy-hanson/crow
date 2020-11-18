@@ -282,7 +282,7 @@ immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T 
 }
 
 @trusted ExactSizeArrBuilder!T newExactSizeArrBuilder(T, Alloc)(ref Alloc alloc, immutable size_t size) {
-	T* begin = cast(T*) alloc.allocate(T.sizeof * size);
+	T* begin = cast(T*) alloc.allocateBytes(T.sizeof * size);
 	return ExactSizeArrBuilder!T(begin, begin, begin + size);
 }
 

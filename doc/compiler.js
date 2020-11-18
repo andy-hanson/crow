@@ -76,7 +76,9 @@ export class Compiler {
 		console.log("RUN", JSON.stringify(files))
 		this._setStr(JSON.stringify(files))
 		this._exports.run()
-		return JSON.parse(this._getStr())
+		const result = this._getStr()
+		console.log("RESULT:", result)
+		return JSON.parse(result)
 	}
 }
 

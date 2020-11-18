@@ -2,17 +2,16 @@ module test.testWasm;
 
 @safe @nogc nothrow: // not pure
 
-import io.io : tryReadFile;
+//import io.io : tryReadFile;
 import test.testUtil : Test;
 import util.collection.str : asCStr, CStr, emptyStr, NulTerminatedStr, Str, strLiteral;
 import util.opt : force, Opt;
 import util.path : AbsolutePath, rootPath;
 import util.sym : shortSymAlphaLiteral;
-import util.util : todo;
 import wasmUtils : wasmRun;
 
 void testWasm(Alloc)(ref Test!Alloc test) {
-	return;
+	/*
 	immutable AbsolutePath path = immutable AbsolutePath(
 		emptyStr,
 		rootPath(test.alloc, shortSymAlphaLiteral("test")),
@@ -25,6 +24,7 @@ void testWasm(Alloc)(ref Test!Alloc test) {
 			printf("%.*s\n", cast(int) size(result), begin(result));
 		}
 	});
+	*/
 }
 
 @trusted char* castMutable(immutable CStr a) {

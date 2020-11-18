@@ -3,6 +3,7 @@ module model.diag;
 @safe @nogc pure nothrow:
 
 import frontend.lang : nozeExtension;
+import frontend.showDiag : ShowDiagOptions;
 import model.model :
 	AbsolutePathsGetter,
 	CalledDecl,
@@ -28,7 +29,7 @@ import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths;
 import util.sym : Sym;
 import util.types : u8;
-import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
+import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic, writeStr;
 import util.writerUtils : writeRangeWithinFile, writePos;
 
 enum TypeKind {
@@ -628,45 +629,55 @@ static assert(FilesInfo.sizeof <= 48);
 void writeFileAndRange(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable FileAndRange where,
 ) {
-	writeFile(tempAlloc, writer, fi, where.fileIndex);
+	writeFile(tempAlloc, writer, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writeRangeWithinFile(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.range);
-	writeReset(writer);
+	if (options.color)
+		writeReset(writer);
 }
 
 void writeFileAndPos(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable FileAndPos where,
 ) {
-	writeFile(tempAlloc, writer, fi, where.fileIndex);
+	writeFile(tempAlloc, writer, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writePos(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.pos);
-	writeReset(writer);
+	if (options.color)
+		writeReset(writer);
 }
 
 // Private because it doesn't reset writer
 private void writeFile(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	immutable FileIndex fileIndex,
 ) {
-	writeBold(writer);
+	if (options.color)
+		writeBold(writer);
 	if (fileIndex == FileIndex.none) {
 		writeStatic(writer, "<generated code> ");
 	} else {
 		immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, fileIndex);
-		writeHyperlink(
-			writer,
-			pathToStr(tempAlloc, getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, nozeExtension)),
-			pathToStr(tempAlloc, emptyStr, path.path, nozeExtension));
+		immutable Str pathStr = pathToStr(tempAlloc, emptyStr, path.path, nozeExtension);
+		if (options.color) {
+			writeHyperlink(
+				writer,
+				pathToStr(tempAlloc, getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, nozeExtension)),
+				pathStr);
+			writeRed(writer);
+		} else
+			writeStr(writer, pathStr);
 		writeChar(writer, ' ');
-		writeRed(writer);
 	}
 }
 

@@ -82,7 +82,6 @@ import model.lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
 import model.model : decl, FunInst, name;
-import util.alloc.arena : Arena;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, first, only, arrRange = range, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
@@ -382,23 +381,21 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	immutable LowType ctxType =
 		lowTypeFromConcreteType(alloc, getLowTypeCtx, immutable ConcreteType(True, program.ctxType));
 	DictBuilder!(Ptr!ConcreteFun, LowFunIndex, comparePtr!ConcreteFun) concreteFunToLowFunIndexBuilder;
-	alias TempAlloc = Arena!(Alloc, "getAllLowFuns");
-	TempAlloc tempAlloc = TempAlloc(ptrTrustMe_mut(alloc));
 	CompareFuns compareFuns = CompareFuns(
 		newMutIndexDict!(immutable LowType.Record, immutable LowFunIndex)(
-			tempAlloc, fullIndexDictSize(allTypes.allRecords)),
+			alloc, fullIndexDictSize(allTypes.allRecords)),
 		newMutIndexDict!(immutable LowType.Record, immutable LowFunIndex)(
-			tempAlloc, fullIndexDictSize(allTypes.allRecords)),
+			alloc, fullIndexDictSize(allTypes.allRecords)),
 		newMutIndexDict!(immutable LowType.Union, immutable LowFunIndex)(
-			tempAlloc, fullIndexDictSize(allTypes.allUnions)),
-		newMutIndexDict!(immutable PrimitiveTypeIndex, immutable LowFunIndex)(tempAlloc, nPrimitiveTypes));
+			alloc, fullIndexDictSize(allTypes.allUnions)),
+		newMutIndexDict!(immutable PrimitiveTypeIndex, immutable LowFunIndex)(alloc, nPrimitiveTypes));
 	ArrBuilder!LowFunCause lowFunCausesBuilder;
 
 	Late!(immutable LowType) comparisonType = late!(immutable LowType);
 
 	immutable(LowFunIndex) addLowFun(immutable LowFunCause source) {
 		immutable LowFunIndex res = immutable LowFunIndex(arrBuilderSize(lowFunCausesBuilder));
-		add(tempAlloc, lowFunCausesBuilder, source);
+		add(alloc, lowFunCausesBuilder, source);
 		return res;
 	}
 
@@ -488,7 +485,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 
 	immutable ComparisonTypes comparisonTypes = getComparisonTypes(allTypes, lateGet(comparisonType));
 
-	immutable Arr!LowFunCause lowFunCauses = finishArr(tempAlloc, lowFunCausesBuilder);
+	immutable Arr!LowFunCause lowFunCauses = finishArr(alloc, lowFunCausesBuilder);
 	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
 		finishDictShouldBeNoConflict(alloc, concreteFunToLowFunIndexBuilder);
 

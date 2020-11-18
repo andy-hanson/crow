@@ -4,12 +4,14 @@ module wasmUtils;
 
 import compiler : buildAndInterpret;
 import frontend.lang : nozeExtension;
+import frontend.showDiag : ShowDiagOptions;
 import interpret.fakeExtern : FakeExtern;
 import model.model : AbsolutePathsGetter;
+import util.bools : False;
 import util.collection.arr : Arr, arrOfRange, emptyArr;
 import util.collection.dict : Dict, getAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
-import util.collection.str : CStr, NulTerminatedStr, Str, strEq, strEqLiteral, strLiteral, strOfNulTerminatedStr;
+import util.collection.str : NulTerminatedStr, Str, strEq, strEqLiteral, strLiteral, strOfNulTerminatedStr;
 import util.opt : some, Opt;
 import util.path : childPath, comparePath, parsePath, Path, PathAndStorageKind, rootPath, StorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -23,11 +25,12 @@ immutable(Str) wasmRun(Alloc)(ref Alloc alloc, char* input) {
 	immutable AllFiles allFiles = parseAllFilesJson(alloc, allSymbols, reader);
 	DictReadOnlyStorage storage = DictReadOnlyStorage(allFiles);
 	immutable Ptr!Path mainPath =
-		childPath(alloc, some(rootPath(allSymbols, shortSymAlphaLiteral("user"))), shortSymAlphaLiteral("main"));
+		childPath(alloc, some(rootPath(alloc, shortSymAlphaLiteral("user"))), shortSymAlphaLiteral("main"));
 	FakeExtern!Alloc extern_ = FakeExtern!Alloc(ptrTrustMe_mut(alloc));
 	immutable Arr!Str programArgs = emptyArr!Str;
+	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
 	immutable int err = buildAndInterpret!(Alloc, Alloc, DictReadOnlyStorage, FakeExtern!Alloc)(
-		alloc, allSymbols, storage, extern_, mainPath, programArgs);
+		alloc, allSymbols, storage, extern_, showDiagOptions, mainPath, programArgs);
 	return writeErrorCodeStdoutStderr(alloc, err, extern_.getStdoutTemp(), extern_.getStderrTemp());
 }
 

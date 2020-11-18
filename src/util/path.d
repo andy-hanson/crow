@@ -152,7 +152,7 @@ private @trusted immutable(Str) pathToStrWorker(Alloc)(
 	immutable Bool nulTerminated,
 ) {
 	immutable size_t sz = root.size + pathToStrSize(path) + extension.size + (nulTerminated ? 1 : 0);
-	char* begin = cast(char*) alloc.allocate(char.sizeof * sz);
+	char* begin = cast(char*) alloc.allocateBytes(char.sizeof * sz);
 	char* cur = begin + sz;
 	if (nulTerminated) {
 		cur--;

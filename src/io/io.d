@@ -74,8 +74,8 @@ import util.util : todo, verify;
 	verify(off == 0);
 
 	immutable size_t contentSize = fileSize + 1;
-	char* content = cast(char*) alloc.allocate(char.sizeof * contentSize); // + 1 for the '\0'
-	scope (exit) alloc.free(cast(ubyte*) content, char.sizeof * contentSize);
+	char* content = cast(char*) alloc.allocateBytes(char.sizeof * contentSize); // + 1 for the '\0'
+	scope (exit) alloc.freeBytes(cast(ubyte*) content, char.sizeof * contentSize);
 	immutable ssize_t nBytesRead = read(fd, content, fileSize);
 
 	if (nBytesRead == -1)

@@ -11,6 +11,7 @@ import compiler :
 	PrintFormat,
 	PrintKind;
 import frontend.lang : nozeExtension;
+import frontend.showDiag : ShowDiagOptions;
 import io.io :
 	CommandLineArgs,
 	Environ,
@@ -23,7 +24,6 @@ import io.mallocator : Mallocator;
 import io.realExtern : newRealExtern, RealExtern;
 import io.realReadOnlyStorage : RealReadOnlyStorage;
 import test.test : test;
-import util.alloc.arena : Arena;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, begin, empty, emptyArr, first, only, size;
 import util.collection.arrUtil : arrLiteral, cat, slice, tail;
@@ -49,11 +49,9 @@ import util.util : todo, unreachable;
 
 int cli(immutable size_t argc, immutable CStr* argv) {
 	Mallocator mallocator;
-	alias SymAlloc = Arena!(Mallocator, "symAlloc");
-	SymAlloc symAlloc = SymAlloc(ptrTrustMe_mut(mallocator));
 	immutable CommandLineArgs args = parseCommandLineArgs(mallocator, argc, argv);
-	AllSymbols!SymAlloc allSymbols = AllSymbols!SymAlloc(ptrTrustMe_mut(symAlloc));
-	return go(mallocator,allSymbols, args);
+	AllSymbols!Mallocator allSymbols = AllSymbols!Mallocator(ptrTrustMe_mut(mallocator));
+	return go(mallocator, allSymbols, args);
 }
 
 private:
@@ -66,12 +64,13 @@ immutable(int) go(Alloc, SymAlloc)(
 	immutable Str nozeDir = getNozeDirectory(args.pathToThisExecutable);
 	immutable Command command = parseCommand(alloc, allSymbols, getCwd(alloc), args.args);
 	immutable Str include = cat(alloc, nozeDir, strLiteral("/include"));
+	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(True);
 
 	return matchCommand!int(
 		command,
 		(ref immutable Command.Build it) {
 			immutable Opt!AbsolutePath exePath =
-				buildToCAndCompile(alloc, allSymbols, it.programDirAndMain, include, args.environ);
+				buildToCAndCompile(alloc, allSymbols, showDiagOptions, it.programDirAndMain, include, args.environ);
 			return has(exePath) ? 0 : 1;
 		},
 		(ref immutable Command.Help it) =>
@@ -88,7 +87,7 @@ immutable(int) go(Alloc, SymAlloc)(
 			RealReadOnlyStorage!Alloc storage =
 				RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, it.programDirAndMain.programDir);
 			immutable DiagsAndResultStrs printed =
-				print(alloc, allSymbols, storage, it.kind, it.format, it.programDirAndMain.mainPath);
+				print(alloc, allSymbols, storage, showDiagOptions, it.kind, it.format, it.programDirAndMain.mainPath);
 			if (!empty(printed.diagnostics)) printErr(printed.diagnostics);
 			if (!empty(printed.result)) print(printed.result);
 			return empty(printed.diagnostics) ? 0 : 1;
@@ -103,11 +102,12 @@ immutable(int) go(Alloc, SymAlloc)(
 					allSymbols,
 					storage,
 					extern_,
+					showDiagOptions,
 					it.programDirAndMain.mainPath,
 					it.programArgs);
 			} else {
 				immutable Opt!AbsolutePath exePath =
-					buildToCAndCompile(alloc, allSymbols, it.programDirAndMain, include, args.environ);
+					buildToCAndCompile(alloc, allSymbols, showDiagOptions, it.programDirAndMain, include, args.environ);
 				if (!has(exePath))
 					return 1;
 				else {
@@ -127,6 +127,7 @@ immutable(int) go(Alloc, SymAlloc)(
 immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
+	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable Str include,
 	ref immutable Environ environ,
@@ -135,7 +136,8 @@ immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, SymAlloc)(
 		RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, programDirAndMain.programDir);
 	immutable AbsolutePath cPath =
 		getAbsolutePathFromStorage(alloc, storage, programDirAndMain.mainPath, strLiteral(".c"));
-	immutable Result!(Str, Str) result = buildToC(alloc, allSymbols, storage, programDirAndMain.mainPath);
+	immutable Result!(Str, Str) result =
+		buildToC(alloc, allSymbols, storage, showDiagOptions, programDirAndMain.mainPath);
 	return matchResultImpure!(immutable Opt!AbsolutePath, Str, Str)(
 		result,
 		(ref immutable Str cCode) {

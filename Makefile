@@ -1,6 +1,6 @@
 .PHONY: debug doc-server test
 
-all: test lint
+all: test lint bin/noze.wasm
 
 doc/includeList.txt: include/*.nz
 	ls doc/include > doc/includeList.txt

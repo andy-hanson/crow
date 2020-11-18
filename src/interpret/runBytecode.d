@@ -2,6 +2,7 @@ module interpret.runBytecode;
 
 @safe @nogc nothrow: // not pure
 
+import frontend.showDiag : ShowDiagOptions;
 import interpret.applyFn : applyFn;
 import interpret.bytecode :
 	asCall,
@@ -195,6 +196,7 @@ private @trusted void showReturnStack(Alloc, Extern)(ref Writer!Alloc writer, re
 private void writeByteCodeSource(TempAlloc, Alloc)(
 	ref TempAlloc temp,
 	ref Writer!Alloc writer,
+	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable LowProgram lowProgram,
 	ref immutable FilesInfo filesInfo,
 	ref immutable ByteCodeSource source,
@@ -204,7 +206,7 @@ private void writeByteCodeSource(TempAlloc, Alloc)(
 		fullIndexDictGet(lowProgram.allFuns, source.fun).source,
 		(immutable Ptr!ConcreteFun it) {
 			immutable FileAndPos where = immutable FileAndPos(concreteFunRange(it).fileIndex, source.pos);
-			writeFileAndPos!(TempAlloc, Alloc)(temp, writer, filesInfo, where);
+			writeFileAndPos(temp, writer, showDiagOptions, filesInfo, where);
 		},
 		(ref immutable LowFunSource.Generated) {});
 }
@@ -271,7 +273,8 @@ immutable(StepResult) step(TempAlloc, Extern)(ref TempAlloc tempAlloc, ref Inter
 		debug {
 			Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 			writeStatic(writer, "STEP: ");
-			writeByteCodeSource(tempAlloc, writer, a.lowProgram, a.filesInfo, source);
+			immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
+			writeByteCodeSource(tempAlloc, writer, showDiagOptions, a.lowProgram, a.filesInfo, source);
 			writeChar(writer, ' ');
 			writeSexprNoNewline(writer, sexprOfOperation(tempAlloc, operation));
 			if (isCall(operation)) {
