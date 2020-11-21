@@ -1,27 +1,6 @@
 import
-	io: exit-code print-sync
-	posix: jmp-buf jmp-buf-tag longjmp setjmp zero usleep
-
-test-it int32() summon unsafe
-	tag = new<jmp-buf-tag> zero, zero, zero
-	jmp-buf = as<jmp-buf>: tag ptr-to
-	a = jmp-buf setjmp
-	when
-		a == zero
-			jmp-buf longjmp one
-			todo
-		else
-			a
+	io
 
 main fut exit-code(args arr str) summon trusted
-	print-sync: "now sleep:"
-	usleep: 2000000
-	print-sync: test-it to-str
-	c = catch: {fail<void>: "message"}
-	match c
-		ok
-			unreachable
-		err e
-			ex = as<exception>: e.value
-			print-sync: "caught it: " + ex.message
+	print-sync: "now sleep:" &
 	0 resolved

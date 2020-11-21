@@ -148,8 +148,9 @@ pure:
 	immutable T v6,
 	immutable T v7,
 	immutable T v8,
+	immutable T v9,
 ) {
-	T* ptr = cast(T*) alloc.allocateBytes(T.sizeof * 9);
+	T* ptr = cast(T*) alloc.allocateBytes(T.sizeof * 10);
 	initMemory(ptr + 0, v0);
 	initMemory(ptr + 1, v1);
 	initMemory(ptr + 2, v2);
@@ -159,7 +160,8 @@ pure:
 	initMemory(ptr + 6, v6);
 	initMemory(ptr + 7, v7);
 	initMemory(ptr + 8, v8);
-	return immutable Arr!T(cast(immutable) ptr, 9);
+	initMemory(ptr + 9, v9);
+	return immutable Arr!T(cast(immutable) ptr, 10);
 }
 
 @trusted immutable(Arr!T) arrLiteral(T, Alloc)(

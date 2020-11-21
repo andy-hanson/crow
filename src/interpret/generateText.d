@@ -146,7 +146,7 @@ void ensureConstant(TempAlloc)(
 			});
 		},
 		(ref immutable Constant.Union) {
-			todo!void("!");
+			todo!void("generate union");
 		},
 		(immutable Constant.Void) {});
 }
@@ -240,7 +240,7 @@ void writeConstant(TempAlloc)(
 			}
 		},
 		(immutable Constant.Null) {
-			todo!void("!");
+			todo!void("write null");
 		},
 		(immutable Constant.Pointer it) {
 			// We should know where we wrote the pointee to
@@ -262,10 +262,10 @@ void writeConstant(TempAlloc)(
 				});
 		},
 		(ref immutable Constant.Union) {
-			todo!void("!");
+			todo!void("write union");
 		},
 		(immutable Constant.Void) {
-			todo!void("!"); // should only happen if there's a pointer to void..
+			todo!void("write void"); // should only happen if there's a pointer to void..
 		});
 }
 

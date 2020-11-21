@@ -50,20 +50,14 @@ struct Lexer(SymAlloc) {
 ) {
 	// Note: We *are* relying on the nul terminator to stop the lexer.
 	immutable Str str = source.stripNulTerminator;
-	immutable Bool endsInBlankLine = last(str) == '\n';
-	immutable Str useStr = endsInBlankLine ? str : rtail(cat!char(alloc, str, strLiteral("\n\0")));
-	immutable u32 len = str.size.safeSizeTToU32;
-	Lexer!SymAlloc lexer = Lexer!SymAlloc(
+	immutable Str useStr = last(str) == '\n' ? str : rtail(cat!char(alloc, str, strLiteral("\n\0")));
+	return Lexer!SymAlloc(
 		allSymbols,
 		ArrBuilder!ParseDiagnostic(),
 		begin(useStr),
 		begin(useStr),
 		detectIndentKind(useStr),
 		0);
-	if (!endsInBlankLine)
-		addDiag(alloc, lexer, immutable RangeWithinFile(len - 1, len), immutable ParseDiag(
-			immutable ParseDiag.MustEndInBlankLine()));
-	return lexer;
 }
 
 immutable(char) curChar(SymAlloc)(ref const Lexer!SymAlloc lexer) {

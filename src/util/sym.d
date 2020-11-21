@@ -65,6 +65,7 @@ immutable(Opt!Sym) tryGetSymFromStr(Alloc)(ref AllSymbols!Alloc allSymbols, immu
 }
 
 immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
+	verify(isAlphaIdentifier(str));
 	immutable Sym res = canPackAlphaIdentifier(str)
 		? immutable Sym(packAlphaIdentifier(str))
 		: getSymFromLongStr(allSymbols, str, False);
@@ -73,13 +74,24 @@ immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols,
 	return res;
 }
 
+private immutable(Bool) isAlphaIdentifier(ref immutable Str a) {
+	return immutable Bool(
+		isAlphaIdentifierStart(first(a)) &&
+		every(tail(a), (ref immutable char it) => isAlphaIdentifierContinue(it)));
+}
+
 immutable(Sym) getSymFromOperator(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
+	verify(isOperator(str));
 	immutable Sym res = size(str) <= maxShortOperatorSize
 		? immutable Sym(packOperator(str))
 		: getSymFromLongStr(allSymbols, str, True);
 	assertSym(res, str);
 	verify(isSymOperator(res));
 	return res;
+}
+
+private immutable(Bool) isOperator(ref immutable Str a) {
+	return every(a, (ref immutable char it) => isOperatorChar(it));
 }
 
 void eachCharInSym(immutable Sym a, scope void delegate(immutable char) @safe @nogc pure nothrow cb) {

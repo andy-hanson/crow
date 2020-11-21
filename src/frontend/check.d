@@ -950,7 +950,7 @@ void recurAddImport(Alloc)(
 		if (has(e.namesAndReferents))
 			// if we're importing specific names, check for overlap.
 			// If not, import the specific names being re-exported.
-			todo!void("!");
+			todo!void("export with names");
 		recurAddImport(alloc, diags, res, e.module_, range, names);
 	}
 }

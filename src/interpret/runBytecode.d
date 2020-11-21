@@ -31,7 +31,7 @@ import interpret.externAlloc : ExternAlloc;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
-import util.bools : Bool, False;
+import util.bools : Bool, False, True;
 import util.collection.arr : Arr, begin, freeArr, ptrAt, range, sizeNat;
 import util.collection.arrUtil : mapWithFirst, zipSystem;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -64,7 +64,8 @@ import util.types : decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, saf
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, writeStatic;
 
-@trusted immutable(int) runBytecode(TempAlloc, Extern)(
+@trusted immutable(int) runBytecode(Debug, TempAlloc, Extern)(
+	ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref Extern extern_,
 	ref immutable LowProgram lowProgram,
@@ -88,7 +89,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 	// These need to be CStrs
 	push(interpreter.dataStack, immutable Nat64(cast(immutable u64) begin(allArgs)));
 	for (;;) {
-		final switch (step(tempAlloc, interpreter)) {
+		final switch (step(dbg, tempAlloc, interpreter)) {
 			case StepResult.continue_:
 				break;
 			case StepResult.exit:
@@ -178,7 +179,7 @@ private void showStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpr
 	writeStatic(writer, "data: ");
 	foreach (immutable Nat64 value; range(values)) {
 		writeChar(writer, ' ');
-		writeHex(writer, value.raw());
+		writeHex!Alloc(writer, value.raw());
 	}
 	writeChar(writer, '\n');
 }
@@ -257,15 +258,14 @@ private immutable(ByteCodeSource) nextSource(Extern)(ref const Interpreter!Exter
 	return byteCodeSourceAtByteCodePtr(a, getReaderPtr(a.reader));
 }
 
-immutable(StepResult) step(TempAlloc, Extern)(ref TempAlloc tempAlloc, ref Interpreter!Extern a) {
+immutable(StepResult) step(Debug, TempAlloc, Extern)(ref Debug dbg, ref TempAlloc tempAlloc, ref Interpreter!Extern a) {
 	immutable ByteCodeSource source = nextSource(a);
 	if (PRINT) {
 		debug {
 			Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 			showStack(writer, a);
 			showReturnStack(writer, a);
-			//print()
-			finishWriter(writer);
+			dbg.log(finishWriter(writer));
 		}
 	}
 	immutable Operation operation = readOperation(a.reader);
@@ -284,8 +284,7 @@ immutable(StepResult) step(TempAlloc, Extern)(ref TempAlloc tempAlloc, ref Inter
 				writeChar(writer, ')');
 			}
 			writeChar(writer, '\n');
-			//print()
-			finishWriter(writer);
+			dbg.log(finishWriter(writer));
 		}
 	}
 
@@ -335,7 +334,7 @@ immutable(StepResult) step(TempAlloc, Extern)(ref TempAlloc tempAlloc, ref Inter
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Fn it) {
-			applyFn(a.dataStack, it.fnOp);
+			applyFn(dbg, a.dataStack, it.fnOp);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Jump it) {
@@ -383,7 +382,7 @@ immutable(StepResult) step(TempAlloc, Extern)(ref TempAlloc tempAlloc, ref Inter
 
 private:
 
-immutable Bool PRINT = False;
+immutable Bool PRINT = True;
 
 void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	push(dataStack, immutable Nat64(cast(immutable u64) stackRef(dataStack, offset.offset)));
@@ -538,7 +537,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			push(a.dataStack, val);
 			break;
 		case ExternOp.malloc:
-			immutable size_t nBytes = safeSizeTFromU64(pop(a.dataStack).raw());
+			immutable ulong nBytes = safeSizeTFromU64(pop(a.dataStack).raw());
 			push(a.dataStack, immutable Nat64(cast(immutable u64) a.extern_.malloc(nBytes)));
 			break;
 		case ExternOp.pthreadCreate:

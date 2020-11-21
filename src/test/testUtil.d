@@ -11,11 +11,12 @@ import util.collection.globalAllocatedStack : asTempArr;
 import util.collection.str : Str;
 import util.ptr : Ptr;
 import util.types : Nat64, u8;
-import util.util : verify;
+import util.util : NullDebug, verify;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
 struct Test(Alloc) {
 	Ptr!Alloc alloc;
+	NullDebug dbg;
 
 	Writer!Alloc writer() {
 		return Writer!Alloc(alloc);

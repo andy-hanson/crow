@@ -63,7 +63,6 @@ struct ParseDiag {
 		}
 		immutable Kind kind;
 	}
-	struct MustEndInBlankLine {}
 	struct RelativeImportReachesPastRoot {
 		immutable RelPath imported;
 	}
@@ -97,7 +96,6 @@ struct ParseDiag {
 		invalidStringEscape,
 		letMustHaveThen,
 		matchWhenOrLambdaNeedsBlockCtx,
-		mustEndInBlankLine,
 		relativeImportReachesPastRoot,
 		reservedName,
 		typeParamCantHaveTypeArgs,
@@ -118,7 +116,6 @@ struct ParseDiag {
 		immutable InvalidStringEscape invalidStringEscape;
 		immutable LetMustHaveThen letMustHaveThen;
 		immutable MatchWhenOrLambdaNeedsBlockCtx matchWhenOrLambdaNeedsBlockCtx;
-		immutable MustEndInBlankLine mustEndInBlankLine;
 		immutable RelativeImportReachesPastRoot relativeImportReachesPastRoot;
 		immutable ReservedName reservedName;
 		immutable TypeParamCantHaveTypeArgs typeParamCantHaveTypeArgs;
@@ -141,7 +138,6 @@ struct ParseDiag {
 	immutable this(immutable MatchWhenOrLambdaNeedsBlockCtx a) {
 		kind = Kind.matchWhenOrLambdaNeedsBlockCtx; matchWhenOrLambdaNeedsBlockCtx = a;
 	}
-	immutable this(immutable MustEndInBlankLine a) { kind = Kind.mustEndInBlankLine; mustEndInBlankLine = a; }
 	@trusted immutable this(immutable RelativeImportReachesPastRoot a) {
 		kind = Kind.relativeImportReachesPastRoot; relativeImportReachesPastRoot = a;
 	}
@@ -170,7 +166,6 @@ static assert(ParseDiag.sizeof <= 32);
 	scope T delegate(
 		ref immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx
 	) @safe @nogc pure nothrow cbMatchWhenOrLambdaNeedsBlockCtx,
-	scope T delegate(ref immutable ParseDiag.MustEndInBlankLine) @safe @nogc pure nothrow cbMustEndInBlankLine,
 	scope immutable(T) delegate(
 		ref immutable ParseDiag.RelativeImportReachesPastRoot
 	) @safe @nogc pure nothrow cbRelativeImportReachesPastRoot,
@@ -204,8 +199,6 @@ static assert(ParseDiag.sizeof <= 32);
 			return cbLetMustHaveThen(a.letMustHaveThen);
 		case ParseDiag.Kind.matchWhenOrLambdaNeedsBlockCtx:
 			return cbMatchWhenOrLambdaNeedsBlockCtx(a.matchWhenOrLambdaNeedsBlockCtx);
-		case ParseDiag.Kind.mustEndInBlankLine:
-			return cbMustEndInBlankLine(a.mustEndInBlankLine);
 		case ParseDiag.Kind.relativeImportReachesPastRoot:
 			return cbRelativeImportReachesPastRoot(a.relativeImportReachesPastRoot);
 		case ParseDiag.Kind.reservedName:

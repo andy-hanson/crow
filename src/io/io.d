@@ -30,7 +30,7 @@ import util.collection.str :
 	strToCStr;
 import util.opt : none, Opt, some;
 import util.path : AbsolutePath, pathToCStr;
-import util.types : safeSizeTFromSSizeT, ssize_t;
+import util.types : safeSizeTFromSSizeT, safeSizeTFromU64, safeU32FromI64, ssize_t;
 import util.util : todo, verify;
 
 @trusted immutable(T) tryReadFile(T, Alloc, TempAlloc)(
@@ -54,12 +54,14 @@ import util.util : todo, verify;
 
 	scope(exit) close(fd);
 
-	immutable off_t fileSize = lseek(fd, 0, SEEK_END);
-	if (fileSize == -1)
+	immutable off_t fileSizeOff = lseek(fd, 0, SEEK_END);
+	if (fileSizeOff == -1)
 		return todo!T("lseek fialed");
 
-	if (fileSize > 99_999)
+	if (fileSizeOff > 99_999)
 		return todo!T("size suspiciously large");
+
+	immutable uint fileSize = safeU32FromI64(fileSizeOff);
 
 	if (fileSize == 0) {
 		immutable Opt!NulTerminatedStr s = some(emptyNulTerminatedStr);
@@ -73,7 +75,7 @@ import util.util : todo, verify;
 
 	verify(off == 0);
 
-	immutable size_t contentSize = fileSize + 1;
+	immutable size_t contentSize = safeSizeTFromU64(fileSize + 1);
 	char* content = cast(char*) alloc.allocateBytes(char.sizeof * contentSize); // + 1 for the '\0'
 	scope (exit) alloc.freeBytes(cast(ubyte*) content, char.sizeof * contentSize);
 	immutable ssize_t nBytesRead = read(fd, content, fileSize);

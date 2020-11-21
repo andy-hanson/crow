@@ -28,7 +28,7 @@ import util.collection.byteReader :
 	setPtr,
 	skipBytes;
 import util.collection.str : NulTerminatedStr;
-import util.types : incr, Nat8, Nat16, Nat32, Nat64, U4U4, u4u4OfU8, u8;
+import util.types : incr, Nat8, Nat16, Nat32, Nat64, safeSizeTFromU64, U4U4, u4u4OfU8, u8;
 import util.util : unreachable;
 
 struct ByteCodeReader {
@@ -121,7 +121,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 	immutable Nat64 value,
 	immutable Arr!ByteCodeOffsetUnsigned offsets,
 ) {
-	immutable ByteCodeOffsetUnsigned offset = at(offsets, cast(immutable size_t) value.raw());
+	immutable ByteCodeOffsetUnsigned offset = at(offsets, safeSizeTFromU64(value.raw()));
 	// Jump is relative to after value.
 	immutable Nat16 fullOffset = (incr(value) * immutable Nat64(ByteCodeOffsetUnsigned.sizeof)).to16() + offset.offset;
 	readerJump(reader, immutable ByteCodeOffset(fullOffset.toInt16()));

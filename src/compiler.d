@@ -72,7 +72,8 @@ immutable(DiagsAndResultStrs) print(Alloc, SymAlloc, ReadOnlyStorage)(
 
 // These return program exit codes
 
-immutable(int) buildAndInterpret(Alloc, SymAlloc, ReadOnlyStorage, Extern)(
+immutable(int) buildAndInterpret(Debug, Alloc, SymAlloc, ReadOnlyStorage, Extern)(
+	ref Debug dbg,
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref ReadOnlyStorage storage,
@@ -86,10 +87,11 @@ immutable(int) buildAndInterpret(Alloc, SymAlloc, ReadOnlyStorage, Extern)(
 	return matchResultImpure!(int, ProgramsAndFilesInfo, Diagnostics)(
 		lowProgramResult,
 		(ref immutable ProgramsAndFilesInfo it) {
-			immutable ByteCode byteCode = generateBytecode(alloc, alloc, it.program, it.lowProgram);
+			immutable ByteCode byteCode = generateBytecode(dbg, alloc, alloc, it.program, it.lowProgram);
 			immutable AbsolutePath mainAbsolutePath =
 				getAbsolutePathFromStorage(alloc, storage, mainPath, nozeExtension);
 			return runBytecode(
+				dbg,
 				alloc,
 				extern_,
 				it.lowProgram,

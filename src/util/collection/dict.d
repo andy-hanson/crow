@@ -13,7 +13,7 @@ struct KeyValuePair(K, V) {
 }
 
 struct Dict(K, V, alias cmp) {
-	private:
+	//TODO: private:
 	Arr!(KeyValuePair!(K, V)) pairs;
 }
 

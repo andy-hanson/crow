@@ -4,13 +4,22 @@ module test.testWasm;
 
 //import io.io : tryReadFile;
 import test.testUtil : Test;
-import util.collection.str : asCStr, CStr, emptyStr, NulTerminatedStr, Str, strLiteral;
+import util.collection.str : asCStr, CStr, emptyStr, NulTerminatedStr, Str, strLiteral, strToCStr;
 import util.opt : force, Opt;
 import util.path : AbsolutePath, rootPath;
 import util.sym : shortSymAlphaLiteral;
 import wasmUtils : wasmRun;
 
 void testWasm(Alloc)(ref Test!Alloc test) {
+    /*
+	immutable Str j = strLiteral(theJSON);
+	immutable Str res = wasmRun(test.dbg, test.alloc, strToCStr(test.alloc, j));
+	debug {
+		import core.stdc.stdio : printf;
+		import util.collection.arr : begin, size;
+		printf("%.*s\n", cast(uint) size(res), begin(res));
+	}
+    */
 	/*
 	immutable AbsolutePath path = immutable AbsolutePath(
 		emptyStr,
@@ -21,12 +30,8 @@ void testWasm(Alloc)(ref Test!Alloc test) {
 		debug {
 			import core.stdc.stdio : printf;
 			import util.collection.arr : begin, size;
-			printf("%.*s\n", cast(int) size(result), begin(result));
+			printf("%.*s\n", cast(uint) size(result), begin(result));
 		}
 	});
 	*/
-}
-
-@trusted char* castMutable(immutable CStr a) {
-	return cast(char*) a;
 }

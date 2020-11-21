@@ -217,9 +217,6 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 			}());
 			writeStatic(writer, " expression must appear in a context where it can be followed by an indented block");
 		},
-		(ref immutable ParseDiag.MustEndInBlankLine) {
-			writeStatic(writer, "file must end in a blank line");
-		},
 		(ref immutable ParseDiag.RelativeImportReachesPastRoot d) {
 			writeStatic(writer, "importing ");
 			writeRelPath(writer, d.imported);

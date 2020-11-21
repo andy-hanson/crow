@@ -43,7 +43,7 @@ import util.path :
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.result : matchResultImpure, Result;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
-import util.util : todo, unreachable;
+import util.util : NullDebug, todo, unreachable;
 
 @safe @nogc nothrow: // not pure
 
@@ -56,6 +56,17 @@ int cli(immutable size_t argc, immutable CStr* argv) {
 
 private:
 
+struct RealDebug {
+	@safe @nogc pure nothrow:
+
+	void log(immutable Str s) {
+		debug {
+			print(s);
+			print(strLiteral("\n"));
+		}
+	}
+}
+
 immutable(int) go(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
@@ -65,6 +76,7 @@ immutable(int) go(Alloc, SymAlloc)(
 	immutable Command command = parseCommand(alloc, allSymbols, getCwd(alloc), args.args);
 	immutable Str include = cat(alloc, nozeDir, strLiteral("/include"));
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(True);
+	NullDebug dbg;
 
 	return matchCommand!int(
 		command,
@@ -98,6 +110,7 @@ immutable(int) go(Alloc, SymAlloc)(
 			if (it.interpret) {
 				RealExtern extern_ = newRealExtern();
 				return buildAndInterpret(
+					dbg,
 					alloc,
 					allSymbols,
 					storage,
@@ -244,7 +257,7 @@ void compileC(Alloc)(
 }
 
 @trusted void print(immutable Str a) {
-	printf("%.*s", cast(int) size(a), begin(a));
+	printf("%.*s", cast(uint) size(a), begin(a));
 }
 
 void print(immutable string a) {
@@ -252,7 +265,7 @@ void print(immutable string a) {
 }
 
 @trusted void printErr(immutable Str a) {
-	fprintf(stderr, "%.*s", cast(int) size(a), begin(a));
+	fprintf(stderr, "%.*s", cast(uint) size(a), begin(a));
 }
 
 pure:

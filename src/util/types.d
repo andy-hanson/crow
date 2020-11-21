@@ -243,6 +243,11 @@ immutable(u8) safeSizeTToU8(immutable size_t s) {
 	return cast(immutable u8) s;
 }
 
+immutable(u32) safeU32FromI64(immutable i64 a) {
+	verify(a >= 0 && a <= u32.max);
+	return cast(immutable u32) a;
+}
+
 immutable(size_t) safeSizeTFromSSizeT(immutable ssize_t s) {
 	verify(s >= 0);
 	return cast(immutable size_t) s;

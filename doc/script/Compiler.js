@@ -1,8 +1,9 @@
 /**
  * @typedef Exports
- * @property {function(): number} getBufferSize
  * @property {function(): number} getBuffer
+ * @property {function(): number} getBufferSize
  * @property {function(): void} getTokens
+ * @property {function(): void} readDebugLog
  * @property {function(): void} run
  * @property {WebAssembly.Memory} memory
  */
@@ -26,6 +27,17 @@ export const Token = {}
  */
 export const Diagnostic = {}
 
+
+/** @type {Promise<Compiler> | null} */
+let globalCompiler = null
+
+/** @type {function(): Promise<Compiler>} */
+export const getGlobalCompiler = async () => {
+	if (globalCompiler === null)
+		globalCompiler = Compiler.make()
+	return globalCompiler
+}
+
  /**
   * @typedef TokensDiags
   * @property {ReadonlyArray<Token>} tokens
@@ -33,10 +45,18 @@ export const Diagnostic = {}
   */
 
 export class Compiler {
+	/** @return {Promise<Compiler>} */
 	static async make() {
-		const bytes = await (await fetch("../bin/noze.wasm")).arrayBuffer()
+		return Compiler.makeFromBytes(await (await fetch("../bin/noze.wasm")).arrayBuffer())
+	}
+
+	/**
+	 * @param {ArrayBuffer} bytes
+	 * @return {Promise<Compiler>}
+	 */
+	static async makeFromBytes(bytes) {
 		const result = await WebAssembly.instantiate(bytes, {})
-		const { exports } = result.instance;
+		const { exports } = result.instance
 		return new Compiler(/** @type {Exports} */ (exports))
 	}
 
@@ -45,6 +65,7 @@ export class Compiler {
 		/** @type {Exports} */
 		this._exports = exports
 		const { getBufferSize, getBuffer, memory } = exports
+
 		const view = new DataView(memory.buffer)
 		const bufferSize = getBufferSize()
 		const buffer = getBuffer()
@@ -57,14 +78,29 @@ export class Compiler {
 	}
 
 	/**
+	 * @param {"getTokens" | "run"} name
+	 * @param {string} param
+	 * @return {string}
+	 */
+	_useExports(name, param) {
+		try {
+			this._setStr(param)
+			this._exports[name]()
+		} catch (e) {
+			this._exports.readDebugLog()
+			console.error("Error in WASM. Debug log:", this._getStr())
+			throw e
+		}
+		return this._getStr()
+	}
+
+	/**
 	 * @param {string} src
 	 * @return {TokensDiags}
 	 */
 	getTokens(src) {
-		this._setStr(src)
-		this._exports.getTokens()
-		const json = this._getStr()
-		console.log("GOT JSON", json)
+		console.log("CALL ETTOKENS", src)
+		const json = this._useExports("getTokens", src)
 		return JSON.parse(json)
 	}
 
@@ -73,13 +109,18 @@ export class Compiler {
 	 * @return {RunResult}
 	 */
 	run(files) {
-		console.log("RUN", JSON.stringify(files))
-		this._setStr(JSON.stringify(files))
-		this._exports.run()
-		const result = this._getStr()
-		console.log("RESULT:", result)
+		const result = this._useExports("run", JSON.stringify(files))
 		return JSON.parse(result)
 	}
+}
+
+/** @type {function(Compiler, Files, string): RunResult} */
+export const runCode = (compiler, includeFiles, text) => {
+	const allFiles = {
+		include: includeFiles,
+		user: {main:text}
+	}
+	return compiler.run(allFiles)
 }
 
 /**
@@ -101,31 +142,6 @@ export const RunResult = {}
  */
 export const Files = {}
 
-/**
- * @typedef AllContainer
- * @property {"all"} type
- * @property {Array<Node>} children
- */
-
-/**
- * @typedef LineContainer
- * @property {"line"} type
- * @property {Array<Node>} children
- */
-
-/**
- * @typedef DiagContainer
- * @property {"diag"} type
- * @property {Array<Node>} children
- * @property {number} end
- * @property {string} message
- */
-
-/**
- * @typedef {AllContainer | LineContainer | DiagContainer} Container
- */
-export const Container = {}
-
 /** @type {function(DataView, number, number, string): void} */
 function writeString(view, buffer, bufferSize, str) {
 	if (str.length >= bufferSize)
@@ -145,7 +161,11 @@ function readString(view, buffer, bufferSize) {
 			break
 		s += String.fromCharCode(code)
 	}
-	if (i == bufferSize)
+	if (i == bufferSize) {
+		console.log("Trying to read a string, but it's too long", {
+			bufferSize,
+		})
 		throw new Error("TOO LONG")
+	}
 	return s
 }

@@ -167,8 +167,9 @@ immutable(Nat8) fillUnionSize(Alloc)(
 	return size;
 }
 
-immutable Nat8 externPtrSize = immutable Nat8((void*).sizeof);
-immutable Nat8 ptrSize = immutable Nat8((void*).sizeof);
+// NOTE: Using a full 64 bits even on 32-bit system so behavior is consistent.
+immutable Nat8 externPtrSize = immutable Nat8(8);
+immutable Nat8 ptrSize = immutable Nat8(8);
 immutable Nat8 funPtrSize = immutable Nat8(4);
 immutable Nat8 unionKindSize = immutable Nat8(8);
 

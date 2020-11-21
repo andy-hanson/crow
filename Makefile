@@ -3,7 +3,7 @@
 all: test lint bin/noze.wasm
 
 doc/includeList.txt: include/*.nz
-	ls doc/include > doc/includeList.txt
+	ls include | cut -f 1 -d '.' > doc/includeList.txt
 
 doc-server: doc/includeList.txt bin/noze.wasm
 	python -m SimpleHTTPServer 8080
@@ -41,6 +41,7 @@ bin/noze.wasm: src/*.d src/*/*.d src/*/*/*.d
 	# --static would be nice, but doesn't seem to work: `lld: error: unknown argument: -static`
 	# Need '--boundscheck=off' to avoid `undefined symbol: __assert` on D array access
 	ldc2 \
+		--d-debug \
 		-g \
 		-ofbin/noze.wasm \
 		-mtriple=wasm32-unknown-unknown-wasm \
@@ -59,3 +60,8 @@ bin/noze.wasm: src/*.d src/*/*.d src/*/*/*.d
 		src/test/*.d \
 		src/util/*.d \
 		src/util/*/*.d
+
+# TODO: do as part of 'test'
+test-wasm: bin/noze.wasm
+	node testWasm.js
+

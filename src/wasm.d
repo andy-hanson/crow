@@ -7,21 +7,32 @@ import frontend.showDiag : ShowDiagOptions, strOfParseDiag;
 import model.parseDiag : ParseDiagnostic;
 import util.alloc.globalAlloc : globalAlloc, GlobalAlloc;
 import util.bools : False;
-import util.collection.arr : Arr, at, size;
-import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, Str;
+import util.collection.arr : Arr, arrOfD, at, range, size;
+import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, Str, strLiteral;
 import util.ptr : ptrTrustMe_mut;
 import util.sexpr : Sexpr, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
 import util.sourceRange : sexprOfRangeWithinFile;
 import util.sym : AllSymbols;
-import util.util : verify;
+import util.util : min, verify;
 import util.writer : finishWriter, Writer;
 import wasmUtils : wasmRun;
 
 // seems to be the required entry point
-extern(C) void _start() {}
+extern(C) void _start() {
+}
+
+extern(C) void killme() {
+	WasmDebug dbg = wasmDebug();
+	dbg.log(strLiteral("abc"));
+}
+
+extern(C) void clearDebugLog() {
+	foreach (ref char c; debugLogStorage)
+		c = '\0';
+}
 
 extern(C) immutable(size_t) getBufferSize() {
-	return bufferSize;
+	return buffer.length;
 }
 
 @system extern(C) char* getBuffer() {
@@ -43,9 +54,14 @@ extern(C) immutable(size_t) getBufferSize() {
 	writeAstResult(alloc, ast);
 }
 
+@system extern(C) void readDebugLog() {
+	writeResult(arrOfD(cast(immutable) debugLogStorage));
+}
+
 @system extern(C) void run() {
 	GlobalAlloc alloc = globalAlloc();
-	immutable Str result = wasmRun(alloc, buffer.ptr);
+	WasmDebug dbg = wasmDebug();
+	immutable Str result = wasmRun(dbg, alloc, cast(immutable) buffer.ptr);
 	writeResult(result);
 }
 
@@ -76,8 +92,7 @@ immutable(Str) getTokensAndDiagnosticsJSON(Alloc)(ref Alloc alloc, ref immutable
 	return finishWriter(writer);
 }
 
-immutable size_t bufferSize = 1024 * 1024;
-char[bufferSize] buffer;
+char[1024 * 1024] buffer;
 
 //TODO: not trusted
 @trusted void writeAstResult(Alloc)(ref Alloc alloc, ref immutable FileAstAndParseDiagnostics ast) {
@@ -97,9 +112,57 @@ immutable(Sexpr) sexprOfAstAndParseDiagnostics(Alloc)(ref Alloc alloc, ref immut
 }
 
 @system void writeResult(immutable Str str) {
-	verify(size(str) < bufferSize);
-	foreach (immutable size_t i; 0..size(str)) {
+	// verify(size(str) < buffer.length); // Not using 'verify' here, since this fn is used in 'getDebugLog'
+	immutable size_t size = min(size(str), buffer.length - 1);
+	foreach (immutable size_t i; 0..size) {
 		buffer[i] = at(str, i);
 	}
-	buffer[size(str)] = '\0';
+	buffer[size] = '\0';
 }
+
+struct WasmDebug {
+	@safe @nogc pure nothrow:
+
+	void log(immutable Str s) {
+		foreach (immutable char c; range(s))
+			logChar(c);
+		logChar('\n');
+	}
+
+	private:
+
+	@disable this();
+	@disable this(ref const WasmDebug);
+
+	this(char* b, char* e) {
+		verify(begin < end);
+		begin = b;
+		end = e;
+		ptr = begin;
+	}
+
+	char* begin;
+	char* end;
+	char* ptr;
+
+	@trusted void logChar(immutable char c) {
+		if (!(begin <= ptr))
+			assert(0);
+		if (!(ptr < end))
+			assert(0);
+		*ptr = c;
+		ptr++;
+		if (ptr == end)
+			ptr = begin;
+		if (!(begin <= ptr))
+			assert(0);
+		if (!(ptr < end))
+			assert(0);
+	}
+}
+
+@trusted WasmDebug wasmDebug() {
+	return WasmDebug(debugLogStorage.ptr, debugLogStorage.ptr + debugLogStorage.length);
+}
+
+char[8 * 1024 * 1024] debugLogStorage;

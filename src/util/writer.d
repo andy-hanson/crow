@@ -9,6 +9,7 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : Str, strLiteral;
 import util.ptr : PtrRange;
 import util.types : abs;
+import util.util : verify;
 
 struct Writer(Alloc) {
 	private:
@@ -34,7 +35,7 @@ void writeStatic(Alloc)(ref Writer!Alloc writer, immutable string c) {
 	writeStr(writer, strLiteral(c));
 }
 
-void writeHex(Alloc)(ref Writer!Alloc writer, immutable size_t n) {
+void writeHex(Alloc)(ref Writer!Alloc writer, immutable ulong n) {
 	writeNat(writer, n, 16);
 }
 
@@ -44,17 +45,18 @@ void writePtrRange(Alloc)(ref Writer!Alloc writer, const PtrRange a) {
 	writeHex(writer, cast(immutable size_t) a.end);
 }
 
-void writeNat(Alloc)(ref Writer!Alloc writer, immutable ulong n, immutable size_t base = 10) {
+void writeNat(Alloc)(ref Writer!Alloc writer, immutable ulong n, immutable ulong base = 10) {
 	if (n >= base)
 		writeNat(writer, n / base, base);
 	writeChar(writer, digitChar(n % base));
 }
 
-private immutable(char) digitChar(immutable size_t digit) {
+private immutable(char) digitChar(immutable ulong digit) {
+	verify(digit < 16);
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
 }
 
-void writeInt(Alloc)(ref Writer!Alloc writer, immutable long i, immutable size_t base) {
+void writeInt(Alloc)(ref Writer!Alloc writer, immutable long i, immutable ulong base) {
 	if (i < 0)
 		writeChar(writer, '-');
 	writeNat(writer, abs(i), base);
