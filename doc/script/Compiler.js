@@ -99,7 +99,6 @@ export class Compiler {
 	 * @return {TokensDiags}
 	 */
 	getTokens(src) {
-		console.log("CALL ETTOKENS", src)
 		const json = this._useExports("getTokens", src)
 		return JSON.parse(json)
 	}

@@ -50,7 +50,7 @@ struct Lexer(SymAlloc) {
 ) {
 	// Note: We *are* relying on the nul terminator to stop the lexer.
 	immutable Str str = source.stripNulTerminator;
-	immutable Str useStr = last(str) == '\n' ? str : rtail(cat!char(alloc, str, strLiteral("\n\0")));
+	immutable Str useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc, str, strLiteral("\n\0")));
 	return Lexer!SymAlloc(
 		allSymbols,
 		ArrBuilder!ParseDiagnostic(),
@@ -731,7 +731,7 @@ struct StrAndIsOperator {
 		immutable Str s = copyStr(alloc, arrOfRange(begin, lexer.ptr));
 		addDiag(alloc, lexer, range(lexer, begin), immutable ParseDiag(
 			immutable ParseDiag.InvalidName(s)));
-		return immutable StrAndIsOperator(strLiteral("bogus"), start, False);
+		return immutable StrAndIsOperator(strLiteral(""), start, False);
 	}
 }
 

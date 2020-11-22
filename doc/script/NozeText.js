@@ -1,5 +1,5 @@
 import {Compiler, Diagnostic, Token} from "./Compiler.js"
-import {assert} from "./util/assert.js"
+import {assert, assertNever} from "./util/assert.js"
 import {
 	Border,
 	Color,
@@ -11,6 +11,7 @@ import {
 	FontWeight,
 	Measure,
 	Outline,
+	Overflow,
 	Position,
 	Resize,
 	Selector,
@@ -26,6 +27,7 @@ const highlightClass = cssClass("highlight")
 const lineClass = cssClass("line")
 const noTokenClass = cssClass("no-token")
 const diagClass = cssClass("diag")
+const myTextAreaClass = cssClass("my-text-area")
 
 const line_height = Measure.px(20)
 const font_size = Measure.em(1)
@@ -56,7 +58,8 @@ export const NozeText = makeCustomElement({
 		.class(lineClass, {
 			height: line_height,
 		})
-		.textarea({
+		//.textarea({
+		.class(myTextAreaClass, {
 			z_index: 0,
 			margin: Measure.zero,
 			padding: Measure.zero,
@@ -67,7 +70,7 @@ export const NozeText = makeCustomElement({
 			height: Measure.pct100,
 			/* Visible enough that I can tell if the highlight is not lined up,
 				but not visible enough to lessen the highlight. */
-			color: new Color("#00000010"),
+			color: new Color("#00000020"),
 			/* In contrast, cursor should remain 100% visible. */
 			caret_color: Color.black,
 			background: Color.transparent,
@@ -76,6 +79,8 @@ export const NozeText = makeCustomElement({
 			border: Border.none,
 			outline: Outline.none,
 			resize: Resize.none,
+			overflow: Overflow.auto,
+			white_space: WhiteSpace.pre,
 		})
 		.rule(Selector.focus(Selector.tag('textarea')), {
 		})
@@ -137,34 +142,179 @@ export const NozeText = makeCustomElement({
 	init: () => ({state: null, out: null}),
 	connected: async ({ props, state, root }) => {
 		const highlightDiv = div({class:highlightClass}, [])
-		const ta = textarea()
-		//TODO: options for 'textArea' function
-		ta.value = props.text.get()
+		const ta = div({class:myTextAreaClass})
+		/*
+		/** @return {Text} * /
+		const getTextElement = () => {
+			if (ta.childNodes.length !== 1)
+				throw new Error("? " + ta.childNodes.length)
+			const res = ta.childNodes[0]
+			if (!(res instanceof Text)) throw new Error("baa")
+			return res
+		}
+		*/
+		const initialText = props.text.get()
+		ta.textContent = initialText
+		const textElement = ta.childNodes[0]
+		if (ta.childNodes.length !== 1)
+			throw new Error("???")
+		if (!(textElement instanceof Text))
+			throw new Error("BAI")
+
+		ta.setAttribute("contenteditable", "true")
 		ta.setAttribute("spellcheck", "false")
 		ta.addEventListener("keydown", e => {
-			const { keyCode } = e
-			const { value, selectionStart, selectionEnd } = ta
-			if (keyCode === "\t".charCodeAt(0)) {
-				e.preventDefault()
-				ta.value = value.slice(0, selectionStart) + "\t" + value.slice(selectionEnd)
-				ta.setSelectionRange(selectionStart + 1, selectionStart + 1);
-				highlight(props.compiler, highlightDiv, ta.value)
+			e.preventDefault()
+			console.log("EVENT", e)
+			const { key, keyCode } = e
+			if (typeof keyCode !== "number")
+				throw new Error("?")
+
+			const action = getAction(e)
+
+			const sel = nonNull(root.getSelection())
+			const selStart = sel.getRangeAt(0).startOffset
+			const selEnd = sel.getRangeAt(0).endOffset
+
+			if (action.type === "noop") {
+			} else if (action.type === "copy") {
+				navigator.clipboard.writeText(textElement.data.slice(selStart, selEnd))
+			} else if (action.type === "selectAll") {
+				const range = document.createRange()
+				range.setStart(textElement, 0)
+				range.setEnd(textElement, textElement.data.length)
+				sel.removeAllRanges()
+				sel.addRange(range)
+			} else {
+				const {newText, newPos} = modify(nonNull(textElement.data), selEnd, action)
+				console.log("!!!", {newText, newPos})
+				textElement.data = newText
+
+				const range = document.createRange()
+				console.log("ADD RANGE", {pos: selEnd})
+				range.setStart(textElement, newPos)
+				range.setEnd(textElement, newPos)
+				sel.removeAllRanges()
+				sel.addRange(range)
+				console.log("HIGHLIGHT NEW", newText)
+				highlight(props.compiler, highlightDiv, newText)
 			}
 		})
-		ta.addEventListener("input", () => {
-			props.text.set(ta.value)
-			highlight(props.compiler, highlightDiv, ta.value)
+		ta.addEventListener("keyup", e => {
 		})
-		highlight(props.compiler, highlightDiv, ta.value)
+		/*
+		ta.addEventListener("input", () => {
+			const text = realGetTextContent(ta)
+			console.log("TEXT", text)
+			// This collapses text nodes
+			//ta.textContent = text
+			props.text.set(text)
+			highlight(props.compiler, highlightDiv, text)
+		})
+		*/
+		highlight(props.compiler, highlightDiv, initialText)
 
 		root.append(div({class:codeClass}, [highlightDiv, ta]))
 	},
 })
 
+/**
+ * @typedef ModAdd
+ * @property {"add"} type
+ * @property {string} text
+ */
+
+/**
+ * @typedef {ModAdd | {type:"backspace" | "delete" | "left" | "right" | "down" | "up"}} Mod
+ */
+
+/** @typedef {Mod | {type:"copy" | "noop" | "selectAll"}} Action */
+
+/** @type {function(KeyboardEvent): Action} */
+const getAction = e => {
+	if (e.ctrlKey) {
+		switch (e.key) {
+			case "a":
+				return {type:"selectAll"}
+			case "c":
+				return {type:"copy"}
+			//TODO: copy, paste, run
+			default:
+				return {type:"noop"}
+		}
+	}
+
+	switch (e.key) {
+		case "ArrowDown":
+			return {type:"down"}
+		case "ArrowUp":
+			return {type:"up"}
+		case "ArrowLeft":
+			return {type:"left"}
+		case "ArrowRight":
+			return {type:"right"}
+		case "Backspace":
+			return {type:"backspace"}
+		case "Delete":
+			return {type:"delete"}
+		case "Tab":
+			return {type:"add", text:"\t"}
+		case "Enter":
+			return {type:"add", text:"\n"}
+		case "CapsLock":
+		case "Control":
+		case "Shift":
+			return {type:"noop"}
+		default:
+			return {type:"add", text:e.key}
+	}
+}
+
+/** @type {function(string, number, Mod): {newText:string, newPos:number}} */
+const modify = (text, pos, mod) => {
+	switch (mod.type) {
+		case "add":
+			return {newText:text.slice(0, pos) + mod.text + text.slice(pos), newPos:pos + 1}
+		case "backspace":
+			return {newText:text.slice(0, pos - 1) + text.slice(pos), newPos:pos - 1}
+		case "delete":
+			return {newText:text.slice(0, pos) + text.slice(pos + 1), newPos:pos}
+		case "left":
+		case "up": //TODO
+			return {newText:text, newPos:pos - 1}
+		case "right":
+		case "down": //TODO
+			return {newText:text, newPos:pos + 1}
+		default:
+			return assertNever(mod)
+	}
+}
+
+
+/** @type {function(Node): string} */
+const realGetTextContent = node => {
+	let res = ""
+	console.log("CHILDREN", node.childNodes)
+	for (const childNode of node.childNodes) {
+		if (childNode instanceof HTMLElement && childNode.tagName === "BR")
+			res += "\n"
+		else if (childNode instanceof HTMLElement && childNode.tagName === "DIV")
+			res += realGetTextContent(childNode)
+		else if (childNode instanceof Text)
+			res += childNode.data
+		else {
+			console.log("What is this child?", childNode, childNode instanceof HTMLElement, childNode.tagName)
+			throw new Error("BAI")
+		}
+	}
+	return res
+}
+
 /** @type {function(Compiler, Node, string): void} */
 const highlight = (compiler, highlightDiv, v) => {
 	const {tokens, diags} = compiler.getTokens(v)
-	const nodes = tokensAndDiagsToNodes(tokens, diags, v)
+	// Only use at most 1 diag
+	const nodes = tokensAndDiagsToNodes(tokens, diags.slice(0, 1), v)
 	removeAllChildren(highlightDiv)
 	for (const node of nodes)
 		highlightDiv.appendChild(node)
@@ -330,10 +480,12 @@ const tokensAndDiagsToNodes = (tokens, diags, text) => {
 
 	/** @type {function(string, number): void} */
 	const addSpan = (className, end) => {
-		console.log("ADDSPAN", {pos, end})
-		assert(pos < end)
-		last(containerStack).children.push(createSpan({ className, children: [text.slice(pos, end)] }))
-		pos = end
+		assert(pos <= end)
+		// Ignore empty spans, they can happen when there are parse errors
+		if (pos != end) {
+			last(containerStack).children.push(createSpan({ className, children: [text.slice(pos, end)] }))
+			pos = end
+		}
 	}
 
 	startLine()

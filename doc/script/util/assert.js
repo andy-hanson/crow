@@ -29,10 +29,6 @@ export const assertBoolean = b =>
 export const assertString = s =>
 	typeof s === "string" ? s : raise("Expected a string, got: " + JSON.stringify(s))
 
-/** @type {function(unknown): uint} */
-export const assertUint = u =>
-	typeof u === "bigint" && u >= 0n ? u : raise("Expected a uint, got: " + JSON.stringify(u))
-
 /** @type {function(Error | string): never} */
 export const raise = message => {
 	throw message instanceof Error ? message : new Error(message)

@@ -545,6 +545,7 @@ export class LinearGradient {
  * @property {Measure} [margin_bottom]
  * @property {Measure} [min_height]
  * @property {Border} [outline]
+ * @property {Overflow} [overflow]
  * @property {Position} [position]
  * @property {Measure} [padding]
  * @property {Measure} [padding_x]
@@ -897,7 +898,16 @@ export class Content {
 }
 
 export class Resize {
-	static none = new Resize('none')
+	static none = new Resize("none")
+
+	/** @param {string} show */
+	constructor(show) {
+		this.show = show
+	}
+}
+
+export class Overflow {
+	static auto = new Overflow("auto")
 
 	/** @param {string} show */
 	constructor(show) {

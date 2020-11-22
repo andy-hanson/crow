@@ -13,14 +13,6 @@ window.onload = () => {
 	})
 }
 
-const TEST_SRC = `import
-	io
-
-main fut exit-code(args arr str) summon trusted
-	print-sync: & "now sleep:"
-	0 resolved
-`
-
 const main = async () => {
 	const compiler = await Compiler.make()
 

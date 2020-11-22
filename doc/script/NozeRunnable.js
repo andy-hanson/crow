@@ -5,12 +5,12 @@ import {button, div} from "./util/html.js"
 import {CustomElementClass, makeCustomElement} from "./util/CustomElement.js"
 import {MutableObservable} from "./util/MutableObservable.js"
 
-const TEXT = `import
+const TEXT = "aaa"/*`import
 	io
 
 main fut exit-code(args arr str) summon trusted
-	print-sync: & "now sleep:"
-	0 resolved`
+	print-sync: "now sleep:"
+	0 resolved`*/
 
 const outputClass = cssClass('output')
 

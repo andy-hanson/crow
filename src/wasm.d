@@ -8,7 +8,7 @@ import model.parseDiag : ParseDiagnostic;
 import util.alloc.globalAlloc : globalAlloc, GlobalAlloc;
 import util.bools : False;
 import util.collection.arr : Arr, arrOfD, at, range, size;
-import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, Str, strLiteral;
+import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, Str;
 import util.ptr : ptrTrustMe_mut;
 import util.sexpr : Sexpr, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
 import util.sourceRange : sexprOfRangeWithinFile;
@@ -19,16 +19,6 @@ import wasmUtils : wasmRun;
 
 // seems to be the required entry point
 extern(C) void _start() {
-}
-
-extern(C) void killme() {
-	WasmDebug dbg = wasmDebug();
-	dbg.log(strLiteral("abc"));
-}
-
-extern(C) void clearDebugLog() {
-	foreach (ref char c; debugLogStorage)
-		c = '\0';
 }
 
 extern(C) immutable(size_t) getBufferSize() {
@@ -112,11 +102,10 @@ immutable(Sexpr) sexprOfAstAndParseDiagnostics(Alloc)(ref Alloc alloc, ref immut
 }
 
 @system void writeResult(immutable Str str) {
-	// verify(size(str) < buffer.length); // Not using 'verify' here, since this fn is used in 'getDebugLog'
-	immutable size_t size = min(size(str), buffer.length - 1);
-	foreach (immutable size_t i; 0..size) {
+	immutable size_t bufferLength = buffer.length; // Using a variable to avoid dscanner warnings
+	immutable size_t size = min(size(str), bufferLength - 1);
+	foreach (immutable size_t i; 0..size)
 		buffer[i] = at(str, i);
-	}
 	buffer[size] = '\0';
 }
 

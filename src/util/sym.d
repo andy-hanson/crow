@@ -76,8 +76,9 @@ immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols,
 
 private immutable(Bool) isAlphaIdentifier(ref immutable Str a) {
 	return immutable Bool(
+		empty(a) || (
 		isAlphaIdentifierStart(first(a)) &&
-		every(tail(a), (ref immutable char it) => isAlphaIdentifierContinue(it)));
+		every(tail(a), (ref immutable char it) => isAlphaIdentifierContinue(it))));
 }
 
 immutable(Sym) getSymFromOperator(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {

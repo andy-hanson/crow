@@ -3,9 +3,7 @@ module util.util;
 @safe @nogc nothrow:
 
 import util.bools : False;
-import util.collection.arr : arrOfRange, at, range, size;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : emptyStr, Str, strLiteral;
+import util.collection.str : Str, strLiteral;
 import util.types : incr, Nat8, zero;
 
 void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc nothrow cb) {
@@ -28,7 +26,7 @@ T todo(T, Debug)(ref Debug dbg, immutable string message) {
 	assert(0);
 }
 
-T todo(T)(immutable string message) {
+T todo(T)(immutable string) {
 	assert(0);
 }
 
