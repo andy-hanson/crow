@@ -50,6 +50,7 @@ import util.writer :
 	writeStatic,
 	writeStr,
 	writeWithCommas,
+	writeWithNewlines,
 	Writer;
 import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRelPath;
 
@@ -72,8 +73,9 @@ immutable(Str) strOfDiagnostics(Alloc)(
 			comparePathAndStorageKind(
 				fullIndexDictGet(filePaths, a.where.fileIndex),
 				fullIndexDictGet(filePaths, b.where.fileIndex)));
-	foreach (ref immutable Diagnostic d; sorted.range)
-		showDiagnostic(alloc, writer, options, diagnostics.filesInfo, d);
+	writeWithNewlines(writer, sorted, (ref immutable Diagnostic it) {
+		showDiagnostic(alloc, writer, options, diagnostics.filesInfo, it);
+	});
 	return finishWriter(writer);
 }
 
@@ -314,6 +316,7 @@ void writeCalledDecls(Alloc)(
 	foreach (ref immutable CalledDecl c; cs.range)
 		if (filter(c)) {
 			writeNl(writer);
+			writeChar(writer, '\t');
 			writeCalledDecl(writer, options, fi, c);
 		}
 }

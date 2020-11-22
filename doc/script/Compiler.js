@@ -1,3 +1,5 @@
+import {delay} from "./util/util.js"
+
 /**
  * @typedef Exports
  * @property {function(): number} getBuffer
@@ -47,23 +49,28 @@ export const getGlobalCompiler = async () => {
 export class Compiler {
 	/** @return {Promise<Compiler>} */
 	static async make() {
-		return Compiler.makeFromBytes(await (await fetch("../bin/noze.wasm")).arrayBuffer())
+		const includeFiles = await getIncludeFiles()
+		return Compiler.makeFromBytes(await (await fetch("../bin/noze.wasm")).arrayBuffer(), includeFiles)
 	}
 
 	/**
 	 * @param {ArrayBuffer} bytes
+	 * @param {Files} includeFiles
 	 * @return {Promise<Compiler>}
 	 */
-	static async makeFromBytes(bytes) {
+	static async makeFromBytes(bytes, includeFiles) {
 		const result = await WebAssembly.instantiate(bytes, {})
 		const { exports } = result.instance
-		return new Compiler(/** @type {Exports} */ (exports))
+		return new Compiler(/** @type {Exports} */ (exports), includeFiles)
 	}
 
-	/** @param {Exports} exports */
-	constructor(exports) {
-		/** @type {Exports} */
+	/**
+	 * @param {Exports} exports
+	 * @param {Files} includeFiles
+	 */
+	constructor(exports, includeFiles) {
 		this._exports = exports
+		this._includeFiles = includeFiles
 		const { getBufferSize, getBuffer, memory } = exports
 
 		const view = new DataView(memory.buffer)
@@ -105,22 +112,37 @@ export class Compiler {
 
 	/**
 	 * @param {AllFiles} files
-	 * @return {RunResult}
+	 * @return {Promise<RunResult>}
 	 */
 	run(files) {
-		const result = this._useExports("run", JSON.stringify(files))
-		return JSON.parse(result)
+		return delay(() => {
+			const result = this._useExports("run", JSON.stringify(files))
+			return JSON.parse(result)
+		})
+	}
+
+	/**
+	 * @param {string} file
+	 * @return {Promise<RunResult>}
+	 */
+	runFile(file) {
+		return this.run({include:this._includeFiles, user:{main:file}})
 	}
 }
 
-/** @type {function(Compiler, Files, string): RunResult} */
-export const runCode = (compiler, includeFiles, text) => {
-	const allFiles = {
-		include: includeFiles,
-		user: {main:text}
-	}
-	return compiler.run(allFiles)
+/** @type {function(): Promise<ReadonlyArray<string>>} */
+const listInclude = async () => {
+	return (await (await fetch('includeList.txt')).text()).trim().split('\n')
 }
+
+/** @type {function(): Promise<Files>} */
+const getIncludeFiles = async () =>
+	Object.fromEntries(await Promise.all((await listInclude()).map(nameAndText)))
+
+/** @type {function(string): Promise<[string, string]>} */
+const nameAndText = async name =>
+	[name, await (await fetch(`../include/${name}.nz`)).text()]
+
 
 /**
  * @typedef AllFiles

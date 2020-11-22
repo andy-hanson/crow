@@ -139,10 +139,25 @@ export class CSSClass {
 	get name() { return this.name_ }
 }
 
+/** @type {function(string): Promise<CSSStyleSheet>} */
+export const styleSheetFromString = css => {
+	const sheet = new CSSStyleSheet()
+	return sheet.replace(css).then(() => sheet)
+}
+
 export class StyleBuilder {
 	out_ = new StringBuilder()
 	/** @type {Set<FontFamily>} */
 	importedFonts_ = new Set()
+
+	/**
+	 * @param {string} s
+	 * @return {this}
+	 */
+	raw(s) {
+		this.out_.append(s)
+		return this
+	}
 
 	/**
 	 * @param {Selector} selector
@@ -176,8 +191,7 @@ export class StyleBuilder {
 
 	/** @return {Promise<CSSStyleSheet>} */
 	end() {
-		const sheet = new CSSStyleSheet()
-		return sheet.replace(this.out_.end()).then(() => sheet)
+		return styleSheetFromString(this.out_.end())
 	}
 
 	/**
@@ -512,9 +526,12 @@ export class LinearGradient {
 /**
  * @typedef RuleOptions
  * @property {Align} [align_items]
+ * @property {Animation} [animation]
+ * @property {string} [animation_timing_function]
  * @property {Background | Color | LinearGradient} [background]
  * @property {Border} [border]
  * @property {Border} [border_bottom]
+ * @property {Border} [border_right]
  * @property {Measure} [border_radius]
  * @property {Measure} [border_radius_bottom]
  * @property {Measure} [border_radius_top]
@@ -539,10 +556,12 @@ export class LinearGradient {
  * @property {Measure} [line_height]
  * @property {MarginOrMeasure} [margin]
  * @property {MarginOrMeasure} [margin_left]
+ * @property {MarginOrMeasure} [margin_right]
  * @property {MarginOrMeasure} [margin_top]
  * @property {MarginOrMeasure} [margin_x]
  * @property {MarginOrMeasure} [margin_y]
  * @property {Measure} [margin_bottom]
+ * @property {Measure} [max_width]
  * @property {Measure} [min_height]
  * @property {Border} [outline]
  * @property {Overflow} [overflow]
@@ -551,6 +570,7 @@ export class LinearGradient {
  * @property {Measure} [padding_x]
  * @property {Measure} [padding_y]
  * @property {Measure} [padding_bottom]
+ * @property {Measure} [padding_right]
  * @property {Resize} [resize]
  * @property {number} [tab_size]
  * @property {Align} [text_align]
@@ -563,6 +583,7 @@ export const RuleOptions = {}
 
 export class Align {
 	static center = new Align("center")
+	static right = new Align("right")
 
 	show_ = ""
 
@@ -754,6 +775,7 @@ export class Measure {
 	static px = n =>
 		new Measure(`${n}px`)
 
+	static pct50 = Measure.pct(50)
 	static pct100 = Measure.pct(100)
 	static zero = new Measure("0")
 
@@ -776,6 +798,7 @@ export class Color {
 	static pink = new Color("#ff6188")
 	static peach = new Color("#fc9867")
 	static yellow = new Color("#ffd866")
+	static lightYellow = new Color("#ffebbd") // mine
 	static green = new Color("#a9dc76")
 	static greenDarker = new Color("#89bc56") //mine
 	static greenDarker2 = new Color("#699c36") //mine
@@ -786,6 +809,7 @@ export class Color {
 	static darkerGray = new Color("#161517")
 	static lightGray = new Color("#6c696d")
 	static lighterGray = new Color("#aaa")
+	static lightestGray = new Color("#ddd")
 
 	//I made this
 	static red = new Color("#e87878")
@@ -833,6 +857,7 @@ export class Display {
 }
 
 export class Float {
+	static left = new Float("left")
 	static right = new Float("right")
 
 	show_ = ""
@@ -908,6 +933,17 @@ export class Resize {
 
 export class Overflow {
 	static auto = new Overflow("auto")
+
+	/** @param {string} show */
+	constructor(show) {
+		this.show = show
+	}
+}
+
+export class Animation {
+	/** @type {function(string, float): Animation} */
+	static infinite = (name, seconds) =>
+		new Animation(`${name} ${seconds}s infinite`)
 
 	/** @param {string} show */
 	constructor(show) {

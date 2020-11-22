@@ -1,4 +1,7 @@
 /need-block-context.nz 3:9-3:13 'when' expression must appear in a context where it can be followed by an indented block
+
 /need-block-context.nz 7:11-7:16 'match' expression must appear in a context where it can be followed by an indented block
+
 /need-block-context.nz 12:11-12:12 lambda expression must appear in a context where it can be followed by an indented block
+
 /need-block-context.nz 12:12-13:1 expected an indent

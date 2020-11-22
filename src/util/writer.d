@@ -95,6 +95,18 @@ void writeWithCommas(Alloc)(
 	}
 }
 
+void writeWithNewlines(Alloc, T)(
+	ref Writer!Alloc writer,
+	ref immutable Arr!T a,
+	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	foreach (immutable size_t i; 0..size(a)) {
+		if (i != 0)
+			writeStatic(writer, "\n");
+		cb(at(a, i));
+	}
+}
+
 void writeQuotedStr(Alloc)(ref Writer!Alloc writer, ref immutable Str s) {
 	writeChar(writer, '"');
 	foreach (immutable char c; range(s))

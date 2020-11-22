@@ -1,11 +1,14 @@
 import {Compiler, Diagnostic, Token} from "./Compiler.js"
 import {assert, assertNever} from "./util/assert.js"
 import {
+	Align,
 	Border,
 	Color,
 	Content,
 	cssClass,
 	Cursor,
+	Display,
+	Float,
 	FontFamily,
 	FontStyle,
 	FontWeight,
@@ -19,6 +22,7 @@ import {
 	WhiteSpace,
 } from "./util/css.js"
 import {CustomElementClass, makeCustomElement} from "./util/CustomElement.js"
+import {removeAllChildren} from "./util/dom.js"
 import {div, textarea} from "./util/html.js"
 import {MutableObservable} from "./util/MutableObservable.js"
 
@@ -27,15 +31,33 @@ const highlightClass = cssClass("highlight")
 const lineClass = cssClass("line")
 const noTokenClass = cssClass("no-token")
 const diagClass = cssClass("diag")
-const myTextAreaClass = cssClass("my-text-area")
 
 const line_height = Measure.px(20)
 const font_size = Measure.em(1)
+
+const lineNumbersClass = cssClass("line-numbers")
+const rootClass = cssClass("root")
 
 /** @type {CustomElementClass<{ compiler: Compiler, text: MutableObservable<string> }, null, null>} */
 export const NozeText = makeCustomElement({
 	tagName: "noze-text",
 	styleSheet: new StyleBuilder()
+		.class(rootClass, {
+			display: Display.flex,
+			background: Color.darkGray,
+			font_family: FontFamily.monospace,
+		})
+		.class(lineNumbersClass, {
+			display: Display.inlineBlock,
+			width: Measure.em(1.5),
+			color: Color.lightGray,
+			border_right: Border.solid(Measure.em(0.1), Color.lightGray),
+			line_height,
+			text_align: Align.right,
+			white_space: WhiteSpace.pre,
+			padding_right: Measure.em(0.25),
+			margin_right: Measure.em(0.25),
+		})
 		.class(codeClass, {
 			width: Measure.pct100,
 			height: Measure.pct100,
@@ -43,10 +65,10 @@ export const NozeText = makeCustomElement({
 			padding: Measure.zero,
 			position: Position.relative,
 			tab_size: 4,
-			font_family: FontFamily.monospace,
 			font_size,
 			line_height,
 			white_space: WhiteSpace.pre,
+			display: Display.inlineBlock,
 		})
 		.class(highlightClass, {
 			margin: Measure.zero,
@@ -55,11 +77,8 @@ export const NozeText = makeCustomElement({
 			height: Measure.pct100,
 			z_index: 10,
 		})
-		.class(lineClass, {
-			height: line_height,
-		})
-		//.textarea({
-		.class(myTextAreaClass, {
+		.class(lineClass, {height: line_height})
+		.textarea({
 			z_index: 0,
 			margin: Measure.zero,
 			padding: Measure.zero,
@@ -72,7 +91,7 @@ export const NozeText = makeCustomElement({
 				but not visible enough to lessen the highlight. */
 			color: new Color("#00000020"),
 			/* In contrast, cursor should remain 100% visible. */
-			caret_color: Color.black,
+			caret_color: Color.white,
 			background: Color.transparent,
 			line_height,
 			font_size,
@@ -82,44 +101,29 @@ export const NozeText = makeCustomElement({
 			overflow: Overflow.auto,
 			white_space: WhiteSpace.pre,
 		})
-		.rule(Selector.focus(Selector.tag('textarea')), {
-		})
-		.pre({
-			background: Color.lighterGray,
-		})
 		.class(noTokenClass, {
 			font_weight: FontWeight.light,
 			color: Color.lightGray,
 		})
 		.class(cssClass("keyword"), {
 			font_weight: FontWeight.bold,
-			color: new Color("indigo"),
+			color: Color.pink,
 		})
-		.class(cssClass("import"), {
-			color: Color.blue,
-		})
-		.class(cssClass("fun-def"), {color: new Color("crimson")})
-		.class(cssClass("fun-ref"), {color: new Color("firebrick")})
-		.class(cssClass("struct-def"), {color: new Color("dodgerblue")})
-		.class(cssClass("struct-ref"), {
-			font_style: FontStyle.italic,
-			color: new Color("navy"),
-		})
-		.class(cssClass("tparam-def"), {
-			font_style: FontStyle.italic,
-			color: new Color("cyan"),
-		})
-		.class(cssClass("tparam-ref"), {
-			font_style: FontStyle.italic,
-			color: new Color("darkturquoise"),
-		})
-		.class(cssClass("spec-def"), {color: new Color("greenyellow")})
-		.class(cssClass("spec-ref"), {color: new Color("green")})
-		.class(cssClass("param-def"), {color: new Color("brown")})
-		.class(cssClass("lit-num"), {color: new Color("darkorchid")})
-		.class(cssClass("lit-str"), {color: new Color("darkorchid")})
-		.class(cssClass("field-def"), {color: new Color("coral")})
-		.class(cssClass("field-ref"), {color: new Color("indianred")})
+		.class(cssClass("identifier"), {color: Color.lightYellow})
+		.class(cssClass("import"), {color: Color.pink})
+		.class(cssClass("fun-def"), {font_weight: FontWeight.bold, color: Color.blue})
+		.class(cssClass("fun-ref"), {color: Color.blue})
+		.class(cssClass("struct-def"), {font_weight: FontWeight.bold, color: Color.lavender})
+		.class(cssClass("struct-ref"), {color: Color.lavender})
+		.class(cssClass("tparam-def"), {font_weight: FontWeight.bold, color: Color.peach})
+		.class(cssClass("tparam-ref"), {color: Color.peach})
+		.class(cssClass("spec-def"), {font_weight: FontWeight.bold, color: Color.green})
+		.class(cssClass("spec-ref"), {color: Color.green})
+		.class(cssClass("param-def"), {font_weight: FontWeight.bold, color: Color.lightYellow})
+		.class(cssClass("lit-num"), {color: Color.yellow})
+		.class(cssClass("lit-str"), {color: Color.yellow})
+		.class(cssClass("field-def"), {font_weight: FontWeight.bold, color: Color.peach})
+		.class(cssClass("field-ref"), {color: Color.peach})
 		.class(cssClass("name"), {color: new Color("green")})
 		.class(diagClass, {
 			position: Position.relative,
@@ -140,175 +144,39 @@ export const NozeText = makeCustomElement({
 		})
 		.end(),
 	init: () => ({state: null, out: null}),
-	connected: async ({ props, state, root }) => {
+	connected: async ({ props: {compiler, text}, root }) => {
 		const highlightDiv = div({class:highlightClass}, [])
-		const ta = div({class:myTextAreaClass})
-		/*
-		/** @return {Text} * /
-		const getTextElement = () => {
-			if (ta.childNodes.length !== 1)
-				throw new Error("? " + ta.childNodes.length)
-			const res = ta.childNodes[0]
-			if (!(res instanceof Text)) throw new Error("baa")
-			return res
-		}
-		*/
-		const initialText = props.text.get()
-		ta.textContent = initialText
-		const textElement = ta.childNodes[0]
-		if (ta.childNodes.length !== 1)
-			throw new Error("???")
-		if (!(textElement instanceof Text))
-			throw new Error("BAI")
-
-		ta.setAttribute("contenteditable", "true")
+		const ta = textarea()
+		const initialText = text.get()
+		ta.value = initialText
 		ta.setAttribute("spellcheck", "false")
 		ta.addEventListener("keydown", e => {
-			e.preventDefault()
-			console.log("EVENT", e)
-			const { key, keyCode } = e
-			if (typeof keyCode !== "number")
-				throw new Error("?")
-
-			const action = getAction(e)
-
-			const sel = nonNull(root.getSelection())
-			const selStart = sel.getRangeAt(0).startOffset
-			const selEnd = sel.getRangeAt(0).endOffset
-
-			if (action.type === "noop") {
-			} else if (action.type === "copy") {
-				navigator.clipboard.writeText(textElement.data.slice(selStart, selEnd))
-			} else if (action.type === "selectAll") {
-				const range = document.createRange()
-				range.setStart(textElement, 0)
-				range.setEnd(textElement, textElement.data.length)
-				sel.removeAllRanges()
-				sel.addRange(range)
-			} else {
-				const {newText, newPos} = modify(nonNull(textElement.data), selEnd, action)
-				console.log("!!!", {newText, newPos})
-				textElement.data = newText
-
-				const range = document.createRange()
-				console.log("ADD RANGE", {pos: selEnd})
-				range.setStart(textElement, newPos)
-				range.setEnd(textElement, newPos)
-				sel.removeAllRanges()
-				sel.addRange(range)
-				console.log("HIGHLIGHT NEW", newText)
-				highlight(props.compiler, highlightDiv, newText)
+			if (e.key === "Tab") {
+				e.preventDefault()
+				const { value, selectionStart, selectionEnd } = ta
+				ta.value = value.slice(0, selectionStart) + "\t" + value.slice(selectionEnd)
+				ta.setSelectionRange(selectionStart + 1, selectionStart + 1);
+				update()
 			}
 		})
-		ta.addEventListener("keyup", e => {
-		})
-		/*
 		ta.addEventListener("input", () => {
-			const text = realGetTextContent(ta)
-			console.log("TEXT", text)
-			// This collapses text nodes
-			//ta.textContent = text
-			props.text.set(text)
-			highlight(props.compiler, highlightDiv, text)
+			text.set(ta.value)
+			update()
 		})
-		*/
-		highlight(props.compiler, highlightDiv, initialText)
 
-		root.append(div({class:codeClass}, [highlightDiv, ta]))
+		const update = () => {
+			highlight(compiler, highlightDiv, ta.value)
+			lineNumbers.textContent = ta.value.split("\n").map((x, i) => String(i + 1)).join("\n")
+		}
+
+		const lineNumbers = div({class:lineNumbersClass})
+
+		update()
+
+		const textContainer = div({class:codeClass}, [highlightDiv, ta])
+		root.append(div({class:rootClass}, [lineNumbers, textContainer]))
 	},
 })
-
-/**
- * @typedef ModAdd
- * @property {"add"} type
- * @property {string} text
- */
-
-/**
- * @typedef {ModAdd | {type:"backspace" | "delete" | "left" | "right" | "down" | "up"}} Mod
- */
-
-/** @typedef {Mod | {type:"copy" | "noop" | "selectAll"}} Action */
-
-/** @type {function(KeyboardEvent): Action} */
-const getAction = e => {
-	if (e.ctrlKey) {
-		switch (e.key) {
-			case "a":
-				return {type:"selectAll"}
-			case "c":
-				return {type:"copy"}
-			//TODO: copy, paste, run
-			default:
-				return {type:"noop"}
-		}
-	}
-
-	switch (e.key) {
-		case "ArrowDown":
-			return {type:"down"}
-		case "ArrowUp":
-			return {type:"up"}
-		case "ArrowLeft":
-			return {type:"left"}
-		case "ArrowRight":
-			return {type:"right"}
-		case "Backspace":
-			return {type:"backspace"}
-		case "Delete":
-			return {type:"delete"}
-		case "Tab":
-			return {type:"add", text:"\t"}
-		case "Enter":
-			return {type:"add", text:"\n"}
-		case "CapsLock":
-		case "Control":
-		case "Shift":
-			return {type:"noop"}
-		default:
-			return {type:"add", text:e.key}
-	}
-}
-
-/** @type {function(string, number, Mod): {newText:string, newPos:number}} */
-const modify = (text, pos, mod) => {
-	switch (mod.type) {
-		case "add":
-			return {newText:text.slice(0, pos) + mod.text + text.slice(pos), newPos:pos + 1}
-		case "backspace":
-			return {newText:text.slice(0, pos - 1) + text.slice(pos), newPos:pos - 1}
-		case "delete":
-			return {newText:text.slice(0, pos) + text.slice(pos + 1), newPos:pos}
-		case "left":
-		case "up": //TODO
-			return {newText:text, newPos:pos - 1}
-		case "right":
-		case "down": //TODO
-			return {newText:text, newPos:pos + 1}
-		default:
-			return assertNever(mod)
-	}
-}
-
-
-/** @type {function(Node): string} */
-const realGetTextContent = node => {
-	let res = ""
-	console.log("CHILDREN", node.childNodes)
-	for (const childNode of node.childNodes) {
-		if (childNode instanceof HTMLElement && childNode.tagName === "BR")
-			res += "\n"
-		else if (childNode instanceof HTMLElement && childNode.tagName === "DIV")
-			res += realGetTextContent(childNode)
-		else if (childNode instanceof Text)
-			res += childNode.data
-		else {
-			console.log("What is this child?", childNode, childNode instanceof HTMLElement, childNode.tagName)
-			throw new Error("BAI")
-		}
-	}
-	return res
-}
 
 /** @type {function(Compiler, Node, string): void} */
 const highlight = (compiler, highlightDiv, v) => {
@@ -320,12 +188,6 @@ const highlight = (compiler, highlightDiv, v) => {
 		highlightDiv.appendChild(node)
 }
 
-//TODO:MOVE
-/** @type {function(Node): void} */
-const removeAllChildren = em => {
-	while (em.lastChild)
-		em.removeChild(em.lastChild)
-}
 /** @type {function(string, ReadonlyArray<Node | string>): HTMLSpanElement} */
 const createDiagSpan = (message, children) => {
 	return createSpan({

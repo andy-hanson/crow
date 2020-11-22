@@ -73,19 +73,5 @@ const main = async () => {
 	*/
 }
 
-/** @type {function(): Promise<ReadonlyArray<string>>} */
-const listInclude = async () => {
-	return (await (await fetch('includeList.txt')).text()).trim().split('\n')
-}
-
-/** @type {function(): Promise<Files>} */
-const getIncludeFiles = async () =>
-	Object.fromEntries(await Promise.all((await listInclude()).map(nameAndText)))
-
-/** @type {function(string): Promise<[string, string]>} */
-const nameAndText = async name =>
-	[name, await (await fetch(`../include/${name}.nz`)).text()]
-
-
 
 

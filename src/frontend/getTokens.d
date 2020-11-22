@@ -401,7 +401,7 @@ immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 		case Token.Kind.specRef:
 			return shortSymAlphaLiteral("spec-ref");
 		case Token.Kind.structDef:
-			return shortSymAlphaLiteral("structdef");
+			return shortSymAlphaLiteral("struct-def");
 		case Token.Kind.structRef:
 			return shortSymAlphaLiteral("struct-ref");
 		case Token.Kind.typeParamDef:

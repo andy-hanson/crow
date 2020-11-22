@@ -7,8 +7,25 @@ export const lateinit = /** @type {never} */ (null)
  * @param {() => Promise<void>}cb
  * @return {void}
  */
-export function launch(cb) {
+export const launch = cb => {
 	cb().catch(console.error)
+}
+
+/**
+ * @template T
+ * @param {() => T} cb
+ * @return {Promise<T>}
+ */
+export const delay = async cb => {
+	return new Promise((resolve, reject) => {
+		setTimeout(() => {
+			try {
+				resolve(cb())
+			} catch (e) {
+				reject(e)
+			}
+		}, 0)
+	})
 }
 
 /**

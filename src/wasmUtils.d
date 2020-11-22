@@ -8,21 +8,13 @@ import frontend.showDiag : ShowDiagOptions;
 import interpret.fakeExtern : FakeExtern;
 import model.model : AbsolutePathsGetter;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, arrOfRange, emptyArr, range;
+import util.collection.arr : Arr, emptyArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.dict : Dict, getAt, KeyValuePair;
+import util.collection.dict : Dict, getAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
-import util.collection.str :
-	CStr,
-	emptyStr,
-	NulTerminatedStr,
-	Str,
-	strEq,
-	strEqLiteral,
-	strLiteral,
-	strOfNulTerminatedStr;
-import util.opt : some, Opt;
-import util.path : childPath, comparePath, parsePath, Path, PathAndStorageKind, pathToCStr, rootPath, StorageKind;
+import util.collection.str : CStr, NulTerminatedStr, Str, strEq, strEqLiteral, strLiteral, strOfNulTerminatedStr;
+import util.opt : Opt;
+import util.path : comparePath, parsePath, Path, PathAndStorageKind, rootPath, StorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSymAlphaLiteral;
 import util.util : todo, verify;

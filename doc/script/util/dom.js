@@ -5,7 +5,7 @@ export function replaceChildren(em, newChild) {
 }
 
 /** @type {function(Node): void} */
-function removeAllChildren(em) {
+export function removeAllChildren(em) {
 	while (true) {
 		const child = em.firstChild
 		if (child === null)
