@@ -98,49 +98,52 @@ struct RealExtern {
 		verify(ptr != null);
 
 		dcReset(dcVm);
-		zipImpureSystem(parameters, parameterTypes, (ref immutable Nat64 value, ref immutable DynCallType type) {
-			final switch (type) {
-				case DynCallType.bool_:
-					todo!void("handle this type");
-					break;
-				case DynCallType.char_:
-					todo!void("handle this type");
-					break;
-				case DynCallType.int8:
-					todo!void("handle this type");
-					break;
-				case DynCallType.int16:
-					todo!void("handle this type");
-					break;
-				case DynCallType.int32:
-					todo!void("handle this type");
-					break;
-				case DynCallType.float32:
-					todo!void("handle this type");
-					break;
-				case DynCallType.float64:
-					todo!void("handle this type");
-					break;
-				case DynCallType.nat8:
-					todo!void("handle this type");
-					break;
-				case DynCallType.nat16:
-					todo!void("handle this type");
-					break;
-				case DynCallType.nat32:
-					dcArgInt(dcVm, cast(uint) value.raw());
-					break;
-				case DynCallType.int64:
-				case DynCallType.nat64:
-					dcArgLong(dcVm, value.raw());
-					break;
-				case DynCallType.pointer:
-					dcArgPointer(dcVm, cast(void*) value.raw());
-					break;
-				case DynCallType.void_:
-					unreachable!void();
-			}
-		});
+		zipImpureSystem!(Nat64, DynCallType)(
+			parameters,
+			parameterTypes,
+			(ref immutable Nat64 value, ref immutable DynCallType type) {
+				final switch (type) {
+					case DynCallType.bool_:
+						todo!void("handle this type");
+						break;
+					case DynCallType.char_:
+						todo!void("handle this type");
+						break;
+					case DynCallType.int8:
+						todo!void("handle this type");
+						break;
+					case DynCallType.int16:
+						todo!void("handle this type");
+						break;
+					case DynCallType.int32:
+						todo!void("handle this type");
+						break;
+					case DynCallType.float32:
+						todo!void("handle this type");
+						break;
+					case DynCallType.float64:
+						todo!void("handle this type");
+						break;
+					case DynCallType.nat8:
+						todo!void("handle this type");
+						break;
+					case DynCallType.nat16:
+						todo!void("handle this type");
+						break;
+					case DynCallType.nat32:
+						dcArgInt(dcVm, cast(uint) value.raw());
+						break;
+					case DynCallType.int64:
+					case DynCallType.nat64:
+						dcArgLong(dcVm, value.raw());
+						break;
+					case DynCallType.pointer:
+						dcArgPointer(dcVm, cast(void*) value.raw());
+						break;
+					case DynCallType.void_:
+						unreachable!void();
+				}
+			});
 
 		immutable Nat64 res = () {
 			final switch (returnType) {

@@ -141,9 +141,12 @@ void ensureConstant(TempAlloc)(
 		},
 		(ref immutable Constant.Record it) {
 			immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, asRecordType(t));
-			zip(record.fields, it.args, (ref immutable LowField field, ref immutable Constant arg) {
-				ensureConstant(tempAlloc, ctx, field.type, arg);
-			});
+			zip!(LowField, Constant)(
+				record.fields,
+				it.args,
+				(ref immutable LowField field, ref immutable Constant arg) {
+					ensureConstant(tempAlloc, ctx, field.type, arg);
+				});
 		},
 		(ref immutable Constant.Union) {
 			todo!void("generate union");

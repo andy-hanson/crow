@@ -114,13 +114,17 @@ immutable(Str) writeToC(Alloc)(
 
 	writeConstants(writer, ctx, program.allConstants);
 
-	fullIndexDictEach(program.allFuns, (immutable LowFunIndex funIndex, ref immutable LowFun fun) {
-		writeFunDeclaration(writer, ctx, funIndex, fun);
-	});
+	fullIndexDictEach!(LowFunIndex, LowFun)(
+		program.allFuns,
+		(immutable LowFunIndex funIndex, ref immutable LowFun fun) {
+			writeFunDeclaration(writer, ctx, funIndex, fun);
+		});
 
-	fullIndexDictEach(program.allFuns, (immutable LowFunIndex funIndex, ref immutable LowFun fun) {
-		writeFunDefinition(writer, ctx, funIndex, fun);
-	});
+	fullIndexDictEach!(LowFunIndex, LowFun)(
+		program.allFuns,
+		(immutable LowFunIndex funIndex, ref immutable LowFun fun) {
+			writeFunDefinition(writer, ctx, funIndex, fun);
+		});
 
 	return finishWriter(writer);
 }
@@ -154,7 +158,7 @@ void writeConstants(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref i
 				writeChar(writer, '"');
 			} else {
 				writeChar(writer, '{');
-				writeWithCommas(writer, elements, (ref immutable Constant element) {
+				writeWithCommas!Constant(writer, elements, (ref immutable Constant element) {
 					writeConstantRef(writer, ctx, ConstantRefPos.inner, a.elementType, element);
 				});
 				writeChar(writer, '}');
@@ -270,7 +274,7 @@ immutable(MangledNames) buildMangledNames(Alloc)(ref Alloc alloc, ref immutable 
 	DictBuilder!(Ptr!ConcreteFun, size_t, comparePtr!ConcreteFun) funToNameIndex;
 	// HAX: Ensure "main" has that name.
 	setInDict(alloc, funNameToIndex, shortSymAlphaLiteral("main"), immutable PrevOrIndex!ConcreteFun(0));
-	fullIndexDictEachValue(program.allFuns, (ref immutable LowFun it) {
+	fullIndexDictEachValue!(LowFunIndex, LowFun)(program.allFuns, (ref immutable LowFun it) {
 		matchLowFunSource!void(
 			it.source,
 			(immutable Ptr!ConcreteFun cf) {
@@ -297,18 +301,26 @@ immutable(MangledNames) buildMangledNames(Alloc)(ref Alloc alloc, ref immutable 
 			},
 			(ref immutable ConcreteStructSource.Lambda) {});
 	}
-	fullIndexDictEachValue(program.allExternPtrTypes, (ref immutable LowExternPtrType it) {
-		build(it.source);
-	});
-	fullIndexDictEachValue(program.allFunPtrTypes, (ref immutable LowFunPtrType it) {
-		build(it.source);
-	});
-	fullIndexDictEachValue(program.allRecords, (ref immutable LowRecord it) {
-		build(it.source);
-	});
-	fullIndexDictEachValue(program.allUnions, (ref immutable LowUnion it) {
-		build(it.source);
-	});
+	fullIndexDictEachValue!(LowType.ExternPtr, LowExternPtrType)(
+		program.allExternPtrTypes,
+		(ref immutable LowExternPtrType it) {
+			build(it.source);
+		});
+	fullIndexDictEachValue!(LowType.FunPtr, LowFunPtrType)(
+		program.allFunPtrTypes,
+		(ref immutable LowFunPtrType it) {
+			build(it.source);
+		});
+	fullIndexDictEachValue!(LowType.Record, LowRecord)(
+		program.allRecords,
+		(ref immutable LowRecord it) {
+			build(it.source);
+		});
+	fullIndexDictEachValue!(LowType.Union, LowUnion)(
+		program.allUnions,
+		(ref immutable LowUnion it) {
+			build(it.source);
+		});
 
 	return immutable MangledNames(
 		finishDictShouldBeNoConflict(alloc, funToNameIndex),
@@ -603,7 +615,7 @@ immutable(Bool) tryWriteFunPtrDeclaration(Alloc)(
 		writeStatic(writer, " (*");
 		writeStructMangledName(writer, ctx, funPtr.source);
 		writeStatic(writer, ")(");
-		writeWithCommas(writer, funPtr.paramTypes, (ref immutable LowType paramType) {
+		writeWithCommas!LowType(writer, funPtr.paramTypes, (ref immutable LowType paramType) {
 			writeType(writer, ctx, paramType);
 		});
 		writeStatic(writer, ");\n");
@@ -649,9 +661,11 @@ immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
 
 void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc writer, ref immutable Ctx ctx) {
 	// Write extern-ptr types first
-	fullIndexDictEachValue(ctx.program.allExternPtrTypes, (ref immutable LowExternPtrType it) {
-		declareStruct(writer, ctx, it.source);
-	});
+	fullIndexDictEachValue!(LowType.ExternPtr, LowExternPtrType)(
+		ctx.program.allExternPtrTypes,
+		(ref immutable LowExternPtrType it) {
+			declareStruct(writer, ctx, it.source);
+		});
 
 	StructStates structStates = StructStates(
 		fillArr_mut!Bool(alloc, fullIndexDictSize(ctx.program.allFunPtrTypes), (immutable size_t) =>
@@ -663,31 +677,35 @@ void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc wr
 	for (;;) {
 		Bool madeProgress = False;
 		Bool someIncomplete = False;
-		fullIndexDictEachKey(ctx.program.allFunPtrTypes, (immutable LowType.FunPtr funPtrIndex) {
-			immutable Bool curState = at(structStates.funPtrStates, funPtrIndex.index);
-			if (!curState) {
-				if (tryWriteFunPtrDeclaration(writer, ctx, structStates, funPtrIndex)) {
-					setAt(structStates.funPtrStates, funPtrIndex.index, True);
-					madeProgress = true;
-				} else
-					someIncomplete = true;
-			}
-		});
+		fullIndexDictEachKey!(LowType.FunPtr, LowFunPtrType)(
+			ctx.program.allFunPtrTypes,
+			(immutable LowType.FunPtr funPtrIndex) {
+				immutable Bool curState = at(structStates.funPtrStates, funPtrIndex.index);
+				if (!curState) {
+					if (tryWriteFunPtrDeclaration(writer, ctx, structStates, funPtrIndex)) {
+						setAt(structStates.funPtrStates, funPtrIndex.index, True);
+						madeProgress = true;
+					} else
+						someIncomplete = true;
+				}
+			});
 		//TODO: each over structStates.recordStates once that's a MutFullIndexDict
-		fullIndexDictEachKey(ctx.program.allRecords, (immutable LowType.Record recordIndex) {
-			immutable StructState curState = at(structStates.recordStates, recordIndex.index);
-			if (curState != StructState.defined) {
-				immutable StructState didWork = writeRecordDeclarationOrDefinition(
-					writer, ctx, structStates, curState, recordIndex);
-				if (didWork > curState) {
-					setAt(structStates.recordStates, recordIndex.index, didWork);
-					madeProgress = true;
-				} else
-					someIncomplete = true;
-			}
-		});
+		fullIndexDictEachKey!(LowType.Record, LowRecord)(
+			ctx.program.allRecords,
+			(immutable LowType.Record recordIndex) {
+				immutable StructState curState = at(structStates.recordStates, recordIndex.index);
+				if (curState != StructState.defined) {
+					immutable StructState didWork = writeRecordDeclarationOrDefinition(
+						writer, ctx, structStates, curState, recordIndex);
+					if (didWork > curState) {
+						setAt(structStates.recordStates, recordIndex.index, didWork);
+						madeProgress = true;
+					} else
+						someIncomplete = true;
+				}
+			});
 		//TODO: each over structStates.unionStates once that's a MutFullIndexDict
-		fullIndexDictEachKey(ctx.program.allUnions, (immutable LowType.Union unionIndex) {
+		fullIndexDictEachKey!(LowType.Union, LowUnion)(ctx.program.allUnions, (immutable LowType.Union unionIndex) {
 			immutable StructState curState = at(structStates.unionStates, unionIndex.index);
 			if (curState != StructState.defined) {
 				immutable StructState didWork = writeUnionDeclarationOrDefinition(
@@ -1272,7 +1290,7 @@ void writeArgs(Alloc)(
 	ref immutable FunBodyCtx ctx,
 	immutable Arr!LowExpr args,
 ) {
-	writeWithCommas(writer, args, (ref immutable LowExpr it) {
+	writeWithCommas!LowExpr(writer, args, (ref immutable LowExpr it) {
 		writeExprExpr(writer, indent, ctx, it);
 	});
 }
@@ -1433,7 +1451,7 @@ void writeEmptyValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref 
 			if (empty(fields)) {
 				writeChar(writer, '0');
 			} else {
-				writeWithCommas(writer, fields, (ref immutable LowField field) {
+				writeWithCommas!LowField(writer, fields, (ref immutable LowField field) {
 					writeEmptyValue(writer, ctx, field.type);
 				});
 			}

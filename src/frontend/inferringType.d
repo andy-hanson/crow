@@ -83,7 +83,7 @@ immutable(FileAndRange) rangeInFile2(ref const ExprCtx ctx, immutable RangeWithi
 	return rangeInFile(ctx.checkCtx, range);
 }
 
-ref ProgramState programState(ref ExprCtx ctx) {
+ref ProgramState programState(return scope ref ExprCtx ctx) {
 	return ctx.checkCtx.deref.programState.deref;
 }
 
@@ -91,7 +91,7 @@ void addDiag2(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable FileAndRange ra
 	addDiag(alloc, ctx.checkCtx.deref, range, diag);
 }
 
-ref immutable(ProgramState) programState(ref immutable ExprCtx ctx) {
+ref immutable(ProgramState) programState(return scope ref immutable ExprCtx ctx) {
 	return ctx.checkCtx.programState;
 }
 

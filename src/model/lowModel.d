@@ -444,13 +444,13 @@ struct LowFun {
 	immutable LowFunBody body_;
 
 	//TODO:NOT INSTANCE
-	ref immutable(LowType) returnType() immutable {
+	ref immutable(LowType) returnType() return scope immutable {
 		return sig.returnType;
 	}
-	ref immutable(LowFunParamsKind) paramsKind() immutable {
+	ref immutable(LowFunParamsKind) paramsKind() return scope immutable {
 		return sig.paramsKind;
 	}
-	ref immutable(Arr!LowParam) params() immutable {
+	ref immutable(Arr!LowParam) params() return scope immutable {
 		return sig.params;
 	}
 }

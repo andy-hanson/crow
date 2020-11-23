@@ -453,7 +453,7 @@ void writePack(Debug, Alloc)(
 	ref Debug dbg,
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable Arr!Nat8 sizes,
+	scope immutable Arr!Nat8 sizes,
 ) {
 	log(dbg, writer, "write pack");
 	verify(!empty(sizes));

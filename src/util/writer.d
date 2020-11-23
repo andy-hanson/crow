@@ -62,15 +62,15 @@ void writeInt(Alloc)(ref Writer!Alloc writer, immutable long i, immutable ulong 
 	writeNat(writer, abs(i), base);
 }
 
-void writeWithCommas(Alloc, T)(
+void writeWithCommas(T, Alloc)(
 	ref Writer!Alloc writer,
 	immutable Arr!T a,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	writeWithCommas(writer, a, False, cb);
+	writeWithCommas!(T, Alloc)(writer, a, False, cb);
 }
 
-void writeWithCommas(Alloc, T)(
+void writeWithCommas(T, Alloc)(
 	ref Writer!Alloc writer,
 	immutable Arr!T a,
 	immutable Bool leadingComma,
@@ -95,7 +95,7 @@ void writeWithCommas(Alloc)(
 	}
 }
 
-void writeWithNewlines(Alloc, T)(
+void writeWithNewlines(T, Alloc)(
 	ref Writer!Alloc writer,
 	ref immutable Arr!T a,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,

@@ -159,7 +159,7 @@ immutable(Purity) purity(immutable ConcreteType a) {
 	return a.struct_.purity;
 }
 
-immutable(Ptr!ConcreteStruct) mustBeNonPointer(immutable ConcreteType a) {
+ref immutable(Ptr!ConcreteStruct) mustBeNonPointer(return scope ref immutable ConcreteType a) {
 	verify(!a.isPointer);
 	return a.struct_;
 }
@@ -534,19 +534,19 @@ struct ConcreteFun {
 	Late!(immutable ConcreteFunBody) _body_;
 
 	//TODO: not instance
-	immutable(ConcreteType) returnType() immutable {
+	immutable(ConcreteType) returnType() return scope immutable {
 		return immutable ConcreteType(sig.returnTypeNeedsPtr, sig.returnStruct);
 	}
 
-	ref immutable(Bool) needsCtx() immutable {
+	immutable(Bool) needsCtx() immutable {
 		return sig.needsCtx;
 	}
 
-	ref immutable(Opt!(Ptr!ConcreteParam)) closureParam() immutable {
+	ref immutable(Opt!(Ptr!ConcreteParam)) closureParam() return scope immutable {
 		return sig.closureParam;
 	}
 
-	ref immutable(Arr!ConcreteParam) paramsExcludingCtxAndClosure() immutable {
+	ref immutable(Arr!ConcreteParam) paramsExcludingCtxAndClosure() return scope immutable {
 		return sig.paramsExcludingCtxAndClosure;
 	}
 }

@@ -573,15 +573,18 @@ void checkStructAliasTargets(Alloc)(
 	ref immutable Arr!StructAliasAst asts,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	zipFirstMut(aliases, asts, (ref StructAlias structAlias, ref immutable StructAliasAst ast) {
-		setTarget(structAlias, instStructFromAst!Alloc(
-			alloc,
-			ctx,
-			ast.target,
-			structsAndAliasesMap,
-			immutable TypeParamsScope(typeParams(structAlias)),
-			someMut!(Ptr!(MutArr!(Ptr!StructInst)))(ptrTrustMe_mut(delayStructInsts))));
-	});
+	zipFirstMut!(StructAlias, StructAliasAst)(
+		aliases,
+		asts,
+		(ref StructAlias structAlias, ref immutable StructAliasAst ast) {
+			setTarget(structAlias, instStructFromAst!Alloc(
+				alloc,
+				ctx,
+				ast.target,
+				structsAndAliasesMap,
+				immutable TypeParamsScope(typeParams(structAlias)),
+				someMut!(Ptr!(MutArr!(Ptr!StructInst)))(ptrTrustMe_mut(delayStructInsts))));
+		});
 }
 
 //TODO:MOVE
@@ -656,7 +659,7 @@ immutable(StructBody) checkRecord(Alloc)(
 			}
 			return immutable RecordField(rangeInFile(ctx, field.range), field.isMutable, field.name, fieldType, index);
 		});
-	everyPair(fields, (ref immutable RecordField a, ref immutable RecordField b) {
+	everyPair!RecordField(fields, (ref immutable RecordField a, ref immutable RecordField b) {
 		if (symEq(a.name, b.name))
 			addDiag(alloc, ctx, b.range,
 				immutable Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.field, a.name)));
@@ -689,7 +692,7 @@ immutable(StructBody) checkUnion(Alloc)(
 			return res;
 		});
 	if (has(members)) {
-		everyPairWithIndex(
+		everyPairWithIndex!(Ptr!StructInst)(
 			force(members),
 			// Must name the ignored parameter due to https://issues.dlang.org/show_bug.cgi?id=21165
 			(ref immutable Ptr!StructInst a,
@@ -715,22 +718,25 @@ void checkStructBodies(Alloc)(
 	ref immutable Arr!StructDeclAst asts,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	zipMutPtrFirst(structs, asts, (Ptr!StructDecl struct_, ref immutable StructDeclAst ast) {
-		immutable StructBody body_ = matchStructDeclAstBody!(immutable StructBody)(
-			ast.body_,
-			(ref immutable StructDeclAst.Body.Builtin) =>
-				immutable StructBody(immutable StructBody.Builtin()),
-			(ref immutable StructDeclAst.Body.ExternPtr) {
-				if (!empty(toArr(ast.typeParams)))
-					addDiag(alloc, ctx, ast.range, immutable Diag(immutable Diag.ExternPtrHasTypeParams()));
-				return immutable StructBody(immutable StructBody.ExternPtr());
-			},
-			(ref immutable StructDeclAst.Body.Record r) =>
-				checkRecord(alloc, ctx, structsAndAliasesMap, ptrAsImmutable(struct_), r, delayStructInsts),
-			(ref immutable StructDeclAst.Body.Union un) =>
-				checkUnion(alloc, ctx, structsAndAliasesMap, ptrAsImmutable(struct_), un, delayStructInsts));
-		setBody(struct_, body_);
-	});
+	zipMutPtrFirst!(StructDecl, StructDeclAst)(
+		structs,
+		asts,
+		(Ptr!StructDecl struct_, ref immutable StructDeclAst ast) {
+			immutable StructBody body_ = matchStructDeclAstBody!(immutable StructBody)(
+				ast.body_,
+				(ref immutable StructDeclAst.Body.Builtin) =>
+					immutable StructBody(immutable StructBody.Builtin()),
+				(ref immutable StructDeclAst.Body.ExternPtr) {
+					if (!empty(toArr(ast.typeParams)))
+						addDiag(alloc, ctx, ast.range, immutable Diag(immutable Diag.ExternPtrHasTypeParams()));
+					return immutable StructBody(immutable StructBody.ExternPtr());
+				},
+				(ref immutable StructDeclAst.Body.Record r) =>
+					checkRecord(alloc, ctx, structsAndAliasesMap, ptrAsImmutable(struct_), r, delayStructInsts),
+				(ref immutable StructDeclAst.Body.Union un) =>
+					checkUnion(alloc, ctx, structsAndAliasesMap, ptrAsImmutable(struct_), un, delayStructInsts));
+			setBody(struct_, body_);
+		});
 
 	foreach (ref immutable StructDecl struct_; arrRange(arrAsImmutable(structs))) {
 		matchStructBody!void(
@@ -845,7 +851,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 	foreach (ref const FunDecl f; arrRange(funs))
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.funNames, name(f));
 
-	zipMutPtrFirst(funs, asts, (Ptr!FunDecl fun, ref immutable FunDeclAst funAst) {
+	zipMutPtrFirst!(FunDecl, FunDeclAst)(funs, asts, (Ptr!FunDecl fun, ref immutable FunDeclAst funAst) {
 		overwriteMemory(&fun.body_, matchFunBodyAst(
 			funAst.body_,
 			(ref immutable FunBodyAst.Builtin) =>

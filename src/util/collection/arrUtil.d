@@ -95,7 +95,7 @@ immutable(Bool) exists(T)(
 	return False;
 }
 
-immutable(Bool) exists(T)(
+immutable(Bool) exists_const(T)(
 	scope const Arr!T arr,
 	scope immutable(Bool) delegate(ref const T) @safe @nogc pure nothrow cb,
 ) {

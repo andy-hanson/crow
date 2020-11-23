@@ -233,7 +233,7 @@ void writeSexprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
 		a,
 		(ref immutable SexprArr it) {
 			writeChar(writer, '[');
-			writeWithCommas(writer, it.arr, (ref immutable Sexpr em) {
+			writeWithCommas!Sexpr(writer, it.arr, (ref immutable Sexpr em) {
 				writeSexprJSON(writer, em);
 			});
 			writeChar(writer, ']');
@@ -268,7 +268,7 @@ void writeSexprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
 			writeStatic(writer, "{\"_type\":");
 			writeQuotedSym(writer, it.name);
 			writeStatic(writer, ",\"args\":[");
-			writeWithCommas(writer, it.children, (ref immutable Sexpr child) {
+			writeWithCommas!Sexpr(writer, it.children, (ref immutable Sexpr child) {
 				writeSexprJSON(writer, child);
 			});
 			writeStatic(writer, "]}");
@@ -469,7 +469,7 @@ void writeSexprArrSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Arr!S
 void writeSexprNamedRecordSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable SexprNamedRecord a) {
 	writeSym(writer, a.name);
 	writeChar(writer, '(');
-	writeWithCommas(writer, a.children, (ref immutable NameAndSexpr child) {
+	writeWithCommas!NameAndSexpr(writer, a.children, (ref immutable NameAndSexpr child) {
 		writeSym(writer, child.name);
 		writeStatic(writer, ": ");
 		writeSexprSingleLine(writer, child.value);
@@ -485,7 +485,7 @@ void writeSexprRecordSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Se
 }
 
 void writeCommaSeparatedChildren(Alloc)(ref Writer!Alloc writer, ref immutable Arr!Sexpr a) {
-	writeWithCommas(writer, a, (ref immutable Sexpr it) {
+	writeWithCommas!Sexpr(writer, a, (ref immutable Sexpr it) {
 		writeSexprSingleLine(writer, it);
 	});
 }

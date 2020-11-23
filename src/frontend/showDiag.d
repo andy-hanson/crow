@@ -73,7 +73,7 @@ immutable(Str) strOfDiagnostics(Alloc)(
 			comparePathAndStorageKind(
 				fullIndexDictGet(filePaths, a.where.fileIndex),
 				fullIndexDictGet(filePaths, b.where.fileIndex)));
-	writeWithNewlines(writer, sorted, (ref immutable Diagnostic it) {
+	writeWithNewlines!Diagnostic(writer, sorted, (ref immutable Diagnostic it) {
 		showDiagnostic(alloc, writer, options, diagnostics.filesInfo, it);
 	});
 	return finishWriter(writer);
@@ -279,7 +279,7 @@ void writeSig(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
 	writeChar(writer, ' ');
 	writeType(writer, s.returnType);
 	writeChar(writer, '(');
-	writeWithCommas(writer, s.params, (ref immutable Param p) {
+	writeWithCommas!Param(writer, s.params, (ref immutable Param p) {
 		writeType(writer, p.type);
 	});
 	writeChar(writer, ')');
@@ -389,7 +389,7 @@ void writeCallNoMatch(Alloc)(
 		}
 		if (hasArgs) {
 			writeStatic(writer, "\nactual argument types: ");
-			writeWithCommas(writer, d.actualArgTypes, (ref immutable Type t) {
+			writeWithCommas!Type(writer, d.actualArgTypes, (ref immutable Type t) {
 				writeType(writer, t);
 			});
 			if (size(d.actualArgTypes) < d.actualArity)
@@ -539,7 +539,7 @@ void writeDiag(TempAlloc, Alloc)(
 		},
 		(ref immutable Diag.MatchCaseStructNamesDoNotMatch d) {
 			writeStatic(writer, "expected the case names to be: ");
-			writeWithCommas(writer, d.unionMembers, (ref immutable Ptr!StructInst i) {
+			writeWithCommas!(Ptr!StructInst)(writer, d.unionMembers, (ref immutable Ptr!StructInst i) {
 				writeName(writer, decl(i).name);
 			});
 		},

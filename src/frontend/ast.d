@@ -296,23 +296,23 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 
 @trusted T matchExprAstKind(T)(
 	scope ref immutable ExprAstKind a,
-	scope immutable(T) delegate(scope ref immutable BogusAst) @safe @nogc pure nothrow cbBogus,
-	scope immutable(T) delegate(scope ref immutable CallAst) @safe @nogc pure nothrow cbCall,
-	scope immutable(T) delegate(scope ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
-	scope immutable(T) delegate(scope ref immutable CreateRecordAst) @safe @nogc pure nothrow cbCreateRecord,
+	scope immutable(T) delegate(ref immutable BogusAst) @safe @nogc pure nothrow cbBogus,
+	scope immutable(T) delegate(ref immutable CallAst) @safe @nogc pure nothrow cbCall,
+	scope immutable(T) delegate(ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
+	scope immutable(T) delegate(ref immutable CreateRecordAst) @safe @nogc pure nothrow cbCreateRecord,
 	scope immutable(T) delegate(
-		scope ref immutable CreateRecordMultiLineAst
+		ref immutable CreateRecordMultiLineAst
 	) @safe @nogc pure nothrow cbCreateRecordMultiLine,
-	scope immutable(T) delegate(scope ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
-	scope immutable(T) delegate(scope ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
-	scope immutable(T) delegate(scope ref immutable LetAst) @safe @nogc pure nothrow cbLet,
-	scope immutable(T) delegate(scope ref immutable LiteralAst) @safe @nogc pure nothrow cbLiteral,
-	scope immutable(T) delegate(scope ref immutable LiteralInnerAst) @safe @nogc pure nothrow cbLiteralInner,
-	scope immutable(T) delegate(scope ref immutable MatchAst) @safe @nogc pure nothrow cbMatch,
-	scope immutable(T) delegate(scope ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
-	scope immutable(T) delegate(scope ref immutable RecordFieldSetAst) @safe @nogc pure nothrow cbRecordFieldSet,
-	scope immutable(T) delegate(scope ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
-	scope immutable(T) delegate(scope ref immutable WhenAst) @safe @nogc pure nothrow cbWhen,
+	scope immutable(T) delegate(ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
+	scope immutable(T) delegate(ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
+	scope immutable(T) delegate(ref immutable LetAst) @safe @nogc pure nothrow cbLet,
+	scope immutable(T) delegate(ref immutable LiteralAst) @safe @nogc pure nothrow cbLiteral,
+	scope immutable(T) delegate(ref immutable LiteralInnerAst) @safe @nogc pure nothrow cbLiteralInner,
+	scope immutable(T) delegate(ref immutable MatchAst) @safe @nogc pure nothrow cbMatch,
+	scope immutable(T) delegate(ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
+	scope immutable(T) delegate(ref immutable RecordFieldSetAst) @safe @nogc pure nothrow cbRecordFieldSet,
+	scope immutable(T) delegate(ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
+	scope immutable(T) delegate(ref immutable WhenAst) @safe @nogc pure nothrow cbWhen,
 ) {
 	final switch (a.kind) {
 		case ExprAstKind.Kind.bogus:

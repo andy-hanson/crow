@@ -229,16 +229,16 @@ immutable(Bool) someInOwnBody(
 	if (cb(body_))
 		return True;
 
-	immutable(Bool) recur(scope ref immutable ExprAst sub) {
+	immutable(Bool) recur(ref immutable ExprAst sub) {
 		return someInOwnBody(sub, cb);
 	}
 
 	return matchExprAstKind!(immutable Bool)(
 		body_.kind,
 		(ref immutable BogusAst) => False,
-		(ref immutable CallAst e) => e.args.exists(&recur),
-		(ref immutable CreateArrAst e) => e.args.exists(&recur),
-		(ref immutable CreateRecordAst e) => e.args.exists(&recur),
+		(ref immutable CallAst e) => exists!ExprAst(e.args, &recur),
+		(ref immutable CreateArrAst e) => exists(e.args, &recur),
+		(ref immutable CreateRecordAst e) => exists(e.args, &recur),
 		(ref immutable CreateRecordMultiLineAst e) => unreachable!(immutable Bool),
 		(ref immutable IdentifierAst) => False,
 		(ref immutable LambdaAst) => False,

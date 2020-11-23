@@ -33,7 +33,7 @@ test-overwrite: bin/noze
 
 bin/noze: src/*.d src/*/*.d src/*/*/*.d
 	# Avoiding src/wasm.d
-	dmd -debug -g -ofbin/noze -betterC \
+	dmd -preview=dip25 -preview=dip1000 -debug -g -ofbin/noze -betterC \
 		src/app.d \
 		src/cli.d \
 		src/compiler.d \

@@ -172,10 +172,11 @@ private void applyInterpreterRestore(Extern)(ref Interpreter!Extern a, ref immut
 }
 
 private void showStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpreter!Extern a) {
-	return showDataArr(writer, asTempArr(a.dataStack));
+	immutable Arr!Nat64 stack = asTempArr(a.dataStack);
+	showDataArr(writer, stack);
 }
 
-@trusted void showDataArr(Alloc)(ref Writer!Alloc writer, immutable Arr!Nat64 values) {
+@trusted void showDataArr(Alloc)(ref Writer!Alloc writer, scope ref immutable Arr!Nat64 values) {
 	writeStatic(writer, "data: ");
 	foreach (immutable Nat64 value; range(values)) {
 		writeChar(writer, ' ');

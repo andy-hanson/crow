@@ -431,7 +431,7 @@ immutable(Ptr!StructDecl) decl(ref immutable StructInst i) {
 	return i.declAndArgs.decl;
 }
 
-immutable(Arr!Type) typeArgs(ref immutable StructInst i) {
+ref immutable(Arr!Type) typeArgs(return scope ref immutable StructInst i) {
 	return i.declAndArgs.typeArgs;
 }
 
@@ -887,7 +887,7 @@ private immutable(Comparison) compareCalled(ref immutable Called a, ref immutabl
 				(ref immutable SpecSig sb) => compareSpecSig(sa, sb)));
 }
 
-@trusted ref immutable(Sig) sig(ref immutable Called a) {
+@trusted ref immutable(Sig) sig(return scope ref immutable Called a) {
 	final switch (a.kind) {
 		case Called.Kind.funInst:
 			return a.funInst.sig;
@@ -908,11 +908,11 @@ immutable(Sym) name(ref immutable Called a) {
 		(ref immutable SpecSig s) => a.name);
 }
 
-ref immutable(Type) returnType(ref immutable Called a) {
+ref immutable(Type) returnType(return scope ref immutable Called a) {
 	return a.sig.returnType;
 }
 
-ref immutable(Arr!Param) params(ref immutable Called a) {
+ref immutable(Arr!Param) params(return scope ref immutable Called a) {
 	return a.sig.params;
 }
 
@@ -1003,35 +1003,35 @@ struct Module {
 
 	public:
 	//TODO:NOT INSTANCE
-	ref immutable(Arr!ModuleAndNameReferents) imports() immutable {
+	ref immutable(Arr!ModuleAndNameReferents) imports() return scope immutable {
 		return importsAndExports_.imports;
 	}
 
-	ref immutable(Arr!ModuleAndNameReferents) exports() immutable {
+	ref immutable(Arr!ModuleAndNameReferents) exports() return scope immutable {
 		return importsAndExports_.exports;
 	}
 
-	ref immutable(Arr!StructDecl) structs() immutable {
+	ref immutable(Arr!StructDecl) structs() return scope immutable {
 		return arrs_.structs;
 	}
 
-	ref immutable(Arr!SpecDecl) specs() immutable {
+	ref immutable(Arr!SpecDecl) specs() return scope immutable {
 		return arrs_.specs;
 	}
 
-	ref immutable(Arr!FunDecl) funs() immutable {
+	ref immutable(Arr!FunDecl) funs() return scope immutable {
 		return arrs_.funs;
 	}
 
-	ref immutable(StructsAndAliasesMap) structsAndAliasesMap() immutable {
+	ref immutable(StructsAndAliasesMap) structsAndAliasesMap() return scope immutable {
 		return dicts_.structsAndAliasesMap;
 	}
 
-	ref immutable(SpecsMap) specsMap() immutable {
+	ref immutable(SpecsMap) specsMap() return scope immutable {
 		return dicts_.specsMap;
 	}
 
-	ref immutable(FunsMap) funsMap() immutable {
+	ref immutable(FunsMap) funsMap() return scope immutable {
 		return dicts_.funsMap;
 	}
 }
@@ -1371,12 +1371,12 @@ struct Expr {
 	}
 }
 
-ref immutable(Type) elementType(ref immutable Expr.CreateArr a) {
+ref immutable(Type) elementType(return scope ref immutable Expr.CreateArr a) {
 	return only(typeArgs(a.arrType));
 }
 
 //TODO:KILL (just write field.type everywhere)
-immutable(Type) accessedFieldType(ref immutable Expr.RecordFieldAccess a) {
+ref immutable(Type) accessedFieldType(return scope ref immutable Expr.RecordFieldAccess a) {
 	return a.field.type;
 }
 

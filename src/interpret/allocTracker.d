@@ -4,7 +4,7 @@ module interpret.allocTracker;
 
 import util.bools : Bool, False, True;
 import util.collection.arr : range;
-import util.collection.arrUtil : exists;
+import util.collection.arrUtil : exists_const;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutDict : addToMutDict, mustDelete, MutDict, tempPairs;
 import util.ptr : comparePtrRaw, contains, PtrRange;
@@ -26,7 +26,7 @@ struct AllocTracker {
 	}
 
 	immutable(Bool) hasAllocedPtr(ref const PtrRange range) const {
-		return exists(tempPairs(allocations), (ref const KeyValuePair!(const ubyte*, immutable size_t) pair) =>
+		return exists_const(tempPairs(allocations), (ref const KeyValuePair!(const ubyte*, immutable size_t) pair) =>
 			ptrInRange(pair, range));
 	}
 

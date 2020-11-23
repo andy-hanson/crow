@@ -522,8 +522,8 @@ immutable(ConcreteExpr) concretizeMatch(Alloc)(
 	ref immutable Expr.Match e,
 ) {
 	immutable ConcreteExpr matched = concretizeExpr(alloc, ctx, e.matched);
-	immutable Ptr!ConcreteStruct matchedUnion =
-		mustBeNonPointer(getConcreteType_forStructInst(alloc, ctx, e.matchedUnion));
+	immutable ConcreteType ct = getConcreteType_forStructInst(alloc, ctx, e.matchedUnion);
+	immutable Ptr!ConcreteStruct matchedUnion = mustBeNonPointer(ct);
 	immutable ConcreteType type = getConcreteType(alloc, ctx, e.type);
 	if (isConstant(matched)) {
 		immutable Constant.Union u = asUnion(asConstant(matched));

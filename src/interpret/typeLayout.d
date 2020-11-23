@@ -52,14 +52,18 @@ immutable(TypeLayout) layOutTypes(Alloc)(ref Alloc alloc, ref immutable LowProgr
 		newFullIndexDictBuilder!(LowType.Record, Nat8)(alloc, fullIndexDictSize(program.allRecords)),
 		newFullIndexDictBuilder!(LowType.Record, Arr!Nat8)(alloc, fullIndexDictSize(program.allRecords)),
 		newFullIndexDictBuilder!(LowType.Union, Nat8)(alloc, fullIndexDictSize(program.allUnions)));
-	fullIndexDictEach(program.allRecords, (immutable LowType.Record index, ref immutable LowRecord record) {
-		if (!fullIndexDictBuilderHas(builder.recordSizes, index))
-			fillRecordSize!Alloc(alloc, program, index, record, builder);
-	});
-	fullIndexDictEach(program.allUnions, (immutable LowType.Union index, ref immutable LowUnion union_) {
-		if (!fullIndexDictBuilderHas(builder.unionSizes, index))
-			fillUnionSize!Alloc(alloc, program, index, union_, builder);
-	});
+	fullIndexDictEach!(LowType.Record, LowRecord)(
+		program.allRecords,
+		(immutable LowType.Record index, ref immutable LowRecord record) {
+			if (!fullIndexDictBuilderHas(builder.recordSizes, index))
+				fillRecordSize!Alloc(alloc, program, index, record, builder);
+		});
+	fullIndexDictEach!(LowType.Union, LowUnion)(
+		program.allUnions,
+		(immutable LowType.Union index, ref immutable LowUnion union_) {
+			if (!fullIndexDictBuilderHas(builder.unionSizes, index))
+				fillUnionSize!Alloc(alloc, program, index, union_, builder);
+		});
 	return immutable TypeLayout(
 		finishFullIndexDict(builder.recordSizes),
 		finishFullIndexDict(builder.recordFieldOffsets),

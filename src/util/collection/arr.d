@@ -49,7 +49,7 @@ immutable(Arr!T) asImmutable(T)(Arr!(immutable T) a) {
 	return immutable Arr!T(cast(immutable) a.begin_, a.size_);
 }
 
-@trusted immutable(Arr!T) arrOfD(T)(scope immutable T[] a) {
+@trusted immutable(Arr!T) arrOfD(T)(return scope immutable T[] a) {
 	return immutable Arr!T(a.ptr, a.length);
 }
 
@@ -96,7 +96,7 @@ immutable(Bool) empty(T)(const Arr!T a) {
 	return Bool(a.size == 0);
 }
 
-@trusted Ptr!T ptrAt(T)(Arr!T a, immutable size_t index) {
+@trusted Ptr!T ptrAt(T)(return scope ref Arr!T a, immutable size_t index) {
 	verify(index < a.size_);
 	return Ptr!T(a.begin_ + index);
 }
@@ -111,10 +111,12 @@ immutable(Bool) empty(T)(const Arr!T a) {
 	return immutable Ptr!T(a.begin_ + index);
 }
 @trusted ref T at(T)(ref Arr!T a, immutable size_t index) {
-	return ptrAt(a, index).deref;
+	verify(index < a.size_);
+	return a.begin_[index];
 }
 @trusted ref const(T) at(T)(ref const Arr!T a, immutable size_t index) {
-	return ptrAt(a, index).deref;
+	verify(index < a.size_);
+	return a.begin_[index];
 }
 @trusted ref immutable(T) at(T)(ref immutable Arr!T a, immutable Nat8 index) {
 	return at(a, index.raw());
@@ -122,8 +124,9 @@ immutable(Bool) empty(T)(const Arr!T a) {
 @trusted ref immutable(T) at(T)(ref immutable Arr!T a, immutable Nat32 index) {
 	return at(a, index.raw());
 }
-@trusted ref immutable(T) at(T)(ref immutable Arr!T a, immutable size_t index) {
-	return ptrAt(a, index).deref;
+@trusted ref immutable(T) at(T)(return scope ref immutable Arr!T a, immutable size_t index) {
+	verify(index < a.size_);
+	return a.begin_[index];
 }
 
 @trusted void setAt(T)(ref Arr!T a, immutable size_t index, T value) {
@@ -131,7 +134,7 @@ immutable(Bool) empty(T)(const Arr!T a) {
 	overwriteMemory(a.begin_ + index, value);
 }
 
-ref immutable(T) first(T)(immutable Arr!T a) {
+ref immutable(T) first(T)(return scope ref immutable Arr!T a) {
 	return at(a, 0);
 }
 ref const(T) first(T)(const Arr!T a) {
@@ -141,7 +144,7 @@ ref T first(T)(Arr!T a) {
 	return at(a, 0);
 }
 
-ref immutable(T) only(T)(immutable Arr!T a) {
+ref immutable(T) only(T)(return scope ref immutable Arr!T a) {
 	verify(size(a) == 1);
 	return first(a);
 }

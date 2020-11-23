@@ -14,6 +14,7 @@ import model.lowModel :
 	LowFun,
 	LowFunBody,
 	LowFunExprBody,
+	LowFunIndex,
 	LowFunPtrType,
 	LowParam,
 	LowProgram,
@@ -35,7 +36,7 @@ import util.util : todo, verify;
 
 void checkLowProgram(ref immutable LowProgram a) {
 	immutable Ctx ctx = immutable Ctx(ptrTrustMe(a));
-	fullIndexDictEachValue(a.allFuns, (ref immutable LowFun fun) {
+	fullIndexDictEachValue!(LowFunIndex, LowFun)(a.allFuns, (ref immutable LowFun fun) {
 		checkLowFun(ctx, fun);
 	});
 }
@@ -69,13 +70,13 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 			immutable Ptr!LowFun fun = fullIndexDictGetPtr(ctx.ctx.program.allFuns, it.called);
 			checkTypeEqual(ctx.ctx, type, fun.returnType);
 			verify(sizeEq(fun.params, it.args));
-			zip(fun.params, it.args, (ref immutable LowParam param, ref immutable LowExpr arg) {
+			zip!(LowParam, LowExpr)(fun.params, it.args, (ref immutable LowParam param, ref immutable LowExpr arg) {
 				checkLowExpr(ctx, param.type, arg);
 			});
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			immutable Arr!LowField fields = fullIndexDictGet(ctx.ctx.program.allRecords, asRecordType(type)).fields;
-			zip(fields, it.args, (ref immutable LowField field, ref immutable LowExpr arg) {
+			zip!(LowField, LowExpr)(fields, it.args, (ref immutable LowField field, ref immutable LowExpr arg) {
 				checkLowExpr(ctx, field.type, arg);
 			});
 		},
@@ -91,14 +92,17 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 				fullIndexDictGetPtr(ctx.ctx.program.allFunPtrTypes, asFunPtrType(type));
 			verify(sizeEq(fun.params, funType.paramTypes));
 			size_t index = 0;
-			zip(fun.params, funType.paramTypes, (ref immutable LowParam param, ref immutable LowType paramType) {
-				// TODO: this is failing for lambda closure,
-				// which is any-ptr in the function type and has a better type in the function
-				if (index != 1) {
-					checkTypeEqual(ctx.ctx, param.type, paramType);
-				}
-				index++;
-			});
+			zip!(LowParam, LowType)(
+				fun.params,
+				funType.paramTypes,
+				(ref immutable LowParam param, ref immutable LowType paramType) {
+					// TODO: this is failing for lambda closure,
+					// which is any-ptr in the function type and has a better type in the function
+					if (index != 1) {
+						checkTypeEqual(ctx.ctx, param.type, paramType);
+					}
+					index++;
+				});
 		},
 		(ref immutable LowExprKind.Let it) {
 			checkLowExpr(ctx, it.local.type, it.value);
@@ -109,7 +113,7 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 		},
 		(ref immutable LowExprKind.Match it) {
 			checkLowExpr(ctx, it.matchedLocal.type, it.matchedValue);
-			zip(
+			zip!(LowType, LowExprKind.Match.Case)(
 				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(it.matchedLocal.type)).members,
 				it.cases,
 				(ref immutable LowType memberType, ref immutable LowExprKind.Match.Case case_) {
@@ -182,7 +186,7 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 						fullIndexDictGetPtr(ctx.ctx.program.allFunPtrTypes, asFunPtrType(funPtr.type));
 					checkTypeEqual(ctx.ctx, type, funPtrType.returnType);
 					verify(sizeEq(funPtrType.paramTypes, tail(it.args)));
-					zip(
+					zip!(LowType, LowExpr)(
 						funPtrType.paramTypes,
 						tail(it.args),
 						(ref immutable LowType paramType, ref immutable LowExpr arg) {

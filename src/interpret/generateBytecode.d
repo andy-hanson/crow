@@ -141,10 +141,12 @@ immutable(ByteCode) generateBytecode(Debug, CodeAlloc, TempAlloc)(
 				return funPos;
 		});
 
-	fullIndexDictEach(funToDefinition, (immutable LowFunIndex index, ref immutable ByteCodeIndex definition) {
-		foreach (immutable ByteCodeIndex reference; range(mutIndexMultiDictMustGetAt(funToReferences, index)))
-			fillDelayedCall(writer, reference, definition);
-	});
+	fullIndexDictEach!(LowFunIndex, ByteCodeIndex)(
+		funToDefinition,
+		(immutable LowFunIndex index, ref immutable ByteCodeIndex definition) {
+			foreach (immutable ByteCodeIndex reference; range(mutIndexMultiDictMustGetAt(funToReferences, index)))
+				fillDelayedCall(writer, reference, definition);
+		});
 
 	return finishByteCode(
 		writer,
