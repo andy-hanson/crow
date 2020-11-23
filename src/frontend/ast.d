@@ -706,23 +706,19 @@ immutable(Sexpr) sexprOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
 private:
 
 immutable(Sexpr) sexprOfImportsOrExports(Alloc)(ref Alloc alloc, ref immutable ImportsOrExportsAst a) {
-	return tataRecord(
-		alloc,
-		"ports",
+	return tataRecord(alloc, "ports", [
 		sexprOfRangeWithinFile(alloc, a.range),
 		tataArr(alloc, a.paths, (ref immutable ImportAst a) =>
-			sexprOfImportAst(alloc, a)));
+			sexprOfImportAst(alloc, a))]);
 }
 
 immutable(Sexpr) sexprOfImportAst(Alloc)(ref Alloc alloc, ref immutable ImportAst a) {
-	return tataRecord(
-		alloc,
-		"import-ast",
+	return tataRecord(alloc, "import-ast", [
 		tataNat(a.nDots),
 		tataStr(pathToStr(alloc, emptyStr, a.path, emptyStr)),
 		tataOpt(alloc, a.names, (ref immutable Arr!Sym names) =>
 			tataArr(alloc, names, (ref immutable Sym name) =>
-				tataSym(name))));
+				tataSym(name)))]);
 }
 
 immutable(Sexpr) sexprOfSpecDeclAst(Alloc)(ref Alloc alloc, ref immutable SpecDeclAst a) {
@@ -735,11 +731,9 @@ immutable(Sexpr) sexprOfStructAliasAst(Alloc)(ref Alloc alloc, ref immutable Str
 
 immutable(Sexpr) sexprOfOptPurity(Alloc)(ref Alloc alloc, immutable Opt!PuritySpecifierAndRange purity) {
 	return tataOpt(alloc, purity, (ref immutable PuritySpecifierAndRange it) =>
-		tataRecord(
-			alloc,
-			"purity",
+		tataRecord(alloc, "purity", [
 			tataNat(it.start),
-			tataSym(symOfPuritySpecifier(it.specifier))));
+			tataSym(symOfPuritySpecifier(it.specifier))]));
 }
 
 immutable(Sexpr) sexprOfOptExplicitByValOrRefAndRange(Alloc)(
@@ -747,38 +741,28 @@ immutable(Sexpr) sexprOfOptExplicitByValOrRefAndRange(Alloc)(
 	ref immutable Opt!ExplicitByValOrRefAndRange a,
 ) {
 	return tataOpt(alloc, a, (ref immutable ExplicitByValOrRefAndRange it) =>
-		tataRecord(
-			alloc,
-			"by-val-ref",
-			tataNat(it.start),
-			tataSym(symOfExplicitByValOrRef(it.byValOrRef))));
+		tataRecord(alloc, "by-val-ref", [tataNat(it.start), tataSym(symOfExplicitByValOrRef(it.byValOrRef))]));
 }
 
 immutable(Sexpr) sexprOfField(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Record.Field a) {
-	return tataRecord(
-		alloc,
-		"field",
+	return tataRecord(alloc, "field", [
 		sexprOfRangeWithinFile(alloc, a.range),
 		tataBool(a.isMutable),
 		tataSym(a.name),
-		sexprOfTypeAst(alloc, a.type));
+		sexprOfTypeAst(alloc, a.type)]);
 }
 
 immutable(Sexpr) sexprOfRecord(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Record a) {
-	return tataRecord(
-		alloc,
-		"record",
+	return tataRecord(alloc, "record", [
 		sexprOfOptExplicitByValOrRefAndRange(alloc, a.explicitByValOrRef),
 		tataArr(alloc, a.fields, (ref immutable StructDeclAst.Body.Record.Field it) =>
-			sexprOfField(alloc, it)));
+			sexprOfField(alloc, it))]);
 }
 
 immutable(Sexpr) sexprOfUnion(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Union a) {
-	return tataRecord(
-		alloc,
-		"union",
+	return tataRecord(alloc, "union", [
 		tataArr(alloc, a.members, (ref immutable TypeAst.InstStruct member) =>
-			sexprOfInstStructAst(alloc, member)));
+			sexprOfInstStructAst(alloc, member))]);
 }
 
 immutable(Sexpr) sexprOfStructBodyAst(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body a) {
@@ -795,15 +779,13 @@ immutable(Sexpr) sexprOfStructBodyAst(Alloc)(ref Alloc alloc, ref immutable Stru
 }
 
 immutable(Sexpr) sexprOfStructDeclAst(Alloc)(ref Alloc alloc, ref immutable StructDeclAst a) {
-	return tataRecord(
-		alloc,
-		"struct",
+	return tataRecord(alloc, "struct", [
 		sexprOfRangeWithinFile(alloc, a.range),
 		tataBool(a.isPublic),
 		tataArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst a) =>
 			sexprOfTypeParamAst(alloc, a)),
 		sexprOfOptPurity(alloc, a.purity),
-		sexprOfStructBodyAst(alloc, a.body_));
+		sexprOfStructBodyAst(alloc, a.body_)]);
 }
 
 immutable(Sexpr) sexprOfFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDeclAst a) {
@@ -831,21 +813,15 @@ immutable(Sexpr) sexprOfFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDecl
 }
 
 immutable(Sexpr) sexprOfTypeParamAst(Alloc)(ref Alloc alloc, ref immutable TypeParamAst a) {
-	return tataRecord(
-		alloc,
-		"type-param",
-		sexprOfRangeWithinFile(alloc, a.range),
-		tataSym(a.name));
+	return tataRecord(alloc, "type-param", [sexprOfRangeWithinFile(alloc, a.range), tataSym(a.name)]);
 }
 
 immutable(Sexpr) sexprOfSig(Alloc)(ref Alloc alloc, ref immutable SigAst a) {
-	return tataRecord(
-		alloc,
-		"sig-ast",
+	return tataRecord(alloc, "sig-ast", [
 		sexprOfRangeWithinFile(alloc, a.range),
 		tataSym(a.name),
 		sexprOfTypeAst(alloc, a.returnType),
-		tataArr(alloc, toArr(a.params), (ref immutable ParamAst p) => sexprOfParamAst(alloc, p)));
+		tataArr(alloc, toArr(a.params), (ref immutable ParamAst p) => sexprOfParamAst(alloc, p))]);
 }
 
 immutable(Sexpr) sexprOfSpecUseAst(Alloc)(ref Alloc alloc, ref immutable SpecUseAst a) {
@@ -856,7 +832,7 @@ immutable(Sexpr) sexprOfTypeAst(Alloc)(ref Alloc alloc, ref immutable TypeAst a)
 	return matchTypeAst!(immutable Sexpr)(
 		a,
 		(ref immutable TypeAst.TypeParam p) =>
-			tataRecord(alloc, "type-param", sexprOfRangeWithinFile(alloc, p.range), tataSym(p.name)),
+			tataRecord(alloc, "type-param", [sexprOfRangeWithinFile(alloc, p.range), tataSym(p.name)]),
 		(ref immutable TypeAst.InstStruct i) =>
 			sexprOfInstStructAst(alloc, i));
 }
@@ -872,18 +848,16 @@ immutable(Sexpr) sexprOfInstStructAst(Alloc)(ref Alloc alloc, ref immutable Type
 	immutable Opt!Sexpr typeArgs = empty(toArr(a.typeArgs))
 		? none!Sexpr
 		: some(tataArr(alloc, toArr(a.typeArgs), (ref immutable TypeAst t) => sexprOfTypeAst(alloc, t)));
-	return tataRecord(
-		"inststruct",
-		has(typeArgs) ? arrLiteral!Sexpr(alloc, range, name, force(typeArgs)) : arrLiteral!Sexpr(alloc, range, name));
+	return tataRecord("inststruct", has(typeArgs)
+		? arrLiteral!Sexpr(alloc, [range, name, force(typeArgs)])
+		: arrLiteral!Sexpr(alloc, [range, name]));
 }
 
 immutable(Sexpr) sexprOfParamAst(Alloc)(ref Alloc alloc, ref immutable ParamAst a) {
-	return tataRecord(
-		alloc,
-		"param",
+	return tataRecord(alloc, "param", [
 		sexprOfRangeWithinFile(alloc, a.range),
 		sexprOfNameAndRange(alloc, a.name),
-		sexprOfTypeAst(alloc, a.type));
+		sexprOfTypeAst(alloc, a.type)]);
 }
 
 immutable(Sexpr) sexprOfFunBodyAst(Alloc)(ref Alloc alloc, ref immutable FunBodyAst a) {
@@ -893,7 +867,7 @@ immutable(Sexpr) sexprOfFunBodyAst(Alloc)(ref Alloc alloc, ref immutable FunBody
 			tataRecord("builtin"),
 		(ref immutable FunBodyAst.Extern e) {
 			immutable Sexpr isGlobal = tataBool(e.isGlobal);
-			return tataRecord(alloc, "extern", isGlobal, tataStr(e.externName));
+			return tataRecord(alloc, "extern", [isGlobal, tataStr(e.externName)]);
 		},
 		(ref immutable ExprAst e) =>
 			sexprOfExprAst(alloc, e));
@@ -904,7 +878,7 @@ immutable(Sexpr) sexprOfExprAst(Alloc)(ref Alloc alloc, ref immutable ExprAst as
 }
 
 immutable(Sexpr) sexprOfNameAndRange(Alloc)(ref Alloc alloc, immutable NameAndRange a) {
-	return tataRecord(alloc, "name-range", tataNat(a.start), tataSym(a.name));
+	return tataRecord(alloc, "name-range", [tataNat(a.start), tataSym(a.name)]);
 }
 
 immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKind ast) {
@@ -913,60 +887,44 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 		(ref immutable BogusAst e) =>
 			tataSym( "bogus"),
 		(ref immutable CallAst e) =>
-			tataRecord(
-				alloc,
-				"call",
+			tataRecord(alloc, "call", [
 				tataSym(symOfCallAstStyle(e.style)),
 				sexprOfNameAndRange(alloc, e.funName),
 				tataArr(alloc, toArr(e.typeArgs), (ref immutable TypeAst it) =>
 					sexprOfTypeAst(alloc, it)),
 				tataArr(alloc, e.args, (ref immutable ExprAst it) =>
-					sexprOfExprAst(alloc, it))),
+					sexprOfExprAst(alloc, it))]),
 		(ref immutable CreateArrAst e) =>
-			tataRecord(
-				alloc,
-				"create-arr",
+			tataRecord(alloc, "create-arr", [
 				tataOpt(alloc,  e.elementType, (ref immutable Ptr!TypeAst it) =>
 					sexprOfTypeAst(alloc, it)),
 				tataArr(alloc, e.args, (ref immutable ExprAst it) =>
-					sexprOfExprAst(alloc, it))),
+					sexprOfExprAst(alloc, it))]),
 		(ref immutable CreateRecordAst a) =>
-			tataRecord(
-				alloc,
-				"new-record",
+			tataRecord(alloc, "new-record", [
 				sexprOfOptTypeAst(alloc, a.type),
 				tataArr(alloc, a.args, (ref immutable ExprAst it) =>
-					sexprOfExprAst(alloc, it))),
+					sexprOfExprAst(alloc, it))]),
 		(ref immutable CreateRecordMultiLineAst a) =>
-			tataRecord(
-				alloc,
-				"new-record",
+			tataRecord(alloc, "new-record", [
 				sexprOfOptTypeAst(alloc, a.type),
 				tataArr(alloc, a.lines, (ref immutable CreateRecordMultiLineAst.Line it) =>
-					tataRecord(
-						alloc,
-						"line",
+					tataRecord(alloc, "line", [
 						sexprOfNameAndRange(alloc, it.name),
-						sexprOfExprAst(alloc, it.value)))),
+						sexprOfExprAst(alloc, it.value)]))]),
 		(ref immutable IdentifierAst a)  =>
 			tataSym(a.name),
 		(ref immutable LambdaAst a) =>
-			tataRecord(
-				alloc,
-				"lambda",
+			tataRecord(alloc, "lambda", [
 				tataArr(alloc, a.params, (ref immutable LambdaAst.Param it) =>
-					sexprOfNameAndRange(alloc, it))),
+					sexprOfNameAndRange(alloc, it))]),
 		(ref immutable LetAst a) =>
-			tataRecord(
-				alloc,
-				"let",
+			tataRecord(alloc, "let", [
 				sexprOfNameAndRange(alloc, a.name),
 				sexprOfExprAst(alloc, a.initializer),
-				sexprOfExprAst(alloc, a.then)),
+				sexprOfExprAst(alloc, a.then)]),
 		(ref immutable LiteralAst a) =>
-			tataRecord(
-				alloc,
-				"literal",
+			tataRecord(alloc, "literal", [
 				tataSym(() {
 					final switch (a.literalKind) {
 						case LiteralAst.Kind.numeric:
@@ -975,57 +933,43 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 							return "string";
 					}
 				}()),
-				tataStr(a.literal)),
+				tataStr(a.literal)]),
 		(ref immutable LiteralInnerAst) =>
 			// Only used temporarily; should never need to print this
 			unreachable!(immutable Sexpr),
 		(ref immutable MatchAst it) =>
-			tataRecord(
-				alloc,
-				"match",
+			tataRecord(alloc, "match", [
 				tataOpt(alloc, it.matched, (ref immutable Ptr!ExprAst matched) =>
 					sexprOfExprAst(alloc, matched)),
 				tataArr(alloc, it.cases, (ref immutable MatchAst.CaseAst case_) =>
-					tataRecord(
-						alloc,
-						"case",
+					tataRecord(alloc, "case", [
 						sexprOfRangeWithinFile(alloc, case_.range),
 						sexprOfNameAndRange(alloc, case_.structName),
 						tataOpt(alloc, case_.local, (ref immutable NameAndRange nr) =>
 							sexprOfNameAndRange(alloc, nr)),
-						sexprOfExprAst(alloc, case_.then)))),
+						sexprOfExprAst(alloc, case_.then)]))]),
 		(ref immutable SeqAst a) =>
-			tataRecord(
-				alloc,
-				"seq-ast",
+			tataRecord(alloc, "seq-ast", [
 				sexprOfExprAst(alloc, a.first),
-				sexprOfExprAst(alloc, a.then)),
+				sexprOfExprAst(alloc, a.then)]),
 		(ref immutable RecordFieldSetAst it) =>
-			tataRecord(
-				alloc,
-				"field-set",
+			tataRecord(alloc, "field-set", [
 				sexprOfExprAst(alloc, it.target),
 				sexprOfNameAndRange(alloc, it.fieldName),
-				sexprOfExprAst(alloc, it.value)),
+				sexprOfExprAst(alloc, it.value)]),
 		(ref immutable ThenAst it) =>
-			tataRecord(
-				alloc,
-				"then-ast",
+			tataRecord(alloc, "then-ast", [
 				sexprOfNameAndRange(alloc, it.left),
 				sexprOfExprAst(alloc, it.futExpr),
-				sexprOfExprAst(alloc, it.then)),
+				sexprOfExprAst(alloc, it.then)]),
 		(ref immutable WhenAst e) =>
-			tataRecord(
-				alloc,
-				"when",
+			tataRecord(alloc, "when", [
 				tataArr(alloc, e.cases, (ref immutable WhenAst.Case case_) =>
-					tataRecord(
-						alloc,
-						"case",
+					tataRecord(alloc, "case", [
 						sexprOfExprAst(alloc, case_.cond),
-						sexprOfExprAst(alloc, case_.then))),
+						sexprOfExprAst(alloc, case_.then)])),
 				tataOpt(alloc, e.else_, (ref immutable Ptr!ExprAst it) =>
-					sexprOfExprAst(alloc, it))));
+					sexprOfExprAst(alloc, it))]));
 }
 
 immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {

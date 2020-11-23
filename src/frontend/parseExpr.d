@@ -175,7 +175,7 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 	if (tookDot) {
 		immutable CallAst call = immutable CallAst(
-			CallAst.Style.dot, funName, typeArgs, arrLiteral!ExprAst(alloc, target));
+			CallAst.Style.dot, funName, typeArgs, arrLiteral!ExprAst(alloc, [target]));
 		return noDedent(immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
 	} else {
 		immutable ArgsAndMaybeDedent args = parseArgs(alloc, lexer, ArgCtx(allowBlock, tookColon));
@@ -269,7 +269,7 @@ immutable(ExprAst) tryParseDots(Alloc, SymAlloc)(
 		immutable NameAndRange name = takeNameAndRange(alloc, lexer);
 		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
 		immutable CallAst call = immutable CallAst(
-			CallAst.Style.dot, name, typeArgs, arrLiteral!ExprAst(alloc, initial));
+			CallAst.Style.dot, name, typeArgs, arrLiteral!ExprAst(alloc, [initial]));
 		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
 		return tryParseDots(alloc, lexer, expr);
 	} else
@@ -554,7 +554,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			immutable Ptr!ExprAst body_ = allocExpr(alloc, parseExprNoBlock(alloc, lexer));
 			takeOrAddDiagExpected(alloc, lexer, '}', ParseDiag.Expected.Kind.closingBrace);
 			immutable Arr!(LambdaAst.Param) params = bodyUsesIt(body_)
-				? arrLiteral!(LambdaAst.Param)(alloc, immutable LambdaAst.Param(start, shortSymAlphaLiteral("it")))
+				? arrLiteral!(LambdaAst.Param)(alloc, [immutable LambdaAst.Param(start, shortSymAlphaLiteral("it"))])
 				: emptyArr!(LambdaAst.Param);
 			immutable ExprAst expr = immutable ExprAst(
 				getRange(),

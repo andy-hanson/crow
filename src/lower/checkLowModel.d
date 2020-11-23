@@ -207,7 +207,7 @@ immutable(Sexpr) tataOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, i
 		(immutable LowType.FunPtr) =>
 			todo!(immutable Sexpr)("tataOfLowType"),
 		(immutable LowType.NonFunPtr it) =>
-			tataRecord(alloc, "ptr", tataOfLowType2(alloc, ctx, it.pointee)),
+			tataRecord(alloc, "ptr", [tataOfLowType2(alloc, ctx, it.pointee)]),
 		(immutable PrimitiveType it) =>
 			tataSym(symOfPrimitiveType(it)),
 		(immutable LowType.Record it) =>

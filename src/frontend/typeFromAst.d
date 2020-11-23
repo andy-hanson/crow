@@ -167,7 +167,7 @@ immutable(Type) makeFutType(Alloc)(
 	return immutable Type(instantiateStructNeverDelay(
 		alloc,
 		programState,
-		immutable StructDeclAndArgs(commonTypes.fut, arrLiteral!Type(alloc, type))));
+		immutable StructDeclAndArgs(commonTypes.fut, arrLiteral!Type(alloc, [type]))));
 }
 
 private:

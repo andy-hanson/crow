@@ -112,6 +112,11 @@ immutable(Sexpr) sexprOfAstAndParseDiagnostics(Alloc)(ref Alloc alloc, ref immut
 struct WasmDebug {
 	@safe @nogc pure nothrow:
 
+	bool enabled() {
+		// Enable this if there's a bug, but don't want it slowing things down otherwise
+		return false;
+	}
+
 	void log(immutable Str s) {
 		foreach (immutable char c; range(s))
 			logChar(c);

@@ -97,7 +97,6 @@ export const NozeRunnable = makeCustomElement({
 				? `${outputClass.name} ${outputOkClass.name}`
 				: `${outputClass.name} ${outputErrClass.name}`
 		})
-		b.onclick()
 
 		const outerContainer = div({class:outerContainerClass}, [nozeTextContainer, output, b])
 		root.append(outerContainer)

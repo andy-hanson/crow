@@ -62,14 +62,13 @@ immutable(LowFun) generateCompareFun(Alloc)(
 	immutable Bool typeIsArr,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
-	immutable Arr!LowParam params = arrLiteral!LowParam(
-		alloc,
+	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [
 		immutable LowParam(
 			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("a"))),
 			paramType),
 		immutable LowParam(
 			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("b"))),
-			paramType));
+			paramType)]);
 	immutable LowExpr a = paramRef(range, paramType, immutable LowParamIndex(0));
 	immutable LowExpr b = paramRef(range, paramType, immutable LowParamIndex(1));
 	immutable LowFunExprBody body_ = typeIsArr
@@ -124,7 +123,7 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 		immutable LowExpr curData = genGetData(arr);
 		immutable LowExpr newSize = decrNat64(alloc, range, curSize);
 		immutable LowExpr newData = incrPointer(alloc, range, elementPtrType, curData);
-		return genCreateRecord(range, arrRecordType, arrLiteral!LowExpr(alloc, newSize, newData));
+		return genCreateRecord(range, arrRecordType, arrLiteral!LowExpr(alloc, [newSize, newData]));
 	}
 	immutable(LowExpr) genFirst(ref immutable LowExpr arr) {
 		return genDeref(alloc, range, genGetData(arr));
@@ -141,7 +140,7 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 	immutable LowExpr recurOnTail = immutable LowExpr(
 		immutable LowType(comparisonTypes.comparison),
 		range,
-		immutable LowExprKind(immutable LowExprKind.TailRecur(arrLiteral!LowExpr(alloc, genTail(a), genTail(b)))));
+		immutable LowExprKind(immutable LowExprKind.TailRecur(arrLiteral!LowExpr(alloc, [genTail(a), genTail(b)]))));
 	immutable LowExpr firstThenRecur = combineCompares(
 		alloc,
 		range,
@@ -182,11 +181,10 @@ immutable(LowExpr) combineCompares(Alloc)(
 	immutable LowExpr compareFirst,
 	immutable LowExpr compareSecond,
 ) {
-	immutable Arr!(LowExprKind.Match.Case) cases = arrLiteral!(LowExprKind.Match.Case)(
-		alloc,
+	immutable Arr!(LowExprKind.Match.Case) cases = arrLiteral!(LowExprKind.Match.Case)(alloc, [
 		immutable LowExprKind.Match.Case(none!(Ptr!LowLocal), genComparisonLess(alloc, range, comparisonTypes)),
 		immutable LowExprKind.Match.Case(none!(Ptr!LowLocal), compareSecond),
-		immutable LowExprKind.Match.Case(none!(Ptr!LowLocal), genComparisonGreater(alloc, range, comparisonTypes)));
+		immutable LowExprKind.Match.Case(none!(Ptr!LowLocal), genComparisonGreater(alloc, range, comparisonTypes))]);
 	immutable Ptr!LowLocal matchedLocal = addLocal(
 		alloc,
 		shortSymAlphaLiteral("temp"),
@@ -225,7 +223,7 @@ immutable(LowExpr) genCompareExpr(Alloc)(
 		range,
 		called,
 		immutable LowType(comparisonTypes.comparison),
-		arrLiteral!LowExpr(alloc, a, b));
+		arrLiteral!LowExpr(alloc, [a, b]));
 }
 
 immutable(LowExpr) genComparisonLess(Alloc)(

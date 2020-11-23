@@ -447,7 +447,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 		return immutable ConcreteExpr(
 			possiblySendType,
 			range,
-			immutable ConcreteExpr.CreateRecord(arrLiteral!ConcreteExpr(alloc, vatAndActor, res)));
+			immutable ConcreteExpr.CreateRecord(arrLiteral!ConcreteExpr(alloc, [vatAndActor, res])));
 	} else
 		return res;
 }

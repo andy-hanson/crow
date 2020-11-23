@@ -34,63 +34,8 @@ immutable(Sexpr) tataRecord(immutable string name) {
 	return tataRecord(name, emptyArr!Sexpr);
 }
 
-immutable(Sexpr) tataRecord(Alloc)(ref Alloc alloc, immutable string name, immutable Sexpr child0) {
-	return tataRecord(name, arrLiteral!Sexpr(alloc, child0));
-}
-
-immutable(Sexpr) tataRecord(Alloc)(
-	ref Alloc alloc,
-	immutable string name,
-	immutable Sexpr child0,
-	immutable Sexpr child1,
-) {
-	return tataRecord(name, arrLiteral!Sexpr(alloc, child0, child1));
-}
-
-immutable(Sexpr) tataRecord(Alloc)(
-	ref Alloc alloc,
-	immutable string name,
-	immutable Sexpr child0,
-	immutable Sexpr child1,
-	immutable Sexpr child2,
-) {
-	return tataRecord(name, arrLiteral!Sexpr(alloc, child0, child1, child2));
-}
-
-immutable(Sexpr) tataRecord(Alloc)(
-	ref Alloc alloc,
-	immutable string name,
-	immutable Sexpr child0,
-	immutable Sexpr child1,
-	immutable Sexpr child2,
-	immutable Sexpr child3,
-) {
-	return tataRecord(name, arrLiteral!Sexpr(alloc, child0, child1, child2, child3));
-}
-
-immutable(Sexpr) tataRecord(Alloc)(
-	ref Alloc alloc,
-	immutable string name,
-	immutable Sexpr child0,
-	immutable Sexpr child1,
-	immutable Sexpr child2,
-	immutable Sexpr child3,
-	immutable Sexpr child4,
-) {
-	return tataRecord(name, arrLiteral!Sexpr(alloc, child0, child1, child2, child3, child4));
-}
-
-immutable(Sexpr) tataRecord(Alloc)(
-	ref Alloc alloc,
-	immutable string name,
-	immutable Sexpr child0,
-	immutable Sexpr child1,
-	immutable Sexpr child2,
-	immutable Sexpr child3,
-	immutable Sexpr child4,
-	immutable Sexpr child5,
-) {
-	return tataRecord(name, arrLiteral!Sexpr(alloc, child0, child1, child2, child3, child4, child5));
+immutable(Sexpr) tataRecord(Alloc)(ref Alloc alloc, immutable string name, scope immutable Sexpr[] children) {
+	return tataRecord(name, arrLiteral!Sexpr(alloc, children));
 }
 
 private struct SexprRecord {
@@ -110,10 +55,9 @@ immutable(Sexpr) tataNamedRecord(Alloc)(
 	immutable string field1Name,
 	immutable Sexpr field1Value,
 ) {
-	return tataNamedRecord(name, arrLiteral!NameAndSexpr(
-		alloc,
+	return tataNamedRecord(name, arrLiteral!NameAndSexpr(alloc, [
 		nameAndTata(field0Name, field0Value),
-		nameAndTata(field1Name, field1Value)));
+		nameAndTata(field1Name, field1Value)]));
 }
 
 immutable(Sexpr) tataArr(T, Alloc)(

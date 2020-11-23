@@ -2,7 +2,7 @@ module util.util;
 
 @safe @nogc nothrow:
 
-import util.bools : False;
+import util.bools : Bool, False;
 import util.collection.str : Str, strLiteral;
 import util.types : incr, Nat8, zero;
 
@@ -16,13 +16,21 @@ pure:
 struct NullDebug {
 	@safe @nogc pure nothrow:
 
-	void log(immutable Str) {}
+	immutable(Bool) enabled() {
+		return False;
+	}
+
+	void log(immutable Str) {
+		verifyFail();
+	}
 }
 
 T todo(T, Debug)(ref Debug dbg, immutable string message) {
-	dbg.log(strLiteral("TODO: "));
-	dbg.log(strLiteral(message));
-	dbg.log(strLiteral("\n"));
+	if (dbg.enabled()) {
+		dbg.log(strLiteral("TODO: "));
+		dbg.log(strLiteral(message));
+		dbg.log(strLiteral("\n"));
+	}
 	assert(0);
 }
 
@@ -62,9 +70,11 @@ void verify(immutable bool condition) {
 }
 
 void verify(Debug)(ref Debug dbg, immutable bool condition) {
-	if (!condition)
-		dbg.log("Verify failed.\n");
-	assert(condition);
+	if (!condition) {
+		if (dbg.enabled())
+			dbg.log("Verify failed.\n");
+		assert(0);
+	}
 }
 
 void verifyEq(T)(immutable T a, immutable T b) {

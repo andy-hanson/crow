@@ -205,7 +205,7 @@ export class StyleBuilder {
 	}
 
 	/**
-	 * @param {FontFamily} font
+	 * @param {FontFamily & {cssUrl: string}} font
 	 * @return {this}
 	 */
 	importFont(font) {
@@ -816,10 +816,7 @@ export class Color {
 	//I made this
 	static lightRed = new Color("#f898fc")
 
-	/**
-	 * @private
-	 * @param {string} show
-	 */
+	/** @param {string} show */
 	constructor(show) {
 		/**
 		 * @readonly

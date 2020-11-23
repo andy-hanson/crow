@@ -1,21 +1,6 @@
 import
 	io
 
-point record
-	x float
-	y float
-
-s<?t> spec
-	+ ?t(a ?t, b ?t)
-
-zero point()
-	new<point>
-		x. 0
-		y. 0
-
-manhattan float(a point) s<?t>
-	a.x + a.y
-
 main fut exit-code(args arr str) summon trusted
-	print-sync: "now sleep:"
+	print-sync: "hello world"
 	0 resolved

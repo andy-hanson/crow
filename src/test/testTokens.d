@@ -19,8 +19,7 @@ import util.writer : finishWriter, Writer, writeStatic;
 void testTokens(Alloc)(ref Test!Alloc test) {
 	testOne(test, "", emptyArr!Token);
 
-	testOne(test, testSource, arrLiteral!Token(
-		test.alloc,
+	testOne(test, testSource, arrLiteral!Token(test.alloc, [
 		immutable Token(Token.Kind.keyword, immutable RangeWithinFile(0, 6)),
 		immutable Token(Token.Kind.importPath, immutable RangeWithinFile(8, 10)),
 		immutable Token(Token.Kind.funDef, immutable RangeWithinFile(12, 16)),
@@ -30,16 +29,15 @@ void testTokens(Alloc)(ref Test!Alloc test) {
 		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(36, 39)),
 		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(40, 43)),
 		immutable Token(Token.Kind.literalNumber, immutable RangeWithinFile(53, 54)),
-		immutable Token(Token.Kind.funRef, immutable RangeWithinFile(55, 63))));
+		immutable Token(Token.Kind.funRef, immutable RangeWithinFile(55, 63))]));
 
-	testOne(test, testSource2, arrLiteral!Token(
-		test.alloc,
+	testOne(test, testSource2, arrLiteral!Token(test.alloc, [
 		immutable Token(Token.Kind.funDef, immutable RangeWithinFile(0, 1)),
 		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(2, 5)),
 		immutable Token(Token.Kind.paramDef, immutable RangeWithinFile(6, 7)),
 		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(7, 7)),
 		immutable Token(Token.Kind.structRef, immutable RangeWithinFile(9, 12)),
-		immutable Token(Token.Kind.literalNumber, immutable RangeWithinFile(15, 16))));
+		immutable Token(Token.Kind.literalNumber, immutable RangeWithinFile(15, 16))]));
 }
 
 private:

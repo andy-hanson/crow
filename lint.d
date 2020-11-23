@@ -8,7 +8,7 @@ import std.process : execute;
 import std.stdio : writeln;
 import std.string : indexOf, indexOfAny, splitLines;
 
-@trusted void main() {
+@trusted int main() {
 	// For each file, get the public exports.
 	// Test for usage in all files.
 
@@ -30,7 +30,8 @@ import std.string : indexOf, indexOfAny, splitLines;
 					break;
 				case Uses.one:
 					// TODO: adding these exceptions for now
-					if (privateMember != "writeFieldName" &&
+					if (privateMember != "RealDebug" &&
+						privateMember != "writeFieldName" &&
 						privateMember != "writeLocalName" &&
 						privateMember != "writeRecordName")
 						writeln(file.path, " private member not used: ", privateMember);
@@ -41,10 +42,11 @@ import std.string : indexOf, indexOfAny, splitLines;
 		}
 	}
 
-	//TODO: also test that each private member is used!
-
-	foreach (ref immutable File file; files)
-		lintImportsInFile(file);
+	bool anyErrors = false;
+	foreach (ref immutable File file; files) {
+		anyErrors = anyErrors | lintImportsInFile(file);
+	}
+	return anyErrors ? 1 : 0;
 }
 
 private:
@@ -119,7 +121,7 @@ immutable(bool) contains(immutable string a, immutable string b) {
 	return indexOf(a, b) != -1;
 }
 
-void lintImportsInFile(ref immutable File file) {
+immutable(bool) lintImportsInFile(ref immutable File file) {
 	immutable(Void)[immutable string] importsNotUsed = file.imports.dup;
 
 	foreach (immutable string key; file.uses.byKey)
@@ -127,6 +129,7 @@ void lintImportsInFile(ref immutable File file) {
 
 	foreach (ref const key; importsNotUsed.byKey)
 		writeln(file.path, ": unused import ", key);
+	return importsNotUsed.length != 0;
 }
 
 pure:

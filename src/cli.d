@@ -231,8 +231,7 @@ void compileC(Alloc)(
 ) {
 	immutable AbsolutePath cCompiler =
 		AbsolutePath(strLiteral("/usr/bin"), rootPath(alloc, shortSymAlphaLiteral("cc")), emptyStr);
-	immutable Arr!Str args = arrLiteral!Str(
-		alloc,
+	immutable Arr!Str args = arrLiteral!Str(alloc, [
 		strLiteral("-Werror"),
 		strLiteral("-Wextra"),
 		strLiteral("-Wall"),
@@ -250,7 +249,7 @@ void compileC(Alloc)(
 		strLiteral("-g"),
 		pathToStr(alloc, cPath),
 		strLiteral("-o"),
-		pathToStr(alloc, exePath));
+		pathToStr(alloc, exePath)]);
 	immutable int err = spawnAndWaitSync(alloc, cCompiler, args, environ);
 	if (err != 0)
 		todo!void("C compile error");

@@ -94,10 +94,9 @@ immutable(Constant) getConstantArr(Alloc)(
 ) {
 	if (empty(elements))
 		//TODO: don't recreate this arrLiteral every time
-		return immutable Constant(immutable Constant.Record(arrLiteral!Constant(
-			alloc,
+		return immutable Constant(immutable Constant.Record(arrLiteral!Constant(alloc, [
 			immutable Constant(immutable Constant.Integral(0)),
-			immutable Constant(immutable Constant.Null()))));
+			immutable Constant(immutable Constant.Null())])));
 	else {
 		Ptr!ArrTypeAndConstants d = ptrTrustMe_mut(getOrAdd(alloc, allConstants.arrs, elementType, () =>
 			ArrTypeAndConstants(

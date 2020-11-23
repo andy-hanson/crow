@@ -116,9 +116,9 @@ immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, SymAlloc, ReadOnlyStorage
 				opFileContent);
 			immutable LineAndColumnGetters lc =
 				fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
-					arrLiteral!LineAndColumnGetter(alloc, res.lineAndColumnGetter));
+					arrLiteral!LineAndColumnGetter(alloc, [res.lineAndColumnGetter]));
 			immutable FilePaths filePaths = fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
-				arrLiteral!PathAndStorageKind(alloc, pathAndStorageKind));
+				arrLiteral!PathAndStorageKind(alloc, [pathAndStorageKind]));
 			return immutable FileAstAndDiagnostics(
 				res.ast,
 				immutable Diagnostics(
@@ -318,16 +318,15 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, SymAlloc, ReadOnlyStorage)
 											(ref immutable ParseStatus.Started) =>
 												addFileIndex(
 													AstAndResolvedImports.empty,
-													arrLiteral!ParseDiagnostic(
-														modelAlloc,
+													arrLiteral!ParseDiagnostic(modelAlloc, [
 														immutable ParseDiagnostic(
 															import_.importedFrom,
 															immutable ParseDiag(
 																nu!(ParseDiag.CircularImport)(
 																	modelAlloc,
 																	path,
-																	resolvedPath)))),
-														parseResult.lineAndColumnGetter),
+																	resolvedPath)))]),
+													parseResult.lineAndColumnGetter),
 											(ref immutable ParseStatus.Done it) =>
 												it.fileIndex);
 									else
@@ -418,11 +417,10 @@ immutable(FileAstAndArrDiagnosticAndLineAndColumnGetter) parseSingle(ModelAlloc,
 	} else
 		return immutable FileAstAndArrDiagnosticAndLineAndColumnGetter(
 			emptyFileAst,
-			arrLiteral!ParseDiagnostic(
-				modelAlloc,
+			arrLiteral!ParseDiagnostic(modelAlloc, [
 				immutable ParseDiagnostic(
 					RangeWithinFile.empty,
-					immutable ParseDiag(nu!(ParseDiag.FileDoesNotExist)(modelAlloc, importedFrom)))),
+					immutable ParseDiag(nu!(ParseDiag.FileDoesNotExist)(modelAlloc, importedFrom)))]),
 			lcg);
 }
 
@@ -461,10 +459,10 @@ immutable(ResolvedImportAndDiags) tryResolveImport(Alloc)(
 			? resolved(immutable PathAndStorageKind(force(rel), fromPath.storageKind))
 			: immutable ResolvedImportAndDiags(
 				immutable ResolvedImport(ast.range, none!PathAndStorageKind, names),
-				arrLiteral!ParseDiagnostic(modelAlloc,
+				arrLiteral!ParseDiagnostic(modelAlloc, [
 					immutable ParseDiagnostic(
 						ast.range,
-						immutable ParseDiag(ParseDiag.RelativeImportReachesPastRoot(relPath)))));
+						immutable ParseDiag(ParseDiag.RelativeImportReachesPastRoot(relPath)))]));
 	}
 }
 

@@ -651,9 +651,11 @@ void pushSource(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSo
 }
 
 void log(Debug, Alloc)(ref Debug dbg, ref ByteCodeWriter!Alloc byteCodeWriter, immutable string message) {
-	Writer!Alloc writer = Writer!Alloc(byteCodeWriter.alloc);
-	writeStatic(writer, message);
-	writeChar(writer, ' ');
-	writeNat(writer, nextByteCodeIndex(byteCodeWriter).index.raw());
-	dbg.log(finishWriter(writer));
+	if (dbg.enabled()) {
+		Writer!Alloc writer = Writer!Alloc(byteCodeWriter.alloc);
+		writeStatic(writer, message);
+		writeChar(writer, ' ');
+		writeNat(writer, nextByteCodeIndex(byteCodeWriter).index.raw());
+		dbg.log(finishWriter(writer));
+	}
 }

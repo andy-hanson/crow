@@ -260,7 +260,7 @@ immutable(CheckedExpr) checkCreateArr(Alloc)(
 			immutable Ptr!StructInst arrType = instantiateStructNeverDelay!Alloc(
 				alloc,
 				programState(ctx),
-				immutable StructDeclAndArgs(ctx.commonTypes.arr, arrLiteral!Type(alloc, ta)));
+				immutable StructDeclAndArgs(ctx.commonTypes.arr, arrLiteral!Type(alloc, [ta])));
 			return some(immutable ArrExpectedType(False, arrType, ta));
 		} else {
 			immutable Opt!Type opT = tryGetDeeplyInstantiatedType(alloc, programState(ctx), expected);
@@ -624,7 +624,7 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 			CallAst.Style.dot,
 			immutable NameAndRange(range.range.start, shortSymAlphaLiteral("literal")),
 			emptyArrWithSize!TypeAst,
-			arrLiteral!ExprAst(alloc, immutable ExprAst(range.range, immutable ExprAstKind(inner))));
+			arrLiteral!ExprAst(alloc, [immutable ExprAst(range.range, immutable ExprAstKind(inner))]));
 		return checkCall(alloc, ctx, range, call, expected);
 	}
 }
@@ -898,14 +898,14 @@ immutable(CheckedExpr) checkThen(Alloc)(
 		range.range,
 		immutable ExprAstKind(immutable LambdaAst(
 			//TODO: use temp alloc?
-			arrLiteral!(LambdaAst.Param)(alloc, ast.left),
+			arrLiteral!(LambdaAst.Param)(alloc, [ast.left]),
 			ast.then)));
 	// TODO: NEATER (don't create a synthetic AST)
 	immutable CallAst call = immutable CallAst(
 		CallAst.Style.infix,
 		immutable NameAndRange(range.range.start, shortSymAlphaLiteral("then")),
 		emptyArrWithSize!TypeAst,
-		arrLiteral!ExprAst(alloc, ast.futExpr.deref, lambda));
+		arrLiteral!ExprAst(alloc, [ast.futExpr.deref, lambda]));
 	return checkCall(alloc, ctx, range, call, expected);
 }
 

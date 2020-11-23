@@ -11,7 +11,6 @@ import test.testLineAndColumnGetter : testLineAndColumnGetter;
 import test.testSym : testSym;
 import test.testTokens : testTokens;
 import test.testUtil : Test;
-import test.testWasm : testWasm;
 import util.collection.str : Str, strEqLiteral;
 import util.opt : force, has, Opt;
 import util.ptr : ptrTrustMe_mut;
@@ -40,7 +39,6 @@ immutable (NameAndTest!Alloc)[] allTests(Alloc) = [
 	immutable NameAndTest!Alloc("line-and-column-getter", &testLineAndColumnGetter!Alloc),
 	immutable NameAndTest!Alloc("sym", &testSym!Alloc),
 	immutable NameAndTest!Alloc("tokens", &testTokens!Alloc),
-	immutable NameAndTest!Alloc("wasm", &testWasm!Alloc),
 ];
 
 

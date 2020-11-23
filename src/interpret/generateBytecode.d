@@ -211,7 +211,7 @@ void generateBytecodeForFun(Debug, TempAlloc, CodeAlloc)(
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
 
 	debug {
-		if (true) {
+		if (dbg.enabled()) {
 			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 			writeStatic(w, "Generating bytecode for function ");
 			writeFunName(w, program, fun);

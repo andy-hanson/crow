@@ -603,14 +603,13 @@ immutable(LowFun) mainFun(Alloc)(
 	immutable LowFunIndex userMainIndex,
 	ref immutable LowType userMainFunPtrType,
 ) {
-	immutable Arr!LowParam params = arrLiteral!LowParam(
-		alloc,
+	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [
 		immutable LowParam(
 			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("argc"))),
 			int32Type),
 		immutable LowParam(
 			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("argv"))),
-			charPtrPtrType));
+			charPtrPtrType)]);
 	immutable LowParamIndex argc = immutable LowParamIndex(0);
 	immutable LowParamIndex argv = immutable LowParamIndex(1);
 	immutable LowExpr userMainFunPtr = immutable LowExpr(
@@ -622,11 +621,10 @@ immutable(LowFun) mainFun(Alloc)(
 		FileAndRange.empty,
 		immutable LowExprKind(immutable LowExprKind.Call(
 			rtMainIndex,
-			arrLiteral!LowExpr(
-				alloc,
+			arrLiteral!LowExpr(alloc, [
 				paramRef(FileAndRange.empty, int32Type, argc),
 				paramRef(FileAndRange.empty, charPtrPtrType, argv),
-				userMainFunPtr))));
+				userMainFunPtr]))));
 	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(False, allocate(alloc, call)));
 	return immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(
@@ -836,7 +834,7 @@ immutable(LowExpr) getAllocateExpr(Alloc)(
 		range,
 		immutable LowExprKind(immutable LowExprKind.Call(
 			getLowFunIndex(ctx, allocFun),
-			arrLiteral!LowExpr(alloc, getCtxParamRef(alloc, ctx, range), size))));
+			arrLiteral!LowExpr(alloc, [getCtxParamRef(alloc, ctx, range), size]))));
 	return ptrCast(alloc, ptrType, range, allocate);
 }
 
@@ -1000,7 +998,7 @@ immutable(LowExprKind) getCreateArrExpr(Alloc)(
 		arrType,
 		range,
 		immutable LowExprKind(immutable LowExprKind.CreateRecord(
-			arrLiteral!LowExpr(alloc, nElements, localRef(alloc, range, temp)))));
+			arrLiteral!LowExpr(alloc, [nElements, localRef(alloc, range, temp)]))));
 	immutable LowExpr writeAndGetArr = recur(createArr, size(a.args));
 	return immutable LowExprKind(immutable LowExprKind.Let(
 		temp,
@@ -1031,7 +1029,7 @@ immutable(LowExprKind) getLambdaExpr(Alloc)(
 			funPtrType,
 			range,
 			immutable LowExpr(funPtrType, range, funPtr));
-		immutable Arr!LowExpr args = arrLiteral!LowExpr(alloc, funPtrCasted, closure);
+		immutable Arr!LowExpr args = arrLiteral!LowExpr(alloc, [funPtrCasted, closure]);
 		return immutable LowExprKind(immutable LowExprKind.CreateRecord(args));
 	}
 }

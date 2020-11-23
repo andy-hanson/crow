@@ -294,7 +294,7 @@ immutable(Result!(Ptr!CommonTypes, Diags)) getCommonTypes(Alloc)(
 		immutable Diagnostic diag = Diagnostic(
 			immutable FileAndRange(ctx.fileIndex, RangeWithinFile.empty),
 			nu!Diag(alloc, immutable Diag.CommonTypesMissing(missingArr)));
-		return fail!(Ptr!CommonTypes, Diags)(arrLiteral!Diagnostic(alloc, diag));
+		return fail!(Ptr!CommonTypes, Diags)(arrLiteral!Diagnostic(alloc, [diag]));
 	} else {
 		return success!(Ptr!CommonTypes, Diags)(
 			nu!CommonTypes(
@@ -305,39 +305,34 @@ immutable(Result!(Ptr!CommonTypes, Diags)) getCommonTypes(Alloc)(
 				force(str),
 				force(void_),
 				force(anyPtr),
-				arrLiteral!(Ptr!StructDecl)(alloc, force(opt), force(some), force(none)),
+				arrLiteral!(Ptr!StructDecl)(alloc, [force(opt), force(some), force(none)]),
 				force(byVal),
 				force(arr),
 				force(fut),
-				arrLiteral!FunKindAndStructs(
-					alloc,
-					immutable FunKindAndStructs(FunKind.ptr, arrLiteral!(Ptr!StructDecl)(
-						alloc,
+				arrLiteral!FunKindAndStructs(alloc, [
+					immutable FunKindAndStructs(FunKind.ptr, arrLiteral!(Ptr!StructDecl)(alloc, [
 						force(funPtr0),
 						force(funPtr1),
 						force(funPtr2),
 						force(funPtr3),
 						force(funPtr4),
 						force(funPtr5),
-						force(funPtr6))),
-					immutable FunKindAndStructs(FunKind.plain, arrLiteral!(Ptr!StructDecl)(
-						alloc,
+						force(funPtr6)])),
+					immutable FunKindAndStructs(FunKind.plain, arrLiteral!(Ptr!StructDecl)(alloc, [
 						force(fun0),
 						force(fun1),
 						force(fun2),
-						force(fun3))),
-					immutable FunKindAndStructs(FunKind.mut, arrLiteral!(Ptr!StructDecl)(
-						alloc,
+						force(fun3)])),
+					immutable FunKindAndStructs(FunKind.mut, arrLiteral!(Ptr!StructDecl)(alloc, [
 						force(funMut0),
 						force(funMut1),
 						force(funMut2),
-						force(funMut3))),
-					immutable FunKindAndStructs(FunKind.ref_, arrLiteral!(Ptr!StructDecl)(
-						alloc,
+						force(funMut3)])),
+					immutable FunKindAndStructs(FunKind.ref_, arrLiteral!(Ptr!StructDecl)(alloc, [
 						force(funRef0),
 						force(funRef1),
 						force(funRef2),
-						force(funRef3))))));
+						force(funRef3)]))])));
 	}
 }
 

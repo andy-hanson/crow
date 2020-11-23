@@ -8,9 +8,16 @@ doc/includeList.txt: include/*.nz
 doc-server: doc/includeList.txt bin/noze.wasm
 	python -m SimpleHTTPServer 8080
 
-lint:
+lint-js:
+	cd doc/script && tsc
+
+lint-dscanner:
 	dub run dscanner -- --styleCheck src/*.d src/*/*.d src/*/*/*.d
+
+lint-imports-exports:
 	rdmd lint.d
+
+lint: lint-js lint-dscanner lint-imports-exports
 
 debug: bin/noze
 	gdb ./bin/noze

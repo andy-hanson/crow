@@ -31,7 +31,7 @@ import interpret.externAlloc : ExternAlloc;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
-import util.bools : Bool, False, True;
+import util.bools : False;
 import util.collection.arr : Arr, begin, freeArr, ptrAt, range, sizeNat;
 import util.collection.arrUtil : mapWithFirst, zipSystem;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -260,32 +260,28 @@ private immutable(ByteCodeSource) nextSource(Extern)(ref const Interpreter!Exter
 
 immutable(StepResult) step(Debug, TempAlloc, Extern)(ref Debug dbg, ref TempAlloc tempAlloc, ref Interpreter!Extern a) {
 	immutable ByteCodeSource source = nextSource(a);
-	if (PRINT) {
-		debug {
-			Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-			showStack(writer, a);
-			showReturnStack(writer, a);
-			dbg.log(finishWriter(writer));
-		}
+	if (dbg.enabled()) {
+		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+		showStack(writer, a);
+		showReturnStack(writer, a);
+		dbg.log(finishWriter(writer));
 	}
 	immutable Operation operation = readOperation(a.reader);
-	if (PRINT) {
-		debug {
-			Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-			writeStatic(writer, "STEP: ");
-			immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
-			writeByteCodeSource(tempAlloc, writer, showDiagOptions, a.lowProgram, a.filesInfo, source);
-			writeChar(writer, ' ');
-			writeSexprNoNewline(writer, sexprOfOperation(tempAlloc, operation));
-			if (isCall(operation)) {
-				immutable Operation.Call call = asCall(operation);
-				writeStatic(writer, "(");
-				writeFunNameAtIndex(writer, a, call.address);
-				writeChar(writer, ')');
-			}
-			writeChar(writer, '\n');
-			dbg.log(finishWriter(writer));
+	if (dbg.enabled()) {
+		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
+		writeStatic(writer, "STEP: ");
+		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
+		writeByteCodeSource(tempAlloc, writer, showDiagOptions, a.lowProgram, a.filesInfo, source);
+		writeChar(writer, ' ');
+		writeSexprNoNewline(writer, sexprOfOperation(tempAlloc, operation));
+		if (isCall(operation)) {
+			immutable Operation.Call call = asCall(operation);
+			writeStatic(writer, "(");
+			writeFunNameAtIndex(writer, a, call.address);
+			writeChar(writer, ')');
 		}
+		writeChar(writer, '\n');
+		dbg.log(finishWriter(writer));
 	}
 
 	return matchOperationImpure!(immutable StepResult)(
@@ -381,8 +377,6 @@ immutable(StepResult) step(Debug, TempAlloc, Extern)(ref Debug dbg, ref TempAllo
 }
 
 private:
-
-immutable Bool PRINT = True;
 
 void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	push(dataStack, immutable Nat64(cast(immutable u64) stackRef(dataStack, offset.offset)));
