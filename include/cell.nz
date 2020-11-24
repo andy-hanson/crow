@@ -7,9 +7,6 @@ cell<?t> record mut
 as-cell cell ?t(p ptr ?t) noctx unsafe
 	p.as-any-ptr as-ref
 
-new-cell cell ?t(value ?t)
-	new value
-
 get ?t(c cell ?t) noctx
 	c.value
 

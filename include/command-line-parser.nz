@@ -3,7 +3,7 @@ import
 		+ at empty? empty-arr fill-mut-arr find-index first freeze index-of remove-start set-at
 		slice-after slice-starting-at slice-up-to starts-with? tail
 	.bootstrap: == + arr bool call false fun1 has? none opt some str true void
-	.cell: new-cell get set
+	.cell: cell get set
 	.dict: add dict each empty-dict freeze mut-dict new-mut-dict
 	.exceptions: assert fail forbid
 
@@ -14,7 +14,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1 ?t arr<opt
 	assert: parsed.after empty?
 
 	values = t-names.size fill-mut-arr<opt<arr<str>>> none
-	help = false new-cell<bool>
+	help = false cell
 	parsed.named each \key value
 		match t-names index-of key
 			none

@@ -140,7 +140,7 @@ arr<?t> record force-data
 	data ptr ?t
 
 ptr-as-arr arr ?t(size nat, data ptr ?t)
-	new size, data
+	arr: size, data
 
 char builtin
 str alias

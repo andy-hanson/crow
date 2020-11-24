@@ -750,9 +750,12 @@ immutable(LowFunBody) createRecordBody(Alloc)(
 				where,
 				immutable LowExprKind(
 					immutable LowExprKind.ParamRef(immutable LowParamIndex(i + firstRegularParam.index)))));
+	immutable LowType recordType = isNonFunPtrType(sig.returnType)
+		? asNonFunPtrType(sig.returnType).pointee
+		: sig.returnType;
 	immutable Ptr!LowExpr create = allocate(
 		alloc,
-		immutable LowExpr(sig.returnType, where, immutable LowExprKind(immutable LowExprKind.CreateRecord(args))));
+		immutable LowExpr(recordType, where, immutable LowExprKind(immutable LowExprKind.CreateRecord(args))));
 	immutable Ptr!LowExpr expr = () {
 		if (isNonFunPtrType(sig.returnType)) {
 			verify(firstRegularParam.index == 1);
@@ -770,7 +773,7 @@ immutable(LowFunBody) createRecordBody(Alloc)(
 					where,
 					local,
 					create,
-					asNonFunPtrType(sig.returnType).pointee,
+					recordType,
 					sig.returnType)));
 		} else
 			return create;

@@ -9,7 +9,7 @@ mut-bag-node<?t> record mut
 
 | Expose construction of nodes, because it's better to do this outside of a lock
 new-mut-bag-node mut-bag-node ?t(value ?t)
-	new value, none
+	mut-bag-node: value, none
 
 mut-bag<?t> record mut
 	head mut opt mut-bag-node<?t>

@@ -75,7 +75,7 @@ ignore-extension-of-name bool(name str)
 
 lines arr str(s str)
 	res = new-mut-arr<str>
-	last-nl = zero new-cell<nat>
+	last-nl = zero cell<nat>
 	s each-with-index \c index
 		when
 			c == "\n"

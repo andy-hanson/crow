@@ -361,7 +361,7 @@ program(
 											set-field(
 												local-ref(gctx)
 												vats
-												record([call(one, []), call(ptr-to, [local-ref(vat)])]))
+												call(arr, [call(one, []), call(ptr-to, [local-ref(vat)])]))
 											let(
 												main-fut
 												call(
@@ -409,7 +409,14 @@ program(
 			type(false, arr)
 			none
 			[param(begin, type(false, ptr)), param(end, type(false, ptr))]
-			expr-body(record([call(-, [param-ref(end), param-ref(begin)]), param-ref(begin)])))
+			expr-body(call(arr, [call(-, [param-ref(end), param-ref(begin)]), param-ref(begin)])))
+		fun(
+			false
+			arr
+			type(false, arr)
+			none
+			[param(size, type(false, nat)), param(data, type(false, ptr))]
+			new-record)
 		fun(
 			false
 			-
@@ -539,7 +546,14 @@ program(
 		fun(false, as, type(false, nat), none, [param(value, type(false, nat))], builtin([type(false, nat)]))
 		fun(false, new-lock, type(false, lock), none, [], expr-body(record([call(new-atomic-bool, [])])))
 		fun(false, new-atomic-bool, type(false, atomic-bool), none, [], expr-body(record([call(false, [])])))
-		fun(false, empty-arr, type(false, arr), none, [], expr-body(record([call(zero, []), call(null, [])])))
+		fun(false, empty-arr, type(false, arr), none, [], expr-body(call(arr, [call(zero, []), call(null, [])])))
+		fun(
+			false
+			arr
+			type(false, arr)
+			none
+			[param(size, type(false, nat)), param(data, type(false, ptr))]
+			new-record)
 		fun(false, null, type(false, ptr), none, [], builtin([type(true, vat)]))
 		fun(
 			false
@@ -864,7 +878,8 @@ program(
 									call(as, [lambda(lambda(do-main, 0), some(null))])
 									let(
 										all-args
-										record(
+										call(
+											arr
 											[call(unsafe-to-nat, [call(to-int, [param-ref(argc)])]), param-ref(argv)])
 										call(
 											call-with-ctx
@@ -1556,7 +1571,14 @@ program(
 			type(true, mut-bag-node)
 			none
 			[param(value, type(false, task))]
-			expr-body(alloc(record([param-ref(value), to-union(0, call(none, []))]))))
+			expr-body(call(mut-bag-node, [param-ref(value), to-union(0, call(none, []))])))
+		fun(
+			true
+			mut-bag-node
+			type(true, mut-bag-node)
+			none
+			[param(value, type(false, task)), param(next-node, type(false, opt))]
+			new-record)
 		fun(
 			false
 			add
@@ -1653,10 +1675,38 @@ program(
 															thrown-exception
 															local-ref(old-thrown-exception)))
 													call(call, [param-ref(catcher), local-ref(thrown-exception)]))))))))))))
-		fun(false, zero, type(false, bytes64), none, [], expr-body(record([call(zero, []), call(zero, [])])))
-		fun(false, zero, type(false, bytes32), none, [], expr-body(record([call(zero, []), call(zero, [])])))
-		fun(false, zero, type(false, bytes16), none, [], expr-body(record([call(zero, []), call(zero, [])])))
-		fun(false, zero, type(false, bytes128), none, [], expr-body(record([call(zero, []), call(zero, [])])))
+		fun(false, zero, type(false, bytes64), none, [], expr-body(call(bytes64, [call(zero, []), call(zero, [])])))
+		fun(
+			false
+			bytes64
+			type(false, bytes64)
+			none
+			[param(n0, type(false, bytes32)), param(n1, type(false, bytes32))]
+			new-record)
+		fun(false, zero, type(false, bytes32), none, [], expr-body(call(bytes32, [call(zero, []), call(zero, [])])))
+		fun(
+			false
+			bytes32
+			type(false, bytes32)
+			none
+			[param(n0, type(false, bytes16)), param(n1, type(false, bytes16))]
+			new-record)
+		fun(false, zero, type(false, bytes16), none, [], expr-body(call(bytes16, [call(zero, []), call(zero, [])])))
+		fun(
+			false
+			bytes16
+			type(false, bytes16)
+			none
+			[param(n0, type(false, nat)), param(n1, type(false, nat))]
+			new-record)
+		fun(false, zero, type(false, bytes128), none, [], expr-body(call(bytes128, [call(zero, []), call(zero, [])])))
+		fun(
+			false
+			bytes128
+			type(false, bytes128)
+			none
+			[param(n0, type(false, bytes64)), param(n1, type(false, bytes64))]
+			new-record)
 		fun(
 			false
 			ptr-to
@@ -1911,7 +1961,17 @@ program(
 			none
 			[]
 			expr-body(
-				let(c, call(get-ctx, []), record([get-field(local-ref(c), vat-id), get-field(local-ref(c), actor-id)]))))
+				let(
+					c
+					call(get-ctx, [])
+					call(vat-and-actor-id, [get-field(local-ref(c), vat-id), get-field(local-ref(c), actor-id)]))))
+		fun(
+			false
+			vat-and-actor-id
+			type(false, vat-and-actor-id)
+			none
+			[param(vat, type(false, nat)), param(actor, type(false, nat))]
+			new-record)
 		fun(false, as, type(true, fut), none, [param(value, type(true, fut))], builtin([type(true, fut)]))
 		fun(
 			true
@@ -1981,7 +2041,7 @@ program(
 					call(
 						assert
 						[call(<=, [call(+, [param-ref(begin), param-ref(size)]), get-field(param-ref(a), size)])])
-					record([param-ref(size), call(+, [get-field(param-ref(a), data), param-ref(begin)])]))))
+					call(arr, [param-ref(size), call(+, [get-field(param-ref(a), data), param-ref(begin)])]))))
 		fun(
 			true
 			+
@@ -2014,6 +2074,13 @@ program(
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			expr-body(call(not, [call(<, [param-ref(a), param-ref(b)])])))
+		fun(
+			false
+			arr
+			type(false, arr)
+			none
+			[param(size, type(false, nat)), param(data, type(false, ptr))]
+			new-record)
 		fun(
 			false
 			+
@@ -2077,7 +2144,14 @@ program(
 			type(false, arr)
 			none
 			[param(a, type(true, mut-arr))]
-			expr-body(record([get-field(param-ref(a), size), get-field(param-ref(a), data)])))
+			expr-body(call(arr, [get-field(param-ref(a), size), get-field(param-ref(a), data)])))
+		fun(
+			false
+			arr
+			type(false, arr)
+			none
+			[param(size, type(false, nat)), param(data, type(false, ptr))]
+			new-record)
 		fun(
 			true
 			make-mut-arr
@@ -2096,9 +2170,20 @@ program(
 			none
 			[param(size, type(false, nat))]
 			expr-body(
-				alloc(
-					record(
-						[call(false, []), param-ref(size), param-ref(size), call(uninitialized-data, [param-ref(size)])]))))
+				call(
+					mut-arr
+					[call(false, []), param-ref(size), param-ref(size), call(uninitialized-data, [param-ref(size)])])))
+		fun(
+			true
+			mut-arr
+			type(true, mut-arr)
+			none
+			[
+				param(frozen?, type(false, bool))
+				param(size, type(false, nat))
+				param(capacity, type(false, nat))
+				param(data, type(false, ptr))]
+			new-record)
 		fun(
 			true
 			uninitialized-data
@@ -2731,7 +2816,11 @@ program(
 								case(none, call(choose-task-recur, [param-ref(vats), call(noctx-incr, [param-ref(i)])]))
 								case(
 									some(s)
-									to-union(1, call(some, [record([local-ref(vat), get-field(local-ref(s), value)])])))])))))
+									to-union(
+										1
+										call(
+											some
+											[call(chosen-task, [local-ref(vat), get-field(local-ref(s), value)])])))])))))
 		fun(
 			false
 			choose-task-in-vat
@@ -2850,7 +2939,8 @@ program(
 													call(
 														some
 														[
-															record(
+															call(
+																task-and-nodes
 																[local-ref(task), get-field(local-ref(node), next-node)])]))
 												match(
 													"<<matched>>"
@@ -2874,7 +2964,8 @@ program(
 																		call(
 																			some
 																			[
-																				record(
+																				call(
+																					task-and-nodes
 																					[
 																						get-field(local-ref(tn), task)
 																						to-union(
@@ -2929,7 +3020,14 @@ program(
 			type(false, arr)
 			none
 			[param(a, type(true, mut-arr))]
-			expr-body(record([get-field(param-ref(a), size), get-field(param-ref(a), data)])))
+			expr-body(call(arr, [get-field(param-ref(a), size), get-field(param-ref(a), data)])))
+		fun(
+			false
+			arr
+			type(false, arr)
+			none
+			[param(size, type(false, nat)), param(data, type(false, ptr))]
+			new-record)
 		fun(
 			false
 			push-capacity-must-be-sufficient
@@ -2965,6 +3063,13 @@ program(
 		fun(false, some, type(false, some), none, [param(value, type(false, task-and-nodes))], new-record)
 		fun(
 			false
+			task-and-nodes
+			type(false, task-and-nodes)
+			none
+			[param(task, type(false, task)), param(nodes, type(false, opt))]
+			new-record)
+		fun(
+			false
 			as
 			type(false, task-and-nodes)
 			none
@@ -2980,6 +3085,13 @@ program(
 			expr-body(
 				match("<<matched>>", param-ref(a), [case(some(n), call(true, [])), case(some(s), call(false, []))])))
 		fun(false, some, type(false, some), none, [param(value, type(false, chosen-task))], new-record)
+		fun(
+			false
+			chosen-task
+			type(false, chosen-task)
+			none
+			[param(vat, type(true, vat)), param(task-or-gc, type(false, opt))]
+			new-record)
 		fun(false, err, type(false, err), none, [param(value, type(false, no-chosen-task))], new-record)
 		fun(false, ok, type(false, ok), none, [param(value, type(false, chosen-task))], new-record)
 		fun(
@@ -3375,7 +3487,7 @@ program(
 					call(
 						assert
 						[call(<=, [call(+, [param-ref(begin), param-ref(size)]), get-field(param-ref(a), size)])])
-					record([param-ref(size), call(+, [get-field(param-ref(a), data), param-ref(begin)])]))))
+					call(arr, [param-ref(size), call(+, [get-field(param-ref(a), data), param-ref(begin)])]))))
 		fun(
 			true
 			decr

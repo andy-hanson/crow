@@ -1,6 +1,6 @@
 import
 	.bootstrap: == <= bool call drop fun-mut0 fun-mut1 nat none opt pass some void
-	.cell: cell get new-cell set
+	.cell: cell get set
 	.exceptions: assert forbid
 	.number-utils: + incr
 
@@ -35,7 +35,7 @@ iter<?t, ?e> spec
 	iter iterator ?e(t ?t)
 
 to-stream<?t, ?e> stream ?e(t ?t) iter<?t, ?e>
-	new {t iter}
+	{t iter} stream
 
 region range
 
@@ -45,8 +45,8 @@ range-nat record
 	hi nat
 
 iter iterator nat(r range-nat)
-	n = r.lo new-cell<nat>
-	new \
+	n = r.lo cell
+	iterator: \
 		when
 			n.get == r.hi
 				none
@@ -55,7 +55,7 @@ iter iterator nat(r range-nat)
 
 to range-nat(lo nat, hi nat)
 	assert: lo <= hi
-	new lo, hi
+	lo range-nat hi
 
 empty? bool(r range-nat) noctx
 	r.lo == r.hi
@@ -80,9 +80,9 @@ each-recur void(i iterator ?t, f fun-mut1 void ?t)
 
 
 filter stream ?t(in stream ?t, pred fun-mut1 bool ?t)
-	new \
+	stream: \
 		itr = in iter
-		new {itr filter-helper pred}
+		{itr filter-helper pred} iterator
 
 filter-helper opt ?t(i iterator ?t, pred fun-mut1 bool ?t)
 	match i next

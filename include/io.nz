@@ -8,7 +8,7 @@ import
 	.arr-utils
 		+ append arr-from-begin-end each ensure-capacity fold freeze map mut-arr new-mut-arr
 		new-uninitialized-mut-arr prepend push ref-of-val-at slice-up-to sort unsafe-increase-size
-	.cell: get new-cell
+	.cell: cell get
 	.dict: add dict each freeze key-value-pair mut-dict new-mut-dict
 	.exceptions: assert fail forbid
 	number-utils: + to-int to-nat
@@ -111,7 +111,7 @@ read-dir arr str(path c-str) trusted summon
 read-dir-recur void(dirp dirp, res mut-arr str) unsafe summon
 	| Initial value of entry / result should not matter
 	entry = new<dirent> zero, zero, zero, "\0", zero
-	result = entry new-cell<dirent>
+	result = entry cell
 	err = dirp readdir-r entry, result
 	| TODO: handle error
 	assert: err zero?
@@ -314,7 +314,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	check-posix-error: actions posix-spawn-file-actions-addclose stdout-pipes.read-pipe
 	check-posix-error: actions posix-spawn-file-actions-addclose stderr-pipes.read-pipe
 
-	pid-cell = zero new-cell<pid-t>
+	pid-cell = zero cell<pid-t>
 	check-posix-error: posix-spawn: pid-cell, exe, actions, null, args, environ
 	pid = pid-cell.get
 
@@ -336,7 +336,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 | Each entry in environ looks like "name=value", and final entry is null.
 | TODO: option to get stdout/stderr as a string rather than having them go to the terminal
 spawn-and-wait exit-code(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
-	pid-cell = zero new-cell<pid-t>
+	pid-cell = zero cell<pid-t>
 	check-posix-error: posix-spawn: pid-cell, exe, null.as-ref, null, args, environ
 	pid-cell.get wait-and-get-exit-code
 
@@ -412,7 +412,7 @@ handle-revents handle-revents-result(pollfd pollfd, builder mut-str) summon
 	new had-pollin?, hung-up?
 
 wait-and-get-exit-code exit-code(pid pid-t) summon unsafe
-	wait-status-cell = zero new-cell<status-t>
+	wait-status-cell = zero cell<status-t>
 	res-pid = pid waitpid wait-status-cell, zero
 	wait-status = wait-status-cell.get
 	assert: res-pid == pid
@@ -498,7 +498,7 @@ connect-to-uri fd-t(u uri) summon trusted
 		ai-canonname. null
 		ai-next. null
 
-	result = null new-cell<ptr<addrinfo>>
+	result = null cell<ptr<addrinfo>>
 	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
 	op-sock = result.get find-working-socket
 	result.get freeaddrinfo

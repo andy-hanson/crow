@@ -26,7 +26,7 @@ get-cur-vat vat() unsafe
 | This fun is required by the compiler.
 cur-actor vat-and-actor-id() unsafe
 	c = get-ctx
-	new c.vat-id, c.actor-id
+	vat-and-actor-id: c.vat-id, c.actor-id
 
 global-ctx record mut
 	lk by-val lock
@@ -251,7 +251,7 @@ choose-task-recur opt chosen-task(vats arr vat, i nat) noctx unsafe
 				none
 					vats choose-task-recur i.noctx-incr
 				some s
-					some: new<chosen-task> vat, s.value
+					some: chosen-task: vat, s.value
 
 
 
@@ -324,7 +324,7 @@ find-and-remove-first-doable-task-recur opt task-and-nodes(vat vat, opt-node opt
 			when
 				task-ok
 					| Extract this task (return just its tail)
-					some: new<task-and-nodes> task, node.next-node
+					some: task-and-nodes: task, node.next-node
 				else
 					match vat find-and-remove-first-doable-task-recur node.next-node
 						none
@@ -332,7 +332,7 @@ find-and-remove-first-doable-task-recur opt task-and-nodes(vat vat, opt-node opt
 						some ss
 							tn = ss.value as<task-and-nodes>
 							node.next-node := tn.nodes
-							some: new<task-and-nodes> tn.task, node some
+							some: task-and-nodes: tn.task, node some
 
 assert-vats-are-shut-down void(i nat, vats arr vat) noctx unsafe
 	when

@@ -94,19 +94,19 @@ bytes256 record
 	n1 bytes128
 
 zero bytes16() noctx
-	new zero, zero
+	bytes16: zero, zero
 
 zero bytes32() noctx
-	new zero, zero
+	bytes32: zero, zero
 
 zero bytes64() noctx
-	new zero, zero
+	bytes64: zero, zero
 
 zero bytes128() noctx
-	new zero, zero
+	bytes128: zero, zero
 
 zero bytes256() noctx
-	new zero, zero
+	bytes256: zero, zero
 
 | writes to `thread`
 | attr -- not typing this as currently I only pass null
@@ -167,27 +167,7 @@ errno err-t() unsafe global<"errno"> noctx
 stat int32(path c-str, buf stat-t) extern<"stat"> noctx
 
 empty-stat stat-t()
-	new
-		st-dev. zero
-		pad0. zero
-		st-ino-unused. zero
-		st-mode. zero
-		st-nlink. zero
-		st-uid. zero
-		st-gid. zero
-		st-rdev. zero
-		pad1. zero
-		st-size. zero
-		st-blksize. zero
-		st-blocks. zero
-		st-atime. zero
-		st-atime-nsec. zero
-		st-mtime. zero
-		st-mtime-nsec. zero
-		st-ctime. zero
-		st-ctime-nsec. zero
-		st-ino. zero
-		unused. zero
+	stat-t: zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero
 
 s-ifmt nat32()
 	| TODO: "octal170000"

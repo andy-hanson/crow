@@ -52,13 +52,7 @@ get-gc gc() unsafe
 	get-gc-ctx.gc
 
 new-gc by-val gc() noctx
-	new
-		lk. new-lock
-		context-head. none
-		needs-gc. false
-		is-doing-gc. false
-		begin. null
-		next-byte. null
+	new new-lock, none, false, false, null, null
 
 try-gc-alloc opt any-ptr(gc gc, size nat) noctx trusted
 	| TODO: allocate from gc memory!

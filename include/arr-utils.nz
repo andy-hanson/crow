@@ -9,10 +9,10 @@ import
 	.opt-utils: force
 
 arr-from-begin-end arr ?t(begin ptr ?t, end ptr ?t) unsafe noctx
-	new (end - begin), begin
+	arr: (end - begin), begin
 
 empty-arr arr ?t() noctx trusted
-	new zero, null
+	arr: zero, null
 
 empty? bool(a arr ?t) noctx
 	a.size zero?
@@ -22,7 +22,7 @@ has? bool(a arr ?t) noctx
 
 slice arr ?t(a arr ?t, begin nat, size nat) trusted
 	assert: begin + size <= a.size
-	new size, a.data + begin
+	arr: size, a.data + begin
 
 slice-from-to arr ?t(a arr ?t, begin nat, end nat) trusted
 	assert: begin <= end
@@ -106,11 +106,11 @@ mut-slice<?t> record mut
 
 to-mut-slice mut-slice ?t(a mut-arr ?t)
 	forbid: a.frozen?
-	new a, a.size, zero
+	mut-slice: a, a.size, zero
 
 slice mut-slice ?t(a mut-slice ?t, lo nat, size nat) trusted
 	assert: lo + size <= a.size
-	new a.backing, size, a.begin + lo
+	mut-slice: a.backing, size, a.begin + lo
 
 slice mut-slice ?t(a mut-slice ?t, lo nat)
 	assert: lo <= a.size
@@ -180,17 +180,17 @@ mut-arr<?t> record mut
 	data mut ptr ?t
 
 temp-as-arr arr ?t(a mut-arr ?t) unsafe noctx
-	new a.size, a.data
+	arr: a.size, a.data
 
 uninitialized-data ptr ?t(size nat) unsafe
 	bptr = size wrap-mul size-of<?t> alloc
 	bptr ptr-cast<?t, byte>
 
 new-uninitialized-mut-arr mut-arr ?t(size nat) unsafe
-	new false, size, size, uninitialized-data<?t>: size
+	mut-arr: false, size, size, uninitialized-data<?t>: size
 
 new-mut-arr mut-arr ?t() trusted
-	new false, zero, zero, null
+	mut-arr: false, zero, zero, null
 
 new-mut-arr-by-val by-val mut-arr<?t>() noctx trusted
 	new false, zero, zero, null
@@ -281,7 +281,7 @@ noctx-must-remove-unordered void(a mut-arr ?t, value ?t) noctx unsafe data<?t>
 
 | Unsafe as this does *not* freeze it!
 unsafe-as-arr arr ?t(a mut-arr ?t) noctx unsafe
-	new a.size, a.data
+	arr: a.size, a.data
 
 freeze arr ?t(a mut-arr ?t) noctx trusted
 	a.frozen? := true

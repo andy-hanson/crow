@@ -36,7 +36,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	vat-by-val = new-vat: gctx, zero, n-threads
 	vat = vat-by-val ref-of-val
 
-	gctx.vats := new<arr<vat>> one, vat.ptr-to
+	gctx.vats := arr: one, vat.ptr-to
 
 	main-fut = gctx do-main vat, argc, argv, main-ptr
 
@@ -63,7 +63,7 @@ do-main fut exit-code(gctx global-ctx, vat vat, argc int32, argv ptr c-str, main
 	ctx = ctx-by-val ref-of-val
 	add = as<fun2<fut<exit-code>, arr<c-str>, main-ptr>>: \all-args main-ptr
 		add-first-task: all-args, main-ptr
-	all-args = new<arr<c-str>> argc.to-int.unsafe-to-nat, argv
+	all-args = arr: argc.to-int.unsafe-to-nat, argv
 	ctx call-with-ctx add, all-args, main-ptr
 
 thread-args record mut
