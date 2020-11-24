@@ -41,4 +41,12 @@ module(
 						call(fun-inst(name: print-sync), [field-acc(local-ref(r), my-record(), b)]))
 					call(
 						fun-inst(name: resolved, type-args: [int32()])
-						[call(fun-inst(name: literal), [string-lit("0")])]))))])
+						[call(fun-inst(name: literal), [string-lit("0")])]))))
+		fun(
+			public?: true
+			sig: sig(
+				file-pos(20, 34)
+				my-record
+				my-record()
+				[param(file-range(20, range(52, 57)), a, arr(char())), param(file-range(20, range(59, 64)), b, arr(char()))])
+			body: new-record)])

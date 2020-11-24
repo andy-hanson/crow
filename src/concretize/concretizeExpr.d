@@ -12,7 +12,6 @@ import concretize.concretizeCtx :
 	ConcreteFunBodyInputs,
 	concreteTypeFromFields_alwaysPointer,
 	concretizeParams,
-	getAllocFun,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteType_forStructInst_fromConcretizeCtx = getConcreteType_forStructInst,
 	getGetVatAndActorFun,
@@ -312,7 +311,7 @@ immutable(ConcreteExpr) createAllocExpr(Alloc)(
 	return immutable ConcreteExpr(
 		byRef(inner.type),
 		inner.range,
-		immutable ConcreteExpr.Alloc(getAllocFun(alloc, ctx), allocExpr(alloc, inner)));
+		immutable ConcreteExpr.Alloc(allocExpr(alloc, inner)));
 }
 
 immutable(ConcreteExpr) concretizeCreateRecord(Alloc)(
@@ -676,13 +675,7 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 					return immutable ConcreteExpr(
 						arrayType,
 						range,
-						nu!(ConcreteExpr.CreateArr)(
-							alloc,
-							arrayStruct,
-							elementType,
-							getAllocFun(alloc, ctx.concretizeCtx),
-							local,
-							exprs));
+						allocate(alloc, immutable ConcreteExpr.CreateArr(arrayStruct, elementType, local, exprs)));
 				});
 		},
 		(ref immutable Expr.CreateRecord e) =>

@@ -166,7 +166,6 @@ ref immutable(Arr!(Ptr!ConcreteFun)) specImpls(return scope ref immutable Concre
 struct ConcretizeCtx {
 	@safe @nogc pure nothrow:
 
-	immutable Ptr!FunInst allocFun;
 	immutable Ptr!FunInst getVatAndActorFun;
 	immutable Arr!(Ptr!FunDecl) ifFuns;
 	immutable Arr!(Ptr!FunDecl) callFuns;
@@ -349,10 +348,6 @@ immutable(ConcreteType) concreteTypeFromFields_alwaysPointer(Alloc)(
 	return concreteType_pointer(castImmutable(cs));
 }
 
-immutable(Ptr!ConcreteFun) getAllocFun(Alloc)(ref Alloc alloc, ref ConcretizeCtx ctx) {
-	return getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, ctx.allocFun);
-}
-
 immutable(Ptr!ConcreteFun) getGetVatAndActorFun(Alloc)(ref Alloc alloc, ref ConcretizeCtx ctx) {
 	return getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, ctx.getVatAndActorFun);
 }
@@ -520,9 +515,11 @@ void fillInConcreteFunBody(Alloc)(
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
 			inputs.body_,
 			(ref immutable FunBody.Builtin) =>
-				immutable ConcreteFunBody(ConcreteFunBody.Builtin(typeArgs(inputs))),
+				immutable ConcreteFunBody(immutable ConcreteFunBody.Builtin(typeArgs(inputs))),
+			(ref immutable FunBody.CreateRecord) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
 			(ref immutable FunBody.Extern e) =>
-				immutable ConcreteFunBody(ConcreteFunBody.Extern(e.isGlobal, e.externName)),
+				immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal, e.externName)),
 			(immutable Ptr!Expr e) =>
 				concretizeExpr(alloc, ctx, inputs, castImmutable(cf), e.deref));
 		lateSetOverwrite(cf._body_, body_);

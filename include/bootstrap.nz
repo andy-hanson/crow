@@ -770,12 +770,6 @@ opt<?t> union
 	none
 	some<?t>
 
-some some ?x(t ?x) noctx
-	new t
-
-none none() noctx
-	new<none>
-
 empty? bool(a opt ?t) noctx
 	match a
 		none n
@@ -796,11 +790,6 @@ err<?t> record
 result<?ok, ?err> union
 	ok<?ok>
 	err<?err>
-
-ok ok ?t(t ?t) noctx
-	new t
-err err ?t(t ?t) noctx
-	new t
 
 then result ?ok-out ?err(a result ?ok-in ?err, f fun-mut1 result<?ok-out, ?err> ?ok-in)
 	match a

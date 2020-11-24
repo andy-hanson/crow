@@ -177,6 +177,8 @@ immutable(Sexpr) tataOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable Con
 		a,
 		(ref immutable ConcreteFunBody.Builtin it) =>
 			tataOfConcreteFunBodyBuiltin(alloc, it),
+		(ref immutable ConcreteFunBody.CreateRecord) =>
+			tataSym("new-record"),
 		(ref immutable ConcreteFunBody.Extern it) =>
 			tataRecord(alloc, "extern", [tataBool(it.isGlobal)]),
 		(ref immutable ConcreteFunExprBody it) =>
@@ -216,9 +218,7 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 	return matchConcreteExpr!(immutable Sexpr)(
 		a,
 		(ref immutable ConcreteExpr.Alloc it) =>
-			tataRecord(alloc, "alloc", [
-				tataOfConcreteFunRef(alloc, it.alloc),
-				tataOfConcreteExpr(alloc, it.inner)]),
+			tataRecord(alloc, "alloc", [tataOfConcreteExpr(alloc, it.inner)]),
 		(ref immutable ConcreteExpr.Call it) =>
 			tataRecord(alloc, "call", [
 				tataOfConcreteFunRef(alloc, it.called),
@@ -235,7 +235,6 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 			tataRecord(alloc, "create-arr", [
 				tataOfConcreteStructRef(alloc, it.arrType),
 				tataOfConcreteType(alloc, it.elementType),
-				tataOfConcreteFunRef(alloc, it.alloc),
 				tataOfConcreteLocalRef(it.local),
 				tataArr(alloc, it.args, (ref immutable ConcreteExpr arg) =>
 					tataOfConcreteExpr(alloc, arg))]),

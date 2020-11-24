@@ -39,7 +39,6 @@ import util.util : todo, verify;
 
 immutable(Ptr!ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	ConcretizeCtx ctx = ConcretizeCtx(
-		getAllocFun(alloc, program),
 		getGetVatAndActorFun(alloc, program),
 		getIfFuns(program),
 		getCallFuns(alloc, program),
@@ -52,6 +51,8 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable 
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 	immutable Ptr!ConcreteFun userMainConcreteFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getUserMainFun(alloc, program));
+	immutable Ptr!ConcreteFun allocFun =
+		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getAllocFun(alloc, program));
 	// We remove items from these dicts when we process them.
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
@@ -62,6 +63,7 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable 
 		finishArr_immutable(alloc, ctx.allConcreteFuns),
 		rtMainConcreteFun,
 		userMainConcreteFun,
+		allocFun,
 		ctxStruct);
 }
 

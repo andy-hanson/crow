@@ -425,6 +425,8 @@ struct ConcreteFunBody {
 	struct Builtin {
 		immutable Arr!ConcreteType typeArgs;
 	}
+	struct CreateRecord {
+	}
 	struct Extern {
 		immutable Bool isGlobal;
 		immutable Str externName;
@@ -433,18 +435,21 @@ struct ConcreteFunBody {
 	private:
 	enum Kind {
 		builtin,
+		createRecord,
 		extern_,
 		concreteFunExprBody,
 	}
 	immutable Kind kind;
 	union {
 		immutable Builtin builtin;
+		immutable CreateRecord createRecord;
 		immutable Extern extern_;
 		immutable ConcreteFunExprBody concreteFunExprBody;
 	}
 
 	public:
 	@trusted immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	@trusted immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	@trusted immutable this(immutable Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable ConcreteFunExprBody a) {
 		kind = Kind.concreteFunExprBody; concreteFunExprBody = a;
@@ -468,12 +473,15 @@ immutable(Bool) isExtern(ref immutable ConcreteFunBody a) {
 @trusted T matchConcreteFunBody(T)(
 	ref immutable ConcreteFunBody a,
 	scope T delegate(ref immutable ConcreteFunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope T delegate(ref immutable ConcreteFunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable ConcreteFunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(ref immutable ConcreteFunExprBody) @safe @nogc pure nothrow cbConcreteFunExprBody,
 ) {
 	final switch (a.kind) {
 		case ConcreteFunBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
+		case ConcreteFunBody.Kind.createRecord:
+			return cbCreateRecord(a.createRecord);
 		case ConcreteFunBody.Kind.extern_:
 			return cbExtern(a.extern_);
 		case ConcreteFunBody.Kind.concreteFunExprBody:
@@ -623,7 +631,6 @@ struct ConcreteExpr {
 	@safe @nogc pure nothrow:
 
 	struct Alloc {
-		immutable Ptr!ConcreteFun alloc; // TODO: just store this once on the ConcreteProgram
 		immutable Ptr!ConcreteExpr inner;
 	}
 
@@ -641,7 +648,6 @@ struct ConcreteExpr {
 	struct CreateArr {
 		immutable Ptr!ConcreteStruct arrType;
 		immutable ConcreteType elementType;
-		immutable Ptr!ConcreteFun alloc;
 		// Needed because we must first allocate the array, then write to each field. That requires a local.
 		immutable Ptr!ConcreteLocal local; // TODO:KILL
 		immutable Arr!ConcreteExpr args;
@@ -918,5 +924,6 @@ struct ConcreteProgram {
 	immutable Arr!(Ptr!ConcreteFun) allFuns;
 	immutable Ptr!ConcreteFun rtMain;
 	immutable Ptr!ConcreteFun userMain;
+	immutable Ptr!ConcreteFun allocFun;
 	immutable Ptr!ConcreteStruct ctxType;
 }

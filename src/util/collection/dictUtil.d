@@ -7,7 +7,7 @@ import util.collection.arr : Arr, ptrAt, ptrsRange, range, size;
 import util.collection.dict : Dict, KeyValuePair;
 import util.collection.multiDict : MultiDict;
 import util.comparison : Comparison;
-import util.memory : initMemory, initMemory_mut;
+import util.memory : initMemory;
 import util.ptr : Ptr;
 import util.util : verify;
 
@@ -45,8 +45,8 @@ import util.util : verify;
 	immutable Arr!T inputs,
 	scope immutable(KeyValuePair!(K, V)) delegate(immutable Ptr!T) @safe @nogc pure nothrow getPair,
 ) {
-	K* keys = cast(K*) alloc.allocateBytes(K.sizeof * size(inputs));
-	V* values = cast(V*) alloc.allocateBytes(V.sizeof * size(inputs));
+	immutable(K)* keys = cast(immutable K*) alloc.allocateBytes(K.sizeof * size(inputs));
+	immutable(V)* values = cast(immutable V*) alloc.allocateBytes(V.sizeof * size(inputs));
 	foreach (immutable size_t i; 0..size(inputs)) {
 		immutable KeyValuePair!(K, V) pair = getPair(ptrAt(inputs, i));
 		// Insert at the first place it's > the previous value.
@@ -57,10 +57,10 @@ import util.util : verify;
 		}
 		for (size_t j = i; j > insertAt; j--) {
 			initMemory(keys + j, keys[j - 1]);
-			initMemory_mut(values + j, values[j - 1]);
+			initMemory(values + j, values[j - 1]);
 		}
 		initMemory(keys + insertAt, pair.key);
-		initMemory_mut(values + insertAt, pair.value);
+		initMemory(values + insertAt, pair.value);
 	}
 	return immutable MultiDict!(K, V, compare)(size(inputs), cast(immutable) keys, cast(immutable) values);
 }

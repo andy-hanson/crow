@@ -31,6 +31,10 @@ struct FileAndPos {
 	immutable Pos pos;
 }
 
+immutable(FileAndPos) fileAndPosFromFileAndRange(ref immutable FileAndRange a) {
+	return immutable FileAndPos(a.fileIndex, a.start);
+}
+
 struct FileAndRange {
 	@safe @nogc pure nothrow:
 

@@ -537,6 +537,7 @@ struct FunBody {
 	@safe @nogc pure nothrow:
 
 	struct Builtin {}
+	struct CreateRecord {}
 	struct Extern {
 		immutable Bool isGlobal;
 		immutable Str externName;
@@ -545,18 +546,21 @@ struct FunBody {
 	private:
 	enum Kind {
 		builtin,
+		createRecord,
 		extern_,
 		expr,
 	}
 	immutable Kind kind;
 	union {
 		immutable Builtin builtin;
+		immutable CreateRecord createRecord;
 		immutable Ptr!Extern extern_;
 		immutable Ptr!Expr expr;
 	}
 
 	public:
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
+	immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	@trusted immutable this(immutable Ptr!Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
 }
@@ -574,12 +578,15 @@ immutable(Bool) isExtern(ref immutable FunBody a) {
 @trusted T matchFunBody(T)(
 	ref immutable FunBody a,
 	scope T delegate(ref immutable FunBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
+	scope T delegate(ref immutable FunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable FunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(immutable Ptr!Expr) @safe @nogc pure nothrow cbExpr,
 ) {
 	final switch (a.kind) {
 		case FunBody.Kind.builtin:
 			return cbBuiltin(a.builtin);
+		case FunBody.Kind.createRecord:
+			return cbCreateRecord(a.createRecord);
 		case FunBody.Kind.extern_:
 			return cbExtern(a.extern_);
 		case FunBody.Kind.expr:
@@ -592,6 +599,9 @@ struct FunFlags {
 	immutable Bool summon;
 	immutable Bool unsafe;
 	immutable Bool trusted;
+
+	static immutable FunFlags none = immutable FunFlags(False, False, False, False);
+	static immutable FunFlags justNoCtx = immutable FunFlags(True, False, False, False);
 }
 static assert(FunFlags.sizeof == 4);
 
@@ -612,6 +622,21 @@ struct FunDecl {
 		typeParams_ = tps;
 		specs_ = sps;
 		body_ = immutable FunBody(immutable FunBody.Builtin());
+	}
+	this(
+		immutable Bool ip,
+		immutable FunFlags f,
+		immutable Ptr!Sig s,
+		immutable ArrWithSize!TypeParam tps,
+		immutable ArrWithSize!(Ptr!SpecInst) sps,
+		immutable FunBody b,
+	) {
+		isPublic = ip;
+		flags = f;
+		sig = s;
+		typeParams_ = tps;
+		specs_ = sps;
+		body_ = b;
 	}
 
 	immutable Bool isPublic;

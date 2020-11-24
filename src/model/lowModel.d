@@ -459,6 +459,7 @@ static assert(LowFun.sizeof <= 48);
 struct LowFunSig {
 	immutable LowType returnType;
 	immutable LowFunParamsKind paramsKind;
+	// Includes ctx and closure params
 	immutable Arr!LowParam params;
 }
 

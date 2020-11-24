@@ -329,12 +329,41 @@ immutable(CheckedExpr) checkCreateRecordCommon(Alloc)(
 
 	immutable Ptr!StructInst si = asStructInst(t);
 	immutable Ptr!StructDecl decl = si.decl;
-	immutable Opt!RecordAndIsBuiltinByVal opRecord = matchStructBody!(immutable Opt!RecordAndIsBuiltinByVal)(
+	immutable Opt!RecordAndIsBuiltinByVal opRecord = getRecordAndIsBuiltinByVal(ctx, si);
+
+	if (!has(opRecord) && !isBogus(body_(decl)))
+		addDiag2(alloc, ctx, range, immutable Diag(Diag.CantCreateNonRecordType(t)));
+
+	if (has(opRecord)) {
+		immutable RecordAndIsBuiltinByVal record = force(opRecord);
+		immutable Arr!RecordField fields = record.record.fields;
+		immutable Opt!(Arr!Expr) args = cbCheckFields(decl, fields);
+		if (has(args)) {
+			immutable Expr expr = immutable Expr(range, immutable Expr.CreateRecord(si, force(args)));
+			if (noCtx(ctx.outermostFun) && !record.isBuiltinByVal) {
+				if (!recordIsAlwaysByVal(record.record))
+					addDiag2(alloc, ctx, range, immutable Diag(Diag.CreateRecordByRefNoCtx(decl)));
+			}
+			return typeIsFromExpected ? CheckedExpr(expr) : check(alloc, ctx, expected, immutable Type(si), expr);
+		} else
+			return bogusWithoutChangingExpected(expected, range);
+	} else
+		return bogusWithoutChangingExpected(expected, range);
+}
+
+public immutable(Bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
+	return immutable Bool(
+		empty(record.fields) ||
+		(has(record.forcedByValOrRef) && force(record.forcedByValOrRef) == ForcedByValOrRef.byVal));
+}
+
+immutable(Opt!RecordAndIsBuiltinByVal) getRecordAndIsBuiltinByVal(ref const ExprCtx ctx, ref immutable StructInst si) {
+	return matchStructBody!(immutable Opt!RecordAndIsBuiltinByVal)(
 		body_(si),
 		(ref immutable StructBody.Bogus) =>
 			none!RecordAndIsBuiltinByVal,
 		(ref immutable StructBody.Builtin) {
-			if (ptrEquals(decl, ctx.commonTypes.byVal)) {
+			if (ptrEquals(si.decl, ctx.commonTypes.byVal)) {
 				// We know this will be deeply instantiated since we did that at the beginning of this function
 				immutable Type inner = only(si.typeArgs);
 				if (isStructInst(inner)) {
@@ -351,29 +380,6 @@ immutable(CheckedExpr) checkCreateRecordCommon(Alloc)(
 			some(immutable RecordAndIsBuiltinByVal(r, False)),
 		(ref immutable StructBody.Union) =>
 			none!RecordAndIsBuiltinByVal);
-
-	if (!has(opRecord) && !isBogus(body_(decl)))
-		addDiag2(alloc, ctx, range, immutable Diag(Diag.CantCreateNonRecordType(t)));
-
-	if (has(opRecord)) {
-		immutable RecordAndIsBuiltinByVal record = force(opRecord);
-		immutable Arr!RecordField fields = record.record.fields;
-		immutable Opt!(Arr!Expr) args = cbCheckFields(decl, fields);
-		if (has(args)) {
-			immutable Expr expr = immutable Expr(range, immutable Expr.CreateRecord(si, force(args)));
-			if (noCtx(ctx.outermostFun) && !record.isBuiltinByVal) {
-				immutable Opt!ForcedByValOrRef forcedByValOrRef = record.record.forcedByValOrRef;
-				immutable Bool isAlwaysByVal = Bool(
-					empty(fields) ||
-					(has(forcedByValOrRef) && force(forcedByValOrRef) == ForcedByValOrRef.byVal));
-				if (!isAlwaysByVal)
-					addDiag2(alloc, ctx, range, immutable Diag(Diag.CreateRecordByRefNoCtx(decl)));
-			}
-			return typeIsFromExpected ? CheckedExpr(expr) : check(alloc, ctx, expected, immutable Type(si), expr);
-		} else
-			return bogusWithoutChangingExpected(expected, range);
-	} else
-		return bogusWithoutChangingExpected(expected, range);
 }
 
 immutable(CheckedExpr) checkCreateRecord(Alloc)(

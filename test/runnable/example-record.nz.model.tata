@@ -41,4 +41,12 @@ module(
 					call(fun-inst(name: get-x), [local-ref(p)])
 					seq(
 						call(fun-inst(name: print-sync), [call(fun-inst(name: to-str), [local-ref(p-x)])])
-						call(fun-inst(name: resolved, type-args: [int32()]), [call(fun-inst(name: zero), [])])))))])
+						call(fun-inst(name: resolved, type-args: [int32()]), [call(fun-inst(name: zero), [])])))))
+		fun(
+			public?: true
+			sig: sig(
+				file-pos(20, 59)
+				point
+				point()
+				[param(file-range(20, range(73, 80)), x, float()), param(file-range(20, range(82, 89)), y, float())])
+			body: new-record)])

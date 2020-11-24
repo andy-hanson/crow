@@ -56,4 +56,12 @@ module(
 							[call(fun-inst(name: to-str), [field-acc(local-ref(m), my-record(), y)])]))
 					call(
 						fun-inst(name: resolved, type-args: [int32()])
-						[call(fun-inst(name: literal), [string-lit("0")])]))))])
+						[call(fun-inst(name: literal), [string-lit("0")])]))))
+		fun(
+			public?: true
+			sig: sig(
+				file-pos(20, 34)
+				my-record
+				my-record()
+				[param(file-range(20, range(52, 57)), x, nat()), param(file-range(20, range(59, 64)), y, nat())])
+			body: new-record)])

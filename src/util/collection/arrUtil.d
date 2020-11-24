@@ -64,8 +64,10 @@ pure:
 	scope Out delegate(immutable size_t) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = cast(Out*) alloc.allocateBytes(Out.sizeof * size);
-	foreach (immutable size_t i; 0..size)
-		initMemory_mut!Out(res + i, cb(i));
+	foreach (immutable size_t i; 0..size) {
+		Out value = cb(i);
+		initMemory_mut!Out(res + i, value);
+	}
 	return Arr!Out(res, size);
 }
 
@@ -204,14 +206,16 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	scope Out delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = cast(Out*) alloc.allocateBytes(Out.sizeof * size(a));
-	foreach (immutable size_t i; 0..size(a))
-		initMemory_mut(res + i, cb(at(a, i)));
+	foreach (immutable size_t i; 0..size(a)) {
+		Out value = cb(at(a, i));
+		initMemory_mut(res + i, value);
+	}
 	return Arr!Out(res, size(a));
 }
 
 @trusted immutable(Arr!Out) mapPtrs(Out, In, Alloc)(
 	ref Alloc alloc,
-	ref immutable Arr!In a,
+	immutable Arr!In a,
 	scope immutable(Out) delegate(immutable Ptr!In) @safe @nogc pure nothrow cb,
 ) {
 	Out* res = cast(Out*) alloc.allocateBytes(Out.sizeof * size(a));

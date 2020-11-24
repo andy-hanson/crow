@@ -17,10 +17,10 @@ import model.lowModel :
 	lowTypeEqual,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import util.collection.arr : Arr, arrOfRange, at, castImmutable, empty, ptrAt, range, setAt, size;
+import util.collection.arr : Arr, at, castImmutable, empty, ptrAt, range, setAt, size;
 import util.collection.arrUtil : mapToMut, sum, zip;
 import util.collection.exactSizeArrBuilder :
-	add,
+	exactSizeArrBuilderAdd,
 	add16,
 	add32,
 	add64,
@@ -31,7 +31,7 @@ import util.collection.exactSizeArrBuilder :
 	newExactSizeArrBuilder;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.ptr : Ptr, ptrTrustMe;
-import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat8, u8, u16, u32, u64, zero;
+import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat8, zero;
 import util.util : todo, unreachable, verify;
 
 struct TextAndInfo {
@@ -85,7 +85,7 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 				mapToMut!size_t(alloc, it.constants, (ref immutable Ptr!Constant) => size_t(0))));
 
 	// Ensure 0 is not a valid text index
-	add(ctx.text, 0);
+	exactSizeArrBuilderAdd(ctx.text, 0);
 
 	foreach (immutable size_t arrTypeIndex; 0..size(allConstants.arrs)) {
 		immutable Ptr!ArrTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
@@ -111,7 +111,7 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 	}
 
 	return immutable TextAndInfo(
-		finish(ctx.text),
+		castImmutable(finish(ctx.text)),
 		castImmutable(ctx.arrTypeIndexToConstantIndexToTextIndex),
 		castImmutable(ctx.pointeeTypeIndexToIndexToTextIndex));
 }
@@ -224,7 +224,7 @@ void writeConstant(TempAlloc)(
 			add64TextPtr(ctx.text, textIndex);
 		},
 		(immutable Constant.BoolConstant it) {
-			add(ctx.text, it.value ? 1 : 0);
+			exactSizeArrBuilderAdd(ctx.text, it.value ? 1 : 0);
 		},
 		(immutable Constant.Integral it) {
 			final switch (asPrimitive(type)) {
@@ -236,7 +236,7 @@ void writeConstant(TempAlloc)(
 				case PrimitiveType.char_:
 				case PrimitiveType.int8:
 				case PrimitiveType.nat8:
-					add(ctx.text, bottomU8OfU64(it.value));
+					exactSizeArrBuilderAdd(ctx.text, bottomU8OfU64(it.value));
 					break;
 				case PrimitiveType.int16:
 				case PrimitiveType.nat16:

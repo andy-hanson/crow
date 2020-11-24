@@ -58,6 +58,11 @@ immutable(Arr!T) asImmutable(T)(Arr!(immutable T) a) {
 	return immutable Arr!T(begin, end - begin);
 }
 
+@system Arr!T arrOfRange_mut(T)(T* begin, T* end) {
+	verify(begin <= end);
+	return Arr!T(begin, end - begin);
+}
+
 immutable(Arr!T) emptyArr(T)() {
 	return immutable Arr!T(null, 0);
 }

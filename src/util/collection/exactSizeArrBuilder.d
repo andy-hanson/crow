@@ -2,16 +2,17 @@ module util.collection.exactSizeArrBuilder;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr, arrOfRange;
+import util.collection.arr : Arr, arrOfRange_mut;
+import util.memory : initMemory_mut;
 import util.types : u8, u16, u32, u64;
 import util.util : verify;
 
 //TODO:MOVE
 struct ExactSizeArrBuilder(T) {
 	private:
-	const(T)* begin;
+	T* begin;
 	T* cur;
-	const(T)* end;
+	T* end;
 }
 
 immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T a) {
@@ -23,9 +24,9 @@ immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T 
 	return ExactSizeArrBuilder!T(begin, begin, begin + size);
 }
 
-@trusted void add(T)(ref ExactSizeArrBuilder!T a, immutable T value) {
+@trusted void exactSizeArrBuilderAdd(T)(ref ExactSizeArrBuilder!T a, T value) {
 	verify(a.cur < a.end);
-	*a.cur = value;
+	initMemory_mut!T(a.cur, value);
 	a.cur++;
 }
 
@@ -54,9 +55,9 @@ immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T 
 	add64(a, cast(immutable u64) (a.begin + textIndex));
 }
 
-@trusted immutable(Arr!T) finish(T)(ref ExactSizeArrBuilder!T a) {
+@trusted Arr!T finish(T)(ref ExactSizeArrBuilder!T a) {
 	verify(a.cur == a.end);
-	immutable Arr!T res = arrOfRange(cast(immutable) a.begin, cast(immutable) a.end);
+	Arr!T res = arrOfRange_mut(a.begin, a.end);
 	a.begin = null;
 	a.cur = null;
 	a.end = null;
