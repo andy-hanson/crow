@@ -111,7 +111,8 @@ read-dir arr str(path c-str) trusted summon
 read-dir-recur void(dirp dirp, res mut-arr str) unsafe summon
 	| Initial value of entry / result should not matter
 	entry = new<dirent> zero, zero, zero, "\0", zero
-	result = entry cell
+	| TODO: should not need a type argument here
+	result = entry cell<dirent>
 	err = dirp readdir-r entry, result
 	| TODO: handle error
 	assert: err zero?

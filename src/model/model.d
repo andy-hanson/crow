@@ -599,11 +599,13 @@ struct FunFlags {
 	immutable Bool summon;
 	immutable Bool unsafe;
 	immutable Bool trusted;
+	immutable Bool preferred;
 
-	static immutable FunFlags none = immutable FunFlags(False, False, False, False);
-	static immutable FunFlags justNoCtx = immutable FunFlags(True, False, False, False);
+	static immutable FunFlags none = immutable FunFlags(False, False, False, False, False);
+	static immutable FunFlags justNoCtx = immutable FunFlags(True, False, False, False, False);
+	static immutable FunFlags justPreferred = immutable FunFlags(False, False, False, False, True);
 }
-static assert(FunFlags.sizeof == 4);
+static assert(FunFlags.sizeof == 5);
 
 struct FunDecl {
 	@safe @nogc pure nothrow:

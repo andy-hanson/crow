@@ -1,6 +1,6 @@
 import
 	.bootstrap
-		== != and any-ptr bits-and bit-shift-left bit-shift-right bits-intersect? bool by-val char
+		== != and any-ptr as bits-and bit-shift-left bit-shift-right bits-intersect? bool by-val char
 		c-str eight five four fun-ptr1 int int16 int32 int64 nat nat16 nat32 nat64 nine noctx-decr
 		one ptr seven six sixteen ten twelve two fifteen fourteen wrap-add wrap-mul wrap-sub void
 		thirteen three two-pow zero zero?
@@ -167,7 +167,8 @@ errno err-t() unsafe global<"errno"> noctx
 stat int32(path c-str, buf stat-t) extern<"stat"> noctx
 
 empty-stat stat-t()
-	stat-t: zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero, zero
+	z = zero as<nat>
+	stat-t: z, zero, z, zero, zero, z, z, z, zero, zero, z, z, z, z, z, z, z, z, z, z
 
 s-ifmt nat32()
 	| TODO: "octal170000"

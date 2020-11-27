@@ -14,7 +14,8 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1 ?t arr<opt
 	assert: parsed.after empty?
 
 	values = t-names.size fill-mut-arr<opt<arr<str>>> none
-	help = false cell
+	| TODO: should not need a type argument here
+	help = false cell<bool>
 	parsed.named each \key value
 		match t-names index-of key
 			none

@@ -1408,7 +1408,7 @@ program(
 			int-32
 			param-kind(ctx: false, closure: false)
 			[]
-			expr-body(expr(int-32, file-range(2, range(5825, 5828)), call(43, []))))
+			expr-body(expr(int-32, file-range(2, range(5801, 5804)), call(43, []))))
 		43: fun(
 			two
 			int-32
@@ -4862,12 +4862,12 @@ program(
 			expr-body(
 				expr(
 					record(35)
-					file-range(2, range(1428, 1447))
+					file-range(2, range(1431, 1450))
 					call(
 						128
 						[
-							expr(record(36), file-range(2, range(1437, 1441)), call(129, []))
-							expr(record(36), file-range(2, range(1443, 1447)), call(129, []))]))))
+							expr(record(36), file-range(2, range(1440, 1444)), call(129, []))
+							expr(record(36), file-range(2, range(1446, 1450)), call(129, []))]))))
 		128: fun(
 			bytes64
 			record(35)
@@ -4876,11 +4876,11 @@ program(
 			expr-body(
 				expr(
 					record(35)
-					file-range(2, range(1157, 1164))
+					file-range(2, range(1160, 1167))
 					record(
 						[
-							expr(record(36), file-range(2, range(1157, 1164)), param-ref(0))
-							expr(record(36), file-range(2, range(1157, 1164)), param-ref(1))]))))
+							expr(record(36), file-range(2, range(1160, 1167)), param-ref(0))
+							expr(record(36), file-range(2, range(1160, 1167)), param-ref(1))]))))
 		129: fun(
 			zero
 			record(36)
@@ -4889,12 +4889,12 @@ program(
 			expr-body(
 				expr(
 					record(36)
-					file-range(2, range(1385, 1404))
+					file-range(2, range(1388, 1407))
 					call(
 						130
 						[
-							expr(record(37), file-range(2, range(1394, 1398)), call(131, []))
-							expr(record(37), file-range(2, range(1400, 1404)), call(131, []))]))))
+							expr(record(37), file-range(2, range(1397, 1401)), call(131, []))
+							expr(record(37), file-range(2, range(1403, 1407)), call(131, []))]))))
 		130: fun(
 			bytes32
 			record(36)
@@ -4903,11 +4903,11 @@ program(
 			expr-body(
 				expr(
 					record(36)
-					file-range(2, range(1109, 1116))
+					file-range(2, range(1112, 1119))
 					record(
 						[
-							expr(record(37), file-range(2, range(1109, 1116)), param-ref(0))
-							expr(record(37), file-range(2, range(1109, 1116)), param-ref(1))]))))
+							expr(record(37), file-range(2, range(1112, 1119)), param-ref(0))
+							expr(record(37), file-range(2, range(1112, 1119)), param-ref(1))]))))
 		131: fun(
 			zero
 			record(37)
@@ -4916,8 +4916,8 @@ program(
 			expr-body(
 				expr(
 					record(37)
-					file-range(2, range(1342, 1361))
-					call(132, [expr(nat-64, file-range(2, range(1351, 1355)), 0), expr(nat-64, file-range(2, range(1357, 1361)), 0)]))))
+					file-range(2, range(1345, 1364))
+					call(132, [expr(nat-64, file-range(2, range(1354, 1358)), 0), expr(nat-64, file-range(2, range(1360, 1364)), 0)]))))
 		132: fun(
 			bytes16
 			record(37)
@@ -4926,11 +4926,11 @@ program(
 			expr-body(
 				expr(
 					record(37)
-					file-range(2, range(1063, 1070))
+					file-range(2, range(1066, 1073))
 					record(
 						[
-							expr(nat-64, file-range(2, range(1063, 1070)), param-ref(0))
-							expr(nat-64, file-range(2, range(1063, 1070)), param-ref(1))]))))
+							expr(nat-64, file-range(2, range(1066, 1073)), param-ref(0))
+							expr(nat-64, file-range(2, range(1066, 1073)), param-ref(1))]))))
 		133: fun(
 			zero
 			record(38)
@@ -4939,12 +4939,12 @@ program(
 			expr-body(
 				expr(
 					record(38)
-					file-range(2, range(1472, 1492))
+					file-range(2, range(1475, 1495))
 					call(
 						134
 						[
-							expr(record(35), file-range(2, range(1482, 1486)), call(127, []))
-							expr(record(35), file-range(2, range(1488, 1492)), call(127, []))]))))
+							expr(record(35), file-range(2, range(1485, 1489)), call(127, []))
+							expr(record(35), file-range(2, range(1491, 1495)), call(127, []))]))))
 		134: fun(
 			bytes128
 			record(38)
@@ -4953,11 +4953,11 @@ program(
 			expr-body(
 				expr(
 					record(38)
-					file-range(2, range(1205, 1213))
+					file-range(2, range(1208, 1216))
 					record(
 						[
-							expr(record(35), file-range(2, range(1205, 1213)), param-ref(0))
-							expr(record(35), file-range(2, range(1205, 1213)), param-ref(1))]))))
+							expr(record(35), file-range(2, range(1208, 1216)), param-ref(0))
+							expr(record(35), file-range(2, range(1208, 1216)), param-ref(1))]))))
 		135: fun(setjmp, int-32, param-kind(ctx: false, closure: false), [param(env, ptr(record(34)))], extern(false))
 		136: fun(
 			call
@@ -10585,11 +10585,11 @@ program(
 			expr-body(
 				expr(
 					int-32
-					file-range(2, range(2587, 2599))
+					file-range(2, range(2590, 2602))
 					binary(
 						"wrap-add (int-32)"
-						expr(int-32, file-range(2, range(2583, 2586)), call(245, []))
-						expr(int-32, file-range(2, range(2596, 2599)), 1)))))
+						expr(int-32, file-range(2, range(2586, 2589)), call(245, []))
+						expr(int-32, file-range(2, range(2599, 2602)), 1)))))
 		245: fun(
 			ten
 			int-32
@@ -10782,23 +10782,23 @@ program(
 			expr-body(
 				expr(
 					int-32
-					file-range(2, range(2639, 2651))
+					file-range(2, range(2642, 2654))
 					binary(
 						"wrap-add (int-32)"
 						expr(
 							int-32
-							file-range(2, range(2626, 2638))
+							file-range(2, range(2629, 2641))
 							binary(
 								"wrap-add (int-32)"
-								expr(int-32, file-range(2, range(2622, 2625)), call(245, []))
-								expr(int-32, file-range(2, range(2635, 2638)), call(245, []))))
-						expr(int-32, file-range(2, range(2648, 2651)), call(43, []))))))
+								expr(int-32, file-range(2, range(2625, 2628)), call(245, []))
+								expr(int-32, file-range(2, range(2638, 2641)), call(245, []))))
+						expr(int-32, file-range(2, range(2651, 2654)), call(43, []))))))
 		250: fun(
 			esrch
 			int-32
 			param-kind(ctx: false, closure: false)
 			[]
-			expr-body(expr(int-32, file-range(2, range(2673, 2678)), call(117, []))))
+			expr-body(expr(int-32, file-range(2, range(2676, 2681)), call(117, []))))
 		251: fun(
 			get
 			ptr(nat-8)
@@ -11774,7 +11774,7 @@ program(
 			int-32
 			param-kind(ctx: false, closure: false)
 			[]
-			expr-body(expr(int-32, file-range(2, range(5797, 5800)), 1)))
+			expr-body(expr(int-32, file-range(2, range(5773, 5776)), 1)))
 		275: fun(
 			to-str
 			record(7)

@@ -93,6 +93,7 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil :
 	every,
 	exists,
+	exists_const,
 	fillArr_mut,
 	fillArrOrFail,
 	filterUnordered,
@@ -107,10 +108,12 @@ import util.collection.mutArr :
 	moveToArr_const,
 	MutArr,
 	mutArrIsEmpty,
+	mutArrSize,
 	newUninitializedMutArr,
 	peek,
 	push,
 	setAt,
+	tempAsArr,
 	tempAsArr_mut;
 import util.opt : force, has, mapOption_const, none, Opt, some;
 import util.memory : nu;
@@ -171,6 +174,11 @@ immutable(CheckedExpr) checkCall(Alloc)(
 	if (someArgIsBogus)
 		return bogus(expected, range);
 
+	if (mutArrSize(candidates) != 1 &&
+		exists_const(tempAsArr(candidates), (ref const Candidate it) => candidateIsPreferred(it))) {
+		filterUnordered(candidates, (ref Candidate it) => candidateIsPreferred(it));
+	}
+
 	const Arr!Candidate candidatesArr = moveToArr_const(alloc, candidates);
 
 	if (mightBePropertyAccess && arity == 1 && has(args)) {
@@ -204,7 +212,6 @@ immutable(CheckedExpr) checkCall(Alloc)(
 		return checkCallAfterChoosingOverload(alloc, ctx, only_const(candidatesArr), range, force(args), expected);
 }
 
-
 immutable(CheckedExpr) checkIdentifierCall(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
@@ -222,6 +229,15 @@ immutable(CheckedExpr) checkIdentifierCall(Alloc)(
 }
 
 private:
+
+immutable(Bool) candidateIsPreferred(ref const Candidate a) {
+	return matchCalledDecl!(immutable Bool)(
+		a.called,
+		(immutable Ptr!FunDecl it) =>
+			it.flags.preferred,
+		(ref immutable SpecSig) =>
+			False);
+}
 
 void eachFunInScope(
 	ref ExprCtx ctx,

@@ -45,7 +45,8 @@ range-nat record
 	hi nat
 
 iter iterator nat(r range-nat)
-	n = r.lo cell
+	| TODO: should not need a type argument here
+	n = r.lo cell<nat>
 	iterator: \
 		when
 			n.get == r.hi

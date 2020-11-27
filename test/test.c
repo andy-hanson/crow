@@ -4909,7 +4909,9 @@ struct opt_12 get_stat(struct ctx* ctx, char* path) {
 	}
 }
 struct stat_t* empty_stat(struct ctx* ctx) {
-	return stat_t(ctx, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	uint64_t z0;
+	z0 = 0;
+	return stat_t(ctx, z0, 0, z0, 0, 0, z0, z0, z0, 0, 0, z0, z0, z0, z0, z0, z0, z0, z0, z0, z0);
 }
 struct stat_t* stat_t(struct ctx* ctx, uint64_t st_dev, uint32_t pad0, uint64_t st_ino_unused, uint32_t st_mode, uint32_t st_nlink, uint64_t st_uid, uint64_t st_gid, uint64_t st_rdev, uint32_t pad1, int64_t st_size, uint64_t st_blksize, uint64_t st_blocks, uint64_t st_atime, uint64_t st_atime_nsec, uint64_t st_mtime, uint64_t st_mtime_nsec, uint64_t st_ctime, uint64_t st_ctime_nsec, uint64_t st_ino, uint64_t unused) {
 	struct stat_t* temp0;

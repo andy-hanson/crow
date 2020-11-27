@@ -836,9 +836,15 @@ immutable(size_t) countFuns(
 	ref immutable Arr!FunDeclAst asts,
 	ref immutable Arr!StructDecl structs,
 ) {
-	return size(asts) + sum!StructDecl(structs, (ref immutable StructDecl s) =>
-		// TODO: also add for each field
-		immutable size_t(isRecord(body_(s)) ? 1 : 0));
+	return size(asts) + sum!StructDecl(structs, (ref immutable StructDecl s) {
+		if (isRecord(body_(s))) {
+			immutable StructBody.Record record = asRecord(body_(s));
+			immutable size_t constructors = recordIsAlwaysByVal(record) ? 1 : 2;
+			// TODO: also add for each field
+			return constructors;
+		} else
+			return immutable size_t(0);
+	});
 }
 
 immutable(FunsAndMap) checkFuns(Alloc)(
@@ -869,43 +875,11 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 			structsAndAliasesMap,
 			specsMap,
 			immutable TypeParamsScope(toArr(typeParams)));
-		immutable FunFlags flags = FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted);
+		immutable FunFlags flags = FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted, False);
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(funAst.isPublic, flags, sig, typeParams, specUses));
 	}
-	foreach (immutable Ptr!StructDecl struct_; ptrsRange(structs)) {
-		if (isRecord(body_(struct_))) {
-			immutable StructBody.Record record = asRecord(body_(struct_));
-			// Add ctor
-			immutable ArrWithSize!TypeParam typeParams = struct_.typeParams_;
-			immutable Arr!Type typeArgs = mapPtrs(alloc, toArr(typeParams), (immutable Ptr!TypeParam p) =>
-				immutable Type(p));
-			immutable Type structType = immutable Type(instantiateStructNeverDelay!Alloc(
-				alloc,
-				ctx.programState,
-				immutable StructDeclAndArgs(struct_, typeArgs)));
-			immutable Arr!Param ctorParams = map(alloc, record.fields, (ref immutable RecordField it) =>
-				immutable Param(it.range, it.name, it.type, it.index));
-			immutable Ptr!Sig ctorSig = allocate(
-				alloc,
-				immutable Sig(fileAndPosFromFileAndRange(struct_.range), struct_.name, structType, ctorParams));
-			exactSizeArrBuilderAdd!FunDecl(funsBuilder, FunDecl(
-				struct_.isPublic,
-				recordIsAlwaysByVal(record) ? FunFlags.justNoCtx : FunFlags.none, // TODO: noCtx *if* the struct is
-				ctorSig,
-				typeParams,
-				emptyArrWithSize!(Ptr!SpecInst),
-				immutable FunBody(immutable FunBody.CreateRecord())));
-			//TODO
-			/*foreach (ref immutable RecordField field; arrRange(record.fields)) {
-				add(funsBuilder, FunDecl(
-					struct_.isPublic,
-					FunFlags.noCtx,
-					getterSig,
-					typeParams,
-					emptyArrWIthSize!(Ptr!SpecInst)));
-			}*/
-		}
-	}
+	foreach (immutable Ptr!StructDecl struct_; ptrsRange(structs))
+		addFunsForStruct(alloc, ctx, funsBuilder, commonTypes, struct_);
 	Arr!FunDecl funs = finish(funsBuilder);
 
 	immutable FunsMap funsMap = buildMultiDict!(Sym, Ptr!FunDecl, compareSym, FunDecl, Alloc)(
@@ -936,6 +910,75 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 	});
 
 	return FunsAndMap(arrAsImmutable(funs), funsMap);
+}
+
+void addFunsForStruct(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	ref immutable CommonTypes commonTypes,
+	immutable Ptr!StructDecl struct_,
+) {
+	if (isRecord(body_(struct_))) {
+		immutable StructBody.Record record = asRecord(body_(struct_));
+		addRecordConstructors(alloc, ctx, funsBuilder, commonTypes, struct_, record);
+		//TODO
+		/*foreach (ref immutable RecordField field; arrRange(record.fields)) {
+			add(funsBuilder, FunDecl(
+				struct_.isPublic,
+				FunFlags.noCtx,
+				getterSig,
+				typeParams,
+				emptyArrWIthSize!(Ptr!SpecInst)));
+		}*/
+	}
+}
+
+void addRecordConstructors(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref ExactSizeArrBuilder!FunDecl funsBuilder,
+	ref immutable CommonTypes commonTypes,
+	immutable Ptr!StructDecl struct_,
+	ref immutable StructBody.Record record,
+) {
+	// Add ctor
+	immutable ArrWithSize!TypeParam typeParams = struct_.typeParams_;
+	immutable Arr!Type typeArgs = mapPtrs(alloc, toArr(typeParams), (immutable Ptr!TypeParam p) =>
+		immutable Type(p));
+	immutable Type structType = immutable Type(instantiateStructNeverDelay!Alloc(
+		alloc,
+		ctx.programState,
+		immutable StructDeclAndArgs(struct_, typeArgs)));
+	immutable Arr!Param ctorParams = map(alloc, record.fields, (ref immutable RecordField it) =>
+		immutable Param(it.range, it.name, it.type, it.index));
+	FunDecl fun(Type returnType, FunFlags flags) {
+		immutable Ptr!Sig ctorSig = allocate(
+			alloc,
+			immutable Sig(fileAndPosFromFileAndRange(struct_.range),
+			struct_.name,
+			returnType,
+			ctorParams));
+		return FunDecl(
+			struct_.isPublic,
+			flags,
+			ctorSig,
+			typeParams,
+			emptyArrWithSize!(Ptr!SpecInst),
+			immutable FunBody(immutable FunBody.CreateRecord()));
+	}
+
+	if (recordIsAlwaysByVal(record)) {
+		exactSizeArrBuilderAdd(funsBuilder, fun(structType, FunFlags.justNoCtx));
+	} else {
+		exactSizeArrBuilderAdd(funsBuilder, fun(structType, FunFlags.justPreferred));
+		immutable Type byValType = immutable Type(
+			instantiateStructNeverDelay(
+				alloc,
+				ctx.programState,
+				immutable StructDeclAndArgs(commonTypes.byVal, arrLiteral!Type(alloc, [structType]))));
+		exactSizeArrBuilderAdd(funsBuilder, fun(byValType, FunFlags.justNoCtx));
+	}
 }
 
 immutable(SpecsMap) buildSpecsDict(Alloc)(

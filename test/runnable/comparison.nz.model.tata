@@ -231,6 +231,7 @@ module(
 				call(fun-inst(name: resolved, type-args: [int32()]), [call(fun-inst(name: literal), [string-lit("0")])])))
 		fun(
 			public?: true
+			preferred: true
 			sig: sig(
 				file-pos(20, 34)
 				my-record
@@ -239,10 +240,29 @@ module(
 			body: new-record)
 		fun(
 			public?: true
+			no-ctx: true
+			sig: sig(
+				file-pos(20, 34)
+				my-record
+				by-val(my-record())
+				[param(file-range(20, range(52, 57)), x, nat()), param(file-range(20, range(59, 64)), y, nat())])
+			body: new-record)
+		fun(
+			public?: true
+			preferred: true
 			sig: sig(
 				file-pos(20, 66)
 				my-byref-record
 				my-byref-record()
+				[param(file-range(20, range(98, 103)), x, nat()), param(file-range(20, range(105, 110)), y, nat())])
+			body: new-record)
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(
+				file-pos(20, 66)
+				my-byref-record
+				by-val(my-byref-record())
 				[param(file-range(20, range(98, 103)), x, nat()), param(file-range(20, range(105, 110)), y, nat())])
 			body: new-record)
 		fun(

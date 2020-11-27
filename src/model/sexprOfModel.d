@@ -123,6 +123,8 @@ immutable(Sexpr) sexprOfFunDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutab
 		add(alloc, fields, nameAndTata("unsafe", tataBool(True)));
 	if (trusted(a))
 		add(alloc, fields, nameAndTata("trusted", tataBool(True)));
+	if (a.flags.preferred)
+		add(alloc, fields, nameAndTata("preferred", tataBool(True)));
 	add(alloc, fields, nameAndTata("sig", sexprOfSig(alloc, ctx, a.sig)));
 	if (!empty(typeParams(a)))
 		add(alloc, fields, nameAndTata("typeparams", tataArr(alloc, typeParams(a), (ref immutable TypeParam it) =>
