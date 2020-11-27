@@ -6,7 +6,7 @@ my-record record
 	y nat
 
 main fut exit-code(args arr str) summon
-	m = new<my-record> 1, 2
+	m = my-record: 1, 2
 	assert: m.x == 1
 	assert: m.y == 2
 	print-sync: m.x.to-str

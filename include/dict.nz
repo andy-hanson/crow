@@ -84,6 +84,5 @@ each void(d dict ?k ?v, f fun-mut2 void ?k ?v)
 			pass
 		else
 			f call d.keys.first, d.values.first
-			| TODO: type argument to 'new' should be unnecessary
-			(new<dict<?k, ?v>> d.keys.tail, d.values.tail) each f
-
+			| TODO: type arguments should be unnecessary
+			d.keys.tail dict<?k, ?v> d.values.tail each f

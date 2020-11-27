@@ -232,7 +232,7 @@ choose-task result chosen-task no-chosen-task(gctx global-ctx) noctx unsafe
 			gctx.n-live-threads := gctx.n-live-threads.noctx-decr
 			| TODO:KILL
 			hard-assert: gctx.n-live-threads zero?
-			err: new<no-chosen-task> gctx.n-live-threads zero?
+			err: no-chosen-task: gctx.n-live-threads zero?
 		some s
 			s.value ok
 

@@ -25,13 +25,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	| TODO: detect # hardware processors to use for n-threads
 	| TODO: get-nprocs
 	n-threads = one as<nat>
-	gctx-by-val = new<by-val<global-ctx>>
-		lk. new-lock
-		vats. empty-arr<vat>
-		n-live-threads. n-threads
-		may-be-work-to-do. new-condition
-		is-shut-down. false
-		any-unhandled-exceptions?. false
+	gctx-by-val = as<by-val<global-ctx>>: global-ctx: new-lock, empty-arr<vat>, n-threads, new-condition, false, false
 	gctx = gctx-by-val ref-of-val
 	vat-by-val = new-vat: gctx, zero, n-threads
 	vat = vat-by-val ref-of-val
@@ -58,7 +52,7 @@ do-main fut exit-code(gctx global-ctx, vat vat, argc int32, argv ptr c-str, main
 	| Before we start the engine, add a task.
 	| Create a ctx manually so we can call functions that need it when creating the task
 	ectx = new-exception-ctx
-	tls = new<by-val<thread-local-stuff>> ectx.ref-of-val
+	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val
 	ctx-by-val = new-ctx: gctx, tls.ref-of-val, vat, zero
 	ctx = ctx-by-val ref-of-val
 	add = as<fun2<fut<exit-code>, arr<c-str>, main-ptr>>: \all-args main-ptr
@@ -142,7 +136,7 @@ join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsaf
 			i.noctx-incr join-threads-recur n-threads, threads
 
 join-one-thread void(tid pthread-t) noctx unsafe summon
-	thread-return = new<by-val<cell<any-ptr>>> null
+	thread-return = as<by-val<cell<any-ptr>>>: cell: null
 	err = tid pthread-join thread-return.ref-of-val
 	when
 		err zero?

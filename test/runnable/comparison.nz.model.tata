@@ -29,27 +29,27 @@ module(
 			sig: sig(file-pos(20, 180), test-compare-records, void(), [])
 			body: let(
 				local(file-range(20, range(216, 217)), a, my-record())
-				record(
-					my-record()
+				call(
+					fun-inst(name: my-record)
 					[call(fun-inst(name: literal), [string-lit("1")]), call(fun-inst(name: literal), [string-lit("2")])])
 				let(
-					local(file-range(20, range(241, 242)), b, my-record())
-					record(
-						my-record()
+					local(file-range(20, range(237, 238)), b, my-record())
+					call(
+						fun-inst(name: my-record)
 						[
 							call(fun-inst(name: literal), [string-lit("1")])
 							call(fun-inst(name: literal), [string-lit("3")])])
 					let(
-						local(file-range(20, range(266, 267)), c, my-record())
-						record(
-							my-record()
+						local(file-range(20, range(258, 259)), c, my-record())
+						call(
+							fun-inst(name: my-record)
 							[
 								call(fun-inst(name: literal), [string-lit("1")])
 								call(fun-inst(name: literal), [string-lit("2")])])
 						let(
-							local(file-range(20, range(291, 292)), d, my-record())
-							record(
-								my-record()
+							local(file-range(20, range(279, 280)), d, my-record())
+							call(
+								fun-inst(name: my-record)
 								[
 									call(fun-inst(name: literal), [string-lit("0")])
 									call(fun-inst(name: literal), [string-lit("3")])])
@@ -85,30 +85,30 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(20, 400), test-compare-byref-records, void(), [])
+			sig: sig(file-pos(20, 384), test-compare-byref-records, void(), [])
 			body: let(
-				local(file-range(20, range(442, 443)), a, my-byref-record())
-				record(
-					my-byref-record()
+				local(file-range(20, range(426, 427)), a, my-byref-record())
+				call(
+					fun-inst(name: my-byref-record)
 					[call(fun-inst(name: literal), [string-lit("1")]), call(fun-inst(name: literal), [string-lit("2")])])
 				let(
-					local(file-range(20, range(473, 474)), b, my-byref-record())
-					record(
-						my-byref-record()
+					local(file-range(20, range(453, 454)), b, my-byref-record())
+					call(
+						fun-inst(name: my-byref-record)
 						[
 							call(fun-inst(name: literal), [string-lit("1")])
 							call(fun-inst(name: literal), [string-lit("3")])])
 					let(
-						local(file-range(20, range(504, 505)), c, my-byref-record())
-						record(
-							my-byref-record()
+						local(file-range(20, range(480, 481)), c, my-byref-record())
+						call(
+							fun-inst(name: my-byref-record)
 							[
 								call(fun-inst(name: literal), [string-lit("1")])
 								call(fun-inst(name: literal), [string-lit("2")])])
 						let(
-							local(file-range(20, range(535, 536)), d, my-byref-record())
-							record(
-								my-byref-record()
+							local(file-range(20, range(507, 508)), d, my-byref-record())
+							call(
+								fun-inst(name: my-byref-record)
 								[
 									call(fun-inst(name: literal), [string-lit("0")])
 									call(fun-inst(name: literal), [string-lit("3")])])
@@ -144,48 +144,48 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(20, 650), test-compare-unions, void(), [])
+			sig: sig(file-pos(20, 618), test-compare-unions, void(), [])
 			body: let(
-				local(file-range(20, range(685, 686)), a, my-union())
+				local(file-range(20, range(653, 654)), a, my-union())
 				call(
 					fun-inst(name: as, type-args: [my-union()])
 					[
 						to-union(
 							my-union()
 							0
-							record(
-								my-record()
+							call(
+								fun-inst(name: my-record)
 								[
 									call(fun-inst(name: literal), [string-lit("1")])
 									call(fun-inst(name: literal), [string-lit("2")])]))])
 				let(
-					local(file-range(20, range(724, 725)), b, my-union())
+					local(file-range(20, range(688, 689)), b, my-union())
 					call(
 						fun-inst(name: as, type-args: [my-union()])
-						[to-union(my-union(), 1, record(my-other-record(), []))])
+						[to-union(my-union(), 1, call(fun-inst(name: my-other-record), []))])
 					let(
-						local(file-range(20, range(764, 765)), c, my-union())
+						local(file-range(20, range(723, 724)), c, my-union())
 						call(
 							fun-inst(name: as, type-args: [my-union()])
 							[
 								to-union(
 									my-union()
 									0
-									record(
-										my-record()
+									call(
+										fun-inst(name: my-record)
 										[
 											call(fun-inst(name: literal), [string-lit("1")])
 											call(fun-inst(name: literal), [string-lit("2")])]))])
 						let(
-							local(file-range(20, range(803, 804)), d, my-union())
+							local(file-range(20, range(758, 759)), d, my-union())
 							call(
 								fun-inst(name: as, type-args: [my-union()])
 								[
 									to-union(
 										my-union()
 										0
-										record(
-											my-record()
+										call(
+											fun-inst(name: my-record)
 											[
 												call(fun-inst(name: literal), [string-lit("1")])
 												call(fun-inst(name: literal), [string-lit("1")])]))])
@@ -221,7 +221,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(20, 927), main, fut(int32()), [param(file-range(20, range(946, 958)), args, arr(arr(char())))])
+			sig: sig(file-pos(20, 878), main, fut(int32()), [param(file-range(20, range(897, 909)), args, arr(arr(char())))])
 			body: seq(
 				seq(
 					seq(

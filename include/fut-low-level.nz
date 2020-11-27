@@ -6,7 +6,7 @@ import
 
 | Considered unsafe because normally it should not be possible to never resolve a fut
 new-unresolved-fut fut ?t() unsafe
-	new new-lock, new<fut-state-callbacks<?t>> none
+	fut: new-lock, fut-state-callbacks: none
 
 must-be-resolved result ?t exception(f fut ?t) unsafe noctx
 	match f state
@@ -34,7 +34,7 @@ resolve-or-reject void(f fut ?t, result result ?t exception) unsafe
 			hard-fail: "resolving an already-resolved fut"
 	f.state := match result
 		ok o
-			new<fut-state-resolved<?t>> o.value
+			fut-state-resolved: o.value
 		err e
 			e.value
 	f.lk.ref-of-val release-lock

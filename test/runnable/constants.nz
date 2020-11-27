@@ -10,7 +10,7 @@ foo void(r my-record) summon
 	print-sync: r b
 
 main fut exit-code(args arr str) summon
-	r = new<my-record> "a", "b"
+	r = my-record: "a", "b"
 	foo: r
 	print-sync: r a
 	print-sync: r b

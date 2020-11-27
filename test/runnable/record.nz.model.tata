@@ -25,8 +25,8 @@ module(
 			sig: sig(file-pos(20, 66), main, fut(int32()), [param(file-range(20, range(85, 97)), args, arr(arr(char())))])
 			body: let(
 				local(file-range(20, range(107, 108)), m, my-record())
-				record(
-					my-record()
+				call(
+					fun-inst(name: my-record)
 					[call(fun-inst(name: literal), [string-lit("1")]), call(fun-inst(name: literal), [string-lit("2")])])
 				seq(
 					seq(

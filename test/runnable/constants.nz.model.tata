@@ -32,7 +32,7 @@ module(
 			sig: sig(file-pos(20, 130), main, fut(int32()), [param(file-range(20, range(149, 161)), args, arr(arr(char())))])
 			body: let(
 				local(file-range(20, range(171, 172)), r, my-record())
-				record(my-record(), [string-lit("a"), string-lit("b")])
+				call(fun-inst(name: my-record), [string-lit("a"), string-lit("b")])
 				seq(
 					seq(
 						seq(

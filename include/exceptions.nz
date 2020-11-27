@@ -38,7 +38,7 @@ catch ?t(try fun-mut0 ?t, catcher fun-mut1 ?t exception) trusted
 catch-with-exception-ctx ?t(ec exception-ctx, try fun-mut0 ?t, catcher fun-mut1 ?t exception) unsafe
 	old-thrown-exception = ec thrown-exception
 	old-jmp-buf = ec jmp-buf-ptr
-	store = new<jmp-buf-tag> zero, zero, zero
+	store = jmp-buf-tag: zero, zero, zero
 	ec.jmp-buf-ptr := store ptr-to
 	setjmp-result = ec.jmp-buf-ptr setjmp
 	when

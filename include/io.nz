@@ -110,7 +110,7 @@ read-dir arr str(path c-str) trusted summon
 
 read-dir-recur void(dirp dirp, res mut-arr str) unsafe summon
 	| Initial value of entry / result should not matter
-	entry = new<dirent> zero, zero, zero, "\0", zero
+	entry = dirent: zero, zero, zero, "\0", zero
 	| TODO: should not need a type argument here
 	result = entry cell<dirent>
 	err = dirp readdir-r entry, result
@@ -306,7 +306,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	stderr-pipes = make-pipes
 
 	| TODO: Neater, move to own function
-	actions = new<posix-spawn-file-actions-t> zero, zero, null, zero
+	actions = posix-spawn-file-actions-t: zero, zero, null, zero
 	check-posix-error: actions posix-spawn-file-actions-init
 	check-posix-error: actions posix-spawn-file-actions-addclose stdout-pipes.write-pipe
 	check-posix-error: actions posix-spawn-file-actions-addclose stderr-pipes.write-pipe
@@ -330,7 +330,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 
 	exit-code = pid wait-and-get-exit-code
 
-	new exit-code, stdout-builder.freeze, stderr-builder.freeze
+	process-result: exit-code, stdout-builder.freeze, stderr-builder.freeze
 
 
 | Args should be terminated by null.
@@ -368,7 +368,7 @@ to-nat nat(b bool)
 	b if: one, zero
 
 keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, stderr-builder mut-str) summon unsafe
-	poll-fds = new-arr<by-val<pollfd>> (new stdout-pipe, pollin, zero), (new stderr-pipe, pollin, zero)
+	poll-fds = new-arr<by-val<pollfd>> (pollfd: stdout-pipe, pollin, zero), (pollfd: stderr-pipe, pollin, zero)
 	stdout-pollfd = poll-fds ref-of-val-at zero
 	stderr-pollfd = poll-fds ref-of-val-at one
 	| timeout == neg-one means we block
@@ -472,7 +472,7 @@ check-errno-if-not-zero void(e int) summon trusted
 			hard-unreachable
 
 make-pipes pipes() summon
-	res = new<pipes> zero, zero
+	res = pipes: zero, zero
 	check-posix-error: res pipe
 	res
 
@@ -489,16 +489,7 @@ uri record
 
 | Returns fd of an an opened socket to uri
 connect-to-uri fd-t(u uri) summon trusted
-	hints = new<addrinfo>
-		ai-flags. 0
-		ai-family. af-unspec
-		ai-socktype. sock-stream
-		ai-protocol. zero
-		ai-addrlen. zero
-		ai-addr. null.as-ref
-		ai-canonname. null
-		ai-next. null
-
+	hints = addrinfo: 0, af-unspec, sock-stream, zero, zero, null.as-ref, null, null
 	result = null cell<ptr<addrinfo>>
 	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
 	op-sock = result.get find-working-socket

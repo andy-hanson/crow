@@ -17,33 +17,33 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(range(155, 175), create-point, inststruct(range(168, 173), name-range(168, point)), [])
-			body: new-record(none, [literal(numeric, "1"), literal(numeric, "2")]))
+			body: call(prefix, name-range(177, point), [], [literal(numeric, "1"), literal(numeric, "2")]))
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(358, 378)
+				range(273, 293)
 				get-x
-				inststruct(range(364, 369), name-range(364, float))
-				[param(range(370, 377), name-range(370, a), inststruct(range(372, 377), name-range(372, point)))])
-			body: call(infix, name-range(455, x), [], [a]))
+				inststruct(range(279, 284), name-range(279, float))
+				[param(range(285, 292), name-range(285, a), inststruct(range(287, 292), name-range(287, point)))])
+			body: call(infix, name-range(370, x), [], [a]))
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(530, 562)
+				range(445, 477)
 				main
-				inststruct(range(535, 548), name-range(535, fut), [inststruct(range(539, 548), name-range(539, exit-code))])
+				inststruct(range(450, 463), name-range(450, fut), [inststruct(range(454, 463), name-range(454, exit-code))])
 				[
 					param(
-						range(549, 561)
-						name-range(549, args)
-						inststruct(range(554, 561), name-range(554, arr), [inststruct(range(558, 561), name-range(558, str))]))])
+						range(464, 476)
+						name-range(464, args)
+						inststruct(range(469, 476), name-range(469, arr), [inststruct(range(473, 476), name-range(473, str))]))])
 			summon: true
 			body: let(
-				name-range(633, p)
+				name-range(548, p)
 				create-point
 				let(
-					name-range(688, p-x)
-					call(infix, name-range(696, get-x), [], [p])
+					name-range(603, p-x)
+					call(infix, name-range(611, get-x), [], [p])
 					seq-ast(
-						call(prefix, name-range(955, print-sync), [], [call(infix, name-range(971, to-str), [], [p-x])])
-						call(infix, name-range(984, resolved), [], [zero])))))])
+						call(prefix, name-range(870, print-sync), [], [call(infix, name-range(886, to-str), [], [p-x])])
+						call(infix, name-range(899, resolved), [], [zero])))))])
