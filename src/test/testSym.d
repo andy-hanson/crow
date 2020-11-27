@@ -5,7 +5,7 @@ module test.testSym;
 import test.testUtil : Test;
 import util.collection.str : strLiteral, strEqLiteral;
 import util.opt : force, has, Opt;
-import util.sym : AllSymbols, isLongSym, strOfSym, Sym, symEq, tryGetSymFromStr;
+import util.sym : AllSymbols, isLongSym, prependSet, strOfSym, Sym, symEq, tryGetSymFromStr;
 import util.util : verify;
 
 void testSym(Alloc)(ref Test!Alloc test) {
@@ -38,4 +38,16 @@ void testSym(Alloc)(ref Test!Alloc test) {
 	immutable Sym longOperator = getSym("+-*/<>=!+-*/<>=!");
 	verify(isLongSym(longOperator));
 	verify(symEq(longOperator, getSym("+-*/<>=!+-*/<>=!")));
+
+	immutable Sym setA = prependSet(allSymbols, getSym("a"));
+	verify(symEq(setA, getSym("set-a")));
+	verify(!isLongSym(setA));
+
+	immutable Sym setAbcdefgh = prependSet(allSymbols, getSym("abcdefgh"));
+	verify(symEq(setAbcdefgh, getSym("set-abcdefgh")));
+	verify(!isLongSym(setAbcdefgh));
+
+	immutable Sym setAbcdefghi = prependSet(allSymbols, getSym("abcdefghi"));
+	verify(symEq(setAbcdefghi, getSym("set-abcdefghi")));
+	verify(isLongSym(setAbcdefghi));
 }

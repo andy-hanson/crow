@@ -10,11 +10,11 @@ import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
 import util.collection.str : CStr, Str, strEqCStr, strEqLiteral, strLiteral, strOfCStr, strToCStr;
 import util.comparison : Comparison;
-import util.opt : Opt, none, some;
+import util.opt : Opt, force, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.types : u64;
 import util.util : unreachable, verify;
-import util.writer : finishWriter, writeChar, Writer;
+import util.writer : finishWriter, writeChar, writeStatic, Writer;
 
 immutable(Bool) isAlphaIdentifierStart(immutable char c) {
 	return Bool('a' <= c && c <= 'z');
@@ -51,6 +51,26 @@ struct Sym {
 struct AllSymbols(Alloc) {
 	Ptr!Alloc alloc;
 	MutArr!(immutable CStr) largeStrings;
+}
+
+immutable(Sym) prependSet(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Sym a) {
+	verify(!isSymOperator(a));
+	immutable size_t oldSize = symSize(a);
+	immutable size_t newSize = 4 + oldSize;
+
+	//TODO: only do inside 'else'
+	Writer!Alloc writer = Writer!Alloc(allSymbols.alloc);
+	writeStatic(writer, "set-");
+	writeSym(writer, a);
+	immutable Str str = finishWriter(writer);
+
+	if (newSize <= alphaIdentifierMaxChars) {
+		immutable Sym res = prefixAlphaIdentifierWithSet(a, oldSize);
+		immutable Opt!Sym op = tryGetSymFromStr(allSymbols, str);
+		verify(symEq(force(op), res));
+		return res;
+	} else
+		return getSymFromLongStr(allSymbols, str, False);
 }
 
 immutable(Opt!Sym) tryGetSymFromStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
@@ -262,11 +282,30 @@ immutable u64 shortOperatorMarker = shortMarker | operatorMarker;
 immutable u64 highestPossibleOperatorBit = singleBit(bitsPerOperatorChar * (maxShortOperatorSize - 1));
 static assert((shortOperatorMarker & highestPossibleOperatorBit) == 0, "1");
 
+immutable size_t alphaIdentifierMaxChars = 12;
+
 immutable(Bool) canPackAlphaIdentifier(immutable Str str) {
 	return immutable Bool(
-		size(str) <= 12 &&
+		size(str) <= alphaIdentifierMaxChars &&
 		(size(str) <= 2 || every(slice(str, 0, size(str) - 2), (ref immutable char c) =>
 			canPackAlphaChar5(c))));
+}
+
+immutable u64 setPrefix =
+	(packAlphaChar5('-') << (5 * 3)) |
+	(packAlphaChar5('t') << (5 * 2)) |
+	(packAlphaChar5('e') << (5 * 1)) |
+	packAlphaChar5('s');
+
+immutable(Sym) prefixAlphaIdentifierWithSet(immutable Sym a, immutable size_t symSize) {
+	verify(symSize != 0);
+	immutable u64 inputSizeBits = symSize == 1
+		? 2 + 6
+		: 2 + 2 * 6 + (symSize - 2) * 5;
+	// If prepended to a symbol of size 1, the '-' should take up 6 bits.
+	immutable u64 prefixSizeBits = symSize == 1 ? 6 + 5 * 3 : 5 * 4;
+	immutable u64 prefixBits = setPrefix << (64 - inputSizeBits - prefixSizeBits);
+	return immutable Sym(a.value | prefixBits);
 }
 
 immutable(u64) packAlphaIdentifier(immutable Str str) {
@@ -275,6 +314,8 @@ immutable(u64) packAlphaIdentifier(immutable Str str) {
 	// We store chars in reverse, the last chars are in the highest bits.
 	// Represenation is:
 	// 2 6 6 5 5 5 5 5 5 5 5 5 5
+	// e.g.:
+	// 0 a h p l a 0 0 0 0 0 0 0
 
 	u64 res = 0;
 	foreach (immutable size_t i; 0..12) {
