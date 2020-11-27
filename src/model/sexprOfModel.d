@@ -170,7 +170,9 @@ immutable(Sexpr) sexprOfFunBody(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutab
 		(ref immutable FunBody.Extern it) =>
 			tataRecord(alloc, "extern", [tataBool(it.isGlobal), tataStr(it.externName)]),
 		(immutable Ptr!Expr it) =>
-			sexprOfExpr(alloc, ctx, it));
+			sexprOfExpr(alloc, ctx, it),
+		(ref immutable FunBody.RecordFieldGet it) =>
+			tataRecord(alloc, "field-get", [tataNat(it.fieldIndex)]));
 }
 
 immutable(Sexpr) sexprOfType(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Type t) {
@@ -240,11 +242,6 @@ immutable(Sexpr) sexprOfExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable 
 					sexprOfMatchCase(alloc, ctx, case_))]),
 		(ref immutable Expr.ParamRef it) =>
 			tataRecord(alloc, "param-ref", [tataSym(it.param.name)]),
-		(ref immutable Expr.RecordFieldAccess a) =>
-			tataRecord(alloc, "field-acc", [
-				sexprOfExpr(alloc, ctx, a.target),
-				sexprOfStructInst(alloc, ctx, a.targetType),
-				tataSym(a.field.name)]),
 		(ref immutable Expr.RecordFieldSet) =>
 			todo!(immutable Sexpr)("recordfieldset"),
 		(ref immutable Expr.Seq a) =>

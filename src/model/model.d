@@ -542,6 +542,9 @@ struct FunBody {
 		immutable Bool isGlobal;
 		immutable Str externName;
 	}
+	struct RecordFieldGet {
+		immutable ubyte fieldIndex;
+	}
 
 	private:
 	enum Kind {
@@ -549,6 +552,7 @@ struct FunBody {
 		createRecord,
 		extern_,
 		expr,
+		recordFieldGet,
 	}
 	immutable Kind kind;
 	union {
@@ -556,6 +560,7 @@ struct FunBody {
 		immutable CreateRecord createRecord;
 		immutable Ptr!Extern extern_;
 		immutable Ptr!Expr expr;
+		immutable RecordFieldGet recordFieldGet;
 	}
 
 	public:
@@ -563,6 +568,7 @@ struct FunBody {
 	immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	@trusted immutable this(immutable Ptr!Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
+	@trusted immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 }
 static assert(FunBody.sizeof <= 16);
 
@@ -581,6 +587,7 @@ immutable(Bool) isExtern(ref immutable FunBody a) {
 	scope T delegate(ref immutable FunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable FunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(immutable Ptr!Expr) @safe @nogc pure nothrow cbExpr,
+	scope T delegate(ref immutable FunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
 ) {
 	final switch (a.kind) {
 		case FunBody.Kind.builtin:
@@ -591,6 +598,8 @@ immutable(Bool) isExtern(ref immutable FunBody a) {
 			return cbExtern(a.extern_);
 		case FunBody.Kind.expr:
 			return cbExpr(a.expr);
+		case FunBody.Kind.recordFieldGet:
+			return cbRecordFieldGet(a.recordFieldGet);
 	}
 }
 
@@ -1277,12 +1286,6 @@ struct Expr {
 		immutable Ptr!Param param;
 	}
 
-	struct RecordFieldAccess {
-		immutable Ptr!Expr target;
-		immutable Ptr!StructInst targetType;
-		immutable Ptr!RecordField field; // This is the field from the StructInst, not the StructDecl
-	}
-
 	struct RecordFieldSet {
 		@safe @nogc pure nothrow:
 		immutable Ptr!Expr target;
@@ -1326,7 +1329,6 @@ struct Expr {
 		localRef,
 		match,
 		paramRef,
-		recordFieldAccess,
 		recordFieldSet,
 		seq,
 		stringLiteral,
@@ -1346,7 +1348,6 @@ struct Expr {
 		immutable LocalRef localRef;
 		immutable Match match_;
 		immutable ParamRef paramRef;
-		immutable RecordFieldAccess recordFieldAccess;
 		immutable RecordFieldSet recordFieldSet;
 		immutable Seq seq;
 		immutable StringLiteral stringLiteral;
@@ -1376,9 +1377,6 @@ struct Expr {
 	@trusted immutable this(immutable FileAndRange r, immutable ParamRef a) {
 		range_ = r; kind = Kind.paramRef; paramRef = a;
 	}
-	@trusted immutable this(immutable FileAndRange r, immutable RecordFieldAccess a) {
-		range_ = r; kind = Kind.recordFieldAccess; recordFieldAccess = a;
-	}
 	@trusted immutable this(immutable FileAndRange r, immutable RecordFieldSet a) {
 		range_ = r; kind = Kind.recordFieldSet; recordFieldSet = a;
 	}
@@ -1390,11 +1388,6 @@ struct Expr {
 
 ref immutable(Type) elementType(return scope ref immutable Expr.CreateArr a) {
 	return only(typeArgs(a.arrType));
-}
-
-//TODO:KILL (just write field.type everywhere)
-ref immutable(Type) accessedFieldType(return scope ref immutable Expr.RecordFieldAccess a) {
-	return a.field.type;
 }
 
 ref immutable(FileAndRange) range(return ref immutable Expr a) {
@@ -1414,7 +1407,6 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	scope T delegate(ref immutable Expr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
 	scope T delegate(ref immutable Expr.Match) @safe @nogc pure nothrow cbMatch,
 	scope T delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
-	scope T delegate(ref immutable Expr.RecordFieldAccess) @safe @nogc pure nothrow cbRecordFieldAccess,
 	scope T delegate(ref immutable Expr.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 	scope T delegate(ref immutable Expr.Seq) @safe @nogc pure nothrow cbSeq,
 	scope T delegate(ref immutable Expr.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
@@ -1442,8 +1434,6 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 			return cbMatch(a.match_);
 		case Expr.Kind.paramRef:
 			return cbParamRef(a.paramRef);
-		case Expr.Kind.recordFieldAccess:
-			return cbRecordFieldAccess(a.recordFieldAccess);
 		case Expr.Kind.recordFieldSet:
 			return cbRecordFieldSet(a.recordFieldSet);
 		case Expr.Kind.seq:
@@ -1467,7 +1457,6 @@ immutable(Bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.LocalRef e) => e.local.type.isBogus,
 		(ref immutable Expr.Match e) => e.type.isBogus,
 		(ref immutable Expr.ParamRef e) => e.param.type.isBogus,
-		(ref immutable Expr.RecordFieldAccess e) => e.field.type.isBogus,
 		(ref immutable Expr.RecordFieldSet e) => False,
 		(ref immutable Expr.Seq e) => e.then.typeIsBogus,
 		(ref immutable Expr.StringLiteral e) => False);
@@ -1487,7 +1476,6 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.LocalRef e) => e.local.type,
 		(ref immutable Expr.Match) => todo!(immutable Type)("getType match"),
 		(ref immutable Expr.ParamRef e) => e.param.type,
-		(ref immutable Expr.RecordFieldAccess e) => e.field.type,
 		(ref immutable Expr.RecordFieldSet e) => immutable Type(commonTypes.void_),
 		(ref immutable Expr.Seq e) => e.then.getType(commonTypes),
 		(ref immutable Expr.StringLiteral) => immutable Type(commonTypes.str));

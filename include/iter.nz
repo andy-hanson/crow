@@ -1,5 +1,5 @@
 import
-	.bootstrap: == <= bool call drop fun-mut0 fun-mut1 nat none opt pass some void
+	.bootstrap: == <= bool call drop fun-mut0 fun-mut1 nat none opt pass some value void
 	.cell: cell get set
 	.exceptions: assert forbid
 	.number-utils: + incr

@@ -482,7 +482,9 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 			(ref immutable ConcreteFunBody.Extern) =>
 				some(addLowFun(immutable LowFunCause(fun))),
 			(ref immutable ConcreteFunExprBody) =>
-				some(addLowFun(immutable LowFunCause(fun))));
+				some(addLowFun(immutable LowFunCause(fun))),
+			(ref immutable ConcreteFunBody.RecordFieldGet) =>
+				none!LowFunIndex);
 		if (has(opIndex)) {
 			addToDict(alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
 		}
@@ -722,7 +724,9 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 				immutable LowFunExprBody(
 					exprCtx.hasTailRecur,
 					allocate(alloc, expr)));
-		});
+		},
+		(ref immutable ConcreteFunBody.RecordFieldGet it) =>
+			unreachable!(immutable LowFunBody));
 }
 
 immutable(LowFunBody) createRecordBody(Alloc)(
@@ -735,12 +739,7 @@ immutable(LowFunBody) createRecordBody(Alloc)(
 	immutable LowParamIndex firstRegularParam,
 	ref immutable ConcreteFun cf,
 ) {
-	immutable FileAndRange where = matchConcreteFunSource!(immutable FileAndRange)(
-		cf.source,
-		(immutable Ptr!FunInst it) =>
-			range(decl(it).deref()),
-		(ref immutable ConcreteFunSource.Lambda) =>
-			unreachable!(immutable FileAndRange)());
+	immutable FileAndRange where = rangeFromMustBeFunInst(cf);
 	immutable Arr!LowExpr args = mapWithIndex(
 		alloc,
 		slice(sig.params, firstRegularParam.index),
@@ -779,6 +778,15 @@ immutable(LowFunBody) createRecordBody(Alloc)(
 			return create;
 	}();
 	return immutable LowFunBody(immutable LowFunExprBody(False, expr));
+}
+
+immutable(FileAndRange) rangeFromMustBeFunInst(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource!(immutable FileAndRange)(
+		a.source,
+		(immutable Ptr!FunInst it) =>
+			range(decl(it).deref()),
+		(ref immutable ConcreteFunSource.Lambda) =>
+			unreachable!(immutable FileAndRange)());
 }
 
 struct GetLowExprCtx {
@@ -975,89 +983,113 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 		return isTailRecur
 			? immutable LowExprKind(immutable LowExprKind.TailRecur(args))
 			: immutable LowExprKind(immutable LowExprKind.Call(force(opCalled), args));
-	} else {
-		immutable Sym name = matchConcreteFunSource!(immutable Sym)(
-			a.called.source,
-			(immutable Ptr!FunInst it) =>
-				name(decl(it).deref()),
-			(ref immutable ConcreteFunSource.Lambda) =>
-				unreachable!(immutable Sym)());
-		immutable(LowType) paramType(immutable size_t index) {
-			return index < size(a.args)
-				? lowTypeFromConcreteType(
-					alloc,
-					ctx.getLowTypeCtx,
-					at(a.called.paramsExcludingCtxAndClosure, index).type)
-				: voidType;
-		}
-		immutable LowType p0 = paramType(0);
-		immutable LowType p1 = paramType(1);
-		immutable BuiltinKind builtinKind = getBuiltinKind(name, type, p0, p1);
-		immutable(Ptr!LowExpr) getArg(ref immutable ConcreteExpr arg, immutable ExprPos argPos) {
-			return allocate(alloc, getLowExpr(alloc, ctx, arg, argPos));
-		}
-		return matchBuiltinKind!(immutable LowExprKind)(
-			builtinKind,
-			(ref immutable BuiltinKind.As) =>
-				getLowExpr(alloc, ctx, at(a.args, 0), exprPos).kind,
-			(ref immutable BuiltinKind.GetCtx) =>
-				immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.ctxParam))),
-			(ref immutable Constant it) =>
-				immutable LowExprKind(it),
-			(immutable LowExprKind.SpecialUnary.Kind kind) {
-				verify(size(a.args) == 1);
-				return immutable LowExprKind(
-					immutable LowExprKind.SpecialUnary(kind, getArg(at(a.args, 0), ExprPos.nonTail)));
+	} else
+		return matchConcreteFunBody!(immutable LowExprKind)(
+			body_(a.called),
+			(ref immutable ConcreteFunBody.Builtin) {
+				return getCallBuiltinExpr(alloc, ctx, exprPos, range, type, a);
 			},
-			(immutable LowExprKind.SpecialBinary.Kind kind) {
-				verify(size(a.args) == 2);
-				immutable ExprPos arg1Pos = () {
-					switch (kind) {
-						case LowExprKind.SpecialBinary.Kind.and:
-						case LowExprKind.SpecialBinary.Kind.or:
-							return exprPos;
-						default:
-							return ExprPos.nonTail;
-					}
-				}();
-				return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-					kind,
-					getArg(at(a.args, 0), ExprPos.nonTail),
-					getArg(at(a.args, 1), arg1Pos)));
-			},
-			(immutable LowExprKind.SpecialTrinary.Kind kind) {
-				verify(size(a.args) == 3);
-				immutable ExprPos arg12Pos = () {
-					switch (kind) {
-						case LowExprKind.SpecialTrinary.Kind.if_:
-							return exprPos;
-						default:
-							return ExprPos.nonTail;
-					}
-				}();
-				return immutable LowExprKind(nu!(LowExprKind.SpecialTrinary)(
-					alloc,
-					kind,
-					getArg(at(a.args, 0), ExprPos.nonTail),
-					getArg(at(a.args, 1), arg12Pos),
-					getArg(at(a.args, 2), arg12Pos)));
-			},
-			(immutable LowExprKind.SpecialNAry.Kind kind) =>
-				immutable LowExprKind(immutable LowExprKind.SpecialNAry(
-					kind,
-					map(alloc, a.args, (ref immutable ConcreteExpr arg) {
-						return getLowExpr(alloc, ctx, arg, ExprPos.nonTail);
-					}))),
-			(ref immutable BuiltinKind.PtrCast) {
-				verify(size(a.args) == 1);
-				return ptrCastKind(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail));
-			},
-			(ref immutable BuiltinKind.SizeOf) {
-				immutable LowType typeArg =
-					lowTypeFromConcreteType(alloc, ctx.getLowTypeCtx, only(asBuiltin(body_(a.called)).typeArgs));
-				return immutable LowExprKind(immutable LowExprKind.SizeOf(typeArg));
-			});
+			(ref immutable ConcreteFunBody.CreateRecord) =>
+				unreachable!(immutable LowExprKind),
+			(ref immutable ConcreteFunBody.Extern) =>
+				unreachable!(immutable LowExprKind),
+			(ref immutable ConcreteFunExprBody) =>
+				unreachable!(immutable LowExprKind),
+			(ref immutable ConcreteFunBody.RecordFieldGet it) =>
+				immutable LowExprKind(immutable LowExprKind.RecordFieldAccess(
+					allocate(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail)),
+					it.fieldIndex)));
+}
+
+immutable(LowExprKind) getCallBuiltinExpr(Alloc)(
+	ref Alloc alloc,
+	ref GetLowExprCtx ctx,
+	immutable ExprPos exprPos,
+	ref immutable FileAndRange range,
+	ref immutable LowType type,
+	ref immutable ConcreteExpr.Call a,
+) {
+	immutable Sym name = matchConcreteFunSource!(immutable Sym)(
+		a.called.source,
+		(immutable Ptr!FunInst it) =>
+			name(decl(it).deref()),
+		(ref immutable ConcreteFunSource.Lambda) =>
+			unreachable!(immutable Sym)());
+	immutable(LowType) paramType(immutable size_t index) {
+		return index < size(a.args)
+			? lowTypeFromConcreteType(
+				alloc,
+				ctx.getLowTypeCtx,
+				at(a.called.paramsExcludingCtxAndClosure, index).type)
+			: voidType;
 	}
+	immutable LowType p0 = paramType(0);
+	immutable LowType p1 = paramType(1);
+	immutable BuiltinKind builtinKind = getBuiltinKind(name, type, p0, p1);
+	immutable(Ptr!LowExpr) getArg(ref immutable ConcreteExpr arg, immutable ExprPos argPos) {
+		return allocate(alloc, getLowExpr(alloc, ctx, arg, argPos));
+	}
+	return matchBuiltinKind!(immutable LowExprKind)(
+		builtinKind,
+		(ref immutable BuiltinKind.As) =>
+			getLowExpr(alloc, ctx, at(a.args, 0), exprPos).kind,
+		(ref immutable BuiltinKind.GetCtx) =>
+			immutable LowExprKind(immutable LowExprKind.ParamRef(force(ctx.ctxParam))),
+		(ref immutable Constant it) =>
+			immutable LowExprKind(it),
+		(immutable LowExprKind.SpecialUnary.Kind kind) {
+			verify(size(a.args) == 1);
+			return immutable LowExprKind(
+				immutable LowExprKind.SpecialUnary(kind, getArg(at(a.args, 0), ExprPos.nonTail)));
+		},
+		(immutable LowExprKind.SpecialBinary.Kind kind) {
+			verify(size(a.args) == 2);
+			immutable ExprPos arg1Pos = () {
+				switch (kind) {
+					case LowExprKind.SpecialBinary.Kind.and:
+					case LowExprKind.SpecialBinary.Kind.or:
+						return exprPos;
+					default:
+						return ExprPos.nonTail;
+				}
+			}();
+			return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
+				kind,
+				getArg(at(a.args, 0), ExprPos.nonTail),
+				getArg(at(a.args, 1), arg1Pos)));
+		},
+		(immutable LowExprKind.SpecialTrinary.Kind kind) {
+			verify(size(a.args) == 3);
+			immutable ExprPos arg12Pos = () {
+				switch (kind) {
+					case LowExprKind.SpecialTrinary.Kind.if_:
+						return exprPos;
+					default:
+						return ExprPos.nonTail;
+				}
+			}();
+			return immutable LowExprKind(nu!(LowExprKind.SpecialTrinary)(
+				alloc,
+				kind,
+				getArg(at(a.args, 0), ExprPos.nonTail),
+				getArg(at(a.args, 1), arg12Pos),
+				getArg(at(a.args, 2), arg12Pos)));
+		},
+		(immutable LowExprKind.SpecialNAry.Kind kind) =>
+			immutable LowExprKind(immutable LowExprKind.SpecialNAry(
+				kind,
+				map(alloc, a.args, (ref immutable ConcreteExpr arg) {
+					return getLowExpr(alloc, ctx, arg, ExprPos.nonTail);
+				}))),
+		(ref immutable BuiltinKind.PtrCast) {
+			verify(size(a.args) == 1);
+			return ptrCastKind(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail));
+		},
+		(ref immutable BuiltinKind.SizeOf) {
+			immutable LowType typeArg =
+				lowTypeFromConcreteType(alloc, ctx.getLowTypeCtx, only(asBuiltin(body_(a.called)).typeArgs));
+			return immutable LowExprKind(immutable LowExprKind.SizeOf(typeArg));
+		});
 }
 
 immutable(LowExprKind) getCreateArrExpr(Alloc)(

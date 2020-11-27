@@ -28,7 +28,7 @@ module(
 		fun(
 			public?: true
 			sig: sig(file-pos(20, 273), get-x, float(), [param(file-range(20, range(285, 292)), a, point())])
-			body: field-acc(param-ref(a), point(), x))
+			body: call(fun-inst(name: x), [param-ref(a)]))
 		fun(
 			public?: true
 			summon: true
@@ -59,4 +59,14 @@ module(
 				point
 				by-val(point())
 				[param(file-range(20, range(73, 80)), x, float()), param(file-range(20, range(82, 89)), y, float())])
-			body: new-record)])
+			body: new-record)
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 73), x, float(), [param(file-range(20, range(73, 80)), a, point())])
+			body: field-get(0))
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 82), y, float(), [param(file-range(20, range(82, 89)), a, point())])
+			body: field-get(1))])

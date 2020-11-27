@@ -1516,9 +1516,10 @@ struct ok_0 ok_1(int32_t value) {
 uint8_t resolve_or_reject(struct ctx* ctx, struct fut_0* f, struct result_0 result) {
 	struct fut_state_0 _matched1;
 	struct fut_state_callbacks_0 cbs0;
-	struct result_0 _matched4;
+	struct result_0 _matched5;
 	struct ok_0 o2;
 	struct err_0 e3;
+	struct exception ex4;
 	acquire_lock((&(f->lk)));
 	_matched1 = f->state;
 	switch (_matched1.kind) {
@@ -1535,7 +1536,7 @@ uint8_t resolve_or_reject(struct ctx* ctx, struct fut_0* f, struct result_0 resu
 		default:
 			(assert(0),0);
 	}
-	(f->state = (_matched4 = result, _matched4.kind == 0 ? (o2 = _matched4.as0, (struct fut_state_0) {1, .as1 = fut_state_resolved_0(ctx, o2.value)}) : _matched4.kind == 1 ? (e3 = _matched4.as1, (struct fut_state_0) {2, .as2 = e3.value}) : (assert(0),(struct fut_state_0) {0})), 0);
+	(f->state = (_matched5 = result, _matched5.kind == 0 ? (o2 = _matched5.as0, (struct fut_state_0) {1, .as1 = fut_state_resolved_0(ctx, o2.value)}) : _matched5.kind == 1 ? (e3 = _matched5.as1, (ex4 = e3.value, (struct fut_state_0) {2, .as2 = ex4})) : (assert(0),(struct fut_state_0) {0})), 0);
 	return release_lock((&(f->lk)));
 }
 uint8_t resolve_or_reject_recur(struct ctx* ctx, struct opt_0 node, struct result_0 value) {

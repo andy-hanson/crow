@@ -182,7 +182,9 @@ immutable(Sexpr) tataOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable Con
 		(ref immutable ConcreteFunBody.Extern it) =>
 			tataRecord(alloc, "extern", [tataBool(it.isGlobal)]),
 		(ref immutable ConcreteFunExprBody it) =>
-			tataOfConcreteFunExprBody(alloc, it));
+			tataOfConcreteFunExprBody(alloc, it),
+		(ref immutable ConcreteFunBody.RecordFieldGet it) =>
+			tataRecord(alloc, "field-get", [tataNat(it.fieldIndex)]));
 }
 
 immutable(Sexpr) tataOfConcreteFunBodyBuiltin(Alloc)(ref Alloc alloc, ref immutable ConcreteFunBody.Builtin a) {

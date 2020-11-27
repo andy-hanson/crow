@@ -24,8 +24,8 @@ module(
 			summon: true
 			sig: sig(file-pos(20, 66), foo, void(), [param(file-range(20, range(75, 86)), r, my-record())])
 			body: seq(
-				call(fun-inst(name: print-sync), [field-acc(param-ref(r), my-record(), a)])
-				call(fun-inst(name: print-sync), [field-acc(param-ref(r), my-record(), b)])))
+				call(fun-inst(name: print-sync), [call(fun-inst(name: a), [param-ref(r)])])
+				call(fun-inst(name: print-sync), [call(fun-inst(name: b), [param-ref(r)])])))
 		fun(
 			public?: true
 			summon: true
@@ -37,8 +37,8 @@ module(
 					seq(
 						seq(
 							call(fun-inst(name: foo), [local-ref(r)])
-							call(fun-inst(name: print-sync), [field-acc(local-ref(r), my-record(), a)]))
-						call(fun-inst(name: print-sync), [field-acc(local-ref(r), my-record(), b)]))
+							call(fun-inst(name: print-sync), [call(fun-inst(name: a), [local-ref(r)])]))
+						call(fun-inst(name: print-sync), [call(fun-inst(name: b), [local-ref(r)])]))
 					call(
 						fun-inst(name: resolved, type-args: [int32()])
 						[call(fun-inst(name: literal), [string-lit("0")])]))))
@@ -59,4 +59,14 @@ module(
 				my-record
 				by-val(my-record())
 				[param(file-range(20, range(52, 57)), a, arr(char())), param(file-range(20, range(59, 64)), b, arr(char()))])
-			body: new-record)])
+			body: new-record)
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 52), a, arr(char()), [param(file-range(20, range(52, 57)), a, my-record())])
+			body: field-get(0))
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 59), b, arr(char()), [param(file-range(20, range(59, 64)), a, my-record())])
+			body: field-get(1))])

@@ -18,7 +18,7 @@ immutable(Bool) mutSetHas(T, alias cmp)(ref const MutSet!(T, cmp) s, immutable T
 }
 
 private immutable(Bool) tryAddToMutSet(T, alias cmp, Alloc)(ref Alloc alloc, ref MutSet!(T, cmp) s, immutable T value) {
-	immutable Bool h = s.mutSetHas(value);
+	immutable Bool h = mutSetHas(s, value);
 	if (not(h))
 		push(alloc, s.arr, value);
 	return not(h);

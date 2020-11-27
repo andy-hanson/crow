@@ -3,7 +3,7 @@ import
 	.bootstrap
 		+ - == < <= > >= and arr bool byte by-val call data deref drop eight false four fun-mut1
 		fun-mut2 hard-assert hard-fail hard-forbid if incr nat noctx-decr noctx-incr none not null
-		one opt or pass ptr ptr-cast ref-of-ptr set size-of some two true void wrap-mul zero zero?
+		one opt or pass ptr ptr-cast ref-of-ptr set size size-of some two true void wrap-mul zero zero?
 	.exceptions: assert forbid
 	.number-utils: + - * / decr incr
 	.opt-utils: force

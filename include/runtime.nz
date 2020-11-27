@@ -1,15 +1,16 @@
 | .str-utils for c-str.to-str
 | TODO: don't import .io or .number-utils
 import
-	.alloc: gc get-gc-ctx new-gc return-gc-ctx unmanaged-alloc-elements
+	.alloc: gc get-gc-ctx needs-gc new-gc return-gc-ctx unmanaged-alloc-elements
 	.arr-utils: at contains? empty? mut-arr noctx-at noctx-must-remove-unordered push-capacity-must-be-sufficient
 	.bootstrap
 		== > actor-id arr as as-any-ptr as-ref bool by-val call-with-ctx ctx empty? err exception
-		false fun-mut0 fun-mut1 get-ctx hard-assert hard-forbid if lock nat noctx-decr noctx-incr
-		none ok opt pass ref-of-val result some todo true vat-and-actor-id vat-id void zero zero?
+		false fun-mut0 fun-mut1 gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid if lock message
+		nat noctx-decr noctx-incr none ok opt pass ref-of-val result size some todo true value
+		vat-and-actor-id vat-id void zero zero?
 	.exceptions: exception-ctx new-exception-ctx
 	.io: print-err-sync print-err-sync-no-newline
-	.mut-bag: add empty? mut-bag mut-bag-node new-mut-bag new-mut-bag-node
+	.mut-bag: add empty? head mut-bag mut-bag-node next-node new-mut-bag new-mut-bag-node value
 	.thread-utils
 		acquire-lock broadcast condition get-and-increment get-last-checked new-lock
 		new-thread-safe-counter release-lock thread-safe-counter wait-on
@@ -277,7 +278,7 @@ task-and-nodes record mut
 
 find-and-remove-first-doable-task opt task(vat vat) noctx unsafe
 	tasks = vat.tasks ref-of-val
-	th = tasks.head
+	th = tasks head
 	res = vat find-and-remove-first-doable-task-recur tasks.head
 	match res
 		none
@@ -291,8 +292,8 @@ find-and-remove-first-doable-task-recur opt task-and-nodes(vat vat, opt-node opt
 		none
 			none
 		some s
-			node = s.value
-			task = node.value
+			node = s value
+			task = node value
 			| Can't do this task if the actor is busy.
 			| (If we don't have space to expand currently-running-actors,
 			| shouldn't be starting a new task anyway.)

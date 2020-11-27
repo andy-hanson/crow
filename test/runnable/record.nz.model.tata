@@ -38,7 +38,7 @@ module(
 										call(
 											fun-inst(name: ==, type-args: [nat()])
 											[
-												field-acc(local-ref(m), my-record(), x)
+												call(fun-inst(name: x), [local-ref(m)])
 												call(fun-inst(name: literal), [string-lit("1")])])])
 								call(
 									fun-inst(name: assert)
@@ -46,14 +46,14 @@ module(
 										call(
 											fun-inst(name: ==, type-args: [nat()])
 											[
-												field-acc(local-ref(m), my-record(), y)
+												call(fun-inst(name: y), [local-ref(m)])
 												call(fun-inst(name: literal), [string-lit("2")])])]))
 							call(
 								fun-inst(name: print-sync)
-								[call(fun-inst(name: to-str), [field-acc(local-ref(m), my-record(), x)])]))
+								[call(fun-inst(name: to-str), [call(fun-inst(name: x), [local-ref(m)])])]))
 						call(
 							fun-inst(name: print-sync)
-							[call(fun-inst(name: to-str), [field-acc(local-ref(m), my-record(), y)])]))
+							[call(fun-inst(name: to-str), [call(fun-inst(name: y), [local-ref(m)])])]))
 					call(
 						fun-inst(name: resolved, type-args: [int32()])
 						[call(fun-inst(name: literal), [string-lit("0")])]))))
@@ -74,4 +74,14 @@ module(
 				my-record
 				by-val(my-record())
 				[param(file-range(20, range(52, 57)), x, nat()), param(file-range(20, range(59, 64)), y, nat())])
-			body: new-record)])
+			body: new-record)
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 52), x, nat(), [param(file-range(20, range(52, 57)), a, my-record())])
+			body: field-get(0))
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 59), y, nat(), [param(file-range(20, range(59, 64)), a, my-record())])
+			body: field-get(1))])

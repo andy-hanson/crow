@@ -1,6 +1,6 @@
 import
 	.bootstrap
-		== as-ref bool by-val call err exception fun-mut0 fun-mut1 get-ctx hard-forbid if int32 null
+		== as-ref bool by-val call err exception exception-ctx-ptr fun-mut0 fun-mut1 get-ctx hard-forbid if int32 null
 		null? ok pass ptr-to result seven str todo void zero
 	.posix: jmp-buf jmp-buf-tag longjmp setjmp zero
 

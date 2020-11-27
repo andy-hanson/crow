@@ -1,5 +1,5 @@
 import
-	.bootstrap: call fun-mut0 fun-mut1 none opt
+	.bootstrap: call fun-mut0 fun-mut1 none opt value
 	.exceptions: fail
 
 opt-or ?t(a opt ?t, default fun-mut0 ?t)

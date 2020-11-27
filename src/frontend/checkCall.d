@@ -15,7 +15,6 @@ import frontend.checkCtx : addDiag, CheckCtx;
 import frontend.checkExpr : checkExpr;
 import frontend.inferringType :
 	addDiag2,
-	allocExpr,
 	bogus,
 	check,
 	CheckedExpr,
@@ -27,17 +26,14 @@ import frontend.inferringType :
 	matchTypesNoDiagnostic,
 	programState,
 	SingleInferringType,
-	StructAndField,
 	tryGetDeeplyInstantiatedType,
 	tryGetInferred,
-	tryGetRecordField,
 	tryGetTypeArgFromInferringTypeArgs_const,
 	typeArgsFromAsts;
 import frontend.instantiate : instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeParamsAndArgs;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
-	accessedFieldType,
 	arity,
 	body_,
 	Called,
@@ -48,7 +44,6 @@ import model.model :
 	FunDeclAndArgs,
 	FunFlags,
 	FunKind,
-	getType,
 	isDataOrSendable,
 	matchCalledDecl,
 	matchSpecBody,
@@ -119,7 +114,7 @@ import util.opt : force, has, mapOption_const, none, Opt, some;
 import util.memory : nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
-import util.sym : mutSymSetHas, Sym, symEq;
+import util.sym : Sym, symEq;
 import util.util : todo, unreachable, verify;
 
 immutable(CheckedExpr) checkCall(Alloc)(
@@ -139,22 +134,15 @@ immutable(CheckedExpr) checkCall(Alloc)(
 	if (has(expectedReturnType))
 		filterByReturnType(alloc, programState(ctx), candidates, force(expectedReturnType));
 
-	// Try to determine if the expression can have properties, without type-checking it.
-	immutable Bool mightBePropertyAccess = Bool(
-		arity == 1 &&
-		exprMightHaveProperties(only(ast.args)) &&
-		mutSymSetHas(programState(ctx).names.recordFieldNames, funName));
-
 	ArrBuilder!Type actualArgTypes;
 	Bool someArgIsBogus = False;
 	immutable Opt!(Arr!Expr) args = fillArrOrFail!Expr(alloc, arity, (immutable size_t argIdx) {
-		if (mutArrIsEmpty(candidates) && !mightBePropertyAccess)
+		if (mutArrIsEmpty(candidates))
 			// Already certainly failed.
 			return none!Expr;
 
-		CommonOverloadExpected common = mightBePropertyAccess
-			? CommonOverloadExpected(Expected.infer(), False)
-			: getCommonOverloadParamExpected(alloc, programState(ctx), tempAsArr_mut(candidates), argIdx);
+		CommonOverloadExpected common =
+			getCommonOverloadParamExpected(alloc, programState(ctx), tempAsArr_mut(candidates), argIdx);
 		immutable Expr arg = checkExpr(alloc, ctx, at(ast.args, argIdx), common.expected);
 
 		// If it failed to check, don't continue, just stop there.
@@ -180,16 +168,6 @@ immutable(CheckedExpr) checkCall(Alloc)(
 	}
 
 	const Arr!Candidate candidatesArr = moveToArr_const(alloc, candidates);
-
-	if (mightBePropertyAccess && arity == 1 && has(args)) {
-		immutable Opt!(Expr.RecordFieldAccess) rfa = tryGetRecordFieldAccess(alloc, ctx, funName, only(force(args)));
-		if (has(rfa)) {
-			if (!empty(candidatesArr))
-				todo!void("ambiguous call vs property access");
-			immutable Expr rfaExpr = immutable Expr(range, force(rfa));
-			return check!Alloc(alloc, ctx, expected, accessedFieldType(force(rfa)), rfaExpr);
-		}
-	}
 
 	if (!has(args) || size(candidatesArr) != 1) {
 		if (empty(candidatesArr)) {
@@ -443,21 +421,6 @@ CommonOverloadExpected getCommonOverloadParamExpected(Alloc)(
 				getCommonOverloadParamExpectedForMultipleCandidates(alloc, programState, candidates, argIdx, none!Type),
 				False);
 	}
-}
-
-immutable(Opt!(Expr.RecordFieldAccess)) tryGetRecordFieldAccess(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	immutable Sym funName,
-	immutable Expr arg,
-) {
-	immutable Opt!StructAndField field = tryGetRecordField(getType(arg, ctx.commonTypes), funName);
-	return has(field)
-		? some(immutable Expr.RecordFieldAccess(
-			allocExpr(alloc, arg),
-			force(field).structInst,
-			force(field).field))
-		: none!(Expr.RecordFieldAccess);
 }
 
 immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(

@@ -2,7 +2,7 @@ module concretize.concretizeExpr;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : derefConstantPointer, getConstantArr, getConstantStr;
+import concretize.allConstantsBuilder : getConstantArr, getConstantStr;
 import concretize.concretizeCtx :
 	anyPtrType,
 	boolType,
@@ -50,7 +50,7 @@ import model.concreteModel :
 	name,
 	purity,
 	returnType;
-import model.constant : asBool, asPointer, asRecord, asUnion, Constant;
+import model.constant : asBool, asRecord, asUnion, Constant;
 import model.model :
 	Called,
 	ClosureField,
@@ -559,30 +559,6 @@ immutable(Ptr!ConcreteField) getMatchingField(Alloc)(
 	return getMatchingField(type, field.index);
 }
 
-immutable(ConcreteExpr) concretizeRecordFieldAccess(Alloc)(
-	ref Alloc alloc,
-	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
-	ref immutable Expr.RecordFieldAccess e,
-) {
-	immutable Ptr!ConcreteExpr target = allocExpr(alloc, concretizeExpr(alloc, ctx, e.target));
-	immutable ConcreteType targetType = getConcreteType_forStructInst(alloc, ctx, e.targetType);
-	immutable Ptr!ConcreteField field = getMatchingField(targetType.struct_, e.field.index);
-	if (isConstant(target)) {
-		immutable Constant.Record record = targetType.isPointer
-			? () {
-				immutable Constant.Pointer pointer = asPointer(asConstant(target));
-				return asRecord(derefConstantPointer(ctx.concretizeCtx.allConstants, pointer, targetType.struct_));
-			}()
-			: asRecord(asConstant(target));
-		return immutable ConcreteExpr(field.type, range, at(record.args, field.index));
-	} else
-		return immutable ConcreteExpr(
-			field.type,
-			range,
-			immutable ConcreteExpr.RecordFieldAccess(target, field));
-}
-
 immutable(ConcreteExpr) concretizeRecordFieldSet(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
@@ -680,8 +656,6 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 			concretizeMatch(alloc, ctx, range, e),
 		(ref immutable Expr.ParamRef e) =>
 			concretizeParamRef(alloc, ctx, range, e),
-		(ref immutable Expr.RecordFieldAccess e) =>
-			concretizeRecordFieldAccess(alloc, ctx, range, e),
 		(ref immutable Expr.RecordFieldSet e) =>
 			concretizeRecordFieldSet(alloc, ctx, range, e),
 		(ref immutable Expr.Seq e) {

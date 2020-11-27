@@ -1,7 +1,7 @@
 import
 	.bootstrap
-		call drop err exception fut fut-callback-node fut-state-callbacks fut-state-resolved
-		hard-fail hard-unreachable none opt ok pass ref-of-val result void
+		call cb drop err exception fut fut-callback-node fut-state-callbacks fut-state-resolved
+		hard-fail hard-unreachable head none lk next-node opt ok pass ref-of-val result state value void
 	.thread-utils: acquire-lock new-lock release-lock
 
 | Considered unsafe because normally it should not be possible to never resolve a fut
@@ -36,7 +36,9 @@ resolve-or-reject void(f fut ?t, result result ?t exception) unsafe
 		ok o
 			fut-state-resolved: o.value
 		err e
-			e.value
+			| TODO: should work without this variable
+			ex = e value
+			ex
 	f.lk.ref-of-val release-lock
 
 private

@@ -1,27 +1,27 @@
 import
 	.bootstrap
 		+ == < <= and arr as as-any-ptr as-ref billion bits-and bit-shift-left bits-or bool byte
-		by-val char c-str deref eight false four hard-assert hard-unreachable has? if incr int32
+		by-val char c-str data deref eight false four hard-assert hard-unreachable has? if incr int32
 		int nat nat16 nat32 neg-one none null null? one opt or pass ptr ptr-cast ptr-eq? ptr-to
-		ref-eq? six size-of some str ten thousand three todo two two-pow unsafe-to-int void
+		ref-eq? six size size-of some str ten thousand three todo two two-pow unsafe-to-int value void
 		wrap-add zero zero?
 	.arr-utils
-		+ append arr-from-begin-end each ensure-capacity fold freeze map mut-arr new-mut-arr
-		new-uninitialized-mut-arr prepend push ref-of-val-at slice-up-to sort unsafe-increase-size
+		+ append arr-from-begin-end data each ensure-capacity fold freeze map mut-arr new-mut-arr
+		new-uninitialized-mut-arr prepend push ref-of-val-at size slice-up-to sort unsafe-increase-size
 	.cell: cell get
 	.dict: add dict each freeze key-value-pair mut-dict new-mut-dict
 	.exceptions: assert fail forbid
 	number-utils: + to-int to-nat
 	.opt-utils: force
 	.posix
-		addrinfo af-unspec close connect dirent dirp enoent empty-stat environ errno err-t fd-t
-		freeaddrinfo getaddrinfo getcwd has-pollin? has-pollerr? has-pollhup?
-		has-pollnval? has-pollout? has-pollpri? ino-t lseek o-creat off-t open opendir o-rdonly
+		addrinfo af-unspec ai-addr ai-addrlen ai-family ai-next ai-protocol ai-socktype close connect dirent dirp
+		enoent empty-stat environ errno err-t fd fd-t freeaddrinfo getaddrinfo getcwd has-pollin? has-pollerr?
+		has-pollhup? has-pollnval? has-pollout? has-pollpri? ino-t lseek o-creat off-t open opendir o-rdonly
 		o-trunc o-wronly pid-t pipe pipes poll pollfd pollin posix-spawn
 		posix-spawn-file-actions-addclose posix-spawn-file-actions-adddup2
-		posix-spawn-file-actions-init posix-spawn-file-actions-t read readdir-r readlink s-ifdir
-		s-ifmt s-ifreg socket sock-stream stat stat-t status-t stderr-fd stdout-fd waitpid
-		w-exit-status w-if-continued w-if-exited w-if-signaled w-if-stopped write w-term-sig zero
+		posix-spawn-file-actions-init posix-spawn-file-actions-t read readdir-r readlink read-pipe revents s-ifdir
+		s-ifmt s-ifreg socket sock-stream stat stat-t status-t stderr-fd stdout-fd st-mode waitpid
+		w-exit-status w-if-continued w-if-exited w-if-signaled w-if-stopped write write-pipe w-term-sig zero
 	.str-conv: literal to-str
 	.str-utils: find-char-in-cstr find-cstr-end literal to-c-str to-str
 

@@ -84,7 +84,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.model : FunDecl, Module, name, Program, range;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, range, size, sizeNat;
+import util.collection.arr : Arr, at, only, range, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.fullIndexDict :
 	FullIndexDict,
@@ -826,10 +826,20 @@ void generateRefOfVal(Debug, TempAlloc, CodeAlloc)(
 		writeStackRef(dbg, writer, source, mustGetAt_mut(ctx.localEntries, asLocalRef(arg.kind).local).start);
 	else if (isParamRef(arg.kind))
 		writeStackRef(dbg, writer, source, at(ctx.parameterEntries, asParamRef(arg.kind).index.index).start);
-	else if (isRecordFieldAccess(arg.kind))
-		generatePtrToRecordFieldAccess(dbg, tempAlloc, writer, ctx, source, asRecordFieldAccess(arg.kind));
-	else
-		todo!void("ref-of-val -- not a local or record field");
+	else if (isRecordFieldAccess(arg.kind)) {
+		immutable LowExprKind.RecordFieldAccess rfa = asRecordFieldAccess(arg.kind);
+		generatePtrToRecordFieldAccess!(Debug, TempAlloc, CodeAlloc)(
+			dbg,
+			tempAlloc,
+			writer,
+			ctx,
+			source,
+			rfa.record,
+			rfa.fieldIndex,
+			rfa.targetIsPointer,
+			rfa.target);
+	} else
+		todo!void("!");
 }
 
 void generateRecordFieldAccess(Debug, TempAlloc, CodeAlloc)(
@@ -880,11 +890,14 @@ void generatePtrToRecordFieldAccess(Debug, TempAlloc, CodeAlloc)(
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
-	ref immutable LowExprKind.RecordFieldAccess it,
+	immutable LowType.Record record,
+	immutable ubyte fieldIndex,
+	immutable Bool targetIsPointer,
+	ref immutable LowExpr target,
 ) {
-	generateExpr(dbg, tempAlloc, writer, ctx, it.target);
-	immutable Nat8 offset = getFieldOffset(ctx, it.record, immutable Nat8(it.fieldIndex));
-	if (it.targetIsPointer) {
+	generateExpr(dbg, tempAlloc, writer, ctx, target);
+	immutable Nat8 offset = getFieldOffset(ctx, record, immutable Nat8(fieldIndex));
+	if (targetIsPointer) {
 		if (!zero(offset))
 			writeAddConstantNat64(dbg, writer, source, offset.to64());
 	} else

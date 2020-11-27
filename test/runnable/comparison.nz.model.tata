@@ -249,6 +249,16 @@ module(
 			body: new-record)
 		fun(
 			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 52), x, nat(), [param(file-range(20, range(52, 57)), a, my-record())])
+			body: field-get(0))
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 59), y, nat(), [param(file-range(20, range(59, 64)), a, my-record())])
+			body: field-get(1))
+		fun(
+			public?: true
 			preferred: true
 			sig: sig(
 				file-pos(20, 66)
@@ -265,6 +275,16 @@ module(
 				by-val(my-byref-record())
 				[param(file-range(20, range(98, 103)), x, nat()), param(file-range(20, range(105, 110)), y, nat())])
 			body: new-record)
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 98), x, nat(), [param(file-range(20, range(98, 103)), a, my-byref-record())])
+			body: field-get(0))
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 105), y, nat(), [param(file-range(20, range(105, 110)), a, my-byref-record())])
+			body: field-get(1))
 		fun(
 			public?: true
 			no-ctx: true

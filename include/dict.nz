@@ -1,6 +1,6 @@
 import
 	.arr-utils: at empty? empty-arr first freeze map mut-arr new-mut-arr push tail unsafe-as-arr
-	.bootstrap: == arr bool call data fun-mut1 fun-mut2 has? nat none opt pass some todo void zero
+	.bootstrap: == arr bool call data fun-mut1 fun-mut2 has? nat none opt pass size some todo value void zero
 	.exceptions: forbid
 	.number-utils: incr
 
@@ -57,7 +57,7 @@ at ?v(d dict ?k ?v, key ?k) data<?k>
 		none
 			todo
 		some s
-			s.value
+			s value
 
 at ?v(d mut-dict ?k ?v, key ?k) trusted data<?k>
 	d.unsafe-as-dict at key

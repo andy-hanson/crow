@@ -521,7 +521,9 @@ void fillInConcreteFunBody(Alloc)(
 			(ref immutable FunBody.Extern e) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal, e.externName)),
 			(immutable Ptr!Expr e) =>
-				concretizeExpr(alloc, ctx, inputs, castImmutable(cf), e.deref));
+				concretizeExpr(alloc, ctx, inputs, castImmutable(cf), e.deref),
+			(ref immutable FunBody.RecordFieldGet it) =>
+				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldGet(it.fieldIndex)));
 		lateSetOverwrite(cf._body_, body_);
 	}
 }

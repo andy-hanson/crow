@@ -3,15 +3,15 @@ import
 	.arr-utils: empty-arr map noctx-at tail
 	.bootstrap
 		== + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref drop false fun2
-		fun-ptr1 fun-ptr2 fut get-ctx hard-assert int32 nat noctx-decr noctx-incr null null? one
-		pass ptr ptr-to ref-of-val set str todo to-int unsafe-to-nat void zero zero?
+		fun-ptr1 fun-ptr2 fut get-ctx hard-assert int32 message nat noctx-decr noctx-incr null null? one
+		pass ptr ptr-to ref-of-val set str todo to-int unsafe-to-nat value void zero zero?
 	.cell: as-cell cell get
 	.exceptions: new-exception-ctx
 	.fut-low-level: must-be-resolved
 	.fut-utils: resolved then2
 	.io: exit-code print-err-sync print-err-sync-no-newline
 	.posix: eagain einval esrch pthread-create pthread-join pthread-t
-	.runtime: global-ctx new-ctx new-vat thread-function thread-local-stuff vat
+	.runtime: any-unhandled-exceptions? global-ctx new-ctx new-vat thread-function thread-local-stuff vat
 	.str-utils: to-str
 	.thread-utils: new-condition new-lock
 
@@ -42,10 +42,10 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 		else
 			match main-fut.must-be-resolved
 				ok o
-					o.value
+					o value
 				err e
 					print-err-sync-no-newline: "main failed: "
-					print-err-sync: e.value.message
+					print-err-sync: e.value message
 					one
 
 do-main fut exit-code(gctx global-ctx, vat vat, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx

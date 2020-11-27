@@ -431,6 +431,9 @@ struct ConcreteFunBody {
 		immutable Bool isGlobal;
 		immutable Str externName;
 	}
+	struct RecordFieldGet {
+		immutable u8 fieldIndex;
+	}
 
 	private:
 	enum Kind {
@@ -438,6 +441,7 @@ struct ConcreteFunBody {
 		createRecord,
 		extern_,
 		concreteFunExprBody,
+		recordFieldGet,
 	}
 	immutable Kind kind;
 	union {
@@ -445,6 +449,7 @@ struct ConcreteFunBody {
 		immutable CreateRecord createRecord;
 		immutable Extern extern_;
 		immutable ConcreteFunExprBody concreteFunExprBody;
+		immutable RecordFieldGet recordFieldGet;
 	}
 
 	public:
@@ -454,6 +459,7 @@ struct ConcreteFunBody {
 	@trusted immutable this(immutable ConcreteFunExprBody a) {
 		kind = Kind.concreteFunExprBody; concreteFunExprBody = a;
 	}
+	@trusted immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 }
 
 immutable(Bool) isExtern(ref immutable ConcreteFunBody a) {
@@ -476,6 +482,7 @@ immutable(Bool) isExtern(ref immutable ConcreteFunBody a) {
 	scope T delegate(ref immutable ConcreteFunBody.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable ConcreteFunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(ref immutable ConcreteFunExprBody) @safe @nogc pure nothrow cbConcreteFunExprBody,
+	scope T delegate(ref immutable ConcreteFunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
 ) {
 	final switch (a.kind) {
 		case ConcreteFunBody.Kind.builtin:
@@ -486,6 +493,8 @@ immutable(Bool) isExtern(ref immutable ConcreteFunBody a) {
 			return cbExtern(a.extern_);
 		case ConcreteFunBody.Kind.concreteFunExprBody:
 			return cbConcreteFunExprBody(a.concreteFunExprBody);
+		case ConcreteFunBody.Kind.recordFieldGet:
+			return cbRecordFieldGet(a.recordFieldGet);
 	}
 }
 
@@ -715,6 +724,7 @@ struct ConcreteExpr {
 		immutable Ptr!ConcreteParam param;
 	}
 
+	// TODO: this is only used for closure field accesses now. At least rename.
 	struct RecordFieldAccess {
 		immutable Ptr!ConcreteExpr target;
 		immutable Ptr!ConcreteField field;
