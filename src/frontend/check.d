@@ -31,7 +31,7 @@ import frontend.ast :
 	TypeAst,
 	TypeParamAst;
 import frontend.checkCtx : addDiag, CheckCtx, posInFile, rangeInFile;
-import frontend.checkExpr : checkFunctionBody, recordIsAlwaysByVal;
+import frontend.checkExpr : checkFunctionBody;
 import frontend.checkUtil : arrAsImmutable, ptrAsImmutable;
 import frontend.instantiate :
 	DelayStructInsts,
@@ -845,6 +845,12 @@ immutable(size_t) countFuns(
 		} else
 			return immutable size_t(0);
 	});
+}
+
+immutable(Bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
+	return immutable Bool(
+		empty(record.fields) ||
+		(has(record.forcedByValOrRef) && force(record.forcedByValOrRef) == ForcedByValOrRef.byVal));
 }
 
 immutable(FunsAndMap) checkFuns(Alloc)(

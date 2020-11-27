@@ -6,8 +6,6 @@ import frontend.ast :
 	BogusAst,
 	CallAst,
 	CreateArrAst,
-	CreateRecordAst,
-	CreateRecordMultiLineAst,
 	exports,
 	ExprAst,
 	FileAst,
@@ -274,17 +272,6 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		(ref immutable CreateArrAst it) {
 			addOptTypeTokens(alloc, tokens, it.elementType);
 			addExprsTokens(alloc, tokens, it.args);
-		},
-		(ref immutable CreateRecordAst it) {
-			addOptTypeTokens(alloc, tokens, it.type);
-			addExprsTokens(alloc, tokens, it.args);
-		},
-		(ref immutable CreateRecordMultiLineAst it) {
-			addOptTypeTokens(alloc, tokens, it.type);
-			foreach (ref immutable CreateRecordMultiLineAst.Line line; range(it.lines)) {
-				add(alloc, tokens, immutable Token(Token.Kind.fieldRef, rangeOfNameAndRange(line.name)));
-				addExprTokens(alloc, tokens, line.value);
-			}
 		},
 		(ref immutable IdentifierAst) {
 			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));

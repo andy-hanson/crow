@@ -193,7 +193,7 @@ new-mut-arr mut-arr ?t() trusted
 	mut-arr: false, zero, zero, null
 
 new-mut-arr-by-val by-val mut-arr<?t>() noctx trusted
-	new false, zero, zero, null
+	mut-arr<?t>: false, zero, zero, null
 
 empty? bool(a mut-arr ?t) noctx
 	a.size zero?

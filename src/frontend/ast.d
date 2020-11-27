@@ -141,21 +141,6 @@ struct CreateArrAst {
 	immutable Arr!ExprAst args;
 }
 
-struct CreateRecordAst {
-	immutable Opt!(Ptr!TypeAst) type;
-	immutable Arr!ExprAst args;
-}
-
-struct CreateRecordMultiLineAst {
-	struct Line {
-		immutable NameAndRange name;
-		immutable ExprAst value;
-	}
-
-	immutable Opt!(Ptr!TypeAst) type;
-	immutable Arr!Line lines;
-}
-
 struct IdentifierAst {
 	immutable Sym name;
 }
@@ -226,8 +211,6 @@ struct ExprAstKind {
 		bogus,
 		call,
 		createArr,
-		createRecord,
-		createRecordMultiLine,
 		identifier,
 		lambda,
 		let,
@@ -244,8 +227,6 @@ struct ExprAstKind {
 		immutable BogusAst bogus;
 		immutable CallAst call;
 		immutable CreateArrAst createArr;
-		immutable CreateRecordAst createRecord;
-		immutable CreateRecordMultiLineAst createRecordMultiLine;
 		immutable IdentifierAst identifier;
 		immutable LambdaAst lambda;
 		immutable LetAst let;
@@ -262,10 +243,6 @@ struct ExprAstKind {
 	@trusted immutable this(immutable BogusAst a) { kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
 	@trusted immutable this(immutable CreateArrAst a) { kind = Kind.createArr; createArr = a; }
-	@trusted immutable this(immutable CreateRecordAst a) { kind = Kind.createRecord; createRecord = a; }
-	@trusted immutable this(immutable CreateRecordMultiLineAst a) {
-		kind = Kind.createRecordMultiLine; createRecordMultiLine = a;
-	}
 	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
 	@trusted immutable this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable LetAst a) { kind = Kind.let; let = a; }
@@ -299,10 +276,6 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 	scope immutable(T) delegate(ref immutable BogusAst) @safe @nogc pure nothrow cbBogus,
 	scope immutable(T) delegate(ref immutable CallAst) @safe @nogc pure nothrow cbCall,
 	scope immutable(T) delegate(ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
-	scope immutable(T) delegate(ref immutable CreateRecordAst) @safe @nogc pure nothrow cbCreateRecord,
-	scope immutable(T) delegate(
-		ref immutable CreateRecordMultiLineAst
-	) @safe @nogc pure nothrow cbCreateRecordMultiLine,
 	scope immutable(T) delegate(ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
 	scope immutable(T) delegate(ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
 	scope immutable(T) delegate(ref immutable LetAst) @safe @nogc pure nothrow cbLet,
@@ -321,10 +294,6 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 			return cbCall(a.call);
 		case ExprAstKind.Kind.createArr:
 			return cbCreateArr(a.createArr);
-		case ExprAstKind.Kind.createRecord:
-			return cbCreateRecord(a.createRecord);
-		case ExprAstKind.Kind.createRecordMultiLine:
-			return cbCreateRecordMultiLine(a.createRecordMultiLine);
 		case ExprAstKind.Kind.identifier:
 			return cbIdentifier(a.identifier);
 		case ExprAstKind.Kind.lambda:
@@ -837,11 +806,6 @@ immutable(Sexpr) sexprOfTypeAst(Alloc)(ref Alloc alloc, ref immutable TypeAst a)
 			sexprOfInstStructAst(alloc, i));
 }
 
-immutable(Sexpr) sexprOfOptTypeAst(Alloc)(ref Alloc alloc, immutable Opt!(Ptr!TypeAst) a) {
-	return tataOpt(alloc, a, (ref immutable Ptr!TypeAst it) =>
-		sexprOfTypeAst(alloc, it));
-}
-
 immutable(Sexpr) sexprOfInstStructAst(Alloc)(ref Alloc alloc, ref immutable TypeAst.InstStruct a) {
 	immutable Sexpr range = sexprOfRangeWithinFile(alloc, a.range);
 	immutable Sexpr name = sexprOfNameAndRange(alloc, a.name);
@@ -900,18 +864,6 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 					sexprOfTypeAst(alloc, it)),
 				tataArr(alloc, e.args, (ref immutable ExprAst it) =>
 					sexprOfExprAst(alloc, it))]),
-		(ref immutable CreateRecordAst a) =>
-			tataRecord(alloc, "new-record", [
-				sexprOfOptTypeAst(alloc, a.type),
-				tataArr(alloc, a.args, (ref immutable ExprAst it) =>
-					sexprOfExprAst(alloc, it))]),
-		(ref immutable CreateRecordMultiLineAst a) =>
-			tataRecord(alloc, "new-record", [
-				sexprOfOptTypeAst(alloc, a.type),
-				tataArr(alloc, a.lines, (ref immutable CreateRecordMultiLineAst.Line it) =>
-					tataRecord(alloc, "line", [
-						sexprOfNameAndRange(alloc, it.name),
-						sexprOfExprAst(alloc, it.value)]))]),
 		(ref immutable IdentifierAst a)  =>
 			tataSym(a.name),
 		(ref immutable LambdaAst a) =>

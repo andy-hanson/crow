@@ -3,9 +3,9 @@
 import cli : cli;
 
 import core.stdc.stdio : printf;
-import frontend.ast : CallAst, CreateArrAst,
-	CreateRecordAst,
-	CreateRecordMultiLineAst,
+import frontend.ast :
+	CallAst,
+	CreateArrAst,
 	ExprAst,
 	ExprAstKind,
 	IdentifierAst,
@@ -33,8 +33,6 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 		printf("ExprAstKind: %lu\n", ExprAstKind.sizeof);
 		printf("	CallAst: %lu\n", CallAst.sizeof);
 		printf("	CreateArrAst: %lu\n", CreateArrAst.sizeof);
-		printf("	CreateRecordAst: %lu\n", CreateRecordAst.sizeof);
-		printf("	CreateRecordMultiLineAst: %lu\n", CreateRecordMultiLineAst.sizeof);
 		printf("	IdentifierAst: %lu\n", IdentifierAst.sizeof);
 		printf("	LambdaAst: %lu\n", LambdaAst.sizeof);
 		printf("	LetAst: %lu\n", LetAst.sizeof);

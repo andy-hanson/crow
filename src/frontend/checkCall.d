@@ -281,8 +281,6 @@ immutable(Bool) exprMightHaveProperties(immutable ExprAst ast) {
 		(ref immutable BogusAst) => unreachable!(immutable Bool),
 		(ref immutable CallAst) => True,
 		(ref immutable CreateArrAst) => True,
-		(ref immutable CreateRecordAst) => True,
-		(ref immutable CreateRecordMultiLineAst) => True,
 		(ref immutable IdentifierAst) => True,
 		(ref immutable LambdaAst) => False,
 		(ref immutable LetAst e) => exprMightHaveProperties(e.then),

@@ -41,14 +41,14 @@ lint-file arr failure(path str) summon
 		when
 			err-file?.not and: line.lstrip contains-subsequence? "  "
 				message = "line " + ln + " contains a double space"
-				res push new path, message
+				res push failure: path, message
 			else
 				pass
 		width = line line-len
 		when
 			width > max-line-length
 				message = "line " + ln + " is " + width.to-str + " columns long, should be <= " + max-line-length.to-str
-				res push new path, message
+				res push failure: path, message
 			else
 				pass
 	res freeze

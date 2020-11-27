@@ -210,11 +210,6 @@ immutable(Sexpr) sexprOfExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable 
 				sexprOfStructInst(alloc, ctx, it.arrType),
 				tataArr(alloc, it.args, (ref immutable Expr arg) =>
 					sexprOfExpr(alloc, ctx, arg))]),
-		(ref immutable Expr.CreateRecord e) =>
-			tataRecord(alloc, "record", [
-				sexprOfStructInst(alloc, ctx, e.structInst),
-				tataArr(alloc, e.args, (ref immutable Expr arg) =>
-					sexprOfExpr(alloc, ctx, arg))]),
 		(ref immutable Expr.ImplicitConvertToUnion e) =>
 			tataRecord(alloc, "to-union", [
 				sexprOfStructInst(alloc, ctx, e.unionType),

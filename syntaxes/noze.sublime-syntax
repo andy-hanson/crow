@@ -262,7 +262,7 @@ contexts:
       scope: constant.numeric
 
     # Keywords that may be followed by type arguments
-    - match: (new|new-arr)(?=$|<|\s)
+    - match: (new-arr)(?=$|<|\s)
       scope: keyword
       push: new
     # Other keywords
@@ -298,7 +298,7 @@ contexts:
       captures:
         3: comment
 
-  # Give 'new' a scope to ensure that after type argumetns are parsed (from 'prototype' scope), we eat a space
+  # Give 'new-arr' a scope to ensure that after type arguments are parsed (from 'prototype' scope), we eat a space
   new:
     - match: \s+
       pop: true

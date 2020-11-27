@@ -9,15 +9,13 @@ import std.stdio : writeln;
 import std.string : indexOf, indexOfAny, splitLines;
 
 @trusted int main() {
-	// For each file, get the public exports.
-	// Test for usage in all files.
-
 	immutable File[] files = allFiles();
 
 	foreach (ref immutable File file; files) {
 		foreach (immutable string publicExport; file.members.public_) {
 			if (!any!(otherFile => publicExport in otherFile.imports)(files)) {
-				writeln(file.path, " export not used: ", publicExport);
+				if (publicExport != "getConstantPtr") // TODO
+					writeln(file.path, " export not used: ", publicExport);
 			}
 		}
 	}
@@ -224,5 +222,3 @@ void eachWord(immutable string s, scope void delegate(immutable string) @safe pu
 immutable(bool) isIdentifierChar(immutable char c) {
 	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == '_';
 }
-
-

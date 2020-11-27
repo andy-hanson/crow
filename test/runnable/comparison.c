@@ -622,29 +622,37 @@ char* todo_0();
 char* incr_0(char* p);
 struct global_ctx global_ctx(struct lock lk, struct arr_2 vats, uint64_t n_live_threads, struct condition may_be_work_to_do, uint8_t is_shut_down, uint8_t any_unhandled_exceptions__q);
 struct lock new_lock();
+struct lock lock(struct _atomic_bool is_locked);
 struct _atomic_bool new_atomic_bool();
+struct _atomic_bool _atomic_bool(uint8_t value);
 struct arr_2 empty_arr();
 struct arr_2 arr_1(uint64_t size, struct vat** data);
 struct condition new_condition();
+struct condition condition(struct lock lk, uint64_t value);
 struct vat new_vat(struct global_ctx* gctx, uint64_t id, uint64_t max_threads);
 struct mut_arr_0 new_mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity);
+struct mut_arr_0 mut_arr_0(uint8_t frozen__q, uint64_t size, uint64_t capacity, uint64_t* data);
 uint64_t* unmanaged_alloc_elements_0(uint64_t size_elements);
 uint8_t* unmanaged_alloc_bytes(uint64_t size);
 extern uint8_t* malloc(uint64_t size);
 uint8_t hard_forbid(uint8_t condition);
 uint8_t null__q_0(uint8_t* a);
 uint8_t _op_equal_equal_1(uint64_t a, uint64_t b);
+struct vat vat(struct global_ctx* gctx, uint64_t id, struct gc gc, struct lock tasks_lock, struct mut_bag tasks, struct mut_arr_0 currently_running_actors, uint64_t n_threads_running, struct thread_safe_counter next_actor_id, struct fun_mut1_1 exception_handler);
 struct gc new_gc();
+struct gc gc(struct lock lk, struct opt_1 context_head, uint8_t needs_gc, uint8_t is_doing_gc, uint8_t* begin, uint8_t* next_byte);
 struct none none();
 struct mut_bag new_mut_bag();
+struct mut_bag mut_bag(struct opt_2 head);
 struct thread_safe_counter new_thread_safe_counter_0();
 struct thread_safe_counter new_thread_safe_counter_1(uint64_t init);
+struct thread_safe_counter thread_safe_counter(struct lock lk, uint64_t value);
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e);
 uint8_t print_err_sync_no_newline(struct arr_0 s);
 uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s);
 extern int64_t write(int32_t fd, uint8_t* buff, uint64_t n_bytes);
 uint8_t _op_equal_equal_2(int64_t a, int64_t b);
-struct comparison compare_41(int64_t a, int64_t b);
+struct comparison compare_49(int64_t a, int64_t b);
 uint8_t todo_1();
 int32_t stderr_fd();
 int32_t two_0();
@@ -656,8 +664,11 @@ struct global_ctx* get_gctx(struct ctx* ctx);
 uint8_t new_vat__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception it);
 struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, char** argv, fun_ptr2_0 main_ptr);
 struct exception_ctx new_exception_ctx();
+struct exception_ctx exception_ctx(struct jmp_buf_tag* jmp_buf_ptr, struct exception thrown_exception);
+struct exception exception(struct arr_0 message);
 struct thread_local_stuff thread_local_stuff(struct exception_ctx* exception_ctx);
 struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id);
+struct ctx ctx(uint8_t* gctx_ptr, uint64_t vat_id, uint64_t actor_id, uint8_t* gc_ctx_ptr, uint8_t* exception_ctx_ptr);
 struct gc_ctx* get_gc_ctx_0(struct gc* gc);
 uint8_t acquire_lock(struct lock* a);
 uint8_t acquire_lock_recur(struct lock* a, uint64_t n_tries);
@@ -680,7 +691,7 @@ uint8_t yield_thread();
 extern int32_t pthread_yield();
 uint8_t zero__q_1(int32_t i);
 uint8_t _op_equal_equal_3(int32_t a, int32_t b);
-struct comparison compare_77(int32_t a, int32_t b);
+struct comparison compare_88(int32_t a, int32_t b);
 uint64_t noctx_incr(uint64_t n);
 uint64_t billion();
 uint64_t million_0();
@@ -790,7 +801,7 @@ struct arr_1 unsafe_as_arr(struct mut_arr_1* a);
 struct arr_1 arr_3(uint64_t size, struct arr_0* data);
 struct mut_arr_1* make_mut_arr(struct ctx* ctx, uint64_t size, struct fun_mut1_5 f);
 struct mut_arr_1* new_uninitialized_mut_arr(struct ctx* ctx, uint64_t size);
-struct mut_arr_1* mut_arr(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_0* data);
+struct mut_arr_1* mut_arr_1(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_0* data);
 struct arr_0* uninitialized_data(struct ctx* ctx, uint64_t size);
 uint8_t* alloc(struct ctx* ctx, uint64_t size);
 uint8_t* gc_alloc(struct ctx* ctx, struct gc* gc, uint64_t size);
@@ -814,7 +825,8 @@ struct fut_0* call_with_ctx_8(struct ctx* c, struct fun2 f, struct arr_3 p0, fun
 uint8_t run_threads(uint64_t n_threads, struct global_ctx* gctx);
 struct thread_args* unmanaged_alloc_elements_1(uint64_t size_elements);
 uint64_t noctx_decr(uint64_t n);
-uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args, struct global_ctx* gctx);
+uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx);
+struct thread_args thread_args(uint64_t thread_id, struct global_ctx* gctx);
 uint8_t* thread_fun(uint8_t* args_ptr);
 uint8_t thread_function(uint64_t thread_id, struct global_ctx* gctx);
 uint8_t thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struct thread_local_stuff* tls);
@@ -892,14 +904,14 @@ uint8_t print_sync(struct arr_0 s);
 uint8_t print_sync_no_newline(struct arr_0 s);
 int32_t stdout_fd();
 struct arr_0 to_str_1(struct ctx* ctx, struct comparison c);
-struct comparison compare_289(struct my_record a, struct my_record b);
+struct comparison compare_301(struct my_record a, struct my_record b);
 uint8_t test_compare_byref_records(struct ctx* ctx);
 struct my_byref_record* my_byref_record(struct ctx* ctx, uint64_t x, uint64_t y);
-struct comparison compare_292(struct my_byref_record* a, struct my_byref_record* b);
+struct comparison compare_304(struct my_byref_record* a, struct my_byref_record* b);
 uint8_t test_compare_unions(struct ctx* ctx);
 struct my_other_record my_other_record();
-struct comparison compare_295(struct my_union a, struct my_union b);
-struct comparison compare_296(struct my_other_record a, struct my_other_record b);
+struct comparison compare_307(struct my_union a, struct my_union b);
+struct comparison compare_308(struct my_other_record a, struct my_other_record b);
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value);
 int32_t literal_2(struct ctx* ctx, struct arr_0 s);
 int64_t literal_3(struct ctx* ctx, struct arr_0 s);
@@ -1075,10 +1087,16 @@ struct global_ctx global_ctx(struct lock lk, struct arr_2 vats, uint64_t n_live_
 	return (struct global_ctx) {lk, vats, n_live_threads, may_be_work_to_do, is_shut_down, any_unhandled_exceptions__q};
 }
 struct lock new_lock() {
-	return (struct lock) {new_atomic_bool()};
+	return lock(new_atomic_bool());
+}
+struct lock lock(struct _atomic_bool is_locked) {
+	return (struct lock) {is_locked};
 }
 struct _atomic_bool new_atomic_bool() {
-	return (struct _atomic_bool) {0};
+	return _atomic_bool(0);
+}
+struct _atomic_bool _atomic_bool(uint8_t value) {
+	return (struct _atomic_bool) {value};
 }
 struct arr_2 empty_arr() {
 	return arr_1(0, NULL);
@@ -1087,15 +1105,21 @@ struct arr_2 arr_1(uint64_t size, struct vat** data) {
 	return (struct arr_2) {size, data};
 }
 struct condition new_condition() {
-	return (struct condition) {new_lock(), 0};
+	return condition(new_lock(), 0);
+}
+struct condition condition(struct lock lk, uint64_t value) {
+	return (struct condition) {lk, value};
 }
 struct vat new_vat(struct global_ctx* gctx, uint64_t id, uint64_t max_threads) {
 	struct mut_arr_0 actors0;
 	actors0 = new_mut_arr_by_val_with_capacity_from_unmanaged_memory(max_threads);
-	return (struct vat) {gctx, id, new_gc(), new_lock(), new_mut_bag(), actors0, 0, new_thread_safe_counter_0(), (struct fun_mut1_1) {(fun_ptr3_1) new_vat__lambda0, (uint8_t*) NULL}};
+	return vat(gctx, id, new_gc(), new_lock(), new_mut_bag(), actors0, 0, new_thread_safe_counter_0(), (struct fun_mut1_1) {(fun_ptr3_1) new_vat__lambda0, (uint8_t*) NULL});
 }
 struct mut_arr_0 new_mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity) {
-	return (struct mut_arr_0) {0, 0, capacity, unmanaged_alloc_elements_0(capacity)};
+	return mut_arr_0(0, 0, capacity, unmanaged_alloc_elements_0(capacity));
+}
+struct mut_arr_0 mut_arr_0(uint8_t frozen__q, uint64_t size, uint64_t capacity, uint64_t* data) {
+	return (struct mut_arr_0) {frozen__q, size, capacity, data};
 }
 uint64_t* unmanaged_alloc_elements_0(uint64_t size_elements) {
 	uint8_t* bytes0;
@@ -1128,20 +1152,32 @@ uint8_t _op_equal_equal_1(uint64_t a, uint64_t b) {
 			return (assert(0),0);
 	}
 }
+struct vat vat(struct global_ctx* gctx, uint64_t id, struct gc gc, struct lock tasks_lock, struct mut_bag tasks, struct mut_arr_0 currently_running_actors, uint64_t n_threads_running, struct thread_safe_counter next_actor_id, struct fun_mut1_1 exception_handler) {
+	return (struct vat) {gctx, id, gc, tasks_lock, tasks, currently_running_actors, n_threads_running, next_actor_id, exception_handler};
+}
 struct gc new_gc() {
-	return (struct gc) {new_lock(), (struct opt_1) {0, .as0 = none()}, 0, 0, NULL, NULL};
+	return gc(new_lock(), (struct opt_1) {0, .as0 = none()}, 0, 0, NULL, NULL);
+}
+struct gc gc(struct lock lk, struct opt_1 context_head, uint8_t needs_gc, uint8_t is_doing_gc, uint8_t* begin, uint8_t* next_byte) {
+	return (struct gc) {lk, context_head, needs_gc, is_doing_gc, begin, next_byte};
 }
 struct none none() {
 	return (struct none) {0};
 }
 struct mut_bag new_mut_bag() {
-	return (struct mut_bag) {(struct opt_2) {0, .as0 = none()}};
+	return mut_bag((struct opt_2) {0, .as0 = none()});
+}
+struct mut_bag mut_bag(struct opt_2 head) {
+	return (struct mut_bag) {head};
 }
 struct thread_safe_counter new_thread_safe_counter_0() {
 	return new_thread_safe_counter_1(0);
 }
 struct thread_safe_counter new_thread_safe_counter_1(uint64_t init) {
-	return (struct thread_safe_counter) {new_lock(), init};
+	return thread_safe_counter(new_lock(), init);
+}
+struct thread_safe_counter thread_safe_counter(struct lock lk, uint64_t value) {
+	return (struct thread_safe_counter) {lk, value};
 }
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e) {
 	print_err_sync_no_newline((struct arr_0) {20, constantarr_0_3});
@@ -1163,7 +1199,7 @@ uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s) {
 }
 uint8_t _op_equal_equal_2(int64_t a, int64_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_41(a, b);
+	_matched0 = compare_49(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 0;
@@ -1175,7 +1211,7 @@ uint8_t _op_equal_equal_2(int64_t a, int64_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_41(int64_t a, int64_t b) {
+struct comparison compare_49(int64_t a, int64_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -1230,13 +1266,22 @@ struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, ch
 	return call_with_ctx_8(ctx3, add4, all_args5, main_ptr);
 }
 struct exception_ctx new_exception_ctx() {
-	return (struct exception_ctx) {NULL, (struct exception) {{0, NULL}}};
+	return exception_ctx(NULL, exception((struct arr_0) {0, NULL}));
+}
+struct exception_ctx exception_ctx(struct jmp_buf_tag* jmp_buf_ptr, struct exception thrown_exception) {
+	return (struct exception_ctx) {jmp_buf_ptr, thrown_exception};
+}
+struct exception exception(struct arr_0 message) {
+	return (struct exception) {message};
 }
 struct thread_local_stuff thread_local_stuff(struct exception_ctx* exception_ctx) {
 	return (struct thread_local_stuff) {exception_ctx};
 }
 struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id) {
-	return (struct ctx) {(uint8_t*) gctx, vat->id, actor_id, (uint8_t*) get_gc_ctx_0((&(vat->gc))), (uint8_t*) tls->exception_ctx};
+	return ctx((uint8_t*) gctx, vat->id, actor_id, (uint8_t*) get_gc_ctx_0((&(vat->gc))), (uint8_t*) tls->exception_ctx);
+}
+struct ctx ctx(uint8_t* gctx_ptr, uint64_t vat_id, uint64_t actor_id, uint8_t* gc_ctx_ptr, uint8_t* exception_ctx_ptr) {
+	return (struct ctx) {gctx_ptr, vat_id, actor_id, gc_ctx_ptr, exception_ctx_ptr};
 }
 struct gc_ctx* get_gc_ctx_0(struct gc* gc) {
 	struct gc_ctx* res4;
@@ -1326,7 +1371,7 @@ uint8_t zero__q_1(int32_t i) {
 }
 uint8_t _op_equal_equal_3(int32_t a, int32_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_77(a, b);
+	_matched0 = compare_88(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 0;
@@ -1338,7 +1383,7 @@ uint8_t _op_equal_equal_3(int32_t a, int32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_77(int32_t a, int32_t b) {
+struct comparison compare_88(int32_t a, int32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -1576,7 +1621,7 @@ uint8_t assert_1(struct ctx* ctx, uint8_t condition, struct arr_0 message) {
 	}
 }
 uint8_t fail(struct ctx* ctx, struct arr_0 reason) {
-	return throw(ctx, (struct exception) {reason});
+	return throw(ctx, exception(reason));
 }
 uint8_t throw(struct ctx* ctx, struct exception e) {
 	struct exception_ctx* exn_ctx0;
@@ -1866,9 +1911,9 @@ struct mut_arr_1* make_mut_arr(struct ctx* ctx, uint64_t size, struct fun_mut1_5
 	return res0;
 }
 struct mut_arr_1* new_uninitialized_mut_arr(struct ctx* ctx, uint64_t size) {
-	return mut_arr(ctx, 0, size, size, uninitialized_data(ctx, size));
+	return mut_arr_1(ctx, 0, size, size, uninitialized_data(ctx, size));
 }
-struct mut_arr_1* mut_arr(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_0* data) {
+struct mut_arr_1* mut_arr_1(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_0* data) {
 	struct mut_arr_1* temp0;
 	temp0 = (struct mut_arr_1*) alloc(ctx, sizeof(struct mut_arr_1));
 	(*(temp0) = (struct mut_arr_1) {frozen__q, size, capacity, data}, 0);
@@ -1980,7 +2025,7 @@ uint64_t noctx_decr(uint64_t n) {
 	hard_forbid(zero__q_0(n));
 	return (n - 1);
 }
-uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args, struct global_ctx* gctx) {
+uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx) {
 	struct thread_args* thread_arg_ptr0;
 	uint64_t* thread_ptr1;
 	fun_ptr1 fn2;
@@ -1988,14 +2033,14 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 	uint64_t _tailCalli;
 	uint64_t _tailCalln_threads;
 	uint64_t* _tailCallthreads;
-	struct thread_args* _tailCallthread_args;
+	struct thread_args* _tailCallthread_args_begin;
 	struct global_ctx* _tailCallgctx;
 	top:
 	if (_op_equal_equal_1(i, n_threads)) {
 		return 0;
 	} else {
-		thread_arg_ptr0 = (thread_args + i);
-		(*(thread_arg_ptr0) = (struct thread_args) {i, gctx}, 0);
+		thread_arg_ptr0 = (thread_args_begin + i);
+		(*(thread_arg_ptr0) = thread_args(i, gctx), 0);
 		thread_ptr1 = (threads + i);
 		fn2 = start_threads_recur__lambda0;
 		err3 = pthread_create(as_cell(thread_ptr1), NULL, fn2, (uint8_t*) thread_arg_ptr0);
@@ -2003,12 +2048,12 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 			_tailCalli = noctx_incr(i);
 			_tailCalln_threads = n_threads;
 			_tailCallthreads = threads;
-			_tailCallthread_args = thread_args;
+			_tailCallthread_args_begin = thread_args_begin;
 			_tailCallgctx = gctx;
 			i = _tailCalli;
 			n_threads = _tailCalln_threads;
 			threads = _tailCallthreads;
-			thread_args = _tailCallthread_args;
+			thread_args_begin = _tailCallthread_args_begin;
 			gctx = _tailCallgctx;
 			goto top;
 		} else {
@@ -2020,6 +2065,9 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 		}
 	}
 }
+struct thread_args thread_args(uint64_t thread_id, struct global_ctx* gctx) {
+	return (struct thread_args) {thread_id, gctx};
+}
 uint8_t* thread_fun(uint8_t* args_ptr) {
 	struct thread_args* args0;
 	args0 = (struct thread_args*) args_ptr;
@@ -2030,7 +2078,7 @@ uint8_t thread_function(uint64_t thread_id, struct global_ctx* gctx) {
 	struct exception_ctx ectx0;
 	struct thread_local_stuff tls1;
 	ectx0 = new_exception_ctx();
-	tls1 = (struct thread_local_stuff) {(&(ectx0))};
+	tls1 = thread_local_stuff((&(ectx0)));
 	return thread_function_recur(thread_id, gctx, (&(tls1)));
 }
 uint8_t thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struct thread_local_stuff* tls) {
@@ -2534,9 +2582,9 @@ uint8_t test_compare_records(struct ctx* ctx) {
 	b1 = my_record(ctx, literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_16}));
 	c2 = my_record(ctx, literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_15}));
 	d3 = my_record(ctx, literal_1(ctx, (struct arr_0) {1, constantarr_0_13}), literal_1(ctx, (struct arr_0) {1, constantarr_0_16}));
-	print_sync(to_str_1(ctx, compare_289(a0, b1)));
-	print_sync(to_str_1(ctx, compare_289(a0, c2)));
-	return print_sync(to_str_1(ctx, compare_289(a0, d3)));
+	print_sync(to_str_1(ctx, compare_301(a0, b1)));
+	print_sync(to_str_1(ctx, compare_301(a0, c2)));
+	return print_sync(to_str_1(ctx, compare_301(a0, d3)));
 }
 struct my_record my_record(struct ctx* ctx, uint64_t x, uint64_t y) {
 	return (struct my_record) {x, y};
@@ -2658,7 +2706,7 @@ struct arr_0 to_str_1(struct ctx* ctx, struct comparison c) {
 			return (assert(0),(struct arr_0) {0, NULL});
 	}
 }
-struct comparison compare_289(struct my_record a, struct my_record b) {
+struct comparison compare_301(struct my_record a, struct my_record b) {
 	struct comparison temp0;
 	struct comparison temp1;
 	temp0 = compare_14(a.x, b.x);
@@ -2692,9 +2740,9 @@ uint8_t test_compare_byref_records(struct ctx* ctx) {
 	b1 = my_byref_record(ctx, literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_16}));
 	c2 = my_byref_record(ctx, literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_15}));
 	d3 = my_byref_record(ctx, literal_1(ctx, (struct arr_0) {1, constantarr_0_13}), literal_1(ctx, (struct arr_0) {1, constantarr_0_16}));
-	print_sync(to_str_1(ctx, compare_292(a0, b1)));
-	print_sync(to_str_1(ctx, compare_292(a0, c2)));
-	return print_sync(to_str_1(ctx, compare_292(a0, d3)));
+	print_sync(to_str_1(ctx, compare_304(a0, b1)));
+	print_sync(to_str_1(ctx, compare_304(a0, c2)));
+	return print_sync(to_str_1(ctx, compare_304(a0, d3)));
 }
 struct my_byref_record* my_byref_record(struct ctx* ctx, uint64_t x, uint64_t y) {
 	struct my_byref_record* temp0;
@@ -2702,7 +2750,7 @@ struct my_byref_record* my_byref_record(struct ctx* ctx, uint64_t x, uint64_t y)
 	(*(temp0) = (struct my_byref_record) {x, y}, 0);
 	return temp0;
 }
-struct comparison compare_292(struct my_byref_record* a, struct my_byref_record* b) {
+struct comparison compare_304(struct my_byref_record* a, struct my_byref_record* b) {
 	struct comparison temp0;
 	struct comparison temp1;
 	temp0 = compare_14(a->x, b->x);
@@ -2736,14 +2784,14 @@ uint8_t test_compare_unions(struct ctx* ctx) {
 	b1 = (struct my_union) {1, .as1 = my_other_record()};
 	c2 = (struct my_union) {0, .as0 = my_record(ctx, literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_15}))};
 	d3 = (struct my_union) {0, .as0 = my_record(ctx, literal_1(ctx, (struct arr_0) {1, constantarr_0_14}), literal_1(ctx, (struct arr_0) {1, constantarr_0_14}))};
-	print_sync(to_str_1(ctx, compare_295(a0, b1)));
-	print_sync(to_str_1(ctx, compare_295(a0, c2)));
-	return print_sync(to_str_1(ctx, compare_295(a0, d3)));
+	print_sync(to_str_1(ctx, compare_307(a0, b1)));
+	print_sync(to_str_1(ctx, compare_307(a0, c2)));
+	return print_sync(to_str_1(ctx, compare_307(a0, d3)));
 }
 struct my_other_record my_other_record() {
 	return (struct my_other_record) {0};
 }
-struct comparison compare_295(struct my_union a, struct my_union b) {
+struct comparison compare_307(struct my_union a, struct my_union b) {
 	struct my_union match_a0;
 	struct my_record a0;
 	struct my_union match_b0;
@@ -2759,7 +2807,7 @@ struct comparison compare_295(struct my_union a, struct my_union b) {
 			switch (match_b0.kind) {
 				case 0:
 					b0 = match_b0.as0;
-					return compare_289(a0, b0);
+					return compare_301(a0, b0);
 				case 1:
 					return (struct comparison) {0, .as0 = (struct less) {0}};
 				default:
@@ -2773,7 +2821,7 @@ struct comparison compare_295(struct my_union a, struct my_union b) {
 					return (struct comparison) {2, .as2 = (struct greater) {0}};
 				case 1:
 					b1 = match_b1.as1;
-					return compare_296(a1, b1);
+					return compare_308(a1, b1);
 				default:
 					return (assert(0),(struct comparison) {0});
 			}
@@ -2781,7 +2829,7 @@ struct comparison compare_295(struct my_union a, struct my_union b) {
 			return (assert(0),(struct comparison) {0});
 	}
 }
-struct comparison compare_296(struct my_other_record a, struct my_other_record b) {
+struct comparison compare_308(struct my_other_record a, struct my_other_record b) {
 	return (struct comparison) {1, .as1 = (struct equal) {0}};
 }
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value) {
@@ -2834,7 +2882,7 @@ uint8_t _op_less_equal_1(int64_t a, int64_t b) {
 }
 uint8_t _op_less_1(int64_t a, int64_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_41(a, b);
+	_matched0 = compare_49(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 1;

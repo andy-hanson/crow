@@ -7,7 +7,7 @@ import
 region atomic
 
 new-atomic-bool by-val atomic-bool() noctx
-	new false
+	atomic-bool: false
 
 | TODO: works on any primitive type, not just bool
 compare-exchange-strong bool(value-ptr ptr bool, expected-ptr ptr bool, desired bool) noctx builtin
@@ -26,7 +26,7 @@ must-unset void(a atomic-bool) noctx unsafe
 	did-unset hard-assert
 
 new-lock by-val lock() noctx
-	new new-atomic-bool
+	lock: new-atomic-bool
 
 try-acquire-lock bool(a lock) noctx trusted
 	a.is-locked.ref-of-val try-set
@@ -62,7 +62,7 @@ condition record mut
 	value mut nat
 
 new-condition by-val condition() noctx
-	new new-lock, zero
+	condition: new-lock, zero
 
 broadcast void(c condition) noctx trusted
 	c.lk.ref-of-val acquire-lock
@@ -99,7 +99,7 @@ new-thread-safe-counter by-val thread-safe-counter() noctx
 	zero new-thread-safe-counter
 
 new-thread-safe-counter by-val thread-safe-counter(init nat) noctx
-	new new-lock, init
+	thread-safe-counter: new-lock, init
 
 increment void(t thread-safe-counter) noctx
 	t.get-and-increment drop

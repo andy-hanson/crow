@@ -653,7 +653,7 @@ struct ConcreteExpr {
 		immutable Arr!ConcreteExpr args;
 	}
 
-	// Note: CreateRecord always creates a record by-value. This may be wrapped in Alloc.
+	// TODO: this is only used for closures now, since normal record creation always goes through a function.
 	struct CreateRecord {
 		immutable Arr!ConcreteExpr args;
 	}

@@ -260,7 +260,8 @@ parse-environ-entry key-value-pair str str(entry c-str) unsafe
 	value-begin = key-end incr
 	value-end = value-begin find-cstr-end
 	value = value-begin arr-from-begin-end value-end
-	new key, value
+	| TODO: should be able to infer type arguments 
+	key-value-pair<str, str>: key, value
 
 convert-environ ptr c-str(environ environ)
 	res = new-mut-arr<c-str>
@@ -410,7 +411,7 @@ handle-revents handle-revents-result(pollfd pollfd, builder mut-str) summon
 		else
 			pass
 	| TODO: shouldn't need parens?
-	new had-pollin?, hung-up?
+	handle-revents-result: had-pollin?, hung-up?
 
 wait-and-get-exit-code exit-code(pid pid-t) summon unsafe
 	wait-status-cell = zero cell<status-t>

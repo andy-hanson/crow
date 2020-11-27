@@ -1233,11 +1233,6 @@ struct Expr {
 		immutable Arr!Expr args;
 	}
 
-	struct CreateRecord {
-		immutable Ptr!StructInst structInst;
-		immutable Arr!Expr args;
-	}
-
 	struct ImplicitConvertToUnion {
 		immutable Ptr!StructInst unionType;
 		immutable u8 memberIndex;
@@ -1325,7 +1320,6 @@ struct Expr {
 		closureFieldRef,
 		cond,
 		createArr,
-		createRecord,
 		implicitConvertToUnion,
 		lambda,
 		let,
@@ -1346,7 +1340,6 @@ struct Expr {
 		immutable ClosureFieldRef closureFieldRef;
 		immutable Cond cond;
 		immutable CreateArr createArr;
-		immutable CreateRecord createRecord;
 		immutable ImplicitConvertToUnion implicitConvertToUnion;
 		immutable Lambda lambda;
 		immutable Let let;
@@ -1368,9 +1361,6 @@ struct Expr {
 	@trusted immutable this(immutable FileAndRange r, immutable Cond a) { range_ = r; kind = Kind.cond; cond = a; }
 	@trusted immutable this(immutable FileAndRange r, immutable CreateArr a) {
 		range_ = r; kind = Kind.createArr; createArr = a;
-	}
-	@trusted immutable this(immutable FileAndRange r, immutable CreateRecord a) {
-		range_ = r; kind = Kind.createRecord; createRecord = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable ImplicitConvertToUnion a) {
 		range_ = r; kind = Kind.implicitConvertToUnion; implicitConvertToUnion = a;
@@ -1418,7 +1408,6 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	scope T delegate(ref immutable Expr.ClosureFieldRef) @safe @nogc pure nothrow cbClosureFieldRef,
 	scope T delegate(ref immutable Expr.Cond) @safe @nogc pure nothrow cbCond,
 	scope T delegate(ref immutable Expr.CreateArr) @safe @nogc pure nothrow cbCreateArr,
-	scope T delegate(ref immutable Expr.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable Expr.ImplicitConvertToUnion) @safe @nogc pure nothrow cbImplicitConvertToUnion,
 	scope T delegate(ref immutable Expr.Lambda) @safe @nogc pure nothrow cbLambda,
 	scope T delegate(ref immutable Expr.Let) @safe @nogc pure nothrow cbLet,
@@ -1441,8 +1430,6 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 			return cbCond(a.cond);
 		case Expr.Kind.createArr:
 			return cbCreateArr(a.createArr);
-		case Expr.Kind.createRecord:
-			return cbCreateRecord(a.createRecord);
 		case Expr.Kind.implicitConvertToUnion:
 			return cbImplicitConvertToUnion(a.implicitConvertToUnion);
 		case Expr.Kind.lambda:
@@ -1474,7 +1461,6 @@ immutable(Bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.ClosureFieldRef e) => e.field.type.isBogus,
 		(ref immutable Expr.Cond e) => e.type.isBogus,
 		(ref immutable Expr.CreateArr) => False,
-		(ref immutable Expr.CreateRecord) => False,
 		(ref immutable Expr.ImplicitConvertToUnion) => False,
 		(ref immutable Expr.Lambda) => False,
 		(ref immutable Expr.Let e) => e.then.typeIsBogus,
@@ -1495,7 +1481,6 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.ClosureFieldRef e) => e.field.type,
 		(ref immutable Expr.Cond) => todo!(immutable Type)("getType cond"),
 		(ref immutable Expr.CreateArr e) => immutable Type(e.arrType),
-		(ref immutable Expr.CreateRecord e) => immutable Type(e.structInst),
 		(ref immutable Expr.ImplicitConvertToUnion e) => immutable Type(e.unionType),
 		(ref immutable Expr.Lambda e) => immutable Type(e.type),
 		(ref immutable Expr.Let e) => e.then.getType(commonTypes),

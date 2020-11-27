@@ -10,7 +10,7 @@ exception-ctx record mut
 
 new-exception-ctx by-val exception-ctx() noctx unsafe
 	| Nothing on the exception-ctx initially
-	new null, new ""
+	exception-ctx: null, exception: ""
 
 get-exception-ctx exception-ctx() unsafe
 	get-ctx.exception-ctx-ptr as-ref<exception-ctx>
@@ -60,7 +60,7 @@ catch-with-exception-ctx ?t(ec exception-ctx, try fun-mut0 ?t, catcher fun-mut1 
 			catcher call thrown-exception
 
 fail ?t(reason str)
-	throw: new reason
+	throw: exception: reason
 
 assert void(condition bool)
 	condition assert "assert failed"

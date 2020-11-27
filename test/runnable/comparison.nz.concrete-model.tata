@@ -568,8 +568,10 @@ program(
 				param(is-shut-down, type(false, bool))
 				param(any-unhandled-exceptions?, type(false, bool))]
 			new-record)
-		fun(false, new-lock, type(false, lock), none, [], expr-body(record([call(new-atomic-bool, [])])))
-		fun(false, new-atomic-bool, type(false, atomic-bool), none, [], expr-body(record([call(false, [])])))
+		fun(false, new-lock, type(false, lock), none, [], expr-body(call(lock, [call(new-atomic-bool, [])])))
+		fun(false, lock, type(false, lock), none, [param(is-locked, type(false, atomic-bool))], new-record)
+		fun(false, new-atomic-bool, type(false, atomic-bool), none, [], expr-body(call(atomic-bool, [call(false, [])])))
+		fun(false, atomic-bool, type(false, atomic-bool), none, [param(value, type(false, bool))], new-record)
 		fun(false, empty-arr, type(false, arr), none, [], expr-body(call(arr, [call(zero, []), call(null, [])])))
 		fun(
 			false
@@ -585,7 +587,14 @@ program(
 			type(false, condition)
 			none
 			[]
-			expr-body(record([call(new-lock, []), call(zero, [])])))
+			expr-body(call(condition, [call(new-lock, []), call(zero, [])])))
+		fun(
+			false
+			condition
+			type(false, condition)
+			none
+			[param(lk, type(false, lock)), param(value, type(false, nat))]
+			new-record)
 		fun(
 			false
 			ref-of-val
@@ -603,7 +612,8 @@ program(
 				let(
 					actors
 					call(new-mut-arr-by-val-with-capacity-from-unmanaged-memory, [param-ref(max-threads)])
-					record(
+					call(
+						vat
 						[
 							param-ref(gctx)
 							param-ref(id)
@@ -621,12 +631,24 @@ program(
 			none
 			[param(capacity, type(false, nat))]
 			expr-body(
-				record(
+				call(
+					mut-arr
 					[
 						call(false, [])
 						call(zero, [])
 						param-ref(capacity)
 						call(unmanaged-alloc-elements, [param-ref(capacity)])])))
+		fun(
+			false
+			mut-arr
+			type(false, mut-arr)
+			none
+			[
+				param(frozen?, type(false, bool))
+				param(size, type(false, nat))
+				param(capacity, type(false, nat))
+				param(data, type(false, ptr))]
+			new-record)
 		fun(
 			false
 			unmanaged-alloc-elements
@@ -695,12 +717,29 @@ program(
 			builtin([type(false, nat), type(false, nat8)]))
 		fun(
 			false
+			vat
+			type(false, vat)
+			none
+			[
+				param(gctx, type(true, global-ctx))
+				param(id, type(false, nat))
+				param(gc, type(false, gc))
+				param(tasks-lock, type(false, lock))
+				param(tasks, type(false, mut-bag))
+				param(currently-running-actors, type(false, mut-arr))
+				param(n-threads-running, type(false, nat))
+				param(next-actor-id, type(false, thread-safe-counter))
+				param(exception-handler, type(false, fun-mut1))]
+			new-record)
+		fun(
+			false
 			new-gc
 			type(false, gc)
 			none
 			[]
 			expr-body(
-				record(
+				call(
+					gc
 					[
 						call(new-lock, [])
 						to-union(0, call(none, []))
@@ -708,8 +747,22 @@ program(
 						call(false, [])
 						call(null, [])
 						call(null, [])])))
+		fun(
+			false
+			gc
+			type(false, gc)
+			none
+			[
+				param(lk, type(false, lock))
+				param(context-head, type(false, opt))
+				param(needs-gc, type(false, bool))
+				param(is-doing-gc, type(false, bool))
+				param(begin, type(false, ptr))
+				param(next-byte, type(false, ptr))]
+			new-record)
 		fun(false, none, type(false, none), none, [], new-record)
-		fun(false, new-mut-bag, type(false, mut-bag), none, [], expr-body(record([to-union(0, call(none, []))])))
+		fun(false, new-mut-bag, type(false, mut-bag), none, [], expr-body(call(mut-bag, [to-union(0, call(none, []))])))
+		fun(false, mut-bag, type(false, mut-bag), none, [param(head, type(false, opt))], new-record)
 		fun(
 			false
 			new-thread-safe-counter
@@ -723,7 +776,14 @@ program(
 			type(false, thread-safe-counter)
 			none
 			[param(init, type(false, nat))]
-			expr-body(record([call(new-lock, []), param-ref(init)])))
+			expr-body(call(thread-safe-counter, [call(new-lock, []), param-ref(init)])))
+		fun(
+			false
+			thread-safe-counter
+			type(false, thread-safe-counter)
+			none
+			[param(lk, type(false, lock)), param(value, type(false, nat))]
+			new-record)
 		fun(
 			true
 			default-exception-handler
@@ -914,8 +974,16 @@ program(
 			type(false, exception-ctx)
 			none
 			[]
-			expr-body(record([call(null, []), record([record([0, null])])])))
+			expr-body(call(exception-ctx, [call(null, []), call(exception, [record([0, null])])])))
+		fun(
+			false
+			exception-ctx
+			type(false, exception-ctx)
+			none
+			[param(jmp-buf-ptr, type(false, ptr)), param(thrown-exception, type(false, exception))]
+			new-record)
 		fun(false, null, type(false, ptr), none, [], builtin([type(false, jmp-buf-tag)]))
+		fun(false, exception, type(false, exception), none, [param(message, type(false, arr))], new-record)
 		fun(
 			false
 			as
@@ -948,13 +1016,26 @@ program(
 				param(vat, type(true, vat))
 				param(actor-id, type(false, nat))]
 			expr-body(
-				record(
+				call(
+					ctx
 					[
 						call(as-any-ptr, [param-ref(gctx)])
 						get-field(param-ref(vat), id)
 						param-ref(actor-id)
 						call(as-any-ptr, [call(get-gc-ctx, [call(ref-of-val, [get-field(param-ref(vat), gc)])])])
 						call(as-any-ptr, [get-field(param-ref(tls), exception-ctx)])])))
+		fun(
+			false
+			ctx
+			type(false, ctx)
+			none
+			[
+				param(gctx-ptr, type(false, ptr))
+				param(vat-id, type(false, nat))
+				param(actor-id, type(false, nat))
+				param(gc-ctx-ptr, type(false, ptr))
+				param(exception-ctx-ptr, type(false, ptr))]
+			new-record)
 		fun(
 			false
 			as-any-ptr
@@ -1561,7 +1642,7 @@ program(
 			type(false, void)
 			none
 			[param(reason, type(false, arr))]
-			expr-body(call(throw, [record([param-ref(reason)])])))
+			expr-body(call(throw, [call(exception, [param-ref(reason)])])))
 		fun(
 			true
 			throw
@@ -2621,7 +2702,7 @@ program(
 				param(i, type(false, nat))
 				param(n-threads, type(false, nat))
 				param(threads, type(false, ptr))
-				param(thread-args, type(false, ptr))
+				param(thread-args-begin, type(false, ptr))
 				param(gctx, type(true, global-ctx))]
 			expr-body(
 				cond(
@@ -2629,9 +2710,9 @@ program(
 					call(pass, [])
 					let(
 						thread-arg-ptr
-						call(+, [param-ref(thread-args), param-ref(i)])
+						call(+, [param-ref(thread-args-begin), param-ref(i)])
 						seq(
-							call(set, [local-ref(thread-arg-ptr), record([param-ref(i), param-ref(gctx)])])
+							call(set, [local-ref(thread-arg-ptr), call(thread-args, [param-ref(i), param-ref(gctx)])])
 							let(
 								thread-ptr
 								call(+, [param-ref(threads), param-ref(i)])
@@ -2655,7 +2736,7 @@ program(
 													call(noctx-incr, [param-ref(i)])
 													param-ref(n-threads)
 													param-ref(threads)
-													param-ref(thread-args)
+													param-ref(thread-args-begin)
 													param-ref(gctx)])
 											cond(
 												call(==, [local-ref(err), call(eagain, [])])
@@ -2675,6 +2756,13 @@ program(
 			none
 			[param(p, type(false, ptr)), param(value, type(false, thread-args))]
 			builtin([type(false, thread-args)]))
+		fun(
+			false
+			thread-args
+			type(false, thread-args)
+			none
+			[param(thread-id, type(false, nat)), param(gctx, type(true, global-ctx))]
+			new-record)
 		fun(
 			false
 			+
@@ -2721,7 +2809,7 @@ program(
 					call(new-exception-ctx, [])
 					let(
 						tls
-						call(as, [record([call(ref-of-val, [local-ref(ectx)])])])
+						call(as, [call(thread-local-stuff, [call(ref-of-val, [local-ref(ectx)])])])
 						call(
 							thread-function-recur
 							[param-ref(thread-id), param-ref(gctx), call(ref-of-val, [local-ref(tls)])])))))

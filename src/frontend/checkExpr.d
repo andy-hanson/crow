@@ -6,8 +6,6 @@ import frontend.ast :
 	BogusAst,
 	CallAst,
 	CreateArrAst,
-	CreateRecordAst,
-	CreateRecordMultiLineAst,
 	ExprAst,
 	ExprAstKind,
 	IdentifierAst,
@@ -54,7 +52,6 @@ import frontend.instantiate : instantiateStructNeverDelay;
 import frontend.typeFromAst : makeFutType;
 import model.diag : Diag;
 import model.model :
-	asRecord,
 	asStructInst,
 	asUnion,
 	body_,
@@ -62,20 +59,16 @@ import model.model :
 	CommonTypes,
 	decl,
 	Expr,
-	ForcedByValOrRef,
 	FunDecl,
 	FunKind,
 	FunsMap,
 	getFunStructInfo,
 	getType,
 	isBogus,
-	isRecord,
 	isStructInst,
 	isUnion,
 	Local,
-	matchStructBody,
 	matchType,
-	noCtx,
 	Param,
 	params,
 	Purity,
@@ -99,7 +92,6 @@ import util.collection.arrUtil :
 	map,
 	mapOrNone,
 	mapZip,
-	mapZipOrNone,
 	mapZipWithIndex,
 	prepend,
 	slice,
@@ -287,166 +279,6 @@ immutable(CheckedExpr) checkCreateArr(Alloc)(
 			: check!Alloc(alloc, ctx, expected, immutable Type(aet.arrType), expr);
 	} else
 		return bogusWithoutChangingExpected(expected, range);
-}
-
-struct RecordAndIsBuiltinByVal {
-	immutable StructBody.Record record;
-	// True if this is the 'by-val' type. (Not if it's another type that happens to be by-val.)
-	immutable Bool isBuiltinByVal;
-}
-
-immutable(CheckedExpr) checkCreateRecordCommon(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
-	immutable Opt!(Ptr!TypeAst) type,
-	ref Expected expected,
-	scope immutable(Opt!(Arr!Expr)) delegate(
-		immutable Ptr!StructDecl,
-		immutable Arr!RecordField,
-	) @safe @nogc pure nothrow cbCheckFields,
-) {
-	Bool typeIsFromExpected = False;
-	immutable Opt!Type opT = () {
-		if (has(type))
-			return some(typeFromAst2(alloc, ctx, force(type)));
-		else {
-			typeIsFromExpected = True;
-			immutable Opt!Type opT = tryGetDeeplyInstantiatedType(alloc, programState(ctx), expected);
-			if (!has(opT))
-				addDiag2(alloc, ctx, range, Diag(Diag.CantCreateRecordWithoutExpectedType()));
-			return opT;
-		}
-	}();
-	if (!has(opT))
-		return bogusWithoutChangingExpected(expected, range);
-	immutable Type t = force(opT);
-	if (!isStructInst(t)) {
-		if (!isBogus(t))
-			addDiag2(alloc, ctx, range, immutable Diag(Diag.CantCreateNonRecordType(t)));
-		return bogusWithoutChangingExpected(expected, range);
-	}
-
-	immutable Ptr!StructInst si = asStructInst(t);
-	immutable Ptr!StructDecl decl = si.decl;
-	immutable Opt!RecordAndIsBuiltinByVal opRecord = getRecordAndIsBuiltinByVal(ctx, si);
-
-	if (!has(opRecord) && !isBogus(body_(decl)))
-		addDiag2(alloc, ctx, range, immutable Diag(Diag.CantCreateNonRecordType(t)));
-
-	if (has(opRecord)) {
-		immutable RecordAndIsBuiltinByVal record = force(opRecord);
-		immutable Arr!RecordField fields = record.record.fields;
-		immutable Opt!(Arr!Expr) args = cbCheckFields(decl, fields);
-		if (has(args)) {
-			immutable Expr expr = immutable Expr(range, immutable Expr.CreateRecord(si, force(args)));
-			if (noCtx(ctx.outermostFun) && !record.isBuiltinByVal) {
-				if (!recordIsAlwaysByVal(record.record))
-					addDiag2(alloc, ctx, range, immutable Diag(Diag.CreateRecordByRefNoCtx(decl)));
-			}
-			return typeIsFromExpected ? CheckedExpr(expr) : check(alloc, ctx, expected, immutable Type(si), expr);
-		} else
-			return bogusWithoutChangingExpected(expected, range);
-	} else
-		return bogusWithoutChangingExpected(expected, range);
-}
-
-public immutable(Bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
-	return immutable Bool(
-		empty(record.fields) ||
-		(has(record.forcedByValOrRef) && force(record.forcedByValOrRef) == ForcedByValOrRef.byVal));
-}
-
-immutable(Opt!RecordAndIsBuiltinByVal) getRecordAndIsBuiltinByVal(ref const ExprCtx ctx, ref immutable StructInst si) {
-	return matchStructBody!(immutable Opt!RecordAndIsBuiltinByVal)(
-		body_(si),
-		(ref immutable StructBody.Bogus) =>
-			none!RecordAndIsBuiltinByVal,
-		(ref immutable StructBody.Builtin) {
-			if (ptrEquals(si.decl, ctx.commonTypes.byVal)) {
-				// We know this will be deeply instantiated since we did that at the beginning of this function
-				immutable Type inner = only(si.typeArgs);
-				if (isStructInst(inner)) {
-					immutable StructBody body_ = body_(asStructInst(inner).deref);
-					if (isRecord(body_))
-						return some(immutable RecordAndIsBuiltinByVal(asRecord(body_), True));
-				}
-			}
-			return none!RecordAndIsBuiltinByVal;
-		},
-		(ref immutable StructBody.ExternPtr) =>
-			none!RecordAndIsBuiltinByVal,
-		(ref immutable StructBody.Record r) =>
-			some(immutable RecordAndIsBuiltinByVal(r, False)),
-		(ref immutable StructBody.Union) =>
-			none!RecordAndIsBuiltinByVal);
-}
-
-immutable(CheckedExpr) checkCreateRecord(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
-	immutable CreateRecordAst ast,
-	ref Expected expected,
-) {
-	return checkCreateRecordCommon(
-		alloc,
-		ctx,
-		range,
-		ast.type,
-		expected,
-		(immutable Ptr!StructDecl decl, immutable Arr!RecordField fields) {
-			if (!sizeEq(ast.args, fields)) {
-				addDiag2(alloc, ctx, range, immutable Diag(
-					Diag.WrongNumberNewStructArgs(decl, size(fields), size(ast.args))));
-				return none!(Arr!Expr);
-			} else {
-				return some!(Arr!Expr)(mapZip!Expr(
-					alloc,
-					fields,
-					ast.args,
-					(ref immutable RecordField field, ref immutable ExprAst arg) =>
-						checkAndExpect(alloc, ctx, arg, field.type)));
-			}
-		});
-}
-
-immutable(CheckedExpr) checkCreateRecordMultiLine(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
-	ref immutable CreateRecordMultiLineAst ast,
-	ref Expected expected
-) {
-	return checkCreateRecordCommon(
-		alloc,
-		ctx,
-		range,
-		ast.type,
-		expected,
-		(immutable Ptr!StructDecl decl, immutable Arr!RecordField fields) {
-			immutable Opt!(Arr!Expr) res = sizeEq(ast.lines, fields)
-				? mapZipOrNone!Expr(
-					alloc,
-					fields,
-					ast.lines,
-					(ref immutable RecordField field, ref immutable CreateRecordMultiLineAst.Line line) =>
-						symEq(line.name.name, field.name)
-							? some!Expr(checkAndExpect(alloc, ctx, line.value, field.type))
-							: none!Expr)
-				: none!(Arr!Expr);
-			if (!has(res)) {
-				immutable Arr!Sym names =
-					map!Sym(alloc, ast.lines, (ref immutable CreateRecordMultiLineAst.Line line) =>
-						line.name.name);
-				addDiag2(
-					alloc,
-					ctx,
-					range,
-					immutable Diag(nu!(Diag.CreateRecordMultiLineWrongFields)(alloc, decl, fields, names)));
-			}
-			return res;
-		});
 }
 
 struct ExpectedLambdaType {
@@ -930,10 +762,6 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			checkCall(alloc, ctx, range, a, expected),
 		(ref immutable CreateArrAst a) =>
 			checkCreateArr(alloc, ctx, range, a, expected),
-		(ref immutable CreateRecordAst a) =>
-			checkCreateRecord(alloc, ctx, range, a, expected),
-		(ref immutable CreateRecordMultiLineAst a) =>
-			checkCreateRecordMultiLine(alloc, ctx, range, a, expected),
 		(ref immutable IdentifierAst a) =>
 			checkIdentifier(alloc, ctx, range, a, expected),
 		(ref immutable LambdaAst a) =>

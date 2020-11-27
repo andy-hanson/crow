@@ -15,7 +15,7 @@ body
 					output-path write-file actual
 					empty-arr
 				else
-					new-arr new original-path, (output-path.base-name + " does not exist. actual was:\n" + actual)
+					new-arr failure: original-path, (output-path.base-name + " does not exist. actual was:\n" + actual)
 		some s
 			when
 				s.value == actual
@@ -25,7 +25,7 @@ body
 					empty-arr
 				else
 					message = output-path.base-name + " was not as expected. actual:\n" + actual
-					new-arr new original-path, message
+					new-arr failure: original-path, message
 
 flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper fun-mut1 arr<?out> ?in) trusted
 	res = new-mut-arr<?out>

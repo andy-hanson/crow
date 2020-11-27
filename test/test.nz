@@ -31,7 +31,7 @@ main fut exit-code(args arr str) summon
 				strs = s.value
 				assert: strs.size == 1
 				strs.first literal
-		new print-tests?, overwrite-output?, max-failures
+		test-options: print-tests?, overwrite-output?, max-failures
 	resolved: match options
 		none
 			print-help

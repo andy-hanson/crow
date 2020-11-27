@@ -67,6 +67,7 @@ ref immutable(Constant) derefConstantPointer(
 	return mutArrAt(mustGetAt_mut(a.pointers, pointeeType).constants, pointer.index);
 }
 
+// TODO: this will be used when creating constant records by-ref.
 immutable(Constant) getConstantPtr(Alloc)(
 	ref Alloc alloc,
 	ref AllConstantsBuilder allConstants,

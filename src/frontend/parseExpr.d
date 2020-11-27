@@ -8,8 +8,6 @@ import frontend.ast :
 	BogusAst,
 	CallAst,
 	CreateArrAst,
-	CreateRecordAst,
-	CreateRecordMultiLineAst,
 	ExprAst,
 	ExprAstKind,
 	IdentifierAst,
@@ -238,8 +236,6 @@ immutable(Bool) someInOwnBody(
 		(ref immutable BogusAst) => False,
 		(ref immutable CallAst e) => exists!ExprAst(e.args, &recur),
 		(ref immutable CreateArrAst e) => exists(e.args, &recur),
-		(ref immutable CreateRecordAst e) => exists(e.args, &recur),
-		(ref immutable CreateRecordMultiLineAst e) => unreachable!(immutable Bool),
 		(ref immutable IdentifierAst) => False,
 		(ref immutable LambdaAst) => False,
 		(ref immutable LetAst) => unreachable!(immutable Bool),
@@ -311,29 +307,6 @@ immutable(ExprAndMaybeDedent) parseMatch(Alloc, SymAlloc)(
 	});
 }
 
-immutable(ExprAndMaybeDedent) parseMultiLineNew(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
-	immutable Pos start,
-	immutable Opt!TypeAst type,
-) {
-	ArrBuilder!(CreateRecordMultiLineAst.Line) lines;
-	for (;;) {
-		immutable NameAndRange name = takeNameAndRange(alloc, lexer);
-		takeOrAddDiagExpected(alloc, lexer, ". ", ParseDiag.Expected.Kind.multiLineNewSeparator);
-		immutable ExprAndDedent ed = parseExprNoLet(alloc, lexer);
-		add(alloc, lines, immutable CreateRecordMultiLineAst.Line(name, ed.expr));
-		if (ed.dedents != 0)
-			return immutable ExprAndMaybeDedent(
-				immutable ExprAst(
-					range(lexer, start),
-					immutable ExprAstKind(immutable CreateRecordMultiLineAst(
-						allocateOpt(alloc, type),
-						finishArr(alloc, lines)))),
-				some(ed.dedents - 1));
-	}
-}
-
 immutable(ExprAndMaybeDedent) parseMultiLineNewArr(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
@@ -360,25 +333,21 @@ immutable(Opt!(Ptr!T)) allocateOpt(T, Alloc)(ref Alloc alloc, immutable Opt!T op
 	return mapOption(opt, (ref immutable T t) => allocate(alloc, t));
 }
 
-immutable(ExprAndMaybeDedent) parseNewOrNewArrAfterArgs(Alloc, SymAlloc)(
+immutable(ExprAndMaybeDedent) parseNewArrAfterArgs(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
-	immutable Bool isNewArr,
 	immutable Opt!TypeAst type,
 	immutable ArgsAndMaybeDedent ad,
 ) {
-	immutable ExprAstKind ast = isNewArr
-		? immutable ExprAstKind(immutable CreateArrAst(allocateOpt(alloc, type), ad.args))
-		: immutable ExprAstKind(immutable CreateRecordAst(allocateOpt(alloc, type), ad.args));
+	immutable ExprAstKind ast = immutable ExprAstKind(immutable CreateArrAst(allocateOpt(alloc, type), ad.args));
 	return ExprAndMaybeDedent(ExprAst(range(lexer, start), ast), ad.dedent);
 }
 
-immutable(ExprAndMaybeDedent) parseNewOrNewArr(Alloc, SymAlloc)(
+immutable(ExprAndMaybeDedent) parseNewArr(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
-	immutable Bool isNewArr,
 	immutable ArgCtx ctx,
 ) {
 	immutable Opt!TypeAst type = tryParseTypeArg(alloc, lexer);
@@ -388,15 +357,12 @@ immutable(ExprAndMaybeDedent) parseNewOrNewArr(Alloc, SymAlloc)(
 			force(opIndentOrDedent),
 			(ref immutable IndentDelta.DedentOrSame it) {
 				immutable ArgsAndMaybeDedent ad = immutable ArgsAndMaybeDedent(emptyArr!ExprAst, some(it.nDedents));
-				return parseNewOrNewArrAfterArgs(alloc, lexer, start, isNewArr, type, ad);
+				return parseNewArrAfterArgs(alloc, lexer, start, type, ad);
 			},
-			(ref immutable IndentDelta.Indent) {
-				return isNewArr
-					? parseMultiLineNewArr(alloc, lexer, start, type)
-					: parseMultiLineNew(alloc, lexer, start, type);
-			});
+			(ref immutable IndentDelta.Indent) =>
+				parseMultiLineNewArr(alloc, lexer, start, type));
 	} else
-		return parseNewOrNewArrAfterArgs(alloc, lexer, start, isNewArr, type, parseArgs(alloc, lexer, ctx));
+		return parseNewArrAfterArgs(alloc, lexer, start, type, parseArgs(alloc, lexer, ctx));
 }
 
 immutable(ExprAndMaybeDedent) parseWhenLoop(Alloc, SymAlloc)(
@@ -593,9 +559,8 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 					immutable ExprAstKind(immutable IdentifierAst(name.name)));
 				return noDedent(tryParseDots(alloc, lexer, expr));
 			}
-		case ExpressionToken.Kind.new_:
 		case ExpressionToken.Kind.newArr:
-			return parseNewOrNewArr(alloc, lexer, start, Bool(et.kind_ == ExpressionToken.Kind.newArr), ctx);
+			return parseNewArr(alloc, lexer, start, ctx);
 		case ExpressionToken.Kind.unexpected:
 			return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 		case ExpressionToken.Kind.when:

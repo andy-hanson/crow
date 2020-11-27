@@ -374,7 +374,6 @@ struct ExpressionToken {
 		lparen,
 		match,
 		nameAndRange,
-		new_,
 		newArr,
 		unexpected,
 		when,
@@ -439,8 +438,6 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 							return immutable ExpressionToken(ExpressionToken.Kind.else_);
 						case shortSymAlphaLiteralValue("match"):
 							return immutable ExpressionToken(ExpressionToken.Kind.match);
-						case shortSymAlphaLiteralValue("new"):
-							return immutable ExpressionToken(ExpressionToken.Kind.new_);
 						case shortSymAlphaLiteralValue("new-arr"):
 							return immutable ExpressionToken(ExpressionToken.Kind.newArr);
 						case shortSymAlphaLiteralValue("when"):
@@ -747,8 +744,6 @@ immutable(Bool) isReservedName(immutable Sym name) {
 		case shortSymAlphaLiteralValue("import"):
 		case shortSymAlphaLiteralValue("match"):
 		case shortSymAlphaLiteralValue("mut"):
-		case shortSymAlphaLiteralValue("new"):
-		case shortSymAlphaLiteralValue("new-actor"):
 		case shortSymAlphaLiteralValue("new-arr"):
 		case shortSymAlphaLiteralValue("noctx"):
 		case shortSymAlphaLiteralValue("record"):

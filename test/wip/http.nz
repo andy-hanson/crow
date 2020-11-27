@@ -25,25 +25,25 @@ split<?t> record
 split-at-first opt split-with-splitter<?t>(a arr ?t, pred fun-mut1 bool ?t)
 	idx <- a find-index pred
 	| TODO: parens should be unnecessary
-	some: new (a slice-up-to idx), (a at idx), (a slice-after idx)
+	some: split-with-splitter<?t>: (a slice-up-to idx), (a at idx), (a slice-after idx)
 
 | If splitter is not present, right part is empty
 try-split split ?t(a arr ?t, pred fun-mut1 bool ?t)
 	match a find-index pred
 		none
-			new a, empty-arr
+			split<?t>: a, empty-arr
 		some s
 			idx = s.value
-			new (a slice-up-to idx), (a slice-after idx)
+			split<?t>: (a slice-up-to idx), (a slice-after idx)
 
 | If splitter is not present, right part is empty
 try-split-from-right split ?t(a arr ?t, pred fun-mut1 bool ?t)
 	match a find-rindex pred
 		none
-			new a, empty-arr
+			split<?t> a, empty-arr
 		some s
 			index = s.value
-			new (a slice-up-to index), (a slice-after index)
+			split<?t>: (a slice-up-to index), (a slice-after index)
 
 nghttp2-session-callbacks-new foo() extern noctx summon
 nghttp2-session-client-new foo() extern noctx summon
@@ -130,8 +130,4 @@ parse-uri opt uri(uri str)
 
 	| TODO: not bothering to split out query for now.
 
-	some: new
-		host. host
-		port. port
-		path-and-query. path-and-query
-		after-hash. after-hash
+	some: uti: host, port, path-and-query, after-hash

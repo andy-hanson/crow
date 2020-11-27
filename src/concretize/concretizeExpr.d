@@ -2,7 +2,7 @@ module concretize.concretizeExpr;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : derefConstantPointer, getConstantArr, getConstantPtr, getConstantStr;
+import concretize.allConstantsBuilder : derefConstantPointer, getConstantArr, getConstantStr;
 import concretize.concretizeCtx :
 	anyPtrType,
 	boolType,
@@ -312,33 +312,6 @@ immutable(ConcreteExpr) createAllocExpr(Alloc)(
 		byRef(inner.type),
 		inner.range,
 		immutable ConcreteExpr.Alloc(allocExpr(alloc, inner)));
-}
-
-immutable(ConcreteExpr) concretizeCreateRecord(Alloc)(
-	ref Alloc alloc,
-	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
-	ref immutable Expr.CreateRecord e,
-) {
-	immutable ConcreteType type = getConcreteType_forStructInst(alloc, ctx, e.structInst);
-	immutable ConstantsOrExprs args = getConstantsOrExprs(alloc, ctx, e.args);
-	return matchConstantsOrExprs!(immutable ConcreteExpr)(
-		args,
-		(ref immutable Arr!Constant constants) {
-			immutable Constant record = immutable Constant.Record(constants);
-			return immutable ConcreteExpr(type, range, type.isPointer
-				? getConstantPtr!Alloc(alloc, ctx.concretizeCtx.allConstants, type.struct_, record)
-				: record);
-		},
-		(ref immutable Arr!ConcreteExpr exprs) {
-			immutable ConcreteExpr value = immutable ConcreteExpr(
-				byVal(type),
-				range,
-				immutable ConcreteExpr.CreateRecord(exprs));
-			return type.isPointer
-				? createAllocExpr(alloc, ctx.concretizeCtx, value)
-				: value;
-		});
 }
 
 immutable(ConcreteExpr) getGetVatAndActor(Alloc)(
@@ -678,8 +651,6 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 						allocate(alloc, immutable ConcreteExpr.CreateArr(arrayStruct, elementType, local, exprs)));
 				});
 		},
-		(ref immutable Expr.CreateRecord e) =>
-			concretizeCreateRecord(alloc, ctx, range, e),
 		(ref immutable Expr.ImplicitConvertToUnion e) {
 			immutable ConcreteExpr inner = concretizeExpr(alloc, ctx, e.inner);
 			immutable ConcreteType unionType = getConcreteType_forStructInst(alloc, ctx, e.unionType);

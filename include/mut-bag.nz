@@ -15,7 +15,8 @@ mut-bag<?t> record mut
 	head mut opt mut-bag-node<?t>
 
 new-mut-bag by-val mut-bag<?t>() noctx
-	new none
+	| TODO: should be able to infer type arguments 
+	mut-bag<?t>: none
 
 add void(bag mut-bag ?t, node mut-bag-node ?t) noctx
 	| TODO: insert randomly somewhere

@@ -17,7 +17,7 @@ empty? bool(d dict ?k ?v)
 
 empty-dict dict ?k ?v()
 	| TODO: should be able to infer type arguments
-	new empty-arr<?k>, empty-arr<?v>
+	dict<?k, ?v>: empty-arr<?k>, empty-arr<?v>
 
 mut-dict<?k, ?v> record mut
 	keys mut-arr ?k
@@ -25,13 +25,15 @@ mut-dict<?k, ?v> record mut
 
 new-mut-dict mut-dict ?k ?v()
 	| TODO: should be able to infer type arguments -- worked when there was only one field...
-	new new-mut-arr<?k>, new-mut-arr<?v>
+	mut-dict<?k, ?v>: new-mut-arr<?k>, new-mut-arr<?v>
 
 unsafe-as-dict dict ?k ?v(m mut-dict ?k ?v) unsafe
-	new m.keys.unsafe-as-arr, m.values.unsafe-as-arr
+	| TODO: should be able to infer type arguments 
+	dict<?k, ?v>: m.keys.unsafe-as-arr, m.values.unsafe-as-arr
 
 freeze dict ?k ?v(m mut-dict ?k ?v)
-	new m.keys.freeze, m.values.freeze
+	| TODO: should be able to infer type arguments 
+	dict<?k, ?v>: m.keys.freeze, m.values.freeze
 
 get-recursive<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
 	when
@@ -76,7 +78,8 @@ add void(m mut-dict ?k ?v, key ?k, value ?v) data<?k>
 
 map-values dict ?k ?v-out(d dict ?k ?v-in, mapper fun-mut1 ?v-out ?v-in)
 	new-values = d.values map mapper
-	new d.keys, new-values
+	| TODO: should be able to infer type arguments 
+	dict<?k, ?v-out>: d.keys, new-values
 
 each void(d dict ?k ?v, f fun-mut2 void ?k ?v)
 	when

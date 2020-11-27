@@ -1225,29 +1225,37 @@ char* todo_0();
 char* incr_0(char* p);
 struct global_ctx global_ctx(struct lock lk, struct arr_2 vats, uint64_t n_live_threads, struct condition may_be_work_to_do, uint8_t is_shut_down, uint8_t any_unhandled_exceptions__q);
 struct lock new_lock();
+struct lock lock(struct _atomic_bool is_locked);
 struct _atomic_bool new_atomic_bool();
+struct _atomic_bool _atomic_bool(uint8_t value);
 struct arr_2 empty_arr_0();
 struct arr_2 arr_1(uint64_t size, struct vat** data);
 struct condition new_condition();
+struct condition condition(struct lock lk, uint64_t value);
 struct vat new_vat(struct global_ctx* gctx, uint64_t id, uint64_t max_threads);
 struct mut_arr_0 new_mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity);
+struct mut_arr_0 mut_arr_0(uint8_t frozen__q, uint64_t size, uint64_t capacity, uint64_t* data);
 uint64_t* unmanaged_alloc_elements_0(uint64_t size_elements);
 uint8_t* unmanaged_alloc_bytes(uint64_t size);
 extern uint8_t* malloc(uint64_t size);
 uint8_t hard_forbid(uint8_t condition);
 uint8_t null__q_0(uint8_t* a);
 uint8_t _op_equal_equal_1(uint64_t a, uint64_t b);
+struct vat vat(struct global_ctx* gctx, uint64_t id, struct gc gc, struct lock tasks_lock, struct mut_bag tasks, struct mut_arr_0 currently_running_actors, uint64_t n_threads_running, struct thread_safe_counter next_actor_id, struct fun_mut1_1 exception_handler);
 struct gc new_gc();
+struct gc gc(struct lock lk, struct opt_1 context_head, uint8_t needs_gc, uint8_t is_doing_gc, uint8_t* begin, uint8_t* next_byte);
 struct none none();
 struct mut_bag new_mut_bag();
+struct mut_bag mut_bag(struct opt_2 head);
 struct thread_safe_counter new_thread_safe_counter_0();
 struct thread_safe_counter new_thread_safe_counter_1(uint64_t init);
+struct thread_safe_counter thread_safe_counter(struct lock lk, uint64_t value);
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e);
 uint8_t print_err_sync_no_newline(struct arr_0 s);
 uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s);
 extern int64_t write(int32_t fd, uint8_t* buff, uint64_t n_bytes);
 uint8_t _op_equal_equal_2(int64_t a, int64_t b);
-struct comparison compare_41(int64_t a, int64_t b);
+struct comparison compare_49(int64_t a, int64_t b);
 uint8_t todo_1();
 int32_t stderr_fd();
 int32_t two_0();
@@ -1259,8 +1267,11 @@ struct global_ctx* get_gctx(struct ctx* ctx);
 uint8_t new_vat__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception it);
 struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, char** argv, fun_ptr2_0 main_ptr);
 struct exception_ctx new_exception_ctx();
+struct exception_ctx exception_ctx(struct jmp_buf_tag* jmp_buf_ptr, struct exception thrown_exception);
+struct exception exception(struct arr_0 message);
 struct thread_local_stuff thread_local_stuff(struct exception_ctx* exception_ctx);
 struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id);
+struct ctx ctx(uint8_t* gctx_ptr, uint64_t vat_id, uint64_t actor_id, uint8_t* gc_ctx_ptr, uint8_t* exception_ctx_ptr);
 struct gc_ctx* get_gc_ctx_0(struct gc* gc);
 uint8_t acquire_lock(struct lock* a);
 uint8_t acquire_lock_recur(struct lock* a, uint64_t n_tries);
@@ -1283,7 +1294,7 @@ uint8_t yield_thread();
 extern int32_t pthread_yield();
 uint8_t zero__q_1(int32_t i);
 uint8_t _op_equal_equal_3(int32_t a, int32_t b);
-struct comparison compare_77(int32_t a, int32_t b);
+struct comparison compare_88(int32_t a, int32_t b);
 uint64_t noctx_incr(uint64_t n);
 uint64_t billion_0();
 uint64_t million_0();
@@ -1393,7 +1404,7 @@ struct arr_1 unsafe_as_arr_0(struct mut_arr_1* a);
 struct arr_1 arr_3(uint64_t size, struct arr_0* data);
 struct mut_arr_1* make_mut_arr_0(struct ctx* ctx, uint64_t size, struct fun_mut1_5 f);
 struct mut_arr_1* new_uninitialized_mut_arr_0(struct ctx* ctx, uint64_t size);
-struct mut_arr_1* mut_arr_0(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_0* data);
+struct mut_arr_1* mut_arr_1(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_0* data);
 struct arr_0* uninitialized_data_0(struct ctx* ctx, uint64_t size);
 uint8_t* alloc(struct ctx* ctx, uint64_t size);
 uint8_t* gc_alloc(struct ctx* ctx, struct gc* gc, uint64_t size);
@@ -1417,7 +1428,8 @@ struct fut_0* call_with_ctx_8(struct ctx* c, struct fun2 f, struct arr_3 p0, fun
 uint8_t run_threads(uint64_t n_threads, struct global_ctx* gctx);
 struct thread_args* unmanaged_alloc_elements_1(uint64_t size_elements);
 uint64_t noctx_decr_0(uint64_t n);
-uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args, struct global_ctx* gctx);
+uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx);
+struct thread_args thread_args(uint64_t thread_id, struct global_ctx* gctx);
 uint8_t* thread_fun(uint8_t* args_ptr);
 uint8_t thread_function(uint64_t thread_id, struct global_ctx* gctx);
 uint8_t thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struct thread_local_stuff* tls);
@@ -1495,7 +1507,9 @@ struct arr_0 tail_1(struct ctx* ctx, struct arr_0 a);
 struct arr_0 slice_starting_at_1(struct ctx* ctx, struct arr_0 a, uint64_t begin);
 struct arr_0 slice_1(struct ctx* ctx, struct arr_0 a, uint64_t begin, uint64_t size);
 uint8_t parse_cmd_line_args_dynamic__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr_0 it);
+struct parsed_cmd_line_args* parsed_cmd_line_args(struct ctx* ctx, struct arr_1 nameless, struct dict_0* named, struct arr_1 after);
 struct dict_0* empty_dict(struct ctx* ctx);
+struct dict_0* dict_0(struct ctx* ctx, struct arr_1 keys, struct arr_6 values);
 struct arr_1 empty_arr_1();
 struct arr_6 empty_arr_2();
 struct arr_6 arr_5(uint64_t size, struct arr_1* data);
@@ -1503,13 +1517,14 @@ struct arr_1 slice_up_to_0(struct ctx* ctx, struct arr_1 a, uint64_t size);
 struct arr_1 slice_2(struct ctx* ctx, struct arr_1 a, uint64_t begin, uint64_t size);
 struct arr_1 slice_starting_at_2(struct ctx* ctx, struct arr_1 a, uint64_t begin);
 uint8_t _op_equal_equal_4(struct arr_0 a, struct arr_0 b);
-struct comparison compare_297(struct arr_0 a, struct arr_0 b);
+struct comparison compare_311(struct arr_0 a, struct arr_0 b);
 uint8_t parse_cmd_line_args_dynamic__lambda1(struct ctx* ctx, uint8_t* _closure, struct arr_0 it);
 struct dict_0* parse_named_args(struct ctx* ctx, struct arr_1 args);
 struct mut_dict_0 new_mut_dict_0(struct ctx* ctx);
+struct mut_dict_0 mut_dict_0(struct ctx* ctx, struct mut_arr_1* keys, struct mut_arr_2* values);
 struct mut_arr_1* new_mut_arr_0(struct ctx* ctx);
 struct mut_arr_2* new_mut_arr_1(struct ctx* ctx);
-struct mut_arr_2* mut_arr_1(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_1* data);
+struct mut_arr_2* mut_arr_2(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_1* data);
 uint8_t parse_named_args_recur(struct ctx* ctx, struct arr_1 args, struct mut_dict_0 builder);
 struct arr_0 remove_start(struct ctx* ctx, struct arr_0 a, struct arr_0 start);
 struct arr_0 force(struct ctx* ctx, struct opt_11 a);
@@ -1559,7 +1574,7 @@ struct arr_1 slice_after_0(struct ctx* ctx, struct arr_1 a, uint64_t before_begi
 struct mut_arr_3* fill_mut_arr(struct ctx* ctx, uint64_t size, struct opt_9 value);
 struct mut_arr_3* make_mut_arr_1(struct ctx* ctx, uint64_t size, struct fun_mut1_7 f);
 struct mut_arr_3* new_uninitialized_mut_arr_1(struct ctx* ctx, uint64_t size);
-struct mut_arr_3* mut_arr_2(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct opt_9* data);
+struct mut_arr_3* mut_arr_3(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct opt_9* data);
 struct opt_9* uninitialized_data_2(struct ctx* ctx, uint64_t size);
 uint8_t make_mut_arr_worker_1(struct ctx* ctx, struct mut_arr_3* m, uint64_t i, struct fun_mut1_7 f);
 uint8_t set_at_1(struct ctx* ctx, struct mut_arr_3* a, uint64_t index, struct opt_9 value);
@@ -1574,7 +1589,6 @@ uint8_t call_12(struct ctx* ctx, struct fun_mut2_0 f, struct arr_0 p0, struct ar
 uint8_t call_with_ctx_11(struct ctx* c, struct fun_mut2_0 f, struct arr_0 p0, struct arr_1 p1);
 struct arr_1 first_2(struct ctx* ctx, struct arr_6 a);
 uint8_t empty__q_9(struct arr_6 a);
-struct dict_0* dict_0(struct ctx* ctx, struct arr_1 keys, struct arr_6 values);
 struct arr_6 tail_3(struct ctx* ctx, struct arr_6 a);
 struct arr_6 slice_starting_at_3(struct ctx* ctx, struct arr_6 a, uint64_t begin);
 struct arr_6 slice_3(struct ctx* ctx, struct arr_6 a, uint64_t begin, uint64_t size);
@@ -1587,7 +1601,7 @@ struct arr_0 freeze_3(struct mut_arr_4* a);
 struct arr_0 unsafe_as_arr_2(struct mut_arr_4* a);
 struct mut_arr_4* make_mut_arr_2(struct ctx* ctx, uint64_t size, struct fun_mut1_8 f);
 struct mut_arr_4* new_uninitialized_mut_arr_2(struct ctx* ctx, uint64_t size);
-struct mut_arr_4* mut_arr_3(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, char* data);
+struct mut_arr_4* mut_arr_4(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, char* data);
 char* uninitialized_data_3(struct ctx* ctx, uint64_t size);
 uint8_t make_mut_arr_worker_2(struct ctx* ctx, struct mut_arr_4* m, uint64_t i, struct fun_mut1_8 f);
 uint8_t set_at_2(struct ctx* ctx, struct mut_arr_4* a, uint64_t index, char value);
@@ -1612,6 +1626,7 @@ struct arr_0 rtail(struct ctx* ctx, struct arr_0 a);
 uint64_t char_to_nat(char c);
 uint64_t todo_3();
 char last(struct ctx* ctx, struct arr_0 a);
+struct test_options test_options(struct ctx* ctx, uint8_t print_tests__q, uint8_t overwrite_output__q, uint64_t max_failures);
 struct test_options main_0__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr_5 values);
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value);
 uint8_t print_help(struct ctx* ctx);
@@ -1664,6 +1679,7 @@ uint8_t negative__q(struct ctx* ctx, int64_t i);
 struct arr_0 child_path(struct ctx* ctx, struct arr_0 a, struct arr_0 child_name);
 struct dict_1* get_environ(struct ctx* ctx);
 struct mut_dict_1 new_mut_dict_1(struct ctx* ctx);
+struct mut_dict_1 mut_dict_1(struct ctx* ctx, struct mut_arr_1* keys, struct mut_arr_1* values);
 uint8_t get_environ_recur(struct ctx* ctx, char** env, struct mut_dict_1 res);
 uint8_t null__q_2(char* a);
 uint8_t add_2(struct ctx* ctx, struct mut_dict_1 m, struct key_value_pair* pair);
@@ -1675,7 +1691,9 @@ uint8_t empty__q_10(struct opt_11 a);
 struct opt_11 get_3(struct ctx* ctx, struct dict_1* d, struct arr_0 key);
 struct opt_11 get_recursive_1(struct ctx* ctx, struct arr_1 keys, struct arr_1 values, uint64_t idx, struct arr_0 key);
 struct dict_1* unsafe_as_dict_1(struct ctx* ctx, struct mut_dict_1 m);
+struct dict_1* dict_1(struct ctx* ctx, struct arr_1 keys, struct arr_1 values);
 struct key_value_pair* parse_environ_entry(struct ctx* ctx, char* entry);
+struct key_value_pair* key_value_pair(struct ctx* ctx, struct arr_0 key, struct arr_0 value);
 char** incr_4(char** p);
 extern char** environ;
 struct dict_1* freeze_5(struct ctx* ctx, struct mut_dict_1 m);
@@ -1704,7 +1722,7 @@ int32_t enoent();
 struct opt_12 todo_4();
 uint8_t todo_5();
 uint8_t _op_equal_equal_5(uint32_t a, uint32_t b);
-struct comparison compare_498(uint32_t a, uint32_t b);
+struct comparison compare_516(uint32_t a, uint32_t b);
 uint32_t s_ifmt(struct ctx* ctx);
 uint32_t two_pow_0(uint32_t pow);
 uint8_t zero__q_2(uint32_t n);
@@ -1760,7 +1778,7 @@ struct arr_0 base_name(struct ctx* ctx, struct arr_0 path);
 uint8_t list_tests__lambda1(struct ctx* ctx, struct list_tests__lambda1* _closure, struct arr_0 child);
 struct arr_7 flat_map_with_max_size(struct ctx* ctx, struct arr_1 a, uint64_t max_size, struct fun_mut1_12 mapper);
 struct mut_arr_5* new_mut_arr_2(struct ctx* ctx);
-struct mut_arr_5* mut_arr_4(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct failure** data);
+struct mut_arr_5* mut_arr_5(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct failure** data);
 uint8_t push_all(struct ctx* ctx, struct mut_arr_5* a, struct arr_7 values);
 uint8_t each_2(struct ctx* ctx, struct arr_7 a, struct fun_mut1_13 f);
 uint8_t empty__q_11(struct arr_7 a);
@@ -1819,7 +1837,7 @@ int16_t pollin(struct ctx* ctx);
 int16_t two_pow_1(int16_t pow);
 uint8_t zero__q_3(int16_t a);
 uint8_t _op_equal_equal_6(int16_t a, int16_t b);
-struct comparison compare_613(int16_t a, int16_t b);
+struct comparison compare_631(int16_t a, int16_t b);
 int16_t wrap_decr_2(int16_t a);
 int16_t two_4();
 int16_t wrap_incr_4(int16_t a);
@@ -1851,6 +1869,7 @@ int16_t pollerr(struct ctx* ctx);
 uint8_t has_pollnval__q(struct ctx* ctx, int16_t revents);
 int16_t pollnval(struct ctx* ctx);
 int16_t five_4();
+struct handle_revents_result handle_revents_result(struct ctx* ctx, uint8_t had_pollin__q, uint8_t hung_up__q);
 uint64_t to_nat_1(struct ctx* ctx, uint8_t b);
 uint8_t any__q(struct ctx* ctx, struct handle_revents_result r);
 uint64_t to_nat_2(struct ctx* ctx, int32_t i);
@@ -1890,7 +1909,7 @@ struct arr_3 freeze_7(struct mut_arr_6* a);
 struct arr_3 unsafe_as_arr_5(struct mut_arr_6* a);
 struct mut_arr_6* make_mut_arr_3(struct ctx* ctx, uint64_t size, struct fun_mut1_15 f);
 struct mut_arr_6* new_uninitialized_mut_arr_3(struct ctx* ctx, uint64_t size);
-struct mut_arr_6* mut_arr_5(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, char** data);
+struct mut_arr_6* mut_arr_6(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, char** data);
 char** uninitialized_data_5(struct ctx* ctx, uint64_t size);
 uint8_t make_mut_arr_worker_3(struct ctx* ctx, struct mut_arr_6* m, uint64_t i, struct fun_mut1_15 f);
 uint8_t set_at_4(struct ctx* ctx, struct mut_arr_6* a, uint64_t index, char* value);
@@ -1910,7 +1929,6 @@ uint8_t each_3(struct ctx* ctx, struct dict_1* d, struct fun_mut2_2 f);
 uint8_t empty__q_12(struct ctx* ctx, struct dict_1* d);
 uint8_t call_25(struct ctx* ctx, struct fun_mut2_2 f, struct arr_0 p0, struct arr_0 p1);
 uint8_t call_with_ctx_24(struct ctx* c, struct fun_mut2_2 f, struct arr_0 p0, struct arr_0 p1);
-struct dict_1* dict_1(struct ctx* ctx, struct arr_1 keys, struct arr_1 values);
 uint8_t push_3(struct ctx* ctx, struct mut_arr_6* a, char* value);
 uint8_t increase_capacity_to_4(struct ctx* ctx, struct mut_arr_6* a, uint64_t new_capacity);
 uint8_t copy_data_from_4(struct ctx* ctx, char** to, char** from, uint64_t len);
@@ -1944,6 +1962,8 @@ uint32_t o_wronly(struct ctx* ctx);
 uint32_t o_trunc(struct ctx* ctx);
 uint32_t nine_2();
 struct arr_0 to_str_4(struct ctx* ctx, uint32_t n);
+struct failure* failure(struct ctx* ctx, struct arr_0 path, struct arr_0 message);
+struct print_test_result* print_test_result(struct ctx* ctx, uint8_t should_stop__q, struct arr_7 failures);
 struct arr_0 remove_colors(struct ctx* ctx, struct arr_0 s);
 uint8_t remove_colors_recur(struct ctx* ctx, struct arr_0 s, struct mut_arr_4* out);
 uint8_t remove_colors_recur_2(struct ctx* ctx, struct arr_0 s, struct mut_arr_4* out);
@@ -2150,10 +2170,16 @@ struct global_ctx global_ctx(struct lock lk, struct arr_2 vats, uint64_t n_live_
 	return (struct global_ctx) {lk, vats, n_live_threads, may_be_work_to_do, is_shut_down, any_unhandled_exceptions__q};
 }
 struct lock new_lock() {
-	return (struct lock) {new_atomic_bool()};
+	return lock(new_atomic_bool());
+}
+struct lock lock(struct _atomic_bool is_locked) {
+	return (struct lock) {is_locked};
 }
 struct _atomic_bool new_atomic_bool() {
-	return (struct _atomic_bool) {0};
+	return _atomic_bool(0);
+}
+struct _atomic_bool _atomic_bool(uint8_t value) {
+	return (struct _atomic_bool) {value};
 }
 struct arr_2 empty_arr_0() {
 	return arr_1(0, NULL);
@@ -2162,15 +2188,21 @@ struct arr_2 arr_1(uint64_t size, struct vat** data) {
 	return (struct arr_2) {size, data};
 }
 struct condition new_condition() {
-	return (struct condition) {new_lock(), 0};
+	return condition(new_lock(), 0);
+}
+struct condition condition(struct lock lk, uint64_t value) {
+	return (struct condition) {lk, value};
 }
 struct vat new_vat(struct global_ctx* gctx, uint64_t id, uint64_t max_threads) {
 	struct mut_arr_0 actors0;
 	actors0 = new_mut_arr_by_val_with_capacity_from_unmanaged_memory(max_threads);
-	return (struct vat) {gctx, id, new_gc(), new_lock(), new_mut_bag(), actors0, 0, new_thread_safe_counter_0(), (struct fun_mut1_1) {(fun_ptr3_1) new_vat__lambda0, (uint8_t*) NULL}};
+	return vat(gctx, id, new_gc(), new_lock(), new_mut_bag(), actors0, 0, new_thread_safe_counter_0(), (struct fun_mut1_1) {(fun_ptr3_1) new_vat__lambda0, (uint8_t*) NULL});
 }
 struct mut_arr_0 new_mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity) {
-	return (struct mut_arr_0) {0, 0, capacity, unmanaged_alloc_elements_0(capacity)};
+	return mut_arr_0(0, 0, capacity, unmanaged_alloc_elements_0(capacity));
+}
+struct mut_arr_0 mut_arr_0(uint8_t frozen__q, uint64_t size, uint64_t capacity, uint64_t* data) {
+	return (struct mut_arr_0) {frozen__q, size, capacity, data};
 }
 uint64_t* unmanaged_alloc_elements_0(uint64_t size_elements) {
 	uint8_t* bytes0;
@@ -2203,20 +2235,32 @@ uint8_t _op_equal_equal_1(uint64_t a, uint64_t b) {
 			return (assert(0),0);
 	}
 }
+struct vat vat(struct global_ctx* gctx, uint64_t id, struct gc gc, struct lock tasks_lock, struct mut_bag tasks, struct mut_arr_0 currently_running_actors, uint64_t n_threads_running, struct thread_safe_counter next_actor_id, struct fun_mut1_1 exception_handler) {
+	return (struct vat) {gctx, id, gc, tasks_lock, tasks, currently_running_actors, n_threads_running, next_actor_id, exception_handler};
+}
 struct gc new_gc() {
-	return (struct gc) {new_lock(), (struct opt_1) {0, .as0 = none()}, 0, 0, NULL, NULL};
+	return gc(new_lock(), (struct opt_1) {0, .as0 = none()}, 0, 0, NULL, NULL);
+}
+struct gc gc(struct lock lk, struct opt_1 context_head, uint8_t needs_gc, uint8_t is_doing_gc, uint8_t* begin, uint8_t* next_byte) {
+	return (struct gc) {lk, context_head, needs_gc, is_doing_gc, begin, next_byte};
 }
 struct none none() {
 	return (struct none) {0};
 }
 struct mut_bag new_mut_bag() {
-	return (struct mut_bag) {(struct opt_2) {0, .as0 = none()}};
+	return mut_bag((struct opt_2) {0, .as0 = none()});
+}
+struct mut_bag mut_bag(struct opt_2 head) {
+	return (struct mut_bag) {head};
 }
 struct thread_safe_counter new_thread_safe_counter_0() {
 	return new_thread_safe_counter_1(0);
 }
 struct thread_safe_counter new_thread_safe_counter_1(uint64_t init) {
-	return (struct thread_safe_counter) {new_lock(), init};
+	return thread_safe_counter(new_lock(), init);
+}
+struct thread_safe_counter thread_safe_counter(struct lock lk, uint64_t value) {
+	return (struct thread_safe_counter) {lk, value};
 }
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e) {
 	print_err_sync_no_newline((struct arr_0) {20, constantarr_0_3});
@@ -2238,7 +2282,7 @@ uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s) {
 }
 uint8_t _op_equal_equal_2(int64_t a, int64_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_41(a, b);
+	_matched0 = compare_49(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 0;
@@ -2250,7 +2294,7 @@ uint8_t _op_equal_equal_2(int64_t a, int64_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_41(int64_t a, int64_t b) {
+struct comparison compare_49(int64_t a, int64_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -2305,13 +2349,22 @@ struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, ch
 	return call_with_ctx_8(ctx3, add4, all_args5, main_ptr);
 }
 struct exception_ctx new_exception_ctx() {
-	return (struct exception_ctx) {NULL, (struct exception) {{0, NULL}}};
+	return exception_ctx(NULL, exception((struct arr_0) {0, NULL}));
+}
+struct exception_ctx exception_ctx(struct jmp_buf_tag* jmp_buf_ptr, struct exception thrown_exception) {
+	return (struct exception_ctx) {jmp_buf_ptr, thrown_exception};
+}
+struct exception exception(struct arr_0 message) {
+	return (struct exception) {message};
 }
 struct thread_local_stuff thread_local_stuff(struct exception_ctx* exception_ctx) {
 	return (struct thread_local_stuff) {exception_ctx};
 }
 struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id) {
-	return (struct ctx) {(uint8_t*) gctx, vat->id, actor_id, (uint8_t*) get_gc_ctx_0((&(vat->gc))), (uint8_t*) tls->exception_ctx};
+	return ctx((uint8_t*) gctx, vat->id, actor_id, (uint8_t*) get_gc_ctx_0((&(vat->gc))), (uint8_t*) tls->exception_ctx);
+}
+struct ctx ctx(uint8_t* gctx_ptr, uint64_t vat_id, uint64_t actor_id, uint8_t* gc_ctx_ptr, uint8_t* exception_ctx_ptr) {
+	return (struct ctx) {gctx_ptr, vat_id, actor_id, gc_ctx_ptr, exception_ctx_ptr};
 }
 struct gc_ctx* get_gc_ctx_0(struct gc* gc) {
 	struct gc_ctx* res4;
@@ -2401,7 +2454,7 @@ uint8_t zero__q_1(int32_t i) {
 }
 uint8_t _op_equal_equal_3(int32_t a, int32_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_77(a, b);
+	_matched0 = compare_88(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 0;
@@ -2413,7 +2466,7 @@ uint8_t _op_equal_equal_3(int32_t a, int32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_77(int32_t a, int32_t b) {
+struct comparison compare_88(int32_t a, int32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -2651,7 +2704,7 @@ uint8_t assert_1(struct ctx* ctx, uint8_t condition, struct arr_0 message) {
 	}
 }
 uint8_t fail_0(struct ctx* ctx, struct arr_0 reason) {
-	return throw_0(ctx, (struct exception) {reason});
+	return throw_0(ctx, exception(reason));
 }
 uint8_t throw_0(struct ctx* ctx, struct exception e) {
 	struct exception_ctx* exn_ctx0;
@@ -2941,9 +2994,9 @@ struct mut_arr_1* make_mut_arr_0(struct ctx* ctx, uint64_t size, struct fun_mut1
 	return res0;
 }
 struct mut_arr_1* new_uninitialized_mut_arr_0(struct ctx* ctx, uint64_t size) {
-	return mut_arr_0(ctx, 0, size, size, uninitialized_data_0(ctx, size));
+	return mut_arr_1(ctx, 0, size, size, uninitialized_data_0(ctx, size));
 }
-struct mut_arr_1* mut_arr_0(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_0* data) {
+struct mut_arr_1* mut_arr_1(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_0* data) {
 	struct mut_arr_1* temp0;
 	temp0 = (struct mut_arr_1*) alloc(ctx, sizeof(struct mut_arr_1));
 	(*(temp0) = (struct mut_arr_1) {frozen__q, size, capacity, data}, 0);
@@ -3055,7 +3108,7 @@ uint64_t noctx_decr_0(uint64_t n) {
 	hard_forbid(zero__q_0(n));
 	return (n - 1);
 }
-uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args, struct global_ctx* gctx) {
+uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx) {
 	struct thread_args* thread_arg_ptr0;
 	uint64_t* thread_ptr1;
 	fun_ptr1 fn2;
@@ -3063,14 +3116,14 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 	uint64_t _tailCalli;
 	uint64_t _tailCalln_threads;
 	uint64_t* _tailCallthreads;
-	struct thread_args* _tailCallthread_args;
+	struct thread_args* _tailCallthread_args_begin;
 	struct global_ctx* _tailCallgctx;
 	top:
 	if (_op_equal_equal_1(i, n_threads)) {
 		return 0;
 	} else {
-		thread_arg_ptr0 = (thread_args + i);
-		(*(thread_arg_ptr0) = (struct thread_args) {i, gctx}, 0);
+		thread_arg_ptr0 = (thread_args_begin + i);
+		(*(thread_arg_ptr0) = thread_args(i, gctx), 0);
 		thread_ptr1 = (threads + i);
 		fn2 = start_threads_recur__lambda0;
 		err3 = pthread_create(as_cell(thread_ptr1), NULL, fn2, (uint8_t*) thread_arg_ptr0);
@@ -3078,12 +3131,12 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 			_tailCalli = noctx_incr(i);
 			_tailCalln_threads = n_threads;
 			_tailCallthreads = threads;
-			_tailCallthread_args = thread_args;
+			_tailCallthread_args_begin = thread_args_begin;
 			_tailCallgctx = gctx;
 			i = _tailCalli;
 			n_threads = _tailCalln_threads;
 			threads = _tailCallthreads;
-			thread_args = _tailCallthread_args;
+			thread_args_begin = _tailCallthread_args_begin;
 			gctx = _tailCallgctx;
 			goto top;
 		} else {
@@ -3095,6 +3148,9 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 		}
 	}
 }
+struct thread_args thread_args(uint64_t thread_id, struct global_ctx* gctx) {
+	return (struct thread_args) {thread_id, gctx};
+}
 uint8_t* thread_fun(uint8_t* args_ptr) {
 	struct thread_args* args0;
 	args0 = (struct thread_args*) args_ptr;
@@ -3105,7 +3161,7 @@ uint8_t thread_function(uint64_t thread_id, struct global_ctx* gctx) {
 	struct exception_ctx ectx0;
 	struct thread_local_stuff tls1;
 	ectx0 = new_exception_ctx();
-	tls1 = (struct thread_local_stuff) {(&(ectx0))};
+	tls1 = thread_local_stuff((&(ectx0)));
 	return thread_function_recur(thread_id, gctx, (&(tls1)));
 }
 uint8_t thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struct thread_local_stuff* tls) {
@@ -3619,40 +3675,33 @@ struct opt_8 parse_cmd_line_args(struct ctx* ctx, struct arr_1 args, struct arr_
 	}
 }
 struct parsed_cmd_line_args* parse_cmd_line_args_dynamic(struct ctx* ctx, struct arr_1 args) {
-	struct opt_10 _matched7;
-	struct parsed_cmd_line_args* temp0;
+	struct opt_10 _matched8;
 	struct some_10 s0;
 	uint64_t first_named_arg_index1;
 	struct arr_1 nameless2;
 	struct arr_1 rest3;
-	struct opt_10 _matched6;
-	struct parsed_cmd_line_args* temp1;
+	struct opt_10 _matched7;
 	struct some_10 s24;
 	uint64_t sep_index5;
-	struct parsed_cmd_line_args* temp2;
-	_matched7 = find_index(ctx, args, (struct fun_mut1_6) {(fun_ptr3_7) parse_cmd_line_args_dynamic__lambda0, (uint8_t*) NULL});
-	switch (_matched7.kind) {
+	struct dict_0* named_args6;
+	_matched8 = find_index(ctx, args, (struct fun_mut1_6) {(fun_ptr3_7) parse_cmd_line_args_dynamic__lambda0, (uint8_t*) NULL});
+	switch (_matched8.kind) {
 		case 0:
-			temp0 = (struct parsed_cmd_line_args*) alloc(ctx, sizeof(struct parsed_cmd_line_args));
-			(*(temp0) = (struct parsed_cmd_line_args) {args, empty_dict(ctx), empty_arr_1()}, 0);
-			return temp0;
+			return parsed_cmd_line_args(ctx, args, empty_dict(ctx), empty_arr_1());
 		case 1:
-			s0 = _matched7.as1;
+			s0 = _matched8.as1;
 			first_named_arg_index1 = s0.value;
 			nameless2 = slice_up_to_0(ctx, args, first_named_arg_index1);
 			rest3 = slice_starting_at_2(ctx, args, first_named_arg_index1);
-			_matched6 = find_index(ctx, rest3, (struct fun_mut1_6) {(fun_ptr3_7) parse_cmd_line_args_dynamic__lambda1, (uint8_t*) NULL});
-			switch (_matched6.kind) {
+			_matched7 = find_index(ctx, rest3, (struct fun_mut1_6) {(fun_ptr3_7) parse_cmd_line_args_dynamic__lambda1, (uint8_t*) NULL});
+			switch (_matched7.kind) {
 				case 0:
-					temp1 = (struct parsed_cmd_line_args*) alloc(ctx, sizeof(struct parsed_cmd_line_args));
-					(*(temp1) = (struct parsed_cmd_line_args) {nameless2, parse_named_args(ctx, rest3), empty_arr_1()}, 0);
-					return temp1;
+					return parsed_cmd_line_args(ctx, nameless2, parse_named_args(ctx, rest3), empty_arr_1());
 				case 1:
-					s24 = _matched6.as1;
+					s24 = _matched7.as1;
 					sep_index5 = s24.value;
-					temp2 = (struct parsed_cmd_line_args*) alloc(ctx, sizeof(struct parsed_cmd_line_args));
-					(*(temp2) = (struct parsed_cmd_line_args) {nameless2, parse_named_args(ctx, slice_up_to_0(ctx, rest3, sep_index5)), slice_after_0(ctx, rest3, sep_index5)}, 0);
-					return temp2;
+					named_args6 = parse_named_args(ctx, slice_up_to_0(ctx, rest3, sep_index5));
+					return parsed_cmd_line_args(ctx, nameless2, named_args6, slice_after_0(ctx, rest3, sep_index5));
 				default:
 					return (assert(0),NULL);
 			}
@@ -3749,10 +3798,19 @@ struct arr_0 slice_1(struct ctx* ctx, struct arr_0 a, uint64_t begin, uint64_t s
 uint8_t parse_cmd_line_args_dynamic__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr_0 it) {
 	return starts_with__q(ctx, it, (struct arr_0) {2, constantarr_0_16});
 }
+struct parsed_cmd_line_args* parsed_cmd_line_args(struct ctx* ctx, struct arr_1 nameless, struct dict_0* named, struct arr_1 after) {
+	struct parsed_cmd_line_args* temp0;
+	temp0 = (struct parsed_cmd_line_args*) alloc(ctx, sizeof(struct parsed_cmd_line_args));
+	(*(temp0) = (struct parsed_cmd_line_args) {nameless, named, after}, 0);
+	return temp0;
+}
 struct dict_0* empty_dict(struct ctx* ctx) {
+	return dict_0(ctx, empty_arr_1(), empty_arr_2());
+}
+struct dict_0* dict_0(struct ctx* ctx, struct arr_1 keys, struct arr_6 values) {
 	struct dict_0* temp0;
 	temp0 = (struct dict_0*) alloc(ctx, sizeof(struct dict_0));
-	(*(temp0) = (struct dict_0) {empty_arr_1(), empty_arr_2()}, 0);
+	(*(temp0) = (struct dict_0) {keys, values}, 0);
 	return temp0;
 }
 struct arr_1 empty_arr_1() {
@@ -3778,7 +3836,7 @@ struct arr_1 slice_starting_at_2(struct ctx* ctx, struct arr_1 a, uint64_t begin
 }
 uint8_t _op_equal_equal_4(struct arr_0 a, struct arr_0 b) {
 	struct comparison _matched0;
-	_matched0 = compare_297(a, b);
+	_matched0 = compare_311(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 0;
@@ -3790,7 +3848,7 @@ uint8_t _op_equal_equal_4(struct arr_0 a, struct arr_0 b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_297(struct arr_0 a, struct arr_0 b) {
+struct comparison compare_311(struct arr_0 a, struct arr_0 b) {
 	struct comparison temp0;
 	struct arr_0 _tailCalla;
 	struct arr_0 _tailCallb;
@@ -3833,15 +3891,18 @@ struct dict_0* parse_named_args(struct ctx* ctx, struct arr_1 args) {
 	return freeze_1(ctx, b0);
 }
 struct mut_dict_0 new_mut_dict_0(struct ctx* ctx) {
-	return (struct mut_dict_0) {new_mut_arr_0(ctx), new_mut_arr_1(ctx)};
+	return mut_dict_0(ctx, new_mut_arr_0(ctx), new_mut_arr_1(ctx));
+}
+struct mut_dict_0 mut_dict_0(struct ctx* ctx, struct mut_arr_1* keys, struct mut_arr_2* values) {
+	return (struct mut_dict_0) {keys, values};
 }
 struct mut_arr_1* new_mut_arr_0(struct ctx* ctx) {
-	return mut_arr_0(ctx, 0, 0, 0, NULL);
-}
-struct mut_arr_2* new_mut_arr_1(struct ctx* ctx) {
 	return mut_arr_1(ctx, 0, 0, 0, NULL);
 }
-struct mut_arr_2* mut_arr_1(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_1* data) {
+struct mut_arr_2* new_mut_arr_1(struct ctx* ctx) {
+	return mut_arr_2(ctx, 0, 0, 0, NULL);
+}
+struct mut_arr_2* mut_arr_2(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct arr_1* data) {
 	struct mut_arr_2* temp0;
 	temp0 = (struct mut_arr_2*) alloc(ctx, sizeof(struct mut_arr_2));
 	(*(temp0) = (struct mut_arr_2) {frozen__q, size, capacity, data}, 0);
@@ -3895,7 +3956,7 @@ struct arr_0 force(struct ctx* ctx, struct opt_11 a) {
 	}
 }
 struct arr_0 fail_1(struct ctx* ctx, struct arr_0 reason) {
-	return throw_1(ctx, (struct exception) {reason});
+	return throw_1(ctx, exception(reason));
 }
 struct arr_0 throw_1(struct ctx* ctx, struct exception e) {
 	struct exception_ctx* exn_ctx0;
@@ -4001,10 +4062,7 @@ struct arr_1 noctx_at_6(struct arr_6 a, uint64_t index) {
 	return (*((a.data + index)));
 }
 struct dict_0* unsafe_as_dict_0(struct ctx* ctx, struct mut_dict_0 m) {
-	struct dict_0* temp0;
-	temp0 = (struct dict_0*) alloc(ctx, sizeof(struct dict_0));
-	(*(temp0) = (struct dict_0) {unsafe_as_arr_0(m.keys), unsafe_as_arr_1(m.values)}, 0);
-	return temp0;
+	return dict_0(ctx, unsafe_as_arr_0(m.keys), unsafe_as_arr_1(m.values));
 }
 struct arr_6 unsafe_as_arr_1(struct mut_arr_2* a) {
 	return arr_5(a->size, a->data);
@@ -4168,10 +4226,7 @@ uint8_t ensure_capacity_1(struct ctx* ctx, struct mut_arr_2* a, uint64_t capacit
 	}
 }
 struct dict_0* freeze_1(struct ctx* ctx, struct mut_dict_0 m) {
-	struct dict_0* temp0;
-	temp0 = (struct dict_0*) alloc(ctx, sizeof(struct dict_0));
-	(*(temp0) = (struct dict_0) {freeze_0(m.keys), freeze_2(m.values)}, 0);
-	return temp0;
+	return dict_0(ctx, freeze_0(m.keys), freeze_2(m.values));
 }
 struct arr_6 freeze_2(struct mut_arr_2* a) {
 	(a->frozen__q = 1, 0);
@@ -4191,9 +4246,9 @@ struct mut_arr_3* make_mut_arr_1(struct ctx* ctx, uint64_t size, struct fun_mut1
 	return res0;
 }
 struct mut_arr_3* new_uninitialized_mut_arr_1(struct ctx* ctx, uint64_t size) {
-	return mut_arr_2(ctx, 0, size, size, uninitialized_data_2(ctx, size));
+	return mut_arr_3(ctx, 0, size, size, uninitialized_data_2(ctx, size));
 }
-struct mut_arr_3* mut_arr_2(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct opt_9* data) {
+struct mut_arr_3* mut_arr_3(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct opt_9* data) {
 	struct mut_arr_3* temp0;
 	temp0 = (struct mut_arr_3*) alloc(ctx, sizeof(struct mut_arr_3));
 	(*(temp0) = (struct mut_arr_3) {frozen__q, size, capacity, data}, 0);
@@ -4276,12 +4331,6 @@ struct arr_1 first_2(struct ctx* ctx, struct arr_6 a) {
 uint8_t empty__q_9(struct arr_6 a) {
 	return zero__q_0(a.size);
 }
-struct dict_0* dict_0(struct ctx* ctx, struct arr_1 keys, struct arr_6 values) {
-	struct dict_0* temp0;
-	temp0 = (struct dict_0*) alloc(ctx, sizeof(struct dict_0));
-	(*(temp0) = (struct dict_0) {keys, values}, 0);
-	return temp0;
-}
 struct arr_6 tail_3(struct ctx* ctx, struct arr_6 a) {
 	forbid_0(ctx, empty__q_9(a));
 	return slice_starting_at_3(ctx, a, 1);
@@ -4325,9 +4374,9 @@ struct mut_arr_4* make_mut_arr_2(struct ctx* ctx, uint64_t size, struct fun_mut1
 	return res0;
 }
 struct mut_arr_4* new_uninitialized_mut_arr_2(struct ctx* ctx, uint64_t size) {
-	return mut_arr_3(ctx, 0, size, size, uninitialized_data_3(ctx, size));
+	return mut_arr_4(ctx, 0, size, size, uninitialized_data_3(ctx, size));
 }
-struct mut_arr_4* mut_arr_3(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, char* data) {
+struct mut_arr_4* mut_arr_4(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, char* data) {
 	struct mut_arr_4* temp0;
 	temp0 = (struct mut_arr_4*) alloc(ctx, sizeof(struct mut_arr_4));
 	(*(temp0) = (struct mut_arr_4) {frozen__q, size, capacity, data}, 0);
@@ -4499,6 +4548,9 @@ char last(struct ctx* ctx, struct arr_0 a) {
 	forbid_0(ctx, empty__q_0(a));
 	return at_3(ctx, a, decr(ctx, a.size));
 }
+struct test_options test_options(struct ctx* ctx, uint8_t print_tests__q, uint8_t overwrite_output__q, uint64_t max_failures) {
+	return (struct test_options) {print_tests__q, overwrite_output__q, max_failures};
+}
 struct test_options main_0__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr_5 values) {
 	struct opt_9 print_tests_strs0;
 	struct opt_9 overwrite_output_strs1;
@@ -4517,7 +4569,7 @@ struct test_options main_0__lambda0(struct ctx* ctx, uint8_t* _closure, struct a
 	print_tests__q3 = has__q_2(print_tests_strs0);
 	overwrite_output__q6 = (_matched5 = overwrite_output_strs1, _matched5.kind == 0 ? 0 : _matched5.kind == 1 ? (s4 = _matched5.as1, (assert_0(ctx, empty__q_6(s4.value)), 1)) : (assert(0),0));
 	max_failures10 = (_matched9 = max_failures_strs2, _matched9.kind == 0 ? literal_1(ctx, (struct arr_0) {3, constantarr_0_31}) : _matched9.kind == 1 ? (s7 = _matched9.as1, (strs8 = s7.value, (assert_0(ctx, _op_equal_equal_1(strs8.size, literal_1(ctx, (struct arr_0) {1, constantarr_0_22}))), literal_1(ctx, first_1(ctx, strs8))))) : (assert(0),0));
-	return (struct test_options) {print_tests__q3, overwrite_output__q6, max_failures10};
+	return test_options(ctx, print_tests__q3, overwrite_output__q6, max_failures10);
 }
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value) {
 	return fut_0(ctx, new_lock(), (struct fut_state_0) {1, .as1 = fut_state_resolved_0(ctx, value)});
@@ -4577,7 +4629,7 @@ uint8_t _op_less_equal_1(int64_t a, int64_t b) {
 }
 uint8_t _op_less_1(int64_t a, int64_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_41(a, b);
+	_matched0 = compare_49(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 1;
@@ -4759,7 +4811,10 @@ struct dict_1* get_environ(struct ctx* ctx) {
 	return freeze_5(ctx, res0);
 }
 struct mut_dict_1 new_mut_dict_1(struct ctx* ctx) {
-	return (struct mut_dict_1) {new_mut_arr_0(ctx), new_mut_arr_0(ctx)};
+	return mut_dict_1(ctx, new_mut_arr_0(ctx), new_mut_arr_0(ctx));
+}
+struct mut_dict_1 mut_dict_1(struct ctx* ctx, struct mut_arr_1* keys, struct mut_arr_1* values) {
+	return (struct mut_dict_1) {keys, values};
 }
 uint8_t get_environ_recur(struct ctx* ctx, char** env, struct mut_dict_1 res) {
 	char** _tailCallenv;
@@ -4840,9 +4895,12 @@ struct opt_11 get_recursive_1(struct ctx* ctx, struct arr_1 keys, struct arr_1 v
 	}
 }
 struct dict_1* unsafe_as_dict_1(struct ctx* ctx, struct mut_dict_1 m) {
+	return dict_1(ctx, unsafe_as_arr_0(m.keys), unsafe_as_arr_0(m.values));
+}
+struct dict_1* dict_1(struct ctx* ctx, struct arr_1 keys, struct arr_1 values) {
 	struct dict_1* temp0;
 	temp0 = (struct dict_1*) alloc(ctx, sizeof(struct dict_1));
-	(*(temp0) = (struct dict_1) {unsafe_as_arr_0(m.keys), unsafe_as_arr_0(m.values)}, 0);
+	(*(temp0) = (struct dict_1) {keys, values}, 0);
 	return temp0;
 }
 struct key_value_pair* parse_environ_entry(struct ctx* ctx, char* entry) {
@@ -4851,24 +4909,24 @@ struct key_value_pair* parse_environ_entry(struct ctx* ctx, char* entry) {
 	char* value_begin2;
 	char* value_end3;
 	struct arr_0 value4;
-	struct key_value_pair* temp0;
 	key_end0 = find_char_in_cstr(entry, literal_0((struct arr_0) {1, constantarr_0_42}));
 	key1 = arr_from_begin_end(entry, key_end0);
 	value_begin2 = incr_0(key_end0);
 	value_end3 = find_cstr_end(value_begin2);
 	value4 = arr_from_begin_end(value_begin2, value_end3);
+	return key_value_pair(ctx, key1, value4);
+}
+struct key_value_pair* key_value_pair(struct ctx* ctx, struct arr_0 key, struct arr_0 value) {
+	struct key_value_pair* temp0;
 	temp0 = (struct key_value_pair*) alloc(ctx, sizeof(struct key_value_pair));
-	(*(temp0) = (struct key_value_pair) {key1, value4}, 0);
+	(*(temp0) = (struct key_value_pair) {key, value}, 0);
 	return temp0;
 }
 char** incr_4(char** p) {
 	return (p + 1);
 }
 struct dict_1* freeze_5(struct ctx* ctx, struct mut_dict_1 m) {
-	struct dict_1* temp0;
-	temp0 = (struct dict_1*) alloc(ctx, sizeof(struct dict_1));
-	(*(temp0) = (struct dict_1) {freeze_0(m.keys), freeze_0(m.values)}, 0);
-	return temp0;
+	return dict_1(ctx, freeze_0(m.keys), freeze_0(m.values));
 }
 struct result_3 first_failures(struct ctx* ctx, struct result_3 a, struct fun0 b) {
 	struct first_failures__lambda0* temp0;
@@ -5005,7 +5063,7 @@ uint8_t todo_5() {
 }
 uint8_t _op_equal_equal_5(uint32_t a, uint32_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_498(a, b);
+	_matched0 = compare_516(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 0;
@@ -5017,7 +5075,7 @@ uint8_t _op_equal_equal_5(uint32_t a, uint32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_498(uint32_t a, uint32_t b) {
+struct comparison compare_516(uint32_t a, uint32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -5270,7 +5328,7 @@ uint64_t partition_recur(struct ctx* ctx, struct mut_slice* a, struct arr_0 pivo
 }
 uint8_t _op_less_2(struct arr_0 a, struct arr_0 b) {
 	struct comparison _matched0;
-	_matched0 = compare_297(a, b);
+	_matched0 = compare_311(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 1;
@@ -5384,9 +5442,9 @@ struct arr_7 flat_map_with_max_size(struct ctx* ctx, struct arr_1 a, uint64_t ma
 	return freeze_6(res0);
 }
 struct mut_arr_5* new_mut_arr_2(struct ctx* ctx) {
-	return mut_arr_4(ctx, 0, 0, 0, NULL);
+	return mut_arr_5(ctx, 0, 0, 0, NULL);
 }
-struct mut_arr_5* mut_arr_4(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct failure** data) {
+struct mut_arr_5* mut_arr_5(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, struct failure** data) {
 	struct mut_arr_5* temp0;
 	temp0 = (struct mut_arr_5*) alloc(ctx, sizeof(struct mut_arr_5));
 	(*(temp0) = (struct mut_arr_5) {frozen__q, size, capacity, data}, 0);
@@ -5604,38 +5662,25 @@ struct print_test_result* run_print_test(struct ctx* ctx, struct arr_0 print_kin
 	struct arr_0* temp0;
 	struct arr_0 output_path2;
 	struct arr_7 output_failures3;
-	struct print_test_result* temp1;
-	struct print_test_result* temp2;
 	struct arr_0 stderr_no_color4;
-	struct print_test_result* temp3;
 	struct arr_0 message5;
-	struct print_test_result* temp6;
-	struct failure** temp4;
-	struct failure* temp5;
+	struct failure** temp1;
 	res1 = spawn_and_wait_result_0(ctx, path_to_noze, (temp0 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 3)), ((*((temp0 + 0)) = (struct arr_0) {5, constantarr_0_56}, 0), ((*((temp0 + 1)) = print_kind, 0), ((*((temp0 + 2)) = path, 0), (struct arr_1) {3, temp0})))), env);
 	output_path2 = _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, path, (struct arr_0) {1, constantarr_0_43}), print_kind), (struct arr_0) {5, constantarr_0_57});
 	output_failures3 = ((empty__q_0(res1->stdout) && _op_bang_equal(res1->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_21}))) ? empty_arr_3() : handle_output(ctx, path, output_path2, res1->stdout, overwrite_output__q));
 	if (!empty__q_11(output_failures3)) {
-		temp1 = (struct print_test_result*) alloc(ctx, sizeof(struct print_test_result));
-		(*(temp1) = (struct print_test_result) {1, output_failures3}, 0);
-		return temp1;
+		return print_test_result(ctx, 1, output_failures3);
 	} else {
 		if (_op_equal_equal_3(res1->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_21}))) {
 			assert_0(ctx, _op_equal_equal_4(res1->stderr, (struct arr_0) {0, NULL}));
-			temp2 = (struct print_test_result*) alloc(ctx, sizeof(struct print_test_result));
-			(*(temp2) = (struct print_test_result) {0, empty_arr_3()}, 0);
-			return temp2;
+			return print_test_result(ctx, 0, empty_arr_3());
 		} else {
 			if (_op_equal_equal_3(res1->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_22}))) {
 				stderr_no_color4 = remove_colors(ctx, res1->stderr);
-				temp3 = (struct print_test_result*) alloc(ctx, sizeof(struct print_test_result));
-				(*(temp3) = (struct print_test_result) {1, handle_output(ctx, path, _op_plus_1(ctx, output_path2, (struct arr_0) {4, constantarr_0_68}), stderr_no_color4, overwrite_output__q)}, 0);
-				return temp3;
+				return print_test_result(ctx, 1, handle_output(ctx, path, _op_plus_1(ctx, output_path2, (struct arr_0) {4, constantarr_0_68}), stderr_no_color4, overwrite_output__q));
 			} else {
 				message5 = _op_plus_1(ctx, (struct arr_0) {22, constantarr_0_69}, to_str_1(ctx, res1->exit_code));
-				temp6 = (struct print_test_result*) alloc(ctx, sizeof(struct print_test_result));
-				(*(temp6) = (struct print_test_result) {1, (temp4 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1)), ((*((temp4 + 0)) = (temp5 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp5) = (struct failure) {path, message5}, 0), temp5)), 0), (struct arr_7) {1, temp4}))}, 0);
-				return temp6;
+				return print_test_result(ctx, 1, (temp1 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1)), ((*((temp1 + 0)) = failure(ctx, path, message5), 0), (struct arr_7) {1, temp1})));
 			}
 		}
 	}
@@ -5754,7 +5799,7 @@ int32_t get_5(struct cell_4* c) {
 	return c->value;
 }
 struct mut_arr_4* new_mut_arr_3(struct ctx* ctx) {
-	return mut_arr_3(ctx, 0, 0, 0, NULL);
+	return mut_arr_4(ctx, 0, 0, 0, NULL);
 }
 uint8_t keep_polling(struct ctx* ctx, int32_t stdout_pipe, int32_t stderr_pipe, struct mut_arr_4* stdout_builder, struct mut_arr_4* stderr_builder) {
 	struct arr_8 poll_fds1;
@@ -5812,7 +5857,7 @@ uint8_t zero__q_3(int16_t a) {
 }
 uint8_t _op_equal_equal_6(int16_t a, int16_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_613(a, b);
+	_matched0 = compare_631(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 0;
@@ -5824,7 +5869,7 @@ uint8_t _op_equal_equal_6(int16_t a, int16_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_613(int16_t a, int16_t b) {
+struct comparison compare_631(int16_t a, int16_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -5868,7 +5913,7 @@ struct handle_revents_result handle_revents(struct ctx* ctx, struct pollfd* poll
 	} else {
 		0;
 	}
-	return (struct handle_revents_result) {had_pollin__q1, hung_up__q2};
+	return handle_revents_result(ctx, had_pollin__q1, hung_up__q2);
 }
 uint8_t has_pollin__q(struct ctx* ctx, int16_t revents) {
 	return bits_intersect__q(revents, pollin(ctx));
@@ -5999,6 +6044,9 @@ int16_t pollnval(struct ctx* ctx) {
 int16_t five_4() {
 	return wrap_incr_4(four_4());
 }
+struct handle_revents_result handle_revents_result(struct ctx* ctx, uint8_t had_pollin__q, uint8_t hung_up__q) {
+	return (struct handle_revents_result) {had_pollin__q, hung_up__q};
+}
 uint64_t to_nat_1(struct ctx* ctx, uint8_t b) {
 	if (b) {
 		return 1;
@@ -6084,7 +6132,7 @@ int32_t bit_shift_right(int32_t a, int32_t b) {
 }
 uint8_t _op_less_3(int32_t a, int32_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_77(a, b);
+	_matched0 = compare_88(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 1;
@@ -6233,9 +6281,9 @@ struct mut_arr_6* make_mut_arr_3(struct ctx* ctx, uint64_t size, struct fun_mut1
 	return res0;
 }
 struct mut_arr_6* new_uninitialized_mut_arr_3(struct ctx* ctx, uint64_t size) {
-	return mut_arr_5(ctx, 0, size, size, uninitialized_data_5(ctx, size));
+	return mut_arr_6(ctx, 0, size, size, uninitialized_data_5(ctx, size));
 }
-struct mut_arr_6* mut_arr_5(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, char** data) {
+struct mut_arr_6* mut_arr_6(struct ctx* ctx, uint8_t frozen__q, uint64_t size, uint64_t capacity, char** data) {
 	struct mut_arr_6* temp0;
 	temp0 = (struct mut_arr_6*) alloc(ctx, sizeof(struct mut_arr_6));
 	(*(temp0) = (struct mut_arr_6) {frozen__q, size, capacity, data}, 0);
@@ -6314,7 +6362,7 @@ char** convert_environ(struct ctx* ctx, struct dict_1* environ) {
 	return freeze_7(res0).data;
 }
 struct mut_arr_6* new_mut_arr_4(struct ctx* ctx) {
-	return mut_arr_5(ctx, 0, 0, 0, NULL);
+	return mut_arr_6(ctx, 0, 0, 0, NULL);
 }
 uint8_t each_3(struct ctx* ctx, struct dict_1* d, struct fun_mut2_2 f) {
 	struct dict_1* _tailCalld;
@@ -6339,12 +6387,6 @@ uint8_t call_25(struct ctx* ctx, struct fun_mut2_2 f, struct arr_0 p0, struct ar
 }
 uint8_t call_with_ctx_24(struct ctx* c, struct fun_mut2_2 f, struct arr_0 p0, struct arr_0 p1) {
 	return f.fun_ptr(c, f.closure, p0, p1);
-}
-struct dict_1* dict_1(struct ctx* ctx, struct arr_1 keys, struct arr_1 values) {
-	struct dict_1* temp0;
-	temp0 = (struct dict_1*) alloc(ctx, sizeof(struct dict_1));
-	(*(temp0) = (struct dict_1) {keys, values}, 0);
-	return temp0;
 }
 uint8_t push_3(struct ctx* ctx, struct mut_arr_6* a, char* value) {
 	if (_op_equal_equal_1(a->size, a->capacity)) {
@@ -6404,7 +6446,7 @@ uint8_t convert_environ__lambda0(struct ctx* ctx, struct convert_environ__lambda
 	return push_3(ctx, _closure->res, to_c_str(ctx, _op_plus_1(ctx, _op_plus_1(ctx, key, (struct arr_0) {1, constantarr_0_42}), value)));
 }
 struct process_result* fail_2(struct ctx* ctx, struct arr_0 reason) {
-	return throw_2(ctx, (struct exception) {reason});
+	return throw_2(ctx, exception(reason));
 }
 struct process_result* throw_2(struct ctx* ctx, struct exception e) {
 	struct exception_ctx* exn_ctx0;
@@ -6423,11 +6465,9 @@ struct arr_7 empty_arr_3() {
 struct arr_7 handle_output(struct ctx* ctx, struct arr_0 original_path, struct arr_0 output_path, struct arr_0 actual, uint8_t overwrite_output__q) {
 	struct opt_11 _matched4;
 	struct failure** temp0;
-	struct failure* temp1;
 	struct some_11 s1;
 	struct arr_0 message2;
-	struct failure** temp2;
-	struct failure* temp3;
+	struct failure** temp1;
 	_matched4 = try_read_file_0(ctx, output_path);
 	switch (_matched4.kind) {
 		case 0:
@@ -6436,7 +6476,7 @@ struct arr_7 handle_output(struct ctx* ctx, struct arr_0 original_path, struct a
 				return empty_arr_3();
 			} else {
 				temp0 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1));
-				(*((temp0 + 0)) = (temp1 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp1) = (struct failure) {original_path, _op_plus_1(ctx, _op_plus_1(ctx, base_name(ctx, output_path), (struct arr_0) {29, constantarr_0_64}), actual)}, 0), temp1)), 0);
+				(*((temp0 + 0)) = failure(ctx, original_path, _op_plus_1(ctx, _op_plus_1(ctx, base_name(ctx, output_path), (struct arr_0) {29, constantarr_0_64}), actual)), 0);
 				return (struct arr_7) {1, temp0};
 			}
 		case 1:
@@ -6449,9 +6489,9 @@ struct arr_7 handle_output(struct ctx* ctx, struct arr_0 original_path, struct a
 					return empty_arr_3();
 				} else {
 					message2 = _op_plus_1(ctx, _op_plus_1(ctx, base_name(ctx, output_path), (struct arr_0) {30, constantarr_0_65}), actual);
-					temp2 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1));
-					(*((temp2 + 0)) = (temp3 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp3) = (struct failure) {original_path, message2}, 0), temp3)), 0);
-					return (struct arr_7) {1, temp2};
+					temp1 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1));
+					(*((temp1 + 0)) = failure(ctx, original_path, message2), 0);
+					return (struct arr_7) {1, temp1};
 				}
 			}
 		default:
@@ -6567,7 +6607,7 @@ uint32_t bit_shift_left(uint32_t a, uint32_t b) {
 }
 uint8_t _op_less_4(uint32_t a, uint32_t b) {
 	struct comparison _matched0;
-	_matched0 = compare_498(a, b);
+	_matched0 = compare_516(a, b);
 	switch (_matched0.kind) {
 		case 0:
 			return 1;
@@ -6599,6 +6639,18 @@ uint32_t nine_2() {
 }
 struct arr_0 to_str_4(struct ctx* ctx, uint32_t n) {
 	return to_str_3(ctx, n);
+}
+struct failure* failure(struct ctx* ctx, struct arr_0 path, struct arr_0 message) {
+	struct failure* temp0;
+	temp0 = (struct failure*) alloc(ctx, sizeof(struct failure));
+	(*(temp0) = (struct failure) {path, message}, 0);
+	return temp0;
+}
+struct print_test_result* print_test_result(struct ctx* ctx, uint8_t should_stop__q, struct arr_7 failures) {
+	struct print_test_result* temp0;
+	temp0 = (struct print_test_result*) alloc(ctx, sizeof(struct print_test_result));
+	(*(temp0) = (struct print_test_result) {should_stop__q, failures}, 0);
+	return temp0;
 }
 struct arr_0 remove_colors(struct ctx* ctx, struct arr_0 s) {
 	struct mut_arr_4* out0;
@@ -6678,7 +6730,6 @@ struct arr_7 run_single_runnable_test(struct ctx* ctx, struct arr_0 path_to_noze
 	struct process_result* res3;
 	struct arr_0 message4;
 	struct failure** temp2;
-	struct failure* temp3;
 	args2 = (interpret__q ? (temp0 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 3)), ((*((temp0 + 0)) = (struct arr_0) {3, constantarr_0_71}, 0), ((*((temp0 + 1)) = path, 0), ((*((temp0 + 2)) = (struct arr_0) {11, constantarr_0_72}, 0), (struct arr_1) {3, temp0})))) : (temp1 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 2)), ((*((temp1 + 0)) = (struct arr_0) {3, constantarr_0_71}, 0), ((*((temp1 + 1)) = path, 0), (struct arr_1) {2, temp1}))));
 	res3 = spawn_and_wait_result_0(ctx, path_to_noze, args2, env);
 	if ((_op_equal_equal_3(res3->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_21})) && _op_equal_equal_4(res3->stderr, (struct arr_0) {0, NULL}))) {
@@ -6686,7 +6737,7 @@ struct arr_7 run_single_runnable_test(struct ctx* ctx, struct arr_0 path_to_noze
 	} else {
 		message4 = _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {8, constantarr_0_74}, to_str_1(ctx, res3->exit_code)), (struct arr_0) {9, constantarr_0_75}), res3->stdout), (struct arr_0) {8, constantarr_0_76}), res3->stderr);
 		temp2 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1));
-		(*((temp2 + 0)) = (temp3 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp3) = (struct failure) {path, message4}, 0), temp3)), 0);
+		(*((temp2 + 0)) = failure(ctx, path, message4), 0);
 		return (struct arr_7) {1, temp2};
 	}
 }
@@ -6962,21 +7013,19 @@ uint64_t max_line_length(struct ctx* ctx) {
 uint8_t lint_file__lambda0(struct ctx* ctx, struct lint_file__lambda0* _closure, struct arr_0 line, uint64_t line_num) {
 	struct arr_0 ln0;
 	struct arr_0 message1;
-	struct failure* temp0;
 	uint64_t width2;
 	struct arr_0 message3;
-	struct failure* temp1;
 	ln0 = to_str_3(ctx, incr_1(ctx, line_num));
 	if ((!_closure->err_file__q && contains_subsequence__q(ctx, lstrip(ctx, line), (struct arr_0) {2, constantarr_0_95}))) {
 		message1 = _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {5, constantarr_0_96}, ln0), (struct arr_0) {24, constantarr_0_97});
-		push_2(ctx, _closure->res, (temp0 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp0) = (struct failure) {_closure->path, message1}, 0), temp0)));
+		push_2(ctx, _closure->res, failure(ctx, _closure->path, message1));
 	} else {
 		0;
 	}
 	width2 = line_len(ctx, line);
 	if (_op_greater_0(width2, max_line_length(ctx))) {
 		message3 = _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {5, constantarr_0_96}, ln0), (struct arr_0) {4, constantarr_0_100}), to_str_3(ctx, width2)), (struct arr_0) {28, constantarr_0_101}), to_str_3(ctx, max_line_length(ctx)));
-		return push_2(ctx, _closure->res, (temp1 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp1) = (struct failure) {_closure->path, message3}, 0), temp1)));
+		return push_2(ctx, _closure->res, failure(ctx, _closure->path, message3));
 	} else {
 		return 0;
 	}
