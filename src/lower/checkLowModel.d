@@ -129,7 +129,7 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 			// TODO: there are some limitations on target...
 			checkLowExpr(ctx, it.target.type, it.target);
 		},
-		(ref immutable LowExprKind.RecordFieldAccess it) {
+		(ref immutable LowExprKind.RecordFieldGet it) {
 			immutable LowType targetTypeNonPtr = immutable LowType(it.record);
 			immutable LowType targetType = it.targetIsPointer
 				? immutable LowType(immutable LowType.NonFunPtr(ptrTrustMe(targetTypeNonPtr)))

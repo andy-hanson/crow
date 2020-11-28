@@ -734,7 +734,7 @@ struct ConcreteExpr {
 	}
 
 	// TODO: this is only used for closure field accesses now. At least rename.
-	struct RecordFieldAccess {
+	struct RecordFieldGet {
 		immutable Ptr!ConcreteExpr target;
 		immutable Ptr!ConcreteField field;
 	}
@@ -761,7 +761,7 @@ struct ConcreteExpr {
 		localRef,
 		match,
 		paramRef,
-		recordFieldAccess,
+		recordFieldGet,
 		seq,
 	}
 	union {
@@ -777,7 +777,7 @@ struct ConcreteExpr {
 		immutable LocalRef localRef;
 		immutable Ptr!Match match;
 		immutable ParamRef paramRef;
-		immutable RecordFieldAccess recordFieldAccess;
+		immutable RecordFieldGet recordFieldGet;
 		immutable Seq seq;
 	}
 
@@ -818,8 +818,8 @@ struct ConcreteExpr {
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable ParamRef a) {
 		type = t; range = r; kind = Kind.paramRef; paramRef = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable RecordFieldAccess a) {
-		type = t; range = r; kind = Kind.recordFieldAccess; recordFieldAccess = a;
+	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable RecordFieldGet a) {
+		type = t; range = r; kind = Kind.recordFieldGet; recordFieldGet = a;
 	}
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Seq a) {
 		type = t; range = r; kind = Kind.seq; seq = a;
@@ -857,7 +857,7 @@ immutable(Bool) isConstant(ref immutable ConcreteExpr a) {
 	scope T delegate(ref immutable ConcreteExpr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
 	scope T delegate(ref immutable ConcreteExpr.Match) @safe @nogc pure nothrow cbMatch,
 	scope T delegate(ref immutable ConcreteExpr.ParamRef) @safe @nogc pure nothrow cbParamRef,
-	scope T delegate(ref immutable ConcreteExpr.RecordFieldAccess) @safe @nogc pure nothrow cbRecordFieldAccess,
+	scope T delegate(ref immutable ConcreteExpr.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
 	scope T delegate(ref immutable ConcreteExpr.Seq) @safe @nogc pure nothrow cbSeq,
 ) {
 	final switch (a.kind) {
@@ -885,8 +885,8 @@ immutable(Bool) isConstant(ref immutable ConcreteExpr a) {
 			return cbMatch(a.match);
 		case ConcreteExpr.Kind.paramRef:
 			return cbParamRef(a.paramRef);
-		case ConcreteExpr.Kind.recordFieldAccess:
-			return cbRecordFieldAccess(a.recordFieldAccess);
+		case ConcreteExpr.Kind.recordFieldGet:
+			return cbRecordFieldGet(a.recordFieldGet);
 		case ConcreteExpr.Kind.seq:
 			return cbSeq(a.seq);
 	}

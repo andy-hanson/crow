@@ -243,7 +243,7 @@ immutable(ConcreteExpr) concretizeClosureFieldRef(Alloc)(
 	return immutable ConcreteExpr(
 		field.type,
 		range,
-		immutable ConcreteExpr.RecordFieldAccess(allocExpr(alloc, closureParamRef), field));
+		immutable ConcreteExpr.RecordFieldGet(allocExpr(alloc, closureParamRef), field));
 }
 
 struct ConstantsOrExprs {

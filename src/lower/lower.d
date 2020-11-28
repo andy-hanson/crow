@@ -895,8 +895,8 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 			getMatchExpr(alloc, ctx, exprPos, it),
 		(ref immutable ConcreteExpr.ParamRef it) =>
 			getParamRefExpr(alloc, ctx, it),
-		(ref immutable ConcreteExpr.RecordFieldAccess it) =>
-			getRecordFieldAccessExpr(alloc, ctx, it),
+		(ref immutable ConcreteExpr.RecordFieldGet it) =>
+			getRecordFieldGetExpr(alloc, ctx, it),
 		(ref immutable ConcreteExpr.Seq it) =>
 			immutable LowExprKind(immutable LowExprKind.Seq(
 				allocate(alloc, getLowExpr(alloc, ctx, it.first, ExprPos.nonTail)),
@@ -998,7 +998,7 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 			(ref immutable ConcreteFunExprBody) =>
 				unreachable!(immutable LowExprKind),
 			(ref immutable ConcreteFunBody.RecordFieldGet it) =>
-				immutable LowExprKind(immutable LowExprKind.RecordFieldAccess(
+				immutable LowExprKind(immutable LowExprKind.RecordFieldGet(
 					allocate(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail)),
 					it.fieldIndex)),
 			(ref immutable ConcreteFunBody.RecordFieldSet it) {
@@ -1225,12 +1225,12 @@ immutable(LowExprKind) getParamRefExpr(Alloc)(
 	return immutable LowExprKind(immutable LowExprKind.ParamRef(param));
 }
 
-immutable(LowExprKind) getRecordFieldAccessExpr(Alloc)(
+immutable(LowExprKind) getRecordFieldGetExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
-	ref immutable ConcreteExpr.RecordFieldAccess a,
+	ref immutable ConcreteExpr.RecordFieldGet a,
 ) {
-	return immutable LowExprKind(immutable LowExprKind.RecordFieldAccess(
+	return immutable LowExprKind(immutable LowExprKind.RecordFieldGet(
 		allocate(alloc, getLowExpr(alloc, ctx, a.target, ExprPos.nonTail)),
 		a.field.index));
 }

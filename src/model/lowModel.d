@@ -548,7 +548,7 @@ struct LowExprKind {
 		immutable Ptr!LowExpr target;
 	}
 
-	struct RecordFieldAccess {
+	struct RecordFieldGet {
 		@safe @nogc pure nothrow:
 
 		immutable Ptr!LowExpr target;
@@ -731,7 +731,7 @@ struct LowExprKind {
 		match,
 		paramRef,
 		ptrCast,
-		recordFieldAccess,
+		recordFieldGet,
 		recordFieldSet,
 		seq,
 		sizeOf,
@@ -753,7 +753,7 @@ struct LowExprKind {
 		immutable Ptr!Match match;
 		immutable ParamRef paramRef;
 		immutable PtrCast ptrCast;
-		immutable RecordFieldAccess recordFieldAccess;
+		immutable RecordFieldGet recordFieldGet;
 		immutable RecordFieldSet recordFieldSet;
 		immutable Seq seq;
 		immutable SizeOf sizeOf;
@@ -775,7 +775,7 @@ struct LowExprKind {
 	@trusted immutable this(immutable Ptr!Match a) { kind = Kind.match; match = a; }
 	@trusted immutable this(immutable ParamRef a) { kind = Kind.paramRef; paramRef = a; }
 	@trusted immutable this(immutable PtrCast a) { kind = Kind.ptrCast; ptrCast = a; }
-	@trusted immutable this(immutable RecordFieldAccess a) { kind = Kind.recordFieldAccess; recordFieldAccess = a; }
+	@trusted immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
 	@trusted immutable this(immutable RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 	@trusted immutable this(immutable Seq a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable SizeOf a) { kind = Kind.sizeOf; sizeOf = a; }
@@ -799,7 +799,7 @@ static assert(LowExprKind.sizeof <= 32);
 	scope T delegate(ref immutable LowExprKind.Match) @safe @nogc pure nothrow cbMatch,
 	scope T delegate(ref immutable LowExprKind.ParamRef) @safe @nogc pure nothrow cbParamRef,
 	scope T delegate(ref immutable LowExprKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
-	scope T delegate(ref immutable LowExprKind.RecordFieldAccess) @safe @nogc pure nothrow cbRecordFieldAccess,
+	scope T delegate(ref immutable LowExprKind.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
 	scope T delegate(ref immutable LowExprKind.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 	scope T delegate(ref immutable LowExprKind.Seq) @safe @nogc pure nothrow cbSeq,
 	scope T delegate(ref immutable LowExprKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
@@ -829,8 +829,8 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbParamRef(a.paramRef);
 		case LowExprKind.Kind.ptrCast:
 			return cbPtrCast(a.ptrCast);
-		case LowExprKind.Kind.recordFieldAccess:
-			return cbRecordFieldAccess(a.recordFieldAccess);
+		case LowExprKind.Kind.recordFieldGet:
+			return cbRecordFieldGet(a.recordFieldGet);
 		case LowExprKind.Kind.recordFieldSet:
 			return cbRecordFieldSet(a.recordFieldSet);
 		case LowExprKind.Kind.seq:
@@ -870,13 +870,13 @@ ref immutable(LowExprKind.ParamRef) asParamRef(return scope ref immutable LowExp
 	return a.paramRef;
 }
 
-immutable(Bool) isRecordFieldAccess(ref immutable LowExprKind a) {
-	return immutable Bool(a.kind == LowExprKind.Kind.recordFieldAccess);
+immutable(Bool) isRecordFieldGet(ref immutable LowExprKind a) {
+	return immutable Bool(a.kind == LowExprKind.Kind.recordFieldGet);
 }
 
-@trusted ref immutable(LowExprKind.RecordFieldAccess) asRecordFieldAccess(return scope ref immutable LowExprKind a) {
-	verify(isRecordFieldAccess(a));
-	return a.recordFieldAccess;
+@trusted ref immutable(LowExprKind.RecordFieldGet) asRecordFieldGet(return scope ref immutable LowExprKind a) {
+	verify(isRecordFieldGet(a));
+	return a.recordFieldGet;
 }
 
 struct ArrTypeAndConstantsLow {

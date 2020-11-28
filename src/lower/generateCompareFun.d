@@ -16,7 +16,7 @@ import lower.lowExprHelpers :
 	incrPointer,
 	localRef,
 	paramRef,
-	recordFieldAccess;
+	recordFieldGet;
 import model.lowModel :
 	asNonFunPtrType,
 	asRecordType,
@@ -113,10 +113,10 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 	immutable LowType elementType = asNonFunPtrType(elementPtrType).pointee;
 
 	immutable(LowExpr) genGetSize(ref immutable LowExpr arr) {
-		return recordFieldAccess!Alloc(alloc, range, arr, sizeType, 0);
+		return recordFieldGet!Alloc(alloc, range, arr, sizeType, 0);
 	}
 	immutable(LowExpr) genGetData(ref immutable LowExpr arr) {
-		return recordFieldAccess(alloc, range, arr, elementPtrType, 1);
+		return recordFieldGet(alloc, range, arr, elementPtrType, 1);
 	}
 	immutable(LowExpr) genTail(ref immutable LowExpr arr) {
 		immutable LowExpr curSize = genGetSize(arr);
@@ -391,8 +391,8 @@ immutable(LowExpr) compareOneField(Alloc)(
 	ref immutable LowExpr a,
 	ref immutable LowExpr b,
 ) {
-	immutable LowExpr ax = recordFieldAccess(alloc, range, a, fieldType, fieldIndex);
-	immutable LowExpr bx = recordFieldAccess(alloc, range, b, fieldType, fieldIndex);
+	immutable LowExpr ax = recordFieldGet(alloc, range, a, fieldType, fieldIndex);
+	immutable LowExpr bx = recordFieldGet(alloc, range, b, fieldType, fieldIndex);
 	return genCompareExpr(alloc, range, compareFuns, comparisonTypes, fieldType, ax, bx);
 }
 

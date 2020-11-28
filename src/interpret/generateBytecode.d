@@ -59,13 +59,13 @@ import model.lowModel :
 	asLocalRef,
 	asNonFunPtrType,
 	asParamRef,
-	asRecordFieldAccess,
+	asRecordFieldGet,
 	asRecordType,
 	asUnionType,
 	firstRegularParamIndex,
 	isLocalRef,
 	isParamRef,
-	isRecordFieldAccess,
+	isRecordFieldGet,
 	LowExpr,
 	LowExprKind,
 	LowFun,
@@ -458,8 +458,8 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 		(ref immutable LowExprKind.PtrCast it) {
 			generateExpr(dbg, tempAlloc, writer, ctx, it.target);
 		},
-		(ref immutable LowExprKind.RecordFieldAccess it) {
-			generateRecordFieldAccess(dbg, tempAlloc, writer, ctx, source, it);
+		(ref immutable LowExprKind.RecordFieldGet it) {
+			generateRecordFieldGet(dbg, tempAlloc, writer, ctx, source, it);
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
 			immutable StackEntry before = getNextStackEntry(writer);
@@ -826,9 +826,9 @@ void generateRefOfVal(Debug, TempAlloc, CodeAlloc)(
 		writeStackRef(dbg, writer, source, mustGetAt_mut(ctx.localEntries, asLocalRef(arg.kind).local).start);
 	else if (isParamRef(arg.kind))
 		writeStackRef(dbg, writer, source, at(ctx.parameterEntries, asParamRef(arg.kind).index.index).start);
-	else if (isRecordFieldAccess(arg.kind)) {
-		immutable LowExprKind.RecordFieldAccess rfa = asRecordFieldAccess(arg.kind);
-		generatePtrToRecordFieldAccess!(Debug, TempAlloc, CodeAlloc)(
+	else if (isRecordFieldGet(arg.kind)) {
+		immutable LowExprKind.RecordFieldGet rfa = asRecordFieldGet(arg.kind);
+		generatePtrToRecordFieldGet!(Debug, TempAlloc, CodeAlloc)(
 			dbg,
 			tempAlloc,
 			writer,
@@ -842,13 +842,13 @@ void generateRefOfVal(Debug, TempAlloc, CodeAlloc)(
 		todo!void("!");
 }
 
-void generateRecordFieldAccess(Debug, TempAlloc, CodeAlloc)(
+void generateRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
 	ref immutable ByteCodeSource source,
-	ref immutable LowExprKind.RecordFieldAccess it,
+	ref immutable LowExprKind.RecordFieldGet it,
 ) {
 	immutable StackEntry targetEntry = getNextStackEntry(writer);
 	generateExpr(dbg, tempAlloc, writer, ctx, it.target);
@@ -884,7 +884,7 @@ void generateRecordFieldAccess(Debug, TempAlloc, CodeAlloc)(
 	}
 }
 
-void generatePtrToRecordFieldAccess(Debug, TempAlloc, CodeAlloc)(
+void generatePtrToRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
@@ -901,8 +901,8 @@ void generatePtrToRecordFieldAccess(Debug, TempAlloc, CodeAlloc)(
 		if (!zero(offset))
 			writeAddConstantNat64(dbg, writer, source, offset.to64());
 	} else
-		// This only works if it's a local .. or another recordfieldaccess
-		todo!void("ptr-to-record-field-access");
+		// This only works if it's a local .. or another RecordFieldGet
+		todo!void("ptr-to-record-field-get");
 }
 
 void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(

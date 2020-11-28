@@ -842,7 +842,7 @@ void eachLocal(
 		(ref immutable LowExprKind.PtrCast it) {
 			eachLocal(it.target, cb);
 		},
-		(ref immutable LowExprKind.RecordFieldAccess it) {
+		(ref immutable LowExprKind.RecordFieldGet it) {
 			eachLocal(it.target, cb);
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
@@ -966,8 +966,8 @@ void writeExpr(Alloc)(
 		(ref immutable LowExprKind.PtrCast it) {
 			return_(() { writePtrCast(writer, indent, ctx, type, it); });
 		},
-		(ref immutable LowExprKind.RecordFieldAccess it) {
-			return_(() { writeRecordFieldAccess(writer, indent, ctx, it); });
+		(ref immutable LowExprKind.RecordFieldGet it) {
+			return_(() { writeRecordFieldGet(writer, indent, ctx, it); });
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
 			return_(() { writeRecordFieldSet(writer, indent, ctx, it); });
@@ -1248,16 +1248,16 @@ void writePtrCast(Alloc)(
 	writeExprExpr(writer, indent, ctx, a.target);
 }
 
-void writeRecordFieldAccess(Alloc)(
+void writeRecordFieldGet(Alloc)(
 	ref Writer!Alloc writer,
 	immutable size_t indent,
 	ref immutable FunBodyCtx ctx,
-	ref immutable LowExprKind.RecordFieldAccess a,
+	ref immutable LowExprKind.RecordFieldGet a,
 ) {
-	writeRecordFieldAccess(writer, indent, ctx, a.target, a.targetIsPointer, a.record, a.fieldIndex);
+	writeRecordFieldGet(writer, indent, ctx, a.target, a.targetIsPointer, a.record, a.fieldIndex);
 }
 
-void writeRecordFieldAccess(Alloc)(
+void writeRecordFieldGet(Alloc)(
 	ref Writer!Alloc writer,
 	immutable size_t indent,
 	ref immutable FunBodyCtx ctx,
@@ -1278,7 +1278,7 @@ void writeRecordFieldSet(Alloc)(
 	ref immutable LowExprKind.RecordFieldSet a,
 ) {
 	writeChar(writer, '(');
-	writeRecordFieldAccess(writer, indent, ctx, a.target, a.targetIsPointer, a.record, a.fieldIndex);
+	writeRecordFieldGet(writer, indent, ctx, a.target, a.targetIsPointer, a.record, a.fieldIndex);
 	writeStatic(writer, " = ");
 	writeExprExpr(writer, indent, ctx, a.value);
 	writeStatic(writer, ", 0)");

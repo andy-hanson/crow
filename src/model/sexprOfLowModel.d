@@ -200,7 +200,7 @@ immutable(Sexpr) tataOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExpr
 			tataRecord(alloc, "param-ref", [tataNat(it.index.index)]),
 		(ref immutable LowExprKind.PtrCast it) =>
 			tataRecord(alloc, "ptr-cast", [tataOfLowExpr(alloc, it.target)]),
-		(ref immutable LowExprKind.RecordFieldAccess it) =>
+		(ref immutable LowExprKind.RecordFieldGet it) =>
 			tataRecord(alloc, "get-field", [
 				tataOfLowExpr(alloc, it.target),
 				tataBool(it.targetIsPointer),

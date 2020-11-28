@@ -227,7 +227,7 @@ immutable(LowExprKind) ptrCastKind(Alloc)(ref Alloc alloc, immutable LowExpr inn
 	return immutable LowExprKind(immutable LowExprKind.PtrCast(allocate(alloc, inner)));
 }
 
-immutable(LowExpr) recordFieldAccess(Alloc)(
+immutable(LowExpr) recordFieldGet(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable LowExpr target,
@@ -235,7 +235,7 @@ immutable(LowExpr) recordFieldAccess(Alloc)(
 	immutable u8 fieldIndex,
 ) {
 	return immutable LowExpr(fieldType, range, immutable LowExprKind(
-		immutable LowExprKind.RecordFieldAccess(
+		immutable LowExprKind.RecordFieldGet(
 			allocate(alloc, target),
 			fieldIndex)));
 }

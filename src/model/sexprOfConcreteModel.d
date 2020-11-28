@@ -272,7 +272,7 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 						tataOfConcreteExpr(alloc, case_.then)]))]),
 		(ref immutable ConcreteExpr.ParamRef it) =>
 			tataRecord(alloc, "param-ref", [tataOfConcreteParamRef(it.param)]),
-		(ref immutable ConcreteExpr.RecordFieldAccess it) =>
+		(ref immutable ConcreteExpr.RecordFieldGet it) =>
 			tataRecord(alloc, "get-field", [tataOfConcreteExpr(alloc, it.target), tataSym(name(it.field))]),
 		(ref immutable ConcreteExpr.Seq it) =>
 			tataRecord(alloc, "seq", [tataOfConcreteExpr(alloc, it.first), tataOfConcreteExpr(alloc, it.then)]));
