@@ -35,7 +35,7 @@ immutable(Sexpr) tataRecord(immutable string name) {
 }
 
 immutable(Sexpr) tataRecord(Alloc)(ref Alloc alloc, immutable string name, scope immutable Sexpr[] children) {
-	return tataRecord(name, arrLiteral!Sexpr(alloc, children));
+	return tataRecord(name, arrLiteral(alloc, children));
 }
 
 private struct SexprRecord {
@@ -50,14 +50,9 @@ immutable(Sexpr) tataNamedRecord(immutable string name, immutable Arr!NameAndSex
 immutable(Sexpr) tataNamedRecord(Alloc)(
 	ref Alloc alloc,
 	immutable string name,
-	immutable string field0Name,
-	immutable Sexpr field0Value,
-	immutable string field1Name,
-	immutable Sexpr field1Value,
+	scope immutable NameAndSexpr[] children,
 ) {
-	return tataNamedRecord(name, arrLiteral!NameAndSexpr(alloc, [
-		nameAndTata(field0Name, field0Value),
-		nameAndTata(field1Name, field1Value)]));
+	return tataNamedRecord(name, arrLiteral(alloc, children));
 }
 
 immutable(Sexpr) tataArr(T, Alloc)(

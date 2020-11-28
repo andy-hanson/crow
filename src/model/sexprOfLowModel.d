@@ -38,11 +38,9 @@ import model.sexprOfConcreteModel :
 	tataOfConcreteStructRef;
 import model.sexprOfConstant : tataOfConstant;
 import util.collection.arr : size;
-import util.collection.arrUtil : arrLiteral;
 import util.collection.str : strLiteral;
 import util.ptr : Ptr;
 import util.sexpr :
-	NameAndSexpr,
 	nameAndTata,
 	Sexpr,
 	tataArr,
@@ -57,18 +55,16 @@ import util.sexpr :
 import util.sourceRange : sexprOfFileAndRange;
 
 immutable(Sexpr) tataOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
-	return tataNamedRecord(
-		"program",
-		arrLiteral!NameAndSexpr(alloc, [
-			nameAndTata("fun-ptrs", tataFullIndexDict(alloc, a.allFunPtrTypes, (ref immutable LowFunPtrType it) =>
-				tataOfLowFunPtrType(alloc, it))),
-			nameAndTata("records", tataFullIndexDict(alloc, a.allRecords, (ref immutable LowRecord it) =>
-				tataOfLowRecord(alloc, it))),
-			nameAndTata("unions", tataFullIndexDict(alloc, a.allUnions, (ref immutable LowUnion it) =>
-				tataOfLowUnion(alloc, it))),
-			nameAndTata("funs", tataFullIndexDict(alloc, a.allFuns, (ref immutable LowFun it) =>
-				tataOfLowFun(alloc, it))),
-			nameAndTata("main", tataNat(a.main.index))]));
+	return tataNamedRecord(alloc, "program", [
+		nameAndTata("fun-ptrs", tataFullIndexDict(alloc, a.allFunPtrTypes, (ref immutable LowFunPtrType it) =>
+			tataOfLowFunPtrType(alloc, it))),
+		nameAndTata("records", tataFullIndexDict(alloc, a.allRecords, (ref immutable LowRecord it) =>
+			tataOfLowRecord(alloc, it))),
+		nameAndTata("unions", tataFullIndexDict(alloc, a.allUnions, (ref immutable LowUnion it) =>
+			tataOfLowUnion(alloc, it))),
+		nameAndTata("funs", tataFullIndexDict(alloc, a.allFuns, (ref immutable LowFun it) =>
+			tataOfLowFun(alloc, it))),
+		nameAndTata("main", tataNat(a.main.index))]);
 }
 
 private:
@@ -123,9 +119,9 @@ immutable(Sexpr) tataOfLowFun(Alloc)(ref Alloc alloc, ref immutable LowFun a) {
 }
 
 immutable(Sexpr) tataOfLowFunParamsKind(Alloc)(ref Alloc alloc, ref immutable LowFunParamsKind a) {
-	return tataNamedRecord("param-kind", arrLiteral!NameAndSexpr(alloc, [
+	return tataNamedRecord(alloc, "param-kind", [
 		nameAndTata("ctx", tataBool(a.hasCtx)),
-		nameAndTata("closure", tataBool(a.hasClosure))]));
+		nameAndTata("closure", tataBool(a.hasClosure))]);
 }
 
 immutable(Sexpr) tataOfLowFunSource(Alloc)(ref Alloc alloc, ref immutable LowFunSource a) {

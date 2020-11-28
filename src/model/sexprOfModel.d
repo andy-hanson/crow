@@ -43,7 +43,7 @@ import model.model :
 import util.bools : True;
 import util.collection.arr : Arr, empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil : arrLiteral, map;
+import util.collection.arrUtil : map;
 import util.ptr : Ptr, ptrTrustMe;
 import util.sexpr :
 	nameAndTata,
@@ -63,20 +63,18 @@ import util.util : todo;
 
 immutable(Sexpr) sexprOfModule(Alloc)(ref Alloc alloc, ref immutable Module a) {
 	Ctx ctx = Ctx(ptrTrustMe(a));
-	return tataNamedRecord(
-		"module",
-		arrLiteral!NameAndSexpr(alloc, [
-			nameAndTata("path", tataNat(a.fileIndex.index)),
-			nameAndTata("imports", tataArr(alloc, a.imports, (ref immutable ModuleAndNameReferents m) =>
-				sexprOfModuleAndNameReferents(alloc, m))),
-			nameAndTata("exports", tataArr(alloc, a.exports, (ref immutable ModuleAndNameReferents m) =>
-				sexprOfModuleAndNameReferents(alloc, m))),
-			nameAndTata("structs", tataArr(alloc, a.structs, (ref immutable StructDecl s) =>
-				sexprOfStructDecl(alloc, ctx, s))),
-			nameAndTata("specs", tataArr(alloc, a.specs, (ref immutable SpecDecl s) =>
-				sexprOfSpecDecl(alloc, ctx, s))),
-			nameAndTata("funs", tataArr(alloc, a.funs, (ref immutable FunDecl f) =>
-				sexprOfFunDecl(alloc, ctx, f)))]));
+	return tataNamedRecord(alloc, "module", [
+		nameAndTata("path", tataNat(a.fileIndex.index)),
+		nameAndTata("imports", tataArr(alloc, a.imports, (ref immutable ModuleAndNameReferents m) =>
+			sexprOfModuleAndNameReferents(alloc, m))),
+		nameAndTata("exports", tataArr(alloc, a.exports, (ref immutable ModuleAndNameReferents m) =>
+			sexprOfModuleAndNameReferents(alloc, m))),
+		nameAndTata("structs", tataArr(alloc, a.structs, (ref immutable StructDecl s) =>
+			sexprOfStructDecl(alloc, ctx, s))),
+		nameAndTata("specs", tataArr(alloc, a.specs, (ref immutable SpecDecl s) =>
+			sexprOfSpecDecl(alloc, ctx, s))),
+		nameAndTata("funs", tataArr(alloc, a.funs, (ref immutable FunDecl f) =>
+			sexprOfFunDecl(alloc, ctx, f)))]);
 }
 
 private:

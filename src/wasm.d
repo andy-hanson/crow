@@ -10,7 +10,7 @@ import util.bools : False;
 import util.collection.arr : Arr, arrOfD, at, range, size;
 import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, Str;
 import util.ptr : ptrTrustMe_mut;
-import util.sexpr : Sexpr, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
+import util.sexpr : Sexpr, nameAndTata, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
 import util.sourceRange : sexprOfRangeWithinFile;
 import util.sym : AllSymbols;
 import util.util : min, verify;
@@ -60,23 +60,19 @@ private:
 immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
 
 immutable(Sexpr) sexprOfParseDiagnostic(Alloc)(ref Alloc alloc, ref immutable ParseDiagnostic a) {
-	return tataNamedRecord(
-		alloc,
-		"diagnostic",
-		"range", sexprOfRangeWithinFile(alloc, a.range),
-		"message", tataStr(strOfParseDiag(alloc, showDiagOptions, a.diag)));
+	return tataNamedRecord(alloc, "diagnostic", [
+		nameAndTata("range", sexprOfRangeWithinFile(alloc, a.range)),
+		nameAndTata("message", tataStr(strOfParseDiag(alloc, showDiagOptions, a.diag)))]);
 }
 
 immutable(Str) getTokensAndDiagnosticsJSON(Alloc)(ref Alloc alloc, ref immutable NulTerminatedStr str) {
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, allSymbols, str);
 	immutable Arr!Token tokens = tokensOfAst(alloc, ast.ast);
-	immutable Sexpr sexpr = tataNamedRecord(
-		alloc,
-		"tkns-diags",
-		"tokens", sexprOfTokens(alloc, tokens),
-		"diags", tataArr(alloc, ast.diagnostics, (ref immutable ParseDiagnostic it) =>
-			sexprOfParseDiagnostic(alloc, it)));
+	immutable Sexpr sexpr = tataNamedRecord(alloc, "tkns-diags", [
+		nameAndTata("tokens", sexprOfTokens(alloc, tokens)),
+		nameAndTata("diags", tataArr(alloc, ast.diagnostics, (ref immutable ParseDiagnostic it) =>
+			sexprOfParseDiagnostic(alloc, it)))]);
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	writeSexprJSON(writer, sexpr);
 	return finishWriter(writer);
@@ -93,12 +89,10 @@ char[1024 * 1024] buffer;
 }
 
 immutable(Sexpr) sexprOfAstAndParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable FileAstAndParseDiagnostics a) {
-	return tataNamedRecord(
-		alloc,
-		"ast-diags",
-		"ast", sexprOfAst(alloc, a.ast),
-		"diags", tataArr(alloc, a.diagnostics, (ref immutable ParseDiagnostic it) =>
-			sexprOfParseDiagnostic(alloc, it)));
+	return tataNamedRecord(alloc, "ast-diags", [
+		nameAndTata("ast", sexprOfAst(alloc, a.ast)),
+		nameAndTata("diags", tataArr(alloc, a.diagnostics, (ref immutable ParseDiagnostic it) =>
+			sexprOfParseDiagnostic(alloc, it)))]);
 }
 
 @system void writeResult(immutable Str str) {

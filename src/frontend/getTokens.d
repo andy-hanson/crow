@@ -51,7 +51,7 @@ import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr;
-import util.sexpr : Sexpr, tataArr, tataNamedRecord, tataSym;
+import util.sexpr : Sexpr, nameAndTata, tataArr, tataNamedRecord, tataSym;
 import util.sourceRange : Pos, RangeWithinFile, sexprOfRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32;
@@ -393,9 +393,7 @@ immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 }
 
 immutable(Sexpr) sexprOfToken(Alloc)(ref Alloc alloc, ref immutable Token token) {
-	return tataNamedRecord(
-		alloc,
-		"token",
-		"kind", tataSym(symOfTokenKind(token.kind)),
-		"range", sexprOfRangeWithinFile(alloc, token.range));
+	return tataNamedRecord(alloc, "token", [
+		nameAndTata("kind", tataSym(symOfTokenKind(token.kind))),
+		nameAndTata("range", sexprOfRangeWithinFile(alloc, token.range))]);
 }
