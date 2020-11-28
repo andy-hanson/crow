@@ -545,6 +545,9 @@ struct FunBody {
 	struct RecordFieldGet {
 		immutable ubyte fieldIndex;
 	}
+	struct RecordFieldSet {
+		immutable ubyte fieldIndex;
+	}
 
 	private:
 	enum Kind {
@@ -553,6 +556,7 @@ struct FunBody {
 		extern_,
 		expr,
 		recordFieldGet,
+		recordFieldSet,
 	}
 	immutable Kind kind;
 	union {
@@ -561,6 +565,7 @@ struct FunBody {
 		immutable Ptr!Extern extern_;
 		immutable Ptr!Expr expr;
 		immutable RecordFieldGet recordFieldGet;
+		immutable RecordFieldSet recordFieldSet;
 	}
 
 	public:
@@ -568,7 +573,8 @@ struct FunBody {
 	immutable this(immutable CreateRecord a) { kind = Kind.createRecord; createRecord = a; }
 	@trusted immutable this(immutable Ptr!Extern a) { kind = Kind.extern_; extern_ = a; }
 	@trusted immutable this(immutable Ptr!Expr a) { kind = Kind.expr; expr = a; }
-	@trusted immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
+	immutable this(immutable RecordFieldGet a) { kind = Kind.recordFieldGet; recordFieldGet = a; }
+	immutable this(immutable RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 }
 static assert(FunBody.sizeof <= 16);
 
@@ -588,6 +594,7 @@ immutable(Bool) isExtern(ref immutable FunBody a) {
 	scope T delegate(ref immutable FunBody.Extern) @safe @nogc pure nothrow cbExtern,
 	scope T delegate(immutable Ptr!Expr) @safe @nogc pure nothrow cbExpr,
 	scope T delegate(ref immutable FunBody.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
+	scope T delegate(ref immutable FunBody.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 ) {
 	final switch (a.kind) {
 		case FunBody.Kind.builtin:
@@ -600,6 +607,8 @@ immutable(Bool) isExtern(ref immutable FunBody a) {
 			return cbExpr(a.expr);
 		case FunBody.Kind.recordFieldGet:
 			return cbRecordFieldGet(a.recordFieldGet);
+		case FunBody.Kind.recordFieldSet:
+			return cbRecordFieldSet(a.recordFieldSet);
 	}
 }
 

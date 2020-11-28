@@ -484,6 +484,8 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 			(ref immutable ConcreteFunExprBody) =>
 				some(addLowFun(immutable LowFunCause(fun))),
 			(ref immutable ConcreteFunBody.RecordFieldGet) =>
+				none!LowFunIndex,
+			(ref immutable ConcreteFunBody.RecordFieldSet) =>
 				none!LowFunIndex);
 		if (has(opIndex)) {
 			addToDict(alloc, concreteFunToLowFunIndexBuilder, fun, force(opIndex));
@@ -725,7 +727,9 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 					exprCtx.hasTailRecur,
 					allocate(alloc, expr)));
 		},
-		(ref immutable ConcreteFunBody.RecordFieldGet it) =>
+		(ref immutable ConcreteFunBody.RecordFieldGet) =>
+			unreachable!(immutable LowFunBody),
+		(ref immutable ConcreteFunBody.RecordFieldSet) =>
 			unreachable!(immutable LowFunBody));
 }
 
@@ -998,7 +1002,14 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 			(ref immutable ConcreteFunBody.RecordFieldGet it) =>
 				immutable LowExprKind(immutable LowExprKind.RecordFieldAccess(
 					allocate(alloc, getLowExpr(alloc, ctx, only(a.args), ExprPos.nonTail)),
-					it.fieldIndex)));
+					it.fieldIndex)),
+			(ref immutable ConcreteFunBody.RecordFieldSet it) {
+				verify(size(a.args) == 2);
+				return immutable LowExprKind(immutable LowExprKind.RecordFieldSet(
+					allocate(alloc, getLowExpr(alloc, ctx, at(a.args, 0), ExprPos.nonTail)),
+					it.fieldIndex,
+					allocate(alloc, getLowExpr(alloc, ctx, at(a.args, 1), ExprPos.nonTail))));
+			});
 }
 
 immutable(LowExprKind) getCallBuiltinExpr(Alloc)(

@@ -184,7 +184,9 @@ immutable(Sexpr) tataOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable Con
 		(ref immutable ConcreteFunExprBody it) =>
 			tataOfConcreteFunExprBody(alloc, it),
 		(ref immutable ConcreteFunBody.RecordFieldGet it) =>
-			tataRecord(alloc, "field-get", [tataNat(it.fieldIndex)]));
+			tataRecord(alloc, "field-get", [tataNat(it.fieldIndex)]),
+		(ref immutable ConcreteFunBody.RecordFieldSet it) =>
+			tataRecord(alloc, "field-set", [tataNat(it.fieldIndex)]));
 }
 
 immutable(Sexpr) tataOfConcreteFunBodyBuiltin(Alloc)(ref Alloc alloc, ref immutable ConcreteFunBody.Builtin a) {

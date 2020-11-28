@@ -78,7 +78,7 @@ immutable(Result!(Ptr!Program, Diagnostics)) frontendCompile(ModelAlloc, AstsAll
 			allocate(modelAlloc, storage.absolutePathsGetter()),
 			parsed.lineAndColumnGetters);
 	immutable Result!(Ptr!Program, Diags) res = empty(parsed.diagnostics)
-		? checkEverything(modelAlloc, parsed.asts, filesInfo, parsed.commonModuleIndices)
+		? checkEverything(modelAlloc, allSymbols, parsed.asts, filesInfo, parsed.commonModuleIndices)
 		: fail!(Ptr!Program, Diags)(parsed.diagnostics);
 	return mapFailure!(Diagnostics, Ptr!Program, Diags)(res, (ref immutable Diags diagnostics) =>
 		immutable Diagnostics(diagnostics, filesInfo));
@@ -545,8 +545,9 @@ struct ModulesAndCommonTypes {
 }
 
 // Result does not include the 'bootstrap' module.
-immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
+immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc, SymAlloc)(
 	ref ModelAlloc modelAlloc,
+	ref AllSymbols!SymAlloc allSymbols,
 	ref ProgramState programState,
 	immutable FileIndex stdIndex,
 	ref immutable Arr!AstAndResolvedImports fileAsts,
@@ -571,8 +572,9 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 					mapImportsOrExports(modelAlloc, allImports, compiled);
 				immutable Arr!ModuleAndNames mappedExports =
 					mapImportsOrExports(modelAlloc, ast.resolvedExports, compiled);
-				return check!ModelAlloc(
+				return check(
 					modelAlloc,
+					allSymbols,
 					programState,
 					mappedImports,
 					mappedExports,
@@ -582,7 +584,7 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 				// The first module to check is always 'bootstrap.nz'
 				verify(ast.resolvedImports.empty);
 				immutable Result!(BootstrapCheck, Diags) res =
-					checkBootstrapNz(modelAlloc, programState, pathAndAst);
+					checkBootstrapNz(modelAlloc, allSymbols, programState, pathAndAst);
 				if (res.isSuccess)
 					lateSet(commonTypes, res.asSuccess.commonTypes);
 				return mapSuccess(res, (ref immutable BootstrapCheck c) => c.module_);
@@ -593,15 +595,16 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc)(
 		(ref immutable Arr!(Ptr!Module) modules) => immutable ModulesAndCommonTypes(modules, lateGet(commonTypes)));
 }
 
-immutable(Result!(Ptr!Program, Diags)) checkEverything(ModelAlloc)(
+immutable(Result!(Ptr!Program, Diags)) checkEverything(ModelAlloc, SymAlloc)(
 	ref ModelAlloc modelAlloc,
+	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Arr!AstAndResolvedImports allAsts,
 	immutable Ptr!FilesInfo filesInfo,
 	ref immutable CommonModuleIndices moduleIndices,
 ) {
 	ProgramState programState = ProgramState(modelAlloc);
 	immutable Result!(ModulesAndCommonTypes, Diags) modulesResult =
-		getModules(modelAlloc, programState, moduleIndices.std, allAsts);
+		getModules(modelAlloc, allSymbols, programState, moduleIndices.std, allAsts);
 	return modulesResult.mapSuccess((ref immutable ModulesAndCommonTypes modulesAndCommonTypes) {
 		immutable Arr!(Ptr!Module) modules = modulesAndCommonTypes.modules;
 		immutable Ptr!Module bootstrapModule = at(modules, moduleIndices.bootstrap.index);

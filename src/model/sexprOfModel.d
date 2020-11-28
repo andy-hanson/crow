@@ -172,7 +172,9 @@ immutable(Sexpr) sexprOfFunBody(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutab
 		(immutable Ptr!Expr it) =>
 			sexprOfExpr(alloc, ctx, it),
 		(ref immutable FunBody.RecordFieldGet it) =>
-			tataRecord(alloc, "field-get", [tataNat(it.fieldIndex)]));
+			tataRecord(alloc, "field-get", [tataNat(it.fieldIndex)]),
+		(ref immutable FunBody.RecordFieldSet it) =>
+			tataRecord(alloc, "field-set", [tataNat(it.fieldIndex)]));
 }
 
 immutable(Sexpr) sexprOfType(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Type t) {

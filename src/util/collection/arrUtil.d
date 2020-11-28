@@ -692,6 +692,14 @@ immutable(size_t) sum(T)(
 		l + cb(t));
 }
 
+immutable(size_t) count(T)(
+	ref immutable Arr!T a,
+	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow pred,
+) {
+	return sum(a, (ref immutable T it) =>
+		immutable size_t(pred(it) ? 1 : 0));
+}
+
 immutable(Arr!T) filter(Alloc, T)(
 	ref Alloc alloc,
 	ref immutable Arr!T a,

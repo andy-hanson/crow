@@ -376,10 +376,11 @@ program(
 										vat
 										call(ref-of-val, [local-ref(vat-by-val)])
 										seq(
-											set-field(
-												local-ref(gctx)
-												vats
-												call(arr, [call(one, []), call(ptr-to, [local-ref(vat)])]))
+											call(
+												set-vats
+												[
+													local-ref(gctx)
+													call(arr, [call(one, []), call(ptr-to, [local-ref(vat)])])])
 											let(
 												main-fut
 												call(
@@ -819,7 +820,7 @@ program(
 										call(empty?, [call(message, [param-ref(e)])])
 										arr(0, 5)
 										call(message, [param-ref(e)])])]))
-					set-field(call(get-gctx, []), any-unhandled-exceptions?, call(true, [])))))
+					call(set-any-unhandled-exceptions?, [call(get-gctx, []), call(true, [])]))))
 		fun(
 			false
 			print-err-sync-no-newline
@@ -922,6 +923,13 @@ program(
 			expr-body(call(==, [param-ref(n), call(zero, [])])))
 		fun(false, message, type(false, arr), none, [param(a, type(false, exception))], field-get(0))
 		fun(
+			false
+			set-any-unhandled-exceptions?
+			type(false, void)
+			none
+			[param(a, type(true, global-ctx)), param(any-unhandled-exceptions?, type(false, bool))]
+			field-set(5))
+		fun(
 			true
 			get-gctx
 			type(true, global-ctx)
@@ -945,6 +953,13 @@ program(
 			[param(it, type(false, exception))]
 			expr-body(call(default-exception-handler, [param-ref(it)])))
 		fun(false, ref-of-val, type(true, vat), none, [param(b, type(false, vat))], builtin([type(true, vat)]))
+		fun(
+			false
+			set-vats
+			type(false, void)
+			none
+			[param(a, type(true, global-ctx)), param(vats, type(false, arr))]
+			field-set(1))
 		fun(false, ptr-to, type(false, ptr), none, [param(t, type(true, vat))], builtin([type(true, vat)]))
 		fun(
 			false
@@ -1088,8 +1103,8 @@ program(
 										call(as-ref, [call(malloc, [call(size-of, [])])])
 										seq(
 											seq(
-												set-field(local-ref(c), gc, param-ref(gc))
-												set-field(local-ref(c), next-ctx, to-union(0, call(none, []))))
+												call(set-gc, [local-ref(c), param-ref(gc)])
+												call(set-next-ctx, [local-ref(c), to-union(0, call(none, []))]))
 											local-ref(c))))
 								case(
 									some(s)
@@ -1098,8 +1113,8 @@ program(
 										call(value, [local-ref(s)])
 										seq(
 											seq(
-												set-field(param-ref(gc), context-head, call(next-ctx, [local-ref(c)]))
-												set-field(local-ref(c), next-ctx, to-union(0, call(none, []))))
+												call(set-context-head, [param-ref(gc), call(next-ctx, [local-ref(c)])])
+												call(set-next-ctx, [local-ref(c), to-union(0, call(none, []))]))
 											local-ref(c))))])
 						seq(call(release-lock, [call(ref-of-val, [call(lk, [param-ref(gc)])])]), local-ref(res))))))
 		fun(
@@ -1258,7 +1273,28 @@ program(
 		fun(false, context-head, type(false, opt), none, [param(a, type(true, gc))], field-get(1))
 		fun(false, as-ref, type(true, gc-ctx), none, [param(p, type(false, ptr))], builtin([type(true, gc-ctx)]))
 		fun(false, size-of, type(false, nat), none, [], builtin([type(false, gc-ctx)]))
+		fun(
+			false
+			set-gc
+			type(false, void)
+			none
+			[param(a, type(true, gc-ctx)), param(gc, type(true, gc))]
+			field-set(0))
+		fun(
+			false
+			set-next-ctx
+			type(false, void)
+			none
+			[param(a, type(true, gc-ctx)), param(next-ctx, type(false, opt))]
+			field-set(1))
 		fun(false, value, type(true, gc-ctx), none, [param(a, type(false, some))], field-get(0))
+		fun(
+			false
+			set-context-head
+			type(false, void)
+			none
+			[param(a, type(true, gc)), param(context-head, type(false, opt))]
+			field-set(1))
 		fun(false, next-ctx, type(false, opt), none, [param(a, type(true, gc-ctx))], field-get(1))
 		fun(
 			false
@@ -1388,22 +1424,23 @@ program(
 							[
 								case(
 									some(cbs)
-									set-field(
-										param-ref(f)
-										state
-										to-union(
-											0
-											call(
-												fut-state-callbacks
-												[
-													to-union(
-														1
-														call(
-															some
-															[
-																call(
-																	fut-callback-node
-																	[param-ref(cb), call(head, [local-ref(cbs)])])]))]))))
+									call(
+										set-state
+										[
+											param-ref(f)
+											to-union(
+												0
+												call(
+													fut-state-callbacks
+													[
+														to-union(
+															1
+															call(
+																some
+																[
+																	call(
+																		fut-callback-node
+																		[param-ref(cb), call(head, [local-ref(cbs)])])]))]))]))
 								case(
 									some(r)
 									call(call, [param-ref(cb), to-union(0, call(ok, [call(value, [local-ref(r)])]))]))
@@ -1411,6 +1448,13 @@ program(
 					call(release-lock, [call(ref-of-val, [call(lk, [param-ref(f)])])]))))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, fut))], field-get(0))
 		fun(false, state, type(false, fut-state), none, [param(a, type(true, fut))], field-get(1))
+		fun(
+			false
+			set-state
+			type(false, void)
+			none
+			[param(a, type(true, fut)), param(state, type(false, fut-state))]
+			field-set(1))
 		fun(
 			true
 			fut-state-callbacks
@@ -1482,22 +1526,23 @@ program(
 							[
 								case(
 									some(cbs)
-									set-field(
-										param-ref(f)
-										state
-										to-union(
-											0
-											call(
-												fut-state-callbacks
-												[
-													to-union(
-														1
-														call(
-															some
-															[
-																call(
-																	fut-callback-node
-																	[param-ref(cb), call(head, [local-ref(cbs)])])]))]))))
+									call(
+										set-state
+										[
+											param-ref(f)
+											to-union(
+												0
+												call(
+													fut-state-callbacks
+													[
+														to-union(
+															1
+															call(
+																some
+																[
+																	call(
+																		fut-callback-node
+																		[param-ref(cb), call(head, [local-ref(cbs)])])]))]))]))
 								case(
 									some(r)
 									call(call, [param-ref(cb), to-union(0, call(ok, [call(value, [local-ref(r)])]))]))
@@ -1505,6 +1550,13 @@ program(
 					call(release-lock, [call(ref-of-val, [call(lk, [param-ref(f)])])]))))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, fut))], field-get(0))
 		fun(false, state, type(false, fut-state), none, [param(a, type(true, fut))], field-get(1))
+		fun(
+			false
+			set-state
+			type(false, void)
+			none
+			[param(a, type(true, fut)), param(state, type(false, fut-state))]
+			field-set(1))
 		fun(false, some, type(false, some), none, [param(value, type(true, fut-callback-node))], new-record)
 		fun(
 			true
@@ -1564,15 +1616,18 @@ program(
 										call(resolve-or-reject-recur, [call(head, [local-ref(cbs)]), param-ref(result)]))
 									case(none, call(hard-fail, [arr(0, 7)]))
 									case(none, call(hard-fail, [arr(0, 7)]))]))
-						set-field(
-							param-ref(f)
-							state
-							match(
-								"<<matched>>"
-								param-ref(result)
-								[
-									case(some(o), to-union(1, call(fut-state-resolved, [call(value, [local-ref(o)])])))
-									case(some(e), let(ex, call(value, [local-ref(e)]), to-union(2, local-ref(ex))))])))
+						call(
+							set-state
+							[
+								param-ref(f)
+								match(
+									"<<matched>>"
+									param-ref(result)
+									[
+										case(
+											some(o)
+											to-union(1, call(fut-state-resolved, [call(value, [local-ref(o)])])))
+										case(some(e), let(ex, call(value, [local-ref(e)]), to-union(2, local-ref(ex))))])]))
 					call(release-lock, [call(ref-of-val, [call(lk, [param-ref(f)])])]))))
 		fun(
 			true
@@ -1691,7 +1746,7 @@ program(
 						seq(
 							seq(
 								call(hard-forbid, [call(null?, [call(jmp-buf-ptr, [local-ref(exn-ctx)])])])
-								set-field(local-ref(exn-ctx), thrown-exception, param-ref(e)))
+								call(set-thrown-exception, [local-ref(exn-ctx), param-ref(e)]))
 							call(longjmp, [call(jmp-buf-ptr, [local-ref(exn-ctx)]), call(number-to-throw, [])]))
 						call(todo, [])))))
 		fun(
@@ -1718,6 +1773,13 @@ program(
 			expr-body(call(==, [call(to-nat, [param-ref(a)]), call(to-nat, [call(null, [])])])))
 		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, jmp-buf-tag)]))
 		fun(false, jmp-buf-ptr, type(false, ptr), none, [param(a, type(true, exception-ctx))], field-get(0))
+		fun(
+			false
+			set-thrown-exception
+			type(false, void)
+			none
+			[param(a, type(true, exception-ctx)), param(thrown-exception, type(false, exception))]
+			field-set(1))
 		fun(
 			false
 			longjmp
@@ -1794,9 +1856,23 @@ program(
 			[param(bag, type(true, mut-bag)), param(node, type(true, mut-bag-node))]
 			expr-body(
 				seq(
-					set-field(param-ref(node), next-node, call(head, [param-ref(bag)]))
-					set-field(param-ref(bag), head, to-union(1, call(some, [param-ref(node)]))))))
+					call(set-next-node, [param-ref(node), call(head, [param-ref(bag)])])
+					call(set-head, [param-ref(bag), to-union(1, call(some, [param-ref(node)]))]))))
+		fun(
+			false
+			set-next-node
+			type(false, void)
+			none
+			[param(a, type(true, mut-bag-node)), param(next-node, type(false, opt))]
+			field-set(1))
 		fun(false, head, type(false, opt), none, [param(a, type(true, mut-bag))], field-get(0))
+		fun(
+			false
+			set-head
+			type(false, void)
+			none
+			[param(a, type(true, mut-bag)), param(head, type(false, opt))]
+			field-set(0))
 		fun(false, some, type(false, some), none, [param(value, type(true, mut-bag-node))], new-record)
 		fun(
 			false
@@ -1816,9 +1892,16 @@ program(
 				seq(
 					seq(
 						call(acquire-lock, [call(ref-of-val, [call(lk, [param-ref(c)])])])
-						set-field(param-ref(c), value, call(noctx-incr, [call(value, [param-ref(c)])])))
+						call(set-value, [param-ref(c), call(noctx-incr, [call(value, [param-ref(c)])])]))
 					call(release-lock, [call(ref-of-val, [call(lk, [param-ref(c)])])]))))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, condition))], field-get(0))
+		fun(
+			false
+			set-value
+			type(false, void)
+			none
+			[param(a, type(true, condition)), param(value, type(false, nat))]
+			field-set(1))
 		fun(false, value, type(false, nat), none, [param(a, type(true, condition))], field-get(1))
 		fun(
 			false
@@ -1864,7 +1947,7 @@ program(
 							store
 							call(jmp-buf-tag, [call(zero, []), call(zero, []), call(zero, [])])
 							seq(
-								set-field(param-ref(ec), jmp-buf-ptr, call(ptr-to, [local-ref(store)]))
+								call(set-jmp-buf-ptr, [param-ref(ec), call(ptr-to, [local-ref(store)])])
 								let(
 									setjmp-result
 									call(setjmp, [call(jmp-buf-ptr, [param-ref(ec)])])
@@ -1875,11 +1958,10 @@ program(
 											call(call, [param-ref(try)])
 											seq(
 												seq(
-													set-field(param-ref(ec), jmp-buf-ptr, local-ref(old-jmp-buf))
-													set-field(
-														param-ref(ec)
-														thrown-exception
-														local-ref(old-thrown-exception)))
+													call(set-jmp-buf-ptr, [param-ref(ec), local-ref(old-jmp-buf)])
+													call(
+														set-thrown-exception
+														[param-ref(ec), local-ref(old-thrown-exception)]))
 												local-ref(res)))
 										seq(
 											call(
@@ -1890,11 +1972,10 @@ program(
 												call(thrown-exception, [param-ref(ec)])
 												seq(
 													seq(
-														set-field(param-ref(ec), jmp-buf-ptr, local-ref(old-jmp-buf))
-														set-field(
-															param-ref(ec)
-															thrown-exception
-															local-ref(old-thrown-exception)))
+														call(set-jmp-buf-ptr, [param-ref(ec), local-ref(old-jmp-buf)])
+														call(
+															set-thrown-exception
+															[param-ref(ec), local-ref(old-thrown-exception)]))
 													call(call, [param-ref(catcher), local-ref(thrown-exception)]))))))))))))
 		fun(false, thrown-exception, type(false, exception), none, [param(a, type(true, exception-ctx))], field-get(1))
 		fun(
@@ -1939,6 +2020,13 @@ program(
 			none
 			[param(n0, type(false, bytes64)), param(n1, type(false, bytes64))]
 			new-record)
+		fun(
+			false
+			set-jmp-buf-ptr
+			type(false, void)
+			none
+			[param(a, type(true, exception-ctx)), param(jmp-buf-ptr, type(false, ptr))]
+			field-set(0))
 		fun(
 			false
 			ptr-to
@@ -2392,7 +2480,14 @@ program(
 			type(false, arr)
 			none
 			[param(a, type(true, mut-arr))]
-			expr-body(seq(set-field(param-ref(a), frozen?, call(true, [])), call(unsafe-as-arr, [param-ref(a)]))))
+			expr-body(seq(call(set-frozen?, [param-ref(a), call(true, [])]), call(unsafe-as-arr, [param-ref(a)]))))
+		fun(
+			false
+			set-frozen?
+			type(false, void)
+			none
+			[param(a, type(true, mut-arr)), param(frozen?, type(false, bool))]
+			field-set(0))
 		fun(
 			false
 			unsafe-as-arr
@@ -2891,10 +2986,9 @@ program(
 						seq(
 							seq(
 								call(acquire-lock, [call(ref-of-val, [call(lk, [param-ref(gctx)])])])
-								set-field(
-									param-ref(gctx)
-									n-live-threads
-									call(noctx-decr, [call(n-live-threads, [param-ref(gctx)])])))
+								call(
+									set-n-live-threads
+									[param-ref(gctx), call(noctx-decr, [call(n-live-threads, [param-ref(gctx)])])]))
 							call(assert-vats-are-shut-down, [call(zero, []), call(vats, [param-ref(gctx)])]))
 						call(release-lock, [call(ref-of-val, [call(lk, [param-ref(gctx)])])]))
 					seq(
@@ -2927,10 +3021,9 @@ program(
 																	call(
 																		hard-forbid
 																		[call(is-shut-down, [param-ref(gctx)])])
-																	set-field(
-																		param-ref(gctx)
-																		is-shut-down
-																		call(true, [])))
+																	call(
+																		set-is-shut-down
+																		[param-ref(gctx), call(true, [])]))
 																call(
 																	broadcast
 																	[
@@ -2947,14 +3040,22 @@ program(
 														call(
 															acquire-lock
 															[call(ref-of-val, [call(lk, [param-ref(gctx)])])]))
-													set-field(
-														param-ref(gctx)
-														n-live-threads
-														call(noctx-incr, [call(n-live-threads, [param-ref(gctx)])])))
+													call(
+														set-n-live-threads
+														[
+															param-ref(gctx)
+															call(noctx-incr, [call(n-live-threads, [param-ref(gctx)])])]))
 												call(release-lock, [call(ref-of-val, [call(lk, [param-ref(gctx)])])])))])
 								call(thread-function-recur, [param-ref(thread-id), param-ref(gctx), param-ref(tls)])))))))
 		fun(false, is-shut-down, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(4))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, global-ctx))], field-get(0))
+		fun(
+			false
+			set-n-live-threads
+			type(false, void)
+			none
+			[param(a, type(true, global-ctx)), param(n-live-threads, type(false, nat))]
+			field-set(2))
 		fun(false, n-live-threads, type(false, nat), none, [param(a, type(true, global-ctx))], field-get(2))
 		fun(
 			false
@@ -3037,10 +3138,11 @@ program(
 											none
 											seq(
 												seq(
-													set-field(
-														param-ref(gctx)
-														n-live-threads
-														call(noctx-decr, [call(n-live-threads, [param-ref(gctx)])]))
+													call(
+														set-n-live-threads
+														[
+															param-ref(gctx)
+															call(noctx-decr, [call(n-live-threads, [param-ref(gctx)])])])
 													call(
 														hard-assert
 														[call(zero?, [call(n-live-threads, [param-ref(gctx)])])]))
@@ -3113,10 +3215,9 @@ program(
 								cond(
 									call(empty?, [local-ref(res)])
 									call(pass, [])
-									set-field(
-										param-ref(vat)
-										n-threads-running
-										call(noctx-incr, [call(n-threads-running, [param-ref(vat)])])))
+									call(
+										set-n-threads-running
+										[param-ref(vat), call(noctx-incr, [call(n-threads-running, [param-ref(vat)])])]))
 								call(release-lock, [call(ref-of-val, [call(tasks-lock, [param-ref(vat)])])]))
 							local-ref(res))))))
 		fun(false, as, type(false, opt), none, [param(value, type(false, opt))], builtin([type(false, opt)]))
@@ -3147,10 +3248,9 @@ program(
 									case(
 										some(s)
 										seq(
-											set-field(
-												local-ref(tasks)
-												head
-												call(nodes, [call(value, [local-ref(s)])]))
+											call(
+												set-head
+												[local-ref(tasks), call(nodes, [call(value, [local-ref(s)])])])
 											to-union(1, call(some, [call(task, [call(value, [local-ref(s)])])]))))]))))))
 		fun(
 			false
@@ -3208,10 +3308,9 @@ program(
 																tn
 																call(as, [call(value, [local-ref(ss)])])
 																seq(
-																	set-field(
-																		local-ref(node)
-																		next-node
-																		call(nodes, [local-ref(tn)]))
+																	call(
+																		set-next-node
+																		[local-ref(node), call(nodes, [local-ref(tn)])])
 																	to-union(
 																		1
 																		call(
@@ -3302,9 +3401,16 @@ program(
 						old-size
 						call(size, [param-ref(a)])
 						seq(
-							set-field(param-ref(a), size, call(noctx-incr, [local-ref(old-size)]))
+							call(set-size, [param-ref(a), call(noctx-incr, [local-ref(old-size)])])
 							call(noctx-set-at, [param-ref(a), local-ref(old-size), param-ref(value)]))))))
 		fun(false, capacity, type(false, nat), none, [param(a, type(true, mut-arr))], field-get(2))
+		fun(
+			false
+			set-size
+			type(false, void)
+			none
+			[param(a, type(true, mut-arr)), param(size, type(false, nat))]
+			field-set(1))
 		fun(
 			false
 			noctx-set-at
@@ -3351,6 +3457,13 @@ program(
 			[param(a, type(false, opt))]
 			expr-body(
 				match("<<matched>>", param-ref(a), [case(some(n), call(true, [])), case(some(s), call(false, []))])))
+		fun(
+			false
+			set-n-threads-running
+			type(false, void)
+			none
+			[param(a, type(true, vat)), param(n-threads-running, type(false, nat))]
+			field-set(6))
 		fun(false, some, type(false, some), none, [param(value, type(false, chosen-task))], new-record)
 		fun(
 			false
@@ -3441,10 +3554,9 @@ program(
 																[call(ref-of-val, [call(tasks-lock, [local-ref(vat)])])]))
 														call(return-ctx, [call(ref-of-val, [local-ref(ctx)])])))))])
 								call(acquire-lock, [call(ref-of-val, [call(tasks-lock, [local-ref(vat)])])]))
-							set-field(
-								local-ref(vat)
-								n-threads-running
-								call(noctx-decr, [call(n-threads-running, [local-ref(vat)])])))
+							call(
+								set-n-threads-running
+								[local-ref(vat), call(noctx-decr, [call(n-threads-running, [local-ref(vat)])])]))
 						call(release-lock, [call(ref-of-val, [call(tasks-lock, [local-ref(vat)])])])))))
 		fun(false, vat, type(true, vat), none, [param(a, type(false, chosen-task))], field-get(0))
 		fun(false, task-or-gc, type(false, opt), none, [param(a, type(false, chosen-task))], field-get(1))
@@ -3496,7 +3608,7 @@ program(
 					seq(
 						seq(
 							call(noctx-set-at, [param-ref(a), param-ref(index), call(noctx-last, [param-ref(a)])])
-							set-field(param-ref(a), size, call(noctx-decr, [call(size, [param-ref(a)])])))
+							call(set-size, [param-ref(a), call(noctx-decr, [call(size, [param-ref(a)])])]))
 						local-ref(res)))))
 		fun(
 			false
@@ -3536,13 +3648,20 @@ program(
 						seq(
 							seq(
 								call(acquire-lock, [call(ref-of-val, [call(lk, [local-ref(gc)])])])
-								set-field(param-ref(gc-ctx), next-ctx, call(context-head, [local-ref(gc)])))
-							set-field(local-ref(gc), context-head, to-union(1, call(some, [param-ref(gc-ctx)]))))
+								call(set-next-ctx, [param-ref(gc-ctx), call(context-head, [local-ref(gc)])]))
+							call(set-context-head, [local-ref(gc), to-union(1, call(some, [param-ref(gc-ctx)]))]))
 						call(release-lock, [call(ref-of-val, [call(lk, [local-ref(gc)])])])))))
 		fun(false, some, type(false, some), none, [param(value, type(true, gc-ctx))], new-record)
 		fun(false, value, type(false, chosen-task), none, [param(a, type(false, ok))], field-get(0))
 		fun(false, last-thread-out, type(false, bool), none, [param(a, type(false, no-chosen-task))], field-get(0))
 		fun(false, value, type(false, no-chosen-task), none, [param(a, type(false, err))], field-get(0))
+		fun(
+			false
+			set-is-shut-down
+			type(false, void)
+			none
+			[param(a, type(true, global-ctx)), param(is-shut-down, type(false, bool))]
+			field-set(4))
 		fun(
 			false
 			wait-on
@@ -3967,7 +4086,14 @@ program(
 			type(false, arr)
 			none
 			[param(a, type(true, mut-arr))]
-			expr-body(seq(set-field(param-ref(a), frozen?, call(true, [])), call(unsafe-as-arr, [param-ref(a)]))))
+			expr-body(seq(call(set-frozen?, [param-ref(a), call(true, [])]), call(unsafe-as-arr, [param-ref(a)]))))
+		fun(
+			false
+			set-frozen?
+			type(false, void)
+			none
+			[param(a, type(true, mut-arr)), param(frozen?, type(false, bool))]
+			field-set(0))
 		fun(
 			false
 			unsafe-as-arr

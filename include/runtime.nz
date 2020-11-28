@@ -10,7 +10,7 @@ import
 		vat-and-actor-id vat-id void zero zero?
 	.exceptions: exception-ctx new-exception-ctx
 	.io: print-err-sync print-err-sync-no-newline
-	.mut-bag: add empty? head mut-bag mut-bag-node next-node new-mut-bag new-mut-bag-node value
+	.mut-bag: add empty? head mut-bag mut-bag-node next-node new-mut-bag new-mut-bag-node set-head set-next-node value
 	.thread-utils
 		acquire-lock broadcast condition get-and-increment get-last-checked new-lock
 		new-thread-safe-counter release-lock thread-safe-counter wait-on
@@ -86,10 +86,10 @@ new-vat by-val vat(gctx global-ctx, id vat-id, max-threads nat) summon noctx uns
 default-exception-handler void(e exception) summon unsafe
 	print-err-sync-no-newline: "uncaught exception: "
 	print-err-sync: e.message.empty? if "<<empty message>>", e.message
-	get-gctx.any-unhandled-exceptions? := true
+	get-gctx set-any-unhandled-exceptions? true
 
 set-this-vats-exception-handler void(exception-handler fun-mut1 void exception) summon trusted
-	get-cur-vat.exception-handler := exception-handler
+	get-cur-vat set-exception-handler exception-handler
 
 | Unsafe because you must ensure 'task' is safe to run in parallel.
 add-task void(v vat, t task) unsafe
@@ -117,7 +117,7 @@ thread-function-recur void(thread-id nat, gctx global-ctx, tls thread-local-stuf
 		gctx is-shut-down
 			gctx.lk.ref-of-val acquire-lock
 			| Remove this thread from live threads for good.
-			gctx.n-live-threads := gctx.n-live-threads noctx-decr
+			gctx set-n-live-threads: gctx.n-live-threads noctx-decr
 			assert-vats-are-shut-down: zero, gctx.vats
 			gctx.lk.ref-of-val release-lock
 		else
@@ -132,7 +132,7 @@ thread-function-recur void(thread-id nat, gctx global-ctx, tls thread-local-stuf
 					when
 						e.value.last-thread-out
 							hard-forbid: gctx.is-shut-down
-							gctx.is-shut-down := true
+							gctx set-is-shut-down true
 							| Wake up sleeping threads so they can shut down
 							gctx.may-be-work-to-do.ref-of-val broadcast
 						else
@@ -140,7 +140,7 @@ thread-function-recur void(thread-id nat, gctx global-ctx, tls thread-local-stuf
 
 					gctx.lk.ref-of-val acquire-lock
 					| We decremented this while holding the lock, increment it again
-					gctx.n-live-threads := gctx.n-live-threads noctx-incr
+					gctx set-n-live-threads: gctx.n-live-threads noctx-incr
 					gctx.lk.ref-of-val release-lock
 
 			| Do another task
@@ -174,7 +174,7 @@ do-task void(gctx global-ctx, tls thread-local-stuff, chosen-task chosen-task) n
 
 	| We incremented this when choosing the task.
 	vat.tasks-lock.ref-of-val acquire-lock
-	vat.n-threads-running := vat.n-threads-running.noctx-decr
+	vat set-n-threads-running vat.n-threads-running.noctx-decr
 	vat.tasks-lock.ref-of-val release-lock
 
 | do-task-with-ctx void(task-fun fun-mut0 void) unsafe summon
@@ -212,7 +212,7 @@ choose-task result chosen-task no-chosen-task(gctx global-ctx) noctx unsafe
 			| (Tasks may have been added concurrently;
 			| this is fine as we're about to wait on a condition and will immediately wake up if so.)
 			| Need to do this here while we hold the lock
-			gctx.n-live-threads := gctx.n-live-threads.noctx-decr
+			gctx set-n-live-threads gctx.n-live-threads.noctx-decr
 			| TODO:KILL
 			hard-assert: gctx.n-live-threads zero?
 			err: no-chosen-task: gctx.n-live-threads zero?
@@ -265,7 +265,7 @@ choose-task-in-vat opt task-or-gc(vat vat) noctx unsafe
 		res empty?
 			pass
 		else
-			vat.n-threads-running := vat.n-threads-running.noctx-incr
+			vat set-n-threads-running vat.n-threads-running.noctx-incr
 
 	vat.tasks-lock.ref-of-val release-lock
 
@@ -284,7 +284,7 @@ find-and-remove-first-doable-task opt task(vat vat) noctx unsafe
 		none
 			none
 		some s
-			tasks.head := s.value.nodes
+			tasks set-head s.value.nodes
 			s.value.task some
 
 find-and-remove-first-doable-task-recur opt task-and-nodes(vat vat, opt-node opt mut-bag-node<task>) noctx unsafe
@@ -314,7 +314,7 @@ find-and-remove-first-doable-task-recur opt task-and-nodes(vat vat, opt-node opt
 							none
 						some ss
 							tn = ss.value as<task-and-nodes>
-							node.next-node := tn.nodes
+							node set-next-node tn.nodes
 							some: task-and-nodes: tn.task, node some
 
 assert-vats-are-shut-down void(i nat, vats arr vat) noctx unsafe

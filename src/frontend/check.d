@@ -119,6 +119,7 @@ import util.collection.arrBuilder :
 	finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
+	count,
 	exists,
 	map,
 	mapOpWithSize,
@@ -147,7 +148,15 @@ import util.opt : force, has, mapOption, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
 import util.result : fail, flatMapSuccess, mapSuccess, Result, success;
 import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
-import util.sym : addToMutSymSetOkIfPresent, compareSym, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
+import util.sym :
+	addToMutSymSetOkIfPresent,
+	AllSymbols,
+	compareSym,
+	prependSet,
+	shortSymAlphaLiteral,
+	shortSymAlphaLiteralValue,
+	Sym,
+	symEq;
 import util.types : safeSizeTToU8;
 import util.util : todo, verify;
 
@@ -167,14 +176,16 @@ struct ModuleAndNames {
 	immutable Opt!(Arr!Sym) names;
 }
 
-immutable(Result!(BootstrapCheck, Diags)) checkBootstrapNz(Alloc)(
+immutable(Result!(BootstrapCheck, Diags)) checkBootstrapNz(Alloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
 	ref ProgramState programState,
 	immutable PathAndAst pathAndAst,
 ) {
 	verify(!has(pathAndAst.ast.imports) && !has(pathAndAst.ast.exports));
 	return checkWorker(
 		alloc,
+		allSymbols,
 		programState,
 		emptyArr!ModuleAndNames,
 		emptyArr!ModuleAndNames,
@@ -185,8 +196,9 @@ immutable(Result!(BootstrapCheck, Diags)) checkBootstrapNz(Alloc)(
 			getCommonTypes(alloc, ctx, structsAndAliasesMap, delayedStructInsts));
 }
 
-immutable(Result!(Ptr!Module, Diags)) check(Alloc)(
+immutable(Result!(Ptr!Module, Diags)) check(Alloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
 	ref ProgramState programState,
 	ref immutable Arr!ModuleAndNames imports,
 	ref immutable Arr!ModuleAndNames exports,
@@ -195,6 +207,7 @@ immutable(Result!(Ptr!Module, Diags)) check(Alloc)(
 ) {
 	immutable Result!(BootstrapCheck, Diags) res = checkWorker(
 		alloc,
+		allSymbols,
 		programState,
 		imports,
 		exports,
@@ -840,8 +853,9 @@ immutable(Bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
 		(has(record.forcedByValOrRef) && force(record.forcedByValOrRef) == ForcedByValOrRef.byVal));
 }
 
-immutable(FunsAndMap) checkFuns(Alloc)(
+immutable(FunsAndMap) checkFuns(Alloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable SpecsMap specsMap,
@@ -872,7 +886,7 @@ immutable(FunsAndMap) checkFuns(Alloc)(
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(funAst.isPublic, flags, sig, typeParams, specUses));
 	}
 	foreach (immutable Ptr!StructDecl struct_; ptrsRange(structs))
-		addFunsForStruct(alloc, ctx, funsBuilder, commonTypes, struct_);
+		addFunsForStruct(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_);
 	Arr!FunDecl funs = finish(funsBuilder);
 
 	immutable FunsMap funsMap = buildMultiDict!(Sym, Ptr!FunDecl, compareSym, FunDecl, Alloc)(
@@ -913,14 +927,16 @@ immutable(size_t) countFunsForStruct(
 		if (isRecord(body_(s))) {
 			immutable StructBody.Record record = asRecord(body_(s));
 			immutable size_t constructors = recordIsAlwaysByVal(record) ? 1 : 2;
-			return constructors + size(record.fields);
+			return constructors + size(record.fields) + count(record.fields, (ref immutable RecordField it) =>
+				it.isMutable);
 		} else
 			return immutable size_t(0);
 	});
 }
 
-void addFunsForStruct(Alloc)(
+void addFunsForStruct(Alloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
 	ref CheckCtx ctx,
 	ref ExactSizeArrBuilder!FunDecl funsBuilder,
 	ref immutable CommonTypes commonTypes,
@@ -938,7 +954,7 @@ void addFunsForStruct(Alloc)(
 			immutable StructDeclAndArgs(struct_, typeArgs)));
 		immutable Arr!Param ctorParams = map(alloc, record.fields, (ref immutable RecordField it) =>
 			immutable Param(it.range, it.name, it.type, it.index));
-		FunDecl fun(Type returnType, FunFlags flags) {
+		FunDecl constructor(Type returnType, FunFlags flags) {
 			immutable Ptr!Sig ctorSig = allocate(alloc, immutable Sig(
 				fileAndPosFromFileAndRange(struct_.range),
 				struct_.name,
@@ -954,20 +970,20 @@ void addFunsForStruct(Alloc)(
 		}
 
 		if (recordIsAlwaysByVal(record)) {
-			exactSizeArrBuilderAdd(funsBuilder, fun(structType, FunFlags.justNoCtx));
+			exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.justNoCtx));
 		} else {
-			exactSizeArrBuilderAdd(funsBuilder, fun(structType, FunFlags.justPreferred));
+			exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.justPreferred));
 			immutable Type byValType = immutable Type(
 				instantiateStructNeverDelay(
 					alloc,
 					ctx.programState,
 					immutable StructDeclAndArgs(commonTypes.byVal, arrLiteral!Type(alloc, [structType]))));
-			exactSizeArrBuilderAdd(funsBuilder, fun(byValType, FunFlags.justNoCtx));
+			exactSizeArrBuilderAdd(funsBuilder, constructor(byValType, FunFlags.justNoCtx));
 		}
 
 		foreach (immutable ubyte fieldIndex; 0..safeSizeTToU8(size(record.fields))) {
 			immutable Ptr!RecordField field = ptrAt(record.fields, fieldIndex);
-			immutable Ptr!Sig sig = allocate(alloc, immutable Sig(
+			immutable Ptr!Sig getterSig = allocate(alloc, immutable Sig(
 				fileAndPosFromFileAndRange(field.range),
 				field.name,
 				field.type,
@@ -975,11 +991,27 @@ void addFunsForStruct(Alloc)(
 			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 				struct_.isPublic,
 				FunFlags.justNoCtx,
-				sig,
+				getterSig,
 				typeParams,
 				emptyArrWithSize!(Ptr!SpecInst),
 				immutable FunBody(immutable FunBody.RecordFieldGet(fieldIndex))));
-			//TODO: also setters!
+
+			if (field.isMutable) {
+				immutable Ptr!Sig setterSig = allocate(alloc, immutable Sig(
+					fileAndPosFromFileAndRange(field.range),
+					prependSet(allSymbols, field.name),
+					immutable Type(commonTypes.void_),
+					arrLiteral!Param(alloc, [
+						immutable Param(field.range, shortSymAlphaLiteral("a"), structType, 0),
+						immutable Param(field.range, field.name, field.type, 1)])));
+				exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+					struct_.isPublic,
+					FunFlags.justNoCtx,
+					setterSig,
+					typeParams,
+					emptyArrWithSize!(Ptr!SpecInst),
+					immutable FunBody(immutable FunBody.RecordFieldSet(fieldIndex))));
+			}
 		}
 	}
 }
@@ -999,8 +1031,9 @@ immutable(SpecsMap) buildSpecsDict(Alloc)(
 		});
 }
 
-immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
+immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesMap structsAndAliasesMap,
@@ -1032,8 +1065,9 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc)(
 	foreach (ref immutable SpecDecl s; arrRange(specs))
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.specNames, s.name);
 
-	immutable FunsAndMap funsAndMap = checkFuns!Alloc(
+	immutable FunsAndMap funsAndMap = checkFuns(
 		alloc,
+		allSymbols,
 		ctx,
 		commonTypes,
 		specsMap,
@@ -1111,8 +1145,9 @@ immutable(Arr!ModuleAndNameReferents) getFlattenedImports(Alloc)(
 	return finishArr(alloc, res);
 }
 
-immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
+immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
 	ref ProgramState programState,
 	immutable Arr!ModuleAndNames imports,
 	immutable Arr!ModuleAndNames exports,
@@ -1162,6 +1197,7 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc)(
 			(ref immutable Ptr!CommonTypes commonTypes) {
 				immutable Ptr!Module mod = checkWorkerAfterCommonTypes(
 					alloc,
+					allSymbols,
 					ctx,
 					commonTypes,
 					structsAndAliasesMap,

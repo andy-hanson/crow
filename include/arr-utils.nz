@@ -216,7 +216,7 @@ noctx-last ?t(a mut-arr ?t) noctx unsafe
 noctx-remove-unordered-at-index ?t(a mut-arr ?t, index nat) noctx unsafe
 	res = a noctx-at index
 	a noctx-set-at index, a.noctx-last
-	a.size := a.size.noctx-decr
+	a set-size a.size.noctx-decr
 	res
 
 
@@ -264,7 +264,7 @@ try-remove-start opt arr<?t>(a arr ?t, start arr ?t) data<?t>
 push-capacity-must-be-sufficient void(a mut-arr ?t, value ?t) noctx unsafe
 	hard-assert: a.size < a.capacity
 	old-size = a.size
-	a.size := old-size.noctx-incr
+	a set-size old-size.noctx-incr
 	a noctx-set-at old-size, value
 
 noctx-must-remove-unordered-recur void(a mut-arr ?t, index nat, value ?t) noctx unsafe data<?t>
@@ -284,7 +284,7 @@ unsafe-as-arr arr ?t(a mut-arr ?t) noctx unsafe
 	arr: a.size, a.data
 
 freeze arr ?t(a mut-arr ?t) noctx trusted
-	a.frozen? := true
+	a set-frozen? true
 	a unsafe-as-arr
 
 noctx-at ?t(a mut-arr ?t, index nat) trusted noctx
@@ -323,7 +323,7 @@ push void(a mut-arr ?t, value ?t) trusted
 	a ensure-capacity a.size.incr.round-up-to-power-of-two
 	a.size < a.capacity assert
 	(a.data + a.size) set value
-	a.size := a.size incr
+	a set-size: a.size incr
 
 push-all void(a mut-arr ?t, values arr ?t)
 	values each {a push it}
@@ -331,8 +331,8 @@ push-all void(a mut-arr ?t, values arr ?t)
 increase-capacity-to void(a mut-arr ?t, new-capacity nat) unsafe
 	assert: new-capacity > a.capacity
 	old-data = a.data
-	a.capacity := new-capacity
-	a.data := uninitialized-data<?t>: new-capacity
+	a set-capacity new-capacity
+	a set-data uninitialized-data<?t>: new-capacity
 	a.data copy-data-from old-data, a.size
 
 | TODO:MOVE
@@ -355,7 +355,7 @@ ensure-capacity void(a mut-arr ?t, capacity nat) unsafe
 | Unsafe because increasing the size can expose uninitialized data
 unsafe-set-size void(a mut-arr ?t, new-size nat) unsafe
 	assert: new-size <= a.capacity
-	a.size := new-size
+	a set-size new-size
 
 unsafe-increase-size void(a mut-arr ?t, increase-by nat) unsafe
 	a unsafe-set-size: a.size + increase-by
@@ -363,7 +363,7 @@ unsafe-increase-size void(a mut-arr ?t, increase-by nat) unsafe
 reduce-size-if-more-than void(a mut-arr ?t, new-size nat)
 	when
 		new-size < a.size
-			a.size := new-size
+			a set-size new-size
 		else
 			pass
 
@@ -413,9 +413,9 @@ each void(a arr ?t, f fun-mut1 void ?t)
 
 each void(a mut-arr ?t, f fun-mut1 void ?t) trusted
 	was-frozen? = a.frozen?
-	a.frozen? := true
+	a set-frozen? true
 	a.temp-as-arr each f
-	a.frozen? := was-frozen?
+	a set-frozen? was-frozen?
 
 each-with-index void(a arr ?t, f fun-mut2 void ?t nat)
 	a each-with-index-recur f, zero

@@ -281,8 +281,8 @@ contexts:
       scope: identifier
       captures:
         1: comment
-    # `x = y` or `x := y` or `x <- y`
-    - match: '\s+(\:=|\=|<-)\s+'
+    # `x = y` or `x <- y`
+    - match: '\s+(\=|<-)\s+'
       scope: keyword
     # `"foo"`
     - match: '"'

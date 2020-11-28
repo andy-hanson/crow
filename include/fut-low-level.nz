@@ -1,7 +1,7 @@
 import
 	.bootstrap
 		call cb drop err exception fut fut-callback-node fut-state-callbacks fut-state-resolved
-		hard-fail hard-unreachable head none lk next-node opt ok pass ref-of-val result state value void
+		hard-fail hard-unreachable head none lk next-node opt ok pass ref-of-val result set-state state value void
 	.thread-utils: acquire-lock new-lock release-lock
 
 | Considered unsafe because normally it should not be possible to never resolve a fut
@@ -32,7 +32,7 @@ resolve-or-reject void(f fut ?t, result result ?t exception) unsafe
 			hard-fail: "resolving an already-resolved fut"
 		exception
 			hard-fail: "resolving an already-resolved fut"
-	f.state := match result
+	f set-state: match result
 		ok o
 			fut-state-resolved: o.value
 		err e
