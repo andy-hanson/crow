@@ -367,7 +367,9 @@ program(
 																										19
 																										range(1467, 1626))
 																									match(
-																										"<<matched>>"
+																										generated(
+																											temp
+																											0)
 																										expr(
 																											union(1)
 																											file-range(
@@ -645,7 +647,7 @@ program(
 					bool
 					file-range(0, range(2368, 2434))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(
 							union(3)
 							file-range(0, range(2376, 2381))
@@ -784,7 +786,7 @@ program(
 					bool
 					file-range(0, range(2517, 2583))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(
 							union(3)
 							file-range(0, range(2525, 2530))
@@ -1063,7 +1065,7 @@ program(
 					bool
 					file-range(0, range(2368, 2434))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(
 							union(3)
 							file-range(0, range(2376, 2381))
@@ -1302,7 +1304,7 @@ program(
 					bool
 					file-range(0, range(2368, 2434))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(
 							union(3)
 							file-range(0, range(2376, 2381))
@@ -1712,7 +1714,7 @@ program(
 									ptr(record(21))
 									file-range(4, range(636, 1024))
 									match(
-										"<<matched>>"
+										generated(temp, 0)
 										expr(
 											union(4)
 											file-range(4, range(644, 657))
@@ -2147,7 +2149,7 @@ program(
 					bool
 					file-range(0, range(2368, 2434))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(
 							union(3)
 							file-range(0, range(2376, 2381))
@@ -2691,7 +2693,7 @@ program(
 									void
 									file-range(16, range(2125, 2351))
 									match(
-										"<<matched>>"
+										generated(temp, 0)
 										expr(
 											union(6)
 											file-range(16, range(2133, 2138))
@@ -2734,7 +2736,7 @@ program(
 																									let(
 																										generated(
 																											temp
-																											0)
+																											1)
 																										expr(
 																											ptr(
 																												record(44))
@@ -2806,7 +2808,7 @@ program(
 																															local-ref(
 																																generated(
 																																	temp
-																																	0)))
+																																	1)))
 																														expr(
 																															record(
 																																44)
@@ -2860,7 +2862,7 @@ program(
 																													local-ref(
 																														generated(
 																															temp
-																															0)))))))]))))])))))))
+																															1)))))))]))))])))))))
 											case(
 												some(r)
 												expr(
@@ -3082,7 +3084,7 @@ program(
 									void
 									file-range(16, range(2125, 2351))
 									match(
-										"<<matched>>"
+										generated(temp, 0)
 										expr(
 											union(0)
 											file-range(16, range(2133, 2138))
@@ -3125,7 +3127,7 @@ program(
 																									let(
 																										generated(
 																											temp
-																											0)
+																											1)
 																										expr(
 																											ptr(
 																												record(5))
@@ -3197,7 +3199,7 @@ program(
 																															local-ref(
 																																generated(
 																																	temp
-																																	0)))
+																																	1)))
 																														expr(
 																															record(
 																																5)
@@ -3251,7 +3253,7 @@ program(
 																													local-ref(
 																														generated(
 																															temp
-																															0)))))))]))))])))))))
+																															1)))))))]))))])))))))
 											case(
 												some(r)
 												expr(
@@ -3404,7 +3406,7 @@ program(
 											void
 											file-range(10, range(854, 1071))
 											match(
-												"<<matched>>"
+												generated(temp, 0)
 												expr(
 													union(0)
 													file-range(10, range(861, 867))
@@ -3463,7 +3465,7 @@ program(
 											union(0)
 											file-range(10, range(1084, 1211))
 											match(
-												"<<matched>>"
+												generated(temp, 1)
 												expr(union(1), file-range(10, range(1090, 1096)), param-ref(2))
 												[
 													case(
@@ -3542,7 +3544,7 @@ program(
 					void
 					file-range(10, range(1339, 1513))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(union(2), file-range(10, range(1345, 1349)), param-ref(1))
 						[
 							case(none, expr(void, file-range(10, range(1360, 1364)), void))
@@ -5177,7 +5179,7 @@ program(
 					void
 					file-range(16, range(2602, 2691))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(union(7), file-range(16, range(2608, 2614)), param-ref(2))
 						[
 							case(
@@ -7482,7 +7484,7 @@ program(
 													void
 													file-range(15, range(4847, 5469))
 													match(
-														"<<matched>>"
+														generated(temp, 0)
 														expr(
 															union(10)
 															file-range(15, range(4858, 4869))
@@ -8059,7 +8061,7 @@ program(
 					bool
 					file-range(0, range(17597, 17641))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(union(5), file-range(0, range(17603, 17604)), param-ref(0))
 						[
 							case(some(n), expr(bool, file-range(0, range(17617, 17621)), true))
@@ -8130,7 +8132,7 @@ program(
 									union(10)
 									file-range(15, range(7688, 8185))
 									match(
-										"<<matched>>"
+										generated(temp, 0)
 										expr(
 											union(11)
 											file-range(15, range(7745, 7767))
@@ -8337,7 +8339,7 @@ program(
 									union(11)
 									file-range(15, range(8359, 8517))
 									match(
-										"<<matched>>"
+										generated(temp, 0)
 										expr(
 											union(12)
 											file-range(15, range(8369, 8387))
@@ -8495,7 +8497,7 @@ program(
 											union(12)
 											file-range(15, range(8996, 9095))
 											match(
-												"<<matched>>"
+												generated(temp, 0)
 												expr(
 													union(9)
 													file-range(15, range(9006, 9039))
@@ -8670,7 +8672,7 @@ program(
 											union(9)
 											file-range(15, range(9489, 9577))
 											match(
-												"<<matched>>"
+												generated(temp, 0)
 												expr(union(13), file-range(15, range(9495, 9498)), local-ref(res))
 												[
 													case(
@@ -8751,7 +8753,7 @@ program(
 					union(13)
 					file-range(15, range(9692, 10478))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(union(5), file-range(15, range(9698, 9706)), param-ref(1))
 						[
 							case(
@@ -8922,7 +8924,7 @@ program(
 																			union(13)
 																			file-range(15, range(10252, 10478))
 																			match(
-																				"<<matched>>"
+																				generated(temp, 1)
 																				expr(
 																					union(13)
 																					file-range(15, range(10262, 10316))
@@ -9373,7 +9375,7 @@ program(
 					bool
 					file-range(0, range(17597, 17641))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(union(12), file-range(0, range(17603, 17604)), param-ref(0))
 						[
 							case(some(n), expr(bool, file-range(0, range(17617, 17621)), true))
@@ -9409,7 +9411,7 @@ program(
 													void
 													file-range(15, range(5922, 6651))
 													match(
-														"<<matched>>"
+														generated(temp, 0)
 														expr(
 															union(9)
 															file-range(15, range(5939, 5950))
@@ -10533,7 +10535,7 @@ program(
 					union(1)
 					file-range(10, range(495, 614))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(
 							union(0)
 							file-range(10, range(503, 508))
@@ -11624,7 +11626,7 @@ program(
 					record(7)
 					file-range(0, range(2213, 2281))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(union(3), file-range(0, range(2219, 2220)), param-ref(1))
 						[
 							case(none, expr(record(7), file-range(0, range(2231, 2237)), arr(0, 23)))
@@ -12994,7 +12996,7 @@ program(
 					bool
 					file-range(0, range(2517, 2583))
 					match(
-						"<<matched>>"
+						generated(temp, 0)
 						expr(
 							union(3)
 							file-range(0, range(2525, 2530))

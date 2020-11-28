@@ -17,7 +17,7 @@ import model.model :
 	StructInst,
 	summon;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, sizeEq;
+import util.collection.arr : Arr;
 import util.collection.str : Str;
 import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateSet;
@@ -257,16 +257,12 @@ immutable(ConcreteType) concreteType_pointer(immutable Ptr!ConcreteStruct struct
 	return immutable ConcreteType(True, struct_);
 }
 
-immutable(ConcreteType) concreteType_byValue(immutable Ptr!ConcreteStruct struct_) {
-	return immutable ConcreteType(False, struct_);
-}
-
 immutable(ConcreteType) byRef(immutable ConcreteType t) {
 	return concreteType_pointer(t.struct_);
 }
 
 immutable(ConcreteType) byVal(ref immutable ConcreteType t) {
-	return concreteType_byValue(t.struct_);
+	return immutable ConcreteType(False, t.struct_);
 }
 
 immutable(ConcreteType) concreteType_fromStruct(immutable Ptr!ConcreteStruct s) {
@@ -721,16 +717,8 @@ struct ConcreteExprKind {
 			immutable ConcreteExpr then;
 		}
 
-		immutable Ptr!ConcreteLocal matchedLocal;
 		immutable Ptr!ConcreteExpr matchedValue;
 		immutable Arr!Case cases;
-
-		immutable this(immutable Ptr!ConcreteLocal ml, immutable Ptr!ConcreteExpr mv, immutable Arr!Case c) {
-			matchedLocal = ml;
-			matchedValue = mv;
-			cases = c;
-			verify(sizeEq(matchedUnionMembers(this), cases));
-		}
 	}
 
 	struct ParamRef {
@@ -828,10 +816,6 @@ struct ConcreteExprKind {
 
 immutable(ConcreteType) returnType(return scope ref immutable ConcreteExprKind.Call a) {
 	return a.called.returnType;
-}
-
-private ref immutable(Arr!ConcreteType) matchedUnionMembers(return scope ref const ConcreteExprKind.Match a) {
-	return asUnion(body_(mustBeNonPointer(a.matchedLocal.type).deref)).members;
 }
 
 immutable(Bool) isConstant(ref immutable ConcreteExprKind a) {

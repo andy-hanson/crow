@@ -397,7 +397,6 @@ program(
 														call(any-unhandled-exceptions?, [local-ref(gctx)])
 														call(one, [])
 														match(
-															"<<matched>>"
 															call(must-be-resolved, [local-ref(main-fut)])
 															[
 																case(some(o), call(value, [local-ref(o)]))
@@ -480,7 +479,6 @@ program(
 			[param(a, type(false, char)), param(b, type(false, char))]
 			expr-body(
 				match(
-					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
 		fun(
@@ -533,7 +531,6 @@ program(
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			expr-body(
 				match(
-					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
 		fun(
@@ -712,7 +709,6 @@ program(
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			expr-body(
 				match(
-					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
 		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, nat8)]))
@@ -864,7 +860,6 @@ program(
 			[param(a, type(false, int)), param(b, type(false, int))]
 			expr-body(
 				match(
-					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
 		fun(
@@ -1093,7 +1088,6 @@ program(
 					let(
 						res
 						match(
-							"<<matched>>"
 							call(context-head, [param-ref(gc)])
 							[
 								case(
@@ -1235,7 +1229,6 @@ program(
 			[param(a, type(false, int32)), param(b, type(false, int32))]
 			expr-body(
 				match(
-					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
 		fun(
@@ -1419,7 +1412,6 @@ program(
 					seq(
 						call(acquire-lock, [call(ref-of-val, [call(lk, [param-ref(f)])])])
 						match(
-							"<<matched>>"
 							call(state, [param-ref(f)])
 							[
 								case(
@@ -1521,7 +1513,6 @@ program(
 					seq(
 						call(acquire-lock, [call(ref-of-val, [call(lk, [param-ref(f)])])])
 						match(
-							"<<matched>>"
 							call(state, [param-ref(f)])
 							[
 								case(
@@ -1608,7 +1599,6 @@ program(
 						seq(
 							call(acquire-lock, [call(ref-of-val, [call(lk, [param-ref(f)])])])
 							match(
-								"<<matched>>"
 								call(state, [param-ref(f)])
 								[
 									case(
@@ -1621,7 +1611,6 @@ program(
 							[
 								param-ref(f)
 								match(
-									"<<matched>>"
 									param-ref(result)
 									[
 										case(
@@ -1637,7 +1626,6 @@ program(
 			[param(node, type(false, opt)), param(value, type(false, result))]
 			expr-body(
 				match(
-					"<<matched>>"
 					param-ref(node)
 					[
 						case(none, call(pass, []))
@@ -2175,7 +2163,6 @@ program(
 			[param(result, type(false, result))]
 			expr-body(
 				match(
-					"<<matched>>"
 					param-ref(result)
 					[
 						case(
@@ -2998,7 +2985,6 @@ program(
 							call(get-last-checked, [call(ref-of-val, [call(may-be-work-to-do, [param-ref(gctx)])])])
 							seq(
 								match(
-									"<<matched>>"
 									call(choose-task, [param-ref(gctx)])
 									[
 										case(
@@ -3100,8 +3086,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, opt))]
-			expr-body(
-				match("<<matched>>", param-ref(a), [case(some(n), call(true, [])), case(some(s), call(false, []))])))
+			expr-body(match(param-ref(a), [case(some(n), call(true, [])), case(some(s), call(false, []))])))
 		fun(
 			false
 			>
@@ -3131,7 +3116,6 @@ program(
 							as
 							[
 								match(
-									"<<matched>>"
 									call(choose-task-recur, [call(vats, [param-ref(gctx)]), call(zero, [])])
 									[
 										case(
@@ -3171,7 +3155,6 @@ program(
 						vat
 						call(noctx-at, [param-ref(vats), param-ref(i)])
 						match(
-							"<<matched>>"
 							call(choose-task-in-vat, [local-ref(vat)])
 							[
 								case(none, call(choose-task-recur, [param-ref(vats), call(noctx-incr, [param-ref(i)])]))
@@ -3201,7 +3184,6 @@ program(
 										to-union(1, call(some, [to-union(0, call(none, []))]))
 										to-union(0, call(none, [])))
 									match(
-										"<<matched>>"
 										call(find-and-remove-first-doable-task, [param-ref(vat)])
 										[
 											case(none, to-union(0, call(none, [])))
@@ -3241,7 +3223,6 @@ program(
 								find-and-remove-first-doable-task-recur
 								[param-ref(vat), call(head, [local-ref(tasks)])])
 							match(
-								"<<matched>>"
 								local-ref(res)
 								[
 									case(none, to-union(0, call(none, [])))
@@ -3260,7 +3241,6 @@ program(
 			[param(vat, type(true, vat)), param(opt-node, type(false, opt))]
 			expr-body(
 				match(
-					"<<matched>>"
 					param-ref(opt-node)
 					[
 						case(none, to-union(0, call(none, [])))
@@ -3296,7 +3276,6 @@ program(
 																task-and-nodes
 																[local-ref(task), call(next-node, [local-ref(node)])])]))
 												match(
-													"<<matched>>"
 													call(
 														find-and-remove-first-doable-task-recur
 														[param-ref(vat), call(next-node, [local-ref(node)])])
@@ -3455,8 +3434,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, opt))]
-			expr-body(
-				match("<<matched>>", param-ref(a), [case(some(n), call(true, [])), case(some(s), call(false, []))])))
+			expr-body(match(param-ref(a), [case(some(n), call(true, [])), case(some(s), call(false, []))])))
 		fun(
 			false
 			set-n-threads-running
@@ -3500,7 +3478,6 @@ program(
 						seq(
 							seq(
 								match(
-									"<<matched>>"
 									call(task-or-gc, [param-ref(chosen-task)])
 									[
 										case(
@@ -3802,7 +3779,6 @@ program(
 			[param(f, type(true, fut))]
 			expr-body(
 				match(
-					"<<matched>>"
 					call(state, [param-ref(f)])
 					[
 						case(none, call(hard-unreachable, []))
@@ -4343,7 +4319,6 @@ program(
 			[param(a, type(false, int)), param(b, type(false, int))]
 			expr-body(
 				match(
-					"<<matched>>"
 					call(<=>, [param-ref(a), param-ref(b)])
 					[case(none, call(true, [])), case(none, call(false, [])), case(none, call(false, []))])))
 		fun(

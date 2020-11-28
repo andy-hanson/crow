@@ -1135,16 +1135,16 @@ immutable(LowExprKind) getMatchExpr(Alloc)(
 	immutable ExprPos exprPos,
 	ref immutable ConcreteExprKind.Match a,
 ) {
-	return withLowLocal(alloc, ctx, a.matchedLocal, (immutable Ptr!LowLocal matchedLocal) =>
-		immutable LowExprKind(nu!(LowExprKind.Match)(
-			alloc,
-			matchedLocal,
-			allocate(alloc, getLowExpr(alloc, ctx, a.matchedValue, ExprPos.nonTail)),
-			map(alloc, a.cases, (ref immutable ConcreteExprKind.Match.Case case_) =>
-				withOptLowLocal(alloc, ctx, case_.local, (immutable Opt!(Ptr!LowLocal) local) =>
-					immutable LowExprKind.Match.Case(
-						local,
-						getLowExpr(alloc, ctx, case_.then, exprPos)))))));
+	immutable Ptr!LowExpr matched = allocate(alloc, getLowExpr(alloc, ctx, a.matchedValue, ExprPos.nonTail));
+	return immutable LowExprKind(nu!(LowExprKind.Match)(
+		alloc,
+		addTempLocal(alloc, ctx, matched.type),
+		matched,
+		map(alloc, a.cases, (ref immutable ConcreteExprKind.Match.Case case_) =>
+			withOptLowLocal(alloc, ctx, case_.local, (immutable Opt!(Ptr!LowLocal) local) =>
+				immutable LowExprKind.Match.Case(
+					local,
+					getLowExpr(alloc, ctx, case_.then, exprPos))))));
 }
 
 immutable(LowExprKind) getParamRefExpr(Alloc)(

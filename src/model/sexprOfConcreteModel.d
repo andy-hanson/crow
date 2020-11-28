@@ -263,7 +263,6 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 			tataRecord(alloc, "local-ref", [tataOfConcreteLocalRef(it.local)]),
 		(ref immutable ConcreteExprKind.Match it) =>
 			tataRecord(alloc, "match", [
-				tataOfConcreteLocalRef(it.matchedLocal),
 				tataOfConcreteExpr(alloc, it.matchedValue),
 				tataArr(alloc, it.cases, (ref immutable ConcreteExprKind.Match.Case case_) =>
 					tataRecord(alloc, "case", [

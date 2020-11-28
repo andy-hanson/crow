@@ -43,7 +43,6 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteStructSource,
 	ConcreteType,
-	concreteType_byValue,
 	isConstant,
 	isSummon,
 	mustBeNonPointer,
@@ -436,18 +435,6 @@ immutable(Ptr!ConcreteLocal) concretizeLocal(Alloc)(
 	return makeLocalWorker(alloc, ctx, immutable ConcreteLocalSource(local), getConcreteType(alloc, ctx, local.type));
 }
 
-immutable(Ptr!ConcreteLocal) getMatchedLocal(Alloc)(
-	ref Alloc alloc,
-	ref ConcretizeExprCtx ctx,
-	immutable Ptr!ConcreteStruct matchedUnion,
-) {
-	return makeLocalWorker(
-		alloc,
-		ctx,
-		immutable ConcreteLocalSource(immutable ConcreteLocalSource.Matched()),
-		concreteType_byValue(matchedUnion));
-}
-
 immutable(ConcreteExpr) concretizeWithLocal(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
@@ -515,14 +502,8 @@ immutable(ConcreteExpr) concretizeMatch(Alloc)(
 						none!(Ptr!ConcreteLocal),
 						concretizeExpr(alloc, ctx, case_.then));
 			});
-		return immutable ConcreteExpr(
-			type,
-			range,
-			immutable ConcreteExprKind(nu!(ConcreteExprKind.Match)(
-				alloc,
-				getMatchedLocal(alloc, ctx, matchedUnion),
-				allocExpr(alloc, matched),
-				cases)));
+		return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
+			nu!(ConcreteExprKind.Match)(alloc, allocExpr(alloc, matched), cases)));
 	}
 }
 
