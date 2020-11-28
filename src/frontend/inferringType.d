@@ -25,11 +25,9 @@ import model.model :
 	isTypeParam,
 	isUnion,
 	Local,
-	matchStructBody,
 	matchType,
 	Param,
 	range,
-	RecordField,
 	StructsAndAliasesMap,
 	StructBody,
 	StructDecl,
@@ -43,13 +41,12 @@ import model.model :
 import util.bools : Bool, False, True;
 import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, size, sizeEq;
-import util.collection.arrUtil : find, findIndex, findPtr, map, mapOrNone, mapZipOrNone;
+import util.collection.arrUtil : find, findIndex, map, mapOrNone, mapZipOrNone;
 import util.collection.mutArr : MutArr;
 import util.memory : allocate, nu;
 import util.opt : has, force, none, noneMut, Opt, some;
 import util.ptr : Ptr, ptrEquals;
 import util.sourceRange : FileAndRange, RangeWithinFile;
-import util.sym : Sym, symEq;
 import util.types : safeSizeTToU8, u8;
 import util.util : todo, verify;
 
@@ -255,13 +252,9 @@ private immutable(CheckedExpr) bogusWithoutAffectingExpected(immutable FileAndRa
 	return CheckedExpr(immutable Expr(range, immutable Expr.Bogus()));
 }
 
-immutable(CheckedExpr) bogusWithType(ref Expected expected, ref immutable FileAndRange range, immutable Type setType) {
-	cellSet(expected.type, some!Type(setType));
-	return bogusWithoutAffectingExpected(range);
-}
-
 immutable(CheckedExpr) bogus(ref Expected expected, immutable FileAndRange range) {
-	return bogusWithType(expected, range, Type(Type.Bogus()));
+	cellSet(expected.type, some(immutable Type(immutable Type.Bogus())));
+	return bogusWithoutAffectingExpected(range);
 }
 
 immutable(CheckedExpr) bogusWithoutChangingExpected(ref Expected expected, ref immutable FileAndRange range) {
@@ -368,39 +361,6 @@ private immutable(Bool) setTypeNoDiagnostic(Alloc)(
 			True,
 		(ref immutable SetTypeResult.Fail) =>
 			False);
-}
-
-struct StructAndField {
-	immutable Ptr!StructInst structInst;
-	immutable Ptr!RecordField field;
-}
-
-immutable(Opt!StructAndField) tryGetRecordField(immutable Type targetType, immutable Sym fieldName) {
-	return matchType!(immutable Opt!StructAndField)(
-		targetType,
-		(ref immutable Type.Bogus) =>
-			//TODO: want to avoid cascading errors here.
-			none!StructAndField,
-		(immutable Ptr!TypeParam) =>
-			none!StructAndField,
-		(immutable Ptr!StructInst targetStructInst) =>
-			matchStructBody!(immutable Opt!StructAndField)(
-				body_(targetStructInst),
-				(ref immutable StructBody.Bogus) =>
-					none!StructAndField,
-				(ref immutable StructBody.Builtin) =>
-					none!StructAndField,
-				(ref immutable StructBody.ExternPtr) =>
-					none!StructAndField,
-				(ref immutable StructBody.Record r) {
-					immutable Opt!(Ptr!RecordField) field = findPtr(r.fields, (immutable Ptr!RecordField f) =>
-						symEq(f.name, fieldName));
-					return has(field)
-						? some(immutable StructAndField(targetStructInst, force(field)))
-						: none!StructAndField;
-				},
-				(ref immutable StructBody.Union) =>
-					none!StructAndField));
 }
 
 private Opt!(Ptr!SingleInferringType) tryGetTypeArgFromInferringTypeArgs(

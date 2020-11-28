@@ -652,17 +652,6 @@ void writeDiag(TempAlloc, Alloc)(
 		(ref immutable Diag.TypeNotSendable) {
 			writeStatic(writer, "this type is not sendable and should not appear in an interface");
 		},
-		(ref immutable Diag.WriteToNonExistentField d) {
-			writeStatic(writer, "type ");
-			writeType(writer, d.targetType);
-			writeStatic(writer, " has no field ");
-			writeName(writer, d.fieldName);
-		},
-		(ref immutable Diag.WriteToNonMutableField d) {
-			writeStatic(writer, "field ");
-			writeName(writer, d.field.name);
-			writeStatic(writer, " is not mutable");
-		},
 		(ref immutable Diag.WrongNumberNewStructArgs d) {
 			writeStatic(writer, "record type ");
 			writeSym(writer, d.decl.name);

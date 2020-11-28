@@ -3,7 +3,6 @@ module frontend.parseExpr;
 @safe @nogc pure nothrow:
 
 import frontend.ast :
-	asCall,
 	asIdentifier,
 	BogusAst,
 	CallAst,
@@ -11,7 +10,6 @@ import frontend.ast :
 	ExprAst,
 	ExprAstKind,
 	IdentifierAst,
-	isCall,
 	isIdentifier,
 	LambdaAst,
 	LetAst,
@@ -19,7 +17,6 @@ import frontend.ast :
 	MatchAst,
 	matchExprAstKind,
 	NameAndRange,
-	RecordFieldSetAst,
 	SeqAst,
 	ThenAst,
 	TypeAst,
@@ -49,7 +46,7 @@ import frontend.lexer :
 import frontend.parseType : tryParseTypeArg, tryParseTypeArgs;
 import model.parseDiag : ParseDiag;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, only, size, toArr;
+import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, only, toArr;
 import util.collection.arrUtil : arrLiteral, exists, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
@@ -65,9 +62,8 @@ immutable(ExprAst) parseFunExprBody(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!
 		immutable ExprAndDedent ed = parseStatementsAndExtraDedents(alloc, lexer);
 		verify(ed.dedents == 0); // Since we started at the root, can't dedent more
 		return ed.expr;
-	} else {
+	} else
 		return bogusExpr(range(lexer, start));
-	}
 }
 
 private:
@@ -183,7 +179,7 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 	}
 }
 
-immutable(ExprAndMaybeDedent) parseCallsAndRecordFieldSets(Alloc, SymAlloc)(
+immutable(ExprAndMaybeDedent) parseCalls(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
@@ -192,24 +188,8 @@ immutable(ExprAndMaybeDedent) parseCallsAndRecordFieldSets(Alloc, SymAlloc)(
 ) {
 	if (ed.dedents.has)
 		return ed;
-	else if (tryTake(lexer, " := ")) {
-		immutable ExprAst expr = ed.expr;
-		if (!expr.kind.isCall)
-			todo!void("non-struct-field-access to left of ':='");
-		immutable CallAst call = expr.kind.asCall;
-		if (!empty(toArr(call.typeArgs)))
-			todo!void("RecordFieldSet should not have type args");
-		if (call.args.size != 1)
-			todo!void("RecordFieldSet should have exactly 1 arg");
-		immutable Ptr!ExprAst target = allocExpr(alloc, call.args.only);
-		immutable ExprAndMaybeDedent value = parseExprArg(alloc, lexer, ArgCtx(allowBlock, True));
-		immutable RecordFieldSetAst rfs = immutable RecordFieldSetAst(
-			target, call.funName, allocExpr(alloc, value.expr));
-		return immutable ExprAndMaybeDedent(
-			immutable ExprAst(range(lexer, start), immutable ExprAstKind(rfs)),
-			value.dedents);
-	} else if (tryTake(lexer, ' '))
-		return parseCallsAndRecordFieldSets(
+	else if (tryTake(lexer, ' '))
+		return parseCalls(
 			alloc,
 			lexer,
 			start,
@@ -243,7 +223,6 @@ immutable(Bool) someInOwnBody(
 		(ref immutable LiteralInnterAst) => unreachable!(immutable Bool),
 		(ref immutable MatchAst) => unreachable!(immutable Bool),
 		(ref immutable SeqAst) => unreachable!(immutable Bool),
-		(ref immutable RecordFieldSetAst e) => immutable Bool(recur(e.target) || recur(e.value)),
 		(ref immutable ThenAst) => unreachable!(immutable Bool),
 		(ref immutable CondAst) => unreachable!(immutable Bool));
 }
@@ -578,7 +557,7 @@ immutable(ExprAndMaybeDedent) parseExprWorker(Alloc, SymAlloc)(
 	immutable ArgCtx ctx,
 ) {
 	immutable ExprAndMaybeDedent ed = parseExprBeforeCall(alloc, lexer, start, et, ctx);
-	return ctx.allowCall ? parseCallsAndRecordFieldSets(alloc, lexer, start, ed, ctx.allowBlock) : ed;
+	return ctx.allowCall ? parseCalls(alloc, lexer, start, ed, ctx.allowBlock) : ed;
 }
 
 // This eats an expression, but does not eat any newlines.

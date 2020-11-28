@@ -17,7 +17,6 @@ import frontend.ast :
 	matchExprAstKind,
 	NameAndRange,
 	rangeOfNameAndRange,
-	RecordFieldSetAst,
 	SeqAst,
 	ThenAst,
 	TypeAst,
@@ -29,7 +28,6 @@ import frontend.inferringType :
 	allocExpr,
 	bogus,
 	bogusWithoutChangingExpected,
-	bogusWithType,
 	check,
 	CheckedExpr,
 	copyWithNewExpectedType,
@@ -43,10 +41,8 @@ import frontend.inferringType :
 	programState,
 	rangeInFile2,
 	shallowInstantiateType,
-	StructAndField,
 	tryGetDeeplyInstantiatedType,
 	tryGetDeeplyInstantiatedTypeFor,
-	tryGetRecordField,
 	typeFromAst2;
 import frontend.instantiate : instantiateStructNeverDelay;
 import frontend.typeFromAst : makeFutType;
@@ -73,7 +69,6 @@ import model.model :
 	params,
 	Purity,
 	range,
-	RecordField,
 	returnType,
 	StructBody,
 	StructDecl,
@@ -694,37 +689,6 @@ immutable(CheckedExpr) checkSeq(Alloc)(
 	return CheckedExpr(immutable Expr(range, Expr.Seq(first, then)));
 }
 
-immutable(CheckedExpr) checkRecordFieldSet(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
-	ref immutable RecordFieldSetAst ast,
-	ref Expected expected,
-) {
-	immutable ExprAndType target = checkAndInfer(alloc, ctx, ast.target);
-	immutable Opt!StructAndField opStructAndField = tryGetRecordField(target.type, ast.fieldName.name);
-	if (has(opStructAndField)) {
-		immutable StructAndField structAndField = force(opStructAndField);
-		immutable Ptr!StructInst structInst = structAndField.structInst;
-		immutable Ptr!RecordField field = structAndField.field;
-		if (!field.isMutable) {
-			addDiag2(alloc, ctx, range, immutable Diag(Diag.WriteToNonMutableField(field)));
-			return bogusWithType(expected, range, immutable Type(ctx.commonTypes.void_));
-		} else {
-			immutable Expr value = checkAndExpect(alloc, ctx, ast.value, field.type);
-			immutable Expr rfs = immutable Expr(range, immutable Expr.RecordFieldSet(
-				allocExpr(alloc, target.expr),
-				structInst,
-				field,
-				allocExpr(alloc, value)));
-			return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.void_), rfs);
-		}
-	} else {
-		addDiag2(alloc, ctx, range, immutable Diag(Diag.WriteToNonExistentField(target.type, ast.fieldName.name)));
-		return bogusWithType(expected, range, immutable Type(ctx.commonTypes.void_));
-	}
-}
-
 immutable(CheckedExpr) checkThen(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
@@ -776,8 +740,6 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			checkMatch(alloc, ctx, range, a, expected),
 		(ref immutable SeqAst a) =>
 			checkSeq(alloc, ctx, range, a, expected),
-		(ref immutable RecordFieldSetAst a) =>
-			checkRecordFieldSet(alloc, ctx, range, a, expected),
 		(ref immutable ThenAst a) =>
 			checkThen(alloc, ctx, range, a, expected),
 		(ref immutable WhenAst a) =>

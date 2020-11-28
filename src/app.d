@@ -15,7 +15,6 @@ import frontend.ast :
 	LiteralInnerAst,
 	MatchAst,
 	SeqAst,
-	RecordFieldSetAst,
 	ThenAst,
 	FileAst,
 	SigAst,
@@ -39,7 +38,6 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 		printf("	LiteralAst: %lu\n", LiteralAst.sizeof);
 		printf("	LiteralInnerAst: %lu\n", LiteralInnerAst.sizeof);
 		printf("	MatchAst: %lu\n", MatchAst.sizeof);
-		printf("	RecordFieldSetAst: %lu\n", RecordFieldSetAst.sizeof);
 		printf("	SeqAst: %lu\n", SeqAst.sizeof);
 		printf("	ThenAst: %lu\n", ThenAst.sizeof);
 		printf("	WhenAst: %lu\n", WhenAst.sizeof);

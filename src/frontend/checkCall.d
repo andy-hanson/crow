@@ -2,15 +2,7 @@ module frontend.checkCall;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast :
-	CallAst,
-	ExprAst,
-	LetAst,
-	matchExprAstKind,
-	NameAndRange,
-	SeqAst,
-	TypeAst,
-	WhenAst;
+import frontend.ast : CallAst, ExprAst, NameAndRange, TypeAst;
 import frontend.checkCtx : addDiag, CheckCtx;
 import frontend.checkExpr : checkExpr;
 import frontend.inferringType :
@@ -86,7 +78,6 @@ import util.collection.arr :
 	toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil :
-	every,
 	exists,
 	exists_const,
 	fillArr_mut,
@@ -115,7 +106,7 @@ import util.memory : nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, symEq;
-import util.util : todo, unreachable, verify;
+import util.util : todo, verify;
 
 immutable(CheckedExpr) checkCall(Alloc)(
 	ref Alloc alloc,
@@ -249,34 +240,6 @@ void eachFunInScope(
 					cb(immutable CalledDecl(f));
 		}
 	}
-}
-
-// If we call `foo: \x ...` where `foo` is a function that doesn't exist,
-// don't continue checking the lambda it in the hopes that it might have a property.
-immutable(Bool) exprMightHaveProperties(immutable ExprAst ast) {
-	return matchExprAstKind!(immutable Bool)(
-		ast.kind,
-		(ref immutable BogusAst) => unreachable!(immutable Bool),
-		(ref immutable CallAst) => True,
-		(ref immutable CreateArrAst) => True,
-		(ref immutable IdentifierAst) => True,
-		(ref immutable LambdaAst) => False,
-		(ref immutable LetAst e) => exprMightHaveProperties(e.then),
-		(ref immutable LiteralAst) => True,
-		(ref immutable LiteralInnerAst) => True,
-		//TODO:CHECK ALL BRANCHES
-		(ref immutable MatchAst) => True,
-		// Always returns fut
-		//TODO: so should always be false?
-		(ref immutable SeqAst e) => exprMightHaveProperties(e.then),
-		(ref immutable RecordFieldSetAst) => False,
-		// Always returns fut
-		(ref immutable ThenAst) => False,
-		(ref immutable WhenAst e) =>
-			immutable Bool(
-				every(e.cases, (ref immutable WhenAst.Case case_) =>
-					exprMightHaveProperties(case_.then)) &&
-				exprMightHaveProperties(force(e.else_))));
 }
 
 struct Candidate {

@@ -1295,27 +1295,6 @@ struct Expr {
 		immutable Ptr!Param param;
 	}
 
-	struct RecordFieldSet {
-		@safe @nogc pure nothrow:
-		immutable Ptr!Expr target;
-		immutable Ptr!StructInst targetType;
-		immutable Ptr!RecordField field;
-		immutable Ptr!Expr value;
-
-		immutable this(
-			immutable Ptr!Expr t,
-			immutable Ptr!StructInst tt,
-			immutable Ptr!RecordField f,
-			immutable Ptr!Expr v,
-		) {
-			target = t;
-			targetType = tt;
-			field = f;
-			value = v;
-			verify(field.isMutable);
-		}
-	}
-
 	struct Seq {
 		immutable(Ptr!Expr) first;
 		immutable(Ptr!Expr) then;
@@ -1338,7 +1317,6 @@ struct Expr {
 		localRef,
 		match,
 		paramRef,
-		recordFieldSet,
 		seq,
 		stringLiteral,
 	}
@@ -1357,7 +1335,6 @@ struct Expr {
 		immutable LocalRef localRef;
 		immutable Match match_;
 		immutable ParamRef paramRef;
-		immutable RecordFieldSet recordFieldSet;
 		immutable Seq seq;
 		immutable StringLiteral stringLiteral;
 	}
@@ -1386,9 +1363,6 @@ struct Expr {
 	@trusted immutable this(immutable FileAndRange r, immutable ParamRef a) {
 		range_ = r; kind = Kind.paramRef; paramRef = a;
 	}
-	@trusted immutable this(immutable FileAndRange r, immutable RecordFieldSet a) {
-		range_ = r; kind = Kind.recordFieldSet; recordFieldSet = a;
-	}
 	@trusted immutable this(immutable FileAndRange r, immutable Seq a) { range_ = r; kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable FileAndRange r, immutable StringLiteral a) {
 		range_ = r; kind = Kind.stringLiteral; stringLiteral = a;
@@ -1416,7 +1390,6 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	scope T delegate(ref immutable Expr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
 	scope T delegate(ref immutable Expr.Match) @safe @nogc pure nothrow cbMatch,
 	scope T delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
-	scope T delegate(ref immutable Expr.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 	scope T delegate(ref immutable Expr.Seq) @safe @nogc pure nothrow cbSeq,
 	scope T delegate(ref immutable Expr.StringLiteral) @safe @nogc pure nothrow cbStringLiteral,
 ) {
@@ -1443,8 +1416,6 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 			return cbMatch(a.match_);
 		case Expr.Kind.paramRef:
 			return cbParamRef(a.paramRef);
-		case Expr.Kind.recordFieldSet:
-			return cbRecordFieldSet(a.recordFieldSet);
 		case Expr.Kind.seq:
 			return cbSeq(a.seq);
 		case Expr.Kind.stringLiteral:
@@ -1466,7 +1437,6 @@ immutable(Bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.LocalRef e) => e.local.type.isBogus,
 		(ref immutable Expr.Match e) => e.type.isBogus,
 		(ref immutable Expr.ParamRef e) => e.param.type.isBogus,
-		(ref immutable Expr.RecordFieldSet e) => False,
 		(ref immutable Expr.Seq e) => e.then.typeIsBogus,
 		(ref immutable Expr.StringLiteral e) => False);
 }
@@ -1485,7 +1455,6 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.LocalRef e) => e.local.type,
 		(ref immutable Expr.Match) => todo!(immutable Type)("getType match"),
 		(ref immutable Expr.ParamRef e) => e.param.type,
-		(ref immutable Expr.RecordFieldSet e) => immutable Type(commonTypes.void_),
 		(ref immutable Expr.Seq e) => e.then.getType(commonTypes),
 		(ref immutable Expr.StringLiteral) => immutable Type(commonTypes.str));
 }

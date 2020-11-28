@@ -244,8 +244,6 @@ immutable(Sexpr) sexprOfExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable 
 					sexprOfMatchCase(alloc, ctx, case_))]),
 		(ref immutable Expr.ParamRef it) =>
 			tataRecord(alloc, "param-ref", [tataSym(it.param.name)]),
-		(ref immutable Expr.RecordFieldSet) =>
-			todo!(immutable Sexpr)("recordfieldset"),
 		(ref immutable Expr.Seq a) =>
 			tataRecord(alloc, "seq", [
 				sexprOfExpr(alloc, ctx, a.first),

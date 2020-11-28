@@ -193,15 +193,6 @@ struct Diag {
 		immutable Type actual;
 	}
 	struct TypeNotSendable {}
-	struct WriteToNonExistentField {
-		// Type of `x` in `x.y := z`
-		immutable Type targetType;
-		// `y` in `x.y := z`
-		immutable Sym fieldName;
-	}
-	struct WriteToNonMutableField {
-		immutable Ptr!RecordField field;
-	}
 	struct WrongNumberNewStructArgs {
 		immutable Ptr!StructDecl decl;
 		immutable size_t nExpectedArgs;
@@ -255,8 +246,6 @@ struct Diag {
 		specImplNotFound,
 		typeConflict,
 		typeNotSendable,
-		writeToNonExistentField,
-		writeToNonMutableField,
 		wrongNumberNewStructArgs,
 		wrongNumberTypeArgsForSpec,
 		wrongNumberTypeArgsForStruct,
@@ -299,8 +288,6 @@ struct Diag {
 		immutable SpecImplNotFound specImplNotFound;
 		immutable Ptr!TypeConflict typeConflict;
 		immutable TypeNotSendable typeNotSendable;
-		immutable WriteToNonExistentField writeToNonExistentField;
-		immutable WriteToNonMutableField writeToNonMutableField;
 		immutable WrongNumberNewStructArgs wrongNumberNewStructArgs;
 		immutable WrongNumberTypeArgsForSpec wrongNumberTypeArgsForSpec;
 		immutable WrongNumberTypeArgsForStruct wrongNumberTypeArgsForStruct;
@@ -394,12 +381,6 @@ struct Diag {
 	@trusted immutable this(immutable SpecImplNotFound a) { kind = Kind.specImplNotFound; specImplNotFound = a; }
 	@trusted immutable this(immutable Ptr!TypeConflict a) { kind = Kind.typeConflict; typeConflict = a; }
 	@trusted immutable this(immutable TypeNotSendable a) { kind = Kind.typeNotSendable; typeNotSendable = a; }
-	@trusted immutable this(immutable WriteToNonExistentField a) {
-		kind = Kind.writeToNonExistentField; writeToNonExistentField = a;
-	}
-	@trusted immutable this(immutable WriteToNonMutableField a) {
-		kind = Kind.writeToNonMutableField; writeToNonMutableField = a;
-	}
 	@trusted immutable this(immutable WrongNumberNewStructArgs a) {
 		kind = Kind.wrongNumberNewStructArgs; wrongNumberNewStructArgs = a;
 	}
@@ -514,12 +495,6 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.TypeNotSendable
 	) @safe @nogc pure nothrow cbTypeNotSendable,
 	scope immutable(Out) delegate(
-		ref immutable Diag.WriteToNonExistentField
-	) @safe @nogc pure nothrow cbWriteToNonExistentField,
-	scope immutable(Out) delegate(
-		ref immutable Diag.WriteToNonMutableField
-	) @safe @nogc pure nothrow cbWriteToNonMutableField,
-	scope immutable(Out) delegate(
 		ref immutable Diag.WrongNumberNewStructArgs
 	) @safe @nogc pure nothrow cbWrongNumberNewStructArgs,
 	scope immutable(Out) delegate(
@@ -600,10 +575,6 @@ static assert(Diag.sizeof <= 32);
 			return cbTypeConflict(a.typeConflict);
 		case Diag.Kind.typeNotSendable:
 			return cbTypeNotSendable(a.typeNotSendable);
-		case Diag.Kind.writeToNonExistentField:
-			return cbWriteToNonExistentField(a.writeToNonExistentField);
-		case Diag.Kind.writeToNonMutableField:
-			return cbWriteToNonMutableField(a.writeToNonMutableField);
 		case Diag.Kind.wrongNumberNewStructArgs:
 			return cbWrongNumberNewStructArgs(a.wrongNumberNewStructArgs);
 		case Diag.Kind.wrongNumberTypeArgsForSpec:

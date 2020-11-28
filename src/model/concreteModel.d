@@ -739,25 +739,6 @@ struct ConcreteExpr {
 		immutable Ptr!ConcreteField field;
 	}
 
-	struct RecordFieldSet {
-		@safe @nogc pure nothrow:
-
-		immutable Ptr!ConcreteExpr target;
-		immutable Ptr!ConcreteField field;
-		immutable Ptr!ConcreteExpr value;
-
-		immutable this(
-			immutable Ptr!ConcreteExpr t,
-			immutable Ptr!ConcreteField f,
-			immutable Ptr!ConcreteExpr v,
-		) {
-			target = t;
-			field = f;
-			value = v;
-			verify(field.isMutable);
-		}
-	}
-
 	struct Seq {
 		immutable Ptr!ConcreteExpr first;
 		immutable Ptr!ConcreteExpr then;
@@ -781,7 +762,6 @@ struct ConcreteExpr {
 		match,
 		paramRef,
 		recordFieldAccess,
-		recordFieldSet,
 		seq,
 	}
 	union {
@@ -798,7 +778,6 @@ struct ConcreteExpr {
 		immutable Ptr!Match match;
 		immutable ParamRef paramRef;
 		immutable RecordFieldAccess recordFieldAccess;
-		immutable RecordFieldSet recordFieldSet;
 		immutable Seq seq;
 	}
 
@@ -842,9 +821,6 @@ struct ConcreteExpr {
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable RecordFieldAccess a) {
 		type = t; range = r; kind = Kind.recordFieldAccess; recordFieldAccess = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable RecordFieldSet a) {
-		type = t; range = r; kind = Kind.recordFieldSet; recordFieldSet = a;
-	}
 	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Seq a) {
 		type = t; range = r; kind = Kind.seq; seq = a;
 	}
@@ -882,7 +858,6 @@ immutable(Bool) isConstant(ref immutable ConcreteExpr a) {
 	scope T delegate(ref immutable ConcreteExpr.Match) @safe @nogc pure nothrow cbMatch,
 	scope T delegate(ref immutable ConcreteExpr.ParamRef) @safe @nogc pure nothrow cbParamRef,
 	scope T delegate(ref immutable ConcreteExpr.RecordFieldAccess) @safe @nogc pure nothrow cbRecordFieldAccess,
-	scope T delegate(ref immutable ConcreteExpr.RecordFieldSet) @safe @nogc pure nothrow cbRecordFieldSet,
 	scope T delegate(ref immutable ConcreteExpr.Seq) @safe @nogc pure nothrow cbSeq,
 ) {
 	final switch (a.kind) {
@@ -912,8 +887,6 @@ immutable(Bool) isConstant(ref immutable ConcreteExpr a) {
 			return cbParamRef(a.paramRef);
 		case ConcreteExpr.Kind.recordFieldAccess:
 			return cbRecordFieldAccess(a.recordFieldAccess);
-		case ConcreteExpr.Kind.recordFieldSet:
-			return cbRecordFieldSet(a.recordFieldSet);
 		case ConcreteExpr.Kind.seq:
 			return cbSeq(a.seq);
 	}

@@ -191,12 +191,6 @@ struct SeqAst {
 	immutable Ptr!ExprAst then;
 }
 
-struct RecordFieldSetAst {
-	immutable Ptr!ExprAst target;
-	immutable NameAndRange fieldName;
-	immutable Ptr!ExprAst value;
-}
-
 struct ThenAst {
 	immutable LambdaAst.Param left;
 	immutable Ptr!ExprAst futExpr;
@@ -218,7 +212,6 @@ struct ExprAstKind {
 		literalInner,
 		match,
 		seq,
-		recordFieldSet,
 		then,
 		when,
 	}
@@ -234,7 +227,6 @@ struct ExprAstKind {
 		immutable LiteralInnerAst literalInner;
 		immutable MatchAst match_;
 		immutable SeqAst seq;
-		immutable RecordFieldSetAst recordFieldSet;
 		immutable ThenAst then;
 		immutable WhenAst when;
 	}
@@ -250,7 +242,6 @@ struct ExprAstKind {
 	@trusted immutable this(immutable LiteralInnerAst a) { kind = Kind.literalInner; literalInner = a; }
 	@trusted immutable this(immutable MatchAst a) { kind = Kind.match; match_ = a; }
 	@trusted immutable this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
-	@trusted immutable this(immutable RecordFieldSetAst a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 	@trusted immutable this(immutable ThenAst a) { kind = Kind.then; then = a; }
 	@trusted immutable this(immutable WhenAst a) { kind = Kind.when; when = a; }
 }
@@ -261,14 +252,6 @@ immutable(Bool) isIdentifier(ref immutable ExprAstKind a) {
 ref immutable(IdentifierAst) asIdentifier(return ref immutable ExprAstKind a) {
 	verify(a.isIdentifier);
 	return a.identifier;
-}
-
-immutable(Bool) isCall(ref immutable ExprAstKind a) {
-	return Bool(a.kind == ExprAstKind.Kind.call);
-}
-@trusted ref immutable(CallAst) asCall(return ref immutable ExprAstKind a) {
-	verify(a.isCall);
-	return a.call;
 }
 
 @trusted T matchExprAstKind(T)(
@@ -283,7 +266,6 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 	scope immutable(T) delegate(ref immutable LiteralInnerAst) @safe @nogc pure nothrow cbLiteralInner,
 	scope immutable(T) delegate(ref immutable MatchAst) @safe @nogc pure nothrow cbMatch,
 	scope immutable(T) delegate(ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
-	scope immutable(T) delegate(ref immutable RecordFieldSetAst) @safe @nogc pure nothrow cbRecordFieldSet,
 	scope immutable(T) delegate(ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
 	scope immutable(T) delegate(ref immutable WhenAst) @safe @nogc pure nothrow cbWhen,
 ) {
@@ -308,8 +290,6 @@ immutable(Bool) isCall(ref immutable ExprAstKind a) {
 			return cbMatch(a.match_);
 		case ExprAstKind.Kind.seq:
 			return cbSeq(a.seq);
-		case ExprAstKind.Kind.recordFieldSet:
-			return cbRecordFieldSet(a.recordFieldSet);
 		case ExprAstKind.Kind.then:
 			return cbThen(a.then);
 		case ExprAstKind.Kind.when:
@@ -904,11 +884,6 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 			tataRecord(alloc, "seq-ast", [
 				sexprOfExprAst(alloc, a.first),
 				sexprOfExprAst(alloc, a.then)]),
-		(ref immutable RecordFieldSetAst it) =>
-			tataRecord(alloc, "field-set", [
-				sexprOfExprAst(alloc, it.target),
-				sexprOfNameAndRange(alloc, it.fieldName),
-				sexprOfExprAst(alloc, it.value)]),
 		(ref immutable ThenAst it) =>
 			tataRecord(alloc, "then-ast", [
 				sexprOfNameAndRange(alloc, it.left),

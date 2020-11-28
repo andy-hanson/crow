@@ -20,8 +20,7 @@ import concretize.concretizeCtx :
 	specImpls,
 	typeArgsScope,
 	TypeArgsScope,
-	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes,
-	voidType;
+	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes;
 import model.concreteModel :
 	asConstant,
 	asRecord,
@@ -559,24 +558,6 @@ immutable(Ptr!ConcreteField) getMatchingField(Alloc)(
 	return getMatchingField(type, field.index);
 }
 
-immutable(ConcreteExpr) concretizeRecordFieldSet(Alloc)(
-	ref Alloc alloc,
-	ref ConcretizeExprCtx ctx,
-	ref immutable FileAndRange range,
-	ref immutable Expr.RecordFieldSet e,
-) {
-	immutable Ptr!ConcreteExpr target = allocExpr(alloc, concretizeExpr(alloc, ctx, e.target));
-	immutable ConcreteType targetType = getConcreteType_forStructInst(alloc, ctx, e.targetType);
-	verify(targetType.isPointer); // If we're mutating it, it should be by reference.
-	immutable Ptr!ConcreteField field = getMatchingField(targetType.struct_, e.field.index);
-	immutable Ptr!ConcreteExpr value = allocExpr(alloc, concretizeExpr(alloc, ctx, e.value));
-	immutable ConcreteType voidType = voidType(alloc, ctx.concretizeCtx);
-	return immutable ConcreteExpr(
-		voidType,
-		range,
-		immutable ConcreteExpr.RecordFieldSet(target, field, value));
-}
-
 immutable(ConcreteExpr) concretizeExpr(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
@@ -656,8 +637,6 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 			concretizeMatch(alloc, ctx, range, e),
 		(ref immutable Expr.ParamRef e) =>
 			concretizeParamRef(alloc, ctx, range, e),
-		(ref immutable Expr.RecordFieldSet e) =>
-			concretizeRecordFieldSet(alloc, ctx, range, e),
 		(ref immutable Expr.Seq e) {
 			immutable ConcreteExpr first = concretizeExpr(alloc, ctx, e.first);
 			immutable ConcreteExpr then = concretizeExpr(alloc, ctx, e.then);

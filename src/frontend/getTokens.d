@@ -30,7 +30,6 @@ import frontend.ast :
 	rangeOfExplicitByValOrRef,
 	rangeOfNameAndRange,
 	rangeOfPuritySpecifier,
-	RecordFieldSetAst,
 	SeqAst,
 	SigAst,
 	SpecBodyAst,
@@ -313,11 +312,6 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		(ref immutable SeqAst it) {
 			addExprTokens(alloc, tokens, it.first);
 			addExprTokens(alloc, tokens, it.then);
-		},
-		(ref immutable RecordFieldSetAst it) {
-			addExprTokens(alloc, tokens, it.target);
-			add(alloc, tokens, immutable Token(Token.Kind.fieldRef, rangeOfNameAndRange(it.fieldName)));
-			addExprTokens(alloc, tokens, it.value);
 		},
 		(ref immutable ThenAst it) {
 			addLambdaAstParam(alloc, tokens, it.left);
