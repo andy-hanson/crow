@@ -646,6 +646,12 @@ immutable(Bool) isGlobal(ref immutable ConcreteFun a) {
 }
 
 struct ConcreteExpr {
+	immutable ConcreteType type;
+	immutable FileAndRange range;
+	immutable ConcreteExprKind kind;
+}
+
+struct ConcreteExprKind {
 	@safe @nogc pure nothrow:
 
 	struct Alloc {
@@ -744,9 +750,6 @@ struct ConcreteExpr {
 		immutable Ptr!ConcreteExpr then;
 	}
 
-	immutable ConcreteType type;
-	immutable FileAndRange range;
-	immutable Kind kind;
 	private:
 	enum Kind {
 		alloc,
@@ -764,6 +767,7 @@ struct ConcreteExpr {
 		recordFieldGet,
 		seq,
 	}
+	immutable Kind kind;
 	union {
 		immutable Alloc alloc;
 		immutable Call call;
@@ -782,112 +786,110 @@ struct ConcreteExpr {
 	}
 
 	public:
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Alloc a) {
-		type = t; range = r; kind = Kind.alloc; alloc = a;
+	@trusted immutable this(immutable Alloc a) { kind = Kind.alloc; alloc = a; }
+	@trusted immutable this(immutable Call a) {
+		kind = Kind.call; call = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Call a) {
-		type = t; range = r; kind = Kind.call; call = a;
+	@trusted immutable this(immutable Cond a) {
+		kind = Kind.cond; cond = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Cond a) {
-		type = t; range = r; kind = Kind.cond; cond = a;
+	@trusted immutable this(immutable Ptr!CreateArr a) {
+		kind = Kind.createArr; createArr = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Ptr!CreateArr a) {
-		type = t; range = r; kind = Kind.createArr; createArr = a;
+	@trusted immutable this(immutable Constant a) {
+		kind = Kind.constant; constant = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Constant a) {
-		type = t; range = r; kind = Kind.constant; constant = a;
+	@trusted immutable this(immutable CreateRecord a) {
+		kind = Kind.createRecord; createRecord = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable CreateRecord a) {
-		type = t; range = r; kind = Kind.createRecord; createRecord = a;
+	@trusted immutable this(immutable ConvertToUnion a) {
+		kind = Kind.convertToUnion; convertToUnion = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable ConvertToUnion a) {
-		type = t; range = r; kind = Kind.convertToUnion; convertToUnion = a;
+	@trusted immutable this(immutable Lambda a) {
+		kind = Kind.lambda; lambda = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Lambda a) {
-		type = t; range = r; kind = Kind.lambda; lambda = a;
+	@trusted immutable this(immutable Let a) {
+		kind = Kind.let; let = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Let a) {
-		type = t; range = r; kind = Kind.let; let = a;
+	@trusted immutable this(immutable LocalRef a) {
+		kind = Kind.localRef; localRef = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable LocalRef a) {
-		type = t; range = r; kind = Kind.localRef; localRef = a;
+	@trusted immutable this(immutable Ptr!Match a) {
+		kind = Kind.match; match = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Ptr!Match a) {
-		type = t; range = r; kind = Kind.match; match = a;
+	@trusted immutable this(immutable ParamRef a) {
+		kind = Kind.paramRef; paramRef = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable ParamRef a) {
-		type = t; range = r; kind = Kind.paramRef; paramRef = a;
+	@trusted immutable this(immutable RecordFieldGet a) {
+		kind = Kind.recordFieldGet; recordFieldGet = a;
 	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable RecordFieldGet a) {
-		type = t; range = r; kind = Kind.recordFieldGet; recordFieldGet = a;
-	}
-	@trusted immutable this(immutable ConcreteType t, immutable FileAndRange r, immutable Seq a) {
-		type = t; range = r; kind = Kind.seq; seq = a;
+	@trusted immutable this(immutable Seq a) {
+		kind = Kind.seq; seq = a;
 	}
 }
 
-immutable(ConcreteType) returnType(return scope ref immutable ConcreteExpr.Call a) {
+immutable(ConcreteType) returnType(return scope ref immutable ConcreteExprKind.Call a) {
 	return a.called.returnType;
 }
 
-private ref immutable(Arr!ConcreteType) matchedUnionMembers(return scope ref const ConcreteExpr.Match a) {
+private ref immutable(Arr!ConcreteType) matchedUnionMembers(return scope ref const ConcreteExprKind.Match a) {
 	return asUnion(body_(mustBeNonPointer(a.matchedLocal.type).deref)).members;
 }
 
-immutable(Bool) isConstant(ref immutable ConcreteExpr a) {
-	return immutable Bool(a.kind == ConcreteExpr.Kind.constant);
+immutable(Bool) isConstant(ref immutable ConcreteExprKind a) {
+	return immutable Bool(a.kind == ConcreteExprKind.Kind.constant);
 }
 
-@trusted ref immutable(Constant) asConstant(return scope ref immutable ConcreteExpr a) {
+@trusted ref immutable(Constant) asConstant(return scope ref immutable ConcreteExprKind a) {
 	verify(isConstant(a));
 	return a.constant;
 }
 
-@trusted T matchConcreteExpr(T)(
-	ref immutable ConcreteExpr a,
-	scope T delegate(ref immutable ConcreteExpr.Alloc) @safe @nogc pure nothrow cbAlloc,
-	scope T delegate(ref immutable ConcreteExpr.Call) @safe @nogc pure nothrow cbCall,
-	scope T delegate(ref immutable ConcreteExpr.Cond) @safe @nogc pure nothrow cbCond,
+@trusted T matchConcreteExprKind(T)(
+	ref immutable ConcreteExprKind a,
+	scope T delegate(ref immutable ConcreteExprKind.Alloc) @safe @nogc pure nothrow cbAlloc,
+	scope T delegate(ref immutable ConcreteExprKind.Call) @safe @nogc pure nothrow cbCall,
+	scope T delegate(ref immutable ConcreteExprKind.Cond) @safe @nogc pure nothrow cbCond,
 	scope T delegate(ref immutable Constant) @safe @nogc pure nothrow cbConstant,
-	scope T delegate(ref immutable ConcreteExpr.CreateArr) @safe @nogc pure nothrow cbCreateArr,
-	scope T delegate(ref immutable ConcreteExpr.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
-	scope T delegate(ref immutable ConcreteExpr.ConvertToUnion) @safe @nogc pure nothrow cbConvertToUnion,
-	scope T delegate(ref immutable ConcreteExpr.Lambda) @safe @nogc pure nothrow cbLambda,
-	scope T delegate(ref immutable ConcreteExpr.Let) @safe @nogc pure nothrow cbLet,
-	scope T delegate(ref immutable ConcreteExpr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
-	scope T delegate(ref immutable ConcreteExpr.Match) @safe @nogc pure nothrow cbMatch,
-	scope T delegate(ref immutable ConcreteExpr.ParamRef) @safe @nogc pure nothrow cbParamRef,
-	scope T delegate(ref immutable ConcreteExpr.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
-	scope T delegate(ref immutable ConcreteExpr.Seq) @safe @nogc pure nothrow cbSeq,
+	scope T delegate(ref immutable ConcreteExprKind.CreateArr) @safe @nogc pure nothrow cbCreateArr,
+	scope T delegate(ref immutable ConcreteExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
+	scope T delegate(ref immutable ConcreteExprKind.ConvertToUnion) @safe @nogc pure nothrow cbConvertToUnion,
+	scope T delegate(ref immutable ConcreteExprKind.Lambda) @safe @nogc pure nothrow cbLambda,
+	scope T delegate(ref immutable ConcreteExprKind.Let) @safe @nogc pure nothrow cbLet,
+	scope T delegate(ref immutable ConcreteExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
+	scope T delegate(ref immutable ConcreteExprKind.Match) @safe @nogc pure nothrow cbMatch,
+	scope T delegate(ref immutable ConcreteExprKind.ParamRef) @safe @nogc pure nothrow cbParamRef,
+	scope T delegate(ref immutable ConcreteExprKind.RecordFieldGet) @safe @nogc pure nothrow cbRecordFieldGet,
+	scope T delegate(ref immutable ConcreteExprKind.Seq) @safe @nogc pure nothrow cbSeq,
 ) {
 	final switch (a.kind) {
-		case ConcreteExpr.Kind.alloc:
+		case ConcreteExprKind.Kind.alloc:
 			return cbAlloc(a.alloc);
-		case ConcreteExpr.Kind.call:
+		case ConcreteExprKind.Kind.call:
 			return cbCall(a.call);
-		case ConcreteExpr.Kind.cond:
+		case ConcreteExprKind.Kind.cond:
 			return cbCond(a.cond);
-		case ConcreteExpr.Kind.constant:
+		case ConcreteExprKind.Kind.constant:
 			return cbConstant(a.constant);
-		case ConcreteExpr.Kind.createArr:
+		case ConcreteExprKind.Kind.createArr:
 			return cbCreateArr(a.createArr);
-		case ConcreteExpr.Kind.createRecord:
+		case ConcreteExprKind.Kind.createRecord:
 			return cbCreateRecord(a.createRecord);
-		case ConcreteExpr.Kind.convertToUnion:
+		case ConcreteExprKind.Kind.convertToUnion:
 			return cbConvertToUnion(a.convertToUnion);
-		case ConcreteExpr.Kind.lambda:
+		case ConcreteExprKind.Kind.lambda:
 			return cbLambda(a.lambda);
-		case ConcreteExpr.Kind.let:
+		case ConcreteExprKind.Kind.let:
 			return cbLet(a.let);
-		case ConcreteExpr.Kind.localRef:
+		case ConcreteExprKind.Kind.localRef:
 			return cbLocalRef(a.localRef);
-		case ConcreteExpr.Kind.match:
+		case ConcreteExprKind.Kind.match:
 			return cbMatch(a.match);
-		case ConcreteExpr.Kind.paramRef:
+		case ConcreteExprKind.Kind.paramRef:
 			return cbParamRef(a.paramRef);
-		case ConcreteExpr.Kind.recordFieldGet:
+		case ConcreteExprKind.Kind.recordFieldGet:
 			return cbRecordFieldGet(a.recordFieldGet);
-		case ConcreteExpr.Kind.seq:
+		case ConcreteExprKind.Kind.seq:
 			return cbSeq(a.seq);
 	}
 }

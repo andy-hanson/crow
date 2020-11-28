@@ -29,6 +29,7 @@ import model.concreteModel :
 	body_,
 	BuiltinStructKind,
 	ConcreteExpr,
+	ConcreteExprKind,
 	ConcreteField,
 	ConcreteFun,
 	ConcreteFunBody,
@@ -42,7 +43,7 @@ import model.concreteModel :
 	ConcreteType,
 	isClosure,
 	isCompareFun,
-	matchConcreteExpr,
+	matchConcreteExprKind,
 	matchConcreteFunBody,
 	matchConcreteFunSource,
 	matchConcreteStructBody,
@@ -798,13 +799,13 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 	ref immutable ConcreteExpr expr,
 	immutable ExprPos exprPos,
 ) {
-	return matchConcreteExpr!(immutable LowExprKind)(
-		expr,
-		(ref immutable ConcreteExpr.Alloc it) =>
+	return matchConcreteExprKind!(immutable LowExprKind)(
+		expr.kind,
+		(ref immutable ConcreteExprKind.Alloc it) =>
 			getAllocExpr(alloc, ctx, expr.range, it),
-		(ref immutable ConcreteExpr.Call it) =>
+		(ref immutable ConcreteExprKind.Call it) =>
 			getCallExpr(alloc, ctx, exprPos, expr.range, type, it),
-		(ref immutable ConcreteExpr.Cond it) =>
+		(ref immutable ConcreteExprKind.Cond it) =>
 			immutable LowExprKind(nu!(LowExprKind.SpecialTrinary)(
 				alloc,
 				LowExprKind.SpecialTrinary.Kind.if_,
@@ -813,28 +814,28 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 				allocate(alloc, getLowExpr(alloc, ctx, it.else_, exprPos)))),
 		(ref immutable Constant it) =>
 			immutable LowExprKind(it),
-		(ref immutable ConcreteExpr.CreateArr it) =>
+		(ref immutable ConcreteExprKind.CreateArr it) =>
 			getCreateArrExpr(alloc, ctx, expr.range, it),
-		(ref immutable ConcreteExpr.CreateRecord it) =>
+		(ref immutable ConcreteExprKind.CreateRecord it) =>
 			immutable LowExprKind(immutable LowExprKind.CreateRecord(
 				getArgs(alloc, ctx, it.args))),
-		(ref immutable ConcreteExpr.ConvertToUnion it) =>
+		(ref immutable ConcreteExprKind.ConvertToUnion it) =>
 			immutable LowExprKind(immutable LowExprKind.ConvertToUnion(
 				it.memberIndex,
 				allocate(alloc, getLowExpr(alloc, ctx, it.arg, ExprPos.nonTail)))),
-		(ref immutable ConcreteExpr.Lambda it) =>
+		(ref immutable ConcreteExprKind.Lambda it) =>
 			getLambdaExpr(alloc, ctx, type, expr.range, it),
-		(ref immutable ConcreteExpr.Let it) =>
+		(ref immutable ConcreteExprKind.Let it) =>
 			getLetExpr(alloc, ctx, exprPos, expr.range, it),
-		(ref immutable ConcreteExpr.LocalRef it) =>
+		(ref immutable ConcreteExprKind.LocalRef it) =>
 			immutable LowExprKind(immutable LowExprKind.LocalRef(mustGetAt_mut(ctx.locals, it.local))),
-		(ref immutable ConcreteExpr.Match it) =>
+		(ref immutable ConcreteExprKind.Match it) =>
 			getMatchExpr(alloc, ctx, exprPos, it),
-		(ref immutable ConcreteExpr.ParamRef it) =>
+		(ref immutable ConcreteExprKind.ParamRef it) =>
 			getParamRefExpr(alloc, ctx, it),
-		(ref immutable ConcreteExpr.RecordFieldGet it) =>
+		(ref immutable ConcreteExprKind.RecordFieldGet it) =>
 			getRecordFieldGetExpr(alloc, ctx, it),
-		(ref immutable ConcreteExpr.Seq it) =>
+		(ref immutable ConcreteExprKind.Seq it) =>
 			immutable LowExprKind(immutable LowExprKind.Seq(
 				allocate(alloc, getLowExpr(alloc, ctx, it.first, ExprPos.nonTail)),
 				allocate(alloc, getLowExpr(alloc, ctx, it.then, exprPos)))));
@@ -862,7 +863,7 @@ immutable(LowExprKind) getAllocExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
 	ref immutable FileAndRange range,
-	ref immutable ConcreteExpr.Alloc a,
+	ref immutable ConcreteExprKind.Alloc a,
 ) {
 	// (temp0 = (T*) alloc(sizeof(T)), *temp0 = inner, temp0)
 	immutable LowExpr inner = getLowExpr(alloc, ctx, a.inner, ExprPos.nonTail);
@@ -895,7 +896,7 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 	immutable ExprPos exprPos,
 	ref immutable FileAndRange range,
 	ref immutable LowType type,
-	ref immutable ConcreteExpr.Call a,
+	ref immutable ConcreteExprKind.Call a,
 ) {
 	immutable Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, a.called);
 	if (has(opCalled)) {
@@ -956,7 +957,7 @@ immutable(LowExprKind) getCallBuiltinExpr(Alloc)(
 	immutable ExprPos exprPos,
 	ref immutable FileAndRange range,
 	ref immutable LowType type,
-	ref immutable ConcreteExpr.Call a,
+	ref immutable ConcreteExprKind.Call a,
 ) {
 	immutable Sym name = matchConcreteFunSource!(immutable Sym)(
 		a.called.source,
@@ -1041,7 +1042,7 @@ immutable(LowExprKind) getCreateArrExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
 	ref immutable FileAndRange range,
-	ref immutable ConcreteExpr.CreateArr a,
+	ref immutable ConcreteExprKind.CreateArr a,
 ) {
 	// (temp = _alloc(ctx, sizeof(foo) * 2),
 	//  *(temp + 0) = a,
@@ -1091,7 +1092,7 @@ immutable(LowExprKind) getLambdaExpr(Alloc)(
 	ref GetLowExprCtx ctx,
 	ref immutable LowType type,
 	ref immutable FileAndRange range,
-	ref immutable ConcreteExpr.Lambda a,
+	ref immutable ConcreteExprKind.Lambda a,
 ) {
 	immutable LowFunIndex lambdaFun = getLowFunIndex(ctx, a.fun);
 	immutable LowExprKind funPtr = immutable LowExprKind(immutable LowExprKind.FunPtr(lambdaFun));
@@ -1119,7 +1120,7 @@ immutable(LowExprKind) getLetExpr(Alloc)(
 	ref GetLowExprCtx ctx,
 	immutable ExprPos exprPos,
 	ref immutable FileAndRange range,
-	ref immutable ConcreteExpr.Let a,
+	ref immutable ConcreteExprKind.Let a,
 ) {
 	return withLowLocal!LowExprKind(alloc, ctx, a.local, (immutable Ptr!LowLocal local) =>
 		immutable LowExprKind(immutable LowExprKind.Let(
@@ -1132,14 +1133,14 @@ immutable(LowExprKind) getMatchExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
 	immutable ExprPos exprPos,
-	ref immutable ConcreteExpr.Match a,
+	ref immutable ConcreteExprKind.Match a,
 ) {
 	return withLowLocal(alloc, ctx, a.matchedLocal, (immutable Ptr!LowLocal matchedLocal) =>
 		immutable LowExprKind(nu!(LowExprKind.Match)(
 			alloc,
 			matchedLocal,
 			allocate(alloc, getLowExpr(alloc, ctx, a.matchedValue, ExprPos.nonTail)),
-			map(alloc, a.cases, (ref immutable ConcreteExpr.Match.Case case_) =>
+			map(alloc, a.cases, (ref immutable ConcreteExprKind.Match.Case case_) =>
 				withOptLowLocal(alloc, ctx, case_.local, (immutable Opt!(Ptr!LowLocal) local) =>
 					immutable LowExprKind.Match.Case(
 						local,
@@ -1149,7 +1150,7 @@ immutable(LowExprKind) getMatchExpr(Alloc)(
 immutable(LowExprKind) getParamRefExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
-	ref immutable ConcreteExpr.ParamRef a,
+	ref immutable ConcreteExprKind.ParamRef a,
 ) {
 	if (!has(a.param.index)) {
 		//TODO: don't generate ParamRef in ConcreteModel for closure field access. Do that in lowering.
@@ -1164,7 +1165,7 @@ immutable(LowExprKind) getParamRefExpr(Alloc)(
 immutable(LowExprKind) getRecordFieldGetExpr(Alloc)(
 	ref Alloc alloc,
 	ref GetLowExprCtx ctx,
-	ref immutable ConcreteExpr.RecordFieldGet a,
+	ref immutable ConcreteExprKind.RecordFieldGet a,
 ) {
 	return immutable LowExprKind(immutable LowExprKind.RecordFieldGet(
 		allocate(alloc, getLowExpr(alloc, ctx, a.target, ExprPos.nonTail)),
