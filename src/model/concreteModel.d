@@ -672,8 +672,6 @@ struct ConcreteExprKind {
 	struct CreateArr {
 		immutable Ptr!ConcreteStruct arrType;
 		immutable ConcreteType elementType;
-		// Needed because we must first allocate the array, then write to each field. That requires a local.
-		immutable Ptr!ConcreteLocal local; // TODO:KILL
 		immutable Arr!ConcreteExpr args;
 	}
 

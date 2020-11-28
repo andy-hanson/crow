@@ -591,16 +591,8 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 					immutable ConcreteExpr(arrayType, range, immutable ConcreteExprKind(
 						getConstantArr(alloc, ctx.concretizeCtx.allConstants, arrayStruct, elementType, constants))),
 				(ref immutable Arr!ConcreteExpr exprs) {
-					immutable Ptr!ConcreteLocal local = makeLocalWorker(
-						alloc,
-						ctx,
-						immutable ConcreteLocalSource(immutable ConcreteLocalSource.Arr()),
-						arrayType);
-					return immutable ConcreteExpr(
-						arrayType,
-						range,
-						immutable ConcreteExprKind(allocate(alloc,
-							immutable ConcreteExprKind.CreateArr(arrayStruct, elementType, local, exprs))));
+					return immutable ConcreteExpr(arrayType, range, immutable ConcreteExprKind(
+						allocate(alloc, immutable ConcreteExprKind.CreateArr(arrayStruct, elementType, exprs))));
 				});
 		},
 		(ref immutable Expr.ImplicitConvertToUnion e) {

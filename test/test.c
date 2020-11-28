@@ -5342,41 +5342,41 @@ struct opt_13 call_with_ctx_20(struct ctx* c, struct fun_mut1_14 f, struct arr_0
 	return f.fun_ptr(c, f.closure, p0);
 }
 struct print_test_result* run_print_test(struct ctx* ctx, struct arr_0 print_kind, struct arr_0 path_to_noze, struct dict_1* env, struct arr_0 path, uint8_t overwrite_output__q) {
-	struct process_result* res1;
+	struct process_result* res0;
 	struct arr_0* temp0;
-	struct arr_0 output_path2;
-	struct arr_7 output_failures3;
+	struct arr_0 output_path1;
+	struct arr_7 output_failures2;
 	struct print_test_result* temp1;
 	struct print_test_result* temp2;
-	struct arr_0 stderr_no_color4;
+	struct arr_0 stderr_no_color3;
 	struct print_test_result* temp3;
-	struct arr_0 message5;
+	struct arr_0 message4;
 	struct print_test_result* temp6;
 	struct failure** temp4;
 	struct failure* temp5;
-	res1 = spawn_and_wait_result_0(ctx, path_to_noze, (temp0 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 3)), ((*((temp0 + 0)) = (struct arr_0) {5, constantarr_0_56}, 0), ((*((temp0 + 1)) = print_kind, 0), ((*((temp0 + 2)) = path, 0), (struct arr_1) {3, temp0})))), env);
-	output_path2 = _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, path, (struct arr_0) {1, constantarr_0_43}), print_kind), (struct arr_0) {5, constantarr_0_57});
-	output_failures3 = ((empty__q_0(res1->stdout) && _op_bang_equal(res1->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_21}))) ? empty_arr_3() : handle_output(ctx, path, output_path2, res1->stdout, overwrite_output__q));
-	if (!empty__q_11(output_failures3)) {
+	res0 = spawn_and_wait_result_0(ctx, path_to_noze, (temp0 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 3)), ((*((temp0 + 0)) = (struct arr_0) {5, constantarr_0_56}, 0), ((*((temp0 + 1)) = print_kind, 0), ((*((temp0 + 2)) = path, 0), (struct arr_1) {3, temp0})))), env);
+	output_path1 = _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, path, (struct arr_0) {1, constantarr_0_43}), print_kind), (struct arr_0) {5, constantarr_0_57});
+	output_failures2 = ((empty__q_0(res0->stdout) && _op_bang_equal(res0->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_21}))) ? empty_arr_3() : handle_output(ctx, path, output_path1, res0->stdout, overwrite_output__q));
+	if (!empty__q_11(output_failures2)) {
 		temp1 = (struct print_test_result*) alloc(ctx, sizeof(struct print_test_result));
-		(*(temp1) = (struct print_test_result) {1, output_failures3}, 0);
+		(*(temp1) = (struct print_test_result) {1, output_failures2}, 0);
 		return temp1;
 	} else {
-		if (_op_equal_equal_3(res1->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_21}))) {
-			assert_0(ctx, _op_equal_equal_4(res1->stderr, (struct arr_0) {0, NULL}));
+		if (_op_equal_equal_3(res0->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_21}))) {
+			assert_0(ctx, _op_equal_equal_4(res0->stderr, (struct arr_0) {0, NULL}));
 			temp2 = (struct print_test_result*) alloc(ctx, sizeof(struct print_test_result));
 			(*(temp2) = (struct print_test_result) {0, empty_arr_3()}, 0);
 			return temp2;
 		} else {
-			if (_op_equal_equal_3(res1->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_22}))) {
-				stderr_no_color4 = remove_colors(ctx, res1->stderr);
+			if (_op_equal_equal_3(res0->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_22}))) {
+				stderr_no_color3 = remove_colors(ctx, res0->stderr);
 				temp3 = (struct print_test_result*) alloc(ctx, sizeof(struct print_test_result));
-				(*(temp3) = (struct print_test_result) {1, handle_output(ctx, path, _op_plus_1(ctx, output_path2, (struct arr_0) {4, constantarr_0_68}), stderr_no_color4, overwrite_output__q)}, 0);
+				(*(temp3) = (struct print_test_result) {1, handle_output(ctx, path, _op_plus_1(ctx, output_path1, (struct arr_0) {4, constantarr_0_68}), stderr_no_color3, overwrite_output__q)}, 0);
 				return temp3;
 			} else {
-				message5 = _op_plus_1(ctx, (struct arr_0) {22, constantarr_0_69}, to_str_1(ctx, res1->exit_code));
+				message4 = _op_plus_1(ctx, (struct arr_0) {22, constantarr_0_69}, to_str_1(ctx, res0->exit_code));
 				temp6 = (struct print_test_result*) alloc(ctx, sizeof(struct print_test_result));
-				(*(temp6) = (struct print_test_result) {1, (temp4 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1)), ((*((temp4 + 0)) = (temp5 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp5) = (struct failure) {path, message5}, 0), temp5)), 0), (struct arr_7) {1, temp4}))}, 0);
+				(*(temp6) = (struct print_test_result) {1, (temp4 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1)), ((*((temp4 + 0)) = (temp5 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp5) = (struct failure) {path, message4}, 0), temp5)), 0), (struct arr_7) {1, temp4}))}, 0);
 				return temp6;
 			}
 		}
@@ -5490,29 +5490,29 @@ struct mut_arr_4* new_mut_arr_3(struct ctx* ctx) {
 	return temp0;
 }
 uint8_t keep_polling(struct ctx* ctx, int32_t stdout_pipe, int32_t stderr_pipe, struct mut_arr_4* stdout_builder, struct mut_arr_4* stderr_builder) {
-	struct arr_8 poll_fds1;
+	struct arr_8 poll_fds0;
 	struct pollfd* temp0;
-	struct pollfd* stdout_pollfd2;
-	struct pollfd* stderr_pollfd3;
-	int32_t n_pollfds_with_events4;
-	struct handle_revents_result a5;
-	struct handle_revents_result b6;
+	struct pollfd* stdout_pollfd1;
+	struct pollfd* stderr_pollfd2;
+	int32_t n_pollfds_with_events3;
+	struct handle_revents_result a4;
+	struct handle_revents_result b5;
 	int32_t _tailCallstdout_pipe;
 	int32_t _tailCallstderr_pipe;
 	struct mut_arr_4* _tailCallstdout_builder;
 	struct mut_arr_4* _tailCallstderr_builder;
 	top:
-	poll_fds1 = (temp0 = (struct pollfd*) alloc(ctx, (sizeof(struct pollfd) * 2)), ((*((temp0 + 0)) = (struct pollfd) {stdout_pipe, pollin(ctx), 0}, 0), ((*((temp0 + 1)) = (struct pollfd) {stderr_pipe, pollin(ctx), 0}, 0), (struct arr_8) {2, temp0})));
-	stdout_pollfd2 = ref_of_val_at(ctx, poll_fds1, 0);
-	stderr_pollfd3 = ref_of_val_at(ctx, poll_fds1, 1);
-	n_pollfds_with_events4 = poll(poll_fds1.data, poll_fds1.size, neg_one_1());
-	if (zero__q_1(n_pollfds_with_events4)) {
+	poll_fds0 = (temp0 = (struct pollfd*) alloc(ctx, (sizeof(struct pollfd) * 2)), ((*((temp0 + 0)) = (struct pollfd) {stdout_pipe, pollin(ctx), 0}, 0), ((*((temp0 + 1)) = (struct pollfd) {stderr_pipe, pollin(ctx), 0}, 0), (struct arr_8) {2, temp0})));
+	stdout_pollfd1 = ref_of_val_at(ctx, poll_fds0, 0);
+	stderr_pollfd2 = ref_of_val_at(ctx, poll_fds0, 1);
+	n_pollfds_with_events3 = poll(poll_fds0.data, poll_fds0.size, neg_one_1());
+	if (zero__q_1(n_pollfds_with_events3)) {
 		return 0;
 	} else {
-		a5 = handle_revents(ctx, stdout_pollfd2, stdout_builder);
-		b6 = handle_revents(ctx, stderr_pollfd3, stderr_builder);
-		assert_0(ctx, _op_equal_equal_1(_op_plus_0(ctx, to_nat_1(ctx, any__q(ctx, a5)), to_nat_1(ctx, any__q(ctx, b6))), to_nat_2(ctx, n_pollfds_with_events4)));
-		if ((a5.hung_up__q && b6.hung_up__q)) {
+		a4 = handle_revents(ctx, stdout_pollfd1, stdout_builder);
+		b5 = handle_revents(ctx, stderr_pollfd2, stderr_builder);
+		assert_0(ctx, _op_equal_equal_1(_op_plus_0(ctx, to_nat_1(ctx, any__q(ctx, a4)), to_nat_1(ctx, any__q(ctx, b5))), to_nat_2(ctx, n_pollfds_with_events3)));
+		if ((a4.hung_up__q && b5.hung_up__q)) {
 			return 0;
 		} else {
 			_tailCallstdout_pipe = stdout_pipe;
@@ -6141,15 +6141,15 @@ struct arr_7 empty_arr_3() {
 	return (struct arr_7) {0, NULL};
 }
 struct arr_7 handle_output(struct ctx* ctx, struct arr_0 original_path, struct arr_0 output_path, struct arr_0 actual, uint8_t overwrite_output__q) {
-	struct opt_11 _matched4;
+	struct opt_11 _matched2;
 	struct failure** temp0;
 	struct failure* temp1;
-	struct some_11 s1;
-	struct arr_0 message2;
+	struct some_11 s0;
+	struct arr_0 message1;
 	struct failure** temp2;
 	struct failure* temp3;
-	_matched4 = try_read_file_0(ctx, output_path);
-	switch (_matched4.kind) {
+	_matched2 = try_read_file_0(ctx, output_path);
+	switch (_matched2.kind) {
 		case 0:
 			if (overwrite_output__q) {
 				write_file_0(ctx, output_path, actual);
@@ -6160,17 +6160,17 @@ struct arr_7 handle_output(struct ctx* ctx, struct arr_0 original_path, struct a
 				return (struct arr_7) {1, temp0};
 			}
 		case 1:
-			s1 = _matched4.as1;
-			if (_op_equal_equal_4(s1.value, actual)) {
+			s0 = _matched2.as1;
+			if (_op_equal_equal_4(s0.value, actual)) {
 				return empty_arr_3();
 			} else {
 				if (overwrite_output__q) {
 					write_file_0(ctx, output_path, actual);
 					return empty_arr_3();
 				} else {
-					message2 = _op_plus_1(ctx, _op_plus_1(ctx, base_name(ctx, output_path), (struct arr_0) {30, constantarr_0_65}), actual);
+					message1 = _op_plus_1(ctx, _op_plus_1(ctx, base_name(ctx, output_path), (struct arr_0) {30, constantarr_0_65}), actual);
 					temp2 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1));
-					(*((temp2 + 0)) = (temp3 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp3) = (struct failure) {original_path, message2}, 0), temp3)), 0);
+					(*((temp2 + 0)) = (temp3 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp3) = (struct failure) {original_path, message1}, 0), temp3)), 0);
 					return (struct arr_7) {1, temp2};
 				}
 			}
@@ -6389,21 +6389,21 @@ struct opt_13 run_single_noze_test__lambda0(struct ctx* ctx, struct run_single_n
 	}
 }
 struct arr_7 run_single_runnable_test(struct ctx* ctx, struct arr_0 path_to_noze, struct dict_1* env, struct arr_0 path, uint8_t interpret__q, uint8_t overwrite_output__q) {
-	struct arr_1 args2;
+	struct arr_1 args0;
 	struct arr_0* temp0;
 	struct arr_0* temp1;
-	struct process_result* res3;
-	struct arr_0 message4;
+	struct process_result* res1;
+	struct arr_0 message2;
 	struct failure** temp2;
 	struct failure* temp3;
-	args2 = (interpret__q ? (temp0 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 3)), ((*((temp0 + 0)) = (struct arr_0) {3, constantarr_0_71}, 0), ((*((temp0 + 1)) = path, 0), ((*((temp0 + 2)) = (struct arr_0) {11, constantarr_0_72}, 0), (struct arr_1) {3, temp0})))) : (temp1 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 2)), ((*((temp1 + 0)) = (struct arr_0) {3, constantarr_0_71}, 0), ((*((temp1 + 1)) = path, 0), (struct arr_1) {2, temp1}))));
-	res3 = spawn_and_wait_result_0(ctx, path_to_noze, args2, env);
-	if ((_op_equal_equal_3(res3->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_21})) && _op_equal_equal_4(res3->stderr, (struct arr_0) {0, NULL}))) {
-		return handle_output(ctx, path, _op_plus_1(ctx, path, (struct arr_0) {7, constantarr_0_73}), res3->stdout, overwrite_output__q);
+	args0 = (interpret__q ? (temp0 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 3)), ((*((temp0 + 0)) = (struct arr_0) {3, constantarr_0_71}, 0), ((*((temp0 + 1)) = path, 0), ((*((temp0 + 2)) = (struct arr_0) {11, constantarr_0_72}, 0), (struct arr_1) {3, temp0})))) : (temp1 = (struct arr_0*) alloc(ctx, (sizeof(struct arr_0) * 2)), ((*((temp1 + 0)) = (struct arr_0) {3, constantarr_0_71}, 0), ((*((temp1 + 1)) = path, 0), (struct arr_1) {2, temp1}))));
+	res1 = spawn_and_wait_result_0(ctx, path_to_noze, args0, env);
+	if ((_op_equal_equal_3(res1->exit_code, literal_2(ctx, (struct arr_0) {1, constantarr_0_21})) && _op_equal_equal_4(res1->stderr, (struct arr_0) {0, NULL}))) {
+		return handle_output(ctx, path, _op_plus_1(ctx, path, (struct arr_0) {7, constantarr_0_73}), res1->stdout, overwrite_output__q);
 	} else {
-		message4 = _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {8, constantarr_0_74}, to_str_1(ctx, res3->exit_code)), (struct arr_0) {9, constantarr_0_75}), res3->stdout), (struct arr_0) {8, constantarr_0_76}), res3->stderr);
+		message2 = _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {8, constantarr_0_74}, to_str_1(ctx, res1->exit_code)), (struct arr_0) {9, constantarr_0_75}), res1->stdout), (struct arr_0) {8, constantarr_0_76}), res1->stderr);
 		temp2 = (struct failure**) alloc(ctx, (sizeof(struct failure*) * 1));
-		(*((temp2 + 0)) = (temp3 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp3) = (struct failure) {path, message4}, 0), temp3)), 0);
+		(*((temp2 + 0)) = (temp3 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp3) = (struct failure) {path, message2}, 0), temp3)), 0);
 		return (struct arr_7) {1, temp2};
 	}
 }

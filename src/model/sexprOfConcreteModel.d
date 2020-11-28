@@ -240,7 +240,6 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 			tataRecord(alloc, "create-arr", [
 				tataOfConcreteStructRef(alloc, it.arrType),
 				tataOfConcreteType(alloc, it.elementType),
-				tataOfConcreteLocalRef(it.local),
 				tataArr(alloc, it.args, (ref immutable ConcreteExpr arg) =>
 					tataOfConcreteExpr(alloc, arg))]),
 		(ref immutable ConcreteExprKind.CreateRecord it) =>
