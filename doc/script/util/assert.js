@@ -1,5 +1,3 @@
-import { uint } from "./types.js"
-
 /** @type {function(boolean, () => string): void} */
 export function assert(b, msg = () => "Assertion failed") {
 	if (!b)

@@ -12,3 +12,5 @@ interface ShadowRoot {
 interface ErrorConstructor {
     stackTraceLimit: number
 }
+
+declare var global: unknown;

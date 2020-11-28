@@ -1,16 +1,12 @@
-import {Compiler, Diagnostic, Token} from "./Compiler.js"
-import {assert, assertNever} from "./util/assert.js"
+import {assert} from "./util/assert.js"
 import {
 	Align,
 	Border,
 	Color,
 	Content,
 	cssClass,
-	Cursor,
 	Display,
-	Float,
 	FontFamily,
-	FontStyle,
 	FontWeight,
 	Measure,
 	Outline,
@@ -38,7 +34,7 @@ const font_size = Measure.em(1)
 const lineNumbersClass = cssClass("line-numbers")
 const rootClass = cssClass("root")
 
-/** @type {CustomElementClass<{ compiler: Compiler, text: MutableObservable<string> }, null, null>} */
+/** @type {CustomElementClass<{ compiler: compiler.Compiler, text: MutableObservable<string> }, null, null>} */
 export const NozeText = makeCustomElement({
 	tagName: "noze-text",
 	styleSheet: new StyleBuilder()
@@ -166,7 +162,7 @@ export const NozeText = makeCustomElement({
 
 		const update = () => {
 			highlight(compiler, highlightDiv, ta.value)
-			lineNumbers.textContent = ta.value.split("\n").map((x, i) => String(i + 1)).join("\n")
+			lineNumbers.textContent = ta.value.split("\n").map((_, i) => String(i + 1)).join("\n")
 		}
 
 		const lineNumbers = div({class:lineNumbersClass})
@@ -178,7 +174,7 @@ export const NozeText = makeCustomElement({
 	},
 })
 
-/** @type {function(Compiler, Node, string): void} */
+/** @type {function(compiler.Compiler, Node, string): void} */
 const highlight = (compiler, highlightDiv, v) => {
 	const {tokens, diags} = compiler.getTokens(v)
 	// Only use at most 1 diag
@@ -232,7 +228,7 @@ const createDiagSpan = (message, children) => {
  * @typedef {Container | TextContainer} SomeContainer
  */
 
-/** @type {function(ReadonlyArray<Token>, ReadonlyArray<Diagnostic>, string): ReadonlyArray<Node>} */
+/** @type {function(ReadonlyArray<compiler.Token>, ReadonlyArray<compiler.Diagnostic>, string): ReadonlyArray<Node>} */
 const tokensAndDiagsToNodes = (tokens, diags, text) => {
 	let pos = 0
 	// Last entry is the most nested container

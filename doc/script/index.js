@@ -2,10 +2,12 @@ export {}
 
 Error.stackTraceLimit = 1000
 
-import {Compiler, Files} from "./Compiler.js"
-import {NozeText} from "./NozeText.js"
+//import {NozeText} from "./NozeText.js"
+compiler.getGlobalCompiler()
+
+// Registers the element
 import {NozeRunnable} from "./NozeRunnable.js"
-import {MutableObservable} from "./util/MutableObservable.js"
+NozeRunnable;
 
 window.onload = () => {
 	main().catch(e => {
@@ -14,8 +16,6 @@ window.onload = () => {
 }
 
 const main = async () => {
-	const compiler = await Compiler.make()
-
 	/*
 	const text = new MutableObservable(TEST_SRC)
 	const x = NozeText.create({compiler, text})

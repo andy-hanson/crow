@@ -8,3 +8,8 @@
 !run-test
 bin
 *.o
+
+noze-vscode/node_modules
+noze-vscode/client/node_modules
+noze-vscode/server/node_modules
+

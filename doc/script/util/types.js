@@ -1,5 +1,3 @@
-import { assert } from "./assert.js"
-
 /** @type {function(uint): float} */
 export const toFloat = Number
 

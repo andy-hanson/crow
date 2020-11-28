@@ -1,4 +1,3 @@
-import {getGlobalCompiler} from "./Compiler.js"
 import {NozeText} from "./NozeText.js"
 import {LoadingIcon} from "./LoadingIcon.js"
 import {Border, cssClass, Color, FontFamily, Margin, Measure, Outline, StyleBuilder, WhiteSpace} from "./util/css.js"
@@ -19,11 +18,9 @@ s<?t> spec
 	+ ?t(a ?t, b ?t)
 
 zero point()
-	new<point>
-		x. 0
-		y. 0
+	point: 0, 0
 
-manhattan float(a point) s<?t>
+manhattan float(a point)
 	a.x + a.y
 
 main fut exit-code(args arr str) summon trusted
@@ -68,13 +65,14 @@ export const NozeRunnable = makeCustomElement({
 		})
 		.end(),
 	init: () => ({state:null, out:null}),
-	connected: async ({ props, state, root }) => {
-		const compiler = await getGlobalCompiler()
+	connected: async ({ root }) => {
+		console.log("WE CONNECTED")
+		const comp = await compiler.getGlobalCompiler()
 
 		console.log("CONNECTED!")
 		/** @type {MutableObservable<string>} */
 		const text = new MutableObservable(TEXT)
-		const nozeText = NozeText.create({compiler, text})
+		const nozeText = NozeText.create({compiler:comp, text})
 		const nozeTextContainer = div({class:nozeTextContainerClass}, [nozeText])
 
 		const output = div({class:outputClass})
@@ -87,7 +85,7 @@ export const NozeRunnable = makeCustomElement({
 			output.append(LoadingIcon.create(null))
 			output.append(div(), div(), div(), div())
 
-			const result = await compiler.runFile(text.get())
+			const result = await comp.runFile(text.get())
 			output.textContent = result.stdout === "" && result.stderr === ""
 				? "no output"
 				: result.stdout === "" || result.stderr === ""

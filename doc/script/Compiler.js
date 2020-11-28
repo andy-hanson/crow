@@ -1,4 +1,9 @@
-import {delay} from "./util/util.js"
+const compiler = {}
+
+if (typeof window !== "undefined")
+	(/** @type {any} */ (window)).compiler = compiler
+if (typeof global !== "undefined")
+	(/** @type {any} */ (global)).compiler = compiler
 
 /**
  * @typedef Exports
@@ -11,32 +16,32 @@ import {delay} from "./util/util.js"
  */
 
 /**
- * @typedef Range
+ * @typedef DiagRange
  * @property {[number, number]} args
  */
 
 /**
  * @typedef Token
  * @property {string} kind
- * @property {Range} range
+ * @property {DiagRange} range
  */
-export const Token = {}
+compiler.Token = {}
 
 /**
  * @typedef Diagnostic
  * @property {string} message
- * @property {Range} range
+ * @property {DiagRange} range
  */
-export const Diagnostic = {}
+compiler.Diagnostic = {}
 
 
-/** @type {Promise<Compiler> | null} */
+/** @type {Promise<compiler.Compiler> | null} */
 let globalCompiler = null
 
-/** @type {function(): Promise<Compiler>} */
-export const getGlobalCompiler = async () => {
+/** @type {function(): Promise<compiler.Compiler>} */
+compiler.getGlobalCompiler = async () => {
 	if (globalCompiler === null)
-		globalCompiler = Compiler.make()
+		globalCompiler = compiler.Compiler.make()
 	return globalCompiler
 }
 
@@ -46,7 +51,7 @@ export const getGlobalCompiler = async () => {
   * @property {ReadonlyArray<Diagnostic>} diags
   */
 
-export class Compiler {
+compiler.Compiler = class Compiler {
 	/** @return {Promise<Compiler>} */
 	static async make() {
 		const includeFiles = await getIncludeFiles()
@@ -156,12 +161,12 @@ const nameAndText = async name =>
  * @property {string} stdout
  * @property {string} stderr
  */
-export const RunResult = {}
+compiler.RunResult = {}
 
 /**
  * @typedef {{readonly [name:string]: string}} Files
  */
-export const Files = {}
+compiler.Files = {}
 
 /** @type {function(DataView, number, number, string): void} */
 function writeString(view, buffer, bufferSize, str) {
@@ -189,4 +194,21 @@ function readString(view, buffer, bufferSize) {
 		throw new Error("TOO LONG")
 	}
 	return s
+}
+
+/**
+ * @template T
+ * @param {() => T} cb
+ * @return {Promise<T>}
+ */
+const delay = async cb => {
+	return new Promise((resolve, reject) => {
+		setTimeout(() => {
+			try {
+				resolve(cb())
+			} catch (e) {
+				reject(e)
+			}
+		}, 0)
+	})
 }

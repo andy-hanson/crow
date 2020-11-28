@@ -37,6 +37,7 @@ export const CustomElementClass = {}
  * @return {CustomElementClass<InProps, OutProps, State>}
  */
 export function makeCustomElement({ tagName, styleSheet, init, connected, disconnected }) {
+	console.log("MAKECUSTOMELEMENT", tagName)
 	assert(tagName.startsWith("noze-"))
 	const attributesMap = objectToMap({}) //TODO:REMOVE
 	class C extends CustomElement {
