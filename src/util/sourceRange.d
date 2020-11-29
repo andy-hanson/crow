@@ -2,10 +2,12 @@ module util.sourceRange;
 
 @safe @nogc pure nothrow:
 
+import util.bools : Bool;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.path : PathAndStorageKind;
 import util.sexpr : Sexpr, tataNat, tataRecord;
-import util.types : safeU32ToU16, u16, u32;
+import util.sym : Sym, symSize;
+import util.types : safeU32ToU16, safeSizeTToU32, u16, u32;
 
 alias Pos = u32;
 
@@ -25,6 +27,14 @@ struct RangeWithinFile {
 	static immutable RangeWithinFile empty = immutable RangeWithinFile(immutable Pos(0), immutable Pos(0));
 }
 static assert(RangeWithinFile.sizeof == 8);
+
+immutable(Bool) hasPos(immutable RangeWithinFile a, immutable Pos p) {
+	return immutable Bool(a.start <= p && p < a.end);
+}
+
+immutable(RangeWithinFile) rangeOfStartAndName(immutable Pos start, immutable Sym name) {
+	return immutable RangeWithinFile(start, safeSizeTToU32(start + symSize(name)));
+}
 
 struct FileAndPos {
 	immutable FileIndex fileIndex;

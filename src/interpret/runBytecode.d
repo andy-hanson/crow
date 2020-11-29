@@ -386,16 +386,16 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 @trusted void read(TempAlloc, Extern)(
 	ref TempAlloc tempAlloc,
 	ref Interpreter!Extern a,
-	immutable Nat8 offset,
-	immutable Nat8 size,
+	immutable Nat16 offset,
+	immutable Nat16 size,
 ) {
 	immutable u8* ptr = cast(immutable u8*) pop(a.dataStack).raw();
 	checkPtr(tempAlloc, a, ptr, offset, size);
-	if (size < immutable Nat8(8)) { //TODO: just have 2 different ops then
+	if (size < immutable Nat16(8)) { //TODO: just have 2 different ops then
 		push(a.dataStack, readPartialBytes(ptr + offset.raw(), size.raw()));
 	} else {
-		verify(zero(size % immutable Nat8(8)));
-		verify(zero(offset % immutable Nat8(8)));
+		verify(zero(size % immutable Nat16(8)));
+		verify(zero(offset % immutable Nat16(8)));
 		foreach (immutable size_t i; 0..(size.raw() / 8))
 			push(a.dataStack, ((cast(immutable Nat64*) ptr) + (offset.raw() / 8))[i]);
 	}
@@ -405,8 +405,8 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	ref TempAlloc tempAlloc,
 	ref const Interpreter!Extern a,
 	const u8* ptrWithoutOffset,
-	immutable Nat8 offset,
-	immutable Nat8 size,
+	immutable Nat16 offset,
+	immutable Nat16 size,
 ) {
 	const u8* ptr = ptrWithoutOffset + offset.raw();
 	const PtrRange ptrRange = const PtrRange(ptr, ptr + size.raw());
@@ -438,34 +438,34 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 @trusted void write(TempAlloc, Extern)(
 	ref TempAlloc tempAlloc,
 	ref Interpreter!Extern a,
-	immutable Nat8 offset,
-	immutable Nat8 size,
+	immutable Nat16 offset,
+	immutable Nat16 size,
 ) {
-	if (size < immutable Nat8(8)) { //TODO: just have 2 different ops then
+	if (size < immutable Nat16(8)) { //TODO: just have 2 different ops then
 		immutable Nat64 value = pop(a.dataStack);
 		u8* ptr = cast(u8*) pop(a.dataStack).raw();
 		checkPtr(tempAlloc, a, ptr, offset, size);
 		writePartialBytes(ptr + offset.raw(), value.raw(), size.raw());
 	} else {
-		verify(zero(size % immutable Nat8(8)));
-		verify(zero(offset % immutable Nat8(8)));
-		immutable Nat8 offsetWords = offset / immutable Nat8(8);
-		immutable Nat8 sizeWords = size / immutable Nat8(8);
-		Nat64* ptrWithoutOffset = (cast(Nat64*) peek(a.dataStack, sizeWords).raw());
+		verify(zero(size % immutable Nat16(8)));
+		verify(zero(offset % immutable Nat16(8)));
+		immutable Nat16 offsetWords = offset / immutable Nat16(8);
+		immutable Nat16 sizeWords = size / immutable Nat16(8);
+		Nat64* ptrWithoutOffset = (cast(Nat64*) peek(a.dataStack, sizeWords.to8()).raw());
 		checkPtr(
 			tempAlloc,
 			a,
 			cast(const u8*) ptrWithoutOffset,
-			offsetWords * immutable Nat8(8),
-			sizeWords * immutable Nat8(8));
+			offsetWords * immutable Nat16(8),
+			sizeWords * immutable Nat16(8));
 		Nat64* ptr = ptrWithoutOffset + offsetWords.raw();
-		foreach (immutable u8 i; 0..sizeWords.raw())
-			ptr[i] = peek(a.dataStack, decr(sizeWords) - immutable Nat8(i));
-		popN(a.dataStack, incr(sizeWords));
+		foreach (immutable ushort i; 0..sizeWords.raw())
+			ptr[i] = peek(a.dataStack, (decr(sizeWords) - immutable Nat16(i)).to8());
+		popN(a.dataStack, incr(sizeWords).to8());
 	}
 }
 
-@trusted immutable(Nat64) readPartialBytes(immutable u8* ptr, immutable u8 size) {
+@trusted immutable(Nat64) readPartialBytes(immutable u8* ptr, immutable ushort size) {
 	//TODO: Just have separate ops for separate sizes
 	switch (size) {
 		case 1:
@@ -479,7 +479,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	}
 }
 
-@trusted void writePartialBytes(u8* ptr, immutable u64 value, immutable u8 size) {
+@trusted void writePartialBytes(u8* ptr, immutable u64 value, immutable ushort size) {
 	//TODO: Just have separate ops for separate sizes
 	switch (size) {
 		case 1:
@@ -546,7 +546,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			break;
 		case ExternOp.setjmp:
 			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack).raw();
-			checkPtr(tempAlloc, a, cast(const u8*) jmpBufPtr, immutable Nat8(0), immutable Nat8(JmpBufTag.sizeof));
+			checkPtr(tempAlloc, a, cast(const u8*) jmpBufPtr, immutable Nat16(0), immutable Nat16(JmpBufTag.sizeof));
 			overwriteMemory(jmpBufPtr, createInterpreterRestore(a));
 			push(a.dataStack, immutable Nat64(0));
 			break;

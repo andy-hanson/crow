@@ -96,7 +96,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 		case OpCode.pushU64:
 			return immutable Operation(immutable Operation.PushValue(readU64(reader.reader)));
 		case OpCode.read:
-			return immutable Operation(immutable Operation.Read(readU8(reader.reader), readU8(reader.reader)));
+			return immutable Operation(immutable Operation.Read(readU16(reader.reader), readU16(reader.reader)));
 		case OpCode.remove:
 			return immutable Operation(immutable Operation.Remove(readStackOffset(reader), readU8(reader.reader)));
 		case OpCode.return_:
@@ -108,7 +108,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 			immutable Arr!Nat16 offsets = readArrayDoNotSkipBytes!Nat16(reader.reader, size.raw());
 			return immutable Operation(immutable Operation.Switch(cast(immutable Arr!ByteCodeOffsetUnsigned) offsets));
 		case OpCode.write:
-			return immutable Operation(immutable Operation.Write(readU8(reader.reader), readU8(reader.reader)));
+			return immutable Operation(immutable Operation.Write(readU16(reader.reader), readU16(reader.reader)));
 	}
 }
 

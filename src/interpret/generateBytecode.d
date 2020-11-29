@@ -168,7 +168,7 @@ immutable(FileToFuns) fileToFuns(Alloc)(ref Alloc alloc, ref immutable Program p
 				immutable FunNameAndPos(name(it), range(it).range.start)));
 }
 
-immutable(Nat8) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
+immutable(Nat16) sizeOfType(ref const ExprCtx ctx, ref immutable LowType t) {
 	return sizeOfType(ctx.typeLayout, t);
 }
 
@@ -469,9 +469,7 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
 			immutable FieldOffsetAndSize offsetAndSize =
 				getFieldOffsetAndSize(ctx, it.record, immutable Nat8(it.fieldIndex));
-			verify(
-				mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize).to16() ==
-					getNextStackEntry(writer).entry);
+			verify(mid.entry + divRoundUp(offsetAndSize.size, stackEntrySize) == getNextStackEntry(writer).entry);
 			writeWrite(dbg, writer, source, offsetAndSize.offset, offsetAndSize.size);
 			verify(getNextStackEntry(writer) == before);
 		},
@@ -566,7 +564,7 @@ void generateCreateRecordOrConstantRecord(Debug, CodeAlloc, TempAlloc)(
 			// TODO:PERF: if generating a record constant, could do the pack at compile time
 			writePack(dbg, writer, source, fieldSizes);
 		},
-		(immutable size_t fieldIndex, ref immutable LowType fieldType, immutable Nat8) {
+		(immutable size_t fieldIndex, ref immutable LowType fieldType, immutable Nat16) {
 			cbGenerateField(fieldIndex, fieldType);
 		});
 
@@ -621,12 +619,12 @@ void generateConvertToUnionOrConstantUnion(Debug, CodeAlloc, TempAlloc)(
 }
 
 struct FieldOffsetAndSize {
-	immutable Nat8 offset;
-	immutable Nat8 size;
+	immutable Nat16 offset;
+	immutable Nat16 size;
 }
 
-immutable(Nat8) getFieldOffset(ref const ExprCtx ctx, immutable LowType.Record record, immutable Nat8 fieldIndex) {
-	immutable Arr!Nat8 fieldOffsets = fullIndexDictGet(ctx.typeLayout.fieldOffsets, record);
+immutable(Nat16) getFieldOffset(ref const ExprCtx ctx, immutable LowType.Record record, immutable Nat8 fieldIndex) {
+	immutable Arr!Nat16 fieldOffsets = fullIndexDictGet(ctx.typeLayout.fieldOffsets, record);
 	return at(fieldOffsets, fieldIndex);
 }
 
@@ -635,7 +633,8 @@ immutable(FieldOffsetAndSize) getFieldOffsetAndSize(
 	immutable LowType.Record record,
 	immutable Nat8 fieldIndex,
 ) {
-	immutable Nat8 size = sizeOfType(ctx, at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).type);
+	immutable Nat16 size =
+		sizeOfType(ctx, at(fullIndexDictGet(ctx.program.allRecords, record).fields, fieldIndex).type);
 	return immutable FieldOffsetAndSize(getFieldOffset(ctx, record, fieldIndex), size);
 }
 
@@ -789,7 +788,7 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
-			writeRead(dbg, writer, source, immutable Nat8(0), sizeOfType(ctx, type));
+			writeRead(dbg, writer, source, immutable Nat16(0), sizeOfType(ctx, type));
 			break;
 		case LowExprKind.SpecialUnary.Kind.hardFail:
 			generateArg();
@@ -864,11 +863,11 @@ void generateRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
 	} else {
 		if (!zero(offsetAndSize.size)) {
 			immutable StackEntry firstEntry =
-				immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize).to16());
+				immutable StackEntry(targetEntry.entry + (offsetAndSize.offset / stackEntrySize));
 			if (zero(offsetAndSize.size % stackEntrySize)) {
 				verify(zero(offsetAndSize.offset % stackEntrySize));
 				immutable StackEntries entries =
-					immutable StackEntries(firstEntry, offsetAndSize.size / stackEntrySize);
+					immutable StackEntries(firstEntry, (offsetAndSize.size / stackEntrySize).to8());
 				writeDupEntries(dbg, writer, source, entries);
 			} else {
 				writeDupPartial(
@@ -876,8 +875,8 @@ void generateRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
 					writer,
 					source,
 					firstEntry,
-					offsetAndSize.offset % stackEntrySize,
-					offsetAndSize.size);
+					(offsetAndSize.offset % stackEntrySize).to8(),
+					offsetAndSize.size.to8());
 			}
 		}
 		writeRemove(dbg, writer, source, targetEntries);
@@ -896,7 +895,7 @@ void generatePtrToRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
 	ref immutable LowExpr target,
 ) {
 	generateExpr(dbg, tempAlloc, writer, ctx, target);
-	immutable Nat8 offset = getFieldOffset(ctx, record, immutable Nat8(fieldIndex));
+	immutable Nat16 offset = getFieldOffset(ctx, record, immutable Nat8(fieldIndex));
 	if (targetIsPointer) {
 		if (!zero(offset))
 			writeAddConstantNat64(dbg, writer, source, offset.to64());
@@ -925,8 +924,8 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 			immutable LowType pointee = asNonFunPtrType(a.left.type).pointee;
 			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-			immutable Nat8 pointeeSize = sizeOfType(ctx, pointee);
-			if (pointeeSize != immutable Nat8(1))
+			immutable Nat16 pointeeSize = sizeOfType(ctx, pointee);
+			if (pointeeSize != immutable Nat16(1))
 				writeMulConstantNat64(dbg, writer, source, pointeeSize.to64());
 			writeFn(
 				dbg,
@@ -1067,7 +1066,7 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 		case LowExprKind.SpecialBinary.Kind.writeToPtr:
 			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
-			writeWrite(dbg, writer, source, immutable Nat8(0), sizeOfType(ctx, a.right.type));
+			writeWrite(dbg, writer, source, immutable Nat16(0), sizeOfType(ctx, a.right.type));
 			break;
 	}
 }

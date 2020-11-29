@@ -575,6 +575,7 @@ export class LinearGradient {
  * @property {number} [tab_size]
  * @property {Align} [text_align]
  * @property {Measure} [top]
+ * @property {Visibility} [visibility]
  * @property {WhiteSpace} [white_space]
  * @property {Measure} [width]
  * @property {number} [z_index]
@@ -807,6 +808,7 @@ export class Color {
 	static darkGray = new Color("#2c292d")
 	//half of darkGray
 	static darkerGray = new Color("#161517")
+	static midGray = new Color("#423e44")
 	static lightGray = new Color("#6c696d")
 	static lighterGray = new Color("#aaa")
 	static lightestGray = new Color("#ddd")
@@ -836,8 +838,26 @@ export class Display {
 	static flex = new Display("flex")
 	static inline = new Display("inline")
 	static inlineBlock = new Display("inline-block")
+	static none = new Display("none")
 
 	show_ = ""
+
+	/**
+	 * @private
+	 * @param {string} show
+	 */
+	constructor(show) {
+		this.show_ = show
+	}
+
+	/** @return {string} */
+	get show() {
+		return this.show_
+	}
+}
+
+export class Visibility {
+	static hidden = new Visibility("hidden")
 
 	/**
 	 * @private

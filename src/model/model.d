@@ -18,7 +18,7 @@ import util.memory : nu;
 import util.opt : has, none, Opt, some;
 import util.path : AbsolutePath, comparePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
-import util.sourceRange : FileAndPos, FileAndRange, FileIndex, RangeWithinFile;
+import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, rangeOfStartAndName, RangeWithinFile;
 import util.sym : compareSym, shortSymAlphaLiteral, shortSymOperatorLiteral, Sym, symEq, symSize, writeSym;
 import util.types : u8, safeSizeTToU32;
 import util.util : todo, verify;
@@ -217,6 +217,10 @@ struct Sig {
 	immutable Sym name;
 	immutable Type returnType;
 	immutable Arr!Param params;
+
+	immutable(RangeWithinFile) range() immutable {
+		return rangeOfStartAndName(fileAndPos.pos, name);
+	}
 }
 static assert(Sig.sizeof <= 48);
 
@@ -1102,16 +1106,25 @@ struct ModuleDicts {
 
 
 struct ModuleAndNameReferents {
+	immutable RangeWithinFile range;
 	immutable Ptr!Module module_;
 	immutable Opt!(Arr!NameAndReferents) namesAndReferents;
 }
 
 struct NameAndReferents {
+	@safe @nogc pure nothrow:
+
+	immutable Pos start;
 	immutable Sym name;
 	// These may all be empty if the name didn't refer to anything
 	immutable Opt!(StructOrAlias) structOrAlias;
 	immutable Opt!(Ptr!SpecDecl) spec;
 	immutable Arr!(Ptr!FunDecl) funs;
+
+	//TODO:NOT INSTANCE
+	immutable(RangeWithinFile) range() immutable {
+		return rangeOfStartAndName(start, name);
+	}
 }
 
 enum FunKind {

@@ -104,6 +104,10 @@ immutable(T) optOr(T)(immutable Opt!T a, scope immutable(T) delegate() @safe @no
 	return matchOpt(a, (ref immutable T t) => t, cb);
 }
 
+immutable(Opt!T) optOr2(T)(immutable Opt!T a, scope immutable(Opt!T) delegate() @safe @nogc pure nothrow cb) {
+	return has(a) ? a : cb();
+}
+
 immutable(Opt!Out) mapOption(Out, T)(
 	immutable Opt!T a,
 	scope immutable(Out) delegate(ref immutable T) @safe @nogc pure nothrow cb,

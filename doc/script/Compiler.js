@@ -6,23 +6,48 @@ if (typeof global !== "undefined")
 	(/** @type {any} */ (global)).compiler = compiler
 
 /**
- * @typedef Exports
- * @property {function(): number} getBuffer
- * @property {function(): number} getBufferSize
- * @property {function(): void} getTokens
- * @property {function(): void} readDebugLog
- * @property {function(): void} run
- * @property {WebAssembly.Memory} memory
- */
+@typedef Exports
+@property {function(): number} getBuffer
+@property {function(): number} getBufferSize
+@property {function(): void} getTokens
+@property {function(): void} readDebugLog
+@property {function(): void} run
+@property {WebAssembly.Memory} memory
+*/
 
 /**
- * @typedef DiagRange
- * @property {[number, number]} args
- */
+@typedef DiagRange
+@property {[number, number]} args
+*/
+
+/**
+@typedef {
+	| "by-val-ref"
+	| "field-def"
+	| "field-ref"
+	| "fun-def"
+	| "fun-ref"
+	| "identifier"
+	| "import"
+	| "keyword"
+	| "lit-num"
+	| "lit-str"
+	| "local-def"
+	| "param-def"
+	| "purity"
+	| "spec-def"
+	| "spec-ref"
+	| "struct-def"
+	| "struct-ref"
+	| "tparam-def"
+	| "tparam-ref"
+} TokenKind
+*/
+compiler.TokenKind = {}
 
 /**
  * @typedef Token
- * @property {string} kind
+ * @property {TokenKind} kind
  * @property {DiagRange} range
  */
 compiler.Token = {}
@@ -35,23 +60,23 @@ compiler.Token = {}
 compiler.Diagnostic = {}
 
 
-/** @type {Promise<compiler.Compiler> | null} */
+/** @type {Promise<Compiler> | null} */
 let globalCompiler = null
 
-/** @type {function(): Promise<compiler.Compiler>} */
+/** @type {function(): Promise<Compiler>} */
 compiler.getGlobalCompiler = async () => {
 	if (globalCompiler === null)
 		globalCompiler = compiler.Compiler.make()
 	return globalCompiler
 }
 
- /**
-  * @typedef TokensDiags
-  * @property {ReadonlyArray<Token>} tokens
-  * @property {ReadonlyArray<Diagnostic>} diags
-  */
+/**
+@typedef TokensDiags
+@property {ReadonlyArray<Token>} tokens
+@property {ReadonlyArray<Diagnostic>} diags
+*/
 
-compiler.Compiler = class Compiler {
+class Compiler {
 	/** @return {Promise<Compiler>} */
 	static async make() {
 		const includeFiles = await getIncludeFiles()
@@ -59,10 +84,10 @@ compiler.Compiler = class Compiler {
 	}
 
 	/**
-	 * @param {ArrayBuffer} bytes
-	 * @param {Files} includeFiles
-	 * @return {Promise<Compiler>}
-	 */
+	@param {ArrayBuffer} bytes
+	@param {Files} includeFiles
+	@return {Promise<Compiler>}
+	*/
 	static async makeFromBytes(bytes, includeFiles) {
 		const result = await WebAssembly.instantiate(bytes, {})
 		const { exports } = result.instance
@@ -70,9 +95,9 @@ compiler.Compiler = class Compiler {
 	}
 
 	/**
-	 * @param {Exports} exports
-	 * @param {Files} includeFiles
-	 */
+	@param {Exports} exports
+	@param {Files} includeFiles
+	*/
 	constructor(exports, includeFiles) {
 		this._exports = exports
 		this._includeFiles = includeFiles
@@ -90,10 +115,10 @@ compiler.Compiler = class Compiler {
 	}
 
 	/**
-	 * @param {"getTokens" | "run"} name
-	 * @param {string} param
-	 * @return {string}
-	 */
+	@param {"getTokens" | "run"} name
+	@param {string} param
+	@return {string}
+	*/
 	_useExports(name, param) {
 		try {
 			this._setStr(param)
@@ -107,18 +132,18 @@ compiler.Compiler = class Compiler {
 	}
 
 	/**
-	 * @param {string} src
-	 * @return {TokensDiags}
-	 */
+	@param {string} src
+	@return {TokensDiags}
+	*/
 	getTokens(src) {
 		const json = this._useExports("getTokens", src)
 		return JSON.parse(json)
 	}
 
 	/**
-	 * @param {AllFiles} files
-	 * @return {Promise<RunResult>}
-	 */
+	@param {AllFiles} files
+	@return {Promise<RunResult>}
+	*/
 	run(files) {
 		return delay(() => {
 			const result = this._useExports("run", JSON.stringify(files))
@@ -127,13 +152,14 @@ compiler.Compiler = class Compiler {
 	}
 
 	/**
-	 * @param {string} file
-	 * @return {Promise<RunResult>}
-	 */
+	@param {string} file
+	@return {Promise<RunResult>}
+	*/
 	runFile(file) {
 		return this.run({include:this._includeFiles, user:{main:file}})
 	}
 }
+compiler.Compiler = Compiler
 
 /** @type {function(): Promise<ReadonlyArray<string>>} */
 const listInclude = async () => {
@@ -150,22 +176,20 @@ const nameAndText = async name =>
 
 
 /**
- * @typedef AllFiles
- * @property {Files} include
- * @property {Files} user
- */
+@typedef AllFiles
+@property {Files} include
+@property {Files} user
+*/
 
 /**
- * @typedef RunResult
- * @property {number} err
- * @property {string} stdout
- * @property {string} stderr
- */
+@typedef RunResult
+@property {number} err
+@property {string} stdout
+@property {string} stderr
+*/
 compiler.RunResult = {}
 
-/**
- * @typedef {{readonly [name:string]: string}} Files
- */
+/** @typedef {{readonly [name:string]: string}} Files */
 compiler.Files = {}
 
 /** @type {function(DataView, number, number, string): void} */
@@ -197,10 +221,10 @@ function readString(view, buffer, bufferSize) {
 }
 
 /**
- * @template T
- * @param {() => T} cb
- * @return {Promise<T>}
- */
+@template T
+@param {() => T} cb
+@return {Promise<T>}
+*/
 const delay = async cb => {
 	return new Promise((resolve, reject) => {
 		setTimeout(() => {

@@ -515,11 +515,11 @@ void testStackRef(Alloc)(ref Test!Alloc test) {
 		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstant(test.dbg, writer, source, u.value);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
-			writeRead(test.dbg, writer, source, immutable Nat8(0), immutable Nat8(4));
+			writeRead(test.dbg, writer, source, immutable Nat16(0), immutable Nat16(4));
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
-			writeRead(test.dbg, writer, source, immutable Nat8(4), immutable Nat8(2));
+			writeRead(test.dbg, writer, source, immutable Nat16(4), immutable Nat16(2));
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
-			writeRead(test.dbg, writer, source, immutable Nat8(6), immutable Nat8(1));
+			writeRead(test.dbg, writer, source, immutable Nat16(6), immutable Nat16(1));
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
@@ -553,7 +553,7 @@ void testStackRef(Alloc)(ref Test!Alloc test) {
 		(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2), immutable Nat64(3)]);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
-			writeRead(test.dbg, writer, source, immutable Nat8(8), immutable Nat8(16));
+			writeRead(test.dbg, writer, source, immutable Nat16(8), immutable Nat16(16));
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
@@ -581,13 +581,13 @@ void testStackRef(Alloc)(ref Test!Alloc test) {
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0));
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0x0123456789abcdef));
-			writeWrite(test.dbg, writer, source, immutable Nat8(0), immutable Nat8(4));
+			writeWrite(test.dbg, writer, source, immutable Nat16(0), immutable Nat16(4));
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0x0123456789abcdef));
-			writeWrite(test.dbg, writer, source, immutable Nat8(4), immutable Nat8(2));
+			writeWrite(test.dbg, writer, source, immutable Nat16(4), immutable Nat16(2));
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
 			writePushConstant(test.dbg, writer, source, immutable Nat64(0x0123456789abcdef));
-			writeWrite(test.dbg, writer, source, immutable Nat8(6), immutable Nat8(1));
+			writeWrite(test.dbg, writer, source, immutable Nat16(6), immutable Nat16(1));
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter!(FakeExtern!Alloc) interpreter) {
@@ -641,7 +641,7 @@ void testStackRef(Alloc)(ref Test!Alloc test) {
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(0), immutable Nat64(0), immutable Nat64(0)]);
 			writeStackRef(test.dbg, writer, source, immutable StackEntry(immutable Nat16(0)));
 			writePushConstants(test.dbg, writer, source, [immutable Nat64(1), immutable Nat64(2)]);
-			writeWrite(test.dbg, writer, source, immutable Nat8(8), immutable Nat8(16));
+			writeWrite(test.dbg, writer, source, immutable Nat16(8), immutable Nat16(16));
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter!(FakeExtern!Alloc) interpreter) {

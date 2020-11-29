@@ -21,7 +21,7 @@ list-lintable-files arr str(path str) summon
 	res = new-mut-arr<str>
 	path each-child-recursive {not: it excluded-from-lint?}, \child
 		when
-			child.base-name ignore-extension-of-name
+			child.base-name ignore-extension-of-name?
 				pass
 			else
 				res push child
@@ -29,7 +29,8 @@ list-lintable-files arr str(path str) summon
 
 excluded-from-lint? bool(name str)
 	bad-exts = new-arr<str> ".bmp", ".err", ".png", ".tata", ".wasm"
-	name.first == "." or: name == "libfirm" or: bad-exts some? {name ends-with? it}
+	bad-names = new-arr<str> "libfirm", "node_modules", "package-lock.json"
+	name.first == "." or: bad-names contains? name or: bad-exts some? {name ends-with? it}
 
 | Returns nubmer of errors
 lint-file arr failure(path str) summon
@@ -62,16 +63,16 @@ ignored-extensions arr str()
 		. "tata"
 		. "tmLanguage"
 
-ignore-extension bool(ext str)
+ignore-extension? bool(ext str)
 	ignored-extensions contains? ext
 
-ignore-extension-of-name bool(name str)
+ignore-extension-of-name? bool(name str)
 	match name get-extension
 		none
 			| Ignore extensionless files
 			true
 		some s
-			s.value ignore-extension
+			s.value ignore-extension?
 
 lines arr str(s str)
 	res = new-mut-arr<str>

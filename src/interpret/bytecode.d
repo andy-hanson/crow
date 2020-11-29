@@ -395,8 +395,8 @@ struct Operation {
 
 	// Pop a pointer off the stack, add 'offset', read 'size' bytes, and push to the stack.
 	struct Read {
-		immutable Nat8 offset;
-		immutable Nat8 size;
+		immutable Nat16 offset;
+		immutable Nat16 size;
 	}
 
 	// Remove entries from the stack, shifting higher entries down.
@@ -424,18 +424,19 @@ struct Operation {
 	struct Write {
 		@safe @nogc pure nothrow:
 
-		immutable Nat8 offset;
-		immutable Nat8 size;
+		immutable Nat16 offset;
+		immutable Nat16 size;
 
-		immutable this(immutable Nat8 o, immutable Nat8 s) {
+		immutable this(immutable Nat16 o, immutable Nat16 s) {
 			offset = o;
 			size = s;
 			verify(!zero(size));
+			//TODO: use a size type to ensure this
 			verify(
-				size == immutable Nat8(1) ||
-				size == immutable Nat8(2) ||
-				size == immutable Nat8(4) ||
-				zero(size % immutable Nat8(8)));
+				size == immutable Nat16(1) ||
+				size == immutable Nat16(2) ||
+				size == immutable Nat16(4) ||
+				zero(size % immutable Nat16(8)));
 		}
 	}
 
@@ -535,7 +536,7 @@ struct ByteCodeOffset {
 	}
 }
 
-immutable Nat8 stackEntrySize = immutable Nat8(8);
+immutable Nat16 stackEntrySize = immutable Nat16(8);
 
 enum ExternOp : u8 {
 	free,

@@ -604,7 +604,7 @@ void writeFileAndRange(TempAlloc, Alloc)(
 	ref immutable FilesInfo fi,
 	ref immutable FileAndRange where,
 ) {
-	writeFile(tempAlloc, writer, options, fi, where.fileIndex);
+	writeFileNoResetWriter(tempAlloc, writer, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writeRangeWithinFile(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.range);
 	if (options.color)
@@ -618,15 +618,25 @@ void writeFileAndPos(TempAlloc, Alloc)(
 	ref immutable FilesInfo fi,
 	ref immutable FileAndPos where,
 ) {
-	writeFile(tempAlloc, writer, options, fi, where.fileIndex);
+	writeFileNoResetWriter(tempAlloc, writer, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writePos(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.pos);
 	if (options.color)
 		writeReset(writer);
 }
 
-// Private because it doesn't reset writer
-private void writeFile(TempAlloc, Alloc)(
+void writeFile(TempAlloc, Alloc)(
+	ref TempAlloc tempAlloc,
+	ref Writer!Alloc writer,
+	ref immutable FilesInfo fi,
+	immutable FileIndex fileIndex,
+) {
+	immutable Bool noColor = immutable ShowDiagOptions(False);
+	writeFileNoResetWriter(tempAlloc, writer, noColor, fi, fileIndex);
+	// No need to reset writer since we didn't use color
+}
+
+private void writeFileNoResetWriter(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
 	ref immutable ShowDiagOptions options,

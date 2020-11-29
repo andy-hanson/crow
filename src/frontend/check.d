@@ -1095,7 +1095,7 @@ void recurAddImport(Alloc)(
 	immutable Opt!(Arr!NameAndReferents) nameReferents = mapOption(names, (ref immutable Arr!Sym names) =>
 		map(alloc, names, (ref immutable Sym name) =>
 			getNameReferents(alloc, diags, module_, range, name)));
-	add(alloc, res, immutable ModuleAndNameReferents(module_, nameReferents));
+	add(alloc, res, immutable ModuleAndNameReferents(range.range, module_, nameReferents));
 	foreach (immutable ModuleAndNameReferents e; arrRange(module_.exports)) {
 		if (has(e.namesAndReferents))
 			// if we're importing specific names, check for overlap.
@@ -1113,6 +1113,7 @@ immutable(NameAndReferents) getNameReferents(Alloc)(
 	immutable Sym name,
 ) {
 	immutable NameAndReferents res = immutable NameAndReferents(
+		range.start,
 		name,
 		getAt(module_.structsAndAliasesMap, name),
 		getAt(module_.specsMap, name),

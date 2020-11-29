@@ -31,7 +31,7 @@ import util.collection.exactSizeArrBuilder :
 	newExactSizeArrBuilder;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.ptr : Ptr, ptrTrustMe;
-import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat8, zero;
+import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat8, Nat16, zero;
 import util.util : todo, unreachable, verify;
 
 struct TextAndInfo {
@@ -269,8 +269,8 @@ void writeConstant(TempAlloc)(
 				(ref immutable Arr!Nat8) {
 					todo!void("pack it");
 				},
-				(immutable size_t fieldIndex, ref immutable LowType fieldType, immutable Nat8 fieldSize) {
-					verify(zero(fieldSize % immutable Nat8(8))); // TODO: 'size' type so don't need this assertion
+				(immutable size_t fieldIndex, ref immutable LowType fieldType, immutable Nat16 fieldSize) {
+					verify(zero(fieldSize % immutable Nat16(8))); // TODO: 'size' type so don't need this assertion
 					writeConstant(tempAlloc, ctx, fieldType, at(it.args, fieldIndex));
 				});
 		},

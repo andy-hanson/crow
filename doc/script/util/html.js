@@ -62,10 +62,10 @@ export const details = (summary, children) =>
 /**
  * @param {ElementOptions} [options]
  * @param {ReadonlyArray<NodeOrString>} [children]
- * @returns {HTMLElement}
+ * @returns {HTMLDivElement}
  */
 export const div = (options, children) =>
-	element("div", options, children)
+	safeCast(element("div", options, children), HTMLDivElement)
 
 /** @type {function(string): HTMLImageElement} */
 export const img = url =>

@@ -208,15 +208,15 @@ void writeRead(Debug, Alloc)(
 	ref Debug dbg,
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable Nat8 offset,
-	immutable Nat8 size,
+	immutable Nat16 offset,
+	immutable Nat16 size,
 ) {
 	log(dbg, writer, "write read");
 	verify(!zero(size));
 	pushOpcode(writer, source, OpCode.read);
-	pushU8(writer, source, offset);
-	pushU8(writer, source, size);
-	writer.nextStackEntry += decr(divRoundUp(size, stackEntrySize)).to16();
+	pushU16(writer, source, offset);
+	pushU16(writer, source, size);
+	writer.nextStackEntry += decr(divRoundUp(size, stackEntrySize));
 }
 
 void writeStackRef(Debug, Alloc)(
@@ -241,15 +241,15 @@ void writeWrite(Debug, Alloc)(
 	ref Debug dbg,
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable Nat8 offset,
-	immutable Nat8 size,
+	immutable Nat16 offset,
+	immutable Nat16 size,
 ) {
 	log(dbg, writer, "write write");
 	verify(!zero(size));
 	pushOpcode(writer, source, OpCode.write);
-	pushU8(writer, source, offset);
-	pushU8(writer, source, size);
-	writer.nextStackEntry -= incr(divRoundUp(size, stackEntrySize).to16());
+	pushU16(writer, source, offset);
+	pushU16(writer, source, size);
+	writer.nextStackEntry -= incr(divRoundUp(size, stackEntrySize));
 }
 
 void writeAddConstantNat64(Debug, Alloc)(

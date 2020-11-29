@@ -1068,32 +1068,35 @@ char constantarr_0_82[4];
 char constantarr_0_83[4];
 char constantarr_0_84[5];
 char constantarr_0_85[7];
-char constantarr_0_86[1];
-char constantarr_0_87[4];
+char constantarr_0_86[12];
+char constantarr_0_87[17];
 char constantarr_0_88[1];
-char constantarr_0_89[3];
-char constantarr_0_90[4];
-char constantarr_0_91[10];
-char constantarr_0_92[5];
-char constantarr_0_93[21];
-char constantarr_0_94[3];
-char constantarr_0_95[2];
-char constantarr_0_96[5];
-char constantarr_0_97[24];
-char constantarr_0_98[1];
-char constantarr_0_99[3];
-char constantarr_0_100[4];
-char constantarr_0_101[28];
-char constantarr_0_102[7];
-char constantarr_0_103[6];
-char constantarr_0_104[4];
-char constantarr_0_105[3];
-char constantarr_0_106[15];
-char constantarr_0_107[9];
+char constantarr_0_89[4];
+char constantarr_0_90[1];
+char constantarr_0_91[3];
+char constantarr_0_92[4];
+char constantarr_0_93[10];
+char constantarr_0_94[5];
+char constantarr_0_95[21];
+char constantarr_0_96[3];
+char constantarr_0_97[2];
+char constantarr_0_98[5];
+char constantarr_0_99[24];
+char constantarr_0_100[1];
+char constantarr_0_101[3];
+char constantarr_0_102[4];
+char constantarr_0_103[28];
+char constantarr_0_104[7];
+char constantarr_0_105[6];
+char constantarr_0_106[4];
+char constantarr_0_107[3];
+char constantarr_0_108[15];
+char constantarr_0_109[9];
 struct arr_0 constantarr_1_0[3];
 struct arr_0 constantarr_1_1[4];
 struct arr_0 constantarr_1_2[5];
-struct arr_0 constantarr_1_3[6];
+struct arr_0 constantarr_1_3[3];
+struct arr_0 constantarr_1_4[6];
 char constantarr_0_0[17] = "Assertion failed!";
 char constantarr_0_1[1] = "\0";
 char constantarr_0_2[4] = "TODO";
@@ -1180,32 +1183,35 @@ char constantarr_0_82[4] = ".bmp";
 char constantarr_0_83[4] = ".png";
 char constantarr_0_84[5] = ".wasm";
 char constantarr_0_85[7] = "libfirm";
-char constantarr_0_86[1] = "c";
-char constantarr_0_87[4] = "data";
-char constantarr_0_88[1] = "o";
-char constantarr_0_89[3] = "out";
-char constantarr_0_90[4] = "tata";
-char constantarr_0_91[10] = "tmLanguage";
-char constantarr_0_92[5] = "lint ";
-char constantarr_0_93[21] = "file does not exist: ";
-char constantarr_0_94[3] = "err";
-char constantarr_0_95[2] = "  ";
-char constantarr_0_96[5] = "line ";
-char constantarr_0_97[24] = " contains a double space";
-char constantarr_0_98[1] = "\t";
-char constantarr_0_99[3] = "120";
-char constantarr_0_100[4] = " is ";
-char constantarr_0_101[28] = " columns long, should be <= ";
-char constantarr_0_102[7] = "linted ";
-char constantarr_0_103[6] = " files";
-char constantarr_0_104[4] = "\x1b[1m";
-char constantarr_0_105[3] = "\x1b[m";
-char constantarr_0_106[15] = "hit maximum of ";
-char constantarr_0_107[9] = " failures";
+char constantarr_0_86[12] = "node_modules";
+char constantarr_0_87[17] = "package-lock.json";
+char constantarr_0_88[1] = "c";
+char constantarr_0_89[4] = "data";
+char constantarr_0_90[1] = "o";
+char constantarr_0_91[3] = "out";
+char constantarr_0_92[4] = "tata";
+char constantarr_0_93[10] = "tmLanguage";
+char constantarr_0_94[5] = "lint ";
+char constantarr_0_95[21] = "file does not exist: ";
+char constantarr_0_96[3] = "err";
+char constantarr_0_97[2] = "  ";
+char constantarr_0_98[5] = "line ";
+char constantarr_0_99[24] = " contains a double space";
+char constantarr_0_100[1] = "\t";
+char constantarr_0_101[3] = "120";
+char constantarr_0_102[4] = " is ";
+char constantarr_0_103[28] = " columns long, should be <= ";
+char constantarr_0_104[7] = "linted ";
+char constantarr_0_105[6] = " files";
+char constantarr_0_106[4] = "\x1b[1m";
+char constantarr_0_107[3] = "\x1b[m";
+char constantarr_0_108[15] = "hit maximum of ";
+char constantarr_0_109[9] = " failures";
 struct arr_0 constantarr_1_0[3] = {{11, constantarr_0_13}, {16, constantarr_0_14}, {12, constantarr_0_15}};
 struct arr_0 constantarr_1_1[4] = {{3, constantarr_0_46}, {5, constantarr_0_47}, {14, constantarr_0_48}, {9, constantarr_0_49}};
 struct arr_0 constantarr_1_2[5] = {{4, constantarr_0_82}, {4, constantarr_0_68}, {4, constantarr_0_83}, {5, constantarr_0_57}, {5, constantarr_0_84}};
-struct arr_0 constantarr_1_3[6] = {{1, constantarr_0_86}, {4, constantarr_0_87}, {1, constantarr_0_88}, {3, constantarr_0_89}, {4, constantarr_0_90}, {10, constantarr_0_91}};
+struct arr_0 constantarr_1_3[3] = {{7, constantarr_0_85}, {12, constantarr_0_86}, {17, constantarr_0_87}};
+struct arr_0 constantarr_1_4[6] = {{1, constantarr_0_88}, {4, constantarr_0_89}, {1, constantarr_0_90}, {3, constantarr_0_91}, {4, constantarr_0_92}, {10, constantarr_0_93}};
 int32_t rt_main(int32_t argc, char** argv, fun_ptr2_0 main_ptr);
 uint8_t drop_0(struct arr_0 t);
 struct arr_0 to_str_0(char* a);
@@ -1888,14 +1894,14 @@ struct result_3 do_test__lambda0(struct ctx* ctx, struct do_test__lambda0* _clos
 struct result_3 lint(struct ctx* ctx, struct arr_0 path, struct test_options options);
 struct arr_1 list_lintable_files(struct ctx* ctx, struct arr_0 path);
 uint8_t excluded_from_lint__q(struct ctx* ctx, struct arr_0 name);
+uint8_t contains__q_1(struct arr_1 a, struct arr_0 value);
+uint8_t contains_recur__q_1(struct arr_1 a, struct arr_0 value, uint64_t i);
 uint8_t some__q(struct ctx* ctx, struct arr_1 a, struct fun_mut1_6 pred);
 uint8_t ends_with__q(struct ctx* ctx, struct arr_0 a, struct arr_0 end);
 uint8_t excluded_from_lint__q__lambda0(struct ctx* ctx, struct excluded_from_lint__q__lambda0* _closure, struct arr_0 it);
 uint8_t list_lintable_files__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr_0 it);
-uint8_t ignore_extension_of_name(struct ctx* ctx, struct arr_0 name);
-uint8_t ignore_extension(struct ctx* ctx, struct arr_0 ext);
-uint8_t contains__q_1(struct arr_1 a, struct arr_0 value);
-uint8_t contains_recur__q_1(struct arr_1 a, struct arr_0 value, uint64_t i);
+uint8_t ignore_extension_of_name__q(struct ctx* ctx, struct arr_0 name);
+uint8_t ignore_extension__q(struct ctx* ctx, struct arr_0 ext);
 struct arr_1 ignored_extensions(struct ctx* ctx);
 uint8_t list_lintable_files__lambda1(struct ctx* ctx, struct list_lintable_files__lambda1* _closure, struct arr_0 child);
 struct arr_7 lint_file(struct ctx* ctx, struct arr_0 path);
@@ -6429,7 +6435,7 @@ struct result_3 lint(struct ctx* ctx, struct arr_0 path, struct test_options opt
 	if (has__q_6(failures1)) {
 		return (struct result_3) {1, .as1 = (struct err_2) {failures1}};
 	} else {
-		return (struct result_3) {0, .as0 = (struct ok_3) {_op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {7, constantarr_0_102}, to_str_3(ctx, files0.size)), (struct arr_0) {6, constantarr_0_103})}};
+		return (struct result_3) {0, .as0 = (struct ok_3) {_op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {7, constantarr_0_104}, to_str_3(ctx, files0.size)), (struct arr_0) {6, constantarr_0_105})}};
 	}
 }
 struct arr_1 list_lintable_files(struct ctx* ctx, struct arr_0 path) {
@@ -6441,7 +6447,31 @@ struct arr_1 list_lintable_files(struct ctx* ctx, struct arr_0 path) {
 }
 uint8_t excluded_from_lint__q(struct ctx* ctx, struct arr_0 name) {
 	struct excluded_from_lint__q__lambda0* temp0;
-	return (_op_equal_equal_0(first_0(ctx, name), literal_0((struct arr_0) {1, constantarr_0_43})) || (_op_equal_equal_4(name, (struct arr_0) {7, constantarr_0_85}) || some__q(ctx, (struct arr_1) {5, constantarr_1_2}, (struct fun_mut1_6) {(fun_ptr3_7) excluded_from_lint__q__lambda0, (uint8_t*) (temp0 = (struct excluded_from_lint__q__lambda0*) alloc(ctx, sizeof(struct excluded_from_lint__q__lambda0)), ((*(temp0) = (struct excluded_from_lint__q__lambda0) {name}, 0), temp0))})));
+	return (_op_equal_equal_0(first_0(ctx, name), literal_0((struct arr_0) {1, constantarr_0_43})) || (contains__q_1((struct arr_1) {3, constantarr_1_3}, name) || some__q(ctx, (struct arr_1) {5, constantarr_1_2}, (struct fun_mut1_6) {(fun_ptr3_7) excluded_from_lint__q__lambda0, (uint8_t*) (temp0 = (struct excluded_from_lint__q__lambda0*) alloc(ctx, sizeof(struct excluded_from_lint__q__lambda0)), ((*(temp0) = (struct excluded_from_lint__q__lambda0) {name}, 0), temp0))})));
+}
+uint8_t contains__q_1(struct arr_1 a, struct arr_0 value) {
+	return contains_recur__q_1(a, value, 0);
+}
+uint8_t contains_recur__q_1(struct arr_1 a, struct arr_0 value, uint64_t i) {
+	struct arr_1 _tailCalla;
+	struct arr_0 _tailCallvalue;
+	uint64_t _tailCalli;
+	top:
+	if (_op_equal_equal_1(i, a.size)) {
+		return 0;
+	} else {
+		if (_op_equal_equal_4(noctx_at_5(a, i), value)) {
+			return 1;
+		} else {
+			_tailCalla = a;
+			_tailCallvalue = value;
+			_tailCalli = noctx_incr(i);
+			a = _tailCalla;
+			value = _tailCallvalue;
+			i = _tailCalli;
+			goto top;
+		}
+	}
 }
 uint8_t some__q(struct ctx* ctx, struct arr_1 a, struct fun_mut1_6 pred) {
 	struct arr_1 _tailCalla;
@@ -6470,7 +6500,7 @@ uint8_t excluded_from_lint__q__lambda0(struct ctx* ctx, struct excluded_from_lin
 uint8_t list_lintable_files__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr_0 it) {
 	return !excluded_from_lint__q(ctx, it);
 }
-uint8_t ignore_extension_of_name(struct ctx* ctx, struct arr_0 name) {
+uint8_t ignore_extension_of_name__q(struct ctx* ctx, struct arr_0 name) {
 	struct opt_11 temp0;
 	struct some_11 s0;
 	temp0 = get_extension(ctx, name);
@@ -6479,43 +6509,19 @@ uint8_t ignore_extension_of_name(struct ctx* ctx, struct arr_0 name) {
 			return 1;
 		case 1:
 			s0 = temp0.as1;
-			return ignore_extension(ctx, s0.value);
+			return ignore_extension__q(ctx, s0.value);
 		default:
 			return (assert(0),0);
 	}
 }
-uint8_t ignore_extension(struct ctx* ctx, struct arr_0 ext) {
+uint8_t ignore_extension__q(struct ctx* ctx, struct arr_0 ext) {
 	return contains__q_1(ignored_extensions(ctx), ext);
 }
-uint8_t contains__q_1(struct arr_1 a, struct arr_0 value) {
-	return contains_recur__q_1(a, value, 0);
-}
-uint8_t contains_recur__q_1(struct arr_1 a, struct arr_0 value, uint64_t i) {
-	struct arr_1 _tailCalla;
-	struct arr_0 _tailCallvalue;
-	uint64_t _tailCalli;
-	top:
-	if (_op_equal_equal_1(i, a.size)) {
-		return 0;
-	} else {
-		if (_op_equal_equal_4(noctx_at_5(a, i), value)) {
-			return 1;
-		} else {
-			_tailCalla = a;
-			_tailCallvalue = value;
-			_tailCalli = noctx_incr(i);
-			a = _tailCalla;
-			value = _tailCallvalue;
-			i = _tailCalli;
-			goto top;
-		}
-	}
-}
 struct arr_1 ignored_extensions(struct ctx* ctx) {
-	return (struct arr_1) {6, constantarr_1_3};
+	return (struct arr_1) {6, constantarr_1_4};
 }
 uint8_t list_lintable_files__lambda1(struct ctx* ctx, struct list_lintable_files__lambda1* _closure, struct arr_0 child) {
-	if (ignore_extension_of_name(ctx, base_name(ctx, child))) {
+	if (ignore_extension_of_name__q(ctx, base_name(ctx, child))) {
 		return 0;
 	} else {
 		return push_0(ctx, _closure->res, child);
@@ -6528,7 +6534,7 @@ struct arr_7 lint_file(struct ctx* ctx, struct arr_0 path) {
 	struct lint_file__lambda0* temp0;
 	text0 = read_file(ctx, path);
 	res1 = new_mut_arr_2(ctx);
-	err_file__q2 = _op_equal_equal_4(force(ctx, get_extension(ctx, path)), (struct arr_0) {3, constantarr_0_94});
+	err_file__q2 = _op_equal_equal_4(force(ctx, get_extension(ctx, path)), (struct arr_0) {3, constantarr_0_96});
 	each_with_index_0(ctx, lines(ctx, text0), (struct fun_mut2_3) {(fun_ptr4_4) lint_file__lambda0, (uint8_t*) (temp0 = (struct lint_file__lambda0*) alloc(ctx, sizeof(struct lint_file__lambda0)), ((*(temp0) = (struct lint_file__lambda0) {err_file__q2, res1, path}, 0), temp0))});
 	return freeze_6(res1);
 }
@@ -6538,7 +6544,7 @@ struct arr_0 read_file(struct ctx* ctx, struct arr_0 path) {
 	temp0 = try_read_file_0(ctx, path);
 	switch (temp0.kind) {
 		case 0:
-			print_sync(_op_plus_1(ctx, (struct arr_0) {21, constantarr_0_93}, path));
+			print_sync(_op_plus_1(ctx, (struct arr_0) {21, constantarr_0_95}, path));
 			return (struct arr_0) {0, NULL};
 		case 1:
 			s0 = temp0.as1;
@@ -6656,7 +6662,7 @@ uint64_t line_len(struct ctx* ctx, struct arr_0 line) {
 	return _op_plus_0(ctx, _op_times_0(ctx, n_tabs(ctx, line), _op_minus_1(ctx, tab_size(ctx), literal_1(ctx, (struct arr_0) {1, constantarr_0_22}))), line.size);
 }
 uint64_t n_tabs(struct ctx* ctx, struct arr_0 line) {
-	if ((!empty__q_0(line) && _op_equal_equal_0(first_0(ctx, line), literal_0((struct arr_0) {1, constantarr_0_98})))) {
+	if ((!empty__q_0(line) && _op_equal_equal_0(first_0(ctx, line), literal_0((struct arr_0) {1, constantarr_0_100})))) {
 		return incr_1(ctx, n_tabs(ctx, tail_1(ctx, line)));
 	} else {
 		return 0;
@@ -6666,7 +6672,7 @@ uint64_t tab_size(struct ctx* ctx) {
 	return literal_1(ctx, (struct arr_0) {1, constantarr_0_25});
 }
 uint64_t max_line_length(struct ctx* ctx) {
-	return literal_1(ctx, (struct arr_0) {3, constantarr_0_99});
+	return literal_1(ctx, (struct arr_0) {3, constantarr_0_101});
 }
 uint8_t lint_file__lambda0(struct ctx* ctx, struct lint_file__lambda0* _closure, struct arr_0 line, uint64_t line_num) {
 	struct arr_0 ln0;
@@ -6676,15 +6682,15 @@ uint8_t lint_file__lambda0(struct ctx* ctx, struct lint_file__lambda0* _closure,
 	struct arr_0 message3;
 	struct failure* temp1;
 	ln0 = to_str_3(ctx, incr_1(ctx, line_num));
-	if ((!_closure->err_file__q && contains_subsequence__q(ctx, lstrip(ctx, line), (struct arr_0) {2, constantarr_0_95}))) {
-		message1 = _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {5, constantarr_0_96}, ln0), (struct arr_0) {24, constantarr_0_97});
+	if ((!_closure->err_file__q && contains_subsequence__q(ctx, lstrip(ctx, line), (struct arr_0) {2, constantarr_0_97}))) {
+		message1 = _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {5, constantarr_0_98}, ln0), (struct arr_0) {24, constantarr_0_99});
 		push_2(ctx, _closure->res, (temp0 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp0) = (struct failure) {_closure->path, message1}, 0), temp0)));
 	} else {
 		0;
 	}
 	width2 = line_len(ctx, line);
 	if (_op_greater_0(width2, max_line_length(ctx))) {
-		message3 = _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {5, constantarr_0_96}, ln0), (struct arr_0) {4, constantarr_0_100}), to_str_3(ctx, width2)), (struct arr_0) {28, constantarr_0_101}), to_str_3(ctx, max_line_length(ctx)));
+		message3 = _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {5, constantarr_0_98}, ln0), (struct arr_0) {4, constantarr_0_102}), to_str_3(ctx, width2)), (struct arr_0) {28, constantarr_0_103}), to_str_3(ctx, max_line_length(ctx)));
 		return push_2(ctx, _closure->res, (temp1 = (struct failure*) alloc(ctx, sizeof(struct failure)), ((*(temp1) = (struct failure) {_closure->path, message3}, 0), temp1)));
 	} else {
 		return 0;
@@ -6692,7 +6698,7 @@ uint8_t lint_file__lambda0(struct ctx* ctx, struct lint_file__lambda0* _closure,
 }
 struct arr_7 lint__lambda0(struct ctx* ctx, struct lint__lambda0* _closure, struct arr_0 file) {
 	if (_closure->options.print_tests__q) {
-		print_sync(_op_plus_1(ctx, (struct arr_0) {5, constantarr_0_92}, file));
+		print_sync(_op_plus_1(ctx, (struct arr_0) {5, constantarr_0_94}, file));
 	} else {
 		0;
 	}
@@ -6716,7 +6722,7 @@ int32_t print_failures(struct ctx* ctx, struct result_3 failures, struct test_op
 			e1 = temp0.as1;
 			each_2(ctx, e1.value, (struct fun_mut1_13) {(fun_ptr3_14) print_failures__lambda0, (uint8_t*) NULL});
 			n_failures2 = e1.value.size;
-			print_sync((_op_equal_equal_1(n_failures2, options.max_failures) ? _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {15, constantarr_0_106}, to_str_3(ctx, options.max_failures)), (struct arr_0) {9, constantarr_0_107}) : _op_plus_1(ctx, to_str_3(ctx, n_failures2), (struct arr_0) {9, constantarr_0_107})));
+			print_sync((_op_equal_equal_1(n_failures2, options.max_failures) ? _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {15, constantarr_0_108}, to_str_3(ctx, options.max_failures)), (struct arr_0) {9, constantarr_0_109}) : _op_plus_1(ctx, to_str_3(ctx, n_failures2), (struct arr_0) {9, constantarr_0_109})));
 			return to_int32(ctx, n_failures2);
 		default:
 			return (assert(0),0);
@@ -6730,10 +6736,10 @@ uint8_t print_failure(struct ctx* ctx, struct failure* failure) {
 	return print_sync(failure->message);
 }
 uint8_t print_bold(struct ctx* ctx) {
-	return print_sync_no_newline((struct arr_0) {4, constantarr_0_104});
+	return print_sync_no_newline((struct arr_0) {4, constantarr_0_106});
 }
 uint8_t print_reset(struct ctx* ctx) {
-	return print_sync_no_newline((struct arr_0) {3, constantarr_0_105});
+	return print_sync_no_newline((struct arr_0) {3, constantarr_0_107});
 }
 uint8_t print_failures__lambda0(struct ctx* ctx, uint8_t* _closure, struct failure* it) {
 	return print_failure(ctx, it);

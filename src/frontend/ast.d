@@ -22,7 +22,7 @@ import util.sexpr :
 	tataRecord,
 	tataStr,
 	tataSym;
-import util.sourceRange : Pos, sexprOfRangeWithinFile, RangeWithinFile;
+import util.sourceRange : Pos, sexprOfRangeWithinFile, rangeOfStartAndName, RangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32, u8;
 import util.util : todo, unreachable, verify;
@@ -41,7 +41,7 @@ struct NameAndRange {
 }
 
 immutable(RangeWithinFile) rangeOfNameAndRange(immutable NameAndRange a) {
-	return immutable RangeWithinFile(a.start, safeSizeTToU32(a.start + symSize(a.name)));
+	return rangeOfStartAndName(a.start, a.name);
 }
 
 struct TypeAst {

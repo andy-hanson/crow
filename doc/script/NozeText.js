@@ -15,26 +15,31 @@ import {
 	Resize,
 	Selector,
 	StyleBuilder,
+	Visibility,
 	WhiteSpace,
 } from "./util/css.js"
 import {CustomElementClass, makeCustomElement} from "./util/CustomElement.js"
 import {removeAllChildren} from "./util/dom.js"
-import {div, textarea} from "./util/html.js"
+import {div, span, textarea} from "./util/html.js"
 import {MutableObservable} from "./util/MutableObservable.js"
 
 const codeClass = cssClass("code")
+const measurerClass = cssClass("measurer")
 const highlightClass = cssClass("highlight")
 const lineClass = cssClass("line")
 const noTokenClass = cssClass("no-token")
 const diagClass = cssClass("diag")
+const hoverTooltipClass = cssClass("hover-tooltip")
 
-const line_height = Measure.px(20)
+const lineHeightPx = 20
+const line_height = Measure.px(lineHeightPx)
+const tab_size = 4
 const font_size = Measure.em(1)
 
 const lineNumbersClass = cssClass("line-numbers")
 const rootClass = cssClass("root")
 
-/** @type {CustomElementClass<{ compiler: compiler.Compiler, text: MutableObservable<string> }, null, null>} */
+/** @type {CustomElementClass<{ compiler: Compiler, text: MutableObservable<string> }, null, null>} */
 export const NozeText = makeCustomElement({
 	tagName: "noze-text",
 	styleSheet: new StyleBuilder()
@@ -53,6 +58,10 @@ export const NozeText = makeCustomElement({
 			white_space: WhiteSpace.pre,
 			padding_right: Measure.em(0.25),
 			margin_right: Measure.em(0.25),
+		})
+		.class(measurerClass, {
+			visibility: Visibility.hidden,
+			height: Measure.zero,
 		})
 		.class(codeClass, {
 			width: Measure.pct100,
@@ -130,16 +139,24 @@ export const NozeText = makeCustomElement({
 			position: Position.absolute,
 			white_space: WhiteSpace.noWrap,
 			background: new Color("#80000080"),
-			padding_x: Measure.em(0.5),
-			padding_y: Measure.ex(0.5),
+			padding: Measure.em(0.5),
 			color: Color.white,
 			border_radius: Measure.em(0.5),
 			margin_left: Measure.em(-1),
 			margin_top: Measure.ex(0.5),
 			top: Measure.ex(3),
 		})
+		.class(hoverTooltipClass, {
+			background: Color.midGray,
+			color: Color.white,
+			position: Position.absolute,
+			padding: Measure.em(0.5),
+			border_radius: Measure.em(0.5),
+			z_index: 100,
+		})
 		.end(),
-	init: () => ({state: null, out: null}),
+	init: () =>
+		({state: null, out: null}),
 	connected: async ({ props: {compiler, text}, root }) => {
 		const highlightDiv = div({class:highlightClass}, [])
 		const ta = textarea()
@@ -160,6 +177,62 @@ export const NozeText = makeCustomElement({
 			update()
 		})
 
+		let mouseMoveIndex = 0
+
+		/** @type {HTMLDivElement | null} */
+		let tooltip = null
+		const removeTooltip = () => {
+			if (tooltip !== null) {
+				tooltip.remove()
+				tooltip = null
+			}
+		}
+		ta.addEventListener("mouseout", removeTooltip)
+		ta.addEventListener("mousemove", e => {
+			removeTooltip()
+			const offsetX = e.offsetX
+			const offsetY = e.offsetY
+			const lines = ta.value.split("\n")
+			const columnWidth = measurerSpan.offsetWidth
+			const line = Math.floor(offsetY / lineHeightPx)
+			const columnPre = Math.floor(offsetX / columnWidth)
+			const lineText = lines[line]
+			const leadingTabs = countLeadingTabs(lineText)
+			const tabsFix = leadingTabs * (tab_size - 1)
+			const column = clamp(columnPre - tabsFix, 0, lineText.length - 1)
+			mouseMoveIndex++
+
+			console.log("HUH?", {offsetX, offsetY})
+
+			if (mouseMoveIndex === 2**16) mouseMoveIndex = 0
+			const saveMouseMoveIndex = mouseMoveIndex
+			setTimeout(() => {
+				if (mouseMoveIndex === saveMouseMoveIndex) {
+					tooltip = div({class:hoverTooltipClass}, ["I AM TOOLTIP"])
+					textContainer.append(tooltip)
+					tooltip.style.left = offsetX + "px"
+					tooltip.style.top = offsetY + "px"
+					console.log("LEFT IS", tooltip.style.left)
+
+					console.log("SHOW A HOVER", {line, column})
+				}
+			}, 300)
+
+			//console.log("YOU MOVED!", {
+			//	//offsetX,
+			//	//offsetY,
+			//	//nLines,
+			//	//longestLine,
+			//	offsetWidth: ta.offsetWidth,
+			//	columnWidth,
+			//	line,
+			//	columnPre,
+			//	column,
+			//})
+//
+			//console.log("YOUU HOVERED!")
+		})
+
 		const update = () => {
 			highlight(compiler, highlightDiv, ta.value)
 			lineNumbers.textContent = ta.value.split("\n").map((_, i) => String(i + 1)).join("\n")
@@ -169,12 +242,27 @@ export const NozeText = makeCustomElement({
 
 		update()
 
-		const textContainer = div({class:codeClass}, [highlightDiv, ta])
+		const measurerSpan = span({}, ["a"])
+		const measurer = div({class:measurerClass}, [measurerSpan])
+		const textContainer = div({class:codeClass}, [measurer, highlightDiv, ta])
 		root.append(div({class:rootClass}, [lineNumbers, textContainer]))
+
 	},
 })
 
-/** @type {function(compiler.Compiler, Node, string): void} */
+/** @type {function(string): number} */
+const countLeadingTabs = s => {
+	let res = 0
+	for (const c of s)
+		if (c === '\t')
+			res++
+		else
+			break
+	return res
+}
+
+
+/** @type {function(Compiler, Node, string): void} */
 const highlight = (compiler, highlightDiv, v) => {
 	const {tokens, diags} = compiler.getTokens(v)
 	// Only use at most 1 diag
@@ -451,3 +539,9 @@ const nonNull = x => {
 		throw new Error("Null value")
 	return x
 }
+
+/** @type {function(number, number, number): number} */
+const clamp = (x, min, max) =>
+	x < min ? min :
+	x > max ? max :
+	x

@@ -4,7 +4,7 @@ module util.util;
 
 import util.bools : Bool, False;
 import util.collection.str : Str, strLiteral;
-import util.types : incr, Nat8, zero;
+import util.types : incr, Nat16, zero;
 
 void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc nothrow cb) {
 	foreach (immutable size_t _; 0..times)
@@ -56,11 +56,11 @@ immutable(T) roundUp(T)(immutable T a, immutable T b) {
 	return zero(a % b) ? a : roundUp(incr(a), b);
 }
 
-immutable(Nat8) divRoundUp(immutable Nat8 a, immutable Nat8 b) {
+immutable(Nat16) divRoundUp(immutable Nat16 a, immutable Nat16 b) {
 	assert(!zero(b));
-	immutable Nat8 div = a / b;
-	immutable Nat8 mod = a % b;
-	immutable Nat8 res = div + immutable Nat8(zero(mod) ? 0 : 1);
+	immutable Nat16 div = a / b;
+	immutable Nat16 mod = a % b;
+	immutable Nat16 res = div + immutable Nat16(zero(mod) ? 0 : 1);
 	verify(res * b >= a);
 	return res;
 }
