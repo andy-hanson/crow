@@ -66,7 +66,8 @@ immutable(Nat16) divRoundUp(immutable Nat16 a, immutable Nat16 b) {
 }
 
 void verify(immutable bool condition) {
-	assert(condition);
+	if (!condition)
+		assert(0);
 }
 
 void verify(Debug)(ref Debug dbg, immutable bool condition) {

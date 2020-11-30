@@ -1,106 +1,120 @@
 @safe @nogc nothrow: // not pure
 
-import frontend.ast : sexprOfAst;
-import frontend.getTokens : tokensOfAst, sexprOfTokens, Token;
-import frontend.parse : FileAstAndParseDiagnostics, parseFile;
-import frontend.showDiag : ShowDiagOptions, strOfParseDiag;
-import model.parseDiag : ParseDiagnostic;
-import util.alloc.globalAlloc : globalAlloc, GlobalAlloc;
+import frontend.getTokens : sexprOfTokens, Token;
+import server :
+	addOrChangeFile,
+	deleteFile,
+	getFile,
+	getParseDiagnostics,
+	getTokens,
+	run,
+	RunResult,
+	Server,
+	StrParseDiagnostic;
+import util.alloc.rangeAlloc : RangeAlloc;
 import util.bools : False;
-import util.collection.arr : Arr, arrOfD, at, range, size;
-import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, Str;
+import util.collection.arr : Arr, range, size;
+import util.collection.str : CStr, Str;
+import util.memory : initMemory_mut;
+import util.path : StorageKind;
 import util.ptr : ptrTrustMe_mut;
-import util.sexpr : Sexpr, nameAndTata, tataArr, tataNamedRecord, tataStr, writeSexprJSON;
+import util.sexpr : Sexpr, jsonStrOfSexpr, nameAndTata, tataArr, tataNamedRecord, tataStr;
 import util.sourceRange : sexprOfRangeWithinFile;
-import util.sym : AllSymbols;
-import util.util : min, verify;
-import util.writer : finishWriter, Writer;
-import wasmUtils : wasmRun;
+import util.util : verify;
+import util.writer : finishWriterToCStr, writeChar, writeNat, writeQuotedStr, Writer, writeStatic;
 
 // seems to be the required entry point
-extern(C) void _start() {
+extern(C) void _start() {}
+
+extern(C) immutable(size_t) getGlobalBufferSize() {
+	return globalBuffer.length;
 }
 
-extern(C) immutable(size_t) getBufferSize() {
-	return buffer.length;
+@system extern(C) ubyte* getGlobalBufferPtr() {
+	return globalBuffer.ptr;
 }
 
-@system extern(C) char* getBuffer() {
-	return buffer.ptr;
+@system extern(C) Server!RangeAlloc* newServer(ubyte* allocStart, immutable size_t allocLength) {
+	RangeAlloc alloc = RangeAlloc(allocStart, allocLength);
+	Server!RangeAlloc* ptr = cast(Server!RangeAlloc*) alloc.allocateBytes((Server!RangeAlloc).sizeof);
+	Server!RangeAlloc server = Server!RangeAlloc(alloc.move());
+	initMemory_mut(ptr, server);
+	return ptr;
 }
 
-@system extern(C) void getTokens() {
-	GlobalAlloc alloc = globalAlloc();
-	immutable NulTerminatedStr str = nulTerminatedStrOfCStr(cast(immutable) buffer.ptr);
-	immutable Str result = getTokensAndDiagnosticsJSON(alloc, str);
-	writeResult(result);
+@system extern(C) void addOrChangeFile(
+	Server!RangeAlloc* server,
+	immutable StorageKind storageKind,
+	immutable char* pathStart, immutable size_t pathLength,
+	immutable char* contentStart, immutable size_t contentLength,
+) {
+	immutable Str path = immutable Str(pathStart, pathLength);
+	immutable Str content = immutable Str(contentStart, contentLength);
+	addOrChangeFile(*server, storageKind, path, content);
 }
 
-@system extern(C) void getAst() {
-	GlobalAlloc alloc = globalAlloc();
-	AllSymbols!GlobalAlloc allSymbols = AllSymbols!GlobalAlloc(ptrTrustMe_mut(alloc));
-	immutable NulTerminatedStr str = nulTerminatedStrOfCStr(cast(immutable) buffer.ptr);
-	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, allSymbols, str);
-	writeAstResult(alloc, ast);
+@system extern(C) void deleteFile(
+	Server!RangeAlloc* server,
+	immutable StorageKind storageKind,
+	immutable char* pathStart, immutable size_t pathLength,
+) {
+	deleteFile(*server, storageKind, immutable Str(pathStart, pathLength));
 }
 
-@system extern(C) void readDebugLog() {
-	writeResult(arrOfD(cast(immutable) debugLogStorage));
+@system extern(C) immutable(CStr) getFile(
+	Server!RangeAlloc* server,
+	immutable StorageKind storageKind,
+	immutable char* pathStart, immutable size_t pathLength,
+) {
+	return getFile(*server, storageKind, immutable Str(pathStart, pathLength));
 }
 
-@system extern(C) void run() {
-	GlobalAlloc alloc = globalAlloc();
-	WasmDebug dbg = wasmDebug();
-	immutable Str result = wasmRun(dbg, alloc, cast(immutable) buffer.ptr);
-	writeResult(result);
+@system extern(C) immutable(CStr) getTokens(
+	ubyte* resultStart, immutable size_t resultLength,
+	Server!RangeAlloc* server,
+	immutable StorageKind storageKind,
+	immutable char* pathStart, immutable size_t pathLength,
+) {
+	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
+	immutable Arr!Token tokens = getTokens(resultAlloc, *server, storageKind, immutable Str(pathStart, pathLength));
+	immutable Sexpr sexpr = sexprOfTokens(resultAlloc, tokens);
+	return jsonStrOfSexpr(resultAlloc, sexpr);
+}
+
+@system extern(C) immutable(CStr) getParseDiagnostics(
+	ubyte* resultStart, immutable size_t resultLength,
+	Server!RangeAlloc* server,
+	immutable StorageKind storageKind,
+	immutable char* pathStart, immutable size_t pathLength,
+) {
+	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
+	immutable Arr!StrParseDiagnostic diags =
+		getParseDiagnostics(resultAlloc, *server, storageKind, immutable Str(pathStart, pathLength));
+	immutable Sexpr sexpr = sexprOfParseDiagnostics(resultAlloc, diags);
+	return jsonStrOfSexpr(resultAlloc, sexpr);
+}
+
+@system extern(C) immutable(CStr) run(
+	ubyte* resultStart, immutable size_t resultLength,
+	Server!RangeAlloc* server,
+	char* debugStart, immutable size_t debugLength,
+	immutable char* pathStart, immutable size_t pathLength,
+) {
+	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
+	WasmDebug dbg = WasmDebug(debugStart, debugLength);
+	immutable RunResult result = run(dbg, resultAlloc, *server, immutable Str(pathStart, pathLength));
+	return writeRunResult(server.alloc, result);
 }
 
 private:
 
-immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
+ubyte[1024 * 1024] globalBuffer;
 
-immutable(Sexpr) sexprOfParseDiagnostic(Alloc)(ref Alloc alloc, ref immutable ParseDiagnostic a) {
-	return tataNamedRecord(alloc, "diagnostic", [
-		nameAndTata("range", sexprOfRangeWithinFile(alloc, a.range)),
-		nameAndTata("message", tataStr(strOfParseDiag(alloc, showDiagOptions, a.diag)))]);
-}
-
-immutable(Str) getTokensAndDiagnosticsJSON(Alloc)(ref Alloc alloc, ref immutable NulTerminatedStr str) {
-	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
-	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, allSymbols, str);
-	immutable Arr!Token tokens = tokensOfAst(alloc, ast.ast);
-	immutable Sexpr sexpr = tataNamedRecord(alloc, "tkns-diags", [
-		nameAndTata("tokens", sexprOfTokens(alloc, tokens)),
-		nameAndTata("diags", tataArr(alloc, ast.diagnostics, (ref immutable ParseDiagnostic it) =>
-			sexprOfParseDiagnostic(alloc, it)))]);
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-	writeSexprJSON(writer, sexpr);
-	return finishWriter(writer);
-}
-
-char[1024 * 1024] buffer;
-
-//TODO: not trusted
-@trusted void writeAstResult(Alloc)(ref Alloc alloc, ref immutable FileAstAndParseDiagnostics ast) {
-	immutable Sexpr sexpr = sexprOfAstAndParseDiagnostics(alloc, ast);
-	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-	writeSexprJSON(writer, sexpr);
-	writeResult(finishWriter(writer));
-}
-
-immutable(Sexpr) sexprOfAstAndParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable FileAstAndParseDiagnostics a) {
-	return tataNamedRecord(alloc, "ast-diags", [
-		nameAndTata("ast", sexprOfAst(alloc, a.ast)),
-		nameAndTata("diags", tataArr(alloc, a.diagnostics, (ref immutable ParseDiagnostic it) =>
-			sexprOfParseDiagnostic(alloc, it)))]);
-}
-
-@system void writeResult(immutable Str str) {
-	immutable size_t bufferLength = buffer.length; // Using a variable to avoid dscanner warnings
-	immutable size_t size = min(size(str), bufferLength - 1);
-	foreach (immutable size_t i; 0..size)
-		buffer[i] = at(str, i);
-	buffer[size] = '\0';
+immutable(Sexpr) sexprOfParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable Arr!StrParseDiagnostic a) {
+	return tataArr(alloc, a, (ref immutable StrParseDiagnostic it) =>
+		tataNamedRecord(alloc, "diagnostic", [
+			nameAndTata("range", sexprOfRangeWithinFile(alloc, it.range)),
+			nameAndTata("message", tataStr(it.message))]));
 }
 
 struct WasmDebug {
@@ -122,10 +136,10 @@ struct WasmDebug {
 	@disable this();
 	@disable this(ref const WasmDebug);
 
-	this(char* b, char* e) {
-		verify(begin < end);
+	@trusted this(char* b, immutable size_t size) {
+		verify(size > 0);
 		begin = b;
-		end = e;
+		end = b + size;
 		ptr = begin;
 	}
 
@@ -149,8 +163,14 @@ struct WasmDebug {
 	}
 }
 
-@trusted WasmDebug wasmDebug() {
-	return WasmDebug(debugLogStorage.ptr, debugLogStorage.ptr + debugLogStorage.length);
+immutable(CStr) writeRunResult(Alloc)(ref Alloc alloc, ref immutable RunResult result) {
+	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	writeStatic(writer, "{\"err\":");
+	writeNat(writer, result.err);
+	writeStatic(writer, ",\"stdout\":");
+	writeQuotedStr(writer, result.stdout);
+	writeStatic(writer, ",\"stderr\":");
+	writeQuotedStr(writer, result.stderr);
+	writeChar(writer, '}');
+	return finishWriterToCStr(writer);
 }
-
-char[8 * 1024 * 1024] debugLogStorage;

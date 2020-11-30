@@ -18,12 +18,11 @@ import util.collection.arrUtil : cat, map, tail;
 import util.collection.dict : KeyValuePair;
 import util.collection.str :
 	asCStr,
-	copyNulTerminatedStr,
 	copyStr,
 	CStr,
+	copyToNulTerminatedStr,
 	emptyNulTerminatedStr,
 	NulTerminatedStr,
-	nulTerminatedStrOfCStr,
 	Str,
 	strLiteral,
 	strOfCStr,
@@ -199,7 +198,8 @@ immutable(Str) copyCStrToStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
 }
 
 immutable(CStr) copyCStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
-	return copyNulTerminatedStr(alloc, nulTerminatedStrOfCStr(begin)).asCStr();
+	immutable Str str = strOfCStr(begin);
+	return copyToNulTerminatedStr!Alloc(alloc, str).asCStr();
 }
 
 @system void printArgs(immutable CStr* args) {

@@ -6,7 +6,7 @@ import util.bools : Bool, False, True;
 import util.collection.arr : at, first, range, size;
 import util.collection.arrUtil : slice, sliceFromTo;
 import util.collection.str : asCStr, copyStr, CStr, emptyStr, NulTerminatedStr, Str;
-import util.comparison : Comparison, compareOr;
+import util.comparison : compareEnum, Comparison, compareOr;
 import util.memory : nu;
 import util.opt : compareOpt, has, flatMapOption, force, forceOrTodo, mapOption, matchOpt, none, Opt, some;
 import util.ptr : Ptr;
@@ -391,7 +391,7 @@ private immutable(Opt!ParentAndBaseName) pathParentAndBaseName(immutable Str s) 
 		: none!ParentAndBaseName;
 }
 
-immutable(Comparison) comparePath(immutable Ptr!Path a, immutable Ptr!Path b) {
+private immutable(Comparison) comparePath(immutable Ptr!Path a, immutable Ptr!Path b) {
 	return compareOr(
 		compareSym(baseName(a), baseName(b)),
 		() => compareOpt!(Ptr!Path)(a.parent, b.parent, (ref immutable Ptr!Path x, ref immutable Ptr!Path y) =>
@@ -406,6 +406,12 @@ enum StorageKind {
 struct PathAndStorageKind {
 	immutable Ptr!Path path;
 	immutable StorageKind storageKind;
+}
+
+immutable(Comparison) comparePathAndStorageKind(immutable PathAndStorageKind a, immutable PathAndStorageKind b) {
+	return compareOr(
+		compareEnum(a.storageKind, b.storageKind),
+		() => comparePath(a.path, b.path));
 }
 
 struct PathAndRange {

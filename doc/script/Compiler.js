@@ -1,19 +1,35 @@
 const compiler = {}
 
+/** @typedef {number & {_isStorageKind:true}} StorageKind */
+const StorageKind = {
+	global: /** @type {StorageKind} */ (0),
+	local: /** @type {StorageKind} */ (1),
+}
+console.log("YOU GOT HERE!!")
+
 if (typeof window !== "undefined")
-	(/** @type {any} */ (window)).compiler = compiler
+	Object.assign(window, {compiler, StorageKind})
 if (typeof global !== "undefined")
-	(/** @type {any} */ (global)).compiler = compiler
+	Object.assign(global, {compiler, StorageKind})
+
+/** @typedef {number & {_isServer:true}} Server */
+
+/** @typedef {number} Ptr */
 
 /**
-@typedef Exports
-@property {function(): number} getBuffer
-@property {function(): number} getBufferSize
-@property {function(): void} getTokens
-@property {function(): void} readDebugLog
-@property {function(): void} run
-@property {WebAssembly.Memory} memory
+@typedef ExportFunctions
+@property {function(): number} getGlobalBufferSize
+@property {function(): number} getGlobalBufferPtr
+@property {function(Ptr, number): Server} newServer
+@property {function(Server, StorageKind, Ptr, number, Ptr, number): void} addOrChangeFile
+@property {function(Server, StorageKind, Ptr, number): void} deleteFile
+@property {function(Server, StorageKind, Ptr, number): number} getFile
+@property {function(Ptr, number, Server, StorageKind, Ptr, number): number} getTokens
+@property {function(Ptr, number, Server, StorageKind, Ptr, number): number} getParseDiagnostics
+@property {function(Ptr, number, Server, Ptr, number, Ptr, number): number} run
 */
+
+/** @typedef {ExportFunctions & {memory:WebAssembly.Memory}} Exports */
 
 /**
 @typedef DiagRange
@@ -59,7 +75,6 @@ compiler.Token = {}
  */
 compiler.Diagnostic = {}
 
-
 /** @type {Promise<Compiler> | null} */
 let globalCompiler = null
 
@@ -71,93 +86,204 @@ compiler.getGlobalCompiler = async () => {
 }
 
 /**
-@typedef TokensDiags
-@property {ReadonlyArray<Token>} tokens
-@property {ReadonlyArray<Diagnostic>} diags
-*/
+ * @typedef BufferSpace
+ * @property {number} begin
+ * @property {number} size
+ */
+
+class Allocator {
+	/**
+	 * @param {DataView} view
+	 * @param {number} begin
+	 * @param {number} size
+	 */
+	constructor(view, begin, size) {
+		this._view = view
+		this._begin = begin
+		this._cur = begin
+		this._end = begin + size
+	}
+
+	/**
+	@param {string} str
+	@return {BufferSpace}
+	*/
+	writeString(str) {
+		if (this._cur + str.length > this._end)
+			throw new Error("input too long")
+		for (let i = 0; i < str.length; i++)
+			this._view.setUint8(this._cur + i, str.charCodeAt(i))
+		const res = {begin:this._cur, size:str.length}
+		this._cur += str.length
+		return res
+	}
+
+	/** @return {BufferSpace} */
+	reserveRest() {
+		const res = {begin:this._cur, size:this._end - this._cur}
+		this._cur = this._end
+		return res
+	}
+
+	clear() {
+		this._cur = this._begin
+	}
+}
 
 class Compiler {
 	/** @return {Promise<Compiler>} */
 	static async make() {
-		const includeFiles = await getIncludeFiles()
-		return Compiler.makeFromBytes(await (await fetch("../bin/noze.wasm")).arrayBuffer(), includeFiles)
+		return Compiler.makeFromBytes(await (await fetch("../bin/noze.wasm")).arrayBuffer())
 	}
 
 	/**
 	@param {ArrayBuffer} bytes
-	@param {Files} includeFiles
 	@return {Promise<Compiler>}
 	*/
-	static async makeFromBytes(bytes, includeFiles) {
+	static async makeFromBytes(bytes) {
 		const result = await WebAssembly.instantiate(bytes, {})
 		const { exports } = result.instance
-		return new Compiler(/** @type {Exports} */ (exports), includeFiles)
+		return new Compiler(/** @type {Exports} */ (exports))
 	}
 
 	/**
 	@param {Exports} exports
-	@param {Files} includeFiles
 	*/
-	constructor(exports, includeFiles) {
+	constructor(exports) {
 		this._exports = exports
-		this._includeFiles = includeFiles
-		const { getBufferSize, getBuffer, memory } = exports
+		const { getGlobalBufferSize, getGlobalBufferPtr, memory } = exports
 
 		const view = new DataView(memory.buffer)
-		const bufferSize = getBufferSize()
-		const buffer = getBuffer()
-		/** @type {function(string): void} */
-		this._setStr = str =>
-			writeString(view, buffer, bufferSize, str)
-		/** @type {function(): string} */
-		this._getStr = () =>
-			readString(view, buffer, bufferSize)
+		this._view = view
+		const bufferSize = getGlobalBufferSize()
+		const buffer = getGlobalBufferPtr()
+		this._bufferEnd = buffer + bufferSize
+
+		const quarter = bufferSize / 4
+		this._serverRangeStart = buffer
+		this._serverRangeSize = quarter
+		this._server = this._exports.newServer(this._serverRangeStart, this._serverRangeSize)
+
+		this._tempAlloc = new Allocator(view, this._serverRangeStart + quarter, quarter)
+	}
+
+	/** @param {number} begin */
+	_readCStr(begin) {
+		return readString(this._view, begin, this._bufferEnd - begin)
 	}
 
 	/**
-	@param {"getTokens" | "run"} name
-	@param {string} param
+	@param {StorageKind} storageKind
+	@param {string} path
+	@param {string} content
+	@return {void}
+	*/
+	addOrChangeFile(storageKind, path, content) {
+		try {
+			const pathBuf = this._tempAlloc.writeString(path)
+			const contentBuf = this._tempAlloc.writeString(content)
+			this._exports.addOrChangeFile(
+				this._server,
+				storageKind,
+				pathBuf.begin,
+				pathBuf.size,
+				contentBuf.begin,
+				contentBuf.size)
+		} finally {
+			this._tempAlloc.clear()
+		}
+	}
+
+	/**
+	@param {StorageKind} storageKind
+	@param {string} path
+	@return {void}
+	*/
+	deleteFile(storageKind, path) {
+		try {
+			const pathBuf = this._tempAlloc.writeString(path)
+			this._exports.deleteFile(this._server, storageKind, pathBuf.begin, pathBuf.size)
+		} finally {
+			this._tempAlloc.clear()
+		}
+	}
+
+	/**
+	@param {StorageKind} storageKind
+	@param {string} path
 	@return {string}
 	*/
-	_useExports(name, param) {
+	getFile(storageKind, path) {
 		try {
-			this._setStr(param)
-			this._exports[name]()
-		} catch (e) {
-			this._exports.readDebugLog()
-			console.error("Error in WASM. Debug log:", this._getStr())
-			throw e
+			const pathBuf = this._tempAlloc.writeString(path)
+			return this._readCStr(this._exports.getFile(this._server, storageKind, pathBuf.begin, pathBuf.size))
+		} finally {
+			this._tempAlloc.clear()
 		}
-		return this._getStr()
 	}
 
 	/**
-	@param {string} src
-	@return {TokensDiags}
+	@param {StorageKind} storageKind
+	@param {string} path
+	@return {ReadonlyArray<Token>}
 	*/
-	getTokens(src) {
-		const json = this._useExports("getTokens", src)
-		return JSON.parse(json)
+	getTokens(storageKind, path) {
+		try {
+			const pathBuf = this._tempAlloc.writeString(path)
+			const resultBuf = this._tempAlloc.reserveRest()
+			const res = this._exports.getTokens(
+				resultBuf.begin,
+				resultBuf.size,
+				this._server,
+				storageKind,
+				pathBuf.begin,
+				pathBuf.size)
+			return JSON.parse(this._readCStr(res))
+		} finally {
+			this._tempAlloc.clear()
+		}
+	}
+
+	/**
+	@param {StorageKind} storageKind
+	@param {string} path
+	@return {ReadonlyArray<Diagnostic>}
+	*/
+	getParseDiagnostics(storageKind, path) {
+		try {
+			const pathBuf = this._tempAlloc.writeString(path)
+			const resultBuf = this._tempAlloc.reserveRest()
+			const res = this._exports.getParseDiagnostics(
+				resultBuf.begin,
+				resultBuf.size,
+				this._server,
+				storageKind,
+				pathBuf.begin,
+				pathBuf.size)
+			return JSON.parse(this._readCStr(res))
+		} finally {
+			this._tempAlloc.clear()
+		}
 	}
 
 	/**
 	@param {AllFiles} files
 	@return {Promise<RunResult>}
 	*/
-	run(files) {
+	/*run(files) {
 		return delay(() => {
 			const result = this._useExports("run", JSON.stringify(files))
 			return JSON.parse(result)
 		})
-	}
+	}*/
 
 	/**
 	@param {string} file
 	@return {Promise<RunResult>}
 	*/
-	runFile(file) {
+	/*runFile(file) {
 		return this.run({include:this._includeFiles, user:{main:file}})
-	}
+	}*/
 }
 compiler.Compiler = Compiler
 
@@ -191,15 +317,6 @@ compiler.RunResult = {}
 
 /** @typedef {{readonly [name:string]: string}} Files */
 compiler.Files = {}
-
-/** @type {function(DataView, number, number, string): void} */
-function writeString(view, buffer, bufferSize, str) {
-	if (str.length >= bufferSize)
-		throw new Error("input too long")
-	for (let i = 0; i < str.length; i++)
-		view.setUint8(buffer + i, str.charCodeAt(i))
-	view.setUint8(buffer + str.length, 0)
-}
 
 /** @type {function(DataView, number, number): string} */
 function readString(view, buffer, bufferSize) {

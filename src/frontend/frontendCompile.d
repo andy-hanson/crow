@@ -6,7 +6,6 @@ import model.diag : Diag, Diags, Diagnostic, Diagnostics, FilesInfo;
 import model.model :
 	asStructDecl,
 	CommonTypes,
-	comparePathAndStorageKind,
 	LineAndColumnGetters,
 	Module,
 	Program,
@@ -40,6 +39,7 @@ import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmp
 import util.memory : allocate, nu;
 import util.opt : force, has, mapOption, Opt, none, some;
 import util.path :
+	comparePathAndStorageKind,
 	copyPath,
 	parent,
 	Path,

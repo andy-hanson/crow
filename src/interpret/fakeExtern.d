@@ -5,8 +5,8 @@ module interpret.fakeExtern;
 import interpret.allocTracker : AllocTracker;
 import interpret.bytecode : DynCallType;
 import util.bools : Bool;
-import util.collection.arr : Arr, asImmutable, range;
-import util.collection.mutArr : clear, MutArr, pushAll, tempAsArr;
+import util.collection.arr : Arr, range;
+import util.collection.mutArr : clear, moveToArr, MutArr, pushAll;
 import util.collection.str : NulTerminatedStr, Str;
 import util.ptr : Ptr, PtrRange;
 import util.types : Nat64;
@@ -52,12 +52,12 @@ struct FakeExtern(Alloc) {
 		return nBytes;
 	}
 
-	immutable(Str) getStdoutTemp() const {
-		return asImmutable(tempAsArr(stdout));
+	immutable(Str) moveStdout() {
+		return moveToArr(alloc, stdout);
 	}
 
-	immutable(Str) getStderrTemp() const {
-		return asImmutable(tempAsArr(stderr));
+	immutable(Str) moveStderr() {
+		return moveToArr(alloc, stderr);
 	}
 
 	void clearOutput() {

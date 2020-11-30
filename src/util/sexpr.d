@@ -6,13 +6,14 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, first, range, size;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
 import util.collection.fullIndexDict : FullIndexDict;
-import util.collection.str : Str, strLiteral;
+import util.collection.str : CStr, Str, strLiteral;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
-import util.ptr : Ptr;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
 import util.types : abs, IntN, NatN, safeIntFromSizeT;
 import util.writer :
+	finishWriterToCStr,
 	newline,
 	writeChar,
 	writeInt,
@@ -221,6 +222,12 @@ void writeSexprNoNewline(Alloc)(ref Writer!Alloc writer, immutable Sexpr a) {
 void writeSexpr(Alloc)(ref Writer!Alloc writer, immutable Sexpr a) {
 	writeSexprNoNewline(writer, a);
 	writeChar(writer, '\n');
+}
+
+immutable(CStr) jsonStrOfSexpr(Alloc)(ref Alloc alloc, ref immutable Sexpr a) {
+	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	writeSexprJSON(writer, a);
+	return finishWriterToCStr(writer);
 }
 
 void writeSexprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {

@@ -37,7 +37,7 @@ bin/noze: src/*.d src/*/*.d src/*/*/*.d
 		src/app.d \
 		src/cli.d \
 		src/compiler.d \
-		src/wasmUtils.d \
+		src/server.d \
 		src/*/*.d \
 		src/*/*/*.d \
 		-I=src/ \
@@ -56,14 +56,14 @@ bin/noze.wasm: src/*.d src/*/*.d src/*/*/*.d
 		--enable-asserts=false \
 		--boundscheck=off \
 		src/wasm.d \
-		src/compiler.d \
-		src/wasmUtils.d \
 		src/backend/*.d \
+		src/compiler.d \
 		src/concretize/*.d \
 		src/frontend/*.d \
 		src/interpret/*.d \
 		src/lower/*.d \
 		src/model/*.d \
+		src/server.d \
 		src/test/*.d \
 		src/util/*.d \
 		src/util/*/*.d

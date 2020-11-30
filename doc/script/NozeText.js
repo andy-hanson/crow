@@ -264,12 +264,16 @@ const countLeadingTabs = s => {
 
 /** @type {function(Compiler, Node, string): void} */
 const highlight = (compiler, highlightDiv, v) => {
-	const {tokens, diags} = compiler.getTokens(v)
+	throw new Error("TODO")
+	/*
+	const tokens = compiler.getTokens(v)
+	const diags = compiler.getParseDiagnostics(v)
 	// Only use at most 1 diag
 	const nodes = tokensAndDiagsToNodes(tokens, diags.slice(0, 1), v)
 	removeAllChildren(highlightDiv)
 	for (const node of nodes)
 		highlightDiv.appendChild(node)
+	*/
 }
 
 /** @type {function(string, ReadonlyArray<Node | string>): HTMLSpanElement} */

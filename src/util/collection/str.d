@@ -32,6 +32,10 @@ immutable(NulTerminatedStr) emptyNulTerminatedStr() {
 	return immutable Str(c, end(c) - c);
 }
 
+@trusted immutable(CStr) cStrOfNulTerminatedStr(immutable NulTerminatedStr a) {
+	return begin(a.str);
+}
+
 immutable(NulTerminatedStr) nulTerminatedStrOfCStr(immutable CStr c) {
 	return immutable NulTerminatedStr(immutable Str(c, end(c) - c + 1));
 }
@@ -50,7 +54,7 @@ immutable(Str) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 	return rtail(a.str);
 }
 
-@trusted immutable(NulTerminatedStr) strToNulTerminatedStr(Alloc)(ref Alloc alloc, immutable Str s) {
+@trusted immutable(NulTerminatedStr) copyToNulTerminatedStr(Alloc)(ref Alloc alloc, ref immutable Str s) {
 	char* res = cast(char*) alloc.allocateBytes(size(s) + 1);
 	memcpy(cast(ubyte*) res, cast(ubyte*) begin(s), size(s));
 	res[size(s)] = '\0';
@@ -61,8 +65,8 @@ immutable(Str) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 	return s.str.begin;
 }
 
-immutable(CStr) strToCStr(Alloc)(ref Alloc alloc, immutable Str s) {
-	return strToNulTerminatedStr(alloc, s).asCStr;
+immutable(CStr) strToCStr(Alloc)(ref Alloc alloc, ref immutable Str s) {
+	return copyToNulTerminatedStr(alloc, s).asCStr;
 }
 
 @trusted immutable(Bool) strEqCStr(immutable Str a, immutable CStr b) {
@@ -91,10 +95,6 @@ immutable(Str) stripNulTerminator(immutable NulTerminatedStr a) {
 	foreach (immutable size_t i; 0..s.size)
 		begin[i] = s.at(i);
 	return immutable Str(cast(immutable) begin, s.size);
-}
-
-immutable(NulTerminatedStr) copyNulTerminatedStr(Alloc)(ref Alloc alloc, immutable NulTerminatedStr s) {
-	return immutable NulTerminatedStr(copyStr(alloc, s.str));
 }
 
 immutable(Bool) endsWith(immutable Str a, immutable Str b) {

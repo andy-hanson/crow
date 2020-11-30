@@ -9,7 +9,7 @@ import test.testUtil : Test;
 import util.bools : Bool;
 import util.collection.arr : Arr, emptyArr;
 import util.collection.arrUtil : arrEqual, arrLiteral;
-import util.collection.str : Str, strLiteral, strToNulTerminatedStr;
+import util.collection.str : copyToNulTerminatedStr, Str, strLiteral;
 import util.sexpr : writeSexpr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols;
@@ -44,10 +44,11 @@ private:
 
 void testOne(Alloc)(ref Test!Alloc test, immutable string source, immutable Arr!Token expectedTokens) {
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(test.alloc);
+	immutable Str sourceStr = strLiteral(source);
 	immutable FileAstAndParseDiagnostics ast = parseFile(
 		test.alloc,
 		allSymbols,
-		strToNulTerminatedStr(test.alloc, strLiteral(source)));
+		copyToNulTerminatedStr(test.alloc, sourceStr));
 	immutable Arr!Token tokens = tokensOfAst(test.alloc, ast.ast);
 	if (!tokensEq(tokens, expectedTokens)) {
 		Writer!Alloc writer = Writer!Alloc(test.alloc);

@@ -34,10 +34,8 @@ void testWrite(Alloc)(ref Test!Alloc test) {
 	extern_.write(2, "tubular", 2);
 	extern_.write(1, "way cool", 5);
 
-	verify(strEqLiteral(extern_.getStdoutTemp(), "gnarway c"));
-	verify(strEqLiteral(extern_.getStderrTemp(), "tu"));
-
-	extern_.clearOutput();
-	verify(empty(extern_.getStdoutTemp()));
-	verify(empty(extern_.getStderrTemp()));
+	verify(strEqLiteral(extern_.moveStdout(), "gnarway c"));
+	verify(strEqLiteral(extern_.moveStderr(), "tu"));
+	verify(empty(extern_.moveStdout()));
+	verify(empty(extern_.moveStderr()));
 }

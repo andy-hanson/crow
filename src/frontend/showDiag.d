@@ -7,7 +7,6 @@ import model.model :
 	arity,
 	bestCasePurity,
 	CalledDecl,
-	comparePathAndStorageKind,
 	decl,
 	FunDecl,
 	matchCalledDecl,
@@ -35,7 +34,7 @@ import util.collection.str : Str;
 import util.diff : diffSymbols;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has;
-import util.path : PathAndStorageKind;
+import util.path : comparePathAndStorageKind, PathAndStorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, FilePaths;
 import util.sym : Sym, writeSym;

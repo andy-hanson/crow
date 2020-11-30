@@ -40,6 +40,10 @@ immutable(Opt!T) none(T)() {
 	return immutable Opt!T(BeNone());
 }
 
+immutable(Opt!T) asImmutable(T)(immutable Opt!(immutable T) a) {
+	return has(a) ? some(force(a)) : none!T;
+}
+
 const(Opt!T) noneConst(T)() {
 	return const Opt!T(BeNone());
 }

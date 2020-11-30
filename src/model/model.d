@@ -11,24 +11,18 @@ import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.multiDict : MultiDict;
 import util.collection.mutArr : MutArr;
 import util.collection.str : Str;
-import util.comparison : compareEnum, compareOr, Comparison, ptrEquals;
+import util.comparison : compareOr, Comparison, ptrEquals;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.memory : nu;
 import util.opt : has, none, Opt, some;
-import util.path : AbsolutePath, comparePath, PathAndStorageKind, StorageKind;
+import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, rangeOfStartAndName, RangeWithinFile;
 import util.sym : compareSym, shortSymAlphaLiteral, shortSymOperatorLiteral, Sym, symEq, symSize, writeSym;
 import util.types : u8, safeSizeTToU32;
 import util.util : todo, verify;
 import util.writer : writeChar, Writer, writeStatic;
-
-immutable(Comparison) comparePathAndStorageKind(immutable PathAndStorageKind a, immutable PathAndStorageKind b) {
-	return compareOr(
-		compareEnum(a.storageKind, b.storageKind),
-		() => comparePath(a.path, b.path));
-}
 
 struct AbsolutePathsGetter {
 	immutable Str globalPath;

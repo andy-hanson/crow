@@ -50,6 +50,10 @@ struct Ptr(T) {
 	return Ptr!T(&t);
 }
 
+@trusted const(Ptr!T) ptrTrustMe_const(T)(ref const T t) {
+	return const Ptr!T(&t);
+}
+
 immutable(Bool) ptrEquals(T)(const Ptr!T a, const Ptr!T b) {
 	return Bool(a.ptr == b.ptr);
 }

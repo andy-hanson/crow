@@ -68,9 +68,14 @@ export const NozeRunnable = makeCustomElement({
 	connected: async ({ root }) => {
 		console.log("WE CONNECTED")
 		const comp = await compiler.getGlobalCompiler()
+		comp.addOrChangeFile(StorageKind.local, "main", "SOME TEXT")
+		const got = comp.getFile(StorageKind.local, "main")
+		//const result = comp.getFile(StorageKind.local, "main")
+		console.log("HOOOO", {got})
 
-		console.log("CONNECTED!")
-		/** @type {MutableObservable<string>} */
+		throw new Error("TODO: Now get it working again!")
+		/*
+		/** @type {MutableObservable<string>} * /
 		const text = new MutableObservable(TEXT)
 		const nozeText = NozeText.create({compiler:comp, text})
 		const nozeTextContainer = div({class:nozeTextContainerClass}, [nozeText])
@@ -98,5 +103,6 @@ export const NozeRunnable = makeCustomElement({
 
 		const outerContainer = div({class:outerContainerClass}, [nozeTextContainer, output, b])
 		root.append(outerContainer)
+		*/
 	},
 })

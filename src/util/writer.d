@@ -6,7 +6,7 @@ import util.bools : Bool, False;
 import util.ptr : Ptr;
 import util.collection.arr : Arr, at, range, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : Str, strLiteral;
+import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr, Str, strLiteral;
 import util.ptr : PtrRange;
 import util.types : abs;
 import util.util : verify;
@@ -20,6 +20,11 @@ struct Writer(Alloc) {
 
 immutable(Str) finishWriter(Alloc)(ref Writer!Alloc writer) {
 	return finishArr(writer.alloc.deref, writer.res);
+}
+
+immutable(CStr) finishWriterToCStr(Alloc)(ref Writer!Alloc writer) {
+	writeChar(writer, '\0');
+	return cStrOfNulTerminatedStr(immutable NulTerminatedStr(finishWriter(writer)));
 }
 
 void writeChar(Alloc)(ref Writer!Alloc writer, immutable char c) {
