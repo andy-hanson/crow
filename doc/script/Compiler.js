@@ -21,12 +21,13 @@ if (typeof global !== "undefined")
 @property {function(): number} getGlobalBufferSize
 @property {function(): number} getGlobalBufferPtr
 @property {function(Ptr, number): Server} newServer
-@property {function(Server, StorageKind, Ptr, number, Ptr, number): void} addOrChangeFile
+@property {function(Ptr, number, Server, StorageKind, Ptr, number, Ptr, number): void} addOrChangeFile
 @property {function(Server, StorageKind, Ptr, number): void} deleteFile
 @property {function(Server, StorageKind, Ptr, number): number} getFile
 @property {function(Ptr, number, Server, StorageKind, Ptr, number): number} getTokens
 @property {function(Ptr, number, Server, StorageKind, Ptr, number): number} getParseDiagnostics
-@property {function(Ptr, number, Server, Ptr, number, Ptr, number): number} run
+@property {function(Ptr, number, Ptr, number, Server, StorageKind, Ptr, number, number): number} getHover
+@property {function(Ptr, number, Ptr, number, Server, Ptr, number): number} run
 */
 
 /** @typedef {ExportFunctions & {memory:WebAssembly.Memory}} Exports */
@@ -109,12 +110,22 @@ class Allocator {
 	@return {BufferSpace}
 	*/
 	writeString(str) {
-		if (this._cur + str.length > this._end)
-			throw new Error("input too long")
+		const res = this.reserve(str.length)
 		for (let i = 0; i < str.length; i++)
-			this._view.setUint8(this._cur + i, str.charCodeAt(i))
-		const res = {begin:this._cur, size:str.length}
-		this._cur += str.length
+			this._view.setUint8(res.begin + i, str.charCodeAt(i))
+		if (readString(this._view, res.begin, res.size) !== str) throw new Error()
+		return res
+	}
+
+	/**
+	 * @param {number} size
+	 * @return {BufferSpace}
+	 */
+	reserve(size) {
+		if (this._cur + size > this._end)
+			throw new Error("input too long")
+		const res = {begin:this._cur, size}
+		this._cur += size
 		return res
 	}
 
@@ -159,17 +170,16 @@ class Compiler {
 		const buffer = getGlobalBufferPtr()
 		this._bufferEnd = buffer + bufferSize
 
-		const quarter = bufferSize / 4
+		const half = Math.floor(bufferSize / 2)
 		this._serverRangeStart = buffer
-		this._serverRangeSize = quarter
+		this._serverRangeSize = half
+		this._tempAlloc = new Allocator(view, this._serverRangeStart + half, half)
 		this._server = this._exports.newServer(this._serverRangeStart, this._serverRangeSize)
-
-		this._tempAlloc = new Allocator(view, this._serverRangeStart + quarter, quarter)
 	}
 
 	/** @param {number} begin */
 	_readCStr(begin) {
-		return readString(this._view, begin, this._bufferEnd - begin)
+		return readCString(this._view, begin, this._bufferEnd - begin)
 	}
 
 	/**
@@ -182,13 +192,22 @@ class Compiler {
 		try {
 			const pathBuf = this._tempAlloc.writeString(path)
 			const contentBuf = this._tempAlloc.writeString(content)
-			this._exports.addOrChangeFile(
-				this._server,
-				storageKind,
-				pathBuf.begin,
-				pathBuf.size,
-				contentBuf.begin,
-				contentBuf.size)
+			const debugBuf = this._tempAlloc.reserve(1024 * 1024)
+			try {
+				this._exports.addOrChangeFile(
+					debugBuf.begin,
+					debugBuf.size,
+					this._server,
+					storageKind,
+					pathBuf.begin,
+					pathBuf.size,
+					contentBuf.begin,
+					contentBuf.size)
+			} catch (e) {
+				const debug = readString(this._view, debugBuf.begin, debugBuf.size);
+				console.log("Error in addOrChangeFile. Debug is: " + debug)
+				throw e
+			}
 		} finally {
 			this._tempAlloc.clear()
 		}
@@ -267,15 +286,53 @@ class Compiler {
 	}
 
 	/**
-	@param {AllFiles} files
-	@return {Promise<RunResult>}
+	@param {StorageKind} storageKind
+	@param {string} path
+	@param {number} pos
+	@return {string}
 	*/
-	/*run(files) {
-		return delay(() => {
-			const result = this._useExports("run", JSON.stringify(files))
-			return JSON.parse(result)
-		})
-	}*/
+	getHover(storageKind, path, pos) {
+		try {
+			const pathBuf = this._tempAlloc.writeString(path)
+			const debugBuf = this._tempAlloc.reserve(1024 * 1024)
+			const resultBuf = this._tempAlloc.reserveRest()
+			const res = this._exports.getHover(
+				resultBuf.begin,
+				resultBuf.size,
+				debugBuf.begin,
+				debugBuf.size,
+				this._server,
+				storageKind,
+				pathBuf.begin,
+				pathBuf.size, pos)
+			return this._readCStr(res)
+		} finally {
+			this._tempAlloc.clear()
+		}
+	}
+
+	/**
+	@param {string} path
+	@return {RunResult}
+	*/
+	run(path) {
+		try {
+			const pathBuf = this._tempAlloc.writeString(path)
+			const debugBuf = this._tempAlloc.reserve(1024 * 1024)
+			const resultBuf = this._tempAlloc.reserveRest()
+			const res = this._exports.run(
+				resultBuf.begin,
+				resultBuf.size,
+				debugBuf.begin,
+				debugBuf.size,
+				this._server,
+				pathBuf.begin,
+				pathBuf.size)
+			return JSON.parse(this._readCStr(res))
+		} finally {
+			this._tempAlloc.clear()
+		}
+	}
 
 	/**
 	@param {string} file
@@ -287,26 +344,6 @@ class Compiler {
 }
 compiler.Compiler = Compiler
 
-/** @type {function(): Promise<ReadonlyArray<string>>} */
-const listInclude = async () => {
-	return (await (await fetch('includeList.txt')).text()).trim().split('\n')
-}
-
-/** @type {function(): Promise<Files>} */
-const getIncludeFiles = async () =>
-	Object.fromEntries(await Promise.all((await listInclude()).map(nameAndText)))
-
-/** @type {function(string): Promise<[string, string]>} */
-const nameAndText = async name =>
-	[name, await (await fetch(`../include/${name}.nz`)).text()]
-
-
-/**
-@typedef AllFiles
-@property {Files} include
-@property {Files} user
-*/
-
 /**
 @typedef RunResult
 @property {number} err
@@ -315,11 +352,8 @@ const nameAndText = async name =>
 */
 compiler.RunResult = {}
 
-/** @typedef {{readonly [name:string]: string}} Files */
-compiler.Files = {}
-
 /** @type {function(DataView, number, number): string} */
-function readString(view, buffer, bufferSize) {
+const readCString = (view, buffer, bufferSize) => {
 	let s = ""
 	let i;
 	for (i = 0; i < bufferSize; i++) {
@@ -337,19 +371,10 @@ function readString(view, buffer, bufferSize) {
 	return s
 }
 
-/**
-@template T
-@param {() => T} cb
-@return {Promise<T>}
-*/
-const delay = async cb => {
-	return new Promise((resolve, reject) => {
-		setTimeout(() => {
-			try {
-				resolve(cb())
-			} catch (e) {
-				reject(e)
-			}
-		}, 0)
-	})
+/** @type {function(DataView, number, number): string} */
+const readString = (view, buffer, bufferSize) => {
+	let s = ""
+	for (let i = 0; i < bufferSize; i++)
+		s += String.fromCharCode(view.getUint8(buffer + i))
+	return s
 }

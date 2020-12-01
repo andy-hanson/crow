@@ -35,9 +35,9 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForText(Alloc)(ref Alloc alloc
 	add(alloc, lineToNTabs, text.getNTabs);
 
 	foreach (immutable u32 i; 0..text.size.safeSizeTToU32) {
-		if (text.at(i) == '\n') {
+		if (at(text, i) == '\n') {
 			add(alloc, lineToPos, i + 1);
-			add(alloc, lineToNTabs, text.slice(i + 1).getNTabs);
+			add(alloc, lineToNTabs, slice(text, i + 1).getNTabs);
 		}
 	}
 
@@ -53,8 +53,8 @@ immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc
 	u16 highLine = lc.lineToPos.size.safeSizeTToU16;
 
 	while (lowLine < highLine - 1) {
-		immutable u16 middleLine = lowLine.mid(highLine);
-		immutable Pos middlePos = lc.lineToPos.at(middleLine);
+		immutable u16 middleLine = mid(lowLine, highLine);
+		immutable Pos middlePos = at(lc.lineToPos, middleLine);
 		if (pos == middlePos)
 			return LineAndColumn(middleLine, 0);
 		else if (pos < middlePos)
@@ -66,15 +66,15 @@ immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc
 	}
 
 	immutable u16 line = lowLine;
-	immutable Pos lineStart = lc.lineToPos.at(line);
-	verify((pos >= lineStart && line == lc.lineToPos.size - 1) || pos <= lc.lineToPos.at(line + 1));
+	immutable Pos lineStart = at(lc.lineToPos, line);
+	verify((pos >= lineStart && line == lc.lineToPos.size - 1) || pos <= at(lc.lineToPos, line + 1));
 
 	immutable u32 nCharsIntoLine = pos - lineStart;
-	immutable u8 nTabs = lc.lineToNTabs.at(line);
+	immutable u8 nTabs = at(lc.lineToNTabs, line);
 	immutable u32 column = nCharsIntoLine <= nTabs
 		? nCharsIntoLine * TAB_SIZE
 		: nTabs * (TAB_SIZE - 1) + nCharsIntoLine;
-	return LineAndColumn(line, column.safeU32ToU16);
+	return immutable LineAndColumn(line, column.safeU32ToU16);
 }
 
 private:
@@ -89,7 +89,7 @@ u8 getNTabs(immutable Str text) {
 	u8 i = 0;
 	while (i < ubyte.max
 		&& i < text.size
-		&& text.at(i) == '\t'
+		&& at(text, i) == '\t'
 	) {
 		i++;
 	}

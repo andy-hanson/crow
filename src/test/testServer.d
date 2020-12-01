@@ -16,7 +16,7 @@ import util.util : verify;
 	Server!RangeAlloc server = Server!RangeAlloc(RangeAlloc(begin(bytes), size(bytes)));
 	immutable Str path = strLiteral("main");
 	immutable Str content = strLiteral("content");
-	addOrChangeFile(server, StorageKind.local, path, content);
+	addOrChangeFile(test.dbg, server, StorageKind.local, path, content);
 	immutable Str res = strOfCStr(getFile(server, StorageKind.local, path));
 	verify(strEq(res, content));
 }

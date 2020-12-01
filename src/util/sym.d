@@ -17,11 +17,11 @@ import util.util : unreachable, verify;
 import util.writer : finishWriter, writeChar, writeStatic, Writer;
 
 immutable(Bool) isAlphaIdentifierStart(immutable char c) {
-	return Bool('a' <= c && c <= 'z');
+	return immutable Bool('a' <= c && c <= 'z');
 }
 
 immutable(Bool) isDigit(immutable char c) {
-	return Bool('0' <= c && c <= '9');
+	return immutable Bool('0' <= c && c <= '9');
 }
 
 immutable(Bool) isOperatorChar(immutable char c) {
@@ -49,6 +49,7 @@ struct Sym {
 }
 
 struct AllSymbols(Alloc) {
+	//TODO:PRIVATE
 	Ptr!Alloc alloc;
 	MutArr!(immutable CStr) largeStrings;
 }
@@ -73,18 +74,17 @@ immutable(Sym) prependSet(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Sym 
 		return getSymFromLongStr(allSymbols, str, False);
 }
 
-immutable(Opt!Sym) tryGetSymFromStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
+immutable(Opt!Sym) tryGetSymFromStr(Alloc)(ref AllSymbols!Alloc allSymbols, scope ref immutable Str str) {
 	return empty(str)
 		? none!Sym
-		: isAlphaIdentifierStart(first(str)) && every(tail(str), (ref immutable char c) =>
-			isAlphaIdentifierContinue(c))
+		: isAlphaIdentifier(str)
 		? some(getSymFromAlphaIdentifier(allSymbols, str))
 		: every(str, (ref immutable char c) => isOperatorChar(c))
 		? some(getSymFromOperator(allSymbols, str))
 		: none!Sym;
 }
 
-immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
+immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols, scope ref immutable Str str) {
 	verify(isAlphaIdentifier(str));
 	immutable Sym res = canPackAlphaIdentifier(str)
 		? immutable Sym(packAlphaIdentifier(str))
@@ -95,10 +95,15 @@ immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols,
 }
 
 private immutable(Bool) isAlphaIdentifier(ref immutable Str a) {
-	return immutable Bool(
-		empty(a) || (
-		isAlphaIdentifierStart(first(a)) &&
-		every(tail(a), (ref immutable char it) => isAlphaIdentifierContinue(it))));
+	if (empty(a))
+		return True;
+	else if (!isAlphaIdentifierStart(first(a)))
+		return False;
+	else {
+		immutable Str t = tail(a);
+		return every!char(t, (ref immutable char c) =>
+			isAlphaIdentifierContinue(c));
+	}
 }
 
 immutable(Sym) getSymFromOperator(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
@@ -285,10 +290,15 @@ static assert((shortOperatorMarker & highestPossibleOperatorBit) == 0, "1");
 immutable size_t alphaIdentifierMaxChars = 12;
 
 immutable(Bool) canPackAlphaIdentifier(immutable Str str) {
-	return immutable Bool(
-		size(str) <= alphaIdentifierMaxChars &&
-		(size(str) <= 2 || every(slice(str, 0, size(str) - 2), (ref immutable char c) =>
-			canPackAlphaChar5(c))));
+	if (size(str) > alphaIdentifierMaxChars)
+		return False;
+	else if (size(str) <= 2)
+		return True;
+	else {
+		immutable Str after2 = slice(str, 0, size(str) - 2);
+		return every(after2, (ref immutable char c) =>
+			canPackAlphaChar5(c));
+	}
 }
 
 immutable u64 setPrefix =
@@ -338,7 +348,7 @@ immutable(u64) packOperator(immutable Str str) {
 	verify(size(str) <= maxShortOperatorSize);
 	u64 res = 0;
 	foreach (immutable u64 i; 0..size(str))
-		res |= packOperatorChar(str.at(i)) << (bitsPerOperatorChar * i);
+		res |= packOperatorChar(at(str, i)) << (bitsPerOperatorChar * i);
 	verify((res & shortOperatorMarker) == 0);
 	return res | shortOperatorMarker;
 }
@@ -387,7 +397,7 @@ public immutable(Bool) isLongSym(immutable Sym a) {
 	return strOfCStr(cast(immutable CStr) value);
 }
 
-immutable(CStr) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str) {
+immutable(CStr) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, scope ref immutable Str str) {
 	foreach (immutable CStr s; mutArrRange(allSymbols.largeStrings))
 		if (strEqCStr(str, s))
 			return s;
@@ -395,7 +405,11 @@ immutable(CStr) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutabl
 	return allSymbols.largeStrings.last;
 }
 
-immutable(Sym) getSymFromLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, immutable Str str, immutable Bool isOperator) {
+immutable(Sym) getSymFromLongStr(Alloc)(
+	ref AllSymbols!Alloc allSymbols,
+	scope ref immutable Str str,
+	immutable Bool isOperator,
+) {
 	immutable CStr cstr = getOrAddLongStr(allSymbols, str);
 	immutable u64 marker = isOperator ? operatorMarker : 0;
 	immutable u64 res = (cast(immutable u64) cstr) | marker;

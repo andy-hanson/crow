@@ -34,10 +34,10 @@ immutable(Dict!(K, V, cmp)) finishDict(Alloc, K, V, alias cmp)(
 	immutable Arr!(KeyValuePair!(K, V)) allPairs = finishArr(alloc, db.builder);
 	MutArr!(immutable KeyValuePair!(K, V)) res;
 	foreach (immutable size_t i; 0..allPairs.size) {
-		immutable KeyValuePair!(K, V) pair = allPairs.at(i);
+		immutable KeyValuePair!(K, V) pair = at(allPairs, i);
 		Bool isConflict = False;
 		foreach (immutable size_t j; 0..res.mutArrSize) {
-			immutable KeyValuePair!(K, V) resPair = res.mutArrAt(j);
+			immutable KeyValuePair!(K, V) resPair = mutArrAt(res, j);
 			if (cmp(pair.key, resPair.key) == Comparison.equal) {
 				cbConflict(pair.key, resPair.value, pair.value);
 				isConflict = True;
@@ -57,6 +57,6 @@ immutable(Dict!(K, V, cmp)) finishDictShouldBeNoConflict(Alloc, K, V, alias cmp)
 	immutable Arr!(KeyValuePair!(K, V)) allPairs = finishArr(alloc, a.builder);
 	foreach (immutable size_t i; 0..allPairs.size)
 		foreach (immutable size_t j; 0..i)
-			verify(cmp(allPairs.at(i).key, allPairs.at(j).key) != Comparison.equal);
+			verify(cmp(at(allPairs, i).key, at(allPairs, j).key) != Comparison.equal);
 	return immutable Dict!(K, V, cmp)(allPairs);
 }

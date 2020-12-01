@@ -8,6 +8,7 @@ import util.ptr : Ptr;
 import util.types : safeSizeTToU16, safeSizeTToU32;
 
 struct FullIndexDict(K, V) {
+	//TODO:PRIVATE:
 	Arr!V values;
 }
 

@@ -3,7 +3,7 @@ module test.testSym;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.collection.str : strLiteral, strEqLiteral;
+import util.collection.str : Str, strLiteral, strEqLiteral;
 import util.opt : force, has, Opt;
 import util.sym : AllSymbols, isLongSym, prependSet, strOfSym, Sym, symEq, tryGetSymFromStr;
 import util.util : verify;
@@ -12,7 +12,8 @@ void testSym(Alloc)(ref Test!Alloc test) {
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(test.alloc);
 
 	immutable(Sym) getSym(immutable string a) {
-		immutable Opt!Sym opt = tryGetSymFromStr(allSymbols, strLiteral(a));
+		immutable Str str = strLiteral(a);
+		immutable Opt!Sym opt = tryGetSymFromStr(allSymbols, str);
 		immutable Sym res = force(opt);
 		verify(strEqLiteral(strOfSym(test.alloc, res), a));
 		return res;
@@ -21,7 +22,8 @@ void testSym(Alloc)(ref Test!Alloc test) {
 	immutable Sym nat8 = getSym("nat8");
 	verify(!isLongSym(nat8));
 
-	immutable Opt!Sym invalid = tryGetSymFromStr(allSymbols, strLiteral("abc|def"));
+	immutable Str invalidStr = strLiteral("abc|def");
+	immutable Opt!Sym invalid = tryGetSymFromStr(allSymbols, invalidStr);
 	verify(!has(invalid));
 
 	immutable Sym shortAlpha = getSym("abc-def-gh9?");

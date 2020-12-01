@@ -46,7 +46,7 @@ struct NulTerminatedStr {
 
 	this(immutable Str s) immutable {
 		str = s;
-		verify(str.at(str.size - 1) == '\0');
+		verify(at(str, size(str) - 1) == '\0');
 	}
 }
 
@@ -83,21 +83,21 @@ immutable(Bool) strEqLiteral(immutable Str a, immutable string b) {
 }
 
 immutable(Bool) strEq(immutable Str a, immutable Str b) {
-	return Bool(a.size == b.size && (a.size == 0 || (a.at(0) == b.at(0) && strEq(a.tail, b.tail))));
+	return Bool(size(a) == size(b) && (size(a) == 0 || (at(a, 0) == at(b, 0) && strEq(tail(a), tail(b)))));
 }
 
 immutable(Str) stripNulTerminator(immutable NulTerminatedStr a) {
-	return a.str.rtail;
+	return rtail(a.str);
 }
 
 @trusted immutable(Str) copyStr(Alloc)(ref Alloc alloc, immutable Str s) {
 	char* begin = cast(char*) alloc.allocateBytes(char.sizeof * s.size);
 	foreach (immutable size_t i; 0..s.size)
-		begin[i] = s.at(i);
-	return immutable Str(cast(immutable) begin, s.size);
+		begin[i] = at(s, i);
+	return immutable Str(cast(immutable) begin, size(s));
 }
 
 immutable(Bool) endsWith(immutable Str a, immutable Str b) {
-	return Bool(a.size >= b.size &&
-		strEq(a.slice(a.size - b.size, b.size), b));
+	return Bool(size(a) >= size(b) &&
+		strEq(a.slice(size(a) - size(b), size(b)), b));
 }

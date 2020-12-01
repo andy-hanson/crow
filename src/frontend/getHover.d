@@ -4,10 +4,32 @@ module frontend.getHover;
 
 import frontend.getPosition : matchPosition, Position;
 import model.diag : writeFile;
-import model.model : body_, Expr, FunDecl, StructDecl, matchStructBody, Program;
+import model.model :
+	body_,
+	Expr,
+	FunDecl,
+	StructDecl,
+	matchStructBody,
+	name,
+	NameAndReferents,
+	Program,
+	SpecDecl,
+	StructBody;
+import util.collection.str : Str;
+import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : writeSym;
-import util.util : todo;
-import util.writer : Writer, writeStatic;
+import util.writer : finishWriter, Writer, writeStatic;
+
+immutable(Str) getHoverStr(TempAlloc, Alloc)(
+	ref TempAlloc tempAlloc,
+	ref Alloc alloc,
+	ref immutable Program program,
+	ref immutable Position pos,
+) {
+	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+	getHover(tempAlloc, writer, program, pos);
+	return finishWriter(writer);
+}
 
 void getHover(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,
@@ -16,23 +38,23 @@ void getHover(TempAlloc, Alloc)(
 	ref immutable Position pos,
 ) {
 	return matchPosition!void(
+		pos,
 		(immutable Ptr!Expr it) {
 			getExprHover(writer, it);
 		},
 		(immutable Ptr!FunDecl it) {
 			writeStatic(writer, "fun ");
-			writeSym(writer, it.name);
+			writeSym(writer, name(it));
 		},
 		(ref immutable Position.ImportedModule it) {
-			writeStatic("import module ");
+			writeStatic(writer, "import module ");
 			writeFile(tempAlloc, writer, program.filesInfo, it.import_.module_.fileIndex);
 		},
 		(ref immutable Position.ImportedName it) {
-			writeNameAndReferents(writer, it);
+			getNameAndReferentsHover(writer, it.name_);
 		},
 		(immutable Ptr!SpecDecl) {
-			writeStatic(writer, "spec ");
-			todo!void("!");
+			writeStatic(writer, "TODO: spec hover");
 		},
 		(immutable Ptr!StructDecl it) {
 			matchStructBody!void(
@@ -58,11 +80,11 @@ void getHover(TempAlloc, Alloc)(
 
 private:
 
-void getNameAndReferentsHover(Alloc)(ref Writer!Alloc, ref immutable NameAndReferents) {
-	todo!void("getNameAndReferentsHover");
+void getNameAndReferentsHover(Alloc)(ref Writer!Alloc writer, ref immutable NameAndReferents) {
+	writeStatic(writer, "TODO: getNameAndReferentsHover");
 }
 
-void getExprHover(Alloc)(ref Writer!Alloc, immutable Ptr!Expr) {
-	todo!void("getExprHover");
+void getExprHover(Alloc)(ref Writer!Alloc writer, ref immutable Expr) {
+	writeStatic(writer, "TODO: getExprHover");
 }
 

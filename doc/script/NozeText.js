@@ -21,7 +21,7 @@ import {
 import {CustomElementClass, makeCustomElement} from "./util/CustomElement.js"
 import {removeAllChildren} from "./util/dom.js"
 import {div, span, textarea} from "./util/html.js"
-import {MutableObservable} from "./util/MutableObservable.js"
+import {MutableObservable, Observable} from "./util/MutableObservable.js"
 
 const codeClass = cssClass("code")
 const measurerClass = cssClass("measurer")
@@ -39,7 +39,14 @@ const font_size = Measure.em(1)
 const lineNumbersClass = cssClass("line-numbers")
 const rootClass = cssClass("root")
 
-/** @type {CustomElementClass<{ compiler: Compiler, text: MutableObservable<string> }, null, null>} */
+/**
+ * @typedef NozeTextProps
+ * @property {function(number): string} getHover
+ * @property {Observable<ReadonlyArray<Token>>} tokens
+ * @property {MutableObservable<string>} text
+ */
+
+/** @type {CustomElementClass<NozeTextProps, null, null>} */
 export const NozeText = makeCustomElement({
 	tagName: "noze-text",
 	styleSheet: new StyleBuilder()
@@ -157,7 +164,7 @@ export const NozeText = makeCustomElement({
 		.end(),
 	init: () =>
 		({state: null, out: null}),
-	connected: async ({ props: {compiler, text}, root }) => {
+	connected: async ({ props: {getHover, tokens, text}, root }) => {
 		const highlightDiv = div({class:highlightClass}, [])
 		const ta = textarea()
 		const initialText = text.get()
@@ -169,12 +176,11 @@ export const NozeText = makeCustomElement({
 				const { value, selectionStart, selectionEnd } = ta
 				ta.value = value.slice(0, selectionStart) + "\t" + value.slice(selectionEnd)
 				ta.setSelectionRange(selectionStart + 1, selectionStart + 1);
-				update()
+				text.set(ta.value)
 			}
 		})
 		ta.addEventListener("input", () => {
 			text.set(ta.value)
-			update()
 		})
 
 		let mouseMoveIndex = 0
@@ -200,47 +206,32 @@ export const NozeText = makeCustomElement({
 			const leadingTabs = countLeadingTabs(lineText)
 			const tabsFix = leadingTabs * (tab_size - 1)
 			const column = clamp(columnPre - tabsFix, 0, lineText.length - 1)
+			const pos = sum(lines.slice(0, line), line => line.length) + column
 			mouseMoveIndex++
-
-			console.log("HUH?", {offsetX, offsetY})
 
 			if (mouseMoveIndex === 2**16) mouseMoveIndex = 0
 			const saveMouseMoveIndex = mouseMoveIndex
 			setTimeout(() => {
 				if (mouseMoveIndex === saveMouseMoveIndex) {
-					tooltip = div({class:hoverTooltipClass}, ["I AM TOOLTIP"])
-					textContainer.append(tooltip)
-					tooltip.style.left = offsetX + "px"
-					tooltip.style.top = offsetY + "px"
-					console.log("LEFT IS", tooltip.style.left)
-
-					console.log("SHOW A HOVER", {line, column})
+					const hover = getHover(pos)
+					if (hover !== "") {
+						tooltip = div({class:hoverTooltipClass}, [hover])
+						textContainer.append(tooltip)
+						tooltip.style.left = offsetX + "px"
+						tooltip.style.top = offsetY + "px"
+					} else {
+						console.log("NO HOVER")
+					}
 				}
 			}, 300)
-
-			//console.log("YOU MOVED!", {
-			//	//offsetX,
-			//	//offsetY,
-			//	//nLines,
-			//	//longestLine,
-			//	offsetWidth: ta.offsetWidth,
-			//	columnWidth,
-			//	line,
-			//	columnPre,
-			//	column,
-			//})
-//
-			//console.log("YOUU HOVERED!")
 		})
-
-		const update = () => {
-			highlight(compiler, highlightDiv, ta.value)
-			lineNumbers.textContent = ta.value.split("\n").map((_, i) => String(i + 1)).join("\n")
-		}
 
 		const lineNumbers = div({class:lineNumbersClass})
 
-		update()
+		tokens.nowAndSubscribe(value => {
+			highlight(value, highlightDiv, ta.value)
+			lineNumbers.textContent = ta.value.split("\n").map((_, i) => String(i + 1)).join("\n")
+		})
 
 		const measurerSpan = span({}, ["a"])
 		const measurer = div({class:measurerClass}, [measurerSpan])
@@ -249,6 +240,19 @@ export const NozeText = makeCustomElement({
 
 	},
 })
+
+/**
+ * @template T
+ * @param {ReadonlyArray<T>} xs
+ * @param {function(T): number} cb
+ * @return {number}
+ */
+const sum = (xs, cb) => {
+	let res = 0
+	for (const x of xs)
+		res += cb(x)
+	return res
+}
 
 /** @type {function(string): number} */
 const countLeadingTabs = s => {
@@ -262,18 +266,15 @@ const countLeadingTabs = s => {
 }
 
 
-/** @type {function(Compiler, Node, string): void} */
-const highlight = (compiler, highlightDiv, v) => {
-	throw new Error("TODO")
-	/*
-	const tokens = compiler.getTokens(v)
-	const diags = compiler.getParseDiagnostics(v)
+/** @type {function(ReadonlyArray<Token>, Node, string): void} */
+const highlight = (tokens, highlightDiv, v) => {
+	/** @type {ReadonlyArray<Diagnostic>} */
+	const diags = [] //TODO: compiler.getParseDiagnostics(v)
 	// Only use at most 1 diag
 	const nodes = tokensAndDiagsToNodes(tokens, diags.slice(0, 1), v)
 	removeAllChildren(highlightDiv)
 	for (const node of nodes)
 		highlightDiv.appendChild(node)
-	*/
 }
 
 /** @type {function(string, ReadonlyArray<Node | string>): HTMLSpanElement} */

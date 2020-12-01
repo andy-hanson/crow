@@ -5,6 +5,7 @@ import server :
 	addOrChangeFile,
 	deleteFile,
 	getFile,
+	getHover,
 	getParseDiagnostics,
 	getTokens,
 	run,
@@ -12,14 +13,13 @@ import server :
 	Server,
 	StrParseDiagnostic;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.bools : False;
+import util.bools : Bool, False;
 import util.collection.arr : Arr, range, size;
-import util.collection.str : CStr, Str;
-import util.memory : initMemory_mut;
+import util.collection.str : CStr, Str, strToCStr;
 import util.path : StorageKind;
 import util.ptr : ptrTrustMe_mut;
 import util.sexpr : Sexpr, jsonStrOfSexpr, nameAndTata, tataArr, tataNamedRecord, tataStr;
-import util.sourceRange : sexprOfRangeWithinFile;
+import util.sourceRange : Pos, sexprOfRangeWithinFile;
 import util.util : verify;
 import util.writer : finishWriterToCStr, writeChar, writeNat, writeQuotedStr, Writer, writeStatic;
 
@@ -34,29 +34,37 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 	return globalBuffer.ptr;
 }
 
-@system extern(C) Server!RangeAlloc* newServer(ubyte* allocStart, immutable size_t allocLength) {
+@system extern(C) Server!RangeAlloc* newServer(
+	ubyte* allocStart,
+	immutable size_t allocLength,
+) {
 	RangeAlloc alloc = RangeAlloc(allocStart, allocLength);
 	Server!RangeAlloc* ptr = cast(Server!RangeAlloc*) alloc.allocateBytes((Server!RangeAlloc).sizeof);
-	Server!RangeAlloc server = Server!RangeAlloc(alloc.move());
-	initMemory_mut(ptr, server);
+	ptr.__ctor(alloc.move());
 	return ptr;
 }
 
 @system extern(C) void addOrChangeFile(
+	char* debugStart,
+	immutable size_t debugLength,
 	Server!RangeAlloc* server,
 	immutable StorageKind storageKind,
-	immutable char* pathStart, immutable size_t pathLength,
-	immutable char* contentStart, immutable size_t contentLength,
+	immutable char* pathStart,
+	immutable size_t pathLength,
+	immutable char* contentStart,
+	immutable size_t contentLength,
 ) {
+	WasmDebug dbg = WasmDebug(debugStart, debugLength);
 	immutable Str path = immutable Str(pathStart, pathLength);
 	immutable Str content = immutable Str(contentStart, contentLength);
-	addOrChangeFile(*server, storageKind, path, content);
+	addOrChangeFile(dbg, *server, storageKind, path, content);
 }
 
 @system extern(C) void deleteFile(
 	Server!RangeAlloc* server,
 	immutable StorageKind storageKind,
-	immutable char* pathStart, immutable size_t pathLength,
+	immutable char* pathStart,
+	immutable size_t pathLength,
 ) {
 	deleteFile(*server, storageKind, immutable Str(pathStart, pathLength));
 }
@@ -64,7 +72,8 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 @system extern(C) immutable(CStr) getFile(
 	Server!RangeAlloc* server,
 	immutable StorageKind storageKind,
-	immutable char* pathStart, immutable size_t pathLength,
+	immutable char* pathStart,
+	immutable size_t pathLength,
 ) {
 	return getFile(*server, storageKind, immutable Str(pathStart, pathLength));
 }
@@ -82,10 +91,12 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 }
 
 @system extern(C) immutable(CStr) getParseDiagnostics(
-	ubyte* resultStart, immutable size_t resultLength,
+	ubyte* resultStart,
+	immutable size_t resultLength,
 	Server!RangeAlloc* server,
 	immutable StorageKind storageKind,
-	immutable char* pathStart, immutable size_t pathLength,
+	immutable char* pathStart,
+	immutable size_t pathLength,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	immutable Arr!StrParseDiagnostic diags =
@@ -94,11 +105,32 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 	return jsonStrOfSexpr(resultAlloc, sexpr);
 }
 
-@system extern(C) immutable(CStr) run(
-	ubyte* resultStart, immutable size_t resultLength,
+@system extern(C) immutable(CStr) getHover(
+	ubyte* resultStart,
+	immutable size_t resultLength,
+	char* debugStart,
+	immutable size_t debugLength,
 	Server!RangeAlloc* server,
-	char* debugStart, immutable size_t debugLength,
-	immutable char* pathStart, immutable size_t pathLength,
+	immutable StorageKind storageKind,
+	immutable char* pathStart,
+	immutable size_t pathLength,
+	immutable Pos pos,
+) {
+	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
+	WasmDebug dbg = WasmDebug(debugStart, debugLength);
+	immutable Str path = immutable Str(pathStart, pathLength);
+	immutable Str hover = getHover(dbg, resultAlloc, *server, storageKind, path, pos);
+	return strToCStr(resultAlloc, hover);
+}
+
+@system extern(C) immutable(CStr) run(
+	ubyte* resultStart,
+	immutable size_t resultLength,
+	char* debugStart,
+	immutable size_t debugLength,
+	Server!RangeAlloc* server,
+	immutable char* pathStart,
+	immutable size_t pathLength,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	WasmDebug dbg = WasmDebug(debugStart, debugLength);
@@ -108,7 +140,7 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 
 private:
 
-ubyte[1024 * 1024] globalBuffer;
+ubyte[1024 * 1024 * 1024] globalBuffer;
 
 immutable(Sexpr) sexprOfParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable Arr!StrParseDiagnostic a) {
 	return tataArr(alloc, a, (ref immutable StrParseDiagnostic it) =>
@@ -120,9 +152,9 @@ immutable(Sexpr) sexprOfParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable A
 struct WasmDebug {
 	@safe @nogc pure nothrow:
 
-	bool enabled() {
+	immutable(Bool) enabled() {
 		// Enable this if there's a bug, but don't want it slowing things down otherwise
-		return false;
+		return False;
 	}
 
 	void log(immutable Str s) {
@@ -173,4 +205,10 @@ immutable(CStr) writeRunResult(Alloc)(ref Alloc alloc, ref immutable RunResult r
 	writeQuotedStr(writer, result.stderr);
 	writeChar(writer, '}');
 	return finishWriterToCStr(writer);
+}
+
+void debugLogNat(Debug)(ref Debug dbg, immutable size_t n) {
+	if (n > 10)
+		debugLogNat(dbg, n / 10);
+	dbg.logChar('0' + (n % 10));
 }

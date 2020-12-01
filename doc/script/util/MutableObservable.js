@@ -1,5 +1,5 @@
 /** @template T */
-export class MutableObservable {
+export class Observable {
 	value_ = /** @type {T} */ (/** @type {unknown} */ (null))
 	subscribers_ = /** @type {Array<(t: T) => void>} */ ([])
 
@@ -10,15 +10,6 @@ export class MutableObservable {
 
 	'get'() {
 		return this.value_
-	}
-
-	/**
-	 * @param {T} value
-	 */
-	set(value) {
-		this.value_ = value
-		for (const subscriber of this.subscribers_)
-			subscriber(value)
 	}
 
 	/**
@@ -39,6 +30,21 @@ export class MutableObservable {
 		return () => {
 			remove(this.subscribers_, cb)
 		}
+	}
+}
+
+/**
+ * @template T
+ * @extends {Observable<T>}
+ */
+export class MutableObservable extends Observable {
+	/**
+	 * @param {T} value
+	 */
+	set(value) {
+		this.value_ = value
+		for (const subscriber of this.subscribers_)
+			subscriber(value)
 	}
 }
 

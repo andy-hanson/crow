@@ -482,14 +482,14 @@ IndentKind detectIndentKind(immutable Str str) {
 		else if (c0 == ' ') {
 			// Count spaces
 			size_t i = 0;
-			for (; i < str.size; i++)
-				if (str.at(i) != ' ')
+			for (; i < size(str); i++)
+				if (at(str, i) != ' ')
 					break;
 			// Only allowed amounts are 2 and 4.
 			return i == 2 ? IndentKind.spaces2 : IndentKind.spaces4;
 		} else {
-			foreach (immutable size_t i; 0..str.size)
-				if (str.at(i) == '\n')
+			foreach (immutable size_t i; 0..size(str))
+				if (at(str, i) == '\n')
 					return detectIndentKind(str.slice(i + 1));
 			return IndentKind.tabs;
 		}

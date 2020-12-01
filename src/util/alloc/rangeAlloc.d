@@ -43,7 +43,7 @@ struct RangeAlloc {
 		return RangeAlloc(s, c, e);
 	}
 
-	private:
+	//TODO:private:
 
 	@disable this();
 	@disable this(ref const RangeAlloc);

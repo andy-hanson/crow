@@ -5,7 +5,6 @@ import {button, div} from "./util/html.js"
 import {CustomElementClass, makeCustomElement} from "./util/CustomElement.js"
 import {removeAllChildren} from "./util/dom.js"
 import {MutableObservable} from "./util/MutableObservable.js"
-import {launch} from "./util/util.js"
 
 const TEXT = `import
 	io
@@ -68,41 +67,76 @@ export const NozeRunnable = makeCustomElement({
 	connected: async ({ root }) => {
 		console.log("WE CONNECTED")
 		const comp = await compiler.getGlobalCompiler()
-		comp.addOrChangeFile(StorageKind.local, "main", "SOME TEXT")
-		const got = comp.getFile(StorageKind.local, "main")
-		//const result = comp.getFile(StorageKind.local, "main")
-		console.log("HOOOO", {got})
+		const MAIN = "main"
 
-		throw new Error("TODO: Now get it working again!")
-		/*
-		/** @type {MutableObservable<string>} * /
+		/** @type {MutableObservable<string>} */
 		const text = new MutableObservable(TEXT)
-		const nozeText = NozeText.create({compiler:comp, text})
+		/** @type {MutableObservable<ReadonlyArray<Token>>} */
+		const tokens = new MutableObservable(/** @type {ReadonlyArray<Token>} */ ([]))
+		/** @type {function(number): string} */
+		const getHover = pos =>
+			comp.getHover(StorageKind.local, "main", pos)
+		const nozeText = NozeText.create({getHover, tokens, text})
 		const nozeTextContainer = div({class:nozeTextContainerClass}, [nozeText])
 
+		// TODO: less hacky way of doing this
+		const includeFiles = await getIncludeFiles()
+		for (const file of includeFiles)
+			comp.addOrChangeFile(StorageKind.global, file.name, file.content)
+
+		text.nowAndSubscribe(value => {
+			comp.addOrChangeFile(StorageKind.local, MAIN, value)
+			tokens.set(comp.getTokens(StorageKind.local, MAIN))
+		})
+
 		const output = div({class:outputClass})
-		//output.style.height = '0'
 
 		const b = button("Run")
-		b.onclick = () => launch(async () => {
-			output.className = outputClass.name
-			removeAllChildren(output)
-			output.append(LoadingIcon.create(null))
-			output.append(div(), div(), div(), div())
+		b.onclick = () => {
+			try {
+				console.log("LET's RUN!")
+				output.className = outputClass.name
+				removeAllChildren(output)
+				output.append(LoadingIcon.create(null))
+				output.append(div(), div(), div(), div())
 
-			const result = await comp.runFile(text.get())
-			output.textContent = result.stdout === "" && result.stderr === ""
-				? "no output"
-				: result.stdout === "" || result.stderr === ""
-				? result.stdout + result.stderr
-				: `stderr:\n${result.stderr}\nstdout:\n${result.stdout}`
-			output.className = result.err === 0
-				? `${outputClass.name} ${outputOkClass.name}`
-				: `${outputClass.name} ${outputErrClass.name}`
-		})
+				const result = comp.run(MAIN)
+				output.textContent = result.stdout === "" && result.stderr === ""
+					? "no output"
+					: result.stdout === "" || result.stderr === ""
+					? result.stdout + result.stderr
+					: `stderr:\n${result.stderr}\nstdout:\n${result.stdout}`
+				output.className = result.err === 0
+					? `${outputClass.name} ${outputOkClass.name}`
+					: `${outputClass.name} ${outputErrClass.name}`
+			} catch (e) {
+				console.error("ERROR WHILE RUNNING", e)
+				throw e
+			}
+		}
 
 		const outerContainer = div({class:outerContainerClass}, [nozeTextContainer, output, b])
 		root.append(outerContainer)
-		*/
 	},
 })
+
+/**
+ * @typedef FileNameAndContent
+ * @property {string} name
+ * @property {string} content
+ */
+
+/** @type {function(): Promise<ReadonlyArray<FileNameAndContent>>} */
+const getIncludeFiles = async () =>
+	await Promise.all((await listInclude()).map(async name => {
+		/** @type {FileNameAndContent} */
+		const res = {
+			name,
+			content: await (await fetch(`../include/${name}.nz`)).text(),
+		}
+		return res
+	}))
+
+/** @type {function(): Promise<ReadonlyArray<string>>} */
+const listInclude = async () =>
+	(await (await fetch('includeList.txt')).text()).trim().split('\n')

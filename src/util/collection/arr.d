@@ -94,11 +94,11 @@ immutable(size_t) size(T)(const Arr!T a) {
 }
 
 immutable(Bool) sizeEq(T, U)(const Arr!T a, const Arr!U b) {
-	return Bool(size(a) == size(b));
+	return immutable Bool(size(a) == size(b));
 }
 
 immutable(Bool) empty(T)(const Arr!T a) {
-	return Bool(a.size == 0);
+	return immutable Bool(a.size == 0);
 }
 
 @trusted Ptr!T ptrAt(T)(return scope ref Arr!T a, immutable size_t index) {

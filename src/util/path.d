@@ -217,33 +217,35 @@ immutable(CStr) pathToCStr(Alloc)(ref Alloc alloc, immutable AbsolutePath path) 
 immutable(Ptr!Path) parsePath(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc symbols,
-	immutable Str str,
+	scope ref immutable Str str,
 ) {
-	immutable size_t len = str.size;
+	immutable size_t len = size(str);
 	size_t i = 0;
-	if (i < len && str.at(i) == '/')
+	if (i < len && at(str, i) == '/')
 		// Ignore leading slash
 		i++;
 
 	immutable Ptr!Path path = {
 		immutable size_t begin = i;
-		while (i < len && str.at(i) != '/')
+		while (i < len && at(str, i) != '/')
 			i++;
 		verify(i != begin);
-		return rootPath(alloc, getSymFromAlphaIdentifier(symbols, sliceFromTo(str, begin, i)));
+		immutable Str part = sliceFromTo(str, begin, i);
+		return rootPath(alloc, getSymFromAlphaIdentifier(symbols, part));
 	}();
 
 	immutable(Ptr!Path) recur(size_t i, immutable Ptr!Path path) {
 		if (i == len)
 			return path;
-		if (str.at(i) == '/')
+		if (at(str, i) == '/')
 			i++;
 		if (i == len)
 			return path;
 		immutable size_t begin = i;
-		while (i < len && str.at(i) != '/')
+		while (i < len && at(str, i) != '/')
 			i++;
-		return recur(i, childPath(alloc, path, getSymFromAlphaIdentifier(symbols, sliceFromTo(str, begin, i))));
+		immutable Str part = sliceFromTo(str, begin, i);
+		return recur(i, childPath(alloc, path, getSymFromAlphaIdentifier(symbols, part)));
 	}
 	return recur(i, path);
 }
@@ -254,9 +256,9 @@ private immutable(RelPath) parseRelPath(Alloc, SymAlloc)(
 	immutable Str s,
 ) {
 	if (s.first == '.')
-		if (s.at(1) == '/')
+		if (at(s, 1) == '/')
 			return parseRelPath(alloc, allSymbols, s.slice(2));
-		else if (s.at(1) == '.' && s.at(2) == '/') {
+		else if (at(s, 1) == '.' && at(s, 2) == '/') {
 			immutable RelPath r = parseRelPath(alloc, allSymbols, s.slice(3));
 			verify(r.nParents_ < 255);
 			return RelPath(cast(ubyte) (r.nParents_ + 1), r.path_);
@@ -307,7 +309,7 @@ private immutable(Opt!RootAndPath) parseAbsoluteOrRelPathWithoutExtension(Alloc,
 			return todo!(Opt!RootAndPath)("unc path?");
 		default:
 			// Treat a plain string without '/' in front as a relative path
-			return size(s) >= 2 && s.at(1) == ':'
+			return size(s) >= 2 && at(s, 1) == ':'
 				? todo!(Opt!RootAndPath)("C:/ ?")
 				: some(immutable RootAndPath(cwd, parsePath(alloc, allSymbols, s)));
 	}
@@ -330,7 +332,7 @@ private struct StrAndExtension {
 private immutable(StrAndExtension) removeExtension(immutable Str s) {
 	// Deliberately not allowing i == 0
 	for (size_t i = s.size - 1; i > 0; i--)
-		if (s.at(i) == '.')
+		if (at(s, i) == '.')
 			return StrAndExtension(s.slice(0, i), s.slice(i));
 	return StrAndExtension(s, emptyStr);
 }
@@ -365,7 +367,7 @@ immutable(AbsolutePath) childPath(Alloc)(ref Alloc alloc, immutable AbsolutePath
 
 private immutable(Opt!size_t) pathSlashIndex(immutable Str s) {
 	for (size_t i = s.size - 1; i > 0; i--)
-		if (s.at(i) == '/')
+		if (at(s, i) == '/')
 			return some(i);
 	return none!size_t;
 }

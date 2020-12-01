@@ -6,8 +6,8 @@
 
 		"strict": true,
 		"noFallthroughCasesInSwitch":  true,
-		//"noUnusedLocals": true,
-		//"noUnusedParameters": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
 		"module": "es6",
 		"target": "esnext"
 	}

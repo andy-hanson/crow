@@ -269,13 +269,14 @@ void print(immutable string a) {
 
 pure:
 
-immutable(Bool) isSpecialArg(immutable Str s, immutable string expected) {
-	return Bool(!s.empty &&
-		(s.at(0) == '-' ? isSpecialArg(s.tail, expected) : strEqLiteral(s, expected)));
+immutable(Bool) isSpecialArg(immutable Str a, immutable string expected) {
+	return immutable Bool(
+		!empty(a) &&
+		(at(a, 0) == '-' ? isSpecialArg(tail(a), expected) : strEqLiteral(a, expected)));
 }
 
-immutable(Bool) isHelp(immutable Str s) {
-	return isSpecialArg(s, "help");
+immutable(Bool) isHelp(immutable Str a) {
+	return isSpecialArg(a, "help");
 }
 
 struct Command {
@@ -428,7 +429,7 @@ immutable(Command) parseRunCommand(Alloc, SymAlloc)(
 				: immutable InterpretAndRemainingArgs(False, argsAfterMain);
 		return empty(ira.remainingArgs)
 			? immutable Command(Command.Run(ira.interpret, programDirAndMain, emptyArr!Str))
-			: strEqLiteral(ira.remainingArgs.at(0), "--")
+			: strEqLiteral(at(ira.remainingArgs, 0), "--")
 			? immutable Command(Command.Run(ira.interpret, programDirAndMain, ira.remainingArgs.slice(1)))
 			: immutable Command(Command.HelpRun());
 	}
