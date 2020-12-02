@@ -6,10 +6,10 @@ import io.io : tryReadFile;
 import model.model : AbsolutePathsGetter;
 import util.collection.str : NulTerminatedStr, Str;
 import util.opt : Opt;
-import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
+import util.path : AbsolutePath, AllPaths, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr;
 
-struct RealReadOnlyStorage(Alloc) {
+struct RealReadOnlyStorage(PathAlloc, Alloc) {
 	@safe @nogc nothrow: // not pure
 
 	immutable(AbsolutePathsGetter) absolutePathsGetter() const {
@@ -30,11 +30,12 @@ struct RealReadOnlyStorage(Alloc) {
 			}
 		}();
 		immutable AbsolutePath ap = immutable AbsolutePath(root, pk.path, extension);
-		return tryReadFile(alloc, alloc, ap, cb);
+		return tryReadFile(tempAlloc, allPaths, ap, cb);
 	}
 
 	private:
-	Ptr!Alloc alloc;
+	Ptr!(AllPaths!PathAlloc) allPaths;
+	Ptr!Alloc tempAlloc;
 	immutable Str include;
 	immutable Str user;
 }

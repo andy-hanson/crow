@@ -31,6 +31,10 @@ immutable(Comparison) compareOr(
 		compareOr(cb0(), cb1));
 }
 
+immutable(Comparison) compareNat16(immutable ushort a, immutable ushort b) {
+	return compareSizeT(a, b);
+}
+
 immutable(Comparison) compareNat32(immutable uint a, immutable uint b) {
 	return compareSizeT(a, b);
 }

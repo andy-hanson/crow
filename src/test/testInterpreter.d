@@ -68,8 +68,8 @@ import util.collection.str : emptyStr, strLiteral;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.memory : nu;
 import util.opt : none;
-import util.path : Path, PathAndStorageKind, StorageKind;
-import util.ptr : Ptr, ptrTrustMe, ptrTrustMe_mut;
+import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
+import util.ptr : ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : shortSymAlphaLiteral;
 import util.types : Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64;
@@ -116,8 +116,8 @@ void doInterpret(Alloc)(
 	ref immutable ByteCode byteCode,
 	scope void delegate(ref Interpreter!(FakeExtern!Alloc)) @safe @nogc nothrow runInterpreter,
 ) {
-	immutable Path emptyPath = immutable Path(none!(Ptr!Path), shortSymAlphaLiteral("test"));
-	immutable PathAndStorageKind pk = immutable PathAndStorageKind(ptrTrustMe(emptyPath), StorageKind.global);
+	immutable Path emptyPath = rootPath(test.allPaths,  shortSymAlphaLiteral("test"));
+	immutable PathAndStorageKind pk = immutable PathAndStorageKind(emptyPath, StorageKind.global);
 	immutable LineAndColumnGetter lcg = lineAndColumnGetterForEmptyFile(test.alloc);
 	static immutable AbsolutePathsGetter emptyAbsolutePathsGetter = immutable AbsolutePathsGetter(emptyStr, emptyStr);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
@@ -687,12 +687,12 @@ void verifyStackEntry(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u16 n) {
 }
 
 void stepContinue(Alloc, Extern)(ref Test!Alloc test, ref Interpreter!Extern interpreter) {
-	immutable StepResult result = step(test.dbg, test.alloc, interpreter);
+	immutable StepResult result = step(test.dbg, test.alloc, test.allPaths, interpreter);
 	verify(result == StepResult.continue_);
 }
 
 void stepExit(Alloc, Extern)(ref Test!Alloc test, ref Interpreter!Extern interpreter) {
-	immutable StepResult result = step(test.dbg, test.alloc, interpreter);
+	immutable StepResult result = step(test.dbg, test.alloc, test.allPaths, interpreter);
 	verify(result == StepResult.exit);
 }
 

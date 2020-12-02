@@ -28,17 +28,17 @@ import util.collection.str :
 	strOfCStr,
 	strToCStr;
 import util.opt : none, Opt, some;
-import util.path : AbsolutePath, pathToCStr;
+import util.path : AbsolutePath, AllPaths, pathToCStr;
 import util.types : safeSizeTFromSSizeT, safeSizeTFromU64, safeU32FromI64, ssize_t;
 import util.util : todo, verify;
 
-@trusted immutable(T) tryReadFile(T, Alloc, TempAlloc)(
-	ref Alloc alloc,
+@trusted immutable(T) tryReadFile(T, TempAlloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
+	ref const AllPaths!PathAlloc allPaths,
 	immutable AbsolutePath path,
 	scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 ) {
-	immutable CStr pathCStr = pathToCStr(tempAlloc, path);
+	immutable CStr pathCStr = pathToCStr(tempAlloc, allPaths, path);
 
 	immutable int fd = open(pathCStr, O_RDONLY);
 	if (fd == -1) {
@@ -75,8 +75,8 @@ import util.util : todo, verify;
 	verify(off == 0);
 
 	immutable size_t contentSize = safeSizeTFromU64(fileSize + 1);
-	char* content = cast(char*) alloc.allocateBytes(char.sizeof * contentSize); // + 1 for the '\0'
-	scope (exit) alloc.freeBytes(cast(ubyte*) content, char.sizeof * contentSize);
+	char* content = cast(char*) tempAlloc.allocateBytes(char.sizeof * contentSize); // + 1 for the '\0'
+	scope (exit) tempAlloc.freeBytes(cast(ubyte*) content, char.sizeof * contentSize);
 	immutable ssize_t nBytesRead = read(fd, content, fileSize);
 
 	if (nBytesRead == -1)
@@ -92,12 +92,13 @@ import util.util : todo, verify;
 	return cb(s);
 }
 
-@trusted void writeFileSync(TempAlloc)(
+@trusted void writeFileSync(TempAlloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath path,
 	ref immutable Str content,
 ) {
-	immutable int fd = tryOpen(tempAlloc, path, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
+	immutable int fd = tryOpen(tempAlloc, allPaths, path, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
 	scope(exit) close(fd);
 
 	immutable ssize_t wroteBytes = write(fd, content.begin, content.size);
@@ -112,13 +113,14 @@ alias Environ = Arr!(KeyValuePair!(Str, Str));
 
 // Returns the child process' error code.
 // WARN: A first arg will be prepended that is the executable path.
-@trusted int spawnAndWaitSync(TempAlloc)(
+@trusted int spawnAndWaitSync(TempAlloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
+	ref const AllPaths!PathAlloc allPaths,
 	immutable AbsolutePath executable,
 	immutable Arr!Str args,
 	immutable Environ environ
 ) {
-	immutable CStr executableCStr = pathToCStr(tempAlloc, executable);
+	immutable CStr executableCStr = pathToCStr(tempAlloc, allPaths, executable);
 	return spawnAndWaitSync(
 		executableCStr,
 		convertArgs(tempAlloc, executableCStr, args),
@@ -127,13 +129,14 @@ alias Environ = Arr!(KeyValuePair!(Str, Str));
 
 // Replaces this process with the given executable.
 // DOES NOT RETURN!
-@trusted void replaceCurrentProcess(TempAlloc)(
+@trusted void replaceCurrentProcess(TempAlloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
+	ref const AllPaths!PathAlloc allPaths,
 	immutable AbsolutePath executable,
 	immutable Arr!Str args,
 	immutable Environ environ,
 ) {
-	immutable CStr executableCStr = pathToCStr(tempAlloc, executable);
+	immutable CStr executableCStr = pathToCStr(tempAlloc, allPaths, executable);
 	immutable int err = execvpe(
 		executableCStr,
 		convertArgs(tempAlloc, executableCStr, args),
@@ -181,13 +184,14 @@ private:
 	return finishArr(alloc, res);
 }
 
-@system int tryOpen(TempAlloc)(
+@system int tryOpen(TempAlloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath path,
 	immutable int flags,
 	immutable int moreFlags,
 ) {
-	immutable int fd = open(pathToCStr(tempAlloc, path), flags, moreFlags);
+	immutable int fd = open(pathToCStr(tempAlloc, allPaths, path), flags, moreFlags);
 	if (fd == -1)
 		todo!void("can't write to file");
 	return fd;

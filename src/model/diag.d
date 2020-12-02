@@ -25,7 +25,7 @@ import util.collection.arr : Arr;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.str : emptyStr, Str;
 import util.opt : Opt;
-import util.path : PathAndStorageKind, pathToStr;
+import util.path : AbsolutePath, AllPaths, PathAndStorageKind, pathToStr;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths;
 import util.sym : Sym;
@@ -598,48 +598,52 @@ struct FilesInfo {
 }
 static assert(FilesInfo.sizeof <= 48);
 
-void writeFileAndRange(TempAlloc, Alloc)(
+void writeFileAndRange(TempAlloc, Alloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable FileAndRange where,
 ) {
-	writeFileNoResetWriter(tempAlloc, writer, options, fi, where.fileIndex);
+	writeFileNoResetWriter(tempAlloc, writer, allPaths, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writeRangeWithinFile(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.range);
 	if (options.color)
 		writeReset(writer);
 }
 
-void writeFileAndPos(TempAlloc, Alloc)(
+void writeFileAndPos(TempAlloc, Alloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable FileAndPos where,
 ) {
-	writeFileNoResetWriter(tempAlloc, writer, options, fi, where.fileIndex);
+	writeFileNoResetWriter(tempAlloc, writer, allPaths, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writePos(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.pos);
 	if (options.color)
 		writeReset(writer);
 }
 
-void writeFile(TempAlloc, Alloc)(
+void writeFile(TempAlloc, Alloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable FilesInfo fi,
 	immutable FileIndex fileIndex,
 ) {
 	immutable ShowDiagOptions noColor = immutable ShowDiagOptions(False);
-	writeFileNoResetWriter(tempAlloc, writer, noColor, fi, fileIndex);
+	writeFileNoResetWriter(tempAlloc, writer, allPaths, noColor, fi, fileIndex);
 	// No need to reset writer since we didn't use color
 }
 
-private void writeFileNoResetWriter(TempAlloc, Alloc)(
+private void writeFileNoResetWriter(TempAlloc, Alloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	immutable FileIndex fileIndex,
@@ -650,12 +654,10 @@ private void writeFileNoResetWriter(TempAlloc, Alloc)(
 		writeStatic(writer, "<generated code> ");
 	} else {
 		immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, fileIndex);
-		immutable Str pathStr = pathToStr(tempAlloc, emptyStr, path.path, nozeExtension);
+		immutable Str pathStr = pathToStr(tempAlloc, allPaths, emptyStr, path.path, nozeExtension);
 		if (options.color) {
-			writeHyperlink(
-				writer,
-				pathToStr(tempAlloc, getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, nozeExtension)),
-				pathStr);
+			immutable AbsolutePath abs = getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, nozeExtension);
+			writeHyperlink(writer, pathToStr(tempAlloc, allPaths, abs), pathStr);
 			writeRed(writer);
 		} else
 			writeStr(writer, pathStr);

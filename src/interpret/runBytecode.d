@@ -56,7 +56,7 @@ import util.collection.globalAllocatedStack :
 import util.collection.str : CStr, freeCStr, Str, strToCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : has;
-import util.path : AbsolutePath, pathToCStr;
+import util.path : AbsolutePath, AllPaths, pathToCStr;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
 import util.sexpr : writeSexprNoNewline;
 import util.sourceRange : FileAndPos;
@@ -64,9 +64,10 @@ import util.types : decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, saf
 import util.util : todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, writeStatic;
 
-@trusted immutable(int) runBytecode(Debug, TempAlloc, Extern)(
+@trusted immutable(int) runBytecode(Debug, TempAlloc, PathAlloc, Extern)(
 	ref Debug dbg,
 	ref TempAlloc tempAlloc,
+	ref const AllPaths!PathAlloc allPaths,
 	ref Extern extern_,
 	ref immutable LowProgram lowProgram,
 	ref immutable ByteCode byteCode,
@@ -81,7 +82,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 		ptrTrustMe(filesInfo));
 
 	ExternAlloc!Extern externAlloc = ExternAlloc!Extern(ptrTrustMe_mut(extern_));
-	immutable CStr firstArg = pathToCStr(externAlloc, executablePath);
+	immutable CStr firstArg = pathToCStr(externAlloc, allPaths, executablePath);
 	immutable Arr!CStr allArgs = mapWithFirst!(CStr, Str)(externAlloc, firstArg, args, (ref immutable Str arg) =>
 		strToCStr(externAlloc, arg));
 
@@ -89,7 +90,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 	// These need to be CStrs
 	push(interpreter.dataStack, immutable Nat64(cast(immutable u64) begin(allArgs)));
 	for (;;) {
-		final switch (step(dbg, tempAlloc, interpreter)) {
+		final switch (step(dbg, tempAlloc, allPaths, interpreter)) {
 			case StepResult.continue_:
 				break;
 			case StepResult.exit:
@@ -195,9 +196,10 @@ private @trusted void showReturnStack(Alloc, Extern)(ref Writer!Alloc writer, re
 	writeFunNameAtByteCodePtr(writer, a, getReaderPtr(a.reader));
 }
 
-private void writeByteCodeSource(TempAlloc, Alloc)(
+private void writeByteCodeSource(TempAlloc, Alloc, PathAlloc)(
 	ref TempAlloc temp,
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable LowProgram lowProgram,
 	ref immutable FilesInfo filesInfo,
@@ -208,7 +210,7 @@ private void writeByteCodeSource(TempAlloc, Alloc)(
 		fullIndexDictGet(lowProgram.allFuns, source.fun).source,
 		(immutable Ptr!ConcreteFun it) {
 			immutable FileAndPos where = immutable FileAndPos(concreteFunRange(it).fileIndex, source.pos);
-			writeFileAndPos(temp, writer, showDiagOptions, filesInfo, where);
+			writeFileAndPos(temp, writer, allPaths, showDiagOptions, filesInfo, where);
 		},
 		(ref immutable LowFunSource.Generated) {});
 }
@@ -259,7 +261,12 @@ private immutable(ByteCodeSource) nextSource(Extern)(ref const Interpreter!Exter
 	return byteCodeSourceAtByteCodePtr(a, getReaderPtr(a.reader));
 }
 
-immutable(StepResult) step(Debug, TempAlloc, Extern)(ref Debug dbg, ref TempAlloc tempAlloc, ref Interpreter!Extern a) {
+immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
+	ref Debug dbg,
+	ref TempAlloc tempAlloc,
+	ref const AllPaths!PathAlloc allPaths,
+	ref Interpreter!Extern a,
+) {
 	immutable ByteCodeSource source = nextSource(a);
 	if (dbg.enabled()) {
 		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
@@ -272,7 +279,7 @@ immutable(StepResult) step(Debug, TempAlloc, Extern)(ref Debug dbg, ref TempAllo
 		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 		writeStatic(writer, "STEP: ");
 		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
-		writeByteCodeSource(tempAlloc, writer, showDiagOptions, a.lowProgram, a.filesInfo, source);
+		writeByteCodeSource(tempAlloc, writer, allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
 		writeChar(writer, ' ');
 		writeSexprNoNewline(writer, sexprOfOperation(tempAlloc, operation));
 		if (isCall(operation)) {

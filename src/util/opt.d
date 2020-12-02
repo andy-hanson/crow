@@ -3,9 +3,8 @@ module util.opt;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.comparison : Comparison;
 import util.ptr : Ptr, ptrTrustMe;
-import util.util : todo, verify;
+import util.util : verify;
 
 struct Opt(T) {
 	private:
@@ -86,26 +85,15 @@ immutable(Bool) has(T)(const Opt!T a) {
 	return ptrTrustMe(a.value_);
 }
 
-immutable(T) forceOrTodo(T)(ref immutable Opt!T a) {
+ref immutable(T) forceOrTodo(T)(return scope ref immutable Opt!T a) {
 	if (has(a))
 		return force(a);
 	else
-		return todo!(immutable T)("forceOrTODO");
-}
-
-immutable(Out) matchOpt(Out, T)(
-	immutable Opt!T a,
-	scope immutable(Out) delegate(ref immutable T) @safe @nogc pure nothrow cbSome,
-	scope immutable(Out) delegate() @safe @nogc pure nothrow cbNone,
-) {
-	if (has(a))
-		return cbSome(force(a));
-	else
-		return cbNone();
+		assert(0);
 }
 
 immutable(T) optOr(T)(immutable Opt!T a, scope immutable(T) delegate() @safe @nogc pure nothrow cb) {
-	return matchOpt(a, (ref immutable T t) => t, cb);
+	return has(a) ? force(a) : cb();
 }
 
 immutable(Opt!T) optOr2(T)(immutable Opt!T a, scope immutable(Opt!T) delegate() @safe @nogc pure nothrow cb) {
@@ -131,21 +119,4 @@ immutable(Opt!Out) flatMapOption(Out, T)(
 	scope immutable(Opt!Out) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return has(a) ? cb(force(a)) : none!Out;
-}
-
-immutable(Comparison) compareOpt(T)(
-	ref immutable Opt!T a,
-	ref immutable Opt!T b,
-	scope Comparison delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow compare,
-) {
-	// none < some
-	return matchOpt!(Comparison, T)(
-		a,
-		(ref immutable T ta) =>
-			matchOpt!(Comparison, T)(
-				b,
-				(ref immutable T tb) => compare(ta, tb),
-				() => Comparison.greater),
-		() =>
-			has(b) ? Comparison.less : Comparison.equal);
 }

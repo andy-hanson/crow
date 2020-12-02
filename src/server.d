@@ -29,7 +29,7 @@ import util.collection.str :
 	strLiteral;
 import util.comparison : Comparison;
 import util.opt : asImmutable, force, has, none, Opt, some;
-import util.path : comparePathAndStorageKind, parsePath, Path, PathAndStorageKind, StorageKind;
+import util.path : AllPaths, comparePathAndStorageKind, parsePath, Path, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr, ptrTrustMe_const, ptrTrustMe_mut;
 import util.result : matchResult, Result;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
@@ -40,11 +40,13 @@ import util.util : verify;
 struct Server(Alloc) {
 	Alloc alloc;
 	AllSymbols!Alloc allSymbols;
+	AllPaths!Alloc allPaths;
 	MutFiles files;
 
 	this(Alloc a) {
 		alloc = a.move();
 		allSymbols = AllSymbols!Alloc(Ptr!Alloc(&alloc));
+		allPaths = AllPaths!Alloc(Ptr!Alloc(&alloc));
 		files = MutFiles.init;
 	}
 }
@@ -102,7 +104,7 @@ immutable(Arr!Token) getTokens(Alloc, ServerAlloc)(
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr text = mustGetAt_mut(server.files, key);
-	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, server.allSymbols, text);
+	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, server.allPaths, server.allSymbols, text);
 	return tokensOfAst(alloc, ast.ast);
 }
 
@@ -119,9 +121,9 @@ immutable(Arr!StrParseDiagnostic) getParseDiagnostics(Alloc, ServerAlloc)(
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr text = mustGetAt_mut(server.files, key);
-	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, server.allSymbols, text);
+	immutable FileAstAndParseDiagnostics ast = parseFile(alloc, server.allPaths, server.allSymbols, text);
 	return map!StrParseDiagnostic(alloc, ast.diagnostics, (ref immutable ParseDiagnostic it) =>
-		immutable StrParseDiagnostic(it.range, strOfParseDiag(alloc, showDiagOptions, it.diag)));
+		immutable StrParseDiagnostic(it.range, strOfParseDiag(alloc, server.allPaths, showDiagOptions, it.diag)));
 }
 
 immutable(Str) getHover(Debug, Alloc, ServerAlloc)(
@@ -135,7 +137,7 @@ immutable(Str) getHover(Debug, Alloc, ServerAlloc)(
 	import frontend.frontendCompile : frontendCompile;
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
 	immutable Result!(Ptr!Program, Diagnostics) programResult =
-		frontendCompile(alloc, alloc, server.allSymbols, storage, toPath(server, path));
+		frontendCompile(alloc, alloc, server.allPaths, server.allSymbols, storage, toPath(server, path));
 	return matchResult!(immutable Str, Ptr!Program, Diagnostics)(
 		programResult,
 		(ref immutable Ptr!Program program) =>
@@ -156,7 +158,7 @@ private pure immutable(Str) getHoverFromProgram(Alloc, ServerAlloc)(
 	immutable Opt!FileIndex fileIndex = getFileIndex(program.filesInfo.filePaths, pk);
 	if (has(fileIndex)) {
 		immutable Opt!Position position = getPosition(at(program.allModules, force(fileIndex).index), pos);
-		return has(position) ? getHoverStr!(Alloc, Alloc)(alloc, alloc, program, force(position)) : emptyStr;
+		return has(position) ? getHoverStr(alloc, alloc, server.allPaths, program, force(position)) : emptyStr;
 	} else
 		return emptyStr;
 }
@@ -184,14 +186,14 @@ immutable(RunResult) run(Debug, Alloc, ServerAlloc)(
 	ref Server!ServerAlloc server,
 	immutable Str mainPathStr,
 ) {
-	immutable Ptr!Path mainPath = toPath(server, mainPathStr);
+	immutable Path mainPath = toPath(server, mainPathStr);
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	immutable Arr!Str programArgs = emptyArr!Str;
 	FakeExtern!Alloc extern_ = FakeExtern!Alloc(ptrTrustMe_mut(alloc));
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
-	immutable int err = buildAndInterpret!(Debug, Alloc, ServerAlloc, DictReadOnlyStorage, FakeExtern!Alloc)(
-		dbg, alloc, server.allSymbols, storage, extern_, showDiagOptions, mainPath, programArgs);
+	immutable int err = buildAndInterpret(
+		dbg, alloc, server.allPaths, server.allSymbols, storage, extern_, showDiagOptions, mainPath, programArgs);
 	return RunResult(err, extern_.moveStdout(), extern_.moveStderr());
 }
 
@@ -201,8 +203,8 @@ private:
 	freeArr(alloc, a);
 }
 
-pure immutable(Ptr!Path) toPath(Alloc)(ref Server!Alloc server, scope ref immutable Str path) {
-	return parsePath(server.alloc, server.allSymbols, path);
+pure immutable(Path) toPath(Alloc)(ref Server!Alloc server, scope ref immutable Str path) {
+	return parsePath(server.allPaths, server.allSymbols, path);
 }
 
 immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);

@@ -47,6 +47,7 @@ void testOne(Alloc)(ref Test!Alloc test, immutable string source, immutable Arr!
 	immutable Str sourceStr = strLiteral(source);
 	immutable FileAstAndParseDiagnostics ast = parseFile(
 		test.alloc,
+		test.allPaths,
 		allSymbols,
 		copyToNulTerminatedStr(test.alloc, sourceStr));
 	immutable Arr!Token tokens = tokensOfAst(test.alloc, ast.ast);
@@ -58,7 +59,7 @@ void testOne(Alloc)(ref Test!Alloc test, immutable string source, immutable Arr!
 		writeSexpr(writer, sexprOfTokens(test.alloc, tokens));
 
 		writeStatic(writer, "\n\n(hint: ast is:)\n");
-		writeSexpr(writer, sexprOfAst(test.alloc, ast.ast));
+		writeSexpr(writer, sexprOfAst(test.alloc, test.allPaths, ast.ast));
 		immutable Str s = finishWriter(writer);
 		debug {
 			//TODO: Use test.dbg (have that not be NullDebug)

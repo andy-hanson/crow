@@ -34,7 +34,7 @@ import util.collection.str : Str;
 import util.diff : diffSymbols;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has;
-import util.path : comparePathAndStorageKind, PathAndStorageKind;
+import util.path : AllPaths, comparePathAndStorageKind, PathAndStorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, FilePaths;
 import util.sym : Sym, writeSym;
@@ -57,8 +57,9 @@ struct ShowDiagOptions {
 	immutable Bool color;
 }
 
-immutable(Str) strOfDiagnostics(Alloc)(
+immutable(Str) strOfDiagnostics(Alloc, PathAlloc)(
 	ref Alloc alloc,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable Diagnostics diagnostics,
 ) {
@@ -73,25 +74,27 @@ immutable(Str) strOfDiagnostics(Alloc)(
 				fullIndexDictGet(filePaths, a.where.fileIndex),
 				fullIndexDictGet(filePaths, b.where.fileIndex)));
 	writeWithNewlines!Diagnostic(writer, sorted, (ref immutable Diagnostic it) {
-		showDiagnostic(alloc, writer, options, diagnostics.filesInfo, it);
+		showDiagnostic(alloc, writer, allPaths, options, diagnostics.filesInfo, it);
 	});
 	return finishWriter(writer);
 }
 
-public immutable(Str) strOfParseDiag(Alloc)(
+public immutable(Str) strOfParseDiag(Alloc, PathAlloc)(
 	ref Alloc alloc,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable ParseDiag a,
 ) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-	writeParseDiag(writer, a);
+	writeParseDiag(writer, allPaths, a);
 	return finishWriter(writer);
 }
 
 private:
 
-void writeLineNumber(Alloc)(
+void writeLineNumber(Alloc, PathAlloc)(
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	immutable FilesInfo fi,
 	immutable FileAndRange range,
@@ -99,7 +102,7 @@ void writeLineNumber(Alloc)(
 	immutable PathAndStorageKind where = fullIndexDictGet(fi.filePaths, range.fileIndex);
 	if (options.color)
 		writeBold(writer);
-	writePathAndStorageKind(writer, where);
+	writePathAndStorageKind(writer, allPaths, where);
 	writeStatic(writer, ".nz");
 	if (options.color)
 		writeReset(writer);
@@ -111,14 +114,18 @@ void writeLineNumber(Alloc)(
 	writeNat(writer, line + 1);
 }
 
-void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
+void writeParseDiag(Alloc, PathAlloc)(
+	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
+	ref immutable ParseDiag d,
+) {
 	matchParseDiag!void(
 		d,
 		(ref immutable ParseDiag.CircularImport it) {
 			writeStatic(writer, "circular import from ");
-			writePathAndStorageKind(writer, it.from);
+			writePathAndStorageKind(writer, allPaths, it.from);
 			writeStatic(writer, " to ");
-			writePathAndStorageKind(writer, it.to);
+			writePathAndStorageKind(writer, allPaths, it.to);
 		},
 		(ref immutable ParseDiag.Expected it) {
 			final switch (it.kind) {
@@ -171,7 +178,7 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 			writeStatic(writer, "file does not exist");
 			if (has(d.importedFrom)) {
 				writeStatic(writer, " (imported from ");
-				writePathAndStorageKind(writer, force(d.importedFrom).path);
+				writePathAndStorageKind(writer, allPaths, force(d.importedFrom).path);
 				writeChar(writer, ')');
 			}
 		},
@@ -220,7 +227,7 @@ void writeParseDiag(Alloc)(ref Writer!Alloc writer, ref immutable ParseDiag d) {
 		},
 		(ref immutable ParseDiag.RelativeImportReachesPastRoot d) {
 			writeStatic(writer, "importing ");
-			writeRelPath(writer, d.imported);
+			writeRelPath(writer, allPaths, d.imported);
 			writeStatic(writer, " reaches above the source directory");
 			//TODO: recommend a compiler option to fix this
 		},
@@ -284,8 +291,9 @@ void writeSig(Alloc)(ref Writer!Alloc writer, ref immutable Sig s) {
 	writeChar(writer, ')');
 }
 
-void writeCalledDecl(Alloc)(
+void writeCalledDecl(Alloc, PathAlloc)(
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	immutable FilesInfo fi,
 	immutable CalledDecl c,
@@ -295,7 +303,7 @@ void writeCalledDecl(Alloc)(
 		c,
 		(immutable Ptr!FunDecl funDecl) {
 			writeStatic(writer, " (from ");
-			writeLineNumber(writer, options, fi, range(funDecl));
+			writeLineNumber(writer, allPaths, options, fi, range(funDecl));
 			writeChar(writer, ')');
 		},
 		(ref immutable SpecSig specSig) {
@@ -305,8 +313,9 @@ void writeCalledDecl(Alloc)(
 		});
 }
 
-void writeCalledDecls(Alloc)(
+void writeCalledDecls(Alloc, PathAlloc)(
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Arr!CalledDecl cs,
@@ -316,21 +325,23 @@ void writeCalledDecls(Alloc)(
 		if (filter(c)) {
 			writeNl(writer);
 			writeChar(writer, '\t');
-			writeCalledDecl(writer, options, fi, c);
+			writeCalledDecl(writer, allPaths, options, fi, c);
 		}
 }
 
-void writeCalledDecls(Alloc)(
+void writeCalledDecls(Alloc, PathAlloc)(
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Arr!CalledDecl cs,
 ) {
-	writeCalledDecls(writer, options, fi, cs, (ref immutable CalledDecl) => True);
+	writeCalledDecls(writer, allPaths, options, fi, cs, (ref immutable CalledDecl) => True);
 }
 
-void writeCallNoMatch(Alloc)(
+void writeCallNoMatch(Alloc, PathAlloc)(
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Diag.CallNoMatch d,
@@ -370,7 +381,7 @@ void writeCallNoMatch(Alloc)(
 			writeStatic(writer, " type");
 		}
 		writeStatic(writer, " arguments. candidates:");
-		writeCalledDecls(writer, options, fi, d.allCandidates);
+		writeCalledDecls(writer, allPaths, options, fi, d.allCandidates);
 	} else {
 		writeStatic(writer, "there are functions named ");
 		writeName(writer, d.funName);
@@ -397,14 +408,15 @@ void writeCallNoMatch(Alloc)(
 		writeStatic(writer, "\ncandidates (with ");
 		writeNat(writer, d.actualArity);
 		writeStatic(writer, " arguments):");
-		writeCalledDecls(writer, options, fi, d.allCandidates, (ref immutable CalledDecl c) =>
+		writeCalledDecls(writer, allPaths, options, fi, d.allCandidates, (ref immutable CalledDecl c) =>
 			immutable Bool(arity(c) == d.actualArity));
 	}
 }
 
-void writeDiag(TempAlloc, Alloc)(
+void writeDiag(TempAlloc, Alloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Diag d,
@@ -415,10 +427,10 @@ void writeDiag(TempAlloc, Alloc)(
 			writeStatic(writer, "cannot choose an overload of ");
 			writeName(writer, d.funName);
 			writeStatic(writer, ". multiple functions match:");
-			writeCalledDecls(writer, options, fi, d.matches);
+			writeCalledDecls(writer, allPaths, options, fi, d.matches);
 		},
 		(ref immutable Diag.CallNoMatch d) {
-			writeCallNoMatch(writer, options, fi, d);
+			writeCallNoMatch(writer, allPaths, options, fi, d);
 		},
 		(ref immutable Diag.CantCall c) {
 			immutable string descr = () {
@@ -585,7 +597,7 @@ void writeDiag(TempAlloc, Alloc)(
 			writeName(writer, d.name);
 		},
 		(ref immutable ParseDiag pd) {
-			writeParseDiag(writer, pd);
+			writeParseDiag(writer, allPaths, pd);
 		},
 		(ref immutable Diag.PurityOfFieldWorseThanRecord d) {
 			writeStatic(writer, "struct ");
@@ -675,16 +687,17 @@ void writeDiag(TempAlloc, Alloc)(
 		});
 }
 
-void showDiagnostic(TempAlloc, Alloc)(
+void showDiagnostic(TempAlloc, Alloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable Diagnostic d,
 ) {
-	writeFileAndRange(tempAlloc, writer, options, fi, d.where);
+	writeFileAndRange(tempAlloc, writer, allPaths, options, fi, d.where);
 	writeChar(writer, ' ');
-	writeDiag(tempAlloc, writer, options, fi, d.diag);
+	writeDiag(tempAlloc, writer, allPaths, options, fi, d.diag);
 	writeNl(writer);
 }
 

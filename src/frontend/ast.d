@@ -8,7 +8,7 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
 import util.collection.str : emptyStr, Str;
 import util.opt : force, has, none, Opt, some;
-import util.path : Path, pathToStr;
+import util.path : AllPaths, Path, pathToStr;
 import util.ptr : Ptr;
 import util.sexpr :
 	NameAndSexpr,
@@ -573,7 +573,7 @@ struct ImportAst {
 	immutable RangeWithinFile range;
 	// Not using RelPath here because if nDots == 0, it's not a relative path
 	immutable u8 nDots;
-	immutable Ptr!Path path;
+	immutable Path path;
 	immutable Opt!(Arr!Sym) names;
 }
 
@@ -635,12 +635,16 @@ ref immutable(Arr!FunDeclAst) funs(return scope ref immutable FileAst a) {
 	return a.part1.funs;
 }
 
-immutable(Sexpr) sexprOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
+immutable(Sexpr) sexprOfAst(Alloc, PathAlloc)(
+	ref Alloc alloc,
+	ref const AllPaths!PathAlloc allPaths,
+	ref immutable FileAst ast,
+) {
 	ArrBuilder!NameAndSexpr args;
 	if (has(ast.imports))
-		add(alloc, args, nameAndTata("imports", sexprOfImportsOrExports(alloc, force(ast.imports))));
+		add(alloc, args, nameAndTata("imports", sexprOfImportsOrExports(alloc, allPaths, force(ast.imports))));
 	if (has(ast.exports))
-		add(alloc, args, nameAndTata("exports", sexprOfImportsOrExports(alloc, force(ast.exports))));
+		add(alloc, args, nameAndTata("exports", sexprOfImportsOrExports(alloc, allPaths, force(ast.exports))));
 	add(alloc, args, nameAndTata("specs", tataArr(alloc, ast.specs, (ref immutable SpecDeclAst a) =>
 		sexprOfSpecDeclAst(alloc, a))));
 	add(alloc, args, nameAndTata("aliases", tataArr(alloc, ast.structAliases, (ref immutable StructAliasAst a) =>
@@ -654,17 +658,25 @@ immutable(Sexpr) sexprOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
 
 private:
 
-immutable(Sexpr) sexprOfImportsOrExports(Alloc)(ref Alloc alloc, ref immutable ImportsOrExportsAst a) {
+immutable(Sexpr) sexprOfImportsOrExports(Alloc, PathAlloc)(
+	ref Alloc alloc,
+	ref const AllPaths!PathAlloc allPaths,
+	ref immutable ImportsOrExportsAst a,
+) {
 	return tataRecord(alloc, "ports", [
 		sexprOfRangeWithinFile(alloc, a.range),
 		tataArr(alloc, a.paths, (ref immutable ImportAst a) =>
-			sexprOfImportAst(alloc, a))]);
+			sexprOfImportAst(alloc, allPaths, a))]);
 }
 
-immutable(Sexpr) sexprOfImportAst(Alloc)(ref Alloc alloc, ref immutable ImportAst a) {
+immutable(Sexpr) sexprOfImportAst(Alloc, PathAlloc)(
+	ref Alloc alloc,
+	ref const AllPaths!PathAlloc allPaths,
+	ref immutable ImportAst a,
+) {
 	return tataRecord(alloc, "import-ast", [
 		tataNat(a.nDots),
-		tataStr(pathToStr(alloc, emptyStr, a.path, emptyStr)),
+		tataStr(pathToStr(alloc, allPaths, emptyStr, a.path, emptyStr)),
 		tataOpt(alloc, a.names, (ref immutable Arr!Sym names) =>
 			tataArr(alloc, names, (ref immutable Sym name) =>
 				tataSym(name)))]);

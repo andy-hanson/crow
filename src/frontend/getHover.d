@@ -16,24 +16,27 @@ import model.model :
 	SpecDecl,
 	StructBody;
 import util.collection.str : Str;
+import util.path : AllPaths;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : writeSym;
 import util.writer : finishWriter, Writer, writeStatic;
 
-immutable(Str) getHoverStr(TempAlloc, Alloc)(
+immutable(Str) getHoverStr(TempAlloc, Alloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
 	ref Alloc alloc,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable Program program,
 	ref immutable Position pos,
 ) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-	getHover(tempAlloc, writer, program, pos);
+	getHover(tempAlloc, writer, allPaths, program, pos);
 	return finishWriter(writer);
 }
 
-void getHover(TempAlloc, Alloc)(
+void getHover(TempAlloc, Alloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
 	ref immutable Program program,
 	ref immutable Position pos,
 ) {
@@ -48,7 +51,7 @@ void getHover(TempAlloc, Alloc)(
 		},
 		(ref immutable Position.ImportedModule it) {
 			writeStatic(writer, "import module ");
-			writeFile(tempAlloc, writer, program.filesInfo, it.import_.module_.fileIndex);
+			writeFile(tempAlloc, writer, allPaths, program.filesInfo, it.import_.module_.fileIndex);
 		},
 		(ref immutable Position.ImportedName it) {
 			getNameAndReferentsHover(writer, it.name_);

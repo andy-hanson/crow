@@ -31,6 +31,7 @@ import util.collection.str : CStr, emptyStr, endsWith, Str, strLiteral, strEqLit
 import util.opt : force, forceOrTodo, has, none, Opt, some;
 import util.path :
 	AbsolutePath,
+	AllPaths,
 	baseName,
 	parentStr,
 	parseAbsoluteOrRelPath,
@@ -40,7 +41,7 @@ import util.path :
 	pathToStr,
 	rootPath,
 	withExtension;
-import util.ptr : Ptr, ptrTrustMe_mut;
+import util.ptr : ptrTrustMe_mut;
 import util.result : matchResultImpure, Result;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
 import util.util : NullDebug, todo, unreachable;
@@ -50,8 +51,9 @@ import util.util : NullDebug, todo, unreachable;
 int cli(immutable size_t argc, immutable CStr* argv) {
 	Mallocator mallocator;
 	immutable CommandLineArgs args = parseCommandLineArgs(mallocator, argc, argv);
+	AllPaths!Mallocator allPaths = AllPaths!Mallocator(ptrTrustMe_mut(mallocator));
 	AllSymbols!Mallocator allSymbols = AllSymbols!Mallocator(ptrTrustMe_mut(mallocator));
-	return go(mallocator, allSymbols, args);
+	return go(mallocator, allPaths, allSymbols, args);
 }
 
 private:
@@ -67,13 +69,14 @@ struct RealDebug {
 	}
 }
 
-immutable(int) go(Alloc, SymAlloc)(
+immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable CommandLineArgs args,
 ) {
 	immutable Str nozeDir = getNozeDirectory(args.pathToThisExecutable);
-	immutable Command command = parseCommand(alloc, allSymbols, getCwd(alloc), args.args);
+	immutable Command command = parseCommand(alloc, allPaths, allSymbols, getCwd(alloc), args.args);
 	immutable Str include = cat(alloc, nozeDir, strLiteral("/include"));
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(True);
 	NullDebug dbg;
@@ -82,7 +85,14 @@ immutable(int) go(Alloc, SymAlloc)(
 		command,
 		(ref immutable Command.Build it) {
 			immutable Opt!AbsolutePath exePath =
-				buildToCAndCompile(alloc, allSymbols, showDiagOptions, it.programDirAndMain, include, args.environ);
+				buildToCAndCompile(
+					alloc,
+					allPaths,
+					allSymbols,
+					showDiagOptions,
+					it.programDirAndMain,
+					include,
+					args.environ);
 			return has(exePath) ? 0 : 1;
 		},
 		(ref immutable Command.Help it) =>
@@ -96,22 +106,36 @@ immutable(int) go(Alloc, SymAlloc)(
 			return 0;
 		},
 		(ref immutable Command.Print it) {
-			RealReadOnlyStorage!Alloc storage =
-				RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, it.programDirAndMain.programDir);
-			immutable DiagsAndResultStrs printed =
-				print(alloc, allSymbols, storage, showDiagOptions, it.kind, it.format, it.programDirAndMain.mainPath);
+			RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
+				ptrTrustMe_mut(allPaths),
+				ptrTrustMe_mut(alloc),
+				include,
+				it.programDirAndMain.programDir);
+			immutable DiagsAndResultStrs printed = print(
+				alloc,
+				allPaths,
+				allSymbols,
+				storage,
+				showDiagOptions,
+				it.kind,
+				it.format,
+				it.programDirAndMain.mainPath);
 			if (!empty(printed.diagnostics)) printErr(printed.diagnostics);
 			if (!empty(printed.result)) print(printed.result);
 			return empty(printed.diagnostics) ? 0 : 1;
 		},
 		(ref immutable Command.Run it) {
-			RealReadOnlyStorage!Alloc storage =
-				RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, it.programDirAndMain.programDir);
+			RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
+				ptrTrustMe_mut(allPaths),
+				ptrTrustMe_mut(alloc),
+				include,
+				it.programDirAndMain.programDir);
 			if (it.interpret) {
 				RealExtern extern_ = newRealExtern();
 				return buildAndInterpret(
 					dbg,
 					alloc,
+					allPaths,
 					allSymbols,
 					storage,
 					extern_,
@@ -119,12 +143,18 @@ immutable(int) go(Alloc, SymAlloc)(
 					it.programDirAndMain.mainPath,
 					it.programArgs);
 			} else {
-				immutable Opt!AbsolutePath exePath =
-					buildToCAndCompile(alloc, allSymbols, showDiagOptions, it.programDirAndMain, include, args.environ);
+				immutable Opt!AbsolutePath exePath = buildToCAndCompile(
+					alloc,
+					allPaths,
+					allSymbols,
+					showDiagOptions,
+					it.programDirAndMain,
+					include,
+					args.environ);
 				if (!has(exePath))
 					return 1;
 				else {
-					replaceCurrentProcess(alloc, force(exePath), it.programArgs, args.environ);
+					replaceCurrentProcess(alloc, allPaths, force(exePath), it.programArgs, args.environ);
 					return unreachable!int();
 				}
 			}
@@ -137,26 +167,30 @@ immutable(int) go(Alloc, SymAlloc)(
 		});
 }
 
-immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, SymAlloc)(
+immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable Str include,
 	ref immutable Environ environ,
 ) {
-	RealReadOnlyStorage!Alloc storage =
-		RealReadOnlyStorage!Alloc(ptrTrustMe_mut(alloc), include, programDirAndMain.programDir);
+	RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
+		ptrTrustMe_mut(allPaths),
+		ptrTrustMe_mut(alloc),
+		include,
+		programDirAndMain.programDir);
 	immutable AbsolutePath cPath =
 		getAbsolutePathFromStorage(alloc, storage, programDirAndMain.mainPath, strLiteral(".c"));
 	immutable Result!(Str, Str) result =
-		buildToC(alloc, allSymbols, storage, showDiagOptions, programDirAndMain.mainPath);
+		buildToC(alloc, allPaths, allSymbols, storage, showDiagOptions, programDirAndMain.mainPath);
 	return matchResultImpure!(immutable Opt!AbsolutePath, Str, Str)(
 		result,
 		(ref immutable Str cCode) {
-			writeFileSync(alloc, cPath, cCode);
+			writeFileSync(alloc, allPaths, cPath, cCode);
 			immutable AbsolutePath exePath = withExtension(cPath, emptyStr);
-			compileC(alloc, cPath, exePath, environ);
+			compileC(alloc, allPaths, cPath, exePath, environ);
 			return some(exePath);
 		},
 		(ref immutable Str diagnostics) {
@@ -223,14 +257,15 @@ immutable(int) help(immutable Bool isDueToCommandParseError) {
 	}
 }
 
-void compileC(Alloc)(
+void compileC(Alloc, PathAlloc)(
 	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
 	ref immutable Environ environ,
 ) {
 	immutable AbsolutePath cCompiler =
-		AbsolutePath(strLiteral("/usr/bin"), rootPath(alloc, shortSymAlphaLiteral("cc")), emptyStr);
+		AbsolutePath(strLiteral("/usr/bin"), rootPath(allPaths, shortSymAlphaLiteral("cc")), emptyStr);
 	immutable Arr!Str args = arrLiteral!Str(alloc, [
 		strLiteral("-Werror"),
 		strLiteral("-Wextra"),
@@ -247,10 +282,10 @@ void compileC(Alloc)(
 		strLiteral("-lSDL2"),
 		// TODO: configurable whether we want debug or release
 		strLiteral("-g"),
-		pathToStr(alloc, cPath),
+		pathToStr(alloc, allPaths, cPath),
 		strLiteral("-o"),
-		pathToStr(alloc, exePath)]);
-	immutable int err = spawnAndWaitSync(alloc, cCompiler, args, environ);
+		pathToStr(alloc, allPaths, exePath)]);
+	immutable int err = spawnAndWaitSync(alloc, allPaths, cCompiler, args, environ);
 	if (err != 0)
 		todo!void("C compile error");
 }
@@ -340,20 +375,21 @@ struct Command {
 
 struct ProgramDirAndMain {
 	immutable Str programDir;
-	immutable Ptr!Path mainPath;
+	immutable Path mainPath;
 }
 
-immutable(ProgramDirAndMain) parseProgramDirAndMain(Alloc, SymAlloc)(
+immutable(ProgramDirAndMain) parseProgramDirAndMain(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
 	immutable Str cwd,
 	immutable Str arg,
 ) {
-	immutable Opt!AbsolutePath mainAbsolutePathOption = parseAbsoluteOrRelPath(alloc, allSymbols, cwd, arg);
+	immutable Opt!AbsolutePath mainAbsolutePathOption = parseAbsoluteOrRelPath(allPaths, allSymbols, cwd, arg);
 	immutable AbsolutePath mainAbsolutePath = forceOrTodo(mainAbsolutePathOption);
-	immutable Str dir = parentStr(alloc, mainAbsolutePath);
-	immutable Sym name = mainAbsolutePath.baseName;
-	return ProgramDirAndMain(dir, rootPath(alloc, name));
+	immutable Str dir = parentStr(alloc, allPaths, mainAbsolutePath);
+	immutable Sym name = baseName(allPaths, mainAbsolutePath);
+	return immutable ProgramDirAndMain(dir, rootPath(allPaths, name));
 }
 
 struct FormatAndPath {
@@ -361,8 +397,9 @@ struct FormatAndPath {
 	immutable Str path;
 }
 
-immutable(Command) parsePrintCommand(Alloc, SymAlloc)(
+immutable(Command) parsePrintCommand(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Str cwd,
 	ref immutable Arr!Str args,
@@ -378,7 +415,7 @@ immutable(Command) parsePrintCommand(Alloc, SymAlloc)(
 			: todo!(immutable FormatAndPath)("Command.HelpPrint");
 		return immutable Command(Command.Print(
 			parsePrintKind(first(args)),
-			parseProgramDirAndMain(alloc, allSymbols, cwd, formatAndPath.path),
+			parseProgramDirAndMain(alloc, allPaths, allSymbols, cwd, formatAndPath.path),
 			formatAndPath.format));
 	}
 }
@@ -397,19 +434,21 @@ immutable(PrintKind) parsePrintKind(immutable Str a) {
 		: todo!(immutable PrintKind)("parsePrintKind");
 }
 
-immutable(Command) parseBuildCommand(Alloc, SymAlloc)(
+immutable(Command) parseBuildCommand(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Str cwd,
 	ref immutable Arr!Str args,
 ) {
 	return args.size == 1 && !isHelp(args.only)
-		? immutable Command(Command.Build(parseProgramDirAndMain(alloc, allSymbols, cwd, args.only)))
+		? immutable Command(Command.Build(parseProgramDirAndMain(alloc, allPaths, allSymbols, cwd, args.only)))
 		: immutable Command(Command.HelpBuild());
 }
 
-immutable(Command) parseRunCommand(Alloc, SymAlloc)(
+immutable(Command) parseRunCommand(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
 	immutable Str cwd,
 	immutable Arr!Str args,
@@ -417,7 +456,8 @@ immutable(Command) parseRunCommand(Alloc, SymAlloc)(
 	if (args.size == 0 || isHelp(args.first))
 		return immutable Command(Command.HelpRun());
 	else {
-		immutable ProgramDirAndMain programDirAndMain = parseProgramDirAndMain(alloc, allSymbols, cwd, first(args));
+		immutable ProgramDirAndMain programDirAndMain =
+			parseProgramDirAndMain(alloc, allPaths, allSymbols, cwd, first(args));
 		immutable Arr!Str argsAfterMain = tail(args);
 		struct InterpretAndRemainingArgs {
 			immutable Bool interpret;
@@ -435,8 +475,9 @@ immutable(Command) parseRunCommand(Alloc, SymAlloc)(
 	}
 }
 
-immutable(Command) parseCommand(Alloc, SymAlloc)(
+immutable(Command) parseCommand(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
 	immutable Str cwd,
 	immutable Arr!Str args,
@@ -451,17 +492,20 @@ immutable(Command) parseCommand(Alloc, SymAlloc)(
 			: isSpecialArg(arg0, "version")
 			? Command(Command.Version())
 			: strEqLiteral(arg0, "print")
-			? parsePrintCommand(alloc, allSymbols, cwd, cmdArgs)
+			? parsePrintCommand(alloc, allPaths, allSymbols, cwd, cmdArgs)
 			: strEqLiteral(arg0, "build")
-			? parseBuildCommand(alloc, allSymbols, cwd, cmdArgs)
+			? parseBuildCommand(alloc, allPaths, allSymbols, cwd, cmdArgs)
 			: strEqLiteral(arg0, "run")
-			? parseRunCommand(alloc, allSymbols, cwd, cmdArgs)
+			? parseRunCommand(alloc, allPaths, allSymbols, cwd, cmdArgs)
 			: strEqLiteral(arg0, "test")
 			? parseTestCommand(alloc, cmdArgs)
 			// Allow `noze foo.nz args` to translate to `noze run foo.nz -- args`
 			: endsWith(arg0, nozeExtension)
-			? immutable Command(Command.Run(True, parseProgramDirAndMain(alloc, allSymbols, cwd, arg0), args.tail))
-			: immutable Command(Command.Help(True));
+			? immutable Command(immutable Command.Run(
+				True,
+				parseProgramDirAndMain(alloc, allPaths, allSymbols, cwd, arg0),
+				args.tail))
+			: immutable Command(immutable Command.Help(True));
 	}
 }
 
