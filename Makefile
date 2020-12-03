@@ -2,6 +2,11 @@
 
 all: test lint bin/noze.wasm
 
+dyncall:
+	hg clone https://dyncall.org/pub/dyncall/dyncall/
+	cd dyncall && ./configure
+	cd dyncall && make
+
 doc/includeList.txt: include/*.nz
 	ls include | cut -f 1 -d '.' > doc/includeList.txt
 
@@ -31,37 +36,27 @@ test: unit-test
 test-overwrite: bin/noze
 	./bin/noze run test/test.nz -- --overwrite-output
 
-bin/noze: src/*.d src/*/*.d src/*/*/*.d
-	dmd -preview=dip25 -preview=dip1000 -debug -g -ofbin/noze -betterC \
-		src/app.d \
-		src/*/*.d \
-		src/*/*/*.d \
-		-I=src/ \
-		-L=-ldl -L=-ldyncall_s
+src_deps = src/*.d src/*/*.d src/*/*/*.d
+cli_deps = dyncall $(src_deps)
+d_flags = -betterC -preview=dip25 -preview=dip1000
+app_link = -L=-ldl -L=-ldyncall_s -L=-L./dyncall/dyncall
 
-bin/noze.wasm: src/*.d src/*/*.d src/*/*/*.d
+app_files = src/app.d src/*/*.d src/*/*/*.d
+wasm_files = src/wasm.d src/*.d src/*/*.d
+
+bin/noze: $(cli_deps)
+	dmd -ofbin/noze $(d_flags) -debug -g $(app_files) $(app_link)
+
+# Not currently used for anything
+bin/noze-opt: $(cli_deps)
+	ldc2 -O3 --enable-asserts=false --boundscheck=off -ofbin/noze-opt $(d_flags) $(app_files) $(app_link)
+
+bin/noze.wasm: $(src_deps)
 	# Unfortunately it fails with `undefined symbol: __assert` regardless of the `--checkaction` setting without `--enable-asserts=false`
 	# --static would be nice, but doesn't seem to work: `lld: error: unknown argument: -static`
 	# Need '--boundscheck=off' to avoid `undefined symbol: __assert` on D array access
-	ldc2 \
-		--d-debug \
-		-g \
-		-ofbin/noze.wasm \
-		-mtriple=wasm32-unknown-unknown-wasm \
-		-betterC \
-		--enable-asserts=false \
-		--boundscheck=off \
-		src/wasm.d \
-		src/backend/*.d \
-		src/concretize/*.d \
-		src/frontend/*.d \
-		src/interpret/*.d \
-		src/lib/*.d \
-		src/lower/*.d \
-		src/model/*.d \
-		src/test/*.d \
-		src/util/*.d \
-		src/util/*/*.d
+	ldc2 -ofbin/noze.wasm -mtriple=wasm32-unknown-unknown-wasm \
+		--d-debug -g $(d_flags) --enable-asserts=false --boundscheck=off $(wasm_files)
 
 # TODO: do as part of 'test'
 test-wasm: bin/noze.wasm

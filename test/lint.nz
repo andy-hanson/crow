@@ -29,7 +29,7 @@ list-lintable-files arr str(path str) summon
 
 excluded-from-lint? bool(name str)
 	bad-exts = new-arr<str> ".bmp", ".err", ".png", ".tata", ".wasm"
-	bad-names = new-arr<str> "libfirm", "node_modules", "package-lock.json"
+	bad-names = new-arr<str> "dyncall", "libfirm", "node_modules", "package-lock.json"
 	name.first == "." or: bad-names contains? name or: bad-exts some? {name ends-with? it}
 
 | Returns nubmer of errors

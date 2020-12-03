@@ -1,6 +1,13 @@
 ### Build and install
 
-Run `make all`. Noze will be built to `bin/noze` and tested.
+Install these tools:
+
+* [`hg`](http://mercurial-scm.org)
+* [`dmd](https://dlang.org/download.html#dmd)
+* [`ldc`](https://wiki.dlang.org/LDC).
+
+Then run `make all`.
+Noze will be built to `bin/noze` and tested.
 
 ### Debugging the compiler
 

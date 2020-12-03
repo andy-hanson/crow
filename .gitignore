@@ -7,9 +7,7 @@
 !run
 !run-test
 bin
-*.o
-
+dyncall
 noze-vscode/node_modules
 noze-vscode/client/node_modules
 noze-vscode/server/node_modules
-
