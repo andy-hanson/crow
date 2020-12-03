@@ -1,9 +1,9 @@
 ### Build and install
 
-Install these tools:
+Install these tools (potentially from your operating system's package manager):
 
 * [`hg`](http://mercurial-scm.org)
-* [`dmd](https://dlang.org/download.html#dmd)
+* [`dmd`](https://dlang.org/download.html#dmd)
 * [`ldc`](https://wiki.dlang.org/LDC).
 
 Then run `make all`.

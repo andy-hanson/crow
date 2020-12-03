@@ -48,7 +48,7 @@ void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T v
 	setAt(a, pos, value);
 }
 
-@trusted void push(T, Alloc)(ref Alloc alloc, ref MutArr!T a, T value) {
+@trusted void push(T, Alloc)(ref Alloc alloc, scope ref MutArr!T a, T value) {
 	if (a.size_ == a.capacity_) {
 		immutable size_t newCapacity = a.size_ == 0 ? 2 : a.size_ * 2;
 		T* newBegin = cast(T*) alloc.allocateBytes(newCapacity * T.sizeof);

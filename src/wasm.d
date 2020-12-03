@@ -157,7 +157,7 @@ struct WasmDebug {
 		return False;
 	}
 
-	void log(immutable Str s) {
+	void log(scope immutable Str s) {
 		foreach (immutable char c; range(s))
 			logChar(c);
 		logChar('\n');

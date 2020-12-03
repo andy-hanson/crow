@@ -39,10 +39,10 @@ test-overwrite: bin/noze
 src_deps = src/*.d src/*/*.d src/*/*/*.d
 cli_deps = dyncall $(src_deps)
 d_flags = -betterC -preview=dip25 -preview=dip1000
-app_link = -L=-ldl -L=-ldyncall_s -L=-L./dyncall/dyncall
+app_link = -L=-ldyncall_s -L=-L./dyncall/dyncall
 
 app_files = src/app.d src/*/*.d src/*/*/*.d
-wasm_files = src/wasm.d src/*.d src/*/*.d
+wasm_files = src/wasm.d src/*/*.d src/*/*/*.d
 
 bin/noze: $(cli_deps)
 	dmd -ofbin/noze $(d_flags) -debug -g $(app_files) $(app_link)
