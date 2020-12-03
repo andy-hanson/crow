@@ -25,10 +25,9 @@ import lib.compiler :
 import model.model : AbsolutePathsGetter;
 import test.test : test;
 import util.bools : Bool, True;
-import util.collection.arr : Arr, arrOfRange, at, begin, empty, range, size;
+import util.collection.arr : Arr, at, begin, empty, range, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, map, tail, zipImpureSystem;
-import util.collection.dict : KeyValuePair;
 import util.collection.str :
 	asCStr,
 	copyStr,
@@ -98,8 +97,7 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 					allSymbols,
 					showDiagOptions,
 					it.programDirAndMain,
-					include,
-					args.environ);
+					include);
 			return has(exePath) ? 0 : 1;
 		},
 		(ref immutable Command.Help it) =>
@@ -156,12 +154,11 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 					allSymbols,
 					showDiagOptions,
 					it.programDirAndMain,
-					include,
-					args.environ);
+					include);
 				if (!has(exePath))
 					return 1;
 				else {
-					replaceCurrentProcess(alloc, allPaths, force(exePath), it.programArgs, args.environ);
+					replaceCurrentProcess(alloc, allPaths, force(exePath), it.programArgs);
 					return unreachable!int();
 				}
 			}
@@ -196,7 +193,6 @@ immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable Str include,
-	ref immutable Environ environ,
 ) {
 	RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
 		ptrTrustMe_mut(allPaths),
@@ -212,7 +208,7 @@ immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
 		(ref immutable Str cCode) {
 			writeFileSync(alloc, allPaths, cPath, cCode);
 			immutable AbsolutePath exePath = withExtension(cPath, emptyStr);
-			compileC(alloc, allPaths, cPath, exePath, environ);
+			compileC(alloc, allPaths, cPath, exePath);
 			return some(exePath);
 		},
 		(ref immutable Str diagnostics) {
@@ -253,7 +249,6 @@ void compileC(Alloc, PathAlloc)(
 	ref AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
-	ref immutable Environ environ,
 ) {
 	immutable AbsolutePath cCompiler =
 		AbsolutePath(strLiteral("/usr/bin"), rootPath(allPaths, shortSymAlphaLiteral("cc")), emptyStr);
@@ -276,7 +271,7 @@ void compileC(Alloc, PathAlloc)(
 		pathToStr(alloc, allPaths, cPath),
 		strLiteral("-o"),
 		pathToStr(alloc, allPaths, exePath)]);
-	immutable int err = spawnAndWaitSync(alloc, allPaths, cCompiler, args, environ);
+	immutable int err = spawnAndWaitSync(alloc, allPaths, cCompiler, args);
 	if (err != 0)
 		todo!void("C compile error");
 }
@@ -651,8 +646,6 @@ extern(C) {
 			todo!void("writeFile -- didn't write all the bytes?");
 }
 
-alias Environ = Arr!(KeyValuePair!(Str, Str));
-
 // Returns the child process' error code.
 // WARN: A first arg will be prepended that is the executable path.
 @trusted int spawnAndWaitSync(TempAlloc, PathAlloc)(
@@ -660,13 +653,9 @@ alias Environ = Arr!(KeyValuePair!(Str, Str));
 	ref const AllPaths!PathAlloc allPaths,
 	immutable AbsolutePath executable,
 	immutable Arr!Str args,
-	immutable Environ environ
 ) {
 	immutable CStr executableCStr = pathToCStr(tempAlloc, allPaths, executable);
-	return spawnAndWaitSync(
-		executableCStr,
-		convertArgs(tempAlloc, executableCStr, args),
-		convertEnviron(tempAlloc, environ));
+	return spawnAndWaitSync(executableCStr, convertArgs(tempAlloc, executableCStr, args));
 }
 
 // Replaces this process with the given executable.
@@ -676,13 +665,9 @@ alias Environ = Arr!(KeyValuePair!(Str, Str));
 	ref const AllPaths!PathAlloc allPaths,
 	immutable AbsolutePath executable,
 	immutable Arr!Str args,
-	immutable Environ environ,
 ) {
 	immutable CStr executableCStr = pathToCStr(tempAlloc, allPaths, executable);
-	immutable int err = execvpe(
-		executableCStr,
-		convertArgs(tempAlloc, executableCStr, args),
-		convertEnviron(tempAlloc, environ));
+	immutable int err = execvpe(executableCStr, convertArgs(tempAlloc, executableCStr, args), environ);
 	// 'execvpe' only returns if we failed to create the process (maybe executable does not exist?)
 	verify(err == -1);
 	fprintf(stderr, "Failed to launch %s: error %s\n", executableCStr, strerror(errno));
@@ -692,7 +677,6 @@ alias Environ = Arr!(KeyValuePair!(Str, Str));
 struct CommandLineArgs {
 	immutable Str pathToThisExecutable;
 	immutable Arr!Str args;
-	immutable Environ environ;
 }
 
 immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
@@ -703,7 +687,7 @@ immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
 	immutable Arr!CStr allArgs = immutable Arr!CStr(argv, argc);
 	immutable Arr!Str args = map!(Str, CStr, Alloc)(alloc, allArgs, (ref immutable CStr a) => strOfCStr(a));
 	// Take the tail because the first one is 'noze'
-	return CommandLineArgs(getPathToThisExecutable(alloc), args.tail, getEnviron(alloc));
+	return immutable CommandLineArgs(getPathToThisExecutable(alloc), args.tail);
 }
 
 @trusted immutable(Str) getCwd(Alloc)(ref Alloc alloc) {
@@ -715,13 +699,6 @@ immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
 		verify(b == buff.ptr);
 		return copyCStrToStr(alloc, cast(immutable) buff.ptr);
 	}
-}
-
-@trusted immutable(Environ) getEnviron(Alloc)(ref Alloc alloc) {
-	ArrBuilder!(KeyValuePair!(Str, Str)) res;
-	for (immutable(char*)* env = cast(immutable) environ; *env != null; env++)
-		add(alloc, res, parseEnvironEntry(*env));
-	return finishArr(alloc, res);
 }
 
 @system int tryOpen(TempAlloc, PathAlloc)(
@@ -746,21 +723,7 @@ immutable(CStr) copyCStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
 	return copyToNulTerminatedStr!Alloc(alloc, str).asCStr();
 }
 
-@system void printArgs(immutable CStr* args) {
-	for (immutable(CStr)* arg = args; arg != null; arg++)
-		printf("%s ", *arg);
-}
-
-@trusted immutable(int) spawnAndWaitSync(immutable CStr executablePath, immutable CStr* args, immutable CStr* environ) {
-	// TODO: KILL (debugging)
-	if (false) {
-		printf("Executing: %s ", executablePath);
-		printArgs(args);
-		printf("\nEnviron: ");
-		printArgs(environ);
-		printf("\n");
-	}
-
+@trusted immutable(int) spawnAndWaitSync(immutable CStr executablePath, immutable CStr* args) {
 	pid_t pid;
 	immutable int spawnStatus = posix_spawn(
 		&pid,
@@ -786,19 +749,6 @@ immutable(CStr) copyCStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
 		return todo!int("posix_spawn failed");
 }
 
-@system immutable(KeyValuePair!(Str, Str)) parseEnvironEntry(immutable CStr entry) {
-	immutable(char)* keyEnd = entry;
-	for (; *keyEnd != '='; keyEnd++)
-		verify(*keyEnd != '\0');
-	immutable Str key = arrOfRange(entry, keyEnd);
-	// Skip the '='
-	immutable CStr valueBegin = keyEnd + 1;
-	immutable(char)* valueEnd = valueBegin;
-	for (; *valueEnd != '\0'; valueEnd++) {}
-	immutable Str value = arrOfRange(valueBegin, valueEnd);
-	return immutable KeyValuePair!(Str, Str)(key, value);
-}
-
 immutable size_t maxPathSize = 1024;
 
 @trusted immutable(Str) getPathToThisExecutable(Alloc)(ref Alloc alloc) {
@@ -819,21 +769,6 @@ immutable size_t maxPathSize = 1024;
 		add(alloc, cArgs, strToCStr(alloc, arg));
 	add(alloc, cArgs, null);
 	return finishArr(alloc, cArgs).begin;
-}
-
-@system immutable(CStr*) convertEnviron(Alloc)(ref Alloc alloc, immutable Environ environ) {
-	ArrBuilder!CStr cEnviron;
-	foreach (ref immutable KeyValuePair!(Str, Str) pair; range(environ)) {
-		immutable NulTerminatedStr s = immutable NulTerminatedStr(cat(
-			alloc,
-			pair.key,
-			strLiteral("="),
-			pair.value,
-			strLiteral("\0")));
-		add(alloc, cEnviron, s.str.begin);
-	}
-	add(alloc, cEnviron, null);
-	return finishArr(alloc, cEnviron).begin;
 }
 
 // D doesn't declare this anywhere for some reason
