@@ -1,8 +1,8 @@
-module server;
+module lib.server;
 
 @safe @nogc nothrow: // not pure
 
-import compiler : buildAndInterpret;
+import lib.compiler : buildAndInterpret;
 import frontend.getHover : getHoverStr;
 import frontend.getPosition : getPosition, Position;
 import frontend.getTokens : Token, tokensOfAst;

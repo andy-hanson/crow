@@ -2,7 +2,7 @@ module test.testServer;
 
 @safe @nogc pure nothrow:
 
-import server : addOrChangeFile, getFile, Server;
+import lib.server : addOrChangeFile, getFile, Server;
 import test.testUtil : Test;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.collection.arr : Arr, begin, size;

@@ -1,4 +1,4 @@
-module compiler;
+module lib.compiler;
 
 @safe @nogc nothrow: // not pure
 

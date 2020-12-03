@@ -32,12 +32,8 @@ test-overwrite: bin/noze
 	./bin/noze run test/test.nz -- --overwrite-output
 
 bin/noze: src/*.d src/*/*.d src/*/*/*.d
-	# Avoiding src/wasm.d
 	dmd -preview=dip25 -preview=dip1000 -debug -g -ofbin/noze -betterC \
 		src/app.d \
-		src/cli.d \
-		src/compiler.d \
-		src/server.d \
 		src/*/*.d \
 		src/*/*/*.d \
 		-I=src/ \
@@ -57,13 +53,12 @@ bin/noze.wasm: src/*.d src/*/*.d src/*/*/*.d
 		--boundscheck=off \
 		src/wasm.d \
 		src/backend/*.d \
-		src/compiler.d \
 		src/concretize/*.d \
 		src/frontend/*.d \
 		src/interpret/*.d \
+		src/lib/*.d \
 		src/lower/*.d \
 		src/model/*.d \
-		src/server.d \
 		src/test/*.d \
 		src/util/*.d \
 		src/util/*/*.d
