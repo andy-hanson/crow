@@ -1,5 +1,5 @@
 import
-	.bootstrap: == <= bool call drop fun-mut0 fun-mut1 nat none opt pass some value void
+	.bootstrap: == <= ? bool call drop fun-mut0 fun-mut1 nat none opt pass some value void
 	.cell: cell get set
 	.exceptions: assert forbid
 	.number-utils: + incr
@@ -48,7 +48,7 @@ iter iterator nat(r range-nat)
 	| TODO: should not need a type argument here
 	n = r.lo cell<nat>
 	iterator: \
-		when
+		if
 			n.get == r.hi
 				none
 			else
@@ -91,7 +91,7 @@ filter-helper opt ?t(i iterator ?t, pred fun-mut1 bool ?t)
 			none
 		some s
 			v = s.value
-			when
+			if
 				pred call v
 					v some
 				else

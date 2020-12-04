@@ -41,7 +41,7 @@ catch-with-exception-ctx ?t(ec exception-ctx, try fun-mut0 ?t, catcher fun-mut1 
 	store = jmp-buf-tag: zero, zero, zero
 	ec set-jmp-buf-ptr: store ptr-to
 	setjmp-result = ec.jmp-buf-ptr setjmp
-	when
+	if
 		setjmp-result == zero
 			| Get here after setting the jump.
 			| If it throws, we'll go to the above branch.

@@ -215,10 +215,10 @@ void writeParseDiag(Alloc, PathAlloc)(
 		(ref immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx it) {
 			writeStatic(writer, () {
 				final switch (it.kind) {
+					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.if_:
+						return "'if'";
 					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match:
 						return "'match'";
-					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.when:
-						return "'when'";
 					case ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda:
 						return "lambda";
 				}
@@ -260,7 +260,7 @@ void writeParseDiag(Alloc, PathAlloc)(
 			writeStatic(writer, "union type can't be empty");
 		},
 		(ref immutable ParseDiag.WhenMustHaveElse) {
-			writeStatic(writer, "'when' expression must end in 'else'");
+			writeStatic(writer, "'if' expression must end in 'else'");
 		});
 }
 

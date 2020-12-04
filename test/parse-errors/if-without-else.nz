@@ -1,4 +1,4 @@
 f void()
-	when
+	if
 		true
 			pass

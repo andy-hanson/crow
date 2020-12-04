@@ -3,13 +3,13 @@ import io .failure .path-utils
 lint result str arr<failure>(path str, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, \file
-		when
+		if
 			options.print-tests?
 				print-sync: "lint " + file
 			else
 				pass
 		file lint-file
-	when
+	if
 		failures has?
 			err: failures
 		else
@@ -20,7 +20,7 @@ private
 list-lintable-files arr str(path str) summon
 	res = new-mut-arr<str>
 	path each-child-recursive {not: it excluded-from-lint?}, \child
-		when
+		if
 			child.base-name ignore-extension-of-name?
 				pass
 			else
@@ -39,14 +39,14 @@ lint-file arr failure(path str) summon
 	err-file? = path.get-extension.force == "err"
 	text.lines each-with-index \line line-num
 		ln = line-num.incr.to-str
-		when
+		if
 			err-file?.not and: line.lstrip contains-subsequence? "  "
 				message = "line " + ln + " contains a double space"
 				res push failure: path, message
 			else
 				pass
 		width = line line-len
-		when
+		if
 			width > max-line-length
 				message = "line " + ln + " is " + width.to-str + " columns long, should be <= " + max-line-length.to-str
 				res push failure: path, message
@@ -78,7 +78,7 @@ lines arr str(s str)
 	res = new-mut-arr<str>
 	last-nl = zero cell<nat>
 	s each-with-index \c index
-		when
+		if
 			c == "\n"
 				res push: s slice-from-to (last-nl swap index.incr), index
 			else
@@ -91,7 +91,7 @@ max-line-length nat()
 	120
 
 n-tabs nat(line str)
-	when
+	if
 		line.empty?.not and: line.first == "\t"
 			line.tail.n-tabs incr
 		else

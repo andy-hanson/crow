@@ -4,7 +4,7 @@ run-noze-tests result str arr<failure>(path str, path-to-noze str, env environ, 
 	tests = path list-tests
 	failures = tests flat-map-with-max-size options.max-failures, \test
 		path-to-noze run-single-noze-test env, test, options
-	when
+	if
 		failures has?
 			failures err
 		else
@@ -40,7 +40,7 @@ body
 		none
 			options.print-tests? ? ("noze run " + path print-sync), pass
 			interpret-failures = path-to-noze run-single-runnable-test env, path, true, options.overwrite-output?
-			when
+			if
 				interpret-failures.empty?
 					path-to-noze run-single-runnable-test env, path, false, options.overwrite-output?
 				else
@@ -65,13 +65,13 @@ body
 	res = path-to-noze spawn-and-wait-result (new-arr "print", print-kind, path), env
 	output-path = path + "." + print-kind + ".tata"
 	| NOTE: compiler may have both stderr and stdout!
-	output-failures = when
+	output-failures = if
 		res.stdout.empty? and: res.exit-code != 0
 			| Just have a file for the err
 			empty-arr<failure>
 		else
 			path handle-output output-path, res.stdout, overwrite-output?
-	when
+	if
 		output-failures.empty? not
 			print-test-result: true, output-failures
 		res.exit-code == 0
@@ -96,7 +96,7 @@ spec
 body
 	args = as<arr<str>>: interpret? ? (new-arr "run", path, "--interpret"), (new-arr "run", path)
 	res = path-to-noze spawn-and-wait-result args, env
-	when
+	if
 		res.exit-code == 0 and: res.stderr == ""
 			path handle-output (path + ".stdout"), res.stdout, overwrite-output?
 		else
@@ -109,7 +109,7 @@ remove-colors str(s str)
 	out freeze
 
 remove-colors-recur void(s str, out mut-str)
-	when
+	if
 		s empty?
 			pass
 		s.first == "\x1b"
@@ -119,7 +119,7 @@ remove-colors-recur void(s str, out mut-str)
 			s.tail remove-colors-recur out
 
 remove-colors-recur-2 void(s str, out mut-str)
-	when
+	if
 		s empty?
 			pass
 		s.first == "m"

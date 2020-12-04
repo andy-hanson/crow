@@ -1,6 +1,6 @@
 f void()
-	when
-		when
+	if
+		if
 			0
 		else
 			1

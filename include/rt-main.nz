@@ -36,7 +36,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 
 	n-threads run-threads gctx
 
-	when
+	if
 		gctx any-unhandled-exceptions?
 			one
 		else
@@ -102,7 +102,7 @@ spec
 	unsafe
 	summon
 body
-	when
+	if
 		i == n-threads
 			pass
 		else
@@ -112,7 +112,7 @@ body
 			fn = as<fun-ptr1<any-ptr, any-ptr>>: \args-ptr
 				args-ptr thread-fun
 			err = thread-ptr.as-cell pthread-create null, fn, thread-arg-ptr.as-any-ptr
-			when
+			if
 				err zero?
 					i.noctx-incr start-threads-recur n-threads, threads, thread-args-begin, gctx
 				err == eagain
@@ -128,7 +128,7 @@ thread-fun any-ptr(args-ptr any-ptr) noctx unsafe summon
 	null
 
 join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsafe summon
-	when
+	if
 		i == n-threads
 			pass
 		else
@@ -138,7 +138,7 @@ join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsaf
 join-one-thread void(tid pthread-t) noctx unsafe summon
 	thread-return = as<by-val<cell<any-ptr>>>: cell: null
 	err = tid pthread-join thread-return.ref-of-val
-	when
+	if
 		err zero?
 			pass
 		err == einval

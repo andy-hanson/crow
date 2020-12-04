@@ -58,7 +58,7 @@ is-reference-type?<?t> bool() noctx unsafe builtin
 size-of<?t> nat() noctx unsafe builtin
 
 size-or-pointer-size<?t> nat() noctx unsafe
-	when
+	if
 		is-reference-type?<?t>
 			size-of<ptr<void>>
 		else
@@ -369,7 +369,7 @@ max-nat32 nat32() noctx
 to-nat32 nat32(a nat16) noctx trusted
 	a.to-nat unsafe-to-nat32
 to-nat32 nat32(a nat) noctx trusted
-	when
+	if
 		a < max-nat32.to-nat
 			a unsafe-to-nat32
 		else
@@ -618,31 +618,31 @@ bits-intersect? bool(a nat32, b nat32) noctx
 unsafe-bit-shift-left nat(a nat, b nat) noctx builtin unsafe
 unsafe-bit-shift-right nat(a nat, b nat) noctx builtin unsafe
 bit-shift-left nat8(a nat8, b nat8) noctx trusted
-	when
+	if
 		b < eight
 			a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat8
 		else
 			zero
 bit-shift-left nat16(a nat16, b nat16) noctx trusted
-	when
+	if
 		b < sixteen
 			a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat16
 		else
 			zero
 bit-shift-left nat32(a nat32, b nat32) noctx trusted
-	when
+	if
 		b < thirty-two
 			a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat32
 		else
 			zero
 bit-shift-right nat32(a nat32, b nat32) noctx trusted
-	when
+	if
 		b < thirty-two
 			a.to-nat unsafe-bit-shift-right b.to-nat unsafe-to-nat32
 		else
 			zero
 bit-shift-right int32(a int32, b int32) noctx trusted
-	when
+	if
 		a < zero
 			todo
 		b < zero
@@ -698,7 +698,7 @@ wrap-decr nat32(a nat32) noctx
 	a wrap-sub one
 
 two-pow nat(pow nat) noctx
-	when
+	if
 		pow zero?
 			one
 		else
@@ -706,20 +706,20 @@ two-pow nat(pow nat) noctx
 			pow.wrap-decr.two-pow wrap-mul two
 two-pow nat32(pow nat32) noctx
 	| TODO: use bitshift
-	when
+	if
 		pow zero?
 			one
 		else
 			| TODO: safety
 			pow.wrap-decr.two-pow wrap-mul two
 two-pow int16(pow int16) noctx
-	when
+	if
 		pow zero?
 			one
 		else
 			pow.wrap-decr.two-pow wrap-mul two
 two-pow int32(pow int32) noctx
-	when
+	if
 		pow zero?
 			one
 		else

@@ -11,7 +11,7 @@ to-str str(b bool)
 	b ? "true", "false"
 
 parse-bool bool(s str)
-	when
+	if
 		s == "true"
 			true
 		s == "false"
@@ -20,7 +20,7 @@ parse-bool bool(s str)
 			todo
 
 to-str str(n nat)
-	when
+	if
 		n == 0
 			"0"
 		n == 1
@@ -68,7 +68,7 @@ to-str str(a float)
 	a.truncate-to-int to-str
 
 char-to-nat nat(c char) noctx
-	when
+	if
 		c == "0"
 			zero
 		c == "1"
@@ -93,7 +93,7 @@ char-to-nat nat(c char) noctx
 			todo
 
 literal nat(s str)
-	when
+	if
 		s empty?
 			zero
 		else
@@ -110,7 +110,7 @@ literal nat32(s str)
 
 literal int(s str)
 	fst = s at zero
-	when
+	if
 		fst == "-"
 			n = as<nat>: s.tail.literal
 			n neg

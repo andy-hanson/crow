@@ -902,7 +902,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 				sexprOfExprAst(alloc, it.futExpr),
 				sexprOfExprAst(alloc, it.then)]),
 		(ref immutable WhenAst e) =>
-			tataRecord(alloc, "when", [
+			tataRecord(alloc, "if", [
 				tataArr(alloc, e.cases, (ref immutable WhenAst.Case case_) =>
 					tataRecord(alloc, "case", [
 						sexprOfExprAst(alloc, case_.cond),

@@ -15,7 +15,7 @@ to-str str(a c-str) unsafe noctx
 	a arr-from-begin-end a.find-cstr-end
 
 find-char-in-cstr c-str(a c-str, c char) unsafe noctx
-	when
+	if
 		a.deref == c
 			a
 		a.deref == "\0"
@@ -28,7 +28,7 @@ find-cstr-end c-str(a c-str) unsafe noctx
 	a find-char-in-cstr "\0"
 
 lstrip str(a str)
-	when
+	if
 		a.has? and: a.first == " "
 			a.tail lstrip
 		else

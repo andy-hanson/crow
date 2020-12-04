@@ -35,7 +35,7 @@ acquire-lock void(a lock) noctx unsafe
 	a acquire-lock-recur zero
 
 acquire-lock-recur void(a lock, n-tries nat) noctx unsafe
-	when
+	if
 		a try-acquire-lock
 			pass
 		n-tries == thousand
@@ -82,7 +82,7 @@ sleep-ms-sync void(ms nat) noctx
 
 wait-on void(c condition, last-checked last-checked) noctx unsafe
 	| last-checked should have been called before a change, we wait until c.value is different
-	when
+	if
 		c.value == last-checked
 			yield-thread
 			c wait-on last-checked

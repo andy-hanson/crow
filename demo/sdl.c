@@ -981,15 +981,15 @@ extern void SDL_PumpEvents();
 extern uint8_t* SDL_GetKeyboardState(int64_t* num_keys);
 struct arr_5 ptr_as_arr(struct ctx* ctx, uint64_t size, uint8_t* data);
 uint64_t sdl_num_scancodes(struct ctx* ctx);
-uint8_t zero__q_3(uint8_t n);
-uint8_t _op_equal_equal_4(uint8_t a, uint8_t b);
-struct comparison compare_325(uint8_t a, uint8_t b);
-uint8_t at_3(struct ctx* ctx, struct arr_5 a, uint64_t index);
-uint8_t noctx_at_5(struct arr_5 a, uint64_t index);
-uint64_t sdl_scancode_return(struct ctx* ctx);
 uint8_t print_sync(struct arr_0 s);
 uint8_t print_sync_no_newline(struct arr_0 s);
 int32_t stdout_fd();
+uint8_t zero__q_3(uint8_t n);
+uint8_t _op_equal_equal_4(uint8_t a, uint8_t b);
+struct comparison compare_328(uint8_t a, uint8_t b);
+uint8_t at_3(struct ctx* ctx, struct arr_5 a, uint64_t index);
+uint8_t noctx_at_5(struct arr_5 a, uint64_t index);
+uint64_t sdl_scancode_return(struct ctx* ctx);
 extern int64_t SDL_RenderClear(struct sdl_renderer* renderer);
 extern int64_t SDL_RenderCopy(struct sdl_renderer* renderer, struct sdl_texture* texture, struct sdl_rect** src_rect, struct sdl_rect** dest_rect);
 extern void SDL_RenderPresent(struct sdl_renderer* renderer);
@@ -2911,11 +2911,7 @@ uint8_t main_loop(struct ctx* ctx, struct sdl_renderer* renderer, struct sdl_tex
 	(SDL_PumpEvents(), 0);
 	key_states_ptr0 = SDL_GetKeyboardState(NULL);
 	key_states1 = ptr_as_arr(ctx, sdl_num_scancodes(ctx), key_states_ptr0);
-	if (zero__q_3(at_3(ctx, key_states1, sdl_scancode_return(ctx)))) {
-		print_sync((struct arr_0) {9, constantarr_0_42});
-	} else {
-		print_sync((struct arr_0) {17, constantarr_0_43});
-	}
+	print_sync((zero__q_3(at_3(ctx, key_states1, sdl_scancode_return(ctx))) ? (struct arr_0) {9, constantarr_0_42} : (struct arr_0) {17, constantarr_0_43}));
 	handle_sdl_error(ctx, (struct arr_0) {16, constantarr_0_44}, SDL_RenderClear(renderer));
 	handle_sdl_error(ctx, (struct arr_0) {15, constantarr_0_45}, SDL_RenderCopy(renderer, texture, NULL, NULL));
 	(SDL_RenderPresent(renderer), 0);
@@ -2927,12 +2923,22 @@ struct arr_5 ptr_as_arr(struct ctx* ctx, uint64_t size, uint8_t* data) {
 uint64_t sdl_num_scancodes(struct ctx* ctx) {
 	return literal_2(ctx, (struct arr_0) {3, constantarr_0_40});
 }
+uint8_t print_sync(struct arr_0 s) {
+	print_sync_no_newline(s);
+	return print_sync_no_newline((struct arr_0) {1, constantarr_0_4});
+}
+uint8_t print_sync_no_newline(struct arr_0 s) {
+	return write_sync_no_newline(stdout_fd(), s);
+}
+int32_t stdout_fd() {
+	return 1;
+}
 uint8_t zero__q_3(uint8_t n) {
 	return _op_equal_equal_4(n, 0);
 }
 uint8_t _op_equal_equal_4(uint8_t a, uint8_t b) {
 	struct comparison temp0;
-	temp0 = compare_325(a, b);
+	temp0 = compare_328(a, b);
 	switch (temp0.kind) {
 		case 0:
 			return 0;
@@ -2944,7 +2950,7 @@ uint8_t _op_equal_equal_4(uint8_t a, uint8_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_325(uint8_t a, uint8_t b) {
+struct comparison compare_328(uint8_t a, uint8_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -2965,16 +2971,6 @@ uint8_t noctx_at_5(struct arr_5 a, uint64_t index) {
 }
 uint64_t sdl_scancode_return(struct ctx* ctx) {
 	return literal_2(ctx, (struct arr_0) {2, constantarr_0_41});
-}
-uint8_t print_sync(struct arr_0 s) {
-	print_sync_no_newline(s);
-	return print_sync_no_newline((struct arr_0) {1, constantarr_0_4});
-}
-uint8_t print_sync_no_newline(struct arr_0 s) {
-	return write_sync_no_newline(stdout_fd(), s);
-}
-int32_t stdout_fd() {
-	return 1;
 }
 uint8_t sleep_ms_sync(uint64_t ms) {
 	return (usleep((ms * thousand_0())), 0);

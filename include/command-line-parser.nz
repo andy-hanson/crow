@@ -19,7 +19,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1 ?t arr<opt
 	parsed.named each \key value
 		match t-names index-of key
 			none
-				when
+				if
 					key == "help"
 						help set true
 					else
@@ -30,7 +30,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1 ?t arr<opt
 				forbid: values at idx has?
 				values set-at idx, value.some
 
-	when
+	if
 		help get
 			none
 		else

@@ -368,6 +368,7 @@ struct ExpressionToken {
 	@safe @nogc pure nothrow:
 	enum Kind {
 		else_,
+		if_,
 		lambda,
 		lbrace,
 		literal,
@@ -376,7 +377,6 @@ struct ExpressionToken {
 		nameAndRange,
 		newArr,
 		unexpected,
-		when,
 	}
 	immutable Kind kind_;
 	union {
@@ -436,12 +436,12 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 					switch (name.value) {
 						case shortSymAlphaLiteralValue("else"):
 							return immutable ExpressionToken(ExpressionToken.Kind.else_);
+						case shortSymAlphaLiteralValue("if"):
+							return immutable ExpressionToken(ExpressionToken.Kind.if_);
 						case shortSymAlphaLiteralValue("match"):
 							return immutable ExpressionToken(ExpressionToken.Kind.match);
 						case shortSymAlphaLiteralValue("new-arr"):
 							return immutable ExpressionToken(ExpressionToken.Kind.newArr);
-						case shortSymAlphaLiteralValue("when"):
-							return immutable ExpressionToken(ExpressionToken.Kind.when);
 						default:
 							addDiagOnReservedName(alloc, lexer, immutable NameAndRange(start, name));
 							return immutable ExpressionToken(ExpressionToken.Kind.unexpected);
@@ -741,6 +741,7 @@ immutable(Bool) isReservedName(immutable Sym name) {
 		case shortSymAlphaLiteralValue("extern"):
 		case shortSymAlphaLiteralValue("extern-ptr"):
 		case shortSymAlphaLiteralValue("global"):
+		case shortSymAlphaLiteralValue("if"):
 		case shortSymAlphaLiteralValue("import"):
 		case shortSymAlphaLiteralValue("match"):
 		case shortSymAlphaLiteralValue("mut"):
@@ -753,7 +754,6 @@ immutable(Bool) isReservedName(immutable Sym name) {
 		case shortSymAlphaLiteralValue("trusted"):
 		case shortSymAlphaLiteralValue("union"):
 		case shortSymAlphaLiteralValue("unsafe"):
-		case shortSymAlphaLiteralValue("when"):
 			return True;
 		default:
 			return False;

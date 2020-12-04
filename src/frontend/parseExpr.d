@@ -77,9 +77,9 @@ immutable(Ptr!ExprAst) allocExpr(Alloc)(ref Alloc alloc, immutable ExprAst e) {
 }
 
 struct ArgCtx {
-		// Allow things like 'match', 'when', '\' that continue into an indented block.
+	// Allow things like 'if', 'match', '\' that continue into an indented block.
 	immutable Bool allowBlock;
-		// In `a b: c d e`, we parse `a b (c d e) and not `(a b c) d e`, since `: turns on `allowCall`.
+	// In `a b: c d e`, we parse `a b (c d e) and not `(a b c) d e`, since `: turns on `allowCall`.
 	immutable Bool allowCall;
 }
 
@@ -344,7 +344,7 @@ immutable(ExprAndMaybeDedent) parseNewArr(Alloc, SymAlloc)(
 		return parseNewArrAfterArgs(alloc, lexer, start, type, parseArgs(alloc, lexer, ctx));
 }
 
-immutable(ExprAndMaybeDedent) parseWhenLoop(Alloc, SymAlloc)(
+immutable(ExprAndMaybeDedent) parseIfLoop(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
@@ -378,7 +378,7 @@ immutable(ExprAndMaybeDedent) parseWhenLoop(Alloc, SymAlloc)(
 				add(alloc, cases, immutable WhenAst.Case(
 					allocExpr(alloc, condition),
 					allocExpr(alloc, thenAndDedent.expr)));
-				return parseWhenLoop(alloc, lexer, start, cases);
+				return parseIfLoop(alloc, lexer, start, cases);
 			}
 		});
 	}
@@ -406,14 +406,14 @@ immutable(ExprAndMaybeDedent) takeIndentOrFail_ExprAndMaybeDedent(Alloc, SymAllo
 			immutable ExprAndMaybeDedent(bogusExpr(range), some(nDedents)));
 }
 
-immutable(ExprAndMaybeDedent) parseWhen(Alloc, SymAlloc)(
+immutable(ExprAndMaybeDedent) parseIf(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
 ) {
 	return takeIndentOrFail_ExprAndMaybeDedent(alloc, lexer, () {
 		ArrBuilder!(WhenAst.Case) cases;
-		return parseWhenLoop(alloc, lexer, start, cases);
+		return parseIfLoop(alloc, lexer, start, cases);
 	});
 }
 
@@ -491,6 +491,10 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
 				immutable ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.else_)));
 			return noDedent(bogusExpr(range(lexer, start)));
+		case ExpressionToken.Kind.if_:
+			return ctx.allowBlock
+				? parseIf(alloc, lexer, start)
+				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.if_);
 		case ExpressionToken.Kind.lambda:
 			return ctx.allowBlock
 				? parseLambda(alloc, lexer, start)
@@ -542,10 +546,6 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			return parseNewArr(alloc, lexer, start, ctx);
 		case ExpressionToken.Kind.unexpected:
 			return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
-		case ExpressionToken.Kind.when:
-			return ctx.allowBlock
-				? parseWhen(alloc, lexer, start)
-				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.when);
 	}
 }
 

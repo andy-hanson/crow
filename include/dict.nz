@@ -36,7 +36,7 @@ freeze dict ?k ?v(m mut-dict ?k ?v)
 	dict<?k, ?v>: m.keys.freeze, m.values.freeze
 
 get-recursive<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
-	when
+	if
 		idx == keys.size
 			none
 		key ==: keys at idx
@@ -82,7 +82,7 @@ map-values dict ?k ?v-out(d dict ?k ?v-in, mapper fun-mut1 ?v-out ?v-in)
 	dict<?k, ?v-out>: d.keys, new-values
 
 each void(d dict ?k ?v, f fun-mut2 void ?k ?v)
-	when
+	if
 		d empty?
 			pass
 		else

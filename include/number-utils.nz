@@ -38,7 +38,7 @@ decr int32(a int32)
 	a wrap-sub b
 * nat(a nat, b nat)
 	| TODO: better safety check
-	when
+	if
 		a.zero? or: b.zero?
 			zero
 		else
@@ -115,7 +115,7 @@ to-nat nat(i int32)
 	i.to-int to-nat
 
 to-nat32 nat32(n nat)
-	when
+	if
 		n < max-nat32.to-nat
 			n unsafe-to-nat32
 		else
@@ -136,7 +136,7 @@ abs nat(i int)
 
 mod nat(a int, b nat)
 	forbid: b zero?
-	when
+	if
 		a negative?
 			x = a.abs mod b
 			x == b ?: zero, b - x

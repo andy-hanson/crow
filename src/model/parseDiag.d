@@ -57,8 +57,8 @@ struct ParseDiag {
 	struct LetMustHaveThen {}
 	struct MatchWhenOrLambdaNeedsBlockCtx {
 		enum Kind {
+			if_,
 			match,
-			when,
 			lambda,
 		}
 		immutable Kind kind;

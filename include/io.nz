@@ -29,7 +29,7 @@ import
 write-sync-no-newline void(fd fd-t, s str) unsafe noctx
 	hard-assert: size-of<char> == size-of<byte>
 	res = fd write s.data.as-any-ptr, s.size
-	when
+	if
 		res == s.size.unsafe-to-int
 			pass
 		else
@@ -116,14 +116,14 @@ read-dir-recur void(dirp dirp, res mut-arr str) unsafe summon
 	err = dirp readdir-r entry, result
 	| TODO: handle error
 	assert: err zero?
-	when
+	if
 		result.get.as-any-ptr null?
 			| finished
 			pass
 		else
 			assert: result.get ref-eq? entry
 			name = entry.get-dirent-name
-			when
+			if
 				name == "." or: name == ".."
 					pass
 				else
@@ -158,7 +158,7 @@ write-file void(path c-str, content str) summon trusted
 	permission = (permission-rdwr bit-shift-left six) bits-or (permission-rd bit-shift-left three) bits-or permission-rd
 	flags = o-creat bits-or o-wronly bits-or o-trunc
 	fd = path open flags, permission
-	when
+	if
 		fd == neg-one
 			print-sync: "failed to open file for write: " + path.to-str
 			print-sync: "errno: " + errno.to-str
@@ -167,7 +167,7 @@ write-file void(path c-str, content str) summon trusted
 			todo
 		else
 			wrote-bytes = fd write content.data.ptr-cast<byte, char>, content.size
-			when
+			if
 				wrote-bytes == content.size.to-int
 					pass
 				wrote-bytes == -1
@@ -176,7 +176,7 @@ write-file void(path c-str, content str) summon trusted
 					| didn't write all the bytes?
 					todo
 			err = fd close
-			when
+			if
 				err == zero
 					pass
 				else
@@ -186,12 +186,12 @@ try-read-file opt str(path str) summon
 	path.to-c-str try-read-file
 
 try-read-file opt str(path c-str) summon trusted
-	when
+	if
 		path is-file?
 			fd = path open o-rdonly, 0
-			when
+			if
 				fd == neg-one
-					when
+					if
 						errno == enoent
 							none
 						else
@@ -227,7 +227,7 @@ get-cwd str() summon trusted
 	max-size = eight.two-pow as<nat>
 	buff = max-size new-uninitialized-mut-arr<char>
 	b = buff.data getcwd buff.size
-	when
+	if
 		b null?
 			todo
 		else
@@ -247,7 +247,7 @@ get-environ environ() summon trusted
 	res freeze
 
 get-environ-recur void(env ptr c-str, res mut-dict str str) unsafe
-	when
+	if
 		env.deref null?
 			pass
 		else
@@ -282,7 +282,7 @@ spawn-and-wait-result process-result(exe str, args arr str, environ environ) tru
 	print-sync: "spawn-and-wait-result: " + exe fold args, \a b
 		a + " " + b
 
-	when
+	if
 		| TODO: kill, handle that error properly
 		exe is-file?
 			exe-c-str = exe.to-c-str
@@ -292,7 +292,7 @@ spawn-and-wait-result process-result(exe str, args arr str, environ environ) tru
 
 | This one shares stdout and stderr with parent process
 spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
-	when
+	if
 		| TODO: kill, handle that error properly
 		exe is-file?
 			| First argument should be the executable path
@@ -352,7 +352,7 @@ read-to-buffer-until-eof void(fd fd-t, buffer mut-str) trusted summon
 	buffer ensure-capacity: buffer.size + read-max
 	add-data-to = buffer.data + buffer.size
 	n-bytes-read = fd read add-data-to.as-any-ptr, read-max
-	when
+	if
 		n-bytes-read == neg-one
 			| Error
 			todo
@@ -374,7 +374,7 @@ keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, st
 	stderr-pollfd = poll-fds ref-of-val-at one
 	| timeout == neg-one means we block
 	n-pollfds-with-events = poll: poll-fds.data, poll-fds.size, neg-one
-	when
+	if
 		n-pollfds-with-events zero?
 			| TODO: is this even possible to reach? I think we always get has-pollhup? instead.
 			pass
@@ -382,7 +382,7 @@ keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, st
 			a = stdout-pollfd handle-revents stdout-builder
 			b = stderr-pollfd handle-revents stderr-builder
 			assert: a.any?.to-nat + b.any?.to-nat == n-pollfds-with-events.to-nat
-			when
+			if
 				| Apparently stdout and stderr can hang up at slightly different times.
 				a.hung-up? and b.hung-up?
 					pass
@@ -399,13 +399,13 @@ any? bool(r handle-revents-result)
 handle-revents handle-revents-result(pollfd pollfd, builder mut-str) summon
 	revents = pollfd revents
 	had-pollin? = revents has-pollin?
-	when
+	if
 		had-pollin?
 			pollfd.fd read-to-buffer-until-eof builder
 		else
 			pass
 	hung-up? = revents has-pollhup?
-	when
+	if
 		revents.has-pollpri? or revents.has-pollout? or revents.has-pollerr? or revents.has-pollnval?
 			todo
 		else
@@ -418,7 +418,7 @@ wait-and-get-exit-code exit-code(pid pid-t) summon unsafe
 	res-pid = pid waitpid wait-status-cell, zero
 	wait-status = wait-status-cell.get
 	assert: res-pid == pid
-	when
+	if
 		wait-status w-if-exited
 			wait-status w-exit-status
 		wait-status w-if-signaled
@@ -441,12 +441,12 @@ get-stat opt stat-t(path c-str) summon trusted
 	| Initial value doesn't really matter
 	s = empty-stat
 	err = path stat s
-	when
+	if
 		err == zero
 			s some
 		else
 			assert: err == neg-one
-			when
+			if
 				errno == enoent
 					none
 				else
@@ -457,7 +457,7 @@ check-posix-error void(e err-t)
 	assert: e zero?
 
 check-errno-if-neg-one void(e int) summon trusted
-	when
+	if
 		e == neg-one
 			errno check-posix-error
 			hard-unreachable
@@ -465,7 +465,7 @@ check-errno-if-neg-one void(e int) summon trusted
 			pass
 
 check-errno-if-not-zero void(e int) summon trusted
-	when
+	if
 		e zero?
 			pass
 		else
@@ -499,19 +499,19 @@ connect-to-uri fd-t(u uri) summon trusted
 	op-sock force
 
 find-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
-	when
+	if
 		ap null?
 			none
 		else
 			a = ap deref
 			sock = socket: a.ai-family, a.ai-socktype, a.ai-protocol
-			when
+			if
 				sock == neg-one
 					| Ignore error and try again
 					a.ai-next find-working-socket
 				else
 					err = sock connect a.ai-addr, a.ai-addrlen
-					when
+					if
 						err == neg-one
 							check-posix-error: sock close
 							| Ignore error and try again

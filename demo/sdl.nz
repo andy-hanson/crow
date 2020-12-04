@@ -176,11 +176,7 @@ main-loop void(renderer sdl-renderer, texture sdl-texture) summon trusted
 	sdl-pump-events
 	key-states-ptr = null sdl-get-keyboard-state
 	key-states = sdl-num-scancodes ptr-as-arr key-states-ptr
-	when
-		key-states at sdl-scancode-return zero?
-			print-sync: "no return"
-		else
-			print-sync: "return is pressed"
+	print-sync: (key-states at sdl-scancode-return zero?) ? "no return", "return is pressed"
 
 	"sdl-render-clear" handle-sdl-error: renderer sdl-render-clear
 	"sdl-render-copy" handle-sdl-error: renderer sdl-render-copy texture, null, null
@@ -189,7 +185,7 @@ main-loop void(renderer sdl-renderer, texture sdl-texture) summon trusted
 
 new-renderer sdl-renderer(window sdl-window) summon trusted
 	renderer = window sdl-create-renderer: -1, sdl-renderer-accelerated bits-or sdl-renderer-present-vsync
-	when
+	if
 		renderer.as-any-ptr null?
 			"sdl-create-renderer" fail-sdl-error
 		else
@@ -199,14 +195,14 @@ new-renderer sdl-renderer(window sdl-window) summon trusted
 create-texture sdl-texture(renderer sdl-renderer) summon trusted
 	image-path = "demo/hello.bmp"
 	bmp = image-path sdl-load-bmp
-	when
+	if
 		bmp.as-any-ptr null?
 			"sdl-loadbmp-error" fail-sdl-error
 		else
 			pass
 	texture = renderer sdl-create-texture-from-surface bmp
 	bmp sdl-free-surface
-	when
+	if
 		texture.as-any-ptr null?
 			"sdl-create-texture-from-surface" fail-sdl-error
 		else
@@ -215,7 +211,7 @@ create-texture sdl-texture(renderer sdl-renderer) summon trusted
 
 
 handle-sdl-error void(operation str, err c-int) summon trusted
-	err.zero? if: pass, operation fail-sdl-error
+	err.zero? ?: pass, operation fail-sdl-error
 
 fail-sdl-error void(operation str) summon trusted
 	fail: "sdl error in " + operation + " " + sdl-get-error.to-str
@@ -223,7 +219,7 @@ fail-sdl-error void(operation str) summon trusted
 
 | TODO:MOVE
 repeat void(times nat, action fun-mut0 void)
-	when
+	if
 		times zero?
 			pass
 		else

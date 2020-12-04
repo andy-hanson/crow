@@ -27,7 +27,7 @@ joiner<?out, ?in0, ?in1> record force-sendable
 	n-remaining-args by-val thread-safe-counter
 
 decr-joiner void(j joiner ?out ?in0 ?in1) unsafe send<?out> send<?in0> send<?in1>
-	when
+	if
 		j.n-remaining-args.ref-of-val decrement
 			match j.arg0 force
 				ok ok0

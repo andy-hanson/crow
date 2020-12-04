@@ -33,8 +33,8 @@ global-ctx record mut
 	lk by-val lock
 	| TODO: mut-arr
 	vats mut arr vat
-	| When a thread finds no work to do, it decrements this and waits on 'may-be-work-to-do'.
-	| When the last thread decrements this, it can't go to sleep!
+	| if a thread finds no work to do, it decrements this and waits on 'may-be-work-to-do'.
+	| if the last thread decrements this, it can't go to sleep!
 	| But if there's no work to do, it can set 'is-shut-down' and wake up the other threads so they can shut down too.
 	n-live-threads mut nat
 	may-be-work-to-do by-val condition
@@ -59,7 +59,7 @@ vat record mut
 	| not protected by tasks-lock, thread-safe on its own
 	next-actor-id by-val thread-safe-counter
 
-	| When there's an exception, we'll enqueue this as a task.
+	| if there's an exception, we'll enqueue this as a task.
 	| Default is to print it and set `gctx.any-unhandled-exceptions`
 	exception-handler mut fun-mut1 void exception
 
@@ -113,7 +113,7 @@ thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 	thread-function-recur: thread-id, gctx, tls.ref-of-val
 
 thread-function-recur void(thread-id nat, gctx global-ctx, tls thread-local-stuff) noctx unsafe summon
-	when
+	if
 		gctx is-shut-down
 			gctx.lk.ref-of-val acquire-lock
 			| Remove this thread from live threads for good.
@@ -129,7 +129,7 @@ thread-function-recur void(thread-id nat, gctx global-ctx, tls thread-local-stuf
 				ok ok-chosen-task
 					gctx do-task tls, ok-chosen-task.value
 				err e
-					when
+					if
 						e.value.last-thread-out
 							hard-forbid: gctx.is-shut-down
 							gctx set-is-shut-down true
@@ -172,7 +172,7 @@ do-task void(gctx global-ctx, tls thread-local-stuff, chosen-task chosen-task) n
 			vat.tasks-lock.ref-of-val release-lock
 			ctx.ref-of-val return-ctx
 
-	| We incremented this when choosing the task.
+	| We incremented this if choosing the task.
 	vat.tasks-lock.ref-of-val acquire-lock
 	vat set-n-threads-running vat.n-threads-running.noctx-decr
 	vat.tasks-lock.ref-of-val release-lock
@@ -225,7 +225,7 @@ choose-task result chosen-task no-chosen-task(gctx global-ctx) noctx unsafe
 
 
 choose-task-recur opt chosen-task(vats arr vat, i nat) noctx unsafe
-	when
+	if
 		i == vats.size
 			none
 		else
@@ -242,10 +242,10 @@ choose-task-recur opt chosen-task(vats arr vat, i nat) noctx unsafe
 choose-task-in-vat opt task-or-gc(vat vat) noctx unsafe
 	vat.tasks-lock.ref-of-val acquire-lock
 
-	res = as<opt<task-or-gc>>: when
+	res = as<opt<task-or-gc>>: if
 		| TODO: ref-of-val should be unnecessary for property access?
 		vat.gc.ref-of-val.needs-gc
-			when
+			if
 				vat.n-threads-running zero?
 					| do GC
 					none some
@@ -261,7 +261,7 @@ choose-task-in-vat opt task-or-gc(vat vat) noctx unsafe
 				some s
 					s.value.some some
 
-	when
+	if
 		res empty?
 			pass
 		else
@@ -298,13 +298,13 @@ find-and-remove-first-doable-task-recur opt task-and-nodes(vat vat, opt-node opt
 			| (If we don't have space to expand currently-running-actors,
 			| shouldn't be starting a new task anyway.)
 			actors = vat.currently-running-actors ref-of-val
-			task-ok = when
+			task-ok = if
 				actors contains? task.actor-id
 					false
 				else
 					actors push-capacity-must-be-sufficient task.actor-id
 					true
-			when
+			if
 				task-ok
 					| Extract this task (return just its tail)
 					some: task-and-nodes: task, node.next-node
@@ -318,7 +318,7 @@ find-and-remove-first-doable-task-recur opt task-and-nodes(vat vat, opt-node opt
 							some: task-and-nodes: tn.task, node some
 
 assert-vats-are-shut-down void(i nat, vats arr vat) noctx unsafe
-	when
+	if
 		i == vats.size
 			pass
 		else
