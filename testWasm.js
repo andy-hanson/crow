@@ -1,5 +1,5 @@
 
-import {Compiler, runCode} from "./doc/compiler.js"
+import {Compiler, runCode} from "./noze-js/server.js"
 import fs from "fs"
 
 const TEST_SRC = fs.readFileSync("a.nz", "utf-8")

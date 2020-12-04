@@ -10,5 +10,9 @@
 		"noUnusedParameters": true,
 		"module": "es6",
 		"target": "esnext"
-	}
+	},
+	"include": [
+		".",
+		"../../noze-js/server.js",
+	],
 }

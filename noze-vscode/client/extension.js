@@ -1,29 +1,28 @@
-/// <reference path="../../../doc/script/Compiler.js" />
+/// <reference path="../../noze-js/server.js" />
 
 const fs = require("fs")
-const path = require("path")
 /** @typedef {import("vscode").CancellationToken} CancellationToken */
 /** @typedef {import("vscode").DocumentSemanticTokensProvider} DocumentSemanticTokensProvider */
 /** @typedef {import("vscode").ExtensionContext} ExtensionContext */
 /** @typedef {import("vscode").TextDocument} TextDocument */
-const {languages, workspace, SemanticTokens, SemanticTokensBuilder, SemanticTokensLegend} = require("vscode")
-/** @typedef {import("../node_modules/vscode-languageclient").LanguageClientOptions} LanguageClientOptions */
-/** @typedef {import("../node_modules/vscode-languageclient").ServerOptions} ServerOptions */
-const {LanguageClient, TransportKind} = require("../node_modules/vscode-languageclient")
+const {languages, SemanticTokens, SemanticTokensBuilder, SemanticTokensLegend} = require("vscode")
+/** @typedef {import("vscode-languageclient").LanguageClientOptions} LanguageClientOptions */
+/** @typedef {import("vscode-languageclient").ServerOptions} ServerOptions */
+const {LanguageClient, TransportKind} = require("vscode-languageclient")
 
 // Avoiding TypeScript "is not a module" error
 const require2 = require
-require2("../../../doc/script/Compiler.js")
+require2("../../noze-js/server.js")
 
 /** @type {LanguageClient | undefined} */
 let client
 
 /** @type {function(ExtensionContext): void} */
 exports.activate = context => {
-	const serverModule = context.asAbsolutePath(path.join('server', 'src', 'server.js'))
+	const serverModule = context.asAbsolutePath("server/server.js")
 	// The debug options for the server
 	// --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
-	const debugOptions = {execArgv:['--nolazy', '--inspect=6009']}
+	const debugOptions = {execArgv:["--nolazy", "--inspect=6009"]}
 
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
@@ -38,31 +37,17 @@ exports.activate = context => {
 	}
 
 	/** @type {LanguageClientOptions} */
-	const clientOptions = {
-		documentSelector: [{scheme:"file", language:"noze"}],
-		synchronize: {
-			// Notify the server about file changes to '.clientrc files contained in the workspace
-			//fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
-		},
-	}
-
+	const clientOptions = {documentSelector: [{scheme:"file", language:"noze"}]}
 	client = new LanguageClient("noze", "noze", serverOptions, clientOptions)
 	client.start()
 
 	context.subscriptions.push(
-		languages.registerDocumentSemanticTokensProvider({language:"noze"}, myDocumentSemanticTokensProvider, legend))
+		languages.registerDocumentSemanticTokensProvider({language:"noze"}, nozeSemanticTokensProvider, legend))
 }
 
 /** @type {function(): Thenable<void> | undefined} */
 exports.deactivate = () =>
 	client && client.stop()
-
-
-/** @type {Map<string, number>} */
-const tokenTypes = new Map()
-/** @type {Map<string, number>} */
-const tokenModifiers = new Map()
-
 
 /**
 @typedef {
@@ -138,38 +123,32 @@ const tokenModifiersLegend = [
 	"async",
 ]
 
+
+/** @type {Map<string, number>} */
+const tokenTypes = new Map()
 tokenTypesLegend.forEach((tokenType, index) => {
 	tokenTypes.set(tokenType, index)
-});
+})
+
+/** @type {Map<string, number>} */
+const tokenModifiers = new Map()
 tokenModifiersLegend.forEach((tokenModifier, index) => {
 	tokenModifiers.set(tokenModifier, index)
-});
+})
 const legend = new SemanticTokensLegend(
 	/** @type {string[]} */ (tokenTypesLegend),
-	/** @type {string[]} */ (tokenModifiersLegend));
+	/** @type {string[]} */ (tokenModifiersLegend))
 
 /** @type {Promise<Compiler> | null} */
 let myCompiler = null
 /** @type {function(): Promise<Compiler>} */
 const getCompiler = () => {
 	if (myCompiler == null) {
-		const bytes = fs.readFileSync(__dirname + "/../../../bin/noze.wasm")
-		/** @type {Files} */
-		const include = {} // TODO
-		myCompiler = compiler.Compiler.makeFromBytes(bytes, include)
+		const bytes = fs.readFileSync(__dirname + "/../../bin/noze.wasm")
+		myCompiler = compiler.Compiler.makeFromBytes(bytes)
 	}
 	return myCompiler
 }
-
-/**
- * @typedef IParsedToken
- * @property {number} line
- * @property {number} startCharacter
- * @property {number} length
- * @property {string} tokenType
- * @property {string[]} tokenModifiers
- */
-
 
 /**
  * @param {TextDocument} document
@@ -177,22 +156,23 @@ const getCompiler = () => {
  * @return {Promise<SemanticTokens>}
  */
 const provideDocumentSemanticTokens = async (document, _cancellationToken) => {
-	const comp = await getCompiler()
-	const tokens = comp.getTokens(document.getText())
-	const builder = new SemanticTokensBuilder();
-	for (const token of tokens.tokens) {
-		const start = token.range.args[0]
-		const end = token.range.args[1]
-		const length = end - start
-		const pos = document.positionAt(start)
-		builder.push(
-			pos.line,
-			pos.character,
-			length,
-			encodeTokenType(convertToken(token.kind)),
-			encodeTokenModifiers([]))
+	try {
+		const comp = await getCompiler()
+		comp.addOrChangeFile(StorageKind.local, "main", document.getText())
+		const tokens = comp.getTokens(StorageKind.local, "main")
+		const builder = new SemanticTokensBuilder()
+		for (const {kind, range:{args:[start, end]}} of tokens) {
+			const length = end - start
+			const {line, character} = document.positionAt(start)
+			builder.push(line, character, length, encodeTokenType(convertToken(kind)), encodeTokenModifiers([]))
+		}
+		return builder.build()
+	} catch (e) {
+		// VSCode just swallows exceptions, at least log them
+		console.log("Caught error in provideDocumentSemanticTokens")
+		console.error(e.stack)
+		throw e
 	}
-	return builder.build();
 }
 
 /**
@@ -245,46 +225,22 @@ const assertNever = () => {
 }
 
 /** @type {DocumentSemanticTokensProvider} */
-const myDocumentSemanticTokensProvider = {provideDocumentSemanticTokens}
+const nozeSemanticTokensProvider = {provideDocumentSemanticTokens}
 
 /**
  * @param {string} tokenType
  * @return {number}
  */
-const encodeTokenType = tokenType => {
-	if (tokenTypes.has(tokenType)) {
-		return nonUndefined(tokenTypes.get(tokenType));
-	} else if (tokenType === 'notInLegend') {
-		return tokenTypes.size + 2;
-	}
-	return 0;
-}
+const encodeTokenType = tokenType =>
+	tokenTypes.get(tokenType) || 0
 
-/**
- * @private
- * @param {ReadonlyArray<string>} strTokenModifiers
- * @return {number}
- */
-const encodeTokenModifiers = strTokenModifiers => {
-	let result = 0;
-	for (let i = 0; i < strTokenModifiers.length; i++) {
-		const tokenModifier = strTokenModifiers[i];
-		if (tokenModifiers.has(tokenModifier)) {
-			result = result | (1 << nonUndefined(tokenModifiers.get(tokenModifier)));
-		} else if (tokenModifier === 'notInLegend') {
-			result = result | (1 << tokenModifiers.size + 2);
-		}
+/** @type {function(ReadonlyArray<string>): number} */
+const encodeTokenModifiers = modifiers => {
+	let result = 0
+	for (const mod of modifiers) {
+		const modifierNumber = tokenModifiers.get(mod)
+		if (modifierNumber !== undefined)
+			result = result | (1 << modifierNumber)
 	}
-	return result;
-}
-
-/**
- * @template T
- * @param {T | undefined} x
- * @return {T}
- */
-const nonUndefined = x => {
-	if (x === undefined)
-		throw new Error()
-	return x
+	return result
 }

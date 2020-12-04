@@ -8,7 +8,6 @@ import
 	.lint
 	.noze-tests
 	.path-utils
-	.sdl
 
 main fut exit-code(args arr str) summon
 	option-names = new-arr<str> "print-tests", "overwrite-output", "max-failures"

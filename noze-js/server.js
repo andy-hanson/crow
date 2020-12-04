@@ -5,7 +5,6 @@ const StorageKind = {
 	global: /** @type {StorageKind} */ (0),
 	local: /** @type {StorageKind} */ (1),
 }
-console.log("YOU GOT HERE!!")
 
 if (typeof window !== "undefined")
 	Object.assign(window, {compiler, StorageKind})

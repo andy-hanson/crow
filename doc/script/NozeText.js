@@ -187,14 +187,19 @@ export const NozeText = makeCustomElement({
 
 		/** @type {HTMLDivElement | null} */
 		let tooltip = null
+		let mouseIsIn = false
 		const removeTooltip = () => {
 			if (tooltip !== null) {
 				tooltip.remove()
 				tooltip = null
 			}
 		}
-		ta.addEventListener("mouseout", removeTooltip)
+		ta.addEventListener("mouseout", () => {
+			mouseIsIn = false
+			removeTooltip()
+		})
 		ta.addEventListener("mousemove", e => {
+			mouseIsIn = true
 			removeTooltip()
 			const offsetX = e.offsetX
 			const offsetY = e.offsetY
@@ -212,7 +217,7 @@ export const NozeText = makeCustomElement({
 			if (mouseMoveIndex === 2**16) mouseMoveIndex = 0
 			const saveMouseMoveIndex = mouseMoveIndex
 			setTimeout(() => {
-				if (mouseMoveIndex === saveMouseMoveIndex) {
+				if (mouseIsIn && mouseMoveIndex === saveMouseMoveIndex) {
 					const hover = getHover(pos)
 					if (hover !== "") {
 						tooltip = div({class:hoverTooltipClass}, [hover])
@@ -223,7 +228,7 @@ export const NozeText = makeCustomElement({
 						console.log("NO HOVER")
 					}
 				}
-			}, 300)
+			}, 200)
 		})
 
 		const lineNumbers = div({class:lineNumbersClass})

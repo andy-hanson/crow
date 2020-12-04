@@ -1,6 +1,9 @@
-.PHONY: debug doc-server test
+.PHONY: debug doc-server sdl-demo unit-test end-to-end-test test
 
-all: test lint bin/noze.wasm
+all: test lint bin/noze.wasm sdl-demo
+
+sdl-demo: bin/noze
+	bin/noze run demo/sdl.nz
 
 dyncall:
 	hg clone https://dyncall.org/pub/dyncall/dyncall/
@@ -13,16 +16,18 @@ doc/includeList.txt: include/*.nz
 doc-server: doc/includeList.txt bin/noze.wasm
 	python -m SimpleHTTPServer 8080
 
-lint-js:
-	cd doc/script && tsc
-
 lint-dscanner:
 	dub run dscanner -- --styleCheck src/*.d src/*/*.d src/*/*/*.d
 
 lint-imports-exports:
 	rdmd lint.d
 
-lint: lint-js lint-dscanner lint-imports-exports
+lint-js:
+	cd doc/script && tsc
+	cd noze-vscode/client && tsc
+	cd noze-vscode/server && tsc
+
+lint: lint-dscanner lint-imports-exports lint-js
 
 debug: bin/noze
 	gdb ./bin/noze
@@ -30,11 +35,13 @@ debug: bin/noze
 unit-test: bin/noze
 	./bin/noze test
 
-test: unit-test
+end-to-end-test: bin/noze
 	./bin/noze run test/test.nz
 
-test-overwrite: bin/noze
+end-to-end-test-overwrite: bin/noze
 	./bin/noze run test/test.nz -- --overwrite-output
+
+test: unit-test end-to-end-test
 
 src_deps = src/*.d src/*/*.d src/*/*/*.d
 cli_deps = dyncall $(src_deps)
@@ -51,12 +58,14 @@ bin/noze: $(cli_deps)
 bin/noze-opt: $(cli_deps)
 	ldc2 -O3 --enable-asserts=false --boundscheck=off -ofbin/noze-opt $(d_flags) $(app_files) $(app_link)
 
+# Unfortunately it fails with `undefined symbol: __assert` regardless of the `--checkaction` setting without `--enable-asserts=false`
+# --static would be nice, but doesn't seem to work: `lld: error: unknown argument: -static`
+# Need '--boundscheck=off' to avoid `undefined symbol: __assert` on D array access
+wasm_flags = --enable-asserts=false --boundscheck=off
+
 bin/noze.wasm: $(src_deps)
-	# Unfortunately it fails with `undefined symbol: __assert` regardless of the `--checkaction` setting without `--enable-asserts=false`
-	# --static would be nice, but doesn't seem to work: `lld: error: unknown argument: -static`
-	# Need '--boundscheck=off' to avoid `undefined symbol: __assert` on D array access
 	ldc2 -ofbin/noze.wasm -mtriple=wasm32-unknown-unknown-wasm \
-		--d-debug -g $(d_flags) --enable-asserts=false --boundscheck=off $(wasm_files)
+		--d-debug -g $(d_flags) $(wasm_flags) $(wasm_files)
 
 # TODO: do as part of 'test'
 test-wasm: bin/noze.wasm

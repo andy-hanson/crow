@@ -197,7 +197,7 @@ new-renderer sdl-renderer(window sdl-window) summon trusted
 	renderer
 
 create-texture sdl-texture(renderer sdl-renderer) summon trusted
-	image-path = "hello.bmp"
+	image-path = "demo/hello.bmp"
 	bmp = image-path sdl-load-bmp
 	when
 		bmp.as-any-ptr null?
