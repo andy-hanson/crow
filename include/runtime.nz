@@ -4,8 +4,8 @@ import
 	.alloc: gc get-gc-ctx needs-gc new-gc return-gc-ctx unmanaged-alloc-elements
 	.arr-utils: at contains? empty? mut-arr noctx-at noctx-must-remove-unordered push-capacity-must-be-sufficient
 	.bootstrap
-		== > actor-id arr as as-any-ptr as-ref bool by-val call-with-ctx ctx empty? err exception
-		false fun-mut0 fun-mut1 gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid if lock message
+		== > ? actor-id arr as as-any-ptr as-ref bool by-val call-with-ctx ctx empty? err exception
+		false fun-mut0 fun-mut1 gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid lock message
 		nat noctx-decr noctx-incr none ok opt pass ref-of-val result size some todo true value
 		vat-and-actor-id vat-id void zero zero?
 	.exceptions: exception-ctx new-exception-ctx
@@ -85,7 +85,7 @@ new-vat by-val vat(gctx global-ctx, id vat-id, max-threads nat) summon noctx uns
 
 default-exception-handler void(e exception) summon unsafe
 	print-err-sync-no-newline: "uncaught exception: "
-	print-err-sync: e.message.empty? if "<<empty message>>", e.message
+	print-err-sync: e.message.empty? ? "<<empty message>>", e.message
 	get-gctx set-any-unhandled-exceptions? true
 
 set-this-vats-exception-handler void(exception-handler fun-mut1 void exception) summon trusted

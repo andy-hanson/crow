@@ -514,10 +514,10 @@ program(
 			type(false, void)
 			none
 			[param(condition, type(false, bool))]
-			expr-body(call(if, [param-ref(condition), call(pass, []), call(hard-fail, [arr(0, 0)])])))
+			expr-body(call(?, [param-ref(condition), call(pass, []), call(hard-fail, [arr(0, 0)])])))
 		fun(
 			false
-			if
+			?
 			type(false, void)
 			none
 			[param(cond, type(false, bool)), param(if-true, type(false, void)), param(if-false, type(false, void))]
@@ -811,7 +811,7 @@ program(
 							print-err-sync
 							[
 								call(
-									if
+									?
 									[
 										call(empty?, [call(message, [param-ref(e)])])
 										arr(0, 5)
@@ -897,7 +897,7 @@ program(
 			expr-body(seq(call(print-err-sync-no-newline, [param-ref(s)]), call(print-err-sync-no-newline, [arr(0, 4)]))))
 		fun(
 			false
-			if
+			?
 			type(false, arr)
 			none
 			[param(cond, type(false, bool)), param(if-true, type(false, arr)), param(if-false, type(false, arr))]
@@ -1712,7 +1712,7 @@ program(
 			type(false, void)
 			none
 			[param(condition, type(false, bool)), param(message, type(false, arr))]
-			expr-body(call(if, [param-ref(condition), call(pass, []), call(fail, [param-ref(message)])])))
+			expr-body(call(?, [param-ref(condition), call(pass, []), call(fail, [param-ref(message)])])))
 		fun(
 			true
 			fail
@@ -2333,7 +2333,7 @@ program(
 			type(false, void)
 			none
 			[param(condition, type(false, bool)), param(message, type(false, arr))]
-			expr-body(call(if, [param-ref(condition), call(fail, [param-ref(message)]), call(pass, [])])))
+			expr-body(call(?, [param-ref(condition), call(fail, [param-ref(message)]), call(pass, [])])))
 		fun(
 			false
 			empty?

@@ -17,7 +17,7 @@ import util.util : unreachable, verify;
 import util.writer : finishWriter, writeChar, writeStatic, Writer;
 
 immutable(Bool) isAlphaIdentifierStart(immutable char c) {
-	return immutable Bool('a' <= c && c <= 'z');
+	return immutable Bool(('a' <= c && c <= 'z') || c == '?');
 }
 
 immutable(Bool) isDigit(immutable char c) {

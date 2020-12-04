@@ -150,6 +150,8 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failBinary());
 		case shortSymOperatorLiteralValue("*"):
 			return binary(isFloat64(rt) ? LowExprKind.SpecialBinary.Kind.mulFloat64 : failBinary());
+		case shortSymAlphaLiteralValue("?"):
+			return trinary(LowExprKind.SpecialTrinary.Kind.if_);
 		case shortSymAlphaLiteralValue("as-any-ptr"):
 			return unary(LowExprKind.SpecialUnary.Kind.asAnyPtr);
 		case shortSymAlphaLiteralValue("and"):
@@ -206,8 +208,6 @@ immutable(BuiltinKind) getBuiltinKind(
 			return immutable BuiltinKind(immutable BuiltinKind.GetCtx());
 		case shortSymAlphaLiteralValue("hard-fail"):
 			return unary(LowExprKind.SpecialUnary.Kind.hardFail);
-		case shortSymAlphaLiteralValue("if"):
-			return trinary(LowExprKind.SpecialTrinary.Kind.if_);
 		case shortSymAlphaLiteralValue("not"):
 			return unary(LowExprKind.SpecialUnary.Kind.not);
 		case shortSymAlphaLiteralValue("null"):

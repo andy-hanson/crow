@@ -1,6 +1,6 @@
 import
 	.bootstrap
-		== < > >= billion bool and float if int int32 max-nat32 million nat nat32 neg-million
+		== < > >= ? billion bool and float int int32 max-nat32 million nat nat32 neg-million
 		neg-one one or todo to-int to-nat unsafe-div unsafe-mod unsafe-to-int unsafe-to-int32
 		unsafe-to-nat unsafe-to-nat32 wrap-add wrap-decr wrap-mul wrap-sub zero zero?
 	.exceptions: assert forbid
@@ -131,7 +131,7 @@ neg int(n nat)
 	n.to-int neg
 
 abs nat(i int)
-	i-abs = i.negative? if i.neg, i
+	i-abs = i.negative? ? i.neg, i
 	i-abs to-nat
 
 mod nat(a int, b nat)
@@ -139,7 +139,7 @@ mod nat(a int, b nat)
 	when
 		a negative?
 			x = a.abs mod b
-			x == b if: zero, b - x
+			x == b ?: zero, b - x
 		else
 			a.to-nat mod b
 

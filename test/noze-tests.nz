@@ -21,7 +21,7 @@ list-tests arr str(path str) summon
 			none
 				pass
 			some s
-				s.value == "nz" if (res push child), pass
+				s.value == "nz" ?: (res push child), pass
 	res freeze
 
 run-single-noze-test arr failure
@@ -33,12 +33,12 @@ spec
 	summon
 body
 	op = (new-arr<str> "ast", "model", "concrete-model", "low-model") first-some<arr<failure>, str> \print-kind
-		options.print-tests? if ("noze print " + print-kind + " " + path print-sync), pass
+		options.print-tests? ? ("noze print " + print-kind + " " + path print-sync), pass
 		res = print-kind run-print-test path-to-noze, env, path, options.overwrite-output?
-		res.should-stop? if res.failures.some, none
+		res.should-stop? ? res.failures.some, none
 	match op
 		none
-			options.print-tests? if ("noze run " + path print-sync), pass
+			options.print-tests? ? ("noze run " + path print-sync), pass
 			interpret-failures = path-to-noze run-single-runnable-test env, path, true, options.overwrite-output?
 			when
 				interpret-failures.empty?
@@ -94,7 +94,7 @@ run-single-runnable-test arr failure
 spec
 	summon
 body
-	args = as<arr<str>>: interpret? if (new-arr "run", path, "--interpret"), (new-arr "run", path)
+	args = as<arr<str>>: interpret? ? (new-arr "run", path, "--interpret"), (new-arr "run", path)
 	res = path-to-noze spawn-and-wait-result args, env
 	when
 		res.exit-code == 0 and: res.stderr == ""

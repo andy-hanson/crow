@@ -157,7 +157,7 @@ sdl-window-shown sdl-flags()
 main fut exit-code(args arr str) summon trusted
 	"sdl-init-video" handle-sdl-error: sdl-init-video sdl-init
 	window = "Hello World!" sdl-create-window 100, 100, 640, 480, sdl-window-shown
-	window.as-any-ptr.null? if: "sdl-create-window".fail-sdl-error, pass
+	window.as-any-ptr.null? ? "sdl-create-window".fail-sdl-error, pass
 	renderer = window new-renderer
 	texture = renderer create-texture
 

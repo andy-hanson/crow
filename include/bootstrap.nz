@@ -128,10 +128,10 @@ to-str str(c comparison)
 	a < b not
 
 min ?t(a ?t, b ?t) noctx data<?t>
-	(a < b) if a, b
+	a < b ? a, b
 
 max ?t(a ?t, b ?t) noctx data<?t>
-	(a > b) if a, b
+	a > b ? a, b
 
 | NOTE: this is not a normal record, compiler treats it specially
 arr<?t> record force-data
@@ -161,8 +161,8 @@ or bool(a bool, b bool) noctx builtin
 nand bool(a bool, b bool) noctx builtin
 nor bool(a bool, b bool) noctx builtin
 | Only one of 'if-true' and 'if-false' arguments will be evaluated
-if ?t(cond bool, if-true ?t, if-false ?t) noctx builtin
-if void(cond bool, if-true void) noctx builtin
+? ?t(cond bool, if-true ?t, if-false ?t) noctx builtin
+? void(cond bool, if-true void) noctx builtin
 
 
 always-true bool(a ?t)
@@ -754,7 +754,7 @@ drop void(t ?t) noctx
 	pass
 
 hard-assert void(condition bool) noctx unsafe
-	condition if pass, "Assertion failed!".hard-fail
+	condition ? pass, "Assertion failed!".hard-fail
 
 hard-forbid void(condition bool) noctx unsafe
 	condition.not hard-assert

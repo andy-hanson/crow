@@ -1,8 +1,8 @@
 import
 	.alloc: alloc
 	.bootstrap
-		+ - == < <= > >= and arr bool byte by-val call data deref drop eight false four fun-mut1
-		fun-mut2 hard-assert hard-fail hard-forbid if incr nat noctx-decr noctx-incr none not null
+		+ - == < <= > >= ? and arr bool byte by-val call data deref drop eight false four fun-mut1
+		fun-mut2 hard-assert hard-fail hard-forbid incr nat noctx-decr noctx-incr none not null
 		one opt or pass ptr ptr-cast ref-of-ptr set size size-of some two true void wrap-mul zero zero?
 	.exceptions: assert forbid
 	.number-utils: + - * / decr incr
@@ -317,7 +317,7 @@ copy-data-from-small void(to ptr ?t, from ptr ?t, len nat) unsafe
 push void(a mut-arr ?t, value ?t) trusted
 	when
 		a.size == a.capacity
-			a increase-capacity-to: a.size.zero? if: four, a.size * two
+			a increase-capacity-to: a.size.zero? ?: four, a.size * two
 		else
 			pass
 	a ensure-capacity a.size.incr.round-up-to-power-of-two

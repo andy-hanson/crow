@@ -1,6 +1,6 @@
 import
 	.bootstrap
-		== as-ref bool by-val call err exception exception-ctx-ptr fun-mut0 fun-mut1 get-ctx hard-forbid if int32 null
+		== ? as-ref bool by-val call err exception exception-ctx-ptr fun-mut0 fun-mut1 get-ctx hard-forbid int32 null
 		null? ok pass ptr-to result seven str todo void zero
 	.posix: jmp-buf jmp-buf-tag longjmp setjmp zero
 
@@ -69,10 +69,10 @@ unreachable ?t()
 	"should be unreachable" fail
 
 assert void(condition bool, message str)
-	condition if pass, message.fail
+	condition ? pass, message.fail
 
 forbid void(condition bool)
 	condition forbid "forbid failed"
 
 forbid void(condition bool, message str)
-	condition if message.fail, pass
+	condition ? message.fail, pass

@@ -1,7 +1,7 @@
 import
 	.bootstrap
-		+ == < <= and arr as as-any-ptr as-ref billion bits-and bit-shift-left bits-or bool byte
-		by-val char c-str data deref eight false four hard-assert hard-unreachable has? if incr int32
+		+ == < <= ? and arr as as-any-ptr as-ref billion bits-and bit-shift-left bits-or bool byte
+		by-val char c-str data deref eight false four hard-assert hard-unreachable has? incr int32
 		int nat nat16 nat32 neg-one none null null? one opt or pass ptr ptr-cast ptr-eq? ptr-to
 		ref-eq? six size size-of some str ten thousand three todo two two-pow unsafe-to-int value void
 		wrap-add zero zero?
@@ -366,7 +366,7 @@ read-to-buffer-until-eof void(fd fd-t, buffer mut-str) trusted summon
 
 | TODO:MOVE
 to-nat nat(b bool)
-	b if: one, zero
+	b ? one, zero
 
 keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, stderr-builder mut-str) summon unsafe
 	poll-fds = new-arr<by-val<pollfd>> (pollfd: stdout-pipe, pollin, zero), (pollfd: stderr-pipe, pollin, zero)

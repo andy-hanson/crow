@@ -164,7 +164,7 @@ immutable(Ptr!FunInst) getGetVatAndActorFun(Alloc)(ref Alloc alloc, ref immutabl
 
 immutable(Arr!(Ptr!FunDecl)) getIfFuns(ref immutable Program program) {
 	immutable Arr!(Ptr!FunDecl) ifFuns =
-		multiDictGetAt(program.specialModules.bootstrapModule.funsMap, shortSymAlphaLiteral("if"));
+		multiDictGetAt(program.specialModules.bootstrapModule.funsMap, shortSymAlphaLiteral("?"));
 	if (size(ifFuns) != 2)
 		todo!void("wrong number 'if' funs");
 	return ifFuns;
