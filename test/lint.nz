@@ -3,28 +3,25 @@ import io .failure .path-utils
 lint result str arr<failure>(path str, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, \file
-		if
-			options.print-tests?
-				print-sync: "lint " + file
-			else
-				pass
-		file lint-file
-	if
-		failures has?
-			err: failures
+		if options.print-tests?
+			print-sync: "lint " + file
 		else
-			ok: "linted " + files.size.to-str + " files"
+			pass
+		file lint-file
+	if failures has?
+		err: failures
+	else
+		ok: "linted " + files.size.to-str + " files"
 
 private
 
 list-lintable-files arr str(path str) summon
 	res = new-mut-arr<str>
 	path each-child-recursive {not: it excluded-from-lint?}, \child
-		if
-			child.base-name ignore-extension-of-name?
-				pass
-			else
-				res push child
+		if child.base-name ignore-extension-of-name?
+			pass
+		else
+			res push child
 	res freeze
 
 excluded-from-lint? bool(name str)
@@ -39,19 +36,17 @@ lint-file arr failure(path str) summon
 	err-file? = path.get-extension.force == "err"
 	text.lines each-with-index \line line-num
 		ln = line-num.incr.to-str
-		if
-			err-file?.not and: line.lstrip contains-subsequence? "  "
-				message = "line " + ln + " contains a double space"
-				res push failure: path, message
-			else
-				pass
+		if err-file?.not and: line.lstrip contains-subsequence? "  "
+			message = "line " + ln + " contains a double space"
+			res push failure: path, message
+		else
+			pass
 		width = line line-len
-		if
-			width > max-line-length
-				message = "line " + ln + " is " + width.to-str + " columns long, should be <= " + max-line-length.to-str
-				res push failure: path, message
-			else
-				pass
+		if width > max-line-length
+			message = "line " + ln + " is " + width.to-str + " columns long, should be <= " + max-line-length.to-str
+			res push failure: path, message
+		else
+			pass
 	res freeze
 
 ignored-extensions arr str()
@@ -78,11 +73,10 @@ lines arr str(s str)
 	res = new-mut-arr<str>
 	last-nl = zero cell<nat>
 	s each-with-index \c index
-		if
-			c == "\n"
-				res push: s slice-from-to (last-nl swap index.incr), index
-			else
-				pass
+		if c == "\n"
+			res push: s slice-from-to (last-nl swap index.incr), index
+		else
+			pass
 	res push: s slice-from-to last-nl.get, s.size
 	res.freeze
 
@@ -91,11 +85,10 @@ max-line-length nat()
 	120
 
 n-tabs nat(line str)
-	if
-		line.empty?.not and: line.first == "\t"
-			line.tail.n-tabs incr
-		else
-			zero
+	if line.empty?.not and: line.first == "\t"
+		line.tail.n-tabs incr
+	else
+		zero
 
 tab-size nat()
 	4

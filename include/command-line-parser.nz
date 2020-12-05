@@ -19,22 +19,20 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1 ?t arr<opt
 	parsed.named each \key value
 		match t-names index-of key
 			none
-				if
-					key == "help"
-						help set true
-					else
-						fail: "Unexpected arg " + key
+				if key == "help"
+					help set true
+				else
+					fail: "Unexpected arg " + key
 			some s
 				idx = s value
 				| TODO: duplicate argument error
 				forbid: values at idx has?
 				values set-at idx, value.some
 
-	if
-		help get
-			none
-		else
-			make-t call values.freeze some
+	if help get
+		none
+	else
+		make-t call values.freeze some
 
 | Command line syntax:
 | `foo bar --a 1 --b 2 3 -- x y z`

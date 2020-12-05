@@ -9,6 +9,7 @@ import frontend.ast :
 	ExprAst,
 	ExprAstKind,
 	IdentifierAst,
+	IfAst,
 	LambdaAst,
 	LetAst,
 	LiteralAst,
@@ -19,8 +20,7 @@ import frontend.ast :
 	rangeOfNameAndRange,
 	SeqAst,
 	ThenAst,
-	TypeAst,
-	WhenAst;
+	TypeAst;
 import frontend.checkCall : checkCall, checkIdentifierCall;
 import frontend.checkCtx : CheckCtx;
 import frontend.inferringType :
@@ -110,7 +110,7 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
-import util.util : unreachable, verify;
+import util.util : todo, unreachable, verify;
 
 immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 	ref Alloc alloc,
@@ -198,34 +198,19 @@ immutable(Expr) checkAndExpect(Alloc)(
 	return checkAndExpect(alloc, ctx, ast, immutable Type(expected));
 }
 
-immutable(CheckedExpr) checkWhen(Alloc)(
+immutable(CheckedExpr) checkIf(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
-	ref immutable WhenAst ast,
+	ref immutable IfAst ast,
 	ref Expected expected,
 ) {
-	return checkWhenRecur(alloc, ctx, range, ast.cases, force(ast.else_), expected);
-}
-
-immutable(CheckedExpr) checkWhenRecur(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
-	immutable Arr!(WhenAst.Case) cases,
-	immutable Ptr!ExprAst else_,
-	ref Expected expected,
-) {
-	if (empty(cases)) {
-		return immutable CheckedExpr(checkExpr(alloc, ctx, else_, expected));
-	} else {
-		immutable WhenAst.Case case_ = first(cases);
-		immutable Ptr!Expr cond = allocExpr(alloc, checkAndExpect(alloc, ctx, case_.cond, ctx.commonTypes.bool_));
-		immutable Ptr!Expr then = allocExpr(alloc, checkExpr(alloc, ctx, case_.then, expected));
-		immutable Ptr!Expr rest = allocExpr(alloc,
-			checkWhenRecur(alloc, ctx, range, tail(cases), else_, expected).expr);
-		return immutable CheckedExpr(immutable Expr(range, immutable Expr.Cond(inferred(expected), cond, then, rest)));
-	}
+	immutable Ptr!Expr cond = allocExpr(alloc, checkAndExpect(alloc, ctx, ast.cond, ctx.commonTypes.bool_));
+	immutable Ptr!Expr then = allocExpr(alloc, checkExpr(alloc, ctx, ast.then, expected));
+	if (!has(ast.else_))
+		todo!void("!");
+	immutable Ptr!Expr else_ = allocExpr(alloc, checkExpr(alloc, ctx, force(ast.else_), expected));
+	return immutable CheckedExpr(immutable Expr(range, immutable Expr.Cond(inferred(expected), cond, then, else_)));
 }
 
 struct ArrExpectedType {
@@ -728,6 +713,8 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			checkCreateArr(alloc, ctx, range, a, expected),
 		(ref immutable IdentifierAst a) =>
 			checkIdentifier(alloc, ctx, range, a, expected),
+		(ref immutable IfAst a) =>
+			checkIf(alloc, ctx, range, a, expected),
 		(ref immutable LambdaAst a) =>
 			checkLambda(alloc, ctx, range, a, expected),
 		(ref immutable LetAst a) =>
@@ -741,7 +728,5 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 		(ref immutable SeqAst a) =>
 			checkSeq(alloc, ctx, range, a, expected),
 		(ref immutable ThenAst a) =>
-			checkThen(alloc, ctx, range, a, expected),
-		(ref immutable WhenAst a) =>
-			checkWhen(alloc, ctx, range, a, expected));
+			checkThen(alloc, ctx, range, a, expected));
 }

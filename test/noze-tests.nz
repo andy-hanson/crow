@@ -4,11 +4,10 @@ run-noze-tests result str arr<failure>(path str, path-to-noze str, env environ, 
 	tests = path list-tests
 	failures = tests flat-map-with-max-size options.max-failures, \test
 		path-to-noze run-single-noze-test env, test, options
-	if
-		failures has?
-			failures err
-		else
-			ok: "ran " + tests.size.to-str + " tests in " + path
+	if failures has?
+		failures err
+	else
+		ok: "ran " + tests.size.to-str + " tests in " + path
 
 private
 
@@ -40,11 +39,10 @@ body
 		none
 			options.print-tests? ? ("noze run " + path print-sync), pass
 			interpret-failures = path-to-noze run-single-runnable-test env, path, true, options.overwrite-output?
-			if
-				interpret-failures.empty?
-					path-to-noze run-single-runnable-test env, path, false, options.overwrite-output?
-				else
-					interpret-failures
+			if interpret-failures.empty?
+				path-to-noze run-single-runnable-test env, path, false, options.overwrite-output?
+			else
+				interpret-failures
 		some s
 			s value
 
@@ -65,25 +63,24 @@ body
 	res = path-to-noze spawn-and-wait-result (new-arr "print", print-kind, path), env
 	output-path = path + "." + print-kind + ".tata"
 	| NOTE: compiler may have both stderr and stdout!
-	output-failures = if
-		res.stdout.empty? and: res.exit-code != 0
-			| Just have a file for the err
-			empty-arr<failure>
-		else
-			path handle-output output-path, res.stdout, overwrite-output?
-	if
-		output-failures.empty? not
-			print-test-result: true, output-failures
-		res.exit-code == 0
-			assert: res.stderr == ""
-			print-test-result: false, empty-arr
-		res.exit-code == 1
-			stderr-no-color = res.stderr remove-colors
-			| We should stop even if no test failure in handling the output
-			print-test-result: true, handle-output: path, (output-path + ".err"), stderr-no-color, overwrite-output?
-		else
-			message = "unexpected exit code: " + res.exit-code.to-str
-			print-test-result: true, new-arr failure: path, message
+	output-failures = if res.stdout.empty? and: res.exit-code != 0
+		| Just have a file for the err
+		empty-arr<failure>
+	else
+		path handle-output output-path, res.stdout, overwrite-output?
+	
+	if output-failures.empty? not
+		print-test-result: true, output-failures
+	elif res.exit-code == 0
+		assert: res.stderr == ""
+		print-test-result: false, empty-arr
+	elif res.exit-code == 1
+		stderr-no-color = res.stderr remove-colors
+		| We should stop even if no test failure in handling the output
+		print-test-result: true, handle-output: path, (output-path + ".err"), stderr-no-color, overwrite-output?
+	else
+		message = "unexpected exit code: " + res.exit-code.to-str
+		print-test-result: true, new-arr failure: path, message
 
 run-single-runnable-test arr failure
 	path-to-noze str
@@ -96,12 +93,11 @@ spec
 body
 	args = as<arr<str>>: interpret? ? (new-arr "run", path, "--interpret"), (new-arr "run", path)
 	res = path-to-noze spawn-and-wait-result args, env
-	if
-		res.exit-code == 0 and: res.stderr == ""
-			path handle-output (path + ".stdout"), res.stdout, overwrite-output?
-		else
-			message = "status: " + res.exit-code.to-str + "\nstdout:\n" + res.stdout + "stderr:\n" + res.stderr
-			new-arr failure: path, message
+	if res.exit-code == 0 and: res.stderr == ""
+		path handle-output (path + ".stdout"), res.stdout, overwrite-output?
+	else
+		message = "status: " + res.exit-code.to-str + "\nstdout:\n" + res.stdout + "stderr:\n" + res.stderr
+		new-arr failure: path, message
 
 remove-colors str(s str)
 	out = new-mut-arr<char>
@@ -109,20 +105,18 @@ remove-colors str(s str)
 	out freeze
 
 remove-colors-recur void(s str, out mut-str)
-	if
-		s empty?
-			pass
-		s.first == "\x1b"
-			s.tail remove-colors-recur-2 out
-		else
-			out push s.first
-			s.tail remove-colors-recur out
+	if s empty?
+		pass
+	elif s.first == "\x1b"
+		s.tail remove-colors-recur-2 out
+	else
+		out push s.first
+		s.tail remove-colors-recur out
 
 remove-colors-recur-2 void(s str, out mut-str)
-	if
-		s empty?
-			pass
-		s.first == "m"
-			s.tail remove-colors-recur out
-		else
-			s.tail remove-colors-recur-2 out
+	if s empty?
+		pass
+	elif s.first == "m"
+		s.tail remove-colors-recur out
+	else
+		s.tail remove-colors-recur-2 out

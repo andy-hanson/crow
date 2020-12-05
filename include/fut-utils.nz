@@ -27,24 +27,23 @@ joiner<?out, ?in0, ?in1> record force-sendable
 	n-remaining-args by-val thread-safe-counter
 
 decr-joiner void(j joiner ?out ?in0 ?in1) unsafe send<?out> send<?in0> send<?in1>
-	if
-		j.n-remaining-args.ref-of-val decrement
-			match j.arg0 force
-				ok ok0
-					match j.arg1 force
-						ok ok1
-							j.fun call ok0.value, ok1.value forward-to j.res
-						err e1
-							j.res reject e1.value
-				err e0
-					match j.arg1 force
-						ok a1
-							j.res reject e0.value
-						err e1
-							| Combine the exceptions
-							todo
-		else
-			pass
+	if j.n-remaining-args.ref-of-val decrement
+		match j.arg0 force
+			ok ok0
+				match j.arg1 force
+					ok ok1
+						j.fun call ok0.value, ok1.value forward-to j.res
+					err e1
+						j.res reject e1.value
+			err e0
+				match j.arg1 force
+					ok a1
+						j.res reject e0.value
+					err e1
+						| Combine the exceptions
+						todo
+	else
+		pass
 
 join fut ?out(a fut ?in0, b fut ?in1, fun fun-ref2 ?out ?in0 ?in1) trusted send<?out> send<?in0> send<?in1>
 	res = new-unresolved-fut<?out>

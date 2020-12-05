@@ -367,7 +367,6 @@ immutable(Str) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Allo
 struct ExpressionToken {
 	@safe @nogc pure nothrow:
 	enum Kind {
-		else_,
 		if_,
 		lambda,
 		lbrace,
@@ -434,8 +433,6 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
 				if (name.isReservedName)
 					switch (name.value) {
-						case shortSymAlphaLiteralValue("else"):
-							return immutable ExpressionToken(ExpressionToken.Kind.else_);
 						case shortSymAlphaLiteralValue("if"):
 							return immutable ExpressionToken(ExpressionToken.Kind.if_);
 						case shortSymAlphaLiteralValue("match"):

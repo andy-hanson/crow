@@ -113,38 +113,36 @@ thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 	thread-function-recur: thread-id, gctx, tls.ref-of-val
 
 thread-function-recur void(thread-id nat, gctx global-ctx, tls thread-local-stuff) noctx unsafe summon
-	if
-		gctx is-shut-down
-			gctx.lk.ref-of-val acquire-lock
-			| Remove this thread from live threads for good.
-			gctx set-n-live-threads: gctx.n-live-threads noctx-decr
-			assert-vats-are-shut-down: zero, gctx.vats
-			gctx.lk.ref-of-val release-lock
-		else
-			hard-assert: gctx.n-live-threads > zero
-			| Get a task to do; or sleep.
-			last-checked = gctx.may-be-work-to-do.ref-of-val get-last-checked
+	if gctx is-shut-down
+		gctx.lk.ref-of-val acquire-lock
+		| Remove this thread from live threads for good.
+		gctx set-n-live-threads: gctx.n-live-threads noctx-decr
+		assert-vats-are-shut-down: zero, gctx.vats
+		gctx.lk.ref-of-val release-lock
+	else
+		hard-assert: gctx.n-live-threads > zero
+		| Get a task to do; or sleep.
+		last-checked = gctx.may-be-work-to-do.ref-of-val get-last-checked
 
-			match gctx choose-task
-				ok ok-chosen-task
-					gctx do-task tls, ok-chosen-task.value
-				err e
-					if
-						e.value.last-thread-out
-							hard-forbid: gctx.is-shut-down
-							gctx set-is-shut-down true
-							| Wake up sleeping threads so they can shut down
-							gctx.may-be-work-to-do.ref-of-val broadcast
-						else
-							gctx.may-be-work-to-do.ref-of-val wait-on last-checked
+		match gctx choose-task
+			ok ok-chosen-task
+				gctx do-task tls, ok-chosen-task.value
+			err e
+				if e.value.last-thread-out
+					hard-forbid: gctx.is-shut-down
+					gctx set-is-shut-down true
+					| Wake up sleeping threads so they can shut down
+					gctx.may-be-work-to-do.ref-of-val broadcast
+				else
+					gctx.may-be-work-to-do.ref-of-val wait-on last-checked
 
-					gctx.lk.ref-of-val acquire-lock
-					| We decremented this while holding the lock, increment it again
-					gctx set-n-live-threads: gctx.n-live-threads noctx-incr
-					gctx.lk.ref-of-val release-lock
+				gctx.lk.ref-of-val acquire-lock
+				| We decremented this while holding the lock, increment it again
+				gctx set-n-live-threads: gctx.n-live-threads noctx-incr
+				gctx.lk.ref-of-val release-lock
 
-			| Do another task
-			thread-function-recur: thread-id, gctx, tls
+		| Do another task
+		thread-function-recur: thread-id, gctx, tls
 
 new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, vat vat, actor-id actor-id) noctx unsafe
 	ctx: gctx.as-any-ptr, vat.id, actor-id, vat.gc.ref-of-val.get-gc-ctx.as-any-ptr, tls.exception-ctx.as-any-ptr
@@ -225,16 +223,15 @@ choose-task result chosen-task no-chosen-task(gctx global-ctx) noctx unsafe
 
 
 choose-task-recur opt chosen-task(vats arr vat, i nat) noctx unsafe
-	if
-		i == vats.size
+	if i == vats.size
+		none
+	else
+		vat = vats noctx-at i
+		match vat choose-task-in-vat
 			none
-		else
-			vat = vats noctx-at i
-			match vat choose-task-in-vat
-				none
-					vats choose-task-recur i.noctx-incr
-				some s
-					some: chosen-task: vat, s.value
+				vats choose-task-recur i.noctx-incr
+			some s
+				some: chosen-task: vat, s.value
 
 
 
@@ -242,30 +239,27 @@ choose-task-recur opt chosen-task(vats arr vat, i nat) noctx unsafe
 choose-task-in-vat opt task-or-gc(vat vat) noctx unsafe
 	vat.tasks-lock.ref-of-val acquire-lock
 
-	res = as<opt<task-or-gc>>: if
-		| TODO: ref-of-val should be unnecessary for property access?
-		vat.gc.ref-of-val.needs-gc
-			if
-				vat.n-threads-running zero?
-					| do GC
-					none some
-				else
-					| do nothing -- a thread is running on this vat
-					| we can't do a GC now, but don't want to start a new task either
-					| because that would block GC
-					none
+	| TODO: ref-of-val should be unnecessary for property access?
+	res = as<opt<task-or-gc>>: if vat.gc.ref-of-val.needs-gc
+		if vat.n-threads-running zero?
+			| do GC
+			none some
 		else
-			match vat find-and-remove-first-doable-task
+			| do nothing -- a thread is running on this vat
+			| we can't do a GC now, but don't want to start a new task either
+			| because that would block GC
+			none
+	else
+		match vat find-and-remove-first-doable-task
+			none
 				none
-					none
-				some s
-					s.value.some some
+			some s
+				s.value.some some
 
-	if
-		res empty?
-			pass
-		else
-			vat set-n-threads-running vat.n-threads-running.noctx-incr
+	if res empty?
+		pass
+	else
+		vat set-n-threads-running vat.n-threads-running.noctx-incr
 
 	vat.tasks-lock.ref-of-val release-lock
 
@@ -298,36 +292,34 @@ find-and-remove-first-doable-task-recur opt task-and-nodes(vat vat, opt-node opt
 			| (If we don't have space to expand currently-running-actors,
 			| shouldn't be starting a new task anyway.)
 			actors = vat.currently-running-actors ref-of-val
-			task-ok = if
-				actors contains? task.actor-id
-					false
-				else
-					actors push-capacity-must-be-sufficient task.actor-id
-					true
-			if
-				task-ok
-					| Extract this task (return just its tail)
-					some: task-and-nodes: task, node.next-node
-				else
-					match vat find-and-remove-first-doable-task-recur node.next-node
+			task-ok = if actors contains? task.actor-id
+				false
+			else
+				actors push-capacity-must-be-sufficient task.actor-id
+				true
+
+			if task-ok
+				| Extract this task (return just its tail)
+				some: task-and-nodes: task, node.next-node
+			else
+				match vat find-and-remove-first-doable-task-recur node.next-node
+					none
 						none
-							none
-						some ss
-							tn = ss.value as<task-and-nodes>
-							node set-next-node tn.nodes
-							some: task-and-nodes: tn.task, node some
+					some ss
+						tn = ss.value as<task-and-nodes>
+						node set-next-node tn.nodes
+						some: task-and-nodes: tn.task, node some
 
 assert-vats-are-shut-down void(i nat, vats arr vat) noctx unsafe
-	if
-		i == vats.size
-			pass
-		else
-			vat = vats noctx-at i
+	if i == vats.size
+		pass
+	else
+		vat = vats noctx-at i
 
-			vat.tasks-lock.ref-of-val acquire-lock
-			hard-forbid: vat.gc.ref-of-val needs-gc
-			hard-assert: vat.n-threads-running zero?
-			hard-assert: vat.tasks.ref-of-val empty?
-			vat.tasks-lock.ref-of-val release-lock
+		vat.tasks-lock.ref-of-val acquire-lock
+		hard-forbid: vat.gc.ref-of-val needs-gc
+		hard-assert: vat.n-threads-running zero?
+		hard-assert: vat.tasks.ref-of-val empty?
+		vat.tasks-lock.ref-of-val release-lock
 
-			assert-vats-are-shut-down: i.noctx-incr, vats
+		assert-vats-are-shut-down: i.noctx-incr, vats

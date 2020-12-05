@@ -6,4 +6,4 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(range(0, 8), f, inststruct(range(2, 6), name-range(2, void)), [])
-			body: if([], none))])
+			body: if(true, pass, none))])

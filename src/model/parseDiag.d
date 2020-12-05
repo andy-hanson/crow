@@ -73,7 +73,6 @@ struct ParseDiag {
 	struct Unexpected {
 		enum Kind {
 			dedent,
-			else_,
 			indent,
 		}
 		immutable Kind kind;

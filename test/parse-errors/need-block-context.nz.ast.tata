@@ -8,10 +8,10 @@ file-ast(
 			sig: sig-ast(range(0, 8), f, inststruct(range(2, 6), name-range(2, void)), [])
 			body: seq-ast(
 				seq-ast(
-					if([case(bogus, literal(numeric, "0"))], some(literal(numeric, "1")))
+					if(bogus, literal(numeric, "0"), some(literal(numeric, "1")))
 					match(
 						some(bogus)
 						[
-							case(range(50, 62), name-range(50, some), none, literal(numeric, "0"))
-							case(range(62, 73), name-range(62, none), none, literal(numeric, "1"))]))
+							case(range(45, 57), name-range(45, some), none, literal(numeric, "0"))
+							case(range(57, 68), name-range(57, none), none, literal(numeric, "1"))]))
 				bogus))])

@@ -36,14 +36,13 @@ freeze dict ?k ?v(m mut-dict ?k ?v)
 	dict<?k, ?v>: m.keys.freeze, m.values.freeze
 
 get-recursive<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
-	if
-		idx == keys.size
-			none
-		key ==: keys at idx
-			values at idx some
-		else
-			| TODO: should not need to provide type arguments!
-			get-recursive<?k, ?v>: keys, values, idx.incr, key
+	if idx == keys.size
+		none
+	elif key ==: keys at idx
+		values at idx some
+	else
+		| TODO: should not need to provide type arguments!
+		get-recursive<?k, ?v>: keys, values, idx.incr, key
 
 get opt ?v(d dict ?k ?v, key ?k) trusted data<?k>
 	| TODO: should not need to provide type arguments
@@ -82,10 +81,9 @@ map-values dict ?k ?v-out(d dict ?k ?v-in, mapper fun-mut1 ?v-out ?v-in)
 	dict<?k, ?v-out>: d.keys, new-values
 
 each void(d dict ?k ?v, f fun-mut2 void ?k ?v)
-	if
-		d empty?
-			pass
-		else
-			f call d.keys.first, d.values.first
-			| TODO: type arguments should be unnecessary
-			d.keys.tail dict<?k, ?v> d.values.tail each f
+	if d empty?
+		pass
+	else
+		f call d.keys.first, d.values.first
+		| TODO: type arguments should be unnecessary
+		d.keys.tail dict<?k, ?v> d.values.tail each f

@@ -58,11 +58,10 @@ is-reference-type?<?t> bool() noctx unsafe builtin
 size-of<?t> nat() noctx unsafe builtin
 
 size-or-pointer-size<?t> nat() noctx unsafe
-	if
-		is-reference-type?<?t>
-			size-of<ptr<void>>
-		else
-			size-of<?t>
+	if is-reference-type?<?t>
+		size-of<ptr<void>>
+	else
+		size-of<?t>
 
 ptr-cast ptr ?out(p ptr ?in) noctx unsafe builtin
 
@@ -369,11 +368,10 @@ max-nat32 nat32() noctx
 to-nat32 nat32(a nat16) noctx trusted
 	a.to-nat unsafe-to-nat32
 to-nat32 nat32(a nat) noctx trusted
-	if
-		a < max-nat32.to-nat
-			a unsafe-to-nat32
-		else
-			todo
+	if a < max-nat32.to-nat
+		a unsafe-to-nat32
+	else
+		todo
 
 to-nat nat(n nat8) noctx builtin
 to-nat nat(n nat16) noctx builtin
@@ -618,39 +616,34 @@ bits-intersect? bool(a nat32, b nat32) noctx
 unsafe-bit-shift-left nat(a nat, b nat) noctx builtin unsafe
 unsafe-bit-shift-right nat(a nat, b nat) noctx builtin unsafe
 bit-shift-left nat8(a nat8, b nat8) noctx trusted
-	if
-		b < eight
-			a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat8
-		else
-			zero
+	if b < eight
+		a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat8
+	else
+		zero
 bit-shift-left nat16(a nat16, b nat16) noctx trusted
-	if
-		b < sixteen
-			a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat16
-		else
-			zero
+	if b < sixteen
+		a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat16
+	else
+		zero
 bit-shift-left nat32(a nat32, b nat32) noctx trusted
-	if
-		b < thirty-two
-			a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat32
-		else
-			zero
+	if b < thirty-two
+		a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat32
+	else
+		zero
 bit-shift-right nat32(a nat32, b nat32) noctx trusted
-	if
-		b < thirty-two
-			a.to-nat unsafe-bit-shift-right b.to-nat unsafe-to-nat32
-		else
-			zero
+	if b < thirty-two
+		a.to-nat unsafe-bit-shift-right b.to-nat unsafe-to-nat32
+	else
+		zero
 bit-shift-right int32(a int32, b int32) noctx trusted
-	if
-		a < zero
-			todo
-		b < zero
-			todo
-		b < thirty-two
-			unsafe-to-int32: a.to-int.unsafe-to-nat unsafe-bit-shift-right b.to-int.unsafe-to-nat unsafe-to-int
-		else
-			todo
+	if a < zero
+		todo
+	elif b < zero
+		todo
+	elif b < thirty-two
+		unsafe-to-int32: a.to-int.unsafe-to-nat unsafe-bit-shift-right b.to-int.unsafe-to-nat unsafe-to-int
+	else
+		todo
 
 
 | TODO: generic
@@ -698,33 +691,28 @@ wrap-decr nat32(a nat32) noctx
 	a wrap-sub one
 
 two-pow nat(pow nat) noctx
-	if
-		pow zero?
-			one
-		else
-			| TODO: safety
-			pow.wrap-decr.two-pow wrap-mul two
+	if pow zero?
+		one
+	else
+		| TODO: safety
+		pow.wrap-decr.two-pow wrap-mul two
 two-pow nat32(pow nat32) noctx
 	| TODO: use bitshift
-	if
-		pow zero?
-			one
-		else
-			| TODO: safety
-			pow.wrap-decr.two-pow wrap-mul two
+	if pow zero?
+		one
+	else
+		| TODO: safety
+		pow.wrap-decr.two-pow wrap-mul two
 two-pow int16(pow int16) noctx
-	if
-		pow zero?
-			one
-		else
-			pow.wrap-decr.two-pow wrap-mul two
+	if pow zero?
+		one
+	else
+		pow.wrap-decr.two-pow wrap-mul two
 two-pow int32(pow int32) noctx
-	if
-		pow zero?
-			one
-		else
-			pow.wrap-decr.two-pow wrap-mul two
-
+	if pow zero?
+		one
+	else
+		pow.wrap-decr.two-pow wrap-mul two
 
 noctx-incr nat(n nat) noctx unsafe
 	| TODO: billion should be max-value

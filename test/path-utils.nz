@@ -11,25 +11,22 @@ child-path str(a str, child-name str)
 	a + "/" + child-name
 
 each-child-recursive void(path str, filter fun-mut1 bool str, f fun-mut1 void str) summon
-	if
-		path is-dir?
-			path.read-dir each \child-name
-				if
-					filter call child-name
-						path child-path child-name each-child-recursive filter, f
-					else
-						pass
-		else
-			f call path
+	if path is-dir?
+		path.read-dir each \child-name
+			if filter call child-name
+				path child-path child-name each-child-recursive filter, f
+			else
+				pass
+	else
+		f call path
 
 last-index-of opt nat(s str, c char)
-	if
-		s empty?
-			none
-		s.last == c
-			s.size.decr some
-		else
-			s.rtail last-index-of c
+	if s empty?
+		none
+	elif s.last == c
+		s.size.decr some
+	else
+		s.rtail last-index-of c
 
 get-extension opt str(name str)
 	match name last-index-of "."

@@ -15,21 +15,19 @@ to-str str(a c-str) unsafe noctx
 	a arr-from-begin-end a.find-cstr-end
 
 find-char-in-cstr c-str(a c-str, c char) unsafe noctx
-	if
-		a.deref == c
-			a
-		a.deref == "\0"
-			| Did not find the char
-			todo
-		else
-			a.incr find-char-in-cstr c
+	if a.deref == c
+		a
+	elif a.deref == "\0"
+		| Did not find the char
+		todo
+	else
+		a.incr find-char-in-cstr c
 
 find-cstr-end c-str(a c-str) unsafe noctx
 	a find-char-in-cstr "\0"
 
 lstrip str(a str)
-	if
-		a.has? and: a.first == " "
-			a.tail lstrip
-		else
-			a
+	if a.has? and: a.first == " "
+		a.tail lstrip
+	else
+		a

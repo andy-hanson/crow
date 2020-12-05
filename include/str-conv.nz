@@ -11,40 +11,38 @@ to-str str(b bool)
 	b ? "true", "false"
 
 parse-bool bool(s str)
-	if
-		s == "true"
-			true
-		s == "false"
-			false
-		else
-			todo
+	if s == "true"
+		true
+	elif s == "false"
+		false
+	else
+		todo
 
 to-str str(n nat)
-	if
-		n == 0
-			"0"
-		n == 1
-			"1"
-		n == 2
-			"2"
-		n == 3
-			"3"
-		n == 4
-			"4"
-		n == 5
-			"5"
-		n == 6
-			"6"
-		n == 7
-			"7"
-		n == 8
-			"8"
-		n == 9
-			"9"
-		else
-			hi = to-str: n / ten
-			lo = to-str: n mod ten
-			hi + lo
+	if n == 0
+		"0"
+	elif n == 1
+		"1"
+	elif n == 2
+		"2"
+	elif n == 3
+		"3"
+	elif n == 4
+		"4"
+	elif n == 5
+		"5"
+	elif n == 6
+		"6"
+	elif n == 7
+		"7"
+	elif n == 8
+		"8"
+	elif n == 9
+		"9"
+	else
+		hi = to-str: n / ten
+		lo = to-str: n mod ten
+		hi + lo
 
 to-str str(n nat32)
 	n.to-nat to-str
@@ -68,37 +66,35 @@ to-str str(a float)
 	a.truncate-to-int to-str
 
 char-to-nat nat(c char) noctx
-	if
-		c == "0"
-			zero
-		c == "1"
-			one
-		c == "2"
-			two
-		c == "3"
-			three
-		c == "4"
-			four
-		c == "5"
-			five
-		c == "6"
-			six
-		c == "7"
-			seven
-		c == "8"
-			eight
-		c == "9"
-			nine
-		else
-			todo
+	if c == "0"
+		zero
+	elif c == "1"
+		one
+	elif c == "2"
+		two
+	elif c == "3"
+		three
+	elif c == "4"
+		four
+	elif c == "5"
+		five
+	elif c == "6"
+		six
+	elif c == "7"
+		seven
+	elif c == "8"
+		eight
+	elif c == "9"
+		nine
+	else
+		todo
 
 literal nat(s str)
-	if
-		s empty?
-			zero
-		else
-			higher-digits = s.rtail.literal as<nat>
-			higher-digits * ten + (char-to-nat: s last)
+	if s empty?
+		zero
+	else
+		higher-digits = s.rtail.literal as<nat>
+		higher-digits * ten + (char-to-nat: s last)
 
 literal nat16(s str)
 	| TODO: make safe
@@ -110,14 +106,13 @@ literal nat32(s str)
 
 literal int(s str)
 	fst = s at zero
-	if
-		fst == "-"
-			n = as<nat>: s.tail.literal
-			n neg
-		fst == "+"
-			s.tail.literal.as<nat> to-int
-		else
-			s.literal.as<nat> to-int
+	if fst == "-"
+		n = as<nat>: s.tail.literal
+		n neg
+	elif fst == "+"
+		s.tail.literal.as<nat> to-int
+	else
+		s.literal.as<nat> to-int
 
 literal int32(s str)
 	| TODO: make safe

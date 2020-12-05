@@ -13,6 +13,7 @@ import frontend.ast :
 	FunDeclAst,
 	funs,
 	IdentifierAst,
+	IfAst,
 	ImportAst,
 	imports,
 	ImportsOrExportsAst,
@@ -42,8 +43,7 @@ import frontend.ast :
 	structs,
 	ThenAst,
 	TypeAst,
-	TypeParamAst,
-	WhenAst;
+	TypeParamAst;
 import util.collection.arr : Arr, ArrWithSize, first, range, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : tail;
@@ -275,6 +275,12 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		(ref immutable IdentifierAst) {
 			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
 		},
+		(ref immutable IfAst it) {
+			addExprTokens(alloc, tokens, it.cond);
+			addExprTokens(alloc, tokens, it.then);
+			if (has(it.else_))
+				addExprTokens(alloc, tokens, force(it.else_));
+		},
 		(ref immutable LambdaAst it) {
 			foreach (ref immutable LambdaAst.Param param; range(it.params))
 				addLambdaAstParam(alloc, tokens, param);
@@ -317,14 +323,6 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			addLambdaAstParam(alloc, tokens, it.left);
 			addExprTokens(alloc, tokens, it.futExpr);
 			addExprTokens(alloc, tokens, it.then);
-		},
-		(ref immutable WhenAst it) {
-			foreach (ref immutable WhenAst.Case case_; range(it.cases)) {
-				addExprTokens(alloc, tokens, case_.cond);
-				addExprTokens(alloc, tokens, case_.then);
-			}
-			if (has(it.else_))
-				addExprTokens(alloc, tokens, force(it.else_));
 		});
 }
 

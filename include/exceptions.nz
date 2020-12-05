@@ -41,23 +41,22 @@ catch-with-exception-ctx ?t(ec exception-ctx, try fun-mut0 ?t, catcher fun-mut1 
 	store = jmp-buf-tag: zero, zero, zero
 	ec set-jmp-buf-ptr: store ptr-to
 	setjmp-result = ec.jmp-buf-ptr setjmp
-	if
-		setjmp-result == zero
-			| Get here after setting the jump.
-			| If it throws, we'll go to the above branch.
-			res = try call
-			ec set-jmp-buf-ptr old-jmp-buf
-			ec set-thrown-exception old-thrown-exception
-			res
-		else
-			| This is what we threw in 'throw'
-			assert: setjmp-result == number-to-throw
-			| Get here if we throw inside of `try`
-			thrown-exception = ec thrown-exception
-			| NOTE: changing thrown-exception back probably isn't really necessary
-			ec set-jmp-buf-ptr old-jmp-buf
-			ec set-thrown-exception old-thrown-exception
-			catcher call thrown-exception
+	if setjmp-result == zero
+		| Get here after setting the jump.
+		| If it throws, we'll go to the above branch.
+		res = try call
+		ec set-jmp-buf-ptr old-jmp-buf
+		ec set-thrown-exception old-thrown-exception
+		res
+	else
+		| This is what we threw in 'throw'
+		assert: setjmp-result == number-to-throw
+		| Get here if we throw inside of `try`
+		thrown-exception = ec thrown-exception
+		| NOTE: changing thrown-exception back probably isn't really necessary
+		ec set-jmp-buf-ptr old-jmp-buf
+		ec set-thrown-exception old-thrown-exception
+		catcher call thrown-exception
 
 fail ?t(reason str)
 	throw: exception: reason

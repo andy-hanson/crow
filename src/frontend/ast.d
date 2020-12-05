@@ -126,16 +126,6 @@ struct CallAst {
 	}
 }
 
-struct WhenAst {
-	struct Case {
-		// TODO: would prefer to store by value, but that causes WASM compile errors
-		immutable Ptr!ExprAst cond;
-		immutable Ptr!ExprAst then;
-	}
-	immutable Arr!Case cases;
-	immutable Opt!(Ptr!ExprAst) else_; // parse error if missing
-}
-
 struct CreateArrAst {
 	immutable Opt!(Ptr!TypeAst) elementType; // Ptr because this is rarely needed
 	immutable Arr!ExprAst args;
@@ -143,6 +133,12 @@ struct CreateArrAst {
 
 struct IdentifierAst {
 	immutable Sym name;
+}
+
+struct IfAst {
+	immutable Ptr!ExprAst cond;
+	immutable Ptr!ExprAst then;
+	immutable Opt!(Ptr!ExprAst) else_;
 }
 
 struct LambdaAst {
@@ -206,6 +202,7 @@ struct ExprAstKind {
 		call,
 		createArr,
 		identifier,
+		if_,
 		lambda,
 		let,
 		literal,
@@ -213,7 +210,6 @@ struct ExprAstKind {
 		match,
 		seq,
 		then,
-		when,
 	}
 	immutable Kind kind;
 	union {
@@ -221,6 +217,7 @@ struct ExprAstKind {
 		immutable CallAst call;
 		immutable CreateArrAst createArr;
 		immutable IdentifierAst identifier;
+		immutable IfAst if_;
 		immutable LambdaAst lambda;
 		immutable LetAst let;
 		immutable LiteralAst literal;
@@ -228,7 +225,6 @@ struct ExprAstKind {
 		immutable MatchAst match_;
 		immutable SeqAst seq;
 		immutable ThenAst then;
-		immutable WhenAst when;
 	}
 
 	public:
@@ -236,6 +232,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
 	@trusted immutable this(immutable CreateArrAst a) { kind = Kind.createArr; createArr = a; }
 	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
+	@trusted immutable this(immutable IfAst a) { kind = Kind.if_; if_ = a; }
 	@trusted immutable this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable LetAst a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
@@ -243,7 +240,6 @@ struct ExprAstKind {
 	@trusted immutable this(immutable MatchAst a) { kind = Kind.match; match_ = a; }
 	@trusted immutable this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable ThenAst a) { kind = Kind.then; then = a; }
-	@trusted immutable this(immutable WhenAst a) { kind = Kind.when; when = a; }
 }
 
 immutable(Bool) isIdentifier(ref immutable ExprAstKind a) {
@@ -260,6 +256,7 @@ ref immutable(IdentifierAst) asIdentifier(return ref immutable ExprAstKind a) {
 	scope immutable(T) delegate(ref immutable CallAst) @safe @nogc pure nothrow cbCall,
 	scope immutable(T) delegate(ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
 	scope immutable(T) delegate(ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
+	scope immutable(T) delegate(ref immutable IfAst) @safe @nogc pure nothrow cbIf,
 	scope immutable(T) delegate(ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
 	scope immutable(T) delegate(ref immutable LetAst) @safe @nogc pure nothrow cbLet,
 	scope immutable(T) delegate(ref immutable LiteralAst) @safe @nogc pure nothrow cbLiteral,
@@ -267,7 +264,6 @@ ref immutable(IdentifierAst) asIdentifier(return ref immutable ExprAstKind a) {
 	scope immutable(T) delegate(ref immutable MatchAst) @safe @nogc pure nothrow cbMatch,
 	scope immutable(T) delegate(ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
 	scope immutable(T) delegate(ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
-	scope immutable(T) delegate(ref immutable WhenAst) @safe @nogc pure nothrow cbWhen,
 ) {
 	final switch (a.kind) {
 		case ExprAstKind.Kind.bogus:
@@ -278,6 +274,8 @@ ref immutable(IdentifierAst) asIdentifier(return ref immutable ExprAstKind a) {
 			return cbCreateArr(a.createArr);
 		case ExprAstKind.Kind.identifier:
 			return cbIdentifier(a.identifier);
+		case ExprAstKind.Kind.if_:
+			return cbIf(a.if_);
 		case ExprAstKind.Kind.lambda:
 			return cbLambda(a.lambda);
 		case ExprAstKind.Kind.let:
@@ -292,8 +290,6 @@ ref immutable(IdentifierAst) asIdentifier(return ref immutable ExprAstKind a) {
 			return cbSeq(a.seq);
 		case ExprAstKind.Kind.then:
 			return cbThen(a.then);
-		case ExprAstKind.Kind.when:
-			return cbWhen(a.when);
 	}
 }
 
@@ -858,6 +854,12 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 					sexprOfExprAst(alloc, it))]),
 		(ref immutable IdentifierAst a)  =>
 			tataSym(a.name),
+		(ref immutable IfAst e) =>
+			tataRecord(alloc, "if", [
+				sexprOfExprAst(alloc, e.cond),
+				sexprOfExprAst(alloc, e.then),
+				tataOpt(alloc, e.else_, (ref immutable Ptr!ExprAst it) =>
+					sexprOfExprAst(alloc, it))]),
 		(ref immutable LambdaAst a) =>
 			tataRecord(alloc, "lambda", [
 				tataArr(alloc, a.params, (ref immutable LambdaAst.Param it) =>
@@ -900,15 +902,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 			tataRecord(alloc, "then-ast", [
 				sexprOfNameAndRange(alloc, it.left),
 				sexprOfExprAst(alloc, it.futExpr),
-				sexprOfExprAst(alloc, it.then)]),
-		(ref immutable WhenAst e) =>
-			tataRecord(alloc, "if", [
-				tataArr(alloc, e.cases, (ref immutable WhenAst.Case case_) =>
-					tataRecord(alloc, "case", [
-						sexprOfExprAst(alloc, case_.cond),
-						sexprOfExprAst(alloc, case_.then)])),
-				tataOpt(alloc, e.else_, (ref immutable Ptr!ExprAst it) =>
-					sexprOfExprAst(alloc, it))]));
+				sexprOfExprAst(alloc, it.then)]));
 }
 
 immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {

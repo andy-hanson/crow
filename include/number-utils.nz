@@ -38,14 +38,13 @@ decr int32(a int32)
 	a wrap-sub b
 * nat(a nat, b nat)
 	| TODO: better safety check
-	if
-		a.zero? or: b.zero?
-			zero
-		else
-			res = a wrap-mul b
-			assert: res / b == a
-			assert: res / a == b
-			res
+	if a.zero? or: b.zero?
+		zero
+	else
+		res = a wrap-mul b
+		assert: res / b == a
+		assert: res / a == b
+		res
 / nat(a nat, b nat) trusted
 	forbid: b zero?
 	a unsafe-div b
@@ -115,11 +114,10 @@ to-nat nat(i int32)
 	i.to-int to-nat
 
 to-nat32 nat32(n nat)
-	if
-		n < max-nat32.to-nat
-			n unsafe-to-nat32
-		else
-			todo
+	if n < max-nat32.to-nat
+		n unsafe-to-nat32
+	else
+		todo
 
 negative? bool(i int)
 	i < zero
@@ -136,12 +134,11 @@ abs nat(i int)
 
 mod nat(a int, b nat)
 	forbid: b zero?
-	if
-		a negative?
-			x = a.abs mod b
-			x == b ?: zero, b - x
-		else
-			a.to-nat mod b
+	if a negative?
+		x = a.abs mod b
+		x == b ?: zero, b - x
+	else
+		a.to-nat mod b
 
 + float(a float, b float) noctx builtin
 - float(a float, b float) noctx builtin

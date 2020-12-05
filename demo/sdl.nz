@@ -185,28 +185,25 @@ main-loop void(renderer sdl-renderer, texture sdl-texture) summon trusted
 
 new-renderer sdl-renderer(window sdl-window) summon trusted
 	renderer = window sdl-create-renderer: -1, sdl-renderer-accelerated bits-or sdl-renderer-present-vsync
-	if
-		renderer.as-any-ptr null?
-			"sdl-create-renderer" fail-sdl-error
-		else
-			pass
+	if renderer.as-any-ptr null?
+		"sdl-create-renderer" fail-sdl-error
+	else
+		pass
 	renderer
 
 create-texture sdl-texture(renderer sdl-renderer) summon trusted
 	image-path = "demo/hello.bmp"
 	bmp = image-path sdl-load-bmp
-	if
-		bmp.as-any-ptr null?
-			"sdl-loadbmp-error" fail-sdl-error
-		else
-			pass
+	if bmp.as-any-ptr null?
+		"sdl-loadbmp-error" fail-sdl-error
+	else
+		pass
 	texture = renderer sdl-create-texture-from-surface bmp
 	bmp sdl-free-surface
-	if
-		texture.as-any-ptr null?
-			"sdl-create-texture-from-surface" fail-sdl-error
-		else
-			pass
+	if texture.as-any-ptr null?
+		"sdl-create-texture-from-surface" fail-sdl-error
+	else
+		pass
 	texture
 
 
@@ -219,9 +216,8 @@ fail-sdl-error void(operation str) summon trusted
 
 | TODO:MOVE
 repeat void(times nat, action fun-mut0 void)
-	if
-		times zero?
-			pass
-		else
-			action call
-			times.decr repeat action
+	if times zero?
+		pass
+	else
+		action call
+		times.decr repeat action

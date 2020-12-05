@@ -243,9 +243,6 @@ void writeParseDiag(Alloc, PathAlloc)(
 				case ParseDiag.Unexpected.Kind.dedent:
 					writeStatic(writer, "unexpected dedent");
 					break;
-				case ParseDiag.Unexpected.Kind.else_:
-					writeStatic(writer, "unexpected 'else'");
-					break;
 				case ParseDiag.Unexpected.Kind.indent:
 					writeStatic(writer, "unexpected indent");
 					break;

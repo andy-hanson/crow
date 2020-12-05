@@ -36,17 +36,16 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 
 	n-threads run-threads gctx
 
-	if
-		gctx any-unhandled-exceptions?
-			one
-		else
-			match main-fut.must-be-resolved
-				ok o
-					o value
-				err e
-					print-err-sync-no-newline: "main failed: "
-					print-err-sync: e.value message
-					one
+	if gctx any-unhandled-exceptions?
+		one
+	else
+		match main-fut.must-be-resolved
+			ok o
+				o value
+			err e
+				print-err-sync-no-newline: "main failed: "
+				print-err-sync: e.value message
+				one
 
 do-main fut exit-code(gctx global-ctx, vat vat, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx
 	| Before we start the engine, add a task.
@@ -102,25 +101,23 @@ spec
 	unsafe
 	summon
 body
-	if
-		i == n-threads
-			pass
+	if i == n-threads
+		pass
+	else
+		thread-arg-ptr = thread-args-begin + i
+		thread-arg-ptr set thread-args: i, gctx
+		thread-ptr = threads + i
+		fn = as<fun-ptr1<any-ptr, any-ptr>>: \args-ptr
+			args-ptr thread-fun
+		err = thread-ptr.as-cell pthread-create null, fn, thread-arg-ptr.as-any-ptr
+		if err zero?
+			i.noctx-incr start-threads-recur n-threads, threads, thread-args-begin, gctx
+		elif err == eagain
+			| TODO: warn and make do with the threads it does let us create (so long as there's at least one)
+			todo
 		else
-			thread-arg-ptr = thread-args-begin + i
-			thread-arg-ptr set thread-args: i, gctx
-			thread-ptr = threads + i
-			fn = as<fun-ptr1<any-ptr, any-ptr>>: \args-ptr
-				args-ptr thread-fun
-			err = thread-ptr.as-cell pthread-create null, fn, thread-arg-ptr.as-any-ptr
-			if
-				err zero?
-					i.noctx-incr start-threads-recur n-threads, threads, thread-args-begin, gctx
-				err == eagain
-					| TODO: warn and make do with the threads it does let us create (so long as there's at least one)
-					todo
-				else
-					| Fatal error
-					todo
+			| Fatal error
+			todo
 
 thread-fun any-ptr(args-ptr any-ptr) noctx unsafe summon
 	args = args-ptr as-ref<thread-args>
@@ -128,23 +125,21 @@ thread-fun any-ptr(args-ptr any-ptr) noctx unsafe summon
 	null
 
 join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsafe summon
-	if
-		i == n-threads
-			pass
-		else
-			(threads + i).deref join-one-thread
-			i.noctx-incr join-threads-recur n-threads, threads
+	if i == n-threads
+		pass
+	else
+		(threads + i).deref join-one-thread
+		i.noctx-incr join-threads-recur n-threads, threads
 
 join-one-thread void(tid pthread-t) noctx unsafe summon
 	thread-return = as<by-val<cell<any-ptr>>>: cell: null
 	err = tid pthread-join thread-return.ref-of-val
-	if
-		err zero?
-			pass
-		err == einval
-			todo
-		err == esrch
-			todo
-		else
-			todo
+	if err zero?
+		pass
+	elif err == einval
+		todo
+	elif err == esrch
+		todo
+	else
+		todo
 	hard-assert: thread-return.ref-of-val.get null?

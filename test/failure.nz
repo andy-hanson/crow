@@ -10,32 +10,29 @@ spec
 body
 	match output-path try-read-file
 		none
-			if
-				overwrite-output?
-					output-path write-file actual
-					empty-arr
-				else
-					new-arr failure: original-path, (output-path.base-name + " does not exist. actual was:\n" + actual)
+			if overwrite-output?
+				output-path write-file actual
+				empty-arr
+			else
+				new-arr failure: original-path, (output-path.base-name + " does not exist. actual was:\n" + actual)
 		some s
-			if
-				s.value == actual
-					empty-arr
-				overwrite-output?
-					output-path write-file actual
-					empty-arr
-				else
-					message = output-path.base-name + " was not as expected. actual:\n" + actual
-					new-arr failure: original-path, message
+			if s.value == actual
+				empty-arr
+			elif overwrite-output?
+				output-path write-file actual
+				empty-arr
+			else
+				message = output-path.base-name + " was not as expected. actual:\n" + actual
+				new-arr failure: original-path, message
 
 flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper fun-mut1 arr<?out> ?in) trusted
 	res = new-mut-arr<?out>
 	a each \x
-		if
-			res.size < max-size
-				res push-all: mapper call x
-				res reduce-size-if-more-than max-size
-			else
-				pass
+		if res.size < max-size
+			res push-all: mapper call x
+			res reduce-size-if-more-than max-size
+		else
+			pass
 	res freeze
 
 test-options record
@@ -60,11 +57,10 @@ print-failures exit-code(failures result str arr<failure>, options test-options)
 		err e
 			e.value each {it print-failure}
 			n-failures = e.value.size
-			print-sync: if
-				n-failures == options.max-failures
-					"hit maximum of " + options.max-failures.to-str + " failures"
-				else
-					n-failures.to-str + " failures"
+			print-sync: if n-failures == options.max-failures
+				"hit maximum of " + options.max-failures.to-str + " failures"
+			else
+				n-failures.to-str + " failures"
 			n-failures to-int32
 
 private

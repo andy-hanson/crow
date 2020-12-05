@@ -1,9 +1,8 @@
 f void()
-	if
-		if
-			0
-		else
-			1
+	if if
+		0
+	else
+		1
 	match match
 		some
 			0

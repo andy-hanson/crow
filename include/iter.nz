@@ -48,11 +48,10 @@ iter iterator nat(r range-nat)
 	| TODO: should not need a type argument here
 	n = r.lo cell<nat>
 	iterator: \
-		if
-			n.get == r.hi
-				none
-			else
-				n.get-and-incr some
+		if n.get == r.hi
+			none
+		else
+			n.get-and-incr some
 
 to range-nat(lo nat, hi nat)
 	assert: lo <= hi
@@ -91,10 +90,9 @@ filter-helper opt ?t(i iterator ?t, pred fun-mut1 bool ?t)
 			none
 		some s
 			v = s.value
-			if
-				pred call v
-					v some
-				else
-					| This one didn't satisfy the predicate, but keep trying until we get one or each the end
-					i filter-helper pred
+			if pred call v
+				v some
+			else
+				| This one didn't satisfy the predicate, but keep trying until we get one or each the end
+				i filter-helper pred
 
