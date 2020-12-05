@@ -23,7 +23,7 @@ struct LineAndColumnGetter {
 	immutable this(immutable Arr!Pos lp, immutable Arr!u8 lnt) {
 		lineToPos = lp;
 		lineToNTabs = lnt;
-		verify(lineToPos.size == lineToNTabs.size);
+		verify(size(lineToPos) == size(lineToNTabs));
 	}
 }
 
@@ -34,7 +34,7 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForText(Alloc)(ref Alloc alloc
 	add(alloc, lineToPos, 0);
 	add(alloc, lineToNTabs, text.getNTabs);
 
-	foreach (immutable u32 i; 0..text.size.safeSizeTToU32) {
+	foreach (immutable u32 i; 0..safeSizeTToU32(size(text))) {
 		if (at(text, i) == '\n') {
 			add(alloc, lineToPos, i + 1);
 			add(alloc, lineToNTabs, slice(text, i + 1).getNTabs);
@@ -50,7 +50,7 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(Alloc)(ref Alloc 
 
 immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc, immutable Pos pos) {
 	u16 lowLine = 0; // inclusive
-	u16 highLine = lc.lineToPos.size.safeSizeTToU16;
+	u16 highLine = size(lc.lineToPos).safeSizeTToU16;
 
 	while (lowLine < highLine - 1) {
 		immutable u16 middleLine = mid(lowLine, highLine);
@@ -67,7 +67,7 @@ immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc
 
 	immutable u16 line = lowLine;
 	immutable Pos lineStart = at(lc.lineToPos, line);
-	verify((pos >= lineStart && line == lc.lineToPos.size - 1) || pos <= at(lc.lineToPos, line + 1));
+	verify((pos >= lineStart && line == size(lc.lineToPos) - 1) || pos <= at(lc.lineToPos, line + 1));
 
 	immutable u32 nCharsIntoLine = pos - lineStart;
 	immutable u8 nTabs = at(lc.lineToNTabs, line);
@@ -88,7 +88,7 @@ u16 mid(immutable u16 a, immutable u16 b) {
 u8 getNTabs(immutable Str text) {
 	u8 i = 0;
 	while (i < ubyte.max
-		&& i < text.size
+		&& i < size(text)
 		&& at(text, i) == '\t'
 	) {
 		i++;

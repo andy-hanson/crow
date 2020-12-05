@@ -58,7 +58,7 @@ immutable(Str) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 	char* res = cast(char*) alloc.allocateBytes(size(s) + 1);
 	memcpy(cast(ubyte*) res, cast(ubyte*) begin(s), size(s));
 	res[size(s)] = '\0';
-	return immutable NulTerminatedStr(immutable Str(cast(immutable) res, s.size + 1));
+	return immutable NulTerminatedStr(immutable Str(cast(immutable) res, size(s) + 1));
 }
 
 @trusted immutable(CStr) asCStr(immutable NulTerminatedStr s) {
@@ -71,11 +71,11 @@ immutable(CStr) strToCStr(Alloc)(ref Alloc alloc, ref immutable Str s) {
 
 @trusted immutable(Bool) strEqCStr(immutable Str a, immutable CStr b) {
 	return *b == '\0'
-		? Bool(a.size == 0)
+		? Bool(size(a) == 0)
 		: Bool(
-			a.size != 0 &&
-			a.first == *b &&
-			strEqCStr(a.tail, b + 1));
+			size(a) != 0 &&
+			first(a) == *b &&
+			strEqCStr(tail(a), b + 1));
 }
 
 immutable(Bool) strEqLiteral(immutable Str a, immutable string b) {
@@ -91,8 +91,8 @@ immutable(Str) stripNulTerminator(immutable NulTerminatedStr a) {
 }
 
 @trusted immutable(Str) copyStr(Alloc)(ref Alloc alloc, immutable Str s) {
-	char* begin = cast(char*) alloc.allocateBytes(char.sizeof * s.size);
-	foreach (immutable size_t i; 0..s.size)
+	char* begin = cast(char*) alloc.allocateBytes(char.sizeof * size(s));
+	foreach (immutable size_t i; 0..size(s))
 		begin[i] = at(s, i);
 	return immutable Str(cast(immutable) begin, size(s));
 }

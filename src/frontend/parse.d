@@ -343,7 +343,7 @@ immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!
 	immutable Sym sigName = takeName(alloc, lexer);
 	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 	immutable SigAstAndMaybeDedent s = parseSigAfterNameAndSpace(alloc, lexer, start, sigName);
-	immutable size_t dedents = s.dedents.has ? s.dedents.force : takeNewlineOrDedentAmount(alloc, lexer);
+	immutable size_t dedents = has(s.dedents) ? force(s.dedents) : takeNewlineOrDedentAmount(alloc, lexer);
 	return SigAstAndDedent(s.sig, dedents);
 }
 
@@ -560,7 +560,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 	immutable SymAndIsReserved name = takeNameAllowReserved(alloc, lexer);
 	if (name.isReserved) {
 		scope immutable(SpecUsesAndSigFlagsAndKwBody) setExtern(immutable Bool isGlobal) {
-			if (extern_.has)
+			if (has(extern_))
 				todo!void("duplicate");
 			immutable Str mangledName = takeExternName(alloc, lexer);
 			immutable Opt!(FunBodyAst.Extern) extern2 = some(immutable FunBodyAst.Extern(isGlobal, mangledName));
@@ -627,14 +627,14 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(Alloc, SymAlloc)(
 			todo!void("'unsafe trusted' is redundant");
 		if (builtin && trusted)
 			todo!void("'builtin trusted' is silly as builtin fun has no body");
-		if (extern_.has && trusted)
+		if (has(extern_) && trusted)
 			todo!void("'extern trusted' is silly as extern fun has no body");
 
 		//TODO: assert 'builtin' and 'extern' and 'extern-global' can't be set together.
 		//Also, 'extern-global' should always be 'unsafe noctx'
 		immutable Opt!(Ptr!FunBodyAst) body_ = builtin
 			? some(nu!FunBodyAst(alloc, immutable FunBodyAst.Builtin()))
-			: extern_.has
+			: has(extern_)
 			? some(nu!FunBodyAst(alloc, extern_.force))
 			: none!(Ptr!FunBodyAst);
 		return SpecUsesAndSigFlagsAndKwBody(finishArr(alloc, specUses), noCtx, summon, unsafe, trusted, body_);
@@ -706,9 +706,9 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 ) {
 	immutable SigAstAndMaybeDedent sig = parseSigAfterNameAndSpace(alloc, lexer, start, name);
 	immutable FunDeclStuff stuff = () {
-		if (sig.dedents.has) {
+		if (has(sig.dedents)) {
 			// Started at indent of 0
-			verify(sig.dedents.force == 0);
+			verify(force(sig.dedents) == 0);
 			immutable SpecUsesAndSigFlagsAndKwBody extra = tryTake(lexer, "spec")
 				? parseIndentedSpecUses(alloc, lexer)
 				: emptySpecUsesAndSigFlagsAndKwBody;
@@ -753,8 +753,8 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 
 	immutable Opt!NonFunKeywordAndIndent opKwAndIndent = parseNonFunKeyword(alloc, lexer);
-	if (opKwAndIndent.has) {
-		immutable NonFunKeywordAndIndent kwAndIndent = opKwAndIndent.force;
+	if (has(opKwAndIndent)) {
+		immutable NonFunKeywordAndIndent kwAndIndent = force(opKwAndIndent);
 		immutable NonFunKeyword kw = kwAndIndent.keyword;
 		immutable SpaceOrNewlineOrIndent after = kwAndIndent.after;
 		immutable Opt!PuritySpecifierAndRange purity = after == SpaceOrNewlineOrIndent.space
@@ -776,7 +776,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 			case NonFunKeyword.alias_:
 				if (!tookIndent)
 					todo!void("always indent alias");
-				if (purity.has)
+				if (has(purity))
 					todo!void("alias shouldn't have purity");
 				immutable TypeAst.InstStruct target = parseStructType(alloc, lexer);
 				takeDedentFromIndent1(alloc, lexer);
@@ -788,7 +788,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 			case NonFunKeyword.builtinSpec:
 				if (tookIndent)
 					todo!void("builtin-spec has no body");
-				if (purity.has)
+				if (has(purity))
 					todo!void("spec shouldn't have purity");
 				add(alloc, specs, immutable SpecDeclAst(
 					range(lexer, start),
@@ -800,7 +800,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 			case NonFunKeyword.spec:
 				if (!tookIndent)
 					todo!void("always indent spec");
-				if (purity.has)
+				if (has(purity))
 					todo!void("spec shouldn't have purity");
 				immutable Arr!SigAst sigs = parseIndentedSigs(alloc, lexer);
 				add(

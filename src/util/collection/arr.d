@@ -98,7 +98,7 @@ immutable(Bool) sizeEq(T, U)(const Arr!T a, const Arr!U b) {
 }
 
 immutable(Bool) empty(T)(const Arr!T a) {
-	return immutable Bool(a.size == 0);
+	return immutable Bool(size(a) == 0);
 }
 
 @trusted Ptr!T ptrAt(T)(return scope ref Arr!T a, immutable size_t index) {
@@ -164,8 +164,8 @@ Ptr!T onlyPtr_mut(T)(ref Arr!T a) {
 }
 
 ref immutable(T) last(T)(ref immutable Arr!T a) {
-	verify(a.size != 0);
-	return at(a, a.size - 1);
+	verify(size(a) != 0);
+	return at(a, size(a) - 1);
 }
 
 @trusted T[] range(T)(Arr!T a) {
@@ -179,7 +179,7 @@ ref immutable(T) last(T)(ref immutable Arr!T a) {
 }
 
 @trusted PtrsRange!T ptrsRange(T)(ref immutable Arr!T a) {
-	return PtrsRange!T(a.begin_, a.begin_ + a.size);
+	return PtrsRange!T(a.begin_, a.begin_ + size(a));
 }
 
 private struct PtrsRange(T) {

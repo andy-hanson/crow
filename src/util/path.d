@@ -351,7 +351,7 @@ private struct StrAndExtension {
 
 private immutable(StrAndExtension) removeExtension(immutable Str s) {
 	// Deliberately not allowing i == 0
-	for (size_t i = s.size - 1; i > 0; i--)
+	for (size_t i = size(s) - 1; i > 0; i--)
 		if (at(s, i) == '.')
 			return StrAndExtension(s.slice(0, i), s.slice(i));
 	return StrAndExtension(s, emptyStr);
@@ -370,10 +370,10 @@ private immutable(Opt!RootAndPath) parseAbsolutePathNoExtension(Alloc, SymAlloc)
 ) {
 	return flatMapOption(pathParentAndBaseName(s), (ref immutable ParentAndBaseName pbn) {
 		immutable Opt!Sym sym = tryGetSymFromStr(allSymbols, pbn.baseName);
-		if (sym.has) {
+		if (has(sym)) {
 			immutable Opt!RootAndPath left = parseAbsolutePathNoExtension(allPaths, allSymbols, pbn.parent);
-			return left.has
-				? some(immutable RootAndPath(left.force.root, childPath(allPaths, force(left).path, force(sym))))
+			return has(left)
+				? some(immutable RootAndPath(force(left).root, childPath(allPaths, force(left).path, force(sym))))
 				: some(immutable RootAndPath(pbn.parent, rootPath(allPaths, force(sym))));
 		} else
 			return none!RootAndPath;
@@ -411,8 +411,8 @@ immutable(Opt!Str) pathParent(return scope ref immutable Str s) {
 
 private immutable(Opt!ParentAndBaseName) pathParentAndBaseName(immutable Str s) {
 	immutable Opt!size_t index = pathSlashIndex(s);
-	return index.has
-		? some(immutable ParentAndBaseName(s.slice(0, index.force), s.slice(index.force + 1)))
+	return has(index)
+		? some(immutable ParentAndBaseName(s.slice(0, force(index)), s.slice(force(index) + 1)))
 		: none!ParentAndBaseName;
 }
 

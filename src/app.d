@@ -181,8 +181,8 @@ immutable(Str) climbUpToNoze(immutable Str p) {
 	immutable Opt!Str bn = pathBaseName(p);
 	return strEqLiteral(bn.forceOrTodo, "noze")
 		? p
-		: par.has
-		? climbUpToNoze(par.force)
+		: has(par)
+		? climbUpToNoze(force(par))
 		: todo!Str("no 'noze' directory in path");
 }
 
@@ -638,8 +638,8 @@ extern(C) {
 	immutable int fd = tryOpen(tempAlloc, allPaths, path, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
 	scope(exit) close(fd);
 
-	immutable ssize_t wroteBytes = posixWrite(fd, content.begin, content.size);
-	if (wroteBytes != content.size)
+	immutable ssize_t wroteBytes = posixWrite(fd, content.begin, size(content));
+	if (wroteBytes != size(content))
 		if (wroteBytes == -1)
 			todo!void("writeFile failed");
 		else

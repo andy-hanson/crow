@@ -419,7 +419,7 @@ immutable(FileAstAndArrDiagnosticAndLineAndColumnGetter) parseSingle(ModelAlloc,
 
 	// File content must go in astAlloc because we refer to strings without copying
 	if (has(opFileContent)) {
-		immutable NulTerminatedStr text = opFileContent.force;
+		immutable NulTerminatedStr text = force(opFileContent);
 		immutable FileAstAndParseDiagnostics result = parseFile(astAlloc, allPaths, allSymbols, text);
 		return immutable FileAstAndArrDiagnosticAndLineAndColumnGetter(result.ast, result.diagnostics, lcg);
 	} else

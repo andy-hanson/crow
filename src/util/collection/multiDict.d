@@ -6,6 +6,7 @@ import util.collection.arr : Arr, emptyArr;
 import util.comparison : Comparison;
 
 struct MultiDict(K, V, alias compare) {
+	private:
 	immutable size_t size;
 	immutable K* keys;
 	immutable V* values;

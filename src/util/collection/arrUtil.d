@@ -397,18 +397,18 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 		immutable size_t,
 	) @safe @nogc pure nothrow cb
 ) {
-	OutSuccess* res = cast(OutSuccess*) alloc.allocateBytes(OutSuccess.sizeof * inputs.size);
-	foreach (immutable size_t i; 0..inputs.size) {
+	OutSuccess* res = cast(OutSuccess*) alloc.allocateBytes(OutSuccess.sizeof * size(inputs));
+	foreach (immutable size_t i; 0..size(inputs)) {
 		immutable Arr!OutSuccess soFar = immutable Arr!OutSuccess(cast(immutable) res, i);
 		immutable Result!(OutSuccess, OutFailure) r = cb(at(inputs, i), soFar, i);
 		if (r.isSuccess)
 			initMemory(res + i, r.asSuccess);
 		else {
-			alloc.freeBytes(cast(ubyte*) res, OutSuccess.sizeof * inputs.size);
+			alloc.freeBytes(cast(ubyte*) res, OutSuccess.sizeof * size(inputs));
 			return fail!(Arr!OutSuccess, OutFailure)(r.asFailure);
 		}
 	}
-	return success!(Arr!OutSuccess, OutFailure)(immutable Arr!OutSuccess(cast(immutable) res, inputs.size));
+	return success!(Arr!OutSuccess, OutFailure)(immutable Arr!OutSuccess(cast(immutable) res, size(inputs)));
 }
 
 @trusted immutable(Arr!T) cat(T, Alloc)(ref Alloc alloc, immutable Arr!T a, immutable Arr!T b) {
@@ -428,7 +428,7 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	immutable Arr!T c,
 	immutable Arr!T d,
 ) {
-	immutable size_t resSize = size(a) + size(b) + c.size + d.size;
+	immutable size_t resSize = size(a) + size(b) + size(c) + size(d);
 	T* res = cast(T*) alloc.allocateBytes(T.sizeof * resSize);
 	foreach (immutable size_t i; 0..size(a))
 		initMemory(res + i, at(a, i));

@@ -117,7 +117,7 @@ immutable(Command) parseCommand(Alloc, PathAlloc, SymAlloc)(
 	immutable Str cwd,
 	immutable Arr!Str args,
 ) {
-	if (args.size == 0)
+	if (size(args) == 0)
 		return Command(Command.Help(True));
 	else {
 		immutable Str arg0 = first(args);
@@ -217,7 +217,7 @@ immutable(Command) parseBuildCommand(Alloc, PathAlloc, SymAlloc)(
 	ref immutable Str cwd,
 	ref immutable Arr!Str args,
 ) {
-	return args.size == 1 && !isHelp(args.only)
+	return size(args) == 1 && !isHelp(args.only)
 		? immutable Command(Command.Build(parseProgramDirAndMain(alloc, allPaths, allSymbols, cwd, args.only)))
 		: immutable Command(Command.HelpBuild());
 }
@@ -229,7 +229,7 @@ immutable(Command) parseRunCommand(Alloc, PathAlloc, SymAlloc)(
 	immutable Str cwd,
 	immutable Arr!Str args,
 ) {
-	if (args.size == 0 || isHelp(args.first))
+	if (size(args) == 0 || isHelp(args.first))
 		return immutable Command(Command.HelpRun());
 	else {
 		immutable ProgramDirAndMain programDirAndMain =

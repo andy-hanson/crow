@@ -26,7 +26,7 @@ immutable(Opt!V) getAt(K, V, alias cmp)(immutable Dict!(K, V, cmp) d, immutable 
 
 immutable(V) mustGetAt(K, V, alias cmp)(ref immutable Dict!(K, V, cmp) d, immutable K key) {
 	immutable Opt!V opt = getAt(d, key);
-	return opt.force;
+	return force(opt);
 }
 
 ref V mustGetAt_mut(K, V, alias cmp)(return scope ref Dict!(K, V, cmp) d, immutable K key) {

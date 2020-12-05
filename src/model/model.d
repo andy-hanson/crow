@@ -225,7 +225,7 @@ immutable(FileAndRange) range(ref immutable Sig a) {
 }
 
 immutable(size_t) arity(ref const Sig a) {
-	return a.params.size;
+	return size(a.params);
 }
 
 struct RecordField {
@@ -485,7 +485,7 @@ immutable(size_t) nSigs(ref immutable SpecBody a) {
 	return matchSpecBody(
 		a,
 		(ref immutable SpecBody.Builtin) => immutable size_t(0),
-		(ref immutable Arr!Sig sigs) => sigs.size);
+		(ref immutable Arr!Sig sigs) => size(sigs));
 }
 
 struct SpecDecl {
@@ -876,11 +876,11 @@ immutable(Arr!TypeParam) typeParams(return scope ref immutable CalledDecl a) {
 }
 
 immutable(size_t) arity(ref immutable CalledDecl a) {
-	return params(a).size;
+	return size(params(a));
 }
 
 immutable(size_t) nTypeParams(ref immutable CalledDecl a) {
-	return a.typeParams.size;
+	return size(typeParams(a));
 }
 
 struct Called {

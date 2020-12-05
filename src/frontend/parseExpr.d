@@ -134,7 +134,7 @@ immutable(ArgsAndMaybeDedent) parseArgsRecur(Alloc, SymAlloc)(
 ) {
 	immutable ExprAndMaybeDedent ad = parseExprArg(alloc, lexer, ctx);
 	add(alloc, args, ad.expr);
-	return !ad.dedents.has && tryTake(lexer, ", ")
+	return !has(ad.dedents) && tryTake(lexer, ", ")
 		? parseArgsRecur(alloc, lexer, ctx, args)
 		: ArgsAndMaybeDedent(finishArr(alloc, args), ad.dedents);
 }
@@ -195,7 +195,7 @@ immutable(ExprAndMaybeDedent) parseCalls(Alloc, SymAlloc)(
 	immutable ExprAndMaybeDedent ed,
 	immutable Bool allowBlock
 ) {
-	if (ed.dedents.has)
+	if (has(ed.dedents))
 		return ed;
 	else if (tryTake(lexer, ' '))
 		return parseCalls(
@@ -615,8 +615,8 @@ immutable(ExprAndDedent) parseSingleStatementLine(Alloc, SymAlloc)(ref Alloc all
 			: tryTake(lexer, " <- ")
 			? some(True)
 			: none!Bool;
-		if (isThen.has)
-			return parseLetOrThen(alloc, lexer, start, asNameAndRange(et), isThen.force);
+		if (has(isThen))
+			return parseLetOrThen(alloc, lexer, start, asNameAndRange(et), force(isThen));
 	}
 	return parseExprNoLet(alloc, lexer, start, et);
 }
