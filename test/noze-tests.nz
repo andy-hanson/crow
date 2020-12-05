@@ -17,10 +17,10 @@ list-tests arr str(path str) summon
 		true
 	path each-child-recursive filter, \child
 		match child.base-name.get-extension
-			none
-				pass
-			some s
-				s.value == "nz" ?: (res push child), pass
+		as none
+			pass
+		as some s
+			s.value == "nz" ?: (res push child), pass
 	res freeze
 
 run-single-noze-test arr failure
@@ -36,15 +36,15 @@ body
 		res = print-kind run-print-test path-to-noze, env, path, options.overwrite-output?
 		res.should-stop? ? res.failures.some, none
 	match op
-		none
-			options.print-tests? ? ("noze run " + path print-sync), pass
-			interpret-failures = path-to-noze run-single-runnable-test env, path, true, options.overwrite-output?
-			if interpret-failures.empty?
-				path-to-noze run-single-runnable-test env, path, false, options.overwrite-output?
-			else
-				interpret-failures
-		some s
-			s value
+	as none
+		options.print-tests? ? ("noze run " + path print-sync), pass
+		interpret-failures = path-to-noze run-single-runnable-test env, path, true, options.overwrite-output?
+		if interpret-failures.empty?
+			path-to-noze run-single-runnable-test env, path, false, options.overwrite-output?
+		else
+			interpret-failures
+	as some s
+		s value
 
 
 print-test-result record

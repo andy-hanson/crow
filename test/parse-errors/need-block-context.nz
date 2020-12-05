@@ -4,8 +4,8 @@ f void()
 	else
 		1
 	match match
-		some
-			0
-		none
-			1
+	as some
+		0
+	as none
+		1
 	match \

@@ -268,7 +268,7 @@ contexts:
     # Other keywords
     - match: 'match\s+'
       scope: keyword
-    - match: '(elif|else|if|it)(?=$|<|\,|\s|\}|\.)'
+    - match: '(as|elif|else|if|it)(?=$|<|\,|\s|\}|\.)'
       scope: keyword
     - match: '{{name}}'
       scope: identifier

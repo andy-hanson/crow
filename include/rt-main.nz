@@ -40,12 +40,12 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 		one
 	else
 		match main-fut.must-be-resolved
-			ok o
-				o value
-			err e
-				print-err-sync-no-newline: "main failed: "
-				print-err-sync: e.value message
-				one
+		as ok o
+			o value
+		as err e
+			print-err-sync-no-newline: "main failed: "
+			print-err-sync: e.value message
+			one
 
 do-main fut exit-code(gctx global-ctx, vat vat, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx
 	| Before we start the engine, add a task.

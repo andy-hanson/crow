@@ -260,39 +260,45 @@ immutable(ExprAst) tryParseDots(Alloc, SymAlloc)(
 		return initial;
 }
 
-immutable(ExprAndMaybeDedent) parseMatch(Alloc, SymAlloc)(
+immutable(ExprAndDedent) parseMatch(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start
 ) {
-	immutable Opt!(Ptr!ExprAst) matched = tryTake(lexer, ' ')
-		? some(allocExpr(alloc, parseExprNoBlock(alloc, lexer)))
-		: none!(Ptr!ExprAst);
-	return takeIndentOrFail_ExprAndMaybeDedent(alloc, lexer, () {
-		ArrBuilder!(MatchAst.CaseAst) cases;
-		immutable size_t matchDedents = () {
-			for (;;) {
-				immutable Pos startCase = curPos(lexer);
-				immutable NameAndRange structName = takeNameAndRange(alloc, lexer);
-				immutable Opt!NameAndRange localName = tryTake(lexer, ' ')
-					? some(takeNameAndRange(alloc, lexer))
-					: none!NameAndRange;
-				immutable ExprAndDedent ed = takeIndentOrFail_ExprAndDedent(alloc, lexer, () =>
-					parseStatementsAndExtraDedents(alloc, lexer));
-				add(alloc, cases, immutable MatchAst.CaseAst(
-					range(lexer, startCase),
-					structName,
-					localName,
-					allocExpr(alloc, ed.expr)));
-				if (ed.dedents != 0)
-					return ed.dedents - 1;
-			}
-		}();
-		immutable MatchAst match = immutable MatchAst(matched, finishArr(alloc, cases));
-		return immutable ExprAndMaybeDedent(
-			immutable ExprAst(range(lexer, start), immutable ExprAstKind(match)),
-			some(matchDedents));
-	});
+	immutable Ptr!ExprAst matched = tryTake(lexer, ' ')
+		? allocate(alloc, parseExprNoBlock(alloc, lexer))
+		: allocate(alloc, immutable ExprAst(range(lexer, start), immutable ExprAstKind(immutable BogusAst())));
+	immutable size_t dedentsAfterMatched = takeNewlineOrDedentAmount(alloc, lexer);
+	ArrBuilder!(MatchAst.CaseAst) cases;
+	immutable size_t dedents = dedentsAfterMatched != 0 ? dedentsAfterMatched : parseMatchCases(alloc, lexer, cases);
+	return immutable ExprAndDedent(
+		immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(immutable MatchAst(matched, finishArr(alloc, cases)))),
+		dedents);
+}
+
+immutable(size_t) parseMatchCases(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	ref ArrBuilder!(MatchAst.CaseAst) cases,
+) {
+	immutable Pos startCase = curPos(lexer);
+	if (tryTake(lexer, "as ")) {
+		immutable NameAndRange structName = takeNameAndRange(alloc, lexer);
+		immutable Opt!NameAndRange localName = tryTake(lexer, ' ')
+			? some(takeNameAndRange(alloc, lexer))
+			: none!NameAndRange;
+		immutable ExprAndDedent ed = takeIndentOrFail_ExprAndDedent(alloc, lexer, () =>
+			parseStatementsAndExtraDedents(alloc, lexer));
+		add(alloc, cases, immutable MatchAst.CaseAst(
+			range(lexer, startCase),
+			structName,
+			localName,
+			allocExpr(alloc, ed.expr)));
+		return ed.dedents == 0 ? parseMatchCases(alloc, lexer, cases) : ed.dedents;
+	} else
+		return 0;
 }
 
 immutable(ExprAndMaybeDedent) parseMultiLineNewArr(Alloc, SymAlloc)(
@@ -514,7 +520,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			return noDedent(tryParseDots(alloc, lexer, expr));
 		case ExpressionToken.Kind.match:
 			return ctx.allowBlock
-				? parseMatch(alloc, lexer, start)
+				? toMaybeDedent(parseMatch(alloc, lexer, start))
 				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
 		case ExpressionToken.Kind.nameAndRange:
 			immutable NameAndRange name = asNameAndRange(et);
@@ -591,7 +597,7 @@ immutable(ExprAndDedent) parseExprNoLet(Alloc, SymAlloc)(
 	immutable ExpressionToken et,
 ) {
 	immutable ExprAndMaybeDedent e = parseExprWorker(alloc, lexer, start, et, ArgCtx(True, True));
-	immutable size_t dedents = e.dedents.has ? e.dedents.force : takeNewlineOrDedentAmount(alloc, lexer);
+	immutable size_t dedents = has(e.dedents) ? force(e.dedents) : takeNewlineOrDedentAmount(alloc, lexer);
 	return ExprAndDedent(e.expr, dedents);
 }
 
@@ -603,15 +609,14 @@ immutable(ExprAndDedent) parseExprNoLet(Alloc, SymAlloc)(ref Alloc alloc, ref Le
 immutable(ExprAndDedent) parseSingleStatementLine(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable ExpressionToken et = takeExpressionToken(alloc, lexer);
-	if (et.isNameAndRange) {
-		immutable NameAndRange nr = et.asNameAndRange;
+	if (isNameAndRange(et)) {
 		immutable Opt!Bool isThen = tryTake(lexer, " = ")
 			? some(False)
 			: tryTake(lexer, " <- ")
 			? some(True)
 			: none!Bool;
 		if (isThen.has)
-			return parseLetOrThen(alloc, lexer, start, nr, isThen.force);
+			return parseLetOrThen(alloc, lexer, start, asNameAndRange(et), isThen.force);
 	}
 	return parseExprNoLet(alloc, lexer, start, et);
 }

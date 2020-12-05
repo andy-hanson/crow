@@ -72,12 +72,11 @@ each void(r range-nat, f fun-mut1 void nat)
 
 each-recur void(i iterator ?t, f fun-mut1 void ?t)
 	match i next
-		none
-			pass
-		some s
-			f call s.value
-			i each-recur f
-
+	as none
+		pass
+	as some s
+		f call s.value
+		i each-recur f
 
 filter stream ?t(in stream ?t, pred fun-mut1 bool ?t)
 	stream: \
@@ -86,13 +85,12 @@ filter stream ?t(in stream ?t, pred fun-mut1 bool ?t)
 
 filter-helper opt ?t(i iterator ?t, pred fun-mut1 bool ?t)
 	match i next
+	as none
 		none
-			none
-		some s
-			v = s.value
-			if pred call v
-				v some
-			else
-				| This one didn't satisfy the predicate, but keep trying until we get one or each the end
-				i filter-helper pred
-
+	as some s
+		v = s.value
+		if pred call v
+			v some
+		else
+			| This one didn't satisfy the predicate, but keep trying until we get one or each the end
+			i filter-helper pred

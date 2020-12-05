@@ -306,8 +306,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			unreachable!void();
 		},
 		(ref immutable MatchAst it) {
-			if (has(it.matched))
-				addExprTokens(alloc, tokens, force(it.matched));
+			addExprTokens(alloc, tokens, it.matched);
 			foreach (ref immutable MatchAst.CaseAst case_; range(it.cases)) {
 				add(alloc, tokens, immutable Token(Token.Kind.structRef, rangeOfNameAndRange(case_.structName)));
 				if (has(case_.local))

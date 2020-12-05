@@ -18,16 +18,16 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1 ?t arr<opt
 	help = false cell<bool>
 	parsed.named each \key value
 		match t-names index-of key
-			none
-				if key == "help"
-					help set true
-				else
-					fail: "Unexpected arg " + key
-			some s
-				idx = s value
-				| TODO: duplicate argument error
-				forbid: values at idx has?
-				values set-at idx, value.some
+		as none
+			if key == "help"
+				help set true
+			else
+				fail: "Unexpected arg " + key
+		as some s
+			idx = s value
+			| TODO: duplicate argument error
+			forbid: values at idx has?
+			values set-at idx, value.some
 
 	if help get
 		none
@@ -47,19 +47,19 @@ parsed-cmd-line-args record
 parse-cmd-line-args-dynamic parsed-cmd-line-args(args arr str)
 	| Find the location of the first name beginning in '--'
 	match args find-index {it starts-with? "--"}
-		none
-			parsed-cmd-line-args: args, empty-dict, empty-arr
-		some s
-			first-named-arg-index = s.value
-			nameless = args slice-up-to first-named-arg-index
-			rest = args slice-starting-at first-named-arg-index
-			match rest find-index {it == "--"}
-				none
-					parsed-cmd-line-args: nameless, rest.parse-named-args, empty-arr
-				some s2
-					sep-index = s2.value
-					named-args = rest slice-up-to sep-index parse-named-args
-					parsed-cmd-line-args: nameless, named-args, rest slice-after sep-index
+	as none
+		parsed-cmd-line-args: args, empty-dict, empty-arr
+	as some s
+		first-named-arg-index = s.value
+		nameless = args slice-up-to first-named-arg-index
+		rest = args slice-starting-at first-named-arg-index
+		match rest find-index {it == "--"}
+		as none
+			parsed-cmd-line-args: nameless, rest.parse-named-args, empty-arr
+		as some s2
+			sep-index = s2.value
+			named-args = rest slice-up-to sep-index parse-named-args
+			parsed-cmd-line-args: nameless, named-args, rest slice-after sep-index
 
 parse-named-args dict str arr<str>(args arr str)
 	b = new-mut-dict<str, arr<str>>
@@ -70,9 +70,9 @@ parse-named-args-recur void(args arr str, builder mut-dict str arr<str>)
 	first-name = args.first remove-start "--"
 	tl = args tail
 	match tl find-index {it starts-with? "--"}
-		none
-			builder add first-name, tl
-		some s
-			next-named-arg-index = s.value
-			builder add: first-name, tl slice-up-to next-named-arg-index
-			args slice-starting-at next-named-arg-index parse-named-args-recur builder
+	as none
+		builder add first-name, tl
+	as some s
+		next-named-arg-index = s.value
+		builder add: first-name, tl slice-up-to next-named-arg-index
+		args slice-starting-at next-named-arg-index parse-named-args-recur builder

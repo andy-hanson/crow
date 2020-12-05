@@ -51,10 +51,10 @@ first-some opt ?out(a arr ?in, cb fun-mut1 opt<?out> ?in)
 		none
 	else
 		match cb call a.first
-			none
-				a.tail first-some cb
-			some s
-				s
+		as none
+			a.tail first-some cb
+		as some s
+			s
 
 last ?t(a arr ?t)
 	forbid: a empty?

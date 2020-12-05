@@ -2,10 +2,10 @@ import io
 
 parent-path str(a str)
 	match a r-index-of "/"
-		none
-			""
-		some s
-			a slice-up-to s.value
+	as none
+		""
+	as some s
+		a slice-up-to s.value
 
 child-path str(a str, child-name str)
 	a + "/" + child-name
@@ -30,17 +30,17 @@ last-index-of opt nat(s str, c char)
 
 get-extension opt str(name str)
 	match name last-index-of "."
+	as none
 		none
-			none
-		some s
-			name slice-after s.value some
+	as some s
+		name slice-after s.value some
 
 remove-extension str(name str)
 	match name last-index-of "."
-		none
-			name
-		some s
-			name slice-up-to s.value
+	as none
+		name
+	as some s
+		name slice-up-to s.value
 
 add-extension str(name str, ext str)
 	name + "." + ext
@@ -51,9 +51,7 @@ change-extension str(name str, ext str)
 base-name str(path str)
 	i = path last-index-of "/"
 	match i
-		none
-			path
-		some s
-			path slice-after s.value
-
-
+	as none
+		path
+	as some s
+		path slice-after s.value

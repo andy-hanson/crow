@@ -86,7 +86,7 @@ immutable(Arr!ParseDiagnostic) finishDiags(Alloc, SymAlloc)(ref Alloc alloc, ref
 }
 
 void addDiagAtChar(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer, immutable ParseDiag diag) {
-	immutable Pos a = lexer.curPos;
+	immutable Pos a = curPos(lexer);
 	addDiag(alloc, lexer, immutable RangeWithinFile(a, lexer.curChar == '\0' ? a : a + 1), diag);
 }
 
@@ -319,8 +319,8 @@ immutable(NewlineOrDedent) takeNewlineOrSingleDedent(Alloc, SymAlloc)(ref Alloc 
 }
 
 immutable(RangeWithinFile) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable Pos begin) {
-	verify(begin <= lexer.curPos);
-	return immutable RangeWithinFile(begin, lexer.curPos);
+	verify(begin <= curPos(lexer));
+	return immutable RangeWithinFile(begin, curPos(lexer));
 }
 
 void addDiagOnReservedName(Alloc, SymAlloc)(
@@ -456,8 +456,10 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 }
 
 @trusted void skipUntilNewlineNoDiag(SymAlloc)(ref Lexer!SymAlloc lexer) {
-	while (*lexer.ptr != '\n')
+	while (*lexer.ptr != '\n') {
+		assert(*lexer.ptr != '\0');
 		lexer.ptr++;
+	}
 }
 
 private:

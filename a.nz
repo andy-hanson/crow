@@ -2,5 +2,9 @@ import
 	io
 
 main fut exit-code(args arr str) summon trusted
-	print-sync: "hello world"
-	0 resolved
+	match o
+	as none
+		1
+	as some
+		2
+

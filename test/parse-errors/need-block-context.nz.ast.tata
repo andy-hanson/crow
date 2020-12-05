@@ -10,8 +10,8 @@ file-ast(
 				seq-ast(
 					if(bogus, literal(numeric, "0"), some(literal(numeric, "1")))
 					match(
-						some(bogus)
+						bogus
 						[
-							case(range(45, 57), name-range(45, some), none, literal(numeric, "0"))
-							case(range(57, 68), name-range(57, none), none, literal(numeric, "1"))]))
-				bogus))])
+							case(range(44, 57), name-range(47, some), none, literal(numeric, "0"))
+							case(range(57, 70), name-range(60, none), none, literal(numeric, "1"))]))
+				match(bogus, [])))])

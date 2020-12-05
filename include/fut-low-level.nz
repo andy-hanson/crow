@@ -10,12 +10,12 @@ new-unresolved-fut fut ?t() unsafe
 
 must-be-resolved result ?t exception(f fut ?t) unsafe noctx
 	match f state
-		fut-state-callbacks
-			hard-unreachable
-		fut-state-resolved r
-			ok: r value
-		exception e
-			err: e
+	as fut-state-callbacks
+		hard-unreachable
+	as fut-state-resolved r
+		ok: r value
+	as exception e
+		err: e
 
 resolve void(f fut ?t, value ?t) unsafe
 	f resolve-or-reject value.ok
@@ -26,28 +26,28 @@ reject void(f fut ?t, e exception) unsafe
 resolve-or-reject void(f fut ?t, result result ?t exception) unsafe
 	f.lk.ref-of-val acquire-lock
 	match f.state
-		fut-state-callbacks cbs
-			cbs.head resolve-or-reject-recur result
-		fut-state-resolved
-			hard-fail: "resolving an already-resolved fut"
-		exception
-			hard-fail: "resolving an already-resolved fut"
+	as fut-state-callbacks cbs
+		cbs.head resolve-or-reject-recur result
+	as fut-state-resolved
+		hard-fail: "resolving an already-resolved fut"
+	as exception
+		hard-fail: "resolving an already-resolved fut"
 	f set-state: match result
-		ok o
-			fut-state-resolved: o.value
-		err e
-			| TODO: should work without this variable
-			ex = e value
-			ex
+	as ok o
+		fut-state-resolved: o.value
+	as err e
+		| TODO: should work without this variable
+		ex = e value
+		ex
 	f.lk.ref-of-val release-lock
 
 private
 
 resolve-or-reject-recur void(node opt fut-callback-node<?t>, value result ?t exception)
 	match node
-		none
-			pass
-		some s
-			| the fun-ref will return a fut<void>, just ignore it
-			drop: s.value.cb call value
-			s.value.next-node resolve-or-reject-recur value
+	as none
+		pass
+	as some s
+		| the fun-ref will return a fut<void>, just ignore it
+		drop: s.value.cb call value
+		s.value.next-node resolve-or-reject-recur value

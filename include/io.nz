@@ -58,21 +58,21 @@ is-dir? bool(path str) summon
 
 is-dir? bool(path c-str) summon
 	match path get-stat
-		none
-			| raise exception -- path does not exist
-			todo
-		some s
-			s.value.st-mode bits-and s-ifmt == s-ifdir
+	as none
+		| raise exception -- path does not exist
+		todo
+	as some s
+		s.value.st-mode bits-and s-ifmt == s-ifdir
 
 is-file? bool(path str) summon
 	path.to-c-str is-file?
 
 is-file? bool(path c-str) summon
 	match path get-stat
-		none
-			false
-		some s
-			s.value.st-mode bits-and s-ifmt == s-ifreg
+	as none
+		false
+	as some s
+		s.value.st-mode bits-and s-ifmt == s-ifreg
 
 | TODO: move to io.nz
 path-exists? bool(path c-str) summon
@@ -139,12 +139,12 @@ current-executable-path str() summon trusted
 
 read-file str(path str) summon
 	match path try-read-file
-		none
-			| TODO: don't print, warn
-			print-sync: "file does not exist: " + path
-			""
-		some s
-			s.value
+	as none
+		| TODO: don't print, warn
+		print-sync: "file does not exist: " + path
+		""
+	as some s
+		s.value
 
 write-file void(path str, content str) summon
 	path.to-c-str write-file content

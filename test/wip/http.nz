@@ -3,14 +3,14 @@ import io openssl posix
 test-uri void() summon
 	my-uri = "https://www.duckduckgo.com:80/some-thing"
 	match my-uri parse-uri
-		none
-			print-sync: "did not parse"
-		some s
-			uri = s.value
-			u test-get
-			| print-sync: "host: " + uri.host
-			| print-sync: "path and query: " + uri.path-and-query
-			| print-sync: "port: " + uri.port.to-str
+	as none
+		print-sync: "did not parse"
+	as some s
+		uri = s.value
+		u test-get
+		| print-sync: "host: " + uri.host
+		| print-sync: "path and query: " + uri.path-and-query
+		| print-sync: "port: " + uri.port.to-str
 
 split-with-splitter<?t> record
 	before arr ?t
@@ -30,20 +30,20 @@ split-at-first opt split-with-splitter<?t>(a arr ?t, pred fun-mut1 bool ?t)
 | If splitter is not present, right part is empty
 try-split split ?t(a arr ?t, pred fun-mut1 bool ?t)
 	match a find-index pred
-		none
-			split<?t>: a, empty-arr
-		some s
-			idx = s.value
-			split<?t>: (a slice-up-to idx), (a slice-after idx)
+	as none
+		split<?t>: a, empty-arr
+	as some s
+		idx = s.value
+		split<?t>: (a slice-up-to idx), (a slice-after idx)
 
 | If splitter is not present, right part is empty
 try-split-from-right split ?t(a arr ?t, pred fun-mut1 bool ?t)
 	match a find-rindex pred
-		none
-			split<?t> a, empty-arr
-		some s
-			index = s.value
-			split<?t>: (a slice-up-to index), (a slice-after index)
+	as none
+		split<?t> a, empty-arr
+	as some s
+		index = s.value
+		split<?t>: (a slice-up-to index), (a slice-after index)
 
 nghttp2-session-callbacks-new foo() extern noctx summon
 nghttp2-session-client-new foo() extern noctx summon

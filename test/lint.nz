@@ -63,11 +63,11 @@ ignore-extension? bool(ext str)
 
 ignore-extension-of-name? bool(name str)
 	match name get-extension
-		none
-			| Ignore extensionless files
-			true
-		some s
-			s.value ignore-extension?
+	as none
+		| Ignore extensionless files
+		true
+	as some s
+		s.value ignore-extension?
 
 lines arr str(s str)
 	res = new-mut-arr<str>

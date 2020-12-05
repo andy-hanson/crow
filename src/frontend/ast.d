@@ -178,7 +178,7 @@ struct MatchAst {
 		immutable Ptr!ExprAst then;
 	}
 
-	immutable Opt!(Ptr!ExprAst) matched; // parse error if missing
+	immutable Ptr!ExprAst matched;
 	immutable Arr!CaseAst cases;
 }
 
@@ -885,8 +885,7 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 			unreachable!(immutable Sexpr),
 		(ref immutable MatchAst it) =>
 			tataRecord(alloc, "match", [
-				tataOpt(alloc, it.matched, (ref immutable Ptr!ExprAst matched) =>
-					sexprOfExprAst(alloc, matched)),
+				sexprOfExprAst(alloc, it.matched),
 				tataArr(alloc, it.cases, (ref immutable MatchAst.CaseAst case_) =>
 					tataRecord(alloc, "case", [
 						sexprOfRangeWithinFile(alloc, case_.range),

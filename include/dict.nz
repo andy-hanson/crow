@@ -53,10 +53,10 @@ get opt ?v(d mut-dict ?k ?v, key ?k) trusted data<?k>
 
 at ?v(d dict ?k ?v, key ?k) data<?k>
 	match d get key
-		none
-			todo
-		some s
-			s value
+	as none
+		todo
+	as some s
+		s value
 
 at ?v(d mut-dict ?k ?v, key ?k) trusted data<?k>
 	d.unsafe-as-dict at key

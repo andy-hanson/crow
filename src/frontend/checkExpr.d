@@ -614,17 +614,16 @@ immutable(CheckedExpr) checkMatch(Alloc)(
 	ref immutable MatchAst ast,
 	ref Expected expected,
 ) {
-	immutable Ptr!ExprAst matched = force(ast.matched);
-	immutable ExprAndType matchedAndType = checkAndInfer(alloc, ctx, matched);
+	immutable ExprAndType matchedAndType = checkAndInfer(alloc, ctx, ast.matched);
 	immutable Opt!UnionAndMembers unionAndMembers = getUnionBody(matchedAndType.type);
 	if (!has(unionAndMembers)) {
 		if (!isBogus(matchedAndType.type))
 			addDiag2(
 				alloc,
 				ctx,
-				rangeInFile2(ctx, matched.range),
+				rangeInFile2(ctx, ast.matched.range),
 				immutable Diag(immutable Diag.MatchOnNonUnion(matchedAndType.type)));
-		return bogus(expected, rangeInFile2(ctx, matched.range));
+		return bogus(expected, rangeInFile2(ctx, ast.matched.range));
 	} else {
 		immutable Ptr!StructInst matchedUnion = force(unionAndMembers).matchedUnion;
 		immutable Arr!(Ptr!StructInst) members = force(unionAndMembers).members;

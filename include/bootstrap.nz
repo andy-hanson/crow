@@ -87,35 +87,35 @@ comparison union
 
 to-str str(c comparison)
 	match c
-		less
-			"less"
-		equal
-			"equal"
-		greater
-			"greater"
+	as less
+		"less"
+	as equal
+		"equal"
+	as greater
+		"greater"
 
 <=> comparison(a ?t, b ?t) data<?t> noctx builtin
 
 == bool(a ?t, b ?t) noctx data<?t>
 	match a <=> b
-		less
-			false
-		equal
-			true
-		greater
-			false
+	as less
+		false
+	as equal
+		true
+	as greater
+		false
 
 != bool(a ?t, b ?t) noctx data<?t>
 	a == b not
 
 < bool(a ?t, b ?t) noctx data<?t>
 	match a <=> b
-		less
-			true
-		equal
-			false
-		greater
-			false
+	as less
+		true
+	as equal
+		false
+	as greater
+		false
 
 <= bool(a ?t, b ?t) noctx data<?t>
 	b < a not
@@ -760,10 +760,10 @@ opt<?t> union
 
 empty? bool(a opt ?t) noctx
 	match a
-		none n
-			true
-		some s
-			false
+	as none n
+		true
+	as some s
+		false
 
 has? bool(a opt ?t) noctx
 	a.empty? not
@@ -781,10 +781,10 @@ result<?ok, ?err> union
 
 then result ?ok-out ?err(a result ?ok-in ?err, f fun-mut1 result<?ok-out, ?err> ?ok-in)
 	match a
-		ok o
-			f call o.value
-		err e
-			e
+	as ok o
+		f call o.value
+	as err e
+		e
 
 as ?t(value ?t) noctx builtin
 
