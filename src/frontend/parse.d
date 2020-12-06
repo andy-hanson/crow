@@ -68,7 +68,7 @@ import util.path : AllPaths, childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, shortSymAlphaLiteralValue, Sym;
-import util.types : u8;
+import util.types : u8, u32;
 import util.util : todo, unreachable, verify;
 
 struct FileAstAndParseDiagnostics {
@@ -182,7 +182,7 @@ immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(Alloc, PathAlloc, Sy
 	immutable NamesAndDedent names = () {
 		immutable RangeWithinFile range0 = range(lexer, start);
 		if (tryTake(lexer, '\n')) {
-			immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer);
+			immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer, 1);
 			return matchIndentDelta!(immutable NamesAndDedent)(
 				delta,
 				(ref immutable IndentDelta.DedentOrSame it) {
@@ -218,7 +218,7 @@ immutable(NamesAndDedent) parseIndentedImportNames(Alloc, SymAlloc)(
 	immutable(NewlineOrDedentAndRange) recur() {
 		takeNamesUntilEndOfLine(alloc, lexer, names);
 		immutable RangeWithinFile range0 = range(lexer, start);
-		switch (takeNewlineOrDedentAmount(alloc, lexer)) {
+		switch (takeNewlineOrDedentAmount(alloc, lexer, 2)) {
 			case 0:
 				return recur();
 			case 1:
@@ -298,7 +298,7 @@ immutable(ParamsAndMaybeDedent) parseIndentedParams(Alloc, SymAlloc)(ref Alloc a
 	ArrWithSizeBuilder!ParamAst res;
 	for (;;) {
 		add(alloc, res, parseSingleParam(alloc, lexer));
-		immutable size_t dedents = takeNewlineOrDedentAmount(alloc, lexer);
+		immutable size_t dedents = takeNewlineOrDedentAmount(alloc, lexer, 1);
 		if (dedents != 0)
 			return ParamsAndMaybeDedent(finishArr(alloc, res), some(dedents - 1));
 	}
@@ -338,12 +338,16 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 	return SigAstAndMaybeDedent(sigAst, params.dedents);
 }
 
-immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable u32 curIndent,
+) {
 	immutable Pos start = curPos(lexer);
 	immutable Sym sigName = takeName(alloc, lexer);
 	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 	immutable SigAstAndMaybeDedent s = parseSigAfterNameAndSpace(alloc, lexer, start, sigName);
-	immutable size_t dedents = has(s.dedents) ? force(s.dedents) : takeNewlineOrDedentAmount(alloc, lexer);
+	immutable size_t dedents = has(s.dedents) ? force(s.dedents) : takeNewlineOrDedentAmount(alloc, lexer, curIndent);
 	return SigAstAndDedent(s.sig, dedents);
 }
 
@@ -381,7 +385,7 @@ immutable(Arr!ImportAst) parseImportsIndented(Alloc, SymAlloc)(
 immutable(Arr!SigAst) parseIndentedSigs(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	ArrBuilder!SigAst res;
 	for (;;) {
-		immutable SigAstAndDedent sd = parseSig(alloc, lexer);
+		immutable SigAstAndDedent sd = parseSig(alloc, lexer, 1);
 		add(alloc, res, sd.sig);
 		if (sd.dedents != 0) {
 			// We started at in indent level of only 1, so can't go down more than 1.

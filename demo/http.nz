@@ -40,18 +40,18 @@ try-split split ?t(a arr ?t, pred fun-mut1 bool ?t)
 try-split-from-right split ?t(a arr ?t, pred fun-mut1 bool ?t)
 	match a find-rindex pred
 	as none
-		split<?t> a, empty-arr
+		split<?t>: a, empty-arr
 	as some s
 		index = s.value
 		split<?t>: (a slice-up-to index), (a slice-after index)
 
-nghttp2-session-callbacks-new foo() extern noctx summon
-nghttp2-session-client-new foo() extern noctx summon
-nghttp2-session-callbacks-del foo() extern noctx summon
-nghttp2-submit-settings foo() extern noctx summon
-nghttp2-session-want-read foo() extern noctx summon
-nghttp2-session-want-write foo() extern noctx summon
-nghttp2-session-del foo() extern noctx summon
+nghttp2-session-callbacks-new foo() extern<"nghttp2_session_callbacks_new"> noctx summon
+nghttp2-session-client-new foo() extern<"nghttp2_session_client"> noctx summon
+nghttp2-session-callbacks-del foo() extern<"nghttp2_session_callbacks_del"> noctx summon
+nghttp2-submit-settings foo() extern<"nghttp2_submit_settings"> noctx summon
+nghttp2-session-want-read foo() extern<"nghttp2_session_want_read"> noctx summon
+nghttp2-session-want-write foo() extern<"nghttp2_session_want_write"> noctx summon
+nghttp2-session-del foo() extern<"nghttp2_session_del"> noctx summon
 
 
 
