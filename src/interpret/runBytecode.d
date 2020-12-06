@@ -542,6 +542,13 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			immutable ulong nBytes = safeSizeTFromU64(pop(a.dataStack).raw());
 			push(a.dataStack, immutable Nat64(cast(immutable u64) a.extern_.malloc(nBytes)));
 			break;
+		case ExternOp.memset:
+			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
+			immutable ubyte value = pop(a.dataStack).to8().raw();
+			ubyte* begin = cast(ubyte*) pop(a.dataStack).raw();
+			foreach (immutable size_t i; 0..size)
+				begin[i] = value;
+			break;
 		case ExternOp.pthreadCreate:
 			todo!void("pthread_create");
 			break;

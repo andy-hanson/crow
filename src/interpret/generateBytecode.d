@@ -333,6 +333,8 @@ immutable(Opt!ExternOp) externOpFromName(immutable Str a) {
 			? some(ExternOp.longjmp)
 		: strEqLiteral(a, "malloc")
 			? some(ExternOp.malloc)
+		: strEqLiteral(a, "memset")
+			? some(ExternOp.memset)
 		: strEqLiteral(a, "pthread_create")
 			? some(ExternOp.pthreadCreate)
 		: strEqLiteral(a, "pthread_join")
@@ -990,6 +992,7 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 		case LowExprKind.SpecialBinary.Kind.lessNat16:
 		case LowExprKind.SpecialBinary.Kind.lessNat32:
 		case LowExprKind.SpecialBinary.Kind.lessNat64:
+		case LowExprKind.SpecialBinary.Kind.lessPtr:
 			fn(FnOp.lessNat);
 			break;
 		case LowExprKind.SpecialBinary.Kind.lessFloat64:

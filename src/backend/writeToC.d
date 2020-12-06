@@ -1555,6 +1555,7 @@ void writeSpecialBinary(Alloc)(
 		case LowExprKind.SpecialBinary.Kind.lessNat16:
 		case LowExprKind.SpecialBinary.Kind.lessNat32:
 		case LowExprKind.SpecialBinary.Kind.lessNat64:
+		case LowExprKind.SpecialBinary.Kind.lessPtr:
 			operator("<");
 			break;
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:

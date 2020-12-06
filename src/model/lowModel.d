@@ -660,6 +660,7 @@ struct LowExprKind {
 			lessNat16,
 			lessNat32,
 			lessNat64,
+			lessPtr,
 			mulFloat64,
 			or,
 			subFloat64,

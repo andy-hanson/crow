@@ -223,7 +223,7 @@ void checkTypeEqual(Alloc)(
 			writeSexpr(writer, tataOfLowType2(alloc, ctx, expected));
 			writeStatic(writer, "\nactual:\n");
 			writeSexpr(writer, tataOfLowType2(alloc, ctx, actual));
-			immutable Str s = finishWriter(writer);
+			//immutable Str s = finishWriter(writer);
 			//import core.stdc.stdio : printf;
 			//printf("%.*s\n", cast(int) size(s), begin(s));
 		}

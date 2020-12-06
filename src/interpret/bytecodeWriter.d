@@ -504,6 +504,7 @@ void fillDelayedSwitchEntry(Alloc)(
 void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable ExternOp op) {
 	immutable int stackEffect = () {
 		final switch (op) {
+			case ExternOp.memset:
 			case ExternOp.pthreadCreate:
 				return -3;
 			case ExternOp.longjmp:

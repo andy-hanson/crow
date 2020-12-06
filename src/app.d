@@ -58,7 +58,7 @@ import util.result : matchResultImpure, Result;
 import util.sym : AllSymbols, shortSymAlphaLiteral;
 import util.result : Result;
 import util.types : Nat64, safeSizeTFromSSizeT, safeSizeTFromU64, safeU32FromI64, ssize_t;
-import util.util : NullDebug, todo, unreachable, verify;
+import util.util : todo, unreachable, verify;
 import util.writer : Writer;
 
 extern(C) int main(immutable size_t argc, immutable char** argv) {
@@ -66,6 +66,26 @@ extern(C) int main(immutable size_t argc, immutable char** argv) {
 }
 
 private:
+
+struct StdoutDebug {
+	@safe @nogc pure nothrow:
+
+	bool enabled() {
+		return false;
+	}
+
+	void log(immutable Str a) {
+		debug {
+			printf("%.*s\n", cast(uint) size(a), begin(a));
+		}
+	}
+
+	void logChar(immutable char c) {
+		debug {
+			printf("%c", c);
+		}
+	}
+}
 
 int cli(immutable size_t argc, immutable CStr* argv) {
 	Mallocator mallocator;
@@ -85,7 +105,7 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 	immutable Command command = parseCommand(alloc, allPaths, allSymbols, getCwd(alloc), args.args);
 	immutable Str include = cat(alloc, nozeDir, strLiteral("/include"));
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(True);
-	NullDebug dbg;
+	StdoutDebug dbg;
 
 	return matchCommand!int(
 		command,

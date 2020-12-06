@@ -373,6 +373,8 @@ immutable(string) strOfSpecialBinaryKind(immutable LowExprKind.SpecialBinary.Kin
 			return "< (nat-32)";
 		case LowExprKind.SpecialBinary.Kind.lessNat64:
 			return "< (nat-64)";
+		case LowExprKind.SpecialBinary.Kind.lessPtr:
+			return "< (ptr)";
 		case LowExprKind.SpecialBinary.Kind.mulFloat64:
 			return "* (float-64)";
 		case LowExprKind.SpecialBinary.Kind.or:

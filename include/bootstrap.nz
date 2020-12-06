@@ -26,6 +26,9 @@ ref-of-ptr ?t(p ptr by-val<?t>) noctx unsafe
 	p.deref ref-of-val
 
 ptr-eq? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
+ptr-less? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
+ptr-less-eq? bool(a ptr ?t, b ptr ?t) noctx unsafe
+	a ptr-less? b or: a ptr-eq? b
 
 ref-eq? bool(a ?t, b ?t) noctx unsafe
 	a.as-any-ptr ptr-eq? b.as-any-ptr
@@ -73,7 +76,7 @@ to-nat nat(p ptr ?t) noctx unsafe builtin
 + ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
 - ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
 - nat(a ptr ?t, b ptr ?t) noctx unsafe
-	a.to-nat wrap-sub b.to-nat
+	a.to-nat wrap-sub b.to-nat unsafe-div size-of<?t>
 
 region comparison
 
@@ -546,6 +549,11 @@ fifteen nat32() noctx
 
 sixteen nat32() noctx
 	fifteen wrap-incr
+sixteen nat64() noctx
+	eight wrap-add eight
+
+twenty-four nat64() noctx
+	sixteen wrap-add eight
 
 thirty-two int32() noctx
 	sixteen wrap-add sixteen
