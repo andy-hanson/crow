@@ -73,7 +73,7 @@ to-nat nat(p ptr ?t) noctx unsafe builtin
 + ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
 - ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
 - nat(a ptr ?t, b ptr ?t) noctx unsafe
-	a - b.to-nat to-nat
+	a.to-nat wrap-sub b.to-nat
 
 region comparison
 
@@ -589,6 +589,8 @@ billion int() noctx
 	million wrap-mul thousand
 billion nat() noctx
 	million wrap-mul thousand
+
+bits-not nat(a nat) noctx builtin
 
 bits-and nat16(a nat16, b nat16) noctx builtin
 bits-and nat32(a nat32, b nat32) noctx builtin

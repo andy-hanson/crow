@@ -258,6 +258,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "as-any-ptr";
 		case LowExprKind.SpecialUnary.Kind.asRef:
 			return "as-ref";
+		case LowExprKind.SpecialUnary.Kind.bitsNotNat64:
+			return "bits-not (nat-64)";
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return "deref";
 		case LowExprKind.SpecialUnary.Kind.hardFail:

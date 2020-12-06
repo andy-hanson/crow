@@ -45,6 +45,20 @@ immutable(LowExpr) addPtr(Alloc)(
 			allocate(alloc, constantNat64(range, value)))));
 }
 
+immutable(LowExpr) genAsAnyPtr(Alloc)(
+	ref Alloc alloc,
+	ref immutable LowType anyPtrType,
+	ref immutable FileAndRange range,
+	ref immutable LowExpr a,
+) {
+	return immutable LowExpr(
+		anyPtrType,
+		range,
+		immutable LowExprKind(immutable LowExprKind.SpecialUnary(
+			LowExprKind.SpecialUnary.Kind.asAnyPtr,
+			allocate(alloc, a))));
+}
+
 immutable(LowExpr) genDeref(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
@@ -263,4 +277,8 @@ immutable(LowExpr) writeToPtr(Alloc)(
 			LowExprKind.SpecialBinary.Kind.writeToPtr,
 			allocate(alloc, ptr),
 			allocate(alloc, value))));
+}
+
+immutable(LowExpr) genPass(ref immutable FileAndRange source) {
+	return immutable LowExpr(voidType, source, immutable LowExprKind(immutable Constant(immutable Constant.Void())));
 }

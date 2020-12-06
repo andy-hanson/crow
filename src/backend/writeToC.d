@@ -1388,6 +1388,9 @@ void writeSpecialUnary(Alloc)(
 			writeCastToType(writer, ctx.ctx, type);
 			arg();
 			break;
+		case LowExprKind.SpecialUnary.Kind.bitsNotNat64:
+			prefixParenthesized("~");
+			break;
 		case LowExprKind.SpecialUnary.Kind.deref:
 			prefixParenthesized("*");
 			break;

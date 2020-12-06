@@ -598,6 +598,7 @@ struct LowExprKind {
 		enum Kind {
 			asAnyPtr,
 			asRef,
+			bitsNotNat64,
 			deref,
 			hardFail,
 			not,

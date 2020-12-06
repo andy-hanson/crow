@@ -178,6 +178,10 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseAndNat64
 				: failBinary());
+		case shortSymAlphaLiteralValue("bits-not"):
+			return unary(isNat64(rt)
+				? LowExprKind.SpecialUnary.Kind.bitsNotNat64
+				: failUnary());
 		case shortSymAlphaLiteralValue("bits-or"):
 			return binary(isInt8(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseOrInt8

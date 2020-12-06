@@ -756,6 +756,11 @@ immutable(Bool) isCompareFun(ref immutable FunInst a) {
 	return symEq(name(decl(a).deref()), shortSymOperatorLiteral("<=>"));
 }
 
+immutable(Bool) isMarkVisitFun(ref immutable FunInst a) {
+	// TODO: only do this for the 'mark-visit' in bootstrap
+	return symEq(name(decl(a).deref()), shortSymAlphaLiteral("mark-visit"));
+}
+
 immutable(Ptr!FunInst) nonTemplateFunInst(Alloc)(ref Alloc alloc, immutable Ptr!FunDecl decl) {
 	return nu!FunInst(alloc, immutable FunDeclAndArgs(decl, emptyArr!Type, emptyArr!Called), decl.sig);
 }

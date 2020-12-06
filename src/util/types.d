@@ -181,6 +181,11 @@ immutable(size_t) incr(immutable size_t a) {
 	return a + 1;
 }
 
+immutable(u8) safeIncrU8(immutable u8 a) {
+	verify(a != u8.max);
+	return cast(u8) (a + 1);
+}
+
 immutable(Bool) zero(T)(immutable NatN!T a) {
 	return immutable Bool(a.value == 0);
 }

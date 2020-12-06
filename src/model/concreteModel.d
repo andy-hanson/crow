@@ -9,6 +9,7 @@ import model.model :
 	FunInst,
 	isArr,
 	isCompareFun,
+	isMarkVisitFun,
 	Local,
 	Param,
 	Purity,
@@ -625,6 +626,15 @@ immutable(Bool) isCompareFun(ref immutable ConcreteFun a) {
 			False);
 }
 
+immutable(Bool) isMarkVisitFun(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource!(immutable Bool)(
+		a.source,
+		(immutable Ptr!FunInst it) =>
+			isMarkVisitFun(it),
+		(ref immutable ConcreteFunSource.Lambda) =>
+			False);
+}
+
 ref immutable(ConcreteFunBody) body_(return scope ref const ConcreteFun a) {
 	return lateGet(a._body_);
 }
@@ -898,6 +908,7 @@ struct ConcreteProgram {
 	immutable AllConstantsConcrete allConstants;
 	immutable Arr!(Ptr!ConcreteStruct) allStructs;
 	immutable Arr!(Ptr!ConcreteFun) allFuns;
+	immutable Ptr!ConcreteFun markFun;
 	immutable Ptr!ConcreteFun rtMain;
 	immutable Ptr!ConcreteFun userMain;
 	immutable Ptr!ConcreteFun allocFun;

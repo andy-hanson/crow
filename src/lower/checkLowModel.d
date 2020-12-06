@@ -211,7 +211,6 @@ void checkTypeEqual(Alloc)(
 	ref immutable LowType actual,
 ) {
 	debug {
-		/*
 		if (!lowTypeEqual(expected, actual)) {
 			import util.collection.arr : begin, size;
 			import util.collection.str : Str;
@@ -224,11 +223,10 @@ void checkTypeEqual(Alloc)(
 			writeSexpr(writer, tataOfLowType2(alloc, ctx, expected));
 			writeStatic(writer, "\nactual:\n");
 			writeSexpr(writer, tataOfLowType2(alloc, ctx, actual));
-			import core.stdc.stdio : printf;
 			immutable Str s = finishWriter(writer);
-			printf("%.*s\n", cast(int) size(s), begin(s));
+			//import core.stdc.stdio : printf;
+			//printf("%.*s\n", cast(int) size(s), begin(s));
 		}
-		*/
 	}
 	verify(lowTypeEqual(expected, actual));
 }

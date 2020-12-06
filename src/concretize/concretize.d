@@ -45,6 +45,8 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable 
 		program.ctxStructInst,
 		ptrTrustMe(program.commonTypes));
 	immutable Ptr!ConcreteStruct ctxStruct = ctxType(alloc, ctx).struct_;
+	immutable Ptr!ConcreteFun markConcreteFun =
+		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getMarkFun(alloc, program));
 	immutable Ptr!ConcreteFun rtMainConcreteFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getRtMainFun(alloc, program));
 	// We remove items from these dicts when we process them.
@@ -61,6 +63,7 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable 
 		finishAllConstants(alloc, ctx.allConstants),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		finishArr_immutable(alloc, ctx.allConcreteFuns),
+		markConcreteFun,
 		rtMainConcreteFun,
 		userMainConcreteFun,
 		allocFun,
@@ -120,6 +123,16 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr
 		todo!void("checkUserMainSignature doesn't take arr str");
 	if (!isFutInt32(commonTypes, returnType(mainFun)))
 		todo!void("checkUserMainSignature doesn't return fut int-32");
+}
+
+immutable(Ptr!FunInst) getMarkFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
+	immutable Arr!(Ptr!FunDecl) markFuns =
+		multiDictGetAt(program.specialModules.allocModule.funsMap, shortSymAlphaLiteral("mark"));
+	if (size(markFuns) != 1)
+		todo!void("wong number mark funs");
+	immutable Ptr!FunDecl markFun = only(markFuns);
+	//TODO: check the signature
+	return nonTemplateFunInst(alloc, markFun);
 }
 
 immutable(Ptr!FunInst) getRtMainFun(Alloc)(ref Alloc alloc, ref immutable Program program) {

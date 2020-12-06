@@ -1,9 +1,41 @@
 import
 	.bootstrap
-		any-ptr as-ref bool byte by-val false gc-ctx-ptr get-ctx hard-forbid lock nat none null null? opt ptr
-		ptr-cast ref-of-val size-of some value void wrap-mul
+		+ - < any-ptr as as-ref bits-and bits-not bool byte by-val eight false gc-ctx-ptr get-ctx
+		hard-assert hard-forbid incr lock nat nat64 noctx-decr none null null? opt pass ptr
+		ptr-cast ref-of-val set seven size-of some to-nat true unsafe-div value void wrap-add
+		wrap-mul zero?
 	.posix: free malloc
 	.thread-utils: acquire-lock new-lock release-lock
+
+mark-ctx record mut
+	memory-start ptr nat64
+	memory-size-words nat
+	marks ptr bool
+
+mark void(ctx mark-ctx, ptr-any any-ptr, size-bytes nat) noctx unsafe summon
+	size = size-bytes words-of-bytes
+	ptr = ptr-any.ptr-cast as<ptr<nat64>>
+	hard-assert: ptr.to-nat bits-and seven zero?
+	index = ptr - ctx.memory-start
+	if index < ctx.memory-size-words
+		ctx.marks + index mark-recur size
+	else
+		pass
+
+words-of-bytes nat(size-bytes nat) noctx trusted
+	size-bytes.round-up-to-multiple-of-8 unsafe-div eight
+
+round-up-to-multiple-of-8 nat(n nat) noctx
+	n wrap-add seven bits-and: seven bits-not
+
+mark-recur void(p ptr bool, size nat) noctx unsafe
+	p set true
+	if size zero?
+		pass
+	else
+		p.incr mark-recur size.noctx-decr
+
+mark-visit void(mark-ctx mark-ctx, value ?t) noctx unsafe builtin
 
 gc record mut
 	lk by-val lock

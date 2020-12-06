@@ -552,6 +552,7 @@ enum ExternOp : u8 {
 
 enum FnOp : u8 {
 	addFloat64,
+	bitsNotNat64,
 	bitwiseAnd,
 	bitwiseOr,
 	compareExchangeStrongBool,
@@ -612,6 +613,8 @@ private immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 	return strLiteral(() { final switch (fnOp) {
 		case FnOp.addFloat64:
 			return "add-float-64";
+		case FnOp.bitsNotNat64:
+			return "bits-not (nat64)";
 		case FnOp.bitwiseAnd:
 			return "bitwise-and";
 		case FnOp.bitwiseOr:
