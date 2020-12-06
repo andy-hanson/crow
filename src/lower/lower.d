@@ -125,7 +125,7 @@ immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcretePr
 		allTypes.allTypes.allUnions,
 		allFuns.allLowFuns,
 		allFuns.main);
-	checkLowProgram(res);
+	checkLowProgram(alloc, res);
 	return res;
 }
 

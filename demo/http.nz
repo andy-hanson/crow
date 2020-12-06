@@ -1,4 +1,14 @@
-import io openssl posix
+import
+	io: check-errno-if-not-zero connect-to-uri exit-code print-sync uri
+	openssl
+		err-clear-error openssl-init-ssl ssl ssl-connect ssl-ctx ssl-ctx-new ssl-load-error-strings
+		ssl-new ssl-set-fd tls-client-method
+	posix: fd-t sigignore sigpipe
+
+main fut exit-code(args arr str) summon
+	print-sync: "Hello ya world!"
+	test-uri
+	0 resolved
 
 test-uri void() summon
 	my-uri = "https://www.duckduckgo.com:80/some-thing"
@@ -7,7 +17,7 @@ test-uri void() summon
 		print-sync: "did not parse"
 	as some s
 		uri = s.value
-		u test-get
+		uri test-get
 		| print-sync: "host: " + uri.host
 		| print-sync: "path and query: " + uri.path-and-query
 		| print-sync: "port: " + uri.port.to-str
@@ -45,24 +55,24 @@ try-split-from-right split ?t(a arr ?t, pred fun-mut1 bool ?t)
 		index = s.value
 		split<?t>: (a slice-up-to index), (a slice-after index)
 
-nghttp2-session-callbacks-new foo() extern<"nghttp2_session_callbacks_new"> noctx summon
-nghttp2-session-client-new foo() extern<"nghttp2_session_client"> noctx summon
-nghttp2-session-callbacks-del foo() extern<"nghttp2_session_callbacks_del"> noctx summon
-nghttp2-submit-settings foo() extern<"nghttp2_submit_settings"> noctx summon
-nghttp2-session-want-read foo() extern<"nghttp2_session_want_read"> noctx summon
-nghttp2-session-want-write foo() extern<"nghttp2_session_want_write"> noctx summon
-nghttp2-session-del foo() extern<"nghttp2_session_del"> noctx summon
+| nghttp2-session-callbacks-new foo() extern<"nghttp2_session_callbacks_new"> noctx summon
+| nghttp2-session-client-new foo() extern<"nghttp2_session_client"> noctx summon
+| nghttp2-session-callbacks-del foo() extern<"nghttp2_session_callbacks_del"> noctx summon
+| nghttp2-submit-settings foo() extern<"nghttp2_submit_settings"> noctx summon
+| nghttp2-session-want-read foo() extern<"nghttp2_session_want_read"> noctx summon
+| nghttp2-session-want-write foo() extern<"nghttp2_session_want_write"> noctx summon
+| nghttp2-session-del foo() extern<"nghttp2_session_del"> noctx summon
 
 
 
-request record
+request record mut
 	host c-str
 	path c-str
 	hostport c-str
 	stream-id int32
 	port nat16
 
-test-get void(u uri) summon
+test-get void(u uri) trusted summon
 	| act = zero as<by-val<sigaction>>
 	| act = new<by-val<sigaction>>
 	|	sa-handler. sig-ign
@@ -74,22 +84,22 @@ test-get void(u uri) summon
 	| Ignore SIGPIPE errors (WARN: This has a global effect!)
 	check-errno-if-not-zero: sigpipe sigignore
 
-	ssl-load-error-strings
-	i = ssl-library-init
+	| ssl-load-error-strings
+	i = openssl-init-ssl: 0, null.as-ref
 	assert: i zero?
 
 	fd = u connect-to-uri
 
-	ssl-ctx = ssl-v23-client-method ssl-ctx-new
-	forbid: ssl-ctx null?
+	ssl-ctx = tls-client-method ssl-ctx-new
+	forbid: ssl-ctx.as-any-ptr null?
 	ssl = ssl-ctx ssl-new
-	forbid: ssl null?
+	forbid: ssl.as-any-ptr null?
 
 	ssl ssl-handshake fd
 
 	todo
 
-void ssl-handshake(ssl ssl, fd fd-t)
+ssl-handshake void(ssl ssl, fd fd-t) summon
 	err = ssl ssl-set-fd fd
 	| TODO: handle errors
 	forbid: err == 0
@@ -130,4 +140,10 @@ parse-uri opt uri(uri str)
 
 	| TODO: not bothering to split out query for now.
 
-	some: uti: host, port, path-and-query, after-hash
+	some: uri: host, port, path-and-query, after-hash
+
+try-remove-str-start opt str(a str, b str)
+	if a starts-with? b
+		a slice-starting-at b.size some
+	else
+		none

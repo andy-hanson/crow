@@ -672,12 +672,12 @@ char noctx_at_0(struct arr_0 a, uint64_t index);
 uint8_t hard_assert(uint8_t condition);
 uint8_t _op_less_0(uint64_t a, uint64_t b);
 struct comparison compare_13(uint64_t a, uint64_t b);
-char* todo_0();
+char* todo_0(void);
 char* incr_0(char* p);
-struct lock new_lock();
-struct _atomic_bool new_atomic_bool();
-struct arr_2 empty_arr();
-struct condition new_condition();
+struct lock new_lock(void);
+struct _atomic_bool new_atomic_bool(void);
+struct arr_2 empty_arr(void);
+struct condition new_condition(void);
 struct vat new_vat(struct global_ctx* gctx, uint64_t id, uint64_t max_threads);
 struct mut_arr_0 new_mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity);
 uint64_t* unmanaged_alloc_elements_0(uint64_t size_elements);
@@ -686,9 +686,9 @@ extern uint8_t* malloc(uint64_t size);
 uint8_t hard_forbid(uint8_t condition);
 uint8_t null__q_0(uint8_t* a);
 uint8_t _op_equal_equal_1(uint64_t a, uint64_t b);
-struct gc new_gc();
-struct mut_bag new_mut_bag();
-struct thread_safe_counter new_thread_safe_counter_0();
+struct gc new_gc(void);
+struct mut_bag new_mut_bag(void);
+struct thread_safe_counter new_thread_safe_counter_0(void);
 struct thread_safe_counter new_thread_safe_counter_1(uint64_t init);
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e);
 uint8_t print_err_sync_no_newline(struct arr_0 s);
@@ -696,9 +696,9 @@ uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s);
 extern int64_t write(int32_t fd, uint8_t* buff, uint64_t n_bytes);
 uint8_t _op_equal_equal_2(int64_t a, int64_t b);
 struct comparison compare_37(int64_t a, int64_t b);
-uint8_t todo_1();
-int32_t stderr_fd();
-int32_t two_0();
+uint8_t todo_1(void);
+int32_t stderr_fd(void);
+int32_t two_0(void);
 int32_t wrap_incr_0(int32_t a);
 uint8_t print_err_sync(struct arr_0 s);
 uint8_t empty__q_0(struct arr_0 a);
@@ -706,7 +706,7 @@ uint8_t zero__q_0(uint64_t n);
 struct global_ctx* get_gctx(struct ctx* ctx);
 uint8_t new_vat__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception it);
 struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, char** argv, fun_ptr2_0 main_ptr);
-struct exception_ctx new_exception_ctx();
+struct exception_ctx new_exception_ctx(void);
 struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id);
 struct gc_ctx* get_gc_ctx_0(struct gc* gc);
 uint8_t acquire_lock(struct lock* a);
@@ -714,26 +714,26 @@ uint8_t acquire_lock_recur(struct lock* a, uint64_t n_tries);
 uint8_t try_acquire_lock(struct lock* a);
 uint8_t try_set(struct _atomic_bool* a);
 uint8_t try_change(struct _atomic_bool* a, uint8_t old_value);
-uint64_t thousand_0();
-uint64_t hundred_0();
-uint64_t ten_0();
+uint64_t thousand_0(void);
+uint64_t hundred_0(void);
+uint64_t ten_0(void);
 uint64_t wrap_incr_1(uint64_t a);
-uint64_t nine_0();
-uint64_t eight_0();
-uint64_t seven_0();
-uint64_t six_0();
-uint64_t five_0();
-uint64_t four_0();
-uint64_t three_0();
-uint64_t two_1();
-uint8_t yield_thread();
-extern int32_t pthread_yield();
+uint64_t nine_0(void);
+uint64_t eight_0(void);
+uint64_t seven_0(void);
+uint64_t six_0(void);
+uint64_t five_0(void);
+uint64_t four_0(void);
+uint64_t three_0(void);
+uint64_t two_1(void);
+uint8_t yield_thread(void);
+extern int32_t pthread_yield(void);
 uint8_t zero__q_1(int32_t i);
 uint8_t _op_equal_equal_3(int32_t a, int32_t b);
 struct comparison compare_72(int32_t a, int32_t b);
 uint64_t noctx_incr(uint64_t n);
-uint64_t billion();
-uint64_t million_0();
+uint64_t billion(void);
+uint64_t million_0(void);
 uint8_t release_lock(struct lock* l);
 uint8_t must_unset(struct _atomic_bool* a);
 uint8_t try_unset(struct _atomic_bool* a);
@@ -763,11 +763,11 @@ struct exception_ctx* get_exception_ctx(struct ctx* ctx);
 uint8_t null__q_1(struct jmp_buf_tag* a);
 extern void longjmp(struct jmp_buf_tag* env, int32_t val);
 int32_t number_to_throw(struct ctx* ctx);
-int32_t seven_1();
-int32_t six_1();
-int32_t five_1();
-int32_t four_1();
-int32_t three_1();
+int32_t seven_1(void);
+int32_t six_1(void);
+int32_t five_1(void);
+int32_t four_1(void);
+int32_t three_1(void);
 struct vat* noctx_at_1(struct arr_2 a, uint64_t index);
 uint8_t add_task(struct ctx* ctx, struct vat* v, struct task t);
 struct mut_bag_node* new_mut_bag_node(struct ctx* ctx, struct task value);
@@ -775,10 +775,10 @@ uint8_t add(struct mut_bag* bag, struct mut_bag_node* node);
 uint8_t broadcast(struct condition* c);
 uint8_t catch(struct ctx* ctx, struct fun_mut0_0 try, struct fun_mut1_1 catcher);
 uint8_t catch_with_exception_ctx(struct ctx* ctx, struct exception_ctx* ec, struct fun_mut0_0 try, struct fun_mut1_1 catcher);
-struct bytes64 zero_0();
-struct bytes32 zero_1();
-struct bytes16 zero_2();
-struct bytes128 zero_3();
+struct bytes64 zero_0(void);
+struct bytes32 zero_1(void);
+struct bytes16 zero_2(void);
+struct bytes128 zero_3(void);
 extern int32_t setjmp(struct jmp_buf_tag* env);
 uint8_t call_3(struct ctx* ctx, struct fun_mut0_0 f);
 uint8_t call_with_ctx_2(struct ctx* c, struct fun_mut0_0 f);
@@ -874,19 +874,19 @@ uint8_t wait_on(struct condition* c, uint64_t last_checked);
 uint8_t* start_threads_recur__lambda0(uint8_t* args_ptr);
 extern int32_t pthread_create(struct cell_0* thread, uint8_t* attr, fun_ptr1 start_routine, uint8_t* arg);
 struct cell_0* as_cell(uint64_t* p);
-int32_t eagain();
-int32_t ten_1();
+int32_t eagain(void);
+int32_t ten_1(void);
 uint8_t join_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads);
 uint8_t join_one_thread(uint64_t tid);
 extern int32_t pthread_join(uint64_t thread, struct cell_1* thread_return);
-int32_t einval();
-int32_t esrch();
+int32_t einval(void);
+int32_t esrch(void);
 uint8_t* get(struct cell_1* c);
 uint8_t unmanaged_free_0(uint64_t* p);
 extern void free(uint8_t* p);
 uint8_t unmanaged_free_1(struct thread_args* p);
 struct result_0 must_be_resolved(struct fut_0* f);
-struct result_0 hard_unreachable();
+struct result_0 hard_unreachable(void);
 struct fut_0* main_0(struct ctx* ctx, struct arr_1 args);
 uint8_t handle_sdl_error(struct ctx* ctx, struct arr_0 operation, int64_t err);
 uint8_t zero__q_2(int64_t i);
@@ -905,26 +905,26 @@ char call_10(struct ctx* ctx, struct fun_mut1_6 f, uint64_t p0);
 char call_with_ctx_9(struct ctx* c, struct fun_mut1_6 f, uint64_t p0);
 char at_2(struct ctx* ctx, struct arr_0 a, uint64_t index);
 char _op_plus_1__lambda0(struct ctx* ctx, struct _op_plus_1__lambda0* _closure, uint64_t i);
-extern char* SDL_GetError();
-extern void SDL_Quit();
+extern char* SDL_GetError(void);
+extern void SDL_Quit(void);
 extern int64_t SDL_Init(uint32_t flags);
 uint32_t sdl_init_video(struct ctx* ctx);
 uint32_t bit_shift_left(uint32_t a, uint32_t b);
 uint8_t _op_less_1(uint32_t a, uint32_t b);
 struct comparison compare_253(uint32_t a, uint32_t b);
-uint32_t thirty_two();
-uint32_t sixteen();
+uint32_t thirty_two(void);
+uint32_t sixteen(void);
 uint32_t wrap_incr_2(uint32_t a);
-uint32_t fifteen();
-uint32_t fourteen();
-uint32_t twelve();
-uint32_t eight_1();
-uint32_t seven_2();
-uint32_t six_2();
-uint32_t five_2();
-uint32_t four_2();
-uint32_t three_2();
-uint32_t two_2();
+uint32_t fifteen(void);
+uint32_t fourteen(void);
+uint32_t twelve(void);
+uint32_t eight_1(void);
+uint32_t seven_2(void);
+uint32_t six_2(void);
+uint32_t five_2(void);
+uint32_t four_2(void);
+uint32_t three_2(void);
+uint32_t two_2(void);
 uint32_t literal_1(struct ctx* ctx, struct arr_0 s);
 uint64_t literal_2(struct ctx* ctx, struct arr_0 s);
 struct arr_0 rtail(struct ctx* ctx, struct arr_0 a);
@@ -934,7 +934,7 @@ uint64_t wrap_decr(uint64_t a);
 uint64_t _op_times_0(struct ctx* ctx, uint64_t a, uint64_t b);
 uint64_t _op_div(struct ctx* ctx, uint64_t a, uint64_t b);
 uint64_t char_to_nat(char c);
-uint64_t todo_2();
+uint64_t todo_2(void);
 char last(struct ctx* ctx, struct arr_0 a);
 extern struct sdl_window* SDL_CreateWindow(char* title, int64_t x, int64_t y, int64_t w, int64_t h, uint32_t flags);
 char* literal_3(struct ctx* ctx, struct arr_0 a);
@@ -948,21 +948,21 @@ int64_t _op_times_1(struct ctx* ctx, int64_t a, int64_t b);
 uint8_t _op_greater_1(int64_t a, int64_t b);
 uint8_t _op_less_equal_1(int64_t a, int64_t b);
 uint8_t _op_less_2(int64_t a, int64_t b);
-int64_t neg_million();
-int64_t million_1();
-int64_t thousand_1();
-int64_t hundred_1();
-int64_t ten_2();
+int64_t neg_million(void);
+int64_t million_1(void);
+int64_t thousand_1(void);
+int64_t hundred_1(void);
+int64_t ten_2(void);
 int64_t wrap_incr_3(int64_t a);
-int64_t nine_1();
-int64_t eight_2();
-int64_t seven_3();
-int64_t six_3();
-int64_t five_3();
-int64_t four_3();
-int64_t three_3();
-int64_t two_3();
-int64_t neg_one();
+int64_t nine_1(void);
+int64_t eight_2(void);
+int64_t seven_3(void);
+int64_t six_3(void);
+int64_t five_3(void);
+int64_t four_3(void);
+int64_t three_3(void);
+int64_t two_3(void);
+int64_t neg_one(void);
 int64_t to_int(struct ctx* ctx, uint64_t n);
 uint32_t sdl_window_shown(struct ctx* ctx);
 struct sdl_renderer* new_renderer(struct ctx* ctx, struct sdl_window* window);
@@ -977,13 +977,13 @@ extern struct sdl_texture* SDL_CreateTextureFromSurface(struct sdl_renderer* ren
 extern void SDL_FreeSurface(struct sdl_surface* surface);
 uint8_t repeat(struct ctx* ctx, uint64_t times, struct fun_mut0_0 action);
 uint8_t main_loop(struct ctx* ctx, struct sdl_renderer* renderer, struct sdl_texture* texture);
-extern void SDL_PumpEvents();
+extern void SDL_PumpEvents(void);
 extern uint8_t* SDL_GetKeyboardState(int64_t* num_keys);
 struct arr_5 ptr_as_arr(struct ctx* ctx, uint64_t size, uint8_t* data);
 uint64_t sdl_num_scancodes(struct ctx* ctx);
 uint8_t print_sync(struct arr_0 s);
 uint8_t print_sync_no_newline(struct arr_0 s);
-int32_t stdout_fd();
+int32_t stdout_fd(void);
 uint8_t zero__q_3(uint8_t n);
 uint8_t _op_equal_equal_4(uint8_t a, uint8_t b);
 struct comparison compare_328(uint8_t a, uint8_t b);
@@ -1135,22 +1135,22 @@ struct comparison compare_13(uint64_t a, uint64_t b) {
 		}
 	}
 }
-char* todo_0() {
+char* todo_0(void) {
 	return (assert(0),NULL);
 }
 char* incr_0(char* p) {
 	return (p + 1);
 }
-struct lock new_lock() {
+struct lock new_lock(void) {
 	return (struct lock) {new_atomic_bool()};
 }
-struct _atomic_bool new_atomic_bool() {
+struct _atomic_bool new_atomic_bool(void) {
 	return (struct _atomic_bool) {0};
 }
-struct arr_2 empty_arr() {
+struct arr_2 empty_arr(void) {
 	return (struct arr_2) {0, NULL};
 }
-struct condition new_condition() {
+struct condition new_condition(void) {
 	return (struct condition) {new_lock(), 0};
 }
 struct vat new_vat(struct global_ctx* gctx, uint64_t id, uint64_t max_threads) {
@@ -1192,13 +1192,13 @@ uint8_t _op_equal_equal_1(uint64_t a, uint64_t b) {
 			return (assert(0),0);
 	}
 }
-struct gc new_gc() {
+struct gc new_gc(void) {
 	return (struct gc) {new_lock(), (struct opt_1) {0, .as0 = (struct none) {0}}, 0, 0, NULL, NULL};
 }
-struct mut_bag new_mut_bag() {
+struct mut_bag new_mut_bag(void) {
 	return (struct mut_bag) {(struct opt_2) {0, .as0 = (struct none) {0}}};
 }
-struct thread_safe_counter new_thread_safe_counter_0() {
+struct thread_safe_counter new_thread_safe_counter_0(void) {
 	return new_thread_safe_counter_1(0);
 }
 struct thread_safe_counter new_thread_safe_counter_1(uint64_t init) {
@@ -1247,13 +1247,13 @@ struct comparison compare_37(int64_t a, int64_t b) {
 		}
 	}
 }
-uint8_t todo_1() {
+uint8_t todo_1(void) {
 	return (assert(0),0);
 }
-int32_t stderr_fd() {
+int32_t stderr_fd(void) {
 	return two_0();
 }
-int32_t two_0() {
+int32_t two_0(void) {
 	return wrap_incr_0(1);
 }
 int32_t wrap_incr_0(int32_t a) {
@@ -1290,7 +1290,7 @@ struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, ch
 	all_args5 = (struct arr_3) {argc, argv};
 	return call_with_ctx_8(ctx3, add4, all_args5, main_ptr);
 }
-struct exception_ctx new_exception_ctx() {
+struct exception_ctx new_exception_ctx(void) {
 	return (struct exception_ctx) {NULL, (struct exception) {(struct arr_0) {0, NULL}}};
 }
 struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id) {
@@ -1338,43 +1338,43 @@ uint8_t try_set(struct _atomic_bool* a) {
 uint8_t try_change(struct _atomic_bool* a, uint8_t old_value) {
 	return atomic_compare_exchange_strong((&(a->value)), (&(old_value)), !old_value);
 }
-uint64_t thousand_0() {
+uint64_t thousand_0(void) {
 	return (hundred_0() * ten_0());
 }
-uint64_t hundred_0() {
+uint64_t hundred_0(void) {
 	return (ten_0() * ten_0());
 }
-uint64_t ten_0() {
+uint64_t ten_0(void) {
 	return wrap_incr_1(nine_0());
 }
 uint64_t wrap_incr_1(uint64_t a) {
 	return (a + 1);
 }
-uint64_t nine_0() {
+uint64_t nine_0(void) {
 	return wrap_incr_1(eight_0());
 }
-uint64_t eight_0() {
+uint64_t eight_0(void) {
 	return wrap_incr_1(seven_0());
 }
-uint64_t seven_0() {
+uint64_t seven_0(void) {
 	return wrap_incr_1(six_0());
 }
-uint64_t six_0() {
+uint64_t six_0(void) {
 	return wrap_incr_1(five_0());
 }
-uint64_t five_0() {
+uint64_t five_0(void) {
 	return wrap_incr_1(four_0());
 }
-uint64_t four_0() {
+uint64_t four_0(void) {
 	return wrap_incr_1(three_0());
 }
-uint64_t three_0() {
+uint64_t three_0(void) {
 	return wrap_incr_1(two_1());
 }
-uint64_t two_1() {
+uint64_t two_1(void) {
 	return wrap_incr_1(1);
 }
-uint8_t yield_thread() {
+uint8_t yield_thread(void) {
 	int32_t err0;
 	err0 = pthread_yield();
 	return hard_assert(zero__q_1(err0));
@@ -1411,10 +1411,10 @@ uint64_t noctx_incr(uint64_t n) {
 	hard_assert(_op_less_0(n, billion()));
 	return wrap_incr_1(n);
 }
-uint64_t billion() {
+uint64_t billion(void) {
 	return (million_0() * thousand_0());
 }
-uint64_t million_0() {
+uint64_t million_0(void) {
 	return (thousand_0() * thousand_0());
 }
 uint8_t release_lock(struct lock* l) {
@@ -1617,19 +1617,19 @@ uint8_t null__q_1(struct jmp_buf_tag* a) {
 int32_t number_to_throw(struct ctx* ctx) {
 	return seven_1();
 }
-int32_t seven_1() {
+int32_t seven_1(void) {
 	return wrap_incr_0(six_1());
 }
-int32_t six_1() {
+int32_t six_1(void) {
 	return wrap_incr_0(five_1());
 }
-int32_t five_1() {
+int32_t five_1(void) {
 	return wrap_incr_0(four_1());
 }
-int32_t four_1() {
+int32_t four_1(void) {
 	return wrap_incr_0(three_1());
 }
-int32_t three_1() {
+int32_t three_1(void) {
 	return wrap_incr_0(two_0());
 }
 struct vat* noctx_at_1(struct arr_2 a, uint64_t index) {
@@ -1687,16 +1687,16 @@ uint8_t catch_with_exception_ctx(struct ctx* ctx, struct exception_ctx* ec, stru
 		return call_4(ctx, catcher, thrown_exception5);
 	}
 }
-struct bytes64 zero_0() {
+struct bytes64 zero_0(void) {
 	return (struct bytes64) {zero_1(), zero_1()};
 }
-struct bytes32 zero_1() {
+struct bytes32 zero_1(void) {
 	return (struct bytes32) {zero_2(), zero_2()};
 }
-struct bytes16 zero_2() {
+struct bytes16 zero_2(void) {
 	return (struct bytes16) {0, 0};
 }
-struct bytes128 zero_3() {
+struct bytes128 zero_3(void) {
 	return (struct bytes128) {zero_0(), zero_0()};
 }
 uint8_t call_3(struct ctx* ctx, struct fun_mut0_0 f) {
@@ -2383,10 +2383,10 @@ uint8_t* start_threads_recur__lambda0(uint8_t* args_ptr) {
 struct cell_0* as_cell(uint64_t* p) {
 	return (struct cell_0*) (uint8_t*) p;
 }
-int32_t eagain() {
+int32_t eagain(void) {
 	return (ten_1() + 1);
 }
-int32_t ten_1() {
+int32_t ten_1(void) {
 	return (five_1() + five_1());
 }
 uint8_t join_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads) {
@@ -2427,10 +2427,10 @@ uint8_t join_one_thread(uint64_t tid) {
 	}
 	return hard_assert(null__q_0(get((&(thread_return0)))));
 }
-int32_t einval() {
+int32_t einval(void) {
 	return ((ten_1() + ten_1()) + two_0());
 }
-int32_t esrch() {
+int32_t esrch(void) {
 	return three_1();
 }
 uint8_t* get(struct cell_1* c) {
@@ -2460,7 +2460,7 @@ struct result_0 must_be_resolved(struct fut_0* f) {
 			return (assert(0),(struct result_0) {0});
 	}
 }
-struct result_0 hard_unreachable() {
+struct result_0 hard_unreachable(void) {
 	return (assert(0),(struct result_0) {0});
 }
 struct fut_0* main_0(struct ctx* ctx, struct arr_1 args) {
@@ -2608,43 +2608,43 @@ struct comparison compare_253(uint32_t a, uint32_t b) {
 		}
 	}
 }
-uint32_t thirty_two() {
+uint32_t thirty_two(void) {
 	return (sixteen() + sixteen());
 }
-uint32_t sixteen() {
+uint32_t sixteen(void) {
 	return wrap_incr_2(fifteen());
 }
 uint32_t wrap_incr_2(uint32_t a) {
 	return (a + 1);
 }
-uint32_t fifteen() {
+uint32_t fifteen(void) {
 	return wrap_incr_2(fourteen());
 }
-uint32_t fourteen() {
+uint32_t fourteen(void) {
 	return (twelve() + two_2());
 }
-uint32_t twelve() {
+uint32_t twelve(void) {
 	return (eight_1() + four_2());
 }
-uint32_t eight_1() {
+uint32_t eight_1(void) {
 	return wrap_incr_2(seven_2());
 }
-uint32_t seven_2() {
+uint32_t seven_2(void) {
 	return wrap_incr_2(six_2());
 }
-uint32_t six_2() {
+uint32_t six_2(void) {
 	return wrap_incr_2(five_2());
 }
-uint32_t five_2() {
+uint32_t five_2(void) {
 	return wrap_incr_2(four_2());
 }
-uint32_t four_2() {
+uint32_t four_2(void) {
 	return wrap_incr_2(three_2());
 }
-uint32_t three_2() {
+uint32_t three_2(void) {
 	return wrap_incr_2(two_2());
 }
-uint32_t two_2() {
+uint32_t two_2(void) {
 	return wrap_incr_2(1);
 }
 uint32_t literal_1(struct ctx* ctx, struct arr_0 s) {
@@ -2732,7 +2732,7 @@ uint64_t char_to_nat(char c) {
 		}
 	}
 }
-uint64_t todo_2() {
+uint64_t todo_2(void) {
 	return (assert(0),0);
 }
 char last(struct ctx* ctx, struct arr_0 a) {
@@ -2801,49 +2801,49 @@ uint8_t _op_less_2(int64_t a, int64_t b) {
 			return (assert(0),0);
 	}
 }
-int64_t neg_million() {
+int64_t neg_million(void) {
 	return (million_1() * neg_one());
 }
-int64_t million_1() {
+int64_t million_1(void) {
 	return (thousand_1() * thousand_1());
 }
-int64_t thousand_1() {
+int64_t thousand_1(void) {
 	return (hundred_1() * ten_2());
 }
-int64_t hundred_1() {
+int64_t hundred_1(void) {
 	return (ten_2() * ten_2());
 }
-int64_t ten_2() {
+int64_t ten_2(void) {
 	return wrap_incr_3(nine_1());
 }
 int64_t wrap_incr_3(int64_t a) {
 	return (a + 1);
 }
-int64_t nine_1() {
+int64_t nine_1(void) {
 	return wrap_incr_3(eight_2());
 }
-int64_t eight_2() {
+int64_t eight_2(void) {
 	return wrap_incr_3(seven_3());
 }
-int64_t seven_3() {
+int64_t seven_3(void) {
 	return wrap_incr_3(six_3());
 }
-int64_t six_3() {
+int64_t six_3(void) {
 	return wrap_incr_3(five_3());
 }
-int64_t five_3() {
+int64_t five_3(void) {
 	return wrap_incr_3(four_3());
 }
-int64_t four_3() {
+int64_t four_3(void) {
 	return wrap_incr_3(three_3());
 }
-int64_t three_3() {
+int64_t three_3(void) {
 	return wrap_incr_3(two_3());
 }
-int64_t two_3() {
+int64_t two_3(void) {
 	return wrap_incr_3(1);
 }
-int64_t neg_one() {
+int64_t neg_one(void) {
 	return (0 - 1);
 }
 int64_t to_int(struct ctx* ctx, uint64_t n) {
@@ -2930,7 +2930,7 @@ uint8_t print_sync(struct arr_0 s) {
 uint8_t print_sync_no_newline(struct arr_0 s) {
 	return write_sync_no_newline(stdout_fd(), s);
 }
-int32_t stdout_fd() {
+int32_t stdout_fd(void) {
 	return 1;
 }
 uint8_t zero__q_3(uint8_t n) {

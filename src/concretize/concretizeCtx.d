@@ -452,11 +452,21 @@ void initializeConcreteStruct(Alloc)(
 	// Initially make this a by-ref type, so we don't recurse infinitely when computing size
 	// TODO: is this a bug? We compute the size based on assuming it's a pointer,
 	// then make it not be a pointer and that would change the size?
+
+	// A record forced by-val should be marked early, in case it needs a 'ptr' to itself
+	immutable Bool initialDefaultIsPointer = matchStructBody(
+		body_(i),
+		(ref immutable StructBody.Bogus) => True,
+		(ref immutable StructBody.Builtin) => True,
+		(ref immutable StructBody.ExternPtr) => True,
+		(ref immutable StructBody.Record it) =>
+			immutable Bool(!(has(it.forcedByValOrRef) && force(it.forcedByValOrRef) == ForcedByValOrRef.byVal)),
+		(ref immutable StructBody.Union) => True);
 	lateSet(res.info_, immutable ConcreteStructInfo(
-		immutable ConcreteStructBody(ConcreteStructBody.Record(emptyArr!ConcreteField)),
+		immutable ConcreteStructBody(immutable ConcreteStructBody.Record(emptyArr!ConcreteField)),
 		/*sizeBytes*/ 9999,
 		/*isSelfMutable*/ True,
-		/*defaultIsPointer*/ True));
+		initialDefaultIsPointer));
 
 	immutable ConcreteStructInfo info = matchStructBody!(immutable ConcreteStructInfo)(
 		body_(i),

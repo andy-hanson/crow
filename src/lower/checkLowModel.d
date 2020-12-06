@@ -34,10 +34,10 @@ import util.ptr : Ptr, ptrTrustMe;
 import util.sexpr : Sexpr, tataRecord, tataSym;
 import util.util : todo, verify;
 
-void checkLowProgram(ref immutable LowProgram a) {
+void checkLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
 	immutable Ctx ctx = immutable Ctx(ptrTrustMe(a));
 	fullIndexDictEachValue!(LowFunIndex, LowFun)(a.allFuns, (ref immutable LowFun fun) {
-		checkLowFun(ctx, fun);
+		checkLowFun(alloc, ctx, fun);
 	});
 }
 
@@ -52,39 +52,44 @@ struct FunCtx {
 	immutable Ptr!LowFun fun;
 }
 
-void checkLowFun(ref immutable Ctx ctx, ref immutable LowFun fun) {
+void checkLowFun(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, ref immutable LowFun fun) {
 	matchLowFunBody!void(
 		fun.body_,
 		(ref immutable LowFunBody.Extern) {},
 		(ref immutable LowFunExprBody it) {
 			immutable FunCtx funCtx = immutable FunCtx(ctx, ptrTrustMe(fun));
-			checkLowExpr(funCtx, fun.returnType, it.expr);
+			checkLowExpr(alloc, funCtx, fun.returnType, it.expr);
 		});
 }
 
-void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immutable LowExpr expr) {
-	checkTypeEqual(ctx.ctx, type, expr.type);
+void checkLowExpr(Alloc)(
+	ref Alloc alloc,
+	ref immutable FunCtx ctx,
+	ref immutable LowType type,
+	ref immutable LowExpr expr,
+) {
+	checkTypeEqual(alloc, ctx.ctx, type, expr.type);
 	matchLowExprKind!void(
 		expr.kind,
 		(ref immutable LowExprKind.Call it) {
 			immutable Ptr!LowFun fun = fullIndexDictGetPtr(ctx.ctx.program.allFuns, it.called);
-			checkTypeEqual(ctx.ctx, type, fun.returnType);
+			checkTypeEqual(alloc, ctx.ctx, type, fun.returnType);
 			verify(sizeEq(fun.params, it.args));
 			zip!(LowParam, LowExpr)(fun.params, it.args, (ref immutable LowParam param, ref immutable LowExpr arg) {
-				checkLowExpr(ctx, param.type, arg);
+				checkLowExpr(alloc, ctx, param.type, arg);
 			});
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
 			immutable Arr!LowField fields = fullIndexDictGet(ctx.ctx.program.allRecords, asRecordType(type)).fields;
 			zip!(LowField, LowExpr)(fields, it.args, (ref immutable LowField field, ref immutable LowExpr arg) {
-				checkLowExpr(ctx, field.type, arg);
+				checkLowExpr(alloc, ctx, field.type, arg);
 			});
 		},
 		(ref immutable LowExprKind.ConvertToUnion it) {
 			immutable LowType member = at(
 				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(type)).members,
 				it.memberIndex);
-			checkLowExpr(ctx, member, it.arg);
+			checkLowExpr(alloc, ctx, member, it.arg);
 		},
 		(ref immutable LowExprKind.FunPtr it) {
 			immutable Ptr!LowFun fun = fullIndexDictGetPtr(ctx.ctx.program.allFuns, it.fun);
@@ -99,63 +104,63 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 					// TODO: this is failing for lambda closure,
 					// which is any-ptr in the function type and has a better type in the function
 					if (index != 1) {
-						checkTypeEqual(ctx.ctx, param.type, paramType);
+						checkTypeEqual(alloc, ctx.ctx, param.type, paramType);
 					}
 					index++;
 				});
 		},
 		(ref immutable LowExprKind.Let it) {
-			checkLowExpr(ctx, it.local.type, it.value);
-			checkLowExpr(ctx, type, it.then);
+			checkLowExpr(alloc, ctx, it.local.type, it.value);
+			checkLowExpr(alloc, ctx, type, it.then);
 		},
 		(ref immutable LowExprKind.LocalRef it) {
-			checkTypeEqual(ctx.ctx, type, it.local.type);
+			checkTypeEqual(alloc, ctx.ctx, type, it.local.type);
 		},
 		(ref immutable LowExprKind.Match it) {
-			checkLowExpr(ctx, it.matchedLocal.type, it.matchedValue);
+			checkLowExpr(alloc, ctx, it.matchedLocal.type, it.matchedValue);
 			zip!(LowType, LowExprKind.Match.Case)(
 				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(it.matchedLocal.type)).members,
 				it.cases,
 				(ref immutable LowType memberType, ref immutable LowExprKind.Match.Case case_) {
 					if (has(case_.local))
-						checkTypeEqual(ctx.ctx, memberType, force(case_.local).type);
-					checkLowExpr(ctx, type, case_.then);
+						checkTypeEqual(alloc, ctx.ctx, memberType, force(case_.local).type);
+					checkLowExpr(alloc, ctx, type, case_.then);
 				});
 		},
 		(ref immutable LowExprKind.ParamRef it) {
-			checkTypeEqual(ctx.ctx, type, at(ctx.fun.params, it.index.index).type);
+			checkTypeEqual(alloc, ctx.ctx, type, at(ctx.fun.params, it.index.index).type);
 		},
 		(ref immutable LowExprKind.PtrCast it) {
 			// TODO: there are some limitations on target...
-			checkLowExpr(ctx, it.target.type, it.target);
+			checkLowExpr(alloc, ctx, it.target.type, it.target);
 		},
 		(ref immutable LowExprKind.RecordFieldGet it) {
 			immutable LowType targetTypeNonPtr = immutable LowType(it.record);
 			immutable LowType targetType = it.targetIsPointer
 				? immutable LowType(immutable LowType.NonFunPtr(ptrTrustMe(targetTypeNonPtr)))
 				: targetTypeNonPtr;
-			checkLowExpr(ctx, targetType, it.target);
+			checkLowExpr(alloc, ctx, targetType, it.target);
 			immutable LowType fieldType =
 				at(fullIndexDictGet(ctx.ctx.program.allRecords, it.record).fields, it.fieldIndex).type;
-			checkTypeEqual(ctx.ctx, type, fieldType);
+			checkTypeEqual(alloc, ctx.ctx, type, fieldType);
 		},
 		(ref immutable LowExprKind.RecordFieldSet it) {
 			immutable LowType targetTypeNonPtr = immutable LowType(it.record);
 			immutable LowType targetType = it.targetIsPointer
 				? immutable LowType(immutable LowType.NonFunPtr(ptrTrustMe(targetTypeNonPtr)))
 				: targetTypeNonPtr;
-			checkLowExpr(ctx, targetType, it.target);
+			checkLowExpr(alloc, ctx, targetType, it.target);
 			immutable LowType fieldType =
 				at(fullIndexDictGet(ctx.ctx.program.allRecords, it.record).fields, it.fieldIndex).type;
-			checkLowExpr(ctx, fieldType, it.value);
-			checkTypeEqual(ctx.ctx, type, voidType);
+			checkLowExpr(alloc, ctx, fieldType, it.value);
+			checkTypeEqual(alloc, ctx.ctx, type, voidType);
 		},
 		(ref immutable LowExprKind.Seq it) {
-			checkLowExpr(ctx, voidType, it.first);
-			checkLowExpr(ctx, type, it.then);
+			checkLowExpr(alloc, ctx, voidType, it.first);
+			checkLowExpr(alloc, ctx, type, it.then);
 		},
 		(ref immutable LowExprKind.SizeOf it) {
-			checkTypeEqual(ctx.ctx, type, nat64Type);
+			checkTypeEqual(alloc, ctx.ctx, type, nat64Type);
 		},
 		(ref immutable Constant it) {
 			// Constants are untyped, so can't check more
@@ -169,9 +174,9 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 		(ref immutable LowExprKind.SpecialTrinary it) {
 			final switch (it.kind) {
 				case LowExprKind.SpecialTrinary.Kind.if_:
-					checkLowExpr(ctx, boolType, it.p0);
-					checkLowExpr(ctx, type, it.p1);
-					checkLowExpr(ctx, type, it.p2);
+					checkLowExpr(alloc, ctx, boolType, it.p0);
+					checkLowExpr(alloc, ctx, type, it.p1);
+					checkLowExpr(alloc, ctx, type, it.p2);
 					break;
 				case LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool:
 					// TODO
@@ -184,13 +189,13 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 					immutable LowExpr funPtr = at(it.args, 0);
 					immutable Ptr!LowFunPtrType funPtrType =
 						fullIndexDictGetPtr(ctx.ctx.program.allFunPtrTypes, asFunPtrType(funPtr.type));
-					checkTypeEqual(ctx.ctx, type, funPtrType.returnType);
+					checkTypeEqual(alloc, ctx.ctx, type, funPtrType.returnType);
 					verify(sizeEq(funPtrType.paramTypes, tail(it.args)));
 					zip!(LowType, LowExpr)(
 						funPtrType.paramTypes,
 						tail(it.args),
 						(ref immutable LowType paramType, ref immutable LowExpr arg) {
-							checkLowExpr(ctx, paramType, arg);
+							checkLowExpr(alloc, ctx, paramType, arg);
 						});
 			}
 		},
@@ -199,7 +204,32 @@ void checkLowExpr(ref immutable FunCtx ctx, ref immutable LowType type, ref immu
 		});
 }
 
-void checkTypeEqual(ref immutable Ctx ctx, ref immutable LowType expected, ref immutable LowType actual) {
+void checkTypeEqual(Alloc)(
+	ref Alloc alloc,
+	ref immutable Ctx ctx,
+	ref immutable LowType expected,
+	ref immutable LowType actual,
+) {
+	debug {
+		/*
+		if (!lowTypeEqual(expected, actual)) {
+			import util.collection.arr : begin, size;
+			import util.collection.str : Str;
+			import util.ptr : ptrTrustMe_mut;
+			import util.sexpr : writeSexpr;
+			import util.writer : Writer, finishWriter, writeStatic;
+
+			Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+			writeStatic(writer, "checkTypeEqual: expected:\n");
+			writeSexpr(writer, tataOfLowType2(alloc, ctx, expected));
+			writeStatic(writer, "\nactual:\n");
+			writeSexpr(writer, tataOfLowType2(alloc, ctx, actual));
+			import core.stdc.stdio : printf;
+			immutable Str s = finishWriter(writer);
+			printf("%.*s\n", cast(int) size(s), begin(s));
+		}
+		*/
+	}
 	verify(lowTypeEqual(expected, actual));
 }
 

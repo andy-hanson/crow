@@ -265,7 +265,9 @@ void compileC(Alloc, PathAlloc)(
 		strLiteral("-Wno-unused-value"),
 		strLiteral("-Wno-builtin-declaration-mismatch"), //TODO:KILL?
 		strLiteral("-pthread"),
+		strLiteral("-lcrypto"),
 		strLiteral("-lSDL2"),
+		strLiteral("-lssl"),
 		// TODO: configurable whether we want debug or release
 		strLiteral("-g"),
 		pathToStr(alloc, allPaths, cPath),

@@ -739,7 +739,9 @@ void writeFunReturnTypeNameAndParams(Alloc)(
 	writeLowFunMangledName(writer, ctx, funIndex, fun);
 	if (!isGlobal(fun.body_)) {
 		writeChar(writer, '(');
-		if (!empty(fun.params)) {
+		if (empty(fun.params))
+			writeStatic(writer, "void");
+		else {
 			doWriteParam(writer, ctx, first(fun.params));
 			foreach (ref immutable LowParam p; range(tail(fun.params))) {
 				writeStatic(writer, ", ");

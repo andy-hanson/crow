@@ -18,8 +18,7 @@ You can run it directly from there, or use `./run` which ensures an up-to-date b
 ## Other dependencies
 
 * [`python`](https://www.python.org/) for `make doc-server`.
-* [`node`](https://nodejs.org/en/) and [`typescript`](https://www.typescriptlang.org/) for type-checking JS code.
-  (Not used as a compiler.)
+* [`node`](https://nodejs.org/en/) for the VSCode extension.
 
 
 # Testing
