@@ -7,4 +7,4 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(range(28, 35), a, inststruct(range(30, 33), name-range(30, int)), [])
-			body: literal(numeric, "0"))])
+			body: literal(nat(0, false)))])

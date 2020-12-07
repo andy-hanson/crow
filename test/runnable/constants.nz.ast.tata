@@ -39,11 +39,11 @@ file-ast(
 			summon: true
 			body: let(
 				name-range(171, r)
-				call(prefix, name-range(175, my-record), [], [literal(string, "a"), literal(string, "b")])
+				call(prefix, name-range(175, my-record), [], [literal("a"), literal("b")])
 				seq-ast(
 					seq-ast(
 						seq-ast(
 							call(prefix, name-range(196, foo), [], [r])
 							call(prefix, name-range(204, print-sync), [], [call(infix, name-range(218, a), [], [r])]))
 						call(prefix, name-range(221, print-sync), [], [call(infix, name-range(235, b), [], [r])]))
-					call(prefix, name-range(238, resolved), [], [literal(numeric, "0")]))))])
+					call(prefix, name-range(238, resolved), [], [literal(nat(0, false))]))))])

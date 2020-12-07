@@ -287,18 +287,25 @@ immutable(U4U4) u4u4OfU8(immutable Nat8 a) {
 immutable(Nat64) u64OfFloat64Bits(immutable float64 value) {
 	Converter64 conv;
 	conv.asFloat64 = value;
-	return conv.asU64;
+	return immutable Nat64(conv.asU64);
 }
 
 immutable(float64) float64OfU64Bits(immutable u64 value) {
 	Converter64 conv;
-	conv.asU64 = immutable Nat64(value);
+	conv.asU64 = value;
 	return conv.asFloat64;
+}
+
+immutable(i64) i64OfU64Bits(immutable u64 value) {
+	Converter64 conv;
+	conv.asU64 = value;
+	return conv.asI64;
 }
 
 private:
 
 union Converter64 {
-	Nat64 asU64;
+	u64 asU64;
+	i64 asI64;
 	float64 asFloat64;
 }

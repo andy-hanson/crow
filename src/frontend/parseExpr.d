@@ -236,7 +236,6 @@ immutable(Bool) someInOwnBody(
 		(ref immutable LambdaAst) => False,
 		(ref immutable LetAst) => unreachable!(immutable Bool),
 		(ref immutable LiteralAst) => False,
-		(ref immutable LiteralInnterAst) => unreachable!(immutable Bool),
 		(ref immutable MatchAst) => unreachable!(immutable Bool),
 		(ref immutable SeqAst) => unreachable!(immutable Bool),
 		(ref immutable ThenAst) => unreachable!(immutable Bool),
@@ -538,7 +537,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				immutable ExprAstKind(immutable LambdaAst(params, body_)));
 			return noDedent(tryParseDots(alloc, lexer, expr));
 		case ExpressionToken.Kind.literal:
-			immutable LiteralAst literal = et.asLiteral;
+			immutable Ptr!LiteralAst literal = asLiteral(et);
 			immutable ExprAst expr = immutable ExprAst(getRange(), immutable ExprAstKind(literal));
 			return noDedent(tryParseDots(alloc, lexer, expr));
 		case ExpressionToken.Kind.lparen:

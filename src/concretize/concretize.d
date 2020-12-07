@@ -73,7 +73,7 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable 
 private:
 
 immutable(Bool) isInt32(ref immutable CommonTypes commonTypes, ref immutable Type type) {
-	return typeEquals(type, immutable Type(commonTypes.int32));
+	return typeEquals(type, immutable Type(commonTypes.integrals.int32));
 }
 
 immutable(Bool) isStr(ref immutable CommonTypes commonTypes, ref immutable Type type) {

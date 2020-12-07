@@ -679,6 +679,9 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 		(immutable Constant.BoolConstant it) {
 			writeBoolConstant(dbg, writer, source, it.value);
 		},
+		(immutable double) {
+			todo!void("!");
+		},
 		(immutable Constant.Integral it) {
 			writePushConstant(dbg, writer, source, immutable Nat64(it.value));
 		},

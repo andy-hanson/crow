@@ -12,6 +12,7 @@ import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : shortSymAlphaLiteral, Sym, symSize, writeSym;
 import util.types : abs, IntN, NatN, safeIntFromSizeT;
+import util.util : todo;
 import util.writer :
 	finishWriterToCStr,
 	newline,
@@ -84,12 +85,20 @@ immutable(Sexpr) tataBool(immutable Bool a) {
 	return immutable Sexpr(a);
 }
 
+immutable(Sexpr) tataFloat(immutable double) {
+	return todo!(immutable Sexpr)("!");
+}
+
 immutable(Sexpr) tataHex(T)(immutable NatN!T a) {
 	return immutable Sexpr(immutable SexprInt(a.raw(), 16));
 }
 
+immutable(Sexpr) tataInt(immutable long a) {
+	return immutable Sexpr(immutable SexprInt(a, 10));
+}
+
 immutable(Sexpr) tataInt(T)(immutable IntN!T a) {
-	return immutable Sexpr(immutable SexprInt(a.raw(), 16));
+	return immutable Sexpr(immutable SexprInt(a.raw(), 10));
 }
 
 immutable(Sexpr) tataNat(T)(immutable NatN!T a) {

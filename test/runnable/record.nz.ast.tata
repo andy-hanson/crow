@@ -28,7 +28,7 @@ file-ast(
 			summon: true
 			body: let(
 				name-range(107, m)
-				call(prefix, name-range(111, my-record), [], [literal(numeric, "1"), literal(numeric, "2")])
+				call(prefix, name-range(111, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])
 				seq-ast(
 					seq-ast(
 						seq-ast(
@@ -42,7 +42,7 @@ file-ast(
 											infix
 											name-range(140, ==)
 											[]
-											[call(dot, name-range(138, x), [], [m]), literal(numeric, "1")])])
+											[call(dot, name-range(138, x), [], [m]), literal(nat(1, false))])])
 								call(
 									prefix
 									name-range(146, assert)
@@ -52,7 +52,7 @@ file-ast(
 											infix
 											name-range(158, ==)
 											[]
-											[call(dot, name-range(156, y), [], [m]), literal(numeric, "2")])]))
+											[call(dot, name-range(156, y), [], [m]), literal(nat(2, false))])]))
 							call(
 								prefix
 								name-range(164, print-sync)
@@ -63,4 +63,4 @@ file-ast(
 							name-range(188, print-sync)
 							[]
 							[call(dot, name-range(204, to-str), [], [call(dot, name-range(202, y), [], [m])])]))
-					call(prefix, name-range(212, resolved), [], [literal(numeric, "0")]))))])
+					call(prefix, name-range(212, resolved), [], [literal(nat(0, false))]))))])

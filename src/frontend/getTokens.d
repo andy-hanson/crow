@@ -20,10 +20,10 @@ import frontend.ast :
 	LambdaAst,
 	LetAst,
 	LiteralAst,
-	LiteralInnerAst,
 	MatchAst,
 	matchExprAstKind,
 	matchFunBodyAst,
+	matchLiteralAst,
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
 	matchTypeAst,
@@ -55,7 +55,7 @@ import util.sexpr : Sexpr, nameAndTata, tataArr, tataNamedRecord, tataSym;
 import util.sourceRange : Pos, RangeWithinFile, sexprOfRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32;
-import util.util : todo, unreachable;
+import util.util : todo;
 
 struct Token {
 	enum Kind {
@@ -291,19 +291,18 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			addExprTokens(alloc, tokens, it.initializer);
 			addExprTokens(alloc, tokens, it.then);
 		},
-		(ref immutable LiteralAst it) {
-			immutable Token.Kind kind = () {
-				final switch (it.literalKind) {
-					case LiteralAst.Kind.numeric:
-						return Token.Kind.literalNumber;
-					case LiteralAst.Kind.string_:
-						return Token.Kind.literalString;
-				}
-			}();
+		(ref immutable LiteralAst literal) {
+			immutable Token.Kind kind = matchLiteralAst!(immutable Token.Kind)(
+				literal,
+				(immutable double) =>
+					Token.Kind.literalNumber,
+				(ref immutable LiteralAst.Int) =>
+					Token.Kind.literalNumber,
+				(ref immutable LiteralAst.Nat) =>
+					Token.Kind.literalNumber,
+				(ref immutable Str) =>
+					Token.Kind.literalString);
 			add(alloc, tokens, immutable Token(kind, a.range));
-		},
-		(ref immutable LiteralInnerAst) {
-			unreachable!void();
 		},
 		(ref immutable MatchAst it) {
 			addExprTokens(alloc, tokens, it.matched);

@@ -35,7 +35,6 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs,
-	typeEquals,
 	TypeParam,
 	typeParams;
 import util.bools : Bool, False, True;
@@ -244,10 +243,6 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedType(Alloc)(
 		: none!Type;
 }
 
-immutable(Bool) hasExpected(ref const Expected expected) {
-	return has(tryGetInferred(expected));
-}
-
 private immutable(CheckedExpr) bogusWithoutAffectingExpected(immutable FileAndRange range) {
 	return CheckedExpr(immutable Expr(range, immutable Expr.Bogus()));
 }
@@ -258,7 +253,7 @@ immutable(CheckedExpr) bogus(ref Expected expected, immutable FileAndRange range
 }
 
 immutable(CheckedExpr) bogusWithoutChangingExpected(ref Expected expected, ref immutable FileAndRange range) {
-	return hasExpected(expected)
+	return has(tryGetInferred(expected))
 		? bogusWithoutAffectingExpected(range)
 		: bogus(expected, range);
 }
@@ -266,12 +261,6 @@ immutable(CheckedExpr) bogusWithoutChangingExpected(ref Expected expected, ref i
 immutable(Type) inferred(ref const Expected expected) {
 	immutable Opt!Type opt = tryGetInferred(expected);
 	return force(opt);
-}
-
-immutable(Bool) isExpectingString(ref const Expected expected, immutable Ptr!StructInst stringStructInst) {
-	immutable Opt!Type t = tryGetInferred(expected);
-	immutable Type stringType = immutable Type(stringStructInst);
-	return immutable Bool(has(t) && typeEquals(force(t), stringType));
 }
 
 immutable(CheckedExpr) check(Alloc)(

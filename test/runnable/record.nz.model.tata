@@ -25,9 +25,7 @@ module(
 			sig: sig(file-pos(20, 66), main, fut(int32()), [param(file-range(20, range(85, 97)), args, arr(arr(char())))])
 			body: let(
 				local(file-range(20, range(107, 108)), m, my-record())
-				call(
-					fun-inst(name: my-record)
-					[call(fun-inst(name: literal), [string-lit("1")]), call(fun-inst(name: literal), [string-lit("2")])])
+				call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 2)])
 				seq(
 					seq(
 						seq(
@@ -37,26 +35,20 @@ module(
 									[
 										call(
 											fun-inst(name: ==, type-args: [nat()])
-											[
-												call(fun-inst(name: x), [local-ref(m)])
-												call(fun-inst(name: literal), [string-lit("1")])])])
+											[call(fun-inst(name: x), [local-ref(m)]), literal(nat(), 1)])])
 								call(
 									fun-inst(name: assert)
 									[
 										call(
 											fun-inst(name: ==, type-args: [nat()])
-											[
-												call(fun-inst(name: y), [local-ref(m)])
-												call(fun-inst(name: literal), [string-lit("2")])])]))
+											[call(fun-inst(name: y), [local-ref(m)]), literal(nat(), 2)])]))
 							call(
 								fun-inst(name: print-sync)
 								[call(fun-inst(name: to-str), [call(fun-inst(name: x), [local-ref(m)])])]))
 						call(
 							fun-inst(name: print-sync)
 							[call(fun-inst(name: to-str), [call(fun-inst(name: y), [local-ref(m)])])]))
-					call(
-						fun-inst(name: resolved, type-args: [int32()])
-						[call(fun-inst(name: literal), [string-lit("0")])]))))
+					call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)]))))
 		fun(
 			public?: true
 			preferred: true

@@ -26,7 +26,7 @@ struct Constant {
 	}
 	// For int and nat types
 	struct Integral {
-		immutable size_t value;
+		immutable ulong value;
 	}
 	struct Null {}
 	struct Pointer {
@@ -47,6 +47,7 @@ struct Constant {
 	enum Kind {
 		arr,
 		bool_,
+		float_,
 		integral,
 		null_,
 		pointer,
@@ -58,6 +59,7 @@ struct Constant {
 	union {
 		immutable ArrConstant arr_;
 		immutable BoolConstant bool_;
+		immutable double float_;
 		immutable Integral integral_;
 		immutable Null null_;
 		immutable Pointer pointer;
@@ -68,6 +70,7 @@ struct Constant {
 	public:
 	@trusted immutable this(immutable ArrConstant a) { kind = Kind.arr; arr_ = a; }
 	immutable this(immutable BoolConstant a) { kind = Kind.bool_; bool_ = a; }
+	immutable this(immutable double a) { kind = Kind.float_; float_ = a; }
 	immutable this(immutable Integral a) { kind = Kind.integral; integral_ = a; }
 	immutable this(immutable Null a) { kind = Kind.null_; null_ = a; }
 	@trusted immutable this(immutable Pointer a) { kind = Kind.pointer; pointer = a; }
@@ -110,6 +113,9 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 			return immutable Bool(a.arr_.index == b.arr_.index);
 		case Constant.Kind.bool_:
 			return immutable Bool(a.bool_.value.value == b.bool_.value.value);
+		case Constant.Kind.float_:
+			//TODO: handle NaN
+			return immutable Bool(a.float_ == b.float_);
 		case Constant.Kind.integral:
 			return immutable Bool(a.integral_.value == b.integral_.value);
 		case Constant.Kind.null_:
@@ -131,6 +137,7 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 	ref immutable Constant a,
 	scope T delegate(ref immutable Constant.ArrConstant) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Constant.BoolConstant) @safe @nogc pure nothrow cbBool,
+	scope T delegate(immutable double) @safe @nogc pure nothrow cbFloat,
 	scope T delegate(immutable Constant.Integral) @safe @nogc pure nothrow cbIntegral,
 	scope T delegate(immutable Constant.Null) @safe @nogc pure nothrow cbNull,
 	scope T delegate(immutable Constant.Pointer) @safe @nogc pure nothrow cbPointer,
@@ -143,6 +150,8 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 			return cbArr(a.arr_);
 		case Constant.Kind.bool_:
 			return cbBool(a.bool_);
+		case Constant.Kind.float_:
+			return cbFloat(a.float_);
 		case Constant.Kind.integral:
 			return cbIntegral(a.integral_);
 		case Constant.Kind.null_:

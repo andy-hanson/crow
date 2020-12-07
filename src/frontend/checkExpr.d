@@ -13,9 +13,9 @@ import frontend.ast :
 	LambdaAst,
 	LetAst,
 	LiteralAst,
-	LiteralInnerAst,
 	MatchAst,
 	matchExprAstKind,
+	matchLiteralAst,
 	NameAndRange,
 	rangeOfNameAndRange,
 	SeqAst,
@@ -33,19 +33,19 @@ import frontend.inferringType :
 	copyWithNewExpectedType,
 	Expected,
 	ExprCtx,
-	hasExpected,
 	inferred,
 	isBogus,
-	isExpectingString,
 	LambdaInfo,
 	programState,
 	rangeInFile2,
 	shallowInstantiateType,
 	tryGetDeeplyInstantiatedType,
 	tryGetDeeplyInstantiatedTypeFor,
+	tryGetInferred,
 	typeFromAst2;
 import frontend.instantiate : instantiateStructNeverDelay;
 import frontend.typeFromAst : makeFutType;
+import model.constant : Constant;
 import model.diag : Diag;
 import model.model :
 	asStructInst,
@@ -60,6 +60,7 @@ import model.model :
 	FunsMap,
 	getFunStructInfo,
 	getType,
+	IntegralTypes,
 	isBogus,
 	isStructInst,
 	isUnion,
@@ -104,12 +105,13 @@ import util.collection.mutArr :
 	push,
 	tempAsArr,
 	tempAsArr_mut;
-import util.collection.str : copyStr;
+import util.collection.str : copyStr, Str;
 import util.memory : nu;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
+import util.types : i8, i16, i32, i64, u8, u16, u32, u64;
 import util.util : todo, unreachable, verify;
 
 immutable(Ptr!Expr) checkFunctionBody(Alloc)(
@@ -414,15 +416,9 @@ immutable(CheckedExpr) checkIdentifier(Alloc)(
 		: checkIdentifierCall(alloc, ctx, range, name, expected);
 }
 
-immutable(CheckedExpr) checkLiteralInner(Alloc)(
-	ref Alloc alloc,
-	ref ExprCtx ctx,
-	ref immutable FileAndRange range,
-	immutable LiteralInnerAst ast,
-	ref Expected expected,
-) {
-	immutable Expr expr = immutable Expr(range, Expr.StringLiteral(copyStr(alloc, ast.literal)));
-	return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.str), expr);
+struct IntRange {
+	immutable long min;
+	immutable long max;
 }
 
 immutable(CheckedExpr) checkLiteral(Alloc)(
@@ -432,19 +428,82 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 	ref immutable LiteralAst ast,
 	ref Expected expected,
 ) {
-	immutable LiteralInnerAst inner = LiteralInnerAst(ast.literalKind, ast.literal);
-	if (isExpectingString(expected, ctx.commonTypes.str) ||
-		(!hasExpected(expected) && ast.literalKind == LiteralAst.Kind.string_))
-		return checkLiteralInner(alloc, ctx, range, inner, expected);
-	else {
-		// TODO: NEATER (don't create a synthetic AST)
-		immutable CallAst call = immutable CallAst(
-			CallAst.Style.dot,
-			immutable NameAndRange(range.range.start, shortSymAlphaLiteral("literal")),
-			emptyArrWithSize!TypeAst,
-			arrLiteral!ExprAst(alloc, [immutable ExprAst(range.range, immutable ExprAstKind(inner))]));
-		return checkCall(alloc, ctx, range, call, expected);
-	}
+	immutable Opt!Type expectedType = tryGetInferred(expected);
+	immutable Ptr!StructInst expectedStruct = has(expectedType)
+		? asStructInst(force(expectedType))
+		: ctx.commonTypes.bool_; // Just picking a random one that won't match any of the below tests
+	immutable Ptr!IntegralTypes integrals = ctx.commonTypes.integrals;
+	return matchLiteralAst!(immutable CheckedExpr)(
+		ast,
+		(immutable double it) {
+			immutable Expr e = immutable Expr(
+				range,
+				nu!(Expr.Literal)(alloc, ctx.commonTypes.float64, immutable Constant(it)));
+			return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.float64), e);
+		},
+		(ref immutable LiteralAst.Int it) {
+			immutable(Opt!IntRange) intRange = ptrEquals(expectedStruct, integrals.int8)
+				? some(immutable IntRange(i8.min, i8.max))
+				: ptrEquals(expectedStruct, integrals.int16)
+				? some(immutable IntRange(i16.min, i16.max))
+				: ptrEquals(expectedStruct, integrals.int32)
+				? some(immutable IntRange(i32.min, i32.max))
+				: ptrEquals(expectedStruct, integrals.int64)
+				? some(immutable IntRange(i64.min, i64.max))
+				: none!IntRange;
+			immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
+			if (has(intRange)) {
+				if (it.overflow || it.value < force(intRange).min || it.value > force(intRange).max)
+					todo!void("literal overflow");
+				return immutable CheckedExpr(immutable Expr(range, nu!(Expr.Literal)(alloc, expectedStruct, constant)));
+			} else {
+				immutable Expr e = immutable Expr(range, nu!(Expr.Literal)(alloc, integrals.int64, constant));
+				return check(alloc, ctx, expected, immutable Type(integrals.int64), e);
+			}
+		},
+		(ref immutable LiteralAst.Nat it) {
+			immutable(Opt!ulong) max = ptrEquals(expectedStruct, integrals.nat8)
+				? some!ulong(u8.max)
+				: ptrEquals(expectedStruct, integrals.nat16)
+				? some!ulong(u16.max)
+				: ptrEquals(expectedStruct, integrals.nat32)
+				? some!ulong(u32.max)
+				: ptrEquals(expectedStruct, integrals.nat64)
+				? some(u64.max)
+				: ptrEquals(expectedStruct, integrals.int8)
+				? some!ulong(i8.max)
+				: ptrEquals(expectedStruct, integrals.int16)
+				? some!ulong(i16.max)
+				: ptrEquals(expectedStruct, integrals.int32)
+				? some!ulong(i32.max)
+				: ptrEquals(expectedStruct, integrals.int64)
+				? some!ulong(i64.max)
+				: none!ulong;
+			immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
+			if (has(max)) {
+				if (it.overflow || it.value > force(max))
+					todo!void("literal overflow");
+				return immutable CheckedExpr(immutable Expr(range, nu!(Expr.Literal)(alloc, expectedStruct, constant)));
+			} else {
+				immutable Expr e = immutable Expr(range, nu!(Expr.Literal)(alloc, integrals.nat64, constant));
+				return check(alloc, ctx, expected, immutable Type(integrals.nat64), e);
+			}
+		},
+		(ref immutable Str it) {
+			if (ptrEquals(expectedStruct, ctx.commonTypes.char_)) {
+				if (size(it) != 1)
+					todo!void("char literal must be one char");
+				return immutable CheckedExpr(immutable Expr(
+					range,
+					nu!(Expr.Literal)(
+						alloc,
+						expectedStruct,
+						immutable Constant(immutable Constant.Integral(only(it))))));
+			} else {
+				immutable Expr e = immutable Expr(range, immutable Expr.StringLiteral(copyStr(alloc, it)));
+				return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.str), e);
+			}
+		});
 }
 
 immutable(Expr) checkWithLocal(Alloc)(
@@ -720,8 +779,6 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			checkLet(alloc, ctx, range, a, expected),
 		(ref immutable LiteralAst a) =>
 			checkLiteral(alloc, ctx, range, a, expected),
-		(ref immutable LiteralInnerAst a) =>
-			checkLiteralInner(alloc, ctx, range, a, expected),
 		(ref immutable MatchAst a) =>
 			checkMatch(alloc, ctx, range, a, expected),
 		(ref immutable SeqAst a) =>

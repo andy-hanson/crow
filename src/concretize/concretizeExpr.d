@@ -590,6 +590,11 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 			concretizeLambda(alloc, ctx, range, e),
 		(ref immutable Expr.Let e) =>
 			concretizeLet(alloc, ctx, range, e),
+		(ref immutable Expr.Literal e) =>
+			immutable ConcreteExpr(
+				getConcreteType_forStructInst(alloc, ctx, e.structInst),
+				range,
+				immutable ConcreteExprKind(e.value)),
 		(ref immutable Expr.LocalRef e) =>
 			matchLocalOrConstant!(immutable ConcreteExpr)(
 				mustGetAt_mut(ctx.locals, e.local),

@@ -58,6 +58,7 @@ import model.model :
 	FunKind,
 	FunKindAndStructs,
 	FunsMap,
+	IntegralTypes,
 	isPublic,
 	isPurityWorse,
 	isRecord,
@@ -282,7 +283,15 @@ immutable(Result!(Ptr!CommonTypes, Diags)) getCommonTypes(Alloc)(
 
 	immutable Opt!(Ptr!StructInst) bool_ = nonTemplate("bool");
 	immutable Opt!(Ptr!StructInst) char_ = nonTemplate("char");
+	immutable Opt!(Ptr!StructInst) float64 = nonTemplate("float");
+	immutable Opt!(Ptr!StructInst) int8 = nonTemplate("int8");
+	immutable Opt!(Ptr!StructInst) int16 = nonTemplate("int16");
 	immutable Opt!(Ptr!StructInst) int32 = nonTemplate("int32");
+	immutable Opt!(Ptr!StructInst) int64 = nonTemplate("int64");
+	immutable Opt!(Ptr!StructInst) nat8 = nonTemplate("nat8");
+	immutable Opt!(Ptr!StructInst) nat16 = nonTemplate("nat16");
+	immutable Opt!(Ptr!StructInst) nat32 = nonTemplate("nat32");
+	immutable Opt!(Ptr!StructInst) nat64 = nonTemplate("nat64");
 	immutable Opt!(Ptr!StructInst) str = nonTemplate("str");
 	immutable Opt!(Ptr!StructInst) void_ = nonTemplate("void");
 	immutable Opt!(Ptr!StructInst) anyPtr = nonTemplate("any-ptr");
@@ -336,7 +345,17 @@ immutable(Result!(Ptr!CommonTypes, Diags)) getCommonTypes(Alloc)(
 				alloc,
 				force(bool_),
 				force(char_),
-				force(int32),
+				force(float64),
+				nu!IntegralTypes(
+					alloc,
+					force(int8),
+					force(int16),
+					force(int32),
+					force(int64),
+					force(nat8),
+					force(nat16),
+					force(nat32),
+					force(nat64)),
 				force(str),
 				force(void_),
 				force(anyPtr),

@@ -108,7 +108,7 @@ sdl-surface extern-ptr
 sdl-load-bmp-rw sdl-surface(src sdl-rwops, freesrc c-int) extern<"SDL_LoadBMP_RW"> noctx summon unsafe
 
 sdl-load-bmp sdl-surface(file str) summon unsafe
-	file.to-c-str sdl-rw-from-file "rb" sdl-load-bmp-rw 1
+	file.to-c-str sdl-rw-from-file "rb".to-c-str sdl-load-bmp-rw 1
 
 | SDL_scancode.h
 
@@ -156,7 +156,7 @@ sdl-window-shown sdl-flags()
 
 main fut exit-code(args arr str) summon trusted
 	"sdl-init-video" handle-sdl-error: sdl-init-video sdl-init
-	window = "Hello World!" sdl-create-window 100, 100, 640, 480, sdl-window-shown
+	window = "Hello World!".to-c-str sdl-create-window 100, 100, 640, 480, sdl-window-shown
 	window.as-any-ptr.null? ? "sdl-create-window".fail-sdl-error, pass
 	renderer = window new-renderer
 	texture = renderer create-texture

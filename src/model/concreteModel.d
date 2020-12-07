@@ -554,7 +554,7 @@ struct ConcreteFun {
 
 	immutable ConcreteFunSource source;
 	immutable Ptr!ConcreteFunSig sig;
-	Late!(immutable ConcreteFunBody) _body_;
+	Late!(immutable Ptr!ConcreteFunBody) _body_;
 
 	//TODO: not instance
 	immutable(ConcreteType) returnType() return scope immutable {
@@ -639,7 +639,7 @@ ref immutable(ConcreteFunBody) body_(return scope ref const ConcreteFun a) {
 	return lateGet(a._body_);
 }
 
-void setBody(ref ConcreteFun a, immutable ConcreteFunBody value) {
+void setBody(ref ConcreteFun a, immutable Ptr!ConcreteFunBody value) {
 	lateSet(a._body_, value);
 }
 

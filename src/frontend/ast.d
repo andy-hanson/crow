@@ -16,6 +16,8 @@ import util.sexpr :
 	Sexpr,
 	tataArr,
 	tataBool,
+	tataFloat,
+	tataInt,
 	tataNamedRecord,
 	tataNat,
 	tataOpt,
@@ -25,7 +27,7 @@ import util.sexpr :
 import util.sourceRange : Pos, sexprOfRangeWithinFile, rangeOfStartAndName, RangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32, u8;
-import util.util : todo, unreachable, verify;
+import util.util : todo, verify;
 
 struct NameAndRange {
 	@safe @nogc pure nothrow:
@@ -154,20 +156,55 @@ struct LetAst {
 }
 
 struct LiteralAst {
-	enum Kind {
-		numeric,
-		string_,
+	@safe @nogc pure nothrow:
+
+	struct Int {
+		immutable long value;
+		immutable Bool overflow;
+	}
+	struct Nat {
+		immutable ulong value;
+		immutable Bool overflow;
 	}
 
-	immutable Kind literalKind;
-	immutable Str literal;
+	immutable this(immutable double a) { kind = Kind.float_; float_ = a; }
+	immutable this(immutable Int a) { kind = Kind.int_; int_ = a; }
+	immutable this(immutable Nat a) { kind = Kind.nat; nat = a; }
+	@trusted immutable this(immutable Str a) { kind = Kind.str; str = a; }
+
+	private:
+	enum Kind {
+		float_,
+		int_,
+		nat,
+		str,
+	}
+	immutable Kind kind;
+	union {
+		immutable double float_;
+		immutable Int int_;
+		immutable Nat nat;
+		immutable Str str;
+	}
 }
 
-// This is never parsed directly.
-// This is used by 'checkLiteral' to ensure we don't recurse.
-struct LiteralInnerAst {
-	immutable LiteralAst.Kind literalKind;
-	immutable Str literal;
+@trusted T matchLiteralAst(T)(
+	ref immutable LiteralAst a,
+	scope immutable(T) delegate(immutable double) @safe @nogc pure nothrow cbFloat,
+	scope immutable(T) delegate(ref immutable LiteralAst.Int) @safe @nogc pure nothrow cbInt,
+	scope immutable(T) delegate(ref immutable LiteralAst.Nat) @safe @nogc pure nothrow cbNat,
+	scope immutable(T) delegate(ref immutable Str) @safe @nogc pure nothrow cbStr,
+) {
+	final switch (a.kind) {
+		case LiteralAst.Kind.float_:
+			return cbFloat(a.float_);
+		case LiteralAst.Kind.int_:
+			return cbInt(a.int_);
+		case LiteralAst.Kind.nat:
+			return cbNat(a.nat);
+		case LiteralAst.Kind.str:
+			return cbStr(a.str);
+	}
 }
 
 struct MatchAst {
@@ -206,7 +243,6 @@ struct ExprAstKind {
 		lambda,
 		let,
 		literal,
-		literalInner,
 		match,
 		seq,
 		then,
@@ -220,8 +256,7 @@ struct ExprAstKind {
 		immutable IfAst if_;
 		immutable LambdaAst lambda;
 		immutable LetAst let;
-		immutable LiteralAst literal;
-		immutable LiteralInnerAst literalInner;
+		immutable Ptr!LiteralAst literal;
 		immutable MatchAst match_;
 		immutable SeqAst seq;
 		immutable ThenAst then;
@@ -235,8 +270,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable IfAst a) { kind = Kind.if_; if_ = a; }
 	@trusted immutable this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable LetAst a) { kind = Kind.let; let = a; }
-	@trusted immutable this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
-	@trusted immutable this(immutable LiteralInnerAst a) { kind = Kind.literalInner; literalInner = a; }
+	@trusted immutable this(immutable Ptr!LiteralAst a) { kind = Kind.literal; literal = a; }
 	@trusted immutable this(immutable MatchAst a) { kind = Kind.match; match_ = a; }
 	@trusted immutable this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable ThenAst a) { kind = Kind.then; then = a; }
@@ -260,7 +294,6 @@ ref immutable(IdentifierAst) asIdentifier(return ref immutable ExprAstKind a) {
 	scope immutable(T) delegate(ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
 	scope immutable(T) delegate(ref immutable LetAst) @safe @nogc pure nothrow cbLet,
 	scope immutable(T) delegate(ref immutable LiteralAst) @safe @nogc pure nothrow cbLiteral,
-	scope immutable(T) delegate(ref immutable LiteralInnerAst) @safe @nogc pure nothrow cbLiteralInner,
 	scope immutable(T) delegate(ref immutable MatchAst) @safe @nogc pure nothrow cbMatch,
 	scope immutable(T) delegate(ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
 	scope immutable(T) delegate(ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
@@ -282,8 +315,6 @@ ref immutable(IdentifierAst) asIdentifier(return ref immutable ExprAstKind a) {
 			return cbLet(a.let);
 		case ExprAstKind.Kind.literal:
 			return cbLiteral(a.literal);
-		case ExprAstKind.Kind.literalInner:
-			return cbLiteralInner(a.literalInner);
 		case ExprAstKind.Kind.match:
 			return cbMatch(a.match_);
 		case ExprAstKind.Kind.seq:
@@ -871,18 +902,16 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 				sexprOfExprAst(alloc, a.then)]),
 		(ref immutable LiteralAst a) =>
 			tataRecord(alloc, "literal", [
-				tataSym(() {
-					final switch (a.literalKind) {
-						case LiteralAst.Kind.numeric:
-							return "numeric";
-						case LiteralAst.Kind.string_:
-							return "string";
-					}
-				}()),
-				tataStr(a.literal)]),
-		(ref immutable LiteralInnerAst) =>
-			// Only used temporarily; should never need to print this
-			unreachable!(immutable Sexpr),
+				matchLiteralAst!(immutable Sexpr)(
+					a,
+					(immutable double it) =>
+						tataFloat(it),
+					(ref immutable LiteralAst.Int it) =>
+						tataRecord(alloc, "int", [tataInt(it.value), tataBool(it.overflow)]),
+					(ref immutable LiteralAst.Nat it) =>
+						tataRecord(alloc, "nat", [tataNat(it.value), tataBool(it.overflow)]),
+					(ref immutable Str it) =>
+						tataStr(it))]),
 		(ref immutable MatchAst it) =>
 			tataRecord(alloc, "match", [
 				sexprOfExprAst(alloc, it.matched),

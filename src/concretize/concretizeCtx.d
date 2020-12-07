@@ -62,7 +62,7 @@ import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, must
 import util.collection.str : strLiteral;
 import util.comparison : Comparison;
 import util.late : Late, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
-import util.memory : nu, nuMut;
+import util.memory : allocate, nu, nuMut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals;
 import util.sym : shortSymAlphaLiteralValue, Sym;
@@ -520,7 +520,7 @@ void fillInConcreteFunBody(Alloc)(
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf._body_)) {
 		// set to arbitrary temporarily
-		lateSet(cf._body_, immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(False, strLiteral("<<temp>>"))));
+		lateSet(cf._body_, nu!ConcreteFunBody(alloc, immutable ConcreteFunBody.Extern(False, strLiteral("<<temp>>"))));
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
 			inputs.body_,
@@ -536,7 +536,7 @@ void fillInConcreteFunBody(Alloc)(
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
 			(ref immutable FunBody.RecordFieldSet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldSet(it.fieldIndex)));
-		lateSetOverwrite(cf._body_, body_);
+		lateSetOverwrite(cf._body_, allocate(alloc, body_));
 	}
 }
 

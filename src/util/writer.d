@@ -61,7 +61,7 @@ private immutable(char) digitChar(immutable ulong digit) {
 	return digit < 10 ? cast(char) ('0' + digit) : cast(char) ('a' + (digit - 10));
 }
 
-void writeInt(Alloc)(ref Writer!Alloc writer, immutable long i, immutable ulong base) {
+void writeInt(Alloc)(ref Writer!Alloc writer, immutable long i, immutable ulong base = 10) {
 	if (i < 0)
 		writeChar(writer, '-');
 	writeNat(writer, abs(i), base);

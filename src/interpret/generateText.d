@@ -31,7 +31,7 @@ import util.collection.exactSizeArrBuilder :
 	newExactSizeArrBuilder;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.ptr : Ptr, ptrTrustMe;
-import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat8, Nat16, zero;
+import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat8, Nat16, u64OfFloat64Bits, zero;
 import util.util : todo, unreachable, verify;
 
 struct TextAndInfo {
@@ -142,6 +142,7 @@ void ensureConstant(TempAlloc)(
 			recurWriteArr(tempAlloc, ctx, it.typeIndex, arrs.elementType, it.index, at(arrs.constants, it.index));
 		},
 		(immutable Constant.BoolConstant) {},
+		(immutable double) {},
 		(immutable Constant.Integral) {},
 		(immutable Constant.Null) {},
 		(immutable Constant.Pointer it) {
@@ -225,6 +226,9 @@ void writeConstant(TempAlloc)(
 		},
 		(immutable Constant.BoolConstant it) {
 			exactSizeArrBuilderAdd(ctx.text, it.value ? 1 : 0);
+		},
+		(immutable double it) {
+			add64(ctx.text, u64OfFloat64Bits(it).raw());
 		},
 		(immutable Constant.Integral it) {
 			final switch (asPrimitive(type)) {

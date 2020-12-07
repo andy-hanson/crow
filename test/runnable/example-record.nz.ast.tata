@@ -17,7 +17,7 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(range(155, 175), create-point, inststruct(range(168, 173), name-range(168, point)), [])
-			body: call(prefix, name-range(177, point), [], [literal(numeric, "1"), literal(numeric, "2")]))
+			body: call(prefix, name-range(177, point), [], [literal(nat(1, false)), literal(nat(2, false))]))
 		fun-decl(
 			public?: true
 			sig: sig-ast(

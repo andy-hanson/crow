@@ -2,6 +2,7 @@ module model.model;
 
 @safe @nogc pure nothrow:
 
+import model.constant : Constant;
 import model.diag : FilesInfo; // TODO: move that here?
 import util.bools : and, Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, first, only, range, size, sizeEq, toArr;
@@ -1141,36 +1142,10 @@ struct FunKindAndStructs {
 struct CommonTypes {
 	@safe @nogc pure nothrow:
 
-	@disable this(ref const CommonTypes);
-	immutable this(
-		immutable Ptr!StructInst b,
-		immutable Ptr!StructInst c,
-		immutable Ptr!StructInst i32,
-		immutable Ptr!StructInst s,
-		immutable Ptr!StructInst v,
-		immutable Ptr!StructInst ap,
-		immutable Arr!(Ptr!StructDecl) o,
-		immutable Ptr!StructDecl bv,
-		immutable Ptr!StructDecl a,
-		immutable Ptr!StructDecl f,
-		immutable Arr!FunKindAndStructs fks,
-	) {
-		bool_ = b;
-		char_ = c;
-		int32 = i32;
-		str = s;
-		void_ = v;
-		anyPtr = ap;
-		optionSomeNone = o;
-		byVal = bv;
-		arr = a;
-		fut = f;
-		funKindsAndStructs = fks;
-	}
-
 	immutable Ptr!StructInst bool_;
 	immutable Ptr!StructInst char_;
-	immutable Ptr!StructInst int32;
+	immutable Ptr!StructInst float64;
+	immutable Ptr!IntegralTypes integrals;
 	immutable Ptr!StructInst str;
 	immutable Ptr!StructInst void_;
 	immutable Ptr!StructInst anyPtr;
@@ -1179,6 +1154,17 @@ struct CommonTypes {
 	immutable Ptr!StructDecl arr;
 	immutable Ptr!StructDecl fut;
 	immutable Arr!FunKindAndStructs funKindsAndStructs;
+}
+
+struct IntegralTypes {
+	immutable Ptr!StructInst int8;
+	immutable Ptr!StructInst int16;
+	immutable Ptr!StructInst int32;
+	immutable Ptr!StructInst int64;
+	immutable Ptr!StructInst nat8;
+	immutable Ptr!StructInst nat16;
+	immutable Ptr!StructInst nat32;
+	immutable Ptr!StructInst nat64;
 }
 
 immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable Ptr!StructDecl s) {
@@ -1287,6 +1273,11 @@ struct Expr {
 		immutable Ptr!Expr then;
 	}
 
+	struct Literal {
+		immutable Ptr!StructInst structInst;
+		immutable Constant value;
+	}
+
 	struct LocalRef {
 		immutable Ptr!Local local;
 	}
@@ -1326,6 +1317,7 @@ struct Expr {
 		implicitConvertToUnion,
 		lambda,
 		let,
+		literal,
 		localRef,
 		match,
 		paramRef,
@@ -1344,6 +1336,7 @@ struct Expr {
 		immutable ImplicitConvertToUnion implicitConvertToUnion;
 		immutable Lambda lambda;
 		immutable Let let;
+		immutable Ptr!Literal literal;
 		immutable LocalRef localRef;
 		immutable Match match_;
 		immutable ParamRef paramRef;
@@ -1368,6 +1361,9 @@ struct Expr {
 		range_ = r; kind = Kind.lambda; lambda = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable Let a) { range_ = r; kind = Kind.let; let = a; }
+	@trusted immutable this(immutable FileAndRange r, immutable Ptr!Literal a) {
+		range_ = r; kind = Kind.literal; literal = a;
+	}
 	@trusted immutable this(immutable FileAndRange r, immutable LocalRef a) {
 		range_ = r; kind = Kind.localRef; localRef = a;
 	}
@@ -1399,6 +1395,7 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	scope T delegate(ref immutable Expr.ImplicitConvertToUnion) @safe @nogc pure nothrow cbImplicitConvertToUnion,
 	scope T delegate(ref immutable Expr.Lambda) @safe @nogc pure nothrow cbLambda,
 	scope T delegate(ref immutable Expr.Let) @safe @nogc pure nothrow cbLet,
+	scope T delegate(ref immutable Expr.Literal) @safe @nogc pure nothrow cbLiteral,
 	scope T delegate(ref immutable Expr.LocalRef) @safe @nogc pure nothrow cbLocalRef,
 	scope T delegate(ref immutable Expr.Match) @safe @nogc pure nothrow cbMatch,
 	scope T delegate(ref immutable Expr.ParamRef) @safe @nogc pure nothrow cbParamRef,
@@ -1422,6 +1419,8 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 			return cbLambda(a.lambda);
 		case Expr.Kind.let:
 			return cbLet(a.let);
+		case Expr.Kind.literal:
+			return cbLiteral(a.literal);
 		case Expr.Kind.localRef:
 			return cbLocalRef(a.localRef);
 		case Expr.Kind.match:
@@ -1446,6 +1445,7 @@ immutable(Bool) typeIsBogus(ref immutable Expr a) {
 		(ref immutable Expr.ImplicitConvertToUnion) => False,
 		(ref immutable Expr.Lambda) => False,
 		(ref immutable Expr.Let e) => e.then.typeIsBogus,
+		(ref immutable Expr.Literal) => False,
 		(ref immutable Expr.LocalRef e) => e.local.type.isBogus,
 		(ref immutable Expr.Match e) => e.type.isBogus,
 		(ref immutable Expr.ParamRef e) => e.param.type.isBogus,
@@ -1464,6 +1464,7 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.ImplicitConvertToUnion e) => immutable Type(e.unionType),
 		(ref immutable Expr.Lambda e) => immutable Type(e.type),
 		(ref immutable Expr.Let e) => e.then.getType(commonTypes),
+		(ref immutable Expr.Literal e) => immutable Type(e.structInst),
 		(ref immutable Expr.LocalRef e) => e.local.type,
 		(ref immutable Expr.Match) => todo!(immutable Type)("getType match"),
 		(ref immutable Expr.ParamRef e) => e.param.type,

@@ -38,16 +38,16 @@ file-ast(
 			summon: true
 			body: let(
 				name-range(216, a)
-				call(prefix, name-range(220, my-record), [], [literal(numeric, "1"), literal(numeric, "2")])
+				call(prefix, name-range(220, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])
 				let(
 					name-range(237, b)
-					call(prefix, name-range(241, my-record), [], [literal(numeric, "1"), literal(numeric, "3")])
+					call(prefix, name-range(241, my-record), [], [literal(nat(1, false)), literal(nat(3, false))])
 					let(
 						name-range(258, c)
-						call(prefix, name-range(262, my-record), [], [literal(numeric, "1"), literal(numeric, "2")])
+						call(prefix, name-range(262, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])
 						let(
 							name-range(279, d)
-							call(prefix, name-range(283, my-record), [], [literal(numeric, "0"), literal(numeric, "3")])
+							call(prefix, name-range(283, my-record), [], [literal(nat(0, false)), literal(nat(3, false))])
 							seq-ast(
 								seq-ast(
 									call(
@@ -86,20 +86,20 @@ file-ast(
 			summon: true
 			body: let(
 				name-range(426, a)
-				call(prefix, name-range(430, my-byref-record), [], [literal(numeric, "1"), literal(numeric, "2")])
+				call(prefix, name-range(430, my-byref-record), [], [literal(nat(1, false)), literal(nat(2, false))])
 				let(
 					name-range(453, b)
-					call(prefix, name-range(457, my-byref-record), [], [literal(numeric, "1"), literal(numeric, "3")])
+					call(prefix, name-range(457, my-byref-record), [], [literal(nat(1, false)), literal(nat(3, false))])
 					let(
 						name-range(480, c)
-						call(prefix, name-range(484, my-byref-record), [], [literal(numeric, "1"), literal(numeric, "2")])
+						call(prefix, name-range(484, my-byref-record), [], [literal(nat(1, false)), literal(nat(2, false))])
 						let(
 							name-range(507, d)
 							call(
 								prefix
 								name-range(511, my-byref-record)
 								[]
-								[literal(numeric, "0"), literal(numeric, "3")])
+								[literal(nat(0, false)), literal(nat(3, false))])
 							seq-ast(
 								seq-ast(
 									call(
@@ -142,7 +142,7 @@ file-ast(
 					prefix
 					name-range(657, as)
 					[inststruct(range(660, 668), name-range(660, my-union))]
-					[call(prefix, name-range(671, my-record), [], [literal(numeric, "1"), literal(numeric, "2")])])
+					[call(prefix, name-range(671, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])])
 				let(
 					name-range(688, b)
 					call(prefix, name-range(692, as), [inststruct(range(695, 703), name-range(695, my-union))], [my-other-record])
@@ -152,7 +152,7 @@ file-ast(
 							prefix
 							name-range(727, as)
 							[inststruct(range(730, 738), name-range(730, my-union))]
-							[call(prefix, name-range(741, my-record), [], [literal(numeric, "1"), literal(numeric, "2")])])
+							[call(prefix, name-range(741, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])])
 						let(
 							name-range(758, d)
 							call(
@@ -164,7 +164,7 @@ file-ast(
 										prefix
 										name-range(776, my-record)
 										[]
-										[literal(numeric, "1"), literal(numeric, "1")])])
+										[literal(nat(1, false)), literal(nat(1, false))])])
 							seq-ast(
 								seq-ast(
 									call(
@@ -211,4 +211,4 @@ file-ast(
 			summon: true
 			body: seq-ast(
 				seq-ast(seq-ast(test-compare-records, test-compare-byref-records), test-compare-unions)
-				call(prefix, name-range(990, resolved), [], [literal(numeric, "0")])))])
+				call(prefix, name-range(990, resolved), [], [literal(nat(0, false))])))])

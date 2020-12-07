@@ -39,9 +39,7 @@ module(
 							call(fun-inst(name: foo), [local-ref(r)])
 							call(fun-inst(name: print-sync), [call(fun-inst(name: a), [local-ref(r)])]))
 						call(fun-inst(name: print-sync), [call(fun-inst(name: b), [local-ref(r)])]))
-					call(
-						fun-inst(name: resolved, type-args: [int32()])
-						[call(fun-inst(name: literal), [string-lit("0")])]))))
+					call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)]))))
 		fun(
 			public?: true
 			preferred: true

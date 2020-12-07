@@ -40,6 +40,7 @@ import model.model :
 	TypeParam,
 	typeParams,
 	unsafe;
+import model.sexprOfConstant : tataOfConstant;
 import util.bools : True;
 import util.collection.arr : Arr, empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -194,7 +195,7 @@ immutable(Sexpr) sexprOfStructInst(Alloc)(ref Alloc alloc, ref Ctx ctx, immutabl
 }
 
 immutable(Sexpr) sexprOfExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Expr expr) {
-	return matchExpr(
+	return matchExpr!(immutable Sexpr)(
 		expr,
 		(ref immutable Expr.Bogus) =>
 			tataSym("bogus"),
@@ -232,6 +233,10 @@ immutable(Sexpr) sexprOfExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable 
 				sexprOfLocal(alloc, ctx, it.local),
 				sexprOfExpr(alloc, ctx, it.value),
 				sexprOfExpr(alloc, ctx, it.then)]),
+		(ref immutable Expr.Literal it) =>
+			tataRecord(alloc, "literal", [
+				sexprOfStructInst(alloc, ctx, it.structInst),
+				tataOfConstant(alloc, it.value)]),
 		(ref immutable Expr.LocalRef it) =>
 			tataRecord(alloc, "local-ref", [tataSym(it.local.name)]),
 		(ref immutable Expr.Match a) =>

@@ -29,30 +29,16 @@ module(
 			sig: sig(file-pos(20, 180), test-compare-records, void(), [])
 			body: let(
 				local(file-range(20, range(216, 217)), a, my-record())
-				call(
-					fun-inst(name: my-record)
-					[call(fun-inst(name: literal), [string-lit("1")]), call(fun-inst(name: literal), [string-lit("2")])])
+				call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 2)])
 				let(
 					local(file-range(20, range(237, 238)), b, my-record())
-					call(
-						fun-inst(name: my-record)
-						[
-							call(fun-inst(name: literal), [string-lit("1")])
-							call(fun-inst(name: literal), [string-lit("3")])])
+					call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 3)])
 					let(
 						local(file-range(20, range(258, 259)), c, my-record())
-						call(
-							fun-inst(name: my-record)
-							[
-								call(fun-inst(name: literal), [string-lit("1")])
-								call(fun-inst(name: literal), [string-lit("2")])])
+						call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 2)])
 						let(
 							local(file-range(20, range(279, 280)), d, my-record())
-							call(
-								fun-inst(name: my-record)
-								[
-									call(fun-inst(name: literal), [string-lit("0")])
-									call(fun-inst(name: literal), [string-lit("3")])])
+							call(fun-inst(name: my-record), [literal(nat(), 0), literal(nat(), 3)])
 							seq(
 								seq(
 									call(
@@ -88,30 +74,16 @@ module(
 			sig: sig(file-pos(20, 384), test-compare-byref-records, void(), [])
 			body: let(
 				local(file-range(20, range(426, 427)), a, my-byref-record())
-				call(
-					fun-inst(name: my-byref-record)
-					[call(fun-inst(name: literal), [string-lit("1")]), call(fun-inst(name: literal), [string-lit("2")])])
+				call(fun-inst(name: my-byref-record), [literal(nat(), 1), literal(nat(), 2)])
 				let(
 					local(file-range(20, range(453, 454)), b, my-byref-record())
-					call(
-						fun-inst(name: my-byref-record)
-						[
-							call(fun-inst(name: literal), [string-lit("1")])
-							call(fun-inst(name: literal), [string-lit("3")])])
+					call(fun-inst(name: my-byref-record), [literal(nat(), 1), literal(nat(), 3)])
 					let(
 						local(file-range(20, range(480, 481)), c, my-byref-record())
-						call(
-							fun-inst(name: my-byref-record)
-							[
-								call(fun-inst(name: literal), [string-lit("1")])
-								call(fun-inst(name: literal), [string-lit("2")])])
+						call(fun-inst(name: my-byref-record), [literal(nat(), 1), literal(nat(), 2)])
 						let(
 							local(file-range(20, range(507, 508)), d, my-byref-record())
-							call(
-								fun-inst(name: my-byref-record)
-								[
-									call(fun-inst(name: literal), [string-lit("0")])
-									call(fun-inst(name: literal), [string-lit("3")])])
+							call(fun-inst(name: my-byref-record), [literal(nat(), 0), literal(nat(), 3)])
 							seq(
 								seq(
 									call(
@@ -149,15 +121,7 @@ module(
 				local(file-range(20, range(653, 654)), a, my-union())
 				call(
 					fun-inst(name: as, type-args: [my-union()])
-					[
-						to-union(
-							my-union()
-							0
-							call(
-								fun-inst(name: my-record)
-								[
-									call(fun-inst(name: literal), [string-lit("1")])
-									call(fun-inst(name: literal), [string-lit("2")])]))])
+					[to-union(my-union(), 0, call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 2)]))])
 				let(
 					local(file-range(20, range(688, 689)), b, my-union())
 					call(
@@ -171,11 +135,7 @@ module(
 								to-union(
 									my-union()
 									0
-									call(
-										fun-inst(name: my-record)
-										[
-											call(fun-inst(name: literal), [string-lit("1")])
-											call(fun-inst(name: literal), [string-lit("2")])]))])
+									call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 2)]))])
 						let(
 							local(file-range(20, range(758, 759)), d, my-union())
 							call(
@@ -184,11 +144,7 @@ module(
 									to-union(
 										my-union()
 										0
-										call(
-											fun-inst(name: my-record)
-											[
-												call(fun-inst(name: literal), [string-lit("1")])
-												call(fun-inst(name: literal), [string-lit("1")])]))])
+										call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 1)]))])
 							seq(
 								seq(
 									call(
@@ -228,7 +184,7 @@ module(
 						call(fun-inst(name: test-compare-records), [])
 						call(fun-inst(name: test-compare-byref-records), []))
 					call(fun-inst(name: test-compare-unions), []))
-				call(fun-inst(name: resolved, type-args: [int32()]), [call(fun-inst(name: literal), [string-lit("0")])])))
+				call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)])))
 		fun(
 			public?: true
 			preferred: true

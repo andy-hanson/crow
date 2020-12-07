@@ -23,6 +23,7 @@ import model.lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,
 	asNonFunPtrType,
+	asPrimitive,
 	asRecordType,
 	asUnionType,
 	isChar,
@@ -83,13 +84,14 @@ import util.sym :
 	shortSymAlphaLiteralValue,
 	Sym,
 	symEq;
-import util.types : u8;
-import util.util : verify;
+import util.types : i64OfU64Bits, u8;
+import util.util : todo, unreachable, verify;
 import util.writer :
 	finishWriter,
 	newline,
 	writeChar,
 	writeEscapedChar_inner,
+	writeInt,
 	writeNat,
 	Writer,
 	writeStatic,
@@ -1328,8 +1330,14 @@ void writeConstantRef(Alloc)(
 		(immutable Constant.BoolConstant it) {
 			writeChar(writer, it.value ? '1' : '0');
 		},
+		(immutable double it) {
+			todo!void("write float");
+		},
 		(immutable Constant.Integral it) {
-			writeNat(writer, it.value);
+			if (isSignedIntegral(asPrimitive(type)))
+				writeInt(writer, i64OfU64Bits(it.value));
+			else
+				writeNat(writer, it.value);
 		},
 		(immutable Constant.Null) {
 			writeStatic(writer, "NULL");
@@ -1356,6 +1364,25 @@ void writeConstantRef(Alloc)(
 		(immutable Constant.Void) {
 			writeChar(writer, '0');
 		});
+}
+
+immutable(Bool) isSignedIntegral(immutable PrimitiveType a) {
+	switch (a) {
+		case PrimitiveType.int8:
+		case PrimitiveType.int16:
+		case PrimitiveType.int32:
+		case PrimitiveType.int64:
+			return True;
+		case PrimitiveType.bool_:
+		case PrimitiveType.char_:
+		case PrimitiveType.nat8:
+		case PrimitiveType.nat16:
+		case PrimitiveType.nat32:
+		case PrimitiveType.nat64:
+			return False;
+		default:
+			return unreachable!(immutable Bool);
+	}
 }
 
 void writeSpecialUnary(Alloc)(
