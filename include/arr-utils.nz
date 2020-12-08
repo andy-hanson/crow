@@ -1,9 +1,9 @@
 import
 	.alloc: alloc
 	.bootstrap
-		+ - == < <= > >= ? and arr bool byte by-val call data deref drop eight false four fun-mut1
+		+ - == < <= > >= ? and arr bool byte by-val call data deref drop false fun-mut1
 		fun-mut2 hard-assert hard-fail hard-forbid incr nat noctx-decr noctx-incr none not null
-		one opt or pass ptr ptr-cast ref-of-ptr set size size-of some two true void wrap-mul zero zero?
+		opt or pass ptr ptr-cast ref-of-ptr set size size-of some true void wrap-mul
 	.exceptions: assert forbid
 	.number-utils: + - * / decr incr
 	.opt-utils: force
@@ -12,10 +12,10 @@ arr-from-begin-end arr ?t(begin ptr ?t, end ptr ?t) unsafe noctx
 	arr: (end - begin), begin
 
 empty-arr arr ?t() noctx trusted
-	arr: zero, null
+	arr: 0, null
 
 empty? bool(a arr ?t) noctx
-	a.size zero?
+	a.size == 0
 
 has? bool(a arr ?t) noctx
 	a.empty? not
@@ -37,14 +37,14 @@ slice-after arr ?t(a arr ?t, before-begin nat)
 
 slice-up-to arr ?t(a arr ?t, size nat)
 	assert: size < a.size
-	a slice: zero, size
+	a slice: 0, size
 
 with-max-size arr ?t(a arr ?t, max-size nat)
-	a.size <= max-size ?: a, a slice zero, max-size
+	a.size <= max-size ?: a, a slice 0, max-size
 
 first ?t(a arr ?t)
 	forbid: a empty?
-	a at zero
+	a at 0
 
 first-some opt ?out(a arr ?in, cb fun-mut1 opt<?out> ?in)
 	if a empty?
@@ -62,11 +62,11 @@ last ?t(a arr ?t)
 
 tail arr ?t(a arr ?t)
 	forbid: a empty?
-	a slice-starting-at one
+	a slice-starting-at 1
 
 rtail arr ?t(a arr ?t)
 	forbid: a empty?
-	a slice zero, a.size.decr
+	a slice 0, a.size.decr
 
 noctx-at ?t(a arr ?t, index nat) trusted noctx
 	hard-assert: index < a.size
@@ -100,7 +100,7 @@ mut-slice<?t> record mut
 
 to-mut-slice mut-slice ?t(a mut-arr ?t)
 	forbid: a.frozen?
-	mut-slice: a, a.size, zero
+	mut-slice: a, a.size, 0
 
 slice mut-slice ?t(a mut-slice ?t, lo nat, size nat) trusted
 	assert: lo + size <= a.size
@@ -132,17 +132,17 @@ sort void(a mut-arr ?t) trusted data<?t>
 	a.to-mut-slice sort
 
 sort void(a mut-slice ?t) data<?t>
-	if a.size <= one
+	if a.size <= 1
 		pass
 	else
 		| Perf -- in case a is sorted already, prefer the middle element as a pivot
-		a swap zero, (a.size / two)
-		pivot = a at zero
-		index-of-first-value-gt-pivot = a partition-recur pivot, one, a.size.decr
+		a swap: 0, a.size / 2
+		pivot = a at 0
+		index-of-first-value-gt-pivot = a partition-recur pivot, 1, a.size.decr
 		new-pivot-index = index-of-first-value-gt-pivot.decr
-		a swap zero, new-pivot-index
+		a swap 0, new-pivot-index
 
-		sort: a slice zero, new-pivot-index
+		sort: a slice 0, new-pivot-index
 		sort: a slice new-pivot-index.incr
 
 
@@ -181,13 +181,13 @@ new-uninitialized-mut-arr mut-arr ?t(size nat) unsafe
 	mut-arr: false, size, size, uninitialized-data<?t>: size
 
 new-mut-arr mut-arr ?t() trusted
-	mut-arr: false, zero, zero, null
+	mut-arr: false, 0, 0, null
 
 new-mut-arr-by-val by-val mut-arr<?t>() noctx trusted
-	mut-arr<?t>: false, zero, zero, null
+	mut-arr<?t>: false, 0, 0, null
 
 empty? bool(a mut-arr ?t) noctx
-	a.size zero?
+	a.size == 0
 
 has? bool(a mut-arr ?t) noctx
 	a.empty? not
@@ -216,10 +216,10 @@ some? bool(a arr ?t, pred fun-mut1 bool ?t)
 
 | TODO: only written this way to be `noctx`, else could defer to `some?`
 contains? bool(a arr ?t, value ?t) noctx data<?t>
-	a contains-recur? value, zero
+	a contains-recur? value, 0
 
 contains? bool(a mut-arr ?t, value ?t) noctx trusted data<?t>
-	a.temp-as-arr contains-recur? value, zero
+	a.temp-as-arr contains-recur? value, 0
 
 contains-recur? bool(a arr ?t, value ?t, i nat) noctx trusted data<?t>
 	if i == a.size
@@ -232,7 +232,7 @@ contains-subsequence? bool(a arr ?t, subseq arr ?t) data<?t>
 	a starts-with? subseq or: a.has? and: a.tail starts-with? subseq
 
 starts-with? bool(a arr ?t, start arr ?t) data<?t>
-	a.size >= start.size and: a slice zero, start.size arr-eq? start
+	a.size >= start.size and: a slice 0, start.size arr-eq? start
 
 ends-with? bool(a arr ?t, end arr ?t) data<?t>
 	a.size >= end.size and: a slice (a.size - end.size), end.size arr-eq? end
@@ -265,7 +265,7 @@ noctx-must-remove-unordered-recur void(a mut-arr ?t, index nat, value ?t) noctx 
 		a noctx-must-remove-unordered-recur index.noctx-incr, value
 
 noctx-must-remove-unordered void(a mut-arr ?t, value ?t) noctx unsafe data<?t>
-	a noctx-must-remove-unordered-recur zero, value
+	a noctx-must-remove-unordered-recur 0, value
 
 | Unsafe as this does *not* freeze it!
 unsafe-as-arr arr ?t(a mut-arr ?t) noctx unsafe
@@ -284,15 +284,15 @@ at ?t(a mut-arr ?t, index nat) trusted
 	a noctx-at index
 
 copy-data-from void(to ptr ?t, from ptr ?t, len nat) unsafe
-	if len < eight
+	if len < 8
 		to copy-data-from-small from, len
 	else
-		hl = len / two
+		hl = len / 2
 		to copy-data-from from, hl
 		(to + hl) copy-data-from (from + hl), (len - hl)
 
 copy-data-from-small void(to ptr ?t, from ptr ?t, len nat) unsafe
-	if len zero?
+	if len == 0
 		pass
 	else
 		to set: from deref
@@ -302,7 +302,7 @@ copy-data-from-small void(to ptr ?t, from ptr ?t, len nat) unsafe
 
 push void(a mut-arr ?t, value ?t) trusted
 	if a.size == a.capacity
-		a increase-capacity-to: a.size.zero? ?: four, a.size * two
+		a increase-capacity-to: a.size == 0 ?: 4, a.size * 2
 	else
 		pass
 	a ensure-capacity a.size.incr.round-up-to-power-of-two
@@ -322,12 +322,12 @@ increase-capacity-to void(a mut-arr ?t, new-capacity nat) unsafe
 
 | TODO:MOVE
 round-up-to-power-of-two nat(n nat)
-	one round-up-to-power-of-two-recur n
+	1 round-up-to-power-of-two-recur n
 round-up-to-power-of-two-recur nat(acc nat, n nat)
 	if acc >= n
 		acc
 	else
-		acc * two round-up-to-power-of-two-recur n
+		acc * 2 round-up-to-power-of-two-recur n
 
 ensure-capacity void(a mut-arr ?t, capacity nat) unsafe
 	if a.capacity < capacity
@@ -361,7 +361,7 @@ make-arr arr ?t(size nat, f fun-mut1 ?t nat)
 
 make-mut-arr mut-arr ?t(size nat, f fun-mut1 ?t nat) trusted
 	res = new-uninitialized-mut-arr<?t>: size
-	res make-mut-arr-worker zero, f
+	res make-mut-arr-worker 0, f
 	res
 
 fill-arr arr ?t(size nat, value ?t)
@@ -397,7 +397,7 @@ each void(a mut-arr ?t, f fun-mut1 void ?t) trusted
 	a set-frozen? was-frozen?
 
 each-with-index void(a arr ?t, f fun-mut2 void ?t nat)
-	a each-with-index-recur f, zero
+	a each-with-index-recur f, 0
 
 each-with-index-recur void(a arr ?t, f fun-mut2 void ?t nat, n nat)
 	if n == a.size
@@ -422,7 +422,7 @@ r-index-of opt nat(a arr ?t, value ?t) data<?t>
 	a find-rindex {it == value}
 
 find-index opt nat(a arr ?t, pred fun-mut1 bool ?t)
-	a find-index-recur zero, pred
+	a find-index-recur 0, pred
 
 find-index-recur opt nat(a arr ?t, index nat, pred fun-mut1 bool ?t)
 	if index == a.size
@@ -440,7 +440,7 @@ find-rindex opt nat(a arr ?t, pred fun-mut1 bool ?t)
 find-rindex-recur opt nat(a arr ?t, index nat, pred fun-mut1 bool ?t)
 	if pred call: a at index
 		index some
-	elif index zero?
+	elif index == 0
 		none
 	else
 		a find-rindex-recur index.decr, pred

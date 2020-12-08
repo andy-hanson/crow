@@ -1336,8 +1336,10 @@ void writeConstantRef(Alloc)(
 		(immutable Constant.Integral it) {
 			if (isSignedIntegral(asPrimitive(type)))
 				writeInt(writer, i64OfU64Bits(it.value));
-			else
+			else {
 				writeNat(writer, it.value);
+				writeChar(writer, 'u');
+			}
 		},
 		(immutable Constant.Null) {
 			writeStatic(writer, "NULL");

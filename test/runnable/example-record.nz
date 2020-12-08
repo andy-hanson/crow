@@ -25,4 +25,4 @@ main fut exit-code(args arr str) summon
 	| This is equivalent to `print_sync(to_str(p_x))` in C.
 	| The syntax choice is not tied to the function; you can use any call syntax for any function.
 	print-sync: p-x to-str
-	zero resolved
+	0 resolved

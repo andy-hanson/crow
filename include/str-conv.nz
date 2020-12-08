@@ -1,11 +1,10 @@
 import
 	.arr-utils: + at empty? last rtail tail
 	.bootstrap
-		== ? as bool char eight false five float four int int16 int32 nat nat16 nat32 nine one
-		seven six str ten three todo to-float to-int to-nat true truncate-to-int two unsafe-to-int32
-		unsafe-to-nat16 unsafe-to-nat32 zero
+		== ? as bool char false float int int16 int32 nat nat16 nat32
+		str todo to-float to-int to-nat true truncate-to-int unsafe-to-int32
+		unsafe-to-nat16 unsafe-to-nat32
 	.number-utils: + * / abs mod neg negative? to-int
-	.str-utils: literal
 
 to-str str(b bool)
 	b ? "true", "false"
@@ -40,8 +39,8 @@ to-str str(n nat)
 	elif n == 9
 		"9"
 	else
-		hi = to-str: n / ten
-		lo = to-str: n mod ten
+		hi = to-str: n / 10
+		lo = to-str: n mod 10
 		hi + lo
 
 to-str str(n nat32)
@@ -67,34 +66,34 @@ to-str str(a float)
 
 char-to-nat nat(c char) noctx
 	if c == "0"
-		zero
+		0
 	elif c == "1"
-		one
+		1
 	elif c == "2"
-		two
+		2
 	elif c == "3"
-		three
+		3
 	elif c == "4"
-		four
+		4
 	elif c == "5"
-		five
+		5
 	elif c == "6"
-		six
+		6
 	elif c == "7"
-		seven
+		7
 	elif c == "8"
-		eight
+		8
 	elif c == "9"
-		nine
+		9
 	else
 		todo
 
 literal nat(s str)
 	if s empty?
-		zero
+		0
 	else
 		higher-digits = s.rtail.literal as<nat>
-		higher-digits * ten + (char-to-nat: s last)
+		higher-digits * 10 + (char-to-nat: s last)
 
 literal nat16(s str)
 	| TODO: make safe
@@ -105,7 +104,7 @@ literal nat32(s str)
 	s.literal.as<nat> unsafe-to-nat32
 
 literal int(s str)
-	fst = s at zero
+	fst = s at 0
 	if fst == "-"
 		n = as<nat>: s.tail.literal
 		n neg

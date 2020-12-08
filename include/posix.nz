@@ -1,9 +1,7 @@
 import
 	.bootstrap
 		== != and any-ptr as bits-and bit-shift-left bit-shift-right bits-intersect? bool by-val char
-		c-str eight five four fun-ptr1 int int16 int32 int64 nat nat16 nat32 nat64 nine noctx-decr
-		one ptr seven six sixteen ten twelve two fifteen fourteen wrap-add wrap-mul wrap-sub void
-		thirteen three two-pow zero zero?
+		c-str fun-ptr1 int int16 int32 int64 nat nat16 nat32 nat64 noctx-decr ptr void
 	.cell: cell
 
 | TODO:
@@ -94,7 +92,7 @@ bytes256 record
 	n1 bytes128
 
 zero bytes16() noctx
-	bytes16: zero, zero
+	bytes16: 0, 0
 
 zero bytes32() noctx
 	bytes32: zero, zero
@@ -154,33 +152,32 @@ err-t alias
 	int32
 
 enoent err-t() noctx
-	two
+	2
 eagain err-t() noctx
-	ten wrap-add one
+	11
 einval err-t() noctx
-	ten wrap-add ten wrap-add two
+	22
 esrch err-t() noctx
-	three
+	3
 
 errno err-t() unsafe global<"errno"> noctx
 
 stat int32(path c-str, buf stat-t) extern<"stat"> noctx
 
 empty-stat stat-t()
-	z = zero as<nat>
-	stat-t: z, zero, z, zero, zero, z, z, z, zero, zero, z, z, z, z, z, z, z, z, z, z
+	stat-t: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 s-ifmt nat32()
 	| TODO: "octal170000"
-	twelve.two-pow wrap-mul fifteen
+	61440
 
 s-ifdir nat32()
 	| TODO: "octal40000"
-	fourteen.two-pow
+	16384
 
 s-ifreg nat32()
 	| TODO: "octal100000"
-	fifteen.two-pow
+	32768
 
 | TODO: type file-actions and attrp, currently these are always null
 | /usr/include/spawn.h
@@ -203,20 +200,21 @@ waitpid pid-t(pid pid-t, wait-status cell status-t, options int32) unsafe extern
 status-t alias
 	int32
 
+| TODO: hex literals
 x7f status-t() noctx trusted
-	seven.two-pow.noctx-decr
+	127
 
 x80 status-t() noctx trusted
-	seven.two-pow.noctx-decr
+	128
 
 xff status-t() noctx trusted
-	eight.two-pow.noctx-decr
+	255
 
 xffff status-t() noctx trusted
-	sixteen.two-pow.noctx-decr
+	65535
 
 xff00 status-t() noctx
-	xffff wrap-sub xff
+	65280
 
 w-term-sig status-t(status status-t)
 	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
@@ -224,15 +222,15 @@ w-term-sig status-t(status status-t)
 
 w-exit-status status-t(status status-t)
 	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
-	status bits-and xff00 bit-shift-right eight
+	status bits-and xff00 bit-shift-right 8
 
 w-if-exited bool(status status-t)
 	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
-	status.w-term-sig zero?
+	status.w-term-sig == 0
 
 w-if-signaled bool(status status-t)
 	ts = status w-term-sig
-	ts != zero and: ts != x7f
+	ts != 0 and: ts != x7f
 
 w-core-dump bool(status status-t)
 	status bits-intersect? x80
@@ -304,11 +302,11 @@ pipes record mut
 pipe err-t(pipes pipes) summon extern<"pipe"> noctx
 
 stdin-fd fd-t() noctx
-	zero
+	0
 stdout-fd fd-t() noctx
-	one
+	1
 stderr-fd fd-t() noctx
-	two
+	2
 
 | /usr/include/asm-generic/poll.h
 pollfd record mut
@@ -318,17 +316,23 @@ pollfd record mut
 	revents mut int16
 
 pollin int16()
-	zero two-pow
+	| TODO: binary literals
+	1
 pollpri int16()
-	one two-pow
+	| TODO: binary literals
+	2
 pollout int16()
-	two two-pow
+	| TODO: binary literals
+	4
 pollerr int16()
-	three two-pow
+	| TODO: binary literals
+	8
 pollhup int16()
-	four two-pow
+	| TODO: binary literals
+	16
 pollnval int16()
-	five two-pow
+	| TODO: binary literals
+	32
 
 | /usr/include/x86_64-linux-gnu/sys/poll.h
 poll int32(fds ptr by-val<pollfd>, n-fds u-long, timeout int32) summon extern<"poll"> noctx
@@ -352,15 +356,15 @@ oflag-t alias
 
 | /usr/include/bits/fcntl-linux.h
 o-rdonly oflag-t()
-	zero
+	0
 o-wronly oflag-t()
-	one
+	1
 o-rdwr oflag-t()
-	one bit-shift-left one
+	1 bit-shift-left 1
 o-creat oflag-t()
-	one bit-shift-left six
+	1 bit-shift-left 6
 o-trunc oflag-t()
-	one bit-shift-left nine
+	1 bit-shift-left 9
 
 
 open fd-t(path c-str, oflag oflag-t, permission nat32) summon extern<"open"> noctx
@@ -389,7 +393,7 @@ socklen-t alias
 
 | /usr/include/x86_64-linux-gnu/bits/socket.h
 af-unspec int32()
-	zero
+	0
 
 | /usr/include/netdb.h
 addrinfo record mut
@@ -405,7 +409,7 @@ addrinfo record mut
 
 | /usr/include/x86_64-linux-gnu/bits/socket_type.h
 sock-stream int32()
-	one
+	1
 
 | /usr/include/x86_64-linux-gnu/sys/socket.h
 socket fd-t(domain int32, type int32, protocol int32) unsafe extern<"socket"> noctx summon
@@ -447,7 +451,7 @@ signal-t alias
 
 | /usr/include/x86_64-linux-gnu/asm/signal.h
 sigpipe signal-t() noctx
-	thirteen
+	13
 
 | /usr/include/signal.h
 sighandler-t alias

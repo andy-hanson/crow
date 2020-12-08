@@ -429,7 +429,7 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 	ref Expected expected,
 ) {
 	immutable Opt!Type expectedType = tryGetInferred(expected);
-	immutable Ptr!StructInst expectedStruct = has(expectedType)
+	immutable Ptr!StructInst expectedStruct = has(expectedType) && isStructInst(force(expectedType))
 		? asStructInst(force(expectedType))
 		: ctx.commonTypes.bool_; // Just picking a random one that won't match any of the below tests
 	immutable Ptr!IntegralTypes integrals = ctx.commonTypes.integrals;

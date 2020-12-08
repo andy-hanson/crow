@@ -1,32 +1,30 @@
 import
 	.bootstrap
-		== < > >= ? billion bool and float int int32 max-nat32 million nat nat32 neg-million
-		neg-one one or todo to-int to-nat unsafe-div unsafe-mod unsafe-to-int unsafe-to-int32
-		unsafe-to-nat unsafe-to-nat32 wrap-add wrap-decr wrap-mul wrap-sub zero zero?
+		== < <= > >= ? bool and float int int32 min-int min-int32 max-int max-int32 max-nat32 max-nat nat nat32
+		or todo to-int to-nat unsafe-div unsafe-mod unsafe-to-int unsafe-to-int32
+		unsafe-to-nat unsafe-to-nat32 wrap-add wrap-decr wrap-mul wrap-sub
 	.exceptions: assert forbid
 
 is-multiple? bool(a nat, b nat)
-	a mod b == zero
+	a mod b == 0
 
 incr nat(n nat)
-	| TODO: billion should be max-value
-	assert: n < billion
-	n wrap-add one
+	forbid: n == max-nat
+	n wrap-add 1
 
 incr int(i int)
-	| TODO: billion should be max-value
-	assert: i < billion
-	i wrap-add one
+	forbid: i == max-int
+	i wrap-add 1
 
 | TODO: use specs for this kind of function
 decr nat(a nat)
-	forbid: a zero?
+	forbid: a == 0
 	a wrap-decr
 decr int(a int)
-	forbid: a zero?
+	forbid: a == 0
 	a wrap-decr
 decr int32(a int32)
-	forbid: a zero?
+	forbid: a == 0
 	a wrap-decr
 
 + nat(a nat, b nat)
@@ -38,72 +36,51 @@ decr int32(a int32)
 	a wrap-sub b
 * nat(a nat, b nat)
 	| TODO: better safety check
-	if a.zero? or: b.zero?
-		zero
+	if a == 0 or: b == 0
+		0
 	else
 		res = a wrap-mul b
 		assert: res / b == a
 		assert: res / a == b
 		res
 / nat(a nat, b nat) trusted
-	forbid: b zero?
+	forbid: b == 0
 	a unsafe-div b
 
 mod nat(a nat, b nat) trusted
-	forbid: b zero?
+	forbid: b == 0
 	a unsafe-mod b
 
 + int(a int, b int)
-	| TODO: better safety check
-	assert: a > neg-million
-	assert: a < million
-	assert: b > neg-million
-	assert: b < million
+	| TODO: safety check
 	a wrap-add b
 + int32(a int32, b int32)
-	| TODO: better safety check
-	assert: a > neg-million
-	assert: a < million
-	assert: b > neg-million
-	assert: b < million
-	a wrap-add b
+	a.to-int wrap-add b.to-int to-int32
 
 - int(a int, b int)
-	| TODO: better safety check
-	assert: a > neg-million
-	assert: a < million
-	assert: b > neg-million
-	assert: b < million
+	| TODO: safety check
 	a wrap-sub b
 - int32(a int32, b int32)
-	| TODO: better safety check
-	assert: a > neg-million
-	assert: a < million
-	assert: b > neg-million
-	assert: b < million
-	a wrap-sub b
+	a.to-int wrap-sub b.to-int to-int32
 
 * int(a int, b int)
-	assert: a > neg-million
-	assert: a < million
-	assert: b > neg-million
-	assert: b < million
+	| TODO: safety check
 	a wrap-mul b
 / int(a int, b int) trusted
-	forbid: b zero?
-	| If a is the smallest int and b is -1, result is UB
-	| TODO: better safety check
-	assert: a > neg-million
+	forbid: b == 0
+	forbid: a == min-int and: b == -1
 	a unsafe-div b
 
 to-int int(n nat)
-	| TODO: assert: n < (32 pow2)
-	assert: n < million
+	assert: n < max-int.to-nat
 	n unsafe-to-int
 
+to-int32 int32(a int)
+	assert: a >= min-int32.to-int
+	assert: a <= max-int32.to-int
+	a unsafe-to-int32
 to-int32 int32(n nat)
-	| TODO: assert: n < (32 pow2)
-	assert: n < million
+	assert: n < max-int32.to-nat
 	n.unsafe-to-int unsafe-to-int32
 
 to-nat nat(i int)
@@ -114,16 +91,14 @@ to-nat nat(i int32)
 	i.to-int to-nat
 
 to-nat32 nat32(n nat)
-	if n < max-nat32.to-nat
-		n unsafe-to-nat32
-	else
-		todo
+	assert: n < max-nat32.to-nat
+	n unsafe-to-nat32
 
 negative? bool(i int)
-	i < zero
+	i < 0
 
 neg int(i int)
-	i * neg-one
+	i * -1
 
 neg int(n nat)
 	n.to-int neg
@@ -133,10 +108,10 @@ abs nat(i int)
 	i-abs to-nat
 
 mod nat(a int, b nat)
-	forbid: b zero?
+	forbid: b == 0
 	if a negative?
 		x = a.abs mod b
-		x == b ?: zero, b - x
+		x == b ?: 0, b - x
 	else
 		a.to-nat mod b
 
@@ -144,6 +119,3 @@ mod nat(a int, b nat)
 - float(a float, b float) noctx builtin
 * float(a float, b float) noctx builtin
 unsafe-div float(a float, b float) noctx unsafe builtin
-zero float() noctx builtin
-one float() noctx builtin
-

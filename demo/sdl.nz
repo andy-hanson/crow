@@ -170,13 +170,13 @@ main fut exit-code(args arr str) summon trusted
 	sdl-quit
 
 	print-sync: "Bye bye"
-	zero resolved
+	0 resolved
 
 main-loop void(renderer sdl-renderer, texture sdl-texture) summon trusted
 	sdl-pump-events
 	key-states-ptr = null sdl-get-keyboard-state
 	key-states = sdl-num-scancodes ptr-as-arr key-states-ptr
-	print-sync: (key-states at sdl-scancode-return zero?) ? "no return", "return is pressed"
+	print-sync: (key-states at sdl-scancode-return == 0) ? "no return", "return is pressed"
 
 	"sdl-render-clear" handle-sdl-error: renderer sdl-render-clear
 	"sdl-render-copy" handle-sdl-error: renderer sdl-render-copy texture, null, null
@@ -208,7 +208,7 @@ create-texture sdl-texture(renderer sdl-renderer) summon trusted
 
 
 handle-sdl-error void(operation str, err c-int) summon trusted
-	err.zero? ?: pass, operation fail-sdl-error
+	err == 0 ?: pass, operation fail-sdl-error
 
 fail-sdl-error void(operation str) summon trusted
 	fail: "sdl error in " + operation + " " + sdl-get-error.to-str
@@ -216,7 +216,7 @@ fail-sdl-error void(operation str) summon trusted
 
 | TODO:MOVE
 repeat void(times nat, action fun-mut0 void)
-	if times zero?
+	if times == 0
 		pass
 	else
 		action call

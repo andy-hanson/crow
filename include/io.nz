@@ -1,10 +1,10 @@
 import
 	.bootstrap
-		+ == < <= ? and arr as as-any-ptr as-ref billion bits-and bit-shift-left bits-or bool byte
-		by-val char c-str data deref eight false four hard-assert hard-unreachable has? incr int32
-		int nat nat16 nat32 neg-one none null null? one opt or pass ptr ptr-cast ptr-eq? ptr-to
-		ref-eq? six size size-of some str ten thousand three todo two two-pow unsafe-to-int value void
-		wrap-add zero zero?
+		+ == < <= ? and arr as as-any-ptr as-ref bits-and bit-shift-left bits-or bool byte
+		by-val char c-str data deref false hard-assert hard-unreachable has? incr int32
+		int nat nat16 nat32 none null null? opt or pass ptr ptr-cast ptr-eq? ptr-to
+		ref-eq? size size-of some str todo unsafe-to-int value void
+		wrap-add
 	.arr-utils
 		+ append arr-from-begin-end data each ensure-capacity fold freeze map mut-arr new-mut-arr
 		new-uninitialized-mut-arr prepend push ref-of-val-at size slice-up-to sort unsafe-increase-size
@@ -22,8 +22,8 @@ import
 		posix-spawn-file-actions-init posix-spawn-file-actions-t read readdir-r readlink read-pipe revents s-ifdir
 		s-ifmt s-ifreg socket sock-stream stat stat-t status-t stderr-fd stdout-fd st-mode waitpid
 		w-exit-status w-if-continued w-if-exited w-if-signaled w-if-stopped write write-pipe w-term-sig zero
-	.str-conv: literal to-str
-	.str-utils: find-char-in-cstr find-cstr-end literal to-c-str to-str
+	.str-conv: to-str
+	.str-utils: find-char-in-cstr find-cstr-end to-c-str to-str
 
 | TODO: summon
 write-sync-no-newline void(fd fd-t, s str) unsafe noctx
@@ -88,11 +88,11 @@ get-dirent-name str(d dirent) unsafe noctx
 	name-ptr.ptr-cast<char, byte> to-str
 
 seek-set int32()
-	zero
+	0
 seek-cur int32()
-	one
+	1
 seek-end int32()
-	two
+	2
 
 
 read-dir arr str(path str) summon
@@ -109,12 +109,12 @@ read-dir arr str(path c-str) trusted summon
 
 read-dir-recur void(dirp dirp, res mut-arr str) unsafe summon
 	| Initial value of entry / result should not matter
-	entry = dirent: zero, zero, zero, "\0", zero
+	entry = dirent: 0, 0, 0, "\0", zero
 	| TODO: should not need a type argument here
 	result = entry cell<dirent>
 	err = dirp readdir-r entry, result
 	| TODO: handle error
-	assert: err zero?
+	assert: err == 0
 	if result.get.as-any-ptr null?
 		| finished
 		pass
@@ -129,7 +129,7 @@ read-dir-recur void(dirp dirp, res mut-arr str) unsafe summon
 
 read-link str(path str) summon trusted
 	| TODO: smart small and retry if necessAry
-	buff = thousand new-uninitialized-mut-arr<char>
+	buff = 1000 new-uninitialized-mut-arr<char>
 	size = path.to-c-str readlink buff.data, buff.size
 	size check-errno-if-neg-one
 	buff.freeze slice-up-to size.to-nat
@@ -150,12 +150,12 @@ write-file void(path str, content str) summon
 	path.to-c-str write-file content
 
 write-file void(path c-str, content str) summon trusted
-	permission-rdwr = six as<nat32>
-	permission-rd = four as<nat32>
-	permission = (permission-rdwr bit-shift-left six) bits-or (permission-rd bit-shift-left three) bits-or permission-rd
+	permission-rdwr = 6 as<nat32>
+	permission-rd = 4 as<nat32>
+	permission = (permission-rdwr bit-shift-left 6) bits-or (permission-rd bit-shift-left 3) bits-or permission-rd
 	flags = o-creat bits-or o-wronly bits-or o-trunc
 	fd = path open flags, permission
-	if fd == neg-one
+	if fd == -1
 		print-sync: "failed to open file for write: " + path.to-str
 		print-sync: "errno: " + errno.to-str
 		print-sync: "flags: " + flags.to-str
@@ -171,7 +171,7 @@ write-file void(path c-str, content str) summon trusted
 			| didn't write all the bytes?
 			todo
 		err = fd close
-		if err == zero
+		if err == 0
 			pass
 		else
 			todo
@@ -182,32 +182,32 @@ try-read-file opt str(path str) summon
 try-read-file opt str(path c-str) summon trusted
 	if path is-file?
 		fd = path open o-rdonly, 0
-		if fd == neg-one
+		if fd == -1
 			if errno == enoent
 				none
 			else
 				print-sync: "failed to open file " + path.to-str
 				todo
 		else
-			file-size = fd lseek zero, seek-end
+			file-size = fd lseek 0, seek-end
 			| TODO: handle errors
-			forbid: file-size == neg-one
+			forbid: file-size == -1
 			| TODO: this is just a sanity check
-			assert: file-size < billion
+			assert: file-size < 1000000000
 			| TODO: handle empty files
-			forbid: file-size zero?
+			forbid: file-size == 0
 
 			| Go back to beginning
-			off = fd lseek zero, seek-set
+			off = fd lseek 0, seek-set
 			| TODO: handle errors
-			assert: off == zero
+			assert: off == 0
 
 			| TODO: allocation can fail, then 'fd' is left open. Need finalizers
 			file-size-nat = file-size.to-nat
 			res = file-size-nat new-uninitialized-mut-arr<char>
 			n-bytes-read = fd read res.data.ptr-cast, file-size-nat
 			| TODO: handle errors
-			forbid: n-bytes-read == neg-one
+			forbid: n-bytes-read == -1
 			assert: n-bytes-read == file-size
 			check-posix-error: fd close
 			res.freeze some
@@ -215,8 +215,7 @@ try-read-file opt str(path c-str) summon trusted
 		none
 
 get-cwd str() summon trusted
-	max-size = eight.two-pow as<nat>
-	buff = max-size new-uninitialized-mut-arr<char>
+	buff = 256 new-uninitialized-mut-arr<char>
 	b = buff.data getcwd buff.size
 	if b null?
 		todo
@@ -294,7 +293,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	stderr-pipes = make-pipes
 
 	| TODO: Neater, move to own function
-	actions = posix-spawn-file-actions-t: zero, zero, null, zero
+	actions = posix-spawn-file-actions-t: 0, 0, null, zero
 	check-posix-error: actions posix-spawn-file-actions-init
 	check-posix-error: actions posix-spawn-file-actions-addclose stdout-pipes.write-pipe
 	check-posix-error: actions posix-spawn-file-actions-addclose stderr-pipes.write-pipe
@@ -303,7 +302,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	check-posix-error: actions posix-spawn-file-actions-addclose stdout-pipes.read-pipe
 	check-posix-error: actions posix-spawn-file-actions-addclose stderr-pipes.read-pipe
 
-	pid-cell = zero cell<pid-t>
+	pid-cell = 0 cell<pid-t>
 	check-posix-error: posix-spawn: pid-cell, exe, actions, null, args, environ
 	pid = pid-cell.get
 
@@ -325,7 +324,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 | Each entry in environ looks like "name=value", and final entry is null.
 | TODO: option to get stdout/stderr as a string rather than having them go to the terminal
 spawn-and-wait exit-code(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
-	pid-cell = zero cell<pid-t>
+	pid-cell = 0 cell<pid-t>
 	check-posix-error: posix-spawn: pid-cell, exe, null.as-ref, null, args, environ
 	pid-cell.get wait-and-get-exit-code
 
@@ -334,15 +333,15 @@ mut-str alias
 	mut-arr char
 
 read-to-buffer-until-eof void(fd fd-t, buffer mut-str) trusted summon
-	read-max = ten.two-pow as<nat>
+	read-max = 1024
 	| It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	buffer ensure-capacity: buffer.size + read-max
 	add-data-to = buffer.data + buffer.size
 	n-bytes-read = fd read add-data-to.as-any-ptr, read-max
-	if n-bytes-read == neg-one
+	if n-bytes-read == -1
 		| Error
 		todo
-	elif n-bytes-read == zero
+	elif n-bytes-read == 0
 		| EOF, done
 		pass
 	else
@@ -352,15 +351,15 @@ read-to-buffer-until-eof void(fd fd-t, buffer mut-str) trusted summon
 
 | TODO:MOVE
 to-nat nat(b bool)
-	b ? one, zero
+	b ? 1, 0
 
 keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, stderr-builder mut-str) summon unsafe
-	poll-fds = new-arr<by-val<pollfd>> (pollfd: stdout-pipe, pollin, zero), (pollfd: stderr-pipe, pollin, zero)
-	stdout-pollfd = poll-fds ref-of-val-at zero
-	stderr-pollfd = poll-fds ref-of-val-at one
-	| timeout == neg-one means we block
-	n-pollfds-with-events = poll: poll-fds.data, poll-fds.size, neg-one
-	if n-pollfds-with-events zero?
+	poll-fds = new-arr<by-val<pollfd>> (pollfd: stdout-pipe, pollin, 0), (pollfd: stderr-pipe, pollin, 0)
+	stdout-pollfd = poll-fds ref-of-val-at 0
+	stderr-pollfd = poll-fds ref-of-val-at 1
+	| timeout == -1 means we block
+	n-pollfds-with-events = poll: poll-fds.data, poll-fds.size, -1
+	if n-pollfds-with-events == 0
 		| TODO: is this even possible to reach? I think we always get has-pollhup? instead.
 		pass
 	else
@@ -396,8 +395,8 @@ handle-revents handle-revents-result(pollfd pollfd, builder mut-str) summon
 	handle-revents-result: had-pollin?, hung-up?
 
 wait-and-get-exit-code exit-code(pid pid-t) summon unsafe
-	wait-status-cell = zero cell<status-t>
-	res-pid = pid waitpid wait-status-cell, zero
+	wait-status-cell = 0 cell<status-t>
+	res-pid = pid waitpid wait-status-cell, 0
 	wait-status = wait-status-cell.get
 	assert: res-pid == pid
 	if wait-status w-if-exited
@@ -422,10 +421,10 @@ get-stat opt stat-t(path c-str) summon trusted
 	| Initial value doesn't really matter
 	s = empty-stat
 	err = path stat s
-	if err == zero
+	if err == 0
 		s some
 	else
-		assert: err == neg-one
+		assert: err == -1
 		if errno == enoent
 			none
 		else
@@ -433,24 +432,24 @@ get-stat opt stat-t(path c-str) summon trusted
 
 check-posix-error void(e err-t)
 	| TODO: throw an exception
-	assert: e zero?
+	assert: e == 0
 
 check-errno-if-neg-one void(e int) summon trusted
-	if e == neg-one
+	if e == -1
 		errno check-posix-error
 		hard-unreachable
 	else
 		pass
 
 check-errno-if-not-zero void(e int) summon trusted
-	if e zero?
+	if e == 0
 		pass
 	else
 		errno check-posix-error
 		hard-unreachable
 
 make-pipes pipes() summon
-	res = pipes: zero, zero
+	res = pipes: 0, 0
 	check-posix-error: res pipe
 	res
 
@@ -467,7 +466,7 @@ uri record
 
 | Returns fd of an an opened socket to uri
 connect-to-uri fd-t(u uri) summon trusted
-	hints = addrinfo: 0, af-unspec, sock-stream, zero, zero, null.as-ref, null, null
+	hints = addrinfo: 0, af-unspec, sock-stream, 0, 0, null.as-ref, null, null
 	result = null cell<ptr<addrinfo>>
 	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
 	op-sock = result.get find-working-socket
@@ -481,15 +480,15 @@ find-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
 	else
 		a = ap deref
 		sock = socket: a.ai-family, a.ai-socktype, a.ai-protocol
-		if sock == neg-one
+		if sock == -1
 			| Ignore error and try again
 			a.ai-next find-working-socket
 		else
 			err = sock connect a.ai-addr, a.ai-addrlen
-			if err == neg-one
+			if err == -1
 				check-posix-error: sock close
 				| Ignore error and try again
 				a.ai-next find-working-socket
 			else
-				assert: err zero?
+				assert: err == 0
 				sock some

@@ -1,7 +1,7 @@
 import
 	.bootstrap
 		== ? as-ref bool by-val call err exception exception-ctx-ptr fun-mut0 fun-mut1 get-ctx hard-forbid int32 null
-		null? ok pass ptr-to result seven str todo void zero
+		null? ok pass ptr-to result str todo void
 	.posix: jmp-buf jmp-buf-tag longjmp setjmp zero
 
 exception-ctx record mut
@@ -16,7 +16,7 @@ get-exception-ctx exception-ctx() unsafe
 	get-ctx.exception-ctx-ptr as-ref<exception-ctx>
 
 number-to-throw int32()
-	seven
+	7
 
 rethrow ?t(e exception)
 	e throw
@@ -38,10 +38,10 @@ catch ?t(try fun-mut0 ?t, catcher fun-mut1 ?t exception) trusted
 catch-with-exception-ctx ?t(ec exception-ctx, try fun-mut0 ?t, catcher fun-mut1 ?t exception) unsafe
 	old-thrown-exception = ec thrown-exception
 	old-jmp-buf = ec jmp-buf-ptr
-	store = jmp-buf-tag: zero, zero, zero
+	store = jmp-buf-tag: zero, 0, zero
 	ec set-jmp-buf-ptr: store ptr-to
 	setjmp-result = ec.jmp-buf-ptr setjmp
-	if setjmp-result == zero
+	if setjmp-result == 0
 		| Get here after setting the jump.
 		| If it throws, we'll go to the above branch.
 		res = try call

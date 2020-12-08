@@ -1,7 +1,7 @@
 import
 	.bootstrap
 		== atomic-bool bool by-val call drop false fun0 hard-assert hard-fail hard-forbid is-locked lock nat
-		noctx-decr noctx-incr not pass ptr ptr-to ref-of-val thousand true value void wrap-mul zero zero?
+		noctx-decr noctx-incr not pass ptr ptr-to ref-of-val true value void wrap-mul
 	.posix: pthread-yield usleep
 
 region atomic
@@ -32,12 +32,12 @@ try-acquire-lock bool(a lock) noctx trusted
 	a.is-locked.ref-of-val try-set
 
 acquire-lock void(a lock) noctx unsafe
-	a acquire-lock-recur zero
+	a acquire-lock-recur 0
 
 acquire-lock-recur void(a lock, n-tries nat) noctx unsafe
 	if a try-acquire-lock
 		pass
-	elif n-tries == thousand
+	elif n-tries == 1000
 		hard-fail: "Couldn't acquire lock after 1000 tries"
 	else
 		yield-thread
@@ -45,7 +45,7 @@ acquire-lock-recur void(a lock, n-tries nat) noctx unsafe
 
 yield-thread void() noctx unsafe
 	err = pthread-yield
-	hard-assert: err zero?
+	hard-assert: err == 0
 
 release-lock void(l lock) noctx unsafe
 	l.is-locked.ref-of-val must-unset
@@ -61,7 +61,7 @@ condition record mut
 	value mut nat
 
 new-condition by-val condition() noctx
-	condition: new-lock, zero
+	condition: new-lock, 0
 
 broadcast void(c condition) noctx trusted
 	c.lk.ref-of-val acquire-lock
@@ -77,7 +77,7 @@ get-last-checked last-checked(c condition) noctx
 | TODO:MOVE
 sleep-ms-sync void(ms nat) noctx
 	| TODO: wrap-mul is unsafe
-	ms wrap-mul thousand usleep
+	ms wrap-mul 1000 usleep
 
 wait-on void(c condition, last-checked last-checked) noctx unsafe
 	| last-checked should have been called before a change, we wait until c.value is different
@@ -94,7 +94,7 @@ thread-safe-counter record mut
 	value mut nat
 
 new-thread-safe-counter by-val thread-safe-counter() noctx
-	zero new-thread-safe-counter
+	0 new-thread-safe-counter
 
 new-thread-safe-counter by-val thread-safe-counter(init nat) noctx
 	thread-safe-counter: new-lock, init
@@ -112,13 +112,13 @@ get-and-increment nat(t thread-safe-counter) noctx trusted
 
 | Returns true if the counter is now 0.
 decrement bool(t thread-safe-counter) noctx
-	t.get-and-decrement zero?
+	t.get-and-decrement == 0
 
 get-and-decrement nat(t thread-safe-counter) noctx trusted
 	l = t.lk.ref-of-val
 	l acquire-lock
 	res = t.value
-	hard-forbid: res zero?
+	hard-forbid: res == 0
 	t set-value: t.value noctx-decr
 	l release-lock
 	res

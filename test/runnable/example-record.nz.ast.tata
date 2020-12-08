@@ -46,4 +46,4 @@ file-ast(
 					call(infix, name-range(611, get-x), [], [p])
 					seq-ast(
 						call(prefix, name-range(870, print-sync), [], [call(infix, name-range(886, to-str), [], [p-x])])
-						call(infix, name-range(899, resolved), [], [zero])))))])
+						call(infix, name-range(896, resolved), [], [literal(nat(0, false))])))))])

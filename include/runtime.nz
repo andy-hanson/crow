@@ -7,7 +7,7 @@ import
 		== > ? actor-id arr as as-any-ptr as-ref bool by-val call-with-ctx ctx empty? err exception
 		false fun-mut0 fun-mut1 gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid lock message
 		nat noctx-decr noctx-incr none ok opt pass ref-of-val result size some todo true value
-		vat-and-actor-id vat-id void zero zero?
+		vat-and-actor-id vat-id void
 	.exceptions: exception-ctx new-exception-ctx
 	.io: print-err-sync print-err-sync-no-newline
 	.mut-bag: add empty? head mut-bag mut-bag-node next-node new-mut-bag new-mut-bag-node set-head set-next-node value
@@ -77,11 +77,11 @@ new-actor-id actor-id(v vat) noctx trusted
 	v.next-actor-id.ref-of-val get-and-increment
 
 new-mut-arr-by-val-with-capacity-from-unmanaged-memory by-val mut-arr<?t>(capacity nat) noctx unsafe
-	mut-arr<?t>: false, zero, capacity, capacity unmanaged-alloc-elements<?t>
+	mut-arr<?t>: false, 0, capacity, capacity unmanaged-alloc-elements<?t>
 
 new-vat by-val vat(gctx global-ctx, id vat-id, max-threads nat) summon noctx unsafe
 	actors = max-threads new-mut-arr-by-val-with-capacity-from-unmanaged-memory<actor-id>
-	vat: gctx, id, new-gc, new-lock, new-mut-bag, actors, zero, new-thread-safe-counter, {it default-exception-handler}
+	vat: gctx, id, new-gc, new-lock, new-mut-bag, actors, 0, new-thread-safe-counter, {it default-exception-handler}
 
 default-exception-handler void(e exception) summon unsafe
 	print-err-sync-no-newline: "uncaught exception: "
@@ -117,10 +117,10 @@ thread-function-recur void(thread-id nat, gctx global-ctx, tls thread-local-stuf
 		gctx.lk.ref-of-val acquire-lock
 		| Remove this thread from live threads for good.
 		gctx set-n-live-threads: gctx.n-live-threads noctx-decr
-		assert-vats-are-shut-down: zero, gctx.vats
+		assert-vats-are-shut-down: 0, gctx.vats
 		gctx.lk.ref-of-val release-lock
 	else
-		hard-assert: gctx.n-live-threads > zero
+		hard-assert: gctx.n-live-threads > 0
 		| Get a task to do; or sleep.
 		last-checked = gctx.may-be-work-to-do.ref-of-val get-last-checked
 
@@ -204,7 +204,7 @@ choose-task result chosen-task no-chosen-task(gctx global-ctx) noctx unsafe
 	| This looks for the first vat with some work to do.
 	| (That is unfair as vat 0 will tend to get the most attention.)
 
-	res = as<result<chosen-task, no-chosen-task>>: match gctx.vats choose-task-recur zero
+	res = as<result<chosen-task, no-chosen-task>>: match gctx.vats choose-task-recur 0
 	as none
 		| Did not find a task to do.
 		| (Tasks may have been added concurrently;
@@ -212,8 +212,8 @@ choose-task result chosen-task no-chosen-task(gctx global-ctx) noctx unsafe
 		| Need to do this here while we hold the lock
 		gctx set-n-live-threads gctx.n-live-threads.noctx-decr
 		| TODO:KILL
-		hard-assert: gctx.n-live-threads zero?
-		err: no-chosen-task: gctx.n-live-threads zero?
+		hard-assert: gctx.n-live-threads == 0
+		err: no-chosen-task: gctx.n-live-threads == 0
 	as some s
 		s.value ok
 
@@ -241,7 +241,7 @@ choose-task-in-vat opt task-or-gc(vat vat) noctx unsafe
 
 	| TODO: ref-of-val should be unnecessary for property access?
 	res = as<opt<task-or-gc>>: if vat.gc.ref-of-val.needs-gc
-		if vat.n-threads-running zero?
+		if vat.n-threads-running == 0
 			| do GC
 			none some
 		else
@@ -318,7 +318,7 @@ assert-vats-are-shut-down void(i nat, vats arr vat) noctx unsafe
 
 		vat.tasks-lock.ref-of-val acquire-lock
 		hard-forbid: vat.gc.ref-of-val needs-gc
-		hard-assert: vat.n-threads-running zero?
+		hard-assert: vat.n-threads-running == 0
 		hard-assert: vat.tasks.ref-of-val empty?
 		vat.tasks-lock.ref-of-val release-lock
 

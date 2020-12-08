@@ -12,8 +12,8 @@ module(
 		import(6, none)
 		import(7, none)
 		import(15, none)
-		import(12, none)
 		import(11, none)
+		import(12, none)
 		import(13, some([exit-code, print-sync]))]
 	exports: []
 	structs: [

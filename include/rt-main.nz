@@ -3,8 +3,8 @@ import
 	.arr-utils: empty-arr map noctx-at tail
 	.bootstrap
 		== + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref drop false fun2
-		fun-ptr1 fun-ptr2 fut get-ctx hard-assert int32 message nat noctx-decr noctx-incr null null? one
-		pass ptr ptr-to ref-of-val set str todo to-int unsafe-to-nat value void zero zero?
+		fun-ptr1 fun-ptr2 fut get-ctx hard-assert int32 message nat noctx-decr noctx-incr null null?
+		pass ptr ptr-to ref-of-val set str todo to-int unsafe-to-nat value void
 	.cell: as-cell cell get
 	.exceptions: new-exception-ctx
 	.fut-low-level: must-be-resolved
@@ -24,20 +24,20 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 
 	| TODO: detect # hardware processors to use for n-threads
 	| TODO: get-nprocs
-	n-threads = one as<nat>
+	n-threads = 1
 	gctx-by-val = as<by-val<global-ctx>>: global-ctx: new-lock, empty-arr<vat>, n-threads, new-condition, false, false
 	gctx = gctx-by-val ref-of-val
-	vat-by-val = new-vat: gctx, zero, n-threads
+	vat-by-val = new-vat: gctx, 0, n-threads
 	vat = vat-by-val ref-of-val
 
-	gctx set-vats arr: one, vat.ptr-to
+	gctx set-vats arr: 1, vat.ptr-to
 
 	main-fut = gctx do-main vat, argc, argv, main-ptr
 
 	n-threads run-threads gctx
 
 	if gctx any-unhandled-exceptions?
-		one
+		1
 	else
 		match main-fut.must-be-resolved
 		as ok o
@@ -45,14 +45,14 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 		as err e
 			print-err-sync-no-newline: "main failed: "
 			print-err-sync: e.value message
-			one
+			1
 
 do-main fut exit-code(gctx global-ctx, vat vat, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx
 	| Before we start the engine, add a task.
 	| Create a ctx manually so we can call functions that need it when creating the task
 	ectx = new-exception-ctx
 	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val
-	ctx-by-val = new-ctx: gctx, tls.ref-of-val, vat, zero
+	ctx-by-val = new-ctx: gctx, tls.ref-of-val, vat, 0
 	ctx = ctx-by-val ref-of-val
 	add = as<fun2<fut<exit-code>, arr<c-str>, main-ptr>>: \all-args main-ptr
 		add-first-task: all-args, main-ptr
@@ -83,9 +83,9 @@ run-threads void(n-threads nat, gctx global-ctx) noctx unsafe summon
 
 	actual-n-threads = n-threads noctx-decr
 
-	start-threads-recur: zero, actual-n-threads, threads, thread-args, gctx
+	start-threads-recur: 0, actual-n-threads, threads, thread-args, gctx
 	thread-function: actual-n-threads, gctx
-	join-threads-recur: zero, actual-n-threads, threads
+	join-threads-recur: 0, actual-n-threads, threads
 
 	threads unmanaged-free
 	thread-args unmanaged-free
@@ -110,7 +110,7 @@ body
 		fn = as<fun-ptr1<any-ptr, any-ptr>>: \args-ptr
 			args-ptr thread-fun
 		err = thread-ptr.as-cell pthread-create null, fn, thread-arg-ptr.as-any-ptr
-		if err zero?
+		if err == 0
 			i.noctx-incr start-threads-recur n-threads, threads, thread-args-begin, gctx
 		elif err == eagain
 			| TODO: warn and make do with the threads it does let us create (so long as there's at least one)
@@ -134,7 +134,7 @@ join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsaf
 join-one-thread void(tid pthread-t) noctx unsafe summon
 	thread-return = as<by-val<cell<any-ptr>>>: cell: null
 	err = tid pthread-join thread-return.ref-of-val
-	if err zero?
+	if err == 0
 		pass
 	elif err == einval
 		todo

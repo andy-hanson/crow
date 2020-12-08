@@ -106,9 +106,6 @@ immutable(BuiltinKind) getBuiltinKind(
 	immutable(BuiltinKind) constantBool(immutable Bool value) {
 		return constant(immutable Constant(immutable Constant.BoolConstant(value)));
 	}
-	immutable(BuiltinKind) constantIntegral(int value) {
-		return constant(immutable Constant(immutable Constant.Integral(value)));
-	}
 	immutable(BuiltinKind) unary(immutable LowExprKind.SpecialUnary.Kind kind) {
 		return immutable BuiltinKind(kind);
 	}
@@ -216,8 +213,6 @@ immutable(BuiltinKind) getBuiltinKind(
 			return unary(LowExprKind.SpecialUnary.Kind.not);
 		case shortSymAlphaLiteralValue("null"):
 			return constant(immutable Constant(immutable Constant.Null()));
-		case shortSymAlphaLiteralValue("one"):
-			return isIntegral(rt) ? constantIntegral(1) : fail();
 		case shortSymAlphaLiteralValue("or"):
 			return binary(LowExprKind.SpecialBinary.Kind.or);
 		case shortSymAlphaLiteralValue("pass"):
@@ -314,8 +309,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapSubNat64
 				: failBinary());
-		case shortSymAlphaLiteralValue("zero"):
-			return isIntegral(rt) ? constantIntegral(0) : fail();
 		case shortSymAlphaLiteralValue("unsafe-mod"):
 			return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeModNat64) : fail();
 		default:

@@ -86,7 +86,7 @@ test-get void(u uri) trusted summon
 
 	| ssl-load-error-strings
 	i = openssl-init-ssl: 0, null.as-ref
-	assert: i zero?
+	assert: i == 0
 
 	fd = u connect-to-uri
 

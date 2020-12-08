@@ -71,7 +71,7 @@ ignore-extension-of-name? bool(name str)
 
 lines arr str(s str)
 	res = new-mut-arr<str>
-	last-nl = zero cell<nat>
+	last-nl = 0 cell<nat>
 	s each-with-index \c index
 		if c == "\n"
 			res push: s slice-from-to (last-nl swap index.incr), index
@@ -88,7 +88,7 @@ n-tabs nat(line str)
 	if line.empty?.not and: line.first == "\t"
 		line.tail.n-tabs incr
 	else
-		zero
+		0
 
 tab-size nat()
 	4

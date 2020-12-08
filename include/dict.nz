@@ -1,6 +1,6 @@
 import
 	.arr-utils: at empty? empty-arr first freeze map mut-arr new-mut-arr push tail unsafe-as-arr
-	.bootstrap: == arr bool call data fun-mut1 fun-mut2 has? nat none opt pass size some todo value void zero
+	.bootstrap: == arr bool call data fun-mut1 fun-mut2 has? nat none opt pass size some todo value void
 	.exceptions: forbid
 	.number-utils: incr
 
@@ -46,7 +46,7 @@ get-recursive<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?
 
 get opt ?v(d dict ?k ?v, key ?k) trusted data<?k>
 	| TODO: should not need to provide type arguments
-	get-recursive<?k, ?v>: d.keys, d.values, zero, key
+	get-recursive<?k, ?v>: d.keys, d.values, 0, key
 
 get opt ?v(d mut-dict ?k ?v, key ?k) trusted data<?k>
 	d.unsafe-as-dict get key

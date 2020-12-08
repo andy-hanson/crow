@@ -2,7 +2,7 @@ import
 	.bootstrap
 		actor by-val call err exception fun fun-mut1 fun0 fun-ref0 fun-ref1 fun-ref2 fut
 		fut-callback-node fut-state-callbacks fut-state-resolved hard-unreachable head lk none ok
-		opt pass ref-of-val result send set-state some state todo two value vat vat-and-actor void
+		opt pass ref-of-val result send set-state some state todo value vat vat-and-actor void
 	.exceptions: catch
 	.fut-low-level: new-unresolved-fut reject resolve-or-reject
 	.opt-utils: force
@@ -47,7 +47,7 @@ decr-joiner void(j joiner ?out ?in0 ?in1) unsafe send<?out> send<?in0> send<?in1
 
 join fut ?out(a fut ?in0, b fut ?in1, fun fun-ref2 ?out ?in0 ?in1) trusted send<?out> send<?in0> send<?in1>
 	res = new-unresolved-fut<?out>
-	joiner = joiner<?out, ?in0, ?in1>: res, fun, none, none, new-thread-safe-counter: two
+	joiner = joiner<?out, ?in0, ?in1>: res, fun, none, none, new-thread-safe-counter: 2
 	a then-void \value
 		joiner set-arg0: value some
 		joiner decr-joiner
