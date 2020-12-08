@@ -256,7 +256,7 @@ struct ExprAstKind {
 		immutable IfAst if_;
 		immutable LambdaAst lambda;
 		immutable LetAst let;
-		immutable Ptr!LiteralAst literal;
+		immutable LiteralAst literal;
 		immutable MatchAst match_;
 		immutable SeqAst seq;
 		immutable ThenAst then;
@@ -270,7 +270,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable IfAst a) { kind = Kind.if_; if_ = a; }
 	@trusted immutable this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable LetAst a) { kind = Kind.let; let = a; }
-	@trusted immutable this(immutable Ptr!LiteralAst a) { kind = Kind.literal; literal = a; }
+	@trusted immutable this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
 	@trusted immutable this(immutable MatchAst a) { kind = Kind.match; match_ = a; }
 	@trusted immutable this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable ThenAst a) { kind = Kind.then; then = a; }

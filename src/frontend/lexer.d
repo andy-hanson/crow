@@ -7,10 +7,10 @@ import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil : cat, rtail, slice, tail;
+import util.collection.arrUtil : cat, rtail, slice;
 import util.collection.str : copyStr, CStr, emptyStr, NulTerminatedStr, Str, stripNulTerminator,  strLiteral;
 import util.memory : allocate;
-import util.opt : none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
@@ -382,7 +382,7 @@ struct ExpressionToken {
 	immutable Kind kind_;
 	union {
 		bool none_;
-		immutable Ptr!LiteralAst literal_;
+		immutable LiteralAst literal_;
 		immutable NameAndRange nameAndRange_;
 	}
 	@trusted immutable this(immutable Kind kind) {
@@ -390,11 +390,11 @@ struct ExpressionToken {
 		kind_ = kind;
 		verify(kind != Kind.literal && kind != Kind.nameAndRange);
 	}
-	@trusted immutable this(immutable Ptr!LiteralAst a) { kind_ = Kind.literal; literal_ = a; }
+	@trusted immutable this(immutable LiteralAst a) { kind_ = Kind.literal; literal_ = a; }
 	@trusted immutable this(immutable NameAndRange a) { kind_ = Kind.nameAndRange; nameAndRange_ = a; }
 }
 
-@trusted immutable(Ptr!LiteralAst) asLiteral(return scope ref immutable ExpressionToken a) {
+@trusted ref immutable(LiteralAst) asLiteral(return scope ref immutable ExpressionToken a) {
 	verify(a.kind_ == ExpressionToken.Kind.literal);
 	return a.literal_;
 }
@@ -425,7 +425,7 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 		case '+':
 		case '-':
 			return isDigit(*lexer.ptr)
-				? takeNumber(alloc, lexer, begin, True)
+				? immutable ExpressionToken(takeNumber(alloc, lexer, some(c == '+' ? Sign.plus : Sign.minus)))
 				: takeOperator(lexer, begin);
 		default:
 			if (isOperatorChar(c))
@@ -447,9 +447,10 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 					}
 				else
 					return immutable ExpressionToken(immutable NameAndRange(start, name));
-			} else if (isDigit(c))
-				return takeNumber(alloc, lexer, begin, False);
-			else {
+			} else if (isDigit(c)) {
+				backUp(lexer);
+				return immutable ExpressionToken(takeNumber(alloc, lexer, none!Sign));
+			} else {
 				backUp(lexer);
 				addDiagUnexpected(alloc, lexer);
 				return immutable ExpressionToken(ExpressionToken.Kind.unexpected);
@@ -512,55 +513,56 @@ immutable(RangeWithinFile) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable C
 	return range(lexer, safeSizeTToU32(begin - lexer.sourceBegin));
 }
 
-@trusted immutable(ExpressionToken) takeNumber(Alloc, SymAlloc)(
+enum Sign {
+	plus,
+	minus,
+}
+
+@trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable CStr begin,
-	immutable Bool hasSign,
+	immutable Opt!Sign sign,
 ) {
-	Bool hasDot = False;
-	while ((*lexer.ptr).isDigit || *lexer.ptr == '.') {
-		if (*lexer.ptr == '.') hasDot = true;
+	immutable u64 base = tryTake(lexer, "0x") ? 16 : 10;
+	immutable LiteralAst.Nat n = takeNat(lexer, base);
+	if (*lexer.ptr == '.' && isDigit(*(lexer.ptr + 1)))
+		return todo!(immutable LiteralAst)("parse float");
+	else if (has(sign))
+		final switch (force(sign)) {
+			case Sign.plus:
+				return immutable LiteralAst(immutable LiteralAst.Int(n.value, immutable Bool(n.value > i64.max)));
+			case Sign.minus:
+				return immutable LiteralAst(immutable LiteralAst.Int(-n.value, immutable Bool(n.value > -i64.min)));
+		}
+	else
+		return immutable LiteralAst(n);
+}
+
+@system immutable(LiteralAst.Nat) takeNat(SymAlloc)(ref Lexer!SymAlloc lexer, immutable ulong base) {
+	return takeNatRecur(lexer, base, 0, False);
+}
+
+@system immutable(LiteralAst.Nat) takeNatRecur(SymAlloc)(
+	ref Lexer!SymAlloc lexer,
+	immutable ulong base,
+	immutable ulong value,
+	immutable Bool overflow,
+) {
+	immutable ulong digit = charToNat(*lexer.ptr);
+	if (digit < base) {
 		lexer.ptr++;
-	}
-	immutable Str text = arrOfRange(begin, lexer.ptr);
-	return immutable ExpressionToken(allocate(alloc,
-		hasDot ? immutable LiteralAst(parseFloat(text)) :
-		hasSign ? immutable LiteralAst(parseInt(text)) :
-		immutable LiteralAst(parseNat(text))));
-}
-
-immutable(double) parseFloat(ref immutable Str a) {
-	return todo!(immutable double)("!");
-}
-
-immutable(LiteralAst.Int) parseInt(ref immutable Str a) {
-	immutable char f = first(a);
-	if (f == '-') {
-		immutable LiteralAst.Nat l = parseNat(tail(a));
-		immutable Bool overflow = immutable Bool(l.overflow || l.value > -i64.min);
-		return immutable LiteralAst.Int(-(cast(immutable i64) l.value), overflow);
-	} else {
-		immutable LiteralAst.Nat l = parseNat(f == '+' ? tail(a) : a);
-		immutable Bool overflow = l.overflow || l.value > i64.max;
-		return immutable LiteralAst.Int(l.value, overflow);
-	}
-}
-
-immutable(LiteralAst.Nat) parseNat(immutable Str a) {
-	if (empty(a))
-		return immutable LiteralAst.Nat(0, False);
-	else {
-		immutable LiteralAst.Nat higherDigits = parseNat(rtail(a));
-		immutable u64 value = higherDigits.value * 10 + charToNat(last(a));
-		immutable Bool overflow = immutable Bool(higherDigits.overflow || value / 10 != higherDigits.value);
+		immutable ulong newValue = value * base + digit;
+		return takeNatRecur(lexer, base, newValue, immutable Bool(overflow || newValue / base != value));
+	} else
 		return immutable LiteralAst.Nat(value, overflow);
-	}
 }
 
 immutable(u64) charToNat(immutable char c) {
-	verify('0' <= c && c <= '9');
-	return c - '0';
+	return '0' <= c && c <= '9'
+		? c - '0'
+		: 'a' <= c && c <= 'f'
+		? 10 + (c - 'a')
+		: u64.max;
 }
 
 @trusted immutable(Str) takeOperatorRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {

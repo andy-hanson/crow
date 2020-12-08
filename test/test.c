@@ -1747,12 +1747,10 @@ int32_t wait_and_get_exit_code(struct ctx* ctx, int32_t pid);
 extern int32_t waitpid(int32_t pid, struct cell_4* wait_status, int32_t options);
 uint8_t w_if_exited(struct ctx* ctx, int32_t status);
 int32_t w_term_sig(struct ctx* ctx, int32_t status);
-int32_t x7f(void);
 int32_t w_exit_status(struct ctx* ctx, int32_t status);
 int32_t bit_shift_right(int32_t a, int32_t b);
 uint8_t _op_less_3(int32_t a, int32_t b);
 int32_t todo_7(void);
-int32_t xff00(void);
 uint8_t w_if_signaled(struct ctx* ctx, int32_t status);
 uint8_t _op_bang_equal(int32_t a, int32_t b);
 struct arr_0 to_str_1(struct ctx* ctx, int32_t i);
@@ -1763,9 +1761,7 @@ uint64_t abs(struct ctx* ctx, int64_t i);
 int64_t neg(struct ctx* ctx, int64_t i);
 int64_t _op_times_1(struct ctx* ctx, int64_t a, int64_t b);
 uint8_t w_if_stopped(struct ctx* ctx, int32_t status);
-int32_t xff(void);
 uint8_t w_if_continued(struct ctx* ctx, int32_t status);
-int32_t xffff(void);
 char** convert_args(struct ctx* ctx, char* exe_c_str, struct arr_1 args);
 struct arr_3 prepend(struct ctx* ctx, char* a, struct arr_3 b);
 struct arr_3 _op_plus_2(struct ctx* ctx, struct arr_3 a, struct arr_3 b);
@@ -5616,13 +5612,10 @@ uint8_t w_if_exited(struct ctx* ctx, int32_t status) {
 	return _op_equal_equal_3(w_term_sig(ctx, status), 0);
 }
 int32_t w_term_sig(struct ctx* ctx, int32_t status) {
-	return (status & x7f());
-}
-int32_t x7f(void) {
-	return 127;
+	return (status & 127);
 }
 int32_t w_exit_status(struct ctx* ctx, int32_t status) {
-	return bit_shift_right((status & xff00()), 8);
+	return bit_shift_right((status & 65280), 8);
 }
 int32_t bit_shift_right(int32_t a, int32_t b) {
 	if (_op_less_3(a, 0)) {
@@ -5656,13 +5649,10 @@ uint8_t _op_less_3(int32_t a, int32_t b) {
 int32_t todo_7(void) {
 	return (assert(0),0);
 }
-int32_t xff00(void) {
-	return 65280;
-}
 uint8_t w_if_signaled(struct ctx* ctx, int32_t status) {
 	int32_t ts0;
 	ts0 = w_term_sig(ctx, status);
-	return (_op_bang_equal(ts0, 0) && _op_bang_equal(ts0, x7f()));
+	return (_op_bang_equal(ts0, 0) && _op_bang_equal(ts0, 127));
 }
 uint8_t _op_bang_equal(int32_t a, int32_t b) {
 	return !_op_equal_equal_3(a, b);
@@ -5742,16 +5732,10 @@ int64_t _op_times_1(struct ctx* ctx, int64_t a, int64_t b) {
 	return (a * b);
 }
 uint8_t w_if_stopped(struct ctx* ctx, int32_t status) {
-	return _op_equal_equal_3((status & xff()), x7f());
-}
-int32_t xff(void) {
-	return 255;
+	return _op_equal_equal_3((status & 255), 127);
 }
 uint8_t w_if_continued(struct ctx* ctx, int32_t status) {
-	return _op_equal_equal_3(status, xffff());
-}
-int32_t xffff(void) {
-	return 65535;
+	return _op_equal_equal_3(status, 65535);
 }
 char** convert_args(struct ctx* ctx, char* exe_c_str, struct arr_1 args) {
 	return prepend(ctx, exe_c_str, append(ctx, map_1(ctx, args, (struct fun_mut1_16) {(fun_ptr3_17) convert_args__lambda0, (uint8_t*) NULL}), NULL)).data;

@@ -7,9 +7,8 @@
 # In a '.nz' file, use ctrl-alt-shift-p to see the scope at the cursor.
 
 variables:
-  name: '(([a-z0-9\-]+\??)|[\+\-\*\/\<\>\=\?\!]+)'
-  type_name: '\??[a-z0-9\-]+'
-  spec_name: '\??[a-z0-9\-]+'
+  name: '(([a-z][a-z0-9\-]*\??)|[\+\-\*\/\<\>\=\?\!]+)'
+  type_name: '\??{{name}}'
   # Declarations end at the next unindented line.
   # We don't want to consume any characters at that line,
   # so use lookahead to match the beginning of a line, then any non-whitespace character.
@@ -201,7 +200,7 @@ contexts:
       pop: true
     - match: '{{spec_use_keyword}}'
       scope: keyword
-    - match: '{{spec_name}}'
+    - match: '{{name}}'
       scope: entity.name
 
   multiline_spec_uses:
@@ -252,14 +251,13 @@ contexts:
       scope: variable.function.noze
       captures:
         1: comment # punctuation.accessor
+    # numbers
+    - match: '-?((0((b[01]+)|(o[0-8]+)|(x[\da-f]+)))|(\d+(\.\d+)?))'
+      scope: constant.numeric
 
     # `foo. ` in a multiline new record
     - match: '{{name}}(\.)\s+'
       scope: comment
-
-    # numbers
-    - match: '\b-?((0((b[01]+)|(o[0-8]+)|(x[\da-f]+)))|(\d+(\.\d+)?))'
-      scope: constant.numeric
 
     # Keywords that may be followed by type arguments
     - match: (new-arr)(?=$|<|\s)

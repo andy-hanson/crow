@@ -482,9 +482,11 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 			immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
 			if (has(max)) {
 				if (it.overflow || it.value > force(max))
-					todo!void("literal overflow");
+					addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.LiteralOverflow(expectedStruct)));
 				return immutable CheckedExpr(immutable Expr(range, nu!(Expr.Literal)(alloc, expectedStruct, constant)));
 			} else {
+				if (it.overflow)
+					todo!void("literal overflow");
 				immutable Expr e = immutable Expr(range, nu!(Expr.Literal)(alloc, integrals.nat64, constant));
 				return check(alloc, ctx, expected, immutable Type(integrals.nat64), e);
 			}

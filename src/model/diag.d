@@ -129,6 +129,9 @@ struct Diag {
 		immutable Ptr!StructInst expectedLambdaType;
 		immutable size_t actualNParams;
 	}
+	struct LiteralOverflow {
+		immutable Ptr!StructInst type;
+	}
 	struct LocalShadowsPrevious {
 		immutable Sym name;
 	}
@@ -231,6 +234,7 @@ struct Diag {
 		lambdaClosesOverMut,
 		lambdaForFunPtrHasClosure,
 		lambdaWrongNumberParams,
+		literalOverflow,
 		localShadowsPrevious,
 		matchCaseStructNamesDoNotMatch,
 		matchOnNonUnion,
@@ -273,6 +277,7 @@ struct Diag {
 		immutable LambdaClosesOverMut lambdaClosesOverMut;
 		immutable LambdaForFunPtrHasClosure lambdaForFunPtrHasClosure;
 		immutable LambdaWrongNumberParams lambdaWrongNumberParams;
+		immutable LiteralOverflow literalOverflow;
 		immutable LocalShadowsPrevious localShadowsPrevious;
 		immutable MatchCaseStructNamesDoNotMatch matchCaseStructNamesDoNotMatch;
 		immutable MatchOnNonUnion matchOnNonUnion;
@@ -342,6 +347,7 @@ struct Diag {
 	@trusted immutable this(immutable LambdaWrongNumberParams a) {
 		kind = Kind.lambdaWrongNumberParams; lambdaWrongNumberParams = a;
 	}
+	@trusted immutable this(immutable LiteralOverflow a) { kind = Kind.literalOverflow; literalOverflow = a; }
 	@trusted immutable this(immutable LocalShadowsPrevious a) {
 		kind = Kind.localShadowsPrevious; localShadowsPrevious = a;
 	}
@@ -447,6 +453,7 @@ static assert(Diag.sizeof <= 32);
 	scope immutable(Out) delegate(
 		ref immutable Diag.LambdaWrongNumberParams
 	) @safe @nogc pure nothrow cbLambdaWrongNumberParams,
+	scope immutable(Out) delegate(ref immutable Diag.LiteralOverflow) @safe @nogc pure nothrow cbLiteralOverflow,
 	scope immutable(Out) delegate(
 		ref immutable Diag.LocalShadowsPrevious
 	) @safe @nogc pure nothrow cbLocalShadowsPrevious,
@@ -544,6 +551,8 @@ static assert(Diag.sizeof <= 32);
 			return cbLambdaForFunPtrHasClosure(a.lambdaForFunPtrHasClosure);
 		case Diag.Kind.lambdaWrongNumberParams:
 			return cbLambdaWrongNumberParams(a.lambdaWrongNumberParams);
+		case Diag.Kind.literalOverflow:
+			return cbLiteralOverflow(a.literalOverflow);
 		case Diag.Kind.localShadowsPrevious:
 			return cbLocalShadowsPrevious(a.localShadowsPrevious);
 		case Diag.Kind.matchCaseStructNamesDoNotMatch:

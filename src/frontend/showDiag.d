@@ -541,6 +541,10 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeNat(writer, d.actualNParams);
 			writeStatic(writer, " parameters");
 		},
+		(ref immutable Diag.LiteralOverflow d) {
+			writeStatic(writer, "literal exceeds the range of a ");
+			writeStructInst(writer, d.type);
+		},
 		(ref immutable Diag.LocalShadowsPrevious d) {
 			writeName(writer, d.name);
 			writeStatic(writer, " is already in scope");

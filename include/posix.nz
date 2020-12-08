@@ -200,29 +200,13 @@ waitpid pid-t(pid pid-t, wait-status cell status-t, options int32) unsafe extern
 status-t alias
 	int32
 
-| TODO: hex literals
-x7f status-t() noctx trusted
-	127
-
-x80 status-t() noctx trusted
-	128
-
-xff status-t() noctx trusted
-	255
-
-xffff status-t() noctx trusted
-	65535
-
-xff00 status-t() noctx
-	65280
-
 w-term-sig status-t(status status-t)
 	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
-	status bits-and x7f
+	status bits-and 0x7f
 
 w-exit-status status-t(status status-t)
 	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
-	status bits-and xff00 bit-shift-right 8
+	status bits-and 0xff00 bit-shift-right 8
 
 w-if-exited bool(status status-t)
 	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
@@ -230,16 +214,16 @@ w-if-exited bool(status status-t)
 
 w-if-signaled bool(status status-t)
 	ts = status w-term-sig
-	ts != 0 and: ts != x7f
+	ts != 0 and: ts != 0x7f
 
 w-core-dump bool(status status-t)
-	status bits-intersect? x80
+	status bits-intersect? 0x80
 
 w-if-stopped bool(status status-t)
-	status bits-and xff == x7f
+	status bits-and 0xff == 0x7f
 
 w-if-continued bool(status status-t)
-	status == xffff
+	status == 0xffff
 
 
 | /usr/include/spawn.h

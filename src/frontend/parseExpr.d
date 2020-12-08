@@ -537,8 +537,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				immutable ExprAstKind(immutable LambdaAst(params, body_)));
 			return noDedent(tryParseDots(alloc, lexer, expr));
 		case ExpressionToken.Kind.literal:
-			immutable Ptr!LiteralAst literal = asLiteral(et);
-			immutable ExprAst expr = immutable ExprAst(getRange(), immutable ExprAstKind(literal));
+			immutable ExprAst expr = immutable ExprAst(getRange(), immutable ExprAstKind(asLiteral(et)));
 			return noDedent(tryParseDots(alloc, lexer, expr));
 		case ExpressionToken.Kind.lparen:
 			immutable ExprAst expr = parseExprNoBlock(alloc, lexer);

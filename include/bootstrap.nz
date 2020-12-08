@@ -366,22 +366,17 @@ min-int32 int32() noctx
 max-int32 int32() noctx
 	2147483647
 min-int int() noctx
-	| TODO: hex literals
-	-9223372036854775808
+	-0x8000000000000000
 max-int int() noctx
-	| TODO: hex literals
-	9223372036854775807
+	0x7fffffffffffffff
 max-nat8 nat8() noctx
-	| TODO: hex literals
-	255
+	0xff
 max-nat16 nat16() noctx
-	| TODO: hex literals
-	65535
+	0xffff
 max-nat32 nat32() noctx
-	| TODO: hex literals
-	4294967295
+	0xffffffff
 max-nat nat() noctx
-	18446744073709551615
+	0xffffffffffffffff
 
 to-nat32 nat32(a nat16) noctx trusted
 	a.to-nat unsafe-to-nat32

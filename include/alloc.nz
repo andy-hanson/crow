@@ -96,8 +96,7 @@ get-gc gc() unsafe
 
 new-gc by-val gc() noctx trusted
 	| TODO: handle malloc failure
-	| TODO: use a hex literal
-	size-words = 16777216
+	size-words = 0x1000000
 	mark-begin = ptr-cast<bool, byte>: malloc: size-words
 	mark-end = mark-begin + size-words
 	data-begin = ptr-cast<nat64, byte>: malloc: size-words wrap-mul size-of<nat64>

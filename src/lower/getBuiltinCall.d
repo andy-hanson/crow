@@ -386,24 +386,3 @@ immutable(Bool) isNat64(ref immutable LowType t) {
 immutable(Bool) isFloat64(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.float64);
 }
-
-immutable(Bool) isIntegral(ref immutable LowType t) {
-	return immutable Bool(isPrimitive(t) && () {
-		final switch (asPrimitive(t)) {
-			case PrimitiveType.int8:
-			case PrimitiveType.int16:
-			case PrimitiveType.int32:
-			case PrimitiveType.int64:
-			case PrimitiveType.nat8:
-			case PrimitiveType.nat16:
-			case PrimitiveType.nat32:
-			case PrimitiveType.nat64:
-				return True;
-			case PrimitiveType.bool_:
-			case PrimitiveType.char_:
-			case PrimitiveType.float64:
-			case PrimitiveType.void_:
-				return False;
-		}
-	}());
-}
