@@ -1,5 +1,5 @@
 import
-	.bootstrap: == <= ? bool call drop fun-mut0 fun-mut1 nat none opt pass some value void
+	.bootstrap: == <= ? bool call drop fun-mut0 fun-mut1 nat none opt some value void
 	.cell: cell get set
 	.exceptions: assert forbid
 	.number-utils: + incr
@@ -73,7 +73,7 @@ each void(r range-nat, f fun-mut1 void nat)
 each-recur void(i iterator ?t, f fun-mut1 void ?t)
 	match i next
 	as none
-		pass
+		void
 	as some s
 		f call s.value
 		i each-recur f

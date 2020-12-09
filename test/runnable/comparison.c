@@ -721,6 +721,7 @@ uint8_t call_6__lambda0__lambda1(struct ctx* ctx, struct call_6__lambda0__lambda
 uint8_t call_6__lambda0(struct ctx* ctx, struct call_6__lambda0* _closure);
 struct fut_0* then2__lambda0(struct ctx* ctx, struct then2__lambda0* _closure, uint8_t ignore);
 struct island_and_exclusion cur_island_and_exclusion(struct ctx* ctx);
+struct fut_1* delay(struct ctx* ctx);
 struct fut_1* resolved_0(struct ctx* ctx, uint8_t value);
 struct arr_3 tail(struct ctx* ctx, struct arr_3 a);
 uint8_t forbid_0(struct ctx* ctx, uint8_t condition);
@@ -822,12 +823,12 @@ uint8_t print(struct arr_0 a);
 uint8_t print_no_newline(struct arr_0 a);
 int32_t stdout_fd(void);
 struct arr_0 to_str_1(struct ctx* ctx, struct comparison c);
-struct comparison compare_229(struct my_record a, struct my_record b);
+struct comparison compare_230(struct my_record a, struct my_record b);
 uint8_t test_compare_byref_records(struct ctx* ctx);
-struct comparison compare_231(struct my_byref_record* a, struct my_byref_record* b);
+struct comparison compare_232(struct my_byref_record* a, struct my_byref_record* b);
 uint8_t test_compare_unions(struct ctx* ctx);
-struct comparison compare_233(struct my_union a, struct my_union b);
-struct comparison compare_234(struct my_other_record a, struct my_other_record b);
+struct comparison compare_234(struct my_union a, struct my_union b);
+struct comparison compare_235(struct my_other_record a, struct my_other_record b);
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value);
 int32_t main(int32_t argc, char** argv);
 uint8_t mark(struct mark_ctx* ctx, uint8_t* ptr_any, uint64_t size_bytes) {
@@ -1262,7 +1263,7 @@ uint8_t try_unset(struct _atomic_bool* a) {
 }
 struct fut_0* add_first_task(struct ctx* ctx, struct arr_3 all_args, fun_ptr2_0 main_ptr) {
 	struct add_first_task__lambda0* temp0;
-	return then2(ctx, resolved_0(ctx, 0), (struct fun_ref0) {cur_island_and_exclusion(ctx), (struct fun_mut0_1) {(fun_ptr2_2) add_first_task__lambda0, (uint8_t*) (temp0 = (struct add_first_task__lambda0*) alloc(ctx, sizeof(struct add_first_task__lambda0)), ((*(temp0) = (struct add_first_task__lambda0) {all_args, main_ptr}, 0), temp0))}});
+	return then2(ctx, delay(ctx), (struct fun_ref0) {cur_island_and_exclusion(ctx), (struct fun_mut0_1) {(fun_ptr2_2) add_first_task__lambda0, (uint8_t*) (temp0 = (struct add_first_task__lambda0*) alloc(ctx, sizeof(struct add_first_task__lambda0)), ((*(temp0) = (struct add_first_task__lambda0) {all_args, main_ptr}, 0), temp0))}});
 }
 struct fut_0* then2(struct ctx* ctx, struct fut_1* f, struct fun_ref0 cb) {
 	struct then2__lambda0* temp0;
@@ -1597,6 +1598,9 @@ struct island_and_exclusion cur_island_and_exclusion(struct ctx* ctx) {
 	struct ctx* c0;
 	c0 = ctx;
 	return (struct island_and_exclusion) {c0->island_id, c0->exclusion};
+}
+struct fut_1* delay(struct ctx* ctx) {
+	return resolved_0(ctx, 0);
 }
 struct fut_1* resolved_0(struct ctx* ctx, uint8_t value) {
 	struct fut_1* temp0;
@@ -1965,9 +1969,7 @@ uint8_t assert_islands_are_shut_down(uint64_t i, struct arr_2 islands) {
 	uint64_t _tailCalli;
 	struct arr_2 _tailCallislands;
 	top:
-	if (_op_equal_equal_0(i, islands.size)) {
-		return 0;
-	} else {
+	if (_op_bang_equal_0(i, islands.size)) {
 		island0 = noctx_at_0(islands, i);
 		acquire_lock((&(island0->tasks_lock)));
 		hard_forbid((&(island0->gc))->needs_gc);
@@ -1979,6 +1981,8 @@ uint8_t assert_islands_are_shut_down(uint64_t i, struct arr_2 islands) {
 		i = _tailCalli;
 		islands = _tailCallislands;
 		goto top;
+	} else {
+		return 0;
 	}
 }
 uint8_t empty__q_2(struct mut_bag* m) {
@@ -2048,10 +2052,10 @@ struct opt_7 choose_task_in_island(struct island* island) {
 	struct some_5 s0;
 	acquire_lock((&(island->tasks_lock)));
 	res1 = ((&(island->gc))->needs_gc ? (_op_equal_equal_0(island->n_threads_running, 0u) ? (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {0, .as0 = (struct none) {0}}}} : (struct opt_7) {0, .as0 = (struct none) {0}}) : (temp0 = find_and_remove_first_doable_task(island), temp0.kind == 0 ? (struct opt_7) {0, .as0 = (struct none) {0}} : temp0.kind == 1 ? (s0 = temp0.as1, (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {1, .as1 = (struct some_5) {s0.value}}}}) : (assert(0),(struct opt_7) {0})));
-	if (empty__q_4(res1)) {
-		0;
-	} else {
+	if (!empty__q_4(res1)) {
 		(island->n_threads_running = noctx_incr(island->n_threads_running), 0);
+	} else {
+		0;
 	}
 	release_lock((&(island->tasks_lock)));
 	return res1;
@@ -2377,9 +2381,9 @@ uint8_t test_compare_records(struct ctx* ctx) {
 	b1 = (struct my_record) {1u, 3u};
 	c2 = (struct my_record) {1u, 2u};
 	d3 = (struct my_record) {0u, 3u};
-	print(to_str_1(ctx, compare_229(a0, b1)));
-	print(to_str_1(ctx, compare_229(a0, c2)));
-	return print(to_str_1(ctx, compare_229(a0, d3)));
+	print(to_str_1(ctx, compare_230(a0, b1)));
+	print(to_str_1(ctx, compare_230(a0, c2)));
+	return print(to_str_1(ctx, compare_230(a0, d3)));
 }
 uint8_t print(struct arr_0 a) {
 	print_no_newline(a);
@@ -2405,7 +2409,7 @@ struct arr_0 to_str_1(struct ctx* ctx, struct comparison c) {
 			return (assert(0),(struct arr_0) {0, NULL});
 	}
 }
-struct comparison compare_229(struct my_record a, struct my_record b) {
+struct comparison compare_230(struct my_record a, struct my_record b) {
 	struct comparison temp0;
 	struct comparison temp1;
 	temp0 = compare_5(a.x, b.x);
@@ -2443,11 +2447,11 @@ uint8_t test_compare_byref_records(struct ctx* ctx) {
 	b1 = (temp1 = (struct my_byref_record*) alloc(ctx, sizeof(struct my_byref_record)), ((*(temp1) = (struct my_byref_record) {1u, 3u}, 0), temp1));
 	c2 = (temp2 = (struct my_byref_record*) alloc(ctx, sizeof(struct my_byref_record)), ((*(temp2) = (struct my_byref_record) {1u, 2u}, 0), temp2));
 	d3 = (temp3 = (struct my_byref_record*) alloc(ctx, sizeof(struct my_byref_record)), ((*(temp3) = (struct my_byref_record) {0u, 3u}, 0), temp3));
-	print(to_str_1(ctx, compare_231(a0, b1)));
-	print(to_str_1(ctx, compare_231(a0, c2)));
-	return print(to_str_1(ctx, compare_231(a0, d3)));
+	print(to_str_1(ctx, compare_232(a0, b1)));
+	print(to_str_1(ctx, compare_232(a0, c2)));
+	return print(to_str_1(ctx, compare_232(a0, d3)));
 }
-struct comparison compare_231(struct my_byref_record* a, struct my_byref_record* b) {
+struct comparison compare_232(struct my_byref_record* a, struct my_byref_record* b) {
 	struct comparison temp0;
 	struct comparison temp1;
 	temp0 = compare_5(a->x, b->x);
@@ -2481,11 +2485,11 @@ uint8_t test_compare_unions(struct ctx* ctx) {
 	b1 = (struct my_union) {1, .as1 = (struct my_other_record) {0}};
 	c2 = (struct my_union) {0, .as0 = (struct my_record) {1u, 2u}};
 	d3 = (struct my_union) {0, .as0 = (struct my_record) {1u, 1u}};
-	print(to_str_1(ctx, compare_233(a0, b1)));
-	print(to_str_1(ctx, compare_233(a0, c2)));
-	return print(to_str_1(ctx, compare_233(a0, d3)));
+	print(to_str_1(ctx, compare_234(a0, b1)));
+	print(to_str_1(ctx, compare_234(a0, c2)));
+	return print(to_str_1(ctx, compare_234(a0, d3)));
 }
-struct comparison compare_233(struct my_union a, struct my_union b) {
+struct comparison compare_234(struct my_union a, struct my_union b) {
 	struct my_union match_a0;
 	struct my_record a0;
 	struct my_union match_b0;
@@ -2501,7 +2505,7 @@ struct comparison compare_233(struct my_union a, struct my_union b) {
 			switch (match_b0.kind) {
 				case 0:
 					b0 = match_b0.as0;
-					return compare_229(a0, b0);
+					return compare_230(a0, b0);
 				case 1:
 					return (struct comparison) {0, .as0 = (struct less) {0}};
 				default:
@@ -2515,7 +2519,7 @@ struct comparison compare_233(struct my_union a, struct my_union b) {
 					return (struct comparison) {2, .as2 = (struct greater) {0}};
 				case 1:
 					b1 = match_b1.as1;
-					return compare_234(a1, b1);
+					return compare_235(a1, b1);
 				default:
 					return (assert(0),(struct comparison) {0});
 			}
@@ -2523,7 +2527,7 @@ struct comparison compare_233(struct my_union a, struct my_union b) {
 			return (assert(0),(struct comparison) {0});
 	}
 }
-struct comparison compare_234(struct my_other_record a, struct my_other_record b) {
+struct comparison compare_235(struct my_other_record a, struct my_other_record b) {
 	return (struct comparison) {1, .as1 = (struct equal) {0}};
 }
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value) {

@@ -4,11 +4,11 @@ import
 	.bootstrap
 		== != + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref drop false fun2
 		fun-ptr1 fun-ptr2 fut get-ctx hard-assert int32 message nat noctx-decr noctx-incr null null?
-		pass ptr ptr-to ref-of-val set str todo to-int unsafe-to-nat value void
+		ptr ptr-to ref-of-val set str todo to-int unsafe-to-nat value void
 	.cell: as-cell cell get
 	.exceptions: new-exception-ctx
 	.fut-low-level: must-be-resolved
-	.fut-utils: resolved then2
+	.fut-utils: delay resolved then2
 	.io: exit-code print-err print-err-no-newline
 	.posix: eagain einval esrch pthread-create pthread-join pthread-t
 	.runtime
@@ -72,7 +72,7 @@ thread-args record mut
 add-first-task fut exit-code(all-args arr c-str, main-ptr fun-ptr2 fut<exit-code> ctx arr<str>) unsafe
 	| 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	| TODO: 'then' overload for fut<void> taking lambda with 0 params
-	pass.resolved.as<fut<void>> then2 \
+	delay then2 \
 		| First argument is the path to this executable.
 		args = all-args tail
 		main-ptr call: get-ctx, args map {it.to-str}

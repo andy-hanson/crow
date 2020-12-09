@@ -2,7 +2,7 @@ import
 	.bootstrap
 		+ == != < <= ? and arr as as-any-ptr as-ref bits-and bit-shift-left bits-or bool byte
 		by-val char c-str data deref false hard-assert hard-unreachable has? incr int32
-		int nat nat16 nat32 none not null null? opt or pass ptr ptr-cast ptr-eq? ptr-to
+		int nat nat16 nat32 none not null null? opt or ptr ptr-cast ptr-eq? ptr-to
 		ref-eq? size size-of some str todo unsafe-to-int value void
 		wrap-add
 	.arr-utils
@@ -326,7 +326,7 @@ read-to-buffer-until-eof void(fd fd-t, buffer mut-str) trusted summon
 		todo
 	elif n-bytes-read == 0
 		| EOF, done
-		pass
+		void
 	else
 		assert: n-bytes-read.to-nat <= read-max
 		buffer unsafe-increase-size n-bytes-read.to-nat
@@ -344,7 +344,7 @@ keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, st
 	n-pollfds-with-events = poll: poll-fds.data, poll-fds.size, -1
 	if n-pollfds-with-events == 0
 		| TODO: is this even possible to reach? I think we always get has-pollhup? instead.
-		pass
+		void
 	else
 		a = stdout-pollfd handle-revents stdout-builder
 		b = stderr-pollfd handle-revents stderr-builder

@@ -2,7 +2,7 @@ import
 	.bootstrap
 		by-val call err exception exclusion fun fun-mut1 fun0 fun-ref0 fun-ref1 fun-ref2 fut
 		fut-callback-node fut-state-callbacks fut-state-resolved hard-unreachable head lk none ok
-		opt pass ref-of-val result send set-state some state todo value island island-and-exclusion void
+		opt ref-of-val result send set-state some state todo value island island-and-exclusion void
 	.exceptions: catch
 	.fut-low-level: new-unresolved-fut reject resolve-or-reject
 	.opt-utils: force
@@ -10,8 +10,8 @@ import
 	.thread-utils: acquire-lock decrement new-lock new-thread-safe-counter release-lock thread-safe-counter
 
 | Used to make code run after the next step. Equivalent to `sleep 0`.
-delay fut void() noctx
-	pass
+delay fut void()
+	void resolved
 
 resolved fut ?t(value ?t)
 	fut: new-lock, fut-state-resolved: value
@@ -124,6 +124,6 @@ assert-resolved void(f fut ?t) unsafe
 	as fut-state-callbacks cbs
 		hard-unreachable
 	as fut-state-resolved
-		pass
+		void
 	as exception
-		pass
+		void

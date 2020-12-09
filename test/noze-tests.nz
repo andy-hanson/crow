@@ -18,7 +18,7 @@ list-tests arr str(path str) summon
 	path each-child-recursive filter, \child
 		match child.base-name.get-extension
 		as none
-			pass
+			void
 		as some s
 			if s.value == "nz"
 				res push child
@@ -109,7 +109,7 @@ remove-colors str(s str)
 
 remove-colors-recur void(s str, out mut-str)
 	if s empty?
-		pass
+		void
 	elif s.first == "\x1b"
 		s.tail remove-colors-recur-2 out
 	else
@@ -118,7 +118,7 @@ remove-colors-recur void(s str, out mut-str)
 
 remove-colors-recur-2 void(s str, out mut-str)
 	if s empty?
-		pass
+		void
 	elif s.first == "m"
 		s.tail remove-colors-recur out
 	else

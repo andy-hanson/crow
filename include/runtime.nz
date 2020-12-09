@@ -4,9 +4,9 @@ import
 	.alloc: gc get-gc-ctx needs-gc new-gc return-gc-ctx unmanaged-alloc-elements
 	.arr-utils: at contains? empty? mut-arr noctx-at noctx-must-remove-unordered push-capacity-must-be-sufficient
 	.bootstrap
-		== > ? arr as as-any-ptr as-ref bool by-val call-with-ctx ctx empty? err exception
+		== != > ? arr as as-any-ptr as-ref bool by-val call-with-ctx ctx empty? err exception
 		exclusion false fun-mut0 fun-mut1 gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid
-		island-and-exclusion island-id lock message nat noctx-decr noctx-incr none ok opt pass
+		island-and-exclusion island-id lock message nat noctx-decr noctx-incr none not ok opt
 		ref-of-val result size some todo true value void
 	.exceptions: exception-ctx new-exception-ctx
 	.io: print-err print-err-no-newline
@@ -257,9 +257,7 @@ choose-task-in-island opt task-or-gc(island island) noctx unsafe
 		as some s
 			s.value.some some
 
-	if res empty?
-		pass
-	else
+	if res.empty? not
 		island set-n-threads-running island.n-threads-running.noctx-incr
 
 	island.tasks-lock.ref-of-val release-lock
@@ -312,9 +310,7 @@ find-and-remove-first-doable-task-recur opt task-and-nodes(island island, opt-no
 				some: task-and-nodes: tn.task, node some
 
 assert-islands-are-shut-down void(i nat, islands arr island) noctx unsafe
-	if i == islands.size
-		pass
-	else
+	if i != islands.size
 		island = islands noctx-at i
 
 		island.tasks-lock.ref-of-val acquire-lock

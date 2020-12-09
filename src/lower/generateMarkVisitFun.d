@@ -23,7 +23,7 @@ import lower.lowExprHelpers :
 	genAsAnyPtr,
 	genCall,
 	genDeref,
-	genPass,
+	genVoid,
 	getSizeOf,
 	paramRef,
 	recordFieldGet,
@@ -186,7 +186,7 @@ immutable(LowFunExprBody) visitRecordBody(Alloc)(
 		}
 	}
 	immutable Opt!LowExpr e = recur(none!LowExpr, 0);
-	return immutable LowFunExprBody(False, allocate(alloc, has(e) ? force(e) : genPass(range)));
+	return immutable LowFunExprBody(False, allocate(alloc, has(e) ? force(e) : genVoid(range)));
 }
 
 immutable(LowFunExprBody) visitUnionBody(Alloc)(

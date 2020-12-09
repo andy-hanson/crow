@@ -1,7 +1,7 @@
 import
 	.bootstrap
 		call cb drop err exception fut fut-callback-node fut-state-callbacks fut-state-resolved
-		hard-fail hard-unreachable head none lk next-node opt ok pass ref-of-val result set-state state value void
+		hard-fail hard-unreachable head none lk next-node opt ok ref-of-val result set-state state value void
 	.thread-utils: acquire-lock new-lock release-lock
 
 | Considered unsafe because normally it should not be possible to never resolve a fut
@@ -46,7 +46,7 @@ private
 resolve-or-reject-recur void(node opt fut-callback-node<?t>, value result ?t exception)
 	match node
 	as none
-		pass
+		void
 	as some s
 		| the fun-ref will return a fut<void>, just ignore it
 		drop: s.value.cb call value

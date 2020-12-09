@@ -603,8 +603,8 @@ program(
 																					message
 																					[call(value, [local-ref(e)])])]))
 																	1))]))))))))))))
-		fun(false, drop, type(false, void), none, [param(t, type(false, arr))], expr-body(call(pass, [])))
-		fun(false, pass, type(false, void), none, [], builtin([]))
+		fun(false, drop, type(false, void), none, [param(t, type(false, arr))], expr-body(call(void, [])))
+		fun(false, void, type(false, void), none, [], builtin([]))
 		fun(
 			false
 			to-str
@@ -1425,7 +1425,7 @@ program(
 				call(
 					then2
 					[
-						call(as, [call(resolved, [call(pass, [])])])
+						call(delay, [])
 						record(
 							[
 								call(cur-island-and-exclusion, [])
@@ -1711,7 +1711,7 @@ program(
 				match(
 					param-ref(node)
 					[
-						case(none, call(pass, []))
+						case(none, call(void, []))
 						case(
 							some(s)
 							seq(
@@ -1719,7 +1719,7 @@ program(
 								call(
 									resolve-or-reject-recur
 									[call(next-node, [call(value, [local-ref(s)])]), param-ref(value)])))])))
-		fun(false, drop, type(false, void), none, [param(t, type(false, void))], expr-body(call(pass, [])))
+		fun(false, drop, type(false, void), none, [param(t, type(false, void))], expr-body(call(void, [])))
 		fun(false, cb, type(false, fun-mut1), none, [param(a, type(true, fut-callback-node))], field-get(0))
 		fun(false, value, type(true, fut-callback-node), none, [param(a, type(false, some))], field-get(0))
 		fun(false, next-node, type(false, opt), none, [param(a, type(true, fut-callback-node))], field-get(1))
@@ -2378,7 +2378,7 @@ program(
 			new-record)
 		fun(false, island-id, type(false, nat), none, [param(a, type(true, ctx))], field-get(1))
 		fun(false, exclusion, type(false, nat), none, [param(a, type(true, ctx))], field-get(2))
-		fun(false, as, type(true, fut), none, [param(value, type(true, fut))], builtin([type(true, fut)]))
+		fun(true, delay, type(true, fut), none, [], expr-body(call(resolved, [call(void, [])])))
 		fun(
 			true
 			resolved
@@ -3328,8 +3328,7 @@ program(
 			[param(i, type(false, nat)), param(islands, type(false, arr))]
 			expr-body(
 				cond(
-					call(==, [param-ref(i), call(size, [param-ref(islands)])])
-					call(pass, [])
+					call(!=, [param-ref(i), call(size, [param-ref(islands)])])
 					let(
 						island
 						call(noctx-at, [param-ref(islands), param-ref(i)])
@@ -3349,7 +3348,8 @@ program(
 										hard-assert
 										[call(empty?, [call(ref-of-val, [call(tasks, [local-ref(island)])])])]))
 								call(release-lock, [call(ref-of-val, [call(tasks-lock, [local-ref(island)])])]))
-							call(assert-islands-are-shut-down, [call(noctx-incr, [param-ref(i)]), param-ref(islands)]))))))
+							call(assert-islands-are-shut-down, [call(noctx-incr, [param-ref(i)]), param-ref(islands)])))
+					void)))
 		fun(false, needs-gc, type(false, bool), none, [param(a, type(true, gc))], field-get(2))
 		fun(false, n-threads-running, type(false, nat), none, [param(a, type(true, island))], field-get(6))
 		fun(
@@ -3478,13 +3478,13 @@ program(
 						seq(
 							seq(
 								cond(
-									call(empty?, [local-ref(res)])
-									call(pass, [])
+									call(not, [call(empty?, [local-ref(res)])])
 									call(
 										set-n-threads-running
 										[
 											param-ref(island)
-											call(noctx-incr, [call(n-threads-running, [param-ref(island)])])]))
+											call(noctx-incr, [call(n-threads-running, [param-ref(island)])])])
+									void)
 								call(release-lock, [call(ref-of-val, [call(tasks-lock, [param-ref(island)])])]))
 							local-ref(res))))))
 		fun(false, as, type(false, opt), none, [param(value, type(false, opt))], builtin([type(false, opt)]))
@@ -3866,7 +3866,7 @@ program(
 				seq(
 					call(hard-assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
 					call(deref, [call(+, [call(data, [param-ref(a)]), param-ref(index)])]))))
-		fun(false, drop, type(false, void), none, [param(t, type(false, nat))], expr-body(call(pass, [])))
+		fun(false, drop, type(false, void), none, [param(t, type(false, nat))], expr-body(call(void, [])))
 		fun(
 			false
 			noctx-remove-unordered-at-index

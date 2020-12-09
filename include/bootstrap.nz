@@ -530,10 +530,9 @@ noctx-decr nat(n nat) noctx unsafe
 
 region Util
 
-pass void() noctx builtin
-pass fut void() noctx builtin
+void void() noctx builtin
 drop void(t ?t) noctx
-	pass
+	void
 
 hard-assert void(condition bool) noctx unsafe
 	if condition not

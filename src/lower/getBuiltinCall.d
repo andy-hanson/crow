@@ -215,8 +215,6 @@ immutable(BuiltinKind) getBuiltinKind(
 			return constant(immutable Constant(immutable Constant.Null()));
 		case shortSymAlphaLiteralValue("or"):
 			return binary(LowExprKind.SpecialBinary.Kind.or);
-		case shortSymAlphaLiteralValue("pass"):
-			return constant(immutable Constant(immutable Constant.Void()));
 		case shortSymAlphaLiteralValue("ptr-cast"):
 			return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
 		case shortSymAlphaLiteralValue("ptr-eq?"):
@@ -263,6 +261,8 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeDivNat64
 				: failBinary());
+		case shortSymAlphaLiteralValue("void"):
+			return constant(immutable Constant(immutable Constant.Void()));
 		case shortSymAlphaLiteralValue("wrap-add"):
 			return binary(isInt16(rt)
 				? LowExprKind.SpecialBinary.Kind.wrapAddInt16

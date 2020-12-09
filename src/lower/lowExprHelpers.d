@@ -279,6 +279,6 @@ immutable(LowExpr) writeToPtr(Alloc)(
 			allocate(alloc, value))));
 }
 
-immutable(LowExpr) genPass(ref immutable FileAndRange source) {
+immutable(LowExpr) genVoid(ref immutable FileAndRange source) {
 	return immutable LowExpr(voidType, source, immutable LowExprKind(immutable Constant(immutable Constant.Void())));
 }

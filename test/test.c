@@ -1344,6 +1344,7 @@ uint8_t call_6__lambda0__lambda1(struct ctx* ctx, struct call_6__lambda0__lambda
 uint8_t call_6__lambda0(struct ctx* ctx, struct call_6__lambda0* _closure);
 struct fut_0* then2__lambda0(struct ctx* ctx, struct then2__lambda0* _closure, uint8_t ignore);
 struct island_and_exclusion cur_island_and_exclusion(struct ctx* ctx);
+struct fut_1* delay(struct ctx* ctx);
 struct fut_1* resolved_0(struct ctx* ctx, uint8_t value);
 struct arr_3 tail_0(struct ctx* ctx, struct arr_3 a);
 uint8_t forbid_0(struct ctx* ctx, uint8_t condition);
@@ -1464,7 +1465,7 @@ struct arr_1 slice_up_to_0(struct ctx* ctx, struct arr_1 a, uint64_t size);
 struct arr_1 slice_2(struct ctx* ctx, struct arr_1 a, uint64_t begin, uint64_t size);
 struct arr_1 slice_starting_at_2(struct ctx* ctx, struct arr_1 a, uint64_t begin);
 uint8_t _op_equal_equal_4(struct arr_0 a, struct arr_0 b);
-struct comparison compare_248(struct arr_0 a, struct arr_0 b);
+struct comparison compare_249(struct arr_0 a, struct arr_0 b);
 uint8_t parse_cmd_line_args_dynamic__lambda1(struct ctx* ctx, uint8_t* _closure, struct arr_0 it);
 struct dict_0* parse_named_args(struct ctx* ctx, struct arr_1 args);
 struct mut_dict_0 new_mut_dict_0(struct ctx* ctx);
@@ -1631,7 +1632,7 @@ int32_t enoent(void);
 struct opt_13 todo_5(void);
 uint8_t todo_6(void);
 uint8_t _op_equal_equal_5(uint32_t a, uint32_t b);
-struct comparison compare_415(uint32_t a, uint32_t b);
+struct comparison compare_416(uint32_t a, uint32_t b);
 uint32_t s_ifmt(struct ctx* ctx);
 uint32_t s_ifdir(struct ctx* ctx);
 uint8_t each_1(struct ctx* ctx, struct arr_1 a, struct fun_mut1_11 f);
@@ -1729,7 +1730,7 @@ struct handle_revents_result handle_revents(struct ctx* ctx, struct pollfd* poll
 uint8_t has_pollin__q(struct ctx* ctx, int16_t revents);
 uint8_t bits_intersect__q(int16_t a, int16_t b);
 uint8_t _op_equal_equal_6(int16_t a, int16_t b);
-struct comparison compare_513(int16_t a, int16_t b);
+struct comparison compare_514(int16_t a, int16_t b);
 uint8_t read_to_buffer_until_eof(struct ctx* ctx, int32_t fd, struct mut_arr_4* buffer);
 uint8_t ensure_capacity_3(struct ctx* ctx, struct mut_arr_4* a, uint64_t capacity);
 uint8_t increase_capacity_to_3(struct ctx* ctx, struct mut_arr_4* a, uint64_t new_capacity);
@@ -2314,7 +2315,7 @@ uint8_t try_unset(struct _atomic_bool* a) {
 }
 struct fut_0* add_first_task(struct ctx* ctx, struct arr_3 all_args, fun_ptr2_0 main_ptr) {
 	struct add_first_task__lambda0* temp0;
-	return then2(ctx, resolved_0(ctx, 0), (struct fun_ref0) {cur_island_and_exclusion(ctx), (struct fun_mut0_1) {(fun_ptr2_2) add_first_task__lambda0, (uint8_t*) (temp0 = (struct add_first_task__lambda0*) alloc(ctx, sizeof(struct add_first_task__lambda0)), ((*(temp0) = (struct add_first_task__lambda0) {all_args, main_ptr}, 0), temp0))}});
+	return then2(ctx, delay(ctx), (struct fun_ref0) {cur_island_and_exclusion(ctx), (struct fun_mut0_1) {(fun_ptr2_2) add_first_task__lambda0, (uint8_t*) (temp0 = (struct add_first_task__lambda0*) alloc(ctx, sizeof(struct add_first_task__lambda0)), ((*(temp0) = (struct add_first_task__lambda0) {all_args, main_ptr}, 0), temp0))}});
 }
 struct fut_0* then2(struct ctx* ctx, struct fut_1* f, struct fun_ref0 cb) {
 	struct then2__lambda0* temp0;
@@ -2649,6 +2650,9 @@ struct island_and_exclusion cur_island_and_exclusion(struct ctx* ctx) {
 	struct ctx* c0;
 	c0 = ctx;
 	return (struct island_and_exclusion) {c0->island_id, c0->exclusion};
+}
+struct fut_1* delay(struct ctx* ctx) {
+	return resolved_0(ctx, 0);
 }
 struct fut_1* resolved_0(struct ctx* ctx, uint8_t value) {
 	struct fut_1* temp0;
@@ -3017,9 +3021,7 @@ uint8_t assert_islands_are_shut_down(uint64_t i, struct arr_2 islands) {
 	uint64_t _tailCalli;
 	struct arr_2 _tailCallislands;
 	top:
-	if (_op_equal_equal_0(i, islands.size)) {
-		return 0;
-	} else {
+	if (_op_bang_equal_0(i, islands.size)) {
 		island0 = noctx_at_0(islands, i);
 		acquire_lock((&(island0->tasks_lock)));
 		hard_forbid((&(island0->gc))->needs_gc);
@@ -3031,6 +3033,8 @@ uint8_t assert_islands_are_shut_down(uint64_t i, struct arr_2 islands) {
 		i = _tailCalli;
 		islands = _tailCallislands;
 		goto top;
+	} else {
+		return 0;
 	}
 }
 uint8_t empty__q_2(struct mut_bag* m) {
@@ -3100,10 +3104,10 @@ struct opt_7 choose_task_in_island(struct island* island) {
 	struct some_5 s0;
 	acquire_lock((&(island->tasks_lock)));
 	res1 = ((&(island->gc))->needs_gc ? (_op_equal_equal_0(island->n_threads_running, 0u) ? (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {0, .as0 = (struct none) {0}}}} : (struct opt_7) {0, .as0 = (struct none) {0}}) : (temp0 = find_and_remove_first_doable_task(island), temp0.kind == 0 ? (struct opt_7) {0, .as0 = (struct none) {0}} : temp0.kind == 1 ? (s0 = temp0.as1, (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {1, .as1 = (struct some_5) {s0.value}}}}) : (assert(0),(struct opt_7) {0})));
-	if (empty__q_4(res1)) {
-		0;
-	} else {
+	if (!empty__q_4(res1)) {
 		(island->n_threads_running = noctx_incr(island->n_threads_running), 0);
+	} else {
+		0;
 	}
 	release_lock((&(island->tasks_lock)));
 	return res1;
@@ -3599,7 +3603,7 @@ struct arr_1 slice_starting_at_2(struct ctx* ctx, struct arr_1 a, uint64_t begin
 }
 uint8_t _op_equal_equal_4(struct arr_0 a, struct arr_0 b) {
 	struct comparison temp0;
-	temp0 = compare_248(a, b);
+	temp0 = compare_249(a, b);
 	switch (temp0.kind) {
 		case 0:
 			return 0;
@@ -3611,7 +3615,7 @@ uint8_t _op_equal_equal_4(struct arr_0 a, struct arr_0 b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_248(struct arr_0 a, struct arr_0 b) {
+struct comparison compare_249(struct arr_0 a, struct arr_0 b) {
 	struct comparison temp0;
 	struct arr_0 _tailCalla;
 	struct arr_0 _tailCallb;
@@ -4738,7 +4742,7 @@ uint8_t todo_6(void) {
 }
 uint8_t _op_equal_equal_5(uint32_t a, uint32_t b) {
 	struct comparison temp0;
-	temp0 = compare_415(a, b);
+	temp0 = compare_416(a, b);
 	switch (temp0.kind) {
 		case 0:
 			return 0;
@@ -4750,7 +4754,7 @@ uint8_t _op_equal_equal_5(uint32_t a, uint32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_415(uint32_t a, uint32_t b) {
+struct comparison compare_416(uint32_t a, uint32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -4947,7 +4951,7 @@ uint64_t partition_recur(struct ctx* ctx, struct mut_slice* a, struct arr_0 pivo
 }
 uint8_t _op_less_2(struct arr_0 a, struct arr_0 b) {
 	struct comparison temp0;
-	temp0 = compare_248(a, b);
+	temp0 = compare_249(a, b);
 	switch (temp0.kind) {
 		case 0:
 			return 1;
@@ -5501,7 +5505,7 @@ uint8_t bits_intersect__q(int16_t a, int16_t b) {
 }
 uint8_t _op_equal_equal_6(int16_t a, int16_t b) {
 	struct comparison temp0;
-	temp0 = compare_513(a, b);
+	temp0 = compare_514(a, b);
 	switch (temp0.kind) {
 		case 0:
 			return 0;
@@ -5513,7 +5517,7 @@ uint8_t _op_equal_equal_6(int16_t a, int16_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_513(int16_t a, int16_t b) {
+struct comparison compare_514(int16_t a, int16_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -6147,7 +6151,7 @@ uint32_t bit_shift_left(uint32_t a, uint32_t b) {
 }
 uint8_t _op_less_4(uint32_t a, uint32_t b) {
 	struct comparison temp0;
-	temp0 = compare_415(a, b);
+	temp0 = compare_416(a, b);
 	switch (temp0.kind) {
 		case 0:
 			return 1;
