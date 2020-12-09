@@ -1,16 +1,15 @@
 import
 	.bootstrap
-		actor by-val call err exception fun fun-mut1 fun0 fun-ref0 fun-ref1 fun-ref2 fut
+		by-val call err exception exclusion fun fun-mut1 fun0 fun-ref0 fun-ref1 fun-ref2 fut
 		fut-callback-node fut-state-callbacks fut-state-resolved hard-unreachable head lk none ok
-		opt pass ref-of-val result send set-state some state todo value vat vat-and-actor void
+		opt pass ref-of-val result send set-state some state todo value island island-and-exclusion void
 	.exceptions: catch
 	.fut-low-level: new-unresolved-fut reject resolve-or-reject
 	.opt-utils: force
-	.runtime: add-task get-cur-vat get-vat new-actor-id task
+	.runtime: add-task get-cur-island get-island new-exclusion task
 	.thread-utils: acquire-lock decrement new-lock new-thread-safe-counter release-lock thread-safe-counter
-|	.io
 
-| Used to make code run after the actor's next step. Equivalent to `sleep 0`.
+| Used to make code run after the next step. Equivalent to `sleep 0`.
 delay fut void() noctx
 	pass
 
@@ -94,29 +93,29 @@ then2 fut ?out(f fut void, cb fun-ref0 ?out) send<?out>
 | So we can run it in parallel.
 async fut ?t(f fun0 fut<?t>) trusted
 	res = new-unresolved-fut<?t>
-	vat = get-cur-vat
-	vat add-task task: vat.new-actor-id, \
+	island = get-cur-island
+	island add-task task: island.new-exclusion, \
 		f.call forward-to res
 	res
 
 call fut ?r(f fun-ref0 ?r) trusted send<?r>
-	vat = f.vat-and-actor.vat get-vat
+	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
-	vat add-task task: f.vat-and-actor.actor, \
+	island add-task task: f.island-and-exclusion.exclusion, \
 		{f.fun.call forward-to res} catch {res reject it}
 	res
 
 call fut ?r(f fun-ref1 ?r ?p0, p0 ?p0) trusted send<?r> send<?p0>
-	vat = f.vat-and-actor.vat get-vat
+	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
-	vat add-task task: f.vat-and-actor.actor, \
+	island add-task task: f.island-and-exclusion.exclusion, \
 		{f.fun call p0 forward-to res} catch {res reject it}
 	res
 
 call fut ?r(f fun-ref2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
-	vat = f.vat-and-actor.vat get-vat
+	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
-	vat add-task task: f.vat-and-actor.actor, \
+	island add-task task: f.island-and-exclusion.exclusion, \
 		{f.fun call p0, p1 forward-to res} catch {res reject it}
 	res
 

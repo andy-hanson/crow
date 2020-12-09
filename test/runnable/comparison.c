@@ -6,8 +6,8 @@
 typedef uint8_t* (*fun_ptr1)(uint8_t*);
 struct ctx {
 	uint8_t* gctx_ptr;
-	uint64_t vat_id;
-	uint64_t actor_id;
+	uint64_t island_id;
+	uint64_t exclusion;
 	uint8_t* gc_ctx_ptr;
 	uint8_t* exception_ctx_ptr;
 };
@@ -60,7 +60,7 @@ struct arr_1 {
 	struct arr_0* data;
 };
 struct global_ctx;
-struct vat;
+struct island;
 struct gc;
 struct gc_ctx;
 struct some_1 {
@@ -83,7 +83,7 @@ struct thread_safe_counter;
 struct fun_mut1_1;
 struct arr_2 {
 	uint64_t size;
-	struct vat** data;
+	struct island** data;
 };
 struct condition;
 struct exception_ctx;
@@ -117,9 +117,9 @@ struct fut_state_resolved_1 {
 	uint8_t value;
 };
 struct fun_ref0;
-struct vat_and_actor_id {
-	uint64_t vat;
-	uint64_t actor;
+struct island_and_exclusion {
+	uint64_t island;
+	uint64_t exclusion;
 };
 struct fun_mut0_1;
 struct fun_ref1;
@@ -284,7 +284,7 @@ struct fun_mut1_0 {
 	uint8_t* closure;
 };
 struct global_ctx;
-struct vat;
+struct island;
 struct gc {
 	struct lock lk;
 	struct opt_1 context_head;
@@ -417,25 +417,25 @@ struct fut_callback_node_0 {
 };
 struct global_ctx {
 	struct lock lk;
-	struct arr_2 vats;
+	struct arr_2 islands;
 	uint64_t n_live_threads;
 	struct condition may_be_work_to_do;
 	uint8_t is_shut_down;
 	uint8_t any_unhandled_exceptions__q;
 };
-struct vat {
+struct island {
 	struct global_ctx* gctx;
 	uint64_t id;
 	struct gc gc;
 	struct lock tasks_lock;
 	struct mut_bag tasks;
-	struct mut_arr_0 currently_running_actors;
+	struct mut_arr_0 currently_running_exclusions;
 	uint64_t n_threads_running;
-	struct thread_safe_counter next_actor_id;
+	struct thread_safe_counter next_exclusion;
 	struct fun_mut1_1 exception_handler;
 };
 struct task {
-	uint64_t actor_id;
+	uint64_t exclusion;
 	struct fun_mut0_0 fun;
 };
 struct mut_bag_node {
@@ -460,11 +460,11 @@ struct fut_callback_node_1 {
 	struct opt_3 next_node;
 };
 struct fun_ref0 {
-	struct vat_and_actor_id vat_and_actor;
+	struct island_and_exclusion island_and_exclusion;
 	struct fun_mut0_1 fun;
 };
 struct fun_ref1 {
-	struct vat_and_actor_id vat_and_actor;
+	struct island_and_exclusion island_and_exclusion;
 	struct fun_mut1_3 fun;
 };
 struct then__lambda0 {
@@ -529,7 +529,7 @@ struct jmp_buf_tag {
 	struct bytes128 saved_mask;
 };
 struct chosen_task {
-	struct vat* vat;
+	struct island* island;
 	struct opt_5 task_or_gc;
 };
 struct ok_2 {
@@ -620,7 +620,7 @@ struct lock new_lock(void);
 struct _atomic_bool new_atomic_bool(void);
 struct arr_2 empty_arr(void);
 struct condition new_condition(void);
-struct vat new_vat(struct global_ctx* gctx, uint64_t id, uint64_t max_threads);
+struct island new_island(struct global_ctx* gctx, uint64_t id, uint64_t max_threads);
 struct mut_arr_0 new_mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity);
 uint64_t* unmanaged_alloc_elements_0(uint64_t size_elements);
 uint8_t* unmanaged_alloc_bytes(uint64_t size);
@@ -642,10 +642,10 @@ int32_t stderr_fd(void);
 uint8_t print_err_sync(struct arr_0 s);
 uint8_t empty__q_0(struct arr_0 a);
 struct global_ctx* get_gctx(struct ctx* ctx);
-uint8_t new_vat__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception it);
-struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, char** argv, fun_ptr2_0 main_ptr);
+uint8_t new_island__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception exn);
+struct fut_0* do_main(struct global_ctx* gctx, struct island* island, int32_t argc, char** argv, fun_ptr2_0 main_ptr);
 struct exception_ctx new_exception_ctx(void);
-struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id);
+struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct island* island, uint64_t exclusion);
 struct gc_ctx* get_gc_ctx_0(struct gc* gc);
 uint8_t acquire_lock(struct lock* a);
 uint8_t acquire_lock_recur(struct lock* a, uint64_t n_tries);
@@ -678,8 +678,8 @@ uint8_t resolve_or_reject_recur(struct ctx* ctx, struct opt_0 node, struct resul
 uint8_t drop_1(uint8_t t);
 uint8_t forward_to__lambda0(struct ctx* ctx, struct forward_to__lambda0* _closure, struct result_0 it);
 struct fut_0* call_2(struct ctx* ctx, struct fun_ref1 f, uint8_t p0);
-struct vat* get_vat(struct ctx* ctx, uint64_t vat_id);
-struct vat* at_0(struct ctx* ctx, struct arr_2 a, uint64_t index);
+struct island* get_island(struct ctx* ctx, uint64_t island_id);
+struct island* at_0(struct ctx* ctx, struct arr_2 a, uint64_t index);
 uint8_t assert_0(struct ctx* ctx, uint8_t condition);
 uint8_t assert_1(struct ctx* ctx, uint8_t condition, struct arr_0 message);
 uint8_t fail(struct ctx* ctx, struct arr_0 reason);
@@ -688,8 +688,8 @@ struct exception_ctx* get_exception_ctx(struct ctx* ctx);
 uint8_t null__q_1(struct jmp_buf_tag* a);
 extern void longjmp(struct jmp_buf_tag* env, int32_t val);
 int32_t number_to_throw(struct ctx* ctx);
-struct vat* noctx_at_0(struct arr_2 a, uint64_t index);
-uint8_t add_task(struct ctx* ctx, struct vat* v, struct task t);
+struct island* noctx_at_0(struct arr_2 a, uint64_t index);
+uint8_t add_task(struct ctx* ctx, struct island* v, struct task t);
 struct mut_bag_node* new_mut_bag_node(struct ctx* ctx, struct task value);
 uint8_t add(struct mut_bag* bag, struct mut_bag_node* node);
 uint8_t broadcast(struct condition* c);
@@ -718,7 +718,7 @@ uint8_t call_6__lambda0__lambda0(struct ctx* ctx, struct call_6__lambda0__lambda
 uint8_t call_6__lambda0__lambda1(struct ctx* ctx, struct call_6__lambda0__lambda1* _closure, struct exception it);
 uint8_t call_6__lambda0(struct ctx* ctx, struct call_6__lambda0* _closure);
 struct fut_0* then2__lambda0(struct ctx* ctx, struct then2__lambda0* _closure, uint8_t ignore);
-struct vat_and_actor_id cur_actor(struct ctx* ctx);
+struct island_and_exclusion cur_island_and_exclusion(struct ctx* ctx);
 struct fut_1* resolved_0(struct ctx* ctx, uint8_t value);
 struct arr_3 tail(struct ctx* ctx, struct arr_3 a);
 uint8_t forbid_0(struct ctx* ctx, uint8_t condition);
@@ -770,16 +770,16 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 uint8_t* thread_fun(uint8_t* args_ptr);
 uint8_t thread_function(uint64_t thread_id, struct global_ctx* gctx);
 uint8_t thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struct thread_local_stuff* tls);
-uint8_t assert_vats_are_shut_down(uint64_t i, struct arr_2 vats);
+uint8_t assert_islands_are_shut_down(uint64_t i, struct arr_2 islands);
 uint8_t empty__q_2(struct mut_bag* m);
 uint8_t empty__q_3(struct opt_2 a);
 uint8_t _op_greater(uint64_t a, uint64_t b);
 uint64_t get_last_checked(struct condition* c);
 struct result_2 choose_task(struct global_ctx* gctx);
-struct opt_6 choose_task_recur(struct arr_2 vats, uint64_t i);
-struct opt_7 choose_task_in_vat(struct vat* vat);
-struct opt_5 find_and_remove_first_doable_task(struct vat* vat);
-struct opt_8 find_and_remove_first_doable_task_recur(struct vat* vat, struct opt_2 opt_node);
+struct opt_6 choose_task_recur(struct arr_2 islands, uint64_t i);
+struct opt_7 choose_task_in_island(struct island* island);
+struct opt_5 find_and_remove_first_doable_task(struct island* island);
+struct opt_8 find_and_remove_first_doable_task_recur(struct island* island, struct opt_2 opt_node);
 uint8_t contains__q(struct mut_arr_0* a, uint64_t value);
 uint8_t contains_recur__q(struct arr_4 a, uint64_t value, uint64_t i);
 uint64_t noctx_at_2(struct arr_4 a, uint64_t index);
@@ -924,8 +924,8 @@ uint8_t hard_forbid(uint8_t condition) {
 int32_t rt_main(int32_t argc, char** argv, fun_ptr2_0 main_ptr) {
 	struct global_ctx gctx_by_val0;
 	struct global_ctx* gctx1;
-	struct vat vat_by_val2;
-	struct vat* vat3;
+	struct island island_by_val2;
+	struct island* island3;
 	struct fut_0* main_fut4;
 	struct result_0 temp0;
 	struct ok_0 o5;
@@ -933,10 +933,10 @@ int32_t rt_main(int32_t argc, char** argv, fun_ptr2_0 main_ptr) {
 	drop_0(to_str_0((*(argv))));
 	gctx_by_val0 = (struct global_ctx) {new_lock(), empty_arr(), 1u, new_condition(), 0, 0};
 	gctx1 = (&(gctx_by_val0));
-	vat_by_val2 = new_vat(gctx1, 0u, 1u);
-	vat3 = (&(vat_by_val2));
-	(gctx1->vats = (struct arr_2) {1u, (&(vat3))}, 0);
-	main_fut4 = do_main(gctx1, vat3, argc, argv, main_ptr);
+	island_by_val2 = new_island(gctx1, 0u, 1u);
+	island3 = (&(island_by_val2));
+	(gctx1->islands = (struct arr_2) {1u, (&(island3))}, 0);
+	main_fut4 = do_main(gctx1, island3, argc, argv, main_ptr);
 	run_threads(1u, gctx1);
 	if (gctx1->any_unhandled_exceptions__q) {
 		return 1;
@@ -1032,10 +1032,10 @@ struct arr_2 empty_arr(void) {
 struct condition new_condition(void) {
 	return (struct condition) {new_lock(), 0u};
 }
-struct vat new_vat(struct global_ctx* gctx, uint64_t id, uint64_t max_threads) {
-	struct mut_arr_0 actors0;
-	actors0 = new_mut_arr_by_val_with_capacity_from_unmanaged_memory(max_threads);
-	return (struct vat) {gctx, id, new_gc(), new_lock(), new_mut_bag(), actors0, 0u, new_thread_safe_counter_0(), (struct fun_mut1_1) {(fun_ptr3_1) new_vat__lambda0, (uint8_t*) NULL}};
+struct island new_island(struct global_ctx* gctx, uint64_t id, uint64_t max_threads) {
+	struct mut_arr_0 exclusions0;
+	exclusions0 = new_mut_arr_by_val_with_capacity_from_unmanaged_memory(max_threads);
+	return (struct island) {gctx, id, new_gc(), new_lock(), new_mut_bag(), exclusions0, 0u, new_thread_safe_counter_0(), (struct fun_mut1_1) {(fun_ptr3_1) new_island__lambda0, (uint8_t*) NULL}};
 }
 struct mut_arr_0 new_mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity) {
 	return (struct mut_arr_0) {0, 0u, capacity, unmanaged_alloc_elements_0(capacity)};
@@ -1134,10 +1134,10 @@ uint8_t empty__q_0(struct arr_0 a) {
 struct global_ctx* get_gctx(struct ctx* ctx) {
 	return (struct global_ctx*) ctx->gctx_ptr;
 }
-uint8_t new_vat__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception it) {
-	return default_exception_handler(ctx, it);
+uint8_t new_island__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception exn) {
+	return default_exception_handler(ctx, exn);
 }
-struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, char** argv, fun_ptr2_0 main_ptr) {
+struct fut_0* do_main(struct global_ctx* gctx, struct island* island, int32_t argc, char** argv, fun_ptr2_0 main_ptr) {
 	struct exception_ctx ectx0;
 	struct thread_local_stuff tls1;
 	struct ctx ctx_by_val2;
@@ -1146,7 +1146,7 @@ struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, ch
 	struct arr_3 all_args5;
 	ectx0 = new_exception_ctx();
 	tls1 = (struct thread_local_stuff) {(&(ectx0))};
-	ctx_by_val2 = new_ctx(gctx, (&(tls1)), vat, 0u);
+	ctx_by_val2 = new_ctx(gctx, (&(tls1)), island, 0u);
 	ctx3 = (&(ctx_by_val2));
 	add4 = (struct fun2) {(fun_ptr4) do_main__lambda0, (uint8_t*) NULL};
 	all_args5 = (struct arr_3) {argc, argv};
@@ -1155,8 +1155,8 @@ struct fut_0* do_main(struct global_ctx* gctx, struct vat* vat, int32_t argc, ch
 struct exception_ctx new_exception_ctx(void) {
 	return (struct exception_ctx) {NULL, (struct exception) {(struct arr_0) {0u, NULL}}};
 }
-struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct vat* vat, uint64_t actor_id) {
-	return (struct ctx) {(uint8_t*) gctx, vat->id, actor_id, (uint8_t*) get_gc_ctx_0((&(vat->gc))), (uint8_t*) tls->exception_ctx};
+struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct island* island, uint64_t exclusion) {
+	return (struct ctx) {(uint8_t*) gctx, island->id, exclusion, (uint8_t*) get_gc_ctx_0((&(island->gc))), (uint8_t*) tls->exception_ctx};
 }
 struct gc_ctx* get_gc_ctx_0(struct gc* gc) {
 	struct gc_ctx* res3;
@@ -1253,11 +1253,11 @@ uint8_t try_unset(struct _atomic_bool* a) {
 }
 struct fut_0* add_first_task(struct ctx* ctx, struct arr_3 all_args, fun_ptr2_0 main_ptr) {
 	struct add_first_task__lambda0* temp0;
-	return then2(ctx, resolved_0(ctx, 0), (struct fun_ref0) {cur_actor(ctx), (struct fun_mut0_1) {(fun_ptr2_2) add_first_task__lambda0, (uint8_t*) (temp0 = (struct add_first_task__lambda0*) alloc(ctx, sizeof(struct add_first_task__lambda0)), ((*(temp0) = (struct add_first_task__lambda0) {all_args, main_ptr}, 0), temp0))}});
+	return then2(ctx, resolved_0(ctx, 0), (struct fun_ref0) {cur_island_and_exclusion(ctx), (struct fun_mut0_1) {(fun_ptr2_2) add_first_task__lambda0, (uint8_t*) (temp0 = (struct add_first_task__lambda0*) alloc(ctx, sizeof(struct add_first_task__lambda0)), ((*(temp0) = (struct add_first_task__lambda0) {all_args, main_ptr}, 0), temp0))}});
 }
 struct fut_0* then2(struct ctx* ctx, struct fut_1* f, struct fun_ref0 cb) {
 	struct then2__lambda0* temp0;
-	return then(ctx, f, (struct fun_ref1) {cur_actor(ctx), (struct fun_mut1_3) {(fun_ptr3_3) then2__lambda0, (uint8_t*) (temp0 = (struct then2__lambda0*) alloc(ctx, sizeof(struct then2__lambda0)), ((*(temp0) = (struct then2__lambda0) {cb}, 0), temp0))}});
+	return then(ctx, f, (struct fun_ref1) {cur_island_and_exclusion(ctx), (struct fun_mut1_3) {(fun_ptr3_3) then2__lambda0, (uint8_t*) (temp0 = (struct then2__lambda0*) alloc(ctx, sizeof(struct then2__lambda0)), ((*(temp0) = (struct then2__lambda0) {cb}, 0), temp0))}});
 }
 struct fut_0* then(struct ctx* ctx, struct fut_1* f, struct fun_ref1 cb) {
 	struct fut_0* res0;
@@ -1395,18 +1395,18 @@ uint8_t forward_to__lambda0(struct ctx* ctx, struct forward_to__lambda0* _closur
 	return resolve_or_reject(ctx, _closure->to, it);
 }
 struct fut_0* call_2(struct ctx* ctx, struct fun_ref1 f, uint8_t p0) {
-	struct vat* vat0;
+	struct island* island0;
 	struct fut_0* res1;
 	struct call_2__lambda0* temp0;
-	vat0 = get_vat(ctx, f.vat_and_actor.vat);
+	island0 = get_island(ctx, f.island_and_exclusion.island);
 	res1 = new_unresolved_fut(ctx);
-	add_task(ctx, vat0, (struct task) {f.vat_and_actor.actor, (struct fun_mut0_0) {(fun_ptr2_1) call_2__lambda0, (uint8_t*) (temp0 = (struct call_2__lambda0*) alloc(ctx, sizeof(struct call_2__lambda0)), ((*(temp0) = (struct call_2__lambda0) {f, p0, res1}, 0), temp0))}});
+	add_task(ctx, island0, (struct task) {f.island_and_exclusion.exclusion, (struct fun_mut0_0) {(fun_ptr2_1) call_2__lambda0, (uint8_t*) (temp0 = (struct call_2__lambda0*) alloc(ctx, sizeof(struct call_2__lambda0)), ((*(temp0) = (struct call_2__lambda0) {f, p0, res1}, 0), temp0))}});
 	return res1;
 }
-struct vat* get_vat(struct ctx* ctx, uint64_t vat_id) {
-	return at_0(ctx, get_gctx(ctx)->vats, vat_id);
+struct island* get_island(struct ctx* ctx, uint64_t island_id) {
+	return at_0(ctx, get_gctx(ctx)->islands, island_id);
 }
-struct vat* at_0(struct ctx* ctx, struct arr_2 a, uint64_t index) {
+struct island* at_0(struct ctx* ctx, struct arr_2 a, uint64_t index) {
 	assert_0(ctx, _op_less(index, a.size));
 	return noctx_at_0(a, index);
 }
@@ -1440,11 +1440,11 @@ uint8_t null__q_1(struct jmp_buf_tag* a) {
 int32_t number_to_throw(struct ctx* ctx) {
 	return 7;
 }
-struct vat* noctx_at_0(struct arr_2 a, uint64_t index) {
+struct island* noctx_at_0(struct arr_2 a, uint64_t index) {
 	hard_assert(_op_less(index, a.size));
 	return (*((a.data + index)));
 }
-uint8_t add_task(struct ctx* ctx, struct vat* v, struct task t) {
+uint8_t add_task(struct ctx* ctx, struct island* v, struct task t) {
 	struct mut_bag_node* node0;
 	node0 = new_mut_bag_node(ctx, t);
 	acquire_lock((&(v->tasks_lock)));
@@ -1556,12 +1556,12 @@ uint8_t then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, struct re
 	}
 }
 struct fut_0* call_6(struct ctx* ctx, struct fun_ref0 f) {
-	struct vat* vat0;
+	struct island* island0;
 	struct fut_0* res1;
 	struct call_6__lambda0* temp0;
-	vat0 = get_vat(ctx, f.vat_and_actor.vat);
+	island0 = get_island(ctx, f.island_and_exclusion.island);
 	res1 = new_unresolved_fut(ctx);
-	add_task(ctx, vat0, (struct task) {f.vat_and_actor.actor, (struct fun_mut0_0) {(fun_ptr2_1) call_6__lambda0, (uint8_t*) (temp0 = (struct call_6__lambda0*) alloc(ctx, sizeof(struct call_6__lambda0)), ((*(temp0) = (struct call_6__lambda0) {f, res1}, 0), temp0))}});
+	add_task(ctx, island0, (struct task) {f.island_and_exclusion.exclusion, (struct fun_mut0_0) {(fun_ptr2_1) call_6__lambda0, (uint8_t*) (temp0 = (struct call_6__lambda0*) alloc(ctx, sizeof(struct call_6__lambda0)), ((*(temp0) = (struct call_6__lambda0) {f, res1}, 0), temp0))}});
 	return res1;
 }
 struct fut_0* call_7(struct ctx* ctx, struct fun_mut0_1 f) {
@@ -1584,10 +1584,10 @@ uint8_t call_6__lambda0(struct ctx* ctx, struct call_6__lambda0* _closure) {
 struct fut_0* then2__lambda0(struct ctx* ctx, struct then2__lambda0* _closure, uint8_t ignore) {
 	return call_6(ctx, _closure->cb);
 }
-struct vat_and_actor_id cur_actor(struct ctx* ctx) {
+struct island_and_exclusion cur_island_and_exclusion(struct ctx* ctx) {
 	struct ctx* c0;
 	c0 = ctx;
-	return (struct vat_and_actor_id) {c0->vat_id, c0->actor_id};
+	return (struct island_and_exclusion) {c0->island_id, c0->exclusion};
 }
 struct fut_1* resolved_0(struct ctx* ctx, uint8_t value) {
 	struct fut_1* temp0;
@@ -1915,7 +1915,7 @@ uint8_t thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struc
 	if (gctx->is_shut_down) {
 		acquire_lock((&(gctx->lk)));
 		(gctx->n_live_threads = noctx_decr(gctx->n_live_threads), 0);
-		assert_vats_are_shut_down(0u, gctx->vats);
+		assert_islands_are_shut_down(0u, gctx->islands);
 		return release_lock((&(gctx->lk)));
 	} else {
 		hard_assert(_op_greater(gctx->n_live_threads, 0u));
@@ -1951,24 +1951,24 @@ uint8_t thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struc
 		goto top;
 	}
 }
-uint8_t assert_vats_are_shut_down(uint64_t i, struct arr_2 vats) {
-	struct vat* vat0;
+uint8_t assert_islands_are_shut_down(uint64_t i, struct arr_2 islands) {
+	struct island* island0;
 	uint64_t _tailCalli;
-	struct arr_2 _tailCallvats;
+	struct arr_2 _tailCallislands;
 	top:
-	if (_op_equal_equal_0(i, vats.size)) {
+	if (_op_equal_equal_0(i, islands.size)) {
 		return 0;
 	} else {
-		vat0 = noctx_at_0(vats, i);
-		acquire_lock((&(vat0->tasks_lock)));
-		hard_forbid((&(vat0->gc))->needs_gc);
-		hard_assert(_op_equal_equal_0(vat0->n_threads_running, 0u));
-		hard_assert(empty__q_2((&(vat0->tasks))));
-		release_lock((&(vat0->tasks_lock)));
+		island0 = noctx_at_0(islands, i);
+		acquire_lock((&(island0->tasks_lock)));
+		hard_forbid((&(island0->gc))->needs_gc);
+		hard_assert(_op_equal_equal_0(island0->n_threads_running, 0u));
+		hard_assert(empty__q_2((&(island0->tasks))));
+		release_lock((&(island0->tasks_lock)));
 		_tailCalli = noctx_incr(i);
-		_tailCallvats = vats;
+		_tailCallislands = islands;
 		i = _tailCalli;
-		vats = _tailCallvats;
+		islands = _tailCallislands;
 		goto top;
 	}
 }
@@ -2002,60 +2002,60 @@ struct result_2 choose_task(struct global_ctx* gctx) {
 	struct opt_6 temp0;
 	struct some_6 s0;
 	acquire_lock((&(gctx->lk)));
-	res1 = (temp0 = choose_task_recur(gctx->vats, 0u), temp0.kind == 0 ? (((gctx->n_live_threads = noctx_decr(gctx->n_live_threads), 0), hard_assert(_op_equal_equal_0(gctx->n_live_threads, 0u))), (struct result_2) {1, .as1 = (struct err_1) {(struct no_chosen_task) {_op_equal_equal_0(gctx->n_live_threads, 0u)}}}) : temp0.kind == 1 ? (s0 = temp0.as1, (struct result_2) {0, .as0 = (struct ok_2) {s0.value}}) : (assert(0),(struct result_2) {0}));
+	res1 = (temp0 = choose_task_recur(gctx->islands, 0u), temp0.kind == 0 ? (((gctx->n_live_threads = noctx_decr(gctx->n_live_threads), 0), hard_assert(_op_equal_equal_0(gctx->n_live_threads, 0u))), (struct result_2) {1, .as1 = (struct err_1) {(struct no_chosen_task) {_op_equal_equal_0(gctx->n_live_threads, 0u)}}}) : temp0.kind == 1 ? (s0 = temp0.as1, (struct result_2) {0, .as0 = (struct ok_2) {s0.value}}) : (assert(0),(struct result_2) {0}));
 	release_lock((&(gctx->lk)));
 	return res1;
 }
-struct opt_6 choose_task_recur(struct arr_2 vats, uint64_t i) {
-	struct vat* vat0;
+struct opt_6 choose_task_recur(struct arr_2 islands, uint64_t i) {
+	struct island* island0;
 	struct opt_7 temp0;
 	struct some_7 s1;
-	struct arr_2 _tailCallvats;
+	struct arr_2 _tailCallislands;
 	uint64_t _tailCalli;
 	top:
-	if (_op_equal_equal_0(i, vats.size)) {
+	if (_op_equal_equal_0(i, islands.size)) {
 		return (struct opt_6) {0, .as0 = (struct none) {0}};
 	} else {
-		vat0 = noctx_at_0(vats, i);
-		temp0 = choose_task_in_vat(vat0);
+		island0 = noctx_at_0(islands, i);
+		temp0 = choose_task_in_island(island0);
 		switch (temp0.kind) {
 			case 0:
-				_tailCallvats = vats;
+				_tailCallislands = islands;
 				_tailCalli = noctx_incr(i);
-				vats = _tailCallvats;
+				islands = _tailCallislands;
 				i = _tailCalli;
 				goto top;
 			case 1:
 				s1 = temp0.as1;
-				return (struct opt_6) {1, .as1 = (struct some_6) {(struct chosen_task) {vat0, s1.value}}};
+				return (struct opt_6) {1, .as1 = (struct some_6) {(struct chosen_task) {island0, s1.value}}};
 			default:
 				return (assert(0),(struct opt_6) {0});
 		}
 	}
 }
-struct opt_7 choose_task_in_vat(struct vat* vat) {
+struct opt_7 choose_task_in_island(struct island* island) {
 	struct opt_7 res1;
 	struct opt_5 temp0;
 	struct some_5 s0;
-	acquire_lock((&(vat->tasks_lock)));
-	res1 = ((&(vat->gc))->needs_gc ? (_op_equal_equal_0(vat->n_threads_running, 0u) ? (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {0, .as0 = (struct none) {0}}}} : (struct opt_7) {0, .as0 = (struct none) {0}}) : (temp0 = find_and_remove_first_doable_task(vat), temp0.kind == 0 ? (struct opt_7) {0, .as0 = (struct none) {0}} : temp0.kind == 1 ? (s0 = temp0.as1, (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {1, .as1 = (struct some_5) {s0.value}}}}) : (assert(0),(struct opt_7) {0})));
+	acquire_lock((&(island->tasks_lock)));
+	res1 = ((&(island->gc))->needs_gc ? (_op_equal_equal_0(island->n_threads_running, 0u) ? (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {0, .as0 = (struct none) {0}}}} : (struct opt_7) {0, .as0 = (struct none) {0}}) : (temp0 = find_and_remove_first_doable_task(island), temp0.kind == 0 ? (struct opt_7) {0, .as0 = (struct none) {0}} : temp0.kind == 1 ? (s0 = temp0.as1, (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {1, .as1 = (struct some_5) {s0.value}}}}) : (assert(0),(struct opt_7) {0})));
 	if (empty__q_4(res1)) {
 		0;
 	} else {
-		(vat->n_threads_running = noctx_incr(vat->n_threads_running), 0);
+		(island->n_threads_running = noctx_incr(island->n_threads_running), 0);
 	}
-	release_lock((&(vat->tasks_lock)));
+	release_lock((&(island->tasks_lock)));
 	return res1;
 }
-struct opt_5 find_and_remove_first_doable_task(struct vat* vat) {
+struct opt_5 find_and_remove_first_doable_task(struct island* island) {
 	struct mut_bag* tasks0;
 	struct opt_2 th1;
 	struct opt_8 res2;
 	struct opt_8 temp0;
 	struct some_8 s3;
-	tasks0 = (&(vat->tasks));
+	tasks0 = (&(island->tasks));
 	th1 = tasks0->head;
-	res2 = find_and_remove_first_doable_task_recur(vat, tasks0->head);
+	res2 = find_and_remove_first_doable_task_recur(island, tasks0->head);
 	temp0 = res2;
 	switch (temp0.kind) {
 		case 0:
@@ -2068,12 +2068,12 @@ struct opt_5 find_and_remove_first_doable_task(struct vat* vat) {
 			return (assert(0),(struct opt_5) {0});
 	}
 }
-struct opt_8 find_and_remove_first_doable_task_recur(struct vat* vat, struct opt_2 opt_node) {
+struct opt_8 find_and_remove_first_doable_task_recur(struct island* island, struct opt_2 opt_node) {
 	struct opt_2 temp0;
 	struct some_2 s0;
 	struct mut_bag_node* node1;
 	struct task task2;
-	struct mut_arr_0* actors3;
+	struct mut_arr_0* exclusions3;
 	uint8_t task_ok4;
 	struct opt_8 temp1;
 	struct some_8 ss5;
@@ -2086,12 +2086,12 @@ struct opt_8 find_and_remove_first_doable_task_recur(struct vat* vat, struct opt
 			s0 = temp0.as1;
 			node1 = s0.value;
 			task2 = node1->value;
-			actors3 = (&(vat->currently_running_actors));
-			task_ok4 = (contains__q(actors3, task2.actor_id) ? 0 : (push_capacity_must_be_sufficient(actors3, task2.actor_id), 1));
+			exclusions3 = (&(island->currently_running_exclusions));
+			task_ok4 = (contains__q(exclusions3, task2.exclusion) ? 0 : (push_capacity_must_be_sufficient(exclusions3, task2.exclusion), 1));
 			if (task_ok4) {
 				return (struct opt_8) {1, .as1 = (struct some_8) {(struct task_and_nodes) {task2, node1->next_node}}};
 			} else {
-				temp1 = find_and_remove_first_doable_task_recur(vat, node1->next_node);
+				temp1 = find_and_remove_first_doable_task_recur(island, node1->next_node);
 				switch (temp1.kind) {
 					case 0:
 						return (struct opt_8) {0, .as0 = (struct none) {0}};
@@ -2167,12 +2167,12 @@ uint8_t empty__q_4(struct opt_7 a) {
 	}
 }
 uint8_t do_task(struct global_ctx* gctx, struct thread_local_stuff* tls, struct chosen_task chosen_task) {
-	struct vat* vat0;
+	struct island* island0;
 	struct opt_5 temp0;
 	struct some_5 some_task1;
 	struct task task2;
 	struct ctx ctx3;
-	vat0 = chosen_task.vat;
+	island0 = chosen_task.island;
 	temp0 = chosen_task.task_or_gc;
 	switch (temp0.kind) {
 		case 0:
@@ -2182,19 +2182,19 @@ uint8_t do_task(struct global_ctx* gctx, struct thread_local_stuff* tls, struct 
 		case 1:
 			some_task1 = temp0.as1;
 			task2 = some_task1.value;
-			ctx3 = new_ctx(gctx, tls, vat0, task2.actor_id);
+			ctx3 = new_ctx(gctx, tls, island0, task2.exclusion);
 			call_with_ctx_2((&(ctx3)), task2.fun);
-			acquire_lock((&(vat0->tasks_lock)));
-			noctx_must_remove_unordered((&(vat0->currently_running_actors)), task2.actor_id);
-			release_lock((&(vat0->tasks_lock)));
+			acquire_lock((&(island0->tasks_lock)));
+			noctx_must_remove_unordered((&(island0->currently_running_exclusions)), task2.exclusion);
+			release_lock((&(island0->tasks_lock)));
 			return_ctx((&(ctx3)));
 			break;
 		default:
 			(assert(0),0);
 	}
-	acquire_lock((&(vat0->tasks_lock)));
-	(vat0->n_threads_running = noctx_decr(vat0->n_threads_running), 0);
-	return release_lock((&(vat0->tasks_lock)));
+	acquire_lock((&(island0->tasks_lock)));
+	(island0->n_threads_running = noctx_decr(island0->n_threads_running), 0);
+	return release_lock((&(island0->tasks_lock)));
 }
 uint8_t noctx_must_remove_unordered(struct mut_arr_0* a, uint64_t value) {
 	return noctx_must_remove_unordered_recur(a, 0u, value);

@@ -187,7 +187,7 @@ immutable(DiagsAndResultStrs) printConcreteModel(Alloc, PathAlloc, SymAlloc, Rea
 	return matchResult!(immutable DiagsAndResultStrs, Ptr!Program, Diagnostics)(
 		programResult,
 		(ref immutable Ptr!Program program) {
-			immutable ConcreteProgram concreteProgram = concretize(alloc, program);
+			immutable ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
 			return immutable DiagsAndResultStrs(emptyStr, showConcreteProgram(alloc, concreteProgram, format));
 		},
 		(ref immutable Diagnostics diagnostics) =>
@@ -209,7 +209,7 @@ immutable(DiagsAndResultStrs) printLowModel(Alloc, PathAlloc, SymAlloc, ReadOnly
 	return matchResultImpure!(immutable DiagsAndResultStrs, Ptr!Program, Diagnostics)(
 		programResult,
 		(ref immutable Ptr!Program program) {
-			immutable ConcreteProgram concreteProgram = concretize(alloc, program);
+			immutable ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
 			immutable Ptr!LowProgram lowProgram = lower(alloc, concreteProgram);
 			return immutable DiagsAndResultStrs(emptyStr, showLowProgram(alloc, lowProgram, format));
 		},
@@ -283,7 +283,7 @@ immutable(Result!(ProgramsAndFilesInfo, Diagnostics)) buildToLowProgram(Alloc, P
 	return mapSuccess!(ProgramsAndFilesInfo, Ptr!Program, Diagnostics)(
 		programResult,
 		(ref immutable Ptr!Program program) {
-			immutable Ptr!ConcreteProgram concreteProgram = concretize(alloc, program);
+			immutable Ptr!ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
 			return immutable ProgramsAndFilesInfo(
 				program,
 				concreteProgram,

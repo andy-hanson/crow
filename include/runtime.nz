@@ -4,10 +4,10 @@ import
 	.alloc: gc get-gc-ctx needs-gc new-gc return-gc-ctx unmanaged-alloc-elements
 	.arr-utils: at contains? empty? mut-arr noctx-at noctx-must-remove-unordered push-capacity-must-be-sufficient
 	.bootstrap
-		== > ? actor-id arr as as-any-ptr as-ref bool by-val call-with-ctx ctx empty? err exception
-		false fun-mut0 fun-mut1 gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid lock message
-		nat noctx-decr noctx-incr none ok opt pass ref-of-val result size some todo true value
-		vat-and-actor-id vat-id void
+		== > ? arr as as-any-ptr as-ref bool by-val call-with-ctx ctx empty? err exception
+		exclusion false fun-mut0 fun-mut1 gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid
+		island-and-exclusion island-id lock message nat noctx-decr noctx-incr none ok opt pass
+		ref-of-val result size some todo true value void
 	.exceptions: exception-ctx new-exception-ctx
 	.io: print-err-sync print-err-sync-no-newline
 	.mut-bag: add empty? head mut-bag mut-bag-node next-node new-mut-bag new-mut-bag-node set-head set-next-node value
@@ -18,21 +18,21 @@ import
 get-gctx global-ctx() unsafe
 	get-ctx.gctx-ptr as-ref
 
-get-vat vat(vat-id vat-id) unsafe
-	get-gctx.vats at vat-id
+get-island island(island-id island-id) unsafe
+	get-gctx.islands at island-id
 
-get-cur-vat vat() unsafe
-	get-ctx.vat-id get-vat
+get-cur-island island() unsafe
+	get-ctx.island-id get-island
 
 | This fun is required by the compiler.
-cur-actor vat-and-actor-id() unsafe
+cur-island-and-exclusion island-and-exclusion() unsafe
 	c = get-ctx
-	vat-and-actor-id: c.vat-id, c.actor-id
+	island-and-exclusion: c.island-id, c.exclusion
 
 global-ctx record mut
 	lk by-val lock
 	| TODO: mut-arr
-	vats mut arr vat
+	islands mut arr island
 	| if a thread finds no work to do, it decrements this and waits on 'may-be-work-to-do'.
 	| if the last thread decrements this, it can't go to sleep!
 	| But if there's no work to do, it can set 'is-shut-down' and wake up the other threads so they can shut down too.
@@ -43,21 +43,21 @@ global-ctx record mut
 	| Can never be unset.
 	any-unhandled-exceptions? mut bool
 
-vat record mut
+island record mut
 	gctx global-ctx
-	id vat-id
+	id island-id
 	gc by-val gc
 
 	| these variables are all protected by tasks-lock
 	tasks-lock by-val lock
 	tasks by-val mut-bag<task>
 	| TODO: mut-set
-	currently-running-actors by-val mut-arr<actor-id>
-	| Number of threads currently performing tasks in this vat
+	currently-running-exclusions by-val mut-arr<exclusion>
+	| Number of threads currently performing tasks in this island
 	n-threads-running mut nat
 
 	| not protected by tasks-lock, thread-safe on its own
-	next-actor-id by-val thread-safe-counter
+	next-exclusion by-val thread-safe-counter
 
 	| if there's an exception, we'll enqueue this as a task.
 	| Default is to print it and set `gctx.any-unhandled-exceptions`
@@ -66,33 +66,34 @@ vat record mut
 
 task record mut
 	by-val
-	| Unlike a fun-ref, this is stored in the vat already, so no need to store vat here too.
+	| Unlike a fun-ref, this is stored in the island already, so no need to store island here too.
 	| Also, the fun just returns 'void'. You can just use a fut-returning fun and drop the fut.
-	| The fun runs using a ctx created from the actor-id.
-	actor-id actor-id
+	| The fun runs using a ctx created from the exclusion.
+	exclusion exclusion
 	fun fun-mut0 void
 
 
-new-actor-id actor-id(v vat) noctx trusted
-	v.next-actor-id.ref-of-val get-and-increment
+new-exclusion exclusion(v island) noctx trusted
+	v.next-exclusion.ref-of-val get-and-increment
 
 new-mut-arr-by-val-with-capacity-from-unmanaged-memory by-val mut-arr<?t>(capacity nat) noctx unsafe
 	mut-arr<?t>: false, 0, capacity, capacity unmanaged-alloc-elements<?t>
 
-new-vat by-val vat(gctx global-ctx, id vat-id, max-threads nat) summon noctx unsafe
-	actors = max-threads new-mut-arr-by-val-with-capacity-from-unmanaged-memory<actor-id>
-	vat: gctx, id, new-gc, new-lock, new-mut-bag, actors, 0, new-thread-safe-counter, {it default-exception-handler}
+new-island by-val island(gctx global-ctx, id island-id, max-threads nat) summon noctx unsafe
+	exclusions = max-threads new-mut-arr-by-val-with-capacity-from-unmanaged-memory<exclusion>
+	island: gctx, id, new-gc, new-lock, new-mut-bag, exclusions, 0, new-thread-safe-counter, \exn
+		exn default-exception-handler
 
 default-exception-handler void(e exception) summon unsafe
 	print-err-sync-no-newline: "uncaught exception: "
 	print-err-sync: e.message.empty? ? "<<empty message>>", e.message
 	get-gctx set-any-unhandled-exceptions? true
 
-set-this-vats-exception-handler void(exception-handler fun-mut1 void exception) summon trusted
-	get-cur-vat set-exception-handler exception-handler
+set-this-islands-exception-handler void(exception-handler fun-mut1 void exception) summon trusted
+	get-cur-island set-exception-handler exception-handler
 
 | Unsafe because you must ensure 'task' is safe to run in parallel.
-add-task void(v vat, t task) unsafe
+add-task void(v island, t task) unsafe
 	| Do allocation outside of the lock
 	node = t new-mut-bag-node
 
@@ -117,7 +118,7 @@ thread-function-recur void(thread-id nat, gctx global-ctx, tls thread-local-stuf
 		gctx.lk.ref-of-val acquire-lock
 		| Remove this thread from live threads for good.
 		gctx set-n-live-threads: gctx.n-live-threads noctx-decr
-		assert-vats-are-shut-down: 0, gctx.vats
+		assert-islands-are-shut-down: 0, gctx.islands
 		gctx.lk.ref-of-val release-lock
 	else
 		hard-assert: gctx.n-live-threads > 0
@@ -144,14 +145,14 @@ thread-function-recur void(thread-id nat, gctx global-ctx, tls thread-local-stuf
 		| Do another task
 		thread-function-recur: thread-id, gctx, tls
 
-new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, vat vat, actor-id actor-id) noctx unsafe
-	ctx: gctx.as-any-ptr, vat.id, actor-id, vat.gc.ref-of-val.get-gc-ctx.as-any-ptr, tls.exception-ctx.as-any-ptr
+new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion exclusion) noctx unsafe
+	ctx: gctx.as-any-ptr, island.id, exclusion, island.gc.ref-of-val.get-gc-ctx.as-any-ptr, tls.exception-ctx.as-any-ptr
 
 return-ctx void(c ctx) noctx unsafe
 	c.gc-ctx-ptr.as-ref return-gc-ctx
 
 do-task void(gctx global-ctx, tls thread-local-stuff, chosen-task chosen-task) noctx unsafe summon
-	vat = chosen-task.vat
+	island = chosen-task.island
 	match chosen-task.task-or-gc
 	as none
 		| Means -- do GC
@@ -161,23 +162,23 @@ do-task void(gctx global-ctx, tls thread-local-stuff, chosen-task chosen-task) n
 		gctx.may-be-work-to-do.ref-of-val broadcast
 	as some some-task
 		task = some-task.value
-		ctx = new-ctx: gctx, tls, vat, task.actor-id
+		ctx = new-ctx: gctx, tls, island, task.exclusion
 		| TODO: parens should not be necessary
 		| ctx.ref-of-val call-with-ctx (&do-task-with-ctx).as<fun-mut1<void, fun-mut0<void>>>, task.fun
 		ctx.ref-of-val call-with-ctx task.fun
-		vat.tasks-lock.ref-of-val acquire-lock
-		vat.currently-running-actors.ref-of-val noctx-must-remove-unordered task.actor-id
-		vat.tasks-lock.ref-of-val release-lock
+		island.tasks-lock.ref-of-val acquire-lock
+		island.currently-running-exclusions.ref-of-val noctx-must-remove-unordered task.exclusion
+		island.tasks-lock.ref-of-val release-lock
 		ctx.ref-of-val return-ctx
 
 	| We incremented this if choosing the task.
-	vat.tasks-lock.ref-of-val acquire-lock
-	vat set-n-threads-running vat.n-threads-running.noctx-decr
-	vat.tasks-lock.ref-of-val release-lock
+	island.tasks-lock.ref-of-val acquire-lock
+	island set-n-threads-running island.n-threads-running.noctx-decr
+	island.tasks-lock.ref-of-val release-lock
 
 | do-task-with-ctx void(task-fun fun-mut0 void) unsafe summon
 | 	{task-fun call} catch \exception
-| 		{get-cur-vat.exception-handler call exception} catch \exception-handler-exception
+| 		{get-cur-island.exception-handler call exception} catch \exception-handler-exception
 | 			| TODO: can print throw exceptions? Should have an unfailable version.
 | 			print-err-sync: "exception handler threw an exception!"
 | 			print-err-sync: exception-handler-exception.message
@@ -187,8 +188,8 @@ task-or-gc alias
 
 chosen-task record mut
 	by-val
-	vat vat
-	| If none, do GC on the vat.
+	island island
+	| If none, do GC on the island.
 	task-or-gc task-or-gc
 
 no-chosen-task record
@@ -201,10 +202,10 @@ choose-task result chosen-task no-chosen-task(gctx global-ctx) noctx unsafe
 	gctx.lk.ref-of-val acquire-lock
 
 	| TODO: more fair algorithm.
-	| This looks for the first vat with some work to do.
-	| (That is unfair as vat 0 will tend to get the most attention.)
+	| This looks for the first island with some work to do.
+	| (That is unfair as island 0 will tend to get the most attention.)
 
-	res = as<result<chosen-task, no-chosen-task>>: match gctx.vats choose-task-recur 0
+	res = as<result<chosen-task, no-chosen-task>>: match gctx.islands choose-task-recur 0
 	as none
 		| Did not find a task to do.
 		| (Tasks may have been added concurrently;
@@ -222,35 +223,35 @@ choose-task result chosen-task no-chosen-task(gctx global-ctx) noctx unsafe
 	res
 
 
-choose-task-recur opt chosen-task(vats arr vat, i nat) noctx unsafe
-	if i == vats.size
+choose-task-recur opt chosen-task(islands arr island, i nat) noctx unsafe
+	if i == islands.size
 		none
 	else
-		vat = vats noctx-at i
-		match vat choose-task-in-vat
+		island = islands noctx-at i
+		match island choose-task-in-island
 		as none
-			vats choose-task-recur i.noctx-incr
+			islands choose-task-recur i.noctx-incr
 		as some s
-			some: chosen-task: vat, s.value
+			some: chosen-task: island, s.value
 
 
 
 | some(none) means: do a GC
-choose-task-in-vat opt task-or-gc(vat vat) noctx unsafe
-	vat.tasks-lock.ref-of-val acquire-lock
+choose-task-in-island opt task-or-gc(island island) noctx unsafe
+	island.tasks-lock.ref-of-val acquire-lock
 
 	| TODO: ref-of-val should be unnecessary for property access?
-	res = as<opt<task-or-gc>>: if vat.gc.ref-of-val.needs-gc
-		if vat.n-threads-running == 0
+	res = as<opt<task-or-gc>>: if island.gc.ref-of-val.needs-gc
+		if island.n-threads-running == 0
 			| do GC
 			none some
 		else
-			| do nothing -- a thread is running on this vat
+			| do nothing -- a thread is running on this island
 			| we can't do a GC now, but don't want to start a new task either
 			| because that would block GC
 			none
 	else
-		match vat find-and-remove-first-doable-task
+		match island find-and-remove-first-doable-task
 		as none
 			none
 		as some s
@@ -259,9 +260,9 @@ choose-task-in-vat opt task-or-gc(vat vat) noctx unsafe
 	if res empty?
 		pass
 	else
-		vat set-n-threads-running vat.n-threads-running.noctx-incr
+		island set-n-threads-running island.n-threads-running.noctx-incr
 
-	vat.tasks-lock.ref-of-val release-lock
+	island.tasks-lock.ref-of-val release-lock
 
 	res
 
@@ -270,10 +271,10 @@ task-and-nodes record mut
 	task task
 	nodes opt mut-bag-node<task>
 
-find-and-remove-first-doable-task opt task(vat vat) noctx unsafe
-	tasks = vat.tasks ref-of-val
+find-and-remove-first-doable-task opt task(island island) noctx unsafe
+	tasks = island.tasks ref-of-val
 	th = tasks head
-	res = vat find-and-remove-first-doable-task-recur tasks.head
+	res = island find-and-remove-first-doable-task-recur tasks.head
 	match res
 	as none
 		none
@@ -281,28 +282,28 @@ find-and-remove-first-doable-task opt task(vat vat) noctx unsafe
 		tasks set-head s.value.nodes
 		s.value.task some
 
-find-and-remove-first-doable-task-recur opt task-and-nodes(vat vat, opt-node opt mut-bag-node<task>) noctx unsafe
+find-and-remove-first-doable-task-recur opt task-and-nodes(island island, opt-node opt mut-bag-node<task>) noctx unsafe
 	match opt-node
 	as none
 		none
 	as some s
 		node = s value
 		task = node value
-		| Can't do this task if the actor is busy.
-		| (If we don't have space to expand currently-running-actors,
+		| Can't do this task if the exclusion is busy.
+		| (If we don't have space to expand currently-running-exclusions,
 		| shouldn't be starting a new task anyway.)
-		actors = vat.currently-running-actors ref-of-val
-		task-ok = if actors contains? task.actor-id
+		exclusions = island.currently-running-exclusions ref-of-val
+		task-ok = if exclusions contains? task.exclusion
 			false
 		else
-			actors push-capacity-must-be-sufficient task.actor-id
+			exclusions push-capacity-must-be-sufficient task.exclusion
 			true
 
 		if task-ok
 			| Extract this task (return just its tail)
 			some: task-and-nodes: task, node.next-node
 		else
-			match vat find-and-remove-first-doable-task-recur node.next-node
+			match island find-and-remove-first-doable-task-recur node.next-node
 			as none
 				none
 			as some ss
@@ -310,16 +311,16 @@ find-and-remove-first-doable-task-recur opt task-and-nodes(vat vat, opt-node opt
 				node set-next-node tn.nodes
 				some: task-and-nodes: tn.task, node some
 
-assert-vats-are-shut-down void(i nat, vats arr vat) noctx unsafe
-	if i == vats.size
+assert-islands-are-shut-down void(i nat, islands arr island) noctx unsafe
+	if i == islands.size
 		pass
 	else
-		vat = vats noctx-at i
+		island = islands noctx-at i
 
-		vat.tasks-lock.ref-of-val acquire-lock
-		hard-forbid: vat.gc.ref-of-val needs-gc
-		hard-assert: vat.n-threads-running == 0
-		hard-assert: vat.tasks.ref-of-val empty?
-		vat.tasks-lock.ref-of-val release-lock
+		island.tasks-lock.ref-of-val acquire-lock
+		hard-forbid: island.gc.ref-of-val needs-gc
+		hard-assert: island.n-threads-running == 0
+		hard-assert: island.tasks.ref-of-val empty?
+		island.tasks-lock.ref-of-val release-lock
 
-		assert-vats-are-shut-down: i.noctx-incr, vats
+		assert-islands-are-shut-down: i.noctx-incr, islands

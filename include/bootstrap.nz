@@ -186,21 +186,21 @@ fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5> builtin
 ctx record mut
 	by-ref
 	gctx-ptr any-ptr
-	vat-id vat-id
-	actor-id actor-id
+	island-id island-id
+	exclusion exclusion
 	gc-ctx-ptr any-ptr
 	exception-ctx-ptr any-ptr
 
-vat-id alias
+island-id alias
 	nat
 
-actor-id alias
+exclusion alias
 	nat
 
-vat-and-actor-id record
+island-and-exclusion record
 	by-val
-	vat vat-id
-	actor actor-id
+	island island-id
+	exclusion exclusion
 
 | A fun is two pointers -- one to the fun pointer, one to the closure.
 | TODO: point to the vtable, and have vtable also store layout information
@@ -240,24 +240,24 @@ fun-mut3<?r, ?p0, ?p1, ?p2> record mut
 	fun-ptr fun-ptr5 ?r ctx any-ptr ?p0 ?p1 ?p2
 	closure any-ptr
 
-| A normal fun is non-sendable, a fun-ref becomes sendable by storing the vat/actor that will provide its ctx.
+| A normal fun is non-sendable, a fun-ref becomes sendable by storing the island/exclusion that will provide its ctx.
 | As the name implies, we have a reference to the fun, but when we call it,
 | the one who created it runs the code, not us.
 fun-ref0<?r> record force-sendable
 	by-val
-	vat-and-actor vat-and-actor-id
+	island-and-exclusion island-and-exclusion
 	fun fun-mut0 fut<?r>
 fun-ref1<?r, ?p0> record force-sendable
 	by-val
-	vat-and-actor vat-and-actor-id
+	island-and-exclusion island-and-exclusion
 	fun fun-mut1 fut<?r> ?p0
 fun-ref2<?r, ?p0, ?p1> record force-sendable
 	by-val
-	vat-and-actor vat-and-actor-id
+	island-and-exclusion island-and-exclusion
 	fun fun-mut2 fut<?r> ?p0 ?p1
 fun-ref3<?r, ?p0, ?p1, ?p2> record force-sendable
 	by-val
-	vat-and-actor vat-and-actor-id
+	island-and-exclusion island-and-exclusion
 	fun fun-mut3 fut<?r> ?p0 ?p1 ?p2
 
 | calling a fun-ptr is a primitive operation
@@ -508,30 +508,6 @@ wrap-decr nat(a nat) noctx
 	a wrap-sub 1
 wrap-decr nat32(a nat32) noctx
 	a wrap-sub 1
-
-two-pow nat(pow nat) noctx
-	if pow == 0
-		1
-	else
-		| TODO: safety
-		pow.wrap-decr.two-pow wrap-mul 2
-two-pow nat32(pow nat32) noctx
-	| TODO: use bitshift
-	if pow == 0
-		1
-	else
-		| TODO: safety
-		pow.wrap-decr.two-pow wrap-mul 2
-two-pow int16(pow int16) noctx
-	if pow == 0
-		1
-	else
-		pow.wrap-decr.two-pow wrap-mul 2
-two-pow int32(pow int32) noctx
-	if pow == 0
-		1
-	else
-		pow.wrap-decr.two-pow wrap-mul 2
 
 noctx-incr nat(n nat) noctx unsafe
 	hard-assert: n < max-nat

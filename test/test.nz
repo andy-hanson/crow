@@ -23,7 +23,7 @@ main fut exit-code(args arr str) summon
 			| TODO: handle it..
 			assert: s.value empty?
 			true
-		max-failures = as<nat>: match max-failures-strs
+		max-failures = match max-failures-strs
 		as none
 			100
 		as some s

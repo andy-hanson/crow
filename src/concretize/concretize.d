@@ -31,15 +31,20 @@ import util.collection.arrBuilder : finishArr_immutable;
 import util.collection.arrUtil : filter;
 import util.collection.mutDict : mutDictIsEmpty;
 import util.collection.multiDict : multiDictGetAt;
+import util.collection.str : Str, strLiteral;
 import util.memory : nu;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe;
-import util.sym : shortSymAlphaLiteral;
+import util.sym : AllSymbols, getSymFromAlphaIdentifier, shortSymAlphaLiteral, Sym;
 import util.util : todo, verify;
 
-immutable(Ptr!ConcreteProgram) concretize(Alloc)(ref Alloc alloc, ref immutable Program program) {
+immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	ref immutable Program program,
+) {
 	ConcretizeCtx ctx = ConcretizeCtx(
-		getGetVatAndActorFun(alloc, program),
+		getCurIslandAndExclusionFun(alloc, allSymbols, program),
 		getIfFuns(program),
 		getCallFuns(alloc, program),
 		program.ctxStructInst,
@@ -166,12 +171,16 @@ immutable(Ptr!FunInst) getAllocFun(Alloc)(ref Alloc alloc, ref immutable Program
 	return nonTemplateFunInst(alloc, allocFun);
 }
 
-//TODO: should be called 'getCurActorFun'?
-immutable(Ptr!FunInst) getGetVatAndActorFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) funs =
-		multiDictGetAt(program.specialModules.runtimeModule.funsMap, shortSymAlphaLiteral("cur-actor"));
+immutable(Ptr!FunInst) getCurIslandAndExclusionFun(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllSymbols!SymAlloc allSymbols,
+	ref immutable Program program,
+) {
+	immutable Str name = strLiteral("cur-island-and-exclusion");
+	immutable Sym sym = getSymFromAlphaIdentifier(allSymbols, name);
+	immutable Arr!(Ptr!FunDecl) funs = multiDictGetAt(program.specialModules.runtimeModule.funsMap, sym);
 	if (size(funs) != 1)
-		todo!void("wrong number cur-actor funs");
+		todo!void("wrong number cur-island-and=exclusion funs");
 	return nonTemplateFunInst(alloc, only(funs));
 }
 

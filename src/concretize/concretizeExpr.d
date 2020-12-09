@@ -14,7 +14,7 @@ import concretize.concretizeCtx :
 	concretizeParams,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteType_forStructInst_fromConcretizeCtx = getConcreteType_forStructInst,
-	getGetVatAndActorFun,
+	getCurIslandAndExclusionFun,
 	getOrAddConcreteFunAndFillBody,
 	getConcreteFunForLambdaAndFillBody,
 	specImpls,
@@ -309,14 +309,14 @@ immutable(ConcreteExpr) createAllocExpr(Alloc)(
 		immutable ConcreteExprKind(immutable ConcreteExprKind.Alloc(allocExpr(alloc, inner))));
 }
 
-immutable(ConcreteExpr) getGetVatAndActor(Alloc)(
+immutable(ConcreteExpr) getGetIslandAndExclusion(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
 	ref immutable ConcreteType type,
 	ref immutable FileAndRange range,
 ) {
 	return immutable ConcreteExpr(type, range, immutable ConcreteExprKind(
-		immutable ConcreteExprKind.Call(getGetVatAndActorFun(alloc, ctx.concretizeCtx), emptyArr!ConcreteExpr)));
+		immutable ConcreteExprKind.Call(getCurIslandAndExclusionFun(alloc, ctx.concretizeCtx), emptyArr!ConcreteExpr)));
 }
 
 immutable(Arr!ConcreteField) concretizeClosureFields(Alloc)(
@@ -407,11 +407,12 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 		immutable ConcreteExprKind.Lambda(fun, closure)));
 
 	if (e.kind == FunKind.ref_) {
-		immutable ConcreteField vatAndActorField = at(asRecord(body_(possiblySendType.struct_)).fields, 0);
-		verify(symEqLongAlphaLiteral(name(vatAndActorField), "vat-and-actor"));
-		immutable ConcreteExpr vatAndActor = getGetVatAndActor(alloc, ctx, vatAndActorField.type, range);
+		immutable ConcreteField islandAndExclusionField = at(asRecord(body_(possiblySendType.struct_)).fields, 0);
+		verify(symEqLongAlphaLiteral(name(islandAndExclusionField), "island-and-exclusion"));
+		immutable ConcreteExpr islandAndExclusion =
+			getGetIslandAndExclusion(alloc, ctx, islandAndExclusionField.type, range);
 		return immutable ConcreteExpr(possiblySendType, range, immutable ConcreteExprKind(
-			immutable ConcreteExprKind.CreateRecord(arrLiteral!ConcreteExpr(alloc, [vatAndActor, res]))));
+			immutable ConcreteExprKind.CreateRecord(arrLiteral!ConcreteExpr(alloc, [islandAndExclusion, res]))));
 	} else
 		return res;
 }

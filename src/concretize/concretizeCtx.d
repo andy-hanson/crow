@@ -166,7 +166,7 @@ ref immutable(Arr!(Ptr!ConcreteFun)) specImpls(return scope ref immutable Concre
 struct ConcretizeCtx {
 	@safe @nogc pure nothrow:
 
-	immutable Ptr!FunInst getVatAndActorFun;
+	immutable Ptr!FunInst curIslandAndExclusionFun;
 	immutable Arr!(Ptr!FunDecl) ifFuns;
 	immutable Arr!(Ptr!FunDecl) callFuns;
 	immutable Ptr!StructInst ctxStructInst;
@@ -348,8 +348,9 @@ immutable(ConcreteType) concreteTypeFromFields_alwaysPointer(Alloc)(
 	return concreteType_pointer(castImmutable(cs));
 }
 
-immutable(Ptr!ConcreteFun) getGetVatAndActorFun(Alloc)(ref Alloc alloc, ref ConcretizeCtx ctx) {
-	return getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, ctx.getVatAndActorFun);
+//TODO: do eagerly?
+immutable(Ptr!ConcreteFun) getCurIslandAndExclusionFun(Alloc)(ref Alloc alloc, ref ConcretizeCtx ctx) {
+	return getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, ctx.curIslandAndExclusionFun);
 }
 
 private:
