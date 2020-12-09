@@ -29,7 +29,7 @@ main fut exit-code(args arr str) summon
 		as some s
 			strs = s.value
 			assert: strs.size == 1
-			strs.first literal
+			strs.first.parse-nat.force
 		test-options: print-tests?, overwrite-output?, max-failures
 	resolved: match options
 	as none

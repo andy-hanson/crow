@@ -1,18 +1,22 @@
 import
-	.arr-utils: + at empty? last rtail tail
+	.arr-utils: + at empty? first tail
 	.bootstrap
-		== ? as bool char false float int int16 int32 nat nat16 nat32
-		str todo to-float to-int to-nat true truncate-to-int unsafe-to-int32
-		unsafe-to-nat16 unsafe-to-nat32
+		== ? as bool char false float int int16 int32 nat nat16 nat32 none opt
+		some str todo to-float to-int to-nat true truncate-to-int unsafe-to-int32
+		unsafe-to-nat16 unsafe-to-nat32 value
 	.number-utils: + * / abs mod neg negative? to-int
+	.opt-utils: opt-map
 
 to-str str(b bool)
 	b ? "true", "false"
 
-parse-bool bool(s str)
-	if s == "true"
+to-str str(c char)
+	new-arr c
+
+parse-bool bool(a str)
+	if a == "true"
 		true
-	elif s == "false"
+	elif a == "false"
 		false
 	else
 		todo
@@ -43,6 +47,16 @@ to-str str(n nat)
 		lo = to-str: n mod 10
 		hi + lo
 
+to-str<?t> spec
+	to-str str(a ?t)
+
+to-str str(a opt ?t) to-str<?t>
+	match a
+	as none
+		"none"
+	as some s
+		"some(" + s.value.to-str + ")"
+
 to-str str(n nat32)
 	n.to-nat to-str
 
@@ -64,59 +78,52 @@ to-str str(i int16)
 to-str str(a float)
 	a.truncate-to-int to-str
 
-char-to-nat nat(c char) noctx
+char-to-nat opt nat(c char)
 	if c == "0"
-		0
+		0 some
 	elif c == "1"
-		1
+		1 some
 	elif c == "2"
-		2
+		2 some
 	elif c == "3"
-		3
+		3 some
 	elif c == "4"
-		4
+		4 some
 	elif c == "5"
-		5
+		5 some
 	elif c == "6"
-		6
+		6 some
 	elif c == "7"
-		7
+		7 some
 	elif c == "8"
-		8
+		8 some
 	elif c == "9"
-		9
+		9 some
 	else
-		todo
+		none
 
-literal nat(s str)
-	if s empty?
-		0
+parse-nat opt nat(a str)
+	if a empty?
+		none
 	else
-		higher-digits = s.rtail.literal as<nat>
-		higher-digits * 10 + (char-to-nat: s last)
+		a parse-nat-recur 0
 
-literal nat16(s str)
-	| TODO: make safe
-	s.literal.as<nat> unsafe-to-nat16
-
-literal nat32(s str)
-	| TODO: make safe
-	s.literal.as<nat> unsafe-to-nat32
-
-literal int(s str)
-	fst = s at 0
-	if fst == "-"
-		n = as<nat>: s.tail.literal
-		n neg
-	elif fst == "+"
-		s.tail.literal.as<nat> to-int
+parse-nat-recur opt nat(a str, accum nat)
+	if a empty?
+		accum some
 	else
-		s.literal.as<nat> to-int
+		match a.first.char-to-nat
+		as none
+			none
+		as some s
+			a.tail parse-nat-recur: accum * 10 + s.value
 
-literal int32(s str)
-	| TODO: make safe
-	s.literal.as<int> unsafe-to-int32
+parse-int opt int(a str)
+	if a at 0 == "-"
+		a.tail.parse-nat opt-map {it neg}
+	else
+		(a at 0 == "+" ? a.tail, a).parse-nat opt-map {it to-int}
 
 | TODO: handle the decimal point!
-literal float(a str)
-	a.literal.as<nat> to-float
+parse-float opt float(a str)
+	a.parse-nat opt-map {it to-float}

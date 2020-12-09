@@ -1,0 +1,121 @@
+module(
+	path: 20
+	imports: [
+		import(18, none)
+		import(8, none)
+		import(0, none)
+		import(1, none)
+		import(9, none)
+		import(5, none)
+		import(16, none)
+		import(17, none)
+		import(6, none)
+		import(7, none)
+		import(15, none)
+		import(11, none)
+		import(12, none)
+		import(13, some([exit-code, print-sync]))]
+	exports: []
+	structs: []
+	specs: []
+	funs: [
+		fun(
+			public?: true
+			summon: true
+			sig: sig(file-pos(20, 34), main, fut(int32()), [param(file-range(20, range(53, 65)), args, arr(arr(char())))])
+			body: seq(
+				seq(
+					seq(
+						seq(
+							seq(
+								seq(
+									seq(
+										seq(
+											seq(
+												call(
+													fun-inst(name: assert)
+													[
+														call(
+															fun-inst(name: ==, type-args: [opt(nat())])
+															[
+																call(fun-inst(name: parse-nat), [string-lit("")])
+																to-union(opt(nat()), 0, call(fun-inst(name: none), []))])])
+												call(
+													fun-inst(name: assert)
+													[
+														call(
+															fun-inst(name: ==, type-args: [opt(nat())])
+															[
+																call(fun-inst(name: parse-nat), [string-lit("1")])
+																to-union(
+																	opt(nat())
+																	1
+																	call(
+																		fun-inst(name: some, type-args: [nat()])
+																		[literal(nat(), 1)]))])]))
+											call(
+												fun-inst(name: assert)
+												[
+													call(
+														fun-inst(name: ==, type-args: [opt(nat())])
+														[
+															call(fun-inst(name: parse-nat), [string-lit("1.2")])
+															to-union(opt(nat()), 0, call(fun-inst(name: none), []))])]))
+										call(
+											fun-inst(name: assert)
+											[
+												call(
+													fun-inst(name: ==, type-args: [opt(nat())])
+													[
+														call(fun-inst(name: parse-nat), [string-lit("+1")])
+														to-union(opt(nat()), 0, call(fun-inst(name: none), []))])]))
+									call(
+										fun-inst(name: assert)
+										[
+											call(
+												fun-inst(name: ==, type-args: [opt(int())])
+												[
+													call(fun-inst(name: parse-int), [string-lit("123")])
+													to-union(
+														opt(int())
+														1
+														call(
+															fun-inst(name: some, type-args: [int()])
+															[literal(int(), 123)]))])]))
+								call(
+									fun-inst(name: assert)
+									[
+										call(
+											fun-inst(name: ==, type-args: [opt(int())])
+											[
+												call(fun-inst(name: parse-int), [string-lit("-123")])
+												to-union(
+													opt(int())
+													1
+													call(fun-inst(name: some, type-args: [int()]), [literal(int(), -123)]))])]))
+							call(
+								fun-inst(name: assert)
+								[
+									call(
+										fun-inst(name: ==, type-args: [opt(int())])
+										[
+											call(fun-inst(name: parse-int), [string-lit("+123")])
+											to-union(
+												opt(int())
+												1
+												call(fun-inst(name: some, type-args: [int()]), [literal(int(), 123)]))])]))
+						call(
+							fun-inst(name: assert)
+							[
+								call(
+									fun-inst(name: ==, type-args: [opt(int())])
+									[
+										call(fun-inst(name: parse-int), [string-lit("*123")])
+										to-union(opt(int()), 0, call(fun-inst(name: none), []))])]))
+					call(
+						fun-inst(name: print-sync)
+						[
+							call(
+								fun-inst(name: to-str, type-args: [nat()], spec-impls: [fun-inst(name: to-str)])
+								[call(fun-inst(name: parse-nat), [string-lit("1")])])]))
+				call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)])))])

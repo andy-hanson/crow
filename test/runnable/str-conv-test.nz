@@ -1,0 +1,17 @@
+import
+	io: exit-code print-sync
+
+main fut exit-code(args arr str) summon
+	assert: "".parse-nat == none
+	assert: "1".parse-nat == 1.some
+	assert: "1.2".parse-nat == none
+
+	assert: "+1".parse-nat == none
+
+	assert: "123".parse-int == 123.some
+	assert: "-123".parse-int == -123.some
+	assert: "+123".parse-int == 123.some
+	assert: "*123".parse-int == none
+
+	print-sync: "1".parse-nat.to-str
+	0 resolved
