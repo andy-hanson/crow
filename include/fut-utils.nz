@@ -41,8 +41,6 @@ decr-joiner void(j joiner ?out ?in0 ?in1) unsafe send<?out> send<?in0> send<?in1
 			as err e1
 				| Combine the exceptions
 				todo
-	else
-		pass
 
 join fut ?out(a fut ?in0, b fut ?in1, fun fun-ref2 ?out ?in0 ?in1) trusted send<?out> send<?in0> send<?in1>
 	res = new-unresolved-fut<?out>

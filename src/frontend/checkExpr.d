@@ -208,11 +208,21 @@ immutable(CheckedExpr) checkIf(Alloc)(
 	ref Expected expected,
 ) {
 	immutable Ptr!Expr cond = allocExpr(alloc, checkAndExpect(alloc, ctx, ast.cond, ctx.commonTypes.bool_));
-	immutable Ptr!Expr then = allocExpr(alloc, checkExpr(alloc, ctx, ast.then, expected));
-	if (!has(ast.else_))
-		todo!void("!");
-	immutable Ptr!Expr else_ = allocExpr(alloc, checkExpr(alloc, ctx, force(ast.else_), expected));
-	return immutable CheckedExpr(immutable Expr(range, immutable Expr.Cond(inferred(expected), cond, then, else_)));
+	if (has(ast.else_)) {
+		immutable Ptr!Expr then = allocExpr(alloc, checkExpr(alloc, ctx, ast.then, expected));
+		immutable Ptr!Expr else_ = allocExpr(alloc, checkExpr(alloc, ctx, force(ast.else_), expected));
+		return immutable CheckedExpr(immutable Expr(range, immutable Expr.Cond(inferred(expected), cond, then, else_)));
+	} else {
+		immutable Ptr!StructInst void_ = ctx.commonTypes.void_;
+		immutable Ptr!Expr then = allocExpr(alloc, checkAndExpect(alloc, ctx, ast.then, void_));
+		immutable Ptr!Expr else_ = allocExpr(alloc, immutable Expr(range, nu!(Expr.Literal)(
+			alloc,
+			void_,
+			immutable Constant(immutable Constant.Void()))));
+		immutable Type voidType = immutable Type(void_);
+		immutable Expr expr = immutable Expr(range, immutable Expr.Cond(voidType, cond, then, else_));
+		return check(alloc, ctx, expected, voidType, expr);
+	}
 }
 
 struct ArrExpectedType {

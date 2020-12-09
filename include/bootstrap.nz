@@ -536,7 +536,8 @@ drop void(t ?t) noctx
 	pass
 
 hard-assert void(condition bool) noctx unsafe
-	condition ? pass, "Assertion failed!".hard-fail
+	if condition not
+		"Assertion failed!" hard-fail
 
 hard-forbid void(condition bool) noctx unsafe
 	condition.not hard-assert

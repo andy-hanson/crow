@@ -1,8 +1,8 @@
 import
 	.bootstrap
-		+ == < <= ? and arr as as-any-ptr as-ref bits-and bit-shift-left bits-or bool byte
+		+ == != < <= ? and arr as as-any-ptr as-ref bits-and bit-shift-left bits-or bool byte
 		by-val char c-str data deref false hard-assert hard-unreachable has? incr int32
-		int nat nat16 nat32 none null null? opt or pass ptr ptr-cast ptr-eq? ptr-to
+		int nat nat16 nat32 none not null null? opt or pass ptr ptr-cast ptr-eq? ptr-to
 		ref-eq? size size-of some str todo unsafe-to-int value void
 		wrap-add
 	.arr-utils
@@ -28,9 +28,7 @@ import
 write-no-newline void(fd fd-t, a str) summon unsafe noctx
 	hard-assert: size-of<char> == size-of<byte>
 	res = fd write a.data.as-any-ptr, a.size
-	if res == a.size.unsafe-to-int
-		pass
-	else
+	if res != a.size.unsafe-to-int
 		| Retry?
 		todo
 
@@ -110,15 +108,10 @@ read-dir-recur void(dirp dirp, res mut-arr str) unsafe summon
 	err = dirp readdir-r entry, result
 	| TODO: handle error
 	assert: err == 0
-	if result.get.as-any-ptr null?
-		| finished
-		pass
-	else
+	if result.get.as-any-ptr.null? not
 		assert: result.get ref-eq? entry
 		name = entry.get-dirent-name
-		if name == "." or: name == ".."
-			pass
-		else
+		if name != "." and: name != ".."
 			res push entry.get-dirent-name
 		dirp read-dir-recur res
 
@@ -158,17 +151,14 @@ write-file void(path c-str, content str) summon trusted
 		todo
 	else
 		wrote-bytes = fd write content.data.ptr-cast<byte, char>, content.size
-		if wrote-bytes == content.size.to-int
-			pass
-		elif wrote-bytes == -1
-			todo
-		else
-			| didn't write all the bytes?
-			todo
+		if wrote-bytes != content.size.to-int
+			if wrote-bytes == -1
+				todo
+			else
+				| didn't write all the bytes?
+				todo
 		err = fd close
-		if err == 0
-			pass
-		else
+		if err != 0
 			todo
 
 try-read-file opt str(path str) summon
@@ -231,9 +221,7 @@ get-environ environ() summon trusted
 	res freeze
 
 get-environ-recur void(env ptr c-str, res mut-dict str str) unsafe
-	if env.deref null?
-		pass
-	else
+	if env.deref.null? not
 		res add env.deref.parse-environ-entry
 		env.incr get-environ-recur res
 
@@ -362,9 +350,7 @@ keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, st
 		b = stderr-pollfd handle-revents stderr-builder
 		assert: a.any?.to-nat + b.any?.to-nat == n-pollfds-with-events.to-nat
 		| Apparently stdout and stderr can hang up at slightly different times.
-		if a.hung-up? and b.hung-up?
-			pass
-		else
+		if not: a.hung-up? and b.hung-up?
 			keep-polling: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
 
 handle-revents-result record
@@ -379,13 +365,9 @@ handle-revents handle-revents-result(pollfd pollfd, builder mut-str) summon
 	had-pollin? = revents has-pollin?
 	if had-pollin?
 		pollfd.fd read-to-buffer-until-eof builder
-	else
-		pass
 	hung-up? = revents has-pollhup?
 	if revents.has-pollpri? or revents.has-pollout? or revents.has-pollerr? or revents.has-pollnval?
 		todo
-	else
-		pass
 	| TODO: shouldn't need parens?
 	handle-revents-result: had-pollin?, hung-up?
 
@@ -433,13 +415,9 @@ check-errno-if-neg-one void(e int) summon trusted
 	if e == -1
 		errno check-posix-error
 		hard-unreachable
-	else
-		pass
 
 check-errno-if-not-zero void(e int) summon trusted
-	if e == 0
-		pass
-	else
+	if e != 0
 		errno check-posix-error
 		hard-unreachable
 

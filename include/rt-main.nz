@@ -2,7 +2,7 @@ import
 	.alloc
 	.arr-utils: empty-arr map noctx-at tail
 	.bootstrap
-		== + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref drop false fun2
+		== != + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref drop false fun2
 		fun-ptr1 fun-ptr2 fut get-ctx hard-assert int32 message nat noctx-decr noctx-incr null null?
 		pass ptr ptr-to ref-of-val set str todo to-int unsafe-to-nat value void
 	.cell: as-cell cell get
@@ -103,9 +103,7 @@ spec
 	unsafe
 	summon
 body
-	if i == n-threads
-		pass
-	else
+	if i != n-threads
 		thread-arg-ptr = thread-args-begin + i
 		thread-arg-ptr set thread-args: i, gctx
 		thread-ptr = threads + i
@@ -127,21 +125,18 @@ thread-fun any-ptr(args-ptr any-ptr) noctx unsafe summon
 	null
 
 join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsafe summon
-	if i == n-threads
-		pass
-	else
+	if i != n-threads
 		(threads + i).deref join-one-thread
 		i.noctx-incr join-threads-recur n-threads, threads
 
 join-one-thread void(tid pthread-t) noctx unsafe summon
 	thread-return = as<by-val<cell<any-ptr>>>: cell: null
 	err = tid pthread-join thread-return.ref-of-val
-	if err == 0
-		pass
-	elif err == einval
-		todo
-	elif err == esrch
-		todo
-	else
-		todo
+	if err != 0
+		if err == einval
+			todo
+		elif err == esrch
+			todo
+		else
+			todo
 	hard-assert: thread-return.ref-of-val.get null?

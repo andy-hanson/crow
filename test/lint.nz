@@ -5,8 +5,6 @@ lint result str arr<failure>(path str, options test-options) summon
 	failures = files flat-map-with-max-size options.max-failures, \file
 		if options.print-tests?
 			print: "lint " + file
-		else
-			pass
 		file lint-file
 	if failures has?
 		err: failures
@@ -18,9 +16,7 @@ private
 list-lintable-files arr str(path str) summon
 	res = new-mut-arr<str>
 	path each-child-recursive {not: it excluded-from-lint?}, \child
-		if child.base-name ignore-extension-of-name?
-			pass
-		else
+		if child.base-name.ignore-extension-of-name? not
 			res push child
 	res freeze
 
@@ -39,14 +35,10 @@ lint-file arr failure(path str) summon
 		if err-file?.not and: line.lstrip contains-subsequence? "  "
 			message = "line " + ln + " contains a double space"
 			res push failure: path, message
-		else
-			pass
 		width = line line-len
 		if width > max-line-length
 			message = "line " + ln + " is " + width.to-str + " columns long, should be <= " + max-line-length.to-str
 			res push failure: path, message
-		else
-			pass
 	res freeze
 
 ignored-extensions arr str()
@@ -75,8 +67,6 @@ lines arr str(s str)
 	s each-with-index \c index
 		if c == "\n"
 			res push: s slice-from-to (last-nl swap index.incr), index
-		else
-			pass
 	res push: s slice-from-to last-nl.get, s.size
 	res.freeze
 

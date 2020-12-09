@@ -157,7 +157,8 @@ sdl-window-shown sdl-flags()
 main fut exit-code(args arr str) summon trusted
 	"sdl-init-video" handle-sdl-error: sdl-init-video sdl-init
 	window = "Hello World!".to-c-str sdl-create-window 100, 100, 640, 480, sdl-window-shown
-	window.as-any-ptr.null? ? "sdl-create-window".fail-sdl-error, pass
+	if window.as-any-ptr null?
+		"sdl-create-window" fail-sdl-error
 	renderer = window new-renderer
 	texture = renderer create-texture
 
@@ -187,8 +188,6 @@ new-renderer sdl-renderer(window sdl-window) summon trusted
 	renderer = window sdl-create-renderer: -1, sdl-renderer-accelerated bits-or sdl-renderer-present-vsync
 	if renderer.as-any-ptr null?
 		"sdl-create-renderer" fail-sdl-error
-	else
-		pass
 	renderer
 
 create-texture sdl-texture(renderer sdl-renderer) summon trusted
@@ -196,19 +195,16 @@ create-texture sdl-texture(renderer sdl-renderer) summon trusted
 	bmp = image-path sdl-load-bmp
 	if bmp.as-any-ptr null?
 		"sdl-loadbmp-error" fail-sdl-error
-	else
-		pass
 	texture = renderer sdl-create-texture-from-surface bmp
 	bmp sdl-free-surface
 	if texture.as-any-ptr null?
 		"sdl-create-texture-from-surface" fail-sdl-error
-	else
-		pass
 	texture
 
 
 handle-sdl-error void(operation str, err c-int) summon trusted
-	err == 0 ?: pass, operation fail-sdl-error
+	if err != 0
+		operation fail-sdl-error
 
 fail-sdl-error void(operation str) summon trusted
 	fail: "sdl error in " + operation + " " + sdl-get-error.to-str
@@ -216,8 +212,6 @@ fail-sdl-error void(operation str) summon trusted
 
 | TODO:MOVE
 repeat void(times nat, action fun-mut0 void)
-	if times == 0
-		pass
-	else
+	if times != 0
 		action call
 		times.decr repeat action

@@ -1,9 +1,9 @@
 import
 	.alloc: alloc
 	.bootstrap
-		+ - == < <= > >= ? and arr bool byte by-val call data deref drop false fun-mut1
+		+ - == != < <= > >= ? and arr bool byte by-val call data deref drop false fun-mut1
 		fun-mut2 hard-assert hard-fail hard-forbid incr nat noctx-decr noctx-incr none not null
-		opt or pass ptr ptr-cast ref-of-ptr set size size-of some true void wrap-mul
+		opt or ptr ptr-cast ref-of-ptr set size size-of some true void wrap-mul
 	.exceptions: assert forbid
 	.number-utils: + - * / decr incr
 	.opt-utils: force
@@ -132,9 +132,7 @@ sort void(a mut-arr ?t) trusted data<?t>
 	a.to-mut-slice sort
 
 sort void(a mut-slice ?t) data<?t>
-	if a.size <= 1
-		pass
-	else
+	if a.size > 1
 		| Perf -- in case a is sorted already, prefer the middle element as a pivot
 		a swap: 0, a.size / 2
 		pivot = a at 0
@@ -292,9 +290,7 @@ copy-data-from void(to ptr ?t, from ptr ?t, len nat) unsafe
 		(to + hl) copy-data-from (from + hl), (len - hl)
 
 copy-data-from-small void(to ptr ?t, from ptr ?t, len nat) unsafe
-	if len == 0
-		pass
-	else
+	if len != 0
 		to set: from deref
 		| TODO: should be able to infer type arguments
 		| TODO: I wish this were linear, but that runs out of stack ...
@@ -303,8 +299,6 @@ copy-data-from-small void(to ptr ?t, from ptr ?t, len nat) unsafe
 push void(a mut-arr ?t, value ?t) trusted
 	if a.size == a.capacity
 		a increase-capacity-to: a.size == 0 ?: 4, a.size * 2
-	else
-		pass
 	a ensure-capacity a.size.incr.round-up-to-power-of-two
 	a.size < a.capacity assert
 	(a.data + a.size) set value
@@ -332,8 +326,6 @@ round-up-to-power-of-two-recur nat(acc nat, n nat)
 ensure-capacity void(a mut-arr ?t, capacity nat) unsafe
 	if a.capacity < capacity
 		a increase-capacity-to: capacity.round-up-to-power-of-two
-	else
-		pass
 
 | Unsafe because increasing the size can expose uninitialized data
 unsafe-set-size void(a mut-arr ?t, new-size nat) unsafe
@@ -346,8 +338,6 @@ unsafe-increase-size void(a mut-arr ?t, increase-by nat) unsafe
 reduce-size-if-more-than void(a mut-arr ?t, new-size nat)
 	if new-size < a.size
 		a set-size new-size
-	else
-		pass
 
 fold ?a(val ?a, a arr ?b, combine fun-mut2 ?a ?a ?b)
 	if a empty?
@@ -373,9 +363,7 @@ fill-mut-arr mut-arr ?t(size nat, value ?t)
 		value
 
 make-mut-arr-worker void(m mut-arr ?t, i nat, f fun-mut1 ?t nat)
-	if i == m.size
-		pass
-	else
+	if i != m.size
 		m set-at: i, f call i
 		m make-mut-arr-worker i.incr, f
 
@@ -384,9 +372,7 @@ to-mut-arr mut-arr ?t(a arr ?t)
 		a at i
 
 each void(a arr ?t, f fun-mut1 void ?t)
-	if a empty?
-		pass
-	else
+	if a.empty? not
 		f call a.first
 		a.tail each f
 
@@ -400,9 +386,7 @@ each-with-index void(a arr ?t, f fun-mut2 void ?t nat)
 	a each-with-index-recur f, 0
 
 each-with-index-recur void(a arr ?t, f fun-mut2 void ?t nat, n nat)
-	if n == a.size
-		pass
-	else
+	if n != a.size
 		f call (a at n), n
 		a each-with-index-recur f, n.incr
 

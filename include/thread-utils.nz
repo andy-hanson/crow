@@ -1,7 +1,7 @@
 import
 	.bootstrap
 		== atomic-bool bool by-val call drop false fun0 hard-assert hard-fail hard-forbid is-locked lock nat
-		noctx-decr noctx-incr not pass ptr ptr-to ref-of-val true value void wrap-mul
+		noctx-decr noctx-incr not ptr ptr-to ref-of-val true value void wrap-mul
 	.posix: pthread-yield usleep
 
 region atomic
@@ -35,13 +35,12 @@ acquire-lock void(a lock) noctx unsafe
 	a acquire-lock-recur 0
 
 acquire-lock-recur void(a lock, n-tries nat) noctx unsafe
-	if a try-acquire-lock
-		pass
-	elif n-tries == 1000
-		hard-fail: "Couldn't acquire lock after 1000 tries"
-	else
-		yield-thread
-		a acquire-lock-recur n-tries.noctx-incr
+	if a.try-acquire-lock not
+		if n-tries == 1000
+			hard-fail: "Couldn't acquire lock after 1000 tries"
+		else
+			yield-thread
+			a acquire-lock-recur n-tries.noctx-incr
 
 yield-thread void() noctx unsafe
 	err = pthread-yield
@@ -84,9 +83,6 @@ wait-on void(c condition, last-checked last-checked) noctx unsafe
 	if c.value == last-checked
 		yield-thread
 		c wait-on last-checked
-	else
-		| condition changed
-		pass
 
 | TODO: use atomic operations for this
 thread-safe-counter record mut

@@ -1,6 +1,6 @@
 import
 	.arr-utils: at empty? empty-arr first freeze map mut-arr new-mut-arr push tail unsafe-as-arr
-	.bootstrap: == arr bool call data fun-mut1 fun-mut2 has? nat none opt pass size some todo value void
+	.bootstrap: == arr bool call data fun-mut1 fun-mut2 has? nat none not opt size some todo value void
 	.exceptions: forbid
 	.number-utils: incr
 
@@ -81,9 +81,7 @@ map-values dict ?k ?v-out(d dict ?k ?v-in, mapper fun-mut1 ?v-out ?v-in)
 	dict<?k, ?v-out>: d.keys, new-values
 
 each void(d dict ?k ?v, f fun-mut2 void ?k ?v)
-	if d empty?
-		pass
-	else
+	if d.empty? not
 		f call d.keys.first, d.values.first
 		| TODO: type arguments should be unnecessary
 		d.keys.tail dict<?k, ?v> d.values.tail each f

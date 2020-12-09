@@ -31,8 +31,6 @@ flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper fun-mut1 arr<?ou
 		if res.size < max-size
 			res push-all: mapper call x
 			res reduce-size-if-more-than max-size
-		else
-			pass
 	res freeze
 
 test-options record

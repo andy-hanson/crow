@@ -15,8 +15,6 @@ each-child-recursive void(path str, filter fun-mut1 bool str, f fun-mut1 void st
 		path.read-dir each \child-name
 			if filter call child-name
 				path child-path child-name each-child-recursive filter, f
-			else
-				pass
 	else
 		f call path
 
