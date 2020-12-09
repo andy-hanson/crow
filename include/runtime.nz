@@ -9,7 +9,7 @@ import
 		island-and-exclusion island-id lock message nat noctx-decr noctx-incr none ok opt pass
 		ref-of-val result size some todo true value void
 	.exceptions: exception-ctx new-exception-ctx
-	.io: print-err-sync print-err-sync-no-newline
+	.io: print-err print-err-no-newline
 	.mut-bag: add empty? head mut-bag mut-bag-node next-node new-mut-bag new-mut-bag-node set-head set-next-node value
 	.thread-utils
 		acquire-lock broadcast condition get-and-increment get-last-checked new-lock
@@ -85,8 +85,8 @@ new-island by-val island(gctx global-ctx, id island-id, max-threads nat) summon 
 		exn default-exception-handler
 
 default-exception-handler void(e exception) summon unsafe
-	print-err-sync-no-newline: "uncaught exception: "
-	print-err-sync: e.message.empty? ? "<<empty message>>", e.message
+	print-err-no-newline: "uncaught exception: "
+	print-err: e.message.empty? ? "<<empty message>>", e.message
 	get-gctx set-any-unhandled-exceptions? true
 
 set-this-islands-exception-handler void(exception-handler fun-mut1 void exception) summon trusted

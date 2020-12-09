@@ -582,9 +582,9 @@ program(
 																some(e)
 																seq(
 																	seq(
-																		call(print-err-sync-no-newline, [arr(0, 11)])
+																		call(print-err-no-newline, [arr(0, 11)])
 																		call(
-																			print-err-sync
+																			print-err
 																			[
 																				call(
 																					message
@@ -928,9 +928,9 @@ program(
 			expr-body(
 				seq(
 					seq(
-						call(print-err-sync-no-newline, [arr(0, 2)])
+						call(print-err-no-newline, [arr(0, 2)])
 						call(
-							print-err-sync
+							print-err
 							[
 								call(
 									?
@@ -941,17 +941,17 @@ program(
 					call(set-any-unhandled-exceptions?, [call(get-gctx, []), call(true, [])]))))
 		fun(
 			false
-			print-err-sync-no-newline
+			print-err-no-newline
 			type(false, void)
 			none
 			[param(s, type(false, arr))]
-			expr-body(call(write-sync-no-newline, [call(stderr-fd, []), param-ref(s)])))
+			expr-body(call(write-no-newline, [call(stderr-fd, []), param-ref(s)])))
 		fun(
 			false
-			write-sync-no-newline
+			write-no-newline
 			type(false, void)
 			none
-			[param(fd, type(false, int32)), param(s, type(false, arr))]
+			[param(fd, type(false, int32)), param(a, type(false, arr))]
 			expr-body(
 				seq(
 					call(hard-assert, [call(==, [call(size-of, []), call(size-of, [])])])
@@ -959,9 +959,9 @@ program(
 						res
 						call(
 							write
-							[param-ref(fd), call(as-any-ptr, [call(data, [param-ref(s)])]), call(size, [param-ref(s)])])
+							[param-ref(fd), call(as-any-ptr, [call(data, [param-ref(a)])]), call(size, [param-ref(a)])])
 						cond(
-							call(==, [local-ref(res), call(unsafe-to-int, [call(size, [param-ref(s)])])])
+							call(==, [local-ref(res), call(unsafe-to-int, [call(size, [param-ref(a)])])])
 							call(pass, [])
 							call(todo, []))))))
 		fun(false, size-of, type(false, nat), none, [], builtin([type(false, nat8)]))
@@ -997,11 +997,11 @@ program(
 		fun(false, stderr-fd, type(false, int32), none, [], expr-body(2))
 		fun(
 			false
-			print-err-sync
+			print-err
 			type(false, void)
 			none
 			[param(s, type(false, arr))]
-			expr-body(seq(call(print-err-sync-no-newline, [param-ref(s)]), call(print-err-sync-no-newline, [arr(0, 3)]))))
+			expr-body(seq(call(print-err-no-newline, [param-ref(s)]), call(print-err-no-newline, [arr(0, 3)]))))
 		fun(
 			false
 			?
@@ -4085,9 +4085,9 @@ program(
 								call(my-record, [0, 3])
 								seq(
 									seq(
-										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(b)])])])
-										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(c)])])]))
-									call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(d)])])]))))))))
+										call(print, [call(to-str, [call(<=>, [local-ref(a), local-ref(b)])])])
+										call(print, [call(to-str, [call(<=>, [local-ref(a), local-ref(c)])])]))
+									call(print, [call(to-str, [call(<=>, [local-ref(a), local-ref(d)])])]))))))))
 		fun(
 			true
 			my-record
@@ -4097,18 +4097,18 @@ program(
 			new-record)
 		fun(
 			false
-			print-sync
+			print
 			type(false, void)
 			none
-			[param(s, type(false, arr))]
-			expr-body(seq(call(print-sync-no-newline, [param-ref(s)]), call(print-sync-no-newline, [arr(0, 3)]))))
+			[param(a, type(false, arr))]
+			expr-body(seq(call(print-no-newline, [param-ref(a)]), call(print-no-newline, [arr(0, 3)]))))
 		fun(
 			false
-			print-sync-no-newline
+			print-no-newline
 			type(false, void)
 			none
-			[param(s, type(false, arr))]
-			expr-body(call(write-sync-no-newline, [call(stdout-fd, []), param-ref(s)])))
+			[param(a, type(false, arr))]
+			expr-body(call(write-no-newline, [call(stdout-fd, []), param-ref(a)])))
 		fun(false, stdout-fd, type(false, int32), none, [], expr-body(1))
 		fun(
 			true
@@ -4145,9 +4145,9 @@ program(
 								call(my-byref-record, [0, 3])
 								seq(
 									seq(
-										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(b)])])])
-										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(c)])])]))
-									call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(d)])])]))))))))
+										call(print, [call(to-str, [call(<=>, [local-ref(a), local-ref(b)])])])
+										call(print, [call(to-str, [call(<=>, [local-ref(a), local-ref(c)])])]))
+									call(print, [call(to-str, [call(<=>, [local-ref(a), local-ref(d)])])]))))))))
 		fun(
 			true
 			my-byref-record
@@ -4183,9 +4183,9 @@ program(
 								call(as, [to-union(0, call(my-record, [1, 1]))])
 								seq(
 									seq(
-										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(b)])])])
-										call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(c)])])]))
-									call(print-sync, [call(to-str, [call(<=>, [local-ref(a), local-ref(d)])])]))))))))
+										call(print, [call(to-str, [call(<=>, [local-ref(a), local-ref(b)])])])
+										call(print, [call(to-str, [call(<=>, [local-ref(a), local-ref(c)])])]))
+									call(print, [call(to-str, [call(<=>, [local-ref(a), local-ref(d)])])]))))))))
 		fun(
 			false
 			as

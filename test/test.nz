@@ -41,10 +41,10 @@ main fut exit-code(args arr str) summon
 private
 
 print-help void() summon
-	print-sync: "test -- runs tests"
-	print-sync: "options:"
-	print-sync: "\t--print-tests  : print every test run"
-	print-sync: "\t--max-failures : stop after this many failures. Defaults to 10."
+	print: "test -- runs tests"
+	print: "options:"
+	print: "\t--print-tests  : print every test run"
+	print: "\t--max-failures : stop after this many failures. Defaults to 10."
 
 do-test exit-code(options test-options) summon
 	test-path = current-executable-path parent-path

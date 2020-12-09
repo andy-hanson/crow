@@ -1,17 +1,17 @@
 import
-	io: exit-code print-sync
+	io: exit-code print
 
 my-record record
 	a str
 	b str
 
 foo void(r my-record) summon
-	print-sync: r a
-	print-sync: r b
+	print: r a
+	print: r b
 
 main fut exit-code(args arr str) summon
 	r = my-record: "a", "b"
 	foo: r
-	print-sync: r a
-	print-sync: r b
+	print: r a
+	print: r b
 	resolved: 0

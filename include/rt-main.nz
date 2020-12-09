@@ -9,7 +9,7 @@ import
 	.exceptions: new-exception-ctx
 	.fut-low-level: must-be-resolved
 	.fut-utils: resolved then2
-	.io: exit-code print-err-sync print-err-sync-no-newline
+	.io: exit-code print-err print-err-no-newline
 	.posix: eagain einval esrch pthread-create pthread-join pthread-t
 	.runtime
 		any-unhandled-exceptions? global-ctx new-ctx new-island set-islands thread-function
@@ -45,8 +45,8 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 		as ok o
 			o value
 		as err e
-			print-err-sync-no-newline: "main failed: "
-			print-err-sync: e.value message
+			print-err-no-newline: "main failed: "
+			print-err: e.value message
 			1
 
 do-main fut exit-code(gctx global-ctx, island island, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx

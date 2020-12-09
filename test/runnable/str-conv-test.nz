@@ -1,5 +1,5 @@
 import
-	io: exit-code print-sync
+	io: exit-code print
 
 main fut exit-code(args arr str) summon
 	assert: "".parse-nat == none
@@ -13,5 +13,5 @@ main fut exit-code(args arr str) summon
 	assert: "+123".parse-int == 123.some
 	assert: "*123".parse-int == none
 
-	print-sync: "1".parse-nat.to-str
+	print: "1".parse-nat.to-str
 	0 resolved

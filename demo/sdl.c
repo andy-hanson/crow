@@ -675,14 +675,14 @@ struct mut_bag new_mut_bag(void);
 struct thread_safe_counter new_thread_safe_counter_0(void);
 struct thread_safe_counter new_thread_safe_counter_1(uint64_t init);
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e);
-uint8_t print_err_sync_no_newline(struct arr_0 s);
-uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s);
+uint8_t print_err_no_newline(struct arr_0 s);
+uint8_t write_no_newline(int32_t fd, struct arr_0 a);
 extern int64_t write(int32_t fd, uint8_t* buff, uint64_t n_bytes);
 uint8_t _op_equal_equal_2(int64_t a, int64_t b);
 struct comparison compare_43(int64_t a, int64_t b);
 uint8_t todo_1(void);
 int32_t stderr_fd(void);
-uint8_t print_err_sync(struct arr_0 s);
+uint8_t print_err(struct arr_0 s);
 uint8_t empty__q_0(struct arr_0 a);
 struct global_ctx* get_gctx(struct ctx* ctx);
 uint8_t new_island__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception exn);
@@ -902,8 +902,8 @@ extern void SDL_PumpEvents(void);
 extern uint8_t* SDL_GetKeyboardState(int64_t* num_keys);
 struct arr_5 ptr_as_arr(struct ctx* ctx, uint64_t size, uint8_t* data);
 uint64_t sdl_num_scancodes(struct ctx* ctx);
-uint8_t print_sync(struct arr_0 s);
-uint8_t print_sync_no_newline(struct arr_0 s);
+uint8_t print(struct arr_0 a);
+uint8_t print_no_newline(struct arr_0 a);
 int32_t stdout_fd(void);
 uint8_t _op_equal_equal_4(uint8_t a, uint8_t b);
 struct comparison compare_270(uint8_t a, uint8_t b);
@@ -1042,8 +1042,8 @@ int32_t rt_main(int32_t argc, char** argv, fun_ptr2_0 main_ptr) {
 				return o5.value;
 			case 1:
 				e6 = temp0.as1;
-				print_err_sync_no_newline((struct arr_0) {13, constantarr_0_11});
-				print_err_sync(e6.value.message);
+				print_err_no_newline((struct arr_0) {13, constantarr_0_11});
+				print_err(e6.value.message);
 				return 1;
 			default:
 				return (assert(0),0);
@@ -1170,18 +1170,18 @@ struct thread_safe_counter new_thread_safe_counter_1(uint64_t init) {
 	return (struct thread_safe_counter) {new_lock(), init};
 }
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e) {
-	print_err_sync_no_newline((struct arr_0) {20, constantarr_0_2});
-	print_err_sync((empty__q_0(e.message) ? (struct arr_0) {17, constantarr_0_4} : e.message));
+	print_err_no_newline((struct arr_0) {20, constantarr_0_2});
+	print_err((empty__q_0(e.message) ? (struct arr_0) {17, constantarr_0_4} : e.message));
 	return (get_gctx(ctx)->any_unhandled_exceptions__q = 1, 0);
 }
-uint8_t print_err_sync_no_newline(struct arr_0 s) {
-	return write_sync_no_newline(stderr_fd(), s);
+uint8_t print_err_no_newline(struct arr_0 s) {
+	return write_no_newline(stderr_fd(), s);
 }
-uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s) {
+uint8_t write_no_newline(int32_t fd, struct arr_0 a) {
 	int64_t res0;
 	hard_assert(_op_equal_equal_0(sizeof(char), sizeof(uint8_t)));
-	res0 = write(fd, (uint8_t*) s.data, s.size);
-	if (_op_equal_equal_2(res0, s.size)) {
+	res0 = write(fd, (uint8_t*) a.data, a.size);
+	if (_op_equal_equal_2(res0, a.size)) {
 		return 0;
 	} else {
 		return todo_1();
@@ -1218,9 +1218,9 @@ uint8_t todo_1(void) {
 int32_t stderr_fd(void) {
 	return 2;
 }
-uint8_t print_err_sync(struct arr_0 s) {
-	print_err_sync_no_newline(s);
-	return print_err_sync_no_newline((struct arr_0) {1, constantarr_0_3});
+uint8_t print_err(struct arr_0 s) {
+	print_err_no_newline(s);
+	return print_err_no_newline((struct arr_0) {1, constantarr_0_3});
 }
 uint8_t empty__q_0(struct arr_0 a) {
 	return _op_equal_equal_0(a.size, 0u);
@@ -2463,7 +2463,7 @@ struct fut_0* main_0(struct ctx* ctx, struct arr_1 args) {
 	(SDL_DestroyRenderer(renderer1), 0);
 	(SDL_DestroyWindow(window0), 0);
 	(SDL_Quit(), 0);
-	print_sync((struct arr_0) {7, constantarr_0_27});
+	print((struct arr_0) {7, constantarr_0_27});
 	return resolved_1(ctx, 0);
 }
 uint8_t handle_sdl_error(struct ctx* ctx, struct arr_0 operation, int64_t err) {
@@ -2661,7 +2661,7 @@ uint8_t main_loop(struct ctx* ctx, struct sdl_renderer* renderer, struct sdl_tex
 	(SDL_PumpEvents(), 0);
 	key_states_ptr0 = SDL_GetKeyboardState(NULL);
 	key_states1 = ptr_as_arr(ctx, sdl_num_scancodes(ctx), key_states_ptr0);
-	print_sync((_op_equal_equal_4(at_3(ctx, key_states1, sdl_scancode_return(ctx)), 0u) ? (struct arr_0) {9, constantarr_0_23} : (struct arr_0) {17, constantarr_0_24}));
+	print((_op_equal_equal_4(at_3(ctx, key_states1, sdl_scancode_return(ctx)), 0u) ? (struct arr_0) {9, constantarr_0_23} : (struct arr_0) {17, constantarr_0_24}));
 	handle_sdl_error(ctx, (struct arr_0) {16, constantarr_0_25}, SDL_RenderClear(renderer));
 	handle_sdl_error(ctx, (struct arr_0) {15, constantarr_0_26}, SDL_RenderCopy(renderer, texture, NULL, NULL));
 	(SDL_RenderPresent(renderer), 0);
@@ -2673,12 +2673,12 @@ struct arr_5 ptr_as_arr(struct ctx* ctx, uint64_t size, uint8_t* data) {
 uint64_t sdl_num_scancodes(struct ctx* ctx) {
 	return 512u;
 }
-uint8_t print_sync(struct arr_0 s) {
-	print_sync_no_newline(s);
-	return print_sync_no_newline((struct arr_0) {1, constantarr_0_3});
+uint8_t print(struct arr_0 a) {
+	print_no_newline(a);
+	return print_no_newline((struct arr_0) {1, constantarr_0_3});
 }
-uint8_t print_sync_no_newline(struct arr_0 s) {
-	return write_sync_no_newline(stdout_fd(), s);
+uint8_t print_no_newline(struct arr_0 a) {
+	return write_no_newline(stdout_fd(), a);
 }
 int32_t stdout_fd(void) {
 	return 1;

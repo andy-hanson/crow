@@ -14,7 +14,7 @@ module(
 		import(15, none)
 		import(11, none)
 		import(12, none)
-		import(13, some([exit-code, print-sync]))]
+		import(13, some([exit-code, print]))]
 	exports: []
 	structs: []
 	specs: []
@@ -22,7 +22,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(20, 34), main, fut(int32()), [param(file-range(20, range(53, 65)), args, arr(arr(char())))])
+			sig: sig(file-pos(20, 29), main, fut(int32()), [param(file-range(20, range(48, 60)), args, arr(arr(char())))])
 			body: seq(
 				seq(
 					seq(
@@ -113,7 +113,7 @@ module(
 										call(fun-inst(name: parse-int), [string-lit("*123")])
 										to-union(opt(int()), 0, call(fun-inst(name: none), []))])]))
 					call(
-						fun-inst(name: print-sync)
+						fun-inst(name: print)
 						[
 							call(
 								fun-inst(name: to-str, type-args: [nat()], spec-impls: [fun-inst(name: to-str)])

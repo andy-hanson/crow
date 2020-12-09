@@ -23,7 +23,7 @@ manhattan float(a point)
 	a.x + a.y
 
 main fut exit-code(args arr str) summon trusted
-	print-sync: "now sleep:"
+	print: "now sleep:"
 	0 resolved`
 
 const outputClass = cssClass("output")

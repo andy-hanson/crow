@@ -616,14 +616,14 @@ struct mut_bag new_mut_bag(void);
 struct thread_safe_counter new_thread_safe_counter_0(void);
 struct thread_safe_counter new_thread_safe_counter_1(uint64_t init);
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e);
-uint8_t print_err_sync_no_newline(struct arr_0 s);
-uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s);
+uint8_t print_err_no_newline(struct arr_0 s);
+uint8_t write_no_newline(int32_t fd, struct arr_0 a);
 extern int64_t write(int32_t fd, uint8_t* buff, uint64_t n_bytes);
 uint8_t _op_equal_equal_2(int64_t a, int64_t b);
 struct comparison compare_43(int64_t a, int64_t b);
 uint8_t todo_1(void);
 int32_t stderr_fd(void);
-uint8_t print_err_sync(struct arr_0 s);
+uint8_t print_err(struct arr_0 s);
 uint8_t empty__q_0(struct arr_0 a);
 struct global_ctx* get_gctx(struct ctx* ctx);
 uint8_t new_island__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception exn);
@@ -799,8 +799,8 @@ struct result_0 must_be_resolved(struct fut_0* f);
 struct result_0 hard_unreachable(void);
 struct fut_0* main_0(struct ctx* ctx, struct arr_1 args);
 uint8_t foo(struct ctx* ctx, struct my_record* r);
-uint8_t print_sync(struct arr_0 s);
-uint8_t print_sync_no_newline(struct arr_0 s);
+uint8_t print(struct arr_0 a);
+uint8_t print_no_newline(struct arr_0 a);
 int32_t stdout_fd(void);
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value);
 int32_t main(int32_t argc, char** argv);
@@ -925,8 +925,8 @@ int32_t rt_main(int32_t argc, char** argv, fun_ptr2_0 main_ptr) {
 				return o5.value;
 			case 1:
 				e6 = temp0.as1;
-				print_err_sync_no_newline((struct arr_0) {13, constantarr_0_11});
-				print_err_sync(e6.value.message);
+				print_err_no_newline((struct arr_0) {13, constantarr_0_11});
+				print_err(e6.value.message);
 				return 1;
 			default:
 				return (assert(0),0);
@@ -1053,18 +1053,18 @@ struct thread_safe_counter new_thread_safe_counter_1(uint64_t init) {
 	return (struct thread_safe_counter) {new_lock(), init};
 }
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e) {
-	print_err_sync_no_newline((struct arr_0) {20, constantarr_0_2});
-	print_err_sync((empty__q_0(e.message) ? (struct arr_0) {17, constantarr_0_4} : e.message));
+	print_err_no_newline((struct arr_0) {20, constantarr_0_2});
+	print_err((empty__q_0(e.message) ? (struct arr_0) {17, constantarr_0_4} : e.message));
 	return (get_gctx(ctx)->any_unhandled_exceptions__q = 1, 0);
 }
-uint8_t print_err_sync_no_newline(struct arr_0 s) {
-	return write_sync_no_newline(stderr_fd(), s);
+uint8_t print_err_no_newline(struct arr_0 s) {
+	return write_no_newline(stderr_fd(), s);
 }
-uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s) {
+uint8_t write_no_newline(int32_t fd, struct arr_0 a) {
 	int64_t res0;
 	hard_assert(_op_equal_equal_0(sizeof(char), sizeof(uint8_t)));
-	res0 = write(fd, (uint8_t*) s.data, s.size);
-	if (_op_equal_equal_2(res0, s.size)) {
+	res0 = write(fd, (uint8_t*) a.data, a.size);
+	if (_op_equal_equal_2(res0, a.size)) {
 		return 0;
 	} else {
 		return todo_1();
@@ -1101,9 +1101,9 @@ uint8_t todo_1(void) {
 int32_t stderr_fd(void) {
 	return 2;
 }
-uint8_t print_err_sync(struct arr_0 s) {
-	print_err_sync_no_newline(s);
-	return print_err_sync_no_newline((struct arr_0) {1, constantarr_0_3});
+uint8_t print_err(struct arr_0 s) {
+	print_err_no_newline(s);
+	return print_err_no_newline((struct arr_0) {1, constantarr_0_3});
 }
 uint8_t empty__q_0(struct arr_0 a) {
 	return _op_equal_equal_0(a.size, 0u);
@@ -2332,20 +2332,20 @@ struct fut_0* main_0(struct ctx* ctx, struct arr_1 args) {
 	struct my_record* temp0;
 	r0 = (temp0 = (struct my_record*) alloc(ctx, sizeof(struct my_record)), ((*(temp0) = (struct my_record) {(struct arr_0) {1, constantarr_0_12}, (struct arr_0) {1, constantarr_0_13}}, 0), temp0));
 	foo(ctx, r0);
-	print_sync(r0->a);
-	print_sync(r0->b);
+	print(r0->a);
+	print(r0->b);
 	return resolved_1(ctx, 0);
 }
 uint8_t foo(struct ctx* ctx, struct my_record* r) {
-	print_sync(r->a);
-	return print_sync(r->b);
+	print(r->a);
+	return print(r->b);
 }
-uint8_t print_sync(struct arr_0 s) {
-	print_sync_no_newline(s);
-	return print_sync_no_newline((struct arr_0) {1, constantarr_0_3});
+uint8_t print(struct arr_0 a) {
+	print_no_newline(a);
+	return print_no_newline((struct arr_0) {1, constantarr_0_3});
 }
-uint8_t print_sync_no_newline(struct arr_0 s) {
-	return write_sync_no_newline(stdout_fd(), s);
+uint8_t print_no_newline(struct arr_0 a) {
+	return write_no_newline(stdout_fd(), a);
 }
 int32_t stdout_fd(void) {
 	return 1;

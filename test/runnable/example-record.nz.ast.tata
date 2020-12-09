@@ -1,49 +1,49 @@
 file-ast(
-	imports: ports(range(0, 59), [import-ast(0, "/io", some([exit-code, print-sync]))])
+	imports: ports(range(0, 54), [import-ast(0, "/io", some([exit-code, print]))])
 	specs: []
 	aliases: []
 	structs: [
 		struct(
-			range(59, 155)
+			range(54, 150)
 			true
 			[]
 			none
 			record(
 				none
 				[
-					field(range(73, 80), false, x, inststruct(range(75, 80), name-range(75, float)))
-					field(range(82, 89), false, y, inststruct(range(84, 89), name-range(84, float)))]))]
+					field(range(68, 75), false, x, inststruct(range(70, 75), name-range(70, float)))
+					field(range(77, 84), false, y, inststruct(range(79, 84), name-range(79, float)))]))]
 	funs: [
 		fun-decl(
 			public?: true
-			sig: sig-ast(range(155, 175), create-point, inststruct(range(168, 173), name-range(168, point)), [])
-			body: call(prefix, name-range(177, point), [], [literal(nat(1, false)), literal(nat(2, false))]))
+			sig: sig-ast(range(150, 170), create-point, inststruct(range(163, 168), name-range(163, point)), [])
+			body: call(prefix, name-range(172, point), [], [literal(nat(1, false)), literal(nat(2, false))]))
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(273, 293)
+				range(268, 288)
 				get-x
-				inststruct(range(279, 284), name-range(279, float))
-				[param(range(285, 292), name-range(285, a), inststruct(range(287, 292), name-range(287, point)))])
-			body: call(infix, name-range(370, x), [], [a]))
+				inststruct(range(274, 279), name-range(274, float))
+				[param(range(280, 287), name-range(280, a), inststruct(range(282, 287), name-range(282, point)))])
+			body: call(infix, name-range(365, x), [], [a]))
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(445, 477)
+				range(440, 472)
 				main
-				inststruct(range(450, 463), name-range(450, fut), [inststruct(range(454, 463), name-range(454, exit-code))])
+				inststruct(range(445, 458), name-range(445, fut), [inststruct(range(449, 458), name-range(449, exit-code))])
 				[
 					param(
-						range(464, 476)
-						name-range(464, args)
-						inststruct(range(469, 476), name-range(469, arr), [inststruct(range(473, 476), name-range(473, str))]))])
+						range(459, 471)
+						name-range(459, args)
+						inststruct(range(464, 471), name-range(464, arr), [inststruct(range(468, 471), name-range(468, str))]))])
 			summon: true
 			body: let(
-				name-range(548, p)
+				name-range(543, p)
 				create-point
 				let(
-					name-range(603, p-x)
-					call(infix, name-range(611, get-x), [], [p])
+					name-range(598, p-x)
+					call(infix, name-range(606, get-x), [], [p])
 					seq-ast(
-						call(prefix, name-range(870, print-sync), [], [call(infix, name-range(886, to-str), [], [p-x])])
-						call(infix, name-range(896, resolved), [], [literal(nat(0, false))])))))])
+						call(prefix, name-range(865, print), [], [call(infix, name-range(876, to-str), [], [p-x])])
+						call(infix, name-range(886, resolved), [], [literal(nat(0, false))])))))])

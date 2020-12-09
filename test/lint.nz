@@ -4,7 +4,7 @@ lint result str arr<failure>(path str, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, \file
 		if options.print-tests?
-			print-sync: "lint " + file
+			print: "lint " + file
 		else
 			pass
 		file lint-file

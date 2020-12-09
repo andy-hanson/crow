@@ -1,5 +1,5 @@
 import
-	io: exit-code print-sync
+	io: exit-code print
 
 my-record record
 	x nat
@@ -21,18 +21,18 @@ test-compare-records void() summon
 	b = my-record: 1, 3
 	c = my-record: 1, 2
 	d = my-record: 0, 3
-	print-sync: a <=> b to-str
-	print-sync: a <=> c to-str
-	print-sync: a <=> d to-str
+	print: a <=> b to-str
+	print: a <=> c to-str
+	print: a <=> d to-str
 
 test-compare-byref-records void() summon
 	a = my-byref-record: 1, 2
 	b = my-byref-record: 1, 3
 	c = my-byref-record: 1, 2
 	d = my-byref-record: 0, 3
-	print-sync: a <=> b to-str
-	print-sync: a <=> c to-str
-	print-sync: a <=> d to-str
+	print: a <=> b to-str
+	print: a <=> c to-str
+	print: a <=> d to-str
 
 test-compare-unions void() summon
 	a = as<my-union>: my-record: 1, 2
@@ -40,9 +40,9 @@ test-compare-unions void() summon
 	c = as<my-union>: my-record: 1, 2
 	d = as<my-union>: my-record: 1, 1
 
-	print-sync: a <=> b to-str
-	print-sync: a <=> c to-str
-	print-sync: a <=> d to-str
+	print: a <=> b to-str
+	print: a <=> c to-str
+	print: a <=> d to-str
 
 main fut exit-code(args arr str) summon
 	test-compare-records

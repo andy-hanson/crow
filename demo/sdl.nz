@@ -169,14 +169,14 @@ main fut exit-code(args arr str) summon trusted
 	window sdl-destroy-window
 	sdl-quit
 
-	print-sync: "Bye bye"
+	print: "Bye bye"
 	0 resolved
 
 main-loop void(renderer sdl-renderer, texture sdl-texture) summon trusted
 	sdl-pump-events
 	key-states-ptr = null sdl-get-keyboard-state
 	key-states = sdl-num-scancodes ptr-as-arr key-states-ptr
-	print-sync: (key-states at sdl-scancode-return == 0) ? "no return", "return is pressed"
+	print: (key-states at sdl-scancode-return == 0) ? "no return", "return is pressed"
 
 	"sdl-render-clear" handle-sdl-error: renderer sdl-render-clear
 	"sdl-render-copy" handle-sdl-error: renderer sdl-render-copy texture, null, null

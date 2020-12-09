@@ -52,12 +52,12 @@ first-failures result str arr<failure>(a result str arr<failure>, b fun0 result<
 print-failures exit-code(failures result str arr<failure>, options test-options) summon
 	match failures
 	as ok o
-		print-sync: o.value
+		print: o value
 		0
 	as err e
 		e.value each {it print-failure}
 		n-failures = e.value.size
-		print-sync: if n-failures == options.max-failures
+		print: if n-failures == options.max-failures
 			"hit maximum of " + options.max-failures.to-str + " failures"
 		else
 			n-failures.to-str + " failures"
@@ -67,17 +67,17 @@ private
 
 print-failure void(failure failure) summon
 	print-bold
-	print-sync-no-newline: failure.path
+	print-no-newline: failure path
 	print-reset
-	print-sync-no-newline: " "
-	print-sync: failure.message
+	print-no-newline: " "
+	print: failure message
 
 | TODO:MOVE
 print-bold void() summon
-	print-sync-no-newline: "\x1b[1m"
+	print-no-newline: "\x1b[1m"
 
 print-red void() summon
-	print-sync-no-newline: "\x1b[31m"
+	print-no-newline: "\x1b[31m"
 
 print-reset void() summon
-	print-sync-no-newline: "\x1b[m"
+	print-no-newline: "\x1b[m"

@@ -32,12 +32,12 @@ spec
 	summon
 body
 	op = (new-arr<str> "ast", "model", "concrete-model", "low-model") first-some<arr<failure>, str> \print-kind
-		options.print-tests? ? ("noze print " + print-kind + " " + path print-sync), pass
+		options.print-tests? ? ("noze print " + print-kind + " " + path print), pass
 		res = print-kind run-print-test path-to-noze, env, path, options.overwrite-output?
 		res.should-stop? ? res.failures.some, none
 	match op
 	as none
-		options.print-tests? ? ("noze run " + path print-sync), pass
+		options.print-tests? ? ("noze run " + path print), pass
 		interpret-failures = path-to-noze run-single-runnable-test env, path, true, options.overwrite-output?
 		if interpret-failures.empty?
 			path-to-noze run-single-runnable-test env, path, false, options.overwrite-output?

@@ -1255,14 +1255,14 @@ struct mut_bag new_mut_bag(void);
 struct thread_safe_counter new_thread_safe_counter_0(void);
 struct thread_safe_counter new_thread_safe_counter_1(uint64_t init);
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e);
-uint8_t print_err_sync_no_newline(struct arr_0 s);
-uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s);
+uint8_t print_err_no_newline(struct arr_0 s);
+uint8_t write_no_newline(int32_t fd, struct arr_0 a);
 extern int64_t write(int32_t fd, uint8_t* buff, uint64_t n_bytes);
 uint8_t _op_equal_equal_2(int64_t a, int64_t b);
 struct comparison compare_43(int64_t a, int64_t b);
 uint8_t todo_1(void);
 int32_t stderr_fd(void);
-uint8_t print_err_sync(struct arr_0 s);
+uint8_t print_err(struct arr_0 s);
 uint8_t empty__q_0(struct arr_0 a);
 struct global_ctx* get_gctx(struct ctx* ctx);
 uint8_t new_island__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception exn);
@@ -1566,8 +1566,8 @@ struct opt_11 char_to_nat(struct ctx* ctx, char c);
 struct test_options main_0__lambda0(struct ctx* ctx, uint8_t* _closure, struct arr_5 values);
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value);
 uint8_t print_help(struct ctx* ctx);
-uint8_t print_sync(struct arr_0 s);
-uint8_t print_sync_no_newline(struct arr_0 s);
+uint8_t print(struct arr_0 a);
+uint8_t print_no_newline(struct arr_0 a);
 int32_t stdout_fd(void);
 int32_t do_test(struct ctx* ctx, struct test_options options);
 struct arr_0 parent_path(struct ctx* ctx, struct arr_0 a);
@@ -2000,8 +2000,8 @@ int32_t rt_main(int32_t argc, char** argv, fun_ptr2_0 main_ptr) {
 				return o5.value;
 			case 1:
 				e6 = temp0.as1;
-				print_err_sync_no_newline((struct arr_0) {13, constantarr_0_11});
-				print_err_sync(e6.value.message);
+				print_err_no_newline((struct arr_0) {13, constantarr_0_11});
+				print_err(e6.value.message);
 				return 1;
 			default:
 				return (assert(0),0);
@@ -2128,18 +2128,18 @@ struct thread_safe_counter new_thread_safe_counter_1(uint64_t init) {
 	return (struct thread_safe_counter) {new_lock(), init};
 }
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e) {
-	print_err_sync_no_newline((struct arr_0) {20, constantarr_0_2});
-	print_err_sync((empty__q_0(e.message) ? (struct arr_0) {17, constantarr_0_4} : e.message));
+	print_err_no_newline((struct arr_0) {20, constantarr_0_2});
+	print_err((empty__q_0(e.message) ? (struct arr_0) {17, constantarr_0_4} : e.message));
 	return (get_gctx(ctx)->any_unhandled_exceptions__q = 1, 0);
 }
-uint8_t print_err_sync_no_newline(struct arr_0 s) {
-	return write_sync_no_newline(stderr_fd(), s);
+uint8_t print_err_no_newline(struct arr_0 s) {
+	return write_no_newline(stderr_fd(), s);
 }
-uint8_t write_sync_no_newline(int32_t fd, struct arr_0 s) {
+uint8_t write_no_newline(int32_t fd, struct arr_0 a) {
 	int64_t res0;
 	hard_assert(_op_equal_equal_0(sizeof(char), sizeof(uint8_t)));
-	res0 = write(fd, (uint8_t*) s.data, s.size);
-	if (_op_equal_equal_2(res0, s.size)) {
+	res0 = write(fd, (uint8_t*) a.data, a.size);
+	if (_op_equal_equal_2(res0, a.size)) {
 		return 0;
 	} else {
 		return todo_1();
@@ -2176,9 +2176,9 @@ uint8_t todo_1(void) {
 int32_t stderr_fd(void) {
 	return 2;
 }
-uint8_t print_err_sync(struct arr_0 s) {
-	print_err_sync_no_newline(s);
-	return print_err_sync_no_newline((struct arr_0) {1, constantarr_0_3});
+uint8_t print_err(struct arr_0 s) {
+	print_err_no_newline(s);
+	return print_err_no_newline((struct arr_0) {1, constantarr_0_3});
 }
 uint8_t empty__q_0(struct arr_0 a) {
 	return _op_equal_equal_0(a.size, 0u);
@@ -4344,17 +4344,17 @@ struct fut_0* resolved_1(struct ctx* ctx, int32_t value) {
 	return temp0;
 }
 uint8_t print_help(struct ctx* ctx) {
-	print_sync((struct arr_0) {18, constantarr_0_20});
-	print_sync((struct arr_0) {8, constantarr_0_21});
-	print_sync((struct arr_0) {38, constantarr_0_22});
-	return print_sync((struct arr_0) {64, constantarr_0_23});
+	print((struct arr_0) {18, constantarr_0_20});
+	print((struct arr_0) {8, constantarr_0_21});
+	print((struct arr_0) {38, constantarr_0_22});
+	return print((struct arr_0) {64, constantarr_0_23});
 }
-uint8_t print_sync(struct arr_0 s) {
-	print_sync_no_newline(s);
-	return print_sync_no_newline((struct arr_0) {1, constantarr_0_3});
+uint8_t print(struct arr_0 a) {
+	print_no_newline(a);
+	return print_no_newline((struct arr_0) {1, constantarr_0_3});
 }
-uint8_t print_sync_no_newline(struct arr_0 s) {
-	return write_sync_no_newline(stdout_fd(), s);
+uint8_t print_no_newline(struct arr_0 a) {
+	return write_no_newline(stdout_fd(), a);
 }
 int32_t stdout_fd(void) {
 	return 1;
@@ -5215,7 +5215,7 @@ struct arr_7 run_single_noze_test(struct ctx* ctx, struct arr_0 path_to_noze, st
 	switch (temp1.kind) {
 		case 0:
 			if (options.print_tests__q) {
-				print_sync(_op_plus_1(ctx, (struct arr_0) {9, constantarr_0_65}, path));
+				print(_op_plus_1(ctx, (struct arr_0) {9, constantarr_0_65}, path));
 			} else {
 				0;
 			}
@@ -5306,7 +5306,7 @@ struct print_test_result* run_print_test(struct ctx* ctx, struct arr_0 print_kin
 }
 struct process_result* spawn_and_wait_result_0(struct ctx* ctx, struct arr_0 exe, struct arr_1 args, struct dict_1* environ) {
 	char* exe_c_str0;
-	print_sync(fold(ctx, _op_plus_1(ctx, (struct arr_0) {23, constantarr_0_38}, exe), args, (struct fun_mut2_1) {(fun_ptr4_2) spawn_and_wait_result_0__lambda0, (uint8_t*) NULL}));
+	print(fold(ctx, _op_plus_1(ctx, (struct arr_0) {23, constantarr_0_38}, exe), args, (struct fun_mut2_1) {(fun_ptr4_2) spawn_and_wait_result_0__lambda0, (uint8_t*) NULL}));
 	if (is_file__q_0(ctx, exe)) {
 		exe_c_str0 = to_c_str(ctx, exe);
 		return spawn_and_wait_result_1(ctx, exe_c_str0, convert_args(ctx, exe_c_str0, args), convert_environ(ctx, environ));
@@ -5642,11 +5642,11 @@ int32_t wait_and_get_exit_code(struct ctx* ctx, int32_t pid) {
 	} else {
 		if (w_if_signaled(ctx, wait_status2)) {
 			signal3 = w_term_sig(ctx, wait_status2);
-			print_sync(_op_plus_1(ctx, (struct arr_0) {31, constantarr_0_39}, to_str_1(ctx, signal3)));
+			print(_op_plus_1(ctx, (struct arr_0) {31, constantarr_0_39}, to_str_1(ctx, signal3)));
 			return todo_7();
 		} else {
 			if (w_if_stopped(ctx, wait_status2)) {
-				print_sync((struct arr_0) {12, constantarr_0_51});
+				print((struct arr_0) {12, constantarr_0_51});
 				return todo_7();
 			} else {
 				if (w_if_continued(ctx, wait_status2)) {
@@ -6051,7 +6051,7 @@ struct opt_12 try_read_file_1(struct ctx* ctx, char* path) {
 			if (_op_equal_equal_3(errno, enoent())) {
 				return (struct opt_12) {0, .as0 = (struct none) {0}};
 			} else {
-				print_sync(_op_plus_1(ctx, (struct arr_0) {20, constantarr_0_56}, to_str_0(path)));
+				print(_op_plus_1(ctx, (struct arr_0) {20, constantarr_0_56}, to_str_0(path)));
 				return todo_9();
 			}
 		} else {
@@ -6102,10 +6102,10 @@ uint8_t write_file_1(struct ctx* ctx, char* path, struct arr_0 content) {
 	flags3 = ((o_creat(ctx) | o_wronly(ctx)) | o_trunc(ctx));
 	fd4 = open(path, flags3, permission2);
 	if (_op_equal_equal_3(fd4, -1)) {
-		print_sync(_op_plus_1(ctx, (struct arr_0) {31, constantarr_0_57}, to_str_0(path)));
-		print_sync(_op_plus_1(ctx, (struct arr_0) {7, constantarr_0_58}, to_str_1(ctx, errno)));
-		print_sync(_op_plus_1(ctx, (struct arr_0) {7, constantarr_0_59}, to_str_4(ctx, flags3)));
-		print_sync(_op_plus_1(ctx, (struct arr_0) {12, constantarr_0_60}, to_str_4(ctx, permission2)));
+		print(_op_plus_1(ctx, (struct arr_0) {31, constantarr_0_57}, to_str_0(path)));
+		print(_op_plus_1(ctx, (struct arr_0) {7, constantarr_0_58}, to_str_1(ctx, errno)));
+		print(_op_plus_1(ctx, (struct arr_0) {7, constantarr_0_59}, to_str_4(ctx, flags3)));
+		print(_op_plus_1(ctx, (struct arr_0) {12, constantarr_0_60}, to_str_4(ctx, permission2)));
 		return todo_1();
 	} else {
 		wrote_bytes5 = write(fd4, (uint8_t*) content.data, content.size);
@@ -6223,7 +6223,7 @@ uint8_t push_4(struct ctx* ctx, struct mut_arr_4* a, char value) {
 struct opt_14 run_single_noze_test__lambda0(struct ctx* ctx, struct run_single_noze_test__lambda0* _closure, struct arr_0 print_kind) {
 	struct print_test_result* res0;
 	if (_closure->options.print_tests__q) {
-		print_sync(_op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {11, constantarr_0_36}, print_kind), (struct arr_0) {1, constantarr_0_37}), _closure->path));
+		print(_op_plus_1(ctx, _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {11, constantarr_0_36}, print_kind), (struct arr_0) {1, constantarr_0_37}), _closure->path));
 	} else {
 		0;
 	}
@@ -6384,7 +6384,7 @@ struct arr_0 read_file(struct ctx* ctx, struct arr_0 path) {
 	temp0 = try_read_file_0(ctx, path);
 	switch (temp0.kind) {
 		case 0:
-			print_sync(_op_plus_1(ctx, (struct arr_0) {21, constantarr_0_91}, path));
+			print(_op_plus_1(ctx, (struct arr_0) {21, constantarr_0_91}, path));
 			return (struct arr_0) {0u, NULL};
 		case 1:
 			s0 = temp0.as1;
@@ -6538,7 +6538,7 @@ uint8_t lint_file__lambda0(struct ctx* ctx, struct lint_file__lambda0* _closure,
 }
 struct arr_7 lint__lambda0(struct ctx* ctx, struct lint__lambda0* _closure, struct arr_0 file) {
 	if (_closure->options.print_tests__q) {
-		print_sync(_op_plus_1(ctx, (struct arr_0) {5, constantarr_0_90}, file));
+		print(_op_plus_1(ctx, (struct arr_0) {5, constantarr_0_90}, file));
 	} else {
 		0;
 	}
@@ -6556,13 +6556,13 @@ int32_t print_failures(struct ctx* ctx, struct result_3 failures, struct test_op
 	switch (temp0.kind) {
 		case 0:
 			o0 = temp0.as0;
-			print_sync(o0.value);
+			print(o0.value);
 			return 0;
 		case 1:
 			e1 = temp0.as1;
 			each_2(ctx, e1.value, (struct fun_mut1_13) {(fun_ptr3_14) print_failures__lambda0, (uint8_t*) NULL});
 			n_failures2 = e1.value.size;
-			print_sync((_op_equal_equal_0(n_failures2, options.max_failures) ? _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {15, constantarr_0_102}, to_str_3(ctx, options.max_failures)), (struct arr_0) {9, constantarr_0_103}) : _op_plus_1(ctx, to_str_3(ctx, n_failures2), (struct arr_0) {9, constantarr_0_103})));
+			print((_op_equal_equal_0(n_failures2, options.max_failures) ? _op_plus_1(ctx, _op_plus_1(ctx, (struct arr_0) {15, constantarr_0_102}, to_str_3(ctx, options.max_failures)), (struct arr_0) {9, constantarr_0_103}) : _op_plus_1(ctx, to_str_3(ctx, n_failures2), (struct arr_0) {9, constantarr_0_103})));
 			return to_int32(ctx, n_failures2);
 		default:
 			return (assert(0),0);
@@ -6570,16 +6570,16 @@ int32_t print_failures(struct ctx* ctx, struct result_3 failures, struct test_op
 }
 uint8_t print_failure(struct ctx* ctx, struct failure* failure) {
 	print_bold(ctx);
-	print_sync_no_newline(failure->path);
+	print_no_newline(failure->path);
 	print_reset(ctx);
-	print_sync_no_newline((struct arr_0) {1, constantarr_0_37});
-	return print_sync(failure->message);
+	print_no_newline((struct arr_0) {1, constantarr_0_37});
+	return print(failure->message);
 }
 uint8_t print_bold(struct ctx* ctx) {
-	return print_sync_no_newline((struct arr_0) {4, constantarr_0_100});
+	return print_no_newline((struct arr_0) {4, constantarr_0_100});
 }
 uint8_t print_reset(struct ctx* ctx) {
-	return print_sync_no_newline((struct arr_0) {3, constantarr_0_101});
+	return print_no_newline((struct arr_0) {3, constantarr_0_101});
 }
 uint8_t print_failures__lambda0(struct ctx* ctx, uint8_t* _closure, struct failure* it) {
 	return print_failure(ctx, it);

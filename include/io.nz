@@ -25,33 +25,28 @@ import
 	.str-conv: to-str
 	.str-utils: find-char-in-cstr find-cstr-end to-c-str to-str
 
-| TODO: summon
-write-sync-no-newline void(fd fd-t, s str) unsafe noctx
+write-no-newline void(fd fd-t, a str) summon unsafe noctx
 	hard-assert: size-of<char> == size-of<byte>
-	res = fd write s.data.as-any-ptr, s.size
-	if res == s.size.unsafe-to-int
+	res = fd write a.data.as-any-ptr, a.size
+	if res == a.size.unsafe-to-int
 		pass
 	else
 		| Retry?
 		todo
 
-print-sync-no-newline void(s str) summon trusted noctx
-	stdout-fd write-sync-no-newline s
+print-no-newline void(a str) summon trusted noctx
+	stdout-fd write-no-newline a
 
-print-sync void(s str) summon noctx
-	s print-sync-no-newline
-	"\n" print-sync-no-newline
+print void(a str) summon noctx
+	a print-no-newline
+	"\n" print-no-newline
 
-print-err-sync-no-newline void(s str) summon trusted noctx
-	stderr-fd write-sync-no-newline s
+print-err-no-newline void(s str) summon trusted noctx
+	stderr-fd write-no-newline s
 
-print-err-sync void(s str) summon noctx
-	s print-err-sync-no-newline
-	"\n" print-err-sync-no-newline
-
-debug-print-sync void(s str) noctx trusted
-	stderr-fd write-sync-no-newline s
-	stderr-fd write-sync-no-newline "\n"
+print-err void(s str) summon noctx
+	s print-err-no-newline
+	"\n" print-err-no-newline
 
 is-dir? bool(path str) summon
 	path.to-c-str is-dir?
@@ -141,7 +136,7 @@ read-file str(path str) summon
 	match path try-read-file
 	as none
 		| TODO: don't print, warn
-		print-sync: "file does not exist: " + path
+		print: "file does not exist: " + path
 		""
 	as some s
 		s.value
@@ -156,10 +151,10 @@ write-file void(path c-str, content str) summon trusted
 	flags = o-creat bits-or o-wronly bits-or o-trunc
 	fd = path open flags, permission
 	if fd == -1
-		print-sync: "failed to open file for write: " + path.to-str
-		print-sync: "errno: " + errno.to-str
-		print-sync: "flags: " + flags.to-str
-		print-sync: "permission: " + permission.to-str
+		print: "failed to open file for write: " + path.to-str
+		print: "errno: " + errno.to-str
+		print: "flags: " + flags.to-str
+		print: "permission: " + permission.to-str
 		todo
 	else
 		wrote-bytes = fd write content.data.ptr-cast<byte, char>, content.size
@@ -186,7 +181,7 @@ try-read-file opt str(path c-str) summon trusted
 			if errno == enoent
 				none
 			else
-				print-sync: "failed to open file " + path.to-str
+				print: "failed to open file " + path.to-str
 				todo
 		else
 			file-size = fd lseek 0, seek-end
@@ -267,7 +262,7 @@ process-result record
 	stderr str
 
 spawn-and-wait-result process-result(exe str, args arr str, environ environ) trusted summon
-	print-sync: "spawn-and-wait-result: " + exe fold args, \a b
+	print: "spawn-and-wait-result: " + exe fold args, \a b
 		a + " " + b
 
 	| TODO: kill, handle that error properly
@@ -403,12 +398,12 @@ wait-and-get-exit-code exit-code(pid pid-t) summon unsafe
 		wait-status w-exit-status
 	elif wait-status w-if-signaled
 		signal = wait-status w-term-sig
-		print-sync: "Process terminated with signal " + signal.to-str
+		print: "Process terminated with signal " + signal.to-str
 		todo
 		| use `wait-status w-term-sig`
 		| and `wait-status w-core-dump`
 	elif wait-status w-if-stopped
-		print-sync: "WAIT STOPPED"
+		print: "WAIT STOPPED"
 		todo
 		| use `wait-status w-stop-sig`
 	elif wait-status w-if-continued
