@@ -3,21 +3,21 @@ module lib.server;
 @safe @nogc nothrow: // not pure
 
 import lib.compiler : buildAndInterpret;
+import frontend.frontendCompile : frontendCompile;
 import frontend.getHover : getHoverStr;
 import frontend.getPosition : getPosition, Position;
 import frontend.getTokens : Token, tokensOfAst;
-import frontend.lang : nozeExtension;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.showDiag : ShowDiagOptions, strOfParseDiag;
 import interpret.fakeExtern : FakeExtern;
 import model.diag : Diagnostics;
 import model.parseDiag : ParseDiagnostic;
-import model.model : AbsolutePathsGetter, Program;
+import model.model : Program;
 import util.bools : False;
 import util.collection.arr : Arr, at, emptyArr, freeArr;
 import util.collection.arrUtil : map;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
-import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut, MutDict;
+import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
 import util.collection.str :
 	copyToNulTerminatedStr,
 	CStr,
@@ -25,17 +25,16 @@ import util.collection.str :
 	emptyStr,
 	NulTerminatedStr,
 	Str,
-	strEq,
 	strLiteral;
 import util.comparison : Comparison;
-import util.opt : asImmutable, force, has, none, Opt, some;
+import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
+import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, comparePathAndStorageKind, parsePath, Path, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr, ptrTrustMe_const, ptrTrustMe_mut;
 import util.result : matchResult, Result;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols;
 import util.types : safeSizeTToU16;
-import util.util : verify;
 
 struct Server(Alloc) {
 	Alloc alloc;
@@ -50,8 +49,6 @@ struct Server(Alloc) {
 		files = MutFiles.init;
 	}
 }
-
-private alias MutFiles = MutDict!(immutable PathAndStorageKind, immutable NulTerminatedStr, comparePathAndStorageKind);
 
 void addOrChangeFile(Debug, ServerAlloc)(
 	ref Debug dbg,
@@ -134,7 +131,6 @@ immutable(Str) getHover(Debug, Alloc, ServerAlloc)(
 	immutable Str path,
 	immutable Pos pos,
 ) {
-	import frontend.frontendCompile : frontendCompile;
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
 	immutable Result!(Ptr!Program, Diagnostics) programResult =
 		frontendCompile(alloc, alloc, server.allPaths, server.allSymbols, storage, toPath(server, path));
@@ -208,24 +204,3 @@ pure immutable(Path) toPath(Alloc)(ref Server!Alloc server, scope ref immutable 
 }
 
 immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
-
-struct DictReadOnlyStorage {
-	@safe @nogc nothrow: // not pure
-
-	pure immutable(AbsolutePathsGetter) absolutePathsGetter() const {
-		return immutable AbsolutePathsGetter(strLiteral("include"), strLiteral("user"));
-	}
-
-	immutable(T) withFile(T)(
-		ref immutable PathAndStorageKind pk,
-		immutable Str extension,
-		scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
-	) const {
-		verify(strEq(extension, nozeExtension));
-		immutable Opt!NulTerminatedStr content = asImmutable(getAt_mut(files, pk));
-		return cb(content);
-	}
-
-	private:
-	const Ptr!MutFiles files;
-}

@@ -11,12 +11,14 @@ import util.collection.globalAllocatedStack : asTempArr;
 import util.collection.str : Str;
 import util.path : AllPaths;
 import util.ptr : Ptr;
+import util.sym : AllSymbols;
 import util.types : Nat64, u8;
 import util.util : NullDebug, verify;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
 struct Test(Alloc) {
 	Ptr!Alloc alloc;
+	AllSymbols!Alloc allSymbols;
 	AllPaths!Alloc allPaths;
 	NullDebug dbg;
 

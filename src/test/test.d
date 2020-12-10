@@ -6,6 +6,7 @@ import test.testApplyFn : testApplyFn;
 import test.testByteReaderWriter : testByteReaderWriter;
 import test.testDebug : testDebug;
 import test.testFakeExtern : testFakeExtern;
+import test.testHover : testHover;
 import test.testInterpreter : testInterpreter;
 import test.testLineAndColumnGetter : testLineAndColumnGetter;
 import test.testPath : testPath;
@@ -17,9 +18,13 @@ import util.collection.str : Str, strEqLiteral;
 import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.ptr : ptrTrustMe_mut;
+import util.sym : AllSymbols;
 
 int test(Alloc)(ref Alloc alloc, immutable Opt!Str name) {
-	Test!Alloc test = Test!Alloc(ptrTrustMe_mut(alloc), AllPaths!Alloc(ptrTrustMe_mut(alloc)));
+	Test!Alloc test = Test!Alloc(
+		ptrTrustMe_mut(alloc),
+		AllSymbols!Alloc(ptrTrustMe_mut(alloc)),
+		AllPaths!Alloc(ptrTrustMe_mut(alloc)));
 	foreach (ref immutable NameAndTest!Alloc it; allTests!Alloc)
 		if (!has(name) || strEqLiteral(force(name), it.name)) {
 			//debug {
@@ -38,6 +43,7 @@ immutable (NameAndTest!Alloc)[] allTests(Alloc) = [
 	immutable NameAndTest!Alloc("byte-reader-writer", &testByteReaderWriter!Alloc),
 	immutable NameAndTest!Alloc("debug", &testDebug!Alloc),
 	immutable NameAndTest!Alloc("fake-extern", &testFakeExtern!Alloc),
+	immutable NameAndTest!Alloc("hover", &testHover!Alloc),
 	immutable NameAndTest!Alloc("interpreter", &testInterpreter!Alloc),
 	immutable NameAndTest!Alloc("line-and-column-getter", &testLineAndColumnGetter!Alloc),
 	immutable NameAndTest!Alloc("path", &testPath!Alloc),
