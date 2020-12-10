@@ -675,14 +675,3 @@ private void writeFileNoResetWriter(TempAlloc, Alloc, PathAlloc)(
 }
 
 alias Diags = Arr!Diagnostic;
-
-struct Diagnostics {
-	@safe @nogc pure nothrow:
-	immutable Diags diagnostics;
-	immutable FilesInfo filesInfo;
-
-	this(immutable Diags d, immutable FilesInfo f) immutable {
-		diagnostics = d;
-		filesInfo = f;
-	}
-}

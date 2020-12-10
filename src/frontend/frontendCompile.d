@@ -2,16 +2,8 @@ module frontend.frontendCompile;
 
 @safe @nogc nothrow: // not pure
 
-import model.diag : Diag, Diags, Diagnostic, Diagnostics, FilesInfo;
-import model.model :
-	asStructDecl,
-	CommonTypes,
-	LineAndColumnGetters,
-	Module,
-	Program,
-	SpecialModules,
-	StructDecl,
-	StructInst;
+import model.diag : Diag, Diags, Diagnostic, FilesInfo;
+import model.model : CommonTypes, LineAndColumnGetters, Module, Program, SpecialModules;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import frontend.ast :
 	emptyFileAst,
@@ -21,18 +13,15 @@ import frontend.ast :
 	imports,
 	ImportsOrExportsAst;
 import frontend.check : BootstrapCheck, check, checkBootstrapNz, ModuleAndNames, PathAndAst;
-import frontend.instantiate : instantiateNonTemplateStruct;
 import frontend.lang : nozeExtension;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
 import util.bools : Bool;
 import util.collection.arr : Arr, at, empty, emptyArr, range;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, arrBuilderSize, finishArr;
-import util.collection.arrUtil : arrLiteral, cat, copyArr, map, mapImpure, mapOrFailWithSoFar, prepend;
-import util.collection.dict : mustGetAt;
+import util.collection.arrUtil : arrLiteral, cat, copyArr, map, mapImpure, mapWithSoFar, prepend;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr;
 import util.collection.mutDict : getAt_mut, MutDict, setInDict;
-import util.collection.mutIndexDict : mustGetAt;
 import util.collection.str : NulTerminatedStr, stripNulTerminator;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
@@ -50,19 +39,12 @@ import util.path :
 	rootPath,
 	StorageKind;
 import util.ptr : Ptr;
-import util.result :
-	asSuccess,
-	fail,
-	isSuccess,
-	mapFailure,
-	mapSuccess,
-	Result;
 import util.sourceRange : FileAndRange, FileIndex, FilePaths, RangeWithinFile;
 import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
 import util.types : safeSizeTToU16;
 import util.util : unreachable, verify;
 
-immutable(Result!(Ptr!Program, Diagnostics)) frontendCompile(ModelAlloc, AstsAlloc, PathAlloc, SymAlloc, Storage)(
+immutable(Ptr!Program) frontendCompile(ModelAlloc, AstsAlloc, PathAlloc, SymAlloc, Storage)(
 	ref ModelAlloc modelAlloc,
 	ref AstsAlloc astsAlloc,
 	ref AllPaths!PathAlloc allPaths,
@@ -71,18 +53,15 @@ immutable(Result!(Ptr!Program, Diagnostics)) frontendCompile(ModelAlloc, AstsAll
 	immutable Path mainPath,
 ) {
 	immutable PathAndStorageKind main = PathAndStorageKind(mainPath, StorageKind.local);
-	immutable ParsedEverything parsed = parseEverything(modelAlloc, allPaths, allSymbols, storage, main, astsAlloc);
-	immutable Ptr!FilesInfo filesInfo =
-		nu!FilesInfo(
-			modelAlloc,
-			parsed.filePaths,
-			allocate(modelAlloc, storage.absolutePathsGetter()),
-			parsed.lineAndColumnGetters);
-	immutable Result!(Ptr!Program, Diags) res = empty(parsed.diagnostics)
-		? checkEverything(modelAlloc, allSymbols, parsed.asts, filesInfo, parsed.commonModuleIndices)
-		: fail!(Ptr!Program, Diags)(parsed.diagnostics);
-	return mapFailure!(Diagnostics, Ptr!Program, Diags)(res, (ref immutable Diags diagnostics) =>
-		immutable Diagnostics(diagnostics, filesInfo));
+	ArrBuilder!Diagnostic diagsBuilder;
+	immutable ParsedEverything parsed =
+		parseEverything(modelAlloc, allPaths, allSymbols, diagsBuilder, storage, main, astsAlloc);
+	immutable Ptr!FilesInfo filesInfo = nu!FilesInfo(
+		modelAlloc,
+		parsed.filePaths,
+		allocate(modelAlloc, storage.absolutePathsGetter()),
+		parsed.lineAndColumnGetters);
+	return checkEverything(modelAlloc, allSymbols, diagsBuilder, parsed.asts, filesInfo, parsed.commonModuleIndices);
 }
 
 private struct FileAstAndArrDiagnosticAndLineAndColumnGetter {
@@ -93,7 +72,8 @@ private struct FileAstAndArrDiagnosticAndLineAndColumnGetter {
 
 struct FileAstAndDiagnostics {
 	immutable FileAst ast;
-	immutable Diagnostics diagnostics;
+	immutable FilesInfo filesInfo;
+	immutable Diags diagnostics;
 }
 
 immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, PathAlloc, SymAlloc, ReadOnlyStorage)(
@@ -124,9 +104,8 @@ immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, PathAlloc, SymAlloc, Read
 				arrLiteral!PathAndStorageKind(alloc, [pathAndStorageKind]));
 			return immutable FileAstAndDiagnostics(
 				res.ast,
-				immutable Diagnostics(
-					parseDiagnostics(alloc, immutable FileIndex(0), res.diagnostics),
-					immutable FilesInfo(filePaths, allocate(alloc, storage.absolutePathsGetter()), lc)));
+				immutable FilesInfo(filePaths, allocate(alloc, storage.absolutePathsGetter()), lc),
+				parseDiagnostics(alloc, immutable FileIndex(0), res.diagnostics));
 		});
 }
 
@@ -174,7 +153,6 @@ struct ParsedEverything {
 	immutable LineAndColumnGetters lineAndColumnGetters;
 	immutable CommonModuleIndices commonModuleIndices;
 	immutable Arr!AstAndResolvedImports asts;
-	immutable Diags diagnostics;
 }
 
 struct CommonModuleIndices {
@@ -193,6 +171,7 @@ immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, PathAlloc, Sym
 	ref ModelAlloc modelAlloc,
 	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
+	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ReadOnlyStorage storage,
 	ref immutable PathAndStorageKind mainPath,
 	ref AstAlloc astAlloc,
@@ -201,7 +180,6 @@ immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, PathAlloc, Sym
 	ArrBuilder!AstAndResolvedImports res;
 	ArrBuilder!PathAndStorageKind fileIndexToPath;
 	PathToStatus statuses;
-	ArrBuilder!Diagnostic diagnostics;
 
 	immutable PathAndStorageKind bootstrapPath = bootstrapPath(allPaths);
 	immutable PathAndStorageKind stdPath = stdPath(allPaths);
@@ -226,7 +204,7 @@ immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, PathAlloc, Sym
 				lineAndColumnGetters,
 				res,
 				fileIndexToPath,
-				diagnostics,
+				diagsBuilder,
 				statuses,
 				none!PathAndRange,
 				path);
@@ -250,8 +228,7 @@ immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, PathAlloc, Sym
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(finishArr(modelAlloc, fileIndexToPath)),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(finishArr(modelAlloc, lineAndColumnGetters)),
 		commonModuleIndices,
-		finishArr(astAlloc, res),
-		finishArr(modelAlloc, diagnostics));
+		finishArr(astAlloc, res));
 }
 
 immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, PathAlloc, SymAlloc, ReadOnlyStorage)(
@@ -554,16 +531,16 @@ struct ModulesAndCommonTypes {
 	immutable Ptr!CommonTypes commonTypes;
 }
 
-// Result does not include the 'bootstrap' module.
-immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc, SymAlloc)(
+immutable(ModulesAndCommonTypes) getModules(ModelAlloc, SymAlloc)(
 	ref ModelAlloc modelAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
+	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
 	immutable FileIndex stdIndex,
 	ref immutable Arr!AstAndResolvedImports fileAsts,
 ) {
 	Late!(immutable Ptr!CommonTypes) commonTypes = late!(immutable Ptr!CommonTypes);
-	immutable Result!(Arr!(Ptr!Module), Diags) res = mapOrFailWithSoFar!(Ptr!Module, Diags)(
+	immutable Arr!(Ptr!Module) modules = mapWithSoFar!(Ptr!Module)(
 		modelAlloc,
 		fileAsts,
 		(ref immutable AstAndResolvedImports ast, ref immutable Arr!(Ptr!Module) soFar, immutable size_t index) {
@@ -585,6 +562,7 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc, SymAlloc
 				return check(
 					modelAlloc,
 					allSymbols,
+					diagsBuilder,
 					programState,
 					mappedImports,
 					mappedExports,
@@ -593,47 +571,40 @@ immutable(Result!(ModulesAndCommonTypes, Diags)) getModules(ModelAlloc, SymAlloc
 			} else {
 				// The first module to check is always 'bootstrap.nz'
 				verify(ast.resolvedImports.empty);
-				immutable Result!(BootstrapCheck, Diags) res =
-					checkBootstrapNz(modelAlloc, allSymbols, programState, pathAndAst);
-				if (res.isSuccess)
-					lateSet(commonTypes, res.asSuccess.commonTypes);
-				return mapSuccess(res, (ref immutable BootstrapCheck c) => c.module_);
+				immutable BootstrapCheck res =
+					checkBootstrapNz(modelAlloc, allSymbols, diagsBuilder, programState, pathAndAst);
+				lateSet(commonTypes, res.commonTypes);
+				return res.module_;
 			}
 		});
-	return mapSuccess!(ModulesAndCommonTypes, Arr!(Ptr!Module), Diags)(
-		res,
-		(ref immutable Arr!(Ptr!Module) modules) => immutable ModulesAndCommonTypes(modules, lateGet(commonTypes)));
+	return immutable ModulesAndCommonTypes(modules, lateGet(commonTypes));
 }
 
-immutable(Result!(Ptr!Program, Diags)) checkEverything(ModelAlloc, SymAlloc)(
+immutable(Ptr!Program) checkEverything(ModelAlloc, SymAlloc)(
 	ref ModelAlloc modelAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
+	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref immutable Arr!AstAndResolvedImports allAsts,
 	immutable Ptr!FilesInfo filesInfo,
 	ref immutable CommonModuleIndices moduleIndices,
 ) {
 	ProgramState programState = ProgramState(modelAlloc);
-	immutable Result!(ModulesAndCommonTypes, Diags) modulesResult =
-		getModules(modelAlloc, allSymbols, programState, moduleIndices.std, allAsts);
-	return modulesResult.mapSuccess((ref immutable ModulesAndCommonTypes modulesAndCommonTypes) {
-		immutable Arr!(Ptr!Module) modules = modulesAndCommonTypes.modules;
-		immutable Ptr!Module bootstrapModule = at(modules, moduleIndices.bootstrap.index);
-		immutable Ptr!StructDecl ctxStructDecl =
-			mustGetAt(bootstrapModule.structsAndAliasesMap, shortSymAlphaLiteral("ctx")).asStructDecl;
-		immutable Ptr!StructInst ctxStructInst = instantiateNonTemplateStruct(modelAlloc, programState, ctxStructDecl);
-		return nu!Program(
+	immutable ModulesAndCommonTypes modulesAndCommonTypes =
+		getModules(modelAlloc, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
+	immutable Arr!(Ptr!Module) modules = modulesAndCommonTypes.modules;
+	immutable Ptr!Module bootstrapModule = at(modules, moduleIndices.bootstrap.index);
+	return nu!Program(
+		modelAlloc,
+		filesInfo,
+		nu!SpecialModules(
 			modelAlloc,
-			filesInfo,
-			nu!SpecialModules(
-				modelAlloc,
-				at(modules, moduleIndices.alloc.index),
-				bootstrapModule,
-				at(modules, moduleIndices.runtime.index),
-				at(modules, moduleIndices.runtimeMain.index),
-				at(modules, moduleIndices.main.index)),
-			modules,
-			modulesAndCommonTypes.commonTypes,
-			ctxStructInst);
-	});
+			at(modules, moduleIndices.alloc.index),
+			bootstrapModule,
+			at(modules, moduleIndices.runtime.index),
+			at(modules, moduleIndices.runtimeMain.index),
+			at(modules, moduleIndices.main.index)),
+		modules,
+		modulesAndCommonTypes.commonTypes,
+		finishArr(modelAlloc, diagsBuilder));
 }
 

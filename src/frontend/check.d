@@ -42,7 +42,7 @@ import frontend.instantiate :
 	TypeParamsScope;
 import frontend.programState : ProgramState;
 import frontend.typeFromAst : instStructFromAst, tryFindSpec, typeArgsFromAsts, typeFromAst;
-import model.diag : Diag, Diagnostic, Diags, TypeKind;
+import model.diag : Diag, Diagnostic, TypeKind;
 import model.model :
 	arity,
 	asRecord,
@@ -113,7 +113,6 @@ import util.collection.arr :
 import util.collection.arrBuilder :
 	add,
 	ArrBuilder,
-	arrBuilderIsEmpty,
 	ArrWithSizeBuilder,
 	arrWithSizeBuilderAsTempArr,
 	arrWithSizeBuilderSize,
@@ -144,10 +143,9 @@ import util.collection.exactSizeArrBuilder :
 import util.collection.multiDict : multiDictGetAt;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.str : copyStr, Str, strLiteral;
-import util.memory : allocate, nu, overwriteMemory;
+import util.memory : allocate, nu, nuMut, overwriteMemory;
 import util.opt : force, has, mapOption, none, noneMut, Opt, some, someMut;
-import util.ptr : Ptr, ptrEquals, ptrTrustMe_mut;
-import util.result : fail, flatMapSuccess, mapSuccess, Result, success;
+import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym :
 	addToMutSymSetOkIfPresent,
@@ -177,16 +175,17 @@ struct ModuleAndNames {
 	immutable Opt!(Arr!Sym) names;
 }
 
-immutable(Result!(BootstrapCheck, Diags)) checkBootstrapNz(Alloc, SymAlloc)(
+immutable(BootstrapCheck) checkBootstrapNz(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
+	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
 	immutable PathAndAst pathAndAst,
 ) {
-	verify(!has(pathAndAst.ast.imports) && !has(pathAndAst.ast.exports));
 	return checkWorker(
 		alloc,
 		allSymbols,
+		diagsBuilder,
 		programState,
 		emptyArr!ModuleAndNames,
 		emptyArr!ModuleAndNames,
@@ -197,25 +196,26 @@ immutable(Result!(BootstrapCheck, Diags)) checkBootstrapNz(Alloc, SymAlloc)(
 			getCommonTypes(alloc, ctx, structsAndAliasesMap, delayedStructInsts));
 }
 
-immutable(Result!(Ptr!Module, Diags)) check(Alloc, SymAlloc)(
+immutable(Ptr!Module) check(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
+	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
 	ref immutable Arr!ModuleAndNames imports,
 	ref immutable Arr!ModuleAndNames exports,
 	ref immutable PathAndAst pathAndAst,
 	immutable Ptr!CommonTypes commonTypes,
 ) {
-	immutable Result!(BootstrapCheck, Diags) res = checkWorker(
+	return checkWorker(
 		alloc,
 		allSymbols,
+		diagsBuilder,
 		programState,
 		imports,
 		exports,
 		pathAndAst,
-		(ref CheckCtx, ref immutable StructsAndAliasesMap, ref MutArr!(Ptr!StructInst)) =>
-			success!(Ptr!CommonTypes, Diags)(commonTypes));
-	return mapSuccess(res, (ref immutable BootstrapCheck ic) => ic.module_);
+		(ref CheckCtx, ref immutable StructsAndAliasesMap, ref MutArr!(Ptr!StructInst)) => commonTypes,
+	).module_;
 }
 
 private:
@@ -244,24 +244,40 @@ immutable(Opt!(Ptr!StructInst)) getCommonNonTemplateType(Alloc)(
 	ref MutArr!(Ptr!StructInst) delayedStructInsts,
 ) {
 	immutable Opt!StructOrAlias opStructOrAlias = getAt(structsAndAliasesMap, name);
-	if (!has(opStructOrAlias))
-		return none!(Ptr!StructInst);
-	else {
-		immutable StructOrAlias structOrAlias = force(opStructOrAlias);
-		verify(empty(typeParams(structOrAlias)));
-		return matchStructOrAlias(
-			structOrAlias,
-			(immutable Ptr!StructAlias a) => target(a),
-			(immutable Ptr!StructDecl s) =>
-				some(instantiateStruct(
-					alloc,
-					ctx.programState,
-					immutable StructDeclAndArgs(s, emptyArr!Type),
-					someMut(ptrTrustMe_mut(delayedStructInsts)))));
-	}
+	return has(opStructOrAlias)
+		? instantiateNonTemplateStructOrAlias(alloc, ctx, delayedStructInsts, force(opStructOrAlias))
+		: none!(Ptr!StructInst);
 }
 
-immutable(Result!(Ptr!CommonTypes, Diags)) getCommonTypes(Alloc)(
+immutable(Opt!(Ptr!StructInst)) instantiateNonTemplateStructOrAlias(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref MutArr!(Ptr!StructInst) delayedStructInsts,
+	immutable StructOrAlias structOrAlias,
+) {
+	verify(empty(typeParams(structOrAlias)));
+	return matchStructOrAlias!(immutable Opt!(Ptr!StructInst))(
+		structOrAlias,
+		(immutable Ptr!StructAlias it) =>
+			target(it),
+		(immutable Ptr!StructDecl it) =>
+			some(instantiateNonTemplateStructDecl(alloc, ctx, delayedStructInsts, it)));
+}
+
+immutable(Ptr!StructInst) instantiateNonTemplateStructDecl(ALloc)(
+	ref ALloc alloc,
+	ref CheckCtx ctx,
+	ref MutArr!(Ptr!StructInst) delayedStructInsts,
+	immutable Ptr!StructDecl structDecl,
+) {
+	return instantiateStruct(
+		alloc,
+		ctx.programState,
+		immutable StructDeclAndArgs(structDecl, emptyArr!Type),
+		someMut(ptrTrustMe_mut(delayedStructInsts)));
+}
+
+immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable StructsAndAliasesMap structsAndAliasesMap,
@@ -269,125 +285,148 @@ immutable(Result!(Ptr!CommonTypes, Diags)) getCommonTypes(Alloc)(
 ) {
 	ArrBuilder!Str missing = ArrBuilder!Str();
 
-	immutable(Opt!(Ptr!StructInst)) nonTemplate(immutable string name) {
+	immutable(Ptr!StructInst) nonTemplate(immutable string name) {
 		immutable Opt!(Ptr!StructInst) res = getCommonNonTemplateType(
 			alloc,
 			ctx,
 			structsAndAliasesMap,
 			shortSymAlphaLiteral(name),
 			delayedStructInsts);
-		if (!has(res))
+		if (has(res))
+			return force(res);
+		else {
 			add(alloc, missing, strLiteral(name));
-		return res;
+			return instantiateNonTemplateStructDecl(alloc, ctx, delayedStructInsts, bogusStructDecl(alloc, 0));
+		}
 	}
 
-	immutable Opt!(Ptr!StructInst) bool_ = nonTemplate("bool");
-	immutable Opt!(Ptr!StructInst) char_ = nonTemplate("char");
-	immutable Opt!(Ptr!StructInst) float64 = nonTemplate("float");
-	immutable Opt!(Ptr!StructInst) int8 = nonTemplate("int8");
-	immutable Opt!(Ptr!StructInst) int16 = nonTemplate("int16");
-	immutable Opt!(Ptr!StructInst) int32 = nonTemplate("int32");
-	immutable Opt!(Ptr!StructInst) int64 = nonTemplate("int64");
-	immutable Opt!(Ptr!StructInst) nat8 = nonTemplate("nat8");
-	immutable Opt!(Ptr!StructInst) nat16 = nonTemplate("nat16");
-	immutable Opt!(Ptr!StructInst) nat32 = nonTemplate("nat32");
-	immutable Opt!(Ptr!StructInst) nat64 = nonTemplate("nat64");
-	immutable Opt!(Ptr!StructInst) str = nonTemplate("str");
-	immutable Opt!(Ptr!StructInst) void_ = nonTemplate("void");
-	immutable Opt!(Ptr!StructInst) anyPtr = nonTemplate("any-ptr");
+	immutable Ptr!StructInst bool_ = nonTemplate("bool");
+	immutable Ptr!StructInst char_ = nonTemplate("char");
+	immutable Ptr!StructInst float64 = nonTemplate("float");
+	immutable Ptr!StructInst int8 = nonTemplate("int8");
+	immutable Ptr!StructInst int16 = nonTemplate("int16");
+	immutable Ptr!StructInst int32 = nonTemplate("int32");
+	immutable Ptr!StructInst int64 = nonTemplate("int64");
+	immutable Ptr!StructInst nat8 = nonTemplate("nat8");
+	immutable Ptr!StructInst nat16 = nonTemplate("nat16");
+	immutable Ptr!StructInst nat32 = nonTemplate("nat32");
+	immutable Ptr!StructInst nat64 = nonTemplate("nat64");
+	immutable Ptr!StructInst str = nonTemplate("str");
+	immutable Ptr!StructInst void_ = nonTemplate("void");
+	immutable Ptr!StructInst anyPtr = nonTemplate("any-ptr");
+	immutable Ptr!StructInst ctxStructInst = nonTemplate("ctx");
 
-	immutable(Opt!(Ptr!StructDecl)) com(immutable string name, immutable size_t nTypeParameters) {
+	immutable(Ptr!StructDecl) com(immutable string name, immutable size_t nTypeParameters) {
 		immutable Opt!(Ptr!StructDecl) res = getCommonTemplateType(
 			structsAndAliasesMap,
 			shortSymAlphaLiteral(name),
 			nTypeParameters);
-		if (!has(res))
+		if (has(res))
+			return force(res);
+		else {
 			add(alloc, missing, strLiteral(name));
-		return res;
+			return bogusStructDecl(alloc, nTypeParameters);
+		}
 	}
 
-	immutable Opt!(Ptr!StructDecl) opt = com("opt", 1);
-	immutable Opt!(Ptr!StructDecl) some = com("some", 1);
-	immutable Opt!(Ptr!StructDecl) none = com("none", 0);
-	immutable Opt!(Ptr!StructDecl) byVal = com("by-val", 1);
-	immutable Opt!(Ptr!StructDecl) arr = com("arr", 1);
-	immutable Opt!(Ptr!StructDecl) fut = com("fut", 1);
-	immutable Opt!(Ptr!StructDecl) fun0 = com("fun0", 1);
-	immutable Opt!(Ptr!StructDecl) fun1 = com("fun1", 2);
-	immutable Opt!(Ptr!StructDecl) fun2 = com("fun2", 3);
-	immutable Opt!(Ptr!StructDecl) fun3 = com("fun3", 4);
-	immutable Opt!(Ptr!StructDecl) funMut0 = com("fun-mut0", 1);
-	immutable Opt!(Ptr!StructDecl) funMut1 = com("fun-mut1", 2);
-	immutable Opt!(Ptr!StructDecl) funMut2 = com("fun-mut2", 3);
-	immutable Opt!(Ptr!StructDecl) funMut3 = com("fun-mut3", 4);
-	immutable Opt!(Ptr!StructDecl) funPtr0 = com("fun-ptr0", 1);
-	immutable Opt!(Ptr!StructDecl) funPtr1 = com("fun-ptr1", 2);
-	immutable Opt!(Ptr!StructDecl) funPtr2 = com("fun-ptr2", 3);
-	immutable Opt!(Ptr!StructDecl) funPtr3 = com("fun-ptr3", 4);
-	immutable Opt!(Ptr!StructDecl) funPtr4 = com("fun-ptr4", 5);
-	immutable Opt!(Ptr!StructDecl) funPtr5 = com("fun-ptr5", 6);
-	immutable Opt!(Ptr!StructDecl) funPtr6 = com("fun-ptr6", 7);
-	immutable Opt!(Ptr!StructDecl) funRef0 = com("fun-ref0", 1);
-	immutable Opt!(Ptr!StructDecl) funRef1 = com("fun-ref1", 2);
-	immutable Opt!(Ptr!StructDecl) funRef2 = com("fun-ref2", 3);
-	immutable Opt!(Ptr!StructDecl) funRef3 = com("fun-ref3", 4);
+	immutable Ptr!StructDecl opt = com("opt", 1);
+	immutable Ptr!StructDecl some = com("some", 1);
+	immutable Ptr!StructDecl none = com("none", 0);
+	immutable Ptr!StructDecl byVal = com("by-val", 1);
+	immutable Ptr!StructDecl arr = com("arr", 1);
+	immutable Ptr!StructDecl fut = com("fut", 1);
+	immutable Ptr!StructDecl fun0 = com("fun0", 1);
+	immutable Ptr!StructDecl fun1 = com("fun1", 2);
+	immutable Ptr!StructDecl fun2 = com("fun2", 3);
+	immutable Ptr!StructDecl fun3 = com("fun3", 4);
+	immutable Ptr!StructDecl funMut0 = com("fun-mut0", 1);
+	immutable Ptr!StructDecl funMut1 = com("fun-mut1", 2);
+	immutable Ptr!StructDecl funMut2 = com("fun-mut2", 3);
+	immutable Ptr!StructDecl funMut3 = com("fun-mut3", 4);
+	immutable Ptr!StructDecl funPtr0 = com("fun-ptr0", 1);
+	immutable Ptr!StructDecl funPtr1 = com("fun-ptr1", 2);
+	immutable Ptr!StructDecl funPtr2 = com("fun-ptr2", 3);
+	immutable Ptr!StructDecl funPtr3 = com("fun-ptr3", 4);
+	immutable Ptr!StructDecl funPtr4 = com("fun-ptr4", 5);
+	immutable Ptr!StructDecl funPtr5 = com("fun-ptr5", 6);
+	immutable Ptr!StructDecl funPtr6 = com("fun-ptr6", 7);
+	immutable Ptr!StructDecl funRef0 = com("fun-ref0", 1);
+	immutable Ptr!StructDecl funRef1 = com("fun-ref1", 2);
+	immutable Ptr!StructDecl funRef2 = com("fun-ref2", 3);
+	immutable Ptr!StructDecl funRef3 = com("fun-ref3", 4);
 
 	immutable Arr!Str missingArr = finishArr(alloc, missing);
 
-	if (!empty(missingArr)) {
-		immutable Diagnostic diag = Diagnostic(
+	if (!empty(missingArr))
+		addDiag(
+			alloc,
+			ctx,
 			immutable FileAndRange(ctx.fileIndex, RangeWithinFile.empty),
-			nu!Diag(alloc, immutable Diag.CommonTypesMissing(missingArr)));
-		return fail!(Ptr!CommonTypes, Diags)(arrLiteral!Diagnostic(alloc, [diag]));
-	} else {
-		return success!(Ptr!CommonTypes, Diags)(
-			nu!CommonTypes(
-				alloc,
-				force(bool_),
-				force(char_),
-				force(float64),
-				nu!IntegralTypes(
-					alloc,
-					force(int8),
-					force(int16),
-					force(int32),
-					force(int64),
-					force(nat8),
-					force(nat16),
-					force(nat32),
-					force(nat64)),
-				force(str),
-				force(void_),
-				force(anyPtr),
-				arrLiteral!(Ptr!StructDecl)(alloc, [force(opt), force(some), force(none)]),
-				force(byVal),
-				force(arr),
-				force(fut),
-				arrLiteral!FunKindAndStructs(alloc, [
-					immutable FunKindAndStructs(FunKind.ptr, arrLiteral!(Ptr!StructDecl)(alloc, [
-						force(funPtr0),
-						force(funPtr1),
-						force(funPtr2),
-						force(funPtr3),
-						force(funPtr4),
-						force(funPtr5),
-						force(funPtr6)])),
-					immutable FunKindAndStructs(FunKind.plain, arrLiteral!(Ptr!StructDecl)(alloc, [
-						force(fun0),
-						force(fun1),
-						force(fun2),
-						force(fun3)])),
-					immutable FunKindAndStructs(FunKind.mut, arrLiteral!(Ptr!StructDecl)(alloc, [
-						force(funMut0),
-						force(funMut1),
-						force(funMut2),
-						force(funMut3)])),
-					immutable FunKindAndStructs(FunKind.ref_, arrLiteral!(Ptr!StructDecl)(alloc, [
-						force(funRef0),
-						force(funRef1),
-						force(funRef2),
-						force(funRef3)]))])));
-	}
+			immutable Diag(immutable Diag.CommonTypesMissing(missingArr)));
+	return nu!CommonTypes(
+		alloc,
+		bool_,
+		char_,
+		float64,
+		nu!IntegralTypes(
+			alloc,
+			int8,
+			int16,
+			int32,
+			int64,
+			nat8,
+			nat16,
+			nat32,
+			nat64),
+		str,
+		void_,
+		anyPtr,
+		ctxStructInst,
+		arrLiteral!(Ptr!StructDecl)(alloc, [opt, some, none]),
+		byVal,
+		arr,
+		fut,
+		arrLiteral!FunKindAndStructs(alloc, [
+			immutable FunKindAndStructs(FunKind.ptr, arrLiteral!(Ptr!StructDecl)(alloc, [
+				funPtr0,
+				funPtr1,
+				funPtr2,
+				funPtr3,
+				funPtr4,
+				funPtr5,
+				funPtr6])),
+			immutable FunKindAndStructs(FunKind.plain, arrLiteral!(Ptr!StructDecl)(alloc, [
+				fun0,
+				fun1,
+				fun2,
+				fun3])),
+			immutable FunKindAndStructs(FunKind.mut, arrLiteral!(Ptr!StructDecl)(alloc, [
+				funMut0,
+				funMut1,
+				funMut2,
+				funMut3])),
+			immutable FunKindAndStructs(FunKind.ref_, arrLiteral!(Ptr!StructDecl)(alloc, [
+				funRef0,
+				funRef1,
+				funRef2,
+				funRef3]))]));
+}
+
+immutable(Ptr!StructDecl) bogusStructDecl(Alloc)(ref Alloc alloc, immutable size_t nTypeParameters) {
+	ArrWithSizeBuilder!TypeParam typeParams;
+	immutable FileAndRange fileAndRange = immutable FileAndRange(immutable FileIndex(0), RangeWithinFile.empty);
+	foreach (immutable size_t i; 0..nTypeParameters)
+		add(alloc, typeParams, immutable TypeParam(fileAndRange, shortSymAlphaLiteral("bogus"), i));
+	Ptr!StructDecl res = nuMut!StructDecl(
+		alloc,
+		fileAndRange,
+		True,
+		shortSymAlphaLiteral("bogus"),
+		finishArr(alloc, typeParams),
+		Purity.data,
+		False);
+	setBody(res, immutable StructBody(immutable StructBody.Bogus()));
+	return castImmutable(res);
 }
 
 immutable(ArrWithSize!TypeParam) checkTypeParams(Alloc)(
@@ -1079,7 +1118,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 			someMut(ptrTrustMe_mut(delayStructInsts))));
 	}
 
-	immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, structsAndAliasesMap, ast.specs);
+immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, structsAndAliasesMap, ast.specs);
 	immutable SpecsMap specsMap = buildSpecsDict(alloc, ctx, specs);
 	foreach (ref immutable SpecDecl s; arrRange(specs))
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.specNames, s.name);
@@ -1165,20 +1204,20 @@ immutable(Arr!ModuleAndNameReferents) getFlattenedImports(Alloc)(
 	return finishArr(alloc, res);
 }
 
-immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc, SymAlloc)(
+immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
+	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
 	immutable Arr!ModuleAndNames imports,
 	immutable Arr!ModuleAndNames exports,
 	ref immutable PathAndAst pathAndAst,
-	scope immutable(Result!(Ptr!CommonTypes, Diags)) delegate(
+	scope immutable(Ptr!CommonTypes) delegate(
 		ref CheckCtx,
 		ref immutable StructsAndAliasesMap,
 		ref MutArr!(Ptr!StructInst),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
-	ArrBuilder!Diagnostic diagsBuilder;
 	immutable Arr!ModuleAndNameReferents convertedImports =
 		getFlattenedImports(alloc, diagsBuilder, pathAndAst.fileIndex, imports);
 	immutable Arr!ModuleAndNameReferents convertedExports =
@@ -1207,30 +1246,18 @@ immutable(Result!(BootstrapCheck, Diags)) checkWorker(Alloc, SymAlloc)(
 	MutArr!(Ptr!StructInst) delayStructInsts;
 	checkStructAliasTargets!Alloc(alloc, ctx, structsAndAliasesMap, structAliases, ast.structAliases, delayStructInsts);
 
-	if (!arrBuilderIsEmpty(diagsBuilder))
-		return fail!(BootstrapCheck, Diags)(finishArr(alloc, diagsBuilder));
-	else {
-		immutable Result!(Ptr!CommonTypes, Diags) commonTypesResult =
-			getCommonTypes(ctx, structsAndAliasesMap, delayStructInsts);
-		return flatMapSuccess!(BootstrapCheck, Ptr!CommonTypes, Diags)(
-			commonTypesResult,
-			(ref immutable Ptr!CommonTypes commonTypes) {
-				immutable Ptr!Module mod = checkWorkerAfterCommonTypes(
-					alloc,
-					allSymbols,
-					ctx,
-					commonTypes,
-					structsAndAliasesMap,
-					structs,
-					delayStructInsts,
-					pathAndAst.fileIndex,
-					convertedImports,
-					convertedExports,
-					ast);
-				immutable Diags diags = finishArr(alloc, diagsBuilder);
-				return empty(diags)
-					? success!(BootstrapCheck, Diags)(immutable BootstrapCheck(mod, commonTypes))
-					: fail!(BootstrapCheck, Diags)(diags);
-			});
-	}
+	immutable Ptr!CommonTypes commonTypes = getCommonTypes(ctx, structsAndAliasesMap, delayStructInsts);
+	immutable Ptr!Module mod = checkWorkerAfterCommonTypes(
+		alloc,
+		allSymbols,
+		ctx,
+		commonTypes,
+		structsAndAliasesMap,
+		structs,
+		delayStructInsts,
+		pathAndAst.fileIndex,
+		convertedImports,
+		convertedExports,
+		ast);
+	return immutable BootstrapCheck(mod, commonTypes);
 }

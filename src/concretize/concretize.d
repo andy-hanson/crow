@@ -47,7 +47,7 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 		getCurIslandAndExclusionFun(alloc, allSymbols, program),
 		getIfFuns(program),
 		getCallFuns(alloc, program),
-		program.ctxStructInst,
+		program.commonTypes.ctx,
 		ptrTrustMe(program.commonTypes));
 	immutable Ptr!ConcreteStruct ctxStruct = ctxType(alloc, ctx).struct_;
 	immutable Ptr!ConcreteFun markConcreteFun =

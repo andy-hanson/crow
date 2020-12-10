@@ -19,6 +19,7 @@ import lib.cliParser : Command, matchCommand, parseCommand, ProgramDirAndMain;
 import lib.compiler :
 	buildAndInterpret,
 	buildToC,
+	BuildToCResult,
 	DiagsAndResultStrs,
 	getAbsolutePathFromStorage,
 	print;
@@ -54,9 +55,7 @@ import util.path :
 	StorageKind,
 	withExtension;
 import util.ptr : Ptr, PtrRange, ptrTrustMe_mut;
-import util.result : matchResultImpure, Result;
 import util.sym : AllSymbols, shortSymAlphaLiteral;
-import util.result : Result;
 import util.types : Nat64, safeSizeTFromSSizeT, safeSizeTFromU64, safeU32FromI64, ssize_t;
 import util.util : todo, unreachable, verify;
 import util.writer : Writer;
@@ -221,20 +220,17 @@ immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
 		programDirAndMain.programDir);
 	immutable AbsolutePath cPath =
 		getAbsolutePathFromStorage(alloc, storage, programDirAndMain.mainPath, strLiteral(".c"));
-	immutable Result!(Str, Str) result =
+	immutable BuildToCResult result =
 		buildToC(alloc, allPaths, allSymbols, storage, showDiagOptions, programDirAndMain.mainPath);
-	return matchResultImpure!(immutable Opt!AbsolutePath, Str, Str)(
-		result,
-		(ref immutable Str cCode) {
-			writeFileSync(alloc, allPaths, cPath, cCode);
-			immutable AbsolutePath exePath = withExtension(cPath, emptyStr);
-			compileC(alloc, allPaths, cPath, exePath);
-			return some(exePath);
-		},
-		(ref immutable Str diagnostics) {
-			printErr(diagnostics);
-			return none!AbsolutePath;
-		});
+	if (empty(result.diagnostics)) {
+		writeFileSync(alloc, allPaths, cPath, result.cSource);
+		immutable AbsolutePath exePath = withExtension(cPath, emptyStr);
+		compileC(alloc, allPaths, cPath, exePath);
+		return some(exePath);
+	} else {
+		printErr(result.diagnostics);
+		return none!AbsolutePath;
+	}
 }
 
 void printVersion() {

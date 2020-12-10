@@ -3,7 +3,7 @@ module model.model;
 @safe @nogc pure nothrow:
 
 import model.constant : Constant;
-import model.diag : FilesInfo; // TODO: move that here?
+import model.diag : Diags, FilesInfo; // TODO: move FilesInfo here?
 import util.bools : and, Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, first, only, range, size, sizeEq, toArr;
 import util.collection.arrUtil : compareArr;
@@ -1149,6 +1149,7 @@ struct CommonTypes {
 	immutable Ptr!StructInst str;
 	immutable Ptr!StructInst void_;
 	immutable Ptr!StructInst anyPtr;
+	immutable Ptr!StructInst ctx;
 	immutable Arr!(Ptr!StructDecl) optionSomeNone;
 	immutable Ptr!StructDecl byVal;
 	immutable Ptr!StructDecl arr;
@@ -1185,22 +1186,22 @@ struct Program {
 		immutable Ptr!SpecialModules s,
 		immutable Arr!(Ptr!Module) all,
 		immutable Ptr!CommonTypes ct,
-		immutable Ptr!StructInst ctx,
+		immutable Diags d,
 	) {
 		filesInfo = f;
 		specialModules = s;
 		allModules = all;
 		commonTypes = ct;
-		ctxStructInst = ctx;
+		diagnostics = d;
 	}
 
 	immutable Ptr!FilesInfo filesInfo;
 	immutable Ptr!SpecialModules specialModules;
 	immutable Arr!(Ptr!Module) allModules;
 	immutable Ptr!CommonTypes commonTypes;
-	immutable Ptr!StructInst ctxStructInst;
+	immutable Diags diagnostics;
 }
-static assert(Program.sizeof <= 48);
+static assert(Program.sizeof <= 64);
 
 struct SpecialModules {
 	immutable Ptr!Module allocModule;

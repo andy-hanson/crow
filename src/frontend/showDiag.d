@@ -2,7 +2,7 @@ module frontend.showDiag;
 
 @safe @nogc pure nothrow:
 
-import model.diag : Diagnostic, Diag, Diagnostics, Diags, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
+import model.diag : Diagnostic, Diag, Diags, FilesInfo, matchDiag, TypeKind, writeFileAndRange;
 import model.model :
 	arity,
 	bestCasePurity,
@@ -61,20 +61,21 @@ immutable(Str) strOfDiagnostics(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
-	ref immutable Diagnostics diagnostics,
+	ref immutable FilesInfo filesInfo,
+	ref immutable Diags diagnostics,
 ) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-	immutable FilePaths filePaths = diagnostics.filesInfo.filePaths;
+	immutable FilePaths filePaths = filesInfo.filePaths;
 	immutable Diags sorted = sort!(Diagnostic, Alloc)(
 		alloc,
-		diagnostics.diagnostics,
+		diagnostics,
 		(ref immutable Diagnostic a, ref immutable Diagnostic b) =>
 			// TOOD: sort by file position too
 			comparePathAndStorageKind(
 				fullIndexDictGet(filePaths, a.where.fileIndex),
 				fullIndexDictGet(filePaths, b.where.fileIndex)));
 	writeWithNewlines!Diagnostic(writer, sorted, (ref immutable Diagnostic it) {
-		showDiagnostic(alloc, writer, allPaths, options, diagnostics.filesInfo, it);
+		showDiagnostic(alloc, writer, allPaths, options, filesInfo, it);
 	});
 	return finishWriter(writer);
 }

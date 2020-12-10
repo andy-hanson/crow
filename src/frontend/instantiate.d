@@ -23,7 +23,6 @@ import model.model :
 	SpecDeclAndArgs,
 	SpecInst,
 	StructBody,
-	StructDecl,
 	StructDeclAndArgs,
 	StructInst,
 	Type,
@@ -34,7 +33,7 @@ import model.model :
 	worsePurity,
 	worstCasePurity;
 import util.bools : Bool;
-import util.collection.arr : Arr, emptyArr, ptrAt, size, sizeEq;
+import util.collection.arr : Arr, ptrAt, size, sizeEq;
 import util.collection.arrUtil : fold, map;
 import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
 import util.collection.mutArr : MutArr, push;
@@ -218,18 +217,6 @@ immutable(Ptr!StructInst) instantiateStruct(Alloc)(
 	}
 
 	return ptrAsImmutable(res.value);
-}
-
-immutable(Ptr!StructInst) instantiateNonTemplateStruct(Alloc)(
-	ref Alloc alloc,
-	ref ProgramState programState,
-	immutable Ptr!StructDecl decl,
-) {
-	return instantiateStruct(
-		alloc,
-		programState,
-		immutable StructDeclAndArgs(decl, emptyArr!Type),
-		noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 }
 
 immutable(Ptr!StructInst) instantiateStructInst(Alloc)(

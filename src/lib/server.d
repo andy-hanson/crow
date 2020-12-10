@@ -10,7 +10,6 @@ import frontend.getTokens : Token, tokensOfAst;
 import frontend.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.showDiag : ShowDiagOptions, strOfParseDiag;
 import interpret.fakeExtern : FakeExtern;
-import model.diag : Diagnostics;
 import model.parseDiag : ParseDiagnostic;
 import model.model : Program;
 import util.bools : False;
@@ -31,7 +30,6 @@ import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, comparePathAndStorageKind, parsePath, Path, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr, ptrTrustMe_const, ptrTrustMe_mut;
-import util.result : matchResult, Result;
 import util.sourceRange : FileIndex, Pos, RangeWithinFile;
 import util.sym : AllSymbols;
 import util.types : safeSizeTToU16;
@@ -132,14 +130,9 @@ immutable(Str) getHover(Debug, Alloc, ServerAlloc)(
 	immutable Pos pos,
 ) {
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
-	immutable Result!(Ptr!Program, Diagnostics) programResult =
+	immutable Ptr!Program program =
 		frontendCompile(alloc, alloc, server.allPaths, server.allSymbols, storage, toPath(server, path));
-	return matchResult!(immutable Str, Ptr!Program, Diagnostics)(
-		programResult,
-		(ref immutable Ptr!Program program) =>
-			getHoverFromProgram(alloc, server, storageKind, path, program, pos),
-		(ref immutable Diagnostics) =>
-			emptyStr);
+	return getHoverFromProgram(alloc, server, storageKind, path, program, pos);
 }
 
 private pure immutable(Str) getHoverFromProgram(Alloc, ServerAlloc)(

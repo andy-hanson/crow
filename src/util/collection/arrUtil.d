@@ -7,7 +7,6 @@ import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory, initMemory_mut;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
-import util.result : asFailure, asSuccess, fail, isSuccess, Result, success;
 import util.util : max, verify;
 
 @safe @nogc nothrow:
@@ -388,27 +387,21 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	return immutable Arr!Out(cast(immutable) res, size(a));
 }
 
-@trusted immutable(Result!(Arr!OutSuccess, OutFailure)) mapOrFailWithSoFar(OutSuccess, OutFailure, In, Alloc)(
+@trusted immutable(Arr!Out) mapWithSoFar(Out, In, Alloc)(
 	ref Alloc alloc,
-	immutable Arr!In inputs,
-	scope immutable(Result!(OutSuccess, OutFailure)) delegate(
+	ref immutable Arr!In inputs,
+	scope immutable(Out) delegate(
 		ref immutable In,
-		ref immutable Arr!OutSuccess,
+		ref immutable Arr!Out,
 		immutable size_t,
 	) @safe @nogc pure nothrow cb
 ) {
-	OutSuccess* res = cast(OutSuccess*) alloc.allocateBytes(OutSuccess.sizeof * size(inputs));
+	Out* res = cast(Out*) alloc.allocateBytes(Out.sizeof * size(inputs));
 	foreach (immutable size_t i; 0..size(inputs)) {
-		immutable Arr!OutSuccess soFar = immutable Arr!OutSuccess(cast(immutable) res, i);
-		immutable Result!(OutSuccess, OutFailure) r = cb(at(inputs, i), soFar, i);
-		if (r.isSuccess)
-			initMemory(res + i, r.asSuccess);
-		else {
-			alloc.freeBytes(cast(ubyte*) res, OutSuccess.sizeof * size(inputs));
-			return fail!(Arr!OutSuccess, OutFailure)(r.asFailure);
-		}
+		immutable Arr!Out soFar = immutable Arr!Out(cast(immutable) res, i);
+		initMemory(res + i, cb(at(inputs, i), soFar, i));
 	}
-	return success!(Arr!OutSuccess, OutFailure)(immutable Arr!OutSuccess(cast(immutable) res, size(inputs)));
+	return immutable Arr!Out(cast(immutable) res, size(inputs));
 }
 
 @trusted immutable(Arr!T) cat(T, Alloc)(ref Alloc alloc, immutable Arr!T a, immutable Arr!T b) {
