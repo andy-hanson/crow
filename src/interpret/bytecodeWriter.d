@@ -34,6 +34,7 @@ import util.collection.arr : Arr, empty, range, sizeNat;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.collection.str : Str;
+import util.dbg : dbgLog = log;
 import util.ptr : Ptr;
 import util.util : divRoundUp, repeat, unreachable, verify;
 import util.types : catU4U4, decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, zero;
@@ -658,6 +659,6 @@ void log(Debug, Alloc)(ref Debug dbg, ref ByteCodeWriter!Alloc byteCodeWriter, i
 		writeStatic(writer, message);
 		writeChar(writer, ' ');
 		writeNat(writer, nextByteCodeIndex(byteCodeWriter).index.raw());
-		dbg.log(finishWriter(writer));
+		dbgLog(dbg, finishWriter(writer));
 	}
 }

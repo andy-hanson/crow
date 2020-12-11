@@ -32,6 +32,7 @@ import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import util.bools : False;
+import util.dbg : log;
 import util.collection.arr : Arr, begin, freeArr, ptrAt, range, sizeNat;
 import util.collection.arrUtil : mapWithFirst, zipSystem;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -272,7 +273,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 		showStack(writer, a);
 		showReturnStack(writer, a);
-		dbg.log(finishWriter(writer));
+		log(dbg, finishWriter(writer));
 	}
 	immutable Operation operation = readOperation(a.reader);
 	if (dbg.enabled()) {
@@ -289,7 +290,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 			writeChar(writer, ')');
 		}
 		writeChar(writer, '\n');
-		dbg.log(finishWriter(writer));
+		log(dbg, finishWriter(writer));
 	}
 
 	return matchOperationImpure!(immutable StepResult)(

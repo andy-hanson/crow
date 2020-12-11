@@ -157,10 +157,25 @@ struct WasmDebug {
 		return False;
 	}
 
-	void log(scope immutable Str s) {
-		foreach (immutable char c; range(s))
-			logChar(c);
-		logChar('\n');
+	void write(scope ref immutable Str a) {
+		foreach (immutable char c; range(a))
+			writeChar(c);
+		writeChar('\n');
+	}
+
+	@trusted void writeChar(immutable char c) {
+		if (!(begin <= ptr))
+			assert(0);
+		if (!(ptr < end))
+			assert(0);
+		*ptr = c;
+		ptr++;
+		if (ptr == end)
+			ptr = begin;
+		if (!(begin <= ptr))
+			assert(0);
+		if (!(ptr < end))
+			assert(0);
 	}
 
 	private:
@@ -178,21 +193,6 @@ struct WasmDebug {
 	char* begin;
 	char* end;
 	char* ptr;
-
-	@trusted void logChar(immutable char c) {
-		if (!(begin <= ptr))
-			assert(0);
-		if (!(ptr < end))
-			assert(0);
-		*ptr = c;
-		ptr++;
-		if (ptr == end)
-			ptr = begin;
-		if (!(begin <= ptr))
-			assert(0);
-		if (!(ptr < end))
-			assert(0);
-	}
 }
 
 immutable(CStr) writeRunResult(Alloc)(ref Alloc alloc, ref immutable RunResult result) {
@@ -205,10 +205,4 @@ immutable(CStr) writeRunResult(Alloc)(ref Alloc alloc, ref immutable RunResult r
 	writeQuotedStr(writer, result.stderr);
 	writeChar(writer, '}');
 	return finishWriterToCStr(writer);
-}
-
-void debugLogNat(Debug)(ref Debug dbg, immutable size_t n) {
-	if (n > 10)
-		debugLogNat(dbg, n / 10);
-	dbg.logChar('0' + (n % 10));
 }

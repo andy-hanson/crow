@@ -10,13 +10,14 @@ import util.bools : Bool;
 import util.collection.arr : Arr, emptyArr;
 import util.collection.arrUtil : arrEqual, arrLiteral;
 import util.collection.str : copyToNulTerminatedStr, Str, strLiteral;
+import util.dbg : log;
 import util.sexpr : writeSexpr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols;
 import util.util : verifyFail;
 import util.writer : finishWriter, Writer, writeStatic;
 
-void testTokens(Alloc)(ref Test!Alloc test) {
+void testTokens(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	testOne(test, "", emptyArr!Token);
 
 	testOne(test, testSource, arrLiteral!Token(test.alloc, [
@@ -42,7 +43,7 @@ void testTokens(Alloc)(ref Test!Alloc test) {
 
 private:
 
-void testOne(Alloc)(ref Test!Alloc test, immutable string source, immutable Arr!Token expectedTokens) {
+void testOne(Debug, Alloc)(ref Test!(Debug, Alloc) test, immutable string source, immutable Arr!Token expectedTokens) {
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(test.alloc);
 	immutable Str sourceStr = strLiteral(source);
 	immutable FileAstAndParseDiagnostics ast = parseFile(
@@ -60,13 +61,7 @@ void testOne(Alloc)(ref Test!Alloc test, immutable string source, immutable Arr!
 
 		writeStatic(writer, "\n\n(hint: ast is:)\n");
 		writeSexpr(writer, sexprOfAst(test.alloc, test.allPaths, ast.ast));
-		immutable Str s = finishWriter(writer);
-		debug {
-			//TODO: Use test.dbg (have that not be NullDebug)
-			import core.stdc.stdio : printf;
-			import util.collection.arr : begin, size;
-			printf("%.*s\n", cast(int) size(s), begin(s));
-		}
+		log(test.dbg, finishWriter(writer));
 		verifyFail();
 	}
 }

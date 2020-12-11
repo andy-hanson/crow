@@ -73,13 +73,13 @@ struct StdoutDebug {
 		return false;
 	}
 
-	void log(immutable Str a) {
+	void write(scope ref immutable Str a) {
 		debug {
-			printf("%.*s\n", cast(uint) size(a), begin(a));
+			printf("%.*s", cast(uint) size(a), begin(a));
 		}
 	}
 
-	void logChar(immutable char c) {
+	void writeChar(immutable char c) {
 		debug {
 			printf("%c", c);
 		}
@@ -183,7 +183,7 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 			}
 		},
 		(ref immutable Command.Test it) =>
-			test(alloc, it.name),
+			test(dbg, alloc, it.name),
 		(ref immutable Command.Version) {
 			printVersion();
 			return 0;

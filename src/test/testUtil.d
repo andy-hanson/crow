@@ -13,14 +13,14 @@ import util.path : AllPaths;
 import util.ptr : Ptr;
 import util.sym : AllSymbols;
 import util.types : Nat64, u8;
-import util.util : NullDebug, verify;
+import util.util : verify;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
-struct Test(Alloc) {
+struct Test(Debug, Alloc) {
+	Ptr!Debug dbg;
 	Ptr!Alloc alloc;
 	AllSymbols!Alloc allSymbols;
 	AllPaths!Alloc allPaths;
-	NullDebug dbg;
 
 	Writer!Alloc writer() {
 		return Writer!Alloc(alloc);
@@ -31,7 +31,11 @@ struct Test(Alloc) {
 	}
 }
 
-void expectDataStack(Alloc)(ref Test!Alloc test, ref const DataStack dataStack, scope immutable Nat64[] expected) {
+void expectDataStack(Debug, Alloc)(
+	ref Test!(Debug, Alloc) test,
+	ref const DataStack dataStack,
+	scope immutable Nat64[] expected,
+) {
 	immutable Arr!Nat64 stack = asTempArr(dataStack);
 	immutable Arr!Nat64 expectedArr = arrOfD(expected);
 	immutable Bool eq = immutable Bool(
@@ -50,8 +54,8 @@ void expectDataStack(Alloc)(ref Test!Alloc test, ref const DataStack dataStack, 
 	}
 }
 
-void expectReturnStack(Alloc, Extern)(
-	ref Test!Alloc test,
+void expectReturnStack(Debug, Alloc, Extern)(
+	ref Test!(Debug, Alloc) test,
 	ref const Interpreter!Extern interpreter,
 	scope immutable ByteCodeIndex[] expected,
 ) {

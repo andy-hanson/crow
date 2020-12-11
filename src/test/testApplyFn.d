@@ -11,7 +11,7 @@ import util.collection.globalAllocatedStack : clearStack, pushAll;
 import util.types : float64, i8, i16, i32, i64, Nat64, u8, u16, u32, u64, u64OfFloat64Bits;
 import util.util : verify,verifyEq;
 
-void testApplyFn(Alloc)(ref Test!Alloc test) {
+void testApplyFn(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	immutable Nat64 one = immutable Nat64(1); // https://issues.dlang.org/show_bug.cgi?id=17778
 
 	testFn(test, [u64OfFloat64Bits(-1.5), u64OfFloat64Bits(2.6)], FnOp.addFloat64, [u64OfFloat64Bits(1.1)]);
@@ -101,7 +101,7 @@ void testApplyFn(Alloc)(ref Test!Alloc test) {
 
 private:
 
-@trusted void testCompareExchangeStrong(Alloc)(ref Test!Alloc test) {
+@trusted void testCompareExchangeStrong(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	bool b0 = false;
 	bool b1 = false;
 	immutable Nat64 b0Ptr = immutable Nat64(cast(immutable u64) &b0);
@@ -134,8 +134,8 @@ immutable(Nat64) u64OfI64Bits(immutable i64 a) {
 	return immutable Nat64(cast(u64) a);
 }
 
-void testFn(Alloc)(
-	ref Test!Alloc test,
+void testFn(Debug, Alloc)(
+	ref Test!(Debug, Alloc) test,
 	scope immutable Nat64[] stackIn,
 	immutable FnOp fnOp,
 	scope immutable Nat64[] stackOut,

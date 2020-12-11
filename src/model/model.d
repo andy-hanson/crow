@@ -1473,8 +1473,12 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 		(ref immutable Expr.StringLiteral) => immutable Type(commonTypes.str));
 }
 
+void writeStructDecl(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a) {
+	writeSym(writer, a.name);
+}
+
 void writeStructInst(Alloc)(ref Writer!Alloc writer, ref immutable StructInst s) {
-	writeSym(writer, s.decl.name);
+	writeStructDecl(writer, decl(s).deref());
 	if (!s.typeArgs.empty) {
 		Bool first = True;
 		foreach (ref immutable Type t; s.typeArgs.range) {

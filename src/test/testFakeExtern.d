@@ -9,14 +9,14 @@ import util.collection.str : strEqLiteral;
 import util.types : u8;
 import util.util : verify;
 
-void testFakeExtern(Alloc)(ref Test!Alloc test) {
+void testFakeExtern(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	testMallocAndFree(test);
 	testWrite(test);
 }
 
 private:
 
-@trusted void testMallocAndFree(Alloc)(ref Test!Alloc test) {
+@trusted void testMallocAndFree(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	FakeExtern!Alloc extern_ = newFakeExtern!Alloc(test.alloc);
 	u8* ptr = extern_.malloc(8);
 	u8* ptr2 = extern_.malloc(16);
@@ -27,7 +27,7 @@ private:
 	extern_.free(ptr);
 }
 
-void testWrite(Alloc)(ref Test!Alloc test) {
+void testWrite(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	FakeExtern!Alloc extern_ = newFakeExtern!Alloc(test.alloc);
 
 	extern_.write(1, "gnarly", 4);

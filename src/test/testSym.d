@@ -8,7 +8,7 @@ import util.opt : force, has, Opt;
 import util.sym : AllSymbols, isLongSym, prependSet, strOfSym, Sym, symEq, tryGetSymFromStr;
 import util.util : verify;
 
-void testSym(Alloc)(ref Test!Alloc test) {
+void testSym(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(test.alloc);
 
 	immutable(Sym) getSym(immutable string a) {

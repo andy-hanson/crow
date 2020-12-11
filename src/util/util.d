@@ -2,8 +2,7 @@ module util.util;
 
 @safe @nogc nothrow:
 
-import util.bools : Bool, False;
-import util.collection.str : Str, strLiteral;
+import util.dbg : log, logNoNewline;
 import util.types : incr, Nat16, zero;
 
 void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc nothrow cb) {
@@ -13,23 +12,10 @@ void repeatImpure(immutable size_t times, scope void delegate() @safe @nogc noth
 
 pure:
 
-struct NullDebug {
-	@safe @nogc pure nothrow:
-
-	immutable(Bool) enabled() {
-		return False;
-	}
-
-	void log(immutable Str) {
-		verifyFail();
-	}
-}
-
 T todo(T, Debug)(ref Debug dbg, immutable string message) {
 	if (dbg.enabled()) {
-		dbg.log(strLiteral("TODO: "));
-		dbg.log(strLiteral(message));
-		dbg.log(strLiteral("\n"));
+		logNoNewline(dbg, "TODO: ");
+		log(dbg, message);
 	}
 	assert(0);
 }
@@ -70,14 +56,6 @@ void verify(immutable bool condition) {
 		assert(0);
 }
 
-void verify(Debug)(ref Debug dbg, immutable bool condition) {
-	if (!condition) {
-		if (dbg.enabled())
-			dbg.log("Verify failed.\n");
-		assert(0);
-	}
-}
-
 void verifyEq(T)(immutable T a, immutable T b) {
 	//if (a != b)
 	//	debug {
@@ -91,7 +69,7 @@ void verifyEq(T)(immutable T a, immutable T b) {
 }
 
 void verifyFail() {
-	verify(False);
+	assert(0);
 }
 
 T unreachable(T)() {

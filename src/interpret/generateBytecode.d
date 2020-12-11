@@ -51,7 +51,7 @@ import interpret.bytecodeWriter :
 	writeReturn,
 	writeSwitchDelay,
 	writeWrite;
-import interpret.debugging : writeFunName, writeType;
+import interpret.debugging : writeType;
 import interpret.generateText : generateText, getTextInfoForArray, getTextPointer, TextAndInfo, TextArrInfo;
 import interpret.typeLayout : layOutTypes, nStackEntriesForType, sizeOfType, TypeLayout, walkRecordFields;
 import model.constant : Constant, matchConstant;
@@ -105,7 +105,7 @@ import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
 import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, zero;
 import util.util : divRoundUp, todo, unreachable, verify;
-import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
+import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
 immutable(ByteCode) generateBytecode(Debug, CodeAlloc, TempAlloc)(
 	ref Debug dbg,
@@ -211,18 +211,6 @@ void generateBytecodeForFun(Debug, TempAlloc, CodeAlloc)(
 	setStackEntryAfterParameters(writer, stackEntryAfterParameters);
 	immutable Nat8 returnEntries = nStackEntriesForType(typeLayout, fun.returnType);
 	immutable ByteCodeSource source = immutable ByteCodeSource(funIndex, lowFunRange(fun).range.start);
-
-	debug {
-		if (dbg.enabled()) {
-			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
-			writeStatic(w, "Generating bytecode for function ");
-			writeFunName(w, program, fun);
-			writeStatic(w, ", start index ");
-			writeNat(w, nextByteCodeIndex(writer).index.raw());
-			writeChar(w, '\n');
-			dbg.log(finishWriter(w));
-		}
-	}
 
 	matchLowFunBody!void(
 		fun.body_,

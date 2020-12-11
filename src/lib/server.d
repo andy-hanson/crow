@@ -17,14 +17,7 @@ import util.collection.arr : Arr, at, emptyArr, freeArr;
 import util.collection.arrUtil : map;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
-import util.collection.str :
-	copyToNulTerminatedStr,
-	CStr,
-	cStrOfNulTerminatedStr,
-	emptyStr,
-	NulTerminatedStr,
-	Str,
-	strLiteral;
+import util.collection.str : copyToNulTerminatedStr, CStr, cStrOfNulTerminatedStr, emptyStr, NulTerminatedStr, Str;
 import util.comparison : Comparison;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt, some;
@@ -49,19 +42,12 @@ struct Server(Alloc) {
 }
 
 void addOrChangeFile(Debug, ServerAlloc)(
-	ref Debug dbg,
+	ref Debug,
 	ref Server!ServerAlloc server,
 	immutable StorageKind storageKind,
 	scope ref immutable Str path,
 	scope ref immutable Str content,
 ) {
-	debug {
-		if (dbg.enabled()) {
-			dbg.log(strLiteral("addOrChangeFile: path is "));
-			dbg.log(path);
-		}
-	}
-
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr contentCopy = copyToNulTerminatedStr(server.alloc, content);
 	insertOrUpdate!(ServerAlloc, immutable PathAndStorageKind, immutable NulTerminatedStr, comparePathAndStorageKind)(

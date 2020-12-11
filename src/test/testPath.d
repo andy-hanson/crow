@@ -9,7 +9,7 @@ import util.path : childPath, comparePath, AllPaths, Path, pathToStr, rootPath;
 import util.sym : shortSymAlphaLiteral;
 import util.util : verify;
 
-void testPath(Alloc)(ref Test!Alloc test) {
+void testPath(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	AllPaths!Alloc allPaths = AllPaths!Alloc(test.alloc);
 	immutable Path a = rootPath(allPaths, shortSymAlphaLiteral("a"));
 	immutable Path b = rootPath(allPaths, shortSymAlphaLiteral("b"));

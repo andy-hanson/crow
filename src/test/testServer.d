@@ -11,7 +11,7 @@ import util.collection.str : Str, strEq, strLiteral, strOfCStr;
 import util.path : StorageKind;
 import util.util : verify;
 
-@trusted void testServer(Alloc)(ref Test!Alloc test) {
+@trusted void testServer(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	Arr!ubyte bytes = fillArrUninitialized!ubyte(test.alloc, 256);
 	Server!RangeAlloc server = Server!RangeAlloc(RangeAlloc(begin(bytes), size(bytes)));
 	immutable Str path = strLiteral("main");

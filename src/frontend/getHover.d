@@ -14,12 +14,15 @@ import model.model :
 	NameAndReferents,
 	Program,
 	SpecDecl,
-	StructBody;
+	StructBody,
+	TypeParam,
+	writeStructDecl,
+	writeType;
 import util.collection.str : Str;
 import util.path : AllPaths;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : writeSym;
-import util.writer : finishWriter, Writer, writeStatic;
+import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
 immutable(Str) getHoverStr(TempAlloc, Alloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
@@ -56,6 +59,15 @@ void getHover(TempAlloc, Alloc, PathAlloc)(
 		(ref immutable Position.ImportedName it) {
 			getNameAndReferentsHover(writer, it.name_);
 		},
+		(ref immutable Position.RecordFieldPosition it) {
+			writeStatic(writer, "field ");
+			writeStructDecl(writer, it.struct_);
+			writeChar(writer, '.');
+			writeSym(writer, it.field.name);
+			writeStatic(writer, " (");
+			writeType(writer, it.field.type);
+			writeChar(writer, ')');
+		},
 		(immutable Ptr!SpecDecl) {
 			writeStatic(writer, "TODO: spec hover");
 		},
@@ -78,6 +90,9 @@ void getHover(TempAlloc, Alloc, PathAlloc)(
 					writeStatic(writer, "union ");
 				});
 			writeSym(writer, it.name);
+		},
+		(immutable Ptr!TypeParam) {
+			writeStatic(writer, "TODO: type param");
 		});
 }
 

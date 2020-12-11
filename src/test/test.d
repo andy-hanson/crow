@@ -4,7 +4,6 @@ module test.test;
 
 import test.testApplyFn : testApplyFn;
 import test.testByteReaderWriter : testByteReaderWriter;
-import test.testDebug : testDebug;
 import test.testFakeExtern : testFakeExtern;
 import test.testHover : testHover;
 import test.testInterpreter : testInterpreter;
@@ -20,40 +19,35 @@ import util.path : AllPaths;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols;
 
-int test(Alloc)(ref Alloc alloc, immutable Opt!Str name) {
-	Test!Alloc test = Test!Alloc(
+int test(Debug, Alloc)(ref Debug dbg, ref Alloc alloc, immutable Opt!Str name) {
+	Test!(Debug, Alloc) test = Test!(Debug, Alloc)(
+		ptrTrustMe_mut(dbg),
 		ptrTrustMe_mut(alloc),
 		AllSymbols!Alloc(ptrTrustMe_mut(alloc)),
 		AllPaths!Alloc(ptrTrustMe_mut(alloc)));
-	foreach (ref immutable NameAndTest!Alloc it; allTests!Alloc)
-		if (!has(name) || strEqLiteral(force(name), it.name)) {
-			//debug {
-			//	import core.stdc.stdio : printf;
-			//	printf("Running test %.*s\n", cast(uint) it.name.length, it.name.ptr);
-			//}
+	foreach (ref immutable NameAndTest!(Debug, Alloc) it; allTests!(Debug, Alloc))
+		if (!has(name) || strEqLiteral(force(name), it.name))
 			it.test(test);
-		}
 	return 0;
 }
 
 private:
 
-immutable (NameAndTest!Alloc)[] allTests(Alloc) = [
-	immutable NameAndTest!Alloc("apply-fn", &testApplyFn!Alloc),
-	immutable NameAndTest!Alloc("byte-reader-writer", &testByteReaderWriter!Alloc),
-	immutable NameAndTest!Alloc("debug", &testDebug!Alloc),
-	immutable NameAndTest!Alloc("fake-extern", &testFakeExtern!Alloc),
-	immutable NameAndTest!Alloc("hover", &testHover!Alloc),
-	immutable NameAndTest!Alloc("interpreter", &testInterpreter!Alloc),
-	immutable NameAndTest!Alloc("line-and-column-getter", &testLineAndColumnGetter!Alloc),
-	immutable NameAndTest!Alloc("path", &testPath!Alloc),
-	immutable NameAndTest!Alloc("server", &testServer!Alloc),
-	immutable NameAndTest!Alloc("sym", &testSym!Alloc),
-	immutable NameAndTest!Alloc("tokens", &testTokens!Alloc),
+immutable(NameAndTest!(Debug, Alloc)[]) allTests(Debug, Alloc) = [
+	immutable NameAndTest!(Debug, Alloc)("apply-fn", &testApplyFn!(Debug, Alloc)),
+	immutable NameAndTest!(Debug, Alloc)("byte-reader-writer", &testByteReaderWriter!(Debug, Alloc)),
+	immutable NameAndTest!(Debug, Alloc)("fake-extern", &testFakeExtern!(Debug, Alloc)),
+	immutable NameAndTest!(Debug, Alloc)("hover", &testHover!(Debug, Alloc)),
+	immutable NameAndTest!(Debug, Alloc)("interpreter", &testInterpreter!(Debug, Alloc)),
+	immutable NameAndTest!(Debug, Alloc)("line-and-column-getter", &testLineAndColumnGetter!(Debug, Alloc)),
+	immutable NameAndTest!(Debug, Alloc)("path", &testPath!(Debug, Alloc)),
+	immutable NameAndTest!(Debug, Alloc)("server", &testServer!(Debug, Alloc)),
+	immutable NameAndTest!(Debug, Alloc)("sym", &testSym!(Debug, Alloc)),
+	immutable NameAndTest!(Debug, Alloc)("tokens", &testTokens!(Debug, Alloc)),
 ];
 
 
-struct NameAndTest(Alloc) {
+struct NameAndTest(Debug, Alloc) {
 	immutable string name;
-	immutable void function(ref Test!Alloc) @safe @nogc nothrow test; // not pure
+	immutable void function(ref Test!(Debug, Alloc)) @safe @nogc nothrow test; // not pure
 }
