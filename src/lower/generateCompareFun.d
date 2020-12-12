@@ -2,7 +2,7 @@ module lower.generateCompareFun;
 
 @safe @nogc pure nothrow:
 
-import lower.lower : AllLowTypes, CompareFuns, getCompareFun;
+import lower.lower : CompareFuns, getCompareFun;
 import lower.lowExprHelpers :
 	boolType,
 	decrNat64,
@@ -18,6 +18,7 @@ import lower.lowExprHelpers :
 	paramRef,
 	recordFieldGet;
 import model.lowModel :
+	AllLowTypes,
 	asNonFunPtrType,
 	asRecordType,
 	LowExpr,

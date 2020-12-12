@@ -919,27 +919,42 @@ struct LowProgram {
 	@disable this(ref const LowProgram);
 	immutable this(
 		immutable AllConstantsLow ac,
-		immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) ae,
-		immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) aft,
-		immutable FullIndexDict!(LowType.Record, LowRecord) ar,
-		immutable FullIndexDict!(LowType.Union, LowUnion) au,
+		immutable AllLowTypes at,
 		immutable FullIndexDict!(LowFunIndex, LowFun) af,
 		immutable LowFunIndex m,
 	) {
 		allConstants = ac;
-		allExternPtrTypes = ae;
-		allFunPtrTypes = aft;
-		allRecords = ar;
-		allUnions = au;
+		allTypes = at;
 		allFuns = af;
 		main = m;
 	}
 
 	immutable AllConstantsLow allConstants;
+	immutable AllLowTypes allTypes;
+	immutable FullIndexDict!(LowFunIndex, LowFun) allFuns;
+	immutable LowFunIndex main;
+
+	//TODO: NOT INSTANCE
+	ref immutable(FullIndexDict!(LowType.ExternPtr, LowExternPtrType)) allExternPtrTypes() return scope immutable {
+		return allTypes.allExternPtrTypes;
+	}
+
+	ref immutable(FullIndexDict!(LowType.FunPtr, LowFunPtrType)) allFunPtrTypes() return scope immutable {
+		return allTypes.allFunPtrTypes;
+	}
+
+	ref immutable(FullIndexDict!(LowType.Record, LowRecord)) allRecords() return scope immutable {
+		return allTypes.allRecords;
+	}
+
+	ref immutable(FullIndexDict!(LowType.Union, LowUnion)) allUnions() return scope immutable {
+		return allTypes.allUnions;
+	}
+}
+
+struct AllLowTypes {
 	immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) allExternPtrTypes;
 	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;
 	immutable FullIndexDict!(LowType.Record, LowRecord) allRecords;
 	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions;
-	immutable FullIndexDict!(LowFunIndex, LowFun) allFuns;
-	immutable LowFunIndex main;
 }

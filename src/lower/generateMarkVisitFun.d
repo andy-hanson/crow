@@ -3,6 +3,7 @@ module lower.generateMarkVisitFun;
 @safe @nogc pure nothrow:
 
 import model.lowModel :
+	AllLowTypes,
 	LowExpr,
 	LowField,
 	LowFun,
@@ -17,12 +18,14 @@ import model.lowModel :
 	LowParamSource,
 	LowType,
 	matchLowType;
-import lower.lower : AllLowTypes, getMarkVisitFun, MarkVisitFuns, getMarkVisitFun;
+import lower.lower : getMarkVisitFun, MarkVisitFuns, getMarkVisitFun;
 import lower.lowExprHelpers :
 	anyPtrType,
+	boolType,
 	genAsAnyPtr,
 	genCall,
 	genDeref,
+	genIf,
 	genVoid,
 	getSizeOf,
 	paramRef,
@@ -143,7 +146,7 @@ immutable(LowFunExprBody) visitNonFunPtrBody(Alloc)(
 		alloc,
 		range,
 		markFun,
-		voidType,
+		boolType,
 		arrLiteral!LowExpr(alloc, [markCtx, valueAsAnyPtr, sizeExpr]));
 	immutable LowExpr valueDeref = genDeref(alloc, range, value);
 	immutable LowExpr recur = genCall(
@@ -152,7 +155,7 @@ immutable(LowFunExprBody) visitNonFunPtrBody(Alloc)(
 		getMarkVisitFun(markVisitFuns, it.pointee),
 		voidType,
 		arrLiteral!LowExpr(alloc, [markCtx, valueDeref]));
-	return immutable LowFunExprBody(False, allocate(alloc, seq(alloc, range, mark, recur)));
+	return immutable LowFunExprBody(False, allocate(alloc, genIf(alloc, range, mark, recur, genVoid(range))));
 }
 
 immutable(LowFunExprBody) visitRecordBody(Alloc)(

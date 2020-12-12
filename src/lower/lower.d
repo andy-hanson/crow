@@ -53,6 +53,7 @@ import model.concreteModel :
 import model.constant : Constant;
 import model.lowModel :
 	AllConstantsLow,
+	AllLowTypes,
 	ArrTypeAndConstantsLow,
 	asFunPtrType,
 	asNonFunPtrType,
@@ -113,29 +114,11 @@ import util.util : unreachable, verify;
 immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a.allStructs);
 	immutable AllConstantsLow allConstants = convertAllConstants(alloc, allTypes.getLowTypeCtx, a.allConstants);
-	immutable AllLowFuns allFuns = getAllLowFuns!Alloc(
-		alloc,
-		allTypes.allTypes,
-		allTypes.getLowTypeCtx,
-		a);
-	immutable Ptr!LowProgram res = nu!LowProgram(
-		alloc,
-		allConstants,
-		allTypes.allTypes.allExternPtrTypes,
-		allTypes.allTypes.allFunPtrTypes,
-		allTypes.allTypes.allRecords,
-		allTypes.allTypes.allUnions,
-		allFuns.allLowFuns,
-		allFuns.main);
+	immutable AllLowFuns allFuns = getAllLowFuns!Alloc(alloc, allTypes.allTypes, allTypes.getLowTypeCtx, a);
+	immutable Ptr!LowProgram res =
+		nu!LowProgram(alloc, allConstants, allTypes.allTypes, allFuns.allLowFuns, allFuns.main);
 	checkLowProgram(alloc, res);
 	return res;
-}
-
-struct AllLowTypes {
-	immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) allExternPtrTypes;
-	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;
-	immutable FullIndexDict!(LowType.Record, LowRecord) allRecords;
-	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions;
 }
 
 struct CompareFuns {

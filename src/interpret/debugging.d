@@ -15,6 +15,7 @@ import model.concreteModel :
 	matchConcreteLocalSource,
 	matchConcreteStructSource;
 import model.lowModel :
+	AllLowTypes,
 	LowFun,
 	LowFunIndex,
 	LowFunSource,
@@ -47,14 +48,14 @@ void writeFunName(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram lowPr
 			writeSym(writer, it.name);
 			if (has(it.typeArg)) {
 				writeChar(writer, '<');
-				writeType(writer, lowProgram, force(it.typeArg));
+				writeType(writer, lowProgram.allTypes, force(it.typeArg));
 				writeChar(writer, '>');
 			}
 			writeStatic(writer, " (generated)");
 		});
 }
 
-void writeType(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram program, ref immutable LowType a) {
+void writeType(Alloc)(ref Writer!Alloc writer, ref immutable AllLowTypes lowTypes, ref immutable LowType a) {
 	matchLowType!void(
 		a,
 		(immutable LowType.ExternPtr) {
@@ -65,17 +66,17 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram program,
 		},
 		(immutable LowType.NonFunPtr it) {
 			writeStatic(writer, "ptr(");
-			writeType(writer, program, it.pointee);
+			writeType(writer, lowTypes, it.pointee);
 			writeChar(writer, ')');
 		},
 		(immutable PrimitiveType it) {
 			writeSym(writer, symOfPrimitiveType(it));
 		},
 		(immutable LowType.Record it) {
-			writeConcreteStruct(writer, fullIndexDictGet(program.allRecords, it).source);
+			writeConcreteStruct(writer, fullIndexDictGet(lowTypes.allRecords, it).source);
 		},
 		(immutable LowType.Union it) {
-			writeConcreteStruct(writer, fullIndexDictGet(program.allUnions, it).source);
+			writeConcreteStruct(writer, fullIndexDictGet(lowTypes.allUnions, it).source);
 		});
 }
 

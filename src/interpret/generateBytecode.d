@@ -650,7 +650,7 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 		if (false) {
 			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 			writeStatic(w, "generateConstant of type ");
-			writeType(w, ctx.program, type);
+			writeType(w, ctx.program.allTypes, type);
 			writeChar(w, '\n');
 			//print()
 			finishWriter(w);

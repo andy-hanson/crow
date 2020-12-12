@@ -43,8 +43,9 @@ import lower.lowExprHelpers : nat64Type;
 import model.diag : FilesInfo;
 import model.model : AbsolutePathsGetter;
 import model.lowModel :
-	ArrTypeAndConstantsLow,
 	AllConstantsLow,
+	AllLowTypes,
+	ArrTypeAndConstantsLow,
 	LowExternPtrType,
 	LowFun,
 	LowFunBody,
@@ -136,10 +137,11 @@ void doInterpret(Debug, Alloc)(
 		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc, False, strLiteral("test"))));
 	immutable LowProgram lowProgram = immutable LowProgram(
 		immutable AllConstantsLow(emptyArr!ArrTypeAndConstantsLow, emptyArr!PointerTypeAndConstantsLow),
-		emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
-		emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
-		emptyFullIndexDict!(LowType.Record, LowRecord),
-		emptyFullIndexDict!(LowType.Union, LowUnion),
+		immutable AllLowTypes(
+			emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
+			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
+			emptyFullIndexDict!(LowType.Record, LowRecord),
+			emptyFullIndexDict!(LowType.Union, LowUnion)),
 		fullIndexDictOfArr!(LowFunIndex, LowFun)(immutable Arr!LowFun(ptrTrustMe(lowFun).rawPtr(), 1)),
 		immutable LowFunIndex(0));
 	FakeExtern!Alloc extern_ = newFakeExtern(test.alloc);

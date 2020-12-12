@@ -12,9 +12,9 @@ struct ctx {
 	uint8_t* exception_ctx_ptr;
 };
 struct mark_ctx {
-	uint64_t* memory_start;
 	uint64_t memory_size_words;
 	uint8_t* marks;
+	uint64_t* memory_start;
 };
 struct arr_0 {
 	uint64_t size;
@@ -66,6 +66,7 @@ struct gc_ctx;
 struct some_1 {
 	struct gc_ctx* value;
 };
+struct island_gc_root;
 struct task;
 struct fun_mut0_0;
 struct mut_bag;
@@ -73,6 +74,7 @@ struct mut_bag_node;
 struct some_2 {
 	struct mut_bag_node* value;
 };
+struct fun_mut1_1;
 struct mut_arr_0 {
 	uint8_t frozen__q;
 	uint64_t size;
@@ -80,7 +82,6 @@ struct mut_arr_0 {
 	uint64_t* data;
 };
 struct thread_safe_counter;
-struct fun_mut1_1;
 struct arr_2 {
 	uint64_t size;
 	struct island** data;
@@ -288,8 +289,7 @@ struct island;
 struct gc {
 	struct lock lk;
 	struct opt_1 context_head;
-	uint8_t needs_gc;
-	uint8_t is_doing_gc;
+	uint8_t needs_gc__q;
 	uint64_t size_words;
 	uint8_t* mark_begin;
 	uint8_t* mark_cur;
@@ -302,6 +302,7 @@ struct gc_ctx {
 	struct gc* gc;
 	struct opt_1 next_ctx;
 };
+struct island_gc_root;
 struct task;
 struct fun_mut0_0 {
 	fun_ptr2_1 fun_ptr;
@@ -311,13 +312,13 @@ struct mut_bag {
 	struct opt_2 head;
 };
 struct mut_bag_node;
-struct thread_safe_counter {
-	struct lock lk;
-	uint64_t value;
-};
 struct fun_mut1_1 {
 	fun_ptr3_1 fun_ptr;
 	uint8_t* closure;
+};
+struct thread_safe_counter {
+	struct lock lk;
+	uint64_t value;
 };
 struct condition {
 	struct lock lk;
@@ -423,15 +424,9 @@ struct global_ctx {
 	uint8_t is_shut_down;
 	uint8_t any_unhandled_exceptions__q;
 };
-struct island {
-	struct global_ctx* gctx;
-	uint64_t id;
-	struct gc gc;
-	struct lock tasks_lock;
+struct island;
+struct island_gc_root {
 	struct mut_bag tasks;
-	struct mut_arr_0 currently_running_exclusions;
-	uint64_t n_threads_running;
-	struct thread_safe_counter next_exclusion;
 	struct fun_mut1_1 exception_handler;
 };
 struct task {
@@ -523,6 +518,16 @@ struct opt_8 {
 		struct some_8 as1;
 	};
 };
+struct island {
+	struct global_ctx* gctx;
+	uint64_t id;
+	struct gc gc;
+	struct island_gc_root gc_root;
+	struct lock tasks_lock;
+	struct mut_arr_0 currently_running_exclusions;
+	uint64_t n_threads_running;
+	struct thread_safe_counter next_exclusion;
+};
 struct jmp_buf_tag {
 	struct bytes64 jmp_buf;
 	int32_t mask_was_saved;
@@ -601,7 +606,8 @@ uint8_t _op_equal_equal_0(uint64_t a, uint64_t b);
 struct comparison compare_5(uint64_t a, uint64_t b);
 uint64_t _op_minus_0(uint64_t* a, uint64_t* b);
 uint8_t _op_less(uint64_t a, uint64_t b);
-uint8_t mark_recur(uint8_t* p, uint64_t size);
+uint8_t _op_less_equal(uint64_t a, uint64_t b);
+uint8_t mark_range_recur(uint8_t* p, uint64_t size);
 uint8_t _op_bang_equal_0(uint64_t a, uint64_t b);
 uint8_t* incr_0(uint8_t* p);
 uint64_t noctx_decr(uint64_t n);
@@ -614,7 +620,7 @@ uint64_t _op_minus_1(char* a, char* b);
 char* find_cstr_end(char* a);
 char* find_char_in_cstr(char* a, char c);
 uint8_t _op_equal_equal_1(char a, char b);
-struct comparison compare_21(char a, char b);
+struct comparison compare_22(char a, char b);
 char* todo_0(void);
 char* incr_1(char* p);
 struct lock new_lock(void);
@@ -627,24 +633,24 @@ uint64_t* unmanaged_alloc_elements_0(uint64_t size_elements);
 uint8_t* unmanaged_alloc_bytes(uint64_t size);
 extern uint8_t* malloc(uint64_t size);
 uint8_t null__q_0(uint8_t* a);
-struct gc new_gc(void);
-extern void memset(uint8_t* begin, uint8_t value, uint64_t size);
 struct mut_bag new_mut_bag(void);
-struct thread_safe_counter new_thread_safe_counter_0(void);
-struct thread_safe_counter new_thread_safe_counter_1(uint64_t init);
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e);
 uint8_t print_err_no_newline(struct arr_0 s);
 uint8_t write_no_newline(int32_t fd, struct arr_0 a);
 extern int64_t write(int32_t fd, uint8_t* buff, uint64_t n_bytes);
 uint8_t _op_bang_equal_1(int64_t a, int64_t b);
 uint8_t _op_equal_equal_2(int64_t a, int64_t b);
-struct comparison compare_45(int64_t a, int64_t b);
+struct comparison compare_42(int64_t a, int64_t b);
 uint8_t todo_1(void);
 int32_t stderr_fd(void);
 uint8_t print_err(struct arr_0 s);
 uint8_t empty__q_0(struct arr_0 a);
 struct global_ctx* get_gctx(struct ctx* ctx);
-uint8_t new_island__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception exn);
+uint8_t new_island__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception it);
+struct gc new_gc(void);
+extern void memset(uint8_t* begin, uint8_t value, uint64_t size);
+struct thread_safe_counter new_thread_safe_counter_0(void);
+struct thread_safe_counter new_thread_safe_counter_1(uint64_t init);
 struct fut_0* do_main(struct global_ctx* gctx, struct island* island, int32_t argc, char** argv, fun_ptr2_0 main_ptr);
 struct exception_ctx new_exception_ctx(void);
 struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct island* island, uint64_t exclusion);
@@ -657,7 +663,7 @@ uint8_t try_change(struct _atomic_bool* a, uint8_t old_value);
 uint8_t yield_thread(void);
 extern int32_t pthread_yield(void);
 uint8_t _op_equal_equal_3(int32_t a, int32_t b);
-struct comparison compare_64(int32_t a, int32_t b);
+struct comparison compare_65(int32_t a, int32_t b);
 uint64_t noctx_incr(uint64_t n);
 uint64_t max_nat(void);
 uint64_t wrap_incr(uint64_t a);
@@ -691,9 +697,10 @@ uint8_t null__q_1(struct jmp_buf_tag* a);
 extern void longjmp(struct jmp_buf_tag* env, int32_t val);
 int32_t number_to_throw(struct ctx* ctx);
 struct island* noctx_at_0(struct arr_2 a, uint64_t index);
-uint8_t add_task(struct ctx* ctx, struct island* v, struct task t);
+uint8_t add_task(struct ctx* ctx, struct island* a, struct task t);
 struct mut_bag_node* new_mut_bag_node(struct ctx* ctx, struct task value);
 uint8_t add(struct mut_bag* bag, struct mut_bag_node* node);
+struct mut_bag* tasks(struct island* a);
 uint8_t broadcast(struct condition* c);
 uint8_t catch(struct ctx* ctx, struct fun_mut0_0 try, struct fun_mut1_1 catcher);
 uint8_t catch_with_exception_ctx(struct ctx* ctx, struct exception_ctx* ec, struct fun_mut0_0 try, struct fun_mut1_1 catcher);
@@ -728,7 +735,6 @@ uint8_t forbid_0(struct ctx* ctx, uint8_t condition);
 uint8_t forbid_1(struct ctx* ctx, uint8_t condition, struct arr_0 message);
 uint8_t empty__q_1(struct arr_3 a);
 struct arr_3 slice_starting_at(struct ctx* ctx, struct arr_3 a, uint64_t begin);
-uint8_t _op_less_equal(uint64_t a, uint64_t b);
 struct arr_3 slice(struct ctx* ctx, struct arr_3 a, uint64_t begin, uint64_t size);
 uint64_t _op_plus(struct ctx* ctx, uint64_t a, uint64_t b);
 uint8_t _op_greater_equal(uint64_t a, uint64_t b);
@@ -791,6 +797,7 @@ uint8_t push_capacity_must_be_sufficient(struct mut_arr_0* a, uint64_t value);
 uint8_t noctx_set_at_1(struct mut_arr_0* a, uint64_t index, uint64_t value);
 uint8_t empty__q_4(struct opt_7 a);
 uint8_t do_task(struct global_ctx* gctx, struct thread_local_stuff* tls, struct chosen_task chosen_task);
+uint8_t run_garbage_collection(struct gc* gc, struct island_gc_root gc_root);
 uint8_t noctx_must_remove_unordered(struct mut_arr_0* a, uint64_t value);
 uint8_t noctx_must_remove_unordered_recur(struct mut_arr_0* a, uint64_t index, uint64_t value);
 uint64_t noctx_at_3(struct mut_arr_0* a, uint64_t index);
@@ -823,27 +830,31 @@ uint8_t print(struct arr_0 a);
 uint8_t print_no_newline(struct arr_0 a);
 int32_t stdout_fd(void);
 struct arr_0 to_str_1(struct ctx* ctx, struct comparison c);
-struct comparison compare_230(struct my_record a, struct my_record b);
+struct comparison compare_232(struct my_record a, struct my_record b);
 uint8_t test_compare_byref_records(struct ctx* ctx);
-struct comparison compare_232(struct my_byref_record* a, struct my_byref_record* b);
+struct comparison compare_234(struct my_byref_record* a, struct my_byref_record* b);
 uint8_t test_compare_unions(struct ctx* ctx);
-struct comparison compare_234(struct my_union a, struct my_union b);
-struct comparison compare_235(struct my_other_record a, struct my_other_record b);
+struct comparison compare_236(struct my_union a, struct my_union b);
+struct comparison compare_237(struct my_other_record a, struct my_other_record b);
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value);
 int32_t main(int32_t argc, char** argv);
 uint8_t mark(struct mark_ctx* ctx, uint8_t* ptr_any, uint64_t size_bytes) {
 	uint64_t size0;
 	uint64_t* ptr1;
 	uint64_t index2;
+	uint8_t gc_memory__q3;
 	size0 = words_of_bytes(size_bytes);
 	ptr1 = (uint64_t*) ptr_any;
 	hard_assert(_op_equal_equal_0(((uint64_t) ptr1 & 7u), 0u));
 	index2 = _op_minus_0(ptr1, ctx->memory_start);
-	if (_op_less(index2, ctx->memory_size_words)) {
-		return mark_recur((ctx->marks + index2), size0);
+	gc_memory__q3 = _op_less(index2, ctx->memory_size_words);
+	if (gc_memory__q3) {
+		hard_assert(_op_less_equal((index2 + size0), ctx->memory_size_words));
+		mark_range_recur((ctx->marks + index2), size0);
 	} else {
-		return 0;
+		0;
 	}
+	return gc_memory__q3;
 }
 uint64_t words_of_bytes(uint64_t size_bytes) {
 	return (round_up_to_multiple_of_8(size_bytes) / 8u);
@@ -900,7 +911,10 @@ uint8_t _op_less(uint64_t a, uint64_t b) {
 			return (assert(0),0);
 	}
 }
-uint8_t mark_recur(uint8_t* p, uint64_t size) {
+uint8_t _op_less_equal(uint64_t a, uint64_t b) {
+	return !_op_less(b, a);
+}
+uint8_t mark_range_recur(uint8_t* p, uint64_t size) {
 	uint8_t* _tailCallp;
 	uint64_t _tailCallsize;
 	top:
@@ -998,7 +1012,7 @@ char* find_char_in_cstr(char* a, char c) {
 }
 uint8_t _op_equal_equal_1(char a, char b) {
 	struct comparison temp0;
-	temp0 = compare_21(a, b);
+	temp0 = compare_22(a, b);
 	switch (temp0.kind) {
 		case 0:
 			return 0;
@@ -1010,7 +1024,7 @@ uint8_t _op_equal_equal_1(char a, char b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_21(char a, char b) {
+struct comparison compare_22(char a, char b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -1041,8 +1055,10 @@ struct condition new_condition(void) {
 }
 struct island new_island(struct global_ctx* gctx, uint64_t id, uint64_t max_threads) {
 	struct mut_arr_0 exclusions0;
+	struct island_gc_root gc_root1;
 	exclusions0 = new_mut_arr_by_val_with_capacity_from_unmanaged_memory(max_threads);
-	return (struct island) {gctx, id, new_gc(), new_lock(), new_mut_bag(), exclusions0, 0u, new_thread_safe_counter_0(), (struct fun_mut1_1) {(fun_ptr3_1) new_island__lambda0, (uint8_t*) NULL}};
+	gc_root1 = (struct island_gc_root) {new_mut_bag(), (struct fun_mut1_1) {(fun_ptr3_1) new_island__lambda0, (uint8_t*) NULL}};
+	return (struct island) {gctx, id, new_gc(), gc_root1, new_lock(), exclusions0, 0u, new_thread_safe_counter_0()};
 }
 struct mut_arr_0 new_mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity) {
 	return (struct mut_arr_0) {0, 0u, capacity, unmanaged_alloc_elements_0(capacity)};
@@ -1061,26 +1077,8 @@ uint8_t* unmanaged_alloc_bytes(uint64_t size) {
 uint8_t null__q_0(uint8_t* a) {
 	return _op_equal_equal_0((uint64_t) a, (uint64_t) NULL);
 }
-struct gc new_gc(void) {
-	uint8_t* mark_begin0;
-	uint8_t* mark_end1;
-	uint64_t* data_begin2;
-	uint64_t* data_end3;
-	mark_begin0 = (uint8_t*) malloc(16777216u);
-	mark_end1 = (mark_begin0 + 16777216u);
-	data_begin2 = (uint64_t*) malloc((16777216u * sizeof(uint64_t)));
-	data_end3 = (data_begin2 + 16777216u);
-	(memset((uint8_t*) mark_begin0, 0u, 16777216u), 0);
-	return (struct gc) {new_lock(), (struct opt_1) {0, .as0 = (struct none) {0}}, 0, 0, 16777216u, mark_begin0, mark_begin0, mark_end1, data_begin2, data_begin2, data_end3};
-}
 struct mut_bag new_mut_bag(void) {
 	return (struct mut_bag) {(struct opt_2) {0, .as0 = (struct none) {0}}};
-}
-struct thread_safe_counter new_thread_safe_counter_0(void) {
-	return new_thread_safe_counter_1(0u);
-}
-struct thread_safe_counter new_thread_safe_counter_1(uint64_t init) {
-	return (struct thread_safe_counter) {new_lock(), init};
 }
 uint8_t default_exception_handler(struct ctx* ctx, struct exception e) {
 	print_err_no_newline((struct arr_0) {20, constantarr_0_2});
@@ -1105,7 +1103,7 @@ uint8_t _op_bang_equal_1(int64_t a, int64_t b) {
 }
 uint8_t _op_equal_equal_2(int64_t a, int64_t b) {
 	struct comparison temp0;
-	temp0 = compare_45(a, b);
+	temp0 = compare_42(a, b);
 	switch (temp0.kind) {
 		case 0:
 			return 0;
@@ -1117,7 +1115,7 @@ uint8_t _op_equal_equal_2(int64_t a, int64_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_45(int64_t a, int64_t b) {
+struct comparison compare_42(int64_t a, int64_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -1144,8 +1142,26 @@ uint8_t empty__q_0(struct arr_0 a) {
 struct global_ctx* get_gctx(struct ctx* ctx) {
 	return (struct global_ctx*) ctx->gctx_ptr;
 }
-uint8_t new_island__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception exn) {
-	return default_exception_handler(ctx, exn);
+uint8_t new_island__lambda0(struct ctx* ctx, uint8_t* _closure, struct exception it) {
+	return default_exception_handler(ctx, it);
+}
+struct gc new_gc(void) {
+	uint8_t* mark_begin0;
+	uint8_t* mark_end1;
+	uint64_t* data_begin2;
+	uint64_t* data_end3;
+	mark_begin0 = (uint8_t*) malloc(16777216u);
+	mark_end1 = (mark_begin0 + 16777216u);
+	data_begin2 = (uint64_t*) malloc((16777216u * sizeof(uint64_t)));
+	data_end3 = (data_begin2 + 16777216u);
+	(memset((uint8_t*) mark_begin0, 0u, 16777216u), 0);
+	return (struct gc) {new_lock(), (struct opt_1) {0, .as0 = (struct none) {0}}, 0, 16777216u, mark_begin0, mark_begin0, mark_end1, data_begin2, data_begin2, data_end3};
+}
+struct thread_safe_counter new_thread_safe_counter_0(void) {
+	return new_thread_safe_counter_1(0u);
+}
+struct thread_safe_counter new_thread_safe_counter_1(uint64_t init) {
+	return (struct thread_safe_counter) {new_lock(), init};
 }
 struct fut_0* do_main(struct global_ctx* gctx, struct island* island, int32_t argc, char** argv, fun_ptr2_0 main_ptr) {
 	struct exception_ctx ectx0;
@@ -1217,7 +1233,7 @@ uint8_t yield_thread(void) {
 }
 uint8_t _op_equal_equal_3(int32_t a, int32_t b) {
 	struct comparison temp0;
-	temp0 = compare_64(a, b);
+	temp0 = compare_65(a, b);
 	switch (temp0.kind) {
 		case 0:
 			return 0;
@@ -1229,7 +1245,7 @@ uint8_t _op_equal_equal_3(int32_t a, int32_t b) {
 			return (assert(0),0);
 	}
 }
-struct comparison compare_64(int32_t a, int32_t b) {
+struct comparison compare_65(int32_t a, int32_t b) {
 	if ((a < b)) {
 		return (struct comparison) {0, .as0 = (struct less) {0}};
 	} else {
@@ -1454,13 +1470,13 @@ struct island* noctx_at_0(struct arr_2 a, uint64_t index) {
 	hard_assert(_op_less(index, a.size));
 	return (*((a.data + index)));
 }
-uint8_t add_task(struct ctx* ctx, struct island* v, struct task t) {
+uint8_t add_task(struct ctx* ctx, struct island* a, struct task t) {
 	struct mut_bag_node* node0;
 	node0 = new_mut_bag_node(ctx, t);
-	acquire_lock((&(v->tasks_lock)));
-	add((&(v->tasks)), node0);
-	release_lock((&(v->tasks_lock)));
-	return broadcast((&(v->gctx->may_be_work_to_do)));
+	acquire_lock((&(a->tasks_lock)));
+	add(tasks(a), node0);
+	release_lock((&(a->tasks_lock)));
+	return broadcast((&(a->gctx->may_be_work_to_do)));
 }
 struct mut_bag_node* new_mut_bag_node(struct ctx* ctx, struct task value) {
 	struct mut_bag_node* temp0;
@@ -1471,6 +1487,9 @@ struct mut_bag_node* new_mut_bag_node(struct ctx* ctx, struct task value) {
 uint8_t add(struct mut_bag* bag, struct mut_bag_node* node) {
 	(node->next_node = bag->head, 0);
 	return (bag->head = (struct opt_2) {1, .as1 = (struct some_2) {node}}, 0);
+}
+struct mut_bag* tasks(struct island* a) {
+	return (&((&(a->gc_root))->tasks));
 }
 uint8_t broadcast(struct condition* c) {
 	acquire_lock((&(c->lk)));
@@ -1628,9 +1647,6 @@ uint8_t empty__q_1(struct arr_3 a) {
 struct arr_3 slice_starting_at(struct ctx* ctx, struct arr_3 a, uint64_t begin) {
 	assert_0(ctx, _op_less_equal(begin, a.size));
 	return slice(ctx, a, begin, _op_minus_2(ctx, a.size, begin));
-}
-uint8_t _op_less_equal(uint64_t a, uint64_t b) {
-	return !_op_less(b, a);
 }
 struct arr_3 slice(struct ctx* ctx, struct arr_3 a, uint64_t begin, uint64_t size) {
 	assert_0(ctx, _op_less_equal(_op_plus(ctx, begin, size), a.size));
@@ -1972,9 +1988,9 @@ uint8_t assert_islands_are_shut_down(uint64_t i, struct arr_2 islands) {
 	if (_op_bang_equal_0(i, islands.size)) {
 		island0 = noctx_at_0(islands, i);
 		acquire_lock((&(island0->tasks_lock)));
-		hard_forbid((&(island0->gc))->needs_gc);
+		hard_forbid((&(island0->gc))->needs_gc__q);
 		hard_assert(_op_equal_equal_0(island0->n_threads_running, 0u));
-		hard_assert(empty__q_2((&(island0->tasks))));
+		hard_assert(empty__q_2(tasks(island0)));
 		release_lock((&(island0->tasks_lock)));
 		_tailCalli = noctx_incr(i);
 		_tailCallislands = islands;
@@ -2051,7 +2067,7 @@ struct opt_7 choose_task_in_island(struct island* island) {
 	struct opt_5 temp0;
 	struct some_5 s0;
 	acquire_lock((&(island->tasks_lock)));
-	res1 = ((&(island->gc))->needs_gc ? (_op_equal_equal_0(island->n_threads_running, 0u) ? (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {0, .as0 = (struct none) {0}}}} : (struct opt_7) {0, .as0 = (struct none) {0}}) : (temp0 = find_and_remove_first_doable_task(island), temp0.kind == 0 ? (struct opt_7) {0, .as0 = (struct none) {0}} : temp0.kind == 1 ? (s0 = temp0.as1, (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {1, .as1 = (struct some_5) {s0.value}}}}) : (assert(0),(struct opt_7) {0})));
+	res1 = ((&(island->gc))->needs_gc__q ? (_op_equal_equal_0(island->n_threads_running, 0u) ? (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {0, .as0 = (struct none) {0}}}} : (struct opt_7) {0, .as0 = (struct none) {0}}) : (temp0 = find_and_remove_first_doable_task(island), temp0.kind == 0 ? (struct opt_7) {0, .as0 = (struct none) {0}} : temp0.kind == 1 ? (s0 = temp0.as1, (struct opt_7) {1, .as1 = (struct some_7) {(struct opt_5) {1, .as1 = (struct some_5) {s0.value}}}}) : (assert(0),(struct opt_7) {0})));
 	if (!empty__q_4(res1)) {
 		(island->n_threads_running = noctx_incr(island->n_threads_running), 0);
 	} else {
@@ -2061,22 +2077,18 @@ struct opt_7 choose_task_in_island(struct island* island) {
 	return res1;
 }
 struct opt_5 find_and_remove_first_doable_task(struct island* island) {
-	struct mut_bag* tasks0;
-	struct opt_2 th1;
-	struct opt_8 res2;
+	struct opt_8 res0;
 	struct opt_8 temp0;
-	struct some_8 s3;
-	tasks0 = (&(island->tasks));
-	th1 = tasks0->head;
-	res2 = find_and_remove_first_doable_task_recur(island, tasks0->head);
-	temp0 = res2;
+	struct some_8 s1;
+	res0 = find_and_remove_first_doable_task_recur(island, tasks(island)->head);
+	temp0 = res0;
 	switch (temp0.kind) {
 		case 0:
 			return (struct opt_5) {0, .as0 = (struct none) {0}};
 		case 1:
-			s3 = temp0.as1;
-			(tasks0->head = s3.value.nodes, 0);
-			return (struct opt_5) {1, .as1 = (struct some_5) {s3.value.task}};
+			s1 = temp0.as1;
+			(tasks(island)->head = s1.value.nodes, 0);
+			return (struct opt_5) {1, .as1 = (struct some_5) {s1.value.task}};
 		default:
 			return (assert(0),(struct opt_5) {0});
 	}
@@ -2189,7 +2201,7 @@ uint8_t do_task(struct global_ctx* gctx, struct thread_local_stuff* tls, struct 
 	temp0 = chosen_task.task_or_gc;
 	switch (temp0.kind) {
 		case 0:
-			todo_1();
+			run_garbage_collection((&(island0->gc)), island0->gc_root);
 			broadcast((&(gctx->may_be_work_to_do)));
 			break;
 		case 1:
@@ -2208,6 +2220,13 @@ uint8_t do_task(struct global_ctx* gctx, struct thread_local_stuff* tls, struct 
 	acquire_lock((&(island0->tasks_lock)));
 	(island0->n_threads_running = noctx_decr(island0->n_threads_running), 0);
 	return release_lock((&(island0->tasks_lock)));
+}
+uint8_t run_garbage_collection(struct gc* gc, struct island_gc_root gc_root) {
+	struct mark_ctx mark_ctx0;
+	hard_assert(gc->needs_gc__q);
+	(memset((uint8_t*) gc->mark_begin, 0u, gc->size_words), 0);
+	mark_ctx0 = (struct mark_ctx) {gc->size_words, gc->mark_begin, gc->data_begin};
+	return todo_1();
 }
 uint8_t noctx_must_remove_unordered(struct mut_arr_0* a, uint64_t value) {
 	return noctx_must_remove_unordered_recur(a, 0u, value);
@@ -2381,9 +2400,9 @@ uint8_t test_compare_records(struct ctx* ctx) {
 	b1 = (struct my_record) {1u, 3u};
 	c2 = (struct my_record) {1u, 2u};
 	d3 = (struct my_record) {0u, 3u};
-	print(to_str_1(ctx, compare_230(a0, b1)));
-	print(to_str_1(ctx, compare_230(a0, c2)));
-	return print(to_str_1(ctx, compare_230(a0, d3)));
+	print(to_str_1(ctx, compare_232(a0, b1)));
+	print(to_str_1(ctx, compare_232(a0, c2)));
+	return print(to_str_1(ctx, compare_232(a0, d3)));
 }
 uint8_t print(struct arr_0 a) {
 	print_no_newline(a);
@@ -2409,7 +2428,7 @@ struct arr_0 to_str_1(struct ctx* ctx, struct comparison c) {
 			return (assert(0),(struct arr_0) {0, NULL});
 	}
 }
-struct comparison compare_230(struct my_record a, struct my_record b) {
+struct comparison compare_232(struct my_record a, struct my_record b) {
 	struct comparison temp0;
 	struct comparison temp1;
 	temp0 = compare_5(a.x, b.x);
@@ -2447,11 +2466,11 @@ uint8_t test_compare_byref_records(struct ctx* ctx) {
 	b1 = (temp1 = (struct my_byref_record*) alloc(ctx, sizeof(struct my_byref_record)), ((*(temp1) = (struct my_byref_record) {1u, 3u}, 0), temp1));
 	c2 = (temp2 = (struct my_byref_record*) alloc(ctx, sizeof(struct my_byref_record)), ((*(temp2) = (struct my_byref_record) {1u, 2u}, 0), temp2));
 	d3 = (temp3 = (struct my_byref_record*) alloc(ctx, sizeof(struct my_byref_record)), ((*(temp3) = (struct my_byref_record) {0u, 3u}, 0), temp3));
-	print(to_str_1(ctx, compare_232(a0, b1)));
-	print(to_str_1(ctx, compare_232(a0, c2)));
-	return print(to_str_1(ctx, compare_232(a0, d3)));
+	print(to_str_1(ctx, compare_234(a0, b1)));
+	print(to_str_1(ctx, compare_234(a0, c2)));
+	return print(to_str_1(ctx, compare_234(a0, d3)));
 }
-struct comparison compare_232(struct my_byref_record* a, struct my_byref_record* b) {
+struct comparison compare_234(struct my_byref_record* a, struct my_byref_record* b) {
 	struct comparison temp0;
 	struct comparison temp1;
 	temp0 = compare_5(a->x, b->x);
@@ -2485,11 +2504,11 @@ uint8_t test_compare_unions(struct ctx* ctx) {
 	b1 = (struct my_union) {1, .as1 = (struct my_other_record) {0}};
 	c2 = (struct my_union) {0, .as0 = (struct my_record) {1u, 2u}};
 	d3 = (struct my_union) {0, .as0 = (struct my_record) {1u, 1u}};
-	print(to_str_1(ctx, compare_234(a0, b1)));
-	print(to_str_1(ctx, compare_234(a0, c2)));
-	return print(to_str_1(ctx, compare_234(a0, d3)));
+	print(to_str_1(ctx, compare_236(a0, b1)));
+	print(to_str_1(ctx, compare_236(a0, c2)));
+	return print(to_str_1(ctx, compare_236(a0, d3)));
 }
-struct comparison compare_234(struct my_union a, struct my_union b) {
+struct comparison compare_236(struct my_union a, struct my_union b) {
 	struct my_union match_a0;
 	struct my_record a0;
 	struct my_union match_b0;
@@ -2505,7 +2524,7 @@ struct comparison compare_234(struct my_union a, struct my_union b) {
 			switch (match_b0.kind) {
 				case 0:
 					b0 = match_b0.as0;
-					return compare_230(a0, b0);
+					return compare_232(a0, b0);
 				case 1:
 					return (struct comparison) {0, .as0 = (struct less) {0}};
 				default:
@@ -2519,7 +2538,7 @@ struct comparison compare_234(struct my_union a, struct my_union b) {
 					return (struct comparison) {2, .as2 = (struct greater) {0}};
 				case 1:
 					b1 = match_b1.as1;
-					return compare_235(a1, b1);
+					return compare_237(a1, b1);
 				default:
 					return (assert(0),(struct comparison) {0});
 			}
@@ -2527,7 +2546,7 @@ struct comparison compare_234(struct my_union a, struct my_union b) {
 			return (assert(0),(struct comparison) {0});
 	}
 }
-struct comparison compare_235(struct my_other_record a, struct my_other_record b) {
+struct comparison compare_237(struct my_other_record a, struct my_other_record b) {
 	return (struct comparison) {1, .as1 = (struct equal) {0}};
 }
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value) {
