@@ -26,13 +26,13 @@ import model.lowModel :
 	PrimitiveType,
 	symOfPrimitiveType;
 import model.sexprOfConcreteModel : tataOfConcreteStructRef;
-import util.collection.arr : Arr, at, sizeEq;
+import util.collection.arr : Arr, at, range, sizeEq;
 import util.collection.arrUtil : tail, zip;
 import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe;
 import util.sexpr : Sexpr, tataRecord, tataSym;
-import util.util : todo, verify;
+import util.util : verify;
 
 void checkLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
 	immutable Ctx ctx = immutable Ctx(ptrTrustMe(a));
@@ -199,6 +199,11 @@ void checkLowExpr(Alloc)(
 						});
 			}
 		},
+		(ref immutable LowExprKind.Switch it) {
+			checkLowExpr(alloc, ctx, nat64Type, it.value);
+			foreach (ref immutable LowExpr case_; range(it.cases))
+				checkLowExpr(alloc, ctx, type, case_);
+		},
 		(ref immutable LowExprKind.TailRecur) {
 			// TODO
 		});
@@ -235,9 +240,9 @@ immutable(Sexpr) tataOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, i
 	return matchLowType(
 		a,
 		(immutable LowType.ExternPtr) =>
-			todo!(immutable Sexpr)("tataOfLowType"),
+			tataSym("a-extern-ptr"), //TODO: more detail
 		(immutable LowType.FunPtr) =>
-			todo!(immutable Sexpr)("tataOfLowType"),
+			tataSym("some-fun-ptr"), //TODO: more detail
 		(immutable LowType.NonFunPtr it) =>
 			tataRecord(alloc, "ptr", [tataOfLowType2(alloc, ctx, it.pointee)]),
 		(immutable PrimitiveType it) =>

@@ -228,7 +228,7 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	ref immutable Opt!Out optFirst0,
 	ref immutable Opt!Out optFirst1,
 	ref immutable Arr!In a,
-	scope immutable(Out) delegate(immutable Ptr!In) @safe @nogc pure nothrow cb,
+	scope immutable(Out) delegate(immutable size_t, immutable Ptr!In) @safe @nogc pure nothrow cb,
 ) {
 	immutable size_t offset = (has(optFirst0) ? 1 : 0) + (has(optFirst1) ? 1 : 0);
 	Out* res = cast(Out*) alloc.allocateBytes(Out.sizeof * (offset + size(a)));
@@ -237,7 +237,7 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	if (has(optFirst1))
 		initMemory(res + (has(optFirst0) ? 1 : 0), force(optFirst1));
 	foreach (immutable size_t i; 0..size(a))
-		initMemory(res + offset + i, cb(ptrAt(a, i)));
+		initMemory(res + offset + i, cb(i, ptrAt(a, i)));
 	return immutable Arr!Out(cast(immutable) res, offset + size(a));
 }
 
@@ -245,21 +245,44 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	ref Alloc alloc,
 	ref immutable Opt!Out optFirst,
 	ref immutable Arr!In a,
-	scope immutable(Out) delegate(immutable Ptr!In) @safe @nogc pure nothrow cb,
+	scope immutable(Out) delegate(immutable size_t, immutable Ptr!In) @safe @nogc pure nothrow cb,
 ) {
-	immutable Opt!Out opt2 = none!Out;
-	return mapWithOptFirst2!(Out, In, Alloc)(alloc, optFirst, opt2, a, cb);
+	immutable size_t offset = has(optFirst) ? 1 : 0;
+	Out* res = cast(Out*) alloc.allocateBytes(Out.sizeof * (offset + size(a)));
+	if (has(optFirst))
+		initMemory(res, force(optFirst));
+	foreach (immutable size_t i; 0..size(a))
+		initMemory(res + offset + i, cb(i, ptrAt(a, i)));
+	return immutable Arr!Out(cast(immutable) res, offset + size(a));
 }
 
 @trusted immutable(Arr!Out) mapWithFirst(Out, In, Alloc)(
 	ref Alloc alloc,
-	ref immutable Out first,
+	immutable Out first,
 	ref immutable Arr!In a,
 	scope immutable(Out) delegate(ref immutable In) @safe @nogc pure nothrow cb,
 ) {
 	immutable Opt!Out someFirst = some!Out(first);
-	return mapWithOptFirst!(Out, In, Alloc)(alloc, someFirst, a, (immutable Ptr!In it) =>
+	return mapWithOptFirst!(Out, In, Alloc)(alloc, someFirst, a, (immutable(size_t), immutable Ptr!In it) =>
 		cb(it));
+}
+
+@trusted immutable(Arr!Out) mapWithFirst2(Out, In, Alloc)(
+	ref Alloc alloc,
+	immutable Out first,
+	immutable Out second,
+	ref immutable Arr!In a,
+	scope immutable(Out) delegate(immutable size_t, ref immutable In) @safe @nogc pure nothrow cb,
+) {
+	immutable Opt!Out someFirst = some!Out(first);
+	immutable Opt!Out someSecond = some!Out(second);
+	return mapWithOptFirst2!(Out, In, Alloc)(
+		alloc,
+		someFirst,
+		someSecond,
+		a,
+		(immutable size_t i, immutable Ptr!In it) =>
+			cb(i, it));
 }
 
 @trusted immutable(Arr!Out) mapOp(Out, In, Alloc)(

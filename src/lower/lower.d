@@ -3,6 +3,7 @@ module lower.lower;
 @safe @nogc pure nothrow:
 
 import lower.checkLowModel : checkLowProgram;
+import lower.generateCallWithCtxFun : generateCallWithCtxFun;
 import lower.generateCompareFun : ComparisonTypes, generateCompareFun;
 import lower.generateMarkVisitFun : generateMarkVisitFun;
 import lower.getBuiltinCall : BuiltinKind, getBuiltinKind, matchBuiltinKind;
@@ -11,6 +12,8 @@ import lower.lowExprHelpers :
 	anyPtrType,
 	charPtrPtrType,
 	constantNat64,
+	genBitwiseOrNat64,
+	genNat64FromPtr,
 	getSizeOf,
 	int32Type,
 	localRef,
@@ -36,12 +39,14 @@ import model.concreteModel :
 	ConcreteFunBody,
 	ConcreteFunExprBody,
 	ConcreteFunSource,
+	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteParam,
 	ConcreteProgram,
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteType,
+	isCallWithCtxFun,
 	isClosure,
 	isCompareFun,
 	isMarkVisitFun,
@@ -49,13 +54,13 @@ import model.concreteModel :
 	matchConcreteFunBody,
 	matchConcreteFunSource,
 	matchConcreteStructBody,
+	mustBeNonPointer,
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant;
 import model.lowModel :
 	AllConstantsLow,
 	AllLowTypes,
 	ArrTypeAndConstantsLow,
-	asFunPtrType,
 	asNonFunPtrType,
 	asRecordType,
 	asUnionType,
@@ -88,7 +93,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.model : decl, FunInst, name, range;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, first, only, arrRange = range, size;
+import util.collection.arr : Arr, at, empty, emptyArr, first, only, arrRange = range, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
@@ -97,6 +102,7 @@ import util.collection.arrUtil :
 	mapWithIndexAndConcatOne,
 	mapWithOptFirst,
 	mapWithOptFirst2,
+	slice,
 	tail;
 import util.collection.dict : Dict, getAt, mustGetAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
@@ -220,6 +226,8 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr
 						return some(immutable LowType(PrimitiveType.char_));
 					case BuiltinStructKind.float64:
 						return some(immutable LowType(PrimitiveType.float64));
+					case BuiltinStructKind.fun:
+						return some(immutable LowType(PrimitiveType.fun));
 					case BuiltinStructKind.funPtrN:
 						immutable size_t i = arrBuilderSize(allFunPtrSources);
 						add(alloc, allFunPtrSources, s);
@@ -344,6 +352,11 @@ struct PrimitiveTypeIndex {
 
 struct LowFunCause {
 	@safe @nogc pure nothrow:
+	struct CallWithCtx {
+		immutable LowType returnType;
+		immutable Arr!LowType nonFunNonCtxParamTypes;
+		immutable Arr!ConcreteLambdaImpl impls;
+	}
 	struct Compare {
 		immutable LowType type;
 		immutable Bool typeIsArr;
@@ -353,18 +366,21 @@ struct LowFunCause {
 		immutable Bool typeIsArr;
 	}
 
+	@trusted immutable this(immutable CallWithCtx a) { kind = Kind.callWithCtx; callWithCtx_ = a; }
 	@trusted immutable this(immutable Compare a) { kind = Kind.compare; compare_ = a; }
 	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind = Kind.expr; expr_ = a; }
 	@trusted immutable this(immutable MarkVisit a) { kind = Kind.markVisit; markVisit_ = a; }
 
 	private:
 	enum Kind {
+		callWithCtx,
 		compare,
 		expr,
 		markVisit,
 	}
 	immutable Kind kind;
 	union {
+		immutable CallWithCtx callWithCtx_;
 		immutable Compare compare_;
 		immutable Ptr!ConcreteFun expr_;
 		immutable MarkVisit markVisit_;
@@ -373,11 +389,14 @@ struct LowFunCause {
 
 @trusted T matchLowFunCause(T)(
 	ref immutable LowFunCause a,
+	scope T delegate(ref immutable LowFunCause.CallWithCtx) @safe @nogc pure nothrow cbCallWithCtx,
 	scope T delegate(ref immutable LowFunCause.Compare) @safe @nogc pure nothrow cbCompare,
 	scope T delegate(immutable Ptr!ConcreteFun) @safe @nogc pure nothrow cbExpr,
 	scope T delegate(ref immutable LowFunCause.MarkVisit) @safe @nogc pure nothrow cbMarkVisit,
 ) {
 	final switch (a.kind) {
+		case LowFunCause.Kind.callWithCtx:
+			return cbCallWithCtx(a.callWithCtx_);
 		case LowFunCause.Kind.compare:
 			return cbCompare(a.compare_);
 		case LowFunCause.Kind.expr:
@@ -539,7 +558,22 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 		immutable Opt!LowFunIndex opIndex = matchConcreteFunBody!(immutable Opt!LowFunIndex)(
 			body_(fun),
 			(ref immutable ConcreteFunBody.Builtin it) {
-				if (isCompareFun(fun)) {
+				if (isCallWithCtxFun(fun)) {
+					immutable Ptr!ConcreteStruct funStruct =
+						mustBeNonPointer(first(fun.paramsExcludingCtxAndClosure()).type);
+					immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.returnType);
+					// NOTE: 'paramsExcludingCtxAndClosure' includes the *explicit* ctx param on this function
+					immutable Arr!LowType nonFunNonCtxParamTypes =
+						map(alloc, slice(fun.paramsExcludingCtxAndClosure, 2), (ref immutable ConcreteParam it) =>
+							lowTypeFromConcreteType(alloc, getLowTypeCtx, it.type));
+					// TODO: is it possible that we call a fun type but it's not implemented anywhere?
+					immutable Opt!(Arr!ConcreteLambdaImpl) optImpls = getAt(program.funStructToImpls, funStruct);
+					immutable Arr!ConcreteLambdaImpl impls = has(optImpls)
+						? force(optImpls)
+						: emptyArr!ConcreteLambdaImpl;
+					return some(addLowFun(immutable LowFunCause(
+						immutable LowFunCause.CallWithCtx(returnType, nonFunNonCtxParamTypes, impls))));
+				} else if (isCompareFun(fun)) {
 					if (!lateIsSet(comparisonType)) {
 						immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.returnType);
 						lateSet(comparisonType, returnType);
@@ -635,6 +669,15 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 ) {
 	return matchLowFunCause!(immutable LowFun)(
 		cause,
+		(ref immutable LowFunCause.CallWithCtx it) =>
+			generateCallWithCtxFun(
+				alloc,
+				getLowTypeCtx,
+				ctxType,
+				concreteFunToLowFunIndex,
+				it.returnType,
+				it.nonFunNonCtxParamTypes,
+				it.impls),
 		(ref immutable LowFunCause.Compare it) =>
 			generateCompareFun(
 				alloc,
@@ -659,7 +702,7 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 				ctxParam,
 				closureParam,
 				cf.paramsExcludingCtxAndClosure,
-				(immutable Ptr!ConcreteParam it) =>
+				(immutable(size_t), immutable Ptr!ConcreteParam it) =>
 					getLowParam(alloc, getLowTypeCtx, it));
 			immutable Opt!LowParamIndex ctxParamIndex = has(ctxParam)
 				? some(immutable LowParamIndex(0))
@@ -742,10 +785,7 @@ immutable(LowFun) mainFun(Alloc)(
 				userMainFunPtr]))));
 	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(False, allocate(alloc, call)));
 	return immutable LowFun(
-		immutable LowFunSource(nu!(LowFunSource.Generated)(
-			alloc,
-			shortSymAlphaLiteral("main"),
-			none!LowType)),
+		immutable LowFunSource(nu!(LowFunSource.Generated)(alloc, shortSymAlphaLiteral("main"), emptyArr!LowType)),
 		nu!LowFunSig(
 			alloc,
 			int32Type,
@@ -928,6 +968,8 @@ immutable(LowExprKind) getLowExprKind(Alloc)(
 				allocate(alloc, getLowExpr(alloc, ctx, it.arg, ExprPos.nonTail)))),
 		(ref immutable ConcreteExprKind.Lambda it) =>
 			getLambdaExpr(alloc, ctx, type, expr.range, it),
+		(ref immutable ConcreteExprKind.LambdaFunPtr it) =>
+			immutable LowExprKind(immutable LowExprKind.FunPtr(getLowFunIndex(ctx, it.fun))),
 		(ref immutable ConcreteExprKind.Let it) =>
 			getLetExpr(alloc, ctx, exprPos, expr.range, it),
 		(ref immutable ConcreteExprKind.LocalRef it) =>
@@ -1008,8 +1050,12 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 		immutable Opt!LowExpr ctxArg = !isTailRecur && a.called.needsCtx
 			? some(getCtxParamRef(alloc, ctx, range))
 			: none!LowExpr;
-		immutable Arr!LowExpr args = mapWithOptFirst(alloc, ctxArg, a.args, (immutable Ptr!ConcreteExpr it) =>
-			getLowExpr(alloc, ctx, it, ExprPos.nonTail));
+		immutable Arr!LowExpr args = mapWithOptFirst(
+			alloc,
+			ctxArg,
+			a.args,
+			(immutable(size_t), immutable Ptr!ConcreteExpr it) =>
+				getLowExpr(alloc, ctx, it, ExprPos.nonTail));
 		return isTailRecur
 			? immutable LowExprKind(immutable LowExprKind.TailRecur(args))
 			: immutable LowExprKind(immutable LowExprKind.Call(force(opCalled), args));
@@ -1197,24 +1243,15 @@ immutable(LowExprKind) getLambdaExpr(Alloc)(
 	ref immutable FileAndRange range,
 	ref immutable ConcreteExprKind.Lambda a,
 ) {
-	immutable LowFunIndex lambdaFun = getLowFunIndex(ctx, a.fun);
-	immutable LowExprKind funPtr = immutable LowExprKind(immutable LowExprKind.FunPtr(lambdaFun));
+	immutable ulong funId = a.funId;
+	immutable LowExpr funTagExpr = constantNat64(range, funId << 48);
 	if (!has(a.closure))
-		return funPtr;
+		return funTagExpr.kind;
 	else {
-		immutable LowType.Record recordType = asRecordType(type);
-		immutable LowRecord record = fullIndexDictGet(ctx.allTypes.allRecords, recordType);
-		verify(size(record.fields) == 2);
-		immutable LowType funPtrType = immutable LowType(asFunPtrType(at(record.fields, 0).type));
 		immutable LowExpr closure =
 			ptrCast(alloc, anyPtrType, range, getLowExpr(alloc, ctx, force(a.closure), ExprPos.nonTail));
-		immutable LowExpr funPtrCasted = ptrCast(
-			alloc,
-			funPtrType,
-			range,
-			immutable LowExpr(funPtrType, range, funPtr));
-		immutable Arr!LowExpr args = arrLiteral!LowExpr(alloc, [funPtrCasted, closure]);
-		return immutable LowExprKind(immutable LowExprKind.CreateRecord(args));
+		immutable LowExpr closureNat = genNat64FromPtr(alloc, range, closure);
+		return genBitwiseOrNat64(alloc, range, funTagExpr, closureNat);
 	}
 }
 

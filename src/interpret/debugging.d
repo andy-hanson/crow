@@ -7,12 +7,15 @@ import model.concreteModel :
 	ConcreteFunSource,
 	ConcreteLocal,
 	ConcreteLocalSource,
+	ConcreteParam,
+	ConcreteParamSource,
 	ConcreteStruct,
 	ConcreteStructSource,
 	ConcreteType,
 	matchConcreteFieldSource,
 	matchConcreteFunSource,
 	matchConcreteLocalSource,
+	matchConcreteParamSource,
 	matchConcreteStructSource;
 import model.lowModel :
 	AllLowTypes,
@@ -25,12 +28,11 @@ import model.lowModel :
 	matchLowType,
 	PrimitiveType,
 	symOfPrimitiveType;
-import model.model : ClosureField, decl, FunInst, name, RecordField;
-import util.collection.arr : empty, range;
+import model.model : ClosureField, decl, FunInst, name, Param, RecordField, Type, typeArgs, writeType;
+import util.collection.arr : empty;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.opt : force, has;
 import util.ptr : Ptr;
-import util.writer : Writer, writeChar, writeNat, writeStatic;
+import util.writer : Writer, writeChar, writeNat, writeStatic, writeWithCommas;
 import util.sym : writeSym;
 import util.util : todo;
 
@@ -46,27 +48,57 @@ void writeFunName(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram lowPr
 		},
 		(ref immutable LowFunSource.Generated it) {
 			writeSym(writer, it.name);
-			if (has(it.typeArg)) {
+			if (!empty(it.typeArgs)) {
 				writeChar(writer, '<');
-				writeType(writer, lowProgram.allTypes, force(it.typeArg));
+				writeWithCommas!(LowType, Alloc)(writer, it.typeArgs, (ref immutable LowType it) {
+					writeLowType(writer, lowProgram.allTypes, it);
+				});
 				writeChar(writer, '>');
 			}
 			writeStatic(writer, " (generated)");
 		});
 }
 
-void writeType(Alloc)(ref Writer!Alloc writer, ref immutable AllLowTypes lowTypes, ref immutable LowType a) {
+void writeFunSig(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram lowProgram, ref immutable LowFun a) {
+	matchLowFunSource!void(
+		a.source,
+		(immutable Ptr!ConcreteFun it) {
+			writeConcreteType!Alloc(writer, it.returnType);
+			writeChar(writer, '(');
+			writeWithCommas!(ConcreteParam, Alloc)(
+				writer,
+				it.paramsExcludingCtxAndClosure(),
+				(ref immutable ConcreteParam param) {
+					matchConcreteParamSource!void(
+						param.source,
+						(ref immutable ConcreteParamSource.Closure) {
+							writeStatic(writer, "<closure>");
+						},
+						(immutable Ptr!Param p) {
+							writeSym(writer, p.name);
+						});
+				writeChar(writer, ' ');
+				writeConcreteType(writer, param.type);
+			});
+			writeChar(writer, ')');
+		},
+		(ref immutable LowFunSource.Generated) {
+			writeStatic(writer, "(generated)");
+		});
+}
+
+void writeLowType(Alloc)(ref Writer!Alloc writer, ref immutable AllLowTypes lowTypes, ref immutable LowType a) {
 	matchLowType!void(
 		a,
 		(immutable LowType.ExternPtr) {
 			todo!void("write ExternPtr type");
 		},
 		(immutable LowType.FunPtr) {
-			todo!void("write FunPtr type");
+			writeStatic(writer, "some fun ptr type"); // TODO: more detail
 		},
 		(immutable LowType.NonFunPtr it) {
 			writeStatic(writer, "ptr(");
-			writeType(writer, lowTypes, it.pointee);
+			writeLowType(writer, lowTypes, it.pointee);
 			writeChar(writer, ')');
 		},
 		(immutable PrimitiveType it) {
@@ -85,8 +117,16 @@ private:
 void writeConcreteFunName(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFun a) {
 	matchConcreteFunSource!void(
 		a.source,
-		(immutable Ptr!FunInst it) =>
-			writeSym(writer, name(it)),
+		(immutable Ptr!FunInst it) {
+			writeSym(writer, name(it));
+			if (!empty(typeArgs(it))) {
+				writeChar(writer, '<');
+				writeWithCommas!(Type, Alloc)(writer, typeArgs(it), (ref immutable Type typeArg) {
+					writeType(writer, typeArg);
+				});
+				writeChar(writer, '>');
+			}
+		},
 		(ref immutable ConcreteFunSource.Lambda it) {
 			writeConcreteFunName(writer, it.containingFun);
 			writeStatic(writer, ".lambda");
@@ -105,8 +145,9 @@ void writeConcreteStruct(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteS
 			writeSym(writer, decl(it.inst).name);
 			if (!empty(it.typeArgs)) {
 				writeChar(writer, '<');
-				foreach (ref immutable ConcreteType t; range(it.typeArgs))
+				writeWithCommas!(ConcreteType, Alloc)(writer, it.typeArgs, (ref immutable ConcreteType t) {
 					writeConcreteType(writer, t);
+				});
 				writeChar(writer, '>');
 			}
 		},
@@ -117,7 +158,7 @@ void writeConcreteStruct(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteS
 		});
 }
 
-void writeConcreteType(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteType a) {
+void writeConcreteType(Alloc)(ref Writer!Alloc writer, immutable ConcreteType a) {
 	//TODO: if it doesn't have the usual by-ref or by-val we should write that
 	writeConcreteStruct(writer, a.struct_);
 }

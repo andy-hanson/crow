@@ -51,7 +51,7 @@ import interpret.bytecodeWriter :
 	writeReturn,
 	writeSwitchDelay,
 	writeWrite;
-import interpret.debugging : writeType;
+import interpret.debugging : writeLowType;
 import interpret.generateText : generateText, getTextInfoForArray, getTextPointer, TextAndInfo, TextArrInfo;
 import interpret.typeLayout : layOutTypes, nStackEntriesForType, sizeOfType, TypeLayout, walkRecordFields;
 import model.constant : Constant, matchConstant;
@@ -286,6 +286,8 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 					return DynCallType.char_;
 				case PrimitiveType.float64:
 					return DynCallType.float64;
+				case PrimitiveType.fun:
+					return unreachable!(immutable DynCallType)();
 				case PrimitiveType.int8:
 					return DynCallType.int8;
 				case PrimitiveType.int16:
@@ -410,12 +412,12 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 			immutable StackEntry stackAfterMatched = getNextStackEntry(writer);
 			immutable StackEntries matchedEntriesWithoutKind =
 				immutable StackEntries(startStack, (stackAfterMatched.entry - startStack.entry).to8());
+			// TODO: 'mapOp' is overly complex, all but the last case return 'some'
 			immutable Arr!ByteCodeIndex delayedGotos = mapOpWithIndex!ByteCodeIndex(
 				tempAlloc,
 				it.cases,
 				(immutable size_t caseIndex, ref immutable LowExprKind.Match.Case case_) {
 					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat8(safeSizeTToU8(caseIndex)));
-					nextByteCodeIndex(writer);
 					if (has(case_.local)) {
 						immutable Nat8 nEntries = nStackEntriesForType(ctx, force(case_.local).type);
 						verify(nEntries <= matchedEntriesWithoutKind.size);
@@ -484,6 +486,26 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 		},
 		(ref immutable LowExprKind.SpecialNAry it) {
 			generateSpecialNAry(dbg, tempAlloc, writer, ctx, source, expr.type, it);
+		},
+		(ref immutable LowExprKind.Switch it) {
+			immutable StackEntry stackBefore = getNextStackEntry(writer);
+			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
+			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, sizeNat(it.cases).to8());
+			// TODO: 'mapOp' is overly complex, all but the last case return 'some'
+			immutable Arr!ByteCodeIndex delayedGotos = mapOpWithIndex!ByteCodeIndex(
+				tempAlloc,
+				it.cases,
+				(immutable size_t caseIndex, ref immutable LowExpr case_) {
+					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat8(safeSizeTToU8(caseIndex)));
+					generateExpr(dbg, tempAlloc, writer, ctx, case_);
+					if (caseIndex != size(it.cases) - 1) {
+						setNextStackEntry(writer, stackBefore);
+						return some(writeJumpDelayed(dbg, writer, source));
+					} else
+						return none!ByteCodeIndex;
+				});
+			foreach (immutable ByteCodeIndex jumpIndex; range(delayedGotos))
+				fillInJumpDelayed(writer, jumpIndex);
 		},
 		(ref immutable LowExprKind.TailRecur it) {
 			immutable StackEntry before = getNextStackEntry(writer);
@@ -650,7 +672,7 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 		if (false) {
 			Writer!TempAlloc w = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 			writeStatic(w, "generateConstant of type ");
-			writeType(w, ctx.program.allTypes, type);
+			writeLowType(w, ctx.program.allTypes, type);
 			writeChar(w, '\n');
 			//print()
 			finishWriter(w);

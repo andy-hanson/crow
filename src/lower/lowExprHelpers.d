@@ -23,6 +23,7 @@ immutable LowType charType = immutable LowType(PrimitiveType.char_);
 private immutable LowType charPtrType =
 	immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charType)));
 immutable LowType charPtrPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charPtrType)));
+immutable LowType funType = immutable LowType(PrimitiveType.fun);
 immutable LowType int32Type = immutable LowType(PrimitiveType.int32);
 immutable LowType nat64Type = immutable LowType(PrimitiveType.nat64);
 private immutable LowType nat8Type = immutable LowType(PrimitiveType.nat8);
@@ -44,6 +45,62 @@ immutable(LowExpr) addPtr(Alloc)(
 			allocate(alloc, ptr),
 			allocate(alloc, constantNat64(range, value)))));
 }
+
+immutable(LowExpr) genNat64FromPtr(Alloc)(
+	ref Alloc alloc,
+	ref immutable FileAndRange range,
+	ref immutable LowExpr ptr,
+) {
+	return immutable LowExpr(
+		nat64Type,
+		range,
+		immutable LowExprKind(immutable LowExprKind.SpecialUnary(
+			LowExprKind.SpecialUnary.Kind.toNatFromPtr,
+			allocate(alloc, ptr))));
+}
+
+immutable(LowExpr) genBitwiseAndNat64(Alloc)(
+	ref Alloc alloc,
+	ref immutable FileAndRange range,
+	ref immutable LowExpr a,
+	immutable ulong b,
+) {
+	return immutable LowExpr(
+		nat64Type,
+		range,
+		immutable LowExprKind(immutable LowExprKind.SpecialBinary(
+			LowExprKind.SpecialBinary.Kind.bitwiseAndNat64,
+			allocate(alloc, a),
+			allocate(alloc, constantNat64(range, b)))));
+}
+
+immutable(LowExprKind) genBitwiseOrNat64(Alloc)(
+	ref Alloc alloc,
+	ref immutable FileAndRange range,
+	ref immutable LowExpr a,
+	ref immutable LowExpr b,
+) {
+	return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
+		LowExprKind.SpecialBinary.Kind.bitwiseOrNat64,
+		allocate(alloc, a),
+		allocate(alloc, b)));
+}
+
+immutable(LowExpr) genBitShiftRightNat64(Alloc)(
+	ref Alloc alloc,
+	ref immutable FileAndRange range,
+	ref immutable LowExpr a,
+	immutable ulong b,
+) {
+	return immutable LowExpr(
+		nat64Type,
+		range,
+		immutable LowExprKind(immutable LowExprKind.SpecialBinary(
+			LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64,
+			allocate(alloc, a),
+			allocate(alloc, constantNat64(range, b)))));
+}
+
 
 immutable(LowExpr) genAsAnyPtr(Alloc)(
 	ref Alloc alloc,
@@ -117,7 +174,7 @@ immutable(LowExpr) incrPointer(Alloc)(
 
 immutable(LowExpr) constantNat64(
 	ref immutable FileAndRange range,
-	immutable size_t value,
+	immutable ulong value,
 ) {
 	return immutable LowExpr(
 		nat64Type,
@@ -230,7 +287,7 @@ immutable(LowExpr) wrapMulNat64(Alloc)(
 
 immutable(LowExpr) ptrCast(Alloc)(
 	ref Alloc alloc,
-	ref immutable LowType type,
+	immutable LowType type,
 	ref immutable FileAndRange range,
 	immutable LowExpr inner,
 ) {

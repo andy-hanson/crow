@@ -66,7 +66,10 @@ immutable(LowFun) generateMarkVisitFun(Alloc)(
 		? arrVisitBody(alloc, range, allTypes, paramType, markCtx, value)
 		: visitBody(alloc, range, allTypes, markVisitFuns, markFun, paramType, markCtx, value);
 	return immutable LowFun(
-		immutable LowFunSource(nu!(LowFunSource.Generated)(alloc, shortSymAlphaLiteral("mark-visit"), some(paramType))),
+		immutable LowFunSource(nu!(LowFunSource.Generated)(
+			alloc,
+			shortSymAlphaLiteral("mark-visit"),
+			arrLiteral!LowType(alloc, [paramType]))),
 		nu!LowFunSig(
 			alloc,
 			voidType,

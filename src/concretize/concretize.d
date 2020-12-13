@@ -4,7 +4,7 @@ module concretize.concretize;
 
 import concretize.allConstantsBuilder : finishAllConstants;
 import concretize.concretizeCtx : ConcretizeCtx, ctxType, getOrAddNonTemplateConcreteFunAndFillBody;
-import model.concreteModel : ConcreteFun, ConcreteProgram, ConcreteStruct;
+import model.concreteModel : ConcreteFun, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct;
 import model.model :
 	asStructInst,
 	CommonTypes,
@@ -29,7 +29,8 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, first, only, size;
 import util.collection.arrBuilder : finishArr_immutable;
 import util.collection.arrUtil : filter;
-import util.collection.mutDict : mutDictIsEmpty;
+import util.collection.mutArr : moveToArr, MutArr;
+import util.collection.mutDict : mapToDict, mutDictIsEmpty;
 import util.collection.multiDict : multiDictGetAt;
 import util.collection.str : Str, strLiteral;
 import util.memory : nu;
@@ -68,6 +69,8 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 		finishAllConstants(alloc, ctx.allConstants),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		finishArr_immutable(alloc, ctx.allConcreteFuns),
+		mapToDict(alloc, ctx.funStructToImpls, (ref MutArr!(immutable ConcreteLambdaImpl) it) =>
+			moveToArr(alloc, it)),
 		markConcreteFun,
 		rtMainConcreteFun,
 		userMainConcreteFun,

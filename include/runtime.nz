@@ -166,9 +166,7 @@ do-task void(gctx global-ctx, tls thread-local-stuff, chosen-task chosen-task) n
 	as some some-task
 		task = some-task.value
 		ctx = new-ctx: gctx, tls, island, task.exclusion
-		| TODO: parens should not be necessary
-		| ctx.ref-of-val call-with-ctx (&do-task-with-ctx).as<fun-mut1<void, fun-mut0<void>>>, task.fun
-		ctx.ref-of-val call-with-ctx task.fun
+		task.fun call-with-ctx ctx.ref-of-val
 		island.tasks-lock.ref-of-val acquire-lock
 		island.currently-running-exclusions.ref-of-val noctx-must-remove-unordered task.exclusion
 		island.tasks-lock.ref-of-val release-lock

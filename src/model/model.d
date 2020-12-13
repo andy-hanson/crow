@@ -20,10 +20,18 @@ import util.opt : has, none, Opt, some;
 import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, rangeOfStartAndName, RangeWithinFile;
-import util.sym : compareSym, shortSymAlphaLiteral, shortSymOperatorLiteral, Sym, symEq, symSize, writeSym;
+import util.sym :
+	compareSym,
+	shortSymAlphaLiteral,
+	shortSymOperatorLiteral,
+	Sym,
+	symEq,
+	symEqLongAlphaLiteral,
+	symSize,
+	writeSym;
 import util.types : u8, safeSizeTToU32;
 import util.util : todo, verify;
-import util.writer : writeChar, Writer, writeStatic;
+import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
 struct AbsolutePathsGetter {
 	immutable Str globalPath;
@@ -750,6 +758,11 @@ immutable(Comparison) compareFunDeclAndArgs(ref immutable FunDeclAndArgs a, ref 
 struct FunInst {
 	immutable FunDeclAndArgs funDeclAndArgs;
 	immutable Sig sig;
+}
+
+immutable(Bool) isCallWithCtxFun(ref immutable FunInst a) {
+	// TODO: only do this for the call-with-ctx in bootstrap
+	return symEqLongAlphaLiteral(name(decl(a).deref()), "call-with-ctx");
 }
 
 immutable(Bool) isCompareFun(ref immutable FunInst a) {
@@ -1479,19 +1492,18 @@ void writeStructDecl(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a)
 
 void writeStructInst(Alloc)(ref Writer!Alloc writer, ref immutable StructInst s) {
 	writeStructDecl(writer, decl(s).deref());
-	if (!s.typeArgs.empty) {
-		Bool first = True;
-		foreach (ref immutable Type t; s.typeArgs.range) {
-			writeChar(writer, first ? '<' : ' ');
+	if (!empty(s.typeArgs)) {
+		writeChar(writer, '<');
+		writeWithCommas!(Type, Alloc)(writer, s.typeArgs, (ref immutable Type t) {
 			writeType(writer, t);
-			first = False;
-		}
+		});
 		writeChar(writer, '>');
 	}
 }
 
+//TODO:MOVE
 void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Type type) {
-	return matchType!void(
+	matchType!void(
 		type,
 		(ref immutable Type.Bogus) {
 			writeStatic(writer, "<<bogus>>");

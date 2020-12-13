@@ -59,7 +59,7 @@ do-main fut exit-code(gctx global-ctx, island island, argc int32, argv ptr c-str
 	add = as<fun2<fut<exit-code>, arr<c-str>, main-ptr>>: \all-args main-ptr
 		add-first-task: all-args, main-ptr
 	all-args = arr: argc.to-int.unsafe-to-nat, argv
-	ctx call-with-ctx add, all-args, main-ptr
+	add call-with-ctx ctx, all-args, main-ptr
 
 thread-args record mut
 	by-ref

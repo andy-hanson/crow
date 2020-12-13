@@ -8,6 +8,7 @@ import model.model :
 	decl,
 	FunInst,
 	isArr,
+	isCallWithCtxFun,
 	isCompareFun,
 	isMarkVisitFun,
 	Local,
@@ -19,10 +20,11 @@ import model.model :
 	summon;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr;
+import util.collection.dict : Dict;
 import util.collection.str : Str;
 import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateSet;
-import util.opt : force, has, none, Opt;
+import util.opt : none, Opt;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
@@ -33,6 +35,7 @@ enum BuiltinStructKind {
 	bool_,
 	char_,
 	float64,
+	fun, // fun0, fun-mut0, fun1, fun-mut1, etc...
 	funPtrN, // fun-ptr0, fun-ptr1, etc...
 	int8,
 	int16,
@@ -54,6 +57,8 @@ immutable(Sym) symOfBuiltinStructKind(immutable BuiltinStructKind a) {
 			return shortSymAlphaLiteral("char");
 		case BuiltinStructKind.float64:
 			return shortSymAlphaLiteral("float-64");
+		case BuiltinStructKind.fun:
+			return shortSymAlphaLiteral("fun");
 		case BuiltinStructKind.funPtrN:
 			return shortSymAlphaLiteral("fun-ptr");
 		case BuiltinStructKind.int8:
@@ -617,6 +622,15 @@ immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
 			it.range);
 }
 
+immutable(Bool) isCallWithCtxFun(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource!(immutable Bool)(
+		a.source,
+		(immutable Ptr!FunInst it) =>
+			isCallWithCtxFun(it),
+		(ref immutable ConcreteFunSource.Lambda) =>
+			False);
+}
+
 immutable(Bool) isCompareFun(ref immutable ConcreteFun a) {
 	return matchConcreteFunSource!(immutable Bool)(
 		a.source,
@@ -697,22 +711,17 @@ struct ConcreteExprKind {
 		immutable Ptr!ConcreteExpr then;
 	}
 
-	// NOTE: A fun-ref is a lambda wrapped in CreateRecord.
+	// May be a fun or run-mut.
+	// (A fun-ref is a lambda wrapped in CreateRecord.)
 	struct Lambda {
-		@safe @nogc pure nothrow:
-
-		immutable Ptr!ConcreteFun fun; // function implementing the lambda body
-		// none for fun-ptrs only.
-		// If not a fun-ptr but no closure is needed, this calls `null`.
-		// Else this is a ConcreteExpr.Alloc of the closure type.
+		immutable ushort funId;
+		// Always a ConcreteExpr.Alloc (or none for no closure)
+		// TODO: so type it as such
 		immutable Opt!(Ptr!ConcreteExpr) closure;
+	}
 
-		immutable this(immutable Ptr!ConcreteFun f, immutable Opt!(Ptr!ConcreteExpr) c) {
-			fun = f;
-			closure = c;
-			if (has(closure))
-				verify(force(closure).type.isPointer);
-		}
+	struct LambdaFunPtr {
+		immutable Ptr!ConcreteFun fun;
 	}
 
 	struct LocalRef {
@@ -756,6 +765,7 @@ struct ConcreteExprKind {
 		createRecord,
 		convertToUnion,
 		lambda,
+		lambdaFunPtr,
 		let,
 		localRef,
 		match,
@@ -773,6 +783,7 @@ struct ConcreteExprKind {
 		immutable CreateRecord createRecord;
 		immutable ConvertToUnion convertToUnion;
 		immutable Lambda lambda;
+		immutable LambdaFunPtr lambdaFunPtr;
 		immutable Let let;
 		immutable LocalRef localRef;
 		immutable Ptr!Match match;
@@ -803,6 +814,10 @@ struct ConcreteExprKind {
 	}
 	@trusted immutable this(immutable Lambda a) {
 		kind = Kind.lambda; lambda = a;
+	}
+	@trusted immutable this(immutable LambdaFunPtr a) {
+		kind = Kind.lambdaFunPtr;
+		lambdaFunPtr = a;
 	}
 	@trusted immutable this(immutable Let a) {
 		kind = Kind.let; let = a;
@@ -847,6 +862,7 @@ immutable(Bool) isConstant(ref immutable ConcreteExprKind a) {
 	scope T delegate(ref immutable ConcreteExprKind.CreateRecord) @safe @nogc pure nothrow cbCreateRecord,
 	scope T delegate(ref immutable ConcreteExprKind.ConvertToUnion) @safe @nogc pure nothrow cbConvertToUnion,
 	scope T delegate(ref immutable ConcreteExprKind.Lambda) @safe @nogc pure nothrow cbLambda,
+	scope T delegate(ref immutable ConcreteExprKind.LambdaFunPtr) @safe @nogc pure nothrow cbLambdaFunPtr,
 	scope T delegate(ref immutable ConcreteExprKind.Let) @safe @nogc pure nothrow cbLet,
 	scope T delegate(ref immutable ConcreteExprKind.LocalRef) @safe @nogc pure nothrow cbLocalRef,
 	scope T delegate(ref immutable ConcreteExprKind.Match) @safe @nogc pure nothrow cbMatch,
@@ -871,6 +887,8 @@ immutable(Bool) isConstant(ref immutable ConcreteExprKind a) {
 			return cbConvertToUnion(a.convertToUnion);
 		case ConcreteExprKind.Kind.lambda:
 			return cbLambda(a.lambda);
+		case ConcreteExprKind.Kind.lambdaFunPtr:
+			return cbLambdaFunPtr(a.lambdaFunPtr);
 		case ConcreteExprKind.Kind.let:
 			return cbLet(a.let);
 		case ConcreteExprKind.Kind.localRef:
@@ -908,9 +926,15 @@ struct ConcreteProgram {
 	immutable AllConstantsConcrete allConstants;
 	immutable Arr!(Ptr!ConcreteStruct) allStructs;
 	immutable Arr!(Ptr!ConcreteFun) allFuns;
+	immutable Dict!(Ptr!ConcreteStruct, Arr!ConcreteLambdaImpl, comparePtr!ConcreteStruct) funStructToImpls;
 	immutable Ptr!ConcreteFun markFun;
 	immutable Ptr!ConcreteFun rtMain;
 	immutable Ptr!ConcreteFun userMain;
 	immutable Ptr!ConcreteFun allocFun;
 	immutable Ptr!ConcreteStruct ctxType;
+}
+
+struct ConcreteLambdaImpl {
+	immutable Opt!(ConcreteType) closureType;
+	immutable Ptr!ConcreteFun impl;
 }

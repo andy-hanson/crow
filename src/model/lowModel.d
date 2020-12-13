@@ -56,6 +56,7 @@ enum PrimitiveType {
 	int16,
 	int32,
 	int64,
+	fun,
 	nat8,
 	nat16,
 	nat32,
@@ -74,6 +75,8 @@ immutable(Sym) symOfPrimitiveType(immutable PrimitiveType a) {
 				return "char";
 			case PrimitiveType.float64:
 				return "float-64";
+			case PrimitiveType.fun:
+				return "fun";
 			case PrimitiveType.int8:
 				return "int-8";
 			case PrimitiveType.int16:
@@ -100,6 +103,9 @@ struct LowType {
 	@safe @nogc pure nothrow:
 
 	struct ExternPtr {
+		immutable size_t index;
+	}
+	struct Fun {
 		immutable size_t index;
 	}
 	struct FunPtr {
@@ -387,8 +393,7 @@ struct LowFunSource {
 
 	struct Generated {
 		immutable Sym name;
-		// Present for 'compare', missing for 'main'
-		immutable Opt!LowType typeArg;
+		immutable Arr!LowType typeArgs;
 	}
 
 	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind_ = Kind.concreteFun; concreteFun_ = a; }
@@ -528,7 +533,7 @@ struct LowExprKind {
 		immutable Ptr!LowLocal local;
 	}
 
-	//TODO: make this disappear into Cond on getting the union idx?
+	// TODO: compile down to a Switch?
 	struct Match {
 		struct Case {
 			immutable Opt!(Ptr!LowLocal) local;
@@ -717,6 +722,11 @@ struct LowExprKind {
 		immutable Arr!LowExpr args;
 	}
 
+	struct Switch {
+		immutable Ptr!LowExpr value;
+		immutable Arr!LowExpr cases;
+	}
+
 	struct TailRecur {
 		// Note: This omits the ctx param since it doesn't change.
 		immutable Arr!LowExpr args;
@@ -742,6 +752,7 @@ struct LowExprKind {
 		specialBinary,
 		specialTrinary,
 		specialNAry,
+		switch_,
 		tailRecur,
 	}
 	public immutable Kind kind; //TODO:PRIVATE
@@ -764,6 +775,7 @@ struct LowExprKind {
 		immutable SpecialBinary specialBinary;
 		immutable Ptr!SpecialTrinary specialTrinary;
 		immutable SpecialNAry specialNAry;
+		immutable Switch switch_;
 		immutable TailRecur tailRecur;
 	}
 
@@ -786,6 +798,7 @@ struct LowExprKind {
 	@trusted immutable this(immutable SpecialBinary a) { kind = Kind.specialBinary; specialBinary = a; }
 	@trusted immutable this(immutable Ptr!SpecialTrinary a) { kind = Kind.specialTrinary; specialTrinary = a; }
 	@trusted immutable this(immutable SpecialNAry a) { kind = Kind.specialNAry; specialNAry = a; }
+	@trusted immutable this(immutable Switch a) { kind = Kind.switch_; switch_ = a; }
 	@trusted immutable this(immutable TailRecur a) { kind = Kind.tailRecur; tailRecur = a; }
 }
 static assert(LowExprKind.sizeof <= 32);
@@ -810,6 +823,7 @@ static assert(LowExprKind.sizeof <= 32);
 	scope T delegate(ref immutable LowExprKind.SpecialBinary) @safe @nogc pure nothrow cbSpecialBinary,
 	scope T delegate(ref immutable LowExprKind.SpecialTrinary) @safe @nogc pure nothrow cbSpecialTrinary,
 	scope T delegate(ref immutable LowExprKind.SpecialNAry) @safe @nogc pure nothrow cbSpecialNAry,
+	scope T delegate(ref immutable LowExprKind.Switch) @safe @nogc pure nothrow cbSwitch,
 	scope T delegate(ref immutable LowExprKind.TailRecur) @safe @nogc pure nothrow cbTailRecur,
 ) {
 	final switch (a.kind) {
@@ -849,6 +863,8 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbSpecialTrinary(a.specialTrinary);
 		case LowExprKind.Kind.specialNAry:
 			return cbSpecialNAry(a.specialNAry);
+		case LowExprKind.Kind.switch_:
+			return cbSwitch(a.switch_);
 		case LowExprKind.Kind.tailRecur:
 			return cbTailRecur(a.tailRecur);
 	}

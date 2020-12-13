@@ -76,7 +76,10 @@ immutable(LowFun) generateCompareFun(Alloc)(
 		? arrCompareBody(alloc, range, allTypes, comparisonTypes, compareFuns, paramType, a, b)
 		: compareBody(alloc, range, allTypes, comparisonTypes, compareFuns, paramType, a, b);
 	return immutable LowFun(
-		immutable LowFunSource(nu!(LowFunSource.Generated)(alloc, shortSymAlphaLiteral("compare"), some(paramType))),
+		immutable LowFunSource(nu!(LowFunSource.Generated)(
+			alloc,
+			shortSymAlphaLiteral("compare"),
+			arrLiteral!LowType(alloc, [paramType]))),
 		nu!LowFunSig(
 			alloc,
 			immutable LowType(comparisonTypes.comparison),
@@ -429,6 +432,8 @@ immutable(LowExpr) genComparePrimitive(Alloc)(
 			return genCompareNumeric(LowExprKind.SpecialBinary.Kind.lessChar);
 		case PrimitiveType.float64:
 			return genCompareNumeric(LowExprKind.SpecialBinary.Kind.lessFloat64);
+		case PrimitiveType.fun:
+			return unreachable!(immutable LowExpr)();
 		case PrimitiveType.int8:
 			return genCompareNumeric(LowExprKind.SpecialBinary.Kind.lessInt8);
 		case PrimitiveType.int16:

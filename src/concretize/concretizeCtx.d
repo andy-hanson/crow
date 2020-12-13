@@ -14,6 +14,7 @@ import model.concreteModel :
 	ConcreteFunBody,
 	ConcreteFunSig,
 	ConcreteFunSource,
+	ConcreteLambdaImpl,
 	ConcreteParam,
 	ConcreteParamSource,
 	ConcreteType,
@@ -189,6 +190,12 @@ struct ConcretizeCtx {
 		immutable ConcreteFunBodyInputs,
 		comparePtr!ConcreteFun,
 	) concreteFunToBodyInputs;
+	MutDict!(
+		immutable Ptr!ConcreteStruct,
+		// Index in this array is the fun ID
+		MutArr!(immutable ConcreteLambdaImpl),
+		comparePtr!ConcreteStruct
+	) funStructToImpls;
 	// TODO: do these eagerly
 	Late!(immutable ConcreteType) _boolType;
 	Late!(immutable ConcreteType) _charType;
@@ -562,6 +569,15 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 			return BuiltinStructKind.char_;
 		case shortSymAlphaLiteralValue("float"):
 			return BuiltinStructKind.float64;
+		case shortSymAlphaLiteralValue("fun0"):
+		case shortSymAlphaLiteralValue("fun1"):
+		case shortSymAlphaLiteralValue("fun2"):
+		case shortSymAlphaLiteralValue("fun3"):
+		case shortSymAlphaLiteralValue("fun-mut0"):
+		case shortSymAlphaLiteralValue("fun-mut1"):
+		case shortSymAlphaLiteralValue("fun-mut2"):
+		case shortSymAlphaLiteralValue("fun-mut3"):
+			return BuiltinStructKind.fun;
 		case shortSymAlphaLiteralValue("fun-ptr0"):
 		case shortSymAlphaLiteralValue("fun-ptr1"):
 		case shortSymAlphaLiteralValue("fun-ptr2"):
@@ -603,6 +619,8 @@ immutable(size_t) getBuiltinStructSize(immutable BuiltinStructKind kind) {
 			return char.sizeof;
 		case BuiltinStructKind.float64:
 			return double.sizeof;
+		case BuiltinStructKind.fun:
+			return ulong.sizeof;
 		case BuiltinStructKind.funPtrN:
 			return (void*).sizeof;
 		case BuiltinStructKind.int8:

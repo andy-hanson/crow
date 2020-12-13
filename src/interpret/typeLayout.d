@@ -226,6 +226,7 @@ immutable(Nat16) primitiveSize(immutable PrimitiveType a) {
 		case PrimitiveType.nat32:
 			return immutable Nat16(4);
 		case PrimitiveType.float64:
+		case PrimitiveType.fun:
 		case PrimitiveType.int64:
 		case PrimitiveType.nat64:
 			return immutable Nat16(8);

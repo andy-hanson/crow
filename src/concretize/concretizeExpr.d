@@ -4,8 +4,6 @@ module concretize.concretizeExpr;
 
 import concretize.allConstantsBuilder : getConstantArr, getConstantStr;
 import concretize.concretizeCtx :
-	anyPtrType,
-	boolType,
 	charType,
 	ConcretizeCtx,
 	ConcreteFunKey,
@@ -35,6 +33,7 @@ import model.concreteModel :
 	ConcreteFun,
 	ConcreteFunBody,
 	ConcreteFunExprBody,
+	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteLocalSource,
 	ConcreteParam,
@@ -71,13 +70,14 @@ import model.model :
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
 import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
-import util.collection.mutDict : addToMutDict, mustDelete, mustGetAt_mut, MutDict;
+import util.collection.mutArr : MutArr, mutArrSize, push;
+import util.collection.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutDict;
 import util.memory : allocate, nu;
 import util.opt : force, forcePtr, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, symEq, symEqLongAlphaLiteral;
-import util.types : safeSizeTToU8;
+import util.types : safeSizeTToU8, safeSizeTToU16;
 import util.util : todo, unreachable, verify;
 
 immutable(ConcreteFunBody) concretizeExpr(Alloc)(
@@ -342,79 +342,105 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 	// TODO: handle constants in closure
 	// (do *not* include in the closure type, instead remember them for when compiling the lambda fn)
 
+	//TODO:KILL? (We also have an ID within the type..)
 	immutable size_t lambdaIndex = ctx.nextLambdaIndex;
 	ctx.nextLambdaIndex++;
 
 	immutable TypeArgsScope tScope = typeScope(ctx);
 	immutable Arr!ConcreteParam params = concretizeParams(alloc, ctx.concretizeCtx, e.params, tScope);
-	immutable Arr!ConcreteExpr closureArgs = map!ConcreteExpr(alloc, e.closure, (ref immutable Ptr!ClosureField f) =>
-		concretizeExpr(alloc, ctx, f.expr));
-	immutable Arr!ConcreteField closureFields = concretizeClosureFields(alloc, ctx.concretizeCtx, e.closure, tScope);
-	immutable Opt!ConcreteType closureType = e.kind == FunKind.ptr
-		? none!ConcreteType
-		: some!ConcreteType(empty(closureArgs)
-			? anyPtrType(alloc, ctx.concretizeCtx)
-			: concreteTypeFromFields_alwaysPointer(
+
+	immutable ConcreteType concreteType = getConcreteType_forStructInst(alloc, ctx, e.type);
+	immutable Ptr!ConcreteStruct concreteStruct = mustBeNonPointer(concreteType);
+	immutable(Ptr!ConcreteFun) getFun(immutable Opt!(Ptr!ConcreteParam) closureParam) {
+		return getConcreteFunForLambdaAndFillBody(
+			alloc,
+			ctx.concretizeCtx,
+			immutable Bool(e.kind != FunKind.ptr),
+			ctx.currentConcreteFun,
+			lambdaIndex,
+			getConcreteType(alloc, ctx, e.returnType),
+			closureParam,
+			params,
+			ctx.concreteFunBodyInputs.containingConcreteFunKey,
+			ptrTrustMe(e.body_));
+	}
+
+	if (e.kind == FunKind.ptr)
+		return immutable ConcreteExpr(concreteType, range, immutable ConcreteExprKind(
+			immutable ConcreteExprKind.LambdaFunPtr(getFun(none!(Ptr!ConcreteParam)))));
+	else {
+		immutable Arr!ConcreteExpr closureArgs =
+			map!ConcreteExpr(alloc, e.closure, (ref immutable Ptr!ClosureField f) =>
+				concretizeExpr(alloc, ctx, f.expr));
+		immutable Arr!ConcreteField closureFields =
+			concretizeClosureFields(alloc, ctx.concretizeCtx, e.closure, tScope);
+		immutable Opt!ConcreteType closureType = empty(closureArgs)
+			? none!ConcreteType
+			: some(concreteTypeFromFields_alwaysPointer(
 				alloc,
 				ctx.concretizeCtx,
 				closureFields,
 				immutable ConcreteStructSource(
 					immutable ConcreteStructSource.Lambda(ctx.currentConcreteFun, lambdaIndex))));
-	immutable Opt!(Ptr!ConcreteParam) closureParam = has(closureType)
-		? some(nu!ConcreteParam(
-			alloc,
-			immutable ConcreteParamSource(immutable ConcreteParamSource.Closure()),
-			none!size_t,
-			force(closureType)))
-		: none!(Ptr!ConcreteParam);
-	immutable Opt!(Ptr!ConcreteExpr) closure = e.kind == FunKind.ptr
-		? none!(Ptr!ConcreteExpr)
-		: some!(Ptr!ConcreteExpr)(
-			empty(closureArgs)
-				? allocExpr(alloc, immutable ConcreteExpr(
-					byRef(boolType(alloc, ctx.concretizeCtx)), // TODO: this should be any-ptr type
-					range,
-					immutable ConcreteExprKind(immutable Constant(immutable Constant.Null()))))
-				: allocExpr(alloc, createAllocExpr(alloc, ctx.concretizeCtx, immutable ConcreteExpr(
-					byVal(force(closureType)),
-					range,
-					immutable ConcreteExprKind(immutable ConcreteExprKind.CreateRecord(closureArgs))))));
+		immutable Opt!(Ptr!ConcreteParam) closureParam = has(closureType)
+			? some(nu!ConcreteParam(
+				alloc,
+				immutable ConcreteParamSource(immutable ConcreteParamSource.Closure()),
+				none!size_t,
+				force(closureType)))
+			: none!(Ptr!ConcreteParam);
+		immutable Opt!(Ptr!ConcreteExpr) closure = has(closureType)
+			? some(allocExpr(alloc, createAllocExpr(alloc, ctx.concretizeCtx, immutable ConcreteExpr(
+				byVal(force(closureType)),
+				range,
+				immutable ConcreteExprKind(immutable ConcreteExprKind.CreateRecord(closureArgs))))))
+			:  none!(Ptr!ConcreteExpr);
 
-	immutable ConcreteType possiblySendType = getConcreteType_forStructInst(alloc, ctx, e.type);
-	// For a fun-ref this is the inner fun-mut type.
-	immutable ConcreteType funType = e.kind == FunKind.ref_
-		? () {
-			immutable Arr!ConcreteField fields = asRecord(body_(possiblySendType.struct_)).fields;
+		immutable ConcreteLambdaImpl impl = immutable ConcreteLambdaImpl(closureType, getFun(closureParam));
+		immutable(ConcreteExprKind) lambda(immutable Ptr!ConcreteStruct funStruct) {
+			return immutable ConcreteExprKind(
+				immutable ConcreteExprKind.Lambda(nextLambdaImplId(alloc, ctx, funStruct, impl), closure));
+		}
+		if (e.kind == FunKind.ref_) {
+			// For a fun-ref this is the inner fun-mut type.
+			immutable Arr!ConcreteField fields = asRecord(body_(concreteStruct)).fields;
 			verify(size(fields) == 2);
+			immutable ConcreteField islandAndExclusionField = at(fields, 0);
+			verify(symEqLongAlphaLiteral(name(islandAndExclusionField), "island-and-exclusion"));
 			immutable ConcreteField funField = at(fields, 1);
 			verify(symEq(name(funField), shortSymAlphaLiteral("fun")));
-			return funField.type;
-		}()
-		: possiblySendType;
+			immutable ConcreteType funType = funField.type;
+			immutable ConcreteExpr islandAndExclusion =
+				getGetIslandAndExclusion(alloc, ctx, islandAndExclusionField.type, range);
+			return immutable ConcreteExpr(concreteType, range, immutable ConcreteExprKind(
+				immutable ConcreteExprKind.CreateRecord(arrLiteral!ConcreteExpr(alloc, [
+					islandAndExclusion,
+					immutable ConcreteExpr(funType, range, lambda(mustBeNonPointer(funType)))]))));
+		} else
+			return immutable ConcreteExpr(concreteType, range, lambda(concreteStruct));
+	}
+}
 
-	immutable Ptr!ConcreteFun fun = getConcreteFunForLambdaAndFillBody(
+immutable(ushort) nextLambdaImplId(Alloc)(
+	ref Alloc alloc,
+	ref ConcretizeExprCtx ctx,
+	immutable Ptr!ConcreteStruct funStruct,
+	ref immutable ConcreteLambdaImpl impl,
+) {
+	return nextLambdaImplIdInner!Alloc(
 		alloc,
-		ctx.concretizeCtx,
-		immutable Bool(e.kind != FunKind.ptr),
-		ctx.currentConcreteFun,
-		lambdaIndex,
-		getConcreteType(alloc, ctx, e.returnType),
-		closureParam,
-		params,
-		ctx.concreteFunBodyInputs.containingConcreteFunKey,
-		ptrTrustMe(e.body_));
-	immutable ConcreteExpr res = immutable ConcreteExpr(funType, range, immutable ConcreteExprKind(
-		immutable ConcreteExprKind.Lambda(fun, closure)));
-
-	if (e.kind == FunKind.ref_) {
-		immutable ConcreteField islandAndExclusionField = at(asRecord(body_(possiblySendType.struct_)).fields, 0);
-		verify(symEqLongAlphaLiteral(name(islandAndExclusionField), "island-and-exclusion"));
-		immutable ConcreteExpr islandAndExclusion =
-			getGetIslandAndExclusion(alloc, ctx, islandAndExclusionField.type, range);
-		return immutable ConcreteExpr(possiblySendType, range, immutable ConcreteExprKind(
-			immutable ConcreteExprKind.CreateRecord(arrLiteral!ConcreteExpr(alloc, [islandAndExclusion, res]))));
-	} else
-		return res;
+		impl,
+		getOrAdd(alloc, ctx.concretizeCtx.funStructToImpls, funStruct, () =>
+			MutArr!(immutable ConcreteLambdaImpl)()));
+}
+immutable(ushort) nextLambdaImplIdInner(Alloc)(
+	ref Alloc alloc,
+	ref immutable ConcreteLambdaImpl impl,
+	ref MutArr!(immutable ConcreteLambdaImpl) impls,
+) {
+	immutable ushort res = safeSizeTToU16(mutArrSize(impls));
+	push(alloc, impls, impl);
+	return res;
 }
 
 immutable(Ptr!ConcreteLocal) makeLocalWorker(Alloc)(

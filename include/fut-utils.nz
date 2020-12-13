@@ -31,7 +31,7 @@ decr-joiner void(j joiner ?out ?in0 ?in1) unsafe send<?out> send<?in0> send<?in1
 		as ok ok0
 			match j.arg1 force
 			as ok ok1
-				j.fun call ok0.value, ok1.value forward-to j.res
+				j.fun call-ref ok0.value, ok1.value forward-to j.res
 			as err e1
 				j.res reject e1.value
 		as err e0
@@ -74,7 +74,7 @@ then fut ?out(f fut ?in, cb fun-ref1 ?out ?in) trusted send<?out> send<?in>
 	f then-void \result
 		match result
 		as ok o
-			cb call o.value forward-to res
+			cb call-ref o.value forward-to res
 		as err e
 			res reject e.value
 	res
@@ -84,7 +84,7 @@ then fut ?out(f fut ?in, cb fun-ref1 ?out ?in) trusted send<?out> send<?in>
 | and choose just one based on the arity of a lambda.
 then2 fut ?out(f fut void, cb fun-ref0 ?out) send<?out>
 	f then<?out, void> \ignore
-		cb call
+		cb call-ref
 
 | Runs 'f' asynchronously.
 | Since 'f' is 'fun' and not 'fun-mut' it is guaranteed to not close over 'mut' data.
@@ -96,21 +96,21 @@ async fut ?t(f fun0 fut<?t>) trusted
 		f.call forward-to res
 	res
 
-call fut ?r(f fun-ref0 ?r) trusted send<?r>
+call-ref fut ?r(f fun-ref0 ?r) trusted send<?r>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
 	island add-task task: f.island-and-exclusion.exclusion, \
 		{f.fun.call forward-to res} catch {res reject it}
 	res
 
-call fut ?r(f fun-ref1 ?r ?p0, p0 ?p0) trusted send<?r> send<?p0>
+call-ref fut ?r(f fun-ref1 ?r ?p0, p0 ?p0) trusted send<?r> send<?p0>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
 	island add-task task: f.island-and-exclusion.exclusion, \
 		{f.fun call p0 forward-to res} catch {res reject it}
 	res
 
-call fut ?r(f fun-ref2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
+call-ref fut ?r(f fun-ref2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
 	island add-task task: f.island-and-exclusion.exclusion, \

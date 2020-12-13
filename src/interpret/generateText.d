@@ -234,6 +234,7 @@ void writeConstant(TempAlloc)(
 			final switch (asPrimitive(type)) {
 				case PrimitiveType.bool_:
 				case PrimitiveType.float64:
+				case PrimitiveType.fun:
 				case PrimitiveType.void_:
 					unreachable!void();
 					break;

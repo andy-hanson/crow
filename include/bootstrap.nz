@@ -202,43 +202,17 @@ island-and-exclusion record
 	island island-id
 	exclusion exclusion
 
-| A fun is two pointers -- one to the fun pointer, one to the closure.
-| TODO: point to the vtable, and have vtable also store layout information
-fun0<?r> record mut
-	by-val
-	fun-ptr fun-ptr2 ?r ctx any-ptr
-	closure any-ptr
-fun1<?r, ?p0> record mut
-	by-val
-	fun-ptr fun-ptr3 ?r ctx any-ptr ?p0
-	closure any-ptr
-fun2<?r, ?p0, ?p1> record mut
-	by-val
-	fun-ptr fun-ptr4 ?r ctx any-ptr ?p0 ?p1
-	closure any-ptr
-fun3<?r, ?p0, ?p1, ?p2> record mut
-	by-val
-	fun-ptr fun-ptr5 ?r ctx any-ptr ?p0 ?p1 ?p2
-	closure any-ptr
+fun0<?r> builtin mut
+fun1<?r, ?p0> builtin mut
+fun2<?r, ?p0, ?p1> builtin mut
+fun3<?r, ?p0, ?p1, ?p2> builtin mut
 
 | A fun-mut may close over 'mut' state.
-| (A normal 'fun' may still closue over mutable state that is sendable.)
-fun-mut0<?r> record mut
-	by-val
-	fun-ptr fun-ptr2 ?r ctx any-ptr
-	closure any-ptr
-fun-mut1<?r, ?p0> record mut
-	by-val
-	fun-ptr fun-ptr3 ?r ctx any-ptr ?p0
-	closure any-ptr
-fun-mut2<?r, ?p0, ?p1> record mut
-	by-val
-	fun-ptr fun-ptr4 ?r ctx any-ptr ?p0 ?p1
-	closure any-ptr
-fun-mut3<?r, ?p0, ?p1, ?p2> record mut
-	by-val
-	fun-ptr fun-ptr5 ?r ctx any-ptr ?p0 ?p1 ?p2
-	closure any-ptr
+| (A normal 'fun' may still close over mutable state that is sendable.)
+fun-mut0<?r> builtin mut
+fun-mut1<?r, ?p0> builtin mut
+fun-mut2<?r, ?p0, ?p1> builtin mut
+fun-mut3<?r, ?p0, ?p1, ?p2> builtin mut
 
 | A normal fun is non-sendable, a fun-ref becomes sendable by storing the island/exclusion that will provide its ctx.
 | As the name implies, we have a reference to the fun, but when we call it,
@@ -261,63 +235,40 @@ fun-ref3<?r, ?p0, ?p1, ?p2> record force-sendable
 	fun fun-mut3 fut<?r> ?p0 ?p1 ?p2
 
 | calling a fun-ptr is a primitive operation
-call ?r(f fun-ptr0 ?r) noctx builtin
-call ?r(f fun-ptr1 ?r ?p0, p0 ?p0) noctx builtin
-call ?r(f fun-ptr2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) noctx builtin
-call ?r(f fun-ptr3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
-call ?r(f fun-ptr4 ?r ?p0 ?p1 ?p2 ?p3, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
-call ?r(f fun-ptr5 ?r ?p0 ?p1 ?p2 ?p3 ?p4, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4) noctx builtin
-call ?r(f fun-ptr6 ?r ?p0 ?p1 ?p2 ?p3 ?p4 ?p5, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4, p5 ?p5) noctx builtin
+call ?r(a fun-ptr0 ?r) noctx builtin
+call ?r(a fun-ptr1 ?r ?p0, p0 ?p0) noctx builtin
+call ?r(a fun-ptr2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) noctx builtin
+call ?r(a fun-ptr3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
+call ?r(a fun-ptr4 ?r ?p0 ?p1 ?p2 ?p3, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
+call ?r(a fun-ptr5 ?r ?p0 ?p1 ?p2 ?p3 ?p4, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4) noctx builtin
+call ?r(a fun-ptr6 ?r ?p0 ?p1 ?p2 ?p3 ?p4 ?p5, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4, p5 ?p5) noctx builtin
 
-| Note: this is the implementation for a dynamic call.
-| But the compiler may call the function dynamically instead
-call ?r(f fun0 ?r) trusted
-	get-ctx call-with-ctx f
+call ?r(a fun0 ?r) trusted
+	a call-with-ctx get-ctx
+call ?r(a fun1 ?r ?p0, p0 ?p0) trusted
+	a call-with-ctx get-ctx, p0
+call ?r(a fun2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted
+	a call-with-ctx get-ctx, p0, p1
+call ?r(a fun3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) trusted
+	a call-with-ctx get-ctx, p0, p1, p2
 
-call-with-ctx ?r(c ctx, f fun0 ?r) noctx
-	f.fun-ptr call c, f.closure
+call ?r(a fun-mut0 ?r) trusted
+	a call-with-ctx get-ctx
+call ?r(a fun-mut1 ?r ?p0, p0 ?p0) trusted
+	a call-with-ctx get-ctx, p0
+call ?r(a fun-mut2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted
+	a call-with-ctx get-ctx, p0, p1
+call ?r(a fun-mut3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) trusted
+	a call-with-ctx get-ctx, p0, p1, p2
 
-call ?r(f fun-mut0 ?r) trusted
-	get-ctx call-with-ctx f
-
-call-with-ctx ?r(c ctx, f fun-mut0 ?r) noctx
-	f.fun-ptr call c, f.closure
-
-call ?r(f fun1 ?r ?p0, p0 ?p0) trusted
-	get-ctx call-with-ctx f, p0
-
-call-with-ctx ?r(c ctx, f fun1 ?r ?p0, p0 ?p0) noctx
-	f.fun-ptr call c, f.closure, p0
-
-call ?r(f fun-mut1 ?r ?p0, p0 ?p0) trusted
-	get-ctx call-with-ctx f, p0
-
-call-with-ctx ?r(c ctx, f fun-mut1 ?r ?p0, p0 ?p0) noctx
-	f.fun-ptr call c, f.closure, p0
-
-call ?r(f fun2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted
-	get-ctx call-with-ctx f, p0, p1
-
-call-with-ctx ?r(c ctx, f fun2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) noctx
-	f.fun-ptr call c, f.closure, p0, p1
-
-call ?r(f fun-mut2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted
-	get-ctx call-with-ctx f, p0, p1
-
-call-with-ctx ?r(c ctx, f fun-mut2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) noctx
-	f.fun-ptr call c, f.closure, p0, p1
-
-call ?r(f fun3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) trusted
-	get-ctx call-with-ctx f, p0, p1, p2
-
-call-with-ctx ?r(c ctx, f fun3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) noctx
-	f.fun-ptr call c, f.closure, p0, p1, p2
-
-call ?r(f fun-mut3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) trusted
-	get-ctx call-with-ctx f, p0, p1, p2
-
-call-with-ctx ?r(c ctx, f fun-mut3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) noctx
-	f.fun-ptr call c, f.closure, p0, p1, p2
+call-with-ctx ?r(f fun0 ?r, c ctx) noctx builtin
+call-with-ctx ?r(f fun-mut0 ?r, c ctx) noctx builtin
+call-with-ctx ?r(f fun1 ?r ?p0, c ctx, p0 ?p0) noctx builtin
+call-with-ctx ?r(f fun-mut1 ?r ?p0, c ctx, p0 ?p0) noctx builtin
+call-with-ctx ?r(f fun2 ?r ?p0 ?p1, c ctx, p0 ?p0, p1 ?p1) noctx builtin
+call-with-ctx ?r(f fun-mut2 ?r ?p0 ?p1, c ctx, p0 ?p0, p1 ?p1) noctx builtin
+call-with-ctx ?r(f fun3 ?r ?p0 ?p1 ?p2, c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
+call-with-ctx ?r(f fun-mut3 ?r ?p0 ?p1 ?p2, c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
 
 | A type is data if it is:
 | * A primitive

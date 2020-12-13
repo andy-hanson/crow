@@ -2,6 +2,7 @@ module backend.writeToC;
 
 @safe @nogc pure nothrow:
 
+import interpret.debugging : writeFunName, writeFunSig;
 import model.concreteModel :
 	asExtern,
 	body_,
@@ -778,6 +779,12 @@ void writeFunDefinition(Alloc)(
 			// declaration is enough
 		},
 		(ref immutable LowFunExprBody it) {
+			// TODO: only if a flag is set
+			writeStatic(writer, "/* ");
+			writeFunName(writer, ctx.program, funIndex);
+			writeChar(writer, ' ');
+			writeFunSig(writer, ctx.program, fun);
+			writeStatic(writer, " */\n");
 			writeFunWithExprBody(writer, ctx, funIndex, fun, it);
 		});
 }
@@ -874,6 +881,11 @@ void eachLocal(
 		(ref immutable LowExprKind.SpecialNAry it) {
 			foreach (ref immutable LowExpr arg; range(it.args))
 				eachLocal(arg, cb);
+		},
+		(ref immutable LowExprKind.Switch it) {
+			eachLocal(it.value, cb);
+			foreach (ref immutable LowExpr case_; range(it.cases))
+				eachLocal(case_, cb);
 		},
 		(ref immutable LowExprKind.TailRecur it) {
 			foreach (ref immutable LowExpr arg; range(it.args))
@@ -1010,6 +1022,9 @@ void writeExpr(Alloc)(
 		},
 		(ref immutable LowExprKind.SpecialNAry it) {
 			return_(() { writeSpecialNAry(writer, indent, ctx, it); });
+		},
+		(ref immutable LowExprKind.Switch it) {
+			writeSwitch(writer, indent, ctx, writeKind, type, it);
 		},
 		(ref immutable LowExprKind.TailRecur it) {
 			verify(writeKind == WriteKind.returnStatement);
@@ -1221,6 +1236,46 @@ void writeMatch(Alloc)(
 	}
 }
 
+//TODO: share code with writeMatch
+void writeSwitch(Alloc)(
+	ref Writer!Alloc writer,
+	immutable size_t indent,
+	ref immutable FunBodyCtx ctx,
+	immutable WriteKind writeKind,
+	ref immutable LowType type,
+	ref immutable LowExprKind.Switch a,
+) {
+	if (writeKind == WriteKind.expr) {
+		todo!void("switch as expr");
+	} else {
+		writeStatic(writer, "switch (");
+		writeExprExpr(writer, indent, ctx, a.value);
+		writeStatic(writer, ") {");
+		foreach (immutable size_t caseIndex; 0..size(a.cases)) {
+			immutable LowExpr case_ = at(a.cases, caseIndex);
+			newline(writer, indent + 1);
+			writeStatic(writer, "case ");
+			writeNat(writer, caseIndex);
+			writeChar(writer, ':');
+			newline(writer, indent + 2);
+			writeExpr(writer, indent + 2, ctx, writeKind, case_);
+			if (writeKind == WriteKind.statement) {
+				newline(writer, indent + 2);
+				writeStatic(writer, "break;");
+			}
+		}
+		newline(writer, indent + 1);
+		writeStatic(writer, "default:");
+		newline(writer, indent + 2);
+		if (writeKind == WriteKind.returnStatement)
+			writeStatic(writer, "return ");
+		writeHardFail(writer, ctx.ctx, type);
+		writeChar(writer, ';');
+		newline(writer, indent);
+		writeChar(writer, '}');
+	}
+}
+
 void writeAssignLocal(Alloc)(
 	ref Writer!Alloc writer,
 	immutable size_t indent,
@@ -1377,6 +1432,7 @@ immutable(Bool) isSignedIntegral(immutable PrimitiveType a) {
 			return True;
 		case PrimitiveType.bool_:
 		case PrimitiveType.char_:
+		case PrimitiveType.fun:
 		case PrimitiveType.nat8:
 		case PrimitiveType.nat16:
 		case PrimitiveType.nat32:
@@ -1773,6 +1829,8 @@ void writePrimitiveType(Alloc)(ref Writer!Alloc writer, immutable PrimitiveType 
 				return "char";
 			case PrimitiveType.float64:
 				return "double";
+			case PrimitiveType.fun:
+				return "uint64_t";
 			case PrimitiveType.int8:
 				return "int8_t";
 			case PrimitiveType.int16:
