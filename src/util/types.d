@@ -223,6 +223,11 @@ immutable(u16) safeU32ToU16(immutable u32 u) {
 	return cast(immutable u16) u;
 }
 
+immutable(u8) safeU16ToU8(immutable u16 u) {
+	verify(u <= u8.max);
+	return cast(immutable u8) u;
+}
+
 immutable(u16) safeSizeTToU16(immutable size_t s) {
 	verify(s <= u16.max);
 	return cast(immutable u16) s;

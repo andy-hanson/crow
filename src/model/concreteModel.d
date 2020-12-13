@@ -24,7 +24,7 @@ import util.collection.dict : Dict;
 import util.collection.str : Str;
 import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateSet;
-import util.opt : none, Opt;
+import util.opt : Opt;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
@@ -259,12 +259,8 @@ immutable(size_t) sizeOrPointerSizeBytes(ref immutable ConcreteType t) {
 	return t.isPointer ? (void*).sizeof : sizeBytes(t.struct_);
 }
 
-immutable(ConcreteType) concreteType_pointer(immutable Ptr!ConcreteStruct struct_) {
-	return immutable ConcreteType(True, struct_);
-}
-
 immutable(ConcreteType) byRef(immutable ConcreteType t) {
-	return concreteType_pointer(t.struct_);
+	return immutable ConcreteType(True, t.struct_);
 }
 
 immutable(ConcreteType) byVal(ref immutable ConcreteType t) {
@@ -714,10 +710,8 @@ struct ConcreteExprKind {
 	// May be a fun or run-mut.
 	// (A fun-ref is a lambda wrapped in CreateRecord.)
 	struct Lambda {
-		immutable ushort funId;
-		// Always a ConcreteExpr.Alloc (or none for no closure)
-		// TODO: so type it as such
-		immutable Opt!(Ptr!ConcreteExpr) closure;
+		immutable ushort memberIndex; // Member index of a Union (which hasn't been created yet)
+		immutable Ptr!ConcreteExpr closure;
 	}
 
 	//TODO: don't have 'lambda' in the name
@@ -936,6 +930,6 @@ struct ConcreteProgram {
 }
 
 struct ConcreteLambdaImpl {
-	immutable Opt!(ConcreteType) closureType;
+	immutable ConcreteType closureType;
 	immutable Ptr!ConcreteFun impl;
 }

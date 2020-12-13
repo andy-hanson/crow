@@ -19,7 +19,6 @@ import model.concreteModel :
 	ConcreteParamSource,
 	ConcreteType,
 	concreteType_fromStruct,
-	concreteType_pointer,
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteStructInfo,
@@ -244,17 +243,16 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	immutable Ptr!ConcreteFun containingConcreteFun,
 	immutable size_t index,
 	immutable ConcreteType returnType,
-	ref immutable Opt!(Ptr!ConcreteParam) closureParam,
+	immutable Ptr!ConcreteParam closureParam,
 	ref immutable Arr!ConcreteParam params,
 	ref immutable ConcreteFunKey containingConcreteFunKey,
 	immutable Ptr!Expr body_,
 ) {
-	Ptr!ConcreteFun res =
-		nuMut!ConcreteFun(
-			alloc,
-			immutable ConcreteFunSource(
-				nu!(ConcreteFunSource.Lambda)(alloc, body_.range, containingConcreteFun, index)),
-			nu!ConcreteFunSig(alloc, returnType, True, closureParam, params));
+	Ptr!ConcreteFun res = nuMut!ConcreteFun(
+		alloc,
+		immutable ConcreteFunSource(
+			nu!(ConcreteFunSource.Lambda)(alloc, body_.range, containingConcreteFun, index)),
+		nu!ConcreteFunSig(alloc, returnType, True, some(closureParam), params));
 	immutable ConcreteFunBodyInputs bodyInputs = immutable ConcreteFunBodyInputs(
 		containingConcreteFunKey,
 		immutable FunBody(body_));
@@ -333,21 +331,28 @@ immutable(Arr!ConcreteType) typesToConcreteTypes(Alloc)(
 		getConcreteType(alloc, ctx, t, typeArgsScope));
 }
 
-immutable(ConcreteType) concreteTypeFromFields_alwaysPointer(Alloc)(
+immutable(ConcreteType) concreteTypeFromClosure(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	ref immutable Arr!ConcreteField fields,
+	ref immutable Arr!ConcreteField closureFields,
 	immutable ConcreteStructSource source,
 ) {
-	verify(!empty(fields));
-	immutable Purity purity = fold(Purity.data, fields, (ref immutable Purity p, ref immutable ConcreteField f) {
-		verify(!f.isMutable); // TODO: lambda fields are never mutable, use a different type?
-		return worsePurity(p, purity(f.type));
-	});
-	Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, purity, source);
-	lateSet(cs.info_, getConcreteStructInfoForFields(none!ForcedByValOrRef, fields));
-	add(alloc, ctx.allConcreteStructs, castImmutable(cs));
-	return concreteType_pointer(castImmutable(cs));
+	if (empty(closureFields))
+		return voidType(alloc, ctx);
+	else {
+		immutable Purity purity = fold(
+			Purity.data,
+			closureFields,
+			(ref immutable Purity p, ref immutable ConcreteField f) {
+				verify(!f.isMutable); // TODO: lambda fields are never mutable, use a different type?
+				return worsePurity(p, purity(f.type));
+			});
+		Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, purity, source);
+		lateSet(cs.info_, getConcreteStructInfoForFields(none!ForcedByValOrRef, closureFields));
+		add(alloc, ctx.allConcreteStructs, castImmutable(cs));
+		// TODO: consider passing closure by value
+		return immutable ConcreteType(True, castImmutable(cs));
+	}
 }
 
 //TODO: do eagerly?

@@ -54,7 +54,6 @@ import model.lowModel :
 	LowFunPtrType,
 	LowFunSig,
 	LowFunSource,
-	LowFunType,
 	LowParam,
 	LowProgram,
 	LowRecord,
@@ -140,7 +139,6 @@ void doInterpret(Debug, Alloc)(
 		nu!AllLowTypes(
 			test.alloc,
 			emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
-			emptyFullIndexDict!(LowType.Fun, LowFunType),
 			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
 			emptyFullIndexDict!(LowType.Record, LowRecord),
 			emptyFullIndexDict!(LowType.Union, LowUnion)),

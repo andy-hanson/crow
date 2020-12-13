@@ -66,10 +66,7 @@ struct some_1 {
 	struct gc_ctx* value;
 };
 struct island_gc_root;
-struct task {
-	uint64_t exclusion;
-	uint64_t fun;
-};
+struct task;
 struct mut_bag;
 struct mut_bag_node;
 struct some_2 {
@@ -120,27 +117,13 @@ struct island_and_exclusion {
 	uint64_t island;
 	uint64_t exclusion;
 };
-struct fun_ref1 {
-	struct island_and_exclusion island_and_exclusion;
-	uint64_t fun;
-};
-struct then__lambda0 {
-	struct fun_ref1 cb;
-	struct fut_0* res;
-};
+struct fun_ref1;
+struct then__lambda0;
 struct forward_to__lambda0 {
 	struct fut_0* to;
 };
-struct call_ref_0__lambda0 {
-	struct fun_ref1 f;
-	uint8_t p0;
-	struct fut_0* res;
-};
-struct call_ref_0__lambda0__lambda0 {
-	struct fun_ref1 f;
-	uint8_t p0;
-	struct fut_0* res;
-};
+struct call_ref_0__lambda0;
+struct call_ref_0__lambda0__lambda0;
 struct call_ref_0__lambda0__lambda1 {
 	struct fut_0* res;
 };
@@ -160,10 +143,7 @@ struct mut_arr_1 {
 struct some_4 {
 	uint8_t* value;
 };
-struct map__lambda0 {
-	uint64_t mapper;
-	struct arr_3 a;
-};
+struct map__lambda0;
 struct thread_args {
 	uint64_t thread_id;
 	struct global_ctx* gctx;
@@ -172,9 +152,7 @@ struct cell_0 {
 	uint64_t value;
 };
 struct chosen_task;
-struct some_5 {
-	struct task value;
-};
+struct some_5;
 struct no_chosen_task {
 	uint8_t last_thread_out;
 };
@@ -225,6 +203,12 @@ struct result_0 {
 		struct err_0 as1;
 	};
 };
+struct fun_mut1_0 {
+	int kind;
+	union {
+		struct forward_to__lambda0* as0;
+	};
+};
 struct opt_0 {
 	int kind;
 	union {
@@ -239,11 +223,34 @@ struct opt_1 {
 		struct some_1 as1;
 	};
 };
+struct fun_mut0_0 {
+	int kind;
+	union {
+		struct call_ref_0__lambda0__lambda0* as0;
+		struct call_ref_0__lambda0* as1;
+		struct call_ref_1__lambda0__lambda0* as2;
+		struct call_ref_1__lambda0* as3;
+	};
+};
 struct opt_2 {
 	int kind;
 	union {
 		struct none as0;
 		struct some_2 as1;
+	};
+};
+struct fun_mut1_1 {
+	int kind;
+	union {
+		uint8_t as0;
+		struct call_ref_0__lambda0__lambda1* as1;
+		struct call_ref_1__lambda0__lambda1* as2;
+	};
+};
+struct fun2 {
+	int kind;
+	union {
+		uint8_t as0;
 	};
 };
 struct fut_state_1;
@@ -254,11 +261,41 @@ struct result_1 {
 		struct err_0 as1;
 	};
 };
+struct fun_mut1_2 {
+	int kind;
+	union {
+		struct then__lambda0* as0;
+	};
+};
 struct opt_3 {
 	int kind;
 	union {
 		struct none as0;
 		struct some_3 as1;
+	};
+};
+struct fun_mut0_1 {
+	int kind;
+	union {
+		struct add_first_task__lambda0* as0;
+	};
+};
+struct fun_mut1_3 {
+	int kind;
+	union {
+		struct then2__lambda0* as0;
+	};
+};
+struct fun_mut1_4 {
+	int kind;
+	union {
+		uint8_t as0;
+	};
+};
+struct fun_mut1_5 {
+	int kind;
+	union {
+		struct map__lambda0* as0;
 	};
 };
 struct opt_4 {
@@ -268,13 +305,7 @@ struct opt_4 {
 		struct some_4 as1;
 	};
 };
-struct opt_5 {
-	int kind;
-	union {
-		struct none as0;
-		struct some_5 as1;
-	};
-};
+struct opt_5;
 struct result_2;
 struct opt_6;
 struct opt_7;
@@ -293,6 +324,19 @@ struct opt_10 {
 		struct some_10 as1;
 	};
 };
+struct fun_mut1_6 {
+	int kind;
+	union {
+		uint8_t as0;
+		uint8_t as1;
+	};
+};
+struct fun_mut1_7 {
+	int kind;
+	union {
+		struct _op_plus_1__lambda0* as0;
+	};
+};
 typedef struct fut_0* (*fun_ptr2)(struct ctx*, struct arr_1);
 struct fut_0;
 struct lock {
@@ -302,7 +346,7 @@ struct fut_state_callbacks_0 {
 	struct opt_0 head;
 };
 struct fut_callback_node_0 {
-	uint64_t cb;
+	struct fun_mut1_0 cb;
 	struct opt_0 next_node;
 };
 struct global_ctx;
@@ -324,6 +368,10 @@ struct gc_ctx {
 	struct opt_1 next_ctx;
 };
 struct island_gc_root;
+struct task {
+	uint64_t exclusion;
+	struct fun_mut0_0 fun;
+};
 struct mut_bag {
 	struct opt_2 head;
 };
@@ -355,12 +403,30 @@ struct fut_state_callbacks_1 {
 	struct opt_3 head;
 };
 struct fut_callback_node_1 {
-	uint64_t cb;
+	struct fun_mut1_2 cb;
 	struct opt_3 next_node;
 };
 struct fun_ref0 {
 	struct island_and_exclusion island_and_exclusion;
-	uint64_t fun;
+	struct fun_mut0_1 fun;
+};
+struct fun_ref1 {
+	struct island_and_exclusion island_and_exclusion;
+	struct fun_mut1_3 fun;
+};
+struct then__lambda0 {
+	struct fun_ref1 cb;
+	struct fut_0* res;
+};
+struct call_ref_0__lambda0 {
+	struct fun_ref1 f;
+	uint8_t p0;
+	struct fut_0* res;
+};
+struct call_ref_0__lambda0__lambda0 {
+	struct fun_ref1 f;
+	uint8_t p0;
+	struct fut_0* res;
 };
 struct then2__lambda0 {
 	struct fun_ref0 cb;
@@ -377,19 +443,17 @@ struct add_first_task__lambda0 {
 	struct arr_3 all_args;
 	fun_ptr2 main_ptr;
 };
-struct chosen_task {
-	struct island* island;
-	struct opt_5 task_or_gc;
+struct map__lambda0 {
+	struct fun_mut1_4 mapper;
+	struct arr_3 a;
 };
-struct ok_2 {
-	struct chosen_task value;
+struct chosen_task;
+struct some_5 {
+	struct task value;
 };
-struct some_6 {
-	struct chosen_task value;
-};
-struct some_7 {
-	struct opt_5 value;
-};
+struct ok_2;
+struct some_6;
+struct some_7;
 struct task_and_nodes {
 	struct task task;
 	struct opt_2 nodes;
@@ -413,27 +477,16 @@ struct fut_state_1 {
 		struct exception as2;
 	};
 };
-struct result_2 {
-	int kind;
-	union {
-		struct ok_2 as0;
-		struct err_1 as1;
-	};
-};
-struct opt_6 {
+struct opt_5 {
 	int kind;
 	union {
 		struct none as0;
-		struct some_6 as1;
+		struct some_5 as1;
 	};
 };
-struct opt_7 {
-	int kind;
-	union {
-		struct none as0;
-		struct some_7 as1;
-	};
-};
+struct result_2;
+struct opt_6;
+struct opt_7;
 struct opt_8 {
 	int kind;
 	union {
@@ -456,7 +509,7 @@ struct global_ctx {
 struct island;
 struct island_gc_root {
 	struct mut_bag tasks;
-	uint64_t exception_handler;
+	struct fun_mut1_1 exception_handler;
 };
 struct jmp_buf_tag;
 struct bytes64 {
@@ -470,6 +523,40 @@ struct bytes128 {
 struct fut_1 {
 	struct lock lk;
 	struct fut_state_1 state;
+};
+struct chosen_task {
+	struct island* island;
+	struct opt_5 task_or_gc;
+};
+struct ok_2 {
+	struct chosen_task value;
+};
+struct some_6 {
+	struct chosen_task value;
+};
+struct some_7 {
+	struct opt_5 value;
+};
+struct result_2 {
+	int kind;
+	union {
+		struct ok_2 as0;
+		struct err_1 as1;
+	};
+};
+struct opt_6 {
+	int kind;
+	union {
+		struct none as0;
+		struct some_6 as1;
+	};
+};
+struct opt_7 {
+	int kind;
+	union {
+		struct none as0;
+		struct some_7 as1;
+	};
 };
 struct island {
 	struct global_ctx* gctx;
@@ -597,7 +684,7 @@ int32_t stderr_fd(void);
 uint8_t print_err(struct arr_0 s);
 uint8_t empty__q_0(struct arr_0 a);
 struct global_ctx* get_gctx(struct ctx* ctx);
-uint8_t new_island__lambda0(struct ctx* ctx, struct exception it);
+uint8_t new_island__lambda0(struct ctx* ctx, uint8_t _closure, struct exception it);
 struct gc new_gc(void);
 extern void memset(uint8_t* begin, uint8_t value, uint64_t size);
 struct thread_safe_counter new_thread_safe_counter_0(void);
@@ -625,13 +712,13 @@ struct fut_0* add_first_task(struct ctx* ctx, struct arr_3 all_args, fun_ptr2 ma
 struct fut_0* then2(struct ctx* ctx, struct fut_1* f, struct fun_ref0 cb);
 struct fut_0* then(struct ctx* ctx, struct fut_1* f, struct fun_ref1 cb);
 struct fut_0* new_unresolved_fut(struct ctx* ctx);
-uint8_t then_void_0(struct ctx* ctx, struct fut_1* f, uint64_t cb);
-uint8_t call_0(struct ctx* ctx, uint64_t a, struct result_1 p0);
-uint8_t call_w_ctx_78(uint64_t a, struct ctx* ctx, struct result_1 p0);
+uint8_t then_void_0(struct ctx* ctx, struct fut_1* f, struct fun_mut1_2 cb);
+uint8_t call_0(struct ctx* ctx, struct fun_mut1_2 a, struct result_1 p0);
+uint8_t call_w_ctx_78(struct fun_mut1_2 a, struct ctx* ctx, struct result_1 p0);
 uint8_t forward_to(struct ctx* ctx, struct fut_0* from, struct fut_0* to);
-uint8_t then_void_1(struct ctx* ctx, struct fut_0* f, uint64_t cb);
-uint8_t call_1(struct ctx* ctx, uint64_t a, struct result_0 p0);
-uint8_t call_w_ctx_82(uint64_t a, struct ctx* ctx, struct result_0 p0);
+uint8_t then_void_1(struct ctx* ctx, struct fut_0* f, struct fun_mut1_0 cb);
+uint8_t call_1(struct ctx* ctx, struct fun_mut1_0 a, struct result_0 p0);
+uint8_t call_w_ctx_82(struct fun_mut1_0 a, struct ctx* ctx, struct result_0 p0);
 uint8_t resolve_or_reject(struct ctx* ctx, struct fut_0* f, struct result_0 result);
 uint8_t resolve_or_reject_recur(struct ctx* ctx, struct opt_0 node, struct result_0 value);
 uint8_t drop_1(uint8_t t);
@@ -653,27 +740,27 @@ struct mut_bag_node* new_mut_bag_node(struct ctx* ctx, struct task value);
 uint8_t add(struct mut_bag* bag, struct mut_bag_node* node);
 struct mut_bag* tasks(struct island* a);
 uint8_t broadcast(struct condition* c);
-uint8_t catch(struct ctx* ctx, uint64_t try, uint64_t catcher);
-uint8_t catch_with_exception_ctx(struct ctx* ctx, struct exception_ctx* ec, uint64_t try, uint64_t catcher);
+uint8_t catch(struct ctx* ctx, struct fun_mut0_0 try, struct fun_mut1_1 catcher);
+uint8_t catch_with_exception_ctx(struct ctx* ctx, struct exception_ctx* ec, struct fun_mut0_0 try, struct fun_mut1_1 catcher);
 struct bytes64 zero_0(void);
 struct bytes32 zero_1(void);
 struct bytes16 zero_2(void);
 struct bytes128 zero_3(void);
 extern int32_t setjmp(struct jmp_buf_tag* env);
-uint8_t call_2(struct ctx* ctx, uint64_t a);
-uint8_t call_w_ctx_112(uint64_t a, struct ctx* ctx);
-uint8_t call_3(struct ctx* ctx, uint64_t a, struct exception p0);
-uint8_t call_w_ctx_114(uint64_t a, struct ctx* ctx, struct exception p0);
-struct fut_0* call_4(struct ctx* ctx, uint64_t a, uint8_t p0);
-struct fut_0* call_w_ctx_116(uint64_t a, struct ctx* ctx, uint8_t p0);
+uint8_t call_2(struct ctx* ctx, struct fun_mut0_0 a);
+uint8_t call_w_ctx_112(struct fun_mut0_0 a, struct ctx* ctx);
+uint8_t call_3(struct ctx* ctx, struct fun_mut1_1 a, struct exception p0);
+uint8_t call_w_ctx_114(struct fun_mut1_1 a, struct ctx* ctx, struct exception p0);
+struct fut_0* call_4(struct ctx* ctx, struct fun_mut1_3 a, uint8_t p0);
+struct fut_0* call_w_ctx_116(struct fun_mut1_3 a, struct ctx* ctx, uint8_t p0);
 uint8_t call_ref_0__lambda0__lambda0(struct ctx* ctx, struct call_ref_0__lambda0__lambda0* _closure);
 uint8_t reject(struct ctx* ctx, struct fut_0* f, struct exception e);
 uint8_t call_ref_0__lambda0__lambda1(struct ctx* ctx, struct call_ref_0__lambda0__lambda1* _closure, struct exception it);
 uint8_t call_ref_0__lambda0(struct ctx* ctx, struct call_ref_0__lambda0* _closure);
 uint8_t then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, struct result_1 result);
 struct fut_0* call_ref_1(struct ctx* ctx, struct fun_ref0 f);
-struct fut_0* call_5(struct ctx* ctx, uint64_t a);
-struct fut_0* call_w_ctx_124(uint64_t a, struct ctx* ctx);
+struct fut_0* call_5(struct ctx* ctx, struct fun_mut0_1 a);
+struct fut_0* call_w_ctx_124(struct fun_mut0_1 a, struct ctx* ctx);
 uint8_t call_ref_1__lambda0__lambda0(struct ctx* ctx, struct call_ref_1__lambda0__lambda0* _closure);
 uint8_t call_ref_1__lambda0__lambda1(struct ctx* ctx, struct call_ref_1__lambda0__lambda1* _closure, struct exception it);
 uint8_t call_ref_1__lambda0(struct ctx* ctx, struct call_ref_1__lambda0* _closure);
@@ -690,11 +777,11 @@ struct arr_3 slice_0(struct ctx* ctx, struct arr_3 a, uint64_t begin, uint64_t s
 uint64_t _op_plus_0(struct ctx* ctx, uint64_t a, uint64_t b);
 uint8_t _op_greater_equal(uint64_t a, uint64_t b);
 uint64_t _op_minus_2(struct ctx* ctx, uint64_t a, uint64_t b);
-struct arr_1 map(struct ctx* ctx, struct arr_3 a, uint64_t mapper);
-struct arr_1 make_arr_0(struct ctx* ctx, uint64_t size, uint64_t f);
+struct arr_1 map(struct ctx* ctx, struct arr_3 a, struct fun_mut1_4 mapper);
+struct arr_1 make_arr_0(struct ctx* ctx, uint64_t size, struct fun_mut1_5 f);
 struct arr_1 freeze_0(struct mut_arr_1* a);
 struct arr_1 unsafe_as_arr_0(struct mut_arr_1* a);
-struct mut_arr_1* make_mut_arr_0(struct ctx* ctx, uint64_t size, uint64_t f);
+struct mut_arr_1* make_mut_arr_0(struct ctx* ctx, uint64_t size, struct fun_mut1_5 f);
 struct mut_arr_1* new_uninitialized_mut_arr_0(struct ctx* ctx, uint64_t size);
 struct arr_0* uninitialized_data_0(struct ctx* ctx, uint64_t size);
 uint8_t* alloc(struct ctx* ctx, uint64_t size);
@@ -709,21 +796,21 @@ uint64_t* incr_2(uint64_t* p);
 uint8_t* todo_2(void);
 struct gc* get_gc(struct ctx* ctx);
 struct gc_ctx* get_gc_ctx_1(struct ctx* ctx);
-uint8_t make_mut_arr_worker_0(struct ctx* ctx, struct mut_arr_1* m, uint64_t i, uint64_t f);
+uint8_t make_mut_arr_worker_0(struct ctx* ctx, struct mut_arr_1* m, uint64_t i, struct fun_mut1_5 f);
 uint8_t set_at_0(struct ctx* ctx, struct mut_arr_1* a, uint64_t index, struct arr_0 value);
 uint8_t noctx_set_at_0(struct mut_arr_1* a, uint64_t index, struct arr_0 value);
-struct arr_0 call_6(struct ctx* ctx, uint64_t a, uint64_t p0);
-struct arr_0 call_w_ctx_164(uint64_t a, struct ctx* ctx, uint64_t p0);
+struct arr_0 call_6(struct ctx* ctx, struct fun_mut1_5 a, uint64_t p0);
+struct arr_0 call_w_ctx_164(struct fun_mut1_5 a, struct ctx* ctx, uint64_t p0);
 uint64_t incr_3(struct ctx* ctx, uint64_t n);
-struct arr_0 call_7(struct ctx* ctx, uint64_t a, char* p0);
-struct arr_0 call_w_ctx_167(uint64_t a, struct ctx* ctx, char* p0);
+struct arr_0 call_7(struct ctx* ctx, struct fun_mut1_4 a, char* p0);
+struct arr_0 call_w_ctx_167(struct fun_mut1_4 a, struct ctx* ctx, char* p0);
 char* at_1(struct ctx* ctx, struct arr_3 a, uint64_t index);
 char* noctx_at_1(struct arr_3 a, uint64_t index);
 struct arr_0 map__lambda0(struct ctx* ctx, struct map__lambda0* _closure, uint64_t i);
-struct arr_0 add_first_task__lambda0__lambda0(struct ctx* ctx, char* it);
+struct arr_0 add_first_task__lambda0__lambda0(struct ctx* ctx, uint8_t _closure, char* it);
 struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__lambda0* _closure);
-struct fut_0* do_main__lambda0(struct ctx* ctx, struct arr_3 all_args, fun_ptr2 main_ptr);
-struct fut_0* call_w_ctx_174(uint64_t a, struct ctx* ctx, struct arr_3 p0, fun_ptr2 p1);
+struct fut_0* do_main__lambda0(struct ctx* ctx, uint8_t _closure, struct arr_3 all_args, fun_ptr2 main_ptr);
+struct fut_0* call_w_ctx_174(struct fun2 a, struct ctx* ctx, struct arr_3 p0, fun_ptr2 p1);
 uint8_t run_threads(uint64_t n_threads, struct global_ctx* gctx);
 struct thread_args* unmanaged_alloc_elements_1(uint64_t size_elements);
 uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx);
@@ -794,9 +881,9 @@ uint8_t _op_equal_equal_5(struct opt_10 a, struct opt_10 b);
 struct comparison compare_242(struct opt_10 a, struct opt_10 b);
 struct comparison compare_243(struct some_10 a, struct some_10 b);
 struct opt_10 parse_int(struct ctx* ctx, struct arr_0 a);
-struct opt_10 opt_map(struct ctx* ctx, struct opt_9 a, uint64_t cb);
-int64_t call_8(struct ctx* ctx, uint64_t a, uint64_t p0);
-int64_t call_w_ctx_247(uint64_t a, struct ctx* ctx, uint64_t p0);
+struct opt_10 opt_map(struct ctx* ctx, struct opt_9 a, struct fun_mut1_6 cb);
+int64_t call_8(struct ctx* ctx, struct fun_mut1_6 a, uint64_t p0);
+int64_t call_w_ctx_247(struct fun_mut1_6 a, struct ctx* ctx, uint64_t p0);
 int64_t neg_0(struct ctx* ctx, uint64_t n);
 int64_t neg_1(struct ctx* ctx, int64_t i);
 int64_t _op_times_1(struct ctx* ctx, int64_t a, int64_t b);
@@ -805,25 +892,25 @@ uint64_t to_nat(struct ctx* ctx, int64_t i);
 uint8_t negative__q(struct ctx* ctx, int64_t i);
 uint8_t _op_less_1(int64_t a, int64_t b);
 int64_t max_int(void);
-int64_t parse_int__lambda0(struct ctx* ctx, uint64_t it);
-int64_t parse_int__lambda1(struct ctx* ctx, uint64_t it);
+int64_t parse_int__lambda0(struct ctx* ctx, uint8_t _closure, uint64_t it);
+int64_t parse_int__lambda1(struct ctx* ctx, uint8_t _closure, uint64_t it);
 uint8_t print(struct arr_0 a);
 uint8_t print_no_newline(struct arr_0 a);
 int32_t stdout_fd(void);
 struct arr_0 to_str_1(struct ctx* ctx, uint64_t n);
 uint64_t mod(struct ctx* ctx, uint64_t a, uint64_t b);
 struct arr_0 _op_plus_1(struct ctx* ctx, struct arr_0 a, struct arr_0 b);
-struct arr_0 make_arr_1(struct ctx* ctx, uint64_t size, uint64_t f);
+struct arr_0 make_arr_1(struct ctx* ctx, uint64_t size, struct fun_mut1_7 f);
 struct arr_0 freeze_1(struct mut_arr_2* a);
 struct arr_0 unsafe_as_arr_1(struct mut_arr_2* a);
-struct mut_arr_2* make_mut_arr_1(struct ctx* ctx, uint64_t size, uint64_t f);
+struct mut_arr_2* make_mut_arr_1(struct ctx* ctx, uint64_t size, struct fun_mut1_7 f);
 struct mut_arr_2* new_uninitialized_mut_arr_1(struct ctx* ctx, uint64_t size);
 char* uninitialized_data_1(struct ctx* ctx, uint64_t size);
-uint8_t make_mut_arr_worker_1(struct ctx* ctx, struct mut_arr_2* m, uint64_t i, uint64_t f);
+uint8_t make_mut_arr_worker_1(struct ctx* ctx, struct mut_arr_2* m, uint64_t i, struct fun_mut1_7 f);
 uint8_t set_at_1(struct ctx* ctx, struct mut_arr_2* a, uint64_t index, char value);
 uint8_t noctx_set_at_2(struct mut_arr_2* a, uint64_t index, char value);
-char call_9(struct ctx* ctx, uint64_t a, uint64_t p0);
-char call_w_ctx_274(uint64_t a, struct ctx* ctx, uint64_t p0);
+char call_9(struct ctx* ctx, struct fun_mut1_7 a, uint64_t p0);
+char call_w_ctx_274(struct fun_mut1_7 a, struct ctx* ctx, uint64_t p0);
 char _op_plus_1__lambda0(struct ctx* ctx, struct _op_plus_1__lambda0* _closure, uint64_t i);
 struct arr_0 to_str_2(struct ctx* ctx, struct opt_9 a);
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value);
@@ -1077,7 +1164,7 @@ struct island new_island(struct global_ctx* gctx, uint64_t id, uint64_t max_thre
 	struct mut_arr_0 exclusions0;
 	struct island_gc_root gc_root1;
 	exclusions0 = new_mut_arr_by_val_with_capacity_from_unmanaged_memory(max_threads);
-	gc_root1 = (struct island_gc_root) {new_mut_bag(), 0u};
+	gc_root1 = (struct island_gc_root) {new_mut_bag(), (struct fun_mut1_1) {0, .as0 = 0}};
 	return (struct island) {gctx, id, new_gc(), gc_root1, new_lock(), exclusions0, 0u, new_thread_safe_counter_0()};
 }
 /* new-mut-arr-by-val-with-capacity-from-unmanaged-memory<nat> mut-arr<nat>(capacity nat) */
@@ -1179,7 +1266,7 @@ struct global_ctx* get_gctx(struct ctx* ctx) {
 	return (struct global_ctx*) ctx->gctx_ptr;
 }
 /* new-island.lambda0 void(it exception) */
-uint8_t new_island__lambda0(struct ctx* ctx, struct exception it) {
+uint8_t new_island__lambda0(struct ctx* ctx, uint8_t _closure, struct exception it) {
 	return default_exception_handler(ctx, it);
 }
 /* new-gc gc() */
@@ -1209,13 +1296,13 @@ struct fut_0* do_main(struct global_ctx* gctx, struct island* island, int32_t ar
 	struct thread_local_stuff tls1;
 	struct ctx ctx_by_val2;
 	struct ctx* ctx3;
-	uint64_t add4;
+	struct fun2 add4;
 	struct arr_3 all_args5;
 	ectx0 = new_exception_ctx();
 	tls1 = (struct thread_local_stuff) {(&(ectx0))};
 	ctx_by_val2 = new_ctx(gctx, (&(tls1)), island, 0u);
 	ctx3 = (&(ctx_by_val2));
-	add4 = 0u;
+	add4 = (struct fun2) {0, .as0 = 0};
 	all_args5 = (struct arr_3) {argc, argv};
 	return call_w_ctx_174(add4, ctx3, all_args5, main_ptr);
 }
@@ -1338,19 +1425,19 @@ uint8_t try_unset(struct _atomic_bool* a) {
 /* add-first-task fut<int32>(all-args arr<ptr<char>>, main-ptr fun-ptr2<fut<int32>, ctx, arr<arr<char>>>) */
 struct fut_0* add_first_task(struct ctx* ctx, struct arr_3 all_args, fun_ptr2 main_ptr) {
 	struct add_first_task__lambda0* temp0;
-	return then2(ctx, delay(ctx), (struct fun_ref0) {cur_island_and_exclusion(ctx), (0u | (uint64_t) (uint8_t*) (temp0 = (struct add_first_task__lambda0*) alloc(ctx, sizeof(struct add_first_task__lambda0)), ((*(temp0) = (struct add_first_task__lambda0) {all_args, main_ptr}, 0), temp0)))});
+	return then2(ctx, delay(ctx), (struct fun_ref0) {cur_island_and_exclusion(ctx), (struct fun_mut0_1) {0, .as0 = (temp0 = (struct add_first_task__lambda0*) alloc(ctx, sizeof(struct add_first_task__lambda0)), ((*(temp0) = (struct add_first_task__lambda0) {all_args, main_ptr}, 0), temp0))}});
 }
 /* then2<int32> fut<int32>(f fut<void>, cb fun-ref0<int32>) */
 struct fut_0* then2(struct ctx* ctx, struct fut_1* f, struct fun_ref0 cb) {
 	struct then2__lambda0* temp0;
-	return then(ctx, f, (struct fun_ref1) {cur_island_and_exclusion(ctx), (0u | (uint64_t) (uint8_t*) (temp0 = (struct then2__lambda0*) alloc(ctx, sizeof(struct then2__lambda0)), ((*(temp0) = (struct then2__lambda0) {cb}, 0), temp0)))});
+	return then(ctx, f, (struct fun_ref1) {cur_island_and_exclusion(ctx), (struct fun_mut1_3) {0, .as0 = (temp0 = (struct then2__lambda0*) alloc(ctx, sizeof(struct then2__lambda0)), ((*(temp0) = (struct then2__lambda0) {cb}, 0), temp0))}});
 }
 /* then<?out, void> fut<int32>(f fut<void>, cb fun-ref1<int32, void>) */
 struct fut_0* then(struct ctx* ctx, struct fut_1* f, struct fun_ref1 cb) {
 	struct fut_0* res0;
 	struct then__lambda0* temp0;
 	res0 = new_unresolved_fut(ctx);
-	then_void_0(ctx, f, (0u | (uint64_t) (uint8_t*) (temp0 = (struct then__lambda0*) alloc(ctx, sizeof(struct then__lambda0)), ((*(temp0) = (struct then__lambda0) {cb, res0}, 0), temp0))));
+	then_void_0(ctx, f, (struct fun_mut1_2) {0, .as0 = (temp0 = (struct then__lambda0*) alloc(ctx, sizeof(struct then__lambda0)), ((*(temp0) = (struct then__lambda0) {cb, res0}, 0), temp0))});
 	return res0;
 }
 /* new-unresolved-fut<?out> fut<int32>() */
@@ -1361,7 +1448,7 @@ struct fut_0* new_unresolved_fut(struct ctx* ctx) {
 	return temp0;
 }
 /* then-void<?in> void(f fut<void>, cb fun-mut1<void, result<void, exception>>) */
-uint8_t then_void_0(struct ctx* ctx, struct fut_1* f, uint64_t cb) {
+uint8_t then_void_0(struct ctx* ctx, struct fut_1* f, struct fun_mut1_2 cb) {
 	struct fut_state_1 temp0;
 	struct fut_state_callbacks_1 cbs0;
 	struct fut_callback_node_1* temp1;
@@ -1388,14 +1475,18 @@ uint8_t then_void_0(struct ctx* ctx, struct fut_1* f, uint64_t cb) {
 	return release_lock((&(f->lk)));
 }
 /* call<void, result<?t, exception>> void(a fun-mut1<void, result<void, exception>>, p0 result<void, exception>) */
-uint8_t call_0(struct ctx* ctx, uint64_t a, struct result_1 p0) {
+uint8_t call_0(struct ctx* ctx, struct fun_mut1_2 a, struct result_1 p0) {
 	return call_w_ctx_78(a, ctx, p0);
 }
 /* call-w-ctx<void, result<void, exception>> (generated) (generated) */
-uint8_t call_w_ctx_78(uint64_t a, struct ctx* ctx, struct result_1 p0) {
-	switch ((a >> 48u)) {
+uint8_t call_w_ctx_78(struct fun_mut1_2 a, struct ctx* ctx, struct result_1 p0) {
+	struct fun_mut1_2 match_fun1;
+	struct then__lambda0* closure0;
+	match_fun1 = a;
+	switch (match_fun1.kind) {
 		case 0:
-			return then__lambda0(ctx, (struct then__lambda0*) (a & 281474976710655u), p0);
+			closure0 = match_fun1.as0;
+			return then__lambda0(ctx, closure0, p0);
 		default:
 			return (assert(0),0);
 	}
@@ -1403,10 +1494,10 @@ uint8_t call_w_ctx_78(uint64_t a, struct ctx* ctx, struct result_1 p0) {
 /* forward-to<?out> void(from fut<int32>, to fut<int32>) */
 uint8_t forward_to(struct ctx* ctx, struct fut_0* from, struct fut_0* to) {
 	struct forward_to__lambda0* temp0;
-	return then_void_1(ctx, from, (0u | (uint64_t) (uint8_t*) (temp0 = (struct forward_to__lambda0*) alloc(ctx, sizeof(struct forward_to__lambda0)), ((*(temp0) = (struct forward_to__lambda0) {to}, 0), temp0))));
+	return then_void_1(ctx, from, (struct fun_mut1_0) {0, .as0 = (temp0 = (struct forward_to__lambda0*) alloc(ctx, sizeof(struct forward_to__lambda0)), ((*(temp0) = (struct forward_to__lambda0) {to}, 0), temp0))});
 }
 /* then-void<?t> void(f fut<int32>, cb fun-mut1<void, result<int32, exception>>) */
-uint8_t then_void_1(struct ctx* ctx, struct fut_0* f, uint64_t cb) {
+uint8_t then_void_1(struct ctx* ctx, struct fut_0* f, struct fun_mut1_0 cb) {
 	struct fut_state_0 temp0;
 	struct fut_state_callbacks_0 cbs0;
 	struct fut_callback_node_0* temp1;
@@ -1433,14 +1524,18 @@ uint8_t then_void_1(struct ctx* ctx, struct fut_0* f, uint64_t cb) {
 	return release_lock((&(f->lk)));
 }
 /* call<void, result<?t, exception>> void(a fun-mut1<void, result<int32, exception>>, p0 result<int32, exception>) */
-uint8_t call_1(struct ctx* ctx, uint64_t a, struct result_0 p0) {
+uint8_t call_1(struct ctx* ctx, struct fun_mut1_0 a, struct result_0 p0) {
 	return call_w_ctx_82(a, ctx, p0);
 }
 /* call-w-ctx<void, result<int32, exception>> (generated) (generated) */
-uint8_t call_w_ctx_82(uint64_t a, struct ctx* ctx, struct result_0 p0) {
-	switch ((a >> 48u)) {
+uint8_t call_w_ctx_82(struct fun_mut1_0 a, struct ctx* ctx, struct result_0 p0) {
+	struct fun_mut1_0 match_fun1;
+	struct forward_to__lambda0* closure0;
+	match_fun1 = a;
+	switch (match_fun1.kind) {
 		case 0:
-			return forward_to__lambda0(ctx, (struct forward_to__lambda0*) (a & 281474976710655u), p0);
+			closure0 = match_fun1.as0;
+			return forward_to__lambda0(ctx, closure0, p0);
 		default:
 			return (assert(0),0);
 	}
@@ -1510,7 +1605,7 @@ struct fut_0* call_ref_0(struct ctx* ctx, struct fun_ref1 f, uint8_t p0) {
 	struct call_ref_0__lambda0* temp0;
 	island0 = get_island(ctx, f.island_and_exclusion.island);
 	res1 = new_unresolved_fut(ctx);
-	add_task(ctx, island0, (struct task) {f.island_and_exclusion.exclusion, (281474976710656u | (uint64_t) (uint8_t*) (temp0 = (struct call_ref_0__lambda0*) alloc(ctx, sizeof(struct call_ref_0__lambda0)), ((*(temp0) = (struct call_ref_0__lambda0) {f, p0, res1}, 0), temp0)))});
+	add_task(ctx, island0, (struct task) {f.island_and_exclusion.exclusion, (struct fun_mut0_0) {1, .as1 = (temp0 = (struct call_ref_0__lambda0*) alloc(ctx, sizeof(struct call_ref_0__lambda0)), ((*(temp0) = (struct call_ref_0__lambda0) {f, p0, res1}, 0), temp0))}});
 	return res1;
 }
 /* get-island island(island-id nat) */
@@ -1596,11 +1691,11 @@ uint8_t broadcast(struct condition* c) {
 	return release_lock((&(c->lk)));
 }
 /* catch<void> void(try fun-mut0<void>, catcher fun-mut1<void, exception>) */
-uint8_t catch(struct ctx* ctx, uint64_t try, uint64_t catcher) {
+uint8_t catch(struct ctx* ctx, struct fun_mut0_0 try, struct fun_mut1_1 catcher) {
 	return catch_with_exception_ctx(ctx, get_exception_ctx(ctx), try, catcher);
 }
 /* catch-with-exception-ctx<?t> void(ec exception-ctx, try fun-mut0<void>, catcher fun-mut1<void, exception>) */
-uint8_t catch_with_exception_ctx(struct ctx* ctx, struct exception_ctx* ec, uint64_t try, uint64_t catcher) {
+uint8_t catch_with_exception_ctx(struct ctx* ctx, struct exception_ctx* ec, struct fun_mut0_0 try, struct fun_mut1_1 catcher) {
 	struct exception old_thrown_exception0;
 	struct jmp_buf_tag* old_jmp_buf1;
 	struct jmp_buf_tag store2;
@@ -1642,50 +1737,72 @@ struct bytes128 zero_3(void) {
 	return (struct bytes128) {zero_0(), zero_0()};
 }
 /* call<?t> void(a fun-mut0<void>) */
-uint8_t call_2(struct ctx* ctx, uint64_t a) {
+uint8_t call_2(struct ctx* ctx, struct fun_mut0_0 a) {
 	return call_w_ctx_112(a, ctx);
 }
 /* call-w-ctx<void> (generated) (generated) */
-uint8_t call_w_ctx_112(uint64_t a, struct ctx* ctx) {
-	switch ((a >> 48u)) {
+uint8_t call_w_ctx_112(struct fun_mut0_0 a, struct ctx* ctx) {
+	struct fun_mut0_0 match_fun4;
+	struct call_ref_0__lambda0__lambda0* closure0;
+	struct call_ref_0__lambda0* closure1;
+	struct call_ref_1__lambda0__lambda0* closure2;
+	struct call_ref_1__lambda0* closure3;
+	match_fun4 = a;
+	switch (match_fun4.kind) {
 		case 0:
-			return call_ref_0__lambda0__lambda0(ctx, (struct call_ref_0__lambda0__lambda0*) (a & 281474976710655u));
+			closure0 = match_fun4.as0;
+			return call_ref_0__lambda0__lambda0(ctx, closure0);
 		case 1:
-			return call_ref_0__lambda0(ctx, (struct call_ref_0__lambda0*) (a & 281474976710655u));
+			closure1 = match_fun4.as1;
+			return call_ref_0__lambda0(ctx, closure1);
 		case 2:
-			return call_ref_1__lambda0__lambda0(ctx, (struct call_ref_1__lambda0__lambda0*) (a & 281474976710655u));
+			closure2 = match_fun4.as2;
+			return call_ref_1__lambda0__lambda0(ctx, closure2);
 		case 3:
-			return call_ref_1__lambda0(ctx, (struct call_ref_1__lambda0*) (a & 281474976710655u));
+			closure3 = match_fun4.as3;
+			return call_ref_1__lambda0(ctx, closure3);
 		default:
 			return (assert(0),0);
 	}
 }
 /* call<?t, exception> void(a fun-mut1<void, exception>, p0 exception) */
-uint8_t call_3(struct ctx* ctx, uint64_t a, struct exception p0) {
+uint8_t call_3(struct ctx* ctx, struct fun_mut1_1 a, struct exception p0) {
 	return call_w_ctx_114(a, ctx, p0);
 }
 /* call-w-ctx<void, exception> (generated) (generated) */
-uint8_t call_w_ctx_114(uint64_t a, struct ctx* ctx, struct exception p0) {
-	switch ((a >> 48u)) {
+uint8_t call_w_ctx_114(struct fun_mut1_1 a, struct ctx* ctx, struct exception p0) {
+	struct fun_mut1_1 match_fun3;
+	uint8_t closure0;
+	struct call_ref_0__lambda0__lambda1* closure1;
+	struct call_ref_1__lambda0__lambda1* closure2;
+	match_fun3 = a;
+	switch (match_fun3.kind) {
 		case 0:
-			return new_island__lambda0(ctx, p0);
+			closure0 = match_fun3.as0;
+			return new_island__lambda0(ctx, closure0, p0);
 		case 1:
-			return call_ref_0__lambda0__lambda1(ctx, (struct call_ref_0__lambda0__lambda1*) (a & 281474976710655u), p0);
+			closure1 = match_fun3.as1;
+			return call_ref_0__lambda0__lambda1(ctx, closure1, p0);
 		case 2:
-			return call_ref_1__lambda0__lambda1(ctx, (struct call_ref_1__lambda0__lambda1*) (a & 281474976710655u), p0);
+			closure2 = match_fun3.as2;
+			return call_ref_1__lambda0__lambda1(ctx, closure2, p0);
 		default:
 			return (assert(0),0);
 	}
 }
 /* call<fut<?r>, ?p0> fut<int32>(a fun-mut1<fut<int32>, void>, p0 void) */
-struct fut_0* call_4(struct ctx* ctx, uint64_t a, uint8_t p0) {
+struct fut_0* call_4(struct ctx* ctx, struct fun_mut1_3 a, uint8_t p0) {
 	return call_w_ctx_116(a, ctx, p0);
 }
 /* call-w-ctx<ptr(fut<int32>), void> (generated) (generated) */
-struct fut_0* call_w_ctx_116(uint64_t a, struct ctx* ctx, uint8_t p0) {
-	switch ((a >> 48u)) {
+struct fut_0* call_w_ctx_116(struct fun_mut1_3 a, struct ctx* ctx, uint8_t p0) {
+	struct fun_mut1_3 match_fun1;
+	struct then2__lambda0* closure0;
+	match_fun1 = a;
+	switch (match_fun1.kind) {
 		case 0:
-			return then2__lambda0(ctx, (struct then2__lambda0*) (a & 281474976710655u), p0);
+			closure0 = match_fun1.as0;
+			return then2__lambda0(ctx, closure0, p0);
 		default:
 			return (assert(0),NULL);
 	}
@@ -1706,7 +1823,7 @@ uint8_t call_ref_0__lambda0__lambda1(struct ctx* ctx, struct call_ref_0__lambda0
 uint8_t call_ref_0__lambda0(struct ctx* ctx, struct call_ref_0__lambda0* _closure) {
 	struct call_ref_0__lambda0__lambda0* temp0;
 	struct call_ref_0__lambda0__lambda1* temp1;
-	return catch(ctx, (0u | (uint64_t) (uint8_t*) (temp0 = (struct call_ref_0__lambda0__lambda0*) alloc(ctx, sizeof(struct call_ref_0__lambda0__lambda0)), ((*(temp0) = (struct call_ref_0__lambda0__lambda0) {_closure->f, _closure->p0, _closure->res}, 0), temp0))), (281474976710656u | (uint64_t) (uint8_t*) (temp1 = (struct call_ref_0__lambda0__lambda1*) alloc(ctx, sizeof(struct call_ref_0__lambda0__lambda1)), ((*(temp1) = (struct call_ref_0__lambda0__lambda1) {_closure->res}, 0), temp1))));
+	return catch(ctx, (struct fun_mut0_0) {0, .as0 = (temp0 = (struct call_ref_0__lambda0__lambda0*) alloc(ctx, sizeof(struct call_ref_0__lambda0__lambda0)), ((*(temp0) = (struct call_ref_0__lambda0__lambda0) {_closure->f, _closure->p0, _closure->res}, 0), temp0))}, (struct fun_mut1_1) {1, .as1 = (temp1 = (struct call_ref_0__lambda0__lambda1*) alloc(ctx, sizeof(struct call_ref_0__lambda0__lambda1)), ((*(temp1) = (struct call_ref_0__lambda0__lambda1) {_closure->res}, 0), temp1))});
 }
 /* then<?out, void>.lambda0 void(result result<void, exception>) */
 uint8_t then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, struct result_1 result) {
@@ -1732,18 +1849,22 @@ struct fut_0* call_ref_1(struct ctx* ctx, struct fun_ref0 f) {
 	struct call_ref_1__lambda0* temp0;
 	island0 = get_island(ctx, f.island_and_exclusion.island);
 	res1 = new_unresolved_fut(ctx);
-	add_task(ctx, island0, (struct task) {f.island_and_exclusion.exclusion, (844424930131968u | (uint64_t) (uint8_t*) (temp0 = (struct call_ref_1__lambda0*) alloc(ctx, sizeof(struct call_ref_1__lambda0)), ((*(temp0) = (struct call_ref_1__lambda0) {f, res1}, 0), temp0)))});
+	add_task(ctx, island0, (struct task) {f.island_and_exclusion.exclusion, (struct fun_mut0_0) {3, .as3 = (temp0 = (struct call_ref_1__lambda0*) alloc(ctx, sizeof(struct call_ref_1__lambda0)), ((*(temp0) = (struct call_ref_1__lambda0) {f, res1}, 0), temp0))}});
 	return res1;
 }
 /* call<fut<?r>> fut<int32>(a fun-mut0<fut<int32>>) */
-struct fut_0* call_5(struct ctx* ctx, uint64_t a) {
+struct fut_0* call_5(struct ctx* ctx, struct fun_mut0_1 a) {
 	return call_w_ctx_124(a, ctx);
 }
 /* call-w-ctx<ptr(fut<int32>)> (generated) (generated) */
-struct fut_0* call_w_ctx_124(uint64_t a, struct ctx* ctx) {
-	switch ((a >> 48u)) {
+struct fut_0* call_w_ctx_124(struct fun_mut0_1 a, struct ctx* ctx) {
+	struct fun_mut0_1 match_fun1;
+	struct add_first_task__lambda0* closure0;
+	match_fun1 = a;
+	switch (match_fun1.kind) {
 		case 0:
-			return add_first_task__lambda0(ctx, (struct add_first_task__lambda0*) (a & 281474976710655u));
+			closure0 = match_fun1.as0;
+			return add_first_task__lambda0(ctx, closure0);
 		default:
 			return (assert(0),NULL);
 	}
@@ -1760,7 +1881,7 @@ uint8_t call_ref_1__lambda0__lambda1(struct ctx* ctx, struct call_ref_1__lambda0
 uint8_t call_ref_1__lambda0(struct ctx* ctx, struct call_ref_1__lambda0* _closure) {
 	struct call_ref_1__lambda0__lambda0* temp0;
 	struct call_ref_1__lambda0__lambda1* temp1;
-	return catch(ctx, (562949953421312u | (uint64_t) (uint8_t*) (temp0 = (struct call_ref_1__lambda0__lambda0*) alloc(ctx, sizeof(struct call_ref_1__lambda0__lambda0)), ((*(temp0) = (struct call_ref_1__lambda0__lambda0) {_closure->f, _closure->res}, 0), temp0))), (562949953421312u | (uint64_t) (uint8_t*) (temp1 = (struct call_ref_1__lambda0__lambda1*) alloc(ctx, sizeof(struct call_ref_1__lambda0__lambda1)), ((*(temp1) = (struct call_ref_1__lambda0__lambda1) {_closure->res}, 0), temp1))));
+	return catch(ctx, (struct fun_mut0_0) {2, .as2 = (temp0 = (struct call_ref_1__lambda0__lambda0*) alloc(ctx, sizeof(struct call_ref_1__lambda0__lambda0)), ((*(temp0) = (struct call_ref_1__lambda0__lambda0) {_closure->f, _closure->res}, 0), temp0))}, (struct fun_mut1_1) {2, .as2 = (temp1 = (struct call_ref_1__lambda0__lambda1*) alloc(ctx, sizeof(struct call_ref_1__lambda0__lambda1)), ((*(temp1) = (struct call_ref_1__lambda0__lambda1) {_closure->res}, 0), temp1))});
 }
 /* then2<int32>.lambda0 fut<int32>(ignore void) */
 struct fut_0* then2__lambda0(struct ctx* ctx, struct then2__lambda0* _closure, uint8_t ignore) {
@@ -1831,12 +1952,12 @@ uint64_t _op_minus_2(struct ctx* ctx, uint64_t a, uint64_t b) {
 	return (a - b);
 }
 /* map<arr<char>, ptr<char>> arr<arr<char>>(a arr<ptr<char>>, mapper fun-mut1<arr<char>, ptr<char>>) */
-struct arr_1 map(struct ctx* ctx, struct arr_3 a, uint64_t mapper) {
+struct arr_1 map(struct ctx* ctx, struct arr_3 a, struct fun_mut1_4 mapper) {
 	struct map__lambda0* temp0;
-	return make_arr_0(ctx, a.size, (0u | (uint64_t) (uint8_t*) (temp0 = (struct map__lambda0*) alloc(ctx, sizeof(struct map__lambda0)), ((*(temp0) = (struct map__lambda0) {mapper, a}, 0), temp0))));
+	return make_arr_0(ctx, a.size, (struct fun_mut1_5) {0, .as0 = (temp0 = (struct map__lambda0*) alloc(ctx, sizeof(struct map__lambda0)), ((*(temp0) = (struct map__lambda0) {mapper, a}, 0), temp0))});
 }
 /* make-arr<?out> arr<arr<char>>(size nat, f fun-mut1<arr<char>, nat>) */
-struct arr_1 make_arr_0(struct ctx* ctx, uint64_t size, uint64_t f) {
+struct arr_1 make_arr_0(struct ctx* ctx, uint64_t size, struct fun_mut1_5 f) {
 	return freeze_0(make_mut_arr_0(ctx, size, f));
 }
 /* freeze<?t> arr<arr<char>>(a mut-arr<arr<char>>) */
@@ -1849,7 +1970,7 @@ struct arr_1 unsafe_as_arr_0(struct mut_arr_1* a) {
 	return (struct arr_1) {a->size, a->data};
 }
 /* make-mut-arr<?t> mut-arr<arr<char>>(size nat, f fun-mut1<arr<char>, nat>) */
-struct mut_arr_1* make_mut_arr_0(struct ctx* ctx, uint64_t size, uint64_t f) {
+struct mut_arr_1* make_mut_arr_0(struct ctx* ctx, uint64_t size, struct fun_mut1_5 f) {
 	struct mut_arr_1* res0;
 	res0 = new_uninitialized_mut_arr_0(ctx, size);
 	make_mut_arr_worker_0(ctx, res0, 0u, f);
@@ -1979,10 +2100,10 @@ struct gc_ctx* get_gc_ctx_1(struct ctx* ctx) {
 	return (struct gc_ctx*) ctx->gc_ctx_ptr;
 }
 /* make-mut-arr-worker<?t> void(m mut-arr<arr<char>>, i nat, f fun-mut1<arr<char>, nat>) */
-uint8_t make_mut_arr_worker_0(struct ctx* ctx, struct mut_arr_1* m, uint64_t i, uint64_t f) {
+uint8_t make_mut_arr_worker_0(struct ctx* ctx, struct mut_arr_1* m, uint64_t i, struct fun_mut1_5 f) {
 	struct mut_arr_1* _tailCallm;
 	uint64_t _tailCalli;
-	uint64_t _tailCallf;
+	struct fun_mut1_5 _tailCallf;
 	top:
 	if (_op_bang_equal_0(i, m->size)) {
 		set_at_0(ctx, m, i, call_6(ctx, f, i));
@@ -2008,14 +2129,18 @@ uint8_t noctx_set_at_0(struct mut_arr_1* a, uint64_t index, struct arr_0 value) 
 	return (*((a->data + index)) = value, 0);
 }
 /* call<?t, nat> arr<char>(a fun-mut1<arr<char>, nat>, p0 nat) */
-struct arr_0 call_6(struct ctx* ctx, uint64_t a, uint64_t p0) {
+struct arr_0 call_6(struct ctx* ctx, struct fun_mut1_5 a, uint64_t p0) {
 	return call_w_ctx_164(a, ctx, p0);
 }
 /* call-w-ctx<arr<char>, nat-64> (generated) (generated) */
-struct arr_0 call_w_ctx_164(uint64_t a, struct ctx* ctx, uint64_t p0) {
-	switch ((a >> 48u)) {
+struct arr_0 call_w_ctx_164(struct fun_mut1_5 a, struct ctx* ctx, uint64_t p0) {
+	struct fun_mut1_5 match_fun1;
+	struct map__lambda0* closure0;
+	match_fun1 = a;
+	switch (match_fun1.kind) {
 		case 0:
-			return map__lambda0(ctx, (struct map__lambda0*) (a & 281474976710655u), p0);
+			closure0 = match_fun1.as0;
+			return map__lambda0(ctx, closure0, p0);
 		default:
 			return (assert(0),(struct arr_0) {0, NULL});
 	}
@@ -2026,14 +2151,18 @@ uint64_t incr_3(struct ctx* ctx, uint64_t n) {
 	return (n + 1u);
 }
 /* call<?out, ?in> arr<char>(a fun-mut1<arr<char>, ptr<char>>, p0 ptr<char>) */
-struct arr_0 call_7(struct ctx* ctx, uint64_t a, char* p0) {
+struct arr_0 call_7(struct ctx* ctx, struct fun_mut1_4 a, char* p0) {
 	return call_w_ctx_167(a, ctx, p0);
 }
 /* call-w-ctx<arr<char>, ptr(char)> (generated) (generated) */
-struct arr_0 call_w_ctx_167(uint64_t a, struct ctx* ctx, char* p0) {
-	switch ((a >> 48u)) {
+struct arr_0 call_w_ctx_167(struct fun_mut1_4 a, struct ctx* ctx, char* p0) {
+	struct fun_mut1_4 match_fun1;
+	uint8_t closure0;
+	match_fun1 = a;
+	switch (match_fun1.kind) {
 		case 0:
-			return add_first_task__lambda0__lambda0(ctx, p0);
+			closure0 = match_fun1.as0;
+			return add_first_task__lambda0__lambda0(ctx, closure0, p0);
 		default:
 			return (assert(0),(struct arr_0) {0, NULL});
 	}
@@ -2053,24 +2182,28 @@ struct arr_0 map__lambda0(struct ctx* ctx, struct map__lambda0* _closure, uint64
 	return call_7(ctx, _closure->mapper, at_1(ctx, _closure->a, i));
 }
 /* add-first-task.lambda0.lambda0 arr<char>(it ptr<char>) */
-struct arr_0 add_first_task__lambda0__lambda0(struct ctx* ctx, char* it) {
+struct arr_0 add_first_task__lambda0__lambda0(struct ctx* ctx, uint8_t _closure, char* it) {
 	return to_str_0(it);
 }
 /* add-first-task.lambda0 fut<int32>() */
 struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__lambda0* _closure) {
 	struct arr_3 args0;
 	args0 = tail_0(ctx, _closure->all_args);
-	return _closure->main_ptr(ctx, map(ctx, args0, 0u));
+	return _closure->main_ptr(ctx, map(ctx, args0, (struct fun_mut1_4) {0, .as0 = 0}));
 }
 /* do-main.lambda0 fut<int32>(all-args arr<ptr<char>>, main-ptr fun-ptr2<fut<int32>, ctx, arr<arr<char>>>) */
-struct fut_0* do_main__lambda0(struct ctx* ctx, struct arr_3 all_args, fun_ptr2 main_ptr) {
+struct fut_0* do_main__lambda0(struct ctx* ctx, uint8_t _closure, struct arr_3 all_args, fun_ptr2 main_ptr) {
 	return add_first_task(ctx, all_args, main_ptr);
 }
 /* call-w-ctx<ptr(fut<int32>), arr<ptr<char>>, some fun ptr type> (generated) (generated) */
-struct fut_0* call_w_ctx_174(uint64_t a, struct ctx* ctx, struct arr_3 p0, fun_ptr2 p1) {
-	switch ((a >> 48u)) {
+struct fut_0* call_w_ctx_174(struct fun2 a, struct ctx* ctx, struct arr_3 p0, fun_ptr2 p1) {
+	struct fun2 match_fun1;
+	uint8_t closure0;
+	match_fun1 = a;
+	switch (match_fun1.kind) {
 		case 0:
-			return do_main__lambda0(ctx, p0, p1);
+			closure0 = match_fun1.as0;
+			return do_main__lambda0(ctx, closure0, p0, p1);
 		default:
 			return (assert(0),NULL);
 	}
@@ -2924,13 +3057,13 @@ struct comparison compare_243(struct some_10 a, struct some_10 b) {
 /* parse-int opt<int>(a arr<char>) */
 struct opt_10 parse_int(struct ctx* ctx, struct arr_0 a) {
 	if (_op_equal_equal_1(at_2(ctx, a, 0u), 45u)) {
-		return opt_map(ctx, parse_nat(ctx, tail_1(ctx, a)), 0u);
+		return opt_map(ctx, parse_nat(ctx, tail_1(ctx, a)), (struct fun_mut1_6) {0, .as0 = 0});
 	} else {
-		return opt_map(ctx, parse_nat(ctx, (_op_equal_equal_1(at_2(ctx, a, 0u), 43u) ? tail_1(ctx, a) : a)), 281474976710656u);
+		return opt_map(ctx, parse_nat(ctx, (_op_equal_equal_1(at_2(ctx, a, 0u), 43u) ? tail_1(ctx, a) : a)), (struct fun_mut1_6) {1, .as1 = 0});
 	}
 }
 /* opt-map<int, nat> opt<int>(a opt<nat>, cb fun-mut1<int, nat>) */
-struct opt_10 opt_map(struct ctx* ctx, struct opt_9 a, uint64_t cb) {
+struct opt_10 opt_map(struct ctx* ctx, struct opt_9 a, struct fun_mut1_6 cb) {
 	struct opt_9 temp0;
 	struct some_9 s0;
 	temp0 = a;
@@ -2945,16 +3078,22 @@ struct opt_10 opt_map(struct ctx* ctx, struct opt_9 a, uint64_t cb) {
 	}
 }
 /* call<?out, ?in> int(a fun-mut1<int, nat>, p0 nat) */
-int64_t call_8(struct ctx* ctx, uint64_t a, uint64_t p0) {
+int64_t call_8(struct ctx* ctx, struct fun_mut1_6 a, uint64_t p0) {
 	return call_w_ctx_247(a, ctx, p0);
 }
 /* call-w-ctx<int-64, nat-64> (generated) (generated) */
-int64_t call_w_ctx_247(uint64_t a, struct ctx* ctx, uint64_t p0) {
-	switch ((a >> 48u)) {
+int64_t call_w_ctx_247(struct fun_mut1_6 a, struct ctx* ctx, uint64_t p0) {
+	struct fun_mut1_6 match_fun2;
+	uint8_t closure0;
+	uint8_t closure1;
+	match_fun2 = a;
+	switch (match_fun2.kind) {
 		case 0:
-			return parse_int__lambda0(ctx, p0);
+			closure0 = match_fun2.as0;
+			return parse_int__lambda0(ctx, closure0, p0);
 		case 1:
-			return parse_int__lambda1(ctx, p0);
+			closure1 = match_fun2.as1;
+			return parse_int__lambda1(ctx, closure1, p0);
 		default:
 			return (assert(0),0);
 	}
@@ -3005,11 +3144,11 @@ int64_t max_int(void) {
 	return 9223372036854775807;
 }
 /* parse-int.lambda0 int(it nat) */
-int64_t parse_int__lambda0(struct ctx* ctx, uint64_t it) {
+int64_t parse_int__lambda0(struct ctx* ctx, uint8_t _closure, uint64_t it) {
 	return neg_0(ctx, it);
 }
 /* parse-int.lambda1 int(it nat) */
-int64_t parse_int__lambda1(struct ctx* ctx, uint64_t it) {
+int64_t parse_int__lambda1(struct ctx* ctx, uint8_t _closure, uint64_t it) {
 	return to_int(ctx, it);
 }
 /* print void(a arr<char>) */
@@ -3081,10 +3220,10 @@ uint64_t mod(struct ctx* ctx, uint64_t a, uint64_t b) {
 /* +<char> arr<char>(a arr<char>, b arr<char>) */
 struct arr_0 _op_plus_1(struct ctx* ctx, struct arr_0 a, struct arr_0 b) {
 	struct _op_plus_1__lambda0* temp0;
-	return make_arr_1(ctx, _op_plus_0(ctx, a.size, b.size), (0u | (uint64_t) (uint8_t*) (temp0 = (struct _op_plus_1__lambda0*) alloc(ctx, sizeof(struct _op_plus_1__lambda0)), ((*(temp0) = (struct _op_plus_1__lambda0) {a, b}, 0), temp0))));
+	return make_arr_1(ctx, _op_plus_0(ctx, a.size, b.size), (struct fun_mut1_7) {0, .as0 = (temp0 = (struct _op_plus_1__lambda0*) alloc(ctx, sizeof(struct _op_plus_1__lambda0)), ((*(temp0) = (struct _op_plus_1__lambda0) {a, b}, 0), temp0))});
 }
 /* make-arr<?t> arr<char>(size nat, f fun-mut1<char, nat>) */
-struct arr_0 make_arr_1(struct ctx* ctx, uint64_t size, uint64_t f) {
+struct arr_0 make_arr_1(struct ctx* ctx, uint64_t size, struct fun_mut1_7 f) {
 	return freeze_1(make_mut_arr_1(ctx, size, f));
 }
 /* freeze<?t> arr<char>(a mut-arr<char>) */
@@ -3097,7 +3236,7 @@ struct arr_0 unsafe_as_arr_1(struct mut_arr_2* a) {
 	return (struct arr_0) {a->size, a->data};
 }
 /* make-mut-arr<?t> mut-arr<char>(size nat, f fun-mut1<char, nat>) */
-struct mut_arr_2* make_mut_arr_1(struct ctx* ctx, uint64_t size, uint64_t f) {
+struct mut_arr_2* make_mut_arr_1(struct ctx* ctx, uint64_t size, struct fun_mut1_7 f) {
 	struct mut_arr_2* res0;
 	res0 = new_uninitialized_mut_arr_1(ctx, size);
 	make_mut_arr_worker_1(ctx, res0, 0u, f);
@@ -3117,10 +3256,10 @@ char* uninitialized_data_1(struct ctx* ctx, uint64_t size) {
 	return (char*) bptr0;
 }
 /* make-mut-arr-worker<?t> void(m mut-arr<char>, i nat, f fun-mut1<char, nat>) */
-uint8_t make_mut_arr_worker_1(struct ctx* ctx, struct mut_arr_2* m, uint64_t i, uint64_t f) {
+uint8_t make_mut_arr_worker_1(struct ctx* ctx, struct mut_arr_2* m, uint64_t i, struct fun_mut1_7 f) {
 	struct mut_arr_2* _tailCallm;
 	uint64_t _tailCalli;
-	uint64_t _tailCallf;
+	struct fun_mut1_7 _tailCallf;
 	top:
 	if (_op_bang_equal_0(i, m->size)) {
 		set_at_1(ctx, m, i, call_9(ctx, f, i));
@@ -3146,14 +3285,18 @@ uint8_t noctx_set_at_2(struct mut_arr_2* a, uint64_t index, char value) {
 	return (*((a->data + index)) = value, 0);
 }
 /* call<?t, nat> char(a fun-mut1<char, nat>, p0 nat) */
-char call_9(struct ctx* ctx, uint64_t a, uint64_t p0) {
+char call_9(struct ctx* ctx, struct fun_mut1_7 a, uint64_t p0) {
 	return call_w_ctx_274(a, ctx, p0);
 }
 /* call-w-ctx<char, nat-64> (generated) (generated) */
-char call_w_ctx_274(uint64_t a, struct ctx* ctx, uint64_t p0) {
-	switch ((a >> 48u)) {
+char call_w_ctx_274(struct fun_mut1_7 a, struct ctx* ctx, uint64_t p0) {
+	struct fun_mut1_7 match_fun1;
+	struct _op_plus_1__lambda0* closure0;
+	match_fun1 = a;
+	switch (match_fun1.kind) {
 		case 0:
-			return _op_plus_1__lambda0(ctx, (struct _op_plus_1__lambda0*) (a & 281474976710655u), p0);
+			closure0 = match_fun1.as0;
+			return _op_plus_1__lambda0(ctx, closure0, p0);
 		default:
 			return (assert(0),0);
 	}

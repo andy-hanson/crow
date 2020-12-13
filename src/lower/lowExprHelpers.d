@@ -9,6 +9,7 @@ import model.lowModel :
 	LowExprKind,
 	LowFunIndex,
 	LowLocal,
+	LowLocalSource,
 	LowParamIndex,
 	LowType,
 	PrimitiveType;
@@ -16,6 +17,7 @@ import util.collection.arr : Arr, emptyArr;
 import util.memory : allocate, nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
+import util.sym : Sym;
 import util.types : u8;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
@@ -44,62 +46,6 @@ immutable(LowExpr) addPtr(Alloc)(
 			allocate(alloc, ptr),
 			allocate(alloc, constantNat64(range, value)))));
 }
-
-immutable(LowExpr) genNat64FromPtr(Alloc)(
-	ref Alloc alloc,
-	ref immutable FileAndRange range,
-	ref immutable LowExpr ptr,
-) {
-	return immutable LowExpr(
-		nat64Type,
-		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialUnary(
-			LowExprKind.SpecialUnary.Kind.toNatFromPtr,
-			allocate(alloc, ptr))));
-}
-
-immutable(LowExpr) genBitwiseAndNat64(Alloc)(
-	ref Alloc alloc,
-	ref immutable FileAndRange range,
-	ref immutable LowExpr a,
-	immutable ulong b,
-) {
-	return immutable LowExpr(
-		nat64Type,
-		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-			LowExprKind.SpecialBinary.Kind.bitwiseAndNat64,
-			allocate(alloc, a),
-			allocate(alloc, constantNat64(range, b)))));
-}
-
-immutable(LowExprKind) genBitwiseOrNat64(Alloc)(
-	ref Alloc alloc,
-	ref immutable FileAndRange range,
-	ref immutable LowExpr a,
-	ref immutable LowExpr b,
-) {
-	return immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-		LowExprKind.SpecialBinary.Kind.bitwiseOrNat64,
-		allocate(alloc, a),
-		allocate(alloc, b)));
-}
-
-immutable(LowExpr) genBitShiftRightNat64(Alloc)(
-	ref Alloc alloc,
-	ref immutable FileAndRange range,
-	ref immutable LowExpr a,
-	immutable ulong b,
-) {
-	return immutable LowExpr(
-		nat64Type,
-		range,
-		immutable LowExprKind(immutable LowExprKind.SpecialBinary(
-			LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64,
-			allocate(alloc, a),
-			allocate(alloc, constantNat64(range, b)))));
-}
-
 
 immutable(LowExpr) genAsAnyPtr(Alloc)(
 	ref Alloc alloc,
@@ -337,4 +283,13 @@ immutable(LowExpr) writeToPtr(Alloc)(
 
 immutable(LowExpr) genVoid(ref immutable FileAndRange source) {
 	return immutable LowExpr(voidType, source, immutable LowExprKind(immutable Constant(immutable Constant.Void())));
+}
+
+immutable(Ptr!LowLocal) genLocal(Alloc)(
+	ref Alloc alloc,
+	immutable Sym name,
+	immutable u8 index,
+	immutable LowType type,
+) {
+	return nu!LowLocal(alloc, immutable LowLocalSource(immutable LowLocalSource.Generated(name, index)), type);
 }

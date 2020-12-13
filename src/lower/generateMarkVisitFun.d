@@ -88,7 +88,7 @@ immutable(LowFunExprBody) arrVisitBody(Alloc)(
 	ref immutable LowExpr markCtx,
 	ref immutable LowExpr value,
 ) {
-	assert(0); // TODO
+	return todo!(immutable LowFunExprBody)("!");
 }
 
 immutable(LowFunExprBody) visitBody(Alloc)(
@@ -105,8 +105,6 @@ immutable(LowFunExprBody) visitBody(Alloc)(
 		valueType,
 		(immutable LowType.ExternPtr) =>
 			unreachable!(immutable LowFunExprBody),
-		(immutable LowType.Fun) =>
-			todo!(immutable LowFunExprBody)("!"),
 		(immutable LowType.FunPtr) =>
 			unreachable!(immutable LowFunExprBody),
 		(immutable LowType.NonFunPtr it) =>
@@ -129,7 +127,6 @@ immutable(Bool) mayVisit(ref immutable LowType a) {
 	return matchLowType!(immutable Bool)(
 		a,
 		(immutable LowType.ExternPtr) => False,
-		(immutable LowType.Fun) => True,
 		(immutable LowType.FunPtr) => False,
 		(immutable LowType.NonFunPtr) => True,
 		(immutable PrimitiveType) => False,

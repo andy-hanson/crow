@@ -251,9 +251,8 @@ immutable(Sexpr) tataOfConcreteExprKind(Alloc)(ref Alloc alloc, ref immutable Co
 				tataOfConcreteExpr(alloc, it.arg)]),
 		(ref immutable ConcreteExprKind.Lambda it) =>
 			tataRecord(alloc, "lambda", [
-				tataNat(it.funId),
-				tataOpt(alloc, it.closure, (ref immutable Ptr!ConcreteExpr closure) =>
-					tataOfConcreteExpr(alloc, closure))]),
+				tataNat(it.memberIndex),
+				tataOfConcreteExpr(alloc, it.closure)]),
 		(ref immutable ConcreteExprKind.LambdaFunPtr it) =>
 			tataRecord(alloc, "fun-ptr", [tataOfConcreteFunRef(alloc, it.fun)]),
 		(ref immutable ConcreteExprKind.Let it) =>

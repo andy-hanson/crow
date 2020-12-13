@@ -274,8 +274,6 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 		a,
 		(immutable LowType.ExternPtr) =>
 			DynCallType.pointer,
-		(immutable LowType.Fun) =>
-			unreachable!(immutable DynCallType),
 		(immutable LowType.FunPtr) =>
 			DynCallType.pointer,
 		(immutable LowType.NonFunPtr) =>

@@ -12,8 +12,6 @@ import lower.lowExprHelpers :
 	anyPtrType,
 	charPtrPtrType,
 	constantNat64,
-	genBitwiseOrNat64,
-	genNat64FromPtr,
 	getSizeOf,
 	int32Type,
 	localRef,
@@ -29,7 +27,6 @@ import model.concreteModel :
 	ArrTypeAndConstantsConcrete,
 	asBuiltin,
 	asRecord,
-	asUnion,
 	body_,
 	BuiltinStructKind,
 	ConcreteExpr,
@@ -78,7 +75,6 @@ import model.lowModel :
 	LowFunPtrType,
 	LowFunSig,
 	LowFunSource,
-	LowFunType,
 	LowLocal,
 	LowLocalSource,
 	LowParam,
@@ -116,10 +112,11 @@ import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.util : todo, unreachable, verify;
+import util.types : safeU16ToU8;
+import util.util : unreachable, verify;
 
 immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
-	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a.allStructs);
+	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a);
 	immutable AllConstantsLow allConstants = convertAllConstants(alloc, allTypes.getLowTypeCtx, a.allConstants);
 	immutable AllLowFuns allFuns = getAllLowFuns!Alloc(alloc, allTypes.allTypes, allTypes.getLowTypeCtx, a);
 	immutable Ptr!LowProgram res =
@@ -139,8 +136,6 @@ immutable(LowFunIndex) getCompareFun(ref const CompareFuns compareFuns, ref immu
 	return matchLowType!(immutable LowFunIndex)(
 		type,
 		(immutable LowType.ExternPtr) =>
-			unreachable!(immutable LowFunIndex),
-		(immutable LowType.Fun) =>
 			unreachable!(immutable LowFunIndex),
 		(immutable LowType.FunPtr) =>
 			unreachable!(immutable LowFunIndex),
@@ -164,8 +159,6 @@ immutable(LowFunIndex) getMarkVisitFun(ref const MarkVisitFuns funs, ref immutab
 	return matchLowType!(immutable LowFunIndex)(
 		type,
 		(immutable LowType.ExternPtr) =>
-			unreachable!(immutable LowFunIndex),
-		(immutable LowType.Fun) =>
 			unreachable!(immutable LowFunIndex),
 		(immutable LowType.FunPtr) =>
 			unreachable!(immutable LowFunIndex),
@@ -213,15 +206,23 @@ struct GetLowTypeCtx {
 	MutDict!(immutable Ptr!ConcreteStruct, immutable LowType, comparePtr!ConcreteStruct) concreteStructToPtrType;
 }
 
-AllLowTypesWithCtx getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr!ConcreteStruct) allStructs) {
+AllLowTypesWithCtx getAllLowTypes(Alloc)(
+	ref Alloc alloc,
+	ref immutable ConcreteProgram program,
+) {
 	DictBuilder!(Ptr!ConcreteStruct, LowType, comparePtr!ConcreteStruct) concreteStructToTypeBuilder;
-	ArrBuilder!(Ptr!ConcreteStruct) allFunSources;
 	ArrBuilder!(Ptr!ConcreteStruct) allFunPtrSources;
 	ArrBuilder!LowExternPtrType allExternPtrTypes;
 	ArrBuilder!(Ptr!ConcreteStruct) allRecordSources;
 	ArrBuilder!(Ptr!ConcreteStruct) allUnionSources;
 
-	foreach (immutable Ptr!ConcreteStruct s; arrRange(allStructs)) {
+	immutable(LowType) addUnion(immutable Ptr!ConcreteStruct s) {
+		immutable size_t i = arrBuilderSize(allUnionSources);
+		add(alloc, allUnionSources, s);
+		return immutable LowType(immutable LowType.Union(i));
+	}
+
+	foreach (immutable Ptr!ConcreteStruct s; arrRange(program.allStructs)) {
 		immutable Opt!LowType lowType = matchConcreteStructBody!(immutable Opt!LowType)(
 			body_(s),
 			(ref immutable ConcreteStructBody.Builtin it) {
@@ -232,11 +233,8 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr
 						return some(immutable LowType(PrimitiveType.char_));
 					case BuiltinStructKind.float64:
 						return some(immutable LowType(PrimitiveType.float64));
-					case BuiltinStructKind.fun: {
-						immutable size_t i = arrBuilderSize(allFunSources);
-						add(alloc, allFunSources, s);
-						return some(immutable LowType(immutable LowType.Fun(i)));
-					}
+					case BuiltinStructKind.fun:
+						return some(addUnion(s));
 					case BuiltinStructKind.funPtrN: {
 						immutable size_t i = arrBuilderSize(allFunPtrSources);
 						add(alloc, allFunPtrSources, s);
@@ -274,27 +272,14 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr
 				add(alloc, allRecordSources, s);
 				return some(immutable LowType(immutable LowType.Record(i)));
 			},
-			(ref immutable ConcreteStructBody.Union it) {
-				immutable size_t i = arrBuilderSize(allUnionSources);
-				add(alloc, allUnionSources, s);
-				return some(immutable LowType(immutable LowType.Union(i)));
-			});
+			(ref immutable ConcreteStructBody.Union it) =>
+				some(addUnion(s)));
 		if (has(lowType))
 			addToDict(alloc, concreteStructToTypeBuilder, s, force(lowType));
 	}
 
 	GetLowTypeCtx getLowTypeCtx = GetLowTypeCtx(finishDictShouldBeNoConflict(alloc, concreteStructToTypeBuilder));
 
-	immutable FullIndexDict!(LowType.Fun, LowFunType) allFuns =
-		fullIndexDictOfArr!(LowType.Fun, LowFunType)(
-			map(alloc, finishArr(alloc, allFunSources), (ref immutable Ptr!ConcreteStruct it) {
-				immutable Arr!ConcreteType typeArgs = asBuiltin(it.body_).typeArgs;
-				immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, first(typeArgs));
-				immutable Arr!LowType paramTypes =
-					map(alloc, tail(typeArgs), (ref immutable ConcreteType typeArg) =>
-						lowTypeFromConcreteType(alloc, getLowTypeCtx, typeArg));
-				return immutable LowFunType(it, returnType, paramTypes);
-			}));
 	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrs =
 		fullIndexDictOfArr!(LowType.FunPtr, LowFunPtrType)(
 			map(alloc, finishArr(alloc, allFunPtrSources), (ref immutable Ptr!ConcreteStruct it) {
@@ -317,20 +302,37 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr
 	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions =
 		fullIndexDictOfArr!(LowType.Union, LowUnion)(
 			map(alloc, finishArr(alloc, allUnionSources), (ref immutable Ptr!ConcreteStruct it) =>
-				immutable LowUnion(
-					it,
-					map(alloc, asUnion(it.body_).members, (ref immutable ConcreteType member) =>
-						lowTypeFromConcreteType(alloc, getLowTypeCtx, member)))));
+				getLowUnion(alloc, program, getLowTypeCtx, it)));
 
 	return AllLowTypesWithCtx(
 		nu!AllLowTypes(
 			alloc,
 			fullIndexDictOfArr!(LowType.ExternPtr, LowExternPtrType)(finishArr(alloc, allExternPtrTypes)),
-			allFuns,
 			allFunPtrs,
 			allRecords,
 			allUnions),
 		getLowTypeCtx);
+}
+
+immutable(LowUnion) getLowUnion(Alloc)(
+	ref Alloc alloc,
+	ref immutable ConcreteProgram program,
+	ref GetLowTypeCtx getLowTypeCtx,
+	immutable Ptr!ConcreteStruct s,
+) {
+	immutable Arr!LowType members = matchConcreteStructBody(
+		body_(s),
+		(ref immutable ConcreteStructBody.Builtin it) {
+			verify(it.kind == BuiltinStructKind.fun);
+			return map(alloc, mustGetAt(program.funStructToImpls, s), (ref immutable ConcreteLambdaImpl impl) =>
+				lowTypeFromConcreteType(alloc, getLowTypeCtx, impl.closureType));
+		},
+		(ref immutable ConcreteStructBody.ExternPtr) => unreachable!(immutable Arr!LowType)(),
+		(ref immutable ConcreteStructBody.Record) => unreachable!(immutable Arr!LowType)(),
+		(ref immutable ConcreteStructBody.Union it) =>
+			map(alloc, it.members, (ref immutable ConcreteType member) =>
+				lowTypeFromConcreteType(alloc, getLowTypeCtx, member)));
+	return immutable LowUnion(s, members);
 }
 
 immutable(LowType) getLowPtrType(Alloc)(
@@ -482,8 +484,6 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 			lowType,
 			(immutable LowType.ExternPtr) =>
 				none!LowFunIndex,
-			(immutable LowType.Fun) =>
-				none!LowFunIndex,
 			(immutable LowType.FunPtr) =>
 				none!LowFunIndex,
 			(immutable LowType.NonFunPtr it) {
@@ -537,8 +537,6 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 			lowType,
 			(immutable LowType.ExternPtr) =>
 				none!LowFunIndex,
-			(immutable LowType.Fun) =>
-				todo!(immutable Opt!LowFunIndex)("mark visit fun"),
 			(immutable LowType.FunPtr) =>
 				none!LowFunIndex,
 			(immutable LowType.NonFunPtr it) {
@@ -700,7 +698,7 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 		(ref immutable LowFunCause.CallWithCtx it) =>
 			generateCallWithCtxFun(
 				alloc,
-				getLowTypeCtx,
+				allTypes,
 				concreteFunToLowFunIndex,
 				it.returnType,
 				it.funType,
@@ -1272,16 +1270,9 @@ immutable(LowExprKind) getLambdaExpr(Alloc)(
 	ref immutable FileAndRange range,
 	ref immutable ConcreteExprKind.Lambda a,
 ) {
-	immutable ulong funId = a.funId;
-	immutable LowExpr funTagExpr = constantNat64(range, funId << 48);
-	if (!has(a.closure))
-		return funTagExpr.kind;
-	else {
-		immutable LowExpr closure =
-			ptrCast(alloc, anyPtrType, range, getLowExpr(alloc, ctx, force(a.closure), ExprPos.nonTail));
-		immutable LowExpr closureNat = genNat64FromPtr(alloc, range, closure);
-		return genBitwiseOrNat64(alloc, range, funTagExpr, closureNat);
-	}
+	return immutable LowExprKind(immutable LowExprKind.ConvertToUnion(
+		safeU16ToU8(a.memberIndex),
+		allocate(alloc, getLowExpr(alloc, ctx, a.closure, ExprPos.nonTail))));
 }
 
 immutable(LowExprKind) getLetExpr(Alloc)(

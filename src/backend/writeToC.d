@@ -29,7 +29,6 @@ import model.lowModel :
 	asUnionType,
 	isChar,
 	isExtern,
-	isFunType,
 	isGlobal,
 	isVoid,
 	LowExpr,
@@ -377,9 +376,6 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immuta
 			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allExternPtrTypes, it).source);
 			writeChar(writer, '*');
 		},
-		(immutable LowType.Fun it) {
-			writeStatic(writer, "uint64_t");
-		},
 		(immutable LowType.FunPtr it) {
 			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allFunPtrTypes, it).source);
 		},
@@ -502,8 +498,6 @@ immutable(Bool) canReferenceTypeAsValue(
 		(immutable LowType.ExternPtr) =>
 			// Declared all up front
 			True,
-		(immutable LowType.Fun) =>
-			True,
 		(immutable LowType.FunPtr it) =>
 			immutable Bool(at(states.funPtrStates, it.index)),
 		(immutable LowType.NonFunPtr it) =>
@@ -525,8 +519,6 @@ immutable(Bool) canReferenceTypeAsPointee(
 		t,
 		(immutable LowType.ExternPtr) =>
 			// Declared all up front
-			True,
-		(immutable LowType.Fun) =>
 			True,
 		(immutable LowType.FunPtr it) =>
 			immutable Bool(at(states.funPtrStates, it.index)),
@@ -1397,7 +1389,7 @@ void writeConstantRef(Alloc)(
 			todo!void("write float");
 		},
 		(immutable Constant.Integral it) {
-			if (!isFunType(type) && isSignedIntegral(asPrimitive(type)))
+			if (isSignedIntegral(asPrimitive(type)))
 				writeInt(writer, i64OfU64Bits(it.value));
 			else {
 				writeNat(writer, it.value);
@@ -1531,9 +1523,6 @@ void writeEmptyValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref 
 		type,
 		(immutable LowType.ExternPtr) {
 			writeStatic(writer, "NULL");
-		},
-		(immutable LowType.Fun) {
-			writeChar(writer, '0');
 		},
 		(immutable LowType.FunPtr) {
 			writeStatic(writer, "NULL");

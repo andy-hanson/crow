@@ -93,9 +93,6 @@ void writeLowType(Alloc)(ref Writer!Alloc writer, ref immutable AllLowTypes lowT
 		(immutable LowType.ExternPtr) {
 			todo!void("write ExternPtr type");
 		},
-		(immutable LowType.Fun) {
-			writeStatic(writer, "some fun type"); // TODO: more detail
-		},
 		(immutable LowType.FunPtr) {
 			writeStatic(writer, "some fun ptr type"); // TODO: more detail
 		},

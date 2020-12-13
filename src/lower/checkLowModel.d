@@ -241,8 +241,6 @@ immutable(Sexpr) tataOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, i
 		a,
 		(immutable LowType.ExternPtr) =>
 			tataSym("a-extern-ptr"), //TODO: more detail
-		(immutable LowType.Fun) =>
-			tataSym("some-fun"), //TODO: more detail
 		(immutable LowType.FunPtr) =>
 			tataSym("some-fun-ptr"), //TODO: more detail
 		(immutable LowType.NonFunPtr it) =>

@@ -726,7 +726,7 @@ program(
 					call(new-mut-arr-by-val-with-capacity-from-unmanaged-memory, [param-ref(max-threads)])
 					let(
 						gc-root
-						call(as, [call(island-gc-root, [call(new-mut-bag, []), lambda(0, none)])])
+						call(as, [call(island-gc-root, [call(new-mut-bag, []), lambda(0, void)])])
 						call(
 							island
 							[
@@ -947,7 +947,7 @@ program(
 			true
 			lambda(new-island, 0)
 			type(false, void)
-			none
+			some(param("<<closure>>", type(false, void)))
 			[param(it, type(false, exception))]
 			expr-body(call(default-exception-handler, [param-ref(it)])))
 		fun(
@@ -1094,7 +1094,7 @@ program(
 								call(ref-of-val, [local-ref(ctx-by-val)])
 								let(
 									add
-									call(as, [lambda(0, none)])
+									call(as, [lambda(0, void)])
 									let(
 										all-args
 										call(
@@ -1420,7 +1420,7 @@ program(
 						record(
 							[
 								call(cur-island-and-exclusion, [])
-								lambda(0, some(alloc(record([param-ref(all-args), param-ref(main-ptr)]))))])])))
+								lambda(0, alloc(record([param-ref(all-args), param-ref(main-ptr)])))])])))
 		fun(
 			true
 			then2
@@ -1432,7 +1432,7 @@ program(
 					then
 					[
 						param-ref(f)
-						record([call(cur-island-and-exclusion, []), lambda(0, some(alloc(record([param-ref(cb)]))))])])))
+						record([call(cur-island-and-exclusion, []), lambda(0, alloc(record([param-ref(cb)])))])])))
 		fun(
 			true
 			then
@@ -1444,7 +1444,7 @@ program(
 					res
 					call(new-unresolved-fut, [])
 					seq(
-						call(then-void, [param-ref(f), lambda(0, some(alloc(record([param-ref(cb), local-ref(res)]))))])
+						call(then-void, [param-ref(f), lambda(0, alloc(record([param-ref(cb), local-ref(res)])))])
 						local-ref(res)))))
 		fun(
 			true
@@ -1553,7 +1553,7 @@ program(
 			type(false, void)
 			none
 			[param(from, type(true, fut)), param(to, type(true, fut))]
-			expr-body(call(then-void, [param-ref(from), lambda(0, some(alloc(record([param-ref(to)]))))])))
+			expr-body(call(then-void, [param-ref(from), lambda(0, alloc(record([param-ref(to)])))])))
 		fun(
 			true
 			then-void
@@ -1716,7 +1716,7 @@ program(
 										task
 										[
 											call(exclusion, [call(island-and-exclusion, [param-ref(f)])])
-											lambda(1, some(alloc(record([param-ref(f), param-ref(p0), local-ref(res)]))))])])
+											lambda(1, alloc(record([param-ref(f), param-ref(p0), local-ref(res)])))])])
 							local-ref(res))))))
 		fun(
 			true
@@ -2160,13 +2160,13 @@ program(
 					[
 						lambda(
 							0
-							some(alloc(
+							alloc(
 								record(
 									[
 										get-field(param-ref("<<closure>>"), f)
 										get-field(param-ref("<<closure>>"), p0)
-										get-field(param-ref("<<closure>>"), res)]))))
-						lambda(1, some(alloc(record([get-field(param-ref("<<closure>>"), res)]))))])))
+										get-field(param-ref("<<closure>>"), res)])))
+						lambda(1, alloc(record([get-field(param-ref("<<closure>>"), res)])))])))
 		fun(false, value, type(false, void), none, [param(a, type(false, ok))], field-get(0))
 		fun(
 			true
@@ -2212,7 +2212,7 @@ program(
 										task
 										[
 											call(exclusion, [call(island-and-exclusion, [param-ref(f)])])
-											lambda(3, some(alloc(record([param-ref(f), local-ref(res)]))))])])
+											lambda(3, alloc(record([param-ref(f), local-ref(res)])))])])
 							local-ref(res))))))
 		fun(
 			false
@@ -2267,10 +2267,10 @@ program(
 					[
 						lambda(
 							2
-							some(alloc(
+							alloc(
 								record(
-									[get-field(param-ref("<<closure>>"), f), get-field(param-ref("<<closure>>"), res)]))))
-						lambda(2, some(alloc(record([get-field(param-ref("<<closure>>"), res)]))))])))
+									[get-field(param-ref("<<closure>>"), f), get-field(param-ref("<<closure>>"), res)])))
+						lambda(2, alloc(record([get-field(param-ref("<<closure>>"), res)])))])))
 		fun(
 			true
 			lambda(then2, 0)
@@ -2442,9 +2442,7 @@ program(
 			none
 			[param(a, type(false, arr)), param(mapper, type(false, fun-mut1))]
 			expr-body(
-				call(
-					make-arr
-					[call(size, [param-ref(a)]), lambda(0, some(alloc(record([param-ref(mapper), param-ref(a)]))))])))
+				call(make-arr, [call(size, [param-ref(a)]), lambda(0, alloc(record([param-ref(mapper), param-ref(a)])))])))
 		fun(
 			true
 			make-arr
@@ -2892,7 +2890,7 @@ program(
 			true
 			lambda(lambda(add-first-task, 0), 0)
 			type(false, arr)
-			none
+			some(param("<<closure>>", type(false, void)))
 			[param(it, type(false, ptr))]
 			expr-body(call(to-str, [param-ref(it)])))
 		fun(
@@ -2910,12 +2908,12 @@ program(
 						[
 							get-field(param-ref("<<closure>>"), main-ptr)
 							call(get-ctx, [])
-							call(map, [local-ref(args), lambda(0, none)])]))))
+							call(map, [local-ref(args), lambda(0, void)])]))))
 		fun(
 			true
 			lambda(do-main, 0)
 			type(true, fut)
-			none
+			some(param("<<closure>>", type(false, void)))
 			[param(all-args, type(false, arr)), param(main-ptr, type(false, fun-ptr2))]
 			expr-body(call(add-first-task, [param-ref(all-args), param-ref(main-ptr)])))
 		fun(false, unsafe-to-nat, type(false, nat), none, [param(a, type(false, int))], builtin([]))
@@ -4081,7 +4079,7 @@ program(
 					make-arr
 					[
 						call(+, [call(size, [param-ref(a)]), call(size, [param-ref(b)])])
-						lambda(0, some(alloc(record([param-ref(a), param-ref(b)]))))])))
+						lambda(0, alloc(record([param-ref(a), param-ref(b)])))])))
 		fun(
 			true
 			make-arr

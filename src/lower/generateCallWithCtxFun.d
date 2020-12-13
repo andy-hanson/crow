@@ -2,10 +2,12 @@ module lower.generateCallWithCtxFun;
 
 @safe @nogc pure nothrow:
 
-import lower.lower : ConcreteFunToLowFunIndex, GetLowTypeCtx, lowTypeFromConcreteType;
-import lower.lowExprHelpers : genBitShiftRightNat64, genBitwiseAndNat64, paramRef, ptrCast;
+import lower.lower : ConcreteFunToLowFunIndex;
+import lower.lowExprHelpers : genLocal, localRef, paramRef;
 import model.concreteModel : ConcreteLambdaImpl;
 import model.lowModel :
+	asUnionType,
+	AllLowTypes,
 	LowExpr,
 	LowExprKind,
 	LowFun,
@@ -14,24 +16,27 @@ import model.lowModel :
 	LowFunParamsKind,
 	LowFunSig,
 	LowFunSource,
+	LowLocal,
 	LowParam,
 	LowParamIndex,
 	LowParamSource,
 	LowType;
 import util.bools : False, True;
 import util.collection.arr : Arr;
-import util.collection.arrUtil : map, mapWithFirst2, mapWithOptFirst2, prepend;
+import util.collection.arrUtil : mapWithFirst2, mapWithOptFirst2, mapZip, prepend;
 import util.collection.dict : mustGetAt;
+import util.collection.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate, nu;
-import util.opt : force, has, none, Opt, some;
+import util.opt : Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
+import util.types : safeSizeTToU8;
 import util.util : verify;
 
 immutable(LowFun) generateCallWithCtxFun(Alloc)(
 	ref Alloc alloc,
-	ref GetLowTypeCtx getLowTypeCtx,
+	ref immutable AllLowTypes allTypes,
 	ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	immutable LowType returnType,
 	immutable LowType funType,
@@ -42,31 +47,35 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 	immutable FileAndRange range = FileAndRange.empty;
 	immutable LowExpr funParamRef = paramRef(range, funType, immutable LowParamIndex(0));
 	immutable LowExpr ctxParamRef = paramRef(range, ctxType, immutable LowParamIndex(1));
-	immutable LowExpr closurePtr = genBitwiseAndNat64(alloc, range, funParamRef, 0x0000ffffffffffff);
-	immutable Arr!LowExpr cases = map(alloc, impls, (ref immutable ConcreteLambdaImpl impl) {
-		immutable Opt!LowExpr closureArg = has(impl.closureType)
-			? some(ptrCast(
+
+	ubyte localIndex = 0;
+
+	immutable Arr!(LowExprKind.Match.Case) cases = mapZip(
+		alloc,
+		impls,
+		fullIndexDictGet(allTypes.allUnions, asUnionType(funType)).members,
+		(ref immutable ConcreteLambdaImpl impl, ref immutable LowType closureType) {
+			immutable Ptr!LowLocal closureLocal =
+				genLocal!Alloc(alloc, shortSymAlphaLiteral("closure"), localIndex, closureType);
+			localIndex = safeSizeTToU8(localIndex + 1);
+			immutable Opt!LowExpr someCtxParamRef = some(ctxParamRef);
+			immutable Opt!LowExpr someClosureLocalRef = some(localRef(alloc, range, closureLocal));
+			//TODO:mapWithFirst2 (no opt)
+			immutable Arr!LowExpr args = mapWithOptFirst2!(LowExpr, LowType, Alloc)(
 				alloc,
-				lowTypeFromConcreteType(alloc, getLowTypeCtx, force(impl.closureType)),
-				range,
-				closurePtr))
-			: none!LowExpr;
-		immutable Opt!LowExpr someCtxParamRef = some(ctxParamRef);
-		immutable Arr!LowExpr args = mapWithOptFirst2!(LowExpr, LowType, Alloc)(
-			alloc,
-			someCtxParamRef,
-			closureArg,
-			nonFunNonCtxParamTypes,
-			(immutable size_t i, immutable Ptr!LowType paramType) =>
-				paramRef(range, paramType, immutable LowParamIndex(i + 2)));
-		return immutable LowExpr(returnType, range, immutable LowExprKind(
-			immutable LowExprKind.Call(mustGetAt(concreteFunToLowFunIndex, impl.impl), args)));
-	});
-	immutable LowExpr switchValue = genBitShiftRightNat64(alloc, range, funParamRef, 48);
-	immutable LowExpr switch_ = immutable LowExpr(
-		returnType,
-		range,
-		immutable LowExprKind(immutable LowExprKind.Switch(allocate(alloc, switchValue), cases)));
+				someCtxParamRef,
+				someClosureLocalRef,
+				nonFunNonCtxParamTypes,
+				(immutable size_t i, immutable Ptr!LowType paramType) =>
+					paramRef(range, paramType, immutable LowParamIndex(i + 2)));
+			immutable LowExpr then = immutable LowExpr(returnType, range, immutable LowExprKind(
+				immutable LowExprKind.Call(mustGetAt(concreteFunToLowFunIndex, impl.impl), args)));
+			return immutable LowExprKind.Match.Case(some(closureLocal), then);
+		});
+
+	immutable Ptr!LowLocal matchedLocal = genLocal(alloc, shortSymAlphaLiteral("match-fun"), localIndex, funType);
+	immutable LowExpr expr = immutable LowExpr(returnType, range, immutable LowExprKind(
+		nu!(LowExprKind.Match)(alloc, matchedLocal, allocate(alloc, funParamRef), cases)));
 	immutable Arr!LowParam params = mapWithFirst2!(LowParam, LowType, Alloc)(
 		alloc,
 		immutable LowParam(
@@ -90,7 +99,7 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 			shortSymAlphaLiteral("call-w-ctx"),
 			prepend(alloc, returnType, nonFunNonCtxParamTypes))),
 		nu!LowFunSig(alloc, returnType, immutable LowFunParamsKind(True, False), params),
-		immutable LowFunBody(immutable LowFunExprBody(False, allocate(alloc, switch_))));
+		immutable LowFunBody(immutable LowFunExprBody(False, allocate(alloc, expr))));
 }
 
 private:

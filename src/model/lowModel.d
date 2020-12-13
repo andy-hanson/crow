@@ -42,12 +42,6 @@ struct LowUnion {
 	immutable Arr!LowType members;
 }
 
-struct LowFunType {
-	immutable Ptr!ConcreteStruct source;
-	immutable LowType returnType;
-	immutable Arr!LowType paramTypes; // does not include ctx
-}
-
 struct LowFunPtrType {
 	immutable Ptr!ConcreteStruct source;
 	immutable LowType returnType;
@@ -108,9 +102,6 @@ struct LowType {
 	struct ExternPtr {
 		immutable size_t index;
 	}
-	struct Fun {
-		immutable size_t index;
-	}
 	struct FunPtr {
 		immutable size_t index;
 	}
@@ -127,7 +118,6 @@ struct LowType {
 	private:
 	enum Kind {
 		externPtr,
-		fun,
 		funPtr,
 		nonFunPtr,
 		primitive,
@@ -137,7 +127,6 @@ struct LowType {
 	immutable Kind kind_;
 	union {
 		immutable ExternPtr externPtr_;
-		immutable Fun fun_;
 		immutable FunPtr funPtr_;
 		immutable NonFunPtr nonFunPtr_;
 		immutable PrimitiveType primitive_;
@@ -147,7 +136,6 @@ struct LowType {
 
 	public:
 	immutable this(immutable ExternPtr a) { kind_ = Kind.externPtr; externPtr_ = a; }
-	immutable this(immutable Fun a) { kind_ = Kind.fun; fun_ = a; }
 	immutable this(immutable FunPtr a) { kind_ = Kind.funPtr; funPtr_ = a; }
 	@trusted immutable this(immutable NonFunPtr a) { kind_ = Kind.nonFunPtr; nonFunPtr_ = a; }
 	immutable this(immutable PrimitiveType a) { kind_ = Kind.primitive; primitive_ = a; }
@@ -161,8 +149,6 @@ immutable(Bool) lowTypeEqual(ref immutable LowType a, ref immutable LowType b) {
 		final switch (a.kind_) {
 			case LowType.Kind.externPtr:
 				return immutable Bool(a.externPtr_.index == b.externPtr_.index);
-			case LowType.Kind.fun:
-				return immutable Bool(a.fun_.index == b.fun_.index);
 			case LowType.Kind.funPtr:
 				return immutable Bool(a.funPtr_.index == b.funPtr_.index);
 			case LowType.Kind.nonFunPtr:
@@ -175,10 +161,6 @@ immutable(Bool) lowTypeEqual(ref immutable LowType a, ref immutable LowType b) {
 				return immutable Bool(a.union_.index == b.union_.index);
 		}
 	}());
-}
-
-immutable(Bool) isFunType(ref immutable LowType a) {
-	return immutable Bool(a.kind_ == LowType.Kind.fun);
 }
 
 immutable(Bool) isPrimitive(ref immutable LowType a) {
@@ -229,7 +211,6 @@ immutable(LowType.Union) asUnionType(ref immutable LowType a) {
 @trusted T matchLowType(T)(
 	ref immutable LowType a,
 	scope T delegate(immutable LowType.ExternPtr) @safe @nogc pure nothrow cbExternPtr,
-	scope T delegate(immutable LowType.Fun) @safe @nogc pure nothrow cbFun,
 	scope T delegate(immutable LowType.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(immutable LowType.NonFunPtr) @safe @nogc pure nothrow cbNonFunPtr,
 	scope T delegate(immutable PrimitiveType) @safe @nogc pure nothrow cbPtr,
@@ -239,8 +220,6 @@ immutable(LowType.Union) asUnionType(ref immutable LowType a) {
 	final switch (a.kind_) {
 		case LowType.Kind.externPtr:
 			return cbExternPtr(a.externPtr_);
-		case LowType.Kind.fun:
-			return cbFun(a.fun_);
 		case LowType.Kind.funPtr:
 			return cbFunPtr(a.funPtr_);
 		case LowType.Kind.nonFunPtr:
@@ -970,10 +949,6 @@ struct LowProgram {
 		return allTypes.allExternPtrTypes;
 	}
 
-	ref immutable(FullIndexDict!(LowType.Fun, LowFunType)) allFunTypes() return scope immutable {
-		return allTypes.allFunTypes;
-	}
-
 	ref immutable(FullIndexDict!(LowType.FunPtr, LowFunPtrType)) allFunPtrTypes() return scope immutable {
 		return allTypes.allFunPtrTypes;
 	}
@@ -989,7 +964,6 @@ struct LowProgram {
 
 struct AllLowTypes {
 	immutable FullIndexDict!(LowType.ExternPtr, LowExternPtrType) allExternPtrTypes;
-	immutable FullIndexDict!(LowType.Fun, LowFunType) allFunTypes;
 	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrTypes;
 	immutable FullIndexDict!(LowType.Record, LowRecord) allRecords;
 	immutable FullIndexDict!(LowType.Union, LowUnion) allUnions;
