@@ -23,7 +23,6 @@ immutable LowType charType = immutable LowType(PrimitiveType.char_);
 private immutable LowType charPtrType =
 	immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charType)));
 immutable LowType charPtrPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charPtrType)));
-immutable LowType funType = immutable LowType(PrimitiveType.fun);
 immutable LowType int32Type = immutable LowType(PrimitiveType.int32);
 immutable LowType nat64Type = immutable LowType(PrimitiveType.nat64);
 private immutable LowType nat8Type = immutable LowType(PrimitiveType.nat8);

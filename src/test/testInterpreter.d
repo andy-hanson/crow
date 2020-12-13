@@ -54,6 +54,7 @@ import model.lowModel :
 	LowFunPtrType,
 	LowFunSig,
 	LowFunSource,
+	LowFunType,
 	LowParam,
 	LowProgram,
 	LowRecord,
@@ -136,8 +137,10 @@ void doInterpret(Debug, Alloc)(
 		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc, False, strLiteral("test"))));
 	immutable LowProgram lowProgram = immutable LowProgram(
 		immutable AllConstantsLow(emptyArr!ArrTypeAndConstantsLow, emptyArr!PointerTypeAndConstantsLow),
-		immutable AllLowTypes(
+		nu!AllLowTypes(
+			test.alloc,
 			emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
+			emptyFullIndexDict!(LowType.Fun, LowFunType),
 			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
 			emptyFullIndexDict!(LowType.Record, LowRecord),
 			emptyFullIndexDict!(LowType.Union, LowUnion)),

@@ -274,6 +274,8 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 		a,
 		(immutable LowType.ExternPtr) =>
 			DynCallType.pointer,
+		(immutable LowType.Fun) =>
+			unreachable!(immutable DynCallType),
 		(immutable LowType.FunPtr) =>
 			DynCallType.pointer,
 		(immutable LowType.NonFunPtr) =>
@@ -286,8 +288,6 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 					return DynCallType.char_;
 				case PrimitiveType.float64:
 					return DynCallType.float64;
-				case PrimitiveType.fun:
-					return unreachable!(immutable DynCallType)();
 				case PrimitiveType.int8:
 					return DynCallType.int8;
 				case PrimitiveType.int16:

@@ -88,7 +88,7 @@ immutable(ConcreteFunBody) concretizeExpr(Alloc)(
 	immutable Ptr!ConcreteFun cf,
 	ref immutable Expr e,
 ) {
-	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), inputs, cf, False);
+	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), inputs, cf);
 	immutable ConcreteExpr res = concretizeExpr(alloc, exprCtx, e);
 	return immutable ConcreteFunBody(
 		immutable ConcreteFunExprBody(allocExpr(alloc, res)));
@@ -364,19 +364,6 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 
 	immutable ConcreteType concreteType = getConcreteType_forStructInst(alloc, ctx, e.type);
 	immutable Ptr!ConcreteStruct concreteStruct = mustBeNonPointer(concreteType);
-	immutable(Ptr!ConcreteFun) getFun(immutable Opt!(Ptr!ConcreteParam) closureParam) {
-		return getConcreteFunForLambdaAndFillBody(
-			alloc,
-			ctx.concretizeCtx,
-			True, // TODO: this is always true
-			ctx.currentConcreteFun,
-			lambdaIndex,
-			getConcreteType(alloc, ctx, e.returnType),
-			closureParam,
-			params,
-			ctx.concreteFunBodyInputs.containingConcreteFunKey,
-			ptrTrustMe(e.body_));
-	}
 
 	immutable Arr!ConcreteExpr closureArgs =
 		map!ConcreteExpr(alloc, e.closure, (ref immutable Ptr!ClosureField f) =>
@@ -405,7 +392,17 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 			immutable ConcreteExprKind(immutable ConcreteExprKind.CreateRecord(closureArgs))))))
 		:  none!(Ptr!ConcreteExpr);
 
-	immutable ConcreteLambdaImpl impl = immutable ConcreteLambdaImpl(closureType, getFun(closureParam));
+	immutable Ptr!ConcreteFun fun = getConcreteFunForLambdaAndFillBody(
+		alloc,
+		ctx.concretizeCtx,
+		ctx.currentConcreteFun,
+		lambdaIndex,
+		getConcreteType(alloc, ctx, e.returnType),
+		closureParam,
+		params,
+		ctx.concreteFunBodyInputs.containingConcreteFunKey,
+		ptrTrustMe(e.body_));
+	immutable ConcreteLambdaImpl impl = immutable ConcreteLambdaImpl(closureType, fun);
 	immutable(ConcreteExprKind) lambda(immutable Ptr!ConcreteStruct funStruct) {
 		return immutable ConcreteExprKind(
 			immutable ConcreteExprKind.Lambda(nextLambdaImplId(alloc, ctx, funStruct, impl), closure));

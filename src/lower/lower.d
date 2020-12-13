@@ -78,6 +78,7 @@ import model.lowModel :
 	LowFunPtrType,
 	LowFunSig,
 	LowFunSource,
+	LowFunType,
 	LowLocal,
 	LowLocalSource,
 	LowParam,
@@ -115,7 +116,7 @@ import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.util : unreachable, verify;
+import util.util : todo, unreachable, verify;
 
 immutable(Ptr!LowProgram) lower(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	AllLowTypesWithCtx allTypes = getAllLowTypes(alloc, a.allStructs);
@@ -139,6 +140,8 @@ immutable(LowFunIndex) getCompareFun(ref const CompareFuns compareFuns, ref immu
 		type,
 		(immutable LowType.ExternPtr) =>
 			unreachable!(immutable LowFunIndex),
+		(immutable LowType.Fun) =>
+			unreachable!(immutable LowFunIndex),
 		(immutable LowType.FunPtr) =>
 			unreachable!(immutable LowFunIndex),
 		(immutable LowType.NonFunPtr it) =>
@@ -161,6 +164,8 @@ immutable(LowFunIndex) getMarkVisitFun(ref const MarkVisitFuns funs, ref immutab
 	return matchLowType!(immutable LowFunIndex)(
 		type,
 		(immutable LowType.ExternPtr) =>
+			unreachable!(immutable LowFunIndex),
+		(immutable LowType.Fun) =>
 			unreachable!(immutable LowFunIndex),
 		(immutable LowType.FunPtr) =>
 			unreachable!(immutable LowFunIndex),
@@ -194,7 +199,7 @@ immutable(AllConstantsLow) convertAllConstants(Alloc)(
 }
 
 struct AllLowTypesWithCtx {
-	immutable AllLowTypes allTypes;
+	immutable Ptr!AllLowTypes allTypes;
 	GetLowTypeCtx getLowTypeCtx;
 }
 
@@ -210,6 +215,7 @@ struct GetLowTypeCtx {
 
 AllLowTypesWithCtx getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr!ConcreteStruct) allStructs) {
 	DictBuilder!(Ptr!ConcreteStruct, LowType, comparePtr!ConcreteStruct) concreteStructToTypeBuilder;
+	ArrBuilder!(Ptr!ConcreteStruct) allFunSources;
 	ArrBuilder!(Ptr!ConcreteStruct) allFunPtrSources;
 	ArrBuilder!LowExternPtrType allExternPtrTypes;
 	ArrBuilder!(Ptr!ConcreteStruct) allRecordSources;
@@ -226,12 +232,16 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr
 						return some(immutable LowType(PrimitiveType.char_));
 					case BuiltinStructKind.float64:
 						return some(immutable LowType(PrimitiveType.float64));
-					case BuiltinStructKind.fun:
-						return some(immutable LowType(PrimitiveType.fun));
-					case BuiltinStructKind.funPtrN:
+					case BuiltinStructKind.fun: {
+						immutable size_t i = arrBuilderSize(allFunSources);
+						add(alloc, allFunSources, s);
+						return some(immutable LowType(immutable LowType.Fun(i)));
+					}
+					case BuiltinStructKind.funPtrN: {
 						immutable size_t i = arrBuilderSize(allFunPtrSources);
 						add(alloc, allFunPtrSources, s);
 						return some(immutable LowType(immutable LowType.FunPtr(i)));
+					}
 					case BuiltinStructKind.int8:
 						return some(immutable LowType(PrimitiveType.int8));
 					case BuiltinStructKind.int16:
@@ -275,6 +285,16 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr
 
 	GetLowTypeCtx getLowTypeCtx = GetLowTypeCtx(finishDictShouldBeNoConflict(alloc, concreteStructToTypeBuilder));
 
+	immutable FullIndexDict!(LowType.Fun, LowFunType) allFuns =
+		fullIndexDictOfArr!(LowType.Fun, LowFunType)(
+			map(alloc, finishArr(alloc, allFunSources), (ref immutable Ptr!ConcreteStruct it) {
+				immutable Arr!ConcreteType typeArgs = asBuiltin(it.body_).typeArgs;
+				immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, first(typeArgs));
+				immutable Arr!LowType paramTypes =
+					map(alloc, tail(typeArgs), (ref immutable ConcreteType typeArg) =>
+						lowTypeFromConcreteType(alloc, getLowTypeCtx, typeArg));
+				return immutable LowFunType(it, returnType, paramTypes);
+			}));
 	immutable FullIndexDict!(LowType.FunPtr, LowFunPtrType) allFunPtrs =
 		fullIndexDictOfArr!(LowType.FunPtr, LowFunPtrType)(
 			map(alloc, finishArr(alloc, allFunPtrSources), (ref immutable Ptr!ConcreteStruct it) {
@@ -303,8 +323,10 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(ref Alloc alloc, ref immutable Arr!(Ptr
 						lowTypeFromConcreteType(alloc, getLowTypeCtx, member)))));
 
 	return AllLowTypesWithCtx(
-		immutable AllLowTypes(
+		nu!AllLowTypes(
+			alloc,
 			fullIndexDictOfArr!(LowType.ExternPtr, LowExternPtrType)(finishArr(alloc, allExternPtrTypes)),
+			allFuns,
 			allFunPtrs,
 			allRecords,
 			allUnions),
@@ -353,6 +375,7 @@ struct PrimitiveTypeIndex {
 struct LowFunCause {
 	@safe @nogc pure nothrow:
 	struct CallWithCtx {
+		immutable LowType funType;
 		immutable LowType returnType;
 		immutable Arr!LowType nonFunNonCtxParamTypes;
 		immutable Arr!ConcreteLambdaImpl impls;
@@ -459,6 +482,8 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 			lowType,
 			(immutable LowType.ExternPtr) =>
 				none!LowFunIndex,
+			(immutable LowType.Fun) =>
+				none!LowFunIndex,
 			(immutable LowType.FunPtr) =>
 				none!LowFunIndex,
 			(immutable LowType.NonFunPtr it) {
@@ -512,6 +537,8 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 			lowType,
 			(immutable LowType.ExternPtr) =>
 				none!LowFunIndex,
+			(immutable LowType.Fun) =>
+				todo!(immutable Opt!LowFunIndex)("mark visit fun"),
 			(immutable LowType.FunPtr) =>
 				none!LowFunIndex,
 			(immutable LowType.NonFunPtr it) {
@@ -561,6 +588,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				if (isCallWithCtxFun(fun)) {
 					immutable Ptr!ConcreteStruct funStruct =
 						mustBeNonPointer(first(fun.paramsExcludingCtxAndClosure()).type);
+					immutable LowType funType = lowTypeFromConcreteStruct(alloc, getLowTypeCtx, funStruct);
 					immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.returnType);
 					// NOTE: 'paramsExcludingCtxAndClosure' includes the *explicit* ctx param on this function
 					immutable Arr!LowType nonFunNonCtxParamTypes =
@@ -572,7 +600,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 						? force(optImpls)
 						: emptyArr!ConcreteLambdaImpl;
 					return some(addLowFun(immutable LowFunCause(
-						immutable LowFunCause.CallWithCtx(returnType, nonFunNonCtxParamTypes, impls))));
+						immutable LowFunCause.CallWithCtx(funType, returnType, nonFunNonCtxParamTypes, impls))));
 				} else if (isCompareFun(fun)) {
 					if (!lateIsSet(comparisonType)) {
 						immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.returnType);
@@ -673,9 +701,10 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 			generateCallWithCtxFun(
 				alloc,
 				getLowTypeCtx,
-				ctxType,
 				concreteFunToLowFunIndex,
 				it.returnType,
+				it.funType,
+				ctxType,
 				it.nonFunNonCtxParamTypes,
 				it.impls),
 		(ref immutable LowFunCause.Compare it) =>

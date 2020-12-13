@@ -279,6 +279,8 @@ immutable(LowFunExprBody) compareBody(Alloc)(
 		paramType,
 		(immutable LowType.ExternPtr) =>
 			unreachable!(immutable LowFunExprBody),
+		(immutable LowType.Fun) =>
+			unreachable!(immutable LowFunExprBody),
 		(immutable LowType.FunPtr) =>
 			unreachable!(immutable LowFunExprBody),
 		(immutable LowType.NonFunPtr it) =>
@@ -432,8 +434,6 @@ immutable(LowExpr) genComparePrimitive(Alloc)(
 			return genCompareNumeric(LowExprKind.SpecialBinary.Kind.lessChar);
 		case PrimitiveType.float64:
 			return genCompareNumeric(LowExprKind.SpecialBinary.Kind.lessFloat64);
-		case PrimitiveType.fun:
-			return unreachable!(immutable LowExpr)();
 		case PrimitiveType.int8:
 			return genCompareNumeric(LowExprKind.SpecialBinary.Kind.lessInt8);
 		case PrimitiveType.int16:

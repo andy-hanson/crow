@@ -1,4 +1,17 @@
 program(
+	extern-ptrs: []
+	funs: [
+		0: fun-type(fun-mut1, void, [union(2)])
+		1: fun-type(fun-mut0, void, [])
+		2: fun-type(fun-mut1, void, [record(11)])
+		3: fun-type(fun2, ptr(record(6)), [record(39), fun-ptr(0)])
+		4: fun-type(fun-mut1, void, [union(7)])
+		5: fun-type(fun-mut0, ptr(record(6)), [])
+		6: fun-type(fun-mut1, ptr(record(6)), [void])
+		7: fun-type(fun-mut1, record(2), [ptr(char)])
+		8: fun-type(fun-mut1, record(2), [nat-64])
+		9: fun-type(fun-mut1, int-64, [nat-64])
+		10: fun-type(fun-mut1, char, [nat-64])]
 	fun-ptrs: [fun-ptr(fun-ptr2, ptr(record(6)), [ptr(record(0)), record(17)]), fun-ptr(fun-ptr1, ptr(nat-8), [ptr(nat-8)])]
 	records: [
 		0: record(
@@ -18,7 +31,7 @@ program(
 		7: record(lock, [field(is-locked, record(8))])
 		8: record(atomic-bool, [field(value, bool)])
 		9: record(fut-state-callbacks, [field(head, union(3))])
-		10: record(fut-callback-node, [field(cb, fun), field(next-node, union(3))])
+		10: record(fut-callback-node, [field(cb, fun(0)), field(next-node, union(3))])
 		11: record(exception, [field(message, record(2))])
 		12: record(ok, [field(value, int-32)])
 		13: record(err, [field(value, record(11))])
@@ -61,8 +74,8 @@ program(
 				field(data-end, ptr(nat-64))])
 		21: record(gc-ctx, [field(gc, ptr(record(20))), field(next-ctx, union(4))])
 		22: record(some, [field(value, ptr(record(21)))])
-		23: record(island-gc-root, [field(tasks, record(25)), field(exception-handler, fun)])
-		24: record(task, [field(exclusion, nat-64), field(fun, fun)])
+		23: record(island-gc-root, [field(tasks, record(25)), field(exception-handler, fun(2))])
+		24: record(task, [field(exclusion, nat-64), field(fun, fun(1))])
 		25: record(mut-bag, [field(head, union(5))])
 		26: record(mut-bag-node, [field(value, record(24)), field(next-node, union(5))])
 		27: record(some, [field(value, ptr(record(26)))])
@@ -80,13 +93,13 @@ program(
 		39: record(arr, [field(size, nat-64), field(data, ptr(ptr(char)))])
 		40: record(fut, [field(lk, record(7)), field(state, union(6))])
 		41: record(fut-state-callbacks, [field(head, union(8))])
-		42: record(fut-callback-node, [field(cb, fun), field(next-node, union(8))])
+		42: record(fut-callback-node, [field(cb, fun(4)), field(next-node, union(8))])
 		43: record(ok, [field(value, void)])
 		44: record(some, [field(value, ptr(record(42)))])
 		45: record(fut-state-resolved, [field(value, void)])
-		46: record(fun-ref0, [field(island-and-exclusion, record(47)), field(fun, fun)])
+		46: record(fun-ref0, [field(island-and-exclusion, record(47)), field(fun, fun(5))])
 		47: record(island-and-exclusion, [field(island, nat-64), field(exclusion, nat-64)])
-		48: record(fun-ref1, [field(island-and-exclusion, record(47)), field(fun, fun)])
+		48: record(fun-ref1, [field(island-and-exclusion, record(47)), field(fun, fun(6))])
 		49: record(lambda(then, 0), [field(cb, record(48)), field(res, ptr(record(6)))])
 		50: record(lambda(forward-to, 0), [field(to, ptr(record(6)))])
 		51: record(lambda(call-ref, 0), [field(f, record(48)), field(p0, void), field(res, ptr(record(6)))])
@@ -101,7 +114,7 @@ program(
 			mut-arr
 			[field(frozen?, bool), field(size, nat-64), field(capacity, nat-64), field(data, ptr(record(2)))])
 		60: record(some, [field(value, ptr(nat-8))])
-		61: record(lambda(map, 0), [field(mapper, fun), field(a, record(39))])
+		61: record(lambda(map, 0), [field(mapper, fun(7)), field(a, record(39))])
 		62: record(thread-args, [field(thread-id, nat-64), field(gctx, ptr(record(18)))])
 		63: record(cell, [field(value, nat-64)])
 		64: record(chosen-task, [field(island, ptr(record(19))), field(task-or-gc, union(10))])
@@ -1281,7 +1294,7 @@ program(
 									record(
 										[
 											expr(record(25), file-range(15, range(3564, 3575)), call(35, []))
-											expr(fun, file-range(15, range(3577, 3607)), 0)]))
+											expr(fun(2), file-range(15, range(3577, 3607)), 0)]))
 								expr(
 									record(19)
 									file-range(15, range(3609, 3692))
@@ -1957,7 +1970,7 @@ program(
 													file-range(19, range(2021, 2224))
 													let(
 														add
-														expr(fun, file-range(19, range(2027, 2132)), 0)
+														expr(fun(3), file-range(19, range(2027, 2132)), 0)
 														expr(
 															ptr(record(6))
 															file-range(19, range(2132, 2224))
@@ -1993,7 +2006,7 @@ program(
 																		174
 																		[
 																			expr(
-																				fun
+																				fun(3)
 																				file-range(19, range(2181, 2184))
 																				local-ref(add))
 																			expr(
@@ -2634,7 +2647,7 @@ program(
 											file-range(19, range(2793, 3017))
 											call(129, [expr(ptr(record(0)), file-range(19, range(2793, 3017)), param-ref(0))]))
 										expr(
-											fun
+											fun(5)
 											file-range(19, range(2793, 3017))
 											binary(
 												"bitwise-or (nat-64)"
@@ -2729,7 +2742,7 @@ program(
 											file-range(16, range(2900, 3068))
 											call(129, [expr(ptr(record(0)), file-range(16, range(2900, 3068)), param-ref(0))]))
 										expr(
-											fun
+											fun(6)
 											file-range(16, range(2900, 3068))
 											binary(
 												"bitwise-or (nat-64)"
@@ -2822,7 +2835,7 @@ program(
 											expr(ptr(record(0)), file-range(16, range(2550, 2665)), param-ref(0))
 											expr(ptr(record(40)), file-range(16, range(2548, 2549)), param-ref(1))
 											expr(
-												fun
+												fun(4)
 												file-range(16, range(2560, 2665))
 												binary(
 													"bitwise-or (nat-64)"
@@ -2968,7 +2981,7 @@ program(
 			then-void
 			void
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(f, ptr(record(40))), param(cb, fun)]
+			[param(ctx, ptr(record(0))), param(f, ptr(record(40))), param(cb, fun(4))]
 			expr-body(
 				expr(
 					void
@@ -3127,7 +3140,8 @@ program(
 																															record(
 																																[
 																																	expr(
-																																		fun
+																																		fun(
+																																			4)
 																																		file-range(
 																																			16
 																																			range(
@@ -3178,7 +3192,7 @@ program(
 														77
 														[
 															expr(ptr(record(0)), file-range(16, range(2270, 2285)), param-ref(0))
-															expr(fun, file-range(16, range(2267, 2269)), param-ref(2))
+															expr(fun(4), file-range(16, range(2267, 2269)), param-ref(2))
 															expr(
 																union(7)
 																file-range(16, range(2282, 2285))
@@ -3208,7 +3222,7 @@ program(
 														77
 														[
 															expr(ptr(record(0)), file-range(16, range(2307, 2317)), param-ref(0))
-															expr(fun, file-range(16, range(2304, 2306)), param-ref(2))
+															expr(fun(4), file-range(16, range(2304, 2306)), param-ref(2))
 															expr(
 																union(7)
 																file-range(16, range(2313, 2317))
@@ -3245,7 +3259,7 @@ program(
 			call
 			void
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, fun), param(p0, union(7))]
+			[param(ctx, ptr(record(0))), param(a, fun(4)), param(p0, union(7))]
 			expr-body(
 				expr(
 					void
@@ -3253,14 +3267,14 @@ program(
 					call(
 						78
 						[
-							expr(fun, file-range(0, range(6391, 6392)), param-ref(1))
+							expr(fun(4), file-range(0, range(6391, 6392)), param-ref(1))
 							expr(ptr(record(0)), file-range(0, range(6407, 6414)), param-ref(0))
 							expr(union(7), file-range(0, range(6416, 6418)), param-ref(2))]))))
 		78: fun(
 			generated(call-w-ctx)
 			void
 			param-kind(ctx: true, closure: false)
-			[param(a, fun), param(ctx, ptr(record(0))), param(p0, union(7))]
+			[param(a, fun(4)), param(ctx, ptr(record(0))), param(p0, union(7))]
 			expr-body(
 				expr(
 					void
@@ -3271,7 +3285,7 @@ program(
 							file-range(65535, range(0, 0))
 							binary(
 								"unsafe-bit-shift-left (nat-64)"
-								expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+								expr(fun(4), file-range(65535, range(0, 0)), param-ref(0))
 								expr(nat-64, file-range(65535, range(0, 0)), 48)))
 						[
 							expr(
@@ -3290,7 +3304,7 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(4), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))
 										expr(union(7), file-range(65535, range(0, 0)), param-ref(2))]))]))))
 		79: fun(
@@ -3308,7 +3322,7 @@ program(
 							expr(ptr(record(0)), file-range(16, range(2402, 2437)), param-ref(0))
 							expr(ptr(record(6)), file-range(16, range(2397, 2401)), param-ref(1))
 							expr(
-								fun
+								fun(0)
 								file-range(16, range(2412, 2437))
 								binary(
 									"bitwise-or (nat-64)"
@@ -3375,7 +3389,7 @@ program(
 			then-void
 			void
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(f, ptr(record(6))), param(cb, fun)]
+			[param(ctx, ptr(record(0))), param(f, ptr(record(6))), param(cb, fun(0))]
 			expr-body(
 				expr(
 					void
@@ -3534,7 +3548,8 @@ program(
 																															record(
 																																[
 																																	expr(
-																																		fun
+																																		fun(
+																																			0)
 																																		file-range(
 																																			16
 																																			range(
@@ -3585,7 +3600,7 @@ program(
 														81
 														[
 															expr(ptr(record(0)), file-range(16, range(2270, 2285)), param-ref(0))
-															expr(fun, file-range(16, range(2267, 2269)), param-ref(2))
+															expr(fun(0), file-range(16, range(2267, 2269)), param-ref(2))
 															expr(
 																union(2)
 																file-range(16, range(2282, 2285))
@@ -3615,7 +3630,7 @@ program(
 														81
 														[
 															expr(ptr(record(0)), file-range(16, range(2307, 2317)), param-ref(0))
-															expr(fun, file-range(16, range(2304, 2306)), param-ref(2))
+															expr(fun(0), file-range(16, range(2304, 2306)), param-ref(2))
 															expr(
 																union(2)
 																file-range(16, range(2313, 2317))
@@ -3652,7 +3667,7 @@ program(
 			call
 			void
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, fun), param(p0, union(2))]
+			[param(ctx, ptr(record(0))), param(a, fun(0)), param(p0, union(2))]
 			expr-body(
 				expr(
 					void
@@ -3660,14 +3675,14 @@ program(
 					call(
 						82
 						[
-							expr(fun, file-range(0, range(6391, 6392)), param-ref(1))
+							expr(fun(0), file-range(0, range(6391, 6392)), param-ref(1))
 							expr(ptr(record(0)), file-range(0, range(6407, 6414)), param-ref(0))
 							expr(union(2), file-range(0, range(6416, 6418)), param-ref(2))]))))
 		82: fun(
 			generated(call-w-ctx)
 			void
 			param-kind(ctx: true, closure: false)
-			[param(a, fun), param(ctx, ptr(record(0))), param(p0, union(2))]
+			[param(a, fun(0)), param(ctx, ptr(record(0))), param(p0, union(2))]
 			expr-body(
 				expr(
 					void
@@ -3678,7 +3693,7 @@ program(
 							file-range(65535, range(0, 0))
 							binary(
 								"unsafe-bit-shift-left (nat-64)"
-								expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+								expr(fun(0), file-range(65535, range(0, 0)), param-ref(0))
 								expr(nat-64, file-range(65535, range(0, 0)), 48)))
 						[
 							expr(
@@ -3697,7 +3712,7 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(0), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))
 										expr(union(2), file-range(65535, range(0, 0)), param-ref(2))]))]))))
 		83: fun(
@@ -3908,7 +3923,7 @@ program(
 																	file-range(10, range(1453, 1463))
 																	param-ref(0))
 																expr(
-																	fun
+																	fun(0)
 																	file-range(10, range(1449, 1452))
 																	get-field(
 																		expr(
@@ -4041,7 +4056,7 @@ program(
 																		false
 																		1))
 																expr(
-																	fun
+																	fun(1)
 																	file-range(16, range(3691, 3749))
 																	binary(
 																		"bitwise-or (nat-64)"
@@ -4770,7 +4785,7 @@ program(
 			catch
 			void
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(try, fun), param(catcher, fun)]
+			[param(ctx, ptr(record(0))), param(try, fun(1)), param(catcher, fun(2))]
 			expr-body(
 				expr(
 					void
@@ -4783,13 +4798,13 @@ program(
 								ptr(record(32))
 								file-range(5, range(931, 948))
 								call(94, [expr(ptr(record(0)), file-range(5, range(931, 948)), param-ref(0))]))
-							expr(fun, file-range(5, range(974, 977)), param-ref(1))
-							expr(fun, file-range(5, range(979, 986)), param-ref(2))]))))
+							expr(fun(1), file-range(5, range(974, 977)), param-ref(1))
+							expr(fun(2), file-range(5, range(979, 986)), param-ref(2))]))))
 		105: fun(
 			catch-with-exception-ctx
 			void
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(ec, ptr(record(32))), param(try, fun), param(catcher, fun)]
+			[param(ctx, ptr(record(0))), param(ec, ptr(record(32))), param(try, fun(1)), param(catcher, fun(2))]
 			expr-body(
 				expr(
 					void
@@ -4895,7 +4910,7 @@ program(
 																						file-range(5, range(1392, 1396))
 																						param-ref(0))
 																					expr(
-																						fun
+																						fun(1)
 																						file-range(5, range(1388, 1391))
 																						param-ref(2))]))
 																		expr(
@@ -5083,7 +5098,7 @@ program(
 																											range(1814, 1835))
 																										param-ref(0))
 																									expr(
-																										fun
+																										fun(2)
 																										file-range(
 																											5
 																											range(1806, 1813))
@@ -5149,7 +5164,7 @@ program(
 			call
 			void
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, fun)]
+			[param(ctx, ptr(record(0))), param(a, fun(1))]
 			expr-body(
 				expr(
 					void
@@ -5157,13 +5172,13 @@ program(
 					call(
 						112
 						[
-							expr(fun, file-range(0, range(6323, 6324)), param-ref(1))
+							expr(fun(1), file-range(0, range(6323, 6324)), param-ref(1))
 							expr(ptr(record(0)), file-range(0, range(6339, 6346)), param-ref(0))]))))
 		112: fun(
 			generated(call-w-ctx)
 			void
 			param-kind(ctx: true, closure: false)
-			[param(a, fun), param(ctx, ptr(record(0)))]
+			[param(a, fun(1)), param(ctx, ptr(record(0)))]
 			expr-body(
 				expr(
 					void
@@ -5174,7 +5189,7 @@ program(
 							file-range(65535, range(0, 0))
 							binary(
 								"unsafe-bit-shift-left (nat-64)"
-								expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+								expr(fun(1), file-range(65535, range(0, 0)), param-ref(0))
 								expr(nat-64, file-range(65535, range(0, 0)), 48)))
 						[
 							expr(
@@ -5193,7 +5208,7 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(1), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))]))
 							expr(
 								void
@@ -5211,7 +5226,7 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(1), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))]))
 							expr(
 								void
@@ -5229,7 +5244,7 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(1), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))]))
 							expr(
 								void
@@ -5247,13 +5262,13 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(1), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))]))]))))
 		113: fun(
 			call
 			void
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, fun), param(p0, record(11))]
+			[param(ctx, ptr(record(0))), param(a, fun(2)), param(p0, record(11))]
 			expr-body(
 				expr(
 					void
@@ -5261,14 +5276,14 @@ program(
 					call(
 						114
 						[
-							expr(fun, file-range(0, range(6391, 6392)), param-ref(1))
+							expr(fun(2), file-range(0, range(6391, 6392)), param-ref(1))
 							expr(ptr(record(0)), file-range(0, range(6407, 6414)), param-ref(0))
 							expr(record(11), file-range(0, range(6416, 6418)), param-ref(2))]))))
 		114: fun(
 			generated(call-w-ctx)
 			void
 			param-kind(ctx: true, closure: false)
-			[param(a, fun), param(ctx, ptr(record(0))), param(p0, record(11))]
+			[param(a, fun(2)), param(ctx, ptr(record(0))), param(p0, record(11))]
 			expr-body(
 				expr(
 					void
@@ -5279,7 +5294,7 @@ program(
 							file-range(65535, range(0, 0))
 							binary(
 								"unsafe-bit-shift-left (nat-64)"
-								expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+								expr(fun(2), file-range(65535, range(0, 0)), param-ref(0))
 								expr(nat-64, file-range(65535, range(0, 0)), 48)))
 						[
 							expr(
@@ -5306,7 +5321,7 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(2), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))
 										expr(record(11), file-range(65535, range(0, 0)), param-ref(2))]))
 							expr(
@@ -5325,14 +5340,14 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(2), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))
 										expr(record(11), file-range(65535, range(0, 0)), param-ref(2))]))]))))
 		115: fun(
 			call
 			ptr(record(6))
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, fun), param(p0, void)]
+			[param(ctx, ptr(record(0))), param(a, fun(6)), param(p0, void)]
 			expr-body(
 				expr(
 					ptr(record(6))
@@ -5340,14 +5355,14 @@ program(
 					call(
 						116
 						[
-							expr(fun, file-range(0, range(6391, 6392)), param-ref(1))
+							expr(fun(6), file-range(0, range(6391, 6392)), param-ref(1))
 							expr(ptr(record(0)), file-range(0, range(6407, 6414)), param-ref(0))
 							expr(void, file-range(0, range(6416, 6418)), param-ref(2))]))))
 		116: fun(
 			generated(call-w-ctx)
 			ptr(record(6))
 			param-kind(ctx: true, closure: false)
-			[param(a, fun), param(ctx, ptr(record(0))), param(p0, void)]
+			[param(a, fun(6)), param(ctx, ptr(record(0))), param(p0, void)]
 			expr-body(
 				expr(
 					ptr(record(6))
@@ -5358,7 +5373,7 @@ program(
 							file-range(65535, range(0, 0))
 							binary(
 								"unsafe-bit-shift-left (nat-64)"
-								expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+								expr(fun(6), file-range(65535, range(0, 0)), param-ref(0))
 								expr(nat-64, file-range(65535, range(0, 0)), 48)))
 						[
 							expr(
@@ -5377,7 +5392,7 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(6), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))
 										expr(void, file-range(65535, range(0, 0)), param-ref(2))]))]))))
 		117: fun(
@@ -5401,7 +5416,7 @@ program(
 									[
 										expr(ptr(record(0)), file-range(16, range(3702, 3709)), param-ref(0))
 										expr(
-											fun
+											fun(6)
 											file-range(16, range(3697, 3701))
 											get-field(
 												expr(
@@ -5476,7 +5491,7 @@ program(
 						[
 							expr(ptr(record(0)), file-range(16, range(3726, 3747)), param-ref(0))
 							expr(
-								fun
+								fun(1)
 								file-range(16, range(3695, 3725))
 								binary(
 									"bitwise-or (nat-64)"
@@ -5572,7 +5587,7 @@ program(
 																		file-range(16, range(3695, 3725))
 																		local-ref(generated(temp, 0)))))))))))))
 							expr(
-								fun
+								fun(2)
 								file-range(16, range(3732, 3747))
 								binary(
 									"bitwise-or (nat-64)"
@@ -5790,7 +5805,7 @@ program(
 																		false
 																		1))
 																expr(
-																	fun
+																	fun(1)
 																	file-range(16, range(3423, 3478))
 																	binary(
 																		"bitwise-or (nat-64)"
@@ -5922,7 +5937,7 @@ program(
 			call
 			ptr(record(6))
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, fun)]
+			[param(ctx, ptr(record(0))), param(a, fun(5))]
 			expr-body(
 				expr(
 					ptr(record(6))
@@ -5930,13 +5945,13 @@ program(
 					call(
 						124
 						[
-							expr(fun, file-range(0, range(6323, 6324)), param-ref(1))
+							expr(fun(5), file-range(0, range(6323, 6324)), param-ref(1))
 							expr(ptr(record(0)), file-range(0, range(6339, 6346)), param-ref(0))]))))
 		124: fun(
 			generated(call-w-ctx)
 			ptr(record(6))
 			param-kind(ctx: true, closure: false)
-			[param(a, fun), param(ctx, ptr(record(0)))]
+			[param(a, fun(5)), param(ctx, ptr(record(0)))]
 			expr-body(
 				expr(
 					ptr(record(6))
@@ -5947,7 +5962,7 @@ program(
 							file-range(65535, range(0, 0))
 							binary(
 								"unsafe-bit-shift-left (nat-64)"
-								expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+								expr(fun(5), file-range(65535, range(0, 0)), param-ref(0))
 								expr(nat-64, file-range(65535, range(0, 0)), 48)))
 						[
 							expr(
@@ -5966,7 +5981,7 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(5), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))]))]))))
 		125: fun(
 			lambda(lambda(call-ref, 0), 0)
@@ -5989,7 +6004,7 @@ program(
 									[
 										expr(ptr(record(0)), file-range(16, range(3433, 3438)), param-ref(0))
 										expr(
-											fun
+											fun(5)
 											file-range(16, range(3429, 3433))
 											get-field(
 												expr(
@@ -6037,7 +6052,7 @@ program(
 						[
 							expr(ptr(record(0)), file-range(16, range(3455, 3476)), param-ref(0))
 							expr(
-								fun
+								fun(1)
 								file-range(16, range(3427, 3454))
 								binary(
 									"bitwise-or (nat-64)"
@@ -6121,7 +6136,7 @@ program(
 																		file-range(16, range(3427, 3454))
 																		local-ref(generated(temp, 0)))))))))))))
 							expr(
-								fun
+								fun(2)
 								file-range(16, range(3461, 3476))
 								binary(
 									"bitwise-or (nat-64)"
@@ -6597,7 +6612,7 @@ program(
 			map
 			record(17)
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, record(39)), param(mapper, fun)]
+			[param(ctx, ptr(record(0))), param(a, record(39)), param(mapper, fun(7))]
 			expr-body(
 				expr(
 					record(17)
@@ -6611,7 +6626,7 @@ program(
 								file-range(8, range(10224, 10229))
 								get-field(expr(record(39), file-range(8, range(10223, 10224)), param-ref(1)), false, 0))
 							expr(
-								fun
+								fun(8)
 								file-range(8, range(10239, 10265))
 								binary(
 									"bitwise-or (nat-64)"
@@ -6667,7 +6682,7 @@ program(
 																				record(
 																					[
 																						expr(
-																							fun
+																							fun(7)
 																							file-range(8, range(10244, 10250))
 																							param-ref(2))
 																						expr(
@@ -6682,7 +6697,7 @@ program(
 			make-arr
 			record(17)
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(size, nat-64), param(f, fun)]
+			[param(ctx, ptr(record(0))), param(size, nat-64), param(f, fun(8))]
 			expr-body(
 				expr(
 					record(17)
@@ -6698,7 +6713,7 @@ program(
 									[
 										expr(ptr(record(0)), file-range(8, range(9177, 9191)), param-ref(0))
 										expr(nat-64, file-range(8, range(9172, 9176)), param-ref(1))
-										expr(fun, file-range(8, range(9190, 9191)), param-ref(2))]))]))))
+										expr(fun(8), file-range(8, range(9190, 9191)), param-ref(2))]))]))))
 		143: fun(
 			freeze
 			record(17)
@@ -6744,7 +6759,7 @@ program(
 			make-mut-arr
 			ptr(record(59))
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(size, nat-64), param(f, fun)]
+			[param(ctx, ptr(record(0))), param(size, nat-64), param(f, fun(8))]
 			expr-body(
 				expr(
 					ptr(record(59))
@@ -6772,7 +6787,7 @@ program(
 											expr(ptr(record(0)), file-range(8, range(9309, 9333)), param-ref(0))
 											expr(ptr(record(59)), file-range(8, range(9305, 9308)), local-ref(res))
 											expr(nat-64, file-range(8, range(9329, 9330)), 0)
-											expr(fun, file-range(8, range(9332, 9333)), param-ref(2))]))
+											expr(fun(8), file-range(8, range(9332, 9333)), param-ref(2))]))
 								expr(ptr(record(59)), file-range(8, range(9335, 9338)), local-ref(res))))))))
 		146: fun(
 			new-uninitialized-mut-arr
@@ -7680,7 +7695,7 @@ program(
 			make-mut-arr-worker
 			void
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(m, ptr(record(59))), param(i, nat-64), param(f, fun)]
+			[param(ctx, ptr(record(0))), param(m, ptr(record(59))), param(i, nat-64), param(f, fun(8))]
 			expr-body(
 				expr(
 					void
@@ -7718,7 +7733,7 @@ program(
 													163
 													[
 														expr(ptr(record(0)), file-range(8, range(9586, 9592)), param-ref(0))
-														expr(fun, file-range(8, range(9584, 9585)), param-ref(3))
+														expr(fun(8), file-range(8, range(9584, 9585)), param-ref(3))
 														expr(nat-64, file-range(8, range(9591, 9592)), param-ref(2))]))]))
 								expr(
 									void
@@ -7734,7 +7749,7 @@ program(
 													[
 														expr(ptr(record(0)), file-range(8, range(9618, 9623)), param-ref(0))
 														expr(nat-64, file-range(8, range(9617, 9618)), param-ref(2))]))
-											expr(fun, file-range(8, range(9625, 9626)), param-ref(3))]))))
+											expr(fun(8), file-range(8, range(9625, 9626)), param-ref(3))]))))
 						expr(void, file-range(8, range(9554, 9628)), void)))))
 		161: fun(
 			set-at
@@ -7826,7 +7841,7 @@ program(
 			call
 			record(2)
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, fun), param(p0, nat-64)]
+			[param(ctx, ptr(record(0))), param(a, fun(8)), param(p0, nat-64)]
 			expr-body(
 				expr(
 					record(2)
@@ -7834,14 +7849,14 @@ program(
 					call(
 						164
 						[
-							expr(fun, file-range(0, range(6391, 6392)), param-ref(1))
+							expr(fun(8), file-range(0, range(6391, 6392)), param-ref(1))
 							expr(ptr(record(0)), file-range(0, range(6407, 6414)), param-ref(0))
 							expr(nat-64, file-range(0, range(6416, 6418)), param-ref(2))]))))
 		164: fun(
 			generated(call-w-ctx)
 			record(2)
 			param-kind(ctx: true, closure: false)
-			[param(a, fun), param(ctx, ptr(record(0))), param(p0, nat-64)]
+			[param(a, fun(8)), param(ctx, ptr(record(0))), param(p0, nat-64)]
 			expr-body(
 				expr(
 					record(2)
@@ -7852,7 +7867,7 @@ program(
 							file-range(65535, range(0, 0))
 							binary(
 								"unsafe-bit-shift-left (nat-64)"
-								expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+								expr(fun(8), file-range(65535, range(0, 0)), param-ref(0))
 								expr(nat-64, file-range(65535, range(0, 0)), 48)))
 						[
 							expr(
@@ -7871,7 +7886,7 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(8), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))
 										expr(nat-64, file-range(65535, range(0, 0)), param-ref(2))]))]))))
 		165: fun(
@@ -7910,7 +7925,7 @@ program(
 			call
 			record(2)
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, fun), param(p0, ptr(char))]
+			[param(ctx, ptr(record(0))), param(a, fun(7)), param(p0, ptr(char))]
 			expr-body(
 				expr(
 					record(2)
@@ -7918,14 +7933,14 @@ program(
 					call(
 						167
 						[
-							expr(fun, file-range(0, range(6391, 6392)), param-ref(1))
+							expr(fun(7), file-range(0, range(6391, 6392)), param-ref(1))
 							expr(ptr(record(0)), file-range(0, range(6407, 6414)), param-ref(0))
 							expr(ptr(char), file-range(0, range(6416, 6418)), param-ref(2))]))))
 		167: fun(
 			generated(call-w-ctx)
 			record(2)
 			param-kind(ctx: true, closure: false)
-			[param(a, fun), param(ctx, ptr(record(0))), param(p0, ptr(char))]
+			[param(a, fun(7)), param(ctx, ptr(record(0))), param(p0, ptr(char))]
 			expr-body(
 				expr(
 					record(2)
@@ -7936,7 +7951,7 @@ program(
 							file-range(65535, range(0, 0))
 							binary(
 								"unsafe-bit-shift-left (nat-64)"
-								expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+								expr(fun(7), file-range(65535, range(0, 0)), param-ref(0))
 								expr(nat-64, file-range(65535, range(0, 0)), 48)))
 						[
 							expr(
@@ -8045,7 +8060,7 @@ program(
 						[
 							expr(ptr(record(0)), file-range(8, range(10251, 10263)), param-ref(0))
 							expr(
-								fun
+								fun(7)
 								file-range(8, range(10244, 10250))
 								get-field(expr(ptr(record(61)), file-range(8, range(10244, 10250)), param-ref(1)), true, 0))
 							expr(
@@ -8108,7 +8123,7 @@ program(
 											[
 												expr(ptr(record(0)), file-range(19, range(2900, 2915)), param-ref(0))
 												expr(record(39), file-range(19, range(2895, 2899)), local-ref(args))
-												expr(fun, file-range(19, range(2904, 2915)), 0)]))]))))))
+												expr(fun(7), file-range(19, range(2904, 2915)), 0)]))]))))))
 		173: fun(
 			lambda(do-main, 0)
 			ptr(record(6))
@@ -8128,7 +8143,7 @@ program(
 			generated(call-w-ctx)
 			ptr(record(6))
 			param-kind(ctx: true, closure: false)
-			[param(a, fun), param(ctx, ptr(record(0))), param(p0, record(39)), param(p1, fun-ptr(0))]
+			[param(a, fun(3)), param(ctx, ptr(record(0))), param(p0, record(39)), param(p1, fun-ptr(0))]
 			expr-body(
 				expr(
 					ptr(record(6))
@@ -8139,7 +8154,7 @@ program(
 							file-range(65535, range(0, 0))
 							binary(
 								"unsafe-bit-shift-left (nat-64)"
-								expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+								expr(fun(3), file-range(65535, range(0, 0)), param-ref(0))
 								expr(nat-64, file-range(65535, range(0, 0)), 48)))
 						[
 							expr(
@@ -10821,7 +10836,8 @@ program(
 																														112
 																														[
 																															expr(
-																																fun
+																																fun(
+																																	1)
 																																file-range(
 																																	15
 																																	range(
@@ -13650,7 +13666,7 @@ program(
 														[
 															expr(ptr(record(0)), file-range(11, range(1791, 1796)), param-ref(0))
 															expr(record(2), file-range(11, range(1790, 1791)), param-ref(1))]))]))
-									expr(fun, file-range(11, range(1815, 1823)), 0)]))
+									expr(fun(9), file-range(11, range(1815, 1823)), 0)]))
 						expr(
 							union(16)
 							file-range(11, range(1870, 1889))
@@ -13704,12 +13720,12 @@ program(
 																		param-ref(0))
 																	expr(record(2), file-range(11, range(1849, 1850)), param-ref(1))]))
 														expr(record(2), file-range(11, range(1857, 1858)), param-ref(1))))]))
-									expr(fun, file-range(11, range(1878, 1889)), 281474976710656)]))))))
+									expr(fun(9), file-range(11, range(1878, 1889)), 281474976710656)]))))))
 		245: fun(
 			opt-map
 			union(16)
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, union(15)), param(cb, fun)]
+			[param(ctx, ptr(record(0))), param(a, union(15)), param(cb, fun(9))]
 			expr-body(
 				expr(
 					union(16)
@@ -13746,7 +13762,7 @@ program(
 																	ptr(record(0))
 																	file-range(7, range(376, 388))
 																	param-ref(0))
-																expr(fun, file-range(7, range(373, 375)), param-ref(2))
+																expr(fun(9), file-range(7, range(373, 375)), param-ref(2))
 																expr(
 																	nat-64
 																	file-range(7, range(382, 388))
@@ -13761,7 +13777,7 @@ program(
 			call
 			int-64
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, fun), param(p0, nat-64)]
+			[param(ctx, ptr(record(0))), param(a, fun(9)), param(p0, nat-64)]
 			expr-body(
 				expr(
 					int-64
@@ -13769,14 +13785,14 @@ program(
 					call(
 						247
 						[
-							expr(fun, file-range(0, range(6391, 6392)), param-ref(1))
+							expr(fun(9), file-range(0, range(6391, 6392)), param-ref(1))
 							expr(ptr(record(0)), file-range(0, range(6407, 6414)), param-ref(0))
 							expr(nat-64, file-range(0, range(6416, 6418)), param-ref(2))]))))
 		247: fun(
 			generated(call-w-ctx)
 			int-64
 			param-kind(ctx: true, closure: false)
-			[param(a, fun), param(ctx, ptr(record(0))), param(p0, nat-64)]
+			[param(a, fun(9)), param(ctx, ptr(record(0))), param(p0, nat-64)]
 			expr-body(
 				expr(
 					int-64
@@ -13787,7 +13803,7 @@ program(
 							file-range(65535, range(0, 0))
 							binary(
 								"unsafe-bit-shift-left (nat-64)"
-								expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+								expr(fun(9), file-range(65535, range(0, 0)), param-ref(0))
 								expr(nat-64, file-range(65535, range(0, 0)), 48)))
 						[
 							expr(
@@ -14461,7 +14477,7 @@ program(
 											file-range(8, range(1995, 2000))
 											get-field(expr(record(2), file-range(8, range(1994, 1995)), param-ref(2)), false, 0))]))
 							expr(
-								fun
+								fun(10)
 								file-range(8, range(2010, 2067))
 								binary(
 									"bitwise-or (nat-64)"
@@ -14532,7 +14548,7 @@ program(
 			make-arr
 			record(2)
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(size, nat-64), param(f, fun)]
+			[param(ctx, ptr(record(0))), param(size, nat-64), param(f, fun(10))]
 			expr-body(
 				expr(
 					record(2)
@@ -14548,7 +14564,7 @@ program(
 									[
 										expr(ptr(record(0)), file-range(8, range(9177, 9191)), param-ref(0))
 										expr(nat-64, file-range(8, range(9172, 9176)), param-ref(1))
-										expr(fun, file-range(8, range(9190, 9191)), param-ref(2))]))]))))
+										expr(fun(10), file-range(8, range(9190, 9191)), param-ref(2))]))]))))
 		265: fun(
 			freeze
 			record(2)
@@ -14594,7 +14610,7 @@ program(
 			make-mut-arr
 			ptr(record(77))
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(size, nat-64), param(f, fun)]
+			[param(ctx, ptr(record(0))), param(size, nat-64), param(f, fun(10))]
 			expr-body(
 				expr(
 					ptr(record(77))
@@ -14622,7 +14638,7 @@ program(
 											expr(ptr(record(0)), file-range(8, range(9309, 9333)), param-ref(0))
 											expr(ptr(record(77)), file-range(8, range(9305, 9308)), local-ref(res))
 											expr(nat-64, file-range(8, range(9329, 9330)), 0)
-											expr(fun, file-range(8, range(9332, 9333)), param-ref(2))]))
+											expr(fun(10), file-range(8, range(9332, 9333)), param-ref(2))]))
 								expr(ptr(record(77)), file-range(8, range(9335, 9338)), local-ref(res))))))))
 		268: fun(
 			new-uninitialized-mut-arr
@@ -14710,7 +14726,7 @@ program(
 			make-mut-arr-worker
 			void
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(m, ptr(record(77))), param(i, nat-64), param(f, fun)]
+			[param(ctx, ptr(record(0))), param(m, ptr(record(77))), param(i, nat-64), param(f, fun(10))]
 			expr-body(
 				expr(
 					void
@@ -14748,7 +14764,7 @@ program(
 													273
 													[
 														expr(ptr(record(0)), file-range(8, range(9586, 9592)), param-ref(0))
-														expr(fun, file-range(8, range(9584, 9585)), param-ref(3))
+														expr(fun(10), file-range(8, range(9584, 9585)), param-ref(3))
 														expr(nat-64, file-range(8, range(9591, 9592)), param-ref(2))]))]))
 								expr(
 									void
@@ -14764,7 +14780,7 @@ program(
 													[
 														expr(ptr(record(0)), file-range(8, range(9618, 9623)), param-ref(0))
 														expr(nat-64, file-range(8, range(9617, 9618)), param-ref(2))]))
-											expr(fun, file-range(8, range(9625, 9626)), param-ref(3))]))))
+											expr(fun(10), file-range(8, range(9625, 9626)), param-ref(3))]))))
 						expr(void, file-range(8, range(9554, 9628)), void)))))
 		271: fun(
 			set-at
@@ -14856,7 +14872,7 @@ program(
 			call
 			char
 			param-kind(ctx: true, closure: false)
-			[param(ctx, ptr(record(0))), param(a, fun), param(p0, nat-64)]
+			[param(ctx, ptr(record(0))), param(a, fun(10)), param(p0, nat-64)]
 			expr-body(
 				expr(
 					char
@@ -14864,14 +14880,14 @@ program(
 					call(
 						274
 						[
-							expr(fun, file-range(0, range(6391, 6392)), param-ref(1))
+							expr(fun(10), file-range(0, range(6391, 6392)), param-ref(1))
 							expr(ptr(record(0)), file-range(0, range(6407, 6414)), param-ref(0))
 							expr(nat-64, file-range(0, range(6416, 6418)), param-ref(2))]))))
 		274: fun(
 			generated(call-w-ctx)
 			char
 			param-kind(ctx: true, closure: false)
-			[param(a, fun), param(ctx, ptr(record(0))), param(p0, nat-64)]
+			[param(a, fun(10)), param(ctx, ptr(record(0))), param(p0, nat-64)]
 			expr-body(
 				expr(
 					char
@@ -14882,7 +14898,7 @@ program(
 							file-range(65535, range(0, 0))
 							binary(
 								"unsafe-bit-shift-left (nat-64)"
-								expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+								expr(fun(10), file-range(65535, range(0, 0)), param-ref(0))
 								expr(nat-64, file-range(65535, range(0, 0)), 48)))
 						[
 							expr(
@@ -14901,7 +14917,7 @@ program(
 													file-range(65535, range(0, 0))
 													binary(
 														"bitwise-and (nat-64)"
-														expr(fun, file-range(65535, range(0, 0)), param-ref(0))
+														expr(fun(10), file-range(65535, range(0, 0)), param-ref(0))
 														expr(nat-64, file-range(65535, range(0, 0)), 281474976710655)))))
 										expr(nat-64, file-range(65535, range(0, 0)), param-ref(2))]))]))))
 		275: fun(

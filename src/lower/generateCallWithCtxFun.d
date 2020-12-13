@@ -3,7 +3,7 @@ module lower.generateCallWithCtxFun;
 @safe @nogc pure nothrow:
 
 import lower.lower : ConcreteFunToLowFunIndex, GetLowTypeCtx, lowTypeFromConcreteType;
-import lower.lowExprHelpers : funType, genBitShiftRightNat64, genBitwiseAndNat64, paramRef, ptrCast;
+import lower.lowExprHelpers : genBitShiftRightNat64, genBitwiseAndNat64, paramRef, ptrCast;
 import model.concreteModel : ConcreteLambdaImpl;
 import model.lowModel :
 	LowExpr,
@@ -32,9 +32,10 @@ import util.util : verify;
 immutable(LowFun) generateCallWithCtxFun(Alloc)(
 	ref Alloc alloc,
 	ref GetLowTypeCtx getLowTypeCtx,
-	ref immutable LowType ctxType,
 	ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
 	immutable LowType returnType,
+	immutable LowType funType,
+	ref immutable LowType ctxType,
 	immutable Arr!LowType nonFunNonCtxParamTypes,
 	immutable Arr!ConcreteLambdaImpl impls,
 ) {

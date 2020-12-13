@@ -41,7 +41,7 @@ import util.opt : force, has, none, Opt, some;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral;
 import util.types : safeIncrU8;
-import util.util : unreachable;
+import util.util : todo, unreachable;
 
 immutable(LowFun) generateMarkVisitFun(Alloc)(
 	ref Alloc alloc,
@@ -105,6 +105,8 @@ immutable(LowFunExprBody) visitBody(Alloc)(
 		valueType,
 		(immutable LowType.ExternPtr) =>
 			unreachable!(immutable LowFunExprBody),
+		(immutable LowType.Fun) =>
+			todo!(immutable LowFunExprBody)("!"),
 		(immutable LowType.FunPtr) =>
 			unreachable!(immutable LowFunExprBody),
 		(immutable LowType.NonFunPtr it) =>
@@ -127,6 +129,7 @@ immutable(Bool) mayVisit(ref immutable LowType a) {
 	return matchLowType!(immutable Bool)(
 		a,
 		(immutable LowType.ExternPtr) => False,
+		(immutable LowType.Fun) => True,
 		(immutable LowType.FunPtr) => False,
 		(immutable LowType.NonFunPtr) => True,
 		(immutable PrimitiveType) => False,

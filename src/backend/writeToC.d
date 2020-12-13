@@ -29,6 +29,7 @@ import model.lowModel :
 	asUnionType,
 	isChar,
 	isExtern,
+	isFunType,
 	isGlobal,
 	isVoid,
 	LowExpr,
@@ -376,6 +377,9 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immuta
 			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allExternPtrTypes, it).source);
 			writeChar(writer, '*');
 		},
+		(immutable LowType.Fun it) {
+			writeStatic(writer, "uint64_t");
+		},
 		(immutable LowType.FunPtr it) {
 			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allFunPtrTypes, it).source);
 		},
@@ -495,8 +499,10 @@ immutable(Bool) canReferenceTypeAsValue(
 ) {
 	return matchLowType!(immutable Bool)(
 		t,
-		(immutable LowType.ExternPtr it) =>
+		(immutable LowType.ExternPtr) =>
 			// Declared all up front
+			True,
+		(immutable LowType.Fun) =>
 			True,
 		(immutable LowType.FunPtr it) =>
 			immutable Bool(at(states.funPtrStates, it.index)),
@@ -517,8 +523,10 @@ immutable(Bool) canReferenceTypeAsPointee(
 ) {
 	return matchLowType!(immutable Bool)(
 		t,
-		(immutable LowType.ExternPtr it) =>
+		(immutable LowType.ExternPtr) =>
 			// Declared all up front
+			True,
+		(immutable LowType.Fun) =>
 			True,
 		(immutable LowType.FunPtr it) =>
 			immutable Bool(at(states.funPtrStates, it.index)),
@@ -1389,7 +1397,7 @@ void writeConstantRef(Alloc)(
 			todo!void("write float");
 		},
 		(immutable Constant.Integral it) {
-			if (isSignedIntegral(asPrimitive(type)))
+			if (!isFunType(type) && isSignedIntegral(asPrimitive(type)))
 				writeInt(writer, i64OfU64Bits(it.value));
 			else {
 				writeNat(writer, it.value);
@@ -1432,7 +1440,6 @@ immutable(Bool) isSignedIntegral(immutable PrimitiveType a) {
 			return True;
 		case PrimitiveType.bool_:
 		case PrimitiveType.char_:
-		case PrimitiveType.fun:
 		case PrimitiveType.nat8:
 		case PrimitiveType.nat16:
 		case PrimitiveType.nat32:
@@ -1524,6 +1531,9 @@ void writeEmptyValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref 
 		type,
 		(immutable LowType.ExternPtr) {
 			writeStatic(writer, "NULL");
+		},
+		(immutable LowType.Fun) {
+			writeChar(writer, '0');
 		},
 		(immutable LowType.FunPtr) {
 			writeStatic(writer, "NULL");
@@ -1829,8 +1839,6 @@ void writePrimitiveType(Alloc)(ref Writer!Alloc writer, immutable PrimitiveType 
 				return "char";
 			case PrimitiveType.float64:
 				return "double";
-			case PrimitiveType.fun:
-				return "uint64_t";
 			case PrimitiveType.int8:
 				return "int8_t";
 			case PrimitiveType.int16:

@@ -143,12 +143,10 @@ private immutable(Comparison) compareConcreteFunKey(ref immutable ConcreteFunKey
 }
 
 struct ConcreteFunBodyInputs {
-	immutable Ptr!ConcreteFun concreteFun;
 	// NOTE: for a lambda, this is for the *outermost* fun (the one with type args and spec impls).
 	// The FunDecl is needed for its TypeParam declataions.
 	immutable ConcreteFunKey containingConcreteFunKey;
-	// Similarly, body of the current fun, not the outer one.
-	// For a lambda this is always an Expr.
+	// Body of the current fun, not the outer one.
 	immutable FunBody body_;
 }
 
@@ -243,7 +241,6 @@ immutable(Ptr!ConcreteFun) getOrAddConcreteFunAndFillBody(Alloc)(
 immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	immutable Bool needsCtx,
 	immutable Ptr!ConcreteFun containingConcreteFun,
 	immutable size_t index,
 	immutable ConcreteType returnType,
@@ -257,9 +254,8 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 			alloc,
 			immutable ConcreteFunSource(
 				nu!(ConcreteFunSource.Lambda)(alloc, body_.range, containingConcreteFun, index)),
-			nu!ConcreteFunSig(alloc, returnType, needsCtx, closureParam, params));
+			nu!ConcreteFunSig(alloc, returnType, True, closureParam, params));
 	immutable ConcreteFunBodyInputs bodyInputs = immutable ConcreteFunBodyInputs(
-		castImmutable(res),
 		containingConcreteFunKey,
 		immutable FunBody(body_));
 	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
@@ -387,7 +383,6 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(Alloc)(
 		immutable ConcreteFunSource(key.inst),
 		nu!ConcreteFunSig(alloc, returnType, not(noCtx(decl)), none!(Ptr!ConcreteParam), params));
 	immutable ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
-		castImmutable(res),
 		key,
 		decl.body_);
 	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);

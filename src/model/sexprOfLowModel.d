@@ -7,6 +7,7 @@ import model.constant : Constant;
 import model.lowModel :
 	LowExpr,
 	LowExprKind,
+	LowExternPtrType,
 	LowField,
 	LowFun,
 	LowFunBody,
@@ -14,6 +15,7 @@ import model.lowModel :
 	LowFunParamsKind,
 	LowFunPtrType,
 	LowFunSource,
+	LowFunType,
 	LowLocal,
 	LowLocalSource,
 	LowParam,
@@ -56,6 +58,10 @@ import util.sourceRange : sexprOfFileAndRange;
 
 immutable(Sexpr) tataOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
 	return tataNamedRecord(alloc, "program", [
+		nameAndTata("extern-ptrs", tataFullIndexDict(alloc, a.allExternPtrTypes, (ref immutable LowExternPtrType it) =>
+			tataOfExternPtrType(alloc, it))),
+		nameAndTata("funs", tataFullIndexDict(alloc, a.allFunTypes, (ref immutable LowFunType it) =>
+			tataOfLowFunType(alloc, it))),
 		nameAndTata("fun-ptrs", tataFullIndexDict(alloc, a.allFunPtrTypes, (ref immutable LowFunPtrType it) =>
 			tataOfLowFunPtrType(alloc, it))),
 		nameAndTata("records", tataFullIndexDict(alloc, a.allRecords, (ref immutable LowRecord it) =>
@@ -74,6 +80,8 @@ immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) 
 		a,
 		(immutable LowType.ExternPtr it) =>
 			tataRecord(alloc, "extern-ptr", [tataNat(it.index)]),
+		(immutable LowType.Fun it) =>
+			tataRecord(alloc, "fun", [tataNat(it.index)]),
 		(immutable LowType.FunPtr it) =>
 			tataRecord(alloc, "fun-ptr", [tataNat(it.index)]),
 		(immutable LowType.NonFunPtr it) =>
@@ -84,6 +92,19 @@ immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) 
 			tataRecord(alloc, "record", [tataNat(it.index)]),
 		(immutable LowType.Union it) =>
 			tataRecord(alloc, "union", [tataNat(it.index)]));
+}
+
+immutable(Sexpr) tataOfExternPtrType(Alloc)(ref Alloc alloc, ref immutable LowExternPtrType a) {
+	return tataRecord(alloc, "extern-ptr", [
+		tataOfConcreteStructRef(alloc, a.source)]);
+}
+
+immutable(Sexpr) tataOfLowFunType(Alloc)(ref Alloc alloc, ref immutable LowFunType a) {
+	return tataRecord(alloc, "fun-type", [
+		tataOfConcreteStructRef(alloc, a.source),
+		tataOfLowType(alloc, a.returnType),
+		tataArr(alloc, a.paramTypes, (ref immutable LowType it) =>
+			tataOfLowType(alloc, it))]);
 }
 
 immutable(Sexpr) tataOfLowFunPtrType(Alloc)(ref Alloc alloc, ref immutable LowFunPtrType a) {

@@ -31,6 +31,8 @@ immutable(Nat16) sizeOfType(ref immutable TypeLayout typeLayout, ref immutable L
 		t,
 		(immutable LowType.ExternPtr) =>
 			externPtrSize,
+		(immutable LowType.Fun) =>
+			funSize,
 		(immutable LowType.FunPtr) =>
 			funPtrSize,
 		(immutable LowType.NonFunPtr) =>
@@ -177,6 +179,7 @@ immutable(Nat16) fillUnionSize(Alloc)(
 // NOTE: Using a full 64 bits even on 32-bit system so behavior is consistent.
 immutable Nat16 externPtrSize = immutable Nat16(8);
 immutable Nat16 ptrSize = immutable Nat16(8);
+immutable Nat16 funSize = immutable Nat16(8);
 immutable Nat16 funPtrSize = immutable Nat16(4);
 immutable Nat16 unionKindSize = immutable Nat16(8);
 
@@ -190,6 +193,8 @@ immutable(Nat16) sizeOfType(Alloc)(
 		t,
 		(immutable LowType.ExternPtr) =>
 			externPtrSize,
+		(immutable LowType.Fun) =>
+			funSize,
 		(immutable LowType.FunPtr) =>
 			funPtrSize,
 		(immutable LowType.NonFunPtr) =>
@@ -226,7 +231,6 @@ immutable(Nat16) primitiveSize(immutable PrimitiveType a) {
 		case PrimitiveType.nat32:
 			return immutable Nat16(4);
 		case PrimitiveType.float64:
-		case PrimitiveType.fun:
 		case PrimitiveType.int64:
 		case PrimitiveType.nat64:
 			return immutable Nat16(8);
