@@ -213,6 +213,10 @@ immutable(Sexpr) sexprOfExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable 
 				sexprOfStructInst(alloc, ctx, it.arrType),
 				tataArr(alloc, it.args, (ref immutable Expr arg) =>
 					sexprOfExpr(alloc, ctx, arg))]),
+		(ref immutable Expr.FunPtr it) =>
+			tataRecord(alloc, "fun-ptr", [
+				sexprOfFunInst(alloc, ctx, it.funInst),
+				sexprOfStructInst(alloc, ctx, it.structInst)]),
 		(ref immutable Expr.ImplicitConvertToUnion e) =>
 			tataRecord(alloc, "to-union", [
 				sexprOfStructInst(alloc, ctx, e.unionType),
@@ -264,8 +268,6 @@ immutable(Sexpr) sexprOfClosureField(Alloc)(ref Alloc alloc, ref Ctx ctx, ref im
 
 immutable(Sym) symOfFunKind(immutable FunKind a) {
 	final switch (a) {
-		case FunKind.ptr:
-			return shortSymAlphaLiteral("ptr");
 		case FunKind.plain:
 			return shortSymAlphaLiteral("plain");
 		case FunKind.mut:

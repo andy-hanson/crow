@@ -122,9 +122,6 @@ struct Diag {
 	struct LambdaClosesOverMut {
 		immutable Ptr!ClosureField field;
 	}
-	struct LambdaForFunPtrHasClosure {
-		immutable Ptr!ClosureField field;
-	}
 	struct LambdaWrongNumberParams {
 		immutable Ptr!StructInst expectedLambdaType;
 		immutable size_t actualNParams;
@@ -232,7 +229,6 @@ struct Diag {
 		importRefersToNothing,
 		lambdaCantInferParamTypes,
 		lambdaClosesOverMut,
-		lambdaForFunPtrHasClosure,
 		lambdaWrongNumberParams,
 		literalOverflow,
 		localShadowsPrevious,
@@ -275,7 +271,6 @@ struct Diag {
 		immutable ImportRefersToNothing importRefersToNothing;
 		immutable LambdaCantInferParamTypes lambdaCantInferParamTypes;
 		immutable LambdaClosesOverMut lambdaClosesOverMut;
-		immutable LambdaForFunPtrHasClosure lambdaForFunPtrHasClosure;
 		immutable LambdaWrongNumberParams lambdaWrongNumberParams;
 		immutable LiteralOverflow literalOverflow;
 		immutable LocalShadowsPrevious localShadowsPrevious;
@@ -340,9 +335,6 @@ struct Diag {
 	}
 	@trusted immutable this(immutable LambdaClosesOverMut a) {
 		kind = Kind.lambdaClosesOverMut; lambdaClosesOverMut = a;
-	}
-	@trusted immutable this(immutable LambdaForFunPtrHasClosure a) {
-		kind = Kind.lambdaForFunPtrHasClosure; lambdaForFunPtrHasClosure = a;
 	}
 	@trusted immutable this(immutable LambdaWrongNumberParams a) {
 		kind = Kind.lambdaWrongNumberParams; lambdaWrongNumberParams = a;
@@ -448,9 +440,6 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.LambdaClosesOverMut
 	) @safe @nogc pure nothrow cbLambdaClosesOverMut,
 	scope immutable(Out) delegate(
-		ref immutable Diag.LambdaForFunPtrHasClosure
-	) @safe @nogc pure nothrow cbLambdaForFunPtrHasClosure,
-	scope immutable(Out) delegate(
 		ref immutable Diag.LambdaWrongNumberParams
 	) @safe @nogc pure nothrow cbLambdaWrongNumberParams,
 	scope immutable(Out) delegate(ref immutable Diag.LiteralOverflow) @safe @nogc pure nothrow cbLiteralOverflow,
@@ -547,8 +536,6 @@ static assert(Diag.sizeof <= 32);
 			return cbLambdaCantInferParamTypes(a.lambdaCantInferParamTypes);
 		case Diag.Kind.lambdaClosesOverMut:
 			return cbLambdaClosesOverMut(a.lambdaClosesOverMut);
-		case Diag.Kind.lambdaForFunPtrHasClosure:
-			return cbLambdaForFunPtrHasClosure(a.lambdaForFunPtrHasClosure);
 		case Diag.Kind.lambdaWrongNumberParams:
 			return cbLambdaWrongNumberParams(a.lambdaWrongNumberParams);
 		case Diag.Kind.literalOverflow:

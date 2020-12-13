@@ -275,6 +275,7 @@ program(
 			ptr?: true
 			body: record([field(thread-id, false, type(false, nat)), field(gctx, false, type(true, global-ctx))]))
 		struct(name: ptr, body: builtin(ptr, [type(false, thread-args)]))
+		struct(name: cell, mut?: true, ptr?: true, body: record([field(value, true, type(false, nat))]))
 		struct(name: fun-ptr1, body: builtin(fun-ptr, [type(false, ptr), type(false, ptr)]))
 		struct(
 			name: chosen-task
@@ -295,7 +296,6 @@ program(
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
 		struct(name: some, body: record([field(value, false, type(false, task-and-nodes))]))
 		struct(name: arr, body: record([field(size, false, type(false, nat)), field(data, false, type(false, ptr))]))
-		struct(name: cell, mut?: true, ptr?: true, body: record([field(value, true, type(false, nat))]))
 		struct(name: cell, mut?: true, ptr?: true, body: record([field(value, true, type(false, ptr))]))
 		struct(name: my-record, body: record([field(x, false, type(false, nat)), field(y, false, type(false, nat))]))
 		struct(name: fun-mut1, body: builtin(fun, [type(false, char), type(false, nat)]))
@@ -3005,31 +3005,28 @@ program(
 								thread-ptr
 								call(+, [param-ref(threads), param-ref(i)])
 								let(
-									fn
-									call(as, [fun-ptr(lambda(start-threads-recur, 0))])
-									let(
-										err
+									err
+									call(
+										pthread-create
+										[
+											call(as-cell, [local-ref(thread-ptr)])
+											call(null, [])
+											fun-ptr(thread-fun)
+											call(as-any-ptr, [local-ref(thread-arg-ptr)])])
+									cond(
+										call(==, [local-ref(err), 0])
 										call(
-											pthread-create
+											start-threads-recur
 											[
-												call(as-cell, [local-ref(thread-ptr)])
-												call(null, [])
-												local-ref(fn)
-												call(as-any-ptr, [local-ref(thread-arg-ptr)])])
+												call(noctx-incr, [param-ref(i)])
+												param-ref(n-threads)
+												param-ref(threads)
+												param-ref(thread-args-begin)
+												param-ref(gctx)])
 										cond(
-											call(==, [local-ref(err), 0])
-											call(
-												start-threads-recur
-												[
-													call(noctx-incr, [param-ref(i)])
-													param-ref(n-threads)
-													param-ref(threads)
-													param-ref(thread-args-begin)
-													param-ref(gctx)])
-											cond(
-												call(==, [local-ref(err), call(eagain, [])])
-												call(todo, [])
-												call(todo, []))))))))
+											call(==, [local-ref(err), call(eagain, [])])
+											call(todo, [])
+											call(todo, [])))))))
 					void)))
 		fun(
 			false
@@ -3054,11 +3051,24 @@ program(
 			new-record)
 		fun(
 			false
-			as
-			type(false, fun-ptr1)
+			pthread-create
+			type(false, int32)
 			none
-			[param(value, type(false, fun-ptr1))]
-			builtin([type(false, fun-ptr1)]))
+			[
+				param(thread, type(true, cell))
+				param(attr, type(false, ptr))
+				param(start-routine, type(false, fun-ptr1))
+				param(arg, type(false, ptr))]
+			extern(false))
+		fun(
+			false
+			as-cell
+			type(true, cell)
+			none
+			[param(p, type(false, ptr))]
+			expr-body(call(as-ref, [call(as-any-ptr, [param-ref(p)])])))
+		fun(false, as-ref, type(true, cell), none, [param(p, type(false, ptr))], builtin([type(true, cell)]))
+		fun(false, as-any-ptr, type(false, ptr), none, [param(some-ref, type(false, ptr))], builtin([type(false, ptr)]))
 		fun(
 			false
 			thread-fun
@@ -3846,33 +3856,6 @@ program(
 					void)))
 		fun(false, thread-id, type(false, nat), none, [param(a, type(true, thread-args))], field-get(0))
 		fun(false, gctx, type(true, global-ctx), none, [param(a, type(true, thread-args))], field-get(1))
-		fun(
-			false
-			lambda(start-threads-recur, 0)
-			type(false, ptr)
-			none
-			[param(args-ptr, type(false, ptr))]
-			expr-body(call(thread-fun, [param-ref(args-ptr)])))
-		fun(
-			false
-			pthread-create
-			type(false, int32)
-			none
-			[
-				param(thread, type(true, cell))
-				param(attr, type(false, ptr))
-				param(start-routine, type(false, fun-ptr1))
-				param(arg, type(false, ptr))]
-			extern(false))
-		fun(
-			false
-			as-cell
-			type(true, cell)
-			none
-			[param(p, type(false, ptr))]
-			expr-body(call(as-ref, [call(as-any-ptr, [param-ref(p)])])))
-		fun(false, as-ref, type(true, cell), none, [param(p, type(false, ptr))], builtin([type(true, cell)]))
-		fun(false, as-any-ptr, type(false, ptr), none, [param(some-ref, type(false, ptr))], builtin([type(false, ptr)]))
 		fun(false, as-any-ptr, type(false, ptr), none, [param(some-ref, type(false, ptr))], builtin([type(false, ptr)]))
 		fun(false, eagain, type(false, int32), none, [], expr-body(11))
 		fun(

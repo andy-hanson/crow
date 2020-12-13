@@ -8,6 +8,7 @@ import frontend.ast :
 	CreateArrAst,
 	ExprAst,
 	ExprAstKind,
+	FunPtrAst,
 	IdentifierAst,
 	IfAst,
 	LambdaAst,
@@ -21,7 +22,7 @@ import frontend.ast :
 	SeqAst,
 	ThenAst,
 	TypeAst;
-import frontend.checkCall : checkCall, checkIdentifierCall;
+import frontend.checkCall : checkCall, checkIdentifierCall, eachFunInScope;
 import frontend.checkCtx : CheckCtx;
 import frontend.inferringType :
 	addDiag2,
@@ -43,29 +44,37 @@ import frontend.inferringType :
 	tryGetDeeplyInstantiatedTypeFor,
 	tryGetInferred,
 	typeFromAst2;
-import frontend.instantiate : instantiateStructNeverDelay;
+import frontend.instantiate : instantiateFun, instantiateStructNeverDelay;
 import frontend.typeFromAst : makeFutType;
 import model.constant : Constant;
 import model.diag : Diag;
 import model.model :
+	arity,
 	asStructInst,
 	asUnion,
 	body_,
+	Called,
+	CalledDecl,
 	ClosureField,
 	CommonTypes,
 	decl,
 	Expr,
 	FunDecl,
+	FunDeclAndArgs,
+	FunInst,
 	FunKind,
+	FunKindAndStructs,
 	FunsMap,
-	getFunStructInfo,
 	getType,
 	IntegralTypes,
 	isBogus,
 	isStructInst,
+	isTemplate,
 	isUnion,
 	Local,
+	matchCalledDecl,
 	matchType,
+	noCtx,
 	Param,
 	params,
 	Purity,
@@ -81,12 +90,24 @@ import model.model :
 	TypeParam,
 	worstCasePurity;
 import util.bools : Bool, False, not, True;
-import util.collection.arr : Arr, empty, emptyArrWithSize, first, only, ptrsRange, arrRange = range, size, sizeEq;
+import util.collection.arr :
+	Arr,
+	at,
+	empty,
+	emptyArr,
+	emptyArrWithSize,
+	first,
+	only,
+	ptrsRange,
+	arrRange = range,
+	size,
+	sizeEq;
 import util.collection.arrUtil :
 	arrLiteral,
 	exists,
 	map,
 	mapOrNone,
+	mapWithFirst,
 	mapZip,
 	mapZipWithIndex,
 	prepend,
@@ -293,7 +314,7 @@ immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(Alloc)(
 		return none!ExpectedLambdaType;
 	}
 	immutable Ptr!StructInst expectedStructInst = asStructInst(force(expectedType));
-	immutable Ptr!StructDecl funStruct = expectedStructInst.decl;
+	immutable Ptr!StructDecl funStruct = decl(expectedStructInst);
 	immutable Opt!FunKind opKind = getFunStructInfo(ctx.commonTypes, funStruct);
 	if (!has(opKind)) {
 		addDiag2(alloc, ctx, range, immutable Diag(Diag.ExpectedTypeIsNotALambda(expectedType)));
@@ -322,6 +343,15 @@ immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(Alloc)(
 			return none!ExpectedLambdaType;
 		}
 	}
+}
+
+immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable Ptr!StructDecl s) {
+	//TODO: use arrUtils
+	foreach (ref immutable FunKindAndStructs fs; arrRange(a.funKindsAndStructs))
+		foreach (immutable Ptr!StructDecl funStruct; arrRange(fs.structs))
+			if (ptrEquals(s, funStruct))
+				return some(fs.kind);
+	return none!FunKind;
 }
 
 immutable(Opt!Expr) getIdentifierInLambda(
@@ -555,6 +585,52 @@ immutable(Arr!Param) checkFunOrSendFunParamsForLambda(Alloc)(
 			immutable Param(rangeInFile2(ctx, rangeOfNameAndRange(ast)), ast.name, expectedParamType, index));
 }
 
+immutable(CheckedExpr) checkFunPtr(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable FileAndRange range,
+	ref immutable FunPtrAst ast,
+	ref Expected expected,
+) {
+	MutArr!(immutable Ptr!FunDecl) funsInScope = MutArr!(immutable Ptr!FunDecl)();
+	eachFunInScope(ctx, ast.name, (immutable CalledDecl cd) {
+		matchCalledDecl!void(
+			cd,
+			(immutable Ptr!FunDecl it) {
+				push(alloc, funsInScope, it);
+			},
+			(ref immutable SpecSig) {
+				todo!void("!");
+			});
+	});
+	if (mutArrSize(funsInScope) != 1)
+		todo!void("did not find or found too many");
+	immutable Ptr!FunDecl funDecl = mutArrAt(funsInScope, 0);
+
+	if (isTemplate(funDecl))
+		todo!void("can't point to template");
+	if (!funDecl.noCtx)
+		todo!void("fun-ptr can't take ctx");
+	if (arity(funDecl) >= size(ctx.commonTypes.funPtrStructs))
+		todo!void("arity too high");
+
+	immutable Ptr!FunInst funInst = instantiateFun(
+		alloc,
+		ctx.programState,
+		immutable FunDeclAndArgs(funDecl, emptyArr!Type, emptyArr!Called));
+
+	immutable Ptr!StructDecl funPtrStruct = at(ctx.commonTypes.funPtrStructs, arity(funInst));
+	immutable Arr!Type returnTypeAndParamTypes =
+		mapWithFirst(alloc, returnType(funDecl), params(funInst), (ref immutable Param it) => it.type);
+
+	immutable Ptr!StructInst structInst = instantiateStructNeverDelay(
+		alloc,
+		ctx.programState,
+		immutable StructDeclAndArgs(funPtrStruct, returnTypeAndParamTypes));
+	immutable Expr expr = immutable Expr(range, immutable Expr.FunPtr(funInst, structInst));
+	return check(alloc, ctx, expected, immutable Type(structInst), expr);
+}
+
 immutable(CheckedExpr) checkLambda(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
@@ -585,10 +661,6 @@ immutable(CheckedExpr) checkLambda(Alloc)(
 	immutable Arr!(Ptr!ClosureField) closureFields = moveToArr(alloc, info.closureFields);
 
 	final switch (kind) {
-		case FunKind.ptr:
-			foreach (immutable Ptr!ClosureField cf; arrRange(closureFields))
-				addDiag2(alloc, ctx, range, immutable Diag(Diag.LambdaForFunPtrHasClosure(cf)));
-			break;
 		case FunKind.plain:
 			foreach (immutable Ptr!ClosureField cf; arrRange(closureFields))
 				if (worstCasePurity(cf.type) == Purity.mut)
@@ -781,6 +853,8 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			checkCall(alloc, ctx, range, a, expected),
 		(ref immutable CreateArrAst a) =>
 			checkCreateArr(alloc, ctx, range, a, expected),
+		(ref immutable FunPtrAst a) =>
+			checkFunPtr(alloc, ctx, range, a, expected),
 		(ref immutable IdentifierAst a) =>
 			checkIdentifier(alloc, ctx, range, a, expected),
 		(ref immutable IfAst a) =>

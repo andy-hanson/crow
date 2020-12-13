@@ -168,6 +168,9 @@ struct thread_args {
 	uint64_t thread_id;
 	struct global_ctx* gctx;
 };
+struct cell_0 {
+	uint64_t value;
+};
 struct chosen_task;
 struct some_5 {
 	struct task value;
@@ -186,9 +189,6 @@ struct some_8;
 struct arr_4 {
 	uint64_t size;
 	uint64_t* data;
-};
-struct cell_0 {
-	uint64_t value;
 };
 struct cell_1 {
 	uint8_t* value;
@@ -683,6 +683,8 @@ struct fut_0* call_w_ctx_174(uint64_t a, struct ctx* ctx, struct arr_3 p0, fun_p
 uint8_t run_threads(uint64_t n_threads, struct global_ctx* gctx);
 struct thread_args* unmanaged_alloc_elements_1(uint64_t size_elements);
 uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx);
+extern int32_t pthread_create(struct cell_0* thread, uint8_t* attr, fun_ptr1 start_routine, uint8_t* arg);
+struct cell_0* as_cell(uint64_t* p);
 uint8_t* thread_fun(uint8_t* args_ptr);
 uint8_t thread_function(uint64_t thread_id, struct global_ctx* gctx);
 uint8_t thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struct thread_local_stuff* tls);
@@ -715,9 +717,6 @@ uint8_t empty__q_5(struct mut_arr_0* a);
 uint8_t return_ctx(struct ctx* c);
 uint8_t return_gc_ctx(struct gc_ctx* gc_ctx);
 uint8_t wait_on(struct condition* c, uint64_t last_checked);
-uint8_t* start_threads_recur__lambda0(uint8_t* args_ptr);
-extern int32_t pthread_create(struct cell_0* thread, uint8_t* attr, fun_ptr1 start_routine, uint8_t* arg);
-struct cell_0* as_cell(uint64_t* p);
 int32_t eagain(void);
 uint8_t join_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads);
 uint8_t join_one_thread(uint64_t tid);
@@ -737,12 +736,12 @@ uint8_t print(struct arr_0 a);
 uint8_t print_no_newline(struct arr_0 a);
 int32_t stdout_fd(void);
 struct arr_0 to_str_1(struct ctx* ctx, struct comparison c);
-struct comparison compare_232(struct my_record a, struct my_record b);
+struct comparison compare_231(struct my_record a, struct my_record b);
 uint8_t test_compare_byref_records(struct ctx* ctx);
-struct comparison compare_234(struct my_byref_record* a, struct my_byref_record* b);
+struct comparison compare_233(struct my_byref_record* a, struct my_byref_record* b);
 uint8_t test_compare_unions(struct ctx* ctx);
-struct comparison compare_236(struct my_union a, struct my_union b);
-struct comparison compare_237(struct my_other_record a, struct my_other_record b);
+struct comparison compare_235(struct my_union a, struct my_union b);
+struct comparison compare_236(struct my_other_record a, struct my_other_record b);
 struct fut_0* resolved_1(struct ctx* ctx, int32_t value);
 int32_t main(int32_t argc, char** argv);
 /* mark bool(ctx mark-ctx, ptr-any ptr<nat8>, size-bytes nat) */
@@ -2016,8 +2015,7 @@ struct thread_args* unmanaged_alloc_elements_1(uint64_t size_elements) {
 uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx) {
 	struct thread_args* thread_arg_ptr0;
 	uint64_t* thread_ptr1;
-	fun_ptr1 fn2;
-	int32_t err3;
+	int32_t err2;
 	uint64_t _tailCalli;
 	uint64_t _tailCalln_threads;
 	uint64_t* _tailCallthreads;
@@ -2028,9 +2026,8 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 		thread_arg_ptr0 = (thread_args_begin + i);
 		(*(thread_arg_ptr0) = (struct thread_args) {i, gctx}, 0);
 		thread_ptr1 = (threads + i);
-		fn2 = start_threads_recur__lambda0;
-		err3 = pthread_create(as_cell(thread_ptr1), NULL, fn2, (uint8_t*) thread_arg_ptr0);
-		if (_op_equal_equal_3(err3, 0)) {
+		err2 = pthread_create(as_cell(thread_ptr1), NULL, thread_fun, (uint8_t*) thread_arg_ptr0);
+		if (_op_equal_equal_3(err2, 0)) {
 			_tailCalli = noctx_incr(i);
 			_tailCalln_threads = n_threads;
 			_tailCallthreads = threads;
@@ -2043,7 +2040,7 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 			gctx = _tailCallgctx;
 			goto top;
 		} else {
-			if (_op_equal_equal_3(err3, eagain())) {
+			if (_op_equal_equal_3(err2, eagain())) {
 				return todo_1();
 			} else {
 				return todo_1();
@@ -2052,6 +2049,10 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 	} else {
 		return 0;
 	}
+}
+/* as-cell<nat> cell<nat>(p ptr<nat>) */
+struct cell_0* as_cell(uint64_t* p) {
+	return (struct cell_0*) (uint8_t*) p;
 }
 /* thread-fun ptr<nat8>(args-ptr ptr<nat8>) */
 uint8_t* thread_fun(uint8_t* args_ptr) {
@@ -2465,14 +2466,6 @@ uint8_t wait_on(struct condition* c, uint64_t last_checked) {
 		return 0;
 	}
 }
-/* start-threads-recur.lambda0 ptr<nat8>(args-ptr ptr<nat8>) */
-uint8_t* start_threads_recur__lambda0(uint8_t* args_ptr) {
-	return thread_fun(args_ptr);
-}
-/* as-cell<nat> cell<nat>(p ptr<nat>) */
-struct cell_0* as_cell(uint64_t* p) {
-	return (struct cell_0*) (uint8_t*) p;
-}
 /* eagain int32() */
 int32_t eagain(void) {
 	return 11;
@@ -2581,9 +2574,9 @@ uint8_t test_compare_records(struct ctx* ctx) {
 	b1 = (struct my_record) {1u, 3u};
 	c2 = (struct my_record) {1u, 2u};
 	d3 = (struct my_record) {0u, 3u};
-	print(to_str_1(ctx, compare_232(a0, b1)));
-	print(to_str_1(ctx, compare_232(a0, c2)));
-	return print(to_str_1(ctx, compare_232(a0, d3)));
+	print(to_str_1(ctx, compare_231(a0, b1)));
+	print(to_str_1(ctx, compare_231(a0, c2)));
+	return print(to_str_1(ctx, compare_231(a0, d3)));
 }
 /* print void(a arr<char>) */
 uint8_t print(struct arr_0 a) {
@@ -2614,7 +2607,7 @@ struct arr_0 to_str_1(struct ctx* ctx, struct comparison c) {
 	}
 }
 /* compare<my-record> (generated) (generated) */
-struct comparison compare_232(struct my_record a, struct my_record b) {
+struct comparison compare_231(struct my_record a, struct my_record b) {
 	struct comparison temp0;
 	struct comparison temp1;
 	temp0 = compare_5(a.x, b.x);
@@ -2653,12 +2646,12 @@ uint8_t test_compare_byref_records(struct ctx* ctx) {
 	b1 = (temp1 = (struct my_byref_record*) alloc(ctx, sizeof(struct my_byref_record)), ((*(temp1) = (struct my_byref_record) {1u, 3u}, 0), temp1));
 	c2 = (temp2 = (struct my_byref_record*) alloc(ctx, sizeof(struct my_byref_record)), ((*(temp2) = (struct my_byref_record) {1u, 2u}, 0), temp2));
 	d3 = (temp3 = (struct my_byref_record*) alloc(ctx, sizeof(struct my_byref_record)), ((*(temp3) = (struct my_byref_record) {0u, 3u}, 0), temp3));
-	print(to_str_1(ctx, compare_234(a0, b1)));
-	print(to_str_1(ctx, compare_234(a0, c2)));
-	return print(to_str_1(ctx, compare_234(a0, d3)));
+	print(to_str_1(ctx, compare_233(a0, b1)));
+	print(to_str_1(ctx, compare_233(a0, c2)));
+	return print(to_str_1(ctx, compare_233(a0, d3)));
 }
 /* compare<ptr(my-byref-record)> (generated) (generated) */
-struct comparison compare_234(struct my_byref_record* a, struct my_byref_record* b) {
+struct comparison compare_233(struct my_byref_record* a, struct my_byref_record* b) {
 	struct comparison temp0;
 	struct comparison temp1;
 	temp0 = compare_5(a->x, b->x);
@@ -2693,12 +2686,12 @@ uint8_t test_compare_unions(struct ctx* ctx) {
 	b1 = (struct my_union) {1, .as1 = (struct my_other_record) {0}};
 	c2 = (struct my_union) {0, .as0 = (struct my_record) {1u, 2u}};
 	d3 = (struct my_union) {0, .as0 = (struct my_record) {1u, 1u}};
-	print(to_str_1(ctx, compare_236(a0, b1)));
-	print(to_str_1(ctx, compare_236(a0, c2)));
-	return print(to_str_1(ctx, compare_236(a0, d3)));
+	print(to_str_1(ctx, compare_235(a0, b1)));
+	print(to_str_1(ctx, compare_235(a0, c2)));
+	return print(to_str_1(ctx, compare_235(a0, d3)));
 }
 /* compare<my-union> (generated) (generated) */
-struct comparison compare_236(struct my_union a, struct my_union b) {
+struct comparison compare_235(struct my_union a, struct my_union b) {
 	struct my_union match_a0;
 	struct my_record a0;
 	struct my_union match_b0;
@@ -2714,7 +2707,7 @@ struct comparison compare_236(struct my_union a, struct my_union b) {
 			switch (match_b0.kind) {
 				case 0:
 					b0 = match_b0.as0;
-					return compare_232(a0, b0);
+					return compare_231(a0, b0);
 				case 1:
 					return (struct comparison) {0, .as0 = (struct less) {0}};
 				default:
@@ -2728,7 +2721,7 @@ struct comparison compare_236(struct my_union a, struct my_union b) {
 					return (struct comparison) {2, .as2 = (struct greater) {0}};
 				case 1:
 					b1 = match_b1.as1;
-					return compare_237(a1, b1);
+					return compare_236(a1, b1);
 				default:
 					return (assert(0),(struct comparison) {0});
 			}
@@ -2737,7 +2730,7 @@ struct comparison compare_236(struct my_union a, struct my_union b) {
 	}
 }
 /* compare<my-other-record> (generated) (generated) */
-struct comparison compare_237(struct my_other_record a, struct my_other_record b) {
+struct comparison compare_236(struct my_other_record a, struct my_other_record b) {
 	return (struct comparison) {1, .as1 = (struct equal) {0}};
 }
 /* resolved<int32> fut<int32>(value int32) */

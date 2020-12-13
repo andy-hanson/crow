@@ -16,7 +16,7 @@ import util.comparison : compareOr, Comparison, ptrEquals;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
 import util.memory : nu;
-import util.opt : has, none, Opt, some;
+import util.opt : Opt;
 import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, rangeOfStartAndName, RangeWithinFile;
@@ -1141,7 +1141,6 @@ struct NameAndReferents {
 }
 
 enum FunKind {
-	ptr,
 	plain,
 	mut,
 	ref_,
@@ -1161,14 +1160,14 @@ struct CommonTypes {
 	immutable Ptr!IntegralTypes integrals;
 	immutable Ptr!StructInst str;
 	immutable Ptr!StructInst void_;
-	immutable Ptr!StructInst anyPtr;
 	immutable Ptr!StructInst ctx;
-	immutable Arr!(Ptr!StructDecl) optionSomeNone;
 	immutable Ptr!StructDecl byVal;
 	immutable Ptr!StructDecl arr;
 	immutable Ptr!StructDecl fut;
+	immutable Arr!(Ptr!StructDecl) funPtrStructs; // Indexed by arity
 	immutable Arr!FunKindAndStructs funKindsAndStructs;
 }
+static assert(CommonTypes.sizeof <= 112);
 
 struct IntegralTypes {
 	immutable Ptr!StructInst int8;
@@ -1179,15 +1178,6 @@ struct IntegralTypes {
 	immutable Ptr!StructInst nat16;
 	immutable Ptr!StructInst nat32;
 	immutable Ptr!StructInst nat64;
-}
-
-immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable Ptr!StructDecl s) {
-	//TODO: use arrUtils
-	foreach (ref immutable FunKindAndStructs fs; a.funKindsAndStructs.range)
-		foreach (immutable Ptr!StructDecl funStruct; fs.structs.range)
-			if (ptrEquals(s, funStruct))
-				return some(fs.kind);
-	return none!FunKind;
 }
 
 struct Program {
@@ -1263,6 +1253,11 @@ struct Expr {
 		immutable Arr!Expr args;
 	}
 
+	struct FunPtr {
+		immutable Ptr!FunInst funInst;
+		immutable Ptr!StructInst structInst;
+	}
+
 	struct ImplicitConvertToUnion {
 		immutable Ptr!StructInst unionType;
 		immutable u8 memberIndex;
@@ -1328,6 +1323,7 @@ struct Expr {
 		closureFieldRef,
 		cond,
 		createArr,
+		funPtr,
 		implicitConvertToUnion,
 		lambda,
 		let,
@@ -1348,6 +1344,7 @@ struct Expr {
 		immutable Cond cond;
 		immutable CreateArr createArr;
 		immutable ImplicitConvertToUnion implicitConvertToUnion;
+		immutable FunPtr funPtr;
 		immutable Lambda lambda;
 		immutable Let let;
 		immutable Ptr!Literal literal;
@@ -1370,6 +1367,9 @@ struct Expr {
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable ImplicitConvertToUnion a) {
 		range_ = r; kind = Kind.implicitConvertToUnion; implicitConvertToUnion = a;
+	}
+	@trusted immutable this(immutable FileAndRange r, immutable FunPtr a) {
+		range_ = r; kind = Kind.funPtr; funPtr = a;
 	}
 	@trusted immutable this(immutable FileAndRange r, immutable Lambda a) {
 		range_ = r; kind = Kind.lambda; lambda = a;
@@ -1406,6 +1406,7 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	scope T delegate(ref immutable Expr.ClosureFieldRef) @safe @nogc pure nothrow cbClosureFieldRef,
 	scope T delegate(ref immutable Expr.Cond) @safe @nogc pure nothrow cbCond,
 	scope T delegate(ref immutable Expr.CreateArr) @safe @nogc pure nothrow cbCreateArr,
+	scope T delegate(ref immutable Expr.FunPtr) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(ref immutable Expr.ImplicitConvertToUnion) @safe @nogc pure nothrow cbImplicitConvertToUnion,
 	scope T delegate(ref immutable Expr.Lambda) @safe @nogc pure nothrow cbLambda,
 	scope T delegate(ref immutable Expr.Let) @safe @nogc pure nothrow cbLet,
@@ -1427,6 +1428,8 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 			return cbCond(a.cond);
 		case Expr.Kind.createArr:
 			return cbCreateArr(a.createArr);
+		case Expr.Kind.funPtr:
+			return cbFunPtr(a.funPtr);
 		case Expr.Kind.implicitConvertToUnion:
 			return cbImplicitConvertToUnion(a.implicitConvertToUnion);
 		case Expr.Kind.lambda:
@@ -1452,18 +1455,19 @@ immutable(Bool) typeIsBogus(ref immutable Expr a) {
 	return matchExpr!(immutable Bool)(
 		a,
 		(ref immutable Expr.Bogus) => True,
-		(ref immutable Expr.Call e) => e.called.returnType.isBogus,
-		(ref immutable Expr.ClosureFieldRef e) => e.field.type.isBogus,
-		(ref immutable Expr.Cond e) => e.type.isBogus,
+		(ref immutable Expr.Call e) => isBogus(returnType(e.called)),
+		(ref immutable Expr.ClosureFieldRef e) => isBogus(e.field.type),
+		(ref immutable Expr.Cond e) => isBogus(e.type),
 		(ref immutable Expr.CreateArr) => False,
+		(ref immutable Expr.FunPtr) => False,
 		(ref immutable Expr.ImplicitConvertToUnion) => False,
 		(ref immutable Expr.Lambda) => False,
-		(ref immutable Expr.Let e) => e.then.typeIsBogus,
+		(ref immutable Expr.Let e) => typeIsBogus(e.then),
 		(ref immutable Expr.Literal) => False,
-		(ref immutable Expr.LocalRef e) => e.local.type.isBogus,
-		(ref immutable Expr.Match e) => e.type.isBogus,
-		(ref immutable Expr.ParamRef e) => e.param.type.isBogus,
-		(ref immutable Expr.Seq e) => e.then.typeIsBogus,
+		(ref immutable Expr.LocalRef e) => isBogus(e.local.type),
+		(ref immutable Expr.Match e) => isBogus(e.type),
+		(ref immutable Expr.ParamRef e) => isBogus(e.param.type),
+		(ref immutable Expr.Seq e) => typeIsBogus(e.then),
 		(ref immutable Expr.StringLiteral e) => False);
 }
 
@@ -1471,18 +1475,19 @@ immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTy
 	return matchExpr!(immutable Type)(
 		a,
 		(ref immutable Expr.Bogus) => immutable Type(immutable Type.Bogus()),
-		(ref immutable Expr.Call e) => e.called.returnType,
+		(ref immutable Expr.Call e) => returnType(e.called),
 		(ref immutable Expr.ClosureFieldRef e) => e.field.type,
 		(ref immutable Expr.Cond) => todo!(immutable Type)("getType cond"),
 		(ref immutable Expr.CreateArr e) => immutable Type(e.arrType),
+		(ref immutable Expr.FunPtr e) => immutable Type(e.structInst),
 		(ref immutable Expr.ImplicitConvertToUnion e) => immutable Type(e.unionType),
 		(ref immutable Expr.Lambda e) => immutable Type(e.type),
-		(ref immutable Expr.Let e) => e.then.getType(commonTypes),
+		(ref immutable Expr.Let e) => getType(e.then, commonTypes),
 		(ref immutable Expr.Literal e) => immutable Type(e.structInst),
 		(ref immutable Expr.LocalRef e) => e.local.type,
 		(ref immutable Expr.Match) => todo!(immutable Type)("getType match"),
 		(ref immutable Expr.ParamRef e) => e.param.type,
-		(ref immutable Expr.Seq e) => e.then.getType(commonTypes),
+		(ref immutable Expr.Seq e) => getType(e.then, commonTypes),
 		(ref immutable Expr.StringLiteral) => immutable Type(commonTypes.str));
 }
 

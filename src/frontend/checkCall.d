@@ -35,7 +35,6 @@ import model.model :
 	FunDecl,
 	FunDeclAndArgs,
 	FunFlags,
-	FunKind,
 	isDataOrSendable,
 	matchCalledDecl,
 	matchSpecBody,
@@ -101,7 +100,7 @@ import util.collection.mutArr :
 	setAt,
 	tempAsArr,
 	tempAsArr_mut;
-import util.opt : force, has, mapOption_const, none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.memory : nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
@@ -197,17 +196,6 @@ immutable(CheckedExpr) checkIdentifierCall(Alloc)(
 	return checkCall(alloc, ctx, range, callAst, expected);
 }
 
-private:
-
-immutable(Bool) candidateIsPreferred(ref const Candidate a) {
-	return matchCalledDecl!(immutable Bool)(
-		a.called,
-		(immutable Ptr!FunDecl it) =>
-			it.flags.preferred,
-		(ref immutable SpecSig) =>
-			False);
-}
-
 void eachFunInScope(
 	ref ExprCtx ctx,
 	immutable Sym funName,
@@ -240,6 +228,17 @@ void eachFunInScope(
 					cb(immutable CalledDecl(f));
 		}
 	}
+}
+
+private:
+
+immutable(Bool) candidateIsPreferred(ref const Candidate a) {
+	return matchCalledDecl!(immutable Bool)(
+		a.called,
+		(immutable Ptr!FunDecl it) =>
+			it.flags.preferred,
+		(ref immutable SpecSig) =>
+			False);
 }
 
 struct Candidate {
@@ -389,12 +388,9 @@ CommonOverloadExpected getCommonOverloadParamExpected(Alloc)(
 immutable(Opt!(Diag.CantCall.Reason)) getCantCallReason(
 	immutable FunFlags calledFlags,
 	immutable FunFlags callerFlags,
-	immutable Opt!FunKind lambdaKind,
+	immutable Bool inLambda,
 ) {
-	immutable Bool callerIsNoCtx = has(lambdaKind)
-		? Bool(force(lambdaKind) == FunKind.ptr)
-		: callerFlags.noCtx;
-	return !calledFlags.noCtx && callerIsNoCtx
+	return !calledFlags.noCtx && callerFlags.noCtx && !inLambda
 		// TODO: need to explain this better in the case where noCtx is due to the lambda
 		? some(Diag.CantCall.Reason.nonNoCtx)
 		: calledFlags.summon && !callerFlags.summon
@@ -412,10 +408,7 @@ void checkCallFlags(Alloc)(
 	immutable Ptr!FunDecl caller,
 	const Opt!(Ptr!LambdaInfo) callerLambda,
 ) {
-	immutable Opt!(Diag.CantCall.Reason) reason = getCantCallReason(
-		called.flags,
-		caller.flags,
-		mapOption_const(callerLambda, (ref const Ptr!LambdaInfo it) => it.funKind));
+	immutable Opt!(Diag.CantCall.Reason) reason = getCantCallReason(called.flags, caller.flags, has(callerLambda));
 	if (has(reason))
 		addDiag(alloc, ctx, range, immutable Diag(Diag.CantCall(force(reason), called, caller)));
 }

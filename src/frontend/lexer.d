@@ -368,7 +368,13 @@ immutable(Str) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Allo
 
 struct ExpressionToken {
 	@safe @nogc pure nothrow:
+
+	struct AmpersandAndName {
+		immutable Sym name;
+	}
+
 	enum Kind {
+		ampersandAndName,
 		if_,
 		lambda,
 		lbrace,
@@ -382,6 +388,7 @@ struct ExpressionToken {
 	immutable Kind kind_;
 	union {
 		bool none_;
+		immutable AmpersandAndName ampersandAndName_;
 		immutable LiteralAst literal_;
 		immutable NameAndRange nameAndRange_;
 	}
@@ -390,6 +397,7 @@ struct ExpressionToken {
 		kind_ = kind;
 		verify(kind != Kind.literal && kind != Kind.nameAndRange);
 	}
+	@trusted immutable this(immutable AmpersandAndName a) { kind_ = Kind.ampersandAndName; ampersandAndName_ = a; }
 	@trusted immutable this(immutable LiteralAst a) { kind_ = Kind.literal; literal_ = a; }
 	@trusted immutable this(immutable NameAndRange a) { kind_ = Kind.nameAndRange; nameAndRange_ = a; }
 }
@@ -401,6 +409,13 @@ struct ExpressionToken {
 
 immutable(Bool) isNameAndRange(ref immutable ExpressionToken a) {
 	return Bool(a.kind_ == ExpressionToken.Kind.nameAndRange);
+}
+
+@trusted ref immutable(ExpressionToken.AmpersandAndName) asAmpersandAndName(
+	return scope ref immutable ExpressionToken a,
+) {
+	verify(a.kind_ == ExpressionToken.Kind.ampersandAndName);
+	return a.ampersandAndName_;
 }
 
 @trusted ref immutable(NameAndRange) asNameAndRange(return scope ref immutable ExpressionToken a) {
@@ -427,6 +442,8 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 			return isDigit(*lexer.ptr)
 				? immutable ExpressionToken(takeNumber(alloc, lexer, some(c == '+' ? Sign.plus : Sign.minus)))
 				: takeOperator(lexer, begin);
+		case '&':
+			return immutable ExpressionToken(immutable ExpressionToken.AmpersandAndName(takeName(alloc, lexer)));
 		default:
 			if (isOperatorChar(c))
 				return takeOperator(lexer, begin);

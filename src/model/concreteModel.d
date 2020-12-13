@@ -720,6 +720,7 @@ struct ConcreteExprKind {
 		immutable Opt!(Ptr!ConcreteExpr) closure;
 	}
 
+	//TODO: don't have 'lambda' in the name
 	struct LambdaFunPtr {
 		immutable Ptr!ConcreteFun fun;
 	}

@@ -11,8 +11,6 @@ import model.model :
 	decl,
 	FunDecl,
 	FunInst,
-	FunKind,
-	getFunStructInfo,
 	nonTemplateFunInst,
 	isStructInst,
 	isTemplate,
@@ -21,20 +19,17 @@ import model.model :
 	params,
 	Program,
 	returnType,
-	StructDecl,
 	Type,
 	typeArgs,
 	typeEquals;
-import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, first, only, size;
+import util.bools : Bool;
+import util.collection.arr : Arr, at, only, size;
 import util.collection.arrBuilder : finishArr_immutable;
-import util.collection.arrUtil : filter;
 import util.collection.mutArr : moveToArr, MutArr;
 import util.collection.mutDict : mapToDict, mutDictIsEmpty;
 import util.collection.multiDict : multiDictGetAt;
 import util.collection.str : Str, strLiteral;
 import util.memory : nu;
-import util.opt : force, has, Opt;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe;
 import util.sym : AllSymbols, getSymFromAlphaIdentifier, shortSymAlphaLiteral, Sym;
 import util.util : todo, verify;
@@ -47,7 +42,6 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 	ConcretizeCtx ctx = ConcretizeCtx(
 		getCurIslandAndExclusionFun(alloc, allSymbols, program),
 		getIfFuns(program),
-		getCallFuns(alloc, program),
 		program.commonTypes.ctx,
 		ptrTrustMe(program.commonTypes));
 	immutable Ptr!ConcreteStruct ctxStruct = ctxType(alloc, ctx).struct_;
@@ -193,31 +187,4 @@ immutable(Arr!(Ptr!FunDecl)) getIfFuns(ref immutable Program program) {
 	if (size(ifFuns) != 2)
 		todo!void("wrong number 'if' funs");
 	return ifFuns;
-}
-
-// Gets 'call' for 'fun' and 'fun-mut'
-// 'call' for 'fun-ptr' is a builtin already so no need to handle that here
-// Don't need 'call' for 'fun-ref' here.
-
-immutable(Arr!(Ptr!FunDecl)) getCallFuns(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) allCallFuns =
-		multiDictGetAt(program.specialModules.bootstrapModule.funsMap, shortSymAlphaLiteral("call"));
-	immutable Arr!(Ptr!FunDecl) res = filter!(Alloc, Ptr!FunDecl)(alloc, allCallFuns, (ref immutable Ptr!FunDecl f) {
-		immutable Ptr!StructDecl decl = decl(asStructInst(first(params(f)).type).deref);
-		immutable Opt!FunKind kind = getFunStructInfo(program.commonTypes, decl);
-		if (has(kind))
-			final switch (force(kind)) {
-				case FunKind.ptr:
-				case FunKind.ref_:
-					return False;
-				case FunKind.plain:
-				case FunKind.mut:
-					return True;
-			}
-		else
-			return False;
-	});
-	// fun0, fun1, fun2, fun3, same for funMut
-	verify(size(res) == 8);
-	return res;
 }

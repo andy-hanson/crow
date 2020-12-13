@@ -107,9 +107,7 @@ body
 		thread-arg-ptr = thread-args-begin + i
 		thread-arg-ptr set thread-args: i, gctx
 		thread-ptr = threads + i
-		fn = as<fun-ptr1<any-ptr, any-ptr>>: \args-ptr
-			args-ptr thread-fun
-		err = thread-ptr.as-cell pthread-create null, fn, thread-arg-ptr.as-any-ptr
+		err = thread-ptr.as-cell pthread-create null, &thread-fun, thread-arg-ptr.as-any-ptr
 		if err == 0
 			i.noctx-incr start-threads-recur n-threads, threads, thread-args-begin, gctx
 		elif err == eagain

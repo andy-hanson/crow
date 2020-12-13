@@ -168,6 +168,9 @@ struct thread_args {
 	uint64_t thread_id;
 	struct global_ctx* gctx;
 };
+struct cell_0 {
+	uint64_t value;
+};
 struct chosen_task;
 struct some_5 {
 	struct task value;
@@ -186,9 +189,6 @@ struct some_8;
 struct arr_4 {
 	uint64_t size;
 	uint64_t* data;
-};
-struct cell_0 {
-	uint64_t value;
 };
 struct cell_1 {
 	uint8_t* value;
@@ -667,6 +667,8 @@ struct fut_0* call_w_ctx_174(uint64_t a, struct ctx* ctx, struct arr_3 p0, fun_p
 uint8_t run_threads(uint64_t n_threads, struct global_ctx* gctx);
 struct thread_args* unmanaged_alloc_elements_1(uint64_t size_elements);
 uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx);
+extern int32_t pthread_create(struct cell_0* thread, uint8_t* attr, fun_ptr1 start_routine, uint8_t* arg);
+struct cell_0* as_cell(uint64_t* p);
 uint8_t* thread_fun(uint8_t* args_ptr);
 uint8_t thread_function(uint64_t thread_id, struct global_ctx* gctx);
 uint8_t thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struct thread_local_stuff* tls);
@@ -699,9 +701,6 @@ uint8_t empty__q_5(struct mut_arr_0* a);
 uint8_t return_ctx(struct ctx* c);
 uint8_t return_gc_ctx(struct gc_ctx* gc_ctx);
 uint8_t wait_on(struct condition* c, uint64_t last_checked);
-uint8_t* start_threads_recur__lambda0(uint8_t* args_ptr);
-extern int32_t pthread_create(struct cell_0* thread, uint8_t* attr, fun_ptr1 start_routine, uint8_t* arg);
-struct cell_0* as_cell(uint64_t* p);
 int32_t eagain(void);
 uint8_t join_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads);
 uint8_t join_one_thread(uint64_t tid);
@@ -1993,8 +1992,7 @@ struct thread_args* unmanaged_alloc_elements_1(uint64_t size_elements) {
 uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx) {
 	struct thread_args* thread_arg_ptr0;
 	uint64_t* thread_ptr1;
-	fun_ptr1 fn2;
-	int32_t err3;
+	int32_t err2;
 	uint64_t _tailCalli;
 	uint64_t _tailCalln_threads;
 	uint64_t* _tailCallthreads;
@@ -2005,9 +2003,8 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 		thread_arg_ptr0 = (thread_args_begin + i);
 		(*(thread_arg_ptr0) = (struct thread_args) {i, gctx}, 0);
 		thread_ptr1 = (threads + i);
-		fn2 = start_threads_recur__lambda0;
-		err3 = pthread_create(as_cell(thread_ptr1), NULL, fn2, (uint8_t*) thread_arg_ptr0);
-		if (_op_equal_equal_3(err3, 0)) {
+		err2 = pthread_create(as_cell(thread_ptr1), NULL, thread_fun, (uint8_t*) thread_arg_ptr0);
+		if (_op_equal_equal_3(err2, 0)) {
 			_tailCalli = noctx_incr(i);
 			_tailCalln_threads = n_threads;
 			_tailCallthreads = threads;
@@ -2020,7 +2017,7 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 			gctx = _tailCallgctx;
 			goto top;
 		} else {
-			if (_op_equal_equal_3(err3, eagain())) {
+			if (_op_equal_equal_3(err2, eagain())) {
 				return todo_1();
 			} else {
 				return todo_1();
@@ -2029,6 +2026,10 @@ uint8_t start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, s
 	} else {
 		return 0;
 	}
+}
+/* as-cell<nat> cell<nat>(p ptr<nat>) */
+struct cell_0* as_cell(uint64_t* p) {
+	return (struct cell_0*) (uint8_t*) p;
 }
 /* thread-fun ptr<nat8>(args-ptr ptr<nat8>) */
 uint8_t* thread_fun(uint8_t* args_ptr) {
@@ -2441,14 +2442,6 @@ uint8_t wait_on(struct condition* c, uint64_t last_checked) {
 	} else {
 		return 0;
 	}
-}
-/* start-threads-recur.lambda0 ptr<nat8>(args-ptr ptr<nat8>) */
-uint8_t* start_threads_recur__lambda0(uint8_t* args_ptr) {
-	return thread_fun(args_ptr);
-}
-/* as-cell<nat> cell<nat>(p ptr<nat>) */
-struct cell_0* as_cell(uint64_t* p) {
-	return (struct cell_0*) (uint8_t*) p;
 }
 /* eagain int32() */
 int32_t eagain(void) {

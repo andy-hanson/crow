@@ -169,7 +169,6 @@ struct ConcretizeCtx {
 
 	immutable Ptr!FunInst curIslandAndExclusionFun;
 	immutable Arr!(Ptr!FunDecl) ifFuns;
-	immutable Arr!(Ptr!FunDecl) callFuns;
 	immutable Ptr!StructInst ctxStructInst;
 	immutable Ptr!CommonTypes commonTypes;
 	AllConstantsBuilder allConstants;

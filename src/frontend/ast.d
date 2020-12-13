@@ -133,6 +133,10 @@ struct CreateArrAst {
 	immutable Arr!ExprAst args;
 }
 
+struct FunPtrAst {
+	immutable Sym name;
+}
+
 struct IdentifierAst {
 	immutable Sym name;
 }
@@ -238,6 +242,7 @@ struct ExprAstKind {
 		bogus,
 		call,
 		createArr,
+		funPtr,
 		identifier,
 		if_,
 		lambda,
@@ -252,6 +257,7 @@ struct ExprAstKind {
 		immutable BogusAst bogus;
 		immutable CallAst call;
 		immutable CreateArrAst createArr;
+		immutable FunPtrAst funPtr;
 		immutable IdentifierAst identifier;
 		immutable IfAst if_;
 		immutable LambdaAst lambda;
@@ -266,6 +272,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable BogusAst a) { kind = Kind.bogus; bogus = a; }
 	@trusted immutable this(immutable CallAst a) { kind = Kind.call; call = a; }
 	@trusted immutable this(immutable CreateArrAst a) { kind = Kind.createArr; createArr = a; }
+	@trusted immutable this(immutable FunPtrAst a) { kind = Kind.funPtr; funPtr = a; }
 	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
 	@trusted immutable this(immutable IfAst a) { kind = Kind.if_; if_ = a; }
 	@trusted immutable this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
@@ -289,6 +296,7 @@ ref immutable(IdentifierAst) asIdentifier(return ref immutable ExprAstKind a) {
 	scope immutable(T) delegate(ref immutable BogusAst) @safe @nogc pure nothrow cbBogus,
 	scope immutable(T) delegate(ref immutable CallAst) @safe @nogc pure nothrow cbCall,
 	scope immutable(T) delegate(ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
+	scope immutable(T) delegate(ref immutable FunPtrAst) @safe @nogc pure nothrow cbFunPtr,
 	scope immutable(T) delegate(ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
 	scope immutable(T) delegate(ref immutable IfAst) @safe @nogc pure nothrow cbIf,
 	scope immutable(T) delegate(ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
@@ -305,6 +313,8 @@ ref immutable(IdentifierAst) asIdentifier(return ref immutable ExprAstKind a) {
 			return cbCall(a.call);
 		case ExprAstKind.Kind.createArr:
 			return cbCreateArr(a.createArr);
+		case ExprAstKind.Kind.funPtr:
+			return cbFunPtr(a.funPtr);
 		case ExprAstKind.Kind.identifier:
 			return cbIdentifier(a.identifier);
 		case ExprAstKind.Kind.if_:
@@ -883,6 +893,8 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 					sexprOfTypeAst(alloc, it)),
 				tataArr(alloc, e.args, (ref immutable ExprAst it) =>
 					sexprOfExprAst(alloc, it))]),
+		(ref immutable FunPtrAst a) =>
+			tataRecord(alloc, "fun-ptr", [tataSym(a.name)]),
 		(ref immutable IdentifierAst a)  =>
 			tataSym(a.name),
 		(ref immutable IfAst e) =>

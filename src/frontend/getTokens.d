@@ -272,6 +272,9 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			addOptTypeTokens(alloc, tokens, it.elementType);
 			addExprsTokens(alloc, tokens, it.args);
 		},
+		(ref immutable FunPtrAst) {
+			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
+		},
 		(ref immutable IdentifierAst) {
 			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));
 		},

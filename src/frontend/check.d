@@ -313,7 +313,6 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 	immutable Ptr!StructInst nat64 = nonTemplate("nat64");
 	immutable Ptr!StructInst str = nonTemplate("str");
 	immutable Ptr!StructInst void_ = nonTemplate("void");
-	immutable Ptr!StructInst anyPtr = nonTemplate("any-ptr");
 	immutable Ptr!StructInst ctxStructInst = nonTemplate("ctx");
 
 	immutable(Ptr!StructDecl) com(immutable string name, immutable size_t nTypeParameters) {
@@ -329,9 +328,6 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 		}
 	}
 
-	immutable Ptr!StructDecl opt = com("opt", 1);
-	immutable Ptr!StructDecl some = com("some", 1);
-	immutable Ptr!StructDecl none = com("none", 0);
 	immutable Ptr!StructDecl byVal = com("by-val", 1);
 	immutable Ptr!StructDecl arr = com("arr", 1);
 	immutable Ptr!StructDecl fut = com("fut", 1);
@@ -380,21 +376,20 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 			nat64),
 		str,
 		void_,
-		anyPtr,
 		ctxStructInst,
-		arrLiteral!(Ptr!StructDecl)(alloc, [opt, some, none]),
 		byVal,
 		arr,
 		fut,
+		//TODO: this could have a compile-time length
+		arrLiteral!(Ptr!StructDecl)(alloc, [
+			funPtr0,
+			funPtr1,
+			funPtr2,
+			funPtr3,
+			funPtr4,
+			funPtr5,
+			funPtr6]),
 		arrLiteral!FunKindAndStructs(alloc, [
-			immutable FunKindAndStructs(FunKind.ptr, arrLiteral!(Ptr!StructDecl)(alloc, [
-				funPtr0,
-				funPtr1,
-				funPtr2,
-				funPtr3,
-				funPtr4,
-				funPtr5,
-				funPtr6])),
 			immutable FunKindAndStructs(FunKind.plain, arrLiteral!(Ptr!StructDecl)(alloc, [
 				fun0,
 				fun1,

@@ -9,6 +9,7 @@ import frontend.ast :
 	CreateArrAst,
 	ExprAst,
 	ExprAstKind,
+	FunPtrAst,
 	IdentifierAst,
 	IfAst,
 	isIdentifier,
@@ -22,6 +23,7 @@ import frontend.ast :
 	ThenAst,
 	TypeAst;
 import frontend.lexer :
+	asAmpersandAndName,
 	addDiag,
 	addDiagAtChar,
 	asLiteral,
@@ -232,6 +234,7 @@ immutable(Bool) someInOwnBody(
 		(ref immutable BogusAst) => False,
 		(ref immutable CallAst e) => exists!ExprAst(e.args, &recur),
 		(ref immutable CreateArrAst e) => exists(e.args, &recur),
+		(ref immutable FunPtrAst) => False,
 		(ref immutable IdentifierAst) => False,
 		(ref immutable LambdaAst) => False,
 		(ref immutable LetAst) => unreachable!(immutable Bool),
@@ -518,6 +521,10 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 	}
 
 	final switch (et.kind_) {
+		case ExpressionToken.Kind.ampersandAndName:
+			return noDedent(immutable ExprAst(
+				getRange(),
+				immutable ExprAstKind(immutable FunPtrAst(asAmpersandAndName(et).name))));
 		case ExpressionToken.Kind.if_:
 			return ctx.allowBlock
 				? toMaybeDedent(parseIf(alloc, lexer, start, curIndent))

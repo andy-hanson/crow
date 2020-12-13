@@ -530,11 +530,6 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeType(writer, d.field.type);
 			writeStatic(writer, " (should it be a 'fun-mut'?)");
 		},
-		(ref immutable Diag.LambdaForFunPtrHasClosure d) {
-			writeStatic(writer, "lambda closes over ");
-			writeName(writer, d.field.name);
-			writeStatic(writer, "; a lambda for a 'fun-ptr' is not allowed to close over anything");
-		},
 		(ref immutable Diag.LambdaWrongNumberParams d) {
 			writeStatic(writer, "expected a ");
 			writeStructInst(writer, d.expectedLambdaType);

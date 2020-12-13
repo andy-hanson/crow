@@ -717,15 +717,6 @@ immutable(size_t) count(T)(
 		immutable size_t(pred(it) ? 1 : 0));
 }
 
-immutable(Arr!T) filter(Alloc, T)(
-	ref Alloc alloc,
-	ref immutable Arr!T a,
-	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow pred,
-) {
-	return mapOp!T(alloc, a, (ref immutable T t) =>
-		pred(t) ? some!T(t) : none!T);
-}
-
 void filterUnordered(T)(
 	ref MutArr!T a,
 	scope immutable(Bool) delegate(ref T) @safe @nogc pure nothrow pred,
