@@ -5,13 +5,14 @@ module lower.lower;
 import lower.checkLowModel : checkLowProgram;
 import lower.generateCallWithCtxFun : generateCallWithCtxFun;
 import lower.generateCompareFun : ComparisonTypes, generateCompareFun;
-import lower.generateMarkVisitFun : generateMarkVisitFun;
+import lower.generateMarkVisitFun : generateMarkVisitArrInner, generateMarkVisitArrOuter, generateMarkVisitNonArr;
 import lower.getBuiltinCall : BuiltinKind, getBuiltinKind, matchBuiltinKind;
 import lower.lowExprHelpers :
-	addPtr,
 	anyPtrType,
 	charPtrPtrType,
 	constantNat64,
+	genAddPtr,
+	getElementPtrTypeFromArrType,
 	getSizeOf,
 	int32Type,
 	localRef,
@@ -386,29 +387,41 @@ struct LowFunCause {
 		immutable LowType type;
 		immutable Bool typeIsArr;
 	}
-	struct MarkVisit {
+	struct MarkVisitArrInner {
+		immutable LowType.NonFunPtr elementPtrType;
+	}
+	struct MarkVisitArrOuter {
+		immutable LowType.Record arrType;
+		immutable LowFunIndex inner;
+	}
+	struct MarkVisitNonArr {
 		immutable LowType type;
-		immutable Bool typeIsArr;
 	}
 
 	@trusted immutable this(immutable CallWithCtx a) { kind = Kind.callWithCtx; callWithCtx_ = a; }
 	@trusted immutable this(immutable Compare a) { kind = Kind.compare; compare_ = a; }
 	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind = Kind.expr; expr_ = a; }
-	@trusted immutable this(immutable MarkVisit a) { kind = Kind.markVisit; markVisit_ = a; }
+	@trusted immutable this(immutable MarkVisitArrInner a) { kind = Kind.markVisitArrInner; markVisitArrInner_ = a; }
+	@trusted immutable this(immutable MarkVisitArrOuter a) { kind = Kind.markVisitArrOuter; markVisitArrOuter_ = a; }
+	@trusted immutable this(immutable MarkVisitNonArr a) { kind = Kind.markVisitNonArr; markVisitNonArr_ = a; }
 
 	private:
 	enum Kind {
 		callWithCtx,
 		compare,
 		expr,
-		markVisit,
+		markVisitArrInner,
+		markVisitArrOuter,
+		markVisitNonArr,
 	}
 	immutable Kind kind;
 	union {
 		immutable CallWithCtx callWithCtx_;
 		immutable Compare compare_;
 		immutable Ptr!ConcreteFun expr_;
-		immutable MarkVisit markVisit_;
+		immutable MarkVisitArrOuter markVisitArrOuter_;
+		immutable MarkVisitArrInner markVisitArrInner_;
+		immutable MarkVisitNonArr markVisitNonArr_;
 	}
 }
 
@@ -417,7 +430,9 @@ struct LowFunCause {
 	scope T delegate(ref immutable LowFunCause.CallWithCtx) @safe @nogc pure nothrow cbCallWithCtx,
 	scope T delegate(ref immutable LowFunCause.Compare) @safe @nogc pure nothrow cbCompare,
 	scope T delegate(immutable Ptr!ConcreteFun) @safe @nogc pure nothrow cbExpr,
-	scope T delegate(ref immutable LowFunCause.MarkVisit) @safe @nogc pure nothrow cbMarkVisit,
+	scope T delegate(ref immutable LowFunCause.MarkVisitArrInner) @safe @nogc pure nothrow cbMarkVisitArrInner,
+	scope T delegate(ref immutable LowFunCause.MarkVisitArrOuter) @safe @nogc pure nothrow cbMarkVisitArrOuter,
+	scope T delegate(ref immutable LowFunCause.MarkVisitNonArr) @safe @nogc pure nothrow cbMarkVisitNonArr,
 ) {
 	final switch (a.kind) {
 		case LowFunCause.Kind.callWithCtx:
@@ -426,8 +441,12 @@ struct LowFunCause {
 			return cbCompare(a.compare_);
 		case LowFunCause.Kind.expr:
 			return cbExpr(a.expr_);
-		case LowFunCause.Kind.markVisit:
-			return cbMarkVisit(a.markVisit_);
+		case LowFunCause.Kind.markVisitArrInner:
+			return cbMarkVisitArrInner(a.markVisitArrInner_);
+		case LowFunCause.Kind.markVisitArrOuter:
+			return cbMarkVisitArrOuter(a.markVisitArrOuter_);
+		case LowFunCause.Kind.markVisitNonArr:
+			return cbMarkVisitNonArr(a.markVisitNonArr_);
 	}
 }
 
@@ -529,8 +548,8 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	}
 
 	immutable(Opt!LowFunIndex) generateMarkVisitForType(immutable LowType lowType) @safe @nogc pure nothrow {
-		immutable(LowFunIndex) addIt(immutable Bool typeIsArr) {
-			return addLowFun(immutable LowFunCause(immutable LowFunCause.MarkVisit(lowType, typeIsArr)));
+		immutable(LowFunIndex) addNonArr() {
+			return addLowFun(immutable LowFunCause(immutable LowFunCause.MarkVisitNonArr(lowType)));
 		}
 
 		return matchLowType!(immutable Opt!LowFunIndex)(
@@ -543,7 +562,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
 					markVisitFuns.recordPtrToVisit,
 					asRecordType(it.pointee),
-					() => addIt(False));
+					() => addLowFun(immutable LowFunCause(immutable LowFunCause.MarkVisitNonArr(lowType))));
 				if (index.didAdd)
 					generateMarkVisitForType(it.pointee);
 				return some(index.value);
@@ -552,23 +571,34 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				none!LowFunIndex,
 			(immutable LowType.Record it) {
 				immutable LowRecord record = fullIndexDictGet(allTypes.allRecords, it);
-				immutable Bool typeIsArr = isArr(record);
-				immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
-					markVisitFuns.recordValToVisit,
-					it,
-					() => addIt(typeIsArr));
-				if (index.didAdd) {
-					if (typeIsArr)
-						generateMarkVisitForType(asNonFunPtrType(at(record.fields, 1).type).pointee);
-					else
+				if (isArr(record)) {
+					immutable LowType.NonFunPtr elementPtrType = asNonFunPtrType(at(record.fields, 1).type);
+					immutable ValueAndDidAdd!(immutable LowFunIndex) outerIndex = getOrAddAndDidAdd(
+						markVisitFuns.recordValToVisit,
+						it,
+						() {
+							immutable LowFunIndex innerIndex = addLowFun(
+								immutable LowFunCause(immutable LowFunCause.MarkVisitArrInner(elementPtrType)));
+							return addLowFun(
+								immutable LowFunCause(immutable LowFunCause.MarkVisitArrOuter(it, innerIndex)));
+						});
+					if (outerIndex.didAdd)
+						generateMarkVisitForType(elementPtrType.pointee);
+					return some(outerIndex.value);
+				} else {
+					immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
+						markVisitFuns.recordValToVisit,
+						it,
+						() => addNonArr());
+					if (index.didAdd)
 						foreach (ref immutable LowField field; arrRange(record.fields))
 							generateMarkVisitForType(field.type);
+					return some(index.value);
 				}
-				return some(index.value);
 			},
 			(immutable LowType.Union it) {
 				immutable ValueAndDidAdd!(immutable LowFunIndex) index =
-					getOrAddAndDidAdd(markVisitFuns.unionToVisit, it, () => addIt(False));
+					getOrAddAndDidAdd(markVisitFuns.unionToVisit, it, () => addNonArr());
 				if (index.didAdd)
 					foreach (ref immutable LowType member; arrRange(fullIndexDictGet(allTypes.allUnions, it).members))
 						generateMarkVisitForType(member);
@@ -758,15 +788,24 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 				body_(cf));
 			return immutable LowFun(immutable LowFunSource(cf), sig, body_);
 		},
-		(ref immutable LowFunCause.MarkVisit it) =>
-			generateMarkVisitFun(
+		(ref immutable LowFunCause.MarkVisitArrInner it) =>
+			generateMarkVisitArrInner(alloc, markVisitFuns, markCtxType, it.elementPtrType),
+		(ref immutable LowFunCause.MarkVisitArrOuter it) =>
+			generateMarkVisitArrOuter!Alloc(
+				alloc,
+				markCtxType,
+				markFun,
+				it.arrType,
+				getElementPtrTypeFromArrType(allTypes, it.arrType),
+				it.inner),
+		(ref immutable LowFunCause.MarkVisitNonArr it) =>
+			generateMarkVisitNonArr(
 				alloc,
 				allTypes,
 				markVisitFuns,
 				markCtxType,
 				markFun,
-				it.type,
-				it.typeIsArr));
+				it.type));
 }
 
 immutable(ComparisonTypes) getComparisonTypes(
@@ -1246,7 +1285,12 @@ immutable(LowExprKind) getCreateArrExpr(Alloc)(
 		else {
 			immutable size_t index = prevIndex - 1;
 			immutable LowExpr arg = getLowExpr(alloc, ctx, at(a.args, index), ExprPos.nonTail);
-			immutable LowExpr elementPtr = addPtr(alloc, elementPtrType, range, getTemp, index);
+			immutable LowExpr elementPtr = genAddPtr(
+				alloc,
+				asNonFunPtrType(elementPtrType),
+				range,
+				getTemp,
+				constantNat64(range, index));
 			immutable LowExpr writeToElement = writeToPtr(alloc, range, elementPtr, arg);
 			return recur(seq(alloc, range, writeToElement, cur), index);
 		}

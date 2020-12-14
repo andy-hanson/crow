@@ -11,16 +11,18 @@ import lower.lowExprHelpers :
 	genCreateRecord,
 	genCreateUnion,
 	genDeref,
+	genGetArrData,
+	genGetArrSize,
 	genIf,
 	genLocal,
 	genNat64Eq0,
+	getElementPtrTypeFromArrType,
 	incrPointer,
 	localRef,
 	paramRef,
 	recordFieldGet;
 import model.lowModel :
 	AllLowTypes,
-	asNonFunPtrType,
 	asRecordType,
 	LowExpr,
 	LowExprKind,
@@ -36,23 +38,21 @@ import model.lowModel :
 	LowParam,
 	LowParamIndex,
 	LowParamSource,
-	LowRecord,
 	LowType,
 	LowUnion,
 	matchLowType,
-	name,
 	PrimitiveType;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, ptrAt, size;
+import util.collection.arr : Arr, empty, ptrAt, size;
 import util.collection.arrUtil : arrLiteral, fillArr, mapWithIndex, rtail;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate, nu;
 import util.opt : none, some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
-import util.sym : shortSymAlphaLiteral, symEq;
+import util.sym : shortSymAlphaLiteral;
 import util.types : safeSizeTToU8, u8;
-import util.util : unreachable, verify;
+import util.util : unreachable;
 
 immutable(LowFun) generateCompareFun(Alloc)(
 	ref Alloc alloc,
@@ -73,7 +73,7 @@ immutable(LowFun) generateCompareFun(Alloc)(
 	immutable LowExpr a = paramRef(range, paramType, immutable LowParamIndex(0));
 	immutable LowExpr b = paramRef(range, paramType, immutable LowParamIndex(1));
 	immutable LowFunExprBody body_ = typeIsArr
-		? arrCompareBody(alloc, range, allTypes, comparisonTypes, compareFuns, paramType, a, b)
+		? arrCompareBody(alloc, range, allTypes, comparisonTypes, compareFuns, asRecordType(paramType), a, b)
 		: compareBody(alloc, range, allTypes, comparisonTypes, compareFuns, paramType, a, b);
 	return immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(
@@ -103,34 +103,22 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 	ref immutable AllLowTypes allTypes,
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const CompareFuns compareFuns,
-	ref immutable LowType arrType,
+	immutable LowType.Record arrType,
 	ref immutable LowExpr a,
 	ref immutable LowExpr b,
 ) {
-	immutable LowType.Record arrRecordType = asRecordType(arrType);
-	immutable LowRecord arrRecord = fullIndexDictGet(allTypes.allRecords, arrRecordType);
-	verify(size(arrRecord.fields) == 2);
-	verify(symEq(name(at(arrRecord.fields, 0)), shortSymAlphaLiteral("size")));
-	verify(symEq(name(at(arrRecord.fields, 1)), shortSymAlphaLiteral("data")));
-	immutable LowType sizeType = at(arrRecord.fields, 0).type;
-	immutable LowType elementPtrType = at(arrRecord.fields, 1).type;
-	immutable LowType elementType = asNonFunPtrType(elementPtrType).pointee;
+	immutable LowType.NonFunPtr elementPtrType = getElementPtrTypeFromArrType(allTypes, arrType);
+	immutable LowType elementType = elementPtrType.pointee;
 
-	immutable(LowExpr) genGetSize(ref immutable LowExpr arr) {
-		return recordFieldGet!Alloc(alloc, range, arr, sizeType, 0);
-	}
-	immutable(LowExpr) genGetData(ref immutable LowExpr arr) {
-		return recordFieldGet(alloc, range, arr, elementPtrType, 1);
-	}
 	immutable(LowExpr) genTail(ref immutable LowExpr arr) {
-		immutable LowExpr curSize = genGetSize(arr);
-		immutable LowExpr curData = genGetData(arr);
+		immutable LowExpr curSize = genGetArrSize(alloc, range, arr);
+		immutable LowExpr curData = genGetArrData(alloc, range, arr, elementPtrType);
 		immutable LowExpr newSize = decrNat64(alloc, range, curSize);
 		immutable LowExpr newData = incrPointer(alloc, range, elementPtrType, curData);
-		return genCreateRecord(range, arrRecordType, arrLiteral!LowExpr(alloc, [newSize, newData]));
+		return genCreateRecord(range, arrType, arrLiteral!LowExpr(alloc, [newSize, newData]));
 	}
 	immutable(LowExpr) genFirst(ref immutable LowExpr arr) {
-		return genDeref(alloc, range, genGetData(arr));
+		return genDeref(alloc, range, genGetArrData(alloc, range, arr, elementPtrType));
 	}
 
 	immutable LowExpr compareFirst = genCompareExpr(
@@ -154,7 +142,7 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 		recurOnTail);
 
 	immutable(LowExpr) genSizeEq0(ref immutable LowExpr arr) {
-		return genNat64Eq0(alloc, range, genGetSize(arr));
+		return genNat64Eq0(alloc, range, genGetArrSize(alloc, range, arr));
 	}
 
 	immutable LowExpr bSizeIsZero = genSizeEq0(b);
