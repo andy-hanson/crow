@@ -4,6 +4,7 @@ module lower.lowExprHelpers;
 
 import model.constant : Constant;
 import model.lowModel :
+	asGcOrRawPointee,
 	AllLowTypes,
 	asPtrRaw,
 	LowExpr,
@@ -53,12 +54,7 @@ immutable(LowExpr) genAddPtr(Alloc)(
 			allocate(alloc, added))));
 }
 
-immutable(LowExpr) genAsAnyPtr(Alloc)(
-	ref Alloc alloc,
-	ref immutable LowType anyPtrType,
-	ref immutable FileAndRange range,
-	ref immutable LowExpr a,
-) {
+immutable(LowExpr) genAsAnyPtr(Alloc)(ref Alloc alloc, ref immutable FileAndRange range, ref immutable LowExpr a) {
 	return immutable LowExpr(
 		anyPtrType,
 		range,
@@ -67,12 +63,36 @@ immutable(LowExpr) genAsAnyPtr(Alloc)(
 			allocate(alloc, a))));
 }
 
-immutable(LowExpr) genDeref(Alloc)(
+immutable(LowExpr) genDrop(Alloc)(
+	ref Alloc alloc,
+	ref immutable FileAndRange range,
+	ref immutable LowExpr a,
+	immutable u8 localIndex,
+) {
+	// TODO: less hacky way?
+	return immutable LowExpr(
+		voidType,
+		range,
+		immutable LowExprKind(immutable LowExprKind.Let(
+			genLocal(alloc, shortSymAlphaLiteral("dropped"), localIndex, a.type),
+			allocate(alloc, a),
+			allocate(alloc, genVoid(range)))));
+}
+
+private immutable(LowExpr) genDerefGcOrRawPtr(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowExpr ptr,
 ) {
-	return genUnary(alloc, range, asPtrRaw(ptr.type).pointee, LowExprKind.SpecialUnary.Kind.deref, ptr);
+	return genUnary(alloc, range, asGcOrRawPointee(ptr.type), LowExprKind.SpecialUnary.Kind.deref, ptr);
+}
+
+immutable(LowExpr) genDerefGcPtr(Alloc)(ref Alloc alloc, ref immutable FileAndRange range, immutable LowExpr ptr) {
+	return genDerefGcOrRawPtr(alloc, range, ptr);
+}
+
+immutable(LowExpr) genDerefRawPtr(Alloc)(ref Alloc alloc, ref immutable FileAndRange range, immutable LowExpr ptr) {
+	return genDerefGcOrRawPtr(alloc, range, ptr);
 }
 
 private immutable(LowExpr) genUnary(Alloc)(

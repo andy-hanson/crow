@@ -240,7 +240,7 @@ private immutable(Bool) isPtrGcOrRaw(ref immutable LowType a) {
 	return immutable Bool(isPtrGc(a) || isPtrRaw(a));
 }
 
-private @trusted immutable(Ptr!LowType) asGcOrRawPointee(ref immutable LowType a) {
+@trusted immutable(Ptr!LowType) asGcOrRawPointee(ref immutable LowType a) {
 	verify(isPtrGcOrRaw(a));
 	return isPtrGc(a) ? a.ptrGc_.pointee : a.ptrRaw_.pointee;
 }

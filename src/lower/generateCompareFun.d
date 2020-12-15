@@ -10,7 +10,7 @@ import lower.lowExprHelpers :
 	genCall,
 	genCreateRecord,
 	genCreateUnion,
-	genDeref,
+	genDerefRawPtr,
 	genGetArrData,
 	genGetArrSize,
 	genIf,
@@ -118,7 +118,7 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 		return genCreateRecord(range, arrType, arrLiteral!LowExpr(alloc, [newSize, newData]));
 	}
 	immutable(LowExpr) genFirst(ref immutable LowExpr arr) {
-		return genDeref(alloc, range, genGetArrData(alloc, range, arr, elementPtrType));
+		return genDerefRawPtr(alloc, range, genGetArrData(alloc, range, arr, elementPtrType));
 	}
 
 	immutable LowExpr compareFirst = genCompareExpr(

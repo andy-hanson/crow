@@ -18,8 +18,12 @@ MutIndexDict!(K, V) newMutIndexDict(K, V, Alloc)(ref Alloc alloc, immutable size
 		noneMut!V));
 }
 
+ref const(Opt!V) getAt(K, V)(ref const MutIndexDict!(K, V) a, immutable K key) {
+	return at(a.values_, key.index);
+}
+
 ref const(V) mustGetAt(K, V)(ref const MutIndexDict!(K, V) a, immutable K key) {
-	return force(at(a.values_, key.index));
+	return force(getAt(a, key));
 }
 
 immutable(ValueAndDidAdd!V) getOrAddAndDidAdd(K, V)(

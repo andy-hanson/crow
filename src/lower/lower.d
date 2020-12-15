@@ -101,6 +101,7 @@ import util.collection.arr : Arr, at, empty, emptyArr, first, only, arrRange = r
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
+	exists,
 	map,
 	mapPtrs,
 	mapWithIndexAndConcatOne,
@@ -111,11 +112,11 @@ import util.collection.arrUtil :
 import util.collection.dict : Dict, getAt, mustGetAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr, fullIndexDictSize;
-import util.collection.mutIndexDict : getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
-import util.collection.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutDict, ValueAndDidAdd;
+import util.collection.mutIndexDict : getAt, getOrAddAndDidAdd, mustGetAt, MutIndexDict, newMutIndexDict;
+import util.collection.mutDict : addToMutDict, getAt_mut, getOrAdd, mustDelete, mustGetAt_mut, MutDict, ValueAndDidAdd;
 import util.late : Late, late, lateGet, lateIsSet, lateSet;
 import util.memory : allocate, nu;
-import util.opt : force, has, mapOption, none, Opt, optOr, some;
+import util.opt : asImmutable, force, has, mapOption, none, Opt, optOr, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
@@ -165,22 +166,27 @@ struct MarkVisitFuns {
 }
 
 immutable(LowFunIndex) getMarkVisitFun(ref const MarkVisitFuns funs, ref immutable LowType type) {
-	return matchLowType!(immutable LowFunIndex)(
+	immutable Opt!LowFunIndex opt = tryGetMarkVisitFun(funs, type);
+	return force(opt);
+}
+
+immutable(Opt!LowFunIndex) tryGetMarkVisitFun(ref const MarkVisitFuns funs, ref immutable LowType type) {
+	return matchLowType!(immutable Opt!LowFunIndex)(
 		type,
 		(immutable LowType.ExternPtr) =>
-			unreachable!(immutable LowFunIndex),
+			none!LowFunIndex,
 		(immutable LowType.FunPtr) =>
-			unreachable!(immutable LowFunIndex),
+			none!LowFunIndex,
 		(immutable PrimitiveType it) =>
-			unreachable!(immutable LowFunIndex),
+			none!LowFunIndex,
 		(immutable LowType.PtrGc it) =>
-			mustGetAt_mut(funs.gcPointeeToVisit, it.pointee),
+			asImmutable(getAt_mut(funs.gcPointeeToVisit, it.pointee)),
 		(immutable LowType.PtrRaw) =>
-			unreachable!(immutable LowFunIndex),
+			none!LowFunIndex,
 		(immutable LowType.Record it) =>
-			mustGetAt(funs.recordValToVisit, it),
+			asImmutable(getAt(funs.recordValToVisit, it)),
 		(immutable LowType.Union it) =>
-			mustGetAt(funs.unionToVisit, it));
+			asImmutable(getAt(funs.unionToVisit, it)));
 }
 
 private:
@@ -411,14 +417,14 @@ struct LowFunCause {
 	}
 	struct MarkVisitArrOuter {
 		immutable LowType.Record arrType;
-		immutable LowFunIndex inner;
+		immutable Opt!LowFunIndex inner;
 	}
 	struct MarkVisitNonArr { //TODO: this is record (by-val) or union. Maybe split?
 		immutable LowType type;
 	}
 	struct MarkVisitGcPtr {
 		immutable LowType.PtrGc pointerType;
-		immutable LowFunIndex visitPointee;
+		immutable Opt!LowFunIndex visitPointee;
 	}
 
 	@trusted immutable this(immutable CallWithCtx a) { kind = Kind.callWithCtx; callWithCtx_ = a; }
@@ -482,6 +488,31 @@ struct LowFunCause {
 //TODO:MOVE
 immutable(size_t) sizeTOfPrimitiveType(immutable PrimitiveType a) {
 	return cast(immutable size_t) a;
+}
+
+immutable(Bool) needsMarkVisitFun(ref immutable AllLowTypes allTypes, ref immutable LowType a) {
+	return matchLowType!(immutable Bool)(
+		a,
+		(immutable LowType.ExternPtr) =>
+			False,
+		(immutable LowType.FunPtr) =>
+			False,
+		(immutable PrimitiveType) =>
+			False,
+		(immutable LowType.PtrGc) =>
+			True,
+		(immutable LowType.PtrRaw) =>
+			False,
+		(immutable LowType.Record it) {
+			immutable LowRecord record = fullIndexDictGet(allTypes.allRecords, it);
+			return immutable Bool(
+				isArr(record) ||
+				exists(record.fields, (ref immutable LowField field) =>
+					needsMarkVisitFun(allTypes, field.type)));
+		},
+		(immutable LowType.Union it) =>
+			exists(fullIndexDictGet(allTypes.allUnions, it).members, (ref immutable LowType member) =>
+				needsMarkVisitFun(allTypes, member)));
 }
 
 immutable(AllLowFuns) getAllLowFuns(Alloc)(
@@ -576,47 +607,52 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 			});
 	}
 
-	immutable(Opt!LowFunIndex) generateMarkVisitForType(immutable LowType lowType) @safe @nogc pure nothrow {
+	immutable(LowFunIndex) generateMarkVisitForType(immutable LowType lowType) @safe @nogc pure nothrow {
+		verify(needsMarkVisitFun(allTypes, lowType));
 		immutable(LowFunIndex) addNonArr() {
 			return addLowFun(immutable LowFunCause(immutable LowFunCause.MarkVisitNonArr(lowType)));
 		}
+		immutable(Opt!LowFunIndex) maybeGenerateMarkVisitForType(immutable LowType t) @safe @nogc pure nothrow {
+			return needsMarkVisitFun(allTypes, t) ? some(generateMarkVisitForType(t)) : none!LowFunIndex;
+		}
 
-		return matchLowType!(immutable Opt!LowFunIndex)(
+		return matchLowType!(immutable LowFunIndex)(
 			lowType,
 			(immutable LowType.ExternPtr) =>
-				none!LowFunIndex,
+				unreachable!(immutable LowFunIndex),
 			(immutable LowType.FunPtr) =>
-				none!LowFunIndex,
+				unreachable!(immutable LowFunIndex),
 			(immutable PrimitiveType it) =>
-				none!LowFunIndex,
+				unreachable!(immutable LowFunIndex),
 			(immutable LowType.PtrGc it) {
-				immutable Opt!LowFunIndex visitPointee = generateMarkVisitForType(it.pointee);
-				return some(getOrAdd(
+				immutable Opt!LowFunIndex visitPointee = maybeGenerateMarkVisitForType(it.pointee);
+				return getOrAdd(
 					alloc,
 					markVisitFuns.gcPointeeToVisit,
 					it.pointee,
 					() =>
-						addLowFun(immutable LowFunCause(
-							immutable LowFunCause.MarkVisitGcPtr(it, force(visitPointee))))));
+						addLowFun(immutable LowFunCause(immutable LowFunCause.MarkVisitGcPtr(it, visitPointee))));
 			},
 			(immutable LowType.PtrRaw) =>
-				none!LowFunIndex,
+				unreachable!(immutable LowFunIndex),
 			(immutable LowType.Record it) {
 				immutable LowRecord record = fullIndexDictGet(allTypes.allRecords, it);
 				if (isArr(record)) {
-					immutable LowType.PtrRaw elementPtrType = asPtrRaw(at(record.fields, 1).type);
+					immutable LowType.PtrRaw elementPtrType = getElementPtrTypeFromArrType(allTypes, it);
 					immutable ValueAndDidAdd!(immutable LowFunIndex) outerIndex = getOrAddAndDidAdd(
 						markVisitFuns.recordValToVisit,
 						it,
 						() {
-							immutable LowFunIndex innerIndex = addLowFun(
-								immutable LowFunCause(immutable LowFunCause.MarkVisitArrInner(elementPtrType)));
+							immutable Opt!LowFunIndex innerIndex = needsMarkVisitFun(allTypes, elementPtrType.pointee)
+								? some(addLowFun(
+									immutable LowFunCause(immutable LowFunCause.MarkVisitArrInner(elementPtrType))))
+								: none!LowFunIndex;
 							return addLowFun(
 								immutable LowFunCause(immutable LowFunCause.MarkVisitArrOuter(it, innerIndex)));
 						});
 					if (outerIndex.didAdd)
-						generateMarkVisitForType(elementPtrType.pointee);
-					return some(outerIndex.value);
+						maybeGenerateMarkVisitForType(elementPtrType.pointee);
+					return outerIndex.value;
 				} else {
 					immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
 						markVisitFuns.recordValToVisit,
@@ -624,8 +660,8 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 						() => addNonArr());
 					if (index.didAdd)
 						foreach (ref immutable LowField field; arrRange(record.fields))
-							generateMarkVisitForType(field.type);
-					return some(index.value);
+							maybeGenerateMarkVisitForType(field.type);
+					return index.value;
 				}
 			},
 			(immutable LowType.Union it) {
@@ -633,8 +669,8 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 					getOrAddAndDidAdd(markVisitFuns.unionToVisit, it, () => addNonArr());
 				if (index.didAdd)
 					foreach (ref immutable LowType member; arrRange(fullIndexDictGet(allTypes.allUnions, it).members))
-						generateMarkVisitForType(member);
-				return some(index.value);
+						maybeGenerateMarkVisitForType(member);
+				return index.value;
 			});
 	}
 
@@ -676,10 +712,9 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 							alloc,
 							getLowTypeCtx,
 							first(fun.paramsExcludingCtxAndClosure).type));
-					immutable Opt!LowFunIndex res =
+					immutable LowFunIndex res =
 						generateMarkVisitForType(lowTypeFromConcreteType(alloc, getLowTypeCtx, only(it.typeArgs)));
-					verify(has(res));
-					return res;
+					return some(res);
 				} else
 					return none!LowFunIndex;
 			},
@@ -823,7 +858,7 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 		(ref immutable LowFunCause.MarkVisitArrInner it) =>
 			generateMarkVisitArrInner(alloc, markVisitFuns, markCtxType, it.elementPtrType),
 		(ref immutable LowFunCause.MarkVisitArrOuter it) =>
-			generateMarkVisitArrOuter!Alloc(
+			generateMarkVisitArrOuter(
 				alloc,
 				markCtxType,
 				markFun,

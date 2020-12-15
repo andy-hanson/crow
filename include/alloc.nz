@@ -71,8 +71,7 @@ run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	hard-assert: gc.needs-gc?
 	gc.mark-begin.as-any-ptr memset 0, gc.size-words
 	mark-ctx = as<by-val<mark-ctx>>: mark-ctx: gc.size-words, gc.mark-begin, gc.data-begin
-	todo
-	| mark-ctx.ref-of-val mark-visit gc-root
+	mark-ctx.ref-of-val mark-visit gc-root
 
 | GC info specific to a ctx.
 | Currently they all share the common GC and must take a lock every time they allocate.
