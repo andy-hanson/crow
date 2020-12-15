@@ -107,7 +107,7 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 	ref immutable LowExpr a,
 	ref immutable LowExpr b,
 ) {
-	immutable LowType.NonFunPtr elementPtrType = getElementPtrTypeFromArrType(allTypes, arrType);
+	immutable LowType.PtrRaw elementPtrType = getElementPtrTypeFromArrType(allTypes, arrType);
 	immutable LowType elementType = elementPtrType.pointee;
 
 	immutable(LowExpr) genTail(ref immutable LowExpr arr) {
@@ -257,12 +257,14 @@ immutable(LowFunExprBody) compareBody(Alloc)(
 			unreachable!(immutable LowFunExprBody),
 		(immutable LowType.FunPtr) =>
 			unreachable!(immutable LowFunExprBody),
-		(immutable LowType.NonFunPtr it) =>
-			record(asRecordType(it.pointee)),
 		(immutable PrimitiveType it) =>
 			immutable LowFunExprBody(
 				False,
 				allocate(alloc, genComparePrimitive(alloc, range, comparisonTypes, it, a, b))),
+		(immutable LowType.PtrGc it) =>
+			record(asRecordType(it.pointee)),
+		(immutable LowType.PtrRaw) =>
+			unreachable!(immutable LowFunExprBody),
 		(immutable LowType.Record it) =>
 			record(it),
 		(immutable LowType.Union it) =>

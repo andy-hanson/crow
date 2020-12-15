@@ -79,10 +79,12 @@ immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) 
 			tataRecord(alloc, "extern-ptr", [tataNat(it.index)]),
 		(immutable LowType.FunPtr it) =>
 			tataRecord(alloc, "fun-ptr", [tataNat(it.index)]),
-		(immutable LowType.NonFunPtr it) =>
-			tataRecord(alloc, "ptr", [tataOfLowType(alloc, it.pointee)]),
 		(immutable PrimitiveType it) =>
 			tataSym(symOfPrimitiveType(it)),
+		(immutable LowType.PtrGc it) =>
+			tataRecord(alloc, "gc-ptr", [tataOfLowType(alloc, it.pointee)]),
+		(immutable LowType.PtrRaw it) =>
+			tataRecord(alloc, "raw-ptr", [tataOfLowType(alloc, it.pointee)]),
 		(immutable LowType.Record it) =>
 			tataRecord(alloc, "record", [tataNat(it.index)]),
 		(immutable LowType.Union it) =>

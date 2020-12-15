@@ -7,8 +7,8 @@ import model.constant : Constant, matchConstant;
 import model.lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,
-	asNonFunPtrType,
 	asPrimitive,
+	asPtrGc,
 	asRecordType,
 	LowField,
 	LowProgram,
@@ -147,7 +147,7 @@ void ensureConstant(TempAlloc)(
 		(immutable Constant.Null) {},
 		(immutable Constant.Pointer it) {
 			immutable Ptr!PointerTypeAndConstantsLow ptrs = ptrAt(ctx.allConstants.pointers, it.typeIndex);
-			verify(lowTypeEqual(ptrs.pointeeType, asNonFunPtrType(t).pointee));
+			verify(lowTypeEqual(ptrs.pointeeType, asPtrGc(t).pointee));
 			recurWritePointer(tempAlloc, ctx, it.typeIndex, ptrs.pointeeType, it.index, at(ptrs.constants, it.index));
 		},
 		(ref immutable Constant.Record it) {

@@ -57,8 +57,8 @@ import interpret.typeLayout : layOutTypes, nStackEntriesForType, sizeOfType, Typ
 import model.constant : Constant, matchConstant;
 import model.lowModel :
 	asLocalRef,
-	asNonFunPtrType,
 	asParamRef,
+	asPtrRaw,
 	asRecordFieldGet,
 	asRecordType,
 	asUnionType,
@@ -276,8 +276,6 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 			DynCallType.pointer,
 		(immutable LowType.FunPtr) =>
 			DynCallType.pointer,
-		(immutable LowType.NonFunPtr) =>
-			DynCallType.pointer,
 		(immutable PrimitiveType it) {
 			final switch (it) {
 				case PrimitiveType.bool_:
@@ -306,6 +304,10 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 					return DynCallType.void_;
 			}
 		},
+		(immutable LowType.PtrGc) =>
+			unreachable!(immutable DynCallType),
+		(immutable LowType.PtrRaw) =>
+			DynCallType.pointer,
 		(immutable LowType.Record) =>
 			unreachable!(immutable DynCallType),
 		(immutable LowType.Union) =>
@@ -937,7 +939,7 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 	final switch (a.kind) {
 		case LowExprKind.SpecialBinary.Kind.addPtr:
 		case LowExprKind.SpecialBinary.Kind.subPtrNat:
-			immutable LowType pointee = asNonFunPtrType(a.left.type).pointee;
+			immutable LowType pointee = asPtrRaw(a.left.type).pointee;
 			generateExpr(dbg, tempAlloc, writer, ctx, a.left);
 			generateExpr(dbg, tempAlloc, writer, ctx, a.right);
 			immutable Nat16 pointeeSize = sizeOfType(ctx, pointee);

@@ -137,7 +137,7 @@ void checkLowExpr(Alloc)(
 		(ref immutable LowExprKind.RecordFieldGet it) {
 			immutable LowType targetTypeNonPtr = immutable LowType(it.record);
 			immutable LowType targetType = it.targetIsPointer
-				? immutable LowType(immutable LowType.NonFunPtr(ptrTrustMe(targetTypeNonPtr)))
+				? immutable LowType(immutable LowType.PtrGc(ptrTrustMe(targetTypeNonPtr)))
 				: targetTypeNonPtr;
 			checkLowExpr(alloc, ctx, targetType, it.target);
 			immutable LowType fieldType =
@@ -147,7 +147,7 @@ void checkLowExpr(Alloc)(
 		(ref immutable LowExprKind.RecordFieldSet it) {
 			immutable LowType targetTypeNonPtr = immutable LowType(it.record);
 			immutable LowType targetType = it.targetIsPointer
-				? immutable LowType(immutable LowType.NonFunPtr(ptrTrustMe(targetTypeNonPtr)))
+				? immutable LowType(immutable LowType.PtrGc(ptrTrustMe(targetTypeNonPtr)))
 				: targetTypeNonPtr;
 			checkLowExpr(alloc, ctx, targetType, it.target);
 			immutable LowType fieldType =
@@ -243,10 +243,12 @@ immutable(Sexpr) tataOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, i
 			tataSym("a-extern-ptr"), //TODO: more detail
 		(immutable LowType.FunPtr) =>
 			tataSym("some-fun-ptr"), //TODO: more detail
-		(immutable LowType.NonFunPtr it) =>
-			tataRecord(alloc, "ptr", [tataOfLowType2(alloc, ctx, it.pointee)]),
 		(immutable PrimitiveType it) =>
 			tataSym(symOfPrimitiveType(it)),
+		(immutable LowType.PtrGc it) =>
+			tataRecord(alloc, "gc-ptr", [tataOfLowType2(alloc, ctx, it.pointee)]),
+		(immutable LowType.PtrRaw it) =>
+			tataRecord(alloc, "raw-ptr", [tataOfLowType2(alloc, ctx, it.pointee)]),
 		(immutable LowType.Record it) =>
 			tataOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allRecords, it).source),
 		(immutable LowType.Union it) =>

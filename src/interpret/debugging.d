@@ -96,13 +96,18 @@ void writeLowType(Alloc)(ref Writer!Alloc writer, ref immutable AllLowTypes lowT
 		(immutable LowType.FunPtr) {
 			writeStatic(writer, "some fun ptr type"); // TODO: more detail
 		},
-		(immutable LowType.NonFunPtr it) {
-			writeStatic(writer, "ptr(");
+		(immutable PrimitiveType it) {
+			writeSym(writer, symOfPrimitiveType(it));
+		},
+		(immutable LowType.PtrGc it) {
+			writeStatic(writer, "gc-ptr(");
 			writeLowType(writer, lowTypes, it.pointee);
 			writeChar(writer, ')');
 		},
-		(immutable PrimitiveType it) {
-			writeSym(writer, symOfPrimitiveType(it));
+		(immutable LowType.PtrRaw it) {
+			writeStatic(writer, "raw-ptr(");
+			writeLowType(writer, lowTypes, it.pointee);
+			writeChar(writer, ')');
 		},
 		(immutable LowType.Record it) {
 			writeConcreteStruct(writer, fullIndexDictGet(lowTypes.allRecords, it).source);

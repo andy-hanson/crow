@@ -50,12 +50,56 @@ import util.sym : shortSymAlphaLiteral;
 import util.types : safeIncrU8;
 import util.util : unreachable;
 
+immutable(LowFun) generateMarkVisitGcPtr(Alloc)(
+	ref Alloc alloc,
+	ref immutable LowType markCtxType,
+	immutable LowFunIndex markFun,
+	immutable LowType.PtrGc pointerTypePtrGc,
+	immutable LowFunIndex visitPointee,
+) {
+	immutable LowType pointerType = immutable LowType(pointerTypePtrGc);
+	immutable LowType pointeeType = pointerTypePtrGc.pointee;
+	immutable FileAndRange range = FileAndRange.empty;
+	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [
+		genParam(shortSymAlphaLiteral("mark-ctx"), markCtxType),
+		genParam(shortSymAlphaLiteral("value"), pointerType)]);
+	immutable LowExpr markCtx = paramRef(range, markCtxType, immutable LowParamIndex(0));
+	immutable LowExpr value = paramRef(range, pointerType, immutable LowParamIndex(1));
+	immutable LowExpr sizeExpr = getSizeOf(range, pointeeType);
+	immutable LowExpr valueAsAnyPtr = genAsAnyPtr(alloc, anyPtrType, range, value);
+	immutable LowExpr mark = genCall(
+		alloc,
+		range,
+		markFun,
+		boolType,
+		arrLiteral!LowExpr(alloc, [markCtx, valueAsAnyPtr, sizeExpr]));
+	immutable LowExpr valueDeref = genDeref(alloc, range, value);
+	immutable LowExpr recur = genCall(
+		alloc,
+		range,
+		visitPointee,
+		voidType,
+		arrLiteral!LowExpr(alloc, [markCtx, valueDeref]));
+	immutable LowFunExprBody body_ =
+		immutable LowFunExprBody(False, allocate(alloc, genIf(alloc, range, mark, recur, genVoid(range))));
+	return immutable LowFun(
+		immutable LowFunSource(nu!(LowFunSource.Generated)(
+			alloc,
+			shortSymAlphaLiteral("mark-visit"),
+			arrLiteral!LowType(alloc, [pointerType]))),
+		nu!LowFunSig(
+			alloc,
+			voidType,
+			immutable LowFunParamsKind(False, False),
+			params),
+		immutable LowFunBody(body_));
+}
+
 immutable(LowFun) generateMarkVisitNonArr(Alloc)(
 	ref Alloc alloc,
 	ref immutable AllLowTypes allTypes,
 	ref const MarkVisitFuns markVisitFuns,
 	ref immutable LowType markCtxType,
-	immutable LowFunIndex markFun,
 	ref immutable LowType paramType,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
@@ -65,7 +109,7 @@ immutable(LowFun) generateMarkVisitNonArr(Alloc)(
 	immutable LowExpr markCtx = paramRef(range, markCtxType, immutable LowParamIndex(0));
 	immutable LowExpr value = paramRef(range, paramType, immutable LowParamIndex(1));
 	immutable LowFunExprBody body_ =
-		visitBody(alloc, range, allTypes, markVisitFuns, markFun, paramType, markCtx, value);
+		visitBody(alloc, range, allTypes, markVisitFuns, paramType, markCtx, value);
 	return immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(
 			alloc,
@@ -83,7 +127,7 @@ immutable(LowFun) generateMarkVisitArrInner(Alloc)(
 	ref Alloc alloc,
 	ref const MarkVisitFuns markVisitFuns,
 	ref immutable LowType markCtxType,
-	immutable LowType.NonFunPtr elementPtrType,
+	immutable LowType.PtrRaw elementPtrType,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
 	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [
@@ -130,7 +174,7 @@ immutable(LowFun) generateMarkVisitArrOuter(Alloc)(
 	ref immutable LowType markCtxType,
 	immutable LowFunIndex markFun,
 	immutable LowType.Record arrType,
-	immutable LowType.NonFunPtr elementPtrType,
+	immutable LowType.PtrRaw elementPtrType,
 	immutable LowFunIndex inner,
 ) {
 	immutable LowType elementType = elementPtrType.pointee;
@@ -177,12 +221,12 @@ immutable(LowFun) generateMarkVisitArrOuter(Alloc)(
 
 private:
 
+//TODO:INLINE
 immutable(LowFunExprBody) visitBody(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable AllLowTypes allTypes,
 	ref const MarkVisitFuns markVisitFuns,
-	immutable LowFunIndex markFun,
 	ref immutable LowType valueType,
 	ref immutable LowExpr markCtx,
 	ref immutable LowExpr value,
@@ -193,9 +237,11 @@ immutable(LowFunExprBody) visitBody(Alloc)(
 			unreachable!(immutable LowFunExprBody),
 		(immutable LowType.FunPtr) =>
 			unreachable!(immutable LowFunExprBody),
-		(immutable LowType.NonFunPtr it) =>
-			visitNonFunPtrBody(alloc, range, markVisitFuns, markFun, it, markCtx, value),
 		(immutable PrimitiveType) =>
+			unreachable!(immutable LowFunExprBody),
+		(immutable LowType.PtrGc it) =>
+			unreachable!(immutable LowFunExprBody),
+		(immutable LowType.PtrRaw it) =>
 			unreachable!(immutable LowFunExprBody),
 		(immutable LowType.Record it) =>
 			visitRecordBody!Alloc(
@@ -214,37 +260,11 @@ immutable(Bool) mayVisit(ref immutable LowType a) {
 		a,
 		(immutable LowType.ExternPtr) => False,
 		(immutable LowType.FunPtr) => False,
-		(immutable LowType.NonFunPtr) => True,
 		(immutable PrimitiveType) => False,
+		(immutable LowType.PtrGc) => True,
+		(immutable LowType.PtrRaw) => False,
 		(immutable LowType.Record) => True,
 		(immutable LowType.Union) => True);
-}
-
-immutable(LowFunExprBody) visitNonFunPtrBody(Alloc)(
-	ref Alloc alloc,
-	ref immutable FileAndRange range,
-	ref const MarkVisitFuns markVisitFuns,
-	immutable LowFunIndex markFun,
-	ref immutable LowType.NonFunPtr it,
-	ref immutable LowExpr markCtx,
-	ref immutable LowExpr value,
-) {
-	immutable LowExpr sizeExpr = getSizeOf(range, it.pointee);
-	immutable LowExpr valueAsAnyPtr = genAsAnyPtr(alloc, anyPtrType, range, value);
-	immutable LowExpr mark = genCall(
-		alloc,
-		range,
-		markFun,
-		boolType,
-		arrLiteral!LowExpr(alloc, [markCtx, valueAsAnyPtr, sizeExpr]));
-	immutable LowExpr valueDeref = genDeref(alloc, range, value);
-	immutable LowExpr recur = genCall(
-		alloc,
-		range,
-		getMarkVisitFun(markVisitFuns, it.pointee),
-		voidType,
-		arrLiteral!LowExpr(alloc, [markCtx, valueDeref]));
-	return immutable LowFunExprBody(False, allocate(alloc, genIf(alloc, range, mark, recur, genVoid(range))));
 }
 
 immutable(LowFunExprBody) visitRecordBody(Alloc)(

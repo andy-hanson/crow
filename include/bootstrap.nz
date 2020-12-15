@@ -41,7 +41,8 @@ void builtin
 byte alias
 	nat8
 
-| NOTE: if ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
+| A raw pointer. GC will not trace these.
+| WARN: If ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
 ptr<?t> builtin mut
 deref ?t(p ptr ?t) noctx unsafe builtin
 set void(p ptr ?t, value ?t) noctx unsafe builtin

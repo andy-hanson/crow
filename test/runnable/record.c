@@ -1723,7 +1723,7 @@ uint8_t call_w_ctx_114(struct fun_mut1_1 a, struct ctx* ctx, struct exception p0
 struct fut_0* call_4(struct ctx* ctx, struct fun_mut1_3 a, uint8_t p0) {
 	return call_w_ctx_116(a, ctx, p0);
 }
-/* call-w-ctx<ptr(fut<int32>), void> (generated) (generated) */
+/* call-w-ctx<gc-ptr(fut<int32>), void> (generated) (generated) */
 struct fut_0* call_w_ctx_116(struct fun_mut1_3 a, struct ctx* ctx, uint8_t p0) {
 	struct fun_mut1_3 match_fun1;
 	struct then2__lambda0* closure0;
@@ -1785,7 +1785,7 @@ struct fut_0* call_ref_1(struct ctx* ctx, struct fun_ref0 f) {
 struct fut_0* call_5(struct ctx* ctx, struct fun_mut0_1 a) {
 	return call_w_ctx_124(a, ctx);
 }
-/* call-w-ctx<ptr(fut<int32>)> (generated) (generated) */
+/* call-w-ctx<gc-ptr(fut<int32>)> (generated) (generated) */
 struct fut_0* call_w_ctx_124(struct fun_mut0_1 a, struct ctx* ctx) {
 	struct fun_mut0_1 match_fun1;
 	struct add_first_task__lambda0* closure0;
@@ -2083,7 +2083,7 @@ uint64_t incr_3(struct ctx* ctx, uint64_t n) {
 struct arr_0 call_7(struct ctx* ctx, struct fun_mut1_4 a, char* p0) {
 	return call_w_ctx_167(a, ctx, p0);
 }
-/* call-w-ctx<arr<char>, ptr(char)> (generated) (generated) */
+/* call-w-ctx<arr<char>, raw-ptr(char)> (generated) (generated) */
 struct arr_0 call_w_ctx_167(struct fun_mut1_4 a, struct ctx* ctx, char* p0) {
 	struct fun_mut1_4 match_fun1;
 	uint8_t closure0;
@@ -2124,7 +2124,7 @@ struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__la
 struct fut_0* do_main__lambda0(struct ctx* ctx, uint8_t _closure, struct arr_3 all_args, fun_ptr2 main_ptr) {
 	return add_first_task(ctx, all_args, main_ptr);
 }
-/* call-w-ctx<ptr(fut<int32>), arr<ptr<char>>, some fun ptr type> (generated) (generated) */
+/* call-w-ctx<gc-ptr(fut<int32>), arr<ptr<char>>, some fun ptr type> (generated) (generated) */
 struct fut_0* call_w_ctx_174(struct fun2 a, struct ctx* ctx, struct arr_3 p0, fun_ptr2 p1) {
 	struct fun2 match_fun1;
 	uint8_t closure0;

@@ -6,8 +6,8 @@ import model.constant : Constant;
 import model.lowModel :
 	asPrimitive,
 	isFunPtrType,
-	isNonFunPtrType,
 	isPrimitive,
+	isPtrRaw,
 	LowExprKind,
 	LowType,
 	PrimitiveType;
@@ -136,13 +136,13 @@ immutable(BuiltinKind) getBuiltinKind(
 		case shortSymOperatorLiteralValue("+"):
 			return binary(isFloat64(rt)
 					? LowExprKind.SpecialBinary.Kind.addFloat64
-					: isNonFunPtrType(rt)
+					: isPtrRaw(rt)
 					? LowExprKind.SpecialBinary.Kind.addPtr
 					: failBinary());
 		case shortSymOperatorLiteralValue("-"):
 			return binary(isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.subFloat64
-				: isNonFunPtrType(p0) && isNat64(p1)
+				: isPtrRaw(p0) && isNat64(p1)
 				? LowExprKind.SpecialBinary.Kind.subPtrNat
 				: failBinary());
 		case shortSymOperatorLiteralValue("*"):
@@ -226,7 +226,7 @@ immutable(BuiltinKind) getBuiltinKind(
 		case shortSymAlphaLiteralValue("ref-of-val"):
 			return unary(LowExprKind.SpecialUnary.Kind.refOfVal);
 		case shortSymAlphaLiteralValue("set"):
-			return isNonFunPtrType(p0) ? binary(LowExprKind.SpecialBinary.Kind.writeToPtr) : fail();
+			return isPtrRaw(p0) ? binary(LowExprKind.SpecialBinary.Kind.writeToPtr) : fail();
 		case shortSymAlphaLiteralValue("size-of"):
 			return immutable BuiltinKind(immutable BuiltinKind.SizeOf());
 		case shortSymAlphaLiteralValue("to-float"):
@@ -248,7 +248,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat16
 				: isNat32(p0)
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat32
-				: isNonFunPtrType(p0)
+				: isPtrRaw(p0)
 				? LowExprKind.SpecialUnary.Kind.toNatFromPtr
 				: failUnary());
 		case shortSymAlphaLiteralValue("true"):

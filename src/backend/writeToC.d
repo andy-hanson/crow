@@ -23,8 +23,8 @@ import model.constant : asIntegral, Constant, matchConstant;
 import model.lowModel :
 	AllConstantsLow,
 	ArrTypeAndConstantsLow,
-	asNonFunPtrType,
 	asPrimitive,
+	asPtrGc,
 	asRecordType,
 	asUnionType,
 	isChar,
@@ -54,7 +54,7 @@ import model.lowModel :
 	matchLowFunSource,
 	matchLowLocalSource,
 	matchLowParamSource,
-	matchLowType,
+	matchLowTypeCombinePtr,
 	name,
 	PointerTypeAndConstantsLow,
 	PrimitiveType,
@@ -369,7 +369,7 @@ struct FunBodyCtx {
 }
 
 void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType t) {
-	return matchLowType!void(
+	return matchLowTypeCombinePtr!void(
 		t,
 		(immutable LowType.ExternPtr it) {
 			writeStatic(writer, "struct ");
@@ -379,12 +379,12 @@ void writeType(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immuta
 		(immutable LowType.FunPtr it) {
 			writeStructMangledName(writer, ctx, fullIndexDictGet(ctx.program.allFunPtrTypes, it).source);
 		},
-		(immutable LowType.NonFunPtr it) {
-			writeType(writer, ctx, it.pointee);
-			writeChar(writer, '*');
-		},
 		(immutable PrimitiveType it) {
 			writePrimitiveType(writer, it);
+		},
+		(immutable Ptr!LowType pointee) {
+			writeType(writer, ctx, pointee);
+			writeChar(writer, '*');
 		},
 		(immutable LowType.Record it) {
 			writeRecordType(writer, ctx, it);
@@ -493,17 +493,17 @@ immutable(Bool) canReferenceTypeAsValue(
 	ref const StructStates states,
 	ref immutable LowType t,
 ) {
-	return matchLowType!(immutable Bool)(
+	return matchLowTypeCombinePtr!(immutable Bool)(
 		t,
 		(immutable LowType.ExternPtr) =>
 			// Declared all up front
 			True,
 		(immutable LowType.FunPtr it) =>
 			immutable Bool(at(states.funPtrStates, it.index)),
-		(immutable LowType.NonFunPtr it) =>
-			canReferenceTypeAsPointee(ctx, states, it.pointee),
 		(immutable PrimitiveType) =>
 			True,
+		(immutable Ptr!LowType pointee) =>
+			canReferenceTypeAsPointee(ctx, states, pointee),
 		(immutable LowType.Record it) =>
 			immutable Bool(at(states.recordStates, it.index) == StructState.defined),
 		(immutable LowType.Union it) =>
@@ -515,17 +515,17 @@ immutable(Bool) canReferenceTypeAsPointee(
 	ref const StructStates states,
 	ref immutable LowType t,
 ) {
-	return matchLowType!(immutable Bool)(
+	return matchLowTypeCombinePtr!(immutable Bool)(
 		t,
 		(immutable LowType.ExternPtr) =>
 			// Declared all up front
 			True,
 		(immutable LowType.FunPtr it) =>
 			immutable Bool(at(states.funPtrStates, it.index)),
-		(immutable LowType.NonFunPtr it) =>
-			canReferenceTypeAsPointee(ctx, states, it.pointee),
 		(immutable PrimitiveType) =>
 			True,
+		(immutable Ptr!LowType pointee) =>
+			canReferenceTypeAsPointee(ctx, states, pointee),
 		(immutable LowType.Record it) =>
 			immutable Bool(at(states.recordStates, it.index) != StructState.none),
 		(immutable LowType.Union it) =>
@@ -1401,7 +1401,7 @@ void writeConstantRef(Alloc)(
 		},
 		(immutable Constant.Pointer it) {
 			writeChar(writer, '&');
-			writeConstantPointerStorageName(writer, ctx, asNonFunPtrType(type).pointee, it.index);
+			writeConstantPointerStorageName(writer, ctx, asPtrGc(type).pointee, it.index);
 		},
 		(ref immutable Constant.Record it) {
 			immutable Arr!LowField fields = fullIndexDictGet(ctx.program.allRecords, asRecordType(type)).fields;
@@ -1519,7 +1519,7 @@ void writeHardFail(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref im
 }
 
 void writeEmptyValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType type) {
-	return matchLowType!void(
+	return matchLowTypeCombinePtr!void(
 		type,
 		(immutable LowType.ExternPtr) {
 			writeStatic(writer, "NULL");
@@ -1527,11 +1527,11 @@ void writeEmptyValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref 
 		(immutable LowType.FunPtr) {
 			writeStatic(writer, "NULL");
 		},
-		(immutable LowType.NonFunPtr) {
-			writeStatic(writer, "NULL");
-		},
 		(immutable PrimitiveType) {
 			writeChar(writer, '0');
+		},
+		(immutable Ptr!LowType) {
+			writeStatic(writer, "NULL");
 		},
 		(immutable LowType.Record it) {
 			writeCastToType(writer, ctx, type);

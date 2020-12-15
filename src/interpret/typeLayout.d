@@ -33,10 +33,12 @@ immutable(Nat16) sizeOfType(ref immutable TypeLayout typeLayout, ref immutable L
 			externPtrSize,
 		(immutable LowType.FunPtr) =>
 			funPtrSize,
-		(immutable LowType.NonFunPtr) =>
-			ptrSize,
 		(immutable PrimitiveType it) =>
 			primitiveSize(it),
+		(immutable LowType.PtrGc) =>
+			ptrSize,
+		(immutable LowType.PtrRaw) =>
+			ptrSize,
 		(immutable LowType.Record index) =>
 			fullIndexDictGet(typeLayout.recordSizes, index),
 		(immutable LowType.Union index) =>
@@ -192,10 +194,12 @@ immutable(Nat16) sizeOfType(Alloc)(
 			externPtrSize,
 		(immutable LowType.FunPtr) =>
 			funPtrSize,
-		(immutable LowType.NonFunPtr) =>
-			ptrSize,
 		(immutable PrimitiveType it) =>
 			primitiveSize(it),
+		(immutable LowType.PtrGc) =>
+			ptrSize,
+		(immutable LowType.PtrRaw) =>
+			ptrSize,
 		(immutable LowType.Record index) {
 			immutable Opt!Nat16 size = fullIndexDictBuilderOptGet(builder.recordSizes, index);
 			return has(size)

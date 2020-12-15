@@ -5,7 +5,7 @@ module lower.lowExprHelpers;
 import model.constant : Constant;
 import model.lowModel :
 	AllLowTypes,
-	asNonFunPtrType,
+	asPtrRaw,
 	LowExpr,
 	LowExprKind,
 	LowFunIndex,
@@ -29,18 +29,17 @@ import util.util : verify;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
 immutable LowType charType = immutable LowType(PrimitiveType.char_);
-private immutable LowType charPtrType =
-	immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charType)));
-immutable LowType charPtrPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&charPtrType)));
+private immutable LowType charPtrType = immutable LowType(immutable LowType.PtrRaw(immutable Ptr!LowType(&charType)));
+immutable LowType charPtrPtrType = immutable LowType(immutable LowType.PtrRaw(immutable Ptr!LowType(&charPtrType)));
 immutable LowType int32Type = immutable LowType(PrimitiveType.int32);
 immutable LowType nat64Type = immutable LowType(PrimitiveType.nat64);
 private immutable LowType nat8Type = immutable LowType(PrimitiveType.nat8);
-immutable LowType anyPtrType = immutable LowType(immutable LowType.NonFunPtr(immutable Ptr!LowType(&nat8Type)));
+immutable LowType anyPtrType = immutable LowType(immutable LowType.PtrRaw(immutable Ptr!LowType(&nat8Type)));
 immutable LowType voidType = immutable LowType(PrimitiveType.void_);
 
 immutable(LowExpr) genAddPtr(Alloc)(
 	ref Alloc alloc,
-	immutable LowType.NonFunPtr ptrType,
+	immutable LowType.PtrRaw ptrType,
 	ref immutable FileAndRange range,
 	immutable LowExpr ptr,
 	immutable LowExpr added,
@@ -73,7 +72,7 @@ immutable(LowExpr) genDeref(Alloc)(
 	ref immutable FileAndRange range,
 	immutable LowExpr ptr,
 ) {
-	return genUnary(alloc, range, asNonFunPtrType(ptr.type).pointee, LowExprKind.SpecialUnary.Kind.deref, ptr);
+	return genUnary(alloc, range, asPtrRaw(ptr.type).pointee, LowExprKind.SpecialUnary.Kind.deref, ptr);
 }
 
 private immutable(LowExpr) genUnary(Alloc)(
@@ -118,7 +117,7 @@ immutable(LowExpr) genNat64Eq0(Alloc)(
 immutable(LowExpr) incrPointer(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
-	ref immutable LowType.NonFunPtr ptrType,
+	ref immutable LowType.PtrRaw ptrType,
 	ref immutable LowExpr ptr,
 ) {
 	return genAddPtr(alloc, ptrType, range, ptr, constantNat64(range, 1));
@@ -340,12 +339,12 @@ immutable(LowExpr) genGetArrData(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable LowExpr arr,
-	ref immutable LowType.NonFunPtr elementPtrType,
+	ref immutable LowType.PtrRaw elementPtrType,
 ) {
 	return recordFieldGet(alloc, range, arr, immutable LowType(elementPtrType), 1);
 }
 
-immutable(LowType.NonFunPtr) getElementPtrTypeFromArrType(
+immutable(LowType.PtrRaw) getElementPtrTypeFromArrType(
 	ref immutable AllLowTypes allTypes,
 	ref immutable LowType.Record arrType,
 ) {
@@ -353,5 +352,5 @@ immutable(LowType.NonFunPtr) getElementPtrTypeFromArrType(
 	verify(size(arrRecord.fields) == 2);
 	verify(symEq(name(at(arrRecord.fields, 0)), shortSymAlphaLiteral("size")));
 	verify(symEq(name(at(arrRecord.fields, 1)), shortSymAlphaLiteral("data")));
-	return asNonFunPtrType(at(arrRecord.fields, 1).type);
+	return asPtrRaw(at(arrRecord.fields, 1).type);
 }
