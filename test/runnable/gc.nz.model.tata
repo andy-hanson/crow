@@ -1,0 +1,297 @@
+module(
+	path: 20
+	imports: [
+		import(18, none)
+		import(8, none)
+		import(0, none)
+		import(1, none)
+		import(9, none)
+		import(5, none)
+		import(16, none)
+		import(17, none)
+		import(6, none)
+		import(7, none)
+		import(15, none)
+		import(11, none)
+		import(12, none)
+		import(
+			4
+			some([cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used]))
+		import(13, some([exit-code, print]))]
+	exports: []
+	structs: [struct(range: file-range(20, range(133, 164)), public?: true, name: r)]
+	specs: []
+	funs: [
+		fun(
+			public?: true
+			sig: sig(file-pos(20, 164), to-str, arr(char()), [param(file-range(20, range(175, 178)), a, r())])
+			body: call(
+				fun-inst(name: +, type-args: [char()])
+				[
+					call(
+						fun-inst(name: +, type-args: [char()])
+						[
+							call(
+								fun-inst(name: +, type-args: [char()])
+								[
+									call(
+										fun-inst(name: +, type-args: [char()])
+										[
+											call(
+												fun-inst(name: +, type-args: [char()])
+												[
+													string-lit("a=")
+													call(
+														fun-inst(name: to-str)
+														[call(fun-inst(name: a), [param-ref(a)])])])
+											string-lit(", b=")])
+									call(fun-inst(name: to-str), [call(fun-inst(name: b), [param-ref(a)])])])
+							string-lit(", c=")])
+					call(fun-inst(name: to-str), [call(fun-inst(name: c), [param-ref(a)])])]))
+		fun(
+			public?: true
+			summon: true
+			sig: sig(file-pos(20, 244), to-str, arr(char()), [param(file-range(20, range(255, 265)), a, gc-stats())])
+			body: let(
+				local(file-range(20, range(366, 367)), x, arr(char()))
+				call(
+					fun-inst(name: +, type-args: [char()])
+					[
+						string-lit("cur-word=")
+						call(fun-inst(name: to-str), [call(fun-inst(name: cur-word), [param-ref(a)])])])
+				let(
+					local(file-range(20, range(403, 404)), y, arr(char()))
+					call(
+						fun-inst(name: +, type-args: [char()])
+						[
+							string-lit(", words-used=")
+							call(fun-inst(name: to-str), [call(fun-inst(name: words-used), [param-ref(a)])])])
+					let(
+						local(file-range(20, range(446, 448)), xy, arr(char()))
+						call(fun-inst(name: +, type-args: [char()]), [local-ref(x), local-ref(y)])
+						let(
+							local(file-range(20, range(458, 459)), z, arr(char()))
+							call(
+								fun-inst(name: +, type-args: [char()])
+								[
+									string-lit(", words-free=")
+									call(fun-inst(name: to-str), [call(fun-inst(name: words-free), [param-ref(a)])])])
+							call(fun-inst(name: +, type-args: [char()]), [local-ref(xy), local-ref(z)]))))))
+		fun(
+			public?: true
+			summon: true
+			unsafe: true
+			sig: sig(file-pos(20, 509), main, fut(int32()), [param(file-range(20, range(528, 540)), args, arr(arr(char())))])
+			body: let(
+				local(file-range(20, range(557, 559)), gc, gc())
+				call(fun-inst(name: get-gc), [])
+				seq(
+					call(fun-inst(name: set-hard-limit), [local-ref(gc), literal(nat(), 512)])
+					let(
+						local(file-range(20, range(659, 660)), a, r())
+						call(fun-inst(name: r), [literal(nat(), 1), literal(nat(), 2), literal(nat(), 3)])
+						let(
+							local(file-range(20, range(675, 676)), b, r())
+							call(fun-inst(name: r), [literal(nat(), 4), literal(nat(), 5), literal(nat(), 6)])
+							let(
+								local(file-range(20, range(691, 696)), b-ptr, ptr(by-val(r())))
+								call(
+									fun-inst(name: as, type-args: [ptr(by-val(r()))])
+									[
+										call(
+											fun-inst(name: ptr-cast, type-args: [by-val(r()), nat8()])
+											[call(fun-inst(name: as-any-ptr, type-args: [r()]), [local-ref(b)])])])
+								seq(
+									seq(
+										seq(
+											seq(
+												seq(
+													seq(
+														seq(
+															call(
+																fun-inst(name: assert)
+																[
+																	call(
+																		fun-inst(name: ==, type-args: [nat()])
+																		[
+																			call(
+																				fun-inst(
+																					name: size-of
+																					type-args: [by-val(r())])
+																				[])
+																			literal(nat(), 24)])])
+															call(
+																fun-inst(name: assert)
+																[
+																	call(
+																		fun-inst(name: ==, type-args: [nat()])
+																		[
+																			call(
+																				fun-inst(name: -, type-args: [nat8()])
+																				[
+																					call(
+																						fun-inst(
+																							name: as-any-ptr
+																							type-args: [r()])
+																						[local-ref(b)])
+																					call(
+																						fun-inst(
+																							name: as-any-ptr
+																							type-args: [r()])
+																						[local-ref(a)])])
+																			literal(nat(), 24)])]))
+														call(
+															fun-inst(name: print)
+															[
+																call(
+																	fun-inst(name: +, type-args: [char()])
+																	[
+																		string-lit("stats: ")
+																		call(
+																			fun-inst(name: to-str)
+																			[
+																				call(
+																					fun-inst(name: get-stats)
+																					[local-ref(gc)])])])]))
+													call(
+														fun-inst(name: print)
+														[
+															call(
+																fun-inst(name: +, type-args: [char()])
+																[
+																	string-lit("gc count: ")
+																	call(
+																		fun-inst(name: to-str)
+																		[
+																			call(
+																				fun-inst(name: gc-count)
+																				[local-ref(gc)])])])]))
+												call(
+													fun-inst(name: print)
+													[
+														call(
+															fun-inst(name: +, type-args: [char()])
+															[
+																string-lit("a: ")
+																call(fun-inst(name: to-str), [local-ref(a)])])]))
+											call(
+												fun-inst(name: print)
+												[
+													call(
+														fun-inst(name: +, type-args: [char()])
+														[
+															string-lit("stats (after print): ")
+															call(
+																fun-inst(name: to-str)
+																[call(fun-inst(name: get-stats), [local-ref(gc)])])])]))
+										call(fun-inst(name: force-needs-gc), [local-ref(gc)]))
+									call(
+										fun-inst(name: then, type-args: [int32(), void()])
+										[
+											call(fun-inst(name: delay), [])
+											lambda(
+												[param(file-range(20, range(1000, 1001)), v, void())]
+												seq(
+													seq(
+														seq(
+															seq(
+																seq(
+																	call(
+																		fun-inst(name: print)
+																		[string-lit("-- after gc --")])
+																	call(
+																		fun-inst(name: print)
+																		[
+																			call(
+																				fun-inst(name: +, type-args: [char()])
+																				[
+																					string-lit("stats: ")
+																					call(
+																						fun-inst(name: to-str)
+																						[
+																							call(
+																								fun-inst(
+																									name: get-stats)
+																								[closure-rf(gc)])])])]))
+																call(
+																	fun-inst(name: print)
+																	[
+																		call(
+																			fun-inst(name: +, type-args: [char()])
+																			[
+																				string-lit("gc count: ")
+																				call(
+																					fun-inst(name: to-str)
+																					[
+																						call(
+																							fun-inst(name: gc-count)
+																							[closure-rf(gc)])])])]))
+															call(
+																fun-inst(name: print)
+																[
+																	call(
+																		fun-inst(name: +, type-args: [char()])
+																		[
+																			string-lit("a: ")
+																			call(
+																				fun-inst(name: to-str)
+																				[closure-rf(a)])])]))
+														call(
+															fun-inst(name: print)
+															[
+																call(
+																	fun-inst(name: +, type-args: [char()])
+																	[
+																		string-lit("stats (after print): ")
+																		call(
+																			fun-inst(name: to-str)
+																			[
+																				call(
+																					fun-inst(name: get-stats)
+																					[closure-rf(gc)])])])]))
+													call(
+														fun-inst(name: resolved, type-args: [int32()])
+														[literal(int32(), 0)]))
+												[closure-f(gc, gc(), local-ref(gc)), closure-f(a, r(), local-ref(a))]
+												fun-ref1(int32(), void())
+												ref
+												fut(int32()))]))))))))
+		fun(
+			public?: true
+			preferred: true
+			sig: sig(
+				file-pos(20, 133)
+				r
+				r()
+				[
+					param(file-range(20, range(143, 148)), a, nat())
+					param(file-range(20, range(150, 155)), b, nat())
+					param(file-range(20, range(157, 162)), c, nat())])
+			body: new-record)
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(
+				file-pos(20, 133)
+				r
+				by-val(r())
+				[
+					param(file-range(20, range(143, 148)), a, nat())
+					param(file-range(20, range(150, 155)), b, nat())
+					param(file-range(20, range(157, 162)), c, nat())])
+			body: new-record)
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 143), a, nat(), [param(file-range(20, range(143, 148)), a, r())])
+			body: field-get(0))
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 150), b, nat(), [param(file-range(20, range(150, 155)), a, r())])
+			body: field-get(1))
+		fun(
+			public?: true
+			no-ctx: true
+			sig: sig(file-pos(20, 157), c, nat(), [param(file-range(20, range(157, 162)), a, r())])
+			body: field-get(2))])

@@ -1,0 +1,9 @@
+stats: cur-word=83, words-used=83, words-free=429
+gc count: 0
+a: a=1, b=2, c=3
+stats (after print): cur-word=121, words-used=121, words-free=391
+-- after gc --
+stats: cur-word=6, words-used=61, words-free=451
+gc count: 1
+a: a=1, b=2, c=3
+stats (after print): cur-word=66, words-used=99, words-free=413

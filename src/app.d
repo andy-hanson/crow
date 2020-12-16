@@ -273,7 +273,6 @@ void compileC(Alloc, PathAlloc)(
 		strLiteral("-Wextra"),
 		strLiteral("-Wall"),
 		strLiteral("-ansi"),
-		// strLiteral("-pedantic"), // TODO?
 		strLiteral("-std=c11"),
 		strLiteral("-Wno-unused-parameter"),
 		strLiteral("-Wno-unused-but-set-variable"),

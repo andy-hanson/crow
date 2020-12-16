@@ -1,0 +1,47 @@
+import
+	alloc: cur-word gc-count gc-stats get-gc get-stats force-needs-gc set-hard-limit words-free words-used
+	io: exit-code print
+
+r record
+	a nat
+	b nat
+	c nat
+
+to-str str(a r)
+	"a=" + a.a.to-str + ", b=" + a.b.to-str + ", c=" + a.c.to-str
+
+to-str str(a gc-stats) summon
+	| TODO: doing this in an ugly way because C compiled version evaluates args right-to-left
+	x = "cur-word=" + a.cur-word.to-str
+	y = ", words-used=" + a.words-used.to-str
+	xy = x + y
+	z = ", words-free=" + a.words-free.to-str
+	xy + z
+
+main fut exit-code(args arr str) summon unsafe
+	gc = get-gc
+	| To speed up 'gc.get-stats'
+	gc set-hard-limit 0x200
+
+	| We'll keep a alive, but not b
+	a = r: 1, 2, 3
+	b = r: 4, 5, 6
+	b-ptr = b.as-any-ptr.ptr-cast as<ptr<by-val<r>>>
+	assert: size-of<by-val<r>> == 24
+	assert: b.as-any-ptr - a.as-any-ptr == 24
+
+	print: "stats: " + gc.get-stats.to-str
+	print: "gc count: " + gc.gc-count.to-str
+	print: "a: " + a.to-str
+	print: "stats (after print): " + gc.get-stats.to-str
+
+	gc force-needs-gc
+	v <- delay
+
+	print: "-- after gc --"
+	print: "stats: " + gc.get-stats.to-str
+	print: "gc count: " + gc.gc-count.to-str
+	print: "a: " + a.to-str
+	print: "stats (after print): " + gc.get-stats.to-str
+
+	0 resolved

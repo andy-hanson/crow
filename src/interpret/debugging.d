@@ -19,6 +19,7 @@ import model.concreteModel :
 	matchConcreteStructSource;
 import model.lowModel :
 	AllLowTypes,
+	LowField,
 	LowFun,
 	LowFunIndex,
 	LowFunSource,
@@ -168,7 +169,7 @@ void writeConcreteType(Alloc)(ref Writer!Alloc writer, immutable ConcreteType a)
 	writeConcreteStruct(writer, a.struct_);
 }
 
-void writeFieldName(Alloc)(ref Writer!Alloc writer, ref immutable LowField a) {
+public void writeFieldName(Alloc)(ref Writer!Alloc writer, ref immutable LowField a) {
 	matchConcreteFieldSource!void(
 		a.source.source,
 		(immutable Ptr!ClosureField it) {

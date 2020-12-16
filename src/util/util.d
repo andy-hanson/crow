@@ -38,8 +38,16 @@ immutable(T) max(T)(immutable T a, immutable T b) {
 }
 
 immutable(T) roundUp(T)(immutable T a, immutable T b) {
+	immutable T res = roundUpRecur(a, b);
+	verify(res >= a);
+	verify(zero(res % b));
+	return res;
+}
+
+//TODO: more efficient
+private immutable(T) roundUpRecur(T)(immutable T a, immutable T b) {
 	verify(!zero(b));
-	return zero(a % b) ? a : roundUp(incr(a), b);
+	return zero(a % b) ? a : roundUpRecur(incr(a), b);
 }
 
 immutable(Nat16) divRoundUp(immutable Nat16 a, immutable Nat16 b) {

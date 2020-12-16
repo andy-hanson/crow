@@ -156,7 +156,9 @@ immutable(Nat16) fillRecordSize(Alloc)(
 		offset += fieldSize;
 		return res;
 	});
-	immutable Nat16 size = offset <= immutable Nat16(8) ? offset : roundUp(offset, immutable Nat16(8));
+	immutable Nat16 size = offset <= immutable Nat16(8)
+		? offset
+		: roundUp(offset, fieldBoundary);
 	fullIndexDictBuilderAdd(builder.recordSizes, index, size);
 	fullIndexDictBuilderAdd(builder.recordFieldOffsets, index, fieldOffsets);
 	return size;
@@ -179,7 +181,7 @@ immutable(Nat16) fillUnionSize(Alloc)(
 // NOTE: Using a full 64 bits even on 32-bit system so behavior is consistent.
 immutable Nat16 externPtrSize = immutable Nat16(8);
 immutable Nat16 ptrSize = immutable Nat16(8);
-immutable Nat16 funPtrSize = immutable Nat16(4);
+immutable Nat16 funPtrSize = immutable Nat16(8);
 immutable Nat16 unionKindSize = immutable Nat16(8);
 
 immutable(Nat16) sizeOfType(Alloc)(

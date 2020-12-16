@@ -298,7 +298,23 @@ program(
 		struct(name: some, body: record([field(value, false, type(false, task-and-nodes))]))
 		struct(name: arr, body: record([field(size, false, type(false, nat)), field(data, false, type(false, ptr))]))
 		struct(name: cell, mut?: true, ptr?: true, body: record([field(value, true, type(false, ptr))]))
-		struct(name: my-record, body: record([field(x, false, type(false, nat)), field(y, false, type(false, nat))]))]
+		struct(
+			name: r
+			ptr?: true
+			body: record(
+				[
+					field(a, false, type(false, nat))
+					field(b, false, type(false, nat))
+					field(c, false, type(false, nat))]))
+		struct(name: ptr, body: builtin(ptr, [type(false, r)]))
+		struct(
+			name: gc-stats
+			body: record(
+				[
+					field(cur-word, false, type(false, nat))
+					field(total-words, false, type(false, nat))
+					field(words-used, false, type(false, nat))]))
+		struct(name: lambda(main, 0), body: record([field(gc, false, type(true, gc)), field(a, false, type(true, r))]))]
 	[
 		fun(
 			false
@@ -4009,26 +4025,150 @@ program(
 			[param(args, type(false, arr))]
 			expr-body(
 				let(
-					m
-					call(my-record, [1, 2])
+					gc
+					call(get-gc, [])
 					seq(
+						call(set-hard-limit, [local-ref(gc), 512])
+						let(
+							a
+							call(r, [1, 2, 3])
+							let(
+								b
+								call(r, [4, 5, 6])
+								let(
+									b-ptr
+									call(as, [call(ptr-cast, [call(as-any-ptr, [local-ref(b)])])])
+									seq(
+										seq(
+											seq(
+												seq(
+													seq(
+														seq(
+															seq(
+																call(assert, [call(==, [call(size-of, []), 24])])
+																call(
+																	assert
+																	[
+																		call(
+																			==
+																			[
+																				call(
+																					-
+																					[
+																						call(as-any-ptr, [local-ref(b)])
+																						call(as-any-ptr, [local-ref(a)])])
+																				24])]))
+															call(
+																print
+																[
+																	call(
+																		+
+																		[
+																			arr(0, 12)
+																			call(
+																				to-str
+																				[call(get-stats, [local-ref(gc)])])])]))
+														call(
+															print
+															[
+																call(
+																	+
+																	[
+																		arr(0, 26)
+																		call(to-str, [call(gc-count, [local-ref(gc)])])])]))
+													call(print, [call(+, [arr(0, 27), call(to-str, [local-ref(a)])])]))
+												call(
+													print
+													[
+														call(
+															+
+															[arr(0, 31), call(to-str, [call(get-stats, [local-ref(gc)])])])]))
+											call(force-needs-gc, [local-ref(gc)]))
+										call(
+											then
+											[
+												call(delay, [])
+												record(
+													[
+														call(cur-island-and-exclusion, [])
+														lambda(1, alloc(record([local-ref(gc), local-ref(a)])))])])))))))))
+		fun(
+			false
+			set-hard-limit
+			type(false, void)
+			none
+			[param(gc, type(true, gc)), param(size-words, type(false, nat))]
+			expr-body(
+				seq(
+					seq(
+						call(validate-gc, [param-ref(gc)])
+						call(hard-assert, [call(<=, [param-ref(size-words), call(size-words, [param-ref(gc)])])]))
+					let(
+						cur-index
+						call(-, [call(mark-cur, [param-ref(gc)]), call(mark-begin, [param-ref(gc)])])
 						seq(
 							seq(
 								seq(
-									call(assert, [call(==, [call(x, [local-ref(m)]), 1])])
-									call(assert, [call(==, [call(y, [local-ref(m)]), 2])]))
-								call(print, [call(to-str, [call(x, [local-ref(m)])])]))
-							call(print, [call(to-str, [call(y, [local-ref(m)])])]))
-						call(resolved, [0])))))
+									seq(
+										call(hard-assert, [call(<, [local-ref(cur-index), param-ref(size-words)])])
+										call(set-size-words, [param-ref(gc), param-ref(size-words)]))
+									call(
+										set-mark-end
+										[
+											param-ref(gc)
+											call(+, [call(mark-begin, [param-ref(gc)]), param-ref(size-words)])]))
+								call(
+									set-data-end
+									[param-ref(gc), call(+, [call(data-begin, [param-ref(gc)]), param-ref(size-words)])]))
+							call(validate-gc, [param-ref(gc)]))))))
+		fun(
+			false
+			set-size-words
+			type(false, void)
+			none
+			[param(a, type(true, gc)), param(size-words, type(false, nat))]
+			field-set(4))
+		fun(
+			false
+			set-mark-end
+			type(false, void)
+			none
+			[param(a, type(true, gc)), param(mark-end, type(false, ptr))]
+			field-set(7))
+		fun(
+			false
+			set-data-end
+			type(false, void)
+			none
+			[param(a, type(true, gc)), param(data-end, type(false, ptr))]
+			field-set(10))
 		fun(
 			true
-			my-record
-			type(false, my-record)
+			r
+			type(true, r)
 			none
-			[param(x, type(false, nat)), param(y, type(false, nat))]
+			[param(a, type(false, nat)), param(b, type(false, nat)), param(c, type(false, nat))]
 			new-record)
-		fun(false, x, type(false, nat), none, [param(a, type(false, my-record))], field-get(0))
-		fun(false, y, type(false, nat), none, [param(a, type(false, my-record))], field-get(1))
+		fun(false, as, type(false, ptr), none, [param(value, type(false, ptr))], builtin([type(false, ptr)]))
+		fun(
+			false
+			ptr-cast
+			type(false, ptr)
+			none
+			[param(p, type(false, ptr))]
+			builtin([type(false, r), type(false, nat8)]))
+		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(true, r))], builtin([type(true, r)]))
+		fun(false, size-of, type(false, nat), none, [], builtin([type(false, r)]))
+		fun(
+			false
+			-
+			type(false, nat)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				call(
+					unsafe-div
+					[call(wrap-sub, [call(to-nat, [param-ref(a)]), call(to-nat, [param-ref(b)])]), call(size-of, [])])))
 		fun(
 			false
 			print
@@ -4044,71 +4184,6 @@ program(
 			[param(a, type(false, arr))]
 			expr-body(call(write-no-newline, [call(stdout-fd, []), param-ref(a)])))
 		fun(false, stdout-fd, type(false, int32), none, [], expr-body(1))
-		fun(
-			true
-			to-str
-			type(false, arr)
-			none
-			[param(n, type(false, nat))]
-			expr-body(
-				cond(
-					call(==, [param-ref(n), 0])
-					arr(0, 12)
-					cond(
-						call(==, [param-ref(n), 1])
-						arr(0, 13)
-						cond(
-							call(==, [param-ref(n), 2])
-							arr(0, 14)
-							cond(
-								call(==, [param-ref(n), 3])
-								arr(0, 15)
-								cond(
-									call(==, [param-ref(n), 4])
-									arr(0, 16)
-									cond(
-										call(==, [param-ref(n), 5])
-										arr(0, 17)
-										cond(
-											call(==, [param-ref(n), 6])
-											arr(0, 18)
-											cond(
-												call(==, [param-ref(n), 7])
-												arr(0, 19)
-												cond(
-													call(==, [param-ref(n), 8])
-													arr(0, 20)
-													cond(
-														call(==, [param-ref(n), 9])
-														arr(0, 21)
-														let(
-															hi
-															call(to-str, [call(/, [param-ref(n), 10])])
-															let(
-																lo
-																call(to-str, [call(mod, [param-ref(n), 10])])
-																call(+, [local-ref(hi), local-ref(lo)])))))))))))))))
-		fun(
-			true
-			/
-			type(false, nat)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			expr-body(seq(call(forbid, [call(==, [param-ref(b), 0])]), call(unsafe-div, [param-ref(a), param-ref(b)]))))
-		fun(
-			true
-			mod
-			type(false, nat)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			expr-body(seq(call(forbid, [call(==, [param-ref(b), 0])]), call(unsafe-mod, [param-ref(a), param-ref(b)]))))
-		fun(
-			false
-			unsafe-mod
-			type(false, nat)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			builtin([]))
 		fun(
 			true
 			+
@@ -4211,11 +4286,249 @@ program(
 			expr-body(call(wrap-sub, [param-ref(a), 1])))
 		fun(
 			true
+			/
+			type(false, nat)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			expr-body(seq(call(forbid, [call(==, [param-ref(b), 0])]), call(unsafe-div, [param-ref(a), param-ref(b)]))))
+		fun(
+			true
+			to-str
+			type(false, arr)
+			none
+			[param(a, type(false, gc-stats))]
+			expr-body(
+				let(
+					x
+					call(+, [arr(0, 13), call(to-str, [call(cur-word, [param-ref(a)])])])
+					let(
+						y
+						call(+, [arr(0, 24), call(to-str, [call(words-used, [param-ref(a)])])])
+						let(
+							xy
+							call(+, [local-ref(x), local-ref(y)])
+							let(
+								z
+								call(+, [arr(0, 25), call(to-str, [call(words-free, [param-ref(a)])])])
+								call(+, [local-ref(xy), local-ref(z)])))))))
+		fun(
+			true
+			to-str
+			type(false, arr)
+			none
+			[param(n, type(false, nat))]
+			expr-body(
+				cond(
+					call(==, [param-ref(n), 0])
+					arr(0, 14)
+					cond(
+						call(==, [param-ref(n), 1])
+						arr(0, 15)
+						cond(
+							call(==, [param-ref(n), 2])
+							arr(0, 16)
+							cond(
+								call(==, [param-ref(n), 3])
+								arr(0, 17)
+								cond(
+									call(==, [param-ref(n), 4])
+									arr(0, 18)
+									cond(
+										call(==, [param-ref(n), 5])
+										arr(0, 19)
+										cond(
+											call(==, [param-ref(n), 6])
+											arr(0, 20)
+											cond(
+												call(==, [param-ref(n), 7])
+												arr(0, 21)
+												cond(
+													call(==, [param-ref(n), 8])
+													arr(0, 22)
+													cond(
+														call(==, [param-ref(n), 9])
+														arr(0, 23)
+														let(
+															hi
+															call(to-str, [call(/, [param-ref(n), 10])])
+															let(
+																lo
+																call(to-str, [call(mod, [param-ref(n), 10])])
+																call(+, [local-ref(hi), local-ref(lo)])))))))))))))))
+		fun(
+			true
+			mod
+			type(false, nat)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			expr-body(seq(call(forbid, [call(==, [param-ref(b), 0])]), call(unsafe-mod, [param-ref(a), param-ref(b)]))))
+		fun(
+			false
+			unsafe-mod
+			type(false, nat)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			builtin([]))
+		fun(false, cur-word, type(false, nat), none, [param(a, type(false, gc-stats))], field-get(0))
+		fun(false, words-used, type(false, nat), none, [param(a, type(false, gc-stats))], field-get(2))
+		fun(
+			false
+			words-free
+			type(false, nat)
+			none
+			[param(a, type(false, gc-stats))]
+			expr-body(call(wrap-sub, [call(total-words, [param-ref(a)]), call(words-used, [param-ref(a)])])))
+		fun(false, total-words, type(false, nat), none, [param(a, type(false, gc-stats))], field-get(1))
+		fun(
+			false
+			get-stats
+			type(false, gc-stats)
+			none
+			[param(gc, type(true, gc))]
+			expr-body(
+				seq(
+					seq(
+						call(validate-gc, [param-ref(gc)])
+						call(acquire-lock, [call(ref-of-val, [call(lk, [param-ref(gc)])])]))
+					let(
+						cur-word
+						call(-, [call(mark-cur, [param-ref(gc)]), call(mark-begin, [param-ref(gc)])])
+						let(
+							used-words-remaining
+							call(
+								words-used-in-range
+								[0, call(mark-cur, [param-ref(gc)]), call(mark-end, [param-ref(gc)])])
+							let(
+								total-words
+								call(-, [call(mark-end, [param-ref(gc)]), call(mark-begin, [param-ref(gc)])])
+								seq(
+									call(release-lock, [call(ref-of-val, [call(lk, [param-ref(gc)])])])
+									call(
+										gc-stats
+										[
+											local-ref(cur-word)
+											local-ref(total-words)
+											call(wrap-add, [local-ref(cur-word), local-ref(used-words-remaining)])]))))))))
+		fun(
+			false
+			words-used-in-range
+			type(false, nat)
+			none
+			[param(acc, type(false, nat)), param(cur, type(false, ptr)), param(end, type(false, ptr))]
+			expr-body(
+				cond(
+					call(ptr-eq?, [param-ref(cur), param-ref(end)])
+					param-ref(acc)
+					call(
+						words-used-in-range
+						[
+							call(wrap-add, [param-ref(acc), call(to-nat, [call(deref, [param-ref(cur)])])])
+							call(incr, [param-ref(cur)])
+							param-ref(end)]))))
+		fun(
+			false
+			to-nat
+			type(false, nat)
+			none
+			[param(b, type(false, bool))]
+			expr-body(call(?, [param-ref(b), 1, 0])))
+		fun(
+			false
+			?
+			type(false, nat)
+			none
+			[param(cond, type(false, bool)), param(if-true, type(false, nat)), param(if-false, type(false, nat))]
+			builtin([type(false, nat)]))
+		fun(
+			false
+			gc-stats
+			type(false, gc-stats)
+			none
+			[
+				param(cur-word, type(false, nat))
+				param(total-words, type(false, nat))
+				param(words-used, type(false, nat))]
+			new-record)
+		fun(
+			true
+			to-str
+			type(false, arr)
+			none
+			[param(a, type(true, r))]
+			expr-body(
+				call(
+					+
+					[
+						call(
+							+
+							[
+								call(
+									+
+									[
+										call(+, [call(+, [arr(0, 28), call(to-str, [call(a, [param-ref(a)])])]), arr(0, 29)])
+										call(to-str, [call(b, [param-ref(a)])])])
+								arr(0, 30)])
+						call(to-str, [call(c, [param-ref(a)])])])))
+		fun(false, a, type(false, nat), none, [param(a, type(true, r))], field-get(0))
+		fun(false, b, type(false, nat), none, [param(a, type(true, r))], field-get(1))
+		fun(false, c, type(false, nat), none, [param(a, type(true, r))], field-get(2))
+		fun(
+			true
+			force-needs-gc
+			type(false, void)
+			none
+			[param(gc, type(true, gc))]
+			expr-body(call(set-needs-gc?, [param-ref(gc), call(true, [])])))
+		fun(
+			true
 			resolved
 			type(true, fut)
 			none
 			[param(value, type(false, int32))]
-			expr-body(call(fut, [call(new-lock, []), to-union(1, call(fut-state-resolved, [param-ref(value)]))])))]
+			expr-body(call(fut, [call(new-lock, []), to-union(1, call(fut-state-resolved, [param-ref(value)]))])))
+		fun(
+			true
+			lambda(main, 0)
+			type(true, fut)
+			some(param("<<closure>>", type(true, lambda(main, 0))))
+			[param(v, type(false, void))]
+			expr-body(
+				seq(
+					seq(
+						seq(
+							seq(
+								seq(
+									call(print, [arr(0, 32)])
+									call(
+										print
+										[
+											call(
+												+
+												[
+													arr(0, 12)
+													call(
+														to-str
+														[call(get-stats, [get-field(param-ref("<<closure>>"), gc)])])])]))
+								call(
+									print
+									[
+										call(
+											+
+											[
+												arr(0, 26)
+												call(
+													to-str
+													[call(gc-count, [get-field(param-ref("<<closure>>"), gc)])])])]))
+							call(print, [call(+, [arr(0, 27), call(to-str, [get-field(param-ref("<<closure>>"), a)])])]))
+						call(
+							print
+							[
+								call(
+									+
+									[
+										arr(0, 31)
+										call(to-str, [call(get-stats, [get-field(param-ref("<<closure>>"), gc)])])])]))
+					call(resolved, [0]))))]
 	rt-main
 	main
 	ctx)

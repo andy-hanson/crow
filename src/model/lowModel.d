@@ -966,6 +966,15 @@ immutable(Bool) isRecordFieldGet(ref immutable LowExprKind a) {
 	return a.recordFieldGet;
 }
 
+immutable(Bool) isSpecialUnary(ref immutable LowExprKind a) {
+	return immutable Bool(a.kind == LowExprKind.Kind.specialUnary);
+}
+
+@trusted ref immutable(LowExprKind.SpecialUnary) asSpecialUnary(return scope ref immutable LowExprKind a) {
+	verify(isSpecialUnary(a));
+	return a.specialUnary;
+}
+
 struct ArrTypeAndConstantsLow {
 	@safe @nogc pure nothrow:
 

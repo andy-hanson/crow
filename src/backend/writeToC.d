@@ -3,6 +3,7 @@ module backend.writeToC;
 @safe @nogc pure nothrow:
 
 import interpret.debugging : writeFunName, writeFunSig;
+import interpret.typeLayout : layOutTypes, sizeOfType, TypeLayout;
 import model.concreteModel :
 	asExtern,
 	body_,
@@ -446,24 +447,19 @@ void writeStructEnd(Alloc)(ref Writer!Alloc writer) {
 
 void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowRecord a) {
 	writeStructHead(writer, ctx, a.source);
-	if (empty(a.fields))
-		// An empty structure is undefined behavior in C.
-		writeStatic(writer, "\n\tuint8_t __mustBeNonEmpty;\n};\n");
-	else {
-		foreach (ref immutable LowField field; range(a.fields)) {
-			writeStatic(writer, "\n\t");
-			writeType(writer, ctx, field.type);
-			writeChar(writer, ' ');
-			writeMangledName(writer, name(field));
-			writeChar(writer, ';');
-		}
-		writeStructEnd(writer);
+	foreach (ref immutable LowField field; range(a.fields)) {
+		writeStatic(writer, "\n\t");
+		writeType(writer, ctx, field.type);
+		writeChar(writer, ' ');
+		writeMangledName(writer, name(field));
+		writeChar(writer, ';');
 	}
+	writeStructEnd(writer);
 }
 
 void writeUnion(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowUnion a) {
 	writeStructHead(writer, ctx, a.source);
-	writeStatic(writer, "\n\tint kind;");
+	writeStatic(writer, "\n\tuint64_t kind;");
 	writeStatic(writer, "\n\tunion {");
 	foreach (immutable size_t memberIndex; 0..size(a.members)) {
 		writeStatic(writer, "\n\t\t");
@@ -536,6 +532,19 @@ void declareStruct(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immuta
 	writeStatic(writer, "struct ");
 	writeStructMangledName(writer, ctx, source);
 	writeStatic(writer, ";\n");
+}
+
+void staticAssertStructSize(Alloc)(
+	ref Writer!Alloc writer,
+	ref immutable Ctx ctx,
+	ref immutable LowType type,
+	immutable size_t size,
+) {
+	writeStatic(writer, "_Static_assert(sizeof(");
+	writeType(writer, ctx, type);
+	writeStatic(writer, ") == ");
+	writeNat(writer, size);
+	writeStatic(writer, ", \"\");\n");
 }
 
 void writeStructMangledName(Alloc)(
@@ -663,6 +672,10 @@ immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
 }
 
 void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc writer, ref immutable Ctx ctx) {
+	immutable TypeLayout typeLayout = layOutTypes(alloc, ctx.program); // For debugging...
+
+	writeStatic(writer, "\nstruct void_ {};\n");
+
 	// Write extern-ptr types first
 	fullIndexDictEachValue!(LowType.ExternPtr, LowExternPtrType)(
 		ctx.program.allExternPtrTypes,
@@ -726,6 +739,18 @@ void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc wr
 			break;
 	}
 	writeChar(writer, '\n');
+
+	void assertSize(immutable LowType t) {
+		staticAssertStructSize(writer, ctx, t, sizeOfType(typeLayout, t).raw());
+	}
+
+	//TODO: use a temp alloc
+	fullIndexDictEachKey!(LowType.Record, LowRecord)(ctx.program.allRecords, (immutable LowType.Record it) {
+		assertSize(immutable LowType(it));
+	});
+	fullIndexDictEachKey!(LowType.Union, LowUnion)(ctx.program.allUnions, (immutable LowType.Union it) {
+		assertSize(immutable LowType(it));
+	});
 }
 
 void writeFunReturnTypeNameAndParams(Alloc)(
@@ -1065,7 +1090,7 @@ void writeCallExpr(Alloc)(
 			writeChar(writer, ')');
 		}
 		if (isCVoid)
-			writeStatic(writer, ", 0)");
+			writeStatic(writer, ", (struct void_) {})");
 	});
 }
 
@@ -1107,11 +1132,7 @@ void writeCreateRecord(Alloc)(
 	if (pos == ConstantRefPos.outer)
 		writeCastToType(writer, ctx, type);
 	writeChar(writer, '{');
-	if (nArgs == 0)
-		// C forces structs to be non-empty
-		writeChar(writer, '0');
-	else
-		writeWithCommas(writer, nArgs, cbWriteArg);
+	writeWithCommas(writer, nArgs, cbWriteArg);
 	writeChar(writer, '}');
 }
 
@@ -1340,7 +1361,7 @@ void writeRecordFieldSet(Alloc)(
 	writeRecordFieldGet(writer, indent, ctx, a.target, a.targetIsPointer, a.record, a.fieldIndex);
 	writeStatic(writer, " = ");
 	writeExprExpr(writer, indent, ctx, a.value);
-	writeStatic(writer, ", 0)");
+	writeStatic(writer, ", (struct void_) {})");
 }
 
 void writeArgs(Alloc)(
@@ -1419,7 +1440,7 @@ void writeConstantRef(Alloc)(
 			});
 		},
 		(immutable Constant.Void) {
-			writeChar(writer, '0');
+			writeStatic(writer, pos == ConstantRefPos.outer ? "(struct void_) {}" : "{}");
 		});
 }
 
@@ -1527,8 +1548,11 @@ void writeEmptyValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref 
 		(immutable LowType.FunPtr) {
 			writeStatic(writer, "NULL");
 		},
-		(immutable PrimitiveType) {
-			writeChar(writer, '0');
+		(immutable PrimitiveType it) {
+			if (it == PrimitiveType.void_)
+				writeStatic(writer, "(struct void_) {}");
+			else
+				writeChar(writer, '0');
 		},
 		(immutable Ptr!LowType) {
 			writeStatic(writer, "NULL");
@@ -1537,13 +1561,9 @@ void writeEmptyValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref 
 			writeCastToType(writer, ctx, type);
 			writeChar(writer, '{');
 			immutable Arr!LowField fields = fullIndexDictGet(ctx.program.allRecords, it).fields;
-			if (empty(fields)) {
-				writeChar(writer, '0');
-			} else {
-				writeWithCommas!LowField(writer, fields, (ref immutable LowField field) {
-					writeEmptyValue(writer, ctx, field.type);
-				});
-			}
+			writeWithCommas!LowField(writer, fields, (ref immutable LowField field) {
+				writeEmptyValue(writer, ctx, field.type);
+			});
 			writeChar(writer, '}');
 		},
 		(immutable LowType.Union) {
@@ -1686,7 +1706,7 @@ void writeSpecialBinary(Alloc)(
 				arg0();
 				writeStatic(writer, ") = ");
 				arg1();
-				writeStatic(writer, ", 0)");
+				writeStatic(writer, ", (struct void_) {})");
 			});
 			break;
 	}
@@ -1845,7 +1865,7 @@ void writePrimitiveType(Alloc)(ref Writer!Alloc writer, immutable PrimitiveType 
 			case PrimitiveType.nat64:
 				return "uint64_t";
 			case PrimitiveType.void_:
-				return "uint8_t";
+				return "struct void_";
 		}
 	}());
 }

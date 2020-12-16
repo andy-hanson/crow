@@ -86,12 +86,19 @@ prepend arr ?t(a ?t, b arr ?t)
 append arr ?t(a arr ?t, b ?t)
 	a + (new-arr b)
 
+| + arr ?t(a arr ?t, b arr ?t) trusted
+| 	a.size + b.size make-arr \i
+| 		if i < a.size
+| 			a at i
+| 		else
+| 			b at: i - a.size
+
 + arr ?t(a arr ?t, b arr ?t) trusted
-	a.size + b.size make-arr \i
-		if i < a.size
-			a at i
-		else
-			b at: i - a.size
+	res-size = a.size + b.size
+	res = res-size uninitialized-data<?t>
+	res copy-data-from a.data, a.size
+	res + a.size copy-data-from b.data, b.size
+	arr<?t>: res-size, res
 
 mut-slice<?t> record mut
 	backing mut-arr ?t
@@ -344,7 +351,6 @@ fold ?a(val ?a, a arr ?b, combine fun-mut2 ?a ?a ?b)
 		val
 	else
 		combine call val, a.first fold a.tail, combine
-
 
 make-arr arr ?t(size nat, f fun-mut1 ?t nat)
 	size make-mut-arr f freeze

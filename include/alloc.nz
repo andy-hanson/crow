@@ -1,10 +1,9 @@
 import
 	.bootstrap
-		+ - == != < <= any-ptr as as-any-ptr as-ref bits-and bits-not bool byte by-val deref false
+		+ - == != < <= > any-ptr as as-any-ptr as-ref bits-and bits-not bool byte by-val deref false
 		gc-ctx-ptr get-ctx hard-assert hard-forbid incr lock nat nat8 nat64 noctx-decr none not null
-		null? opt ptr ptr-eq? ptr-less? ptr-less-eq? ptr-cast ref-of-val set size-of
-		some todo to-nat true unsafe-div value void wrap-add
-		wrap-mul
+		null? opt or ptr ptr-eq? ptr-less? ptr-less-eq? ptr-cast ref-of-val set size-of
+		some todo to-nat true unsafe-div value void wrap-add wrap-incr wrap-mul wrap-sub
 	.posix: free malloc
 	.thread-utils: acquire-lock new-lock release-lock
 
@@ -15,17 +14,21 @@ mark-ctx record mut
 	marks ptr bool
 	memory-start ptr nat64
 
-| Returns true if the range is GC-allocated memory
+| Returns true if the range is GC-allocated memory and was not already marked
 mark bool(ctx mark-ctx, ptr-any any-ptr, size-bytes nat) noctx unsafe summon
-	size = size-bytes words-of-bytes
+	size-words = size-bytes words-of-bytes
 	ptr = ptr-any.ptr-cast as<ptr<nat64>>
 	hard-assert: ptr.to-nat bits-and 7 == 0
 	index = ptr - ctx.memory-start
 	gc-memory? = index < ctx.memory-size-words
 	if gc-memory?
-		hard-assert: index wrap-add size <= ctx.memory-size-words
-		ctx.marks + index mark-range-recur size
-	gc-memory?
+		hard-assert: index wrap-add size-words <= ctx.memory-size-words
+		mark-start = ctx.marks + index
+		mark-end = mark-start + size-words
+		mark-range-recur: false, mark-start, mark-end
+	else
+		hard-assert: index wrap-add size-words > ctx.memory-size-words
+		false
 
 words-of-bytes nat(size-bytes nat) noctx trusted
 	size-bytes.round-up-to-multiple-of-8 unsafe-div 8
@@ -33,30 +36,72 @@ words-of-bytes nat(size-bytes nat) noctx trusted
 round-up-to-multiple-of-8 nat(n nat) noctx
 	n wrap-add 7 bits-and: 7 bits-not
 
-mark-range-recur void(p ptr bool, size nat) noctx unsafe
-	p set true
-	if size != 0
-		p.incr mark-range-recur size.noctx-decr
+mark-range-recur bool(marked-anything? bool, cur ptr bool, end ptr bool) noctx unsafe
+	if cur ptr-eq? end
+		marked-anything?
+	else
+		new-marked-anything? = marked-anything? or cur.deref.not
+		cur set true
+		mark-range-recur: new-marked-anything?, cur.incr, end
 
 mark-visit void(mark-ctx mark-ctx, value ?a) noctx unsafe builtin
 
 gc record mut
 	lk by-val lock
+	gc-count mut nat
 	context-head mut opt gc-ctx
 	needs-gc? mut bool
-	size-words nat
+	size-words mut nat
 	| 'mark-cur' and 'data-cur' run in parallel
 	| mark-end must be `mark-begin + size-words` and similar for data-end
 	mark-begin ptr bool
 	mark-cur mut ptr bool
-	mark-end ptr bool
+	mark-end mut ptr bool
 	| We allocate data in increments of nat64
 	data-begin ptr nat64
 	data-cur mut ptr nat64
-	data-end ptr nat64
+	data-end mut ptr nat64
 
-new-gc by-val gc() noctx trusted
+gc-stats record
+	by-val
+	cur-word nat
+	total-words nat
+	words-used nat
+
+words-free nat(a gc-stats) noctx
+	a.total-words wrap-sub a.words-used
+
+| Super unsafe
+| WARN: Unfortunately this doesn't prevent the original allocation in new-gc, just forbids us to use it
+set-hard-limit void(gc gc, size-words nat) noctx unsafe
+	gc validate-gc
+	hard-assert: size-words <= gc.size-words
+	cur-index = gc.mark-cur - gc.mark-begin
+	hard-assert: cur-index < size-words
+	gc set-size-words size-words
+	gc set-mark-end: gc.mark-begin + size-words
+	gc set-data-end: gc.data-begin + size-words
+	gc validate-gc
+
+| WARN: this locks up the GC for a long time
+get-stats gc-stats(gc gc) noctx unsafe
+	gc validate-gc
+	gc.lk.ref-of-val acquire-lock
+	cur-word = gc.mark-cur - gc.mark-begin
+	used-words-remaining = words-used-in-range: 0, gc.mark-cur, gc.mark-end
+	total-words = gc.mark-end - gc.mark-begin
+	gc.lk.ref-of-val release-lock
+	gc-stats: cur-word, total-words, cur-word wrap-add used-words-remaining
+
+words-used-in-range nat(acc nat, cur ptr bool, end ptr bool) noctx unsafe
+	if cur ptr-eq? end
+		acc
+	else
+		acc wrap-add cur.deref.to-nat words-used-in-range cur.incr, end
+
+new-gc by-val gc() noctx unsafe
 	| TODO: handle malloc failure
+	| 16 MB
 	size-words = 0x1000000
 	mark-begin = ptr-cast<bool, byte>: malloc: size-words
 	mark-end = mark-begin + size-words
@@ -65,13 +110,18 @@ new-gc by-val gc() noctx trusted
 
 	mark-begin.as-any-ptr memset 0, size-words
 
-	gc: new-lock, none, false, size-words, mark-begin, mark-begin, mark-end, data-begin, data-begin, data-end
+	gc: new-lock, 0, none, false, size-words, mark-begin, mark-begin, mark-end, data-begin, data-begin, data-end
 
 run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
-	hard-assert: gc.needs-gc?
+	hard-assert: gc needs-gc?
+	gc set-needs-gc? false
+	gc set-gc-count: gc.gc-count wrap-incr
 	gc.mark-begin.as-any-ptr memset 0, gc.size-words
 	mark-ctx = as<by-val<mark-ctx>>: mark-ctx: gc.size-words, gc.mark-begin, gc.data-begin
 	mark-ctx.ref-of-val mark-visit gc-root
+	gc set-mark-cur gc.mark-begin
+	gc set-data-cur gc.data-begin
+	gc validate-gc
 
 | GC info specific to a ctx.
 | Currently they all share the common GC and must take a lock every time they allocate.
@@ -79,8 +129,8 @@ gc-ctx record mut
 	gc mut gc
 	next-ctx mut opt gc-ctx
 
-force-needs-gc void() unsafe
-	get-gc-ctx.gc set-needs-gc? true
+force-needs-gc void(gc gc) unsafe
+	gc set-needs-gc? true
 
 get-gc-ctx gc-ctx(gc gc) noctx unsafe
 	gc.lk.ref-of-val acquire-lock
@@ -119,8 +169,6 @@ fill-ptr-range void(cur ptr ?t, end ptr ?t, value ?t) noctx unsafe
 		cur set value
 		cur.incr fill-ptr-range end, value
 
-| TODO: should not be necessary
-
 validate-gc void(gc gc) noctx unsafe
 	hard-assert: gc.mark-begin ptr-less-eq? gc.mark-cur
 	hard-assert: gc.mark-cur ptr-less-eq? gc.mark-end
@@ -139,7 +187,7 @@ try-gc-alloc opt any-ptr(gc gc, size-bytes nat) noctx trusted
 	cur = gc data-cur
 	next = cur + size-words
 	if next ptr-less? gc.data-end
-		if gc.mark-cur range-free? size-words
+		if gc.mark-cur range-free? (gc.mark-cur + size-words)
 			gc set-mark-cur: gc.mark-cur + size-words
 			gc set-data-cur next
 			cur.ptr-cast<byte, nat64> some<ptr<byte>>
@@ -150,13 +198,13 @@ try-gc-alloc opt any-ptr(gc gc, size-bytes nat) noctx trusted
 	else
 		none
 
-range-free? bool(mark ptr bool, size nat) noctx unsafe
-	if size == 0
+range-free? bool(mark ptr bool, end ptr bool) noctx unsafe
+	if mark ptr-eq? end
 		true
 	elif mark deref
 		false
 	else
-		mark.incr range-free? size.noctx-decr
+		mark.incr range-free? end
 
 gc-alloc any-ptr(gc gc, size nat) trusted
 	match gc try-gc-alloc size

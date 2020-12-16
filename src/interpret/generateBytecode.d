@@ -61,11 +61,13 @@ import model.lowModel :
 	asPtrRaw,
 	asRecordFieldGet,
 	asRecordType,
+	asSpecialUnary,
 	asUnionType,
 	firstRegularParamIndex,
 	isLocalRef,
 	isParamRef,
 	isRecordFieldGet,
+	isSpecialUnary,
 	LowExpr,
 	LowExprKind,
 	LowFun,
@@ -855,6 +857,13 @@ void generateRefOfVal(Debug, TempAlloc, CodeAlloc)(
 			rfa.fieldIndex,
 			rfa.targetIsPointer,
 			rfa.target);
+	} else if(isSpecialUnary(arg.kind)) {
+		immutable LowExprKind.SpecialUnary it = asSpecialUnary(arg.kind);
+		if (it.kind == LowExprKind.SpecialUnary.Kind.deref)
+			// Ref of deref just changes the type
+			generateExpr(dbg, tempAlloc, writer, ctx, it.arg);
+		else
+			todo!void("!");
 	} else
 		todo!void("!");
 }

@@ -18,7 +18,7 @@ ref-of-val ?t(b by-val ?t) noctx unsafe builtin
 ptr-to ptr ?t(t ?t) noctx unsafe builtin
 
 | TODO: this function only works for by-ref types -- currently that is not checked by the type checker
-as-any-ptr any-ptr(some-ref ?t) noctx unsafe builtin
+as-any-ptr any-ptr(ref ?t) noctx unsafe builtin
 | TODO: this function only works for by-ref types -- currently that is not checked by the type checker
 as-ref ?t(p any-ptr) noctx unsafe builtin
 
@@ -59,13 +59,8 @@ any-ptr alias
 	ptr byte
 
 is-reference-type?<?t> bool() noctx unsafe builtin
+| WARN: for a reference type, this is the size of a pointer
 size-of<?t> nat() noctx unsafe builtin
-
-size-or-pointer-size<?t> nat() noctx unsafe
-	if is-reference-type?<?t>
-		size-of<ptr<void>>
-	else
-		size-of<?t>
 
 ptr-cast ptr ?out(p ptr ?in) noctx unsafe builtin
 
@@ -167,6 +162,9 @@ nor bool(a bool, b bool) noctx builtin
 ? ?t(cond bool, if-true ?t, if-false ?t) noctx builtin
 ? void(cond bool, if-true void) noctx builtin
 
+| TODO:MOVE
+to-nat nat(b bool) noctx
+	b ? 1, 0
 
 always-true bool(a ?t)
 	true

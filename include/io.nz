@@ -3,7 +3,7 @@ import
 		+ == != < <= ? and arr as as-any-ptr as-ref bits-and bit-shift-left bits-or bool byte
 		by-val char c-str data deref false hard-assert hard-unreachable has? incr int32
 		int nat nat16 nat32 none not null null? opt or ptr ptr-cast ptr-eq? ptr-to
-		ref-eq? size size-of some str todo unsafe-to-int value void
+		ref-eq? size size-of some str todo to-nat unsafe-to-int value void
 		wrap-add
 	.arr-utils
 		+ append arr-from-begin-end data each ensure-capacity fold freeze map mut-arr new-mut-arr
@@ -331,10 +331,6 @@ read-to-buffer-until-eof void(fd fd-t, buffer mut-str) trusted summon
 		assert: n-bytes-read.to-nat <= read-max
 		buffer unsafe-increase-size n-bytes-read.to-nat
 		fd read-to-buffer-until-eof buffer
-
-| TODO:MOVE
-to-nat nat(b bool)
-	b ? 1, 0
 
 keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, stderr-builder mut-str) summon unsafe
 	poll-fds = new-arr<by-val<pollfd>> (pollfd: stdout-pipe, pollin, 0), (pollfd: stderr-pipe, pollin, 0)
