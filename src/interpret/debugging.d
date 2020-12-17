@@ -169,7 +169,7 @@ void writeConcreteType(Alloc)(ref Writer!Alloc writer, immutable ConcreteType a)
 	writeConcreteStruct(writer, a.struct_);
 }
 
-public void writeFieldName(Alloc)(ref Writer!Alloc writer, ref immutable LowField a) {
+void writeFieldName(Alloc)(ref Writer!Alloc writer, ref immutable LowField a) {
 	matchConcreteFieldSource!void(
 		a.source.source,
 		(immutable Ptr!ClosureField it) {

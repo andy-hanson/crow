@@ -117,9 +117,9 @@ void checkLowExpr(Alloc)(
 			checkTypeEqual(alloc, ctx.ctx, type, it.local.type);
 		},
 		(ref immutable LowExprKind.Match it) {
-			checkLowExpr(alloc, ctx, it.matchedLocal.type, it.matchedValue);
+			checkLowExpr(alloc, ctx, it.matchedValue.type, it.matchedValue);
 			zip!(LowType, LowExprKind.Match.Case)(
-				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(it.matchedLocal.type)).members,
+				fullIndexDictGet(ctx.ctx.program.allUnions, asUnionType(it.matchedValue.type)).members,
 				it.cases,
 				(ref immutable LowType memberType, ref immutable LowExprKind.Match.Case case_) {
 					if (has(case_.local))

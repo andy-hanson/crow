@@ -609,7 +609,6 @@ struct LowExprKind {
 			immutable LowExpr then;
 		}
 
-		immutable Ptr!LowLocal matchedLocal; // TODO: this is needed by C but not by interpreter, so don't have here?
 		immutable Ptr!LowExpr matchedValue;
 		immutable Arr!Case cases;
 	}

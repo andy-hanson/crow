@@ -258,7 +258,6 @@ immutable(Sexpr) tataOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExpr
 
 immutable(Sexpr) tataOfMatch(Alloc)(ref Alloc alloc, ref immutable LowExprKind.Match a) {
 	return tataRecord(alloc, "match", [
-		tataOfLowLocalSource(alloc, a.matchedLocal.source),
 		tataOfLowExpr(alloc, a.matchedValue),
 		tataArr(alloc, a.cases, (ref immutable LowExprKind.Match.Case case_) =>
 			tataRecord(alloc, "case", [

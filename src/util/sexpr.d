@@ -15,10 +15,10 @@ import util.types : abs, IntN, NatN, safeIntFromSizeT;
 import util.util : todo;
 import util.writer :
 	finishWriterToCStr,
-	newline,
 	writeChar,
 	writeInt,
 	writeNat,
+	writeNewline,
 	Writer,
 	writeQuotedStr,
 	writeStatic,
@@ -315,7 +315,7 @@ void writeSexpr(Alloc)(
 			if (measureSexprArr(s, availableWidth) < 0) {
 				writeChar(writer, '[');
 				foreach (immutable size_t index; 0..size(s.arr)) {
-					newline(writer, indent + 1);
+					writeNewline(writer, indent + 1);
 					if (s.showIndices) {
 						writeNat(writer, index);
 						writeStatic(writer, ": ");
@@ -337,7 +337,7 @@ void writeSexpr(Alloc)(
 				writeSym(writer, it.name);
 				writeChar(writer, '(');
 				foreach (ref immutable NameAndSexpr element; it.children.range) {
-					newline(writer, indent + 1);
+					writeNewline(writer, indent + 1);
 					writeSym(writer, element.name);
 					writeStatic(writer, ": ");
 					writeSexpr(writer, indent + 1, availableWidth - indentSize, element.value);
@@ -359,7 +359,7 @@ void writeSexpr(Alloc)(
 				writeSym(writer, s.name);
 				writeChar(writer, '(');
 				foreach (ref immutable Sexpr element; s.children.range) {
-					newline(writer, indent + 1);
+					writeNewline(writer, indent + 1);
 					writeSexpr(writer, indent + 1, availableWidth - indentSize, element);
 				}
 				writeChar(writer, ')');

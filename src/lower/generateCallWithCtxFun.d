@@ -73,9 +73,8 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 			return immutable LowExprKind.Match.Case(some(closureLocal), then);
 		});
 
-	immutable Ptr!LowLocal matchedLocal = genLocal(alloc, shortSymAlphaLiteral("match-fun"), localIndex, funType);
 	immutable LowExpr expr = immutable LowExpr(returnType, range, immutable LowExprKind(
-		nu!(LowExprKind.Match)(alloc, matchedLocal, allocate(alloc, funParamRef), cases)));
+		nu!(LowExprKind.Match)(alloc, allocate(alloc, funParamRef), cases)));
 	immutable Arr!LowParam params = mapWithFirst2!(LowParam, LowType, Alloc)(
 		alloc,
 		immutable LowParam(

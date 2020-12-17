@@ -260,7 +260,7 @@ public immutable(BuildToCResult) buildToC(Alloc, PathAlloc, SymAlloc, ReadOnlySt
 	immutable ProgramsAndFilesInfo programs =
 		buildToLowProgram(alloc, allPaths, allSymbols, storage, mainPath);
 	return empty(programs.program.diagnostics)
-		? immutable BuildToCResult(writeToC!Alloc(alloc, force(programs.concreteAndLowProgram).lowProgram), emptyStr)
+		? immutable BuildToCResult(writeToC(alloc, alloc, force(programs.concreteAndLowProgram).lowProgram), emptyStr)
 		: immutable BuildToCResult(
 			emptyStr,
 			strOfDiagnostics(

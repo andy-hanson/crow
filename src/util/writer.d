@@ -181,7 +181,7 @@ void writeHyperlink(Alloc)(ref Writer!Alloc writer, immutable Str url, immutable
 	}
 }
 
-void newline(Alloc)(ref Writer!Alloc writer, immutable size_t indent) {
+void writeNewline(Alloc)(ref Writer!Alloc writer, immutable size_t indent) {
 	writeChar(writer, '\n');
 	foreach (immutable size_t _; 0..indent)
 		writeChar(writer, '\t');

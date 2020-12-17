@@ -83,3 +83,5 @@ void verifyFail() {
 T unreachable(T)() {
 	assert(0);
 }
+
+void drop(T)(T) {}

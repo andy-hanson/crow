@@ -133,13 +133,7 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 		immutable LowType(comparisonTypes.comparison),
 		range,
 		immutable LowExprKind(immutable LowExprKind.TailRecur(arrLiteral!LowExpr(alloc, [genTail(a), genTail(b)]))));
-	immutable LowExpr firstThenRecur = combineCompares(
-		alloc,
-		range,
-		comparisonTypes,
-		0,
-		compareFirst,
-		recurOnTail);
+	immutable LowExpr firstThenRecur = combineCompares(alloc, range, comparisonTypes, compareFirst, recurOnTail);
 
 	immutable(LowExpr) genSizeEq0(ref immutable LowExpr arr) {
 		return genNat64Eq0(alloc, range, genGetArrSize(alloc, range, arr));
@@ -169,7 +163,6 @@ immutable(LowExpr) combineCompares(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable ComparisonTypes comparisonTypes,
-	immutable u8 tempIndex,
 	immutable LowExpr compareFirst,
 	immutable LowExpr compareSecond,
 ) {
@@ -177,15 +170,10 @@ immutable(LowExpr) combineCompares(Alloc)(
 		immutable LowExprKind.Match.Case(none!(Ptr!LowLocal), genComparisonLess(alloc, range, comparisonTypes)),
 		immutable LowExprKind.Match.Case(none!(Ptr!LowLocal), compareSecond),
 		immutable LowExprKind.Match.Case(none!(Ptr!LowLocal), genComparisonGreater(alloc, range, comparisonTypes))]);
-	immutable Ptr!LowLocal matchedLocal = genLocal(
-		alloc,
-		shortSymAlphaLiteral("temp"),
-		tempIndex,
-		immutable LowType(comparisonTypes.comparison));
 	return immutable LowExpr(
 		immutable LowType(comparisonTypes.comparison),
 		range,
-		immutable LowExprKind(nu!(LowExprKind.Match)(alloc, matchedLocal, allocate(alloc, compareFirst), cases)));
+		immutable LowExprKind(nu!(LowExprKind.Match)(alloc, allocate(alloc, compareFirst), cases)));
 }
 
 immutable(LowExpr) genCompareExpr(Alloc)(
@@ -287,7 +275,6 @@ immutable(LowFunExprBody) genCompareUnion(Alloc)(
 	ref immutable LowExpr a,
 	ref immutable LowExpr b,
 ) {
-	immutable Ptr!LowLocal aMatchedLocal = genLocal(alloc, shortSymAlphaLiteral("match-a"), 0, a.type);
 	immutable Arr!(LowExprKind.Match.Case) aCases =
 		mapWithIndex(alloc, union_.members, (immutable size_t aIndex, ref immutable LowType aType) {
 			immutable Ptr!LowLocal aLocal = genLocal(
@@ -321,17 +308,15 @@ immutable(LowFunExprBody) genCompareUnion(Alloc)(
 								localRef(alloc, range, bLocal)));
 					}
 				});
-			immutable Ptr!LowLocal bMatchedLocal =
-				genLocal(alloc, shortSymAlphaLiteral("match-b"), safeSizeTToU8(aIndex), b.type);
 			immutable LowExpr then = immutable LowExpr(immutable LowType(comparisonTypes.comparison), range,
-				immutable LowExprKind(nu!(LowExprKind.Match)(alloc, bMatchedLocal, allocate(alloc, b), bCases)));
+				immutable LowExprKind(nu!(LowExprKind.Match)(alloc, allocate(alloc, b), bCases)));
 			return immutable LowExprKind.Match.Case(some(aLocal), then);
 		});
 
 	immutable LowExpr expr = immutable LowExpr(
 		immutable LowType(comparisonTypes.comparison),
 		range,
-		immutable LowExprKind(nu!(LowExprKind.Match)(alloc, aMatchedLocal, allocate(alloc, a), aCases)));
+		immutable LowExprKind(nu!(LowExprKind.Match)(alloc, allocate(alloc, a), aCases)));
 	return immutable LowFunExprBody(False, allocate(alloc, expr));
 }
 
@@ -353,8 +338,7 @@ immutable(LowFunExprBody) genCompareRecord(Alloc)(
 			immutable Ptr!LowField field = ptrAt(fields, fieldIndex);
 			immutable LowExpr compareThisField =
 				compareOneField(alloc, range, comparisonTypes, compareFuns, field.type, fieldIndex, a, b);
-			immutable LowExpr e =
-				combineCompares(alloc, range, comparisonTypes, fieldIndex, compareThisField, accum);
+			immutable LowExpr e = combineCompares(alloc, range, comparisonTypes, compareThisField, accum);
 			return recur(e, rtail(fields));
 		}
 	}
