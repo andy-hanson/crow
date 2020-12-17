@@ -5658,43 +5658,31 @@ uint64_t _op_div(struct ctx* ctx, uint64_t a, uint64_t b) {
 }
 /* to-str arr<char>(a gc-stats) */
 struct arr_0 to_str_1(struct ctx* ctx, struct gc_stats a) {
-	struct arr_0 x0;
 	struct ctx* _0 = ctx;
-	struct arr_0 _1 = (struct arr_0) {9, constantarr_0_13};
+	struct ctx* _1 = ctx;
 	struct ctx* _2 = ctx;
-	struct gc_stats _3 = a;
-	uint64_t _4 = _3.cur_word;
-	struct arr_0 _5 = to_str_2(_2, _4);
-	x0 = _op_plus_1(_0, _1, _5);
-	
-	struct arr_0 y1;
+	struct ctx* _3 = ctx;
+	struct ctx* _4 = ctx;
+	struct arr_0 _5 = (struct arr_0) {9, constantarr_0_13};
 	struct ctx* _6 = ctx;
-	struct arr_0 _7 = (struct arr_0) {13, constantarr_0_24};
-	struct ctx* _8 = ctx;
-	struct gc_stats _9 = a;
-	uint64_t _10 = _9.words_used;
-	struct arr_0 _11 = to_str_2(_8, _10);
-	y1 = _op_plus_1(_6, _7, _11);
-	
-	struct arr_0 xy2;
-	struct ctx* _12 = ctx;
-	struct arr_0 _13 = x0;
-	struct arr_0 _14 = y1;
-	xy2 = _op_plus_1(_12, _13, _14);
-	
-	struct arr_0 z3;
-	struct ctx* _15 = ctx;
-	struct arr_0 _16 = (struct arr_0) {13, constantarr_0_25};
-	struct ctx* _17 = ctx;
-	struct gc_stats _18 = a;
-	uint64_t _19 = words_free(_18);
-	struct arr_0 _20 = to_str_2(_17, _19);
-	z3 = _op_plus_1(_15, _16, _20);
-	
-	struct ctx* _21 = ctx;
-	struct arr_0 _22 = xy2;
-	struct arr_0 _23 = z3;
-	return _op_plus_1(_21, _22, _23);
+	struct gc_stats _7 = a;
+	uint64_t _8 = _7.cur_word;
+	struct arr_0 _9 = to_str_2(_6, _8);
+	struct arr_0 _10 = _op_plus_1(_4, _5, _9);
+	struct arr_0 _11 = (struct arr_0) {13, constantarr_0_24};
+	struct arr_0 _12 = _op_plus_1(_3, _10, _11);
+	struct ctx* _13 = ctx;
+	struct gc_stats _14 = a;
+	uint64_t _15 = _14.words_used;
+	struct arr_0 _16 = to_str_2(_13, _15);
+	struct arr_0 _17 = _op_plus_1(_2, _12, _16);
+	struct arr_0 _18 = (struct arr_0) {13, constantarr_0_25};
+	struct arr_0 _19 = _op_plus_1(_1, _17, _18);
+	struct ctx* _20 = ctx;
+	struct gc_stats _21 = a;
+	uint64_t _22 = words_free(_21);
+	struct arr_0 _23 = to_str_2(_20, _22);
+	return _op_plus_1(_0, _19, _23);
 }
 /* to-str arr<char>(n nat) */
 struct arr_0 to_str_2(struct ctx* ctx, uint64_t n) {

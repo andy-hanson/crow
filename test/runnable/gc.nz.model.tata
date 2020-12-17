@@ -52,49 +52,47 @@ module(
 			public?: true
 			summon: true
 			sig: sig(file-pos(20, 244), to-str, arr(char()), [param(file-range(20, range(255, 265)), a, gc-stats())])
-			body: let(
-				local(file-range(20, range(366, 367)), x, arr(char()))
-				call(
-					fun-inst(name: +, type-args: [char()])
-					[
-						string-lit("cur-word=")
-						call(fun-inst(name: to-str), [call(fun-inst(name: cur-word), [param-ref(a)])])])
-				let(
-					local(file-range(20, range(403, 404)), y, arr(char()))
+			body: call(
+				fun-inst(name: +, type-args: [char()])
+				[
 					call(
 						fun-inst(name: +, type-args: [char()])
 						[
-							string-lit(", words-used=")
-							call(fun-inst(name: to-str), [call(fun-inst(name: words-used), [param-ref(a)])])])
-					let(
-						local(file-range(20, range(446, 448)), xy, arr(char()))
-						call(fun-inst(name: +, type-args: [char()]), [local-ref(x), local-ref(y)])
-						let(
-							local(file-range(20, range(458, 459)), z, arr(char()))
 							call(
 								fun-inst(name: +, type-args: [char()])
 								[
-									string-lit(", words-free=")
-									call(fun-inst(name: to-str), [call(fun-inst(name: words-free), [param-ref(a)])])])
-							call(fun-inst(name: +, type-args: [char()]), [local-ref(xy), local-ref(z)]))))))
+									call(
+										fun-inst(name: +, type-args: [char()])
+										[
+											call(
+												fun-inst(name: +, type-args: [char()])
+												[
+													string-lit("cur-word=")
+													call(
+														fun-inst(name: to-str)
+														[call(fun-inst(name: cur-word), [param-ref(a)])])])
+											string-lit(", words-used=")])
+									call(fun-inst(name: to-str), [call(fun-inst(name: words-used), [param-ref(a)])])])
+							string-lit(", words-free=")])
+					call(fun-inst(name: to-str), [call(fun-inst(name: words-free), [param-ref(a)])])]))
 		fun(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(20, 509), main, fut(int32()), [param(file-range(20, range(528, 540)), args, arr(arr(char())))])
+			sig: sig(file-pos(20, 388), main, fut(int32()), [param(file-range(20, range(407, 419)), args, arr(arr(char())))])
 			body: let(
-				local(file-range(20, range(557, 559)), gc, gc())
+				local(file-range(20, range(436, 438)), gc, gc())
 				call(fun-inst(name: get-gc), [])
 				seq(
 					call(fun-inst(name: set-hard-limit), [local-ref(gc), literal(nat(), 512)])
 					let(
-						local(file-range(20, range(659, 660)), a, r())
+						local(file-range(20, range(538, 539)), a, r())
 						call(fun-inst(name: r), [literal(nat(), 1), literal(nat(), 2), literal(nat(), 3)])
 						let(
-							local(file-range(20, range(675, 676)), b, r())
+							local(file-range(20, range(554, 555)), b, r())
 							call(fun-inst(name: r), [literal(nat(), 4), literal(nat(), 5), literal(nat(), 6)])
 							let(
-								local(file-range(20, range(691, 696)), b-ptr, ptr(by-val(r())))
+								local(file-range(20, range(570, 575)), b-ptr, ptr(by-val(r())))
 								call(
 									fun-inst(name: as, type-args: [ptr(by-val(r()))])
 									[
@@ -190,7 +188,7 @@ module(
 										[
 											call(fun-inst(name: delay), [])
 											lambda(
-												[param(file-range(20, range(1000, 1001)), v, void())]
+												[param(file-range(20, range(879, 880)), v, void())]
 												seq(
 													seq(
 														seq(

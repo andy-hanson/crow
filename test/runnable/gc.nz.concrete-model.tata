@@ -4298,19 +4298,23 @@ program(
 			none
 			[param(a, type(false, gc-stats))]
 			expr-body(
-				let(
-					x
-					call(+, [arr(0, 13), call(to-str, [call(cur-word, [param-ref(a)])])])
-					let(
-						y
-						call(+, [arr(0, 24), call(to-str, [call(words-used, [param-ref(a)])])])
-						let(
-							xy
-							call(+, [local-ref(x), local-ref(y)])
-							let(
-								z
-								call(+, [arr(0, 25), call(to-str, [call(words-free, [param-ref(a)])])])
-								call(+, [local-ref(xy), local-ref(z)])))))))
+				call(
+					+
+					[
+						call(
+							+
+							[
+								call(
+									+
+									[
+										call(
+											+
+											[
+												call(+, [arr(0, 13), call(to-str, [call(cur-word, [param-ref(a)])])])
+												arr(0, 24)])
+										call(to-str, [call(words-used, [param-ref(a)])])])
+								arr(0, 25)])
+						call(to-str, [call(words-free, [param-ref(a)])])])))
 		fun(
 			true
 			to-str

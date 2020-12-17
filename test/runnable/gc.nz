@@ -11,12 +11,7 @@ to-str str(a r)
 	"a=" + a.a.to-str + ", b=" + a.b.to-str + ", c=" + a.c.to-str
 
 to-str str(a gc-stats) summon
-	| TODO: doing this in an ugly way because C compiled version evaluates args right-to-left
-	x = "cur-word=" + a.cur-word.to-str
-	y = ", words-used=" + a.words-used.to-str
-	xy = x + y
-	z = ", words-free=" + a.words-free.to-str
-	xy + z
+	"cur-word=" + a.cur-word.to-str + ", words-used=" + a.words-used.to-str + ", words-free=" + a.words-free.to-str
 
 main fut exit-code(args arr str) summon unsafe
 	gc = get-gc
