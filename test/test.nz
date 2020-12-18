@@ -38,15 +38,13 @@ main fut exit-code(args arr str) summon
 	as some s
 		s.value do-test
 
-private
-
-print-help void() summon
+.print-help void() summon
 	print: "test -- runs tests"
 	print: "options:"
 	print: "\t--print-tests  : print every test run"
 	print: "\t--max-failures : stop after this many failures. Defaults to 10."
 
-do-test exit-code(options test-options) summon
+.do-test exit-code(options test-options) summon
 	test-path = current-executable-path parent-path
 	noze-path = test-path parent-path
 	noze-exe = noze-path child-path "bin" child-path "noze"

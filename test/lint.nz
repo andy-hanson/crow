@@ -11,22 +11,20 @@ lint result str arr<failure>(path str, options test-options) summon
 	else
 		ok: "linted " + files.size.to-str + " files"
 
-private
-
-list-lintable-files arr str(path str) summon
+.list-lintable-files arr str(path str) summon
 	res = new-mut-arr<str>
 	path each-child-recursive {not: it excluded-from-lint?}, \child
 		if child.base-name.ignore-extension-of-name? not
 			res push child
 	res freeze
 
-excluded-from-lint? bool(name str)
+.excluded-from-lint? bool(name str)
 	bad-exts = new-arr<str> ".bmp", ".err", ".png", ".tata", ".wasm"
 	bad-names = new-arr<str> "dyncall", "libfirm", "node_modules", "package-lock.json"
 	name.first == "." or: bad-names contains? name or: bad-exts some? {name ends-with? it}
 
 | Returns nubmer of errors
-lint-file arr failure(path str) summon
+.lint-file arr failure(path str) summon
 	text = path read-file
 	res = new-mut-arr<failure>
 	err-file? = path.get-extension.force == "err"
@@ -41,7 +39,7 @@ lint-file arr failure(path str) summon
 			res push failure: path, message
 	res freeze
 
-ignored-extensions arr str()
+.ignored-extensions arr str()
 	new-arr
 		. "c"
 		. "data"
@@ -50,10 +48,10 @@ ignored-extensions arr str()
 		. "tata"
 		. "tmLanguage"
 
-ignore-extension? bool(ext str)
+.ignore-extension? bool(ext str)
 	ignored-extensions contains? ext
 
-ignore-extension-of-name? bool(name str)
+.ignore-extension-of-name? bool(name str)
 	match name get-extension
 	as none
 		| Ignore extensionless files
@@ -61,7 +59,7 @@ ignore-extension-of-name? bool(name str)
 	as some s
 		s.value ignore-extension?
 
-lines arr str(s str)
+.lines arr str(s str)
 	res = new-mut-arr<str>
 	last-nl = 0 cell<nat>
 	s each-with-index \c index
@@ -71,18 +69,17 @@ lines arr str(s str)
 	res.freeze
 
 
-max-line-length nat()
+.max-line-length nat()
 	120
 
-n-tabs nat(line str)
+.n-tabs nat(line str)
 	if line.empty?.not and: line.first == "\t"
 		line.tail.n-tabs incr
 	else
 		0
 
-tab-size nat()
+.tab-size nat()
 	4
 
-line-len nat(line str)
+.line-len nat(line str)
 	line.n-tabs * (tab-size - 1) + line.size
-

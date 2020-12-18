@@ -30,7 +30,7 @@ contexts:
     - match: "[A-Z]"
       scope: invalid
     # comment
-    - match: \|\s.*
+    - match: \|.*
       scope: comment
     # 'region' comment
     - match: '^\s*region[^\n]*\n'
@@ -60,14 +60,14 @@ contexts:
     - match: export|import
       scope: keyword
       push: after_export_or_import_keyword
-    - match: private$
-      scope: keyword
-    - match: '{{name}}'
+    - match: '(\.)?{{name}}'
       # NOTE: Of course these won't all be functions.
       # But we don't know what kind of declaration it is yet unfortunately.
       # But luckily goto-definition will work even coming from a 'storage.type'.
       scope: entity.name.function.noze
       push: decl_after_name
+      captures:
+        1: comment
 
   decl_after_name:
     - match: '{{unindented_line}}'

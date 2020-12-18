@@ -9,9 +9,7 @@ run-noze-tests result str arr<failure>(path str, path-to-noze str, env environ, 
 	else
 		ok: "ran " + tests.size.to-str + " tests in " + path
 
-private
-
-list-tests arr str(path str) summon
+.list-tests arr str(path str) summon
 	res = new-mut-arr<str>
 	filter = as<fun-mut1<bool, str>>: \s
 		true
@@ -24,7 +22,7 @@ list-tests arr str(path str) summon
 				res push child
 	res freeze
 
-run-single-noze-test arr failure
+.run-single-noze-test arr failure
 	path-to-noze str
 	env environ
 	path str
@@ -49,12 +47,11 @@ body
 	as some s
 		s value
 
-
-print-test-result record
+.print-test-result record
 	should-stop? bool
 	failures arr failure
 
-run-print-test print-test-result
+.run-print-test print-test-result
 	print-kind str
 	path-to-noze str
 	env environ
@@ -85,7 +82,7 @@ body
 		message = "unexpected exit code: " + res.exit-code.to-str
 		print-test-result: true, new-arr failure: path, message
 
-run-single-runnable-test arr failure
+.run-single-runnable-test arr failure
 	path-to-noze str
 	env environ
 	path str
@@ -102,12 +99,12 @@ body
 		message = "status: " + res.exit-code.to-str + "\nstdout:\n" + res.stdout + "stderr:\n" + res.stderr
 		new-arr failure: path, message
 
-remove-colors str(s str)
+.remove-colors str(s str)
 	out = new-mut-arr<char>
 	s remove-colors-recur out
 	out freeze
 
-remove-colors-recur void(s str, out mut-str)
+.remove-colors-recur void(s str, out mut-str)
 	if s empty?
 		void
 	elif s.first == "\x1b"
@@ -116,7 +113,7 @@ remove-colors-recur void(s str, out mut-str)
 		out push s.first
 		s.tail remove-colors-recur out
 
-remove-colors-recur-2 void(s str, out mut-str)
+.remove-colors-recur-2 void(s str, out mut-str)
 	if s empty?
 		void
 	elif s.first == "m"

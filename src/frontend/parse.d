@@ -745,13 +745,13 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable Bool isPublic,
 	ref ArrBuilder!SpecDeclAst specs,
 	ref ArrBuilder!StructAliasAst structAliases,
 	ref ArrBuilder!StructDeclAst structs,
 	ref ArrBuilder!FunDeclAst funs,
 ) {
 	immutable Pos start = curPos(lexer);
+	immutable Bool isPublic = immutable Bool(!tryTake(lexer, '.'));
 	immutable Sym name = takeName(alloc, lexer);
 	immutable ArrWithSize!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
 	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
@@ -897,18 +897,11 @@ immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
 	ArrBuilder!StructDeclAst structs;
 	ArrBuilder!FunDeclAst funs;
 
-	Bool isPublic = True;
 	for (;;) {
 		skipBlankLines(alloc, lexer);
 		if (tryTake(lexer, '\0'))
 			break;
-		if (tryTake(lexer, "private\n")) {
-			if (!isPublic)
-				todo!void("already private");
-			isPublic = False;
-			skipBlankLines(alloc, lexer);
-		}
-		parseSpecOrStructOrFun!(Alloc, SymAlloc)(alloc, lexer, isPublic, specs, structAliases, structs, funs);
+		parseSpecOrStructOrFun(alloc, lexer, specs, structAliases, structs, funs);
 	}
 
 	return nu!FileAst(

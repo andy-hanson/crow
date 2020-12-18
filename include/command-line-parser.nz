@@ -66,7 +66,7 @@ parse-named-args dict str arr<str>(args arr str)
 	args parse-named-args-recur b
 	b freeze
 
-parse-named-args-recur void(args arr str, builder mut-dict str arr<str>)
+.parse-named-args-recur void(args arr str, builder mut-dict str arr<str>)
 	first-name = args.first remove-start "--"
 	tl = args tail
 	match tl find-index {it starts-with? "--"}

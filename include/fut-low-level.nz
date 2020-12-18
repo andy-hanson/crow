@@ -41,9 +41,7 @@ resolve-or-reject void(f fut ?t, result result ?t exception) unsafe
 		ex
 	f.lk.ref-of-val release-lock
 
-private
-
-resolve-or-reject-recur void(node opt fut-callback-node<?t>, value result ?t exception)
+.resolve-or-reject-recur void(node opt fut-callback-node<?t>, value result ?t exception)
 	match node
 	as none
 		void

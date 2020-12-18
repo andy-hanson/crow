@@ -117,9 +117,7 @@ call-ref fut ?r(f fun-ref2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted send<?r> send<?p0
 		{f.fun call p0, p1 forward-to res} catch {res reject it}
 	res
 
-private
-
-assert-resolved void(f fut ?t) unsafe
+.assert-resolved void(f fut ?t) unsafe
 	match f state
 	as fut-state-callbacks cbs
 		hard-unreachable

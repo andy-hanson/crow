@@ -3900,72 +3900,72 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(10, range(1340, 1514))
+					file-range(10, range(1332, 1506))
 					match(
-						expr(union(4), file-range(10, range(1346, 1350)), param-ref(1))
+						expr(union(4), file-range(10, range(1338, 1342)), param-ref(1))
 						[
-							case(none, expr(void, file-range(10, range(1362, 1366)), void))
+							case(none, expr(void, file-range(10, range(1354, 1358)), void))
 							case(
 								some(s)
 								expr(
 									void
-									file-range(10, range(1436, 1514))
+									file-range(10, range(1428, 1506))
 									seq(
 										expr(
 											void
-											file-range(10, range(1436, 1463))
+											file-range(10, range(1428, 1455))
 											call(
 												84
 												[
 													expr(
 														void
-														file-range(10, range(1453, 1463))
+														file-range(10, range(1445, 1455))
 														call(
 															80
 															[
 																expr(
 																	gc-ptr(record(0))
-																	file-range(10, range(1453, 1463))
+																	file-range(10, range(1445, 1455))
 																	param-ref(0))
 																expr(
 																	union(3)
-																	file-range(10, range(1449, 1452))
+																	file-range(10, range(1441, 1444))
 																	get-field(
 																		expr(
 																			gc-ptr(record(10))
-																			file-range(10, range(1443, 1449))
+																			file-range(10, range(1435, 1441))
 																			get-field(
 																				expr(
 																					record(15)
-																					file-range(10, range(1442, 1443))
+																					file-range(10, range(1434, 1435))
 																					local-ref(s))
 																				false
 																				0))
 																		true
 																		0))
-																expr(union(2), file-range(10, range(1458, 1463)), param-ref(2))]))]))
+																expr(union(2), file-range(10, range(1450, 1455)), param-ref(2))]))]))
 										expr(
 											void
-											file-range(10, range(1484, 1513))
+											file-range(10, range(1476, 1505))
 											tail-recur(
 												[
 													expr(
 														union(4)
-														file-range(10, range(1473, 1483))
+														file-range(10, range(1465, 1475))
 														get-field(
 															expr(
 																gc-ptr(record(10))
-																file-range(10, range(1467, 1473))
+																file-range(10, range(1459, 1465))
 																get-field(
 																	expr(
 																		record(15)
-																		file-range(10, range(1466, 1467))
+																		file-range(10, range(1458, 1459))
 																		local-ref(s))
 																	false
 																	0))
 															true
 															1))
-													expr(union(2), file-range(10, range(1508, 1513)), param-ref(2))])))))]))))
+													expr(union(2), file-range(10, range(1500, 1505)), param-ref(2))])))))]))))
 		84: fun(
 			drop
 			void
