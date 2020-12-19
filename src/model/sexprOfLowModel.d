@@ -253,7 +253,9 @@ immutable(Sexpr) tataOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExpr
 		(ref immutable LowExprKind.TailRecur it) =>
 			tataRecord(alloc, "tail-recur", [
 				tataArr(alloc, it.args, (ref immutable LowExpr arg) =>
-					tataOfLowExpr(alloc, arg))]));
+					tataOfLowExpr(alloc, arg))]),
+		(ref immutable LowExprKind.Uninitialized) =>
+			tataSym("uninit"));
 }
 
 immutable(Sexpr) tataOfMatch(Alloc)(ref Alloc alloc, ref immutable LowExprKind.Match a) {

@@ -29,6 +29,13 @@ throw ?t(e exception) trusted
 	| Unreachable
 	todo
 
+finally ?t(after fun-mut0 void, try fun-mut0 ?t)
+	res = try catch \err
+		after call
+		err throw
+	after call
+	res
+
 catch result ?t exception(try fun-mut0 ?t)
 	{try.call ok} catch {it err}
 

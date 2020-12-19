@@ -9,7 +9,8 @@ program(
 					field(island-id, false, type(false, nat))
 					field(exclusion, false, type(false, nat))
 					field(gc-ctx-ptr, false, type(false, ptr))
-					field(exception-ctx-ptr, false, type(false, ptr))]))
+					field(exception-ctx-ptr, false, type(false, ptr))
+					field(log-ctx, false, type(false, ptr))]))
 		struct(name: nat8, body: builtin(nat-8, []))
 		struct(name: ptr, body: builtin(ptr, [type(false, nat8)]))
 		struct(name: nat, body: builtin(nat-64, []))
@@ -115,7 +116,11 @@ program(
 			name: island-gc-root
 			mut?: true
 			ptr?: true
-			body: record([field(tasks, false, type(false, mut-bag)), field(exception-handler, true, type(false, fun-mut1))]))
+			body: record(
+				[
+					field(tasks, false, type(false, mut-bag))
+					field(exception-handler, true, type(false, fun-mut1))
+					field(log-handler, true, type(false, fun1))]))
 		struct(
 			name: task
 			body: record([field(exclusion, false, type(false, nat)), field(fun, false, type(false, fun-mut0))]))
@@ -129,6 +134,14 @@ program(
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
 		struct(name: some, body: record([field(value, false, type(true, mut-bag-node))]))
 		struct(name: fun-mut1, body: builtin(fun, [type(false, void), type(false, exception)]))
+		struct(
+			name: logged
+			ptr?: true
+			body: record([field(level, false, type(false, log-level)), field(message, false, type(false, arr))]))
+		struct(name: log-level, body: union([type(false, info), type(false, warn)]))
+		struct(name: info, body: record([]))
+		struct(name: warn, body: record([]))
+		struct(name: fun1, body: builtin(fun, [type(false, void), type(true, logged)]))
 		struct(
 			name: mut-arr
 			mut?: true
@@ -175,10 +188,13 @@ program(
 			name: bytes128
 			body: record([field(n0, false, type(false, bytes64)), field(n1, false, type(false, bytes64))]))
 		struct(name: ptr, body: builtin(ptr, [type(false, jmp-buf-tag)]))
+		struct(name: opt, body: union([type(false, none), type(false, some)]))
+		struct(name: some, body: record([field(value, false, type(false, ptr))]))
+		struct(name: log-ctx, mut?: true, ptr?: true, body: record([field(handler, true, type(false, fun1))]))
 		struct(
 			name: thread-local-stuff
 			ptr?: true
-			body: record([field(exception-ctx, false, type(true, exception-ctx))]))
+			body: record([field(exception-ctx, false, type(true, exception-ctx)), field(log-ctx, false, type(true, log-ctx))]))
 		struct(name: arr, body: record([field(size, false, type(false, nat)), field(data, false, type(false, ptr))]))
 		struct(name: fun2, body: builtin(fun, [type(true, fut), type(false, arr), type(false, fun-ptr2)]))
 		struct(
@@ -265,8 +281,6 @@ program(
 					field(size, true, type(false, nat))
 					field(capacity, true, type(false, nat))
 					field(data, true, type(false, ptr))]))
-		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(false, ptr))]))
 		struct(
 			name: lambda(map, 0)
 			ptr?: true
@@ -573,7 +587,7 @@ program(
 																some(e)
 																seq(
 																	seq(
-																		call(print-err-no-newline, [arr(0, 11)])
+																		call(print-err-no-newline, [arr(0, 14)])
 																		call(
 																			print-err
 																			[
@@ -726,7 +740,7 @@ program(
 					call(new-mut-arr-by-val-with-capacity-from-unmanaged-memory, [param-ref(max-threads)])
 					let(
 						gc-root
-						call(as, [call(island-gc-root, [call(new-mut-bag, []), lambda(0, void)])])
+						call(as, [call(island-gc-root, [call(new-mut-bag, []), lambda(0, void), lambda(0, void)])])
 						call(
 							island
 							[
@@ -817,7 +831,10 @@ program(
 			island-gc-root
 			type(false, island-gc-root)
 			none
-			[param(tasks, type(false, mut-bag)), param(exception-handler, type(false, fun-mut1))]
+			[
+				param(tasks, type(false, mut-bag))
+				param(exception-handler, type(false, fun-mut1))
+				param(log-handler, type(false, fun1))]
 			new-record)
 		fun(false, new-mut-bag, type(false, mut-bag), none, [], expr-body(call(mut-bag, [to-union(0, call(none, []))])))
 		fun(false, mut-bag, type(false, mut-bag), none, [param(head, type(false, opt))], new-record)
@@ -958,6 +975,544 @@ program(
 			[param(it, type(false, exception))]
 			expr-body(call(default-exception-handler, [param-ref(it)])))
 		fun(
+			true
+			default-log-handler
+			type(false, void)
+			none
+			[param(a, type(true, logged))]
+			expr-body(
+				call(
+					print
+					[
+						call(
+							+
+							[
+								call(+, [call(to-str, [call(level, [param-ref(a)])]), arr(0, 9)])
+								call(message, [param-ref(a)])])])))
+		fun(
+			false
+			print
+			type(false, void)
+			none
+			[param(a, type(false, arr))]
+			expr-body(seq(call(print-no-newline, [param-ref(a)]), call(print-no-newline, [arr(0, 3)]))))
+		fun(
+			false
+			print-no-newline
+			type(false, void)
+			none
+			[param(a, type(false, arr))]
+			expr-body(call(write-no-newline, [call(stdout-fd, []), param-ref(a)])))
+		fun(false, stdout-fd, type(false, int32), none, [], expr-body(1))
+		fun(
+			true
+			+
+			type(false, arr)
+			none
+			[param(a, type(false, arr)), param(b, type(false, arr))]
+			expr-body(
+				let(
+					res-size
+					call(+, [call(size, [param-ref(a)]), call(size, [param-ref(b)])])
+					let(
+						res
+						call(uninitialized-data, [local-ref(res-size)])
+						seq(
+							seq(
+								call(
+									copy-data-from
+									[local-ref(res), call(data, [param-ref(a)]), call(size, [param-ref(a)])])
+								call(
+									copy-data-from
+									[
+										call(+, [local-ref(res), call(size, [param-ref(a)])])
+										call(data, [param-ref(b)])
+										call(size, [param-ref(b)])]))
+							call(arr, [local-ref(res-size), local-ref(res)]))))))
+		fun(
+			true
+			+
+			type(false, nat)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			expr-body(
+				let(
+					res
+					call(wrap-add, [param-ref(a), param-ref(b)])
+					seq(
+						call(
+							assert
+							[
+								call(
+									and
+									[call(>=, [local-ref(res), param-ref(a)]), call(>=, [local-ref(res), param-ref(b)])])])
+						local-ref(res)))))
+		fun(
+			true
+			assert
+			type(false, void)
+			none
+			[param(condition, type(false, bool))]
+			expr-body(call(assert, [param-ref(condition), arr(0, 5)])))
+		fun(
+			true
+			assert
+			type(false, void)
+			none
+			[param(condition, type(false, bool)), param(message, type(false, arr))]
+			expr-body(cond(call(not, [param-ref(condition)]), call(fail, [param-ref(message)]), void)))
+		fun(
+			true
+			fail
+			type(false, void)
+			none
+			[param(reason, type(false, arr))]
+			expr-body(call(throw, [call(exception, [param-ref(reason)])])))
+		fun(
+			true
+			throw
+			type(false, void)
+			none
+			[param(e, type(false, exception))]
+			expr-body(
+				let(
+					exn-ctx
+					call(get-exception-ctx, [])
+					seq(
+						seq(
+							seq(
+								call(hard-forbid, [call(null?, [call(jmp-buf-ptr, [local-ref(exn-ctx)])])])
+								call(set-thrown-exception, [local-ref(exn-ctx), param-ref(e)]))
+							call(longjmp, [call(jmp-buf-ptr, [local-ref(exn-ctx)]), call(number-to-throw, [])]))
+						call(todo, [])))))
+		fun(
+			true
+			get-exception-ctx
+			type(true, exception-ctx)
+			none
+			[]
+			expr-body(call(as-ref, [call(exception-ctx-ptr, [call(get-ctx, [])])])))
+		fun(
+			false
+			as-ref
+			type(true, exception-ctx)
+			none
+			[param(p, type(false, ptr))]
+			builtin([type(true, exception-ctx)]))
+		fun(false, exception-ctx-ptr, type(false, ptr), none, [param(a, type(true, ctx))], field-get(4))
+		fun(
+			false
+			null?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr))]
+			expr-body(call(==, [call(to-nat, [param-ref(a)]), call(to-nat, [call(null, [])])])))
+		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, jmp-buf-tag)]))
+		fun(false, null, type(false, ptr), none, [], builtin([type(false, jmp-buf-tag)]))
+		fun(false, jmp-buf-ptr, type(false, ptr), none, [param(a, type(true, exception-ctx))], field-get(0))
+		fun(
+			false
+			set-thrown-exception
+			type(false, void)
+			none
+			[param(a, type(true, exception-ctx)), param(thrown-exception, type(false, exception))]
+			field-set(1))
+		fun(
+			false
+			longjmp
+			type(false, void)
+			none
+			[param(env, type(false, ptr)), param(val, type(false, int32))]
+			extern(false))
+		fun(true, number-to-throw, type(false, int32), none, [], expr-body(7))
+		fun(false, exception, type(false, exception), none, [param(message, type(false, arr))], new-record)
+		fun(
+			false
+			and
+			type(false, bool)
+			none
+			[param(a, type(false, bool)), param(b, type(false, bool))]
+			builtin([]))
+		fun(
+			false
+			>=
+			type(false, bool)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			expr-body(call(not, [call(<, [param-ref(a), param-ref(b)])])))
+		fun(
+			true
+			uninitialized-data
+			type(false, ptr)
+			none
+			[param(size, type(false, nat))]
+			expr-body(
+				let(
+					bptr
+					call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
+					call(ptr-cast, [local-ref(bptr)]))))
+		fun(
+			true
+			alloc
+			type(false, ptr)
+			none
+			[param(size, type(false, nat))]
+			expr-body(call(gc-alloc, [call(get-gc, []), param-ref(size)])))
+		fun(
+			true
+			gc-alloc
+			type(false, ptr)
+			none
+			[param(gc, type(true, gc)), param(size, type(false, nat))]
+			expr-body(
+				match(
+					call(try-gc-alloc, [param-ref(gc), param-ref(size)])
+					[case(none, call(todo, [])), case(some(s), call(value, [local-ref(s)]))])))
+		fun(
+			false
+			try-gc-alloc
+			type(false, opt)
+			none
+			[param(gc, type(true, gc)), param(size-bytes, type(false, nat))]
+			expr-body(
+				seq(
+					call(validate-gc, [param-ref(gc)])
+					let(
+						size-words
+						call(words-of-bytes, [param-ref(size-bytes)])
+						let(
+							cur
+							call(data-cur, [param-ref(gc)])
+							let(
+								next
+								call(+, [local-ref(cur), local-ref(size-words)])
+								cond(
+									call(ptr-less?, [local-ref(next), call(data-end, [param-ref(gc)])])
+									cond(
+										call(
+											range-free?
+											[
+												call(mark-cur, [param-ref(gc)])
+												call(+, [call(mark-cur, [param-ref(gc)]), local-ref(size-words)])])
+										seq(
+											seq(
+												call(
+													set-mark-cur
+													[
+														param-ref(gc)
+														call(
+															+
+															[call(mark-cur, [param-ref(gc)]), local-ref(size-words)])])
+												call(set-data-cur, [param-ref(gc), local-ref(next)]))
+											to-union(1, call(some, [call(ptr-cast, [local-ref(cur)])])))
+										seq(
+											seq(
+												call(
+													set-mark-cur
+													[param-ref(gc), call(incr, [call(mark-cur, [param-ref(gc)])])])
+												call(
+													set-data-cur
+													[param-ref(gc), call(incr, [call(data-cur, [param-ref(gc)])])]))
+											call(try-gc-alloc, [param-ref(gc), param-ref(size-bytes)])))
+									to-union(0, call(none, [])))))))))
+		fun(
+			false
+			validate-gc
+			type(false, void)
+			none
+			[param(gc, type(true, gc))]
+			expr-body(
+				seq(
+					seq(
+						seq(
+							seq(
+								call(
+									hard-assert
+									[
+										call(
+											ptr-less-eq?
+											[call(mark-begin, [param-ref(gc)]), call(mark-cur, [param-ref(gc)])])])
+								call(
+									hard-assert
+									[
+										call(
+											ptr-less-eq?
+											[call(mark-cur, [param-ref(gc)]), call(mark-end, [param-ref(gc)])])]))
+							call(
+								hard-assert
+								[
+									call(
+										ptr-less-eq?
+										[call(data-begin, [param-ref(gc)]), call(data-cur, [param-ref(gc)])])]))
+						call(
+							hard-assert
+							[call(ptr-less-eq?, [call(data-cur, [param-ref(gc)]), call(data-end, [param-ref(gc)])])]))
+					let(
+						mark-idx
+						call(-, [call(mark-cur, [param-ref(gc)]), call(mark-begin, [param-ref(gc)])])
+						let(
+							data-idx
+							call(-, [call(data-cur, [param-ref(gc)]), call(data-begin, [param-ref(gc)])])
+							seq(
+								seq(
+									call(
+										hard-assert
+										[
+											call(
+												==
+												[
+													call(
+														-
+														[
+															call(mark-end, [param-ref(gc)])
+															call(mark-begin, [param-ref(gc)])])
+													call(size-words, [param-ref(gc)])])])
+									call(
+										hard-assert
+										[
+											call(
+												==
+												[
+													call(
+														-
+														[
+															call(data-end, [param-ref(gc)])
+															call(data-begin, [param-ref(gc)])])
+													call(size-words, [param-ref(gc)])])]))
+								call(hard-assert, [call(==, [local-ref(mark-idx), local-ref(data-idx)])])))))))
+		fun(
+			false
+			ptr-less-eq?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				call(or, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
+		fun(
+			false
+			ptr-less?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			builtin([type(false, bool)]))
+		fun(false, mark-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(5))
+		fun(false, mark-cur, type(false, ptr), none, [param(a, type(true, gc))], field-get(6))
+		fun(false, mark-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(7))
+		fun(
+			false
+			ptr-less-eq?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				call(or, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
+		fun(
+			false
+			ptr-less?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			builtin([type(false, nat)]))
+		fun(
+			false
+			ptr-eq?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			builtin([type(false, nat)]))
+		fun(false, data-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(8))
+		fun(false, data-cur, type(false, ptr), none, [param(a, type(true, gc))], field-get(9))
+		fun(false, data-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(10))
+		fun(
+			false
+			-
+			type(false, nat)
+			none
+			[param(a, type(false, ptr)), param(b, type(false, ptr))]
+			expr-body(
+				call(
+					unsafe-div
+					[call(wrap-sub, [call(to-nat, [param-ref(a)]), call(to-nat, [param-ref(b)])]), call(size-of, [])])))
+		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, bool)]))
+		fun(false, size-of, type(false, nat), none, [], builtin([type(false, bool)]))
+		fun(false, size-words, type(false, nat), none, [param(a, type(true, gc))], field-get(4))
+		fun(
+			false
+			+
+			type(false, ptr)
+			none
+			[param(p, type(false, ptr)), param(offset, type(false, nat))]
+			builtin([type(false, nat)]))
+		fun(
+			false
+			range-free?
+			type(false, bool)
+			none
+			[param(mark, type(false, ptr)), param(end, type(false, ptr))]
+			expr-body(
+				cond(
+					call(ptr-eq?, [param-ref(mark), param-ref(end)])
+					call(true, [])
+					cond(
+						call(deref, [param-ref(mark)])
+						call(false, [])
+						call(range-free?, [call(incr, [param-ref(mark)]), param-ref(end)])))))
+		fun(
+			false
+			set-mark-cur
+			type(false, void)
+			none
+			[param(a, type(true, gc)), param(mark-cur, type(false, ptr))]
+			field-set(6))
+		fun(
+			false
+			set-data-cur
+			type(false, void)
+			none
+			[param(a, type(true, gc)), param(data-cur, type(false, ptr))]
+			field-set(9))
+		fun(false, some, type(false, some), none, [param(value, type(false, ptr))], new-record)
+		fun(
+			false
+			ptr-cast
+			type(false, ptr)
+			none
+			[param(p, type(false, ptr))]
+			builtin([type(false, nat8), type(false, nat)]))
+		fun(false, incr, type(false, ptr), none, [param(p, type(false, ptr))], expr-body(call(+, [param-ref(p), 1])))
+		fun(false, todo, type(false, ptr), none, [], expr-body(call(hard-fail, [arr(0, 1)])))
+		fun(false, hard-fail, type(false, ptr), none, [param(reason, type(false, arr))], builtin([type(false, ptr)]))
+		fun(false, value, type(false, ptr), none, [param(a, type(false, some))], field-get(0))
+		fun(true, get-gc, type(true, gc), none, [], expr-body(call(gc, [call(get-gc-ctx, [])])))
+		fun(false, gc, type(true, gc), none, [param(a, type(true, gc-ctx))], field-get(0))
+		fun(
+			true
+			get-gc-ctx
+			type(true, gc-ctx)
+			none
+			[]
+			expr-body(call(as-ref, [call(gc-ctx-ptr, [call(get-ctx, [])])])))
+		fun(false, as-ref, type(true, gc-ctx), none, [param(p, type(false, ptr))], builtin([type(true, gc-ctx)]))
+		fun(false, gc-ctx-ptr, type(false, ptr), none, [param(a, type(true, ctx))], field-get(3))
+		fun(
+			false
+			ptr-cast
+			type(false, ptr)
+			none
+			[param(p, type(false, ptr))]
+			builtin([type(false, char), type(false, nat8)]))
+		fun(
+			true
+			copy-data-from
+			type(false, void)
+			none
+			[param(to, type(false, ptr)), param(from, type(false, ptr)), param(len, type(false, nat))]
+			expr-body(
+				cond(
+					call(<, [param-ref(len), 8])
+					call(copy-data-from-small, [param-ref(to), param-ref(from), param-ref(len)])
+					let(
+						hl
+						call(/, [param-ref(len), 2])
+						seq(
+							call(copy-data-from, [param-ref(to), param-ref(from), local-ref(hl)])
+							call(
+								copy-data-from
+								[
+									call(+, [param-ref(to), local-ref(hl)])
+									call(+, [param-ref(from), local-ref(hl)])
+									call(-, [param-ref(len), local-ref(hl)])]))))))
+		fun(
+			true
+			copy-data-from-small
+			type(false, void)
+			none
+			[param(to, type(false, ptr)), param(from, type(false, ptr)), param(len, type(false, nat))]
+			expr-body(
+				cond(
+					call(!=, [param-ref(len), 0])
+					seq(
+						call(set, [param-ref(to), call(deref, [param-ref(from)])])
+						call(
+							copy-data-from
+							[call(incr, [param-ref(to)]), call(incr, [param-ref(from)]), call(decr, [param-ref(len)])]))
+					void)))
+		fun(
+			false
+			!=
+			type(false, bool)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			expr-body(call(not, [call(==, [param-ref(a), param-ref(b)])])))
+		fun(
+			false
+			set
+			type(false, void)
+			none
+			[param(p, type(false, ptr)), param(value, type(false, char))]
+			builtin([type(false, char)]))
+		fun(
+			true
+			decr
+			type(false, nat)
+			none
+			[param(a, type(false, nat))]
+			expr-body(seq(call(forbid, [call(==, [param-ref(a), 0])]), call(wrap-decr, [param-ref(a)]))))
+		fun(
+			true
+			forbid
+			type(false, void)
+			none
+			[param(condition, type(false, bool))]
+			expr-body(call(forbid, [param-ref(condition), arr(0, 6)])))
+		fun(
+			true
+			forbid
+			type(false, void)
+			none
+			[param(condition, type(false, bool)), param(message, type(false, arr))]
+			expr-body(cond(param-ref(condition), call(fail, [param-ref(message)]), void)))
+		fun(
+			false
+			wrap-decr
+			type(false, nat)
+			none
+			[param(a, type(false, nat))]
+			expr-body(call(wrap-sub, [param-ref(a), 1])))
+		fun(
+			true
+			/
+			type(false, nat)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			expr-body(seq(call(forbid, [call(==, [param-ref(b), 0])]), call(unsafe-div, [param-ref(a), param-ref(b)]))))
+		fun(
+			true
+			-
+			type(false, nat)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			expr-body(
+				seq(
+					call(assert, [call(>=, [param-ref(a), param-ref(b)])])
+					call(wrap-sub, [param-ref(a), param-ref(b)]))))
+		fun(
+			true
+			to-str
+			type(false, arr)
+			none
+			[param(a, type(false, log-level))]
+			expr-body(match(param-ref(a), [case(none, arr(0, 7)), case(none, arr(0, 8))])))
+		fun(false, level, type(false, log-level), none, [param(a, type(true, logged))], field-get(0))
+		fun(false, message, type(false, arr), none, [param(a, type(true, logged))], field-get(1))
+		fun(
+			true
+			lambda(new-island, 1)
+			type(false, void)
+			some(param("<<closure>>", type(false, void)))
+			[param(log, type(true, logged))]
+			expr-body(call(default-log-handler, [param-ref(log)])))
+		fun(
 			false
 			island
 			type(false, island)
@@ -1014,13 +1569,6 @@ program(
 			none
 			[param(p, type(false, ptr))]
 			builtin([type(false, bool), type(false, nat8)]))
-		fun(
-			false
-			+
-			type(false, ptr)
-			none
-			[param(p, type(false, ptr)), param(offset, type(false, nat))]
-			builtin([type(false, nat)]))
 		fun(
 			false
 			memset
@@ -1093,25 +1641,41 @@ program(
 					ectx
 					call(new-exception-ctx, [])
 					let(
-						tls
-						call(as, [call(thread-local-stuff, [call(ref-of-val, [local-ref(ectx)])])])
+						log-ctx
+						call(new-log-ctx, [])
 						let(
-							ctx-by-val
-							call(new-ctx, [param-ref(gctx), call(ref-of-val, [local-ref(tls)]), param-ref(island), 0])
+							tls
+							call(
+								as
+								[
+									call(
+										thread-local-stuff
+										[call(ref-of-val, [local-ref(ectx)]), call(ref-of-val, [local-ref(log-ctx)])])])
 							let(
-								ctx
-								call(ref-of-val, [local-ref(ctx-by-val)])
+								ctx-by-val
+								call(
+									new-ctx
+									[param-ref(gctx), call(ref-of-val, [local-ref(tls)]), param-ref(island), 0])
 								let(
-									add
-									call(as, [lambda(0, void)])
+									ctx
+									call(ref-of-val, [local-ref(ctx-by-val)])
 									let(
-										all-args
-										call(
-											arr
-											[call(unsafe-to-nat, [call(to-int, [param-ref(argc)])]), param-ref(argv)])
-										call(
-											call-with-ctx
-											[local-ref(add), local-ref(ctx), local-ref(all-args), param-ref(main-ptr)])))))))))
+										add
+										call(as, [lambda(0, void)])
+										let(
+											all-args
+											call(
+												arr
+												[
+													call(unsafe-to-nat, [call(to-int, [param-ref(argc)])])
+													param-ref(argv)])
+											call(
+												call-with-ctx
+												[
+													local-ref(add)
+													local-ref(ctx)
+													local-ref(all-args)
+													param-ref(main-ptr)]))))))))))
 		fun(
 			false
 			new-exception-ctx
@@ -1126,8 +1690,9 @@ program(
 			none
 			[param(jmp-buf-ptr, type(false, ptr)), param(thrown-exception, type(false, exception))]
 			new-record)
-		fun(false, null, type(false, ptr), none, [], builtin([type(false, jmp-buf-tag)]))
-		fun(false, exception, type(false, exception), none, [param(message, type(false, arr))], new-record)
+		fun(false, new-log-ctx, type(false, log-ctx), none, [], expr-body(call(log-ctx, [call(uninitialized, [])])))
+		fun(false, log-ctx, type(false, log-ctx), none, [param(handler, type(false, fun1))], new-record)
+		fun(false, uninitialized, type(false, fun1), none, [], builtin([type(false, fun1)]))
 		fun(
 			false
 			as
@@ -1140,7 +1705,7 @@ program(
 			thread-local-stuff
 			type(false, thread-local-stuff)
 			none
-			[param(exception-ctx, type(true, exception-ctx))]
+			[param(exception-ctx, type(true, exception-ctx)), param(log-ctx, type(true, log-ctx))]
 			new-record)
 		fun(
 			false
@@ -1149,6 +1714,13 @@ program(
 			none
 			[param(b, type(false, exception-ctx))]
 			builtin([type(true, exception-ctx)]))
+		fun(
+			false
+			ref-of-val
+			type(true, log-ctx)
+			none
+			[param(b, type(false, log-ctx))]
+			builtin([type(true, log-ctx)]))
 		fun(
 			false
 			new-ctx
@@ -1160,34 +1732,30 @@ program(
 				param(island, type(true, island))
 				param(exclusion, type(false, nat))]
 			expr-body(
-				call(
-					ctx
-					[
-						call(as-any-ptr, [param-ref(gctx)])
-						call(id, [param-ref(island)])
-						param-ref(exclusion)
-						call(as-any-ptr, [call(get-gc-ctx, [call(ref-of-val, [call(gc, [param-ref(island)])])])])
-						call(as-any-ptr, [call(exception-ctx, [param-ref(tls)])])])))
-		fun(
-			false
-			ctx
-			type(false, ctx)
-			none
-			[
-				param(gctx-ptr, type(false, ptr))
-				param(island-id, type(false, nat))
-				param(exclusion, type(false, nat))
-				param(gc-ctx-ptr, type(false, ptr))
-				param(exception-ctx-ptr, type(false, ptr))]
-			new-record)
-		fun(
-			false
-			as-any-ptr
-			type(false, ptr)
-			none
-			[param(ref, type(true, global-ctx))]
-			builtin([type(true, global-ctx)]))
-		fun(false, id, type(false, nat), none, [param(a, type(true, island))], field-get(1))
+				let(
+					gc-ctx
+					call(as-any-ptr, [call(get-gc-ctx, [call(ref-of-val, [call(gc, [param-ref(island)])])])])
+					let(
+						exception-ctx
+						call(exception-ctx, [param-ref(tls)])
+						let(
+							log-ctx
+							call(log-ctx, [param-ref(tls)])
+							seq(
+								call(
+									set-handler
+									[
+										local-ref(log-ctx)
+										call(log-handler, [call(ref-of-val, [call(gc-root, [param-ref(island)])])])])
+								call(
+									ctx
+									[
+										call(as-any-ptr, [param-ref(gctx)])
+										call(id, [param-ref(island)])
+										param-ref(exclusion)
+										local-ref(gc-ctx)
+										call(as-any-ptr, [local-ref(exception-ctx)])
+										call(as-any-ptr, [local-ref(log-ctx)])])))))))
 		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(true, gc-ctx))], builtin([type(true, gc-ctx)]))
 		fun(
 			false
@@ -1242,7 +1810,7 @@ program(
 					call(not, [call(try-acquire-lock, [param-ref(a)])])
 					cond(
 						call(==, [param-ref(n-tries), 1000])
-						call(hard-fail, [arr(0, 5)])
+						call(hard-fail, [arr(0, 10)])
 						seq(
 							call(yield-thread, [])
 							call(acquire-lock-recur, [param-ref(a), call(noctx-incr, [param-ref(n-tries)])])))
@@ -1338,7 +1906,6 @@ program(
 		fun(false, ref-of-val, type(true, lock), none, [param(b, type(false, lock))], builtin([type(true, lock)]))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, gc))], field-get(0))
 		fun(false, context-head, type(false, opt), none, [param(a, type(true, gc))], field-get(2))
-		fun(false, as-ref, type(true, gc-ctx), none, [param(p, type(false, ptr))], builtin([type(true, gc-ctx)]))
 		fun(false, size-of, type(false, nat), none, [], builtin([type(false, gc-ctx)]))
 		fun(
 			false
@@ -1388,6 +1955,51 @@ program(
 		fun(false, gc, type(false, gc), none, [param(a, type(true, island))], field-get(2))
 		fun(
 			false
+			exception-ctx
+			type(true, exception-ctx)
+			none
+			[param(a, type(true, thread-local-stuff))]
+			field-get(0))
+		fun(false, log-ctx, type(true, log-ctx), none, [param(a, type(true, thread-local-stuff))], field-get(1))
+		fun(
+			false
+			set-handler
+			type(false, void)
+			none
+			[param(a, type(true, log-ctx)), param(handler, type(false, fun1))]
+			field-set(0))
+		fun(false, log-handler, type(false, fun1), none, [param(a, type(true, island-gc-root))], field-get(2))
+		fun(
+			false
+			ref-of-val
+			type(true, island-gc-root)
+			none
+			[param(b, type(false, island-gc-root))]
+			builtin([type(true, island-gc-root)]))
+		fun(false, gc-root, type(false, island-gc-root), none, [param(a, type(true, island))], field-get(3))
+		fun(
+			false
+			ctx
+			type(false, ctx)
+			none
+			[
+				param(gctx-ptr, type(false, ptr))
+				param(island-id, type(false, nat))
+				param(exclusion, type(false, nat))
+				param(gc-ctx-ptr, type(false, ptr))
+				param(exception-ctx-ptr, type(false, ptr))
+				param(log-ctx, type(false, ptr))]
+			new-record)
+		fun(
+			false
+			as-any-ptr
+			type(false, ptr)
+			none
+			[param(ref, type(true, global-ctx))]
+			builtin([type(true, global-ctx)]))
+		fun(false, id, type(false, nat), none, [param(a, type(true, island))], field-get(1))
+		fun(
+			false
 			as-any-ptr
 			type(false, ptr)
 			none
@@ -1395,11 +2007,11 @@ program(
 			builtin([type(true, exception-ctx)]))
 		fun(
 			false
-			exception-ctx
-			type(true, exception-ctx)
+			as-any-ptr
+			type(false, ptr)
 			none
-			[param(a, type(true, thread-local-stuff))]
-			field-get(0))
+			[param(ref, type(true, log-ctx))]
+			builtin([type(true, log-ctx)]))
 		fun(
 			false
 			ref-of-val
@@ -1645,8 +2257,8 @@ program(
 									case(
 										some(cbs)
 										call(resolve-or-reject-recur, [call(head, [local-ref(cbs)]), param-ref(result)]))
-									case(none, call(hard-fail, [arr(0, 6)]))
-									case(none, call(hard-fail, [arr(0, 6)]))]))
+									case(none, call(hard-fail, [arr(0, 11)]))
+									case(none, call(hard-fail, [arr(0, 11)]))]))
 						call(
 							set-state
 							[
@@ -1738,83 +2350,6 @@ program(
 				seq(
 					call(assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
 					call(noctx-at, [param-ref(a), param-ref(index)]))))
-		fun(
-			true
-			assert
-			type(false, void)
-			none
-			[param(condition, type(false, bool))]
-			expr-body(call(assert, [param-ref(condition), arr(0, 7)])))
-		fun(
-			true
-			assert
-			type(false, void)
-			none
-			[param(condition, type(false, bool)), param(message, type(false, arr))]
-			expr-body(cond(call(not, [param-ref(condition)]), call(fail, [param-ref(message)]), void)))
-		fun(
-			true
-			fail
-			type(false, void)
-			none
-			[param(reason, type(false, arr))]
-			expr-body(call(throw, [call(exception, [param-ref(reason)])])))
-		fun(
-			true
-			throw
-			type(false, void)
-			none
-			[param(e, type(false, exception))]
-			expr-body(
-				let(
-					exn-ctx
-					call(get-exception-ctx, [])
-					seq(
-						seq(
-							seq(
-								call(hard-forbid, [call(null?, [call(jmp-buf-ptr, [local-ref(exn-ctx)])])])
-								call(set-thrown-exception, [local-ref(exn-ctx), param-ref(e)]))
-							call(longjmp, [call(jmp-buf-ptr, [local-ref(exn-ctx)]), call(number-to-throw, [])]))
-						call(todo, [])))))
-		fun(
-			true
-			get-exception-ctx
-			type(true, exception-ctx)
-			none
-			[]
-			expr-body(call(as-ref, [call(exception-ctx-ptr, [call(get-ctx, [])])])))
-		fun(
-			false
-			as-ref
-			type(true, exception-ctx)
-			none
-			[param(p, type(false, ptr))]
-			builtin([type(true, exception-ctx)]))
-		fun(false, exception-ctx-ptr, type(false, ptr), none, [param(a, type(true, ctx))], field-get(4))
-		fun(
-			false
-			null?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr))]
-			expr-body(call(==, [call(to-nat, [param-ref(a)]), call(to-nat, [call(null, [])])])))
-		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, jmp-buf-tag)]))
-		fun(false, jmp-buf-ptr, type(false, ptr), none, [param(a, type(true, exception-ctx))], field-get(0))
-		fun(
-			false
-			set-thrown-exception
-			type(false, void)
-			none
-			[param(a, type(true, exception-ctx)), param(thrown-exception, type(false, exception))]
-			field-set(1))
-		fun(
-			false
-			longjmp
-			type(false, void)
-			none
-			[param(env, type(false, ptr)), param(val, type(false, int32))]
-			extern(false))
-		fun(true, number-to-throw, type(false, int32), none, [], expr-body(7))
 		fun(false, size, type(false, nat), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			false
@@ -1917,14 +2452,6 @@ program(
 			[param(b, type(false, mut-bag))]
 			builtin([type(true, mut-bag)]))
 		fun(false, tasks, type(false, mut-bag), none, [param(a, type(true, island-gc-root))], field-get(0))
-		fun(
-			false
-			ref-of-val
-			type(true, island-gc-root)
-			none
-			[param(b, type(false, island-gc-root))]
-			builtin([type(true, island-gc-root)]))
-		fun(false, gc-root, type(false, island-gc-root), none, [param(a, type(true, island))], field-get(3))
 		fun(
 			false
 			broadcast
@@ -2331,20 +2858,6 @@ program(
 			[param(a, type(false, arr))]
 			expr-body(seq(call(forbid, [call(empty?, [param-ref(a)])]), call(slice-starting-at, [param-ref(a), 1]))))
 		fun(
-			true
-			forbid
-			type(false, void)
-			none
-			[param(condition, type(false, bool))]
-			expr-body(call(forbid, [param-ref(condition), arr(0, 8)])))
-		fun(
-			true
-			forbid
-			type(false, void)
-			none
-			[param(condition, type(false, bool)), param(message, type(false, arr))]
-			expr-body(cond(param-ref(condition), call(fail, [param-ref(message)]), void)))
-		fun(
 			false
 			empty?
 			type(false, bool)
@@ -2375,38 +2888,6 @@ program(
 					call(assert, [call(<=, [call(+, [param-ref(begin), param-ref(size)]), call(size, [param-ref(a)])])])
 					call(arr, [param-ref(size), call(+, [call(data, [param-ref(a)]), param-ref(begin)])]))))
 		fun(
-			true
-			+
-			type(false, nat)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			expr-body(
-				let(
-					res
-					call(wrap-add, [param-ref(a), param-ref(b)])
-					seq(
-						call(
-							assert
-							[
-								call(
-									and
-									[call(>=, [local-ref(res), param-ref(a)]), call(>=, [local-ref(res), param-ref(b)])])])
-						local-ref(res)))))
-		fun(
-			false
-			and
-			type(false, bool)
-			none
-			[param(a, type(false, bool)), param(b, type(false, bool))]
-			builtin([]))
-		fun(
-			false
-			>=
-			type(false, bool)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			expr-body(call(not, [call(<, [param-ref(a), param-ref(b)])])))
-		fun(
 			false
 			arr
 			type(false, arr)
@@ -2421,16 +2902,6 @@ program(
 			[param(p, type(false, ptr)), param(offset, type(false, nat))]
 			builtin([type(false, ptr)]))
 		fun(false, data, type(false, ptr), none, [param(a, type(false, arr))], field-get(1))
-		fun(
-			true
-			-
-			type(false, nat)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			expr-body(
-				seq(
-					call(assert, [call(>=, [param-ref(a), param-ref(b)])])
-					call(wrap-sub, [param-ref(a), param-ref(b)]))))
 		fun(
 			false
 			call
@@ -2526,241 +2997,6 @@ program(
 					bptr
 					call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
 					call(ptr-cast, [local-ref(bptr)]))))
-		fun(
-			true
-			alloc
-			type(false, ptr)
-			none
-			[param(size, type(false, nat))]
-			expr-body(call(gc-alloc, [call(get-gc, []), param-ref(size)])))
-		fun(
-			true
-			gc-alloc
-			type(false, ptr)
-			none
-			[param(gc, type(true, gc)), param(size, type(false, nat))]
-			expr-body(
-				match(
-					call(try-gc-alloc, [param-ref(gc), param-ref(size)])
-					[case(none, call(todo, [])), case(some(s), call(value, [local-ref(s)]))])))
-		fun(
-			false
-			try-gc-alloc
-			type(false, opt)
-			none
-			[param(gc, type(true, gc)), param(size-bytes, type(false, nat))]
-			expr-body(
-				seq(
-					call(validate-gc, [param-ref(gc)])
-					let(
-						size-words
-						call(words-of-bytes, [param-ref(size-bytes)])
-						let(
-							cur
-							call(data-cur, [param-ref(gc)])
-							let(
-								next
-								call(+, [local-ref(cur), local-ref(size-words)])
-								cond(
-									call(ptr-less?, [local-ref(next), call(data-end, [param-ref(gc)])])
-									cond(
-										call(
-											range-free?
-											[
-												call(mark-cur, [param-ref(gc)])
-												call(+, [call(mark-cur, [param-ref(gc)]), local-ref(size-words)])])
-										seq(
-											seq(
-												call(
-													set-mark-cur
-													[
-														param-ref(gc)
-														call(
-															+
-															[call(mark-cur, [param-ref(gc)]), local-ref(size-words)])])
-												call(set-data-cur, [param-ref(gc), local-ref(next)]))
-											to-union(1, call(some, [call(ptr-cast, [local-ref(cur)])])))
-										seq(
-											seq(
-												call(
-													set-mark-cur
-													[param-ref(gc), call(incr, [call(mark-cur, [param-ref(gc)])])])
-												call(
-													set-data-cur
-													[param-ref(gc), call(incr, [call(data-cur, [param-ref(gc)])])]))
-											call(try-gc-alloc, [param-ref(gc), param-ref(size-bytes)])))
-									to-union(0, call(none, [])))))))))
-		fun(
-			false
-			validate-gc
-			type(false, void)
-			none
-			[param(gc, type(true, gc))]
-			expr-body(
-				seq(
-					seq(
-						seq(
-							seq(
-								call(
-									hard-assert
-									[
-										call(
-											ptr-less-eq?
-											[call(mark-begin, [param-ref(gc)]), call(mark-cur, [param-ref(gc)])])])
-								call(
-									hard-assert
-									[
-										call(
-											ptr-less-eq?
-											[call(mark-cur, [param-ref(gc)]), call(mark-end, [param-ref(gc)])])]))
-							call(
-								hard-assert
-								[
-									call(
-										ptr-less-eq?
-										[call(data-begin, [param-ref(gc)]), call(data-cur, [param-ref(gc)])])]))
-						call(
-							hard-assert
-							[call(ptr-less-eq?, [call(data-cur, [param-ref(gc)]), call(data-end, [param-ref(gc)])])]))
-					let(
-						mark-idx
-						call(-, [call(mark-cur, [param-ref(gc)]), call(mark-begin, [param-ref(gc)])])
-						let(
-							data-idx
-							call(-, [call(data-cur, [param-ref(gc)]), call(data-begin, [param-ref(gc)])])
-							seq(
-								seq(
-									call(
-										hard-assert
-										[
-											call(
-												==
-												[
-													call(
-														-
-														[
-															call(mark-end, [param-ref(gc)])
-															call(mark-begin, [param-ref(gc)])])
-													call(size-words, [param-ref(gc)])])])
-									call(
-										hard-assert
-										[
-											call(
-												==
-												[
-													call(
-														-
-														[
-															call(data-end, [param-ref(gc)])
-															call(data-begin, [param-ref(gc)])])
-													call(size-words, [param-ref(gc)])])]))
-								call(hard-assert, [call(==, [local-ref(mark-idx), local-ref(data-idx)])])))))))
-		fun(
-			false
-			ptr-less-eq?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(
-				call(or, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
-		fun(
-			false
-			ptr-less?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			builtin([type(false, bool)]))
-		fun(false, mark-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(5))
-		fun(false, mark-cur, type(false, ptr), none, [param(a, type(true, gc))], field-get(6))
-		fun(false, mark-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(7))
-		fun(
-			false
-			ptr-less-eq?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(
-				call(or, [call(ptr-less?, [param-ref(a), param-ref(b)]), call(ptr-eq?, [param-ref(a), param-ref(b)])])))
-		fun(
-			false
-			ptr-less?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			builtin([type(false, nat)]))
-		fun(
-			false
-			ptr-eq?
-			type(false, bool)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			builtin([type(false, nat)]))
-		fun(false, data-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(8))
-		fun(false, data-cur, type(false, ptr), none, [param(a, type(true, gc))], field-get(9))
-		fun(false, data-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(10))
-		fun(
-			false
-			-
-			type(false, nat)
-			none
-			[param(a, type(false, ptr)), param(b, type(false, ptr))]
-			expr-body(
-				call(
-					unsafe-div
-					[call(wrap-sub, [call(to-nat, [param-ref(a)]), call(to-nat, [param-ref(b)])]), call(size-of, [])])))
-		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, bool)]))
-		fun(false, size-of, type(false, nat), none, [], builtin([type(false, bool)]))
-		fun(false, size-words, type(false, nat), none, [param(a, type(true, gc))], field-get(4))
-		fun(
-			false
-			range-free?
-			type(false, bool)
-			none
-			[param(mark, type(false, ptr)), param(end, type(false, ptr))]
-			expr-body(
-				cond(
-					call(ptr-eq?, [param-ref(mark), param-ref(end)])
-					call(true, [])
-					cond(
-						call(deref, [param-ref(mark)])
-						call(false, [])
-						call(range-free?, [call(incr, [param-ref(mark)]), param-ref(end)])))))
-		fun(
-			false
-			set-mark-cur
-			type(false, void)
-			none
-			[param(a, type(true, gc)), param(mark-cur, type(false, ptr))]
-			field-set(6))
-		fun(
-			false
-			set-data-cur
-			type(false, void)
-			none
-			[param(a, type(true, gc)), param(data-cur, type(false, ptr))]
-			field-set(9))
-		fun(false, some, type(false, some), none, [param(value, type(false, ptr))], new-record)
-		fun(
-			false
-			ptr-cast
-			type(false, ptr)
-			none
-			[param(p, type(false, ptr))]
-			builtin([type(false, nat8), type(false, nat)]))
-		fun(false, incr, type(false, ptr), none, [param(p, type(false, ptr))], expr-body(call(+, [param-ref(p), 1])))
-		fun(false, todo, type(false, ptr), none, [], expr-body(call(hard-fail, [arr(0, 1)])))
-		fun(false, hard-fail, type(false, ptr), none, [param(reason, type(false, arr))], builtin([type(false, ptr)]))
-		fun(false, value, type(false, ptr), none, [param(a, type(false, some))], field-get(0))
-		fun(true, get-gc, type(true, gc), none, [], expr-body(call(gc, [call(get-gc-ctx, [])])))
-		fun(false, gc, type(true, gc), none, [param(a, type(true, gc-ctx))], field-get(0))
-		fun(
-			true
-			get-gc-ctx
-			type(true, gc-ctx)
-			none
-			[]
-			expr-body(call(as-ref, [call(gc-ctx-ptr, [call(get-ctx, [])])])))
-		fun(false, gc-ctx-ptr, type(false, ptr), none, [param(a, type(true, ctx))], field-get(3))
 		fun(false, size-of, type(false, nat), none, [], builtin([type(false, arr)]))
 		fun(
 			false
@@ -2782,13 +3018,6 @@ program(
 						call(set-at, [param-ref(m), param-ref(i), call(call, [param-ref(f), param-ref(i)])])
 						call(make-mut-arr-worker, [param-ref(m), call(incr, [param-ref(i)]), param-ref(f)]))
 					void)))
-		fun(
-			false
-			!=
-			type(false, bool)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			expr-body(call(not, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(
 			true
 			set-at
@@ -3110,11 +3339,19 @@ program(
 					ectx
 					call(new-exception-ctx, [])
 					let(
-						tls
-						call(as, [call(thread-local-stuff, [call(ref-of-val, [local-ref(ectx)])])])
-						call(
-							thread-function-recur
-							[param-ref(thread-id), param-ref(gctx), call(ref-of-val, [local-ref(tls)])])))))
+						log-ctx
+						call(new-log-ctx, [])
+						let(
+							tls
+							call(
+								as
+								[
+									call(
+										thread-local-stuff
+										[call(ref-of-val, [local-ref(ectx)]), call(ref-of-val, [local-ref(log-ctx)])])])
+							call(
+								thread-function-recur
+								[param-ref(thread-id), param-ref(gctx), call(ref-of-val, [local-ref(tls)])]))))))
 		fun(
 			false
 			thread-function-recur
@@ -3800,7 +4037,7 @@ program(
 			expr-body(
 				cond(
 					call(==, [param-ref(index), call(size, [param-ref(a)])])
-					call(hard-fail, [arr(0, 9)])
+					call(hard-fail, [arr(0, 12)])
 					cond(
 						call(==, [call(noctx-at, [param-ref(a), param-ref(index)]), param-ref(value)])
 						call(drop, [call(noctx-remove-unordered-at-index, [param-ref(a), param-ref(index)])])
@@ -3996,7 +4233,7 @@ program(
 						case(none, call(hard-unreachable, []))
 						case(some(r), to-union(0, call(ok, [call(value, [local-ref(r)])])))
 						case(some(e), to-union(1, call(err, [local-ref(e)])))])))
-		fun(false, hard-unreachable, type(false, result), none, [], expr-body(call(hard-fail, [arr(0, 10)])))
+		fun(false, hard-unreachable, type(false, result), none, [], expr-body(call(hard-fail, [arr(0, 13)])))
 		fun(
 			false
 			hard-fail
@@ -4022,21 +4259,6 @@ program(
 			none
 			[param(width, type(false, float)), param(height, type(false, float))]
 			new-record)
-		fun(
-			false
-			print
-			type(false, void)
-			none
-			[param(a, type(false, arr))]
-			expr-body(seq(call(print-no-newline, [param-ref(a)]), call(print-no-newline, [arr(0, 3)]))))
-		fun(
-			false
-			print-no-newline
-			type(false, void)
-			none
-			[param(a, type(false, arr))]
-			expr-body(call(write-no-newline, [call(stdout-fd, []), param-ref(a)])))
-		fun(false, stdout-fd, type(false, int32), none, [], expr-body(1))
 		fun(
 			true
 			to-str
@@ -4064,12 +4286,12 @@ program(
 										call(
 											+
 											[
-												call(+, [local-ref(whole-part), arr(0, 23)])
+												call(+, [local-ref(whole-part), arr(0, 26)])
 												call(to-str, [local-ref(tenths)])])
 										call(
 											+
 											[
-												call(+, [local-ref(whole-part), arr(0, 23)])
+												call(+, [local-ref(whole-part), arr(0, 26)])
 												call(to-str, [local-ref(hundredths)])])))))))))
 		fun(false, truncate-to-int, type(false, int), none, [param(a, type(false, float))], builtin([]))
 		fun(
@@ -4175,13 +4397,6 @@ program(
 			builtin([type(false, nat)]))
 		fun(
 			true
-			/
-			type(false, nat)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			expr-body(seq(call(forbid, [call(==, [param-ref(b), 0])]), call(unsafe-div, [param-ref(a), param-ref(b)]))))
-		fun(
-			true
 			to-str
 			type(false, arr)
 			none
@@ -4190,7 +4405,7 @@ program(
 				let(
 					a
 					call(to-str, [call(abs, [param-ref(i)])])
-					call(?, [call(negative?, [param-ref(i)]), call(+, [arr(0, 22), local-ref(a)]), local-ref(a)]))))
+					call(?, [call(negative?, [param-ref(i)]), call(+, [arr(0, 25), local-ref(a)]), local-ref(a)]))))
 		fun(
 			true
 			to-str
@@ -4200,34 +4415,34 @@ program(
 			expr-body(
 				cond(
 					call(==, [param-ref(n), 0])
-					arr(0, 12)
+					arr(0, 15)
 					cond(
 						call(==, [param-ref(n), 1])
-						arr(0, 13)
+						arr(0, 16)
 						cond(
 							call(==, [param-ref(n), 2])
-							arr(0, 14)
+							arr(0, 17)
 							cond(
 								call(==, [param-ref(n), 3])
-								arr(0, 15)
+								arr(0, 18)
 								cond(
 									call(==, [param-ref(n), 4])
-									arr(0, 16)
+									arr(0, 19)
 									cond(
 										call(==, [param-ref(n), 5])
-										arr(0, 17)
+										arr(0, 20)
 										cond(
 											call(==, [param-ref(n), 6])
-											arr(0, 18)
+											arr(0, 21)
 											cond(
 												call(==, [param-ref(n), 7])
-												arr(0, 19)
+												arr(0, 22)
 												cond(
 													call(==, [param-ref(n), 8])
-													arr(0, 20)
+													arr(0, 23)
 													cond(
 														call(==, [param-ref(n), 9])
-														arr(0, 21)
+														arr(0, 24)
 														let(
 															hi
 															call(to-str, [call(/, [param-ref(n), 10])])
@@ -4235,106 +4450,6 @@ program(
 																lo
 																call(to-str, [call(mod, [param-ref(n), 10])])
 																call(+, [local-ref(hi), local-ref(lo)])))))))))))))))
-		fun(
-			true
-			+
-			type(false, arr)
-			none
-			[param(a, type(false, arr)), param(b, type(false, arr))]
-			expr-body(
-				let(
-					res-size
-					call(+, [call(size, [param-ref(a)]), call(size, [param-ref(b)])])
-					let(
-						res
-						call(uninitialized-data, [local-ref(res-size)])
-						seq(
-							seq(
-								call(
-									copy-data-from
-									[local-ref(res), call(data, [param-ref(a)]), call(size, [param-ref(a)])])
-								call(
-									copy-data-from
-									[
-										call(+, [local-ref(res), call(size, [param-ref(a)])])
-										call(data, [param-ref(b)])
-										call(size, [param-ref(b)])]))
-							call(arr, [local-ref(res-size), local-ref(res)]))))))
-		fun(
-			true
-			uninitialized-data
-			type(false, ptr)
-			none
-			[param(size, type(false, nat))]
-			expr-body(
-				let(
-					bptr
-					call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
-					call(ptr-cast, [local-ref(bptr)]))))
-		fun(
-			false
-			ptr-cast
-			type(false, ptr)
-			none
-			[param(p, type(false, ptr))]
-			builtin([type(false, char), type(false, nat8)]))
-		fun(
-			true
-			copy-data-from
-			type(false, void)
-			none
-			[param(to, type(false, ptr)), param(from, type(false, ptr)), param(len, type(false, nat))]
-			expr-body(
-				cond(
-					call(<, [param-ref(len), 8])
-					call(copy-data-from-small, [param-ref(to), param-ref(from), param-ref(len)])
-					let(
-						hl
-						call(/, [param-ref(len), 2])
-						seq(
-							call(copy-data-from, [param-ref(to), param-ref(from), local-ref(hl)])
-							call(
-								copy-data-from
-								[
-									call(+, [param-ref(to), local-ref(hl)])
-									call(+, [param-ref(from), local-ref(hl)])
-									call(-, [param-ref(len), local-ref(hl)])]))))))
-		fun(
-			true
-			copy-data-from-small
-			type(false, void)
-			none
-			[param(to, type(false, ptr)), param(from, type(false, ptr)), param(len, type(false, nat))]
-			expr-body(
-				cond(
-					call(!=, [param-ref(len), 0])
-					seq(
-						call(set, [param-ref(to), call(deref, [param-ref(from)])])
-						call(
-							copy-data-from
-							[call(incr, [param-ref(to)]), call(incr, [param-ref(from)]), call(decr, [param-ref(len)])]))
-					void)))
-		fun(
-			false
-			set
-			type(false, void)
-			none
-			[param(p, type(false, ptr)), param(value, type(false, char))]
-			builtin([type(false, char)]))
-		fun(
-			true
-			decr
-			type(false, nat)
-			none
-			[param(a, type(false, nat))]
-			expr-body(seq(call(forbid, [call(==, [param-ref(a), 0])]), call(wrap-decr, [param-ref(a)]))))
-		fun(
-			false
-			wrap-decr
-			type(false, nat)
-			none
-			[param(a, type(false, nat))]
-			expr-body(call(wrap-sub, [param-ref(a), 1])))
 		fun(
 			true
 			/

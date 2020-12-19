@@ -6,6 +6,7 @@ export
 	.exceptions
 	.fut-utils
 	.iter
+	.logging
 	.number-utils
 	.opt-utils
 	.runtime

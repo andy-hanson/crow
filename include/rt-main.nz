@@ -10,6 +10,7 @@ import
 	.fut-low-level: must-be-resolved
 	.fut-utils: delay resolved then2
 	.io: exit-code print-err print-err-no-newline
+	.logging: new-log-ctx
 	.posix: eagain einval esrch pthread-create pthread-join pthread-t
 	.runtime
 		any-unhandled-exceptions? global-ctx new-ctx new-island set-islands thread-function
@@ -53,7 +54,8 @@ do-main fut exit-code(gctx global-ctx, island island, argc int32, argv ptr c-str
 	| Before we start the engine, add a task.
 	| Create a ctx manually so we can call functions that need it when creating the task
 	ectx = new-exception-ctx
-	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val
+	log-ctx = new-log-ctx
+	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val, log-ctx.ref-of-val
 	ctx-by-val = new-ctx: gctx, tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
 	add = as<fun2<fut<exit-code>, arr<c-str>, main-ptr>>: \all-args main-ptr

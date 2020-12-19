@@ -1,0 +1,90 @@
+module(
+	path: 21
+	imports: [
+		import(19, none)
+		import(8, none)
+		import(0, none)
+		import(1, none)
+		import(9, none)
+		import(5, none)
+		import(17, none)
+		import(18, none)
+		import(14, none)
+		import(6, none)
+		import(7, none)
+		import(16, none)
+		import(11, none)
+		import(12, none)
+		import(13, some([exit-code, print]))]
+	exports: []
+	structs: []
+	specs: []
+	funs: [
+		fun(
+			public?: true
+			summon: true
+			sig: sig(file-pos(21, 29), main, fut(int32()), [param(file-range(21, range(48, 60)), args, arr(arr(char())))])
+			body: seq(
+				call(
+					fun-inst(name: log)
+					[to-union(log-level(), 0, call(fun-inst(name: info), [])), string-lit("Logged once")])
+				let(
+					local(file-range(21, range(94, 96)), lh, fun1(void(), logged()))
+					call(fun-inst(name: get-log-handler), [])
+					let(
+						local(file-range(21, range(116, 123)), doubler, fun1(void(), logged()))
+						call(
+							fun-inst(name: as, type-args: [fun1(void(), logged())])
+							[
+								lambda(
+									[param(file-range(21, range(144, 150)), logged, logged())]
+									seq(
+										call(
+											fun-inst(name: call, type-args: [void(), logged()])
+											[closure-rf(lh), param-ref(logged)])
+										call(
+											fun-inst(name: call, type-args: [void(), logged()])
+											[closure-rf(lh), param-ref(logged)]))
+									[closure-f(lh, fun1(void(), logged()), local-ref(lh))]
+									fun1(void(), logged())
+									plain
+									void())])
+						seq(
+							seq(
+								call(
+									fun-inst(name: with-log-handler, type-args: [void()])
+									[
+										local-ref(doubler)
+										lambda(
+											[]
+											call(
+												fun-inst(name: log)
+												[
+													to-union(log-level(), 1, call(fun-inst(name: warn), []))
+													string-lit("Logged twice")])
+											[]
+											fun-mut0(void())
+											mut
+											void())])
+								call(
+									fun-inst(name: with-log-handler, type-args: [void()])
+									[
+										lambda(
+											[param(file-range(21, range(240, 242)), it, logged())]
+											call(fun-inst(name: drop, type-args: [logged()]), [param-ref(it)])
+											[]
+											fun1(void(), logged())
+											plain
+											void())
+										lambda(
+											[]
+											call(
+												fun-inst(name: log)
+												[
+													to-union(log-level(), 1, call(fun-inst(name: warn), []))
+													string-lit("Logged never")])
+											[]
+											fun-mut0(void())
+											mut
+											void())]))
+							call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)]))))))])

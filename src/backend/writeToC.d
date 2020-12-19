@@ -1083,7 +1083,11 @@ immutable(WriteResult) writeExpr(Alloc, TempAlloc)(
 			verify(isReturn(writeKind));
 			writeTailRecur(writer, tempAlloc, indent, ctx, it);
 			return immutable WriteResult(none!Temp);
-		});
+		},
+		(ref immutable LowExprKind.Uninitialized) =>
+			return_(() {
+				writeEmptyValue(writer, ctx.ctx, type);
+			}));
 }
 
 //TODO:RENAME
@@ -1550,7 +1554,8 @@ void writeLValue(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref i
 		(ref immutable LowExprKind.SpecialTrinary) => unreachable!void(),
 		(ref immutable LowExprKind.SpecialNAry) => unreachable!void(),
 		(ref immutable LowExprKind.Switch) => unreachable!void(),
-		(ref immutable LowExprKind.TailRecur) => unreachable!void());
+		(ref immutable LowExprKind.TailRecur) => unreachable!void(),
+		(ref immutable LowExprKind.Uninitialized) => unreachable!void());
 }
 
 void writeHardFail(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType type) {

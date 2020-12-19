@@ -526,7 +526,7 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		(ref immutable Diag.LambdaClosesOverMut d) {
 			writeStatic(writer, "lambda is a plain 'fun' but closes over ");
 			writeName(writer, d.field.name);
-			writeStatic(writer, " of of 'mut' type ");
+			writeStatic(writer, " of 'mut' type ");
 			writeType(writer, d.field.type);
 			writeStatic(writer, " (should it be a 'fun-mut'?)");
 		},

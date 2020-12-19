@@ -1,6 +1,8 @@
 | Unrecoverable assertion failure
 hard-fail ?t(reason str) noctx unsafe builtin
 
+uninitialized ?t() noctx unsafe builtin
+
 hard-unreachable ?t() noctx unsafe
 	hard-fail: "unreachable"
 
@@ -182,6 +184,7 @@ fun-ptr4<?r, ?p0, ?p1, ?p2, ?p3> builtin
 fun-ptr5<?r, ?p0, ?p1, ?p2, ?p3, ?p4> builtin
 fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5> builtin
 
+| The ctx only exists temporarily, so can use 'any-ptr' without worrying about GC
 ctx record mut
 	by-ref
 	gctx-ptr any-ptr
@@ -189,6 +192,7 @@ ctx record mut
 	exclusion exclusion
 	gc-ctx-ptr any-ptr
 	exception-ctx-ptr any-ptr
+	log-ctx any-ptr
 
 island-id alias
 	nat
@@ -201,10 +205,10 @@ island-and-exclusion record
 	island island-id
 	exclusion exclusion
 
-fun0<?r> builtin mut
-fun1<?r, ?p0> builtin mut
-fun2<?r, ?p0, ?p1> builtin mut
-fun3<?r, ?p0, ?p1, ?p2> builtin mut
+fun0<?r> builtin sendable
+fun1<?r, ?p0> builtin sendable
+fun2<?r, ?p0, ?p1> builtin sendable
+fun3<?r, ?p0, ?p1, ?p2> builtin sendable
 
 | A fun-mut may close over 'mut' state.
 | (A normal 'fun' may still close over mutable state that is sendable.)

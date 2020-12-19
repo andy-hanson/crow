@@ -800,6 +800,8 @@ struct LowExprKind {
 		immutable Arr!LowExpr args;
 	}
 
+	struct Uninitialized {}
+
 	private:
 	enum Kind {
 		call,
@@ -822,6 +824,7 @@ struct LowExprKind {
 		specialNAry,
 		switch_,
 		tailRecur,
+		uninitialized,
 	}
 	public immutable Kind kind; //TODO:PRIVATE
 	union {
@@ -845,6 +848,7 @@ struct LowExprKind {
 		immutable SpecialNAry specialNAry;
 		immutable Switch switch_;
 		immutable TailRecur tailRecur;
+		immutable Uninitialized uninitialized;
 	}
 
 	public:
@@ -868,6 +872,7 @@ struct LowExprKind {
 	@trusted immutable this(immutable SpecialNAry a) { kind = Kind.specialNAry; specialNAry = a; }
 	@trusted immutable this(immutable Switch a) { kind = Kind.switch_; switch_ = a; }
 	@trusted immutable this(immutable TailRecur a) { kind = Kind.tailRecur; tailRecur = a; }
+	@trusted immutable this(immutable Uninitialized a) { kind = Kind.uninitialized; uninitialized = a; }
 }
 static assert(LowExprKind.sizeof <= 32);
 
@@ -893,6 +898,7 @@ static assert(LowExprKind.sizeof <= 32);
 	scope T delegate(ref immutable LowExprKind.SpecialNAry) @safe @nogc pure nothrow cbSpecialNAry,
 	scope T delegate(ref immutable LowExprKind.Switch) @safe @nogc pure nothrow cbSwitch,
 	scope T delegate(ref immutable LowExprKind.TailRecur) @safe @nogc pure nothrow cbTailRecur,
+	scope T delegate(ref immutable LowExprKind.Uninitialized) @safe @nogc pure nothrow cbUninitialized,
 ) {
 	final switch (a.kind) {
 		case LowExprKind.Kind.call:
@@ -935,6 +941,8 @@ static assert(LowExprKind.sizeof <= 32);
 			return cbSwitch(a.switch_);
 		case LowExprKind.Kind.tailRecur:
 			return cbTailRecur(a.tailRecur);
+		case LowExprKind.Kind.uninitialized:
+			return cbUninitialized(a.uninitialized);
 	}
 }
 

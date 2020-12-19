@@ -1,0 +1,14 @@
+import
+	io: exit-code print
+
+main fut exit-code(args arr str) summon
+	info log "Logged once"
+	lh = get-log-handler
+	doubler = as<log-handler>: \logged
+		lh call logged
+		lh call logged
+	doubler with-log-handler \
+		warn log "Logged twice"
+	{it drop} with-log-handler \
+		warn log "Logged never"
+	0 resolved

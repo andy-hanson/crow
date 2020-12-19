@@ -1313,6 +1313,9 @@ immutable(LowExprKind) getCallBuiltinExpr(Alloc)(
 			immutable LowType typeArg =
 				lowTypeFromConcreteType(alloc, ctx.getLowTypeCtx, only(asBuiltin(body_(a.called)).typeArgs));
 			return immutable LowExprKind(immutable LowExprKind.SizeOf(typeArg));
+		},
+		(ref immutable BuiltinKind.Uninitialized) {
+			return immutable LowExprKind(immutable LowExprKind.Uninitialized());
 		});
 }
 

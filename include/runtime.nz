@@ -10,6 +10,7 @@ import
 		ref-of-val result size some todo true value void
 	.exceptions: exception-ctx new-exception-ctx
 	.io: print-err print-err-no-newline
+	.logging: default-log-handler log-ctx log-handler new-log-ctx set-handler
 	.mut-bag: add empty? head mut-bag mut-bag-node next-node new-mut-bag new-mut-bag-node set-head set-next-node value
 	.thread-utils
 		acquire-lock broadcast condition get-and-increment get-last-checked new-lock
@@ -64,6 +65,7 @@ island-gc-root record mut
 	| if there's an exception, we'll enqueue this as a task.
 	| Default is to print it and set `gctx.any-unhandled-exceptions`
 	exception-handler mut fun-mut1 void exception
+	log-handler mut log-handler
 
 tasks mut-bag task(a island) noctx unsafe
 	a.gc-root.ref-of-val.tasks ref-of-val
@@ -85,9 +87,11 @@ new-mut-arr-by-val-with-capacity-from-unmanaged-memory by-val mut-arr<?t>(capaci
 
 new-island by-val island(gctx global-ctx, id island-id, max-threads nat) summon noctx unsafe
 	exclusions = max-threads new-mut-arr-by-val-with-capacity-from-unmanaged-memory<exclusion>
-	gc-root = as<by-val<island-gc-root>>: island-gc-root: new-mut-bag, {it default-exception-handler}
+	gc-root = as<by-val<island-gc-root>>: island-gc-root: new-mut-bag, {it default-exception-handler}, \log
+		log default-log-handler
 	island: gctx, id, new-gc, gc-root, new-lock, exclusions, 0, new-thread-safe-counter
 
+| TODO: move to exceptions.nz
 default-exception-handler void(e exception) summon unsafe
 	print-err-no-newline: "uncaught exception: "
 	print-err: e.message.empty? ? "<<empty message>>", e.message
@@ -111,10 +115,13 @@ thread-local-stuff record mut
 	by-ref
 	| Reusing the exception ctx to avoid needing to allocate it every time
 	exception-ctx exception-ctx
+	| Similar for log ctx
+	log-ctx log-ctx
 
 thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 	ectx = new-exception-ctx
-	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val
+	log-ctx = new-log-ctx
+	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val, log-ctx.ref-of-val
 	thread-function-recur: thread-id, gctx, tls.ref-of-val
 
 thread-function-recur void(thread-id nat, gctx global-ctx, tls thread-local-stuff) noctx unsafe summon
@@ -150,7 +157,11 @@ thread-function-recur void(thread-id nat, gctx global-ctx, tls thread-local-stuf
 		thread-function-recur: thread-id, gctx, tls
 
 new-ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion exclusion) noctx unsafe
-	ctx: gctx.as-any-ptr, island.id, exclusion, island.gc.ref-of-val.get-gc-ctx.as-any-ptr, tls.exception-ctx.as-any-ptr
+	gc-ctx = island.gc.ref-of-val.get-gc-ctx.as-any-ptr
+	exception-ctx = tls exception-ctx
+	log-ctx = tls.log-ctx
+	log-ctx set-handler island.gc-root.ref-of-val.log-handler
+	ctx: gctx.as-any-ptr, island.id, exclusion, gc-ctx, exception-ctx.as-any-ptr, log-ctx.as-any-ptr
 
 return-ctx void(c ctx) noctx unsafe
 	c.gc-ctx-ptr.as-ref return-gc-ctx

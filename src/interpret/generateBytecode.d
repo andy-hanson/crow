@@ -521,6 +521,9 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 			// Set the stack entry as if this was a regular call returning.
 			setNextStackEntry(writer, immutable StackEntry(before.entry + ctx.returnTypeSizeInStackEntries.to16()));
 			writeAssertUnreachable(writer, source);
+		},
+		(ref immutable LowExprKind.Uninitialized) {
+			writePushEmptySpace(dbg, writer, source, nStackEntriesForType(ctx, expr.type).to16());
 		});
 }
 
