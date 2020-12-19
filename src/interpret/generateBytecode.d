@@ -105,7 +105,7 @@ import util.collection.str : Str, strEqLiteral;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
-import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, zero;
+import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, u64OfFloat64Bits, zero;
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
@@ -691,8 +691,8 @@ void generateConstant(Debug, CodeAlloc, TempAlloc)(
 		(immutable Constant.BoolConstant it) {
 			writeBoolConstant(dbg, writer, source, it.value);
 		},
-		(immutable double) {
-			todo!void("!");
+		(immutable double it) {
+			writePushConstant(dbg, writer, source, u64OfFloat64Bits(it));
 		},
 		(immutable Constant.Integral it) {
 			writePushConstant(dbg, writer, source, immutable Nat64(it.value));

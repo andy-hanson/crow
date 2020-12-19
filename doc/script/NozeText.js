@@ -22,6 +22,7 @@ import {CustomElementClass, makeCustomElement} from "./util/CustomElement.js"
 import {removeAllChildren} from "./util/dom.js"
 import {div, span, textarea} from "./util/html.js"
 import {MutableObservable, Observable} from "./util/MutableObservable.js"
+import {nonNull} from "./util/util.js"
 
 const codeClass = cssClass("code")
 const measurerClass = cssClass("measurer")
@@ -132,6 +133,7 @@ export const NozeText = makeCustomElement({
 		.class(cssClass("spec-def"), {font_weight: FontWeight.bold, color: Color.green})
 		.class(cssClass("spec-ref"), {color: Color.green})
 		.class(cssClass("param-def"), {font_weight: FontWeight.bold, color: Color.lightYellow})
+		.class(cssClass("local-def"), {font_weight: FontWeight.bold, color:Color.lightYellow})
 		.class(cssClass("lit-num"), {color: Color.yellow})
 		.class(cssClass("lit-str"), {color: Color.yellow})
 		.class(cssClass("field-def"), {font_weight: FontWeight.bold, color: Color.peach})
@@ -537,17 +539,6 @@ const mustPop = xs => {
  */
 const unreachable = msg => {
 	throw new Error(msg)
-}
-
-/**
- * @template T
- * @param {T | null | undefined} x
- * @return {T}
- */
-const nonNull = x => {
-	if (x == null)
-		throw new Error("Null value")
-	return x
 }
 
 /** @type {function(number, number, number): number} */

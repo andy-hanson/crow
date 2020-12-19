@@ -10,7 +10,7 @@ import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail, slice;
 import util.collection.str : copyStr, CStr, emptyStr, NulTerminatedStr, Str, stripNulTerminator,  strLiteral;
 import util.memory : allocate;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, optOr, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
@@ -542,17 +542,52 @@ enum Sign {
 ) {
 	immutable u64 base = tryTake(lexer, "0x") ? 16 : 10;
 	immutable LiteralAst.Nat n = takeNat(lexer, base);
-	if (*lexer.ptr == '.' && isDigit(*(lexer.ptr + 1)))
-		return todo!(immutable LiteralAst)("parse float");
-	else if (has(sign))
+	if (*lexer.ptr == '.' && isDigit(*(lexer.ptr + 1))) {
+		lexer.ptr++;
+		return immutable LiteralAst(takeFloat(lexer, optOr!Sign(sign, () => Sign.plus), n, base));
+	} else if (has(sign))
 		final switch (force(sign)) {
 			case Sign.plus:
 				return immutable LiteralAst(immutable LiteralAst.Int(n.value, immutable Bool(n.value > i64.max)));
 			case Sign.minus:
-				return immutable LiteralAst(immutable LiteralAst.Int(-n.value, immutable Bool(n.value > -i64.min)));
+				return immutable LiteralAst(immutable LiteralAst.Int(
+					-n.value,
+					immutable Bool(n.value > (cast(u64) i64.max) + 1)));
 		}
 	else
 		return immutable LiteralAst(n);
+}
+
+@system immutable(LiteralAst.Float) takeFloat(SymAlloc)(
+	ref Lexer!SymAlloc lexer,
+	immutable Sign sign,
+	ref immutable LiteralAst.Nat natPart,
+	immutable u64 base,
+) {
+	// TODO: improve accuracy
+	const char *cur = lexer.ptr;
+	immutable LiteralAst.Nat rest = takeNat(lexer, base);
+	immutable Bool overflow = immutable Bool(natPart.overflow || rest.overflow);
+	immutable ulong power = lexer.ptr - cur;
+	immutable double divisor = pow(1.0, base, power);
+	immutable double floatSign = () {
+		final switch (sign) {
+			case Sign.minus:
+				return -1.0;
+			case Sign.plus:
+				return 1.0;
+		}
+	}();
+	return immutable LiteralAst.Float(floatSign * (natPart.value + (rest.value / divisor)), overflow);
+}
+
+immutable(double) pow(immutable double acc, immutable double base, immutable ulong power) {
+	return power == 0 ? acc : pow(acc * base, base, power - 1);
+}
+
+//TODO: overflow bug possible here
+immutable(ulong) getDivisor(immutable ulong acc, immutable ulong a, immutable ulong base) {
+	return acc < a ? getDivisor(acc * base, a, base) : acc;
 }
 
 @system immutable(LiteralAst.Nat) takeNat(SymAlloc)(ref Lexer!SymAlloc lexer, immutable ulong base) {

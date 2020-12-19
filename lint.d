@@ -27,6 +27,7 @@ import std.string : indexOf, indexOfAny, splitLines;
 		foreach (immutable string privateMember; file.members.private_) {
 			final switch (file.uses[privateMember]) {
 				case Uses.none:
+					writeln("Shouldn't get here?");
 					assert(0);
 					break;
 				case Uses.one:
@@ -104,12 +105,15 @@ immutable(Members) getMembers(immutable string path) {
 			immutable string name = line[0..space];
 			if (contains(line, "access:public")) {
 				public_ ~= name;
-				// For some reason dscanner doesn't give Converter64 access:private
-			} else if (contains(line, "access:private") || name == "Converter64") {
+				// For some reason dscanner doesn't give non-nested unions like Converter64 access:private
+			} else if (contains(line, "access:private") || name == "Converter64" || name == "DoubleToUlong") {
 				private_ ~= name;
 			} else {
 				// extern is neither public nor private
-				assert(path == "src/app.d" || path == "src/wasm.d");
+				if (path != "src/app.d" && path != "src/wasm.d") {
+					writeln("Unexpected non-public, non-private member ", name, " in ", path);
+					assert(0);
+				}
 			}
 		}
 	}

@@ -268,8 +268,11 @@ immutable(size_t) safeSizeTFromU64(immutable u64 a) {
 	return cast(immutable size_t) a;
 }
 
-immutable(u64) abs(immutable i64 s) {
-	return s < 0 ? -s : s;
+immutable(u64) abs(immutable i64 a) {
+	return a < 0 ? -a : a;
+}
+immutable(double) abs(immutable double a) {
+	return a < 0 ? -a : a;
 }
 
 private immutable u8 maxU4 = 0xf;

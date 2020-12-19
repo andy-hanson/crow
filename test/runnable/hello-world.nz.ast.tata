@@ -1,0 +1,21 @@
+file-ast(
+	imports: ports(range(0, 29), [import-ast(0, "/io", some([exit-code, print]))])
+	specs: []
+	aliases: []
+	structs: []
+	funs: [
+		fun-decl(
+			public?: true
+			sig: sig-ast(
+				range(29, 61)
+				main
+				inststruct(range(34, 47), name-range(34, fut), [inststruct(range(38, 47), name-range(38, exit-code))])
+				[
+					param(
+						range(48, 60)
+						name-range(48, args)
+						inststruct(range(53, 60), name-range(53, arr), [inststruct(range(57, 60), name-range(57, str))]))])
+			summon: true
+			body: seq-ast(
+				call(prefix, name-range(70, print), [], [literal("Hello, world!")])
+				call(infix, name-range(96, resolved), [], [literal(nat(0, false))])))])

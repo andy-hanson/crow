@@ -3,8 +3,7 @@ module model.sexprOfConstant;
 @safe @nogc pure nothrow:
 
 import model.constant : Constant, matchConstant;
-import util.sexpr : Sexpr, tataArr, tataBool, tataNat, tataRecord, tataSym;
-import util.util : todo;
+import util.sexpr : Sexpr, tataArr, tataBool, tataFloat, tataNat, tataRecord, tataSym;
 
 immutable(Sexpr) tataOfConstant(Alloc)(ref Alloc alloc, ref immutable Constant a) {
 	return matchConstant!(immutable Sexpr)(
@@ -13,8 +12,8 @@ immutable(Sexpr) tataOfConstant(Alloc)(ref Alloc alloc, ref immutable Constant a
 			tataRecord(alloc, "arr", [tataNat(it.typeIndex), tataNat(it.index)]),
 		(immutable Constant.BoolConstant it) =>
 			tataBool(it.value),
-		(immutable double) =>
-			todo!(immutable Sexpr)("!"),
+		(immutable double it) =>
+			tataFloat(it),
 		(immutable Constant.Integral it) =>
 			tataNat(it.value),
 		(immutable Constant.Null) =>

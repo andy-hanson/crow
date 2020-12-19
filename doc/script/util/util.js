@@ -27,3 +27,14 @@ export function safeCast(x, t) {
  * @return {Iterable<[string, V]>}
  */
 export const entries = Object.entries
+
+/**
+ * @template T
+ * @param {T | null | undefined} x
+ * @return {T}
+ */
+export const nonNull = x => {
+	if (x == null)
+		throw new Error("Null value")
+	return x
+}

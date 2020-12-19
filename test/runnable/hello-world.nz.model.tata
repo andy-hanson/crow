@@ -1,0 +1,28 @@
+module(
+	path: 20
+	imports: [
+		import(18, none)
+		import(8, none)
+		import(0, none)
+		import(1, none)
+		import(9, none)
+		import(5, none)
+		import(16, none)
+		import(17, none)
+		import(6, none)
+		import(7, none)
+		import(15, none)
+		import(11, none)
+		import(12, none)
+		import(13, some([exit-code, print]))]
+	exports: []
+	structs: []
+	specs: []
+	funs: [
+		fun(
+			public?: true
+			summon: true
+			sig: sig(file-pos(20, 29), main, fut(int32()), [param(file-range(20, range(48, 60)), args, arr(arr(char())))])
+			body: seq(
+				call(fun-inst(name: print), [string-lit("Hello, world!")])
+				call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)])))])

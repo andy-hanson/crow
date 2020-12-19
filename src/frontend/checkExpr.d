@@ -475,10 +475,12 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 	immutable Ptr!IntegralTypes integrals = ctx.commonTypes.integrals;
 	return matchLiteralAst!(immutable CheckedExpr)(
 		ast,
-		(immutable double it) {
+		(ref immutable LiteralAst.Float it) {
+			if (it.overflow)
+				todo!void("literal overflow");
 			immutable Expr e = immutable Expr(
 				range,
-				nu!(Expr.Literal)(alloc, ctx.commonTypes.float64, immutable Constant(it)));
+				nu!(Expr.Literal)(alloc, ctx.commonTypes.float64, immutable Constant(it.value)));
 			return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.float64), e);
 		},
 		(ref immutable LiteralAst.Int it) {

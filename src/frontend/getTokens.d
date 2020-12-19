@@ -297,7 +297,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		(ref immutable LiteralAst literal) {
 			immutable Token.Kind kind = matchLiteralAst!(immutable Token.Kind)(
 				literal,
-				(immutable double) =>
+				(ref immutable LiteralAst.Float) =>
 					Token.Kind.literalNumber,
 				(ref immutable LiteralAst.Int) =>
 					Token.Kind.literalNumber,

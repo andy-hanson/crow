@@ -13,6 +13,7 @@ import test.testServer : testServer;
 import test.testSym : testSym;
 import test.testTokens : testTokens;
 import test.testUtil : Test;
+import test.testWriter : testWriter;
 import util.collection.str : Str, strEqLiteral;
 import util.opt : force, has, Opt;
 import util.path : AllPaths;
@@ -44,6 +45,7 @@ immutable(NameAndTest!(Debug, Alloc)[]) allTests(Debug, Alloc) = [
 	immutable NameAndTest!(Debug, Alloc)("server", &testServer!(Debug, Alloc)),
 	immutable NameAndTest!(Debug, Alloc)("sym", &testSym!(Debug, Alloc)),
 	immutable NameAndTest!(Debug, Alloc)("tokens", &testTokens!(Debug, Alloc)),
+	immutable NameAndTest!(Debug, Alloc)("writer", &testWriter!(Debug, Alloc)),
 ];
 
 

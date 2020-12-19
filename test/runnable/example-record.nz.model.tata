@@ -12,61 +12,60 @@ module(
 		import(6, none)
 		import(7, none)
 		import(15, none)
-		import(12, none)
 		import(11, none)
-		import(13, some([exit-code, print-sync]))]
+		import(12, none)
+		import(13, some([exit-code, print]))]
 	exports: []
-	structs: [struct(range: file-range(20, range(59, 155)), public?: true, name: point)]
+	structs: [struct(range: file-range(20, range(29, 69)), public?: true, name: rect)]
 	specs: []
 	funs: [
 		fun(
 			public?: true
-			sig: sig(file-pos(20, 155), create-point, point(), [])
+			sig: sig(file-pos(20, 69), area, float(), [param(file-range(20, range(80, 86)), a, rect())])
 			body: call(
-				fun-inst(name: point)
-				[call(fun-inst(name: literal), [string-lit("1")]), call(fun-inst(name: literal), [string-lit("2")])]))
-		fun(
-			public?: true
-			sig: sig(file-pos(20, 273), get-x, float(), [param(file-range(20, range(285, 292)), a, point())])
-			body: call(fun-inst(name: x), [param-ref(a)]))
+				fun-inst(name: *)
+				[call(fun-inst(name: width), [param-ref(a)]), call(fun-inst(name: height), [param-ref(a)])]))
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(20, 445), main, fut(int32()), [param(file-range(20, range(464, 476)), args, arr(arr(char())))])
+			sig: sig(file-pos(20, 109), main, fut(int32()), [param(file-range(20, range(128, 140)), args, arr(arr(char())))])
 			body: let(
-				local(file-range(20, range(548, 549)), p, point())
-				call(fun-inst(name: create-point), [])
-				let(
-					local(file-range(20, range(603, 606)), p-x, float())
-					call(fun-inst(name: get-x), [local-ref(p)])
-					seq(
-						call(fun-inst(name: print-sync), [call(fun-inst(name: to-str), [local-ref(p-x)])])
-						call(fun-inst(name: resolved, type-args: [int32()]), [call(fun-inst(name: zero), [])])))))
+				local(file-range(20, range(150, 151)), r, rect())
+				call(
+					fun-inst(name: rect)
+					[
+						literal(float(), 1.5)
+						literal(float(), 2.5)])
+				seq(
+					call(
+						fun-inst(name: print)
+						[call(fun-inst(name: to-str), [call(fun-inst(name: area), [local-ref(r)])])])
+					call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)]))))
 		fun(
 			public?: true
 			preferred: true
 			sig: sig(
-				file-pos(20, 59)
-				point
-				point()
-				[param(file-range(20, range(73, 80)), x, float()), param(file-range(20, range(82, 89)), y, float())])
+				file-pos(20, 29)
+				rect
+				rect()
+				[param(file-range(20, range(42, 53)), width, float()), param(file-range(20, range(55, 67)), height, float())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
 			sig: sig(
-				file-pos(20, 59)
-				point
-				by-val(point())
-				[param(file-range(20, range(73, 80)), x, float()), param(file-range(20, range(82, 89)), y, float())])
+				file-pos(20, 29)
+				rect
+				by-val(rect())
+				[param(file-range(20, range(42, 53)), width, float()), param(file-range(20, range(55, 67)), height, float())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(20, 73), x, float(), [param(file-range(20, range(73, 80)), a, point())])
+			sig: sig(file-pos(20, 42), width, float(), [param(file-range(20, range(42, 53)), a, rect())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(20, 82), y, float(), [param(file-range(20, range(82, 89)), a, point())])
+			sig: sig(file-pos(20, 55), height, float(), [param(file-range(20, range(55, 67)), a, rect())])
 			body: field-get(1))])

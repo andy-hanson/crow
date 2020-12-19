@@ -3,14 +3,19 @@ import { objectToMap } from "./collection.js"
 import { lateinit, launch, safeCast } from "./util.js"
 
 /**
- * @template InProps, OutProps, State
- * @typedef CustomElementOptions
- * @property {string} tagName
- * @property {Promise<CSSStyleSheet>} styleSheet
- * @property {function(InProps): {state: State, out: OutProps}} init
- * @property {(function({ props: InProps, state: State, root: ShadowRoot }): Promise<void>)} [connected]
- * @property {(function({ props: InProps, state: State, root: ShadowRoot }): Promise<void>) | undefined} [disconnected]
- */
+@template InProps, OutProps, State
+@typedef CustomElementOptions
+@property {string} tagName
+@property {Promise<CSSStyleSheet>} styleSheet
+@property {function(InProps): {state: State, out: OutProps}} init
+@property {(function({
+	props: InProps,
+	state: State,
+	root: ShadowRoot,
+	getAttribute: function(string): string | null,
+}): Promise<void>)} [connected]
+@property {(function({ props: InProps, state: State, root: ShadowRoot }): Promise<void>) | undefined} [disconnected]
+*/
 
 /**
  * @template InProps
@@ -37,7 +42,6 @@ export const CustomElementClass = {}
  * @return {CustomElementClass<InProps, OutProps, State>}
  */
 export function makeCustomElement({ tagName, styleSheet, init, connected, disconnected }) {
-	console.log("MAKECUSTOMELEMENT", tagName)
 	assert(tagName.startsWith("noze-"))
 	const attributesMap = objectToMap({}) //TODO:REMOVE
 	class C extends CustomElement {
@@ -79,9 +83,10 @@ export function makeCustomElement({ tagName, styleSheet, init, connected, discon
 
 		connectedCallback() {
 			if (connected != null) launch(() => connected({
+				getAttribute: name => this.getAttribute(name),
 				props: this.inProps,
 				state: this.state,
-				root: nonNull(this.shadowRoot)
+				root: nonNull(this.shadowRoot),
 			}))
 		}
 

@@ -5,26 +5,7 @@ import {button, div} from "./util/html.js"
 import {CustomElementClass, makeCustomElement} from "./util/CustomElement.js"
 import {removeAllChildren} from "./util/dom.js"
 import {MutableObservable} from "./util/MutableObservable.js"
-
-const TEXT = `import
-	io
-
-point record
-	x float
-	y float
-
-s<?t> spec
-	+ ?t(a ?t, b ?t)
-
-zero point()
-	point: 0, 0
-
-manhattan float(a point)
-	a.x + a.y
-
-main fut exit-code(args arr str) summon trusted
-	print: "now sleep:"
-	0 resolved`
+import {nonNull} from "./util/util.js"
 
 const outputClass = cssClass("output")
 const outputOkClass = cssClass("ok")
@@ -34,11 +15,12 @@ const outputErrClass = cssClass("err")
 const nozeTextContainerClass = cssClass("noze-text-container")
 const outerContainerClass = cssClass("outer-container")
 
-/** @type {CustomElementClass<null, null, null>} */
+/** @type {CustomElementClass<{src:string}, null, null>} */
 export const NozeRunnable = makeCustomElement({
 	tagName: "noze-runnable",
 	styleSheet: new StyleBuilder()
 		.class(outerContainerClass, {
+			margin: Measure.em(1),
 			max_width: Measure.em(40),
 			margin_x: Margin.auto,
 		})
@@ -64,13 +46,15 @@ export const NozeRunnable = makeCustomElement({
 		})
 		.end(),
 	init: () => ({state:null, out:null}),
-	connected: async ({ root }) => {
-		console.log("WE CONNECTED")
+	connected: async ({ getAttribute, root }) => {
+
 		const comp = await compiler.getGlobalCompiler()
+		const src = nonNull(getAttribute('src'))
+		const initialText = await (await fetch(`../../test/runnable/${src}.nz`)).text()
 		const MAIN = "main"
 
 		/** @type {MutableObservable<string>} */
-		const text = new MutableObservable(TEXT)
+		const text = new MutableObservable(initialText)
 		/** @type {MutableObservable<ReadonlyArray<Token>>} */
 		const tokens = new MutableObservable(/** @type {ReadonlyArray<Token>} */ ([]))
 		/** @type {function(number): string} */
@@ -94,21 +78,22 @@ export const NozeRunnable = makeCustomElement({
 		const b = button("Run")
 		b.onclick = () => {
 			try {
-				console.log("LET's RUN!")
 				output.className = outputClass.name
 				removeAllChildren(output)
 				output.append(LoadingIcon.create(null))
 				output.append(div(), div(), div(), div())
-
-				const result = comp.run(MAIN)
-				output.textContent = result.stdout === "" && result.stderr === ""
-					? "no output"
-					: result.stdout === "" || result.stderr === ""
-					? result.stdout + result.stderr
-					: `stderr:\n${result.stderr}\nstdout:\n${result.stdout}`
-				output.className = result.err === 0
-					? `${outputClass.name} ${outputOkClass.name}`
-					: `${outputClass.name} ${outputErrClass.name}`
+				// Put behind a timeout so loading will show
+				setTimeout(() => {
+					const result = comp.run(MAIN)
+					output.textContent = result.stdout === "" && result.stderr === ""
+						? "no output"
+						: result.stdout === "" || result.stderr === ""
+						? result.stdout + result.stderr
+						: `stderr:\n${result.stderr}\nstdout:\n${result.stdout}`
+					output.className = result.err === 0
+						? `${outputClass.name} ${outputOkClass.name}`
+						: `${outputClass.name} ${outputErrClass.name}`
+				}, 0)
 			} catch (e) {
 				console.error("ERROR WHILE RUNNING", e)
 				throw e

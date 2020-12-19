@@ -1,0 +1,6 @@
+import
+	io: exit-code print
+
+main fut exit-code(args arr str) summon
+	print: "Hello, world!"
+	0 resolved

@@ -5,7 +5,7 @@ import
 		unsafe-to-nat unsafe-to-nat32 wrap-add wrap-decr wrap-mul wrap-sub
 	.exceptions: assert forbid
 
-is-multiple? bool(a nat, b nat)
+multiple-of? bool(a nat, b nat)
 	a mod b == 0
 
 incr nat(n nat)

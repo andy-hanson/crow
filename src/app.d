@@ -60,8 +60,12 @@ import util.types : Nat64, safeSizeTFromSSizeT, safeSizeTFromU64, safeU32FromI64
 import util.util : todo, unreachable, verify;
 import util.writer : Writer;
 
-extern(C) int main(immutable size_t argc, immutable char** argv) {
-	return cli(argc, argv);
+extern(C) int main(immutable size_t argc, immutable CStr* argv) {
+	Mallocator mallocator;
+	immutable CommandLineArgs args = parseCommandLineArgs(mallocator, argc, argv);
+	AllPaths!Mallocator allPaths = AllPaths!Mallocator(ptrTrustMe_mut(mallocator));
+	AllSymbols!Mallocator allSymbols = AllSymbols!Mallocator(ptrTrustMe_mut(mallocator));
+	return go(mallocator, allPaths, allSymbols, args);
 }
 
 private:
@@ -84,14 +88,6 @@ struct StdoutDebug {
 			printf("%c", c);
 		}
 	}
-}
-
-int cli(immutable size_t argc, immutable CStr* argv) {
-	Mallocator mallocator;
-	immutable CommandLineArgs args = parseCommandLineArgs(mallocator, argc, argv);
-	AllPaths!Mallocator allPaths = AllPaths!Mallocator(ptrTrustMe_mut(mallocator));
-	AllSymbols!Mallocator allSymbols = AllSymbols!Mallocator(ptrTrustMe_mut(mallocator));
-	return go(mallocator, allPaths, allSymbols, args);
 }
 
 immutable(int) go(Alloc, PathAlloc, SymAlloc)(

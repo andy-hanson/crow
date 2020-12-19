@@ -44,6 +44,40 @@ void writeHex(Alloc)(ref Writer!Alloc writer, immutable ulong n) {
 	writeNat(writer, n, 16);
 }
 
+void writeFloatLiteral(Alloc)(ref Writer!Alloc writer, immutable double a) {
+	// TODO: verify(!isNaN(a)); (needs an isnan function)
+
+	// Print simple floats as decimal
+	if ((cast(double) (cast(long) a)) == a) {
+		// Being careful to handle -0
+		if (1.0 / a < 0)
+			writeChar(writer, '-');
+		writeNat(writer, abs(cast(long) a));
+	} else if ((cast(double) (cast(long) (a * 10.0))) == a * 10.0) {
+		writeInt(writer, cast(long) a);
+		writeChar(writer, '.');
+		writeNat(writer, (cast(long) (abs(a) * 10)) % 10);
+	} else {
+		DoubleToUlong conv;
+		conv.double_ = a;
+		immutable ulong u = conv.ulong_;
+		immutable bool isNegative = u >> (64 - 1);
+		immutable ulong exponentPlus1023 = (u >> (64 - 1 - 11)) & ((1 << 11) - 1);
+		immutable ulong fraction = u & ((1uL << 52) - 1);
+		immutable long exponent = (cast(long) exponentPlus1023) - 1023;
+		if (isNegative) writeChar(writer, '-');
+		writeStatic(writer, "0x1.");
+		writeHex(writer, fraction);
+		writeChar(writer, 'p');
+		writeHex(writer, exponent);
+	}
+}
+
+private union DoubleToUlong {
+	double double_;
+	ulong ulong_;
+}
+
 void writePtrRange(Alloc)(ref Writer!Alloc writer, const PtrRange a) {
 	writeHex(writer, cast(immutable size_t) a.begin);
 	writeChar(writer, '-');

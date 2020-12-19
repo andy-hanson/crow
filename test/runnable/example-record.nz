@@ -1,28 +1,14 @@
 import
 	io: exit-code print
 
-| Declare a record type.
-point record
-	x float
-	y float
+rect record
+	width float
+	height float
 
-| Declare a function returning a point and taking no arguments.
-create-point point()
-	point: 1, 2
+area float(a rect)
+	a.width * a.height
 
-| Declare a function named 'get-x' returning a float and taking a point named 'a'.
-get-x float(a point)
-	| Accessing a record member uses the same syntax as calling a function.
-	a x
-
-| Ignore this header for now; just know that this is the main function.
 main fut exit-code(args arr str) summon
-	| Calls the function 'create-point' and names the result 'p'
-	p = create-point
-	| Calls the function 'get-x' on 'p'
-	p-x = p get-x
-	| This shows the prefix syntax for function calls (in addition to the usual syntax for `to-str`).
-	| This is equivalent to `print_sync(to_str(p_x))` in C.
-	| The syntax choice is not tied to the function; you can use any call syntax for any function.
-	print: p-x to-str
+	r = rect: 1.5, 2.5
+	print: r.area to-str
 	0 resolved

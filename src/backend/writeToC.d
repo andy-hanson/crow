@@ -87,12 +87,13 @@ import util.sym :
 	shortSymAlphaLiteralValue,
 	Sym,
 	symEq;
-import util.types : i64OfU64Bits, u8;
+import util.types : abs, i64OfU64Bits, u8;
 import util.util : drop, todo, unreachable, verify;
 import util.writer :
 	finishWriter,
 	writeChar,
 	writeEscapedChar_inner,
+	writeFloatLiteral,
 	writeInt,
 	writeNat,
 	writeNewline,
@@ -1373,12 +1374,18 @@ void writeConstantRef(Alloc)(
 			writeChar(writer, it.value ? '1' : '0');
 		},
 		(immutable double it) {
-			todo!void("write float");
+			writeFloatLiteral(writer, it);
 		},
 		(immutable Constant.Integral it) {
-			if (isSignedIntegral(asPrimitive(type)))
-				writeInt(writer, i64OfU64Bits(it.value));
-			else {
+			if (isSignedIntegral(asPrimitive(type))) {
+				immutable long i = i64OfU64Bits(it.value);
+				if (i == long.min)
+					// Can't write this as a literal since the '-' and rest are parsed separately,
+					// and the abs of the minimum integer is out of range.
+					writeStatic(writer, "INT64_MIN");
+				else
+					writeInt(writer, i);
+			} else {
 				writeNat(writer, it.value);
 				writeChar(writer, 'u');
 			}

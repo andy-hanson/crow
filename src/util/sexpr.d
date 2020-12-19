@@ -16,6 +16,7 @@ import util.util : todo;
 import util.writer :
 	finishWriterToCStr,
 	writeChar,
+	writeFloatLiteral,
 	writeInt,
 	writeNat,
 	writeNewline,
@@ -85,8 +86,8 @@ immutable(Sexpr) tataBool(immutable Bool a) {
 	return immutable Sexpr(a);
 }
 
-immutable(Sexpr) tataFloat(immutable double) {
-	return todo!(immutable Sexpr)("!");
+immutable(Sexpr) tataFloat(immutable double a) {
+	return immutable Sexpr(a);
 }
 
 immutable(Sexpr) tataHex(T)(immutable NatN!T a) {
@@ -165,6 +166,7 @@ struct Sexpr {
 		arr,
 		bool_,
 		namedRecord,
+		float_,
 		int_,
 		opt,
 		record,
@@ -176,6 +178,7 @@ struct Sexpr {
 		immutable SexprArr arr;
 		immutable Bool bool_;
 		immutable SexprNamedRecord namedRecord;
+		immutable double float_;
 		immutable SexprInt int_;
 		immutable Opt!(Ptr!Sexpr) opt;
 		immutable SexprRecord record;
@@ -183,20 +186,23 @@ struct Sexpr {
 		immutable Sym symbol;
 	}
 
-	@trusted this(immutable SexprArr a, bool b) immutable { kind = Kind.arr; arr = a; }
-	this(immutable Bool a) immutable { kind = Kind.bool_; bool_ = a; }
-	@trusted this(immutable SexprNamedRecord a) immutable { kind = Kind.namedRecord; namedRecord = a; }
-	@trusted this(immutable SexprInt a) immutable { kind = Kind.int_; int_ = a; }
-	@trusted this(immutable Opt!(Ptr!Sexpr) a) immutable { kind = Kind.opt; opt = a; }
-	@trusted this(immutable SexprRecord a) immutable { kind = Kind.record; record = a; }
-	@trusted this(immutable Str a) immutable { kind = Kind.str; str = a; }
-	this(immutable Sym a) immutable { kind = Kind.symbol; symbol = a; }
+	@trusted immutable this(immutable SexprArr a, bool b) { kind = Kind.arr; arr = a; }
+	immutable this(immutable Bool a) { kind = Kind.bool_; bool_ = a; }
+
+	@trusted immutable this(immutable SexprNamedRecord a) { kind = Kind.namedRecord; namedRecord = a; }
+	immutable this(immutable double a) { kind = Kind.float_; float_ = a; }
+	immutable this(immutable SexprInt a) { kind = Kind.int_; int_ = a; }
+	@trusted immutable this(immutable Opt!(Ptr!Sexpr) a) { kind = Kind.opt; opt = a; }
+	@trusted immutable this(immutable SexprRecord a) { kind = Kind.record; record = a; }
+	@trusted immutable this(immutable Str a) { kind = Kind.str; str = a; }
+	immutable this(immutable Sym a) { kind = Kind.symbol; symbol = a; }
 }
 
 private @trusted T matchSexpr(T)(
 	ref immutable Sexpr a,
 	scope T delegate(ref immutable SexprArr) @safe @nogc pure nothrow cbArr,
 	scope T delegate(immutable Bool) @safe @nogc pure nothrow cbBool,
+	scope T delegate(immutable double) @safe @nogc pure nothrow cbFloat,
 	scope T delegate(immutable SexprInt) @safe @nogc pure nothrow cbInt,
 	scope T delegate(ref immutable SexprNamedRecord) @safe @nogc pure nothrow cbNamedRecord,
 	scope T delegate(immutable Opt!(Ptr!Sexpr)) @safe @nogc pure nothrow cbOpt,
@@ -211,6 +217,8 @@ private @trusted T matchSexpr(T)(
 			return cbBool(a.bool_);
 		case Sexpr.Kind.namedRecord:
 			return cbNamedRecord(a.namedRecord);
+		case Sexpr.Kind.float_:
+			return cbFloat(a.float_);
 		case Sexpr.Kind.int_:
 			return cbInt(a.int_);
 		case Sexpr.Kind.opt:
@@ -251,6 +259,9 @@ void writeSexprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a) {
 		},
 		(immutable Bool it) {
 			writeSexprBool(writer, it);
+		},
+		(immutable double it) {
+			todo!void("");
 		},
 		(immutable SexprInt it) {
 			writeSexprInt(writer, it);
@@ -329,6 +340,9 @@ void writeSexpr(Alloc)(
 		(immutable Bool s) {
 			writeSexprBool(writer, s);
 		},
+		(immutable double it) {
+			writeFloatLiteral(writer, it);
+		},
 		(immutable SexprInt it) {
 			writeSexprInt(writer, it);
 		},
@@ -382,6 +396,9 @@ immutable(int) measureSexprSingleLine(ref immutable Sexpr a, immutable int avail
 			measureSexprArr(s, available),
 		(immutable Bool s) =>
 			available - measureSexprBool(s),
+		(immutable double) =>
+			// TODO: more accurate
+			3,
 		(immutable SexprInt s) =>
 			available - measureSexprInt(s),
 		(ref immutable SexprNamedRecord s) =>
@@ -445,6 +462,9 @@ void writeSexprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Sexpr a)
 		},
 		(immutable Bool s) {
 			writeSexprBool(writer, s);
+		},
+		(immutable double it) {
+			writeFloatLiteral(writer, it);
 		},
 		(immutable SexprInt it) {
 			writeSexprInt(writer, it);

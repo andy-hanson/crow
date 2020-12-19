@@ -162,6 +162,10 @@ struct LetAst {
 struct LiteralAst {
 	@safe @nogc pure nothrow:
 
+	struct Float {
+		immutable double value;
+		immutable Bool overflow;
+	}
 	struct Int {
 		immutable long value;
 		immutable Bool overflow;
@@ -171,7 +175,7 @@ struct LiteralAst {
 		immutable Bool overflow;
 	}
 
-	immutable this(immutable double a) { kind = Kind.float_; float_ = a; }
+	immutable this(immutable Float a) { kind = Kind.float_; float_ = a; }
 	immutable this(immutable Int a) { kind = Kind.int_; int_ = a; }
 	immutable this(immutable Nat a) { kind = Kind.nat; nat = a; }
 	@trusted immutable this(immutable Str a) { kind = Kind.str; str = a; }
@@ -185,7 +189,7 @@ struct LiteralAst {
 	}
 	immutable Kind kind;
 	union {
-		immutable double float_;
+		immutable Float float_;
 		immutable Int int_;
 		immutable Nat nat;
 		immutable Str str;
@@ -194,7 +198,7 @@ struct LiteralAst {
 
 @trusted T matchLiteralAst(T)(
 	ref immutable LiteralAst a,
-	scope immutable(T) delegate(immutable double) @safe @nogc pure nothrow cbFloat,
+	scope immutable(T) delegate(ref immutable LiteralAst.Float) @safe @nogc pure nothrow cbFloat,
 	scope immutable(T) delegate(ref immutable LiteralAst.Int) @safe @nogc pure nothrow cbInt,
 	scope immutable(T) delegate(ref immutable LiteralAst.Nat) @safe @nogc pure nothrow cbNat,
 	scope immutable(T) delegate(ref immutable Str) @safe @nogc pure nothrow cbStr,
@@ -916,8 +920,8 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 			tataRecord(alloc, "literal", [
 				matchLiteralAst!(immutable Sexpr)(
 					a,
-					(immutable double it) =>
-						tataFloat(it),
+					(ref immutable LiteralAst.Float it) =>
+						tataRecord(alloc, "float", [tataFloat(it.value), tataBool(it.overflow)]),
 					(ref immutable LiteralAst.Int it) =>
 						tataRecord(alloc, "int", [tataInt(it.value), tataBool(it.overflow)]),
 					(ref immutable LiteralAst.Nat it) =>

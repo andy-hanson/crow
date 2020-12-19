@@ -1,109 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-	<meta charset="utf-8">
-	<title>The Noze Programming Language</title>
-	<link rel="icon" href="./icon.png" type="image/x-icon"/>
-	<link rel="stylesheet" href="./index.css" />
-	<script src="../noze-js/server.js"></script>
-	<script type="module" async src="./script/index.js"></script>
+	<head>
+		<meta charset="utf-8">
+		<title>The Noze Programming Language</title>
+		<link rel="icon" href="./icon.png" type="image/x-icon"/>
+		<link rel="stylesheet" href="./index.css" />
+		<script src="../noze-js/server.js"></script>
+		<script type="module" async src="./script/index.js"></script>
 	</head>
 	<body class="language-noze">
+		<section>
+			<h2>Noze</h2>
 
-		<p>I <span data-tooltip="I mean really, really" class="diag">really</span> like pie.</p>
-		<p>Yes I do</p>
-
-		<p>Yes I do</p>
-		<p>Yes I do</p>
-		<p>Yes I do</p>
-		<p>Yes I do</p>
-		<p>Yes I do</p>
-		<p>Yes I do</p>
-		<!--<section>
-			<h2>Installation</h2>
-
-			Noze has the following dependencies:
-
+			<p>Noze is a new programming language. Some interesting features are:</p>
 			<ul>
-			<li><a href="https://dlang.org/download.html">DMD</a>: install version 2.093 or greater.</li>
-			<li><a href="https://www.libsdl.org/">SDL2: Install this from your package manager.</a></li>
+				<li>
+					<p>
+						Safe: Noze functions can't access anything that wasn't passed in as a parameter.
+						That means no global state, and no unsafe memory operations.
+						They also can't perform I/O without permission being passed in by a parameter.
+						This means that if you're tracking down a bug, you can exclude a function (and all code in it)
+						based on just the arguments passed.
+						Unsafe code (such as calling C libraries) is possible
+						but can't be accidentally called from safe code.
+					</p>
+					<p>
+						A strong notion of <code>data</code>;
+						immutable, serializable types that are just "plain old data".
+					</p>
+					<p>The compiler allows <code>data</code> to be accessed in parallel
+						(as well as some special types like <code class="struct-ref">fut</code>), but not mutable types.
+					</p>
+					<p>
+						This allows for a <code>launch</code> function that launches a new parallel task
+						and is guaranteed to only access things that are thread-safe.
+					</p>
+				</li>
+				<li>
+					<p>Templates; everything is a template.</p>
+					<p>
+						Templates are checked abstractly,
+						meaning you get errors at the definition instead of at use.
+					</p>
+					<p>
+						A <code>spec</code> allows a template to refer to functions
+						that it doesn't have in scope but the caller does.
+					</p>
+				</li>
 			</ul>
+		</section>>
 
-			Then to install Noze:
+		<section>
+			<h2>Hello World!</h2>
 
+			<p>Here is a basic program that prints <code class="lit-str">"Hello, world!"</code>:</p>
+
+			<noze-runnable src="hello-world"></noze-runnable>
+
+			This shows a few basic features of noze:
 			<ul>
-			<li>Download the repo <b>(TODO: HOW?)</b></li>
-			<li>Run <code>./build</code> to build.</li>
-			<li>You may add the <code>bin</code> directory to your path, or just write the path explicitly.</li>
+				<li>
+					Modules: The main module imports types and functions from <code class="import">io</code>.
+				</li>
+				<li>
+					A function: <code class="fun-def">main</code>.
+					The name of a declaration always goes first.
+					So you'll have <code class="struct-def">r record</code>,
+					<code class="struct-def">u union</code>, and here,
+					<code><span class="fun-def">main</span> <span class="struct-ref">fut exit-code</span></code>.
+				</li>
+				<li>
+					Templates: <code class="struct-ref">fut</code> and <code class="struct-ref">arr</code>
+					are templated types, and <code class="fun-ref">resolved</code> is a templated function.
+					The type arguments to <code class="fun-ref">resolved</code> are inferred
+					from the return type of <code class="fun-def">main</code>).
+				</li>
+				<li>
+					IO: The main function is labelled <code>summon</code> because it calls
+					<code class="fun-ref">print</code> which is also <code>summon</code>.
+					As we'll see, most code will actually not do I/O this way.
+				</li>
 			</ul>
 		</section>
 
 		<section>
 			<h2>Types</h2>
-			Noze has only a few kinds of types:
+			Here is a <strong>complete</strong> list of every type (or kind of type). We'll go into more detail later.
 			<ul>
-			<li>
-				<span class='list-item-bold'><code class='keyword'>builtin</code></span>:
-				Things like <code>bool</code> that can't be expressed in terms of other types.
-			</li>
-			<li>
-				<span class='list-item-bold'><code class='keyword'>extern-ptr</code></span>:
-				A pointer to data from an external library that can only be used through that library.
-			</li>
-			<li>
-				<span class='list-item-bold'><code class='keyword'>record</code></span>:
-				Type of a value that contains several named values.
-				An example would be a <code>point</code> with <code>x</code> and <code>y</code> fields.</li>
-			<li>
-				<span class='list-item-bold'><code class='keyword'>union</code></span>:
-				Type of a value that is one of several possibilities.
-				An example would be a <code>shape</code> with <code>circle</code> or <code>square</code> choices.
-			</li>
+				<li>
+					<code class="keyword">record</code>: Stores several named values.
+				</li>
+				<li>
+					<code class="keyword">union</code>: Stores one of several other types.
+					These are <em>discriminated</em> unions, meaning it knows which of the possibilities it has.
+				</li>
+				<li>
+					<code class="struct-ref">fun, fun-mut, fun-ref</code>:
+					Known as closures or lambdas in other languages.
+				</li>
+				<li>
+					<code class="struct-ref">nat</code>,
+					<code class="struct-ref">nat32</code>,
+					<code class="struct-ref">nat16</code>,
+					<code class="struct-ref">nat8</code>,
+					<code class="struct-ref">int</code>,
+					<code class="struct-ref">int32</code>,
+					<code class="struct-ref">int16</code>,
+					<code class="struct-ref">int8</code>: Natural numbers and integers.
+				<li><code class="struct-ref">float</code> and <code class="struct-ref">float32</code></li>
+				<li>
+					<code class="struct-ref">bool</code>,
+					<code class="struct-ref">char</code>, and
+					<code class="struct-ref">void</code>
+				</li>
+				<li><code class="struct-ref">ptr</code>: C-style pointer for low level code</li>
+				<li>
+					<code class="keyword">extern-ptr</code> and <code class="struct-ref">fun-ptr</code>
+					for C compatibility.
+				</li>
 			</ul>
-
-			<code class='keyword'>record</code> and <code class='keyword'>union</code> types
-			can each have primitive operations for using them.
-			<code class='keyword'>builtin</code> and <code class='keyword'>union</code> types
-			can only be used through certain functions and are otherwise inscrutable.
-		</section>-->
+		</section>
 
 		<section>
 			<h2>Records</h2>
 
-			<noze-runnable></noze-runnable>
+			<noze-runnable src="example-record"></noze-runnable>
 
-			<!--<pre><code data-src="example-record.nz">
-import
-	io
-
-| Declare a record type.
-point record
-	x float
-	y float
-
-| Declare a function returning a point and taking no arguments.
-create-point point()
-	| The type is usually inferred from the context.
-	| If not you can write `new<point>`.
-	new 1, 2
-
-| Declare a function named 'get-x' returning a float and taking a point named 'a'.
-get-x float(a point)
-	| Accessing a record member uses the same syntax as calling a function.
-	a x
-
-| Ignore this header for now; just know that this is the main function.
-main fut exit-code(args arr str) summon
-	| Calls the function 'create-point' and names the result 'p'
-	p = create-point
-	| Calls the function 'get-x' on 'p'
-	p-x = p get-x
-	| This shows the prefix syntax for function calls (in addition to the usual syntax for `to-str`).
-	| This is equivalent to `print_sync(to_str(p_x))` in C.
-	| The syntax choice is not tied to the function; you can use any call syntax for any function.
-	print: p-x to-str
-	zero resolved
-			</code></pre>-->
 		</section>
 
 

@@ -4,7 +4,7 @@ import
 		== ? as bool char false float int int16 int32 nat nat16 nat32 none opt
 		some str todo to-float to-int to-nat true truncate-to-int unsafe-to-int32
 		unsafe-to-nat16 unsafe-to-nat32 value
-	.number-utils: + * / abs mod neg negative? to-int
+	.number-utils: + * / abs mod multiple-of? neg negative? to-int
 	.opt-utils: opt-map
 
 to-str str(b bool)
@@ -74,9 +74,18 @@ to-str str(i int32)
 to-str str(i int16)
 	i.to-int to-str
 
-| TODO: actually handle floats!
 to-str str(a float)
-	a.truncate-to-int to-str
+	| TODO: Use a real float to string algorithm
+	times-100 = (a * 100.0).truncate-to-int
+	hundredths = times-100 mod 100
+	tenths = hundredths / 10
+	whole-part = (times-100 / 100).to-str
+	if hundredths == 0
+		whole-part
+	elif hundredths multiple-of? 10
+		whole-part + "." + tenths.to-str
+	else
+		whole-part + "." + hundredths.to-str
 
 char-to-nat opt nat(c char)
 	if c == "0"
