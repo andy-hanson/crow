@@ -4,10 +4,10 @@ module lib.server;
 
 import lib.compiler : buildAndInterpret;
 import frontend.frontendCompile : frontendCompile;
-import frontend.getHover : getHoverStr;
-import frontend.getPosition : getPosition, Position;
-import frontend.getTokens : Token, tokensOfAst;
-import frontend.parse : FileAstAndParseDiagnostics, parseFile;
+import frontend.ide.getHover : getHoverStr;
+import frontend.ide.getPosition : getPosition, Position;
+import frontend.ide.getTokens : Token, tokensOfAst;
+import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.showDiag : ShowDiagOptions, strOfParseDiag;
 import interpret.fakeExtern : FakeExtern;
 import model.parseDiag : ParseDiagnostic;

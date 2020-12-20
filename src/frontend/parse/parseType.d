@@ -1,9 +1,9 @@
-module frontend.parseType;
+module frontend.parse.parseType;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast : matchTypeAst, NameAndRange, range, TypeAst;
-import frontend.lexer : addDiag, curPos, Lexer, range, takeNameAndRange, takeOrAddDiagExpected, tryTake;
+import frontend.parse.ast : matchTypeAst, NameAndRange, range, TypeAst;
+import frontend.parse.lexer : addDiag, curPos, Lexer, range, takeNameAndRange, takeOrAddDiagExpected, tryTake;
 import model.parseDiag : ParseDiag;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, at, empty, toArr;

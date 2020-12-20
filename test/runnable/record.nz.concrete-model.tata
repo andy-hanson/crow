@@ -119,7 +119,7 @@ program(
 			body: record(
 				[
 					field(tasks, false, type(false, mut-bag))
-					field(exception-handler, true, type(false, fun-mut1))
+					field(exception-handler, true, type(false, fun1))
 					field(log-handler, true, type(false, fun1))]))
 		struct(
 			name: task
@@ -133,7 +133,7 @@ program(
 			body: record([field(value, false, type(false, task)), field(next-node, true, type(false, opt))]))
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
 		struct(name: some, body: record([field(value, false, type(true, mut-bag-node))]))
-		struct(name: fun-mut1, body: builtin(fun, [type(false, void), type(false, exception)]))
+		struct(name: fun1, body: builtin(fun, [type(false, void), type(false, exception)]))
 		struct(
 			name: logged
 			ptr?: true
@@ -246,6 +246,7 @@ program(
 					field(f, false, type(false, fun-ref1))
 					field(p0, false, type(false, void))
 					field(res, false, type(true, fut))]))
+		struct(name: fun-mut1, body: builtin(fun, [type(false, void), type(false, exception)]))
 		struct(
 			name: lambda(lambda(call-ref, 0), 0)
 			ptr?: true
@@ -830,7 +831,7 @@ program(
 			none
 			[
 				param(tasks, type(false, mut-bag))
-				param(exception-handler, type(false, fun-mut1))
+				param(exception-handler, type(false, fun1))
 				param(log-handler, type(false, fun1))]
 			new-record)
 		fun(false, new-mut-bag, type(false, mut-bag), none, [], expr-body(call(mut-bag, [to-union(0, call(none, []))])))
@@ -2693,7 +2694,7 @@ program(
 										get-field(param-ref("<<closure>>"), f)
 										get-field(param-ref("<<closure>>"), p0)
 										get-field(param-ref("<<closure>>"), res)])))
-						lambda(1, alloc(record([get-field(param-ref("<<closure>>"), res)])))])))
+						lambda(0, alloc(record([get-field(param-ref("<<closure>>"), res)])))])))
 		fun(false, value, type(false, void), none, [param(a, type(false, ok))], field-get(0))
 		fun(
 			true
@@ -2797,7 +2798,7 @@ program(
 							alloc(
 								record(
 									[get-field(param-ref("<<closure>>"), f), get-field(param-ref("<<closure>>"), res)])))
-						lambda(2, alloc(record([get-field(param-ref("<<closure>>"), res)])))])))
+						lambda(1, alloc(record([get-field(param-ref("<<closure>>"), res)])))])))
 		fun(
 			true
 			lambda(then2, 0)

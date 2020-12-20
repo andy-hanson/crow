@@ -1,8 +1,8 @@
-module frontend.lexer;
+module frontend.parse.lexer;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast : LiteralAst, NameAndRange, rangeOfNameAndRange;
+import frontend.parse.ast : LiteralAst, NameAndRange, rangeOfNameAndRange;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, arrOfRange, at, begin, empty, first, last, size;

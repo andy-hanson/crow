@@ -1,8 +1,8 @@
-module frontend.getTokens;
+module frontend.ide.getTokens;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast :
+import frontend.parse.ast :
 	BogusAst,
 	CallAst,
 	CreateArrAst,

@@ -1,8 +1,8 @@
-module frontend.getHover;
+module frontend.ide.getHover;
 
 @safe @nogc pure nothrow:
 
-import frontend.getPosition : matchPosition, Position;
+import frontend.ide.getPosition : matchPosition, Position;
 import model.diag : writeFile;
 import model.model :
 	body_,

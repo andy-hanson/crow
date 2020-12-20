@@ -4,9 +4,9 @@ module lib.compiler;
 
 import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
-import frontend.ast : FileAst, sexprOfAst;
+import frontend.parse.ast : FileAst, sexprOfAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
-import frontend.getTokens : Token, tokensOfAst, sexprOfTokens;
+import frontend.ide.getTokens : Token, tokensOfAst, sexprOfTokens;
 import frontend.lang : nozeExtension;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.bytecode : ByteCode;

@@ -1,4 +1,4 @@
-module frontend.getPosition;
+module frontend.ide.getPosition;
 
 @safe @nogc pure nothrow:
 

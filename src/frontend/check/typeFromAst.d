@@ -1,10 +1,10 @@
-module frontend.typeFromAst;
+module frontend.check.typeFromAst;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast : matchTypeAst, TypeAst;
-import frontend.checkCtx : addDiag, CheckCtx;
-import frontend.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
+import frontend.check.checkCtx : addDiag, CheckCtx;
+import frontend.check.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
+import frontend.parse.ast : matchTypeAst, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :

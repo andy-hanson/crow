@@ -1,8 +1,7 @@
-module frontend.instantiate;
+module frontend.check.instantiate;
 
 @safe @nogc pure nothrow:
 
-import frontend.checkUtil : ptrAsImmutable;
 import frontend.programState : ProgramState;
 import model.model :
 	bestCasePurity,
@@ -39,7 +38,7 @@ import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
 import util.collection.mutArr : MutArr, push;
 import util.memory : nu, nuMut;
 import util.opt : force, has, none, noneMut, Opt, some, someConst, someMut;
-import util.ptr : Ptr, ptrEquals;
+import util.ptr : castImmutable, Ptr, ptrEquals;
 import util.util : verify;
 
 struct TypeParamsScope {
@@ -216,7 +215,7 @@ immutable(Ptr!StructInst) instantiateStruct(Alloc)(
 		}
 	}
 
-	return ptrAsImmutable(res.value);
+	return castImmutable(res.value);
 }
 
 immutable(Ptr!StructInst) instantiateStructInst(Alloc)(

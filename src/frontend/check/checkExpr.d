@@ -1,30 +1,10 @@
-module frontend.checkExpr;
+module frontend.check.checkExpr;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast :
-	BogusAst,
-	CallAst,
-	CreateArrAst,
-	ExprAst,
-	ExprAstKind,
-	FunPtrAst,
-	IdentifierAst,
-	IfAst,
-	LambdaAst,
-	LetAst,
-	LiteralAst,
-	MatchAst,
-	matchExprAstKind,
-	matchLiteralAst,
-	NameAndRange,
-	rangeOfNameAndRange,
-	SeqAst,
-	ThenAst,
-	TypeAst;
-import frontend.checkCall : checkCall, checkIdentifierCall, eachFunInScope;
-import frontend.checkCtx : CheckCtx;
-import frontend.inferringType :
+import frontend.check.checkCall : checkCall, checkIdentifierCall, eachFunInScope;
+import frontend.check.checkCtx : CheckCtx;
+import frontend.check.inferringType :
 	addDiag2,
 	allocExpr,
 	bogus,
@@ -44,8 +24,8 @@ import frontend.inferringType :
 	tryGetDeeplyInstantiatedTypeFor,
 	tryGetInferred,
 	typeFromAst2;
-import frontend.instantiate : instantiateFun, instantiateStructNeverDelay;
-import frontend.typeFromAst : makeFutType;
+import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
+import frontend.check.typeFromAst : makeFutType;
 import model.constant : Constant;
 import model.diag : Diag;
 import model.model :
@@ -89,6 +69,26 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	worstCasePurity;
+import frontend.parse.ast :
+	BogusAst,
+	CallAst,
+	CreateArrAst,
+	ExprAst,
+	ExprAstKind,
+	FunPtrAst,
+	IdentifierAst,
+	IfAst,
+	LambdaAst,
+	LetAst,
+	LiteralAst,
+	MatchAst,
+	matchExprAstKind,
+	matchLiteralAst,
+	NameAndRange,
+	rangeOfNameAndRange,
+	SeqAst,
+	ThenAst,
+	TypeAst;
 import util.bools : Bool, False, not, True;
 import util.collection.arr :
 	Arr,

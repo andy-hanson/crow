@@ -5,16 +5,16 @@ module frontend.frontendCompile;
 import model.diag : Diag, Diags, Diagnostic, FilesInfo;
 import model.model : CommonTypes, LineAndColumnGetters, Module, Program, SpecialModules;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
-import frontend.ast :
+import frontend.check.check : BootstrapCheck, check, checkBootstrapNz, ModuleAndNames, PathAndAst;
+import frontend.parse.ast :
 	emptyFileAst,
 	exports,
 	FileAst,
 	ImportAst,
 	imports,
 	ImportsOrExportsAst;
-import frontend.check : BootstrapCheck, check, checkBootstrapNz, ModuleAndNames, PathAndAst;
 import frontend.lang : nozeExtension;
-import frontend.parse : FileAstAndParseDiagnostics, parseFile;
+import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
 import util.bools : Bool;
 import util.collection.arr : Arr, at, empty, emptyArr, range;

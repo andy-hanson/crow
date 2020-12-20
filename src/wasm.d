@@ -1,6 +1,6 @@
 @safe @nogc nothrow: // not pure
 
-import frontend.getTokens : sexprOfTokens, Token;
+import frontend.ide.getTokens : sexprOfTokens, Token;
 import lib.server :
 	addOrChangeFile,
 	deleteFile,

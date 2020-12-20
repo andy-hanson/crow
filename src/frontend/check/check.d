@@ -1,8 +1,18 @@
-module frontend.check;
+module frontend.check.check;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast :
+import frontend.check.checkCtx : addDiag, CheckCtx, posInFile, rangeInFile;
+import frontend.check.checkExpr : checkFunctionBody;
+import frontend.check.instantiate :
+	DelayStructInsts,
+	instantiateSpec,
+	instantiateStruct,
+	instantiateStructBody,
+	instantiateStructNeverDelay,
+	TypeParamsScope;
+import frontend.check.typeFromAst : instStructFromAst, tryFindSpec, typeArgsFromAsts, typeFromAst;
+import frontend.parse.ast :
 	ExplicitByValOrRef,
 	ExplicitByValOrRefAndRange,
 	exports,
@@ -30,18 +40,7 @@ import frontend.ast :
 	structs,
 	TypeAst,
 	TypeParamAst;
-import frontend.checkCtx : addDiag, CheckCtx, posInFile, rangeInFile;
-import frontend.checkExpr : checkFunctionBody;
-import frontend.checkUtil : arrAsImmutable, ptrAsImmutable;
-import frontend.instantiate :
-	DelayStructInsts,
-	instantiateSpec,
-	instantiateStruct,
-	instantiateStructBody,
-	instantiateStructNeverDelay,
-	TypeParamsScope;
 import frontend.programState : ProgramState;
-import frontend.typeFromAst : instStructFromAst, tryFindSpec, typeArgsFromAsts, typeFromAst;
 import model.diag : Diag, Diagnostic, TypeKind;
 import model.model :
 	arity,
@@ -101,6 +100,7 @@ import util.collection.arr :
 	Arr,
 	ArrWithSize,
 	at,
+	castImmutable,
 	empty,
 	emptyArr,
 	emptyArrWithSize,
@@ -820,13 +820,13 @@ void checkStructBodies(Alloc)(
 					return immutable StructBody(immutable StructBody.ExternPtr());
 				},
 				(ref immutable StructDeclAst.Body.Record r) =>
-					checkRecord(alloc, ctx, structsAndAliasesMap, ptrAsImmutable(struct_), r, delayStructInsts),
+					checkRecord(alloc, ctx, structsAndAliasesMap, castImmutable(struct_), r, delayStructInsts),
 				(ref immutable StructDeclAst.Body.Union un) =>
-					checkUnion(alloc, ctx, structsAndAliasesMap, ptrAsImmutable(struct_), un, delayStructInsts));
+					checkUnion(alloc, ctx, structsAndAliasesMap, castImmutable(struct_), un, delayStructInsts));
 			setBody(struct_, body_);
 		});
 
-	foreach (ref immutable StructDecl struct_; arrRange(arrAsImmutable(structs))) {
+	foreach (ref immutable StructDecl struct_; arrRange(castImmutable(structs))) {
 		matchStructBody!void(
 			body_(struct_),
 			(ref immutable StructBody.Bogus) {},
@@ -944,7 +944,7 @@ immutable(FunsAndMap) checkFuns(Alloc, SymAlloc)(
 
 	immutable FunsMap funsMap = buildMultiDict!(Sym, Ptr!FunDecl, compareSym, FunDecl, Alloc)(
 		alloc,
-		arrAsImmutable(funs),
+		castImmutable(funs),
 		(immutable Ptr!FunDecl it) =>
 			immutable KeyValuePair!(Sym, Ptr!FunDecl)(name(it), it));
 
@@ -966,10 +966,10 @@ immutable(FunsAndMap) checkFuns(Alloc, SymAlloc)(
 			},
 			(ref immutable ExprAst e) =>
 				immutable FunBody(checkFunctionBody!Alloc(
-					alloc, ctx, e, structsAndAliasesMap, funsMap, ptrAsImmutable(fun), commonTypes))));
+					alloc, ctx, e, structsAndAliasesMap, funsMap, castImmutable(fun), commonTypes))));
 	});
 
-	return FunsAndMap(arrAsImmutable(funs), funsMap);
+	return FunsAndMap(castImmutable(funs), funsMap);
 }
 
 immutable(size_t) countFunsForStruct(
@@ -1098,7 +1098,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 	ref immutable FileAst ast,
 ) {
 	checkStructBodies!Alloc(alloc, ctx, structsAndAliasesMap, structs, ast.structs, delayStructInsts);
-	immutable Arr!StructDecl structsImmutable = arrAsImmutable(structs);
+	immutable Arr!StructDecl structsImmutable = castImmutable(structs);
 	foreach (ref const StructDecl s; arrRange(structs))
 		if (isRecord(s.body_))
 			foreach (ref immutable RecordField f; arrRange(asRecord(s.body_).fields))
@@ -1232,7 +1232,7 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 	foreach (ref const StructAlias a; arrRange(structAliases))
 		addToMutSymSetOkIfPresent(alloc, programState.names.structAndAliasNames, a.name);
 	immutable StructsAndAliasesMap structsAndAliasesMap =
-		buildStructsAndAliasesDict(alloc, ctx, arrAsImmutable(structs), arrAsImmutable(structAliases));
+		buildStructsAndAliasesDict(alloc, ctx, castImmutable(structs), castImmutable(structAliases));
 
 	// We need to create StructInsts when filling in struct bodies.
 	// But when creating a StructInst, we usually want to fill in its body.

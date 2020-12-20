@@ -1,8 +1,8 @@
-module frontend.parseExpr;
+module frontend.parse.parseExpr;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast :
+import frontend.parse.ast :
 	asIdentifier,
 	BogusAst,
 	CallAst,
@@ -22,7 +22,7 @@ import frontend.ast :
 	SeqAst,
 	ThenAst,
 	TypeAst;
-import frontend.lexer :
+import frontend.parse.lexer :
 	asAmpersandAndName,
 	addDiag,
 	addDiagAtChar,
@@ -45,7 +45,7 @@ import frontend.lexer :
 	takeOrAddDiagExpected,
 	tryTake,
 	tryTakeIndentOrDedent;
-import frontend.parseType : tryParseTypeArg, tryParseTypeArgs;
+import frontend.parse.parseType : tryParseTypeArg, tryParseTypeArgs;
 import model.parseDiag : ParseDiag;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, only, toArr;

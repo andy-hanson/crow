@@ -1,8 +1,8 @@
-module frontend.parse;
+module frontend.parse.parse;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast :
+import frontend.parse.ast :
 	ExplicitByValOrRef,
 	ExplicitByValOrRefAndRange,
 	FileAst,
@@ -24,7 +24,7 @@ import frontend.ast :
 	StructDeclAst,
 	TypeAst,
 	TypeParamAst;
-import frontend.lexer :
+import frontend.parse.lexer :
 	addDiagAtChar,
 	addDiagOnReservedName,
 	createLexer,
@@ -55,8 +55,8 @@ import frontend.lexer :
 	takeQuotedStr,
 	tryTake,
 	tryTakeIndentAfterNewline_topLevel;
-import frontend.parseExpr : parseFunExprBody;
-import frontend.parseType : parseStructType, parseType, takeTypeArgsEnd, tryParseTypeArgs;
+import frontend.parse.parseExpr : parseFunExprBody;
+import frontend.parse.parseType : parseStructType, parseType, takeTypeArgsEnd, tryParseTypeArgs;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, emptyArr, emptyArrWithSize;

@@ -1,11 +1,10 @@
-module frontend.checkCall;
+module frontend.check.checkCall;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast : CallAst, ExprAst, NameAndRange, TypeAst;
-import frontend.checkCtx : addDiag, CheckCtx;
-import frontend.checkExpr : checkExpr;
-import frontend.inferringType :
+import frontend.check.checkCtx : addDiag, CheckCtx;
+import frontend.check.checkExpr : checkExpr;
+import frontend.check.inferringType :
 	addDiag2,
 	bogus,
 	check,
@@ -22,7 +21,8 @@ import frontend.inferringType :
 	tryGetInferred,
 	tryGetTypeArgFromInferringTypeArgs_const,
 	typeArgsFromAsts;
-import frontend.instantiate : instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeParamsAndArgs;
+import frontend.check.instantiate : instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeParamsAndArgs;
+import frontend.parse.ast : CallAst, ExprAst, NameAndRange, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :

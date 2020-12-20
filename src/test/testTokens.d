@@ -2,9 +2,9 @@ module test.testTokens;
 
 @safe @nogc pure nothrow:
 
-import frontend.ast : sexprOfAst;
-import frontend.parse : FileAstAndParseDiagnostics, parseFile;
-import frontend.getTokens : sexprOfTokens, Token, tokensOfAst;
+import frontend.ide.getTokens : sexprOfTokens, Token, tokensOfAst;
+import frontend.parse.ast : sexprOfAst;
+import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import test.testUtil : Test;
 import util.bools : Bool;
 import util.collection.arr : Arr, emptyArr;

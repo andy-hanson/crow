@@ -5,7 +5,7 @@ import
 	.arr-utils: at contains? empty? mut-arr noctx-at noctx-must-remove-unordered push-capacity-must-be-sufficient
 	.bootstrap
 		== != > ? arr as as-any-ptr as-ref bool by-val call-with-ctx ctx empty? err exception
-		exclusion false fun-mut0 fun-mut1 gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid
+		exclusion false fun1 fun-mut0 gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid
 		island-and-exclusion island-id lock message nat noctx-decr noctx-incr none not ok opt
 		ref-of-val result size some todo true value void
 	.exceptions: exception-ctx new-exception-ctx
@@ -64,7 +64,7 @@ island-gc-root record mut
 	tasks by-val mut-bag<task>
 	| if there's an exception, we'll enqueue this as a task.
 	| Default is to print it and set `gctx.any-unhandled-exceptions`
-	exception-handler mut fun-mut1 void exception
+	exception-handler mut fun1 void exception
 	log-handler mut log-handler
 
 tasks mut-bag task(a island) noctx unsafe
@@ -97,7 +97,7 @@ default-exception-handler void(e exception) summon unsafe
 	print-err: e.message.empty? ? "<<empty message>>", e.message
 	get-gctx set-any-unhandled-exceptions? true
 
-set-this-islands-exception-handler void(exception-handler fun-mut1 void exception) summon trusted
+set-this-islands-exception-handler void(exception-handler fun1 void exception) summon trusted
 	get-cur-island.gc-root.ref-of-val set-exception-handler exception-handler
 
 | Unsafe because you must ensure 'task' is safe to run in parallel.

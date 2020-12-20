@@ -3,8 +3,8 @@ module test.testHover;
 @safe @nogc nothrow: // not pure
 
 import frontend.frontendCompile : frontendCompile;
-import frontend.getHover : getHoverStr;
-import frontend.getPosition : getPosition, Position;
+import frontend.ide.getHover : getHoverStr;
+import frontend.ide.getPosition : getPosition, Position;
 import model.model : Module, Program;
 import test.testUtil : Test;
 import util.collection.arr : last, size;
