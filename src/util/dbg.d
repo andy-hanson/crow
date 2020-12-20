@@ -1,6 +1,6 @@
 module util.dbg;
 
-@safe @nogc nothrow: // not pure
+@safe @nogc pure nothrow:
 
 import util.collection.str : Str, strLiteral;
 

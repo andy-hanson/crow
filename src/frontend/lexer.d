@@ -49,7 +49,7 @@ struct Lexer(SymAlloc) {
 	immutable NulTerminatedStr source,
 ) {
 	// Note: We *are* relying on the nul terminator to stop the lexer.
-	immutable Str str = source.stripNulTerminator;
+	immutable Str str = stripNulTerminator(source);
 	immutable Str useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc, str, strLiteral("\n\0")));
 	return Lexer!SymAlloc(
 		allSymbols,
@@ -491,11 +491,11 @@ private:
 
 // Note: Not issuing any diagnostics here. We'll fail later if we detect the wrong indent kind.
 IndentKind detectIndentKind(immutable Str str) {
-	if (str.empty)
+	if (empty(str))
 		// No indented lines, so it's irrelevant
 		return IndentKind.tabs;
 	else {
-		immutable char c0 = str.first;
+		immutable char c0 = first(str);
 		if (c0 == '\t')
 			return IndentKind.tabs;
 		else if (c0 == ' ') {
@@ -509,7 +509,7 @@ IndentKind detectIndentKind(immutable Str str) {
 		} else {
 			foreach (immutable size_t i; 0..size(str))
 				if (at(str, i) == '\n')
-					return detectIndentKind(str.slice(i + 1));
+					return detectIndentKind(slice(str, i + 1));
 			return IndentKind.tabs;
 		}
 	}

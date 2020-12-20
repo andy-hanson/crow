@@ -3,6 +3,7 @@ module test.test;
 @safe @nogc nothrow: // not pure
 
 import test.testApplyFn : testApplyFn;
+import test.testArrUtil : testArrUtil;
 import test.testByteReaderWriter : testByteReaderWriter;
 import test.testFakeExtern : testFakeExtern;
 import test.testHover : testHover;
@@ -35,6 +36,7 @@ int test(Debug, Alloc)(ref Debug dbg, ref Alloc alloc, immutable Opt!Str name) {
 private:
 
 immutable(NameAndTest!(Debug, Alloc)[]) allTests(Debug, Alloc) = [
+	immutable NameAndTest!(Debug, Alloc)("arr-util", &testArrUtil!(Debug, Alloc)),
 	immutable NameAndTest!(Debug, Alloc)("apply-fn", &testApplyFn!(Debug, Alloc)),
 	immutable NameAndTest!(Debug, Alloc)("byte-reader-writer", &testByteReaderWriter!(Debug, Alloc)),
 	immutable NameAndTest!(Debug, Alloc)("fake-extern", &testFakeExtern!(Debug, Alloc)),

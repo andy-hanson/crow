@@ -42,8 +42,8 @@ immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 }
 
 void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T value) {
-	push(alloc, a, value);
-	foreach_reverse (immutable size_t i; mutArrSize(a)..pos + 1)
+	push(alloc, a, value); // pushed value is arbitrary, we're about to overwrite it
+	foreach_reverse (immutable size_t i; pos + 1..mutArrSize(a))
 		setAt(a, i, mutArrAt(a, i - 1));
 	setAt(a, pos, value);
 }

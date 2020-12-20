@@ -513,13 +513,13 @@ Arr!T tail(T)(Arr!T a) {
 
 immutable(Arr!T) rtail(T)(immutable Arr!T a) {
 	verify(size(a) != 0);
-	return a.slice(0, size(a) - 1);
+	return slice(a, 0, size(a) - 1);
 }
 
 //TODO:PERF More efficient than bubble sort..
 immutable(Arr!T) sort(T, Alloc)(
 	ref Alloc alloc,
-	ref immutable Arr!T a,
+	scope ref immutable Arr!T a,
 	scope immutable Comparer!T compare,
 ) {
 	MutArr!(immutable T) res;
@@ -657,8 +657,8 @@ immutable(Bool) eachCorresponds(T, U)(
 }
 
 immutable(Bool) arrEqual(T)(
-	ref immutable Arr!T a,
-	ref immutable Arr!T b,
+	scope ref immutable Arr!T a,
+	scope ref immutable Arr!T b,
 	scope immutable(Bool) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow elementEqual,
 ) {
 	return immutable Bool(sizeEq(a, b) && eachCorresponds(a, b, elementEqual));
