@@ -1,21 +1,6 @@
 module(
 	path: 21
-	imports: [
-		import(19, none)
-		import(8, none)
-		import(0, none)
-		import(1, none)
-		import(9, none)
-		import(5, none)
-		import(17, none)
-		import(18, none)
-		import(14, none)
-		import(6, none)
-		import(7, none)
-		import(16, none)
-		import(11, none)
-		import(12, none)
-		import(13, some([exit-code, print]))]
+	imports: [import(range(0, 0), 19, none), import(range(8, 10), 13, some([exit-code, print]))]
 	exports: []
 	structs: [struct(range: file-range(21, range(29, 69)), public?: true, name: rect)]
 	specs: []

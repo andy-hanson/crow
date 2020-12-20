@@ -18,9 +18,8 @@ import model.model :
 	matchFunBody,
 	matchType,
 	Module,
-	ModuleAndNameReferents,
+	ModuleAndNames,
 	name,
-	NameAndReferents,
 	noCtx,
 	Param,
 	Purity,
@@ -58,7 +57,7 @@ import util.sexpr :
 	tataRecord,
 	tataStr,
 	tataSym;
-import util.sourceRange : sexprOfFileAndPos, sexprOfFileAndRange;
+import util.sourceRange : sexprOfFileAndPos, sexprOfFileAndRange, sexprOfRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.util : todo;
 
@@ -66,10 +65,10 @@ immutable(Sexpr) sexprOfModule(Alloc)(ref Alloc alloc, ref immutable Module a) {
 	Ctx ctx = Ctx(ptrTrustMe(a));
 	return tataNamedRecord(alloc, "module", [
 		nameAndTata("path", tataNat(a.fileIndex.index)),
-		nameAndTata("imports", tataArr(alloc, a.imports, (ref immutable ModuleAndNameReferents m) =>
-			sexprOfModuleAndNameReferents(alloc, m))),
-		nameAndTata("exports", tataArr(alloc, a.exports, (ref immutable ModuleAndNameReferents m) =>
-			sexprOfModuleAndNameReferents(alloc, m))),
+		nameAndTata("imports", tataArr(alloc, a.imports, (ref immutable ModuleAndNames m) =>
+			sexprOfModuleAndNames(alloc, m))),
+		nameAndTata("exports", tataArr(alloc, a.exports, (ref immutable ModuleAndNames m) =>
+			sexprOfModuleAndNames(alloc, m))),
 		nameAndTata("structs", tataArr(alloc, a.structs, (ref immutable StructDecl s) =>
 			sexprOfStructDecl(alloc, ctx, s))),
 		nameAndTata("specs", tataArr(alloc, a.specs, (ref immutable SpecDecl s) =>
@@ -80,12 +79,13 @@ immutable(Sexpr) sexprOfModule(Alloc)(ref Alloc alloc, ref immutable Module a) {
 
 private:
 
-immutable(Sexpr) sexprOfModuleAndNameReferents(Alloc)(ref Alloc alloc, ref immutable ModuleAndNameReferents a) {
+immutable(Sexpr) sexprOfModuleAndNames(Alloc)(ref Alloc alloc, ref immutable ModuleAndNames a) {
 	return tataRecord(alloc, "import", [
+		sexprOfRangeWithinFile(alloc, a.range),
 		tataNat(a.module_.fileIndex.index),
-		tataOpt(alloc, a.namesAndReferents, (ref immutable Arr!NameAndReferents names) =>
-			tataArr(alloc, names, (ref immutable NameAndReferents nr) =>
-				tataSym(nr.name)))]);
+		tataOpt(alloc, a.names, (ref immutable Arr!Sym names) =>
+			tataArr(alloc, names, (ref immutable Sym name) =>
+				tataSym(name)))]);
 }
 
 struct Ctx {

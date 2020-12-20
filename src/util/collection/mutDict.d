@@ -9,6 +9,7 @@ import util.collection.dict : Dict, KeyValuePair;
 import util.collection.mutArr :
 	deleteAt,
 	last,
+	moveToArr_const,
 	MutArr,
 	mutArrAt,
 	mutArrIsEmpty,
@@ -26,6 +27,14 @@ import util.util : unreachable, verify;
 struct MutDict(K, V, alias cmp) {
 	private:
 	MutArr!(KeyValuePair!(K, V)) pairs;
+}
+
+@trusted immutable(Dict!(K, V, cmp)) moveToDict(K, V, alias cmp, Alloc)(
+	ref Alloc alloc,
+	ref MutDict!(immutable K, immutable V, cmp) a,
+) {
+	const Arr!(KeyValuePair!(immutable K, immutable V)) pairs = moveToArr_const(alloc, a.pairs);
+	return immutable Dict!(K, V, cmp)(cast(immutable Arr!(KeyValuePair!(K, V))) pairs);
 }
 
 immutable(Dict!(K, VOut, cmp)) mapToDict(K, VOut, VIn, alias cmp, Alloc)(

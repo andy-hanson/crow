@@ -4,6 +4,7 @@ module util.collection.multiDict;
 
 import util.collection.arr : Arr, emptyArr;
 import util.comparison : Comparison;
+import util.util : verify;
 
 struct MultiDict(K, V, alias compare) {
 	private:
@@ -12,7 +13,32 @@ struct MultiDict(K, V, alias compare) {
 	immutable V* values;
 }
 
-@trusted immutable(Arr!V) multiDictGetAt(K, V, alias compare)(immutable MultiDict!(K, V, compare) d, immutable K key) {
+@trusted void multiDictEach(K, V, alias compare)(
+	ref immutable MultiDict!(K, V, compare) a,
+	scope void delegate(ref immutable K, immutable Arr!V) @safe @nogc pure nothrow cb,
+) {
+	void recur(immutable K k, immutable size_t startI, immutable size_t curI) {
+		verify(curI > startI);
+		if (curI == a.size)
+			cb(k, immutable Arr!V(a.values + startI, curI - startI));
+		else {
+			if (compare(a.keys[curI], k) == Comparison.equal)
+				recur(k, startI, curI + 1);
+			else {
+				cb(k, immutable Arr!V(a.values + startI, curI - startI));
+				recur(a.keys[curI], curI, curI + 1);
+			}
+		}
+	}
+
+	if (a.size != 0)
+		recur(a.keys[0], 0, 1);
+}
+
+@trusted immutable(Arr!V) multiDictGetAt(K, V, alias compare)(
+	ref immutable MultiDict!(K, V, compare) d,
+	ref immutable K key,
+) {
 	foreach (immutable size_t i; 0..d.size) {
 		if (compare(d.keys[i], key) == Comparison.equal) {
 			size_t j = i + 1;

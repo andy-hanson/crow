@@ -2,7 +2,7 @@ module frontend.check.checkCall;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx;
+import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport;
 import frontend.check.checkExpr : checkExpr;
 import frontend.check.inferringType :
 	addDiag2,
@@ -39,8 +39,8 @@ import model.model :
 	matchCalledDecl,
 	matchSpecBody,
 	matchType,
-	ModuleAndNameReferents,
-	NameAndReferents,
+	Module,
+	NameReferents,
 	nSigs,
 	params,
 	Purity,
@@ -216,21 +216,20 @@ void eachFunInScope(
 	foreach (immutable Ptr!FunDecl f; arrRange(multiDictGetAt(ctx.funsMap, funName)))
 		cb(immutable CalledDecl(f));
 
-	foreach (ref immutable ModuleAndNameReferents m; arrRange(ctx.checkCtx.allFlattenedImports)) {
-		if (has(m.namesAndReferents)) {
-			foreach (ref immutable NameAndReferents nr; arrRange(force(m.namesAndReferents)))
-				if (nr.name == funName)
-					foreach (immutable Ptr!FunDecl f; arrRange(nr.funs))
-						cb(immutable CalledDecl(f));
-		} else {
-			foreach (immutable Ptr!FunDecl f; arrRange(multiDictGetAt(m.module_.funsMap, funName)))
-				if (f.isPublic)
-					cb(immutable CalledDecl(f));
-		}
-	}
+	eachImportAndReExport!Empty(
+		ctx.checkCtx,
+		funName,
+		immutable Empty(),
+		(immutable(Empty), immutable Ptr!Module, ref immutable NameReferents it) {
+			foreach (immutable Ptr!FunDecl f; arrRange(it.funs))
+				cb(immutable CalledDecl(f));
+			return immutable Empty();
+		});
 }
 
 private:
+
+struct Empty {}
 
 immutable(Bool) candidateIsPreferred(ref const Candidate a) {
 	return matchCalledDecl!(immutable Bool)(

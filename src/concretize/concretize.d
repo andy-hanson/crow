@@ -14,6 +14,8 @@ import model.model :
 	nonTemplateFunInst,
 	isStructInst,
 	isTemplate,
+	Module,
+	NameReferents,
 	noCtx,
 	Param,
 	params,
@@ -23,13 +25,14 @@ import model.model :
 	typeArgs,
 	typeEquals;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, only, size;
+import util.collection.arr : Arr, at, emptyArr, only, size;
 import util.collection.arrBuilder : finishArr_immutable;
+import util.collection.dict : getAt;
 import util.collection.mutArr : moveToArr, MutArr;
 import util.collection.mutDict : mapToDict, mutDictIsEmpty;
-import util.collection.multiDict : multiDictGetAt;
 import util.collection.str : Str, strLiteral;
 import util.memory : nu;
+import util.opt : force, has, Opt;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe;
 import util.sym : AllSymbols, getSymFromAlphaIdentifier, shortSymAlphaLiteral, Sym;
 import util.util : todo, verify;
@@ -128,8 +131,7 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr
 }
 
 immutable(Ptr!FunInst) getMarkFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) markFuns =
-		multiDictGetAt(program.specialModules.allocModule.funsMap, shortSymAlphaLiteral("mark"));
+	immutable Arr!(Ptr!FunDecl) markFuns = getFuns(program.specialModules.allocModule, shortSymAlphaLiteral("mark"));
 	if (size(markFuns) != 1)
 		todo!void("wong number mark funs");
 	immutable Ptr!FunDecl markFun = only(markFuns);
@@ -138,9 +140,8 @@ immutable(Ptr!FunInst) getMarkFun(Alloc)(ref Alloc alloc, ref immutable Program 
 }
 
 immutable(Ptr!FunInst) getRtMainFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) mainFuns = multiDictGetAt(
-		program.specialModules.runtimeMainModule.funsMap,
-		shortSymAlphaLiteral("rt-main"));
+	immutable Arr!(Ptr!FunDecl) mainFuns =
+		getFuns(program.specialModules.runtimeMainModule, shortSymAlphaLiteral("rt-main"));
 	if (size(mainFuns) != 1)
 		todo!void("wrong number rt-main funs");
 	immutable Ptr!FunDecl mainFun = only(mainFuns);
@@ -149,8 +150,7 @@ immutable(Ptr!FunInst) getRtMainFun(Alloc)(ref Alloc alloc, ref immutable Progra
 }
 
 immutable(Ptr!FunInst) getUserMainFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) mainFuns =
-		multiDictGetAt(program.specialModules.mainModule.funsMap, shortSymAlphaLiteral("main"));
+	immutable Arr!(Ptr!FunDecl) mainFuns = getFuns(program.specialModules.mainModule, shortSymAlphaLiteral("main"));
 	if (size(mainFuns) != 1)
 		todo!void("wrong number main funs");
 	immutable Ptr!FunDecl mainFun = only(mainFuns);
@@ -159,8 +159,7 @@ immutable(Ptr!FunInst) getUserMainFun(Alloc)(ref Alloc alloc, ref immutable Prog
 }
 
 immutable(Ptr!FunInst) getAllocFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) allocFuns =
-		multiDictGetAt(program.specialModules.allocModule.funsMap, shortSymAlphaLiteral("alloc"));
+	immutable Arr!(Ptr!FunDecl) allocFuns = getFuns(program.specialModules.allocModule, shortSymAlphaLiteral("alloc"));
 	if (size(allocFuns) != 1)
 		todo!void("wrong number alloc funs");
 	immutable Ptr!FunDecl allocFun = only(allocFuns);
@@ -175,16 +174,20 @@ immutable(Ptr!FunInst) getCurIslandAndExclusionFun(Alloc, SymAlloc)(
 ) {
 	immutable Str name = strLiteral("cur-island-and-exclusion");
 	immutable Sym sym = getSymFromAlphaIdentifier(allSymbols, name);
-	immutable Arr!(Ptr!FunDecl) funs = multiDictGetAt(program.specialModules.runtimeModule.funsMap, sym);
+	immutable Arr!(Ptr!FunDecl) funs = getFuns(program.specialModules.runtimeModule, sym);
 	if (size(funs) != 1)
 		todo!void("wrong number cur-island-and=exclusion funs");
 	return nonTemplateFunInst(alloc, only(funs));
 }
 
 immutable(Arr!(Ptr!FunDecl)) getIfFuns(ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) ifFuns =
-		multiDictGetAt(program.specialModules.bootstrapModule.funsMap, shortSymAlphaLiteral("?"));
+	immutable Arr!(Ptr!FunDecl) ifFuns = getFuns(program.specialModules.bootstrapModule, shortSymAlphaLiteral("?"));
 	if (size(ifFuns) != 2)
 		todo!void("wrong number 'if' funs");
 	return ifFuns;
+}
+
+immutable(Arr!(Ptr!FunDecl)) getFuns(ref immutable Module a, immutable Sym name) {
+	immutable Opt!NameReferents optReferents = getAt(a.allExportedNames, name);
+	return has(optReferents) ? force(optReferents).funs : emptyArr!(Ptr!FunDecl);
 }

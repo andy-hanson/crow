@@ -2,7 +2,7 @@ module frontend.check.typeFromAst;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx;
+import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport;
 import frontend.check.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
 import frontend.parse.ast : matchTypeAst, TypeAst;
 import frontend.programState : ProgramState;
@@ -11,8 +11,7 @@ import model.model :
 	CommonTypes,
 	matchStructOrAlias,
 	Module,
-	ModuleAndNameReferents,
-	NameAndReferents,
+	NameReferents,
 	SpecDecl,
 	SpecsMap,
 	StructAlias,
@@ -25,8 +24,8 @@ import model.model :
 	Type,
 	TypeParam,
 	typeParams;
-import util.collection.arr : Arr, empty, first, range, size, toArr;
-import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map, tail;
+import util.collection.arr : Arr, range, size, toArr;
+import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map;
 import util.collection.dict : Dict, getAt;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
@@ -51,9 +50,7 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 		structsAndAliasesMap,
 		Diag.DuplicateImports.Kind.type,
 		Diag.NameNotFound.Kind.type,
-		(immutable Ptr!Module m) =>
-			m.structsAndAliasesMap,
-		(ref immutable NameAndReferents nr) =>
+		(ref immutable NameReferents nr) =>
 			nr.structOrAlias);
 	if (!has(opDecl))
 		return none!(Ptr!StructInst);
@@ -132,7 +129,7 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
 	immutable RangeWithinFile range,
 	ref immutable SpecsMap specsMap,
 ) {
-	return tryFindT(
+	return tryFindT!(Ptr!SpecDecl, Alloc)(
 		alloc,
 		ctx,
 		name,
@@ -140,9 +137,7 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
 		specsMap,
 		Diag.DuplicateImports.Kind.spec,
 		Diag.NameNotFound.Kind.spec,
-		(immutable Ptr!Module m) =>
-			m.specsMap,
-		(ref immutable NameAndReferents nr) =>
+		(ref immutable NameReferents nr) =>
 			nr.spec);
 }
 
@@ -186,49 +181,31 @@ immutable(Opt!TDecl) tryFindT(TDecl, Alloc)(
 	immutable Dict!(Sym, TDecl, compareSym) dict,
 	immutable Diag.DuplicateImports.Kind duplicateImportKind,
 	immutable Diag.NameNotFound.Kind nameNotFoundKind,
-	scope immutable(Dict!(Sym, TDecl, compareSym)) delegate(immutable Ptr!Module) @safe @nogc pure nothrow getTMap,
-	scope immutable(Opt!TDecl) delegate(ref immutable NameAndReferents) @safe @nogc pure nothrow getFromNameReferents,
+	scope immutable(Opt!TDecl) delegate(ref immutable NameReferents) @safe @nogc pure nothrow getFromNameReferents,
 ) {
 	alias DAndM = DeclAndModule!TDecl;
 
-	immutable(Opt!TDecl) recur(immutable Opt!DAndM res, immutable Arr!ModuleAndNameReferents modules) {
-		if (empty(modules)) {
-			if (has(res))
-				return some!TDecl(force(res).decl);
-			else {
-				addDiag(alloc, ctx, range, immutable Diag(Diag.NameNotFound(nameNotFoundKind, name)));
-				return none!TDecl;
-			}
-		} else {
-			immutable ModuleAndNameReferents m = first(modules);
-			immutable Opt!TDecl fromModule = has(m.namesAndReferents)
-				? getFromNames(force(m.namesAndReferents), name, getFromNameReferents)
-				: getAt!(Sym, TDecl, compareSym)(getTMap(m.module_), name);
-			if (has(fromModule)) {
-				if (has(res)) {
-					//TODO: include both modules in the diag
-					addDiag(alloc, ctx, range, immutable Diag(Diag.DuplicateImports(duplicateImportKind, name)));
-					return none!TDecl;
-				} else
-					return recur(some(immutable DAndM(force(fromModule), some(m.module_))), tail(modules));
-			} else
-				return recur(res, tail(modules));
-		}
-	}
-
 	immutable Opt!TDecl here = getAt(dict, name);
-	return recur(
+	immutable Opt!DAndM res = eachImportAndReExport!(Opt!DAndM)(
+		ctx,
+		name,
 		has(here) ? some(immutable DAndM(force(here), none!(Ptr!Module))) : none!DAndM,
-		ctx.allFlattenedImports);
+		(immutable Opt!DAndM acc, immutable Ptr!Module module_, ref immutable NameReferents referents) {
+			immutable Opt!TDecl got = getFromNameReferents(referents);
+			if (has(got)) {
+				if (has(acc))
+					// TODO: include both modules in the diag
+					addDiag(alloc, ctx, range, immutable Diag(
+						immutable Diag.DuplicateImports(duplicateImportKind, name)));
+				return some(immutable DAndM(force(got), some(module_)));
+			} else
+				return acc;
+		});
+	if (has(res))
+		return some!TDecl(force(res).decl);
+	else {
+		addDiag(alloc, ctx, range, immutable Diag(immutable Diag.NameNotFound(nameNotFoundKind, name)));
+		return none!TDecl;
+	}
 }
 
-immutable(Opt!TDecl) getFromNames(TDecl)(
-	ref immutable Arr!NameAndReferents names,
-	immutable Sym name,
-	scope immutable(Opt!TDecl) delegate(ref immutable NameAndReferents) @safe @nogc pure nothrow getFromNameReferents,
-) {
-	foreach (ref immutable NameAndReferents nr; range(names))
-		if (symEq(nr.name, name))
-			return getFromNameReferents(nr);
-	return none!TDecl;
-}

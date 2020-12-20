@@ -427,14 +427,37 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 	return immutable Arr!Out(cast(immutable) res, size(inputs));
 }
 
+immutable(Acc) eachCat(Acc, T)(
+	ref immutable Acc acc,
+	ref immutable Arr!T a,
+	ref immutable Arr!T b,
+	scope immutable(Acc) delegate(immutable Acc, ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	return each(each(acc, a, cb), b, cb);
+}
+
+private immutable(Acc) each(Acc, T)(
+	immutable Acc acc,
+	immutable Arr!T a,
+	scope immutable(Acc) delegate(immutable Acc, ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	return empty(a) ? acc : each!(Acc, T)(cb(acc, first(a)), tail(a), cb);
+}
+
 @trusted immutable(Arr!T) cat(T, Alloc)(ref Alloc alloc, immutable Arr!T a, immutable Arr!T b) {
-	immutable size_t resSize = size(a) + size(b);
-	T* res = cast(T*) alloc.allocateBytes(T.sizeof * resSize);
-	foreach (immutable size_t i; 0..size(a))
-		initMemory(res + i, at(a, i));
-	foreach (immutable size_t i; 0..size(b))
-		initMemory(res + size(a) + i, at(b, i));
-	return immutable Arr!T(cast(immutable) res, resSize);
+	if (empty(a))
+		return b;
+	else if (empty(b))
+		return a;
+	else {
+		immutable size_t resSize = size(a) + size(b);
+		T* res = cast(T*) alloc.allocateBytes(T.sizeof * resSize);
+		foreach (immutable size_t i; 0..size(a))
+			initMemory(res + i, at(a, i));
+		foreach (immutable size_t i; 0..size(b))
+			initMemory(res + size(a) + i, at(b, i));
+		return immutable Arr!T(cast(immutable) res, resSize);
+	}
 }
 
 @trusted immutable(Arr!T) cat(T, Alloc)(

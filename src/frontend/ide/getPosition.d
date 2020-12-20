@@ -12,8 +12,7 @@ import model.model :
 	matchStructBody,
 	matchType,
 	Module,
-	ModuleAndNameReferents,
-	NameAndReferents,
+	ModuleAndNames,
 	range,
 	RecordField,
 	SpecDecl,
@@ -28,16 +27,17 @@ import util.opt : force, has, none, Opt, optOr2, some;
 import util.ptr : Ptr;
 import util.sourceRange : hasPos, Pos;
 import util.sym : Sym, symSize;
+import util.types : safeSizeTToU32;
 
 struct Position {
 	@safe @nogc pure nothrow:
 
 	struct ImportedModule {
-		immutable Ptr!ModuleAndNameReferents import_;
+		immutable Ptr!ModuleAndNames import_;
 	}
 	struct ImportedName {
-		immutable Ptr!ModuleAndNameReferents import_;
-		immutable Ptr!NameAndReferents name_;
+		immutable Ptr!ModuleAndNames import_;
+		immutable Sym name;
 	}
 	struct RecordFieldPosition {
 		immutable Ptr!StructDecl struct_;
@@ -156,15 +156,20 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 private:
 
 immutable(Opt!Position) positionInImportsOrExports(
-	ref immutable Arr!ModuleAndNameReferents importsOrExports,
+	ref immutable Arr!ModuleAndNames importsOrExports,
 	immutable Pos pos,
 ) {
-	foreach (immutable Ptr!ModuleAndNameReferents im; ptrsRange(importsOrExports)) {
+	foreach (immutable Ptr!ModuleAndNames im; ptrsRange(importsOrExports)) {
 		if (hasPos(im.range, pos)) {
-			if (has(im.namesAndReferents))
-				foreach (immutable Ptr!NameAndReferents nr; ptrsRange(force(im.namesAndReferents)))
-					if (hasPos(nr.range, pos))
-						return some(immutable Position(immutable Position.ImportedName(im, nr)));
+			if (has(im.names)) {
+				Pos namePos = im.range.start;
+				foreach (immutable Sym name; range(force(im.names))) {
+					immutable Pos nameEnd = safeSizeTToU32(namePos + symSize(name));
+					if (pos < nameEnd)
+						return some(immutable Position(immutable Position.ImportedName(im, name)));
+					namePos = nameEnd + 1;
+				}
+			}
 			return some(immutable Position(immutable Position.ImportedModule(im)));
 		}
 	}

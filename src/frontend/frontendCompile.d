@@ -3,9 +3,9 @@ module frontend.frontendCompile;
 @safe @nogc nothrow: // not pure
 
 import model.diag : Diag, Diags, Diagnostic, FilesInfo;
-import model.model : CommonTypes, LineAndColumnGetters, Module, Program, SpecialModules;
+import model.model : CommonTypes, LineAndColumnGetters, Module, ModuleAndNames, Program, SpecialModules;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
-import frontend.check.check : BootstrapCheck, check, checkBootstrapNz, ModuleAndNames, PathAndAst;
+import frontend.check.check : BootstrapCheck, check, checkBootstrapNz, PathAndAst;
 import frontend.parse.ast :
 	emptyFileAst,
 	exports,
@@ -523,7 +523,7 @@ immutable(Arr!ModuleAndNames) mapImportsOrExports(ModelAlloc)(
 	ref immutable FullIndexDict!(FileIndex, Ptr!Module) compiled,
 ) {
 	return map(modelAlloc, paths, (ref immutable FileIndexAndNames it) =>
-		immutable ModuleAndNames(fullIndexDictGet(compiled, it.fileIndex), it.range, it.names));
+		immutable ModuleAndNames(it.range, fullIndexDictGet(compiled, it.fileIndex), it.names));
 }
 
 struct ModulesAndCommonTypes {

@@ -11,7 +11,6 @@ import model.model :
 	StructDecl,
 	matchStructBody,
 	name,
-	NameAndReferents,
 	Program,
 	SpecDecl,
 	StructBody,
@@ -57,7 +56,7 @@ void getHover(TempAlloc, Alloc, PathAlloc)(
 			writeFile(tempAlloc, writer, allPaths, program.filesInfo, it.import_.module_.fileIndex);
 		},
 		(ref immutable Position.ImportedName it) {
-			getNameAndReferentsHover(writer, it.name_);
+			getImportedNameHover(writer, it);
 		},
 		(ref immutable Position.RecordFieldPosition it) {
 			writeStatic(writer, "field ");
@@ -98,8 +97,8 @@ void getHover(TempAlloc, Alloc, PathAlloc)(
 
 private:
 
-void getNameAndReferentsHover(Alloc)(ref Writer!Alloc writer, ref immutable NameAndReferents) {
-	writeStatic(writer, "TODO: getNameAndReferentsHover");
+void getImportedNameHover(Alloc)(ref Writer!Alloc writer, ref immutable Position.ImportedName) {
+	writeStatic(writer, "TODO: getImportedNameHover");
 }
 
 void getExprHover(Alloc)(ref Writer!Alloc writer, ref immutable Expr) {

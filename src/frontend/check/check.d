@@ -66,11 +66,10 @@ import model.model :
 	matchStructOrAlias,
 	Module,
 	ModuleArrs,
-	ModuleDicts,
 	ModuleImportsExports,
-	ModuleAndNameReferents,
+	ModuleAndNames,
 	name,
-	NameAndReferents,
+	NameReferents,
 	noCtx,
 	Param,
 	Purity,
@@ -119,6 +118,7 @@ import util.collection.arrBuilder :
 	finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
+	cat,
 	count,
 	exists,
 	map,
@@ -132,7 +132,7 @@ import util.collection.arrUtil :
 	sum,
 	zipFirstMut,
 	zipMutPtrFirst;
-import util.collection.dict : getAt, KeyValuePair;
+import util.collection.dict : Dict, dictEach, getAt, hasKey, KeyValuePair;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDict;
 import util.collection.dictUtil : buildDict, buildMultiDict;
 import util.collection.exactSizeArrBuilder :
@@ -140,17 +140,19 @@ import util.collection.exactSizeArrBuilder :
 	exactSizeArrBuilderAdd,
 	finish,
 	newExactSizeArrBuilder;
-import util.collection.multiDict : multiDictGetAt;
+import util.collection.multiDict : multiDictEach;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
+import util.collection.mutDict : insertOrUpdate, moveToDict, MutDict;
 import util.collection.str : copyStr, Str, strLiteral;
 import util.memory : allocate, nu, nuMut, overwriteMemory;
-import util.opt : force, has, mapOption, none, noneMut, Opt, some, someMut;
+import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
 import util.sourceRange : fileAndPosFromFileAndRange, FileAndRange, FileIndex, RangeWithinFile;
 import util.sym :
 	addToMutSymSetOkIfPresent,
 	AllSymbols,
 	compareSym,
+	containsSym,
 	prependSet,
 	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
@@ -167,12 +169,6 @@ struct PathAndAst { //TODO:RENAME
 struct BootstrapCheck {
 	immutable Ptr!Module module_;
 	immutable Ptr!CommonTypes commonTypes;
-}
-
-struct ModuleAndNames {
-	immutable Ptr!Module module_;
-	immutable RangeWithinFile range;
-	immutable Opt!(Arr!Sym) names;
 }
 
 immutable(BootstrapCheck) checkBootstrapNz(Alloc, SymAlloc)(
@@ -1093,8 +1089,8 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 	ref Arr!StructDecl structs,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 	immutable FileIndex fileIndex,
-	ref immutable Arr!ModuleAndNameReferents imports,
-	ref immutable Arr!ModuleAndNameReferents exports,
+	ref immutable Arr!ModuleAndNames imports,
+	ref immutable Arr!ModuleAndNames reExports,
 	ref immutable FileAst ast,
 ) {
 	checkStructBodies!Alloc(alloc, ctx, structsAndAliasesMap, structs, ast.structs, delayStructInsts);
@@ -1113,7 +1109,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 			someMut(ptrTrustMe_mut(delayStructInsts))));
 	}
 
-immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, structsAndAliasesMap, ast.specs);
+	immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, structsAndAliasesMap, ast.specs);
 	immutable SpecsMap specsMap = buildSpecsDict(alloc, ctx, specs);
 	foreach (ref immutable SpecDecl s; arrRange(specs))
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.specNames, s.name);
@@ -1132,71 +1128,57 @@ immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, structsAndAliasesMap, 
 	return nu!Module(
 		alloc,
 		fileIndex,
-		nu!ModuleImportsExports(alloc, imports, exports),
+		nu!ModuleImportsExports(alloc, imports, reExports),
 		nu!ModuleArrs(alloc, structsImmutable, specs, funsAndMap.funs),
-		nu!ModuleDicts(alloc, structsAndAliasesMap, specsMap, funsAndMap.funsMap));
+		getAllExportedNames(alloc, ctx.diagsBuilder, reExports, structsAndAliasesMap, specsMap, funsAndMap.funsMap));
 }
 
-void recurAddImport(Alloc)(
+immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 	ref Alloc alloc,
-	ref ArrBuilder!Diagnostic diags,
-	ref ArrBuilder!ModuleAndNameReferents res,
-	immutable Ptr!Module module_,
-	ref immutable FileAndRange range,
-	immutable Opt!(Arr!Sym) names,
+	ref ArrBuilder!Diagnostic diagsBuilder,
+	ref immutable Arr!ModuleAndNames reExports,
+	ref immutable StructsAndAliasesMap structsAndAliasesMap,
+	ref immutable SpecsMap specsMap,
+	ref immutable FunsMap funsMap,
 ) {
-	immutable Opt!(Arr!NameAndReferents) nameReferents = mapOption(names, (ref immutable Arr!Sym names) =>
-		map(alloc, names, (ref immutable Sym name) =>
-			getNameReferents(alloc, diags, module_, range, name)));
-	add(alloc, res, immutable ModuleAndNameReferents(range.range, module_, nameReferents));
-	foreach (immutable ModuleAndNameReferents e; arrRange(module_.exports)) {
-		if (has(e.namesAndReferents))
-			// if we're importing specific names, check for overlap.
-			// If not, import the specific names being re-exported.
-			todo!void("export with names");
-		recurAddImport(alloc, diags, res, e.module_, range, names);
+	MutDict!(immutable Sym, immutable NameReferents, compareSym) res;
+	void add(immutable Sym name, immutable NameReferents cur) @safe @nogc pure nothrow {
+		insertOrUpdate!(Alloc, immutable Sym, immutable NameReferents, compareSym)(
+			alloc,
+			res,
+			name,
+			() => cur,
+			(ref immutable NameReferents prev) {
+				if ((has(prev.structOrAlias) && has(cur.structOrAlias)) || (has(prev.spec) && has(cur.spec)))
+					todo!void("duplicate export");
+				return immutable NameReferents(
+					has(prev.structOrAlias) ? prev.structOrAlias : cur.structOrAlias,
+					has(prev.spec) ? prev.spec : cur.spec,
+					cat(alloc, prev.funs, cur.funs));
+			});
 	}
-}
 
-immutable(NameAndReferents) getNameReferents(Alloc)(
-	ref Alloc alloc,
-	ref ArrBuilder!Diagnostic diags,
-	ref immutable Module module_,
-	ref immutable FileAndRange range,
-	immutable Sym name,
-) {
-	immutable NameAndReferents res = immutable NameAndReferents(
-		range.start,
-		name,
-		getAt(module_.structsAndAliasesMap, name),
-		getAt(module_.specsMap, name),
-		multiDictGetAt(module_.funsMap, name));
-	// TODO: it should be illegal to have public and private members with the same name
-	// (so don't worry about it here, but elsewhere)
-	if (has(res.structOrAlias) && !isPublic(force(res.structOrAlias)))
-		todo!void("not public");
-	if (has(res.spec) && !force(res.spec).isPublic)
-		todo!void("not public");
-	foreach (immutable Ptr!FunDecl fun; arrRange(res.funs))
-		if (!fun.isPublic)
-			todo!void("not public");
-	if (!has(res.structOrAlias) && !has(res.spec) && empty(res.funs))
-		add(alloc, diags, immutable Diagnostic(range, nu!Diag(alloc, immutable Diag.ImportRefersToNothing(name))));
-	return res;
-}
-
-immutable(Arr!ModuleAndNameReferents) getFlattenedImports(Alloc)(
-	ref Alloc alloc,
-	ref ArrBuilder!Diagnostic diags,
-	immutable FileIndex thisFile,
-	ref immutable Arr!ModuleAndNames imports,
-) {
-	ArrBuilder!ModuleAndNameReferents res;
-	foreach (ref immutable ModuleAndNames m; arrRange(imports)) {
-		immutable FileAndRange fr = immutable FileAndRange(thisFile, m.range);
-		recurAddImport(alloc, diags, res, m.module_, fr, m.names);
+	foreach (ref immutable ModuleAndNames e; arrRange(reExports)) {
+		dictEach!(Sym, NameReferents, compareSym)(
+			e.module_.allExportedNames,
+			(ref immutable Sym name, ref immutable NameReferents value) {
+				if (!has(e.names) || containsSym(force(e.names), name))
+					add(name, value);
+			});
 	}
-	return finishArr(alloc, res);
+	dictEach!(Sym, StructOrAlias, compareSym)(
+		structsAndAliasesMap,
+		(ref immutable Sym name, ref immutable StructOrAlias value) {
+			add(name, immutable NameReferents(some(value), none!(Ptr!SpecDecl), emptyArr!(Ptr!FunDecl)));
+		});
+	dictEach!(Sym, Ptr!SpecDecl, compareSym)(specsMap, (ref immutable Sym name, ref immutable Ptr!SpecDecl it) {
+		add(name, immutable NameReferents(none!StructOrAlias, some(it), emptyArr!(Ptr!FunDecl)));
+	});
+	multiDictEach!(Sym, Ptr!FunDecl, compareSym)(funsMap, (ref immutable Sym name, immutable Arr!(Ptr!FunDecl) funs) {
+		add(name, immutable NameReferents(none!StructOrAlias, none!(Ptr!SpecDecl), funs));
+	});
+
+	return moveToDict!(Sym, NameReferents, compareSym, Alloc)(alloc, res);
 }
 
 immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
@@ -1213,14 +1195,13 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 		ref MutArr!(Ptr!StructInst),
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
-	immutable Arr!ModuleAndNameReferents convertedImports =
-		getFlattenedImports(alloc, diagsBuilder, pathAndAst.fileIndex, imports);
-	immutable Arr!ModuleAndNameReferents convertedExports =
-		getFlattenedImports(alloc, diagsBuilder, pathAndAst.fileIndex, exports);
+	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, imports);
+	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, exports);
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe_mut(programState),
 		pathAndAst.fileIndex,
-		convertedImports,
+		imports,
+		exports,
 		ptrTrustMe_mut(diagsBuilder));
 	immutable FileAst ast = pathAndAst.ast;
 
@@ -1251,8 +1232,24 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 		structs,
 		delayStructInsts,
 		pathAndAst.fileIndex,
-		convertedImports,
-		convertedExports,
+		imports,
+		exports,
 		ast);
 	return immutable BootstrapCheck(mod, commonTypes);
+}
+
+void checkImportsOrExports(Alloc)(
+	ref Alloc alloc,
+	ref ArrBuilder!Diagnostic diags,
+	immutable FileIndex thisFile,
+	ref immutable Arr!ModuleAndNames imports,
+) {	foreach (ref immutable ModuleAndNames m; arrRange(imports))
+		if (has(m.names))
+			foreach (ref immutable Sym name; arrRange(force(m.names)))
+				if (!hasKey(m.module_.allExportedNames, name))
+					add(alloc, diags, immutable Diagnostic(
+						// TODO: use the range of the particular name
+						// (by advancing pos by symSize until we get to this name)
+						immutable FileAndRange(thisFile, m.range),
+						allocate(alloc, immutable Diag(immutable Diag.ImportRefersToNothing(name)))));
 }

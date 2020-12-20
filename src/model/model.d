@@ -19,7 +19,7 @@ import util.memory : nu;
 import util.opt : Opt;
 import util.path : AbsolutePath, PathAndStorageKind, StorageKind;
 import util.ptr : comparePtr, Ptr;
-import util.sourceRange : FileAndPos, FileAndRange, FileIndex, Pos, rangeOfStartAndName, RangeWithinFile;
+import util.sourceRange : FileAndPos, FileAndRange, FileIndex, rangeOfStartAndName, RangeWithinFile;
 import util.sym :
 	compareSym,
 	shortSymAlphaLiteral,
@@ -1061,15 +1061,17 @@ struct Module {
 	private:
 	immutable Ptr!ModuleImportsExports importsAndExports_;
 	immutable Ptr!ModuleArrs arrs_;
-	immutable Ptr!ModuleDicts dicts_;
 
 	public:
+	// Includes re-exports
+	immutable Dict!(Sym, NameReferents, compareSym) allExportedNames;
+
 	//TODO:NOT INSTANCE
-	ref immutable(Arr!ModuleAndNameReferents) imports() return scope immutable {
+	ref immutable(Arr!ModuleAndNames) imports() return scope immutable {
 		return importsAndExports_.imports;
 	}
 
-	ref immutable(Arr!ModuleAndNameReferents) exports() return scope immutable {
+	ref immutable(Arr!ModuleAndNames) exports() return scope immutable {
 		return importsAndExports_.exports;
 	}
 
@@ -1084,24 +1086,12 @@ struct Module {
 	ref immutable(Arr!FunDecl) funs() return scope immutable {
 		return arrs_.funs;
 	}
-
-	ref immutable(StructsAndAliasesMap) structsAndAliasesMap() return scope immutable {
-		return dicts_.structsAndAliasesMap;
-	}
-
-	ref immutable(SpecsMap) specsMap() return scope immutable {
-		return dicts_.specsMap;
-	}
-
-	ref immutable(FunsMap) funsMap() return scope immutable {
-		return dicts_.funsMap;
-	}
 }
 static assert(Module.sizeof <= 48);
 
 struct ModuleImportsExports {
-	immutable Arr!ModuleAndNameReferents imports;
-	immutable Arr!ModuleAndNameReferents exports;
+	immutable Arr!ModuleAndNames imports;
+	immutable Arr!ModuleAndNames exports;
 }
 
 struct ModuleArrs {
@@ -1110,34 +1100,18 @@ struct ModuleArrs {
 	immutable Arr!FunDecl funs;
 }
 
-struct ModuleDicts {
-	// WARN: these include private names
-	immutable StructsAndAliasesMap structsAndAliasesMap;
-	immutable SpecsMap specsMap;
-	immutable FunsMap funsMap;
-}
-
-
-struct ModuleAndNameReferents {
+struct ModuleAndNames {
 	immutable RangeWithinFile range;
 	immutable Ptr!Module module_;
-	immutable Opt!(Arr!NameAndReferents) namesAndReferents;
+	immutable Opt!(Arr!Sym) names;
 }
 
-struct NameAndReferents {
+struct NameReferents {
 	@safe @nogc pure nothrow:
 
-	immutable Pos start;
-	immutable Sym name;
-	// These may all be empty if the name didn't refer to anything
 	immutable Opt!(StructOrAlias) structOrAlias;
 	immutable Opt!(Ptr!SpecDecl) spec;
 	immutable Arr!(Ptr!FunDecl) funs;
-
-	//TODO:NOT INSTANCE
-	immutable(RangeWithinFile) range() immutable {
-		return rangeOfStartAndName(start, name);
-	}
 }
 
 enum FunKind {
