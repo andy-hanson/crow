@@ -1,7 +1,7 @@
 import
 	.bootstrap
-		== != and any-ptr as bits-and bit-shift-left bit-shift-right bits-intersect? bool by-val char
-		c-str fun-ptr1 int int16 int32 int64 nat nat16 nat32 nat64 noctx-decr ptr void
+		== != and any-ptr bits-and bit-shift-left bit-shift-right bits-intersect? bool by-val char
+		c-str fun-ptr1 int int16 int32 int64 nat nat16 nat32 nat64 ptr void
 	.cell: cell
 
 | TODO:

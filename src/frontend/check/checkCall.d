@@ -2,7 +2,7 @@ module frontend.check.checkCall;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport;
+import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, ImportIndex, markImportUsed;
 import frontend.check.checkExpr : checkExpr;
 import frontend.check.inferringType :
 	addDiag2,
@@ -105,7 +105,7 @@ import util.memory : nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : Sym, symEq;
-import util.util : todo, verify;
+import util.util : Empty, todo, verify;
 
 immutable(CheckedExpr) checkCall(Alloc)(
 	ref Alloc alloc,
@@ -199,7 +199,7 @@ immutable(CheckedExpr) checkIdentifierCall(Alloc)(
 void eachFunInScope(
 	ref ExprCtx ctx,
 	immutable Sym funName,
-	scope void delegate(immutable CalledDecl) @safe @nogc pure nothrow cb,
+	scope void delegate(immutable Opt!ImportIndex, immutable CalledDecl) @safe @nogc pure nothrow cb,
 ) {
 	size_t totalIndex = 0;
 	foreach (immutable Ptr!SpecInst specInst; arrRange(ctx.outermostFun.specs))
@@ -209,27 +209,25 @@ void eachFunInScope(
 			(ref immutable Arr!Sig sigs) {
 				foreach (immutable size_t i; 0..size(sigs))
 					if (symEq(at(sigs, i).name, funName))
-						cb(immutable CalledDecl(SpecSig(specInst, ptrAt(sigs, i), totalIndex + i)));
+						cb(none!ImportIndex, immutable CalledDecl(SpecSig(specInst, ptrAt(sigs, i), totalIndex + i)));
 				totalIndex += size(sigs);
 			});
 
 	foreach (immutable Ptr!FunDecl f; arrRange(multiDictGetAt(ctx.funsMap, funName)))
-		cb(immutable CalledDecl(f));
+		cb(none!ImportIndex, immutable CalledDecl(f));
 
 	eachImportAndReExport!Empty(
 		ctx.checkCtx,
 		funName,
 		immutable Empty(),
-		(immutable(Empty), immutable Ptr!Module, ref immutable NameReferents it) {
+		(immutable(Empty), immutable Ptr!Module, immutable ImportIndex index, ref immutable NameReferents it) {
 			foreach (immutable Ptr!FunDecl f; arrRange(it.funs))
-				cb(immutable CalledDecl(f));
+				cb(some(index), immutable CalledDecl(f));
 			return immutable Empty();
 		});
 }
 
 private:
-
-struct Empty {}
 
 immutable(Bool) candidateIsPreferred(ref const Candidate a) {
 	return matchCalledDecl!(immutable Bool)(
@@ -241,6 +239,7 @@ immutable(Bool) candidateIsPreferred(ref const Candidate a) {
 }
 
 struct Candidate {
+	immutable Opt!ImportIndex importIndex;
 	immutable CalledDecl called;
 	// Note: this is always empty if calling a SpecSig
 	Arr!SingleInferringType typeArgs;
@@ -261,7 +260,7 @@ MutArr!Candidate getInitialCandidates(Alloc)(
 	immutable size_t actualArity,
 ) {
 	MutArr!Candidate res = MutArr!Candidate();
-	eachFunInScope(ctx, funName, (immutable CalledDecl called) {
+	eachFunInScope(ctx, funName, (immutable Opt!ImportIndex importIndex, immutable CalledDecl called) {
 		//debug {
 		//	printf("Fun in scope! Its arity: %lu = %lu\n", arity(called), size(sig(called).params));
 		//}
@@ -277,7 +276,7 @@ MutArr!Candidate getInitialCandidates(Alloc)(
 					SingleInferringType(empty(explicitTypeArgs)
 						? none!Type
 						: some!Type(at(explicitTypeArgs, i))));
-			push(alloc, res, Candidate(called, inferringTypeArgs));
+			push(alloc, res, Candidate(importIndex, called, inferringTypeArgs));
 		}
 	});
 	return res;
@@ -289,7 +288,7 @@ immutable(Arr!CalledDecl) getAllCandidatesAsCalledDecls(Alloc)(
 	immutable Sym funName,
 ) {
 	ArrBuilder!CalledDecl res = ArrBuilder!CalledDecl();
-	eachFunInScope(ctx, funName, (immutable CalledDecl called) {
+	eachFunInScope(ctx, funName, (immutable Opt!ImportIndex, immutable CalledDecl called) {
 		add(alloc, res, called);
 	});
 	return finishArr(alloc, res);
@@ -597,6 +596,8 @@ immutable(Opt!Called) getCalledFromCandidate(Alloc)(
 	ref const Candidate candidate,
 	immutable Bool allowSpecs,
 ) {
+	if (has(candidate.importIndex))
+		markImportUsed(ctx.checkCtx, force(candidate.importIndex));
 	checkCalledDeclFlags(alloc, ctx, candidate.called, range);
 	immutable Opt!(Arr!Type) candidateTypeArgs = finishCandidateTypeArgs(alloc, ctx, range, candidate);
 	if (has(candidateTypeArgs)) {

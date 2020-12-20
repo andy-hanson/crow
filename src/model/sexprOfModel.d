@@ -57,7 +57,7 @@ import util.sexpr :
 	tataRecord,
 	tataStr,
 	tataSym;
-import util.sourceRange : sexprOfFileAndPos, sexprOfFileAndRange, sexprOfRangeWithinFile;
+import util.sourceRange : RangeWithinFile, sexprOfFileAndPos, sexprOfFileAndRange, sexprOfRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.util : todo;
 
@@ -81,7 +81,8 @@ private:
 
 immutable(Sexpr) sexprOfModuleAndNames(Alloc)(ref Alloc alloc, ref immutable ModuleAndNames a) {
 	return tataRecord(alloc, "import", [
-		sexprOfRangeWithinFile(alloc, a.range),
+		tataOpt(alloc, a.importSource, (ref immutable RangeWithinFile it) =>
+			sexprOfRangeWithinFile(alloc, it)),
 		tataNat(a.module_.fileIndex.index),
 		tataOpt(alloc, a.names, (ref immutable Arr!Sym names) =>
 			tataArr(alloc, names, (ref immutable Sym name) =>

@@ -428,7 +428,7 @@ immutable(Arr!T) copyArr(T, Alloc)(ref Alloc alloc, immutable Arr!T a) {
 }
 
 immutable(Acc) eachCat(Acc, T)(
-	ref immutable Acc acc,
+	immutable Acc acc,
 	ref immutable Arr!T a,
 	ref immutable Arr!T b,
 	scope immutable(Acc) delegate(immutable Acc, ref immutable T) @safe @nogc pure nothrow cb,

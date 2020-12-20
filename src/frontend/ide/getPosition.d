@@ -160,9 +160,9 @@ immutable(Opt!Position) positionInImportsOrExports(
 	immutable Pos pos,
 ) {
 	foreach (immutable Ptr!ModuleAndNames im; ptrsRange(importsOrExports)) {
-		if (hasPos(im.range, pos)) {
+		if (has(im.importSource) && hasPos(force(im.importSource), pos)) {
 			if (has(im.names)) {
-				Pos namePos = im.range.start;
+				Pos namePos = force(im.importSource).start;
 				foreach (immutable Sym name; range(force(im.names))) {
 					immutable Pos nameEnd = safeSizeTToU32(namePos + symSize(name));
 					if (pos < nameEnd)

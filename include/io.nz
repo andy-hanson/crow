@@ -1,12 +1,12 @@
 import
 	.bootstrap
-		+ == != < <= ? and arr as as-any-ptr as-ref bits-and bit-shift-left bits-or bool byte
+		+ == != < <= and arr as as-any-ptr as-ref bits-and bit-shift-left bits-or bool byte
 		by-val char c-str data deref false hard-assert hard-unreachable has? incr int32
-		int nat nat16 nat32 none not null null? opt or ptr ptr-cast ptr-eq? ptr-to
+		int nat16 nat32 none not null null? opt or ptr ptr-cast ptr-eq? ptr-to
 		ref-eq? size size-of some str todo to-nat unsafe-to-int value void
 		wrap-add
 	.arr-utils
-		+ append arr-from-begin-end data each ensure-capacity fold freeze map mut-arr new-mut-arr
+		+ append arr-from-begin-end data ensure-capacity fold freeze map mut-arr new-mut-arr
 		new-uninitialized-mut-arr prepend push ref-of-val-at size slice-up-to sort unsafe-increase-size
 	.cell: cell get
 	.dict: add dict each freeze key-value-pair mut-dict new-mut-dict

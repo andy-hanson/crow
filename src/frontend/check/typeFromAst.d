@@ -2,7 +2,7 @@ module frontend.check.typeFromAst;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport;
+import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, ImportIndex, markImportUsed;
 import frontend.check.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
 import frontend.parse.ast : matchTypeAst, TypeAst;
 import frontend.programState : ProgramState;
@@ -190,9 +190,15 @@ immutable(Opt!TDecl) tryFindT(TDecl, Alloc)(
 		ctx,
 		name,
 		has(here) ? some(immutable DAndM(force(here), none!(Ptr!Module))) : none!DAndM,
-		(immutable Opt!DAndM acc, immutable Ptr!Module module_, ref immutable NameReferents referents) {
+		(
+			immutable Opt!DAndM acc,
+			immutable Ptr!Module module_,
+			immutable ImportIndex index,
+			ref immutable NameReferents referents,
+		) {
 			immutable Opt!TDecl got = getFromNameReferents(referents);
 			if (has(got)) {
+				markImportUsed(ctx, index);
 				if (has(acc))
 					// TODO: include both modules in the diag
 					addDiag(alloc, ctx, range, immutable Diag(

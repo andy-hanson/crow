@@ -1,5 +1,5 @@
 import
-	io: exit-code print
+	io: exit-code
 
 main fut exit-code(args arr str) summon
 	info log "Logged once"

@@ -3,7 +3,7 @@ module frontend.check.checkExpr;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall : checkCall, checkIdentifierCall, eachFunInScope;
-import frontend.check.checkCtx : CheckCtx;
+import frontend.check.checkCtx : CheckCtx, ImportIndex, markImportUsed;
 import frontend.check.inferringType :
 	addDiag2,
 	allocExpr,
@@ -595,10 +595,13 @@ immutable(CheckedExpr) checkFunPtr(Alloc)(
 	ref Expected expected,
 ) {
 	MutArr!(immutable Ptr!FunDecl) funsInScope = MutArr!(immutable Ptr!FunDecl)();
-	eachFunInScope(ctx, ast.name, (immutable CalledDecl cd) {
+	eachFunInScope(ctx, ast.name, (immutable Opt!ImportIndex importIndex, immutable CalledDecl cd) {
 		matchCalledDecl!void(
 			cd,
 			(immutable Ptr!FunDecl it) {
+				if (has(importIndex))
+					// Since there can only be one, can do this early
+					markImportUsed(ctx.checkCtx, force(importIndex));
 				push(alloc, funsInScope, it);
 			},
 			(ref immutable SpecSig) {

@@ -1,5 +1,5 @@
 import
-	.arr-utils: + arr-from-begin-end first has? noctx-at tail
+	.arr-utils: + arr-from-begin-end first has? tail
 	.bootstrap: == and char c-str data deref incr str todo
 
 to-c-str c-str(a str)

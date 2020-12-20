@@ -7,7 +7,7 @@ import
 		== != > ? arr as as-any-ptr as-ref bool by-val call-with-ctx ctx empty? err exception
 		exclusion false fun1 fun-mut0 gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid
 		island-and-exclusion island-id lock message nat noctx-decr noctx-incr none not ok opt
-		ref-of-val result size some todo true value void
+		ref-of-val result size some true value void
 	.exceptions: exception-ctx new-exception-ctx
 	.io: print-err print-err-no-newline
 	.logging: default-log-handler log-ctx log-handler new-log-ctx set-handler

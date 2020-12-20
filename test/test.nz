@@ -3,7 +3,6 @@
 import
 	command-line-parser
 	io
-	posix
 	.failure
 	.lint
 	.noze-tests

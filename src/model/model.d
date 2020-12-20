@@ -1101,7 +1101,8 @@ struct ModuleArrs {
 }
 
 struct ModuleAndNames {
-	immutable RangeWithinFile range;
+	// none for an automatic import of std
+	immutable Opt!RangeWithinFile importSource;
 	immutable Ptr!Module module_;
 	immutable Opt!(Arr!Sym) names;
 }

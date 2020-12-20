@@ -1,6 +1,6 @@
 module(
 	path: 21
-	imports: [import(range(0, 0), 19, none), import(range(8, 10), 13, some([exit-code, print]))]
+	imports: [import(none, 19, none), import(some(range(8, 10)), 13, some([exit-code, print]))]
 	exports: []
 	structs: [struct(range: file-range(21, range(29, 61)), public?: true, name: my-record)]
 	specs: []

@@ -5,7 +5,7 @@ module util.sym;
 import util.bitUtils : bitsOverlap, getBitsShifted, singleBit;
 import util.bools : Bool, False, not, True;
 import util.collection.arr : Arr, at, empty, first, last, range, size;
-import util.collection.arrUtil : contains, every, slice, tail;
+import util.collection.arrUtil : contains, every, findIndex, slice, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
 import util.collection.str : CStr, Str, strEqCStr, strEqLiteral, strLiteral, strOfCStr, strToCStr;
@@ -15,6 +15,10 @@ import util.ptr : Ptr, ptrTrustMe_mut;
 import util.types : u64;
 import util.util : unreachable, verify;
 import util.writer : finishWriter, writeChar, writeStatic, Writer;
+
+immutable(Opt!size_t) indexOfSym(ref immutable Arr!Sym a, immutable Sym value) {
+	return findIndex(a, (ref immutable Sym it) => symEq(it, value));
+}
 
 immutable(Bool) containsSym(ref immutable Arr!Sym a, immutable Sym b) {
 	return contains(a, b, (ref immutable Sym a, ref immutable Sym b) => symEq(a, b));

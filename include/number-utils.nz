@@ -1,7 +1,7 @@
 import
 	.bootstrap
-		== < <= > >= ? bool and float int int32 min-int min-int32 max-int max-int32 max-nat32 max-nat nat nat32
-		or todo to-int to-nat unsafe-div unsafe-mod unsafe-to-int unsafe-to-int32
+		== < <= >= ? bool and float int int32 min-int min-int32 max-int max-int32 max-nat32 max-nat nat nat32
+		or to-int to-nat unsafe-div unsafe-mod unsafe-to-int unsafe-to-int32
 		unsafe-to-nat unsafe-to-nat32 wrap-add wrap-decr wrap-mul wrap-sub
 	.exceptions: assert forbid
 

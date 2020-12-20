@@ -1,14 +1,14 @@
 import
 	.alloc
-	.arr-utils: empty-arr map noctx-at tail
+	.arr-utils: empty-arr map tail
 	.bootstrap
 		== != + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref drop false fun2
-		fun-ptr1 fun-ptr2 fut get-ctx hard-assert int32 message nat noctx-decr noctx-incr null null?
+		fun-ptr2 fut get-ctx hard-assert int32 message nat noctx-decr noctx-incr null null?
 		ptr ptr-to ref-of-val set str todo to-int unsafe-to-nat value void
 	.cell: as-cell cell get
 	.exceptions: new-exception-ctx
 	.fut-low-level: must-be-resolved
-	.fut-utils: delay resolved then2
+	.fut-utils: delay then2
 	.io: exit-code print-err print-err-no-newline
 	.logging: new-log-ctx
 	.posix: eagain einval esrch pthread-create pthread-join pthread-t

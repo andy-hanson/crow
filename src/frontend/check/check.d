@@ -2,7 +2,13 @@ module frontend.check.check;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, posInFile, rangeInFile;
+import frontend.check.checkCtx :
+	addDiag,
+	CheckCtx,
+	checkUnusedImports,
+	newUsedImportsAndReExports,
+	posInFile,
+	rangeInFile;
 import frontend.check.checkExpr : checkFunctionBody;
 import frontend.check.instantiate :
 	DelayStructInsts,
@@ -1124,6 +1130,8 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 		structsAndAliasesMap,
 		ast.funs);
 
+	checkUnusedImports(alloc, ctx);
+
 	// Create a module unconditionally so every function will always have containingModule set, even in failure case
 	return nu!Module(
 		alloc,
@@ -1187,7 +1195,7 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
 	immutable Arr!ModuleAndNames imports,
-	immutable Arr!ModuleAndNames exports,
+	immutable Arr!ModuleAndNames reExports,
 	ref immutable PathAndAst pathAndAst,
 	scope immutable(Ptr!CommonTypes) delegate(
 		ref CheckCtx,
@@ -1196,12 +1204,14 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 	) @safe @nogc pure nothrow getCommonTypes,
 ) {
 	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, imports);
-	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, exports);
+	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, reExports);
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe_mut(programState),
 		pathAndAst.fileIndex,
 		imports,
-		exports,
+		reExports,
+		// TODO: use temp alloc
+		newUsedImportsAndReExports(alloc, imports, reExports),
 		ptrTrustMe_mut(diagsBuilder));
 	immutable FileAst ast = pathAndAst.ast;
 
@@ -1233,7 +1243,7 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 		delayStructInsts,
 		pathAndAst.fileIndex,
 		imports,
-		exports,
+		reExports,
 		ast);
 	return immutable BootstrapCheck(mod, commonTypes);
 }
@@ -1250,6 +1260,6 @@ void checkImportsOrExports(Alloc)(
 					add(alloc, diags, immutable Diagnostic(
 						// TODO: use the range of the particular name
 						// (by advancing pos by symSize until we get to this name)
-						immutable FileAndRange(thisFile, m.range),
+						immutable FileAndRange(thisFile, force(m.importSource)),
 						allocate(alloc, immutable Diag(immutable Diag.ImportRefersToNothing(name)))));
 }

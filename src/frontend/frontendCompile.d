@@ -330,7 +330,7 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, PathAlloc, SymAlloc, ReadO
 									// We should have already added a parse diagnostic when resolving the import
 									return FileIndex.none;
 							}();
-							return immutable FileIndexAndNames(fi, import_.importedFrom, import_.names);
+							return immutable FileIndexAndNames(fi, some(import_.importedFrom), import_.names);
 						});
 				}
 				immutable Arr!FileIndexAndNames resolvedImports = resolveImportsOrExports(importsAndExports.imports);
@@ -512,7 +512,7 @@ struct AstAndResolvedImports {
 
 struct FileIndexAndNames {
 	immutable FileIndex fileIndex;
-	immutable RangeWithinFile range;
+	immutable Opt!RangeWithinFile range;
 	immutable Opt!(Arr!Sym) names;
 }
 
@@ -553,7 +553,7 @@ immutable(ModulesAndCommonTypes) getModules(ModelAlloc, SymAlloc)(
 					? ast.resolvedImports
 					: prepend(
 						modelAlloc,
-						immutable FileIndexAndNames(stdIndex, RangeWithinFile.empty, none!(Arr!Sym)),
+						immutable FileIndexAndNames(stdIndex, none!RangeWithinFile, none!(Arr!Sym)),
 						ast.resolvedImports);
 				immutable Arr!ModuleAndNames mappedImports =
 					mapImportsOrExports(modelAlloc, allImports, compiled);

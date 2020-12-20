@@ -1,6 +1,6 @@
 import
 	.arr-utils: +
-	.bootstrap: as-any-ptr as-ref by-val call fun1 fun-mut0 get-ctx log-ctx str uninitialized void
+	.bootstrap: as-ref by-val call fun1 fun-mut0 get-ctx log-ctx str uninitialized void
 	.exceptions: finally
 	.io: print
 

@@ -1,12 +1,12 @@
 module(
 	path: 21
 	imports: [
-		import(range(0, 0), 19, none)
+		import(none, 19, none)
 		import(
-			range(8, 13)
+			some(range(8, 13))
 			4
 			some([cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used]))
-		import(range(112, 114), 13, some([exit-code, print]))]
+		import(some(range(112, 114)), 13, some([exit-code, print]))]
 	exports: []
 	structs: [struct(range: file-range(21, range(133, 164)), public?: true, name: r)]
 	specs: []

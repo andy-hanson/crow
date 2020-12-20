@@ -85,3 +85,5 @@ T unreachable(T)() {
 }
 
 void drop(T)(T) {}
+
+struct Empty {}

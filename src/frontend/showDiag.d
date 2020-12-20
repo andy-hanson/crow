@@ -34,7 +34,7 @@ import util.collection.str : Str;
 import util.diff : diffSymbols;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has;
-import util.path : AllPaths, comparePathAndStorageKind, PathAndStorageKind;
+import util.path : AllPaths, baseName, comparePathAndStorageKind, PathAndStorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, FilePaths;
 import util.sym : Sym, writeSym;
@@ -659,6 +659,19 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		},
 		(ref immutable Diag.TypeNotSendable) {
 			writeStatic(writer, "this type is not sendable and should not appear in an interface");
+		},
+		(ref immutable Diag.UnusedImport it) {
+			if (has(it.importedName)) {
+				writeStatic(writer, "imported name ");
+				writeSym(writer, force(it.importedName));
+			} else {
+				writeStatic(writer, "imported module ");
+				// TODO: helper fn
+				immutable Sym moduleName =
+					baseName(allPaths, fullIndexDictGet(fi.filePaths, it.importedModule.fileIndex).path);
+				writeSym(writer, moduleName);
+			}
+			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.WrongNumberNewStructArgs d) {
 			writeStatic(writer, "record type ");
