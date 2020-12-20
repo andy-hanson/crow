@@ -1,2 +1,6 @@
+/wrong-number-type-args.nz 1:16-1:25 parameter a is unused
+
 /wrong-number-type-args.nz 5:7-5:18 there are functions named 'magic', but none takes 1 type arguments. candidates:
 	magic opt<?out>(opt<?in>) (from wrong-number-type-args.nz line 1)
+
+/wrong-number-type-args.nz 4:15-4:24 parameter a is unused

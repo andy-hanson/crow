@@ -437,7 +437,12 @@ void writeLowParamName(Alloc)(ref Writer!Alloc writer, ref immutable LowParam a)
 					writeStatic(writer, "_closure");
 				},
 				(immutable Ptr!Param p) {
-					writeMangledName(writer, p.name);
+					if (has(p.name))
+						writeMangledName(writer, force(p.name));
+					else {
+						writeStatic(writer, "_p");
+						writeNat(writer, p.index);
+					}
 				});
 		},
 		(ref immutable LowParamSource.Generated it) {

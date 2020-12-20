@@ -768,7 +768,7 @@ uint8_t mark_range_recur(uint8_t marked_anything__q, uint8_t* cur, uint8_t* end)
 uint8_t* incr_0(uint8_t* p);
 uint8_t _op_greater(uint64_t a, uint64_t b);
 int32_t rt_main(int32_t argc, char** argv, fun_ptr2 main_ptr);
-struct void_ drop_0(struct arr_0 t);
+struct void_ drop_0(struct arr_0 _p0);
 struct arr_0 to_str_0(char* a);
 struct arr_0 arr_from_begin_end(char* begin, char* end);
 uint64_t _op_minus_1(char* a, char* b);
@@ -879,7 +879,7 @@ struct void_ call_1(struct ctx* ctx, struct fun_mut1_0 a, struct result_0 p0);
 struct void_ call_w_ctx_121(struct fun_mut1_0 a, struct ctx* ctx, struct result_0 p0);
 struct void_ resolve_or_reject(struct ctx* ctx, struct fut_0* f, struct result_0 result);
 struct void_ resolve_or_reject_recur(struct ctx* ctx, struct opt_0 node, struct result_0 value);
-struct void_ drop_1(struct void_ t);
+struct void_ drop_1(struct void_ _p0);
 struct void_ forward_to__lambda0(struct ctx* ctx, struct forward_to__lambda0* _closure, struct result_0 it);
 struct fut_0* call_ref_0(struct ctx* ctx, struct fun_ref1 f, struct void_ p0);
 struct island* get_island(struct ctx* ctx, uint64_t island_id);
@@ -1013,7 +1013,7 @@ struct void_ mark_visit_254(struct mark_ctx* mark_ctx, struct mut_bag_node* valu
 struct void_ noctx_must_remove_unordered(struct mut_arr_0* a, uint64_t value);
 struct void_ noctx_must_remove_unordered_recur(struct mut_arr_0* a, uint64_t index, uint64_t value);
 uint64_t noctx_at_3(struct mut_arr_0* a, uint64_t index);
-struct void_ drop_2(uint64_t t);
+struct void_ drop_2(uint64_t _p0);
 uint64_t noctx_remove_unordered_at_index(struct mut_arr_0* a, uint64_t index);
 uint64_t noctx_last(struct mut_arr_0* a);
 uint8_t empty__q_5(struct mut_arr_0* a);
@@ -1033,7 +1033,7 @@ extern void free(uint8_t* p);
 struct void_ unmanaged_free_1(struct thread_args* p);
 struct result_0 must_be_resolved(struct fut_0* f);
 struct result_0 hard_unreachable(void);
-struct fut_0* main_0(struct ctx* ctx, struct arr_1 args);
+struct fut_0* main_0(struct ctx* ctx, struct arr_1 _p0);
 struct void_ handle_sdl_error(struct ctx* ctx, struct arr_0 operation, int64_t err);
 struct void_ fail_sdl_error(struct ctx* ctx, struct arr_0 operation);
 extern char* SDL_GetError(void);
@@ -1362,8 +1362,8 @@ int32_t rt_main(int32_t argc, char** argv, fun_ptr2 main_ptr) {
 		}
 	}
 }
-/* drop<arr<char>> void(t arr<char>) */
-struct void_ drop_0(struct arr_0 t) {
+/* drop<arr<char>> void(_ arr<char>) */
+struct void_ drop_0(struct arr_0 _p0) {
 	return (struct void_) {};
 }
 /* to-str arr<char>(a ptr<char>) */
@@ -2944,8 +2944,8 @@ struct void_ resolve_or_reject_recur(struct ctx* ctx, struct opt_0 node, struct 
 			return (assert(0),(struct void_) {});
 	}
 }
-/* drop<void> void(t void) */
-struct void_ drop_1(struct void_ t) {
+/* drop<void> void(_ void) */
+struct void_ drop_1(struct void_ _p0) {
 	return (struct void_) {};
 }
 /* forward-to<?out>.lambda0 void(it result<int32, exception>) */
@@ -5223,8 +5223,8 @@ uint64_t noctx_at_3(struct mut_arr_0* a, uint64_t index) {
 	uint64_t* _7 = _5 + _6;
 	return *_7;
 }
-/* drop<?t> void(t nat) */
-struct void_ drop_2(uint64_t t) {
+/* drop<?t> void(_ nat) */
+struct void_ drop_2(uint64_t _p0) {
 	return (struct void_) {};
 }
 /* noctx-remove-unordered-at-index<?t> nat(a mut-arr<nat>, index nat) */
@@ -5438,8 +5438,8 @@ struct result_0 must_be_resolved(struct fut_0* f) {
 struct result_0 hard_unreachable(void) {
 	return (assert(0),(struct result_0) {0});
 }
-/* main fut<int32>(args arr<arr<char>>) */
-struct fut_0* main_0(struct ctx* ctx, struct arr_1 args) {
+/* main fut<int32>(_ arr<arr<char>>) */
+struct fut_0* main_0(struct ctx* ctx, struct arr_1 _p0) {
 	struct ctx* _0 = ctx;
 	struct arr_0 _1 = (struct arr_0) {14, constantarr_0_17};
 	struct ctx* _2 = ctx;

@@ -168,11 +168,6 @@ nor bool(a bool, b bool) noctx builtin
 to-nat nat(b bool) noctx
 	b ? 1, 0
 
-always-true bool(a ?t)
-	true
-always-false bool(a ?t)
-	false
-
 region Fun
 
 | Pointer to a function with no arguments (not even ctx)
@@ -485,7 +480,7 @@ noctx-decr nat(n nat) noctx unsafe
 region Util
 
 void void() noctx builtin
-drop void(t ?t) noctx
+drop void(_ ?t) noctx
 	void
 
 hard-assert void(condition bool) noctx unsafe

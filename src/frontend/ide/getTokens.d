@@ -52,7 +52,7 @@ import util.comparison : compareNat32, Comparison;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr;
 import util.sexpr : Sexpr, nameAndTata, tataArr, tataNamedRecord, tataSym;
-import util.sourceRange : Pos, RangeWithinFile, sexprOfRangeWithinFile;
+import util.sourceRange : Pos, rangeOfStartAndName, RangeWithinFile, sexprOfRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32;
 import util.util : todo;
@@ -186,7 +186,8 @@ void addTypeArgsTokens(Alloc)(
 }
 
 void addParamTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable ParamAst a) {
-	add(alloc, tokens, immutable Token(Token.Kind.paramDef, rangeOfNameAndRange(a.name)));
+	if (has(a.name))
+		add(alloc, tokens, immutable Token(Token.Kind.paramDef, rangeOfStartAndName(a.range.start, force(a.name))));
 	addTypeTokens(alloc, tokens, a.type);
 }
 

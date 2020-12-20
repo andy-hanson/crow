@@ -1,3 +1,1 @@
-/example-record.nz 11:12-11:13 the type of the expression conflicts with its expected type.
-	expected: float
-	actual: nat
+/example-record.nz 11:20-11:32 parameter args is unused

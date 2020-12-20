@@ -7,15 +7,15 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(29, 61)
+				range(29, 58)
 				main
 				inststruct(range(34, 47), name-range(34, fut), [inststruct(range(38, 47), name-range(38, exit-code))])
 				[
 					param(
-						range(48, 60)
-						name-range(48, args)
-						inststruct(range(53, 60), name-range(53, arr), [inststruct(range(57, 60), name-range(57, str))]))])
+						range(48, 57)
+						none
+						inststruct(range(50, 57), name-range(50, arr), [inststruct(range(54, 57), name-range(54, str))]))])
 			summon: true
 			body: seq-ast(
-				call(prefix, name-range(70, print), [], [literal("Hello, world!")])
-				call(infix, name-range(96, resolved), [], [literal(nat(0, false))])))])
+				call(prefix, name-range(67, print), [], [literal("Hello, world!")])
+				call(infix, name-range(93, resolved), [], [literal(nat(0, false))])))])

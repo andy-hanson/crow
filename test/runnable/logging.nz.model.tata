@@ -8,21 +8,21 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(21, 23), main, fut(int32()), [param(file-range(21, range(42, 54)), args, arr(arr(char())))])
+			sig: sig(file-pos(21, 23), main, fut(int32()), [param(file-range(21, range(42, 51)), none, arr(arr(char())))])
 			body: seq(
 				call(
 					fun-inst(name: log)
 					[to-union(log-level(), 0, call(fun-inst(name: info), [])), string-lit("Logged once")])
 				let(
-					local(file-range(21, range(88, 90)), lh, fun1(void(), logged()))
+					local(file-range(21, range(85, 87)), lh, fun1(void(), logged()))
 					call(fun-inst(name: get-log-handler), [])
 					let(
-						local(file-range(21, range(110, 117)), doubler, fun1(void(), logged()))
+						local(file-range(21, range(107, 114)), doubler, fun1(void(), logged()))
 						call(
 							fun-inst(name: as, type-args: [fun1(void(), logged())])
 							[
 								lambda(
-									[param(file-range(21, range(138, 144)), logged, logged())]
+									[param(file-range(21, range(135, 141)), some(logged), logged())]
 									seq(
 										call(
 											fun-inst(name: call, type-args: [void(), logged()])
@@ -55,7 +55,7 @@ module(
 									fun-inst(name: with-log-handler, type-args: [void()])
 									[
 										lambda(
-											[param(file-range(21, range(234, 236)), it, logged())]
+											[param(file-range(21, range(231, 233)), some(it), logged())]
 											call(fun-inst(name: drop, type-args: [logged()]), [param-ref(it)])
 											[]
 											fun1(void(), logged())

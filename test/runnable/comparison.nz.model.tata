@@ -3,27 +3,38 @@ module(
 	imports: [import(none, 19, none), import(some(range(8, 10)), 13, some([exit-code, print]))]
 	exports: []
 	structs: [
-		struct(range: file-range(21, range(29, 61)), public?: true, name: my-record)
-		struct(range: file-range(21, range(61, 107)), public?: true, name: my-byref-record)
-		struct(range: file-range(21, range(107, 131)), public?: true, name: my-other-record)
-		struct(range: file-range(21, range(131, 175)), public?: true, name: my-union)]
+		struct(range: file-range(21, range(151, 183)), public?: true, name: my-record)
+		struct(range: file-range(21, range(183, 229)), public?: true, name: my-byref-record)
+		struct(range: file-range(21, range(229, 253)), public?: true, name: my-other-record)
+		struct(range: file-range(21, range(253, 297)), public?: true, name: my-union)]
 	specs: []
 	funs: [
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(21, 175), test-compare-records, void(), [])
+			sig: sig(file-pos(21, 29), main, fut(int32()), [param(file-range(21, range(48, 57)), none, arr(arr(char())))])
+			body: seq(
+				seq(
+					seq(
+						call(fun-inst(name: test-compare-records), [])
+						call(fun-inst(name: test-compare-byref-records), []))
+					call(fun-inst(name: test-compare-unions), []))
+				call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)])))
+		fun(
+			public?: true
+			summon: true
+			sig: sig(file-pos(21, 297), test-compare-records, void(), [])
 			body: let(
-				local(file-range(21, range(211, 212)), a, my-record())
+				local(file-range(21, range(333, 334)), a, my-record())
 				call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 2)])
 				let(
-					local(file-range(21, range(232, 233)), b, my-record())
+					local(file-range(21, range(354, 355)), b, my-record())
 					call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 3)])
 					let(
-						local(file-range(21, range(253, 254)), c, my-record())
+						local(file-range(21, range(375, 376)), c, my-record())
 						call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 2)])
 						let(
-							local(file-range(21, range(274, 275)), d, my-record())
+							local(file-range(21, range(396, 397)), d, my-record())
 							call(fun-inst(name: my-record), [literal(nat(), 0), literal(nat(), 3)])
 							seq(
 								seq(
@@ -57,18 +68,18 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(21, 364), test-compare-byref-records, void(), [])
+			sig: sig(file-pos(21, 486), test-compare-byref-records, void(), [])
 			body: let(
-				local(file-range(21, range(406, 407)), a, my-byref-record())
+				local(file-range(21, range(528, 529)), a, my-byref-record())
 				call(fun-inst(name: my-byref-record), [literal(nat(), 1), literal(nat(), 2)])
 				let(
-					local(file-range(21, range(433, 434)), b, my-byref-record())
+					local(file-range(21, range(555, 556)), b, my-byref-record())
 					call(fun-inst(name: my-byref-record), [literal(nat(), 1), literal(nat(), 3)])
 					let(
-						local(file-range(21, range(460, 461)), c, my-byref-record())
+						local(file-range(21, range(582, 583)), c, my-byref-record())
 						call(fun-inst(name: my-byref-record), [literal(nat(), 1), literal(nat(), 2)])
 						let(
-							local(file-range(21, range(487, 488)), d, my-byref-record())
+							local(file-range(21, range(609, 610)), d, my-byref-record())
 							call(fun-inst(name: my-byref-record), [literal(nat(), 0), literal(nat(), 3)])
 							seq(
 								seq(
@@ -102,19 +113,19 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(21, 583), test-compare-unions, void(), [])
+			sig: sig(file-pos(21, 705), test-compare-unions, void(), [])
 			body: let(
-				local(file-range(21, range(618, 619)), a, my-union())
+				local(file-range(21, range(740, 741)), a, my-union())
 				call(
 					fun-inst(name: as, type-args: [my-union()])
 					[to-union(my-union(), 0, call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 2)]))])
 				let(
-					local(file-range(21, range(653, 654)), b, my-union())
+					local(file-range(21, range(775, 776)), b, my-union())
 					call(
 						fun-inst(name: as, type-args: [my-union()])
 						[to-union(my-union(), 1, call(fun-inst(name: my-other-record), []))])
 					let(
-						local(file-range(21, range(688, 689)), c, my-union())
+						local(file-range(21, range(810, 811)), c, my-union())
 						call(
 							fun-inst(name: as, type-args: [my-union()])
 							[
@@ -123,7 +134,7 @@ module(
 									0
 									call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 2)]))])
 						let(
-							local(file-range(21, range(723, 724)), d, my-union())
+							local(file-range(21, range(845, 846)), d, my-union())
 							call(
 								fun-inst(name: as, type-args: [my-union()])
 								[
@@ -162,73 +173,62 @@ module(
 													[local-ref(a), local-ref(d)])])])))))))
 		fun(
 			public?: true
-			summon: true
-			sig: sig(file-pos(21, 828), main, fut(int32()), [param(file-range(21, range(847, 859)), args, arr(arr(char())))])
-			body: seq(
-				seq(
-					seq(
-						call(fun-inst(name: test-compare-records), [])
-						call(fun-inst(name: test-compare-byref-records), []))
-					call(fun-inst(name: test-compare-unions), []))
-				call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)])))
-		fun(
-			public?: true
 			preferred: true
 			sig: sig(
-				file-pos(21, 29)
+				file-pos(21, 151)
 				my-record
 				my-record()
-				[param(file-range(21, range(47, 52)), x, nat()), param(file-range(21, range(54, 59)), y, nat())])
+				[param(file-range(21, range(169, 174)), some(x), nat()), param(file-range(21, range(176, 181)), some(y), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
 			sig: sig(
-				file-pos(21, 29)
+				file-pos(21, 151)
 				my-record
 				by-val(my-record())
-				[param(file-range(21, range(47, 52)), x, nat()), param(file-range(21, range(54, 59)), y, nat())])
+				[param(file-range(21, range(169, 174)), some(x), nat()), param(file-range(21, range(176, 181)), some(y), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(21, 47), x, nat(), [param(file-range(21, range(47, 52)), a, my-record())])
+			sig: sig(file-pos(21, 169), x, nat(), [param(file-range(21, range(169, 174)), some(a), my-record())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(21, 54), y, nat(), [param(file-range(21, range(54, 59)), a, my-record())])
+			sig: sig(file-pos(21, 176), y, nat(), [param(file-range(21, range(176, 181)), some(a), my-record())])
 			body: field-get(1))
 		fun(
 			public?: true
 			preferred: true
 			sig: sig(
-				file-pos(21, 61)
+				file-pos(21, 183)
 				my-byref-record
 				my-byref-record()
-				[param(file-range(21, range(93, 98)), x, nat()), param(file-range(21, range(100, 105)), y, nat())])
+				[param(file-range(21, range(215, 220)), some(x), nat()), param(file-range(21, range(222, 227)), some(y), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
 			sig: sig(
-				file-pos(21, 61)
+				file-pos(21, 183)
 				my-byref-record
 				by-val(my-byref-record())
-				[param(file-range(21, range(93, 98)), x, nat()), param(file-range(21, range(100, 105)), y, nat())])
+				[param(file-range(21, range(215, 220)), some(x), nat()), param(file-range(21, range(222, 227)), some(y), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(21, 93), x, nat(), [param(file-range(21, range(93, 98)), a, my-byref-record())])
+			sig: sig(file-pos(21, 215), x, nat(), [param(file-range(21, range(215, 220)), some(a), my-byref-record())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(21, 100), y, nat(), [param(file-range(21, range(100, 105)), a, my-byref-record())])
+			sig: sig(file-pos(21, 222), y, nat(), [param(file-range(21, range(222, 227)), some(a), my-byref-record())])
 			body: field-get(1))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(21, 107), my-other-record, my-other-record(), [])
+			sig: sig(file-pos(21, 229), my-other-record, my-other-record(), [])
 			body: new-record)])

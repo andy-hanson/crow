@@ -1,6 +1,12 @@
 import
 	io: exit-code print
 
+main fut exit-code(_ arr str) summon
+	test-compare-records
+	test-compare-byref-records
+	test-compare-unions
+	resolved: 0
+
 my-record record
 	x nat
 	y nat
@@ -43,9 +49,3 @@ test-compare-unions void() summon
 	print: a <=> b to-str
 	print: a <=> c to-str
 	print: a <=> d to-str
-
-main fut exit-code(args arr str) summon
-	test-compare-records
-	test-compare-byref-records
-	test-compare-unions
-	resolved: 0

@@ -9,11 +9,7 @@ file-ast(
 				range(0, 25)
 				magic
 				inststruct(range(6, 14), name-range(6, opt), [type-param(range(10, 14), out)])
-				[
-					param(
-						range(15, 24)
-						name-range(15, a)
-						inststruct(range(17, 24), name-range(17, opt), [type-param(range(21, 24), in)]))])
+				[param(range(15, 24), some(a), inststruct(range(17, 24), name-range(17, opt), [type-param(range(21, 24), in)]))])
 			body: todo)
 		fun-decl(
 			public?: true
@@ -21,9 +17,5 @@ file-ast(
 				range(33, 57)
 				test
 				inststruct(range(38, 46), name-range(38, opt), [type-param(range(42, 46), out)])
-				[
-					param(
-						range(47, 56)
-						name-range(47, a)
-						inststruct(range(49, 56), name-range(49, opt), [type-param(range(53, 56), in)]))])
+				[param(range(47, 56), some(a), inststruct(range(49, 56), name-range(49, opt), [type-param(range(53, 56), in)]))])
 			body: call(infix, name-range(61, magic), [type-param(range(67, 71), out)], [a]))])

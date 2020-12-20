@@ -1,7 +1,7 @@
 import
 	io: exit-code
 
-main fut exit-code(args arr str) summon
+main fut exit-code(_ arr str) summon
 	info log "Logged once"
 	lh = get-log-handler
 	doubler = as<log-handler>: \logged

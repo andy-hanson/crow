@@ -44,6 +44,7 @@ import util.bools : True;
 import util.collection.arr : Arr, empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : map;
+import util.opt : force;
 import util.ptr : Ptr, ptrTrustMe;
 import util.sexpr :
 	nameAndTata,
@@ -152,7 +153,8 @@ immutable(Sexpr) sexprOfSig(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable S
 immutable(Sexpr) sexprOfParam(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable Param a) {
 	return tataRecord(alloc, "param", [
 		sexprOfFileAndRange(alloc, a.range),
-		tataSym(a.name),
+		tataOpt(alloc, a.name, (ref immutable Sym it) =>
+			tataSym(it)),
 		sexprOfType(alloc, ctx, a.type)]);
 }
 
@@ -251,7 +253,7 @@ immutable(Sexpr) sexprOfExpr(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable 
 				tataArr(alloc, a.cases, (ref immutable Expr.Match.Case case_) =>
 					sexprOfMatchCase(alloc, ctx, case_))]),
 		(ref immutable Expr.ParamRef it) =>
-			tataRecord(alloc, "param-ref", [tataSym(it.param.name)]),
+			tataRecord(alloc, "param-ref", [tataSym(force(it.param.name))]),
 		(ref immutable Expr.Seq a) =>
 			tataRecord(alloc, "seq", [
 				sexprOfExpr(alloc, ctx, a.first),

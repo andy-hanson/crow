@@ -607,6 +607,16 @@ void zipMutPtrFirst(T, U)(
 		cb(ptrAt(a, i), at(b, i));
 }
 
+void zipPtrFirst(T, U)(
+	immutable Arr!T a,
+	immutable Arr!U b,
+	scope void delegate(immutable Ptr!T, ref immutable U) @safe @nogc pure nothrow cb,
+) {
+	verify(sizeEq(a, b));
+	foreach (immutable size_t i; 0..size(a))
+		cb(ptrAt(a, i), at(b, i));
+}
+
 @trusted immutable(Arr!Out) mapZip(Out, In0, In1, Alloc)(
 	ref Alloc alloc,
 	ref immutable Arr!In0 in0,

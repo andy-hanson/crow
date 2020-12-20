@@ -66,6 +66,7 @@ struct ExprCtx {
 	immutable Ptr!FunsMap funsMap;
 	immutable Ptr!CommonTypes commonTypes;
 	immutable Ptr!FunDecl outermostFun;
+	Arr!Bool paramsUsed;
 
 	// Locals of the function or message. Lambda locals are stored in the lambda.
 	// (Note the Let stores the local and this points to that.)

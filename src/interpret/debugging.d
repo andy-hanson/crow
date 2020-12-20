@@ -32,6 +32,7 @@ import model.lowModel :
 import model.model : ClosureField, decl, FunInst, name, Param, RecordField, Type, typeArgs, writeType;
 import util.collection.arr : empty;
 import util.collection.fullIndexDict : fullIndexDictGet;
+import util.opt : force, has;
 import util.ptr : Ptr;
 import util.writer : Writer, writeChar, writeNat, writeStatic, writeWithCommas;
 import util.sym : writeSym;
@@ -76,7 +77,10 @@ void writeFunSig(Alloc)(ref Writer!Alloc writer, ref immutable LowProgram lowPro
 							writeStatic(writer, "<closure>");
 						},
 						(immutable Ptr!Param p) {
-							writeSym(writer, p.name);
+							if (has(p.name))
+								writeSym(writer, force(p.name));
+							else
+								writeChar(writer, '_');
 						});
 				writeChar(writer, ' ');
 				writeConcreteType(writer, param.type);

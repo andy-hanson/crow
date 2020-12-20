@@ -1,6 +1,13 @@
 import
 	io: exit-code print
 
+main fut exit-code(_ arr str) summon
+	r = my-record: "a", "b"
+	foo: r
+	print: r a
+	print: r b
+	resolved: 0
+
 my-record record
 	a str
 	b str
@@ -8,10 +15,3 @@ my-record record
 foo void(r my-record) summon
 	print: r a
 	print: r b
-
-main fut exit-code(args arr str) summon
-	r = my-record: "a", "b"
-	foo: r
-	print: r a
-	print: r b
-	resolved: 0

@@ -204,7 +204,7 @@ private immutable(Comparison) compareType(ref immutable Type a, ref immutable Ty
 struct Param {
 	//TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
-	immutable Sym name;
+	immutable Opt!Sym name;
 	immutable Type type;
 	immutable size_t index;
 }

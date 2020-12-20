@@ -4,46 +4,46 @@ file-ast(
 	aliases: []
 	structs: [
 		struct(
-			range(29, 61)
+			range(137, 169)
 			true
 			[]
 			none
 			record(
 				none
 				[
-					field(range(47, 52), false, a, inststruct(range(49, 52), name-range(49, str)))
-					field(range(54, 59), false, b, inststruct(range(56, 59), name-range(56, str)))]))]
+					field(range(155, 160), false, a, inststruct(range(157, 160), name-range(157, str)))
+					field(range(162, 167), false, b, inststruct(range(164, 167), name-range(164, str)))]))]
 	funs: [
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(61, 82)
-				foo
-				inststruct(range(65, 69), name-range(65, void))
-				[param(range(70, 81), name-range(70, r), inststruct(range(72, 81), name-range(72, my-record)))])
-			summon: true
-			body: seq-ast(
-				call(prefix, name-range(91, print), [], [call(infix, name-range(100, a), [], [r])])
-				call(prefix, name-range(103, print), [], [call(infix, name-range(112, b), [], [r])])))
-		fun-decl(
-			public?: true
-			sig: sig-ast(
-				range(115, 147)
+				range(29, 58)
 				main
-				inststruct(range(120, 133), name-range(120, fut), [inststruct(range(124, 133), name-range(124, exit-code))])
+				inststruct(range(34, 47), name-range(34, fut), [inststruct(range(38, 47), name-range(38, exit-code))])
 				[
 					param(
-						range(134, 146)
-						name-range(134, args)
-						inststruct(range(139, 146), name-range(139, arr), [inststruct(range(143, 146), name-range(143, str))]))])
+						range(48, 57)
+						none
+						inststruct(range(50, 57), name-range(50, arr), [inststruct(range(54, 57), name-range(54, str))]))])
 			summon: true
 			body: let(
-				name-range(156, r)
-				call(prefix, name-range(160, my-record), [], [literal("a"), literal("b")])
+				name-range(67, r)
+				call(prefix, name-range(71, my-record), [], [literal("a"), literal("b")])
 				seq-ast(
 					seq-ast(
 						seq-ast(
-							call(prefix, name-range(181, foo), [], [r])
-							call(prefix, name-range(189, print), [], [call(infix, name-range(198, a), [], [r])]))
-						call(prefix, name-range(201, print), [], [call(infix, name-range(210, b), [], [r])]))
-					call(prefix, name-range(213, resolved), [], [literal(nat(0, false))]))))])
+							call(prefix, name-range(92, foo), [], [r])
+							call(prefix, name-range(100, print), [], [call(infix, name-range(109, a), [], [r])]))
+						call(prefix, name-range(112, print), [], [call(infix, name-range(121, b), [], [r])]))
+					call(prefix, name-range(124, resolved), [], [literal(nat(0, false))]))))
+		fun-decl(
+			public?: true
+			sig: sig-ast(
+				range(169, 190)
+				foo
+				inststruct(range(173, 177), name-range(173, void))
+				[param(range(178, 189), some(r), inststruct(range(180, 189), name-range(180, my-record)))])
+			summon: true
+			body: seq-ast(
+				call(prefix, name-range(199, print), [], [call(infix, name-range(208, a), [], [r])])
+				call(prefix, name-range(211, print), [], [call(infix, name-range(220, b), [], [r])])))])

@@ -8,7 +8,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(21, 29), main, fut(int32()), [param(file-range(21, range(48, 60)), args, arr(arr(char())))])
+			sig: sig(file-pos(21, 29), main, fut(int32()), [param(file-range(21, range(48, 57)), none, arr(arr(char())))])
 			body: seq(
 				call(fun-inst(name: print), [string-lit("Hello, world!")])
 				call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)])))])

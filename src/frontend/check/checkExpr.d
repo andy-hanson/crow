@@ -3,7 +3,7 @@ module frontend.check.checkExpr;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCall : checkCall, checkIdentifierCall, eachFunInScope;
-import frontend.check.checkCtx : CheckCtx, ImportIndex, markImportUsed;
+import frontend.check.checkCtx : addDiag, CheckCtx, ImportIndex, markImportUsed;
 import frontend.check.inferringType :
 	addDiag2,
 	allocExpr,
@@ -93,6 +93,7 @@ import util.bools : Bool, False, not, True;
 import util.collection.arr :
 	Arr,
 	at,
+	castImmutable,
 	empty,
 	emptyArr,
 	emptyArrWithSize,
@@ -100,11 +101,13 @@ import util.collection.arr :
 	only,
 	ptrsRange,
 	arrRange = range,
+	setAt,
 	size,
 	sizeEq;
 import util.collection.arrUtil :
 	arrLiteral,
 	exists,
+	fillArr_mut,
 	map,
 	mapOrNone,
 	mapWithFirst,
@@ -113,6 +116,7 @@ import util.collection.arrUtil :
 	prepend,
 	slice,
 	tail,
+	zipPtrFirst,
 	zipSome;
 import util.collection.mutArr :
 	moveToArr,
@@ -149,8 +153,19 @@ immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 		ptrTrustMe(structsAndAliasesMap),
 		ptrTrustMe(funsMap),
 		ptrTrustMe(commonTypes),
-		fun);
-	return allocExpr(alloc, checkAndExpect!Alloc(alloc, exprCtx, ast, returnType(fun)));
+		fun,
+		// TODO: use temp alloc
+		fillArr_mut!(Bool, Alloc)(alloc, size(params(fun)), (immutable size_t) =>
+			Bool(false)));
+	immutable Ptr!Expr res = allocExpr(alloc, checkAndExpect!Alloc(alloc, exprCtx, ast, returnType(fun)));
+	zipPtrFirst!(Param, Bool)(
+		params(fun),
+		castImmutable(exprCtx.paramsUsed),
+		(immutable Ptr!Param param, ref immutable Bool used) {
+			if (!used && has(param.name))
+				addDiag(alloc, checkCtx, param.range, immutable Diag(immutable Diag.UnusedParam(param)));
+		});
+	return res;
 }
 
 immutable(Expr) checkExpr(Alloc)(
@@ -363,7 +378,7 @@ immutable(Opt!Expr) getIdentifierInLambda(
 		if (symEq(local.name, name))
 			return some(immutable Expr(range, immutable Expr.LocalRef(local)));
 	foreach (immutable Ptr!Param param; ptrsRange(lambda.lambdaParams))
-		if (symEq(param.name, name))
+		if (has(param.name) && symEq(force(param.name), name))
 			return some(immutable Expr(range, immutable Expr.ParamRef(param)));
 	// Check if we've already added something with this name to closureFields to avoid adding it twice.
 	foreach (immutable Ptr!ClosureField field; mutArrRange(lambda.closureFields))
@@ -396,8 +411,10 @@ Opt!IdentifierAndLambdas getIdentifierNonCall(
 		if (symEq(local.name, name))
 			return someMut(IdentifierAndLambdas(immutable Expr(range, Expr.LocalRef(local)), allLambdas));
 	foreach (immutable Ptr!Param param; ptrsRange(params(ctx.outermostFun)))
-		if (symEq(param.name, name))
+		if (has(param.name) && symEq(force(param.name), name)) {
+			setAt(ctx.paramsUsed, param.index, True);
 			return someMut(IdentifierAndLambdas(immutable Expr(range, Expr.ParamRef(param)), allLambdas));
+		}
 	return noneMut!IdentifierAndLambdas;
 }
 
@@ -584,7 +601,7 @@ immutable(Arr!Param) checkFunOrSendFunParamsForLambda(Alloc)(
 		paramAsts,
 		expectedParamTypes,
 		(ref immutable LambdaAst.Param ast, ref immutable Type expectedParamType, immutable size_t index) =>
-			immutable Param(rangeInFile2(ctx, rangeOfNameAndRange(ast)), ast.name, expectedParamType, index));
+			immutable Param(rangeInFile2(ctx, rangeOfNameAndRange(ast)), some(ast.name), expectedParamType, index));
 }
 
 immutable(CheckedExpr) checkFunPtr(Alloc)(

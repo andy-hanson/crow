@@ -1,7 +1,7 @@
 import
 	io: exit-code print
 
-main fut exit-code(args arr str) summon
+main fut exit-code(_ arr str) summon
 	assert: "".parse-nat == none
 	assert: "1".parse-nat == 1.some
 	assert: "1.2".parse-nat == none

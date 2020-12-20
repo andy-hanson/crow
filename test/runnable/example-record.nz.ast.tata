@@ -20,7 +20,7 @@ file-ast(
 				range(69, 87)
 				area
 				inststruct(range(74, 79), name-range(74, float))
-				[param(range(80, 86), name-range(80, a), inststruct(range(82, 86), name-range(82, rect)))])
+				[param(range(80, 86), some(a), inststruct(range(82, 86), name-range(82, rect)))])
 			body: call(
 				infix
 				name-range(97, *)
@@ -29,20 +29,20 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(109, 141)
+				range(109, 138)
 				main
 				inststruct(range(114, 127), name-range(114, fut), [inststruct(range(118, 127), name-range(118, exit-code))])
 				[
 					param(
-						range(128, 140)
-						name-range(128, args)
-						inststruct(range(133, 140), name-range(133, arr), [inststruct(range(137, 140), name-range(137, str))]))])
+						range(128, 137)
+						none
+						inststruct(range(130, 137), name-range(130, arr), [inststruct(range(134, 137), name-range(134, str))]))])
 			summon: true
 			body: let(
-				name-range(150, r)
+				name-range(147, r)
 				call(
 					prefix
-					name-range(154, rect)
+					name-range(151, rect)
 					[]
 					[
 						literal(
@@ -56,7 +56,7 @@ file-ast(
 				seq-ast(
 					call(
 						prefix
-						name-range(170, print)
+						name-range(167, print)
 						[]
-						[call(infix, name-range(184, to-str), [], [call(dot, name-range(179, area), [], [r])])])
-					call(infix, name-range(194, resolved), [], [literal(nat(0, false))]))))])
+						[call(infix, name-range(181, to-str), [], [call(dot, name-range(176, area), [], [r])])])
+					call(infix, name-range(191, resolved), [], [literal(nat(0, false))]))))])

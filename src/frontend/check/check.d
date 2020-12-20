@@ -496,14 +496,15 @@ immutable(Arr!Param) checkParams(Alloc)(
 				structsAndAliasesMap,
 				typeParamsScope,
 				delayStructInsts);
-			return immutable Param(rangeInFile(ctx, ast.range), ast.name.name, type, index);
+			return immutable Param(rangeInFile(ctx, ast.range), ast.name, type, index);
 		});
 	foreach (immutable size_t i; 0..size(params))
 		foreach (immutable size_t prev_i; 0..i) {
-			immutable Param param = at(params, i);
-			if (symEq(param.name, at(params, prev_i).name))
-				addDiag(alloc, ctx, at(params, i).range, Diag(
-					Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.param, param.name)));
+			immutable Ptr!Param param = ptrAt(params, i);
+			immutable Ptr!Param prev = ptrAt(params, i - 1);
+			if (has(param.name) && has(prev.name) && symEq(force(param.name), force(prev.name)))
+				addDiag(alloc, ctx, param.range, Diag(
+					Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.param, force(param.name))));
 		}
 	return params;
 }
@@ -958,7 +959,7 @@ immutable(FunsAndMap) checkFuns(Alloc, SymAlloc)(
 		overwriteMemory(&fun.body_, matchFunBodyAst(
 			funAst.body_,
 			(ref immutable FunBodyAst.Builtin) =>
-				immutable FunBody(FunBody.Builtin()),
+				immutable FunBody(immutable FunBody.Builtin()),
 			(ref immutable FunBodyAst.Extern e) {
 				if (!fun.noCtx)
 					todo!void("'extern' fun must be 'noctx'");
@@ -1008,7 +1009,7 @@ void addFunsForStruct(Alloc, SymAlloc)(
 			ctx.programState,
 			immutable StructDeclAndArgs(struct_, typeArgs)));
 		immutable Arr!Param ctorParams = map(alloc, record.fields, (ref immutable RecordField it) =>
-			immutable Param(it.range, it.name, it.type, it.index));
+			immutable Param(it.range, some(it.name), it.type, it.index));
 		FunDecl constructor(Type returnType, FunFlags flags) {
 			immutable Ptr!Sig ctorSig = allocate(alloc, immutable Sig(
 				fileAndPosFromFileAndRange(struct_.range),
@@ -1042,7 +1043,8 @@ void addFunsForStruct(Alloc, SymAlloc)(
 				fileAndPosFromFileAndRange(field.range),
 				field.name,
 				field.type,
-				arrLiteral!Param(alloc, [immutable Param(field.range, shortSymAlphaLiteral("a"), structType, 0)])));
+				arrLiteral!Param(alloc, [
+					immutable Param(field.range, some(shortSymAlphaLiteral("a")), structType, 0)])));
 			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 				struct_.isPublic,
 				FunFlags.justNoCtx,
@@ -1057,8 +1059,8 @@ void addFunsForStruct(Alloc, SymAlloc)(
 					prependSet(allSymbols, field.name),
 					immutable Type(commonTypes.void_),
 					arrLiteral!Param(alloc, [
-						immutable Param(field.range, shortSymAlphaLiteral("a"), structType, 0),
-						immutable Param(field.range, field.name, field.type, 1)])));
+						immutable Param(field.range, some(shortSymAlphaLiteral("a")), structType, 0),
+						immutable Param(field.range, some(field.name), field.type, 1)])));
 				exactSizeArrBuilderAdd(funsBuilder, FunDecl(
 					struct_.isPublic,
 					FunFlags.justNoCtx,

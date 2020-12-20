@@ -7,33 +7,33 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(23, 55)
+				range(23, 52)
 				main
 				inststruct(range(28, 41), name-range(28, fut), [inststruct(range(32, 41), name-range(32, exit-code))])
 				[
 					param(
-						range(42, 54)
-						name-range(42, args)
-						inststruct(range(47, 54), name-range(47, arr), [inststruct(range(51, 54), name-range(51, str))]))])
+						range(42, 51)
+						none
+						inststruct(range(44, 51), name-range(44, arr), [inststruct(range(48, 51), name-range(48, str))]))])
 			summon: true
 			body: seq-ast(
-				call(infix, name-range(69, log), [], [info, literal("Logged once")])
+				call(infix, name-range(66, log), [], [info, literal("Logged once")])
 				let(
-					name-range(88, lh)
+					name-range(85, lh)
 					get-log-handler
 					let(
-						name-range(110, doubler)
+						name-range(107, doubler)
 						call(
 							prefix
-							name-range(120, as)
-							[inststruct(range(123, 134), name-range(123, log-handler))]
-							[lambda([name-range(138, logged)])])
+							name-range(117, as)
+							[inststruct(range(120, 131), name-range(120, log-handler))]
+							[lambda([name-range(135, logged)])])
 						seq-ast(
 							seq-ast(
-								call(infix, name-range(188, with-log-handler), [], [doubler, lambda([])])
+								call(infix, name-range(185, with-log-handler), [], [doubler, lambda([])])
 								call(
 									infix
-									name-range(244, with-log-handler)
+									name-range(241, with-log-handler)
 									[]
-									[lambda([name-range(234, it)]), lambda([])]))
-							call(infix, name-range(292, resolved), [], [literal(nat(0, false))]))))))])
+									[lambda([name-range(231, it)]), lambda([])]))
+							call(infix, name-range(289, resolved), [], [literal(nat(0, false))]))))))])

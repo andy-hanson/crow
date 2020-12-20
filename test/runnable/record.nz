@@ -1,14 +1,14 @@
 import
 	io: exit-code print
 
-my-record record
-	x nat
-	y nat
-
-main fut exit-code(args arr str) summon
+main fut exit-code(_ arr str) summon
 	m = my-record: 1, 2
 	assert: m.x == 1
 	assert: m.y == 2
 	print: m.x.to-str
 	print: m.y.to-str
 	resolved: 0
+
+my-record record
+	x nat
+	y nat

@@ -599,7 +599,7 @@ program(
 																					message
 																					[call(value, [local-ref(e)])])]))
 																	1))]))))))))))))
-		fun(false, drop, type(false, void), none, [param(t, type(false, arr))], expr-body(call(void, [])))
+		fun(false, drop, type(false, void), none, [param("_", type(false, arr))], expr-body(call(void, [])))
 		fun(false, void, type(false, void), none, [], builtin([]))
 		fun(
 			false
@@ -2293,7 +2293,7 @@ program(
 								call(
 									resolve-or-reject-recur
 									[call(next-node, [call(value, [local-ref(s)])]), param-ref(value)])))])))
-		fun(false, drop, type(false, void), none, [param(t, type(false, void))], expr-body(call(void, [])))
+		fun(false, drop, type(false, void), none, [param("_", type(false, void))], expr-body(call(void, [])))
 		fun(false, cb, type(false, fun-mut1), none, [param(a, type(true, fut-callback-node))], field-get(0))
 		fun(false, value, type(true, fut-callback-node), none, [param(a, type(false, some))], field-get(0))
 		fun(false, next-node, type(false, opt), none, [param(a, type(true, fut-callback-node))], field-get(1))
@@ -4058,7 +4058,7 @@ program(
 				seq(
 					call(hard-assert, [call(<, [param-ref(index), call(size, [param-ref(a)])])])
 					call(deref, [call(+, [call(data, [param-ref(a)]), param-ref(index)])]))))
-		fun(false, drop, type(false, void), none, [param(t, type(false, nat))], expr-body(call(void, [])))
+		fun(false, drop, type(false, void), none, [param("_", type(false, nat))], expr-body(call(void, [])))
 		fun(
 			false
 			noctx-remove-unordered-at-index
@@ -4250,7 +4250,7 @@ program(
 			main
 			type(true, fut)
 			none
-			[param(args, type(false, arr))]
+			[param("_", type(false, arr))]
 			expr-body(
 				seq(
 					seq(

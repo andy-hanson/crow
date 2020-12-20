@@ -351,7 +351,7 @@ struct TypeParamAst {
 
 struct ParamAst {
 	immutable RangeWithinFile range;
-	immutable NameAndRange name;
+	immutable Opt!Sym name;
 	immutable TypeAst type;
 }
 
@@ -853,7 +853,8 @@ immutable(Sexpr) sexprOfInstStructAst(Alloc)(ref Alloc alloc, ref immutable Type
 immutable(Sexpr) sexprOfParamAst(Alloc)(ref Alloc alloc, ref immutable ParamAst a) {
 	return tataRecord(alloc, "param", [
 		sexprOfRangeWithinFile(alloc, a.range),
-		sexprOfNameAndRange(alloc, a.name),
+		tataOpt(alloc, a.name, (ref immutable Sym it) =>
+			tataSym(it)),
 		sexprOfTypeAst(alloc, a.type)]);
 }
 

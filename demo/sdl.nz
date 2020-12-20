@@ -154,7 +154,7 @@ sdl-window-shown sdl-flags()
 | Not lib code
 
 
-main fut exit-code(args arr str) summon trusted
+main fut exit-code(_ arr str) summon trusted
 	"sdl-init-video" handle-sdl-error: sdl-init-video sdl-init
 	window = "Hello World!".to-c-str sdl-create-window 100, 100, 640, 480, sdl-window-shown
 	if window.as-any-ptr null?

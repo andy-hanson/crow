@@ -267,7 +267,9 @@ struct ParamsAndMaybeDedent {
 
 immutable(ParamAst) parseSingleParam(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
-	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
+	immutable Opt!Sym name = tryTake(lexer, '_')
+		? none!Sym
+		: some(takeName(alloc, lexer));
 	takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 	immutable TypeAst type = parseType(alloc, lexer);
 	return immutable ParamAst(range(lexer, start), name, type);

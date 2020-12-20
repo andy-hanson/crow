@@ -7,16 +7,16 @@ module(
 	funs: [
 		fun(
 			public?: true
-			sig: sig(file-pos(21, 69), area, float(), [param(file-range(21, range(80, 86)), a, rect())])
+			sig: sig(file-pos(21, 69), area, float(), [param(file-range(21, range(80, 86)), some(a), rect())])
 			body: call(
 				fun-inst(name: *)
 				[call(fun-inst(name: width), [param-ref(a)]), call(fun-inst(name: height), [param-ref(a)])]))
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(21, 109), main, fut(int32()), [param(file-range(21, range(128, 140)), args, arr(arr(char())))])
+			sig: sig(file-pos(21, 109), main, fut(int32()), [param(file-range(21, range(128, 137)), none, arr(arr(char())))])
 			body: let(
-				local(file-range(21, range(150, 151)), r, rect())
+				local(file-range(21, range(147, 148)), r, rect())
 				call(
 					fun-inst(name: rect)
 					[
@@ -34,7 +34,9 @@ module(
 				file-pos(21, 29)
 				rect
 				rect()
-				[param(file-range(21, range(42, 53)), width, float()), param(file-range(21, range(55, 67)), height, float())])
+				[
+					param(file-range(21, range(42, 53)), some(width), float())
+					param(file-range(21, range(55, 67)), some(height), float())])
 			body: new-record)
 		fun(
 			public?: true
@@ -43,15 +45,17 @@ module(
 				file-pos(21, 29)
 				rect
 				by-val(rect())
-				[param(file-range(21, range(42, 53)), width, float()), param(file-range(21, range(55, 67)), height, float())])
+				[
+					param(file-range(21, range(42, 53)), some(width), float())
+					param(file-range(21, range(55, 67)), some(height), float())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(21, 42), width, float(), [param(file-range(21, range(42, 53)), a, rect())])
+			sig: sig(file-pos(21, 42), width, float(), [param(file-range(21, range(42, 53)), some(a), rect())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(21, 55), height, float(), [param(file-range(21, range(55, 67)), a, rect())])
+			sig: sig(file-pos(21, 55), height, float(), [param(file-range(21, range(55, 67)), some(a), rect())])
 			body: field-get(1))])

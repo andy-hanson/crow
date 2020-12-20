@@ -673,6 +673,11 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			}
 			writeStatic(writer, " is unused");
 		},
+		(ref immutable Diag.UnusedParam it) {
+			writeStatic(writer, "parameter ");
+			writeSym(writer, force(it.param.name));
+			writeStatic(writer, " is unused");
+		},
 		(ref immutable Diag.WrongNumberNewStructArgs d) {
 			writeStatic(writer, "record type ");
 			writeSym(writer, d.decl.name);

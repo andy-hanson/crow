@@ -37,6 +37,7 @@ import model.model : FunInst, name, Local, Param;
 import model.sexprOfConstant : tataOfConstant;
 import util.bools : True;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.opt : force, has;
 import util.ptr : Ptr;
 import util.sexpr :
 	NameAndSexpr,
@@ -170,7 +171,7 @@ public immutable(Sexpr) tataOfConcreteParamRef(ref immutable ConcreteParam a) {
 		(ref immutable ConcreteParamSource.Closure) =>
 			tataStr("<<closure>>"),
 		(immutable Ptr!Param a) =>
-			tataSym(a.name));
+			has(a.name) ? tataSym(force(a.name)) : tataStr("_"));
 }
 
 immutable(Sexpr) tataOfConcreteFunBody(Alloc)(ref Alloc alloc, ref immutable ConcreteFunBody a) {
