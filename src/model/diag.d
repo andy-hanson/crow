@@ -11,6 +11,7 @@ import model.model :
 	FunDecl,
 	getAbsolutePath,
 	LineAndColumnGetters,
+	Local,
 	Module,
 	Param,
 	Purity,
@@ -200,6 +201,9 @@ struct Diag {
 		immutable Ptr!Module importedModule;
 		immutable Opt!Sym importedName;
 	}
+	struct UnusedLocal {
+		immutable Ptr!Local local;
+	}
 	struct UnusedParam {
 		immutable Ptr!Param param;
 	}
@@ -257,6 +261,7 @@ struct Diag {
 		typeConflict,
 		typeNotSendable,
 		unusedImport,
+		unusedLocal,
 		unusedParam,
 		wrongNumberNewStructArgs,
 		wrongNumberTypeArgsForSpec,
@@ -301,6 +306,7 @@ struct Diag {
 		immutable Ptr!TypeConflict typeConflict;
 		immutable TypeNotSendable typeNotSendable;
 		immutable UnusedImport unusedImport;
+		immutable UnusedLocal unusedLocal;
 		immutable UnusedParam unusedParam;
 		immutable WrongNumberNewStructArgs wrongNumberNewStructArgs;
 		immutable WrongNumberTypeArgsForSpec wrongNumberTypeArgsForSpec;
@@ -394,6 +400,7 @@ struct Diag {
 	@trusted immutable this(immutable Ptr!TypeConflict a) { kind = Kind.typeConflict; typeConflict = a; }
 	@trusted immutable this(immutable TypeNotSendable a) { kind = Kind.typeNotSendable; typeNotSendable = a; }
 	@trusted immutable this(immutable UnusedImport a) { kind = Kind.unusedImport; unusedImport = a; }
+	@trusted immutable this(immutable UnusedLocal a) { kind = Kind.unusedLocal; unusedLocal = a; }
 	@trusted immutable this(immutable UnusedParam a) { kind = Kind.unusedParam; unusedParam = a; }
 	@trusted immutable this(immutable WrongNumberNewStructArgs a) {
 		kind = Kind.wrongNumberNewStructArgs; wrongNumberNewStructArgs = a;
@@ -509,6 +516,7 @@ static assert(Diag.sizeof <= 32);
 	scope immutable(Out) delegate(
 		ref immutable Diag.UnusedImport
 	) @safe @nogc pure nothrow cbUnusedImport,
+	scope immutable(Out) delegate(ref immutable Diag.UnusedLocal) @safe @nogc pure nothrow cbUnusedLocal,
 	scope immutable(Out) delegate(
 		ref immutable Diag.UnusedParam
 	) @safe @nogc pure nothrow cbUnusedParam,
@@ -595,6 +603,8 @@ static assert(Diag.sizeof <= 32);
 			return cbTypeNotSendable(a.typeNotSendable);
 		case Diag.Kind.unusedImport:
 			return cbUnusedImport(a.unusedImport);
+		case Diag.Kind.unusedLocal:
+			return cbUnusedLocal(a.unusedLocal);
 		case Diag.Kind.unusedParam:
 			return cbUnusedParam(a.unusedParam);
 		case Diag.Kind.wrongNumberNewStructArgs:

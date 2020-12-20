@@ -503,9 +503,9 @@ opt<?t> union
 
 empty? bool(a opt ?t) noctx
 	match a
-	as none n
+	as none
 		true
-	as some s
+	as some
 		false
 
 has? bool(a opt ?t) noctx

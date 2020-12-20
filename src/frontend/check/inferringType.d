@@ -56,8 +56,8 @@ immutable(Ptr!Expr) allocExpr(Alloc)(ref Alloc alloc, immutable Expr e) {
 struct LambdaInfo {
 	immutable FunKind funKind;
 	immutable Arr!Param lambdaParams;
-	MutArr!(immutable Ptr!Local) locals = MutArr!(immutable Ptr!Local)();
-	MutArr!(immutable Ptr!ClosureField) closureFields = MutArr!(immutable Ptr!ClosureField)();
+	MutArr!LocalAndUsed locals;
+	MutArr!(immutable Ptr!ClosureField) closureFields;
 }
 
 struct ExprCtx {
@@ -70,10 +70,15 @@ struct ExprCtx {
 
 	// Locals of the function or message. Lambda locals are stored in the lambda.
 	// (Note the Let stores the local and this points to that.)
-	MutArr!(immutable Ptr!Local) messageOrFunctionLocals = MutArr!(immutable Ptr!Local)();
+	MutArr!LocalAndUsed messageOrFunctionLocals;
 	// These are pointers because MutArr currently only works on copyable values,
 	// and LambdaInfo should not be copied.
-	MutArr!(Ptr!LambdaInfo) lambdas = MutArr!(Ptr!LambdaInfo)();
+	MutArr!(Ptr!LambdaInfo) lambdas;
+}
+
+struct LocalAndUsed {
+	bool isUsed;
+	immutable Ptr!Local local;
 }
 
 immutable(FileAndRange) rangeInFile2(ref const ExprCtx ctx, immutable RangeWithinFile range) {

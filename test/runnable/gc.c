@@ -4145,13 +4145,9 @@ uint8_t empty__q_3(struct opt_2 a) {
 	struct opt_2 _0 = a;
 	switch (_0.kind) {
 		case 0: {
-			struct none n0 = _0.as0;
-			
 			return 1;
 		}
 		case 1: {
-			struct some_2 s1 = _0.as1;
-			
 			return 0;
 		}
 		default:
@@ -4530,13 +4526,9 @@ uint8_t empty__q_4(struct opt_7 a) {
 	struct opt_7 _0 = a;
 	switch (_0.kind) {
 		case 0: {
-			struct none n0 = _0.as0;
-			
 			return 1;
 		}
 		case 1: {
-			struct some_7 s1 = _0.as1;
-			
 			return 0;
 		}
 		default:
@@ -5563,79 +5555,74 @@ struct fut_0* main_0(struct ctx* ctx, struct arr_1 _p0) {
 	*_14 = _18;
 	b2 = temp1;
 	
-	struct r* b_ptr3;
-	struct r* _19 = b2;
-	uint8_t* _20 = (uint8_t*) _19;
-	b_ptr3 = (struct r*) _20;
-	
-	struct ctx* _21 = ctx;
-	uint64_t _22 = sizeof(struct r);
-	uint64_t _23 = 24u;
-	uint8_t _24 = _op_equal_equal_0(_22, _23);
-	assert_0(_21, _24);
-	struct ctx* _25 = ctx;
-	struct r* _26 = b2;
+	struct ctx* _19 = ctx;
+	uint64_t _20 = sizeof(struct r);
+	uint64_t _21 = 24u;
+	uint8_t _22 = _op_equal_equal_0(_20, _21);
+	assert_0(_19, _22);
+	struct ctx* _23 = ctx;
+	struct r* _24 = b2;
+	uint8_t* _25 = (uint8_t*) _24;
+	struct r* _26 = a1;
 	uint8_t* _27 = (uint8_t*) _26;
-	struct r* _28 = a1;
-	uint8_t* _29 = (uint8_t*) _28;
-	uint64_t _30 = _op_minus_4(_27, _29);
-	uint64_t _31 = 24u;
-	uint8_t _32 = _op_equal_equal_0(_30, _31);
-	assert_0(_25, _32);
+	uint64_t _28 = _op_minus_4(_25, _27);
+	uint64_t _29 = 24u;
+	uint8_t _30 = _op_equal_equal_0(_28, _29);
+	assert_0(_23, _30);
+	struct ctx* _31 = ctx;
+	struct arr_0 _32 = (struct arr_0) {7, constantarr_0_15};
 	struct ctx* _33 = ctx;
-	struct arr_0 _34 = (struct arr_0) {7, constantarr_0_15};
-	struct ctx* _35 = ctx;
-	struct gc* _36 = gc0;
-	struct gc_stats _37 = get_stats(_36);
-	struct arr_0 _38 = to_str_2(_35, _37);
-	struct arr_0 _39 = _op_plus_0(_33, _34, _38);
-	print(_39);
+	struct gc* _34 = gc0;
+	struct gc_stats _35 = get_stats(_34);
+	struct arr_0 _36 = to_str_2(_33, _35);
+	struct arr_0 _37 = _op_plus_0(_31, _32, _36);
+	print(_37);
+	struct ctx* _38 = ctx;
+	struct arr_0 _39 = (struct arr_0) {10, constantarr_0_29};
 	struct ctx* _40 = ctx;
-	struct arr_0 _41 = (struct arr_0) {10, constantarr_0_29};
-	struct ctx* _42 = ctx;
-	struct gc* _43 = gc0;
-	uint64_t _44 = _43->gc_count;
-	struct arr_0 _45 = to_str_3(_42, _44);
-	struct arr_0 _46 = _op_plus_0(_40, _41, _45);
-	print(_46);
+	struct gc* _41 = gc0;
+	uint64_t _42 = _41->gc_count;
+	struct arr_0 _43 = to_str_3(_40, _42);
+	struct arr_0 _44 = _op_plus_0(_38, _39, _43);
+	print(_44);
+	struct ctx* _45 = ctx;
+	struct arr_0 _46 = (struct arr_0) {3, constantarr_0_30};
 	struct ctx* _47 = ctx;
-	struct arr_0 _48 = (struct arr_0) {3, constantarr_0_30};
-	struct ctx* _49 = ctx;
-	struct r* _50 = a1;
-	struct arr_0 _51 = to_str_4(_49, _50);
-	struct arr_0 _52 = _op_plus_0(_47, _48, _51);
-	print(_52);
+	struct r* _48 = a1;
+	struct arr_0 _49 = to_str_4(_47, _48);
+	struct arr_0 _50 = _op_plus_0(_45, _46, _49);
+	print(_50);
+	struct ctx* _51 = ctx;
+	struct arr_0 _52 = (struct arr_0) {21, constantarr_0_34};
 	struct ctx* _53 = ctx;
-	struct arr_0 _54 = (struct arr_0) {21, constantarr_0_34};
-	struct ctx* _55 = ctx;
-	struct gc* _56 = gc0;
-	struct gc_stats _57 = get_stats(_56);
-	struct arr_0 _58 = to_str_2(_55, _57);
-	struct arr_0 _59 = _op_plus_0(_53, _54, _58);
-	print(_59);
+	struct gc* _54 = gc0;
+	struct gc_stats _55 = get_stats(_54);
+	struct arr_0 _56 = to_str_2(_53, _55);
+	struct arr_0 _57 = _op_plus_0(_51, _52, _56);
+	print(_57);
+	struct ctx* _58 = ctx;
+	struct gc* _59 = gc0;
+	force_needs_gc(_58, _59);
 	struct ctx* _60 = ctx;
-	struct gc* _61 = gc0;
-	force_needs_gc(_60, _61);
-	struct ctx* _62 = ctx;
+	struct ctx* _61 = ctx;
+	struct fut_1* _62 = delay(_61);
 	struct ctx* _63 = ctx;
-	struct fut_1* _64 = delay(_63);
-	struct ctx* _65 = ctx;
-	struct island_and_exclusion _66 = cur_island_and_exclusion(_65);
+	struct island_and_exclusion _64 = cur_island_and_exclusion(_63);
 	struct main_0__lambda0* temp2;
-	struct ctx* _67 = ctx;
-	uint64_t _68 = sizeof(struct main_0__lambda0);
-	uint8_t* _69 = alloc(_67, _68);
-	temp2 = (struct main_0__lambda0*) _69;
+	struct ctx* _65 = ctx;
+	uint64_t _66 = sizeof(struct main_0__lambda0);
+	uint8_t* _67 = alloc(_65, _66);
+	temp2 = (struct main_0__lambda0*) _67;
 	
-	struct main_0__lambda0* _70 = temp2;
-	struct gc* _71 = gc0;
-	struct r* _72 = a1;
-	struct main_0__lambda0 _73 = (struct main_0__lambda0) {_71, _72};
-	*_70 = _73;
-	struct main_0__lambda0* _74 = temp2;
-	struct fun_mut1_2 _75 = (struct fun_mut1_2) {1, .as1 = _74};
-	struct fun_ref1 _76 = (struct fun_ref1) {_66, _75};
-	return then(_62, _64, _76);
+	struct main_0__lambda0* _68 = temp2;
+	struct gc* _69 = gc0;
+	struct r* _70 = a1;
+	struct main_0__lambda0 _71 = (struct main_0__lambda0) {_69, _70};
+	*_68 = _71;
+	struct main_0__lambda0* _72 = temp2;
+	struct fun_mut1_2 _73 = (struct fun_mut1_2) {1, .as1 = _72};
+	struct fun_ref1 _74 = (struct fun_ref1) {_64, _73};
+	return then(_60, _62, _74);
 }
 /* set-hard-limit void(gc gc, size-words nat) */
 struct void_ set_hard_limit(struct gc* gc, uint64_t size_words) {

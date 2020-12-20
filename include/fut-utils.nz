@@ -36,9 +36,9 @@ decr-joiner void(j joiner ?out ?in0 ?in1) unsafe send<?out> send<?in0> send<?in1
 				j.res reject e1.value
 		as err e0
 			match j.arg1 force
-			as ok a1
+			as ok
 				j.res reject e0.value
-			as err e1
+			as err
 				| Combine the exceptions
 				todo
 
@@ -119,7 +119,7 @@ call-ref fut ?r(f fun-ref2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted send<?r> send<?p0
 
 .assert-resolved void(f fut ?t) unsafe
 	match f state
-	as fut-state-callbacks cbs
+	as fut-state-callbacks
 		hard-unreachable
 	as fut-state-resolved
 		void

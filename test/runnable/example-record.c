@@ -4100,13 +4100,9 @@ uint8_t empty__q_3(struct opt_2 a) {
 	struct opt_2 _0 = a;
 	switch (_0.kind) {
 		case 0: {
-			struct none n0 = _0.as0;
-			
 			return 1;
 		}
 		case 1: {
-			struct some_2 s1 = _0.as1;
-			
 			return 0;
 		}
 		default:
@@ -4485,13 +4481,9 @@ uint8_t empty__q_4(struct opt_7 a) {
 	struct opt_7 _0 = a;
 	switch (_0.kind) {
 		case 0: {
-			struct none n0 = _0.as0;
-			
 			return 1;
 		}
 		case 1: {
-			struct some_7 s1 = _0.as1;
-			
 			return 0;
 		}
 		default:

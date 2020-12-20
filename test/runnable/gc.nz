@@ -10,7 +10,6 @@ main fut exit-code(_ arr str) summon unsafe
 	| We'll keep a alive, but not b
 	a = r: 1, 2, 3
 	b = r: 4, 5, 6
-	b-ptr = b.as-any-ptr.ptr-cast as<ptr<by-val<r>>>
 	assert: size-of<by-val<r>> == 24
 	assert: b.as-any-ptr - a.as-any-ptr == 24
 

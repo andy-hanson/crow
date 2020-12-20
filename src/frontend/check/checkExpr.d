@@ -17,6 +17,7 @@ import frontend.check.inferringType :
 	inferred,
 	isBogus,
 	LambdaInfo,
+	LocalAndUsed,
 	programState,
 	rangeInFile2,
 	shallowInstantiateType,
@@ -126,6 +127,7 @@ import util.collection.mutArr :
 	mutArrAt,
 	mutArrIsEmpty,
 	mutArrRange,
+	mutArrRangeMut,
 	mutArrSize,
 	push,
 	tempAsArr,
@@ -372,11 +374,13 @@ immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable P
 immutable(Opt!Expr) getIdentifierInLambda(
 	ref immutable FileAndRange range,
 	immutable Sym name,
-	const Ptr!LambdaInfo lambda,
+	ref LambdaInfo lambda,
 ) {
-	foreach (immutable Ptr!Local local; mutArrRange(lambda.locals))
-		if (symEq(local.name, name))
-			return some(immutable Expr(range, immutable Expr.LocalRef(local)));
+	foreach (ref LocalAndUsed local; mutArrRangeMut!LocalAndUsed(lambda.locals))
+		if (symEq(local.local.name, name)) {
+			local.isUsed = true;
+			return some(immutable Expr(range, immutable Expr.LocalRef(local.local)));
+		}
 	foreach (immutable Ptr!Param param; ptrsRange(lambda.lambdaParams))
 		if (has(param.name) && symEq(force(param.name), name))
 			return some(immutable Expr(range, immutable Expr.ParamRef(param)));
@@ -400,16 +404,17 @@ Opt!IdentifierAndLambdas getIdentifierNonCall(
 ) {
 	// Innermost lambda first
 	foreach_reverse (immutable size_t i; 0..mutArrSize(ctx.lambdas)) {
-		const Ptr!LambdaInfo lambda = mutArrAt(ctx.lambdas, i);
-		immutable Opt!Expr id = getIdentifierInLambda(range, name, lambda);
+		immutable Opt!Expr id = getIdentifierInLambda(range, name, mutArrAt(ctx.lambdas, i));
 		if (has(id))
 			return someMut(IdentifierAndLambdas(force(id), slice(tempAsArr_mut(ctx.lambdas), i + 1)));
 	}
 
 	Arr!(Ptr!LambdaInfo) allLambdas = tempAsArr_mut(ctx.lambdas);
-	foreach (immutable Ptr!Local local; mutArrRange(ctx.messageOrFunctionLocals))
-		if (symEq(local.name, name))
-			return someMut(IdentifierAndLambdas(immutable Expr(range, Expr.LocalRef(local)), allLambdas));
+	foreach (ref LocalAndUsed local; mutArrRangeMut(ctx.messageOrFunctionLocals))
+		if (symEq(local.local.name, name)) {
+			local.isUsed = true;
+			return someMut(IdentifierAndLambdas(immutable Expr(range, Expr.LocalRef(local.local)), allLambdas));
+		}
 	foreach (immutable Ptr!Param param; ptrsRange(params(ctx.outermostFun)))
 		if (has(param.name) && symEq(force(param.name), name)) {
 			setAt(ctx.paramsUsed, param.index, True);
@@ -579,13 +584,16 @@ immutable(Expr) checkWithLocal(Alloc)(
 		addDiag2(alloc, ctx, local.range, Diag(Diag.LocalShadowsPrevious(local.name)));
 		return bogus(expected, rangeInFile2(ctx, ast.range)).expr;
 	} else {
-		Ptr!(MutArr!(immutable Ptr!Local)) locals = mutArrIsEmpty(ctx.lambdas)
+		Ptr!(MutArr!LocalAndUsed) locals = mutArrIsEmpty(ctx.lambdas)
 			? ptrTrustMe_mut(ctx.messageOrFunctionLocals)
 			: ptrTrustMe_mut(mustPeek_mut(ctx.lambdas).locals);
-		push(alloc, locals.deref, local);
+		push(alloc, locals.deref, LocalAndUsed(false, local));
 		immutable Expr res = checkExpr(alloc, ctx, ast, expected);
-		immutable Ptr!Local popped = mustPop(locals);
-		verify(ptrEquals(popped, local));
+		LocalAndUsed popped = mustPop(locals);
+		verify(ptrEquals(popped.local, local));
+		if (!popped.isUsed)
+			addDiag2!Alloc(alloc, ctx, local.range, immutable Diag(
+				immutable Diag.UnusedLocal(local)));
 		return res;
 	}
 }

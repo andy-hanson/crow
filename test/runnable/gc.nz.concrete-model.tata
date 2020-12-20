@@ -321,7 +321,6 @@ program(
 					field(a, false, type(false, nat))
 					field(b, false, type(false, nat))
 					field(c, false, type(false, nat))]))
-		struct(name: ptr, body: builtin(ptr, [type(false, r)]))
 		struct(
 			name: gc-stats
 			body: record(
@@ -3495,7 +3494,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, opt))]
-			expr-body(match(param-ref(a), [case(some(n), call(true, [])), case(some(s), call(false, []))])))
+			expr-body(match(param-ref(a), [case(none, call(true, [])), case(none, call(false, []))])))
 		fun(
 			false
 			get-last-checked
@@ -3843,7 +3842,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, opt))]
-			expr-body(match(param-ref(a), [case(some(n), call(true, [])), case(some(s), call(false, []))])))
+			expr-body(match(param-ref(a), [case(none, call(true, [])), case(none, call(false, []))])))
 		fun(
 			false
 			set-n-threads-running
@@ -4273,63 +4272,55 @@ program(
 							let(
 								b
 								call(r, [4, 5, 6])
-								let(
-									b-ptr
-									call(as, [call(ptr-cast, [call(as-any-ptr, [local-ref(b)])])])
+								seq(
 									seq(
 										seq(
 											seq(
 												seq(
 													seq(
 														seq(
-															seq(
-																call(assert, [call(==, [call(size-of, []), 24])])
-																call(
-																	assert
-																	[
-																		call(
-																			==
-																			[
-																				call(
-																					-
-																					[
-																						call(as-any-ptr, [local-ref(b)])
-																						call(as-any-ptr, [local-ref(a)])])
-																				24])]))
+															call(assert, [call(==, [call(size-of, []), 24])])
 															call(
-																print
+																assert
 																[
 																	call(
-																		+
+																		==
 																		[
-																			arr(0, 15)
 																			call(
-																				to-str
-																				[call(get-stats, [local-ref(gc)])])])]))
+																				-
+																				[
+																					call(as-any-ptr, [local-ref(b)])
+																					call(as-any-ptr, [local-ref(a)])])
+																			24])]))
 														call(
 															print
 															[
 																call(
 																	+
 																	[
-																		arr(0, 29)
-																		call(to-str, [call(gc-count, [local-ref(gc)])])])]))
-													call(print, [call(+, [arr(0, 30), call(to-str, [local-ref(a)])])]))
-												call(
-													print
-													[
-														call(
-															+
-															[arr(0, 34), call(to-str, [call(get-stats, [local-ref(gc)])])])]))
-											call(force-needs-gc, [local-ref(gc)]))
-										call(
-											then
-											[
-												call(delay, [])
-												record(
-													[
-														call(cur-island-and-exclusion, [])
-														lambda(1, alloc(record([local-ref(gc), local-ref(a)])))])])))))))))
+																		arr(0, 15)
+																		call(to-str, [call(get-stats, [local-ref(gc)])])])]))
+													call(
+														print
+														[
+															call(
+																+
+																[
+																	arr(0, 29)
+																	call(to-str, [call(gc-count, [local-ref(gc)])])])]))
+												call(print, [call(+, [arr(0, 30), call(to-str, [local-ref(a)])])]))
+											call(
+												print
+												[call(+, [arr(0, 34), call(to-str, [call(get-stats, [local-ref(gc)])])])]))
+										call(force-needs-gc, [local-ref(gc)]))
+									call(
+										then
+										[
+											call(delay, [])
+											record(
+												[
+													call(cur-island-and-exclusion, [])
+													lambda(1, alloc(record([local-ref(gc), local-ref(a)])))])]))))))))
 		fun(
 			false
 			set-hard-limit
@@ -4387,15 +4378,6 @@ program(
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat)), param(c, type(false, nat))]
 			new-record)
-		fun(false, as, type(false, ptr), none, [param(value, type(false, ptr))], builtin([type(false, ptr)]))
-		fun(
-			false
-			ptr-cast
-			type(false, ptr)
-			none
-			[param(p, type(false, ptr))]
-			builtin([type(false, r), type(false, nat8)]))
-		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(true, r))], builtin([type(true, r)]))
 		fun(false, size-of, type(false, nat), none, [], builtin([type(false, r)]))
 		fun(
 			false
@@ -4407,6 +4389,7 @@ program(
 				call(
 					unsafe-div
 					[call(wrap-sub, [call(to-nat, [param-ref(a)]), call(to-nat, [param-ref(b)])]), call(size-of, [])])))
+		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(true, r))], builtin([type(true, r)]))
 		fun(
 			true
 			to-str
