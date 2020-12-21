@@ -211,6 +211,9 @@ struct Diag {
 	struct UnusedPrivateFun {
 		immutable Ptr!FunDecl fun;
 	}
+	struct UnusedPrivateSpec {
+		immutable Ptr!SpecDecl spec;
+	}
 	struct UnusedPrivateStruct {
 		immutable Ptr!StructDecl struct_;
 	}
@@ -269,6 +272,7 @@ struct Diag {
 		unusedLocal,
 		unusedParam,
 		unusedPrivateFun,
+		unusedPrivateSpec,
 		unusedPrivateStruct,
 		unusedPrivateStructAlias,
 		wrongNumberTypeArgsForSpec,
@@ -316,6 +320,7 @@ struct Diag {
 		immutable UnusedLocal unusedLocal;
 		immutable UnusedParam unusedParam;
 		immutable UnusedPrivateFun unusedPrivateFun;
+		immutable UnusedPrivateSpec unusedPrivateSpec;
 		immutable UnusedPrivateStructAlias unusedPrivateStructAlias;
 		immutable UnusedPrivateStruct unusedPrivateStruct;
 		immutable WrongNumberTypeArgsForSpec wrongNumberTypeArgsForSpec;
@@ -412,6 +417,7 @@ struct Diag {
 	@trusted immutable this(immutable UnusedLocal a) { kind = Kind.unusedLocal; unusedLocal = a; }
 	@trusted immutable this(immutable UnusedParam a) { kind = Kind.unusedParam; unusedParam = a; }
 	@trusted immutable this(immutable UnusedPrivateFun a) { kind = Kind.unusedPrivateFun; unusedPrivateFun = a; }
+	@trusted immutable this(immutable UnusedPrivateSpec a) { kind = Kind.unusedPrivateSpec; unusedPrivateSpec = a; }
 	@trusted immutable this(immutable UnusedPrivateStruct a) {
 		kind = Kind.unusedPrivateStruct; unusedPrivateStruct = a;
 	}
@@ -534,6 +540,7 @@ static assert(Diag.sizeof <= 32);
 		ref immutable Diag.UnusedParam
 	) @safe @nogc pure nothrow cbUnusedParam,
 	scope immutable(Out) delegate(ref immutable Diag.UnusedPrivateFun) @safe @nogc pure nothrow cbUnusedPrivateFun,
+	scope immutable(Out) delegate(ref immutable Diag.UnusedPrivateSpec) @safe @nogc pure nothrow cbUnusedPrivateSpec,
 	scope immutable(Out) delegate(
 		ref immutable Diag.UnusedPrivateStruct,
 	) @safe @nogc pure nothrow cbUnusedPrivateStruct,
@@ -626,6 +633,8 @@ static assert(Diag.sizeof <= 32);
 			return cbUnusedParam(a.unusedParam);
 		case Diag.Kind.unusedPrivateFun:
 			return cbUnusedPrivateFun(a.unusedPrivateFun);
+		case Diag.Kind.unusedPrivateSpec:
+			return cbUnusedPrivateSpec(a.unusedPrivateSpec);
 		case Diag.Kind.unusedPrivateStruct:
 			return cbUnusedPrivateStruct(a.unusedPrivateStruct);
 		case Diag.Kind.unusedPrivateStructAlias:

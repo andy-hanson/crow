@@ -688,6 +688,11 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeSym(writer, name(it.fun));
 			writeStatic(writer, " is unused");
 		},
+		(ref immutable Diag.UnusedPrivateSpec it) {
+			writeStatic(writer, "private spec ");
+			writeSym(writer, it.spec.name);
+			writeStatic(writer, " is unused");
+		},
 		(ref immutable Diag.UnusedPrivateStruct it) {
 			writeStatic(writer, "private type ");
 			writeSym(writer, it.struct_.name);

@@ -14,7 +14,9 @@ import frontend.check.dicts :
 	FunDeclAndIndex,
 	FunsDict,
 	ModuleLocalFunIndex,
+	ModuleLocalSpecIndex,
 	ModuleLocalStructOrAliasIndex,
+	SpecDeclAndIndex,
 	SpecsDict,
 	StructsAndAliasesDict,
 	StructOrAliasAndIndex;
@@ -148,7 +150,7 @@ import util.collection.arrUtil :
 	zipPtrFirst;
 import util.collection.dict : Dict, dictEach, getAt, hasKey, KeyValuePair;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDict;
-import util.collection.dictUtil : buildDict, buildMultiDict;
+import util.collection.dictUtil : buildMultiDict;
 import util.collection.exactSizeArrBuilder :
 	ExactSizeArrBuilder,
 	exactSizeArrBuilderAdd,
@@ -447,8 +449,8 @@ immutable(ArrWithSize!TypeParam) checkTypeParams(Alloc)(
 		foreach (immutable size_t prev_i; 0..i) {
 			immutable TypeParam tp = at(typeParams, i);
 			if (symEq(tp.name, at(typeParams, prev_i).name))
-				addDiag(alloc, ctx, tp.range, Diag(
-					Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.typeParam, tp.name)));
+				addDiag(alloc, ctx, tp.range, immutable Diag(
+					immutable Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.typeParam, tp.name)));
 		}
 	return res;
 }
@@ -511,8 +513,8 @@ immutable(Arr!Param) checkParams(Alloc)(
 			immutable Ptr!Param param = ptrAt(params, i);
 			immutable Ptr!Param prev = ptrAt(params, i - 1);
 			if (has(param.name) && has(prev.name) && symEq(force(param.name), force(prev.name)))
-				addDiag(alloc, ctx, param.range, Diag(
-					Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.param, force(param.name))));
+				addDiag(alloc, ctx, param.range, immutable Diag(
+					immutable Diag.ParamShadowsPrevious(Diag.ParamShadowsPrevious.Kind.param, force(param.name))));
 		}
 	return params;
 }
@@ -745,7 +747,8 @@ immutable(StructBody) checkRecord(Alloc)(
 				TypeParamsScope(struct_.typeParams),
 				someMut(ptrTrustMe_mut(delayStructInsts)));
 			if (isPurityWorse(bestCasePurity(fieldType), struct_.purity) && !struct_.purityIsForced)
-				addDiag(alloc, ctx, field.range, immutable Diag(Diag.PurityOfFieldWorseThanRecord(struct_, fieldType)));
+				addDiag(alloc, ctx, field.range, immutable Diag(
+					immutable Diag.PurityOfFieldWorseThanRecord(struct_, fieldType)));
 			if (field.isMutable) {
 				immutable Opt!(Diag.MutFieldNotAllowed.Reason) reason =
 					struct_.purity != Purity.mut && !struct_.purityIsForced
@@ -754,17 +757,17 @@ immutable(StructBody) checkRecord(Alloc)(
 						? some(Diag.MutFieldNotAllowed.Reason.recordIsForcedByVal)
 						: none!(Diag.MutFieldNotAllowed.Reason);
 				if (has(reason))
-					addDiag(alloc, ctx, field.range, immutable Diag(Diag.MutFieldNotAllowed(force(reason))));
+					addDiag(alloc, ctx, field.range, immutable Diag(immutable Diag.MutFieldNotAllowed(force(reason))));
 			}
 			return immutable RecordField(rangeInFile(ctx, field.range), field.isMutable, field.name, fieldType, index);
 		});
 	everyPair!RecordField(fields, (ref immutable RecordField a, ref immutable RecordField b) {
 		if (symEq(a.name, b.name))
 			addDiag(alloc, ctx, b.range,
-				immutable Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.field, a.name)));
+				immutable Diag(immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.field, a.name)));
 	});
 
-	return immutable StructBody(StructBody.Record(forcedByValOrRef, fields));
+	return immutable StructBody(immutable StructBody.Record(forcedByValOrRef, fields));
 }
 
 immutable(StructBody) checkUnion(Alloc)(
@@ -787,7 +790,8 @@ immutable(StructBody) checkUnion(Alloc)(
 				TypeParamsScope(struct_.typeParams),
 				someMut(ptrTrustMe_mut(delayStructInsts)));
 			if (has(res) && isPurityWorse(force(res).bestCasePurity, struct_.purity))
-				addDiag(alloc, ctx, it.range, immutable Diag(Diag.PurityOfMemberWorseThanUnion(struct_, force(res))));
+				addDiag(alloc, ctx, it.range, immutable Diag(
+					immutable Diag.PurityOfMemberWorseThanUnion(struct_, force(res))));
 			return res;
 		});
 	if (has(members)) {
@@ -800,7 +804,7 @@ immutable(StructBody) checkUnion(Alloc)(
 			immutable size_t bIndex) {
 				if (ptrEquals(decl(a), decl(b))) {
 					immutable Diag diag = immutable Diag(
-						Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.decl.name));
+						immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.unionMember, a.decl.name));
 					addDiag(alloc, ctx, at(un.members, bIndex).range, diag);
 				}
 			});
@@ -876,7 +880,7 @@ immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(Alloc)(
 		d,
 		(ref immutable Sym name, ref immutable StructOrAliasAndIndex, ref immutable StructOrAliasAndIndex b) =>
 			addDiag(alloc, ctx, b.structOrAlias.range, immutable Diag(
-				Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name))));
+				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name))));
 }
 
 struct FunsAndMap {
@@ -905,7 +909,7 @@ immutable(ArrWithSize!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 				noneMut!(Ptr!(MutArr!(Ptr!StructInst))));
 			if (!sizeEq(typeArgs, spec.typeParams)) {
 				addDiag(alloc, ctx, ast.range, immutable Diag(
-					Diag.WrongNumberTypeArgsForSpec(spec, size(spec.typeParams), size(typeArgs))));
+					immutable Diag.WrongNumberTypeArgsForSpec(spec, size(spec.typeParams), size(typeArgs))));
 				return none!(Ptr!SpecInst);
 			} else
 				return some(instantiateSpec(alloc, ctx.programState, SpecDeclAndArgs(spec, typeArgs)));
@@ -1104,13 +1108,17 @@ immutable(SpecsDict) buildSpecsDict(Alloc)(
 	ref CheckCtx ctx,
 	ref immutable Arr!SpecDecl specs,
 ) {
-	return buildDict!(Sym, Ptr!SpecDecl, compareSym, SpecDecl, Alloc)(
+	DictBuilder!(Sym, SpecDeclAndIndex, compareSym) res;
+	foreach (immutable size_t index; 0..size(specs)) {
+		immutable Ptr!SpecDecl spec = ptrAt(specs, index);
+		addToDict(alloc, res, spec.name, immutable SpecDeclAndIndex(spec, immutable ModuleLocalSpecIndex(index)));
+	}
+	return finishDict!(Alloc, Sym, SpecDeclAndIndex, compareSym)(
 		alloc,
-		specs,
-		(immutable Ptr!SpecDecl it) =>
-			immutable KeyValuePair!(Sym, Ptr!SpecDecl)(it.name, it),
-		(ref immutable Sym name, ref immutable Ptr!SpecDecl, ref immutable Ptr!SpecDecl s) {
-			addDiag(alloc, ctx, s.range, Diag(Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.spec, name)));
+		res,
+		(ref immutable Sym name, ref immutable SpecDeclAndIndex, ref immutable SpecDeclAndIndex b) {
+			addDiag(alloc, ctx, b.decl.range, immutable Diag(
+				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.spec, name)));
 		});
 }
 
@@ -1159,7 +1167,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 		structsAndAliasesDict,
 		ast.funs);
 
-	checkForUnused!Alloc(alloc, ctx, structAliases, castImmutable(structs));
+	checkForUnused!Alloc(alloc, ctx, structAliases, castImmutable(structs), specs);
 
 	// Create a module unconditionally so every function will always have containingModule set, even in failure case
 	return nu!Module(
@@ -1208,9 +1216,11 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 		(ref immutable Sym name, ref immutable StructOrAliasAndIndex it) {
 			add(name, immutable NameReferents(some(it.structOrAlias), none!(Ptr!SpecDecl), emptyArr!(Ptr!FunDecl)));
 		});
-	dictEach!(Sym, Ptr!SpecDecl, compareSym)(specsDict, (ref immutable Sym name, ref immutable Ptr!SpecDecl it) {
-		add(name, immutable NameReferents(none!StructOrAlias, some(it), emptyArr!(Ptr!FunDecl)));
-	});
+	dictEach!(Sym, SpecDeclAndIndex, compareSym)(
+		specsDict,
+		(ref immutable Sym name, ref immutable SpecDeclAndIndex it) {
+			add(name, immutable NameReferents(none!StructOrAlias, some(it.decl), emptyArr!(Ptr!FunDecl)));
+		});
 	multiDictEach!(Sym, FunDeclAndIndex, compareSym)(
 		funsDict,
 		(ref immutable Sym name, immutable Arr!FunDeclAndIndex funs) {
@@ -1250,6 +1260,8 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 		fillArr_mut(alloc, size(ast.structAliases), (immutable size_t) => Bool(false)),
 		// TODO: use temp alloc
 		fillArr_mut(alloc, size(ast.structs), (immutable size_t) => Bool(false)),
+		// TODO: use temp alloc
+		fillArr_mut(alloc, size(ast.specs), (immutable size_t) => Bool(false)),
 		ptrTrustMe_mut(diagsBuilder));
 
 	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies

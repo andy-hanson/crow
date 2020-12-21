@@ -8,8 +8,9 @@ import frontend.check.checkCtx :
 	eachImportAndReExport,
 	ImportIndex,
 	markUsedImport,
+	markUsedSpec,
 	markUsedStructOrAlias;
-import frontend.check.dicts : SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
+import frontend.check.dicts : SpecDeclAndIndex, SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
 import frontend.check.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
 import frontend.parse.ast : matchTypeAst, TypeAst;
 import frontend.programState : ProgramState;
@@ -140,7 +141,11 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
 	immutable RangeWithinFile range,
 	ref immutable SpecsDict specsDict,
 ) {
-	immutable Opt!(Ptr!SpecDecl) here = getAt(specsDict, name);
+	immutable Opt!SpecDeclAndIndex opDeclFromHere = getAt(specsDict, name);
+	if (has(opDeclFromHere))
+		markUsedSpec(ctx, force(opDeclFromHere).index);
+	immutable Opt!(Ptr!SpecDecl) here = mapOption(opDeclFromHere, (ref immutable SpecDeclAndIndex it) =>
+		it.decl);
 	return tryFindT!(Ptr!SpecDecl, Alloc)(
 		alloc,
 		ctx,

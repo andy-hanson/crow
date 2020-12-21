@@ -9,7 +9,7 @@ import util.ptr : Ptr;
 import util.sym : compareSym, Sym;
 
 alias StructsAndAliasesDict = Dict!(Sym, StructOrAliasAndIndex, compareSym);
-alias SpecsDict = Dict!(Sym, Ptr!SpecDecl, compareSym);
+alias SpecsDict = Dict!(Sym, SpecDeclAndIndex, compareSym);
 alias FunsDict = MultiDict!(Sym, FunDeclAndIndex, compareSym);
 
 struct StructOrAliasAndIndex {
@@ -19,6 +19,15 @@ struct StructOrAliasAndIndex {
 
 // An index into the structs arr or alias arr (depends on context)
 struct ModuleLocalStructOrAliasIndex {
+	immutable size_t index;
+}
+
+struct SpecDeclAndIndex {
+	immutable Ptr!SpecDecl decl;
+	immutable ModuleLocalSpecIndex index;
+}
+
+struct ModuleLocalSpecIndex {
 	immutable size_t index;
 }
 

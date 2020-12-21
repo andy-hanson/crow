@@ -2,10 +2,10 @@ module frontend.check.checkCtx;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.dicts : StructOrAliasAndIndex;
+import frontend.check.dicts : ModuleLocalSpecIndex, StructOrAliasAndIndex;
 import frontend.programState : ProgramState;
 import model.diag : Diag, Diagnostic;
-import model.model : matchStructOrAlias, Module, ModuleAndNames, NameReferents, StructAlias, StructDecl;
+import model.model : matchStructOrAlias, Module, ModuleAndNames, NameReferents, SpecDecl, StructAlias, StructDecl;
 import util.bools : Bool, True;
 import util.collection.arr : Arr, at, castImmutable, range, setAt, size;
 import util.collection.arrBuilder : add, ArrBuilder;
@@ -27,6 +27,7 @@ struct CheckCtx {
 	Arr!Bool importsAndReExportsUsed;
 	Arr!Bool structAliasesUsed;
 	Arr!Bool structsUsed;
+	Arr!Bool specsUsed;
 	Ptr!(ArrBuilder!Diagnostic) diagsBuilder;
 }
 
@@ -49,6 +50,7 @@ void checkForUnused(Alloc)(
 	ref CheckCtx ctx,
 	immutable Arr!StructAlias structAliases,
 	immutable Arr!StructDecl structDecls,
+	immutable Arr!SpecDecl specDecls,
 ) {
 	checkUnusedImports(alloc, ctx);
 
@@ -66,6 +68,14 @@ void checkForUnused(Alloc)(
 		(immutable Ptr!StructDecl struct_, ref immutable Bool used) {
 			if (!used & !struct_.isPublic)
 				addDiag(alloc, ctx, struct_.range, immutable Diag(immutable Diag.UnusedPrivateStruct(struct_)));
+		});
+
+	zipPtrFirst!(SpecDecl, Bool)(
+		specDecls,
+		castImmutable(ctx.specsUsed),
+		(immutable Ptr!SpecDecl spec, ref immutable Bool used) {
+			if (!used && !spec.isPublic)
+				addDiag(alloc, ctx, spec.range, immutable Diag(immutable Diag.UnusedPrivateSpec(spec)));
 		});
 }
 
@@ -103,6 +113,10 @@ void markUsedStructOrAlias(ref CheckCtx ctx, ref immutable StructOrAliasAndIndex
 		(immutable Ptr!StructDecl) {
 			setAt(ctx.structsUsed, a.index.index, True);
 		});
+}
+
+void markUsedSpec(ref CheckCtx ctx, immutable ModuleLocalSpecIndex a) {
+	setAt(ctx.specsUsed, a.index, True);
 }
 
 void markUsedImport(ref CheckCtx ctx, immutable ImportIndex index) {
