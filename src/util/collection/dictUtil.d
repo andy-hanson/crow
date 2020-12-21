@@ -43,12 +43,12 @@ import util.util : verify;
 @trusted immutable(MultiDict!(K, V, compare)) buildMultiDict(K, V, alias compare, T, Alloc)(
 	ref Alloc alloc,
 	immutable Arr!T inputs,
-	scope immutable(KeyValuePair!(K, V)) delegate(immutable Ptr!T) @safe @nogc pure nothrow getPair,
+	scope immutable(KeyValuePair!(K, V)) delegate(immutable size_t, immutable Ptr!T) @safe @nogc pure nothrow getPair,
 ) {
 	immutable(K)* keys = cast(immutable K*) alloc.allocateBytes(K.sizeof * size(inputs));
 	immutable(V)* values = cast(immutable V*) alloc.allocateBytes(V.sizeof * size(inputs));
 	foreach (immutable size_t i; 0..size(inputs)) {
-		immutable KeyValuePair!(K, V) pair = getPair(ptrAt(inputs, i));
+		immutable KeyValuePair!(K, V) pair = getPair(i, ptrAt(inputs, i));
 		// Insert at the first place it's > the previous value.
 		size_t insertAt = 0;
 		for (; insertAt < i; insertAt++) {

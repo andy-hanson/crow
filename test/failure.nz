@@ -72,8 +72,5 @@ print-failures exit-code(failures result str arr<failure>, options test-options)
 .print-bold void() summon
 	print-no-newline: "\x1b[1m"
 
-.print-red void() summon
-	print-no-newline: "\x1b[31m"
-
 .print-reset void() summon
 	print-no-newline: "\x1b[m"

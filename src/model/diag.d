@@ -207,10 +207,8 @@ struct Diag {
 	struct UnusedParam {
 		immutable Ptr!Param param;
 	}
-	struct WrongNumberNewStructArgs {
-		immutable Ptr!StructDecl decl;
-		immutable size_t nExpectedArgs;
-		immutable size_t nActualArgs;
+	struct UnusedPrivateFun {
+		immutable Ptr!FunDecl fun;
 	}
 	struct WrongNumberTypeArgsForSpec {
 		immutable Ptr!SpecDecl decl;
@@ -263,7 +261,7 @@ struct Diag {
 		unusedImport,
 		unusedLocal,
 		unusedParam,
-		wrongNumberNewStructArgs,
+		unusedPrivateFun,
 		wrongNumberTypeArgsForSpec,
 		wrongNumberTypeArgsForStruct,
 	}
@@ -308,7 +306,7 @@ struct Diag {
 		immutable UnusedImport unusedImport;
 		immutable UnusedLocal unusedLocal;
 		immutable UnusedParam unusedParam;
-		immutable WrongNumberNewStructArgs wrongNumberNewStructArgs;
+		immutable UnusedPrivateFun unusedPrivateFun;
 		immutable WrongNumberTypeArgsForSpec wrongNumberTypeArgsForSpec;
 		immutable WrongNumberTypeArgsForStruct wrongNumberTypeArgsForStruct;
 	}
@@ -402,9 +400,7 @@ struct Diag {
 	@trusted immutable this(immutable UnusedImport a) { kind = Kind.unusedImport; unusedImport = a; }
 	@trusted immutable this(immutable UnusedLocal a) { kind = Kind.unusedLocal; unusedLocal = a; }
 	@trusted immutable this(immutable UnusedParam a) { kind = Kind.unusedParam; unusedParam = a; }
-	@trusted immutable this(immutable WrongNumberNewStructArgs a) {
-		kind = Kind.wrongNumberNewStructArgs; wrongNumberNewStructArgs = a;
-	}
+	@trusted immutable this(immutable UnusedPrivateFun a) { kind = Kind.unusedPrivateFun; unusedPrivateFun = a; }
 	@trusted immutable this(immutable WrongNumberTypeArgsForSpec a) {
 		kind = Kind.wrongNumberTypeArgsForSpec; wrongNumberTypeArgsForSpec = a;
 	}
@@ -520,9 +516,7 @@ static assert(Diag.sizeof <= 32);
 	scope immutable(Out) delegate(
 		ref immutable Diag.UnusedParam
 	) @safe @nogc pure nothrow cbUnusedParam,
-	scope immutable(Out) delegate(
-		ref immutable Diag.WrongNumberNewStructArgs
-	) @safe @nogc pure nothrow cbWrongNumberNewStructArgs,
+	scope immutable(Out) delegate(ref immutable Diag.UnusedPrivateFun) @safe @nogc pure nothrow cbUnusedPrivateFun,
 	scope immutable(Out) delegate(
 		ref immutable Diag.WrongNumberTypeArgsForSpec
 	) @safe @nogc pure nothrow cbWrongNumberTypeArgsForSpec,
@@ -607,8 +601,8 @@ static assert(Diag.sizeof <= 32);
 			return cbUnusedLocal(a.unusedLocal);
 		case Diag.Kind.unusedParam:
 			return cbUnusedParam(a.unusedParam);
-		case Diag.Kind.wrongNumberNewStructArgs:
-			return cbWrongNumberNewStructArgs(a.wrongNumberNewStructArgs);
+		case Diag.Kind.unusedPrivateFun:
+			return cbUnusedPrivateFun(a.unusedPrivateFun);
 		case Diag.Kind.wrongNumberTypeArgsForSpec:
 			return cbWrongNumberTypeArgsForSpec(a.wrongNumberTypeArgsForSpec);
 		case Diag.Kind.wrongNumberTypeArgsForStruct:

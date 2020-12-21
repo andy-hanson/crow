@@ -619,17 +619,25 @@ immutable(Bool) isExtern(ref immutable FunBody a) {
 }
 
 struct FunFlags {
+	@safe @nogc pure nothrow:
+
 	immutable Bool noCtx;
 	immutable Bool summon;
 	immutable Bool unsafe;
 	immutable Bool trusted;
 	immutable Bool preferred;
+	immutable Bool okIfUnused;
 
-	static immutable FunFlags none = immutable FunFlags(False, False, False, False, False);
-	static immutable FunFlags justNoCtx = immutable FunFlags(True, False, False, False, False);
-	static immutable FunFlags justPreferred = immutable FunFlags(False, False, False, False, True);
+	//TODO:NOT INSTANCE
+	immutable(FunFlags) withOkIfUnused() immutable {
+		return immutable FunFlags(noCtx, summon, unsafe, trusted, preferred, True);
+	}
+
+	static immutable FunFlags none = immutable FunFlags(False, False, False, False, False, False);
+	static immutable FunFlags justNoCtx = immutable FunFlags(True, False, False, False, False, False);
+	static immutable FunFlags justPreferred = immutable FunFlags(False, False, False, False, True, False);
 }
-static assert(FunFlags.sizeof == 5);
+static assert(FunFlags.sizeof == 6);
 
 struct FunDecl {
 	@safe @nogc pure nothrow:
@@ -700,6 +708,9 @@ immutable(Bool) unsafe(ref immutable FunDecl a) {
 }
 immutable(Bool) trusted(ref immutable FunDecl a) {
 	return a.flags.trusted;
+}
+immutable(Bool) okIfUnused(ref immutable FunDecl a) {
+	return a.flags.okIfUnused;
 }
 
 immutable(Sym) name(ref const FunDecl a) {

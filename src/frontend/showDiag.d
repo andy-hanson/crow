@@ -683,13 +683,10 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeSym(writer, force(it.param.name));
 			writeStatic(writer, " is unused");
 		},
-		(ref immutable Diag.WrongNumberNewStructArgs d) {
-			writeStatic(writer, "record type ");
-			writeSym(writer, d.decl.name);
-			writeStatic(writer, " has ");
-			writeNat(writer, d.nExpectedArgs);
-			writeStatic(writer, " fields, but got ");
-			writeNat(writer, d.nActualArgs);
+		(ref immutable Diag.UnusedPrivateFun it) {
+			writeStatic(writer, "private function ");
+			writeSym(writer, name(it.fun));
+			writeStatic(writer, " is unused");
 		},
 		(ref immutable Diag.WrongNumberTypeArgsForSpec d) {
 			writeName(writer, d.decl.name);

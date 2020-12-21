@@ -10,4 +10,14 @@ import util.sym : compareSym, Sym;
 
 alias StructsAndAliasesDict = Dict!(Sym, StructOrAlias, compareSym);
 alias SpecsDict = Dict!(Sym, Ptr!SpecDecl, compareSym);
-alias FunsDict = MultiDict!(Sym, Ptr!FunDecl, compareSym);
+alias FunsDict = MultiDict!(Sym, FunDeclAndIndex, compareSym);
+
+struct FunDeclAndIndex {
+	immutable ModuleLocalFunIndex index;
+	immutable Ptr!FunDecl decl;
+}
+
+// Index of a function in this module.
+struct ModuleLocalFunIndex {
+	immutable size_t index;
+}

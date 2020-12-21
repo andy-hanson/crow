@@ -1,7 +1,7 @@
 import
 	.bootstrap
 		by-val call err exception exclusion fun fun-mut1 fun0 fun-ref0 fun-ref1 fun-ref2 fut
-		fut-callback-node fut-state-callbacks fut-state-resolved hard-unreachable head lk none ok
+		fut-callback-node fut-state-callbacks fut-state-resolved head lk none ok
 		opt ref-of-val result send set-state some state todo value island island-and-exclusion void
 	.exceptions: catch
 	.fut-low-level: new-unresolved-fut reject resolve-or-reject
@@ -116,12 +116,3 @@ call-ref fut ?r(f fun-ref2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted send<?r> send<?p0
 	island add-task task: f.island-and-exclusion.exclusion, \
 		{f.fun call p0, p1 forward-to res} catch {res reject it}
 	res
-
-.assert-resolved void(f fut ?t) unsafe
-	match f state
-	as fut-state-callbacks
-		hard-unreachable
-	as fut-state-resolved
-		void
-	as exception
-		void

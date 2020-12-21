@@ -2,8 +2,8 @@ module frontend.check.checkExpr;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCall : checkCall, checkIdentifierCall, eachFunInScope;
-import frontend.check.checkCtx : addDiag, CheckCtx, ImportIndex, markImportUsed;
+import frontend.check.checkCall : checkCall, checkIdentifierCall, eachFunInScope, markUsedFun, UsedFun;
+import frontend.check.checkCtx : addDiag, CheckCtx;
 import frontend.check.dicts : FunsDict, StructsAndAliasesDict;
 import frontend.check.inferringType :
 	addDiag2,
@@ -146,6 +146,7 @@ immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 	ref immutable ExprAst ast,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable FunsDict funsDict,
+	ref Arr!Bool usedFuns,
 	immutable Ptr!FunDecl fun,
 	ref immutable CommonTypes commonTypes,
 ) {
@@ -155,6 +156,7 @@ immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 		ptrTrustMe(funsDict),
 		ptrTrustMe(commonTypes),
 		fun,
+		usedFuns,
 		// TODO: use temp alloc
 		fillArr_mut!(Bool, Alloc)(alloc, size(params(fun)), (immutable size_t) =>
 			Bool(false)));
@@ -619,13 +621,12 @@ immutable(CheckedExpr) checkFunPtr(Alloc)(
 	ref Expected expected,
 ) {
 	MutArr!(immutable Ptr!FunDecl) funsInScope = MutArr!(immutable Ptr!FunDecl)();
-	eachFunInScope(ctx, ast.name, (immutable Opt!ImportIndex importIndex, immutable CalledDecl cd) {
+	eachFunInScope(ctx, ast.name, (ref immutable Opt!UsedFun used, immutable CalledDecl cd) {
 		matchCalledDecl!void(
 			cd,
 			(immutable Ptr!FunDecl it) {
-				if (has(importIndex))
-					// Since there can only be one, can do this early
-					markImportUsed(ctx.checkCtx, force(importIndex));
+				if (has(used))
+					markUsedFun(ctx, force(used));
 				push(alloc, funsInScope, it);
 			},
 			(ref immutable SpecSig) {

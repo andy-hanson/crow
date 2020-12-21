@@ -10,7 +10,7 @@ import frontend.check.checkCtx :
 	posInFile,
 	rangeInFile;
 import frontend.check.checkExpr : checkFunctionBody;
-import frontend.check.dicts : FunsDict, SpecsDict, StructsAndAliasesDict;
+import frontend.check.dicts : FunDeclAndIndex, FunsDict, ModuleLocalFunIndex, SpecsDict, StructsAndAliasesDict;
 import frontend.check.instantiate :
 	DelayStructInsts,
 	instantiateSpec,
@@ -77,6 +77,7 @@ import model.model :
 	name,
 	NameReferents,
 	noCtx,
+	okIfUnused,
 	Param,
 	Purity,
 	range,
@@ -125,6 +126,7 @@ import util.collection.arrUtil :
 	cat,
 	count,
 	exists,
+	fillArr_mut,
 	map,
 	mapOpWithSize,
 	mapOrNone,
@@ -135,7 +137,8 @@ import util.collection.arrUtil :
 	slice,
 	sum,
 	zipFirstMut,
-	zipMutPtrFirst;
+	zipMutPtrFirst,
+	zipPtrFirst;
 import util.collection.dict : Dict, dictEach, getAt, hasKey, KeyValuePair;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDict;
 import util.collection.dictUtil : buildDict, buildMultiDict;
@@ -936,18 +939,22 @@ immutable(FunsAndMap) checkFuns(Alloc, SymAlloc)(
 			structsAndAliasesDict,
 			specsDict,
 			immutable TypeParamsScope(toArr(typeParams)));
-		immutable FunFlags flags = FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted, False);
+		immutable FunFlags flags = FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted, False, False);
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(funAst.isPublic, flags, sig, typeParams, specUses));
 	}
 	foreach (immutable Ptr!StructDecl struct_; ptrsRange(structs))
 		addFunsForStruct(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_);
 	Arr!FunDecl funs = finish(funsBuilder);
+	Arr!Bool usedFuns = fillArr_mut!Bool(alloc, size(funs), (immutable size_t) =>
+		Bool(false));
 
-	immutable FunsDict funsDict = buildMultiDict!(Sym, Ptr!FunDecl, compareSym, FunDecl, Alloc)(
+	immutable FunsDict funsDict = buildMultiDict!(Sym, FunDeclAndIndex, compareSym, FunDecl, Alloc)(
 		alloc,
 		castImmutable(funs),
-		(immutable Ptr!FunDecl it) =>
-			immutable KeyValuePair!(Sym, Ptr!FunDecl)(name(it), it));
+		(immutable size_t index, immutable Ptr!FunDecl it) =>
+			immutable KeyValuePair!(Sym, FunDeclAndIndex)(
+				name(it),
+				immutable FunDeclAndIndex(immutable ModuleLocalFunIndex(index), it)));
 
 	foreach (ref const FunDecl f; arrRange(funs))
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.funNames, name(f));
@@ -967,8 +974,16 @@ immutable(FunsAndMap) checkFuns(Alloc, SymAlloc)(
 			},
 			(ref immutable ExprAst e) =>
 				immutable FunBody(checkFunctionBody!Alloc(
-					alloc, ctx, e, structsAndAliasesDict, funsDict, castImmutable(fun), commonTypes))));
+					alloc, ctx, e, structsAndAliasesDict, funsDict, usedFuns, castImmutable(fun), commonTypes))));
 	});
+
+	zipPtrFirst!(FunDecl, Bool)(
+		castImmutable(funs),
+		castImmutable(usedFuns),
+		(immutable Ptr!FunDecl fun, ref immutable Bool used) {
+			if (!used && !fun.isPublic && !okIfUnused(fun))
+				addDiag(alloc, ctx, range(fun), immutable Diag(immutable Diag.UnusedPrivateFun(fun)));
+		});
 
 	return FunsAndMap(castImmutable(funs), funsDict);
 }
@@ -1008,7 +1023,7 @@ void addFunsForStruct(Alloc, SymAlloc)(
 			immutable StructDeclAndArgs(struct_, typeArgs)));
 		immutable Arr!Param ctorParams = map(alloc, record.fields, (ref immutable RecordField it) =>
 			immutable Param(it.range, some(it.name), it.type, it.index));
-		FunDecl constructor(Type returnType, FunFlags flags) {
+		FunDecl constructor(immutable Type returnType, immutable FunFlags flags) {
 			immutable Ptr!Sig ctorSig = allocate(alloc, immutable Sig(
 				fileAndPosFromFileAndRange(struct_.range),
 				struct_.name,
@@ -1016,7 +1031,7 @@ void addFunsForStruct(Alloc, SymAlloc)(
 				ctorParams));
 			return FunDecl(
 				struct_.isPublic,
-				flags,
+				flags.withOkIfUnused(),
 				ctorSig,
 				typeParams,
 				emptyArrWithSize!(Ptr!SpecInst),
@@ -1182,9 +1197,13 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 	dictEach!(Sym, Ptr!SpecDecl, compareSym)(specsDict, (ref immutable Sym name, ref immutable Ptr!SpecDecl it) {
 		add(name, immutable NameReferents(none!StructOrAlias, some(it), emptyArr!(Ptr!FunDecl)));
 	});
-	multiDictEach!(Sym, Ptr!FunDecl, compareSym)(funsDict, (ref immutable Sym name, immutable Arr!(Ptr!FunDecl) funs) {
-		add(name, immutable NameReferents(none!StructOrAlias, none!(Ptr!SpecDecl), funs));
-	});
+	multiDictEach!(Sym, FunDeclAndIndex, compareSym)(
+		funsDict,
+		(ref immutable Sym name, immutable Arr!FunDeclAndIndex funs) {
+			immutable Arr!(Ptr!FunDecl) funDecls = map!(Ptr!FunDecl)(alloc, funs, (ref immutable FunDeclAndIndex it) =>
+				it.decl);
+			add(name, immutable NameReferents(none!StructOrAlias, none!(Ptr!SpecDecl), funDecls));
+		});
 
 	return moveToDict!(Sym, NameReferents, compareSym, Alloc)(alloc, res);
 }

@@ -3,7 +3,7 @@ module frontend.check.inferringType;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
-import frontend.check.dicts : FunsDict, StructsAndAliasesDict;
+import frontend.check.dicts : FunsDict, ModuleLocalFunIndex, StructsAndAliasesDict;
 import frontend.check.instantiate : instantiateStructNeverDelay, instantiateStructInst, tryGetTypeArg, TypeParamsScope;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.parse.ast : TypeAst;
@@ -38,7 +38,7 @@ import model.model :
 	typeParams;
 import util.bools : Bool, False, True;
 import util.cell : Cell, cellGet, cellSet;
-import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, size, sizeEq;
+import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
 import util.collection.arrUtil : find, findIndex, map, mapOrNone, mapZipOrNone;
 import util.collection.mutArr : MutArr;
 import util.memory : allocate, nu;
@@ -65,6 +65,7 @@ struct ExprCtx {
 	immutable Ptr!FunsDict funsDict;
 	immutable Ptr!CommonTypes commonTypes;
 	immutable Ptr!FunDecl outermostFun;
+	Arr!Bool funsUsed;
 	Arr!Bool paramsUsed;
 
 	// Locals of the function or message. Lambda locals are stored in the lambda.
@@ -73,6 +74,10 @@ struct ExprCtx {
 	// These are pointers because MutArr currently only works on copyable values,
 	// and LambdaInfo should not be copied.
 	MutArr!(Ptr!LambdaInfo) lambdas;
+}
+
+void markFunUsed(ref ExprCtx a, immutable ModuleLocalFunIndex index) {
+	setAt(a.funsUsed, index.index, True);
 }
 
 struct LocalAndUsed {
