@@ -5,12 +5,19 @@ module frontend.check.check;
 import frontend.check.checkCtx :
 	addDiag,
 	CheckCtx,
-	checkUnusedImports,
+	checkForUnused,
 	newUsedImportsAndReExports,
 	posInFile,
 	rangeInFile;
 import frontend.check.checkExpr : checkFunctionBody;
-import frontend.check.dicts : FunDeclAndIndex, FunsDict, ModuleLocalFunIndex, SpecsDict, StructsAndAliasesDict;
+import frontend.check.dicts :
+	FunDeclAndIndex,
+	FunsDict,
+	ModuleLocalFunIndex,
+	ModuleLocalStructOrAliasIndex,
+	SpecsDict,
+	StructsAndAliasesDict,
+	StructOrAliasAndIndex;
 import frontend.check.instantiate :
 	DelayStructInsts,
 	instantiateSpec,
@@ -228,10 +235,10 @@ immutable(Opt!(Ptr!StructDecl)) getCommonTemplateType(
 	immutable Sym name,
 	immutable size_t expectedTypeParams,
 ) {
-	immutable Opt!StructOrAlias res = getAt(structsAndAliasesDict, name);
+	immutable Opt!StructOrAliasAndIndex res = getAt(structsAndAliasesDict, name);
 	if (has(res)) {
 		// TODO: may fail -- builtin Template should not be an alias
-		immutable Ptr!StructDecl decl = asStructDecl(force(res));
+		immutable Ptr!StructDecl decl = asStructDecl(force(res).structOrAlias);
 		if (size(decl.typeParams) != expectedTypeParams)
 			todo!void("getCommonTemplateType");
 		return some(decl);
@@ -246,9 +253,9 @@ immutable(Opt!(Ptr!StructInst)) getCommonNonTemplateType(Alloc)(
 	immutable Sym name,
 	ref MutArr!(Ptr!StructInst) delayedStructInsts,
 ) {
-	immutable Opt!StructOrAlias opStructOrAlias = getAt(structsAndAliasesDict, name);
+	immutable Opt!StructOrAliasAndIndex opStructOrAlias = getAt(structsAndAliasesDict, name);
 	return has(opStructOrAlias)
-		? instantiateNonTemplateStructOrAlias(alloc, ctx, delayedStructInsts, force(opStructOrAlias))
+		? instantiateNonTemplateStructOrAlias(alloc, ctx, delayedStructInsts, force(opStructOrAlias).structOrAlias)
 		: none!(Ptr!StructInst);
 }
 
@@ -851,18 +858,24 @@ immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(Alloc)(
 	immutable Arr!StructDecl structs,
 	immutable Arr!StructAlias aliases,
 ) {
-	DictBuilder!(Sym, StructOrAlias, compareSym) d;
-	foreach (immutable Ptr!StructDecl decl; ptrsRange(structs)) {
-		verify(size(typeParams(decl.deref())) < 10); //TODO:KILL
-		addToDict(alloc, d, decl.name, immutable StructOrAlias(decl));
+	DictBuilder!(Sym, StructOrAliasAndIndex, compareSym) d;
+	foreach (immutable size_t index; 0..size(structs)) {
+		immutable Ptr!StructDecl decl = ptrAt(structs, index);
+		addToDict(alloc, d, decl.name, immutable StructOrAliasAndIndex(
+			immutable StructOrAlias(decl),
+			immutable ModuleLocalStructOrAliasIndex(index)));
 	}
-	foreach (immutable Ptr!StructAlias a; ptrsRange(aliases))
-		addToDict(alloc, d, a.name, immutable StructOrAlias(a));
-	return finishDict!(Alloc, Sym, StructOrAlias, compareSym)(
+	foreach (immutable size_t index; 0..size(aliases)) {
+		immutable Ptr!StructAlias alias_ = ptrAt(aliases, index);
+		addToDict(alloc, d, alias_.name, immutable StructOrAliasAndIndex(
+			immutable StructOrAlias(alias_),
+			immutable ModuleLocalStructOrAliasIndex(index)));
+	}
+	return finishDict!(Alloc, Sym, StructOrAliasAndIndex, compareSym)(
 		alloc,
 		d,
-		(ref immutable Sym name, ref immutable StructOrAlias, ref immutable StructOrAlias b) =>
-			addDiag(alloc, ctx, b.range, immutable Diag(
+		(ref immutable Sym name, ref immutable StructOrAliasAndIndex, ref immutable StructOrAliasAndIndex b) =>
+			addDiag(alloc, ctx, b.structOrAlias.range, immutable Diag(
 				Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name))));
 }
 
@@ -1107,6 +1120,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	immutable Arr!StructAlias structAliases,
 	ref Arr!StructDecl structs,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 	immutable FileIndex fileIndex,
@@ -1145,7 +1159,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 		structsAndAliasesDict,
 		ast.funs);
 
-	checkUnusedImports(alloc, ctx);
+	checkForUnused!Alloc(alloc, ctx, structAliases, castImmutable(structs));
 
 	// Create a module unconditionally so every function will always have containingModule set, even in failure case
 	return nu!Module(
@@ -1189,10 +1203,10 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 					add(name, value);
 			});
 	}
-	dictEach!(Sym, StructOrAlias, compareSym)(
+	dictEach!(Sym, StructOrAliasAndIndex, compareSym)(
 		structsAndAliasesDict,
-		(ref immutable Sym name, ref immutable StructOrAlias value) {
-			add(name, immutable NameReferents(some(value), none!(Ptr!SpecDecl), emptyArr!(Ptr!FunDecl)));
+		(ref immutable Sym name, ref immutable StructOrAliasAndIndex it) {
+			add(name, immutable NameReferents(some(it.structOrAlias), none!(Ptr!SpecDecl), emptyArr!(Ptr!FunDecl)));
 		});
 	dictEach!(Sym, Ptr!SpecDecl, compareSym)(specsDict, (ref immutable Sym name, ref immutable Ptr!SpecDecl it) {
 		add(name, immutable NameReferents(none!StructOrAlias, some(it), emptyArr!(Ptr!FunDecl)));
@@ -1224,6 +1238,7 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 ) {
 	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, imports);
 	checkImportsOrExports(alloc, diagsBuilder, pathAndAst.fileIndex, reExports);
+	immutable FileAst ast = pathAndAst.ast;
 	CheckCtx ctx = CheckCtx(
 		ptrTrustMe_mut(programState),
 		pathAndAst.fileIndex,
@@ -1231,8 +1246,11 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 		reExports,
 		// TODO: use temp alloc
 		newUsedImportsAndReExports(alloc, imports, reExports),
+		// TODO: use temp alloc
+		fillArr_mut(alloc, size(ast.structAliases), (immutable size_t) => Bool(false)),
+		// TODO: use temp alloc
+		fillArr_mut(alloc, size(ast.structs), (immutable size_t) => Bool(false)),
 		ptrTrustMe_mut(diagsBuilder));
-	immutable FileAst ast = pathAndAst.ast;
 
 	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies
 	Arr!StructDecl structs = checkStructsInitial(alloc, ctx, ast.structs);
@@ -1258,6 +1276,7 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 		ctx,
 		commonTypes,
 		structsAndAliasesDict,
+		castImmutable(structAliases),
 		structs,
 		delayStructInsts,
 		pathAndAst.fileIndex,

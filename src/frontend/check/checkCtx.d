@@ -2,13 +2,14 @@ module frontend.check.checkCtx;
 
 @safe @nogc pure nothrow:
 
+import frontend.check.dicts : StructOrAliasAndIndex;
 import frontend.programState : ProgramState;
 import model.diag : Diag, Diagnostic;
-import model.model : Module, ModuleAndNames, NameReferents;
+import model.model : matchStructOrAlias, Module, ModuleAndNames, NameReferents, StructAlias, StructDecl;
 import util.bools : Bool, True;
-import util.collection.arr : Arr, at, range, setAt, size;
+import util.collection.arr : Arr, at, castImmutable, range, setAt, size;
 import util.collection.arrBuilder : add, ArrBuilder;
-import util.collection.arrUtil : eachCat, fillArr_mut;
+import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
 import util.collection.dict : getPtrAt;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
@@ -24,6 +25,8 @@ struct CheckCtx {
 	// One entry for a whole-module import, or one entry for each named import
 	// Note: This is unnecessary for re-exports as those are never considered unused, but simpler to always have this
 	Arr!Bool importsAndReExportsUsed;
+	Arr!Bool structAliasesUsed;
+	Arr!Bool structsUsed;
 	Ptr!(ArrBuilder!Diagnostic) diagsBuilder;
 }
 
@@ -41,7 +44,32 @@ Arr!Bool newUsedImportsAndReExports(Alloc)(
 	return fillArr_mut!(Bool, Alloc)(alloc, size, (immutable size_t) => Bool(false));
 }
 
-void checkUnusedImports(Alloc)(ref Alloc alloc, ref CheckCtx ctx) {
+void checkForUnused(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	immutable Arr!StructAlias structAliases,
+	immutable Arr!StructDecl structDecls,
+) {
+	checkUnusedImports(alloc, ctx);
+
+	zipPtrFirst!(StructAlias, Bool)(
+		structAliases,
+		castImmutable(ctx.structAliasesUsed),
+		(immutable Ptr!StructAlias alias_, ref immutable Bool used) {
+			if (!used && !alias_.isPublic)
+				addDiag(alloc, ctx, alias_.range, immutable Diag(immutable Diag.UnusedPrivateStructAlias(alias_)));
+		});
+
+	zipPtrFirst!(StructDecl, Bool)(
+		structDecls,
+		castImmutable(ctx.structsUsed),
+		(immutable Ptr!StructDecl struct_, ref immutable Bool used) {
+			if (!used & !struct_.isPublic)
+				addDiag(alloc, ctx, struct_.range, immutable Diag(immutable Diag.UnusedPrivateStruct(struct_)));
+		});
+}
+
+private void checkUnusedImports(Alloc)(ref Alloc alloc, ref CheckCtx ctx) {
 	size_t index = 0;
 	foreach (ref immutable ModuleAndNames it; range(ctx.imports)) {
 		if (has(it.names)) {
@@ -66,7 +94,18 @@ struct ImportIndex {
 	immutable size_t index;
 }
 
-void markImportUsed(ref CheckCtx ctx, immutable ImportIndex index) {
+void markUsedStructOrAlias(ref CheckCtx ctx, ref immutable StructOrAliasAndIndex a) {
+	matchStructOrAlias!void(
+		a.structOrAlias,
+		(immutable Ptr!StructAlias) {
+			setAt(ctx.structAliasesUsed, a.index.index, True);
+		},
+		(immutable Ptr!StructDecl) {
+			setAt(ctx.structsUsed, a.index.index, True);
+		});
+}
+
+void markUsedImport(ref CheckCtx ctx, immutable ImportIndex index) {
 	setAt(ctx.importsAndReExportsUsed, index.index, True);
 }
 

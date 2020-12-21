@@ -688,6 +688,16 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeSym(writer, name(it.fun));
 			writeStatic(writer, " is unused");
 		},
+		(ref immutable Diag.UnusedPrivateStruct it) {
+			writeStatic(writer, "private type ");
+			writeSym(writer, it.struct_.name);
+			writeStatic(writer, " is unused");
+		},
+		(ref immutable Diag.UnusedPrivateStructAlias it) {
+			writeStatic(writer, "private type ");
+			writeSym(writer, it.alias_.name);
+			writeStatic(writer, " is unused");
+		},
 		(ref immutable Diag.WrongNumberTypeArgsForSpec d) {
 			writeName(writer, d.decl.name);
 			writeStatic(writer, " expected to get ");

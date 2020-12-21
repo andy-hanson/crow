@@ -2,7 +2,7 @@ module frontend.check.checkCall;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, ImportIndex, markImportUsed;
+import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, ImportIndex, markUsedImport;
 import frontend.check.checkExpr : checkExpr;
 import frontend.check.dicts : FunDeclAndIndex, ModuleLocalFunIndex;
 import frontend.check.inferringType :
@@ -15,7 +15,7 @@ import frontend.check.inferringType :
 	inferred,
 	InferringTypeArgs,
 	LambdaInfo,
-	markFunUsed,
+	markUsedLocalFun,
 	matchTypesNoDiagnostic,
 	programState,
 	SingleInferringType,
@@ -233,9 +233,9 @@ void markUsedFun(ref ExprCtx ctx, ref immutable UsedFun used) {
 	matchUsedFun!void(
 		used,
 		(immutable ImportIndex it) =>
-			markImportUsed(ctx.checkCtx, it),
+			markUsedImport(ctx.checkCtx, it),
 		(immutable ModuleLocalFunIndex it) =>
-			markFunUsed(ctx, it));
+			markUsedLocalFun(ctx, it));
 }
 
 void eachFunInScope(

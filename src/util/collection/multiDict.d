@@ -13,10 +13,6 @@ struct MultiDict(K, V, alias compare) {
 	immutable V* values;
 }
 
-immutable(size_t) multiDictSize(K, V, alias compare)(ref immutable MultiDict!(K, V, compare) a) {
-	return a.size;
-}
-
 @trusted void multiDictEach(K, V, alias compare)(
 	ref immutable MultiDict!(K, V, compare) a,
 	scope void delegate(ref immutable K, immutable Arr!V) @safe @nogc pure nothrow cb,

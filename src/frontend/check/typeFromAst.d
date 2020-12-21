@@ -2,8 +2,14 @@ module frontend.check.typeFromAst;
 
 @safe @nogc pure nothrow:
 
-import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, ImportIndex, markImportUsed;
-import frontend.check.dicts : SpecsDict, StructsAndAliasesDict;
+import frontend.check.checkCtx :
+	addDiag,
+	CheckCtx,
+	eachImportAndReExport,
+	ImportIndex,
+	markUsedImport,
+	markUsedStructOrAlias;
+import frontend.check.dicts : SpecsDict, StructsAndAliasesDict, StructOrAliasAndIndex;
 import frontend.check.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
 import frontend.parse.ast : matchTypeAst, TypeAst;
 import frontend.programState : ProgramState;
@@ -25,11 +31,11 @@ import model.model :
 	typeParams;
 import util.collection.arr : Arr, range, size, toArr;
 import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map;
-import util.collection.dict : Dict, getAt;
-import util.opt : force, has, none, Opt, some;
+import util.collection.dict : getAt;
+import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
-import util.sym : compareSym, Sym, symEq;
+import util.sym : Sym, symEq;
 import util.types : safeSizeTToU8;
 import util.util : todo;
 
@@ -41,12 +47,18 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
+	immutable Sym name = ast.name.name;
+	immutable Opt!StructOrAliasAndIndex opDeclFromHere = getAt(structsAndAliasesDict, name);
+	if (has(opDeclFromHere))
+		markUsedStructOrAlias(ctx, force(opDeclFromHere));
+	immutable Opt!StructOrAlias here = mapOption(opDeclFromHere, (ref immutable StructOrAliasAndIndex it) =>
+		it.structOrAlias);
 	immutable Opt!StructOrAlias opDecl = tryFindT!(StructOrAlias, Alloc)(
 		alloc,
 		ctx,
-		ast.name.name,
+		name,
 		ast.range,
-		structsAndAliasesDict,
+		here,
 		Diag.DuplicateImports.Kind.type,
 		Diag.NameNotFound.Kind.type,
 		(ref immutable NameReferents nr) =>
@@ -128,12 +140,13 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
 	immutable RangeWithinFile range,
 	ref immutable SpecsDict specsDict,
 ) {
+	immutable Opt!(Ptr!SpecDecl) here = getAt(specsDict, name);
 	return tryFindT!(Ptr!SpecDecl, Alloc)(
 		alloc,
 		ctx,
 		name,
 		range,
-		specsDict,
+		here,
 		Diag.DuplicateImports.Kind.spec,
 		Diag.NameNotFound.Kind.spec,
 		(ref immutable NameReferents nr) =>
@@ -166,29 +179,22 @@ immutable(Type) makeFutType(Alloc)(
 
 private:
 
-struct DeclAndModule(TDecl) {
-	immutable(TDecl) decl;
-	// none for the current module (which isn't created yet)
-	immutable Opt!(Ptr!Module) module_;
-}
-
 immutable(Opt!TDecl) tryFindT(TDecl, Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable Sym name,
 	immutable RangeWithinFile range,
-	immutable Dict!(Sym, TDecl, compareSym) dict,
+	ref immutable Opt!TDecl fromThisModule,
 	immutable Diag.DuplicateImports.Kind duplicateImportKind,
 	immutable Diag.NameNotFound.Kind nameNotFoundKind,
 	scope immutable(Opt!TDecl) delegate(ref immutable NameReferents) @safe @nogc pure nothrow getFromNameReferents,
 ) {
 	alias DAndM = DeclAndModule!TDecl;
 
-	immutable Opt!TDecl here = getAt(dict, name);
 	immutable Opt!DAndM res = eachImportAndReExport!(Opt!DAndM)(
 		ctx,
 		name,
-		has(here) ? some(immutable DAndM(force(here), none!(Ptr!Module))) : none!DAndM,
+		has(fromThisModule) ? some(immutable DAndM(force(fromThisModule), none!(Ptr!Module))) : none!DAndM,
 		(
 			immutable Opt!DAndM acc,
 			immutable Ptr!Module module_,
@@ -197,7 +203,7 @@ immutable(Opt!TDecl) tryFindT(TDecl, Alloc)(
 		) {
 			immutable Opt!TDecl got = getFromNameReferents(referents);
 			if (has(got)) {
-				markImportUsed(ctx, index);
+				markUsedImport(ctx, index);
 				if (has(acc))
 					// TODO: include both modules in the diag
 					addDiag(alloc, ctx, range, immutable Diag(
@@ -214,3 +220,8 @@ immutable(Opt!TDecl) tryFindT(TDecl, Alloc)(
 	}
 }
 
+struct DeclAndModule(TDecl) {
+	immutable(TDecl) decl;
+	// none for the current module (which isn't created yet)
+	immutable Opt!(Ptr!Module) module_;
+}

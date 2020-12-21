@@ -76,7 +76,7 @@ struct ExprCtx {
 	MutArr!(Ptr!LambdaInfo) lambdas;
 }
 
-void markFunUsed(ref ExprCtx a, immutable ModuleLocalFunIndex index) {
+void markUsedLocalFun(ref ExprCtx a, immutable ModuleLocalFunIndex index) {
 	setAt(a.funsUsed, index.index, True);
 }
 
