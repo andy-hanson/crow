@@ -4,6 +4,7 @@ module frontend.check.checkExpr;
 
 import frontend.check.checkCall : checkCall, checkIdentifierCall, eachFunInScope;
 import frontend.check.checkCtx : addDiag, CheckCtx, ImportIndex, markImportUsed;
+import frontend.check.dicts : FunsDict, StructsAndAliasesDict;
 import frontend.check.inferringType :
 	addDiag2,
 	allocExpr,
@@ -45,7 +46,6 @@ import model.model :
 	FunInst,
 	FunKind,
 	FunKindAndStructs,
-	FunsMap,
 	getType,
 	IntegralTypes,
 	isBogus,
@@ -65,7 +65,6 @@ import model.model :
 	StructDecl,
 	StructDeclAndArgs,
 	StructInst,
-	StructsAndAliasesMap,
 	Type,
 	typeArgs,
 	TypeParam,
@@ -145,15 +144,15 @@ immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx checkCtx,
 	ref immutable ExprAst ast,
-	ref immutable StructsAndAliasesMap structsAndAliasesMap,
-	ref immutable FunsMap funsMap,
+	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	ref immutable FunsDict funsDict,
 	immutable Ptr!FunDecl fun,
 	ref immutable CommonTypes commonTypes,
 ) {
 	ExprCtx exprCtx = ExprCtx(
 		ptrTrustMe_mut(checkCtx),
-		ptrTrustMe(structsAndAliasesMap),
-		ptrTrustMe(funsMap),
+		ptrTrustMe(structsAndAliasesDict),
+		ptrTrustMe(funsDict),
 		ptrTrustMe(commonTypes),
 		fun,
 		// TODO: use temp alloc

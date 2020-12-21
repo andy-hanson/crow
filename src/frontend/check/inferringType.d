@@ -3,6 +3,7 @@ module frontend.check.inferringType;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : addDiag, CheckCtx, rangeInFile;
+import frontend.check.dicts : FunsDict, StructsAndAliasesDict;
 import frontend.check.instantiate : instantiateStructNeverDelay, instantiateStructInst, tryGetTypeArg, TypeParamsScope;
 import frontend.check.typeFromAst : typeFromAst;
 import frontend.parse.ast : TypeAst;
@@ -19,7 +20,6 @@ import model.model :
 	Expr,
 	FunDecl,
 	FunKind,
-	FunsMap,
 	isBogus,
 	isStructInst,
 	isTypeParam,
@@ -28,7 +28,6 @@ import model.model :
 	matchType,
 	Param,
 	range,
-	StructsAndAliasesMap,
 	StructBody,
 	StructDecl,
 	StructDeclAndArgs,
@@ -62,8 +61,8 @@ struct LambdaInfo {
 
 struct ExprCtx {
 	Ptr!CheckCtx checkCtx;
-	immutable Ptr!StructsAndAliasesMap structsAndAliasesMap;
-	immutable Ptr!FunsMap funsMap;
+	immutable Ptr!StructsAndAliasesDict structsAndAliasesDict;
+	immutable Ptr!FunsDict funsDict;
 	immutable Ptr!CommonTypes commonTypes;
 	immutable Ptr!FunDecl outermostFun;
 	Arr!Bool paramsUsed;
@@ -102,7 +101,7 @@ immutable(Type) typeFromAst2(Alloc)(ref Alloc alloc, ref ExprCtx ctx, ref immuta
 		alloc,
 		ctx.checkCtx.deref,
 		typeAst,
-		ctx.structsAndAliasesMap,
+		ctx.structsAndAliasesDict,
 		immutable TypeParamsScope(typeParams(ctx.outermostFun)),
 		noneMut!(Ptr!(MutArr!(Ptr!(StructInst)))));
 }

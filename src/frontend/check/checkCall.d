@@ -213,7 +213,7 @@ void eachFunInScope(
 				totalIndex += size(sigs);
 			});
 
-	foreach (immutable Ptr!FunDecl f; arrRange(multiDictGetAt(ctx.funsMap, funName)))
+	foreach (immutable Ptr!FunDecl f; arrRange(multiDictGetAt(ctx.funsDict, funName)))
 		cb(none!ImportIndex, immutable CalledDecl(f));
 
 	eachImportAndReExport!Empty(

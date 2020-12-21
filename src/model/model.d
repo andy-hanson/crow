@@ -9,7 +9,6 @@ import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, first, only, ran
 import util.collection.arrUtil : compareArr;
 import util.collection.dict : Dict;
 import util.collection.fullIndexDict : FullIndexDict;
-import util.collection.multiDict : MultiDict;
 import util.collection.mutArr : MutArr;
 import util.collection.str : Str;
 import util.comparison : compareOr, Comparison, ptrEquals;
@@ -1049,10 +1048,6 @@ immutable(Sym) name(ref immutable StructOrAlias a) {
 		(immutable Ptr!StructAlias al) => al.name,
 		(immutable Ptr!StructDecl d) => d.name);
 }
-
-alias StructsAndAliasesMap = Dict!(Sym, StructOrAlias, compareSym);
-alias SpecsMap = Dict!(Sym, Ptr!SpecDecl, compareSym);
-alias FunsMap = MultiDict!(Sym, Ptr!FunDecl, compareSym);
 
 struct Module {
 	@safe @nogc pure nothrow:

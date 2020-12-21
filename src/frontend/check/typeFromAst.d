@@ -3,6 +3,7 @@ module frontend.check.typeFromAst;
 @safe @nogc pure nothrow:
 
 import frontend.check.checkCtx : addDiag, CheckCtx, eachImportAndReExport, ImportIndex, markImportUsed;
+import frontend.check.dicts : SpecsDict, StructsAndAliasesDict;
 import frontend.check.instantiate : DelayStructInsts, instantiateStruct, instantiateStructNeverDelay, TypeParamsScope;
 import frontend.parse.ast : matchTypeAst, TypeAst;
 import frontend.programState : ProgramState;
@@ -13,13 +14,11 @@ import model.model :
 	Module,
 	NameReferents,
 	SpecDecl,
-	SpecsMap,
 	StructAlias,
 	StructDecl,
 	StructDeclAndArgs,
 	StructInst,
 	StructOrAlias,
-	StructsAndAliasesMap,
 	target,
 	Type,
 	TypeParam,
@@ -38,7 +37,7 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable TypeAst.InstStruct ast,
-	ref immutable StructsAndAliasesMap structsAndAliasesMap,
+	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
@@ -47,7 +46,7 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 		ctx,
 		ast.name.name,
 		ast.range,
-		structsAndAliasesMap,
+		structsAndAliasesDict,
 		Diag.DuplicateImports.Kind.type,
 		Diag.NameNotFound.Kind.type,
 		(ref immutable NameReferents nr) =>
@@ -72,7 +71,7 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 					alloc,
 					ctx,
 					typeArgAsts,
-					structsAndAliasesMap,
+					structsAndAliasesDict,
 					typeParamsScope,
 					delayStructInsts);
 		}();
@@ -97,7 +96,7 @@ immutable(Type) typeFromAst(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable TypeAst ast,
-	ref immutable StructsAndAliasesMap structsAndAliasesMap,
+	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
@@ -117,7 +116,7 @@ immutable(Type) typeFromAst(Alloc)(
 		},
 		(ref immutable TypeAst.InstStruct iAst) {
 			immutable Opt!(Ptr!StructInst) i =
-				instStructFromAst(alloc, ctx, iAst, structsAndAliasesMap, typeParamsScope, delayStructInsts);
+				instStructFromAst(alloc, ctx, iAst, structsAndAliasesDict, typeParamsScope, delayStructInsts);
 			return has(i) ? immutable Type(force(i)) : immutable Type(Type.Bogus());
 		});
 }
@@ -127,14 +126,14 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
 	ref CheckCtx ctx,
 	immutable Sym name,
 	immutable RangeWithinFile range,
-	ref immutable SpecsMap specsMap,
+	ref immutable SpecsDict specsDict,
 ) {
 	return tryFindT!(Ptr!SpecDecl, Alloc)(
 		alloc,
 		ctx,
 		name,
 		range,
-		specsMap,
+		specsDict,
 		Diag.DuplicateImports.Kind.spec,
 		Diag.NameNotFound.Kind.spec,
 		(ref immutable NameReferents nr) =>
@@ -145,12 +144,12 @@ immutable(Arr!Type) typeArgsFromAsts(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	immutable Arr!TypeAst typeAsts,
-	ref immutable StructsAndAliasesMap structsAndAliasesMap,
+	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
 	return map!Type(alloc, typeAsts, (ref immutable TypeAst it) =>
-		typeFromAst(alloc, ctx, it, structsAndAliasesMap, typeParamsScope, delayStructInsts));
+		typeFromAst(alloc, ctx, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 }
 
 immutable(Type) makeFutType(Alloc)(
