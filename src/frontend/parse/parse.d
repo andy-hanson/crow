@@ -12,7 +12,6 @@ import frontend.parse.ast :
 	FunDeclAst,
 	ImportAst,
 	ImportsOrExportsAst,
-	NameAndRange,
 	ParamAst,
 	PuritySpecifier,
 	PuritySpecifierAndRange,
@@ -46,7 +45,6 @@ import frontend.parse.lexer :
 	takeIndentOrDiagTopLevel,
 	takeIndentOrDiagTopLevelAfterNewline,
 	takeName,
-	takeNameAndRange,
 	takeNameAllowReserved,
 	takeNewlineOrDedentAmount,
 	takeNewlineOrIndent_topLevel,
@@ -56,7 +54,12 @@ import frontend.parse.lexer :
 	tryTake,
 	tryTakeIndentAfterNewline_topLevel;
 import frontend.parse.parseExpr : parseFunExprBody;
-import frontend.parse.parseType : parseStructType, parseType, takeTypeArgsEnd, tryParseTypeArgs;
+import frontend.parse.parseType :
+	parseStructType,
+	parseType,
+	parseTypeInstStruct,
+	takeTypeArgsEnd,
+	tryParseTypeArgsBracketed;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, emptyArr, emptyArrWithSize;
@@ -509,10 +512,7 @@ immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
 ) {
 	ArrBuilder!(TypeAst.InstStruct) res;
 	do {
-		immutable Pos start = curPos(lexer);
-		immutable NameAndRange name = takeNameAndRange(alloc, lexer);
-		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
-		add(alloc, res, immutable TypeAst.InstStruct(range(lexer, start), name, typeArgs));
+		add(alloc, res, parseTypeInstStruct(alloc, lexer));
 	} while (takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
 	return finishArr(alloc, res);
 }
@@ -605,7 +605,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 			}
 		}
 	} else {
-		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
 		add(alloc, specUses, immutable SpecUseAst(range(lexer, start), name.name, typeArgs));
 		return nextSpecOrStop(
 			alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);

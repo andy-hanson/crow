@@ -45,7 +45,7 @@ import frontend.parse.lexer :
 	takeOrAddDiagExpected,
 	tryTake,
 	tryTakeIndentOrDedent;
-import frontend.parse.parseType : tryParseTypeArg, tryParseTypeArgs;
+import frontend.parse.parseType : tryParseTypeArgBracketed, tryParseTypeArgsBracketed;
 import model.parseDiag : ParseDiag;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, only, toArr;
@@ -182,7 +182,7 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 	immutable Bool tookDot = tryTake(lexer, '.');
 	immutable NameAndRange funName = takeNameAndRange(alloc, lexer);
 	immutable Bool tookColon = !tookDot && tryTake(lexer, ':');
-	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
+	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
 	if (tookDot) {
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.dot, funName, typeArgs, arrLiteral!ExprAst(alloc, [target]));
@@ -260,7 +260,7 @@ immutable(ExprAst) tryParseDots(Alloc, SymAlloc)(
 	immutable Pos start = curPos(lexer);
 	if (tryTake(lexer, '.')) {
 		immutable NameAndRange name = takeNameAndRange(alloc, lexer);
-		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.dot, name, typeArgs, arrLiteral!ExprAst(alloc, [initial]));
 		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
@@ -359,7 +359,7 @@ immutable(ExprAndMaybeDedent) parseNewArr(Alloc, SymAlloc)(
 	immutable ArgCtx ctx,
 	immutable u32 curIndent,
 ) {
-	immutable Opt!TypeAst type = tryParseTypeArg(alloc, lexer);
+	immutable Opt!TypeAst type = tryParseTypeArgBracketed(alloc, lexer);
 	immutable Opt!IndentDelta opIndentOrDedent = ctx.allowCall
 		? tryTakeIndentOrDedent(alloc, lexer, curIndent)
 		: none!IndentDelta;
@@ -556,7 +556,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
 		case ExpressionToken.Kind.nameAndRange:
 			immutable NameAndRange name = asNameAndRange(et);
-			immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgs(alloc, lexer);
+			immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
 			immutable Bool tookColon = tryTake(lexer, ':');
 			if (tookColon) {
 				// Prefix call `foo: bar, baz`

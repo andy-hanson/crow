@@ -64,13 +64,13 @@ tail range-nat(r range-nat)
 	r.empty? forbid
 	r.lo.incr to r.hi
 
-each void(s stream ?t, f fun-mut1 void ?t)
+each void(s stream ?t, f fun-mut1<void, ?t>)
 	s.iter each-recur f
 
-each void(r range-nat, f fun-mut1 void nat)
+each void(r range-nat, f fun-mut1<void, nat>)
 	r.iter each-recur f
 
-each-recur void(i iterator ?t, f fun-mut1 void ?t)
+each-recur void(i iterator ?t, f fun-mut1<void, ?t>)
 	match i next
 	as none
 		void
@@ -78,12 +78,12 @@ each-recur void(i iterator ?t, f fun-mut1 void ?t)
 		f call s.value
 		i each-recur f
 
-filter stream ?t(in stream ?t, pred fun-mut1 bool ?t)
+filter stream ?t(in stream ?t, pred fun-mut1<bool, ?t>)
 	stream: \
 		itr = in iter
 		{itr filter-helper pred} iterator
 
-filter-helper opt ?t(i iterator ?t, pred fun-mut1 bool ?t)
+filter-helper opt ?t(i iterator ?t, pred fun-mut1<bool, ?t>)
 	match i next
 	as none
 		none

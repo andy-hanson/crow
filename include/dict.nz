@@ -12,10 +12,10 @@ dict<?k, ?v> record
 	keys arr ?k
 	values arr ?v
 
-empty? bool(d dict ?k ?v)
+empty? bool(d dict<?k, ?v>)
 	d.keys empty?
 
-empty-dict dict ?k ?v()
+empty-dict dict<?k, ?v>()
 	| TODO: should be able to infer type arguments
 	dict<?k, ?v>: empty-arr<?k>, empty-arr<?v>
 
@@ -23,15 +23,15 @@ mut-dict<?k, ?v> record mut
 	keys mut-arr ?k
 	values mut-arr ?v
 
-new-mut-dict mut-dict ?k ?v()
+new-mut-dict mut-dict<?k, ?v>()
 	| TODO: should be able to infer type arguments -- worked when there was only one field...
 	mut-dict<?k, ?v>: new-mut-arr<?k>, new-mut-arr<?v>
 
-unsafe-as-dict dict ?k ?v(m mut-dict ?k ?v) unsafe
+unsafe-as-dict dict<?k, ?v>(m mut-dict<?k, ?v>) unsafe
 	| TODO: should be able to infer type arguments 
 	dict<?k, ?v>: m.keys.unsafe-as-arr, m.values.unsafe-as-arr
 
-freeze dict ?k ?v(m mut-dict ?k ?v)
+freeze dict<?k, ?v>(m mut-dict<?k, ?v>)
 	| TODO: should be able to infer type arguments 
 	dict<?k, ?v>: m.keys.freeze, m.values.freeze
 
@@ -44,43 +44,43 @@ get-recursive<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?
 		| TODO: should not need to provide type arguments!
 		get-recursive<?k, ?v>: keys, values, idx.incr, key
 
-get opt ?v(d dict ?k ?v, key ?k) trusted data<?k>
+get opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
 	| TODO: should not need to provide type arguments
 	get-recursive<?k, ?v>: d.keys, d.values, 0, key
 
-get opt ?v(d mut-dict ?k ?v, key ?k) trusted data<?k>
+get opt ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	d.unsafe-as-dict get key
 
-at ?v(d dict ?k ?v, key ?k) data<?k>
+at ?v(d dict<?k, ?v>, key ?k) data<?k>
 	match d get key
 	as none
 		todo
 	as some s
 		s value
 
-at ?v(d mut-dict ?k ?v, key ?k) trusted data<?k>
+at ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	d.unsafe-as-dict at key
 
-has? bool(d dict ?k ?v, key ?k) data<?k>
+has? bool(d dict<?k, ?v>, key ?k) data<?k>
 	d get key has?
 
-has? bool(d mut-dict ?k ?v, key ?k) trusted data<?k>
+has? bool(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	d.unsafe-as-dict has? key
 
-add void(m mut-dict ?k ?v, pair key-value-pair ?k ?v) data<?k>
+add void(m mut-dict<?k, ?v>, pair key-value-pair<?k, ?v>) data<?k>
 	m add pair.key, pair.value
 
-add void(m mut-dict ?k ?v, key ?k, value ?v) data<?k>
+add void(m mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
 	forbid: m has? key
 	m.keys push key
 	m.values push value
 
-map-values dict ?k ?v-out(d dict ?k ?v-in, mapper fun-mut1 ?v-out ?v-in)
+map-values dict<?k, ?v-out>(d dict<?k, ?v-in>, mapper fun-mut1<?v-out, ?v-in>)
 	new-values = d.values map mapper
 	| TODO: should be able to infer type arguments 
 	dict<?k, ?v-out>: d.keys, new-values
 
-each void(d dict ?k ?v, f fun-mut2 void ?k ?v)
+each void(d dict<?k, ?v>, f fun-mut2<void, ?k, ?v>)
 	if d.empty? not
 		f call d.keys.first, d.values.first
 		| TODO: type arguments should be unnecessary

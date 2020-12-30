@@ -210,7 +210,7 @@ get-cwd str() summon trusted
 
 
 environ alias
-	dict str str
+	dict<str, str>
 
 convert-args ptr c-str(exe-c-str c-str, args arr str)
 	data: exe-c-str prepend: args map {it.to-c-str} append null
@@ -220,12 +220,12 @@ get-environ environ() summon trusted
 	environ get-environ-recur res
 	res freeze
 
-get-environ-recur void(env ptr c-str, res mut-dict str str) unsafe
+get-environ-recur void(env ptr c-str, res mut-dict<str, str>) unsafe
 	if env.deref.null? not
 		res add env.deref.parse-environ-entry
 		env.incr get-environ-recur res
 
-parse-environ-entry key-value-pair str str(entry c-str) unsafe
+parse-environ-entry key-value-pair<str, str>(entry c-str) unsafe
 	key-end = entry find-char-in-cstr "="
 	key = entry arr-from-begin-end key-end
 	value-begin = key-end incr

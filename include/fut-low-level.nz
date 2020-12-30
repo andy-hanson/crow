@@ -8,7 +8,7 @@ import
 new-unresolved-fut fut ?t() unsafe
 	fut: new-lock, fut-state-callbacks: none
 
-must-be-resolved result ?t exception(f fut ?t) unsafe noctx
+must-be-resolved result<?t, exception>(f fut ?t) unsafe noctx
 	match f state
 	as fut-state-callbacks
 		hard-unreachable
@@ -23,7 +23,7 @@ resolve void(f fut ?t, value ?t) unsafe
 reject void(f fut ?t, e exception) unsafe
 	f resolve-or-reject e.err
 
-resolve-or-reject void(f fut ?t, result result ?t exception) unsafe
+resolve-or-reject void(f fut ?t, result result<?t, exception>) unsafe
 	f.lk.ref-of-val acquire-lock
 	match f.state
 	as fut-state-callbacks cbs
@@ -41,7 +41,7 @@ resolve-or-reject void(f fut ?t, result result ?t exception) unsafe
 		ex
 	f.lk.ref-of-val release-lock
 
-.resolve-or-reject-recur void(node opt fut-callback-node<?t>, value result ?t exception)
+.resolve-or-reject-recur void(node opt fut-callback-node<?t>, value result<?t, exception>)
 	match node
 	as none
 		void

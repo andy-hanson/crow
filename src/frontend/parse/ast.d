@@ -827,7 +827,11 @@ immutable(Sexpr) sexprOfSig(Alloc)(ref Alloc alloc, ref immutable SigAst a) {
 }
 
 immutable(Sexpr) sexprOfSpecUseAst(Alloc)(ref Alloc alloc, ref immutable SpecUseAst a) {
-	return todo!(immutable Sexpr)("sexprOfSpecUseAst");
+	return tataRecord(alloc, "spec-use", [
+		sexprOfRangeWithinFile(alloc, a.range),
+		tataSym(a.spec.name),
+		tataArr(alloc, toArr(a.typeArgs), (ref immutable TypeAst it) =>
+			sexprOfTypeAst(alloc, it))]);
 }
 
 immutable(Sexpr) sexprOfTypeAst(Alloc)(ref Alloc alloc, ref immutable TypeAst a) {

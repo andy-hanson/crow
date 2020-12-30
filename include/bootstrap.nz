@@ -222,51 +222,51 @@ fun-ref0<?r> record force-sendable
 fun-ref1<?r, ?p0> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun fun-mut1 fut<?r> ?p0
+	fun fun-mut1<fut ?r, ?p0>
 fun-ref2<?r, ?p0, ?p1> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun fun-mut2 fut<?r> ?p0 ?p1
+	fun fun-mut2<fut ?r, ?p0, ?p1>
 fun-ref3<?r, ?p0, ?p1, ?p2> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun fun-mut3 fut<?r> ?p0 ?p1 ?p2
+	fun fun-mut3<fut ?r, ?p0, ?p1, ?p2>
 
 | calling a fun-ptr is a primitive operation
 call ?r(a fun-ptr0 ?r) noctx builtin
-call ?r(a fun-ptr1 ?r ?p0, p0 ?p0) noctx builtin
-call ?r(a fun-ptr2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) noctx builtin
-call ?r(a fun-ptr3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
-call ?r(a fun-ptr4 ?r ?p0 ?p1 ?p2 ?p3, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
-call ?r(a fun-ptr5 ?r ?p0 ?p1 ?p2 ?p3 ?p4, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4) noctx builtin
-call ?r(a fun-ptr6 ?r ?p0 ?p1 ?p2 ?p3 ?p4 ?p5, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4, p5 ?p5) noctx builtin
+call ?r(a fun-ptr1<?r, ?p0>, p0 ?p0) noctx builtin
+call ?r(a fun-ptr2<?r, ?p0, ?p1>, p0 ?p0, p1 ?p1) noctx builtin
+call ?r(a fun-ptr3<?r, ?p0, ?p1, ?p2>, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
+call ?r(a fun-ptr4<?r, ?p0, ?p1, ?p2, ?p3>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
+call ?r(a fun-ptr5<?r, ?p0, ?p1, ?p2, ?p3, ?p4>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4) noctx builtin
+call ?r(a fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4, p5 ?p5) noctx builtin
 
 call ?r(a fun0 ?r) trusted
 	a call-with-ctx get-ctx
-call ?r(a fun1 ?r ?p0, p0 ?p0) trusted
+call ?r(a fun1<?r, ?p0>, p0 ?p0) trusted
 	a call-with-ctx get-ctx, p0
-call ?r(a fun2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted
+call ?r(a fun2<?r, ?p0, ?p1>, p0 ?p0, p1 ?p1) trusted
 	a call-with-ctx get-ctx, p0, p1
-call ?r(a fun3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) trusted
+call ?r(a fun3<?r, ?p0, ?p1, ?p2>, p0 ?p0, p1 ?p1, p2 ?p2) trusted
 	a call-with-ctx get-ctx, p0, p1, p2
 
 call ?r(a fun-mut0 ?r) trusted
 	a call-with-ctx get-ctx
-call ?r(a fun-mut1 ?r ?p0, p0 ?p0) trusted
+call ?r(a fun-mut1<?r, ?p0>, p0 ?p0) trusted
 	a call-with-ctx get-ctx, p0
-call ?r(a fun-mut2 ?r ?p0 ?p1, p0 ?p0, p1 ?p1) trusted
+call ?r(a fun-mut2<?r, ?p0, ?p1>, p0 ?p0, p1 ?p1) trusted
 	a call-with-ctx get-ctx, p0, p1
-call ?r(a fun-mut3 ?r ?p0 ?p1 ?p2, p0 ?p0, p1 ?p1, p2 ?p2) trusted
+call ?r(a fun-mut3<?r, ?p0, ?p1, ?p2>, p0 ?p0, p1 ?p1, p2 ?p2) trusted
 	a call-with-ctx get-ctx, p0, p1, p2
 
 call-with-ctx ?r(f fun0 ?r, c ctx) noctx builtin
 call-with-ctx ?r(f fun-mut0 ?r, c ctx) noctx builtin
-call-with-ctx ?r(f fun1 ?r ?p0, c ctx, p0 ?p0) noctx builtin
-call-with-ctx ?r(f fun-mut1 ?r ?p0, c ctx, p0 ?p0) noctx builtin
-call-with-ctx ?r(f fun2 ?r ?p0 ?p1, c ctx, p0 ?p0, p1 ?p1) noctx builtin
-call-with-ctx ?r(f fun-mut2 ?r ?p0 ?p1, c ctx, p0 ?p0, p1 ?p1) noctx builtin
-call-with-ctx ?r(f fun3 ?r ?p0 ?p1 ?p2, c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
-call-with-ctx ?r(f fun-mut3 ?r ?p0 ?p1 ?p2, c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
+call-with-ctx ?r(f fun1<?r, ?p0>, c ctx, p0 ?p0) noctx builtin
+call-with-ctx ?r(f fun-mut1<?r, ?p0>, c ctx, p0 ?p0) noctx builtin
+call-with-ctx ?r(f fun2<?r, ?p0, ?p1>, c ctx, p0 ?p0, p1 ?p1) noctx builtin
+call-with-ctx ?r(f fun-mut2<?r, ?p0, ?p1>, c ctx, p0 ?p0, p1 ?p1) noctx builtin
+call-with-ctx ?r(f fun3<?r, ?p0, ?p1, ?p2>, c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
+call-with-ctx ?r(f fun-mut3<?r, ?p0, ?p1, ?p2>, c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
 
 | A type is data if it is:
 | * A primitive
@@ -522,7 +522,7 @@ result<?ok, ?err> union
 	ok<?ok>
 	err<?err>
 
-then result ?ok-out ?err(a result ?ok-in ?err, f fun-mut1 result<?ok-out, ?err> ?ok-in)
+then result<?ok-out, ?err>(a result<?ok-in, ?err>, f fun-mut1<result<?ok-out, ?err>, ?ok-in>)
 	match a
 	as ok o
 		f call o.value
@@ -552,7 +552,7 @@ fut-state-callbacks<?t> record mut
 
 fut-callback-node<?t> record mut
 	| WARN: the cb will be called with whatever ctx resolves the fut, not the ctx that created it
-	cb fun-mut1 void result<?t, exception>
+	cb fun-mut1<void, result<?t, exception>>
 	next-node opt fut-callback-node<?t>
 
 fut-state-resolved<?t> record

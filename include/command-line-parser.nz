@@ -8,7 +8,7 @@ import
 	.exceptions: assert fail forbid
 
 | TODO: this would be neater if we had reflection!
-parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1 ?t arr<opt<arr<str>>>)
+parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1<?t, arr<opt<arr<str>>>>)
 	parsed = args parse-cmd-line-args-dynamic
 	assert: parsed.nameless empty?, "Should be no nameless args"
 	assert: parsed.after empty?
@@ -41,7 +41,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1 ?t arr<opt
 | after: x y z
 parsed-cmd-line-args record
 	nameless arr str
-	named dict str arr<str>
+	named dict<str, arr str>
 	after arr str
 
 parse-cmd-line-args-dynamic parsed-cmd-line-args(args arr str)
@@ -61,12 +61,12 @@ parse-cmd-line-args-dynamic parsed-cmd-line-args(args arr str)
 			named-args = rest slice-up-to sep-index parse-named-args
 			parsed-cmd-line-args: nameless, named-args, rest slice-after sep-index
 
-parse-named-args dict str arr<str>(args arr str)
-	b = new-mut-dict<str, arr<str>>
+parse-named-args dict<str, arr str>(args arr str)
+	b = new-mut-dict<str, arr str>
 	args parse-named-args-recur b
 	b freeze
 
-.parse-named-args-recur void(args arr str, builder mut-dict str arr<str>)
+.parse-named-args-recur void(args arr str, builder mut-dict<str, arr str>)
 	first-name = args.first remove-start "--"
 	tl = args tail
 	match tl find-index {it starts-with? "--"}

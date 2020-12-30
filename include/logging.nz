@@ -13,7 +13,7 @@ new-log-ctx by-val log-ctx() noctx unsafe
 	log-ctx: uninitialized
 
 log-handler alias
-	fun1 void logged
+	fun1<void, logged>
 
 default-log-handler void(a logged) summon
 	print: a.level.to-str + ": " + a.message

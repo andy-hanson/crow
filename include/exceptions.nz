@@ -36,13 +36,13 @@ finally ?t(after fun-mut0 void, try fun-mut0 ?t)
 	after call
 	res
 
-catch result ?t exception(try fun-mut0 ?t)
+catch result<?t, exception>(try fun-mut0 ?t)
 	{try.call ok} catch {it err}
 
-catch ?t(try fun-mut0 ?t, catcher fun-mut1 ?t exception) trusted
+catch ?t(try fun-mut0 ?t, catcher fun-mut1<?t, exception>) trusted
 	get-exception-ctx catch-with-exception-ctx try, catcher
 
-catch-with-exception-ctx ?t(ec exception-ctx, try fun-mut0 ?t, catcher fun-mut1 ?t exception) unsafe
+catch-with-exception-ctx ?t(ec exception-ctx, try fun-mut0 ?t, catcher fun-mut1<?t, exception>) unsafe
 	old-thrown-exception = ec thrown-exception
 	old-jmp-buf = ec jmp-buf-ptr
 	store = jmp-buf-tag: zero, 0, zero

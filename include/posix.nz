@@ -111,7 +111,7 @@ zero bytes256() noctx
 pthread-create err-t
 	thread cell pthread-t
 	attr any-ptr
-	start-routine fun-ptr1 any-ptr any-ptr
+	start-routine fun-ptr1<any-ptr, any-ptr>
 	arg any-ptr
 spec
 	unsafe
@@ -439,7 +439,7 @@ sigpipe signal-t() noctx
 
 | /usr/include/signal.h
 sighandler-t alias
-	fun-ptr1 void int
+	fun-ptr1<void, int>
 
 | /usr/include/signal.h
 sigignore int(sig signal-t) extern<"sigignore"> noctx summon

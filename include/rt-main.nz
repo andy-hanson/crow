@@ -19,7 +19,7 @@ import
 	.thread-utils: new-condition new-lock
 
 main-ptr alias
-	fun-ptr2 fut<exit-code> ctx arr<str>
+	fun-ptr2<fut exit-code, ctx, arr str>
 
 | Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
@@ -71,7 +71,7 @@ thread-args record mut
 | TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 | We want main-fut to be available immediately, not after having run some user code.
 | So we create main-fut now, and forward the result of 'main' to that.
-add-first-task fut exit-code(all-args arr c-str, main-ptr fun-ptr2 fut<exit-code> ctx arr<str>) unsafe
+add-first-task fut exit-code(all-args arr c-str, main-ptr fun-ptr2<fut exit-code, ctx, arr str>) unsafe
 	| 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	| TODO: 'then' overload for fut<void> taking lambda with 0 params
 	delay then2 \

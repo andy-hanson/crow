@@ -32,13 +32,13 @@ split<?t> record
 	after arr ?t
 
 | TODO: ->UTILS
-split-at-first opt split-with-splitter<?t>(a arr ?t, pred fun-mut1 bool ?t)
+split-at-first opt split-with-splitter<?t>(a arr ?t, pred fun-mut1<bool, ?t>)
 	idx <- a find-index pred
 	| TODO: parens should be unnecessary
 	some: split-with-splitter<?t>: (a slice-up-to idx), (a at idx), (a slice-after idx)
 
 | If splitter is not present, right part is empty
-try-split split ?t(a arr ?t, pred fun-mut1 bool ?t)
+try-split split ?t(a arr ?t, pred fun-mut1<bool, ?t>)
 	match a find-index pred
 	as none
 		split<?t>: a, empty-arr
@@ -47,7 +47,7 @@ try-split split ?t(a arr ?t, pred fun-mut1 bool ?t)
 		split<?t>: (a slice-up-to idx), (a slice-after idx)
 
 | If splitter is not present, right part is empty
-try-split-from-right split ?t(a arr ?t, pred fun-mut1 bool ?t)
+try-split-from-right split ?t(a arr ?t, pred fun-mut1<bool, ?t>)
 	match a find-rindex pred
 	as none
 		split<?t>: a, empty-arr

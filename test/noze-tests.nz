@@ -1,6 +1,6 @@
 import io .failure .path-utils
 
-run-noze-tests result str arr<failure>(path str, path-to-noze str, env environ, options test-options) summon
+run-noze-tests result<str, arr failure>(path str, path-to-noze str, env environ, options test-options) summon
 	tests = path list-tests
 	failures = tests flat-map-with-max-size options.max-failures, \test
 		path-to-noze run-single-noze-test env, test, options

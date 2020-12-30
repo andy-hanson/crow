@@ -1,7 +1,7 @@
 module util.collection.arrUtil;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
+import util.collection.arr : Arr, arrOfD, ArrWithSize, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
 import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory, initMemory_mut;
@@ -33,6 +33,11 @@ import util.util : max, verify;
 }
 
 pure:
+
+immutable(ArrWithSize!T) arrWithSizeLiteral(T, Alloc)(ref Alloc alloc, scope immutable T[] values) {
+	return mapWithSizeWithIndex(alloc, arrOfD(values), (immutable size_t, ref immutable T value) =>
+		value);
+}
 
 @trusted immutable(Arr!T) arrLiteral(T, Alloc)(ref Alloc alloc, scope immutable T[] values) {
 	T* ptr = cast(T*) alloc.allocateBytes(T.sizeof * values.length);
