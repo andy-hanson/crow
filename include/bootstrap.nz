@@ -64,6 +64,10 @@ is-reference-type?<?t> bool() noctx unsafe builtin
 | WARN: for a reference type, this is the size of a pointer
 size-of<?t> nat() noctx unsafe builtin
 
+| TODO: require that ?out be an extern-ptr type
+ptr-cast-to-extern ?out(p ptr ?in) noctx unsafe builtin
+| TODO: require that ?in be an extern-ptr type
+ptr-cast-from-extern ptr ?out(p ?int) noctx unsafe builtin
 ptr-cast ptr ?out(p ptr ?in) noctx unsafe builtin
 
 magic-cast ?out(p ?in) noctx unsafe
@@ -329,14 +333,6 @@ max-nat32 nat32() noctx
 	0xffffffff
 max-nat nat() noctx
 	0xffffffffffffffff
-
-to-nat32 nat32(a nat16) noctx trusted
-	a.to-nat unsafe-to-nat32
-to-nat32 nat32(a nat) noctx trusted
-	if a < max-nat32.to-nat
-		a unsafe-to-nat32
-	else
-		todo
 
 to-nat nat(n nat8) noctx builtin
 to-nat nat(n nat16) noctx builtin

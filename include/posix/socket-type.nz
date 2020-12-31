@@ -1,0 +1,6 @@
+import
+	..bootstrap: int32
+
+| /usr/include/x86_64-linux-gnu/bits/socket_type.h
+sock-stream int32()
+	1

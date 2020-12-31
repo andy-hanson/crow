@@ -1,6 +1,6 @@
 import
 	.bootstrap
-		== < <= >= ? bool and float int int32 min-int min-int32 max-int max-int32 max-nat32 max-nat nat nat32
+		== < <= >= ? bool and float int int32 min-int min-int32 max-int max-int32 max-nat32 max-nat nat nat16 nat32
 		or to-int to-nat unsafe-div unsafe-mod unsafe-to-int unsafe-to-int32
 		unsafe-to-nat unsafe-to-nat32 wrap-add wrap-decr wrap-mul wrap-sub
 	.exceptions: assert forbid
@@ -90,9 +90,11 @@ to-nat nat(i int)
 to-nat nat(i int32)
 	i.to-int to-nat
 
-to-nat32 nat32(n nat)
-	assert: n < max-nat32.to-nat
-	n unsafe-to-nat32
+to-nat32 nat32(a nat16) noctx trusted
+	a.to-nat unsafe-to-nat32
+to-nat32 nat32(a nat)
+	assert: a < max-nat32.to-nat
+	a unsafe-to-nat32
 
 negative? bool(i int)
 	i < 0

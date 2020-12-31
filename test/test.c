@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 struct void_ {};
+struct dir;
 typedef uint8_t* (*fun_ptr1)(uint8_t*);
 struct ctx {
 	uint8_t* gctx_ptr;
@@ -1471,12 +1472,12 @@ struct mut_bag new_mut_bag(void);
 struct void_ default_exception_handler(struct ctx* ctx, struct exception e);
 struct void_ print_err_no_newline(struct arr_0 s);
 struct void_ write_no_newline(int32_t fd, struct arr_0 a);
-extern int64_t write(int32_t fd, uint8_t* buff, uint64_t n_bytes);
+extern int64_t write(int32_t fd, uint8_t* buf, uint64_t n_bytes);
 uint8_t _op_bang_equal_0(int64_t a, int64_t b);
 uint8_t _op_equal_equal_2(int64_t a, int64_t b);
 struct comparison compare_41(int64_t a, int64_t b);
 struct void_ todo_1(void);
-int32_t stderr_fd(void);
+int32_t stderr(void);
 struct void_ print_err(struct arr_0 s);
 uint8_t empty__q_0(struct arr_0 a);
 struct global_ctx* get_gctx(struct ctx* ctx);
@@ -1484,7 +1485,7 @@ struct void_ new_island__lambda0(struct ctx* ctx, struct void_ _closure, struct 
 struct void_ default_log_handler(struct ctx* ctx, struct logged* a);
 struct void_ print(struct arr_0 a);
 struct void_ print_no_newline(struct arr_0 a);
-int32_t stdout_fd(void);
+int32_t stdout(void);
 struct arr_0 _op_plus_0(struct ctx* ctx, struct arr_0 a, struct arr_0 b);
 uint64_t _op_plus_1(struct ctx* ctx, uint64_t a, uint64_t b);
 struct void_ assert_0(struct ctx* ctx, uint8_t condition);
@@ -1894,10 +1895,11 @@ struct void_ call_15(struct ctx* ctx, struct fun_act1_10 a, struct arr_0 p0);
 struct void_ call_w_ctx_458(struct fun_act1_10 a, struct ctx* ctx, struct arr_0 p0);
 struct arr_1 read_dir_0(struct ctx* ctx, struct arr_0 path);
 struct arr_1 read_dir_1(struct ctx* ctx, char* path);
-extern uint8_t* opendir(char* name);
-struct void_ read_dir_recur(struct ctx* ctx, uint8_t* dirp, struct mut_arr_1* res);
+extern struct dir* opendir(char* name);
+uint8_t null__q_3(uint8_t** a);
+struct void_ read_dir_recur(struct ctx* ctx, struct dir* dirp, struct mut_arr_1* res);
 struct bytes256 zero_4(void);
-extern int32_t readdir_r(uint8_t* dirp, struct dirent* entry, struct cell_3* result);
+extern int32_t readdir_r(struct dir* dirp, struct dirent* entry, struct cell_3* result);
 struct dirent* get_4(struct cell_3* c);
 uint8_t ref_eq__q(struct dirent* a, struct dirent* b);
 struct arr_0 get_dirent_name(struct dirent* d);
@@ -1931,7 +1933,7 @@ struct void_ push_all(struct ctx* ctx, struct mut_arr_5* a, struct arr_7 values)
 struct void_ each_2(struct ctx* ctx, struct arr_7 a, struct fun_act1_12 f);
 uint8_t empty__q_11(struct arr_7 a);
 struct void_ call_16(struct ctx* ctx, struct fun_act1_12 a, struct failure* p0);
-struct void_ call_w_ctx_498(struct fun_act1_12 a, struct ctx* ctx, struct failure* p0);
+struct void_ call_w_ctx_499(struct fun_act1_12 a, struct ctx* ctx, struct failure* p0);
 struct failure* first_3(struct ctx* ctx, struct arr_7 a);
 struct failure* at_9(struct ctx* ctx, struct arr_7 a, uint64_t index);
 struct failure* noctx_at_10(struct arr_7 a, uint64_t index);
@@ -1947,7 +1949,7 @@ struct failure** incr_7(struct failure** p);
 struct void_ ensure_capacity_2(struct ctx* ctx, struct mut_arr_5* a, uint64_t capacity);
 struct void_ push_all__lambda0(struct ctx* ctx, struct push_all__lambda0* _closure, struct failure* it);
 struct arr_7 call_17(struct ctx* ctx, struct fun_act1_11 a, struct arr_0 p0);
-struct arr_7 call_w_ctx_514(struct fun_act1_11 a, struct ctx* ctx, struct arr_0 p0);
+struct arr_7 call_w_ctx_515(struct fun_act1_11 a, struct ctx* ctx, struct arr_0 p0);
 struct void_ reduce_size_if_more_than(struct ctx* ctx, struct mut_arr_5* a, uint64_t new_size);
 struct void_ flat_map_with_max_size__lambda0(struct ctx* ctx, struct flat_map_with_max_size__lambda0* _closure, struct arr_0 x);
 struct arr_7 freeze_6(struct mut_arr_5* a);
@@ -1955,12 +1957,12 @@ struct arr_7 unsafe_as_arr_4(struct mut_arr_5* a);
 struct arr_7 run_single_noze_test(struct ctx* ctx, struct arr_0 path_to_noze, struct dict_1* env, struct arr_0 path, struct test_options options);
 struct opt_14 first_some(struct ctx* ctx, struct arr_1 a, struct fun_act1_13 cb);
 struct opt_14 call_18(struct ctx* ctx, struct fun_act1_13 a, struct arr_0 p0);
-struct opt_14 call_w_ctx_522(struct fun_act1_13 a, struct ctx* ctx, struct arr_0 p0);
+struct opt_14 call_w_ctx_523(struct fun_act1_13 a, struct ctx* ctx, struct arr_0 p0);
 struct print_test_result* run_print_test(struct ctx* ctx, struct arr_0 print_kind, struct arr_0 path_to_noze, struct dict_1* env, struct arr_0 path, uint8_t overwrite_output__q);
 struct process_result* spawn_and_wait_result_0(struct ctx* ctx, struct arr_0 exe, struct arr_1 args, struct dict_1* environ);
 struct arr_0 fold(struct ctx* ctx, struct arr_0 val, struct arr_1 a, struct fun_act2_1 combine);
 struct arr_0 call_19(struct ctx* ctx, struct fun_act2_1 a, struct arr_0 p0, struct arr_0 p1);
-struct arr_0 call_w_ctx_527(struct fun_act2_1 a, struct ctx* ctx, struct arr_0 p0, struct arr_0 p1);
+struct arr_0 call_w_ctx_528(struct fun_act2_1 a, struct ctx* ctx, struct arr_0 p0, struct arr_0 p1);
 struct arr_0 spawn_and_wait_result_0__lambda0(struct ctx* ctx, struct void_ _closure, struct arr_0 a, struct arr_0 b);
 uint8_t is_file__q_0(struct ctx* ctx, struct arr_0 path);
 uint8_t is_file__q_1(struct ctx* ctx, char* path);
@@ -1984,7 +1986,7 @@ struct handle_revents_result handle_revents(struct ctx* ctx, struct pollfd* poll
 uint8_t has_pollin__q(struct ctx* ctx, int16_t revents);
 uint8_t bits_intersect__q(int16_t a, int16_t b);
 uint8_t _op_equal_equal_6(int16_t a, int16_t b);
-struct comparison compare_551(int16_t a, int16_t b);
+struct comparison compare_552(int16_t a, int16_t b);
 struct void_ read_to_buffer_until_eof(struct ctx* ctx, int32_t fd, struct mut_arr_4* buffer);
 struct void_ ensure_capacity_3(struct ctx* ctx, struct mut_arr_4* a, uint64_t capacity);
 struct void_ increase_capacity_to_3(struct ctx* ctx, struct mut_arr_4* a, uint64_t new_capacity);
@@ -2039,9 +2041,9 @@ struct void_ make_mut_arr_worker_2(struct ctx* ctx, struct mut_arr_6* m, uint64_
 struct void_ set_at_3(struct ctx* ctx, struct mut_arr_6* a, uint64_t index, char* value);
 struct void_ noctx_set_at_3(struct mut_arr_6* a, uint64_t index, char* value);
 char* call_20(struct ctx* ctx, struct fun_act1_15 a, uint64_t p0);
-char* call_w_ctx_606(struct fun_act1_15 a, struct ctx* ctx, uint64_t p0);
+char* call_w_ctx_607(struct fun_act1_15 a, struct ctx* ctx, uint64_t p0);
 char* call_21(struct ctx* ctx, struct fun_act1_14 a, struct arr_0 p0);
-char* call_w_ctx_608(struct fun_act1_14 a, struct ctx* ctx, struct arr_0 p0);
+char* call_w_ctx_609(struct fun_act1_14 a, struct ctx* ctx, struct arr_0 p0);
 char* map_1__lambda0(struct ctx* ctx, struct map_1__lambda0* _closure, uint64_t i);
 char* convert_args__lambda0(struct ctx* ctx, struct void_ _closure, struct arr_0 it);
 char** convert_environ(struct ctx* ctx, struct dict_1* environ);
@@ -2049,7 +2051,7 @@ struct mut_arr_6* new_mut_arr_4(struct ctx* ctx);
 struct void_ each_3(struct ctx* ctx, struct dict_1* d, struct fun_act2_2 f);
 uint8_t empty__q_12(struct ctx* ctx, struct dict_1* d);
 struct void_ call_22(struct ctx* ctx, struct fun_act2_2 a, struct arr_0 p0, struct arr_0 p1);
-struct void_ call_w_ctx_616(struct fun_act2_2 a, struct ctx* ctx, struct arr_0 p0, struct arr_0 p1);
+struct void_ call_w_ctx_617(struct fun_act2_2 a, struct ctx* ctx, struct arr_0 p0, struct arr_0 p1);
 struct void_ push_3(struct ctx* ctx, struct mut_arr_6* a, char* value);
 struct void_ increase_capacity_to_4(struct ctx* ctx, struct mut_arr_6* a, uint64_t new_capacity);
 struct void_ ensure_capacity_4(struct ctx* ctx, struct mut_arr_6* a, uint64_t capacity);
@@ -2105,12 +2107,12 @@ struct arr_0 read_file(struct ctx* ctx, struct arr_0 path);
 struct void_ each_with_index_0(struct ctx* ctx, struct arr_1 a, struct fun_act2_3 f);
 struct void_ each_with_index_recur_0(struct ctx* ctx, struct arr_1 a, struct fun_act2_3 f, uint64_t n);
 struct void_ call_23(struct ctx* ctx, struct fun_act2_3 a, struct arr_0 p0, uint64_t p1);
-struct void_ call_w_ctx_672(struct fun_act2_3 a, struct ctx* ctx, struct arr_0 p0, uint64_t p1);
+struct void_ call_w_ctx_673(struct fun_act2_3 a, struct ctx* ctx, struct arr_0 p0, uint64_t p1);
 struct arr_1 lines(struct ctx* ctx, struct arr_0 s);
 struct void_ each_with_index_1(struct ctx* ctx, struct arr_0 a, struct fun_act2_4 f);
 struct void_ each_with_index_recur_1(struct ctx* ctx, struct arr_0 a, struct fun_act2_4 f, uint64_t n);
 struct void_ call_24(struct ctx* ctx, struct fun_act2_4 a, char p0, uint64_t p1);
-struct void_ call_w_ctx_677(struct fun_act2_4 a, struct ctx* ctx, char p0, uint64_t p1);
+struct void_ call_w_ctx_678(struct fun_act2_4 a, struct ctx* ctx, char p0, uint64_t p1);
 struct arr_0 slice_from_to(struct ctx* ctx, struct arr_0 a, uint64_t begin, uint64_t end);
 uint64_t swap_1(struct cell_0* c, uint64_t v);
 uint64_t get_6(struct cell_0* c);
@@ -2648,7 +2650,7 @@ struct void_ default_exception_handler(struct ctx* ctx, struct exception e) {
 }
 /* print-err-no-newline void(s arr<char>) */
 struct void_ print_err_no_newline(struct arr_0 s) {
-	int32_t _0 = stderr_fd();
+	int32_t _0 = stderr();
 	struct arr_0 _1 = s;
 	return write_no_newline(_0, _1);
 }
@@ -2729,8 +2731,8 @@ struct comparison compare_41(int64_t a, int64_t b) {
 struct void_ todo_1(void) {
 	return (assert(0),(struct void_) {});
 }
-/* stderr-fd int32() */
-int32_t stderr_fd(void) {
+/* stderr int32() */
+int32_t stderr(void) {
 	return 2;
 }
 /* print-err void(s arr<char>) */
@@ -2783,12 +2785,12 @@ struct void_ print(struct arr_0 a) {
 }
 /* print-no-newline void(a arr<char>) */
 struct void_ print_no_newline(struct arr_0 a) {
-	int32_t _0 = stdout_fd();
+	int32_t _0 = stdout();
 	struct arr_0 _1 = a;
 	return write_no_newline(_0, _1);
 }
-/* stdout-fd int32() */
-int32_t stdout_fd(void) {
+/* stdout int32() */
+int32_t stdout(void) {
 	return 1;
 }
 /* +<char> arr<char>(a arr<char>, b arr<char>) */
@@ -9885,29 +9887,38 @@ struct arr_1 read_dir_0(struct ctx* ctx, struct arr_0 path) {
 }
 /* read-dir arr<arr<char>>(path ptr<char>) */
 struct arr_1 read_dir_1(struct ctx* ctx, char* path) {
-	uint8_t* dirp0;
+	struct dir* dirp0;
 	char* _0 = path;
 	dirp0 = opendir(_0);
 	
 	struct ctx* _1 = ctx;
-	uint8_t* _2 = dirp0;
-	uint8_t _3 = null__q_0(_2);
-	forbid_0(_1, _3);
+	struct dir* _2 = dirp0;
+	uint8_t** _3 = (uint8_t**) _2;
+	uint8_t _4 = null__q_3(_3);
+	forbid_0(_1, _4);
 	struct mut_arr_1* res1;
-	struct ctx* _4 = ctx;
-	res1 = new_mut_arr_0(_4);
-	
 	struct ctx* _5 = ctx;
-	uint8_t* _6 = dirp0;
-	struct mut_arr_1* _7 = res1;
-	read_dir_recur(_5, _6, _7);
-	struct ctx* _8 = ctx;
-	struct mut_arr_1* _9 = res1;
-	struct arr_1 _10 = freeze_0(_9);
-	return sort_0(_8, _10);
+	res1 = new_mut_arr_0(_5);
+	
+	struct ctx* _6 = ctx;
+	struct dir* _7 = dirp0;
+	struct mut_arr_1* _8 = res1;
+	read_dir_recur(_6, _7, _8);
+	struct ctx* _9 = ctx;
+	struct mut_arr_1* _10 = res1;
+	struct arr_1 _11 = freeze_0(_10);
+	return sort_0(_9, _11);
 }
-/* read-dir-recur void(dirp ptr<nat8>, res mut-arr<arr<char>>) */
-struct void_ read_dir_recur(struct ctx* ctx, uint8_t* dirp, struct mut_arr_1* res) {
+/* null?<ptr<nat8>> bool(a ptr<ptr<nat8>>) */
+uint8_t null__q_3(uint8_t** a) {
+	uint8_t** _0 = a;
+	uint64_t _1 = (uint64_t) _0;
+	uint8_t** _2 = NULL;
+	uint64_t _3 = (uint64_t) _2;
+	return _op_equal_equal_0(_1, _3);
+}
+/* read-dir-recur void(dirp dir, res mut-arr<arr<char>>) */
+struct void_ read_dir_recur(struct ctx* ctx, struct dir* dirp, struct mut_arr_1* res) {
 	top:;
 	struct dirent* entry0;
 	struct dirent* temp0;
@@ -9940,7 +9951,7 @@ struct void_ read_dir_recur(struct ctx* ctx, uint8_t* dirp, struct mut_arr_1* re
 	result1 = temp1;
 	
 	int32_t err2;
-	uint8_t* _16 = dirp;
+	struct dir* _16 = dirp;
 	struct dirent* _17 = entry0;
 	struct cell_3* _18 = result1;
 	err2 = readdir_r(_16, _17, _18);
@@ -9986,7 +9997,7 @@ struct void_ read_dir_recur(struct ctx* ctx, uint8_t* dirp, struct mut_arr_1* re
 		} else {
 			(struct void_) {};
 		}
-		uint8_t* _44 = dirp;
+		struct dir* _44 = dirp;
 		struct mut_arr_1* _45 = res;
 		dirp = _44;
 		res = _45;
@@ -10661,10 +10672,10 @@ struct void_ call_16(struct ctx* ctx, struct fun_act1_12 a, struct failure* p0) 
 	struct fun_act1_12 _0 = a;
 	struct ctx* _1 = ctx;
 	struct failure* _2 = p0;
-	return call_w_ctx_498(_0, _1, _2);
+	return call_w_ctx_499(_0, _1, _2);
 }
 /* call-w-ctx<void, gc-ptr(failure)> (generated) (generated) */
-struct void_ call_w_ctx_498(struct fun_act1_12 a, struct ctx* ctx, struct failure* p0) {
+struct void_ call_w_ctx_499(struct fun_act1_12 a, struct ctx* ctx, struct failure* p0) {
 	struct fun_act1_12 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -10967,10 +10978,10 @@ struct arr_7 call_17(struct ctx* ctx, struct fun_act1_11 a, struct arr_0 p0) {
 	struct fun_act1_11 _0 = a;
 	struct ctx* _1 = ctx;
 	struct arr_0 _2 = p0;
-	return call_w_ctx_514(_0, _1, _2);
+	return call_w_ctx_515(_0, _1, _2);
 }
 /* call-w-ctx<arr<failure>, arr<char>> (generated) (generated) */
-struct arr_7 call_w_ctx_514(struct fun_act1_11 a, struct ctx* ctx, struct arr_0 p0) {
+struct arr_7 call_w_ctx_515(struct fun_act1_11 a, struct ctx* ctx, struct arr_0 p0) {
 	struct fun_act1_11 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -11163,10 +11174,10 @@ struct opt_14 call_18(struct ctx* ctx, struct fun_act1_13 a, struct arr_0 p0) {
 	struct fun_act1_13 _0 = a;
 	struct ctx* _1 = ctx;
 	struct arr_0 _2 = p0;
-	return call_w_ctx_522(_0, _1, _2);
+	return call_w_ctx_523(_0, _1, _2);
 }
 /* call-w-ctx<opt<arr<failure>>, arr<char>> (generated) (generated) */
-struct opt_14 call_w_ctx_522(struct fun_act1_13 a, struct ctx* ctx, struct arr_0 p0) {
+struct opt_14 call_w_ctx_523(struct fun_act1_13 a, struct ctx* ctx, struct arr_0 p0) {
 	struct fun_act1_13 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -11447,10 +11458,10 @@ struct arr_0 call_19(struct ctx* ctx, struct fun_act2_1 a, struct arr_0 p0, stru
 	struct ctx* _1 = ctx;
 	struct arr_0 _2 = p0;
 	struct arr_0 _3 = p1;
-	return call_w_ctx_527(_0, _1, _2, _3);
+	return call_w_ctx_528(_0, _1, _2, _3);
 }
 /* call-w-ctx<arr<char>, arr<char>, arr<char>> (generated) (generated) */
-struct arr_0 call_w_ctx_527(struct fun_act2_1 a, struct ctx* ctx, struct arr_0 p0, struct arr_0 p1) {
+struct arr_0 call_w_ctx_528(struct fun_act2_1 a, struct ctx* ctx, struct arr_0 p0, struct arr_0 p1) {
 	struct fun_act2_1 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -11560,14 +11571,14 @@ struct process_result* spawn_and_wait_result_1(struct ctx* ctx, char* exe, char*
 	struct posix_spawn_file_actions_t* _25 = actions2;
 	struct pipes* _26 = stdout_pipes0;
 	int32_t _27 = _26->read_pipe;
-	int32_t _28 = stdout_fd();
+	int32_t _28 = stdout();
 	int32_t _29 = posix_spawn_file_actions_adddup2(_25, _27, _28);
 	check_posix_error(_24, _29);
 	struct ctx* _30 = ctx;
 	struct posix_spawn_file_actions_t* _31 = actions2;
 	struct pipes* _32 = stderr_pipes1;
 	int32_t _33 = _32->read_pipe;
-	int32_t _34 = stderr_fd();
+	int32_t _34 = stderr();
 	int32_t _35 = posix_spawn_file_actions_adddup2(_31, _33, _34);
 	check_posix_error(_30, _35);
 	struct ctx* _36 = ctx;
@@ -11916,7 +11927,7 @@ uint8_t bits_intersect__q(int16_t a, int16_t b) {
 uint8_t _op_equal_equal_6(int16_t a, int16_t b) {
 	int16_t _0 = a;
 	int16_t _1 = b;
-	struct comparison _2 = compare_551(_0, _1);
+	struct comparison _2 = compare_552(_0, _1);
 	switch (_2.kind) {
 		case 0: {
 			return 0;
@@ -11932,7 +11943,7 @@ uint8_t _op_equal_equal_6(int16_t a, int16_t b) {
 	}
 }
 /* compare<int-16> (generated) (generated) */
-struct comparison compare_551(int16_t a, int16_t b) {
+struct comparison compare_552(int16_t a, int16_t b) {
 	int16_t _0 = a;
 	int16_t _1 = b;
 	uint8_t _2 = _0 < _1;
@@ -12817,10 +12828,10 @@ char* call_20(struct ctx* ctx, struct fun_act1_15 a, uint64_t p0) {
 	struct fun_act1_15 _0 = a;
 	struct ctx* _1 = ctx;
 	uint64_t _2 = p0;
-	return call_w_ctx_606(_0, _1, _2);
+	return call_w_ctx_607(_0, _1, _2);
 }
 /* call-w-ctx<raw-ptr(char), nat-64> (generated) (generated) */
-char* call_w_ctx_606(struct fun_act1_15 a, struct ctx* ctx, uint64_t p0) {
+char* call_w_ctx_607(struct fun_act1_15 a, struct ctx* ctx, uint64_t p0) {
 	struct fun_act1_15 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -12840,10 +12851,10 @@ char* call_21(struct ctx* ctx, struct fun_act1_14 a, struct arr_0 p0) {
 	struct fun_act1_14 _0 = a;
 	struct ctx* _1 = ctx;
 	struct arr_0 _2 = p0;
-	return call_w_ctx_608(_0, _1, _2);
+	return call_w_ctx_609(_0, _1, _2);
 }
 /* call-w-ctx<raw-ptr(char), arr<char>> (generated) (generated) */
-char* call_w_ctx_608(struct fun_act1_14 a, struct ctx* ctx, struct arr_0 p0) {
+char* call_w_ctx_609(struct fun_act1_14 a, struct ctx* ctx, struct arr_0 p0) {
 	struct fun_act1_14 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -12979,10 +12990,10 @@ struct void_ call_22(struct ctx* ctx, struct fun_act2_2 a, struct arr_0 p0, stru
 	struct ctx* _1 = ctx;
 	struct arr_0 _2 = p0;
 	struct arr_0 _3 = p1;
-	return call_w_ctx_616(_0, _1, _2, _3);
+	return call_w_ctx_617(_0, _1, _2, _3);
 }
 /* call-w-ctx<void, arr<char>, arr<char>> (generated) (generated) */
-struct void_ call_w_ctx_616(struct fun_act2_2 a, struct ctx* ctx, struct arr_0 p0, struct arr_0 p1) {
+struct void_ call_w_ctx_617(struct fun_act2_2 a, struct ctx* ctx, struct arr_0 p0, struct arr_0 p1) {
 	struct fun_act2_2 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -14361,10 +14372,10 @@ struct void_ call_23(struct ctx* ctx, struct fun_act2_3 a, struct arr_0 p0, uint
 	struct ctx* _1 = ctx;
 	struct arr_0 _2 = p0;
 	uint64_t _3 = p1;
-	return call_w_ctx_672(_0, _1, _2, _3);
+	return call_w_ctx_673(_0, _1, _2, _3);
 }
 /* call-w-ctx<void, arr<char>, nat-64> (generated) (generated) */
-struct void_ call_w_ctx_672(struct fun_act2_3 a, struct ctx* ctx, struct arr_0 p0, uint64_t p1) {
+struct void_ call_w_ctx_673(struct fun_act2_3 a, struct ctx* ctx, struct arr_0 p0, uint64_t p1) {
 	struct fun_act2_3 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -14472,10 +14483,10 @@ struct void_ call_24(struct ctx* ctx, struct fun_act2_4 a, char p0, uint64_t p1)
 	struct ctx* _1 = ctx;
 	char _2 = p0;
 	uint64_t _3 = p1;
-	return call_w_ctx_677(_0, _1, _2, _3);
+	return call_w_ctx_678(_0, _1, _2, _3);
 }
 /* call-w-ctx<void, char, nat-64> (generated) (generated) */
-struct void_ call_w_ctx_677(struct fun_act2_4 a, struct ctx* ctx, char p0, uint64_t p1) {
+struct void_ call_w_ctx_678(struct fun_act2_4 a, struct ctx* ctx, char p0, uint64_t p1) {
 	struct fun_act2_4 _0 = a;
 	switch (_0.kind) {
 		case 0: {

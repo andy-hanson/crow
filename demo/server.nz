@@ -1,0 +1,51 @@
+import
+	alloc: memset unmanaged-alloc-elements
+	io: bind-to-port check-posix-error exit-code print
+	posix.extra-types: fd-t
+	posix.netinet.in: empty-sockaddr-in sockaddr-in
+	posix.socket: accept listen recv shutdown shut-rdwr sockaddr
+	posix.stdio: perror
+	posix.types: socklen-t
+	posix.unistd: close write
+
+main fut exit-code(_ arr str) unsafe summon
+	fd = bind-to-port: "8080"
+	max-connections = 1000 as<int32>
+	check-posix-error: fd listen max-connections
+	fd main-loop
+
+main-loop fut exit-code(fd fd-t) unsafe summon
+	print: "Awaiting request"
+	clientaddr = empty-sockaddr-in
+	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern<sockaddr, sockaddr-in>
+	addrlen = cell<socklen-t>: size-of<sockaddr-in> to-nat32
+	client-fd = fd accept clientaddr-as-sockaddr, addrlen
+	if client-fd < 0
+		print: "client-fd is " + client-fd.to-str
+		perror: "accept() error".to-c-str
+		1 resolved
+	else
+		print: "TODO: serve something!"
+		respond: client-fd
+		fd main-loop
+
+respond void(fd fd-t) unsafe summon
+	size = 99999
+	msg-buf = size unmanaged-alloc-elements<byte>
+	msg-buf memset 0, size
+
+	received = fd recv msg-buf, size, 0
+	if received <= 0
+		print: received == 0 ? "client disconnected", "recv() error"
+		todo
+	elif received >= size.decr.to-int
+		todo
+	else
+		msg = msg-buf.ptr-cast<char, byte> to-str
+		print: "RECEIVED: " + msg
+		response = "HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"
+		wrote = fd write response.to-c-str.ptr-cast<byte, char>, response.size
+		assert: wrote == response.size.to-int
+
+		check-posix-error: fd shutdown shut-rdwr
+		check-posix-error: fd close

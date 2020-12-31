@@ -1,0 +1,12 @@
+import
+	..bootstrap: c-str void
+	.extra-types: fd-t
+
+perror void(s c-str) unsafe summon extern<"perror"> noctx
+
+stdin fd-t() noctx
+	0
+stdout fd-t() noctx
+	1
+stderr fd-t() noctx
+	2

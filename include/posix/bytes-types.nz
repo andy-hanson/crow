@@ -1,0 +1,57 @@
+import
+	..bootstrap: nat16 nat32 nat64
+
+bytes2 alias
+	nat16
+
+bytes4 alias
+	nat32
+
+bytes8 alias
+	nat64
+
+bytes14 record
+	n0 bytes8
+	n1 bytes4
+	n2 bytes2
+
+bytes16 record
+	by-val
+	n0 bytes8
+	n1 bytes8
+
+bytes32 record
+	by-val
+	n0 bytes16
+	n1 bytes16
+
+bytes64 record
+	by-val
+	n0 bytes32
+	n1 bytes32
+
+bytes128 record
+	by-val
+	n0 bytes64
+	n1 bytes64
+
+| TODO: remove
+bytes256 record
+	by-val
+	n0 bytes128
+	n1 bytes128
+
+zero bytes16() noctx
+	bytes16: 0, 0
+
+zero bytes32() noctx
+	bytes32: zero, zero
+
+zero bytes64() noctx
+	bytes64: zero, zero
+
+zero bytes128() noctx
+	bytes128: zero, zero
+
+zero bytes256() noctx
+	bytes256: zero, zero

@@ -1,0 +1,13 @@
+import
+	.extra-types: err-t
+
+errno err-t() unsafe global<"errno"> noctx
+
+enoent err-t() noctx
+	2
+esrch err-t() noctx
+	3
+eagain err-t() noctx
+	11
+einval err-t() noctx
+	22

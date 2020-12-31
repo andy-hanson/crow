@@ -1,8 +1,8 @@
 import
 	.bootstrap
-		+ == != < <= and arr as as-any-ptr as-ref bits-and bit-shift-left bits-or bool byte
+		+ == != < <= and any-ptr arr as as-any-ptr as-ref bits-and bit-shift-left bits-or bool byte
 		by-val char c-str data deref false hard-assert hard-unreachable has? incr int32
-		int nat16 nat32 none not null null? opt or ptr ptr-cast ptr-eq? ptr-to
+		int nat16 nat32 none not null null? opt or ptr ptr-cast ptr-cast-from-extern ptr-eq? ptr-to
 		ref-eq? size size-of some str todo to-nat unsafe-to-int value void
 		wrap-add
 	.arr-utils
@@ -13,15 +13,27 @@ import
 	.exceptions: assert fail forbid
 	number-utils: + to-int to-nat
 	.opt-utils: force
-	.posix
-		addrinfo af-unspec ai-addr ai-addrlen ai-family ai-next ai-protocol ai-socktype close connect dirent dirp
-		enoent empty-stat environ errno err-t fd fd-t freeaddrinfo getaddrinfo getcwd has-pollin? has-pollerr?
-		has-pollhup? has-pollnval? has-pollout? has-pollpri? ino-t lseek o-creat off-t open opendir o-rdonly
-		o-trunc o-wronly pid-t pipe pipes poll pollfd pollin posix-spawn
-		posix-spawn-file-actions-addclose posix-spawn-file-actions-adddup2
-		posix-spawn-file-actions-init posix-spawn-file-actions-t read readdir-r readlink read-pipe revents s-ifdir
-		s-ifmt s-ifreg socket sock-stream stat stat-t status-t stderr-fd stdout-fd st-mode waitpid
-		w-exit-status w-if-continued w-if-exited w-if-signaled w-if-stopped write write-pipe w-term-sig zero
+	.posix.bytes-types: zero
+	.posix.dirent: dir dirent opendir readdir-r
+	.posix.errno: enoent errno
+	.posix.extra-types: err-t fd-t
+	.posix.fcntl: o-creat o-rdonly o-trunc o-wronly open
+	.posix.netdb
+		addrinfo ai-addr ai-addrlen ai-family ai-next ai-passive ai-protocol ai-socktype
+		freeaddrinfo getaddrinfo
+	.posix.poll
+		fd has-pollin? has-pollerr? has-pollhup? has-pollnval? has-pollout? has-pollpri? poll
+		pollfd pollin revents
+	.posix.socket: af-inet af-unspec bind connect socket
+	.posix.socket-type: sock-stream
+	.posix.spawn
+		posix-spawn posix-spawn-file-actions-addclose posix-spawn-file-actions-adddup2
+		posix-spawn-file-actions-init posix-spawn-file-actions-t
+	.posix.stat: empty-stat s-ifdir s-ifmt s-ifreg stat stat-t st-mode
+	.posix.stdio: stderr stdout
+	.posix.types: ino-t off-t pid-t
+	.posix.unistd: close environ getcwd lseek pipe pipes read readlink read-pipe write write-pipe
+	.posix.wait: status-t waitpid w-exit-status w-if-continued w-if-exited w-if-signaled w-if-stopped w-term-sig
 	.str-conv: to-str
 	.str-utils: find-char-in-cstr find-cstr-end to-c-str to-str
 
@@ -33,14 +45,14 @@ write-no-newline void(fd fd-t, a str) summon unsafe noctx
 		todo
 
 print-no-newline void(a str) summon trusted noctx
-	stdout-fd write-no-newline a
+	stdout write-no-newline a
 
 print void(a str) summon noctx
 	a print-no-newline
 	"\n" print-no-newline
 
 print-err-no-newline void(s str) summon trusted noctx
-	stderr-fd write-no-newline s
+	stderr write-no-newline s
 
 print-err void(s str) summon noctx
 	s print-err-no-newline
@@ -95,12 +107,12 @@ read-dir arr str(path str) summon
 read-dir arr str(path c-str) trusted summon
 	dirp = path opendir
 	| TODO: handle errors
-	forbid: dirp null?
+	forbid: dirp.ptr-cast-from-extern<any-ptr, dir> null?
 	res = new-mut-arr<str>
 	dirp read-dir-recur res
 	res.freeze sort
 
-read-dir-recur void(dirp dirp, res mut-arr str) unsafe summon
+read-dir-recur void(dirp dir, res mut-arr str) unsafe summon
 	| Initial value of entry / result should not matter
 	entry = dirent: 0, 0, 0, "\0", zero
 	| TODO: should not need a type argument here
@@ -231,7 +243,7 @@ parse-environ-entry key-value-pair<str, str>(entry c-str) unsafe
 	value-begin = key-end incr
 	value-end = value-begin find-cstr-end
 	value = value-begin arr-from-begin-end value-end
-	| TODO: should be able to infer type arguments 
+	| TODO: should be able to infer type arguments
 	key-value-pair<str, str>: key, value
 
 convert-environ ptr c-str(environ environ)
@@ -280,8 +292,8 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	check-posix-error: actions posix-spawn-file-actions-init
 	check-posix-error: actions posix-spawn-file-actions-addclose stdout-pipes.write-pipe
 	check-posix-error: actions posix-spawn-file-actions-addclose stderr-pipes.write-pipe
-	check-posix-error: actions posix-spawn-file-actions-adddup2 stdout-pipes.read-pipe, stdout-fd
-	check-posix-error: actions posix-spawn-file-actions-adddup2 stderr-pipes.read-pipe, stderr-fd
+	check-posix-error: actions posix-spawn-file-actions-adddup2 stdout-pipes.read-pipe, stdout
+	check-posix-error: actions posix-spawn-file-actions-adddup2 stderr-pipes.read-pipe, stderr
 	check-posix-error: actions posix-spawn-file-actions-addclose stdout-pipes.read-pipe
 	check-posix-error: actions posix-spawn-file-actions-addclose stderr-pipes.read-pipe
 
@@ -434,30 +446,62 @@ uri record
 	after-hash str
 
 | Returns fd of an an opened socket to uri
-connect-to-uri fd-t(u uri) summon trusted
+connect-to-uri fd-t(u uri) trusted summon
 	hints = addrinfo: 0, af-unspec, sock-stream, 0, 0, null.as-ref, null, null
 	result = null cell<ptr<addrinfo>>
 	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
-	op-sock = result.get find-working-socket
+	op-sock = result.get find-and-connect-working-socket
 	result.get freeaddrinfo
 	| TODO: handle failure
 	op-sock force
 
-find-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
+.find-and-connect-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
 	if ap null?
 		none
 	else
 		a = ap deref
 		sock = socket: a.ai-family, a.ai-socktype, a.ai-protocol
+		print: "sock is " + sock.to-str
 		if sock == -1
 			| Ignore error and try again
-			a.ai-next find-working-socket
+			a.ai-next find-and-connect-working-socket
 		else
 			err = sock connect a.ai-addr, a.ai-addrlen
+			print: "err is " + err.to-str
 			if err == -1
+				print: "connect() failed: "
 				check-posix-error: sock close
 				| Ignore error and try again
-				a.ai-next find-working-socket
+				a.ai-next find-and-connect-working-socket
 			else
 				assert: err == 0
 				sock some
+
+bind-to-port fd-t(port str) unsafe summon
+	hints = addrinfo: ai-passive, af-inet, sock-stream, 0, 0, null.as-ref, null, null
+	result = null cell<ptr<addrinfo>>
+	check-posix-error: getaddrinfo: null, port.to-c-str, hints.ptr-to, result
+	op-sock = result.get find-and-bind-working-socket
+	result.get freeaddrinfo
+	match op-sock
+	as none
+		print: "Failed to bind to port " + port
+		todo
+	as some s
+		s.value
+
+find-and-bind-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
+	if ap null?
+		none
+	else
+		a = ap deref
+		listen-fd = socket: a.ai-family, a.ai-socktype, 0
+		if listen-fd != -1
+			if listen-fd bind a.ai-addr, a.ai-addrlen == 0
+				print: "Connected!"
+				listen-fd some
+			else
+				check-posix-error: listen-fd close
+				a.ai-next find-and-bind-working-socket
+		else
+			a.ai-next find-and-bind-working-socket

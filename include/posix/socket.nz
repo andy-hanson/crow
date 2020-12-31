@@ -1,0 +1,38 @@
+import
+	..bootstrap: any-ptr int32
+	..cell: cell
+	.c-types: size-t
+	.extra-types: err-t fd-t
+	.types: socklen-t
+	.unistd: ssize-t
+
+| Corresponds to /usr/include/x86_64-linux-gnu/bits/socket.h
+
+af-unspec int32()
+	0
+
+af-inet int32()
+	2
+
+sockaddr extern-ptr
+
+accept err-t(fd fd-t, addr sockaddr, addrlen cell socklen-t) unsafe extern<"accept"> noctx summon
+
+bind err-t(fd fd-t, addr sockaddr, len socklen-t) unsafe extern<"bind"> noctx summon
+
+recv ssize-t(fd fd-t, buf any-ptr, n size-t, flags int32) unsafe extern<"recv"> noctx summon
+
+socket fd-t(domain int32, type int32, protocol int32) unsafe extern<"socket"> noctx summon
+
+connect int32(fd fd-t, addr sockaddr, len socklen-t) unsafe extern<"connect"> noctx summon
+
+listen err-t(fd fd-t, n int32) unsafe extern<"listen"> noctx summon
+
+shutdown err-t(fd fd-t, how int32) unsafe extern<"shutdown"> noctx summon
+
+shut-rd int32()
+	0
+shut-wr int32()
+	1
+shut-rdwr int32()
+	2

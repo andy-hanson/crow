@@ -1,0 +1,8 @@
+| /usr/include/x86_64-linux-gnu/bits/sigset.h
+
+import
+	.bytes-types: bytes128
+
+sigset-t alias
+	| 1024 bits
+	bytes128

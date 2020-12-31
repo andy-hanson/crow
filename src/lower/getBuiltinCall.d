@@ -331,6 +331,9 @@ immutable(BuiltinKind) getBuiltinKind(
 				return trinary(LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool);
 			else if (symEqLongAlphaLiteral(name, "is-reference-type?"))
 				return todo!(immutable BuiltinKind)("is-reference-type?");
+			else if (symEqLongAlphaLiteral(name, "ptr-cast-from-extern")
+				|| symEqLongAlphaLiteral(name, "ptr-cast-to-extern"))
+				return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
 			else if (symEqLongAlphaLiteral(name, "truncate-to-int"))
 				return unary(LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64);
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int"))

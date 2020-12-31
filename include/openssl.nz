@@ -1,6 +1,6 @@
 import
 	.bootstrap: any-ptr byte c-str fun-ptr6 int32 int64 nat8 nat32 nat64 null ptr str void
-	.posix: fd-t u-long
+	.posix.posix: fd-t u-long
 	.str-conv: literal
 
 | /usr/include/openssl/ossl_typ.h

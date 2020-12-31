@@ -1,0 +1,24 @@
+| /usr/include/setjmp.h
+
+import
+	..bootstrap: int32 ptr void
+	.bytes-types: bytes64
+	.sigset: sigset-t
+
+jmp-buf-tag record
+	by-val
+	jmp-buf bytes64
+	mask-was-saved int32
+	saved-mask sigset-t
+
+| WARNING: This is declared as `typedef struct __jmp_buf_tag jmp_buf[1];`
+| So in some cases it's by value, in others by reference
+| /usr/include/setjmp.h
+jmp-buf alias
+	ptr jmp-buf-tag
+
+| TODO: this is marked __THROWNL, what does that do?
+setjmp int32(env jmp-buf) unsafe extern<"setjmp"> noctx
+
+| TODO: this is marked __THROWNL, what does that do?
+longjmp void(env jmp-buf, val int32) unsafe extern<"longjmp"> noctx

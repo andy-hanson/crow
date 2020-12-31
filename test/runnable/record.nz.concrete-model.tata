@@ -863,7 +863,7 @@ program(
 			type(false, void)
 			none
 			[param(s, type(false, arr))]
-			expr-body(call(write-no-newline, [call(stderr-fd, []), param-ref(s)])))
+			expr-body(call(write-no-newline, [call(stderr, []), param-ref(s)])))
 		fun(
 			false
 			write-no-newline
@@ -888,7 +888,7 @@ program(
 			write
 			type(false, int)
 			none
-			[param(fd, type(false, int32)), param(buff, type(false, ptr)), param(n-bytes, type(false, nat))]
+			[param(fd, type(false, int32)), param(buf, type(false, ptr)), param(n-bytes, type(false, nat))]
 			extern(false))
 		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(false, ptr))], builtin([type(false, ptr)]))
 		fun(false, data, type(false, ptr), none, [param(a, type(false, arr))], field-get(1))
@@ -919,7 +919,7 @@ program(
 			builtin([type(false, int)]))
 		fun(false, unsafe-to-int, type(false, int), none, [param(a, type(false, nat))], builtin([]))
 		fun(false, todo, type(false, void), none, [], expr-body(call(hard-fail, [arr(0, 1)])))
-		fun(false, stderr-fd, type(false, int32), none, [], expr-body(2))
+		fun(false, stderr, type(false, int32), none, [], expr-body(2))
 		fun(
 			false
 			print-err
@@ -1000,8 +1000,8 @@ program(
 			type(false, void)
 			none
 			[param(a, type(false, arr))]
-			expr-body(call(write-no-newline, [call(stdout-fd, []), param-ref(a)])))
-		fun(false, stdout-fd, type(false, int32), none, [], expr-body(1))
+			expr-body(call(write-no-newline, [call(stdout, []), param-ref(a)])))
+		fun(false, stdout, type(false, int32), none, [], expr-body(1))
 		fun(
 			true
 			+

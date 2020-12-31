@@ -1,0 +1,22 @@
+import
+	..bootstrap: any-ptr fun-ptr1
+	.posix: u-long
+	.sigset: sigset-t
+
+sigaction record mut
+	sa-handler any-ptr
+	sa-flags u-long
+	sa-restorer any-ptr
+	sa-mask sigset-t
+
+| Not in include headers, something I added
+signal-t alias
+	int32
+
+sigpipe signal-t() noctx
+	13
+
+sighandler-t alias
+	fun-ptr1<void, int>
+
+sigignore int(sig signal-t) extern<"sigignore"> noctx summon

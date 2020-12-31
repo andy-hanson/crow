@@ -1,0 +1,40 @@
+import
+	..bootstrap: int32 nat32
+	.c-types: s-long-long u-int u-long u-long-long
+
+| sys/types.h
+
+blkcnt-t alias
+	u-long
+blksize-t alias
+	u-long
+
+dev-t alias
+	u-long-long
+
+gid-t alias
+	u-long
+
+ino-t alias
+	u-long
+
+mode-t alias
+	u-int
+
+nlink-t alias
+	u-int
+
+off-t alias
+	s-long-long
+
+pid-t alias
+	int32
+
+socklen-t alias
+	nat32
+
+time-t alias
+	u-long
+
+uid-t alias
+	u-long

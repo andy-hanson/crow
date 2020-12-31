@@ -767,12 +767,12 @@ struct mut_bag new_mut_bag(void);
 struct void_ default_exception_handler(struct ctx* ctx, struct exception e);
 struct void_ print_err_no_newline(struct arr_0 s);
 struct void_ write_no_newline(int32_t fd, struct arr_0 a);
-extern int64_t write(int32_t fd, uint8_t* buff, uint64_t n_bytes);
+extern int64_t write(int32_t fd, uint8_t* buf, uint64_t n_bytes);
 uint8_t _op_bang_equal_0(int64_t a, int64_t b);
 uint8_t _op_equal_equal_2(int64_t a, int64_t b);
 struct comparison compare_41(int64_t a, int64_t b);
 struct void_ todo_1(void);
-int32_t stderr_fd(void);
+int32_t stderr(void);
 struct void_ print_err(struct arr_0 s);
 uint8_t empty__q_0(struct arr_0 a);
 struct global_ctx* get_gctx(struct ctx* ctx);
@@ -780,7 +780,7 @@ struct void_ new_island__lambda0(struct ctx* ctx, struct void_ _closure, struct 
 struct void_ default_log_handler(struct ctx* ctx, struct logged* a);
 struct void_ print(struct arr_0 a);
 struct void_ print_no_newline(struct arr_0 a);
-int32_t stdout_fd(void);
+int32_t stdout(void);
 struct arr_0 _op_plus_0(struct ctx* ctx, struct arr_0 a, struct arr_0 b);
 uint64_t _op_plus_1(struct ctx* ctx, uint64_t a, uint64_t b);
 struct void_ assert_0(struct ctx* ctx, uint8_t condition);
@@ -1538,7 +1538,7 @@ struct void_ default_exception_handler(struct ctx* ctx, struct exception e) {
 }
 /* print-err-no-newline void(s arr<char>) */
 struct void_ print_err_no_newline(struct arr_0 s) {
-	int32_t _0 = stderr_fd();
+	int32_t _0 = stderr();
 	struct arr_0 _1 = s;
 	return write_no_newline(_0, _1);
 }
@@ -1619,8 +1619,8 @@ struct comparison compare_41(int64_t a, int64_t b) {
 struct void_ todo_1(void) {
 	return (assert(0),(struct void_) {});
 }
-/* stderr-fd int32() */
-int32_t stderr_fd(void) {
+/* stderr int32() */
+int32_t stderr(void) {
 	return 2;
 }
 /* print-err void(s arr<char>) */
@@ -1673,12 +1673,12 @@ struct void_ print(struct arr_0 a) {
 }
 /* print-no-newline void(a arr<char>) */
 struct void_ print_no_newline(struct arr_0 a) {
-	int32_t _0 = stdout_fd();
+	int32_t _0 = stdout();
 	struct arr_0 _1 = a;
 	return write_no_newline(_0, _1);
 }
-/* stdout-fd int32() */
-int32_t stdout_fd(void) {
+/* stdout int32() */
+int32_t stdout(void) {
 	return 1;
 }
 /* +<char> arr<char>(a arr<char>, b arr<char>) */

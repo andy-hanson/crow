@@ -4,7 +4,7 @@ import
 		gc-ctx-ptr get-ctx hard-assert hard-forbid incr lock nat nat8 nat64 none not
 		null? opt or ptr ptr-eq? ptr-less? ptr-less-eq? ptr-cast ref-of-val set size-of
 		some todo to-nat true unsafe-div value void wrap-add wrap-incr wrap-mul wrap-sub
-	.posix: free malloc
+	.posix.stdlib: free malloc
 	.thread-utils: acquire-lock new-lock release-lock
 
 memset void(begin any-ptr, value nat8, size nat) extern<"memset"> noctx unsafe

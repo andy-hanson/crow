@@ -1,0 +1,36 @@
+| /usr/include/netdb.h
+
+import
+	..bootstrap: c-str int32 ptr void
+	..cell: cell
+	.socket: sockaddr
+	.types: socklen-t
+
+addrinfo record mut
+	by-val
+	ai-flags int32
+	ai-family int32
+	ai-socktype int32
+	ai-protocol int32
+	ai-addrlen socklen-t
+	ai-addr sockaddr
+	ai-canonname c-str
+	ai-next ptr addrinfo
+
+ai-passive int32()
+	1
+
+| Remember to call 'freeaddrinfo'!
+| Writes to 'pai'
+getaddrinfo int32
+	name c-str
+	service c-str
+	req ptr addrinfo
+	pai cell ptr<addrinfo>
+spec
+	unsafe
+	extern<"getaddrinfo">
+	noctx
+	summon
+freeaddrinfo void(ai ptr addrinfo) unsafe extern<"freeaddrinfo"> noctx
+gai-strerror c-str(ecode int32) extern<"gai-strerror"> noctx

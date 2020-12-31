@@ -74,6 +74,7 @@ import model.model :
 	FunKind,
 	FunKindAndStructs,
 	IntegralTypes,
+	isBogus,
 	isPublic,
 	isPurityWorse,
 	isRecord,
@@ -713,7 +714,8 @@ void checkStructAliasTargets(Alloc)(
 			if (isStructInst(type))
 				setTarget(structAlias, some(asStructInst(type)));
 			else {
-				todo!void("diagnostic -- alias does not resolve to struct (must be a type parameter)");
+				if (!isBogus(type))
+					todo!void("diagnostic -- alias does not resolve to struct (must be bogus or a type parameter)");
 				setTarget(structAlias, none!(Ptr!StructInst));
 			}
 		});

@@ -11,7 +11,8 @@ import
 	.fut-utils: delay then2
 	.io: exit-code print-err print-err-no-newline
 	.logging: new-log-ctx
-	.posix: eagain einval esrch pthread-create pthread-join pthread-t
+	.posix.errno: eagain einval esrch
+	.posix.pthread: pthread-create pthread-join pthread-t
 	.runtime
 		any-unhandled-exceptions? global-ctx new-ctx new-island set-islands thread-function
 		thread-local-stuff island
@@ -25,7 +26,6 @@ main-ptr alias
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
 	drop: argv.deref to-str
 
-	| TODO: detect # hardware processors to use for n-threads
 	| TODO: get-nprocs
 	n-threads = 1
 	gctx-by-val = as<by-val<global-ctx>>: global-ctx: new-lock, empty-arr, n-threads, new-condition, false, false

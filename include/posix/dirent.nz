@@ -1,0 +1,20 @@
+| /usr/include/dirent.h
+
+import
+	..bootstrap: nat16 char c-str int32
+	..cell: cell
+	.bytes-types: bytes256
+	.types: ino-t off-t
+
+dir extern-ptr
+
+dirent record mut
+	d-ino mut ino-t
+	d-off mut off-t
+	d-reclen mut nat16
+	d-type mut char
+	| TODO: d-name char[256]
+	d-name mut bytes256
+
+opendir dir(name c-str) summon extern<"opendir"> noctx
+readdir-r int32(dirp dir, entry dirent, result cell dirent) summon extern<"readdir_r"> noctx

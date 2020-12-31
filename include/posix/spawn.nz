@@ -1,0 +1,68 @@
+| /usr/include/spawn.h
+
+import
+	..bootstrap: any-ptr c-str int32 ptr
+	..cell: cell
+	.bytes-types: bytes64
+	.extra-types: err-t fd-t
+	.types: mode-t pid-t
+
+posix-spawn-file-actions-t record mut
+	allocated mut int32
+	used mut int32
+	actions mut any-ptr
+	pad mut bytes64
+
+| TODO: type file-actions and attrp, currently these are always null
+| /usr/include/spawn.h
+posix-spawn err-t
+	pid cell pid-t
+	executable-path c-str
+	file-actions posix-spawn-file-actions-t
+	attrp any-ptr
+	argv ptr c-str
+	environ ptr c-str
+spec
+	unsafe
+	extern<"posix_spawn">
+	noctx
+	summon
+
+| TODO: these functions are marked __THROW, what does that do?
+posix-spawn-file-actions-init err-t
+	file-actions posix-spawn-file-actions-t
+spec
+	summon
+	extern<"posix_spawn_file_actions_init">
+	noctx
+posix-spawn-file-actions-destroy err-t
+	file-actions posix-spawn-file-actions-t
+spec
+	summon
+	extern<"posix_spawn_file_actions_destroy">
+	noctx
+posix-spawn-file-actions-addopen err-t
+	file-actions posix-spawn-file-actions-t
+	fd fd-t
+	path c-str
+	oflag int32
+	mode mode-t
+spec
+	summon
+	extern<"posix_spawn_file_actions_addopen">
+	noctx
+posix-spawn-file-actions-addclose err-t
+	file-actions posix-spawn-file-actions-t
+	fd fd-t
+spec
+	summon
+	extern<"posix_spawn_file_actions_addclose">
+	noctx
+posix-spawn-file-actions-adddup2 err-t
+	file-actions posix-spawn-file-actions-t
+	fd fd-t
+	new-fd fd-t
+spec
+	summon
+	extern<"posix_spawn_file_actions_adddup2">
+	noctx

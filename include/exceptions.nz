@@ -2,7 +2,8 @@ import
 	.bootstrap
 		== as-ref bool by-val call err exception exception-ctx-ptr get-ctx
 		hard-forbid int32 not null null? ok ptr-to result str todo void
-	.posix: jmp-buf jmp-buf-tag longjmp setjmp zero
+	.posix.bytes-types: zero
+	.posix.setjmp: jmp-buf jmp-buf-tag longjmp setjmp
 
 exception-ctx record mut
 	jmp-buf-ptr mut jmp-buf

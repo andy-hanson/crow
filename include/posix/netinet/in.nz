@@ -1,0 +1,26 @@
+| /usr/include/netinet/in.h
+
+import
+	...bootstrap: drop nat nat16 void
+
+in-port-t alias
+	nat16
+
+.sockaddr-sizer record
+	by-val
+	| 16 bytes
+	a nat
+	b nat
+
+| TOOD:KILL (allow unused record fields)
+useless void(a sockaddr-sizer)
+	drop: a.a
+	drop: a.b
+
+| Same size as sockaddr
+sockaddr-in record
+	by-val
+	sizer sockaddr-sizer
+
+empty-sockaddr-in sockaddr-in() unsafe noctx
+	sockaddr-in: sockaddr-sizer: 0, 0
