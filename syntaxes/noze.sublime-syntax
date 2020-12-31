@@ -41,7 +41,7 @@ contexts:
     - include: prototype
     - match: ','
       scope: comment # punctuation.separator
-    - match: '>'
+    - match: '>|\)'
       scope: comment # punctuation.definition.generic.end
       pop: true
     # string in type arg: this happens with extern<"mangledName">
@@ -229,6 +229,9 @@ contexts:
   parameter_type:
     - match: '{{type_name}}'
       scope: storage.type
+    - match: '\('
+      scope: comment
+      push: type_args      
     - match: ','
       scope: comment # punctuation.separator
       pop: true

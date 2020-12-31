@@ -35,7 +35,7 @@ enum BuiltinStructKind {
 	bool_,
 	char_,
 	float64,
-	fun, // fun0, fun-mut0, fun1, fun-mut1, etc...
+	fun, // 'fun' or 'act'
 	funPtrN, // fun-ptr0, fun-ptr1, etc...
 	int8,
 	int16,

@@ -1,6 +1,6 @@
 import
 	.arr-utils: +
-	.bootstrap: as-ref by-val call fun1 fun-mut0 get-ctx log-ctx str uninitialized void
+	.bootstrap: as-ref by-val call get-ctx log-ctx str uninitialized void
 	.exceptions: finally
 	.io: print
 
@@ -13,7 +13,7 @@ new-log-ctx by-val log-ctx() noctx unsafe
 	log-ctx: uninitialized
 
 log-handler alias
-	fun1<void, logged>
+	fun void(logged)
 
 default-log-handler void(a logged) summon
 	print: a.level.to-str + ": " + a.message
@@ -48,7 +48,7 @@ get-log-handler log-handler()
 .get-log-ctx log-ctx() trusted
 	get-ctx.log-ctx.as-ref<log-ctx>
 
-with-log-handler ?t(handler log-handler, cb fun-mut0 ?t)
+with-log-handler ?t(handler log-handler, cb act ?t())
 	original-handler = get-log-handler
 	finally: {original-handler set-log-handler}, \
 		handler set-log-handler

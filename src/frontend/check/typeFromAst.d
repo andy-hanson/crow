@@ -17,6 +17,8 @@ import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
 	CommonTypes,
+	FunKind,
+	FunKindAndStructs,
 	matchStructOrAlias,
 	Module,
 	NameReferents,
@@ -30,7 +32,8 @@ import model.model :
 	Type,
 	TypeParam,
 	typeParams;
-import util.collection.arr : Arr, range, size, toArr;
+import util.bools : Bool;
+import util.collection.arr : Arr, at, range, size, toArr;
 import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map;
 import util.collection.dict : getAt;
 import util.opt : force, has, mapOption, none, Opt, some;
@@ -43,6 +46,7 @@ import util.util : todo;
 immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
 	ref immutable TypeAst.InstStruct ast,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
@@ -83,6 +87,7 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 				return typeArgsFromAsts(
 					alloc,
 					ctx,
+					commonTypes,
 					typeArgAsts,
 					structsAndAliasesDict,
 					typeParamsScope,
@@ -108,13 +113,27 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 immutable(Type) typeFromAst(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
 	ref immutable TypeAst ast,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
-	return matchTypeAst(
+	return matchTypeAst!(immutable Type)(
 		ast,
+		(ref immutable TypeAst.Fun it) =>
+			typeFromFunAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts),
+		(ref immutable TypeAst.InstStruct iAst) {
+			immutable Opt!(Ptr!StructInst) i = instStructFromAst(
+				alloc,
+				ctx,
+				commonTypes,
+				iAst,
+				structsAndAliasesDict,
+				typeParamsScope,
+				delayStructInsts);
+			return has(i) ? immutable Type(force(i)) : immutable Type(Type.Bogus());
+		},
 		(ref immutable TypeAst.TypeParam p) {
 			immutable Opt!(Ptr!TypeParam) found =
 				findPtr(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
@@ -126,12 +145,43 @@ immutable(Type) typeFromAst(Alloc)(
 					Diag.NameNotFound(Diag.NameNotFound.Kind.typeParam, p.name)));
 				return immutable Type(Type.Bogus());
 			}
-		},
-		(ref immutable TypeAst.InstStruct iAst) {
-			immutable Opt!(Ptr!StructInst) i =
-				instStructFromAst(alloc, ctx, iAst, structsAndAliasesDict, typeParamsScope, delayStructInsts);
-			return has(i) ? immutable Type(force(i)) : immutable Type(Type.Bogus());
 		});
+}
+
+private immutable(Type) typeFromFunAst(Alloc)(
+	ref Alloc alloc,
+	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
+	ref immutable TypeAst.Fun ast,
+	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	ref immutable TypeParamsScope typeParamsScope,
+	DelayStructInsts delayStructInsts,
+) {
+	immutable FunKind funKind = () {
+		final switch (ast.kind) {
+			case TypeAst.Fun.Kind.act:
+				return FunKind.mut;
+			case TypeAst.Fun.Kind.fun:
+				return FunKind.plain;
+			case TypeAst.Fun.Kind.ref_:
+				return FunKind.ref_;
+		}
+	}();
+	immutable Opt!(Ptr!FunKindAndStructs) optF = findPtr!FunKindAndStructs(
+		commonTypes.funKindsAndStructs,
+		(immutable Ptr!FunKindAndStructs it) =>
+			immutable Bool(it.kind == funKind));
+	immutable Ptr!FunKindAndStructs f = force(optF);
+	if (size(ast.returnAndParamTypes) > size(f.structs))
+		todo!void("!");
+	immutable Ptr!StructDecl decl = at(f.structs, size(ast.returnAndParamTypes) - 1);
+	immutable Arr!Type typeArgs = map!Type(alloc, ast.returnAndParamTypes, (ref immutable TypeAst it) =>
+		typeFromAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
+	return immutable Type(instantiateStruct(
+		alloc,
+		ctx.programState,
+		immutable StructDeclAndArgs(decl, typeArgs),
+		delayStructInsts));
 }
 
 immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
@@ -161,13 +211,14 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
 immutable(Arr!Type) typeArgsFromAsts(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
+	ref immutable CommonTypes commonTypes,
 	immutable Arr!TypeAst typeAsts,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,
 ) {
 	return map!Type(alloc, typeAsts, (ref immutable TypeAst it) =>
-		typeFromAst(alloc, ctx, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
+		typeFromAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 }
 
 immutable(Type) makeFutType(Alloc)(

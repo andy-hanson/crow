@@ -49,12 +49,12 @@ program(
 		struct(
 			name: fut-callback-node
 			ptr?: true
-			body: record([field(cb, false, type(false, fun-mut1)), field(next-node, false, type(false, opt))]))
+			body: record([field(cb, false, type(false, fun-act1)), field(next-node, false, type(false, opt))]))
 		struct(name: exception, body: record([field(message, false, type(false, arr))]))
 		struct(name: result, body: union([type(false, ok), type(false, err)]))
 		struct(name: ok, body: record([field(value, false, type(false, int32))]))
 		struct(name: err, body: record([field(value, false, type(false, exception))]))
-		struct(name: fun-mut1, body: builtin(fun, [type(false, void), type(false, result)]))
+		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, result)]))
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
 		struct(name: none, body: record([]))
 		struct(name: some, body: record([field(value, false, type(true, fut-callback-node))]))
@@ -123,8 +123,8 @@ program(
 					field(log-handler, true, type(false, fun1))]))
 		struct(
 			name: task
-			body: record([field(exclusion, false, type(false, nat)), field(fun, false, type(false, fun-mut0))]))
-		struct(name: fun-mut0, body: builtin(fun, [type(false, void)]))
+			body: record([field(exclusion, false, type(false, nat)), field(fun, false, type(false, fun-act0))]))
+		struct(name: fun-act0, body: builtin(fun, [type(false, void)]))
 		struct(name: mut-bag, mut?: true, ptr?: true, body: record([field(head, true, type(false, opt))]))
 		struct(
 			name: mut-bag-node
@@ -209,10 +209,10 @@ program(
 		struct(
 			name: fut-callback-node
 			ptr?: true
-			body: record([field(cb, false, type(false, fun-mut1)), field(next-node, false, type(false, opt))]))
+			body: record([field(cb, false, type(false, fun-act1)), field(next-node, false, type(false, opt))]))
 		struct(name: result, body: union([type(false, ok), type(false, err)]))
 		struct(name: ok, body: record([field(value, false, type(false, void))]))
-		struct(name: fun-mut1, body: builtin(fun, [type(false, void), type(false, result)]))
+		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, result)]))
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
 		struct(name: some, body: record([field(value, false, type(true, fut-callback-node))]))
 		struct(name: fut-state-resolved, body: record([field(value, false, type(false, void))]))
@@ -221,18 +221,18 @@ program(
 			body: record(
 				[
 					field(island-and-exclusion, false, type(false, island-and-exclusion))
-					field(fun, false, type(false, fun-mut0))]))
+					field(fun, false, type(false, fun-act0))]))
 		struct(
 			name: island-and-exclusion
 			body: record([field(island, false, type(false, nat)), field(exclusion, false, type(false, nat))]))
-		struct(name: fun-mut0, body: builtin(fun, [type(true, fut)]))
+		struct(name: fun-act0, body: builtin(fun, [type(true, fut)]))
 		struct(
 			name: fun-ref1
 			body: record(
 				[
 					field(island-and-exclusion, false, type(false, island-and-exclusion))
-					field(fun, false, type(false, fun-mut1))]))
-		struct(name: fun-mut1, body: builtin(fun, [type(true, fut), type(false, void)]))
+					field(fun, false, type(false, fun-act1))]))
+		struct(name: fun-act1, body: builtin(fun, [type(true, fut), type(false, void)]))
 		struct(
 			name: lambda(then, 0)
 			ptr?: true
@@ -246,7 +246,7 @@ program(
 					field(f, false, type(false, fun-ref1))
 					field(p0, false, type(false, void))
 					field(res, false, type(true, fut))]))
-		struct(name: fun-mut1, body: builtin(fun, [type(false, void), type(false, exception)]))
+		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, exception)]))
 		struct(
 			name: lambda(lambda(call-ref, 0), 0)
 			ptr?: true
@@ -270,8 +270,8 @@ program(
 			name: lambda(add-first-task, 0)
 			ptr?: true
 			body: record([field(all-args, false, type(false, arr)), field(main-ptr, false, type(false, fun-ptr2))]))
-		struct(name: fun-mut1, body: builtin(fun, [type(false, arr), type(false, ptr)]))
-		struct(name: fun-mut1, body: builtin(fun, [type(false, arr), type(false, nat)]))
+		struct(name: fun-act1, body: builtin(fun, [type(false, arr), type(false, ptr)]))
+		struct(name: fun-act1, body: builtin(fun, [type(false, arr), type(false, nat)]))
 		struct(
 			name: mut-arr
 			mut?: true
@@ -285,7 +285,7 @@ program(
 		struct(
 			name: lambda(map, 0)
 			ptr?: true
-			body: record([field(mapper, false, type(false, fun-mut1)), field(a, false, type(false, arr))]))
+			body: record([field(mapper, false, type(false, fun-act1)), field(a, false, type(false, arr))]))
 		struct(
 			name: thread-args
 			ptr?: true
@@ -2089,7 +2089,7 @@ program(
 			then-void
 			type(false, void)
 			none
-			[param(f, type(true, fut)), param(cb, type(false, fun-mut1))]
+			[param(f, type(true, fut)), param(cb, type(false, fun-act1))]
 			expr-body(
 				seq(
 					seq(
@@ -2143,7 +2143,7 @@ program(
 			fut-callback-node
 			type(true, fut-callback-node)
 			none
-			[param(cb, type(false, fun-mut1)), param(next-node, type(false, opt))]
+			[param(cb, type(false, fun-act1)), param(next-node, type(false, opt))]
 			new-record)
 		fun(false, head, type(false, opt), none, [param(a, type(false, fut-state-callbacks))], field-get(0))
 		fun(
@@ -2151,14 +2151,14 @@ program(
 			call
 			type(false, void)
 			none
-			[param(a, type(false, fun-mut1)), param(p0, type(false, result))]
+			[param(a, type(false, fun-act1)), param(p0, type(false, result))]
 			expr-body(call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0)])))
 		fun(
 			false
 			call-with-ctx
 			type(false, void)
 			none
-			[param(f, type(false, fun-mut1)), param(c, type(true, ctx)), param(p0, type(false, result))]
+			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, result))]
 			builtin([type(false, void), type(false, result)]))
 		fun(false, ok, type(false, ok), none, [param(value, type(false, void))], new-record)
 		fun(false, value, type(false, void), none, [param(a, type(false, fut-state-resolved))], field-get(0))
@@ -2175,7 +2175,7 @@ program(
 			then-void
 			type(false, void)
 			none
-			[param(f, type(true, fut)), param(cb, type(false, fun-mut1))]
+			[param(f, type(true, fut)), param(cb, type(false, fun-act1))]
 			expr-body(
 				seq(
 					seq(
@@ -2222,7 +2222,7 @@ program(
 			fut-callback-node
 			type(true, fut-callback-node)
 			none
-			[param(cb, type(false, fun-mut1)), param(next-node, type(false, opt))]
+			[param(cb, type(false, fun-act1)), param(next-node, type(false, opt))]
 			new-record)
 		fun(false, head, type(false, opt), none, [param(a, type(false, fut-state-callbacks))], field-get(0))
 		fun(
@@ -2230,14 +2230,14 @@ program(
 			call
 			type(false, void)
 			none
-			[param(a, type(false, fun-mut1)), param(p0, type(false, result))]
+			[param(a, type(false, fun-act1)), param(p0, type(false, result))]
 			expr-body(call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0)])))
 		fun(
 			false
 			call-with-ctx
 			type(false, void)
 			none
-			[param(f, type(false, fun-mut1)), param(c, type(true, ctx)), param(p0, type(false, result))]
+			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, result))]
 			builtin([type(false, void), type(false, result)]))
 		fun(false, ok, type(false, ok), none, [param(value, type(false, int32))], new-record)
 		fun(false, value, type(false, int32), none, [param(a, type(false, fut-state-resolved))], field-get(0))
@@ -2291,7 +2291,7 @@ program(
 									resolve-or-reject-recur
 									[call(next-node, [call(value, [local-ref(s)])]), param-ref(value)])))])))
 		fun(false, drop, type(false, void), none, [param("_", type(false, void))], expr-body(call(void, [])))
-		fun(false, cb, type(false, fun-mut1), none, [param(a, type(true, fut-callback-node))], field-get(0))
+		fun(false, cb, type(false, fun-act1), none, [param(a, type(true, fut-callback-node))], field-get(0))
 		fun(false, value, type(true, fut-callback-node), none, [param(a, type(false, some))], field-get(0))
 		fun(false, next-node, type(false, opt), none, [param(a, type(true, fut-callback-node))], field-get(1))
 		fun(
@@ -2488,7 +2488,7 @@ program(
 			task
 			type(false, task)
 			none
-			[param(exclusion, type(false, nat)), param(fun, type(false, fun-mut0))]
+			[param(exclusion, type(false, nat)), param(fun, type(false, fun-act0))]
 			new-record)
 		fun(false, exclusion, type(false, nat), none, [param(a, type(false, island-and-exclusion))], field-get(1))
 		fun(
@@ -2496,7 +2496,7 @@ program(
 			catch
 			type(false, void)
 			none
-			[param(try, type(false, fun-mut0)), param(catcher, type(false, fun-mut1))]
+			[param(try, type(false, fun-act0)), param(catcher, type(false, fun-act1))]
 			expr-body(call(catch-with-exception-ctx, [call(get-exception-ctx, []), param-ref(try), param-ref(catcher)])))
 		fun(
 			true
@@ -2505,8 +2505,8 @@ program(
 			none
 			[
 				param(ec, type(true, exception-ctx))
-				param(try, type(false, fun-mut0))
-				param(catcher, type(false, fun-mut1))]
+				param(try, type(false, fun-act0))
+				param(catcher, type(false, fun-act1))]
 			expr-body(
 				let(
 					old-thrown-exception
@@ -2611,44 +2611,44 @@ program(
 			call
 			type(false, void)
 			none
-			[param(a, type(false, fun-mut0))]
+			[param(a, type(false, fun-act0))]
 			expr-body(call(call-with-ctx, [param-ref(a), call(get-ctx, [])])))
 		fun(
 			false
 			call-with-ctx
 			type(false, void)
 			none
-			[param(f, type(false, fun-mut0)), param(c, type(true, ctx))]
+			[param(f, type(false, fun-act0)), param(c, type(true, ctx))]
 			builtin([type(false, void)]))
 		fun(
 			true
 			call
 			type(false, void)
 			none
-			[param(a, type(false, fun-mut1)), param(p0, type(false, exception))]
+			[param(a, type(false, fun-act1)), param(p0, type(false, exception))]
 			expr-body(call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0)])))
 		fun(
 			false
 			call-with-ctx
 			type(false, void)
 			none
-			[param(f, type(false, fun-mut1)), param(c, type(true, ctx)), param(p0, type(false, exception))]
+			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, exception))]
 			builtin([type(false, void), type(false, exception)]))
 		fun(
 			true
 			call
 			type(true, fut)
 			none
-			[param(a, type(false, fun-mut1)), param(p0, type(false, void))]
+			[param(a, type(false, fun-act1)), param(p0, type(false, void))]
 			expr-body(call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0)])))
 		fun(
 			false
 			call-with-ctx
 			type(true, fut)
 			none
-			[param(f, type(false, fun-mut1)), param(c, type(true, ctx)), param(p0, type(false, void))]
+			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, void))]
 			builtin([type(true, fut), type(false, void)]))
-		fun(false, fun, type(false, fun-mut1), none, [param(a, type(false, fun-ref1))], field-get(1))
+		fun(false, fun, type(false, fun-act1), none, [param(a, type(false, fun-ref1))], field-get(1))
 		fun(
 			true
 			lambda(lambda(call-ref, 0), 0)
@@ -2757,16 +2757,16 @@ program(
 			call
 			type(true, fut)
 			none
-			[param(a, type(false, fun-mut0))]
+			[param(a, type(false, fun-act0))]
 			expr-body(call(call-with-ctx, [param-ref(a), call(get-ctx, [])])))
 		fun(
 			false
 			call-with-ctx
 			type(true, fut)
 			none
-			[param(f, type(false, fun-mut0)), param(c, type(true, ctx))]
+			[param(f, type(false, fun-act0)), param(c, type(true, ctx))]
 			builtin([type(true, fut)]))
-		fun(false, fun, type(false, fun-mut0), none, [param(a, type(false, fun-ref0))], field-get(1))
+		fun(false, fun, type(false, fun-act0), none, [param(a, type(false, fun-ref0))], field-get(1))
 		fun(
 			true
 			lambda(lambda(call-ref, 0), 0)
@@ -2915,7 +2915,7 @@ program(
 			map
 			type(false, arr)
 			none
-			[param(a, type(false, arr)), param(mapper, type(false, fun-mut1))]
+			[param(a, type(false, arr)), param(mapper, type(false, fun-act1))]
 			expr-body(
 				call(make-arr, [call(size, [param-ref(a)]), lambda(0, alloc(record([param-ref(mapper), param-ref(a)])))])))
 		fun(
@@ -2923,7 +2923,7 @@ program(
 			make-arr
 			type(false, arr)
 			none
-			[param(size, type(false, nat)), param(f, type(false, fun-mut1))]
+			[param(size, type(false, nat)), param(f, type(false, fun-act1))]
 			expr-body(call(freeze, [call(make-mut-arr, [param-ref(size), param-ref(f)])])))
 		fun(
 			false
@@ -2960,7 +2960,7 @@ program(
 			make-mut-arr
 			type(true, mut-arr)
 			none
-			[param(size, type(false, nat)), param(f, type(false, fun-mut1))]
+			[param(size, type(false, nat)), param(f, type(false, fun-act1))]
 			expr-body(
 				let(
 					res
@@ -3011,7 +3011,7 @@ program(
 			make-mut-arr-worker
 			type(false, void)
 			none
-			[param(m, type(true, mut-arr)), param(i, type(false, nat)), param(f, type(false, fun-mut1))]
+			[param(m, type(true, mut-arr)), param(i, type(false, nat)), param(f, type(false, fun-act1))]
 			expr-body(
 				cond(
 					call(!=, [param-ref(i), call(size, [param-ref(m)])])
@@ -3058,14 +3058,14 @@ program(
 			call
 			type(false, arr)
 			none
-			[param(a, type(false, fun-mut1)), param(p0, type(false, nat))]
+			[param(a, type(false, fun-act1)), param(p0, type(false, nat))]
 			expr-body(call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0)])))
 		fun(
 			false
 			call-with-ctx
 			type(false, arr)
 			none
-			[param(f, type(false, fun-mut1)), param(c, type(true, ctx)), param(p0, type(false, nat))]
+			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, nat))]
 			builtin([type(false, arr), type(false, nat)]))
 		fun(
 			true
@@ -3080,14 +3080,14 @@ program(
 			call
 			type(false, arr)
 			none
-			[param(a, type(false, fun-mut1)), param(p0, type(false, ptr))]
+			[param(a, type(false, fun-act1)), param(p0, type(false, ptr))]
 			expr-body(call(call-with-ctx, [param-ref(a), call(get-ctx, []), param-ref(p0)])))
 		fun(
 			false
 			call-with-ctx
 			type(false, arr)
 			none
-			[param(f, type(false, fun-mut1)), param(c, type(true, ctx)), param(p0, type(false, ptr))]
+			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, ptr))]
 			builtin([type(false, arr), type(false, ptr)]))
 		fun(
 			true
@@ -4021,7 +4021,7 @@ program(
 			none
 			[param(b, type(false, mark-ctx))]
 			builtin([type(true, mark-ctx)]))
-		fun(false, fun, type(false, fun-mut0), none, [param(a, type(false, task))], field-get(1))
+		fun(false, fun, type(false, fun-act0), none, [param(a, type(false, task))], field-get(1))
 		fun(
 			false
 			noctx-must-remove-unordered

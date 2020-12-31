@@ -200,37 +200,40 @@ island-and-exclusion record
 	island island-id
 	exclusion exclusion
 
+| Don't reference directly, instead use syntax `fun ?r(?p0, ?p1)`
+| Contrasted with `act`, a fun can't close over mutable data, so is thread-safe.
+| It can still close over `send` data and perform I/O, so it's not a completely pure function.
 fun0<?r> builtin sendable
 fun1<?r, ?p0> builtin sendable
 fun2<?r, ?p0, ?p1> builtin sendable
 fun3<?r, ?p0, ?p1, ?p2> builtin sendable
 
-| A fun-mut may close over 'mut' state.
-| (A normal 'fun' may still close over mutable state that is sendable.)
-fun-mut0<?r> builtin mut
-fun-mut1<?r, ?p0> builtin mut
-fun-mut2<?r, ?p0, ?p1> builtin mut
-fun-mut3<?r, ?p0, ?p1, ?p2> builtin mut
+| Don't reference directly, instead use syntax `act ?r(?p0, ?p1)`
+| Can close over anything. Can only be run by the exclusion context that created it.
+fun-act0<?r> builtin mut
+fun-act1<?r, ?p0> builtin mut
+fun-act2<?r, ?p0, ?p1> builtin mut
+fun-act3<?r, ?p0, ?p1, ?p2> builtin mut
 
-| A normal fun is non-sendable, a fun-ref becomes sendable by storing the island/exclusion that will provide its ctx.
-| As the name implies, we have a reference to the fun, but when we call it,
-| the one who created it runs the code, not us.
+| Don't reference directly, instead use syntax `act ?r(?p0, ?p1)`
+| This wraps an `act` combined with the island/exclusion it came from, and becomes sendable
+| since the `act` can't be called directly. Instead, it adds a task to the island.
 fun-ref0<?r> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun fun-mut0 fut<?r>
+	fun act fut<?r>()
 fun-ref1<?r, ?p0> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun fun-mut1<fut ?r, ?p0>
+	fun act fut ?r(?p0)
 fun-ref2<?r, ?p0, ?p1> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun fun-mut2<fut ?r, ?p0, ?p1>
+	fun act fut ?r(?p0, ?p1)
 fun-ref3<?r, ?p0, ?p1, ?p2> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun fun-mut3<fut ?r, ?p0, ?p1, ?p2>
+	fun act fut ?r(?p0, ?p1, ?p2)
 
 | calling a fun-ptr is a primitive operation
 call ?r(a fun-ptr0 ?r) noctx builtin
@@ -241,32 +244,32 @@ call ?r(a fun-ptr4<?r, ?p0, ?p1, ?p2, ?p3>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noct
 call ?r(a fun-ptr5<?r, ?p0, ?p1, ?p2, ?p3, ?p4>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4) noctx builtin
 call ?r(a fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4, p5 ?p5) noctx builtin
 
-call ?r(a fun0 ?r) trusted
+call ?r(a fun ?r()) trusted
 	a call-with-ctx get-ctx
-call ?r(a fun1<?r, ?p0>, p0 ?p0) trusted
+call ?r(a fun ?r(?p0), p0 ?p0) trusted
 	a call-with-ctx get-ctx, p0
-call ?r(a fun2<?r, ?p0, ?p1>, p0 ?p0, p1 ?p1) trusted
+call ?r(a fun ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted
 	a call-with-ctx get-ctx, p0, p1
-call ?r(a fun3<?r, ?p0, ?p1, ?p2>, p0 ?p0, p1 ?p1, p2 ?p2) trusted
+call ?r(a fun ?r(?p0, ?p1, ?p2), p0 ?p0, p1 ?p1, p2 ?p2) trusted
 	a call-with-ctx get-ctx, p0, p1, p2
 
-call ?r(a fun-mut0 ?r) trusted
+call ?r(a act ?r()) trusted
 	a call-with-ctx get-ctx
-call ?r(a fun-mut1<?r, ?p0>, p0 ?p0) trusted
+call ?r(a act ?r(?p0), p0 ?p0) trusted
 	a call-with-ctx get-ctx, p0
-call ?r(a fun-mut2<?r, ?p0, ?p1>, p0 ?p0, p1 ?p1) trusted
+call ?r(a act ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted
 	a call-with-ctx get-ctx, p0, p1
-call ?r(a fun-mut3<?r, ?p0, ?p1, ?p2>, p0 ?p0, p1 ?p1, p2 ?p2) trusted
+call ?r(a act ?r(?p0, ?p1, ?p2), p0 ?p0, p1 ?p1, p2 ?p2) trusted
 	a call-with-ctx get-ctx, p0, p1, p2
 
-call-with-ctx ?r(f fun0 ?r, c ctx) noctx builtin
-call-with-ctx ?r(f fun-mut0 ?r, c ctx) noctx builtin
-call-with-ctx ?r(f fun1<?r, ?p0>, c ctx, p0 ?p0) noctx builtin
-call-with-ctx ?r(f fun-mut1<?r, ?p0>, c ctx, p0 ?p0) noctx builtin
-call-with-ctx ?r(f fun2<?r, ?p0, ?p1>, c ctx, p0 ?p0, p1 ?p1) noctx builtin
-call-with-ctx ?r(f fun-mut2<?r, ?p0, ?p1>, c ctx, p0 ?p0, p1 ?p1) noctx builtin
-call-with-ctx ?r(f fun3<?r, ?p0, ?p1, ?p2>, c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
-call-with-ctx ?r(f fun-mut3<?r, ?p0, ?p1, ?p2>, c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
+call-with-ctx ?r(f fun ?r(), c ctx) noctx builtin
+call-with-ctx ?r(f act ?r(), c ctx) noctx builtin
+call-with-ctx ?r(f fun ?r(?p0), c ctx, p0 ?p0) noctx builtin
+call-with-ctx ?r(f act ?r(?p0), c ctx, p0 ?p0) noctx builtin
+call-with-ctx ?r(f fun ?r(?p0, ?p1), c ctx, p0 ?p0, p1 ?p1) noctx builtin
+call-with-ctx ?r(f act ?r(?p0, ?p1), c ctx, p0 ?p0, p1 ?p1) noctx builtin
+call-with-ctx ?r(f fun ?r(?p0, ?p1, ?p2), c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
+call-with-ctx ?r(f act ?r(?p0, ?p1, ?p2), c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
 
 | A type is data if it is:
 | * A primitive
@@ -522,7 +525,7 @@ result<?ok, ?err> union
 	ok<?ok>
 	err<?err>
 
-then result<?ok-out, ?err>(a result<?ok-in, ?err>, f fun-mut1<result<?ok-out, ?err>, ?ok-in>)
+then result<?ok-out, ?err>(a result<?ok-in, ?err>, f act result<?ok-out, ?err>(?ok-in))
 	match a
 	as ok o
 		f call o.value
@@ -552,7 +555,7 @@ fut-state-callbacks<?t> record mut
 
 fut-callback-node<?t> record mut
 	| WARN: the cb will be called with whatever ctx resolves the fut, not the ctx that created it
-	cb fun-mut1<void, result<?t, exception>>
+	cb act void(result<?t, exception>)
 	next-node opt fut-callback-node<?t>
 
 fut-state-resolved<?t> record

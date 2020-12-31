@@ -1,6 +1,6 @@
 import
 	.bootstrap
-		by-val call err exception exclusion fun fun-mut1 fun0 fun-ref0 fun-ref1 fun-ref2 fut
+		by-val call err exception exclusion fun fut
 		fut-callback-node fut-state-callbacks fut-state-resolved head lk none ok
 		opt ref-of-val result send set-state some state todo value island island-and-exclusion void
 	.exceptions: catch
@@ -18,7 +18,7 @@ resolved fut ?t(value ?t)
 
 joiner<?out, ?in0, ?in1> record force-sendable
 	res fut ?out
-	fun fun-ref2<?out, ?in0, ?in1>
+	fun ref ?out(?in0, ?in1)
 	arg0 mut opt result<?in0, exception>
 	arg1 mut opt result<?in1, exception>
 	| NOTE: we can't just check that both arg0 and arg1 are done -- we might try calling 'fun' twice.
@@ -42,7 +42,7 @@ decr-joiner void(j joiner<?out, ?in0, ?in1>) unsafe send<?out> send<?in0> send<?
 				| Combine the exceptions
 				todo
 
-join fut ?out(a fut ?in0, b fut ?in1, fun fun-ref2<?out, ?in0, ?in1>) trusted send<?out> send<?in0> send<?in1>
+join fut ?out(a fut ?in0, b fut ?in1, fun ref ?out(?in0, ?in1)) trusted send<?out> send<?in0> send<?in1>
 	res = new-unresolved-fut<?out>
 	joiner = joiner<?out, ?in0, ?in1>: res, fun, none, none, new-thread-safe-counter: 2
 	a then-void \value
@@ -54,7 +54,7 @@ join fut ?out(a fut ?in0, b fut ?in1, fun fun-ref2<?out, ?in0, ?in1>) trusted se
 	res
 
 | NOTE: The function will be called with whatever ctx the fut terminates with!!!
-then-void void(f fut ?t, cb fun-mut1<void, result<?t, exception>>) unsafe
+then-void void(f fut ?t, cb act void(result<?t, exception>)) unsafe
 	f.lk.ref-of-val acquire-lock
 	match f state
 	as fut-state-callbacks cbs
@@ -69,7 +69,7 @@ then-void void(f fut ?t, cb fun-mut1<void, result<?t, exception>>) unsafe
 forward-to void(from fut ?t, to fut ?t) unsafe
 	from then-void {to resolve-or-reject it}
 
-then fut ?out(f fut ?in, cb fun-ref1<?out, ?in>) trusted send<?out> send<?in>
+then fut ?out(f fut ?in, cb ref ?out(?in)) trusted send<?out> send<?in>
 	res = new-unresolved-fut<?out>
 	f then-void \result
 		match result
@@ -82,35 +82,33 @@ then fut ?out(f fut ?in, cb fun-ref1<?out, ?in>) trusted send<?out> send<?in>
 | TODO: rename to just 'then'
 | This requires that we be able to handle two expected types at once,
 | and choose just one based on the arity of a lambda.
-then2 fut ?out(f fut void, cb fun-ref0 ?out) send<?out>
+then2 fut ?out(f fut void, cb ref ?out()) send<?out>
 	f then<?out, void> \ignore
 		cb call-ref
 
-| Runs 'f' asynchronously.
-| Since 'f' is 'fun' and not 'fun-mut' it is guaranteed to not close over 'mut' data.
-| So we can run it in parallel.
-async fut ?t(f fun0 fut<?t>) trusted
+| Runs 'f' in parallel.
+async fut ?t(f fun fut ?t()) trusted
 	res = new-unresolved-fut<?t>
 	island = get-cur-island
 	island add-task task: island.new-exclusion, \
 		f.call forward-to res
 	res
 
-call-ref fut ?r(f fun-ref0 ?r) trusted send<?r>
+call-ref fut ?r(f ref ?r()) trusted send<?r>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
 	island add-task task: f.island-and-exclusion.exclusion, \
 		{f.fun.call forward-to res} catch {res reject it}
 	res
 
-call-ref fut ?r(f fun-ref1<?r, ?p0>, p0 ?p0) trusted send<?r> send<?p0>
+call-ref fut ?r(f ref ?r(?p0), p0 ?p0) trusted send<?r> send<?p0>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
 	island add-task task: f.island-and-exclusion.exclusion, \
 		{f.fun call p0 forward-to res} catch {res reject it}
 	res
 
-call-ref fut ?r(f fun-ref2<?r, ?p0, ?p1>, p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
+call-ref fut ?r(f ref ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
 	island add-task task: f.island-and-exclusion.exclusion, \

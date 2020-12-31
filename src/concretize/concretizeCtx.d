@@ -572,10 +572,10 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 		case shortSymAlphaLiteralValue("fun1"):
 		case shortSymAlphaLiteralValue("fun2"):
 		case shortSymAlphaLiteralValue("fun3"):
-		case shortSymAlphaLiteralValue("fun-mut0"):
-		case shortSymAlphaLiteralValue("fun-mut1"):
-		case shortSymAlphaLiteralValue("fun-mut2"):
-		case shortSymAlphaLiteralValue("fun-mut3"):
+		case shortSymAlphaLiteralValue("fun-act0"):
+		case shortSymAlphaLiteralValue("fun-act1"):
+		case shortSymAlphaLiteralValue("fun-act2"):
+		case shortSymAlphaLiteralValue("fun-act3"):
 			return BuiltinStructKind.fun;
 		case shortSymAlphaLiteralValue("fun-ptr0"):
 		case shortSymAlphaLiteralValue("fun-ptr1"):

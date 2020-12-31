@@ -1,5 +1,5 @@
 import
-	.bootstrap: == <= bool call drop fun-mut0 fun-mut1 nat none opt some value void
+	.bootstrap: == <= bool call drop nat none opt some value void
 	.cell: cell get set
 	.exceptions: assert forbid
 	.number-utils: + incr
@@ -16,17 +16,16 @@ cell-incr void(c cell nat)
 cell-add void(c cell nat, n nat)
 	c set: c.get + n
 
-
 | TODO: ALIAS
 iterator<?t> record mut
-	get-next fun-mut0 opt<?t>
+	get-next act opt ?t()
 
 next opt ?t(i iterator ?t)
 	i.get-next call
 
 | Iterator that can be started over from the beginning.
 stream<?t> record mut
-	get-iter fun-mut0 iterator<?t>
+	get-iter act iterator ?t()
 
 iter iterator ?t(s stream ?t)
 	s.get-iter call
@@ -64,13 +63,13 @@ tail range-nat(r range-nat)
 	r.empty? forbid
 	r.lo.incr to r.hi
 
-each void(s stream ?t, f fun-mut1<void, ?t>)
+each void(s stream ?t, f act void(?t))
 	s.iter each-recur f
 
-each void(r range-nat, f fun-mut1<void, nat>)
+each void(r range-nat, f act void(nat))
 	r.iter each-recur f
 
-each-recur void(i iterator ?t, f fun-mut1<void, ?t>)
+.each-recur void(i iterator ?t, f act void(?t))
 	match i next
 	as none
 		void
@@ -78,12 +77,12 @@ each-recur void(i iterator ?t, f fun-mut1<void, ?t>)
 		f call s.value
 		i each-recur f
 
-filter stream ?t(in stream ?t, pred fun-mut1<bool, ?t>)
+filter stream ?t(in stream ?t, pred act bool(?t))
 	stream: \
 		itr = in iter
-		{itr filter-helper pred} iterator
+		{itr filter-recur pred} iterator
 
-filter-helper opt ?t(i iterator ?t, pred fun-mut1<bool, ?t>)
+.filter-recur opt ?t(i iterator ?t, pred act bool(?t))
 	match i next
 	as none
 		none
@@ -93,4 +92,4 @@ filter-helper opt ?t(i iterator ?t, pred fun-mut1<bool, ?t>)
 			v some
 		else
 			| This one didn't satisfy the predicate, but keep trying until we get one or each the end
-			i filter-helper pred
+			i filter-recur pred

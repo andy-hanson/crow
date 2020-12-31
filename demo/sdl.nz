@@ -211,7 +211,7 @@ fail-sdl-error void(operation str) summon trusted
 	sdl-quit
 
 | TODO:MOVE
-repeat void(times nat, action fun-mut0 void)
+repeat void(times nat, action act void())
 	if times != 0
 		action call
 		times.decr repeat action

@@ -1,6 +1,6 @@
 import
 	.arr-utils: at empty? empty-arr first freeze map mut-arr new-mut-arr push tail unsafe-as-arr
-	.bootstrap: == arr bool call data fun-mut1 fun-mut2 has? nat none not opt size some todo value void
+	.bootstrap: == arr bool call data has? nat none not opt size some todo value void
 	.exceptions: forbid
 	.number-utils: incr
 
@@ -75,12 +75,12 @@ add void(m mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
 	m.keys push key
 	m.values push value
 
-map-values dict<?k, ?v-out>(d dict<?k, ?v-in>, mapper fun-mut1<?v-out, ?v-in>)
+map-values dict<?k, ?v-out>(d dict<?k, ?v-in>, mapper act ?v-out(?v-in))
 	new-values = d.values map mapper
 	| TODO: should be able to infer type arguments 
 	dict<?k, ?v-out>: d.keys, new-values
 
-each void(d dict<?k, ?v>, f fun-mut2<void, ?k, ?v>)
+each void(d dict<?k, ?v>, f act void(?k, ?v))
 	if d.empty? not
 		f call d.keys.first, d.values.first
 		| TODO: type arguments should be unnecessary

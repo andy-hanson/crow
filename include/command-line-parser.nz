@@ -2,13 +2,13 @@ import
 	.arr-utils
 		+ at empty? empty-arr fill-mut-arr find-index first freeze index-of remove-start set-at
 		slice-after slice-starting-at slice-up-to starts-with? tail
-	.bootstrap: == arr bool call false fun1 has? none opt size some str true value void
+	.bootstrap: == arr bool call false has? none opt size some str true value void
 	.cell: cell get set
 	.dict: add dict each empty-dict freeze mut-dict new-mut-dict
 	.exceptions: assert fail forbid
 
 | TODO: this would be neater if we had reflection!
-parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun1<?t, arr<opt<arr<str>>>>)
+parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt arr str))
 	parsed = args parse-cmd-line-args-dynamic
 	assert: parsed.nameless empty?, "Should be no nameless args"
 	assert: parsed.after empty?

@@ -1,6 +1,6 @@
 import
 	.bootstrap
-		== atomic-bool bool by-val call drop false fun0 hard-assert hard-fail hard-forbid is-locked lock nat
+		== atomic-bool bool by-val call drop false hard-assert hard-fail hard-forbid is-locked lock nat
 		noctx-decr noctx-incr not ptr ptr-to ref-of-val true value void wrap-mul
 	.posix: pthread-yield usleep
 
@@ -49,7 +49,7 @@ yield-thread void() noctx unsafe
 release-lock void(l lock) noctx unsafe
 	l.is-locked.ref-of-val must-unset
 
-with-lock ?t(l lock, f fun0 ?t) trusted
+with-lock ?t(l lock, f fun ?t()) trusted
 	l acquire-lock
 	res = f call
 	l release-lock

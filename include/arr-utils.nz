@@ -1,8 +1,8 @@
 import
 	.alloc: alloc
 	.bootstrap
-		+ - == != < <= > >= ? and arr bool byte by-val call data deref drop false fun-mut1
-		fun-mut2 hard-assert hard-fail hard-forbid incr nat noctx-decr noctx-incr none not null
+		+ - == != < <= > >= ? and arr bool byte by-val call data deref drop false
+		hard-assert hard-fail hard-forbid incr nat noctx-decr noctx-incr none not null
 		opt or ptr ptr-cast ref-of-ptr set size size-of some true void wrap-mul
 	.exceptions: assert forbid
 	.number-utils: + - * / decr incr
@@ -46,7 +46,7 @@ first ?t(a arr ?t)
 	forbid: a empty?
 	a at 0
 
-first-some opt ?out(a arr ?in, cb fun-mut1<opt ?out, ?in>)
+first-some opt ?out(a arr ?in, cb act opt ?out(?in))
 	if a empty?
 		none
 	else
@@ -216,7 +216,7 @@ noctx-remove-unordered-at-index ?t(a mut-arr ?t, index nat) noctx unsafe
 	res
 
 
-some? bool(a arr ?t, pred fun-mut1<bool, ?t>)
+some? bool(a arr ?t, pred act bool(?t))
 	a.empty?.not and: (pred call a.first or: a.tail some? pred)
 
 | TODO: only written this way to be `noctx`, else could defer to `some?`
@@ -346,16 +346,16 @@ reduce-size-if-more-than void(a mut-arr ?t, new-size nat)
 	if new-size < a.size
 		a set-size new-size
 
-fold ?a(val ?a, a arr ?b, combine fun-mut2<?a, ?a, ?b>)
+fold ?a(val ?a, a arr ?b, combine act ?a(?a, ?b))
 	if a empty?
 		val
 	else
 		combine call val, a.first fold a.tail, combine
 
-make-arr arr ?t(size nat, f fun-mut1<?t, nat>)
+make-arr arr ?t(size nat, f act ?t(nat))
 	size make-mut-arr f freeze
 
-make-mut-arr mut-arr ?t(size nat, f fun-mut1<?t, nat>) trusted
+make-mut-arr mut-arr ?t(size nat, f act ?t(nat)) trusted
 	res = new-uninitialized-mut-arr<?t>: size
 	res make-mut-arr-worker 0, f
 	res
@@ -368,7 +368,7 @@ fill-mut-arr mut-arr ?t(size nat, value ?t)
 	size make-mut-arr \ignore
 		value
 
-make-mut-arr-worker void(m mut-arr ?t, i nat, f fun-mut1<?t, nat>)
+make-mut-arr-worker void(m mut-arr ?t, i nat, f act ?t(nat))
 	if i != m.size
 		m set-at: i, f call i
 		m make-mut-arr-worker i.incr, f
@@ -377,30 +377,30 @@ to-mut-arr mut-arr ?t(a arr ?t)
 	a.size make-mut-arr<?t> \i
 		a at i
 
-each void(a arr ?t, f fun-mut1<void, ?t>)
+each void(a arr ?t, f act void(?t))
 	if a.empty? not
 		f call a.first
 		a.tail each f
 
-each void(a mut-arr ?t, f fun-mut1<void, ?t>) trusted
+each void(a mut-arr ?t, f act void(?t)) trusted
 	was-frozen? = a.frozen?
 	a set-frozen? true
 	a.temp-as-arr each f
 	a set-frozen? was-frozen?
 
-each-with-index void(a arr ?t, f fun-mut2<void, ?t, nat>)
+each-with-index void(a arr ?t, f act void(?t, nat))
 	a each-with-index-recur f, 0
 
-each-with-index-recur void(a arr ?t, f fun-mut2<void, ?t, nat>, n nat)
+each-with-index-recur void(a arr ?t, f act void(?t, nat), n nat)
 	if n != a.size
 		f call (a at n), n
 		a each-with-index-recur f, n.incr
 
-map arr ?out(a arr ?in, mapper fun-mut1<?out, ?in>) trusted
+map arr ?out(a arr ?in, mapper act ?out(?in)) trusted
 	a.size make-arr \i
 		mapper call: a at i
 
-flat-map arr ?out(a arr ?in, mapper fun-mut1<arr ?out, ?in>) trusted
+flat-map arr ?out(a arr ?in, mapper act arr ?out(?in)) trusted
 	res = new-mut-arr<?out>
 	a each {res push-all: mapper call it}
 	res freeze
@@ -411,10 +411,10 @@ index-of opt nat(a arr ?t, value ?t) data<?t>
 r-index-of opt nat(a arr ?t, value ?t) data<?t>
 	a find-rindex {it == value}
 
-find-index opt nat(a arr ?t, pred fun-mut1<bool, ?t>)
+find-index opt nat(a arr ?t, pred act bool(?t))
 	a find-index-recur 0, pred
 
-find-index-recur opt nat(a arr ?t, index nat, pred fun-mut1<bool, ?t>)
+find-index-recur opt nat(a arr ?t, index nat, pred act bool(?t))
 	if index == a.size
 		none
 	elif pred call: a at index
@@ -422,12 +422,12 @@ find-index-recur opt nat(a arr ?t, index nat, pred fun-mut1<bool, ?t>)
 	else
 		a find-index-recur index.incr, pred
 
-find-rindex opt nat(a arr ?t, pred fun-mut1<bool, ?t>)
+find-rindex opt nat(a arr ?t, pred act bool(?t))
 	if a empty?
 		none
 	else
 		a find-rindex-recur a.size.decr, pred
-find-rindex-recur opt nat(a arr ?t, index nat, pred fun-mut1<bool, ?t>)
+find-rindex-recur opt nat(a arr ?t, index nat, pred act bool(?t))
 	if pred call: a at index
 		index some
 	elif index == 0

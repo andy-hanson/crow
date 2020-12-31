@@ -2,7 +2,7 @@ import
 	.alloc
 	.arr-utils: empty-arr map tail
 	.bootstrap
-		== != + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref drop false fun2
+		== != + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref drop false
 		fun-ptr2 fut get-ctx hard-assert int32 message nat noctx-decr noctx-incr null null?
 		ptr ptr-to ref-of-val set str todo to-int unsafe-to-nat value void
 	.cell: as-cell cell get
@@ -58,7 +58,7 @@ do-main fut exit-code(gctx global-ctx, island island, argc int32, argv ptr c-str
 	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val, log-ctx.ref-of-val
 	ctx-by-val = new-ctx: gctx, tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
-	add = as<fun2<fut<exit-code>, arr<c-str>, main-ptr>>: \all-args main-ptr
+	add = as<fun fut exit-code(arr c-str, main-ptr)>: \all-args main-ptr
 		add-first-task: all-args, main-ptr
 	all-args = arr: argc.to-int.unsafe-to-nat, argv
 	add call-with-ctx ctx, all-args, main-ptr

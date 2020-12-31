@@ -405,7 +405,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 				allocate(alloc, closure)));
 	}
 	if (e.kind == FunKind.ref_) {
-		// For a fun-ref this is the inner fun-mut type.
+		// For a fun-ref this is the inner 'act' type.
 		immutable Arr!ConcreteField fields = asRecord(body_(concreteStruct)).fields;
 		verify(size(fields) == 2);
 		immutable ConcreteField islandAndExclusionField = at(fields, 0);

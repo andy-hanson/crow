@@ -48,7 +48,7 @@ module(
 													to-union(log-level(), 1, call(fun-inst(name: warn), []))
 													string-lit("Logged twice")])
 											[]
-											fun-mut0(void())
+											fun-act0(void())
 											mut
 											void())])
 								call(
@@ -69,7 +69,7 @@ module(
 													to-union(log-level(), 1, call(fun-inst(name: warn), []))
 													string-lit("Logged never")])
 											[]
-											fun-mut0(void())
+											fun-act0(void())
 											mut
 											void())]))
 							call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)]))))))])

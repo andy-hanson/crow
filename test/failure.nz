@@ -25,7 +25,7 @@ body
 			message = output-path.base-name + " was not as expected. actual:\n" + actual
 			new-arr failure: original-path, message
 
-flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper fun-mut1<arr<?out>, ?in>) trusted
+flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper act arr<?out>(?in)) trusted
 	res = new-mut-arr<?out>
 	a each \x
 		if res.size < max-size
@@ -42,7 +42,7 @@ failure record
 	path str
 	message str
 
-first-failures result<str, arr failure>(a result<str, arr failure>, b fun0 result<str, arr failure>)
+first-failures result<str, arr failure>(a result<str, arr failure>, b fun result<str, arr failure>())
 	a-descr <- a
 	b-descr <- b call
 	ok: a-descr + "\n" + b-descr

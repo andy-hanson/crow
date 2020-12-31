@@ -1,8 +1,8 @@
 import
-	.bootstrap: call fun-mut0 fun-mut1 fun-mut2 none opt some value
+	.bootstrap: call none opt some value
 	.exceptions: fail
 
-opt-join opt ?out(a opt ?a, b opt ?b, cb fun-mut2<?out, ?a, ?b>)
+opt-join opt ?out(a opt ?a, b opt ?b, cb act ?out(?a, ?b))
 	match a
 	as none
 		none
@@ -13,14 +13,14 @@ opt-join opt ?out(a opt ?a, b opt ?b, cb fun-mut2<?out, ?a, ?b>)
 		as some some-b
 			some: cb call some-a.value, some-b.value
 
-opt-map opt ?out(a opt ?in, cb fun-mut1<?out, ?in>)
+opt-map opt ?out(a opt ?in, cb act ?out(?in))
 	match a
 	as none
 		none
 	as some s
 		cb call s.value some
 
-opt-or ?t(a opt ?t, default fun-mut0 ?t)
+opt-or ?t(a opt ?t, default act ?t())
 	match a
 	as none
 		default call
@@ -34,7 +34,7 @@ force ?t(a opt ?t)
 	as some s
 		s value
 
-then opt ?out(a opt ?in, f fun-mut1<opt ?out, ?in>)
+then opt ?out(a opt ?in, f act opt ?out(?in))
 	match a
 	as none
 		none

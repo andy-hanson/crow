@@ -105,6 +105,7 @@ immutable(Type) typeFromAst2(Alloc)(ref Alloc alloc, ref ExprCtx ctx, ref immuta
 	return typeFromAst!Alloc(
 		alloc,
 		ctx.checkCtx.deref,
+		ctx.commonTypes,
 		typeAst,
 		ctx.structsAndAliasesDict,
 		immutable TypeParamsScope(typeParams(ctx.outermostFun)),

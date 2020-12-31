@@ -158,11 +158,14 @@ void addSigTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immut
 void addTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable TypeAst a) {
 	matchTypeAst!void(
 		a,
-		(ref immutable TypeAst.TypeParam it) {
-			add(alloc, tokens, immutable Token(Token.Kind.typeParamRef, it.range));
+		(ref immutable TypeAst.Fun) {
+			todo!void("!");
 		},
 		(ref immutable TypeAst.InstStruct it) {
 			addInstStructTokens(alloc, tokens, it);
+		},
+		(ref immutable TypeAst.TypeParam it) {
+			add(alloc, tokens, immutable Token(Token.Kind.typeParamRef, it.range));
 		});
 }
 
@@ -203,7 +206,7 @@ void addTypeParamsTokens(Alloc)(
 void addStructAliasTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable StructAliasAst a) {
 	add(alloc, tokens, immutable Token(Token.Kind.structDef, rangeAtName(a.range.start, a.name)));
 	addTypeParamsTokens(alloc, tokens, a.typeParams);
-	addInstStructTokens(alloc, tokens, a.target);
+	addTypeTokens(alloc, tokens, a.target);
 }
 
 void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable StructDeclAst a) {

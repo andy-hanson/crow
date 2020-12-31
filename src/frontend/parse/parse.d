@@ -54,18 +54,13 @@ import frontend.parse.lexer :
 	tryTake,
 	tryTakeIndentAfterNewline_topLevel;
 import frontend.parse.parseExpr : parseFunExprBody;
-import frontend.parse.parseType :
-	parseStructType,
-	parseType,
-	parseTypeInstStruct,
-	takeTypeArgsEnd,
-	tryParseTypeArgsBracketed;
+import frontend.parse.parseType : parseType, parseTypeInstStruct, takeTypeArgsEnd, tryParseTypeArgsBracketed;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, ArrWithSizeBuilder, finishArr;
 import util.collection.str : CStr, emptyStr, NulTerminatedStr, Str;
-import util.memory : nu;
+import util.memory : allocate, nu;
 import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.path : AllPaths, childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -785,7 +780,7 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 						todo!void("always indent alias");
 					if (has(purity))
 						todo!void("alias shouldn't have purity");
-					immutable TypeAst.InstStruct target = parseStructType(alloc, lexer);
+					immutable Ptr!TypeAst target = allocate(alloc, parseType(alloc, lexer));
 					takeDedentFromIndent1(alloc, lexer);
 					add(
 						alloc,

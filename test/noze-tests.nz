@@ -11,7 +11,7 @@ run-noze-tests result<str, arr failure>(path str, path-to-noze str, env environ,
 
 .list-tests arr str(path str) summon
 	res = new-mut-arr<str>
-	filter = as<fun-mut1<bool, str>>: \s
+	filter = as<act bool(str)>: \s
 		true
 	path each-child-recursive filter, \child
 		match child.base-name.get-extension

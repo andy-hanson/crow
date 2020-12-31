@@ -528,7 +528,7 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeName(writer, d.field.name);
 			writeStatic(writer, " of 'mut' type ");
 			writeType(writer, d.field.type);
-			writeStatic(writer, " (should it be a 'fun-mut'?)");
+			writeStatic(writer, " (should it be an 'act' or 'ref' fun?)");
 		},
 		(ref immutable Diag.LambdaWrongNumberParams d) {
 			writeStatic(writer, "expected a ");

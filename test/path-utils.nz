@@ -10,7 +10,7 @@ parent-path str(a str)
 child-path str(a str, child-name str)
 	a + "/" + child-name
 
-each-child-recursive void(path str, filter fun-mut1<bool, str>, f fun-mut1<void, str>) summon
+each-child-recursive void(path str, filter act bool(str), f act void(str)) summon
 	if path is-dir?
 		path.read-dir each \child-name
 			if filter call child-name

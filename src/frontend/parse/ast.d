@@ -48,9 +48,15 @@ immutable(RangeWithinFile) rangeOfNameAndRange(immutable NameAndRange a) {
 
 struct TypeAst {
 	@safe @nogc pure nothrow:
-	struct TypeParam {
+	struct Fun {
+		enum Kind {
+			act,
+			fun,
+			ref_,
+		}
 		immutable RangeWithinFile range;
-		immutable Sym name;
+		immutable Kind kind;
+		immutable Arr!TypeAst returnAndParamTypes;
 	}
 
 	struct InstStruct {
@@ -59,40 +65,53 @@ struct TypeAst {
 		immutable ArrWithSize!TypeAst typeArgs;
 	}
 
-	@trusted immutable this(immutable TypeParam a) { kind = Kind.typeParam; typeParam = a; }
+	struct TypeParam {
+		immutable RangeWithinFile range;
+		immutable Sym name;
+	}
+
+	@trusted immutable this(immutable Fun a) { kind = Kind.fun; fun = a; }
 	@trusted immutable this(immutable InstStruct a) { kind = Kind.instStruct; instStruct = a; }
+	@trusted immutable this(immutable TypeParam a) { kind = Kind.typeParam; typeParam = a; }
 
 	private:
 
 	enum Kind {
+		fun,
+		instStruct,
 		typeParam,
-		instStruct
 	}
 	immutable Kind kind;
 	union {
+		immutable Fun fun;
 		immutable TypeParam typeParam;
 		immutable InstStruct instStruct;
 	}
 }
+static assert(TypeAst.sizeof <= 40);
 
 @trusted T matchTypeAst(T)(
 	ref immutable TypeAst a,
+	scope T delegate(ref immutable TypeAst.Fun) @safe @nogc pure nothrow cbFun,
+	scope T delegate(ref immutable TypeAst.InstStruct) @safe @nogc pure nothrow cbInstStruct,
 	scope T delegate(ref immutable TypeAst.TypeParam) @safe @nogc pure nothrow cbTypeParam,
-	scope T delegate(ref immutable TypeAst.InstStruct) @safe @nogc pure nothrow cbInstStruct
 ) {
 	final switch (a.kind) {
-		case TypeAst.Kind.typeParam:
-			return cbTypeParam(a.typeParam);
+		case TypeAst.Kind.fun:
+			return cbFun(a.fun);
 		case TypeAst.Kind.instStruct:
 			return cbInstStruct(a.instStruct);
+		case TypeAst.Kind.typeParam:
+			return cbTypeParam(a.typeParam);
 	}
 }
 
 immutable(RangeWithinFile) range(ref immutable TypeAst a) {
-	return matchTypeAst(
+	return matchTypeAst!(immutable RangeWithinFile)(
 		a,
-		(ref immutable TypeAst.TypeParam it) => it.range,
-		(ref immutable TypeAst.InstStruct it) => it.range);
+		(ref immutable TypeAst.Fun it) => it.range,
+		(ref immutable TypeAst.InstStruct it) => it.range,
+		(ref immutable TypeAst.TypeParam it) => it.range);
 }
 
 struct BogusAst {}
@@ -407,7 +426,7 @@ struct StructAliasAst {
 	immutable Bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParamAst typeParams;
-	immutable TypeAst.InstStruct target;
+	immutable Ptr!TypeAst target;
 }
 
 enum ExplicitByValOrRef {
@@ -837,10 +856,12 @@ immutable(Sexpr) sexprOfSpecUseAst(Alloc)(ref Alloc alloc, ref immutable SpecUse
 immutable(Sexpr) sexprOfTypeAst(Alloc)(ref Alloc alloc, ref immutable TypeAst a) {
 	return matchTypeAst!(immutable Sexpr)(
 		a,
-		(ref immutable TypeAst.TypeParam p) =>
-			tataRecord(alloc, "type-param", [sexprOfRangeWithinFile(alloc, p.range), tataSym(p.name)]),
+		(ref immutable TypeAst.Fun) =>
+			todo!(immutable Sexpr)("!"),
 		(ref immutable TypeAst.InstStruct i) =>
-			sexprOfInstStructAst(alloc, i));
+			sexprOfInstStructAst(alloc, i),
+		(ref immutable TypeAst.TypeParam p) =>
+			tataRecord(alloc, "type-param", [sexprOfRangeWithinFile(alloc, p.range), tataSym(p.name)]));
 }
 
 immutable(Sexpr) sexprOfInstStructAst(Alloc)(ref Alloc alloc, ref immutable TypeAst.InstStruct a) {
