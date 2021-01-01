@@ -1,0 +1,85 @@
+import
+	..bootstrap: == != as-ref deref nat16 none null null? opt ptr ptr-to some str todo value
+	..arr-utils: +
+	..cell: cell get
+	..exceptions: assert
+	..opt-utils: force
+	..posix.extra-types: fd-t
+	..posix.netdb
+		addrinfo ai-addr ai-addrlen ai-family ai-next ai-passive ai-protocol ai-socktype
+		freeaddrinfo getaddrinfo
+	..posix.socket: af-inet af-unspec bind connect socket
+	..posix.socket-type: sock-stream
+	..posix.unistd: close
+	..str-conv: to-str
+	..str-utils: to-c-str
+	.posix-util: check-posix-error
+	.print: print
+
+uri record
+	host str
+	port nat16
+	path-and-query str
+	| Basically just ignored
+	after-hash str
+
+| Returns fd of an an opened socket to uri
+connect-to-uri fd-t(u uri) trusted summon
+	hints = addrinfo: 0, af-unspec, sock-stream, 0, 0, null.as-ref, null, null
+	result = null cell<ptr<addrinfo>>
+	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
+	op-sock = result.get find-and-connect-working-socket
+	result.get freeaddrinfo
+	| TODO: handle failure
+	op-sock force
+
+.find-and-connect-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
+	if ap null?
+		none
+	else
+		a = ap deref
+		sock = socket: a.ai-family, a.ai-socktype, a.ai-protocol
+		print: "sock is " + sock.to-str
+		if sock == -1
+			| Ignore error and try again
+			a.ai-next find-and-connect-working-socket
+		else
+			err = sock connect a.ai-addr, a.ai-addrlen
+			print: "err is " + err.to-str
+			if err == -1
+				print: "connect() failed: "
+				check-posix-error: sock close
+				| Ignore error and try again
+				a.ai-next find-and-connect-working-socket
+			else
+				assert: err == 0
+				sock some
+
+bind-to-port fd-t(port str) unsafe summon
+	hints = addrinfo: ai-passive, af-inet, sock-stream, 0, 0, null.as-ref, null, null
+	result = null cell<ptr<addrinfo>>
+	check-posix-error: getaddrinfo: null, port.to-c-str, hints.ptr-to, result
+	op-sock = result.get find-and-bind-working-socket
+	result.get freeaddrinfo
+	match op-sock
+	as none
+		print: "Failed to bind to port " + port
+		todo
+	as some s
+		s.value
+
+.find-and-bind-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
+	if ap null?
+		none
+	else
+		a = ap deref
+		listen-fd = socket: a.ai-family, a.ai-socktype, 0
+		if listen-fd != -1
+			if listen-fd bind a.ai-addr, a.ai-addrlen == 0
+				print: "Connected!"
+				listen-fd some
+			else
+				check-posix-error: listen-fd close
+				a.ai-next find-and-bind-working-socket
+		else
+			a.ai-next find-and-bind-working-socket

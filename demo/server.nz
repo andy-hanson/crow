@@ -1,6 +1,9 @@
 import
 	alloc: memset unmanaged-alloc-elements
-	io: bind-to-port check-posix-error exit-code print
+	io.io: bind-to-port
+	io.posix-util: check-posix-error
+	io.print: print
+	io.process: exit-code
 	posix.extra-types: fd-t
 	posix.netinet.in: empty-sockaddr-in sockaddr-in
 	posix.socket: accept listen recv shutdown shut-rdwr sockaddr

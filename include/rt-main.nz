@@ -9,13 +9,15 @@ import
 	.exceptions: new-exception-ctx
 	.fut-low-level: must-be-resolved
 	.fut-utils: delay then2
-	.io: exit-code print-err print-err-no-newline
+	.io.print: print-err print-err-no-newline
+	.io.process: exit-code
 	.logging: new-log-ctx
 	.posix.errno: eagain einval esrch
 	.posix.pthread: pthread-create pthread-join pthread-t
 	.runtime
 		any-unhandled-exceptions? global-ctx new-ctx new-island set-islands thread-function
 		thread-local-stuff island
+	.sys.sysinfo: get-nprocs
 	.str-utils: to-str
 	.thread-utils: new-condition new-lock
 
@@ -26,8 +28,7 @@ main-ptr alias
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
 	drop: argv.deref to-str
 
-	| TODO: get-nprocs
-	n-threads = 1
+	n-threads = get-nprocs
 	gctx-by-val = as<by-val<global-ctx>>: global-ctx: new-lock, empty-arr, n-threads, new-condition, false, false
 	gctx = gctx-by-val ref-of-val
 	island-by-val = new-island: gctx, 0, n-threads

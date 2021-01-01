@@ -9,7 +9,7 @@ import
 		island-and-exclusion island-id lock message nat noctx-decr noctx-incr none not ok opt
 		ref-of-val result size some true value void
 	.exceptions: exception-ctx new-exception-ctx
-	.io: print-err print-err-no-newline
+	.io.print: print-err print-err-no-newline
 	.logging: default-log-handler log-ctx log-handler new-log-ctx set-handler
 	.mut-bag: add empty? head mut-bag mut-bag-node next-node new-mut-bag new-mut-bag-node set-head set-next-node value
 	.thread-utils
@@ -216,8 +216,6 @@ choose-task result<chosen-task, no-chosen-task>(gctx global-ctx) noctx unsafe
 		| this is fine as we're about to wait on a condition and will immediately wake up if so.)
 		| Need to do this here while we hold the lock
 		gctx set-n-live-threads gctx.n-live-threads.noctx-decr
-		| TODO:KILL
-		hard-assert: gctx.n-live-threads == 0
 		err: no-chosen-task: gctx.n-live-threads == 0
 	as some s
 		s.value ok
@@ -225,7 +223,6 @@ choose-task result<chosen-task, no-chosen-task>(gctx global-ctx) noctx unsafe
 	gctx.lk.ref-of-val release-lock
 
 	res
-
 
 choose-task-recur opt chosen-task(islands arr island, i nat) noctx unsafe
 	if i == islands.size

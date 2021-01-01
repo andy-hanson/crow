@@ -1,4 +1,9 @@
-import io .failure .path-utils
+import
+	io.environ: environ
+	io.print: print
+	io.process: exit-code spawn-and-wait-result stderr stdout
+	.failure: failure flat-map-with-max-size handle-output max-failures overwrite-output? print-tests? test-options
+	.path-utils: base-name each-child-recursive get-extension
 
 run-noze-tests result<str, arr failure>(path str, path-to-noze str, env environ, options test-options) summon
 	tests = path list-tests
@@ -14,7 +19,7 @@ run-noze-tests result<str, arr failure>(path str, path-to-noze str, env environ,
 	filter = as<act bool(str)>: \s
 		true
 	path each-child-recursive filter, \child
-		match child.base-name.get-extension
+		match child.base-name get-extension
 		as none
 			void
 		as some s

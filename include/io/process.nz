@@ -1,0 +1,181 @@
+import
+	..bootstrap
+		+ == <= and arr as-any-ptr as-ref bool by-val char c-str data int32
+		not null or ptr size str todo to-nat void
+	..arr-utils
+		+ append data ensure-capacity fold freeze map mut-str new-mut-arr
+		prepend ref-of-val-at size unsafe-increase-size
+	..cell: cell get
+	..exceptions: assert fail
+	..number-utils: + to-nat
+	..posix.bytes-types: zero
+	..posix.extra-types: fd-t
+	..posix.poll
+		fd has-pollin? has-pollerr? has-pollhup? has-pollnval? has-pollout? has-pollpri? poll
+		pollfd pollin revents
+	..posix.spawn
+		posix-spawn posix-spawn-file-actions-addclose posix-spawn-file-actions-adddup2
+		posix-spawn-file-actions-init posix-spawn-file-actions-t
+	..posix.stdio: stderr stdout
+	..posix.types: pid-t
+	..posix.unistd: close pipe pipes read read-pipe write-pipe
+	..posix.wait: status-t waitpid w-exit-status w-if-continued w-if-exited w-if-signaled w-if-stopped w-term-sig
+	..str-conv: to-str
+	..str-utils: to-c-str
+	.environ: convert-environ environ
+	.file: is-file?
+	.posix-util: check-posix-error
+	.print: print
+
+exit-code alias
+	int32
+
+process-result record
+	exit-code exit-code
+	stdout str
+	stderr str
+
+spawn-and-wait-result process-result(exe str, args arr str, environ environ) trusted summon
+	print: "spawn-and-wait-result: " + exe fold args, \a b
+		a + " " + b
+
+	| TODO: kill, handle that error properly
+	if exe is-file?
+		exe-c-str = exe.to-c-str
+		exe-c-str spawn-and-wait-result (exe-c-str convert-args args), environ.convert-environ
+	else
+		fail: exe + " is not a file"
+
+| This one shares stdout and stderr with parent process
+spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
+	| TODO: kill, handle that error properly
+	if exe is-file?
+		| First argument should be the executable path
+		| TODO: &to-c-str
+		exe-c-str = exe.to-c-str
+		exe-c-str spawn-and-wait (exe-c-str convert-args args), environ.convert-environ
+	else
+		fail: exe + " is not a file"
+
+.convert-args ptr c-str(exe-c-str c-str, args arr str)
+	data: exe-c-str prepend: args map {it.to-c-str} append null
+
+spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
+	stdout-pipes = make-pipes
+	stderr-pipes = make-pipes
+
+	| TODO: Neater, move to own function
+	actions = posix-spawn-file-actions-t: 0, 0, null, zero
+	check-posix-error: actions posix-spawn-file-actions-init
+	check-posix-error: actions posix-spawn-file-actions-addclose stdout-pipes.write-pipe
+	check-posix-error: actions posix-spawn-file-actions-addclose stderr-pipes.write-pipe
+	check-posix-error: actions posix-spawn-file-actions-adddup2 stdout-pipes.read-pipe, stdout
+	check-posix-error: actions posix-spawn-file-actions-adddup2 stderr-pipes.read-pipe, stderr
+	check-posix-error: actions posix-spawn-file-actions-addclose stdout-pipes.read-pipe
+	check-posix-error: actions posix-spawn-file-actions-addclose stderr-pipes.read-pipe
+
+	pid-cell = 0 cell<pid-t>
+	check-posix-error: posix-spawn: pid-cell, exe, actions, null, args, environ
+	pid = pid-cell.get
+
+	| Close child-side of pipes (from this process, child still has them)
+	check-posix-error: stdout-pipes.read-pipe close
+	check-posix-error: stderr-pipes.read-pipe close
+
+	| Read from pipes
+	stdout-builder = new-mut-arr<char>
+	stderr-builder = new-mut-arr<char>
+	keep-polling: stdout-pipes.write-pipe, stderr-pipes.write-pipe, stdout-builder, stderr-builder
+
+	exit-code = pid wait-and-get-exit-code
+
+	process-result: exit-code, stdout-builder.freeze, stderr-builder.freeze
+
+.make-pipes pipes() summon
+	res = pipes: 0, 0
+	check-posix-error: res pipe
+	res
+
+.keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, stderr-builder mut-str) summon unsafe
+	poll-fds = new-arr<by-val<pollfd>> (pollfd: stdout-pipe, pollin, 0), (pollfd: stderr-pipe, pollin, 0)
+	stdout-pollfd = poll-fds ref-of-val-at 0
+	stderr-pollfd = poll-fds ref-of-val-at 1
+	| timeout == -1 means we block
+	n-pollfds-with-events = poll: poll-fds.data, poll-fds.size, -1
+	if n-pollfds-with-events == 0
+		| TODO: is this even possible to reach? I think we always get has-pollhup? instead.
+		void
+	else
+		a = stdout-pollfd handle-revents stdout-builder
+		b = stderr-pollfd handle-revents stderr-builder
+		assert: a.any?.to-nat + b.any?.to-nat == n-pollfds-with-events.to-nat
+		| Apparently stdout and stderr can hang up at slightly different times.
+		if not: a.hung-up? and b.hung-up?
+			keep-polling: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
+
+.handle-revents-result record
+	had-pollin? bool
+	hung-up? bool
+
+.any? bool(r handle-revents-result)
+	r.had-pollin? or r.hung-up?
+
+.handle-revents handle-revents-result(pollfd pollfd, builder mut-str) summon
+	revents = pollfd revents
+	had-pollin? = revents has-pollin?
+	if had-pollin?
+		pollfd.fd read-to-buffer-until-eof builder
+	hung-up? = revents has-pollhup?
+	if revents.has-pollpri? or revents.has-pollout? or revents.has-pollerr? or revents.has-pollnval?
+		todo
+	| TODO: shouldn't need parens?
+	handle-revents-result: had-pollin?, hung-up?
+
+.read-to-buffer-until-eof void(fd fd-t, buffer mut-str) trusted summon
+	read-max = 1024
+	| It will write to the end of the buffer. So we must ensure that it has enough space at the end.
+	buffer ensure-capacity: buffer.size + read-max
+	add-data-to = buffer.data + buffer.size
+	n-bytes-read = fd read add-data-to.as-any-ptr, read-max
+	if n-bytes-read == -1
+		| Error
+		todo
+	elif n-bytes-read == 0
+		| EOF, done
+		void
+	else
+		assert: n-bytes-read.to-nat <= read-max
+		buffer unsafe-increase-size n-bytes-read.to-nat
+		fd read-to-buffer-until-eof buffer
+
+| Args should be terminated by null.
+| Each entry in environ looks like "name=value", and final entry is null.
+| TODO: option to get stdout/stderr as a string rather than having them go to the terminal
+spawn-and-wait exit-code(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
+	pid-cell = 0 cell<pid-t>
+	check-posix-error: posix-spawn: pid-cell, exe, null.as-ref, null, args, environ
+	pid-cell.get wait-and-get-exit-code
+
+
+wait-and-get-exit-code exit-code(pid pid-t) summon unsafe
+	wait-status-cell = 0 cell<status-t>
+	res-pid = pid waitpid wait-status-cell, 0
+	wait-status = wait-status-cell.get
+	assert: res-pid == pid
+	if wait-status w-if-exited
+		wait-status w-exit-status
+	elif wait-status w-if-signaled
+		signal = wait-status w-term-sig
+		print: "Process terminated with signal " + signal.to-str
+		todo
+		| use `wait-status w-term-sig`
+		| and `wait-status w-core-dump`
+	elif wait-status w-if-stopped
+		print: "WAIT STOPPED"
+		todo
+		| use `wait-status w-stop-sig`
+	elif wait-status w-if-continued
+		todo
+	else
+		| What other statuses are there?
+		todo

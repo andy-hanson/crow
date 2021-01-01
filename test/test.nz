@@ -2,7 +2,10 @@
 
 import
 	command-line-parser
-	io
+	io.environ: get-environ
+	io.file: current-executable-path
+	io.print: print
+	io.process: exit-code
 	.failure
 	.lint
 	.noze-tests

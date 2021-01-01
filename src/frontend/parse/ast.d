@@ -747,7 +747,13 @@ immutable(Sexpr) sexprOfSpecDeclAst(Alloc)(ref Alloc alloc, ref immutable SpecDe
 }
 
 immutable(Sexpr) sexprOfStructAliasAst(Alloc)(ref Alloc alloc, ref immutable StructAliasAst a) {
-	return todo!(immutable Sexpr)("sexprOfImport");
+	return tataRecord(alloc, "alias", [
+		sexprOfRangeWithinFile(alloc, a.range),
+		tataBool(a.isPublic),
+		tataSym(a.name),
+		tataArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst it) =>
+			sexprOfTypeParamAst(alloc, it)),
+		sexprOfTypeAst(alloc, a.target)]);
 }
 
 immutable(Sexpr) sexprOfOptPurity(Alloc)(ref Alloc alloc, immutable Opt!PuritySpecifierAndRange purity) {

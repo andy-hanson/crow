@@ -1,4 +1,5 @@
-import io
+import
+	io.file: is-dir? read-dir
 
 parent-path str(a str)
 	match a r-index-of "/"

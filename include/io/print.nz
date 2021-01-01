@@ -1,0 +1,26 @@
+import
+	..bootstrap: == != as-any-ptr byte char data hard-assert size size-of str unsafe-to-int todo void
+	..posix.extra-types: fd-t
+	..posix.stdio: stderr stdout
+	..posix.unistd: write
+
+print-no-newline void(a str) summon trusted noctx
+	stdout write-no-newline a
+
+print void(a str) summon noctx
+	a print-no-newline
+	"\n" print-no-newline
+
+print-err-no-newline void(s str) summon trusted noctx
+	stderr write-no-newline s
+
+print-err void(s str) summon noctx
+	s print-err-no-newline
+	"\n" print-err-no-newline
+
+.write-no-newline void(fd fd-t, a str) summon unsafe noctx
+	hard-assert: size-of<char> == size-of<byte>
+	res = fd write a.data.as-any-ptr, a.size
+	if res != a.size.unsafe-to-int
+		| Retry?
+		todo

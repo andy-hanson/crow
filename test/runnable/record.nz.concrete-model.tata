@@ -536,63 +536,66 @@ program(
 				seq(
 					call(drop, [call(to-str, [call(deref, [param-ref(argv)])])])
 					let(
-						gctx-by-val
-						call(
-							as
-							[
-								call(
-									global-ctx
-									[
-										call(new-lock, [])
-										call(empty-arr, [])
-										1
-										call(new-condition, [])
-										call(false, [])
-										call(false, [])])])
+						n-threads
+						call(get-nprocs, [])
 						let(
-							gctx
-							call(ref-of-val, [local-ref(gctx-by-val)])
+							gctx-by-val
+							call(
+								as
+								[
+									call(
+										global-ctx
+										[
+											call(new-lock, [])
+											call(empty-arr, [])
+											local-ref(n-threads)
+											call(new-condition, [])
+											call(false, [])
+											call(false, [])])])
 							let(
-								island-by-val
-								call(new-island, [local-ref(gctx), 0, 1])
+								gctx
+								call(ref-of-val, [local-ref(gctx-by-val)])
 								let(
-									island
-									call(ref-of-val, [local-ref(island-by-val)])
-									seq(
-										call(
-											set-islands
-											[local-ref(gctx), call(arr, [1, call(ptr-to, [local-ref(island)])])])
-										let(
-											main-fut
+									island-by-val
+									call(new-island, [local-ref(gctx), 0, local-ref(n-threads)])
+									let(
+										island
+										call(ref-of-val, [local-ref(island-by-val)])
+										seq(
 											call(
-												do-main
-												[
-													local-ref(gctx)
-													local-ref(island)
-													param-ref(argc)
-													param-ref(argv)
-													param-ref(main-ptr)])
-											seq(
-												call(run-threads, [1, local-ref(gctx)])
-												cond(
-													call(any-unhandled-exceptions?, [local-ref(gctx)])
-													1
-													match(
-														call(must-be-resolved, [local-ref(main-fut)])
-														[
-															case(some(o), call(value, [local-ref(o)]))
-															case(
-																some(e)
-																seq(
+												set-islands
+												[local-ref(gctx), call(arr, [1, call(ptr-to, [local-ref(island)])])])
+											let(
+												main-fut
+												call(
+													do-main
+													[
+														local-ref(gctx)
+														local-ref(island)
+														param-ref(argc)
+														param-ref(argv)
+														param-ref(main-ptr)])
+												seq(
+													call(run-threads, [local-ref(n-threads), local-ref(gctx)])
+													cond(
+														call(any-unhandled-exceptions?, [local-ref(gctx)])
+														1
+														match(
+															call(must-be-resolved, [local-ref(main-fut)])
+															[
+																case(some(o), call(value, [local-ref(o)]))
+																case(
+																	some(e)
 																	seq(
-																		call(print-err-no-newline, [arr(0, 14)])
-																		call(
-																			print-err
-																			[
-																				call(
-																					message
-																					[call(value, [local-ref(e)])])]))
-																	1))]))))))))))))
+																		seq(
+																			call(print-err-no-newline, [arr(0, 14)])
+																			call(
+																				print-err
+																				[
+																					call(
+																						message
+																						[call(value, [local-ref(e)])])]))
+																		1))])))))))))))))
 		fun(false, drop, type(false, void), none, [param("_", type(false, arr))], expr-body(call(void, [])))
 		fun(false, void, type(false, void), none, [], builtin([]))
 		fun(
@@ -678,6 +681,7 @@ program(
 			[param(p, type(false, ptr)), param(offset, type(false, nat))]
 			builtin([type(false, char)]))
 		fun(false, deref, type(false, ptr), none, [param(p, type(false, ptr))], builtin([type(false, ptr)]))
+		fun(false, get-nprocs, type(false, nat), none, [], extern(false))
 		fun(
 			false
 			as
@@ -3507,15 +3511,11 @@ program(
 										case(
 											none
 											seq(
-												seq(
-													call(
-														set-n-live-threads
-														[
-															param-ref(gctx)
-															call(noctx-decr, [call(n-live-threads, [param-ref(gctx)])])])
-													call(
-														hard-assert
-														[call(==, [call(n-live-threads, [param-ref(gctx)]), 0])]))
+												call(
+													set-n-live-threads
+													[
+														param-ref(gctx)
+														call(noctx-decr, [call(n-live-threads, [param-ref(gctx)])])])
 												to-union(
 													1
 													call(

@@ -1,6 +1,7 @@
 import
 	alloc: cur-word gc-count gc-stats get-gc get-stats force-needs-gc set-hard-limit words-free words-used
-	io: exit-code print
+	io.print: print
+	io.process: exit-code
 
 main fut exit-code(_ arr str) summon unsafe
 	gc = get-gc

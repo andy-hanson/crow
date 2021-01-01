@@ -152,7 +152,6 @@ str alias
 c-str alias
 	ptr char
 
-
 region bool
 
 bool builtin

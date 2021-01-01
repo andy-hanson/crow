@@ -1,5 +1,5 @@
 file-ast(
-	imports: ports(range(0, 23), [import-ast(0, "/io", some([exit-code]))])
+	imports: ports(range(0, 31), [import-ast(0, "/io/process", some([exit-code]))])
 	specs: []
 	aliases: []
 	structs: []
@@ -7,33 +7,33 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(23, 52)
+				range(31, 60)
 				main
-				inststruct(range(28, 41), name-range(28, fut), [inststruct(range(32, 41), name-range(32, exit-code))])
+				inststruct(range(36, 49), name-range(36, fut), [inststruct(range(40, 49), name-range(40, exit-code))])
 				[
 					param(
-						range(42, 51)
+						range(50, 59)
 						none
-						inststruct(range(44, 51), name-range(44, arr), [inststruct(range(48, 51), name-range(48, str))]))])
+						inststruct(range(52, 59), name-range(52, arr), [inststruct(range(56, 59), name-range(56, str))]))])
 			summon: true
 			body: seq-ast(
-				call(infix, name-range(66, log), [], [info, literal("Logged once")])
+				call(infix, name-range(74, log), [], [info, literal("Logged once")])
 				let(
-					name-range(85, lh)
+					name-range(93, lh)
 					get-log-handler
 					let(
-						name-range(107, doubler)
+						name-range(115, doubler)
 						call(
 							prefix
-							name-range(117, as)
-							[inststruct(range(120, 131), name-range(120, log-handler))]
-							[lambda([name-range(135, logged)])])
+							name-range(125, as)
+							[inststruct(range(128, 139), name-range(128, log-handler))]
+							[lambda([name-range(143, logged)])])
 						seq-ast(
 							seq-ast(
-								call(infix, name-range(185, with-log-handler), [], [doubler, lambda([])])
+								call(infix, name-range(193, with-log-handler), [], [doubler, lambda([])])
 								call(
 									infix
-									name-range(241, with-log-handler)
+									name-range(249, with-log-handler)
 									[]
-									[lambda([name-range(231, it)]), lambda([])]))
-							call(infix, name-range(289, resolved), [], [literal(nat(0, false))]))))))])
+									[lambda([name-range(239, it)]), lambda([])]))
+							call(infix, name-range(297, resolved), [], [literal(nat(0, false))]))))))])

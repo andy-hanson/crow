@@ -1,0 +1,19 @@
+import
+	..bootstrap: == != hard-unreachable int void
+	..exceptions: assert
+	..posix.errno: errno
+	..posix.extra-types: err-t
+
+check-posix-error void(e err-t)
+	| TODO: throw an exception
+	assert: e == 0
+
+check-errno-if-neg-one void(e int) summon trusted
+	if e == -1
+		errno check-posix-error
+		hard-unreachable
+
+check-errno-if-not-zero void(e int) summon trusted
+	if e != 0
+		errno check-posix-error
+		hard-unreachable

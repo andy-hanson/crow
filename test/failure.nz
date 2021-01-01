@@ -1,4 +1,8 @@
-import io .path-utils
+import
+	io.file: try-read-file write-file
+	io.print: print print-no-newline
+	io.process: exit-code
+	.path-utils: base-name
 
 handle-output arr failure
 	original-path str

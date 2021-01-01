@@ -1,214 +1,214 @@
 file-ast(
-	imports: ports(range(0, 29), [import-ast(0, "/io", some([exit-code, print]))])
+	imports: ports(range(0, 48), [import-ast(0, "/io/print", some([print])), import-ast(0, "/io/process", some([exit-code]))])
 	specs: []
 	aliases: []
 	structs: [
 		struct(
-			range(151, 183)
+			range(170, 202)
 			true
 			[]
 			none
 			record(
 				none
 				[
-					field(range(169, 174), false, x, inststruct(range(171, 174), name-range(171, nat)))
-					field(range(176, 181), false, y, inststruct(range(178, 181), name-range(178, nat)))]))
+					field(range(188, 193), false, x, inststruct(range(190, 193), name-range(190, nat)))
+					field(range(195, 200), false, y, inststruct(range(197, 200), name-range(197, nat)))]))
 		struct(
-			range(183, 229)
+			range(202, 248)
 			true
 			[]
 			none
 			record(
-				some(by-val-ref(207, by-ref))
+				some(by-val-ref(226, by-ref))
 				[
-					field(range(215, 220), false, x, inststruct(range(217, 220), name-range(217, nat)))
-					field(range(222, 227), false, y, inststruct(range(224, 227), name-range(224, nat)))]))
-		struct(range(229, 253), true, [], none, record(none, []))
+					field(range(234, 239), false, x, inststruct(range(236, 239), name-range(236, nat)))
+					field(range(241, 246), false, y, inststruct(range(243, 246), name-range(243, nat)))]))
+		struct(range(248, 272), true, [], none, record(none, []))
 		struct(
-			range(253, 297)
+			range(272, 316)
 			true
 			[]
 			none
 			union(
-				[inststruct(range(269, 278), name-range(269, my-record)), inststruct(range(280, 295), name-range(280, my-other-record))]))]
+				[inststruct(range(288, 297), name-range(288, my-record)), inststruct(range(299, 314), name-range(299, my-other-record))]))]
 	funs: [
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(29, 58)
+				range(48, 77)
 				main
-				inststruct(range(34, 47), name-range(34, fut), [inststruct(range(38, 47), name-range(38, exit-code))])
+				inststruct(range(53, 66), name-range(53, fut), [inststruct(range(57, 66), name-range(57, exit-code))])
 				[
 					param(
-						range(48, 57)
+						range(67, 76)
 						none
-						inststruct(range(50, 57), name-range(50, arr), [inststruct(range(54, 57), name-range(54, str))]))])
+						inststruct(range(69, 76), name-range(69, arr), [inststruct(range(73, 76), name-range(73, str))]))])
 			summon: true
 			body: seq-ast(
 				seq-ast(seq-ast(test-compare-records, test-compare-byref-records), test-compare-unions)
-				call(prefix, name-range(138, resolved), [], [literal(nat(0, false))])))
+				call(prefix, name-range(157, resolved), [], [literal(nat(0, false))])))
 		fun-decl(
 			public?: true
-			sig: sig-ast(range(297, 324), test-compare-records, inststruct(range(318, 322), name-range(318, void)), [])
+			sig: sig-ast(range(316, 343), test-compare-records, inststruct(range(337, 341), name-range(337, void)), [])
 			summon: true
 			body: let(
-				name-range(333, a)
-				call(prefix, name-range(337, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])
+				name-range(352, a)
+				call(prefix, name-range(356, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])
 				let(
-					name-range(354, b)
-					call(prefix, name-range(358, my-record), [], [literal(nat(1, false)), literal(nat(3, false))])
+					name-range(373, b)
+					call(prefix, name-range(377, my-record), [], [literal(nat(1, false)), literal(nat(3, false))])
 					let(
-						name-range(375, c)
-						call(prefix, name-range(379, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])
+						name-range(394, c)
+						call(prefix, name-range(398, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])
 						let(
-							name-range(396, d)
-							call(prefix, name-range(400, my-record), [], [literal(nat(0, false)), literal(nat(3, false))])
+							name-range(415, d)
+							call(prefix, name-range(419, my-record), [], [literal(nat(0, false)), literal(nat(3, false))])
 							seq-ast(
 								seq-ast(
 									call(
 										prefix
-										name-range(417, print)
+										name-range(436, print)
 										[]
 										[
 											call(
 												infix
-												name-range(432, to-str)
+												name-range(451, to-str)
 												[]
-												[call(infix, name-range(426, <=>), [], [a, b])])])
+												[call(infix, name-range(445, <=>), [], [a, b])])])
 									call(
 										prefix
-										name-range(440, print)
+										name-range(459, print)
 										[]
 										[
 											call(
 												infix
-												name-range(455, to-str)
+												name-range(474, to-str)
 												[]
-												[call(infix, name-range(449, <=>), [], [a, c])])]))
+												[call(infix, name-range(468, <=>), [], [a, c])])]))
 								call(
 									prefix
-									name-range(463, print)
+									name-range(482, print)
 									[]
 									[
 										call(
 											infix
-											name-range(478, to-str)
+											name-range(497, to-str)
 											[]
-											[call(infix, name-range(472, <=>), [], [a, d])])])))))))
+											[call(infix, name-range(491, <=>), [], [a, d])])])))))))
 		fun-decl(
 			public?: true
-			sig: sig-ast(range(486, 519), test-compare-byref-records, inststruct(range(513, 517), name-range(513, void)), [])
+			sig: sig-ast(range(505, 538), test-compare-byref-records, inststruct(range(532, 536), name-range(532, void)), [])
 			summon: true
 			body: let(
-				name-range(528, a)
-				call(prefix, name-range(532, my-byref-record), [], [literal(nat(1, false)), literal(nat(2, false))])
+				name-range(547, a)
+				call(prefix, name-range(551, my-byref-record), [], [literal(nat(1, false)), literal(nat(2, false))])
 				let(
-					name-range(555, b)
-					call(prefix, name-range(559, my-byref-record), [], [literal(nat(1, false)), literal(nat(3, false))])
+					name-range(574, b)
+					call(prefix, name-range(578, my-byref-record), [], [literal(nat(1, false)), literal(nat(3, false))])
 					let(
-						name-range(582, c)
-						call(prefix, name-range(586, my-byref-record), [], [literal(nat(1, false)), literal(nat(2, false))])
+						name-range(601, c)
+						call(prefix, name-range(605, my-byref-record), [], [literal(nat(1, false)), literal(nat(2, false))])
 						let(
-							name-range(609, d)
+							name-range(628, d)
 							call(
 								prefix
-								name-range(613, my-byref-record)
+								name-range(632, my-byref-record)
 								[]
 								[literal(nat(0, false)), literal(nat(3, false))])
 							seq-ast(
 								seq-ast(
 									call(
 										prefix
-										name-range(636, print)
+										name-range(655, print)
 										[]
 										[
 											call(
 												infix
-												name-range(651, to-str)
+												name-range(670, to-str)
 												[]
-												[call(infix, name-range(645, <=>), [], [a, b])])])
+												[call(infix, name-range(664, <=>), [], [a, b])])])
 									call(
 										prefix
-										name-range(659, print)
+										name-range(678, print)
 										[]
 										[
 											call(
 												infix
-												name-range(674, to-str)
+												name-range(693, to-str)
 												[]
-												[call(infix, name-range(668, <=>), [], [a, c])])]))
+												[call(infix, name-range(687, <=>), [], [a, c])])]))
 								call(
 									prefix
-									name-range(682, print)
+									name-range(701, print)
 									[]
 									[
 										call(
 											infix
-											name-range(697, to-str)
+											name-range(716, to-str)
 											[]
-											[call(infix, name-range(691, <=>), [], [a, d])])])))))))
+											[call(infix, name-range(710, <=>), [], [a, d])])])))))))
 		fun-decl(
 			public?: true
-			sig: sig-ast(range(705, 731), test-compare-unions, inststruct(range(725, 729), name-range(725, void)), [])
+			sig: sig-ast(range(724, 750), test-compare-unions, inststruct(range(744, 748), name-range(744, void)), [])
 			summon: true
 			body: let(
-				name-range(740, a)
+				name-range(759, a)
 				call(
 					prefix
-					name-range(744, as)
-					[inststruct(range(747, 755), name-range(747, my-union))]
-					[call(prefix, name-range(758, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])])
+					name-range(763, as)
+					[inststruct(range(766, 774), name-range(766, my-union))]
+					[call(prefix, name-range(777, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])])
 				let(
-					name-range(775, b)
-					call(prefix, name-range(779, as), [inststruct(range(782, 790), name-range(782, my-union))], [my-other-record])
+					name-range(794, b)
+					call(prefix, name-range(798, as), [inststruct(range(801, 809), name-range(801, my-union))], [my-other-record])
 					let(
-						name-range(810, c)
+						name-range(829, c)
 						call(
 							prefix
-							name-range(814, as)
-							[inststruct(range(817, 825), name-range(817, my-union))]
-							[call(prefix, name-range(828, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])])
+							name-range(833, as)
+							[inststruct(range(836, 844), name-range(836, my-union))]
+							[call(prefix, name-range(847, my-record), [], [literal(nat(1, false)), literal(nat(2, false))])])
 						let(
-							name-range(845, d)
+							name-range(864, d)
 							call(
 								prefix
-								name-range(849, as)
-								[inststruct(range(852, 860), name-range(852, my-union))]
+								name-range(868, as)
+								[inststruct(range(871, 879), name-range(871, my-union))]
 								[
 									call(
 										prefix
-										name-range(863, my-record)
+										name-range(882, my-record)
 										[]
 										[literal(nat(1, false)), literal(nat(1, false))])])
 							seq-ast(
 								seq-ast(
 									call(
 										prefix
-										name-range(881, print)
+										name-range(900, print)
 										[]
 										[
 											call(
 												infix
-												name-range(896, to-str)
+												name-range(915, to-str)
 												[]
-												[call(infix, name-range(890, <=>), [], [a, b])])])
+												[call(infix, name-range(909, <=>), [], [a, b])])])
 									call(
 										prefix
-										name-range(904, print)
+										name-range(923, print)
 										[]
 										[
 											call(
 												infix
-												name-range(919, to-str)
+												name-range(938, to-str)
 												[]
-												[call(infix, name-range(913, <=>), [], [a, c])])]))
+												[call(infix, name-range(932, <=>), [], [a, c])])]))
 								call(
 									prefix
-									name-range(927, print)
+									name-range(946, print)
 									[]
 									[
 										call(
 											infix
-											name-range(942, to-str)
+											name-range(961, to-str)
 											[]
-											[call(infix, name-range(936, <=>), [], [a, d])])])))))))])
+											[call(infix, name-range(955, <=>), [], [a, d])])])))))))])

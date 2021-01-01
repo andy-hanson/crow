@@ -1,4 +1,8 @@
-import io .failure .path-utils
+import
+	io.file: read-file
+	io.print: print
+	.failure: failure flat-map-with-max-size max-failures print-tests? test-options
+	.path-utils: base-name each-child-recursive get-extension
 
 lint result<str, arr failure>(path str, options test-options) summon
 	files = path list-lintable-files

@@ -2,7 +2,7 @@ import
 	.arr-utils: +
 	.bootstrap: as-ref by-val call get-ctx log-ctx str uninitialized void
 	.exceptions: finally
-	.io: print
+	.io.print: print
 
 log-ctx record mut
 	by-ref

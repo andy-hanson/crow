@@ -1,0 +1,196 @@
+import
+	..bootstrap
+		+ == != < and any-ptr arr as as-any-ptr bits-and bit-shift-left bits-or bool byte
+		char c-str data false has? int32
+		nat16 nat32 none not null? opt ptr-cast ptr-cast-from-extern ptr-eq?
+		ref-eq? size size-of some str todo value void
+		wrap-add
+	..arr-utils: + data freeze mut-arr new-mut-arr new-uninitialized-mut-arr push size slice-up-to sort
+	..cell: cell get
+	..exceptions: assert forbid
+	..number-utils: to-int to-nat
+	..posix.bytes-types: zero
+	..posix.dirent: dir dirent opendir readdir-r
+	..posix.errno: enoent errno
+	..posix.fcntl: o-creat o-rdonly o-trunc o-wronly open
+	..posix.stat: empty-stat s-ifdir s-ifmt s-ifreg stat stat-t st-mode
+	..posix.types: ino-t off-t
+	..posix.unistd: close getcwd lseek read readlink write
+	..str-conv: to-str
+	..str-utils: to-c-str to-str
+	.posix-util: check-errno-if-neg-one check-posix-error
+	.print: print
+
+is-dir? bool(path str) summon
+	path.to-c-str is-dir?
+
+is-dir? bool(path c-str) summon
+	match path get-stat
+	as none
+		| raise exception -- path does not exist
+		todo
+	as some s
+		s.value.st-mode bits-and s-ifmt == s-ifdir
+
+is-file? bool(path str) summon
+	path.to-c-str is-file?
+
+is-file? bool(path c-str) summon
+	match path get-stat
+	as none
+		false
+	as some s
+		s.value.st-mode bits-and s-ifmt == s-ifreg
+
+| TODO: move to io.nz
+path-exists? bool(path c-str) summon
+	path.get-stat has?
+
+path-exists? bool(path str) summon
+	path.to-c-str path-exists?
+
+get-dirent-name str(d dirent) unsafe noctx
+	| TODO: this is offsetof(d, d-name)
+	name-offset = size-of<ino-t> wrap-add size-of<off-t> wrap-add size-of<nat16> wrap-add size-of<char>
+	name-ptr = d.as-any-ptr + name-offset
+	name-ptr.ptr-cast<char, byte> to-str
+
+seek-set int32()
+	0
+seek-cur int32()
+	1
+seek-end int32()
+	2
+
+read-dir arr str(path str) summon
+	path.to-c-str read-dir
+
+| Returns array of filenames in the directory.
+read-dir arr str(path c-str) trusted summon
+	dirp = path opendir
+	| TODO: handle errors
+	forbid: dirp.ptr-cast-from-extern<any-ptr, dir> null?
+	res = new-mut-arr<str>
+	dirp read-dir-recur res
+	res.freeze sort
+
+.read-dir-recur void(dirp dir, res mut-arr str) unsafe summon
+	| Initial value of entry / result should not matter
+	entry = dirent: 0, 0, 0, "\0", zero
+	| TODO: should not need a type argument here
+	result = entry cell<dirent>
+	err = dirp readdir-r entry, result
+	| TODO: handle error
+	assert: err == 0
+	if result.get.as-any-ptr.null? not
+		assert: result.get ref-eq? entry
+		name = entry.get-dirent-name
+		if name != "." and: name != ".."
+			res push entry.get-dirent-name
+		dirp read-dir-recur res
+
+read-link str(path str) summon trusted
+	| TODO: smart small and retry if necessAry
+	buff = 1000 new-uninitialized-mut-arr<char>
+	size = path.to-c-str readlink buff.data, buff.size
+	size check-errno-if-neg-one
+	buff.freeze slice-up-to size.to-nat
+
+current-executable-path str() summon trusted
+	"/proc/self/exe" read-link
+
+read-file str(path str) summon
+	match path try-read-file
+	as none
+		| TODO: don't print, warn
+		print: "file does not exist: " + path
+		""
+	as some s
+		s.value
+
+write-file void(path str, content str) summon
+	path.to-c-str write-file content
+
+write-file void(path c-str, content str) summon trusted
+	permission-rdwr = 6 as<nat32>
+	permission-rd = 4 as<nat32>
+	permission = (permission-rdwr bit-shift-left 6) bits-or (permission-rd bit-shift-left 3) bits-or permission-rd
+	flags = o-creat bits-or o-wronly bits-or o-trunc
+	fd = path open flags, permission
+	if fd == -1
+		print: "failed to open file for write: " + path.to-str
+		print: "errno: " + errno.to-str
+		print: "flags: " + flags.to-str
+		print: "permission: " + permission.to-str
+		todo
+	else
+		wrote-bytes = fd write content.data.ptr-cast<byte, char>, content.size
+		if wrote-bytes != content.size.to-int
+			if wrote-bytes == -1
+				todo
+			else
+				| didn't write all the bytes?
+				todo
+		err = fd close
+		if err != 0
+			todo
+
+try-read-file opt str(path str) summon
+	path.to-c-str try-read-file
+
+try-read-file opt str(path c-str) summon trusted
+	if path is-file?
+		fd = path open o-rdonly, 0
+		if fd == -1
+			if errno == enoent
+				none
+			else
+				print: "failed to open file " + path.to-str
+				todo
+		else
+			file-size = fd lseek 0, seek-end
+			| TODO: handle errors
+			forbid: file-size == -1
+			| TODO: this is just a sanity check
+			assert: file-size < 1000000000
+			| TODO: handle empty files
+			forbid: file-size == 0
+
+			| Go back to beginning
+			off = fd lseek 0, seek-set
+			| TODO: handle errors
+			assert: off == 0
+
+			| TODO: allocation can fail, then 'fd' is left open. Need finalizers
+			file-size-nat = file-size.to-nat
+			res = file-size-nat new-uninitialized-mut-arr<char>
+			n-bytes-read = fd read res.data.ptr-cast, file-size-nat
+			| TODO: handle errors
+			forbid: n-bytes-read == -1
+			assert: n-bytes-read == file-size
+			check-posix-error: fd close
+			res.freeze some
+	else
+		none
+
+get-cwd str() summon trusted
+	buff = 256 new-uninitialized-mut-arr<char>
+	b = buff.data getcwd buff.size
+	if b null?
+		todo
+	else
+		assert: b ptr-eq? buff.data
+		b to-str
+
+get-stat opt stat-t(path c-str) summon trusted
+	| Initial value doesn't really matter
+	s = empty-stat
+	err = path stat s
+	if err == 0
+		s some
+	else
+		assert: err == -1
+		if errno == enoent
+			none
+		else
+			todo
