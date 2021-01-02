@@ -67,7 +67,7 @@ import model.model :
 	body_,
 	CommonTypes,
 	decl,
-	ForcedByValOrRef,
+	ForcedByValOrRefOrNone,
 	FunBody,
 	FunDecl,
 	FunFlags,
@@ -94,6 +94,7 @@ import model.model :
 	Purity,
 	range,
 	RecordField,
+	RecordFlags,
 	setBody,
 	setTarget,
 	Sig,
@@ -746,16 +747,16 @@ void everyPair(T)(
 			cb(at(a, i), at(a, j));
 }
 
-immutable(Opt!ForcedByValOrRef) getForcedByValOrRef(ref immutable Opt!ExplicitByValOrRefAndRange e) {
+immutable(ForcedByValOrRefOrNone) getForcedByValOrRef(immutable Opt!ExplicitByValOrRefAndRange e) {
 	if (has(e))
 		final switch (force(e).byValOrRef) {
 			case ExplicitByValOrRef.byVal:
-				return some(ForcedByValOrRef.byVal);
+				return ForcedByValOrRefOrNone.byVal;
 			case ExplicitByValOrRef.byRef:
-				return some(ForcedByValOrRef.byRef);
+				return ForcedByValOrRefOrNone.byRef;
 		}
 	else
-		return none!ForcedByValOrRef;
+		return ForcedByValOrRefOrNone.none;
 }
 
 immutable(StructBody) checkRecord(Alloc)(
@@ -767,8 +768,8 @@ immutable(StructBody) checkRecord(Alloc)(
 	ref immutable StructDeclAst.Body.Record r,
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
-	immutable Opt!ForcedByValOrRef forcedByValOrRef = getForcedByValOrRef(r.explicitByValOrRef);
-	immutable Bool forcedByVal = Bool(has(forcedByValOrRef) && force(forcedByValOrRef) == ForcedByValOrRef.byVal);
+	immutable ForcedByValOrRefOrNone forcedByValOrRef = getForcedByValOrRef(r.explicitByValOrRef);
+	immutable Bool forcedByVal = immutable Bool(forcedByValOrRef == ForcedByValOrRefOrNone.byVal);
 	immutable Arr!RecordField fields = mapWithIndex(
 		alloc,
 		r.fields,
@@ -802,7 +803,9 @@ immutable(StructBody) checkRecord(Alloc)(
 				immutable Diag(immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.field, a.name)));
 	});
 
-	return immutable StructBody(immutable StructBody.Record(forcedByValOrRef, fields));
+	return immutable StructBody(immutable StructBody.Record(
+		immutable RecordFlags(has(r.packed), forcedByValOrRef),
+		fields));
 }
 
 immutable(StructBody) checkUnion(Alloc)(
@@ -976,9 +979,7 @@ immutable(ArrWithSize!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 }
 
 immutable(Bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
-	return immutable Bool(
-		empty(record.fields) ||
-		(has(record.forcedByValOrRef) && force(record.forcedByValOrRef) == ForcedByValOrRef.byVal));
+	return immutable Bool(empty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal);
 }
 
 immutable(FunsAndMap) checkFuns(Alloc, SymAlloc)(

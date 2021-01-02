@@ -30,7 +30,7 @@ import model.model :
 	CommonTypes,
 	decl,
 	Expr,
-	ForcedByValOrRef,
+	ForcedByValOrRefOrNone,
 	FunBody,
 	FunDecl,
 	FunInst,
@@ -348,7 +348,7 @@ immutable(ConcreteType) concreteTypeFromClosure(Alloc)(
 				return worsePurity(p, purity(f.type));
 			});
 		Ptr!ConcreteStruct cs = nuMut!ConcreteStruct(alloc, purity, source);
-		lateSet(cs.info_, getConcreteStructInfoForFields(none!ForcedByValOrRef, closureFields));
+		lateSet(cs.info_, getConcreteStructInfoForFields(ForcedByValOrRefOrNone.none, closureFields));
 		add(alloc, ctx.allConcreteStructs, castImmutable(cs));
 		// TODO: consider passing closure by value
 		return immutable ConcreteType(True, castImmutable(cs));
@@ -418,24 +418,23 @@ size_t sizeFromConcreteFields(immutable Arr!ConcreteField fields) {
 }
 
 immutable(Bool) getDefaultIsPointerForFields(
-	immutable Opt!ForcedByValOrRef forcedByValOrRef,
+	immutable ForcedByValOrRefOrNone forcedByValOrRef,
 	immutable size_t sizeBytes,
 	immutable Bool isSelfMutable,
 ) {
-	if (has(forcedByValOrRef))
-		final switch (force(forcedByValOrRef)) {
-			case ForcedByValOrRef.byVal:
-				verify(!isSelfMutable);
-				return False;
-			case ForcedByValOrRef.byRef:
-				return True;
-		}
-	else
-		return Bool(isSelfMutable || sizeBytes > (void*).sizeof * 2);
+	final switch (forcedByValOrRef) {
+		case ForcedByValOrRefOrNone.none:
+			return immutable Bool(isSelfMutable || sizeBytes > (void*).sizeof * 2);
+		case ForcedByValOrRefOrNone.byVal:
+			verify(!isSelfMutable);
+			return False;
+		case ForcedByValOrRefOrNone.byRef:
+			return True;
+	}
 }
 
 immutable(ConcreteStructInfo) getConcreteStructInfoForFields(
-	immutable Opt!ForcedByValOrRef forcedByValOrRef,
+	immutable ForcedByValOrRefOrNone forcedByValOrRef,
 	immutable Arr!ConcreteField fields,
 ) {
 	immutable size_t sizeBytes = sizeFromConcreteFields(fields);
@@ -467,7 +466,7 @@ void initializeConcreteStruct(Alloc)(
 		(ref immutable StructBody.Builtin) => True,
 		(ref immutable StructBody.ExternPtr) => True,
 		(ref immutable StructBody.Record it) =>
-			immutable Bool(!(has(it.forcedByValOrRef) && force(it.forcedByValOrRef) == ForcedByValOrRef.byVal)),
+			immutable Bool(it.flags.forcedByValOrRef != ForcedByValOrRefOrNone.byVal),
 		(ref immutable StructBody.Union) => True);
 	lateSet(res.info_, immutable ConcreteStructInfo(
 		immutable ConcreteStructBody(immutable ConcreteStructBody.Record(emptyArr!ConcreteField)),
@@ -501,7 +500,7 @@ void initializeConcreteStruct(Alloc)(
 						safeSizeTToU8(index),
 						f.isMutable,
 						getConcreteType(alloc, ctx, f.type, typeArgsScope)));
-			return getConcreteStructInfoForFields(r.forcedByValOrRef, fields);
+			return getConcreteStructInfoForFields(r.flags.forcedByValOrRef, fields);
 		},
 		(ref immutable StructBody.Union u) {
 			immutable Arr!ConcreteType members = map!ConcreteType(alloc, u.members, (ref immutable Ptr!StructInst si) =>

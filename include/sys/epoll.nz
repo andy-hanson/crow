@@ -1,0 +1,28 @@
+import
+	..bootstrap: nat32 nat64 ptr
+	..posix.c-types: c-int
+	..posix.extra-types: err-t fd-t
+
+epoll-create1 fd-t(flags c-int) unsafe noctx extern<"epoll_create1"> summon
+
+epoll-event record
+	packed
+	by-val
+	events nat32
+	data nat64
+
+epoll-ctl err-t(epfd fd-t, op c-int, fd fd-t, event ptr epoll-event) unsafe noctx extern<"epoll_ctl"> summon
+
+epoll-wait err-t(epfd fd-t, events ptr epoll-event, max-events c-int, timeout c-int) unsafe noctx extern<"epoll_wait"> summon
+
+epollin nat32() noctx
+	1
+epollerr nat32() noctx
+	8
+epollhup nat32() noctx
+	0x10
+epollet nat32() noctx
+	0x80000000
+
+epoll-ctl-add c-int() noctx
+	1

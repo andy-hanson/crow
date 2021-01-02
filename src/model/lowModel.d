@@ -9,10 +9,13 @@ import model.concreteModel :
 	ConcreteLocal,
 	ConcreteParam,
 	ConcreteStruct,
+	ConcreteStructSource,
 	isArr,
+	matchConcreteStructSource,
 	name;
 import model.constant : Constant;
-import util.bools : Bool;
+import model.model : asRecord, body_;
+import util.bools : Bool, False;
 import util.collection.arr : Arr;
 import util.collection.arrUtil : slice;
 import util.collection.fullIndexDict : FullIndexDict;
@@ -30,8 +33,20 @@ struct LowExternPtrType {
 }
 
 struct LowRecord {
+	@safe @nogc pure nothrow:
+
 	immutable Ptr!ConcreteStruct source;
 	immutable Arr!LowField fields;
+
+	//TODO:MOVE
+	immutable(Bool) packed() immutable {
+		return matchConcreteStructSource(
+			source.source,
+			(ref immutable ConcreteStructSource.Inst it) =>
+				asRecord(body_(it.inst)).flags.packed,
+			(ref immutable ConcreteStructSource.Lambda) =>
+				False);
+	}
 }
 
 immutable(Bool) isArr(ref immutable LowRecord a) {

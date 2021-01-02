@@ -8,10 +8,10 @@ import
 
 | Corresponds to /usr/include/x86_64-linux-gnu/bits/socket.h
 
-af-unspec int32()
+af-unspec int32() noctx
 	0
 
-af-inet int32()
+af-inet int32() noctx
 	2
 
 sockaddr extern-ptr
@@ -30,9 +30,9 @@ listen err-t(fd fd-t, n int32) unsafe extern<"listen"> noctx summon
 
 shutdown err-t(fd fd-t, how int32) unsafe extern<"shutdown"> noctx summon
 
-shut-rd int32()
+shut-rd int32() noctx
 	0
-shut-wr int32()
+shut-wr int32() noctx
 	1
-shut-rdwr int32()
+shut-rdwr int32() noctx
 	2

@@ -15,6 +15,7 @@ import frontend.parse.ast :
 	ParamAst,
 	PuritySpecifier,
 	PuritySpecifierAndRange,
+	RecordModifiers,
 	SigAst,
 	SpecBodyAst,
 	SpecDeclAst,
@@ -464,41 +465,47 @@ immutable(Opt!NonFunKeywordAndIndent) parseNonFunKeyword(Alloc, SymAlloc)(ref Al
 	}
 }
 
-immutable(StructDeclAst.Body.Record) parseFields(Alloc, SymAlloc)(
+immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
 	ArrBuilder!(StructDeclAst.Body.Record.Field) res;
-	immutable(StructDeclAst.Body.Record) recur(immutable Opt!ExplicitByValOrRefAndRange prevExplicitByValOrRef) {
+	pure immutable(StructDeclAst.Body.Record) recur(immutable RecordModifiers prevModifiers) {
 		immutable Pos start = curPos(lexer);
 		immutable Sym name = takeName(alloc, lexer);
-		immutable Opt!ExplicitByValOrRefAndRange newExplicitByValOrRef = () {
+		immutable RecordModifiers newModifiers = () {
 			switch (name.value) {
 				case shortSymAlphaLiteralValue("by-val"):
 				case shortSymAlphaLiteralValue("by-ref"):
 					immutable ExplicitByValOrRef value = name.value == shortSymAlphaLiteralValue("by-val")
 						? ExplicitByValOrRef.byVal
 						: ExplicitByValOrRef.byRef;
-					if (has(prevExplicitByValOrRef) || !arrBuilderIsEmpty(res))
+					if (has(prevModifiers.explicitByValOrRef) || !arrBuilderIsEmpty(res))
 						todo!void("by-val or by-ref on later line");
-					return some(immutable ExplicitByValOrRefAndRange(start, value));
+					return immutable RecordModifiers(prevModifiers.packed, some(immutable ExplicitByValOrRefAndRange(start, value)));
+				case shortSymAlphaLiteralValue("packed"):
+					if (has(prevModifiers.packed) || !arrBuilderIsEmpty(res))
+						todo!void("'packed' on later line");
+					return immutable RecordModifiers(some(start), prevModifiers.explicitByValOrRef);
 				default:
 					takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
 					immutable Bool isMutable = tryTake(lexer, "mut ");
 					immutable TypeAst type = parseType(alloc, lexer);
 					add(alloc, res, immutable StructDeclAst.Body.Record.Field(
 						range(lexer, start), isMutable, name, type));
-					return prevExplicitByValOrRef;
+					return prevModifiers;
 			}
 		}();
 		final switch (takeNewlineOrSingleDedent(alloc, lexer)) {
 			case NewlineOrDedent.newline:
-				return recur(newExplicitByValOrRef);
+				return recur(newModifiers);
 			case NewlineOrDedent.dedent:
-				return StructDeclAst.Body.Record(newExplicitByValOrRef, finishArr(alloc, res));
+				return immutable StructDeclAst.Body.Record(
+					newModifiers.any() ? some(allocate(alloc, newModifiers)) : none!(Ptr!RecordModifiers),
+					finishArr(alloc, res));
 		}
 	}
-	return recur(none!ExplicitByValOrRefAndRange);
+	return recur(immutable RecordModifiers(none!Pos, none!ExplicitByValOrRefAndRange));
 }
 
 immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
@@ -835,9 +842,9 @@ void parseSpecOrStructOrFun(Alloc, SymAlloc)(
 								return immutable StructDeclAst.Body(immutable StructDeclAst.Body.ExternPtr());
 							case NonFunKeyword.record:
 								return immutable StructDeclAst.Body(tookIndent
-									? parseFields(alloc, lexer)
+									? parseRecordBody(alloc, lexer)
 									: immutable StructDeclAst.Body.Record(
-										none!ExplicitByValOrRefAndRange,
+										none!(Ptr!RecordModifiers),
 										emptyArr!(StructDeclAst.Body.Record.Field)));
 							case NonFunKeyword.union_:
 								return immutable StructDeclAst.Body(

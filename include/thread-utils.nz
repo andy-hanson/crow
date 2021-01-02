@@ -1,8 +1,10 @@
 import
 	.bootstrap
-		== atomic-bool bool by-val call drop false hard-assert hard-fail hard-forbid is-locked lock nat
-		noctx-decr noctx-incr not ptr ptr-to ref-of-val true value void wrap-mul
-	.posix.pthread: pthread-yield
+		== != any-ptr as atomic-bool bool by-val call drop false fun-ptr1 hard-assert hard-fail hard-forbid is-locked lock nat
+		noctx-decr noctx-incr not null null? ptr ptr-to ref-of-val todo true value void wrap-mul
+	.cell: cell get
+	.posix.errno: eagain einval esrch
+	.posix.pthread: pthread-create pthread-join pthread-t pthread-yield
 	.posix.unistd: usleep
 
 region atomic
@@ -119,3 +121,25 @@ get-and-decrement nat(t thread-safe-counter) noctx trusted
 	t set-value: t.value noctx-decr
 	l release-lock
 	res
+
+create-one-thread void(tid cell pthread-t, thread-arg any-ptr, thread-fun fun-ptr1<any-ptr, any-ptr>) noctx unsafe summon
+	err = tid pthread-create null, thread-fun, thread-arg
+	if err != 0
+		if err == eagain
+			| TODO: warn and make do with the threads it does let us create (so long as there's at least one)
+			todo
+		else
+			| Fatal error
+			todo
+
+join-one-thread void(tid pthread-t) noctx unsafe summon
+	thread-return = as<by-val<cell<any-ptr>>>: cell: null
+	err = tid pthread-join thread-return.ref-of-val
+	if err != 0
+		if err == einval
+			todo
+		elif err == esrch
+			todo
+		else
+			todo
+	hard-assert: thread-return.ref-of-val.get null?

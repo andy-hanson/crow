@@ -469,7 +469,10 @@ void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immu
 		writeMangledName(writer, name(field));
 		writeChar(writer, ';');
 	}
-	writeStructEnd(writer);
+	writeStatic(writer, "\n}");
+	if (a.packed)
+		writeStatic(writer, " __attribute__ ((__packed__))");
+	writeStatic(writer, ";\n");
 }
 
 void writeUnion(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowUnion a) {

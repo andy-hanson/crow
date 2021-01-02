@@ -1,54 +1,173 @@
 import
-	alloc: memset unmanaged-alloc-elements
-	io.io: bind-to-port
+	alloc: unmanaged-alloc-bytes unmanaged-alloc-elements unmanaged-free
+	io.net: bind-to-port
 	io.posix-util: check-posix-error
 	io.print: print
 	io.process: exit-code
+	posix.c-types: c-int
+	posix.errno: eagain errno ewouldblock
 	posix.extra-types: fd-t
+	posix.fcntl: fcntl f-getfl f-setfl o-nonblock
 	posix.netinet.in: empty-sockaddr-in sockaddr-in
-	posix.socket: accept listen recv shutdown shut-rdwr sockaddr
+	posix.pthread: pthread-t
+	posix.socket: accept listen shutdown shut-rdwr sockaddr
 	posix.stdio: perror
 	posix.types: socklen-t
-	posix.unistd: close write
+	posix.unistd: close read write
+	sys.epoll: data epoll-create1 epoll-ctl epoll-ctl-add epollerr epollet epoll-event epollhup epollin epoll-wait events
+	thread-utils: create-one-thread join-one-thread
 
 main fut exit-code(_ arr str) unsafe summon
-	fd = bind-to-port: "8080"
+	assert: size-of<epoll-event> == 12
+
+	| WARN: Leaks memory if server is not stopped.
+
+	server = start-tcp-server
+	drop: server.stop
+	| v <- server.stop call-ref
+	| drop: v
+	| print: "done"
+	0 resolved
+
+.tcp-server record sendable
+	stop ref void()
+
+.start-tcp-server tcp-server() unsafe summon
+	port = "8081"
+	fd = port bind-to-port
+	print: "serving on port " + port
 	max-connections = 1000 as<int32>
 	check-posix-error: fd listen max-connections
-	fd main-loop
+	set-non-blocking: fd
 
-main-loop fut exit-code(fd fd-t) unsafe summon
-	print: "Awaiting request"
+	gctx = get-global-ctx
+	gctx incr-cant-shut-down-count
+
+	stop-sig = ptr-cast<bool, byte>: size-of<bool> unmanaged-alloc-bytes
+	stop-sig set false
+	thread-arg = thread-args: fd, stop-sig
+	thread-cell = cell<pthread-t>: 0
+	print: "starting the thread"
+	thread-cell create-one-thread thread-arg.as-any-ptr, &tcp-server-fun
+	thread = thread-cell.get
+
+	tcp-server: \
+		stop-sig set true
+		stop-sig unmanaged-free
+		thread join-one-thread
+		gctx decr-cant-shut-down-count
+		void resolved
+
+.thread-args record mut
+	by-ref
+	fd fd-t
+	| Behind a ptr to ensure this is mutable
+	stop-sig ptr bool
+
+.tcp-server-fun any-ptr(args-ptr any-ptr) noctx unsafe summon
+	args = args-ptr as-ref<thread-args>
+	listen-fd = args fd
+	stop-sig = args stop-sig
+
+	epoll-fd = 0 epoll-create1
+	if epoll-fd < 0
+		perror: "epoll-create1 failed\0".data
+		todo
+	else
+		event-flags = as<nat32>: epollin bits-or epollet
+		accept-event = epoll-event: event-flags, listen-fd.to-int.unsafe-to-nat
+		ctl-err = epoll-fd epoll-ctl epoll-ctl-add, listen-fd, accept-event.ptr-to
+		if ctl-err == 0
+			print: "starting the server loop"
+			listen-fd tcp-server-loop epoll-fd, stop-sig
+			null
+		else
+			perror: "epoll-ctl failed\0".data
+			todo
+
+.tcp-server-loop void(listen-fd fd-t, epoll-fd fd-t, stop-sig ptr bool) noctx unsafe summon
+	event = epoll-event: 0, 0
+	timeout = 1000 as<c-int>
+	print: "gonna epoll-wait"
+	num-events = epoll-fd epoll-wait event.ptr-to, 1, timeout
+	print: "did epoll-wait"
+	if stop-sig deref
+		print: "server stopping due to sig"
+	elif num-events < 0
+		print: "error in epoll-wait"
+		todo
+	elif num-events == 0
+		print: "no events (for now)"
+		listen-fd tcp-server-loop epoll-fd, stop-sig
+	else
+		hard-assert: num-events == 1
+		flags = event.events
+		fd = event.data.unsafe-to-int unsafe-to-int32
+		if flags bits-intersect? (epollerr bits-or epollhup) or: not: flags bits-intersect? epollin
+			print: "SOME KINDA ERROR"
+			err = fd close
+			hard-assert: err == 0
+		elif fd == listen-fd
+			accept-clients: listen-fd, epoll-fd
+		else
+			handle-client: fd
+		listen-fd tcp-server-loop epoll-fd, stop-sig
+
+.accept-clients void(listen-fd fd-t, epoll-fd fd-t) noctx unsafe summon
 	clientaddr = empty-sockaddr-in
 	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern<sockaddr, sockaddr-in>
-	addrlen = cell<socklen-t>: size-of<sockaddr-in> to-nat32
-	client-fd = fd accept clientaddr-as-sockaddr, addrlen
+	addrlen = as<by-val<cell<socklen-t>>>: cell<socklen-t>: size-of<sockaddr-in> unsafe-to-nat32
+	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
 	if client-fd < 0
-		print: "client-fd is " + client-fd.to-str
-		perror: "accept() error".to-c-str
-		1 resolved
+		e = errno
+		if e == eagain or: e == ewouldblock
+			print: "done accepting clients"
+		else
+			perror: "accept() error\0".data
+			todo
 	else
-		print: "TODO: serve something!"
-		respond: client-fd
-		fd main-loop
+		print: "Accepted client"
+		client-fd set-non-blocking
+		client-event = epoll-event: (epollin bits-or epollet), client-fd.to-int.unsafe-to-nat
+		err = epoll-fd epoll-ctl epoll-ctl-add, client-fd, client-event.ptr-to
+		hard-assert: err == 0
+		accept-clients: listen-fd, epoll-fd
 
-respond void(fd fd-t) unsafe summon
-	size = 99999
-	msg-buf = size unmanaged-alloc-elements<byte>
-	msg-buf memset 0, size
+.handle-client void(fd fd-t) noctx unsafe summon
 
-	received = fd recv msg-buf, size, 0
-	if received <= 0
-		print: received == 0 ? "client disconnected", "recv() error"
-		todo
-	elif received >= size.decr.to-int
+	buf-size = 256
+	buf = unmanaged-alloc-elements<byte>: buf-size
+	count = fd read buf, buf-size
+	if count < 0
+		err = errno
+		if err == eagain
+			print: "read EAGAIN"
+			| TODO: this actually does not belong here..
+			response = ok-response
+			wrote = fd write response.data.ptr-cast<byte, char>, response.size
+			hard-assert: wrote == response.size.unsafe-to-int
+			sd-err = fd shutdown shut-rdwr
+			hard-assert: sd-err == 0
+			close-err = fd close
+			hard-assert: close-err == 0
+		else
+			perror: "read() failed\0".data
+	elif count != 0
+		print: "Got a chunk"
+		print: arr: count.unsafe-to-nat, buf.ptr-cast<char, byte>
+		fd handle-client
+
+.set-non-blocking void(fd fd-t) noctx unsafe summon
+	flags = fd fcntl f-getfl, 0
+	if flags < 0
+		perror: "fcntl() error\0".data
 		todo
 	else
-		msg = msg-buf.ptr-cast<char, byte> to-str
-		print: "RECEIVED: " + msg
-		response = "HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"
-		wrote = fd write response.to-c-str.ptr-cast<byte, char>, response.size
-		assert: wrote == response.size.to-int
+		err = fd fcntl: f-setfl, flags bits-or o-nonblock
+		if err < 0
+			perror: "fcntl() error\0".data
+			todo
 
-		check-posix-error: fd shutdown shut-rdwr
-		check-posix-error: fd close
+
+ok-response str() noctx
+	"HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"

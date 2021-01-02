@@ -1,20 +1,35 @@
 import
-	..bootstrap: bit-shift-left c-str nat32
+	..bootstrap: c-str nat32
+	.c-types: c-int
 	.extra-types: fd-t
 
-open fd-t(path c-str, oflag oflag-t, permission nat32) summon extern<"open"> noctx
+fcntl c-int(fd fd-t, cmd c-int, flags oflag-t) summon unsafe extern<"fcntl"> noctx
+
+f-dupfd c-int() noctx
+	0
+f-getfd c-int() noctx
+	1
+f-setfd c-int() noctx
+	2
+f-getfl c-int() noctx
+	3
+f-setfl c-int() noctx
+	4
+
+open fd-t(path c-str, oflag oflag-t, permission nat32) summon unsafe extern<"open"> noctx
 
 oflag-t alias
-	nat32
+	c-int
 
-| /usr/include/bits/fcntl-linux.h
-o-rdonly oflag-t()
+o-rdonly oflag-t() noctx
 	0
-o-wronly oflag-t()
+o-wronly oflag-t() noctx
 	1
-o-rdwr oflag-t()
-	1 bit-shift-left 1
-o-creat oflag-t()
-	1 bit-shift-left 6
-o-trunc oflag-t()
-	1 bit-shift-left 9
+o-rdwr oflag-t() noctx
+	2
+o-creat oflag-t() noctx
+	0x40
+o-trunc oflag-t() noctx
+	0x200
+o-nonblock oflag-t() noctx
+	0x800

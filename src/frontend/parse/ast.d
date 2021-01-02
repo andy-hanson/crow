@@ -452,6 +452,27 @@ immutable(RangeWithinFile) rangeOfExplicitByValOrRef(ref immutable ExplicitByVal
 	return immutable RangeWithinFile(a.start, safeSizeTToU32(a.start + symSize(symOfExplicitByValOrRef(a.byValOrRef))));
 }
 
+struct RecordModifiers {
+	@safe @nogc pure nothrow:
+
+	immutable Opt!Pos packed;
+	immutable Opt!ExplicitByValOrRefAndRange explicitByValOrRef;
+
+	immutable this(immutable Opt!Pos p, immutable Opt!ExplicitByValOrRefAndRange e) {
+		packed = p;
+		explicitByValOrRef = e;
+
+		if (has(packed) && has(explicitByValOrRef)) {
+			// TODO: ensure this in the parser
+			verify(force(explicitByValOrRef).start > force(packed));
+		}
+	}
+
+	//TODO:NOT INSTANCE
+	immutable(Bool) any() immutable {
+		return immutable Bool(has(packed) || has(explicitByValOrRef));
+	}
+}
 
 struct StructDeclAst {
 	struct Body {
@@ -459,14 +480,29 @@ struct StructDeclAst {
 		struct Builtin {}
 		struct ExternPtr {}
 		struct Record {
+			@safe @nogc pure nothrow:
+
 			struct Field {
 				immutable RangeWithinFile range;
 				immutable Bool isMutable;
 				immutable Sym name;
 				immutable TypeAst type;
 			}
-			immutable Opt!ExplicitByValOrRefAndRange explicitByValOrRef;
+			private immutable Opt!(Ptr!RecordModifiers) modifiers_;
 			immutable Arr!Field fields;
+
+			immutable(RecordModifiers) modifiers() immutable {
+				return has(modifiers_) ? force(modifiers_) : immutable RecordModifiers(none!Pos, none!ExplicitByValOrRefAndRange);
+			}
+
+			//TODO: NOT INSTANCE
+			immutable(Opt!ExplicitByValOrRefAndRange) explicitByValOrRef() immutable {
+				return modifiers.explicitByValOrRef;
+			}
+
+			immutable(Opt!Pos) packed() immutable {
+				return modifiers.packed;
+			}
 		}
 		struct Union {
 			immutable Arr!(TypeAst.InstStruct) members;
@@ -503,6 +539,7 @@ struct StructDeclAst {
 	immutable Opt!PuritySpecifierAndRange purity;
 	immutable Body body_;
 }
+static assert(StructDeclAst.sizeof <= 88);
 
 immutable(Bool) isRecord(ref immutable StructDeclAst.Body a) {
 	return Bool(a.kind == StructDeclAst.Body.Kind.record);
@@ -765,7 +802,7 @@ immutable(Sexpr) sexprOfOptPurity(Alloc)(ref Alloc alloc, immutable Opt!PuritySp
 
 immutable(Sexpr) sexprOfOptExplicitByValOrRefAndRange(Alloc)(
 	ref Alloc alloc,
-	ref immutable Opt!ExplicitByValOrRefAndRange a,
+	immutable Opt!ExplicitByValOrRefAndRange a,
 ) {
 	return tataOpt(alloc, a, (ref immutable ExplicitByValOrRefAndRange it) =>
 		tataRecord(alloc, "by-val-ref", [tataNat(it.start), tataSym(symOfExplicitByValOrRef(it.byValOrRef))]));

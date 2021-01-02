@@ -9,5 +9,7 @@ esrch err-t() noctx
 	3
 eagain err-t() noctx
 	11
+ewouldblock err-t() noctx
+	eagain
 einval err-t() noctx
 	22

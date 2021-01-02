@@ -150,13 +150,13 @@ immutable(Nat16) fillRecordSize(Alloc)(
 		immutable Nat16 fieldSize = sizeOfType(alloc, program, field.type, builder);
 		// If field would stretch across a boundary, move offset up to the next boundary
 		immutable Nat16 mod = offset % fieldBoundary;
-		if (!zero(mod) && mod + fieldSize > fieldBoundary)
+		if (!record.packed && !zero(mod) && mod + fieldSize > fieldBoundary)
 			offset = roundUp(offset, fieldBoundary);
 		immutable Nat16 res = offset;
 		offset += fieldSize;
 		return res;
 	});
-	immutable Nat16 size = offset <= immutable Nat16(8)
+	immutable Nat16 size = offset <= immutable Nat16(8) || record.packed
 		? offset
 		: roundUp(offset, fieldBoundary);
 	fullIndexDictBuilderAdd(builder.recordSizes, index, size);

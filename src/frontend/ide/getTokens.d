@@ -6,6 +6,7 @@ import frontend.parse.ast :
 	BogusAst,
 	CallAst,
 	CreateArrAst,
+	ExplicitByValOrRefAndRange,
 	exports,
 	ExprAst,
 	FileAst,
@@ -219,9 +220,12 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 		(ref immutable StructDeclAst.Body.Builtin) {},
 		(ref immutable StructDeclAst.Body.ExternPtr) {},
 		(ref immutable StructDeclAst.Body.Record record) {
-			if (has(record.explicitByValOrRef))
+			//TODO: add token for 'packed' modifier
+			immutable Opt!ExplicitByValOrRefAndRange explicitByValOrRef = record.explicitByValOrRef;
+			if (has(explicitByValOrRef)) {
 				add(alloc, tokens, immutable Token(
-					Token.Kind.explicitByValOrRef, rangeOfExplicitByValOrRef(force(record.explicitByValOrRef))));
+					Token.Kind.explicitByValOrRef, rangeOfExplicitByValOrRef(force(explicitByValOrRef))));
+			}
 			foreach (ref immutable StructDeclAst.Body.Record.Field field; range(record.fields)) {
 				add(alloc, tokens, immutable Token(Token.Kind.fieldDef, rangeAtName(field.range.start, field.name)));
 				addTypeTokens(alloc, tokens, field.type);

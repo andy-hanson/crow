@@ -1,6 +1,8 @@
 import
-	..bootstrap: int nat32 nat64
+	..bootstrap: int int32 nat32 nat64
 
+c-int alias
+	int32
 size-t alias
 	nat64
 s-long alias

@@ -249,9 +249,15 @@ immutable(RecordField) withType(ref immutable RecordField a, immutable Type t) {
 	return RecordField(a.range, a.isMutable, a.name, t, a.index);
 }
 
-enum ForcedByValOrRef {
+enum ForcedByValOrRefOrNone {
+	none,
 	byVal,
 	byRef,
+}
+
+struct RecordFlags {
+	immutable Bool packed;
+	immutable ForcedByValOrRefOrNone forcedByValOrRef;
 }
 
 struct StructBody {
@@ -260,7 +266,7 @@ struct StructBody {
 	struct Builtin {}
 	struct ExternPtr {}
 	struct Record {
-		immutable Opt!ForcedByValOrRef forcedByValOrRef;
+		immutable RecordFlags flags;
 		immutable Arr!RecordField fields;
 	}
 	struct Union {
@@ -291,6 +297,7 @@ struct StructBody {
 	@trusted immutable this(immutable Record a) { kind = Kind.record; record = a; }
 	@trusted immutable this(immutable Union a) { kind = Kind.union_; union_ = a;}
 }
+static assert(StructBody.sizeof <= 32);
 
 immutable(Bool) isBogus(ref immutable StructBody a) {
 	return Bool(a.kind == StructBody.Kind.bogus);

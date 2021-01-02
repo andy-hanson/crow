@@ -172,7 +172,7 @@ immutable(StructBody) instantiateStructBody(Alloc)(
 			immutable StructBody(immutable StructBody.ExternPtr()),
 		(ref immutable StructBody.Record r) =>
 			immutable StructBody(StructBody.Record(
-				r.forcedByValOrRef,
+				r.flags,
 				map!RecordField(alloc, r.fields, (ref immutable RecordField f) =>
 					withType(f, instantiateType(alloc, programState, f.type, typeParamsAndArgs, delayStructInsts))))),
 		(ref immutable StructBody.Union u) =>
