@@ -6,7 +6,7 @@ import
 	.number-utils: + * / abs mod multiple-of? neg negative? to-int
 	.opt-utils: opt-map
 
-to-str str(b bool)
+to-str str(b bool) noctx
 	b ? "true", "false"
 
 to-str str(c char)

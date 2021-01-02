@@ -9,7 +9,6 @@ fut-low-level
 fut-utils
 io
 iter
-mut-bag
 number-utils
 openssl
 opt-utils

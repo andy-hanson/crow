@@ -491,8 +491,11 @@ struct StructDeclAst {
 			private immutable Opt!(Ptr!RecordModifiers) modifiers_;
 			immutable Arr!Field fields;
 
+			//TODO: NOT INSTANCE
 			immutable(RecordModifiers) modifiers() immutable {
-				return has(modifiers_) ? force(modifiers_) : immutable RecordModifiers(none!Pos, none!ExplicitByValOrRefAndRange);
+				return has(modifiers_)
+					? force(modifiers_)
+					: immutable RecordModifiers(none!Pos, none!ExplicitByValOrRefAndRange);
 			}
 
 			//TODO: NOT INSTANCE
@@ -500,6 +503,7 @@ struct StructDeclAst {
 				return modifiers.explicitByValOrRef;
 			}
 
+			//TODO: NOT INSTANCE
 			immutable(Opt!Pos) packed() immutable {
 				return modifiers.packed;
 			}
@@ -899,12 +903,27 @@ immutable(Sexpr) sexprOfSpecUseAst(Alloc)(ref Alloc alloc, ref immutable SpecUse
 immutable(Sexpr) sexprOfTypeAst(Alloc)(ref Alloc alloc, ref immutable TypeAst a) {
 	return matchTypeAst!(immutable Sexpr)(
 		a,
-		(ref immutable TypeAst.Fun) =>
-			todo!(immutable Sexpr)("!"),
+		(ref immutable TypeAst.Fun it) =>
+			tataRecord(alloc, "fun", [
+				sexprOfRangeWithinFile(alloc, it.range),
+				tataSym(symOfFunKind(it.kind)),
+				tataArr(alloc, it.returnAndParamTypes, (ref immutable TypeAst t) =>
+					sexprOfTypeAst(alloc, t))]),
 		(ref immutable TypeAst.InstStruct i) =>
 			sexprOfInstStructAst(alloc, i),
 		(ref immutable TypeAst.TypeParam p) =>
 			tataRecord(alloc, "type-param", [sexprOfRangeWithinFile(alloc, p.range), tataSym(p.name)]));
+}
+
+immutable(Sym) symOfFunKind(immutable TypeAst.Fun.Kind a) {
+	final switch (a) {
+		case TypeAst.Fun.Kind.act:
+			return shortSymAlphaLiteral("act");
+		case TypeAst.Fun.Kind.fun:
+			return shortSymAlphaLiteral("fun");
+		case TypeAst.Fun.Kind.ref_:
+			return shortSymAlphaLiteral("ref");
+	}
 }
 
 immutable(Sexpr) sexprOfInstStructAst(Alloc)(ref Alloc alloc, ref immutable TypeAst.InstStruct a) {

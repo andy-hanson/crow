@@ -63,7 +63,7 @@ import util.collection.str : strLiteral;
 import util.comparison : Comparison;
 import util.late : Late, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate, nu, nuMut;
-import util.opt : force, has, none, Opt, some;
+import util.opt : none, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals;
 import util.sym : shortSymAlphaLiteralValue, Sym;
 import util.types : safeSizeTToU8;

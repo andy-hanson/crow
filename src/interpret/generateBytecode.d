@@ -307,7 +307,7 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 			}
 		},
 		(immutable LowType.PtrGc) =>
-			unreachable!(immutable DynCallType),
+			DynCallType.pointer,
 		(immutable LowType.PtrRaw) =>
 			DynCallType.pointer,
 		(immutable LowType.Record) =>

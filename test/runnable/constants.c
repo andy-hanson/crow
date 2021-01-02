@@ -42,7 +42,7 @@ struct exception {
 struct ok_0 {
 	int32_t value;
 };
-struct err_0 {
+struct err {
 	struct exception value;
 };
 struct none {
@@ -65,22 +65,22 @@ struct some_1 {
 	struct gc_ctx* value;
 };
 struct island_gc_root;
+struct task_queue;
+struct task_queue_node;
 struct task;
-struct mut_bag;
-struct mut_bag_node;
 struct some_2 {
-	struct mut_bag_node* value;
-};
-struct logged;
-struct info {
-};
-struct warn {
+	struct task_queue_node* value;
 };
 struct mut_arr_0 {
 	uint8_t frozen__q;
 	uint64_t size;
 	uint64_t capacity;
 	uint64_t* data;
+};
+struct logged;
+struct info {
+};
+struct warn {
 };
 struct thread_safe_counter;
 struct arr_2 {
@@ -158,23 +158,25 @@ struct cell_0 {
 	uint64_t value;
 };
 struct chosen_task;
-struct some_5;
-struct no_chosen_task {
-	uint8_t last_thread_out;
+struct do_a_gc {
 };
-struct ok_2;
-struct err_1 {
-	struct no_chosen_task value;
+struct no_chosen_task;
+struct some_5 {
+	uint64_t value;
 };
-struct some_6;
-struct some_7;
-struct task_and_nodes;
-struct some_8;
+struct timespec {
+	int64_t tv_sec;
+	int64_t tv_nsec;
+};
+struct cell_1 {
+	struct timespec value;
+};
+struct no_task;
 struct arr_4 {
 	uint64_t size;
 	uint64_t* data;
 };
-struct cell_1 {
+struct cell_2 {
 	uint8_t* value;
 };
 struct my_record {
@@ -194,7 +196,7 @@ struct result_0 {
 	uint64_t kind;
 	union {
 		struct ok_0 as0;
-		struct err_0 as1;
+		struct err as1;
 	};
 };
 struct fun_act1_0 {
@@ -270,7 +272,7 @@ struct result_1 {
 	uint64_t kind;
 	union {
 		struct ok_1 as0;
-		struct err_0 as1;
+		struct err as1;
 	};
 };
 struct fun_act1_1 {
@@ -317,11 +319,17 @@ struct fun_act1_5 {
 		struct map__lambda0* as0;
 	};
 };
-struct opt_5;
-struct result_2;
-struct opt_6;
-struct opt_7;
-struct opt_8;
+struct choose_task_result;
+struct task_or_gc;
+struct opt_5 {
+	uint64_t kind;
+	union {
+		struct none as0;
+		struct some_5 as1;
+	};
+};
+struct choose_task_in_island_result;
+struct pop_task_result;
 typedef struct fut_0* (*fun_ptr2)(struct ctx*, struct arr_1);
 struct fut_0;
 struct lock {
@@ -354,16 +362,15 @@ struct gc_ctx {
 	struct opt_1 next_ctx;
 };
 struct island_gc_root;
-struct task {
-	uint64_t exclusion;
-	struct fun_act0_0 fun;
-};
-struct mut_bag {
+struct task_queue {
 	struct opt_2 head;
+	struct mut_arr_0 currently_running_exclusions;
 };
-struct mut_bag_node {
-	struct task value;
-	struct opt_2 next_node;
+struct task_queue_node;
+struct task {
+	uint64_t time;
+	uint64_t exclusion;
+	struct fun_act0_0 action;
 };
 struct logged {
 	struct log_level level;
@@ -441,18 +448,13 @@ struct map__lambda0 {
 	struct arr_3 a;
 };
 struct chosen_task;
-struct some_5 {
-	struct task value;
+struct no_chosen_task {
+	uint8_t no_tasks_and_last_thread_out__q;
+	struct opt_5 first_task_time;
 };
-struct ok_2;
-struct some_6;
-struct some_7;
-struct task_and_nodes {
-	struct task task;
-	struct opt_2 nodes;
-};
-struct some_8 {
-	struct task_and_nodes value;
+struct no_task {
+	uint8_t any_tasks__q;
+	struct opt_5 first_task_time;
 };
 struct fut_state_0 {
 	uint64_t kind;
@@ -470,21 +472,27 @@ struct fut_state_1 {
 		struct exception as2;
 	};
 };
-struct opt_5 {
+struct choose_task_result;
+struct task_or_gc {
 	uint64_t kind;
 	union {
-		struct none as0;
-		struct some_5 as1;
+		struct task as0;
+		struct do_a_gc as1;
 	};
 };
-struct result_2;
-struct opt_6;
-struct opt_7;
-struct opt_8 {
+struct choose_task_in_island_result {
 	uint64_t kind;
 	union {
-		struct none as0;
-		struct some_8 as1;
+		struct task as0;
+		struct do_a_gc as1;
+		struct no_task as2;
+	};
+};
+struct pop_task_result {
+	uint64_t kind;
+	union {
+		struct task as0;
+		struct no_task as1;
 	};
 };
 struct fut_0 {
@@ -495,15 +503,20 @@ struct global_ctx {
 	struct lock lk;
 	struct arr_2 islands;
 	uint64_t n_live_threads;
+	uint64_t cant_shut_down_count;
 	struct condition may_be_work_to_do;
-	uint8_t is_shut_down;
+	uint8_t shut_down__q;
 	uint8_t any_unhandled_exceptions__q;
 };
 struct island;
 struct island_gc_root {
-	struct mut_bag tasks;
+	struct task_queue tasks;
 	struct fun1_0 exception_handler;
 	struct fun1_1 log_handler;
+};
+struct task_queue_node {
+	struct task task;
+	struct opt_2 next;
 };
 struct jmp_buf_tag;
 struct bytes64 {
@@ -520,36 +533,13 @@ struct fut_1 {
 };
 struct chosen_task {
 	struct island* task_island;
-	struct opt_5 task_or_gc;
+	struct task_or_gc task_or_gc;
 };
-struct ok_2 {
-	struct chosen_task value;
-};
-struct some_6 {
-	struct chosen_task value;
-};
-struct some_7 {
-	struct opt_5 value;
-};
-struct result_2 {
+struct choose_task_result {
 	uint64_t kind;
 	union {
-		struct ok_2 as0;
-		struct err_1 as1;
-	};
-};
-struct opt_6 {
-	uint64_t kind;
-	union {
-		struct none as0;
-		struct some_6 as1;
-	};
-};
-struct opt_7 {
-	uint64_t kind;
-	union {
-		struct none as0;
-		struct some_7 as1;
+		struct chosen_task as0;
+		struct no_chosen_task as1;
 	};
 };
 struct island {
@@ -558,7 +548,6 @@ struct island {
 	struct gc gc;
 	struct island_gc_root gc_root;
 	struct lock tasks_lock;
-	struct mut_arr_0 currently_running_exclusions;
 	uint64_t n_threads_running;
 	struct thread_safe_counter next_exclusion;
 };
@@ -581,25 +570,25 @@ _Static_assert(sizeof(struct fut_state_callbacks_0) == 16, "");
 _Static_assert(sizeof(struct fut_callback_node_0) == 32, "");
 _Static_assert(sizeof(struct exception) == 16, "");
 _Static_assert(sizeof(struct ok_0) == 4, "");
-_Static_assert(sizeof(struct err_0) == 16, "");
+_Static_assert(sizeof(struct err) == 16, "");
 _Static_assert(sizeof(struct none) == 0, "");
 _Static_assert(sizeof(struct some_0) == 8, "");
 _Static_assert(sizeof(struct fut_state_resolved_0) == 4, "");
 _Static_assert(sizeof(struct arr_1) == 16, "");
-_Static_assert(sizeof(struct global_ctx) == 56, "");
+_Static_assert(sizeof(struct global_ctx) == 64, "");
 _Static_assert(sizeof(struct island) == 208, "");
 _Static_assert(sizeof(struct gc) == 96, "");
 _Static_assert(sizeof(struct gc_ctx) == 24, "");
 _Static_assert(sizeof(struct some_1) == 8, "");
-_Static_assert(sizeof(struct island_gc_root) == 32, "");
-_Static_assert(sizeof(struct task) == 24, "");
-_Static_assert(sizeof(struct mut_bag) == 16, "");
-_Static_assert(sizeof(struct mut_bag_node) == 40, "");
+_Static_assert(sizeof(struct island_gc_root) == 64, "");
+_Static_assert(sizeof(struct task_queue) == 48, "");
+_Static_assert(sizeof(struct task_queue_node) == 48, "");
+_Static_assert(sizeof(struct task) == 32, "");
 _Static_assert(sizeof(struct some_2) == 8, "");
+_Static_assert(sizeof(struct mut_arr_0) == 32, "");
 _Static_assert(sizeof(struct logged) == 24, "");
 _Static_assert(sizeof(struct info) == 0, "");
 _Static_assert(sizeof(struct warn) == 0, "");
-_Static_assert(sizeof(struct mut_arr_0) == 32, "");
 _Static_assert(sizeof(struct thread_safe_counter) == 16, "");
 _Static_assert(sizeof(struct arr_2) == 16, "");
 _Static_assert(sizeof(struct condition) == 16, "");
@@ -636,17 +625,15 @@ _Static_assert(sizeof(struct mut_arr_1) == 32, "");
 _Static_assert(sizeof(struct map__lambda0) == 24, "");
 _Static_assert(sizeof(struct thread_args) == 16, "");
 _Static_assert(sizeof(struct cell_0) == 8, "");
-_Static_assert(sizeof(struct chosen_task) == 40, "");
-_Static_assert(sizeof(struct some_5) == 24, "");
-_Static_assert(sizeof(struct no_chosen_task) == 1, "");
-_Static_assert(sizeof(struct ok_2) == 40, "");
-_Static_assert(sizeof(struct err_1) == 1, "");
-_Static_assert(sizeof(struct some_6) == 40, "");
-_Static_assert(sizeof(struct some_7) == 32, "");
-_Static_assert(sizeof(struct task_and_nodes) == 40, "");
-_Static_assert(sizeof(struct some_8) == 40, "");
+_Static_assert(sizeof(struct chosen_task) == 48, "");
+_Static_assert(sizeof(struct do_a_gc) == 0, "");
+_Static_assert(sizeof(struct no_chosen_task) == 24, "");
+_Static_assert(sizeof(struct some_5) == 8, "");
+_Static_assert(sizeof(struct timespec) == 16, "");
+_Static_assert(sizeof(struct cell_1) == 16, "");
+_Static_assert(sizeof(struct no_task) == 24, "");
 _Static_assert(sizeof(struct arr_4) == 16, "");
-_Static_assert(sizeof(struct cell_1) == 8, "");
+_Static_assert(sizeof(struct cell_2) == 8, "");
 _Static_assert(sizeof(struct my_record) == 32, "");
 _Static_assert(sizeof(struct comparison) == 8, "");
 _Static_assert(sizeof(struct fut_state_0) == 24, "");
@@ -670,11 +657,11 @@ _Static_assert(sizeof(struct fun_act1_2) == 16, "");
 _Static_assert(sizeof(struct fun_act1_3) == 16, "");
 _Static_assert(sizeof(struct fun_act1_4) == 8, "");
 _Static_assert(sizeof(struct fun_act1_5) == 16, "");
-_Static_assert(sizeof(struct opt_5) == 32, "");
-_Static_assert(sizeof(struct result_2) == 48, "");
-_Static_assert(sizeof(struct opt_6) == 48, "");
-_Static_assert(sizeof(struct opt_7) == 40, "");
-_Static_assert(sizeof(struct opt_8) == 48, "");
+_Static_assert(sizeof(struct choose_task_result) == 56, "");
+_Static_assert(sizeof(struct task_or_gc) == 40, "");
+_Static_assert(sizeof(struct opt_5) == 16, "");
+_Static_assert(sizeof(struct choose_task_in_island_result) == 40, "");
+_Static_assert(sizeof(struct pop_task_result) == 40, "");
 char constantarr_0_0[17];
 char constantarr_0_1[4];
 char constantarr_0_2[20];
@@ -728,13 +715,13 @@ struct _atomic_bool new_atomic_bool(void);
 struct arr_2 empty_arr(void);
 struct condition new_condition(void);
 struct island new_island(struct global_ctx* gctx, uint64_t id, uint64_t max_threads);
+struct task_queue new_task_queue(uint64_t max_threads);
 struct mut_arr_0 new_mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity);
 uint64_t* unmanaged_alloc_elements_0(uint64_t size_elements);
 uint8_t* unmanaged_alloc_bytes(uint64_t size);
 extern uint8_t* malloc(uint64_t size);
 struct void_ hard_forbid(uint8_t condition);
 uint8_t null__q_0(uint8_t* a);
-struct mut_bag new_mut_bag(void);
 struct void_ default_exception_handler(struct ctx* ctx, struct exception e);
 struct void_ print_err_no_newline(struct arr_0 s);
 struct void_ write_no_newline(int32_t fd, struct arr_0 a);
@@ -746,7 +733,7 @@ struct void_ todo_0(void);
 int32_t stderr(void);
 struct void_ print_err(struct arr_0 s);
 uint8_t empty__q_0(struct arr_0 a);
-struct global_ctx* get_gctx(struct ctx* ctx);
+struct global_ctx* get_global_ctx(struct ctx* ctx);
 struct void_ new_island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception it);
 struct void_ default_log_handler(struct ctx* ctx, struct logged* a);
 struct void_ print(struct arr_0 a);
@@ -831,11 +818,16 @@ struct fut_0* call_ref_0(struct ctx* ctx, struct fun_ref1 f, struct void_ p0);
 struct island* get_island(struct ctx* ctx, uint64_t island_id);
 struct island* at_0(struct ctx* ctx, struct arr_2 a, uint64_t index);
 struct island* noctx_at_0(struct arr_2 a, uint64_t index);
-struct void_ add_task(struct ctx* ctx, struct island* a, struct task t);
-struct mut_bag_node* new_mut_bag_node(struct ctx* ctx, struct task value);
-struct void_ add(struct mut_bag* bag, struct mut_bag_node* node);
-struct mut_bag* tasks(struct island* a);
+struct void_ add_task_0(struct ctx* ctx, struct island* a, uint64_t exclusion, struct fun_act0_0 action);
+struct void_ add_task_1(struct ctx* ctx, struct island* a, uint64_t timestamp, uint64_t exclusion, struct fun_act0_0 action);
+struct task_queue_node* new_task_queue_node(struct ctx* ctx, struct task task);
+struct void_ insert_task(struct task_queue* a, struct task_queue_node* inserted);
+uint64_t size(struct task_queue* a);
+uint64_t size_recur(struct opt_2 node, uint64_t acc);
+struct void_ insert_recur(struct task_queue_node* prev, struct task_queue_node* inserted);
+struct task_queue* tasks(struct island* a);
 struct void_ broadcast(struct condition* c);
+uint64_t no_timestamp(void);
 struct void_ catch(struct ctx* ctx, struct fun_act0_0 try, struct fun_act1_3 catcher);
 struct void_ catch_with_exception_ctx(struct ctx* ctx, struct exception_ctx* ec, struct fun_act0_0 try, struct fun_act1_3 catcher);
 struct bytes64 zero_0(void);
@@ -844,11 +836,11 @@ struct bytes16 zero_2(void);
 struct bytes128 zero_3(void);
 extern int32_t setjmp(struct jmp_buf_tag* env);
 struct void_ call_2(struct ctx* ctx, struct fun_act0_0 a);
-struct void_ call_w_ctx_135(struct fun_act0_0 a, struct ctx* ctx);
+struct void_ call_w_ctx_140(struct fun_act0_0 a, struct ctx* ctx);
 struct void_ call_3(struct ctx* ctx, struct fun_act1_3 a, struct exception p0);
-struct void_ call_w_ctx_137(struct fun_act1_3 a, struct ctx* ctx, struct exception p0);
+struct void_ call_w_ctx_142(struct fun_act1_3 a, struct ctx* ctx, struct exception p0);
 struct fut_0* call_4(struct ctx* ctx, struct fun_act1_2 a, struct void_ p0);
-struct fut_0* call_w_ctx_139(struct fun_act1_2 a, struct ctx* ctx, struct void_ p0);
+struct fut_0* call_w_ctx_144(struct fun_act1_2 a, struct ctx* ctx, struct void_ p0);
 struct void_ call_ref_0__lambda0__lambda0(struct ctx* ctx, struct call_ref_0__lambda0__lambda0* _closure);
 struct void_ reject(struct ctx* ctx, struct fut_0* f, struct exception e);
 struct void_ call_ref_0__lambda0__lambda1(struct ctx* ctx, struct call_ref_0__lambda0__lambda1* _closure, struct exception it);
@@ -856,7 +848,7 @@ struct void_ call_ref_0__lambda0(struct ctx* ctx, struct call_ref_0__lambda0* _c
 struct void_ then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, struct result_1 result);
 struct fut_0* call_ref_1(struct ctx* ctx, struct fun_ref0 f);
 struct fut_0* call_5(struct ctx* ctx, struct fun_act0_1 a);
-struct fut_0* call_w_ctx_147(struct fun_act0_1 a, struct ctx* ctx);
+struct fut_0* call_w_ctx_152(struct fun_act0_1 a, struct ctx* ctx);
 struct void_ call_ref_1__lambda0__lambda0(struct ctx* ctx, struct call_ref_1__lambda0__lambda0* _closure);
 struct void_ call_ref_1__lambda0__lambda1(struct ctx* ctx, struct call_ref_1__lambda0__lambda1* _closure, struct exception it);
 struct void_ call_ref_1__lambda0(struct ctx* ctx, struct call_ref_1__lambda0* _closure);
@@ -879,10 +871,10 @@ struct void_ make_mut_arr_worker(struct ctx* ctx, struct mut_arr_1* m, uint64_t 
 struct void_ set_at(struct ctx* ctx, struct mut_arr_1* a, uint64_t index, struct arr_0 value);
 struct void_ noctx_set_at_0(struct mut_arr_1* a, uint64_t index, struct arr_0 value);
 struct arr_0 call_6(struct ctx* ctx, struct fun_act1_5 a, uint64_t p0);
-struct arr_0 call_w_ctx_170(struct fun_act1_5 a, struct ctx* ctx, uint64_t p0);
+struct arr_0 call_w_ctx_175(struct fun_act1_5 a, struct ctx* ctx, uint64_t p0);
 uint64_t incr_3(struct ctx* ctx, uint64_t n);
 struct arr_0 call_7(struct ctx* ctx, struct fun_act1_4 a, char* p0);
-struct arr_0 call_w_ctx_173(struct fun_act1_4 a, struct ctx* ctx, char* p0);
+struct arr_0 call_w_ctx_178(struct fun_act1_4 a, struct ctx* ctx, char* p0);
 char* at_1(struct ctx* ctx, struct arr_3 a, uint64_t index);
 char* noctx_at_1(struct arr_3 a, uint64_t index);
 struct arr_0 map__lambda0(struct ctx* ctx, struct map__lambda0* _closure, uint64_t i);
@@ -892,12 +884,12 @@ uint64_t _op_minus_3(char* a, char* b);
 char* find_cstr_end(char* a);
 char* find_char_in_cstr(char* a, char c);
 uint8_t _op_equal_equal_3(char a, char b);
-struct comparison compare_183(char a, char b);
+struct comparison compare_188(char a, char b);
 char* todo_2(void);
 struct arr_0 add_first_task__lambda0__lambda0(struct ctx* ctx, struct void_ _closure, char* it);
 struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__lambda0* _closure);
 struct fut_0* do_main__lambda0(struct ctx* ctx, struct void_ _closure, struct arr_3 all_args, fun_ptr2 main_ptr);
-struct fut_0* call_w_ctx_188(struct fun2 a, struct ctx* ctx, struct arr_3 p0, fun_ptr2 p1);
+struct fut_0* call_w_ctx_193(struct fun2 a, struct ctx* ctx, struct arr_3 p0, fun_ptr2 p1);
 struct void_ run_threads(uint64_t n_threads, struct global_ctx* gctx);
 struct thread_args* unmanaged_alloc_elements_1(uint64_t size_elements);
 uint64_t noctx_decr(uint64_t n);
@@ -911,77 +903,88 @@ uint8_t* thread_fun(uint8_t* args_ptr);
 struct void_ thread_function(uint64_t thread_id, struct global_ctx* gctx);
 struct void_ thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struct thread_local_stuff* tls);
 struct void_ assert_islands_are_shut_down(uint64_t i, struct arr_2 islands);
-uint8_t empty__q_2(struct mut_bag* m);
+uint8_t empty__q_2(struct task_queue* a);
+uint8_t has__q(struct opt_2 a);
 uint8_t empty__q_3(struct opt_2 a);
 uint64_t get_last_checked(struct condition* c);
-struct result_2 choose_task(struct global_ctx* gctx);
-struct opt_6 choose_task_recur(struct arr_2 islands, uint64_t i);
-struct opt_7 choose_task_in_island(struct island* island);
-struct opt_5 find_and_remove_first_doable_task(struct island* island);
-struct opt_8 find_and_remove_first_doable_task_recur(struct island* island, struct opt_2 opt_node);
+struct choose_task_result choose_task(struct global_ctx* gctx);
+uint64_t get_monotime_nsec(void);
+extern int32_t clock_gettime(int32_t clock_it, struct cell_1* tp);
+int32_t clock_monotonic(void);
+struct timespec get_0(struct cell_1* c);
+uint64_t todo_3(void);
+struct choose_task_result choose_task_recur(struct arr_2 islands, uint64_t i, uint64_t cur_time, uint8_t any_tasks__q, struct opt_5 first_task_time);
+struct choose_task_in_island_result choose_task_in_island(struct island* island, uint64_t cur_time);
+struct pop_task_result pop_task(struct task_queue* a, uint64_t cur_time);
 uint8_t contains__q(struct mut_arr_0* a, uint64_t value);
 uint8_t contains_recur__q(struct arr_4 a, uint64_t value, uint64_t i);
 uint64_t noctx_at_2(struct arr_4 a, uint64_t index);
 struct arr_4 temp_as_arr(struct mut_arr_0* a);
+struct pop_task_result pop_recur(struct task_queue_node* prev, struct mut_arr_0* exclusions, uint64_t cur_time, struct opt_5 first_task_time);
+struct opt_5 to_opt_time(uint64_t a);
 struct void_ push_capacity_must_be_sufficient(struct mut_arr_0* a, uint64_t value);
 struct void_ noctx_set_at_1(struct mut_arr_0* a, uint64_t index, uint64_t value);
-uint8_t empty__q_4(struct opt_7 a);
+uint8_t is_no_task__q(struct choose_task_in_island_result a);
+struct opt_5 min_time(struct opt_5 a, struct opt_5 b);
+uint64_t min(uint64_t a, uint64_t b);
 struct void_ do_task(struct global_ctx* gctx, struct thread_local_stuff* tls, struct chosen_task chosen_task);
-struct void_ run_garbage_collection(struct gc* gc, struct island_gc_root gc_root);
-struct void_ mark_visit_219(struct mark_ctx* mark_ctx, struct island_gc_root value);
-struct void_ mark_visit_220(struct mark_ctx* mark_ctx, struct mut_bag value);
-struct void_ mark_visit_221(struct mark_ctx* mark_ctx, struct opt_2 value);
-struct void_ mark_visit_222(struct mark_ctx* mark_ctx, struct some_2 value);
-struct void_ mark_visit_223(struct mark_ctx* mark_ctx, struct mut_bag_node value);
-struct void_ mark_visit_224(struct mark_ctx* mark_ctx, struct task value);
-struct void_ mark_visit_225(struct mark_ctx* mark_ctx, struct fun_act0_0 value);
-struct void_ mark_visit_226(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0__lambda0 value);
-struct void_ mark_visit_227(struct mark_ctx* mark_ctx, struct fun_ref1 value);
-struct void_ mark_visit_228(struct mark_ctx* mark_ctx, struct fun_act1_2 value);
-struct void_ mark_visit_229(struct mark_ctx* mark_ctx, struct then2__lambda0 value);
-struct void_ mark_visit_230(struct mark_ctx* mark_ctx, struct fun_ref0 value);
-struct void_ mark_visit_231(struct mark_ctx* mark_ctx, struct fun_act0_1 value);
-struct void_ mark_visit_232(struct mark_ctx* mark_ctx, struct add_first_task__lambda0 value);
-struct void_ mark_arr_233(struct mark_ctx* mark_ctx, struct arr_3 a);
-struct void_ mark_visit_234(struct mark_ctx* mark_ctx, struct add_first_task__lambda0* value);
-struct void_ mark_visit_235(struct mark_ctx* mark_ctx, struct then2__lambda0* value);
-struct void_ mark_visit_236(struct mark_ctx* mark_ctx, struct fut_0 value);
-struct void_ mark_visit_237(struct mark_ctx* mark_ctx, struct fut_state_0 value);
-struct void_ mark_visit_238(struct mark_ctx* mark_ctx, struct fut_state_callbacks_0 value);
-struct void_ mark_visit_239(struct mark_ctx* mark_ctx, struct opt_0 value);
-struct void_ mark_visit_240(struct mark_ctx* mark_ctx, struct some_0 value);
-struct void_ mark_visit_241(struct mark_ctx* mark_ctx, struct fut_callback_node_0 value);
-struct void_ mark_visit_242(struct mark_ctx* mark_ctx, struct fun_act1_0 value);
-struct void_ mark_visit_243(struct mark_ctx* mark_ctx, struct forward_to__lambda0 value);
-struct void_ mark_visit_244(struct mark_ctx* mark_ctx, struct fut_0* value);
-struct void_ mark_visit_245(struct mark_ctx* mark_ctx, struct forward_to__lambda0* value);
-struct void_ mark_visit_246(struct mark_ctx* mark_ctx, struct fut_callback_node_0* value);
-struct void_ mark_visit_247(struct mark_ctx* mark_ctx, struct exception value);
-struct void_ mark_arr_248(struct mark_ctx* mark_ctx, struct arr_0 a);
-struct void_ mark_visit_249(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0__lambda0* value);
-struct void_ mark_visit_250(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0 value);
-struct void_ mark_visit_251(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0* value);
-struct void_ mark_visit_252(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0__lambda0 value);
-struct void_ mark_visit_253(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0__lambda0* value);
-struct void_ mark_visit_254(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0 value);
-struct void_ mark_visit_255(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0* value);
-struct void_ mark_visit_256(struct mark_ctx* mark_ctx, struct mut_bag_node* value);
+struct void_ return_task(struct task_queue* a, struct task task);
 struct void_ noctx_must_remove_unordered(struct mut_arr_0* a, uint64_t value);
 struct void_ noctx_must_remove_unordered_recur(struct mut_arr_0* a, uint64_t index, uint64_t value);
 uint64_t noctx_at_3(struct mut_arr_0* a, uint64_t index);
 struct void_ drop_1(uint64_t _p0);
 uint64_t noctx_remove_unordered_at_index(struct mut_arr_0* a, uint64_t index);
 uint64_t noctx_last(struct mut_arr_0* a);
-uint8_t empty__q_5(struct mut_arr_0* a);
+uint8_t empty__q_4(struct mut_arr_0* a);
 struct void_ return_ctx(struct ctx* c);
 struct void_ return_gc_ctx(struct gc_ctx* gc_ctx);
-struct void_ wait_on(struct condition* c, uint64_t last_checked);
+struct void_ run_garbage_collection(struct gc* gc, struct island_gc_root gc_root);
+struct void_ mark_visit_243(struct mark_ctx* mark_ctx, struct island_gc_root value);
+struct void_ mark_visit_244(struct mark_ctx* mark_ctx, struct task_queue value);
+struct void_ mark_visit_245(struct mark_ctx* mark_ctx, struct opt_2 value);
+struct void_ mark_visit_246(struct mark_ctx* mark_ctx, struct some_2 value);
+struct void_ mark_visit_247(struct mark_ctx* mark_ctx, struct task_queue_node value);
+struct void_ mark_visit_248(struct mark_ctx* mark_ctx, struct task value);
+struct void_ mark_visit_249(struct mark_ctx* mark_ctx, struct fun_act0_0 value);
+struct void_ mark_visit_250(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0__lambda0 value);
+struct void_ mark_visit_251(struct mark_ctx* mark_ctx, struct fun_ref1 value);
+struct void_ mark_visit_252(struct mark_ctx* mark_ctx, struct fun_act1_2 value);
+struct void_ mark_visit_253(struct mark_ctx* mark_ctx, struct then2__lambda0 value);
+struct void_ mark_visit_254(struct mark_ctx* mark_ctx, struct fun_ref0 value);
+struct void_ mark_visit_255(struct mark_ctx* mark_ctx, struct fun_act0_1 value);
+struct void_ mark_visit_256(struct mark_ctx* mark_ctx, struct add_first_task__lambda0 value);
+struct void_ mark_arr_257(struct mark_ctx* mark_ctx, struct arr_3 a);
+struct void_ mark_visit_258(struct mark_ctx* mark_ctx, struct add_first_task__lambda0* value);
+struct void_ mark_visit_259(struct mark_ctx* mark_ctx, struct then2__lambda0* value);
+struct void_ mark_visit_260(struct mark_ctx* mark_ctx, struct fut_0 value);
+struct void_ mark_visit_261(struct mark_ctx* mark_ctx, struct fut_state_0 value);
+struct void_ mark_visit_262(struct mark_ctx* mark_ctx, struct fut_state_callbacks_0 value);
+struct void_ mark_visit_263(struct mark_ctx* mark_ctx, struct opt_0 value);
+struct void_ mark_visit_264(struct mark_ctx* mark_ctx, struct some_0 value);
+struct void_ mark_visit_265(struct mark_ctx* mark_ctx, struct fut_callback_node_0 value);
+struct void_ mark_visit_266(struct mark_ctx* mark_ctx, struct fun_act1_0 value);
+struct void_ mark_visit_267(struct mark_ctx* mark_ctx, struct forward_to__lambda0 value);
+struct void_ mark_visit_268(struct mark_ctx* mark_ctx, struct fut_0* value);
+struct void_ mark_visit_269(struct mark_ctx* mark_ctx, struct forward_to__lambda0* value);
+struct void_ mark_visit_270(struct mark_ctx* mark_ctx, struct fut_callback_node_0* value);
+struct void_ mark_visit_271(struct mark_ctx* mark_ctx, struct exception value);
+struct void_ mark_arr_272(struct mark_ctx* mark_ctx, struct arr_0 a);
+struct void_ mark_visit_273(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0__lambda0* value);
+struct void_ mark_visit_274(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0 value);
+struct void_ mark_visit_275(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0* value);
+struct void_ mark_visit_276(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0__lambda0 value);
+struct void_ mark_visit_277(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0__lambda0* value);
+struct void_ mark_visit_278(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0 value);
+struct void_ mark_visit_279(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0* value);
+struct void_ mark_visit_280(struct mark_ctx* mark_ctx, struct task_queue_node* value);
+struct void_ wait_on(struct condition* cond, struct opt_5 until_time, uint64_t last_checked);
+uint8_t before_time__q(struct opt_5 until_time);
 struct void_ join_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads);
 struct void_ join_one_thread(uint64_t tid);
-extern int32_t pthread_join(uint64_t thread, struct cell_1* thread_return);
+extern int32_t pthread_join(uint64_t thread, struct cell_2* thread_return);
 int32_t einval(void);
 int32_t esrch(void);
-uint8_t* get(struct cell_1* c);
+uint8_t* get_1(struct cell_2* c);
 struct void_ unmanaged_free_0(uint64_t* p);
 extern void free(uint8_t* p);
 struct void_ unmanaged_free_1(struct thread_args* p);
@@ -1211,62 +1214,63 @@ int32_t rt_main(int32_t argc, char** argv, fun_ptr2 main_ptr) {
 	struct lock _0 = new_lock();
 	struct arr_2 _1 = empty_arr();
 	uint64_t _2 = n_threads0;
-	struct condition _3 = new_condition();
-	uint8_t _4 = 0;
+	uint64_t _3 = 0u;
+	struct condition _4 = new_condition();
 	uint8_t _5 = 0;
-	gctx_by_val1 = (struct global_ctx) {_0, _1, _2, _3, _4, _5};
+	uint8_t _6 = 0;
+	gctx_by_val1 = (struct global_ctx) {_0, _1, _2, _3, _4, _5, _6};
 	
 	struct global_ctx* gctx2;
 	gctx2 = &gctx_by_val1;
 	
 	struct island island_by_val3;
-	struct global_ctx* _6 = gctx2;
-	uint64_t _7 = 0u;
-	uint64_t _8 = n_threads0;
-	island_by_val3 = new_island(_6, _7, _8);
+	struct global_ctx* _7 = gctx2;
+	uint64_t _8 = 0u;
+	uint64_t _9 = n_threads0;
+	island_by_val3 = new_island(_7, _8, _9);
 	
 	struct island* island4;
 	island4 = &island_by_val3;
 	
-	struct global_ctx* _9 = gctx2;
-	uint64_t _10 = 1u;
-	struct island** _11 = &island4;
-	struct arr_2 _12 = (struct arr_2) {_10, _11};
-	_9->islands = _12;
+	struct global_ctx* _10 = gctx2;
+	uint64_t _11 = 1u;
+	struct island** _12 = &island4;
+	struct arr_2 _13 = (struct arr_2) {_11, _12};
+	_10->islands = _13;
 	struct fut_0* main_fut5;
-	struct global_ctx* _13 = gctx2;
-	struct island* _14 = island4;
-	int32_t _15 = argc;
-	char** _16 = argv;
-	fun_ptr2 _17 = main_ptr;
-	main_fut5 = do_main(_13, _14, _15, _16, _17);
+	struct global_ctx* _14 = gctx2;
+	struct island* _15 = island4;
+	int32_t _16 = argc;
+	char** _17 = argv;
+	fun_ptr2 _18 = main_ptr;
+	main_fut5 = do_main(_14, _15, _16, _17, _18);
 	
-	uint64_t _18 = n_threads0;
-	struct global_ctx* _19 = gctx2;
-	run_threads(_18, _19);
+	uint64_t _19 = n_threads0;
 	struct global_ctx* _20 = gctx2;
-	uint8_t _21 = _20->any_unhandled_exceptions__q;
-	if (_21) {
+	run_threads(_19, _20);
+	struct global_ctx* _21 = gctx2;
+	uint8_t _22 = _21->any_unhandled_exceptions__q;
+	if (_22) {
 		return 1;
 	} else {
-		struct fut_0* _22 = main_fut5;
-		struct result_0 _23 = must_be_resolved(_22);
-		switch (_23.kind) {
+		struct fut_0* _23 = main_fut5;
+		struct result_0 _24 = must_be_resolved(_23);
+		switch (_24.kind) {
 			case 0: {
-				struct ok_0 o6 = _23.as0;
+				struct ok_0 o6 = _24.as0;
 				
-				struct ok_0 _24 = o6;
-				return _24.value;
+				struct ok_0 _25 = o6;
+				return _25.value;
 			}
 			case 1: {
-				struct err_0 e7 = _23.as1;
+				struct err e7 = _24.as1;
 				
-				struct arr_0 _25 = (struct arr_0) {13, constantarr_0_14};
-				print_err_no_newline(_25);
-				struct err_0 _26 = e7;
-				struct exception _27 = _26.value;
-				struct arr_0 _28 = _27.message;
-				print_err(_28);
+				struct arr_0 _26 = (struct arr_0) {13, constantarr_0_14};
+				print_err_no_newline(_26);
+				struct err _27 = e7;
+				struct exception _28 = _27.value;
+				struct arr_0 _29 = _28.message;
+				print_err(_29);
 				return 1;
 			}
 			default:
@@ -1298,12 +1302,12 @@ struct condition new_condition(void) {
 }
 /* new-island island(gctx global-ctx, id nat, max-threads nat) */
 struct island new_island(struct global_ctx* gctx, uint64_t id, uint64_t max_threads) {
-	struct mut_arr_0 exclusions0;
+	struct task_queue q0;
 	uint64_t _0 = max_threads;
-	exclusions0 = new_mut_arr_by_val_with_capacity_from_unmanaged_memory(_0);
+	q0 = new_task_queue(_0);
 	
 	struct island_gc_root gc_root1;
-	struct mut_bag _1 = new_mut_bag();
+	struct task_queue _1 = q0;
 	struct void_ _2 = (struct void_) {};
 	struct fun1_0 _3 = (struct fun1_0) {0, .as0 = _2};
 	struct void_ _4 = (struct void_) {};
@@ -1315,10 +1319,17 @@ struct island new_island(struct global_ctx* gctx, uint64_t id, uint64_t max_thre
 	struct gc _8 = new_gc();
 	struct island_gc_root _9 = gc_root1;
 	struct lock _10 = new_lock();
-	struct mut_arr_0 _11 = exclusions0;
-	uint64_t _12 = 0u;
-	struct thread_safe_counter _13 = new_thread_safe_counter_0();
-	return (struct island) {_6, _7, _8, _9, _10, _11, _12, _13};
+	uint64_t _11 = 0u;
+	struct thread_safe_counter _12 = new_thread_safe_counter_0();
+	return (struct island) {_6, _7, _8, _9, _10, _11, _12};
+}
+/* new-task-queue task-queue(max-threads nat) */
+struct task_queue new_task_queue(uint64_t max_threads) {
+	struct none _0 = (struct none) {};
+	struct opt_2 _1 = (struct opt_2) {0, .as0 = _0};
+	uint64_t _2 = max_threads;
+	struct mut_arr_0 _3 = new_mut_arr_by_val_with_capacity_from_unmanaged_memory(_2);
+	return (struct task_queue) {_1, _3};
 }
 /* new-mut-arr-by-val-with-capacity-from-unmanaged-memory<nat> mut-arr<nat>(capacity nat) */
 struct mut_arr_0 new_mut_arr_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity) {
@@ -1365,12 +1376,6 @@ uint8_t null__q_0(uint8_t* a) {
 	uint64_t _3 = (uint64_t) _2;
 	return _op_equal_equal_0(_1, _3);
 }
-/* new-mut-bag<task> mut-bag<task>() */
-struct mut_bag new_mut_bag(void) {
-	struct none _0 = (struct none) {};
-	struct opt_2 _1 = (struct opt_2) {0, .as0 = _0};
-	return (struct mut_bag) {_1};
-}
 /* default-exception-handler void(e exception) */
 struct void_ default_exception_handler(struct ctx* ctx, struct exception e) {
 	struct arr_0 _0 = (struct arr_0) {20, constantarr_0_2};
@@ -1387,7 +1392,7 @@ struct void_ default_exception_handler(struct ctx* ctx, struct exception e) {
 	}
 	print_err(_4);
 	struct ctx* _6 = ctx;
-	struct global_ctx* _7 = get_gctx(_6);
+	struct global_ctx* _7 = get_global_ctx(_6);
 	uint8_t _8 = 1;
 	return (_7->any_unhandled_exceptions__q = _8, (struct void_) {});
 }
@@ -1492,8 +1497,8 @@ uint8_t empty__q_0(struct arr_0 a) {
 	uint64_t _2 = 0u;
 	return _op_equal_equal_0(_1, _2);
 }
-/* get-gctx global-ctx() */
-struct global_ctx* get_gctx(struct ctx* ctx) {
+/* get-global-ctx global-ctx() */
+struct global_ctx* get_global_ctx(struct ctx* ctx) {
 	struct ctx* _0 = ctx;
 	uint8_t* _1 = _0->gctx_ptr;
 	return (struct global_ctx*) _1;
@@ -2158,7 +2163,7 @@ struct fut_0* do_main(struct global_ctx* gctx, struct island* island, int32_t ar
 	struct ctx* _12 = ctx4;
 	struct arr_3 _13 = all_args6;
 	fun_ptr2 _14 = main_ptr;
-	return call_w_ctx_188(_11, _12, _13, _14);
+	return call_w_ctx_193(_11, _12, _13, _14);
 }
 /* new-exception-ctx exception-ctx() */
 struct exception_ctx new_exception_ctx(void) {
@@ -2527,7 +2532,7 @@ struct void_ then_void_0(struct ctx* ctx, struct fut_1* f, struct fun_act1_1 cb)
 			struct ctx* _23 = ctx;
 			struct fun_act1_1 _24 = cb;
 			struct exception _25 = e2;
-			struct err_0 _26 = (struct err_0) {_25};
+			struct err _26 = (struct err) {_25};
 			struct result_1 _27 = (struct result_1) {1, .as1 = _26};
 			call_0(_23, _24, _27);
 			break;
@@ -2628,7 +2633,7 @@ struct void_ then_void_1(struct ctx* ctx, struct fut_0* f, struct fun_act1_0 cb)
 			struct ctx* _23 = ctx;
 			struct fun_act1_0 _24 = cb;
 			struct exception _25 = e2;
-			struct err_0 _26 = (struct err_0) {_25};
+			struct err _26 = (struct err) {_25};
 			struct result_0 _27 = (struct result_0) {1, .as1 = _26};
 			call_1(_23, _24, _27);
 			break;
@@ -2704,10 +2709,10 @@ struct void_ resolve_or_reject(struct ctx* ctx, struct fut_0* f, struct result_0
 			break;
 		}
 		case 1: {
-			struct err_0 e2 = _8.as1;
+			struct err e2 = _8.as1;
 			
 			struct exception ex3;
-			struct err_0 _13 = e2;
+			struct err _13 = e2;
 			ex3 = _13.value;
 			
 			struct exception _14 = ex3;
@@ -2795,15 +2800,14 @@ struct fut_0* call_ref_0(struct ctx* ctx, struct fun_ref1 f, struct void_ p0) {
 	*_13 = _17;
 	struct call_ref_0__lambda0* _18 = temp0;
 	struct fun_act0_0 _19 = (struct fun_act0_0) {1, .as1 = _18};
-	struct task _20 = (struct task) {_9, _19};
-	add_task(_5, _6, _20);
+	add_task_0(_5, _6, _9, _19);
 	return res1;
 }
 /* get-island island(island-id nat) */
 struct island* get_island(struct ctx* ctx, uint64_t island_id) {
 	struct ctx* _0 = ctx;
 	struct ctx* _1 = ctx;
-	struct global_ctx* _2 = get_gctx(_1);
+	struct global_ctx* _2 = get_global_ctx(_1);
 	struct arr_2 _3 = _2->islands;
 	uint64_t _4 = island_id;
 	return at_0(_0, _3, _4);
@@ -2833,54 +2837,199 @@ struct island* noctx_at_0(struct arr_2 a, uint64_t index) {
 	struct island** _7 = _5 + _6;
 	return *_7;
 }
-/* add-task void(a island, t task) */
-struct void_ add_task(struct ctx* ctx, struct island* a, struct task t) {
-	struct mut_bag_node* node0;
+/* add-task void(a island, exclusion nat, action fun-act0<void>) */
+struct void_ add_task_0(struct ctx* ctx, struct island* a, uint64_t exclusion, struct fun_act0_0 action) {
 	struct ctx* _0 = ctx;
-	struct task _1 = t;
-	node0 = new_mut_bag_node(_0, _1);
-	
-	struct lock* _2 = &a->tasks_lock;
-	acquire_lock(_2);
-	struct island* _3 = a;
-	struct mut_bag* _4 = tasks(_3);
-	struct mut_bag_node* _5 = node0;
-	add(_4, _5);
-	struct lock* _6 = &a->tasks_lock;
-	release_lock(_6);
-	struct condition* _7 = &a->gctx->may_be_work_to_do;
-	return broadcast(_7);
+	struct island* _1 = a;
+	uint64_t _2 = no_timestamp();
+	uint64_t _3 = exclusion;
+	struct fun_act0_0 _4 = action;
+	return add_task_1(_0, _1, _2, _3, _4);
 }
-/* new-mut-bag-node<task> mut-bag-node<task>(value task) */
-struct mut_bag_node* new_mut_bag_node(struct ctx* ctx, struct task value) {
-	struct mut_bag_node* temp0;
+/* add-task void(a island, timestamp nat, exclusion nat, action fun-act0<void>) */
+struct void_ add_task_1(struct ctx* ctx, struct island* a, uint64_t timestamp, uint64_t exclusion, struct fun_act0_0 action) {
+	struct task_queue_node* node0;
 	struct ctx* _0 = ctx;
-	uint64_t _1 = sizeof(struct mut_bag_node);
-	uint8_t* _2 = alloc(_0, _1);
-	temp0 = (struct mut_bag_node*) _2;
+	uint64_t _1 = timestamp;
+	uint64_t _2 = exclusion;
+	struct fun_act0_0 _3 = action;
+	struct task _4 = (struct task) {_1, _2, _3};
+	node0 = new_task_queue_node(_0, _4);
 	
-	struct mut_bag_node* _3 = temp0;
-	struct task _4 = value;
+	struct lock* _5 = &a->tasks_lock;
+	acquire_lock(_5);
+	struct island* _6 = a;
+	struct task_queue* _7 = tasks(_6);
+	struct task_queue_node* _8 = node0;
+	insert_task(_7, _8);
+	struct lock* _9 = &a->tasks_lock;
+	release_lock(_9);
+	struct condition* _10 = &a->gctx->may_be_work_to_do;
+	return broadcast(_10);
+}
+/* new-task-queue-node task-queue-node(task task) */
+struct task_queue_node* new_task_queue_node(struct ctx* ctx, struct task task) {
+	struct task_queue_node* temp0;
+	struct ctx* _0 = ctx;
+	uint64_t _1 = sizeof(struct task_queue_node);
+	uint8_t* _2 = alloc(_0, _1);
+	temp0 = (struct task_queue_node*) _2;
+	
+	struct task_queue_node* _3 = temp0;
+	struct task _4 = task;
 	struct none _5 = (struct none) {};
 	struct opt_2 _6 = (struct opt_2) {0, .as0 = _5};
-	struct mut_bag_node _7 = (struct mut_bag_node) {_4, _6};
+	struct task_queue_node _7 = (struct task_queue_node) {_4, _6};
 	*_3 = _7;
 	return temp0;
 }
-/* add<task> void(bag mut-bag<task>, node mut-bag-node<task>) */
-struct void_ add(struct mut_bag* bag, struct mut_bag_node* node) {
-	struct mut_bag_node* _0 = node;
-	struct mut_bag* _1 = bag;
+/* insert-task void(a task-queue, inserted task-queue-node) */
+struct void_ insert_task(struct task_queue* a, struct task_queue_node* inserted) {
+	uint64_t size_before0;
+	struct task_queue* _0 = a;
+	size_before0 = size(_0);
+	
+	struct task_queue* _1 = a;
 	struct opt_2 _2 = _1->head;
-	_0->next_node = _2;
-	struct mut_bag* _3 = bag;
-	struct mut_bag_node* _4 = node;
-	struct some_2 _5 = (struct some_2) {_4};
-	struct opt_2 _6 = (struct opt_2) {1, .as1 = _5};
-	return (_3->head = _6, (struct void_) {});
+	switch (_2.kind) {
+		case 0: {
+			struct task_queue* _3 = a;
+			struct task_queue_node* _4 = inserted;
+			struct some_2 _5 = (struct some_2) {_4};
+			struct opt_2 _6 = (struct opt_2) {1, .as1 = _5};
+			_3->head = _6;
+			break;
+		}
+		case 1: {
+			struct some_2 s1 = _2.as1;
+			
+			struct task_queue_node* head2;
+			struct some_2 _7 = s1;
+			head2 = _7.value;
+			
+			struct task_queue_node* _8 = head2;
+			struct task _9 = _8->task;
+			uint64_t _10 = _9.time;
+			struct task_queue_node* _11 = inserted;
+			struct task _12 = _11->task;
+			uint64_t _13 = _12.time;
+			uint8_t _14 = _op_less_equal(_10, _13);
+			if (_14) {
+				struct task_queue_node* _15 = head2;
+				struct task_queue_node* _16 = inserted;
+				insert_recur(_15, _16);
+			} else {
+				struct task_queue_node* _17 = inserted;
+				struct task_queue_node* _18 = head2;
+				struct some_2 _19 = (struct some_2) {_18};
+				struct opt_2 _20 = (struct opt_2) {1, .as1 = _19};
+				_17->next = _20;
+				struct task_queue* _21 = a;
+				struct task_queue_node* _22 = inserted;
+				struct some_2 _23 = (struct some_2) {_22};
+				struct opt_2 _24 = (struct opt_2) {1, .as1 = _23};
+				_21->head = _24;
+			}
+			break;
+		}
+		default:
+			(assert(0),(struct void_) {});
+	}
+	uint64_t size_after3;
+	struct task_queue* _25 = a;
+	size_after3 = size(_25);
+	
+	uint64_t _26 = size_before0;
+	uint64_t _27 = 1u;
+	uint64_t _28 = _26 + _27;
+	uint64_t _29 = size_after3;
+	uint8_t _30 = _op_equal_equal_0(_28, _29);
+	return hard_assert(_30);
 }
-/* tasks mut-bag<task>(a island) */
-struct mut_bag* tasks(struct island* a) {
+/* size nat(a task-queue) */
+uint64_t size(struct task_queue* a) {
+	struct task_queue* _0 = a;
+	struct opt_2 _1 = _0->head;
+	uint64_t _2 = 0u;
+	return size_recur(_1, _2);
+}
+/* size-recur nat(node opt<task-queue-node>, acc nat) */
+uint64_t size_recur(struct opt_2 node, uint64_t acc) {
+	top:;
+	struct opt_2 _0 = node;
+	switch (_0.kind) {
+		case 0: {
+			return acc;
+		}
+		case 1: {
+			struct some_2 s0 = _0.as1;
+			
+			struct some_2 _1 = s0;
+			struct task_queue_node* _2 = _1.value;
+			struct opt_2 _3 = _2->next;
+			uint64_t _4 = acc;
+			uint64_t _5 = 1u;
+			uint64_t _6 = _4 + _5;
+			node = _3;
+			acc = _6;
+			goto top;
+		}
+		default:
+			return (assert(0),0);
+	}
+}
+/* insert-recur void(prev task-queue-node, inserted task-queue-node) */
+struct void_ insert_recur(struct task_queue_node* prev, struct task_queue_node* inserted) {
+	top:;
+	struct task_queue_node* _0 = prev;
+	struct opt_2 _1 = _0->next;
+	switch (_1.kind) {
+		case 0: {
+			struct task_queue_node* _2 = prev;
+			struct task_queue_node* _3 = inserted;
+			struct some_2 _4 = (struct some_2) {_3};
+			struct opt_2 _5 = (struct opt_2) {1, .as1 = _4};
+			return (_2->next = _5, (struct void_) {});
+		}
+		case 1: {
+			struct some_2 s0 = _1.as1;
+			
+			struct task_queue_node* cur1;
+			struct some_2 _6 = s0;
+			cur1 = _6.value;
+			
+			struct task_queue_node* _7 = cur1;
+			struct task _8 = _7->task;
+			uint64_t _9 = _8.time;
+			struct task_queue_node* _10 = inserted;
+			struct task _11 = _10->task;
+			uint64_t _12 = _11.time;
+			uint8_t _13 = _op_less_equal(_9, _12);
+			if (_13) {
+				struct task_queue_node* _14 = cur1;
+				struct task_queue_node* _15 = inserted;
+				prev = _14;
+				inserted = _15;
+				goto top;
+			} else {
+				struct task_queue_node* _16 = inserted;
+				struct task_queue_node* _17 = cur1;
+				struct some_2 _18 = (struct some_2) {_17};
+				struct opt_2 _19 = (struct opt_2) {1, .as1 = _18};
+				_16->next = _19;
+				struct task_queue_node* _20 = prev;
+				struct task_queue_node* _21 = inserted;
+				struct some_2 _22 = (struct some_2) {_21};
+				struct opt_2 _23 = (struct opt_2) {1, .as1 = _22};
+				return (_20->next = _23, (struct void_) {});
+			}
+		}
+		default:
+			return (assert(0),(struct void_) {});
+	}
+}
+/* tasks task-queue(a island) */
+struct task_queue* tasks(struct island* a) {
 	return &(&a->gc_root)->tasks;
 }
 /* broadcast void(c condition) */
@@ -2894,6 +3043,10 @@ struct void_ broadcast(struct condition* c) {
 	_1->value = _4;
 	struct lock* _5 = &c->lk;
 	return release_lock(_5);
+}
+/* no-timestamp nat() */
+uint64_t no_timestamp(void) {
+	return 0u;
 }
 /* catch<void> void(try fun-act0<void>, catcher fun-act1<void, exception>) */
 struct void_ catch(struct ctx* ctx, struct fun_act0_0 try, struct fun_act1_3 catcher) {
@@ -2995,10 +3148,10 @@ struct bytes128 zero_3(void) {
 struct void_ call_2(struct ctx* ctx, struct fun_act0_0 a) {
 	struct fun_act0_0 _0 = a;
 	struct ctx* _1 = ctx;
-	return call_w_ctx_135(_0, _1);
+	return call_w_ctx_140(_0, _1);
 }
 /* call-w-ctx<void> (generated) (generated) */
-struct void_ call_w_ctx_135(struct fun_act0_0 a, struct ctx* ctx) {
+struct void_ call_w_ctx_140(struct fun_act0_0 a, struct ctx* ctx) {
 	struct fun_act0_0 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -3038,10 +3191,10 @@ struct void_ call_3(struct ctx* ctx, struct fun_act1_3 a, struct exception p0) {
 	struct fun_act1_3 _0 = a;
 	struct ctx* _1 = ctx;
 	struct exception _2 = p0;
-	return call_w_ctx_137(_0, _1, _2);
+	return call_w_ctx_142(_0, _1, _2);
 }
 /* call-w-ctx<void, exception> (generated) (generated) */
-struct void_ call_w_ctx_137(struct fun_act1_3 a, struct ctx* ctx, struct exception p0) {
+struct void_ call_w_ctx_142(struct fun_act1_3 a, struct ctx* ctx, struct exception p0) {
 	struct fun_act1_3 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -3069,10 +3222,10 @@ struct fut_0* call_4(struct ctx* ctx, struct fun_act1_2 a, struct void_ p0) {
 	struct fun_act1_2 _0 = a;
 	struct ctx* _1 = ctx;
 	struct void_ _2 = p0;
-	return call_w_ctx_139(_0, _1, _2);
+	return call_w_ctx_144(_0, _1, _2);
 }
 /* call-w-ctx<gc-ptr(fut<int32>), void> (generated) (generated) */
-struct fut_0* call_w_ctx_139(struct fun_act1_2 a, struct ctx* ctx, struct void_ p0) {
+struct fut_0* call_w_ctx_144(struct fun_act1_2 a, struct ctx* ctx, struct void_ p0) {
 	struct fun_act1_2 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -3106,7 +3259,7 @@ struct void_ reject(struct ctx* ctx, struct fut_0* f, struct exception e) {
 	struct ctx* _0 = ctx;
 	struct fut_0* _1 = f;
 	struct exception _2 = e;
-	struct err_0 _3 = (struct err_0) {_2};
+	struct err _3 = (struct err) {_2};
 	struct result_0 _4 = (struct result_0) {1, .as1 = _3};
 	return resolve_or_reject(_0, _1, _4);
 }
@@ -3172,12 +3325,12 @@ struct void_ then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, stru
 			return forward_to(_1, _7, _9);
 		}
 		case 1: {
-			struct err_0 e1 = _0.as1;
+			struct err e1 = _0.as1;
 			
 			struct ctx* _10 = ctx;
 			struct then__lambda0* _11 = _closure;
 			struct fut_0* _12 = _11->res;
-			struct err_0 _13 = e1;
+			struct err _13 = e1;
 			struct exception _14 = _13.value;
 			return reject(_10, _12, _14);
 		}
@@ -3216,18 +3369,17 @@ struct fut_0* call_ref_1(struct ctx* ctx, struct fun_ref0 f) {
 	*_13 = _16;
 	struct call_ref_1__lambda0* _17 = temp0;
 	struct fun_act0_0 _18 = (struct fun_act0_0) {3, .as3 = _17};
-	struct task _19 = (struct task) {_9, _18};
-	add_task(_5, _6, _19);
+	add_task_0(_5, _6, _9, _18);
 	return res1;
 }
 /* call<fut<?r>> fut<int32>(a fun-act0<fut<int32>>) */
 struct fut_0* call_5(struct ctx* ctx, struct fun_act0_1 a) {
 	struct fun_act0_1 _0 = a;
 	struct ctx* _1 = ctx;
-	return call_w_ctx_147(_0, _1);
+	return call_w_ctx_152(_0, _1);
 }
 /* call-w-ctx<gc-ptr(fut<int32>)> (generated) (generated) */
-struct fut_0* call_w_ctx_147(struct fun_act0_1 a, struct ctx* ctx) {
+struct fut_0* call_w_ctx_152(struct fun_act0_1 a, struct ctx* ctx) {
 	struct fun_act0_1 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -3539,10 +3691,10 @@ struct arr_0 call_6(struct ctx* ctx, struct fun_act1_5 a, uint64_t p0) {
 	struct fun_act1_5 _0 = a;
 	struct ctx* _1 = ctx;
 	uint64_t _2 = p0;
-	return call_w_ctx_170(_0, _1, _2);
+	return call_w_ctx_175(_0, _1, _2);
 }
 /* call-w-ctx<arr<char>, nat-64> (generated) (generated) */
-struct arr_0 call_w_ctx_170(struct fun_act1_5 a, struct ctx* ctx, uint64_t p0) {
+struct arr_0 call_w_ctx_175(struct fun_act1_5 a, struct ctx* ctx, uint64_t p0) {
 	struct fun_act1_5 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -3573,10 +3725,10 @@ struct arr_0 call_7(struct ctx* ctx, struct fun_act1_4 a, char* p0) {
 	struct fun_act1_4 _0 = a;
 	struct ctx* _1 = ctx;
 	char* _2 = p0;
-	return call_w_ctx_173(_0, _1, _2);
+	return call_w_ctx_178(_0, _1, _2);
 }
 /* call-w-ctx<arr<char>, raw-ptr(char)> (generated) (generated) */
-struct arr_0 call_w_ctx_173(struct fun_act1_4 a, struct ctx* ctx, char* p0) {
+struct arr_0 call_w_ctx_178(struct fun_act1_4 a, struct ctx* ctx, char* p0) {
 	struct fun_act1_4 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -3689,7 +3841,7 @@ char* find_char_in_cstr(char* a, char c) {
 uint8_t _op_equal_equal_3(char a, char b) {
 	char _0 = a;
 	char _1 = b;
-	struct comparison _2 = compare_183(_0, _1);
+	struct comparison _2 = compare_188(_0, _1);
 	switch (_2.kind) {
 		case 0: {
 			return 0;
@@ -3705,7 +3857,7 @@ uint8_t _op_equal_equal_3(char a, char b) {
 	}
 }
 /* compare<char> (generated) (generated) */
-struct comparison compare_183(char a, char b) {
+struct comparison compare_188(char a, char b) {
 	char _0 = a;
 	char _1 = b;
 	uint8_t _2 = _0 < _1;
@@ -3760,7 +3912,7 @@ struct fut_0* do_main__lambda0(struct ctx* ctx, struct void_ _closure, struct ar
 	return add_first_task(_0, _1, _2);
 }
 /* call-w-ctx<gc-ptr(fut<int32>), arr<ptr<char>>, some fun ptr type> (generated) (generated) */
-struct fut_0* call_w_ctx_188(struct fun2 a, struct ctx* ctx, struct arr_3 p0, fun_ptr2 p1) {
+struct fut_0* call_w_ctx_193(struct fun2 a, struct ctx* ctx, struct arr_3 p0, fun_ptr2 p1) {
 	struct fun2 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -3950,7 +4102,7 @@ struct void_ thread_function(uint64_t thread_id, struct global_ctx* gctx) {
 struct void_ thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, struct thread_local_stuff* tls) {
 	top:;
 	struct global_ctx* _0 = gctx;
-	uint8_t _1 = _0->is_shut_down;
+	uint8_t _1 = _0->shut_down__q;
 	if (_1) {
 		struct lock* _2 = &gctx->lk;
 		acquire_lock(_2);
@@ -3976,58 +4128,67 @@ struct void_ thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, 
 		last_checked0 = get_last_checked(_15);
 		
 		struct global_ctx* _16 = gctx;
-		struct result_2 _17 = choose_task(_16);
+		struct choose_task_result _17 = choose_task(_16);
 		switch (_17.kind) {
 			case 0: {
-				struct ok_2 ok_chosen_task1 = _17.as0;
+				struct chosen_task t1 = _17.as0;
 				
 				struct global_ctx* _18 = gctx;
 				struct thread_local_stuff* _19 = tls;
-				struct ok_2 _20 = ok_chosen_task1;
-				struct chosen_task _21 = _20.value;
-				do_task(_18, _19, _21);
+				struct chosen_task _20 = t1;
+				do_task(_18, _19, _20);
 				break;
 			}
 			case 1: {
-				struct err_1 e2 = _17.as1;
+				struct no_chosen_task n2 = _17.as1;
 				
-				struct err_1 _22 = e2;
-				struct no_chosen_task _23 = _22.value;
-				uint8_t _24 = _23.last_thread_out;
-				if (_24) {
-					struct global_ctx* _25 = gctx;
-					uint8_t _26 = _25->is_shut_down;
-					hard_forbid(_26);
-					struct global_ctx* _27 = gctx;
-					uint8_t _28 = 1;
-					_27->is_shut_down = _28;
-					struct condition* _29 = &gctx->may_be_work_to_do;
-					broadcast(_29);
+				struct no_chosen_task _21 = n2;
+				uint8_t _22 = _21.no_tasks_and_last_thread_out__q;uint8_t _23;
+				
+				if (_22) {
+					struct global_ctx* _24 = gctx;
+					uint64_t _25 = _24->cant_shut_down_count;
+					uint64_t _26 = 0u;
+					_23 = _op_equal_equal_0(_25, _26);
 				} else {
-					struct condition* _30 = &gctx->may_be_work_to_do;
-					uint64_t _31 = last_checked0;
-					wait_on(_30, _31);
+					_23 = 0;
 				}
-				struct lock* _32 = &gctx->lk;
-				acquire_lock(_32);
-				struct global_ctx* _33 = gctx;
-				struct global_ctx* _34 = gctx;
-				uint64_t _35 = _34->n_live_threads;
-				uint64_t _36 = noctx_incr(_35);
-				_33->n_live_threads = _36;
-				struct lock* _37 = &gctx->lk;
-				release_lock(_37);
+				if (_23) {
+					struct global_ctx* _27 = gctx;
+					uint8_t _28 = _27->shut_down__q;
+					hard_forbid(_28);
+					struct global_ctx* _29 = gctx;
+					uint8_t _30 = 1;
+					_29->shut_down__q = _30;
+					struct condition* _31 = &gctx->may_be_work_to_do;
+					broadcast(_31);
+				} else {
+					struct condition* _32 = &gctx->may_be_work_to_do;
+					struct no_chosen_task _33 = n2;
+					struct opt_5 _34 = _33.first_task_time;
+					uint64_t _35 = last_checked0;
+					wait_on(_32, _34, _35);
+				}
+				struct lock* _36 = &gctx->lk;
+				acquire_lock(_36);
+				struct global_ctx* _37 = gctx;
+				struct global_ctx* _38 = gctx;
+				uint64_t _39 = _38->n_live_threads;
+				uint64_t _40 = noctx_incr(_39);
+				_37->n_live_threads = _40;
+				struct lock* _41 = &gctx->lk;
+				release_lock(_41);
 				break;
 			}
 			default:
 				(assert(0),(struct void_) {});
 		}
-		uint64_t _38 = thread_id;
-		struct global_ctx* _39 = gctx;
-		struct thread_local_stuff* _40 = tls;
-		thread_id = _38;
-		gctx = _39;
-		tls = _40;
+		uint64_t _42 = thread_id;
+		struct global_ctx* _43 = gctx;
+		struct thread_local_stuff* _44 = tls;
+		thread_id = _42;
+		gctx = _43;
+		tls = _44;
 		goto top;
 	}
 }
@@ -4055,7 +4216,7 @@ struct void_ assert_islands_are_shut_down(uint64_t i, struct arr_2 islands) {
 		uint8_t _12 = _op_equal_equal_0(_10, _11);
 		hard_assert(_12);
 		struct island* _13 = island0;
-		struct mut_bag* _14 = tasks(_13);
+		struct task_queue* _14 = tasks(_13);
 		uint8_t _15 = empty__q_2(_14);
 		hard_assert(_15);
 		struct lock* _16 = &island0->tasks_lock;
@@ -4070,13 +4231,20 @@ struct void_ assert_islands_are_shut_down(uint64_t i, struct arr_2 islands) {
 		return (struct void_) {};
 	}
 }
-/* empty?<task> bool(m mut-bag<task>) */
-uint8_t empty__q_2(struct mut_bag* m) {
-	struct mut_bag* _0 = m;
+/* empty? bool(a task-queue) */
+uint8_t empty__q_2(struct task_queue* a) {
+	struct task_queue* _0 = a;
 	struct opt_2 _1 = _0->head;
-	return empty__q_3(_1);
+	uint8_t _2 = has__q(_1);
+	return !_2;
 }
-/* empty?<mut-bag-node<?t>> bool(a opt<mut-bag-node<task>>) */
+/* has?<task-queue-node> bool(a opt<task-queue-node>) */
+uint8_t has__q(struct opt_2 a) {
+	struct opt_2 _0 = a;
+	uint8_t _1 = empty__q_3(_0);
+	return !_1;
+}
+/* empty?<?t> bool(a opt<task-queue-node>) */
 uint8_t empty__q_3(struct opt_2 a) {
 	struct opt_2 _0 = a;
 	switch (_0.kind) {
@@ -4095,95 +4263,193 @@ uint64_t get_last_checked(struct condition* c) {
 	struct condition* _0 = c;
 	return _0->value;
 }
-/* choose-task result<chosen-task, no-chosen-task>(gctx global-ctx) */
-struct result_2 choose_task(struct global_ctx* gctx) {
+/* choose-task choose-task-result(gctx global-ctx) */
+struct choose_task_result choose_task(struct global_ctx* gctx) {
 	struct lock* _0 = &gctx->lk;
 	acquire_lock(_0);
-	struct result_2 res1;
+	uint64_t cur_time0;
+	cur_time0 = get_monotime_nsec();
+	
+	struct choose_task_result res4;
 	struct global_ctx* _1 = gctx;
 	struct arr_2 _2 = _1->islands;
 	uint64_t _3 = 0u;
-	struct opt_6 _4 = choose_task_recur(_2, _3);
-	switch (_4.kind) {
+	uint64_t _4 = cur_time0;
+	uint8_t _5 = 0;
+	struct none _6 = (struct none) {};
+	struct opt_5 _7 = (struct opt_5) {0, .as0 = _6};
+	struct choose_task_result _8 = choose_task_recur(_2, _3, _4, _5, _7);
+	switch (_8.kind) {
 		case 0: {
-			struct global_ctx* _5 = gctx;
-			struct global_ctx* _6 = gctx;
-			uint64_t _7 = _6->n_live_threads;
-			uint64_t _8 = noctx_decr(_7);
-			_5->n_live_threads = _8;
-			struct global_ctx* _9 = gctx;
-			uint64_t _10 = _9->n_live_threads;
-			uint64_t _11 = 0u;
-			uint8_t _12 = _op_equal_equal_0(_10, _11);
-			struct no_chosen_task _13 = (struct no_chosen_task) {_12};
-			struct err_1 _14 = (struct err_1) {_13};
-			res1 = (struct result_2) {1, .as1 = _14};
+			struct chosen_task c1 = _8.as0;
+			
+			struct chosen_task _9 = c1;
+			res4 = (struct choose_task_result) {0, .as0 = _9};
 			break;
 		}
 		case 1: {
-			struct some_6 s0 = _4.as1;
+			struct no_chosen_task n2 = _8.as1;
 			
-			struct some_6 _15 = s0;
-			struct chosen_task _16 = _15.value;
-			struct ok_2 _17 = (struct ok_2) {_16};
-			res1 = (struct result_2) {0, .as0 = _17};
+			struct global_ctx* _10 = gctx;
+			struct global_ctx* _11 = gctx;
+			uint64_t _12 = _11->n_live_threads;
+			uint64_t _13 = noctx_decr(_12);
+			_10->n_live_threads = _13;
+			uint8_t no_task_and_last_thread_out__q3;
+			struct no_chosen_task _14 = n2;
+			uint8_t _15 = _14.no_tasks_and_last_thread_out__q;
+			if (_15) {
+				struct global_ctx* _16 = gctx;
+				uint64_t _17 = _16->n_live_threads;
+				uint64_t _18 = 0u;
+				no_task_and_last_thread_out__q3 = _op_equal_equal_0(_17, _18);
+			} else {
+				no_task_and_last_thread_out__q3 = 0;
+			}
+			
+			uint8_t _19 = no_task_and_last_thread_out__q3;
+			struct no_chosen_task _20 = n2;
+			struct opt_5 _21 = _20.first_task_time;
+			struct no_chosen_task _22 = (struct no_chosen_task) {_19, _21};
+			res4 = (struct choose_task_result) {1, .as1 = _22};
 			break;
 		}
 		default:
-			(assert(0),(struct result_2) {0});
+			(assert(0),(struct choose_task_result) {0});
 	}
 	
-	struct lock* _18 = &gctx->lk;
-	release_lock(_18);
-	return res1;
+	struct lock* _23 = &gctx->lk;
+	release_lock(_23);
+	return res4;
 }
-/* choose-task-recur opt<chosen-task>(islands arr<island>, i nat) */
-struct opt_6 choose_task_recur(struct arr_2 islands, uint64_t i) {
+/* get-monotime-nsec nat() */
+uint64_t get_monotime_nsec(void) {
+	struct cell_1 time_cell0;
+	int64_t _0 = 0;
+	int64_t _1 = 0;
+	struct timespec _2 = (struct timespec) {_0, _1};
+	time_cell0 = (struct cell_1) {_2};
+	
+	int32_t err1;
+	int32_t _3 = clock_monotonic();
+	struct cell_1* _4 = &time_cell0;
+	err1 = clock_gettime(_3, _4);
+	
+	int32_t _5 = err1;
+	int32_t _6 = 0;
+	uint8_t _7 = _op_equal_equal_2(_5, _6);
+	if (_7) {
+		struct timespec time2;
+		struct cell_1* _8 = &time_cell0;
+		time2 = get_0(_8);
+		
+		struct timespec _9 = time2;
+		int64_t _10 = _9.tv_sec;
+		int64_t _11 = 1000000000;
+		int64_t _12 = _10 * _11;
+		struct timespec _13 = time2;
+		int64_t _14 = _13.tv_nsec;
+		int64_t _15 = _12 + _14;
+		return (uint64_t) _15;
+	} else {
+		return todo_3();
+	}
+}
+/* clock-monotonic int32() */
+int32_t clock_monotonic(void) {
+	return 1;
+}
+/* get<timespec> timespec(c cell<timespec>) */
+struct timespec get_0(struct cell_1* c) {
+	struct cell_1* _0 = c;
+	return _0->value;
+}
+/* todo<nat> nat() */
+uint64_t todo_3(void) {
+	return (assert(0),0);
+}
+/* choose-task-recur choose-task-result(islands arr<island>, i nat, cur-time nat, any-tasks? bool, first-task-time opt<nat>) */
+struct choose_task_result choose_task_recur(struct arr_2 islands, uint64_t i, uint64_t cur_time, uint8_t any_tasks__q, struct opt_5 first_task_time) {
 	top:;
 	uint64_t _0 = i;
 	struct arr_2 _1 = islands;
 	uint64_t _2 = _1.size;
 	uint8_t _3 = _op_equal_equal_0(_0, _2);
 	if (_3) {
-		struct none _4 = (struct none) {};
-		return (struct opt_6) {0, .as0 = _4};
+		uint8_t _4 = any_tasks__q;
+		uint8_t _5 = !_4;
+		struct opt_5 _6 = first_task_time;
+		struct no_chosen_task _7 = (struct no_chosen_task) {_5, _6};
+		return (struct choose_task_result) {1, .as1 = _7};
 	} else {
 		struct island* island0;
-		struct arr_2 _5 = islands;
-		uint64_t _6 = i;
-		island0 = noctx_at_0(_5, _6);
+		struct arr_2 _8 = islands;
+		uint64_t _9 = i;
+		island0 = noctx_at_0(_8, _9);
 		
-		struct island* _7 = island0;
-		struct opt_7 _8 = choose_task_in_island(_7);
-		switch (_8.kind) {
+		struct island* _10 = island0;
+		uint64_t _11 = cur_time;
+		struct choose_task_in_island_result _12 = choose_task_in_island(_10, _11);
+		switch (_12.kind) {
 			case 0: {
-				struct arr_2 _9 = islands;
-				uint64_t _10 = i;
-				uint64_t _11 = noctx_incr(_10);
-				islands = _9;
-				i = _11;
-				goto top;
+				struct task t1 = _12.as0;
+				
+				struct island* _13 = island0;
+				struct task _14 = t1;
+				struct task_or_gc _15 = (struct task_or_gc) {0, .as0 = _14};
+				struct chosen_task _16 = (struct chosen_task) {_13, _15};
+				return (struct choose_task_result) {0, .as0 = _16};
 			}
 			case 1: {
-				struct some_7 s1 = _8.as1;
+				struct do_a_gc g2 = _12.as1;
 				
-				struct island* _12 = island0;
-				struct some_7 _13 = s1;
-				struct opt_5 _14 = _13.value;
-				struct chosen_task _15 = (struct chosen_task) {_12, _14};
-				struct some_6 _16 = (struct some_6) {_15};
-				return (struct opt_6) {1, .as1 = _16};
+				struct island* _17 = island0;
+				struct do_a_gc _18 = g2;
+				struct task_or_gc _19 = (struct task_or_gc) {1, .as1 = _18};
+				struct chosen_task _20 = (struct chosen_task) {_17, _19};
+				return (struct choose_task_result) {0, .as0 = _20};
+			}
+			case 2: {
+				struct no_task n3 = _12.as2;
+				
+				uint8_t new_any_tasks__q4;
+				uint8_t _21 = any_tasks__q;
+				if (_21) {
+					new_any_tasks__q4 = 1;
+				} else {
+					struct no_task _22 = n3;
+					new_any_tasks__q4 = _22.any_tasks__q;
+				}
+				
+				struct opt_5 new_first_task_time5;
+				struct opt_5 _23 = first_task_time;
+				struct no_task _24 = n3;
+				struct opt_5 _25 = _24.first_task_time;
+				new_first_task_time5 = min_time(_23, _25);
+				
+				struct arr_2 _26 = islands;
+				uint64_t _27 = i;
+				uint64_t _28 = noctx_incr(_27);
+				uint64_t _29 = cur_time;
+				uint8_t _30 = new_any_tasks__q4;
+				struct opt_5 _31 = new_first_task_time5;
+				islands = _26;
+				i = _28;
+				cur_time = _29;
+				any_tasks__q = _30;
+				first_task_time = _31;
+				goto top;
 			}
 			default:
-				return (assert(0),(struct opt_6) {0});
+				return (assert(0),(struct choose_task_result) {0});
 		}
 	}
 }
-/* choose-task-in-island opt<opt<task>>(island island) */
-struct opt_7 choose_task_in_island(struct island* island) {
+/* choose-task-in-island choose-task-in-island-result(island island, cur-time nat) */
+struct choose_task_in_island_result choose_task_in_island(struct island* island, uint64_t cur_time) {
 	struct lock* _0 = &island->tasks_lock;
 	acquire_lock(_0);
-	struct opt_7 res1;
+	struct choose_task_in_island_result res2;
 	struct gc* _1 = &island->gc;
 	uint8_t _2 = _1->needs_gc__q;
 	if (_2) {
@@ -4192,172 +4458,144 @@ struct opt_7 choose_task_in_island(struct island* island) {
 		uint64_t _5 = 0u;
 		uint8_t _6 = _op_equal_equal_0(_4, _5);
 		if (_6) {
-			struct none _7 = (struct none) {};
-			struct opt_5 _8 = (struct opt_5) {0, .as0 = _7};
-			struct some_7 _9 = (struct some_7) {_8};
-			res1 = (struct opt_7) {1, .as1 = _9};
+			struct do_a_gc _7 = (struct do_a_gc) {};
+			res2 = (struct choose_task_in_island_result) {1, .as1 = _7};
 		} else {
-			struct none _10 = (struct none) {};
-			res1 = (struct opt_7) {0, .as0 = _10};
+			uint8_t _8 = 1;
+			struct none _9 = (struct none) {};
+			struct opt_5 _10 = (struct opt_5) {0, .as0 = _9};
+			struct no_task _11 = (struct no_task) {_8, _10};
+			res2 = (struct choose_task_in_island_result) {2, .as2 = _11};
 		}
 	} else {
-		struct island* _11 = island;
-		struct opt_5 _12 = find_and_remove_first_doable_task(_11);
-		switch (_12.kind) {
+		struct island* _12 = island;
+		struct task_queue* _13 = tasks(_12);
+		uint64_t _14 = cur_time;
+		struct pop_task_result _15 = pop_task(_13, _14);
+		switch (_15.kind) {
 			case 0: {
-				struct none _13 = (struct none) {};
-				res1 = (struct opt_7) {0, .as0 = _13};
+				struct task t0 = _15.as0;
+				
+				struct task _16 = t0;
+				res2 = (struct choose_task_in_island_result) {0, .as0 = _16};
 				break;
 			}
 			case 1: {
-				struct some_5 s0 = _12.as1;
+				struct no_task n1 = _15.as1;
 				
-				struct some_5 _14 = s0;
-				struct task _15 = _14.value;
-				struct some_5 _16 = (struct some_5) {_15};
-				struct opt_5 _17 = (struct opt_5) {1, .as1 = _16};
-				struct some_7 _18 = (struct some_7) {_17};
-				res1 = (struct opt_7) {1, .as1 = _18};
+				struct no_task _17 = n1;
+				res2 = (struct choose_task_in_island_result) {2, .as2 = _17};
 				break;
 			}
 			default:
-				(assert(0),(struct opt_7) {0});
+				(assert(0),(struct choose_task_in_island_result) {0});
 		}
 	}
 	
-	struct opt_7 _19 = res1;
-	uint8_t _20 = empty__q_4(_19);
-	uint8_t _21 = !_20;
-	if (_21) {
+	struct choose_task_in_island_result _18 = res2;
+	uint8_t _19 = is_no_task__q(_18);
+	uint8_t _20 = !_19;
+	if (_20) {
+		struct island* _21 = island;
 		struct island* _22 = island;
-		struct island* _23 = island;
-		uint64_t _24 = _23->n_threads_running;
-		uint64_t _25 = noctx_incr(_24);
-		_22->n_threads_running = _25;
+		uint64_t _23 = _22->n_threads_running;
+		uint64_t _24 = noctx_incr(_23);
+		_21->n_threads_running = _24;
 	} else {
 		(struct void_) {};
 	}
-	struct lock* _26 = &island->tasks_lock;
-	release_lock(_26);
-	return res1;
+	struct lock* _25 = &island->tasks_lock;
+	release_lock(_25);
+	return res2;
 }
-/* find-and-remove-first-doable-task opt<task>(island island) */
-struct opt_5 find_and_remove_first_doable_task(struct island* island) {
-	struct opt_8 res0;
-	struct island* _0 = island;
-	struct island* _1 = island;
-	struct mut_bag* _2 = tasks(_1);
-	struct opt_2 _3 = _2->head;
-	res0 = find_and_remove_first_doable_task_recur(_0, _3);
+/* pop-task pop-task-result(a task-queue, cur-time nat) */
+struct pop_task_result pop_task(struct task_queue* a, uint64_t cur_time) {
+	struct mut_arr_0* exclusions0;
+	exclusions0 = &a->currently_running_exclusions;
 	
-	struct opt_8 _4 = res0;
-	switch (_4.kind) {
+	struct pop_task_result res4;
+	struct task_queue* _0 = a;
+	struct opt_2 _1 = _0->head;
+	switch (_1.kind) {
 		case 0: {
-			struct none _5 = (struct none) {};
-			return (struct opt_5) {0, .as0 = _5};
+			uint8_t _2 = 0;
+			struct none _3 = (struct none) {};
+			struct opt_5 _4 = (struct opt_5) {0, .as0 = _3};
+			struct no_task _5 = (struct no_task) {_2, _4};
+			res4 = (struct pop_task_result) {1, .as1 = _5};
+			break;
 		}
 		case 1: {
-			struct some_8 s1 = _4.as1;
+			struct some_2 s1 = _1.as1;
 			
-			struct island* _6 = island;
-			struct mut_bag* _7 = tasks(_6);
-			struct some_8 _8 = s1;
-			struct task_and_nodes _9 = _8.value;
-			struct opt_2 _10 = _9.nodes;
-			_7->head = _10;
-			struct some_8 _11 = s1;
-			struct task_and_nodes _12 = _11.value;
-			struct task _13 = _12.task;
-			struct some_5 _14 = (struct some_5) {_13};
-			return (struct opt_5) {1, .as1 = _14};
-		}
-		default:
-			return (assert(0),(struct opt_5) {0});
-	}
-}
-/* find-and-remove-first-doable-task-recur opt<task-and-nodes>(island island, opt-node opt<mut-bag-node<task>>) */
-struct opt_8 find_and_remove_first_doable_task_recur(struct island* island, struct opt_2 opt_node) {
-	struct opt_2 _0 = opt_node;
-	switch (_0.kind) {
-		case 0: {
-			struct none _1 = (struct none) {};
-			return (struct opt_8) {0, .as0 = _1};
-		}
-		case 1: {
-			struct some_2 s0 = _0.as1;
+			struct task_queue_node* head2;
+			struct some_2 _6 = s1;
+			head2 = _6.value;
 			
-			struct mut_bag_node* node1;
-			struct some_2 _2 = s0;
-			node1 = _2.value;
+			struct task task3;
+			struct task_queue_node* _7 = head2;
+			task3 = _7->task;
 			
-			struct task task2;
-			struct mut_bag_node* _3 = node1;
-			task2 = _3->value;
-			
-			struct mut_arr_0* exclusions3;
-			exclusions3 = &island->currently_running_exclusions;
-			
-			uint8_t task_ok4;
-			struct mut_arr_0* _4 = exclusions3;
-			struct task _5 = task2;
-			uint64_t _6 = _5.exclusion;
-			uint8_t _7 = contains__q(_4, _6);
-			if (_7) {
-				task_ok4 = 0;
-			} else {
-				struct mut_arr_0* _8 = exclusions3;
-				struct task _9 = task2;
-				uint64_t _10 = _9.exclusion;
-				push_capacity_must_be_sufficient(_8, _10);
-				task_ok4 = 1;
-			}
-			
-			uint8_t _11 = task_ok4;
+			struct task _8 = task3;
+			uint64_t _9 = _8.time;
+			uint64_t _10 = cur_time;
+			uint8_t _11 = _op_less_equal(_9, _10);
 			if (_11) {
-				struct task _12 = task2;
-				struct mut_bag_node* _13 = node1;
-				struct opt_2 _14 = _13->next_node;
-				struct task_and_nodes _15 = (struct task_and_nodes) {_12, _14};
-				struct some_8 _16 = (struct some_8) {_15};
-				return (struct opt_8) {1, .as1 = _16};
-			} else {
-				struct island* _17 = island;
-				struct mut_bag_node* _18 = node1;
-				struct opt_2 _19 = _18->next_node;
-				struct opt_8 _20 = find_and_remove_first_doable_task_recur(_17, _19);
-				switch (_20.kind) {
-					case 0: {
-						struct none _21 = (struct none) {};
-						return (struct opt_8) {0, .as0 = _21};
-					}
-					case 1: {
-						struct some_8 ss5 = _20.as1;
-						
-						struct task_and_nodes tn6;
-						struct some_8 _22 = ss5;
-						tn6 = _22.value;
-						
-						struct mut_bag_node* _23 = node1;
-						struct task_and_nodes _24 = tn6;
-						struct opt_2 _25 = _24.nodes;
-						_23->next_node = _25;
-						struct task_and_nodes _26 = tn6;
-						struct task _27 = _26.task;
-						struct mut_bag_node* _28 = node1;
-						struct some_2 _29 = (struct some_2) {_28};
-						struct opt_2 _30 = (struct opt_2) {1, .as1 = _29};
-						struct task_and_nodes _31 = (struct task_and_nodes) {_27, _30};
-						struct some_8 _32 = (struct some_8) {_31};
-						return (struct opt_8) {1, .as1 = _32};
-					}
-					default:
-						return (assert(0),(struct opt_8) {0});
+				struct mut_arr_0* _12 = exclusions0;
+				struct task _13 = task3;
+				uint64_t _14 = _13.exclusion;
+				uint8_t _15 = contains__q(_12, _14);
+				if (_15) {
+					struct task_queue_node* _16 = head2;
+					struct mut_arr_0* _17 = exclusions0;
+					uint64_t _18 = cur_time;
+					struct task _19 = task3;
+					uint64_t _20 = _19.time;
+					struct opt_5 _21 = to_opt_time(_20);
+					res4 = pop_recur(_16, _17, _18, _21);
+				} else {
+					struct task_queue* _22 = a;
+					struct task_queue_node* _23 = head2;
+					struct opt_2 _24 = _23->next;
+					_22->head = _24;
+					struct task_queue_node* _25 = head2;
+					struct task _26 = _25->task;
+					res4 = (struct pop_task_result) {0, .as0 = _26};
 				}
+			} else {
+				uint8_t _27 = 1;
+				struct task _28 = task3;
+				uint64_t _29 = _28.time;
+				struct some_5 _30 = (struct some_5) {_29};
+				struct opt_5 _31 = (struct opt_5) {1, .as1 = _30};
+				struct no_task _32 = (struct no_task) {_27, _31};
+				res4 = (struct pop_task_result) {1, .as1 = _32};
 			}
+			break;
 		}
 		default:
-			return (assert(0),(struct opt_8) {0});
+			(assert(0),(struct pop_task_result) {0});
 	}
+	
+	struct pop_task_result _33 = res4;
+	switch (_33.kind) {
+		case 0: {
+			struct task t5 = _33.as0;
+			
+			struct mut_arr_0* _34 = exclusions0;
+			struct task _35 = t5;
+			uint64_t _36 = _35.exclusion;
+			push_capacity_must_be_sufficient(_34, _36);
+			break;
+		}
+		case 1: {
+			(struct void_) {};
+			break;
+		}
+		default:
+			(assert(0),(struct void_) {});
+	}
+	return res4;
 }
 /* contains?<nat> bool(a mut-arr<nat>, value nat) */
 uint8_t contains__q(struct mut_arr_0* a, uint64_t value) {
@@ -4417,6 +4655,103 @@ struct arr_4 temp_as_arr(struct mut_arr_0* a) {
 	uint64_t* _3 = _2->data;
 	return (struct arr_4) {_1, _3};
 }
+/* pop-recur pop-task-result(prev task-queue-node, exclusions mut-arr<nat>, cur-time nat, first-task-time opt<nat>) */
+struct pop_task_result pop_recur(struct task_queue_node* prev, struct mut_arr_0* exclusions, uint64_t cur_time, struct opt_5 first_task_time) {
+	top:;
+	struct task_queue_node* _0 = prev;
+	struct opt_2 _1 = _0->next;
+	switch (_1.kind) {
+		case 0: {
+			uint8_t _2 = 1;
+			struct opt_5 _3 = first_task_time;
+			struct no_task _4 = (struct no_task) {_2, _3};
+			return (struct pop_task_result) {1, .as1 = _4};
+		}
+		case 1: {
+			struct some_2 s0 = _1.as1;
+			
+			struct task_queue_node* cur1;
+			struct some_2 _5 = s0;
+			cur1 = _5.value;
+			
+			struct task task2;
+			struct task_queue_node* _6 = cur1;
+			task2 = _6->task;
+			
+			struct task _7 = task2;
+			uint64_t _8 = _7.time;
+			uint64_t _9 = cur_time;
+			uint8_t _10 = _op_less_equal(_8, _9);
+			if (_10) {
+				struct mut_arr_0* _11 = exclusions;
+				struct task _12 = task2;
+				uint64_t _13 = _12.exclusion;
+				uint8_t _14 = contains__q(_11, _13);
+				if (_14) {
+					struct task_queue_node* _15 = cur1;
+					struct mut_arr_0* _16 = exclusions;
+					uint64_t _17 = cur_time;
+					struct opt_5 _18 = first_task_time;struct opt_5 _19;
+					
+					switch (_18.kind) {
+						case 0: {
+							struct task _20 = task2;
+							uint64_t _21 = _20.time;
+							_19 = to_opt_time(_21);
+							break;
+						}
+						case 1: {
+							_19 = first_task_time;
+							break;
+						}
+						default:
+							(assert(0),(struct opt_5) {0});
+					}
+					prev = _15;
+					exclusions = _16;
+					cur_time = _17;
+					first_task_time = _19;
+					goto top;
+				} else {
+					struct task_queue_node* _22 = prev;
+					struct task_queue_node* _23 = cur1;
+					struct opt_2 _24 = _23->next;
+					_22->next = _24;
+					struct mut_arr_0* _25 = exclusions;
+					struct task _26 = task2;
+					uint64_t _27 = _26.exclusion;
+					push_capacity_must_be_sufficient(_25, _27);
+					struct task _28 = task2;
+					return (struct pop_task_result) {0, .as0 = _28};
+				}
+			} else {
+				uint8_t _29 = 1;
+				struct task _30 = task2;
+				uint64_t _31 = _30.time;
+				struct some_5 _32 = (struct some_5) {_31};
+				struct opt_5 _33 = (struct opt_5) {1, .as1 = _32};
+				struct no_task _34 = (struct no_task) {_29, _33};
+				return (struct pop_task_result) {1, .as1 = _34};
+			}
+		}
+		default:
+			return (assert(0),(struct pop_task_result) {0});
+	}
+}
+/* to-opt-time opt<nat>(a nat) */
+struct opt_5 to_opt_time(uint64_t a) {
+	uint64_t _0 = a;
+	uint64_t _1 = no_timestamp();
+	uint8_t _2 = _op_equal_equal_0(_0, _1);
+	if (_2) {
+		struct none _3 = (struct none) {};
+		return (struct opt_5) {0, .as0 = _3};
+	} else {
+		uint64_t _4 = a;
+		struct some_5 _5 = (struct some_5) {_4};
+		return (struct opt_5) {1, .as1 = _5};
+	}
+}
 /* push-capacity-must-be-sufficient<nat> void(a mut-arr<nat>, value nat) */
 struct void_ push_capacity_must_be_sufficient(struct mut_arr_0* a, uint64_t value) {
 	struct mut_arr_0* _0 = a;
@@ -4452,18 +4787,66 @@ struct void_ noctx_set_at_1(struct mut_arr_0* a, uint64_t index, uint64_t value)
 	uint64_t _8 = value;
 	return (*_7 = _8, (struct void_) {});
 }
-/* empty?<opt<task>> bool(a opt<opt<task>>) */
-uint8_t empty__q_4(struct opt_7 a) {
-	struct opt_7 _0 = a;
+/* is-no-task? bool(a choose-task-in-island-result) */
+uint8_t is_no_task__q(struct choose_task_in_island_result a) {
+	struct choose_task_in_island_result _0 = a;
 	switch (_0.kind) {
 		case 0: {
-			return 1;
+			return 0;
 		}
 		case 1: {
 			return 0;
 		}
+		case 2: {
+			return 1;
+		}
 		default:
 			return (assert(0),0);
+	}
+}
+/* min-time opt<nat>(a opt<nat>, b opt<nat>) */
+struct opt_5 min_time(struct opt_5 a, struct opt_5 b) {
+	struct opt_5 _0 = a;
+	switch (_0.kind) {
+		case 0: {
+			return b;
+		}
+		case 1: {
+			struct some_5 sa0 = _0.as1;
+			
+			struct opt_5 _1 = b;
+			switch (_1.kind) {
+				case 0: {
+					return a;
+				}
+				case 1: {
+					struct some_5 sb1 = _1.as1;
+					
+					struct some_5 _2 = sa0;
+					uint64_t _3 = _2.value;
+					struct some_5 _4 = sb1;
+					uint64_t _5 = _4.value;
+					uint64_t _6 = min(_3, _5);
+					struct some_5 _7 = (struct some_5) {_6};
+					return (struct opt_5) {1, .as1 = _7};
+				}
+				default:
+					return (assert(0),(struct opt_5) {0});
+			}
+		}
+		default:
+			return (assert(0),(struct opt_5) {0});
+	}
+}
+/* min<nat> nat(a nat, b nat) */
+uint64_t min(uint64_t a, uint64_t b) {
+	uint64_t _0 = a;
+	uint64_t _1 = b;
+	uint8_t _2 = _op_less(_0, _1);
+	if (_2) {
+		return a;
+	} else {
+		return b;
 	}
 }
 /* do-task void(gctx global-ctx, tls thread-local-stuff, chosen-task chosen-task) */
@@ -4473,592 +4856,63 @@ struct void_ do_task(struct global_ctx* gctx, struct thread_local_stuff* tls, st
 	island0 = _0.task_island;
 	
 	struct chosen_task _1 = chosen_task;
-	struct opt_5 _2 = _1.task_or_gc;
+	struct task_or_gc _2 = _1.task_or_gc;
 	switch (_2.kind) {
 		case 0: {
-			struct gc* _3 = &island0->gc;
-			struct island* _4 = island0;
-			struct island_gc_root _5 = _4->gc_root;
-			run_garbage_collection(_3, _5);
-			struct condition* _6 = &gctx->may_be_work_to_do;
-			broadcast(_6);
+			struct task task1 = _2.as0;
+			
+			struct ctx ctx2;
+			struct global_ctx* _3 = gctx;
+			struct thread_local_stuff* _4 = tls;
+			struct island* _5 = island0;
+			struct task _6 = task1;
+			uint64_t _7 = _6.exclusion;
+			ctx2 = new_ctx(_3, _4, _5, _7);
+			
+			struct task _8 = task1;
+			struct fun_act0_0 _9 = _8.action;
+			struct ctx* _10 = &ctx2;
+			call_w_ctx_140(_9, _10);
+			struct lock* _11 = &island0->tasks_lock;
+			acquire_lock(_11);
+			struct island* _12 = island0;
+			struct task_queue* _13 = tasks(_12);
+			struct task _14 = task1;
+			return_task(_13, _14);
+			struct lock* _15 = &island0->tasks_lock;
+			release_lock(_15);
+			struct ctx* _16 = &ctx2;
+			return_ctx(_16);
 			break;
 		}
 		case 1: {
-			struct some_5 some_task1 = _2.as1;
-			
-			struct task task2;
-			struct some_5 _7 = some_task1;
-			task2 = _7.value;
-			
-			struct ctx ctx3;
-			struct global_ctx* _8 = gctx;
-			struct thread_local_stuff* _9 = tls;
-			struct island* _10 = island0;
-			struct task _11 = task2;
-			uint64_t _12 = _11.exclusion;
-			ctx3 = new_ctx(_8, _9, _10, _12);
-			
-			struct task _13 = task2;
-			struct fun_act0_0 _14 = _13.fun;
-			struct ctx* _15 = &ctx3;
-			call_w_ctx_135(_14, _15);
-			struct lock* _16 = &island0->tasks_lock;
-			acquire_lock(_16);
-			struct mut_arr_0* _17 = &island0->currently_running_exclusions;
-			struct task _18 = task2;
-			uint64_t _19 = _18.exclusion;
-			noctx_must_remove_unordered(_17, _19);
-			struct lock* _20 = &island0->tasks_lock;
-			release_lock(_20);
-			struct ctx* _21 = &ctx3;
-			return_ctx(_21);
+			struct gc* _17 = &island0->gc;
+			struct island* _18 = island0;
+			struct island_gc_root _19 = _18->gc_root;
+			run_garbage_collection(_17, _19);
+			struct condition* _20 = &gctx->may_be_work_to_do;
+			broadcast(_20);
 			break;
 		}
 		default:
 			(assert(0),(struct void_) {});
 	}
-	struct lock* _22 = &island0->tasks_lock;
-	acquire_lock(_22);
+	struct lock* _21 = &island0->tasks_lock;
+	acquire_lock(_21);
+	struct island* _22 = island0;
 	struct island* _23 = island0;
-	struct island* _24 = island0;
-	uint64_t _25 = _24->n_threads_running;
-	uint64_t _26 = noctx_decr(_25);
-	_23->n_threads_running = _26;
-	struct lock* _27 = &island0->tasks_lock;
-	return release_lock(_27);
+	uint64_t _24 = _23->n_threads_running;
+	uint64_t _25 = noctx_decr(_24);
+	_22->n_threads_running = _25;
+	struct lock* _26 = &island0->tasks_lock;
+	return release_lock(_26);
 }
-/* run-garbage-collection<by-val<island-gc-root>> void(gc gc, gc-root island-gc-root) */
-struct void_ run_garbage_collection(struct gc* gc, struct island_gc_root gc_root) {
-	struct gc* _0 = gc;
-	uint8_t _1 = _0->needs_gc__q;
-	hard_assert(_1);
-	struct gc* _2 = gc;
-	uint8_t _3 = 0;
-	_2->needs_gc__q = _3;
-	struct gc* _4 = gc;
-	struct gc* _5 = gc;
-	uint64_t _6 = _5->gc_count;
-	uint64_t _7 = wrap_incr(_6);
-	_4->gc_count = _7;
-	struct gc* _8 = gc;
-	uint8_t* _9 = _8->mark_begin;
-	uint8_t* _10 = (uint8_t*) _9;
-	uint8_t _11 = 0u;
-	struct gc* _12 = gc;
-	uint64_t _13 = _12->size_words;
-	(memset(_10, _11, _13), (struct void_) {});
-	struct mark_ctx mark_ctx0;
-	struct gc* _14 = gc;
-	uint64_t _15 = _14->size_words;
-	struct gc* _16 = gc;
-	uint8_t* _17 = _16->mark_begin;
-	struct gc* _18 = gc;
-	uint64_t* _19 = _18->data_begin;
-	mark_ctx0 = (struct mark_ctx) {_15, _17, _19};
-	
-	struct mark_ctx* _20 = &mark_ctx0;
-	struct island_gc_root _21 = gc_root;
-	mark_visit_219(_20, _21);
-	struct gc* _22 = gc;
-	struct gc* _23 = gc;
-	uint8_t* _24 = _23->mark_begin;
-	_22->mark_cur = _24;
-	struct gc* _25 = gc;
-	struct gc* _26 = gc;
-	uint64_t* _27 = _26->data_begin;
-	_25->data_cur = _27;
-	struct gc* _28 = gc;
-	return validate_gc(_28);
-}
-/* mark-visit<island-gc-root> (generated) (generated) */
-struct void_ mark_visit_219(struct mark_ctx* mark_ctx, struct island_gc_root value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct island_gc_root _1 = value;
-	struct mut_bag _2 = _1.tasks;
-	return mark_visit_220(_0, _2);
-}
-/* mark-visit<mut-bag<task>> (generated) (generated) */
-struct void_ mark_visit_220(struct mark_ctx* mark_ctx, struct mut_bag value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct mut_bag _1 = value;
-	struct opt_2 _2 = _1.head;
-	return mark_visit_221(_0, _2);
-}
-/* mark-visit<opt<mut-bag-node<task>>> (generated) (generated) */
-struct void_ mark_visit_221(struct mark_ctx* mark_ctx, struct opt_2 value) {
-	struct opt_2 _0 = value;
-	switch (_0.kind) {
-		case 0: {
-			return (struct void_) {};
-		}
-		case 1: {
-			struct some_2 value1 = _0.as1;
-			
-			struct mark_ctx* _1 = mark_ctx;
-			struct some_2 _2 = value1;
-			return mark_visit_222(_1, _2);
-		}
-		default:
-			return (assert(0),(struct void_) {});
-	}
-}
-/* mark-visit<some<mut-bag-node<task>>> (generated) (generated) */
-struct void_ mark_visit_222(struct mark_ctx* mark_ctx, struct some_2 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct some_2 _1 = value;
-	struct mut_bag_node* _2 = _1.value;
-	return mark_visit_256(_0, _2);
-}
-/* mark-visit<mut-bag-node<task>> (generated) (generated) */
-struct void_ mark_visit_223(struct mark_ctx* mark_ctx, struct mut_bag_node value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct mut_bag_node _1 = value;
-	struct task _2 = _1.value;
-	mark_visit_224(_0, _2);
-	struct mark_ctx* _3 = mark_ctx;
-	struct mut_bag_node _4 = value;
-	struct opt_2 _5 = _4.next_node;
-	return mark_visit_221(_3, _5);
-}
-/* mark-visit<task> (generated) (generated) */
-struct void_ mark_visit_224(struct mark_ctx* mark_ctx, struct task value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct task _1 = value;
-	struct fun_act0_0 _2 = _1.fun;
-	return mark_visit_225(_0, _2);
-}
-/* mark-visit<fun-act0<void>> (generated) (generated) */
-struct void_ mark_visit_225(struct mark_ctx* mark_ctx, struct fun_act0_0 value) {
-	struct fun_act0_0 _0 = value;
-	switch (_0.kind) {
-		case 0: {
-			struct call_ref_0__lambda0__lambda0* value0 = _0.as0;
-			
-			struct mark_ctx* _1 = mark_ctx;
-			struct call_ref_0__lambda0__lambda0* _2 = value0;
-			return mark_visit_249(_1, _2);
-		}
-		case 1: {
-			struct call_ref_0__lambda0* value1 = _0.as1;
-			
-			struct mark_ctx* _3 = mark_ctx;
-			struct call_ref_0__lambda0* _4 = value1;
-			return mark_visit_251(_3, _4);
-		}
-		case 2: {
-			struct call_ref_1__lambda0__lambda0* value2 = _0.as2;
-			
-			struct mark_ctx* _5 = mark_ctx;
-			struct call_ref_1__lambda0__lambda0* _6 = value2;
-			return mark_visit_253(_5, _6);
-		}
-		case 3: {
-			struct call_ref_1__lambda0* value3 = _0.as3;
-			
-			struct mark_ctx* _7 = mark_ctx;
-			struct call_ref_1__lambda0* _8 = value3;
-			return mark_visit_255(_7, _8);
-		}
-		default:
-			return (assert(0),(struct void_) {});
-	}
-}
-/* mark-visit<call-ref<?out, ?in>.lambda0.lambda0> (generated) (generated) */
-struct void_ mark_visit_226(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0__lambda0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct call_ref_0__lambda0__lambda0 _1 = value;
-	struct fun_ref1 _2 = _1.f;
-	mark_visit_227(_0, _2);
-	struct mark_ctx* _3 = mark_ctx;
-	struct call_ref_0__lambda0__lambda0 _4 = value;
-	struct fut_0* _5 = _4.res;
-	return mark_visit_244(_3, _5);
-}
-/* mark-visit<fun-ref1<int32, void>> (generated) (generated) */
-struct void_ mark_visit_227(struct mark_ctx* mark_ctx, struct fun_ref1 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct fun_ref1 _1 = value;
-	struct fun_act1_2 _2 = _1.fun;
-	return mark_visit_228(_0, _2);
-}
-/* mark-visit<fun-act1<fut<int32>, void>> (generated) (generated) */
-struct void_ mark_visit_228(struct mark_ctx* mark_ctx, struct fun_act1_2 value) {
-	struct fun_act1_2 _0 = value;
-	switch (_0.kind) {
-		case 0: {
-			struct then2__lambda0* value0 = _0.as0;
-			
-			struct mark_ctx* _1 = mark_ctx;
-			struct then2__lambda0* _2 = value0;
-			return mark_visit_235(_1, _2);
-		}
-		default:
-			return (assert(0),(struct void_) {});
-	}
-}
-/* mark-visit<then2<int32>.lambda0> (generated) (generated) */
-struct void_ mark_visit_229(struct mark_ctx* mark_ctx, struct then2__lambda0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct then2__lambda0 _1 = value;
-	struct fun_ref0 _2 = _1.cb;
-	return mark_visit_230(_0, _2);
-}
-/* mark-visit<fun-ref0<int32>> (generated) (generated) */
-struct void_ mark_visit_230(struct mark_ctx* mark_ctx, struct fun_ref0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct fun_ref0 _1 = value;
-	struct fun_act0_1 _2 = _1.fun;
-	return mark_visit_231(_0, _2);
-}
-/* mark-visit<fun-act0<fut<int32>>> (generated) (generated) */
-struct void_ mark_visit_231(struct mark_ctx* mark_ctx, struct fun_act0_1 value) {
-	struct fun_act0_1 _0 = value;
-	switch (_0.kind) {
-		case 0: {
-			struct add_first_task__lambda0* value0 = _0.as0;
-			
-			struct mark_ctx* _1 = mark_ctx;
-			struct add_first_task__lambda0* _2 = value0;
-			return mark_visit_234(_1, _2);
-		}
-		default:
-			return (assert(0),(struct void_) {});
-	}
-}
-/* mark-visit<add-first-task.lambda0> (generated) (generated) */
-struct void_ mark_visit_232(struct mark_ctx* mark_ctx, struct add_first_task__lambda0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct add_first_task__lambda0 _1 = value;
-	struct arr_3 _2 = _1.all_args;
-	return mark_arr_233(_0, _2);
-}
-/* mark-arr<raw-ptr(char)> (generated) (generated) */
-struct void_ mark_arr_233(struct mark_ctx* mark_ctx, struct arr_3 a) {
-	uint8_t dropped0;
-	struct mark_ctx* _0 = mark_ctx;
-	struct arr_3 _1 = a;
-	char** _2 = _1.data;
-	uint8_t* _3 = (uint8_t*) _2;
-	struct arr_3 _4 = a;
-	uint64_t _5 = _4.size;
-	uint64_t _6 = sizeof(char*);
-	uint64_t _7 = _5 * _6;
-	dropped0 = mark(_0, _3, _7);
-	
-	return (struct void_) {};
-}
-/* mark-visit<gc-ptr(add-first-task.lambda0)> (generated) (generated) */
-struct void_ mark_visit_234(struct mark_ctx* mark_ctx, struct add_first_task__lambda0* value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct add_first_task__lambda0* _1 = value;
-	uint8_t* _2 = (uint8_t*) _1;
-	uint64_t _3 = sizeof(struct add_first_task__lambda0);
-	uint8_t _4 = mark(_0, _2, _3);
-	if (_4) {
-		struct mark_ctx* _5 = mark_ctx;
-		struct add_first_task__lambda0* _6 = value;
-		struct add_first_task__lambda0 _7 = *_6;
-		return mark_visit_232(_5, _7);
-	} else {
-		return (struct void_) {};
-	}
-}
-/* mark-visit<gc-ptr(then2<int32>.lambda0)> (generated) (generated) */
-struct void_ mark_visit_235(struct mark_ctx* mark_ctx, struct then2__lambda0* value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct then2__lambda0* _1 = value;
-	uint8_t* _2 = (uint8_t*) _1;
-	uint64_t _3 = sizeof(struct then2__lambda0);
-	uint8_t _4 = mark(_0, _2, _3);
-	if (_4) {
-		struct mark_ctx* _5 = mark_ctx;
-		struct then2__lambda0* _6 = value;
-		struct then2__lambda0 _7 = *_6;
-		return mark_visit_229(_5, _7);
-	} else {
-		return (struct void_) {};
-	}
-}
-/* mark-visit<fut<int32>> (generated) (generated) */
-struct void_ mark_visit_236(struct mark_ctx* mark_ctx, struct fut_0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct fut_0 _1 = value;
-	struct fut_state_0 _2 = _1.state;
-	return mark_visit_237(_0, _2);
-}
-/* mark-visit<fut-state<int32>> (generated) (generated) */
-struct void_ mark_visit_237(struct mark_ctx* mark_ctx, struct fut_state_0 value) {
-	struct fut_state_0 _0 = value;
-	switch (_0.kind) {
-		case 0: {
-			struct fut_state_callbacks_0 value0 = _0.as0;
-			
-			struct mark_ctx* _1 = mark_ctx;
-			struct fut_state_callbacks_0 _2 = value0;
-			return mark_visit_238(_1, _2);
-		}
-		case 1: {
-			return (struct void_) {};
-		}
-		case 2: {
-			struct exception value2 = _0.as2;
-			
-			struct mark_ctx* _3 = mark_ctx;
-			struct exception _4 = value2;
-			return mark_visit_247(_3, _4);
-		}
-		default:
-			return (assert(0),(struct void_) {});
-	}
-}
-/* mark-visit<fut-state-callbacks<int32>> (generated) (generated) */
-struct void_ mark_visit_238(struct mark_ctx* mark_ctx, struct fut_state_callbacks_0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct fut_state_callbacks_0 _1 = value;
-	struct opt_0 _2 = _1.head;
-	return mark_visit_239(_0, _2);
-}
-/* mark-visit<opt<fut-callback-node<int32>>> (generated) (generated) */
-struct void_ mark_visit_239(struct mark_ctx* mark_ctx, struct opt_0 value) {
-	struct opt_0 _0 = value;
-	switch (_0.kind) {
-		case 0: {
-			return (struct void_) {};
-		}
-		case 1: {
-			struct some_0 value1 = _0.as1;
-			
-			struct mark_ctx* _1 = mark_ctx;
-			struct some_0 _2 = value1;
-			return mark_visit_240(_1, _2);
-		}
-		default:
-			return (assert(0),(struct void_) {});
-	}
-}
-/* mark-visit<some<fut-callback-node<int32>>> (generated) (generated) */
-struct void_ mark_visit_240(struct mark_ctx* mark_ctx, struct some_0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct some_0 _1 = value;
-	struct fut_callback_node_0* _2 = _1.value;
-	return mark_visit_246(_0, _2);
-}
-/* mark-visit<fut-callback-node<int32>> (generated) (generated) */
-struct void_ mark_visit_241(struct mark_ctx* mark_ctx, struct fut_callback_node_0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct fut_callback_node_0 _1 = value;
-	struct fun_act1_0 _2 = _1.cb;
-	mark_visit_242(_0, _2);
-	struct mark_ctx* _3 = mark_ctx;
-	struct fut_callback_node_0 _4 = value;
-	struct opt_0 _5 = _4.next_node;
-	return mark_visit_239(_3, _5);
-}
-/* mark-visit<fun-act1<void, result<int32, exception>>> (generated) (generated) */
-struct void_ mark_visit_242(struct mark_ctx* mark_ctx, struct fun_act1_0 value) {
-	struct fun_act1_0 _0 = value;
-	switch (_0.kind) {
-		case 0: {
-			struct forward_to__lambda0* value0 = _0.as0;
-			
-			struct mark_ctx* _1 = mark_ctx;
-			struct forward_to__lambda0* _2 = value0;
-			return mark_visit_245(_1, _2);
-		}
-		default:
-			return (assert(0),(struct void_) {});
-	}
-}
-/* mark-visit<forward-to<?out>.lambda0> (generated) (generated) */
-struct void_ mark_visit_243(struct mark_ctx* mark_ctx, struct forward_to__lambda0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct forward_to__lambda0 _1 = value;
-	struct fut_0* _2 = _1.to;
-	return mark_visit_244(_0, _2);
-}
-/* mark-visit<gc-ptr(fut<int32>)> (generated) (generated) */
-struct void_ mark_visit_244(struct mark_ctx* mark_ctx, struct fut_0* value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct fut_0* _1 = value;
-	uint8_t* _2 = (uint8_t*) _1;
-	uint64_t _3 = sizeof(struct fut_0);
-	uint8_t _4 = mark(_0, _2, _3);
-	if (_4) {
-		struct mark_ctx* _5 = mark_ctx;
-		struct fut_0* _6 = value;
-		struct fut_0 _7 = *_6;
-		return mark_visit_236(_5, _7);
-	} else {
-		return (struct void_) {};
-	}
-}
-/* mark-visit<gc-ptr(forward-to<?out>.lambda0)> (generated) (generated) */
-struct void_ mark_visit_245(struct mark_ctx* mark_ctx, struct forward_to__lambda0* value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct forward_to__lambda0* _1 = value;
-	uint8_t* _2 = (uint8_t*) _1;
-	uint64_t _3 = sizeof(struct forward_to__lambda0);
-	uint8_t _4 = mark(_0, _2, _3);
-	if (_4) {
-		struct mark_ctx* _5 = mark_ctx;
-		struct forward_to__lambda0* _6 = value;
-		struct forward_to__lambda0 _7 = *_6;
-		return mark_visit_243(_5, _7);
-	} else {
-		return (struct void_) {};
-	}
-}
-/* mark-visit<gc-ptr(fut-callback-node<int32>)> (generated) (generated) */
-struct void_ mark_visit_246(struct mark_ctx* mark_ctx, struct fut_callback_node_0* value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct fut_callback_node_0* _1 = value;
-	uint8_t* _2 = (uint8_t*) _1;
-	uint64_t _3 = sizeof(struct fut_callback_node_0);
-	uint8_t _4 = mark(_0, _2, _3);
-	if (_4) {
-		struct mark_ctx* _5 = mark_ctx;
-		struct fut_callback_node_0* _6 = value;
-		struct fut_callback_node_0 _7 = *_6;
-		return mark_visit_241(_5, _7);
-	} else {
-		return (struct void_) {};
-	}
-}
-/* mark-visit<exception> (generated) (generated) */
-struct void_ mark_visit_247(struct mark_ctx* mark_ctx, struct exception value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct exception _1 = value;
-	struct arr_0 _2 = _1.message;
-	return mark_arr_248(_0, _2);
-}
-/* mark-arr<char> (generated) (generated) */
-struct void_ mark_arr_248(struct mark_ctx* mark_ctx, struct arr_0 a) {
-	uint8_t dropped0;
-	struct mark_ctx* _0 = mark_ctx;
-	struct arr_0 _1 = a;
-	char* _2 = _1.data;
-	uint8_t* _3 = (uint8_t*) _2;
-	struct arr_0 _4 = a;
-	uint64_t _5 = _4.size;
-	uint64_t _6 = sizeof(char);
-	uint64_t _7 = _5 * _6;
-	dropped0 = mark(_0, _3, _7);
-	
-	return (struct void_) {};
-}
-/* mark-visit<gc-ptr(call-ref<?out, ?in>.lambda0.lambda0)> (generated) (generated) */
-struct void_ mark_visit_249(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0__lambda0* value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct call_ref_0__lambda0__lambda0* _1 = value;
-	uint8_t* _2 = (uint8_t*) _1;
-	uint64_t _3 = sizeof(struct call_ref_0__lambda0__lambda0);
-	uint8_t _4 = mark(_0, _2, _3);
-	if (_4) {
-		struct mark_ctx* _5 = mark_ctx;
-		struct call_ref_0__lambda0__lambda0* _6 = value;
-		struct call_ref_0__lambda0__lambda0 _7 = *_6;
-		return mark_visit_226(_5, _7);
-	} else {
-		return (struct void_) {};
-	}
-}
-/* mark-visit<call-ref<?out, ?in>.lambda0> (generated) (generated) */
-struct void_ mark_visit_250(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct call_ref_0__lambda0 _1 = value;
-	struct fun_ref1 _2 = _1.f;
-	mark_visit_227(_0, _2);
-	struct mark_ctx* _3 = mark_ctx;
-	struct call_ref_0__lambda0 _4 = value;
-	struct fut_0* _5 = _4.res;
-	return mark_visit_244(_3, _5);
-}
-/* mark-visit<gc-ptr(call-ref<?out, ?in>.lambda0)> (generated) (generated) */
-struct void_ mark_visit_251(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0* value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct call_ref_0__lambda0* _1 = value;
-	uint8_t* _2 = (uint8_t*) _1;
-	uint64_t _3 = sizeof(struct call_ref_0__lambda0);
-	uint8_t _4 = mark(_0, _2, _3);
-	if (_4) {
-		struct mark_ctx* _5 = mark_ctx;
-		struct call_ref_0__lambda0* _6 = value;
-		struct call_ref_0__lambda0 _7 = *_6;
-		return mark_visit_250(_5, _7);
-	} else {
-		return (struct void_) {};
-	}
-}
-/* mark-visit<call-ref<?out>.lambda0.lambda0> (generated) (generated) */
-struct void_ mark_visit_252(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0__lambda0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct call_ref_1__lambda0__lambda0 _1 = value;
-	struct fun_ref0 _2 = _1.f;
-	mark_visit_230(_0, _2);
-	struct mark_ctx* _3 = mark_ctx;
-	struct call_ref_1__lambda0__lambda0 _4 = value;
-	struct fut_0* _5 = _4.res;
-	return mark_visit_244(_3, _5);
-}
-/* mark-visit<gc-ptr(call-ref<?out>.lambda0.lambda0)> (generated) (generated) */
-struct void_ mark_visit_253(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0__lambda0* value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct call_ref_1__lambda0__lambda0* _1 = value;
-	uint8_t* _2 = (uint8_t*) _1;
-	uint64_t _3 = sizeof(struct call_ref_1__lambda0__lambda0);
-	uint8_t _4 = mark(_0, _2, _3);
-	if (_4) {
-		struct mark_ctx* _5 = mark_ctx;
-		struct call_ref_1__lambda0__lambda0* _6 = value;
-		struct call_ref_1__lambda0__lambda0 _7 = *_6;
-		return mark_visit_252(_5, _7);
-	} else {
-		return (struct void_) {};
-	}
-}
-/* mark-visit<call-ref<?out>.lambda0> (generated) (generated) */
-struct void_ mark_visit_254(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0 value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct call_ref_1__lambda0 _1 = value;
-	struct fun_ref0 _2 = _1.f;
-	mark_visit_230(_0, _2);
-	struct mark_ctx* _3 = mark_ctx;
-	struct call_ref_1__lambda0 _4 = value;
-	struct fut_0* _5 = _4.res;
-	return mark_visit_244(_3, _5);
-}
-/* mark-visit<gc-ptr(call-ref<?out>.lambda0)> (generated) (generated) */
-struct void_ mark_visit_255(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0* value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct call_ref_1__lambda0* _1 = value;
-	uint8_t* _2 = (uint8_t*) _1;
-	uint64_t _3 = sizeof(struct call_ref_1__lambda0);
-	uint8_t _4 = mark(_0, _2, _3);
-	if (_4) {
-		struct mark_ctx* _5 = mark_ctx;
-		struct call_ref_1__lambda0* _6 = value;
-		struct call_ref_1__lambda0 _7 = *_6;
-		return mark_visit_254(_5, _7);
-	} else {
-		return (struct void_) {};
-	}
-}
-/* mark-visit<gc-ptr(mut-bag-node<task>)> (generated) (generated) */
-struct void_ mark_visit_256(struct mark_ctx* mark_ctx, struct mut_bag_node* value) {
-	struct mark_ctx* _0 = mark_ctx;
-	struct mut_bag_node* _1 = value;
-	uint8_t* _2 = (uint8_t*) _1;
-	uint64_t _3 = sizeof(struct mut_bag_node);
-	uint8_t _4 = mark(_0, _2, _3);
-	if (_4) {
-		struct mark_ctx* _5 = mark_ctx;
-		struct mut_bag_node* _6 = value;
-		struct mut_bag_node _7 = *_6;
-		return mark_visit_223(_5, _7);
-	} else {
-		return (struct void_) {};
-	}
+/* return-task void(a task-queue, task task) */
+struct void_ return_task(struct task_queue* a, struct task task) {
+	struct mut_arr_0* _0 = &a->currently_running_exclusions;
+	struct task _1 = task;
+	uint64_t _2 = _1.exclusion;
+	return noctx_must_remove_unordered(_0, _2);
 }
 /* noctx-must-remove-unordered<nat> void(a mut-arr<nat>, value nat) */
 struct void_ noctx_must_remove_unordered(struct mut_arr_0* a, uint64_t value) {
@@ -5138,7 +4992,7 @@ uint64_t noctx_remove_unordered_at_index(struct mut_arr_0* a, uint64_t index) {
 /* noctx-last<?t> nat(a mut-arr<nat>) */
 uint64_t noctx_last(struct mut_arr_0* a) {
 	struct mut_arr_0* _0 = a;
-	uint8_t _1 = empty__q_5(_0);
+	uint8_t _1 = empty__q_4(_0);
 	hard_forbid(_1);
 	struct mut_arr_0* _2 = a;
 	struct mut_arr_0* _3 = a;
@@ -5147,7 +5001,7 @@ uint64_t noctx_last(struct mut_arr_0* a) {
 	return noctx_at_3(_2, _5);
 }
 /* empty?<?t> bool(a mut-arr<nat>) */
-uint8_t empty__q_5(struct mut_arr_0* a) {
+uint8_t empty__q_4(struct mut_arr_0* a) {
 	struct mut_arr_0* _0 = a;
 	uint64_t _1 = _0->size;
 	uint64_t _2 = 0u;
@@ -5180,22 +5034,581 @@ struct void_ return_gc_ctx(struct gc_ctx* gc_ctx) {
 	struct lock* _9 = &gc0->lk;
 	return release_lock(_9);
 }
-/* wait-on void(c condition, last-checked nat) */
-struct void_ wait_on(struct condition* c, uint64_t last_checked) {
+/* run-garbage-collection<by-val<island-gc-root>> void(gc gc, gc-root island-gc-root) */
+struct void_ run_garbage_collection(struct gc* gc, struct island_gc_root gc_root) {
+	struct gc* _0 = gc;
+	uint8_t _1 = _0->needs_gc__q;
+	hard_assert(_1);
+	struct gc* _2 = gc;
+	uint8_t _3 = 0;
+	_2->needs_gc__q = _3;
+	struct gc* _4 = gc;
+	struct gc* _5 = gc;
+	uint64_t _6 = _5->gc_count;
+	uint64_t _7 = wrap_incr(_6);
+	_4->gc_count = _7;
+	struct gc* _8 = gc;
+	uint8_t* _9 = _8->mark_begin;
+	uint8_t* _10 = (uint8_t*) _9;
+	uint8_t _11 = 0u;
+	struct gc* _12 = gc;
+	uint64_t _13 = _12->size_words;
+	(memset(_10, _11, _13), (struct void_) {});
+	struct mark_ctx mark_ctx0;
+	struct gc* _14 = gc;
+	uint64_t _15 = _14->size_words;
+	struct gc* _16 = gc;
+	uint8_t* _17 = _16->mark_begin;
+	struct gc* _18 = gc;
+	uint64_t* _19 = _18->data_begin;
+	mark_ctx0 = (struct mark_ctx) {_15, _17, _19};
+	
+	struct mark_ctx* _20 = &mark_ctx0;
+	struct island_gc_root _21 = gc_root;
+	mark_visit_243(_20, _21);
+	struct gc* _22 = gc;
+	struct gc* _23 = gc;
+	uint8_t* _24 = _23->mark_begin;
+	_22->mark_cur = _24;
+	struct gc* _25 = gc;
+	struct gc* _26 = gc;
+	uint64_t* _27 = _26->data_begin;
+	_25->data_cur = _27;
+	struct gc* _28 = gc;
+	return validate_gc(_28);
+}
+/* mark-visit<island-gc-root> (generated) (generated) */
+struct void_ mark_visit_243(struct mark_ctx* mark_ctx, struct island_gc_root value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct island_gc_root _1 = value;
+	struct task_queue _2 = _1.tasks;
+	return mark_visit_244(_0, _2);
+}
+/* mark-visit<task-queue> (generated) (generated) */
+struct void_ mark_visit_244(struct mark_ctx* mark_ctx, struct task_queue value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct task_queue _1 = value;
+	struct opt_2 _2 = _1.head;
+	return mark_visit_245(_0, _2);
+}
+/* mark-visit<opt<task-queue-node>> (generated) (generated) */
+struct void_ mark_visit_245(struct mark_ctx* mark_ctx, struct opt_2 value) {
+	struct opt_2 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			return (struct void_) {};
+		}
+		case 1: {
+			struct some_2 value1 = _0.as1;
+			
+			struct mark_ctx* _1 = mark_ctx;
+			struct some_2 _2 = value1;
+			return mark_visit_246(_1, _2);
+		}
+		default:
+			return (assert(0),(struct void_) {});
+	}
+}
+/* mark-visit<some<task-queue-node>> (generated) (generated) */
+struct void_ mark_visit_246(struct mark_ctx* mark_ctx, struct some_2 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct some_2 _1 = value;
+	struct task_queue_node* _2 = _1.value;
+	return mark_visit_280(_0, _2);
+}
+/* mark-visit<task-queue-node> (generated) (generated) */
+struct void_ mark_visit_247(struct mark_ctx* mark_ctx, struct task_queue_node value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct task_queue_node _1 = value;
+	struct task _2 = _1.task;
+	mark_visit_248(_0, _2);
+	struct mark_ctx* _3 = mark_ctx;
+	struct task_queue_node _4 = value;
+	struct opt_2 _5 = _4.next;
+	return mark_visit_245(_3, _5);
+}
+/* mark-visit<task> (generated) (generated) */
+struct void_ mark_visit_248(struct mark_ctx* mark_ctx, struct task value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct task _1 = value;
+	struct fun_act0_0 _2 = _1.action;
+	return mark_visit_249(_0, _2);
+}
+/* mark-visit<fun-act0<void>> (generated) (generated) */
+struct void_ mark_visit_249(struct mark_ctx* mark_ctx, struct fun_act0_0 value) {
+	struct fun_act0_0 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			struct call_ref_0__lambda0__lambda0* value0 = _0.as0;
+			
+			struct mark_ctx* _1 = mark_ctx;
+			struct call_ref_0__lambda0__lambda0* _2 = value0;
+			return mark_visit_273(_1, _2);
+		}
+		case 1: {
+			struct call_ref_0__lambda0* value1 = _0.as1;
+			
+			struct mark_ctx* _3 = mark_ctx;
+			struct call_ref_0__lambda0* _4 = value1;
+			return mark_visit_275(_3, _4);
+		}
+		case 2: {
+			struct call_ref_1__lambda0__lambda0* value2 = _0.as2;
+			
+			struct mark_ctx* _5 = mark_ctx;
+			struct call_ref_1__lambda0__lambda0* _6 = value2;
+			return mark_visit_277(_5, _6);
+		}
+		case 3: {
+			struct call_ref_1__lambda0* value3 = _0.as3;
+			
+			struct mark_ctx* _7 = mark_ctx;
+			struct call_ref_1__lambda0* _8 = value3;
+			return mark_visit_279(_7, _8);
+		}
+		default:
+			return (assert(0),(struct void_) {});
+	}
+}
+/* mark-visit<call-ref<?out, ?in>.lambda0.lambda0> (generated) (generated) */
+struct void_ mark_visit_250(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0__lambda0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct call_ref_0__lambda0__lambda0 _1 = value;
+	struct fun_ref1 _2 = _1.f;
+	mark_visit_251(_0, _2);
+	struct mark_ctx* _3 = mark_ctx;
+	struct call_ref_0__lambda0__lambda0 _4 = value;
+	struct fut_0* _5 = _4.res;
+	return mark_visit_268(_3, _5);
+}
+/* mark-visit<fun-ref1<int32, void>> (generated) (generated) */
+struct void_ mark_visit_251(struct mark_ctx* mark_ctx, struct fun_ref1 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct fun_ref1 _1 = value;
+	struct fun_act1_2 _2 = _1.fun;
+	return mark_visit_252(_0, _2);
+}
+/* mark-visit<fun-act1<fut<int32>, void>> (generated) (generated) */
+struct void_ mark_visit_252(struct mark_ctx* mark_ctx, struct fun_act1_2 value) {
+	struct fun_act1_2 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			struct then2__lambda0* value0 = _0.as0;
+			
+			struct mark_ctx* _1 = mark_ctx;
+			struct then2__lambda0* _2 = value0;
+			return mark_visit_259(_1, _2);
+		}
+		default:
+			return (assert(0),(struct void_) {});
+	}
+}
+/* mark-visit<then2<int32>.lambda0> (generated) (generated) */
+struct void_ mark_visit_253(struct mark_ctx* mark_ctx, struct then2__lambda0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct then2__lambda0 _1 = value;
+	struct fun_ref0 _2 = _1.cb;
+	return mark_visit_254(_0, _2);
+}
+/* mark-visit<fun-ref0<int32>> (generated) (generated) */
+struct void_ mark_visit_254(struct mark_ctx* mark_ctx, struct fun_ref0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct fun_ref0 _1 = value;
+	struct fun_act0_1 _2 = _1.fun;
+	return mark_visit_255(_0, _2);
+}
+/* mark-visit<fun-act0<fut<int32>>> (generated) (generated) */
+struct void_ mark_visit_255(struct mark_ctx* mark_ctx, struct fun_act0_1 value) {
+	struct fun_act0_1 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			struct add_first_task__lambda0* value0 = _0.as0;
+			
+			struct mark_ctx* _1 = mark_ctx;
+			struct add_first_task__lambda0* _2 = value0;
+			return mark_visit_258(_1, _2);
+		}
+		default:
+			return (assert(0),(struct void_) {});
+	}
+}
+/* mark-visit<add-first-task.lambda0> (generated) (generated) */
+struct void_ mark_visit_256(struct mark_ctx* mark_ctx, struct add_first_task__lambda0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct add_first_task__lambda0 _1 = value;
+	struct arr_3 _2 = _1.all_args;
+	return mark_arr_257(_0, _2);
+}
+/* mark-arr<raw-ptr(char)> (generated) (generated) */
+struct void_ mark_arr_257(struct mark_ctx* mark_ctx, struct arr_3 a) {
+	uint8_t dropped0;
+	struct mark_ctx* _0 = mark_ctx;
+	struct arr_3 _1 = a;
+	char** _2 = _1.data;
+	uint8_t* _3 = (uint8_t*) _2;
+	struct arr_3 _4 = a;
+	uint64_t _5 = _4.size;
+	uint64_t _6 = sizeof(char*);
+	uint64_t _7 = _5 * _6;
+	dropped0 = mark(_0, _3, _7);
+	
+	return (struct void_) {};
+}
+/* mark-visit<gc-ptr(add-first-task.lambda0)> (generated) (generated) */
+struct void_ mark_visit_258(struct mark_ctx* mark_ctx, struct add_first_task__lambda0* value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct add_first_task__lambda0* _1 = value;
+	uint8_t* _2 = (uint8_t*) _1;
+	uint64_t _3 = sizeof(struct add_first_task__lambda0);
+	uint8_t _4 = mark(_0, _2, _3);
+	if (_4) {
+		struct mark_ctx* _5 = mark_ctx;
+		struct add_first_task__lambda0* _6 = value;
+		struct add_first_task__lambda0 _7 = *_6;
+		return mark_visit_256(_5, _7);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<gc-ptr(then2<int32>.lambda0)> (generated) (generated) */
+struct void_ mark_visit_259(struct mark_ctx* mark_ctx, struct then2__lambda0* value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct then2__lambda0* _1 = value;
+	uint8_t* _2 = (uint8_t*) _1;
+	uint64_t _3 = sizeof(struct then2__lambda0);
+	uint8_t _4 = mark(_0, _2, _3);
+	if (_4) {
+		struct mark_ctx* _5 = mark_ctx;
+		struct then2__lambda0* _6 = value;
+		struct then2__lambda0 _7 = *_6;
+		return mark_visit_253(_5, _7);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<fut<int32>> (generated) (generated) */
+struct void_ mark_visit_260(struct mark_ctx* mark_ctx, struct fut_0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct fut_0 _1 = value;
+	struct fut_state_0 _2 = _1.state;
+	return mark_visit_261(_0, _2);
+}
+/* mark-visit<fut-state<int32>> (generated) (generated) */
+struct void_ mark_visit_261(struct mark_ctx* mark_ctx, struct fut_state_0 value) {
+	struct fut_state_0 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			struct fut_state_callbacks_0 value0 = _0.as0;
+			
+			struct mark_ctx* _1 = mark_ctx;
+			struct fut_state_callbacks_0 _2 = value0;
+			return mark_visit_262(_1, _2);
+		}
+		case 1: {
+			return (struct void_) {};
+		}
+		case 2: {
+			struct exception value2 = _0.as2;
+			
+			struct mark_ctx* _3 = mark_ctx;
+			struct exception _4 = value2;
+			return mark_visit_271(_3, _4);
+		}
+		default:
+			return (assert(0),(struct void_) {});
+	}
+}
+/* mark-visit<fut-state-callbacks<int32>> (generated) (generated) */
+struct void_ mark_visit_262(struct mark_ctx* mark_ctx, struct fut_state_callbacks_0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct fut_state_callbacks_0 _1 = value;
+	struct opt_0 _2 = _1.head;
+	return mark_visit_263(_0, _2);
+}
+/* mark-visit<opt<fut-callback-node<int32>>> (generated) (generated) */
+struct void_ mark_visit_263(struct mark_ctx* mark_ctx, struct opt_0 value) {
+	struct opt_0 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			return (struct void_) {};
+		}
+		case 1: {
+			struct some_0 value1 = _0.as1;
+			
+			struct mark_ctx* _1 = mark_ctx;
+			struct some_0 _2 = value1;
+			return mark_visit_264(_1, _2);
+		}
+		default:
+			return (assert(0),(struct void_) {});
+	}
+}
+/* mark-visit<some<fut-callback-node<int32>>> (generated) (generated) */
+struct void_ mark_visit_264(struct mark_ctx* mark_ctx, struct some_0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct some_0 _1 = value;
+	struct fut_callback_node_0* _2 = _1.value;
+	return mark_visit_270(_0, _2);
+}
+/* mark-visit<fut-callback-node<int32>> (generated) (generated) */
+struct void_ mark_visit_265(struct mark_ctx* mark_ctx, struct fut_callback_node_0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct fut_callback_node_0 _1 = value;
+	struct fun_act1_0 _2 = _1.cb;
+	mark_visit_266(_0, _2);
+	struct mark_ctx* _3 = mark_ctx;
+	struct fut_callback_node_0 _4 = value;
+	struct opt_0 _5 = _4.next_node;
+	return mark_visit_263(_3, _5);
+}
+/* mark-visit<fun-act1<void, result<int32, exception>>> (generated) (generated) */
+struct void_ mark_visit_266(struct mark_ctx* mark_ctx, struct fun_act1_0 value) {
+	struct fun_act1_0 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			struct forward_to__lambda0* value0 = _0.as0;
+			
+			struct mark_ctx* _1 = mark_ctx;
+			struct forward_to__lambda0* _2 = value0;
+			return mark_visit_269(_1, _2);
+		}
+		default:
+			return (assert(0),(struct void_) {});
+	}
+}
+/* mark-visit<forward-to<?out>.lambda0> (generated) (generated) */
+struct void_ mark_visit_267(struct mark_ctx* mark_ctx, struct forward_to__lambda0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct forward_to__lambda0 _1 = value;
+	struct fut_0* _2 = _1.to;
+	return mark_visit_268(_0, _2);
+}
+/* mark-visit<gc-ptr(fut<int32>)> (generated) (generated) */
+struct void_ mark_visit_268(struct mark_ctx* mark_ctx, struct fut_0* value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct fut_0* _1 = value;
+	uint8_t* _2 = (uint8_t*) _1;
+	uint64_t _3 = sizeof(struct fut_0);
+	uint8_t _4 = mark(_0, _2, _3);
+	if (_4) {
+		struct mark_ctx* _5 = mark_ctx;
+		struct fut_0* _6 = value;
+		struct fut_0 _7 = *_6;
+		return mark_visit_260(_5, _7);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<gc-ptr(forward-to<?out>.lambda0)> (generated) (generated) */
+struct void_ mark_visit_269(struct mark_ctx* mark_ctx, struct forward_to__lambda0* value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct forward_to__lambda0* _1 = value;
+	uint8_t* _2 = (uint8_t*) _1;
+	uint64_t _3 = sizeof(struct forward_to__lambda0);
+	uint8_t _4 = mark(_0, _2, _3);
+	if (_4) {
+		struct mark_ctx* _5 = mark_ctx;
+		struct forward_to__lambda0* _6 = value;
+		struct forward_to__lambda0 _7 = *_6;
+		return mark_visit_267(_5, _7);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<gc-ptr(fut-callback-node<int32>)> (generated) (generated) */
+struct void_ mark_visit_270(struct mark_ctx* mark_ctx, struct fut_callback_node_0* value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct fut_callback_node_0* _1 = value;
+	uint8_t* _2 = (uint8_t*) _1;
+	uint64_t _3 = sizeof(struct fut_callback_node_0);
+	uint8_t _4 = mark(_0, _2, _3);
+	if (_4) {
+		struct mark_ctx* _5 = mark_ctx;
+		struct fut_callback_node_0* _6 = value;
+		struct fut_callback_node_0 _7 = *_6;
+		return mark_visit_265(_5, _7);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<exception> (generated) (generated) */
+struct void_ mark_visit_271(struct mark_ctx* mark_ctx, struct exception value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct exception _1 = value;
+	struct arr_0 _2 = _1.message;
+	return mark_arr_272(_0, _2);
+}
+/* mark-arr<char> (generated) (generated) */
+struct void_ mark_arr_272(struct mark_ctx* mark_ctx, struct arr_0 a) {
+	uint8_t dropped0;
+	struct mark_ctx* _0 = mark_ctx;
+	struct arr_0 _1 = a;
+	char* _2 = _1.data;
+	uint8_t* _3 = (uint8_t*) _2;
+	struct arr_0 _4 = a;
+	uint64_t _5 = _4.size;
+	uint64_t _6 = sizeof(char);
+	uint64_t _7 = _5 * _6;
+	dropped0 = mark(_0, _3, _7);
+	
+	return (struct void_) {};
+}
+/* mark-visit<gc-ptr(call-ref<?out, ?in>.lambda0.lambda0)> (generated) (generated) */
+struct void_ mark_visit_273(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0__lambda0* value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct call_ref_0__lambda0__lambda0* _1 = value;
+	uint8_t* _2 = (uint8_t*) _1;
+	uint64_t _3 = sizeof(struct call_ref_0__lambda0__lambda0);
+	uint8_t _4 = mark(_0, _2, _3);
+	if (_4) {
+		struct mark_ctx* _5 = mark_ctx;
+		struct call_ref_0__lambda0__lambda0* _6 = value;
+		struct call_ref_0__lambda0__lambda0 _7 = *_6;
+		return mark_visit_250(_5, _7);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<call-ref<?out, ?in>.lambda0> (generated) (generated) */
+struct void_ mark_visit_274(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct call_ref_0__lambda0 _1 = value;
+	struct fun_ref1 _2 = _1.f;
+	mark_visit_251(_0, _2);
+	struct mark_ctx* _3 = mark_ctx;
+	struct call_ref_0__lambda0 _4 = value;
+	struct fut_0* _5 = _4.res;
+	return mark_visit_268(_3, _5);
+}
+/* mark-visit<gc-ptr(call-ref<?out, ?in>.lambda0)> (generated) (generated) */
+struct void_ mark_visit_275(struct mark_ctx* mark_ctx, struct call_ref_0__lambda0* value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct call_ref_0__lambda0* _1 = value;
+	uint8_t* _2 = (uint8_t*) _1;
+	uint64_t _3 = sizeof(struct call_ref_0__lambda0);
+	uint8_t _4 = mark(_0, _2, _3);
+	if (_4) {
+		struct mark_ctx* _5 = mark_ctx;
+		struct call_ref_0__lambda0* _6 = value;
+		struct call_ref_0__lambda0 _7 = *_6;
+		return mark_visit_274(_5, _7);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<call-ref<?out>.lambda0.lambda0> (generated) (generated) */
+struct void_ mark_visit_276(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0__lambda0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct call_ref_1__lambda0__lambda0 _1 = value;
+	struct fun_ref0 _2 = _1.f;
+	mark_visit_254(_0, _2);
+	struct mark_ctx* _3 = mark_ctx;
+	struct call_ref_1__lambda0__lambda0 _4 = value;
+	struct fut_0* _5 = _4.res;
+	return mark_visit_268(_3, _5);
+}
+/* mark-visit<gc-ptr(call-ref<?out>.lambda0.lambda0)> (generated) (generated) */
+struct void_ mark_visit_277(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0__lambda0* value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct call_ref_1__lambda0__lambda0* _1 = value;
+	uint8_t* _2 = (uint8_t*) _1;
+	uint64_t _3 = sizeof(struct call_ref_1__lambda0__lambda0);
+	uint8_t _4 = mark(_0, _2, _3);
+	if (_4) {
+		struct mark_ctx* _5 = mark_ctx;
+		struct call_ref_1__lambda0__lambda0* _6 = value;
+		struct call_ref_1__lambda0__lambda0 _7 = *_6;
+		return mark_visit_276(_5, _7);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<call-ref<?out>.lambda0> (generated) (generated) */
+struct void_ mark_visit_278(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0 value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct call_ref_1__lambda0 _1 = value;
+	struct fun_ref0 _2 = _1.f;
+	mark_visit_254(_0, _2);
+	struct mark_ctx* _3 = mark_ctx;
+	struct call_ref_1__lambda0 _4 = value;
+	struct fut_0* _5 = _4.res;
+	return mark_visit_268(_3, _5);
+}
+/* mark-visit<gc-ptr(call-ref<?out>.lambda0)> (generated) (generated) */
+struct void_ mark_visit_279(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0* value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct call_ref_1__lambda0* _1 = value;
+	uint8_t* _2 = (uint8_t*) _1;
+	uint64_t _3 = sizeof(struct call_ref_1__lambda0);
+	uint8_t _4 = mark(_0, _2, _3);
+	if (_4) {
+		struct mark_ctx* _5 = mark_ctx;
+		struct call_ref_1__lambda0* _6 = value;
+		struct call_ref_1__lambda0 _7 = *_6;
+		return mark_visit_278(_5, _7);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<gc-ptr(task-queue-node)> (generated) (generated) */
+struct void_ mark_visit_280(struct mark_ctx* mark_ctx, struct task_queue_node* value) {
+	struct mark_ctx* _0 = mark_ctx;
+	struct task_queue_node* _1 = value;
+	uint8_t* _2 = (uint8_t*) _1;
+	uint64_t _3 = sizeof(struct task_queue_node);
+	uint8_t _4 = mark(_0, _2, _3);
+	if (_4) {
+		struct mark_ctx* _5 = mark_ctx;
+		struct task_queue_node* _6 = value;
+		struct task_queue_node _7 = *_6;
+		return mark_visit_247(_5, _7);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* wait-on void(cond condition, until-time opt<nat>, last-checked nat) */
+struct void_ wait_on(struct condition* cond, struct opt_5 until_time, uint64_t last_checked) {
 	top:;
-	struct condition* _0 = c;
+	struct condition* _0 = cond;
 	uint64_t _1 = _0->value;
 	uint64_t _2 = last_checked;
 	uint8_t _3 = _op_equal_equal_0(_1, _2);
 	if (_3) {
 		yield_thread();
-		struct condition* _4 = c;
-		uint64_t _5 = last_checked;
-		c = _4;
-		last_checked = _5;
-		goto top;
+		struct opt_5 _4 = until_time;
+		uint8_t _5 = before_time__q(_4);
+		if (_5) {
+			struct condition* _6 = cond;
+			struct opt_5 _7 = until_time;
+			uint64_t _8 = last_checked;
+			cond = _6;
+			until_time = _7;
+			last_checked = _8;
+			goto top;
+		} else {
+			return (struct void_) {};
+		}
 	} else {
 		return (struct void_) {};
+	}
+}
+/* before-time? bool(until-time opt<nat>) */
+uint8_t before_time__q(struct opt_5 until_time) {
+	struct opt_5 _0 = until_time;
+	switch (_0.kind) {
+		case 0: {
+			return 1;
+		}
+		case 1: {
+			struct some_5 s0 = _0.as1;
+			
+			uint64_t _1 = get_monotime_nsec();
+			struct some_5 _2 = s0;
+			uint64_t _3 = _2.value;
+			return _op_less(_1, _3);
+		}
+		default:
+			return (assert(0),0);
 	}
 }
 /* join-threads-recur void(i nat, n-threads nat, threads ptr<nat>) */
@@ -5224,13 +5637,13 @@ struct void_ join_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* thread
 }
 /* join-one-thread void(tid nat) */
 struct void_ join_one_thread(uint64_t tid) {
-	struct cell_1 thread_return0;
+	struct cell_2 thread_return0;
 	uint8_t* _0 = NULL;
-	thread_return0 = (struct cell_1) {_0};
+	thread_return0 = (struct cell_2) {_0};
 	
 	int32_t err1;
 	uint64_t _1 = tid;
-	struct cell_1* _2 = &thread_return0;
+	struct cell_2* _2 = &thread_return0;
 	err1 = pthread_join(_1, _2);
 	
 	int32_t _3 = err1;
@@ -5255,8 +5668,8 @@ struct void_ join_one_thread(uint64_t tid) {
 	} else {
 		(struct void_) {};
 	}
-	struct cell_1* _12 = &thread_return0;
-	uint8_t* _13 = get(_12);
+	struct cell_2* _12 = &thread_return0;
+	uint8_t* _13 = get_1(_12);
 	uint8_t _14 = null__q_0(_13);
 	return hard_assert(_14);
 }
@@ -5269,8 +5682,8 @@ int32_t esrch(void) {
 	return 3;
 }
 /* get<ptr<nat8>> ptr<nat8>(c cell<ptr<nat8>>) */
-uint8_t* get(struct cell_1* c) {
-	struct cell_1* _0 = c;
+uint8_t* get_1(struct cell_2* c) {
+	struct cell_2* _0 = c;
 	return _0->value;
 }
 /* unmanaged-free<nat> void(p ptr<nat>) */
@@ -5305,7 +5718,7 @@ struct result_0 must_be_resolved(struct fut_0* f) {
 			struct exception e1 = _1.as2;
 			
 			struct exception _5 = e1;
-			struct err_0 _6 = (struct err_0) {_5};
+			struct err _6 = (struct err) {_5};
 			return (struct result_0) {1, .as1 = _6};
 		}
 		default:

@@ -482,7 +482,9 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 						: ExplicitByValOrRef.byRef;
 					if (has(prevModifiers.explicitByValOrRef) || !arrBuilderIsEmpty(res))
 						todo!void("by-val or by-ref on later line");
-					return immutable RecordModifiers(prevModifiers.packed, some(immutable ExplicitByValOrRefAndRange(start, value)));
+					return immutable RecordModifiers(
+						prevModifiers.packed,
+						some(immutable ExplicitByValOrRefAndRange(start, value)));
 				case shortSymAlphaLiteralValue("packed"):
 					if (has(prevModifiers.packed) || !arrBuilderIsEmpty(res))
 						todo!void("'packed' on later line");

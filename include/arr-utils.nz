@@ -1,5 +1,5 @@
 import
-	.alloc: alloc
+	.alloc: alloc unmanaged-alloc-elements
 	.bootstrap
 		+ - == != < <= > >= ? and arr bool byte by-val call char data deref drop false
 		hard-assert hard-fail hard-forbid incr nat noctx-decr noctx-incr none not null
@@ -189,6 +189,9 @@ uninitialized-data ptr ?t(size nat) unsafe
 new-uninitialized-mut-arr mut-arr ?t(size nat) unsafe
 	mut-arr: false, size, size, uninitialized-data<?t>: size
 
+new-mut-arr-by-val-with-capacity-from-unmanaged-memory by-val mut-arr<?t>(capacity nat) noctx unsafe
+	mut-arr<?t>: false, 0, capacity, capacity unmanaged-alloc-elements<?t>
+
 new-mut-arr mut-arr ?t() trusted
 	mut-arr: false, 0, 0, null
 
@@ -212,13 +215,6 @@ set-at void(a mut-arr ?t, index nat, value ?t) trusted
 noctx-last ?t(a mut-arr ?t) noctx unsafe
 	hard-forbid: a empty?
 	a noctx-at a.size.noctx-decr
-
-noctx-remove-unordered-at-index ?t(a mut-arr ?t, index nat) noctx unsafe
-	res = a noctx-at index
-	a noctx-set-at index, a.noctx-last
-	a set-size a.size.noctx-decr
-	res
-
 
 some? bool(a arr ?t, pred act bool(?t))
 	a.empty?.not and: (pred call a.first or: a.tail some? pred)
@@ -265,7 +261,13 @@ push-capacity-must-be-sufficient void(a mut-arr ?t, value ?t) noctx unsafe
 	a set-size old-size.noctx-incr
 	a noctx-set-at old-size, value
 
-noctx-must-remove-unordered-recur void(a mut-arr ?t, index nat, value ?t) noctx unsafe data<?t>
+noctx-remove-unordered-at-index ?t(a mut-arr ?t, index nat) noctx unsafe
+	res = a noctx-at index
+	a noctx-set-at index, a.noctx-last
+	a set-size a.size.noctx-decr
+	res
+
+.noctx-must-remove-unordered-recur void(a mut-arr ?t, index nat, value ?t) noctx unsafe data<?t>
 	if index == a.size
 		hard-fail: "Did not find the element in the mut-arr"
 	elif a noctx-at index == value

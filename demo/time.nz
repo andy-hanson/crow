@@ -1,0 +1,10 @@
+import
+	io.print: print
+	io.process: exit-code
+
+main fut exit-code(_ arr str) summon
+	print: "Just a second..."
+	v <- 1000 delay-msec
+	drop: v
+	print: "OK, done"
+	0 resolved

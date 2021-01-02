@@ -1,0 +1,151 @@
+import
+	.arr-utils
+		contains? mut-arr new-mut-arr-by-val-with-capacity-from-unmanaged-memory
+		noctx-must-remove-unordered push-capacity-must-be-sufficient
+	.bootstrap
+		== <= as bool by-val exclusion false hard-assert has? nat none not opt ref-of-val some true
+		value void wrap-add
+	.io.time: timestamp
+
+| TODO: use a heap, not a list
+
+no-timestamp nat() noctx
+	0
+
+task record mut
+	by-val
+	| 0 for non-timed tasks
+	time timestamp
+	exclusion exclusion
+	action act void()
+
+task-queue record mut
+	| Very first node is a sentinel
+	head mut opt task-queue-node
+	| This is allocated with max-threads capacity on init, so never needs further allocation
+	currently-running-exclusions by-val mut-arr exclusion
+
+.task-queue-node record mut
+	task task
+	next mut opt task-queue-node
+
+empty? bool(a task-queue) noctx
+	a.head.has? not
+
+new-task-queue by-val task-queue(max-threads nat) unsafe noctx
+	task-queue: none, max-threads new-mut-arr-by-val-with-capacity-from-unmanaged-memory<exclusion>
+
+| Expose construction of nodes, because it's better to do this outside of a lock
+new-task-queue-node task-queue-node(task task)
+	task-queue-node: task, none
+
+no-task record
+	by-val
+	any-tasks? bool
+	first-task-time opt timestamp
+
+pop-task-result union mut
+	task
+	no-task
+
+| Caller should call 'return-task' after running the task
+pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
+	exclusions = a.currently-running-exclusions ref-of-val
+	res = as<pop-task-result>: match a.head
+	as none
+		no-task: false, none
+	as some s
+		head = s value
+		task = head task
+		if task.time <= cur-time
+			if exclusions contains? task.exclusion
+				pop-recur: head, exclusions, cur-time, task.time to-opt-time
+			else
+				a set-head head.next
+				head.task
+		else
+			no-task: true, task.time some
+
+	match res
+	as task t
+		exclusions push-capacity-must-be-sufficient t.exclusion
+	as no-task
+		void
+
+	res
+
+to-opt-time opt timestamp(a timestamp) noctx
+	if a == no-timestamp
+		none
+	else
+		a some
+
+return-task void(a task-queue, task task) noctx unsafe
+	a.currently-running-exclusions.ref-of-val noctx-must-remove-unordered task.exclusion
+
+.pop-recur pop-task-result
+	prev task-queue-node
+	exclusions mut-arr exclusion
+	cur-time timestamp
+	first-task-time opt timestamp
+spec
+	noctx
+	unsafe
+body
+	match prev next
+	as none
+		no-task: true, first-task-time
+	as some s
+		cur = s value
+		task = cur task
+		if task.time <= cur-time
+			if exclusions contains? task.exclusion
+				pop-recur: cur, exclusions, cur-time, match first-task-time
+				as none
+					task.time to-opt-time
+				as some
+					first-task-time
+			else
+				prev set-next cur.next
+				exclusions push-capacity-must-be-sufficient task.exclusion
+				task
+		else
+			no-task: true, task.time some
+
+insert-task void(a task-queue, inserted task-queue-node) noctx unsafe
+	size-before = a size
+	match a head
+	as none
+		a set-head inserted.some
+	as some s
+		head = s value
+		if head.task.time <= inserted.task.time
+			insert-recur: head, inserted
+		else
+			inserted set-next head.some
+			a set-head: inserted.some
+	size-after = a size
+	hard-assert: size-before wrap-add 1 == size-after
+
+.insert-recur void(prev task-queue-node, inserted task-queue-node) noctx
+	match prev next
+	as none
+		prev set-next: inserted.some
+	as some s
+		cur = s value
+		if cur.task.time <= inserted.task.time
+			insert-recur: cur, inserted
+		else
+			inserted set-next cur.some
+			prev set-next: inserted.some
+
+
+.size nat(a task-queue) noctx
+	a.head size-recur 0
+
+.size-recur nat(node opt task-queue-node, acc nat) noctx
+	match node
+	as none
+		acc
+	as some s
+		s.value.next size-recur: acc wrap-add 1

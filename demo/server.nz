@@ -14,23 +14,51 @@ import
 	posix.stdio: perror
 	posix.types: socklen-t
 	posix.unistd: close read write
-	sys.epoll: data epoll-create1 epoll-ctl epoll-ctl-add epollerr epollet epoll-event epollhup epollin epoll-wait events
-	thread-utils: create-one-thread join-one-thread
+	sys.epoll
+		data epoll-create1 epoll-ctl epoll-ctl-add epollerr epollet epoll-event epollhup epollin
+		epoll-wait events
+	thread-utils: create-one-thread join-one-thread sleep-ms-sync
 
 main fut exit-code(_ arr str) unsafe summon
 	assert: size-of<epoll-event> == 12
+	if false
+		old-main
+	else
+		the-fun = as<ref void()>: \
+			void resolved
+		get-global-ctx noctx-launch-fun the-fun
+		print: "Hello, ya world"
+		0 resolved
 
+noctx-launch-fun void(gctx global-ctx, f ref void()) noctx
+
+	drop: gctx
+	drop: f
+	void
+
+
+old-main fut exit-code() unsafe summon
 	| WARN: Leaks memory if server is not stopped.
 
 	server = start-tcp-server
-	drop: server.stop
-	| v <- server.stop call-ref
-	| drop: v
-	| print: "done"
+	print: "will stop after 10 seconds"
+	10000 sleep-ms-sync
+	print: "stopping"
+	v <- server.stop call-ref
+	drop: v
+	print: "done"
 	0 resolved
 
 .tcp-server record sendable
 	stop ref void()
+
+.server-state record mut
+	by-ref
+	should-stop? mut bool
+	| TODO: my code wrongly thinks this should be packed!
+	pad-0 bool
+	pad-1 nat16
+	listen-fd fd-t
 
 .start-tcp-server tcp-server() unsafe summon
 	port = "8081"
@@ -43,31 +71,26 @@ main fut exit-code(_ arr str) unsafe summon
 	gctx = get-global-ctx
 	gctx incr-cant-shut-down-count
 
-	stop-sig = ptr-cast<bool, byte>: size-of<bool> unmanaged-alloc-bytes
-	stop-sig set false
-	thread-arg = thread-args: fd, stop-sig
+	server-state-ptr = ptr-cast<by-val<server-state>, byte>: size-of<by-val<server-state>> unmanaged-alloc-bytes
+	server-state-ptr set: server-state: false, false, 0, fd
+	server-state = server-state-ptr ref-of-ptr
+	drop: server-state.pad-0
+	drop: server-state.pad-1
 	thread-cell = cell<pthread-t>: 0
 	print: "starting the thread"
-	thread-cell create-one-thread thread-arg.as-any-ptr, &tcp-server-fun
+	thread-cell create-one-thread server-state.as-any-ptr, &tcp-server-fun
 	thread = thread-cell.get
 
 	tcp-server: \
-		stop-sig set true
-		stop-sig unmanaged-free
+		print: "STOP CALLED"
+		server-state set-should-stop? true
 		thread join-one-thread
+		server-state.as-any-ptr unmanaged-free
 		gctx decr-cant-shut-down-count
 		void resolved
 
-.thread-args record mut
-	by-ref
-	fd fd-t
-	| Behind a ptr to ensure this is mutable
-	stop-sig ptr bool
-
 .tcp-server-fun any-ptr(args-ptr any-ptr) noctx unsafe summon
-	args = args-ptr as-ref<thread-args>
-	listen-fd = args fd
-	stop-sig = args stop-sig
+	state = args-ptr as-ref<server-state>
 
 	epoll-fd = 0 epoll-create1
 	if epoll-fd < 0
@@ -75,30 +98,30 @@ main fut exit-code(_ arr str) unsafe summon
 		todo
 	else
 		event-flags = as<nat32>: epollin bits-or epollet
-		accept-event = epoll-event: event-flags, listen-fd.to-int.unsafe-to-nat
-		ctl-err = epoll-fd epoll-ctl epoll-ctl-add, listen-fd, accept-event.ptr-to
+		accept-event = epoll-event: event-flags, state.listen-fd.to-int.unsafe-to-nat
+		ctl-err = epoll-fd epoll-ctl epoll-ctl-add, state.listen-fd, accept-event.ptr-to
 		if ctl-err == 0
 			print: "starting the server loop"
-			listen-fd tcp-server-loop epoll-fd, stop-sig
+			state tcp-server-loop epoll-fd
+			print: "server stopping normally"
 			null
 		else
 			perror: "epoll-ctl failed\0".data
 			todo
 
-.tcp-server-loop void(listen-fd fd-t, epoll-fd fd-t, stop-sig ptr bool) noctx unsafe summon
+.tcp-server-loop void(state server-state, epoll-fd fd-t) noctx unsafe summon
 	event = epoll-event: 0, 0
 	timeout = 1000 as<c-int>
-	print: "gonna epoll-wait"
 	num-events = epoll-fd epoll-wait event.ptr-to, 1, timeout
-	print: "did epoll-wait"
-	if stop-sig deref
-		print: "server stopping due to sig"
+
+	if state should-stop?
+		void
 	elif num-events < 0
 		print: "error in epoll-wait"
 		todo
 	elif num-events == 0
 		print: "no events (for now)"
-		listen-fd tcp-server-loop epoll-fd, stop-sig
+		state tcp-server-loop epoll-fd
 	else
 		hard-assert: num-events == 1
 		flags = event.events
@@ -107,11 +130,11 @@ main fut exit-code(_ arr str) unsafe summon
 			print: "SOME KINDA ERROR"
 			err = fd close
 			hard-assert: err == 0
-		elif fd == listen-fd
-			accept-clients: listen-fd, epoll-fd
+		elif fd == state.listen-fd
+			accept-clients: state.listen-fd, epoll-fd
 		else
 			handle-client: fd
-		listen-fd tcp-server-loop epoll-fd, stop-sig
+		state tcp-server-loop epoll-fd
 
 .accept-clients void(listen-fd fd-t, epoll-fd fd-t) noctx unsafe summon
 	clientaddr = empty-sockaddr-in
@@ -134,7 +157,6 @@ main fut exit-code(_ arr str) unsafe summon
 		accept-clients: listen-fd, epoll-fd
 
 .handle-client void(fd fd-t) noctx unsafe summon
-
 	buf-size = 256
 	buf = unmanaged-alloc-elements<byte>: buf-size
 	count = fd read buf, buf-size

@@ -1,0 +1,16 @@
+import
+	..bootstrap: == as by-val nat ref-of-val todo unsafe-to-nat wrap-add wrap-mul
+	..cell: cell get
+	..posix.time: clock-gettime clock-monotonic timespec tv-nsec tv-sec
+
+timestamp alias
+	nat
+
+get-monotime-nsec timestamp() noctx trusted summon
+	time-cell = as<by-val<cell<timespec>>>: cell: timespec: 0, 0
+	err = clock-monotonic clock-gettime time-cell.ref-of-val
+	if err == 0
+		time = time-cell.ref-of-val get
+		time.tv-sec wrap-mul 1000000000 wrap-add time.tv-nsec unsafe-to-nat
+	else
+		todo

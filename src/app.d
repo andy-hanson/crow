@@ -450,7 +450,7 @@ struct RealExtern {
 						todo!void("handle this type");
 						break;
 					case DynCallType.int32:
-						todo!void("handle this type");
+						dcArgInt(dcVm, cast(int) value.raw());
 						break;
 					case DynCallType.float32:
 						todo!void("handle this type");

@@ -13,7 +13,16 @@ epoll-event record
 
 epoll-ctl err-t(epfd fd-t, op c-int, fd fd-t, event ptr epoll-event) unsafe noctx extern<"epoll_ctl"> summon
 
-epoll-wait err-t(epfd fd-t, events ptr epoll-event, max-events c-int, timeout c-int) unsafe noctx extern<"epoll_wait"> summon
+epoll-wait err-t
+	epfd fd-t
+	events ptr epoll-event
+	max-events c-int
+	timeout c-int
+spec
+	unsafe
+	noctx
+	extern<"epoll_wait">
+	summon
 
 epollin nat32() noctx
 	1

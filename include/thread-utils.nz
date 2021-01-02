@@ -1,8 +1,10 @@
 import
 	.bootstrap
-		== != any-ptr as atomic-bool bool by-val call drop false fun-ptr1 hard-assert hard-fail hard-forbid is-locked lock nat
-		noctx-decr noctx-incr not null null? ptr ptr-to ref-of-val todo true value void wrap-mul
+		< == != any-ptr as atomic-bool bool by-val call drop false fun-ptr1 hard-assert hard-fail
+		hard-forbid is-locked lock nat noctx-decr noctx-incr not null null? opt ptr ptr-to
+		ref-of-val todo true value void wrap-mul
 	.cell: cell get
+	.io.time: get-monotime-nsec timestamp
 	.posix.errno: eagain einval esrch
 	.posix.pthread: pthread-create pthread-join pthread-t pthread-yield
 	.posix.unistd: usleep
@@ -81,11 +83,19 @@ sleep-ms-sync void(ms nat) noctx
 	| TODO: wrap-mul is unsafe
 	ms wrap-mul 1000 usleep
 
-wait-on void(c condition, last-checked last-checked) noctx unsafe
+wait-on void(cond condition, until-time opt timestamp, last-checked last-checked) noctx unsafe summon
 	| last-checked should have been called before a change, we wait until c.value is different
-	if c.value == last-checked
+	if cond.value == last-checked
 		yield-thread
-		c wait-on last-checked
+		if until-time before-time?
+			cond wait-on until-time, last-checked
+
+before-time? bool(until-time opt timestamp) noctx summon
+	match until-time
+	as none
+		true
+	as some s
+		get-monotime-nsec < s.value
 
 | TODO: use atomic operations for this
 thread-safe-counter record mut
@@ -122,7 +132,15 @@ get-and-decrement nat(t thread-safe-counter) noctx trusted
 	l release-lock
 	res
 
-create-one-thread void(tid cell pthread-t, thread-arg any-ptr, thread-fun fun-ptr1<any-ptr, any-ptr>) noctx unsafe summon
+create-one-thread void
+	tid cell pthread-t
+	thread-arg any-ptr
+	thread-fun fun-ptr1<any-ptr, any-ptr>
+spec
+	noctx
+	unsafe
+	summon
+body
 	err = tid pthread-create null, thread-fun, thread-arg
 	if err != 0
 		if err == eagain

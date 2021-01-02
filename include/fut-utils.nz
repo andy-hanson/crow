@@ -1,20 +1,37 @@
 import
 	.bootstrap
-		by-val call err exception exclusion fun fut
-		fut-callback-node fut-state-callbacks fut-state-resolved head lk none ok
-		opt ref-of-val result send set-state some state todo value island island-and-exclusion void
+		by-val call err exception exclusion fun fut fut-callback-node fut-state-callbacks
+		fut-state-resolved head island island-and-exclusion lk nat none ok opt ref-of-val result
+		send set-state some state todo value void
 	.exceptions: catch
-	.fut-low-level: new-unresolved-fut reject resolve-or-reject
+	.fut-low-level: new-unresolved-fut reject resolve resolve-or-reject
+	.io.time: get-monotime-nsec
+	.number-utils: + *
 	.opt-utils: force
-	.runtime: add-task get-cur-island get-island new-exclusion task
+	.runtime: add-task get-cur-island get-island new-exclusion
 	.thread-utils: acquire-lock decrement new-lock new-thread-safe-counter release-lock thread-safe-counter
 
 | Used to make code run after the next step. Equivalent to `sleep 0`.
 delay fut void()
 	void resolved
 
+| TODO: put in io.time?
+delay-msec fut void(msec nat) summon
+	delay-nsec: msec * 1000000
+
+delay-nsec fut void(nsec nat) trusted summon
+	target-time = get-monotime-nsec + nsec
+	island = get-cur-island
+	res = new-unresolved-fut<void>
+	island add-task target-time, island.new-exclusion, \
+		res resolve void
+	res
+
 resolved fut ?t(value ?t)
 	fut: new-lock, fut-state-resolved: value
+
+rejected fut ?t(err exception)
+	fut: new-lock, err
 
 joiner<?out, ?in0, ?in1> record force-sendable
 	res fut ?out
@@ -90,27 +107,27 @@ then2 fut ?out(f fut void, cb ref ?out()) send<?out>
 async fut ?t(f fun fut ?t()) trusted
 	res = new-unresolved-fut<?t>
 	island = get-cur-island
-	island add-task task: island.new-exclusion, \
+	island add-task island.new-exclusion, \
 		f.call forward-to res
 	res
 
 call-ref fut ?r(f ref ?r()) trusted send<?r>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
-	island add-task task: f.island-and-exclusion.exclusion, \
+	island add-task f.island-and-exclusion.exclusion, \
 		{f.fun.call forward-to res} catch {res reject it}
 	res
 
 call-ref fut ?r(f ref ?r(?p0), p0 ?p0) trusted send<?r> send<?p0>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
-	island add-task task: f.island-and-exclusion.exclusion, \
+	island add-task f.island-and-exclusion.exclusion, \
 		{f.fun call p0 forward-to res} catch {res reject it}
 	res
 
 call-ref fut ?r(f ref ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
-	island add-task task: f.island-and-exclusion.exclusion, \
+	island add-task f.island-and-exclusion.exclusion, \
 		{f.fun call p0, p1 forward-to res} catch {res reject it}
 	res

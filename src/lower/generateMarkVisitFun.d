@@ -170,7 +170,7 @@ immutable(LowFun) generateMarkVisitArrInner(Alloc)(
 	return immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(
 			alloc,
-			shortSymAlphaLiteral("mark-elements"),
+			shortSymAlphaLiteral("mark-elems"),
 			arrLiteral!LowType(alloc, [elementPtrType.pointee]))),
 		nu!LowFunSig(
 			alloc,

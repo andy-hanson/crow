@@ -1,6 +1,7 @@
 import
-	io
-	thread-utils
+	io.print: print
+	io.process: exit-code
+	thread-utils: sleep-ms-sync
 
 c-int alias
 	int

@@ -1,0 +1,18 @@
+import
+	..cell: cell
+	.c-types: c-int s-long
+	.extra-types: err-t
+
+timespec record
+	by-val
+	tv-sec s-long
+	tv-nsec s-long
+
+clock-gettime err-t(clock-it clockid-t, tp cell timespec) noctx summon extern<"clock_gettime">
+
+clock-monotonic clockid-t() noctx
+	1
+
+clockid-t alias
+	c-int
+
