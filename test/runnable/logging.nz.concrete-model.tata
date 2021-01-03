@@ -71,7 +71,6 @@ program(
 					field(lk, false, type(false, lock))
 					field(islands, true, type(false, arr))
 					field(n-live-threads, true, type(false, nat))
-					field(cant-shut-down-count, true, type(false, nat))
 					field(may-be-work-to-do, false, type(false, condition))
 					field(shut-down?, true, type(false, bool))
 					field(any-unhandled-exceptions?, true, type(false, bool))]))
@@ -555,7 +554,6 @@ program(
 										call(new-lock, [])
 										call(empty-arr, [])
 										local-ref(n-threads)
-										0
 										call(new-condition, [])
 										call(false, [])
 										call(false, [])])])
@@ -584,25 +582,26 @@ program(
 													param-ref(main-ptr)])
 											seq(
 												call(run-threads, [local-ref(n-threads), local-ref(gctx)])
-												cond(
-													call(any-unhandled-exceptions?, [local-ref(gctx)])
-													1
-													match(
-														call(must-be-resolved, [local-ref(main-fut)])
-														[
-															case(some(o), call(value, [local-ref(o)]))
-															case(
-																some(e)
+												match(
+													call(must-be-resolved, [local-ref(main-fut)])
+													[
+														case(
+															some(o)
+															call(
+																?
+																[
+																	call(any-unhandled-exceptions?, [local-ref(gctx)])
+																	1
+																	call(value, [local-ref(o)])]))
+														case(
+															some(e)
+															seq(
 																seq(
-																	seq(
-																		call(print-err-no-newline, [arr(0, 14)])
-																		call(
-																			print-err
-																			[
-																				call(
-																					message
-																					[call(value, [local-ref(e)])])]))
-																	1))]))))))))))))
+																	call(print-err-no-newline, [arr(0, 14)])
+																	call(
+																		print-err
+																		[call(message, [call(value, [local-ref(e)])])]))
+																1))])))))))))))
 		fun(false, get-nprocs, type(false, nat), none, [], extern(false))
 		fun(
 			false
@@ -620,7 +619,6 @@ program(
 				param(lk, type(false, lock))
 				param(islands, type(false, arr))
 				param(n-live-threads, type(false, nat))
-				param(cant-shut-down-count, type(false, nat))
 				param(may-be-work-to-do, type(false, condition))
 				param(shut-down?, type(false, bool))
 				param(any-unhandled-exceptions?, type(false, bool))]
@@ -933,7 +931,7 @@ program(
 			type(false, void)
 			none
 			[param(a, type(true, global-ctx)), param(any-unhandled-exceptions?, type(false, bool))]
-			field-set(6))
+			field-set(5))
 		fun(
 			true
 			get-global-ctx
@@ -2574,7 +2572,7 @@ program(
 			none
 			[param(b, type(false, condition))]
 			builtin([type(true, condition)]))
-		fun(false, may-be-work-to-do, type(false, condition), none, [param(a, type(true, global-ctx))], field-get(4))
+		fun(false, may-be-work-to-do, type(false, condition), none, [param(a, type(true, global-ctx))], field-get(3))
 		fun(false, gctx, type(true, global-ctx), none, [param(a, type(true, island))], field-get(0))
 		fun(false, no-timestamp, type(false, nat), none, [], expr-body(0))
 		fun(false, exclusion, type(false, nat), none, [param(a, type(false, island-and-exclusion))], field-get(1))
@@ -2816,19 +2814,16 @@ program(
 			[param(f, type(false, fun-ref0))]
 			expr-body(
 				let(
-					island
-					call(get-island, [call(island, [call(island-and-exclusion, [param-ref(f)])])])
-					let(
-						res
-						call(new-unresolved-fut, [])
-						seq(
-							call(
-								add-task
-								[
-									local-ref(island)
-									call(exclusion, [call(island-and-exclusion, [param-ref(f)])])
-									lambda(3, alloc(record([param-ref(f), local-ref(res)])))])
-							local-ref(res))))))
+					res
+					call(new-unresolved-fut, [])
+					seq(
+						call(
+							add-task
+							[
+								call(get-island, [call(island, [call(island-and-exclusion, [param-ref(f)])])])
+								call(exclusion, [call(island-and-exclusion, [param-ref(f)])])
+								lambda(3, alloc(record([param-ref(f), local-ref(res)])))])
+						local-ref(res)))))
 		fun(
 			false
 			island-and-exclusion
@@ -3552,17 +3547,7 @@ program(
 												seq(
 													seq(
 														cond(
-															call(
-																and
-																[
-																	call(no-tasks-and-last-thread-out?, [local-ref(n)])
-																	call(
-																		==
-																		[
-																			call(
-																				cant-shut-down-count
-																				[param-ref(gctx)])
-																			0])])
+															call(no-tasks-and-last-thread-out?, [local-ref(n)])
 															seq(
 																seq(
 																	call(
@@ -3595,7 +3580,7 @@ program(
 															call(noctx-incr, [call(n-live-threads, [param-ref(gctx)])])]))
 												call(release-lock, [call(ref-of-val, [call(lk, [param-ref(gctx)])])])))])
 								call(thread-function-recur, [param-ref(thread-id), param-ref(gctx), param-ref(tls)])))))))
-		fun(false, shut-down?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(5))
+		fun(false, shut-down?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(4))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, global-ctx))], field-get(0))
 		fun(
 			false
@@ -4539,14 +4524,13 @@ program(
 							clear-free-mem
 							[call(incr, [param-ref(mark-ptr)]), param-ref(mark-end), param-ref(data-ptr)]))
 					void)))
-		fun(false, cant-shut-down-count, type(false, nat), none, [param(a, type(true, global-ctx))], field-get(3))
 		fun(
 			false
 			set-shut-down?
 			type(false, void)
 			none
 			[param(a, type(true, global-ctx)), param(shut-down?, type(false, bool))]
-			field-set(5))
+			field-set(4))
 		fun(
 			false
 			wait-on
@@ -4655,7 +4639,6 @@ program(
 			none
 			[param(p, type(false, ptr))]
 			builtin([type(false, nat8), type(false, thread-args)]))
-		fun(false, any-unhandled-exceptions?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(6))
 		fun(
 			false
 			must-be-resolved
@@ -4677,6 +4660,14 @@ program(
 			none
 			[param(reason, type(false, arr))]
 			builtin([type(false, result)]))
+		fun(
+			false
+			?
+			type(false, int32)
+			none
+			[param(cond, type(false, bool)), param(if-true, type(false, int32)), param(if-false, type(false, int32))]
+			builtin([type(false, int32)]))
+		fun(false, any-unhandled-exceptions?, type(false, bool), none, [param(a, type(true, global-ctx))], field-get(5))
 		fun(
 			true
 			main

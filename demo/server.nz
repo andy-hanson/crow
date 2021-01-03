@@ -1,195 +1,53 @@
 import
-	alloc: unmanaged-alloc-bytes unmanaged-alloc-elements unmanaged-free
-	io.net: bind-to-port
-	io.posix-util: check-posix-error
+	collection.mut-set: add has? new-mut-set
+	io.net.tcp-server: close-client start-tcp-server stop
 	io.print: print
 	io.process: exit-code
-	posix.c-types: c-int
-	posix.errno: eagain errno ewouldblock
+	posix.errno: errno
 	posix.extra-types: fd-t
-	posix.fcntl: fcntl f-getfl f-setfl o-nonblock
-	posix.netinet.in: empty-sockaddr-in sockaddr-in
-	posix.pthread: pthread-t
-	posix.socket: accept listen shutdown shut-rdwr sockaddr
 	posix.stdio: perror
-	posix.types: socklen-t
-	posix.unistd: close read write
-	sys.epoll
-		data epoll-create1 epoll-ctl epoll-ctl-add epollerr epollet epoll-event epollhup epollin
-		epoll-wait events
-	thread-utils: create-one-thread join-one-thread sleep-ms-sync
+	posix.unistd: write
+	sys.epoll: epoll-event
 
-main fut exit-code(_ arr str) unsafe summon
+main fut exit-code(args arr str) unsafe summon
+	assert: args.size == 1
+	port = args at 0
+
 	assert: size-of<epoll-event> == 12
-	if false
-		old-main
-	else
-		the-fun = as<ref void()>: \
-			void resolved
-		get-global-ctx noctx-launch-fun the-fun
-		print: "Hello, ya world"
-		0 resolved
 
-noctx-launch-fun void(gctx global-ctx, f ref void()) noctx
+	closed-clients = new-mut-set<fd-t>
 
-	drop: gctx
-	drop: f
-	void
-
-
-old-main fut exit-code() unsafe summon
 	| WARN: Leaks memory if server is not stopped.
-
-	server = start-tcp-server
-	print: "will stop after 10 seconds"
-	10000 sleep-ms-sync
-	print: "stopping"
-	v <- server.stop call-ref
-	drop: v
-	print: "done"
-	0 resolved
-
-.tcp-server record sendable
-	stop ref void()
-
-.server-state record mut
-	by-ref
-	should-stop? mut bool
-	| TODO: my code wrongly thinks this should be packed!
-	pad-0 bool
-	pad-1 nat16
-	listen-fd fd-t
-
-.start-tcp-server tcp-server() unsafe summon
-	port = "8081"
-	fd = port bind-to-port
-	print: "serving on port " + port
-	max-connections = 1000 as<int32>
-	check-posix-error: fd listen max-connections
-	set-non-blocking: fd
-
-	gctx = get-global-ctx
-	gctx incr-cant-shut-down-count
-
-	server-state-ptr = ptr-cast<by-val<server-state>, byte>: size-of<by-val<server-state>> unmanaged-alloc-bytes
-	server-state-ptr set: server-state: false, false, 0, fd
-	server-state = server-state-ptr ref-of-ptr
-	drop: server-state.pad-0
-	drop: server-state.pad-1
-	thread-cell = cell<pthread-t>: 0
-	print: "starting the thread"
-	thread-cell create-one-thread server-state.as-any-ptr, &tcp-server-fun
-	thread = thread-cell.get
-
-	tcp-server: \
-		print: "STOP CALLED"
-		server-state set-should-stop? true
-		thread join-one-thread
-		server-state.as-any-ptr unmanaged-free
-		gctx decr-cant-shut-down-count
-		void resolved
-
-.tcp-server-fun any-ptr(args-ptr any-ptr) noctx unsafe summon
-	state = args-ptr as-ref<server-state>
-
-	epoll-fd = 0 epoll-create1
-	if epoll-fd < 0
-		perror: "epoll-create1 failed\0".data
-		todo
-	else
-		event-flags = as<nat32>: epollin bits-or epollet
-		accept-event = epoll-event: event-flags, state.listen-fd.to-int.unsafe-to-nat
-		ctl-err = epoll-fd epoll-ctl epoll-ctl-add, state.listen-fd, accept-event.ptr-to
-		if ctl-err == 0
-			print: "starting the server loop"
-			state tcp-server-loop epoll-fd
-			print: "server stopping normally"
-			null
-		else
-			perror: "epoll-ctl failed\0".data
-			todo
-
-.tcp-server-loop void(state server-state, epoll-fd fd-t) noctx unsafe summon
-	event = epoll-event: 0, 0
-	timeout = 1000 as<c-int>
-	num-events = epoll-fd epoll-wait event.ptr-to, 1, timeout
-
-	if state should-stop?
-		void
-	elif num-events < 0
-		print: "error in epoll-wait"
-		todo
-	elif num-events == 0
-		print: "no events (for now)"
-		state tcp-server-loop epoll-fd
-	else
-		hard-assert: num-events == 1
-		flags = event.events
-		fd = event.data.unsafe-to-int unsafe-to-int32
-		if flags bits-intersect? (epollerr bits-or epollhup) or: not: flags bits-intersect? epollin
-			print: "SOME KINDA ERROR"
-			err = fd close
-			hard-assert: err == 0
-		elif fd == state.listen-fd
-			accept-clients: state.listen-fd, epoll-fd
-		else
-			handle-client: fd
-		state tcp-server-loop epoll-fd
-
-.accept-clients void(listen-fd fd-t, epoll-fd fd-t) noctx unsafe summon
-	clientaddr = empty-sockaddr-in
-	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern<sockaddr, sockaddr-in>
-	addrlen = as<by-val<cell<socklen-t>>>: cell<socklen-t>: size-of<sockaddr-in> unsafe-to-nat32
-	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
-	if client-fd < 0
-		e = errno
-		if e == eagain or: e == ewouldblock
-			print: "done accepting clients"
-		else
-			perror: "accept() error\0".data
-			todo
-	else
-		print: "Accepted client"
-		client-fd set-non-blocking
-		client-event = epoll-event: (epollin bits-or epollet), client-fd.to-int.unsafe-to-nat
-		err = epoll-fd epoll-ctl epoll-ctl-add, client-fd, client-event.ptr-to
-		hard-assert: err == 0
-		accept-clients: listen-fd, epoll-fd
-
-.handle-client void(fd fd-t) noctx unsafe summon
-	buf-size = 256
-	buf = unmanaged-alloc-elements<byte>: buf-size
-	count = fd read buf, buf-size
-	if count < 0
-		err = errno
-		if err == eagain
-			print: "read EAGAIN"
+	server = port start-tcp-server \client-fd chunk
+		if closed-clients has? client-fd not
+			s = chunk as-str
+			print: "got chunk (" + chunk.size.to-str + " bytes) on " + client-fd.to-str
+			drop: s
 			| TODO: this actually does not belong here..
 			response = ok-response
-			wrote = fd write response.data.ptr-cast<byte, char>, response.size
-			hard-assert: wrote == response.size.unsafe-to-int
-			sd-err = fd shutdown shut-rdwr
-			hard-assert: sd-err == 0
-			close-err = fd close
-			hard-assert: close-err == 0
+			wrote = client-fd write response.data.ptr-cast<byte, char>, response.size
+			if wrote == -1
+				print: "ERRNO IS: " + errno.to-str
+				perror: "WRITE ERR\0".data
+
+			print: "WROTE: " + wrote.to-str + " bytes to " + client-fd.to-str
+			print: "Response size: " + response.size.to-str
+			assert: wrote == response.size.to-int
+			client-fd close-client
+			print: "Closed client on " + client-fd.to-str
+			closed-clients add client-fd
 		else
-			perror: "read() failed\0".data
-	elif count != 0
-		print: "Got a chunk"
-		print: arr: count.unsafe-to-nat, buf.ptr-cast<char, byte>
-		fd handle-client
+			print: "ignoring chunk from closed client " + client-fd.to-str
+		void resolved
 
-.set-non-blocking void(fd fd-t) noctx unsafe summon
-	flags = fd fcntl f-getfl, 0
-	if flags < 0
-		perror: "fcntl() error\0".data
-		todo
-	else
-		err = fd fcntl: f-setfl, flags bits-or o-nonblock
-		if err < 0
-			perror: "fcntl() error\0".data
-			todo
-
+	print: "will stop after 10 seconds"
+	ignore-me <- 10000 delay-msec
+	drop: ignore-me
+	print: "stopping..."
+	ignore-me-2 <- server.stop call-ref
+	drop: ignore-me-2
+	print: "done"
+	0 resolved
 
 ok-response str() noctx
 	"HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"

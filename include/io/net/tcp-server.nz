@@ -1,0 +1,167 @@
+import
+	...arr-utils: cast-immutable data new-uninitialized-mut-arr size slice-up-to
+	...bootstrap
+		== != < arr as bits-intersect? bits-or bool byte by-val data drop false fut int32 message
+		nat16 nat32 not or ptr-cast-to-extern ptr-to ref-of-val size-of str todo to-int true value
+		void
+	...cell: cell
+	...exceptions: assert
+	...fut-utils: call-ref-void delay-msec handle-exceptions then then-void fut-catch resolved
+	...number-utils: to-int to-int32 to-nat to-nat32
+	...posix.c-types: c-int
+	...posix.errno: eagain errno ewouldblock
+	...posix.extra-types: fd-t
+	...posix.fcntl: fcntl f-getfl f-setfl o-nonblock
+	...posix.netinet.in: empty-sockaddr-in sockaddr-in
+	...posix.socket: accept listen shutdown shut-rdwr sockaddr
+	...posix.stdio: perror
+	...posix.types: socklen-t
+	...posix.unistd: close read
+	...sys.epoll
+		data epoll-create1 epoll-ctl epoll-ctl-add epollerr epollet epoll-event epollhup epollin
+		epoll-wait events
+	..posix-util: check-posix-error
+	..print: print
+	.net: bind-to-port
+	
+close-client void(client-fd fd-t) unsafe summon
+	sd-err = client-fd shutdown shut-rdwr
+	assert: sd-err == 0
+	close-err = client-fd close
+	assert: close-err == 0
+
+tcp-handler alias
+	| Gives the handler a chunk of data.
+	| Handler needs to parse to determine when it has all the chunks, then write a response and call 'close-client'.
+	| WARN: Due to asynchrony, this may be called on a client that was already closed.
+	ref void(fd-t, arr byte)
+
+tcp-server record sendable
+	stop ref void()
+
+start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
+	port-fd = port bind-to-port
+	max-connections = 1000 as<int32>
+	check-posix-error: port-fd listen max-connections
+	set-non-blocking: port-fd
+
+	epoll-fd = 0 epoll-create1
+	if epoll-fd < 0
+		perror: "epoll-create1 failed\0".data
+		todo
+	else
+		event-flags = as<nat32>: epollin bits-or epollet
+		accept-event = epoll-event: event-flags, port-fd.to-int.to-nat
+		ctl-err = epoll-fd epoll-ctl epoll-ctl-add, port-fd, accept-event.ptr-to
+		if ctl-err != 0
+			perror: "epoll-ctl failed\0".data
+			todo
+
+		state = tcp-server-state: false, false, 0, port-fd, epoll-fd, 0, handler
+		drop: state.pad-0
+		drop: state.pad-1
+		drop: state.pad-2
+
+		print: "starting the server loop"
+		done = state tcp-server-loop
+		done.fut-catch then-void \r
+			match r
+			as ok
+				print: "stopped normally"
+			as err e
+				print: "An exception occurred in server"
+				print: e.value message
+
+		done handle-exceptions
+
+		tcp-server: \
+			print: "STOP CALLED"
+			state set-should-stop? true
+			done
+
+.tcp-server-state record mut
+	by-ref
+	should-stop? mut bool
+	| TODO: my code wrongly thinks this should be packed!
+	pad-0 bool
+	pad-1 nat16
+	port-fd fd-t
+	epoll-fd fd-t
+	| TODO: my code wrongly thinks this should be padded!
+	pad-2 nat32
+	handler tcp-handler
+
+.tcp-server-loop fut void(state tcp-server-state) unsafe summon
+	if state should-stop?
+		void resolved
+	else
+		event = epoll-event: 0, 0
+		timeout = 0 as<c-int>
+		num-events = state.epoll-fd epoll-wait event.ptr-to, 1, timeout
+		if num-events < 0
+			print: "error in epoll-wait"
+			todo
+		elif num-events == 0
+			print: "no events (for now)"
+			ignore-me <- 500 delay-msec
+			drop: ignore-me
+			state tcp-server-loop
+		else
+			assert: num-events == 1
+			flags = event.events
+			fd = event.data.to-int to-int32
+			if flags bits-intersect? (epollerr bits-or epollhup) or: not: flags bits-intersect? epollin
+				print: "SOME KINDA ERROR"
+				err = fd close
+				assert: err == 0
+			elif fd == state.port-fd
+				accept-clients: state.port-fd, state.epoll-fd
+			else
+				fd handle-client state.handler
+			state tcp-server-loop
+
+.accept-clients void(listen-fd fd-t, epoll-fd fd-t) unsafe summon
+	clientaddr = empty-sockaddr-in
+	clientaddr-as-sockaddr = clientaddr.ptr-to ptr-cast-to-extern<sockaddr, sockaddr-in>
+	addrlen = as<by-val<cell<socklen-t>>>: cell<socklen-t>: size-of<sockaddr-in> to-nat32
+	client-fd = listen-fd accept clientaddr-as-sockaddr, addrlen.ref-of-val
+	if client-fd < 0
+		e = errno
+		if e == eagain or: e == ewouldblock
+			print: "done accepting clients"
+		else
+			perror: "accept() error\0".data
+			todo
+	else
+		print: "Accepted client"
+		client-fd set-non-blocking
+		client-event = epoll-event: (epollin bits-or epollet), client-fd.to-int.to-nat
+		err = epoll-fd epoll-ctl epoll-ctl-add, client-fd, client-event.ptr-to
+		assert: err == 0
+		accept-clients: listen-fd, epoll-fd
+
+.handle-client void(fd fd-t, handler tcp-handler) unsafe summon
+	buf = new-uninitialized-mut-arr<byte>: 256
+	count = fd read buf.data, buf.size
+	if count < 0
+		err = errno
+		if err == eagain
+			print: "read EAGAIN"
+		else
+			perror: "read() failed\0".data
+	elif count != 0
+		chunk = buf.cast-immutable slice-up-to count.to-nat
+		drop: chunk
+		handler call-ref-void fd, chunk
+		fd handle-client handler
+
+.set-non-blocking void(fd fd-t) noctx unsafe summon
+	flags = fd fcntl f-getfl, 0
+	if flags < 0
+		perror: "fcntl() error\0".data
+		todo
+	else
+		err = fd fcntl: f-setfl, flags bits-or o-nonblock
+		if err < 0
+			perror: "fcntl() error\0".data
+			todo

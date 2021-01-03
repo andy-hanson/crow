@@ -46,7 +46,7 @@ slice-after mut-arr ?t(a mut-arr ?t, before-begin nat)
 	a slice-starting-at before-begin.incr
 
 slice-up-to arr ?t(a arr ?t, size nat)
-	assert: size < a.size
+	assert: size <= a.size
 	a slice: 0, size
 
 with-max-size arr ?t(a arr ?t, max-size nat)

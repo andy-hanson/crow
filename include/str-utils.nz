@@ -1,6 +1,9 @@
 import
 	.arr-utils: + arr-from-begin-end first has? tail
-	.bootstrap: == and char c-str data deref incr str todo
+	.bootstrap: == and arr byte char c-str data deref incr ptr-cast size str todo
+
+as-str str(bytes arr byte) unsafe noctx
+	arr: bytes.size, bytes.data ptr-cast<char, byte>
 
 to-c-str c-str(a str)
 	a + "\0" data

@@ -1,0 +1,16 @@
+import
+	..bootstrap: bool data void
+	.dict: add has? mut-dict new-mut-dict
+
+mut-set<?t> record mut
+	| TODO:PRIVATE
+	inner mut-dict<?t, void>
+
+new-mut-set mut-set ?t()
+	mut-set: new-mut-dict
+
+add void(a mut-set ?t, value ?t) data<?t>
+	a.inner add value, void
+
+has? bool(a mut-set ?t, value ?t) data<?t>
+	a.inner has? value

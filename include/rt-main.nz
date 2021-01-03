@@ -2,7 +2,7 @@ import
 	.alloc
 	.arr-utils: empty-arr map tail
 	.bootstrap
-		!= + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref false
+		? != + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref false
 		fun-ptr2 fut get-ctx int32 message nat noctx-decr noctx-incr null
 		ptr ptr-to ref-of-val set str to-int unsafe-to-nat value void
 	.cell: as-cell
@@ -26,7 +26,7 @@ import
 | Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
 	n-threads = get-nprocs
-	gctx-by-val = as<by-val<global-ctx>>: global-ctx: new-lock, empty-arr, n-threads, 0, new-condition, false, false
+	gctx-by-val = as<by-val<global-ctx>>: global-ctx: new-lock, empty-arr, n-threads, new-condition, false, false
 	gctx = gctx-by-val ref-of-val
 	island-by-val = new-island: gctx, 0, n-threads
 	island = island-by-val ref-of-val
@@ -37,16 +37,13 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 
 	n-threads run-threads gctx
 
-	if gctx any-unhandled-exceptions?
+	match main-fut.must-be-resolved
+	as ok o
+		gctx.any-unhandled-exceptions? ? 1, o.value
+	as err e
+		print-err-no-newline: "main failed: "
+		print-err: e.value message
 		1
-	else
-		match main-fut.must-be-resolved
-		as ok o
-			o value
-		as err e
-			print-err-no-newline: "main failed: "
-			print-err: e.value message
-			1
 
 .do-main fut exit-code(gctx global-ctx, island island, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx
 	| Before we start the engine, add a task.

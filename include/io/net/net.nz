@@ -1,20 +1,20 @@
 import
-	..bootstrap: == != as-ref deref nat16 none null null? opt ptr ptr-to some str todo value
-	..arr-utils: +
-	..cell: cell get
-	..exceptions: assert
-	..opt-utils: force
-	..posix.extra-types: fd-t
-	..posix.netdb
+	...bootstrap: == != as-ref deref nat16 none null null? opt ptr ptr-to some str todo value
+	...arr-utils: +
+	...cell: cell get
+	...exceptions: assert
+	...opt-utils: force
+	...posix.extra-types: fd-t
+	...posix.netdb
 		addrinfo ai-addr ai-addrlen ai-family ai-next ai-passive ai-protocol ai-socktype
 		freeaddrinfo getaddrinfo
-	..posix.socket: af-inet af-unspec bind connect socket
-	..posix.socket-type: sock-stream
-	..posix.unistd: close
-	..str-conv: to-str
-	..str-utils: to-c-str
-	.posix-util: check-posix-error
-	.print: print
+	...posix.socket: af-inet af-unspec bind connect socket
+	...posix.socket-type: sock-stream
+	...posix.unistd: close
+	...str-conv: to-str
+	...str-utils: to-c-str
+	..posix-util: check-posix-error
+	..print: print
 
 uri record
 	host str

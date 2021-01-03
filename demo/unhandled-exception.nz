@@ -1,0 +1,15 @@
+import
+	io.print: print
+	io.process: exit-code
+
+main fut exit-code(_ arr str) summon
+	print: "Hello world"
+
+	my-fun = as<ref void()>: \
+		fail: "I am error"
+
+	my-fun call-ref-void
+	print: "got here"
+	fail: "I, too, am error"
+
+	0 resolved

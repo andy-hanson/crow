@@ -8,7 +8,7 @@ import
 	.io.time: get-monotime-nsec
 	.number-utils: + *
 	.opt-utils: force
-	.runtime: add-task get-cur-island get-island new-exclusion
+	.runtime: add-task exception-handler get-cur-island get-island new-exclusion
 	.thread-utils: acquire-lock decrement new-lock new-thread-safe-counter release-lock thread-safe-counter
 
 | Used to make code run after the next step. Equivalent to `sleep 0`.
@@ -86,6 +86,11 @@ then-void void(f fut ?t, cb act void(result<?t, exception>)) unsafe
 forward-to void(from fut ?t, to fut ?t) unsafe
 	from then-void {to resolve-or-reject it}
 
+fut-catch fut result<?t, exception>(a fut ?t) trusted
+	res = new-unresolved-fut<result<?t, exception>>
+	a then-void {res resolve it}
+	res
+
 then fut ?out(f fut ?in, cb ref ?out(?in)) trusted send<?out> send<?in>
 	res = new-unresolved-fut<?out>
 	f then-void \result
@@ -112,11 +117,13 @@ async fut ?t(f fun fut ?t()) trusted
 	res
 
 call-ref fut ?r(f ref ?r()) trusted send<?r>
-	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
-	island add-task f.island-and-exclusion.exclusion, \
+	f.island-and-exclusion.island.get-island add-task f.island-and-exclusion.exclusion, \
 		{f.fun.call forward-to res} catch {res reject it}
 	res
+
+call-ref-void void(f ref void()) trusted
+	f.call-ref handle-exceptions
 
 call-ref fut ?r(f ref ?r(?p0), p0 ?p0) trusted send<?r> send<?p0>
 	island = f.island-and-exclusion.island get-island
@@ -125,9 +132,23 @@ call-ref fut ?r(f ref ?r(?p0), p0 ?p0) trusted send<?r> send<?p0>
 		{f.fun call p0 forward-to res} catch {res reject it}
 	res
 
+call-ref-void void(f ref void(?p0), p0 ?p0) trusted send<?p0>
+	f call-ref p0 handle-exceptions
+
 call-ref fut ?r(f ref ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
 	island add-task f.island-and-exclusion.exclusion, \
 		{f.fun call p0, p1 forward-to res} catch {res reject it}
 	res
+
+call-ref-void void(f ref void(?p0, ?p1), p0 ?p0, p1 ?p1) send<?p0> send<?p1>
+	f call-ref p0, p1 handle-exceptions
+
+handle-exceptions void(a fut ?t) trusted
+	a then-void \result
+		match result
+		as ok
+			void
+		as err e
+			get-cur-island.exception-handler call e.value

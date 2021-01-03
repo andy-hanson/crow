@@ -497,7 +497,6 @@ struct global_ctx {
 	struct lock lk;
 	struct arr_3 islands;
 	uint64_t n_live_threads;
-	uint64_t cant_shut_down_count;
 	struct condition may_be_work_to_do;
 	uint8_t shut_down__q;
 	uint8_t any_unhandled_exceptions__q;
@@ -582,7 +581,7 @@ _Static_assert(sizeof(struct none) == 0, "");
 _Static_assert(sizeof(struct some_0) == 8, "");
 _Static_assert(sizeof(struct fut_state_resolved_0) == 4, "");
 _Static_assert(sizeof(struct arr_1) == 16, "");
-_Static_assert(sizeof(struct global_ctx) == 64, "");
+_Static_assert(sizeof(struct global_ctx) == 56, "");
 _Static_assert(sizeof(struct island) == 200, "");
 _Static_assert(sizeof(struct gc) == 96, "");
 _Static_assert(sizeof(struct gc_ctx) == 24, "");
@@ -1255,68 +1254,67 @@ int32_t rt_main(int32_t argc, char** argv, fun_ptr2 main_ptr) {
 	struct lock _0 = new_lock();
 	struct arr_3 _1 = empty_arr();
 	uint64_t _2 = n_threads0;
-	uint64_t _3 = 0u;
-	struct condition _4 = new_condition();
+	struct condition _3 = new_condition();
+	uint8_t _4 = 0;
 	uint8_t _5 = 0;
-	uint8_t _6 = 0;
-	gctx_by_val1 = (struct global_ctx) {_0, _1, _2, _3, _4, _5, _6};
+	gctx_by_val1 = (struct global_ctx) {_0, _1, _2, _3, _4, _5};
 	
 	struct global_ctx* gctx2;
 	gctx2 = &gctx_by_val1;
 	
 	struct island island_by_val3;
-	struct global_ctx* _7 = gctx2;
-	uint64_t _8 = 0u;
-	uint64_t _9 = n_threads0;
-	island_by_val3 = new_island(_7, _8, _9);
+	struct global_ctx* _6 = gctx2;
+	uint64_t _7 = 0u;
+	uint64_t _8 = n_threads0;
+	island_by_val3 = new_island(_6, _7, _8);
 	
 	struct island* island4;
 	island4 = &island_by_val3;
 	
-	struct global_ctx* _10 = gctx2;
-	uint64_t _11 = 1u;
-	struct island** _12 = &island4;
-	struct arr_3 _13 = (struct arr_3) {_11, _12};
-	_10->islands = _13;
+	struct global_ctx* _9 = gctx2;
+	uint64_t _10 = 1u;
+	struct island** _11 = &island4;
+	struct arr_3 _12 = (struct arr_3) {_10, _11};
+	_9->islands = _12;
 	struct fut_0* main_fut5;
-	struct global_ctx* _14 = gctx2;
-	struct island* _15 = island4;
-	int32_t _16 = argc;
-	char** _17 = argv;
-	fun_ptr2 _18 = main_ptr;
-	main_fut5 = do_main(_14, _15, _16, _17, _18);
+	struct global_ctx* _13 = gctx2;
+	struct island* _14 = island4;
+	int32_t _15 = argc;
+	char** _16 = argv;
+	fun_ptr2 _17 = main_ptr;
+	main_fut5 = do_main(_13, _14, _15, _16, _17);
 	
-	uint64_t _19 = n_threads0;
-	struct global_ctx* _20 = gctx2;
-	run_threads(_19, _20);
-	struct global_ctx* _21 = gctx2;
-	uint8_t _22 = _21->any_unhandled_exceptions__q;
-	if (_22) {
-		return 1;
-	} else {
-		struct fut_0* _23 = main_fut5;
-		struct result_0 _24 = must_be_resolved(_23);
-		switch (_24.kind) {
-			case 0: {
-				struct ok_0 o6 = _24.as0;
-				
-				struct ok_0 _25 = o6;
-				return _25.value;
-			}
-			case 1: {
-				struct err e7 = _24.as1;
-				
-				struct arr_0 _26 = (struct arr_0) {13, constantarr_0_14};
-				print_err_no_newline(_26);
-				struct err _27 = e7;
-				struct exception _28 = _27.value;
-				struct arr_0 _29 = _28.message;
-				print_err(_29);
+	uint64_t _18 = n_threads0;
+	struct global_ctx* _19 = gctx2;
+	run_threads(_18, _19);
+	struct fut_0* _20 = main_fut5;
+	struct result_0 _21 = must_be_resolved(_20);
+	switch (_21.kind) {
+		case 0: {
+			struct ok_0 o6 = _21.as0;
+			
+			struct global_ctx* _22 = gctx2;
+			uint8_t _23 = _22->any_unhandled_exceptions__q;
+			if (_23) {
 				return 1;
+			} else {
+				struct ok_0 _24 = o6;
+				return _24.value;
 			}
-			default:
-				return (assert(0),0);
 		}
+		case 1: {
+			struct err e7 = _21.as1;
+			
+			struct arr_0 _25 = (struct arr_0) {13, constantarr_0_14};
+			print_err_no_newline(_25);
+			struct err _26 = e7;
+			struct exception _27 = _26.value;
+			struct arr_0 _28 = _27.message;
+			print_err(_28);
+			return 1;
+		}
+		default:
+			return (assert(0),0);
 	}
 }
 /* new-lock lock() */
@@ -3412,19 +3410,16 @@ struct void_ then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, stru
 }
 /* call-ref<?out> fut<int32>(f fun-ref0<int32>) */
 struct fut_0* call_ref_1(struct ctx* ctx, struct fun_ref0 f) {
-	struct island* island0;
+	struct fut_0* res0;
 	struct ctx* _0 = ctx;
-	struct fun_ref0 _1 = f;
-	struct island_and_exclusion _2 = _1.island_and_exclusion;
-	uint64_t _3 = _2.island;
-	island0 = get_island(_0, _3);
+	res0 = new_unresolved_fut(_0);
 	
-	struct fut_0* res1;
-	struct ctx* _4 = ctx;
-	res1 = new_unresolved_fut(_4);
-	
-	struct ctx* _5 = ctx;
-	struct island* _6 = island0;
+	struct ctx* _1 = ctx;
+	struct ctx* _2 = ctx;
+	struct fun_ref0 _3 = f;
+	struct island_and_exclusion _4 = _3.island_and_exclusion;
+	uint64_t _5 = _4.island;
+	struct island* _6 = get_island(_2, _5);
 	struct fun_ref0 _7 = f;
 	struct island_and_exclusion _8 = _7.island_and_exclusion;
 	uint64_t _9 = _8.exclusion;
@@ -3436,13 +3431,13 @@ struct fut_0* call_ref_1(struct ctx* ctx, struct fun_ref0 f) {
 	
 	struct call_ref_1__lambda0* _13 = temp0;
 	struct fun_ref0 _14 = f;
-	struct fut_0* _15 = res1;
+	struct fut_0* _15 = res0;
 	struct call_ref_1__lambda0 _16 = (struct call_ref_1__lambda0) {_14, _15};
 	*_13 = _16;
 	struct call_ref_1__lambda0* _17 = temp0;
 	struct fun_act0_0 _18 = (struct fun_act0_0) {3, .as3 = _17};
-	add_task_0(_5, _6, _9, _18);
-	return res1;
+	add_task_0(_1, _6, _9, _18);
+	return res0;
 }
 /* call<fut<?r>> fut<int32>(a fun-act0<fut<int32>>) */
 struct fut_0* call_5(struct ctx* ctx, struct fun_act0_1 a) {
@@ -4212,52 +4207,43 @@ struct void_ thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, 
 				struct no_chosen_task n2 = _17.as1;
 				
 				struct no_chosen_task _21 = n2;
-				uint8_t _22 = _21.no_tasks_and_last_thread_out__q;uint8_t _23;
-				
+				uint8_t _22 = _21.no_tasks_and_last_thread_out__q;
 				if (_22) {
-					struct global_ctx* _24 = gctx;
-					uint64_t _25 = _24->cant_shut_down_count;
-					uint64_t _26 = 0u;
-					_23 = _op_equal_equal_0(_25, _26);
+					struct global_ctx* _23 = gctx;
+					uint8_t _24 = _23->shut_down__q;
+					hard_forbid(_24);
+					struct global_ctx* _25 = gctx;
+					uint8_t _26 = 1;
+					_25->shut_down__q = _26;
+					struct condition* _27 = &gctx->may_be_work_to_do;
+					broadcast(_27);
 				} else {
-					_23 = 0;
+					struct condition* _28 = &gctx->may_be_work_to_do;
+					struct no_chosen_task _29 = n2;
+					struct opt_5 _30 = _29.first_task_time;
+					uint64_t _31 = last_checked0;
+					wait_on(_28, _30, _31);
 				}
-				if (_23) {
-					struct global_ctx* _27 = gctx;
-					uint8_t _28 = _27->shut_down__q;
-					hard_forbid(_28);
-					struct global_ctx* _29 = gctx;
-					uint8_t _30 = 1;
-					_29->shut_down__q = _30;
-					struct condition* _31 = &gctx->may_be_work_to_do;
-					broadcast(_31);
-				} else {
-					struct condition* _32 = &gctx->may_be_work_to_do;
-					struct no_chosen_task _33 = n2;
-					struct opt_5 _34 = _33.first_task_time;
-					uint64_t _35 = last_checked0;
-					wait_on(_32, _34, _35);
-				}
-				struct lock* _36 = &gctx->lk;
-				acquire_lock(_36);
-				struct global_ctx* _37 = gctx;
-				struct global_ctx* _38 = gctx;
-				uint64_t _39 = _38->n_live_threads;
-				uint64_t _40 = noctx_incr(_39);
-				_37->n_live_threads = _40;
-				struct lock* _41 = &gctx->lk;
-				release_lock(_41);
+				struct lock* _32 = &gctx->lk;
+				acquire_lock(_32);
+				struct global_ctx* _33 = gctx;
+				struct global_ctx* _34 = gctx;
+				uint64_t _35 = _34->n_live_threads;
+				uint64_t _36 = noctx_incr(_35);
+				_33->n_live_threads = _36;
+				struct lock* _37 = &gctx->lk;
+				release_lock(_37);
 				break;
 			}
 			default:
 				(assert(0),(struct void_) {});
 		}
-		uint64_t _42 = thread_id;
-		struct global_ctx* _43 = gctx;
-		struct thread_local_stuff* _44 = tls;
-		thread_id = _42;
-		gctx = _43;
-		tls = _44;
+		uint64_t _38 = thread_id;
+		struct global_ctx* _39 = gctx;
+		struct thread_local_stuff* _40 = tls;
+		thread_id = _38;
+		gctx = _39;
+		tls = _40;
 		goto top;
 	}
 }
