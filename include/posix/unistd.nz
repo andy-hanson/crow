@@ -13,8 +13,7 @@ readlink ssize-t(path c-str, buf c-str, len size-t) summon extern<"readlink"> no
 close err-t(fd fd-t) summon extern<"close"> noctx
 lseek off-t(f fd-t, offset off-t, whence int32) summon extern<"lseek"> noctx
 read ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) summon extern<"read"> noctx
-| TODO: summon
-write ssize-t(fd fd-t, buf any-ptr, n-bytes size-t) extern<"write"> noctx
+write ssize-t(fd fd-t, buf any-ptr, n-bytes size-t) summon extern<"write"> noctx
 
 pipe err-t(pipes pipes) summon extern<"pipe"> noctx
 

@@ -1,5 +1,5 @@
 import
-	.arr-utils: at empty? empty-arr first freeze map mut-arr new-mut-arr push tail unsafe-as-arr
+	.arr-utils: at empty? empty-arr first map move-to-arr mut-list new-mut-list push tail unsafe-as-arr
 	.bootstrap: == arr bool call data has? nat none not opt size some todo value void
 	.exceptions: forbid
 	.number-utils: incr
@@ -20,20 +20,20 @@ empty-dict dict<?k, ?v>()
 	dict<?k, ?v>: empty-arr<?k>, empty-arr<?v>
 
 mut-dict<?k, ?v> record mut
-	keys mut-arr ?k
-	values mut-arr ?v
+	keys mut-list ?k
+	values mut-list ?v
 
 new-mut-dict mut-dict<?k, ?v>()
 	| TODO: should be able to infer type arguments -- worked when there was only one field...
-	mut-dict<?k, ?v>: new-mut-arr<?k>, new-mut-arr<?v>
+	mut-dict<?k, ?v>: new-mut-list<?k>, new-mut-list<?v>
 
 unsafe-as-dict dict<?k, ?v>(m mut-dict<?k, ?v>) unsafe
 	| TODO: should be able to infer type arguments 
 	dict<?k, ?v>: m.keys.unsafe-as-arr, m.values.unsafe-as-arr
 
-freeze dict<?k, ?v>(m mut-dict<?k, ?v>)
+move-to-dict dict<?k, ?v>(m mut-dict<?k, ?v>)
 	| TODO: should be able to infer type arguments 
-	dict<?k, ?v>: m.keys.freeze, m.values.freeze
+	dict<?k, ?v>: m.keys.move-to-arr, m.values.move-to-arr
 
 get-recursive<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
 	if idx == keys.size

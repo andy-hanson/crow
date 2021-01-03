@@ -16,11 +16,11 @@ lint result<str, arr failure>(path str, options test-options) summon
 		ok: "linted " + files.size.to-str + " files"
 
 .list-lintable-files arr str(path str) summon
-	res = new-mut-arr<str>
+	res = new-mut-list<str>
 	path each-child-recursive {not: it excluded-from-lint?}, \child
 		if child.base-name.ignore-extension-of-name? not
 			res push child
-	res freeze
+	res move-to-arr
 
 .excluded-from-lint? bool(name str)
 	bad-exts = new-arr<str> ".bmp", ".err", ".png", ".tata", ".wasm"
@@ -30,7 +30,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 | Returns nubmer of errors
 .lint-file arr failure(path str) summon
 	text = path read-file
-	res = new-mut-arr<failure>
+	res = new-mut-list<failure>
 	err-file? = path.get-extension.force == "err"
 	text.lines each-with-index \line line-num
 		ln = line-num.incr.to-str
@@ -41,7 +41,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 		if width > max-line-length
 			message = "line " + ln + " is " + width.to-str + " columns long, should be <= " + max-line-length.to-str
 			res push failure: path, message
-	res freeze
+	res move-to-arr
 
 .ignored-extensions arr str()
 	new-arr
@@ -64,13 +64,13 @@ lint result<str, arr failure>(path str, options test-options) summon
 		s.value ignore-extension?
 
 .lines arr str(s str)
-	res = new-mut-arr<str>
+	res = new-mut-list<str>
 	last-nl = 0 cell<nat>
 	s each-with-index \c index
 		if c == "\n"
 			res push: s slice-from-to (last-nl swap index.incr), index
 	res push: s slice-from-to last-nl.get, s.size
-	res.freeze
+	res move-to-arr
 
 
 .max-line-length nat()

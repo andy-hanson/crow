@@ -3,7 +3,7 @@ import
 		+ == <= and arr as-any-ptr as-ref bool by-val char c-str data int32
 		not null or ptr size str todo to-nat void
 	..arr-utils
-		+ append data ensure-capacity fold freeze map mut-str new-mut-arr
+		+ append data ensure-capacity fold map move-to-arr mut-str new-mut-list
 		prepend ref-of-val-at size unsafe-increase-size
 	..cell: cell get
 	..exceptions: assert fail
@@ -83,13 +83,13 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	check-posix-error: stderr-pipes.read-pipe close
 
 	| Read from pipes
-	stdout-builder = new-mut-arr<char>
-	stderr-builder = new-mut-arr<char>
+	stdout-builder = new-mut-list<char>
+	stderr-builder = new-mut-list<char>
 	keep-polling: stdout-pipes.write-pipe, stderr-pipes.write-pipe, stdout-builder, stderr-builder
 
 	exit-code = pid wait-and-get-exit-code
 
-	process-result: exit-code, stdout-builder.freeze, stderr-builder.freeze
+	process-result: exit-code, stdout-builder.move-to-arr, stderr-builder.move-to-arr
 
 .make-pipes pipes() summon
 	res = pipes: 0, 0

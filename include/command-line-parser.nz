@@ -1,10 +1,10 @@
 import
 	.arr-utils
-		+ at empty? empty-arr fill-mut-arr find-index first freeze index-of remove-start set-at
-		slice-after slice-starting-at slice-up-to starts-with? tail
+		+ at empty? empty-arr fill-mut-list find-index first index-of move-to-arr remove-start
+		set-at slice-after slice-starting-at slice-up-to starts-with? tail
 	.bootstrap: == arr bool call false has? none opt size some str true value void
 	.cell: cell get set
-	.dict: add dict each empty-dict freeze mut-dict new-mut-dict
+	.dict: add dict each empty-dict move-to-dict mut-dict new-mut-dict
 	.exceptions: assert fail forbid
 
 | TODO: this would be neater if we had reflection!
@@ -13,7 +13,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt 
 	assert: parsed.nameless empty?, "Should be no nameless args"
 	assert: parsed.after empty?
 
-	values = t-names.size fill-mut-arr<opt<arr<str>>> none
+	values = t-names.size fill-mut-list<opt arr str> none
 	| TODO: should not need a type argument here
 	help = false cell<bool>
 	parsed.named each \key value
@@ -32,7 +32,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt 
 	if help get
 		none
 	else
-		make-t call values.freeze some
+		make-t call values.move-to-arr some
 
 | Command line syntax:
 | `foo bar --a 1 --b 2 3 -- x y z`
@@ -62,9 +62,9 @@ parse-cmd-line-args-dynamic parsed-cmd-line-args(args arr str)
 			parsed-cmd-line-args: nameless, named-args, rest slice-after sep-index
 
 parse-named-args dict<str, arr str>(args arr str)
-	b = new-mut-dict<str, arr str>
-	args parse-named-args-recur b
-	b freeze
+	res = new-mut-dict<str, arr str>
+	args parse-named-args-recur res
+	res move-to-dict
 
 .parse-named-args-recur void(args arr str, builder mut-dict<str, arr str>)
 	first-name = args.first remove-start "--"

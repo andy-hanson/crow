@@ -1,6 +1,6 @@
 import
 	.arr-utils
-		contains? mut-arr new-mut-arr-by-val-with-capacity-from-unmanaged-memory
+		contains? mut-list new-mut-list-by-val-with-capacity-from-unmanaged-memory
 		noctx-must-remove-unordered push-capacity-must-be-sufficient
 	.bootstrap
 		== <= as bool by-val exclusion false hard-assert has? nat none not opt ref-of-val some true
@@ -23,7 +23,7 @@ task-queue record mut
 	| Very first node is a sentinel
 	head mut opt task-queue-node
 	| This is allocated with max-threads capacity on init, so never needs further allocation
-	currently-running-exclusions by-val mut-arr exclusion
+	currently-running-exclusions by-val mut-list exclusion
 
 .task-queue-node record mut
 	task task
@@ -33,7 +33,7 @@ empty? bool(a task-queue) noctx
 	a.head.has? not
 
 new-task-queue by-val task-queue(max-threads nat) unsafe noctx
-	task-queue: none, max-threads new-mut-arr-by-val-with-capacity-from-unmanaged-memory<exclusion>
+	task-queue: none, max-threads new-mut-list-by-val-with-capacity-from-unmanaged-memory<exclusion>
 
 | Expose construction of nodes, because it's better to do this outside of a lock
 new-task-queue-node task-queue-node(task task)
@@ -85,7 +85,7 @@ return-task void(a task-queue, task task) noctx unsafe
 
 .pop-recur pop-task-result
 	prev task-queue-node
-	exclusions mut-arr exclusion
+	exclusions mut-list exclusion
 	cur-time timestamp
 	first-task-time opt timestamp
 spec

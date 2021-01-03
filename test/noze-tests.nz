@@ -15,7 +15,7 @@ run-noze-tests result<str, arr failure>(path str, path-to-noze str, env environ,
 		ok: "ran " + tests.size.to-str + " tests in " + path
 
 .list-tests arr str(path str) summon
-	res = new-mut-arr<str>
+	res = new-mut-list<str>
 	filter = as<act bool(str)>: \s
 		true
 	path each-child-recursive filter, \child
@@ -25,7 +25,7 @@ run-noze-tests result<str, arr failure>(path str, path-to-noze str, env environ,
 		as some s
 			if s.value == "nz"
 				res push child
-	res freeze
+	res move-to-arr
 
 .run-single-noze-test arr failure
 	path-to-noze str
@@ -105,9 +105,9 @@ body
 		new-arr failure: path, message
 
 .remove-colors str(s str)
-	out = new-mut-arr<char>
-	s remove-colors-recur out
-	out freeze
+	res = new-mut-list<char>
+	s remove-colors-recur res
+	res move-to-arr
 
 .remove-colors-recur void(s str, out mut-str)
 	if s empty?

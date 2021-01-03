@@ -3,7 +3,7 @@ import
 	.bootstrap
 		+ - == != < <= > >= ? and arr bool byte by-val call char data deref drop false
 		hard-assert hard-fail hard-forbid incr nat noctx-decr noctx-incr none not null
-		opt or ptr ptr-cast ref-of-ptr set size size-of some true void wrap-mul
+		opt or ptr ptr-cast ref-of-ptr set size size-of some void wrap-mul
 	.exceptions: assert forbid
 	.number-utils: + - * / decr incr
 	.opt-utils: force
@@ -24,6 +24,10 @@ slice arr ?t(a arr ?t, begin nat, size nat) trusted
 	assert: begin + size <= a.size
 	arr: size, a.data + begin
 
+slice mut-arr ?t(a mut-arr ?t, begin nat, size nat) trusted
+	assert: begin + size <= a.size
+	mut-arr: size, a.data + begin
+
 slice-from-to arr ?t(a arr ?t, begin nat, end nat) trusted
 	assert: begin <= end
 	a slice: begin, end - begin
@@ -32,7 +36,14 @@ slice-starting-at arr ?t(a arr ?t, begin nat)
 	assert: begin <= a.size
 	a slice: begin, a.size - begin
 
+slice-starting-at mut-arr ?t(a mut-arr ?t, begin nat)
+	assert: begin <= a.size
+	a slice: begin, a.size - begin
+
 slice-after arr ?t(a arr ?t, before-begin nat)
+	a slice-starting-at before-begin.incr
+
+slice-after mut-arr ?t(a mut-arr ?t, before-begin nat)
 	a slice-starting-at before-begin.incr
 
 slice-up-to arr ?t(a arr ?t, size nat)
@@ -80,6 +91,42 @@ ref-of-val-at ?t(a arr by-val<?t>, index nat) trusted
 	assert: index < a.size
 	a.data + index ref-of-ptr
 
+
+
+mut-arr<?t> record mut
+	by-val
+	| TODO:PRIVATE
+	arr arr ?t
+
+empty-mut-arr mut-arr ?t() noctx
+	mut-arr: empty-arr
+
+mut-arr mut-arr ?t(size nat, data ptr ?t) noctx unsafe
+	mut-arr: arr: size, data
+
+new-uninitialized-mut-arr mut-arr ?t(size nat) unsafe
+	mut-arr: size, uninitialized-data<?t>: size
+
+cast-immutable arr ?t(a mut-arr ?t) noctx unsafe
+	a.arr
+
+size nat(a mut-arr ?t) noctx
+	a.arr size
+
+data ptr ?t(a mut-arr ?t) noctx unsafe
+	a.arr data
+
+at ?t(a mut-arr ?t, index nat)
+	a.arr at index
+
+set-at void(a mut-arr ?t, index nat, value ?t) trusted
+	assert: index < a.size
+	a noctx-set-at index, value
+
+noctx-set-at void(a mut-arr ?t, index nat, value ?t) noctx unsafe
+	hard-assert: index < a.size
+	a.data + index set value
+
 prepend arr ?t(a ?t, b arr ?t)
 	(new-arr a) + b
 
@@ -100,45 +147,24 @@ append arr ?t(a arr ?t, b ?t)
 	res + a.size copy-data-from b.data, b.size
 	arr<?t>: res-size, res
 
-mut-slice<?t> record mut
-	backing mut-arr ?t
-	size nat
-	begin nat
+sort arr ?t(a arr ?t) data<?t> trusted
+	res = a copy-to-mut-arr
+	res sort
+	res cast-immutable
 
-to-mut-slice mut-slice ?t(a mut-arr ?t)
-	forbid: a.frozen?
-	mut-slice: a, a.size, 0
+temp-as-mut-arr mut-arr ?t(a mut-list ?t) noctx unsafe
+	mut-arr: arr: a.size, a.data
 
-slice mut-slice ?t(a mut-slice ?t, lo nat, size nat) trusted
-	assert: lo + size <= a.size
-	mut-slice: a.backing, size, a.begin + lo
+temp-as-arr arr ?t(a mut-arr ?t) noctx unsafe
+	a arr
 
-slice mut-slice ?t(a mut-slice ?t, lo nat)
-	assert: lo <= a.size
-	a slice: lo, a.size - lo
+temp-as-arr arr ?t(a mut-list ?t) noctx unsafe
+	a.temp-as-mut-arr temp-as-arr
 
-at ?t(a mut-slice ?t, index nat) trusted
-	assert: index < a.size
-	a.backing at: a.begin + index
+sort void(a mut-list ?t) trusted data<?t>
+	a.temp-as-mut-arr sort
 
-set-at void(a mut-slice ?t, index nat, value ?t) trusted
-	assert: index < a.size
-	a.backing set-at (a.begin + index), value
-
-sort arr ?t(a arr ?t) data<?t>
-	m = a to-mut-arr
-	m sort
-	m freeze
-
-swap void(a mut-slice ?t, lo nat, hi nat)
-	old-lo = a at lo
-	a set-at: lo, a at hi
-	a set-at hi, old-lo
-
-sort void(a mut-arr ?t) trusted data<?t>
-	a.to-mut-slice sort
-
-sort void(a mut-slice ?t) data<?t>
+sort void(a mut-arr ?t) data<?t>
 	if a.size > 1
 		| Perf -- in case a is sorted already, prefer the middle element as a pivot
 		a swap: 0, a.size / 2
@@ -148,11 +174,15 @@ sort void(a mut-slice ?t) data<?t>
 		a swap 0, new-pivot-index
 
 		sort: a slice 0, new-pivot-index
-		sort: a slice new-pivot-index.incr
+		sort: a slice-after new-pivot-index
 
+swap void(a mut-arr ?t, x nat, y nat)
+	old-x = a at x
+	a set-at: x, a at y
+	a set-at y, old-x
 
 | Returns index of first value > pivot
-partition-recur nat(a mut-slice ?t, pivot ?t, l nat, r nat) data<?t>
+partition-recur nat(a mut-arr ?t, pivot ?t, l nat, r nat) data<?t>
 	assert: l <= a.size
 	assert: r < a.size
 	if l <= r
@@ -167,52 +197,53 @@ partition-recur nat(a mut-slice ?t, pivot ?t, l nat, r nat) data<?t>
 
 
 | NOTE: this is not a normal record, compiler treats it specially
-mut-arr<?t> record mut
-	frozen? mut bool
-	| Number of *initialized* elements.
-	| But 'uninitialized-mut-arr' sets 'size' and doesn't initialize!
+| TODO: constructor should be private
+mut-list<?t> record mut
+	| TODO:PRIVATE
+	| backing.size is the capacity
+	| For the GC's sake, unused parts of backing are filled with 'zeroed'
+	backing mut mut-arr ?t
 	size mut nat
-	capacity mut nat
-	data mut ptr ?t
+
+data ptr ?t(a mut-list ?t) noctx unsafe
+	a.backing data
+
+capacity nat(a mut-list ?t) noctx unsafe
+	a.backing size
 
 | TODO:MOVE?
 mut-str alias
-	mut-arr char
-
-temp-as-arr arr ?t(a mut-arr ?t) unsafe noctx
-	arr: a.size, a.data
+	mut-list char
 
 uninitialized-data ptr ?t(size nat) unsafe
 	bptr = size wrap-mul size-of<?t> alloc
 	bptr ptr-cast<?t, byte>
 
-new-uninitialized-mut-arr mut-arr ?t(size nat) unsafe
-	mut-arr: false, size, size, uninitialized-data<?t>: size
+new-mut-list-by-val-with-capacity-from-unmanaged-memory by-val mut-list ?t(capacity nat) noctx unsafe
+	backing = mut-arr: capacity, capacity unmanaged-alloc-elements<?t>
+	mut-list<?t>: backing, 0
 
-new-mut-arr-by-val-with-capacity-from-unmanaged-memory by-val mut-arr<?t>(capacity nat) noctx unsafe
-	mut-arr<?t>: false, 0, capacity, capacity unmanaged-alloc-elements<?t>
+new-mut-list mut-list ?t() trusted
+	mut-list: empty-mut-arr, 0
 
-new-mut-arr mut-arr ?t() trusted
-	mut-arr: false, 0, 0, null
+new-mut-list-by-val by-val mut-list<?t>() noctx trusted
+	mut-list<?t>: empty-mut-arr, 0
 
-new-mut-arr-by-val by-val mut-arr<?t>() noctx trusted
-	mut-arr<?t>: false, 0, 0, null
-
-empty? bool(a mut-arr ?t) noctx
+empty? bool(a mut-list ?t) noctx
 	a.size == 0
 
-has? bool(a mut-arr ?t) noctx
+has? bool(a mut-list ?t) noctx
 	a.empty? not
 
-noctx-set-at void(a mut-arr ?t, index nat, value ?t) noctx trusted
+noctx-set-at void(a mut-list ?t, index nat, value ?t) noctx trusted
 	hard-assert: index < a.size
 	(a.data + index) set value
 
-set-at void(a mut-arr ?t, index nat, value ?t) trusted
+set-at void(a mut-list ?t, index nat, value ?t) trusted
 	assert: index < a.size
 	a noctx-set-at index, value
 
-noctx-last ?t(a mut-arr ?t) noctx unsafe
+noctx-last ?t(a mut-list ?t) noctx unsafe
 	hard-forbid: a empty?
 	a noctx-at a.size.noctx-decr
 
@@ -223,7 +254,7 @@ some? bool(a arr ?t, pred act bool(?t))
 contains? bool(a arr ?t, value ?t) noctx data<?t>
 	a contains-recur? value, 0
 
-contains? bool(a mut-arr ?t, value ?t) noctx trusted data<?t>
+contains? bool(a mut-list ?t, value ?t) noctx trusted data<?t>
 	a.temp-as-arr contains-recur? value, 0
 
 contains-recur? bool(a arr ?t, value ?t, i nat) noctx trusted data<?t>
@@ -255,42 +286,44 @@ try-remove-start opt arr<?t>(a arr ?t, start arr ?t) data<?t>
 	else
 		none
 
-push-capacity-must-be-sufficient void(a mut-arr ?t, value ?t) noctx unsafe
+push-capacity-must-be-sufficient void(a mut-list ?t, value ?t) noctx unsafe
 	hard-assert: a.size < a.capacity
 	old-size = a.size
 	a set-size old-size.noctx-incr
 	a noctx-set-at old-size, value
 
-noctx-remove-unordered-at-index ?t(a mut-arr ?t, index nat) noctx unsafe
+noctx-remove-unordered-at-index ?t(a mut-list ?t, index nat) noctx unsafe
 	res = a noctx-at index
 	a noctx-set-at index, a.noctx-last
 	a set-size a.size.noctx-decr
 	res
 
-.noctx-must-remove-unordered-recur void(a mut-arr ?t, index nat, value ?t) noctx unsafe data<?t>
+.noctx-must-remove-unordered-recur void(a mut-list ?t, index nat, value ?t) noctx unsafe data<?t>
 	if index == a.size
-		hard-fail: "Did not find the element in the mut-arr"
+		hard-fail: "Did not find the element in the mut-list"
 	elif a noctx-at index == value
 		a noctx-remove-unordered-at-index index drop
 	else
 		a noctx-must-remove-unordered-recur index.noctx-incr, value
 
-noctx-must-remove-unordered void(a mut-arr ?t, value ?t) noctx unsafe data<?t>
+noctx-must-remove-unordered void(a mut-list ?t, value ?t) noctx unsafe data<?t>
 	a noctx-must-remove-unordered-recur 0, value
 
 | Unsafe as this does *not* freeze it!
-unsafe-as-arr arr ?t(a mut-arr ?t) noctx unsafe
+unsafe-as-arr arr ?t(a mut-list ?t) noctx unsafe
 	arr: a.size, a.data
 
-freeze arr ?t(a mut-arr ?t) noctx trusted
-	a set-frozen? true
-	a unsafe-as-arr
+move-to-arr arr ?t(a mut-list ?t) noctx trusted
+	res = arr: a.size, a.data
+	a set-backing empty-mut-arr
+	a set-size 0
+	res
 
-noctx-at ?t(a mut-arr ?t, index nat) trusted noctx
+noctx-at ?t(a mut-list ?t, index nat) trusted noctx
 	hard-assert: index < a.size
 	a.data + index deref
 
-at ?t(a mut-arr ?t, index nat) trusted
+at ?t(a mut-list ?t, index nat) trusted
 	assert: index < a.size
 	a noctx-at index
 
@@ -309,7 +342,7 @@ copy-data-from-small void(to ptr ?t, from ptr ?t, len nat) unsafe
 		| TODO: I wish this were linear, but that runs out of stack ...
 		to.incr copy-data-from<?t> from.incr, len.decr
 
-push void(a mut-arr ?t, value ?t) trusted
+push void(a mut-list ?t, value ?t) trusted
 	if a.size == a.capacity
 		a increase-capacity-to: a.size == 0 ?: 4, a.size * 2
 	a ensure-capacity a.size.incr.round-up-to-power-of-two
@@ -317,14 +350,13 @@ push void(a mut-arr ?t, value ?t) trusted
 	(a.data + a.size) set value
 	a set-size: a.size incr
 
-push-all void(a mut-arr ?t, values arr ?t)
+push-all void(a mut-list ?t, values arr ?t)
 	values each {a push it}
 
-increase-capacity-to void(a mut-arr ?t, new-capacity nat) unsafe
+increase-capacity-to void(a mut-list ?t, new-capacity nat) unsafe
 	assert: new-capacity > a.capacity
 	old-data = a.data
-	a set-capacity new-capacity
-	a set-data uninitialized-data<?t>: new-capacity
+	a set-backing: mut-arr: new-capacity, uninitialized-data<?t>: new-capacity
 	a.data copy-data-from old-data, a.size
 
 | TODO:MOVE
@@ -336,19 +368,19 @@ round-up-to-power-of-two-recur nat(acc nat, n nat)
 	else
 		acc * 2 round-up-to-power-of-two-recur n
 
-ensure-capacity void(a mut-arr ?t, capacity nat) unsafe
+ensure-capacity void(a mut-list ?t, capacity nat) unsafe
 	if a.capacity < capacity
 		a increase-capacity-to: capacity.round-up-to-power-of-two
 
 | Unsafe because increasing the size can expose uninitialized data
-unsafe-set-size void(a mut-arr ?t, new-size nat) unsafe
+unsafe-set-size void(a mut-list ?t, new-size nat) unsafe
 	assert: new-size <= a.capacity
 	a set-size new-size
 
-unsafe-increase-size void(a mut-arr ?t, increase-by nat) unsafe
+unsafe-increase-size void(a mut-list ?t, increase-by nat) unsafe
 	a unsafe-set-size: a.size + increase-by
 
-reduce-size-if-more-than void(a mut-arr ?t, new-size nat)
+reduce-size-if-more-than void(a mut-list ?t, new-size nat)
 	if new-size < a.size
 		a set-size new-size
 
@@ -358,8 +390,8 @@ fold ?a(val ?a, a arr ?b, combine act ?a(?a, ?b))
 	else
 		combine call val, a.first fold a.tail, combine
 
-make-arr arr ?t(size nat, f act ?t(nat))
-	size make-mut-arr f freeze
+make-arr arr ?t(size nat, f act ?t(nat)) trusted
+	size make-mut-arr f cast-immutable
 
 make-mut-arr mut-arr ?t(size nat, f act ?t(nat)) trusted
 	res = new-uninitialized-mut-arr<?t>: size
@@ -374,12 +406,16 @@ fill-mut-arr mut-arr ?t(size nat, value ?t)
 	size make-mut-arr \ignore
 		value
 
-make-mut-arr-worker void(m mut-arr ?t, i nat, f act ?t(nat))
-	if i != m.size
-		m set-at: i, f call i
-		m make-mut-arr-worker i.incr, f
+fill-mut-list mut-list ?t(size nat, value ?t)
+	backing = size fill-mut-arr value
+	mut-list: backing, size
 
-to-mut-arr mut-arr ?t(a arr ?t)
+make-mut-arr-worker void(a mut-arr ?t, i nat, f act ?t(nat))
+	if i != a.size
+		a set-at: i, f call i
+		a make-mut-arr-worker i.incr, f
+
+copy-to-mut-arr mut-arr ?t(a arr ?t)
 	a.size make-mut-arr<?t> \i
 		a at i
 
@@ -388,11 +424,8 @@ each void(a arr ?t, f act void(?t))
 		f call a.first
 		a.tail each f
 
-each void(a mut-arr ?t, f act void(?t)) trusted
-	was-frozen? = a.frozen?
-	a set-frozen? true
+each void(a mut-list ?t, f act void(?t)) trusted
 	a.temp-as-arr each f
-	a set-frozen? was-frozen?
 
 each-with-index void(a arr ?t, f act void(?t, nat))
 	a each-with-index-recur f, 0
@@ -407,9 +440,10 @@ map arr ?out(a arr ?in, mapper act ?out(?in)) trusted
 		mapper call: a at i
 
 flat-map arr ?out(a arr ?in, mapper act arr ?out(?in)) trusted
-	res = new-mut-arr<?out>
-	a each {res push-all: mapper call it}
-	res freeze
+	res = new-mut-list<?out>
+	a each \x
+		res push-all: mapper call x
+	res move-to-arr
 
 index-of opt nat(a arr ?t, value ?t) data<?t>
 	a find-index {it == value}

@@ -30,12 +30,12 @@ body
 			new-arr failure: original-path, message
 
 flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper act arr<?out>(?in)) trusted
-	res = new-mut-arr<?out>
+	res = new-mut-list<?out>
 	a each \x
 		if res.size < max-size
 			res push-all: mapper call x
 			res reduce-size-if-more-than max-size
-	res freeze
+	res move-to-arr
 
 test-options record
 	print-tests? bool

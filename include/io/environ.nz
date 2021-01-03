@@ -1,7 +1,7 @@
 import
-	..arr-utils: + arr-from-begin-end freeze new-mut-arr push
+	..arr-utils: + arr-from-begin-end move-to-arr new-mut-list push
 	..bootstrap: c-str data deref incr not null null? ptr str void
-	..dict: add dict each freeze key-value-pair mut-dict new-mut-dict
+	..dict: add dict each key-value-pair move-to-dict mut-dict new-mut-dict
 	..str-utils: find-char-in-cstr find-cstr-end to-c-str
 	..posix.unistd: environ
 
@@ -11,7 +11,7 @@ environ alias
 get-environ environ() summon trusted
 	res = new-mut-dict<str, str>
 	environ get-environ-recur res
-	res freeze
+	res move-to-dict
 
 get-environ-recur void(env ptr c-str, res mut-dict<str, str>) unsafe
 	if env.deref.null? not
@@ -28,8 +28,8 @@ parse-environ-entry key-value-pair<str, str>(entry c-str) unsafe
 	key-value-pair<str, str>: key, value
 
 convert-environ ptr c-str(environ environ)
-	res = new-mut-arr<c-str>
+	res = new-mut-list<c-str>
 	environ each \key value
 		res push: key + "=" + value to-c-str
 	res push null
-	res.freeze data
+	res.move-to-arr data

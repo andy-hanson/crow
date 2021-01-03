@@ -5,7 +5,9 @@ import
 		nat16 nat32 none not null? opt ptr-cast ptr-cast-from-extern ptr-eq?
 		ref-eq? size size-of some str todo value void
 		wrap-add
-	..arr-utils: + data freeze mut-arr new-mut-arr new-uninitialized-mut-arr push size slice-up-to sort
+	..arr-utils
+		+ cast-immutable data move-to-arr mut-list new-mut-list new-uninitialized-mut-arr push
+		size slice-up-to sort
 	..cell: cell get
 	..exceptions: assert forbid
 	..number-utils: to-int to-nat
@@ -70,11 +72,11 @@ read-dir arr str(path c-str) trusted summon
 	dirp = path opendir
 	| TODO: handle errors
 	forbid: dirp.ptr-cast-from-extern<any-ptr, dir> null?
-	res = new-mut-arr<str>
+	res = new-mut-list<str>
 	dirp read-dir-recur res
-	res.freeze sort
+	res.move-to-arr sort
 
-.read-dir-recur void(dirp dir, res mut-arr str) unsafe summon
+.read-dir-recur void(dirp dir, res mut-list str) unsafe summon
 	| Initial value of entry / result should not matter
 	entry = dirent: 0, 0, 0, "\0", zero
 	| TODO: should not need a type argument here
@@ -94,7 +96,7 @@ read-link str(path str) summon trusted
 	buff = 1000 new-uninitialized-mut-arr<char>
 	size = path.to-c-str readlink buff.data, buff.size
 	size check-errno-if-neg-one
-	buff.freeze slice-up-to size.to-nat
+	buff.cast-immutable slice-up-to size.to-nat
 
 current-executable-path str() summon trusted
 	"/proc/self/exe" read-link
@@ -169,7 +171,7 @@ try-read-file opt str(path c-str) summon trusted
 			forbid: n-bytes-read == -1
 			assert: n-bytes-read == file-size
 			check-posix-error: fd close
-			res.freeze some
+			res.cast-immutable some
 	else
 		none
 
