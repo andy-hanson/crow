@@ -522,7 +522,7 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 			setNextStackEntry(writer, immutable StackEntry(before.entry + ctx.returnTypeSizeInStackEntries.to16()));
 			writeAssertUnreachable(writer, source);
 		},
-		(ref immutable LowExprKind.Uninitialized) {
+		(ref immutable LowExprKind.Zeroed) {
 			writePushEmptySpace(dbg, writer, source, nStackEntriesForType(ctx, expr.type).to16());
 		});
 }

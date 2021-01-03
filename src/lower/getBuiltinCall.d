@@ -23,7 +23,7 @@ struct BuiltinKind {
 	struct GetCtx {}
 	struct PtrCast {}
 	struct SizeOf {}
-	struct Uninitialized {}
+	struct Zeroed {}
 
 	immutable this(immutable As a) { kind_ = Kind.as; as_ = a; }
 	immutable this(immutable GetCtx a) { kind_ = Kind.getCtx; getCtx_ = a; }
@@ -34,7 +34,7 @@ struct BuiltinKind {
 	immutable this(immutable LowExprKind.SpecialNAry.Kind a) { kind_ = Kind.nary; nary_ = a; }
 	immutable this(immutable PtrCast a) { kind_ = Kind.ptrCast; ptrCast_ = a; }
 	immutable this(immutable SizeOf a) { kind_ = Kind.sizeOf; sizeOf_ = a; }
-	immutable this(immutable Uninitialized a) { kind_ = Kind.uninitialized; uninitialized_ = a; }
+	immutable this(immutable Zeroed a) { kind_ = Kind.zeroed; zeroed_ = a; }
 
 	private:
 	enum Kind {
@@ -47,7 +47,7 @@ struct BuiltinKind {
 		nary,
 		ptrCast,
 		sizeOf,
-		uninitialized,
+		zeroed,
 	}
 	immutable Kind kind_;
 	union {
@@ -60,7 +60,7 @@ struct BuiltinKind {
 		immutable LowExprKind.SpecialNAry.Kind nary_;
 		immutable PtrCast ptrCast_;
 		immutable SizeOf sizeOf_;
-		immutable Uninitialized uninitialized_;
+		immutable Zeroed zeroed_;
 	}
 }
 
@@ -75,7 +75,7 @@ struct BuiltinKind {
 	scope T delegate(immutable LowExprKind.SpecialNAry.Kind) @safe @nogc pure nothrow cbNary,
 	scope T delegate(ref immutable BuiltinKind.PtrCast) @safe @nogc pure nothrow cbPtrCast,
 	scope T delegate(ref immutable BuiltinKind.SizeOf) @safe @nogc pure nothrow cbSizeOf,
-	scope T delegate(ref immutable BuiltinKind.Uninitialized) @safe @nogc pure nothrow cbUninitialized,
+	scope T delegate(ref immutable BuiltinKind.Zeroed) @safe @nogc pure nothrow cbZeroed,
 ) {
 	final switch (a.kind_) {
 		case BuiltinKind.Kind.as:
@@ -96,8 +96,8 @@ struct BuiltinKind {
 			return cbPtrCast(a.ptrCast_);
 		case BuiltinKind.Kind.sizeOf:
 			return cbSizeOf(a.sizeOf_);
-		case BuiltinKind.Kind.uninitialized:
-			return cbUninitialized(a.uninitialized_);
+		case BuiltinKind.Kind.zeroed:
+			return cbZeroed(a.zeroed_);
 	}
 }
 
@@ -318,10 +318,10 @@ immutable(BuiltinKind) getBuiltinKind(
 				: failBinary());
 		case shortSymAlphaLiteralValue("unsafe-mod"):
 			return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeModNat64) : fail();
+		case shortSymAlphaLiteralValue("zeroed"):
+			return immutable BuiltinKind(immutable BuiltinKind.Zeroed());
 		default:
-			if (symEqLongAlphaLiteral(name, "uninitialized"))
-				return immutable BuiltinKind(immutable BuiltinKind.Uninitialized());
-			else if (symEqLongAlphaLiteral(name, "unsafe-bit-shift-left"))
+			if (symEqLongAlphaLiteral(name, "unsafe-bit-shift-left"))
 				return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-bit-shift-right"))
 				return isNat64(rt)

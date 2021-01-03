@@ -1654,9 +1654,9 @@ program(
 			none
 			[param(jmp-buf-ptr, type(false, ptr)), param(thrown-exception, type(false, exception))]
 			new-record)
-		fun(false, new-log-ctx, type(false, log-ctx), none, [], expr-body(call(log-ctx, [call(uninitialized, [])])))
+		fun(false, new-log-ctx, type(false, log-ctx), none, [], expr-body(call(log-ctx, [call(zeroed, [])])))
 		fun(false, log-ctx, type(false, log-ctx), none, [param(handler, type(false, fun1))], new-record)
-		fun(false, uninitialized, type(false, fun1), none, [], builtin([type(false, fun1)]))
+		fun(false, zeroed, type(false, fun1), none, [], builtin([type(false, fun1)]))
 		fun(
 			false
 			as
@@ -4404,9 +4404,16 @@ program(
 						seq(
 							seq(
 								seq(
-									call(mark-visit, [call(ref-of-val, [local-ref(mark-ctx)]), param-ref(gc-root)])
-									call(set-mark-cur, [param-ref(gc), call(mark-begin, [param-ref(gc)])]))
-								call(set-data-cur, [param-ref(gc), call(data-begin, [param-ref(gc)])]))
+									seq(
+										call(mark-visit, [call(ref-of-val, [local-ref(mark-ctx)]), param-ref(gc-root)])
+										call(set-mark-cur, [param-ref(gc), call(mark-begin, [param-ref(gc)])]))
+									call(set-data-cur, [param-ref(gc), call(data-begin, [param-ref(gc)])]))
+								call(
+									clear-free-mem
+									[
+										call(mark-begin, [param-ref(gc)])
+										call(mark-end, [param-ref(gc)])
+										call(data-begin, [param-ref(gc)])]))
 							call(validate-gc, [param-ref(gc)]))))))
 		fun(
 			false
@@ -4454,6 +4461,21 @@ program(
 			none
 			[param(b, type(false, mark-ctx))]
 			builtin([type(true, mark-ctx)]))
+		fun(
+			false
+			clear-free-mem
+			type(false, void)
+			none
+			[param(mark-ptr, type(false, ptr)), param(mark-end, type(false, ptr)), param(data-ptr, type(false, ptr))]
+			expr-body(
+				cond(
+					call(not, [call(ptr-eq?, [param-ref(mark-ptr), param-ref(mark-end)])])
+					seq(
+						cond(call(not, [call(deref, [param-ref(mark-ptr)])]), call(set, [param-ref(data-ptr), -369582283799201058]), void)
+						call(
+							clear-free-mem
+							[call(incr, [param-ref(mark-ptr)]), param-ref(mark-end), param-ref(data-ptr)]))
+					void)))
 		fun(false, cant-shut-down-count, type(false, nat), none, [param(a, type(true, global-ctx))], field-get(3))
 		fun(
 			false

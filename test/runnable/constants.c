@@ -977,6 +977,7 @@ struct void_ mark_visit_277(struct mark_ctx* mark_ctx, struct call_ref_1__lambda
 struct void_ mark_visit_278(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0 value);
 struct void_ mark_visit_279(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0* value);
 struct void_ mark_visit_280(struct mark_ctx* mark_ctx, struct task_queue_node* value);
+struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data_ptr);
 struct void_ wait_on(struct condition* cond, struct opt_5 until_time, uint64_t last_checked);
 uint8_t before_time__q(struct opt_5 until_time);
 struct void_ join_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads);
@@ -5075,7 +5076,14 @@ struct void_ run_garbage_collection(struct gc* gc, struct island_gc_root gc_root
 	uint64_t* _27 = _26->data_begin;
 	_25->data_cur = _27;
 	struct gc* _28 = gc;
-	return validate_gc(_28);
+	uint8_t* _29 = _28->mark_begin;
+	struct gc* _30 = gc;
+	uint8_t* _31 = _30->mark_end;
+	struct gc* _32 = gc;
+	uint64_t* _33 = _32->data_begin;
+	clear_free_mem(_29, _31, _33);
+	struct gc* _34 = gc;
+	return validate_gc(_34);
 }
 /* mark-visit<island-gc-root> (generated) (generated) */
 struct void_ mark_visit_243(struct mark_ctx* mark_ctx, struct island_gc_root value) {
@@ -5562,6 +5570,36 @@ struct void_ mark_visit_280(struct mark_ctx* mark_ctx, struct task_queue_node* v
 		struct task_queue_node* _6 = value;
 		struct task_queue_node _7 = *_6;
 		return mark_visit_247(_5, _7);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* clear-free-mem void(mark-ptr ptr<bool>, mark-end ptr<bool>, data-ptr ptr<nat>) */
+struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data_ptr) {
+	top:;
+	uint8_t* _0 = mark_ptr;
+	uint8_t* _1 = mark_end;
+	uint8_t _2 = _0 == _1;
+	uint8_t _3 = !_2;
+	if (_3) {
+		uint8_t* _4 = mark_ptr;
+		uint8_t _5 = *_4;
+		uint8_t _6 = !_5;
+		if (_6) {
+			uint64_t* _7 = data_ptr;
+			uint64_t _8 = 18077161789910350558u;
+			*_7 = _8;
+		} else {
+			(struct void_) {};
+		}
+		uint8_t* _9 = mark_ptr;
+		uint8_t* _10 = incr_0(_9);
+		uint8_t* _11 = mark_end;
+		uint64_t* _12 = data_ptr;
+		mark_ptr = _10;
+		mark_end = _11;
+		data_ptr = _12;
+		goto top;
 	} else {
 		return (struct void_) {};
 	}

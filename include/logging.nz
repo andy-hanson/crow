@@ -1,6 +1,6 @@
 import
 	.arr-utils: +
-	.bootstrap: as-ref by-val call get-ctx log-ctx str uninitialized void
+	.bootstrap: as-ref by-val call get-ctx log-ctx str void zeroed
 	.exceptions: finally
 	.io.print: print
 
@@ -10,7 +10,7 @@ log-ctx record mut
 
 new-log-ctx by-val log-ctx() noctx unsafe
 	| Handler is set in 'new-ctx'
-	log-ctx: uninitialized
+	log-ctx: zeroed
 
 log-handler alias
 	fun void(logged)

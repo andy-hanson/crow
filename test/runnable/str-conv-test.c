@@ -1026,6 +1026,7 @@ struct void_ mark_visit_277(struct mark_ctx* mark_ctx, struct call_ref_1__lambda
 struct void_ mark_visit_278(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0 value);
 struct void_ mark_visit_279(struct mark_ctx* mark_ctx, struct call_ref_1__lambda0* value);
 struct void_ mark_visit_280(struct mark_ctx* mark_ctx, struct task_queue_node* value);
+struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data_ptr);
 struct void_ wait_on(struct condition* cond, struct opt_5 until_time, uint64_t last_checked);
 uint8_t before_time__q(struct opt_5 until_time);
 struct void_ join_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads);
@@ -1041,9 +1042,9 @@ struct result_0 must_be_resolved(struct fut_0* f);
 struct result_0 hard_unreachable(void);
 struct fut_0* main_0(struct ctx* ctx, struct arr_1 _p0);
 uint8_t _op_equal_equal_4(struct opt_5 a, struct opt_5 b);
-struct comparison compare_296(struct opt_5 a, struct opt_5 b);
-struct comparison compare_297(struct none a, struct none b);
-struct comparison compare_298(struct some_5 a, struct some_5 b);
+struct comparison compare_297(struct opt_5 a, struct opt_5 b);
+struct comparison compare_298(struct none a, struct none b);
+struct comparison compare_299(struct some_5 a, struct some_5 b);
 struct opt_5 parse_nat(struct ctx* ctx, struct arr_0 a);
 struct opt_5 parse_nat_recur(struct ctx* ctx, struct arr_0 a, uint64_t accum);
 struct opt_5 char_to_nat(struct ctx* ctx, char c);
@@ -1055,12 +1056,12 @@ struct arr_0 slice_starting_at_1(struct ctx* ctx, struct arr_0 a, uint64_t begin
 struct arr_0 slice_1(struct ctx* ctx, struct arr_0 a, uint64_t begin, uint64_t size);
 uint64_t _op_times_0(struct ctx* ctx, uint64_t a, uint64_t b);
 uint8_t _op_equal_equal_5(struct opt_6 a, struct opt_6 b);
-struct comparison compare_310(struct opt_6 a, struct opt_6 b);
-struct comparison compare_311(struct some_6 a, struct some_6 b);
+struct comparison compare_311(struct opt_6 a, struct opt_6 b);
+struct comparison compare_312(struct some_6 a, struct some_6 b);
 struct opt_6 parse_int(struct ctx* ctx, struct arr_0 a);
 struct opt_6 opt_map(struct ctx* ctx, struct opt_5 a, struct fun_act1_6 cb);
 int64_t call_8(struct ctx* ctx, struct fun_act1_6 a, uint64_t p0);
-int64_t call_w_ctx_315(struct fun_act1_6 a, struct ctx* ctx, uint64_t p0);
+int64_t call_w_ctx_316(struct fun_act1_6 a, struct ctx* ctx, uint64_t p0);
 int64_t neg_0(struct ctx* ctx, uint64_t n);
 int64_t neg_1(struct ctx* ctx, int64_t i);
 int64_t _op_times_1(struct ctx* ctx, int64_t a, int64_t b);
@@ -5157,7 +5158,14 @@ struct void_ run_garbage_collection(struct gc* gc, struct island_gc_root gc_root
 	uint64_t* _27 = _26->data_begin;
 	_25->data_cur = _27;
 	struct gc* _28 = gc;
-	return validate_gc(_28);
+	uint8_t* _29 = _28->mark_begin;
+	struct gc* _30 = gc;
+	uint8_t* _31 = _30->mark_end;
+	struct gc* _32 = gc;
+	uint64_t* _33 = _32->data_begin;
+	clear_free_mem(_29, _31, _33);
+	struct gc* _34 = gc;
+	return validate_gc(_34);
 }
 /* mark-visit<island-gc-root> (generated) (generated) */
 struct void_ mark_visit_243(struct mark_ctx* mark_ctx, struct island_gc_root value) {
@@ -5648,6 +5656,36 @@ struct void_ mark_visit_280(struct mark_ctx* mark_ctx, struct task_queue_node* v
 		return (struct void_) {};
 	}
 }
+/* clear-free-mem void(mark-ptr ptr<bool>, mark-end ptr<bool>, data-ptr ptr<nat>) */
+struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data_ptr) {
+	top:;
+	uint8_t* _0 = mark_ptr;
+	uint8_t* _1 = mark_end;
+	uint8_t _2 = _0 == _1;
+	uint8_t _3 = !_2;
+	if (_3) {
+		uint8_t* _4 = mark_ptr;
+		uint8_t _5 = *_4;
+		uint8_t _6 = !_5;
+		if (_6) {
+			uint64_t* _7 = data_ptr;
+			uint64_t _8 = 18077161789910350558u;
+			*_7 = _8;
+		} else {
+			(struct void_) {};
+		}
+		uint8_t* _9 = mark_ptr;
+		uint8_t* _10 = incr_0(_9);
+		uint8_t* _11 = mark_end;
+		uint64_t* _12 = data_ptr;
+		mark_ptr = _10;
+		mark_end = _11;
+		data_ptr = _12;
+		goto top;
+	} else {
+		return (struct void_) {};
+	}
+}
 /* wait-on void(cond condition, until-time opt<nat>, last-checked nat) */
 struct void_ wait_on(struct condition* cond, struct opt_5 until_time, uint64_t last_checked) {
 	top:;
@@ -5895,7 +5933,7 @@ struct fut_0* main_0(struct ctx* ctx, struct arr_1 _p0) {
 uint8_t _op_equal_equal_4(struct opt_5 a, struct opt_5 b) {
 	struct opt_5 _0 = a;
 	struct opt_5 _1 = b;
-	struct comparison _2 = compare_296(_0, _1);
+	struct comparison _2 = compare_297(_0, _1);
 	switch (_2.kind) {
 		case 0: {
 			return 0;
@@ -5911,7 +5949,7 @@ uint8_t _op_equal_equal_4(struct opt_5 a, struct opt_5 b) {
 	}
 }
 /* compare<opt<nat>> (generated) (generated) */
-struct comparison compare_296(struct opt_5 a, struct opt_5 b) {
+struct comparison compare_297(struct opt_5 a, struct opt_5 b) {
 	struct opt_5 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -5924,7 +5962,7 @@ struct comparison compare_296(struct opt_5 a, struct opt_5 b) {
 					
 					struct none _2 = a0;
 					struct none _3 = b0;
-					return compare_297(_2, _3);
+					return compare_298(_2, _3);
 				}
 				case 1: {
 					struct less _4 = (struct less) {};
@@ -5948,7 +5986,7 @@ struct comparison compare_296(struct opt_5 a, struct opt_5 b) {
 					
 					struct some_5 _7 = a1;
 					struct some_5 _8 = b1;
-					return compare_298(_7, _8);
+					return compare_299(_7, _8);
 				}
 				default:
 					return (assert(0),(struct comparison) {0});
@@ -5959,12 +5997,12 @@ struct comparison compare_296(struct opt_5 a, struct opt_5 b) {
 	}
 }
 /* compare<none> (generated) (generated) */
-struct comparison compare_297(struct none a, struct none b) {
+struct comparison compare_298(struct none a, struct none b) {
 	struct equal _0 = (struct equal) {};
 	return (struct comparison) {1, .as1 = _0};
 }
 /* compare<some<nat>> (generated) (generated) */
-struct comparison compare_298(struct some_5 a, struct some_5 b) {
+struct comparison compare_299(struct some_5 a, struct some_5 b) {
 	struct some_5 _0 = a;
 	uint64_t _1 = _0.value;
 	struct some_5 _2 = b;
@@ -6266,7 +6304,7 @@ uint64_t _op_times_0(struct ctx* ctx, uint64_t a, uint64_t b) {
 uint8_t _op_equal_equal_5(struct opt_6 a, struct opt_6 b) {
 	struct opt_6 _0 = a;
 	struct opt_6 _1 = b;
-	struct comparison _2 = compare_310(_0, _1);
+	struct comparison _2 = compare_311(_0, _1);
 	switch (_2.kind) {
 		case 0: {
 			return 0;
@@ -6282,7 +6320,7 @@ uint8_t _op_equal_equal_5(struct opt_6 a, struct opt_6 b) {
 	}
 }
 /* compare<opt<int>> (generated) (generated) */
-struct comparison compare_310(struct opt_6 a, struct opt_6 b) {
+struct comparison compare_311(struct opt_6 a, struct opt_6 b) {
 	struct opt_6 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -6295,7 +6333,7 @@ struct comparison compare_310(struct opt_6 a, struct opt_6 b) {
 					
 					struct none _2 = a0;
 					struct none _3 = b0;
-					return compare_297(_2, _3);
+					return compare_298(_2, _3);
 				}
 				case 1: {
 					struct less _4 = (struct less) {};
@@ -6319,7 +6357,7 @@ struct comparison compare_310(struct opt_6 a, struct opt_6 b) {
 					
 					struct some_6 _7 = a1;
 					struct some_6 _8 = b1;
-					return compare_311(_7, _8);
+					return compare_312(_7, _8);
 				}
 				default:
 					return (assert(0),(struct comparison) {0});
@@ -6330,7 +6368,7 @@ struct comparison compare_310(struct opt_6 a, struct opt_6 b) {
 	}
 }
 /* compare<some<int>> (generated) (generated) */
-struct comparison compare_311(struct some_6 a, struct some_6 b) {
+struct comparison compare_312(struct some_6 a, struct some_6 b) {
 	struct some_6 _0 = a;
 	int64_t _1 = _0.value;
 	struct some_6 _2 = b;
@@ -6422,10 +6460,10 @@ int64_t call_8(struct ctx* ctx, struct fun_act1_6 a, uint64_t p0) {
 	struct fun_act1_6 _0 = a;
 	struct ctx* _1 = ctx;
 	uint64_t _2 = p0;
-	return call_w_ctx_315(_0, _1, _2);
+	return call_w_ctx_316(_0, _1, _2);
 }
 /* call-w-ctx<int-64, nat-64> (generated) (generated) */
-int64_t call_w_ctx_315(struct fun_act1_6 a, struct ctx* ctx, uint64_t p0) {
+int64_t call_w_ctx_316(struct fun_act1_6 a, struct ctx* ctx, uint64_t p0) {
 	struct fun_act1_6 _0 = a;
 	switch (_0.kind) {
 		case 0: {

@@ -207,7 +207,7 @@ void checkLowExpr(Alloc)(
 		(ref immutable LowExprKind.TailRecur) {
 			// TODO
 		},
-		(ref immutable LowExprKind.Uninitialized) {});
+		(ref immutable LowExprKind.Zeroed) {});
 }
 
 void checkTypeEqual(Alloc)(

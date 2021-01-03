@@ -121,7 +121,14 @@ run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	mark-ctx.ref-of-val mark-visit gc-root
 	gc set-mark-cur gc.mark-begin
 	gc set-data-cur gc.data-begin
+	clear-free-mem: gc.mark-begin, gc.mark-end, gc.data-begin
 	gc validate-gc
+
+.clear-free-mem void(mark-ptr ptr bool, mark-end ptr bool, data-ptr ptr nat64) noctx unsafe
+	if mark-ptr ptr-eq? mark-end not
+		if mark-ptr.deref not
+			data-ptr set 0xfadefadefadefade
+		clear-free-mem: mark-ptr.incr, mark-end, data-ptr
 
 | GC info specific to a ctx.
 | Currently they all share the common GC and must take a lock every time they allocate.

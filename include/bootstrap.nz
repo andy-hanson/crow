@@ -1,7 +1,9 @@
 | Unrecoverable assertion failure
 hard-fail ?t(reason str) noctx unsafe builtin
 
-uninitialized ?t() noctx unsafe builtin
+| Zeroed data isn't safe as it would contain null pointers.
+| It's GC-safe though, since the GC treats a null pointer same as any external pointer.
+zeroed ?t() noctx unsafe builtin
 
 hard-unreachable ?t() noctx unsafe
 	hard-fail: "unreachable"

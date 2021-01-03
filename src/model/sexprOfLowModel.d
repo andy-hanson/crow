@@ -254,7 +254,7 @@ immutable(Sexpr) tataOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExpr
 			tataRecord(alloc, "tail-recur", [
 				tataArr(alloc, it.args, (ref immutable LowExpr arg) =>
 					tataOfLowExpr(alloc, arg))]),
-		(ref immutable LowExprKind.Uninitialized) =>
+		(ref immutable LowExprKind.Zeroed) =>
 			tataSym("uninit"));
 }
 

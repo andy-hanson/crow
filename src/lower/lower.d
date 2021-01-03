@@ -1314,8 +1314,8 @@ immutable(LowExprKind) getCallBuiltinExpr(Alloc)(
 				lowTypeFromConcreteType(alloc, ctx.getLowTypeCtx, only(asBuiltin(body_(a.called)).typeArgs));
 			return immutable LowExprKind(immutable LowExprKind.SizeOf(typeArg));
 		},
-		(ref immutable BuiltinKind.Uninitialized) {
-			return immutable LowExprKind(immutable LowExprKind.Uninitialized());
+		(ref immutable BuiltinKind.Zeroed) {
+			return immutable LowExprKind(immutable LowExprKind.Zeroed());
 		});
 }
 

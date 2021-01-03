@@ -1009,6 +1009,7 @@ struct void_ mark_visit_284(struct mark_ctx* mark_ctx, struct with_log_handler__
 struct void_ mark_visit_285(struct mark_ctx* mark_ctx, struct with_log_handler__lambda1 value);
 struct void_ mark_visit_286(struct mark_ctx* mark_ctx, struct with_log_handler__lambda1* value);
 struct void_ mark_visit_287(struct mark_ctx* mark_ctx, struct task_queue_node* value);
+struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data_ptr);
 struct void_ wait_on(struct condition* cond, struct opt_5 until_time, uint64_t last_checked);
 uint8_t before_time__q(struct opt_5 until_time);
 struct void_ join_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads);
@@ -1025,7 +1026,7 @@ struct result_0 hard_unreachable(void);
 struct fut_0* main_0(struct ctx* ctx, struct arr_1 _p0);
 struct void_ log(struct ctx* ctx, struct log_level level, struct arr_0 message);
 struct void_ call_8(struct ctx* ctx, struct fun1_1 a, struct logged* p0);
-struct void_ call_w_ctx_304(struct fun1_1 a, struct ctx* ctx, struct logged* p0);
+struct void_ call_w_ctx_305(struct fun1_1 a, struct ctx* ctx, struct logged* p0);
 struct fun1_1 get_log_handler(struct ctx* ctx);
 struct log_ctx* get_log_ctx(struct ctx* ctx);
 struct void_ main_0__lambda0(struct ctx* ctx, struct main_0__lambda0* _closure, struct logged* logged);
@@ -5158,7 +5159,14 @@ struct void_ run_garbage_collection(struct gc* gc, struct island_gc_root gc_root
 	uint64_t* _27 = _26->data_begin;
 	_25->data_cur = _27;
 	struct gc* _28 = gc;
-	return validate_gc(_28);
+	uint8_t* _29 = _28->mark_begin;
+	struct gc* _30 = gc;
+	uint8_t* _31 = _30->mark_end;
+	struct gc* _32 = gc;
+	uint64_t* _33 = _32->data_begin;
+	clear_free_mem(_29, _31, _33);
+	struct gc* _34 = gc;
+	return validate_gc(_34);
 }
 /* mark-visit<island-gc-root> (generated) (generated) */
 struct void_ mark_visit_243(struct mark_ctx* mark_ctx, struct island_gc_root value) {
@@ -5767,6 +5775,36 @@ struct void_ mark_visit_287(struct mark_ctx* mark_ctx, struct task_queue_node* v
 		return (struct void_) {};
 	}
 }
+/* clear-free-mem void(mark-ptr ptr<bool>, mark-end ptr<bool>, data-ptr ptr<nat>) */
+struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data_ptr) {
+	top:;
+	uint8_t* _0 = mark_ptr;
+	uint8_t* _1 = mark_end;
+	uint8_t _2 = _0 == _1;
+	uint8_t _3 = !_2;
+	if (_3) {
+		uint8_t* _4 = mark_ptr;
+		uint8_t _5 = *_4;
+		uint8_t _6 = !_5;
+		if (_6) {
+			uint64_t* _7 = data_ptr;
+			uint64_t _8 = 18077161789910350558u;
+			*_7 = _8;
+		} else {
+			(struct void_) {};
+		}
+		uint8_t* _9 = mark_ptr;
+		uint8_t* _10 = incr_0(_9);
+		uint8_t* _11 = mark_end;
+		uint64_t* _12 = data_ptr;
+		mark_ptr = _10;
+		mark_end = _11;
+		data_ptr = _12;
+		goto top;
+	} else {
+		return (struct void_) {};
+	}
+}
 /* wait-on void(cond condition, until-time opt<nat>, last-checked nat) */
 struct void_ wait_on(struct condition* cond, struct opt_5 until_time, uint64_t last_checked) {
 	top:;
@@ -5994,10 +6032,10 @@ struct void_ call_8(struct ctx* ctx, struct fun1_1 a, struct logged* p0) {
 	struct fun1_1 _0 = a;
 	struct ctx* _1 = ctx;
 	struct logged* _2 = p0;
-	return call_w_ctx_304(_0, _1, _2);
+	return call_w_ctx_305(_0, _1, _2);
 }
 /* call-w-ctx<void, gc-ptr(logged)> (generated) (generated) */
-struct void_ call_w_ctx_304(struct fun1_1 a, struct ctx* ctx, struct logged* p0) {
+struct void_ call_w_ctx_305(struct fun1_1 a, struct ctx* ctx, struct logged* p0) {
 	struct fun1_1 _0 = a;
 	switch (_0.kind) {
 		case 0: {

@@ -1092,9 +1092,9 @@ immutable(WriteResult) writeExpr(Alloc, TempAlloc)(
 			writeTailRecur(writer, tempAlloc, indent, ctx, it);
 			return immutable WriteResult(none!Temp);
 		},
-		(ref immutable LowExprKind.Uninitialized) =>
+		(ref immutable LowExprKind.Zeroed) =>
 			return_(() {
-				writeEmptyValue(writer, ctx.ctx, type);
+				writeZeroedValue(writer, ctx.ctx, type);
 			}));
 }
 
@@ -1563,18 +1563,18 @@ void writeLValue(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref i
 		(ref immutable LowExprKind.SpecialNAry) => unreachable!void(),
 		(ref immutable LowExprKind.Switch) => unreachable!void(),
 		(ref immutable LowExprKind.TailRecur) => unreachable!void(),
-		(ref immutable LowExprKind.Uninitialized) => unreachable!void());
+		(ref immutable LowExprKind.Zeroed) => unreachable!void());
 }
 
 void writeHardFail(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType type) {
 	//TODO: this doesn't use the message we gave it..
 	//TODO: this won't work for non-integral types
 	writeStatic(writer, "(assert(0),");
-	writeEmptyValue(writer, ctx, type);
+	writeZeroedValue(writer, ctx, type);
 	writeChar(writer, ')');
 }
 
-void writeEmptyValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType type) {
+void writeZeroedValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType type) {
 	return matchLowTypeCombinePtr!void(
 		type,
 		(immutable LowType.ExternPtr) {
@@ -1597,7 +1597,7 @@ void writeEmptyValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref 
 			writeChar(writer, '{');
 			immutable Arr!LowField fields = fullIndexDictGet(ctx.program.allRecords, it).fields;
 			writeWithCommas!LowField(writer, fields, (ref immutable LowField field) {
-				writeEmptyValue(writer, ctx, field.type);
+				writeZeroedValue(writer, ctx, field.type);
 			});
 			writeChar(writer, '}');
 		},
