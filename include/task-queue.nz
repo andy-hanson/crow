@@ -1,10 +1,10 @@
 import
-	.arr-utils
-		contains? mut-list new-mut-list-by-val-with-capacity-from-unmanaged-memory
-		noctx-must-remove-unordered push-capacity-must-be-sufficient
 	.bootstrap
 		== <= as bool by-val exclusion false hard-assert has? nat none not opt ref-of-val some true
 		value void wrap-add
+	.collection.mut-list
+		contains? mut-list new-mut-list-by-val-with-capacity-from-unmanaged-memory
+		noctx-must-remove-unordered push-capacity-must-be-sufficient
 	.io.time: timestamp
 
 | TODO: use a heap, not a list

@@ -1,10 +1,11 @@
 import
 	.arr-utils
-		+ at empty? empty-arr fill-mut-list find-index first index-of move-to-arr remove-start
-		set-at slice-after slice-starting-at slice-up-to starts-with? tail
+		+ empty? empty-arr find-index first index-of remove-start
+		slice-after slice-starting-at slice-up-to starts-with? tail
 	.bootstrap: == arr bool call false has? none opt size some str true value void
 	.cell: cell get set
-	.dict: add dict each empty-dict move-to-dict mut-dict new-mut-dict
+	.collection.dict: add dict each empty-dict move-to-dict mut-dict new-mut-dict
+	.collection.mut-list: at fill-mut-list move-to-arr set-at
 	.exceptions: assert fail forbid
 
 | TODO: this would be neater if we had reflection!

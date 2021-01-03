@@ -1,8 +1,9 @@
 import
-	.arr-utils: at empty? empty-arr first map move-to-arr mut-list new-mut-list push tail unsafe-as-arr
-	.bootstrap: == arr bool call data has? nat none not opt size some todo value void
-	.exceptions: forbid
-	.number-utils: incr
+	..arr-utils: at empty? empty-arr first map tail
+	..bootstrap: == arr bool call data has? nat none not opt size some todo value void
+	..exceptions: forbid
+	..number-utils: incr
+	.mut-list: move-to-arr mut-list new-mut-list push temp-as-arr
 
 key-value-pair<?k, ?v> record
 	key ?k
@@ -27,9 +28,9 @@ new-mut-dict mut-dict<?k, ?v>()
 	| TODO: should be able to infer type arguments -- worked when there was only one field...
 	mut-dict<?k, ?v>: new-mut-list<?k>, new-mut-list<?v>
 
-unsafe-as-dict dict<?k, ?v>(m mut-dict<?k, ?v>) unsafe
+.temp-as-dict dict<?k, ?v>(m mut-dict<?k, ?v>) unsafe
 	| TODO: should be able to infer type arguments 
-	dict<?k, ?v>: m.keys.unsafe-as-arr, m.values.unsafe-as-arr
+	dict<?k, ?v>: m.keys.temp-as-arr, m.values.temp-as-arr
 
 move-to-dict dict<?k, ?v>(m mut-dict<?k, ?v>)
 	| TODO: should be able to infer type arguments 
@@ -49,7 +50,7 @@ get opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
 	get-recursive<?k, ?v>: d.keys, d.values, 0, key
 
 get opt ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
-	d.unsafe-as-dict get key
+	d.temp-as-dict get key
 
 at ?v(d dict<?k, ?v>, key ?k) data<?k>
 	match d get key
@@ -59,13 +60,13 @@ at ?v(d dict<?k, ?v>, key ?k) data<?k>
 		s value
 
 at ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
-	d.unsafe-as-dict at key
+	d.temp-as-dict at key
 
 has? bool(d dict<?k, ?v>, key ?k) data<?k>
 	d get key has?
 
 has? bool(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
-	d.unsafe-as-dict has? key
+	d.temp-as-dict has? key
 
 add void(m mut-dict<?k, ?v>, pair key-value-pair<?k, ?v>) data<?k>
 	m add pair.key, pair.value

@@ -2,7 +2,8 @@ export
 	.arr-utils
 	.bootstrap
 	.cell
-	.dict
+	.collection.dict
+	.collection.mut-list
 	.exceptions
 	.fut-utils
 	.iter

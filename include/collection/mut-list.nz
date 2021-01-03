@@ -1,0 +1,169 @@
+import
+	..alloc: unmanaged-alloc-zeroed-elements
+	..arr-utils
+		contains? copy-data-from data each empty-mut-arr fill-mut-arr mut-arr set-zero-elements
+		size slice-starting-at sort temp-as-arr uninitialized-data
+	..bootstrap
+		? + < <= > >= == arr bool by-val char data deref drop hard-assert hard-fail hard-forbid nat
+		noctx-decr noctx-incr none not opt ptr set some void zeroed
+	..exceptions: assert
+	..number-utils: + * incr
+
+| NOTE: this is not a normal record, compiler treats it specially
+| TODO: constructor should be private
+mut-list<?t> record mut
+	| TODO:PRIVATE
+	| backing.size is the capacity
+	| For the GC's sake, unused parts of backing are filled with 'zeroed'
+	backing mut mut-arr ?t
+	| TODO:PRIVATE (getter public)
+	size mut nat
+
+| TODO:MOVE?
+mut-str alias
+	mut-list char
+
+data ptr ?t(a mut-list ?t) noctx unsafe
+	a.backing data
+
+capacity nat(a mut-list ?t) noctx unsafe
+	a.backing size
+
+new-mut-list mut-list ?t() trusted
+	mut-list: empty-mut-arr, 0
+
+new-mut-list-by-val by-val mut-list<?t>() noctx trusted
+	mut-list<?t>: empty-mut-arr, 0
+
+new-mut-list-by-val-with-capacity-from-unmanaged-memory by-val mut-list ?t(capacity nat) noctx unsafe
+	backing = mut-arr: capacity, capacity unmanaged-alloc-zeroed-elements<?t>
+	mut-list<?t>: backing, 0
+
+fill-mut-list mut-list ?t(size nat, value ?t)
+	backing = size fill-mut-arr value
+	mut-list: backing, size
+
+move-to-arr arr ?t(a mut-list ?t) noctx trusted
+	res = arr: a.size, a.data
+	a set-backing empty-mut-arr
+	a set-size 0
+	res
+
+noctx-at ?t(a mut-list ?t, index nat) trusted noctx
+	hard-assert: index < a.size
+	a.data + index deref
+
+at ?t(a mut-list ?t, index nat) trusted
+	assert: index < a.size
+	a noctx-at index
+
+temp-as-mut-arr mut-arr ?t(a mut-list ?t) noctx unsafe
+	mut-arr: arr: a.size, a.data
+
+temp-as-arr arr ?t(a mut-list ?t) noctx unsafe
+	a.temp-as-mut-arr temp-as-arr
+
+each void(a mut-list ?t, f act void(?t)) trusted
+	a.temp-as-arr each f
+
+empty? bool(a mut-list ?t) noctx
+	a.size == 0
+
+has? bool(a mut-list ?t) noctx
+	a.empty? not
+
+noctx-set-at void(a mut-list ?t, index nat, value ?t) noctx trusted
+	hard-assert: index < a.size
+	a.data + index set value
+
+set-at void(a mut-list ?t, index nat, value ?t) trusted
+	assert: index < a.size
+	a noctx-set-at index, value
+
+contains? bool(a mut-list ?t, value ?t) noctx trusted data<?t>
+	a.temp-as-arr contains? value
+
+noctx-last ?t(a mut-list ?t) noctx unsafe
+	hard-forbid: a empty?
+	a noctx-at a.size.noctx-decr
+
+pop opt ?t(a mut-list ?t) trusted
+	if a empty?
+		none
+	else
+		new-size = a.size noctx-decr
+		res = a at new-size
+		| Ensure GC doesn't hold on to the memory there
+		a set-at new-size, zeroed
+		a set-size new-size
+		res some
+
+push void(a mut-list ?t, value ?t) trusted
+	if a.size == a.capacity
+		a increase-capacity-to: a.size == 0 ?: 4, a.size * 2
+	a ensure-capacity a.size.incr.round-up-to-power-of-two
+	a.size < a.capacity assert
+	(a.data + a.size) set value
+	a set-size: a.size incr
+
+push-all void(a mut-list ?t, values arr ?t)
+	values each {a push it}
+
+push-capacity-must-be-sufficient void(a mut-list ?t, value ?t) noctx unsafe
+	hard-assert: a.size < a.capacity
+	old-size = a.size
+	a set-size old-size.noctx-incr
+	a noctx-set-at old-size, value
+
+increase-capacity-to void(a mut-list ?t, new-capacity nat) unsafe
+	assert: new-capacity > a.capacity
+	old-data = a.data
+	a set-backing: mut-arr: new-capacity, uninitialized-data<?t>: new-capacity
+	a.data copy-data-from old-data, a.size
+	a.backing slice-starting-at a.size set-zero-elements
+
+ensure-capacity void(a mut-list ?t, capacity nat) unsafe
+	if a.capacity < capacity
+		a increase-capacity-to: capacity.round-up-to-power-of-two
+
+noctx-remove-unordered-at-index ?t(a mut-list ?t, index nat) noctx unsafe
+	res = a noctx-at index
+	a noctx-set-at index, a.noctx-last
+	a set-size a.size.noctx-decr
+	res
+
+noctx-must-remove-unordered void(a mut-list ?t, value ?t) noctx unsafe data<?t>
+	a noctx-must-remove-unordered-recur 0, value
+
+.noctx-must-remove-unordered-recur void(a mut-list ?t, index nat, value ?t) noctx unsafe data<?t>
+	if index == a.size
+		hard-fail: "Did not find the element in the mut-list"
+	elif a noctx-at index == value
+		a noctx-remove-unordered-at-index index drop
+	else
+		a noctx-must-remove-unordered-recur index.noctx-incr, value
+
+sort void(a mut-list ?t) trusted data<?t>
+	a.temp-as-mut-arr sort
+
+.unsafe-set-size void(a mut-list ?t, new-size nat) unsafe
+	assert: new-size <= a.capacity
+	a set-size new-size
+
+| Unsafe because increasing the size can expose uninitialized data
+unsafe-increase-size void(a mut-list ?t, increase-by nat) unsafe
+	a unsafe-set-size: a.size + increase-by
+
+reduce-size-if-more-than void(a mut-list ?t, new-size nat)
+	if new-size < a.size
+		a.pop drop
+		a reduce-size-if-more-than new-size
+
+| TODO:MOVE
+.round-up-to-power-of-two nat(n nat)
+	1 round-up-to-power-of-two-recur n
+.round-up-to-power-of-two-recur nat(acc nat, n nat)
+	if acc >= n
+		acc
+	else
+		acc * 2 round-up-to-power-of-two-recur n

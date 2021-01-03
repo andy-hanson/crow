@@ -9,6 +9,10 @@ import
 
 memset void(begin any-ptr, value nat8, size nat) extern<"memset"> noctx unsafe
 
+set-zero-range void(begin ptr ?t, size nat) noctx unsafe
+	| TODO: wrap-mul is unsafe
+	begin.as-any-ptr memset: 0, size wrap-mul size-of<?t>
+
 mark-ctx record mut
 	memory-size-words nat
 	marks ptr bool
@@ -227,6 +231,11 @@ alloc any-ptr(size nat) unsafe
 unmanaged-alloc-bytes any-ptr(size nat) noctx unsafe
 	res = size malloc
 	hard-forbid: res null?
+	res
+
+unmanaged-alloc-zeroed-elements ptr ?t(size-elements nat) noctx unsafe
+	res = size-elements unmanaged-alloc-elements<?t>
+	res set-zero-range size-elements
 	res
 
 unmanaged-alloc-elements ptr ?t(size-elements nat) noctx unsafe

@@ -699,7 +699,7 @@ program(
 			expr-body(
 				let(
 					backing
-					call(mut-arr, [param-ref(capacity), call(unmanaged-alloc-elements, [param-ref(capacity)])])
+					call(mut-arr, [param-ref(capacity), call(unmanaged-alloc-zeroed-elements, [param-ref(capacity)])])
 					call(mut-list, [local-ref(backing), 0]))))
 		fun(
 			false
@@ -716,6 +716,17 @@ program(
 			none
 			[param(size, type(false, nat)), param(data, type(false, ptr))]
 			new-record)
+		fun(
+			false
+			unmanaged-alloc-zeroed-elements
+			type(false, ptr)
+			none
+			[param(size-elements, type(false, nat))]
+			expr-body(
+				let(
+					res
+					call(unmanaged-alloc-elements, [param-ref(size-elements)])
+					seq(call(set-zero-range, [local-ref(res), param-ref(size-elements)]), local-ref(res)))))
 		fun(
 			false
 			unmanaged-alloc-elements
@@ -762,6 +773,24 @@ program(
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			builtin([]))
+		fun(
+			false
+			set-zero-range
+			type(false, void)
+			none
+			[param(begin, type(false, ptr)), param(size, type(false, nat))]
+			expr-body(
+				call(
+					memset
+					[call(as-any-ptr, [param-ref(begin)]), 0, call(wrap-mul, [param-ref(size), call(size-of, [])])])))
+		fun(
+			false
+			memset
+			type(false, void)
+			none
+			[param(begin, type(false, ptr)), param(value, type(false, nat8)), param(size, type(false, nat))]
+			extern(false))
+		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(false, ptr))], builtin([type(false, ptr)]))
 		fun(
 			false
 			mut-list
@@ -1532,13 +1561,6 @@ program(
 			none
 			[param(p, type(false, ptr))]
 			builtin([type(false, bool), type(false, nat8)]))
-		fun(
-			false
-			memset
-			type(false, void)
-			none
-			[param(begin, type(false, ptr)), param(value, type(false, nat8)), param(size, type(false, nat))]
-			extern(false))
 		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(false, ptr))], builtin([type(false, ptr)]))
 		fun(
 			false
@@ -3443,7 +3465,6 @@ program(
 			expr-body(call(as-ref, [call(as-any-ptr, [param-ref(p)])])))
 		fun(false, as-ref, type(true, cell), none, [param(p, type(false, ptr))], builtin([type(true, cell)]))
 		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(false, ptr))], builtin([type(false, ptr)]))
-		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(false, ptr))], builtin([type(false, ptr)]))
 		fun(
 			false
 			thread-fun
@@ -3965,7 +3986,14 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(true, mut-list)), param(value, type(false, nat))]
-			expr-body(call(contains-recur?, [call(temp-as-arr, [param-ref(a)]), param-ref(value), 0])))
+			expr-body(call(contains?, [call(temp-as-arr, [param-ref(a)]), param-ref(value)])))
+		fun(
+			false
+			contains?
+			type(false, bool)
+			none
+			[param(a, type(false, arr)), param(value, type(false, nat))]
+			expr-body(call(contains-recur?, [param-ref(a), param-ref(value), 0])))
 		fun(
 			false
 			contains-recur?

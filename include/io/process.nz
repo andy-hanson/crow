@@ -2,10 +2,9 @@ import
 	..bootstrap
 		+ == <= and arr as-any-ptr as-ref bool by-val char c-str data int32
 		not null or ptr size str todo to-nat void
-	..arr-utils
-		+ append data ensure-capacity fold map move-to-arr mut-str new-mut-list
-		prepend ref-of-val-at size unsafe-increase-size
+	..arr-utils: + append fold map prepend ref-of-val-at
 	..cell: cell get
+	..collection.mut-list: data ensure-capacity move-to-arr mut-str new-mut-list size unsafe-increase-size
 	..exceptions: assert fail
 	..number-utils: + to-nat
 	..posix.bytes-types: zero
