@@ -1,0 +1,8 @@
+import
+	..bootstrap: any-ptr byte nat void
+
+memcpy void(dest any-ptr, src any-ptr, size nat) extern<"memcpy"> noctx unsafe
+
+memmove void(dest any-ptr, src any-ptr, size nat) extern<"memmove"> noctx unsafe
+
+memset void(begin any-ptr, value byte, size nat) extern<"memset"> noctx unsafe

@@ -1,11 +1,11 @@
 import
 	.alloc
-	.arr-utils: empty-arr map tail
 	.bootstrap
 		? != + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref false
 		fun-ptr2 fut get-ctx int32 message nat noctx-decr noctx-incr null
 		ptr ptr-to ref-of-val set str to-int unsafe-to-nat value void
 	.cell: as-cell
+	.collection.arr-utils: empty-arr map tail
 	.exceptions: new-exception-ctx
 	.fut-low-level: must-be-resolved
 	.fut-utils: delay then2

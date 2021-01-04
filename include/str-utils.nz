@@ -1,6 +1,6 @@
 import
-	.arr-utils: + arr-from-begin-end first has? tail
 	.bootstrap: == and arr byte char c-str data deref incr ptr-cast size str todo
+	.collection.arr-utils: + arr-from-begin-end first has? tail
 
 as-str str(bytes arr byte) unsafe noctx
 	arr: bytes.size, bytes.data ptr-cast<char, byte>

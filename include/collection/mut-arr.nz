@@ -1,0 +1,74 @@
+import
+	..alloc: set-zero-range
+	..bootstrap: + == < <= arr bool data hard-assert nat opt ptr set size void
+	..exceptions: assert
+	..number-utils: + - incr
+	.arr-utils: at empty-arr fill-ptr-range find-index uninitialized-data
+
+mut-arr<?t> record mut
+	by-val
+	| TODO:PRIVATE
+	arr arr ?t
+
+size nat(a mut-arr ?t) noctx
+	a.arr size
+
+data ptr ?t(a mut-arr ?t) noctx unsafe
+	a.arr data
+
+at ?t(a mut-arr ?t, index nat)
+	a.arr at index
+
+set-at void(a mut-arr ?t, index nat, value ?t) trusted
+	assert: index < a.size
+	a noctx-set-at index, value
+
+noctx-set-at void(a mut-arr ?t, index nat, value ?t) noctx unsafe
+	hard-assert: index < a.size
+	a.data + index set value
+
+empty-mut-arr mut-arr ?t() noctx
+	mut-arr: empty-arr
+
+mut-arr mut-arr ?t(size nat, data ptr ?t) noctx unsafe
+	mut-arr: arr: size, data
+
+new-uninitialized-mut-arr mut-arr ?t(size nat) unsafe
+	mut-arr: size, uninitialized-data<?t>: size
+
+make-mut-arr mut-arr ?t(size nat, f act ?t(nat)) trusted
+	res = new-uninitialized-mut-arr<?t>: size
+	res.data fill-ptr-range size, f
+	res
+
+fill-mut-arr mut-arr ?t(size nat, value ?t)
+	size make-mut-arr \ignore
+		value
+
+temp-as-arr arr ?t(a mut-arr ?t) noctx unsafe
+	a arr
+
+cast-immutable arr ?t(a mut-arr ?t) noctx unsafe
+	a.arr
+
+set-zero-elements void(a mut-arr ?t) noctx unsafe
+	a.data set-zero-range a.size
+
+slice mut-arr ?t(a mut-arr ?t, begin nat, size nat) trusted
+	assert: begin + size <= a.size
+	mut-arr: size, a.data + begin
+
+slice-starting-at mut-arr ?t(a mut-arr ?t, begin nat)
+	assert: begin <= a.size
+	a slice: begin, a.size - begin
+
+slice-after mut-arr ?t(a mut-arr ?t, before-begin nat)
+	a slice-starting-at before-begin.incr
+
+region misc
+
+index-of opt nat(a mut-arr ?t, value ?t) data<?t>
+	a find-index {it == value}
+
+find-index opt nat(a mut-arr ?t, pred act bool(?t)) trusted
+	a.temp-as-arr find-index pred

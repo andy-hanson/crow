@@ -1,9 +1,9 @@
 import
-	..arr-utils: at empty? empty-arr first map tail
-	..bootstrap: == arr bool call data has? nat none not opt size some todo value void
+	..bootstrap: == arr bool call data drop has? nat none not opt size some todo value void
+	..collection.arr-utils: at empty? empty-arr first map tail
 	..exceptions: forbid
 	..number-utils: incr
-	.mut-list: move-to-arr mut-list new-mut-list push temp-as-arr
+	.mut-list: index-of move-to-arr mut-list new-mut-list push remove-unordered-at-index temp-as-arr
 
 key-value-pair<?k, ?v> record
 	key ?k
@@ -65,16 +65,27 @@ at ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
 has? bool(d dict<?k, ?v>, key ?k) data<?k>
 	d get key has?
 
-has? bool(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
-	d.temp-as-dict has? key
+has? bool(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
+	a.temp-as-dict has? key
 
-add void(m mut-dict<?k, ?v>, pair key-value-pair<?k, ?v>) data<?k>
-	m add pair.key, pair.value
+add void(a mut-dict<?k, ?v>, pair key-value-pair<?k, ?v>) data<?k>
+	a add pair.key, pair.value
 
-add void(m mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
-	forbid: m has? key
-	m.keys push key
-	m.values push value
+add void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
+	forbid: a has? key
+	a.keys push key
+	a.values push value
+
+remove void(a mut-dict<?k, ?v>, key ?k) data<?k>
+	a remove-and-get key drop
+
+remove-and-get opt ?v(a mut-dict<?k, ?v>, key ?k) data<?k>
+	match a.keys index-of key
+	as none
+		none
+	as some s
+		drop: a.keys remove-unordered-at-index s.value
+		some: a.values remove-unordered-at-index s.value
 
 map-values dict<?k, ?v-out>(d dict<?k, ?v-in>, mapper act ?v-out(?v-in))
 	new-values = d.values map mapper

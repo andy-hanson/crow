@@ -1,6 +1,6 @@
 import
-	..arr-utils: + arr-from-begin-end
 	..bootstrap: c-str data deref incr not null null? ptr str void
+	..collection.arr-utils: + arr-from-begin-end
 	..collection.dict: add dict each key-value-pair move-to-dict mut-dict new-mut-dict
 	..collection.mut-list: move-to-arr new-mut-list push
 	..str-utils: find-char-in-cstr find-cstr-end to-c-str

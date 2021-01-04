@@ -2,12 +2,12 @@
 | TODO: don't import .io or .number-utils
 import
 	.alloc: gc get-gc-ctx needs-gc? new-gc return-gc-ctx run-garbage-collection
-	.arr-utils: at empty? noctx-at
 	.bootstrap
 		== != > ? and arr as as-any-ptr as-ref bool by-val call-with-ctx ctx exception
 		exclusion false gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid
 		island-and-exclusion island-id lock message min nat noctx-decr noctx-incr none not opt or
 		ref-of-val size some true value void
+	.collection.arr-utils: at empty? noctx-at
 	.exceptions: exception-ctx new-exception-ctx
 	.io.print: print-err print-err-no-newline
 	.io.time: get-monotime-nsec timestamp

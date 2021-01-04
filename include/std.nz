@@ -1,15 +1,11 @@
 export
-	.arr-utils
 	.bootstrap
-	.cell
-	.collection.dict
-	.collection.mut-list
+	.collection.arr-utils
 	.exceptions
 	.fut-utils
 	.iter
 	.logging
 	.number-utils
 	.opt-utils
-	.runtime
 	.str-conv
 	.str-utils

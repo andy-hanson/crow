@@ -1,7 +1,7 @@
 import
 	...bootstrap: == != as-ref deref nat16 none null null? opt ptr ptr-to some str todo value
-	...arr-utils: +
 	...cell: cell get
+	...collection.arr-utils: +
 	...exceptions: assert
 	...opt-utils: force
 	...posix.extra-types: fd-t

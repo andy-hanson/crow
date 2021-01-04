@@ -1,13 +1,16 @@
 import
-	..alloc: unmanaged-alloc-zeroed-elements
-	..arr-utils
-		contains? copy-data-from data each empty-mut-arr fill-mut-arr mut-arr set-zero-elements
-		size slice-starting-at sort temp-as-arr uninitialized-data
+	..alloc: set-zero-range unmanaged-alloc-zeroed-elements
 	..bootstrap
-		? + < <= > >= == arr bool by-val char data deref drop hard-assert hard-fail hard-forbid nat
-		noctx-decr noctx-incr none not opt ptr set some void zeroed
+		? + < <= > >= == arr as-any-ptr bool by-val char data deref drop hard-assert hard-fail
+		hard-forbid nat noctx-decr noctx-incr none not opt ptr set size-of some void zeroed
+	..collection.arr-utils: contains? copy-data-from each index-of uninitialized-data
+	..collection.mut-arr
+		data empty-mut-arr fill-mut-arr mut-arr set-zero-elements size slice-starting-at
+		temp-as-arr
+	..collection.sort: sort
 	..exceptions: assert
-	..number-utils: + * incr
+	..number-utils: + - * incr
+	..posix.string: memcpy memmove
 
 | NOTE: this is not a normal record, compiler treats it specially
 | TODO: constructor should be private
@@ -36,7 +39,7 @@ new-mut-list-by-val by-val mut-list<?t>() noctx trusted
 	mut-list<?t>: empty-mut-arr, 0
 
 new-mut-list-by-val-with-capacity-from-unmanaged-memory by-val mut-list ?t(capacity nat) noctx unsafe
-	backing = mut-arr: capacity, capacity unmanaged-alloc-zeroed-elements<?t>
+	backing = mut-arr<?t>: capacity, capacity unmanaged-alloc-zeroed-elements<?t>
 	mut-list<?t>: backing, 0
 
 fill-mut-list mut-list ?t(size nat, value ?t)
@@ -87,6 +90,22 @@ noctx-last ?t(a mut-list ?t) noctx unsafe
 	hard-forbid: a empty?
 	a noctx-at a.size.noctx-decr
 
+copy-range-to-arr arr ?t(a mut-list ?t, begin nat, size nat) trusted
+	assert: begin + size <= a.size
+	res = uninitialized-data<?t>: size
+	src = a.data + begin
+	memcpy: res.as-any-ptr, src.as-any-ptr, size * size-of<?t>
+	arr: size, res
+
+pop-n-from-start arr ?t(a mut-list ?t, n nat) trusted
+	assert: n <= a.size
+	res = a copy-range-to-arr 0, n
+	dest = a.data as-any-ptr
+	src = a.data + n as-any-ptr
+	memmove: dest, src, n * size-of<?t>
+	a pop-n n
+	res
+
 pop opt ?t(a mut-list ?t) trusted
 	if a empty?
 		none
@@ -97,6 +116,12 @@ pop opt ?t(a mut-list ?t) trusted
 		a set-at new-size, zeroed
 		a set-size new-size
 		res some
+
+pop-n void(a mut-list ?t, n nat) trusted
+	assert: n <= a.size
+	new-size = a.size - n
+	a.data + new-size set-zero-range n
+	a set-size new-size
 
 push void(a mut-list ?t, value ?t) trusted
 	if a.size == a.capacity
@@ -125,6 +150,10 @@ increase-capacity-to void(a mut-list ?t, new-capacity nat) unsafe
 ensure-capacity void(a mut-list ?t, capacity nat) unsafe
 	if a.capacity < capacity
 		a increase-capacity-to: capacity.round-up-to-power-of-two
+
+remove-unordered-at-index ?t(a mut-list ?t, index nat) trusted
+	assert: index < a.size
+	a noctx-remove-unordered-at-index index
 
 noctx-remove-unordered-at-index ?t(a mut-list ?t, index nat) noctx unsafe
 	res = a noctx-at index
@@ -167,3 +196,6 @@ reduce-size-if-more-than void(a mut-list ?t, new-size nat)
 		acc
 	else
 		acc * 2 round-up-to-power-of-two-recur n
+
+index-of opt nat(a mut-list ?t, value ?t) data<?t> trusted
+	a.temp-as-arr index-of value

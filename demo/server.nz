@@ -1,6 +1,7 @@
 import
-	collection.mut-set: add has? new-mut-set
-	io.net.tcp-server: close-client start-tcp-server stop
+	collection.mut-set: add has? new-mut-set remove
+	io.net.http-server: http-handler http-response start-http-server
+	io.net.tcp-server: close-client start-tcp-server stop tcp-handler
 	io.print: print
 	io.process: exit-code
 	posix.errno: errno
@@ -10,19 +11,36 @@ import
 	sys.epoll: epoll-event
 
 main fut exit-code(args arr str) unsafe summon
-	assert: args.size == 1
-	port = args at 0
-
 	assert: size-of<epoll-event> == 12
+	if args.size != 1
+		print: "Usage: server PORT"
+		1 resolved
+	else
+		port = args at 0
+		if false
+			print: "RUNNING OLD MAIN"
+			port old-main
+		else
+			port new-main
 
-	closed-clients = new-mut-set<fd-t>
+new-main fut exit-code(port str) unsafe summon
+	handler = as<http-handler>: \req
+		drop: req
+		resolved: http-response: 200, "OK", empty-dict, "Hello, internet world!"
+	server = port start-http-server handler
+	drop: server
+	0 resolved
 
-	| WARN: Leaks memory if server is not stopped.
-	server = port start-tcp-server \client-fd chunk
-		if closed-clients has? client-fd not
-			s = chunk as-str
+old-main fut exit-code(port str) unsafe summon
+	clients = new-mut-set<fd-t>
+
+	on-accepted-client = as<ref void(fd-t)>: \fd
+		clients add fd
+		void resolved
+	on-received-chunk = as<ref void(fd-t, arr byte)>: \client-fd chunk
+		print: "CHUNK: " + chunk.as-str
+		if clients has? client-fd
 			print: "got chunk (" + chunk.size.to-str + " bytes) on " + client-fd.to-str
-			drop: s
 			| TODO: this actually does not belong here..
 			response = ok-response
 			wrote = client-fd write response.data.ptr-cast<byte, char>, response.size
@@ -35,10 +53,11 @@ main fut exit-code(args arr str) unsafe summon
 			assert: wrote == response.size.to-int
 			client-fd close-client
 			print: "Closed client on " + client-fd.to-str
-			closed-clients add client-fd
+			clients remove client-fd
 		else
 			print: "ignoring chunk from closed client " + client-fd.to-str
 		void resolved
+	server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
 
 	print: "will stop after 10 seconds"
 	ignore-me <- 10000 delay-msec

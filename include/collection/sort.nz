@@ -1,0 +1,46 @@
+import
+	..bootstrap: < <= > arr data nat size void
+	..exceptions: assert
+	..number-utils: / decr incr
+	.arr-utils: at
+	.mut-arr: at cast-immutable make-mut-arr mut-arr set-at size slice slice-after
+
+sort arr ?t(a arr ?t) data<?t> trusted
+	res = a copy-to-mut-arr
+	res sort
+	res cast-immutable
+
+.copy-to-mut-arr mut-arr ?t(a arr ?t)
+	a.size make-mut-arr<?t> \i
+		a at i
+
+sort void(a mut-arr ?t) data<?t>
+	if a.size > 1
+		| Perf -- in case a is sorted already, prefer the middle element as a pivot
+		a swap: 0, a.size / 2
+		pivot = a at 0
+		index-of-first-value-gt-pivot = a partition-recur pivot, 1, a.size.decr
+		new-pivot-index = index-of-first-value-gt-pivot.decr
+		a swap 0, new-pivot-index
+
+		sort: a slice 0, new-pivot-index
+		sort: a slice-after new-pivot-index
+
+| Returns index of first value > pivot
+.partition-recur nat(a mut-arr ?t, pivot ?t, l nat, r nat) data<?t>
+	assert: l <= a.size
+	assert: r < a.size
+	if l <= r
+		em = a at l
+		if em < pivot
+			a partition-recur pivot, l.incr, r
+		else
+			a swap l, r
+			a partition-recur pivot, l, r.decr
+	else
+		l
+
+.swap void(a mut-arr ?t, x nat, y nat)
+	old-x = a at x
+	a set-at: x, a at y
+	a set-at y, old-x

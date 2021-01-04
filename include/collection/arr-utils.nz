@@ -1,11 +1,11 @@
 import
-	.alloc: alloc set-zero-range
-	.bootstrap
-		+ - == != < <= > >= ? and arr bool byte by-val call data deref false hard-assert incr nat
+	..alloc: alloc
+	..bootstrap
+		+ - == != < <= >= ? and arr bool byte by-val call data deref false hard-assert incr nat
 		noctx-incr none not null opt or ptr ptr-cast ref-of-ptr set size size-of some void wrap-mul
-	.exceptions: assert forbid
-	.number-utils: + - / decr incr
-	.opt-utils: force
+	..exceptions: assert forbid
+	..number-utils: + - / decr incr
+	..opt-utils: force
 
 arr-from-begin-end arr ?t(begin ptr ?t, end ptr ?t) unsafe noctx
 	arr: (end - begin), begin
@@ -23,10 +23,6 @@ slice arr ?t(a arr ?t, begin nat, size nat) trusted
 	assert: begin + size <= a.size
 	arr: size, a.data + begin
 
-slice mut-arr ?t(a mut-arr ?t, begin nat, size nat) trusted
-	assert: begin + size <= a.size
-	mut-arr: size, a.data + begin
-
 slice-from-to arr ?t(a arr ?t, begin nat, end nat) trusted
 	assert: begin <= end
 	a slice: begin, end - begin
@@ -35,15 +31,9 @@ slice-starting-at arr ?t(a arr ?t, begin nat)
 	assert: begin <= a.size
 	a slice: begin, a.size - begin
 
-slice-starting-at mut-arr ?t(a mut-arr ?t, begin nat)
-	assert: begin <= a.size
-	a slice: begin, a.size - begin
-
 slice-after arr ?t(a arr ?t, before-begin nat)
 	a slice-starting-at before-begin.incr
 
-slice-after mut-arr ?t(a mut-arr ?t, before-begin nat)
-	a slice-starting-at before-begin.incr
 
 slice-up-to arr ?t(a arr ?t, size nat)
 	assert: size <= a.size
@@ -90,45 +80,6 @@ ref-of-val-at ?t(a arr by-val<?t>, index nat) trusted
 	assert: index < a.size
 	a.data + index ref-of-ptr
 
-
-
-mut-arr<?t> record mut
-	by-val
-	| TODO:PRIVATE
-	arr arr ?t
-
-empty-mut-arr mut-arr ?t() noctx
-	mut-arr: empty-arr
-
-set-zero-elements void(a mut-arr ?t) noctx unsafe
-	a.data set-zero-range a.size
-
-mut-arr mut-arr ?t(size nat, data ptr ?t) noctx unsafe
-	mut-arr: arr: size, data
-
-new-uninitialized-mut-arr mut-arr ?t(size nat) unsafe
-	mut-arr: size, uninitialized-data<?t>: size
-
-cast-immutable arr ?t(a mut-arr ?t) noctx unsafe
-	a.arr
-
-size nat(a mut-arr ?t) noctx
-	a.arr size
-
-data ptr ?t(a mut-arr ?t) noctx unsafe
-	a.arr data
-
-at ?t(a mut-arr ?t, index nat)
-	a.arr at index
-
-set-at void(a mut-arr ?t, index nat, value ?t) trusted
-	assert: index < a.size
-	a noctx-set-at index, value
-
-noctx-set-at void(a mut-arr ?t, index nat, value ?t) noctx unsafe
-	hard-assert: index < a.size
-	a.data + index set value
-
 prepend arr ?t(a ?t, b arr ?t)
 	(new-arr a) + b
 
@@ -148,45 +99,6 @@ append arr ?t(a arr ?t, b ?t)
 	res copy-data-from a.data, a.size
 	res + a.size copy-data-from b.data, b.size
 	arr<?t>: res-size, res
-
-sort arr ?t(a arr ?t) data<?t> trusted
-	res = a copy-to-mut-arr
-	res sort
-	res cast-immutable
-
-temp-as-arr arr ?t(a mut-arr ?t) noctx unsafe
-	a arr
-
-sort void(a mut-arr ?t) data<?t>
-	if a.size > 1
-		| Perf -- in case a is sorted already, prefer the middle element as a pivot
-		a swap: 0, a.size / 2
-		pivot = a at 0
-		index-of-first-value-gt-pivot = a partition-recur pivot, 1, a.size.decr
-		new-pivot-index = index-of-first-value-gt-pivot.decr
-		a swap 0, new-pivot-index
-
-		sort: a slice 0, new-pivot-index
-		sort: a slice-after new-pivot-index
-
-swap void(a mut-arr ?t, x nat, y nat)
-	old-x = a at x
-	a set-at: x, a at y
-	a set-at y, old-x
-
-| Returns index of first value > pivot
-partition-recur nat(a mut-arr ?t, pivot ?t, l nat, r nat) data<?t>
-	assert: l <= a.size
-	assert: r < a.size
-	if l <= r
-		em = a at l
-		if em < pivot
-			a partition-recur pivot, l.incr, r
-		else
-			a swap l, r
-			a partition-recur pivot, l, r.decr
-	else
-		l
 
 uninitialized-data ptr ?t(size nat) unsafe
 	bptr = size wrap-mul size-of<?t> alloc
@@ -250,29 +162,21 @@ fold ?a(val ?a, a arr ?b, combine act ?a(?a, ?b))
 		combine call val, a.first fold a.tail, combine
 
 make-arr arr ?t(size nat, f act ?t(nat)) trusted
-	size make-mut-arr f cast-immutable
+	data = size uninitialized-data<?t>
+	data fill-ptr-range size, f
+	arr: size, data
 
-make-mut-arr mut-arr ?t(size nat, f act ?t(nat)) trusted
-	res = new-uninitialized-mut-arr<?t>: size
-	res make-mut-arr-worker 0, f
-	res
+fill-ptr-range void(begin ptr ?t, size nat, f act ?t(nat)) unsafe
+	begin fill-ptr-range-recur 0, size, f
+
+.fill-ptr-range-recur void(begin ptr ?t, i nat, size nat, f act ?t(nat)) unsafe
+	if i != size
+		begin + i set: f call i
+		begin fill-ptr-range-recur i.incr, size, f
 
 fill-arr arr ?t(size nat, value ?t)
 	size make-arr \ignore
 		value
-
-fill-mut-arr mut-arr ?t(size nat, value ?t)
-	size make-mut-arr \ignore
-		value
-
-make-mut-arr-worker void(a mut-arr ?t, i nat, f act ?t(nat))
-	if i != a.size
-		a set-at: i, f call i
-		a make-mut-arr-worker i.incr, f
-
-copy-to-mut-arr mut-arr ?t(a arr ?t)
-	a.size make-mut-arr<?t> \i
-		a at i
 
 each void(a arr ?t, f act void(?t))
 	if a.empty? not
@@ -300,7 +204,7 @@ r-index-of opt nat(a arr ?t, value ?t) data<?t>
 find-index opt nat(a arr ?t, pred act bool(?t))
 	a find-index-recur 0, pred
 
-find-index-recur opt nat(a arr ?t, index nat, pred act bool(?t))
+.find-index-recur opt nat(a arr ?t, index nat, pred act bool(?t))
 	if index == a.size
 		none
 	elif pred call: a at index
@@ -313,7 +217,8 @@ find-rindex opt nat(a arr ?t, pred act bool(?t))
 		none
 	else
 		a find-rindex-recur a.size.decr, pred
-find-rindex-recur opt nat(a arr ?t, index nat, pred act bool(?t))
+
+.find-rindex-recur opt nat(a arr ?t, index nat, pred act bool(?t))
 	if pred call: a at index
 		index some
 	elif index == 0

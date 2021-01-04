@@ -5,9 +5,11 @@ import
 		nat16 nat32 none not null? opt ptr-cast ptr-cast-from-extern ptr-eq?
 		ref-eq? size size-of some str todo value void
 		wrap-add
-	..arr-utils: + cast-immutable data new-uninitialized-mut-arr size slice-up-to sort
 	..cell: cell get
+	..collection.arr-utils: + slice-up-to
+	..collection.mut-arr: cast-immutable data new-uninitialized-mut-arr size
 	..collection.mut-list: move-to-arr mut-list new-mut-list push
+	..collection.sort: sort
 	..exceptions: assert forbid
 	..number-utils: to-int to-nat
 	..posix.bytes-types: zero

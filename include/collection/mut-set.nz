@@ -1,6 +1,6 @@
 import
 	..bootstrap: bool data void
-	.dict: add has? mut-dict new-mut-dict
+	.dict: add has? mut-dict new-mut-dict remove
 
 mut-set<?t> record mut
 	| TODO:PRIVATE
@@ -9,8 +9,11 @@ mut-set<?t> record mut
 new-mut-set mut-set ?t()
 	mut-set: new-mut-dict
 
+has? bool(a mut-set ?t, value ?t) data<?t>
+	a.inner has? value
+
 add void(a mut-set ?t, value ?t) data<?t>
 	a.inner add value, void
 
-has? bool(a mut-set ?t, value ?t) data<?t>
-	a.inner has? value
+remove void(a mut-set ?t, value ?t) data<?t>
+	a.inner remove value

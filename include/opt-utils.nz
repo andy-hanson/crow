@@ -2,17 +2,6 @@ import
 	.bootstrap: call none opt some value
 	.exceptions: fail
 
-opt-join opt ?out(a opt ?a, b opt ?b, cb act ?out(?a, ?b))
-	match a
-	as none
-		none
-	as some some-a
-		match b
-		as none
-			none
-		as some some-b
-			some: cb call some-a.value, some-b.value
-
 opt-map opt ?out(a opt ?in, cb act ?out(?in))
 	match a
 	as none
