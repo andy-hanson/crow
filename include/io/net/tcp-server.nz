@@ -4,7 +4,7 @@ import
 		nat16 nat32 not or ptr-cast-to-extern ptr-to ref-of-val size-of str todo to-int true value
 		void
 	...cell: cell
-	...collection.arr-utils: cast-immutable data new-uninitialized-mut-arr size slice-up-to
+	...collection.mut-arr: cast-immutable data new-uninitialized-mut-arr size slice-up-to
 	...exceptions: assert
 	...fut-utils: call-ref-void delay-msec handle-exceptions then then-void fut-catch resolved
 	...number-utils: to-int to-int32 to-nat to-nat32

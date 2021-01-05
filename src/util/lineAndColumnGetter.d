@@ -82,7 +82,7 @@ private:
 immutable u32 TAB_SIZE = 4; // TODO: configurable
 
 u16 mid(immutable u16 a, immutable u16 b) {
-	return (a + b) /  2;
+	return (a + b) / 2;
 }
 
 u8 getNTabs(immutable Str text) {

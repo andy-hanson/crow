@@ -1,6 +1,7 @@
 import
 	..bootstrap: == arr bool call data drop has? nat none not opt size some todo value void
-	..collection.arr-utils: at empty? empty-arr first map tail
+	..collection.arr: at empty? empty-arr
+	..collection.arr-util: first map tail
 	..exceptions: forbid
 	..number-utils: incr
 	.mut-list: index-of move-to-arr mut-list new-mut-list push remove-unordered-at-index temp-as-arr

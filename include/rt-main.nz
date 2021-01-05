@@ -5,7 +5,8 @@ import
 		fun-ptr2 fut get-ctx int32 message nat noctx-decr noctx-incr null
 		ptr ptr-to ref-of-val set str to-int unsafe-to-nat value void
 	.cell: as-cell
-	.collection.arr-utils: empty-arr map tail
+	.collection.arr: empty-arr
+	.collection.arr-util: map tail
 	.exceptions: new-exception-ctx
 	.fut-low-level: must-be-resolved
 	.fut-utils: delay then2

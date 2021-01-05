@@ -2,7 +2,7 @@ import
 	..bootstrap: < <= > arr data nat size void
 	..exceptions: assert
 	..number-utils: / decr incr
-	.arr-utils: at
+	.arr: at
 	.mut-arr: at cast-immutable make-mut-arr mut-arr set-at size slice slice-after
 
 sort arr ?t(a arr ?t) data<?t> trusted

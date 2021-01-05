@@ -1,6 +1,6 @@
 import
 	...bootstrap: == != >= arr as byte drop fut nat none opt size some str todo value void
-	...collection.arr-utils: at empty?
+	...collection.arr: at empty?
 	...collection.dict: add dict empty-dict get move-to-dict mut-dict new-mut-dict
 	...collection.mut-list: index-of move-to-arr mut-str new-mut-list pop-n-from-start push-all size
 	...exceptions: assert forbid
@@ -112,14 +112,6 @@ parse-method http-method(name str)
 		http-post
 	else
 		todo
-
-| TODO:MOVE
-| TODO: NOT SUMMON
-.split arr str(a str, splitter str) summon
-	print: "TODO:SPLIT"
-	drop: a
-	drop: splitter
-	todo
 
 .try-take-first-line opt str(a mut-str)
 	match a index-of "\n"

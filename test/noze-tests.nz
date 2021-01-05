@@ -1,4 +1,5 @@
 import
+	collection.arr-util: first first-some tail
 	collection.mut-list: move-to-arr mut-str new-mut-list push
 	io.environ: environ
 	io.print: print

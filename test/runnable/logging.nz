@@ -1,5 +1,6 @@
 import
 	io.process: exit-code
+	logging: get-log-handler info log log-handler warn with-log-handler
 
 main fut exit-code(_ arr str) summon
 	info log "Logged once"

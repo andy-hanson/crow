@@ -1,15 +1,16 @@
 #!/usr/bin/env noze
 
 import
-	command-line-parser
+	collection.arr-util: first
+	command-line-parser: parse-cmd-line-args
 	io.environ: get-environ
 	io.file: current-executable-path
 	io.print: print
 	io.process: exit-code
-	.failure
-	.lint
-	.noze-tests
-	.path-utils
+	.failure: first-failures print-failures test-options
+	.lint: lint
+	.noze-tests: run-noze-tests
+	.path-utils: child-path parent-path
 
 main fut exit-code(args arr str) summon
 	option-names = new-arr<str> "print-tests", "overwrite-output", "max-failures"
@@ -43,8 +44,8 @@ main fut exit-code(args arr str) summon
 .print-help void() summon
 	print: "test -- runs tests"
 	print: "options:"
-	print: "\t--print-tests  : print every test run"
-	print: "\t--max-failures : stop after this many failures. Defaults to 10."
+	print: "\t--print-tests: print every test run"
+	print: "\t--max-failures: stop after this many failures. Defaults to 10."
 
 .do-test exit-code(options test-options) summon
 	test-path = current-executable-path parent-path

@@ -1,5 +1,6 @@
 import
 	cell: cell get swap
+	collection.arr-util: contains? contains-subseq? each-with-index exists? ends-with? first tail
 	collection.mut-list: move-to-arr new-mut-list push
 	io.file: read-file
 	io.print: print
@@ -27,16 +28,18 @@ lint result<str, arr failure>(path str, options test-options) summon
 .excluded-from-lint? bool(name str)
 	bad-exts = new-arr<str> ".bmp", ".err", ".png", ".tata", ".wasm"
 	bad-names = new-arr<str> "dyncall", "libfirm", "node_modules", "package-lock.json"
-	name.first == "." or: bad-names contains? name or: bad-exts some? {name ends-with? it}
+	name.first == "." or: bad-names contains? name or: bad-exts exists? {name ends-with? it}
 
 | Returns nubmer of errors
 .lint-file arr failure(path str) summon
 	text = path read-file
 	res = new-mut-list<failure>
-	err-file? = path.get-extension.force == "err"
+	ext = path.get-extension force
+	allow-double-space? = ext == "err" or: ext == "sublime-syntax"
 	text.lines each-with-index \line line-num
 		ln = line-num.incr.to-str
-		if err-file?.not and: line.lstrip contains-subsequence? "  "
+		space-space = " " + " "
+		if allow-double-space?.not and: line contains-subseq? space-space
 			message = "line " + ln + " contains a double space"
 			res push failure: path, message
 		width = line line-len

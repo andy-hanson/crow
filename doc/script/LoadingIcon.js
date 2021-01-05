@@ -11,7 +11,7 @@ const child3Class = cssClass("child-3")
 const time = 0.8
 
 /** @type {CustomElementClass<null, null, null>} */
-export const LoadingIcon =  makeCustomElement({
+export const LoadingIcon = makeCustomElement({
 	tagName: "noze-loading-spinner",
 	styleSheet: new StyleBuilder()
 		.class(rootClass, {

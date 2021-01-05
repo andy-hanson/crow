@@ -8,7 +8,7 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail, slice;
-import util.collection.str : copyStr, CStr, emptyStr, NulTerminatedStr, Str, stripNulTerminator,  strLiteral;
+import util.collection.str : copyStr, CStr, emptyStr, NulTerminatedStr, Str, stripNulTerminator, strLiteral;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, optOr, some;
 import util.ptr : Ptr;

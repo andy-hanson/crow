@@ -981,13 +981,13 @@ immutable(Sexpr) sexprOfExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAs
 					sexprOfExprAst(alloc, it))]),
 		(ref immutable CreateArrAst e) =>
 			tataRecord(alloc, "create-arr", [
-				tataOpt(alloc,  e.elementType, (ref immutable Ptr!TypeAst it) =>
+				tataOpt(alloc, e.elementType, (ref immutable Ptr!TypeAst it) =>
 					sexprOfTypeAst(alloc, it)),
 				tataArr(alloc, e.args, (ref immutable ExprAst it) =>
 					sexprOfExprAst(alloc, it))]),
 		(ref immutable FunPtrAst a) =>
 			tataRecord(alloc, "fun-ptr", [tataSym(a.name)]),
-		(ref immutable IdentifierAst a)  =>
+		(ref immutable IdentifierAst a) =>
 			tataSym(a.name),
 		(ref immutable IfAst e) =>
 			tataRecord(alloc, "if", [

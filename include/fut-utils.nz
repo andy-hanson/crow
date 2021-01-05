@@ -1,12 +1,10 @@
 import
 	.bootstrap
 		by-val call err exception exclusion fun fut fut-callback-node fut-state-callbacks
-		fut-state-resolved head island island-and-exclusion lk nat none ok opt ref-of-val result
+		fut-state-resolved head island island-and-exclusion lk none ok opt ref-of-val result
 		send set-state some state todo value void
 	.exceptions: catch
 	.fut-low-level: new-unresolved-fut reject resolve resolve-or-reject
-	.io.time: get-monotime-nsec
-	.number-utils: + *
 	.opt-utils: force
 	.runtime: add-task exception-handler get-cur-island get-island new-exclusion
 	.thread-utils: acquire-lock decrement new-lock new-thread-safe-counter release-lock thread-safe-counter
@@ -15,25 +13,13 @@ import
 delay fut void()
 	void resolved
 
-| TODO: put in io.time?
-delay-msec fut void(msec nat) summon
-	delay-nsec: msec * 1000000
-
-delay-nsec fut void(nsec nat) trusted summon
-	target-time = get-monotime-nsec + nsec
-	island = get-cur-island
-	res = new-unresolved-fut<void>
-	island add-task target-time, island.new-exclusion, \
-		res resolve void
-	res
-
 resolved fut ?t(value ?t)
 	fut: new-lock, fut-state-resolved: value
 
 rejected fut ?t(err exception)
 	fut: new-lock, err
 
-joiner<?out, ?in0, ?in1> record force-sendable
+.joiner<?out, ?in0, ?in1> record force-sendable
 	res fut ?out
 	fun ref ?out(?in0, ?in1)
 	arg0 mut opt result<?in0, exception>
@@ -42,7 +28,7 @@ joiner<?out, ?in0, ?in1> record force-sendable
 	| We need to atomically decrement the counter so we only call 'fun' once
 	n-remaining-args by-val thread-safe-counter
 
-decr-joiner void(j joiner<?out, ?in0, ?in1>) unsafe send<?out> send<?in0> send<?in1>
+.decr-joiner void(j joiner<?out, ?in0, ?in1>) unsafe send<?out> send<?in0> send<?in1>
 	if j.n-remaining-args.ref-of-val decrement
 		match j.arg0 force
 		as ok ok0

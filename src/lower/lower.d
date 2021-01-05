@@ -1326,9 +1326,9 @@ immutable(LowExprKind) getCreateArrExpr(Alloc)(
 	ref immutable ConcreteExprKind.CreateArr a,
 ) {
 	// (temp = _alloc(ctx, sizeof(foo) * 2),
-	//  *(temp + 0) = a,
-	//  *(temp + 1) = b,
-	//  arr_foo{2, temp})
+	// *(temp + 0) = a,
+	// *(temp + 1) = b,
+	// arr_foo{2, temp})
 	immutable LowType arrType = lowTypeFromConcreteStruct(alloc, typeCtx(ctx), a.arrType);
 	immutable LowType elementType = lowTypeFromConcreteType(alloc, typeCtx(ctx), a.elementType);
 	immutable LowType elementPtrType = getLowRawPtrType(alloc, typeCtx(ctx), elementType);

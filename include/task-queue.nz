@@ -5,7 +5,7 @@ import
 	.collection.mut-list
 		contains? mut-list new-mut-list-by-val-with-capacity-from-unmanaged-memory
 		noctx-must-remove-unordered push-capacity-must-be-sufficient
-	.io.time: timestamp
+	.io.time-low-level: timestamp
 
 | TODO: use a heap, not a list
 

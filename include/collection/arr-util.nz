@@ -1,0 +1,181 @@
+import
+	..alloc: fill-ptr-range uninitialized-data
+	..bootstrap
+		== != >= and arr bool call data false has? incr nat noctx-incr none not opt ptr set size
+		some true value void
+	..exceptions: forbid
+	..number-utils: + - decr incr
+	..opt-utils: force
+	.arr: + arr-eq? at empty-arr empty? noctx-at slice slice-starting-at slice-up-to
+
+make-arr arr ?t(size nat, f act ?t(nat)) trusted
+	data = size uninitialized-data<?t>
+	data fill-ptr-range size, f
+	arr: size, data
+
+fill-arr arr ?t(size nat, value ?t)
+	size make-arr \ignore
+		value
+
+each void(a arr ?t, f act void(?t))
+	if a.empty? not
+		f call a.first
+		a.tail each f
+
+each-with-index void(a arr ?t, f act void(?t, nat))
+	a each-with-index-recur f, 0
+
+.each-with-index-recur void(a arr ?t, f act void(?t, nat), n nat)
+	if n != a.size
+		f call (a at n), n
+		a each-with-index-recur f, n.incr
+
+map arr ?out(a arr ?in, mapper act ?out(?in)) trusted
+	a.size make-arr \i
+		mapper call: a at i
+
+first ?t(a arr ?t)
+	forbid: a empty?
+	a at 0
+
+last ?t(a arr ?t)
+	forbid: a empty?
+	a at a.size.decr
+
+tail arr ?t(a arr ?t)
+	forbid: a empty?
+	a slice-starting-at 1
+
+rtail arr ?t(a arr ?t)
+	forbid: a empty?
+	a slice-up-to a.size.decr
+
+first-some opt ?out(a arr ?in, cb act opt ?out(?in))
+	if a empty?
+		none
+	else
+		match cb call a.first
+		as none
+			a.tail first-some cb
+		as some s
+			s
+
+exists? bool(a arr ?t, pred act bool(?t))
+	if a empty?
+		false
+	elif pred call a.first
+		true
+	else
+		a.tail exists? pred
+
+| TODO: only written this way to be `noctx`, else could defer to `some?`
+contains? bool(a arr ?t, value ?t) noctx data<?t>
+	a contains-recur? value, 0
+
+contains-recur? bool(a arr ?t, value ?t, i nat) noctx trusted data<?t>
+	if i == a.size
+		false
+	elif a noctx-at i == value
+		true
+	else
+		a contains-recur? value, i.noctx-incr
+
+contains-subseq? bool(a arr ?t, subseq arr ?t) data<?t>
+	a index-of-subseq subseq has?
+
+starts-with? bool(a arr ?t, start arr ?t) data<?t>
+	a.size >= start.size and: a slice-up-to start.size arr-eq? start
+
+ends-with? bool(a arr ?t, end arr ?t) data<?t>
+	a.size >= end.size and: a slice (a.size - end.size), end.size arr-eq? end
+
+remove-start arr ?t(a arr ?t, start arr ?t) data<?t>
+	a try-remove-start start force
+
+try-remove-start opt arr<?t>(a arr ?t, start arr ?t) data<?t>
+	if a starts-with? start
+		a slice-starting-at start.size some
+	else
+		none
+
+fold ?a(val ?a, a arr ?b, combine act ?a(?a, ?b))
+	if a empty?
+		val
+	else
+		combine call val, a.first fold a.tail, combine
+
+index-of-subseq opt nat(a arr ?t, subseq arr ?t) data<?t>
+	a index-of-subseq-recur subseq, 0
+
+.index-of-subseq-recur opt nat(a arr ?t, subseq arr ?t, i nat) data<?t>
+	if i == a.size
+		none
+	elif a slice-starting-at i starts-with? subseq
+		i some
+	else
+		a index-of-subseq-recur subseq, i.incr
+
+index-of opt nat(a arr ?t, value ?t) data<?t>
+	a find-index {it == value}
+
+r-index-of opt nat(a arr ?t, value ?t) data<?t>
+	a find-rindex {it == value}
+
+find-index opt nat(a arr ?t, pred act bool(?t))
+	a find-index-recur 0, pred
+
+.find-index-recur opt nat(a arr ?t, index nat, pred act bool(?t))
+	if index == a.size
+		none
+	elif pred call: a at index
+		index some
+	else
+		a find-index-recur index.incr, pred
+
+find-rindex opt nat(a arr ?t, pred act bool(?t))
+	if a empty?
+		none
+	else
+		a find-rindex-recur a.size.decr, pred
+
+.find-rindex-recur opt nat(a arr ?t, index nat, pred act bool(?t))
+	if pred call: a at index
+		index some
+	elif index == 0
+		none
+	else
+		a find-rindex-recur index.decr, pred
+
+join arr ?t(a arr arr ?t, joiner arr ?t)
+	if a empty?
+		empty-arr
+	elif a.size == 1
+		a at 0
+	else
+		a at 0 + joiner +: a.tail join joiner
+
+split-by-subseq arr arr ?t(a arr ?t, splitter arr ?t) data<?t> trusted
+	size = a count-subseqs splitter incr
+	data = size uninitialized-data<arr ?t>
+	data fill-subseqs-recur a, splitter
+	arr: size, data
+
+count-subseqs nat(a arr ?t, subseq arr ?t) data<?t>
+	a count-subseqs-recur subseq, 0
+
+.count-subseqs-recur nat(a arr ?t, subseq arr ?t, acc nat) data<?t>
+	match a index-of-subseq subseq
+	as none
+		acc
+	as some s
+		rest = a slice-starting-at: s.value + subseq.size
+		rest count-subseqs-recur subseq, acc.incr
+
+.fill-subseqs-recur void(out ptr arr ?t, a arr ?t, splitter arr ?t) data<?t> unsafe
+	match a index-of-subseq splitter
+	as none
+		out set a
+	as some s
+		out set: a slice-up-to s.value
+		rest = a slice-starting-at: s.value + splitter.size
+		out.incr fill-subseqs-recur rest, splitter

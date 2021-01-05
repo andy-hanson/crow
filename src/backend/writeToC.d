@@ -903,7 +903,7 @@ struct WriteKind {
 	}
 	struct Void {}
 
-	@trusted immutable this(immutable Ptr!LowLocal a) { kind = Kind.local; local =  a; }
+	@trusted immutable this(immutable Ptr!LowLocal a) { kind = Kind.local; local = a; }
 	immutable this(immutable MakeTemp a) { kind = Kind.makeTemp; makeTemp = a; }
 	immutable this(immutable Return a) { kind = Kind.return_; return_ = a; }
 	immutable this(immutable UseTemp a) { kind = Kind.useTemp; useTemp = a; }

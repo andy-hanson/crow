@@ -1,0 +1,75 @@
+import
+	..alloc: copy-data-from uninitialized-data
+	..bootstrap
+		+ - == != < <= arr bool by-val data deref false hard-assert nat not null ptr ref-of-ptr
+		size true
+	..exceptions: assert
+	..number-utils: + - incr
+
+arr-from-begin-end arr ?t(begin ptr ?t, end ptr ?t) unsafe noctx
+	arr: (end - begin), begin
+
+empty-arr arr ?t() noctx trusted
+	arr: 0, null
+
+empty? bool(a arr ?t) noctx
+	a.size == 0
+
+has? bool(a arr ?t) noctx
+	a.empty? not
+
+slice arr ?t(a arr ?t, begin nat, size nat) trusted
+	assert: begin + size <= a.size
+	arr: size, a.data + begin
+
+slice-from-to arr ?t(a arr ?t, begin nat, end nat) trusted
+	assert: begin <= end
+	a slice: begin, end - begin
+
+slice-starting-at arr ?t(a arr ?t, begin nat)
+	assert: begin <= a.size
+	a slice: begin, a.size - begin
+
+slice-after arr ?t(a arr ?t, before-begin nat)
+	a slice-starting-at before-begin.incr
+
+slice-up-to arr ?t(a arr ?t, size nat)
+	assert: size <= a.size
+	a slice: 0, size
+
+noctx-at ?t(a arr ?t, index nat) trusted noctx
+	hard-assert: index < a.size
+	a.data + index deref
+
+at ?t(a arr ?t, index nat) trusted
+	assert: index < a.size
+	a noctx-at index
+
+ref-of-val-at ?t(a arr by-val<?t>, index nat) trusted
+	assert: index < a.size
+	a.data + index ref-of-ptr
+
+prepend arr ?t(a ?t, b arr ?t)
+	(new-arr a) + b
+
+append arr ?t(a arr ?t, b ?t)
+	a + (new-arr b)
+
++ arr ?t(a arr ?t, b arr ?t) trusted
+	res-size = a.size + b.size
+	res = res-size uninitialized-data<?t>
+	res copy-data-from a.data, a.size
+	res + a.size copy-data-from b.data, b.size
+	arr<?t>: res-size, res
+
+| TODO: should be unnecessary, just use '=='
+| (But type system must recognize that `arr ?t` is data if `?t` is)
+arr-eq? bool(a arr ?t, b arr ?t) data<?t>
+	if a.size != b.size
+		false
+	elif a.empty?
+		true
+	elif a at 0 !=: b at 0
+		false
+	else
+		a slice-starting-at 1 arr-eq?: b slice-starting-at 1

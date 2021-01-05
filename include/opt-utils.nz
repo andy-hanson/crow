@@ -22,10 +22,3 @@ force ?t(a opt ?t)
 		fail: "tried to force empty option"
 	as some s
 		s value
-
-then opt ?out(a opt ?in, f act opt ?out(?in))
-	match a
-	as none
-		none
-	as some s
-		f call s.value

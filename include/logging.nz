@@ -1,6 +1,6 @@
 import
 	.bootstrap: as-ref by-val call get-ctx log-ctx str void zeroed
-	.collection.arr-utils: +
+	.collection.arr: +
 	.exceptions: finally
 	.io.print: print
 

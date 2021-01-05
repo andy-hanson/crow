@@ -1,10 +1,8 @@
 export
 	.bootstrap
-	.collection.arr-utils
+	.collection.arr
 	.exceptions
 	.fut-utils
-	.iter
-	.logging
 	.number-utils
 	.opt-utils
 	.str-conv

@@ -231,7 +231,7 @@ contexts:
       scope: storage.type
     - match: '\('
       scope: comment
-      push: type_args      
+      push: type_args
     - match: ','
       scope: comment # punctuation.separator
       pop: true

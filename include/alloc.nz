@@ -1,11 +1,11 @@
 import
 	.bootstrap
-		+ - == < <= > any-ptr as as-any-ptr as-ref bits-and bits-not bool byte by-val deref false
+		+ - == != < <= > any-ptr as as-any-ptr as-ref bits-and bits-not bool byte by-val call deref false
 		gc-ctx-ptr get-ctx hard-assert hard-forbid incr lock nat nat64 none not
 		null? opt or ptr ptr-eq? ptr-less? ptr-less-eq? ptr-cast ref-of-val set size-of
 		some todo to-nat true unsafe-div value void wrap-add wrap-incr wrap-mul wrap-sub
 	.posix.stdlib: free malloc
-	.posix.string: memset
+	.posix.string: memcpy memset
 	.thread-utils: acquire-lock new-lock release-lock
 
 set-zero-range void(begin ptr ?t, size nat) noctx unsafe
@@ -227,6 +227,10 @@ gc-alloc any-ptr(gc gc, size nat) trusted
 alloc any-ptr(size nat) unsafe
 	get-gc gc-alloc size
 
+uninitialized-data ptr ?t(size nat) unsafe
+	bptr = size wrap-mul size-of<?t> alloc
+	bptr ptr-cast<?t, byte>
+
 unmanaged-alloc-bytes any-ptr(size nat) noctx unsafe
 	res = size malloc
 	hard-forbid: res null?
@@ -245,3 +249,13 @@ unmanaged-alloc-elements ptr ?t(size-elements nat) noctx unsafe
 unmanaged-free void(p ptr ?t) noctx unsafe
 	p.ptr-cast free
 
+copy-data-from void(to ptr ?t, from ptr ?t, len nat) unsafe
+	to.as-any-ptr memcpy: from.as-any-ptr, len wrap-mul size-of<?t>
+
+fill-ptr-range void(begin ptr ?t, size nat, f act ?t(nat)) unsafe
+	begin fill-ptr-range-recur 0, size, f
+
+.fill-ptr-range-recur void(begin ptr ?t, i nat, size nat, f act ?t(nat)) unsafe
+	if i != size
+		begin + i set: f call i
+		begin fill-ptr-range-recur i.wrap-incr, size, f

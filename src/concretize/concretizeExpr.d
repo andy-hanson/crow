@@ -366,7 +366,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 			concretizeExpr(alloc, ctx, f.expr));
 	immutable Arr!ConcreteField closureFields =
 		concretizeClosureFields(alloc, ctx.concretizeCtx, e.closure, tScope);
-	immutable ConcreteType closureType =  concreteTypeFromClosure(
+	immutable ConcreteType closureType = concreteTypeFromClosure(
 		alloc,
 		ctx.concretizeCtx,
 		closureFields,
@@ -377,7 +377,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 		immutable ConcreteParamSource(immutable ConcreteParamSource.Closure()),
 		none!size_t,
 		closureType);
-	immutable ConcreteExpr closure =  empty(closureArgs)
+	immutable ConcreteExpr closure = empty(closureArgs)
 		? immutable ConcreteExpr(
 			closureType,
 			range,

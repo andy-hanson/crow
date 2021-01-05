@@ -1,4 +1,5 @@
 import
+	collection.arr-util: each last r-index-of rtail
 	io.file: is-dir? read-dir
 
 parent-path str(a str)

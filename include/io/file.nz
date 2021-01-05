@@ -6,7 +6,7 @@ import
 		ref-eq? size size-of some str todo value void
 		wrap-add
 	..cell: cell get
-	..collection.arr-utils: + slice-up-to
+	..collection.arr: + slice-up-to
 	..collection.mut-arr: cast-immutable data new-uninitialized-mut-arr size
 	..collection.mut-list: move-to-arr mut-list new-mut-list push
 	..collection.sort: sort

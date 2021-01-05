@@ -535,7 +535,7 @@ extern(C) {
 	//alias DCuint = uint;
 	alias DClong = long;
 	//alias DCulong = ulong;
-	//typedef DC_LONG_LONG          DClonglong;
+	//typedef DC_LONG_LONG DClonglong;
 	//typedef unsigned DC_LONG_LONG DCulonglong;
 	alias DCfloat = float;
 	alias DCdouble = double;
@@ -548,36 +548,36 @@ extern(C) {
 
 	enum DC_CALL_C_DEFAULT = 0;
 
-	DCCallVM*  dcNewCallVM     (DCsize size);
-	void       dcFree          (DCCallVM* vm);
-	void       dcReset         (DCCallVM* vm);
+	DCCallVM* dcNewCallVM(DCsize size);
+	void dcFree(DCCallVM* vm);
+	void dcReset(DCCallVM* vm);
 
-	void       dcMode          (DCCallVM* vm, DCint mode);
+	void dcMode(DCCallVM* vm, DCint mode);
 
-	//void       dcArgBool       (DCCallVM* vm, DCbool     value);
-	//void       dcArgChar       (DCCallVM* vm, DCchar     value);
-	//void       dcArgShort      (DCCallVM* vm, DCshort    value);
-	void       dcArgInt        (DCCallVM* vm, DCint      value);
-	void       dcArgLong       (DCCallVM* vm, DClong     value);
-	//void       dcArgLongLong   (DCCallVM* vm, DClonglong value);
-	//void       dcArgFloat      (DCCallVM* vm, DCfloat    value);
-	//void       dcArgDouble     (DCCallVM* vm, DCdouble   value);
-	void       dcArgPointer    (DCCallVM* vm, DCpointer  value);
-	// void       dcArgStruct     (DCCallVM* vm, DCstruct* s, DCpointer value);
+	//void dcArgBool (DCCallVM* vm, DCbool value);
+	//void dcArgChar (DCCallVM* vm, DCchar value);
+	//void dcArgShort (DCCallVM* vm, DCshort value);
+	void dcArgInt (DCCallVM* vm, DCint value);
+	void dcArgLong (DCCallVM* vm, DClong value);
+	//void dcArgLongLong (DCCallVM* vm, DClonglong value);
+	//void dcArgFloat (DCCallVM* vm, DCfloat value);
+	//void dcArgDouble (DCCallVM* vm, DCdouble value);
+	void dcArgPointer (DCCallVM* vm, DCpointer value);
+	// void dcArgStruct (DCCallVM* vm, DCstruct* s, DCpointer value);
 
-	void       dcCallVoid      (DCCallVM* vm, DCpointer funcptr);
-	//DCbool     dcCallBool      (DCCallVM* vm, DCpointer funcptr);
-	//DCchar     dcCallChar      (DCCallVM* vm, DCpointer funcptr);
-	//DCshort    dcCallShort     (DCCallVM* vm, DCpointer funcptr);
-	DCint      dcCallInt       (DCCallVM* vm, DCpointer funcptr);
-	DClong     dcCallLong      (DCCallVM* vm, DCpointer funcptr);
-	//DClonglong dcCallLongLong  (DCCallVM* vm, DCpointer funcptr);
-	//DCfloat    dcCallFloat     (DCCallVM* vm, DCpointer funcptr);
-	//DCdouble   dcCallDouble    (DCCallVM* vm, DCpointer funcptr);
-	DCpointer  dcCallPointer   (DCCallVM* vm, DCpointer funcptr);
-	// void       dcCallStruct    (DCCallVM* vm, DCpointer funcptr, DCstruct* s, DCpointer returnValue);
+	void dcCallVoid (DCCallVM* vm, DCpointer funcptr);
+	//DCbool dcCallBool (DCCallVM* vm, DCpointer funcptr);
+	//DCchar dcCallChar (DCCallVM* vm, DCpointer funcptr);
+	//DCshort dcCallShort (DCCallVM* vm, DCpointer funcptr);
+	DCint dcCallInt (DCCallVM* vm, DCpointer funcptr);
+	DClong dcCallLong (DCCallVM* vm, DCpointer funcptr);
+	//DClonglong dcCallLongLong (DCCallVM* vm, DCpointer funcptr);
+	//DCfloat dcCallFloat (DCCallVM* vm, DCpointer funcptr);
+	//DCdouble dcCallDouble (DCCallVM* vm, DCpointer funcptr);
+	DCpointer dcCallPointer (DCCallVM* vm, DCpointer funcptr);
+	// void dcCallStruct (DCCallVM* vm, DCpointer funcptr, DCstruct* s, DCpointer returnValue);
 
-	//DCint      dcGetError      (DCCallVM* vm);
+	//DCint dcGetError (DCCallVM* vm);
 }
 
 //extern void *dlopen (const char *__file, int __mode) __THROWNL;
@@ -791,8 +791,8 @@ extern(C) extern immutable char** environ;
 // Copying from /usr/include/dmd/druntime/import/core/sys/posix/sys/wait.d
 // to avoid linking to druntime
 int __WTERMSIG( int status ) { return status & 0x7F; }
-int  WEXITSTATUS( int status )  { return ( status & 0xFF00 ) >> 8;   }
-bool WIFEXITED( int status )    { return __WTERMSIG( status ) == 0;  }
+int WEXITSTATUS( int status ) { return ( status & 0xFF00 ) >> 8; }
+bool WIFEXITED( int status ) { return __WTERMSIG( status ) == 0; }
 bool WIFSIGNALED( int status )
 {
 	return ( cast(byte) ( ( status & 0x7F ) + 1 ) >> 1 ) > 0;
