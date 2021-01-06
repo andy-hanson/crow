@@ -16,10 +16,9 @@ import util.util : verify;
 struct Constant {
 	@safe @nogc pure nothrow:
 
-	//TODO: separate type for empty and non-empty?
 	struct ArrConstant {
 		immutable size_t typeIndex; // Index of the arr type in AllConstants
-		immutable size_t index; // Index into AllConstants#arrs for this type. Ignore if size is 0!
+		immutable size_t index; // Index into AllConstants#arrs for this type.
 	}
 	struct BoolConstant { // TODO: just use Integral?
 		immutable Bool value;

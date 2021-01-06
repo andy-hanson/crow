@@ -2,7 +2,7 @@ module concretize.concretizeExpr;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : getConstantArr, getConstantStr;
+import concretize.allConstantsBuilder : getConstantArr;
 import concretize.concretizeCtx :
 	charType,
 	ConcretizeCtx,
@@ -10,6 +10,7 @@ import concretize.concretizeCtx :
 	ConcreteFunBodyInputs,
 	concreteTypeFromClosure,
 	concretizeParams,
+	constantStr,
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteType_forStructInst_fromConcretizeCtx = getConcreteType_forStructInst,
@@ -17,6 +18,7 @@ import concretize.concretizeCtx :
 	getOrAddConcreteFunAndFillBody,
 	getConcreteFunForLambdaAndFillBody,
 	specImpls,
+	strType,
 	typeArgsScope,
 	TypeArgsScope,
 	typesToConcreteTypes_fromConcretizeCtx = typesToConcreteTypes;
@@ -647,13 +649,10 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 					immutable ConcreteExprKind.Seq(allocExpr(alloc, first), allocExpr(alloc, then))));
 		},
 		(ref immutable Expr.StringLiteral e) {
-			immutable ConcreteType charType = charType(alloc, ctx.concretizeCtx);
-			//TODO: Use ctx->concretizeCtx->strType() like we do for char
-			immutable ConcreteType strType =
-				getConcreteType_forStructInst(alloc, ctx, ctx.concretizeCtx.commonTypes.str);
-			immutable Ptr!ConcreteStruct strStruct = mustBeNonPointer(strType);
-			return immutable ConcreteExpr(strType, range, immutable ConcreteExprKind(
-				getConstantStr(alloc, ctx.concretizeCtx.allConstants, strStruct, charType, e.literal)));
+			return immutable ConcreteExpr(
+				strType(alloc, ctx.concretizeCtx),
+				range,
+				immutable ConcreteExprKind(constantStr(alloc, ctx.concretizeCtx, e.literal)));
 		});
 }
 

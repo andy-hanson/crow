@@ -165,7 +165,7 @@ immutable(Purity) purity(immutable ConcreteType a) {
 	return a.struct_.purity;
 }
 
-ref immutable(Ptr!ConcreteStruct) mustBeNonPointer(return scope ref immutable ConcreteType a) {
+immutable(Ptr!ConcreteStruct) mustBeNonPointer(ref immutable ConcreteType a) {
 	verify(!a.isPointer);
 	return a.struct_;
 }
@@ -921,6 +921,7 @@ struct ConcreteProgram {
 	immutable AllConstantsConcrete allConstants;
 	immutable Arr!(Ptr!ConcreteStruct) allStructs;
 	immutable Arr!(Ptr!ConcreteFun) allFuns;
+	immutable ConcreteFunToName funToName;
 	immutable Dict!(Ptr!ConcreteStruct, Arr!ConcreteLambdaImpl, comparePtr!ConcreteStruct) funStructToImpls;
 	immutable Ptr!ConcreteFun markFun;
 	immutable Ptr!ConcreteFun rtMain;
@@ -928,6 +929,8 @@ struct ConcreteProgram {
 	immutable Ptr!ConcreteFun allocFun;
 	immutable Ptr!ConcreteStruct ctxType;
 }
+
+alias ConcreteFunToName = immutable Dict!(Ptr!ConcreteFun, Constant, comparePtr!ConcreteFun);
 
 struct ConcreteLambdaImpl {
 	immutable ConcreteType closureType;

@@ -10,6 +10,7 @@ import lower.generateMarkVisitFun :
 	generateMarkVisitArrOuter,
 	generateMarkVisitNonArr,
 	generateMarkVisitGcPtr;
+import lower.generateSpecialBuiltin : generateSpecialBuiltin, getSpecialBuiltinKind, SpecialBuiltinKind;
 import lower.getBuiltinCall : BuiltinKind, getBuiltinKind, matchBuiltinKind;
 import lower.lowExprHelpers :
 	anyPtrType,
@@ -48,6 +49,7 @@ import model.concreteModel :
 	ConcreteStruct,
 	ConcreteStructBody,
 	ConcreteType,
+	ConcreteFunToName,
 	isCallWithCtxFun,
 	isClosure,
 	isCompareFun,
@@ -426,6 +428,9 @@ struct LowFunCause {
 		immutable LowType.PtrGc pointerType;
 		immutable Opt!LowFunIndex visitPointee;
 	}
+	struct SpecialBuiltin {
+		immutable SpecialBuiltinKind kind;
+	}
 
 	@trusted immutable this(immutable CallWithCtx a) { kind = Kind.callWithCtx; callWithCtx_ = a; }
 	@trusted immutable this(immutable Compare a) { kind = Kind.compare; compare_ = a; }
@@ -434,6 +439,7 @@ struct LowFunCause {
 	@trusted immutable this(immutable MarkVisitArrOuter a) { kind = Kind.markVisitArrOuter; markVisitArrOuter_ = a; }
 	@trusted immutable this(immutable MarkVisitNonArr a) { kind = Kind.markVisitNonArr; markVisitNonArr_ = a; }
 	@trusted immutable this(immutable MarkVisitGcPtr a) { kind = Kind.markVisitGcPtr; markVisitGcPtr_ = a; }
+	immutable this(immutable SpecialBuiltin a) { kind = Kind.specialBuiltin; specialBuiltin_ = a; }
 
 	private:
 	enum Kind {
@@ -444,6 +450,7 @@ struct LowFunCause {
 		markVisitArrOuter,
 		markVisitNonArr,
 		markVisitGcPtr,
+		specialBuiltin,
 	}
 	immutable Kind kind;
 	union {
@@ -454,6 +461,7 @@ struct LowFunCause {
 		immutable MarkVisitArrInner markVisitArrInner_;
 		immutable MarkVisitNonArr markVisitNonArr_;
 		immutable MarkVisitGcPtr markVisitGcPtr_;
+		immutable SpecialBuiltin specialBuiltin_;
 	}
 }
 
@@ -466,6 +474,7 @@ struct LowFunCause {
 	scope T delegate(ref immutable LowFunCause.MarkVisitArrOuter) @safe @nogc pure nothrow cbMarkVisitArrOuter,
 	scope T delegate(ref immutable LowFunCause.MarkVisitNonArr) @safe @nogc pure nothrow cbMarkVisitNonArr,
 	scope T delegate(ref immutable LowFunCause.MarkVisitGcPtr) @safe @nogc pure nothrow cbMarkVisitGcPtr,
+	scope T delegate(ref immutable LowFunCause.SpecialBuiltin) @safe @nogc pure nothrow cbSpecialBuiltin,
 ) {
 	final switch (a.kind) {
 		case LowFunCause.Kind.callWithCtx:
@@ -482,6 +491,8 @@ struct LowFunCause {
 			return cbMarkVisitNonArr(a.markVisitNonArr_);
 		case LowFunCause.Kind.markVisitGcPtr:
 			return cbMarkVisitGcPtr(a.markVisitGcPtr_);
+		case LowFunCause.Kind.specialBuiltin:
+			return cbSpecialBuiltin(a.specialBuiltin_);
 	}
 }
 
@@ -676,6 +687,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 
 	Late!(immutable LowType) comparisonType = late!(immutable LowType);
 	Late!(immutable LowType) markCtxTypeLate = late!(immutable LowType);
+	Late!(immutable LowType) strTypeLate = late!(immutable LowType);
 
 	foreach (immutable Ptr!ConcreteFun fun; arrRange(program.allFuns)) {
 		immutable Opt!LowFunIndex opIndex = matchConcreteFunBody!(immutable Opt!LowFunIndex)(
@@ -715,8 +727,16 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 					immutable LowFunIndex res =
 						generateMarkVisitForType(lowTypeFromConcreteType(alloc, getLowTypeCtx, only(it.typeArgs)));
 					return some(res);
-				} else
-					return none!LowFunIndex;
+				} else {
+					immutable Opt!SpecialBuiltinKind kind = getSpecialBuiltinKind(fun);
+					if (has(kind)) {
+						if (!lateIsSet(strTypeLate) && force(kind) == SpecialBuiltinKind.getFunName)
+							lateSet(strTypeLate, lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.returnType));
+						return some(addLowFun(immutable LowFunCause(
+							immutable LowFunCause.SpecialBuiltin(force(kind)))));
+					} else
+						return none!LowFunIndex;
+				}
 			},
 			(ref immutable ConcreteFunBody.CreateRecord) =>
 				none!LowFunIndex,
@@ -736,6 +756,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	immutable ComparisonTypes comparisonTypes = getComparisonTypes(allTypes, lateGet(comparisonType));
 	//TODO: should always exist
 	immutable LowType markCtxType = lateIsSet(markCtxTypeLate) ? lateGet(markCtxTypeLate) : voidType;
+	immutable LowType strType = lateIsSet(strTypeLate) ? lateGet(strTypeLate) : voidType;
 
 	immutable Arr!LowFunCause lowFunCauses = finishArr(alloc, lowFunCausesBuilder);
 	immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex =
@@ -753,11 +774,14 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 			(immutable size_t index, ref immutable LowFunCause cause) =>
 				lowFunFromCause(
 					alloc,
+					program.funToName,
 					allTypes,
 					getLowTypeCtx,
 					allocFunIndex,
 					ctxType,
+					strType,
 					concreteFunToLowFunIndex,
+					lowFunCauses,
 					compareFuns,
 					comparisonTypes,
 					markVisitFuns,
@@ -777,11 +801,14 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 
 immutable(LowFun) lowFunFromCause(Alloc)(
 	ref Alloc alloc,
+	ref immutable ConcreteFunToName funToName,
 	ref immutable AllLowTypes allTypes,
 	ref GetLowTypeCtx getLowTypeCtx,
 	immutable LowFunIndex allocFunIndex,
 	ref immutable LowType ctxType,
+	ref immutable LowType strType,
 	ref immutable ConcreteFunToLowFunIndex concreteFunToLowFunIndex,
+	ref immutable Arr!LowFunCause lowFunCauses,
 	ref const CompareFuns compareFuns,
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const MarkVisitFuns markVisitFuns,
@@ -868,7 +895,9 @@ immutable(LowFun) lowFunFromCause(Alloc)(
 		(ref immutable LowFunCause.MarkVisitNonArr it) =>
 			generateMarkVisitNonArr(alloc, allTypes, markVisitFuns, markCtxType, it.type),
 		(ref immutable LowFunCause.MarkVisitGcPtr it) =>
-			generateMarkVisitGcPtr(alloc, markCtxType, markFun, it.pointerType, it.visitPointee));
+			generateMarkVisitGcPtr(alloc, markCtxType, markFun, it.pointerType, it.visitPointee),
+		(ref immutable LowFunCause.SpecialBuiltin it) =>
+			generateSpecialBuiltin(alloc, funToName, lowFunCauses, strType, it.kind));
 }
 
 immutable(ComparisonTypes) getComparisonTypes(

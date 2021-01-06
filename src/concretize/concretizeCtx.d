@@ -2,7 +2,7 @@ module concretize.concretizeCtx;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : AllConstantsBuilder;
+import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantStr;
 import concretize.concretizeExpr : concretizeExpr;
 import model.concreteModel :
 	BuiltinStructKind,
@@ -23,8 +23,10 @@ import model.concreteModel :
 	ConcreteStructBody,
 	ConcreteStructInfo,
 	ConcreteStructSource,
+	mustBeNonPointer,
 	purity,
 	sizeOrPointerSizeBytes;
+import model.constant : Constant;
 import model.model :
 	body_,
 	CommonTypes,
@@ -59,7 +61,7 @@ import util.collection.arrBuilder : add, ArrBuilder;
 import util.collection.arrUtil : arrMax, compareArr, exists, fold, map, mapPtrsWithIndex;
 import util.collection.mutArr : MutArr;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
-import util.collection.str : strLiteral;
+import util.collection.str : Str, strLiteral;
 import util.comparison : Comparison;
 import util.late : Late, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate, nu, nuMut;
@@ -198,6 +200,7 @@ struct ConcretizeCtx {
 	Late!(immutable ConcreteType) _voidType;
 	Late!(immutable ConcreteType) _anyPtrType;
 	Late!(immutable ConcreteType) _ctxType;
+	Late!(immutable ConcreteType) _strType;
 }
 
 immutable(ConcreteType) boolType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
@@ -220,11 +223,25 @@ immutable(ConcreteType) anyPtrType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) 
 		getConcreteType_forStructInst(alloc, a, a.commonTypes.anyPtr, TypeArgsScope.empty));
 }
 
+immutable(ConcreteType) strType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
+	return lazilySet(a._strType, () {
+		immutable ConcreteType charType = charType(alloc, a);
+		return getConcreteType_forStructInst(alloc, a, a.commonTypes.str, TypeArgsScope.empty);
+	});
+}
+
 immutable(ConcreteType) ctxType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a)
 out(it) { verify(it.isPointer); }
 body {
 	return lazilySet(a._ctxType, () =>
 		getConcreteType_forStructInst(alloc, a, a.ctxStructInst, TypeArgsScope.empty));
+}
+
+immutable(Constant) constantStr(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable Str value) {
+	immutable ConcreteType charType = charType(alloc, a);
+	immutable ConcreteType strType = strType(alloc, a);
+	immutable Ptr!ConcreteStruct strStruct = mustBeNonPointer(strType);
+	return getConstantStr(alloc, a.allConstants, strStruct, charType, value);
 }
 
 immutable(Ptr!ConcreteFun) getOrAddConcreteFunAndFillBody(Alloc)(

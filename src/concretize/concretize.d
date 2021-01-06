@@ -2,9 +2,11 @@ module concretize.concretize;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : finishAllConstants;
-import concretize.concretizeCtx : ConcretizeCtx, ctxType, getOrAddNonTemplateConcreteFunAndFillBody;
-import model.concreteModel : ConcreteFun, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct;
+import concretize.allConstantsBuilder : AllConstantsBuilder, finishAllConstants;
+import concretize.concretizeCtx : ConcretizeCtx, constantStr, ctxType, getOrAddNonTemplateConcreteFunAndFillBody;
+import interpret.debugging : writeConcreteFunName;
+import model.concreteModel : ConcreteFun, ConcreteFunToName, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct;
+import model.constant : Constant;
 import model.model :
 	asStructInst,
 	CommonTypes,
@@ -25,17 +27,19 @@ import model.model :
 	typeArgs,
 	typeEquals;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, emptyArr, only, size;
+import util.collection.arr : Arr, at, emptyArr, only, range, size;
 import util.collection.arrBuilder : finishArr_immutable;
-import util.collection.dict : getAt;
+import util.collection.dict : Dict, getAt;
+import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.mutArr : moveToArr, MutArr;
 import util.collection.mutDict : mapToDict, mutDictIsEmpty;
 import util.collection.str : Str, strLiteral;
 import util.memory : nu;
 import util.opt : force, has, Opt;
-import util.ptr : Ptr, ptrEquals, ptrTrustMe;
+import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sym : AllSymbols, getSymFromAlphaIdentifier, shortSymAlphaLiteral, Sym;
 import util.util : todo, verify;
+import util.writer : finishWriter, Writer;
 
 immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 	ref Alloc alloc,
@@ -61,11 +65,14 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 	// We remove items from these dicts when we process them.
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
+	immutable Arr!(Ptr!ConcreteFun) allConcreteFuns = finishArr_immutable(alloc, ctx.allConcreteFuns);
+
 	return nu!ConcreteProgram(
 		alloc,
 		finishAllConstants(alloc, ctx.allConstants),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
-		finishArr_immutable(alloc, ctx.allConcreteFuns),
+		allConcreteFuns,
+		getFunToName(alloc, ctx, allConcreteFuns),
 		mapToDict(alloc, ctx.funStructToImpls, (ref MutArr!(immutable ConcreteLambdaImpl) it) =>
 			moveToArr(alloc, it)),
 		markConcreteFun,
@@ -76,6 +83,21 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 }
 
 private:
+
+immutable(ConcreteFunToName) getFunToName(Alloc)(
+	ref Alloc alloc,
+	ref ConcretizeCtx ctx,
+	ref immutable Arr!(Ptr!ConcreteFun) allConcreteFuns,
+) {
+	DictBuilder!(Ptr!ConcreteFun, Constant, comparePtr!ConcreteFun) res;
+	foreach (immutable Ptr!ConcreteFun f; range(allConcreteFuns)) {
+		Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
+		writeConcreteFunName(writer, f);
+		immutable Str name = finishWriter(writer);
+		addToDict(alloc, res, f, constantStr(alloc, ctx, name));
+	}
+	return finishDictShouldBeNoConflict(alloc, res);
+}
 
 immutable(Bool) isInt32(ref immutable CommonTypes commonTypes, ref immutable Type type) {
 	return typeEquals(type, immutable Type(commonTypes.integrals.int32));

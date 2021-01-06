@@ -122,8 +122,6 @@ void writeLowType(Alloc)(ref Writer!Alloc writer, ref immutable AllLowTypes lowT
 		});
 }
 
-private:
-
 void writeConcreteFunName(Alloc)(ref Writer!Alloc writer, ref immutable ConcreteFun a) {
 	matchConcreteFunSource!void(
 		a.source,
@@ -143,6 +141,8 @@ void writeConcreteFunName(Alloc)(ref Writer!Alloc writer, ref immutable Concrete
 			writeNat(writer, it.index);
 		});
 }
+
+private:
 
 void writeRecordName(Alloc)(ref Writer!Alloc writer, ref immutable LowRecord a) {
 	writeConcreteStruct(writer, a.source);
