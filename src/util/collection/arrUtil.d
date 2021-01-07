@@ -582,6 +582,17 @@ void zip(T, U)(
 		cb(at(a, i), at(b, i));
 }
 
+void zip(T, U, V)(
+	immutable Arr!T a,
+	immutable Arr!U b,
+	immutable Arr!V c,
+	scope void delegate(ref immutable T, ref immutable U, ref immutable V) @safe @nogc pure nothrow cb,
+) {
+	verify(sizeEq(a, b) && sizeEq(b, c));
+	foreach (immutable size_t i; 0..size(a))
+		cb(at(a, i), at(b, i), at(c, i));
+}
+
 @system void zipSystem(T, U)(
 	immutable Arr!T a,
 	immutable Arr!U b,

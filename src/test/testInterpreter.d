@@ -267,13 +267,13 @@ void testSwitchAndJump(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	//TODO: want to test both sides of the switch...
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	writePushConstant(test.dbg, writer, source, immutable Nat64(0));
-	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, immutable Nat8(2));
-	fillDelayedSwitchEntry(writer, delayed, immutable Nat8(0));
+	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, immutable Nat32(2));
+	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(0));
 	immutable ByteCodeIndex firstCase = nextByteCodeIndex(writer);
 	writePushConstant(test.dbg, writer, source, immutable Nat64(3));
 	setNextStackEntry(writer, startStack);
 	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(test.dbg, writer, source);
-	fillDelayedSwitchEntry(writer, delayed, immutable Nat8(1));
+	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(1));
 	immutable ByteCodeIndex secondCase = nextByteCodeIndex(writer);
 	writePushConstant(test.dbg, writer, source, immutable Nat64(5));
 	fillInJumpDelayed(writer, jumpIndex);

@@ -1,0 +1,12 @@
+
+import
+	iter: each range-nat
+	io.print: print
+	io.process: exit-code
+
+main fut exit-code(_ arr str) summon unsafe
+	print: "HELLO"
+	print: funs-count.to-str
+	0 range-nat funs-count each \i
+		print: i.to-str + ": " + i.get-fun-name + " at " + i.get-fun-ptr.to-nat.to-str
+	0 resolved

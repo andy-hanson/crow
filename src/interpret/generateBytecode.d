@@ -105,7 +105,7 @@ import util.collection.str : Str, strEqLiteral;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
-import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU8, u64OfFloat64Bits, zero;
+import util.types : Nat8, Nat16, Nat32, Nat64, safeSizeTToU32, u64OfFloat64Bits, zero;
 import util.util : divRoundUp, todo, unreachable, verify;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
@@ -409,7 +409,7 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 			writeDupEntry(dbg, writer, source, startStack);
 			writeRemove(dbg, writer, source, immutable StackEntries(startStack, immutable Nat8(1)));
 			// Get the kind (always the first entry)
-			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, sizeNat(it.cases).to8());
+			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, sizeNat(it.cases).to32());
 			// Start of the union values is where the kind used to be.
 			immutable StackEntry stackAfterMatched = getNextStackEntry(writer);
 			immutable StackEntries matchedEntriesWithoutKind =
@@ -419,7 +419,7 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 				tempAlloc,
 				it.cases,
 				(immutable size_t caseIndex, ref immutable LowExprKind.Match.Case case_) {
-					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat8(safeSizeTToU8(caseIndex)));
+					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat32(safeSizeTToU32(caseIndex)));
 					if (has(case_.local)) {
 						immutable Nat8 nEntries = nStackEntriesForType(ctx, force(case_.local).type);
 						verify(nEntries <= matchedEntriesWithoutKind.size);
@@ -492,13 +492,13 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 		(ref immutable LowExprKind.Switch it) {
 			immutable StackEntry stackBefore = getNextStackEntry(writer);
 			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
-			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, sizeNat(it.cases).to8());
+			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, sizeNat(it.cases).to32());
 			// TODO: 'mapOp' is overly complex, all but the last case return 'some'
 			immutable Arr!ByteCodeIndex delayedGotos = mapOpWithIndex!ByteCodeIndex(
 				tempAlloc,
 				it.cases,
 				(immutable size_t caseIndex, ref immutable LowExpr case_) {
-					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat8(safeSizeTToU8(caseIndex)));
+					fillDelayedSwitchEntry(writer, indexOfFirstCaseOffset, immutable Nat32(safeSizeTToU32(caseIndex)));
 					generateExpr(dbg, tempAlloc, writer, ctx, case_);
 					if (caseIndex != size(it.cases) - 1) {
 						setNextStackEntry(writer, stackBefore);
@@ -1147,12 +1147,12 @@ void generateIf(Debug, TempAlloc, CodeAlloc)(
 ) {
 	immutable StackEntry startStack = getNextStackEntry(writer);
 	generateExpr(dbg, tempAlloc, writer, ctx, cond);
-	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, immutable Nat8(2));
-	fillDelayedSwitchEntry(writer, delayed, immutable Nat8(0));
+	immutable ByteCodeIndex delayed = writeSwitchDelay(writer, source, immutable Nat32(2));
+	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(0));
 	cbElse();
 	setNextStackEntry(writer, startStack);
 	immutable ByteCodeIndex jumpIndex = writeJumpDelayed(dbg, writer, source);
-	fillDelayedSwitchEntry(writer, delayed, immutable Nat8(1));
+	fillDelayedSwitchEntry(writer, delayed, immutable Nat32(1));
 	cbThen();
 	fillInJumpDelayed(writer, jumpIndex);
 }

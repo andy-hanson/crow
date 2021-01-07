@@ -475,13 +475,13 @@ void writePack(Debug, Alloc)(
 immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable Nat8 nCases,
+	immutable Nat32 nCases,
 ) {
 	pushOpcode(writer, source, OpCode.switch_);
-	pushU8(writer, source, nCases);
+	pushU32(writer, source, nCases);
 	writer.nextStackEntry -= 1;
 	immutable ByteCodeIndex addresses = nextByteCodeIndex(writer);
-	foreach (immutable u8 i; 0..nCases.raw()) {
+	foreach (immutable u32 i; 0..nCases.raw()) {
 		static assert(ByteCodeOffset.sizeof == Nat16.sizeof);
 		pushU16(writer, source, immutable Nat16(0));
 	}
@@ -491,10 +491,10 @@ immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(
 void fillDelayedSwitchEntry(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	immutable ByteCodeIndex switchCasesIndex,
-	immutable Nat8 switchEntry,
+	immutable Nat32 switchEntry,
 ) {
 	immutable ByteCodeIndex case_ =
-		addByteCodeIndex(switchCasesIndex, switchEntry.to32() * immutable Nat32(ByteCodeOffset.sizeof));
+		addByteCodeIndex(switchCasesIndex, switchEntry * immutable Nat32(ByteCodeOffset.sizeof));
 	immutable ByteCodeIndex caseEnd = addByteCodeIndex(case_, immutable Nat32(ByteCodeOffset.sizeof));
 	fillDelayedU16(
 		writer,

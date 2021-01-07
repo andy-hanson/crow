@@ -66,13 +66,14 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
 	immutable Arr!(Ptr!ConcreteFun) allConcreteFuns = finishArr_immutable(alloc, ctx.allConcreteFuns);
+	immutable ConcreteFunToName funToName = getFunToName(alloc, ctx, allConcreteFuns);
 
 	return nu!ConcreteProgram(
 		alloc,
 		finishAllConstants(alloc, ctx.allConstants),
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		allConcreteFuns,
-		getFunToName(alloc, ctx, allConcreteFuns),
+		funToName,
 		mapToDict(alloc, ctx.funStructToImpls, (ref MutArr!(immutable ConcreteLambdaImpl) it) =>
 			moveToArr(alloc, it)),
 		markConcreteFun,

@@ -104,7 +104,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 		case OpCode.stackRef:
 			return immutable Operation(immutable Operation.StackRef(readStackOffset(reader)));
 		case OpCode.switch_:
-			immutable Nat8 size = readU8(reader.reader);
+			immutable Nat32 size = readU32(reader.reader);
 			immutable Arr!Nat16 offsets = readArrayDoNotSkipBytes!Nat16(reader.reader, size.raw());
 			return immutable Operation(immutable Operation.Switch(cast(immutable Arr!ByteCodeOffsetUnsigned) offsets));
 		case OpCode.write:
