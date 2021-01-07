@@ -2,10 +2,16 @@ module concretize.concretize;
 
 @safe @nogc pure nothrow:
 
-import concretize.allConstantsBuilder : AllConstantsBuilder, finishAllConstants;
+import concretize.allConstantsBuilder : finishAllConstants;
 import concretize.concretizeCtx : ConcretizeCtx, constantStr, ctxType, getOrAddNonTemplateConcreteFunAndFillBody;
 import interpret.debugging : writeConcreteFunName;
-import model.concreteModel : ConcreteFun, ConcreteFunToName, ConcreteLambdaImpl, ConcreteProgram, ConcreteStruct;
+import model.concreteModel :
+	ConcreteCommonFuns,
+	ConcreteFun,
+	ConcreteFunToName,
+	ConcreteLambdaImpl,
+	ConcreteProgram,
+	ConcreteStruct;
 import model.constant : Constant;
 import model.model :
 	asStructInst,
@@ -29,7 +35,7 @@ import model.model :
 import util.bools : Bool;
 import util.collection.arr : Arr, at, emptyArr, only, range, size;
 import util.collection.arrBuilder : finishArr_immutable;
-import util.collection.dict : Dict, getAt;
+import util.collection.dict : getAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.mutArr : moveToArr, MutArr;
 import util.collection.mutDict : mapToDict, mutDictIsEmpty;
@@ -76,10 +82,12 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 		funToName,
 		mapToDict(alloc, ctx.funStructToImpls, (ref MutArr!(immutable ConcreteLambdaImpl) it) =>
 			moveToArr(alloc, it)),
-		markConcreteFun,
-		rtMainConcreteFun,
-		userMainConcreteFun,
-		allocFun,
+		nu!ConcreteCommonFuns(
+			alloc,
+			markConcreteFun,
+			rtMainConcreteFun,
+			userMainConcreteFun,
+			allocFun),
 		ctxStruct);
 }
 

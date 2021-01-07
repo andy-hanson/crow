@@ -3,7 +3,6 @@ module lower.generateSpecialBuiltin;
 @safe @nogc pure nothrow:
 
 import concretize.allConstantsBuilder : constantEmptyArr;
-import interpret.debugging : writeConcreteFunName;
 import lower.lower : LowFunCause, matchLowFunCause;
 import lower.lowExprHelpers : anyPtrType, constantNat64, genParam, genSwitch, nat64Type, paramRef, ptrCast;
 import model.concreteModel : ConcreteFun, ConcreteFunSource, ConcreteFunToName, matchConcreteFunSource;
@@ -26,13 +25,11 @@ import util.bools : False;
 import util.collection.arr : Arr, emptyArr, size;
 import util.collection.arrUtil : arrLiteral, fillArr, map;
 import util.collection.dict : mustGetAt;
-import util.collection.str : Str, strLiteral;
 import util.memory : allocate, nu;
 import util.opt : none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym;
-import util.util : todo;
 
 enum SpecialBuiltinKind {
 	allFunsCount,

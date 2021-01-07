@@ -918,16 +918,29 @@ struct AllConstantsConcrete {
 }
 
 struct ConcreteProgram {
+	@safe @nogc pure nothrow:
+
 	immutable AllConstantsConcrete allConstants;
 	immutable Arr!(Ptr!ConcreteStruct) allStructs;
 	immutable Arr!(Ptr!ConcreteFun) allFuns;
 	immutable ConcreteFunToName funToName;
 	immutable Dict!(Ptr!ConcreteStruct, Arr!ConcreteLambdaImpl, comparePtr!ConcreteStruct) funStructToImpls;
+	immutable Ptr!ConcreteCommonFuns commonFuns;
+	immutable Ptr!ConcreteStruct ctxType;
+
+	//TODO:NOT INSTANCE
+	immutable(Ptr!ConcreteFun) markFun() immutable { return commonFuns.markFun; }
+	immutable(Ptr!ConcreteFun) rtMain() immutable { return commonFuns.rtMain; }
+	immutable(Ptr!ConcreteFun) userMain() immutable { return commonFuns.userMain; }
+	immutable(Ptr!ConcreteFun) allocFun() immutable { return commonFuns.allocFun; }
+}
+static assert(ConcreteProgram.sizeof <= 112);
+
+struct ConcreteCommonFuns {
 	immutable Ptr!ConcreteFun markFun;
 	immutable Ptr!ConcreteFun rtMain;
 	immutable Ptr!ConcreteFun userMain;
 	immutable Ptr!ConcreteFun allocFun;
-	immutable Ptr!ConcreteStruct ctxType;
 }
 
 alias ConcreteFunToName = immutable Dict!(Ptr!ConcreteFun, Constant, comparePtr!ConcreteFun);

@@ -4,7 +4,6 @@ module concretize.concretizeExpr;
 
 import concretize.allConstantsBuilder : getConstantArr;
 import concretize.concretizeCtx :
-	charType,
 	ConcretizeCtx,
 	ConcreteFunKey,
 	ConcreteFunBodyInputs,

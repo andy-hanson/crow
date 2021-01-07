@@ -12,7 +12,7 @@ import model.concreteModel :
 import model.constant : Constant, constantEqual;
 import util.bools : Bool;
 import util.collection.arr : Arr, arrOfD, asImmutable, empty;
-import util.collection.arrUtil : arrEqual, arrLiteral, findIndex_const, map, map_mut;
+import util.collection.arrUtil : arrEqual, findIndex_const, map, map_mut;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
 import util.collection.mutDict : getOrAdd, MutDict, mustGetAt_mut, mutDictSize, tempPairs_mut;
