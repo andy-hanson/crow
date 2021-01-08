@@ -224,12 +224,22 @@ gc-alloc any-ptr(gc gc, size nat) trusted
 	as some s
 		s.value
 
-alloc any-ptr(size nat) unsafe
-	get-gc gc-alloc size
+alloc any-ptr(size-bytes nat) unsafe
+	get-gc gc-alloc size-bytes
 
-uninitialized-data ptr ?t(size nat) unsafe
+try-alloc opt any-ptr(size-bytes nat) unsafe
+	get-gc try-gc-alloc size-bytes
+
+alloc-uninitialized ptr ?t(size nat) unsafe
 	bptr = size wrap-mul size-of<?t> alloc
 	bptr ptr-cast<?t, byte>
+
+try-alloc-uninitialized opt ptr ?t(size nat) unsafe
+	match size wrap-mul size-of<?t> try-alloc
+	as none
+		none
+	as some s
+		some: s.value ptr-cast<?t, byte>
 
 unmanaged-alloc-bytes any-ptr(size nat) noctx unsafe
 	res = size malloc

@@ -29,7 +29,7 @@ import util.types : u8;
 import util.util : verify;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
-immutable LowType charType = immutable LowType(PrimitiveType.char_);
+private immutable LowType charType = immutable LowType(PrimitiveType.char_);
 private immutable LowType charPtrType = immutable LowType(immutable LowType.PtrRaw(immutable Ptr!LowType(&charType)));
 immutable LowType charPtrPtrType = immutable LowType(immutable LowType.PtrRaw(immutable Ptr!LowType(&charPtrType)));
 immutable LowType int32Type = immutable LowType(PrimitiveType.int32);

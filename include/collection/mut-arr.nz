@@ -1,5 +1,5 @@
 import
-	..alloc: fill-ptr-range set-zero-range uninitialized-data
+	..alloc: alloc-uninitialized fill-ptr-range set-zero-range
 	..bootstrap: + == < <= arr bool data hard-assert nat opt ptr set size void
 	..exceptions: assert
 	..number-utils: + - incr
@@ -35,7 +35,7 @@ mut-arr mut-arr ?t(size nat, data ptr ?t) noctx unsafe
 	mut-arr: arr: size, data
 
 new-uninitialized-mut-arr mut-arr ?t(size nat) unsafe
-	mut-arr: size, uninitialized-data<?t>: size
+	mut-arr: size, alloc-uninitialized<?t>: size
 
 make-mut-arr mut-arr ?t(size nat, f act ?t(nat)) trusted
 	res = new-uninitialized-mut-arr<?t>: size
@@ -45,6 +45,10 @@ make-mut-arr mut-arr ?t(size nat, f act ?t(nat)) trusted
 fill-mut-arr mut-arr ?t(size nat, value ?t)
 	size make-mut-arr \ignore
 		value
+
+copy-to-mut-arr mut-arr ?t(a arr ?t)
+	a.size make-mut-arr<?t> \i
+		a at i
 
 temp-as-arr arr ?t(a mut-arr ?t) noctx unsafe
 	a arr
@@ -65,6 +69,10 @@ slice-starting-at mut-arr ?t(a mut-arr ?t, begin nat)
 
 slice-after mut-arr ?t(a mut-arr ?t, before-begin nat)
 	a slice-starting-at before-begin.incr
+
+slice-up-to mut-arr ?t(a mut-arr ?t, size nat)
+	assert: size <= a.size
+	a slice: 0, size
 
 region misc
 

@@ -350,10 +350,12 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 	immutable Ptr!StructDecl fun1 = com("fun1", 2);
 	immutable Ptr!StructDecl fun2 = com("fun2", 3);
 	immutable Ptr!StructDecl fun3 = com("fun3", 4);
+	immutable Ptr!StructDecl fun4 = com("fun4", 5);
 	immutable Ptr!StructDecl funAct0 = com("fun-act0", 1);
 	immutable Ptr!StructDecl funAct1 = com("fun-act1", 2);
 	immutable Ptr!StructDecl funAct2 = com("fun-act2", 3);
 	immutable Ptr!StructDecl funAct3 = com("fun-act3", 4);
+	immutable Ptr!StructDecl funAct4 = com("fun-act4", 5);
 	immutable Ptr!StructDecl funPtr0 = com("fun-ptr0", 1);
 	immutable Ptr!StructDecl funPtr1 = com("fun-ptr1", 2);
 	immutable Ptr!StructDecl funPtr2 = com("fun-ptr2", 3);
@@ -365,6 +367,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 	immutable Ptr!StructDecl funRef1 = com("fun-ref1", 2);
 	immutable Ptr!StructDecl funRef2 = com("fun-ref2", 3);
 	immutable Ptr!StructDecl funRef3 = com("fun-ref3", 4);
+	immutable Ptr!StructDecl funRef4 = com("fun-ref4", 5);
 
 	immutable Ptr!StructInst str = instantiateStruct!Alloc(
 		alloc,
@@ -415,17 +418,20 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 				fun0,
 				fun1,
 				fun2,
-				fun3])),
+				fun3,
+				fun4])),
 			immutable FunKindAndStructs(FunKind.mut, arrLiteral!(Ptr!StructDecl)(alloc, [
 				funAct0,
 				funAct1,
 				funAct2,
-				funAct3])),
+				funAct3,
+				funAct4])),
 			immutable FunKindAndStructs(FunKind.ref_, arrLiteral!(Ptr!StructDecl)(alloc, [
 				funRef0,
 				funRef1,
 				funRef2,
-				funRef3]))]));
+				funRef3,
+				funRef4]))]));
 }
 
 immutable(Ptr!StructDecl) bogusStructDecl(Alloc)(ref Alloc alloc, immutable size_t nTypeParameters) {

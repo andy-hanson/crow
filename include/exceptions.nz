@@ -1,15 +1,10 @@
 import
+	.backtrace: get-backtrace
 	.bootstrap
-		== any-ptr as-ref bool by-val call err exception exception-ctx-ptr get-ctx
-		hard-forbid int32 nat not null null? ok ptr-to result str todo void
+		== as-ref backtrace bool by-val call err exception exception-ctx-ptr get-ctx
+		hard-forbid int32 not null null? ok ptr-to result str todo void
 	.posix.bytes-types: zero
 	.posix.setjmp: jmp-buf jmp-buf-tag longjmp setjmp
-
-funs-count nat() noctx unsafe builtin
-
-get-fun-name str(fun-id nat) noctx unsafe builtin
-
-get-fun-ptr any-ptr(fun-id nat) noctx unsafe builtin
 
 exception-ctx record mut
 	jmp-buf-ptr mut jmp-buf
@@ -17,16 +12,35 @@ exception-ctx record mut
 
 new-exception-ctx by-val exception-ctx() noctx unsafe
 	| Nothing on the exception-ctx initially
-	exception-ctx: null, exception: ""
+	exception-ctx: null, exception: "", backtrace: new-arr<str>
 
 get-exception-ctx exception-ctx() unsafe
 	get-ctx.exception-ctx-ptr as-ref<exception-ctx>
 
-number-to-throw int32()
-	7
+region throwing
 
 rethrow ?t(e exception)
 	e throw
+
+fail ?t(reason str) trusted
+	throw: exception: reason, get-backtrace
+
+assert void(condition bool)
+	condition assert "assert failed"
+
+unreachable ?t()
+	"should be unreachable" fail
+
+assert void(condition bool, message str)
+	if condition not
+		message fail
+
+forbid void(condition bool)
+	condition forbid "forbid failed"
+
+forbid void(condition bool, message str)
+	if condition
+		message fail
 
 throw ?t(e exception) trusted
 	exn-ctx = get-exception-ctx
@@ -35,6 +49,11 @@ throw ?t(e exception) trusted
 	exn-ctx.jmp-buf-ptr longjmp number-to-throw
 	| Unreachable
 	todo
+
+.number-to-throw int32()
+	7
+
+region handling
 
 finally ?t(after act void(), try act ?t())
 	res = try catch \err
@@ -71,23 +90,3 @@ catch-with-exception-ctx ?t(ec exception-ctx, try act ?t(), catcher act ?t(excep
 		ec set-jmp-buf-ptr old-jmp-buf
 		ec set-thrown-exception old-thrown-exception
 		catcher call thrown-exception
-
-fail ?t(reason str)
-	throw: exception: reason
-
-assert void(condition bool)
-	condition assert "assert failed"
-
-unreachable ?t()
-	"should be unreachable" fail
-
-assert void(condition bool, message str)
-	if condition not
-		message fail
-
-forbid void(condition bool)
-	condition forbid "forbid failed"
-
-forbid void(condition bool, message str)
-	if condition
-		message fail

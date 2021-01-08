@@ -34,7 +34,9 @@ import std.string : indexOf, indexOfAny, splitLines;
 					// TODO: adding these exceptions for now
 					if (privateMember != "writeFieldName" &&
 						privateMember != "writeLocalName" &&
-						privateMember != "writeRecordName")
+						privateMember != "writeRecordName" &&
+						// TODO: this isn't even private. Probably a bug due to recursive imports
+						privateMember != "asConcreteFun")
 						writeln(file.path, " private member not used: ", privateMember);
 					break;
 				case Uses.many:

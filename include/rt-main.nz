@@ -2,15 +2,14 @@ import
 	.alloc
 	.bootstrap
 		? != + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref false
-		fun-ptr2 fut get-ctx int32 message nat noctx-decr noctx-incr null
+		fun-ptr2 fut get-ctx int32 nat noctx-decr noctx-incr null
 		ptr ptr-to ref-of-val set str to-int unsafe-to-nat value void
 	.cell: as-cell
 	.collection.arr: empty-arr
 	.collection.arr-util: map tail
 	.exceptions: new-exception-ctx
 	.fut-low-level: must-be-resolved
-	.fut-utils: delay then2
-	.io.print: print-err print-err-no-newline
+	.fut-utils: delay handle-exceptions then2
 	.io.process: exit-code
 	.logging: new-log-ctx
 	.posix.pthread: pthread-t
@@ -41,9 +40,8 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	match main-fut.must-be-resolved
 	as ok o
 		gctx.any-unhandled-exceptions? ? 1, o.value
-	as err e
-		print-err-no-newline: "main failed: "
-		print-err: e.value message
+	as err
+		| 'handle-exceptions' should have logged the error
 		1
 
 .do-main fut exit-code(gctx global-ctx, island island, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx
@@ -70,10 +68,12 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 .add-first-task fut exit-code(all-args arr c-str, main-ptr fun-ptr2<fut exit-code, ctx, arr str>) unsafe
 	| 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	| TODO: 'then' overload for fut<void> taking lambda with 0 params
-	delay then2 \
+	res = delay then2 \
 		| First argument is the path to this executable.
 		args = all-args tail
 		main-ptr call: get-ctx, args map {it.to-str}
+	res handle-exceptions
+	res
 
 | Each thread will get the thread ID, and the common arguments.
 .run-threads void(n-threads nat, gctx global-ctx) noctx unsafe summon

@@ -3,9 +3,9 @@ module lower.generateSpecialBuiltin;
 @safe @nogc pure nothrow:
 
 import concretize.allConstantsBuilder : constantEmptyArr;
-import lower.lower : LowFunCause, matchLowFunCause;
+import lower.lower : asConcreteFun, isConcreteFun, LowFunCause, matchLowFunCause;
 import lower.lowExprHelpers : anyPtrType, constantNat64, genParam, genSwitch, nat64Type, paramRef, ptrCast;
-import model.concreteModel : ConcreteFun, ConcreteFunSource, ConcreteFunToName, matchConcreteFunSource;
+import model.concreteModel : body_, ConcreteFun, ConcreteFunSource, ConcreteFunToName, isGlobal, matchConcreteFunSource;
 import model.constant : Constant;
 import model.lowModel :
 	LowExpr,
@@ -23,7 +23,7 @@ import model.lowModel :
 import model.model : decl, FunInst, name;
 import util.bools : False;
 import util.collection.arr : Arr, emptyArr, size;
-import util.collection.arrUtil : arrLiteral, fillArr, map;
+import util.collection.arrUtil : arrLiteral, map, mapWithIndex;
 import util.collection.dict : mustGetAt;
 import util.memory : allocate, nu;
 import util.opt : none, Opt, some;
@@ -71,7 +71,7 @@ immutable(LowFun) generateSpecialBuiltin(Alloc)(
 		case SpecialBuiltinKind.getFunName:
 			return getFunName(alloc, funToName, range, lowFunCauses, strType);
 		case SpecialBuiltinKind.getFunPtr:
-			return getFunPtr(alloc, range, size(lowFunCauses));
+			return getFunPtr(alloc, range, lowFunCauses);
 	}
 }
 
@@ -148,13 +148,16 @@ immutable(Constant) nameFromLowFunCause(ref immutable ConcreteFunToName funToNam
 immutable(LowFun) getFunPtr(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
-	immutable size_t nFuns,
+	ref immutable Arr!LowFunCause causes,
 ) {
 	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [genParam(shortSymAlphaLiteral("fun-id"), nat64Type)]);
 	immutable LowExpr funId = paramRef(range, nat64Type, immutable LowParamIndex(0));
-	immutable Arr!LowExpr cases = fillArr(alloc, nFuns, (immutable size_t i) =>
-		ptrCast(alloc, anyPtrType, range, immutable LowExpr(anyPtrType, range, immutable LowExprKind(
-			immutable LowExprKind.FunPtr(immutable LowFunIndex(i))))));
+	immutable Arr!LowExpr cases = mapWithIndex(alloc, causes, (immutable size_t i, ref immutable LowFunCause cause) =>
+		// TODO: maybe globals shouldn't compile to functions
+		isConcreteFun(cause) && isGlobal(body_(asConcreteFun(cause).deref()))
+			? immutable LowExpr(anyPtrType, range, immutable LowExprKind(immutable Constant(immutable Constant.Null())))
+			: ptrCast(alloc, anyPtrType, range, immutable LowExpr(anyPtrType, range, immutable LowExprKind(
+				immutable LowExprKind.FunPtr(immutable LowFunIndex(i))))));
 	immutable LowExpr expr = genSwitch(alloc, anyPtrType, range, funId, cases);
 	immutable LowFunExprBody body_ = immutable LowFunExprBody(False, allocate(alloc, expr));
 	return immutable LowFun(

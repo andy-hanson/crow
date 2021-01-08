@@ -1,5 +1,5 @@
 import
-	..alloc: fill-ptr-range uninitialized-data
+	..alloc: alloc-uninitialized fill-ptr-range
 	..bootstrap
 		== != >= and arr bool call data false has? incr nat noctx-incr none not opt ptr set size
 		some true value void
@@ -9,7 +9,7 @@ import
 	.arr: + arr-eq? at empty-arr empty? noctx-at slice slice-starting-at slice-up-to
 
 make-arr arr ?t(size nat, f act ?t(nat)) trusted
-	data = size uninitialized-data<?t>
+	data = size alloc-uninitialized<?t>
 	data fill-ptr-range size, f
 	arr: size, data
 
@@ -156,7 +156,7 @@ join arr ?t(a arr arr ?t, joiner arr ?t)
 
 split-by-subseq arr arr ?t(a arr ?t, splitter arr ?t) data<?t> trusted
 	size = a count-subseqs splitter incr
-	data = size uninitialized-data<arr ?t>
+	data = size alloc-uninitialized<arr ?t>
 	data fill-subseqs-recur a, splitter
 	arr: size, data
 

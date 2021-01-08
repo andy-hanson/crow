@@ -434,7 +434,7 @@ struct LowFunCause {
 
 	@trusted immutable this(immutable CallWithCtx a) { kind = Kind.callWithCtx; callWithCtx_ = a; }
 	@trusted immutable this(immutable Compare a) { kind = Kind.compare; compare_ = a; }
-	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind = Kind.expr; expr_ = a; }
+	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind = Kind.concreteFun; concreteFun_ = a; }
 	@trusted immutable this(immutable MarkVisitArrInner a) { kind = Kind.markVisitArrInner; markVisitArrInner_ = a; }
 	@trusted immutable this(immutable MarkVisitArrOuter a) { kind = Kind.markVisitArrOuter; markVisitArrOuter_ = a; }
 	@trusted immutable this(immutable MarkVisitNonArr a) { kind = Kind.markVisitNonArr; markVisitNonArr_ = a; }
@@ -445,7 +445,7 @@ struct LowFunCause {
 	enum Kind {
 		callWithCtx,
 		compare,
-		expr,
+		concreteFun,
 		markVisitArrInner,
 		markVisitArrOuter,
 		markVisitNonArr,
@@ -456,7 +456,7 @@ struct LowFunCause {
 	union {
 		immutable CallWithCtx callWithCtx_;
 		immutable Compare compare_;
-		immutable Ptr!ConcreteFun expr_;
+		immutable Ptr!ConcreteFun concreteFun_;
 		immutable MarkVisitArrOuter markVisitArrOuter_;
 		immutable MarkVisitArrInner markVisitArrInner_;
 		immutable MarkVisitNonArr markVisitNonArr_;
@@ -465,11 +465,20 @@ struct LowFunCause {
 	}
 }
 
+immutable(Bool) isConcreteFun(ref immutable LowFunCause a) {
+	return immutable Bool(a.kind == LowFunCause.Kind.concreteFun);
+}
+
+@trusted immutable(Ptr!ConcreteFun) asConcreteFun(ref immutable LowFunCause a) {
+	verify(isConcreteFun(a));
+	return a.concreteFun_;
+}
+
 @trusted T matchLowFunCause(T)(
 	ref immutable LowFunCause a,
 	scope T delegate(ref immutable LowFunCause.CallWithCtx) @safe @nogc pure nothrow cbCallWithCtx,
 	scope T delegate(ref immutable LowFunCause.Compare) @safe @nogc pure nothrow cbCompare,
-	scope T delegate(immutable Ptr!ConcreteFun) @safe @nogc pure nothrow cbExpr,
+	scope T delegate(immutable Ptr!ConcreteFun) @safe @nogc pure nothrow cbConcreteFun,
 	scope T delegate(ref immutable LowFunCause.MarkVisitArrInner) @safe @nogc pure nothrow cbMarkVisitArrInner,
 	scope T delegate(ref immutable LowFunCause.MarkVisitArrOuter) @safe @nogc pure nothrow cbMarkVisitArrOuter,
 	scope T delegate(ref immutable LowFunCause.MarkVisitNonArr) @safe @nogc pure nothrow cbMarkVisitNonArr,
@@ -481,8 +490,8 @@ struct LowFunCause {
 			return cbCallWithCtx(a.callWithCtx_);
 		case LowFunCause.Kind.compare:
 			return cbCompare(a.compare_);
-		case LowFunCause.Kind.expr:
-			return cbExpr(a.expr_);
+		case LowFunCause.Kind.concreteFun:
+			return cbConcreteFun(a.concreteFun_);
 		case LowFunCause.Kind.markVisitArrInner:
 			return cbMarkVisitArrInner(a.markVisitArrInner_);
 		case LowFunCause.Kind.markVisitArrOuter:

@@ -1,5 +1,5 @@
 import
-	..alloc: copy-data-from set-zero-range uninitialized-data unmanaged-alloc-zeroed-elements
+	..alloc: alloc-uninitialized copy-data-from set-zero-range unmanaged-alloc-zeroed-elements
 	..bootstrap
 		? + < <= > >= == arr as-any-ptr bool by-val char data deref drop hard-assert hard-fail
 		hard-forbid nat noctx-decr noctx-incr none not opt ptr set size-of some void zeroed
@@ -7,7 +7,6 @@ import
 	..collection.mut-arr
 		data empty-mut-arr fill-mut-arr mut-arr set-zero-elements size slice-starting-at
 		temp-as-arr
-	..collection.sort: sort
 	..exceptions: assert
 	..number-utils: + - * incr
 	..posix.string: memcpy memmove
@@ -92,7 +91,7 @@ noctx-last ?t(a mut-list ?t) noctx unsafe
 
 copy-range-to-arr arr ?t(a mut-list ?t, begin nat, size nat) trusted
 	assert: begin + size <= a.size
-	res = uninitialized-data<?t>: size
+	res = alloc-uninitialized<?t>: size
 	src = a.data + begin
 	memcpy: res.as-any-ptr, src.as-any-ptr, size * size-of<?t>
 	arr: size, res
@@ -143,7 +142,7 @@ push-capacity-must-be-sufficient void(a mut-list ?t, value ?t) noctx unsafe
 increase-capacity-to void(a mut-list ?t, new-capacity nat) unsafe
 	assert: new-capacity > a.capacity
 	old-data = a.data
-	a set-backing: mut-arr: new-capacity, uninitialized-data<?t>: new-capacity
+	a set-backing: mut-arr: new-capacity, alloc-uninitialized<?t>: new-capacity
 	a.data copy-data-from old-data, a.size
 	a.backing slice-starting-at a.size set-zero-elements
 
@@ -171,9 +170,6 @@ noctx-must-remove-unordered void(a mut-list ?t, value ?t) noctx unsafe data<?t>
 		a noctx-remove-unordered-at-index index drop
 	else
 		a noctx-must-remove-unordered-recur index.noctx-incr, value
-
-sort void(a mut-list ?t) trusted data<?t>
-	a.temp-as-mut-arr sort
 
 .unsafe-set-size void(a mut-list ?t, new-size nat) unsafe
 	assert: new-size <= a.capacity

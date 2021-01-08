@@ -173,6 +173,7 @@ private immutable(Type) typeFromFunAst(Alloc)(
 			immutable Bool(it.kind == funKind));
 	immutable Ptr!FunKindAndStructs f = force(optF);
 	if (size(ast.returnAndParamTypes) > size(f.structs))
+		// We don't have a fun type big enough
 		todo!void("!");
 	immutable Ptr!StructDecl decl = at(f.structs, size(ast.returnAndParamTypes) - 1);
 	immutable Arr!Type typeArgs = map!Type(alloc, ast.returnAndParamTypes, (ref immutable TypeAst it) =>

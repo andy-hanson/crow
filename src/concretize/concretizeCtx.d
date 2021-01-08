@@ -208,7 +208,7 @@ immutable(ConcreteType) boolType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
 		getConcreteType_forStructInst(alloc, a, a.commonTypes.bool_, TypeArgsScope.empty));
 }
 
-immutable(ConcreteType) charType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
+private immutable(ConcreteType) charType(Alloc)(ref Alloc alloc, ref ConcretizeCtx a) {
 	return lazilySet(a._charType, () =>
 		getConcreteType_forStructInst(alloc, a, a.commonTypes.char_, TypeArgsScope.empty));
 }
@@ -588,10 +588,12 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 		case shortSymAlphaLiteralValue("fun1"):
 		case shortSymAlphaLiteralValue("fun2"):
 		case shortSymAlphaLiteralValue("fun3"):
+		case shortSymAlphaLiteralValue("fun4"):
 		case shortSymAlphaLiteralValue("fun-act0"):
 		case shortSymAlphaLiteralValue("fun-act1"):
 		case shortSymAlphaLiteralValue("fun-act2"):
 		case shortSymAlphaLiteralValue("fun-act3"):
+		case shortSymAlphaLiteralValue("fun-act4"):
 			return BuiltinStructKind.fun;
 		case shortSymAlphaLiteralValue("fun-ptr0"):
 		case shortSymAlphaLiteralValue("fun-ptr1"):

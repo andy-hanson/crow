@@ -1,12 +1,23 @@
 
 import
-	iter: each range-nat
+	backtrace: get-backtrace
+	collection.arr-util: join
 	io.print: print
 	io.process: exit-code
 
+foo void() unsafe summon
+	bar
+
+bar void() unsafe summon
+	print: get-backtrace.return-stack join ", "
+	fail: "FOO"
+
 main fut exit-code(_ arr str) summon unsafe
-	print: "HELLO"
-	print: funs-count.to-str
-	0 range-nat funs-count each \i
-		print: i.to-str + ": " + i.get-fun-name + " at " + i.get-fun-ptr.to-nat.to-str
+	foo
 	0 resolved
+
+	| print: "HELLO"
+	| print: funs-count.to-str
+	| 0 range-nat funs-count each \i
+	| 	print: i.to-str + ": " + i.get-fun-name + " at " + i.get-fun-ptr.to-nat.to-str
+	| 0 resolved

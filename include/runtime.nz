@@ -3,11 +3,12 @@
 import
 	.alloc: gc get-gc-ctx needs-gc? new-gc return-gc-ctx run-garbage-collection
 	.bootstrap
-		== != > ? and arr as as-any-ptr as-ref bool by-val call-with-ctx ctx exception
+		== != > ? and arr as as-any-ptr as-ref backtrace bool by-val call-with-ctx ctx exception
 		exclusion false gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid
 		island-and-exclusion island-id lock message min nat noctx-decr noctx-incr none not opt or
-		ref-of-val size some true value void
-	.collection.arr: at empty? noctx-at
+		ref-of-val return-stack size some str true value void
+	.collection.arr: + at empty? noctx-at
+	.collection.arr-util: join
 	.exceptions: exception-ctx new-exception-ctx
 	.io.print: print-err print-err-no-newline
 	.io.time-low-level: get-monotime-nsec timestamp
@@ -83,11 +84,16 @@ new-island by-val island(gctx global-ctx, id island-id, max-threads nat) summon 
 		log default-log-handler
 	island: gctx, id, new-gc, gc-root, new-lock, 0, new-thread-safe-counter
 
-| TODO: move to exceptions.nz
 default-exception-handler void(e exception) summon unsafe
 	print-err-no-newline: "uncaught exception: "
-	print-err: e.message.empty? ? "<<empty message>>", e.message
+	print-err: e show-exception
 	get-global-ctx set-any-unhandled-exceptions? true
+
+| TODO: MOVE
+.show-exception str(a exception)
+	msg = a.message.empty? ? "<<empty message>>", a.message
+	bt = a.backtrace.return-stack join "\n\tat "
+	msg + "\n\tat " + bt
 
 | TODO: move to exceptions.nz?
 set-this-islands-exception-handler void(exception-handler fun void(exception)) summon trusted

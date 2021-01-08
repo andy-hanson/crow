@@ -33,6 +33,13 @@ ptr-eq? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
 ptr-less? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
 ptr-less-eq? bool(a ptr ?t, b ptr ?t) noctx unsafe
 	a ptr-less? b or: a ptr-eq? b
+ptr-compare comparison(a ptr ?t, b ptr ?t) noctx unsafe
+	if a ptr-less? b
+		less
+	elif a ptr-eq? b
+		equal
+	else
+		greater
 
 ref-eq? bool(a ?t, b ?t) noctx unsafe
 	a.as-any-ptr ptr-eq? b.as-any-ptr
@@ -92,8 +99,8 @@ comparison union
 	equal
 	greater
 
-to-str str(c comparison)
-	match c
+to-str str(a comparison)
+	match a
 	as less
 		"less"
 	as equal
@@ -212,6 +219,7 @@ fun0<?r> builtin sendable
 fun1<?r, ?p0> builtin sendable
 fun2<?r, ?p0, ?p1> builtin sendable
 fun3<?r, ?p0, ?p1, ?p2> builtin sendable
+fun4<?r, ?p0, ?p1, ?p2, ?p3> builtin sendable
 
 | Don't reference directly, instead use syntax `act ?r(?p0, ?p1)`
 | Can close over anything. Can only be run by the exclusion context that created it.
@@ -219,6 +227,7 @@ fun-act0<?r> builtin mut
 fun-act1<?r, ?p0> builtin mut
 fun-act2<?r, ?p0, ?p1> builtin mut
 fun-act3<?r, ?p0, ?p1, ?p2> builtin mut
+fun-act4<?r, ?p0, ?p1, ?p2, ?p3> builtin mut
 
 | Don't reference directly, instead use syntax `act ?r(?p0, ?p1)`
 | This wraps an `act` combined with the island/exclusion it came from, and becomes sendable
@@ -239,6 +248,10 @@ fun-ref3<?r, ?p0, ?p1, ?p2> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
 	fun act fut ?r(?p0, ?p1, ?p2)
+fun-ref4<?r, ?p0, ?p1, ?p2, ?p3> record force-sendable
+	by-val
+	island-and-exclusion island-and-exclusion
+	fun act fut ?r(?p0, ?p1, ?p2, ?p3)
 
 | calling a fun-ptr is a primitive operation
 call ?r(a fun-ptr0 ?r) noctx builtin
@@ -257,6 +270,8 @@ call ?r(a fun ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted
 	a call-with-ctx get-ctx, p0, p1
 call ?r(a fun ?r(?p0, ?p1, ?p2), p0 ?p0, p1 ?p1, p2 ?p2) trusted
 	a call-with-ctx get-ctx, p0, p1, p2
+call ?r(a fun ?r(?p0, ?p1, ?p2, ?p3), p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) trusted
+	a call-with-ctx get-ctx, p0, p1, p2, p3
 
 call ?r(a act ?r()) trusted
 	a call-with-ctx get-ctx
@@ -266,6 +281,8 @@ call ?r(a act ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted
 	a call-with-ctx get-ctx, p0, p1
 call ?r(a act ?r(?p0, ?p1, ?p2), p0 ?p0, p1 ?p1, p2 ?p2) trusted
 	a call-with-ctx get-ctx, p0, p1, p2
+call ?r(a act ?r(?p0, ?p1, ?p2, ?p3), p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) trusted
+	a call-with-ctx get-ctx, p0, p1, p2, p3
 
 call-with-ctx ?r(f fun ?r(), c ctx) noctx builtin
 call-with-ctx ?r(f act ?r(), c ctx) noctx builtin
@@ -275,6 +292,8 @@ call-with-ctx ?r(f fun ?r(?p0, ?p1), c ctx, p0 ?p0, p1 ?p1) noctx builtin
 call-with-ctx ?r(f act ?r(?p0, ?p1), c ctx, p0 ?p0, p1 ?p1) noctx builtin
 call-with-ctx ?r(f fun ?r(?p0, ?p1, ?p2), c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
 call-with-ctx ?r(f act ?r(?p0, ?p1, ?p2), c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
+call-with-ctx ?r(f fun ?r(?p0, ?p1, ?p2, ?p3), c ctx, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
+call-with-ctx ?r(f act ?r(?p0, ?p1, ?p2, ?p3), c ctx, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
 
 | A type is data if it is:
 | * A primitive
@@ -533,10 +552,15 @@ as ?t(value ?t) noctx builtin
 
 region fut
 
+backtrace record
+	by-val
+	return-stack arr str
+
 exception record
 	by-val
-	| TODO: stack trace here too
 	message str
+	| TODO: accessing backtrace should be unsafe
+	backtrace backtrace
 
 fut<?t> record force-sendable
 	lk by-val lock
