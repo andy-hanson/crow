@@ -1,0 +1,32 @@
+file-ast(
+	imports: ports(range(0, 31), [import-ast(0, "/io/process", some([exit-code]))])
+	specs: []
+	aliases: []
+	structs: []
+	funs: [
+		fun-decl(
+			public?: true
+			sig: sig-ast(range(31, 41), foo, inststruct(range(35, 39), name-range(35, void)), [])
+			summon: true
+			unsafe: true
+			body: bar)
+		fun-decl(
+			public?: true
+			sig: sig-ast(range(62, 72), bar, inststruct(range(66, 70), name-range(66, void)), [])
+			summon: true
+			unsafe: true
+			body: call(prefix, name-range(88, fail), [], [literal("FOO")]))
+		fun-decl(
+			public?: true
+			sig: sig-ast(
+				range(101, 130)
+				main
+				inststruct(range(106, 119), name-range(106, fut), [inststruct(range(110, 119), name-range(110, exit-code))])
+				[
+					param(
+						range(120, 129)
+						none
+						inststruct(range(122, 129), name-range(122, arr), [inststruct(range(126, 129), name-range(126, str))]))])
+			summon: true
+			unsafe: true
+			body: seq-ast(foo, call(infix, name-range(153, resolved), [], [literal(nat(0, false))])))])

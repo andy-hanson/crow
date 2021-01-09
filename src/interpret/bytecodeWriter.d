@@ -511,6 +511,7 @@ void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeS
 			case ExternOp.longjmp:
 			case ExternOp.write:
 				return -2;
+			case ExternOp.backtrace:
 			case ExternOp.free:
 			case ExternOp.pthreadJoin:
 				return -1;

@@ -1,0 +1,9 @@
+uncaught exception: FOO
+	at get-backtrace
+	at fail<void>
+	at bar
+	at foo
+	at main
+	at add-first-task.lambda0
+	at 
+	at call<fut<?r>>

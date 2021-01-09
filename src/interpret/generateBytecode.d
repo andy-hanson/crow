@@ -317,7 +317,9 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 }
 
 immutable(Opt!ExternOp) externOpFromName(immutable Str a) {
-	return strEqLiteral(a, "free")
+	return strEqLiteral(a, "backtrace")
+			? some(ExternOp.backtrace)
+		: strEqLiteral(a, "free")
 			? some(ExternOp.free)
 		: strEqLiteral(a, "get_nprocs")
 			? some(ExternOp.getNProcs)

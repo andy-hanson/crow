@@ -1,0 +1,12 @@
+import
+	io.process: exit-code
+
+foo void() unsafe summon
+	bar
+
+bar void() unsafe summon
+	fail: "FOO"
+
+main fut exit-code(_ arr str) summon unsafe
+	foo
+	0 resolved

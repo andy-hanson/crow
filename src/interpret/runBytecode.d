@@ -61,8 +61,22 @@ import util.path : AbsolutePath, AllPaths, pathToCStr;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
 import util.sexpr : writeSexprNoNewline;
 import util.sourceRange : FileAndPos;
-import util.types : decr, incr, Nat8, Nat16, Nat32, Nat64, safeIntFromNat64, safeSizeTFromU64, u8, u16, u32, u64, zero;
-import util.util : todo, unreachable, verify;
+import util.types :
+	decr,
+	incr,
+	Nat8,
+	Nat16,
+	Nat32,
+	Nat64,
+	safeIntFromNat64,
+	safeSizeTFromI32,
+	safeSizeTFromU64,
+	u8,
+	u16,
+	u32,
+	u64,
+	zero;
+import util.util : min, todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, writeStatic;
 
 @trusted immutable(int) runBytecode(Debug, TempAlloc, PathAlloc, Extern)(
@@ -521,12 +535,20 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 	return remove(a.dataStack, offset.offset);
 }
 
+//TODO: not @trusted
 @trusted void applyExternOp(TempAlloc, Extern)(
 	ref TempAlloc tempAlloc,
 	ref Interpreter!Extern a,
 	immutable ExternOp op,
 ) {
 	final switch (op) {
+		case ExternOp.backtrace:
+			immutable int size = cast(int) pop(a.dataStack).to32().raw();
+			void** array = cast(void**) pop(a.dataStack).raw();
+			immutable size_t res = backtrace(tempAlloc, a, array, safeSizeTFromI32(size));
+			verify(res <= int.max);
+			push(a.dataStack, immutable Nat64(res));
+			break;
 		case ExternOp.free:
 			a.extern_.free(cast(u8*) pop(a.dataStack).raw());
 			break;
@@ -573,6 +595,24 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			push(a.dataStack, immutable Nat64(res));
 			break;
 	}
+}
+
+@system immutable(size_t) backtrace(TempAlloc, Extern)(
+	ref TempAlloc tempAlloc,
+	ref Interpreter!Extern a,
+	void** res,
+	immutable size_t size,
+) {
+	checkPtr(
+		tempAlloc,
+		a,
+		cast(const ubyte*) res,
+		immutable Nat16(0),
+		(immutable Nat64((void*).sizeof * size)).to16());
+	immutable size_t resSize = min(stackSize(a.returnStack).raw(), size);
+	foreach (immutable size_t i; 0..resSize)
+		res[i] = cast(void*) byteCodeIndexOfPtr(a, a.returnStack.peek((immutable Nat64(i)).to8())).index.raw();
+	return resSize;
 }
 
 void applyExternDynCall(Extern)(ref Interpreter!Extern a, ref immutable Operation.ExternDynCall op) {

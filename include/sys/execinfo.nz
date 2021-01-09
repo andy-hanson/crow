@@ -2,6 +2,5 @@ import
 	..bootstrap: any-ptr ptr
 	..posix.c-types: c-int
 
-| extern int backtrace (void **__array, int __size) __nonnull ((1));
-
+| Interpreter overrides this
 backtrace c-int(array ptr any-ptr, size c-int) unsafe noctx extern<"backtrace">

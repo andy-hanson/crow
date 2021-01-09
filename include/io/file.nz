@@ -156,23 +156,23 @@ try-read-file opt str(path c-str) summon trusted
 			forbid: file-size == -1
 			| TODO: this is just a sanity check
 			assert: file-size < 1000000000
-			| TODO: handle empty files
-			forbid: file-size == 0
+			if file-size == 0
+				some: new-arr<char>
+			else
+				| Go back to beginning
+				off = fd lseek 0, seek-set
+				| TODO: handle errors
+				assert: off == 0
 
-			| Go back to beginning
-			off = fd lseek 0, seek-set
-			| TODO: handle errors
-			assert: off == 0
-
-			| TODO: allocation can fail, then 'fd' is left open. Need finalizers
-			file-size-nat = file-size.to-nat
-			res = file-size-nat new-uninitialized-mut-arr<char>
-			n-bytes-read = fd read res.data.ptr-cast, file-size-nat
-			| TODO: handle errors
-			forbid: n-bytes-read == -1
-			assert: n-bytes-read == file-size
-			check-posix-error: fd close
-			res.cast-immutable some
+				| TODO: allocation can fail, then 'fd' is left open. Need finalizers
+				file-size-nat = file-size.to-nat
+				res = file-size-nat new-uninitialized-mut-arr<char>
+				n-bytes-read = fd read res.data.ptr-cast, file-size-nat
+				| TODO: handle errors
+				forbid: n-bytes-read == -1
+				assert: n-bytes-read == file-size
+				check-posix-error: fd close
+				res.cast-immutable some
 	else
 		none
 

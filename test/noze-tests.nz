@@ -72,7 +72,7 @@ body
 	| NOTE: compiler may have both stderr and stdout!
 	output-failures = if res.stdout.empty? and: res.exit-code != 0
 		| Just have a file for the err
-		empty-arr<failure>
+		new-arr<failure>
 	else
 		path handle-output output-path, res.stdout, overwrite-output?
 	
@@ -80,7 +80,7 @@ body
 		print-test-result: true, output-failures
 	elif res.exit-code == 0
 		assert: res.stderr == ""
-		print-test-result: false, empty-arr
+		print-test-result: false, new-arr<failure>
 	elif res.exit-code == 1
 		stderr-no-color = res.stderr remove-colors
 		| We should stop even if no test failure in handling the output
@@ -100,11 +100,12 @@ spec
 body
 	args = as<arr<str>>: interpret? ? (new-arr "run", path, "--interpret"), (new-arr "run", path)
 	res = path-to-noze spawn-and-wait-result args, env
-	if res.exit-code == 0 and: res.stderr == ""
-		path handle-output (path + ".stdout"), res.stdout, overwrite-output?
+	stdout-failures = path handle-output (path + ".stdout"), res.stdout, overwrite-output?
+	stderr-failures = if res.exit-code == 0 and: res.stderr == ""
+		new-arr<failure>
 	else
-		message = "status: " + res.exit-code.to-str + "\nstdout:\n" + res.stdout + "stderr:\n" + res.stderr
-		new-arr failure: path, message
+		path handle-output (path + ".stderr"), res.stderr, overwrite-output?
+	stdout-failures + stderr-failures
 
 .remove-colors str(s str)
 	res = new-mut-list<char>

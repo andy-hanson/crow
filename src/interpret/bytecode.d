@@ -539,6 +539,7 @@ struct ByteCodeOffset {
 immutable Nat16 stackEntrySize = immutable Nat16(8);
 
 enum ExternOp : u8 {
+	backtrace,
 	free,
 	getNProcs,
 	longjmp,
@@ -588,6 +589,8 @@ enum FnOp : u8 {
 private immutable(Str) strOfExternOp(immutable ExternOp op) {
 	return strLiteral(() {
 		final switch (op) {
+			case ExternOp.backtrace:
+				return "backtrace";
 			case ExternOp.free:
 				return "free";
 			case ExternOp.getNProcs:
