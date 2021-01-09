@@ -675,6 +675,8 @@ immutable(size_t) toHexDigit(immutable char c) {
 						return '"';
 					case 'n':
 						return '\n';
+					case 'r':
+						return '\r';
 					case 't':
 						return '\t';
 					case '0':

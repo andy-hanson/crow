@@ -1,6 +1,6 @@
 import
 	.bootstrap
-		< == != any-ptr as atomic-bool bool by-val call drop false fun-ptr1 hard-assert hard-fail
+		< == != any-ptr as atomic-bool bool by-val call drop false fun-ptr1 hard-assert
 		hard-forbid is-locked lock nat noctx-decr noctx-incr not null null? opt ptr ptr-to
 		ref-of-val todo true value void wrap-mul
 	.cell: cell get
@@ -42,7 +42,7 @@ acquire-lock void(a lock) noctx unsafe
 acquire-lock-recur void(a lock, n-tries nat) noctx unsafe
 	if a.try-acquire-lock not
 		if n-tries == 1000
-			hard-fail: "Couldn't acquire lock after 1000 tries"
+			todo
 		else
 			yield-thread
 			a acquire-lock-recur n-tries.noctx-incr

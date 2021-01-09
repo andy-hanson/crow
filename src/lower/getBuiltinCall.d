@@ -214,8 +214,6 @@ immutable(BuiltinKind) getBuiltinKind(
 			return constantBool(False);
 		case shortSymAlphaLiteralValue("get-ctx"):
 			return immutable BuiltinKind(immutable BuiltinKind.GetCtx());
-		case shortSymAlphaLiteralValue("hard-fail"):
-			return unary(LowExprKind.SpecialUnary.Kind.hardFail);
 		case shortSymAlphaLiteralValue("not"):
 			return unary(LowExprKind.SpecialUnary.Kind.not);
 		case shortSymAlphaLiteralValue("null"):
@@ -249,7 +247,9 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.toIntFromInt32
 				: failUnary());
 		case shortSymAlphaLiteralValue("to-nat"):
-			return unary(isNat8(p0)
+			return unary(isChar(p0)
+				? LowExprKind.SpecialUnary.Kind.toNatFromChar
+				: isNat8(p0)
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat8
 				: isNat16(p0)
 				? LowExprKind.SpecialUnary.Kind.toNatFromNat16
@@ -361,6 +361,10 @@ private:
 
 immutable(Bool) isPrimitiveType(ref immutable LowType t, immutable PrimitiveType p) {
 	return immutable Bool(isPrimitive(t) && asPrimitive(t) == p);
+}
+
+immutable(Bool) isChar(ref immutable LowType t) {
+	return isPrimitiveType(t, PrimitiveType.char_);
 }
 
 immutable(Bool) isInt8(ref immutable LowType t) {

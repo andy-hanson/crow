@@ -26,14 +26,19 @@ fail ?t(reason str) trusted
 	throw: exception: reason, get-backtrace
 
 assert void(condition bool)
-	condition assert "assert failed"
-
-unreachable ?t()
-	"should be unreachable" fail
+	if condition not
+		"assert failed" fail
 
 assert void(condition bool, message str)
 	if condition not
 		message fail
+
+assert void(condition bool, message fun str())
+	if condition not
+		message.call fail
+
+unreachable ?t()
+	"should be unreachable" fail
 
 forbid void(condition bool)
 	condition forbid "forbid failed"

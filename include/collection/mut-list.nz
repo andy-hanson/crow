@@ -1,8 +1,8 @@
 import
 	..alloc: alloc-uninitialized copy-data-from set-zero-range unmanaged-alloc-zeroed-elements
 	..bootstrap
-		? + < <= > >= == arr as-any-ptr bool by-val char data deref drop hard-assert hard-fail
-		hard-forbid nat noctx-decr noctx-incr none not opt ptr set size-of some void zeroed
+		? + < <= > >= == arr as-any-ptr bool by-val char data deref drop hard-assert hard-forbid
+		nat noctx-decr noctx-incr none not opt ptr set size-of some todo void zeroed
 	..collection.arr-util: contains? each index-of
 	..collection.mut-arr
 		data empty-mut-arr fill-mut-arr mut-arr set-zero-elements size slice-starting-at
@@ -44,6 +44,17 @@ new-mut-list-by-val-with-capacity-from-unmanaged-memory by-val mut-list ?t(capac
 fill-mut-list mut-list ?t(size nat, value ?t)
 	backing = size fill-mut-arr value
 	mut-list: backing, size
+
+copy-to-mut-list mut-list ?t(a arr ?t)
+	res = new-mut-list<?t>
+	res push-all a
+	res
+
+copy mut-list ?t(a mut-list ?t) trusted
+	a.temp-as-arr copy-to-mut-list
+
+copy-to-arr arr ?t(a mut-list ?t)
+	a.copy move-to-arr
 
 move-to-arr arr ?t(a mut-list ?t) noctx trusted
 	res = arr: a.size, a.data
@@ -101,8 +112,9 @@ pop-n-from-start arr ?t(a mut-list ?t, n nat) trusted
 	res = a copy-range-to-arr 0, n
 	dest = a.data as-any-ptr
 	src = a.data + n as-any-ptr
-	memmove: dest, src, n * size-of<?t>
-	a pop-n n
+	new-size = a.size - n
+	memmove: dest, src, new-size * size-of<?t>
+	a set-size new-size
 	res
 
 pop opt ?t(a mut-list ?t) trusted
@@ -165,7 +177,7 @@ noctx-must-remove-unordered void(a mut-list ?t, value ?t) noctx unsafe data<?t>
 
 .noctx-must-remove-unordered-recur void(a mut-list ?t, index nat, value ?t) noctx unsafe data<?t>
 	if index == a.size
-		hard-fail: "Did not find the element in the mut-list"
+		todo
 	elif a noctx-at index == value
 		a noctx-remove-unordered-at-index index drop
 	else

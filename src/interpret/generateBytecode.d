@@ -36,7 +36,6 @@ import interpret.bytecodeWriter :
 	writeExtern,
 	writeExternDynCall,
 	writeFn,
-	writeFnHardFail,
 	writeMulConstantNat64,
 	writePushConstant,
 	writePushConstantPointer,
@@ -796,6 +795,7 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 		// Normal operations on <64-bit values treat other bits as garbage
 		// (they may be written to, such as in a wrap-add operation that overflows)
 		// So we must mask out just the lower bits now.
+		case LowExprKind.SpecialUnary.Kind.toNatFromChar:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
 			generateArg();
 			writePushConstant(dbg, writer, source, Nat8.max);
@@ -814,10 +814,6 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.deref:
 			generateArg();
 			writeRead(dbg, writer, source, immutable Nat16(0), sizeOfType(ctx, type));
-			break;
-		case LowExprKind.SpecialUnary.Kind.hardFail:
-			generateArg();
-			writeFnHardFail(dbg, writer, source, nStackEntriesForType(ctx, type));
 			break;
 		case LowExprKind.SpecialUnary.Kind.not:
 			fn(FnOp.not);

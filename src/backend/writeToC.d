@@ -109,7 +109,6 @@ immutable(Str) writeToC(Alloc, TempAlloc)(
 ) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 
-	writeStatic(writer, "#include <assert.h>\n");
 	writeStatic(writer, "#include <errno.h>\n");
 	writeStatic(writer, "#include <stdatomic.h>\n");
 	writeStatic(writer, "#include <stddef.h>\n"); // for NULL
@@ -1511,7 +1510,7 @@ immutable(WriteExprResult) writeMatch(Alloc, TempAlloc)(
 	writeNewline(writer, indent + 2);
 	if (isReturn(nested.writeKind))
 		writeStatic(writer, "return ");
-	writeHardFail(writer, ctx.ctx, type);
+	writeZeroedValue(writer, ctx.ctx, type);
 	writeChar(writer, ';');
 	writeNewline(writer, indent);
 	writeChar(writer, '}');
@@ -1552,7 +1551,7 @@ immutable(WriteExprResult) writeSwitch(Alloc, TempAlloc)(
 	writeNewline(writer, indent + 2);
 	if (isReturn(nested.writeKind))
 		writeStatic(writer, "return ");
-	writeHardFail(writer, ctx.ctx, type);
+	writeZeroedValue(writer, ctx.ctx, type);
 	writeChar(writer, ';');
 	writeNewline(writer, indent);
 	writeChar(writer, '}');
@@ -1700,6 +1699,7 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.toFloat64FromNat64:
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
+		case LowExprKind.SpecialUnary.Kind.toNatFromChar:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat32:
@@ -1728,10 +1728,6 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 			return prefix("~");
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return prefix("*");
-		case LowExprKind.SpecialUnary.Kind.hardFail:
-			return writeInlineableSimple(writer, tempAlloc, indent, ctx, writeKind, type, () {
-				writeHardFail(writer, ctx.ctx, type);
-			});
 		case LowExprKind.SpecialUnary.Kind.not:
 			return prefix("!");
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
@@ -1782,10 +1778,6 @@ void writeLValue(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref i
 					writeChar(writer, ')');
 					break;
 				default:
-					debug {
-						import core.stdc.stdio : printf;
-						printf("HUH %d\n", cast(int) it.kind);
-					}
 					todo!void("!");
 			}
 		},
@@ -1795,12 +1787,6 @@ void writeLValue(Alloc)(ref Writer!Alloc writer, ref const FunBodyCtx ctx, ref i
 		(ref immutable LowExprKind.Switch) => unreachable!void(),
 		(ref immutable LowExprKind.TailRecur) => unreachable!void(),
 		(ref immutable LowExprKind.Zeroed) => unreachable!void());
-}
-
-void writeHardFail(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType type) {
-	writeStatic(writer, "(assert(0),");
-	writeZeroedValue(writer, ctx, type);
-	writeChar(writer, ')');
 }
 
 void writeZeroedValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowType type) {

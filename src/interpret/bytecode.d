@@ -561,7 +561,6 @@ enum FnOp : u8 {
 	eqBits,
 	float64FromInt64,
 	float64FromNat64,
-	hardFail,
 	intFromInt16,
 	intFromInt32,
 	lessFloat64,
@@ -633,8 +632,6 @@ private immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 			return "float-64-from-int-64";
 		case FnOp.float64FromNat64:
 			return "float-64-from-nat-64";
-		case FnOp.hardFail:
-			return "hard-fail";
 		case FnOp.intFromInt16:
 			return "to-int (from int-16)";
 		case FnOp.intFromInt32:

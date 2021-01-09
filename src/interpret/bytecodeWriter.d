@@ -36,7 +36,7 @@ import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.collection.str : Str;
 import util.dbg : dbgLog = log;
 import util.ptr : Ptr;
-import util.util : divRoundUp, repeat, unreachable, verify;
+import util.util : divRoundUp, repeat, verify;
 import util.types : catU4U4, decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, zero;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
@@ -590,38 +590,14 @@ void writeFn(Debug, Alloc)(
 			case FnOp.not:
 			case FnOp.truncateToInt64FromFloat64:
 				return 0;
-			case FnOp.hardFail:
-				return unreachable!int(); // Use writeFnHardFail instead
 		}
 	}();
-	writeFnCommon(dbg, writer, source, fn, stackEffect);
-}
-
-void writeFnHardFail(Debug, Alloc)(
-	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
-	ref immutable ByteCodeSource source,
-	immutable Nat8 stackEntriesForReturnType,
-) {
-	writeFnCommon(dbg, writer, source, FnOp.hardFail, (cast(int) stackEntriesForReturnType.raw()) - 2);
-}
-
-private:
-
-void writeFnCommon(Debug, Alloc)(
-	ref Debug dbg,
-	ref ByteCodeWriter!Alloc writer,
-	ref immutable ByteCodeSource source,
-	immutable FnOp fnOp,
-	immutable int stackEffect,
-) {
-	log(dbg, writer, "write fn common");
 	pushOpcode(writer, source, OpCode.fn);
-	pushU8(writer, source, immutable Nat8(fnOp));
+	pushU8(writer, source, immutable Nat8(fn));
 	writer.nextStackEntry += stackEffect;
 }
 
-void pushOpcode(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable OpCode code) {
+private void pushOpcode(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable OpCode code) {
 	pushU8(writer, source, immutable Nat8(code));
 }
 

@@ -4,9 +4,10 @@ import
 		nat16 nat32 not or ptr-cast-to-extern ptr-to ref-of-val size-of str todo to-int true value
 		void
 	...cell: cell
-	...collection.mut-arr: cast-immutable data new-uninitialized-mut-arr size slice-up-to
+	...collection.arr: + slice-up-to
+	...collection.mut-arr: cast-immutable data new-uninitialized-mut-arr size
 	...exceptions: assert
-	...fut-utils: call-ref-void delay-msec handle-exceptions then then-void fut-catch resolved
+	...fut-utils: call-ref-void handle-exceptions then then-void fut-catch resolved
 	...number-utils: to-int to-int32 to-nat to-nat32
 	...posix.c-types: c-int
 	...posix.errno: eagain errno ewouldblock
@@ -17,11 +18,13 @@ import
 	...posix.stdio: perror
 	...posix.types: socklen-t
 	...posix.unistd: close read
+	...str-conv: to-str
 	...sys.epoll
 		data epoll-create1 epoll-ctl epoll-ctl-add epollerr epollet epoll-event epollhup epollin
 		epoll-wait events
 	..posix-util: check-posix-error
 	..print: print
+	..time: delay msec
 	.net: bind-to-port
 	
 close-client void(client-fd fd-t) unsafe summon
@@ -104,7 +107,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 			todo
 		elif num-events == 0
 			print: "no events (for now)"
-			ignore-me <- 500 delay-msec
+			ignore-me <- 500.msec delay
 			drop: ignore-me
 			state tcp-server-loop
 		else
@@ -134,7 +137,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 			perror: "accept() error\0".data
 			todo
 	else
-		print: "Accepted client"
+		print: "Accepted client " + client-fd.to-str
 		client-fd set-non-blocking
 		client-event = epoll-event: (epollin bits-or epollet), client-fd.to-int.to-nat
 		err = epoll-fd epoll-ctl epoll-ctl-add, client-fd, client-event.ptr-to

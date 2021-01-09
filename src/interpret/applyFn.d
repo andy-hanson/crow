@@ -19,7 +19,7 @@ import util.types :
 	Nat64,
 	u64,
 	u64OfFloat64Bits;
-import util.util : todo, verify;
+import util.util : verify;
 
 void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 	final switch (fn) {
@@ -62,9 +62,6 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 		case FnOp.intFromInt32:
 			unary(dataStack, (immutable u64 a) =>
 				nat64OfI32(cast(i32) (bottomU32OfU64(a))));
-			break;
-		case FnOp.hardFail:
-			todo!void(dbg, "apply fn hardFail");
 			break;
 		case FnOp.lessFloat64:
 			binary(dataStack, (immutable u64 a, immutable u64 b) =>

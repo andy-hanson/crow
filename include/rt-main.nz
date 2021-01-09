@@ -3,12 +3,11 @@ import
 	.bootstrap
 		? != + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref false
 		fun-ptr2 fut get-ctx int32 nat noctx-decr noctx-incr null
-		ptr ptr-to ref-of-val set str to-int unsafe-to-nat value void
+		ptr ptr-to ref-of-val set state str to-int unsafe-to-nat value void
 	.cell: as-cell
 	.collection.arr: empty-arr
 	.collection.arr-util: map tail
 	.exceptions: new-exception-ctx
-	.fut-low-level: must-be-resolved
 	.fut-utils: delay handle-exceptions then2
 	.io.process: exit-code
 	.logging: new-log-ctx
@@ -37,10 +36,13 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 
 	n-threads run-threads gctx
 
-	match main-fut.must-be-resolved
-	as ok o
-		gctx.any-unhandled-exceptions? ? 1, o.value
-	as err
+	match main-fut state
+	as fut-state-callbacks
+		| Should never happen
+		1
+	as fut-state-resolved r
+		gctx.any-unhandled-exceptions? ? 1, r.value
+	as exception
 		| 'handle-exceptions' should have logged the error
 		1
 

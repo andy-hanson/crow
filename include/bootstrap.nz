@@ -1,16 +1,13 @@
-| Unrecoverable assertion failure
-hard-fail ?t(reason str) noctx unsafe builtin
+abort void() noctx unsafe extern<"abort">
 
 | Zeroed data isn't safe as it would contain null pointers.
 | It's GC-safe though, since the GC treats a null pointer same as any external pointer.
 zeroed ?t() noctx unsafe builtin
 
-hard-unreachable ?t() noctx unsafe
-	hard-fail: "unreachable"
-
 todo ?t() trusted noctx
-	| TODO: soft-fail, remove 'trusted' above
-	hard-fail: "TODO"
+	| TODO: soft-fail, remove 'trusted noctx' above
+	abort
+	zeroed
 
 by-val<?t> builtin
 
@@ -179,6 +176,8 @@ nor bool(a bool, b bool) noctx builtin
 | TODO:MOVE
 to-nat nat(b bool) noctx
 	b ? 1, 0
+
+to-nat nat(c char) noctx builtin
 
 region Fun
 
@@ -504,13 +503,10 @@ drop void(_ ?t) noctx
 
 hard-assert void(condition bool) noctx unsafe
 	if condition not
-		"Assertion failed!" hard-fail
+		abort
 
 hard-forbid void(condition bool) noctx unsafe
 	condition.not hard-assert
-
-hard-assert-unreachable ?t() noctx unsafe
-	"should be unreachable" hard-fail
 
 some<?t> record
 	by-val

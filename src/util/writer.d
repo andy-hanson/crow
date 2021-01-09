@@ -165,6 +165,9 @@ void writeEscapedChar_inner(Alloc)(ref Writer!Alloc writer, immutable char c) {
 		case '\n':
 			writeStatic(writer, "\\n");
 			break;
+		case '\r':
+			writeStatic(writer, "\\r");
+			break;
 		case '\t':
 			writeStatic(writer, "\\t");
 			break;

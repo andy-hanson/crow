@@ -231,18 +231,18 @@ immutable(Bool) someInOwnBody(
 
 	return matchExprAstKind!(immutable Bool)(
 		body_.kind,
-		(ref immutable BogusAst) => False,
+		(ref immutable(BogusAst)) => False,
 		(ref immutable CallAst e) => exists!ExprAst(e.args, &recur),
 		(ref immutable CreateArrAst e) => exists(e.args, &recur),
-		(ref immutable FunPtrAst) => False,
-		(ref immutable IdentifierAst) => False,
-		(ref immutable LambdaAst) => False,
-		(ref immutable LetAst) => unreachable!(immutable Bool),
-		(ref immutable LiteralAst) => False,
-		(ref immutable MatchAst) => unreachable!(immutable Bool),
-		(ref immutable SeqAst) => unreachable!(immutable Bool),
-		(ref immutable ThenAst) => unreachable!(immutable Bool),
-		(ref immutable CondAst) => unreachable!(immutable Bool));
+		(ref immutable(FunPtrAst)) => False,
+		(ref immutable(IdentifierAst)) => False,
+		(ref immutable(IfAst)) => unreachable!(immutable Bool),
+		(ref immutable(LambdaAst)) => False,
+		(ref immutable(LetAst)) => unreachable!(immutable Bool),
+		(ref immutable(LiteralAst)) => False,
+		(ref immutable(MatchAst)) => unreachable!(immutable Bool),
+		(ref immutable(SeqAst)) => unreachable!(immutable Bool),
+		(ref immutable(ThenAst)) => unreachable!(immutable Bool));
 }
 
 immutable(Bool) bodyUsesIt(ref immutable ExprAst body_) {

@@ -278,8 +278,6 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "bits-not (nat-64)";
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return "deref";
-		case LowExprKind.SpecialUnary.Kind.hardFail:
-			return "hard-fail";
 		case LowExprKind.SpecialUnary.Kind.not:
 			return "not";
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
@@ -294,6 +292,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "to-int (from int-16)";
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt32:
 			return "to-int (from int-32)";
+		case LowExprKind.SpecialUnary.Kind.toNatFromChar:
+			return "to-nat (from char)";
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat8:
 			return "to-nat (from nat-8)";
 		case LowExprKind.SpecialUnary.Kind.toNatFromNat16:
