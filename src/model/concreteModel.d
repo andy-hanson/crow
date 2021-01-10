@@ -28,7 +28,7 @@ import util.opt : Opt;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : u8;
+import util.types : Nat32, u8;
 import util.util : todo, unreachable, verify;
 
 enum BuiltinStructKind {
@@ -203,6 +203,11 @@ struct ConcreteStructSource {
 		immutable Inst inst_;
 		immutable Lambda lambda_;
 	}
+}
+
+@trusted ref immutable(ConcreteStructSource.Inst) asInst(return scope ref immutable ConcreteStructSource a) {
+	verify(a.kind_ == ConcreteStructSource.Kind.inst);
+	return a.inst_;
 }
 
 @trusted T matchConcreteStructSource(T)(
@@ -518,7 +523,9 @@ struct ConcreteFunSource {
 		immutable size_t index; // nth lambda in the containing function
 	}
 
-	struct Test {}
+	struct Test {
+		immutable size_t index;
+	}
 
 	@trusted immutable this(immutable Ptr!FunInst a) { kind_ = Kind.funInst; funInst_ = a; }
 	@trusted immutable this(immutable Ptr!Lambda a) { kind_ = Kind.lambda; lambda_ = a; }

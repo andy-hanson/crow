@@ -1,14 +1,22 @@
 import
+	collection.arr-util: each
 	io.print: print
 	io.process: exit-code
+	logging: info log
 
 all-tests arr fun-ptr1<void, ctx>() builtin
 
+run-all-tests void() summon trusted
+	tests = all-tests
+	print: "Running " + tests.size.to-str + " tests"
+	tests each \test
+		test call get-ctx
+	print: "done"
+
 test
 	assert: 1 + 1 == 2
+	info log "I am a test!"
 
 main fut exit-code(_ arr str) summon
-	print: "HLO"
-	a = all-tests
-	drop: a
+	run-all-tests
 	0 resolved

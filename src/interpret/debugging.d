@@ -141,7 +141,8 @@ void writeConcreteFunName(Alloc)(ref Writer!Alloc writer, ref immutable Concrete
 			writeNat(writer, it.index);
 		},
 		(ref immutable(ConcreteFunSource.Test)) {
-			todo!void("!");
+			//TODO: more unique name for each test
+			writeStatic(writer, "test");
 		});
 }
 

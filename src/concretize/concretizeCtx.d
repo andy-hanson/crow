@@ -6,6 +6,7 @@ import concretize.allConstantsBuilder : AllConstantsBuilder, getConstantStr;
 import concretize.concretizeExpr : concretizeExpr;
 import model.concreteModel :
 	asFunInst,
+	asInst,
 	BuiltinStructKind,
 	byVal,
 	compareConcreteType,
@@ -65,7 +66,7 @@ import model.model :
 import util.bools : Bool, False, not, True;
 import util.collection.arr : Arr, at, empty, emptyArr, only, ptrAt, range, sizeEq;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.collection.arrUtil : arrMax, compareArr, exists, fold, map, mapPtrsWithIndex;
+import util.collection.arrUtil : arrMax, compareArr, exists, fold, map, mapPtrsWithIndex, mapWithIndex;
 import util.collection.mutArr : MutArr;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.collection.str : Str, strLiteral;
@@ -429,13 +430,21 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(Alloc)(
 immutable(Ptr!ConcreteFun) concreteFunForTest(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	immutable ConcreteExpr body_,
+	ref immutable Test test,
+	immutable size_t index,
 ) {
 	Ptr!ConcreteFun res = nuMut!ConcreteFun(
 		alloc,
-		immutable ConcreteFunSource(immutable ConcreteFunSource.Test()),
+		immutable ConcreteFunSource(immutable ConcreteFunSource.Test(index)),
 		nu!ConcreteFunSig(alloc, voidType(alloc, ctx), True, none!(Ptr!ConcreteParam), emptyArr!ConcreteParam));
+	immutable ContainingFunInfo containing = immutable ContainingFunInfo(
+		emptyArr!TypeParam,
+		emptyArr!ConcreteType,
+		emptyArr!(Ptr!ConcreteFun));
+	immutable ConcreteExpr body_ =
+		concretizeExpr!Alloc(alloc, ctx, containing, castImmutable(res), test.body_);
 	lateSet(res._body_, nu!ConcreteFunBody(alloc, immutable ConcreteFunExprBody(body_)));
+	add(alloc, ctx.allConcreteFuns, castImmutable(res));
 	return castImmutable(res);
 }
 
@@ -609,14 +618,10 @@ immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 		addAll(alloc, allTestsBuilder, m.tests);
 	immutable Arr!Test allTests = finishArr(alloc, allTestsBuilder);
 
-	immutable Arr!(Ptr!ConcreteFun) funs = map(alloc, allTests, (ref immutable Test it) {
-		immutable ContainingFunInfo containing = todo!(immutable ContainingFunInfo)("!");
-		immutable ConcreteExpr expr =
-			concretizeExpr(alloc, ctx, containing, todo!(immutable Ptr!ConcreteFun)("?"), it.body_);
-		return concreteFunForTest(alloc, ctx, expr);
-	});
+	immutable Arr!(Ptr!ConcreteFun) funs = mapWithIndex(alloc, allTests, (immutable size_t index, ref immutable Test it) =>
+		concreteFunForTest(alloc, ctx, it, index));
 	immutable Ptr!ConcreteStruct arrType = mustBeNonPointer(returnType);
-	immutable ConcreteType elementType = todo!(immutable ConcreteType)("!");
+	immutable ConcreteType elementType = elementTypeFromArrType(arrType);
 
 	immutable Arr!ConcreteExpr args = map(alloc, funs, (ref immutable Ptr!ConcreteFun it) =>
 		immutable ConcreteExpr(
@@ -631,6 +636,9 @@ immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 	return immutable ConcreteFunBody(immutable ConcreteFunExprBody(allocate(alloc, body_)));
 }
 
+immutable(ConcreteType) elementTypeFromArrType(ref immutable ConcreteStruct arrType) {
+	return only(asInst(arrType.source).typeArgs);
+}
 
 immutable(Arr!ConcreteParam) concretizeParams(Alloc)(
 	ref Alloc alloc,
