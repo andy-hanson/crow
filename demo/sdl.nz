@@ -214,5 +214,5 @@ fail-sdl-error void(operation str) summon trusted
 | TODO:MOVE
 repeat void(times nat, action act void())
 	if times != 0
-		action call
+		action[]
 		times.decr repeat action

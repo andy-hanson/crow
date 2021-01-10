@@ -1,8 +1,8 @@
 import
 	.bootstrap
-		by-val call err exception exclusion fun fut fut-callback-node fut-state-callbacks
+		by-val err exception exclusion fun fut fut-callback-node fut-state-callbacks
 		fut-state-resolved head island island-and-exclusion lk none ok opt ref-of-val result
-		send set-state some state todo value void
+		send set-state some state subscript todo value void
 	.exceptions: catch
 	.fut-low-level: new-unresolved-fut reject resolve resolve-or-reject
 	.opt-utils: force
@@ -34,7 +34,7 @@ rejected fut ?t(err exception)
 		as ok ok0
 			match j.arg1 force
 			as ok ok1
-				j.fun call-ref ok0.value, ok1.value forward-to j.res
+				j.fun[ok0.value, ok1.value] forward-to j.res
 			as err e1
 				j.res reject e1.value
 		as err e0
@@ -64,9 +64,9 @@ then-void void(f fut ?t, cb act void(result<?t, exception>)) unsafe
 		| create a new callback
 		f set-state fut-state-callbacks<?t>: some: fut-callback-node<?t>: cb, cbs.head
 	as fut-state-resolved r
-		cb call r.value.ok
+		cb[r.value ok]
 	as exception e
-		cb call e.err
+		cb[e err]
 	f.lk.ref-of-val release-lock
 
 forward-to void(from fut ?t, to fut ?t) unsafe
@@ -82,7 +82,7 @@ then fut ?out(f fut ?in, cb ref ?out(?in)) trusted send<?out> send<?in>
 	f then-void \result
 		match result
 		as ok o
-			cb call-ref o.value forward-to res
+			cb[o.value] forward-to res
 		as err e
 			res reject e.value
 	res
@@ -92,44 +92,44 @@ then fut ?out(f fut ?in, cb ref ?out(?in)) trusted send<?out> send<?in>
 | and choose just one based on the arity of a lambda.
 then2 fut ?out(f fut void, cb ref ?out()) send<?out>
 	f then<?out, void> \ignore
-		cb call-ref
+		cb[]
 
 | Runs 'f' in parallel.
 async fut ?t(f fun fut ?t()) trusted
 	res = new-unresolved-fut<?t>
 	island = get-cur-island
 	island add-task island.new-exclusion, \
-		f.call forward-to res
+		f[] forward-to res
 	res
 
-call-ref fut ?r(f ref ?r()) trusted send<?r>
+subscript fut ?r(f ref ?r()) trusted send<?r>
 	res = new-unresolved-fut<?r>
 	f.island-and-exclusion.island.get-island add-task f.island-and-exclusion.exclusion, \
-		{f.fun.call forward-to res} catch {res reject it}
+		{f.fun[] forward-to res} catch {res reject it}
 	res
 
 call-ref-void void(f ref void()) trusted
-	f.call-ref handle-exceptions
+	f[] handle-exceptions
 
-call-ref fut ?r(f ref ?r(?p0), p0 ?p0) trusted send<?r> send<?p0>
+subscript fut ?r(f ref ?r(?p0), p0 ?p0) trusted send<?r> send<?p0>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
 	island add-task f.island-and-exclusion.exclusion, \
-		{f.fun call p0 forward-to res} catch {res reject it}
+		{f.fun[p0] forward-to res} catch {res reject it}
 	res
 
 call-ref-void void(f ref void(?p0), p0 ?p0) trusted send<?p0>
-	f call-ref p0 handle-exceptions
+	f[p0] handle-exceptions
 
-call-ref fut ?r(f ref ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
+subscript fut ?r(f ref ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
 	island add-task f.island-and-exclusion.exclusion, \
-		{f.fun call p0, p1 forward-to res} catch {res reject it}
+		{f.fun[p0, p1] forward-to res} catch {res reject it}
 	res
 
 call-ref-void void(f ref void(?p0, ?p1), p0 ?p0, p1 ?p1) send<?p0> send<?p1>
-	f call-ref p0, p1 handle-exceptions
+	f[p0, p1] handle-exceptions
 
 handle-exceptions void(a fut ?t) trusted
 	a then-void \result
@@ -137,4 +137,4 @@ handle-exceptions void(a fut ?t) trusted
 		as ok
 			void
 		as err e
-			get-cur-island.exception-handler call e.value
+			get-cur-island.exception-handler[e.value]

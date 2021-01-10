@@ -1,5 +1,5 @@
 import
-	.bootstrap: call none opt some value
+	.bootstrap: none opt some subscript value
 	.exceptions: fail
 
 opt-map opt ?out(a opt ?in, cb act ?out(?in))
@@ -7,12 +7,12 @@ opt-map opt ?out(a opt ?in, cb act ?out(?in))
 	as none
 		none
 	as some s
-		cb call s.value some
+		cb[s.value] some
 
 opt-or ?t(a opt ?t, default act ?t())
 	match a
 	as none
-		default call
+		default[]
 	as some s
 		s value
 

@@ -21,6 +21,7 @@ struct ParseDiag {
 		enum Kind {
 			bodyKeyword,
 			closingBrace,
+			closingBracket,
 			closingParen,
 			comma,
 			endOfLine,

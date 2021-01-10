@@ -1,8 +1,8 @@
 import
 	.bootstrap
-		< == != any-ptr as atomic-bool bool by-val call drop false fun-ptr1 hard-assert
+		< == != any-ptr as atomic-bool bool by-val drop false fun-ptr1 hard-assert
 		hard-forbid is-locked lock nat noctx-decr noctx-incr not null null? opt ptr ptr-to
-		ref-of-val todo true value void wrap-mul
+		ref-of-val subscript todo true value void wrap-mul
 	.cell: cell get
 	.io.time-low-level: get-monotime-nsec timestamp
 	.posix.errno: eagain einval esrch
@@ -56,7 +56,7 @@ release-lock void(l lock) noctx unsafe
 
 with-lock ?t(l lock, f fun ?t()) trusted
 	l acquire-lock
-	res = f call
+	res = f[]
 	l release-lock
 	res
 

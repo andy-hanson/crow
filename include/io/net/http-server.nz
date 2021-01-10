@@ -4,11 +4,11 @@ import
 		str todo true value void
 	...collection.arr: empty? has? subscript
 	...collection.arr-util: contains? last rtail split-by-subseq
-	...collection.dict: add dict each empty-dict has? get move-to-dict mut-dict new-mut-dict remove
+	...collection.dict: add dict each empty-dict has? move-to-dict mut-dict new-mut-dict remove subscript
 	...collection.mut-list
 		index-of move-to-arr mut-list new-mut-list pop-n-from-start push push-all size
 	...exceptions: assert forbid
-	...fut-utils: call-ref resolved then
+	...fut-utils: resolved subscript then
 	...number-utils: incr to-int
 	...posix.extra-types: fd-t
 	...posix.unistd: write
@@ -49,8 +49,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		client-states add fd, new-http-parse-state
 		void resolved
 	on-received-chunk = as<ref void(fd-t, arr byte)>: \fd bytes
-		state-opt = client-states get fd
-		match state-opt
+		match client-states[fd]
 		as none
 			print: "Ignoring unrecognized client"
 			void resolved
@@ -63,7 +62,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	tcp-server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
 
 	| TODO: KILL
-	ignore <- handler call-ref: http-request: http-get, "", empty-dict, ""
+	ignore <- handler[http-request: http-get, "", empty-dict, ""]
 	drop: ignore
 
 	resolved: http-server: tcp-server.stop
@@ -78,7 +77,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		state handle-http-initial
 
 	if finished-request?
-		res <- handler call-ref state.finish-request
+		res <- handler[state finish-request]
 		res-str = res response-to-str
 		wrote = fd write res-str.data.ptr-cast<byte, char>, res-str.size
 		assert: wrote == res-str.size.to-int
@@ -125,7 +124,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	as some s
 		line = s value
 		if line empty?
-			match state.headers get "content-length"
+			match state.headers["content-length"]
 			as none
 				true
 			as some some-content-length-str

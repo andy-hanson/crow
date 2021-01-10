@@ -15,10 +15,10 @@ child-path str(a str, child-name str)
 each-child-recursive void(path str, filter act bool(str), f act void(str)) summon
 	if path is-dir?
 		path.read-dir each \child-name
-			if filter call child-name
+			if filter[child-name]
 				path child-path child-name each-child-recursive filter, f
 	else
-		f call path
+		f[path]
 
 last-index-of opt nat(s str, c char)
 	if s empty?

@@ -28,10 +28,10 @@ module(
 									[param(file-range(50, range(212, 218)), some(logged), logged())]
 									seq(
 										call(
-											fun-inst(name: call, type-args: [void(), logged()])
+											fun-inst(name: subscript, type-args: [void(), logged()])
 											[closure-rf(lh), param-ref(logged)])
 										call(
-											fun-inst(name: call, type-args: [void(), logged()])
+											fun-inst(name: subscript, type-args: [void(), logged()])
 											[closure-rf(lh), param-ref(logged)]))
 									[closure-f(lh, fun1(void(), logged()), local-ref(lh))]
 									fun1(void(), logged())
@@ -58,7 +58,7 @@ module(
 									fun-inst(name: with-log-handler, type-args: [void()])
 									[
 										lambda(
-											[param(file-range(50, range(308, 310)), some(it), logged())]
+											[param(file-range(50, range(300, 302)), some(it), logged())]
 											call(fun-inst(name: drop, type-args: [logged()]), [param-ref(it)])
 											[]
 											fun1(void(), logged())

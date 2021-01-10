@@ -263,7 +263,7 @@ program(
 			body: record([field(cb, false, type(false, fun-ref1)), field(res, false, type(true, fut))]))
 		struct(name: lambda(forward-to, 0), body: record([field(to, false, type(true, fut))]))
 		struct(
-			name: lambda(call-ref, 0)
+			name: lambda(subscript, 0)
 			ptr?: true
 			body: record(
 				[
@@ -272,24 +272,24 @@ program(
 					field(res, false, type(true, fut))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, exception)]))
 		struct(
-			name: lambda(lambda(call-ref, 0), 0)
+			name: lambda(lambda(subscript, 0), 0)
 			ptr?: true
 			body: record(
 				[
 					field(f, false, type(false, fun-ref1))
 					field(p0, false, type(false, void))
 					field(res, false, type(true, fut))]))
-		struct(name: lambda(lambda(call-ref, 0), 1), body: record([field(res, false, type(true, fut))]))
+		struct(name: lambda(lambda(subscript, 0), 1), body: record([field(res, false, type(true, fut))]))
 		struct(name: lambda(then2, 0), ptr?: true, body: record([field(cb, false, type(false, fun-ref0))]))
 		struct(
-			name: lambda(call-ref, 0)
+			name: lambda(subscript, 0)
 			ptr?: true
 			body: record([field(f, false, type(false, fun-ref0)), field(res, false, type(true, fut))]))
 		struct(
-			name: lambda(lambda(call-ref, 0), 0)
+			name: lambda(lambda(subscript, 0), 0)
 			ptr?: true
 			body: record([field(f, false, type(false, fun-ref0)), field(res, false, type(true, fut))]))
-		struct(name: lambda(lambda(call-ref, 0), 1), body: record([field(res, false, type(true, fut))]))
+		struct(name: lambda(lambda(subscript, 0), 1), body: record([field(res, false, type(true, fut))]))
 		struct(
 			name: lambda(add-first-task, 0)
 			ptr?: true
@@ -2599,8 +2599,10 @@ program(
 																		[param-ref(cb), call(head, [local-ref(cbs)])])]))]))]))
 								case(
 									some(r)
-									call(call, [param-ref(cb), to-union(0, call(ok, [call(value, [local-ref(r)])]))]))
-								case(some(e), call(call, [param-ref(cb), to-union(1, call(err, [local-ref(e)]))]))]))
+									call(
+										subscript
+										[param-ref(cb), to-union(0, call(ok, [call(value, [local-ref(r)])]))]))
+								case(some(e), call(subscript, [param-ref(cb), to-union(1, call(err, [local-ref(e)]))]))]))
 					call(release-lock, [call(ref-of-val, [call(lk, [param-ref(f)])])]))))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, fut))], field-get(0))
 		fun(false, state, type(false, fut-state), none, [param(a, type(true, fut))], field-get(1))
@@ -2629,7 +2631,7 @@ program(
 		fun(false, head, type(false, opt), none, [param(a, type(false, fut-state-callbacks))], field-get(0))
 		fun(
 			true
-			call
+			subscript
 			type(false, void)
 			none
 			[param(a, type(false, fun-act1)), param(p0, type(false, result))]
@@ -2685,8 +2687,10 @@ program(
 																		[param-ref(cb), call(head, [local-ref(cbs)])])]))]))]))
 								case(
 									some(r)
-									call(call, [param-ref(cb), to-union(0, call(ok, [call(value, [local-ref(r)])]))]))
-								case(some(e), call(call, [param-ref(cb), to-union(1, call(err, [local-ref(e)]))]))]))
+									call(
+										subscript
+										[param-ref(cb), to-union(0, call(ok, [call(value, [local-ref(r)])]))]))
+								case(some(e), call(subscript, [param-ref(cb), to-union(1, call(err, [local-ref(e)]))]))]))
 					call(release-lock, [call(ref-of-val, [call(lk, [param-ref(f)])])]))))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, fut))], field-get(0))
 		fun(false, state, type(false, fut-state), none, [param(a, type(true, fut))], field-get(1))
@@ -2708,7 +2712,7 @@ program(
 		fun(false, head, type(false, opt), none, [param(a, type(false, fut-state-callbacks))], field-get(0))
 		fun(
 			true
-			call
+			subscript
 			type(false, void)
 			none
 			[param(a, type(false, fun-act1)), param(p0, type(false, result))]
@@ -2767,7 +2771,9 @@ program(
 						case(
 							some(s)
 							seq(
-								call(drop, [call(call, [call(cb, [call(value, [local-ref(s)])]), param-ref(value)])])
+								call(
+									drop
+									[call(subscript, [call(cb, [call(value, [local-ref(s)])]), param-ref(value)])])
 								call(
 									resolve-or-reject-recur
 									[call(next-node, [call(value, [local-ref(s)])]), param-ref(value)])))])))
@@ -2794,7 +2800,7 @@ program(
 			expr-body(call(resolve-or-reject, [get-field(param-ref("<<closure>>"), to), param-ref(it)])))
 		fun(
 			true
-			call-ref
+			subscript
 			type(true, fut)
 			none
 			[param(f, type(false, fun-ref1)), param(p0, type(false, void))]
@@ -3104,7 +3110,7 @@ program(
 										call(==, [local-ref(setjmp-result), 0])
 										let(
 											res
-											call(call, [param-ref(try)])
+											call(subscript, [param-ref(try)])
 											seq(
 												seq(
 													call(set-jmp-buf-ptr, [param-ref(ec), local-ref(old-jmp-buf)])
@@ -3125,7 +3131,7 @@ program(
 														call(
 															set-thrown-exception
 															[param-ref(ec), local-ref(old-thrown-exception)]))
-													call(call, [param-ref(catcher), local-ref(thrown-exception)]))))))))))))
+													call(subscript, [param-ref(catcher), local-ref(thrown-exception)]))))))))))))
 		fun(false, thrown-exception, type(false, exception), none, [param(a, type(true, exception-ctx))], field-get(1))
 		fun(
 			false
@@ -3186,7 +3192,7 @@ program(
 		fun(false, setjmp, type(false, int32), none, [param(env, type(false, ptr))], extern(false))
 		fun(
 			true
-			call
+			subscript
 			type(false, void)
 			none
 			[param(a, type(false, fun-act0))]
@@ -3200,7 +3206,7 @@ program(
 			builtin([type(false, void)]))
 		fun(
 			true
-			call
+			subscript
 			type(false, void)
 			none
 			[param(a, type(false, fun-act1)), param(p0, type(false, exception))]
@@ -3214,7 +3220,7 @@ program(
 			builtin([type(false, void), type(false, exception)]))
 		fun(
 			true
-			call
+			subscript
 			type(true, fut)
 			none
 			[param(a, type(false, fun-act1)), param(p0, type(false, void))]
@@ -3229,16 +3235,16 @@ program(
 		fun(false, fun, type(false, fun-act1), none, [param(a, type(false, fun-ref1))], field-get(1))
 		fun(
 			true
-			lambda(lambda(call-ref, 0), 0)
+			lambda(lambda(subscript, 0), 0)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(lambda(call-ref, 0), 0))))
+			some(param("<<closure>>", type(true, lambda(lambda(subscript, 0), 0))))
 			[]
 			expr-body(
 				call(
 					forward-to
 					[
 						call(
-							call
+							subscript
 							[
 								call(fun, [get-field(param-ref("<<closure>>"), f)])
 								get-field(param-ref("<<closure>>"), p0)])
@@ -3252,16 +3258,16 @@ program(
 			expr-body(call(resolve-or-reject, [param-ref(f), to-union(1, call(err, [param-ref(e)]))])))
 		fun(
 			true
-			lambda(lambda(call-ref, 0), 1)
+			lambda(lambda(subscript, 0), 1)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(lambda(call-ref, 0), 1))))
+			some(param("<<closure>>", type(true, lambda(lambda(subscript, 0), 1))))
 			[param(it, type(false, exception))]
 			expr-body(call(reject, [get-field(param-ref("<<closure>>"), res), param-ref(it)])))
 		fun(
 			true
-			lambda(call-ref, 0)
+			lambda(subscript, 0)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(call-ref, 0))))
+			some(param("<<closure>>", type(true, lambda(subscript, 0))))
 			[]
 			expr-body(
 				call(
@@ -3293,7 +3299,7 @@ program(
 								forward-to
 								[
 									call(
-										call-ref
+										subscript
 										[get-field(param-ref("<<closure>>"), cb), call(value, [local-ref(o)])])
 									get-field(param-ref("<<closure>>"), res)]))
 						case(
@@ -3301,7 +3307,7 @@ program(
 							call(reject, [get-field(param-ref("<<closure>>"), res), call(value, [local-ref(e)])]))])))
 		fun(
 			true
-			call-ref
+			subscript
 			type(true, fut)
 			none
 			[param(f, type(false, fun-ref0))]
@@ -3326,7 +3332,7 @@ program(
 			field-get(0))
 		fun(
 			true
-			call
+			subscript
 			type(true, fut)
 			none
 			[param(a, type(false, fun-act0))]
@@ -3341,28 +3347,28 @@ program(
 		fun(false, fun, type(false, fun-act0), none, [param(a, type(false, fun-ref0))], field-get(1))
 		fun(
 			true
-			lambda(lambda(call-ref, 0), 0)
+			lambda(lambda(subscript, 0), 0)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(lambda(call-ref, 0), 0))))
+			some(param("<<closure>>", type(true, lambda(lambda(subscript, 0), 0))))
 			[]
 			expr-body(
 				call(
 					forward-to
 					[
-						call(call, [call(fun, [get-field(param-ref("<<closure>>"), f)])])
+						call(subscript, [call(fun, [get-field(param-ref("<<closure>>"), f)])])
 						get-field(param-ref("<<closure>>"), res)])))
 		fun(
 			true
-			lambda(lambda(call-ref, 0), 1)
+			lambda(lambda(subscript, 0), 1)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(lambda(call-ref, 0), 1))))
+			some(param("<<closure>>", type(true, lambda(lambda(subscript, 0), 1))))
 			[param(it, type(false, exception))]
 			expr-body(call(reject, [get-field(param-ref("<<closure>>"), res), param-ref(it)])))
 		fun(
 			true
-			lambda(call-ref, 0)
+			lambda(subscript, 0)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(call-ref, 0))))
+			some(param("<<closure>>", type(true, lambda(subscript, 0))))
 			[]
 			expr-body(
 				call(
@@ -3380,7 +3386,7 @@ program(
 			type(true, fut)
 			some(param("<<closure>>", type(true, lambda(then2, 0))))
 			[param(ignore, type(false, void))]
-			expr-body(call(call-ref, [get-field(param-ref("<<closure>>"), cb)])))
+			expr-body(call(subscript, [get-field(param-ref("<<closure>>"), cb)])))
 		fun(
 			true
 			cur-island-and-exclusion
@@ -3477,7 +3483,7 @@ program(
 		fun(false, data, type(false, ptr), none, [param(a, type(false, arr))], field-get(1))
 		fun(
 			false
-			call
+			subscript
 			type(true, fut)
 			none
 			[param(a, type(false, fun-ptr2)), param(p0, type(true, ctx)), param(p1, type(false, arr))]
@@ -3535,14 +3541,16 @@ program(
 				cond(
 					call(!=, [param-ref(i), param-ref(size)])
 					seq(
-						call(set, [call(+, [param-ref(begin), param-ref(i)]), call(call, [param-ref(f), param-ref(i)])])
+						call(
+							set
+							[call(+, [param-ref(begin), param-ref(i)]), call(subscript, [param-ref(f), param-ref(i)])])
 						call(
 							fill-ptr-range-recur
 							[param-ref(begin), call(wrap-incr, [param-ref(i)]), param-ref(size), param-ref(f)]))
 					void)))
 		fun(
 			true
-			call
+			subscript
 			type(false, arr)
 			none
 			[param(a, type(false, fun-act1)), param(p0, type(false, nat))]
@@ -3556,7 +3564,7 @@ program(
 			builtin([type(false, arr), type(false, nat)]))
 		fun(
 			true
-			call
+			subscript
 			type(false, arr)
 			none
 			[param(a, type(false, fun-act1)), param(p0, type(false, ptr))]
@@ -3597,7 +3605,7 @@ program(
 			[param(i, type(false, nat))]
 			expr-body(
 				call(
-					call
+					subscript
 					[
 						get-field(param-ref("<<closure>>"), mapper)
 						call(subscript, [get-field(param-ref("<<closure>>"), a), param-ref(i)])])))
@@ -3686,7 +3694,7 @@ program(
 					args
 					call(tail, [get-field(param-ref("<<closure>>"), all-args)])
 					call(
-						call
+						subscript
 						[
 							get-field(param-ref("<<closure>>"), main-ptr)
 							call(get-ctx, [])
@@ -3700,7 +3708,7 @@ program(
 			expr-body(call(then-void, [param-ref(a), lambda(1, void)])))
 		fun(
 			true
-			call
+			subscript
 			type(false, void)
 			none
 			[param(a, type(false, fun1)), param(p0, type(false, exception))]
@@ -3741,7 +3749,7 @@ program(
 						case(
 							some(e)
 							call(
-								call
+								subscript
 								[call(exception-handler, [call(get-cur-island, [])]), call(value, [local-ref(e)])]))])))
 		fun(
 			true

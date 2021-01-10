@@ -1,9 +1,9 @@
 import
 	.bootstrap
-		+ - == != < <= > any-ptr as as-any-ptr as-ref bits-and bits-not bool byte by-val call deref false
+		+ - == != < <= > any-ptr as as-any-ptr as-ref bits-and bits-not bool byte by-val deref false
 		gc-ctx-ptr get-ctx hard-assert hard-forbid incr lock nat nat64 none not
 		null? opt or ptr ptr-eq? ptr-less? ptr-less-eq? ptr-cast ref-of-val set size-of
-		some todo to-nat true unsafe-div value void wrap-add wrap-incr wrap-mul wrap-sub
+		some subscript todo to-nat true unsafe-div value void wrap-add wrap-incr wrap-mul wrap-sub
 	.posix.stdlib: free malloc
 	.posix.string: memcpy memset
 	.thread-utils: acquire-lock new-lock release-lock
@@ -267,5 +267,5 @@ fill-ptr-range void(begin ptr ?t, size nat, f act ?t(nat)) unsafe
 
 .fill-ptr-range-recur void(begin ptr ?t, i nat, size nat, f act ?t(nat)) unsafe
 	if i != size
-		begin + i set: f call i
+		begin + i set: f[i]
 		begin fill-ptr-range-recur i.wrap-incr, size, f

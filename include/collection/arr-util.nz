@@ -1,8 +1,8 @@
 import
 	..alloc: alloc-uninitialized fill-ptr-range
 	..bootstrap
-		== != >= and arr bool call data false has? incr nat noctx-incr none not opt ptr set size
-		some true value void
+		== != >= and arr bool data false has? incr nat noctx-incr none not opt ptr set size
+		some subscript true value void
 	..exceptions: forbid
 	..number-utils: + - decr incr
 	..opt-utils: force
@@ -19,7 +19,7 @@ fill-arr arr ?t(size nat, value ?t)
 
 each void(a arr ?t, f act void(?t))
 	if a.empty? not
-		f call a.first
+		f[a first]
 		a.tail each f
 
 each-with-index void(a arr ?t, f act void(?t, nat))
@@ -27,12 +27,12 @@ each-with-index void(a arr ?t, f act void(?t, nat))
 
 .each-with-index-recur void(a arr ?t, f act void(?t, nat), n nat)
 	if n != a.size
-		f call a[n], n
+		f[a[n], n]
 		a each-with-index-recur f, n.incr
 
 map arr ?out(a arr ?in, mapper act ?out(?in)) trusted
 	a.size make-arr \i
-		mapper call a[i]
+		mapper[a[i]]
 
 first ?t(a arr ?t)
 	forbid: a empty?
@@ -54,7 +54,7 @@ first-some opt ?out(a arr ?in, cb act opt ?out(?in))
 	if a empty?
 		none
 	else
-		match cb call a.first
+		match cb[a.first]
 		as none
 			a.tail first-some cb
 		as some s
@@ -63,7 +63,7 @@ first-some opt ?out(a arr ?in, cb act opt ?out(?in))
 exists? bool(a arr ?t, pred act bool(?t))
 	if a empty?
 		false
-	elif pred call a.first
+	elif pred[a.first]
 		true
 	else
 		a.tail exists? pred
@@ -102,7 +102,7 @@ fold ?a(val ?a, a arr ?b, combine act ?a(?a, ?b))
 	if a empty?
 		val
 	else
-		combine call val, a.first fold a.tail, combine
+		combine[val, a.first] fold a.tail, combine
 
 index-of-subseq opt nat(a arr ?t, subseq arr ?t) data<?t>
 	a index-of-subseq-recur subseq, 0
@@ -127,7 +127,7 @@ find-index opt nat(a arr ?t, pred act bool(?t))
 .find-index-recur opt nat(a arr ?t, index nat, pred act bool(?t))
 	if index == a.size
 		none
-	elif pred call: a[index]
+	elif pred[a[index]]
 		index some
 	else
 		a find-index-recur index.incr, pred
@@ -139,7 +139,7 @@ find-rindex opt nat(a arr ?t, pred act bool(?t))
 		a find-rindex-recur a.size.decr, pred
 
 .find-rindex-recur opt nat(a arr ?t, index nat, pred act bool(?t))
-	if pred call: a[index]
+	if pred[a[index]]
 		index some
 	elif index == 0
 		none

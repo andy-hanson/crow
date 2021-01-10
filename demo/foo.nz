@@ -10,6 +10,6 @@ main fut exit-code(_ arr str) unsafe summon
 	handler = as<http-handler>: \
 		resolved: 200
 	| Uncomment this line and it compiles successfully
-	| drop: handler call-ref
+	| drop: handler[]
 	drop: handler
 	0 resolved

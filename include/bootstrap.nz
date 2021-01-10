@@ -253,34 +253,34 @@ fun-ref4<?r, ?p0, ?p1, ?p2, ?p3> record force-sendable
 	fun act fut ?r(?p0, ?p1, ?p2, ?p3)
 
 | calling a fun-ptr is a primitive operation
-call ?r(a fun-ptr0 ?r) noctx builtin
-call ?r(a fun-ptr1<?r, ?p0>, p0 ?p0) noctx builtin
-call ?r(a fun-ptr2<?r, ?p0, ?p1>, p0 ?p0, p1 ?p1) noctx builtin
-call ?r(a fun-ptr3<?r, ?p0, ?p1, ?p2>, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
-call ?r(a fun-ptr4<?r, ?p0, ?p1, ?p2, ?p3>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
-call ?r(a fun-ptr5<?r, ?p0, ?p1, ?p2, ?p3, ?p4>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4) noctx builtin
-call ?r(a fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4, p5 ?p5) noctx builtin
+subscript ?r(a fun-ptr0 ?r) noctx builtin
+subscript ?r(a fun-ptr1<?r, ?p0>, p0 ?p0) noctx builtin
+subscript ?r(a fun-ptr2<?r, ?p0, ?p1>, p0 ?p0, p1 ?p1) noctx builtin
+subscript ?r(a fun-ptr3<?r, ?p0, ?p1, ?p2>, p0 ?p0, p1 ?p1, p2 ?p2) noctx builtin
+subscript ?r(a fun-ptr4<?r, ?p0, ?p1, ?p2, ?p3>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
+subscript ?r(a fun-ptr5<?r, ?p0, ?p1, ?p2, ?p3, ?p4>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4) noctx builtin
+subscript ?r(a fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5>, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3, p4 ?p4, p5 ?p5) noctx builtin
 
-call ?r(a fun ?r()) trusted
+subscript ?r(a fun ?r()) trusted
 	a call-with-ctx get-ctx
-call ?r(a fun ?r(?p0), p0 ?p0) trusted
+subscript ?r(a fun ?r(?p0), p0 ?p0) trusted
 	a call-with-ctx get-ctx, p0
-call ?r(a fun ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted
+subscript ?r(a fun ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted
 	a call-with-ctx get-ctx, p0, p1
-call ?r(a fun ?r(?p0, ?p1, ?p2), p0 ?p0, p1 ?p1, p2 ?p2) trusted
+subscript ?r(a fun ?r(?p0, ?p1, ?p2), p0 ?p0, p1 ?p1, p2 ?p2) trusted
 	a call-with-ctx get-ctx, p0, p1, p2
-call ?r(a fun ?r(?p0, ?p1, ?p2, ?p3), p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) trusted
+subscript ?r(a fun ?r(?p0, ?p1, ?p2, ?p3), p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) trusted
 	a call-with-ctx get-ctx, p0, p1, p2, p3
 
-call ?r(a act ?r()) trusted
+subscript ?r(a act ?r()) trusted
 	a call-with-ctx get-ctx
-call ?r(a act ?r(?p0), p0 ?p0) trusted
+subscript ?r(a act ?r(?p0), p0 ?p0) trusted
 	a call-with-ctx get-ctx, p0
-call ?r(a act ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted
+subscript ?r(a act ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted
 	a call-with-ctx get-ctx, p0, p1
-call ?r(a act ?r(?p0, ?p1, ?p2), p0 ?p0, p1 ?p1, p2 ?p2) trusted
+subscript ?r(a act ?r(?p0, ?p1, ?p2), p0 ?p0, p1 ?p1, p2 ?p2) trusted
 	a call-with-ctx get-ctx, p0, p1, p2
-call ?r(a act ?r(?p0, ?p1, ?p2, ?p3), p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) trusted
+subscript ?r(a act ?r(?p0, ?p1, ?p2, ?p3), p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) trusted
 	a call-with-ctx get-ctx, p0, p1, p2, p3
 
 call-with-ctx ?r(f fun ?r(), c ctx) noctx builtin
@@ -540,7 +540,7 @@ result<?ok, ?err> union
 then result<?ok-out, ?err>(a result<?ok-in, ?err>, f act result<?ok-out, ?err>(?ok-in))
 	match a
 	as ok o
-		f call o.value
+		f[o value]
 	as err e
 		e
 

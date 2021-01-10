@@ -6,8 +6,8 @@ main fut exit-code(_ arr str) summon
 	info log "Logged once"
 	lh = get-log-handler
 	doubler = as<log-handler>: \logged
-		lh call logged
-		lh call logged
+		lh[logged]
+		lh[logged]
 	doubler with-log-handler \
 		warn log "Logged twice"
 	{it drop} with-log-handler \

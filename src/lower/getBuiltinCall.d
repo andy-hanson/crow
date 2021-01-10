@@ -204,10 +204,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseOrNat64
 				: failBinary());
-		case shortSymAlphaLiteralValue("call"):
-			return isFunPtrType(p0)
-				? nAry(LowExprKind.SpecialNAry.Kind.callFunPtr)
-				: fail();
 		case shortSymAlphaLiteralValue("deref"):
 			return unary(LowExprKind.SpecialUnary.Kind.deref);
 		case shortSymAlphaLiteralValue("false"):
@@ -234,6 +230,10 @@ immutable(BuiltinKind) getBuiltinKind(
 			return isPtrRaw(p0) ? binary(LowExprKind.SpecialBinary.Kind.writeToPtr) : fail();
 		case shortSymAlphaLiteralValue("size-of"):
 			return immutable BuiltinKind(immutable BuiltinKind.SizeOf());
+		case shortSymAlphaLiteralValue("subscript"):
+			return isFunPtrType(p0)
+				? nAry(LowExprKind.SpecialNAry.Kind.callFunPtr)
+				: fail();
 		case shortSymAlphaLiteralValue("to-float"):
 			return unary(isInt64(p0)
 				? LowExprKind.SpecialUnary.Kind.toFloat64FromInt64

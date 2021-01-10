@@ -10,7 +10,7 @@ run-all-tests void() summon trusted
 	tests = all-tests
 	print: "Running " + tests.size.to-str + " tests"
 	tests each \test
-		test call get-ctx
+		test[get-ctx]
 	print: "done"
 
 test

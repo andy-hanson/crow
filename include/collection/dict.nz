@@ -1,5 +1,5 @@
 import
-	..bootstrap: == arr bool call data drop has? nat none not opt size some todo value void
+	..bootstrap: == arr bool data drop has? nat none not opt size some subscript todo value void
 	..collection.arr: empty? empty-arr subscript
 	..collection.arr-util: first map tail
 	..exceptions: forbid
@@ -37,24 +37,24 @@ move-to-dict dict<?k, ?v>(m mut-dict<?k, ?v>)
 	| TODO: should be able to infer type arguments 
 	dict<?k, ?v>: m.keys.move-to-arr, m.values.move-to-arr
 
-get-recursive<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
+subscript opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
+	| TODO: should not need to provide type arguments
+	subscript-recur<?k, ?v>: d.keys, d.values, 0, key
+
+.subscript-recur<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
 	if idx == keys.size
 		none
 	elif key ==: keys[idx]
 		values[idx] some
 	else
 		| TODO: should not need to provide type arguments!
-		get-recursive<?k, ?v>: keys, values, idx.incr, key
+		subscript-recur<?k, ?v>: keys, values, idx.incr, key
 
-get opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
-	| TODO: should not need to provide type arguments
-	get-recursive<?k, ?v>: d.keys, d.values, 0, key
-
-get opt ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
-	d.temp-as-dict get key
+subscript opt ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
+	d.temp-as-dict[key]
 
 at ?v(d dict<?k, ?v>, key ?k) data<?k>
-	match d get key
+	match d[key]
 	as none
 		todo
 	as some s
@@ -64,7 +64,7 @@ at ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	d.temp-as-dict at key
 
 has? bool(d dict<?k, ?v>, key ?k) data<?k>
-	d get key has?
+	d[key] has?
 
 has? bool(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	a.temp-as-dict has? key
@@ -95,6 +95,6 @@ map-values dict<?k, ?v-out>(d dict<?k, ?v-in>, mapper act ?v-out(?v-in))
 
 each void(d dict<?k, ?v>, f act void(?k, ?v))
 	if d.empty? not
-		f call d.keys.first, d.values.first
+		f[d.keys.first, d.values.first]
 		| TODO: type arguments should be unnecessary
 		d.keys.tail dict<?k, ?v> d.values.tail each f

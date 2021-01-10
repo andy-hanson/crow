@@ -27,7 +27,7 @@ import util.sexpr :
 import util.sourceRange : Pos, sexprOfRangeWithinFile, rangeOfStartAndName, RangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32, u8;
-import util.util : todo, verify;
+import util.util : verify;
 
 struct NameAndRange {
 	@safe @nogc pure nothrow:
@@ -794,7 +794,23 @@ immutable(Sexpr) sexprOfImportAst(Alloc, PathAlloc)(
 }
 
 immutable(Sexpr) sexprOfSpecDeclAst(Alloc)(ref Alloc alloc, ref immutable SpecDeclAst a) {
-	return todo!(immutable Sexpr)("sexprOfSpecDecl");
+	return tataRecord(alloc, "spec-decl", [
+		sexprOfRangeWithinFile(alloc, a.range),
+		tataBool(a.isPublic),
+		tataSym(a.name),
+		tataArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst it) =>
+			sexprOfTypeParamAst(alloc, it)),
+		sexprOfSpecBodyAst(alloc, a.body_)]);
+}
+
+immutable(Sexpr) sexprOfSpecBodyAst(Alloc)(ref Alloc alloc, ref immutable SpecBodyAst a) {
+	return matchSpecBodyAst!(immutable Sexpr)(
+		a,
+		(ref immutable SpecBodyAst.Builtin) =>
+			tataSym("builtin"),
+		(ref immutable Arr!SigAst sigs) =>
+			tataArr(alloc, sigs, (ref immutable SigAst sig) =>
+				sexprOfSig(alloc, sig)));
 }
 
 immutable(Sexpr) sexprOfStructAliasAst(Alloc)(ref Alloc alloc, ref immutable StructAliasAst a) {

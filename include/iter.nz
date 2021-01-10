@@ -1,5 +1,5 @@
 import
-	.bootstrap: == <= bool call drop nat none opt some value void
+	.bootstrap: == <= bool drop nat none opt some subscript value void
 	.cell: cell get set
 	.exceptions: assert forbid
 	.number-utils: + incr
@@ -21,14 +21,14 @@ iterator<?t> record mut
 	get-next act opt ?t()
 
 next opt ?t(i iterator ?t)
-	i.get-next call
+	i.get-next[]
 
 | Iterator that can be started over from the beginning.
 stream<?t> record mut
 	get-iter act iterator ?t()
 
 iter iterator ?t(s stream ?t)
-	s.get-iter call
+	s.get-iter[]
 
 iter<?t, ?e> spec
 	iter iterator ?e(t ?t)
@@ -74,7 +74,7 @@ each void(r range-nat, f act void(nat))
 	as none
 		void
 	as some s
-		f call s.value
+		f[s.value]
 		i each-recur f
 
 filter stream ?t(in stream ?t, pred act bool(?t))
@@ -88,7 +88,7 @@ filter stream ?t(in stream ?t, pred act bool(?t))
 		none
 	as some s
 		v = s.value
-		if pred call v
+		if pred[v]
 			v some
 		else
 			| This one didn't satisfy the predicate, but keep trying until we get one or each the end

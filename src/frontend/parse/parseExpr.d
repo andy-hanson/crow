@@ -116,6 +116,21 @@ immutable(ExprAndMaybeDedent) toMaybeDedent(immutable ExprAndDedent a) {
 	return immutable ExprAndMaybeDedent(a.expr, some(a.dedents));
 }
 
+immutable(Arr!ExprAst) parseSubscriptArgs(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	if (tryTake(lexer, ']'))
+		return emptyArr!ExprAst;
+	else {
+		ArrBuilder!ExprAst builder;
+		immutable ArgCtx argCtx = immutable ArgCtx(False, True);
+		immutable ArgsAndMaybeDedent res = parseArgsRecur(alloc, lexer, argCtx, builder, 0);
+		verify(!has(res.dedent));
+		if (!tryTake(lexer, ']'))
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(
+				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.closingBracket)));
+		return res.args;
+	}
+}
+
 immutable(ArgsAndMaybeDedent) parseArgs(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
@@ -259,15 +274,13 @@ immutable(ExprAst) tryParseDotsAndSubscripts(Alloc, SymAlloc)(
 		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
 		return tryParseDotsAndSubscripts(alloc, lexer, expr);
 	} else if (tryTake(lexer, '[')) {
-		immutable ExprAst arg = parseExprNoBlock(alloc, lexer);
-		if (!tryTake(lexer, ']'))
-			todo!void("!");
+		immutable Arr!ExprAst args = parseSubscriptArgs(alloc, lexer);
 		immutable CallAst call = immutable CallAst(
 			//TODO: the range is wrong..
 			CallAst.Style.subscript,
 			immutable NameAndRange(start, shortSymAlphaLiteral("subscript")),
 			emptyArrWithSize!TypeAst,
-			arrLiteral!ExprAst(alloc, [initial, arg]));
+			prepend(alloc, initial, args));
 		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
 		return tryParseDotsAndSubscripts(alloc, lexer, expr);
 	} else

@@ -1,8 +1,8 @@
 import
 	.backtrace: get-backtrace
 	.bootstrap
-		== as-ref backtrace bool by-val call err exception exception-ctx-ptr get-ctx
-		hard-forbid int32 not null null? ok ptr-to result str todo void
+		== as-ref backtrace bool by-val err exception exception-ctx-ptr get-ctx
+		hard-forbid int32 not null null? ok ptr-to result str subscript todo void
 	.posix.bytes-types: zero
 	.posix.setjmp: jmp-buf jmp-buf-tag longjmp setjmp
 
@@ -35,7 +35,7 @@ assert void(condition bool, message str)
 
 assert void(condition bool, message fun str())
 	if condition not
-		message.call fail
+		message[] fail
 
 unreachable ?t()
 	"should be unreachable" fail
@@ -62,13 +62,13 @@ region handling
 
 finally ?t(after act void(), try act ?t())
 	res = try catch \err
-		after call
+		after[]
 		err throw
-	after call
+	after[]
 	res
 
 catch result<?t, exception>(try act ?t())
-	{try.call ok} catch {it err}
+	{try[] ok} catch {it err}
 
 catch ?t(try act ?t(), catcher act ?t(exception)) trusted
 	get-exception-ctx catch-with-exception-ctx try, catcher
@@ -82,7 +82,7 @@ catch-with-exception-ctx ?t(ec exception-ctx, try act ?t(), catcher act ?t(excep
 	if setjmp-result == 0
 		| Get here after setting the jump.
 		| If it throws, we'll go to the above branch.
-		res = try call
+		res = try[]
 		ec set-jmp-buf-ptr old-jmp-buf
 		ec set-thrown-exception old-thrown-exception
 		res
@@ -94,4 +94,4 @@ catch-with-exception-ctx ?t(ec exception-ctx, try act ?t(), catcher act ?t(excep
 		| NOTE: changing thrown-exception back probably isn't really necessary
 		ec set-jmp-buf-ptr old-jmp-buf
 		ec set-thrown-exception old-thrown-exception
-		catcher call thrown-exception
+		catcher[thrown-exception]

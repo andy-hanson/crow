@@ -1,9 +1,9 @@
 import
 	.alloc
 	.bootstrap
-		? != + any-ptr arr as as-any-ptr as-ref by-val call call-with-ctx c-str ctx deref false
+		? != + any-ptr arr as as-any-ptr as-ref by-val call-with-ctx c-str ctx deref false
 		fun-ptr2 fut get-ctx int32 nat noctx-decr noctx-incr null
-		ptr ptr-to ref-of-val set state str to-int unsafe-to-nat value void
+		ptr ptr-to ref-of-val set state str subscript to-int unsafe-to-nat value void
 	.cell: as-cell
 	.collection.arr: empty-arr
 	.collection.arr-util: map tail
@@ -73,7 +73,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	res = delay then2 \
 		| First argument is the path to this executable.
 		args = all-args tail
-		main-ptr call: get-ctx, args map {it.to-str}
+		main-ptr[get-ctx, args map {it.to-str}]
 	res handle-exceptions
 	res
 

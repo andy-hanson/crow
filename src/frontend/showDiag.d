@@ -136,6 +136,9 @@ void writeParseDiag(Alloc, PathAlloc)(
 				case ParseDiag.Expected.Kind.closingBrace:
 					writeStatic(writer, "expected '}'");
 					break;
+				case ParseDiag.Expected.Kind.closingBracket:
+					writeStatic(writer, "expected ']'");
+					break;
 				case ParseDiag.Expected.Kind.closingParen:
 					writeStatic(writer, "expected ')'");
 					break;

@@ -65,7 +65,7 @@ old-main fut exit-code(port str) unsafe summon
 	ignore-me <- 10000.msec delay
 	drop: ignore-me
 	print: "stopping..."
-	ignore-me-2 <- server.stop call-ref
+	ignore-me-2 <- server.stop[]
 	drop: ignore-me-2
 	print: "done"
 	0 resolved

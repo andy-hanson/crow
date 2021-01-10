@@ -35,7 +35,7 @@ flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper act arr<?out>(?i
 	res = new-mut-list<?out>
 	a each \x
 		if res.size < max-size
-			res push-all: mapper call x
+			res push-all: mapper[x]
 			res reduce-size-if-more-than max-size
 	res move-to-arr
 
@@ -50,7 +50,7 @@ failure record
 
 first-failures result<str, arr failure>(a result<str, arr failure>, b fun result<str, arr failure>())
 	a-descr <- a
-	b-descr <- b call
+	b-descr <- b[]
 	ok: a-descr + "\n" + b-descr
 
 print-failures exit-code(failures result<str, arr failure>, options test-options) summon

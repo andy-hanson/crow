@@ -34,10 +34,10 @@ file-ast(
 							[lambda([name-range(212, logged)])])
 						seq-ast(
 							seq-ast(
-								call(infix, name-range(262, with-log-handler), [], [doubler, lambda([])])
+								call(infix, name-range(254, with-log-handler), [], [doubler, lambda([])])
 								call(
 									infix
-									name-range(318, with-log-handler)
+									name-range(310, with-log-handler)
 									[]
-									[lambda([name-range(308, it)]), lambda([])]))
-							call(infix, name-range(366, resolved), [], [literal(nat(0, false))]))))))])
+									[lambda([name-range(300, it)]), lambda([])]))
+							call(infix, name-range(358, resolved), [], [literal(nat(0, false))]))))))])
