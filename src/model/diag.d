@@ -76,7 +76,6 @@ struct Diag {
 
 		immutable Reason reason;
 		immutable Ptr!FunDecl callee;
-		immutable Ptr!FunDecl caller;
 	}
 
 	struct CantCreateNonRecordType {

@@ -43,6 +43,7 @@ import model.model :
 	Expr,
 	FunDecl,
 	FunDeclAndArgs,
+	FunFlags,
 	FunInst,
 	FunKind,
 	FunKindAndStructs,
@@ -61,6 +62,7 @@ import model.model :
 	Purity,
 	range,
 	returnType,
+	SpecInst,
 	StructBody,
 	StructDecl,
 	StructDeclAndArgs,
@@ -143,26 +145,33 @@ import util.util : todo, unreachable, verify;
 immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx checkCtx,
-	ref immutable ExprAst ast,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
+	ref immutable CommonTypes commonTypes,
 	ref immutable FunsDict funsDict,
 	ref Arr!Bool usedFuns,
-	immutable Ptr!FunDecl fun,
-	ref immutable CommonTypes commonTypes,
+	immutable Type returnType,
+	immutable Arr!TypeParam typeParams,
+	immutable Arr!Param params,
+	immutable Arr!(Ptr!SpecInst) specs,
+	immutable FunFlags flags,
+	ref immutable ExprAst ast,
 ) {
 	ExprCtx exprCtx = ExprCtx(
 		ptrTrustMe_mut(checkCtx),
 		ptrTrustMe(structsAndAliasesDict),
 		ptrTrustMe(funsDict),
 		ptrTrustMe(commonTypes),
-		fun,
+		specs,
+		params,
+		typeParams,
+		flags,
 		usedFuns,
 		// TODO: use temp alloc
-		fillArr_mut!(Bool, Alloc)(alloc, size(params(fun)), (immutable size_t) =>
+		fillArr_mut!(Bool, Alloc)(alloc, size(params), (immutable size_t) =>
 			Bool(false)));
-	immutable Ptr!Expr res = allocExpr(alloc, checkAndExpect!Alloc(alloc, exprCtx, ast, returnType(fun)));
+	immutable Ptr!Expr res = allocExpr(alloc, checkAndExpect!Alloc(alloc, exprCtx, ast, returnType));
 	zipPtrFirst!(Param, Bool)(
-		params(fun),
+		params,
 		castImmutable(exprCtx.paramsUsed),
 		(immutable Ptr!Param param, ref immutable Bool used) {
 			if (!used && has(param.name))
@@ -416,7 +425,7 @@ Opt!IdentifierAndLambdas getIdentifierNonCall(
 			local.isUsed = true;
 			return someMut(IdentifierAndLambdas(immutable Expr(range, Expr.LocalRef(local.local)), allLambdas));
 		}
-	foreach (immutable Ptr!Param param; ptrsRange(params(ctx.outermostFun)))
+	foreach (immutable Ptr!Param param; ptrsRange(ctx.outermostFunParams))
 		if (has(param.name) && symEq(force(param.name), name)) {
 			setAt(ctx.paramsUsed, param.index, True);
 			return someMut(IdentifierAndLambdas(immutable Expr(range, Expr.ParamRef(param)), allLambdas));

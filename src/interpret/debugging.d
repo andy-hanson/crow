@@ -139,6 +139,9 @@ void writeConcreteFunName(Alloc)(ref Writer!Alloc writer, ref immutable Concrete
 			writeConcreteFunName(writer, it.containingFun);
 			writeStatic(writer, ".lambda");
 			writeNat(writer, it.index);
+		},
+		(ref immutable(ConcreteFunSource.Test)) {
+			todo!void("!");
 		});
 }
 

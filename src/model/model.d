@@ -747,6 +747,10 @@ immutable(size_t) arity(ref const FunDecl a) {
 	return arity(a.sig);
 }
 
+struct Test {
+	immutable Expr body_;
+}
+
 struct FunDeclAndArgs {
 	@safe @nogc pure nothrow:
 
@@ -1099,6 +1103,10 @@ struct Module {
 	ref immutable(Arr!FunDecl) funs() return scope immutable {
 		return arrs_.funs;
 	}
+
+	ref immutable(Arr!Test) tests() return scope immutable {
+		return arrs_.tests;
+	}
 }
 static assert(Module.sizeof <= 48);
 
@@ -1111,6 +1119,7 @@ struct ModuleArrs {
 	immutable Arr!StructDecl structs;
 	immutable Arr!SpecDecl specs;
 	immutable Arr!FunDecl funs;
+	immutable Arr!Test tests;
 }
 
 struct ModuleAndNames {

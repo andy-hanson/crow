@@ -29,7 +29,7 @@ import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : u8;
-import util.util : verify;
+import util.util : todo, unreachable, verify;
 
 enum BuiltinStructKind {
 	bool_,
@@ -518,18 +518,23 @@ struct ConcreteFunSource {
 		immutable size_t index; // nth lambda in the containing function
 	}
 
+	struct Test {}
+
 	@trusted immutable this(immutable Ptr!FunInst a) { kind_ = Kind.funInst; funInst_ = a; }
 	@trusted immutable this(immutable Ptr!Lambda a) { kind_ = Kind.lambda; lambda_ = a; }
+	immutable this(immutable Test a) { kind_ = Kind.test; test_ = a; }
 
 	private:
 	enum Kind {
 		funInst,
 		lambda,
+		test,
 	}
 	immutable Kind kind_;
 	union {
 		immutable Ptr!FunInst funInst_;
 		immutable Ptr!Lambda lambda_;
+		immutable Test test_;
 	}
 }
 static assert(ConcreteFunSource.sizeof <= 16);
@@ -538,12 +543,15 @@ static assert(ConcreteFunSource.sizeof <= 16);
 	ref immutable ConcreteFunSource a,
 	scope T delegate(immutable Ptr!FunInst) @safe @nogc pure nothrow cbFunInst,
 	scope T delegate(ref immutable ConcreteFunSource.Lambda) @safe @nogc pure nothrow cbLambda,
+	scope T delegate(ref immutable ConcreteFunSource.Test) @safe @nogc pure nothrow cbTest,
 ) {
 	final switch (a.kind_) {
 		case ConcreteFunSource.Kind.funInst:
 			return cbFunInst(a.funInst_);
 		case ConcreteFunSource.Kind.lambda:
 			return cbLambda(a.lambda_);
+		case ConcreteFunSource.Kind.test:
+			return cbTest(a.test_);
 	}
 }
 
@@ -606,7 +614,10 @@ immutable(Bool) isSummon(ref immutable ConcreteFun a) {
 		(immutable Ptr!FunInst it) =>
 			summon(decl(it).deref()),
 		(ref immutable ConcreteFunSource.Lambda it) =>
-			isSummon(it.containingFun));
+			isSummon(it.containingFun),
+		(ref immutable ConcreteFunSource.Test) =>
+			// 'isSummon' is called for direct calls, but tests are never called directly
+			unreachable!(immutable Bool)());
 }
 
 immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
@@ -615,7 +626,9 @@ immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
 		(immutable Ptr!FunInst it) =>
 			range(decl(it).deref()),
 		(ref immutable ConcreteFunSource.Lambda it) =>
-			it.range);
+			it.range,
+		(ref immutable ConcreteFunSource.Test) =>
+			todo!(immutable FileAndRange)("!"));
 }
 
 immutable(Bool) isCallWithCtxFun(ref immutable ConcreteFun a) {
@@ -624,6 +637,8 @@ immutable(Bool) isCallWithCtxFun(ref immutable ConcreteFun a) {
 		(immutable Ptr!FunInst it) =>
 			isCallWithCtxFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
+			False,
+		(ref immutable ConcreteFunSource.Test) =>
 			False);
 }
 
@@ -633,6 +648,8 @@ immutable(Bool) isCompareFun(ref immutable ConcreteFun a) {
 		(immutable Ptr!FunInst it) =>
 			isCompareFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
+			False,
+		(ref immutable ConcreteFunSource.Test) =>
 			False);
 }
 
@@ -642,6 +659,8 @@ immutable(Bool) isMarkVisitFun(ref immutable ConcreteFun a) {
 		(immutable Ptr!FunInst it) =>
 			isMarkVisitFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
+			False,
+		(ref immutable ConcreteFunSource.Test) =>
 			False);
 }
 

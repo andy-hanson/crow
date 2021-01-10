@@ -5,6 +5,7 @@ module frontend.parse.parse;
 import frontend.parse.ast :
 	ExplicitByValOrRef,
 	ExplicitByValOrRefAndRange,
+	ExprAst,
 	FileAst,
 	FileAstPart0,
 	FileAstPart1,
@@ -22,6 +23,7 @@ import frontend.parse.ast :
 	SpecUseAst,
 	StructAliasAst,
 	StructDeclAst,
+	TestAst,
 	TypeAst,
 	TypeParamAst;
 import frontend.parse.lexer :
@@ -66,7 +68,7 @@ import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.path : AllPaths, childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : AllSymbols, shortSymAlphaLiteralValue, Sym;
+import util.sym : AllSymbols, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
 import util.types : u8, u32;
 import util.util : todo, unreachable, verify;
 
@@ -748,20 +750,28 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 		stuff.body_);
 }
 
-void parseSpecOrStructOrFun(Alloc, SymAlloc)(
+void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	ref ArrBuilder!SpecDeclAst specs,
 	ref ArrBuilder!StructAliasAst structAliases,
 	ref ArrBuilder!StructDeclAst structs,
 	ref ArrBuilder!FunDeclAst funs,
+	ref ArrBuilder!TestAst tests,
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable Bool isPublic = immutable Bool(!tryTake(lexer, '.'));
 	immutable Sym name = takeName(alloc, lexer);
 	immutable ArrWithSize!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
-	if (!takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space)) {
-		skipUntilNewlineNoDiag(lexer);
+	if (!tryTake(lexer, ' ')) {
+		if (symEq(name, shortSymAlphaLiteral("test"))) {
+			immutable ExprAst body_ = parseFunExprBody(alloc, lexer);
+			add(alloc, tests, immutable TestAst(body_));
+		} else {
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(
+				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.space)));
+			skipUntilNewlineNoDiag(lexer);
+		}
 	} else {
 		immutable Opt!NonFunKeywordAndIndent opKwAndIndent = parseNonFunKeyword(alloc, lexer);
 		if (has(opKwAndIndent)) {
@@ -903,16 +913,22 @@ immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
 	ArrBuilder!StructAliasAst structAliases;
 	ArrBuilder!StructDeclAst structs;
 	ArrBuilder!FunDeclAst funs;
+	ArrBuilder!TestAst tests;
 
 	for (;;) {
 		skipBlankLines(alloc, lexer);
 		if (tryTake(lexer, '\0'))
 			break;
-		parseSpecOrStructOrFun(alloc, lexer, specs, structAliases, structs, funs);
+		parseSpecOrStructOrFunOrTest(alloc, lexer, specs, structAliases, structs, funs, tests);
 	}
 
 	return nu!FileAst(
 		alloc,
 		nu!FileAstPart0(alloc, imports, exports, finishArr(alloc, specs)),
-		nu!FileAstPart1(alloc, finishArr(alloc, structAliases), finishArr(alloc, structs), finishArr(alloc, funs)));
+		nu!FileAstPart1(
+			alloc,
+			finishArr(alloc, structAliases),
+			finishArr(alloc, structs),
+			finishArr(alloc, funs),
+			finishArr(alloc, tests)));
 }

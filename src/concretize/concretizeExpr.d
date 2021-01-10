@@ -33,8 +33,6 @@ import model.concreteModel :
 	ConcreteField,
 	ConcreteFieldSource,
 	ConcreteFun,
-	ConcreteFunBody,
-	ConcreteFunExprBody,
 	ConcreteLambdaImpl,
 	ConcreteLocal,
 	ConcreteLocalSource,
@@ -82,7 +80,7 @@ import util.sym : shortSymAlphaLiteral, symEq, symEqLongAlphaLiteral;
 import util.types : safeSizeTToU8, safeSizeTToU16;
 import util.util : todo, unreachable, verify;
 
-immutable(ConcreteFunBody) concretizeExpr(Alloc)(
+immutable(ConcreteExpr) concretizeExpr(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
 	ref immutable ConcreteFunBodyInputs inputs,
@@ -90,9 +88,7 @@ immutable(ConcreteFunBody) concretizeExpr(Alloc)(
 	ref immutable Expr e,
 ) {
 	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), inputs, cf);
-	immutable ConcreteExpr res = concretizeExpr(alloc, exprCtx, e);
-	return immutable ConcreteFunBody(
-		immutable ConcreteFunExprBody(allocExpr(alloc, res)));
+	return concretizeExpr(alloc, exprCtx, e);
 }
 
 immutable(Ptr!ConcreteExpr) allocExpr(Alloc)(ref Alloc alloc, immutable ConcreteExpr e) {

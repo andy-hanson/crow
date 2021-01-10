@@ -1279,7 +1279,9 @@ immutable(LowExprKind) getCallBuiltinExpr(Alloc)(
 		a.called.source,
 		(immutable Ptr!FunInst it) =>
 			name(decl(it).deref()),
-		(ref immutable ConcreteFunSource.Lambda) =>
+		(ref immutable(ConcreteFunSource.Lambda)) =>
+			unreachable!(immutable Sym)(),
+		(ref immutable(ConcreteFunSource.Test)) =>
 			unreachable!(immutable Sym)());
 	immutable(LowType) paramType(immutable size_t index) {
 		return index < size(a.args)

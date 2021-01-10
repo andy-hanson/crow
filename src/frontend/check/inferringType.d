@@ -18,7 +18,7 @@ import model.model :
 	CommonTypes,
 	decl,
 	Expr,
-	FunDecl,
+	FunFlags,
 	FunKind,
 	isBogus,
 	isStructInst,
@@ -28,14 +28,14 @@ import model.model :
 	matchType,
 	Param,
 	range,
+	SpecInst,
 	StructBody,
 	StructDecl,
 	StructDeclAndArgs,
 	StructInst,
 	Type,
 	typeArgs,
-	TypeParam,
-	typeParams;
+	TypeParam;
 import util.bools : Bool, False, True;
 import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
@@ -64,7 +64,10 @@ struct ExprCtx {
 	immutable Ptr!StructsAndAliasesDict structsAndAliasesDict;
 	immutable Ptr!FunsDict funsDict;
 	immutable Ptr!CommonTypes commonTypes;
-	immutable Ptr!FunDecl outermostFun;
+	immutable Arr!(Ptr!SpecInst) outermostFunSpecs;
+	immutable Arr!Param outermostFunParams;
+	immutable Arr!TypeParam outermostFunTypeParams;
+	immutable FunFlags outermostFunFlags;
 	Arr!Bool funsUsed;
 	Arr!Bool paramsUsed;
 
@@ -108,7 +111,7 @@ immutable(Type) typeFromAst2(Alloc)(ref Alloc alloc, ref ExprCtx ctx, ref immuta
 		ctx.commonTypes,
 		typeAst,
 		ctx.structsAndAliasesDict,
-		immutable TypeParamsScope(typeParams(ctx.outermostFun)),
+		immutable TypeParamsScope(ctx.outermostFunTypeParams),
 		noneMut!(Ptr!(MutArr!(Ptr!(StructInst)))));
 }
 

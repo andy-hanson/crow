@@ -670,6 +670,10 @@ struct FunDeclAst {
 	immutable Ptr!FunBodyAst body_;
 }
 
+struct TestAst {
+	immutable ExprAst body_;
+}
+
 struct ImportAst {
 	immutable RangeWithinFile range;
 	// Not using RelPath here because if nDots == 0, it's not a relative path
@@ -694,6 +698,7 @@ struct FileAstPart1 {
 	immutable Arr!StructAliasAst structAliases;
 	immutable Arr!StructDeclAst structs;
 	immutable Arr!FunDeclAst funs;
+	immutable Arr!TestAst tests;
 }
 
 struct FileAst {
@@ -706,7 +711,7 @@ private immutable ImportsOrExportsAst emptyImportsOrExports =
 private immutable FileAstPart0 emptyFileAstPart0 =
 	immutable FileAstPart0(some(emptyImportsOrExports), some(emptyImportsOrExports), emptyArr!SpecDeclAst);
 private immutable FileAstPart1 emptyFileAstPart1 =
-	immutable FileAstPart1(emptyArr!StructAliasAst, emptyArr!StructDeclAst, emptyArr!FunDeclAst);
+	immutable FileAstPart1(emptyArr!StructAliasAst, emptyArr!StructDeclAst, emptyArr!FunDeclAst, emptyArr!TestAst);
 private immutable FileAst emptyFileAstStorage = immutable FileAst(
 	immutable Ptr!FileAstPart0(&emptyFileAstPart0),
 	immutable Ptr!FileAstPart1(&emptyFileAstPart1));
@@ -734,6 +739,10 @@ ref immutable(Arr!StructDeclAst) structs(return scope ref immutable FileAst a) {
 
 ref immutable(Arr!FunDeclAst) funs(return scope ref immutable FileAst a) {
 	return a.part1.funs;
+}
+
+ref immutable(Arr!TestAst) tests(return scope ref immutable FileAst a) {
+	return a.part1.tests;
 }
 
 immutable(Sexpr) sexprOfAst(Alloc, PathAlloc)(

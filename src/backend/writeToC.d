@@ -290,7 +290,10 @@ immutable(MangledNames) buildMangledNames(Alloc)(ref Alloc alloc, ref immutable 
 						//TODO: use temp alloc
 						addToPrevOrIndex!(ConcreteFun, Alloc)(alloc, funNameToIndex, funToNameIndex, cf, name(i));
 					},
-					(ref immutable ConcreteFunSource.Lambda) {});
+					(ref immutable ConcreteFunSource.Lambda) {},
+					(ref immutable ConcreteFunSource.Test) {
+						todo!void("!!");
+					});
 			},
 			(ref immutable LowFunSource.Generated it) {});
 	});
@@ -617,6 +620,9 @@ void writeFunMangledName(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, 
 			writeFunMangledName(writer, ctx, it.containingFun);
 			writeStatic(writer, "__lambda");
 			writeNat(writer, it.index);
+		},
+		(ref immutable ConcreteFunSource.Test) {
+			todo!void("!");
 		});
 }
 

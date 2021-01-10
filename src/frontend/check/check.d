@@ -54,6 +54,8 @@ import frontend.parse.ast :
 	StructDeclAst,
 	structAliases,
 	structs,
+	TestAst,
+	tests,
 	TypeAst,
 	TypeParamAst;
 import frontend.programState : ProgramState;
@@ -91,10 +93,12 @@ import model.model :
 	noCtx,
 	okIfUnused,
 	Param,
+	params,
 	Purity,
 	range,
 	RecordField,
 	RecordFlags,
+	returnType,
 	setBody,
 	setTarget,
 	Sig,
@@ -102,6 +106,7 @@ import model.model :
 	SpecDecl,
 	SpecDeclAndArgs,
 	SpecInst,
+	specs,
 	StructAlias,
 	StructBody,
 	StructDecl,
@@ -109,6 +114,7 @@ import model.model :
 	StructInst,
 	StructOrAlias,
 	target,
+	Test,
 	Type,
 	TypeParam,
 	typeParams;
@@ -944,8 +950,9 @@ immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(Alloc)(
 				immutable Diag.DuplicateDeclaration(Diag.DuplicateDeclaration.Kind.structOrAlias, name))));
 }
 
-struct FunsAndMap {
+struct FunsAndDict {
 	immutable Arr!FunDecl funs;
+	immutable Arr!Test tests;
 	immutable FunsDict funsDict;
 }
 
@@ -988,7 +995,7 @@ immutable(Bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
 	return immutable Bool(empty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal);
 }
 
-immutable(FunsAndMap) checkFuns(Alloc, SymAlloc)(
+immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref CheckCtx ctx,
@@ -997,6 +1004,7 @@ immutable(FunsAndMap) checkFuns(Alloc, SymAlloc)(
 	ref immutable Arr!StructDecl structs,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable Arr!FunDeclAst asts,
+	ref immutable Arr!TestAst testAsts,
 ) {
 	ExactSizeArrBuilder!FunDecl funsBuilder = newExactSizeArrBuilder!FunDecl(alloc, countFunsForStruct(asts, structs));
 	foreach (ref immutable FunDeclAst funAst; arrRange(asts)) {
@@ -1052,9 +1060,39 @@ immutable(FunsAndMap) checkFuns(Alloc, SymAlloc)(
 					todo!void("'extern' fun has parameters");
 				return immutable FunBody(nu!(FunBody.Extern)(alloc, e.isGlobal, copyStr(alloc, e.externName)));
 			},
-			(ref immutable ExprAst e) =>
-				immutable FunBody(checkFunctionBody!Alloc(
-					alloc, ctx, e, structsAndAliasesDict, funsDict, usedFuns, castImmutable(fun), commonTypes))));
+			(ref immutable ExprAst e) {
+				immutable Ptr!FunDecl f = castImmutable(fun);
+				return immutable FunBody(checkFunctionBody(
+					alloc,
+					ctx,
+					structsAndAliasesDict,
+					commonTypes,
+					funsDict,
+					usedFuns,
+					returnType(f.deref()),
+					typeParams(f.deref()),
+					params(f.deref()),
+					specs(f.deref()),
+					f.flags,
+					e));
+			}));
+	});
+
+	immutable Arr!Test tests = map!(Test, TestAst, Alloc)(alloc, testAsts, (ref immutable TestAst ast) {
+		immutable Type voidType = immutable Type(commonTypes.void_);
+		return immutable Test(checkFunctionBody!Alloc(
+			alloc,
+			ctx,
+			structsAndAliasesDict,
+			commonTypes,
+			funsDict,
+			usedFuns,
+			voidType,
+			emptyArr!TypeParam,
+			emptyArr!Param,
+			emptyArr!(Ptr!SpecInst),
+			FunFlags.none,
+			ast.body_));
 	});
 
 	zipPtrFirst!(FunDecl, Bool)(
@@ -1065,7 +1103,7 @@ immutable(FunsAndMap) checkFuns(Alloc, SymAlloc)(
 				addDiag(alloc, ctx, range(fun), immutable Diag(immutable Diag.UnusedPrivateFun(fun)));
 		});
 
-	return FunsAndMap(castImmutable(funs), funsDict);
+	return FunsAndDict(castImmutable(funs), tests, funsDict);
 }
 
 immutable(size_t) countFunsForStruct(
@@ -1220,7 +1258,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 	foreach (ref immutable SpecDecl s; arrRange(specs))
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.specNames, s.name);
 
-	immutable FunsAndMap funsAndMap = checkFuns(
+	immutable FunsAndDict funsAndDict = checkFuns(
 		alloc,
 		allSymbols,
 		ctx,
@@ -1228,7 +1266,8 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 		specsDict,
 		structsImmutable,
 		structsAndAliasesDict,
-		ast.funs);
+		ast.funs,
+		ast.tests);
 
 	checkForUnused!Alloc(alloc, ctx, structAliases, castImmutable(structs), specs);
 
@@ -1237,8 +1276,14 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 		alloc,
 		fileIndex,
 		nu!ModuleImportsExports(alloc, imports, reExports),
-		nu!ModuleArrs(alloc, structsImmutable, specs, funsAndMap.funs),
-		getAllExportedNames(alloc, ctx.diagsBuilder, reExports, structsAndAliasesDict, specsDict, funsAndMap.funsDict));
+		nu!ModuleArrs(alloc, structsImmutable, specs, funsAndDict.funs, funsAndDict.tests),
+		getAllExportedNames(
+			alloc,
+			ctx.diagsBuilder,
+			reExports,
+			structsAndAliasesDict,
+			specsDict,
+			funsAndDict.funsDict));
 }
 
 immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(

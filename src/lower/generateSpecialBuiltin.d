@@ -30,6 +30,7 @@ import util.opt : none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym;
+import util.util : unreachable;
 
 enum SpecialBuiltinKind {
 	allFunsCount,
@@ -54,7 +55,9 @@ immutable(Opt!SpecialBuiltinKind) getSpecialBuiltinKind(ref immutable ConcreteFu
 			}
 		},
 		(ref immutable ConcreteFunSource.Lambda) =>
-			none!SpecialBuiltinKind);
+			unreachable!(immutable Opt!SpecialBuiltinKind)(),
+		(ref immutable ConcreteFunSource.Test) =>
+			unreachable!(immutable Opt!SpecialBuiltinKind)());
 }
 
 immutable(LowFun) generateSpecialBuiltin(Alloc)(

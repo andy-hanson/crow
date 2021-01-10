@@ -244,7 +244,7 @@ void eachFunInScope(
 	scope void delegate(ref immutable Opt!UsedFun, immutable CalledDecl) @safe @nogc pure nothrow cb,
 ) {
 	size_t totalIndex = 0;
-	foreach (immutable Ptr!SpecInst specInst; arrRange(ctx.outermostFun.specs))
+	foreach (immutable Ptr!SpecInst specInst; arrRange(ctx.outermostFunSpecs))
 		matchSpecBody(
 			specInst.body_,
 			(ref immutable SpecBody.Builtin) {},
@@ -451,12 +451,12 @@ void checkCallFlags(Alloc)(
 	ref CheckCtx ctx,
 	ref immutable FileAndRange range,
 	immutable Ptr!FunDecl called,
-	immutable Ptr!FunDecl caller,
+	immutable FunFlags caller,
 	const Opt!(Ptr!LambdaInfo) callerLambda,
 ) {
-	immutable Opt!(Diag.CantCall.Reason) reason = getCantCallReason(called.flags, caller.flags, has(callerLambda));
+	immutable Opt!(Diag.CantCall.Reason) reason = getCantCallReason(called.flags, caller, has(callerLambda));
 	if (has(reason))
-		addDiag(alloc, ctx, range, immutable Diag(Diag.CantCall(force(reason), called, caller)));
+		addDiag(alloc, ctx, range, immutable Diag(Diag.CantCall(force(reason), called)));
 }
 
 void checkCalledDeclFlags(Alloc)(
@@ -468,7 +468,7 @@ void checkCalledDeclFlags(Alloc)(
 	return matchCalledDecl(
 		res,
 		(immutable Ptr!FunDecl f) {
-			checkCallFlags(alloc, ctx.checkCtx, range, f, ctx.outermostFun, peek(ctx.lambdas));
+			checkCallFlags(alloc, ctx.checkCtx, range, f, ctx.outermostFunFlags, peek(ctx.lambdas));
 		},
 		(ref immutable SpecSig) {
 			// For a spec, we check the flags when providing the spec impl
@@ -540,7 +540,7 @@ immutable(Bool) findBuiltinSpecOnType(
 	immutable SpecBody.Builtin.Kind kind,
 	immutable Type type,
 ) {
-	return exists(ctx.outermostFun.specs, (ref immutable Ptr!SpecInst inst) =>
+	return exists(ctx.outermostFunSpecs, (ref immutable Ptr!SpecInst inst) =>
 		matchSpecBody(
 			inst.body_,
 			(ref immutable SpecBody.Builtin b) =>

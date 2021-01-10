@@ -60,6 +60,9 @@ contexts:
     - match: export|import
       scope: keyword
       push: after_export_or_import_keyword
+    - match: test
+      scope: keyword
+      push: expression
     - match: '(\.)?{{name}}'
       # NOTE: Of course these won't all be functions.
       # But we don't know what kind of declaration it is yet unfortunately.

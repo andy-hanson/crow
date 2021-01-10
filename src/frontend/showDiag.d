@@ -430,22 +430,20 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		(ref immutable Diag.CallNoMatch d) {
 			writeCallNoMatch(writer, allPaths, options, fi, d);
 		},
-		(ref immutable Diag.CantCall c) {
+		(ref immutable Diag.CantCall it) {
 			immutable string descr = () {
-				final switch (c.reason) {
+				final switch (it.reason) {
 					case Diag.CantCall.Reason.nonNoCtx:
-						return "a 'noctx' fun can't call a non-'noctx' fun";
+						return "'noctx' fun can't call non-'noctx' fun";
 					case Diag.CantCall.Reason.summon:
-						return "a non-'summon' fun can't call a 'summon' fun";
+						return "non-'summon' fun can't call 'summon' fun";
 					case Diag.CantCall.Reason.unsafe:
-						return "a non-'trusted' and non-'unsafe' fun can't call an 'unsafe' fun";
+						return "non-'trusted' and non-'unsafe' fun can't call 'unsafe' fun";
 				}
 			}();
 			writeStatic(writer, descr);
-			writeStatic(writer, "\ncalling: ");
-			writeName(writer, c.callee.name);
-			writeStatic(writer, "\ncaller: ");
-			writeName(writer, c.caller.name);
+			writeChar(writer, ' ');
+			writeName(writer, it.callee.name);
 		},
 		(ref immutable Diag.CantCreateNonRecordType d) {
 			writeStatic(writer, "non-record type ");

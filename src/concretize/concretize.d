@@ -56,7 +56,8 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 		getCurIslandAndExclusionFun(alloc, allSymbols, program),
 		getIfFuns(program),
 		program.commonTypes.ctx,
-		ptrTrustMe(program.commonTypes));
+		ptrTrustMe(program.commonTypes),
+		ptrTrustMe(program));
 	immutable Ptr!ConcreteStruct ctxStruct = ctxType(alloc, ctx).struct_;
 	immutable Ptr!ConcreteFun markConcreteFun =
 		getOrAddNonTemplateConcreteFunAndFillBody(alloc, ctx, getMarkFun(alloc, program));

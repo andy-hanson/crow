@@ -597,7 +597,11 @@ void writeFn(Debug, Alloc)(
 	writer.nextStackEntry += stackEffect;
 }
 
-private void pushOpcode(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable OpCode code) {
+private void pushOpcode(Alloc)(
+	ref ByteCodeWriter!Alloc writer,
+	ref immutable ByteCodeSource source,
+	immutable OpCode code,
+) {
 	pushU8(writer, source, immutable Nat8(code));
 }
 
@@ -626,7 +630,7 @@ void pushU64(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSourc
 	repeat(u64.sizeof, () { pushSource(writer, source); });
 }
 
-void pushSource(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
+private void pushSource(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
 	add(writer.alloc, writer.sources, source);
 }
 

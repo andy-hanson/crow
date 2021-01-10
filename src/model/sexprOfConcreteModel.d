@@ -52,6 +52,7 @@ import util.sexpr :
 	tataStr,
 	tataSym;
 import util.sourceRange : sexprOfFileAndRange;
+import util.util : todo;
 
 immutable(Sexpr) tataOfConcreteProgram(Alloc)(ref Alloc alloc, ref immutable ConcreteProgram a) {
 	return tataRecord(alloc, "program", [
@@ -152,7 +153,9 @@ immutable(Sexpr) tataOfConcreteFunSource(Alloc)(ref Alloc alloc, ref immutable C
 		(ref immutable ConcreteFunSource.Lambda it) =>
 			tataRecord(alloc, "lambda", [
 				tataOfConcreteFunRef(alloc, it.containingFun),
-				tataNat(it.index)]));
+				tataNat(it.index)]),
+		(ref immutable(ConcreteFunSource.Test)) =>
+			todo!(immutable Sexpr)("!"));
 }
 
 public immutable(Sexpr) tataOfConcreteFunRef(Alloc)(ref Alloc alloc, immutable Ptr!ConcreteFun a) {
