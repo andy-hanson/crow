@@ -9,6 +9,7 @@ import concretize.concretizeCtx :
 	concreteTypeFromClosure,
 	concretizeParams,
 	constantStr,
+	ContainingFunInfo,
 	getOrAddNonTemplateConcreteFunAndFillBody,
 	getConcreteType_fromConcretizeCtx = getConcreteType,
 	getConcreteType_forStructInst_fromConcretizeCtx = getConcreteType_forStructInst,
@@ -81,11 +82,11 @@ import util.util : todo, unreachable, verify;
 immutable(ConcreteExpr) concretizeExpr(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	ref immutable ConcreteFunKey containingKey,
+	ref immutable ContainingFunInfo containing,
 	immutable Ptr!ConcreteFun cf,
 	ref immutable Expr e,
 ) {
-	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), containingKey, cf);
+	ConcretizeExprCtx exprCtx = ConcretizeExprCtx(ptrTrustMe_mut(ctx), containing, cf);
 	return concretizeExpr(alloc, exprCtx, e);
 }
 
@@ -100,7 +101,7 @@ immutable Bool inlineConstants = True;
 
 struct ConcretizeExprCtx {
 	Ptr!ConcretizeCtx concretizeCtx;
-	immutable ConcreteFunKey containingConcreteFunKey;
+	immutable ContainingFunInfo containing;
 	immutable Ptr!ConcreteFun currentConcreteFun; // This is the ConcreteFun* for a lambda, not its containing fun
 	size_t nextLambdaIndex = 0;
 	size_t nextLocalIndex = 0;
@@ -169,7 +170,7 @@ immutable(Arr!ConcreteType) typesToConcreteTypes(Alloc)(
 }
 
 immutable(TypeArgsScope) typeScope(ref ConcretizeExprCtx ctx) {
-	return typeArgsScope(ctx.containingConcreteFunKey);
+	return typeArgsScope(ctx.containing);
 }
 
 immutable(ConcreteExpr) concretizeCall(Alloc)(
@@ -205,7 +206,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromCalled(Alloc)(
 		(immutable Ptr!FunInst funInst) =>
 			getConcreteFunFromFunInst(alloc, ctx, funInst),
 		(ref immutable SpecSig specSig) =>
-			at(ctx.containingConcreteFunKey.specImpls, specSig.indexOverAllSpecUses));
+			at(ctx.containing.specImpls, specSig.indexOverAllSpecUses));
 }
 
 immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(Alloc)(
@@ -390,7 +391,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 		getConcreteType(alloc, ctx, e.returnType),
 		closureParam,
 		params,
-		ctx.containingConcreteFunKey,
+		ctx.containing,
 		ptrTrustMe(e.body_));
 	immutable ConcreteLambdaImpl impl = immutable ConcreteLambdaImpl(closureType, fun);
 	immutable(ConcreteExprKind) lambda(immutable Ptr!ConcreteStruct funStruct) {

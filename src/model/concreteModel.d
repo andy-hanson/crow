@@ -539,6 +539,11 @@ struct ConcreteFunSource {
 }
 static assert(ConcreteFunSource.sizeof <= 16);
 
+@trusted immutable(Ptr!FunInst) asFunInst(ref immutable ConcreteFunSource a) {
+	verify(a.kind_ == ConcreteFunSource.Kind.funInst);
+	return a.funInst_;
+}
+
 @trusted T matchConcreteFunSource(T)(
 	ref immutable ConcreteFunSource a,
 	scope T delegate(immutable Ptr!FunInst) @safe @nogc pure nothrow cbFunInst,
