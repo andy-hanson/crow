@@ -840,7 +840,7 @@ char constantarr_0_109[10];
 char constantarr_0_110[15];
 char constantarr_0_111[8];
 char constantarr_0_112[13];
-char constantarr_0_113[11];
+char constantarr_0_113[18];
 char constantarr_0_114[6];
 char constantarr_0_115[10];
 char constantarr_0_116[9];
@@ -1046,7 +1046,7 @@ char constantarr_0_315[16];
 char constantarr_0_316[24];
 char constantarr_0_317[19];
 char constantarr_0_318[10];
-char constantarr_0_319[10];
+char constantarr_0_319[17];
 char constantarr_0_320[7];
 char constantarr_0_321[29];
 char constantarr_0_322[8];
@@ -1119,7 +1119,7 @@ char constantarr_0_388[18];
 char constantarr_0_389[24];
 char constantarr_0_390[13];
 char constantarr_0_391[15];
-char constantarr_0_392[7];
+char constantarr_0_392[14];
 char constantarr_0_393[33];
 char constantarr_0_394[24];
 char constantarr_0_395[5];
@@ -1384,7 +1384,7 @@ char constantarr_0_109[10] = "join<char>";
 char constantarr_0_110[15] = "empty?<arr<?t>>";
 char constantarr_0_111[8] = "size<?t>";
 char constantarr_0_112[13] = "empty-arr<?t>";
-char constantarr_0_113[11] = "at<arr<?t>>";
+char constantarr_0_113[18] = "subscript<arr<?t>>";
 char constantarr_0_114[6] = "assert";
 char constantarr_0_115[10] = "fail<void>";
 char constantarr_0_116[9] = "throw<?t>";
@@ -1590,7 +1590,7 @@ char constantarr_0_315[16] = "value<exception>";
 char constantarr_0_316[24] = "forward-to<?out>.lambda0";
 char constantarr_0_317[19] = "call-ref<?out, ?in>";
 char constantarr_0_318[10] = "get-island";
-char constantarr_0_319[10] = "at<island>";
+char constantarr_0_319[17] = "subscript<island>";
 char constantarr_0_320[7] = "islands";
 char constantarr_0_321[29] = "island-and-exclusion<?r, ?p0>";
 char constantarr_0_322[8] = "add-task";
@@ -1663,7 +1663,7 @@ char constantarr_0_388[18] = "fill-ptr-range<?t>";
 char constantarr_0_389[24] = "fill-ptr-range-recur<?t>";
 char constantarr_0_390[13] = "call<?t, nat>";
 char constantarr_0_391[15] = "call<?out, ?in>";
-char constantarr_0_392[7] = "at<?in>";
+char constantarr_0_392[14] = "subscript<?in>";
 char constantarr_0_393[33] = "map<arr<char>, ptr<char>>.lambda0";
 char constantarr_0_394[24] = "arr-from-begin-end<char>";
 char constantarr_0_395[5] = "-<?t>";
@@ -1861,7 +1861,7 @@ uint8_t empty__q_0(struct arr_0 a);
 struct arr_0 join(struct ctx* ctx, struct arr_1 a, struct arr_0 joiner);
 uint8_t empty__q_1(struct arr_1 a);
 struct arr_0 empty_arr_1(void);
-struct arr_0 at_0(struct ctx* ctx, struct arr_1 a, uint64_t index);
+struct arr_0 subscript_0(struct ctx* ctx, struct arr_1 a, uint64_t index);
 struct void_ assert(struct ctx* ctx, uint8_t condition);
 struct void_ fail(struct ctx* ctx, struct arr_0 reason);
 struct void_ throw(struct ctx* ctx, struct exception e);
@@ -1963,7 +1963,7 @@ struct void_ drop_0(struct void_ _p0);
 struct void_ forward_to__lambda0(struct ctx* ctx, struct forward_to__lambda0* _closure, struct result_0 it);
 struct fut_0* call_ref_0(struct ctx* ctx, struct fun_ref1 f, struct void_ p0);
 struct island* get_island(struct ctx* ctx, uint64_t island_id);
-struct island* at_1(struct ctx* ctx, struct arr_3 a, uint64_t index);
+struct island* subscript_1(struct ctx* ctx, struct arr_3 a, uint64_t index);
 struct island* noctx_at_1(struct arr_3 a, uint64_t index);
 struct void_ add_task_0(struct ctx* ctx, struct island* a, uint64_t exclusion, struct fun_act0_0 action);
 struct void_ add_task_1(struct ctx* ctx, struct island* a, uint64_t timestamp, uint64_t exclusion, struct fun_act0_0 action);
@@ -2016,7 +2016,7 @@ struct arr_0 call_6(struct ctx* ctx, struct fun_act1_5 a, uint64_t p0);
 struct arr_0 call_w_ctx_198(struct fun_act1_5 a, struct ctx* ctx, uint64_t p0);
 struct arr_0 call_7(struct ctx* ctx, struct fun_act1_4 a, char* p0);
 struct arr_0 call_w_ctx_200(struct fun_act1_4 a, struct ctx* ctx, char* p0);
-char* at_2(struct ctx* ctx, struct arr_4 a, uint64_t index);
+char* subscript_2(struct ctx* ctx, struct arr_4 a, uint64_t index);
 char* noctx_at_2(struct arr_4 a, uint64_t index);
 struct arr_0 map__lambda0(struct ctx* ctx, struct map__lambda0* _closure, uint64_t i);
 struct arr_0 to_str_1(char* a);
@@ -2543,9 +2543,9 @@ struct arr_0 join(struct ctx* ctx, struct arr_1 a, struct arr_0 joiner) {
 	} else {
 		uint8_t _1 = _op_equal_equal_0(a.size, 1u);
 		if (_1) {
-			return at_0(ctx, a, 0u);
+			return subscript_0(ctx, a, 0u);
 		} else {
-			struct arr_0 _2 = at_0(ctx, a, 0u);
+			struct arr_0 _2 = subscript_0(ctx, a, 0u);
 			struct arr_0 _3 = _op_plus_0(ctx, _2, joiner);
 			struct arr_1 _4 = tail_0(ctx, a);
 			struct arr_0 _5 = join(ctx, _4, joiner);
@@ -2561,8 +2561,8 @@ uint8_t empty__q_1(struct arr_1 a) {
 struct arr_0 empty_arr_1(void) {
 	return (struct arr_0) {0u, NULL};
 }
-/* at<arr<?t>> arr<char>(a arr<arr<char>>, index nat) */
-struct arr_0 at_0(struct ctx* ctx, struct arr_1 a, uint64_t index) {
+/* subscript<arr<?t>> arr<char>(a arr<arr<char>>, index nat) */
+struct arr_0 subscript_0(struct ctx* ctx, struct arr_1 a, uint64_t index) {
 	uint8_t _0 = _op_less_0(index, a.size);
 	assert(ctx, _0);
 	return noctx_at_0(a, index);
@@ -3017,7 +3017,7 @@ uint8_t* get_fun_ptr_73(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) empty_arr_1;
 		}
 		case 46: {
-			return (uint8_t*) at_0;
+			return (uint8_t*) subscript_0;
 		}
 		case 47: {
 			return (uint8_t*) assert;
@@ -3323,7 +3323,7 @@ uint8_t* get_fun_ptr_73(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) get_island;
 		}
 		case 148: {
-			return (uint8_t*) at_1;
+			return (uint8_t*) subscript_1;
 		}
 		case 149: {
 			return (uint8_t*) noctx_at_1;
@@ -3482,7 +3482,7 @@ uint8_t* get_fun_ptr_73(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) call_w_ctx_200;
 		}
 		case 201: {
-			return (uint8_t*) at_2;
+			return (uint8_t*) subscript_2;
 		}
 		case 202: {
 			return (uint8_t*) noctx_at_2;
@@ -4079,7 +4079,7 @@ struct arr_0 get_fun_name_74(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {13, constantarr_0_112};
 		}
 		case 46: {
-			return (struct arr_0) {11, constantarr_0_113};
+			return (struct arr_0) {18, constantarr_0_113};
 		}
 		case 47: {
 			return (struct arr_0) {6, constantarr_0_114};
@@ -4385,7 +4385,7 @@ struct arr_0 get_fun_name_74(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {10, constantarr_0_318};
 		}
 		case 148: {
-			return (struct arr_0) {10, constantarr_0_319};
+			return (struct arr_0) {17, constantarr_0_319};
 		}
 		case 149: {
 			return (struct arr_0) {12, constantarr_0_199};
@@ -4544,7 +4544,7 @@ struct arr_0 get_fun_name_74(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {0u, NULL};
 		}
 		case 201: {
-			return (struct arr_0) {7, constantarr_0_392};
+			return (struct arr_0) {14, constantarr_0_392};
 		}
 		case 202: {
 			return (struct arr_0) {12, constantarr_0_199};
@@ -5763,10 +5763,10 @@ struct fut_0* call_ref_0(struct ctx* ctx, struct fun_ref1 f, struct void_ p0) {
 /* get-island island(island-id nat) */
 struct island* get_island(struct ctx* ctx, uint64_t island_id) {
 	struct global_ctx* _0 = get_global_ctx(ctx);
-	return at_1(ctx, _0->islands, island_id);
+	return subscript_1(ctx, _0->islands, island_id);
 }
-/* at<island> island(a arr<island>, index nat) */
-struct island* at_1(struct ctx* ctx, struct arr_3 a, uint64_t index) {
+/* subscript<island> island(a arr<island>, index nat) */
+struct island* subscript_1(struct ctx* ctx, struct arr_3 a, uint64_t index) {
 	uint8_t _0 = _op_less_0(index, a.size);
 	assert(ctx, _0);
 	return noctx_at_1(a, index);
@@ -6266,8 +6266,8 @@ struct arr_0 call_w_ctx_200(struct fun_act1_4 a, struct ctx* ctx, char* p0) {
 			return (struct arr_0) {0, NULL};
 	}
 }
-/* at<?in> ptr<char>(a arr<ptr<char>>, index nat) */
-char* at_2(struct ctx* ctx, struct arr_4 a, uint64_t index) {
+/* subscript<?in> ptr<char>(a arr<ptr<char>>, index nat) */
+char* subscript_2(struct ctx* ctx, struct arr_4 a, uint64_t index) {
 	uint8_t _0 = _op_less_0(index, a.size);
 	assert(ctx, _0);
 	return noctx_at_2(a, index);
@@ -6280,7 +6280,7 @@ char* noctx_at_2(struct arr_4 a, uint64_t index) {
 }
 /* map<arr<char>, ptr<char>>.lambda0 arr<char>(i nat) */
 struct arr_0 map__lambda0(struct ctx* ctx, struct map__lambda0* _closure, uint64_t i) {
-	char* _0 = at_2(ctx, _closure->a, i);
+	char* _0 = subscript_2(ctx, _closure->a, i);
 	return call_7(ctx, _closure->mapper, _0);
 }
 /* to-str arr<char>(a ptr<char>) */

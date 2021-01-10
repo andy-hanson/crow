@@ -18,7 +18,7 @@ main fut exit-code(args arr str) unsafe summon
 		print: "Usage: server PORT"
 		1 resolved
 	else
-		port = args at 0
+		port = args[0]
 		if false
 			print: "RUNNING OLD MAIN"
 			port old-main

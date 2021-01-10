@@ -6,7 +6,7 @@ import
 	..exceptions: forbid
 	..number-utils: + - decr incr
 	..opt-utils: force
-	.arr: + arr-eq? at empty-arr empty? noctx-at slice slice-starting-at slice-up-to
+	.arr: + arr-eq? empty-arr empty? noctx-at slice slice-starting-at slice-up-to subscript
 
 make-arr arr ?t(size nat, f act ?t(nat)) trusted
 	data = size alloc-uninitialized<?t>
@@ -27,20 +27,20 @@ each-with-index void(a arr ?t, f act void(?t, nat))
 
 .each-with-index-recur void(a arr ?t, f act void(?t, nat), n nat)
 	if n != a.size
-		f call (a at n), n
+		f call a[n], n
 		a each-with-index-recur f, n.incr
 
 map arr ?out(a arr ?in, mapper act ?out(?in)) trusted
 	a.size make-arr \i
-		mapper call: a at i
+		mapper call a[i]
 
 first ?t(a arr ?t)
 	forbid: a empty?
-	a at 0
+	a[0]
 
 last ?t(a arr ?t)
 	forbid: a empty?
-	a at a.size.decr
+	a[a.size.decr]
 
 tail arr ?t(a arr ?t)
 	forbid: a empty?
@@ -127,7 +127,7 @@ find-index opt nat(a arr ?t, pred act bool(?t))
 .find-index-recur opt nat(a arr ?t, index nat, pred act bool(?t))
 	if index == a.size
 		none
-	elif pred call: a at index
+	elif pred call: a[index]
 		index some
 	else
 		a find-index-recur index.incr, pred
@@ -139,7 +139,7 @@ find-rindex opt nat(a arr ?t, pred act bool(?t))
 		a find-rindex-recur a.size.decr, pred
 
 .find-rindex-recur opt nat(a arr ?t, index nat, pred act bool(?t))
-	if pred call: a at index
+	if pred call: a[index]
 		index some
 	elif index == 0
 		none
@@ -150,9 +150,9 @@ join arr ?t(a arr arr ?t, joiner arr ?t)
 	if a empty?
 		empty-arr
 	elif a.size == 1
-		a at 0
+		a[0]
 	else
-		a at 0 + joiner +: a.tail join joiner
+		a[0] + joiner +: a.tail join joiner
 
 split-by-subseq arr arr ?t(a arr ?t, splitter arr ?t) data<?t> trusted
 	size = a count-subseqs splitter incr

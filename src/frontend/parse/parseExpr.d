@@ -48,7 +48,7 @@ import frontend.parse.lexer :
 import frontend.parse.parseType : tryParseTypeArgBracketed, tryParseTypeArgsBracketed;
 import model.parseDiag : ParseDiag;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, only, toArr;
+import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, emptyArrWithSize, only, toArr;
 import util.collection.arrUtil : arrLiteral, exists, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
@@ -245,7 +245,7 @@ immutable(Bool) bodyUsesIt(ref immutable ExprAst body_) {
 			symEq(asIdentifier(it.kind).name, shortSymAlphaLiteral("it"))));
 }
 
-immutable(ExprAst) tryParseDots(Alloc, SymAlloc)(
+immutable(ExprAst) tryParseDotsAndSubscripts(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	ref immutable ExprAst initial
@@ -257,7 +257,19 @@ immutable(ExprAst) tryParseDots(Alloc, SymAlloc)(
 		immutable CallAst call = immutable CallAst(
 			CallAst.Style.dot, name, typeArgs, arrLiteral!ExprAst(alloc, [initial]));
 		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
-		return tryParseDots(alloc, lexer, expr);
+		return tryParseDotsAndSubscripts(alloc, lexer, expr);
+	} else if (tryTake(lexer, '[')) {
+		immutable ExprAst arg = parseExprNoBlock(alloc, lexer);
+		if (!tryTake(lexer, ']'))
+			todo!void("!");
+		immutable CallAst call = immutable CallAst(
+			//TODO: the range is wrong..
+			CallAst.Style.subscript,
+			immutable NameAndRange(start, shortSymAlphaLiteral("subscript")),
+			emptyArrWithSize!TypeAst,
+			arrLiteral!ExprAst(alloc, [initial, arg]));
+		immutable ExprAst expr = immutable ExprAst(range(lexer, start), immutable ExprAstKind(call));
+		return tryParseDotsAndSubscripts(alloc, lexer, expr);
 	} else
 		return initial;
 }
@@ -535,14 +547,14 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			immutable ExprAst expr = immutable ExprAst(
 				getRange(),
 				immutable ExprAstKind(immutable LambdaAst(params, body_)));
-			return noDedent(tryParseDots(alloc, lexer, expr));
+			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 		case ExpressionToken.Kind.literal:
 			immutable ExprAst expr = immutable ExprAst(getRange(), immutable ExprAstKind(asLiteral(et)));
-			return noDedent(tryParseDots(alloc, lexer, expr));
+			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 		case ExpressionToken.Kind.lparen:
 			immutable ExprAst expr = parseExprNoBlock(alloc, lexer);
 			takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
-			return noDedent(tryParseDots(alloc, lexer, expr));
+			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 		case ExpressionToken.Kind.match:
 			return ctx.allowBlock
 				? toMaybeDedent(parseMatch(alloc, lexer, start, curIndent))
@@ -566,7 +578,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				immutable ExprAst expr = immutable ExprAst(
 					getRange(),
 					immutable ExprAstKind(immutable IdentifierAst(name.name)));
-				return noDedent(tryParseDots(alloc, lexer, expr));
+				return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 			}
 		case ExpressionToken.Kind.newArr:
 			return parseNewArr(alloc, lexer, start, ctx, curIndent);

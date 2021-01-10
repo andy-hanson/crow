@@ -2,7 +2,7 @@ import
 	.bootstrap
 		== ? bool char false float int int16 int32 nat nat16 nat32 none opt
 		some str todo to-float to-int to-nat true truncate-to-int value
-	.collection.arr: + at empty?
+	.collection.arr: + empty? subscript
 	.collection.arr-util: first tail
 	.number-utils: + * / abs mod multiple-of? neg negative? to-int
 	.opt-utils: opt-map
@@ -128,10 +128,10 @@ parse-nat-recur opt nat(a str, accum nat)
 			a.tail parse-nat-recur: accum * 10 + s.value
 
 parse-int opt int(a str)
-	if a at 0 == "-"
+	if a[0] == "-"
 		a.tail.parse-nat opt-map {it neg}
 	else
-		(a at 0 == "+" ? a.tail, a).parse-nat opt-map {it to-int}
+		(a[0] == "+" ? a.tail, a).parse-nat opt-map {it to-int}
 
 | TODO: handle the decimal point!
 parse-float opt float(a str)

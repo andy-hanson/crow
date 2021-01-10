@@ -66,7 +66,7 @@ noctx-at ?t(a mut-list ?t, index nat) trusted noctx
 	hard-assert: index < a.size
 	a.data + index deref
 
-at ?t(a mut-list ?t, index nat) trusted
+subscript ?t(a mut-list ?t, index nat) trusted
 	assert: index < a.size
 	a noctx-at index
 
@@ -122,7 +122,7 @@ pop opt ?t(a mut-list ?t) trusted
 		none
 	else
 		new-size = a.size noctx-decr
-		res = a at new-size
+		res = a[new-size]
 		| Ensure GC doesn't hold on to the memory there
 		a set-at new-size, zeroed
 		a set-size new-size

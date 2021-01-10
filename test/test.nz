@@ -15,9 +15,9 @@ import
 main fut exit-code(args arr str) summon
 	option-names = new-arr<str> "print-tests", "overwrite-output", "max-failures"
 	options = args parse-cmd-line-args<test-options> option-names, \values
-		print-tests-strs = values at 0
-		overwrite-output-strs = values at 1
-		max-failures-strs = values at 2
+		print-tests-strs = values[0]
+		overwrite-output-strs = values[1]
+		max-failures-strs = values[2]
 		print-tests? = print-tests-strs.has?
 		overwrite-output? = match overwrite-output-strs
 		as none

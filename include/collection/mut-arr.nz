@@ -3,7 +3,7 @@ import
 	..bootstrap: + == < <= arr bool data hard-assert nat opt ptr set size void
 	..exceptions: assert
 	..number-utils: + - incr
-	.arr: at empty-arr
+	.arr: empty-arr subscript
 	.arr-util: find-index
 
 mut-arr<?t> record mut
@@ -17,8 +17,8 @@ size nat(a mut-arr ?t) noctx
 data ptr ?t(a mut-arr ?t) noctx unsafe
 	a.arr data
 
-at ?t(a mut-arr ?t, index nat)
-	a.arr at index
+subscript ?t(a mut-arr ?t, index nat)
+	a.arr[index]
 
 set-at void(a mut-arr ?t, index nat, value ?t) trusted
 	assert: index < a.size
@@ -47,8 +47,7 @@ fill-mut-arr mut-arr ?t(size nat, value ?t)
 		value
 
 copy-to-mut-arr mut-arr ?t(a arr ?t)
-	a.size make-mut-arr<?t> \i
-		a at i
+	a.size make-mut-arr<?t> {a[it]}
 
 temp-as-arr arr ?t(a mut-arr ?t) noctx unsafe
 	a arr

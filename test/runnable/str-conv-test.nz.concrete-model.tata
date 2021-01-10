@@ -950,11 +950,11 @@ program(
 					call(empty-arr, [])
 					cond(
 						call(==, [call(size, [param-ref(a)]), 1])
-						call(at, [param-ref(a), 0])
+						call(subscript, [param-ref(a), 0])
 						call(
 							+
 							[
-								call(+, [call(at, [param-ref(a), 0]), param-ref(joiner)])
+								call(+, [call(subscript, [param-ref(a), 0]), param-ref(joiner)])
 								call(join, [call(tail, [param-ref(a)]), param-ref(joiner)])])))))
 		fun(
 			false
@@ -975,7 +975,7 @@ program(
 		fun(false, null, type(false, ptr), none, [], builtin([type(false, char)]))
 		fun(
 			true
-			at
+			subscript
 			type(false, arr)
 			none
 			[param(a, type(false, arr)), param(index, type(false, nat))]
@@ -2821,10 +2821,10 @@ program(
 			type(true, island)
 			none
 			[param(island-id, type(false, nat))]
-			expr-body(call(at, [call(islands, [call(get-global-ctx, [])]), param-ref(island-id)])))
+			expr-body(call(subscript, [call(islands, [call(get-global-ctx, [])]), param-ref(island-id)])))
 		fun(
 			true
-			at
+			subscript
 			type(true, island)
 			none
 			[param(a, type(false, arr)), param(index, type(false, nat))]
@@ -3572,7 +3572,7 @@ program(
 			builtin([type(false, arr), type(false, ptr)]))
 		fun(
 			true
-			at
+			subscript
 			type(false, ptr)
 			none
 			[param(a, type(false, arr)), param(index, type(false, nat))]
@@ -3602,7 +3602,7 @@ program(
 					call
 					[
 						get-field(param-ref("<<closure>>"), mapper)
-						call(at, [get-field(param-ref("<<closure>>"), a), param-ref(i)])])))
+						call(subscript, [get-field(param-ref("<<closure>>"), a), param-ref(i)])])))
 		fun(
 			false
 			to-str
@@ -5232,10 +5232,10 @@ program(
 			type(false, char)
 			none
 			[param(a, type(false, arr))]
-			expr-body(seq(call(forbid, [call(empty?, [param-ref(a)])]), call(at, [param-ref(a), 0]))))
+			expr-body(seq(call(forbid, [call(empty?, [param-ref(a)])]), call(subscript, [param-ref(a), 0]))))
 		fun(
 			true
-			at
+			subscript
 			type(false, char)
 			none
 			[param(a, type(false, arr)), param(index, type(false, nat))]
@@ -5332,7 +5332,7 @@ program(
 			[param(a, type(false, arr))]
 			expr-body(
 				cond(
-					call(==, [call(at, [param-ref(a), 0]), 45])
+					call(==, [call(subscript, [param-ref(a), 0]), 45])
 					call(opt-map, [call(parse-nat, [call(tail, [param-ref(a)])]), lambda(0, void)])
 					call(
 						opt-map
@@ -5343,7 +5343,7 @@ program(
 									call(
 										?
 										[
-											call(==, [call(at, [param-ref(a), 0]), 43])
+											call(==, [call(subscript, [param-ref(a), 0]), 43])
 											call(tail, [param-ref(a)])
 											param-ref(a)])])
 							lambda(1, void)]))))

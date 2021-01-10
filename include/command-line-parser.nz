@@ -4,7 +4,7 @@ import
 	.collection.arr: + empty? empty-arr slice-after slice-starting-at slice-up-to
 	.collection.arr-util: find-index first index-of remove-start starts-with? tail
 	.collection.dict: add dict each empty-dict move-to-dict mut-dict new-mut-dict
-	.collection.mut-list: at fill-mut-list move-to-arr set-at
+	.collection.mut-list: fill-mut-list move-to-arr set-at subscript
 	.exceptions: assert fail forbid
 
 | TODO: this would be neater if we had reflection!
@@ -26,7 +26,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt 
 		as some s
 			idx = s value
 			| TODO: duplicate argument error
-			forbid: values at idx has?
+			forbid: values[idx] has?
 			values set-at idx, value.some
 
 	if help get

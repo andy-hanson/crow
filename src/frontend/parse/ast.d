@@ -124,6 +124,7 @@ struct CallAst {
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
 		prefix, // `a: b`, `a: b, c`, etc.
 		single, // `a<t>` (without the type arg, it would just be an Identifier)
+		subscript, // a[b]
 	}
 	// For some reason we have to break this up to get the struct size lower
 	//immutable NameAndRange funName;
@@ -1056,5 +1057,7 @@ immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 			return shortSymAlphaLiteral("prefix");
 		case CallAst.Style.single:
 			return shortSymAlphaLiteral("single");
+		case CallAst.Style.subscript:
+			return shortSymAlphaLiteral("subscript");
 	}
 }

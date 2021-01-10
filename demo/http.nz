@@ -35,7 +35,7 @@ split<?t> record
 split-at-first opt split-with-splitter<?t>(a arr ?t, pred act bool(?t))
 	idx <- a find-index pred
 	| TODO: parens should be unnecessary
-	some: split-with-splitter<?t>: (a slice-up-to idx), (a at idx), (a slice-after idx)
+	some: split-with-splitter<?t>: (a slice-up-to idx), a[idx], (a slice-after idx)
 
 | If splitter is not present, right part is empty
 try-split split ?t(a arr ?t, pred act bool(?t))

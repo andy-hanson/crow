@@ -7,7 +7,7 @@ import
 		exclusion false gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid
 		island-and-exclusion island-id lock message min nat noctx-decr noctx-incr none not opt or
 		ref-of-val return-stack size some str true value void
-	.collection.arr: + at empty? noctx-at
+	.collection.arr: + empty? noctx-at subscript
 	.collection.arr-util: join
 	.exceptions: exception-ctx new-exception-ctx
 	.io.print: print-err print-err-no-newline
@@ -24,7 +24,7 @@ get-global-ctx global-ctx() unsafe
 	get-ctx.gctx-ptr as-ref
 
 get-island island(island-id island-id) unsafe
-	get-global-ctx.islands at island-id
+	get-global-ctx.islands[island-id]
 
 get-cur-island island() unsafe
 	get-ctx.island-id get-island

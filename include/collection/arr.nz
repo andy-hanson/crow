@@ -41,7 +41,7 @@ noctx-at ?t(a arr ?t, index nat) trusted noctx
 	hard-assert: index < a.size
 	a.data + index deref
 
-at ?t(a arr ?t, index nat) trusted
+subscript ?t(a arr ?t, index nat) trusted
 	assert: index < a.size
 	a noctx-at index
 
@@ -69,7 +69,7 @@ arr-eq? bool(a arr ?t, b arr ?t) data<?t>
 		false
 	elif a.empty?
 		true
-	elif a at 0 !=: b at 0
+	elif a[0] != b[0]
 		false
 	else
 		a slice-starting-at 1 arr-eq?: b slice-starting-at 1

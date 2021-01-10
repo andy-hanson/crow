@@ -1,6 +1,6 @@
 import
 	..bootstrap: == arr bool call data drop has? nat none not opt size some todo value void
-	..collection.arr: at empty? empty-arr
+	..collection.arr: empty? empty-arr subscript
 	..collection.arr-util: first map tail
 	..exceptions: forbid
 	..number-utils: incr
@@ -40,8 +40,8 @@ move-to-dict dict<?k, ?v>(m mut-dict<?k, ?v>)
 get-recursive<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
 	if idx == keys.size
 		none
-	elif key ==: keys at idx
-		values at idx some
+	elif key ==: keys[idx]
+		values[idx] some
 	else
 		| TODO: should not need to provide type arguments!
 		get-recursive<?k, ?v>: keys, values, idx.incr, key
