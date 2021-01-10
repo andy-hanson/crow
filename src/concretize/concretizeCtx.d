@@ -166,10 +166,6 @@ immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunBodyInputs a) {
 	return typeArgsScope(a.containingConcreteFunKey);
 }
 
-ref immutable(Arr!(Ptr!ConcreteFun)) specImpls(return scope ref immutable ConcreteFunBodyInputs a) {
-	return a.containingConcreteFunKey.specImpls;
-}
-
 struct ConcretizeCtx {
 	@safe @nogc pure nothrow:
 
@@ -578,7 +574,9 @@ void fillInConcreteFunBody(Alloc)(
 				immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal, e.externName)),
 			(immutable Ptr!Expr e) =>
 				immutable ConcreteFunBody(immutable ConcreteFunExprBody(
-					allocate(alloc, concretizeExpr(alloc, ctx, inputs, castImmutable(cf), e.deref)))),
+					allocate(
+						alloc,
+						concretizeExpr(alloc, ctx, inputs.containingConcreteFunKey, castImmutable(cf), e.deref)))),
 			(ref immutable FunBody.RecordFieldGet it) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.RecordFieldGet(it.fieldIndex)),
 			(ref immutable FunBody.RecordFieldSet it) =>
@@ -599,12 +597,9 @@ immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 	immutable Arr!Test allTests = finishArr(alloc, allTestsBuilder);
 
 	immutable Arr!(Ptr!ConcreteFun) funs = map(alloc, allTests, (ref immutable Test it) {
-		immutable ConcreteFunBodyInputs inputs = immutable ConcreteFunBodyInputs(
-			todo!(immutable ConcreteFunKey)("!"),
-			todo!(immutable FunBody)("!"),
-		);
+		immutable ConcreteFunKey key = todo!(immutable ConcreteFunKey)("!");
 		immutable ConcreteExpr expr =
-			concretizeExpr(alloc, ctx, inputs, todo!(immutable Ptr!ConcreteFun)("?"), it.body_);
+			concretizeExpr(alloc, ctx, key, todo!(immutable Ptr!ConcreteFun)("?"), it.body_);
 		return concreteFunForTest(alloc, ctx, expr);
 	});
 	immutable Ptr!ConcreteStruct arrType = mustBeNonPointer(returnType);

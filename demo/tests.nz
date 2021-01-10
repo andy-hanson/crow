@@ -9,4 +9,6 @@ test
 
 main fut exit-code(_ arr str) summon
 	print: "HLO"
+	a = all-tests
+	drop: a
 	0 resolved
