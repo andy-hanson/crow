@@ -179,20 +179,13 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 	immutable u32 curIndent,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable Bool tookDot = tryTake(lexer, '.');
 	immutable NameAndRange funName = takeNameAndRange(alloc, lexer);
-	immutable Bool tookColon = !tookDot && tryTake(lexer, ':');
+	immutable Bool tookColon = tryTake(lexer, ':');
 	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
-	if (tookDot) {
-		immutable CallAst call = immutable CallAst(
-			CallAst.Style.dot, funName, typeArgs, arrLiteral!ExprAst(alloc, [target]));
-		return noDedent(immutable ExprAst(range(lexer, start), immutable ExprAstKind(call)));
-	} else {
-		immutable ArgsAndMaybeDedent args = parseArgs(alloc, lexer, ArgCtx(allowBlock, tookColon), curIndent);
-		immutable ExprAstKind exprKind = immutable ExprAstKind(
-			immutable CallAst(CallAst.Style.infix, funName, typeArgs, prepend(alloc, target, args.args)));
-		return immutable ExprAndMaybeDedent(immutable ExprAst(range(lexer, start), exprKind), args.dedent);
-	}
+	immutable ArgsAndMaybeDedent args = parseArgs(alloc, lexer, ArgCtx(allowBlock, tookColon), curIndent);
+	immutable ExprAstKind exprKind = immutable ExprAstKind(
+		immutable CallAst(CallAst.Style.infix, funName, typeArgs, prepend(alloc, target, args.args)));
+	return immutable ExprAndMaybeDedent(immutable ExprAst(range(lexer, start), exprKind), args.dedent);
 }
 
 immutable(ExprAndMaybeDedent) parseCalls(Alloc, SymAlloc)(

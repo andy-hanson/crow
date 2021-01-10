@@ -618,8 +618,11 @@ immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 		addAll(alloc, allTestsBuilder, m.tests);
 	immutable Arr!Test allTests = finishArr(alloc, allTestsBuilder);
 
-	immutable Arr!(Ptr!ConcreteFun) funs = mapWithIndex(alloc, allTests, (immutable size_t index, ref immutable Test it) =>
-		concreteFunForTest(alloc, ctx, it, index));
+	immutable Arr!(Ptr!ConcreteFun) funs = mapWithIndex(
+		alloc,
+		allTests,
+		(immutable size_t index, ref immutable Test it) =>
+			concreteFunForTest(alloc, ctx, it, index));
 	immutable Ptr!ConcreteStruct arrType = mustBeNonPointer(returnType);
 	immutable ConcreteType elementType = elementTypeFromArrType(arrType);
 

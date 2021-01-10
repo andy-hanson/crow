@@ -28,7 +28,7 @@ import util.opt : Opt;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Nat32, u8;
+import util.types : u8;
 import util.util : todo, unreachable, verify;
 
 enum BuiltinStructKind {
