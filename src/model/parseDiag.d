@@ -11,8 +11,17 @@ import util.sourceRange : RangeWithinFile;
 import util.sym : Sym;
 import util.types : u32;
 
+enum EqLikeKind {
+	equals,
+	mutEquals,
+	then,
+}
+
 struct ParseDiag {
 	@safe @nogc pure nothrow:
+	struct CantPrecedeEqLike {
+		immutable EqLikeKind kind;
+	}
 	struct CircularImport {
 		immutable PathAndStorageKind from;
 		immutable PathAndStorageKind to;
@@ -86,6 +95,7 @@ struct ParseDiag {
 
 	private:
 	enum Kind {
+		cantPrecedeEqLike,
 		circularImport,
 		expected,
 		fileDoesNotExist,
@@ -106,6 +116,7 @@ struct ParseDiag {
 	}
 	immutable Kind kind;
 	union {
+		immutable CantPrecedeEqLike cantPrecedeEqLike;
 		immutable Ptr!CircularImport circularImport;
 		immutable Expected expected;
 		immutable Ptr!FileDoesNotExist fileDoesNotExist;
@@ -126,6 +137,7 @@ struct ParseDiag {
 	}
 
 	public:
+	immutable this(immutable CantPrecedeEqLike a) { kind = Kind.cantPrecedeEqLike; cantPrecedeEqLike = a; }
 	@trusted immutable this(immutable Ptr!CircularImport a) { kind = Kind.circularImport; circularImport = a; }
 	immutable this(immutable Expected a) { kind = Kind.expected; expected = a; }
 	@trusted immutable this(immutable Ptr!FileDoesNotExist a) { kind = Kind.fileDoesNotExist; fileDoesNotExist = a; }
@@ -154,6 +166,7 @@ static assert(ParseDiag.sizeof <= 32);
 
 @trusted T matchParseDiag(T)(
 	ref immutable ParseDiag a,
+	scope T delegate(ref immutable ParseDiag.CantPrecedeEqLike) @safe @nogc pure nothrow cbCantPrecedeEqLike,
 	scope T delegate(ref immutable ParseDiag.CircularImport) @safe @nogc pure nothrow cbCircularImport,
 	scope T delegate(ref immutable ParseDiag.Expected) @safe @nogc pure nothrow cbExpected,
 	scope T delegate(ref immutable ParseDiag.FileDoesNotExist) @safe @nogc pure nothrow cbFileDoesNotExist,
@@ -179,6 +192,8 @@ static assert(ParseDiag.sizeof <= 32);
 	scope T delegate(ref immutable ParseDiag.WhenMustHaveElse) @safe @nogc pure nothrow cbWhenMustHaveElse,
 ) {
 	final switch (a.kind) {
+		case ParseDiag.Kind.cantPrecedeEqLike:
+			return cbCantPrecedeEqLike(a.cantPrecedeEqLike);
 		case ParseDiag.Kind.circularImport:
 			return cbCircularImport(a.circularImport);
 		case ParseDiag.Kind.expected:

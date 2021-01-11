@@ -89,7 +89,7 @@ noctx-set-at void(a mut-list ?t, index nat, value ?t) noctx trusted
 	hard-assert: index < a.size
 	a.data + index set value
 
-set-at void(a mut-list ?t, index nat, value ?t) trusted
+set-subscript void(a mut-list ?t, index nat, value ?t) trusted
 	assert: index < a.size
 	a noctx-set-at index, value
 
@@ -124,7 +124,7 @@ pop opt ?t(a mut-list ?t) trusted
 		new-size = a.size noctx-decr
 		res = a[new-size]
 		| Ensure GC doesn't hold on to the memory there
-		a set-at new-size, zeroed
+		a[new-size] := zeroed
 		a set-size new-size
 		res some
 

@@ -301,6 +301,8 @@ contexts:
       scope: variable.function.noze
       captures:
         3: comment
+    - match: '\s+(:=)\s+'
+      scope: keyword
 
   # Give 'new-arr' a scope to ensure that after type arguments are parsed (from 'prototype' scope), we eat a space
   new:

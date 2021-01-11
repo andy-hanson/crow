@@ -20,7 +20,7 @@ data ptr ?t(a mut-arr ?t) noctx unsafe
 subscript ?t(a mut-arr ?t, index nat)
 	a.arr[index]
 
-set-at void(a mut-arr ?t, index nat, value ?t) trusted
+set-subscript void(a mut-arr ?t, index nat, value ?t) trusted
 	assert: index < a.size
 	a noctx-set-at index, value
 

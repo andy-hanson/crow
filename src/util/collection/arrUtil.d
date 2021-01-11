@@ -485,6 +485,15 @@ private immutable(Acc) each(Acc, T)(
 	return immutable Arr!T(cast(immutable) res, resSize);
 }
 
+@trusted immutable(Arr!T) append(T, Alloc)(ref Alloc alloc, immutable Arr!T a, immutable T b) {
+	immutable size_t resSize = size(a) + 1;
+	T* res = cast(T*) alloc.allocateBytes(T.sizeof * resSize);
+	foreach (immutable size_t i; 0..size(a))
+		initMemory(res + i, at(a, i));
+	initMemory(res + size(a), b);
+	return immutable Arr!T(cast(immutable) res, resSize);
+}
+
 @trusted immutable(Arr!T) prepend(T, Alloc)(ref Alloc alloc, immutable T a, immutable Arr!T b) {
 	immutable size_t resSize = 1 + size(b);
 	T* res = cast(T*) alloc.allocateBytes(T.sizeof * resSize);

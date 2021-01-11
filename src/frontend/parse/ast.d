@@ -123,6 +123,7 @@ struct CallAst {
 		dot, // `a.b`
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
 		prefix, // `a: b`, `a: b, c`, etc.
+		setSubscript,
 		single, // `a<t>` (without the type arg, it would just be an Identifier)
 		subscript, // a[b]
 	}
@@ -307,11 +308,19 @@ struct ExprAstKind {
 	@trusted immutable this(immutable ThenAst a) { kind = Kind.then; then = a; }
 }
 
-immutable(Bool) isIdentifier(ref immutable ExprAstKind a) {
-	return Bool(a.kind == ExprAstKind.Kind.identifier);
+immutable(Bool) isCall(ref immutable ExprAstKind a) {
+	return immutable Bool(a.kind == ExprAstKind.Kind.call);
 }
-ref immutable(IdentifierAst) asIdentifier(return ref immutable ExprAstKind a) {
-	verify(a.isIdentifier);
+@trusted ref immutable(CallAst) asCall(return scope ref immutable ExprAstKind a) {
+	verify(isCall(a));
+	return a.call;
+}
+
+immutable(Bool) isIdentifier(ref immutable ExprAstKind a) {
+	return immutable Bool(a.kind == ExprAstKind.Kind.identifier);
+}
+ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind a) {
+	verify(isIdentifier(a));
 	return a.identifier;
 }
 
@@ -1071,6 +1080,8 @@ immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 			return shortSymAlphaLiteral("infix");
 		case CallAst.Style.prefix:
 			return shortSymAlphaLiteral("prefix");
+		case CallAst.Style.setSubscript:
+			return shortSymAlphaLiteral("set-at");
 		case CallAst.Style.single:
 			return shortSymAlphaLiteral("single");
 		case CallAst.Style.subscript:

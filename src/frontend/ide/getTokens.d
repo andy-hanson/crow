@@ -274,6 +274,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 					addName();
 					addExprsTokens(alloc, tokens, it.args);
 					break;
+				case CallAst.Style.setSubscript:
 				case CallAst.Style.subscript:
 					addExprsTokens(alloc, tokens, it.args);
 					break;

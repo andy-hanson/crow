@@ -3,6 +3,7 @@ module frontend.parse.parseExpr;
 @safe @nogc pure nothrow:
 
 import frontend.parse.ast :
+	asCall,
 	asIdentifier,
 	BogusAst,
 	CallAst,
@@ -12,6 +13,7 @@ import frontend.parse.ast :
 	FunPtrAst,
 	IdentifierAst,
 	IfAst,
+	isCall,
 	isIdentifier,
 	LambdaAst,
 	LetAst,
@@ -32,7 +34,6 @@ import frontend.parse.lexer :
 	curPos,
 	ExpressionToken,
 	IndentDelta,
-	isNameAndRange,
 	Lexer,
 	matchIndentDelta,
 	range,
@@ -46,16 +47,17 @@ import frontend.parse.lexer :
 	tryTake,
 	tryTakeIndentOrDedent;
 import frontend.parse.parseType : tryParseTypeArgBracketed, tryParseTypeArgsBracketed;
-import model.parseDiag : ParseDiag;
+import model.parseDiag : EqLikeKind, ParseDiag;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, emptyArrWithSize, only, toArr;
-import util.collection.arrUtil : arrLiteral, exists, prepend;
+import util.collection.arrUtil : append, arrLiteral, exists, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.collection.str : Str, strLiteral;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : shortSymAlphaLiteral, symEq;
+import util.sym : getSymFromAlphaIdentifier, shortSymAlphaLiteral, Sym, symEq;
 import util.types : u32;
 import util.util : todo, unreachable, verify;
 
@@ -163,27 +165,75 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
-	immutable NameAndRange name,
-	immutable Bool isArrow,
+	ref immutable ExprAst before,
+	immutable EqLikeKind kind,
 	immutable u32 curIndent,
 ) {
 	immutable ExprAndDedent initAndDedent = parseExprNoLet(alloc, lexer, curIndent);
-	immutable Ptr!ExprAst init = allocExpr(alloc, initAndDedent.expr);
-	immutable ExprAndDedent thenAndDedent = () {
-		if (initAndDedent.dedents != 0) {
-			immutable RangeWithinFile range = range(lexer, start);
-			addDiag(alloc, lexer, range, ParseDiag(ParseDiag.LetMustHaveThen()));
-			return immutable ExprAndDedent(bogusExpr(range), initAndDedent.dedents - 1);
-		} else
-			return parseStatementsAndExtraDedents(alloc, lexer, curIndent);
-	}();
-	immutable Ptr!ExprAst then = allocExpr(alloc, thenAndDedent.expr);
-	immutable ExprAstKind exprKind = isArrow
-		? immutable ExprAstKind(immutable ThenAst(name, init, then))
-		: immutable ExprAstKind(immutable LetAst(name, init, then));
-	// Since we don't always expect a dedent here,
-	// the dedent isn't *extra*, so increment to get the correct number of dedents.
-	return ExprAndDedent(ExprAst(range(lexer, start), exprKind), thenAndDedent.dedents + 1);
+	immutable ExprAst init = initAndDedent.expr;
+	if (kind == EqLikeKind.mutEquals) {
+		if (isCall(before.kind)) {
+			immutable CallAst beforeCall = asCall(before.kind);
+			if (beforeCall.style == CallAst.Style.subscript) {
+				immutable Str nameStr = strLiteral("set-subscript");
+				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
+				immutable ExprAst call = immutable ExprAst(
+					range(lexer, start),
+					immutable ExprAstKind(immutable CallAst(
+						CallAst.Style.setSubscript,
+						//TODO:range is wrong..
+						immutable NameAndRange(before.range.start, name),
+						beforeCall.typeArgs,
+						append(alloc, beforeCall.args, init))));
+				return immutable ExprAndDedent(call, initAndDedent.dedents);
+			}
+		}
+		return todo!(immutable ExprAndDedent)("!");
+	} else {
+		immutable ExprAndDedent thenAndDedent = () {
+			if (initAndDedent.dedents != 0) {
+				immutable RangeWithinFile range = range(lexer, start);
+				addDiag(alloc, lexer, range, ParseDiag(ParseDiag.LetMustHaveThen()));
+				return immutable ExprAndDedent(bogusExpr(range), initAndDedent.dedents - 1);
+			} else
+				return parseStatementsAndExtraDedents(alloc, lexer, curIndent);
+		}();
+
+		immutable ExprAstKind exprKind = () {
+			if (isIdentifier(before.kind))
+				return letOrThen(alloc, kind, identifierAsNameAndRange(before), init, thenAndDedent.expr);
+			else {
+				addDiag(alloc, lexer, before.range, immutable ParseDiag(
+					immutable ParseDiag.CantPrecedeEqLike(kind)));
+				return immutable ExprAstKind(immutable BogusAst());
+			}
+		}();
+
+		// Since we don't always expect a dedent here,
+		// the dedent isn't *extra*, so increment to get the correct number of dedents.
+		return immutable ExprAndDedent(immutable ExprAst(range(lexer, start), exprKind), thenAndDedent.dedents + 1);
+	}
+}
+
+immutable(ExprAstKind) letOrThen(Alloc)(
+	ref Alloc alloc,
+	immutable EqLikeKind kind,
+	immutable NameAndRange nameAndRange,
+	ref immutable ExprAst init,
+	ref immutable ExprAst then,
+) {
+	final switch (kind) {
+		case EqLikeKind.equals:
+			return immutable ExprAstKind(immutable LetAst(nameAndRange, allocate(alloc, init), allocate(alloc, then)));
+		case EqLikeKind.mutEquals:
+			return unreachable!(immutable ExprAstKind)();
+		case EqLikeKind.then:
+			return immutable ExprAstKind(immutable ThenAst(nameAndRange, allocate(alloc, init), allocate(alloc, then)));
+	}
+}
+
+immutable(NameAndRange) identifierAsNameAndRange(ref immutable ExprAst a) {
+	return immutable NameAndRange(a.range.start, asIdentifier(a.kind).name);
 }
 
 immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
@@ -650,9 +700,7 @@ immutable(ExprAndDedent) parseExprNoLet(Alloc, SymAlloc)(
 	immutable ExpressionToken et,
 	immutable u32 curIndent,
 ) {
-	immutable ExprAndMaybeDedent e = parseExprWorker(alloc, lexer, start, et, ArgCtx(True, True), curIndent);
-	immutable size_t dedents = has(e.dedents) ? force(e.dedents) : takeNewlineOrDedentAmount(alloc, lexer, curIndent);
-	return ExprAndDedent(e.expr, dedents);
+	return addDedent(alloc, lexer, parseExprWorker(alloc, lexer, start, et, ArgCtx(True, True), curIndent), curIndent);
 }
 
 immutable(ExprAndDedent) parseExprNoLet(Alloc, SymAlloc)(
@@ -671,16 +719,38 @@ immutable(ExprAndDedent) parseSingleStatementLine(Alloc, SymAlloc)(
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable ExpressionToken et = takeExpressionToken(alloc, lexer);
-	if (isNameAndRange(et)) {
-		immutable Opt!Bool isThen = tryTake(lexer, " = ")
-			? some(False)
-			: tryTake(lexer, " <- ")
-			? some(True)
-			: none!Bool;
-		if (has(isThen))
-			return parseLetOrThen(alloc, lexer, start, asNameAndRange(et), force(isThen), curIndent);
+	immutable ArgCtx argCtx = immutable ArgCtx(True, True);
+	immutable ExprAndMaybeDedent expr = parseExprBeforeCall(alloc, lexer, start, et, argCtx, curIndent);
+	if (!has(expr.dedents)) {
+		immutable Opt!EqLikeKind kind = tryTakeEqLikeKind(lexer);
+		if (has(kind))
+			return parseLetOrThen!(Alloc, SymAlloc)(alloc, lexer, start, expr.expr, force(kind), curIndent);
 	}
-	return parseExprNoLet(alloc, lexer, start, et, curIndent);
+	return addDedent(
+		alloc,
+		lexer,
+		has(expr.dedents) ? expr : parseCalls(alloc, lexer, start, expr, True, curIndent), curIndent);
+}
+
+immutable(ExprAndDedent) addDedent(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable ExprAndMaybeDedent e,
+	immutable u32 curIndent,
+) {
+	return immutable ExprAndDedent(
+		e.expr,
+		has(e.dedents) ? force(e.dedents) : takeNewlineOrDedentAmount(alloc, lexer, curIndent));
+}
+
+immutable(Opt!EqLikeKind) tryTakeEqLikeKind(SymAlloc)(ref Lexer!SymAlloc lexer) {
+	return tryTake(lexer, " = ")
+		? some(EqLikeKind.equals)
+		: tryTake(lexer, " := ")
+		? some(EqLikeKind.mutEquals)
+		: tryTake(lexer, " <- ")
+		? some(EqLikeKind.then)
+		: none!EqLikeKind;
 }
 
 // Return value is number of dedents - 1; the number of *extra* dedents

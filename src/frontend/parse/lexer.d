@@ -35,8 +35,9 @@ private enum IndentKind {
 }
 
 struct Lexer(SymAlloc) {
-	private:
+	//TODO:PRIVATE
 	Ptr!(AllSymbols!SymAlloc) allSymbols;
+	private:
 	ArrBuilder!ParseDiagnostic diags;
 	immutable CStr sourceBegin;
 	CStr ptr;

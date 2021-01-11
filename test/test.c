@@ -1961,7 +1961,7 @@ char constantarr_0_676[19];
 char constantarr_0_677[27];
 char constantarr_0_678[13];
 char constantarr_0_679[30];
-char constantarr_0_680[27];
+char constantarr_0_680[34];
 char constantarr_0_681[41];
 char constantarr_0_682[9];
 char constantarr_0_683[8];
@@ -2064,7 +2064,7 @@ char constantarr_0_779[19];
 char constantarr_0_780[27];
 char constantarr_0_781[17];
 char constantarr_0_782[8];
-char constantarr_0_783[10];
+char constantarr_0_783[17];
 char constantarr_0_784[19];
 char constantarr_0_785[5];
 char constantarr_0_786[15];
@@ -2957,7 +2957,7 @@ char constantarr_0_676[19] = "index-of<arr<char>>";
 char constantarr_0_677[27] = "index-of<arr<char>>.lambda0";
 char constantarr_0_678[13] = "set-value<?t>";
 char constantarr_0_679[30] = "subscript<opt<arr<arr<char>>>>";
-char constantarr_0_680[27] = "set-at<opt<arr<arr<char>>>>";
+char constantarr_0_680[34] = "set-subscript<opt<arr<arr<char>>>>";
 char constantarr_0_681[41] = "parse-cmd-line-args<test-options>.lambda0";
 char constantarr_0_682[9] = "get<bool>";
 char constantarr_0_683[8] = "some<?t>";
@@ -3060,7 +3060,7 @@ char constantarr_0_779[19] = "copy-to-mut-arr<?t>";
 char constantarr_0_780[27] = "copy-to-mut-arr<?t>.lambda0";
 char constantarr_0_781[17] = "sort-in-place<?t>";
 char constantarr_0_782[8] = "swap<?t>";
-char constantarr_0_783[10] = "set-at<?t>";
+char constantarr_0_783[17] = "set-subscript<?t>";
 char constantarr_0_784[19] = "partition-recur<?t>";
 char constantarr_0_785[5] = "<<?t>";
 char constantarr_0_786[15] = "slice-after<?t>";
@@ -3725,7 +3725,7 @@ struct void_ set_0(struct cell_3* c, uint8_t v);
 struct opt_10 subscript_20(struct ctx* ctx, struct mut_list_3* a, uint64_t index);
 struct opt_10 noctx_at_7(struct mut_list_3* a, uint64_t index);
 struct opt_10* data_7(struct mut_list_3* a);
-struct void_ set_at_0(struct ctx* ctx, struct mut_list_3* a, uint64_t index, struct opt_10 value);
+struct void_ set_subscript_0(struct ctx* ctx, struct mut_list_3* a, uint64_t index, struct opt_10 value);
 struct void_ noctx_set_at_1(struct mut_list_3* a, uint64_t index, struct opt_10 value);
 struct void_ parse_cmd_line_args__lambda0(struct ctx* ctx, struct parse_cmd_line_args__lambda0* _closure, struct arr_0 key, struct arr_1 value);
 uint8_t get_2(struct cell_3* c);
@@ -3836,7 +3836,7 @@ struct arr_0 copy_to_mut_arr__lambda0(struct ctx* ctx, struct copy_to_mut_arr__l
 struct void_ sort_in_place(struct ctx* ctx, struct mut_arr_1 a);
 struct void_ swap_2(struct ctx* ctx, struct mut_arr_1 a, uint64_t x, uint64_t y);
 struct arr_0 subscript_28(struct ctx* ctx, struct mut_arr_1 a, uint64_t index);
-struct void_ set_at_1(struct ctx* ctx, struct mut_arr_1 a, uint64_t index, struct arr_0 value);
+struct void_ set_subscript_1(struct ctx* ctx, struct mut_arr_1 a, uint64_t index, struct arr_0 value);
 struct void_ noctx_set_at_2(struct mut_arr_1 a, uint64_t index, struct arr_0 value);
 uint64_t partition_recur(struct ctx* ctx, struct mut_arr_1 a, struct arr_0 pivot, uint64_t l, uint64_t r);
 uint8_t _op_less_2(struct arr_0 a, struct arr_0 b);
@@ -3889,7 +3889,7 @@ struct opt_13 pop(struct ctx* ctx, struct mut_list_4* a);
 uint8_t empty__q_11(struct mut_list_4* a);
 struct failure* subscript_32(struct ctx* ctx, struct mut_list_4* a, uint64_t index);
 struct failure* noctx_at_10(struct mut_list_4* a, uint64_t index);
-struct void_ set_at_2(struct ctx* ctx, struct mut_list_4* a, uint64_t index, struct failure* value);
+struct void_ set_subscript_2(struct ctx* ctx, struct mut_list_4* a, uint64_t index, struct failure* value);
 struct void_ noctx_set_at_3(struct mut_list_4* a, uint64_t index, struct failure* value);
 struct void_ flat_map_with_max_size__lambda0(struct ctx* ctx, struct flat_map_with_max_size__lambda0* _closure, struct arr_0 x);
 struct arr_7 move_to_arr_3(struct mut_list_4* a);
@@ -6158,7 +6158,7 @@ uint8_t* get_fun_ptr_73(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) data_7;
 		}
 		case 452: {
-			return (uint8_t*) set_at_0;
+			return (uint8_t*) set_subscript_0;
 		}
 		case 453: {
 			return (uint8_t*) noctx_set_at_1;
@@ -6491,7 +6491,7 @@ uint8_t* get_fun_ptr_73(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) subscript_28;
 		}
 		case 563: {
-			return (uint8_t*) set_at_1;
+			return (uint8_t*) set_subscript_1;
 		}
 		case 564: {
 			return (uint8_t*) noctx_set_at_2;
@@ -6650,7 +6650,7 @@ uint8_t* get_fun_ptr_73(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) noctx_at_10;
 		}
 		case 616: {
-			return (uint8_t*) set_at_2;
+			return (uint8_t*) set_subscript_2;
 		}
 		case 617: {
 			return (uint8_t*) noctx_set_at_3;
@@ -8615,7 +8615,7 @@ struct arr_0 get_fun_name_74(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {8, constantarr_0_278};
 		}
 		case 452: {
-			return (struct arr_0) {27, constantarr_0_680};
+			return (struct arr_0) {34, constantarr_0_680};
 		}
 		case 453: {
 			return (struct arr_0) {16, constantarr_0_548};
@@ -8948,7 +8948,7 @@ struct arr_0 get_fun_name_74(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {13, constantarr_0_436};
 		}
 		case 563: {
-			return (struct arr_0) {10, constantarr_0_783};
+			return (struct arr_0) {17, constantarr_0_783};
 		}
 		case 564: {
 			return (struct arr_0) {16, constantarr_0_548};
@@ -9107,7 +9107,7 @@ struct arr_0 get_fun_name_74(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {12, constantarr_0_277};
 		}
 		case 616: {
-			return (struct arr_0) {10, constantarr_0_783};
+			return (struct arr_0) {17, constantarr_0_783};
 		}
 		case 617: {
 			return (struct arr_0) {16, constantarr_0_548};
@@ -13500,8 +13500,8 @@ struct opt_10 noctx_at_7(struct mut_list_3* a, uint64_t index) {
 struct opt_10* data_7(struct mut_list_3* a) {
 	return data_6(a->backing);
 }
-/* set-at<opt<arr<arr<char>>>> void(a mut-list<opt<arr<arr<char>>>>, index nat, value opt<arr<arr<char>>>) */
-struct void_ set_at_0(struct ctx* ctx, struct mut_list_3* a, uint64_t index, struct opt_10 value) {
+/* set-subscript<opt<arr<arr<char>>>> void(a mut-list<opt<arr<arr<char>>>>, index nat, value opt<arr<arr<char>>>) */
+struct void_ set_subscript_0(struct ctx* ctx, struct mut_list_3* a, uint64_t index, struct opt_10 value) {
 	uint8_t _0 = _op_less_0(index, a->size);
 	assert_0(ctx, _0);
 	return noctx_set_at_1(a, index, value);
@@ -13535,7 +13535,7 @@ struct void_ parse_cmd_line_args__lambda0(struct ctx* ctx, struct parse_cmd_line
 			struct opt_10 _3 = subscript_20(ctx, _closure->values, idx1);
 			uint8_t _4 = has__q_3(_3);
 			forbid_0(ctx, _4);
-			return set_at_0(ctx, _closure->values, idx1, (struct opt_10) {1, .as1 = (struct some_10) {value}});
+			return set_subscript_0(ctx, _closure->values, idx1, (struct opt_10) {1, .as1 = (struct some_10) {value}});
 		}
 		default:
 			return (struct void_) {};
@@ -14658,15 +14658,15 @@ struct void_ swap_2(struct ctx* ctx, struct mut_arr_1 a, uint64_t x, uint64_t y)
 	old_x0 = subscript_28(ctx, a, x);
 	
 	struct arr_0 _0 = subscript_28(ctx, a, y);
-	set_at_1(ctx, a, x, _0);
-	return set_at_1(ctx, a, y, old_x0);
+	set_subscript_1(ctx, a, x, _0);
+	return set_subscript_1(ctx, a, y, old_x0);
 }
 /* subscript<?t> arr<char>(a mut-arr<arr<char>>, index nat) */
 struct arr_0 subscript_28(struct ctx* ctx, struct mut_arr_1 a, uint64_t index) {
 	return subscript_0(ctx, a.arr, index);
 }
-/* set-at<?t> void(a mut-arr<arr<char>>, index nat, value arr<char>) */
-struct void_ set_at_1(struct ctx* ctx, struct mut_arr_1 a, uint64_t index, struct arr_0 value) {
+/* set-subscript<?t> void(a mut-arr<arr<char>>, index nat, value arr<char>) */
+struct void_ set_subscript_1(struct ctx* ctx, struct mut_arr_1 a, uint64_t index, struct arr_0 value) {
 	uint64_t _0 = size_2(a);
 	uint8_t _1 = _op_less_0(index, _0);
 	assert_0(ctx, _1);
@@ -15145,7 +15145,7 @@ struct opt_13 pop(struct ctx* ctx, struct mut_list_4* a) {
 		struct failure* res1;
 		res1 = subscript_32(ctx, a, new_size0);
 		
-		set_at_2(ctx, a, new_size0, NULL);
+		set_subscript_2(ctx, a, new_size0, NULL);
 		a->size = new_size0;
 		return (struct opt_13) {1, .as1 = (struct some_13) {res1}};
 	}
@@ -15167,8 +15167,8 @@ struct failure* noctx_at_10(struct mut_list_4* a, uint64_t index) {
 	struct failure** _1 = data_9(a);
 	return *(_1 + index);
 }
-/* set-at<?t> void(a mut-list<failure>, index nat, value failure) */
-struct void_ set_at_2(struct ctx* ctx, struct mut_list_4* a, uint64_t index, struct failure* value) {
+/* set-subscript<?t> void(a mut-list<failure>, index nat, value failure) */
+struct void_ set_subscript_2(struct ctx* ctx, struct mut_list_4* a, uint64_t index, struct failure* value) {
 	uint8_t _0 = _op_less_0(index, a->size);
 	assert_0(ctx, _0);
 	return noctx_set_at_3(a, index, value);

@@ -2,7 +2,7 @@ import
 	..bootstrap: == < <= > arr data nat void
 	..exceptions: assert
 	..number-utils: / decr incr
-	.mut-arr: cast-immutable copy-to-mut-arr mut-arr set-at size slice-after slice-up-to subscript
+	.mut-arr: cast-immutable copy-to-mut-arr mut-arr size slice-after slice-up-to set-subscript subscript
 
 sort arr ?t(a arr ?t) data<?t> trusted
 	res = a copy-to-mut-arr
@@ -41,5 +41,5 @@ sort-in-place void(a mut-arr ?t) data<?t>
 
 .swap void(a mut-arr ?t, x nat, y nat)
 	old-x = a[x]
-	a set-at: x, a[y]
-	a set-at y, old-x
+	a[x] := a[y]
+	a[y] := old-x

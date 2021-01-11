@@ -25,7 +25,7 @@ import model.model :
 	Type,
 	writeStructInst,
 	writeType;
-import model.parseDiag : matchParseDiag, ParseDiag;
+import model.parseDiag : EqLikeKind, matchParseDiag, ParseDiag;
 import util.bools : Bool, not, True;
 import util.collection.arr : Arr, empty, only, range, size;
 import util.collection.arrUtil : exists, map, sort;
@@ -122,6 +122,20 @@ void writeParseDiag(Alloc, PathAlloc)(
 ) {
 	matchParseDiag!void(
 		d,
+		(ref immutable ParseDiag.CantPrecedeEqLike it) {
+			writeStatic(writer, "this expression can't appear in front of ");
+			final switch (it.kind) {
+				case EqLikeKind.equals:
+					writeStatic(writer, "'='");
+					break;
+				case EqLikeKind.mutEquals:
+					writeStatic(writer, "':='");
+					break;
+				case EqLikeKind.then:
+					writeStatic(writer, "<-");
+					break;
+			}
+		},
 		(ref immutable ParseDiag.CircularImport it) {
 			writeStatic(writer, "circular import from ");
 			writePathAndStorageKind(writer, allPaths, it.from);
