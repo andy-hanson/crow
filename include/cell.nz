@@ -11,7 +11,7 @@ get ?t(c cell ?t) noctx
 	c.value
 
 set void(c cell ?t, v ?t) noctx
-	c set-value v
+	c.value := v
 
 swap ?t(c cell ?t, v ?t) noctx
 	res = c get

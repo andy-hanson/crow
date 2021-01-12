@@ -30,7 +30,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	island-by-val = new-island: gctx, 0, n-threads
 	island = island-by-val ref-of-val
 
-	gctx set-islands arr: 1, island.ptr-to
+	gctx.islands := arr: 1, island.ptr-to
 
 	main-fut = gctx do-main island, argc, argv, main-ptr
 

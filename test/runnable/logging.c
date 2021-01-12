@@ -181,8 +181,8 @@ struct cell_2 {
 	uint8_t* value;
 };
 struct main_0__lambda0;
-struct finally__lambda0;
 struct with_log_handler__lambda0;
+struct finally__lambda0;
 struct with_log_handler__lambda1;
 struct comparison {
 	uint64_t kind;
@@ -480,11 +480,11 @@ struct no_task {
 struct main_0__lambda0 {
 	struct fun1_1 lh;
 };
-struct finally__lambda0 {
-	struct fun_act0_0 after;
-};
 struct with_log_handler__lambda0 {
 	struct fun1_1 original_handler;
+};
+struct finally__lambda0 {
+	struct fun_act0_0 after;
 };
 struct with_log_handler__lambda1 {
 	struct fun1_1 handler;
@@ -717,8 +717,8 @@ _Static_assert(sizeof(struct cell_1) == 16, "");
 _Static_assert(sizeof(struct no_task) == 24, "");
 _Static_assert(sizeof(struct cell_2) == 8, "");
 _Static_assert(sizeof(struct main_0__lambda0) == 16, "");
-_Static_assert(sizeof(struct finally__lambda0) == 16, "");
 _Static_assert(sizeof(struct with_log_handler__lambda0) == 16, "");
+_Static_assert(sizeof(struct finally__lambda0) == 16, "");
 _Static_assert(sizeof(struct with_log_handler__lambda1) == 32, "");
 _Static_assert(sizeof(struct comparison) == 8, "");
 _Static_assert(sizeof(struct fut_state_0) == 40, "");
@@ -1277,16 +1277,17 @@ char constantarr_0_523[6];
 char constantarr_0_524[22];
 char constantarr_0_525[12];
 char constantarr_0_526[22];
-char constantarr_0_527[11];
-char constantarr_0_528[19];
-char constantarr_0_529[15];
-char constantarr_0_530[30];
-char constantarr_0_531[30];
-char constantarr_0_532[12];
+char constantarr_0_527[18];
+char constantarr_0_528[15];
+char constantarr_0_529[30];
+char constantarr_0_530[11];
+char constantarr_0_531[19];
+char constantarr_0_532[30];
 char constantarr_0_533[12];
 char constantarr_0_534[12];
 char constantarr_0_535[12];
-char constantarr_0_536[15];
+char constantarr_0_536[12];
+char constantarr_0_537[15];
 char constantarr_0_0[20] = "uncaught exception: ";
 char constantarr_0_1[1] = "\n";
 char constantarr_0_2[17] = "<<empty message>>";
@@ -1814,16 +1815,17 @@ char constantarr_0_523[6] = "logged";
 char constantarr_0_524[22] = "as<fun1<void, logged>>";
 char constantarr_0_525[12] = "main.lambda0";
 char constantarr_0_526[22] = "with-log-handler<void>";
-char constantarr_0_527[11] = "finally<?t>";
-char constantarr_0_528[19] = "finally<?t>.lambda0";
-char constantarr_0_529[15] = "set-log-handler";
-char constantarr_0_530[30] = "with-log-handler<void>.lambda0";
-char constantarr_0_531[30] = "with-log-handler<void>.lambda1";
-char constantarr_0_532[12] = "main.lambda1";
-char constantarr_0_533[12] = "drop<logged>";
-char constantarr_0_534[12] = "main.lambda2";
-char constantarr_0_535[12] = "main.lambda3";
-char constantarr_0_536[15] = "resolved<int32>";
+char constantarr_0_527[18] = "as<fun-act0<void>>";
+char constantarr_0_528[15] = "set-log-handler";
+char constantarr_0_529[30] = "with-log-handler<void>.lambda0";
+char constantarr_0_530[11] = "finally<?t>";
+char constantarr_0_531[19] = "finally<?t>.lambda0";
+char constantarr_0_532[30] = "with-log-handler<void>.lambda1";
+char constantarr_0_533[12] = "main.lambda1";
+char constantarr_0_534[12] = "drop<logged>";
+char constantarr_0_535[12] = "main.lambda2";
+char constantarr_0_536[12] = "main.lambda3";
+char constantarr_0_537[15] = "resolved<int32>";
 uint8_t mark(struct mark_ctx* ctx, uint8_t* ptr_any, uint64_t size_bytes);
 uint64_t words_of_bytes(uint64_t size_bytes);
 uint64_t round_up_to_multiple_of_8(uint64_t n);
@@ -2173,10 +2175,10 @@ struct fun1_1 get_log_handler(struct ctx* ctx);
 struct log_ctx* get_log_ctx(struct ctx* ctx);
 struct void_ main_0__lambda0(struct ctx* ctx, struct main_0__lambda0* _closure, struct logged* logged);
 struct void_ with_log_handler(struct ctx* ctx, struct fun1_1 handler, struct fun_act0_0 cb);
-struct void_ finally(struct ctx* ctx, struct fun_act0_0 after, struct fun_act0_0 try);
-struct void_ finally__lambda0(struct ctx* ctx, struct finally__lambda0* _closure, struct exception err);
 struct void_ set_log_handler(struct ctx* ctx, struct fun1_1 handler);
 struct void_ with_log_handler__lambda0(struct ctx* ctx, struct with_log_handler__lambda0* _closure);
+struct void_ finally(struct ctx* ctx, struct fun_act0_0 after, struct fun_act0_0 try);
+struct void_ finally__lambda0(struct ctx* ctx, struct finally__lambda0* _closure, struct exception err);
 struct void_ with_log_handler__lambda1(struct ctx* ctx, struct with_log_handler__lambda1* _closure);
 struct void_ main_0__lambda1(struct ctx* ctx, struct void_ _closure);
 struct void_ drop_2(struct logged* _p0);
@@ -3942,16 +3944,16 @@ uint8_t* get_fun_ptr_73(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) with_log_handler;
 		}
 		case 349: {
-			return (uint8_t*) finally;
-		}
-		case 350: {
-			return (uint8_t*) finally__lambda0;
-		}
-		case 351: {
 			return (uint8_t*) set_log_handler;
 		}
-		case 352: {
+		case 350: {
 			return (uint8_t*) with_log_handler__lambda0;
+		}
+		case 351: {
+			return (uint8_t*) finally;
+		}
+		case 352: {
+			return (uint8_t*) finally__lambda0;
 		}
 		case 353: {
 			return (uint8_t*) with_log_handler__lambda1;
@@ -5025,34 +5027,34 @@ struct arr_0 get_fun_name_74(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {22, constantarr_0_526};
 		}
 		case 349: {
-			return (struct arr_0) {11, constantarr_0_527};
+			return (struct arr_0) {15, constantarr_0_528};
 		}
 		case 350: {
-			return (struct arr_0) {19, constantarr_0_528};
+			return (struct arr_0) {30, constantarr_0_529};
 		}
 		case 351: {
-			return (struct arr_0) {15, constantarr_0_529};
+			return (struct arr_0) {11, constantarr_0_530};
 		}
 		case 352: {
-			return (struct arr_0) {30, constantarr_0_530};
+			return (struct arr_0) {19, constantarr_0_531};
 		}
 		case 353: {
-			return (struct arr_0) {30, constantarr_0_531};
+			return (struct arr_0) {30, constantarr_0_532};
 		}
 		case 354: {
-			return (struct arr_0) {12, constantarr_0_532};
-		}
-		case 355: {
 			return (struct arr_0) {12, constantarr_0_533};
 		}
-		case 356: {
+		case 355: {
 			return (struct arr_0) {12, constantarr_0_534};
 		}
-		case 357: {
+		case 356: {
 			return (struct arr_0) {12, constantarr_0_535};
 		}
+		case 357: {
+			return (struct arr_0) {12, constantarr_0_536};
+		}
 		case 358: {
-			return (struct arr_0) {15, constantarr_0_536};
+			return (struct arr_0) {15, constantarr_0_537};
 		}
 		default:
 			return (struct arr_0) {0, NULL};
@@ -7891,17 +7893,29 @@ struct void_ with_log_handler(struct ctx* ctx, struct fun1_1 handler, struct fun
 	struct fun1_1 original_handler0;
 	original_handler0 = get_log_handler(ctx);
 	
+	struct fun_act0_0 reset1;
 	struct with_log_handler__lambda0* temp0;
 	uint8_t* _0 = alloc(ctx, sizeof(struct with_log_handler__lambda0));
 	temp0 = (struct with_log_handler__lambda0*) _0;
 	
 	*temp0 = (struct with_log_handler__lambda0) {original_handler0};
+	reset1 = (struct fun_act0_0) {4, .as4 = temp0};
+	
 	struct with_log_handler__lambda1* temp1;
 	uint8_t* _1 = alloc(ctx, sizeof(struct with_log_handler__lambda1));
 	temp1 = (struct with_log_handler__lambda1*) _1;
 	
 	*temp1 = (struct with_log_handler__lambda1) {handler, cb};
-	return finally(ctx, (struct fun_act0_0) {4, .as4 = temp0}, (struct fun_act0_0) {5, .as5 = temp1});
+	return finally(ctx, reset1, (struct fun_act0_0) {5, .as5 = temp1});
+}
+/* set-log-handler void(handler fun1<void, logged>) */
+struct void_ set_log_handler(struct ctx* ctx, struct fun1_1 handler) {
+	struct log_ctx* _0 = get_log_ctx(ctx);
+	return (_0->handler = handler, (struct void_) {});
+}
+/* with-log-handler<void>.lambda0 void() */
+struct void_ with_log_handler__lambda0(struct ctx* ctx, struct with_log_handler__lambda0* _closure) {
+	return set_log_handler(ctx, _closure->original_handler);
 }
 /* finally<?t> void(after fun-act0<void>, try fun-act0<void>) */
 struct void_ finally(struct ctx* ctx, struct fun_act0_0 after, struct fun_act0_0 try) {
@@ -7920,15 +7934,6 @@ struct void_ finally(struct ctx* ctx, struct fun_act0_0 after, struct fun_act0_0
 struct void_ finally__lambda0(struct ctx* ctx, struct finally__lambda0* _closure, struct exception err) {
 	subscript_5(ctx, _closure->after);
 	return throw(ctx, err);
-}
-/* set-log-handler void(handler fun1<void, logged>) */
-struct void_ set_log_handler(struct ctx* ctx, struct fun1_1 handler) {
-	struct log_ctx* _0 = get_log_ctx(ctx);
-	return (_0->handler = handler, (struct void_) {});
-}
-/* with-log-handler<void>.lambda0 void() */
-struct void_ with_log_handler__lambda0(struct ctx* ctx, struct with_log_handler__lambda0* _closure) {
-	return set_log_handler(ctx, _closure->original_handler);
 }
 /* with-log-handler<void>.lambda1 void() */
 struct void_ with_log_handler__lambda1(struct ctx* ctx, struct with_log_handler__lambda1* _closure) {

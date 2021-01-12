@@ -69,7 +69,7 @@ new-condition by-val condition() noctx
 
 broadcast void(c condition) noctx trusted
 	c.lk.ref-of-val acquire-lock
-	c set-value: c.value noctx-incr
+	c.value := c.value noctx-incr
 	c.lk.ref-of-val release-lock
 
 last-checked alias
@@ -115,7 +115,7 @@ get-and-increment nat(t thread-safe-counter) noctx trusted
 	l = t.lk.ref-of-val
 	l acquire-lock
 	res = t.value
-	t set-value: t.value noctx-incr
+	t.value := t.value noctx-incr
 	l release-lock
 	res
 
@@ -128,7 +128,7 @@ get-and-decrement nat(t thread-safe-counter) noctx trusted
 	l acquire-lock
 	res = t.value
 	hard-forbid: res == 0
-	t set-value: t.value noctx-decr
+	t.value := t.value noctx-decr
 	l release-lock
 	res
 

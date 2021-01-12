@@ -134,14 +134,14 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 					| invalid content-length
 					todo
 				as some some-content-length
-					state set-content-length some-content-length.value
+					state.content-length := some-content-length value
 					false
 		elif state.url empty?
 			| Expect something like "GET / HTTP/1.1"
 			parts = line split-by-subseq " "
 			assert: parts.size == 3
-			state set-method: parts[0] parse-method
-			state set-url: parts[1]
+			state.method := parts[0] parse-method
+			state.url := parts[1]
 			assert: parts[2] == "HTTP/1.1"
 			forbid: state.url empty?
 			false

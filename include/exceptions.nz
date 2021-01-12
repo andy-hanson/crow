@@ -50,7 +50,7 @@ forbid void(condition bool, message str)
 throw ?t(e exception) trusted
 	exn-ctx = get-exception-ctx
 	hard-forbid: exn-ctx.jmp-buf-ptr null?
-	exn-ctx set-thrown-exception e
+	exn-ctx.thrown-exception := e
 	exn-ctx.jmp-buf-ptr longjmp number-to-throw
 	| Unreachable
 	todo
@@ -77,14 +77,14 @@ catch-with-exception-ctx ?t(ec exception-ctx, try act ?t(), catcher act ?t(excep
 	old-thrown-exception = ec thrown-exception
 	old-jmp-buf = ec jmp-buf-ptr
 	store = jmp-buf-tag: zero, 0, zero
-	ec set-jmp-buf-ptr: store ptr-to
+	ec.jmp-buf-ptr := store ptr-to
 	setjmp-result = ec.jmp-buf-ptr setjmp
 	if setjmp-result == 0
 		| Get here after setting the jump.
 		| If it throws, we'll go to the above branch.
 		res = try[]
-		ec set-jmp-buf-ptr old-jmp-buf
-		ec set-thrown-exception old-thrown-exception
+		ec.jmp-buf-ptr := old-jmp-buf
+		ec.thrown-exception := old-thrown-exception
 		res
 	else
 		| This is what we threw in 'throw'
@@ -92,6 +92,6 @@ catch-with-exception-ctx ?t(ec exception-ctx, try act ?t(), catcher act ?t(excep
 		| Get here if we throw inside of `try`
 		thrown-exception = ec thrown-exception
 		| NOTE: changing thrown-exception back probably isn't really necessary
-		ec set-jmp-buf-ptr old-jmp-buf
-		ec set-thrown-exception old-thrown-exception
+		ec.jmp-buf-ptr := old-jmp-buf
+		ec.thrown-exception := old-thrown-exception
 		catcher[thrown-exception]

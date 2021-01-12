@@ -24,7 +24,7 @@ resolve-or-reject void(f fut ?t, result result<?t, exception>) unsafe
 	as exception
 		todo
 
-	f set-state: match result
+	f.state := match result
 	as ok o
 		fut-state-resolved: o.value
 	as err e

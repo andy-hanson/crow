@@ -1,5 +1,5 @@
 import
-	.bootstrap: as-ref by-val get-ctx log-ctx str subscript void zeroed
+	.bootstrap: as as-ref by-val get-ctx log-ctx str subscript void zeroed
 	.collection.arr: +
 	.exceptions: finally
 	.io.print: print
@@ -43,13 +43,15 @@ get-log-handler log-handler()
 	get-log-ctx.handler
 
 .set-log-handler void(handler log-handler) trusted
-	get-log-ctx set-handler handler
+	get-log-ctx.handler := handler
 
 .get-log-ctx log-ctx() trusted
 	get-ctx.log-ctx.as-ref<log-ctx>
 
 with-log-handler ?t(handler log-handler, cb act ?t())
 	original-handler = get-log-handler
-	finally: {original-handler set-log-handler}, \
-		handler set-log-handler
+	reset = as<act void()>: \
+		log-handler := original-handler
+	finally: reset, \
+		log-handler := handler
 		cb[]

@@ -61,7 +61,7 @@ pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 			if exclusions contains? task.exclusion
 				pop-recur: head, exclusions, cur-time, task.time to-opt-time
 			else
-				a set-head head.next
+				a.head := head.next
 				head.task
 		else
 			no-task: true, task.time some
@@ -106,7 +106,7 @@ body
 				as some
 					first-task-time
 			else
-				prev set-next cur.next
+				prev.next := cur.next
 				exclusions push-capacity-must-be-sufficient task.exclusion
 				task
 		else
@@ -116,28 +116,28 @@ insert-task void(a task-queue, inserted task-queue-node) noctx unsafe
 	size-before = a size
 	match a head
 	as none
-		a set-head inserted.some
+		a.head := inserted.some
 	as some s
 		head = s value
 		if head.task.time <= inserted.task.time
 			insert-recur: head, inserted
 		else
-			inserted set-next head.some
-			a set-head: inserted.some
+			inserted.next := head some
+			a.head := inserted some
 	size-after = a size
 	hard-assert: size-before wrap-add 1 == size-after
 
 .insert-recur void(prev task-queue-node, inserted task-queue-node) noctx
 	match prev next
 	as none
-		prev set-next: inserted.some
+		prev.next := inserted some
 	as some s
 		cur = s value
 		if cur.task.time <= inserted.task.time
 			insert-recur: cur, inserted
 		else
-			inserted set-next cur.some
-			prev set-next: inserted.some
+			inserted.next := cur some
+			prev.next := inserted some
 
 
 .size nat(a task-queue) noctx

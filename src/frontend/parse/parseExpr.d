@@ -52,12 +52,11 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, emptyArrWithSize, only, toArr;
 import util.collection.arrUtil : append, arrLiteral, exists, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : Str, strLiteral;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : getSymFromAlphaIdentifier, shortSymAlphaLiteral, Sym, symEq;
+import util.sym : prependSet, shortSymAlphaLiteral, Sym, symEq;
 import util.types : u32;
 import util.util : todo, unreachable, verify;
 
@@ -172,23 +171,51 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 	immutable ExprAndDedent initAndDedent = parseExprNoLet(alloc, lexer, curIndent);
 	immutable ExprAst init = initAndDedent.expr;
 	if (kind == EqLikeKind.mutEquals) {
-		if (isCall(before.kind)) {
-			immutable CallAst beforeCall = asCall(before.kind);
-			if (beforeCall.style == CallAst.Style.subscript) {
-				immutable Str nameStr = strLiteral("set-subscript");
-				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
-				immutable ExprAst call = immutable ExprAst(
-					range(lexer, start),
-					immutable ExprAstKind(immutable CallAst(
-						CallAst.Style.setSubscript,
-						//TODO:range is wrong..
-						immutable NameAndRange(before.range.start, name),
-						beforeCall.typeArgs,
-						append(alloc, beforeCall.args, init))));
-				return immutable ExprAndDedent(call, initAndDedent.dedents);
-			}
+		struct FromBefore {
+			immutable Sym name;
+			immutable Arr!ExprAst args;
+			immutable ArrWithSize!TypeAst typeArgs;
+			immutable CallAst.Style style;
 		}
-		return todo!(immutable ExprAndDedent)("!");
+		immutable FromBefore fromBefore = () {
+			if (isIdentifier(before.kind))
+				return immutable FromBefore(
+					asIdentifier(before.kind).name,
+					emptyArr!ExprAst,
+					emptyArrWithSize!TypeAst,
+					CallAst.Style.setSingle);
+			else if (isCall(before.kind)) {
+				immutable CallAst beforeCall = asCall(before.kind);
+				immutable CallAst.Style style = () {
+					final switch (beforeCall.style) {
+						case CallAst.Style.dot:
+							return CallAst.Style.setDot;
+						case CallAst.Style.single:
+							return CallAst.Style.setSingle;
+						case CallAst.Style.subscript:
+							return CallAst.Style.setSubscript;
+						case CallAst.Style.infix:
+						case CallAst.Style.prefix:
+						case CallAst.Style.setDot:
+						case CallAst.Style.setSingle:
+						case CallAst.Style.setSubscript:
+							// We did parseExprBeforeCall before this, which can't parse any of these
+							return unreachable!(immutable CallAst.Style)();
+					}
+				}();
+				return immutable FromBefore(beforeCall.funNameName, beforeCall.args, beforeCall.typeArgs, style);
+			} else
+				return todo!(immutable FromBefore)("not settable");
+		}();
+		immutable ExprAst call = immutable ExprAst(
+			range(lexer, start),
+			immutable ExprAstKind(immutable CallAst(
+				fromBefore.style,
+				// TODO: range is wrong..
+				immutable NameAndRange(before.range.start, prependSet(lexer.allSymbols, fromBefore.name)),
+				fromBefore.typeArgs,
+				append(alloc, fromBefore.args, init))));
+		return immutable ExprAndDedent(call, initAndDedent.dedents);
 	} else {
 		immutable ExprAndDedent thenAndDedent = () {
 			if (initAndDedent.dedents != 0) {

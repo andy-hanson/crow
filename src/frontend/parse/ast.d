@@ -123,6 +123,8 @@ struct CallAst {
 		dot, // `a.b`
 		infix, // `a b`, `a b c`, `a b c, d`, etc.
 		prefix, // `a: b`, `a: b, c`, etc.
+		setDot,
+		setSingle,
 		setSubscript,
 		single, // `a<t>` (without the type arg, it would just be an Identifier)
 		subscript, // a[b]
@@ -1080,6 +1082,10 @@ immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {
 			return shortSymAlphaLiteral("infix");
 		case CallAst.Style.prefix:
 			return shortSymAlphaLiteral("prefix");
+		case CallAst.Style.setDot:
+			return shortSymAlphaLiteral("set-dot");
+		case CallAst.Style.setSingle:
+			return shortSymAlphaLiteral("set-single");
 		case CallAst.Style.setSubscript:
 			return shortSymAlphaLiteral("set-at");
 		case CallAst.Style.single:

@@ -87,7 +87,7 @@ new-island by-val island(gctx global-ctx, id island-id, max-threads nat) summon 
 default-exception-handler void(e exception) summon unsafe
 	print-err-no-newline: "uncaught exception: "
 	print-err: e show-exception
-	get-global-ctx set-any-unhandled-exceptions? true
+	get-global-ctx.any-unhandled-exceptions? := true
 
 | TODO: MOVE
 .show-exception str(a exception)
@@ -97,7 +97,7 @@ default-exception-handler void(e exception) summon unsafe
 
 | TODO: move to exceptions.nz?
 set-this-islands-exception-handler void(exception-handler fun void(exception)) summon trusted
-	get-cur-island.gc-root.ref-of-val set-exception-handler exception-handler
+	get-cur-island.gc-root.ref-of-val.exception-handler := exception-handler
 
 add-task void(a island, timestamp timestamp, exclusion exclusion, action act void()) unsafe
 	| Do allocation outside of the lock
@@ -129,7 +129,7 @@ thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 	if gctx shut-down?
 		gctx.lk.ref-of-val acquire-lock
 		| Remove this thread from live threads for good.
-		gctx set-n-live-threads: gctx.n-live-threads noctx-decr
+		gctx.n-live-threads := gctx.n-live-threads noctx-decr
 		assert-islands-are-shut-down: 0, gctx.islands
 		gctx.lk.ref-of-val release-lock
 	else
@@ -143,7 +143,7 @@ thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 		as no-chosen-task n
 			if n.no-tasks-and-last-thread-out?
 				hard-forbid: gctx shut-down?
-				gctx set-shut-down? true
+				gctx.shut-down? := true
 				| Wake up sleeping threads so they can shut down
 				gctx.may-be-work-to-do.ref-of-val broadcast
 			else
@@ -151,7 +151,7 @@ thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 
 			gctx.lk.ref-of-val acquire-lock
 			| We decremented this while holding the lock, increment it again
-			gctx set-n-live-threads: gctx.n-live-threads noctx-incr
+			gctx.n-live-threads := gctx.n-live-threads noctx-incr
 			gctx.lk.ref-of-val release-lock
 
 		| Do another task
@@ -161,7 +161,7 @@ thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 	gc-ctx = island.gc.ref-of-val.get-gc-ctx.as-any-ptr
 	exception-ctx = tls exception-ctx
 	log-ctx = tls.log-ctx
-	log-ctx set-handler island.gc-root.ref-of-val.log-handler
+	log-ctx.handler := island.gc-root.ref-of-val.log-handler
 	ctx: gctx.as-any-ptr, island.id, exclusion, gc-ctx, exception-ctx.as-any-ptr, log-ctx.as-any-ptr
 
 .return-ctx void(c ctx) noctx unsafe
@@ -185,7 +185,7 @@ thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 
 	| We incremented this if choosing the task.
 	island.tasks-lock.ref-of-val acquire-lock
-	island set-n-threads-running island.n-threads-running.noctx-decr
+	island.n-threads-running := island.n-threads-running.noctx-decr
 	island.tasks-lock.ref-of-val release-lock
 
 .do-a-gc record
@@ -223,7 +223,7 @@ thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 	as chosen-task c
 		c
 	as no-chosen-task n
-		gctx set-n-live-threads gctx.n-live-threads.noctx-decr
+		gctx.n-live-threads := gctx.n-live-threads.noctx-decr
 		no-task-and-last-thread-out? = n.no-tasks-and-last-thread-out? and: gctx.n-live-threads == 0
 		| Did not find a task to do.
 		| (Tasks may have been added concurrently;
@@ -304,7 +304,7 @@ body
 			n
 
 	if res.is-no-task? not
-		island set-n-threads-running island.n-threads-running.noctx-incr
+		island.n-threads-running := island.n-threads-running noctx-incr
 
 	island.tasks-lock.ref-of-val release-lock
 

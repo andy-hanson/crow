@@ -334,8 +334,8 @@ program(
 		struct(name: pop-task-result, body: union([type(false, task), type(false, no-task)]))
 		struct(name: cell, mut?: true, ptr?: true, body: record([field(value, true, type(false, ptr))]))
 		struct(name: lambda(main, 0), body: record([field(lh, false, type(false, fun1))]))
-		struct(name: lambda(finally, 0), body: record([field(after, false, type(false, fun-act0))]))
 		struct(name: lambda(with-log-handler, 0), body: record([field(original-handler, false, type(false, fun1))]))
+		struct(name: lambda(finally, 0), body: record([field(after, false, type(false, fun-act0))]))
 		struct(
 			name: lambda(with-log-handler, 1)
 			body: record([field(handler, false, type(false, fun1)), field(cb, false, type(false, fun-act0))]))]
@@ -5191,11 +5191,31 @@ program(
 				let(
 					original-handler
 					call(get-log-handler, [])
-					call(
-						finally
-						[
-							lambda(4, alloc(record([local-ref(original-handler)])))
-							lambda(5, alloc(record([param-ref(handler), param-ref(cb)])))]))))
+					let(
+						reset
+						call(as, [lambda(4, alloc(record([local-ref(original-handler)])))])
+						call(finally, [local-ref(reset), lambda(5, alloc(record([param-ref(handler), param-ref(cb)])))])))))
+		fun(
+			false
+			as
+			type(false, fun-act0)
+			none
+			[param(value, type(false, fun-act0))]
+			builtin([type(false, fun-act0)]))
+		fun(
+			true
+			set-log-handler
+			type(false, void)
+			none
+			[param(handler, type(false, fun1))]
+			expr-body(call(set-handler, [call(get-log-ctx, []), param-ref(handler)])))
+		fun(
+			true
+			lambda(with-log-handler, 0)
+			type(false, void)
+			some(param("<<closure>>", type(true, lambda(with-log-handler, 0))))
+			[]
+			expr-body(call(set-log-handler, [get-field(param-ref("<<closure>>"), original-handler)])))
 		fun(
 			true
 			finally
@@ -5214,20 +5234,6 @@ program(
 			some(param("<<closure>>", type(true, lambda(finally, 0))))
 			[param(err, type(false, exception))]
 			expr-body(seq(call(subscript, [get-field(param-ref("<<closure>>"), after)]), call(throw, [param-ref(err)]))))
-		fun(
-			true
-			set-log-handler
-			type(false, void)
-			none
-			[param(handler, type(false, fun1))]
-			expr-body(call(set-handler, [call(get-log-ctx, []), param-ref(handler)])))
-		fun(
-			true
-			lambda(with-log-handler, 0)
-			type(false, void)
-			some(param("<<closure>>", type(true, lambda(with-log-handler, 0))))
-			[]
-			expr-body(call(set-log-handler, [get-field(param-ref("<<closure>>"), original-handler)])))
 		fun(
 			true
 			lambda(with-log-handler, 1)

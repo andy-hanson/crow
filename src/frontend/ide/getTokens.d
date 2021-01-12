@@ -264,12 +264,14 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			}
 			final switch (it.style) {
 				case CallAst.Style.dot:
+				case CallAst.Style.setDot:
 				case CallAst.Style.infix:
 					addExprTokens(alloc, tokens, first(it.args));
 					addName();
 					addExprsTokens(alloc, tokens, tail(it.args));
 					break;
 				case CallAst.Style.prefix:
+				case CallAst.Style.setSingle:
 				case CallAst.Style.single:
 					addName();
 					addExprsTokens(alloc, tokens, it.args);

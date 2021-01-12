@@ -408,7 +408,7 @@ struct ExpressionToken {
 	return a.literal_;
 }
 
-immutable(Bool) isNameAndRange(ref immutable ExpressionToken a) {
+private immutable(Bool) isNameAndRange(ref immutable ExpressionToken a) {
 	return Bool(a.kind_ == ExpressionToken.Kind.nameAndRange);
 }
 

@@ -49,10 +49,10 @@ join fut ?out(a fut ?in0, b fut ?in1, fun ref ?out(?in0, ?in1)) trusted send<?ou
 	res = new-unresolved-fut<?out>
 	joiner = joiner<?out, ?in0, ?in1>: res, fun, none, none, new-thread-safe-counter: 2
 	a then-void \value
-		joiner set-arg0: value some
+		joiner.arg0 := value some
 		joiner decr-joiner
 	b then-void \value
-		joiner set-arg1: value some
+		joiner.arg1 := value some
 		joiner decr-joiner
 	res
 
@@ -62,7 +62,7 @@ then-void void(f fut ?t, cb act void(result<?t, exception>)) unsafe
 	match f state
 	as fut-state-callbacks cbs
 		| create a new callback
-		f set-state fut-state-callbacks<?t>: some: fut-callback-node<?t>: cb, cbs.head
+		f.state := fut-state-callbacks<?t>: some: fut-callback-node<?t>: cb, cbs.head
 	as fut-state-resolved r
 		cb[r.value ok]
 	as exception e

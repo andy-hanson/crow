@@ -80,7 +80,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 
 		tcp-server: \
 			print: "STOP CALLED"
-			state set-should-stop? true
+			state.should-stop? := true
 			done
 
 .tcp-server-state record mut

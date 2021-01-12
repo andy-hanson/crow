@@ -81,9 +81,9 @@ set-hard-limit void(gc gc, size-words nat) noctx unsafe
 	hard-assert: size-words <= gc.size-words
 	cur-index = gc.mark-cur - gc.mark-begin
 	hard-assert: cur-index < size-words
-	gc set-size-words size-words
-	gc set-mark-end: gc.mark-begin + size-words
-	gc set-data-end: gc.data-begin + size-words
+	gc.size-words := size-words
+	gc.mark-end := gc.mark-begin + size-words
+	gc.data-end := gc.data-begin + size-words
 	gc validate-gc
 
 | WARN: this locks up the GC for a long time
@@ -117,13 +117,13 @@ new-gc by-val gc() noctx unsafe
 
 run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	hard-assert: gc needs-gc?
-	gc set-needs-gc? false
-	gc set-gc-count: gc.gc-count wrap-incr
+	gc.needs-gc? := false
+	gc.gc-count := gc.gc-count wrap-incr
 	gc.mark-begin.as-any-ptr memset 0, gc.size-words
 	mark-ctx = as<by-val<mark-ctx>>: mark-ctx: gc.size-words, gc.mark-begin, gc.data-begin
 	mark-ctx.ref-of-val mark-visit gc-root
-	gc set-mark-cur gc.mark-begin
-	gc set-data-cur gc.data-begin
+	gc.mark-cur := gc.mark-begin
+	gc.data-cur := gc.data-begin
 	clear-free-mem: gc.mark-begin, gc.mark-end, gc.data-begin
 	gc validate-gc
 
@@ -140,7 +140,7 @@ gc-ctx record mut
 	next-ctx mut opt gc-ctx
 
 force-needs-gc void(gc gc) unsafe
-	gc set-needs-gc? true
+	gc.needs-gc? := true
 
 get-gc-ctx gc-ctx(gc gc) noctx unsafe
 	gc.lk.ref-of-val acquire-lock
@@ -150,13 +150,13 @@ get-gc-ctx gc-ctx(gc gc) noctx unsafe
 		| This is fine as 'gc' is kept alive anyway.
 		| TODO: `size-of<by-val<gc-ctx>>.malloc` should be legal
 		c = (size-of<by-val<gc-ctx>> malloc) as-ref<gc-ctx>
-		c set-gc gc
-		c set-next-ctx none
+		c.gc := gc
+		c.next-ctx := none
 		c
 	as some s
 		c = s.value
-		gc set-context-head: c next-ctx
-		c set-next-ctx none
+		gc.context-head := c next-ctx
+		c.next-ctx := none
 		c
 	gc.lk.ref-of-val release-lock
 	res
@@ -164,8 +164,8 @@ get-gc-ctx gc-ctx(gc gc) noctx unsafe
 return-gc-ctx void(gc-ctx gc-ctx) noctx unsafe
 	gc = gc-ctx.gc
 	gc.lk.ref-of-val acquire-lock
-	gc-ctx set-next-ctx: gc context-head
-	gc set-context-head: gc-ctx some
+	gc-ctx.next-ctx := gc context-head
+	gc.context-head := gc-ctx some
 	gc.lk.ref-of-val release-lock
 
 get-gc-ctx gc-ctx() unsafe
@@ -198,12 +198,12 @@ try-gc-alloc opt any-ptr(gc gc, size-bytes nat) noctx trusted
 	next = cur + size-words
 	if next ptr-less? gc.data-end
 		if gc.mark-cur range-free? (gc.mark-cur + size-words)
-			gc set-mark-cur: gc.mark-cur + size-words
-			gc set-data-cur next
+			gc.mark-cur := gc.mark-cur + size-words
+			gc.data-cur := next
 			cur.ptr-cast<byte, nat64> some<ptr<byte>>
 		else
-			gc set-mark-cur: gc.mark-cur incr
-			gc set-data-cur: gc.data-cur incr
+			gc.mark-cur := gc.mark-cur incr
+			gc.data-cur := gc.data-cur incr
 			gc try-gc-alloc size-bytes
 	else
 		none
