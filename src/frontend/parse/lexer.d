@@ -20,11 +20,8 @@ import util.sym :
 	isAlphaIdentifierStart,
 	isAlphaIdentifierContinue,
 	isDigit,
-	isOperatorChar,
 	shortSymAlphaLiteralValue,
-	shortSymOperatorLiteral,
-	Sym,
-	symEq;
+	Sym;
 import util.types : i32, i64, u32, u64, safeI32FromU32, safeSizeTToU32;
 import util.util : todo, unreachable, verify;
 
@@ -342,8 +339,12 @@ struct SymAndIsReserved {
 immutable(SymAndIsReserved) takeNameAllowReserved(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable StrAndIsOperator s = takeNameAsTempStr(alloc, lexer);
 	if (s.isOperator) {
-		immutable Sym op = getSymFromOperator(lexer.allSymbols.deref, s.str);
-		return immutable SymAndIsReserved(immutable NameAndRange(s.start, op), op.symEq(shortSymOperatorLiteral("=")));
+		immutable Opt!Sym op = getSymFromOperator(lexer.allSymbols.deref(), s.str);
+		if (has(op))
+			return immutable SymAndIsReserved(immutable NameAndRange(s.start, force(op)), False);
+		else
+			// diagnostic: invalid operator
+			return todo!(immutable SymAndIsReserved)("!");
 	} else {
 		immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, s.str);
 		return immutable SymAndIsReserved(immutable NameAndRange(s.start, name), name.isReservedName);
@@ -624,11 +625,31 @@ immutable(u64) charToNat(immutable char c) {
 	return arrOfRange(begin, lexer.ptr);
 }
 
+// NOTE: this will allow taking invalid operators, then we'll issue a diagnostic for them
+immutable(Bool) isOperatorChar(immutable char c) {
+	switch (c) {
+		case '+':
+		case '-':
+		case '*':
+		case '/':
+		case '<':
+		case '>':
+		case '=':
+		case '!':
+			return True;
+		default:
+			return False;
+	}
+}
+
 immutable(ExpressionToken) takeOperator(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
 	immutable Str name = takeOperatorRest(lexer, begin);
-	return immutable ExpressionToken(
-		immutable NameAndRange(posOfPtr(lexer, begin),
-		getSymFromOperator(lexer.allSymbols, name)));
+	immutable Opt!Sym op = getSymFromOperator(lexer.allSymbols, name);
+	if (has(op))
+		return immutable ExpressionToken(immutable NameAndRange(posOfPtr(lexer, begin), force(op)));
+	else
+		// TODO: diagnostic: invalid operator
+		return todo!(immutable ExpressionToken)("!");
 }
 
 immutable(size_t) toHexDigit(immutable char c) {

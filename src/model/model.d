@@ -21,11 +21,12 @@ import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, rangeOfStartAndName, RangeWithinFile;
 import util.sym :
 	compareSym,
+	Operator,
 	shortSymAlphaLiteral,
-	shortSymOperatorLiteral,
 	Sym,
 	symEq,
 	symEqLongAlphaLiteral,
+	symForOperator,
 	symSize,
 	writeSym;
 import util.types : u8, safeSizeTToU32;
@@ -788,7 +789,7 @@ immutable(Bool) isCallWithCtxFun(ref immutable FunInst a) {
 
 immutable(Bool) isCompareFun(ref immutable FunInst a) {
 	// TODO: only do this for the '<=>' in bootstrap
-	return symEq(name(decl(a).deref()), shortSymOperatorLiteral("<=>"));
+	return symEq(name(decl(a).deref()), symForOperator(Operator.compare));
 }
 
 immutable(Bool) isMarkVisitFun(ref immutable FunInst a) {

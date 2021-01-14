@@ -13,7 +13,7 @@ import model.lowModel :
 	PrimitiveType;
 import util.bools : Bool, False, True;
 import util.collection.arr : size;
-import util.sym : shortSymAlphaLiteralValue, shortSymOperatorLiteralValue, Sym, symEqLongAlphaLiteral;
+import util.sym : Operator, operatorSymValue, shortSymAlphaLiteralValue, Sym, symEqLongAlphaLiteral;
 import util.util : todo;
 
 struct BuiltinKind {
@@ -140,19 +140,19 @@ immutable(BuiltinKind) getBuiltinKind(
 	}
 
 	switch (name.value) {
-		case shortSymOperatorLiteralValue("+"):
+		case operatorSymValue(Operator.plus):
 			return binary(isFloat64(rt)
 					? LowExprKind.SpecialBinary.Kind.addFloat64
 					: isPtrRaw(rt)
 					? LowExprKind.SpecialBinary.Kind.addPtr
 					: failBinary());
-		case shortSymOperatorLiteralValue("-"):
+		case operatorSymValue(Operator.minus):
 			return binary(isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.subFloat64
 				: isPtrRaw(p0) && isNat64(p1)
 				? LowExprKind.SpecialBinary.Kind.subPtrNat
 				: failBinary());
-		case shortSymOperatorLiteralValue("*"):
+		case operatorSymValue(Operator.times):
 			return binary(isFloat64(rt) ? LowExprKind.SpecialBinary.Kind.mulFloat64 : failBinary());
 		case shortSymAlphaLiteralValue("?"):
 			return trinary(LowExprKind.SpecialTrinary.Kind.if_);

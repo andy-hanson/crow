@@ -5,7 +5,18 @@ module test.testSym;
 import test.testUtil : Test;
 import util.collection.str : Str, strLiteral, strEqLiteral;
 import util.opt : force, has, Opt;
-import util.sym : AllSymbols, isLongSym, prependSet, strOfSym, Sym, symEq, tryGetSymFromStr;
+import util.sym :
+	AllSymbols,
+	isShortAlphaSym,
+	isLongAlphaSym,
+	Operator,
+	operatorForSym,
+	prependSet,
+	strOfSym,
+	Sym,
+	symEq,
+	symForOperator,
+	tryGetSymFromStr;
 import util.util : verify;
 
 void testSym(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
@@ -20,36 +31,37 @@ void testSym(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	}
 
 	immutable Sym nat8 = getSym("nat8");
-	verify(!isLongSym(nat8));
+	verify(isShortAlphaSym(nat8));
 
 	immutable Str invalidStr = strLiteral("abc|def");
 	immutable Opt!Sym invalid = tryGetSymFromStr(allSymbols, invalidStr);
 	verify(!has(invalid));
 
 	immutable Sym shortAlpha = getSym("abc-def-gh9?");
-	verify(!isLongSym(shortAlpha));
+	verify(isShortAlphaSym(shortAlpha));
 
-	immutable Sym shortOperator = getSym("+-*/<>=!+-*/<>=");
-	verify(!isLongSym(shortOperator));
-	verify(!symEq(shortAlpha, shortOperator));
+	immutable Sym operator = getSym("+");
+	verify(operatorForSym(operator) == Operator.plus);
+	verify(symEq(operator, symForOperator(Operator.plus)));
+	verify(!symEq(shortAlpha, operator));
+
+	immutable Str invalidOperatorStr = strLiteral("+=");
+	immutable Opt!Sym invalidOperator = tryGetSymFromStr(allSymbols, invalidOperatorStr);
+	verify(!has(invalidOperator));
 
 	immutable Sym longAlpha = getSym("a9aa");
-	verify(isLongSym(longAlpha));
+	verify(isLongAlphaSym(longAlpha));
 	verify(symEq(longAlpha, getSym("a9aa")));
-
-	immutable Sym longOperator = getSym("+-*/<>=!+-*/<>=!");
-	verify(isLongSym(longOperator));
-	verify(symEq(longOperator, getSym("+-*/<>=!+-*/<>=!")));
 
 	immutable Sym setA = prependSet(allSymbols, getSym("a"));
 	verify(symEq(setA, getSym("set-a")));
-	verify(!isLongSym(setA));
+	verify(isShortAlphaSym(setA));
 
 	immutable Sym setAbcdefgh = prependSet(allSymbols, getSym("abcdefgh"));
 	verify(symEq(setAbcdefgh, getSym("set-abcdefgh")));
-	verify(!isLongSym(setAbcdefgh));
+	verify(isShortAlphaSym(setAbcdefgh));
 
 	immutable Sym setAbcdefghi = prependSet(allSymbols, getSym("abcdefghi"));
 	verify(symEq(setAbcdefghi, getSym("set-abcdefghi")));
-	verify(isLongSym(setAbcdefghi));
+	verify(isLongAlphaSym(setAbcdefghi));
 }
