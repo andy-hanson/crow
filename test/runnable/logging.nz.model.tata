@@ -1,9 +1,9 @@
 module(
-	path: 50
+	path: 51
 	imports: [
-		import(none, 35, none)
-		import(some(range(8, 18)), 47, some([exit-code]))
-		import(some(range(31, 38)), 27, some([get-log-handler, info, log, log-handler, warn, with-log-handler]))]
+		import(none, 36, none)
+		import(some(range(8, 18)), 48, some([exit-code]))
+		import(some(range(31, 38)), 28, some([get-log-handler, info, log, log-handler, warn, with-log-handler]))]
 	exports: []
 	structs: []
 	specs: []
@@ -11,21 +11,21 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(50, 100), main, fut(int32()), [param(file-range(50, range(119, 128)), none, arr(arr(char())))])
+			sig: sig(file-pos(51, 100), main, fut(int32()), [param(file-range(51, range(119, 128)), none, arr(arr(char())))])
 			body: seq(
 				call(
 					fun-inst(name: log)
 					[to-union(log-level(), 0, call(fun-inst(name: info), [])), string-lit("Logged once")])
 				let(
-					local(file-range(50, range(162, 164)), lh, fun1(void(), logged()))
+					local(file-range(51, range(162, 164)), lh, fun1(void(), logged()))
 					call(fun-inst(name: get-log-handler), [])
 					let(
-						local(file-range(50, range(184, 191)), doubler, fun1(void(), logged()))
+						local(file-range(51, range(184, 191)), doubler, fun1(void(), logged()))
 						call(
 							fun-inst(name: as, type-args: [fun1(void(), logged())])
 							[
 								lambda(
-									[param(file-range(50, range(212, 218)), some(logged), logged())]
+									[param(file-range(51, range(212, 218)), some(logged), logged())]
 									seq(
 										call(
 											fun-inst(name: subscript, type-args: [void(), logged()])
@@ -58,7 +58,7 @@ module(
 									fun-inst(name: with-log-handler, type-args: [void()])
 									[
 										lambda(
-											[param(file-range(50, range(300, 302)), some(it), logged())]
+											[param(file-range(51, range(300, 302)), some(it), logged())]
 											call(fun-inst(name: drop, type-args: [logged()]), [param-ref(it)])
 											[]
 											fun1(void(), logged())

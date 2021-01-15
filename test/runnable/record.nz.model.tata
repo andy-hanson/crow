@@ -1,16 +1,16 @@
 module(
-	path: 50
-	imports: [import(none, 35, none), import(some(range(8, 16)), 26, some([print])), import(some(range(25, 35)), 47, some([exit-code]))]
+	path: 51
+	imports: [import(none, 36, none), import(some(range(8, 16)), 27, some([print])), import(some(range(25, 35)), 48, some([exit-code]))]
 	exports: []
-	structs: [struct(range: file-range(50, range(194, 225)), public?: true, name: my-record)]
+	structs: [struct(range: file-range(51, range(194, 225)), public?: true, name: my-record)]
 	specs: []
 	funs: [
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(50, 48), main, fut(int32()), [param(file-range(50, range(67, 76)), none, arr(arr(char())))])
+			sig: sig(file-pos(51, 48), main, fut(int32()), [param(file-range(51, range(67, 76)), none, arr(arr(char())))])
 			body: let(
-				local(file-range(50, range(86, 87)), m, my-record())
+				local(file-range(51, range(86, 87)), m, my-record())
 				call(fun-inst(name: my-record), [literal(nat(), 1), literal(nat(), 2)])
 				seq(
 					seq(
@@ -39,27 +39,27 @@ module(
 			public?: true
 			preferred: true
 			sig: sig(
-				file-pos(50, 194)
+				file-pos(51, 194)
 				my-record
 				my-record()
-				[param(file-range(50, range(212, 217)), some(x), nat()), param(file-range(50, range(219, 224)), some(y), nat())])
+				[param(file-range(51, range(212, 217)), some(x), nat()), param(file-range(51, range(219, 224)), some(y), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
 			sig: sig(
-				file-pos(50, 194)
+				file-pos(51, 194)
 				my-record
 				by-val(my-record())
-				[param(file-range(50, range(212, 217)), some(x), nat()), param(file-range(50, range(219, 224)), some(y), nat())])
+				[param(file-range(51, range(212, 217)), some(x), nat()), param(file-range(51, range(219, 224)), some(y), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(50, 212), x, nat(), [param(file-range(50, range(212, 217)), some(a), my-record())])
+			sig: sig(file-pos(51, 212), x, nat(), [param(file-range(51, range(212, 217)), some(a), my-record())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(50, 219), y, nat(), [param(file-range(50, range(219, 224)), some(a), my-record())])
+			sig: sig(file-pos(51, 219), y, nat(), [param(file-range(51, range(219, 224)), some(a), my-record())])
 			body: field-get(1))])

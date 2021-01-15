@@ -1,32 +1,32 @@
 module(
-	path: 50
+	path: 51
 	imports: [
-		import(none, 35, none)
+		import(none, 36, none)
 		import(
 			some(range(8, 13))
-			13
+			14
 			some([cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used]))
-		import(some(range(112, 120)), 26, some([print]))
-		import(some(range(129, 139)), 47, some([exit-code]))]
+		import(some(range(112, 120)), 27, some([print]))
+		import(some(range(129, 139)), 48, some([exit-code]))]
 	exports: []
-	structs: [struct(range: file-range(50, range(801, 832)), public?: true, name: r)]
+	structs: [struct(range: file-range(51, range(801, 832)), public?: true, name: r)]
 	specs: []
 	funs: [
 		fun(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(50, 152), main, fut(int32()), [param(file-range(50, range(171, 180)), none, arr(arr(char())))])
+			sig: sig(file-pos(51, 152), main, fut(int32()), [param(file-range(51, range(171, 180)), none, arr(arr(char())))])
 			body: let(
-				local(file-range(50, range(197, 199)), gc, gc())
+				local(file-range(51, range(197, 199)), gc, gc())
 				call(fun-inst(name: get-gc), [])
 				seq(
 					call(fun-inst(name: set-hard-limit), [local-ref(gc), literal(nat(), 512)])
 					let(
-						local(file-range(50, range(298, 299)), a, r())
+						local(file-range(51, range(298, 299)), a, r())
 						call(fun-inst(name: r), [literal(nat(), 1), literal(nat(), 2), literal(nat(), 3)])
 						let(
-							local(file-range(50, range(314, 315)), b, r())
+							local(file-range(51, range(314, 315)), b, r())
 							call(fun-inst(name: r), [literal(nat(), 4), literal(nat(), 5), literal(nat(), 6)])
 							seq(
 								seq(
@@ -114,7 +114,7 @@ module(
 									[
 										call(fun-inst(name: delay), [])
 										lambda(
-											[param(file-range(50, range(589, 590)), some(v), void())]
+											[param(file-range(51, range(589, 590)), some(v), void())]
 											seq(
 												seq(
 													seq(
@@ -179,7 +179,7 @@ module(
 											fut(int32()))])))))))
 		fun(
 			public?: true
-			sig: sig(file-pos(50, 832), to-str, arr(char()), [param(file-range(50, range(843, 846)), some(a), r())])
+			sig: sig(file-pos(51, 832), to-str, arr(char()), [param(file-range(51, range(843, 846)), some(a), r())])
 			body: call(
 				fun-inst(name: +, type-args: [char()])
 				[
@@ -206,7 +206,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(50, 912), to-str, arr(char()), [param(file-range(50, range(923, 933)), some(a), gc-stats())])
+			sig: sig(file-pos(51, 912), to-str, arr(char()), [param(file-range(51, range(923, 933)), some(a), gc-stats())])
 			body: call(
 				fun-inst(name: +, type-args: [char()])
 				[
@@ -234,38 +234,38 @@ module(
 			public?: true
 			preferred: true
 			sig: sig(
-				file-pos(50, 801)
+				file-pos(51, 801)
 				r
 				r()
 				[
-					param(file-range(50, range(811, 816)), some(a), nat())
-					param(file-range(50, range(818, 823)), some(b), nat())
-					param(file-range(50, range(825, 830)), some(c), nat())])
+					param(file-range(51, range(811, 816)), some(a), nat())
+					param(file-range(51, range(818, 823)), some(b), nat())
+					param(file-range(51, range(825, 830)), some(c), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
 			sig: sig(
-				file-pos(50, 801)
+				file-pos(51, 801)
 				r
 				by-val(r())
 				[
-					param(file-range(50, range(811, 816)), some(a), nat())
-					param(file-range(50, range(818, 823)), some(b), nat())
-					param(file-range(50, range(825, 830)), some(c), nat())])
+					param(file-range(51, range(811, 816)), some(a), nat())
+					param(file-range(51, range(818, 823)), some(b), nat())
+					param(file-range(51, range(825, 830)), some(c), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(50, 811), a, nat(), [param(file-range(50, range(811, 816)), some(a), r())])
+			sig: sig(file-pos(51, 811), a, nat(), [param(file-range(51, range(811, 816)), some(a), r())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(50, 818), b, nat(), [param(file-range(50, range(818, 823)), some(a), r())])
+			sig: sig(file-pos(51, 818), b, nat(), [param(file-range(51, range(818, 823)), some(a), r())])
 			body: field-get(1))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(50, 825), c, nat(), [param(file-range(50, range(825, 830)), some(a), r())])
+			sig: sig(file-pos(51, 825), c, nat(), [param(file-range(51, range(825, 830)), some(a), r())])
 			body: field-get(2))])

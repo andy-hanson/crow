@@ -388,63 +388,6 @@ unsafe-div nat(a nat, b nat) noctx unsafe builtin
 
 unsafe-mod nat(a nat, b nat) noctx unsafe builtin
 
-bits-not nat(a nat) noctx builtin
-
-bits-and nat16(a nat16, b nat16) noctx builtin
-bits-and nat32(a nat32, b nat32) noctx builtin
-bits-and nat(a nat, b nat) noctx builtin
-bits-and int8(a int8, b int8) noctx builtin
-bits-and int16(a int16, b int16) noctx builtin
-bits-and int32(a int32, b int32) noctx builtin
-bits-and int(a int, b int) noctx builtin
-
-bits-or nat16(a nat16, b nat16) noctx builtin
-bits-or nat32(a nat32, b nat32) noctx builtin
-bits-or nat(a nat, b nat) noctx builtin
-bits-or nat8(a nat8, b nat8) noctx builtin
-bits-or int16(a int16, b int16) noctx builtin
-bits-or int32(a int32, b int32) noctx builtin
-bits-or int(a int, b int) noctx builtin
-
-bits-intersect? bool(a int16, b int16) noctx
-	not: a bits-and b == 0
-bits-intersect? bool(a int32, b int32) noctx
-	not: a bits-and b == 0
-bits-intersect? bool(a nat32, b nat32) noctx
-	not: a bits-and b == 0
-
-unsafe-bit-shift-left nat(a nat, b nat) noctx builtin unsafe
-unsafe-bit-shift-right nat(a nat, b nat) noctx builtin unsafe
-bit-shift-left nat8(a nat8, b nat8) noctx trusted
-	if b < 8
-		a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat8
-	else
-		0
-bit-shift-left nat16(a nat16, b nat16) noctx trusted
-	if b < 16
-		a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat16
-	else
-		0
-bit-shift-left nat32(a nat32, b nat32) noctx trusted
-	if b < 32
-		a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat32
-	else
-		0
-bit-shift-right nat32(a nat32, b nat32) noctx trusted
-	if b < 32
-		a.to-nat unsafe-bit-shift-right b.to-nat unsafe-to-nat32
-	else
-		0
-bit-shift-right int32(a int32, b int32) noctx trusted
-	if a < 0
-		todo
-	elif b < 0
-		todo
-	elif b < 32
-		unsafe-to-int32: a.to-int.unsafe-to-nat unsafe-bit-shift-right b.to-int.unsafe-to-nat unsafe-to-int
-	else
-		todo
-
 wrap-add int16(a int16, b int16) noctx builtin
 wrap-add int32(a int32, b int32) noctx builtin
 

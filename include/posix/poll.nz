@@ -1,5 +1,6 @@
 import
-	..bootstrap: bits-intersect? bool by-val int16 int32 ptr
+	..bits: bits-intersect?
+	..bootstrap: bool by-val int16 int32 ptr
 	.c-types: u-long
 	.extra-types: fd-t
 

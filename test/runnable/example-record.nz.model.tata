@@ -1,22 +1,22 @@
 module(
-	path: 50
-	imports: [import(none, 35, none), import(some(range(8, 16)), 26, some([print])), import(some(range(25, 35)), 47, some([exit-code]))]
+	path: 51
+	imports: [import(none, 36, none), import(some(range(8, 16)), 27, some([print])), import(some(range(25, 35)), 48, some([exit-code]))]
 	exports: []
-	structs: [struct(range: file-range(50, range(48, 88)), public?: true, name: rect)]
+	structs: [struct(range: file-range(51, range(48, 88)), public?: true, name: rect)]
 	specs: []
 	funs: [
 		fun(
 			public?: true
-			sig: sig(file-pos(50, 88), area, float(), [param(file-range(50, range(99, 105)), some(a), rect())])
+			sig: sig(file-pos(51, 88), area, float(), [param(file-range(51, range(99, 105)), some(a), rect())])
 			body: call(
 				fun-inst(name: *)
 				[call(fun-inst(name: width), [param-ref(a)]), call(fun-inst(name: height), [param-ref(a)])]))
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(50, 128), main, fut(int32()), [param(file-range(50, range(147, 156)), none, arr(arr(char())))])
+			sig: sig(file-pos(51, 128), main, fut(int32()), [param(file-range(51, range(147, 156)), none, arr(arr(char())))])
 			body: let(
-				local(file-range(50, range(166, 167)), r, rect())
+				local(file-range(51, range(166, 167)), r, rect())
 				call(
 					fun-inst(name: rect)
 					[
@@ -31,31 +31,31 @@ module(
 			public?: true
 			preferred: true
 			sig: sig(
-				file-pos(50, 48)
+				file-pos(51, 48)
 				rect
 				rect()
 				[
-					param(file-range(50, range(61, 72)), some(width), float())
-					param(file-range(50, range(74, 86)), some(height), float())])
+					param(file-range(51, range(61, 72)), some(width), float())
+					param(file-range(51, range(74, 86)), some(height), float())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
 			sig: sig(
-				file-pos(50, 48)
+				file-pos(51, 48)
 				rect
 				by-val(rect())
 				[
-					param(file-range(50, range(61, 72)), some(width), float())
-					param(file-range(50, range(74, 86)), some(height), float())])
+					param(file-range(51, range(61, 72)), some(width), float())
+					param(file-range(51, range(74, 86)), some(height), float())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(50, 61), width, float(), [param(file-range(50, range(61, 72)), some(a), rect())])
+			sig: sig(file-pos(51, 61), width, float(), [param(file-range(51, range(61, 72)), some(a), rect())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(50, 74), height, float(), [param(file-range(50, range(74, 86)), some(a), rect())])
+			sig: sig(file-pos(51, 74), height, float(), [param(file-range(51, range(74, 86)), some(a), rect())])
 			body: field-get(1))])

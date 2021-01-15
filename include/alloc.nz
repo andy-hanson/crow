@@ -1,6 +1,7 @@
 import
+	.bits: bits-and bits-not
 	.bootstrap
-		+ - == != < <= > any-ptr as as-any-ptr as-ref bits-and bits-not bool byte by-val deref false
+		+ - == != < <= > any-ptr as as-any-ptr as-ref bool byte by-val deref false
 		gc-ctx-ptr get-ctx hard-assert hard-forbid incr lock nat nat64 none not
 		null? opt or ptr ptr-eq? ptr-less? ptr-less-eq? ptr-cast ref-of-val set size-of
 		some subscript todo to-nat true unsafe-div value void wrap-add wrap-incr wrap-mul wrap-sub

@@ -1,10 +1,9 @@
 import
+	..bits: bits-and bit-shift-left bits-or
 	..bootstrap
-		+ == != < and any-ptr arr as as-any-ptr bits-and bit-shift-left bits-or bool byte
-		char c-str data false has? int32
-		nat16 nat32 none not null? opt ptr-cast ptr-cast-from-extern ptr-eq?
-		ref-eq? size size-of some str todo value void
-		wrap-add
+		+ == != < and any-ptr arr as as-any-ptr bool byte char c-str data false has? int32 nat16
+		nat32 none not null? opt ptr-cast ptr-cast-from-extern ptr-eq? ref-eq? size size-of some
+		str todo value void wrap-add
 	..cell: cell get
 	..collection.arr: + slice-up-to
 	..collection.mut-arr: cast-immutable data new-uninitialized-mut-arr size

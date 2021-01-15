@@ -1,7 +1,8 @@
 | /usr/include/x86_64-linux-gnu/sys/wait.h
 
 import
-	..bootstrap: == != and bits-and bit-shift-right bits-intersect? bool int32
+	..bits: bits-and bit-shift-right bits-intersect?
+	..bootstrap: == != and bool int32
 	..cell: cell
 	.types: pid-t
 
