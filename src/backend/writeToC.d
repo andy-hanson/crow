@@ -1733,8 +1733,6 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 			return prefix("~");
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return prefix("*");
-		case LowExprKind.SpecialUnary.Kind.not:
-			return prefix("!");
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			return writeInlineableSimple(writer, tempAlloc, indent, ctx, writeKind, type, () {

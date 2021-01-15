@@ -1,9 +1,16 @@
 import
 	.bootstrap
-		== < <= >= ? bool and float int int32 min-int min-int32 max-int max-int32 max-nat32 max-nat nat nat16 nat32
-		or to-int to-nat unsafe-div unsafe-mod unsafe-to-int unsafe-to-int32
-		unsafe-to-nat unsafe-to-nat32 wrap-add wrap-mul wrap-sub
+		== < <= >= ? bool and float int int32 nat nat8 nat16 nat32 or to-int to-nat unsafe-div unsafe-to-int
+		unsafe-to-int32 unsafe-to-nat unsafe-to-nat32 wrap-add wrap-mul wrap-sub
 	.exceptions: assert forbid
+
+region conversion
+
+to-float float(a nat) noctx builtin
+to-float float(a int) noctx builtin
+truncate-to-int int(a float) noctx builtin
+
+region arithmetic
 
 multiple-of? bool(a nat, b nat)
 	a mod b == 0
@@ -43,6 +50,8 @@ decr int32(a int32)
 / nat(a nat, b nat) trusted
 	forbid: b == 0
 	a unsafe-div b
+
+unsafe-mod nat(a nat, b nat) noctx unsafe builtin
 
 mod nat(a nat, b nat) trusted
 	forbid: b == 0
@@ -118,3 +127,22 @@ mod nat(a int, b nat)
 - float(a float, b float) noctx builtin
 * float(a float, b float) noctx builtin
 unsafe-div float(a float, b float) noctx unsafe builtin
+
+region constants
+
+min-int32 int32() noctx
+	-2147483648
+max-int32 int32() noctx
+	2147483647
+min-int int() noctx
+	-0x8000000000000000
+max-int int() noctx
+	0x7fffffffffffffff
+max-nat8 nat8() noctx
+	0xff
+max-nat16 nat16() noctx
+	0xffff
+max-nat32 nat32() noctx
+	0xffffffff
+max-nat nat() noctx
+	0xffffffffffffffff

@@ -570,7 +570,6 @@ enum FnOp : u8 {
 	lessInt64,
 	lessNat,
 	mulFloat64,
-	not,
 	subFloat64,
 	truncateToInt64FromFloat64,
 	unsafeBitShiftLeftNat64,
@@ -650,8 +649,6 @@ private immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 			return "< (nat)";
 		case FnOp.mulFloat64:
 			return "* (float-64)";
-		case FnOp.not:
-			return "not";
 		case FnOp.subFloat64:
 			return "- (float-64)";
 		case FnOp.truncateToInt64FromFloat64:

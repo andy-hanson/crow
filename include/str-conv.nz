@@ -1,10 +1,10 @@
 import
 	.bootstrap
 		== ? bool char false float int int16 int32 nat nat16 nat32 none opt
-		some str todo to-float to-int to-nat true truncate-to-int value
+		some str todo to-int to-nat true value
 	.collection.arr: + empty? subscript
 	.collection.arr-util: first tail
-	.number-utils: + * / abs mod multiple-of? neg negative? to-int
+	.number-utils: + * / abs mod multiple-of? neg negative? to-int to-float truncate-to-int
 	.opt-utils: opt-map
 
 to-str str(b bool) noctx

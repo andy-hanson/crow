@@ -49,9 +49,15 @@ failure record
 	message str
 
 first-failures result<str, arr failure>(a result<str, arr failure>, b fun result<str, arr failure>())
-	a-descr <- a
-	b-descr <- b[]
-	ok: a-descr + "\n" + b-descr
+	match a
+	as ok ok-a
+		match b[]
+		as ok ok-b
+			ok: ok-a.value + "\n" + ok-b.value
+		as err e
+			e
+	as err e
+		e
 
 print-failures exit-code(failures result<str, arr failure>, options test-options) summon
 	match failures

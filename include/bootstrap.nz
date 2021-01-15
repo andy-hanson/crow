@@ -1,15 +1,84 @@
-abort void() noctx unsafe extern<"abort">
+region basic types
 
-| Zeroed data isn't safe as it would contain null pointers.
-| It's GC-safe though, since the GC treats a null pointer same as any external pointer.
-zeroed ?t() noctx unsafe builtin
+void builtin
 
-todo ?t() trusted noctx
-	| TODO: soft-fail, remove 'trusted noctx' above
-	abort
-	zeroed
+void void() noctx builtin
+drop void(_ ?t) noctx
+	void
+
+| TODO: kill, just use nat8...
+byte alias
+	nat8
 
 by-val<?t> builtin
+
+| A type is data if it is:
+| * A primitive
+| * A record or union of pure types
+data<?t> builtin-spec
+
+| A type is sendable if it does not have any thread-unsafe mutable state.
+send<?t> builtin-spec
+
+| TODO: extern<?t> builtin-spec for extern ptr types
+
+region opt
+
+opt<?t> union
+	none
+	some<?t>
+
+some<?t> record
+	by-val
+	value ?t
+
+none record
+
+empty? bool(a opt ?t) noctx
+	match a
+	as none
+		true
+	as some
+		false
+
+has? bool(a opt ?t) noctx
+	a.empty? not
+
+region result
+
+result<?ok, ?err> union
+	ok<?ok>
+	err<?err>
+
+ok<?t> record
+	by-val
+	value ?t
+
+err<?t> record
+	by-val
+	value ?t
+
+as ?t(value ?t) noctx builtin
+
+region ptr
+
+| A raw pointer. GC will not trace these.
+| WARN: If ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
+ptr<?t> builtin mut
+
+null ptr ?t() noctx builtin
+| Used by the compiler
+null-any ptr bool() noctx
+	null
+
+null? bool(a ptr ?t) noctx trusted
+	a.to-nat == (null<?t>).to-nat
+
+any-ptr alias
+	ptr byte
+
+deref ?t(p ptr ?t) noctx unsafe builtin
+set void(p ptr ?t, value ?t) noctx unsafe builtin
 
 | Unsafe because the ref will only be valid temporarily!
 ref-of-val ?t(b by-val ?t) noctx unsafe builtin
@@ -41,32 +110,12 @@ ptr-compare comparison(a ptr ?t, b ptr ?t) noctx unsafe
 ref-eq? bool(a ?t, b ?t) noctx unsafe
 	a.as-any-ptr ptr-eq? b.as-any-ptr
 
-| Since this fun is not marked 'noctx', it simply returns the ctx that already exists.
-get-ctx ctx() unsafe builtin
+incr ptr ?t(p ptr ?t) noctx unsafe
+	p + 1
 
-void builtin
-| TODO: kill, just use nat8...
-byte alias
-	nat8
+decr ptr ?t(p ptr ?t) noctx unsafe
+	p - 1
 
-| A raw pointer. GC will not trace these.
-| WARN: If ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
-ptr<?t> builtin mut
-deref ?t(p ptr ?t) noctx unsafe builtin
-set void(p ptr ?t, value ?t) noctx unsafe builtin
-
-null ptr ?t() noctx builtin
-| Used by the compiler
-null-any ptr bool() noctx
-	null
-
-null? bool(a ptr ?t) noctx trusted
-	a.to-nat == (null<?t>).to-nat
-
-any-ptr alias
-	ptr byte
-
-is-reference-type?<?t> bool() noctx unsafe builtin
 | WARN: for a reference type, this is the size of a pointer
 size-of<?t> nat() noctx unsafe builtin
 
@@ -85,6 +134,7 @@ to-nat nat(p ptr ?t) noctx unsafe builtin
 - ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
 - nat(a ptr ?t, b ptr ?t) noctx unsafe
 	a.to-nat wrap-sub b.to-nat unsafe-div size-of<?t>
+
 
 region comparison
 
@@ -132,7 +182,7 @@ to-str str(a comparison)
 	b < a not
 
 > bool(a ?t, b ?t) noctx data<?t>
-	a <= b not
+	b < a
 
 >= bool(a ?t, b ?t) noctx data<?t>
 	a < b not
@@ -141,7 +191,9 @@ min ?t(a ?t, b ?t) noctx data<?t>
 	a < b ? a, b
 
 max ?t(a ?t, b ?t) noctx data<?t>
-	a > b ? a, b
+	a < b ? b, a
+
+region arr
 
 | NOTE: this is not a normal record, compiler treats it specially
 arr<?t> record force-data
@@ -149,8 +201,7 @@ arr<?t> record force-data
 	size nat
 	data ptr ?t
 
-ptr-as-arr arr ?t(size nat, data ptr ?t)
-	arr: size, data
+region str
 
 char builtin
 str alias
@@ -158,36 +209,121 @@ str alias
 c-str alias
 	ptr char
 
+to-nat nat(c char) noctx builtin
+
 region bool
 
 bool builtin
 false bool() noctx builtin
 true bool() noctx builtin
-not bool(a bool) noctx builtin
-| Note: this should be lazily evaluated
+not bool(a bool) noctx
+	if a
+		false
+	else
+		true
+| 'b' is evaluated only if 'a' is true
 and bool(a bool, b bool) noctx builtin
+| 'b' is evaluated only if 'a' is false
 or bool(a bool, b bool) noctx builtin
-nand bool(a bool, b bool) noctx builtin
-nor bool(a bool, b bool) noctx builtin
-| Only one of 'if-true' and 'if-false' arguments will be evaluated
+| Only one of 'if-true' and 'if-false' will be evaluated, depending on 'cond'
 ? ?t(cond bool, if-true ?t, if-false ?t) noctx builtin
 
 | TODO:MOVE
 to-nat nat(b bool) noctx
 	b ? 1, 0
 
-to-nat nat(c char) noctx builtin
+region bootstrap arithmetic
 
-region Fun
+nat builtin
+nat8 builtin
+nat16 builtin
+nat32 builtin
+nat64 alias
+	nat
+int builtin
+int8 builtin
+int16 builtin
+int32 builtin
+int64 alias
+	int
+float builtin
 
-| Pointer to a function with no arguments (not even ctx)
-fun-ptr0<?r> builtin
-fun-ptr1<?r, ?p0> builtin
-fun-ptr2<?r, ?p0, ?p1> builtin
-fun-ptr3<?r, ?p0, ?p1, ?p2> builtin
-fun-ptr4<?r, ?p0, ?p1, ?p2, ?p3> builtin
-fun-ptr5<?r, ?p0, ?p1, ?p2, ?p3, ?p4> builtin
-fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5> builtin
+unsafe-to-nat nat(a int) noctx builtin
+unsafe-to-nat8 nat8(a nat) noctx builtin
+unsafe-to-nat16 nat16(a nat) noctx builtin
+unsafe-to-nat32 nat32(a nat) noctx builtin
+
+| UB for positive numbers >= 2 ** 63
+unsafe-to-int int(a nat) noctx builtin
+unsafe-to-int8 int8(a int) noctx builtin
+unsafe-to-int16 int16(a int) noctx builtin
+unsafe-to-int32 int32(a int) noctx builtin
+
+to-nat nat(n nat8) noctx builtin
+to-nat nat(n nat16) noctx builtin
+to-nat nat(n nat32) noctx builtin
+
+to-int int(i int8) noctx builtin
+to-int int(i int16) noctx builtin
+to-int int(i int32) noctx builtin
+
+wrap-add nat(a nat, b nat) noctx builtin
+wrap-add nat8(a nat8, b nat8) noctx builtin
+wrap-add nat16(a nat16, b nat16) noctx builtin
+wrap-add nat32(a nat32, b nat32) noctx builtin
+wrap-add int(a int, b int) noctx builtin
+wrap-add int16(a int16, b int16) noctx builtin
+wrap-add int32(a int32, b int32) noctx builtin
+
+wrap-sub nat(a nat, b nat) noctx builtin
+wrap-sub nat8(a nat8, b nat8) noctx builtin
+wrap-sub nat16(a nat16, b nat16) noctx builtin
+wrap-sub nat32(a nat32, b nat32) noctx builtin
+wrap-sub int(a int, b int) noctx builtin
+wrap-sub int16(a int16, b int16) noctx builtin
+wrap-sub int32(a int32, b int32) noctx builtin
+
+wrap-mul int(a int, b int) noctx builtin
+wrap-mul int16(a int16, b int16) noctx builtin
+wrap-mul int32(a int32, b int32) noctx builtin
+wrap-mul nat(a nat, b nat) noctx builtin
+wrap-mul nat32(a nat32, b nat32) noctx builtin
+
+unsafe-div nat(a nat, b nat) noctx unsafe builtin
+unsafe-div int(a int, b int) noctx unsafe builtin
+
+noctx-incr nat(n nat) noctx unsafe
+	hard-assert: n < 0xffffffffffffffff
+	n wrap-add 1
+
+noctx-decr nat(n nat) noctx unsafe
+	hard-forbid: n == 0
+	n wrap-sub 1
+
+region hard assertions
+
+abort void() noctx unsafe extern<"abort">
+
+| Zeroed data isn't safe as it would contain null pointers.
+| It's GC-safe though, since the GC treats a null pointer same as any external pointer.
+zeroed ?t() noctx unsafe builtin
+
+todo ?t() trusted noctx
+	| TODO: soft-fail, remove 'trusted noctx' above
+	abort
+	zeroed
+
+hard-assert void(condition bool) noctx unsafe
+	if condition not
+		abort
+
+hard-forbid void(condition bool) noctx unsafe
+	condition.not hard-assert
+
+region bootstrap runtime
+
+| Since this fun is not marked 'noctx', it simply returns the ctx that already exists.
+get-ctx ctx() unsafe builtin
 
 | The ctx only exists temporarily, so can use 'any-ptr' without worrying about GC
 ctx record mut
@@ -209,6 +345,17 @@ island-and-exclusion record
 	by-val
 	island island-id
 	exclusion exclusion
+
+region fun
+
+| Pointer to a function with no arguments (not even ctx)
+fun-ptr0<?r> builtin
+fun-ptr1<?r, ?p0> builtin
+fun-ptr2<?r, ?p0, ?p1> builtin
+fun-ptr3<?r, ?p0, ?p1, ?p2> builtin
+fun-ptr4<?r, ?p0, ?p1, ?p2, ?p3> builtin
+fun-ptr5<?r, ?p0, ?p1, ?p2, ?p3, ?p4> builtin
+fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5> builtin
 
 | Don't reference directly, instead use syntax `fun ?r(?p0, ?p1)`
 | Contrasted with `act`, a fun can't close over mutable data, so is thread-safe.
@@ -233,7 +380,7 @@ fun-act4<?r, ?p0, ?p1, ?p2, ?p3> builtin mut
 fun-ref0<?r> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
-	fun act fut<?r>()
+	fun act fut ?r()
 fun-ref1<?r, ?p0> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
@@ -293,176 +440,6 @@ call-with-ctx ?r(f act ?r(?p0, ?p1, ?p2), c ctx, p0 ?p0, p1 ?p1, p2 ?p2) noctx b
 call-with-ctx ?r(f fun ?r(?p0, ?p1, ?p2, ?p3), c ctx, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
 call-with-ctx ?r(f act ?r(?p0, ?p1, ?p2, ?p3), c ctx, p0 ?p0, p1 ?p1, p2 ?p2, p3 ?p3) noctx builtin
 
-| A type is data if it is:
-| * A primitive
-| * A record or union of pure types
-data<?t> builtin-spec
-
-| A type is sendable if it does not have any thread-unsafe mutable state.
-send<?t> builtin-spec
-
-
-region Arithmetic
-
-| All are 64-bits, even on 32-bit systems
-nat builtin
-nat64 alias
-	nat
-int builtin
-int64 alias
-	int
-float builtin
-| Not currently used for anything other than posix headers, so limited arithmetic is avialable
-int8 builtin
-int16 builtin
-int32 builtin
-nat8 builtin
-nat16 builtin
-nat32 builtin
-
-| UB for negative numbers
-unsafe-to-nat nat(a int) noctx builtin
-unsafe-to-nat8 nat8(a nat) noctx builtin
-unsafe-to-nat16 nat16(a nat) noctx builtin
-unsafe-to-nat32 nat32(a nat) noctx builtin
-
-to-nat16 nat16(a nat8) noctx trusted
-	a.to-nat unsafe-to-nat16
-
-| UB for positive numbers >= 2 ** 63
-unsafe-to-int int(a nat) noctx builtin
-unsafe-to-int8 int8(a int) noctx builtin
-unsafe-to-int16 int16(a int) noctx builtin
-unsafe-to-int32 int32(a int) noctx builtin
-
-min-int32 int32() noctx
-	-2147483648
-max-int32 int32() noctx
-	2147483647
-min-int int() noctx
-	-0x8000000000000000
-max-int int() noctx
-	0x7fffffffffffffff
-max-nat8 nat8() noctx
-	0xff
-max-nat16 nat16() noctx
-	0xffff
-max-nat32 nat32() noctx
-	0xffffffff
-max-nat nat() noctx
-	0xffffffffffffffff
-
-to-nat nat(n nat8) noctx builtin
-to-nat nat(n nat16) noctx builtin
-to-nat nat(n nat32) noctx builtin
-
-to-int int(i int8) noctx builtin
-to-int int(i int16) noctx builtin
-to-int int(i int32) noctx builtin
-
-to-float float(a nat64) noctx builtin
-to-float float(a int64) noctx builtin
-truncate-to-int int64(a float) noctx builtin
-
-wrap-add int(a int, b int) noctx builtin
-wrap-add nat(a nat, b nat) noctx builtin
-wrap-add nat8(a nat8, b nat8) noctx builtin
-wrap-add nat16(a nat16, b nat16) noctx builtin
-wrap-add nat32(a nat32, b nat32) noctx builtin
-
-wrap-sub int(a int, b int) noctx builtin
-wrap-sub int16(a int16, b int16) noctx builtin
-wrap-sub nat(a nat, b nat) noctx builtin
-wrap-sub nat8(a nat8, b nat8) noctx builtin
-wrap-sub nat16(a nat16, b nat16) noctx builtin
-wrap-sub nat32(a nat32, b nat32) noctx builtin
-
-wrap-mul int(a int, b int) noctx builtin
-wrap-mul int16(a int16, b int16) noctx builtin
-wrap-mul int32(a int32, b int32) noctx builtin
-wrap-mul nat(a nat, b nat) noctx builtin
-wrap-mul nat32(a nat32, b nat32) noctx builtin
-
-unsafe-div int(a int, b int) noctx unsafe builtin
-unsafe-div nat(a nat, b nat) noctx unsafe builtin
-
-unsafe-mod nat(a nat, b nat) noctx unsafe builtin
-
-wrap-add int16(a int16, b int16) noctx builtin
-wrap-add int32(a int32, b int32) noctx builtin
-
-wrap-sub int32(a int32, b int32) noctx builtin
-
-noctx-incr nat(n nat) noctx unsafe
-	hard-assert: n < max-nat
-	n wrap-add 1
-
-incr ptr ?t(p ptr ?t) noctx unsafe
-	p + 1
-
-decr ptr ?t(p ptr ?t) noctx unsafe
-	p - 1
-
-noctx-decr int32(a int32) noctx unsafe
-	a wrap-sub 1
-noctx-decr nat32(a nat32) noctx unsafe
-	hard-forbid: a == 0
-	a wrap-sub 1
-noctx-decr nat(n nat) noctx unsafe
-	hard-forbid: n == 0
-	n wrap-sub 1
-
-region Util
-
-void void() noctx builtin
-drop void(_ ?t) noctx
-	void
-
-hard-assert void(condition bool) noctx unsafe
-	if condition not
-		abort
-
-hard-forbid void(condition bool) noctx unsafe
-	condition.not hard-assert
-
-some<?t> record
-	by-val
-	value ?t
-none record
-opt<?t> union
-	none
-	some<?t>
-
-empty? bool(a opt ?t) noctx
-	match a
-	as none
-		true
-	as some
-		false
-
-has? bool(a opt ?t) noctx
-	a.empty? not
-
-| TODO: 'result' module
-ok<?t> record
-	by-val
-	value ?t
-err<?t> record
-	by-val
-	value ?t
-result<?ok, ?err> union
-	ok<?ok>
-	err<?err>
-
-then result<?ok-out, ?err>(a result<?ok-in, ?err>, f act result<?ok-out, ?err>(?ok-in))
-	match a
-	as ok o
-		f[o value]
-	as err e
-		e
-
-as ?t(value ?t) noctx builtin
-
 region fut
 
 backtrace record
@@ -494,7 +471,6 @@ fut-callback-node<?t> record mut
 
 fut-state-resolved<?t> record
 	value ?t
-
 
 region lock
 

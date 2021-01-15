@@ -443,7 +443,15 @@ program(
 			none
 			[param(condition, type(false, bool))]
 			expr-body(cond(call(not, [param-ref(condition)]), call(abort, []), void)))
-		fun(false, not, type(false, bool), none, [param(a, type(false, bool))], builtin([]))
+		fun(
+			false
+			not
+			type(false, bool)
+			none
+			[param(a, type(false, bool))]
+			expr-body(cond(param-ref(a), call(false, []), call(true, []))))
+		fun(false, false, type(false, bool), none, [], builtin([]))
+		fun(false, true, type(false, bool), none, [], builtin([]))
 		fun(false, abort, type(false, void), none, [], extern(false))
 		fun(
 			false
@@ -462,8 +470,6 @@ program(
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			builtin([type(false, nat)]))
-		fun(false, false, type(false, bool), none, [], builtin([]))
-		fun(false, true, type(false, bool), none, [], builtin([]))
 		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, nat)]))
 		fun(
 			false
@@ -551,7 +557,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat))]
-			expr-body(call(not, [call(<=, [param-ref(a), param-ref(b)])])))
+			expr-body(call(<, [param-ref(b), param-ref(a)])))
 		fun(
 			false
 			rt-main
@@ -1542,16 +1548,7 @@ program(
 			type(false, nat)
 			none
 			[param(n, type(false, nat))]
-			expr-body(
-				seq(call(hard-assert, [call(<, [param-ref(n), call(max-nat, [])])]), call(wrap-incr, [param-ref(n)]))))
-		fun(false, max-nat, type(false, nat), none, [], expr-body(-1))
-		fun(
-			false
-			wrap-incr
-			type(false, nat)
-			none
-			[param(a, type(false, nat))]
-			expr-body(call(wrap-add, [param-ref(a), 1])))
+			expr-body(seq(call(hard-assert, [call(<, [param-ref(n), -1])]), call(wrap-add, [param-ref(n), 1]))))
 		fun(false, fun-ptrs, type(false, ptr), none, [param(a, type(true, backtrace-arrs))], field-get(2))
 		fun(false, fun-names, type(false, ptr), none, [param(a, type(true, backtrace-arrs))], field-get(3))
 		fun(
@@ -3552,7 +3549,7 @@ program(
 							[call(+, [param-ref(begin), param-ref(i)]), call(subscript, [param-ref(f), param-ref(i)])])
 						call(
 							fill-ptr-range-recur
-							[param-ref(begin), call(wrap-incr, [param-ref(i)]), param-ref(size), param-ref(f)]))
+							[param-ref(begin), call(noctx-incr, [param-ref(i)]), param-ref(size), param-ref(f)]))
 					void)))
 		fun(
 			true
@@ -4897,7 +4894,7 @@ program(
 							seq(
 								call(hard-assert, [call(needs-gc?, [param-ref(gc)])])
 								call(set-needs-gc?, [param-ref(gc), call(false, [])]))
-							call(set-gc-count, [param-ref(gc), call(wrap-incr, [call(gc-count, [param-ref(gc)])])]))
+							call(set-gc-count, [param-ref(gc), call(noctx-incr, [call(gc-count, [param-ref(gc)])])]))
 						call(
 							memset
 							[call(as-any-ptr, [call(mark-begin, [param-ref(gc)])]), 0, call(size-words, [param-ref(gc)])]))

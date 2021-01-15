@@ -1,6 +1,8 @@
 import
+	...bits
+		bits-intersect? bits-or
 	...bootstrap
-		== != < arr as bits-intersect? bits-or bool byte by-val data drop false fut int32 message
+		== != < arr as bool byte by-val data drop false fut int32 message
 		nat16 nat32 not or ptr-cast-to-extern ptr-to ref-of-val size-of str todo to-int true value
 		void
 	...cell: cell

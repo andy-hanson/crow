@@ -70,9 +70,6 @@ void testApplyFn(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 		FnOp.mulFloat64,
 		[u64OfFloat64Bits(3.9000000000000004)]);
 
-	testFn(test, [immutable Nat64(1)], FnOp.not, [immutable Nat64(0)]);
-	testFn(test, [immutable Nat64(0)], FnOp.not, [immutable Nat64(1)]);
-
 	testFn(test, [u64OfFloat64Bits(1.5), u64OfFloat64Bits(2.6)], FnOp.subFloat64, [u64OfFloat64Bits(-1.1)]);
 
 	testFn(test, [u64OfFloat64Bits(-float64.infinity)], FnOp.truncateToInt64FromFloat64, [u64OfI64Bits(i64.min)]);

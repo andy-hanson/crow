@@ -91,9 +91,6 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 			binaryFloats(dataStack, (immutable float64 a, immutable float64 b) =>
 				a * b);
 			break;
-		case FnOp.not:
-			unary(dataStack, (immutable u64 a) => u64OfBool(a == 0));
-			break;
 		case FnOp.subFloat64:
 			binaryFloats(dataStack, (immutable float64 a, immutable float64 b) =>
 				a - b);

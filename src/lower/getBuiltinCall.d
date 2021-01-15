@@ -210,8 +210,6 @@ immutable(BuiltinKind) getBuiltinKind(
 			return constantBool(False);
 		case shortSymAlphaLiteralValue("get-ctx"):
 			return immutable BuiltinKind(immutable BuiltinKind.GetCtx());
-		case shortSymAlphaLiteralValue("not"):
-			return unary(LowExprKind.SpecialUnary.Kind.not);
 		case shortSymAlphaLiteralValue("null"):
 			return constant(immutable Constant(immutable Constant.Null()));
 		case shortSymAlphaLiteralValue("or"):
@@ -329,8 +327,6 @@ immutable(BuiltinKind) getBuiltinKind(
 					: fail();
 			else if (symEqLongAlphaLiteral(name, "compare-exchange-strong"))
 				return trinary(LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool);
-			else if (symEqLongAlphaLiteral(name, "is-reference-type?"))
-				return todo!(immutable BuiltinKind)("is-reference-type?");
 			else if (symEqLongAlphaLiteral(name, "ptr-cast-from-extern")
 				|| symEqLongAlphaLiteral(name, "ptr-cast-to-extern"))
 				return immutable BuiltinKind(immutable BuiltinKind.PtrCast());

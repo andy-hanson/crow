@@ -815,9 +815,6 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 			generateArg();
 			writeRead(dbg, writer, source, immutable Nat16(0), sizeOfType(ctx, type));
 			break;
-		case LowExprKind.SpecialUnary.Kind.not:
-			fn(FnOp.not);
-			break;
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			generateRefOfVal(dbg, tempAlloc, writer, ctx, source, a.arg);
