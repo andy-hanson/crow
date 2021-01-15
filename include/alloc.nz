@@ -2,9 +2,9 @@ import
 	.bits: bits-and bits-not
 	.bootstrap
 		+ - == != < <= > any-ptr as as-any-ptr as-ref bool byte by-val deref false
-		gc-ctx-ptr get-ctx hard-assert hard-forbid incr lock nat nat64 none not
+		gc-ctx-ptr get-ctx hard-assert hard-forbid incr lock nat nat64 noctx-incr none not
 		null? opt or ptr ptr-eq? ptr-less? ptr-less-eq? ptr-cast ref-of-val set size-of
-		some subscript todo to-nat true unsafe-div value void wrap-add wrap-incr wrap-mul wrap-sub
+		some subscript todo to-nat true unsafe-div value void wrap-add wrap-mul wrap-sub
 	.posix.stdlib: free malloc
 	.posix.string: memcpy memset
 	.thread-utils: acquire-lock new-lock release-lock
@@ -119,7 +119,7 @@ new-gc by-val gc() noctx unsafe
 run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	hard-assert: gc needs-gc?
 	gc.needs-gc? := false
-	gc.gc-count := gc.gc-count wrap-incr
+	gc.gc-count := gc.gc-count noctx-incr
 	gc.mark-begin.as-any-ptr memset 0, gc.size-words
 	mark-ctx = as<by-val<mark-ctx>>: mark-ctx: gc.size-words, gc.mark-begin, gc.data-begin
 	mark-ctx.ref-of-val mark-visit gc-root
@@ -269,4 +269,4 @@ fill-ptr-range void(begin ptr ?t, size nat, f act ?t(nat)) unsafe
 .fill-ptr-range-recur void(begin ptr ?t, i nat, size nat, f act ?t(nat)) unsafe
 	if i != size
 		begin + i set: f[i]
-		begin fill-ptr-range-recur i.wrap-incr, size, f
+		begin fill-ptr-range-recur i.noctx-incr, size, f

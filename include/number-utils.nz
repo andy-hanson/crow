@@ -2,7 +2,7 @@ import
 	.bootstrap
 		== < <= >= ? bool and float int int32 min-int min-int32 max-int max-int32 max-nat32 max-nat nat nat16 nat32
 		or to-int to-nat unsafe-div unsafe-mod unsafe-to-int unsafe-to-int32
-		unsafe-to-nat unsafe-to-nat32 wrap-add wrap-decr wrap-mul wrap-sub
+		unsafe-to-nat unsafe-to-nat32 wrap-add wrap-mul wrap-sub
 	.exceptions: assert forbid
 
 multiple-of? bool(a nat, b nat)
@@ -18,14 +18,11 @@ incr int(i int)
 
 | TODO: use specs for this kind of function
 decr nat(a nat)
-	forbid: a == 0
-	a wrap-decr
+	a - 1
 decr int(a int)
-	forbid: a == 0
-	a wrap-decr
+	a - 1
 decr int32(a int32)
-	forbid: a == 0
-	a wrap-decr
+	a - 1
 
 + nat(a nat, b nat)
 	res = a wrap-add b

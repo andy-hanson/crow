@@ -393,34 +393,9 @@ wrap-add int32(a int32, b int32) noctx builtin
 
 wrap-sub int32(a int32, b int32) noctx builtin
 
-wrap-incr int(a int) noctx
-	a wrap-add 1
-wrap-incr int16(a int16) noctx
-	a wrap-add 1
-wrap-incr int32(a int32) noctx
-	a wrap-add 1
-wrap-incr nat(a nat) noctx
-	a wrap-add 1
-wrap-incr nat32(a nat32) noctx
-	a wrap-add 1
-
-
-wrap-decr int(a int) noctx
-	a wrap-sub 1
-wrap-decr int16(a int16) noctx
-	a wrap-sub 1
-wrap-decr int32(a int32) noctx
-	a wrap-sub 1
-wrap-decr nat8(a nat8) noctx
-	a wrap-sub 1
-wrap-decr nat(a nat) noctx
-	a wrap-sub 1
-wrap-decr nat32(a nat32) noctx
-	a wrap-sub 1
-
 noctx-incr nat(n nat) noctx unsafe
 	hard-assert: n < max-nat
-	n wrap-incr
+	n wrap-add 1
 
 incr ptr ?t(p ptr ?t) noctx unsafe
 	p + 1
