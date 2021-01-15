@@ -188,7 +188,8 @@ void eachCharInSym(immutable Sym a, scope void delegate(immutable char) @safe @n
 	if (isShortAlphaSym(a))
 		unpackShortAlphaIdentifier(a, cb);
 	else if (isSymOperator(a)) {
-		foreach (immutable char c; strOfOperator(operatorForSym(a)))
+		immutable Opt!Operator optOperator = operatorForSym(a);
+		foreach (immutable char c; strOfOperator(force(optOperator)))
 			cb(c);
 	} else {
 		verify(isLongAlphaSym(a));
@@ -261,11 +262,13 @@ immutable(Bool) isSymOperator(immutable Sym a) {
 	return immutable Bool(!isShortAlphaSym(a) && bitsOverlap(a.value, operatorBits));
 }
 
-immutable(Operator) operatorForSym(immutable Sym a) {
-	verify(isSymOperator(a));
-	immutable Operator res = cast(immutable Operator) ((a.value >> 48) - 1);
-	verify(res <= Operator.max);
-	return res;
+immutable(Opt!Operator) operatorForSym(immutable Sym a) {
+	if (isSymOperator(a)) {
+		immutable Operator res = cast(immutable Operator) ((a.value >> 48) - 1);
+		verify(res <= Operator.max);
+		return some(res);
+	} else
+		return none!Operator;
 }
 
 void addToMutSymSetOkIfPresent(Alloc)(

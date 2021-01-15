@@ -41,7 +41,8 @@ void testSym(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	verify(isShortAlphaSym(shortAlpha));
 
 	immutable Sym operator = getSym("+");
-	verify(operatorForSym(operator) == Operator.plus);
+	immutable Opt!Operator optOperator = operatorForSym(operator);
+	verify(force(optOperator) == Operator.plus);
 	verify(symEq(operator, symForOperator(Operator.plus)));
 	verify(!symEq(shortAlpha, operator));
 

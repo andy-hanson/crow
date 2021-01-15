@@ -1,0 +1,63 @@
+file-ast(
+	imports: ports(range(0, 48), [import-ast(0, "/io/print", some([print])), import-ast(0, "/io/process", some([exit-code]))])
+	specs: []
+	aliases: []
+	structs: []
+	funs: [
+		fun-decl(
+			public?: true
+			sig: sig-ast(
+				range(48, 77)
+				main
+				inststruct(range(53, 66), name-range(53, fut), [inststruct(range(57, 66), name-range(57, exit-code))])
+				[
+					param(
+						range(67, 76)
+						none
+						inststruct(range(69, 76), name-range(69, arr), [inststruct(range(73, 76), name-range(73, str))]))])
+			summon: true
+			body: seq-ast(
+				seq-ast(
+					call(
+						prefix
+						name-range(86, print)
+						[]
+						[
+							call(
+								prefix
+								name-range(93, to-str)
+								[]
+								[
+									call(
+										infix
+										name-range(103, *)
+										[]
+										[
+											literal(nat(1, false))
+											call(
+												infix
+												name-range(108, +)
+												[]
+												[literal(nat(2, false)), literal(nat(3, false))])])])])
+					call(
+						prefix
+						name-range(113, print)
+						[]
+						[
+							call(
+								infix
+								name-range(130, to-str)
+								[]
+								[
+									call(
+										infix
+										name-range(122, +)
+										[]
+										[
+											literal(nat(1, false))
+											call(
+												infix
+												name-range(126, *)
+												[]
+												[literal(nat(2, false)), literal(nat(3, false))])])])]))
+				call(infix, name-range(140, resolved), [], [literal(nat(0, false))])))])

@@ -45,6 +45,10 @@ immutable(Arr!T) asImmutable(T)(Arr!(immutable T) a) {
 	return immutable Arr!T(a.begin_, a.size_);
 }
 
+@trusted Arr!T castMutable(T)(immutable Arr!T a) {
+	return Arr!T(cast(T*) a.begin_, a.size_);
+}
+
 @trusted immutable(Arr!T) castImmutable(T)(Arr!T a) {
 	return immutable Arr!T(cast(immutable) a.begin_, a.size_);
 }
@@ -166,6 +170,11 @@ Ptr!T onlyPtr_mut(T)(ref Arr!T a) {
 ref immutable(T) last(T)(ref immutable Arr!T a) {
 	verify(size(a) != 0);
 	return at(a, size(a) - 1);
+}
+
+void setLast(T)(ref Arr!T a, T value) {
+	verify(size(a) != 0);
+	setAt(a, size(a) - 1, value);
 }
 
 @trusted T[] range(T)(Arr!T a) {

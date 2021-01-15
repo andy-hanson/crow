@@ -49,14 +49,24 @@ import frontend.parse.lexer :
 import frontend.parse.parseType : tryParseTypeArgBracketed, tryParseTypeArgsBracketed;
 import model.parseDiag : EqLikeKind, ParseDiag;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, emptyArrWithSize, only, toArr;
+import util.collection.arr :
+	Arr,
+	ArrWithSize,
+	castMutable,
+	empty,
+	emptyArr,
+	emptyArrWithSize,
+	last,
+	only,
+	setLast,
+	toArr;
 import util.collection.arrUtil : append, arrLiteral, exists, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : prependSet, shortSymAlphaLiteral, Sym, symEq;
+import util.sym : Operator, operatorForSym, prependSet, shortSymAlphaLiteral, Sym, symEq;
 import util.types : u32;
 import util.util : todo, unreachable, verify;
 
@@ -270,14 +280,96 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 	immutable Bool allowBlock,
 	immutable u32 curIndent,
 ) {
-	immutable Pos start = curPos(lexer);
+	immutable Pos start = curPos(lexer); // TODO: logically the call starts at the LHS start.
 	immutable NameAndRange funName = takeNameAndRange(alloc, lexer);
-	immutable Bool tookColon = tryTake(lexer, ':');
-	immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
-	immutable ArgsAndMaybeDedent args = parseArgs(alloc, lexer, ArgCtx(allowBlock, tookColon), curIndent);
-	immutable ExprAstKind exprKind = immutable ExprAstKind(
-		immutable CallAst(CallAst.Style.infix, funName, typeArgs, prepend(alloc, target, args.args)));
-	return immutable ExprAndMaybeDedent(immutable ExprAst(range(lexer, start), exprKind), args.dedent);
+	immutable Opt!Operator operator = operatorForSym(funName.name);
+	if (has(operator)) {
+		immutable Bool tookColon = tryTake(lexer, ':');
+		if (!tryTake(lexer, ' ')) {
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(
+				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.space)));
+			skipUntilNewlineNoDiag(lexer);
+			return immutable ExprAndMaybeDedent(target, none!size_t);
+		} else {
+			immutable ArgCtx argCtx = immutable ArgCtx(False, tookColon);
+			immutable ExprAndMaybeDedent rhs = parseExprArg(alloc, lexer, argCtx, curIndent);
+			//TODO: use a more appropriate fn then
+			verify(!has(rhs.dedents));
+			immutable Pos end = curPos(lexer);
+			immutable ExprAst expr = tookColon
+				? operatorCallAst(alloc, target, funName, rhs.expr, end)
+				: injectOperator(alloc, target, funName, force(operator), rhs.expr, end);
+			return immutable ExprAndMaybeDedent(expr, none!size_t);
+		}
+	} else {
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
+		immutable Bool tookColon = tryTake(lexer, ':');
+		immutable ArgsAndMaybeDedent args = parseArgs(alloc, lexer, ArgCtx(allowBlock, tookColon), curIndent);
+		immutable ExprAstKind exprKind = immutable ExprAstKind(
+			immutable CallAst(CallAst.Style.infix, funName, typeArgs, prepend(alloc, target, args.args)));
+		return immutable ExprAndMaybeDedent(immutable ExprAst(range(lexer, start), exprKind), args.dedent);
+	}
+}
+
+immutable(ExprAst) injectOperator(Alloc)(
+	ref Alloc alloc,
+	ref immutable ExprAst lhs,
+	immutable NameAndRange name,
+	immutable Operator operator,
+	ref immutable ExprAst rhs,
+	immutable Pos end,
+) {
+	immutable Opt!Operator lhsOperator = isCall(lhs.kind)
+		? operatorForSym(asCall(lhs.kind).funName.name)
+		: none!Operator;
+	if (has(lhsOperator) && lowerPrecedence(force(lhsOperator), operator)) {
+		immutable Arr!ExprAst args = asCall(lhs.kind).args;
+		// TODO: don't mutate 'immutable'!
+		Arr!ExprAst argsMutable = castMutable(args);
+		setLast(argsMutable, injectOperator(alloc, last(args), name, operator, rhs, end));
+		//TODO: also adjust the range of lhs, it is now bigger
+		return lhs;
+	} else
+		return operatorCallAst(alloc, lhs, name, rhs, end);
+}
+
+immutable(ExprAst) operatorCallAst(Alloc)(
+	ref Alloc alloc,
+	ref immutable ExprAst lhs,
+	immutable NameAndRange name,
+	ref immutable ExprAst rhs,
+	immutable Pos end,
+) {
+	return immutable ExprAst(immutable RangeWithinFile(lhs.range.start, end), immutable ExprAstKind(
+		immutable CallAst(
+			CallAst.Style.infix,
+			name,
+			emptyArrWithSize!TypeAst,
+			arrLiteral!ExprAst(alloc, [lhs, rhs]))));
+}
+
+immutable(Bool) lowerPrecedence(immutable Operator a, immutable Operator b) {
+	return immutable Bool(precedence(a) < precedence(b));
+}
+
+immutable(uint) precedence(immutable Operator op) {
+	// Lower = less tightly binding
+	final switch (op) {
+		case Operator.eq:
+		case Operator.notEq:
+		case Operator.less:
+		case Operator.lessEq:
+		case Operator.greater:
+		case Operator.greaterEq:
+		case Operator.compare:
+			return 1;
+		case Operator.plus:
+		case Operator.minus:
+			return 2;
+		case Operator.times:
+		case Operator.div:
+			return 3;
+	}
 }
 
 immutable(ExprAndMaybeDedent) parseCalls(Alloc, SymAlloc)(
