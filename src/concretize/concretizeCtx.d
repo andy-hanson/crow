@@ -186,7 +186,6 @@ struct ConcretizeCtx {
 	@safe @nogc pure nothrow:
 
 	immutable Ptr!FunInst curIslandAndExclusionFun;
-	immutable Arr!(Ptr!FunDecl) ifFuns;
 	immutable Ptr!StructInst ctxStructInst;
 	immutable Ptr!CommonTypes commonTypes;
 	immutable Ptr!Program program;

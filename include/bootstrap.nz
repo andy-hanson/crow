@@ -171,7 +171,6 @@ nand bool(a bool, b bool) noctx builtin
 nor bool(a bool, b bool) noctx builtin
 | Only one of 'if-true' and 'if-false' arguments will be evaluated
 ? ?t(cond bool, if-true ?t, if-false ?t) noctx builtin
-? void(cond bool, if-true void) noctx builtin
 
 | TODO:MOVE
 to-nat nat(b bool) noctx

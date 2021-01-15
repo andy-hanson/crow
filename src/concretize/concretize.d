@@ -54,7 +54,6 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 ) {
 	ConcretizeCtx ctx = ConcretizeCtx(
 		getCurIslandAndExclusionFun(alloc, allSymbols, program),
-		getIfFuns(program),
 		program.commonTypes.ctx,
 		ptrTrustMe(program.commonTypes),
 		ptrTrustMe(program));
@@ -210,13 +209,6 @@ immutable(Ptr!FunInst) getCurIslandAndExclusionFun(Alloc, SymAlloc)(
 	if (size(funs) != 1)
 		todo!void("wrong number cur-island-and=exclusion funs");
 	return nonTemplateFunInst(alloc, only(funs));
-}
-
-immutable(Arr!(Ptr!FunDecl)) getIfFuns(ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) ifFuns = getFuns(program.specialModules.bootstrapModule, shortSymAlphaLiteral("?"));
-	if (size(ifFuns) != 2)
-		todo!void("wrong number 'if' funs");
-	return ifFuns;
 }
 
 immutable(Arr!(Ptr!FunDecl)) getFuns(ref immutable Module a, immutable Sym name) {
