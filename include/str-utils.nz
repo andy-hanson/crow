@@ -1,10 +1,10 @@
 import
-	.bootstrap: == and arr byte char c-str data deref incr ptr-cast size str todo
+	.bootstrap: == and arr char c-str data deref incr nat8 ptr-cast size str todo
 	.collection.arr: + arr-from-begin-end has?
 	.collection.arr-util: first tail
 
-as-str str(bytes arr byte) unsafe noctx
-	arr: bytes.size, bytes.data ptr-cast<char, byte>
+as-str str(bytes arr nat8) unsafe noctx
+	arr: bytes.size, bytes.data ptr-cast<char, nat8>
 
 to-c-str c-str(a str)
 	a + "\0" data

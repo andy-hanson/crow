@@ -1,5 +1,5 @@
 import
-	..bootstrap: == != as-any-ptr byte char data hard-assert size size-of str unsafe-to-int todo void
+	..bootstrap: == != as-any-ptr char data hard-assert nat8 size size-of str unsafe-to-int todo void
 	..posix.extra-types: fd-t
 	..posix.stdio: stderr stdout
 	..posix.unistd: write
@@ -19,7 +19,7 @@ print-err void(s str) summon noctx
 	"\n" print-err-no-newline
 
 .write-no-newline void(fd fd-t, a str) summon unsafe noctx
-	hard-assert: size-of<char> == size-of<byte>
+	hard-assert: size-of<char> == size-of<nat8>
 	res = fd write a.data.as-any-ptr, a.size
 	if res != a.size.unsafe-to-int
 		| Retry?

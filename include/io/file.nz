@@ -1,7 +1,7 @@
 import
 	..bits: bits-and bit-shift-left bits-or
 	..bootstrap
-		+ == != < and any-ptr arr as as-any-ptr bool byte char c-str data false has? int32 nat16
+		+ == != < and any-ptr arr as as-any-ptr bool char c-str data false has? int32 nat8 nat16
 		nat32 none not null? opt ptr-cast ptr-cast-from-extern ptr-eq? ref-eq? size size-of some
 		str todo value void wrap-add
 	..cell: cell get
@@ -55,7 +55,7 @@ get-dirent-name str(d dirent) unsafe noctx
 	| TODO: this is offsetof(d, d-name)
 	name-offset = size-of<ino-t> wrap-add size-of<off-t> wrap-add size-of<nat16> wrap-add size-of<char>
 	name-ptr = d.as-any-ptr + name-offset
-	name-ptr.ptr-cast<char, byte> to-str
+	name-ptr.ptr-cast<char, nat8> to-str
 
 seek-set int32()
 	0
@@ -126,7 +126,7 @@ write-file void(path c-str, content str) summon trusted
 		print: "permission: " + permission.to-str
 		todo
 	else
-		wrote-bytes = fd write content.data.ptr-cast<byte, char>, content.size
+		wrote-bytes = fd write content.data.ptr-cast<nat8, char>, content.size
 		if wrote-bytes != content.size.to-int
 			if wrote-bytes == -1
 				todo

@@ -2466,10 +2466,8 @@ uint64_t* unmanaged_alloc_zeroed_elements(uint64_t size_elements) {
 }
 /* unmanaged-alloc-elements<?t> ptr<nat>(size-elements nat) */
 uint64_t* unmanaged_alloc_elements_0(uint64_t size_elements) {
-	uint8_t* bytes0;
-	bytes0 = unmanaged_alloc_bytes((size_elements * sizeof(uint64_t)));
-	
-	return (uint64_t*) bytes0;
+	uint8_t* _0 = unmanaged_alloc_bytes((size_elements * sizeof(uint64_t)));
+	return (uint64_t*) _0;
 }
 /* unmanaged-alloc-bytes ptr<nat8>(size nat) */
 uint8_t* unmanaged_alloc_bytes(uint64_t size) {
@@ -5258,10 +5256,8 @@ uint8_t _op_greater_equal(uint64_t a, uint64_t b) {
 }
 /* alloc-uninitialized<?t> ptr<char>(size nat) */
 char* alloc_uninitialized_0(struct ctx* ctx, uint64_t size) {
-	uint8_t* bptr0;
-	bptr0 = alloc(ctx, (size * sizeof(char)));
-	
-	return (char*) bptr0;
+	uint8_t* _0 = alloc(ctx, (size * sizeof(char)));
+	return (char*) _0;
 }
 /* alloc ptr<nat8>(size-bytes nat) */
 uint8_t* alloc(struct ctx* ctx, uint64_t size_bytes) {
@@ -6287,10 +6283,8 @@ struct arr_1 make_arr(struct ctx* ctx, uint64_t size, struct fun_act1_5 f) {
 }
 /* alloc-uninitialized<?t> ptr<arr<char>>(size nat) */
 struct arr_0* alloc_uninitialized_1(struct ctx* ctx, uint64_t size) {
-	uint8_t* bptr0;
-	bptr0 = alloc(ctx, (size * sizeof(struct arr_0)));
-	
-	return (struct arr_0*) bptr0;
+	uint8_t* _0 = alloc(ctx, (size * sizeof(struct arr_0)));
+	return (struct arr_0*) _0;
 }
 /* fill-ptr-range<?t> void(begin ptr<arr<char>>, size nat, f fun-act1<arr<char>, nat>) */
 struct void_ fill_ptr_range(struct ctx* ctx, struct arr_0* begin, uint64_t size, struct fun_act1_5 f) {
@@ -6535,10 +6529,8 @@ struct void_ run_threads(uint64_t n_threads, struct global_ctx* gctx) {
 }
 /* unmanaged-alloc-elements<by-val<thread-args>> ptr<thread-args>(size-elements nat) */
 struct thread_args* unmanaged_alloc_elements_1(uint64_t size_elements) {
-	uint8_t* bytes0;
-	bytes0 = unmanaged_alloc_bytes((size_elements * sizeof(struct thread_args)));
-	
-	return (struct thread_args*) bytes0;
+	uint8_t* _0 = unmanaged_alloc_bytes((size_elements * sizeof(struct thread_args)));
+	return (struct thread_args*) _0;
 }
 /* start-threads-recur void(i nat, n-threads nat, threads ptr<nat>, thread-args-begin ptr<thread-args>, gctx global-ctx) */
 struct void_ start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx) {

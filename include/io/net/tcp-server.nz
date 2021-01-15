@@ -2,9 +2,8 @@ import
 	...bits
 		bits-intersect? bits-or
 	...bootstrap
-		== != < arr as bool byte by-val data drop false fut int32 message
-		nat16 nat32 not or ptr-cast-to-extern ptr-to ref-of-val size-of str todo to-int true value
-		void
+		== != < arr as bool by-val data drop false fut int32 message nat8 nat16 nat32 not or
+		ptr-cast-to-extern ptr-to ref-of-val size-of str todo to-int true value void
 	...cell: cell
 	...collection.arr: + slice-up-to
 	...collection.mut-arr: cast-immutable data new-uninitialized-mut-arr size
@@ -40,7 +39,7 @@ tcp-handler record sendable
 	| Gives the handler a chunk of data.
 	| Handler needs to parse to determine when it has all the chunks, then write a response and call 'close-client'.
 	| WARN: Due to asynchrony, this may be called on a client that was already closed.
-	on-received-chunk ref void(fd-t, arr byte)
+	on-received-chunk ref void(fd-t, arr nat8)
 
 tcp-server record sendable
 	stop ref void()
@@ -147,8 +146,8 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		on-accepted-client call-ref-void client-fd
 		accept-clients: listen-fd, epoll-fd, on-accepted-client
 
-.handle-client void(fd fd-t, on-received-chunk ref void(fd-t, arr byte)) unsafe summon
-	buf = new-uninitialized-mut-arr<byte>: 256
+.handle-client void(fd fd-t, on-received-chunk ref void(fd-t, arr nat8)) unsafe summon
+	buf = new-uninitialized-mut-arr<nat8>: 256
 	count = fd read buf.data, buf.size
 	if count < 0
 		err = errno

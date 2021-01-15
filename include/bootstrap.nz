@@ -6,10 +6,6 @@ void void() noctx builtin
 drop void(_ ?t) noctx
 	void
 
-| TODO: kill, just use nat8...
-byte alias
-	nat8
-
 by-val<?t> builtin
 
 | A type is data if it is:
@@ -75,7 +71,7 @@ null? bool(a ptr ?t) noctx trusted
 	a.to-nat == (null<?t>).to-nat
 
 any-ptr alias
-	ptr byte
+	ptr nat8
 
 deref ?t(p ptr ?t) noctx unsafe builtin
 set void(p ptr ?t, value ?t) noctx unsafe builtin

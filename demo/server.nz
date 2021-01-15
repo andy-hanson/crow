@@ -39,13 +39,13 @@ old-main fut exit-code(port str) unsafe summon
 	on-accepted-client = as<ref void(fd-t)>: \fd
 		clients add fd
 		void resolved
-	on-received-chunk = as<ref void(fd-t, arr byte)>: \client-fd chunk
+	on-received-chunk = as<ref void(fd-t, arr nat8)>: \client-fd chunk
 		print: "CHUNK: " + chunk.as-str
 		if clients has? client-fd
 			print: "got chunk (" + chunk.size.to-str + " bytes) on " + client-fd.to-str
 			| TODO: this actually does not belong here..
 			response = ok-response
-			wrote = client-fd write response.data.ptr-cast<byte, char>, response.size
+			wrote = client-fd write response.data.ptr-cast<nat8, char>, response.size
 			if wrote == -1
 				print: "ERRNO IS: " + errno.to-str
 				perror: "WRITE ERR\0".data

@@ -1,6 +1,6 @@
 import
 	...bootstrap
-		== != <= >= and arr as bool byte char data drop false fut nat none opt ptr-cast size some
+		== != <= >= and arr as bool char data drop false fut nat nat8 none opt ptr-cast size some
 		str todo true value void
 	...collection.arr: empty? has? subscript
 	...collection.arr-util: contains? last rtail split-by-subseq
@@ -48,7 +48,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	on-accepted-client = as<ref void(fd-t)>: \fd
 		client-states add fd, new-http-parse-state
 		void resolved
-	on-received-chunk = as<ref void(fd-t, arr byte)>: \fd bytes
+	on-received-chunk = as<ref void(fd-t, arr nat8)>: \fd bytes
 		match client-states[fd]
 		as none
 			print: "Ignoring unrecognized client"
@@ -79,7 +79,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	if finished-request?
 		res <- handler[state finish-request]
 		res-str = res response-to-str
-		wrote = fd write res-str.data.ptr-cast<byte, char>, res-str.size
+		wrote = fd write res-str.data.ptr-cast<nat8, char>, res-str.size
 		assert: wrote == res-str.size.to-int
 		fd close-client
 		true resolved

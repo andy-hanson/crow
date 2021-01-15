@@ -4308,10 +4308,8 @@ uint64_t* unmanaged_alloc_zeroed_elements(uint64_t size_elements) {
 }
 /* unmanaged-alloc-elements<?t> ptr<nat>(size-elements nat) */
 uint64_t* unmanaged_alloc_elements_0(uint64_t size_elements) {
-	uint8_t* bytes0;
-	bytes0 = unmanaged_alloc_bytes((size_elements * sizeof(uint64_t)));
-	
-	return (uint64_t*) bytes0;
+	uint8_t* _0 = unmanaged_alloc_bytes((size_elements * sizeof(uint64_t)));
+	return (uint64_t*) _0;
 }
 /* unmanaged-alloc-bytes ptr<nat8>(size nat) */
 uint8_t* unmanaged_alloc_bytes(uint64_t size) {
@@ -9824,10 +9822,8 @@ uint8_t _op_greater_equal(uint64_t a, uint64_t b) {
 }
 /* alloc-uninitialized<?t> ptr<char>(size nat) */
 char* alloc_uninitialized_0(struct ctx* ctx, uint64_t size) {
-	uint8_t* bptr0;
-	bptr0 = alloc(ctx, (size * sizeof(char)));
-	
-	return (char*) bptr0;
+	uint8_t* _0 = alloc(ctx, (size * sizeof(char)));
+	return (char*) _0;
 }
 /* alloc ptr<nat8>(size-bytes nat) */
 uint8_t* alloc(struct ctx* ctx, uint64_t size_bytes) {
@@ -10848,10 +10844,8 @@ struct arr_1 make_arr_0(struct ctx* ctx, uint64_t size, struct fun_act1_5 f) {
 }
 /* alloc-uninitialized<?t> ptr<arr<char>>(size nat) */
 struct arr_0* alloc_uninitialized_1(struct ctx* ctx, uint64_t size) {
-	uint8_t* bptr0;
-	bptr0 = alloc(ctx, (size * sizeof(struct arr_0)));
-	
-	return (struct arr_0*) bptr0;
+	uint8_t* _0 = alloc(ctx, (size * sizeof(struct arr_0)));
+	return (struct arr_0*) _0;
 }
 /* fill-ptr-range<?t> void(begin ptr<arr<char>>, size nat, f fun-act1<arr<char>, nat>) */
 struct void_ fill_ptr_range_0(struct ctx* ctx, struct arr_0* begin, uint64_t size, struct fun_act1_5 f) {
@@ -11101,10 +11095,8 @@ struct void_ run_threads(uint64_t n_threads, struct global_ctx* gctx) {
 }
 /* unmanaged-alloc-elements<by-val<thread-args>> ptr<thread-args>(size-elements nat) */
 struct thread_args* unmanaged_alloc_elements_1(uint64_t size_elements) {
-	uint8_t* bytes0;
-	bytes0 = unmanaged_alloc_bytes((size_elements * sizeof(struct thread_args)));
-	
-	return (struct thread_args*) bytes0;
+	uint8_t* _0 = unmanaged_alloc_bytes((size_elements * sizeof(struct thread_args)));
+	return (struct thread_args*) _0;
 }
 /* start-threads-recur void(i nat, n-threads nat, threads ptr<nat>, thread-args-begin ptr<thread-args>, gctx global-ctx) */
 struct void_ start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx) {
@@ -13139,10 +13131,8 @@ struct mut_arr_2 mut_arr_2(uint64_t size, struct arr_1* data) {
 }
 /* alloc-uninitialized<?t> ptr<arr<arr<char>>>(size nat) */
 struct arr_1* alloc_uninitialized_2(struct ctx* ctx, uint64_t size) {
-	uint8_t* bptr0;
-	bptr0 = alloc(ctx, (size * sizeof(struct arr_1)));
-	
-	return (struct arr_1*) bptr0;
+	uint8_t* _0 = alloc(ctx, (size * sizeof(struct arr_1)));
+	return (struct arr_1*) _0;
 }
 /* copy-data-from<?t> void(to ptr<arr<arr<char>>>, from ptr<arr<arr<char>>>, len nat) */
 struct void_ copy_data_from_2(struct ctx* ctx, struct arr_1* to, struct arr_1* from, uint64_t len) {
@@ -13275,10 +13265,8 @@ struct mut_arr_3 mut_arr_3(uint64_t size, struct opt_10* data) {
 }
 /* alloc-uninitialized<?t> ptr<opt<arr<arr<char>>>>(size nat) */
 struct opt_10* alloc_uninitialized_3(struct ctx* ctx, uint64_t size) {
-	uint8_t* bptr0;
-	bptr0 = alloc(ctx, (size * sizeof(struct opt_10)));
-	
-	return (struct opt_10*) bptr0;
+	uint8_t* _0 = alloc(ctx, (size * sizeof(struct opt_10)));
+	return (struct opt_10*) _0;
 }
 /* fill-ptr-range<?t> void(begin ptr<opt<arr<arr<char>>>>, size nat, f fun-act1<opt<arr<arr<char>>>, nat>) */
 struct void_ fill_ptr_range_1(struct ctx* ctx, struct opt_10* begin, uint64_t size, struct fun_act1_7 f) {
@@ -14938,10 +14926,8 @@ struct mut_arr_5 mut_arr_5(uint64_t size, struct failure** data) {
 }
 /* alloc-uninitialized<?t> ptr<failure>(size nat) */
 struct failure** alloc_uninitialized_4(struct ctx* ctx, uint64_t size) {
-	uint8_t* bptr0;
-	bptr0 = alloc(ctx, (size * sizeof(struct failure*)));
-	
-	return (struct failure**) bptr0;
+	uint8_t* _0 = alloc(ctx, (size * sizeof(struct failure*)));
+	return (struct failure**) _0;
 }
 /* copy-data-from<?t> void(to ptr<failure>, from ptr<failure>, len nat) */
 struct void_ copy_data_from_3(struct ctx* ctx, struct failure** to, struct failure** from, uint64_t len) {
@@ -16052,10 +16038,8 @@ struct arr_4 _op_plus_2(struct ctx* ctx, struct arr_4 a, struct arr_4 b) {
 }
 /* alloc-uninitialized<?t> ptr<ptr<char>>(size nat) */
 char** alloc_uninitialized_5(struct ctx* ctx, uint64_t size) {
-	uint8_t* bptr0;
-	bptr0 = alloc(ctx, (size * sizeof(char*)));
-	
-	return (char**) bptr0;
+	uint8_t* _0 = alloc(ctx, (size * sizeof(char*)));
+	return (char**) _0;
 }
 /* copy-data-from<?t> void(to ptr<ptr<char>>, from ptr<ptr<char>>, len nat) */
 struct void_ copy_data_from_4(struct ctx* ctx, char** to, char** from, uint64_t len) {

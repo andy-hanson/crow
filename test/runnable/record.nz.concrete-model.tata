@@ -750,10 +750,9 @@ program(
 			none
 			[param(size-elements, type(false, nat))]
 			expr-body(
-				let(
-					bytes
-					call(unmanaged-alloc-bytes, [call(wrap-mul, [param-ref(size-elements), call(size-of, [])])])
-					call(ptr-cast, [local-ref(bytes)]))))
+				call(
+					ptr-cast
+					[call(unmanaged-alloc-bytes, [call(wrap-mul, [param-ref(size-elements), call(size-of, [])])])])))
 		fun(
 			false
 			unmanaged-alloc-bytes
@@ -1821,11 +1820,14 @@ program(
 			type(false, ptr)
 			none
 			[param(size, type(false, nat))]
-			expr-body(
-				let(
-					bptr
-					call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
-					call(ptr-cast, [local-ref(bptr)]))))
+			expr-body(call(ptr-cast, [call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])])))
+		fun(
+			false
+			ptr-cast
+			type(false, ptr)
+			none
+			[param(p, type(false, ptr))]
+			builtin([type(false, char), type(false, nat8)]))
 		fun(
 			true
 			alloc
@@ -1845,13 +1847,6 @@ program(
 					[case(none, call(todo, [])), case(some(s), call(value, [local-ref(s)]))])))
 		fun(false, todo, type(false, ptr), none, [], expr-body(seq(call(abort, []), call(zeroed, []))))
 		fun(false, zeroed, type(false, ptr), none, [], builtin([type(false, ptr)]))
-		fun(
-			false
-			ptr-cast
-			type(false, ptr)
-			none
-			[param(p, type(false, ptr))]
-			builtin([type(false, char), type(false, nat8)]))
 		fun(
 			true
 			copy-data-from
@@ -3512,11 +3507,7 @@ program(
 			type(false, ptr)
 			none
 			[param(size, type(false, nat))]
-			expr-body(
-				let(
-					bptr
-					call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])
-					call(ptr-cast, [local-ref(bptr)]))))
+			expr-body(call(ptr-cast, [call(alloc, [call(wrap-mul, [param-ref(size), call(size-of, [])])])])))
 		fun(
 			true
 			fill-ptr-range
@@ -3805,11 +3796,9 @@ program(
 			none
 			[param(size-elements, type(false, nat))]
 			expr-body(
-				let(
-					bytes
-					call(unmanaged-alloc-bytes, [call(wrap-mul, [param-ref(size-elements), call(size-of, [])])])
-					call(ptr-cast, [local-ref(bytes)]))))
-		fun(false, size-of, type(false, nat), none, [], builtin([type(false, thread-args)]))
+				call(
+					ptr-cast
+					[call(unmanaged-alloc-bytes, [call(wrap-mul, [param-ref(size-elements), call(size-of, [])])])])))
 		fun(
 			false
 			ptr-cast
@@ -3817,6 +3806,7 @@ program(
 			none
 			[param(p, type(false, ptr))]
 			builtin([type(false, thread-args), type(false, nat8)]))
+		fun(false, size-of, type(false, nat), none, [], builtin([type(false, thread-args)]))
 		fun(
 			false
 			start-threads-recur

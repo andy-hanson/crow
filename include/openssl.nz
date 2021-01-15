@@ -1,5 +1,5 @@
 import
-	.bootstrap: any-ptr byte c-str fun-ptr6 int32 int64 nat8 nat32 nat64 null ptr str void
+	.bootstrap: any-ptr c-str fun-ptr6 int32 int64 nat8 nat32 nat64 null ptr str void
 	.posix.posix: fd-t u-long
 	.str-conv: literal
 
