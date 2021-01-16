@@ -1,5 +1,5 @@
 import
-	..bootstrap: any-ptr nat nat8 void
+	..bootstrap: any-ptr, nat, nat8, void
 
 memcpy void(dest any-ptr, src any-ptr, size nat) extern<"memcpy"> noctx unsafe
 

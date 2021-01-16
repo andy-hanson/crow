@@ -1,24 +1,22 @@
-| .str-utils for c-str.to-str
-| TODO: don't import .io or .number-utils
 import
-	.alloc: gc get-gc-ctx needs-gc? new-gc return-gc-ctx run-garbage-collection
-	.bootstrap
-		== != > ? and arr as as-any-ptr as-ref backtrace bool by-val call-with-ctx ctx exception
-		exclusion false gc-ctx-ptr gctx-ptr get-ctx hard-assert hard-forbid
-		island-and-exclusion island-id lock message min nat noctx-decr noctx-incr none not opt or
-		ref-of-val return-stack size some str true value void
-	.collection.arr: + empty? noctx-at subscript
+	.alloc: gc, get-gc-ctx, needs-gc?, new-gc, return-gc-ctx, run-garbage-collection
+	.bootstrap:
+		==, !=, >, ?, and, arr, as, as-any-ptr, as-ref, backtrace, bool, by-val, call-with-ctx,
+		ctx, exception, exclusion, false, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
+		island-and-exclusion, island-id, lock, message, min, nat, noctx-decr, noctx-incr, none,
+		not, opt, or, ref-of-val, return-stack, size, some, str, true, value, void
+	.collection.arr: +, empty?, noctx-at, subscript
 	.collection.arr-util: join
-	.exceptions: exception-ctx new-exception-ctx
-	.io.print: print-err print-err-no-newline
-	.io.time-low-level: get-monotime-nsec timestamp
-	.logging: default-log-handler log-ctx log-handler new-log-ctx set-handler
-	.task-queue
-		action any-tasks? empty? exclusion first-task-time insert-task new-task-queue
-		new-task-queue-node no-task no-timestamp pop-task return-task task task-queue
-	.thread-utils
-		acquire-lock broadcast condition get-and-increment get-last-checked new-lock
-		new-thread-safe-counter release-lock thread-safe-counter wait-on
+	.exceptions: exception-ctx, new-exception-ctx
+	.io.print: print-err, print-err-no-newline
+	.io.time-low-level: get-monotime-nsec, timestamp
+	.logging: default-log-handler, log-ctx, log-handler, new-log-ctx, set-handler
+	.task-queue:
+		action, any-tasks?, empty?, exclusion, first-task-time, insert-task, new-task-queue,
+		new-task-queue-node, no-task, no-timestamp, pop-task, return-task, task, task-queue
+	.thread-utils:
+		acquire-lock, broadcast, condition, get-and-increment, get-last-checked, new-lock,
+		new-thread-safe-counter, release-lock, thread-safe-counter, wait-on
 
 get-global-ctx global-ctx() unsafe
 	get-ctx.gctx-ptr as-ref

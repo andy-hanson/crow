@@ -1,5 +1,5 @@
 import
-	bits: bit-shift-left bits-or
+	bits: bit-shift-left, bits-or
 	io.print: print
 	io.process: exit-code
 	thread-utils: sleep-ms-sync

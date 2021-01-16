@@ -1,28 +1,31 @@
 import
-	..bootstrap
-		+ == <= and arr as-any-ptr as-ref bool by-val char c-str data int32
-		not null or ptr size str todo to-nat void
-	..cell: cell get
-	..collection.arr: + append prepend ref-of-val-at
-	..collection.arr-util: fold map
-	..collection.mut-list: data ensure-capacity move-to-arr mut-str new-mut-list size unsafe-increase-size
-	..exceptions: assert fail
-	..number-utils: + to-nat
+	..bootstrap:
+		+, ==, <=, and, arr, as-any-ptr, as-ref, bool, by-val, char, c-str, data, int32, not, null,
+		or, ptr, size, str, todo, to-nat, void
+	..cell: cell, get
+	..collection.arr: +, append, prepend, ref-of-val-at
+	..collection.arr-util: fold, map
+	..collection.mut-list:
+		data, ensure-capacity, move-to-arr, mut-str, new-mut-list, size, unsafe-increase-size
+	..exceptions: assert, fail
+	..number-utils: +, to-nat
 	..posix.bytes-types: zero
 	..posix.extra-types: fd-t
-	..posix.poll
-		fd has-pollin? has-pollerr? has-pollhup? has-pollnval? has-pollout? has-pollpri? poll
-		pollfd pollin revents
-	..posix.spawn
-		posix-spawn posix-spawn-file-actions-addclose posix-spawn-file-actions-adddup2
-		posix-spawn-file-actions-init posix-spawn-file-actions-t
-	..posix.stdio: stderr stdout
+	..posix.poll:
+		fd, has-pollin?, has-pollerr?, has-pollhup?, has-pollnval?, has-pollout?, has-pollpri?,
+		poll, pollfd, pollin, revents
+	..posix.spawn:
+		posix-spawn, posix-spawn-file-actions-addclose, posix-spawn-file-actions-adddup2,
+		posix-spawn-file-actions-init, posix-spawn-file-actions-t
+	..posix.stdio: stderr, stdout
 	..posix.types: pid-t
-	..posix.unistd: close pipe pipes read read-pipe write-pipe
-	..posix.wait: status-t waitpid w-exit-status w-if-continued w-if-exited w-if-signaled w-if-stopped w-term-sig
+	..posix.unistd: close, pipe, pipes, read, read-pipe, write-pipe
+	..posix.wait:
+		status-t, waitpid, w-exit-status, w-if-continued, w-if-exited, w-if-signaled,
+		w-if-stopped, w-term-sig
 	..str-conv: to-str
 	..str-utils: to-c-str
-	.environ: convert-environ environ
+	.environ: convert-environ, environ
 	.file: is-file?
 	.posix-util: check-posix-error
 	.print: print
@@ -36,7 +39,7 @@ process-result record
 	stderr str
 
 spawn-and-wait-result process-result(exe str, args arr str, environ environ) trusted summon
-	print: "spawn-and-wait-result: " + exe fold args, \a b
+	print: "spawn-and-wait-result: " + exe fold args, \a, b
 		a + " " + b
 
 	| TODO: kill, handle that error properly

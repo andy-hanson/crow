@@ -1,10 +1,12 @@
 import
-	..bootstrap: == arr bool data drop has? nat none not opt size some subscript todo value void
-	..collection.arr: empty? empty-arr subscript
-	..collection.arr-util: first map tail
+	..bootstrap:
+		==, arr, bool, data, drop, has?, nat, none, not, opt, size, some, subscript, todo,
+		value, void
+	..collection.arr: empty?, empty-arr, subscript
+	..collection.arr-util: first, map, tail
 	..exceptions: forbid
 	..number-utils: incr
-	.mut-list: index-of move-to-arr mut-list new-mut-list push remove-unordered-at-index temp-as-arr
+	.mut-list: index-of, move-to-arr, mut-list, new-mut-list, push, remove-unordered-at-index, temp-as-arr
 
 key-value-pair<?k, ?v> record
 	key ?k

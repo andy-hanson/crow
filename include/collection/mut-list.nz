@@ -1,15 +1,16 @@
 import
-	..alloc: alloc-uninitialized copy-data-from set-zero-range unmanaged-alloc-zeroed-elements
-	..bootstrap
-		? + < <= > >= == arr as-any-ptr bool by-val char data deref drop hard-assert hard-forbid
-		nat noctx-decr noctx-incr none not opt ptr set size-of some todo void zeroed
-	..collection.arr-util: contains? each index-of
-	..collection.mut-arr
-		data empty-mut-arr fill-mut-arr mut-arr set-zero-elements size slice-starting-at
+	..alloc: alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
+	..bootstrap:
+		?, +, <, <=, >, >=, ==, arr, as-any-ptr, bool, by-val, char, data, deref, drop,
+		hard-assert, hard-forbid, nat, noctx-decr, noctx-incr, none, not, opt, ptr, set, size-of,
+		some, todo, void, zeroed
+	..collection.arr-util: contains?, each, index-of
+	..collection.mut-arr:
+		data, empty-mut-arr, fill-mut-arr, mut-arr, set-zero-elements, size, slice-starting-at,
 		temp-as-arr
 	..exceptions: assert
-	..number-utils: + - * incr
-	..posix.string: memcpy memmove
+	..number-utils: +, -, *, incr
+	..posix.string: memcpy, memmove
 
 | NOTE: this is not a normal record, compiler treats it specially
 | TODO: constructor should be private

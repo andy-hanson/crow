@@ -1,5 +1,5 @@
 import
-	..bootstrap: c-str nat32
+	..bootstrap: c-str, nat32
 	.c-types: c-int
 	.extra-types: fd-t
 

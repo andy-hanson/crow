@@ -1,5 +1,5 @@
 import
-	..bootstrap: == != int void
+	..bootstrap: ==, !=, int, void
 	..exceptions: assert
 	..posix.errno: errno
 	..posix.extra-types: err-t

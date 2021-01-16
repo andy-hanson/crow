@@ -1,6 +1,6 @@
 import
 	..cell: cell
-	.c-types: c-int s-long
+	.c-types: c-int, s-long
 	.extra-types: err-t
 
 timespec record

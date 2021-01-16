@@ -1,5 +1,5 @@
 import
-	.bootstrap: as as-ref by-val get-ctx log-ctx str subscript void zeroed
+	.bootstrap: as, as-ref, by-val, get-ctx, log-ctx, str, subscript, void, zeroed
 	.collection.arr: +
 	.exceptions: finally
 	.io.print: print

@@ -1,8 +1,8 @@
 import
-	..bootstrap: == < <= > arr data nat void
+	..bootstrap: ==, <, <=, >, arr, data, nat, void
 	..exceptions: assert
-	..number-utils: / decr incr
-	.mut-arr: cast-immutable copy-to-mut-arr mut-arr size slice-after slice-up-to set-subscript subscript
+	..number-utils: /, decr, incr
+	.mut-arr: cast-immutable, copy-to-mut-arr, mut-arr, size, slice-after, slice-up-to, set-subscript, subscript
 
 sort arr ?t(a arr ?t) data<?t> trusted
 	res = a copy-to-mut-arr

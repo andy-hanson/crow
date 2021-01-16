@@ -1,26 +1,26 @@
 import
-	..bits: bits-and bit-shift-left bits-or
-	..bootstrap
-		+ == != < and any-ptr arr as as-any-ptr bool char c-str data false has? int32 nat8 nat16
-		nat32 none not null? opt ptr-cast ptr-cast-from-extern ptr-eq? ref-eq? size size-of some
-		str todo value void wrap-add
-	..cell: cell get
-	..collection.arr: + slice-up-to
-	..collection.mut-arr: cast-immutable data new-uninitialized-mut-arr size
-	..collection.mut-list: move-to-arr mut-list new-mut-list push
+	..bits: bits-and, bit-shift-left, bits-or
+	..bootstrap:
+		+, ==, !=, <, and, any-ptr, arr, as, as-any-ptr, bool, char, c-str, data, false, has?,
+		int32, nat8, nat16, nat32, none, not, null?, opt, ptr-cast, ptr-cast-from-extern, ptr-eq?,
+		ref-eq?, size, size-of, some, str, todo, value, void, wrap-add
+	..cell: cell, get
+	..collection.arr: +, slice-up-to
+	..collection.mut-arr: cast-immutable, data, new-uninitialized-mut-arr, size
+	..collection.mut-list: move-to-arr, mut-list, new-mut-list, push
 	..collection.sort: sort
-	..exceptions: assert forbid
-	..number-utils: to-int to-nat
+	..exceptions: assert, forbid
+	..number-utils: to-int, to-nat
 	..posix.bytes-types: zero
-	..posix.dirent: dir dirent opendir readdir-r
-	..posix.errno: enoent errno
-	..posix.fcntl: o-creat o-rdonly o-trunc o-wronly open
-	..posix.stat: empty-stat s-ifdir s-ifmt s-ifreg stat stat-t st-mode
-	..posix.types: ino-t off-t
-	..posix.unistd: close getcwd lseek read readlink write
+	..posix.dirent: dir, dirent, opendir, readdir-r
+	..posix.errno: enoent, errno
+	..posix.fcntl: o-creat, o-rdonly, o-trunc, o-wronly, open
+	..posix.stat: empty-stat, s-ifdir, s-ifmt, s-ifreg, stat, stat-t, st-mode
+	..posix.types: ino-t, off-t
+	..posix.unistd: close, getcwd, lseek, read, readlink, write
 	..str-conv: to-str
-	..str-utils: to-c-str to-str
-	.posix-util: check-errno-if-neg-one check-posix-error
+	..str-utils: to-c-str, to-str
+	.posix-util: check-errno-if-neg-one, check-posix-error
 	.print: print
 
 is-dir? bool(path str) summon

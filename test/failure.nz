@@ -1,8 +1,8 @@
 import
 	collection.arr-util: each
-	collection.mut-list: move-to-arr new-mut-list push-all reduce-size-if-more-than size
-	io.file: try-read-file write-file
-	io.print: print print-no-newline
+	collection.mut-list: move-to-arr, new-mut-list, push-all, reduce-size-if-more-than, size
+	io.file: try-read-file, write-file
+	io.print: print, print-no-newline
 	io.process: exit-code
 	.path-utils: base-name
 

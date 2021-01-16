@@ -1,6 +1,6 @@
 import
-	..bootstrap: bool data void
-	.dict: add has? mut-dict new-mut-dict remove
+	..bootstrap: bool, data, void
+	.dict: add, has?, mut-dict, new-mut-dict, remove
 
 mut-set<?t> record mut
 	| TODO:PRIVATE

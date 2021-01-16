@@ -1,7 +1,9 @@
 import
-	..bootstrap: == != as-any-ptr char data hard-assert nat8 size size-of str unsafe-to-int todo void
+	..bootstrap:
+		==, !=, as-any-ptr, char, data, hard-assert, nat8, size, size-of, str,
+		unsafe-to-int, todo, void
 	..posix.extra-types: fd-t
-	..posix.stdio: stderr stdout
+	..posix.stdio: stderr, stdout
 	..posix.unistd: write
 
 print-no-newline void(a str) summon trusted noctx

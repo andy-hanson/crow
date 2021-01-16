@@ -1,5 +1,5 @@
 import
-	alloc: cur-word gc-count gc-stats get-gc get-stats force-needs-gc set-hard-limit words-free words-used
+	alloc: cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used
 	io.print: print
 	io.process: exit-code
 

@@ -1,9 +1,9 @@
 import
-	..alloc: alloc-uninitialized fill-ptr-range set-zero-range
-	..bootstrap: + == < <= arr bool data hard-assert nat opt ptr set size void
+	..alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
+	..bootstrap: +, ==, <, <=, arr, bool, data, hard-assert, nat, opt, ptr, set, size, void
 	..exceptions: assert
-	..number-utils: + - incr
-	.arr: empty-arr subscript
+	..number-utils: +, -, incr
+	.arr: empty-arr, subscript
 	.arr-util: find-index
 
 mut-arr<?t> record mut

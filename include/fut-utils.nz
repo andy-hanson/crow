@@ -1,13 +1,15 @@
 import
-	.bootstrap
-		by-val err exception exclusion fun fut fut-callback-node fut-state-callbacks
-		fut-state-resolved head island island-and-exclusion lk none ok opt ref-of-val result
-		send set-state some state subscript todo value void
+	.bootstrap:
+		by-val, err, exception, exclusion, fun, fut, fut-callback-node, fut-state-callbacks,
+		fut-state-resolved, head, island, island-and-exclusion, lk, none, ok, opt, ref-of-val,
+		result, send, set-state, some, state, subscript, todo, value, void
 	.exceptions: catch
-	.fut-low-level: new-unresolved-fut reject resolve resolve-or-reject
+	.fut-low-level: new-unresolved-fut, reject, resolve, resolve-or-reject
 	.opt-utils: force
-	.runtime: add-task exception-handler get-cur-island get-island new-exclusion
-	.thread-utils: acquire-lock decrement new-lock new-thread-safe-counter release-lock thread-safe-counter
+	.runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
+	.thread-utils:
+		acquire-lock, decrement, new-lock, new-thread-safe-counter, release-lock,
+		thread-safe-counter
 
 | Used to make code run after the next step. Equivalent to `sleep 0`.
 delay fut void()

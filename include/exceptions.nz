@@ -1,10 +1,10 @@
 import
 	.backtrace: get-backtrace
-	.bootstrap
-		== as-ref backtrace bool by-val err exception exception-ctx-ptr get-ctx
-		hard-forbid int32 not null null? ok ptr-to result str subscript todo void
+	.bootstrap:
+		==, as-ref, backtrace, bool, by-val, err, exception, exception-ctx-ptr, get-ctx,
+		hard-forbid, int32, not, null, null?, ok, ptr-to, result, str, subscript, todo, void
 	.posix.bytes-types: zero
-	.posix.setjmp: jmp-buf jmp-buf-tag longjmp setjmp
+	.posix.setjmp: jmp-buf, jmp-buf-tag, longjmp, setjmp
 
 exception-ctx record mut
 	jmp-buf-ptr mut jmp-buf

@@ -1,13 +1,14 @@
 import
-	.bits: bits-and bits-not
-	.bootstrap
-		+ - == != < <= > any-ptr as as-any-ptr as-ref bool by-val deref false
-		gc-ctx-ptr get-ctx hard-assert hard-forbid incr lock nat nat8 nat64 noctx-incr none not
-		null? opt or ptr ptr-eq? ptr-less? ptr-less-eq? ptr-cast ref-of-val set size-of
-		some subscript todo to-nat true unsafe-div value void wrap-add wrap-mul wrap-sub
-	.posix.stdlib: free malloc
-	.posix.string: memcpy memset
-	.thread-utils: acquire-lock new-lock release-lock
+	.bits: bits-and, bits-not
+	.bootstrap:
+		+, -, ==, !=, <, <=, >, any-ptr, as, as-any-ptr, as-ref, bool, by-val, deref, false,
+		gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, incr, lock, nat, nat8, nat64, noctx-incr,
+		none, not, null?, opt, or, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, ptr-cast, ref-of-val,
+		set, size-of, some, subscript, todo, to-nat, true, unsafe-div, value, void, wrap-add,
+		wrap-mul, wrap-sub
+	.posix.stdlib: free, malloc
+	.posix.string: memcpy, memset
+	.thread-utils: acquire-lock, new-lock, release-lock
 
 set-zero-range void(begin ptr ?t, size nat) noctx unsafe
 	| TODO: wrap-mul is unsafe

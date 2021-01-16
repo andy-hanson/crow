@@ -1,12 +1,12 @@
 import
-	.bootstrap
-		< == != any-ptr as atomic-bool bool by-val drop false fun-ptr1 hard-assert
-		hard-forbid is-locked lock nat noctx-decr noctx-incr not null null? opt ptr ptr-to
-		ref-of-val subscript todo true value void wrap-mul
-	.cell: cell get
-	.io.time-low-level: get-monotime-nsec timestamp
-	.posix.errno: eagain einval esrch
-	.posix.pthread: pthread-create pthread-join pthread-t pthread-yield
+	.bootstrap:
+		<, ==, !=, any-ptr, as, atomic-bool, bool, by-val, drop, false, fun-ptr1, hard-assert,
+		hard-forbid, is-locked, lock, nat, noctx-decr, noctx-incr, not, null, null?, opt, ptr,
+		ptr-to, ref-of-val, subscript, todo, true, value, void, wrap-mul
+	.cell: cell, get
+	.io.time-low-level: get-monotime-nsec, timestamp
+	.posix.errno: eagain, einval, esrch
+	.posix.pthread: pthread-create, pthread-join, pthread-t, pthread-yield
 	.posix.unistd: usleep
 
 region atomic

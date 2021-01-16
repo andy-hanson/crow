@@ -1,5 +1,5 @@
 import
-	..bootstrap: any-ptr ptr
+	..bootstrap: any-ptr, ptr
 	..posix.c-types: c-int
 
 | Interpreter overrides this

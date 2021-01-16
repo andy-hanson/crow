@@ -1,14 +1,15 @@
 import
-	...bootstrap: == != as-ref deref nat16 none null null? opt ptr ptr-to some str todo value
-	...cell: cell get
+	...bootstrap:
+		==, !=, as-ref, deref, nat16, none, null, null?, opt, ptr, ptr-to, some, str, todo, value
+	...cell: cell, get
 	...collection.arr: +
 	...exceptions: assert
 	...opt-utils: force
 	...posix.extra-types: fd-t
-	...posix.netdb
-		addrinfo ai-addr ai-addrlen ai-family ai-next ai-passive ai-protocol ai-socktype
-		freeaddrinfo getaddrinfo
-	...posix.socket: af-inet af-unspec bind connect socket
+	...posix.netdb:
+		addrinfo, ai-addr, ai-addrlen, ai-family, ai-next, ai-passive, ai-protocol, ai-socktype,
+		freeaddrinfo, getaddrinfo
+	...posix.socket: af-inet, af-unspec, bind, connect, socket
 	...posix.socket-type: sock-stream
 	...posix.unistd: close
 	...str-conv: to-str

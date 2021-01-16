@@ -1,8 +1,9 @@
 import
 	.alloc: try-alloc-uninitialized
-	.bootstrap
-		+ != < <= > any-ptr arr backtrace deref hard-assert incr nat noctx-decr noctx-incr none opt ptr
-		ptr-less? set some str to-int unsafe-div unsafe-to-int unsafe-to-int32 unsafe-to-nat value void wrap-sub
+	.bootstrap:
+		+, !=, <, <=, >, any-ptr, arr, backtrace, deref, hard-assert, incr, nat, noctx-decr,
+		noctx-incr, none, opt, ptr, ptr-less?, set, some, str, to-int, unsafe-div, unsafe-to-int,
+		unsafe-to-int32, unsafe-to-nat, value, void, wrap-sub
 	sys.execinfo: backtrace
 
 funs-count nat() noctx unsafe builtin

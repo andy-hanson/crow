@@ -1,5 +1,5 @@
 import
-	.bootstrap: none opt some subscript value
+	.bootstrap: none, opt, some, subscript, value
 	.exceptions: fail
 
 opt-map opt ?out(a opt ?in, cb act ?out(?in))

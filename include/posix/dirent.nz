@@ -1,10 +1,10 @@
 | /usr/include/dirent.h
 
 import
-	..bootstrap: nat16 char c-str int32
+	..bootstrap: nat16, char, c-str, int32
 	..cell: cell
 	.bytes-types: bytes256
-	.types: ino-t off-t
+	.types: ino-t, off-t
 
 dir extern-ptr
 

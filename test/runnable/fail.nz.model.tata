@@ -1,6 +1,6 @@
 module(
 	path: 51
-	imports: [import(none, 36, none), import(some(range(8, 18)), 48, some([exit-code]))]
+	imports: [import(none, 36, none), import(some(range(8, 29)), 48, some([exit-code]))]
 	exports: []
 	structs: []
 	specs: []

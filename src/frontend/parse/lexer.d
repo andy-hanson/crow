@@ -795,8 +795,7 @@ public @trusted T matchIndentDelta(T)(
 // Returns the change in indent (and updates the indent)
 // Note: does nothing if not looking at a newline!
 // NOTE: never returns a value > 1 as double-indent is always illegal.
-// TODO:PRIVATE
-public immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(
+immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable u32 curIndent,

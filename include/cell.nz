@@ -1,5 +1,5 @@
 import
-	.bootstrap: as-any-ptr as-ref ptr void
+	.bootstrap: as-any-ptr, as-ref, ptr, void
 
 cell<?t> record mut
 	value mut ?t

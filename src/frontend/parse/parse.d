@@ -33,20 +33,18 @@ import frontend.parse.lexer :
 	curChar,
 	curPos,
 	finishDiags,
-	IndentDelta,
 	Lexer,
-	matchIndentDelta,
 	NewlineOrDedent,
 	NewlineOrIndent,
 	range,
 	skipBlankLines,
-	skipLinesAndGetIndentDelta,
 	skipShebang,
 	skipUntilNewlineNoDiag,
 	SymAndIsReserved,
 	takeDedentFromIndent1,
 	takeIndentOrDiagTopLevel,
 	takeIndentOrDiagTopLevelAfterNewline,
+	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAllowReserved,
 	takeNewlineOrDedentAmount,
@@ -163,16 +161,6 @@ immutable(NDotsAndPath) parseImportPath(Alloc, PathAlloc, SymAlloc)(
 	return immutable NDotsAndPath(nDots, path);
 }
 
-immutable(ImportAst) parseSingleModuleImportShortForm(Alloc, PathAlloc, SymAlloc)(
-	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
-	ref Lexer!SymAlloc lexer,
-) {
-	immutable Pos start = curPos(lexer);
-	immutable NDotsAndPath path = parseImportPath(alloc, allPaths, lexer);
-	return immutable ImportAst(range(lexer, start), path.nDots, path.path, none!(Arr!Sym));
-}
-
 immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
@@ -181,29 +169,42 @@ immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(Alloc, PathAlloc, Sy
 	immutable Pos start = curPos(lexer);
 	immutable NDotsAndPath path = parseImportPath(alloc, allPaths, lexer);
 	immutable NamesAndDedent names = () {
-		immutable RangeWithinFile range0 = range(lexer, start);
-		if (tryTake(lexer, '\n')) {
-			immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer, 1);
-			return matchIndentDelta!(immutable NamesAndDedent)(
-				delta,
-				(ref immutable IndentDelta.DedentOrSame it) {
-					verify(it.nDedents == 0 || it.nDedents == 1);
-					return immutable NamesAndDedent(
-						none!(Arr!Sym),
-						range0,
-						it.nDedents == 1 ? NewlineOrDedent.dedent : NewlineOrDedent.newline);
-				},
-				(ref immutable IndentDelta.Indent) =>
-					parseIndentedImportNames(alloc, lexer, start));
-		} else {
-			immutable Opt!(Arr!Sym) names = parseSingleImportNamesOnSingleLine(alloc, lexer);
-			return immutable NamesAndDedent(names, range0, takeNewlineOrSingleDedent(alloc, lexer));
+		if (tryTake(lexer, ':')) {
+			if (tryTake(lexer, ' ')) {
+				immutable Arr!Sym names = parseSingleImportNamesOnSingleLine(alloc, lexer);
+				return immutable NamesAndDedent(
+					some(names),
+					range(lexer, start),
+					takeNewlineOrSingleDedent(alloc, lexer));
+			} else
+				return takeIndentOrFailGeneric!(immutable NamesAndDedent)(
+					alloc,
+					lexer,
+					1,
+					() =>
+						parseIndentedImportNames(alloc, lexer, start),
+					(immutable RangeWithinFile, immutable size_t dedent) =>
+						immutable NamesAndDedent(
+							none!(Arr!Sym),
+							range(lexer, start),
+							newlineOrDedentFromNumber(dedent)));
 		}
+		return immutable NamesAndDedent(none!(Arr!Sym), range(lexer, start), takeNewlineOrSingleDedent(alloc, lexer));
 	}();
-
 	return immutable ImportAndDedent(
 		immutable ImportAst(names.range, path.nDots, path.path, names.names),
 		names.dedented);
+}
+
+immutable(NewlineOrDedent) newlineOrDedentFromNumber(immutable size_t dedent) {
+	switch (dedent) {
+		case 0:
+			return NewlineOrDedent.newline;
+		case 1:
+			return NewlineOrDedent.dedent;
+		default:
+			return unreachable!(immutable NewlineOrDedent)();
+	}
 }
 
 immutable(NamesAndDedent) parseIndentedImportNames(Alloc, SymAlloc)(
@@ -217,14 +218,21 @@ immutable(NamesAndDedent) parseIndentedImportNames(Alloc, SymAlloc)(
 		immutable RangeWithinFile range;
 	}
 	immutable(NewlineOrDedentAndRange) recur() {
-		takeNamesUntilEndOfLine(alloc, lexer, names);
+		takeCommaSeparatedNames(alloc, lexer, names);
 		immutable RangeWithinFile range0 = range(lexer, start);
+		immutable Bool trailingComma = tryTake(lexer, ',');
 		switch (takeNewlineOrDedentAmount(alloc, lexer, 2)) {
 			case 0:
+				if (!trailingComma)
+					todo!void("!");
 				return recur();
 			case 1:
+				if (trailingComma)
+					todo!void("!");
 				return immutable NewlineOrDedentAndRange(NewlineOrDedent.newline, range0);
 			case 2:
+				if (trailingComma)
+					todo!void("!");
 				return immutable NewlineOrDedentAndRange(NewlineOrDedent.dedent, range0);
 			default:
 				return unreachable!(immutable NewlineOrDedentAndRange)();
@@ -234,31 +242,24 @@ immutable(NamesAndDedent) parseIndentedImportNames(Alloc, SymAlloc)(
 	return immutable NamesAndDedent(some(finishArr(alloc, names)), res.range, res.newlineOrDedent);
 }
 
-immutable(Opt!(Arr!Sym)) parseSingleImportNamesOnSingleLine(Alloc, SymAlloc)(
+immutable(Arr!Sym) parseSingleImportNamesOnSingleLine(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	if (tryTake(lexer, ": ")) {
-		ArrBuilder!Sym names;
-		takeNamesUntilEndOfLine(alloc, lexer, names);
-		return some(finishArr(alloc, names));
-	} else
-		return none!(Arr!Sym);
+	ArrBuilder!Sym names;
+	takeCommaSeparatedNames(alloc, lexer, names);
+	return finishArr(alloc, names);
 }
 
-void takeNamesUntilEndOfLine(Alloc, SymAlloc)(
+void takeCommaSeparatedNames(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	ref ArrBuilder!Sym names,
 ) {
-	void recur() {
-		add(alloc, names, takeName(alloc, lexer));
-		if (tryTake(lexer, ' '))
-			recur();
-	}
-	recur();
+	add(alloc, names, takeName(alloc, lexer));
+	if (tryTake(lexer, ", "))
+		takeCommaSeparatedNames(alloc, lexer, names);
 }
-
 
 struct ParamsAndMaybeDedent {
 	immutable ArrWithSize!ParamAst params;
@@ -352,37 +353,6 @@ immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(
 	immutable SigAstAndMaybeDedent s = parseSigAfterNameAndSpace(alloc, lexer, start, sigName);
 	immutable size_t dedents = has(s.dedents) ? force(s.dedents) : takeNewlineOrDedentAmount(alloc, lexer, curIndent);
 	return SigAstAndDedent(s.sig, dedents);
-}
-
-immutable(Arr!ImportAst) parseImportsNonIndented(Alloc, PathAlloc, SymAlloc)(
-	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
-	ref Lexer!SymAlloc lexer,
-) {
-	ArrBuilder!ImportAst res;
-	do {
-		add(alloc, res, parseSingleModuleImportShortForm(alloc, allPaths, lexer));
-	} while (tryTake(lexer, ' '));
-	takeOrAddDiagExpected(alloc, lexer, '\n', ParseDiag.Expected.Kind.endOfLine);
-	return finishArr(alloc, res);
-}
-
-immutable(Arr!ImportAst) parseImportsIndented(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref AllPaths!SymAlloc allPaths,
-	ref Lexer!SymAlloc lexer,
-) {
-	ArrBuilder!ImportAst res;
-	if (takeIndentOrDiagTopLevelAfterNewline(alloc, lexer)) {
-		void recur() {
-			immutable ImportAndDedent id = parseSingleModuleImportOnOwnLine(alloc, allPaths, lexer);
-			add(alloc, res, id.import_);
-			if (id.dedented == NewlineOrDedent.newline)
-				recur();
-		}
-		recur();
-	}
-	return finishArr(alloc, res);
 }
 
 immutable(Arr!SigAst) parseIndentedSigs(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -886,17 +856,23 @@ immutable(Opt!ImportsOrExportsAst) parseImportsOrExports(Alloc, PathAlloc, SymAl
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
 	ref Lexer!SymAlloc lexer,
-	immutable CStr kwSpace,
 	immutable CStr kwNl,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable Opt!(Arr!ImportAst) imports = tryTake(lexer, kwSpace)
-		? some(parseImportsNonIndented(alloc, allPaths, lexer))
-		: tryTake(lexer, kwNl)
-		? some(parseImportsIndented(alloc, allPaths, lexer))
-		: none!(Arr!ImportAst);
-	return mapOption(imports, (ref immutable Arr!ImportAst it) =>
-		immutable ImportsOrExportsAst(range(lexer, start), it));
+	if (tryTake(lexer, kwNl)) {
+		ArrBuilder!ImportAst res;
+		if (takeIndentOrDiagTopLevelAfterNewline(alloc, lexer)) {
+			void recur() {
+				immutable ImportAndDedent id = parseSingleModuleImportOnOwnLine(alloc, allPaths, lexer);
+				add(alloc, res, id.import_);
+				if (id.dedented == NewlineOrDedent.newline)
+					recur();
+			}
+			recur();
+		}
+		return some(immutable ImportsOrExportsAst(range(lexer, start), finishArr(alloc, res)));
+	} else
+		return none!ImportsOrExportsAst;
 }
 
 immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
@@ -906,8 +882,8 @@ immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
 ) {
 	skipShebang(lexer);
 	skipBlankLines(alloc, lexer);
-	immutable Opt!ImportsOrExportsAst imports = parseImportsOrExports(alloc, allPaths, lexer, "import ", "import\n");
-	immutable Opt!ImportsOrExportsAst exports = parseImportsOrExports(alloc, allPaths, lexer, "export ", "export\n");
+	immutable Opt!ImportsOrExportsAst imports = parseImportsOrExports(alloc, allPaths, lexer, "import\n");
+	immutable Opt!ImportsOrExportsAst exports = parseImportsOrExports(alloc, allPaths, lexer, "export\n");
 
 	ArrBuilder!SpecDeclAst specs;
 	ArrBuilder!StructAliasAst structAliases;

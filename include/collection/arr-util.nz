@@ -1,12 +1,12 @@
 import
-	..alloc: alloc-uninitialized fill-ptr-range
-	..bootstrap
-		== != >= and arr bool data false has? incr nat noctx-incr none not opt ptr set size
-		some subscript true value void
+	..alloc: alloc-uninitialized, fill-ptr-range
+	..bootstrap:
+		==, !=, >=, and, arr, bool, data, false, has?, incr, nat, noctx-incr, none, not, opt, ptr,
+		set, size, some, subscript, true, value, void
 	..exceptions: forbid
-	..number-utils: + - decr incr
+	..number-utils: +, -, decr, incr
 	..opt-utils: force
-	.arr: + arr-eq? empty-arr empty? noctx-at slice slice-starting-at slice-up-to subscript
+	.arr: +, arr-eq?, empty-arr, empty?, noctx-at, slice, slice-starting-at, slice-up-to, subscript
 
 make-arr arr ?t(size nat, f act ?t(nat)) trusted
 	data = size alloc-uninitialized<?t>

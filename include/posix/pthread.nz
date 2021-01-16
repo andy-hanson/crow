@@ -1,7 +1,7 @@
 | /usr/include/pthread.h
 
 import
-	..bootstrap: any-ptr fun-ptr1
+	..bootstrap: any-ptr, fun-ptr1
 	..cell: cell
 	.c-types: u-long
 	.extra-types: err-t

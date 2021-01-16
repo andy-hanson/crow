@@ -1,11 +1,11 @@
 import
 	collection.dict: empty-dict
-	collection.mut-set: add has? new-mut-set remove
-	io.net.http-server: http-handler http-response start-http-server
-	io.net.tcp-server: close-client start-tcp-server stop tcp-handler
+	collection.mut-set: add, has?, new-mut-set, remove
+	io.net.http-server: http-handler, http-response, start-http-server
+	io.net.tcp-server: close-client, start-tcp-server, stop, tcp-handler
 	io.print: print
 	io.process: exit-code
-	io.time: delay msec
+	io.time: delay, msec
 	posix.errno: errno
 	posix.extra-types: fd-t
 	posix.stdio: perror
@@ -39,7 +39,7 @@ old-main fut exit-code(port str) unsafe summon
 	on-accepted-client = as<ref void(fd-t)>: \fd
 		clients add fd
 		void resolved
-	on-received-chunk = as<ref void(fd-t, arr nat8)>: \client-fd chunk
+	on-received-chunk = as<ref void(fd-t, arr nat8)>: \client-fd, chunk
 		print: "CHUNK: " + chunk.as-str
 		if clients has? client-fd
 			print: "got chunk (" + chunk.size.to-str + " bytes) on " + client-fd.to-str

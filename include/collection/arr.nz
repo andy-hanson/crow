@@ -1,10 +1,10 @@
 import
-	..alloc: alloc-uninitialized copy-data-from
-	..bootstrap
-		+ - == != < <= arr bool by-val data deref false hard-assert nat not null ptr ref-of-ptr
-		size true
+	..alloc: alloc-uninitialized, copy-data-from
+	..bootstrap:
+		+, -, ==, !=, <, <=, arr, bool, by-val, data, deref, false, hard-assert, nat, not, null,
+		ptr, ref-of-ptr, size, true
 	..exceptions: assert
-	..number-utils: + - incr
+	..number-utils: +, -, incr
 
 arr-from-begin-end arr ?t(begin ptr ?t, end ptr ?t) unsafe noctx
 	arr: (end - begin), begin

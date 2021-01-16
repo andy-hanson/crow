@@ -1,8 +1,8 @@
 import
-	.bootstrap: == <= bool drop nat none opt some subscript value void
-	.cell: cell get set
-	.exceptions: assert forbid
-	.number-utils: + incr
+	.bootstrap: ==, <=, bool, drop, nat, none, opt, some, subscript, value, void
+	.cell: cell, get, set
+	.exceptions: assert, forbid
+	.number-utils: +, incr
 
 | TODO: Depend on a spec, then move to cell.nz
 get-and-incr nat(c cell nat)

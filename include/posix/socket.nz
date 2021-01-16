@@ -1,8 +1,8 @@
 import
-	..bootstrap: any-ptr int32
+	..bootstrap: any-ptr, int32
 	..cell: cell
 	.c-types: size-t
-	.extra-types: err-t fd-t
+	.extra-types: err-t, fd-t
 	.types: socklen-t
 	.unistd: ssize-t
 

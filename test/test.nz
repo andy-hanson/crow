@@ -7,10 +7,10 @@ import
 	io.file: current-executable-path
 	io.print: print
 	io.process: exit-code
-	.failure: first-failures print-failures test-options
+	.failure: first-failures, print-failures, test-options
 	.lint: lint
 	.noze-tests: run-noze-tests
-	.path-utils: child-path parent-path
+	.path-utils: child-path, parent-path
 
 main fut exit-code(args arr str) summon
 	option-names = new-arr<str> "print-tests", "overwrite-output", "max-failures"

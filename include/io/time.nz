@@ -1,8 +1,8 @@
 import
-	..bootstrap: fut nat void
-	..fut-low-level: new-unresolved-fut resolve
-	..number-utils: + *
-	..runtime: add-task get-cur-island new-exclusion
+	..bootstrap: fut, nat, void
+	..fut-low-level: new-unresolved-fut, resolve
+	..number-utils: +, *
+	..runtime: add-task, get-cur-island, new-exclusion
 	.time-low-level: get-monotime-nsec
 
 duration record

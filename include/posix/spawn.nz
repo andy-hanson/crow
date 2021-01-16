@@ -1,11 +1,11 @@
 | /usr/include/spawn.h
 
 import
-	..bootstrap: any-ptr c-str int32 ptr
+	..bootstrap: any-ptr, c-str, int32, ptr
 	..cell: cell
 	.bytes-types: bytes64
-	.extra-types: err-t fd-t
-	.types: mode-t pid-t
+	.extra-types: err-t, fd-t
+	.types: mode-t, pid-t
 
 posix-spawn-file-actions-t record mut
 	allocated mut int32

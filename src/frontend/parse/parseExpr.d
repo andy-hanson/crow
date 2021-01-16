@@ -650,13 +650,13 @@ immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
 				isFirst = False;
 				return True;
 			} else
-				return tryTake(lexer, ' ');
+				return tryTake(lexer, ", ");
 		}();
 		if (success)
 			add(alloc, parameters, takeNameAndRange(alloc, lexer));
 		else {
 			addDiagAtChar(alloc, lexer, immutable ParseDiag(
-				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.space)));
+				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.comma)));
 			skipUntilNewlineNoDiag(lexer);
 		}
 	}

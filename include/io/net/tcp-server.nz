@@ -1,31 +1,31 @@
 import
-	...bits
-		bits-intersect? bits-or
-	...bootstrap
-		== != < arr as bool by-val data drop false fut int32 message nat8 nat16 nat32 not or
-		ptr-cast-to-extern ptr-to ref-of-val size-of str todo to-int true value void
+	...bits: bits-intersect?, bits-or
+	...bootstrap:
+		==, !=, <, arr, as, bool, by-val, data, drop, false, fut, int32, message, nat8, nat16,
+		nat32, not, or, ptr-cast-to-extern, ptr-to, ref-of-val, size-of, str, todo, to-int, true,
+		value, void
 	...cell: cell
-	...collection.arr: + slice-up-to
-	...collection.mut-arr: cast-immutable data new-uninitialized-mut-arr size
+	...collection.arr: +, slice-up-to
+	...collection.mut-arr: cast-immutable, data, new-uninitialized-mut-arr, size
 	...exceptions: assert
-	...fut-utils: call-ref-void handle-exceptions then then-void fut-catch resolved
-	...number-utils: to-int to-int32 to-nat to-nat32
+	...fut-utils: call-ref-void, handle-exceptions, then, then-void, fut-catch, resolved
+	...number-utils: to-int, to-int32, to-nat, to-nat32
 	...posix.c-types: c-int
-	...posix.errno: eagain errno ewouldblock
+	...posix.errno: eagain, errno, ewouldblock
 	...posix.extra-types: fd-t
-	...posix.fcntl: fcntl f-getfl f-setfl o-nonblock
-	...posix.netinet.in: empty-sockaddr-in sockaddr-in
-	...posix.socket: accept listen shutdown shut-rdwr sockaddr
+	...posix.fcntl: fcntl, f-getfl, f-setfl, o-nonblock
+	...posix.netinet.in: empty-sockaddr-in, sockaddr-in
+	...posix.socket: accept, listen, shutdown, shut-rdwr, sockaddr
 	...posix.stdio: perror
 	...posix.types: socklen-t
-	...posix.unistd: close read
+	...posix.unistd: close, read
 	...str-conv: to-str
-	...sys.epoll
-		data epoll-create1 epoll-ctl epoll-ctl-add epollerr epollet epoll-event epollhup epollin
-		epoll-wait events
+	...sys.epoll:
+		data, epoll-create1, epoll-ctl, epoll-ctl-add, epollerr, epollet, epoll-event, epollhup,
+		epollin, epoll-wait, events
 	..posix-util: check-posix-error
 	..print: print
-	..time: delay msec
+	..time: delay, msec
 	.net: bind-to-port
 	
 close-client void(client-fd fd-t) unsafe summon

@@ -1,7 +1,7 @@
 import
 	io.print: print
 	io.process: exit-code
-	io.time: delay msec
+	io.time: delay, msec
 
 main fut exit-code(_ arr str) summon
 	print: "Just a second..."

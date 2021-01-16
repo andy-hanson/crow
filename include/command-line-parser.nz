@@ -1,11 +1,12 @@
 import
-	.bootstrap: == arr bool false has? none opt size some subscript str true value void
-	.cell: cell get set
-	.collection.arr: + empty? empty-arr slice-after slice-starting-at slice-up-to
-	.collection.arr-util: find-index first index-of remove-start starts-with? tail
-	.collection.dict: add dict each empty-dict move-to-dict mut-dict new-mut-dict
-	.collection.mut-list: fill-mut-list move-to-arr set-subscript subscript
-	.exceptions: assert fail forbid
+	.bootstrap:
+		==, arr, bool, false, has?, none, opt, size, some, subscript, str, true, value, void
+	.cell: cell, get, set
+	.collection.arr: +, empty?, empty-arr, slice-after, slice-starting-at, slice-up-to
+	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
+	.collection.dict: add, dict, each, empty-dict, move-to-dict, mut-dict, new-mut-dict
+	.collection.mut-list: fill-mut-list, move-to-arr, set-subscript, subscript
+	.exceptions: assert, fail, forbid
 
 | TODO: this would be neater if we had reflection!
 parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt arr str))
@@ -16,7 +17,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt 
 	values = t-names.size fill-mut-list<opt arr str> none
 	| TODO: should not need a type argument here
 	help = false cell<bool>
-	parsed.named each \key value
+	parsed.named each \key, value
 		match t-names index-of key
 		as none
 			if key == "help"

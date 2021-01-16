@@ -1,7 +1,7 @@
 import
-	..bootstrap: == as by-val nat ref-of-val todo unsafe-to-nat wrap-add wrap-mul
-	..cell: cell get
-	..posix.time: clock-gettime clock-monotonic timespec tv-nsec tv-sec
+	..bootstrap: ==, as, by-val, nat, ref-of-val, todo, unsafe-to-nat, wrap-add, wrap-mul
+	..cell: cell, get
+	..posix.time: clock-gettime, clock-monotonic, timespec, tv-nsec, tv-sec
 
 timestamp alias
 	nat

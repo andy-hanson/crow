@@ -1,9 +1,9 @@
 import
-	io.io: check-errno-if-not-zero connect-to-uri exit-code print uri
+	io.io: check-errno-if-not-zero, connect-to-uri, exit-code, print, uri
 	openssl
-		err-clear-error openssl-init-ssl ssl ssl-connect ssl-ctx ssl-ctx-new ssl-load-error-strings
-		ssl-new ssl-set-fd tls-client-method
-	posix: fd-t sigignore sigpipe
+		err-clear-error, openssl-init-ssl, ssl, ssl-connect, ssl-ctx, ssl-ctx-new,
+		ssl-load-error-strings, ssl-new, ssl-set-fd, tls-client-method
+	posix: fd-t, sigignore, sigpipe
 
 main fut exit-code(args arr str) summon
 	print: "Hello ya world!"

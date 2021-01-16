@@ -1,11 +1,12 @@
 import
-	cell: cell get swap
-	collection.arr-util: contains? contains-subseq? each-with-index exists? ends-with? first tail
-	collection.mut-list: move-to-arr new-mut-list push
+	cell: cell, get, swap
+	collection.arr-util:
+		contains?, contains-subseq?, each-with-index, exists?, ends-with?, first, tail
+	collection.mut-list: move-to-arr, new-mut-list, push
 	io.file: read-file
 	io.print: print
-	.failure: failure flat-map-with-max-size max-failures print-tests? test-options
-	.path-utils: base-name each-child-recursive get-extension
+	.failure: failure, flat-map-with-max-size, max-failures, print-tests?, test-options
+	.path-utils: base-name, each-child-recursive, get-extension
 
 lint result<str, arr failure>(path str, options test-options) summon
 	files = path list-lintable-files
@@ -36,7 +37,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 	res = new-mut-list<failure>
 	ext = path.get-extension force
 	allow-double-space? = ext == "err" or: ext == "sublime-syntax"
-	text.lines each-with-index \line line-num
+	text.lines each-with-index \line, line-num
 		ln = line-num.incr.to-str
 		space-space = " " + " "
 		if allow-double-space?.not and: line contains-subseq? space-space
@@ -71,7 +72,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 .lines arr str(s str)
 	res = new-mut-list<str>
 	last-nl = 0 cell<nat>
-	s each-with-index \c index
+	s each-with-index \c, index
 		if c == "\n"
 			res push: s slice-from-to (last-nl swap index.incr), index
 	res push: s slice-from-to last-nl.get, s.size

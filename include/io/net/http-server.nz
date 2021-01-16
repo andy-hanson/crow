@@ -1,21 +1,22 @@
 import
-	...bootstrap
-		== != <= >= and arr as bool char data drop false fut nat nat8 none opt ptr-cast size some
-		str todo true value void
-	...collection.arr: empty? has? subscript
-	...collection.arr-util: contains? last rtail split-by-subseq
-	...collection.dict: add dict each empty-dict has? move-to-dict mut-dict new-mut-dict remove subscript
-	...collection.mut-list
-		index-of move-to-arr mut-list new-mut-list pop-n-from-start push push-all size
-	...exceptions: assert forbid
-	...fut-utils: resolved subscript then
-	...number-utils: incr to-int
+	...bootstrap:
+		==, !=, <=, >=, and, arr, as, bool, char, data, drop, false, fut, nat, nat8, none, opt,
+		ptr-cast, size, some, str, todo, true, value, void
+	...collection.arr: empty?, has?, subscript
+	...collection.arr-util: contains?, last, rtail, split-by-subseq
+	...collection.dict:
+		add, dict, each, empty-dict, has?, move-to-dict, mut-dict, new-mut-dict, remove, subscript
+	...collection.mut-list:
+		index-of, move-to-arr, mut-list, new-mut-list, pop-n-from-start, push, push-all, size
+	...exceptions: assert, forbid
+	...fut-utils: resolved, subscript, then
+	...number-utils: incr, to-int
 	...posix.extra-types: fd-t
 	...posix.unistd: write
-	...str-conv: parse-nat to-str
+	...str-conv: parse-nat, to-str
 	...str-utils: as-str
 	..print: print
-	.tcp-server: close-client start-tcp-server stop tcp-handler
+	.tcp-server: close-client, start-tcp-server, stop, tcp-handler
 
 http-server record sendable
 	stop ref void()
@@ -48,7 +49,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	on-accepted-client = as<ref void(fd-t)>: \fd
 		client-states add fd, new-http-parse-state
 		void resolved
-	on-received-chunk = as<ref void(fd-t, arr nat8)>: \fd bytes
+	on-received-chunk = as<ref void(fd-t, arr nat8)>: \fd, bytes
 		match client-states[fd]
 		as none
 			print: "Ignoring unrecognized client"
@@ -98,7 +99,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	forbid: a.status-desc contains? "\n"
 	res push-all a.status-desc
 	| TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
-	a.headers each \k v
+	a.headers each \k, v
 		res push-all "\r\n"
 		forbid: k contains? "\n"
 		forbid: v contains? "\n"

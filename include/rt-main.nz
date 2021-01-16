@@ -1,23 +1,23 @@
 import
 	.alloc
-	.bootstrap
-		? != + any-ptr arr as as-any-ptr as-ref by-val call-with-ctx c-str ctx deref false
-		fun-ptr2 fut get-ctx int32 nat noctx-decr noctx-incr null
-		ptr ptr-to ref-of-val set state str subscript to-int unsafe-to-nat value void
+	.bootstrap:
+		?, !=, +, any-ptr, arr, as, as-any-ptr, as-ref, by-val, call-with-ctx, c-str, ctx, deref,
+		false, fun-ptr2, fut, get-ctx, int32, nat, noctx-decr, noctx-incr, null, ptr, ptr-to,
+		ref-of-val, set, state, str, subscript, to-int, unsafe-to-nat, value, void
 	.cell: as-cell
 	.collection.arr: empty-arr
-	.collection.arr-util: map tail
+	.collection.arr-util: map, tail
 	.exceptions: new-exception-ctx
-	.fut-utils: delay handle-exceptions then2
+	.fut-utils: delay, handle-exceptions, then2
 	.io.process: exit-code
 	.logging: new-log-ctx
 	.posix.pthread: pthread-t
-	.runtime
-		any-unhandled-exceptions? global-ctx new-ctx new-island set-islands thread-function
-		thread-local-stuff island
+	.runtime:
+		any-unhandled-exceptions?, global-ctx, new-ctx, new-island, set-islands, thread-function,
+		thread-local-stuff, island
 	.sys.sysinfo: get-nprocs
 	.str-utils: to-str
-	.thread-utils: create-one-thread join-one-thread new-condition new-lock
+	.thread-utils: create-one-thread, join-one-thread, new-condition, new-lock
 
 .main-ptr alias
 	fun-ptr2<fut exit-code, ctx, arr str>
@@ -54,7 +54,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val, log-ctx.ref-of-val
 	ctx-by-val = new-ctx: gctx, tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
-	add = as<fun fut exit-code(arr c-str, main-ptr)>: \all-args main-ptr
+	add = as<fun fut exit-code(arr c-str, main-ptr)>: \all-args, main-ptr
 		add-first-task: all-args, main-ptr
 	all-args = arr: argc.to-int.unsafe-to-nat, argv
 	add call-with-ctx ctx, all-args, main-ptr
