@@ -92,9 +92,18 @@ ends-with? bool(a arr ?t, end arr ?t) data<?t>
 remove-start arr ?t(a arr ?t, start arr ?t) data<?t>
 	a try-remove-start start force
 
-try-remove-start opt arr<?t>(a arr ?t, start arr ?t) data<?t>
+try-remove-start opt arr ?t(a arr ?t, start arr ?t) data<?t>
 	if a starts-with? start
 		a slice-starting-at start.size some
+	else
+		none
+
+remove-end arr ?t(a arr ?t, end arr ?t) data<?t>
+	a try-remove-end end force
+
+try-remove-end opt arr ?t(a arr ?t, end arr ?t) data<?t>
+	if a ends-with? end
+		a slice-up-to (a.size - end.size) some
 	else
 		none
 

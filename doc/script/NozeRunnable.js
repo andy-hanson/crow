@@ -1,6 +1,18 @@
 import {NozeText} from "./NozeText.js"
 import {LoadingIcon} from "./LoadingIcon.js"
-import {Border, cssClass, Color, FontFamily, Margin, Measure, Outline, StyleBuilder, WhiteSpace} from "./util/css.js"
+import {
+	Border,
+	cssClass,
+	Color,
+	Cursor,
+	FontFamily,
+	Margin,
+	Measure,
+	Outline,
+	Selector,
+	StyleBuilder,
+	WhiteSpace,
+} from "./util/css.js"
 import {button, div} from "./util/html.js"
 import {CustomElementClass, makeCustomElement} from "./util/CustomElement.js"
 import {removeAllChildren} from "./util/dom.js"
@@ -10,6 +22,8 @@ import {nonNull} from "./util/util.js"
 const outputClass = cssClass("output")
 const outputOkClass = cssClass("ok")
 const outputErrClass = cssClass("err")
+const bottomClass = cssClass("bottom")
+const iconClass = cssClass("copy-icon")
 
 //TODO: just style NozeText?
 const nozeTextContainerClass = cssClass("noze-text-container")
@@ -36,13 +50,20 @@ export const NozeRunnable = makeCustomElement({
 			tab_size: 4,
 		})
 		.button({
-			width: Measure.em(3),
 			border: Border.none,
 			outline: Outline.none,
+			background: Color.yellow,
+			cursor: Cursor.pointer,
+		})
+		.class(bottomClass, {
+			width: Measure.em(5.5),
 			border_radius_bottom: Measure.ex(1),
 			background: Color.yellow,
 			margin: Measure.zero,
 			padding: Measure.ex(0.25),
+		})
+		.rule(Selector.child(Selector.class(iconClass), Selector.tag("svg")), {
+			height: Measure.em(1.25),
 		})
 		.end(),
 	init: () => ({state:null, out:null}),
@@ -50,7 +71,7 @@ export const NozeRunnable = makeCustomElement({
 
 		const comp = await compiler.getGlobalCompiler()
 		const src = nonNull(getAttribute('src'))
-		const initialText = await (await fetch(`../../test/runnable/${src}.nz`)).text()
+		const initialText = await (await fetch(`example/${src}.nz`)).text()
 		const MAIN = "main"
 
 		/** @type {MutableObservable<string>} */
@@ -75,8 +96,8 @@ export const NozeRunnable = makeCustomElement({
 
 		const output = div({class:outputClass})
 
-		const b = button("Run")
-		b.onclick = () => {
+		const runButton = button(playIcon())
+		runButton.onclick = () => {
 			try {
 				output.className = outputClass.name
 				removeAllChildren(output)
@@ -100,10 +121,75 @@ export const NozeRunnable = makeCustomElement({
 			}
 		}
 
-		const outerContainer = div({class:outerContainerClass}, [nozeTextContainer, output, b])
+		const copyButton = button(copyIcon())
+		copyButton.onclick = () => {
+			navigator.clipboard.writeText(text.get()).catch(e => {
+				console.error(e)
+			})
+		}
+
+		const downloadButton = button(downloadIcon())
+		downloadButton.onclick = () => {
+			console.log("Clicked download!")
+			const a = document.createElement("a")
+			a.href = "data:text/csv;charset=utf-8," + encodeURI(text.get())
+			a.target = "_blank"
+			a.download = "hello.crow"
+			a.click()
+			console.log("Clicked???")
+		}
+
+		const bottom = div({class:bottomClass}, [runButton, copyButton, downloadButton])
+
+		const outerContainer = div({class:outerContainerClass}, [nozeTextContainer, output, bottom])
 		root.append(outerContainer)
 	},
 })
+
+
+// Icons from https://heroicons.com/
+
+const playIcon = () =>
+	icon(`
+		<path
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			stroke-width="2"
+			d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+		<path
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			stroke-width="2"
+			d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />`)
+
+const downloadIcon = () =>
+	icon(`<path
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		stroke-width="2"
+		d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+	/>`)
+
+/** @return {HTMLElement} */
+const copyIcon = () => {
+	const data =
+		"M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 " +
+		"0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+	return icon(`<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${data}"/>`)
+}
+
+/** @type {function(string): HTMLElement} */
+const icon = content => {
+	const res = div({class:iconClass})
+	res.innerHTML = `<svg
+		xmlns="http://www.w3.org/2000/svg"
+		fill="none"
+		viewBox="0 0 24 24"
+		stroke="currentColor">
+		${content}
+	</svg>`
+	return res
+}
 
 /**
  * @typedef FileNameAndContent
@@ -124,4 +210,4 @@ const getIncludeFiles = async () =>
 
 /** @type {function(): Promise<ReadonlyArray<string>>} */
 const listInclude = async () =>
-	(await (await fetch('includeList.txt')).text()).trim().split('\n')
+	(await (await fetch('include-list.txt')).text()).trim().split('\n')

@@ -108,7 +108,11 @@ immutable(Members) getMembers(immutable string path) {
 			if (contains(line, "access:public")) {
 				public_ ~= name;
 				// For some reason dscanner doesn't give non-nested unions like Converter64 access:private
-			} else if (contains(line, "access:private") || name == "Converter64" || name == "DoubleToUlong") {
+			} else if (contains(line, "access:private")
+				|| name == "Converter32"
+				|| name == "Converter64"
+				|| name == "DoubleToUlong"
+			) {
 				private_ ~= name;
 			} else {
 				// extern is neither public nor private

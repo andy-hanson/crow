@@ -4200,7 +4200,7 @@ program(
 			clock-gettime
 			type(false, int32)
 			none
-			[param(clock-it, type(false, int32)), param(tp, type(true, cell))]
+			[param(clock-id, type(false, int32)), param(timespec, type(true, cell))]
 			extern(false))
 		fun(false, clock-monotonic, type(false, int32), none, [], expr-body(1))
 		fun(false, ref-of-val, type(true, cell), none, [param(b, type(false, cell))], builtin([type(true, cell)]))

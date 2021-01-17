@@ -1,0 +1,38 @@
+<section>
+	<h2>records</h2>
+	<p>
+		You are probably familiar with the concept of records already;
+		these are like structs in C or plain old data classes in Java.
+	</p>
+
+	<noze-runnable src="record"></noze-runnable>
+
+	The above program defines a record type <code class="struct-def">dinner</code> and two fields,
+	<code class="field-def">food</code> and <code class="field-def">drink</code>.
+
+	The compiler then generates functions for creating the record and accessing fields.
+	<em>There is no special syntax for deailing with records</em>,
+	these are ordinary functions and can be called using any syntax for calling functions.
+	(So <code>a.food</code> may be written <code>a food</code> or <code>food: a</code>.)
+</section>
+
+<section>
+	<h2>mut</h2>
+
+	<p>
+		A field can be made mutable by adding the <code class="keyword">mut</code> keyword after its name.
+		This adds a function by prepending <code>set-</code> to the name, such as <code>set-food</code>.
+	</p>
+	<p>
+		The special syntax <code>a.food := "nothing"</code> is actually calling <code>a set-food "nothing"</code>.
+		It's not specific to records, you can define your own setters for any type.
+	</p>
+
+	<noze-runnable src="record-mut"></noze-runnable>
+
+	If a record is not purely immutable data, it must be marked <code class="keyword">mut</code>.
+	This applies even if it references another record with mutable data.
+	This means that any function with no <code class="keyword">mut</code> parameters can't mutate anything at all
+	(except for what it creates itself) and it functionally pure.
+
+</section>

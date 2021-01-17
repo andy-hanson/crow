@@ -124,6 +124,7 @@ export const NozeText = makeCustomElement({
 		})
 		.class(cssClass("identifier"), {color: Color.lightYellow})
 		.class(cssClass("import"), {color: Color.pink})
+		.class(cssClass("purity"), {color: Color.pink})
 		.class(cssClass("fun-def"), {font_weight: FontWeight.bold, color: Color.blue})
 		.class(cssClass("fun-ref"), {color: Color.blue})
 		.class(cssClass("struct-def"), {font_weight: FontWeight.bold, color: Color.lavender})

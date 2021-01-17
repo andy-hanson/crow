@@ -8,13 +8,14 @@ import core.sys.posix.fcntl : open, O_CREAT, O_RDONLY, O_TRUNC, O_WRONLY, pid_t;
 import core.sys.posix.spawn : posix_spawn;
 import core.sys.posix.sys.wait : waitpid;
 import core.sys.posix.sys.types : off_t;
+import core.sys.posix.time : clock_gettime, timespec;
 import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, posixWrite = write;
 import std.process : execvpe;
 
 import frontend.showDiag : ShowDiagOptions;
 import interpret.allocTracker : AllocTracker;
 import interpret.applyFn : nat64OfI32, nat64OfI64;
-import interpret.bytecode : DynCallType;
+import interpret.bytecode : DynCallType, TimeSpec;
 import lib.cliParser : Command, matchCommand, parseCommand, ProgramDirAndMain;
 import lib.compiler :
 	buildAndInterpret,
@@ -386,20 +387,22 @@ struct RealExtern {
 		dcFree(dcVm);
 	}
 
-	// TODO: not trusted
-	@trusted pure void free(ubyte* ptr) {
+	@system immutable(int) clockGetTime(immutable int clockId, Ptr!TimeSpec tp) {
+		return clock_gettime(clockId, cast(timespec*) tp.rawPtr());
+	}
+
+	@system pure void free(ubyte* ptr) {
 		immutable size_t size = allocTracker.markFree(ptr);
 		alloc.freeBytes(ptr, size);
 	}
 
-	// TODO: not trusted
-	@trusted pure ubyte* malloc(immutable size_t size) {
+	@system pure ubyte* malloc(immutable size_t size) {
 		ubyte* ptr = alloc.allocateBytes(size);
 		allocTracker.markAlloced(alloc, ptr, size);
 		return ptr;
 	}
 
-	@system long write(int fd, immutable char* buf, immutable size_t nBytes) const {
+	@system immutable(long) write(int fd, immutable char* buf, immutable size_t nBytes) const {
 		return posixWrite(fd, buf, nBytes);
 	}
 

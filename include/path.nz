@@ -1,6 +1,9 @@
 import
-	collection.arr-util: each, last, r-index-of, rtail
-	io.file: is-dir?, read-dir
+	.bootstrap: ==, bool, char, nat, none, opt, size, some, str, subscript, value, void
+	.collection.arr: +, empty?, slice-after, slice-up-to
+	.collection.arr-util: each, last, r-index-of, rtail
+	.io.file: is-dir?, read-dir
+	.number-utils: decr
 
 parent-path str(a str)
 	match a r-index-of "/"

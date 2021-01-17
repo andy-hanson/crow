@@ -308,6 +308,12 @@ immutable(float64) float64OfU64Bits(immutable u64 value) {
 	return conv.asFloat64;
 }
 
+immutable(i32) i32OfU64Bits(immutable u64 value) {
+	Converter32 conv;
+	conv.asU32 = cast(u32) value;
+	return conv.asI32;
+}
+
 immutable(i64) i64OfU64Bits(immutable u64 value) {
 	Converter64 conv;
 	conv.asU64 = value;
@@ -315,6 +321,11 @@ immutable(i64) i64OfU64Bits(immutable u64 value) {
 }
 
 private:
+
+union Converter32 {
+	i32 asI32;
+	u32 asU32;
+}
 
 union Converter64 {
 	u64 asU64;

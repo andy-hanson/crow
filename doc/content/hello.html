@@ -1,0 +1,34 @@
+<section>
+	<h2>Hello World!</h2>
+
+	<p>Here is a basic program that prints <code class="lit-str">"Hello, world!"</code>:</p>
+
+	<noze-runnable src="hello"></noze-runnable>
+
+	You can run it by clicking the play button above, or download and run <code>crow hello.crow</code>.
+
+	This shows a few basic features of noze:
+	<ul>
+		<li>
+			Modules: The main module imports types and functions from <code class="import">io</code>.
+		</li>
+		<li>
+			A function: <code class="fun-def">main</code>.
+			The name of a declaration always goes first.
+			So you'll have <code class="struct-def">r record</code>,
+			<code class="struct-def">u union</code>, and here,
+			<code><span class="fun-def">main</span> <span class="struct-ref">fut exit-code</span></code>.
+		</li>
+		<li>
+			Templates: <code class="struct-ref">fut</code> and <code class="struct-ref">arr</code>
+			are templated types, and <code class="fun-ref">resolved</code> is a templated function.
+			The type arguments to <code class="fun-ref">resolved</code> are inferred
+			from the return type of <code class="fun-def">main</code>).
+		</li>
+		<li>
+			IO: The main function is labelled <code>summon</code> because it calls
+			<code class="fun-ref">print</code> which is also <code>summon</code>.
+			As we'll see, most code will actually not do I/O this way.
+		</li>
+	</ul>
+</section>

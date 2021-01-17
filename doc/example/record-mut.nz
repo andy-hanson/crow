@@ -1,0 +1,20 @@
+import
+	io.print: print
+	io.process: exit-code
+
+dinner record mut
+	food mut str
+	drink mut str
+
+yank! void(a dinner)
+	a.food := "nothing"
+
+to-str str(a dinner)
+	a.food + " and " + a.drink
+
+main fut exit-code(_ arr str) summon
+	a = dinner: "ramen", "tea"
+	print: "yum, " + a.to-str
+	a yank!
+	print: "yum, " + a.to-str
+	0 resolved

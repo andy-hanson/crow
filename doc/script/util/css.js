@@ -795,6 +795,7 @@ export class Color {
 	static transparent = new Color("#00000000")
 
 	// stolen from https://monokai.pro/
+	// TODO: Get these colors from index.css
 	static white = new Color("#fdf9f3")
 	static pink = new Color("#ff6188")
 	static peach = new Color("#fc9867")

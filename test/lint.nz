@@ -5,8 +5,8 @@ import
 	collection.mut-list: move-to-arr, new-mut-list, push
 	io.file: read-file
 	io.print: print
+	path: base-name, each-child-recursive, get-extension
 	.failure: failure, flat-map-with-max-size, max-failures, print-tests?, test-options
-	.path-utils: base-name, each-child-recursive, get-extension
 
 lint result<str, arr failure>(path str, options test-options) summon
 	files = path list-lintable-files
@@ -27,7 +27,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 	res move-to-arr
 
 .excluded-from-lint? bool(name str)
-	bad-exts = new-arr<str> ".bmp", ".err", ".png", ".tata", ".wasm"
+	bad-exts = new-arr<str> ".bmp", ".err", ".png", ".tata", ".ttf", ".wasm"
 	bad-names = new-arr<str> "dyncall", "libfirm", "node_modules", "package-lock.json"
 	name.first == "." or: bad-names contains? name or: bad-exts exists? {name ends-with? it}
 

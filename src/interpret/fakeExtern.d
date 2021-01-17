@@ -3,7 +3,7 @@ module interpret.fakeExtern;
 @safe @nogc pure nothrow:
 
 import interpret.allocTracker : AllocTracker;
-import interpret.bytecode : DynCallType;
+import interpret.bytecode : DynCallType, TimeSpec;
 import util.bools : Bool;
 import util.collection.arr : Arr, range;
 import util.collection.mutArr : clear, moveToArr, MutArr, pushAll;
@@ -24,12 +24,22 @@ struct FakeExtern(Alloc) {
 	AllocTracker allocTracker;
 	MutArr!(immutable char) stdout;
 	MutArr!(immutable char) stderr;
+	uint monoTime = 0;
 
 	public:
 	~this() {
 		// TODO:
 		// verify(mutDictIsEmpty(allocations));
 		// (Need GC to work first..)
+	}
+
+	immutable(int) clockGetTime(immutable int clockId, Ptr!TimeSpec timespec) {
+		if (clockId == 1) {
+			timespec.deref() = immutable TimeSpec(monoTime, 0);
+			monoTime++;
+			return 0;
+		} else
+			return todo!int("!");
 	}
 
 	//TODO: not @trusted
@@ -45,7 +55,7 @@ struct FakeExtern(Alloc) {
 		return ptr;
 	}
 
-	long write(int fd, immutable char* buf, immutable size_t nBytes) {
+	immutable(long) write(int fd, immutable char* buf, immutable size_t nBytes) {
 		immutable Arr!char arr = immutable Arr!char(buf, nBytes);
 		verify(fd == 1 || fd == 2);
 		pushAll!(char, Alloc)(alloc.deref(), fd == 1 ? stdout : stderr, arr);

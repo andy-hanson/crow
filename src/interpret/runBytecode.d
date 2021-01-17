@@ -17,7 +17,8 @@ import interpret.bytecode :
 	matchOperationImpure,
 	Operation,
 	sexprOfOperation,
-	StackOffset;
+	StackOffset,
+	TimeSpec;
 import interpret.bytecodeReader :
 	ByteCodeReader,
 	getReaderPtr,
@@ -32,7 +33,7 @@ import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import util.bools : False;
-import util.dbg : log;
+import util.dbg : log, logNoNewline;
 import util.collection.arr : Arr, begin, freeArr, ptrAt, range, sizeNat;
 import util.collection.arrUtil : mapWithFirst, zipSystem;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -54,7 +55,7 @@ import util.collection.globalAllocatedStack :
 	stackRef,
 	stackSize,
 	toArr;
-import util.collection.str : CStr, freeCStr, Str, strToCStr;
+import util.collection.str : CStr, freeCStr, Str, strOfNulTerminatedStr, strToCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : has;
 import util.path : AbsolutePath, AllPaths, pathToCStr;
@@ -64,6 +65,7 @@ import util.sourceRange : FileAndPos;
 import util.types :
 	decr,
 	incr,
+	i32OfU64Bits,
 	Nat8,
 	Nat16,
 	Nat32,
@@ -349,7 +351,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.ExternDynCall it) {
-			applyExternDynCall(a, it);
+			applyExternDynCall(dbg, a, it);
 			return StepResult.continue_;
 		},
 		(ref immutable Operation.Fn it) {
@@ -549,6 +551,11 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			verify(res <= int.max);
 			push(a.dataStack, immutable Nat64(res));
 			break;
+		case ExternOp.clockGetTime:
+			Ptr!TimeSpec timespecPtr = Ptr!TimeSpec(cast(TimeSpec*) pop(a.dataStack).raw());
+			immutable int clockId = i32OfU64Bits(pop(a.dataStack).raw());
+			push(a.dataStack, immutable Nat64(cast(immutable u64) a.extern_.clockGetTime(clockId, timespecPtr)));
+			break;
 		case ExternOp.free:
 			a.extern_.free(cast(u8*) pop(a.dataStack).raw());
 			break;
@@ -564,6 +571,13 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 		case ExternOp.malloc:
 			immutable ulong nBytes = safeSizeTFromU64(pop(a.dataStack).raw());
 			push(a.dataStack, immutable Nat64(cast(immutable u64) a.extern_.malloc(nBytes)));
+			break;
+		case ExternOp.memcpy:
+			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
+			const ubyte* src = cast(ubyte*) pop(a.dataStack).raw();
+			ubyte* dest = cast(ubyte*) pop(a.dataStack).raw();
+			foreach (immutable size_t i; 0..size)
+				dest[i] = src[i];
 			break;
 		case ExternOp.memset:
 			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
@@ -590,7 +604,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 		case ExternOp.write:
 			immutable size_t nBytes = safeSizeTFromU64(pop(a.dataStack).raw());
 			immutable char* buf = cast(immutable char*) pop(a.dataStack).raw();
-			immutable int fd = cast(int) pop(a.dataStack).to32().raw();
+			immutable int fd = i32OfU64Bits(pop(a.dataStack).raw());
 			immutable long res = a.extern_.write(fd, buf, nBytes);
 			push(a.dataStack, immutable Nat64(res));
 			break;
@@ -615,7 +629,16 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 	return resSize;
 }
 
-void applyExternDynCall(Extern)(ref Interpreter!Extern a, ref immutable Operation.ExternDynCall op) {
+void applyExternDynCall(Debug, Extern)(
+	ref Debug dbg,
+	ref Interpreter!Extern a,
+	ref immutable Operation.ExternDynCall op,
+) {
+	if (dbg.enabled()) {
+		logNoNewline(dbg, "Running extern function ");
+		log(dbg, strOfNulTerminatedStr(op.name));
+	}
+
 	immutable Arr!Nat64 params = popN(a.dataStack, sizeNat(op.parameterTypes).to8());
 	immutable Nat64 value = a.extern_.doDynCall(op.name, op.returnType, params, op.parameterTypes);
 	if (op.returnType != DynCallType.void_)

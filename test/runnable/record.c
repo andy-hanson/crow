@@ -2025,7 +2025,7 @@ uint8_t empty__q_4(struct opt_2 a);
 uint64_t get_last_checked(struct condition* c);
 struct choose_task_result choose_task(struct global_ctx* gctx);
 uint64_t get_monotime_nsec(void);
-extern int32_t clock_gettime(int32_t clock_it, struct cell_1* tp);
+extern int32_t clock_gettime(int32_t clock_id, struct cell_1* timespec);
 int32_t clock_monotonic(void);
 struct timespec get_0(struct cell_1* c);
 uint64_t todo_3(void);

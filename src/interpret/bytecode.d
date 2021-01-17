@@ -540,16 +540,24 @@ immutable Nat16 stackEntrySize = immutable Nat16(8);
 
 enum ExternOp : u8 {
 	backtrace,
+	clockGetTime,
 	free,
 	getNProcs,
 	longjmp,
 	malloc,
+	memcpy,
 	memset,
 	pthreadCreate,
 	pthreadJoin,
 	pthreadYield,
 	setjmp,
 	write,
+}
+
+// Used by clockGetTime
+struct TimeSpec {
+	long tv_sec;
+	long tv_nsec;
 }
 
 enum FnOp : u8 {
@@ -589,6 +597,8 @@ private immutable(Str) strOfExternOp(immutable ExternOp op) {
 		final switch (op) {
 			case ExternOp.backtrace:
 				return "backtrace";
+			case ExternOp.clockGetTime:
+				return "clock_gettime";
 			case ExternOp.free:
 				return "free";
 			case ExternOp.getNProcs:
@@ -597,6 +607,8 @@ private immutable(Str) strOfExternOp(immutable ExternOp op) {
 				return "longjmp";
 			case ExternOp.malloc:
 				return "malloc";
+			case ExternOp.memcpy:
+				return "memcpy";
 			case ExternOp.memset:
 				return "memset";
 			case ExternOp.pthreadCreate:

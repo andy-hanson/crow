@@ -1,4 +1,5 @@
 import
+	collection.arr-util: try-remove-start
 	io.io: check-errno-if-not-zero, connect-to-uri, exit-code, print, uri
 	openssl
 		err-clear-error, openssl-init-ssl, ssl, ssl-connect, ssl-ctx, ssl-ctx-new,
@@ -141,9 +142,3 @@ parse-uri opt uri(uri str)
 	| TODO: not bothering to split out query for now.
 
 	some: uri: host, port, path-and-query, after-hash
-
-try-remove-str-start opt str(a str, b str)
-	if a starts-with? b
-		a slice-starting-at b.size some
-	else
-		none

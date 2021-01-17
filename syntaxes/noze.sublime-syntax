@@ -7,7 +7,7 @@
 # In a '.nz' file, use ctrl-alt-shift-p to see the scope at the cursor.
 
 variables:
-  name: '(([a-z][a-z0-9\-]*\??)|[\+\-\*\/\<\>\=\?\!]+)'
+  name: '(([a-z][a-z0-9\-\?\!]*)|[\+\-\*\/\<\>\=\?\!]+)'
   type_name: '\??{{name}}'
   # Declarations end at the next unindented line.
   # We don't want to consume any characters at that line,
@@ -296,7 +296,7 @@ contexts:
     # Making sure that when we eat a comma, we eat the space after it too.
     - match: '\,\s+'
       scope: comment # punctuation.separator
-    # Method call ` foo ` or ` foo: `
+    # Call ` foo ` or ` foo: `
     - match: '\s+{{name}}(\:)?\s+'
       scope: variable.function.noze
       captures:

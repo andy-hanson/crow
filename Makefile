@@ -10,10 +10,10 @@ dyncall:
 	cd dyncall && ./configure
 	cd dyncall && make
 
-doc/includeList.txt: include/*.nz
-	ls include | cut -f 1 -d '.' > doc/includeList.txt
+doc/include-list.txt: bin/noze include/*.nz
+	./bin/noze run demo/gen-include-list.nz > doc/include-list.txt
 
-doc-server: doc/includeList.txt bin/noze.wasm
+doc-server: doc/include-list.txt bin/noze.wasm
 	python -m SimpleHTTPServer 8080
 
 lint-dscanner:

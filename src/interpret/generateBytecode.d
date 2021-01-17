@@ -318,6 +318,8 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 immutable(Opt!ExternOp) externOpFromName(immutable Str a) {
 	return strEqLiteral(a, "backtrace")
 			? some(ExternOp.backtrace)
+		: strEqLiteral(a, "clock_gettime")
+			? some(ExternOp.clockGetTime)
 		: strEqLiteral(a, "free")
 			? some(ExternOp.free)
 		: strEqLiteral(a, "get_nprocs")
@@ -326,6 +328,8 @@ immutable(Opt!ExternOp) externOpFromName(immutable Str a) {
 			? some(ExternOp.longjmp)
 		: strEqLiteral(a, "malloc")
 			? some(ExternOp.malloc)
+		: strEqLiteral(a, "memcpy")
+			? some(ExternOp.memcpy)
 		: strEqLiteral(a, "memset")
 			? some(ExternOp.memset)
 		: strEqLiteral(a, "pthread_create")

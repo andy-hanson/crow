@@ -8,7 +8,7 @@ timespec record
 	tv-sec s-long
 	tv-nsec s-long
 
-clock-gettime err-t(clock-it clockid-t, tp cell timespec) noctx summon extern<"clock_gettime">
+clock-gettime err-t(clock-id clockid-t, timespec cell timespec) noctx summon extern<"clock_gettime">
 
 clock-monotonic clockid-t() noctx
 	1

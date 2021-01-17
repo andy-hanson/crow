@@ -32,7 +32,8 @@ immutable(Bool) isDigit(immutable char c) {
 }
 
 immutable(Bool) isAlphaIdentifierContinue(immutable char c) {
-	return immutable Bool(isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '?');
+	//TODO: only last character should be '?' or '!'
+	return immutable Bool(isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '?' || c == '!');
 }
 
 struct Sym {
@@ -301,6 +302,7 @@ immutable(u64) packAlphaChar6(immutable char c) {
 		c == '-' ? 1 + 26 :
 		'0' <= c && c <= '9' ? 1 + 26 + 1 + c - '0' :
 		c == '?' ? 1 + 26 + 1 + 10 :
+		c == '!' ? 1 + 26 + 1 + 10 + 1 :
 		unreachable!u64;
 }
 
@@ -310,6 +312,7 @@ immutable(char) unpackAlphaChar(immutable u64 n) {
 		n == 1 + 26 ? '-' :
 		n < 1 + 26 + 1 + 10 ? cast(char) ('0' + (n - 1 - 26 - 1)) :
 		n == 1 + 26 + 1 + 10 ? '?' :
+		n == 1 + 26 + 1 + 10 + 1 ? '!' :
 		unreachable!char;
 }
 

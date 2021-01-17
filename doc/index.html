@@ -2,133 +2,36 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
-		<title>The Noze Programming Language</title>
-		<link rel="icon" href="./icon.png" type="image/x-icon"/>
+		<title>crow programming language</title>
+		<link
+			rel="icon"
+			href="https://openclipart.org/download/28309/drunken-duck-crow-silhouette.svg"
+			type="image/x-icon"/>
 		<link rel="stylesheet" href="./index.css" />
 		<script src="../noze-js/server.js"></script>
 		<script type="module" async src="./script/index.js"></script>
 	</head>
 	<body class="language-noze">
-		<section>
-			<h2>Noze</h2>
-
-			<p>Noze is a new programming language. Some interesting features are:</p>
+		<nav>
+			<div id="crow">
+				<a href="index.html">
+					<img src="https://openclipart.org/download/28309/drunken-duck-crow-silhouette.svg"></img>
+				</a>
+			</div>
 			<ul>
-				<li>
-					<p>
-						Safe: Noze functions can't access anything that wasn't passed in as a parameter.
-						That means no global state, and no unsafe memory operations.
-						They also can't perform I/O without permission being passed in by a parameter.
-						This means that if you're tracking down a bug, you can exclude a function (and all code in it)
-						based on just the arguments passed.
-						Unsafe code (such as calling C libraries) is possible
-						but can't be accidentally called from safe code.
-					</p>
-					<p>
-						A strong notion of <code>data</code>;
-						immutable, serializable types that are just "plain old data".
-					</p>
-					<p>The compiler allows <code>data</code> to be accessed in parallel
-						(as well as some special types like <code class="struct-ref">fut</code>), but not mutable types.
-					</p>
-					<p>
-						This allows for a <code>launch</code> function that launches a new parallel task
-						and is guaranteed to only access things that are thread-safe.
-					</p>
-				</li>
-				<li>
-					<p>Templates; everything is a template.</p>
-					<p>
-						Templates are checked abstractly,
-						meaning you get errors at the definition instead of at use.
-					</p>
-					<p>
-						A <code>spec</code> allows a template to refer to functions
-						that it doesn't have in scope but the caller does.
-					</p>
-				</li>
+				<li><a href="index.html#download">download</a></li>
+				<li><a href="index.html#hello">hello</a></li>
+				<li><a href="index.html#record">record</a></li>
+				<li><a href="index.html#union">union</a></li>
+				<li><a href="index.html#spec">spec</a></li>
+				<li><a href="index.html#fun">fun</a></li>
+				<li><a href="index.html#extern">extern</a></li>
+				<li><a href="index.html#test">test</a></li>
 			</ul>
-		</section>>
+		</nav>
 
-		<section>
-			<h2>Hello World!</h2>
-
-			<p>Here is a basic program that prints <code class="lit-str">"Hello, world!"</code>:</p>
-
-			<noze-runnable src="hello-world"></noze-runnable>
-
-			This shows a few basic features of noze:
-			<ul>
-				<li>
-					Modules: The main module imports types and functions from <code class="import">io</code>.
-				</li>
-				<li>
-					A function: <code class="fun-def">main</code>.
-					The name of a declaration always goes first.
-					So you'll have <code class="struct-def">r record</code>,
-					<code class="struct-def">u union</code>, and here,
-					<code><span class="fun-def">main</span> <span class="struct-ref">fut exit-code</span></code>.
-				</li>
-				<li>
-					Templates: <code class="struct-ref">fut</code> and <code class="struct-ref">arr</code>
-					are templated types, and <code class="fun-ref">resolved</code> is a templated function.
-					The type arguments to <code class="fun-ref">resolved</code> are inferred
-					from the return type of <code class="fun-def">main</code>).
-				</li>
-				<li>
-					IO: The main function is labelled <code>summon</code> because it calls
-					<code class="fun-ref">print</code> which is also <code>summon</code>.
-					As we'll see, most code will actually not do I/O this way.
-				</li>
-			</ul>
-		</section>
-
-		<section>
-			<h2>Types</h2>
-			Here is a <strong>complete</strong> list of every type (or kind of type). We'll go into more detail later.
-			<ul>
-				<li>
-					<code class="keyword">record</code>: Stores several named values.
-				</li>
-				<li>
-					<code class="keyword">union</code>: Stores one of several other types.
-					These are <em>discriminated</em> unions, meaning it knows which of the possibilities it has.
-				</li>
-				<li>
-					<code class="struct-ref">fun, fun-mut, fun-ref</code>:
-					Known as closures or lambdas in other languages.
-				</li>
-				<li>
-					<code class="struct-ref">nat</code>,
-					<code class="struct-ref">nat32</code>,
-					<code class="struct-ref">nat16</code>,
-					<code class="struct-ref">nat8</code>,
-					<code class="struct-ref">int</code>,
-					<code class="struct-ref">int32</code>,
-					<code class="struct-ref">int16</code>,
-					<code class="struct-ref">int8</code>: Natural numbers and integers.
-				<li><code class="struct-ref">float</code> and <code class="struct-ref">float32</code></li>
-				<li>
-					<code class="struct-ref">bool</code>,
-					<code class="struct-ref">char</code>, and
-					<code class="struct-ref">void</code>
-				</li>
-				<li><code class="struct-ref">ptr</code>: C-style pointer for low level code</li>
-				<li>
-					<code class="keyword">extern-ptr</code> and <code class="struct-ref">fun-ptr</code>
-					for C compatibility.
-				</li>
-			</ul>
-		</section>
-
-		<section>
-			<h2>Records</h2>
-
-			<noze-runnable src="example-record"></noze-runnable>
-
-		</section>
-
-
-
+		<main>
+			<!-- Filled in by index.js -->
+		</main>
 	</body>
 </html>

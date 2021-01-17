@@ -8,7 +8,7 @@ const main = async () => {
 	const bytes = fs.readFileSync("bin/noze.wasm")
 	const compiler = await Compiler.makeFromBytes(bytes)
 
-	const includeList = fs.readFileSync("doc/includeList.txt", "utf-8").trim().split("\n")
+	const includeList = fs.readFileSync("doc/include-list.txt", "utf-8").trim().split("\n")
 	const include = Object.fromEntries(includeList.map(nameAndText))
 	const runResult = runCode(compiler, include, TEST_SRC)
 	console.log("RUN RESULT", runResult)

@@ -4,10 +4,10 @@ import
 	io.environ: environ
 	io.print: print
 	io.process: exit-code, spawn-and-wait-result, stderr, stdout
+	path: base-name, each-child-recursive, get-extension
 	.failure:
 		failure, flat-map-with-max-size, handle-output, max-failures, overwrite-output?,
 		print-tests?, test-options
-	.path-utils: base-name, each-child-recursive, get-extension
 
 run-noze-tests result<str, arr failure>(path str, path-to-noze str, env environ, options test-options) summon
 	tests = path list-tests
