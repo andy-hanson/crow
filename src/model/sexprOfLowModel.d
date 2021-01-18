@@ -1,4 +1,4 @@
-module model.sexprOfLowModel;
+module model.reprLowModel;
 
 @safe @nogc pure nothrow:
 
@@ -32,240 +32,240 @@ import model.lowModel :
 	name,
 	PrimitiveType,
 	symOfPrimitiveType;
-import model.sexprOfConcreteModel :
-	tataOfConcreteFunRef,
-	tataOfConcreteLocalRef,
-	tataOfConcreteParamRef,
-	tataOfConcreteStructRef;
-import model.sexprOfConstant : tataOfConstant;
+import model.reprConcreteModel :
+	reprOfConcreteFunRef,
+	reprOfConcreteLocalRef,
+	reprOfConcreteParamRef,
+	reprOfConcreteStructRef;
+import model.reprConstant : reprOfConstant;
 import util.collection.arr : size;
 import util.collection.str : strLiteral;
 import util.ptr : Ptr;
-import util.sexpr :
-	nameAndTata,
-	Sexpr,
-	tataArr,
-	tataBool,
-	tataFullIndexDict,
-	tataNamedRecord,
-	tataNat,
-	tataOpt,
-	tataRecord,
-	tataStr,
-	tataSym;
-import util.sourceRange : sexprOfFileAndRange;
+import util.repr :
+	nameAndRepr,
+	Repr,
+	reprArr,
+	reprBool,
+	reprFullIndexDict,
+	reprNamedRecord,
+	reprNat,
+	reprOpt,
+	reprRecord,
+	reprStr,
+	reprSym;
+import util.sourceRange : reprFileAndRange;
 
-immutable(Sexpr) tataOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
-	return tataNamedRecord(alloc, "program", [
-		nameAndTata("extern-ptrs", tataFullIndexDict(alloc, a.allExternPtrTypes, (ref immutable LowExternPtrType it) =>
-			tataOfExternPtrType(alloc, it))),
-		nameAndTata("fun-ptrs", tataFullIndexDict(alloc, a.allFunPtrTypes, (ref immutable LowFunPtrType it) =>
-			tataOfLowFunPtrType(alloc, it))),
-		nameAndTata("records", tataFullIndexDict(alloc, a.allRecords, (ref immutable LowRecord it) =>
-			tataOfLowRecord(alloc, it))),
-		nameAndTata("unions", tataFullIndexDict(alloc, a.allUnions, (ref immutable LowUnion it) =>
-			tataOfLowUnion(alloc, it))),
-		nameAndTata("funs", tataFullIndexDict(alloc, a.allFuns, (ref immutable LowFun it) =>
-			tataOfLowFun(alloc, it))),
-		nameAndTata("main", tataNat(a.main.index))]);
+immutable(Repr) reprOfLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
+	return reprNamedRecord(alloc, "program", [
+		nameAndRepr("extern-ptrs", reprFullIndexDict(alloc, a.allExternPtrTypes, (ref immutable LowExternPtrType it) =>
+			reprOfExternPtrType(alloc, it))),
+		nameAndRepr("fun-ptrs", reprFullIndexDict(alloc, a.allFunPtrTypes, (ref immutable LowFunPtrType it) =>
+			reprOfLowFunPtrType(alloc, it))),
+		nameAndRepr("records", reprFullIndexDict(alloc, a.allRecords, (ref immutable LowRecord it) =>
+			reprOfLowRecord(alloc, it))),
+		nameAndRepr("unions", reprFullIndexDict(alloc, a.allUnions, (ref immutable LowUnion it) =>
+			reprOfLowUnion(alloc, it))),
+		nameAndRepr("funs", reprFullIndexDict(alloc, a.allFuns, (ref immutable LowFun it) =>
+			reprOfLowFun(alloc, it))),
+		nameAndRepr("main", reprNat(a.main.index))]);
 }
 
 private:
 
-immutable(Sexpr) tataOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) {
-	return matchLowType!(immutable Sexpr)(
+immutable(Repr) reprOfLowType(Alloc)(ref Alloc alloc, ref immutable LowType a) {
+	return matchLowType!(immutable Repr)(
 		a,
 		(immutable LowType.ExternPtr it) =>
-			tataRecord(alloc, "extern-ptr", [tataNat(it.index)]),
+			reprRecord(alloc, "extern-ptr", [reprNat(it.index)]),
 		(immutable LowType.FunPtr it) =>
-			tataRecord(alloc, "fun-ptr", [tataNat(it.index)]),
+			reprRecord(alloc, "fun-ptr", [reprNat(it.index)]),
 		(immutable PrimitiveType it) =>
-			tataSym(symOfPrimitiveType(it)),
+			reprSym(symOfPrimitiveType(it)),
 		(immutable LowType.PtrGc it) =>
-			tataRecord(alloc, "gc-ptr", [tataOfLowType(alloc, it.pointee)]),
+			reprRecord(alloc, "gc-ptr", [reprOfLowType(alloc, it.pointee)]),
 		(immutable LowType.PtrRaw it) =>
-			tataRecord(alloc, "raw-ptr", [tataOfLowType(alloc, it.pointee)]),
+			reprRecord(alloc, "raw-ptr", [reprOfLowType(alloc, it.pointee)]),
 		(immutable LowType.Record it) =>
-			tataRecord(alloc, "record", [tataNat(it.index)]),
+			reprRecord(alloc, "record", [reprNat(it.index)]),
 		(immutable LowType.Union it) =>
-			tataRecord(alloc, "union", [tataNat(it.index)]));
+			reprRecord(alloc, "union", [reprNat(it.index)]));
 }
 
-immutable(Sexpr) tataOfExternPtrType(Alloc)(ref Alloc alloc, ref immutable LowExternPtrType a) {
-	return tataRecord(alloc, "extern-ptr", [
-		tataOfConcreteStructRef(alloc, a.source)]);
+immutable(Repr) reprOfExternPtrType(Alloc)(ref Alloc alloc, ref immutable LowExternPtrType a) {
+	return reprRecord(alloc, "extern-ptr", [
+		reprOfConcreteStructRef(alloc, a.source)]);
 }
 
-immutable(Sexpr) tataOfLowFunPtrType(Alloc)(ref Alloc alloc, ref immutable LowFunPtrType a) {
-	return tataRecord(alloc, "fun-ptr", [
-		tataOfConcreteStructRef(alloc, a.source),
-		tataOfLowType(alloc, a.returnType),
-		tataArr(alloc, a.paramTypes, (ref immutable LowType it) =>
-			tataOfLowType(alloc, it))]);
+immutable(Repr) reprOfLowFunPtrType(Alloc)(ref Alloc alloc, ref immutable LowFunPtrType a) {
+	return reprRecord(alloc, "fun-ptr", [
+		reprOfConcreteStructRef(alloc, a.source),
+		reprOfLowType(alloc, a.returnType),
+		reprArr(alloc, a.paramTypes, (ref immutable LowType it) =>
+			reprOfLowType(alloc, it))]);
 }
 
-immutable(Sexpr) tataOfLowRecord(Alloc)(ref Alloc alloc, ref immutable LowRecord a) {
-	return tataRecord(alloc, "record", [
-		tataOfConcreteStructRef(alloc, a.source),
-		tataArr(alloc, a.fields, (ref immutable LowField field) =>
-			tataRecord(alloc, "field", [tataSym(name(field)), tataOfLowType(alloc, field.type)]))]);
+immutable(Repr) reprOfLowRecord(Alloc)(ref Alloc alloc, ref immutable LowRecord a) {
+	return reprRecord(alloc, "record", [
+		reprOfConcreteStructRef(alloc, a.source),
+		reprArr(alloc, a.fields, (ref immutable LowField field) =>
+			reprRecord(alloc, "field", [reprSym(name(field)), reprOfLowType(alloc, field.type)]))]);
 }
 
-immutable(Sexpr) tataOfLowUnion(Alloc)(ref Alloc alloc, ref immutable LowUnion a){
-	return tataRecord(alloc, "union", [
-		tataOfConcreteStructRef(alloc, a.source),
-		tataArr(alloc, a.members, (ref immutable LowType it) =>
-			tataOfLowType(alloc, it))]);
+immutable(Repr) reprOfLowUnion(Alloc)(ref Alloc alloc, ref immutable LowUnion a){
+	return reprRecord(alloc, "union", [
+		reprOfConcreteStructRef(alloc, a.source),
+		reprArr(alloc, a.members, (ref immutable LowType it) =>
+			reprOfLowType(alloc, it))]);
 }
 
-immutable(Sexpr) tataOfLowFun(Alloc)(ref Alloc alloc, ref immutable LowFun a) {
-	return tataRecord(alloc, "fun", [
-		tataOfLowFunSource(alloc, a.source),
-		tataOfLowType(alloc, a.returnType),
-		tataOfLowFunParamsKind(alloc, a.paramsKind),
-		tataArr(alloc, a.params, (ref immutable LowParam it) =>
-			tataRecord(alloc, "param", [tataOfLowParamSource(it.source), tataOfLowType(alloc, it.type)])),
-		tataOfLowFunBody(alloc, a.body_)]);
+immutable(Repr) reprOfLowFun(Alloc)(ref Alloc alloc, ref immutable LowFun a) {
+	return reprRecord(alloc, "fun", [
+		reprOfLowFunSource(alloc, a.source),
+		reprOfLowType(alloc, a.returnType),
+		reprOfLowFunParamsKind(alloc, a.paramsKind),
+		reprArr(alloc, a.params, (ref immutable LowParam it) =>
+			reprRecord(alloc, "param", [reprOfLowParamSource(it.source), reprOfLowType(alloc, it.type)])),
+		reprOfLowFunBody(alloc, a.body_)]);
 }
 
-immutable(Sexpr) tataOfLowFunParamsKind(Alloc)(ref Alloc alloc, ref immutable LowFunParamsKind a) {
-	return tataNamedRecord(alloc, "param-kind", [
-		nameAndTata("ctx", tataBool(a.hasCtx)),
-		nameAndTata("closure", tataBool(a.hasClosure))]);
+immutable(Repr) reprOfLowFunParamsKind(Alloc)(ref Alloc alloc, ref immutable LowFunParamsKind a) {
+	return reprNamedRecord(alloc, "param-kind", [
+		nameAndRepr("ctx", reprBool(a.hasCtx)),
+		nameAndRepr("closure", reprBool(a.hasClosure))]);
 }
 
-immutable(Sexpr) tataOfLowFunSource(Alloc)(ref Alloc alloc, ref immutable LowFunSource a) {
+immutable(Repr) reprOfLowFunSource(Alloc)(ref Alloc alloc, ref immutable LowFunSource a) {
 	return matchLowFunSource(
 		a,
 		(immutable Ptr!ConcreteFun it) =>
-			tataOfConcreteFunRef(alloc, it),
+			reprOfConcreteFunRef(alloc, it),
 		(ref immutable LowFunSource.Generated it) =>
-			tataRecord(alloc, "generated", [tataSym(it.name)]));
+			reprRecord(alloc, "generated", [reprSym(it.name)]));
 }
 
-immutable(Sexpr) tataOfLowParamSource(ref immutable LowParamSource a) {
-	return matchLowParamSource!(immutable Sexpr)(
+immutable(Repr) reprOfLowParamSource(ref immutable LowParamSource a) {
+	return matchLowParamSource!(immutable Repr)(
 		a,
 		(immutable Ptr!ConcreteParam it) =>
-			tataOfConcreteParamRef(it),
+			reprOfConcreteParamRef(it),
 		(ref immutable LowParamSource.Generated it) =>
-			tataSym(it.name));
+			reprSym(it.name));
 }
 
-immutable(Sexpr) tataOfLowFunBody(Alloc)(ref Alloc alloc, ref immutable LowFunBody a) {
-	return matchLowFunBody!(immutable Sexpr)(
+immutable(Repr) reprOfLowFunBody(Alloc)(ref Alloc alloc, ref immutable LowFunBody a) {
+	return matchLowFunBody!(immutable Repr)(
 		a,
 		(ref immutable LowFunBody.Extern it) =>
-			tataRecord(alloc, "extern", [tataBool(it.isGlobal)]),
+			reprRecord(alloc, "extern", [reprBool(it.isGlobal)]),
 		(ref immutable LowFunExprBody it) =>
-			tataRecord(alloc, "expr-body", [tataOfLowExpr(alloc, it.expr)]));
+			reprRecord(alloc, "expr-body", [reprOfLowExpr(alloc, it.expr)]));
 }
 
-immutable(Sexpr) tataOfLowLocalSource(Alloc)(ref Alloc alloc, ref immutable LowLocalSource a) {
-	return matchLowLocalSource!(immutable Sexpr)(
+immutable(Repr) reprOfLowLocalSource(Alloc)(ref Alloc alloc, ref immutable LowLocalSource a) {
+	return matchLowLocalSource!(immutable Repr)(
 		a,
 		(immutable Ptr!ConcreteLocal it) =>
-			tataOfConcreteLocalRef(it),
+			reprOfConcreteLocalRef(it),
 		(ref immutable LowLocalSource.Generated it) =>
-			tataRecord(alloc, "generated", [tataSym(it.name), tataNat(it.index)]));
+			reprRecord(alloc, "generated", [reprSym(it.name), reprNat(it.index)]));
 }
 
-immutable(Sexpr) tataOfLowExpr(Alloc)(ref Alloc alloc, ref immutable LowExpr a) {
-	return tataRecord(alloc, "expr", [
-		tataOfLowType(alloc, a.type),
-		sexprOfFileAndRange(alloc, a.source),
-		tataOfLowExprKind(alloc, a.kind)]);
+immutable(Repr) reprOfLowExpr(Alloc)(ref Alloc alloc, ref immutable LowExpr a) {
+	return reprRecord(alloc, "expr", [
+		reprOfLowType(alloc, a.type),
+		reprFileAndRange(alloc, a.source),
+		reprOfLowExprKind(alloc, a.kind)]);
 }
 
-immutable(Sexpr) tataOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExprKind a) {
-	return matchLowExprKind!(immutable Sexpr)(
+immutable(Repr) reprOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExprKind a) {
+	return matchLowExprKind!(immutable Repr)(
 		a,
 		(ref immutable LowExprKind.Call it) =>
-			tataRecord(alloc, "call", [
-				tataNat(it.called.index),
-				tataArr(alloc, it.args, (ref immutable LowExpr e) =>
-					tataOfLowExpr(alloc, e))]),
+			reprRecord(alloc, "call", [
+				reprNat(it.called.index),
+				reprArr(alloc, it.args, (ref immutable LowExpr e) =>
+					reprOfLowExpr(alloc, e))]),
 		(ref immutable LowExprKind.CreateRecord it) =>
-			tataRecord(alloc, "record", [
-				tataArr(alloc, it.args, (ref immutable LowExpr e) =>
-					tataOfLowExpr(alloc, e))]),
+			reprRecord(alloc, "record", [
+				reprArr(alloc, it.args, (ref immutable LowExpr e) =>
+					reprOfLowExpr(alloc, e))]),
 		(ref immutable LowExprKind.ConvertToUnion it) =>
-			tataRecord(alloc, "to-union", [tataNat(it.memberIndex), tataOfLowExpr(alloc, it.arg)]),
+			reprRecord(alloc, "to-union", [reprNat(it.memberIndex), reprOfLowExpr(alloc, it.arg)]),
 		(ref immutable LowExprKind.FunPtr it) =>
-			tataRecord(alloc, "fun-ptr", [tataNat(it.fun.index)]),
+			reprRecord(alloc, "fun-ptr", [reprNat(it.fun.index)]),
 		(ref immutable LowExprKind.Let it) =>
-			tataRecord(alloc, "let", [
-				tataOfLowLocalSource(alloc, it.local.source),
-				tataOfLowExpr(alloc, it.value),
-				tataOfLowExpr(alloc, it.then)]),
+			reprRecord(alloc, "let", [
+				reprOfLowLocalSource(alloc, it.local.source),
+				reprOfLowExpr(alloc, it.value),
+				reprOfLowExpr(alloc, it.then)]),
 		(ref immutable LowExprKind.LocalRef it) =>
-			tataRecord(alloc, "local-ref", [tataOfLowLocalSource(alloc, it.local.source)]),
+			reprRecord(alloc, "local-ref", [reprOfLowLocalSource(alloc, it.local.source)]),
 		(ref immutable LowExprKind.Match it) =>
-			tataOfMatch(alloc, it),
+			reprOfMatch(alloc, it),
 		(ref immutable LowExprKind.ParamRef it) =>
-			tataRecord(alloc, "param-ref", [tataNat(it.index.index)]),
+			reprRecord(alloc, "param-ref", [reprNat(it.index.index)]),
 		(ref immutable LowExprKind.PtrCast it) =>
-			tataRecord(alloc, "ptr-cast", [tataOfLowExpr(alloc, it.target)]),
+			reprRecord(alloc, "ptr-cast", [reprOfLowExpr(alloc, it.target)]),
 		(ref immutable LowExprKind.RecordFieldGet it) =>
-			tataRecord(alloc, "get-field", [
-				tataOfLowExpr(alloc, it.target),
-				tataBool(it.targetIsPointer),
-				tataNat(it.fieldIndex)]),
+			reprRecord(alloc, "get-field", [
+				reprOfLowExpr(alloc, it.target),
+				reprBool(it.targetIsPointer),
+				reprNat(it.fieldIndex)]),
 		(ref immutable LowExprKind.RecordFieldSet it) =>
-			tataRecord(alloc, "set-field", [
-				tataOfLowExpr(alloc, it.target),
-				tataBool(it.targetIsPointer),
-				tataNat(it.fieldIndex),
-				tataOfLowExpr(alloc, it.value)]),
+			reprRecord(alloc, "set-field", [
+				reprOfLowExpr(alloc, it.target),
+				reprBool(it.targetIsPointer),
+				reprNat(it.fieldIndex),
+				reprOfLowExpr(alloc, it.value)]),
 		(ref immutable LowExprKind.Seq it) =>
-			tataRecord(alloc, "seq", [
-				tataOfLowExpr(alloc, it.first),
-				tataOfLowExpr(alloc, it.then)]),
+			reprRecord(alloc, "seq", [
+				reprOfLowExpr(alloc, it.first),
+				reprOfLowExpr(alloc, it.then)]),
 		(ref immutable LowExprKind.SizeOf it) =>
-			tataRecord(alloc, "size-of", [tataOfLowType(alloc, it.type)]),
+			reprRecord(alloc, "size-of", [reprOfLowType(alloc, it.type)]),
 		(ref immutable Constant it) =>
-			tataOfConstant(alloc, it),
+			reprOfConstant(alloc, it),
 		(ref immutable LowExprKind.SpecialUnary it) =>
-			tataRecord(alloc, "unary", [
-				tataStr(strLiteral(strOfSpecialUnaryKind(it.kind))),
-				tataOfLowExpr(alloc, it.arg)]),
+			reprRecord(alloc, "unary", [
+				reprStr(strLiteral(strOfSpecialUnaryKind(it.kind))),
+				reprOfLowExpr(alloc, it.arg)]),
 		(ref immutable LowExprKind.SpecialBinary it) =>
-			tataRecord(alloc, "binary", [
-				tataStr(strLiteral(strOfSpecialBinaryKind(it.kind))),
-				tataOfLowExpr(alloc, it.left),
-				tataOfLowExpr(alloc, it.right)]),
+			reprRecord(alloc, "binary", [
+				reprStr(strLiteral(strOfSpecialBinaryKind(it.kind))),
+				reprOfLowExpr(alloc, it.left),
+				reprOfLowExpr(alloc, it.right)]),
 		(ref immutable LowExprKind.SpecialTrinary it) =>
-			tataRecord(alloc, "trinary", [
-				tataStr(strLiteral(strOfSpecialTrinaryKind(it.kind))),
-				tataOfLowExpr(alloc, it.p0),
-				tataOfLowExpr(alloc, it.p1),
-				tataOfLowExpr(alloc, it.p2)]),
+			reprRecord(alloc, "trinary", [
+				reprStr(strLiteral(strOfSpecialTrinaryKind(it.kind))),
+				reprOfLowExpr(alloc, it.p0),
+				reprOfLowExpr(alloc, it.p1),
+				reprOfLowExpr(alloc, it.p2)]),
 		(ref immutable LowExprKind.SpecialNAry it) =>
-			tataRecord(alloc, "n-ary", [
-				tataStr(strLiteral(strOfSpecialNAryKind(it.kind))),
-				tataArr(alloc, it.args, (ref immutable LowExpr arg) =>
-					tataOfLowExpr(alloc, arg))]),
+			reprRecord(alloc, "n-ary", [
+				reprStr(strLiteral(strOfSpecialNAryKind(it.kind))),
+				reprArr(alloc, it.args, (ref immutable LowExpr arg) =>
+					reprOfLowExpr(alloc, arg))]),
 		(ref immutable LowExprKind.Switch it) =>
-			tataRecord(alloc, "switch", [
-				tataOfLowExpr(alloc, it.value),
-				tataArr(alloc, it.cases, (ref immutable LowExpr arg) =>
-					tataOfLowExpr(alloc, arg))]),
+			reprRecord(alloc, "switch", [
+				reprOfLowExpr(alloc, it.value),
+				reprArr(alloc, it.cases, (ref immutable LowExpr arg) =>
+					reprOfLowExpr(alloc, arg))]),
 		(ref immutable LowExprKind.TailRecur it) =>
-			tataRecord(alloc, "tail-recur", [
-				tataArr(alloc, it.args, (ref immutable LowExpr arg) =>
-					tataOfLowExpr(alloc, arg))]),
+			reprRecord(alloc, "tail-recur", [
+				reprArr(alloc, it.args, (ref immutable LowExpr arg) =>
+					reprOfLowExpr(alloc, arg))]),
 		(ref immutable LowExprKind.Zeroed) =>
-			tataSym("uninit"));
+			reprSym("uninit"));
 }
 
-immutable(Sexpr) tataOfMatch(Alloc)(ref Alloc alloc, ref immutable LowExprKind.Match a) {
-	return tataRecord(alloc, "match", [
-		tataOfLowExpr(alloc, a.matchedValue),
-		tataArr(alloc, a.cases, (ref immutable LowExprKind.Match.Case case_) =>
-			tataRecord(alloc, "case", [
-				tataOpt(alloc, case_.local, (ref immutable Ptr!LowLocal it) =>
-					tataOfLowLocalSource(alloc, it.source)),
-				tataOfLowExpr(alloc, case_.then)]))]);
+immutable(Repr) reprOfMatch(Alloc)(ref Alloc alloc, ref immutable LowExprKind.Match a) {
+	return reprRecord(alloc, "match", [
+		reprOfLowExpr(alloc, a.matchedValue),
+		reprArr(alloc, a.cases, (ref immutable LowExprKind.Match.Case case_) =>
+			reprRecord(alloc, "case", [
+				reprOpt(alloc, case_.local, (ref immutable Ptr!LowLocal it) =>
+					reprOfLowLocalSource(alloc, it.source)),
+				reprOfLowExpr(alloc, case_.then)]))]);
 }
 
 immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind a) {

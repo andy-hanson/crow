@@ -76,7 +76,7 @@ To install the plugin, run the following from the directory containing this read
 
 ```sh
 bash -llc 'ln -s `pwd`/syntaxes/crow.sublime-syntax ~/.config/sublime-text-3/Packages/User/crow.sublime-syntax'
-bash -llc 'ln -s `pwd`/syntaxes/tata.sublime-syntax ~/.config/sublime-text-3/Packages/User/tata.sublime-syntax'
+bash -llc 'ln -s `pwd`/syntaxes/repr.sublime-syntax ~/.config/sublime-text-3/Packages/User/repr.sublime-syntax'
 ```
 
 

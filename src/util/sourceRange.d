@@ -5,7 +5,7 @@ module util.sourceRange;
 import util.bools : Bool;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.path : PathAndStorageKind;
-import util.sexpr : Sexpr, tataNat, tataRecord;
+import util.repr : Repr, reprNat, reprRecord;
 import util.sym : Sym, symSize;
 import util.types : safeU32ToU16, safeSizeTToU32, u16, u32;
 
@@ -67,14 +67,14 @@ struct FileAndRange {
 }
 static assert(FileAndRange.sizeof == 8);
 
-immutable(Sexpr) sexprOfFileAndPos(Alloc)(ref Alloc alloc, ref immutable FileAndPos a) {
-	return tataRecord(alloc, "file-pos", [tataNat(a.fileIndex.index), tataNat(a.pos)]);
+immutable(Repr) reprFileAndPos(Alloc)(ref Alloc alloc, ref immutable FileAndPos a) {
+	return reprRecord(alloc, "file-pos", [reprNat(a.fileIndex.index), reprNat(a.pos)]);
 }
 
-immutable(Sexpr) sexprOfFileAndRange(Alloc)(ref Alloc alloc, ref immutable FileAndRange a) {
-	return tataRecord(alloc, "file-range", [tataNat(a.fileIndex.index), sexprOfRangeWithinFile(alloc, a.range)]);
+immutable(Repr) reprFileAndRange(Alloc)(ref Alloc alloc, ref immutable FileAndRange a) {
+	return reprRecord(alloc, "file-range", [reprNat(a.fileIndex.index), reprRangeWithinFile(alloc, a.range)]);
 }
 
-immutable(Sexpr) sexprOfRangeWithinFile(Alloc)(ref Alloc alloc, immutable RangeWithinFile a) {
-	return tataRecord(alloc, "range", [tataNat(a.start), tataNat(a.end)]);
+immutable(Repr) reprRangeWithinFile(Alloc)(ref Alloc alloc, immutable RangeWithinFile a) {
+	return reprRecord(alloc, "range", [reprNat(a.start), reprNat(a.end)]);
 }

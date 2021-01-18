@@ -16,7 +16,7 @@ import interpret.bytecode :
 	matchDebugOperationImpure,
 	matchOperationImpure,
 	Operation,
-	sexprOfOperation,
+	reprOperation,
 	StackOffset,
 	TimeSpec;
 import interpret.bytecodeReader :
@@ -60,7 +60,7 @@ import util.memory : allocate, overwriteMemory;
 import util.opt : has;
 import util.path : AbsolutePath, AllPaths, pathToCStr;
 import util.ptr : contains, Ptr, PtrRange, ptrRangeOfArr, ptrTrustMe, ptrTrustMe_mut;
-import util.sexpr : writeSexprNoNewline;
+import util.repr : writeReprNoNewline;
 import util.sourceRange : FileAndPos;
 import util.types :
 	decr,
@@ -298,7 +298,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
 		writeByteCodeSource(tempAlloc, writer, allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
 		writeChar(writer, ' ');
-		writeSexprNoNewline(writer, sexprOfOperation(tempAlloc, operation));
+		writeReprNoNewline(writer, reprOperation(tempAlloc, operation));
 		if (isCall(operation)) {
 			immutable Operation.Call call = asCall(operation);
 			writeStatic(writer, "(");

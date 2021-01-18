@@ -13,10 +13,10 @@ variables:
   unindented_line: '(?=^\S)'
   spec_use_keyword: 'builtin|extern|global|noctx|summon|trusted|unsafe'
 
-name: tata
+name: repr
 file_extensions:
-  - tata
-scope: source.tata
+  - repr
+scope: source.repr
 contexts:
   main:
     - match: \|\s.*

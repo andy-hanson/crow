@@ -25,13 +25,13 @@ import model.lowModel :
 	matchLowType,
 	PrimitiveType,
 	symOfPrimitiveType;
-import model.sexprOfConcreteModel : tataOfConcreteStructRef;
+import model.reprConcreteModel : reprOfConcreteStructRef;
 import util.collection.arr : Arr, at, range, sizeEq;
 import util.collection.arrUtil : tail, zip;
 import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has;
 import util.ptr : Ptr, ptrTrustMe;
-import util.sexpr : Sexpr, tataRecord, tataSym;
+import util.repr : Repr, reprRecord, reprSym;
 import util.util : verify;
 
 void checkLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a) {
@@ -225,14 +225,14 @@ void checkTypeEqual(Alloc)(
 			import util.collection.arr : begin, size;
 			import util.collection.str : Str;
 			import util.ptr : ptrTrustMe_mut;
-			import util.sexpr : writeSexpr;
+			import util.repr : writeRepr;
 			import util.writer : Writer, finishWriter, writeStatic;
 
 			Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 			writeStatic(writer, "checkTypeEqual: expected:\n");
-			writeSexpr(writer, tataOfLowType2(alloc, ctx, expected));
+			writeRepr(writer, reprOfLowType2(alloc, ctx, expected));
 			writeStatic(writer, "\nactual:\n");
-			writeSexpr(writer, tataOfLowType2(alloc, ctx, actual));
+			writeRepr(writer, reprOfLowType2(alloc, ctx, actual));
 			//immutable Str s = finishWriter(writer);
 			//import core.stdc.stdio : printf;
 			//printf("%.*s\n", cast(int) size(s), begin(s));
@@ -241,21 +241,21 @@ void checkTypeEqual(Alloc)(
 	verify(lowTypeEqual(expected, actual));
 }
 
-immutable(Sexpr) tataOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, immutable LowType a) {
-	return matchLowType!(immutable Sexpr)(
+immutable(Repr) reprOfLowType2(Alloc)(ref Alloc alloc, ref immutable Ctx ctx, immutable LowType a) {
+	return matchLowType!(immutable Repr)(
 		a,
 		(immutable LowType.ExternPtr) =>
-			tataSym("a-extern-ptr"), //TODO: more detail
+			reprSym("a-extern-ptr"), //TODO: more detail
 		(immutable LowType.FunPtr) =>
-			tataSym("some-fun-ptr"), //TODO: more detail
+			reprSym("some-fun-ptr"), //TODO: more detail
 		(immutable PrimitiveType it) =>
-			tataSym(symOfPrimitiveType(it)),
+			reprSym(symOfPrimitiveType(it)),
 		(immutable LowType.PtrGc it) =>
-			tataRecord(alloc, "gc-ptr", [tataOfLowType2(alloc, ctx, it.pointee)]),
+			reprRecord(alloc, "gc-ptr", [reprOfLowType2(alloc, ctx, it.pointee)]),
 		(immutable LowType.PtrRaw it) =>
-			tataRecord(alloc, "raw-ptr", [tataOfLowType2(alloc, ctx, it.pointee)]),
+			reprRecord(alloc, "raw-ptr", [reprOfLowType2(alloc, ctx, it.pointee)]),
 		(immutable LowType.Record it) =>
-			tataOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allRecords, it).source),
+			reprOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allRecords, it).source),
 		(immutable LowType.Union it) =>
-			tataOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allUnions, it).source));
+			reprOfConcreteStructRef(alloc, fullIndexDictGet(ctx.program.allUnions, it).source));
 }

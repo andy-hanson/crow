@@ -4,9 +4,9 @@ module lib.compiler;
 
 import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
-import frontend.parse.ast : FileAst, sexprOfAst;
+import frontend.parse.ast : FileAst, reprAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
-import frontend.ide.getTokens : Token, tokensOfAst, sexprOfTokens;
+import frontend.ide.getTokens : Token, tokensOfAst, reprTokens;
 import frontend.lang : crowExtension;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.bytecode : ByteCode;
@@ -17,20 +17,20 @@ import model.concreteModel : ConcreteProgram;
 import model.diag : Diags, FilesInfo;
 import model.lowModel : LowProgram;
 import model.model : AbsolutePathsGetter, getAbsolutePath, Module, Program;
-import model.sexprOfConcreteModel : tataOfConcreteProgram;
-import model.sexprOfLowModel : tataOfLowProgram;
-import model.sexprOfModel : sexprOfModule;
+import model.reprConcreteModel : reprOfConcreteProgram;
+import model.reprLowModel : reprOfLowProgram;
+import model.reprModel : reprModule;
 import util.collection.arr : Arr, begin, empty, emptyArr, size;
 import util.collection.str : emptyStr, Str;
 import util.opt : force, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, Path, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.sexpr : Sexpr, writeSexpr, writeSexprJSON;
+import util.repr : Repr, writeRepr, writeReprJSON;
 import util.sym : AllSymbols;
 import util.writer : finishWriter, Writer;
 
 enum PrintFormat {
-	sexpr,
+	repr,
 	json,
 }
 
@@ -141,7 +141,7 @@ immutable(DiagsAndResultStrs) printTokens(Alloc, PathAlloc, SymAlloc, ReadOnlySt
 	immutable Arr!Token tokens = tokensOfAst(alloc, astResult.ast);
 	return immutable DiagsAndResultStrs(
 		strOfDiagnostics(alloc, allPaths, showDiagOptions, astResult.filesInfo, astResult.diagnostics),
-		showSexpr(alloc, sexprOfTokens(alloc, tokens), format));
+		showRepr(alloc, reprTokens(alloc, tokens), format));
 }
 
 immutable(DiagsAndResultStrs) printAst(Alloc, PathAlloc, SymAlloc, ReadOnlyStorage)(
@@ -222,12 +222,12 @@ immutable(Str) showAst(Alloc, PathAlloc)(
 	ref immutable FileAst ast,
 	immutable PrintFormat format,
 ) {
-	return showSexpr(alloc, sexprOfAst(alloc, allPaths, ast), format);
+	return showRepr(alloc, reprAst(alloc, allPaths, ast), format);
 }
 
 //TODO:INLINE
 immutable(Str) showModule(Alloc)(ref Alloc alloc, ref immutable Module a, immutable PrintFormat format) {
-	return showSexpr(alloc, sexprOfModule(alloc, a), format);
+	return showRepr(alloc, reprModule(alloc, a), format);
 }
 
 //TODO:INLINE
@@ -236,12 +236,12 @@ immutable(Str) showConcreteProgram(Alloc)(
 	ref immutable ConcreteProgram a,
 	immutable PrintFormat format,
 ) {
-	return showSexpr(alloc, tataOfConcreteProgram(alloc, a), format);
+	return showRepr(alloc, reprOfConcreteProgram(alloc, a), format);
 }
 
 //TODO:INLINE
 immutable(Str) showLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a, immutable PrintFormat format) {
-	return showSexpr(alloc, tataOfLowProgram(alloc, a), format);
+	return showRepr(alloc, reprOfLowProgram(alloc, a), format);
 }
 
 public struct BuildToCResult {
@@ -316,14 +316,14 @@ public immutable(AbsolutePath) getAbsolutePathFromStorage(Alloc, Storage)(
 	return getAbsolutePath(alloc, abs, pk, extension);
 }
 
-immutable(Str) showSexpr(Alloc)(ref Alloc alloc, immutable Sexpr a, immutable PrintFormat format) {
+immutable(Str) showRepr(Alloc)(ref Alloc alloc, immutable Repr a, immutable PrintFormat format) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	final switch (format) {
-		case PrintFormat.sexpr:
-			writeSexpr(writer, a);
+		case PrintFormat.repr:
+			writeRepr(writer, a);
 			break;
 		case PrintFormat.json:
-			writeSexprJSON(writer, a);
+			writeReprJSON(writer, a);
 			break;
 	}
 	return finishWriter(writer);

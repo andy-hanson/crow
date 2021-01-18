@@ -2,8 +2,8 @@ module test.testTokens;
 
 @safe @nogc pure nothrow:
 
-import frontend.ide.getTokens : sexprOfTokens, Token, tokensOfAst;
-import frontend.parse.ast : sexprOfAst;
+import frontend.ide.getTokens : reprTokens, Token, tokensOfAst;
+import frontend.parse.ast : reprAst;
 import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import test.testUtil : Test;
 import util.bools : Bool;
@@ -11,7 +11,7 @@ import util.collection.arr : Arr, emptyArr;
 import util.collection.arrUtil : arrEqual, arrLiteral;
 import util.collection.str : copyToNulTerminatedStr, Str, strLiteral;
 import util.dbg : log;
-import util.sexpr : writeSexpr;
+import util.repr : writeRepr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols;
 import util.util : verifyFail;
@@ -55,12 +55,12 @@ void testOne(Debug, Alloc)(ref Test!(Debug, Alloc) test, immutable string source
 	if (!tokensEq(tokens, expectedTokens)) {
 		Writer!Alloc writer = Writer!Alloc(test.alloc);
 		writeStatic(writer, "expected tokens:\n");
-		writeSexpr(writer, sexprOfTokens(test.alloc, expectedTokens));
+		writeRepr(writer, reprTokens(test.alloc, expectedTokens));
 		writeStatic(writer, "\nactual tokens:\n");
-		writeSexpr(writer, sexprOfTokens(test.alloc, tokens));
+		writeRepr(writer, reprTokens(test.alloc, tokens));
 
 		writeStatic(writer, "\n\n(hint: ast is:)\n");
-		writeSexpr(writer, sexprOfAst(test.alloc, test.allPaths, ast.ast));
+		writeRepr(writer, reprAst(test.alloc, test.allPaths, ast.ast));
 		log(test.dbg, finishWriter(writer));
 		verifyFail();
 	}

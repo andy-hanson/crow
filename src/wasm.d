@@ -1,6 +1,6 @@
 @safe @nogc nothrow: // not pure
 
-import frontend.ide.getTokens : sexprOfTokens, Token;
+import frontend.ide.getTokens : reprTokens, Token;
 import lib.server :
 	addOrChangeFile,
 	deleteFile,
@@ -18,8 +18,8 @@ import util.collection.arr : Arr, range, size;
 import util.collection.str : CStr, Str, strToCStr;
 import util.path : StorageKind;
 import util.ptr : ptrTrustMe_mut;
-import util.sexpr : Sexpr, jsonStrOfSexpr, nameAndTata, tataArr, tataNamedRecord, tataStr;
-import util.sourceRange : Pos, sexprOfRangeWithinFile;
+import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;
+import util.sourceRange : Pos, reprRangeWithinFile;
 import util.util : verify;
 import util.writer : finishWriterToCStr, writeChar, writeNat, writeQuotedStr, Writer, writeStatic;
 
@@ -86,8 +86,8 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	immutable Arr!Token tokens = getTokens(resultAlloc, *server, storageKind, immutable Str(pathStart, pathLength));
-	immutable Sexpr sexpr = sexprOfTokens(resultAlloc, tokens);
-	return jsonStrOfSexpr(resultAlloc, sexpr);
+	immutable Repr repr = reprTokens(resultAlloc, tokens);
+	return jsonStrOfRepr(resultAlloc, repr);
 }
 
 @system extern(C) immutable(CStr) getParseDiagnostics(
@@ -101,8 +101,8 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	immutable Arr!StrParseDiagnostic diags =
 		getParseDiagnostics(resultAlloc, *server, storageKind, immutable Str(pathStart, pathLength));
-	immutable Sexpr sexpr = sexprOfParseDiagnostics(resultAlloc, diags);
-	return jsonStrOfSexpr(resultAlloc, sexpr);
+	immutable Repr repr = reprParseDiagnostics(resultAlloc, diags);
+	return jsonStrOfRepr(resultAlloc, repr);
 }
 
 @system extern(C) immutable(CStr) getHover(
@@ -142,11 +142,11 @@ private:
 
 ubyte[1024 * 1024 * 1024] globalBuffer;
 
-immutable(Sexpr) sexprOfParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable Arr!StrParseDiagnostic a) {
-	return tataArr(alloc, a, (ref immutable StrParseDiagnostic it) =>
-		tataNamedRecord(alloc, "diagnostic", [
-			nameAndTata("range", sexprOfRangeWithinFile(alloc, it.range)),
-			nameAndTata("message", tataStr(it.message))]));
+immutable(Repr) reprParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable Arr!StrParseDiagnostic a) {
+	return reprArr(alloc, a, (ref immutable StrParseDiagnostic it) =>
+		reprNamedRecord(alloc, "diagnostic", [
+			nameAndRepr("range", reprRangeWithinFile(alloc, it.range)),
+			nameAndRepr("message", reprStr(it.message))]));
 }
 
 struct WasmDebug {

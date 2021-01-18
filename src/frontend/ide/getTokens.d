@@ -52,8 +52,8 @@ import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
 import util.opt : force, has, Opt;
 import util.ptr : Ptr;
-import util.sexpr : Sexpr, nameAndTata, tataArr, tataNamedRecord, tataSym;
-import util.sourceRange : Pos, rangeOfStartAndName, RangeWithinFile, sexprOfRangeWithinFile;
+import util.repr : Repr, nameAndRepr, reprArr, reprNamedRecord, reprSym;
+import util.sourceRange : Pos, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
 import util.types : safeSizeTToU32;
 import util.util : todo;
@@ -84,9 +84,9 @@ struct Token {
 	immutable RangeWithinFile range;
 }
 
-immutable(Sexpr) sexprOfTokens(Alloc)(ref Alloc alloc, ref immutable Arr!Token tokens) {
-	return tataArr(alloc, tokens, (ref immutable Token it) =>
-		sexprOfToken(alloc, it));
+immutable(Repr) reprTokens(Alloc)(ref Alloc alloc, ref immutable Arr!Token tokens) {
+	return reprArr(alloc, tokens, (ref immutable Token it) =>
+		reprToken(alloc, it));
 }
 
 immutable(Arr!Token) tokensOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
@@ -405,8 +405,8 @@ immutable(Sym) symOfTokenKind(immutable Token.Kind kind) {
 	}
 }
 
-immutable(Sexpr) sexprOfToken(Alloc)(ref Alloc alloc, ref immutable Token token) {
-	return tataNamedRecord(alloc, "token", [
-		nameAndTata("kind", tataSym(symOfTokenKind(token.kind))),
-		nameAndTata("range", sexprOfRangeWithinFile(alloc, token.range))]);
+immutable(Repr) reprToken(Alloc)(ref Alloc alloc, ref immutable Token token) {
+	return reprNamedRecord(alloc, "token", [
+		nameAndRepr("kind", reprSym(symOfTokenKind(token.kind))),
+		nameAndRepr("range", reprRangeWithinFile(alloc, token.range))]);
 }

@@ -7,7 +7,7 @@ import util.bools : Bool;
 import util.collection.arr : Arr, size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.str : NulTerminatedStr, Str, strLiteral, strOfNulTerminatedStr;
-import util.sexpr : Sexpr, tataArr, tataHex, tataInt, tataNat, tataRecord, tataStr, tataSym;
+import util.repr : Repr, reprArr, reprHex, reprInt, reprNat, reprRecord, reprStr, reprSym;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8, zero;
 import util.sourceRange : FileIndex, Pos;
@@ -144,50 +144,50 @@ private @trusted T matchOperation(T)(
 	}
 }
 
-immutable(Sexpr) sexprOfOperation(Alloc)(ref Alloc alloc, ref immutable Operation a) {
+immutable(Repr) reprOperation(Alloc)(ref Alloc alloc, ref immutable Operation a) {
 	return matchOperation(
 		a,
 		(ref immutable Operation.Call it) =>
-			tataRecord(alloc, "call", [tataNat(it.address.index), tataNat(it.parametersSize)]),
+			reprRecord(alloc, "call", [reprNat(it.address.index), reprNat(it.parametersSize)]),
 		(ref immutable Operation.CallFunPtr it) =>
-			tataRecord(alloc, "call-ptr", [tataNat(it.parametersSize)]),
+			reprRecord(alloc, "call-ptr", [reprNat(it.parametersSize)]),
 		(ref immutable Operation.Debug it) =>
-			tataRecord(alloc, "debug", [sexprOfDebugOperation(alloc, it.debugOperation)]),
+			reprRecord(alloc, "debug", [reprDebugOperation(alloc, it.debugOperation)]),
 		(ref immutable Operation.Dup it) =>
-			tataRecord(alloc, "dup", [tataNat(it.offset.offset)]),
+			reprRecord(alloc, "dup", [reprNat(it.offset.offset)]),
 		(ref immutable Operation.DupPartial it) =>
-			tataRecord(alloc, "dup-part", [
-				tataNat(it.entryOffset.offset),
-				tataNat(it.byteOffset),
-				tataNat(it.sizeBytes)]),
+			reprRecord(alloc, "dup-part", [
+				reprNat(it.entryOffset.offset),
+				reprNat(it.byteOffset),
+				reprNat(it.sizeBytes)]),
 		(ref immutable Operation.Extern it) =>
-			tataRecord(alloc, "extern", [tataStr(strOfExternOp(it.op))]),
+			reprRecord(alloc, "extern", [reprStr(strOfExternOp(it.op))]),
 		(ref immutable Operation.ExternDynCall it) =>
-			tataRecord(alloc, "extern-dyn", [
-				tataStr(strOfNulTerminatedStr(it.name)),
-				tataSym(symOfDynCallType(it.returnType)),
-				tataArr(alloc, it.parameterTypes, (ref immutable DynCallType t) =>
-					tataSym(symOfDynCallType(t)))]),
+			reprRecord(alloc, "extern-dyn", [
+				reprStr(strOfNulTerminatedStr(it.name)),
+				reprSym(symOfDynCallType(it.returnType)),
+				reprArr(alloc, it.parameterTypes, (ref immutable DynCallType t) =>
+					reprSym(symOfDynCallType(t)))]),
 		(ref immutable Operation.Fn it) =>
-			tataRecord(alloc, "fn", [tataStr(strOfFnOp(it.fnOp))]),
+			reprRecord(alloc, "fn", [reprStr(strOfFnOp(it.fnOp))]),
 		(ref immutable Operation.Jump it) =>
-			tataRecord(alloc, "jump", [tataInt(it.offset.offset)]),
+			reprRecord(alloc, "jump", [reprInt(it.offset.offset)]),
 		(ref immutable Operation.Pack it) =>
-			tataRecord(alloc, "pack", [tataArr(alloc, it.sizes, (ref immutable Nat8 size) => tataNat(size))]),
+			reprRecord(alloc, "pack", [reprArr(alloc, it.sizes, (ref immutable Nat8 size) => reprNat(size))]),
 		(ref immutable Operation.PushValue it) =>
-			tataRecord(alloc, "push-val", [tataHex(it.value)]),
+			reprRecord(alloc, "push-val", [reprHex(it.value)]),
 		(ref immutable Operation.Read it) =>
-			tataRecord(alloc, "read", [tataNat(it.offset), tataNat(it.size)]),
+			reprRecord(alloc, "read", [reprNat(it.offset), reprNat(it.size)]),
 		(ref immutable Operation.Remove it) =>
-			tataRecord(alloc, "remove", [tataNat(it.offset.offset), tataNat(it.nEntries)]),
+			reprRecord(alloc, "remove", [reprNat(it.offset.offset), reprNat(it.nEntries)]),
 		(ref immutable Operation.Return it) =>
-			tataSym("return"),
+			reprSym("return"),
 		(ref immutable Operation.StackRef it) =>
-			tataRecord(alloc, "stack-ref", [tataNat(it.offset.offset)]),
+			reprRecord(alloc, "stack-ref", [reprNat(it.offset.offset)]),
 		(ref immutable Operation.Switch it) =>
-			tataSym("switch"),
+			reprSym("switch"),
 		(ref immutable Operation.Write it) =>
-			tataRecord(alloc, "write", [tataNat(it.offset), tataNat(it.size)]));
+			reprRecord(alloc, "write", [reprNat(it.offset), reprNat(it.size)]));
 }
 
 private immutable(Sym) symOfDynCallType(immutable DynCallType a) {
@@ -225,13 +225,13 @@ private immutable(Sym) symOfDynCallType(immutable DynCallType a) {
 	}());
 }
 
-private immutable(Sexpr) sexprOfDebugOperation(Alloc)(ref Alloc alloc, ref immutable DebugOperation a) {
+private immutable(Repr) reprDebugOperation(Alloc)(ref Alloc alloc, ref immutable DebugOperation a) {
 	return matchDebugOperation(
 		a,
 		(ref immutable DebugOperation.AssertStackSize it) =>
-			tataRecord(alloc, "assertstck", [tataNat(it.stackSize)]),
+			reprRecord(alloc, "assertstck", [reprNat(it.stackSize)]),
 		(ref immutable DebugOperation.AssertUnreachable it) =>
-			tataSym("unreachabl"));
+			reprSym("unreachabl"));
 }
 
 //TODO:MOVE

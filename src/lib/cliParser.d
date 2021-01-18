@@ -158,7 +158,7 @@ immutable(Command) parsePrintCommand(Alloc, PathAlloc, SymAlloc)(
 		return todo!Command("Command.HelpPrint");
 	else {
 		immutable FormatAndPath formatAndPath = size(args) == 2
-			? immutable FormatAndPath(PrintFormat.sexpr, at(args, 1))
+			? immutable FormatAndPath(PrintFormat.repr, at(args, 1))
 			: size(args) == 4 && strEqLiteral(at(args, 1), "--format") && strEqLiteral(at(args, 2), "json")
 			? immutable FormatAndPath(PrintFormat.json, at(args, 3))
 			: todo!(immutable FormatAndPath)("Command.HelpPrint");

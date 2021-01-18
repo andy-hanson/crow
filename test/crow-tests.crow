@@ -70,7 +70,7 @@ spec
 	summon
 body
 	res = path-to-crow spawn-and-wait-result (new-arr "print", print-kind, path), env
-	output-path = path + "." + print-kind + ".tata"
+	output-path = path + "." + print-kind + ".repr"
 	| NOTE: compiler may have both stderr and stdout!
 	output-failures = if res.stdout.empty? and: res.exit-code != 0
 		| Just have a file for the err
