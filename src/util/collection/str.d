@@ -4,7 +4,7 @@ module util.collection.str;
 
 import util.bools : Bool;
 import util.collection.arr : Arr, at, begin, emptyArr, first, freeArr, size;
-import util.collection.arrUtil : compareArr, rtail, slice, tail;
+import util.collection.arrUtil : compareArr, rtail, tail;
 import util.comparison : Comparison;
 import util.memory : memcpy;
 import util.util : verify;

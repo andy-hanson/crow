@@ -92,7 +92,7 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 		});
 	return immutable LowFun(
 		//TODO: use long sym call-with-ctx
-		//Or rename it in bootstrap.nz
+		//Or rename it in bootstrap.crow
 		immutable LowFunSource(nu!(LowFunSource.Generated)(
 			alloc,
 			shortSymAlphaLiteral("call-w-ctx"),

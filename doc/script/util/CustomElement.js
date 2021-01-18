@@ -42,7 +42,7 @@ export const CustomElementClass = {}
  * @return {CustomElementClass<InProps, OutProps, State>}
  */
 export function makeCustomElement({ tagName, styleSheet, init, connected, disconnected }) {
-	assert(tagName.startsWith("noze-"))
+	assert(tagName.startsWith("crow-"))
 	const attributesMap = objectToMap({}) //TODO:REMOVE
 	class C extends CustomElement {
 		static tagName = tagName

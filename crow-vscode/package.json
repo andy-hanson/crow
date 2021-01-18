@@ -1,0 +1,19 @@
+{
+	"name": "crow-vscode",
+	"version": "0.0.0",
+	"engines": {
+		"vscode": "^1.51.1"
+	},
+	"activationEvents": [
+		"onLanguage:crow"
+	],
+	"main": "./client/extension.js",
+	"contributes": {
+		"languages": [
+			{
+				"id": "crow",
+				"extensions": [".crow"]
+			}
+		]
+	}
+}

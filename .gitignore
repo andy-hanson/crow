@@ -9,6 +9,6 @@
 bin
 demo/*.c
 dyncall
-noze-vscode/node_modules
-noze-vscode/client/node_modules
-noze-vscode/server/node_modules
+crow-vscode/node_modules
+crow-vscode/client/node_modules
+crow-vscode/server/node_modules

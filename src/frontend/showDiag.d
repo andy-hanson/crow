@@ -104,7 +104,7 @@ void writeLineNumber(Alloc, PathAlloc)(
 	if (options.color)
 		writeBold(writer);
 	writePathAndStorageKind(writer, allPaths, where);
-	writeStatic(writer, ".nz");
+	writeStatic(writer, ".crow");
 	if (options.color)
 		writeReset(writer);
 	writeStatic(writer, " line ");
@@ -474,7 +474,7 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeStatic(writer, "can't infer type arguments");
 		},
 		(ref immutable Diag.CommonTypesMissing d) {
-			writeStatic(writer, "common types are missing from 'include.nz':");
+			writeStatic(writer, "common types are missing from 'include.crow':");
 			foreach (immutable Str s; range(d.missing)) {
 				writeStatic(writer, "\n\t");
 				writeStr(writer, s);

@@ -1,1 +1,1 @@
-make bin/noze --quiet && ./bin/noze $@
+make bin/crow --quiet && ./bin/crow $@

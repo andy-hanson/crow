@@ -7,7 +7,7 @@ import concretize.concretize : concretize;
 import frontend.parse.ast : FileAst, sexprOfAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
 import frontend.ide.getTokens : Token, tokensOfAst, sexprOfTokens;
-import frontend.lang : nozeExtension;
+import frontend.lang : crowExtension;
 import frontend.showDiag : ShowDiagOptions, strOfDiagnostics;
 import interpret.bytecode : ByteCode;
 import interpret.generateBytecode : generateBytecode;
@@ -90,7 +90,7 @@ immutable(int) buildAndInterpret(Debug, Alloc, PathAlloc, SymAlloc, ReadOnlyStor
 		immutable Ptr!LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
 		immutable ByteCode byteCode = generateBytecode(dbg, alloc, alloc, programs.program, lowProgram);
 		immutable AbsolutePath mainAbsolutePath =
-			getAbsolutePathFromStorage(alloc, storage, mainPath, nozeExtension);
+			getAbsolutePathFromStorage(alloc, storage, mainPath, crowExtension);
 		return runBytecode(
 			dbg,
 			alloc,

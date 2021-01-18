@@ -197,7 +197,7 @@ struct BootstrapCheck {
 	immutable Ptr!CommonTypes commonTypes;
 }
 
-immutable(BootstrapCheck) checkBootstrapNz(Alloc, SymAlloc)(
+immutable(BootstrapCheck) checkBootstrap(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,

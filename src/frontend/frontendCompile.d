@@ -5,7 +5,7 @@ module frontend.frontendCompile;
 import model.diag : Diag, Diags, Diagnostic, FilesInfo;
 import model.model : CommonTypes, LineAndColumnGetters, Module, ModuleAndNames, Program, SpecialModules;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
-import frontend.check.check : BootstrapCheck, check, checkBootstrapNz, PathAndAst;
+import frontend.check.check : BootstrapCheck, check, checkBootstrap, PathAndAst;
 import frontend.parse.ast :
 	emptyFileAst,
 	exports,
@@ -13,7 +13,7 @@ import frontend.parse.ast :
 	ImportAst,
 	imports,
 	ImportsOrExportsAst;
-import frontend.lang : nozeExtension;
+import frontend.lang : crowExtension;
 import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
 import util.bools : Bool;
@@ -87,7 +87,7 @@ immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, PathAlloc, SymAlloc, Read
 	immutable PathAndStorageKind pk = immutable PathAndStorageKind(path, StorageKind.local);
 	return storage.withFile!(immutable FileAstAndDiagnostics)(
 		pk,
-		nozeExtension,
+		crowExtension,
 		(ref immutable Opt!NulTerminatedStr opFileContent) {
 			immutable PathAndStorageKind pathAndStorageKind = immutable PathAndStorageKind(path, StorageKind.local);
 			immutable FileAstAndArrDiagnosticAndLineAndColumnGetter res = parseSingle!(Alloc, Alloc, SymAlloc)(
@@ -270,7 +270,7 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, PathAlloc, SymAlloc, ReadO
 
 	return storage.withFile!(immutable FileIndex)(
 		path,
-		nozeExtension,
+		crowExtension,
 		(ref immutable Opt!NulTerminatedStr opFileContent) {
 			immutable FileAstAndArrDiagnosticAndLineAndColumnGetter parseResult =
 				parseSingle(modelAlloc, astAlloc, allPaths, allSymbols, importedFrom, opFileContent);
@@ -569,10 +569,10 @@ immutable(ModulesAndCommonTypes) getModules(ModelAlloc, SymAlloc)(
 					pathAndAst,
 					lateGet(commonTypes));
 			} else {
-				// The first module to check is always 'bootstrap.nz'
+				// The first module to check is always 'bootstrap.crow'
 				verify(ast.resolvedImports.empty);
 				immutable BootstrapCheck res =
-					checkBootstrapNz(modelAlloc, allSymbols, diagsBuilder, programState, pathAndAst);
+					checkBootstrap(modelAlloc, allSymbols, diagsBuilder, programState, pathAndAst);
 				lateSet(commonTypes, res.commonTypes);
 				return res.module_;
 			}

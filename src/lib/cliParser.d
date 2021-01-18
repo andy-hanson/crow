@@ -246,16 +246,16 @@ immutable string versionText =
 
 immutable string helpAllText =
 	"Commands: (type a command then '--help' to see more)\n" ~
-	"\t'noze build'\n" ~
-	"\t'noze run'\n" ~
-	"\t'noze version'\n";
+	"\t'crow build'\n" ~
+	"\t'crow run'\n" ~
+	"\t'crow version'\n";
 
 immutable string helpBuildText =
-	"Command: noze build [PATH]\n" ~
+	"Command: crow build [PATH]\n" ~
 	"\tCompiles the program at [PATH] to a '.cpp' and executable file with the same name.\n" ~
 	"\tNo options.\n";
 
 immutable string helpRunText =
-	"Command: noze run [PATH] [build args] -- [programArgs]\n" ~
-	"\tBuild args are same as for 'noze build'.\n" ~
+	"Command: crow run [PATH] [build args] -- [programArgs]\n" ~
+	"\tBuild args are same as for 'crow build'.\n" ~
 	"Arguments after '--' will be sent to the program.";

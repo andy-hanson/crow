@@ -97,9 +97,9 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable CommandLineArgs args,
 ) {
-	immutable Str nozeDir = getNozeDirectory(args.pathToThisExecutable);
+	immutable Str crowDir = getCrowDirectory(args.pathToThisExecutable);
 	immutable Command command = parseCommand(alloc, allPaths, allSymbols, getCwd(alloc), args.args);
-	immutable Str include = cat(alloc, nozeDir, strLiteral("/include"));
+	immutable Str include = cat(alloc, crowDir, strLiteral("/include"));
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(True);
 	StdoutDebug dbg;
 
@@ -175,19 +175,19 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 			test(dbg, alloc, it.name));
 }
 
-immutable(Str) getNozeDirectory(immutable Str pathToThisExecutable) {
+immutable(Str) getCrowDirectory(immutable Str pathToThisExecutable) {
 	immutable Opt!Str parent = pathParent(pathToThisExecutable);
-	return climbUpToNoze(forceOrTodo(parent));
+	return climbUpToCrow(forceOrTodo(parent));
 }
 
-immutable(Str) climbUpToNoze(immutable Str p) {
+immutable(Str) climbUpToCrow(immutable Str p) {
 	immutable Opt!Str par = pathParent(p);
 	immutable Opt!Str bn = pathBaseName(p);
-	return strEqLiteral(bn.forceOrTodo, "noze")
+	return strEqLiteral(bn.forceOrTodo, "crow")
 		? p
 		: has(par)
-		? climbUpToNoze(force(par))
-		: todo!Str("no 'noze' directory in path");
+		? climbUpToCrow(force(par))
+		: todo!Str("no 'crow' directory in path");
 }
 
 immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
@@ -672,7 +672,7 @@ immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
 ) {
 	immutable Arr!CStr allArgs = immutable Arr!CStr(argv, argc);
 	immutable Arr!Str args = map!(Str, CStr, Alloc)(alloc, allArgs, (ref immutable CStr a) => strOfCStr(a));
-	// Take the tail because the first one is 'noze'
+	// Take the tail because the first one is 'crow'
 	return immutable CommandLineArgs(getPathToThisExecutable(alloc), args.tail);
 }
 

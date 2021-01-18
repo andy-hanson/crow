@@ -2,7 +2,7 @@ module util.dictReadOnlyStorage;
 
 @safe @nogc pure nothrow:
 
-import frontend.lang : nozeExtension;
+import frontend.lang : crowExtension;
 import model.model : AbsolutePathsGetter;
 import util.collection.mutDict : getAt_mut, MutDict;
 import util.collection.str : NulTerminatedStr, Str, strEq, strLiteral;
@@ -23,7 +23,7 @@ struct DictReadOnlyStorage {
 		immutable Str extension,
 		scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 	) const {
-		verify(strEq(extension, nozeExtension));
+		verify(strEq(extension, crowExtension));
 		immutable Opt!NulTerminatedStr content = asImmutable(getAt_mut(files, pk));
 		return cb(content);
 	}

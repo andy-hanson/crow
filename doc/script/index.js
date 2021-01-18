@@ -2,8 +2,7 @@ export {}
 
 import {assert, nonNull} from "./util/assert.js"
 // Registers the element
-import {NozeRunnable} from "./NozeRunnable.js"
-NozeRunnable;
+import {} from "./CrowRunnable.js"
 
 window.onload = () => {
 	window.onhashchange = onHashChange

@@ -1,0 +1,30 @@
+| /usr/include/unistd.h
+
+import
+	..bootstrap: any-ptr, c-str, int32, int64, nat, ptr, void
+	.c-types: size-t
+	.extra-types: err-t, fd-t
+	.types: off-t
+
+getcwd c-str(buf c-str, size size-t) unsafe extern<"getcwd"> noctx summon
+
+readlink ssize-t(path c-str, buf c-str, len size-t) summon extern<"readlink"> noctx
+
+close err-t(fd fd-t) summon extern<"close"> noctx
+lseek off-t(f fd-t, offset off-t, whence int32) summon extern<"lseek"> noctx
+read ssize-t(fd fd-t, buff any-ptr, n-bytes size-t) summon extern<"read"> noctx
+write ssize-t(fd fd-t, buf any-ptr, n-bytes size-t) summon extern<"write"> noctx
+
+pipe err-t(pipes pipes) summon extern<"pipe"> noctx
+
+| The headers just use int[2], but this is easier to use from crow
+pipes record mut
+	write-pipe mut fd-t
+	read-pipe mut fd-t
+
+environ ptr c-str() unsafe global<"environ"> noctx
+
+usleep void(micro-seconds nat) extern<"usleep"> noctx
+
+ssize-t alias
+	int64

@@ -215,7 +215,7 @@ public immutable(Sexpr) tataOfConcreteLocalRef(immutable Ptr!ConcreteLocal a) {
 }
 
 immutable(Sexpr) tataOfConcreteExpr(Alloc)(ref Alloc alloc, ref immutable ConcreteExpr a) {
-	// TODO: For brevity.. (change back once we have tail recursion and noze can handle long strings)
+	// TODO: For brevity.. (change back once we have tail recursion and crow can handle long strings)
 	return tataOfConcreteExprKind(alloc, a.kind);
 	//return tataRecord(alloc, "expr", [
 	//	tataOfConcreteType(alloc, a.type),

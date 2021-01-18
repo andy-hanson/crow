@@ -1,0 +1,132 @@
+import
+	collection.arr-util: first, first-some, tail
+	collection.mut-list: move-to-arr, mut-str, new-mut-list, push
+	io.environ: environ
+	io.print: print
+	io.process: exit-code, spawn-and-wait-result, stderr, stdout
+	path: base-name, each-child-recursive, get-extension
+	.failure:
+		failure, flat-map-with-max-size, handle-output, max-failures, overwrite-output?,
+		print-tests?, test-options
+
+run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ, options test-options) summon
+	tests = path list-tests
+	failures = tests flat-map-with-max-size options.max-failures, \test
+		path-to-crow run-single-crow-test env, test, options
+	if failures has?
+		failures err
+	else
+		ok: "ran " + tests.size.to-str + " tests in " + path
+
+.list-tests arr str(path str) summon
+	res = new-mut-list<str>
+	filter = as<act bool(str)>: \s
+		true
+	path each-child-recursive filter, \child
+		match child.base-name get-extension
+		as none
+			void
+		as some s
+			if s.value == "crow"
+				res push child
+	res move-to-arr
+
+.run-single-crow-test arr failure
+	path-to-crow str
+	env environ
+	path str
+	options test-options
+spec
+	summon
+body
+	op = (new-arr<str> "ast", "model", "concrete-model", "low-model") first-some<arr<failure>, str> \print-kind
+		if options.print-tests?
+			"crow print " + print-kind + " " + path print
+		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output?
+		res.should-stop? ? res.failures.some, none
+	match op
+	as none
+		if options.print-tests?
+			"crow run " + path print
+		interpret-failures = path-to-crow run-single-runnable-test env, path, true, options.overwrite-output?
+		if interpret-failures.empty?
+			path-to-crow run-single-runnable-test env, path, false, options.overwrite-output?
+		else
+			interpret-failures
+	as some s
+		s value
+
+.print-test-result record
+	should-stop? bool
+	failures arr failure
+
+.run-print-test print-test-result
+	print-kind str
+	path-to-crow str
+	env environ
+	path str
+	overwrite-output? bool
+spec
+	summon
+body
+	res = path-to-crow spawn-and-wait-result (new-arr "print", print-kind, path), env
+	output-path = path + "." + print-kind + ".tata"
+	| NOTE: compiler may have both stderr and stdout!
+	output-failures = if res.stdout.empty? and: res.exit-code != 0
+		| Just have a file for the err
+		new-arr<failure>
+	else
+		path handle-output output-path, res.stdout, overwrite-output?
+
+	if output-failures.empty? not
+		print-test-result: true, output-failures
+	elif res.exit-code == 0
+		assert: res.stderr == ""
+		print-test-result: false, new-arr<failure>
+	elif res.exit-code == 1
+		stderr-no-color = res.stderr remove-colors
+		| We should stop even if no test failure in handling the output
+		print-test-result: true, handle-output: path, (output-path + ".err"), stderr-no-color, overwrite-output?
+	else
+		message = "unexpected exit code: " + res.exit-code.to-str
+		print-test-result: true, new-arr failure: path, message
+
+.run-single-runnable-test arr failure
+	path-to-crow str
+	env environ
+	path str
+	interpret? bool
+	overwrite-output? bool
+spec
+	summon
+body
+	args = as<arr<str>>: interpret? ? (new-arr "run", path, "--interpret"), (new-arr "run", path)
+	res = path-to-crow spawn-and-wait-result args, env
+	stdout-failures = path handle-output (path + ".stdout"), res.stdout, overwrite-output?
+	stderr-failures = if res.exit-code == 0 and: res.stderr == ""
+		new-arr<failure>
+	else
+		path handle-output (path + ".stderr"), res.stderr, overwrite-output?
+	stdout-failures + stderr-failures
+
+.remove-colors str(s str)
+	res = new-mut-list<char>
+	s remove-colors-recur res
+	res move-to-arr
+
+.remove-colors-recur void(s str, out mut-str)
+	if s empty?
+		void
+	elif s.first == "\x1b"
+		s.tail remove-colors-recur-2 out
+	else
+		out push s.first
+		s.tail remove-colors-recur out
+
+.remove-colors-recur-2 void(s str, out mut-str)
+	if s empty?
+		void
+	elif s.first == "m"
+		s.tail remove-colors-recur out
+	else
+		s.tail remove-colors-recur-2 out

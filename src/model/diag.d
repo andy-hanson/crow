@@ -2,7 +2,7 @@ module model.diag;
 
 @safe @nogc pure nothrow:
 
-import frontend.lang : nozeExtension;
+import frontend.lang : crowExtension;
 import frontend.showDiag : ShowDiagOptions;
 import model.model :
 	AbsolutePathsGetter,
@@ -714,9 +714,9 @@ private void writeFileNoResetWriter(TempAlloc, Alloc, PathAlloc)(
 		writeStatic(writer, "<generated code> ");
 	} else {
 		immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, fileIndex);
-		immutable Str pathStr = pathToStr(tempAlloc, allPaths, emptyStr, path.path, nozeExtension);
+		immutable Str pathStr = pathToStr(tempAlloc, allPaths, emptyStr, path.path, crowExtension);
 		if (options.color) {
-			immutable AbsolutePath abs = getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, nozeExtension);
+			immutable AbsolutePath abs = getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, crowExtension);
 			writeHyperlink(writer, pathToStr(tempAlloc, allPaths, abs), pathStr);
 			writeRed(writer);
 		} else

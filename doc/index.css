@@ -1,10 +1,5 @@
 
 @font-face {
-	font-family: weretiger;
-	src: url(font/weretiger.ttf)
-}
-
-@font-face {
 	font-family: russo;
 	src: url(font/russo/Russo_One.ttf)
 }
@@ -75,7 +70,7 @@ main section {
 }
 
 main section h2 {
-	font-family: weretiger;
+	font-family: russo;
 }
 
 .par-first {
@@ -101,7 +96,7 @@ code {
 	font-size: 120%;
 }
 
-/* Try to keep these consistent with colors in NozeText.js */
+/* Try to keep these consistent with colors in CrowText.js */
 .lit-str {
 	color: #ffd866;
 }

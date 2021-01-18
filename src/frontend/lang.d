@@ -4,6 +4,6 @@ module frontend.lang;
 
 import util.collection.str : Str, strLiteral;
 
-immutable(Str) nozeExtension() {
-	return strLiteral(".nz");
+immutable(Str) crowExtension() {
+	return strLiteral(".crow");
 }

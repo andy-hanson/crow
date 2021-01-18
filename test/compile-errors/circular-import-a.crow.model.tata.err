@@ -1,0 +1,5 @@
+/circular-import-a.crow 2:5-2:23 imported module circular-import-b is unused
+
+/circular-import-b.crow 2:5-2:23 circular import from circular-import-b to circular-import-a
+
+/circular-import-b.crow 2:5-2:23 imported module circular-import-b is unused
