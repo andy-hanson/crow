@@ -39,6 +39,7 @@ import util.collection.dict : getAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.mutArr : moveToArr, MutArr;
 import util.collection.mutDict : mapToDict, mutDictIsEmpty;
+import util.collection.mutSet : moveToArr;
 import util.collection.str : Str, strLiteral;
 import util.memory : nu;
 import util.opt : force, has, Opt;
@@ -88,7 +89,8 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 			rtMainConcreteFun,
 			userMainConcreteFun,
 			allocFun),
-		ctxStruct);
+		ctxStruct,
+		moveToArr(alloc, ctx.allExternLibraryNames));
 }
 
 private:

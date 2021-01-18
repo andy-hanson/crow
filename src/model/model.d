@@ -555,6 +555,7 @@ struct FunBody {
 	struct Extern {
 		immutable Bool isGlobal;
 		immutable Str externName;
+		immutable Opt!Str libraryName;
 	}
 	struct RecordFieldGet {
 		immutable ubyte fieldIndex;

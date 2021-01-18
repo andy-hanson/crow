@@ -3,15 +3,20 @@ module util.collection.mutSet;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, not, True;
-import util.collection.mutArr : MutArr, mutArrRange, push;
+import util.collection.arr : Arr;
+import util.collection.mutArr : mutArrMoveToArr = moveToArr, MutArr, mutArrRange, push;
 import util.comparison : Comparison;
 
 struct MutSet(T, alias cmp) {
-	MutArr!T arr;
+	private MutArr!T arr;
 }
 
-immutable(Bool) mutSetHas(T, alias cmp)(ref const MutSet!(T, cmp) s, immutable T value) {
-	foreach (ref const T t; mutArrRange(s.arr))
+immutable(Arr!T) moveToArr(Alloc, T, alias cmp)(ref Alloc alloc, ref MutSet!(immutable T, cmp) a) {
+	return mutArrMoveToArr(alloc, a.arr);
+}
+
+immutable(Bool) mutSetHas(T, alias cmp)(ref const MutSet!(T, cmp) a, immutable T value) {
+	foreach (ref const T t; mutArrRange(a.arr))
 		if (cmp(t, value) == Comparison.equal)
 			return True;
 	return False;

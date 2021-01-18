@@ -511,17 +511,22 @@ immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 		False,
 		none!(Ptr!FunBodyAst));
 
-immutable(Str) takeExternName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(FunBodyAst.Extern) takeExternName(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Bool isGlobal,
+) {
 	if (tryTake(lexer, '<')) {
-		immutable Str res = takeQuotedStr(lexer, alloc);
+		immutable Str externName = takeQuotedStr(lexer, alloc);
+		immutable Opt!Str libraryName = tryTake(lexer, ", ") ? some(takeQuotedStr(lexer, alloc)) : none!Str;
 		takeTypeArgsEnd(alloc, lexer);
-		return res;
+		return immutable FunBodyAst.Extern(isGlobal, externName, libraryName);
 	} else {
 		addDiagAtChar(
 			alloc,
 			lexer,
 			immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.externName)));
-		return emptyStr;
+		return immutable FunBodyAst.Extern(isGlobal, emptyStr, none!Str);
 	}
 }
 
@@ -544,8 +549,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 		scope immutable(SpecUsesAndSigFlagsAndKwBody) setExtern(immutable Bool isGlobal) {
 			if (has(extern_))
 				todo!void("duplicate");
-			immutable Str mangledName = takeExternName(alloc, lexer);
-			immutable Opt!(FunBodyAst.Extern) extern2 = some(immutable FunBodyAst.Extern(isGlobal, mangledName));
+			immutable Opt!(FunBodyAst.Extern) extern2 = some(takeExternName(alloc, lexer, isGlobal));
 			return nextSpecOrStop(
 				alloc, lexer, specUses, noCtx, summon, unsafe, trusted, builtin, extern2, mangle, canTakeNext);
 		}

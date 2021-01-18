@@ -12,7 +12,7 @@ c-int alias
 sdl-flags alias
 	nat32
 
-sdl-init c-int(flags sdl-flags) extern<"SDL_Init"> noctx summon
+sdl-init c-int(flags sdl-flags) extern<"SDL_Init", "SDL2"> noctx summon
 
 sdl-init-video sdl-flags()
 	1 bit-shift-left 5
@@ -20,22 +20,22 @@ sdl-init-video sdl-flags()
 sdl-init-joystick sdl-flags()
 	1 bit-shift-left 9
 
-sdl-quit void() extern<"SDL_Quit"> noctx summon
+sdl-quit void() extern<"SDL_Quit", "SDL2"> noctx summon
 
 | SDL_error.h
 
 sdl-err alias
 	int
 
-sdl-get-error c-str() extern<"SDL_GetError"> noctx summon
+sdl-get-error c-str() extern<"SDL_GetError", "SDL2"> noctx summon
 
 | SDL_events.h
 
-sdl-pump-events void() extern<"SDL_PumpEvents"> noctx summon
+sdl-pump-events void() extern<"SDL_PumpEvents", "SDL2"> noctx summon
 
 | SDL_keyboard.h
 
-sdl-get-keyboard-state ptr nat8(num-keys ptr int) extern<"SDL_GetKeyboardState"> noctx summon
+sdl-get-keyboard-state ptr nat8(num-keys ptr int) extern<"SDL_GetKeyboardState", "SDL2"> noctx summon
 
 | SDL_rect.h
 
@@ -52,7 +52,7 @@ sdl-create-renderer sdl-renderer
 	index c-int
 	flags sdl-flags
 spec
-	extern<"SDL_CreateRenderer">
+	extern<"SDL_CreateRenderer", "SDL2">
 	noctx
 	summon
 	unsafe
@@ -61,16 +61,16 @@ sdl-create-texture-from-surface sdl-texture
 	renderer sdl-renderer
 	surface sdl-surface
 spec
-	extern<"SDL_CreateTextureFromSurface">
+	extern<"SDL_CreateTextureFromSurface", "SDL2">
 	noctx
 	summon
 	unsafe
 
-sdl-destroy-renderer void(renderer sdl-renderer) extern<"SDL_DestroyRenderer"> noctx summon unsafe
+sdl-destroy-renderer void(renderer sdl-renderer) extern<"SDL_DestroyRenderer", "SDL2"> noctx summon unsafe
 
-sdl-destroy-texture void(texture sdl-texture) extern<"SDL_DestroyTexture"> noctx summon unsafe
+sdl-destroy-texture void(texture sdl-texture) extern<"SDL_DestroyTexture", "SDL2"> noctx summon unsafe
 
-sdl-render-clear c-int(renderer sdl-renderer) extern<"SDL_RenderClear"> noctx summon unsafe
+sdl-render-clear c-int(renderer sdl-renderer) extern<"SDL_RenderClear", "SDL2"> noctx summon unsafe
 
 sdl-render-copy c-int
 	renderer sdl-renderer
@@ -91,7 +91,7 @@ sdl-renderer-accelerated sdl-flags()
 sdl-renderer-present-vsync sdl-flags()
 	4
 
-sdl-render-present void(renderer sdl-renderer) extern<"SDL_RenderPresent"> noctx summon unsafe
+sdl-render-present void(renderer sdl-renderer) extern<"SDL_RenderPresent", "SDL2"> noctx summon unsafe
 
 sdl-texture extern-ptr
 
@@ -99,15 +99,15 @@ sdl-texture extern-ptr
 
 sdl-rwops extern-ptr
 
-sdl-rw-from-file sdl-rwops(file c-str, mode c-str) extern<"SDL_RWFromFile"> noctx summon unsafe
+sdl-rw-from-file sdl-rwops(file c-str, mode c-str) extern<"SDL_RWFromFile", "SDL2"> noctx summon unsafe
 
 | SDL_surface.h
 
-sdl-free-surface void(surface sdl-surface) extern<"SDL_FreeSurface"> noctx summon unsafe
+sdl-free-surface void(surface sdl-surface) extern<"SDL_FreeSurface", "SDL2"> noctx summon unsafe
 
 sdl-surface extern-ptr
 
-sdl-load-bmp-rw sdl-surface(src sdl-rwops, freesrc c-int) extern<"SDL_LoadBMP_RW"> noctx summon unsafe
+sdl-load-bmp-rw sdl-surface(src sdl-rwops, freesrc c-int) extern<"SDL_LoadBMP_RW", "SDL2"> noctx summon unsafe
 
 sdl-load-bmp sdl-surface(file str) summon unsafe
 	file.to-c-str sdl-rw-from-file "rb".to-c-str sdl-load-bmp-rw 1
@@ -133,7 +133,7 @@ sdl-num-scancodes sdl-scancode()
 
 | SDL_video.h
 
-sdl-destroy-window void(window sdl-window) extern<"SDL_DestroyWindow"> noctx summon unsafe
+sdl-destroy-window void(window sdl-window) extern<"SDL_DestroyWindow", "SDL2"> noctx summon unsafe
 
 sdl-window extern-ptr
 
@@ -145,7 +145,7 @@ sdl-create-window sdl-window
 	h c-int
 	flags sdl-flags
 spec
-	extern<"SDL_CreateWindow">
+	extern<"SDL_CreateWindow", "SDL2">
 	noctx
 	summon
 	unsafe

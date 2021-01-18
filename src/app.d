@@ -27,8 +27,8 @@ import lib.compiler :
 import model.model : AbsolutePathsGetter;
 import test.test : test;
 import util.bools : Bool, True;
-import util.collection.arr : Arr, at, begin, empty, range, size;
-import util.collection.arrBuilder : add, ArrBuilder, finishArr;
+import util.collection.arr : Arr, begin, empty, range, size;
+import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, map, tail, zipImpureSystem;
 import util.collection.str :
 	asCStr,
@@ -117,15 +117,7 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 			return has(exePath) ? 0 : 1;
 		},
 		(ref immutable Command.Help it) =>
-			help(it.isDueToCommandParseError),
-		(ref immutable Command.HelpBuild) {
-			helpBuild();
-			return 0;
-		},
-		(ref immutable Command.HelpRun) {
-			helpRun();
-			return 0;
-		},
+			help(it),
 		(ref immutable Command.Print it) {
 			RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
 				ptrTrustMe_mut(allPaths),
@@ -150,7 +142,7 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 				ptrTrustMe_mut(allPaths),
 				ptrTrustMe_mut(alloc),
 				include,
-				it.programDirAndMain.programDir);
+				it.build.programDirAndMain.programDir);
 			if (it.interpret) {
 				RealExtern extern_ = newRealExtern();
 				return buildAndInterpret(
@@ -161,7 +153,7 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 					storage,
 					extern_,
 					showDiagOptions,
-					it.programDirAndMain.mainPath,
+					it.build.programDirAndMain.mainPath,
 					it.programArgs);
 			} else {
 				immutable Opt!AbsolutePath exePath = buildToCAndCompile(
@@ -169,7 +161,7 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 					allPaths,
 					allSymbols,
 					showDiagOptions,
-					it.programDirAndMain,
+					it.build.programDirAndMain,
 					include);
 				if (!has(exePath))
 					return 1;
@@ -180,11 +172,7 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 			}
 		},
 		(ref immutable Command.Test it) =>
-			test(dbg, alloc, it.name),
-		(ref immutable Command.Version) {
-			printVersion();
-			return 0;
-		});
+			test(dbg, alloc, it.name));
 }
 
 immutable(Str) getNozeDirectory(immutable Str pathToThisExecutable) {
@@ -222,7 +210,7 @@ immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
 	if (empty(result.diagnostics)) {
 		writeFileSync(alloc, allPaths, cPath, result.cSource);
 		immutable AbsolutePath exePath = withExtension(cPath, emptyStr);
-		compileC(alloc, allPaths, cPath, exePath);
+		compileC(alloc, allPaths, cPath, exePath, result.allExternLibraryNames);
 		return some(exePath);
 	} else {
 		printErr(result.diagnostics);
@@ -230,31 +218,9 @@ immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
 	}
 }
 
-void printVersion() {
-	print("Approximately 0.000\n");
-}
-
-void helpBuild() {
-	print("Command: noze build [PATH]\n" ~
-		"\tCompiles the program at [PATH] to a '.cpp' and executable file with the same name.\n" ~
-		"\tNo options.\n");
-}
-
-void helpRun() {
-	print("Command: noze run [PATH]\n" ~
-		"Command: noze run [PATH] -- args\n" ~
-		"\tDoes the same as 'noze build [PATH]', then runs the executable it created.\n" ~
-		"\tNo options.\n" ~
-		"\tArguments after `--` will be sent to the program.\n");
-}
-
-immutable(int) help(immutable Bool isDueToCommandParseError) {
-	print("Command: noze [PATH ENDING IN '.nz'] args\n" ~
-		"\tSame as `noze run [PATH] -- args\n");
-	helpBuild();
-	print("\n");
-	helpRun();
-	return isDueToCommandParseError ? 1 : 0;
+immutable(int) help(ref immutable Command.Help a) {
+	print(a.helpText);
+	return a.isDueToCommandParseError ? 1 : 0;
 }
 
 void compileC(Alloc, PathAlloc)(
@@ -262,10 +228,12 @@ void compileC(Alloc, PathAlloc)(
 	ref AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
+	ref immutable Arr!Str allExternLibraryNames,
 ) {
 	immutable AbsolutePath cCompiler =
 		AbsolutePath(strLiteral("/usr/bin"), rootPath(allPaths, shortSymAlphaLiteral("cc")), emptyStr);
-	immutable Arr!Str args = arrLiteral!Str(alloc, [
+	ArrBuilder!Str args;
+	addAll(alloc, args, arrLiteral!Str(alloc, [
 		strLiteral("-Werror"),
 		strLiteral("-Wextra"),
 		strLiteral("-Wall"),
@@ -277,15 +245,17 @@ void compileC(Alloc, PathAlloc)(
 		strLiteral("-Wno-unused-value"),
 		strLiteral("-Wno-builtin-declaration-mismatch"), //TODO:KILL?
 		strLiteral("-pthread"),
-		strLiteral("-lcrypto"),
-		strLiteral("-lSDL2"),
-		strLiteral("-lssl"),
+	]));
+	foreach (immutable Str it; range(allExternLibraryNames))
+		add(alloc, args, cat(alloc, strLiteral("-l"), it));
+	addAll(alloc, args, arrLiteral!Str(alloc, [
 		// TODO: configurable whether we want debug or release
 		strLiteral("-g"),
 		pathToStr(alloc, allPaths, cPath),
 		strLiteral("-o"),
-		pathToStr(alloc, allPaths, exePath)]);
-	immutable int err = spawnAndWaitSync(alloc, allPaths, cCompiler, args);
+		pathToStr(alloc, allPaths, exePath),
+	]));
+	immutable int err = spawnAndWaitSync(alloc, allPaths, cCompiler, finishArr(alloc, args));
 	if (err != 0)
 		todo!void("C compile error");
 }

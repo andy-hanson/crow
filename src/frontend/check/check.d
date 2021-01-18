@@ -1058,7 +1058,11 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 					todo!void("'extern' fun must be 'noctx'");
 				if (e.isGlobal && arity(fun) != 0)
 					todo!void("'extern' fun has parameters");
-				return immutable FunBody(nu!(FunBody.Extern)(alloc, e.isGlobal, copyStr(alloc, e.externName)));
+				return immutable FunBody(nu!(FunBody.Extern)(
+					alloc,
+					e.isGlobal,
+					copyStr(alloc, e.externName),
+					has(e.libraryName) ? some(copyStr(alloc, force(e.libraryName))) : none!Str));
 			},
 			(ref immutable ExprAst e) {
 				immutable Ptr!FunDecl f = castImmutable(fun);

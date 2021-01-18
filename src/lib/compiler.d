@@ -20,7 +20,7 @@ import model.model : AbsolutePathsGetter, getAbsolutePath, Module, Program;
 import model.sexprOfConcreteModel : tataOfConcreteProgram;
 import model.sexprOfLowModel : tataOfLowProgram;
 import model.sexprOfModel : sexprOfModule;
-import util.collection.arr : Arr, begin, empty, size;
+import util.collection.arr : Arr, begin, empty, emptyArr, size;
 import util.collection.str : emptyStr, Str;
 import util.opt : force, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, Path, PathAndStorageKind, StorageKind;
@@ -247,6 +247,7 @@ immutable(Str) showLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a
 public struct BuildToCResult {
 	immutable Str cSource;
 	immutable Str diagnostics;
+	immutable Arr!Str allExternLibraryNames;
 }
 
 public immutable(BuildToCResult) buildToC(Alloc, PathAlloc, SymAlloc, ReadOnlyStorage)(
@@ -260,7 +261,10 @@ public immutable(BuildToCResult) buildToC(Alloc, PathAlloc, SymAlloc, ReadOnlySt
 	immutable ProgramsAndFilesInfo programs =
 		buildToLowProgram(alloc, allPaths, allSymbols, storage, mainPath);
 	return empty(programs.program.diagnostics)
-		? immutable BuildToCResult(writeToC(alloc, alloc, force(programs.concreteAndLowProgram).lowProgram), emptyStr)
+		? immutable BuildToCResult(
+			writeToC(alloc, alloc, force(programs.concreteAndLowProgram).lowProgram),
+			emptyStr,
+			force(programs.concreteAndLowProgram).concreteProgram.allExternLibraryNames)
 		: immutable BuildToCResult(
 			emptyStr,
 			strOfDiagnostics(
@@ -268,7 +272,8 @@ public immutable(BuildToCResult) buildToC(Alloc, PathAlloc, SymAlloc, ReadOnlySt
 				allPaths,
 				showDiagOptions,
 				programs.program.filesInfo,
-				programs.program.diagnostics));
+				programs.program.diagnostics),
+			emptyArr!Str);
 }
 
 struct ConcreteAndLowProgram {

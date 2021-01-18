@@ -958,6 +958,7 @@ struct ConcreteProgram {
 	immutable Dict!(Ptr!ConcreteStruct, Arr!ConcreteLambdaImpl, comparePtr!ConcreteStruct) funStructToImpls;
 	immutable Ptr!ConcreteCommonFuns commonFuns;
 	immutable Ptr!ConcreteStruct ctxType;
+	immutable Arr!Str allExternLibraryNames;
 
 	//TODO:NOT INSTANCE
 	immutable(Ptr!ConcreteFun) markFun() immutable { return commonFuns.markFun; }
@@ -965,7 +966,7 @@ struct ConcreteProgram {
 	immutable(Ptr!ConcreteFun) userMain() immutable { return commonFuns.userMain; }
 	immutable(Ptr!ConcreteFun) allocFun() immutable { return commonFuns.allocFun; }
 }
-static assert(ConcreteProgram.sizeof <= 112);
+static assert(ConcreteProgram.sizeof <= 128);
 
 struct ConcreteCommonFuns {
 	immutable Ptr!ConcreteFun markFun;

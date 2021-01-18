@@ -4,12 +4,18 @@ module util.collection.str;
 
 import util.bools : Bool;
 import util.collection.arr : Arr, at, begin, emptyArr, first, freeArr, size;
-import util.collection.arrUtil : rtail, slice, tail;
+import util.collection.arrUtil : compareArr, rtail, slice, tail;
+import util.comparison : Comparison;
 import util.memory : memcpy;
 import util.util : verify;
 
 alias CStr = immutable(char)*;
 alias Str = Arr!char;
+
+immutable(Comparison) compareStr(ref immutable Str a, ref immutable Str b) {
+	return compareArr!char(a, b, (ref immutable char ca, ref immutable char cb) =>
+		ca < cb ? Comparison.less : ca > cb ? Comparison.greater : Comparison.equal);
+}
 
 immutable Str emptyStr = emptyArr!char;
 immutable(NulTerminatedStr) emptyNulTerminatedStr() {
@@ -95,9 +101,4 @@ immutable(Str) stripNulTerminator(immutable NulTerminatedStr a) {
 	foreach (immutable size_t i; 0..size(s))
 		begin[i] = at(s, i);
 	return immutable Str(cast(immutable) begin, size(s));
-}
-
-immutable(Bool) endsWith(immutable Str a, immutable Str b) {
-	return Bool(size(a) >= size(b) &&
-		strEq(a.slice(size(a) - size(b), size(b)), b));
 }

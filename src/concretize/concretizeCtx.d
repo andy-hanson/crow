@@ -69,11 +69,12 @@ import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrMax, compareArr, exists, fold, map, mapPtrsWithIndex, mapWithIndex;
 import util.collection.mutArr : MutArr;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
-import util.collection.str : Str, strLiteral;
+import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
+import util.collection.str : compareStr, copyStr, Str, strLiteral;
 import util.comparison : Comparison;
 import util.late : Late, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate, nu, nuMut;
-import util.opt : none, some;
+import util.opt : force, has, none, some;
 import util.ptr : castImmutable, castMutable, comparePtr, Ptr, ptrEquals;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
@@ -198,6 +199,7 @@ struct ConcretizeCtx {
 	ArrBuilder!(immutable Ptr!ConcreteStruct) allConcreteStructs;
 	MutDict!(immutable ConcreteFunKey, immutable Ptr!ConcreteFun, compareConcreteFunKey) nonLambdaConcreteFuns;
 	ArrBuilder!(immutable Ptr!ConcreteFun) allConcreteFuns;
+	MutSet!(immutable Str, compareStr) allExternLibraryNames;
 
 	// This will only have an entry while a ConcreteFun hasn't had it's body filled in yet.
 	MutDict!(
@@ -591,8 +593,12 @@ void fillInConcreteFunBody(Alloc)(
 			},
 			(ref immutable FunBody.CreateRecord) =>
 				immutable ConcreteFunBody(immutable ConcreteFunBody.CreateRecord()),
-			(ref immutable FunBody.Extern e) =>
-				immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal, e.externName)),
+			(ref immutable FunBody.Extern e) {
+				if (has(e.libraryName))
+					//TODO: don't always copy
+					addToMutSetOkIfPresent(alloc, ctx.allExternLibraryNames, copyStr(alloc, force(e.libraryName)));
+				return immutable ConcreteFunBody(immutable ConcreteFunBody.Extern(e.isGlobal, e.externName));
+			},
 			(immutable Ptr!Expr e) =>
 				immutable ConcreteFunBody(immutable ConcreteFunExprBody(
 					allocate(

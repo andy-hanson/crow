@@ -632,6 +632,7 @@ struct FunBodyAst {
 	struct Extern {
 		immutable Bool isGlobal;
 		immutable Str externName;
+		immutable Opt!Str libraryName;
 	}
 
 	private:
