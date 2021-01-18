@@ -22,12 +22,7 @@ lint-dscanner:
 lint-imports-exports:
 	rdmd lint.d
 
-lint-js:
-	cd doc/script && tsc
-	cd noze-vscode/client && tsc
-	cd noze-vscode/server && tsc
-
-lint: lint-dscanner lint-imports-exports lint-js
+lint: lint-dscanner lint-imports-exports
 
 debug: bin/noze
 	gdb ./bin/noze
