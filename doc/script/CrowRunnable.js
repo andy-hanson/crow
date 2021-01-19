@@ -56,7 +56,6 @@ export const CrowRunnable = makeCustomElement({
 			cursor: Cursor.pointer,
 		})
 		.class(bottomClass, {
-			width: Measure.em(5.5),
 			border_radius_bottom: Measure.ex(1),
 			background: Color.yellow,
 			margin: Measure.zero,

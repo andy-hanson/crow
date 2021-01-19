@@ -1,8 +1,7 @@
 import
 	io.print: print
-	io.process: exit-code
 
-main fut exit-code(_ arr str) summon
+main fut nat(_ arr str) summon
 	m = my-record: 1, 2
 	assert: m.x == 1
 	assert: m.y == 2

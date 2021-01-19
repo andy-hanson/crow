@@ -57,13 +57,13 @@ program(
 		struct(name: arr, body: record([field(size, false, type(false, nat)), field(data, false, type(false, ptr))]))
 		struct(name: ptr, body: builtin(ptr, [type(false, arr)]))
 		struct(name: result, body: union([type(false, ok), type(false, err)]))
-		struct(name: ok, body: record([field(value, false, type(false, int32))]))
+		struct(name: ok, body: record([field(value, false, type(false, nat))]))
 		struct(name: err, body: record([field(value, false, type(false, exception))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, result)]))
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
 		struct(name: none, body: record([]))
 		struct(name: some, body: record([field(value, false, type(true, fut-callback-node))]))
-		struct(name: fut-state-resolved, body: record([field(value, false, type(false, int32))]))
+		struct(name: fut-state-resolved, body: record([field(value, false, type(false, nat))]))
 		struct(name: fun-ptr2, body: builtin(fun-ptr, [type(true, fut), type(true, ctx), type(false, arr)]))
 		struct(
 			name: global-ctx
@@ -220,7 +220,7 @@ program(
 			ptr?: true
 			body: record([field(exception-ctx, false, type(true, exception-ctx)), field(log-ctx, false, type(true, log-ctx))]))
 		struct(name: arr, body: record([field(size, false, type(false, nat)), field(data, false, type(false, ptr))]))
-		struct(name: fun2, body: builtin(fun, [type(true, fut), type(false, arr), type(false, fun-ptr2)]))
+		struct(name: fun-act2, body: builtin(fun, [type(true, fut), type(false, arr), type(false, fun-ptr2)]))
 		struct(
 			name: fut
 			mut?: true
@@ -614,7 +614,12 @@ program(
 																[
 																	call(any-unhandled-exceptions?, [local-ref(gctx)])
 																	1
-																	call(value, [local-ref(r)])]))
+																	call(
+																		unsafe-to-int32
+																		[
+																			call(
+																				unsafe-to-int
+																				[call(value, [local-ref(r)])])])]))
 														case(none, 1)])))))))))))
 		fun(false, get-nprocs, type(false, nat), none, [], extern(false))
 		fun(
@@ -2493,7 +2498,13 @@ program(
 			[param(b, type(false, thread-local-stuff))]
 			builtin([type(true, thread-local-stuff)]))
 		fun(false, ref-of-val, type(true, ctx), none, [param(b, type(false, ctx))], builtin([type(true, ctx)]))
-		fun(false, as, type(false, fun2), none, [param(value, type(false, fun2))], builtin([type(false, fun2)]))
+		fun(
+			false
+			as
+			type(false, fun-act2)
+			none
+			[param(value, type(false, fun-act2))]
+			builtin([type(false, fun-act2)]))
 		fun(
 			true
 			add-first-task
@@ -2718,8 +2729,8 @@ program(
 			none
 			[param(f, type(false, fun-act1)), param(c, type(true, ctx)), param(p0, type(false, result))]
 			builtin([type(false, void), type(false, result)]))
-		fun(false, ok, type(false, ok), none, [param(value, type(false, int32))], new-record)
-		fun(false, value, type(false, int32), none, [param(a, type(false, fut-state-resolved))], field-get(0))
+		fun(false, ok, type(false, ok), none, [param(value, type(false, nat))], new-record)
+		fun(false, value, type(false, nat), none, [param(a, type(false, fut-state-resolved))], field-get(0))
 		fun(
 			true
 			resolve-or-reject
@@ -2781,9 +2792,9 @@ program(
 			fut-state-resolved
 			type(false, fut-state-resolved)
 			none
-			[param(value, type(false, int32))]
+			[param(value, type(false, nat))]
 			new-record)
-		fun(false, value, type(false, int32), none, [param(a, type(false, ok))], field-get(0))
+		fun(false, value, type(false, nat), none, [param(a, type(false, ok))], field-get(0))
 		fun(false, value, type(false, exception), none, [param(a, type(false, err))], field-get(0))
 		fun(
 			true
@@ -3754,7 +3765,7 @@ program(
 			type(true, fut)
 			none
 			[
-				param(f, type(false, fun2))
+				param(f, type(false, fun-act2))
 				param(c, type(true, ctx))
 				param(p0, type(false, arr))
 				param(p1, type(false, fun-ptr2))]
@@ -5512,7 +5523,7 @@ program(
 			resolved
 			type(true, fut)
 			none
-			[param(value, type(false, int32))]
+			[param(value, type(false, nat))]
 			expr-body(call(fut, [call(new-lock, []), to-union(1, call(fut-state-resolved, [param-ref(value)]))])))]
 	rt-main
 	main

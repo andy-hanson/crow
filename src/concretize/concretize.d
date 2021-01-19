@@ -110,6 +110,10 @@ immutable(ConcreteFunToName) getFunToName(Alloc)(
 	return finishDictShouldBeNoConflict(alloc, res);
 }
 
+immutable(Bool) isNat(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+	return typeEquals(type, immutable Type(commonTypes.integrals.nat64));
+}
+
 immutable(Bool) isInt32(ref immutable CommonTypes commonTypes, ref immutable Type type) {
 	return typeEquals(type, immutable Type(commonTypes.integrals.int32));
 }
@@ -118,11 +122,11 @@ immutable(Bool) isStr(ref immutable CommonTypes commonTypes, ref immutable Type 
 	return typeEquals(type, immutable Type(commonTypes.str));
 }
 
-immutable(Bool) isFutInt32(ref immutable CommonTypes commonTypes, ref immutable Type type) {
-	return Bool(
+immutable(Bool) isFutNat(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+	return immutable Bool(
 		isStructInst(type) &&
 		ptrEquals(decl(asStructInst(type).deref), commonTypes.fut) &&
-		isInt32(commonTypes, only(typeArgs(asStructInst(type).deref))));
+		isNat(commonTypes, only(typeArgs(asStructInst(type).deref))));
 }
 
 immutable(Bool) isArrStr(ref immutable CommonTypes commonTypes, ref immutable Type type) {
@@ -137,16 +141,15 @@ void checkRtMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr!F
 		todo!void("rt main must be noctx");
 	if (isTemplate(mainFun))
 		todo!void("rt main is template?");
-
+	if (!isInt32(commonTypes, returnType(mainFun)))
+		todo!void("checkRtMainSignature doesn't return int");
 	immutable Arr!Param params = params(mainFun);
 	if (size(params) != 3)
 		todo!void("checkRtMainSignature wrong number params");
 	if (!isInt32(commonTypes, at(params, 0).type))
 		todo!void("checkRtMainSignature doesn't take int");
 	// TODO: check p1 type is ptr c-str
-	// TODO: check p2 type is fun-ptr2 fut<int> ctx arr<str>)
-	if (!isInt32(commonTypes, returnType(mainFun)))
-		todo!void("checkRtMainSignature doesn't return int");
+	// TODO: check p2 type is fun-ptr2 fut<nat> ctx arr<str>)
 }
 
 void checkUserMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr!FunDecl mainFun) {
@@ -154,13 +157,13 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr
 		todo!void("main is noctx?");
 	if (isTemplate(mainFun))
 		todo!void("main is template?");
+	if (!isFutNat(commonTypes, returnType(mainFun)))
+		todo!void("checkUserMainSignature doesn't return fut nat");
 	immutable Arr!Param params = params(mainFun);
 	if (size(params) != 1)
 		todo!void("checkUserMainSignature should take 1 param");
 	if (!isArrStr(commonTypes, only(params).type))
 		todo!void("checkUserMainSignature doesn't take arr str");
-	if (!isFutInt32(commonTypes, returnType(mainFun)))
-		todo!void("checkUserMainSignature doesn't return fut int-32");
 }
 
 immutable(Ptr!FunInst) getMarkFun(Alloc)(ref Alloc alloc, ref immutable Program program) {

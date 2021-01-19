@@ -4,7 +4,6 @@ import
 	io.net.http-server: http-handler, http-response, start-http-server
 	io.net.tcp-server: close-client, start-tcp-server, stop, tcp-handler
 	io.print: print
-	io.process: exit-code
 	io.time: delay, msec
 	posix.errno: errno
 	posix.extra-types: fd-t
@@ -12,7 +11,7 @@ import
 	posix.unistd: write
 	sys.epoll: epoll-event
 
-main fut exit-code(args arr str) unsafe summon
+main fut nat(args arr str) unsafe summon
 	assert: size-of<epoll-event> == 12
 	if args.size != 1
 		print: "Usage: server PORT"
@@ -25,7 +24,7 @@ main fut exit-code(args arr str) unsafe summon
 		else
 			port new-main
 
-new-main fut exit-code(port str) unsafe summon
+new-main fut nat(port str) unsafe summon
 	handler = as<http-handler>: \req
 		drop: req
 		resolved: http-response: 200, "OK", empty-dict, "Hello, internet world!"
@@ -33,7 +32,7 @@ new-main fut exit-code(port str) unsafe summon
 	drop: server
 	0 resolved
 
-old-main fut exit-code(port str) unsafe summon
+old-main fut nat(port str) unsafe summon
 	clients = new-mut-set<fd-t>
 
 	on-accepted-client = as<ref void(fd-t)>: \fd

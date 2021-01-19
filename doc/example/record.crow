@@ -1,6 +1,5 @@
 import
 	io.print: print
-	io.process: exit-code
 
 dinner record
 	food str
@@ -12,7 +11,7 @@ mix dinner(a dinner, b dinner)
 to-str str(a dinner)
 	a.food + " and " + a.drink
 
-main fut exit-code(_ arr str) summon
+main fut nat(_ arr str) summon
 	a = dinner: "ramen", "tea"
 	b = dinner: "chili", "milk"
 	print: a mix b to-str

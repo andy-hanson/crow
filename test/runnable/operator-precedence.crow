@@ -1,8 +1,7 @@
 import
 	io.print: print
-	io.process: exit-code
 
-main fut exit-code(_ arr str) summon
+main fut nat(_ arr str) summon
 	print: to-str: 1 *: 2 + 3
 	print: 1 + 2 * 3 to-str
 	0 resolved

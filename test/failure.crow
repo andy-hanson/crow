@@ -3,7 +3,6 @@ import
 	collection.mut-list: move-to-arr, new-mut-list, push-all, reduce-size-if-more-than, size
 	io.file: try-read-file, write-file
 	io.print: print, print-no-newline
-	io.process: exit-code
 	path: base-name
 
 handle-output arr failure
@@ -59,7 +58,7 @@ first-failures result<str, arr failure>(a result<str, arr failure>, b fun result
 	as err e
 		e
 
-print-failures exit-code(failures result<str, arr failure>, options test-options) summon
+print-failures nat(failures result<str, arr failure>, options test-options) summon
 	match failures
 	as ok o
 		print: o value
@@ -71,7 +70,7 @@ print-failures exit-code(failures result<str, arr failure>, options test-options
 			"hit maximum of " + options.max-failures.to-str + " failures"
 		else
 			n-failures.to-str + " failures"
-		n-failures to-int32
+		n-failures
 
 .print-failure void(failure failure) summon
 	print-bold

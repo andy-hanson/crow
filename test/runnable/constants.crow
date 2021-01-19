@@ -1,8 +1,7 @@
 import
 	io.print: print
-	io.process: exit-code
 
-main fut exit-code(_ arr str) summon
+main fut nat(_ arr str) summon
 	r = my-record: "a", "b"
 	foo: r
 	print: r a

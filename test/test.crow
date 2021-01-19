@@ -6,13 +6,12 @@ import
 	io.environ: get-environ
 	io.file: current-executable-path
 	io.print: print
-	io.process: exit-code
 	path: child-path, parent-path
 	.failure: first-failures, print-failures, test-options
 	.lint: lint
 	.crow-tests: run-crow-tests
 
-main fut exit-code(args arr str) summon
+main fut nat(args arr str) summon
 	option-names = new-arr<str> "print-tests", "overwrite-output", "max-failures"
 	options = args parse-cmd-line-args<test-options> option-names, \values
 		print-tests-strs = values[0]
@@ -47,7 +46,7 @@ main fut exit-code(args arr str) summon
 	print: "\t--print-tests: print every test run"
 	print: "\t--max-failures: stop after this many failures. Defaults to 10."
 
-.do-test exit-code(options test-options) summon
+.do-test nat(options test-options) summon
 	test-path = current-executable-path parent-path
 	crow-path = test-path parent-path
 	crow-exe = crow-path child-path "bin" child-path "crow"

@@ -3,7 +3,8 @@ import
 	.bootstrap:
 		?, !=, +, any-ptr, arr, as, as-any-ptr, as-ref, by-val, call-with-ctx, c-str, ctx, deref,
 		false, fun-ptr2, fut, get-ctx, int32, nat, noctx-decr, noctx-incr, null, ptr, ptr-to,
-		ref-of-val, set, state, str, subscript, to-int, unsafe-to-nat, value, void
+		ref-of-val, set, state, str, subscript, to-int, unsafe-to-int, unsafe-to-int32,
+		unsafe-to-nat, value, void
 	.cell: as-cell
 	.collection.arr: empty-arr
 	.collection.arr-util: map, tail
@@ -20,7 +21,7 @@ import
 	.thread-utils: create-one-thread, join-one-thread, new-condition, new-lock
 
 .main-ptr alias
-	fun-ptr2<fut exit-code, ctx, arr str>
+	fun-ptr2<fut nat, ctx, arr str>
 
 | Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
@@ -41,12 +42,13 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 		| Should never happen
 		1
 	as fut-state-resolved r
-		gctx.any-unhandled-exceptions? ? 1, r.value
+		| TODO: handle nat too big for int32
+		gctx.any-unhandled-exceptions? ? 1, r.value.unsafe-to-int.unsafe-to-int32
 	as exception
 		| 'handle-exceptions' should have logged the error
 		1
 
-.do-main fut exit-code(gctx global-ctx, island island, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx
+.do-main fut nat(gctx global-ctx, island island, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx
 	| Before we start the engine, add a task.
 	| Create a ctx manually so we can call functions that need it when creating the task
 	ectx = new-exception-ctx
@@ -54,7 +56,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val, log-ctx.ref-of-val
 	ctx-by-val = new-ctx: gctx, tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
-	add = as<fun fut exit-code(arr c-str, main-ptr)>: \all-args, main-ptr
+	add = as<act fut nat(arr c-str, main-ptr)>: \all-args, main-ptr
 		add-first-task: all-args, main-ptr
 	all-args = arr: argc.to-int.unsafe-to-nat, argv
 	add call-with-ctx ctx, all-args, main-ptr
@@ -67,7 +69,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 | TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
 | We want main-fut to be available immediately, not after having run some user code.
 | So we create main-fut now, and forward the result of 'main' to that.
-.add-first-task fut exit-code(all-args arr c-str, main-ptr fun-ptr2<fut exit-code, ctx, arr str>) unsafe
+.add-first-task fut nat(all-args arr c-str, main-ptr fun-ptr2<fut nat, ctx, arr str>) unsafe
 	| 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	| TODO: 'then' overload for fut<void> taking lambda with 0 params
 	res = delay then2 \

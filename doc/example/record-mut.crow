@@ -1,6 +1,5 @@
 import
 	io.print: print
-	io.process: exit-code
 
 dinner record mut
 	food mut str
@@ -12,7 +11,7 @@ yank! void(a dinner)
 to-str str(a dinner)
 	a.food + " and " + a.drink
 
-main fut exit-code(_ arr str) summon
+main fut nat(_ arr str) summon
 	a = dinner: "ramen", "tea"
 	print: "yum, " + a.to-str
 	a yank!

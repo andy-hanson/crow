@@ -1,9 +1,8 @@
 import
 	io.print: print
-	io.process: exit-code
 	io.time: delay, msec
 
-main fut exit-code(_ arr str) summon
+main fut nat(_ arr str) summon
 	print: "Just a second..."
 	v <- 1000.msec delay
 	drop: v

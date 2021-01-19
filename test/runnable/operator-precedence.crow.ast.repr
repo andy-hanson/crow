@@ -1,5 +1,5 @@
 file-ast(
-	imports: ports(range(0, 48), [import-ast(0, "/io/print", some([print])), import-ast(0, "/io/process", some([exit-code]))])
+	imports: ports(range(0, 25), [import-ast(0, "/io/print", some([print]))])
 	specs: []
 	aliases: []
 	structs: []
@@ -7,57 +7,57 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(48, 77)
+				range(25, 48)
 				main
-				inststruct(range(53, 66), name-range(53, fut), [inststruct(range(57, 66), name-range(57, exit-code))])
+				inststruct(range(30, 37), name-range(30, fut), [inststruct(range(34, 37), name-range(34, nat))])
 				[
 					param(
-						range(67, 76)
+						range(38, 47)
 						none
-						inststruct(range(69, 76), name-range(69, arr), [inststruct(range(73, 76), name-range(73, str))]))])
+						inststruct(range(40, 47), name-range(40, arr), [inststruct(range(44, 47), name-range(44, str))]))])
 			summon: true
 			body: seq-ast(
 				seq-ast(
 					call(
 						prefix
-						name-range(86, print)
+						name-range(57, print)
 						[]
 						[
 							call(
 								prefix
-								name-range(93, to-str)
+								name-range(64, to-str)
 								[]
 								[
 									call(
 										infix
-										name-range(103, *)
+										name-range(74, *)
 										[]
 										[
 											literal(nat(1, false))
 											call(
 												infix
-												name-range(108, +)
+												name-range(79, +)
 												[]
 												[literal(nat(2, false)), literal(nat(3, false))])])])])
 					call(
 						prefix
-						name-range(113, print)
+						name-range(84, print)
 						[]
 						[
 							call(
 								infix
-								name-range(130, to-str)
+								name-range(101, to-str)
 								[]
 								[
 									call(
 										infix
-										name-range(122, +)
+										name-range(93, +)
 										[]
 										[
 											literal(nat(1, false))
 											call(
 												infix
-												name-range(126, *)
+												name-range(97, *)
 												[]
 												[literal(nat(2, false)), literal(nat(3, false))])])])]))
-				call(infix, name-range(140, resolved), [], [literal(nat(0, false))])))])
+				call(infix, name-range(111, resolved), [], [literal(nat(0, false))])))])

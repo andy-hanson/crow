@@ -1,10 +1,9 @@
 import
 	collection.arr-util: remove-end, remove-start
 	io.print: print
-	io.process: exit-code
 	path: each-child-recursive
 
-main fut exit-code(_ arr str) summon
+main fut nat(_ arr str) summon
 	filter = as<act bool(str)>: \x
 		drop: x
 		true

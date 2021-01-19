@@ -2,8 +2,7 @@ module(
 	path: 51
 	imports: [
 		import(none, 36, none)
-		import(some(range(8, 29)), 48, some([exit-code]))
-		import(some(range(31, 103)), 28, some([get-log-handler, info, log, log-handler, warn, with-log-handler]))]
+		import(some(range(8, 80)), 28, some([get-log-handler, info, log, log-handler, warn, with-log-handler]))]
 	exports: []
 	structs: []
 	specs: []
@@ -11,21 +10,21 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(51, 105), main, fut(int32()), [param(file-range(51, range(124, 133)), none, arr(arr(char())))])
+			sig: sig(file-pos(51, 82), main, fut(nat()), [param(file-range(51, range(95, 104)), none, arr(arr(char())))])
 			body: seq(
 				call(
 					fun-inst(name: log)
 					[to-union(log-level(), 0, call(fun-inst(name: info), [])), string-lit("Logged once")])
 				let(
-					local(file-range(51, range(167, 169)), lh, fun1(void(), logged()))
+					local(file-range(51, range(138, 140)), lh, fun1(void(), logged()))
 					call(fun-inst(name: get-log-handler), [])
 					let(
-						local(file-range(51, range(189, 196)), doubler, fun1(void(), logged()))
+						local(file-range(51, range(160, 167)), doubler, fun1(void(), logged()))
 						call(
 							fun-inst(name: as, type-args: [fun1(void(), logged())])
 							[
 								lambda(
-									[param(file-range(51, range(217, 223)), some(logged), logged())]
+									[param(file-range(51, range(188, 194)), some(logged), logged())]
 									seq(
 										call(
 											fun-inst(name: subscript, type-args: [void(), logged()])
@@ -58,7 +57,7 @@ module(
 									fun-inst(name: with-log-handler, type-args: [void()])
 									[
 										lambda(
-											[param(file-range(51, range(305, 307)), some(it), logged())]
+											[param(file-range(51, range(276, 278)), some(it), logged())]
 											call(fun-inst(name: drop, type-args: [logged()]), [param-ref(it)])
 											[]
 											fun1(void(), logged())
@@ -75,4 +74,4 @@ module(
 											fun-act0(void())
 											mut
 											void())]))
-							call(fun-inst(name: resolved, type-args: [int32()]), [literal(int32(), 0)]))))))])
+							call(fun-inst(name: resolved, type-args: [nat()]), [literal(nat(), 0)]))))))])

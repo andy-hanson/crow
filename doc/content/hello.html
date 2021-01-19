@@ -5,30 +5,42 @@
 
 	<crow-runnable src="hello"></crow-runnable>
 
-	You can run it by clicking the play button above, or download and run <code>crow hello.crow</code>.
+	<p>You can run it by clicking the play button above, or download and run <code>crow hello.crow</code>.</p>
 
-	This shows a few basic features of crow:
+	<p>
+		Crow syntax is based on indented blocks.
+		Here there is an indented block of code under <code class="keyword">import</code>
+		and one under <code class="fun-def">main</code>.
+		The indentation is a mandatory part of the syntax. An indent may be one tab, two spaces, or four spaces;
+		but every indent in the same file must use the same style.
+	</p>
+
+	Here's what each part does:
 	<ul>
 		<li>
-			Modules: The main module imports types and functions from <code class="import">io</code>.
+			<code class="keyword">import</code> imports the function <code class="fun-ref">print</code>
+			from the builtin module <code class="import">io.print</code>.
+			Other names like <code class="struct-ref">fut</code> are implicitly imported due to being very common.
 		</li>
 		<li>
-			A function: <code class="fun-def">main</code>.
-			The name of a declaration always goes first.
-			So you'll have <code class="struct-def">r record</code>,
-			<code class="struct-def">u union</code>, and here,
-			<code><span class="fun-def">main</span> <span class="struct-ref">fut exit-code</span></code>.
+			<code class="fun-def">main</code> defines a function.
+			In crow, the name of a declaration always comes first.
+			Then the return type <code class="struct-ref">fut exit-code</code> comes.
+			This instantiates the templated type <code class="struct-ref">fut</code>.
+			Then there is a parameter (named <code class="param-def">_</code>)
+			and its type <code class="struct-ref">arr str</code>.
+
+			Then there is a spec: <code class="spec-ref">summon</code>. We won't get to specs until later.
+			The spec allows us to call <code class="fun-ref">print</code> which relies on it.
+			(There are ways to do I/O without using <code class="spec-ref">summon</code>.)
 		</li>
 		<li>
-			Templates: <code class="struct-ref">fut</code> and <code class="struct-ref">arr</code>
-			are templated types, and <code class="fun-ref">resolved</code> is a templated function.
-			The type arguments to <code class="fun-ref">resolved</code> are inferred
-			from the return type of <code class="fun-def">main</code>).
-		</li>
-		<li>
-			IO: The main function is labelled <code>summon</code> because it calls
-			<code class="fun-ref">print</code> which is also <code>summon</code>.
-			As we'll see, most code will actually not do I/O this way.
+			<code>print: "Hello, world!"</code> and <code>0 resolved</code> are <em>both</em> function calls.
+			(The functions are <code class="fun-ref">print</code> and <code class="fun-ref">resolved</code>.)
+			Crow provides multiple syntaxes for calling functions; the semantics are the same.
+			The final line is the function result.
+			(<code>0</code> is a <code class="struct-ref">nat</code>
+			and <code>resolved</code> wraps it in a <code class="struct-ref">fut</code>.)
 		</li>
 	</ul>
 </section>

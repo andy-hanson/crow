@@ -1,8 +1,11 @@
 import
 	collection.arr-util: each
 	io.print: print
-	io.process: exit-code
 	logging: info, log
+
+main fut nat(_ arr str) summon
+	run-all-tests
+	0 resolved
 
 all-tests arr fun-ptr1<void, ctx>() builtin
 
@@ -16,7 +19,3 @@ run-all-tests void() summon trusted
 test
 	assert: 1 + 1 == 2
 	info log "I am a test!"
-
-main fut exit-code(_ arr str) summon
-	run-all-tests
-	0 resolved

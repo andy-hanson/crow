@@ -1,5 +1,5 @@
 file-ast(
-	imports: ports(range(0, 48), [import-ast(0, "/io/print", some([print])), import-ast(0, "/io/process", some([exit-code]))])
+	imports: ports(range(0, 25), [import-ast(0, "/io/print", some([print]))])
 	specs: []
 	aliases: []
 	structs: []
@@ -7,14 +7,14 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(48, 77)
+				range(25, 48)
 				main
-				inststruct(range(53, 66), name-range(53, fut), [inststruct(range(57, 66), name-range(57, exit-code))])
+				inststruct(range(30, 37), name-range(30, fut), [inststruct(range(34, 37), name-range(34, nat))])
 				[
 					param(
-						range(67, 76)
+						range(38, 47)
 						none
-						inststruct(range(69, 76), name-range(69, arr), [inststruct(range(73, 76), name-range(73, str))]))])
+						inststruct(range(40, 47), name-range(40, arr), [inststruct(range(44, 47), name-range(44, str))]))])
 			summon: true
 			body: seq-ast(
 				seq-ast(
@@ -27,101 +27,101 @@ file-ast(
 											seq-ast(
 												call(
 													prefix
-													name-range(86, assert)
+													name-range(57, assert)
 													[]
 													[
 														call(
 															infix
-															name-range(107, ==)
+															name-range(78, ==)
 															[]
 															[
-																call(dot, name-range(97, parse-nat), [], [literal("")])
+																call(dot, name-range(68, parse-nat), [], [literal("")])
 																none])])
 												call(
 													prefix
-													name-range(116, assert)
+													name-range(87, assert)
 													[]
 													[
 														call(
 															infix
-															name-range(138, ==)
+															name-range(109, ==)
 															[]
 															[
-																call(dot, name-range(128, parse-nat), [], [literal("1")])
+																call(dot, name-range(99, parse-nat), [], [literal("1")])
 																call(
 																	dot
-																	name-range(143, some)
+																	name-range(114, some)
 																	[]
 																	[literal(nat(1, false))])])]))
 											call(
 												prefix
-												name-range(149, assert)
+												name-range(120, assert)
 												[]
 												[
 													call(
 														infix
-														name-range(173, ==)
+														name-range(144, ==)
 														[]
-														[call(dot, name-range(163, parse-nat), [], [literal("1.2")]), none])]))
+														[call(dot, name-range(134, parse-nat), [], [literal("1.2")]), none])]))
 										call(
 											prefix
-											name-range(183, assert)
+											name-range(154, assert)
 											[]
 											[
 												call(
 													infix
-													name-range(206, ==)
+													name-range(177, ==)
 													[]
-													[call(dot, name-range(196, parse-nat), [], [literal("+1")]), none])]))
+													[call(dot, name-range(167, parse-nat), [], [literal("+1")]), none])]))
 									call(
 										prefix
-										name-range(216, assert)
+										name-range(187, assert)
 										[]
 										[
 											call(
 												infix
-												name-range(240, ==)
+												name-range(211, ==)
 												[]
 												[
-													call(dot, name-range(230, parse-int), [], [literal("123")])
-													call(dot, name-range(247, some), [], [literal(nat(123, false))])])]))
+													call(dot, name-range(201, parse-int), [], [literal("123")])
+													call(dot, name-range(218, some), [], [literal(nat(123, false))])])]))
 								call(
 									prefix
-									name-range(253, assert)
+									name-range(224, assert)
 									[]
 									[
 										call(
 											infix
-											name-range(278, ==)
+											name-range(249, ==)
 											[]
 											[
-												call(dot, name-range(268, parse-int), [], [literal("-123")])
-												call(dot, name-range(286, some), [], [literal(int(-123, false))])])]))
+												call(dot, name-range(239, parse-int), [], [literal("-123")])
+												call(dot, name-range(257, some), [], [literal(int(-123, false))])])]))
 							call(
 								prefix
-								name-range(292, assert)
+								name-range(263, assert)
 								[]
 								[
 									call(
 										infix
-										name-range(317, ==)
+										name-range(288, ==)
 										[]
 										[
-											call(dot, name-range(307, parse-int), [], [literal("+123")])
-											call(dot, name-range(324, some), [], [literal(nat(123, false))])])]))
+											call(dot, name-range(278, parse-int), [], [literal("+123")])
+											call(dot, name-range(295, some), [], [literal(nat(123, false))])])]))
 						call(
 							prefix
-							name-range(330, assert)
+							name-range(301, assert)
 							[]
 							[
 								call(
 									infix
-									name-range(355, ==)
+									name-range(326, ==)
 									[]
-									[call(dot, name-range(345, parse-int), [], [literal("*123")]), none])]))
+									[call(dot, name-range(316, parse-int), [], [literal("*123")]), none])]))
 					call(
 						prefix
-						name-range(365, print)
+						name-range(336, print)
 						[]
-						[call(dot, name-range(386, to-str), [], [call(dot, name-range(376, parse-nat), [], [literal("1")])])]))
-				call(infix, name-range(396, resolved), [], [literal(nat(0, false))])))])
+						[call(dot, name-range(357, to-str), [], [call(dot, name-range(347, parse-nat), [], [literal("1")])])]))
+				call(infix, name-range(367, resolved), [], [literal(nat(0, false))])))])

@@ -1,6 +1,5 @@
 import
 	io.print: print
-	io.process: exit-code
 
 rect record
 	width float
@@ -9,7 +8,7 @@ rect record
 area float(a rect)
 	a.width * a.height
 
-main fut exit-code(_ arr str) summon
+main fut nat(_ arr str) summon
 	r = rect: 1.5, 2.5
 	print: r.area to-str
 	0 resolved
