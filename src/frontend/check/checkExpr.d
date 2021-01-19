@@ -87,6 +87,7 @@ import frontend.parse.ast :
 	matchExprAstKind,
 	matchLiteralAst,
 	NameAndRange,
+	ParenthesizedAst,
 	rangeOfNameAndRange,
 	SeqAst,
 	ThenAst,
@@ -906,6 +907,8 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			checkLiteral(alloc, ctx, range, a, expected),
 		(ref immutable MatchAst a) =>
 			checkMatch(alloc, ctx, range, a, expected),
+		(ref immutable ParenthesizedAst a) =>
+			checkExprWorker(alloc, ctx, a.inner, expected),
 		(ref immutable SeqAst a) =>
 			checkSeq(alloc, ctx, range, a, expected),
 		(ref immutable ThenAst a) =>

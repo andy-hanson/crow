@@ -186,7 +186,7 @@ program(
 			expr-body(
 				expr(
 					bool
-					file-range(14, range(919, 1392))
+					file-range(14, range(919, 1398))
 					let(
 						size-words
 						expr(
@@ -195,7 +195,7 @@ program(
 							call(1, [expr(nat-64, file-range(14, range(932, 942)), param-ref(2))]))
 						expr(
 							bool
-							file-range(14, range(959, 1392))
+							file-range(14, range(959, 1398))
 							let(
 								ptr
 								expr(
@@ -204,108 +204,108 @@ program(
 									ptr-cast(expr(raw-ptr(nat-8), file-range(14, range(965, 972)), param-ref(1))))
 								expr(
 									bool
-									file-range(14, range(997, 1392))
+									file-range(14, range(997, 1398))
 									seq(
 										expr(
 											void
-											file-range(14, range(997, 1036))
+											file-range(14, range(997, 1038))
 											call(
 												3
 												[
 													expr(
 														bool
-														file-range(14, range(1021, 1036))
+														file-range(14, range(1010, 1038))
 														call(
 															6
 															[
 																expr(
 																	nat-64
-																	file-range(14, range(1021, 1031))
+																	file-range(14, range(1022, 1032))
 																	binary(
 																		"bitwise-and (nat-64)"
 																		expr(
 																			nat-64
-																			file-range(14, range(1013, 1020))
+																			file-range(14, range(1014, 1021))
 																			unary(
 																				"to-nat (from ptr)"
 																				expr(
 																					raw-ptr(nat-64)
-																					file-range(14, range(1010, 1013))
+																					file-range(14, range(1011, 1014))
 																					local-ref(ptr))))
-																		expr(nat-64, file-range(14, range(1030, 1031)), 7)))
-																expr(nat-64, file-range(14, range(1035, 1036)), 0)]))]))
+																		expr(nat-64, file-range(14, range(1031, 1032)), 7)))
+																expr(nat-64, file-range(14, range(1037, 1038)), 0)]))]))
 										expr(
 											bool
-											file-range(14, range(1038, 1392))
+											file-range(14, range(1040, 1398))
 											let(
 												index
 												expr(
 													nat-64
-													file-range(14, range(1046, 1068))
+													file-range(14, range(1048, 1070))
 													call(
 														8
 														[
 															expr(
 																raw-ptr(nat-64)
-																file-range(14, range(1046, 1049))
+																file-range(14, range(1048, 1051))
 																local-ref(ptr))
 															expr(
 																raw-ptr(nat-64)
-																file-range(14, range(1055, 1068))
+																file-range(14, range(1057, 1070))
 																get-field(
 																	expr(
 																		gc-ptr(record(1))
-																		file-range(14, range(1052, 1055))
+																		file-range(14, range(1054, 1057))
 																		param-ref(0))
 																	true
 																	2))]))
 												expr(
 													bool
-													file-range(14, range(1070, 1392))
+													file-range(14, range(1072, 1398))
 													let(
 														gc-memory?
 														expr(
 															bool
-															file-range(14, range(1083, 1112))
+															file-range(14, range(1085, 1114))
 															call(
 																9
 																[
 																	expr(
 																		nat-64
-																		file-range(14, range(1083, 1088))
+																		file-range(14, range(1085, 1090))
 																		local-ref(index))
 																	expr(
 																		nat-64
-																		file-range(14, range(1094, 1112))
+																		file-range(14, range(1096, 1114))
 																		get-field(
 																			expr(
 																				gc-ptr(record(1))
-																				file-range(14, range(1091, 1094))
+																				file-range(14, range(1093, 1096))
 																				param-ref(0))
 																			true
 																			0))]))
 														expr(
 															bool
-															file-range(14, range(1114, 1392))
+															file-range(14, range(1116, 1398))
 															trinary(
 																"if"
 																expr(
 																	bool
-																	file-range(14, range(1117, 1127))
+																	file-range(14, range(1119, 1129))
 																	local-ref(gc-memory?))
 																expr(
 																	bool
-																	file-range(14, range(1130, 1313))
+																	file-range(14, range(1132, 1317))
 																	seq(
 																		expr(
 																			void
-																			file-range(14, range(1130, 1193))
+																			file-range(14, range(1132, 1197))
 																			call(
 																				3
 																				[
 																					expr(
 																						bool
-																						file-range(14, range(1149, 1193))
+																						file-range(14, range(1145, 1197))
 																						call(
 																							10
 																							[
@@ -313,7 +313,7 @@ program(
 																									nat-64
 																									file-range(
 																										14
-																										range(1149, 1168))
+																										range(1152, 1171))
 																									binary(
 																										"wrap-add (nat-64)"
 																										expr(
@@ -321,8 +321,8 @@ program(
 																											file-range(
 																												14
 																												range(
-																													1143
-																													1148))
+																													1146
+																													1151))
 																											local-ref(
 																												index))
 																										expr(
@@ -330,15 +330,15 @@ program(
 																											file-range(
 																												14
 																												range(
-																													1158
-																													1168))
+																													1161
+																													1171))
 																											local-ref(
 																												size-words))))
 																								expr(
 																									nat-64
 																									file-range(
 																										14
-																										range(1175, 1193))
+																										range(1179, 1197))
 																									get-field(
 																										expr(
 																											gc-ptr(
@@ -346,64 +346,64 @@ program(
 																											file-range(
 																												14
 																												range(
-																													1172
-																													1175))
+																													1176
+																													1179))
 																											param-ref(0))
 																										true
 																										0))]))]))
 																		expr(
 																			bool
-																			file-range(14, range(1196, 1313))
+																			file-range(14, range(1200, 1317))
 																			let(
 																				mark-start
 																				expr(
 																					raw-ptr(bool)
-																					file-range(14, range(1212, 1226))
+																					file-range(14, range(1216, 1230))
 																					binary(
 																						"+ (ptr)"
 																						expr(
 																							raw-ptr(bool)
-																							file-range(14, range(1212, 1218))
+																							file-range(14, range(1216, 1222))
 																							get-field(
 																								expr(
 																									gc-ptr(record(1))
 																									file-range(
 																										14
-																										range(1209, 1212))
+																										range(1213, 1216))
 																									param-ref(0))
 																								true
 																								1))
 																						expr(
 																							nat-64
-																							file-range(14, range(1221, 1226))
+																							file-range(14, range(1225, 1230))
 																							local-ref(index))))
 																				expr(
 																					bool
-																					file-range(14, range(1229, 1313))
+																					file-range(14, range(1233, 1317))
 																					let(
 																						mark-end
 																						expr(
 																							raw-ptr(bool)
-																							file-range(14, range(1240, 1263))
+																							file-range(14, range(1244, 1267))
 																							binary(
 																								"+ (ptr)"
 																								expr(
 																									raw-ptr(bool)
 																									file-range(
 																										14
-																										range(1240, 1250))
+																										range(1244, 1254))
 																									local-ref(
 																										mark-start))
 																								expr(
 																									nat-64
 																									file-range(
 																										14
-																										range(1253, 1263))
+																										range(1257, 1267))
 																									local-ref(
 																										size-words))))
 																						expr(
 																							bool
-																							file-range(14, range(1266, 1311))
+																							file-range(14, range(1270, 1315))
 																							call(
 																								11
 																								[
@@ -411,35 +411,35 @@ program(
 																										bool
 																										file-range(
 																											14
-																											range(1284, 1289))
+																											range(1288, 1293))
 																										false)
 																									expr(
 																										raw-ptr(bool)
 																										file-range(
 																											14
-																											range(1291, 1301))
+																											range(1295, 1305))
 																										local-ref(
 																											mark-start))
 																									expr(
 																										raw-ptr(bool)
 																										file-range(
 																											14
-																											range(1303, 1311))
+																											range(1307, 1315))
 																										local-ref(
 																											mark-end))]))))))))
 																expr(
 																	bool
-																	file-range(14, range(1320, 1392))
+																	file-range(14, range(1324, 1398))
 																	seq(
 																		expr(
 																			void
-																			file-range(14, range(1320, 1382))
+																			file-range(14, range(1324, 1388))
 																			call(
 																				3
 																				[
 																					expr(
 																						bool
-																						file-range(14, range(1339, 1382))
+																						file-range(14, range(1337, 1388))
 																						call(
 																							13
 																							[
@@ -447,7 +447,7 @@ program(
 																									nat-64
 																									file-range(
 																										14
-																										range(1339, 1358))
+																										range(1344, 1363))
 																									binary(
 																										"wrap-add (nat-64)"
 																										expr(
@@ -455,8 +455,8 @@ program(
 																											file-range(
 																												14
 																												range(
-																													1333
-																													1338))
+																													1338
+																													1343))
 																											local-ref(
 																												index))
 																										expr(
@@ -464,15 +464,15 @@ program(
 																											file-range(
 																												14
 																												range(
-																													1348
-																													1358))
+																													1353
+																													1363))
 																											local-ref(
 																												size-words))))
 																								expr(
 																									nat-64
 																									file-range(
 																										14
-																										range(1364, 1382))
+																										range(1370, 1388))
 																									get-field(
 																										expr(
 																											gc-ptr(
@@ -480,12 +480,12 @@ program(
 																											file-range(
 																												14
 																												range(
-																													1361
-																													1364))
+																													1367
+																													1370))
 																											param-ref(0))
 																										true
 																										0))]))]))
-																		expr(bool, file-range(14, range(1385, 1390)), false)))))))))))))))))
+																		expr(bool, file-range(14, range(1391, 1396)), false)))))))))))))))))
 		1: fun(
 			words-of-bytes
 			nat-64
@@ -494,14 +494,14 @@ program(
 			expr-body(
 				expr(
 					nat-64
-					file-range(14, range(1479, 1491))
+					file-range(14, range(1485, 1497))
 					binary(
 						"unsafe-div (nat-64)"
 						expr(
 							nat-64
-							file-range(14, range(1452, 1478))
-							call(2, [expr(nat-64, file-range(14, range(1442, 1452)), param-ref(0))]))
-						expr(nat-64, file-range(14, range(1490, 1491)), 8)))))
+							file-range(14, range(1458, 1484))
+							call(2, [expr(nat-64, file-range(14, range(1448, 1458)), param-ref(0))]))
+						expr(nat-64, file-range(14, range(1496, 1497)), 8)))))
 		2: fun(
 			round-up-to-multiple-of-8
 			nat-64
@@ -510,20 +510,20 @@ program(
 			expr-body(
 				expr(
 					nat-64
-					file-range(14, range(1550, 1570))
+					file-range(14, range(1556, 1576))
 					binary(
 						"bitwise-and (nat-64)"
 						expr(
 							nat-64
-							file-range(14, range(1539, 1549))
+							file-range(14, range(1545, 1555))
 							binary(
 								"wrap-add (nat-64)"
-								expr(nat-64, file-range(14, range(1537, 1538)), param-ref(0))
-								expr(nat-64, file-range(14, range(1548, 1549)), 7)))
+								expr(nat-64, file-range(14, range(1543, 1544)), param-ref(0))
+								expr(nat-64, file-range(14, range(1554, 1555)), 7)))
 						expr(
 							nat-64
-							file-range(14, range(1562, 1570))
-							unary("bits-not (nat-64)", expr(nat-64, file-range(14, range(1560, 1561)), 7)))))))
+							file-range(14, range(1568, 1576))
+							unary("bits-not (nat-64)", expr(nat-64, file-range(14, range(1566, 1567)), 7)))))))
 		3: fun(
 			hard-assert
 			void
@@ -696,64 +696,64 @@ program(
 			expr-body(
 				expr(
 					bool
-					file-range(14, range(1659, 1834))
+					file-range(14, range(1665, 1840))
 					trinary(
 						"if"
 						expr(
 							bool
-							file-range(14, range(1666, 1677))
+							file-range(14, range(1672, 1683))
 							binary(
 								"ptr-eq?"
-								expr(raw-ptr(bool), file-range(14, range(1662, 1665)), param-ref(1))
-								expr(raw-ptr(bool), file-range(14, range(1674, 1677)), param-ref(2))))
-						expr(bool, file-range(14, range(1680, 1696)), param-ref(0))
+								expr(raw-ptr(bool), file-range(14, range(1668, 1671)), param-ref(1))
+								expr(raw-ptr(bool), file-range(14, range(1680, 1683)), param-ref(2))))
+						expr(bool, file-range(14, range(1686, 1702)), param-ref(0))
 						expr(
 							bool
-							file-range(14, range(1705, 1834))
+							file-range(14, range(1711, 1840))
 							let(
 								new-marked-anything?
 								expr(
 									bool
-									file-range(14, range(1745, 1761))
+									file-range(14, range(1751, 1767))
 									binary(
 										"or"
-										expr(bool, file-range(14, range(1728, 1744)), param-ref(0))
+										expr(bool, file-range(14, range(1734, 1750)), param-ref(0))
 										expr(
 											bool
-											file-range(14, range(1757, 1761))
+											file-range(14, range(1763, 1767))
 											call(
 												4
 												[
 													expr(
 														bool
-														file-range(14, range(1751, 1757))
+														file-range(14, range(1757, 1763))
 														unary(
 															"deref"
-															expr(raw-ptr(bool), file-range(14, range(1748, 1751)), param-ref(1))))]))))
+															expr(raw-ptr(bool), file-range(14, range(1754, 1757)), param-ref(1))))]))))
 								expr(
 									bool
-									file-range(14, range(1764, 1834))
+									file-range(14, range(1770, 1840))
 									seq(
 										expr(
 											void
-											file-range(14, range(1768, 1776))
+											file-range(14, range(1774, 1782))
 											binary(
 												"wriite to ptr"
-												expr(raw-ptr(bool), file-range(14, range(1764, 1767)), param-ref(1))
-												expr(bool, file-range(14, range(1772, 1776)), true)))
+												expr(raw-ptr(bool), file-range(14, range(1770, 1773)), param-ref(1))
+												expr(bool, file-range(14, range(1778, 1782)), true)))
 										expr(
 											bool
-											file-range(14, range(1779, 1832))
+											file-range(14, range(1785, 1838))
 											tail-recur(
 												[
-													expr(bool, file-range(14, range(1797, 1817)), local-ref(new-marked-anything?))
+													expr(bool, file-range(14, range(1803, 1823)), local-ref(new-marked-anything?))
 													expr(
 														raw-ptr(bool)
-														file-range(14, range(1822, 1827))
+														file-range(14, range(1828, 1833))
 														call(
 															12
-															[expr(raw-ptr(bool), file-range(14, range(1819, 1822)), param-ref(1))]))
-													expr(raw-ptr(bool), file-range(14, range(1829, 1832)), param-ref(2))]))))))))))
+															[expr(raw-ptr(bool), file-range(14, range(1825, 1828)), param-ref(1))]))
+													expr(raw-ptr(bool), file-range(14, range(1835, 1838)), param-ref(2))]))))))))))
 		12: fun(
 			incr
 			raw-ptr(bool)
@@ -1199,26 +1199,26 @@ program(
 			expr-body(
 				expr(
 					raw-ptr(nat-64)
-					file-range(14, range(7669, 7758))
+					file-range(14, range(7675, 7764))
 					let(
 						res
 						expr(
 							raw-ptr(nat-64)
-							file-range(14, range(7689, 7717))
-							call(25, [expr(nat-64, file-range(14, range(7675, 7688)), param-ref(0))]))
+							file-range(14, range(7695, 7723))
+							call(25, [expr(nat-64, file-range(14, range(7681, 7694)), param-ref(0))]))
 						expr(
 							raw-ptr(nat-64)
-							file-range(14, range(7719, 7758))
+							file-range(14, range(7725, 7764))
 							seq(
 								expr(
 									void
-									file-range(14, range(7723, 7751))
+									file-range(14, range(7729, 7757))
 									call(
 										30
 										[
-											expr(raw-ptr(nat-64), file-range(14, range(7719, 7722)), local-ref(res))
-											expr(nat-64, file-range(14, range(7738, 7751)), param-ref(0))]))
-								expr(raw-ptr(nat-64), file-range(14, range(7753, 7756)), local-ref(res))))))))
+											expr(raw-ptr(nat-64), file-range(14, range(7725, 7728)), local-ref(res))
+											expr(nat-64, file-range(14, range(7744, 7757)), param-ref(0))]))
+								expr(raw-ptr(nat-64), file-range(14, range(7759, 7762)), local-ref(res))))))))
 		25: fun(
 			unmanaged-alloc-elements
 			raw-ptr(nat-64)
@@ -1227,21 +1227,21 @@ program(
 			expr-body(
 				expr(
 					raw-ptr(nat-64)
-					file-range(14, range(7852, 7918))
+					file-range(14, range(7858, 7924))
 					ptr-cast(
 						expr(
 							raw-ptr(nat-8)
-							file-range(14, range(7897, 7918))
+							file-range(14, range(7903, 7924))
 							call(
 								26
 								[
 									expr(
 										nat-64
-										file-range(14, range(7876, 7896))
+										file-range(14, range(7882, 7902))
 										binary(
 											"wrap-mul (nat-64)"
-											expr(nat-64, file-range(14, range(7862, 7875)), param-ref(0))
-											expr(nat-64, file-range(14, range(7885, 7896)), size-of(nat-64))))]))))))
+											expr(nat-64, file-range(14, range(7868, 7881)), param-ref(0))
+											expr(nat-64, file-range(14, range(7891, 7902)), size-of(nat-64))))]))))))
 		26: fun(
 			unmanaged-alloc-bytes
 			raw-ptr(nat-8)
@@ -1250,28 +1250,28 @@ program(
 			expr-body(
 				expr(
 					raw-ptr(nat-8)
-					file-range(14, range(7549, 7597))
+					file-range(14, range(7555, 7603))
 					let(
 						res
 						expr(
 							raw-ptr(nat-8)
-							file-range(14, range(7560, 7566))
-							call(27, [expr(nat-64, file-range(14, range(7555, 7559)), param-ref(0))]))
+							file-range(14, range(7566, 7572))
+							call(27, [expr(nat-64, file-range(14, range(7561, 7565)), param-ref(0))]))
 						expr(
 							raw-ptr(nat-8)
-							file-range(14, range(7568, 7597))
+							file-range(14, range(7574, 7603))
 							seq(
 								expr(
 									void
-									file-range(14, range(7568, 7590))
+									file-range(14, range(7574, 7596))
 									call(
 										28
 										[
 											expr(
 												bool
-												file-range(14, range(7585, 7590))
-												call(29, [expr(raw-ptr(nat-8), file-range(14, range(7581, 7584)), local-ref(res))]))]))
-								expr(raw-ptr(nat-8), file-range(14, range(7592, 7595)), local-ref(res))))))))
+												file-range(14, range(7591, 7596))
+												call(29, [expr(raw-ptr(nat-8), file-range(14, range(7587, 7590)), local-ref(res))]))]))
+								expr(raw-ptr(nat-8), file-range(14, range(7598, 7601)), local-ref(res))))))))
 		27: fun(malloc, raw-ptr(nat-8), param-kind(ctx: false, closure: false), [param(size, nat-64)], extern(false))
 		28: fun(
 			hard-forbid
@@ -1694,85 +1694,85 @@ program(
 			expr-body(
 				expr(
 					record(11)
-					file-range(25, range(3708, 3802))
+					file-range(25, range(3710, 3804))
 					trinary(
 						"if"
 						expr(
 							bool
-							file-range(25, range(3713, 3719))
-							call(45, [expr(record(13), file-range(25, range(3711, 3712)), param-ref(1))]))
-						expr(record(11), file-range(25, range(3722, 3731)), call(46, []))
+							file-range(25, range(3715, 3721))
+							call(45, [expr(record(13), file-range(25, range(3713, 3714)), param-ref(1))]))
+						expr(record(11), file-range(25, range(3724, 3733)), call(46, []))
 						expr(
 							record(11)
-							file-range(25, range(3733, 3802))
+							file-range(25, range(3735, 3804))
 							trinary(
 								"if"
 								expr(
 									bool
-									file-range(25, range(3739, 3749))
+									file-range(25, range(3741, 3751))
 									call(
 										6
 										[
 											expr(
 												nat-64
-												file-range(25, range(3739, 3744))
-												get-field(expr(record(13), file-range(25, range(3738, 3739)), param-ref(1)), false, 0))
-											expr(nat-64, file-range(25, range(3748, 3749)), 1)]))
+												file-range(25, range(3741, 3746))
+												get-field(expr(record(13), file-range(25, range(3740, 3741)), param-ref(1)), false, 0))
+											expr(nat-64, file-range(25, range(3750, 3751)), 1)]))
 								expr(
 									record(11)
-									file-range(25, range(3753, 3756))
+									file-range(25, range(3755, 3758))
 									call(
 										47
 										[
-											expr(gc-ptr(record(0)), file-range(25, range(3753, 3756)), param-ref(0))
-											expr(record(13), file-range(25, range(3752, 3753)), param-ref(1))
-											expr(nat-64, file-range(25, range(3754, 3755)), 0)]))
+											expr(gc-ptr(record(0)), file-range(25, range(3755, 3758)), param-ref(0))
+											expr(record(13), file-range(25, range(3754, 3755)), param-ref(1))
+											expr(nat-64, file-range(25, range(3756, 3757)), 0)]))
 								expr(
 									record(11)
-									file-range(25, range(3766, 3800))
+									file-range(25, range(3768, 3802))
 									call(
 										87
 										[
-											expr(gc-ptr(record(0)), file-range(25, range(3766, 3800)), param-ref(0))
+											expr(gc-ptr(record(0)), file-range(25, range(3768, 3802)), param-ref(0))
 											expr(
 												record(11)
-												file-range(25, range(3766, 3778))
+												file-range(25, range(3768, 3780))
 												call(
 													87
 													[
-														expr(gc-ptr(record(0)), file-range(25, range(3766, 3778)), param-ref(0))
+														expr(gc-ptr(record(0)), file-range(25, range(3768, 3780)), param-ref(0))
 														expr(
 															record(11)
-															file-range(25, range(3766, 3769))
+															file-range(25, range(3768, 3771))
 															call(
 																47
 																[
 																	expr(
 																		gc-ptr(record(0))
-																		file-range(25, range(3766, 3769))
+																		file-range(25, range(3768, 3771))
 																		param-ref(0))
-																	expr(record(13), file-range(25, range(3765, 3766)), param-ref(1))
-																	expr(nat-64, file-range(25, range(3767, 3768)), 0)]))
-														expr(record(11), file-range(25, range(3772, 3778)), param-ref(2))]))
+																	expr(record(13), file-range(25, range(3767, 3768)), param-ref(1))
+																	expr(nat-64, file-range(25, range(3769, 3770)), 0)]))
+														expr(record(11), file-range(25, range(3774, 3780)), param-ref(2))]))
 											expr(
 												record(11)
-												file-range(25, range(3789, 3800))
+												file-range(25, range(3791, 3802))
 												call(
 													44
 													[
-														expr(gc-ptr(record(0)), file-range(25, range(3789, 3800)), param-ref(0))
+														expr(gc-ptr(record(0)), file-range(25, range(3791, 3802)), param-ref(0))
 														expr(
 															record(13)
-															file-range(25, range(3783, 3788))
+															file-range(25, range(3785, 3790))
 															call(
 																96
 																[
 																	expr(
 																		gc-ptr(record(0))
-																		file-range(25, range(3783, 3788))
+																		file-range(25, range(3785, 3790))
 																		param-ref(0))
-																	expr(record(13), file-range(25, range(3782, 3783)), param-ref(1))]))
-														expr(record(11), file-range(25, range(3794, 3800)), param-ref(2))]))]))))))))
+																	expr(record(13), file-range(25, range(3784, 3785)), param-ref(1))]))
+														expr(record(11), file-range(25, range(3796, 3802)), param-ref(2))]))]))))))))
 		45: fun(
 			empty?
 			bool
@@ -2664,52 +2664,52 @@ program(
 			expr-body(
 				expr(
 					union(12)
-					file-range(14, range(7390, 7495))
+					file-range(14, range(7396, 7501))
 					match(
 						expr(
 							union(13)
-							file-range(14, range(7422, 7431))
+							file-range(14, range(7428, 7437))
 							call(
 								58
 								[
-									expr(gc-ptr(record(0)), file-range(14, range(7422, 7431)), param-ref(0))
+									expr(gc-ptr(record(0)), file-range(14, range(7428, 7437)), param-ref(0))
 									expr(
 										nat-64
-										file-range(14, range(7401, 7421))
+										file-range(14, range(7407, 7427))
 										binary(
 											"wrap-mul (nat-64)"
-											expr(nat-64, file-range(14, range(7396, 7400)), param-ref(1))
-											expr(nat-64, file-range(14, range(7410, 7421)), size-of(raw-ptr(nat-8)))))]))
+											expr(nat-64, file-range(14, range(7402, 7406)), param-ref(1))
+											expr(nat-64, file-range(14, range(7416, 7427)), size-of(raw-ptr(nat-8)))))]))
 						[
 							case(
 								none
 								expr(
 									union(12)
-									file-range(14, range(7443, 7447))
-									to-union(0, expr(record(16), file-range(14, range(7443, 7447)), record([])))))
+									file-range(14, range(7449, 7453))
+									to-union(0, expr(record(16), file-range(14, range(7449, 7453)), record([])))))
 							case(
 								some(s)
 								expr(
 									union(12)
-									file-range(14, range(7461, 7493))
+									file-range(14, range(7467, 7499))
 									to-union(
 										1
 										expr(
 											record(46)
-											file-range(14, range(7461, 7493))
+											file-range(14, range(7467, 7499))
 											record(
 												[
 													expr(
 														raw-ptr(raw-ptr(nat-8))
-														file-range(14, range(7475, 7493))
+														file-range(14, range(7481, 7499))
 														ptr-cast(
 															expr(
 																raw-ptr(nat-8)
-																file-range(14, range(7468, 7474))
+																file-range(14, range(7474, 7480))
 																get-field(
 																	expr(
 																		record(47)
-																		file-range(14, range(7467, 7468))
+																		file-range(14, range(7473, 7474))
 																		local-ref(s))
 																	false
 																	0))))])))))]))))
@@ -2721,15 +2721,15 @@ program(
 			expr-body(
 				expr(
 					union(13)
-					file-range(14, range(7184, 7207))
+					file-range(14, range(7190, 7213))
 					call(
 						59
 						[
 							expr(
 								gc-ptr(record(21))
-								file-range(14, range(7177, 7183))
-								call(66, [expr(gc-ptr(record(0)), file-range(14, range(7177, 7183)), param-ref(0))]))
-							expr(nat-64, file-range(14, range(7197, 7207)), param-ref(1))]))))
+								file-range(14, range(7183, 7189))
+								call(66, [expr(gc-ptr(record(0)), file-range(14, range(7183, 7189)), param-ref(0))]))
+							expr(nat-64, file-range(14, range(7203, 7213)), param-ref(1))]))))
 		59: fun(
 			try-gc-alloc
 			union(13)
@@ -2738,137 +2738,137 @@ program(
 			expr-body(
 				expr(
 					union(13)
-					file-range(14, range(6315, 6774))
+					file-range(14, range(6321, 6780))
 					seq(
 						expr(
 							void
-							file-range(14, range(6318, 6329))
-							call(60, [expr(gc-ptr(record(21)), file-range(14, range(6315, 6317)), param-ref(0))]))
+							file-range(14, range(6324, 6335))
+							call(60, [expr(gc-ptr(record(21)), file-range(14, range(6321, 6323)), param-ref(0))]))
 						expr(
 							union(13)
-							file-range(14, range(6373, 6774))
+							file-range(14, range(6379, 6780))
 							let(
 								size-words
 								expr(
 									nat-64
-									file-range(14, range(6397, 6411))
-									call(1, [expr(nat-64, file-range(14, range(6386, 6396)), param-ref(1))]))
+									file-range(14, range(6403, 6417))
+									call(1, [expr(nat-64, file-range(14, range(6392, 6402)), param-ref(1))]))
 								expr(
 									union(13)
-									file-range(14, range(6413, 6774))
+									file-range(14, range(6419, 6780))
 									let(
 										cur
 										expr(
 											raw-ptr(nat-64)
-											file-range(14, range(6422, 6430))
+											file-range(14, range(6428, 6436))
 											get-field(
-												expr(gc-ptr(record(21)), file-range(14, range(6419, 6421)), param-ref(0))
+												expr(gc-ptr(record(21)), file-range(14, range(6425, 6427)), param-ref(0))
 												true
 												9))
 										expr(
 											union(13)
-											file-range(14, range(6432, 6774))
+											file-range(14, range(6438, 6780))
 											let(
 												next
 												expr(
 													raw-ptr(nat-64)
-													file-range(14, range(6439, 6455))
+													file-range(14, range(6445, 6461))
 													binary(
 														"+ (ptr)"
-														expr(raw-ptr(nat-64), file-range(14, range(6439, 6442)), local-ref(cur))
-														expr(nat-64, file-range(14, range(6445, 6455)), local-ref(size-words))))
+														expr(raw-ptr(nat-64), file-range(14, range(6445, 6448)), local-ref(cur))
+														expr(nat-64, file-range(14, range(6451, 6461)), local-ref(size-words))))
 												expr(
 													union(13)
-													file-range(14, range(6457, 6774))
+													file-range(14, range(6463, 6780))
 													trinary(
 														"if"
 														expr(
 															bool
-															file-range(14, range(6465, 6486))
+															file-range(14, range(6471, 6492))
 															binary(
 																"< (ptr)"
 																expr(
 																	raw-ptr(nat-64)
-																	file-range(14, range(6460, 6464))
+																	file-range(14, range(6466, 6470))
 																	local-ref(next))
 																expr(
 																	raw-ptr(nat-64)
-																	file-range(14, range(6477, 6486))
+																	file-range(14, range(6483, 6492))
 																	get-field(
 																		expr(
 																			gc-ptr(record(21))
-																			file-range(14, range(6475, 6477))
+																			file-range(14, range(6481, 6483))
 																			param-ref(0))
 																		true
 																		10))))
 														expr(
 															union(13)
-															file-range(14, range(6489, 6761))
+															file-range(14, range(6495, 6767))
 															trinary(
 																"if"
 																expr(
 																	bool
-																	file-range(14, range(6504, 6542))
+																	file-range(14, range(6510, 6548))
 																	call(
 																		64
 																		[
 																			expr(
 																				raw-ptr(bool)
-																				file-range(14, range(6494, 6503))
+																				file-range(14, range(6500, 6509))
 																				get-field(
 																					expr(
 																						gc-ptr(record(21))
-																						file-range(14, range(6492, 6494))
+																						file-range(14, range(6498, 6500))
 																						param-ref(0))
 																					true
 																					6))
 																			expr(
 																				raw-ptr(bool)
-																				file-range(14, range(6519, 6541))
+																				file-range(14, range(6525, 6547))
 																				binary(
 																					"+ (ptr)"
 																					expr(
 																						raw-ptr(bool)
-																						file-range(14, range(6519, 6528))
+																						file-range(14, range(6525, 6534))
 																						get-field(
 																							expr(
 																								gc-ptr(record(21))
-																								file-range(14, range(6517, 6519))
+																								file-range(14, range(6523, 6525))
 																								param-ref(0))
 																							true
 																							6))
 																					expr(
 																						nat-64
-																						file-range(14, range(6531, 6541))
+																						file-range(14, range(6537, 6547))
 																						local-ref(size-words))))]))
 																expr(
 																	union(13)
-																	file-range(14, range(6546, 6655))
+																	file-range(14, range(6552, 6661))
 																	seq(
 																		expr(
 																			void
-																			file-range(14, range(6546, 6612))
+																			file-range(14, range(6552, 6618))
 																			seq(
 																				expr(
 																					void
-																					file-range(14, range(6546, 6589))
+																					file-range(14, range(6552, 6595))
 																					set-field(
 																						expr(
 																							gc-ptr(record(21))
-																							file-range(14, range(6546, 6548))
+																							file-range(14, range(6552, 6554))
 																							param-ref(0))
 																						true
 																						6
 																						expr(
 																							raw-ptr(bool)
-																							file-range(14, range(6563, 6585))
+																							file-range(14, range(6569, 6591))
 																							binary(
 																								"+ (ptr)"
 																								expr(
 																									raw-ptr(bool)
 																									file-range(
 																										14
-																										range(6563, 6572))
+																										range(6569, 6578))
 																									get-field(
 																										expr(
 																											gc-ptr(
@@ -2876,8 +2876,8 @@ program(
 																											file-range(
 																												14
 																												range(
-																													6561
-																													6563))
+																													6567
+																													6569))
 																											param-ref(0))
 																										true
 																										6))
@@ -2885,64 +2885,64 @@ program(
 																									nat-64
 																									file-range(
 																										14
-																										range(6575, 6585))
+																										range(6581, 6591))
 																									local-ref(
 																										size-words))))))
 																				expr(
 																					void
-																					file-range(14, range(6589, 6612))
+																					file-range(14, range(6595, 6618))
 																					set-field(
 																						expr(
 																							gc-ptr(record(21))
-																							file-range(14, range(6589, 6591))
+																							file-range(14, range(6595, 6597))
 																							param-ref(0))
 																						true
 																						9
 																						expr(
 																							raw-ptr(nat-64)
-																							file-range(14, range(6604, 6608))
+																							file-range(14, range(6610, 6614))
 																							local-ref(next))))))
 																		expr(
 																			union(13)
-																			file-range(14, range(6638, 6652))
+																			file-range(14, range(6644, 6658))
 																			to-union(
 																				1
 																				expr(
 																					record(47)
-																					file-range(14, range(6638, 6652))
+																					file-range(14, range(6644, 6658))
 																					record(
 																						[
 																							expr(
 																								raw-ptr(nat-8)
-																								file-range(14, range(6615, 6637))
+																								file-range(14, range(6621, 6643))
 																								ptr-cast(
 																									expr(
 																										raw-ptr(nat-64)
 																										file-range(
 																											14
-																											range(6612, 6615))
+																											range(6618, 6621))
 																										local-ref(cur))))]))))))
 																expr(
 																	union(13)
-																	file-range(14, range(6663, 6761))
+																	file-range(14, range(6669, 6767))
 																	seq(
 																		expr(
 																			void
-																			file-range(14, range(6663, 6733))
+																			file-range(14, range(6669, 6739))
 																			seq(
 																				expr(
 																					void
-																					file-range(14, range(6663, 6698))
+																					file-range(14, range(6669, 6704))
 																					set-field(
 																						expr(
 																							gc-ptr(record(21))
-																							file-range(14, range(6663, 6665))
+																							file-range(14, range(6669, 6671))
 																							param-ref(0))
 																						true
 																						6
 																						expr(
 																							raw-ptr(bool)
-																							file-range(14, range(6690, 6694))
+																							file-range(14, range(6696, 6700))
 																							call(
 																								12
 																								[
@@ -2950,7 +2950,7 @@ program(
 																										raw-ptr(bool)
 																										file-range(
 																											14
-																											range(6680, 6689))
+																											range(6686, 6695))
 																										get-field(
 																											expr(
 																												gc-ptr(
@@ -2959,25 +2959,25 @@ program(
 																												file-range(
 																													14
 																													range(
-																														6678
-																														6680))
+																														6684
+																														6686))
 																												param-ref(
 																													0))
 																											true
 																											6))]))))
 																				expr(
 																					void
-																					file-range(14, range(6698, 6733))
+																					file-range(14, range(6704, 6739))
 																					set-field(
 																						expr(
 																							gc-ptr(record(21))
-																							file-range(14, range(6698, 6700))
+																							file-range(14, range(6704, 6706))
 																							param-ref(0))
 																						true
 																						9
 																						expr(
 																							raw-ptr(nat-64)
-																							file-range(14, range(6725, 6729))
+																							file-range(14, range(6731, 6735))
 																							call(
 																								65
 																								[
@@ -2985,7 +2985,7 @@ program(
 																										raw-ptr(nat-64)
 																										file-range(
 																											14
-																											range(6715, 6724))
+																											range(6721, 6730))
 																										get-field(
 																											expr(
 																												gc-ptr(
@@ -2994,31 +2994,31 @@ program(
 																												file-range(
 																													14
 																													range(
-																														6713
-																														6715))
+																														6719
+																														6721))
 																												param-ref(
 																													0))
 																											true
 																											9))]))))))
 																		expr(
 																			union(13)
-																			file-range(14, range(6736, 6759))
+																			file-range(14, range(6742, 6765))
 																			tail-recur(
 																				[
 																					expr(
 																						gc-ptr(record(21))
-																						file-range(14, range(6733, 6735))
+																						file-range(14, range(6739, 6741))
 																						param-ref(0))
 																					expr(
 																						nat-64
-																						file-range(14, range(6749, 6759))
+																						file-range(14, range(6755, 6765))
 																						param-ref(1))]))))))
 														expr(
 															union(13)
-															file-range(14, range(6768, 6772))
+															file-range(14, range(6774, 6778))
 															to-union(
 																0
-																expr(record(16), file-range(14, range(6768, 6772)), record([]))))))))))))))))
+																expr(record(16), file-range(14, range(6774, 6778)), record([]))))))))))))))))
 		60: fun(
 			validate-gc
 			void
@@ -3027,329 +3027,329 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(14, range(5811, 6252))
+					file-range(14, range(5817, 6258))
 					seq(
 						expr(
 							void
-							file-range(14, range(5811, 6019))
+							file-range(14, range(5817, 6025))
 							seq(
 								expr(
 									void
-									file-range(14, range(5811, 5968))
+									file-range(14, range(5817, 5974))
 									seq(
 										expr(
 											void
-											file-range(14, range(5811, 5915))
+											file-range(14, range(5817, 5921))
 											seq(
 												expr(
 													void
-													file-range(14, range(5811, 5862))
+													file-range(14, range(5817, 5868))
 													call(
 														3
 														[
 															expr(
 																bool
-																file-range(14, range(5838, 5862))
+																file-range(14, range(5844, 5868))
 																call(
 																	61
 																	[
 																		expr(
 																			raw-ptr(bool)
-																			file-range(14, range(5826, 5837))
+																			file-range(14, range(5832, 5843))
 																			get-field(
 																				expr(
 																					gc-ptr(record(21))
-																					file-range(14, range(5824, 5826))
+																					file-range(14, range(5830, 5832))
 																					param-ref(0))
 																				true
 																				5))
 																		expr(
 																			raw-ptr(bool)
-																			file-range(14, range(5853, 5862))
+																			file-range(14, range(5859, 5868))
 																			get-field(
 																				expr(
 																					gc-ptr(record(21))
-																					file-range(14, range(5851, 5853))
+																					file-range(14, range(5857, 5859))
 																					param-ref(0))
 																				true
 																				6))]))]))
 												expr(
 													void
-													file-range(14, range(5864, 5913))
+													file-range(14, range(5870, 5919))
 													call(
 														3
 														[
 															expr(
 																bool
-																file-range(14, range(5889, 5913))
+																file-range(14, range(5895, 5919))
 																call(
 																	61
 																	[
 																		expr(
 																			raw-ptr(bool)
-																			file-range(14, range(5879, 5888))
+																			file-range(14, range(5885, 5894))
 																			get-field(
 																				expr(
 																					gc-ptr(record(21))
-																					file-range(14, range(5877, 5879))
+																					file-range(14, range(5883, 5885))
 																					param-ref(0))
 																				true
 																				6))
 																		expr(
 																			raw-ptr(bool)
-																			file-range(14, range(5904, 5913))
+																			file-range(14, range(5910, 5919))
 																			get-field(
 																				expr(
 																					gc-ptr(record(21))
-																					file-range(14, range(5902, 5904))
+																					file-range(14, range(5908, 5910))
 																					param-ref(0))
 																				true
 																				7))]))]))))
 										expr(
 											void
-											file-range(14, range(5915, 5966))
+											file-range(14, range(5921, 5972))
 											call(
 												3
 												[
 													expr(
 														bool
-														file-range(14, range(5942, 5966))
+														file-range(14, range(5948, 5972))
 														call(
 															62
 															[
 																expr(
 																	raw-ptr(nat-64)
-																	file-range(14, range(5930, 5941))
+																	file-range(14, range(5936, 5947))
 																	get-field(
 																		expr(
 																			gc-ptr(record(21))
-																			file-range(14, range(5928, 5930))
+																			file-range(14, range(5934, 5936))
 																			param-ref(0))
 																		true
 																		8))
 																expr(
 																	raw-ptr(nat-64)
-																	file-range(14, range(5957, 5966))
+																	file-range(14, range(5963, 5972))
 																	get-field(
 																		expr(
 																			gc-ptr(record(21))
-																			file-range(14, range(5955, 5957))
+																			file-range(14, range(5961, 5963))
 																			param-ref(0))
 																		true
 																		9))]))]))))
 								expr(
 									void
-									file-range(14, range(5968, 6017))
+									file-range(14, range(5974, 6023))
 									call(
 										3
 										[
 											expr(
 												bool
-												file-range(14, range(5993, 6017))
+												file-range(14, range(5999, 6023))
 												call(
 													62
 													[
 														expr(
 															raw-ptr(nat-64)
-															file-range(14, range(5983, 5992))
+															file-range(14, range(5989, 5998))
 															get-field(
 																expr(
 																	gc-ptr(record(21))
-																	file-range(14, range(5981, 5983))
+																	file-range(14, range(5987, 5989))
 																	param-ref(0))
 																true
 																9))
 														expr(
 															raw-ptr(nat-64)
-															file-range(14, range(6008, 6017))
+															file-range(14, range(6014, 6023))
 															get-field(
 																expr(
 																	gc-ptr(record(21))
-																	file-range(14, range(6006, 6008))
+																	file-range(14, range(6012, 6014))
 																	param-ref(0))
 																true
 																10))]))]))))
 						expr(
 							void
-							file-range(14, range(6019, 6252))
+							file-range(14, range(6025, 6258))
 							let(
 								mark-idx
 								expr(
 									nat-64
-									file-range(14, range(6032, 6057))
+									file-range(14, range(6038, 6063))
 									call(
 										63
 										[
 											expr(
 												raw-ptr(bool)
-												file-range(14, range(6032, 6041))
+												file-range(14, range(6038, 6047))
 												get-field(
-													expr(gc-ptr(record(21)), file-range(14, range(6030, 6032)), param-ref(0))
+													expr(gc-ptr(record(21)), file-range(14, range(6036, 6038)), param-ref(0))
 													true
 													6))
 											expr(
 												raw-ptr(bool)
-												file-range(14, range(6046, 6057))
+												file-range(14, range(6052, 6063))
 												get-field(
-													expr(gc-ptr(record(21)), file-range(14, range(6044, 6046)), param-ref(0))
+													expr(gc-ptr(record(21)), file-range(14, range(6050, 6052)), param-ref(0))
 													true
 													5))]))
 								expr(
 									void
-									file-range(14, range(6059, 6252))
+									file-range(14, range(6065, 6258))
 									let(
 										data-idx
 										expr(
 											nat-64
-											file-range(14, range(6072, 6097))
+											file-range(14, range(6078, 6103))
 											call(
 												8
 												[
 													expr(
 														raw-ptr(nat-64)
-														file-range(14, range(6072, 6081))
+														file-range(14, range(6078, 6087))
 														get-field(
-															expr(gc-ptr(record(21)), file-range(14, range(6070, 6072)), param-ref(0))
+															expr(gc-ptr(record(21)), file-range(14, range(6076, 6078)), param-ref(0))
 															true
 															9))
 													expr(
 														raw-ptr(nat-64)
-														file-range(14, range(6086, 6097))
+														file-range(14, range(6092, 6103))
 														get-field(
-															expr(gc-ptr(record(21)), file-range(14, range(6084, 6086)), param-ref(0))
+															expr(gc-ptr(record(21)), file-range(14, range(6090, 6092)), param-ref(0))
 															true
 															8))]))
 										expr(
 											void
-											file-range(14, range(6099, 6252))
+											file-range(14, range(6105, 6258))
 											seq(
 												expr(
 													void
-													file-range(14, range(6099, 6217))
+													file-range(14, range(6105, 6223))
 													seq(
 														expr(
 															void
-															file-range(14, range(6099, 6156))
+															file-range(14, range(6105, 6162))
 															call(
 																3
 																[
 																	expr(
 																		bool
-																		file-range(14, range(6114, 6156))
+																		file-range(14, range(6120, 6162))
 																		call(
 																			6
 																			[
 																				expr(
 																					nat-64
-																					file-range(14, range(6114, 6139))
+																					file-range(14, range(6120, 6145))
 																					call(
 																						63
 																						[
 																							expr(
 																								raw-ptr(bool)
-																								file-range(14, range(6114, 6123))
+																								file-range(14, range(6120, 6129))
 																								get-field(
 																									expr(
 																										gc-ptr(record(21))
 																										file-range(
 																											14
-																											range(6112, 6114))
+																											range(6118, 6120))
 																										param-ref(0))
 																									true
 																									7))
 																							expr(
 																								raw-ptr(bool)
-																								file-range(14, range(6128, 6139))
+																								file-range(14, range(6134, 6145))
 																								get-field(
 																									expr(
 																										gc-ptr(record(21))
 																										file-range(
 																											14
-																											range(6126, 6128))
+																											range(6132, 6134))
 																										param-ref(0))
 																									true
 																									5))]))
 																				expr(
 																					nat-64
-																					file-range(14, range(6145, 6156))
+																					file-range(14, range(6151, 6162))
 																					get-field(
 																						expr(
 																							gc-ptr(record(21))
-																							file-range(14, range(6143, 6145))
+																							file-range(14, range(6149, 6151))
 																							param-ref(0))
 																						true
 																						4))]))]))
 														expr(
 															void
-															file-range(14, range(6158, 6215))
+															file-range(14, range(6164, 6221))
 															call(
 																3
 																[
 																	expr(
 																		bool
-																		file-range(14, range(6173, 6215))
+																		file-range(14, range(6179, 6221))
 																		call(
 																			6
 																			[
 																				expr(
 																					nat-64
-																					file-range(14, range(6173, 6198))
+																					file-range(14, range(6179, 6204))
 																					call(
 																						8
 																						[
 																							expr(
 																								raw-ptr(nat-64)
-																								file-range(14, range(6173, 6182))
+																								file-range(14, range(6179, 6188))
 																								get-field(
 																									expr(
 																										gc-ptr(record(21))
 																										file-range(
 																											14
-																											range(6171, 6173))
+																											range(6177, 6179))
 																										param-ref(0))
 																									true
 																									10))
 																							expr(
 																								raw-ptr(nat-64)
-																								file-range(14, range(6187, 6198))
+																								file-range(14, range(6193, 6204))
 																								get-field(
 																									expr(
 																										gc-ptr(record(21))
 																										file-range(
 																											14
-																											range(6185, 6187))
+																											range(6191, 6193))
 																										param-ref(0))
 																									true
 																									8))]))
 																				expr(
 																					nat-64
-																					file-range(14, range(6204, 6215))
+																					file-range(14, range(6210, 6221))
 																					get-field(
 																						expr(
 																							gc-ptr(record(21))
-																							file-range(14, range(6202, 6204))
+																							file-range(14, range(6208, 6210))
 																							param-ref(0))
 																						true
 																						4))]))]))))
 												expr(
 													void
-													file-range(14, range(6217, 6250))
+													file-range(14, range(6223, 6256))
 													call(
 														3
 														[
 															expr(
 																bool
-																file-range(14, range(6230, 6250))
+																file-range(14, range(6236, 6256))
 																call(
 																	6
 																	[
 																		expr(
 																			nat-64
-																			file-range(14, range(6230, 6238))
+																			file-range(14, range(6236, 6244))
 																			local-ref(mark-idx))
 																		expr(
 																			nat-64
-																			file-range(14, range(6242, 6250))
+																			file-range(14, range(6248, 6256))
 																			local-ref(data-idx))]))]))))))))))))
 		61: fun(
 			ptr-less-eq?
@@ -3438,37 +3438,37 @@ program(
 			expr-body(
 				expr(
 					bool
-					file-range(14, range(6834, 6921))
+					file-range(14, range(6840, 6927))
 					trinary(
 						"if"
 						expr(
 							bool
-							file-range(14, range(6842, 6853))
+							file-range(14, range(6848, 6859))
 							binary(
 								"ptr-eq?"
-								expr(raw-ptr(bool), file-range(14, range(6837, 6841)), param-ref(0))
-								expr(raw-ptr(bool), file-range(14, range(6850, 6853)), param-ref(1))))
-						expr(bool, file-range(14, range(6856, 6860)), true)
+								expr(raw-ptr(bool), file-range(14, range(6843, 6847)), param-ref(0))
+								expr(raw-ptr(bool), file-range(14, range(6856, 6859)), param-ref(1))))
+						expr(bool, file-range(14, range(6862, 6866)), true)
 						expr(
 							bool
-							file-range(14, range(6862, 6921))
+							file-range(14, range(6868, 6927))
 							trinary(
 								"if"
 								expr(
 									bool
-									file-range(14, range(6872, 6877))
-									unary("deref", expr(raw-ptr(bool), file-range(14, range(6867, 6871)), param-ref(0))))
-								expr(bool, file-range(14, range(6880, 6885)), false)
+									file-range(14, range(6878, 6883))
+									unary("deref", expr(raw-ptr(bool), file-range(14, range(6873, 6877)), param-ref(0))))
+								expr(bool, file-range(14, range(6886, 6891)), false)
 								expr(
 									bool
-									file-range(14, range(6904, 6919))
+									file-range(14, range(6910, 6925))
 									tail-recur(
 										[
 											expr(
 												raw-ptr(bool)
-												file-range(14, range(6898, 6903))
-												call(12, [expr(raw-ptr(bool), file-range(14, range(6894, 6898)), param-ref(0))]))
-											expr(raw-ptr(bool), file-range(14, range(6916, 6919)), param-ref(1))]))))))))
+												file-range(14, range(6904, 6909))
+												call(12, [expr(raw-ptr(bool), file-range(14, range(6900, 6904)), param-ref(0))]))
+											expr(raw-ptr(bool), file-range(14, range(6922, 6925)), param-ref(1))]))))))))
 		65: fun(
 			incr
 			raw-ptr(nat-64)
@@ -3490,12 +3490,12 @@ program(
 			expr-body(
 				expr(
 					gc-ptr(record(21))
-					file-range(14, range(5623, 5626))
+					file-range(14, range(5629, 5632))
 					get-field(
 						expr(
 							gc-ptr(record(22))
-							file-range(14, range(5613, 5623))
-							call(67, [expr(gc-ptr(record(0)), file-range(14, range(5613, 5623)), param-ref(0))]))
+							file-range(14, range(5619, 5629))
+							call(67, [expr(gc-ptr(record(0)), file-range(14, range(5619, 5629)), param-ref(0))]))
 						true
 						0))))
 		67: fun(
@@ -3506,13 +3506,13 @@ program(
 			expr-body(
 				expr(
 					gc-ptr(record(22))
-					file-range(14, range(5585, 5591))
+					file-range(14, range(5591, 5597))
 					unary(
 						"as-ref"
 						expr(
 							raw-ptr(nat-8)
-							file-range(14, range(5573, 5584))
-							get-field(expr(gc-ptr(record(0)), file-range(14, range(5566, 5573)), param-ref(0)), true, 3))))))
+							file-range(14, range(5579, 5590))
+							get-field(expr(gc-ptr(record(0)), file-range(14, range(5572, 5579)), param-ref(0)), true, 3))))))
 		68: fun(
 			try-alloc-uninitialized
 			union(14)
@@ -3521,52 +3521,52 @@ program(
 			expr-body(
 				expr(
 					union(14)
-					file-range(14, range(7390, 7495))
+					file-range(14, range(7396, 7501))
 					match(
 						expr(
 							union(13)
-							file-range(14, range(7422, 7431))
+							file-range(14, range(7428, 7437))
 							call(
 								58
 								[
-									expr(gc-ptr(record(0)), file-range(14, range(7422, 7431)), param-ref(0))
+									expr(gc-ptr(record(0)), file-range(14, range(7428, 7437)), param-ref(0))
 									expr(
 										nat-64
-										file-range(14, range(7401, 7421))
+										file-range(14, range(7407, 7427))
 										binary(
 											"wrap-mul (nat-64)"
-											expr(nat-64, file-range(14, range(7396, 7400)), param-ref(1))
-											expr(nat-64, file-range(14, range(7410, 7421)), size-of(record(11)))))]))
+											expr(nat-64, file-range(14, range(7402, 7406)), param-ref(1))
+											expr(nat-64, file-range(14, range(7416, 7427)), size-of(record(11)))))]))
 						[
 							case(
 								none
 								expr(
 									union(14)
-									file-range(14, range(7443, 7447))
-									to-union(0, expr(record(16), file-range(14, range(7443, 7447)), record([])))))
+									file-range(14, range(7449, 7453))
+									to-union(0, expr(record(16), file-range(14, range(7449, 7453)), record([])))))
 							case(
 								some(s)
 								expr(
 									union(14)
-									file-range(14, range(7461, 7493))
+									file-range(14, range(7467, 7499))
 									to-union(
 										1
 										expr(
 											record(48)
-											file-range(14, range(7461, 7493))
+											file-range(14, range(7467, 7499))
 											record(
 												[
 													expr(
 														raw-ptr(record(11))
-														file-range(14, range(7475, 7493))
+														file-range(14, range(7481, 7499))
 														ptr-cast(
 															expr(
 																raw-ptr(nat-8)
-																file-range(14, range(7468, 7474))
+																file-range(14, range(7474, 7480))
 																get-field(
 																	expr(
 																		record(47)
-																		file-range(14, range(7467, 7468))
+																		file-range(14, range(7473, 7474))
 																		local-ref(s))
 																	false
 																	0))))])))))]))))
@@ -6380,49 +6380,49 @@ program(
 			expr-body(
 				expr(
 					nat-64
-					file-range(21, range(700, 756))
+					file-range(21, range(702, 758))
 					let(
 						res
 						expr(
 							nat-64
-							file-range(21, range(708, 718))
+							file-range(21, range(710, 720))
 							binary(
 								"wrap-add (nat-64)"
-								expr(nat-64, file-range(21, range(706, 707)), param-ref(1))
-								expr(nat-64, file-range(21, range(717, 718)), param-ref(2))))
+								expr(nat-64, file-range(21, range(708, 709)), param-ref(1))
+								expr(nat-64, file-range(21, range(719, 720)), param-ref(2))))
 						expr(
 							nat-64
-							file-range(21, range(720, 756))
+							file-range(21, range(722, 758))
 							seq(
 								expr(
 									void
-									file-range(21, range(720, 750))
+									file-range(21, range(722, 752))
 									call(
 										48
 										[
-											expr(gc-ptr(record(0)), file-range(21, range(720, 750)), param-ref(0))
+											expr(gc-ptr(record(0)), file-range(21, range(722, 752)), param-ref(0))
 											expr(
 												bool
-												file-range(21, range(737, 750))
+												file-range(21, range(739, 752))
 												binary(
 													"and"
 													expr(
 														bool
-														file-range(21, range(728, 736))
+														file-range(21, range(730, 738))
 														call(
 															89
 															[
-																expr(nat-64, file-range(21, range(728, 731)), local-ref(res))
-																expr(nat-64, file-range(21, range(735, 736)), param-ref(1))]))
+																expr(nat-64, file-range(21, range(730, 733)), local-ref(res))
+																expr(nat-64, file-range(21, range(737, 738)), param-ref(1))]))
 													expr(
 														bool
-														file-range(21, range(742, 750))
+														file-range(21, range(744, 752))
 														call(
 															89
 															[
-																expr(nat-64, file-range(21, range(742, 745)), local-ref(res))
-																expr(nat-64, file-range(21, range(749, 750)), param-ref(2))]))))]))
-								expr(nat-64, file-range(21, range(752, 755)), local-ref(res))))))))
+																expr(nat-64, file-range(21, range(744, 747)), local-ref(res))
+																expr(nat-64, file-range(21, range(751, 752)), param-ref(2))]))))]))
+								expr(nat-64, file-range(21, range(754, 757)), local-ref(res))))))))
 		89: fun(
 			>=
 			bool
@@ -6451,22 +6451,22 @@ program(
 			expr-body(
 				expr(
 					raw-ptr(char)
-					file-range(14, range(7283, 7335))
+					file-range(14, range(7289, 7341))
 					ptr-cast(
 						expr(
 							raw-ptr(nat-8)
-							file-range(14, range(7303, 7335))
+							file-range(14, range(7309, 7341))
 							call(
 								91
 								[
-									expr(gc-ptr(record(0)), file-range(14, range(7303, 7335)), param-ref(0))
+									expr(gc-ptr(record(0)), file-range(14, range(7309, 7341)), param-ref(0))
 									expr(
 										nat-64
-										file-range(14, range(7315, 7335))
+										file-range(14, range(7321, 7341))
 										binary(
 											"wrap-mul (nat-64)"
-											expr(nat-64, file-range(14, range(7310, 7314)), param-ref(1))
-											expr(nat-64, file-range(14, range(7324, 7335)), size-of(char))))]))))))
+											expr(nat-64, file-range(14, range(7316, 7320)), param-ref(1))
+											expr(nat-64, file-range(14, range(7330, 7341)), size-of(char))))]))))))
 		91: fun(
 			alloc
 			raw-ptr(nat-8)
@@ -6475,16 +6475,16 @@ program(
 			expr-body(
 				expr(
 					raw-ptr(nat-8)
-					file-range(14, range(7110, 7129))
+					file-range(14, range(7116, 7135))
 					call(
 						92
 						[
-							expr(gc-ptr(record(0)), file-range(14, range(7110, 7129)), param-ref(0))
+							expr(gc-ptr(record(0)), file-range(14, range(7116, 7135)), param-ref(0))
 							expr(
 								gc-ptr(record(21))
-								file-range(14, range(7103, 7109))
-								call(66, [expr(gc-ptr(record(0)), file-range(14, range(7103, 7109)), param-ref(0))]))
-							expr(nat-64, file-range(14, range(7119, 7129)), param-ref(1))]))))
+								file-range(14, range(7109, 7115))
+								call(66, [expr(gc-ptr(record(0)), file-range(14, range(7109, 7115)), param-ref(0))]))
+							expr(nat-64, file-range(14, range(7125, 7135)), param-ref(1))]))))
 		92: fun(
 			gc-alloc
 			raw-ptr(nat-8)
@@ -6493,24 +6493,24 @@ program(
 			expr-body(
 				expr(
 					raw-ptr(nat-8)
-					file-range(14, range(6964, 7065))
+					file-range(14, range(6970, 7071))
 					match(
 						expr(
 							union(13)
-							file-range(14, range(6973, 6990))
+							file-range(14, range(6979, 6996))
 							call(
 								59
 								[
-									expr(gc-ptr(record(21)), file-range(14, range(6970, 6972)), param-ref(1))
-									expr(nat-64, file-range(14, range(6986, 6990)), param-ref(2))]))
+									expr(gc-ptr(record(21)), file-range(14, range(6976, 6978)), param-ref(1))
+									expr(nat-64, file-range(14, range(6992, 6996)), param-ref(2))]))
 						[
-							case(none, expr(raw-ptr(nat-8), file-range(14, range(7038, 7042)), call(93, [])))
+							case(none, expr(raw-ptr(nat-8), file-range(14, range(7044, 7048)), call(93, [])))
 							case(
 								some(s)
 								expr(
 									raw-ptr(nat-8)
-									file-range(14, range(7057, 7063))
-									get-field(expr(record(47), file-range(14, range(7056, 7057)), local-ref(s)), false, 0)))]))))
+									file-range(14, range(7063, 7069))
+									get-field(expr(record(47), file-range(14, range(7062, 7063)), local-ref(s)), false, 0)))]))))
 		93: fun(
 			todo
 			raw-ptr(nat-8)
@@ -6531,25 +6531,25 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(14, range(8056, 8105))
+					file-range(14, range(8062, 8111))
 					call(
 						95
 						[
 							expr(
 								raw-ptr(nat-8)
-								file-range(14, range(8044, 8055))
-								unary("as-any-ptr", expr(raw-ptr(char), file-range(14, range(8042, 8044)), param-ref(1))))
+								file-range(14, range(8050, 8061))
+								unary("as-any-ptr", expr(raw-ptr(char), file-range(14, range(8048, 8050)), param-ref(1))))
 							expr(
 								raw-ptr(nat-8)
-								file-range(14, range(8068, 8079))
-								unary("as-any-ptr", expr(raw-ptr(char), file-range(14, range(8064, 8068)), param-ref(2))))
+								file-range(14, range(8074, 8085))
+								unary("as-any-ptr", expr(raw-ptr(char), file-range(14, range(8070, 8074)), param-ref(2))))
 							expr(
 								nat-64
-								file-range(14, range(8085, 8105))
+								file-range(14, range(8091, 8111))
 								binary(
 									"wrap-mul (nat-64)"
-									expr(nat-64, file-range(14, range(8081, 8084)), param-ref(3))
-									expr(nat-64, file-range(14, range(8094, 8105)), size-of(char))))]))))
+									expr(nat-64, file-range(14, range(8087, 8090)), param-ref(3))
+									expr(nat-64, file-range(14, range(8100, 8111)), size-of(char))))]))))
 		95: fun(
 			memcpy
 			void
@@ -6740,30 +6740,30 @@ program(
 			expr-body(
 				expr(
 					nat-64
-					file-range(21, range(777, 806))
+					file-range(21, range(779, 808))
 					seq(
 						expr(
 							void
-							file-range(21, range(777, 791))
+							file-range(21, range(779, 793))
 							call(
 								48
 								[
-									expr(gc-ptr(record(0)), file-range(21, range(777, 791)), param-ref(0))
+									expr(gc-ptr(record(0)), file-range(21, range(779, 793)), param-ref(0))
 									expr(
 										bool
-										file-range(21, range(785, 791))
+										file-range(21, range(787, 793))
 										call(
 											89
 											[
-												expr(nat-64, file-range(21, range(785, 786)), param-ref(1))
-												expr(nat-64, file-range(21, range(790, 791)), param-ref(2))]))]))
+												expr(nat-64, file-range(21, range(787, 788)), param-ref(1))
+												expr(nat-64, file-range(21, range(792, 793)), param-ref(2))]))]))
 						expr(
 							nat-64
-							file-range(21, range(795, 805))
+							file-range(21, range(797, 807))
 							binary(
 								"wrap-sub (nat-64)"
-								expr(nat-64, file-range(21, range(793, 794)), param-ref(1))
-								expr(nat-64, file-range(21, range(804, 805)), param-ref(2))))))))
+								expr(nat-64, file-range(21, range(795, 796)), param-ref(1))
+								expr(nat-64, file-range(21, range(806, 807)), param-ref(2))))))))
 		102: fun(
 			get-global-ctx
 			gc-ptr(record(19))
@@ -6918,131 +6918,131 @@ program(
 			expr-body(
 				expr(
 					record(21)
-					file-range(14, range(3563, 3926))
+					file-range(14, range(3569, 3932))
 					let(
 						mark-begin
 						expr(
 							raw-ptr(bool)
-							file-range(14, range(3576, 3616))
+							file-range(14, range(3582, 3622))
 							ptr-cast(
 								expr(
 									raw-ptr(nat-8)
-									file-range(14, range(3598, 3616))
-									call(27, [expr(nat-64, file-range(14, range(3606, 3616)), 16777216)]))))
+									file-range(14, range(3604, 3622))
+									call(27, [expr(nat-64, file-range(14, range(3612, 3622)), 16777216)]))))
 						expr(
 							record(21)
-							file-range(14, range(3618, 3926))
+							file-range(14, range(3624, 3932))
 							let(
 								mark-end
 								expr(
 									raw-ptr(bool)
-									file-range(14, range(3629, 3652))
+									file-range(14, range(3635, 3658))
 									binary(
 										"+ (ptr)"
-										expr(raw-ptr(bool), file-range(14, range(3629, 3639)), local-ref(mark-begin))
-										expr(nat-64, file-range(14, range(3642, 3652)), 16777216)))
+										expr(raw-ptr(bool), file-range(14, range(3635, 3645)), local-ref(mark-begin))
+										expr(nat-64, file-range(14, range(3648, 3658)), 16777216)))
 								expr(
 									record(21)
-									file-range(14, range(3654, 3926))
+									file-range(14, range(3660, 3932))
 									let(
 										data-begin
 										expr(
 											raw-ptr(nat-64)
-											file-range(14, range(3667, 3732))
+											file-range(14, range(3673, 3738))
 											ptr-cast(
 												expr(
 													raw-ptr(nat-8)
-													file-range(14, range(3690, 3732))
+													file-range(14, range(3696, 3738))
 													call(
 														27
 														[
 															expr(
 																nat-64
-																file-range(14, range(3709, 3732))
+																file-range(14, range(3715, 3738))
 																binary(
 																	"wrap-mul (nat-64)"
-																	expr(nat-64, file-range(14, range(3698, 3708)), 16777216)
+																	expr(nat-64, file-range(14, range(3704, 3714)), 16777216)
 																	expr(
 																		nat-64
-																		file-range(14, range(3718, 3732))
+																		file-range(14, range(3724, 3738))
 																		size-of(nat-64))))]))))
 										expr(
 											record(21)
-											file-range(14, range(3734, 3926))
+											file-range(14, range(3740, 3932))
 											let(
 												data-end
 												expr(
 													raw-ptr(nat-64)
-													file-range(14, range(3745, 3768))
+													file-range(14, range(3751, 3774))
 													binary(
 														"+ (ptr)"
 														expr(
 															raw-ptr(nat-64)
-															file-range(14, range(3745, 3755))
+															file-range(14, range(3751, 3761))
 															local-ref(data-begin))
-														expr(nat-64, file-range(14, range(3758, 3768)), 16777216)))
+														expr(nat-64, file-range(14, range(3764, 3774)), 16777216)))
 												expr(
 													record(21)
-													file-range(14, range(3771, 3926))
+													file-range(14, range(3777, 3932))
 													seq(
 														expr(
 															void
-															file-range(14, range(3793, 3813))
+															file-range(14, range(3799, 3819))
 															call(
 																31
 																[
 																	expr(
 																		raw-ptr(nat-8)
-																		file-range(14, range(3781, 3792))
+																		file-range(14, range(3787, 3798))
 																		unary(
 																			"as-any-ptr"
 																			expr(
 																				raw-ptr(bool)
-																				file-range(14, range(3771, 3781))
+																				file-range(14, range(3777, 3787))
 																				local-ref(mark-begin))))
-																	expr(nat-8, file-range(14, range(3800, 3801)), 0)
-																	expr(nat-64, file-range(14, range(3803, 3813)), 16777216)]))
+																	expr(nat-8, file-range(14, range(3806, 3807)), 0)
+																	expr(nat-64, file-range(14, range(3809, 3819)), 16777216)]))
 														expr(
 															record(21)
-															file-range(14, range(3816, 3924))
+															file-range(14, range(3822, 3930))
 															record(
 																[
-																	expr(record(6), file-range(14, range(3820, 3828)), call(16, []))
-																	expr(nat-64, file-range(14, range(3830, 3831)), 0)
+																	expr(record(6), file-range(14, range(3826, 3834)), call(16, []))
+																	expr(nat-64, file-range(14, range(3836, 3837)), 0)
 																	expr(
 																		union(5)
-																		file-range(14, range(3833, 3837))
+																		file-range(14, range(3839, 3843))
 																		to-union(
 																			0
 																			expr(
 																				record(16)
-																				file-range(14, range(3833, 3837))
+																				file-range(14, range(3839, 3843))
 																				record([]))))
-																	expr(bool, file-range(14, range(3839, 3844)), false)
-																	expr(nat-64, file-range(14, range(3846, 3856)), 16777216)
+																	expr(bool, file-range(14, range(3845, 3850)), false)
+																	expr(nat-64, file-range(14, range(3852, 3862)), 16777216)
 																	expr(
 																		raw-ptr(bool)
-																		file-range(14, range(3858, 3868))
+																		file-range(14, range(3864, 3874))
 																		local-ref(mark-begin))
 																	expr(
 																		raw-ptr(bool)
-																		file-range(14, range(3870, 3880))
+																		file-range(14, range(3876, 3886))
 																		local-ref(mark-begin))
 																	expr(
 																		raw-ptr(bool)
-																		file-range(14, range(3882, 3890))
+																		file-range(14, range(3888, 3896))
 																		local-ref(mark-end))
 																	expr(
 																		raw-ptr(nat-64)
-																		file-range(14, range(3892, 3902))
+																		file-range(14, range(3898, 3908))
 																		local-ref(data-begin))
 																	expr(
 																		raw-ptr(nat-64)
-																		file-range(14, range(3904, 3914))
+																		file-range(14, range(3910, 3920))
 																		local-ref(data-begin))
 																	expr(
 																		raw-ptr(nat-64)
-																		file-range(14, range(3916, 3924))
+																		file-range(14, range(3922, 3930))
 																		local-ref(data-end))]))))))))))))))
 		111: fun(
 			new-thread-safe-counter
@@ -7385,40 +7385,40 @@ program(
 			expr-body(
 				expr(
 					gc-ptr(record(22))
-					file-range(14, range(4895, 5344))
+					file-range(14, range(4901, 5350))
 					seq(
 						expr(
 							void
-							file-range(14, range(4912, 4924))
+							file-range(14, range(4918, 4930))
 							call(
 								118
 								[
 									expr(
 										gc-ptr(record(6))
-										file-range(14, range(4900, 4911))
+										file-range(14, range(4906, 4917))
 										unary(
 											"ref-of-val"
 											expr(
 												record(6)
-												file-range(14, range(4897, 4900))
+												file-range(14, range(4903, 4906))
 												get-field(
-													expr(gc-ptr(record(21)), file-range(14, range(4895, 4897)), param-ref(0))
+													expr(gc-ptr(record(21)), file-range(14, range(4901, 4903)), param-ref(0))
 													true
 													0))))]))
 						expr(
 							gc-ptr(record(22))
-							file-range(14, range(4926, 5344))
+							file-range(14, range(4932, 5350))
 							let(
 								res
 								expr(
 									gc-ptr(record(22))
-									file-range(14, range(4932, 5308))
+									file-range(14, range(4938, 5314))
 									match(
 										expr(
 											union(5)
-											file-range(14, range(4940, 4953))
+											file-range(14, range(4946, 4959))
 											get-field(
-												expr(gc-ptr(record(21)), file-range(14, range(4938, 4940)), param-ref(0))
+												expr(gc-ptr(record(21)), file-range(14, range(4944, 4946)), param-ref(0))
 												true
 												2))
 										[
@@ -7426,160 +7426,160 @@ program(
 												none
 												expr(
 													gc-ptr(record(22))
-													file-range(14, range(5135, 5226))
+													file-range(14, range(5141, 5232))
 													let(
 														c
 														expr(
 															gc-ptr(record(22))
-															file-range(14, range(5172, 5186))
+															file-range(14, range(5178, 5192))
 															unary(
 																"as-ref"
 																expr(
 																	raw-ptr(nat-8)
-																	file-range(14, range(5164, 5170))
+																	file-range(14, range(5170, 5176))
 																	call(
 																		27
 																		[
 																			expr(
 																				nat-64
-																				file-range(14, range(5140, 5163))
+																				file-range(14, range(5146, 5169))
 																				size-of(record(22)))]))))
 														expr(
 															gc-ptr(record(22))
-															file-range(14, range(5189, 5226))
+															file-range(14, range(5195, 5232))
 															seq(
 																expr(
 																	void
-																	file-range(14, range(5189, 5223))
+																	file-range(14, range(5195, 5229))
 																	seq(
 																		expr(
 																			void
-																			file-range(14, range(5189, 5202))
+																			file-range(14, range(5195, 5208))
 																			set-field(
 																				expr(
 																					gc-ptr(record(22))
-																					file-range(14, range(5189, 5190))
+																					file-range(14, range(5195, 5196))
 																					local-ref(c))
 																				true
 																				0
 																				expr(
 																					gc-ptr(record(21))
-																					file-range(14, range(5197, 5199))
+																					file-range(14, range(5203, 5205))
 																					param-ref(0))))
 																		expr(
 																			void
-																			file-range(14, range(5202, 5223))
+																			file-range(14, range(5208, 5229))
 																			set-field(
 																				expr(
 																					gc-ptr(record(22))
-																					file-range(14, range(5202, 5203))
+																					file-range(14, range(5208, 5209))
 																					local-ref(c))
 																				true
 																				1
 																				expr(
 																					union(5)
-																					file-range(14, range(5216, 5220))
+																					file-range(14, range(5222, 5226))
 																					to-union(
 																						0
 																						expr(
 																							record(16)
-																							file-range(14, range(5216, 5220))
+																							file-range(14, range(5222, 5226))
 																							record([]))))))))
 																expr(
 																	gc-ptr(record(22))
-																	file-range(14, range(5223, 5224))
+																	file-range(14, range(5229, 5230))
 																	local-ref(c)))))))
 											case(
 												some(s)
 												expr(
 													gc-ptr(record(22))
-													file-range(14, range(5238, 5308))
+													file-range(14, range(5244, 5314))
 													let(
 														c
 														expr(
 															gc-ptr(record(22))
-															file-range(14, range(5243, 5249))
+															file-range(14, range(5249, 5255))
 															get-field(
-																expr(record(23), file-range(14, range(5242, 5243)), local-ref(s))
+																expr(record(23), file-range(14, range(5248, 5249)), local-ref(s))
 																false
 																0))
 														expr(
 															gc-ptr(record(22))
-															file-range(14, range(5252, 5308))
+															file-range(14, range(5258, 5314))
 															seq(
 																expr(
 																	void
-																	file-range(14, range(5252, 5305))
+																	file-range(14, range(5258, 5311))
 																	seq(
 																		expr(
 																			void
-																			file-range(14, range(5252, 5284))
+																			file-range(14, range(5258, 5290))
 																			set-field(
 																				expr(
 																					gc-ptr(record(21))
-																					file-range(14, range(5252, 5254))
+																					file-range(14, range(5258, 5260))
 																					param-ref(0))
 																				true
 																				2
 																				expr(
 																					union(5)
-																					file-range(14, range(5273, 5281))
+																					file-range(14, range(5279, 5287))
 																					get-field(
 																						expr(
 																							gc-ptr(record(22))
-																							file-range(14, range(5271, 5272))
+																							file-range(14, range(5277, 5278))
 																							local-ref(c))
 																						true
 																						1))))
 																		expr(
 																			void
-																			file-range(14, range(5284, 5305))
+																			file-range(14, range(5290, 5311))
 																			set-field(
 																				expr(
 																					gc-ptr(record(22))
-																					file-range(14, range(5284, 5285))
+																					file-range(14, range(5290, 5291))
 																					local-ref(c))
 																				true
 																				1
 																				expr(
 																					union(5)
-																					file-range(14, range(5298, 5302))
+																					file-range(14, range(5304, 5308))
 																					to-union(
 																						0
 																						expr(
 																							record(16)
-																							file-range(14, range(5298, 5302))
+																							file-range(14, range(5304, 5308))
 																							record([]))))))))
 																expr(
 																	gc-ptr(record(22))
-																	file-range(14, range(5305, 5306))
+																	file-range(14, range(5311, 5312))
 																	local-ref(c)))))))]))
 								expr(
 									gc-ptr(record(22))
-									file-range(14, range(5308, 5344))
+									file-range(14, range(5314, 5350))
 									seq(
 										expr(
 											void
-											file-range(14, range(5325, 5337))
+											file-range(14, range(5331, 5343))
 											call(
 												127
 												[
 													expr(
 														gc-ptr(record(6))
-														file-range(14, range(5313, 5324))
+														file-range(14, range(5319, 5330))
 														unary(
 															"ref-of-val"
 															expr(
 																record(6)
-																file-range(14, range(5310, 5313))
+																file-range(14, range(5316, 5319))
 																get-field(
 																	expr(
 																		gc-ptr(record(21))
-																		file-range(14, range(5308, 5310))
+																		file-range(14, range(5314, 5316))
 																		param-ref(0))
 																	true
 																	0))))]))
-										expr(gc-ptr(record(22)), file-range(14, range(5339, 5342)), local-ref(res))))))))))
+										expr(gc-ptr(record(22)), file-range(14, range(5345, 5348)), local-ref(res))))))))))
 		118: fun(
 			acquire-lock
 			void
@@ -9587,7 +9587,7 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(31, range(2854, 3163))
+					file-range(31, range(2854, 3165))
 					let(
 						size-before
 						expr(
@@ -9596,7 +9596,7 @@ program(
 							call(153, [expr(gc-ptr(record(25)), file-range(31, range(2868, 2869)), param-ref(0))]))
 						expr(
 							void
-							file-range(31, range(2876, 3163))
+							file-range(31, range(2876, 3165))
 							seq(
 								expr(
 									void
@@ -9762,7 +9762,7 @@ program(
 																										param-ref(1))])))))))))))))]))
 								expr(
 									void
-									file-range(31, range(3091, 3163))
+									file-range(31, range(3091, 3165))
 									let(
 										size-after
 										expr(
@@ -9771,29 +9771,29 @@ program(
 											call(153, [expr(gc-ptr(record(25)), file-range(31, range(3104, 3105)), param-ref(0))]))
 										expr(
 											void
-											file-range(31, range(3112, 3161))
+											file-range(31, range(3112, 3163))
 											call(
 												3
 												[
 													expr(
 														bool
-														file-range(31, range(3137, 3161))
+														file-range(31, range(3125, 3163))
 														call(
 															6
 															[
 																expr(
 																	nat-64
-																	file-range(31, range(3137, 3147))
+																	file-range(31, range(3138, 3148))
 																	binary(
 																		"wrap-add (nat-64)"
 																		expr(
 																			nat-64
-																			file-range(31, range(3125, 3136))
+																			file-range(31, range(3126, 3137))
 																			local-ref(size-before))
-																		expr(nat-64, file-range(31, range(3146, 3147)), 1)))
+																		expr(nat-64, file-range(31, range(3147, 3148)), 1)))
 																expr(
 																	nat-64
-																	file-range(31, range(3151, 3161))
+																	file-range(31, range(3153, 3163))
 																	local-ref(size-after))]))]))))))))))
 		153: fun(
 			size
@@ -9803,15 +9803,15 @@ program(
 			expr-body(
 				expr(
 					nat-64
-					file-range(31, range(3496, 3508))
+					file-range(31, range(3498, 3510))
 					call(
 						154
 						[
 							expr(
 								union(7)
-								file-range(31, range(3490, 3495))
-								get-field(expr(gc-ptr(record(25)), file-range(31, range(3489, 3490)), param-ref(0)), true, 0))
-							expr(nat-64, file-range(31, range(3507, 3508)), 0)]))))
+								file-range(31, range(3492, 3497))
+								get-field(expr(gc-ptr(record(25)), file-range(31, range(3491, 3492)), param-ref(0)), true, 0))
+							expr(nat-64, file-range(31, range(3509, 3510)), 0)]))))
 		154: fun(
 			size-recur
 			nat-64
@@ -9820,38 +9820,38 @@ program(
 			expr-body(
 				expr(
 					nat-64
-					file-range(31, range(3568, 3647))
+					file-range(31, range(3570, 3649))
 					match(
-						expr(union(7), file-range(31, range(3574, 3578)), param-ref(0))
+						expr(union(7), file-range(31, range(3576, 3580)), param-ref(0))
 						[
-							case(none, expr(nat-64, file-range(31, range(3590, 3593)), param-ref(1)))
+							case(none, expr(nat-64, file-range(31, range(3592, 3595)), param-ref(1)))
 							case(
 								some(s)
 								expr(
 									nat-64
-									file-range(31, range(3620, 3646))
+									file-range(31, range(3622, 3648))
 									tail-recur(
 										[
 											expr(
 												union(7)
-												file-range(31, range(3614, 3619))
+												file-range(31, range(3616, 3621))
 												get-field(
 													expr(
 														gc-ptr(record(26))
-														file-range(31, range(3608, 3614))
+														file-range(31, range(3610, 3616))
 														get-field(
-															expr(record(28), file-range(31, range(3607, 3608)), local-ref(s))
+															expr(record(28), file-range(31, range(3609, 3610)), local-ref(s))
 															false
 															0))
 													true
 													1))
 											expr(
 												nat-64
-												file-range(31, range(3636, 3646))
+												file-range(31, range(3638, 3648))
 												binary(
 													"wrap-add (nat-64)"
-													expr(nat-64, file-range(31, range(3632, 3635)), param-ref(1))
-													expr(nat-64, file-range(31, range(3645, 3646)), 1)))])))]))))
+													expr(nat-64, file-range(31, range(3634, 3637)), param-ref(1))
+													expr(nat-64, file-range(31, range(3647, 3648)), 1)))])))]))))
 		155: fun(
 			insert-recur
 			void
@@ -9860,65 +9860,65 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(31, range(3237, 3458))
+					file-range(31, range(3239, 3460))
 					match(
 						expr(
 							union(7)
-							file-range(31, range(3248, 3252))
-							get-field(expr(gc-ptr(record(26)), file-range(31, range(3243, 3247)), param-ref(0)), true, 1))
+							file-range(31, range(3250, 3254))
+							get-field(expr(gc-ptr(record(26)), file-range(31, range(3245, 3249)), param-ref(0)), true, 1))
 						[
 							case(
 								none
 								expr(
 									void
-									file-range(31, range(3264, 3292))
+									file-range(31, range(3266, 3294))
 									set-field(
-										expr(gc-ptr(record(26)), file-range(31, range(3264, 3268)), param-ref(0))
+										expr(gc-ptr(record(26)), file-range(31, range(3266, 3270)), param-ref(0))
 										true
 										1
 										expr(
 											union(7)
-											file-range(31, range(3286, 3290))
+											file-range(31, range(3288, 3292))
 											to-union(
 												1
 												expr(
 													record(28)
-													file-range(31, range(3286, 3290))
+													file-range(31, range(3288, 3292))
 													record(
-														[expr(gc-ptr(record(26)), file-range(31, range(3277, 3285)), param-ref(1))])))))))
+														[expr(gc-ptr(record(26)), file-range(31, range(3279, 3287)), param-ref(1))])))))))
 							case(
 								some(s)
 								expr(
 									void
-									file-range(31, range(3304, 3458))
+									file-range(31, range(3306, 3460))
 									let(
 										cur
 										expr(
 											gc-ptr(record(26))
-											file-range(31, range(3312, 3317))
-											get-field(expr(record(28), file-range(31, range(3310, 3311)), local-ref(s)), false, 0))
+											file-range(31, range(3314, 3319))
+											get-field(expr(record(28), file-range(31, range(3312, 3313)), local-ref(s)), false, 0))
 										expr(
 											void
-											file-range(31, range(3320, 3458))
+											file-range(31, range(3322, 3460))
 											trinary(
 												"if"
 												expr(
 													bool
-													file-range(31, range(3331, 3358))
+													file-range(31, range(3333, 3360))
 													call(
 														10
 														[
 															expr(
 																nat-64
-																file-range(31, range(3331, 3336))
+																file-range(31, range(3333, 3338))
 																get-field(
 																	expr(
 																		record(27)
-																		file-range(31, range(3326, 3331))
+																		file-range(31, range(3328, 3333))
 																		get-field(
 																			expr(
 																				gc-ptr(record(26))
-																				file-range(31, range(3323, 3326))
+																				file-range(31, range(3325, 3328))
 																				local-ref(cur))
 																			true
 																			0))
@@ -9926,15 +9926,15 @@ program(
 																	0))
 															expr(
 																nat-64
-																file-range(31, range(3353, 3358))
+																file-range(31, range(3355, 3360))
 																get-field(
 																	expr(
 																		record(27)
-																		file-range(31, range(3348, 3353))
+																		file-range(31, range(3350, 3355))
 																		get-field(
 																			expr(
 																				gc-ptr(record(26))
-																				file-range(31, range(3340, 3348))
+																				file-range(31, range(3342, 3350))
 																				param-ref(1))
 																			true
 																			0))
@@ -9942,65 +9942,65 @@ program(
 																	0))]))
 												expr(
 													void
-													file-range(31, range(3362, 3389))
+													file-range(31, range(3364, 3391))
 													tail-recur(
 														[
 															expr(
 																gc-ptr(record(26))
-																file-range(31, range(3376, 3379))
+																file-range(31, range(3378, 3381))
 																local-ref(cur))
-															expr(gc-ptr(record(26)), file-range(31, range(3381, 3389)), param-ref(1))]))
+															expr(gc-ptr(record(26)), file-range(31, range(3383, 3391)), param-ref(1))]))
 												expr(
 													void
-													file-range(31, range(3400, 3458))
+													file-range(31, range(3402, 3460))
 													seq(
 														expr(
 															void
-															file-range(31, range(3400, 3429))
+															file-range(31, range(3402, 3431))
 															set-field(
 																expr(
 																	gc-ptr(record(26))
-																	file-range(31, range(3400, 3408))
+																	file-range(31, range(3402, 3410))
 																	param-ref(1))
 																true
 																1
 																expr(
 																	union(7)
-																	file-range(31, range(3421, 3425))
+																	file-range(31, range(3423, 3427))
 																	to-union(
 																		1
 																		expr(
 																			record(28)
-																			file-range(31, range(3421, 3425))
+																			file-range(31, range(3423, 3427))
 																			record(
 																				[
 																					expr(
 																						gc-ptr(record(26))
-																						file-range(31, range(3417, 3420))
+																						file-range(31, range(3419, 3422))
 																						local-ref(cur))]))))))
 														expr(
 															void
-															file-range(31, range(3429, 3458))
+															file-range(31, range(3431, 3460))
 															set-field(
 																expr(
 																	gc-ptr(record(26))
-																	file-range(31, range(3429, 3433))
+																	file-range(31, range(3431, 3435))
 																	param-ref(0))
 																true
 																1
 																expr(
 																	union(7)
-																	file-range(31, range(3451, 3455))
+																	file-range(31, range(3453, 3457))
 																	to-union(
 																		1
 																		expr(
 																			record(28)
-																			file-range(31, range(3451, 3455))
+																			file-range(31, range(3453, 3457))
 																			record(
 																				[
 																					expr(
 																						gc-ptr(record(26))
-																						file-range(31, range(3442, 3450))
+																						file-range(31, range(3444, 3452))
 																						param-ref(1))])))))))))))))]))))
 		156: fun(
 			tasks
@@ -11762,22 +11762,22 @@ program(
 			expr-body(
 				expr(
 					raw-ptr(record(11))
-					file-range(14, range(7283, 7335))
+					file-range(14, range(7289, 7341))
 					ptr-cast(
 						expr(
 							raw-ptr(nat-8)
-							file-range(14, range(7303, 7335))
+							file-range(14, range(7309, 7341))
 							call(
 								91
 								[
-									expr(gc-ptr(record(0)), file-range(14, range(7303, 7335)), param-ref(0))
+									expr(gc-ptr(record(0)), file-range(14, range(7309, 7341)), param-ref(0))
 									expr(
 										nat-64
-										file-range(14, range(7315, 7335))
+										file-range(14, range(7321, 7341))
 										binary(
 											"wrap-mul (nat-64)"
-											expr(nat-64, file-range(14, range(7310, 7314)), param-ref(1))
-											expr(nat-64, file-range(14, range(7324, 7335)), size-of(record(11)))))]))))))
+											expr(nat-64, file-range(14, range(7316, 7320)), param-ref(1))
+											expr(nat-64, file-range(14, range(7330, 7341)), size-of(record(11)))))]))))))
 		194: fun(
 			fill-ptr-range
 			void
@@ -11786,15 +11786,15 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(14, range(8180, 8211))
+					file-range(14, range(8186, 8217))
 					call(
 						195
 						[
-							expr(gc-ptr(record(0)), file-range(14, range(8180, 8211)), param-ref(0))
-							expr(raw-ptr(record(11)), file-range(14, range(8174, 8179)), param-ref(1))
-							expr(nat-64, file-range(14, range(8201, 8202)), 0)
-							expr(nat-64, file-range(14, range(8204, 8208)), param-ref(2))
-							expr(union(24), file-range(14, range(8210, 8211)), param-ref(3))]))))
+							expr(gc-ptr(record(0)), file-range(14, range(8186, 8217)), param-ref(0))
+							expr(raw-ptr(record(11)), file-range(14, range(8180, 8185)), param-ref(1))
+							expr(nat-64, file-range(14, range(8207, 8208)), 0)
+							expr(nat-64, file-range(14, range(8210, 8214)), param-ref(2))
+							expr(union(24), file-range(14, range(8216, 8217)), param-ref(3))]))))
 		195: fun(
 			fill-ptr-range-recur
 			void
@@ -11808,55 +11808,55 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(14, range(8294, 8380))
+					file-range(14, range(8300, 8386))
 					trinary(
 						"if"
 						expr(
 							bool
-							file-range(14, range(8297, 8306))
+							file-range(14, range(8303, 8312))
 							call(
 								73
 								[
-									expr(nat-64, file-range(14, range(8297, 8298)), param-ref(2))
-									expr(nat-64, file-range(14, range(8302, 8306)), param-ref(3))]))
+									expr(nat-64, file-range(14, range(8303, 8304)), param-ref(2))
+									expr(nat-64, file-range(14, range(8308, 8312)), param-ref(3))]))
 						expr(
 							void
-							file-range(14, range(8309, 8380))
+							file-range(14, range(8315, 8386))
 							seq(
 								expr(
 									void
-									file-range(14, range(8319, 8328))
+									file-range(14, range(8325, 8334))
 									binary(
 										"wriite to ptr"
 										expr(
 											raw-ptr(record(11))
-											file-range(14, range(8309, 8318))
+											file-range(14, range(8315, 8324))
 											binary(
 												"+ (ptr)"
-												expr(raw-ptr(record(11)), file-range(14, range(8309, 8314)), param-ref(1))
-												expr(nat-64, file-range(14, range(8317, 8318)), param-ref(2))))
+												expr(raw-ptr(record(11)), file-range(14, range(8315, 8320)), param-ref(1))
+												expr(nat-64, file-range(14, range(8323, 8324)), param-ref(2))))
 										expr(
 											record(11)
-											file-range(14, range(8325, 8328))
+											file-range(14, range(8331, 8334))
 											call(
 												196
 												[
-													expr(gc-ptr(record(0)), file-range(14, range(8325, 8328)), param-ref(0))
-													expr(union(24), file-range(14, range(8324, 8325)), param-ref(4))
-													expr(nat-64, file-range(14, range(8326, 8327)), param-ref(2))]))))
+													expr(gc-ptr(record(0)), file-range(14, range(8331, 8334)), param-ref(0))
+													expr(union(24), file-range(14, range(8330, 8331)), param-ref(4))
+													expr(nat-64, file-range(14, range(8332, 8333)), param-ref(2))]))))
 								expr(
 									void
-									file-range(14, range(8337, 8379))
+									file-range(14, range(8343, 8385))
 									tail-recur(
 										[
-											expr(raw-ptr(record(11)), file-range(14, range(8331, 8336)), param-ref(1))
+											expr(raw-ptr(record(11)), file-range(14, range(8337, 8342)), param-ref(1))
 											expr(
 												nat-64
-												file-range(14, range(8359, 8370))
-												call(76, [expr(nat-64, file-range(14, range(8358, 8359)), param-ref(2))]))
-											expr(nat-64, file-range(14, range(8372, 8376)), param-ref(3))
-											expr(union(24), file-range(14, range(8378, 8379)), param-ref(4))]))))
-						expr(void, file-range(14, range(8294, 8380)), void)))))
+												file-range(14, range(8365, 8376))
+												call(76, [expr(nat-64, file-range(14, range(8364, 8365)), param-ref(2))]))
+											expr(nat-64, file-range(14, range(8378, 8382)), param-ref(3))
+											expr(union(24), file-range(14, range(8384, 8385)), param-ref(4))]))))
+						expr(void, file-range(14, range(8300, 8386)), void)))))
 		196: fun(
 			subscript
 			record(11)
@@ -12643,21 +12643,21 @@ program(
 			expr-body(
 				expr(
 					raw-ptr(record(72))
-					file-range(14, range(7852, 7918))
+					file-range(14, range(7858, 7924))
 					ptr-cast(
 						expr(
 							raw-ptr(nat-8)
-							file-range(14, range(7897, 7918))
+							file-range(14, range(7903, 7924))
 							call(
 								26
 								[
 									expr(
 										nat-64
-										file-range(14, range(7876, 7896))
+										file-range(14, range(7882, 7902))
 										binary(
 											"wrap-mul (nat-64)"
-											expr(nat-64, file-range(14, range(7862, 7875)), param-ref(0))
-											expr(nat-64, file-range(14, range(7885, 7896)), size-of(record(72)))))]))))))
+											expr(nat-64, file-range(14, range(7868, 7881)), param-ref(0))
+											expr(nat-64, file-range(14, range(7891, 7902)), size-of(record(72)))))]))))))
 		224: fun(
 			start-threads-recur
 			void
@@ -14885,7 +14885,7 @@ program(
 			expr-body(
 				expr(
 					bool
-					file-range(25, range(1695, 1800))
+					file-range(25, range(1695, 1802))
 					trinary(
 						"if"
 						expr(
@@ -14902,36 +14902,36 @@ program(
 						expr(bool, file-range(25, range(1712, 1717)), false)
 						expr(
 							bool
-							file-range(25, range(1719, 1800))
+							file-range(25, range(1719, 1802))
 							trinary(
 								"if"
 								expr(
 									bool
-									file-range(25, range(1726, 1745))
+									file-range(25, range(1724, 1747))
 									call(
 										6
 										[
 											expr(
 												nat-64
-												file-range(25, range(1726, 1736))
+												file-range(25, range(1727, 1737))
 												call(
 													250
 													[
-														expr(record(31), file-range(25, range(1724, 1725)), param-ref(0))
-														expr(nat-64, file-range(25, range(1735, 1736)), param-ref(2))]))
-											expr(nat-64, file-range(25, range(1740, 1745)), param-ref(1))]))
-								expr(bool, file-range(25, range(1748, 1752)), true)
+														expr(record(31), file-range(25, range(1725, 1726)), param-ref(0))
+														expr(nat-64, file-range(25, range(1736, 1737)), param-ref(2))]))
+											expr(nat-64, file-range(25, range(1742, 1747)), param-ref(1))]))
+								expr(bool, file-range(25, range(1750, 1754)), true)
 								expr(
 									bool
-									file-range(25, range(1763, 1798))
+									file-range(25, range(1765, 1800))
 									tail-recur(
 										[
-											expr(record(31), file-range(25, range(1761, 1762)), param-ref(0))
-											expr(nat-64, file-range(25, range(1779, 1784)), param-ref(1))
+											expr(record(31), file-range(25, range(1763, 1764)), param-ref(0))
+											expr(nat-64, file-range(25, range(1781, 1786)), param-ref(1))
 											expr(
 												nat-64
-												file-range(25, range(1787, 1798))
-												call(76, [expr(nat-64, file-range(25, range(1786, 1787)), param-ref(2))]))]))))))))
+												file-range(25, range(1789, 1800))
+												call(76, [expr(nat-64, file-range(25, range(1788, 1789)), param-ref(2))]))]))))))))
 		250: fun(
 			noctx-at
 			nat-64
@@ -16052,7 +16052,7 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(30, range(5149, 5323))
+					file-range(30, range(5149, 5325))
 					trinary(
 						"if"
 						expr(
@@ -16069,49 +16069,49 @@ program(
 						expr(void, file-range(30, range(5170, 5174)), call(39, []))
 						expr(
 							void
-							file-range(30, range(5176, 5323))
+							file-range(30, range(5176, 5325))
 							trinary(
 								"if"
 								expr(
 									bool
-									file-range(30, range(5183, 5206))
+									file-range(30, range(5181, 5208))
 									call(
 										6
 										[
 											expr(
 												nat-64
-												file-range(30, range(5183, 5197))
+												file-range(30, range(5184, 5198))
 												call(
 													269
 													[
-														expr(gc-ptr(record(29)), file-range(30, range(5181, 5182)), param-ref(0))
-														expr(nat-64, file-range(30, range(5192, 5197)), param-ref(1))]))
-											expr(nat-64, file-range(30, range(5201, 5206)), param-ref(2))]))
+														expr(gc-ptr(record(29)), file-range(30, range(5182, 5183)), param-ref(0))
+														expr(nat-64, file-range(30, range(5193, 5198)), param-ref(1))]))
+											expr(nat-64, file-range(30, range(5203, 5208)), param-ref(2))]))
 								expr(
 									void
-									file-range(30, range(5249, 5253))
+									file-range(30, range(5251, 5255))
 									call(
 										270
 										[
 											expr(
 												nat-64
-												file-range(30, range(5211, 5248))
+												file-range(30, range(5213, 5250))
 												call(
 													271
 													[
-														expr(gc-ptr(record(29)), file-range(30, range(5209, 5210)), param-ref(0))
-														expr(nat-64, file-range(30, range(5243, 5248)), param-ref(1))]))]))
+														expr(gc-ptr(record(29)), file-range(30, range(5211, 5212)), param-ref(0))
+														expr(nat-64, file-range(30, range(5245, 5250)), param-ref(1))]))]))
 								expr(
 									void
-									file-range(30, range(5264, 5321))
+									file-range(30, range(5266, 5323))
 									tail-recur(
 										[
-											expr(gc-ptr(record(29)), file-range(30, range(5262, 5263)), param-ref(0))
+											expr(gc-ptr(record(29)), file-range(30, range(5264, 5265)), param-ref(0))
 											expr(
 												nat-64
-												file-range(30, range(5303, 5314))
-												call(76, [expr(nat-64, file-range(30, range(5298, 5303)), param-ref(1))]))
-											expr(nat-64, file-range(30, range(5316, 5321)), param-ref(2))]))))))))
+												file-range(30, range(5305, 5316))
+												call(76, [expr(nat-64, file-range(30, range(5300, 5305)), param-ref(1))]))
+											expr(nat-64, file-range(30, range(5318, 5323)), param-ref(2))]))))))))
 		269: fun(
 			noctx-at
 			nat-64
@@ -16318,102 +16318,102 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(14, range(5392, 5538))
+					file-range(14, range(5398, 5544))
 					let(
 						gc
 						expr(
 							gc-ptr(record(21))
-							file-range(14, range(5403, 5406))
-							get-field(expr(gc-ptr(record(22)), file-range(14, range(5397, 5403)), param-ref(0)), true, 0))
+							file-range(14, range(5409, 5412))
+							get-field(expr(gc-ptr(record(22)), file-range(14, range(5403, 5409)), param-ref(0)), true, 0))
 						expr(
 							void
-							file-range(14, range(5408, 5538))
+							file-range(14, range(5414, 5544))
 							seq(
 								expr(
 									void
-									file-range(14, range(5408, 5507))
+									file-range(14, range(5414, 5513))
 									seq(
 										expr(
 											void
-											file-range(14, range(5408, 5475))
+											file-range(14, range(5414, 5481))
 											seq(
 												expr(
 													void
-													file-range(14, range(5425, 5437))
+													file-range(14, range(5431, 5443))
 													call(
 														118
 														[
 															expr(
 																gc-ptr(record(6))
-																file-range(14, range(5413, 5424))
+																file-range(14, range(5419, 5430))
 																unary(
 																	"ref-of-val"
 																	expr(
 																		record(6)
-																		file-range(14, range(5410, 5413))
+																		file-range(14, range(5416, 5419))
 																		get-field(
 																			expr(
 																				gc-ptr(record(21))
-																				file-range(14, range(5408, 5410))
+																				file-range(14, range(5414, 5416))
 																				local-ref(gc))
 																			true
 																			0))))]))
 												expr(
 													void
-													file-range(14, range(5439, 5475))
+													file-range(14, range(5445, 5481))
 													set-field(
-														expr(gc-ptr(record(22)), file-range(14, range(5439, 5445)), param-ref(0))
+														expr(gc-ptr(record(22)), file-range(14, range(5445, 5451)), param-ref(0))
 														true
 														1
 														expr(
 															union(5)
-															file-range(14, range(5461, 5473))
+															file-range(14, range(5467, 5479))
 															get-field(
 																expr(
 																	gc-ptr(record(21))
-																	file-range(14, range(5458, 5460))
+																	file-range(14, range(5464, 5466))
 																	local-ref(gc))
 																true
 																2))))))
 										expr(
 											void
-											file-range(14, range(5475, 5507))
+											file-range(14, range(5481, 5513))
 											set-field(
-												expr(gc-ptr(record(21)), file-range(14, range(5475, 5477)), local-ref(gc))
+												expr(gc-ptr(record(21)), file-range(14, range(5481, 5483)), local-ref(gc))
 												true
 												2
 												expr(
 													union(5)
-													file-range(14, range(5501, 5505))
+													file-range(14, range(5507, 5511))
 													to-union(
 														1
 														expr(
 															record(23)
-															file-range(14, range(5501, 5505))
+															file-range(14, range(5507, 5511))
 															record(
 																[
 																	expr(
 																		gc-ptr(record(22))
-																		file-range(14, range(5494, 5500))
+																		file-range(14, range(5500, 5506))
 																		param-ref(0))]))))))))
 								expr(
 									void
-									file-range(14, range(5524, 5536))
+									file-range(14, range(5530, 5542))
 									call(
 										127
 										[
 											expr(
 												gc-ptr(record(6))
-												file-range(14, range(5512, 5523))
+												file-range(14, range(5518, 5529))
 												unary(
 													"ref-of-val"
 													expr(
 														record(6)
-														file-range(14, range(5509, 5512))
+														file-range(14, range(5515, 5518))
 														get-field(
 															expr(
 																gc-ptr(record(21))
-																file-range(14, range(5507, 5509))
+																file-range(14, range(5513, 5515))
 																local-ref(gc))
 															true
 															0))))]))))))))
@@ -16425,239 +16425,239 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(14, range(3987, 4389))
+					file-range(14, range(3993, 4395))
 					seq(
 						expr(
 							void
-							file-range(14, range(3987, 4126))
+							file-range(14, range(3993, 4132))
 							seq(
 								expr(
 									void
-									file-range(14, range(3987, 4076))
+									file-range(14, range(3993, 4082))
 									seq(
 										expr(
 											void
-											file-range(14, range(3987, 4037))
+											file-range(14, range(3993, 4043))
 											seq(
 												expr(
 													void
-													file-range(14, range(3987, 4012))
+													file-range(14, range(3993, 4018))
 													call(
 														3
 														[
 															expr(
 																bool
-																file-range(14, range(4003, 4012))
+																file-range(14, range(4009, 4018))
 																get-field(
 																	expr(
 																		gc-ptr(record(21))
-																		file-range(14, range(4000, 4002))
+																		file-range(14, range(4006, 4008))
 																		param-ref(0))
 																	true
 																	3))]))
 												expr(
 													void
-													file-range(14, range(4014, 4037))
+													file-range(14, range(4020, 4043))
 													set-field(
-														expr(gc-ptr(record(21)), file-range(14, range(4014, 4016)), param-ref(0))
+														expr(gc-ptr(record(21)), file-range(14, range(4020, 4022)), param-ref(0))
 														true
 														3
-														expr(bool, file-range(14, range(4030, 4035)), false)))))
+														expr(bool, file-range(14, range(4036, 4041)), false)))))
 										expr(
 											void
-											file-range(14, range(4037, 4076))
+											file-range(14, range(4043, 4082))
 											set-field(
-												expr(gc-ptr(record(21)), file-range(14, range(4037, 4039)), param-ref(0))
+												expr(gc-ptr(record(21)), file-range(14, range(4043, 4045)), param-ref(0))
 												true
 												1
 												expr(
 													nat-64
-													file-range(14, range(4064, 4074))
+													file-range(14, range(4070, 4080))
 													call(
 														76
 														[
 															expr(
 																nat-64
-																file-range(14, range(4054, 4063))
+																file-range(14, range(4060, 4069))
 																get-field(
 																	expr(
 																		gc-ptr(record(21))
-																		file-range(14, range(4052, 4054))
+																		file-range(14, range(4058, 4060))
 																		param-ref(0))
 																	true
 																	1))]))))))
 								expr(
 									void
-									file-range(14, range(4101, 4124))
+									file-range(14, range(4107, 4130))
 									call(
 										31
 										[
 											expr(
 												raw-ptr(nat-8)
-												file-range(14, range(4089, 4100))
+												file-range(14, range(4095, 4106))
 												unary(
 													"as-any-ptr"
 													expr(
 														raw-ptr(bool)
-														file-range(14, range(4078, 4089))
+														file-range(14, range(4084, 4095))
 														get-field(
-															expr(gc-ptr(record(21)), file-range(14, range(4076, 4078)), param-ref(0))
+															expr(gc-ptr(record(21)), file-range(14, range(4082, 4084)), param-ref(0))
 															true
 															5))))
-											expr(nat-8, file-range(14, range(4108, 4109)), 0)
+											expr(nat-8, file-range(14, range(4114, 4115)), 0)
 											expr(
 												nat-64
-												file-range(14, range(4113, 4124))
+												file-range(14, range(4119, 4130))
 												get-field(
-													expr(gc-ptr(record(21)), file-range(14, range(4111, 4113)), param-ref(0))
+													expr(gc-ptr(record(21)), file-range(14, range(4117, 4119)), param-ref(0))
 													true
 													4))]))))
 						expr(
 							void
-							file-range(14, range(4126, 4389))
+							file-range(14, range(4132, 4395))
 							let(
 								mark-ctx
 								expr(
 									record(1)
-									file-range(14, range(4137, 4212))
+									file-range(14, range(4143, 4218))
 									record(
 										[
 											expr(
 												nat-64
-												file-range(14, range(4171, 4182))
+												file-range(14, range(4177, 4188))
 												get-field(
-													expr(gc-ptr(record(21)), file-range(14, range(4169, 4171)), param-ref(0))
+													expr(gc-ptr(record(21)), file-range(14, range(4175, 4177)), param-ref(0))
 													true
 													4))
 											expr(
 												raw-ptr(bool)
-												file-range(14, range(4186, 4197))
+												file-range(14, range(4192, 4203))
 												get-field(
-													expr(gc-ptr(record(21)), file-range(14, range(4184, 4186)), param-ref(0))
+													expr(gc-ptr(record(21)), file-range(14, range(4190, 4192)), param-ref(0))
 													true
 													5))
 											expr(
 												raw-ptr(nat-64)
-												file-range(14, range(4201, 4212))
+												file-range(14, range(4207, 4218))
 												get-field(
-													expr(gc-ptr(record(21)), file-range(14, range(4199, 4201)), param-ref(0))
+													expr(gc-ptr(record(21)), file-range(14, range(4205, 4207)), param-ref(0))
 													true
 													8))]))
 								expr(
 									void
-									file-range(14, range(4214, 4389))
+									file-range(14, range(4220, 4395))
 									seq(
 										expr(
 											void
-											file-range(14, range(4214, 4373))
+											file-range(14, range(4220, 4379))
 											seq(
 												expr(
 													void
-													file-range(14, range(4214, 4314))
+													file-range(14, range(4220, 4320))
 													seq(
 														expr(
 															void
-															file-range(14, range(4214, 4284))
+															file-range(14, range(4220, 4290))
 															seq(
 																expr(
 																	void
-																	file-range(14, range(4234, 4252))
+																	file-range(14, range(4240, 4258))
 																	call(
 																		277
 																		[
 																			expr(
 																				gc-ptr(record(1))
-																				file-range(14, range(4222, 4233))
+																				file-range(14, range(4228, 4239))
 																				unary(
 																					"ref-of-val"
 																					expr(
 																						record(1)
-																						file-range(14, range(4214, 4222))
+																						file-range(14, range(4220, 4228))
 																						local-ref(mark-ctx))))
 																			expr(
 																				record(24)
-																				file-range(14, range(4245, 4252))
+																				file-range(14, range(4251, 4258))
 																				param-ref(1))]))
 																expr(
 																	void
-																	file-range(14, range(4254, 4284))
+																	file-range(14, range(4260, 4290))
 																	set-field(
 																		expr(
 																			gc-ptr(record(21))
-																			file-range(14, range(4254, 4256))
+																			file-range(14, range(4260, 4262))
 																			param-ref(0))
 																		true
 																		6
 																		expr(
 																			raw-ptr(bool)
-																			file-range(14, range(4271, 4282))
+																			file-range(14, range(4277, 4288))
 																			get-field(
 																				expr(
 																					gc-ptr(record(21))
-																					file-range(14, range(4269, 4271))
+																					file-range(14, range(4275, 4277))
 																					param-ref(0))
 																				true
 																				5))))))
 														expr(
 															void
-															file-range(14, range(4284, 4314))
+															file-range(14, range(4290, 4320))
 															set-field(
 																expr(
 																	gc-ptr(record(21))
-																	file-range(14, range(4284, 4286))
+																	file-range(14, range(4290, 4292))
 																	param-ref(0))
 																true
 																9
 																expr(
 																	raw-ptr(nat-64)
-																	file-range(14, range(4301, 4312))
+																	file-range(14, range(4307, 4318))
 																	get-field(
 																		expr(
 																			gc-ptr(record(21))
-																			file-range(14, range(4299, 4301))
+																			file-range(14, range(4305, 4307))
 																			param-ref(0))
 																		true
 																		8))))))
 												expr(
 													void
-													file-range(14, range(4314, 4371))
+													file-range(14, range(4320, 4377))
 													call(
 														328
 														[
 															expr(
 																raw-ptr(bool)
-																file-range(14, range(4332, 4343))
+																file-range(14, range(4338, 4349))
 																get-field(
 																	expr(
 																		gc-ptr(record(21))
-																		file-range(14, range(4330, 4332))
+																		file-range(14, range(4336, 4338))
 																		param-ref(0))
 																	true
 																	5))
 															expr(
 																raw-ptr(bool)
-																file-range(14, range(4347, 4356))
+																file-range(14, range(4353, 4362))
 																get-field(
 																	expr(
 																		gc-ptr(record(21))
-																		file-range(14, range(4345, 4347))
+																		file-range(14, range(4351, 4353))
 																		param-ref(0))
 																	true
 																	7))
 															expr(
 																raw-ptr(nat-64)
-																file-range(14, range(4360, 4371))
+																file-range(14, range(4366, 4377))
 																get-field(
 																	expr(
 																		gc-ptr(record(21))
-																		file-range(14, range(4358, 4360))
+																		file-range(14, range(4364, 4366))
 																		param-ref(0))
 																	true
 																	8))]))))
 										expr(
 											void
-											file-range(14, range(4376, 4387))
-											call(60, [expr(gc-ptr(record(21)), file-range(14, range(4373, 4375)), param-ref(0))]))))))))))
+											file-range(14, range(4382, 4393))
+											call(60, [expr(gc-ptr(record(21)), file-range(14, range(4379, 4381)), param-ref(0))]))))))))))
 		277: fun(
 			generated(mark-visit)
 			void
@@ -18222,63 +18222,63 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(14, range(4482, 4744))
+					file-range(14, range(4488, 4750))
 					trinary(
 						"if"
 						expr(
 							bool
-							file-range(14, range(4511, 4514))
+							file-range(14, range(4517, 4520))
 							call(
 								4
 								[
 									expr(
 										bool
-										file-range(14, range(4494, 4510))
+										file-range(14, range(4500, 4516))
 										binary(
 											"ptr-eq?"
-											expr(raw-ptr(bool), file-range(14, range(4485, 4493)), param-ref(0))
-											expr(raw-ptr(bool), file-range(14, range(4502, 4510)), param-ref(1))))]))
+											expr(raw-ptr(bool), file-range(14, range(4491, 4499)), param-ref(0))
+											expr(raw-ptr(bool), file-range(14, range(4508, 4516)), param-ref(1))))]))
 						expr(
 							void
-							file-range(14, range(4517, 4744))
+							file-range(14, range(4523, 4750))
 							seq(
 								expr(
 									void
-									file-range(14, range(4517, 4576))
+									file-range(14, range(4523, 4582))
 									trinary(
 										"if"
 										expr(
 											bool
-											file-range(14, range(4535, 4538))
+											file-range(14, range(4541, 4544))
 											call(
 												4
 												[
 													expr(
 														bool
-														file-range(14, range(4528, 4534))
+														file-range(14, range(4534, 4540))
 														unary(
 															"deref"
-															expr(raw-ptr(bool), file-range(14, range(4520, 4528)), param-ref(0))))]))
+															expr(raw-ptr(bool), file-range(14, range(4526, 4534)), param-ref(0))))]))
 										expr(
 											void
-											file-range(14, range(4551, 4573))
+											file-range(14, range(4557, 4579))
 											binary(
 												"wriite to ptr"
-												expr(raw-ptr(nat-64), file-range(14, range(4542, 4550)), param-ref(2))
-												expr(nat-64, file-range(14, range(4555, 4573)), -369582283799201058)))
-										expr(void, file-range(14, range(4517, 4576)), void)))
+												expr(raw-ptr(nat-64), file-range(14, range(4548, 4556)), param-ref(2))
+												expr(nat-64, file-range(14, range(4561, 4579)), -369582283799201058)))
+										expr(void, file-range(14, range(4523, 4582)), void)))
 								expr(
 									void
-									file-range(14, range(4576, 4625))
+									file-range(14, range(4582, 4631))
 									tail-recur(
 										[
 											expr(
 												raw-ptr(bool)
-												file-range(14, range(4600, 4605))
-												call(12, [expr(raw-ptr(bool), file-range(14, range(4592, 4600)), param-ref(0))]))
-											expr(raw-ptr(bool), file-range(14, range(4607, 4615)), param-ref(1))
-											expr(raw-ptr(nat-64), file-range(14, range(4617, 4625)), param-ref(2))]))))
-						expr(void, file-range(14, range(4482, 4744)), void)))))
+												file-range(14, range(4606, 4611))
+												call(12, [expr(raw-ptr(bool), file-range(14, range(4598, 4606)), param-ref(0))]))
+											expr(raw-ptr(bool), file-range(14, range(4613, 4621)), param-ref(1))
+											expr(raw-ptr(nat-64), file-range(14, range(4623, 4631)), param-ref(2))]))))
+						expr(void, file-range(14, range(4488, 4750)), void)))))
 		329: fun(
 			wait-on
 			void
@@ -18559,14 +18559,14 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(14, range(7975, 7979))
+					file-range(14, range(7981, 7985))
 					call(
 						338
 						[
 							expr(
 								raw-ptr(nat-8)
-								file-range(14, range(7965, 7974))
-								ptr-cast(expr(raw-ptr(nat-64), file-range(14, range(7964, 7965)), param-ref(0))))]))))
+								file-range(14, range(7971, 7980))
+								ptr-cast(expr(raw-ptr(nat-64), file-range(14, range(7970, 7971)), param-ref(0))))]))))
 		338: fun(free, void, param-kind(ctx: false, closure: false), [param(p, raw-ptr(nat-8))], extern(false))
 		339: fun(
 			unmanaged-free
@@ -18576,14 +18576,14 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(14, range(7975, 7979))
+					file-range(14, range(7981, 7985))
 					call(
 						338
 						[
 							expr(
 								raw-ptr(nat-8)
-								file-range(14, range(7965, 7974))
-								ptr-cast(expr(raw-ptr(record(72)), file-range(14, range(7964, 7965)), param-ref(0))))]))))
+								file-range(14, range(7971, 7980))
+								ptr-cast(expr(raw-ptr(record(72)), file-range(14, range(7970, 7971)), param-ref(0))))]))))
 		340: fun(
 			main
 			gc-ptr(record(5))

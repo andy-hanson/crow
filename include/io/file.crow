@@ -32,7 +32,7 @@ is-dir? bool(path c-str) summon
 		| raise exception -- path does not exist
 		todo
 	as some s
-		s.value.st-mode bits-and s-ifmt == s-ifdir
+		(s.value.st-mode bits-and s-ifmt) == s-ifdir
 
 is-file? bool(path str) summon
 	path.to-c-str is-file?
@@ -42,7 +42,7 @@ is-file? bool(path c-str) summon
 	as none
 		false
 	as some s
-		s.value.st-mode bits-and s-ifmt == s-ifreg
+		(s.value.st-mode bits-and s-ifmt) == s-ifreg
 
 path-exists? bool(path c-str) summon
 	path.get-stat has?

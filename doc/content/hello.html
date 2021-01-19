@@ -9,9 +9,10 @@
 
 	<p>
 		Crow syntax is based on indented blocks.
-		Here there is an indented block of code under <code class="keyword">import</code>
+		There is an indented block of code under <code class="keyword">import</code>
 		and one under <code class="fun-def">main</code>.
-		The indentation is a mandatory part of the syntax. An indent may be one tab, two spaces, or four spaces;
+		The indentation is mandatory.
+		An indent may be one tab, two spaces, or four spaces;
 		but every indent in the same file must use the same style.
 	</p>
 
@@ -20,27 +21,46 @@
 		<li>
 			<code class="keyword">import</code> imports the function <code class="fun-ref">print</code>
 			from the builtin module <code class="import">io.print</code>.
-			Other names like <code class="struct-ref">fut</code> are implicitly imported due to being very common.
+			Other names like <code class="struct-ref">fut</code> are always implicitly imported.
 		</li>
 		<li>
 			<code class="fun-def">main</code> defines a function.
 			In crow, the name of a declaration always comes first.
-			Then the return type <code class="struct-ref">fut exit-code</code> comes.
-			This instantiates the templated type <code class="struct-ref">fut</code>.
-			Then there is a parameter (named <code class="param-def">_</code>)
-			and its type <code class="struct-ref">arr str</code>.
-
-			Then there is a spec: <code class="spec-ref">summon</code>. We won't get to specs until later.
-			The spec allows us to call <code class="fun-ref">print</code> which relies on it.
-			(There are ways to do I/O without using <code class="spec-ref">summon</code>.)
+		</li>
+		<li>
+			<code class="struct-ref">fut nat</code> is the return type of <code class="fun-def">main</code>.
+			This instantiates the templated type <code class="struct-ref">fut</code>
+			(A "future" type, indicating that the main function might do things that come after a delay;
+			this one doesn't though.)
+		</li>
+		<li>
+			<code class="param-def">_</code> is the parameter name (indicating we won't use it)
+			and its type is <code class="struct-ref">arr str</code> (an array of strings).
+		</li>
+		<li>
+			<code class="spec-ref">summon</code> is a type of spec.
+			A function's specs indicate preconditions that it relies on;
+			it allows <code class="fun-ref">main</code> to call other <code class="spec-ref">summon</code> functions,
+			and only <code class="spec-ref">summon</code> functions can call <code class="fun-ref">main</code>.
+			<br />
+			(There are also <a href="index.html#fun">other</a> ways to do I/O.)
 		</li>
 		<li>
 			<code>print: "Hello, world!"</code> and <code>0 resolved</code> are <em>both</em> function calls.
 			(The functions are <code class="fun-ref">print</code> and <code class="fun-ref">resolved</code>.)
-			Crow provides multiple syntaxes for calling functions; the semantics are the same.
+		</li>
+		<li>
 			The final line is the function result.
-			(<code>0</code> is a <code class="struct-ref">nat</code>
-			and <code>resolved</code> wraps it in a <code class="struct-ref">fut</code>.)
+			<code>0</code> is a <code class="struct-ref">nat</code>
+			and <code>resolved</code> wraps it in a <code class="struct-ref">fut</code>.
 		</li>
 	</ul>
+</section>
+
+<section>
+	<h3>Functions</h3>
+
+	Here's a program that defines another function:
+
+
 </section>

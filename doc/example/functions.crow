@@ -1,0 +1,21 @@
+import
+	io.print: print
+	collection.arr-util: ends-with?
+
+main fut nat(_ arr str) summon
+	print: "fox".greet
+	print: "ox".greet
+	print: "crow".greet
+	0 resolved
+
+greet str(name str)
+	"Hello, " + name.plural
+
+plural str(name str)
+	suffix = if name ends-with? "s" or: name == "fox"
+		"es"
+	elif name ends-with? "x"
+		"en"
+	else
+		"s"
+	name + suffix

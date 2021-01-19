@@ -179,7 +179,7 @@ noctx-must-remove-unordered void(a mut-list ?t, value ?t) noctx unsafe data<?t>
 .noctx-must-remove-unordered-recur void(a mut-list ?t, index nat, value ?t) noctx unsafe data<?t>
 	if index == a.size
 		todo
-	elif a noctx-at index == value
+	elif (a noctx-at index) == value
 		a noctx-remove-unordered-at-index index drop
 	else
 		a noctx-must-remove-unordered-recur index.noctx-incr, value

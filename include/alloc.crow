@@ -23,16 +23,16 @@ mark-ctx record mut
 mark bool(ctx mark-ctx, ptr-any any-ptr, size-bytes nat) noctx unsafe summon
 	size-words = size-bytes words-of-bytes
 	ptr = ptr-any.ptr-cast as<ptr nat64>
-	hard-assert: ptr.to-nat bits-and 7 == 0
+	hard-assert: (ptr.to-nat bits-and 7) == 0
 	index = ptr - ctx.memory-start
 	gc-memory? = index < ctx.memory-size-words
 	if gc-memory?
-		hard-assert: index wrap-add size-words <= ctx.memory-size-words
+		hard-assert: (index wrap-add size-words) <= ctx.memory-size-words
 		mark-start = ctx.marks + index
 		mark-end = mark-start + size-words
 		mark-range-recur: false, mark-start, mark-end
 	else
-		hard-assert: index wrap-add size-words > ctx.memory-size-words
+		hard-assert: (index wrap-add size-words) > ctx.memory-size-words
 		false
 
 words-of-bytes nat(size-bytes nat) noctx trusted

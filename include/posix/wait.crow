@@ -31,7 +31,7 @@ w-core-dump bool(status status-t)
 	status bits-intersect? 0x80
 
 w-if-stopped bool(status status-t)
-	status bits-and 0xff == 0x7f
+	(status bits-and 0xff) == 0x7f
 
 w-if-continued bool(status status-t)
 	status == 0xffff

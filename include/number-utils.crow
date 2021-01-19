@@ -14,7 +14,7 @@ truncate-to-int int(a float) noctx builtin
 region arithmetic
 
 multiple-of? bool(a nat, b nat)
-	a mod b == 0
+	(a mod b) == 0
 
 incr nat(n nat)
 	forbid: n == max-nat

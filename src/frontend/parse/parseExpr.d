@@ -21,6 +21,7 @@ import frontend.parse.ast :
 	MatchAst,
 	matchExprAstKind,
 	NameAndRange,
+	ParenthesizedAst,
 	SeqAst,
 	ThenAst,
 	TypeAst;
@@ -319,16 +320,17 @@ immutable(ExprAst) injectOperator(Alloc)(
 	ref immutable ExprAst rhs,
 	immutable Pos end,
 ) {
-	immutable Opt!Operator lhsOperator = isCall(lhs.kind)
-		? operatorForSym(asCall(lhs.kind).funName.name)
-		: none!Operator;
-	if (has(lhsOperator) && lowerPrecedence(force(lhsOperator), operator)) {
+	if (isCall(lhs.kind) && asCall(lhs.kind).style == CallAst.Style.infix) {
+		immutable Opt!Operator lhsOperator = operatorForSym(asCall(lhs.kind).funName.name);
 		immutable Arr!ExprAst args = asCall(lhs.kind).args;
-		// TODO: don't mutate 'immutable'!
-		Arr!ExprAst argsMutable = castMutable(args);
-		setLast(argsMutable, injectOperator(alloc, last(args), name, operator, rhs, end));
-		//TODO: also adjust the range of lhs, it is now bigger
-		return lhs;
+		if (!empty(args) && (!has(lhsOperator) || lowerPrecedence(force(lhsOperator), operator))) {
+			// TODO: don't mutate 'immutable'!
+			Arr!ExprAst argsMutable = castMutable(args);
+			setLast(argsMutable, injectOperator(alloc, last(args), name, operator, rhs, end));
+			//TODO: also adjust the range of lhs, it is now bigger
+			return lhs;
+		} else
+			return operatorCallAst(alloc, lhs, name, rhs, end);
 	} else
 		return operatorCallAst(alloc, lhs, name, rhs, end);
 }
@@ -418,6 +420,7 @@ immutable(Bool) someInOwnBody(
 		(ref immutable(LetAst)) => unreachable!(immutable Bool),
 		(ref immutable(LiteralAst)) => False,
 		(ref immutable(MatchAst)) => unreachable!(immutable Bool),
+		(ref immutable ParenthesizedAst it) => recur(it.inner),
 		(ref immutable(SeqAst)) => unreachable!(immutable Bool),
 		(ref immutable(ThenAst)) => unreachable!(immutable Bool));
 }
@@ -736,7 +739,10 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 		case ExpressionToken.Kind.lparen:
 			immutable ExprAst expr = parseExprNoBlock(alloc, lexer);
 			takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
-			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+			immutable ExprAst inner = tryParseDotsAndSubscripts(alloc, lexer, expr);
+			return noDedent(immutable ExprAst(
+				range(lexer, start),
+				immutable ExprAstKind(immutable ParenthesizedAst(allocate(alloc, inner)))));
 		case ExpressionToken.Kind.match:
 			return ctx.allowBlock
 				? toMaybeDedent(parseMatch(alloc, lexer, start, curIndent))

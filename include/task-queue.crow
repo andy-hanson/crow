@@ -125,7 +125,7 @@ insert-task void(a task-queue, inserted task-queue-node) noctx unsafe
 			inserted.next := head some
 			a.head := inserted some
 	size-after = a size
-	hard-assert: size-before wrap-add 1 == size-after
+	hard-assert: (size-before wrap-add 1) == size-after
 
 .insert-recur void(prev task-queue-node, inserted task-queue-node) noctx
 	match prev next

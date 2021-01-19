@@ -23,11 +23,11 @@ bits-or int32(a int32, b int32) noctx builtin
 bits-or int(a int, b int) noctx builtin
 
 bits-intersect? bool(a int16, b int16) noctx
-	not: a bits-and b == 0
+	not: (a bits-and b) == 0
 bits-intersect? bool(a int32, b int32) noctx
-	not: a bits-and b == 0
+	not: (a bits-and b) == 0
 bits-intersect? bool(a nat32, b nat32) noctx
-	not: a bits-and b == 0
+	not: (a bits-and b) == 0
 
 unsafe-bit-shift-left nat(a nat, b nat) noctx builtin unsafe
 unsafe-bit-shift-right nat(a nat, b nat) noctx builtin unsafe

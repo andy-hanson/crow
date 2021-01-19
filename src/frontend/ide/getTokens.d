@@ -29,6 +29,7 @@ import frontend.parse.ast :
 	matchStructDeclAstBody,
 	matchTypeAst,
 	ParamAst,
+	ParenthesizedAst,
 	rangeOfExplicitByValOrRef,
 	rangeOfNameAndRange,
 	rangeOfPuritySpecifier,
@@ -329,6 +330,9 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 					add(alloc, tokens, immutable Token(Token.Kind.localDef, rangeOfNameAndRange(force(case_.local))));
 				addExprTokens(alloc, tokens, case_.then);
 			}
+		},
+		(ref immutable ParenthesizedAst it) {
+			addExprTokens(alloc, tokens, it.inner);
 		},
 		(ref immutable SeqAst it) {
 			addExprTokens(alloc, tokens, it.first);

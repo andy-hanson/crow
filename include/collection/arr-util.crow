@@ -75,7 +75,7 @@ contains? bool(a arr ?t, value ?t) noctx data<?t>
 contains-recur? bool(a arr ?t, value ?t, i nat) noctx trusted data<?t>
 	if i == a.size
 		false
-	elif a noctx-at i == value
+	elif (a noctx-at i) == value
 		true
 	else
 		a contains-recur? value, i.noctx-incr

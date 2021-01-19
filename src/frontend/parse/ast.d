@@ -250,6 +250,10 @@ struct MatchAst {
 	immutable Arr!CaseAst cases;
 }
 
+struct ParenthesizedAst {
+	immutable Ptr!ExprAst inner;
+}
+
 struct SeqAst {
 	immutable Ptr!ExprAst first;
 	immutable Ptr!ExprAst then;
@@ -275,6 +279,7 @@ struct ExprAstKind {
 		lambda,
 		let,
 		literal,
+		parenthesized,
 		match,
 		seq,
 		then,
@@ -290,6 +295,7 @@ struct ExprAstKind {
 		immutable LambdaAst lambda;
 		immutable LetAst let;
 		immutable LiteralAst literal;
+		immutable ParenthesizedAst parenthesized;
 		immutable MatchAst match_;
 		immutable SeqAst seq;
 		immutable ThenAst then;
@@ -306,6 +312,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable LetAst a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
 	@trusted immutable this(immutable MatchAst a) { kind = Kind.match; match_ = a; }
+	@trusted immutable this(immutable ParenthesizedAst a) { kind = Kind.parenthesized; parenthesized = a; }
 	@trusted immutable this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable ThenAst a) { kind = Kind.then; then = a; }
 }
@@ -338,6 +345,7 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	scope immutable(T) delegate(ref immutable LetAst) @safe @nogc pure nothrow cbLet,
 	scope immutable(T) delegate(ref immutable LiteralAst) @safe @nogc pure nothrow cbLiteral,
 	scope immutable(T) delegate(ref immutable MatchAst) @safe @nogc pure nothrow cbMatch,
+	scope immutable(T) delegate(ref immutable ParenthesizedAst) @safe @nogc pure nothrow cbParenthesized,
 	scope immutable(T) delegate(ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
 	scope immutable(T) delegate(ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
 ) {
@@ -362,6 +370,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbLiteral(a.literal);
 		case ExprAstKind.Kind.match:
 			return cbMatch(a.match_);
+		case ExprAstKind.Kind.parenthesized:
+			return cbParenthesized(a.parenthesized);
 		case ExprAstKind.Kind.seq:
 			return cbSeq(a.seq);
 		case ExprAstKind.Kind.then:
@@ -1064,6 +1074,8 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 						reprOpt(alloc, case_.local, (ref immutable NameAndRange nr) =>
 							reprNameAndRange(alloc, nr)),
 						reprExprAst(alloc, case_.then)]))]),
+		(ref immutable ParenthesizedAst it) =>
+			reprRecord(alloc, "paren", [reprExprAst(alloc, it.inner)]),
 		(ref immutable SeqAst a) =>
 			reprRecord(alloc, "seq-ast", [
 				reprExprAst(alloc, a.first),
