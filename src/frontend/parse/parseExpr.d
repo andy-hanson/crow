@@ -355,21 +355,20 @@ immutable(Bool) lowerPrecedence(immutable Operator a, immutable Operator b) {
 }
 
 immutable(uint) precedence(immutable Operator op) {
-	// Lower = less tightly binding
 	final switch (op) {
-		case Operator.eq:
-		case Operator.notEq:
+		case Operator.equal:
+		case Operator.notEqual:
 		case Operator.less:
-		case Operator.lessEq:
+		case Operator.lessOrEqual:
 		case Operator.greater:
-		case Operator.greaterEq:
+		case Operator.greaterOrEqual:
 		case Operator.compare:
 			return 1;
 		case Operator.plus:
 		case Operator.minus:
 			return 2;
 		case Operator.times:
-		case Operator.div:
+		case Operator.divide:
 			return 3;
 	}
 }

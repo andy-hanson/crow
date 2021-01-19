@@ -20,7 +20,7 @@
 	<ul>
 		<li>
 			<code class="keyword">import</code> imports the function <code class="fun-ref">print</code>
-			from the builtin module <code class="import">io.print</code>.
+			from the standard module <code class="import">io.print</code>.
 			Other names like <code class="struct-ref">fut</code> are always implicitly imported.
 		</li>
 		<li>
@@ -50,7 +50,7 @@
 			(The functions are <code class="fun-ref">print</code> and <code class="fun-ref">resolved</code>.)
 		</li>
 		<li>
-			The final line is the function result.
+			The final line of a function is its result.
 			<code>0</code> is a <code class="struct-ref">nat</code>
 			and <code>resolved</code> wraps it in a <code class="struct-ref">fut</code>.
 		</li>
@@ -58,9 +58,95 @@
 </section>
 
 <section>
-	<h3>Functions</h3>
+	<h3>Names</h3>
 
-	Here's a program that defines another function:
+	<p>
+		A name consists of letters (<code>a</code> through <code>z</code>),
+		numbers (<code>0</code> through <code>9</code>), and hyphens (<code>-</code>).
+		<br />
+		It may optionally end in a <code>?</code> (for booleans) or <code>!</code> (for functions with side effects).
+		<br />
+		A name must start with a letter.
+		<br />
+		Names can't contain capital letters or underscores.
+	</p>
+	<p>
+		Functions may also have operator names:
+		<code class="fun-ref">==</code>, <code class="fun-ref">!=</code>,
+		<code class="fun-ref">&lt;</code>, <code class="fun-ref">></code>,
+		<code class="fun-ref">&lt;=</code>, <code class="fun-ref">>=</code>, <code class="fun-ref">&lt;=></code>,
+		<code class="fun-ref">+</code>, <code class="fun-ref">-</code>,
+		<code class="fun-ref">*</code>, and <code class="fun-ref">/</code>.
+		(<code class="fun-ref">&lt;=></code> is for 3-way comparison.)
+		<br />
+		Some of C's operators are missing.
+		Instead, <code class="fun-ref">and</code>, <code class="fun-ref">or</code>,
+		and <code class="fun-ref">not</code> are named functions,
+		and bitwise operators are named functions in the standard module <code class="import">bits</code>.
+	</p>
+</section>
 
+<section>
+	<h3>Functions, if, and locals</h3>
 
+	Here's a program that defines more functions:
+	<crow-runnable src="functions"></crow-runnable>
+
+	This simple program uses many kinds of function call syntax.
+	<ul>
+		<li>
+			<code class="fun-ref">greeting</code> is a function call.
+			A function with no arguments is called just by writing the name.
+		</li>
+		<li>
+			<code>print: "fox".greet</code> is a prefix function call;
+			<code class="fun-ref">print</code> is the function and <code>"fox".greet</code> is the argument.
+		</li>
+		<li>
+			<code>"fox".greet</code> is equivalent to <code>greet: "fox"</code>.
+		</li>
+		<li>
+			<code>name ends-with? "x"</code> is an infix function call;
+			<code class="fun-ref">ends-with?</code> is the function
+			and <code>name</code> and <code>"x"</code> are the arguments.
+			<br/>
+			An "infix" function can have one or more parameters.
+			So <code>0 resolved</code> is also a kind of infix function.
+			<code>a f b, c</code> would also call a function <code class="fun-ref">f</code>
+			on arguments <code>a</code>, <code>b</code>, and <code>c</code>.
+		</li>
+	</ul>
+
+	<p>
+		There are also operator calls <code>greeting + ", " + name.plural</code> and <code>name == "fox"</code>.
+		<br />
+		Operators work like infix function calls, but precedence applies,
+		so <code>a + b * c</code> parses as <code>a + (b * c)</code>.
+		<code>a plus b times c</code> would parse as <code>(a plus b) times c</code>.
+		<br />
+		The precedence levels are the same as in most popular languages:
+		<code class="fun-ref">*</code> and <code class="fun-ref">/</code> bind most tightly,
+		<code class="fun-ref">+</code> and <code class="fun-ref">-</code> come next,
+		and the others all share the lowest precedence.
+		<br />
+		Operators always bind more closely than named functions,
+		so <code>name == "fox"</code> is nested inside the <code>or</code>.
+	</p>
+
+	<p>
+		It also uses a local variable <code class="local-def">suffix</code>.
+		Variables in crow are immutable, meaning you can't set another value for <code>suffix</code>.
+		(This does not mean that the value in a variable can't be mutable.)
+	</p>
+
+	<p>
+		The value of <code class="local-def">suffix</code> is an <code class="keyword">if</code> expression.
+		The cases of an <code class="keyword">if</code> must go in indented blocks.
+		The <code class="else">else</code> case is required unless the type is <code class="struct-ref">void</code>.
+	</p>
+
+	<p>
+		Now we have the basics down:
+		We can define and call functions, define locals, and use <code class="keyword">if</code> expressions.
+	</p>
 </section>

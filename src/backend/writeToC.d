@@ -82,7 +82,8 @@ import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sym :
 	compareSym,
 	eachCharInSym,
-	isSymOperator,
+	Operator,
+	operatorForSym,
 	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
 	Sym,
@@ -2151,22 +2152,34 @@ void writePrimitiveType(Alloc)(ref Writer!Alloc writer, immutable PrimitiveType 
 }
 
 void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
-	if (isSymOperator(name)) {
-		writeStatic(writer, "_op");
-		eachCharInSym(name, (immutable char c) {
-			writeStatic(writer, () {
-				final switch (c) {
-					case '-': return "_minus";
-					case '+': return "_plus";
-					case '*': return "_times";
-					case '/': return "_div";
-					case '<': return "_less";
-					case '>': return "_greater";
-					case '=': return "_equal";
-					case '!': return "_bang";
-				}
-			}());
-		});
+	immutable Opt!Operator operator = operatorForSym(name);
+	if (has(operator)) {
+		writeStatic(writer, () {
+			final switch (force(operator)) {
+				case Operator.equal:
+					return "_equal";
+				case Operator.notEqual:
+					return "_notEqual";
+				case Operator.less:
+					return "_less";
+				case Operator.lessOrEqual:
+					return "_lessOrEqual";
+				case Operator.greater:
+					return "_greater";
+				case Operator.greaterOrEqual:
+					return "_greaterOrEqual";
+				case Operator.compare:
+					return "_compare";
+				case Operator.plus:
+					return "_plus";
+				case Operator.minus:
+					return "_minus";
+				case Operator.times:
+					return "_times";
+				case Operator.divide:
+					return "_divide";
+			}
+		}());
 	} else {
 		if (conflictsWithCName(name))
 			writeChar(writer, '_');

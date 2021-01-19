@@ -97,17 +97,17 @@ private immutable(Bool) isAlphaIdentifier(ref immutable Str a) {
 }
 
 enum Operator {
+	equal,
+	notEqual,
+	less,
+	lessOrEqual,
+	greater,
+	greaterOrEqual,
+	compare,
 	plus,
 	minus,
 	times,
-	div,
-	eq,
-	notEq,
-	less,
-	lessEq,
-	greater,
-	greaterEq,
-	compare,
+	divide,
 }
 
 immutable(Opt!Sym) getSymFromOperator(Alloc)(ref AllSymbols!Alloc allSymbols, scope ref immutable Str str) {
@@ -136,7 +136,7 @@ private immutable(Opt!Operator) operatorFromStr(scope ref immutable Str str) {
 			case '*':
 				return some(Operator.times);
 			case '/':
-				return some(Operator.div);
+				return some(Operator.divide);
 			case '<':
 				return some(Operator.less);
 			case '>':
@@ -146,13 +146,13 @@ private immutable(Opt!Operator) operatorFromStr(scope ref immutable Str str) {
 		}
 	else
 		return strEqLiteral(str, "==")
-			? some(Operator.eq)
+			? some(Operator.equal)
 			: strEqLiteral(str, "!=")
-			? some(Operator.notEq)
+			? some(Operator.notEqual)
 			: strEqLiteral(str, "<=")
-			? some(Operator.lessEq)
+			? some(Operator.lessOrEqual)
 			: strEqLiteral(str, ">=")
-			? some(Operator.greaterEq)
+			? some(Operator.greaterOrEqual)
 			: strEqLiteral(str, "<=>")
 			? some(Operator.compare)
 			: none!Operator;
@@ -160,28 +160,28 @@ private immutable(Opt!Operator) operatorFromStr(scope ref immutable Str str) {
 
 private immutable(string) strOfOperator(immutable Operator a) {
 	final switch (a) {
+		case Operator.equal:
+			return "==";
+		case Operator.notEqual:
+			return "!=";
+		case Operator.less:
+			return "<";
+		case Operator.lessOrEqual:
+			return "<=";
+		case Operator.greater:
+			return ">";
+		case Operator.greaterOrEqual:
+			return ">=";
+		case Operator.compare:
+			return "<=>";
 		case Operator.plus:
 			return "+";
 		case Operator.minus:
 			return "-";
 		case Operator.times:
 			return "*";
-		case Operator.div:
+		case Operator.divide:
 			return "/";
-		case Operator.eq:
-			return "==";
-		case Operator.notEq:
-			return "!=";
-		case Operator.less:
-			return "<";
-		case Operator.lessEq:
-			return "<=";
-		case Operator.greater:
-			return ">";
-		case Operator.greaterEq:
-			return ">=";
-		case Operator.compare:
-			return "<=>";
 	}
 }
 

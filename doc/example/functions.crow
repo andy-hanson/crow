@@ -3,16 +3,20 @@ import
 	collection.arr-util: ends-with?
 
 main fut nat(_ arr str) summon
+	print: "albatross".greet
 	print: "fox".greet
 	print: "ox".greet
 	print: "crow".greet
 	0 resolved
 
 greet str(name str)
-	"Hello, " + name.plural
+	greeting + ", " + name.plural
+
+greeting str()
+	"Hello"
 
 plural str(name str)
-	suffix = if name ends-with? "s" or: name == "fox"
+	suffix = if name ends-with? "s" or name == "fox"
 		"es"
 	elif name ends-with? "x"
 		"en"
