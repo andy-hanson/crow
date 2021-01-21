@@ -790,6 +790,9 @@ void generateSpecialUnary(Debug, CodeAlloc, TempAlloc)(
 		case LowExprKind.SpecialUnary.Kind.bitsNotNat64:
 			fn(FnOp.bitsNotNat64);
 			break;
+		case LowExprKind.SpecialUnary.Kind.isNan:
+			fn(FnOp.isNan);
+			break;
 		case LowExprKind.SpecialUnary.Kind.toIntFromInt16:
 			fn(FnOp.intFromInt16);
 			break;

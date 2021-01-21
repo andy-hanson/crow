@@ -76,8 +76,8 @@
 		<code class="fun-ref">&lt;</code>, <code class="fun-ref">></code>,
 		<code class="fun-ref">&lt;=</code>, <code class="fun-ref">>=</code>, <code class="fun-ref">&lt;=></code>,
 		<code class="fun-ref">+</code>, <code class="fun-ref">-</code>,
-		<code class="fun-ref">*</code>, and <code class="fun-ref">/</code>.
-		(<code class="fun-ref">&lt;=></code> is for 3-way comparison.)
+		<code class="fun-ref">*</code>, <code class="fun-ref">/</code>, and <code class="fun-ref">^</code>.
+		(<code class="fun-ref">&lt;=></code> is for 3-way comparison, <code>^</code> is exponentiation.)
 		<br />
 		Some of C's operators are missing.
 		Instead, <code class="fun-ref">and</code>, <code class="fun-ref">or</code>,
@@ -91,6 +91,10 @@
 
 	Here's a program that defines more functions:
 	<crow-runnable src="functions"></crow-runnable>
+
+	<p>The <code>.</code> in front of <code>.greet</code> indicates that it is private to this module.</p>
+
+	<h4>Function call types</h4>
 
 	This simple program uses many kinds of function call syntax.
 	<ul>
@@ -117,6 +121,8 @@
 		</li>
 	</ul>
 
+	<h4>Operators</h4>
+
 	<p>
 		There are also operator calls <code>greeting + ", " + name.plural</code> and <code>name == "fox"</code>.
 		<br />
@@ -125,13 +131,16 @@
 		<code>a plus b times c</code> would parse as <code>(a plus b) times c</code>.
 		<br />
 		The precedence levels are the same as in most popular languages:
-		<code class="fun-ref">*</code> and <code class="fun-ref">/</code> bind most tightly,
-		<code class="fun-ref">+</code> and <code class="fun-ref">-</code> come next,
+		<code class="fun-ref">^</code> binds most tightly,
+		then <code class="fun-ref">*</code> and <code class="fun-ref">/</code>,
+		then <code class="fun-ref">+</code> and <code class="fun-ref">-</code>,
 		and the others all share the lowest precedence.
 		<br />
 		Operators always bind more closely than named functions,
 		so <code>name == "fox"</code> is nested inside the <code>or</code>.
 	</p>
+
+	<h4>Locals</h4>
 
 	<p>
 		It also uses a local variable <code class="local-def">suffix</code>.
@@ -139,14 +148,65 @@
 		(This does not mean that the value in a variable can't be mutable.)
 	</p>
 
+	<h4>Ifs</h4>
+
 	<p>
 		The value of <code class="local-def">suffix</code> is an <code class="keyword">if</code> expression.
 		The cases of an <code class="keyword">if</code> must go in indented blocks.
 		The <code class="else">else</code> case is required unless the type is <code class="struct-ref">void</code>.
 	</p>
+</section>
+
+<section>
+	<h3>Primitive types</h3>
+
+	You've already seen <code class="struct-ref">nat</code>. This is an unsigned integer type.
+	In crow, integral arithmetic is safe and will throw an exception instead of overflowing,
+	so unsigned numbers are preferred where appropriate.
+	<br />
+	There is also <code class="struct-ref">int</code> for signed integers
+	and <code class="struct-ref">float</code> for floating-point values.
+
+	<crow-runnable src="primitives"></crow-runnable>
+
+	<p>
+		By default, a number literal like <code>3</code> will be a <code class="struct-ref">nat</code>.
+		For an integer you could write <code>+3</code>, or <code>3.0</code> for a float.
+
+		<br />
+
+		A literal will also have the correct type if it is clear from context
+		(like the return type, or parameter type of a function you're calling),
+		as in <code>2 as&lt;int></code>.
+
+		<code class="fun-ref">as</code> is not special syntax, just the identity function;
+		<code>&lt;int></code> is syntax for giving it a type parameter.
+	</p>
+
+	Crow has no implicit (or explicit) conversions or casts.
+	It does have functions like <code class="fun-ref">to-int</code>.
+	(For floats you must choose <code class="fun-ref">truncate-to-int</code>
+	or <code class="fun-ref">round-to-int</code>.)
+
+	<br />
+
+	Also, numeric operators only work with values of the same type.
+	So <code>my-nat + my-int</code> would be a compile error;
+	you must choose <code>my-nat.to-int + my-int</code> or <code>my-nat + my-int.to-nat</code>.
+
+	<p>
+		<code class="struct-ref">nat</code>, <code class="struct-ref">int</code>,
+		and <code class="struct-ref">float</code> are all 64-bit types.
+		For performance or to work with external libraries,
+		you may add a suffix <code>8</code>, <code>16</code>, or <code>32</code>, as in <code>int16</code>.
+		(Don't worry, arithmetic operators check for overflow and throw an exception.)
+		Again, there are no implicit conversions, but there are functions like <code>to-int16</code>.
+	</p>
 
 	<p>
 		Now we have the basics down:
-		We can define and call functions, define locals, and use <code class="keyword">if</code> expressions.
+		We can define and call functions, define locals, use <code class="keyword">if</code> expressions,
+		and do basic arithmetic.
+		Now it's time to define our own types.
 	</p>
 </section>

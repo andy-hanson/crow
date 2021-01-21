@@ -1,6 +1,21 @@
 <section>
 	<h2>unions</h2>
-	<p>Explanation here</p>
+
+	<p>
+		While a record combines several values by storing all of them,
+		a union combines several values by storing only one of them.
+		Unlike a union in C, a union in crow remembers which value it stores,
+		so you can't accidentally access the wrong one.
+	</p>
+
+	<crow-runnable src="union"></crow-runnable>
+
+	Here we define a <code class="struct-ref">hitbox</code> union which is either a
+	<code class="struct-ref">circle</code> or <code class="struct-ref">rect</code>.
+	The members of a union can be any kind of type except other unions.
+
+	There is also the <code class="keyword">match</code> expression which .. .... ... ...
+
 
 
 </section>

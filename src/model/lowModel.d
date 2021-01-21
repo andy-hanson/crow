@@ -688,6 +688,7 @@ struct LowExprKind {
 			asRef,
 			bitsNotNat64,
 			deref,
+			isNan,
 			ptrTo,
 			refOfVal,
 			toFloat64FromInt64,

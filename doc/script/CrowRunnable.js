@@ -71,7 +71,7 @@ export const CrowRunnable = makeCustomElement({
 		const comp = await compiler.getGlobalCompiler()
 		const src = nonNull(getAttribute('src'))
 		const initialText = await (await fetch(`example/${src}.crow`)).text()
-		const MAIN = "main"
+		const MAIN = src
 
 		/** @type {MutableObservable<string>} */
 		const text = new MutableObservable(initialText)
@@ -79,7 +79,7 @@ export const CrowRunnable = makeCustomElement({
 		const tokens = new MutableObservable(/** @type {ReadonlyArray<Token>} */ ([]))
 		/** @type {function(number): string} */
 		const getHover = pos =>
-			comp.getHover(StorageKind.local, "main", pos)
+			comp.getHover(StorageKind.local, src, pos)
 		const crowText = CrowText.create({getHover, tokens, text})
 		const crowTextContainer = div({class:crowTextContainerClass}, [crowText])
 

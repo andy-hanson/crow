@@ -15,10 +15,10 @@ import util.writer : finishWriter, writeFloatLiteral, Writer;
 		verify(strEqLiteral(res, expected));
 	}
 
-	writes(-0.0, "-0");
-	writes(0.0, "0");
-	writes(123, "123");
-	writes(-123, "-123");
+	writes(-0.0, "-0.0");
+	writes(0.0, "0.0");
+	writes(123, "123.0");
+	writes(-123, "-123.0");
 	writes(1.2, "1.2");
 	writes(-1.2, "-1.2");
 	writes(1.23, "0x1.3ae147ae147aep0");

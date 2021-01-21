@@ -210,6 +210,8 @@ immutable(BuiltinKind) getBuiltinKind(
 			return constantBool(False);
 		case shortSymAlphaLiteralValue("get-ctx"):
 			return immutable BuiltinKind(immutable BuiltinKind.GetCtx());
+		case shortSymAlphaLiteralValue("nan?"):
+			return unary(LowExprKind.SpecialUnary.Kind.isNan);
 		case shortSymAlphaLiteralValue("null"):
 			return constant(immutable Constant(immutable Constant.Null()));
 		case shortSymAlphaLiteralValue("or"):

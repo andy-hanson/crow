@@ -628,14 +628,15 @@ immutable(u64) charToNat(immutable char c) {
 // NOTE: this will allow taking invalid operators, then we'll issue a diagnostic for them
 immutable(Bool) isOperatorChar(immutable char c) {
 	switch (c) {
+		case '=':
+		case '!':
+		case '<':
+		case '>':
 		case '+':
 		case '-':
 		case '*':
 		case '/':
-		case '<':
-		case '>':
-		case '=':
-		case '!':
+		case '^':
 			return True;
 		default:
 			return False;

@@ -571,6 +571,7 @@ enum FnOp : u8 {
 	float64FromNat64,
 	intFromInt16,
 	intFromInt32,
+	isNan,
 	lessFloat64,
 	lessInt8,
 	lessInt16,
@@ -647,6 +648,8 @@ private immutable(Str) strOfFnOp(immutable FnOp fnOp) {
 			return "to-int (from int-16)";
 		case FnOp.intFromInt32:
 			return "to-int (from int-32)";
+		case FnOp.isNan:
+			return "nan?";
 		case FnOp.lessFloat64:
 			return "< (float-64)";
 		case FnOp.lessInt8:

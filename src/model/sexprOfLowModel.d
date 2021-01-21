@@ -278,6 +278,8 @@ immutable(string) strOfSpecialUnaryKind(immutable LowExprKind.SpecialUnary.Kind 
 			return "bits-not (nat-64)";
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return "deref";
+		case LowExprKind.SpecialUnary.Kind.isNan:
+			return "nan?";
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 			return "ptr-to";
 		case LowExprKind.SpecialUnary.Kind.refOfVal:

@@ -109,8 +109,11 @@ negative? bool(i int)
 neg int(i int)
 	i * -1
 
-neg int(n nat)
-	n.to-int neg
+neg int(a nat)
+	a.to-int neg
+
+neg float(a float)
+	a * -1.0
 
 abs nat(i int)
 	i-abs = i.negative? ? i.neg, i
@@ -119,8 +122,8 @@ abs nat(i int)
 mod nat(a int, b nat)
 	forbid: b == 0
 	if a negative?
-		x = a.abs mod b
-		x == b ?: 0, b - x
+		abs-mod = a.abs mod b
+		abs-mod == 0 ? 0, b - abs-mod
 	else
 		a.to-nat mod b
 
@@ -128,6 +131,19 @@ mod nat(a int, b nat)
 - float(a float, b float) noctx builtin
 * float(a float, b float) noctx builtin
 unsafe-div float(a float, b float) noctx unsafe builtin
+/ float(a float, b float) trusted
+	forbid: b == 0.0
+	a unsafe-div b
+
+^ float(a float, b nat)
+	if b == 0
+		1.0
+	else
+		a * a ^ b.decr
+
+square-root float(a float) noctx extern<"sqrt">
+
+nan? bool(a float) noctx builtin
 
 region constants
 

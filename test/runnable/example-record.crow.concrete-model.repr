@@ -5132,7 +5132,7 @@ program(
 			expr-body(
 				let(
 					times-100
-					call(truncate-to-int, [call(*, [param-ref(a), 100])])
+					call(truncate-to-int, [call(*, [param-ref(a), 100.0])])
 					let(
 						hundredths
 						call(mod, [local-ref(times-100), 100])
@@ -5177,9 +5177,9 @@ program(
 					cond(
 						call(negative?, [param-ref(a)])
 						let(
-							x
+							abs-mod
 							call(mod, [call(abs, [param-ref(a)]), param-ref(b)])
-							call(?, [call(==, [local-ref(x), param-ref(b)]), 0, call(-, [param-ref(b), local-ref(x)])]))
+							call(?, [call(==, [local-ref(abs-mod), 0]), 0, call(-, [param-ref(b), local-ref(abs-mod)])]))
 						call(mod, [call(to-nat, [param-ref(a)]), param-ref(b)])))))
 		fun(
 			true

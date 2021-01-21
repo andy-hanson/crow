@@ -1682,7 +1682,7 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 	ref immutable LowType type,
 	ref immutable LowExprKind.SpecialUnary a,
 ) {
-	immutable(WriteExprResult) prefix(string prefix) {
+	immutable(WriteExprResult) prefix(immutable string prefix) {
 		return writeInlineableSingleArg(
 			writer,
 			tempAlloc,
@@ -1696,6 +1696,24 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 				writeTempOrInline(writer, tempAlloc, ctx, a.arg, temp);
 			});
 	}
+
+	immutable(WriteExprResult) specialCall(immutable string name) {
+		return writeInlineableSingleArg(
+			writer,
+			tempAlloc,
+			indent,
+			ctx,
+			writeKind,
+			type,
+			a.arg,
+			(ref immutable WriteExprResult temp) {
+				writeStatic(writer, name);
+				writeChar(writer, '(');
+				writeTempOrInline(writer, tempAlloc, ctx, a.arg, temp);
+				writeChar(writer, ')');
+			});
+	}
+
 	final switch (a.kind) {
 		case LowExprKind.SpecialUnary.Kind.asAnyPtr:
 			return prefix("(uint8_t*) ");
@@ -1734,6 +1752,8 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 			return prefix("~");
 		case LowExprKind.SpecialUnary.Kind.deref:
 			return prefix("*");
+		case LowExprKind.SpecialUnary.Kind.isNan:
+			return specialCall("__builtin_isnan");
 		case LowExprKind.SpecialUnary.Kind.ptrTo:
 		case LowExprKind.SpecialUnary.Kind.refOfVal:
 			return writeInlineableSimple(writer, tempAlloc, indent, ctx, writeKind, type, () {
@@ -2178,6 +2198,8 @@ void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
 					return "_times";
 				case Operator.divide:
 					return "_divide";
+				case Operator.power:
+					return "_power";
 			}
 		}());
 	} else {

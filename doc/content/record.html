@@ -1,8 +1,7 @@
 <section>
 	<h2>records</h2>
 	<p>
-		You are probably familiar with the concept of records already;
-		these are like structs in C or plain old data classes in Java.
+		Records are just like structs in C; a record is a value combining several other values by name.
 	</p>
 
 	<crow-runnable src="record"></crow-runnable>
@@ -10,10 +9,34 @@
 	The above program defines a record type <code class="struct-def">dinner</code> and two fields,
 	<code class="field-def">food</code> and <code class="field-def">drink</code>.
 
-	The compiler then generates functions for creating the record and accessing fields.
-	<em>There is no special syntax for deailing with records</em>,
-	these are ordinary functions and can be called using any syntax for calling functions.
-	(So <code>a.food</code> may be written <code>a food</code> or <code>food: a</code>.)
+	<p>
+		Declaring the <code class="keyword">record</code> generates a function
+		<code class="fun-ref">dinner</code> for creating the record.
+		(It's normal for a function to have the same name as a type).
+		It also generates getter functions <code class="fun-ref">food</code> and <code class="fun-ref">drink</code>.
+
+		<br />
+
+		<em>There is no special syntax for using records</em>.
+		These are ordinary functions and can be called using any syntax for calling functions.
+		(So <code>a.food</code> may be written <code>a food</code> or <code>food: a</code>.)
+	</p>
+
+	<p>
+		Since the record is <code class="spec-ref">data</code>,
+		comparison operators like <code>==</code> and <code>&lt;</code> will work.
+		<br />
+		Fields are compared in the order they are declared,
+		so <code>a &lt; b</code> because <code>"bruschetta" &lt; "chili"</code>.
+	</p>
+
+	<p>
+		That's basically all you can do with records:
+		build them out of their component fields and then get the fields back.
+		<br />
+		There are no methods or inheritance; everything else is done with normal functions.
+	</p>
+
 </section>
 
 <section>
@@ -21,18 +44,22 @@
 
 	<p>
 		A field can be made mutable by adding the <code class="keyword">mut</code> keyword after its name.
-		This adds a function by prepending <code>set-</code> to the name, such as <code>set-food</code>.
+		This generates a function by prepending <code>set-</code> to the name, such as <code>set-food</code>.
 	</p>
 	<p>
-		The special syntax <code>a.food := "nothing"</code> is actually calling <code>a set-food "nothing"</code>.
-		It's not specific to records, you can define your own setters for any type.
+		There is a special syntax <code>a.food := "nothing"</code> to call <code>a set-food "nothing"</code>.
+		This is not specific to records, you can define your own setters for any type.
 	</p>
 
 	<crow-runnable src="record-mut"></crow-runnable>
 
-	If a record is not purely immutable data, it must be marked <code class="keyword">mut</code>.
-	This applies even if it references another record with mutable data.
-	This means that any function with no <code class="keyword">mut</code> parameters can't mutate anything at all
-	(except for what it creates itself) and it functionally pure.
+	Since the field is <code class="keyword">mut</code>,
+	the record as a whole must be marked <code class="keyword">mut</code> too.
+	This would also apply to any record containing <code class="struct-ref">dinner</code>.
 
+	<br />
+	When something is <code class="keyword">mut</code> it is no longer <code class="keyword">data</code>,
+	and you can no longer share it between parallel tasks or use comparison operators.
+
+	Better to avoid <code class="keyword">mut</code> where possible.
 </section>

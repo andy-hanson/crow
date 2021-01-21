@@ -1,19 +1,19 @@
 import
 	io.print: print
 
-dinner record mut
-	food mut str
-	drink mut str
-
-yank! void(a dinner)
-	a.food := "nothing"
-
-to-str str(a dinner)
-	a.food + " and " + a.drink
-
 main fut nat(_ arr str) summon
 	a = dinner: "ramen", "tea"
 	print: "yum, " + a.to-str
-	a yank!
+	a snarf!
 	print: "yum, " + a.to-str
 	0 resolved
+
+.dinner record mut
+	food mut str
+	drink str
+
+.snarf! void(a dinner)
+	a.food := "nothing"
+
+.to-str str(a dinner)
+	a.food + " and " + a.drink

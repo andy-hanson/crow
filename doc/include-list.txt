@@ -26,6 +26,7 @@ io/time-low-level
 io/time
 iter
 logging
+math/vec
 number-utils
 openssl
 opt-utils

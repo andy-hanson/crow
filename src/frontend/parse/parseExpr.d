@@ -370,6 +370,8 @@ immutable(uint) precedence(immutable Operator op) {
 		case Operator.times:
 		case Operator.divide:
 			return 3;
+		case Operator.power:
+			return 4;
 	}
 }
 

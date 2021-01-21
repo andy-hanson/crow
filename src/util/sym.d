@@ -108,6 +108,7 @@ enum Operator {
 	minus,
 	times,
 	divide,
+	power,
 }
 
 immutable(Opt!Sym) getSymFromOperator(Alloc)(ref AllSymbols!Alloc allSymbols, scope ref immutable Str str) {
@@ -129,6 +130,10 @@ immutable(Sym) symForOperator(immutable Operator a) {
 private immutable(Opt!Operator) operatorFromStr(scope ref immutable Str str) {
 	if (size(str) == 1)
 		switch (only(str)) {
+			case '<':
+				return some(Operator.less);
+			case '>':
+				return some(Operator.greater);
 			case '+':
 				return some(Operator.plus);
 			case '-':
@@ -137,10 +142,8 @@ private immutable(Opt!Operator) operatorFromStr(scope ref immutable Str str) {
 				return some(Operator.times);
 			case '/':
 				return some(Operator.divide);
-			case '<':
-				return some(Operator.less);
-			case '>':
-				return some(Operator.greater);
+			case '^':
+				return some(Operator.power);
 			default:
 				return none!Operator;
 		}
@@ -182,6 +185,8 @@ private immutable(string) strOfOperator(immutable Operator a) {
 			return "*";
 		case Operator.divide:
 			return "/";
+		case Operator.power:
+			return "^";
 	}
 }
 

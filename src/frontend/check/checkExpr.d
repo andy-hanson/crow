@@ -506,64 +506,79 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 		? asStructInst(force(expectedType))
 		: ctx.commonTypes.bool_; // Just picking a random one that won't match any of the below tests
 	immutable Ptr!IntegralTypes integrals = ctx.commonTypes.integrals;
+
+	immutable(CheckedExpr) asFloat(immutable double value) {
+		immutable Expr e = immutable Expr(
+			range,
+			nu!(Expr.Literal)(alloc, ctx.commonTypes.float64, immutable Constant(value)));
+		return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.float64), e);
+	}
+
 	return matchLiteralAst!(immutable CheckedExpr)(
 		ast,
 		(ref immutable LiteralAst.Float it) {
 			if (it.overflow)
 				todo!void("literal overflow");
-			immutable Expr e = immutable Expr(
-				range,
-				nu!(Expr.Literal)(alloc, ctx.commonTypes.float64, immutable Constant(it.value)));
-			return check(alloc, ctx, expected, immutable Type(ctx.commonTypes.float64), e);
+			return asFloat(it.value);
 		},
 		(ref immutable LiteralAst.Int it) {
-			immutable(Opt!IntRange) intRange = ptrEquals(expectedStruct, integrals.int8)
-				? some(immutable IntRange(i8.min, i8.max))
-				: ptrEquals(expectedStruct, integrals.int16)
-				? some(immutable IntRange(i16.min, i16.max))
-				: ptrEquals(expectedStruct, integrals.int32)
-				? some(immutable IntRange(i32.min, i32.max))
-				: ptrEquals(expectedStruct, integrals.int64)
-				? some(immutable IntRange(i64.min, i64.max))
-				: none!IntRange;
-			immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
-			if (has(intRange)) {
-				if (it.overflow || it.value < force(intRange).min || it.value > force(intRange).max)
-					todo!void("literal overflow");
-				return immutable CheckedExpr(immutable Expr(range, nu!(Expr.Literal)(alloc, expectedStruct, constant)));
-			} else {
-				immutable Expr e = immutable Expr(range, nu!(Expr.Literal)(alloc, integrals.int64, constant));
-				return check(alloc, ctx, expected, immutable Type(integrals.int64), e);
+			if (ptrEquals(expectedStruct, ctx.commonTypes.float64))
+				return asFloat(cast(immutable double) it.value);
+			else {
+				immutable(Opt!IntRange) intRange = ptrEquals(expectedStruct, integrals.int8)
+					? some(immutable IntRange(i8.min, i8.max))
+					: ptrEquals(expectedStruct, integrals.int16)
+					? some(immutable IntRange(i16.min, i16.max))
+					: ptrEquals(expectedStruct, integrals.int32)
+					? some(immutable IntRange(i32.min, i32.max))
+					: ptrEquals(expectedStruct, integrals.int64)
+					? some(immutable IntRange(i64.min, i64.max))
+					: none!IntRange;
+				immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
+				if (has(intRange)) {
+					if (it.overflow || it.value < force(intRange).min || it.value > force(intRange).max)
+						todo!void("literal overflow");
+					return immutable CheckedExpr(
+						immutable Expr(range, nu!(Expr.Literal)(alloc, expectedStruct, constant)));
+				} else {
+					immutable Expr e = immutable Expr(range, nu!(Expr.Literal)(alloc, integrals.int64, constant));
+					return check(alloc, ctx, expected, immutable Type(integrals.int64), e);
+				}
 			}
 		},
 		(ref immutable LiteralAst.Nat it) {
-			immutable(Opt!ulong) max = ptrEquals(expectedStruct, integrals.nat8)
-				? some!ulong(u8.max)
-				: ptrEquals(expectedStruct, integrals.nat16)
-				? some!ulong(u16.max)
-				: ptrEquals(expectedStruct, integrals.nat32)
-				? some!ulong(u32.max)
-				: ptrEquals(expectedStruct, integrals.nat64)
-				? some(u64.max)
-				: ptrEquals(expectedStruct, integrals.int8)
-				? some!ulong(i8.max)
-				: ptrEquals(expectedStruct, integrals.int16)
-				? some!ulong(i16.max)
-				: ptrEquals(expectedStruct, integrals.int32)
-				? some!ulong(i32.max)
-				: ptrEquals(expectedStruct, integrals.int64)
-				? some!ulong(i64.max)
-				: none!ulong;
-			immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
-			if (has(max)) {
-				if (it.overflow || it.value > force(max))
-					addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.LiteralOverflow(expectedStruct)));
-				return immutable CheckedExpr(immutable Expr(range, nu!(Expr.Literal)(alloc, expectedStruct, constant)));
-			} else {
-				if (it.overflow)
-					todo!void("literal overflow");
-				immutable Expr e = immutable Expr(range, nu!(Expr.Literal)(alloc, integrals.nat64, constant));
-				return check(alloc, ctx, expected, immutable Type(integrals.nat64), e);
+			if (ptrEquals(expectedStruct, ctx.commonTypes.float64))
+				return asFloat(cast(immutable double) it.value);
+			else {
+				immutable(Opt!ulong) max = ptrEquals(expectedStruct, integrals.nat8)
+					? some!ulong(u8.max)
+					: ptrEquals(expectedStruct, integrals.nat16)
+					? some!ulong(u16.max)
+					: ptrEquals(expectedStruct, integrals.nat32)
+					? some!ulong(u32.max)
+					: ptrEquals(expectedStruct, integrals.nat64)
+					? some(u64.max)
+					: ptrEquals(expectedStruct, integrals.int8)
+					? some!ulong(i8.max)
+					: ptrEquals(expectedStruct, integrals.int16)
+					? some!ulong(i16.max)
+					: ptrEquals(expectedStruct, integrals.int32)
+					? some!ulong(i32.max)
+					: ptrEquals(expectedStruct, integrals.int64)
+					? some!ulong(i64.max)
+					: none!ulong;
+				immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
+				if (has(max)) {
+					if (it.overflow || it.value > force(max))
+						addDiag2(alloc, ctx, range, immutable Diag(immutable Diag.LiteralOverflow(expectedStruct)));
+					return immutable CheckedExpr(
+						immutable Expr(range, nu!(Expr.Literal)(alloc, expectedStruct, constant)));
+				} else {
+					if (it.overflow)
+						todo!void("literal overflow");
+					immutable Expr e = immutable Expr(range, nu!(Expr.Literal)(alloc, integrals.nat64, constant));
+					return check(alloc, ctx, expected, immutable Type(integrals.nat64), e);
+				}
 			}
 		},
 		(ref immutable Str it) {

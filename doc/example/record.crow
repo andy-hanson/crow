@@ -1,18 +1,19 @@
 import
 	io.print: print
 
-dinner record
+main fut nat(_ arr str) summon
+	a = dinner: "bruschetta", "wine"
+	b = dinner: "chili", "milk"
+	print: a <=> b to-str
+	print: a mix b to-str
+	0 resolved
+
+.dinner record
 	food str
 	drink str
 
-mix dinner(a dinner, b dinner)
+.mix dinner(a dinner, b dinner)
 	dinner: a.food, b.drink
 
-to-str str(a dinner)
+.to-str str(a dinner)
 	a.food + " and " + a.drink
-
-main fut nat(_ arr str) summon
-	a = dinner: "ramen", "tea"
-	b = dinner: "chili", "milk"
-	print: a mix b to-str
-	0 resolved

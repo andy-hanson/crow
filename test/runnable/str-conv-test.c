@@ -2204,7 +2204,7 @@ struct opt_9 parse_int(struct ctx* ctx, struct arr_0 a);
 struct opt_9 opt_map(struct ctx* ctx, struct opt_8 a, struct fun_act1_6 cb);
 int64_t subscript_15(struct ctx* ctx, struct fun_act1_6 a, uint64_t p0);
 int64_t call_w_ctx_355(struct fun_act1_6 a, struct ctx* ctx, uint64_t p0);
-int64_t neg_0(struct ctx* ctx, uint64_t n);
+int64_t neg_0(struct ctx* ctx, uint64_t a);
 int64_t neg_1(struct ctx* ctx, int64_t i);
 int64_t _times_1(struct ctx* ctx, int64_t a, int64_t b);
 int64_t to_int(struct ctx* ctx, uint64_t n);
@@ -8216,9 +8216,9 @@ int64_t call_w_ctx_355(struct fun_act1_6 a, struct ctx* ctx, uint64_t p0) {
 			return 0;
 	}
 }
-/* neg int(n nat) */
-int64_t neg_0(struct ctx* ctx, uint64_t n) {
-	int64_t _0 = to_int(ctx, n);
+/* neg int(a nat) */
+int64_t neg_0(struct ctx* ctx, uint64_t a) {
+	int64_t _0 = to_int(ctx, a);
 	return neg_1(ctx, _0);
 }
 /* neg int(i int) */

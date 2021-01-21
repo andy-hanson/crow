@@ -589,6 +589,7 @@ void writeFn(Debug, Alloc)(
 			case FnOp.float64FromNat64:
 			case FnOp.intFromInt16:
 			case FnOp.intFromInt32:
+			case FnOp.isNan:
 			case FnOp.truncateToInt64FromFloat64:
 				return 0;
 		}

@@ -96,6 +96,10 @@ code {
 	font-size: 110%;
 }
 
+h3 {
+	color: navy;
+}
+
 /* Try to keep these consistent with colors in CrowText.js */
 .lit-str {
 	color: #ffd866;

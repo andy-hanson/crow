@@ -9,13 +9,13 @@ main fut nat(_ arr str) summon
 	print: "crow".greet
 	0 resolved
 
-greet str(name str)
+.greet str(name str)
 	greeting + ", " + name.plural
 
-greeting str()
+.greeting str()
 	"Hello"
 
-plural str(name str)
+.plural str(name str)
 	suffix = if name ends-with? "s" or name == "fox"
 		"es"
 	elif name ends-with? "x"

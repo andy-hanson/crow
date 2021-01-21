@@ -1,0 +1,22 @@
+import
+	..bootstrap: float
+	..number-utils: +, -, ^, neg, square-root
+
+vec-2 record
+	x float
+	y float
+
++ vec-2(a vec-2, b vec-2)
+	vec-2: a.x + b.x, a.y + b.y
+
+neg vec-2(a vec-2)
+	vec-2: a.x.neg, a.y.neg
+
+- vec-2(a vec-2, b vec-2)
+	vec-2: a.x - b.x, a.y - b.y
+
+length-squared float(a vec-2)
+	a.x ^ 2 + a.y ^ 2
+
+length float(a vec-2)
+	a.length-squared square-root

@@ -57,7 +57,14 @@ import util.path :
 	withExtension;
 import util.ptr : Ptr, PtrRange, ptrTrustMe_mut;
 import util.sym : AllSymbols, shortSymAlphaLiteral;
-import util.types : Nat64, safeSizeTFromSSizeT, safeSizeTFromU64, safeU32FromI64, ssize_t;
+import util.types :
+	float64OfU64Bits,
+	Nat64,
+	safeSizeTFromSSizeT,
+	safeSizeTFromU64,
+	safeU32FromI64,
+	ssize_t,
+	u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
 import util.writer : Writer;
 
@@ -245,6 +252,7 @@ void compileC(Alloc, PathAlloc)(
 		strLiteral("-Wno-unused-value"),
 		strLiteral("-Wno-builtin-declaration-mismatch"), //TODO:KILL?
 		strLiteral("-pthread"),
+		strLiteral("-lm"),
 	]));
 	foreach (immutable Str it; range(allExternLibraryNames))
 		add(alloc, args, cat(alloc, strLiteral("-l"), it));
@@ -429,7 +437,7 @@ struct RealExtern {
 						todo!void("handle this type");
 						break;
 					case DynCallType.float64:
-						todo!void("handle this type");
+						dcArgDouble(dcVm, float64OfU64Bits(value.raw()));
 						break;
 					case DynCallType.nat8:
 						todo!void("handle this type");
@@ -469,7 +477,7 @@ struct RealExtern {
 				case DynCallType.float32:
 					return todo!(immutable Nat64)("handle this type");
 				case DynCallType.float64:
-					return todo!(immutable Nat64)("handle this type");
+					return u64OfFloat64Bits(dcCallDouble(dcVm, ptr));
 				case DynCallType.nat8:
 					return todo!(immutable Nat64)("handle this type");
 				case DynCallType.nat16:
@@ -534,7 +542,7 @@ extern(C) {
 	void dcArgLong (DCCallVM* vm, DClong value);
 	//void dcArgLongLong (DCCallVM* vm, DClonglong value);
 	//void dcArgFloat (DCCallVM* vm, DCfloat value);
-	//void dcArgDouble (DCCallVM* vm, DCdouble value);
+	void dcArgDouble (DCCallVM* vm, DCdouble value);
 	void dcArgPointer (DCCallVM* vm, DCpointer value);
 	// void dcArgStruct (DCCallVM* vm, DCstruct* s, DCpointer value);
 
@@ -546,7 +554,7 @@ extern(C) {
 	DClong dcCallLong (DCCallVM* vm, DCpointer funcptr);
 	//DClonglong dcCallLongLong (DCCallVM* vm, DCpointer funcptr);
 	//DCfloat dcCallFloat (DCCallVM* vm, DCpointer funcptr);
-	//DCdouble dcCallDouble (DCCallVM* vm, DCpointer funcptr);
+	DCdouble dcCallDouble (DCCallVM* vm, DCpointer funcptr);
 	DCpointer dcCallPointer (DCCallVM* vm, DCpointer funcptr);
 	// void dcCallStruct (DCCallVM* vm, DCpointer funcptr, DCstruct* s, DCpointer returnValue);
 

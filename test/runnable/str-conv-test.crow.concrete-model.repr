@@ -5387,8 +5387,8 @@ program(
 			neg
 			type(false, int)
 			none
-			[param(n, type(false, nat))]
-			expr-body(call(neg, [call(to-int, [param-ref(n)])])))
+			[param(a, type(false, nat))]
+			expr-body(call(neg, [call(to-int, [param-ref(a)])])))
 		fun(true, neg, type(false, int), none, [param(i, type(false, int))], expr-body(call(*, [param-ref(i), -1])))
 		fun(
 			true

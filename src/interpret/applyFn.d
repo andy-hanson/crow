@@ -63,6 +63,10 @@ void applyFn(Debug)(ref Debug dbg, ref DataStack dataStack, immutable FnOp fn) {
 			unary(dataStack, (immutable u64 a) =>
 				nat64OfI32(cast(i32) (bottomU32OfU64(a))));
 			break;
+		case FnOp.isNan:
+			unary(dataStack, (immutable u64 a) =>
+				u64OfBool(isNaN(float64OfU64Bits(a))));
+			break;
 		case FnOp.lessFloat64:
 			binary(dataStack, (immutable u64 a, immutable u64 b) =>
 				u64OfBool(float64OfU64Bits(a) < float64OfU64Bits(b)));
@@ -193,4 +197,8 @@ void binaryFloats(
 ) {
 	binary(dataStack, (immutable u64 a, immutable u64 b) =>
 		u64OfFloat64Bits(cb(float64OfU64Bits(a), float64OfU64Bits(b))));
+}
+
+pure immutable(bool) isNaN(immutable double a) {
+	return a != a;
 }

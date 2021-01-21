@@ -20219,7 +20219,7 @@ program(
 			neg
 			int-64
 			param-kind(ctx: true, closure: false)
-			[param(ctx, gc-ptr(record(0))), param(n, nat-64)]
+			[param(ctx, gc-ptr(record(0))), param(a, nat-64)]
 			expr-body(
 				expr(
 					int-64
@@ -20368,7 +20368,7 @@ program(
 			int-64
 			param-kind(ctx: false, closure: false)
 			[]
-			expr-body(expr(int-64, file-range(21, range(2606, 2624)), 9223372036854775807)))
+			expr-body(expr(int-64, file-range(21, range(2869, 2887)), 9223372036854775807)))
 		364: fun(
 			lambda(parse-int, 0)
 			int-64

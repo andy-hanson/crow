@@ -7651,7 +7651,7 @@ struct fut_0* main_0(struct ctx* ctx, struct arr_1 _p0) {
 /* to-str arr<char>(a float) */
 struct arr_0 to_str_2(struct ctx* ctx, double a) {
 	int64_t times_1000;
-	times_1000 = (int64_t) (a * 100);
+	times_1000 = (int64_t) (a * 100.0);
 	
 	uint64_t hundredths1;
 	hundredths1 = mod_0(ctx, times_1000, 100u);
@@ -7685,15 +7685,15 @@ uint64_t mod_0(struct ctx* ctx, int64_t a, uint64_t b) {
 	forbid_0(ctx, _0);
 	uint8_t _1 = negative__q(ctx, a);
 	if (_1) {
-		uint64_t x0;
+		uint64_t abs_mod0;
 		uint64_t _2 = abs(ctx, a);
-		x0 = mod_1(ctx, _2, b);
+		abs_mod0 = mod_1(ctx, _2, b);
 		
-		uint8_t _3 = _equal_0(x0, b);
+		uint8_t _3 = _equal_0(abs_mod0, 0u);
 		if (_3) {
 			return 0u;
 		} else {
-			return _minus_2(ctx, b, x0);
+			return _minus_2(ctx, b, abs_mod0);
 		}
 	} else {
 		uint64_t _4 = to_nat(ctx, a);

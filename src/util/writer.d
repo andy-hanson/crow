@@ -53,6 +53,7 @@ void writeFloatLiteral(Alloc)(ref Writer!Alloc writer, immutable double a) {
 		if (1.0 / a < 0)
 			writeChar(writer, '-');
 		writeNat(writer, abs(cast(long) a));
+		writeStatic(writer, ".0");
 	} else if ((cast(double) (cast(long) (a * 10.0))) == a * 10.0) {
 		writeInt(writer, cast(long) a);
 		writeChar(writer, '.');
