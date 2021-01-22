@@ -1,0 +1,14 @@
+import
+	io.print: print
+
+main fut nat(_ arr str) summon
+	print: "1" rate-my-number
+	print: "1.5" rate-my-number
+	0 resolved
+
+.rate-my-number str(a str)
+	match a parse-nat
+	as none
+		"not a nat"
+	as some s
+		"as many as " + s.value.to-str

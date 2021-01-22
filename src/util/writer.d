@@ -40,8 +40,14 @@ void writeStatic(Alloc)(ref Writer!Alloc writer, immutable string c) {
 	writeStr(writer, strLiteral(c));
 }
 
-void writeHex(Alloc)(ref Writer!Alloc writer, immutable ulong n) {
-	writeNat(writer, n, 16);
+void writeHex(Alloc)(ref Writer!Alloc writer, immutable ulong a) {
+	writeNat(writer, a, 16);
+}
+
+void writeHex(Alloc)(ref Writer!Alloc writer, immutable long a) {
+	if (a < 0)
+		writeChar(writer, '-');
+	writeHex(writer, cast(immutable ulong) (a < 0 ? -a : a));
 }
 
 void writeFloatLiteral(Alloc)(ref Writer!Alloc writer, immutable double a) {
@@ -80,9 +86,9 @@ private union DoubleToUlong {
 }
 
 void writePtrRange(Alloc)(ref Writer!Alloc writer, const PtrRange a) {
-	writeHex(writer, cast(immutable size_t) a.begin);
+	writeHex(writer, cast(immutable ulong) a.begin);
 	writeChar(writer, '-');
-	writeHex(writer, cast(immutable size_t) a.end);
+	writeHex(writer, cast(immutable ulong) a.end);
 }
 
 void writeNat(Alloc)(ref Writer!Alloc writer, immutable ulong n, immutable ulong base = 10) {

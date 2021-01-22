@@ -129,4 +129,12 @@ h3 {
 	color: #ff6188;
 }
 
+.tparam-def {
+	color: #fc9867;
+}
+
+.tparam-ref {
+	color: #fc9867;
+}
+
 .keyword {}

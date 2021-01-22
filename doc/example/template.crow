@@ -1,0 +1,36 @@
+import
+	io.print: print
+
+main fut nat(_ arr str) summon
+	nats = node<nat>: 1, some: node: 2, some: node: 3, none
+	floats = node<float>: 1.1, some: node: 2.2, none
+	print: "nats size: " + nats.size.to-str
+	print: "nats sum: " + nats.sum.to-str
+	print: "floats size: " + floats.size.to-str
+	print: "floats sum: " + floats.sum.to-str
+	0 resolved
+
+node<?t> record
+	head ?t
+	tail opt node<?t>
+
+size nat(a node ?t)
+	1 size a.tail
+.size nat(acc nat, a opt node ?t)
+	match a
+	as none
+		acc
+	as some s
+		acc + 1 size s.value.tail
+
+plus<?t> spec
+	+ ?t(a ?t, b ?t)
+
+sum ?t(a node ?t) plus<?t>
+	a.head sum a.tail
+.sum ?t(acc ?t, a opt node ?t) plus<?t>
+	match a
+	as none
+		acc
+	as some s
+		acc + s.value.head sum s.value.tail

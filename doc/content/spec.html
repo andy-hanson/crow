@@ -1,6 +1,72 @@
 <section>
-	<h2>spec</h2>
-	<p>Put spec stuff here kthxbai</p>
+	<h2>templates</h2>
 
+	Types, functions, and specs can all be templated on type parameters.
+	<br />
+	Common types like <code class="struct-ref">arr</code> and <code class="struct-ref">fut</code> are templates.
 
+	<crow-runnable src="template"></crow-runnable>
+
+	<h4>Syntax for templates</h4>
+
+	The syntax for defining a template is the same for all kinds of declaration:
+	put type parameters in <code>&lt;></code>.
+	<br />
+	A type parameter name must start with a <code>?</code>. (The naming rules are otherwise unchanged.)
+	<br />
+	For functions, type parameters are inferred (since only type parameters start with <code>?</code>).
+
+	<h4>Syntax for type template instances</h4>
+
+	<code>node&lt;?t></code> is <em>not</em> a type, it is a <em>type template</em>;
+	only an instantiation like <code>node nat</code> is a type.
+
+	The syntax for an instance of a type template looks like <code>dict&lt;nat, str></code>,
+	but when there is a single type argument, as in <code>arr str</code>, the <code>&lt;></code> may be omitted.
+	This applies recursively, as in <code>opt node ?t</code> which is equivalent to <code>opt&lt;node&lt;?t>></code>.
+
+	<h4>Specifying function type arguments</h4>
+
+	<p>
+		Normally a call will infer type arguments, but sometimes it can't.
+		You can specify them exactly as in <code>node&lt;nat>:</code> in the example.
+		(At that position, <code>node</code> is a function, not a type.)
+
+		Try adding some more (unnecessary) type arguments, like <code>floats.sum&lt;float></code>.
+	</p>
+
+	<h3>spec</h3>
+
+	<p>
+		Templates are type-checked abstractly;
+		that means that you can only perform operations on <code class="tparam-ref">?t</code> that work for all types.
+
+		That's simple for <code class="fun-ref">size</code> which doesn't actually access the node heads.
+		But <code class="fun-ref">sum</code> needs to call a <code class="fun-ref">+</code> function,
+		and which function it calls will depend on <code class="tparam-ref">?t</code>.
+	</p>
+
+	<p>
+		A <code class="keyword">spec</code> allows you to call functions that you don't currently have access to,
+		but that the caller of the function will provide for you.
+		<br />
+		Specs can be used outside of templates, but are mostly used to perform operations on type parameters.
+	</p>
+
+	<p>
+		In this example, <code class="fun-def">sum</code> wants to call <code class="fun-ref">+</code>,
+		but can't as there is no <code class="fun-def">+</code> function that takes <code class="tparam-ref">?t</code>
+		(that is, that works for any arbitrary type).
+
+		But the caller knows that <code class="tparam-ref">?t</code> is <code class="struct-ref">nat</code>,
+		and is able to supply the <code class="fun-ref">+</code> function that <code class="fun-ref">sum</code> needs.
+	</p>
+
+	<h3>Tail recursion</h3>
+
+	<p>
+		Both <code>size</code> and <code>sum</code> are <em>tail-recursive</em> functions.
+		This means that the very last operation (along the <code>as some</code> branch) is a call to itself.
+		This <em>tail recursion</em> is implemented by a goto, meaning it won't cause a stack overflow.
+	</p>
 </section>

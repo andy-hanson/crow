@@ -1,0 +1,8 @@
+import
+	io.print: print
+
+main fut nat(_ arr str) summon
+	nats = new-arr<nat> 1, 2, 3
+	drop: nats
+	print: "hoo"
+	0 resolved

@@ -1,0 +1,70 @@
+import
+	io.print: print
+	math.vec: length, to-str, vec-2
+
+main fut nat(_ arr str) summon
+	a = rect: 0.0, 1.0, 0.0, 1.0
+	b = rect: 0.75, 1.75, 0.5, 1.5
+	c = rect: 1.5, 2.5, 0.0, 1.0
+	print: a intersection-or-distance b to-str
+	print: b intersection-or-distance c to-str
+	print: a intersection-or-distance c to-str
+	0 resolved
+
+to-str str(a result<rect, float>)
+	match a
+	as ok o
+		"intersection: " + o.value.bottom-left.to-str + " to " + o.value.top-right.to-str
+	as err e
+		"distance: " + e.value.to-str
+
+intersection-or-distance result<rect, float>(a rect, b rect)
+	x = a.x-range intersection-or-distance b.x-range
+	y = a.y-range intersection-or-distance b.y-range
+	match x
+	as ok x-intersect
+		match y
+		as ok y-intersect
+			ok: rect: x-intersect.value, y-intersect.value
+		as err e
+			e
+	as err dx
+		dy = match y
+		as ok
+			0.0
+		as err e
+			e value
+		err: (vec-2: dx.value, dy) length
+
+intersection-or-distance result<float-range, float>(a float-range, b float-range)
+	if a.max < b.min
+		err: b.min - a.max
+	elif a.min > b.max
+		err: a.min - b.max
+	else
+		ok: float-range: (a.min max b.min), (b.max min a.max)
+
+float-range record
+	min float
+	max float
+
+.rect record
+	left float
+	right float
+	bottom float
+	top float
+
+rect rect(x-range float-range, y-range float-range)
+	rect: x-range.min, x-range.max, y-range.min, y-range.max
+
+bottom-left vec-2(a rect)
+	vec-2: a.left, a.bottom
+
+top-right vec-2(a rect)
+	vec-2: a.right, a.top
+
+x-range float-range(a rect)
+	a.left float-range a.right
+
+y-range float-range(a rect)
+	a.bottom float-range a.top

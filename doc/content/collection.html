@@ -1,6 +1,24 @@
 <section>
 	<h2>Collections</h2>
-	<p>
-		TODO
-	</p>
+
+	<h3>opt</h3>
+
+	<code class="struct-ref">opt ?t</code> is like a collection with 0 or 1 value in it.
+
+	<code class="struct-ref">opt ?t</code> is <code class="struct-ref">none</code> or <code class="struct-ref">some ?t</code>.
+
+	<code class="struct-ref">none</code> is an empty record,
+	and <code class="struct-ref">some</code> is a record with a single field <code class="fun-ref">value</code>.
+
+	<crow-runnable src="opt"></crow-runnable>
+
+	<code class="struct-ref">opt</code> is useful for values
+	that might be null or a special code like -1 in other languages.
+
+	For example, it shows up when attempting to find something in a dict.
+
+	<h3>arr</h3>
+
+
+
 </section>
