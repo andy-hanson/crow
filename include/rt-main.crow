@@ -6,7 +6,6 @@ import
 		ref-of-val, set, state, str, subscript, to-int, unsafe-to-int, unsafe-to-int32,
 		unsafe-to-nat, value, void
 	.cell: as-cell
-	.collection.arr: empty-arr
 	.collection.arr-util: map, tail
 	.exceptions: new-exception-ctx
 	.fut-utils: delay, handle-exceptions, then2
@@ -26,7 +25,7 @@ import
 | Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
 	n-threads = get-nprocs
-	gctx-by-val = as<by-val<global-ctx>>: global-ctx: new-lock, empty-arr, n-threads, new-condition, false, false
+	gctx-by-val = as<by-val<global-ctx>>: global-ctx: new-lock, [], n-threads, new-condition, false, false
 	gctx = gctx-by-val ref-of-val
 	island-by-val = new-island: gctx, 0, n-threads
 	island = island-by-val ref-of-val

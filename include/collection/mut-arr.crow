@@ -3,7 +3,7 @@ import
 	..bootstrap: +, ==, <, <=, arr, bool, data, hard-assert, nat, opt, ptr, set, size, void
 	..exceptions: assert
 	..number-utils: +, -, incr
-	.arr: empty-arr, subscript
+	.arr: subscript
 	.arr-util: find-index
 
 mut-arr<?t> record mut
@@ -29,7 +29,7 @@ noctx-set-at void(a mut-arr ?t, index nat, value ?t) noctx unsafe
 	a.data + index set value
 
 empty-mut-arr mut-arr ?t() noctx
-	mut-arr: empty-arr
+	mut-arr: []
 
 mut-arr mut-arr ?t(size nat, data ptr ?t) noctx unsafe
 	mut-arr: arr: size, data

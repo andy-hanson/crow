@@ -12,7 +12,7 @@ import
 	.crow-tests: run-crow-tests
 
 main fut nat(args arr str) summon
-	option-names = new-arr<str> "print-tests", "overwrite-output", "max-failures"
+	option-names = ["print-tests", "overwrite-output", "max-failures"]
 	options = args parse-cmd-line-args<test-options> option-names, \values
 		print-tests-strs = values[0]
 		overwrite-output-strs = values[1]

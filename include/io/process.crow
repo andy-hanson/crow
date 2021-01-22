@@ -1,6 +1,6 @@
 import
 	..bootstrap:
-		+, ==, <=, and, arr, as-any-ptr, as-ref, bool, by-val, char, c-str, data, int32, not, null,
+		+, ==, <=, and, arr, as, as-any-ptr, as-ref, bool, by-val, char, c-str, data, int32, not, null,
 		or, ptr, size, str, todo, to-nat, void
 	..cell: cell, get
 	..collection.arr: +, append, prepend, ref-of-val-at
@@ -100,7 +100,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	res
 
 .keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, stderr-builder mut-str) summon unsafe
-	poll-fds = new-arr<by-val<pollfd>> (pollfd: stdout-pipe, pollin, 0), (pollfd: stderr-pipe, pollin, 0)
+	poll-fds = as<arr by-val pollfd>: [(pollfd: stdout-pipe, pollin, 0), (pollfd: stderr-pipe, pollin, 0)]
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
 	| timeout == -1 means we block

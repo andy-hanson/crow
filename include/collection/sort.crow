@@ -1,5 +1,5 @@
 import
-	..bootstrap: ==, <, <=, >, arr, data, nat, void
+	..bootstrap: ==, <, <=, >, arr, as, data, nat, void
 	..exceptions: assert
 	..number-utils: /, decr, incr
 	.mut-arr: cast-immutable, copy-to-mut-arr, mut-arr, size, slice-after, slice-up-to, set-subscript, subscript
@@ -10,8 +10,8 @@ sort arr ?t(a arr ?t) data<?t> trusted
 	res cast-immutable
 
 test
-	assert: (sort: new-arr<nat>) == new-arr<nat>
-	assert: (new-arr<nat> 3, 1, 2).sort == new-arr 1, 2, 3
+	assert: (sort: as<arr nat>: []) == []
+	assert: [3, 1, 2].sort == [1, 2, 3]
 
 sort-in-place void(a mut-arr ?t) data<?t>
 	if a.size > 1

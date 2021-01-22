@@ -24,8 +24,7 @@ import frontend.check.inferringType :
 	shallowInstantiateType,
 	tryGetDeeplyInstantiatedType,
 	tryGetDeeplyInstantiatedTypeFor,
-	tryGetInferred,
-	typeFromAst2;
+	tryGetInferred;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
 import frontend.check.typeFromAst : makeFutType;
 import model.constant : Constant;
@@ -92,7 +91,7 @@ import frontend.parse.ast :
 	SeqAst,
 	ThenAst,
 	TypeAst;
-import util.bools : Bool, False, not, True;
+import util.bools : Bool, not, True;
 import util.collection.arr :
 	Arr,
 	at,
@@ -275,7 +274,6 @@ immutable(CheckedExpr) checkIf(Alloc)(
 }
 
 struct ArrExpectedType {
-	immutable Bool isFromExpected;
 	immutable Ptr!StructInst arrType;
 	immutable Type elementType;
 }
@@ -288,38 +286,41 @@ immutable(CheckedExpr) checkCreateArr(Alloc)(
 	ref Expected expected,
 ) {
 	immutable Opt!ArrExpectedType opAet = () {
-		if (has(ast.elementType)) {
-			immutable Type ta = typeFromAst2(alloc, ctx, force(ast.elementType));
-			immutable Ptr!StructInst arrType = instantiateStructNeverDelay!Alloc(
-				alloc,
-				programState(ctx),
-				immutable StructDeclAndArgs(ctx.commonTypes.arr, arrLiteral!Type(alloc, [ta])));
-			return some(immutable ArrExpectedType(False, arrType, ta));
-		} else {
-			immutable Opt!Type opT = tryGetDeeplyInstantiatedType(alloc, programState(ctx), expected);
-			if (has(opT)) {
-				immutable Type t = force(opT);
-				if (isStructInst(t)) {
-					immutable Ptr!StructInst si = asStructInst(t);
-					if (ptrEquals(decl(si), ctx.commonTypes.arr))
-						return some(immutable ArrExpectedType(True, si, only(typeArgs(si))));
-				}
+		immutable Opt!Type opT = tryGetDeeplyInstantiatedType(alloc, programState(ctx), expected);
+		if (has(opT)) {
+			immutable Type t = force(opT);
+			if (isStructInst(t)) {
+				immutable Ptr!StructInst si = asStructInst(t);
+				if (ptrEquals(decl(si), ctx.commonTypes.arr))
+					return some(immutable ArrExpectedType(si, only(typeArgs(si))));
 			}
-			addDiag2(alloc, ctx, range, Diag(Diag.CreateArrNoExpectedType()));
-			return none!ArrExpectedType;
 		}
+		return none!ArrExpectedType;
 	}();
 
 	if (has(opAet)) {
 		immutable ArrExpectedType aet = force(opAet);
 		immutable Arr!Expr args = map!Expr(alloc, ast.args, (ref immutable ExprAst it) =>
 			checkAndExpect(alloc, ctx, it, aet.elementType));
-		immutable Expr expr = immutable Expr(range, Expr.CreateArr(aet.arrType, args));
-		return aet.isFromExpected
-			? CheckedExpr(expr)
-			: check!Alloc(alloc, ctx, expected, immutable Type(aet.arrType), expr);
-	} else
+		immutable Expr expr = immutable Expr(range, immutable Expr.CreateArr(aet.arrType, args));
+		return immutable CheckedExpr(expr);
+	} else if (empty(ast.args)) {
+		addDiag2(alloc, ctx, range, Diag(Diag.CreateArrNoExpectedType()));
 		return bogusWithoutChangingExpected(expected, range);
+	} else {
+		// Get type from the first arg's type.
+		immutable ExprAndType firstArg = checkAndInfer(alloc, ctx, first(ast.args));
+		immutable Type elementType = firstArg.type;
+		immutable Arr!ExprAst restArgs = tail(ast.args);
+		immutable Arr!Expr args = mapWithFirst!Expr(alloc, firstArg.expr, restArgs, (ref immutable ExprAst it) =>
+			checkAndExpect(alloc, ctx, it, elementType));
+		immutable Ptr!StructInst arrType = instantiateStructNeverDelay(
+			alloc,
+			ctx.checkCtx.programState,
+			immutable StructDeclAndArgs(ctx.commonTypes.arr, arrLiteral!Type(alloc, [elementType])));
+		immutable Expr expr = immutable Expr(range, immutable Expr.CreateArr(arrType, args));
+		return check!Alloc(alloc, ctx, expected, immutable Type(arrType), expr);
+	}
 }
 
 struct ExpectedLambdaType {

@@ -27,8 +27,8 @@ lint result<str, arr failure>(path str, options test-options) summon
 	res move-to-arr
 
 .excluded-from-lint? bool(name str)
-	bad-exts = new-arr<str> ".bmp", ".err", ".png", ".repr", ".ttf", ".wasm"
-	bad-names = new-arr<str> "dyncall", "libfirm", "node_modules", "package-lock.json"
+	bad-exts = [".bmp", ".err", ".png", ".repr", ".ttf", ".wasm"]
+	bad-names = ["dyncall", "libfirm", "node_modules", "package-lock.json"]
 	name.first == "." or: bad-names contains? name or: bad-exts exists? {name ends-with? it}
 
 | Returns nubmer of errors
@@ -50,13 +50,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 	res move-to-arr
 
 .ignored-extensions arr str()
-	new-arr
-		. "c"
-		. "data"
-		. "o"
-		. "out"
-		. "repr"
-		. "tmLanguage"
+	["c", "data", "o", "out", "repr", "tmLanguage"]
 
 .ignore-extension? bool(ext str)
 	ignored-extensions contains? ext

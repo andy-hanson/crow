@@ -1,7 +1,7 @@
 import
 	.alloc: try-alloc-uninitialized
 	.bootstrap:
-		+, !=, <, <=, >, any-ptr, arr, backtrace, deref, hard-assert, incr, nat, noctx-decr,
+		+, !=, <, <=, >, any-ptr, arr, as, backtrace, deref, hard-assert, incr, nat, noctx-decr,
 		noctx-incr, none, opt, ptr, ptr-less?, set, some, str, to-int, unsafe-div, unsafe-to-int,
 		unsafe-to-int32, unsafe-to-nat, value, void, wrap-sub
 	sys.execinfo: backtrace
@@ -16,7 +16,7 @@ get-backtrace backtrace() unsafe
 	| Being careful to avoid calling functions that may throw here
 	match try-alloc-backtrace-arrs
 	as none
-		backtrace: new-arr<str>
+		backtrace: as<arr str>: []
 	as some s
 		arrs = s value
 		n-code-ptrs = (arrs.code-ptrs backtrace code-ptrs-size.unsafe-to-int.unsafe-to-int32).to-int.unsafe-to-nat

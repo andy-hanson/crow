@@ -34,9 +34,7 @@ import frontend.parse.lexer :
 	curChar,
 	curPos,
 	ExpressionToken,
-	IndentDelta,
 	Lexer,
-	matchIndentDelta,
 	range,
 	skipUntilNewlineNoDiag,
 	takeExpressionToken,
@@ -45,9 +43,8 @@ import frontend.parse.lexer :
 	takeNameAndRange,
 	takeNewlineOrDedentAmount,
 	takeOrAddDiagExpected,
-	tryTake,
-	tryTakeIndentOrDedent;
-import frontend.parse.parseType : tryParseTypeArgBracketed, tryParseTypeArgsBracketed;
+	tryTake;
+import frontend.parse.parseType : tryParseTypeArgsBracketed;
 import model.parseDiag : EqLikeKind, ParseDiag;
 import util.bools : Bool, False, True;
 import util.collection.arr :
@@ -64,7 +61,7 @@ import util.collection.arr :
 import util.collection.arrUtil : append, arrLiteral, exists, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.memory : allocate;
-import util.opt : force, has, mapOption, none, Opt, some;
+import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : Operator, operatorForSym, prependSet, shortSymAlphaLiteral, Sym, symEq;
@@ -505,68 +502,6 @@ immutable(size_t) parseMatchCases(Alloc, SymAlloc)(
 		return 0;
 }
 
-immutable(ExprAndMaybeDedent) parseMultiLineNewArr(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
-	immutable Pos start,
-	immutable Opt!TypeAst type,
-	immutable u32 curIndent,
-) {
-	ArrBuilder!ExprAst args;
-	for (;;) {
-		// Each line must begin with ". "
-		takeOrAddDiagExpected(alloc, lexer, ". ", ParseDiag.Expected.Kind.multiLineArrSeparator);
-		immutable ExprAndDedent ed = parseExprNoLet(alloc, lexer, curIndent);
-		add(alloc, args, ed.expr);
-		if (ed.dedents != 0)
-			return immutable ExprAndMaybeDedent(
-				immutable ExprAst(
-					range(lexer, start),
-					immutable ExprAstKind(immutable CreateArrAst(allocateOpt(alloc, type), finishArr(alloc, args)))),
-				some(ed.dedents - 1));
-	}
-}
-
-//TODO:MOVE?
-immutable(Opt!(Ptr!T)) allocateOpt(T, Alloc)(ref Alloc alloc, immutable Opt!T opt) {
-	return mapOption(opt, (ref immutable T t) => allocate(alloc, t));
-}
-
-immutable(ExprAndMaybeDedent) parseNewArrAfterArgs(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
-	immutable Pos start,
-	immutable Opt!TypeAst type,
-	immutable ArgsAndMaybeDedent ad,
-) {
-	immutable ExprAstKind ast = immutable ExprAstKind(immutable CreateArrAst(allocateOpt(alloc, type), ad.args));
-	return ExprAndMaybeDedent(ExprAst(range(lexer, start), ast), ad.dedent);
-}
-
-immutable(ExprAndMaybeDedent) parseNewArr(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
-	immutable Pos start,
-	immutable ArgCtx ctx,
-	immutable u32 curIndent,
-) {
-	immutable Opt!TypeAst type = tryParseTypeArgBracketed(alloc, lexer);
-	immutable Opt!IndentDelta opIndentOrDedent = ctx.allowCall
-		? tryTakeIndentOrDedent(alloc, lexer, curIndent)
-		: none!IndentDelta;
-	if (has(opIndentOrDedent)) {
-		return matchIndentDelta!(immutable ExprAndMaybeDedent)(
-			force(opIndentOrDedent),
-			(ref immutable IndentDelta.DedentOrSame it) {
-				immutable ArgsAndMaybeDedent ad = immutable ArgsAndMaybeDedent(emptyArr!ExprAst, some(it.nDedents));
-				return parseNewArrAfterArgs(alloc, lexer, start, type, ad);
-			},
-			(ref immutable IndentDelta.Indent) =>
-				parseMultiLineNewArr(alloc, lexer, start, type, curIndent + 1));
-	} else
-		return parseNewArrAfterArgs(alloc, lexer, start, type, parseArgs(alloc, lexer, ctx, curIndent));
-}
-
 immutable(ExprAndDedent) parseIf(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
@@ -724,6 +659,12 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			return ctx.allowBlock
 				? parseLambda(alloc, lexer, start, curIndent)
 				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda);
+		case ExpressionToken.Kind.lbracket:
+			immutable Arr!ExprAst args = parseSubscriptArgs(alloc, lexer);
+			immutable ExprAst expr = immutable ExprAst(
+				range(lexer, start),
+				immutable ExprAstKind(immutable CreateArrAst(args)));
+			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 		case ExpressionToken.Kind.lbrace:
 			immutable Ptr!ExprAst body_ = allocExpr(alloc, parseExprNoBlock(alloc, lexer));
 			takeOrAddDiagExpected(alloc, lexer, '}', ParseDiag.Expected.Kind.closingBrace);
@@ -769,8 +710,6 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 					immutable ExprAstKind(immutable IdentifierAst(name.name)));
 				return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 			}
-		case ExpressionToken.Kind.newArr:
-			return parseNewArr(alloc, lexer, start, ctx, curIndent);
 		case ExpressionToken.Kind.unexpected:
 			return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 	}

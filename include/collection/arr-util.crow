@@ -6,7 +6,7 @@ import
 	..exceptions: forbid
 	..number-utils: +, -, decr, incr
 	..opt-utils: force
-	.arr: +, arr-eq?, empty-arr, empty?, noctx-at, slice, slice-starting-at, slice-up-to, subscript
+	.arr: +, arr-eq?, empty?, noctx-at, slice, slice-starting-at, slice-up-to, subscript
 
 make-arr arr ?t(size nat, f act ?t(nat)) trusted
 	data = size alloc-uninitialized<?t>
@@ -157,7 +157,7 @@ find-rindex opt nat(a arr ?t, pred act bool(?t))
 
 join arr ?t(a arr arr ?t, joiner arr ?t)
 	if a empty?
-		empty-arr
+		[]
 	elif a.size == 1
 		a[0]
 	else

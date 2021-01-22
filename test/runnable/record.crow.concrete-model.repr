@@ -571,7 +571,7 @@ program(
 									global-ctx
 									[
 										call(new-lock, [])
-										call(empty-arr, [])
+										record([0, null])
 										local-ref(n-threads)
 										call(new-condition, [])
 										call(false, [])
@@ -644,15 +644,6 @@ program(
 		fun(false, lock, type(false, lock), none, [param(is-locked, type(false, atomic-bool))], new-record)
 		fun(false, new-atomic-bool, type(false, atomic-bool), none, [], expr-body(call(atomic-bool, [call(false, [])])))
 		fun(false, atomic-bool, type(false, atomic-bool), none, [param(value, type(false, bool))], new-record)
-		fun(false, empty-arr, type(false, arr), none, [], expr-body(call(arr, [0, call(null, [])])))
-		fun(
-			false
-			arr
-			type(false, arr)
-			none
-			[param(size, type(false, nat)), param(data, type(false, ptr))]
-			new-record)
-		fun(false, null, type(false, ptr), none, [], builtin([type(true, island)]))
 		fun(false, new-condition, type(false, condition), none, [], expr-body(call(condition, [call(new-lock, []), 0])))
 		fun(
 			false
@@ -955,7 +946,7 @@ program(
 			expr-body(
 				cond(
 					call(empty?, [param-ref(a)])
-					call(empty-arr, [])
+					record([0, null])
 					cond(
 						call(==, [call(size, [param-ref(a)]), 1])
 						call(subscript, [param-ref(a), 0])
@@ -972,15 +963,6 @@ program(
 			[param(a, type(false, arr))]
 			expr-body(call(==, [call(size, [param-ref(a)]), 0])))
 		fun(false, size, type(false, nat), none, [param(a, type(false, arr))], field-get(0))
-		fun(false, empty-arr, type(false, arr), none, [], expr-body(call(arr, [0, call(null, [])])))
-		fun(
-			false
-			arr
-			type(false, arr)
-			none
-			[param(size, type(false, nat)), param(data, type(false, ptr))]
-			new-record)
-		fun(false, null, type(false, ptr), none, [], builtin([type(false, char)]))
 		fun(
 			true
 			subscript
@@ -1080,7 +1062,7 @@ program(
 				match(
 					call(try-alloc-backtrace-arrs, [])
 					[
-						case(none, call(backtrace, [record([0, null])]))
+						case(none, call(backtrace, [call(as, [record([0, null])])]))
 						case(
 							some(s)
 							let(
@@ -1471,6 +1453,7 @@ program(
 		fun(false, value, type(false, ptr), none, [param(a, type(false, some))], field-get(0))
 		fun(false, value, type(false, ptr), none, [param(a, type(false, some))], field-get(0))
 		fun(false, backtrace, type(false, backtrace), none, [param(return-stack, type(false, arr))], new-record)
+		fun(false, as, type(false, arr), none, [param(value, type(false, arr))], builtin([type(false, arr)]))
 		fun(false, value, type(true, backtrace-arrs), none, [param(a, type(false, some))], field-get(0))
 		fun(false, unsafe-to-nat, type(false, nat), none, [param(a, type(false, int))], builtin([]))
 		fun(false, to-int, type(false, int), none, [param(i, type(false, int32))], builtin([]))
@@ -1880,6 +1863,13 @@ program(
 			[param(p, type(false, ptr)), param(offset, type(false, nat))]
 			builtin([type(false, char)]))
 		fun(
+			false
+			arr
+			type(false, arr)
+			none
+			[param(size, type(false, nat)), param(data, type(false, ptr))]
+			new-record)
+		fun(
 			true
 			tail
 			type(false, arr)
@@ -2113,6 +2103,13 @@ program(
 			none
 			[param(a, type(true, global-ctx)), param(islands, type(false, arr))]
 			field-set(1))
+		fun(
+			false
+			arr
+			type(false, arr)
+			none
+			[param(size, type(false, nat)), param(data, type(false, ptr))]
+			new-record)
 		fun(false, ptr-to, type(false, ptr), none, [param(t, type(true, island))], builtin([type(true, island)]))
 		fun(
 			false
@@ -2174,7 +2171,9 @@ program(
 			expr-body(
 				call(
 					exception-ctx
-					[call(null, []), call(exception, [record([0, null]), call(backtrace, [record([0, null])])])])))
+					[
+						call(null, [])
+						call(exception, [record([0, null]), call(backtrace, [call(as, [record([0, null])])])])])))
 		fun(
 			false
 			exception-ctx

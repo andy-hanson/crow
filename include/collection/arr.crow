@@ -1,16 +1,13 @@
 import
 	..alloc: alloc-uninitialized, copy-data-from
 	..bootstrap:
-		+, -, ==, !=, <, <=, arr, bool, by-val, data, deref, false, hard-assert, nat, not, null,
+		+, -, ==, !=, <, <=, arr, bool, by-val, data, deref, false, hard-assert, nat, not,
 		ptr, ref-of-ptr, size, true
 	..exceptions: assert
 	..number-utils: +, -, incr
 
 arr-from-begin-end arr ?t(begin ptr ?t, end ptr ?t) unsafe noctx
 	arr: (end - begin), begin
-
-empty-arr arr ?t() noctx trusted
-	arr: 0, null
 
 empty? bool(a arr ?t) noctx
 	a.size == 0
@@ -50,10 +47,10 @@ ref-of-val-at ?t(a arr by-val<?t>, index nat) trusted
 	a.data + index ref-of-ptr
 
 prepend arr ?t(a ?t, b arr ?t)
-	(new-arr a) + b
+	[a] + b
 
 append arr ?t(a arr ?t, b ?t)
-	a + (new-arr b)
+	a + [b]
 
 + arr ?t(a arr ?t, b arr ?t) trusted
 	res-size = a.size + b.size

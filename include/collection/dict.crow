@@ -2,7 +2,7 @@ import
 	..bootstrap:
 		==, arr, bool, data, drop, has?, nat, none, not, opt, size, some, subscript, todo,
 		value, void
-	..collection.arr: empty?, empty-arr, subscript
+	..collection.arr: empty?, subscript
 	..collection.arr-util: first, map, tail
 	..exceptions: forbid
 	..number-utils: incr
@@ -21,7 +21,7 @@ empty? bool(d dict<?k, ?v>)
 
 empty-dict dict<?k, ?v>()
 	| TODO: should be able to infer type arguments
-	dict<?k, ?v>: empty-arr<?k>, empty-arr<?v>
+	dict<?k, ?v>: [], []
 
 mut-dict<?k, ?v> record mut
 	keys mut-list ?k

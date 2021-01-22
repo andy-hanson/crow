@@ -39,7 +39,7 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 spec
 	summon
 body
-	op = (new-arr<str> "ast", "model", "concrete-model", "low-model") first-some<arr<failure>, str> \print-kind
+	op = ["ast", "model", "concrete-model", "low-model"] first-some<arr<failure>, str> \print-kind
 		if options.print-tests?
 			"crow print " + print-kind + " " + path print
 		res = print-kind run-print-test path-to-crow, env, path, options.overwrite-output?
@@ -69,12 +69,12 @@ body
 spec
 	summon
 body
-	res = path-to-crow spawn-and-wait-result (new-arr "print", print-kind, path), env
+	res = path-to-crow spawn-and-wait-result ["print", print-kind, path], env
 	output-path = path + "." + print-kind + ".repr"
 	| NOTE: compiler may have both stderr and stdout!
 	output-failures = if res.stdout.empty? and: res.exit-code != 0
 		| Just have a file for the err
-		new-arr<failure>
+		[] as<arr failure>
 	else
 		path handle-output output-path, res.stdout, overwrite-output?
 
@@ -82,14 +82,14 @@ body
 		print-test-result: true, output-failures
 	elif res.exit-code == 0
 		assert: res.stderr == ""
-		print-test-result: false, new-arr<failure>
+		print-test-result: false, []
 	elif res.exit-code == 1
 		stderr-no-color = res.stderr remove-colors
 		| We should stop even if no test failure in handling the output
 		print-test-result: true, handle-output: path, (output-path + ".err"), stderr-no-color, overwrite-output?
 	else
 		message = "unexpected exit code: " + res.exit-code.to-str
-		print-test-result: true, new-arr failure: path, message
+		print-test-result: true, [path failure message]
 
 .run-single-runnable-test arr failure
 	path-to-crow str
@@ -100,11 +100,11 @@ body
 spec
 	summon
 body
-	args = as<arr<str>>: interpret? ? (new-arr "run", path, "--interpret"), (new-arr "run", path)
+	args = interpret? ? ["run", path, "--interpret"], ["run", path]
 	res = path-to-crow spawn-and-wait-result args, env
 	stdout-failures = path handle-output (path + ".stdout"), res.stdout, overwrite-output?
 	stderr-failures = if res.exit-code == 0 and: res.stderr == ""
-		new-arr<failure>
+		[] as<arr failure>
 	else
 		path handle-output (path + ".stderr"), res.stderr, overwrite-output?
 	stdout-failures + stderr-failures

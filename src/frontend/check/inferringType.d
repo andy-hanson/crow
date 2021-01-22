@@ -104,20 +104,16 @@ ref immutable(ProgramState) programState(return scope ref immutable ExprCtx ctx)
 	return ctx.checkCtx.programState;
 }
 
-immutable(Type) typeFromAst2(Alloc)(ref Alloc alloc, ref ExprCtx ctx, ref immutable TypeAst typeAst) {
-	return typeFromAst!Alloc(
-		alloc,
-		ctx.checkCtx.deref,
-		ctx.commonTypes,
-		typeAst,
-		ctx.structsAndAliasesDict,
-		immutable TypeParamsScope(ctx.outermostFunTypeParams),
-		noneMut!(Ptr!(MutArr!(Ptr!(StructInst)))));
-}
-
 immutable(Arr!Type) typeArgsFromAsts(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable Arr!TypeAst typeAsts) {
 	return map!Type(alloc, typeAsts, (ref immutable TypeAst it) =>
-		typeFromAst2(alloc, ctx, it));
+		typeFromAst!Alloc(
+			alloc,
+			ctx.checkCtx.deref,
+			ctx.commonTypes,
+			it,
+			ctx.structsAndAliasesDict,
+			immutable TypeParamsScope(ctx.outermostFunTypeParams),
+			noneMut!(Ptr!(MutArr!(Ptr!(StructInst))))));
 }
 
 struct SingleInferringType {

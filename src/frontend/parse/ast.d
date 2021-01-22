@@ -152,7 +152,6 @@ struct CallAst {
 }
 
 struct CreateArrAst {
-	immutable Opt!(Ptr!TypeAst) elementType; // Ptr because this is rarely needed
 	immutable Arr!ExprAst args;
 }
 
@@ -1029,8 +1028,6 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 					reprExprAst(alloc, it))]),
 		(ref immutable CreateArrAst e) =>
 			reprRecord(alloc, "create-arr", [
-				reprOpt(alloc, e.elementType, (ref immutable Ptr!TypeAst it) =>
-					reprTypeAst(alloc, it)),
 				reprArr(alloc, e.args, (ref immutable ExprAst it) =>
 					reprExprAst(alloc, it))]),
 		(ref immutable FunPtrAst a) =>

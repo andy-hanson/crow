@@ -42,7 +42,7 @@ split-at-first opt split-with-splitter<?t>(a arr ?t, pred act bool(?t))
 try-split split ?t(a arr ?t, pred act bool(?t))
 	match a find-index pred
 	as none
-		split<?t>: a, empty-arr
+		split<?t>: a, []
 	as some s
 		idx = s.value
 		split<?t>: (a slice-up-to idx), (a slice-after idx)
@@ -51,7 +51,7 @@ try-split split ?t(a arr ?t, pred act bool(?t))
 try-split-from-right split ?t(a arr ?t, pred act bool(?t))
 	match a find-rindex pred
 	as none
-		split<?t>: a, empty-arr
+		split<?t>: a, []
 	as some s
 		index = s.value
 		split<?t>: (a slice-up-to index), (a slice-after index)

@@ -155,7 +155,7 @@ try-read-file opt str(path c-str) summon trusted
 			| TODO: this is just a sanity check
 			assert: file-size < 1000000000
 			if file-size == 0
-				some: new-arr<char>
+				some: ""
 			else
 				| Go back to beginning
 				off = fd lseek 0, seek-set

@@ -59,15 +59,6 @@ private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(Alloc, SymAllo
 		: tryParseTypeArgsBracketed(alloc, lexer);
 }
 
-immutable(Opt!TypeAst) tryParseTypeArgBracketed(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	if (tryTake(lexer, '<')) {
-		immutable TypeAst res = parseType(alloc, lexer);
-		takeTypeArgsEnd(alloc, lexer);
-		return some(res);
-	} else
-		return none!TypeAst;
-}
-
 immutable(TypeAst) parseType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable Bool isTypeParam = tryTake(lexer, '?');

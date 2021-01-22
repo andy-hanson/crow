@@ -142,7 +142,7 @@ void skipShebang(SymAlloc)(ref Lexer!SymAlloc lexer) {
 //TODO: this is only called at base level, so dedenting should be impossible..
 void skipBlankLines(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable IndentDelta i = skipLinesAndGetIndentDelta(alloc, lexer, 0);
-	matchIndentDelta(
+	matchIndentDelta!void(
 		i,
 		(ref immutable IndentDelta.DedentOrSame it) {
 			verify(it.nDedents == 0);
@@ -253,16 +253,6 @@ void takeDedentFromIndent1(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc 
 		skipRestOfLineAndNewline(lexer);
 		takeDedentFromIndent1(alloc, lexer);
 	}
-}
-
-immutable(Opt!IndentDelta) tryTakeIndentOrDedent(Alloc, SymAlloc)(
-	ref Alloc alloc,
-	ref Lexer!SymAlloc lexer,
-	immutable u32 curIndent,
-) {
-	return curChar(lexer) == '\n'
-		? some!IndentDelta(skipLinesAndGetIndentDelta(alloc, lexer, curIndent))
-		: none!IndentDelta;
 }
 
 immutable(NewlineOrIndent) tryTakeIndentAfterNewline_topLevel(Alloc, SymAlloc)(
@@ -380,11 +370,11 @@ struct ExpressionToken {
 		if_,
 		lambda,
 		lbrace,
+		lbracket,
 		literal,
 		lparen,
 		match,
 		nameAndRange,
-		newArr,
 		unexpected,
 	}
 	immutable Kind kind_;
@@ -432,6 +422,8 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 	switch (c) {
 		case '(':
 			return immutable ExpressionToken(ExpressionToken.Kind.lparen);
+		case '[':
+			return immutable ExpressionToken(ExpressionToken.Kind.lbracket);
 		case '{':
 			return immutable ExpressionToken(ExpressionToken.Kind.lbrace);
 		case '\\':
@@ -458,8 +450,6 @@ immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc,
 							return immutable ExpressionToken(ExpressionToken.Kind.if_);
 						case shortSymAlphaLiteralValue("match"):
 							return immutable ExpressionToken(ExpressionToken.Kind.match);
-						case shortSymAlphaLiteralValue("new-arr"):
-							return immutable ExpressionToken(ExpressionToken.Kind.newArr);
 						default:
 							addDiagOnReservedName(alloc, lexer, immutable NameAndRange(start, name));
 							return immutable ExpressionToken(ExpressionToken.Kind.unexpected);
@@ -757,7 +747,7 @@ immutable(size_t) toHexDigit(immutable char c) {
 	}
 }
 
-public struct IndentDelta {
+struct IndentDelta {
 	@safe @nogc pure nothrow:
 
 	struct DedentOrSame {
@@ -780,7 +770,7 @@ public struct IndentDelta {
 	immutable this(immutable Indent a) { kind = Kind.indent; indent_ = a; }
 }
 
-public @trusted T matchIndentDelta(T)(
+@trusted T matchIndentDelta(T)(
 	ref immutable IndentDelta a,
 	scope T delegate(ref immutable IndentDelta.DedentOrSame) @safe @nogc pure nothrow cbDedentOrSame,
 	scope T delegate(ref immutable IndentDelta.Indent) @safe @nogc pure nothrow cbIndent,

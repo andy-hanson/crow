@@ -12,7 +12,7 @@ to-str str(b bool) noctx
 	b ? "true", "false"
 
 to-str str(c char)
-	new-arr c
+	[c]
 
 parse-bool bool(a str)
 	if a == "true"

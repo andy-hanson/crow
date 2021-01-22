@@ -53,7 +53,6 @@ import util.collection.arrUtil : tail;
 import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
 import util.comparison : compareNat32, Comparison;
 import util.opt : force, has, Opt;
-import util.ptr : Ptr;
 import util.repr : Repr, nameAndRepr, reprArr, reprNamedRecord, reprSym;
 import util.sourceRange : Pos, rangeOfStartAndName, RangeWithinFile, reprRangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
@@ -174,11 +173,6 @@ void addTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		});
 }
 
-void addOptTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable Opt!(Ptr!TypeAst) a) {
-	if (has(a))
-		addTypeTokens(alloc, tokens, force(a));
-}
-
 void addInstStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable TypeAst.InstStruct a) {
 	add(alloc, tokens, immutable Token(Token.Kind.structRef, rangeOfNameAndRange(a.name)));
 	addTypeArgsTokens(alloc, tokens, a.typeArgs);
@@ -290,7 +284,6 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			}
 		},
 		(ref immutable CreateArrAst it) {
-			addOptTypeTokens(alloc, tokens, it.elementType);
 			addExprsTokens(alloc, tokens, it.args);
 		},
 		(ref immutable FunPtrAst) {
