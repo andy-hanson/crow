@@ -36,38 +36,17 @@ iter<?t, ?e> spec
 to-stream<?t, ?e> stream ?e(t ?t) iter<?t, ?e>
 	{t iter} stream
 
-region range
-
-range-nat record
-	| lo inclusive, hi exclusive
-	lo nat
-	hi nat
-
-iter iterator nat(r range-nat)
+iter iterator nat(r arrow<nat, nat>)
 	| TODO: should not need a type argument here
-	n = r.lo cell<nat>
+	n = r.from cell<nat>
 	iterator: \
-		if n.get == r.hi
+		if n.get >= r.to
 			none
 		else
 			n.get-and-incr some
 
-to range-nat(lo nat, hi nat)
-	assert: lo <= hi
-	lo range-nat hi
-
-empty? bool(r range-nat) noctx
-	r.lo == r.hi
-
-tail range-nat(r range-nat)
-	r.empty? forbid
-	r.lo.incr to r.hi
-
 each void(s stream ?t, f act void(?t))
 	s.iter each-recur f
-
-each void(r range-nat, f act void(nat))
-	r.iter each-recur f
 
 .each-recur void(i iterator ?t, f act void(?t))
 	match i next

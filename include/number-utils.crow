@@ -1,8 +1,8 @@
 import
 	.bootstrap:
-		==, <, <=, >=, ?, bool, and, float, int, int32, nat, nat8, nat16, nat32, or, to-int,
-		to-nat, unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, unsafe-to-nat32,
-		wrap-add, wrap-mul, wrap-sub
+		==, <, <=, >=, ?, ->, arrow, bool, and, float, from, int, int32, nat, nat8, nat16, nat32,
+		or, subscript, to, to-int, to-nat, unsafe-div, unsafe-to-int, unsafe-to-int32,
+		unsafe-to-nat, unsafe-to-nat32, void, wrap-add, wrap-mul, wrap-sub
 	.exceptions: assert, forbid
 
 region conversion
@@ -163,3 +163,10 @@ max-nat32 nat32() noctx
 	0xffffffff
 max-nat nat() noctx
 	0xffffffffffffffff
+
+region number iteration
+
+each void(r arrow<nat, nat>, f act void(nat))
+	if r.from < r.to
+		f[r.from]
+		r.from + 1 -> r.to each f

@@ -6213,49 +6213,49 @@ program(
 			expr-body(
 				expr(
 					nat-64
-					file-range(21, range(702, 758))
+					file-range(21, range(740, 796))
 					let(
 						res
 						expr(
 							nat-64
-							file-range(21, range(710, 720))
+							file-range(21, range(748, 758))
 							binary(
 								"wrap-add (nat-64)"
-								expr(nat-64, file-range(21, range(708, 709)), param-ref(1))
-								expr(nat-64, file-range(21, range(719, 720)), param-ref(2))))
+								expr(nat-64, file-range(21, range(746, 747)), param-ref(1))
+								expr(nat-64, file-range(21, range(757, 758)), param-ref(2))))
 						expr(
 							nat-64
-							file-range(21, range(722, 758))
+							file-range(21, range(760, 796))
 							seq(
 								expr(
 									void
-									file-range(21, range(722, 752))
+									file-range(21, range(760, 790))
 									call(
 										46
 										[
-											expr(gc-ptr(record(0)), file-range(21, range(722, 752)), param-ref(0))
+											expr(gc-ptr(record(0)), file-range(21, range(760, 790)), param-ref(0))
 											expr(
 												bool
-												file-range(21, range(739, 752))
+												file-range(21, range(777, 790))
 												binary(
 													"and"
 													expr(
 														bool
-														file-range(21, range(730, 738))
+														file-range(21, range(768, 776))
 														call(
 															87
 															[
-																expr(nat-64, file-range(21, range(730, 733)), local-ref(res))
-																expr(nat-64, file-range(21, range(737, 738)), param-ref(1))]))
+																expr(nat-64, file-range(21, range(768, 771)), local-ref(res))
+																expr(nat-64, file-range(21, range(775, 776)), param-ref(1))]))
 													expr(
 														bool
-														file-range(21, range(744, 752))
+														file-range(21, range(782, 790))
 														call(
 															87
 															[
-																expr(nat-64, file-range(21, range(744, 747)), local-ref(res))
-																expr(nat-64, file-range(21, range(751, 752)), param-ref(2))]))))]))
-								expr(nat-64, file-range(21, range(754, 757)), local-ref(res))))))))
+																expr(nat-64, file-range(21, range(782, 785)), local-ref(res))
+																expr(nat-64, file-range(21, range(789, 790)), param-ref(2))]))))]))
+								expr(nat-64, file-range(21, range(792, 795)), local-ref(res))))))))
 		87: fun(
 			>=
 			bool
@@ -6584,30 +6584,30 @@ program(
 			expr-body(
 				expr(
 					nat-64
-					file-range(21, range(779, 808))
+					file-range(21, range(817, 846))
 					seq(
 						expr(
 							void
-							file-range(21, range(779, 793))
+							file-range(21, range(817, 831))
 							call(
 								46
 								[
-									expr(gc-ptr(record(0)), file-range(21, range(779, 793)), param-ref(0))
+									expr(gc-ptr(record(0)), file-range(21, range(817, 831)), param-ref(0))
 									expr(
 										bool
-										file-range(21, range(787, 793))
+										file-range(21, range(825, 831))
 										call(
 											87
 											[
-												expr(nat-64, file-range(21, range(787, 788)), param-ref(1))
-												expr(nat-64, file-range(21, range(792, 793)), param-ref(2))]))]))
+												expr(nat-64, file-range(21, range(825, 826)), param-ref(1))
+												expr(nat-64, file-range(21, range(830, 831)), param-ref(2))]))]))
 						expr(
 							nat-64
-							file-range(21, range(797, 807))
+							file-range(21, range(835, 845))
 							binary(
 								"wrap-sub (nat-64)"
-								expr(nat-64, file-range(21, range(795, 796)), param-ref(1))
-								expr(nat-64, file-range(21, range(806, 807)), param-ref(2))))))))
+								expr(nat-64, file-range(21, range(833, 834)), param-ref(1))
+								expr(nat-64, file-range(21, range(844, 845)), param-ref(2))))))))
 		99: fun(
 			->
 			record(49)
