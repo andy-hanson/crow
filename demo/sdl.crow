@@ -208,7 +208,7 @@ handle-sdl-error void(operation str, err c-int) summon trusted
 		operation fail-sdl-error
 
 fail-sdl-error void(operation str) summon trusted
-	fail: "sdl error in " + operation + " " + sdl-get-error.to-str
+	fail: "sdl error in " ~ operation ~ " " ~ sdl-get-error.to-str
 	sdl-quit
 
 | TODO:MOVE

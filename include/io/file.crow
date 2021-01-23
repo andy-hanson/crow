@@ -5,9 +5,9 @@ import
 		int32, nat8, nat16, nat32, none, not, null?, opt, ptr-cast, ptr-cast-from-extern, ptr-eq?,
 		ref-eq?, size, size-of, some, str, todo, value, void, wrap-add
 	..cell: cell, get
-	..collection.arr: +, subscript
+	..collection.arr: ~, subscript
 	..collection.mut-arr: cast-immutable, data, new-uninitialized-mut-arr, size
-	..collection.mut-list: move-to-arr, mut-list, push
+	..collection.mut-list: ~=, move-to-arr!, mut-list
 	..collection.sort: sort
 	..exceptions: assert, forbid
 	..number-utils: to-int, to-nat
@@ -73,7 +73,7 @@ read-dir arr str(path c-str) trusted summon
 	forbid: dirp.ptr-cast-from-extern<any-ptr, dir> null?
 	res = mut-list<str>
 	dirp read-dir-recur res
-	res.move-to-arr sort
+	res.move-to-arr! sort
 
 .read-dir-recur void(dirp dir, res mut-list str) unsafe summon
 	| Initial value of entry / result should not matter
@@ -87,7 +87,7 @@ read-dir arr str(path c-str) trusted summon
 		assert: result.get ref-eq? entry
 		name = entry.get-dirent-name
 		if name != "." and: name != ".."
-			res push entry.get-dirent-name
+			res ~= entry.get-dirent-name
 		dirp read-dir-recur res
 
 read-link str(path str) summon trusted
@@ -104,7 +104,7 @@ read-file str(path str) summon
 	match path try-read-file
 	as none
 		| TODO: don't print, warn
-		print: "file does not exist: " + path
+		print: "file does not exist: " ~ path
 		""
 	as some s
 		s.value
@@ -119,10 +119,10 @@ write-file void(path c-str, content str) summon trusted
 	flags = o-creat bits-or o-wronly bits-or o-trunc
 	fd = path open flags, permission
 	if fd == -1
-		print: "failed to open file for write: " + path.to-str
-		print: "errno: " + errno.to-str
-		print: "flags: " + flags.to-str
-		print: "permission: " + permission.to-str
+		print: "failed to open file for write: " ~ path.to-str
+		print: "errno: " ~ errno.to-str
+		print: "flags: " ~ flags.to-str
+		print: "permission: " ~ permission.to-str
 		todo
 	else
 		wrote-bytes = fd write content.data.ptr-cast<nat8, char>, content.size
@@ -146,7 +146,7 @@ try-read-file opt str(path c-str) summon trusted
 			if errno == enoent
 				none
 			else
-				print: "failed to open file " + path.to-str
+				print: "failed to open file " ~ path.to-str
 				todo
 		else
 			file-size = fd lseek 0, seek-end

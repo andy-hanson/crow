@@ -2,7 +2,7 @@ import
 	cell: cell, get, swap
 	collection.arr-util:
 		contains?, contains-subseq?, each-with-index, exists?, ends-with?, first, tail
-	collection.mut-list: move-to-arr, mut-list, push
+	collection.mut-list: ~=, move-to-arr!, mut-list
 	io.file: read-file
 	io.print: print
 	path: base-name, each-child-recursive, get-extension
@@ -12,19 +12,19 @@ lint result<str, arr failure>(path str, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, \file
 		if options.print-tests?
-			print: "lint " + file
+			print: "lint " ~ file
 		file lint-file
 	if failures has?
 		err: failures
 	else
-		ok: "linted " + files.size.to-str + " files"
+		ok: "linted " ~ files.size.to-str ~ " files"
 
 .list-lintable-files arr str(path str) summon
 	res = mut-list<str>
 	path each-child-recursive {not: it excluded-from-lint?}, \child
 		if child.base-name.ignore-extension-of-name? not
-			res push child
-	res move-to-arr
+			res ~= child
+	res move-to-arr!
 
 .excluded-from-lint? bool(name str)
 	bad-exts = [".bmp", ".err", ".png", ".repr", ".ttf", ".wasm"]
@@ -39,15 +39,15 @@ lint result<str, arr failure>(path str, options test-options) summon
 	allow-double-space? = ext == "err" or: ext == "sublime-syntax"
 	text.lines each-with-index \line, line-num
 		ln = line-num.incr.to-str
-		space-space = " " + " "
+		space-space = " " ~ " "
 		if allow-double-space?.not and: line contains-subseq? space-space
-			message = "line " + ln + " contains a double space"
-			res push failure: path, message
+			message = "line " ~ ln ~ " contains a double space"
+			res ~= failure: path, message
 		width = line line-len
 		if width > max-line-length
-			message = "line " + ln + " is " + width.to-str + " columns long, should be <= " + max-line-length.to-str
-			res push failure: path, message
-	res move-to-arr
+			message = "line " ~ ln ~ " is " ~ width.to-str ~ " columns long, should be <= " ~ max-line-length.to-str
+			res ~= failure: path, message
+	res move-to-arr!
 
 .ignored-extensions arr str()
 	["c", "data", "o", "out", "repr", "tmLanguage"]
@@ -69,9 +69,9 @@ lint result<str, arr failure>(path str, options test-options) summon
 	s each-with-index \c, index
 		if c == "\n"
 			nl = last-nl swap index.incr
-			res push: s[nl -> index]
-	res push: s[last-nl.get -> s.size]
-	res move-to-arr
+			res ~= s[nl -> index]
+	res ~= s[last-nl.get -> s.size]
+	res move-to-arr!
 
 .max-line-length nat()
 	120

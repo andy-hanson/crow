@@ -7,8 +7,10 @@ collection/arr-util
 collection/arr
 collection/dict
 collection/mut-arr
+collection/mut-dict
 collection/mut-list
 collection/mut-set
+collection/set
 collection/sort
 command-line-parser
 exceptions

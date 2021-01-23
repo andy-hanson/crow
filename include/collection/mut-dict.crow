@@ -4,7 +4,7 @@ import
 	.arr-util: map
 	.dict: dict, has?, subscript
 	.mut-list:
-		index-of, insert, move-to-arr, mut-list, push, remove-unordered-at-index, size,
+		~=, index-of, insert!, move-to-arr!, mut-list, remove-unordered-at!, size,
 		set-subscript, subscript, temp-as-arr
 
 mut-dict<?k, ?v> record mut
@@ -32,13 +32,13 @@ set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
 
 .set-subscript-recur void(a mut-dict<?k, ?v>, idx nat, key ?k, value ?v) data<?k>
 	if idx == a.keys.size
-		a.keys push key
-		a.values push value
+		a.keys ~= key
+		a.values ~= value
 	else
 		match key <=> a.keys[idx]
 		as less
-			a.keys insert idx, key
-			a.values insert idx, value
+			a.keys insert! idx, key
+			a.values insert! idx, value
 		as equal
 			a.values[idx] := value
 		as greater
@@ -47,18 +47,18 @@ set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
 has? bool(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	a.temp-as-dict has? key
 
-move-to-dict dict<?k, ?v>(m mut-dict<?k, ?v>)
+move-to-dict! dict<?k, ?v>(m mut-dict<?k, ?v>)
 	| TODO: should be able to infer type arguments 
-	dict<?k, ?v>: m.keys.move-to-arr, m.values.move-to-arr
+	dict<?k, ?v>: m.keys.move-to-arr!, m.values.move-to-arr!
 
 .temp-as-dict dict<?k, ?v>(m mut-dict<?k, ?v>) unsafe
 	| TODO: should be able to infer type arguments 
 	dict<?k, ?v>: m.keys.temp-as-arr, m.values.temp-as-arr
 
-remove opt ?v(a mut-dict<?k, ?v>, key ?k) data<?k>
+remove! opt ?v(a mut-dict<?k, ?v>, key ?k) data<?k>
 	match a.keys index-of key
 	as none
 		none
 	as some s
-		drop: a.keys remove-unordered-at-index s.value
-		some: a.values remove-unordered-at-index s.value
+		drop: a.keys remove-unordered-at! s.value
+		some: a.values remove-unordered-at! s.value

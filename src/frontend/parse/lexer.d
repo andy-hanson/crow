@@ -627,6 +627,7 @@ immutable(Bool) isOperatorChar(immutable char c) {
 		case '*':
 		case '/':
 		case '^':
+		case '~':
 			return True;
 		default:
 			return False;

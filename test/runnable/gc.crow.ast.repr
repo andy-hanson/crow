@@ -126,7 +126,7 @@ file-ast(
 														[
 															call(
 																infix
-																name-range(404, +)
+																name-range(404, ~)
 																[]
 																[
 																	literal("stats: ")
@@ -142,7 +142,7 @@ file-ast(
 													[
 														call(
 															infix
-															name-range(447, +)
+															name-range(447, ~)
 															[]
 															[
 																literal("gc count: ")
@@ -158,7 +158,7 @@ file-ast(
 												[
 													call(
 														infix
-														name-range(482, +)
+														name-range(482, ~)
 														[]
 														[literal("a: "), call(dot, name-range(486, to-str), [], [a])])]))
 										call(
@@ -168,7 +168,7 @@ file-ast(
 											[
 												call(
 													infix
-													name-range(525, +)
+													name-range(525, ~)
 													[]
 													[
 														literal("stats (after print): ")
@@ -198,7 +198,7 @@ file-ast(
 															[
 																call(
 																	infix
-																	name-range(623, +)
+																	name-range(623, ~)
 																	[]
 																	[
 																		literal("stats: ")
@@ -219,7 +219,7 @@ file-ast(
 														[
 															call(
 																infix
-																name-range(666, +)
+																name-range(666, ~)
 																[]
 																[
 																	literal("gc count: ")
@@ -235,7 +235,7 @@ file-ast(
 													[
 														call(
 															infix
-															name-range(701, +)
+															name-range(701, ~)
 															[]
 															[literal("a: "), call(dot, name-range(705, to-str), [], [a])])]))
 											call(
@@ -245,7 +245,7 @@ file-ast(
 												[
 													call(
 														infix
-														name-range(744, +)
+														name-range(744, ~)
 														[]
 														[
 															literal("stats (after print): ")
@@ -264,27 +264,27 @@ file-ast(
 				[param(range(822, 825), some(a), inststruct(range(824, 825), name-range(824, r)))])
 			body: call(
 				infix
-				name-range(877, +)
+				name-range(877, ~)
 				[]
 				[
 					call(
 						infix
-						name-range(868, +)
+						name-range(868, ~)
 						[]
 						[
 							call(
 								infix
-								name-range(855, +)
+								name-range(855, ~)
 								[]
 								[
 									call(
 										infix
-										name-range(846, +)
+										name-range(846, ~)
 										[]
 										[
 											call(
 												infix
-												name-range(833, +)
+												name-range(833, ~)
 												[]
 												[
 													literal("a=")
@@ -307,27 +307,27 @@ file-ast(
 			summon: true
 			body: call(
 				infix
-				name-range(1012, +)
+				name-range(1012, ~)
 				[]
 				[
 					call(
 						infix
-						name-range(994, +)
+						name-range(994, ~)
 						[]
 						[
 							call(
 								infix
-								name-range(972, +)
+								name-range(972, ~)
 								[]
 								[
 									call(
 										infix
-										name-range(954, +)
+										name-range(954, ~)
 										[]
 										[
 											call(
 												infix
-												name-range(934, +)
+												name-range(934, ~)
 												[]
 												[
 													literal("cur-word=")

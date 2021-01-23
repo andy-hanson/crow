@@ -3,9 +3,9 @@ import
 		+, ==, <=, and, arr, as, as-any-ptr, as-ref, bool, by-val, char, c-str, data, int32, not, null,
 		or, ptr, size, str, todo, to-nat, void
 	..cell: cell, get
-	..collection.arr: +, append, prepend, ref-of-val-at
+	..collection.arr: ~, ref-of-val-at
 	..collection.arr-util: fold, map
-	..collection.mut-list: data, move-to-arr, mut-list, size, reserve, unsafe-increase-size
+	..collection.mut-list: data, move-to-arr!, mut-list, size, reserve, unsafe-increase-size!
 	..exceptions: assert, fail
 	..number-utils: +, to-nat
 	..posix.bytes-types: zero
@@ -38,15 +38,15 @@ process-result record
 	stderr str
 
 spawn-and-wait-result process-result(exe str, args arr str, environ environ) trusted summon
-	print: "spawn-and-wait-result: " + exe fold args, \a, b
-		a + " " + b
+	print: "spawn-and-wait-result: " ~ exe fold args, \a, b
+		a ~ " " ~ b
 
 	| TODO: kill, handle that error properly
 	if exe is-file?
 		exe-c-str = exe.to-c-str
 		exe-c-str spawn-and-wait-result (exe-c-str convert-args args), environ.convert-environ
 	else
-		fail: exe + " is not a file"
+		fail: exe ~ " is not a file"
 
 | This one shares stdout and stderr with parent process
 spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
@@ -57,10 +57,10 @@ spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
 		exe-c-str = exe.to-c-str
 		exe-c-str spawn-and-wait (exe-c-str convert-args args), environ.convert-environ
 	else
-		fail: exe + " is not a file"
+		fail: exe ~ " is not a file"
 
 .convert-args ptr c-str(exe-c-str c-str, args arr str)
-	data: exe-c-str prepend: args map {it.to-c-str} append null
+	data: [exe-c-str] ~ (args map {it to-c-str}) ~ [null]
 
 spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
 	stdout-pipes = make-pipes
@@ -91,7 +91,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 
 	exit-code = pid wait-and-get-exit-code
 
-	process-result: exit-code, stdout-builder.move-to-arr, stderr-builder.move-to-arr
+	process-result: exit-code, stdout-builder.move-to-arr!, stderr-builder.move-to-arr!
 
 .make-pipes pipes() summon
 	res = pipes: 0, 0
@@ -155,7 +155,7 @@ body
 		void
 	else
 		assert: n-bytes-read.to-nat <= read-max
-		buffer unsafe-increase-size n-bytes-read.to-nat
+		buffer unsafe-increase-size! n-bytes-read.to-nat
 		fd read-to-buffer-until-eof buffer
 
 | Args should be terminated by null.
@@ -176,7 +176,7 @@ wait-and-get-exit-code exit-code(pid pid-t) summon unsafe
 		wait-status w-exit-status
 	elif wait-status w-if-signaled
 		signal = wait-status w-term-sig
-		print: "Process terminated with signal " + signal.to-str
+		print: "Process terminated with signal " ~ signal.to-str
 		todo
 		| use `wait-status w-term-sig`
 		| and `wait-status w-core-dump`

@@ -1,10 +1,11 @@
 import
-	collection.arr-util: join, map
+	collection.arr-util: join
 	io.print: print
 
 main fut nat(_ arr str) summon
-	nats = [0, 1, 2, 3, 4]
-	slice = nats[1 -> 4] map {it to-str} join ", "
+	ingredients = ["beans", "garlic", "onion", "pepper", "cinnamon"]
+	print: ingredients[2]
 
-	print: slice
+	chopped-ingredients = ingredients[1 -> 4]
+	print: chopped-ingredients join ", "
 	0 resolved

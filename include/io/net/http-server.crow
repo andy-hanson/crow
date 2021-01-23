@@ -6,8 +6,7 @@ import
 	...collection.arr-util: contains?, last, rtail, split-by-subseq
 	...collection.dict: dict, each, has?
 	...collection.mut-dict: move-to-dict, mut-dict, new-mut-dict, remove, set-subscript, subscript
-	...collection.mut-list:
-		index-of, move-to-arr, mut-list, pop-n-from-start, push, push-all, size
+	...collection.mut-list: ~=, index-of, move-to-arr, mut-list, pop-n-from-start!, size
 	...exceptions: assert, forbid
 	...fut-utils: resolved, subscript, then
 	...number-utils: incr, to-int
@@ -70,7 +69,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 
 | Returns true when closed client
 .handle-chunk fut bool(fd fd-t, state http-parse-state, chunk str, handler http-handler) summon trusted
-	state.unparsed push-all chunk
+	state.unparsed ~= chunk
 	finished-request? = if state.content-length != 0
 		assert: state.unparsed.size <= state.content-length
 		state.unparsed.size >= state.content-length
@@ -93,26 +92,26 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 | TODO: write out to a stream, not str
 .response-to-str str(a http-response)
 	res = mut-list<char>
-	res push-all "HTTP/1.1 "
-	res push-all a.status.to-str
-	res push " "
+	res ~= "HTTP/1.1 "
+	res ~= a.status.to-str
+	res ~= " "
 	forbid: a.status-desc contains? "\n"
-	res push-all a.status-desc
+	res ~= a.status-desc
 	| TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
 	a.headers each \k, v
-		res push-all "\r\n"
+		res ~= "\r\n"
 		forbid: k contains? "\n"
 		forbid: v contains? "\n"
-		res push-all k
-		res push-all ": "
-		res push-all v
+		res ~= k
+		res ~= ": "
+		res ~= v
 	forbid: a.headers has? "Content-Length"
 	if a.body has?
-		res push-all "Content-Length: "
-		res push-all a.body.size.to-str
-	res push-all "\r\n\r\n"
-	res push-all a.body
-	res move-to-arr
+		res ~= "Content-Length: "
+		res ~= a.body.size.to-str
+	res ~= "\r\n\r\n"
+	res ~= a.body
+	res move-to-arr!
 
 |ok-response str() noctx
 |	"HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"
@@ -167,7 +166,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	as none
 		none
 	as some s
-		line = a pop-n-from-start s.value.incr rtail
+		line = a pop-n-from-start! s.value.incr rtail
 		some: line strip-carriage-return
 
 .strip-carriage-return str(a str)

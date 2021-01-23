@@ -282,14 +282,15 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 	immutable NameAndRange funName = takeNameAndRange(alloc, lexer);
 	immutable Opt!Operator operator = operatorForSym(funName.name);
 	if (has(operator)) {
-		immutable Bool tookColon = tryTake(lexer, ':');
+		immutable Bool tookColon = tryTake(lexer, ':'); // TODO: forbid for low-precedence operators like '~='
 		if (!tryTake(lexer, ' ')) {
 			addDiagAtChar(alloc, lexer, immutable ParseDiag(
 				immutable ParseDiag.Expected(ParseDiag.Expected.Kind.space)));
 			skipUntilNewlineNoDiag(lexer);
 			return immutable ExprAndMaybeDedent(target, none!size_t);
 		} else {
-			immutable ArgCtx argCtx = immutable ArgCtx(False, tookColon);
+			immutable Bool lowPrecedence = immutable Bool(precedence(force(operator)) < 0);
+			immutable ArgCtx argCtx = immutable ArgCtx(lowPrecedence, immutable Bool(lowPrecedence || tookColon));
 			immutable ExprAndMaybeDedent rhs = parseExprArg(alloc, lexer, argCtx, curIndent);
 			//TODO: use a more appropriate fn then
 			verify(!has(rhs.dedents));
@@ -347,12 +348,14 @@ immutable(ExprAst) operatorCallAst(Alloc)(
 			arrLiteral!ExprAst(alloc, [lhs, rhs]))));
 }
 
-immutable(Bool) lowerPrecedence(immutable Operator a, immutable Operator b) {
-	return immutable Bool(precedence(a) < precedence(b));
+immutable(Bool) lowerPrecedence(immutable Operator lhs, immutable Operator rhs) {
+	return immutable Bool(precedence(lhs) < precedence(rhs));
 }
 
-immutable(uint) precedence(immutable Operator op) {
+immutable(int) precedence(immutable Operator op) {
 	final switch (op) {
+		case Operator.concatEquals:
+			return -1;
 		case Operator.equal:
 		case Operator.notEqual:
 		case Operator.less:
@@ -361,6 +364,7 @@ immutable(uint) precedence(immutable Operator op) {
 		case Operator.greaterOrEqual:
 		case Operator.compare:
 		case Operator.arrow:
+		case Operator.concat:
 			return 1;
 		case Operator.plus:
 		case Operator.minus:

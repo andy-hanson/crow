@@ -4,7 +4,7 @@ import
 		ref-of-val, some, true, value, void, wrap-add
 	.collection.mut-list:
 		contains?, mut-list, new-mut-list-by-val-with-capacity-from-unmanaged-memory,
-		noctx-must-remove-unordered, push-capacity-must-be-sufficient
+		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
 	.io.time-low-level: timestamp
 
 | TODO: use a heap, not a list
@@ -68,7 +68,7 @@ pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 
 	match res
 	as task t
-		exclusions push-capacity-must-be-sufficient t.exclusion
+		exclusions push-capacity-must-be-sufficient! t.exclusion
 	as no-task
 		void
 
@@ -81,7 +81,7 @@ to-opt-time opt timestamp(a timestamp) noctx
 		a some
 
 return-task void(a task-queue, task task) noctx unsafe
-	a.currently-running-exclusions.ref-of-val noctx-must-remove-unordered task.exclusion
+	a.currently-running-exclusions.ref-of-val noctx-must-remove-unordered! task.exclusion
 
 .pop-recur pop-task-result
 	prev task-queue-node
@@ -107,7 +107,7 @@ body
 					first-task-time
 			else
 				prev.next := cur.next
-				exclusions push-capacity-must-be-sufficient task.exclusion
+				exclusions push-capacity-must-be-sufficient! task.exclusion
 				task
 		else
 			no-task: true, task.time some

@@ -2,10 +2,10 @@ import
 	.bootstrap:
 		==, >, ?, bool, char, false, float, int, int16, int32, nat, nat16, nat32, none, opt, some,
 		str, todo, to-int, to-nat, true, value
-	.collection.arr: +, empty?, subscript
+	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: first, tail
 	.collection.dict: dict, each
-	.collection.mut-list: move-to-arr, mut-list, push, push-all, size
+	.collection.mut-list: ~=, move-to-arr!, mut-list, size
 	.number-utils:
 		+, *, /, abs, mod, multiple-of?, neg, negative?, to-int, to-float, truncate-to-int
 	.opt-utils: map
@@ -48,7 +48,7 @@ to-str str(n nat)
 	else
 		hi = to-str: n / 10
 		lo = to-str: n mod 10
-		hi + lo
+		hi ~ lo
 
 to-str<?t> spec
 	to-str str(a ?t)
@@ -58,22 +58,22 @@ to-str str(a str)
 
 to-str str(a dict<?k, ?v>) to-str<?k> to-str<?v>
 	res = mut-list<char>
-	res push "["
+	res ~= "["
 	a each \k, v
 		if res.size > 1
-			res push-all ", "
-		res push-all k.to-str
-		res push-all " -> "
-		res push-all v.to-str
-	res push "]"
-	res move-to-arr
+			res ~= ", "
+		res ~= k.to-str
+		res ~= " -> "
+		res ~= v.to-str
+	res ~= "]"
+	res move-to-arr!
 
 to-str str(a opt ?t) to-str<?t>
 	match a
 	as none
 		"none"
 	as some s
-		"some(" + s.value.to-str + ")"
+		"some(" ~ s.value.to-str ~ ")"
 
 to-str str(n nat32)
 	n.to-nat to-str
@@ -83,8 +83,7 @@ to-str str(n nat16)
 
 to-str str(i int)
 	a = i.abs to-str
-	| TODO: string interpolation
-	i.negative? ? ("-" + a), a
+	i.negative? ? ("-" ~ a), a
 
 to-str str(i int32)
 	i.to-int to-str
@@ -101,9 +100,9 @@ to-str str(a float)
 	if hundredths == 0
 		whole-part
 	elif hundredths multiple-of? 10
-		whole-part + "." + tenths.to-str
+		whole-part ~ "." ~ tenths.to-str
 	else
-		whole-part + "." + hundredths.to-str
+		whole-part ~ "." ~ hundredths.to-str
 
 char-to-nat opt nat(c char)
 	if c == "0"

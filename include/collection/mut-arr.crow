@@ -1,24 +1,43 @@
 import
 	..alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
-	..bootstrap: +, ==, <, <=, arr, bool, data, hard-assert, nat, opt, ptr, set, size, void
+	..bootstrap: +, ==, <, arr, arrow, bool, data, hard-assert, nat, opt, ptr, set, size, void
 	..exceptions: assert
-	..number-utils: +, -, incr
 	.arr: subscript
 	.arr-util: find-index
 
 mut-arr<?t> record mut
 	by-val
+	| Adding a dummy field so the constructor won't conflict with mut-arr from arr
+	ignore void
 	| TODO:PRIVATE
-	arr arr ?t
+	inner arr ?t
+
+mut-arr mut-arr ?t() noctx
+	mut-arr: void, []
+
+mut-arr mut-arr ?t(size nat, data ptr ?t) noctx unsafe
+	mut-arr: void, arr: size, data
+
+mut-arr mut-arr ?t(a arr ?t)
+	a.size make-mut-arr<?t> {a[it]}
+
+arr arr ?t(a mut-arr ?t)
+	a.copy.inner
+
+copy mut-arr ?t(a mut-arr ?t)
+	a.size make-mut-arr<?t> {a[it]}
 
 size nat(a mut-arr ?t) noctx
-	a.arr size
+	a.inner size
 
 data ptr ?t(a mut-arr ?t) noctx unsafe
-	a.arr data
+	a.inner data
 
 subscript ?t(a mut-arr ?t, index nat)
-	a.arr[index]
+	a.inner[index]
+
+subscript mut-arr ?t(a mut-arr ?t, range arrow<nat, nat>)
+	mut-arr: a.inner[range]
 
 set-subscript void(a mut-arr ?t, index nat, value ?t) trusted
 	assert: index < a.size
@@ -27,12 +46,6 @@ set-subscript void(a mut-arr ?t, index nat, value ?t) trusted
 noctx-set-at void(a mut-arr ?t, index nat, value ?t) noctx unsafe
 	hard-assert: index < a.size
 	a.data + index set value
-
-empty-mut-arr mut-arr ?t() noctx
-	mut-arr: []
-
-mut-arr mut-arr ?t(size nat, data ptr ?t) noctx unsafe
-	mut-arr: arr: size, data
 
 new-uninitialized-mut-arr mut-arr ?t(size nat) unsafe
 	mut-arr: size, alloc-uninitialized<?t>: size
@@ -46,32 +59,14 @@ fill-mut-arr mut-arr ?t(size nat, value ?t)
 	size make-mut-arr \ignore
 		value
 
-copy-to-mut-arr mut-arr ?t(a arr ?t)
-	a.size make-mut-arr<?t> {a[it]}
-
 temp-as-arr arr ?t(a mut-arr ?t) noctx unsafe
-	a arr
+	a inner
 
 cast-immutable arr ?t(a mut-arr ?t) noctx unsafe
-	a.arr
+	a inner
 
 set-zero-elements void(a mut-arr ?t) noctx unsafe
 	a.data set-zero-range a.size
-
-slice mut-arr ?t(a mut-arr ?t, begin nat, size nat) trusted
-	assert: begin + size <= a.size
-	mut-arr: size, a.data + begin
-
-slice-starting-at mut-arr ?t(a mut-arr ?t, begin nat)
-	assert: begin <= a.size
-	a slice: begin, a.size - begin
-
-slice-after mut-arr ?t(a mut-arr ?t, before-begin nat)
-	a slice-starting-at before-begin.incr
-
-slice-up-to mut-arr ?t(a mut-arr ?t, size nat)
-	assert: size <= a.size
-	a slice: 0, size
 
 region misc
 

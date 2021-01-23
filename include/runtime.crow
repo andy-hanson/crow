@@ -5,7 +5,7 @@ import
 		ctx, exception, exclusion, false, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
 		island-and-exclusion, island-id, lock, message, min, nat, noctx-decr, noctx-incr, none,
 		not, opt, or, ref-of-val, return-stack, size, some, str, true, value, void
-	.collection.arr: +, empty?, noctx-at, subscript
+	.collection.arr: ~, empty?, noctx-at, subscript
 	.collection.arr-util: join
 	.exceptions: exception-ctx, new-exception-ctx
 	.io.print: print-err, print-err-no-newline
@@ -91,7 +91,7 @@ default-exception-handler void(e exception) summon unsafe
 .show-exception str(a exception)
 	msg = a.message.empty? ? "<<empty message>>", a.message
 	bt = a.backtrace.return-stack join "\n\tat "
-	msg + "\n\tat " + bt
+	msg ~ "\n\tat " ~ bt
 
 | TODO: move to exceptions.crow?
 set-this-islands-exception-handler void(exception-handler fun void(exception)) summon trusted

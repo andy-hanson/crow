@@ -32,18 +32,12 @@ ref-of-val-at ?t(a arr by-val<?t>, index nat) trusted
 	assert: index < a.size
 	a.data + index ref-of-ptr
 
-prepend arr ?t(a ?t, b arr ?t)
-	[a] + b
-
-append arr ?t(a arr ?t, b ?t)
-	a + [b]
-
-+ arr ?t(a arr ?t, b arr ?t) trusted
+~ arr ?t(a arr ?t, b arr ?t) trusted
 	res-size = a.size + b.size
 	res = res-size alloc-uninitialized<?t>
 	res copy-data-from a.data, a.size
 	res + a.size copy-data-from b.data, b.size
-	arr<?t>: res-size, res
+	arr: res-size, res
 
 | TODO: should be unnecessary, just use '=='
 | (But type system must recognize that `arr ?t` is data if `?t` is)

@@ -6,7 +6,7 @@ import
 	..exceptions: forbid
 	..number-utils: +, -, decr, incr
 	..opt-utils: force
-	.arr: +, arr-eq?, empty?, noctx-at, subscript
+	.arr: ~, arr-eq?, empty?, noctx-at, subscript
 
 make-arr arr ?t(size nat, f act ?t(nat)) trusted
 	data = size alloc-uninitialized<?t>
@@ -161,7 +161,7 @@ join arr ?t(a arr arr ?t, joiner arr ?t)
 	elif a.size == 1
 		a[0]
 	else
-		a[0] + joiner +: a.tail join joiner
+		a[0] ~ joiner ~: a.tail join joiner
 
 split-by-subseq arr arr ?t(a arr ?t, splitter arr ?t) data<?t> trusted
 	size = a count-subseqs splitter incr

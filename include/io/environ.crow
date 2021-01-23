@@ -1,9 +1,9 @@
 import
-	..bootstrap: ->, arrow, c-str, data, deref, from, incr, not, null, null?, ptr, str, to, void
-	..collection.arr: +, arr-from-begin-end
+	..bootstrap: ->, arrow, char, c-str, data, deref, from, incr, not, null, null?, ptr, str, to, void
+	..collection.arr: ~, arr-from-begin-end
 	..collection.dict: dict, each
-	..collection.mut-dict: move-to-dict, mut-dict, new-mut-dict, set-subscript
-	..collection.mut-list: move-to-arr, mut-list, push
+	..collection.mut-dict: move-to-dict!, mut-dict, new-mut-dict, set-subscript
+	..collection.mut-list: ~=, move-to-arr!, mut-list
 	..str-utils: find-char-in-cstr, find-cstr-end, to-c-str
 	..posix.unistd: environ
 
@@ -13,7 +13,7 @@ environ alias
 get-environ environ() summon trusted
 	res = new-mut-dict<str, str>
 	environ get-environ-recur res
-	res move-to-dict
+	res move-to-dict!
 
 get-environ-recur void(env ptr c-str, res mut-dict<str, str>) unsafe
 	if env.deref.null? not
@@ -32,6 +32,6 @@ parse-environ-entry arrow<str, str>(entry c-str) unsafe
 convert-environ ptr c-str(environ environ)
 	res = mut-list<c-str>
 	environ each \key, value
-		res push: key + "=" + value to-c-str
-	res push null
-	res.move-to-arr data
+		res ~= key ~ "=" ~ value to-c-str
+	res ~= null<char>
+	res.move-to-arr! data

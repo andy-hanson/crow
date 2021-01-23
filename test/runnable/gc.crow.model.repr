@@ -70,7 +70,7 @@ module(
 														fun-inst(name: print)
 														[
 															call(
-																fun-inst(name: +, type-args: [char()])
+																fun-inst(name: ~, type-args: [char()])
 																[
 																	string-lit("stats: ")
 																	call(
@@ -83,7 +83,7 @@ module(
 													fun-inst(name: print)
 													[
 														call(
-															fun-inst(name: +, type-args: [char()])
+															fun-inst(name: ~, type-args: [char()])
 															[
 																string-lit("gc count: ")
 																call(
@@ -93,7 +93,7 @@ module(
 												fun-inst(name: print)
 												[
 													call(
-														fun-inst(name: +, type-args: [char()])
+														fun-inst(name: ~, type-args: [char()])
 														[
 															string-lit("a: ")
 															call(fun-inst(name: to-str), [local-ref(a)])])]))
@@ -101,7 +101,7 @@ module(
 											fun-inst(name: print)
 											[
 												call(
-													fun-inst(name: +, type-args: [char()])
+													fun-inst(name: ~, type-args: [char()])
 													[
 														string-lit("stats (after print): ")
 														call(
@@ -126,7 +126,7 @@ module(
 																	fun-inst(name: print)
 																	[
 																		call(
-																			fun-inst(name: +, type-args: [char()])
+																			fun-inst(name: ~, type-args: [char()])
 																			[
 																				string-lit("stats: ")
 																				call(
@@ -139,7 +139,7 @@ module(
 																fun-inst(name: print)
 																[
 																	call(
-																		fun-inst(name: +, type-args: [char()])
+																		fun-inst(name: ~, type-args: [char()])
 																		[
 																			string-lit("gc count: ")
 																			call(
@@ -152,7 +152,7 @@ module(
 															fun-inst(name: print)
 															[
 																call(
-																	fun-inst(name: +, type-args: [char()])
+																	fun-inst(name: ~, type-args: [char()])
 																	[
 																		string-lit("a: ")
 																		call(fun-inst(name: to-str), [closure-rf(a)])])]))
@@ -160,7 +160,7 @@ module(
 														fun-inst(name: print)
 														[
 															call(
-																fun-inst(name: +, type-args: [char()])
+																fun-inst(name: ~, type-args: [char()])
 																[
 																	string-lit("stats (after print): ")
 																	call(
@@ -178,19 +178,19 @@ module(
 			public?: true
 			sig: sig(file-pos(52, 811), to-str, arr(char()), [param(file-range(52, range(822, 825)), some(a), r())])
 			body: call(
-				fun-inst(name: +, type-args: [char()])
+				fun-inst(name: ~, type-args: [char()])
 				[
 					call(
-						fun-inst(name: +, type-args: [char()])
+						fun-inst(name: ~, type-args: [char()])
 						[
 							call(
-								fun-inst(name: +, type-args: [char()])
+								fun-inst(name: ~, type-args: [char()])
 								[
 									call(
-										fun-inst(name: +, type-args: [char()])
+										fun-inst(name: ~, type-args: [char()])
 										[
 											call(
-												fun-inst(name: +, type-args: [char()])
+												fun-inst(name: ~, type-args: [char()])
 												[
 													string-lit("a=")
 													call(
@@ -205,19 +205,19 @@ module(
 			summon: true
 			sig: sig(file-pos(52, 891), to-str, arr(char()), [param(file-range(52, range(902, 912)), some(a), gc-stats())])
 			body: call(
-				fun-inst(name: +, type-args: [char()])
+				fun-inst(name: ~, type-args: [char()])
 				[
 					call(
-						fun-inst(name: +, type-args: [char()])
+						fun-inst(name: ~, type-args: [char()])
 						[
 							call(
-								fun-inst(name: +, type-args: [char()])
+								fun-inst(name: ~, type-args: [char()])
 								[
 									call(
-										fun-inst(name: +, type-args: [char()])
+										fun-inst(name: ~, type-args: [char()])
 										[
 											call(
-												fun-inst(name: +, type-args: [char()])
+												fun-inst(name: ~, type-args: [char()])
 												[
 													string-lit("cur-word=")
 													call(

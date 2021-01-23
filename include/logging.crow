@@ -1,6 +1,6 @@
 import
 	.bootstrap: as, as-ref, by-val, get-ctx, log-ctx, str, subscript, void, zeroed
-	.collection.arr: +
+	.collection.arr: ~
 	.exceptions: finally
 	.io.print: print
 
@@ -16,7 +16,7 @@ log-handler alias
 	fun void(logged)
 
 default-log-handler void(a logged) summon
-	print: a.level.to-str + ": " + a.message
+	print: a.level.to-str ~ ": " ~ a.message
 
 info record
 warn record

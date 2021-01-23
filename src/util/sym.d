@@ -97,6 +97,7 @@ private immutable(Bool) isAlphaIdentifier(ref immutable Str a) {
 }
 
 enum Operator {
+	concatEquals,
 	equal,
 	notEqual,
 	less,
@@ -104,6 +105,7 @@ enum Operator {
 	greater,
 	greaterOrEqual,
 	compare,
+	concat,
 	arrow,
 	plus,
 	minus,
@@ -139,6 +141,8 @@ private immutable(Opt!Operator) operatorFromStr(scope ref immutable Str str) {
 				return some(Operator.plus);
 			case '-':
 				return some(Operator.minus);
+			case '~':
+				return some(Operator.concat);
 			case '*':
 				return some(Operator.times);
 			case '/':
@@ -149,7 +153,9 @@ private immutable(Opt!Operator) operatorFromStr(scope ref immutable Str str) {
 				return none!Operator;
 		}
 	else
-		return strEqLiteral(str, "==")
+		return strEqLiteral(str, "~=")
+			? some(Operator.concatEquals)
+			: strEqLiteral(str, "==")
 			? some(Operator.equal)
 			: strEqLiteral(str, "!=")
 			? some(Operator.notEqual)
@@ -166,6 +172,8 @@ private immutable(Opt!Operator) operatorFromStr(scope ref immutable Str str) {
 
 private immutable(string) strOfOperator(immutable Operator a) {
 	final switch (a) {
+		case Operator.concatEquals:
+			return "~=";
 		case Operator.equal:
 			return "==";
 		case Operator.notEqual:
@@ -182,6 +190,8 @@ private immutable(string) strOfOperator(immutable Operator a) {
 			return "<=>";
 		case Operator.arrow:
 			return "->";
+		case Operator.concat:
+			return "~";
 		case Operator.plus:
 			return "+";
 		case Operator.minus:

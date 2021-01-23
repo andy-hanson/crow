@@ -1,11 +1,11 @@
 import
-	..bootstrap: ==, <, <=, >, arr, as, data, nat, void
+	..bootstrap: ==, <, <=, >, ->, arr, as, data, nat, void
 	..exceptions: assert
-	..number-utils: /, decr, incr
-	.mut-arr: cast-immutable, copy-to-mut-arr, mut-arr, size, slice-after, slice-up-to, set-subscript, subscript
+	..number-utils: +, -, /
+	.mut-arr: cast-immutable, mut-arr, size, set-subscript, subscript
 
 sort arr ?t(a arr ?t) data<?t> trusted
-	res = a copy-to-mut-arr
+	res = a mut-arr
 	res sort-in-place
 	res cast-immutable
 
@@ -18,12 +18,12 @@ sort-in-place void(a mut-arr ?t) data<?t>
 		| Perf -- in case a is sorted already, prefer the middle element as a pivot
 		a swap: 0, a.size / 2
 		pivot = a[0]
-		index-of-first-value-gt-pivot = a partition-recur pivot, 1, a.size.decr
-		new-pivot-index = index-of-first-value-gt-pivot.decr
+		index-of-first-value-gt-pivot = a partition-recur pivot, 1, a.size - 1
+		new-pivot-index = index-of-first-value-gt-pivot - 1
 		a swap 0, new-pivot-index
 
-		a slice-up-to new-pivot-index sort-in-place
-		a slice-after new-pivot-index sort-in-place
+		a[0 -> new-pivot-index] sort-in-place
+		a[new-pivot-index + 1 -> a.size] sort-in-place
 
 | Returns index of first value > pivot
 .partition-recur nat(a mut-arr ?t, pivot ?t, l nat, r nat) data<?t>
@@ -32,10 +32,10 @@ sort-in-place void(a mut-arr ?t) data<?t>
 	if l <= r
 		em = a[l]
 		if em < pivot
-			a partition-recur pivot, l.incr, r
+			a partition-recur pivot, (l + 1), r
 		else
 			a swap l, r
-			a partition-recur pivot, l, r.decr
+			a partition-recur pivot, l, r - 1
 	else
 		l
 

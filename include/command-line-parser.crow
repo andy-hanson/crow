@@ -2,11 +2,11 @@ import
 	.bootstrap:
 		==, ->, arr, bool, false, has?, none, opt, size, some, subscript, str, true, value, void
 	.cell: cell, get, set
-	.collection.arr: +, empty?, subscript
+	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
 	.collection.dict: dict, each
-	.collection.mut-dict: move-to-dict, mut-dict, new-mut-dict, set-subscript
-	.collection.mut-list: fill-mut-list, move-to-arr, set-subscript, subscript
+	.collection.mut-dict: move-to-dict!, mut-dict, new-mut-dict, set-subscript
+	.collection.mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
 	.exceptions: assert, fail, forbid
 	.number-utils: +
 
@@ -25,7 +25,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt 
 			if key == "help"
 				help set true
 			else
-				fail: "Unexpected arg " + key
+				fail: "Unexpected arg " ~ key
 		as some s
 			idx = s value
 			| TODO: duplicate argument error
@@ -35,7 +35,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt 
 	if help get
 		none
 	else
-		make-t[values move-to-arr] some
+		make-t[values move-to-arr!] some
 
 | Command line syntax:
 | `foo bar --a 1 --b 2 3 -- x y z`
@@ -67,7 +67,7 @@ parse-cmd-line-args-dynamic parsed-cmd-line-args(args arr str)
 parse-named-args dict<str, arr str>(args arr str)
 	res = new-mut-dict<str, arr str>
 	args parse-named-args-recur res
-	res move-to-dict
+	res move-to-dict!
 
 .parse-named-args-recur void(args arr str, builder mut-dict<str, arr str>)
 	first-name = args.first remove-start "--"

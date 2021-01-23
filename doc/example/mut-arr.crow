@@ -1,0 +1,14 @@
+import
+	collection.mut-arr: arr, mut-arr, set-subscript, subscript
+	io.print: print
+
+main fut nat(_ arr str) summon
+	ingredients = mut-arr: ["beans", "garlic", "onion", "pepper", "cinnamon"]
+	print: ingredients[2]
+	ingredients[2] := "chocolate"
+	print: ingredients[2]
+	a = ingredients arr
+	print: a[3]
+	ingredients[3] := "cinnamon"
+	print: "a[3]: " + a[3] + ", ingredients[3]: " + ingredients[3]
+	0 resolved

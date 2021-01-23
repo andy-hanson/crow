@@ -6,7 +6,7 @@ import
 	..opt-utils: each
 	.arr: empty?, subscript
 	.arr-util: first, map, tail
-	.mut-list: move-to-arr, mut-list, push
+	.mut-list: ~=, move-to-arr!, mut-list
 
 dict<?k, ?v> record
 	| TODO: PRIVATE
@@ -57,7 +57,7 @@ combine dict<?k, ?out>(a dict<?k, ?in-0>, b dict<?k, ?in-1>, cb act opt ?out(?k,
 	out-keys = mut-list<?k>
 	out-values = mut-list<?out>
 	combine-recur: out-keys, out-values, a.keys, a.values, b.keys, b.values, cb
-	dict: out-keys.move-to-arr, out-values.move-to-arr
+	dict: out-keys.move-to-arr!, out-values.move-to-arr!
 
 .combine-recur void
 	out-keys mut-list ?k
@@ -80,16 +80,16 @@ body
 		match cmp
 		as less
 			cb[a-keys[0], a-values[0] some, none] each \v
-				out-keys push a-keys[0]
-				out-values push v
+				out-keys ~= a-keys[0]
+				out-values ~= v
 			combine-recur: out-keys, out-values, a-keys.tail, a-values.tail, b-keys, b-values, cb
 		as equal
 			cb[a-keys[0], a-values[0] some, b-values[0] some] each \v
-				out-keys push a-keys[0]
-				out-values push v
+				out-keys ~= a-keys[0]
+				out-values ~= v
 			combine-recur: out-keys, out-values, a-keys.tail, a-values.tail, b-keys.tail, b-values.tail, cb
 		as greater
 			cb[b-keys[0], none, b-values[0] some] each \v
-				out-keys push b-keys[0]
-				out-values push v
+				out-keys ~= b-keys[0]
+				out-values ~= v
 			combine-recur: out-keys, out-values, a-keys, a-values, b-keys.tail, b-values.tail, cb

@@ -1,6 +1,6 @@
 import
 	.bootstrap: ==, ->, bool, char, nat, none, opt, size, some, str, subscript, value, void
-	.collection.arr: +, empty?, subscript
+	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: each, last, r-index-of, rtail
 	.io.file: is-dir?, read-dir
 	.number-utils: +, -
@@ -13,7 +13,7 @@ parent-path str(a str)
 		a[0 -> s.value]
 
 child-path str(a str, child-name str)
-	a + "/" + child-name
+	a ~ "/" ~ child-name
 
 each-child-recursive void(path str, filter act bool(str), f act void(str)) summon
 	if path is-dir?
@@ -46,7 +46,7 @@ remove-extension str(name str)
 		name[0 -> s.value]
 
 add-extension str(name str, ext str)
-	name + "." + ext
+	name ~ "." ~ ext
 
 change-extension str(name str, ext str)
 	name.remove-extension add-extension ext

@@ -1,0 +1,12 @@
+import
+	collection.arr-util: join, map
+	collection.mut-list: ~=, move-to-arr!, mut-list
+	io.print: print
+
+main fut nat(_ arr str) summon
+	xs = mut-list<char>: ["a", "b", "c"]
+	xs ~= "d"
+	chars = as<arr char>: ["e", "f"]
+	xs ~= chars
+	print: xs.move-to-arr! map {it to-str} join ", "
+	0 resolved
