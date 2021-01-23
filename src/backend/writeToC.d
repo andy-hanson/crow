@@ -2190,6 +2190,8 @@ void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
 					return "_greaterOrEqual";
 				case Operator.compare:
 					return "_compare";
+				case Operator.arrow:
+					return "_arrow";
 				case Operator.plus:
 					return "_plus";
 				case Operator.minus:

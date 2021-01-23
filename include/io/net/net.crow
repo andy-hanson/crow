@@ -76,7 +76,7 @@ bind-to-port fd-t(port str) unsafe summon
 		a = ap deref
 		listen-fd = socket: a.ai-family, a.ai-socktype, 0
 		if listen-fd != -1
-			if listen-fd bind a.ai-addr, a.ai-addrlen == 0
+			if (listen-fd bind a.ai-addr, a.ai-addrlen) == 0
 				print: "Connected!"
 				listen-fd some
 			else

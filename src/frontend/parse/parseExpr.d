@@ -360,6 +360,7 @@ immutable(uint) precedence(immutable Operator op) {
 		case Operator.greater:
 		case Operator.greaterOrEqual:
 		case Operator.compare:
+		case Operator.arrow:
 			return 1;
 		case Operator.plus:
 		case Operator.minus:

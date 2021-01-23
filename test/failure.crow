@@ -1,6 +1,6 @@
 import
 	collection.arr-util: each
-	collection.mut-list: move-to-arr, new-mut-list, push-all, reduce-size-if-more-than, size
+	collection.mut-list: move-to-arr, mut-list, push-all, reduce-size-if-more-than, size
 	io.file: try-read-file, write-file
 	io.print: print, print-no-newline
 	path: base-name
@@ -31,7 +31,7 @@ body
 			[original-path failure message]
 
 flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper act arr<?out>(?in)) trusted
-	res = new-mut-list<?out>
+	res = mut-list<?out>
 	a each \x
 		if res.size < max-size
 			res push-all: mapper[x]

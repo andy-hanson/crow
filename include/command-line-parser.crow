@@ -4,7 +4,8 @@ import
 	.cell: cell, get, set
 	.collection.arr: +, empty?, slice-after, slice-starting-at, slice-up-to
 	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
-	.collection.dict: add, dict, each, empty-dict, move-to-dict, mut-dict, new-mut-dict
+	.collection.dict: dict, each
+	.collection.mut-dict: move-to-dict, mut-dict, new-mut-dict, set-subscript
 	.collection.mut-list: fill-mut-list, move-to-arr, set-subscript, subscript
 	.exceptions: assert, fail, forbid
 
@@ -49,7 +50,7 @@ parse-cmd-line-args-dynamic parsed-cmd-line-args(args arr str)
 	| Find the location of the first name beginning in '--'
 	match args find-index {it starts-with? "--"}
 	as none
-		parsed-cmd-line-args: args, empty-dict, []
+		parsed-cmd-line-args: args, [].dict, []
 	as some s
 		first-named-arg-index = s.value
 		nameless = args slice-up-to first-named-arg-index
@@ -72,8 +73,8 @@ parse-named-args dict<str, arr str>(args arr str)
 	tl = args tail
 	match tl find-index {it starts-with? "--"}
 	as none
-		builder add first-name, tl
+		builder[first-name] := tl
 	as some s
 		next-named-arg-index = s.value
-		builder add: first-name, tl slice-up-to next-named-arg-index
+		builder[first-name] := tl slice-up-to next-named-arg-index
 		args slice-starting-at next-named-arg-index parse-named-args-recur builder

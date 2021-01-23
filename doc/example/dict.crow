@@ -1,0 +1,16 @@
+import
+	collection.dict: dict, subscript
+	collection.mut-dict: move-to-dict, mut-dict, remove
+	io.print: print
+
+main fut nat(_ arr str) summon
+	d = dict: [1 -> "one", 2 -> "two"]
+	print: d[1] to-str
+	print: d[3] to-str
+	print: d to-str
+
+	m = mut-dict: [1 -> "one", 2 -> "two"]
+	print: m remove 1 to-str
+	print: m remove 1 to-str
+	print: m.move-to-dict to-str
+	0 resolved

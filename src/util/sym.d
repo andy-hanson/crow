@@ -104,6 +104,7 @@ enum Operator {
 	greater,
 	greaterOrEqual,
 	compare,
+	arrow,
 	plus,
 	minus,
 	times,
@@ -158,6 +159,8 @@ private immutable(Opt!Operator) operatorFromStr(scope ref immutable Str str) {
 			? some(Operator.greaterOrEqual)
 			: strEqLiteral(str, "<=>")
 			? some(Operator.compare)
+			: strEqLiteral(str, "->")
+			? some(Operator.arrow)
 			: none!Operator;
 }
 
@@ -177,6 +180,8 @@ private immutable(string) strOfOperator(immutable Operator a) {
 			return ">=";
 		case Operator.compare:
 			return "<=>";
+		case Operator.arrow:
+			return "->";
 		case Operator.plus:
 			return "+";
 		case Operator.minus:

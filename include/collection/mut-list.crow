@@ -1,7 +1,7 @@
 import
 	..alloc: alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	..bootstrap:
-		?, +, <, <=, >, >=, ==, arr, as-any-ptr, bool, by-val, char, data, deref, drop,
+		?, +, <, <=, >, >=, ==, arr, as-any-ptr, bool, by-val, data, deref, drop,
 		hard-assert, hard-forbid, nat, noctx-decr, noctx-incr, none, not, opt, ptr, set, size-of,
 		some, todo, void, zeroed
 	..collection.arr-util: contains?, each, index-of
@@ -22,18 +22,11 @@ mut-list<?t> record mut
 	| TODO:PRIVATE (getter public)
 	size mut nat
 
-| TODO:MOVE?
-mut-str alias
-	mut-list char
-
 data ptr ?t(a mut-list ?t) noctx unsafe
 	a.backing data
 
 capacity nat(a mut-list ?t) noctx unsafe
 	a.backing size
-
-new-mut-list mut-list ?t() trusted
-	mut-list: empty-mut-arr, 0
 
 new-mut-list-by-val by-val mut-list<?t>() noctx trusted
 	mut-list<?t>: empty-mut-arr, 0
@@ -46,13 +39,16 @@ fill-mut-list mut-list ?t(size nat, value ?t)
 	backing = size fill-mut-arr value
 	mut-list: backing, size
 
-copy-to-mut-list mut-list ?t(a arr ?t)
-	res = new-mut-list<?t>
+mut-list mut-list ?t()
+	mut-list: empty-mut-arr, 0
+
+mut-list mut-list ?t(a arr ?t)
+	res = mut-list<?t>
 	res push-all a
 	res
 
 copy mut-list ?t(a mut-list ?t) trusted
-	a.temp-as-arr copy-to-mut-list
+	a.temp-as-arr mut-list
 
 copy-to-arr arr ?t(a mut-list ?t)
 	a.copy move-to-arr

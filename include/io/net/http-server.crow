@@ -4,10 +4,10 @@ import
 		ptr-cast, size, some, str, todo, true, value, void
 	...collection.arr: empty?, has?, subscript
 	...collection.arr-util: contains?, last, rtail, split-by-subseq
-	...collection.dict:
-		add, dict, each, empty-dict, has?, move-to-dict, mut-dict, new-mut-dict, remove, subscript
+	...collection.dict: dict, each, has?
+	...collection.mut-dict: move-to-dict, mut-dict, new-mut-dict, remove, set-subscript, subscript
 	...collection.mut-list:
-		index-of, move-to-arr, mut-list, new-mut-list, pop-n-from-start, push, push-all, size
+		index-of, move-to-arr, mut-list, pop-n-from-start, push, push-all, size
 	...exceptions: assert, forbid
 	...fut-utils: resolved, subscript, then
 	...number-utils: incr, to-int
@@ -47,7 +47,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	client-states = new-mut-dict<fd-t, http-parse-state>
 
 	on-accepted-client = as<ref void(fd-t)>: \fd
-		client-states add fd, new-http-parse-state
+		client-states[fd] := new-http-parse-state
 		void resolved
 	on-received-chunk = as<ref void(fd-t, arr nat8)>: \fd, bytes
 		match client-states[fd]
@@ -58,12 +58,12 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			state = s value
 			closed <- fd handle-chunk state, bytes.as-str, handler
 			if closed
-				client-states remove fd
+				client-states remove fd drop
 			void resolved
 	tcp-server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
 
 	| TODO: KILL
-	ignore <- handler[http-request: http-get, "", empty-dict, ""]
+	ignore <- handler[http-request: http-get, "", [].dict, ""]
 	drop: ignore
 
 	resolved: http-server: tcp-server.stop
@@ -92,7 +92,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 
 | TODO: write out to a stream, not str
 .response-to-str str(a http-response)
-	res = new-mut-list<char>
+	res = mut-list<char>
 	res push-all "HTTP/1.1 "
 	res push-all a.status.to-str
 	res push " "
@@ -151,7 +151,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			assert: parts.size == 2
 			key = parts[0]
 			value = parts[1]
-			state.headers add key, value
+			state.headers[key] := value
 			state handle-http-initial
 
 .parse-method http-method(name str)
@@ -186,4 +186,4 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	unparsed mut-list char
 
 .new-http-parse-state http-parse-state()
-	http-parse-state: http-get, "", new-mut-dict, 0, new-mut-list
+	http-parse-state: http-get, "", mut-dict, 0, mut-list

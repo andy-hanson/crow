@@ -2,7 +2,7 @@ import
 	cell: cell, get, swap
 	collection.arr-util:
 		contains?, contains-subseq?, each-with-index, exists?, ends-with?, first, tail
-	collection.mut-list: move-to-arr, new-mut-list, push
+	collection.mut-list: move-to-arr, mut-list, push
 	io.file: read-file
 	io.print: print
 	path: base-name, each-child-recursive, get-extension
@@ -20,7 +20,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 		ok: "linted " + files.size.to-str + " files"
 
 .list-lintable-files arr str(path str) summon
-	res = new-mut-list<str>
+	res = mut-list<str>
 	path each-child-recursive {not: it excluded-from-lint?}, \child
 		if child.base-name.ignore-extension-of-name? not
 			res push child
@@ -34,7 +34,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 | Returns nubmer of errors
 .lint-file arr failure(path str) summon
 	text = path read-file
-	res = new-mut-list<failure>
+	res = mut-list<failure>
 	ext = path.get-extension force
 	allow-double-space? = ext == "err" or: ext == "sublime-syntax"
 	text.lines each-with-index \line, line-num
@@ -64,7 +64,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 		s.value ignore-extension?
 
 .lines arr str(s str)
-	res = new-mut-list<str>
+	res = mut-list<str>
 	last-nl = 0 cell<nat>
 	s each-with-index \c, index
 		if c == "\n"

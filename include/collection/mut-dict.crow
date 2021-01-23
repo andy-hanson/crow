@@ -1,0 +1,59 @@
+import
+	..bootstrap: ==, arr, arrow, bool, data, drop, from, nat, none, opt, some, to, value, void
+	..number-utils: +
+	.arr-util: map
+	.dict: dict, has?, subscript
+	.mut-list:
+		index-of, move-to-arr, mut-list, push, remove-unordered-at-index, size, set-subscript,
+		subscript, temp-as-arr
+
+mut-dict<?k, ?v> record mut
+	keys mut-list ?k
+	values mut-list ?v
+
+mut-dict mut-dict<?k, ?v>()
+	mut-dict: mut-list, mut-list
+
+mut-dict mut-dict<?k, ?v>(pairs arr arrow<?k, ?v>)
+	keys = pairs map {it from}
+	values = pairs map {it to}
+	| TODO: shouldn't need type args
+	mut-dict<?k, ?v>: keys.mut-list, values.mut-list
+
+new-mut-dict mut-dict<?k, ?v>()
+	| TODO: should be able to infer type arguments -- worked when there was only one field...
+	mut-dict<?k, ?v>: mut-list<?k>, mut-list<?v>
+
+subscript opt ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
+	d.temp-as-dict[key]
+
+set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
+	a set-subscript-recur 0, key, value
+
+.set-subscript-recur void(a mut-dict<?k, ?v>, idx nat, key ?k, value ?v) data<?k>
+	if idx == a.keys.size
+		a.keys push key
+		a.values push value
+	elif key == a.keys[idx]
+		a.values[idx] := value
+	else
+		a set-subscript-recur (idx + 1), key, value
+
+has? bool(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
+	a.temp-as-dict has? key
+
+move-to-dict dict<?k, ?v>(m mut-dict<?k, ?v>)
+	| TODO: should be able to infer type arguments 
+	dict<?k, ?v>: m.keys.move-to-arr, m.values.move-to-arr
+
+.temp-as-dict dict<?k, ?v>(m mut-dict<?k, ?v>) unsafe
+	| TODO: should be able to infer type arguments 
+	dict<?k, ?v>: m.keys.temp-as-arr, m.values.temp-as-arr
+
+remove opt ?v(a mut-dict<?k, ?v>, key ?k) data<?k>
+	match a.keys index-of key
+	as none
+		none
+	as some s
+		drop: a.keys remove-unordered-at-index s.value
+		some: a.values remove-unordered-at-index s.value

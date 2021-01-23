@@ -1,43 +1,25 @@
 import
 	..bootstrap:
-		==, arr, bool, data, drop, has?, nat, none, not, opt, size, some, subscript, todo,
-		value, void
-	..collection.arr: empty?, subscript
-	..collection.arr-util: first, map, tail
-	..exceptions: forbid
+		==, arr, arrow, bool, data, from, has?, nat, none, not, opt, size, some, subscript, to, void
 	..number-utils: incr
-	.mut-list: index-of, move-to-arr, mut-list, new-mut-list, push, remove-unordered-at-index, temp-as-arr
-
-key-value-pair<?k, ?v> record
-	key ?k
-	value ?v
+	.arr: empty?, subscript
+	.arr-util: first, map, tail
 
 dict<?k, ?v> record
 	keys arr ?k
 	values arr ?v
 
+dict dict<?k, ?v>()
+	dict: [], []
+
+dict dict<?k, ?v>(pairs arr arrow<?k, ?v>)
+	keys = pairs map {it from}
+	values = pairs map {it to}
+	| TODO: shouldn't need type args
+	dict<?k, ?v>: keys, values
+
 empty? bool(d dict<?k, ?v>)
 	d.keys empty?
-
-empty-dict dict<?k, ?v>()
-	| TODO: should be able to infer type arguments
-	dict<?k, ?v>: [], []
-
-mut-dict<?k, ?v> record mut
-	keys mut-list ?k
-	values mut-list ?v
-
-new-mut-dict mut-dict<?k, ?v>()
-	| TODO: should be able to infer type arguments -- worked when there was only one field...
-	mut-dict<?k, ?v>: new-mut-list<?k>, new-mut-list<?v>
-
-.temp-as-dict dict<?k, ?v>(m mut-dict<?k, ?v>) unsafe
-	| TODO: should be able to infer type arguments 
-	dict<?k, ?v>: m.keys.temp-as-arr, m.values.temp-as-arr
-
-move-to-dict dict<?k, ?v>(m mut-dict<?k, ?v>)
-	| TODO: should be able to infer type arguments 
-	dict<?k, ?v>: m.keys.move-to-arr, m.values.move-to-arr
 
 subscript opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
 	| TODO: should not need to provide type arguments
@@ -46,49 +28,14 @@ subscript opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
 .subscript-recur<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
 	if idx == keys.size
 		none
-	elif key ==: keys[idx]
+	elif key == keys[idx]
 		values[idx] some
 	else
 		| TODO: should not need to provide type arguments!
 		subscript-recur<?k, ?v>: keys, values, idx.incr, key
 
-subscript opt ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
-	d.temp-as-dict[key]
-
-at ?v(d dict<?k, ?v>, key ?k) data<?k>
-	match d[key]
-	as none
-		todo
-	as some s
-		s value
-
-at ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
-	d.temp-as-dict at key
-
 has? bool(d dict<?k, ?v>, key ?k) data<?k>
 	d[key] has?
-
-has? bool(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
-	a.temp-as-dict has? key
-
-add void(a mut-dict<?k, ?v>, pair key-value-pair<?k, ?v>) data<?k>
-	a add pair.key, pair.value
-
-add void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
-	forbid: a has? key
-	a.keys push key
-	a.values push value
-
-remove void(a mut-dict<?k, ?v>, key ?k) data<?k>
-	a remove-and-get key drop
-
-remove-and-get opt ?v(a mut-dict<?k, ?v>, key ?k) data<?k>
-	match a.keys index-of key
-	as none
-		none
-	as some s
-		drop: a.keys remove-unordered-at-index s.value
-		some: a.values remove-unordered-at-index s.value
 
 map-values dict<?k, ?v-out>(d dict<?k, ?v-in>, mapper act ?v-out(?v-in))
 	new-values = d.values map mapper

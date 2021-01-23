@@ -6,7 +6,7 @@ import
 	..collection.arr: +, append, prepend, ref-of-val-at
 	..collection.arr-util: fold, map
 	..collection.mut-list:
-		data, ensure-capacity, move-to-arr, mut-str, new-mut-list, size, unsafe-increase-size
+		data, ensure-capacity, move-to-arr, mut-list, size, unsafe-increase-size
 	..exceptions: assert, fail
 	..number-utils: +, to-nat
 	..posix.bytes-types: zero
@@ -86,8 +86,8 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	check-posix-error: stderr-pipes.read-pipe close
 
 	| Read from pipes
-	stdout-builder = new-mut-list<char>
-	stderr-builder = new-mut-list<char>
+	stdout-builder = mut-list<char>
+	stderr-builder = mut-list<char>
 	keep-polling: stdout-pipes.write-pipe, stderr-pipes.write-pipe, stdout-builder, stderr-builder
 
 	exit-code = pid wait-and-get-exit-code
@@ -99,7 +99,15 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	check-posix-error: res pipe
 	res
 
-.keep-polling void(stdout-pipe fd-t, stderr-pipe fd-t, stdout-builder mut-str, stderr-builder mut-str) summon unsafe
+.keep-polling void
+	stdout-pipe fd-t
+	stderr-pipe fd-t
+	stdout-builder mut-list char
+	stderr-builder mut-list char
+spec
+	summon
+	unsafe
+body
 	poll-fds = as<arr by-val pollfd>: [(pollfd: stdout-pipe, pollin, 0), (pollfd: stderr-pipe, pollin, 0)]
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
@@ -123,7 +131,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 .any? bool(r handle-revents-result)
 	r.had-pollin? or r.hung-up?
 
-.handle-revents handle-revents-result(pollfd pollfd, builder mut-str) summon
+.handle-revents handle-revents-result(pollfd pollfd, builder mut-list char) summon
 	revents = pollfd revents
 	had-pollin? = revents has-pollin?
 	if had-pollin?
@@ -134,7 +142,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	| TODO: shouldn't need parens?
 	handle-revents-result: had-pollin?, hung-up?
 
-.read-to-buffer-until-eof void(fd fd-t, buffer mut-str) trusted summon
+.read-to-buffer-until-eof void(fd fd-t, buffer mut-list char) trusted summon
 	read-max = 1024
 	| It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	buffer ensure-capacity: buffer.size + read-max

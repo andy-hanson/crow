@@ -7,7 +7,7 @@ import
 	..cell: cell, get
 	..collection.arr: +, slice-up-to
 	..collection.mut-arr: cast-immutable, data, new-uninitialized-mut-arr, size
-	..collection.mut-list: move-to-arr, mut-list, new-mut-list, push
+	..collection.mut-list: move-to-arr, mut-list, push
 	..collection.sort: sort
 	..exceptions: assert, forbid
 	..number-utils: to-int, to-nat
@@ -71,7 +71,7 @@ read-dir arr str(path c-str) trusted summon
 	dirp = path opendir
 	| TODO: handle errors
 	forbid: dirp.ptr-cast-from-extern<any-ptr, dir> null?
-	res = new-mut-list<str>
+	res = mut-list<str>
 	dirp read-dir-recur res
 	res.move-to-arr sort
 

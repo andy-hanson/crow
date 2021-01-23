@@ -1,9 +1,11 @@
 import
 	.bootstrap:
-		==, ?, bool, char, false, float, int, int16, int32, nat, nat16, nat32, none, opt, some,
+		==, >, ?, bool, char, false, float, int, int16, int32, nat, nat16, nat32, none, opt, some,
 		str, todo, to-int, to-nat, true, value
 	.collection.arr: +, empty?, subscript
 	.collection.arr-util: first, tail
+	.collection.dict: dict, each
+	.collection.mut-list: move-to-arr, mut-list, push, push-all, size
 	.number-utils:
 		+, *, /, abs, mod, multiple-of?, neg, negative?, to-int, to-float, truncate-to-int
 	.opt-utils: opt-map
@@ -50,6 +52,21 @@ to-str str(n nat)
 
 to-str<?t> spec
 	to-str str(a ?t)
+
+to-str str(a str)
+	a
+
+to-str str(a dict<?k, ?v>) to-str<?k> to-str<?v>
+	res = mut-list<char>
+	res push "["
+	a each \k, v
+		if res.size > 1
+			res push-all ", "
+		res push-all k.to-str
+		res push-all " -> "
+		res push-all v.to-str
+	res push "]"
+	res move-to-arr
 
 to-str str(a opt ?t) to-str<?t>
 	match a

@@ -1,6 +1,6 @@
 module(
-	path: 51
-	imports: [import(none, 36, none)]
+	path: 52
+	imports: [import(none, 37, none)]
 	exports: []
 	structs: []
 	specs: []
@@ -9,17 +9,17 @@ module(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(51, 0), foo, void(), [])
+			sig: sig(file-pos(52, 0), foo, void(), [])
 			body: call(fun-inst(name: bar), []))
 		fun(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(51, 31), bar, void(), [])
+			sig: sig(file-pos(52, 31), bar, void(), [])
 			body: call(fun-inst(name: fail, type-args: [void()]), [string-lit("FOO")]))
 		fun(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(51, 70), main, fut(nat()), [param(file-range(51, range(83, 92)), none, arr(arr(char())))])
+			sig: sig(file-pos(52, 70), main, fut(nat()), [param(file-range(52, range(83, 92)), none, arr(arr(char())))])
 			body: seq(call(fun-inst(name: foo), []), call(fun-inst(name: resolved, type-args: [nat()]), [literal(nat(), 0)])))])
