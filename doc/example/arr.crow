@@ -1,8 +1,9 @@
 import
+	collection.arr-util: join, map
 	io.print: print
 
 main fut nat(_ arr str) summon
-	nats = [1, 2, 3]
-	drop: nats
-	print: "hoo"
+	nats = [0, 1, 2, 3, 4]
+	slice = nats[1 -> 4] map {it to-str} join ", "
+	print: slice
 	0 resolved

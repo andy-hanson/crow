@@ -1,10 +1,10 @@
 import
 	..alloc: alloc-uninitialized, copy-data-from
 	..bootstrap:
-		+, -, ==, !=, <, <=, arr, bool, by-val, data, deref, false, hard-assert, nat, not,
-		ptr, ref-of-ptr, size, true
+		+, -, ==, !=, <, <=, ->, arr, arrow, bool, by-val, data, deref, false, from, hard-assert, nat, not,
+		ptr, ref-of-ptr, size, to, true
 	..exceptions: assert
-	..number-utils: +, -, incr
+	..number-utils: +, -
 
 arr-from-begin-end arr ?t(begin ptr ?t, end ptr ?t) unsafe noctx
 	arr: (end - begin), begin
@@ -15,25 +15,6 @@ empty? bool(a arr ?t) noctx
 has? bool(a arr ?t) noctx
 	a.empty? not
 
-slice arr ?t(a arr ?t, begin nat, size nat) trusted
-	assert: begin + size <= a.size
-	arr: size, a.data + begin
-
-slice-from-to arr ?t(a arr ?t, begin nat, end nat) trusted
-	assert: begin <= end
-	a slice: begin, end - begin
-
-slice-starting-at arr ?t(a arr ?t, begin nat)
-	assert: begin <= a.size
-	a slice: begin, a.size - begin
-
-slice-after arr ?t(a arr ?t, before-begin nat)
-	a slice-starting-at before-begin.incr
-
-slice-up-to arr ?t(a arr ?t, size nat)
-	assert: size <= a.size
-	a slice: 0, size
-
 noctx-at ?t(a arr ?t, index nat) trusted noctx
 	hard-assert: index < a.size
 	a.data + index deref
@@ -41,6 +22,11 @@ noctx-at ?t(a arr ?t, index nat) trusted noctx
 subscript ?t(a arr ?t, index nat) trusted
 	assert: index < a.size
 	a noctx-at index
+
+subscript arr ?t(a arr ?t, range arrow<nat, nat>) trusted
+	assert: range.from <= range.to
+	assert: range.to <= a.size
+	arr: range.to - range.from, a.data + range.from
 
 ref-of-val-at ?t(a arr by-val<?t>, index nat) trusted
 	assert: index < a.size
@@ -69,4 +55,4 @@ arr-eq? bool(a arr ?t, b arr ?t) data<?t>
 	elif a[0] != b[0]
 		false
 	else
-		a slice-starting-at 1 arr-eq?: b slice-starting-at 1
+		a[1 -> a.size] arr-eq?: b[1 -> b.size]

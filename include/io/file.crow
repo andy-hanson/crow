@@ -1,11 +1,11 @@
 import
 	..bits: bits-and, bit-shift-left, bits-or
 	..bootstrap:
-		+, ==, !=, <, and, any-ptr, arr, as, as-any-ptr, bool, char, c-str, data, false, has?,
+		+, ==, !=, <, ->, and, any-ptr, arr, as, as-any-ptr, bool, char, c-str, data, false, has?,
 		int32, nat8, nat16, nat32, none, not, null?, opt, ptr-cast, ptr-cast-from-extern, ptr-eq?,
 		ref-eq?, size, size-of, some, str, todo, value, void, wrap-add
 	..cell: cell, get
-	..collection.arr: +, slice-up-to
+	..collection.arr: +, subscript
 	..collection.mut-arr: cast-immutable, data, new-uninitialized-mut-arr, size
 	..collection.mut-list: move-to-arr, mut-list, push
 	..collection.sort: sort
@@ -95,7 +95,7 @@ read-link str(path str) summon trusted
 	buff = 1000 new-uninitialized-mut-arr<char>
 	size = path.to-c-str readlink buff.data, buff.size
 	size check-errno-if-neg-one
-	buff.cast-immutable slice-up-to size.to-nat
+	buff.cast-immutable[0 -> size.to-nat]
 
 current-executable-path str() summon trusted
 	"/proc/self/exe" read-link

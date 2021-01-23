@@ -68,8 +68,9 @@ lint result<str, arr failure>(path str, options test-options) summon
 	last-nl = 0 cell<nat>
 	s each-with-index \c, index
 		if c == "\n"
-			res push: s slice-from-to (last-nl swap index.incr), index
-	res push: s slice-from-to last-nl.get, s.size
+			nl = last-nl swap index.incr
+			res push: s[nl -> index]
+	res push: s[last-nl.get -> s.size]
 	res move-to-arr
 
 .max-line-length nat()

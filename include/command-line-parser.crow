@@ -1,13 +1,14 @@
 import
 	.bootstrap:
-		==, arr, bool, false, has?, none, opt, size, some, subscript, str, true, value, void
+		==, ->, arr, bool, false, has?, none, opt, size, some, subscript, str, true, value, void
 	.cell: cell, get, set
-	.collection.arr: +, empty?, slice-after, slice-starting-at, slice-up-to
+	.collection.arr: +, empty?, subscript
 	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
 	.collection.dict: dict, each
 	.collection.mut-dict: move-to-dict, mut-dict, new-mut-dict, set-subscript
 	.collection.mut-list: fill-mut-list, move-to-arr, set-subscript, subscript
 	.exceptions: assert, fail, forbid
+	.number-utils: +
 
 | TODO: this would be neater if we had reflection!
 parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt arr str))
@@ -53,15 +54,15 @@ parse-cmd-line-args-dynamic parsed-cmd-line-args(args arr str)
 		parsed-cmd-line-args: args, [].dict, []
 	as some s
 		first-named-arg-index = s.value
-		nameless = args slice-up-to first-named-arg-index
-		rest = args slice-starting-at first-named-arg-index
+		nameless = args[0 -> first-named-arg-index]
+		rest = args[first-named-arg-index -> args.size]
 		match rest find-index {it == "--"}
 		as none
 			parsed-cmd-line-args: nameless, rest.parse-named-args, []
 		as some s2
 			sep-index = s2.value
-			named-args = rest slice-up-to sep-index parse-named-args
-			parsed-cmd-line-args: nameless, named-args, rest slice-after sep-index
+			named-args = rest[0 -> sep-index] parse-named-args
+			parsed-cmd-line-args: nameless, named-args, rest[sep-index + 1 -> rest.size]
 
 parse-named-args dict<str, arr str>(args arr str)
 	res = new-mut-dict<str, arr str>
@@ -76,5 +77,5 @@ parse-named-args dict<str, arr str>(args arr str)
 		builder[first-name] := tl
 	as some s
 		next-named-arg-index = s.value
-		builder[first-name] := tl slice-up-to next-named-arg-index
-		args slice-starting-at next-named-arg-index parse-named-args-recur builder
+		builder[first-name] := tl[0 -> next-named-arg-index]
+		args[next-named-arg-index -> args.size] parse-named-args-recur builder

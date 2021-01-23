@@ -1,12 +1,12 @@
 import
 	..alloc: alloc-uninitialized, fill-ptr-range
 	..bootstrap:
-		==, !=, >=, and, arr, bool, data, false, has?, incr, nat, noctx-incr, none, not, opt, ptr,
+		==, !=, >=, ->, and, arr, bool, data, false, has?, incr, nat, noctx-incr, none, not, opt, ptr,
 		set, size, some, subscript, true, value, void
 	..exceptions: forbid
 	..number-utils: +, -, decr, incr
 	..opt-utils: force
-	.arr: +, arr-eq?, empty?, noctx-at, slice, slice-starting-at, slice-up-to, subscript
+	.arr: +, arr-eq?, empty?, noctx-at, subscript
 
 make-arr arr ?t(size nat, f act ?t(nat)) trusted
 	data = size alloc-uninitialized<?t>
@@ -44,11 +44,11 @@ last ?t(a arr ?t)
 
 tail arr ?t(a arr ?t)
 	forbid: a empty?
-	a slice-starting-at 1
+	a[1 -> a.size]
 
 rtail arr ?t(a arr ?t)
 	forbid: a empty?
-	a slice-up-to a.size.decr
+	a[0 -> a.size - 1]
 
 first-some opt ?out(a arr ?in, cb act opt ?out(?in))
 	if a empty?
@@ -84,17 +84,17 @@ contains-subseq? bool(a arr ?t, subseq arr ?t) data<?t>
 	a index-of-subseq subseq has?
 
 starts-with? bool(a arr ?t, start arr ?t) data<?t>
-	a.size >= start.size and: a slice-up-to start.size arr-eq? start
+	a.size >= start.size and: a[0 -> start.size] arr-eq? start
 
 ends-with? bool(a arr ?t, end arr ?t) data<?t>
-	a.size >= end.size and: a slice (a.size - end.size), end.size arr-eq? end
+	a.size >= end.size and: a[a.size - end.size -> a.size] arr-eq? end
 
 remove-start arr ?t(a arr ?t, start arr ?t) data<?t>
 	a try-remove-start start force
 
 try-remove-start opt arr ?t(a arr ?t, start arr ?t) data<?t>
 	if a starts-with? start
-		a slice-starting-at start.size some
+		a[start.size -> a.size] some
 	else
 		none
 
@@ -103,7 +103,7 @@ remove-end arr ?t(a arr ?t, end arr ?t) data<?t>
 
 try-remove-end opt arr ?t(a arr ?t, end arr ?t) data<?t>
 	if a ends-with? end
-		a slice-up-to (a.size - end.size) some
+		a[0 -> a.size - end.size] some
 	else
 		none
 
@@ -119,7 +119,7 @@ index-of-subseq opt nat(a arr ?t, subseq arr ?t) data<?t>
 .index-of-subseq-recur opt nat(a arr ?t, subseq arr ?t, i nat) data<?t>
 	if i == a.size
 		none
-	elif a slice-starting-at i starts-with? subseq
+	elif a[i -> a.size] starts-with? subseq
 		i some
 	else
 		a index-of-subseq-recur subseq, i.incr
@@ -177,7 +177,7 @@ count-subseqs nat(a arr ?t, subseq arr ?t) data<?t>
 	as none
 		acc
 	as some s
-		rest = a slice-starting-at: s.value + subseq.size
+		rest = a[s.value + subseq.size -> a.size]
 		rest count-subseqs-recur subseq, acc.incr
 
 .fill-subseqs-recur void(out ptr arr ?t, a arr ?t, splitter arr ?t) data<?t> unsafe
@@ -185,6 +185,6 @@ count-subseqs nat(a arr ?t, subseq arr ?t) data<?t>
 	as none
 		out set a
 	as some s
-		out set: a slice-up-to s.value
-		rest = a slice-starting-at: s.value + splitter.size
+		out set a[0 -> s.value]
+		rest = a[s.value + splitter.size -> a.size]
 		out.incr fill-subseqs-recur rest, splitter

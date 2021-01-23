@@ -214,6 +214,7 @@ program(
 		struct(name: some, body: record([field(value, false, type(false, ptr))]))
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
 		struct(name: some, body: record([field(value, false, type(false, ptr))]))
+		struct(name: arrow, body: record([field(from, false, type(false, nat)), field(to, false, type(false, nat))]))
 		struct(name: log-ctx, mut?: true, ptr?: true, body: record([field(handler, true, type(false, fun1))]))
 		struct(
 			name: thread-local-stuff
@@ -1875,7 +1876,10 @@ program(
 			type(false, arr)
 			none
 			[param(a, type(false, arr))]
-			expr-body(seq(call(forbid, [call(empty?, [param-ref(a)])]), call(slice-starting-at, [param-ref(a), 1]))))
+			expr-body(
+				seq(
+					call(forbid, [call(empty?, [param-ref(a)])])
+					call(subscript, [param-ref(a), call(->, [1, call(size, [param-ref(a)])])]))))
 		fun(
 			true
 			forbid
@@ -1892,26 +1896,22 @@ program(
 			expr-body(cond(param-ref(condition), call(fail, [param-ref(message)]), void)))
 		fun(
 			true
-			slice-starting-at
+			subscript
 			type(false, arr)
 			none
-			[param(a, type(false, arr)), param(begin, type(false, nat))]
+			[param(a, type(false, arr)), param(range, type(false, arrow))]
 			expr-body(
 				seq(
-					call(assert, [call(<=, [param-ref(begin), call(size, [param-ref(a)])])])
+					seq(
+						call(assert, [call(<=, [call(from, [param-ref(range)]), call(to, [param-ref(range)])])])
+						call(assert, [call(<=, [call(to, [param-ref(range)]), call(size, [param-ref(a)])])]))
 					call(
-						slice
-						[param-ref(a), param-ref(begin), call(-, [call(size, [param-ref(a)]), param-ref(begin)])]))))
-		fun(
-			true
-			slice
-			type(false, arr)
-			none
-			[param(a, type(false, arr)), param(begin, type(false, nat)), param(size, type(false, nat))]
-			expr-body(
-				seq(
-					call(assert, [call(<=, [call(+, [param-ref(begin), param-ref(size)]), call(size, [param-ref(a)])])])
-					call(arr, [param-ref(size), call(+, [call(data, [param-ref(a)]), param-ref(begin)])]))))
+						arr
+						[
+							call(-, [call(to, [param-ref(range)]), call(from, [param-ref(range)])])
+							call(+, [call(data, [param-ref(a)]), call(from, [param-ref(range)])])]))))
+		fun(false, from, type(false, nat), none, [param(a, type(false, arrow))], field-get(0))
+		fun(false, to, type(false, nat), none, [param(a, type(false, arrow))], field-get(1))
 		fun(
 			true
 			-
@@ -1922,6 +1922,20 @@ program(
 				seq(
 					call(assert, [call(>=, [param-ref(a), param-ref(b)])])
 					call(wrap-sub, [param-ref(a), param-ref(b)]))))
+		fun(
+			true
+			->
+			type(false, arrow)
+			none
+			[param(from, type(false, nat)), param(to, type(false, nat))]
+			expr-body(call(arrow, [param-ref(from), param-ref(to)])))
+		fun(
+			true
+			arrow
+			type(false, arrow)
+			none
+			[param(from, type(false, nat)), param(to, type(false, nat))]
+			new-record)
 		fun(false, return-stack, type(false, arr), none, [param(a, type(false, backtrace))], field-get(0))
 		fun(false, backtrace, type(false, backtrace), none, [param(a, type(false, exception))], field-get(1))
 		fun(
@@ -3437,7 +3451,10 @@ program(
 			type(false, arr)
 			none
 			[param(a, type(false, arr))]
-			expr-body(seq(call(forbid, [call(empty?, [param-ref(a)])]), call(slice-starting-at, [param-ref(a), 1]))))
+			expr-body(
+				seq(
+					call(forbid, [call(empty?, [param-ref(a)])])
+					call(subscript, [param-ref(a), call(->, [1, call(size, [param-ref(a)])])]))))
 		fun(
 			false
 			empty?
@@ -3448,26 +3465,20 @@ program(
 		fun(false, size, type(false, nat), none, [param(a, type(false, arr))], field-get(0))
 		fun(
 			true
-			slice-starting-at
+			subscript
 			type(false, arr)
 			none
-			[param(a, type(false, arr)), param(begin, type(false, nat))]
+			[param(a, type(false, arr)), param(range, type(false, arrow))]
 			expr-body(
 				seq(
-					call(assert, [call(<=, [param-ref(begin), call(size, [param-ref(a)])])])
+					seq(
+						call(assert, [call(<=, [call(from, [param-ref(range)]), call(to, [param-ref(range)])])])
+						call(assert, [call(<=, [call(to, [param-ref(range)]), call(size, [param-ref(a)])])]))
 					call(
-						slice
-						[param-ref(a), param-ref(begin), call(-, [call(size, [param-ref(a)]), param-ref(begin)])]))))
-		fun(
-			true
-			slice
-			type(false, arr)
-			none
-			[param(a, type(false, arr)), param(begin, type(false, nat)), param(size, type(false, nat))]
-			expr-body(
-				seq(
-					call(assert, [call(<=, [call(+, [param-ref(begin), param-ref(size)]), call(size, [param-ref(a)])])])
-					call(arr, [param-ref(size), call(+, [call(data, [param-ref(a)]), param-ref(begin)])]))))
+						arr
+						[
+							call(-, [call(to, [param-ref(range)]), call(from, [param-ref(range)])])
+							call(+, [call(data, [param-ref(a)]), call(from, [param-ref(range)])])]))))
 		fun(
 			false
 			arr

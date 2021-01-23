@@ -1,16 +1,16 @@
 import
-	.bootstrap: ==, bool, char, nat, none, opt, size, some, str, subscript, value, void
-	.collection.arr: +, empty?, slice-after, slice-up-to
+	.bootstrap: ==, ->, bool, char, nat, none, opt, size, some, str, subscript, value, void
+	.collection.arr: +, empty?, subscript
 	.collection.arr-util: each, last, r-index-of, rtail
 	.io.file: is-dir?, read-dir
-	.number-utils: decr
+	.number-utils: +, -
 
 parent-path str(a str)
 	match a r-index-of "/"
 	as none
 		""
 	as some s
-		a slice-up-to s.value
+		a[0 -> s.value]
 
 child-path str(a str, child-name str)
 	a + "/" + child-name
@@ -27,7 +27,7 @@ last-index-of opt nat(s str, c char)
 	if s empty?
 		none
 	elif s.last == c
-		s.size.decr some
+		s.size - 1 some
 	else
 		s.rtail last-index-of c
 
@@ -36,14 +36,14 @@ get-extension opt str(name str)
 	as none
 		none
 	as some s
-		name slice-after s.value some
+		name[s.value + 1 -> name.size] some
 
 remove-extension str(name str)
 	match name last-index-of "."
 	as none
 		name
 	as some s
-		name slice-up-to s.value
+		name[0 -> s.value]
 
 add-extension str(name str, ext str)
 	name + "." + ext
@@ -57,4 +57,4 @@ base-name str(path str)
 	as none
 		path
 	as some s
-		path slice-after s.value
+		path[s.value + 1 -> path.size]
