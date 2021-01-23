@@ -158,7 +158,7 @@ struct subscript_9__lambda0__lambda1 {
 	struct fut_0* res;
 };
 struct add_first_task__lambda0;
-struct map__lambda0;
+struct map_0__lambda0;
 struct thread_args {
 	uint64_t thread_id;
 	struct global_ctx* gctx;
@@ -330,7 +330,7 @@ struct fun_act1_4 {
 struct fun_act1_5 {
 	uint64_t kind;
 	union {
-		struct map__lambda0* as0;
+		struct map_0__lambda0* as0;
 	};
 };
 struct choose_task_result;
@@ -474,7 +474,7 @@ struct add_first_task__lambda0 {
 	struct arr_4 all_args;
 	fun_ptr2 main_ptr;
 };
-struct map__lambda0 {
+struct map_0__lambda0 {
 	struct fun_act1_4 mapper;
 	struct arr_4 a;
 };
@@ -703,7 +703,7 @@ _Static_assert(sizeof(struct subscript_9__lambda0) == 40, "");
 _Static_assert(sizeof(struct subscript_9__lambda0__lambda0) == 40, "");
 _Static_assert(sizeof(struct subscript_9__lambda0__lambda1) == 8, "");
 _Static_assert(sizeof(struct add_first_task__lambda0) == 24, "");
-_Static_assert(sizeof(struct map__lambda0) == 24, "");
+_Static_assert(sizeof(struct map_0__lambda0) == 24, "");
 _Static_assert(sizeof(struct thread_args) == 16, "");
 _Static_assert(sizeof(struct cell_0) == 8, "");
 _Static_assert(sizeof(struct chosen_task) == 48, "");
@@ -1289,7 +1289,7 @@ char constantarr_0_538[1];
 char constantarr_0_539[1];
 char constantarr_0_540[12];
 char constantarr_0_541[9];
-char constantarr_0_542[17];
+char constantarr_0_542[13];
 char constantarr_0_543[10];
 char constantarr_0_544[3];
 char constantarr_0_545[6];
@@ -1844,7 +1844,7 @@ char constantarr_0_538[1] = "*";
 char constantarr_0_539[1] = "/";
 char constantarr_0_540[12] = "==<opt<int>>";
 char constantarr_0_541[9] = "parse-int";
-char constantarr_0_542[17] = "opt-map<int, nat>";
+char constantarr_0_542[13] = "map<int, nat>";
 char constantarr_0_543[10] = "some<?out>";
 char constantarr_0_544[3] = "neg";
 char constantarr_0_545[6] = "to-nat";
@@ -2045,7 +2045,7 @@ struct fut_1* resolved_0(struct ctx* ctx, struct void_ value);
 struct arr_4 tail_1(struct ctx* ctx, struct arr_4 a);
 uint8_t empty__q_2(struct arr_4 a);
 struct arr_4 subscript_11(struct ctx* ctx, struct arr_4 a, struct arrow range);
-struct arr_1 map(struct ctx* ctx, struct arr_4 a, struct fun_act1_4 mapper);
+struct arr_1 map_0(struct ctx* ctx, struct arr_4 a, struct fun_act1_4 mapper);
 struct arr_1 make_arr(struct ctx* ctx, uint64_t size, struct fun_act1_5 f);
 struct arr_0* alloc_uninitialized_1(struct ctx* ctx, uint64_t size);
 struct void_ fill_ptr_range(struct ctx* ctx, struct arr_0* begin, uint64_t size, struct fun_act1_5 f);
@@ -2056,7 +2056,7 @@ struct arr_0 subscript_13(struct ctx* ctx, struct fun_act1_4 a, char* p0);
 struct arr_0 call_w_ctx_196(struct fun_act1_4 a, struct ctx* ctx, char* p0);
 char* subscript_14(struct ctx* ctx, struct arr_4 a, uint64_t index);
 char* noctx_at_2(struct arr_4 a, uint64_t index);
-struct arr_0 map__lambda0(struct ctx* ctx, struct map__lambda0* _closure, uint64_t i);
+struct arr_0 map_0__lambda0(struct ctx* ctx, struct map_0__lambda0* _closure, uint64_t i);
 struct arr_0 to_str_1(char* a);
 struct arr_0 arr_from_begin_end(char* begin, char* end);
 uint64_t _minus_3(char* a, char* b);
@@ -2206,7 +2206,7 @@ uint8_t _equal_5(struct opt_9 a, struct opt_9 b);
 struct comparison compare_346(struct opt_9 a, struct opt_9 b);
 struct comparison compare_347(struct some_9 a, struct some_9 b);
 struct opt_9 parse_int(struct ctx* ctx, struct arr_0 a);
-struct opt_9 opt_map(struct ctx* ctx, struct opt_8 a, struct fun_act1_6 cb);
+struct opt_9 map_1(struct ctx* ctx, struct opt_8 a, struct fun_act1_6 cb);
 int64_t subscript_18(struct ctx* ctx, struct fun_act1_6 a, uint64_t p0);
 int64_t call_w_ctx_351(struct fun_act1_6 a, struct ctx* ctx, uint64_t p0);
 int64_t neg_0(struct ctx* ctx, uint64_t a);
@@ -3497,7 +3497,7 @@ uint8_t* get_fun_ptr_72(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) subscript_11;
 		}
 		case 188: {
-			return (uint8_t*) map;
+			return (uint8_t*) map_0;
 		}
 		case 189: {
 			return (uint8_t*) make_arr;
@@ -3530,7 +3530,7 @@ uint8_t* get_fun_ptr_72(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) noctx_at_2;
 		}
 		case 199: {
-			return (uint8_t*) map__lambda0;
+			return (uint8_t*) map_0__lambda0;
 		}
 		case 200: {
 			return (uint8_t*) to_str_1;
@@ -3980,7 +3980,7 @@ uint8_t* get_fun_ptr_72(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) parse_int;
 		}
 		case 349: {
-			return (uint8_t*) opt_map;
+			return (uint8_t*) map_1;
 		}
 		case 350: {
 			return (uint8_t*) subscript_18;
@@ -5084,7 +5084,7 @@ struct arr_0 get_fun_name_73(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {9, constantarr_0_541};
 		}
 		case 349: {
-			return (struct arr_0) {17, constantarr_0_542};
+			return (struct arr_0) {13, constantarr_0_542};
 		}
 		case 350: {
 			return (struct arr_0) {20, constantarr_0_325};
@@ -6311,12 +6311,12 @@ struct arr_4 subscript_11(struct ctx* ctx, struct arr_4 a, struct arrow range) {
 	return (struct arr_4) {_2, (a.data + range.from)};
 }
 /* map<arr<char>, ptr<char>> arr<arr<char>>(a arr<ptr<char>>, mapper fun-act1<arr<char>, ptr<char>>) */
-struct arr_1 map(struct ctx* ctx, struct arr_4 a, struct fun_act1_4 mapper) {
-	struct map__lambda0* temp0;
-	uint8_t* _0 = alloc(ctx, sizeof(struct map__lambda0));
-	temp0 = (struct map__lambda0*) _0;
+struct arr_1 map_0(struct ctx* ctx, struct arr_4 a, struct fun_act1_4 mapper) {
+	struct map_0__lambda0* temp0;
+	uint8_t* _0 = alloc(ctx, sizeof(struct map_0__lambda0));
+	temp0 = (struct map_0__lambda0*) _0;
 	
-	*temp0 = (struct map__lambda0) {mapper, a};
+	*temp0 = (struct map_0__lambda0) {mapper, a};
 	return make_arr(ctx, a.size, (struct fun_act1_5) {0, .as0 = temp0});
 }
 /* make-arr<?out> arr<arr<char>>(size nat, f fun-act1<arr<char>, nat>) */
@@ -6362,9 +6362,9 @@ struct arr_0 call_w_ctx_194(struct fun_act1_5 a, struct ctx* ctx, uint64_t p0) {
 	struct fun_act1_5 _0 = a;
 	switch (_0.kind) {
 		case 0: {
-			struct map__lambda0* closure0 = _0.as0;
+			struct map_0__lambda0* closure0 = _0.as0;
 			
-			return map__lambda0(ctx, closure0, p0);
+			return map_0__lambda0(ctx, closure0, p0);
 		}
 		default:
 			return (struct arr_0) {0, NULL};
@@ -6400,7 +6400,7 @@ char* noctx_at_2(struct arr_4 a, uint64_t index) {
 	return *(a.data + index);
 }
 /* map<arr<char>, ptr<char>>.lambda0 arr<char>(i nat) */
-struct arr_0 map__lambda0(struct ctx* ctx, struct map__lambda0* _closure, uint64_t i) {
+struct arr_0 map_0__lambda0(struct ctx* ctx, struct map_0__lambda0* _closure, uint64_t i) {
 	char* _0 = subscript_14(ctx, _closure->a, i);
 	return subscript_13(ctx, _closure->mapper, _0);
 }
@@ -6489,7 +6489,7 @@ struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__la
 	struct arr_4 args0;
 	args0 = tail_1(ctx, _closure->all_args);
 	
-	struct arr_1 _0 = map(ctx, args0, (struct fun_act1_4) {0, .as0 = (struct void_) {}});
+	struct arr_1 _0 = map_0(ctx, args0, (struct fun_act1_4) {0, .as0 = (struct void_) {}});
 	return _closure->main_ptr(ctx, _0);
 }
 /* handle-exceptions<nat> void(a fut<nat>) */
@@ -8127,7 +8127,7 @@ struct opt_9 parse_int(struct ctx* ctx, struct arr_0 a) {
 	if (_1) {
 		struct arr_0 _2 = tail_2(ctx, a);
 		struct opt_8 _3 = parse_nat(ctx, _2);
-		return opt_map(ctx, _3, (struct fun_act1_6) {0, .as0 = (struct void_) {}});
+		return map_1(ctx, _3, (struct fun_act1_6) {0, .as0 = (struct void_) {}});
 	} else {
 		char _4 = subscript_16(ctx, a, 0u);
 		uint8_t _5 = _equal_3(_4, 43u);struct arr_0 _6;
@@ -8138,11 +8138,11 @@ struct opt_9 parse_int(struct ctx* ctx, struct arr_0 a) {
 			_6 = a;
 		}
 		struct opt_8 _7 = parse_nat(ctx, _6);
-		return opt_map(ctx, _7, (struct fun_act1_6) {1, .as1 = (struct void_) {}});
+		return map_1(ctx, _7, (struct fun_act1_6) {1, .as1 = (struct void_) {}});
 	}
 }
-/* opt-map<int, nat> opt<int>(a opt<nat>, cb fun-act1<int, nat>) */
-struct opt_9 opt_map(struct ctx* ctx, struct opt_8 a, struct fun_act1_6 cb) {
+/* map<int, nat> opt<int>(a opt<nat>, cb fun-act1<int, nat>) */
+struct opt_9 map_1(struct ctx* ctx, struct opt_8 a, struct fun_act1_6 cb) {
 	struct opt_8 _0 = a;
 	switch (_0.kind) {
 		case 0: {

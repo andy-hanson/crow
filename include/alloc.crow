@@ -192,7 +192,7 @@ validate-gc void(gc gc) noctx unsafe
 	hard-assert: gc.data-end - gc.data-begin == gc.size-words
 	hard-assert: mark-idx == data-idx
 
-try-gc-alloc opt any-ptr(gc gc, size-bytes nat) noctx trusted
+.try-gc-alloc opt any-ptr(gc gc, size-bytes nat) noctx trusted
 	gc validate-gc
 	| some: size-bytes unmanaged-alloc-bytes
 	size-words = size-bytes words-of-bytes

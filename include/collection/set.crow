@@ -1,0 +1,37 @@
+import
+	..bootstrap: arr, bool, data, some, void
+	..opt-utils: opt-join
+	.arr-util: map
+	.dict: combine, dict, has?, keys
+
+set<?t> record
+	| TODO:PRIVATE
+	inner dict<?t, void>
+
+arr arr ?t(a set ?t)
+	a.inner keys
+
+set set ?t()
+	| TODO: type args should be unnecessary
+	set: dict<?t, void>
+
+set set ?t(a arr ?t)
+	voids = a map \ignore
+		void
+	| TODO: type args should be unnecessary
+	set: dict<?t, void>: a, voids
+
+has? bool(a set ?t, value ?t) data<?t>
+	a.inner has? value
+
+set-intersection set ?t(a set ?t, b set ?t) data<?t>
+	d = a.inner combine b.inner, \k, x, y
+		x opt-join y, \xs, ys
+			void
+	set: d
+
+set-union set ?t(a set ?t, b set ?t) data<?t>
+	| TODO: compiler crashes without the type arguments!
+	d = a.inner combine<?t, void, void, void> b.inner, \k, x, y
+		void some
+	set: d

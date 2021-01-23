@@ -1,7 +1,7 @@
 import
 	..alloc: alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	..bootstrap:
-		?, +, <, <=, >, >=, ==, arr, as-any-ptr, bool, by-val, data, deref, drop,
+		+, <, <=, >, >=, ==, arr, as-any-ptr, bool, by-val, data, deref, drop,
 		hard-assert, hard-forbid, nat, noctx-decr, noctx-incr, none, not, opt, ptr, set, size-of,
 		some, todo, void, zeroed
 	..collection.arr-util: contains?, each, index-of
@@ -22,10 +22,10 @@ mut-list<?t> record mut
 	| TODO:PRIVATE (getter public)
 	size mut nat
 
-data ptr ?t(a mut-list ?t) noctx unsafe
+.data ptr ?t(a mut-list ?t) noctx unsafe
 	a.backing data
 
-capacity nat(a mut-list ?t) noctx unsafe
+.capacity nat(a mut-list ?t) noctx unsafe
 	a.backing size
 
 new-mut-list-by-val by-val mut-list<?t>() noctx trusted
@@ -132,12 +132,13 @@ pop-n void(a mut-list ?t, n nat) trusted
 	a.size := new-size
 
 push void(a mut-list ?t, value ?t) trusted
-	if a.size == a.capacity
-		a increase-capacity-to: a.size == 0 ?: 4, a.size * 2
-	a ensure-capacity a.size.incr.round-up-to-power-of-two
+	a incr-capacity
 	a.size < a.capacity assert
-	(a.data + a.size) set value
+	a.data + a.size set value
 	a.size := a.size incr
+
+.incr-capacity void(a mut-list ?t) unsafe
+	a ensure-capacity a.size.incr.round-up-to-power-of-two
 
 push-all void(a mut-list ?t, values arr ?t)
 	values each {a push it}
@@ -148,16 +149,19 @@ push-capacity-must-be-sufficient void(a mut-list ?t, value ?t) noctx unsafe
 	a.size := old-size noctx-incr
 	a noctx-set-at old-size, value
 
-increase-capacity-to void(a mut-list ?t, new-capacity nat) unsafe
+.increase-capacity-to void(a mut-list ?t, new-capacity nat) unsafe
 	assert: new-capacity > a.capacity
 	old-data = a.data
 	a.backing := mut-arr: new-capacity, alloc-uninitialized<?t>: new-capacity
 	a.data copy-data-from old-data, a.size
 	a.backing slice-starting-at a.size set-zero-elements
 
-ensure-capacity void(a mut-list ?t, capacity nat) unsafe
-	if a.capacity < capacity
-		a increase-capacity-to: capacity.round-up-to-power-of-two
+.ensure-capacity void(a mut-list ?t, min-capacity nat) unsafe
+	if a.capacity < min-capacity
+		a increase-capacity-to min-capacity
+
+reserve void(a mut-list ?t, reserved nat) unsafe
+	a ensure-capacity reserved.round-up-to-power-of-two
 
 remove-unordered-at-index ?t(a mut-list ?t, index nat) trusted
 	assert: index < a.size
@@ -204,3 +208,14 @@ reduce-size-if-more-than void(a mut-list ?t, new-size nat)
 
 index-of opt nat(a mut-list ?t, value ?t) data<?t> trusted
 	a.temp-as-arr index-of value
+
+insert void(a mut-list ?t, index nat, value ?t) trusted
+	assert: index <= a.size
+	a incr-capacity
+	n = a.size - index
+	dest = a.data + index + 1
+	src = a.data + index + 1
+	memmove: dest.as-any-ptr, src.as-any-ptr, n * size-of<?t>
+	a[index] := value
+	a.size := a.size + 1
+	assert: a.size <= a.capacity

@@ -1,0 +1,21 @@
+import
+	collection.arr-util: join, map
+	collection.mut-set: has?, move-to-set, mut-set, remove
+	collection.set: arr, has?, set, set-intersection, set-union
+	io.print: print
+
+main fut nat(_ arr str) summon
+	a = set: [1, 2, 3]
+	print: a has? 2 to-str
+	print: a has? 4 to-str
+	b = set: [2, 3, 4, 5]
+	print: (a set-intersection b).arr map {it to-str} join ", "
+	print: (a set-union b).arr map {it to-str} join ", "
+
+	m = mut-set: [2, 3, 4]
+	print: m has? 3 to-str
+	m remove 3
+	print: m has? 3 to-str
+	print: m.move-to-set.arr map {it to-str} join ", "
+
+	0 resolved

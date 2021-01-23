@@ -1,11 +1,11 @@
 import
-	..bootstrap: ==, arr, arrow, bool, data, drop, from, nat, none, opt, some, to, value, void
+	..bootstrap: ==, <=>, arr, arrow, bool, data, drop, from, nat, none, opt, some, to, value, void
 	..number-utils: +
 	.arr-util: map
 	.dict: dict, has?, subscript
 	.mut-list:
-		index-of, move-to-arr, mut-list, push, remove-unordered-at-index, size, set-subscript,
-		subscript, temp-as-arr
+		index-of, insert, move-to-arr, mut-list, push, remove-unordered-at-index, size,
+		set-subscript, subscript, temp-as-arr
 
 mut-dict<?k, ?v> record mut
 	keys mut-list ?k
@@ -34,10 +34,15 @@ set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
 	if idx == a.keys.size
 		a.keys push key
 		a.values push value
-	elif key == a.keys[idx]
-		a.values[idx] := value
 	else
-		a set-subscript-recur (idx + 1), key, value
+		match key <=> a.keys[idx]
+		as less
+			a.keys insert idx, key
+			a.values insert idx, value
+		as equal
+			a.values[idx] := value
+		as greater
+			a set-subscript-recur (idx + 1), key, value
 
 has? bool(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	a.temp-as-dict has? key

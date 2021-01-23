@@ -8,7 +8,7 @@ import
 	.collection.mut-list: move-to-arr, mut-list, push, push-all, size
 	.number-utils:
 		+, *, /, abs, mod, multiple-of?, neg, negative?, to-int, to-float, truncate-to-int
-	.opt-utils: opt-map
+	.opt-utils: map
 
 to-str str(b bool) noctx
 	b ? "true", "false"
@@ -147,10 +147,10 @@ parse-nat-recur opt nat(a str, accum nat)
 
 parse-int opt int(a str)
 	if a[0] == "-"
-		a.tail.parse-nat opt-map {it neg}
+		a.tail.parse-nat map {it neg}
 	else
-		(a[0] == "+" ? a.tail, a).parse-nat opt-map {it to-int}
+		(a[0] == "+" ? a.tail, a).parse-nat map {it to-int}
 
 | TODO: handle the decimal point!
 parse-float opt float(a str)
-	a.parse-nat opt-map {it to-float}
+	a.parse-nat map {it to-float}

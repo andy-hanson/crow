@@ -1,13 +1,20 @@
 import
-	.bootstrap: none, opt, some, subscript, value
+	.bootstrap: none, opt, some, subscript, value, void
 	.exceptions: fail
 
-opt-map opt ?out(a opt ?in, cb act ?out(?in))
+each void(a opt ?in, cb act void(?in))
+	match a
+	as none
+		void
+	as some s
+		cb[s value]
+
+map opt ?out(a opt ?in, cb act ?out(?in))
 	match a
 	as none
 		none
 	as some s
-		cb[s.value] some
+		cb[s value] some
 
 opt-or ?t(a opt ?t, default act ?t())
 	match a
@@ -22,3 +29,14 @@ force ?t(a opt ?t)
 		fail: "tried to force empty option"
 	as some s
 		s value
+
+opt-join opt ?out(a opt ?in-0, b opt ?in-1, cb act ?out(?in-0, ?in-1))
+	match a
+	as none
+		none
+	as some sa
+		match b
+		as none
+			none
+		as some sb
+			cb[sa value, sb value] some

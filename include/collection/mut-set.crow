@@ -1,13 +1,20 @@
 import
-	..bootstrap: bool, data, drop, void
-	.mut-dict: has?, mut-dict, remove, set-subscript
+	..bootstrap: ->, arr, bool, data, drop, void
+	.arr-util: map
+	.mut-dict: has?, move-to-dict, mut-dict, remove, set-subscript
+	.set: set
 
 mut-set<?t> record mut
 	| TODO:PRIVATE
 	inner mut-dict<?t, void>
 
-new-mut-set mut-set ?t()
-	mut-set: mut-dict
+mut-set mut-set ?t()
+	| TODO: type args should be unnecessary
+	mut-set: mut-dict<?t, void>
+
+mut-set mut-set ?t(a arr ?t)
+	mut-set: mut-dict: a map \x
+		x -> void
 
 has? bool(a mut-set ?t, value ?t) data<?t>
 	a.inner has? value
@@ -17,3 +24,6 @@ add void(a mut-set ?t, value ?t) data<?t>
 
 remove void(a mut-set ?t, value ?t) data<?t>
 	a.inner remove value drop
+
+move-to-set set ?t(a mut-set ?t) data<?t>
+	a.inner.move-to-dict set

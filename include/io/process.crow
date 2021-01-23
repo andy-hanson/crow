@@ -5,8 +5,7 @@ import
 	..cell: cell, get
 	..collection.arr: +, append, prepend, ref-of-val-at
 	..collection.arr-util: fold, map
-	..collection.mut-list:
-		data, ensure-capacity, move-to-arr, mut-list, size, unsafe-increase-size
+	..collection.mut-list: data, move-to-arr, mut-list, size, reserve, unsafe-increase-size
 	..exceptions: assert, fail
 	..number-utils: +, to-nat
 	..posix.bytes-types: zero
@@ -145,7 +144,7 @@ body
 .read-to-buffer-until-eof void(fd fd-t, buffer mut-list char) trusted summon
 	read-max = 1024
 	| It will write to the end of the buffer. So we must ensure that it has enough space at the end.
-	buffer ensure-capacity: buffer.size + read-max
+	buffer reserve buffer.size + read-max
 	add-data-to = buffer.data + buffer.size
 	n-bytes-read = fd read add-data-to.as-any-ptr, read-max
 	if n-bytes-read == -1

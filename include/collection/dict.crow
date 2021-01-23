@@ -1,11 +1,16 @@
 import
 	..bootstrap:
-		==, arr, arrow, bool, data, from, has?, nat, none, not, opt, size, some, subscript, to, void
+		==, <=>, and, arr, arrow, as, bool, comparison, data, from, greater, has?, less,
+		nat, none, not, opt, size, some, subscript, to, void
 	..number-utils: incr
+	..opt-utils: each
 	.arr: empty?, subscript
 	.arr-util: first, map, tail
+	.mut-list: move-to-arr, mut-list, push
 
 dict<?k, ?v> record
+	| TODO: PRIVATE
+	| Keys should be in sorted order
 	keys arr ?k
 	values arr ?v
 
@@ -47,3 +52,44 @@ each void(d dict<?k, ?v>, f act void(?k, ?v))
 		f[d.keys.first, d.values.first]
 		| TODO: type arguments should be unnecessary
 		d.keys.tail dict<?k, ?v> d.values.tail each f
+
+combine dict<?k, ?out>(a dict<?k, ?in-0>, b dict<?k, ?in-1>, cb act opt ?out(?k, opt ?in-0, opt ?in-1)) data<?k>
+	out-keys = mut-list<?k>
+	out-values = mut-list<?out>
+	combine-recur: out-keys, out-values, a.keys, a.values, b.keys, b.values, cb
+	dict: out-keys.move-to-arr, out-values.move-to-arr
+
+.combine-recur void
+	out-keys mut-list ?k
+	out-values mut-list ?out
+	a-keys arr ?k
+	a-values arr ?in-0
+	b-keys arr ?k
+	b-values arr ?in-1
+	cb act opt ?out(?k, opt ?in-0, opt ?in-1)
+spec
+	data<?k>
+body
+	if a-keys.empty? and b-keys.empty? not
+		cmp = as<comparison>: if a-keys empty?
+			greater
+		elif b-keys empty?
+			less
+		else
+			a-keys[0] <=> b-keys[0]
+		match cmp
+		as less
+			cb[a-keys[0], a-values[0] some, none] each \v
+				out-keys push a-keys[0]
+				out-values push v
+			combine-recur: out-keys, out-values, a-keys.tail, a-values.tail, b-keys, b-values, cb
+		as equal
+			cb[a-keys[0], a-values[0] some, b-values[0] some] each \v
+				out-keys push a-keys[0]
+				out-values push v
+			combine-recur: out-keys, out-values, a-keys.tail, a-values.tail, b-keys.tail, b-values.tail, cb
+		as greater
+			cb[b-keys[0], none, b-values[0] some] each \v
+				out-keys push b-keys[0]
+				out-values push v
+			combine-recur: out-keys, out-values, a-keys, a-values, b-keys.tail, b-values.tail, cb

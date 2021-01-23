@@ -5346,9 +5346,9 @@ program(
 			expr-body(
 				cond(
 					call(==, [call(subscript, [param-ref(a), 0]), 45])
-					call(opt-map, [call(parse-nat, [call(tail, [param-ref(a)])]), lambda(0, void)])
+					call(map, [call(parse-nat, [call(tail, [param-ref(a)])]), lambda(0, void)])
 					call(
-						opt-map
+						map
 						[
 							call(
 								parse-nat
@@ -5362,7 +5362,7 @@ program(
 							lambda(1, void)]))))
 		fun(
 			true
-			opt-map
+			map
 			type(false, opt)
 			none
 			[param(a, type(false, opt)), param(cb, type(false, fun-act1))]
