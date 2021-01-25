@@ -3,11 +3,10 @@ import
 		cb, drop, err, exception, fut, fut-callback-node, fut-state-callbacks, fut-state-resolved,
 		todo, head, none, lk, next-node, opt, ok, ref-of-val, result, set-state, state, subscript,
 		value, void
-	.thread-utils: acquire-lock, new-lock-by-val, release-lock
+	.thread-utils: lock-by-val, with-lock
 
-| Considered unsafe because normally it should not be possible to never resolve a fut
-new-unresolved-fut fut ?t() unsafe
-	fut: new-lock-by-val, fut-state-callbacks: none
+unresolved fut ?t() unsafe
+	fut: lock-by-val, fut-state-callbacks: none
 
 resolve! void(f fut ?t, value ?t) unsafe
 	f resolve-or-reject! value.ok
@@ -16,23 +15,23 @@ reject! void(f fut ?t, e exception) unsafe
 	f resolve-or-reject! e.err
 
 resolve-or-reject! void(f fut ?t, result result<?t, exception>) unsafe
-	f.lk.ref-of-val acquire-lock
-	callbacks = match f.state
-	as fut-state-callbacks cbs
-		cbs
-	as fut-state-resolved
-		todo
-	as exception
-		todo
+	callbacks = f.lk.ref-of-val with-lock \
+		callbacks = match f.state
+		as fut-state-callbacks cbs
+			cbs
+		as fut-state-resolved
+			todo
+		as exception
+			todo
 
-	f.state := match result
-	as ok o
-		fut-state-resolved: o.value
-	as err e
-		| TODO: should work without this variable
-		ex = e value
-		ex
-	f.lk.ref-of-val release-lock
+		f.state := match result
+		as ok o
+			fut-state-resolved: o.value
+		as err e
+			| TODO: should work without this variable
+			ex = e value
+			ex
+		callbacks
 
 	callbacks.head call-callbacks! result
 

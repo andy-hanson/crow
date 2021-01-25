@@ -142,19 +142,22 @@ struct island_and_exclusion {
 	uint64_t exclusion;
 };
 struct fun_ref1;
+struct then_void_0__lambda0;
 struct then__lambda0;
+struct then_void_1__lambda0;
 struct forward_to__e__lambda0 {
 	struct fut_0* to;
 };
-struct subscript_4__lambda0;
-struct subscript_4__lambda0__lambda0;
-struct subscript_4__lambda0__lambda1 {
+struct resolve_or_reject__e__lambda0;
+struct subscript_6__lambda0;
+struct subscript_6__lambda0__lambda0;
+struct subscript_6__lambda0__lambda1 {
 	struct fut_0* res;
 };
 struct then2__lambda0;
-struct subscript_9__lambda0;
-struct subscript_9__lambda0__lambda0;
-struct subscript_9__lambda0__lambda1 {
+struct subscript_10__lambda0;
+struct subscript_10__lambda0__lambda0;
+struct subscript_10__lambda0__lambda1 {
 	struct fut_0* res;
 };
 struct add_first_task__lambda0;
@@ -221,10 +224,12 @@ struct opt_1 {
 struct fun_act0_0 {
 	uint64_t kind;
 	union {
-		struct subscript_4__lambda0__lambda0* as0;
-		struct subscript_4__lambda0* as1;
-		struct subscript_9__lambda0__lambda0* as2;
-		struct subscript_9__lambda0* as3;
+		struct then_void_0__lambda0* as0;
+		struct then_void_1__lambda0* as1;
+		struct subscript_6__lambda0__lambda0* as2;
+		struct subscript_6__lambda0* as3;
+		struct subscript_10__lambda0__lambda0* as4;
+		struct subscript_10__lambda0* as5;
 	};
 };
 struct opt_2 {
@@ -314,11 +319,17 @@ struct fun_act1_2 {
 		struct then2__lambda0* as0;
 	};
 };
+struct fun_act0_2 {
+	uint64_t kind;
+	union {
+		struct resolve_or_reject__e__lambda0* as0;
+	};
+};
 struct fun_act1_3 {
 	uint64_t kind;
 	union {
-		struct subscript_4__lambda0__lambda1* as0;
-		struct subscript_9__lambda0__lambda1* as1;
+		struct subscript_6__lambda0__lambda1* as0;
+		struct subscript_10__lambda0__lambda1* as1;
 	};
 };
 struct fun_act1_4 {
@@ -446,16 +457,25 @@ struct fun_ref1 {
 	struct island_and_exclusion island_and_exclusion;
 	struct fun_act1_2 fun;
 };
+struct then_void_0__lambda0 {
+	struct fut_1* f;
+	struct fun_act1_1 cb;
+};
 struct then__lambda0 {
 	struct fun_ref1 cb;
 	struct fut_0* res;
 };
-struct subscript_4__lambda0 {
+struct then_void_1__lambda0 {
+	struct fut_0* f;
+	struct fun_act1_0 cb;
+};
+struct resolve_or_reject__e__lambda0;
+struct subscript_6__lambda0 {
 	struct fun_ref1 f;
 	struct void_ p0;
 	struct fut_0* res;
 };
-struct subscript_4__lambda0__lambda0 {
+struct subscript_6__lambda0__lambda0 {
 	struct fun_ref1 f;
 	struct void_ p0;
 	struct fut_0* res;
@@ -463,11 +483,11 @@ struct subscript_4__lambda0__lambda0 {
 struct then2__lambda0 {
 	struct fun_ref0 cb;
 };
-struct subscript_9__lambda0 {
+struct subscript_10__lambda0 {
 	struct fun_ref0 f;
 	struct fut_0* res;
 };
-struct subscript_9__lambda0__lambda0 {
+struct subscript_10__lambda0__lambda0 {
 	struct fun_ref0 f;
 	struct fut_0* res;
 };
@@ -556,6 +576,7 @@ struct bytes128 {
 	struct bytes64 n1;
 };
 struct fut_1;
+struct resolve_or_reject__e__lambda0;
 struct chosen_task {
 	struct island* task_island;
 	struct task_or_gc task_or_gc;
@@ -615,6 +636,10 @@ struct jmp_buf_tag {
 struct fut_1 {
 	struct lock lk;
 	struct fut_state_1 state;
+};
+struct resolve_or_reject__e__lambda0 {
+	struct fut_0* f;
+	struct result_0 result;
 };
 struct island;
 struct island_gc_root {
@@ -694,15 +719,18 @@ _Static_assert(sizeof(struct fut_state_resolved_1) == 0, "");
 _Static_assert(sizeof(struct fun_ref0) == 32, "");
 _Static_assert(sizeof(struct island_and_exclusion) == 16, "");
 _Static_assert(sizeof(struct fun_ref1) == 32, "");
+_Static_assert(sizeof(struct then_void_0__lambda0) == 24, "");
 _Static_assert(sizeof(struct then__lambda0) == 40, "");
+_Static_assert(sizeof(struct then_void_1__lambda0) == 24, "");
 _Static_assert(sizeof(struct forward_to__e__lambda0) == 8, "");
-_Static_assert(sizeof(struct subscript_4__lambda0) == 40, "");
-_Static_assert(sizeof(struct subscript_4__lambda0__lambda0) == 40, "");
-_Static_assert(sizeof(struct subscript_4__lambda0__lambda1) == 8, "");
+_Static_assert(sizeof(struct resolve_or_reject__e__lambda0) == 48, "");
+_Static_assert(sizeof(struct subscript_6__lambda0) == 40, "");
+_Static_assert(sizeof(struct subscript_6__lambda0__lambda0) == 40, "");
+_Static_assert(sizeof(struct subscript_6__lambda0__lambda1) == 8, "");
 _Static_assert(sizeof(struct then2__lambda0) == 32, "");
-_Static_assert(sizeof(struct subscript_9__lambda0) == 40, "");
-_Static_assert(sizeof(struct subscript_9__lambda0__lambda0) == 40, "");
-_Static_assert(sizeof(struct subscript_9__lambda0__lambda1) == 8, "");
+_Static_assert(sizeof(struct subscript_10__lambda0) == 40, "");
+_Static_assert(sizeof(struct subscript_10__lambda0__lambda0) == 40, "");
+_Static_assert(sizeof(struct subscript_10__lambda0__lambda1) == 8, "");
 _Static_assert(sizeof(struct add_first_task__lambda0) == 24, "");
 _Static_assert(sizeof(struct map_0__lambda0) == 24, "");
 _Static_assert(sizeof(struct thread_args) == 16, "");
@@ -738,6 +766,7 @@ _Static_assert(sizeof(struct fun_act1_1) == 16, "");
 _Static_assert(sizeof(struct opt_7) == 16, "");
 _Static_assert(sizeof(struct fun_act0_1) == 16, "");
 _Static_assert(sizeof(struct fun_act1_2) == 16, "");
+_Static_assert(sizeof(struct fun_act0_2) == 16, "");
 _Static_assert(sizeof(struct fun_act1_3) == 16, "");
 _Static_assert(sizeof(struct fun_act1_4) == 8, "");
 _Static_assert(sizeof(struct fun_act1_5) == 16, "");
@@ -814,499 +843,494 @@ char constantarr_0_62[7];
 char constantarr_0_63[10];
 char constantarr_0_64[22];
 char constantarr_0_65[10];
-char constantarr_0_66[15];
+char constantarr_0_66[11];
 char constantarr_0_67[4];
-char constantarr_0_68[15];
-char constantarr_0_69[11];
-char constantarr_0_70[13];
-char constantarr_0_71[9];
-char constantarr_0_72[22];
-char constantarr_0_73[10];
-char constantarr_0_74[14];
-char constantarr_0_75[10];
-char constantarr_0_76[60];
-char constantarr_0_77[11];
-char constantarr_0_78[4];
-char constantarr_0_79[7];
-char constantarr_0_80[35];
-char constantarr_0_81[28];
-char constantarr_0_82[21];
-char constantarr_0_83[6];
-char constantarr_0_84[11];
-char constantarr_0_85[11];
-char constantarr_0_86[10];
-char constantarr_0_87[8];
-char constantarr_0_88[8];
-char constantarr_0_89[18];
-char constantarr_0_90[6];
-char constantarr_0_91[19];
-char constantarr_0_92[12];
-char constantarr_0_93[26];
-char constantarr_0_94[14];
-char constantarr_0_95[25];
-char constantarr_0_96[20];
-char constantarr_0_97[16];
-char constantarr_0_98[13];
-char constantarr_0_99[13];
-char constantarr_0_100[5];
-char constantarr_0_101[21];
-char constantarr_0_102[10];
-char constantarr_0_103[10];
-char constantarr_0_104[7];
-char constantarr_0_105[6];
-char constantarr_0_106[13];
-char constantarr_0_107[10];
-char constantarr_0_108[10];
-char constantarr_0_109[6];
-char constantarr_0_110[9];
-char constantarr_0_111[14];
-char constantarr_0_112[12];
-char constantarr_0_113[12];
-char constantarr_0_114[7];
-char constantarr_0_115[10];
-char constantarr_0_116[15];
-char constantarr_0_117[8];
-char constantarr_0_118[18];
-char constantarr_0_119[6];
-char constantarr_0_120[10];
-char constantarr_0_121[9];
-char constantarr_0_122[17];
-char constantarr_0_123[21];
-char constantarr_0_124[17];
-char constantarr_0_125[7];
-char constantarr_0_126[18];
-char constantarr_0_127[11];
-char constantarr_0_128[20];
-char constantarr_0_129[7];
-char constantarr_0_130[15];
-char constantarr_0_131[9];
-char constantarr_0_132[13];
-char constantarr_0_133[24];
-char constantarr_0_134[34];
-char constantarr_0_135[9];
+char constantarr_0_68[11];
+char constantarr_0_69[9];
+char constantarr_0_70[22];
+char constantarr_0_71[6];
+char constantarr_0_72[10];
+char constantarr_0_73[56];
+char constantarr_0_74[11];
+char constantarr_0_75[4];
+char constantarr_0_76[7];
+char constantarr_0_77[35];
+char constantarr_0_78[28];
+char constantarr_0_79[21];
+char constantarr_0_80[6];
+char constantarr_0_81[11];
+char constantarr_0_82[11];
+char constantarr_0_83[10];
+char constantarr_0_84[8];
+char constantarr_0_85[8];
+char constantarr_0_86[18];
+char constantarr_0_87[6];
+char constantarr_0_88[19];
+char constantarr_0_89[12];
+char constantarr_0_90[26];
+char constantarr_0_91[14];
+char constantarr_0_92[25];
+char constantarr_0_93[20];
+char constantarr_0_94[16];
+char constantarr_0_95[13];
+char constantarr_0_96[13];
+char constantarr_0_97[5];
+char constantarr_0_98[21];
+char constantarr_0_99[10];
+char constantarr_0_100[10];
+char constantarr_0_101[7];
+char constantarr_0_102[6];
+char constantarr_0_103[13];
+char constantarr_0_104[10];
+char constantarr_0_105[10];
+char constantarr_0_106[6];
+char constantarr_0_107[9];
+char constantarr_0_108[14];
+char constantarr_0_109[12];
+char constantarr_0_110[12];
+char constantarr_0_111[7];
+char constantarr_0_112[10];
+char constantarr_0_113[15];
+char constantarr_0_114[8];
+char constantarr_0_115[18];
+char constantarr_0_116[6];
+char constantarr_0_117[10];
+char constantarr_0_118[9];
+char constantarr_0_119[17];
+char constantarr_0_120[21];
+char constantarr_0_121[17];
+char constantarr_0_122[7];
+char constantarr_0_123[18];
+char constantarr_0_124[11];
+char constantarr_0_125[20];
+char constantarr_0_126[7];
+char constantarr_0_127[15];
+char constantarr_0_128[9];
+char constantarr_0_129[13];
+char constantarr_0_130[24];
+char constantarr_0_131[34];
+char constantarr_0_132[9];
+char constantarr_0_133[12];
+char constantarr_0_134[8];
+char constantarr_0_135[14];
 char constantarr_0_136[12];
-char constantarr_0_137[12];
-char constantarr_0_138[18];
-char constantarr_0_139[16];
-char constantarr_0_140[7];
-char constantarr_0_141[10];
+char constantarr_0_137[8];
+char constantarr_0_138[11];
+char constantarr_0_139[23];
+char constantarr_0_140[12];
+char constantarr_0_141[5];
 char constantarr_0_142[23];
-char constantarr_0_143[12];
-char constantarr_0_144[5];
-char constantarr_0_145[23];
+char constantarr_0_143[9];
+char constantarr_0_144[12];
+char constantarr_0_145[13];
 char constantarr_0_146[9];
-char constantarr_0_147[12];
-char constantarr_0_148[13];
-char constantarr_0_149[9];
-char constantarr_0_150[10];
-char constantarr_0_151[16];
-char constantarr_0_152[2];
-char constantarr_0_153[18];
-char constantarr_0_154[11];
-char constantarr_0_155[18];
-char constantarr_0_156[13];
-char constantarr_0_157[10];
-char constantarr_0_158[8];
-char constantarr_0_159[8];
-char constantarr_0_160[17];
-char constantarr_0_161[11];
-char constantarr_0_162[10];
-char constantarr_0_163[8];
-char constantarr_0_164[8];
-char constantarr_0_165[7];
-char constantarr_0_166[10];
-char constantarr_0_167[6];
-char constantarr_0_168[11];
-char constantarr_0_169[12];
-char constantarr_0_170[12];
-char constantarr_0_171[15];
-char constantarr_0_172[19];
-char constantarr_0_173[9];
-char constantarr_0_174[12];
-char constantarr_0_175[10];
-char constantarr_0_176[9];
-char constantarr_0_177[6];
-char constantarr_0_178[2];
-char constantarr_0_179[10];
-char constantarr_0_180[14];
-char constantarr_0_181[10];
-char constantarr_0_182[13];
-char constantarr_0_183[18];
-char constantarr_0_184[16];
-char constantarr_0_185[34];
-char constantarr_0_186[10];
-char constantarr_0_187[20];
-char constantarr_0_188[14];
-char constantarr_0_189[21];
+char constantarr_0_147[10];
+char constantarr_0_148[16];
+char constantarr_0_149[2];
+char constantarr_0_150[18];
+char constantarr_0_151[11];
+char constantarr_0_152[18];
+char constantarr_0_153[13];
+char constantarr_0_154[10];
+char constantarr_0_155[8];
+char constantarr_0_156[8];
+char constantarr_0_157[17];
+char constantarr_0_158[11];
+char constantarr_0_159[10];
+char constantarr_0_160[8];
+char constantarr_0_161[8];
+char constantarr_0_162[7];
+char constantarr_0_163[10];
+char constantarr_0_164[6];
+char constantarr_0_165[11];
+char constantarr_0_166[12];
+char constantarr_0_167[12];
+char constantarr_0_168[15];
+char constantarr_0_169[19];
+char constantarr_0_170[9];
+char constantarr_0_171[8];
+char constantarr_0_172[11];
+char constantarr_0_173[10];
+char constantarr_0_174[6];
+char constantarr_0_175[2];
+char constantarr_0_176[10];
+char constantarr_0_177[14];
+char constantarr_0_178[10];
+char constantarr_0_179[13];
+char constantarr_0_180[18];
+char constantarr_0_181[16];
+char constantarr_0_182[34];
+char constantarr_0_183[10];
+char constantarr_0_184[20];
+char constantarr_0_185[14];
+char constantarr_0_186[21];
+char constantarr_0_187[21];
+char constantarr_0_188[9];
+char constantarr_0_189[18];
 char constantarr_0_190[21];
-char constantarr_0_191[9];
-char constantarr_0_192[18];
-char constantarr_0_193[21];
-char constantarr_0_194[13];
-char constantarr_0_195[6];
-char constantarr_0_196[9];
-char constantarr_0_197[15];
+char constantarr_0_191[13];
+char constantarr_0_192[6];
+char constantarr_0_193[9];
+char constantarr_0_194[15];
+char constantarr_0_195[14];
+char constantarr_0_196[25];
+char constantarr_0_197[7];
 char constantarr_0_198[14];
-char constantarr_0_199[25];
-char constantarr_0_200[7];
+char constantarr_0_199[12];
+char constantarr_0_200[11];
 char constantarr_0_201[14];
 char constantarr_0_202[12];
-char constantarr_0_203[11];
-char constantarr_0_204[14];
-char constantarr_0_205[12];
-char constantarr_0_206[12];
-char constantarr_0_207[8];
+char constantarr_0_203[12];
+char constantarr_0_204[8];
+char constantarr_0_205[9];
+char constantarr_0_206[13];
+char constantarr_0_207[15];
 char constantarr_0_208[9];
-char constantarr_0_209[13];
-char constantarr_0_210[15];
-char constantarr_0_211[9];
-char constantarr_0_212[15];
-char constantarr_0_213[24];
-char constantarr_0_214[15];
-char constantarr_0_215[10];
-char constantarr_0_216[10];
-char constantarr_0_217[21];
-char constantarr_0_218[20];
-char constantarr_0_219[15];
-char constantarr_0_220[15];
-char constantarr_0_221[14];
-char constantarr_0_222[12];
-char constantarr_0_223[8];
-char constantarr_0_224[5];
-char constantarr_0_225[1];
-char constantarr_0_226[3];
-char constantarr_0_227[7];
-char constantarr_0_228[23];
-char constantarr_0_229[5];
-char constantarr_0_230[8];
-char constantarr_0_231[15];
-char constantarr_0_232[18];
+char constantarr_0_209[15];
+char constantarr_0_210[24];
+char constantarr_0_211[15];
+char constantarr_0_212[10];
+char constantarr_0_213[10];
+char constantarr_0_214[21];
+char constantarr_0_215[20];
+char constantarr_0_216[15];
+char constantarr_0_217[15];
+char constantarr_0_218[14];
+char constantarr_0_219[12];
+char constantarr_0_220[8];
+char constantarr_0_221[5];
+char constantarr_0_222[1];
+char constantarr_0_223[3];
+char constantarr_0_224[7];
+char constantarr_0_225[23];
+char constantarr_0_226[5];
+char constantarr_0_227[8];
+char constantarr_0_228[15];
+char constantarr_0_229[18];
+char constantarr_0_230[6];
+char constantarr_0_231[5];
+char constantarr_0_232[13];
 char constantarr_0_233[6];
-char constantarr_0_234[5];
-char constantarr_0_235[13];
-char constantarr_0_236[6];
-char constantarr_0_237[13];
-char constantarr_0_238[14];
-char constantarr_0_239[12];
-char constantarr_0_240[1];
-char constantarr_0_241[12];
-char constantarr_0_242[13];
-char constantarr_0_243[12];
-char constantarr_0_244[29];
+char constantarr_0_234[13];
+char constantarr_0_235[14];
+char constantarr_0_236[12];
+char constantarr_0_237[1];
+char constantarr_0_238[12];
+char constantarr_0_239[13];
+char constantarr_0_240[12];
+char constantarr_0_241[29];
+char constantarr_0_242[14];
+char constantarr_0_243[18];
+char constantarr_0_244[8];
 char constantarr_0_245[14];
-char constantarr_0_246[18];
-char constantarr_0_247[8];
-char constantarr_0_248[18];
-char constantarr_0_249[19];
-char constantarr_0_250[5];
-char constantarr_0_251[16];
-char constantarr_0_252[6];
-char constantarr_0_253[6];
-char constantarr_0_254[5];
-char constantarr_0_255[18];
-char constantarr_0_256[6];
-char constantarr_0_257[6];
-char constantarr_0_258[20];
-char constantarr_0_259[21];
-char constantarr_0_260[23];
-char constantarr_0_261[19];
-char constantarr_0_262[18];
-char constantarr_0_263[11];
-char constantarr_0_264[11];
-char constantarr_0_265[14];
-char constantarr_0_266[7];
-char constantarr_0_267[17];
-char constantarr_0_268[13];
-char constantarr_0_269[11];
-char constantarr_0_270[7];
-char constantarr_0_271[26];
-char constantarr_0_272[30];
-char constantarr_0_273[18];
-char constantarr_0_274[25];
-char constantarr_0_275[19];
-char constantarr_0_276[7];
-char constantarr_0_277[18];
-char constantarr_0_278[12];
-char constantarr_0_279[23];
-char constantarr_0_280[6];
-char constantarr_0_281[12];
-char constantarr_0_282[13];
-char constantarr_0_283[16];
-char constantarr_0_284[8];
-char constantarr_0_285[14];
-char constantarr_0_286[11];
-char constantarr_0_287[11];
-char constantarr_0_288[26];
-char constantarr_0_289[7];
-char constantarr_0_290[3];
-char constantarr_0_291[22];
-char constantarr_0_292[2];
-char constantarr_0_293[25];
-char constantarr_0_294[19];
-char constantarr_0_295[30];
+char constantarr_0_246[19];
+char constantarr_0_247[5];
+char constantarr_0_248[16];
+char constantarr_0_249[6];
+char constantarr_0_250[6];
+char constantarr_0_251[5];
+char constantarr_0_252[14];
+char constantarr_0_253[20];
+char constantarr_0_254[21];
+char constantarr_0_255[19];
+char constantarr_0_256[18];
+char constantarr_0_257[11];
+char constantarr_0_258[11];
+char constantarr_0_259[14];
+char constantarr_0_260[7];
+char constantarr_0_261[13];
+char constantarr_0_262[7];
+char constantarr_0_263[26];
+char constantarr_0_264[30];
+char constantarr_0_265[18];
+char constantarr_0_266[25];
+char constantarr_0_267[19];
+char constantarr_0_268[3];
+char constantarr_0_269[18];
+char constantarr_0_270[12];
+char constantarr_0_271[23];
+char constantarr_0_272[6];
+char constantarr_0_273[12];
+char constantarr_0_274[13];
+char constantarr_0_275[16];
+char constantarr_0_276[8];
+char constantarr_0_277[14];
+char constantarr_0_278[11];
+char constantarr_0_279[11];
+char constantarr_0_280[26];
+char constantarr_0_281[7];
+char constantarr_0_282[22];
+char constantarr_0_283[2];
+char constantarr_0_284[25];
+char constantarr_0_285[19];
+char constantarr_0_286[30];
+char constantarr_0_287[15];
+char constantarr_0_288[79];
+char constantarr_0_289[14];
+char constantarr_0_290[10];
+char constantarr_0_291[16];
+char constantarr_0_292[16];
+char constantarr_0_293[7];
+char constantarr_0_294[23];
+char constantarr_0_295[14];
 char constantarr_0_296[15];
-char constantarr_0_297[79];
-char constantarr_0_298[14];
-char constantarr_0_299[10];
-char constantarr_0_300[16];
-char constantarr_0_301[24];
-char constantarr_0_302[7];
-char constantarr_0_303[23];
-char constantarr_0_304[14];
-char constantarr_0_305[6];
-char constantarr_0_306[9];
-char constantarr_0_307[13];
-char constantarr_0_308[27];
-char constantarr_0_309[21];
-char constantarr_0_310[8];
-char constantarr_0_311[38];
-char constantarr_0_312[22];
-char constantarr_0_313[6];
-char constantarr_0_314[9];
-char constantarr_0_315[14];
-char constantarr_0_316[17];
-char constantarr_0_317[13];
-char constantarr_0_318[22];
-char constantarr_0_319[29];
-char constantarr_0_320[22];
-char constantarr_0_321[16];
-char constantarr_0_322[19];
-char constantarr_0_323[10];
-char constantarr_0_324[6];
-char constantarr_0_325[28];
-char constantarr_0_326[13];
-char constantarr_0_327[25];
-char constantarr_0_328[20];
-char constantarr_0_329[10];
-char constantarr_0_330[17];
-char constantarr_0_331[7];
-char constantarr_0_332[29];
-char constantarr_0_333[8];
-char constantarr_0_334[19];
-char constantarr_0_335[15];
-char constantarr_0_336[4];
-char constantarr_0_337[10];
-char constantarr_0_338[12];
+char constantarr_0_297[17];
+char constantarr_0_298[6];
+char constantarr_0_299[9];
+char constantarr_0_300[13];
+char constantarr_0_301[27];
+char constantarr_0_302[21];
+char constantarr_0_303[8];
+char constantarr_0_304[38];
+char constantarr_0_305[22];
+char constantarr_0_306[6];
+char constantarr_0_307[9];
+char constantarr_0_308[14];
+char constantarr_0_309[22];
+char constantarr_0_310[17];
+char constantarr_0_311[13];
+char constantarr_0_312[21];
+char constantarr_0_313[22];
+char constantarr_0_314[34];
+char constantarr_0_315[29];
+char constantarr_0_316[22];
+char constantarr_0_317[16];
+char constantarr_0_318[30];
+char constantarr_0_319[19];
+char constantarr_0_320[10];
+char constantarr_0_321[6];
+char constantarr_0_322[28];
+char constantarr_0_323[13];
+char constantarr_0_324[25];
+char constantarr_0_325[20];
+char constantarr_0_326[10];
+char constantarr_0_327[17];
+char constantarr_0_328[7];
+char constantarr_0_329[29];
+char constantarr_0_330[8];
+char constantarr_0_331[15];
+char constantarr_0_332[4];
+char constantarr_0_333[10];
+char constantarr_0_334[12];
+char constantarr_0_335[4];
+char constantarr_0_336[10];
+char constantarr_0_337[4];
+char constantarr_0_338[22];
 char constantarr_0_339[4];
-char constantarr_0_340[10];
-char constantarr_0_341[4];
-char constantarr_0_342[22];
-char constantarr_0_343[4];
+char constantarr_0_340[8];
+char constantarr_0_341[21];
+char constantarr_0_342[4];
+char constantarr_0_343[12];
 char constantarr_0_344[8];
-char constantarr_0_345[21];
-char constantarr_0_346[4];
-char constantarr_0_347[12];
-char constantarr_0_348[8];
-char constantarr_0_349[5];
-char constantarr_0_350[22];
-char constantarr_0_351[9];
-char constantarr_0_352[9];
-char constantarr_0_353[21];
-char constantarr_0_354[17];
-char constantarr_0_355[4];
-char constantarr_0_356[12];
-char constantarr_0_357[9];
-char constantarr_0_358[11];
-char constantarr_0_359[28];
-char constantarr_0_360[16];
-char constantarr_0_361[11];
-char constantarr_0_362[4];
-char constantarr_0_363[7];
-char constantarr_0_364[7];
-char constantarr_0_365[7];
-char constantarr_0_366[8];
-char constantarr_0_367[15];
-char constantarr_0_368[19];
-char constantarr_0_369[6];
-char constantarr_0_370[17];
-char constantarr_0_371[24];
-char constantarr_0_372[23];
-char constantarr_0_373[12];
-char constantarr_0_374[36];
-char constantarr_0_375[11];
-char constantarr_0_376[36];
-char constantarr_0_377[28];
-char constantarr_0_378[10];
-char constantarr_0_379[24];
-char constantarr_0_380[15];
-char constantarr_0_381[24];
+char constantarr_0_345[5];
+char constantarr_0_346[22];
+char constantarr_0_347[10];
+char constantarr_0_348[9];
+char constantarr_0_349[21];
+char constantarr_0_350[17];
+char constantarr_0_351[4];
+char constantarr_0_352[12];
+char constantarr_0_353[9];
+char constantarr_0_354[11];
+char constantarr_0_355[28];
+char constantarr_0_356[16];
+char constantarr_0_357[11];
+char constantarr_0_358[4];
+char constantarr_0_359[7];
+char constantarr_0_360[7];
+char constantarr_0_361[7];
+char constantarr_0_362[8];
+char constantarr_0_363[15];
+char constantarr_0_364[19];
+char constantarr_0_365[6];
+char constantarr_0_366[24];
+char constantarr_0_367[23];
+char constantarr_0_368[12];
+char constantarr_0_369[36];
+char constantarr_0_370[11];
+char constantarr_0_371[36];
+char constantarr_0_372[28];
+char constantarr_0_373[10];
+char constantarr_0_374[24];
+char constantarr_0_375[15];
+char constantarr_0_376[24];
+char constantarr_0_377[18];
+char constantarr_0_378[7];
+char constantarr_0_379[31];
+char constantarr_0_380[31];
+char constantarr_0_381[23];
 char constantarr_0_382[18];
-char constantarr_0_383[7];
-char constantarr_0_384[31];
-char constantarr_0_385[31];
-char constantarr_0_386[23];
-char constantarr_0_387[18];
-char constantarr_0_388[24];
-char constantarr_0_389[20];
-char constantarr_0_390[9];
-char constantarr_0_391[5];
+char constantarr_0_383[24];
+char constantarr_0_384[20];
+char constantarr_0_385[9];
+char constantarr_0_386[5];
+char constantarr_0_387[14];
+char constantarr_0_388[15];
+char constantarr_0_389[10];
+char constantarr_0_390[40];
+char constantarr_0_391[25];
 char constantarr_0_392[14];
-char constantarr_0_393[15];
-char constantarr_0_394[10];
-char constantarr_0_395[40];
-char constantarr_0_396[25];
-char constantarr_0_397[14];
-char constantarr_0_398[18];
-char constantarr_0_399[24];
-char constantarr_0_400[18];
-char constantarr_0_401[14];
-char constantarr_0_402[33];
-char constantarr_0_403[24];
-char constantarr_0_404[5];
-char constantarr_0_405[13];
-char constantarr_0_406[17];
-char constantarr_0_407[8];
-char constantarr_0_408[11];
-char constantarr_0_409[15];
-char constantarr_0_410[10];
-char constantarr_0_411[30];
-char constantarr_0_412[22];
-char constantarr_0_413[22];
-char constantarr_0_414[26];
-char constantarr_0_415[17];
-char constantarr_0_416[14];
-char constantarr_0_417[30];
-char constantarr_0_418[15];
-char constantarr_0_419[80];
+char constantarr_0_393[18];
+char constantarr_0_394[24];
+char constantarr_0_395[18];
+char constantarr_0_396[14];
+char constantarr_0_397[33];
+char constantarr_0_398[24];
+char constantarr_0_399[5];
+char constantarr_0_400[13];
+char constantarr_0_401[17];
+char constantarr_0_402[8];
+char constantarr_0_403[11];
+char constantarr_0_404[15];
+char constantarr_0_405[10];
+char constantarr_0_406[30];
+char constantarr_0_407[22];
+char constantarr_0_408[22];
+char constantarr_0_409[26];
+char constantarr_0_410[17];
+char constantarr_0_411[14];
+char constantarr_0_412[30];
+char constantarr_0_413[15];
+char constantarr_0_414[80];
+char constantarr_0_415[11];
+char constantarr_0_416[45];
+char constantarr_0_417[19];
+char constantarr_0_418[22];
+char constantarr_0_419[24];
 char constantarr_0_420[11];
-char constantarr_0_421[45];
-char constantarr_0_422[19];
-char constantarr_0_423[22];
-char constantarr_0_424[24];
-char constantarr_0_425[11];
-char constantarr_0_426[17];
-char constantarr_0_427[14];
-char constantarr_0_428[9];
-char constantarr_0_429[6];
-char constantarr_0_430[12];
-char constantarr_0_431[16];
-char constantarr_0_432[36];
-char constantarr_0_433[10];
-char constantarr_0_434[19];
-char constantarr_0_435[15];
-char constantarr_0_436[21];
-char constantarr_0_437[10];
-char constantarr_0_438[18];
-char constantarr_0_439[14];
-char constantarr_0_440[28];
-char constantarr_0_441[9];
+char constantarr_0_421[17];
+char constantarr_0_422[14];
+char constantarr_0_423[9];
+char constantarr_0_424[6];
+char constantarr_0_425[12];
+char constantarr_0_426[16];
+char constantarr_0_427[36];
+char constantarr_0_428[10];
+char constantarr_0_429[19];
+char constantarr_0_430[15];
+char constantarr_0_431[21];
+char constantarr_0_432[10];
+char constantarr_0_433[18];
+char constantarr_0_434[14];
+char constantarr_0_435[28];
+char constantarr_0_436[9];
+char constantarr_0_437[17];
+char constantarr_0_438[6];
+char constantarr_0_439[21];
+char constantarr_0_440[16];
+char constantarr_0_441[11];
 char constantarr_0_442[17];
-char constantarr_0_443[6];
-char constantarr_0_444[21];
-char constantarr_0_445[16];
-char constantarr_0_446[11];
-char constantarr_0_447[17];
+char constantarr_0_443[26];
+char constantarr_0_444[14];
+char constantarr_0_445[8];
+char constantarr_0_446[13];
+char constantarr_0_447[15];
 char constantarr_0_448[26];
-char constantarr_0_449[14];
-char constantarr_0_450[8];
-char constantarr_0_451[13];
-char constantarr_0_452[15];
-char constantarr_0_453[26];
-char constantarr_0_454[13];
-char constantarr_0_455[6];
-char constantarr_0_456[7];
-char constantarr_0_457[9];
-char constantarr_0_458[22];
-char constantarr_0_459[17];
-char constantarr_0_460[14];
-char constantarr_0_461[21];
-char constantarr_0_462[32];
-char constantarr_0_463[7];
-char constantarr_0_464[7];
-char constantarr_0_465[9];
-char constantarr_0_466[25];
-char constantarr_0_467[28];
-char constantarr_0_468[19];
-char constantarr_0_469[14];
-char constantarr_0_470[13];
-char constantarr_0_471[19];
-char constantarr_0_472[15];
+char constantarr_0_449[13];
+char constantarr_0_450[6];
+char constantarr_0_451[7];
+char constantarr_0_452[9];
+char constantarr_0_453[22];
+char constantarr_0_454[17];
+char constantarr_0_455[14];
+char constantarr_0_456[21];
+char constantarr_0_457[32];
+char constantarr_0_458[7];
+char constantarr_0_459[7];
+char constantarr_0_460[9];
+char constantarr_0_461[25];
+char constantarr_0_462[28];
+char constantarr_0_463[19];
+char constantarr_0_464[14];
+char constantarr_0_465[13];
+char constantarr_0_466[19];
+char constantarr_0_467[15];
+char constantarr_0_468[9];
+char constantarr_0_469[19];
+char constantarr_0_470[11];
+char constantarr_0_471[10];
+char constantarr_0_472[11];
 char constantarr_0_473[9];
-char constantarr_0_474[19];
-char constantarr_0_475[11];
-char constantarr_0_476[9];
-char constantarr_0_477[11];
-char constantarr_0_478[9];
-char constantarr_0_479[38];
-char constantarr_0_480[12];
-char constantarr_0_481[12];
-char constantarr_0_482[17];
-char constantarr_0_483[7];
-char constantarr_0_484[11];
-char constantarr_0_485[21];
-char constantarr_0_486[11];
-char constantarr_0_487[10];
-char constantarr_0_488[8];
-char constantarr_0_489[8];
-char constantarr_0_490[5];
+char constantarr_0_474[38];
+char constantarr_0_475[12];
+char constantarr_0_476[12];
+char constantarr_0_477[17];
+char constantarr_0_478[7];
+char constantarr_0_479[11];
+char constantarr_0_480[21];
+char constantarr_0_481[11];
+char constantarr_0_482[10];
+char constantarr_0_483[8];
+char constantarr_0_484[8];
+char constantarr_0_485[5];
+char constantarr_0_486[10];
+char constantarr_0_487[15];
+char constantarr_0_488[29];
+char constantarr_0_489[7];
+char constantarr_0_490[11];
 char constantarr_0_491[10];
-char constantarr_0_492[15];
-char constantarr_0_493[29];
-char constantarr_0_494[7];
-char constantarr_0_495[11];
-char constantarr_0_496[10];
-char constantarr_0_497[6];
-char constantarr_0_498[12];
-char constantarr_0_499[33];
-char constantarr_0_500[38];
-char constantarr_0_501[8];
-char constantarr_0_502[30];
-char constantarr_0_503[14];
-char constantarr_0_504[10];
-char constantarr_0_505[13];
-char constantarr_0_506[12];
-char constantarr_0_507[46];
-char constantarr_0_508[13];
-char constantarr_0_509[12];
-char constantarr_0_510[8];
-char constantarr_0_511[20];
-char constantarr_0_512[8];
-char constantarr_0_513[14];
-char constantarr_0_514[20];
-char constantarr_0_515[14];
-char constantarr_0_516[14];
-char constantarr_0_517[7];
-char constantarr_0_518[12];
-char constantarr_0_519[9];
-char constantarr_0_520[18];
-char constantarr_0_521[15];
-char constantarr_0_522[27];
-char constantarr_0_523[15];
-char constantarr_0_524[12];
-char constantarr_0_525[27];
-char constantarr_0_526[6];
-char constantarr_0_527[5];
-char constantarr_0_528[14];
-char constantarr_0_529[19];
+char constantarr_0_492[6];
+char constantarr_0_493[12];
+char constantarr_0_494[33];
+char constantarr_0_495[38];
+char constantarr_0_496[8];
+char constantarr_0_497[30];
+char constantarr_0_498[14];
+char constantarr_0_499[10];
+char constantarr_0_500[13];
+char constantarr_0_501[12];
+char constantarr_0_502[46];
+char constantarr_0_503[13];
+char constantarr_0_504[12];
+char constantarr_0_505[8];
+char constantarr_0_506[20];
+char constantarr_0_507[8];
+char constantarr_0_508[14];
+char constantarr_0_509[20];
+char constantarr_0_510[14];
+char constantarr_0_511[14];
+char constantarr_0_512[7];
+char constantarr_0_513[12];
+char constantarr_0_514[9];
+char constantarr_0_515[18];
+char constantarr_0_516[15];
+char constantarr_0_517[27];
+char constantarr_0_518[15];
+char constantarr_0_519[12];
+char constantarr_0_520[27];
+char constantarr_0_521[6];
+char constantarr_0_522[5];
+char constantarr_0_523[14];
+char constantarr_0_524[19];
+char constantarr_0_525[4];
+char constantarr_0_526[35];
+char constantarr_0_527[18];
+char constantarr_0_528[8];
+char constantarr_0_529[25];
 char constantarr_0_530[4];
-char constantarr_0_531[35];
-char constantarr_0_532[18];
-char constantarr_0_533[8];
-char constantarr_0_534[25];
-char constantarr_0_535[4];
-char constantarr_0_536[12];
-char constantarr_0_537[9];
-char constantarr_0_538[15];
-char constantarr_0_539[11];
-char constantarr_0_540[11];
-char constantarr_0_541[10];
-char constantarr_0_542[1];
-char constantarr_0_543[1];
-char constantarr_0_544[12];
+char constantarr_0_531[12];
+char constantarr_0_532[9];
+char constantarr_0_533[15];
+char constantarr_0_534[11];
+char constantarr_0_535[11];
+char constantarr_0_536[10];
+char constantarr_0_537[1];
+char constantarr_0_538[1];
+char constantarr_0_539[12];
+char constantarr_0_540[9];
+char constantarr_0_541[13];
+char constantarr_0_542[10];
+char constantarr_0_543[3];
+char constantarr_0_544[6];
 char constantarr_0_545[9];
-char constantarr_0_546[13];
-char constantarr_0_547[10];
-char constantarr_0_548[3];
-char constantarr_0_549[6];
-char constantarr_0_550[9];
-char constantarr_0_551[6];
-char constantarr_0_552[7];
-char constantarr_0_553[17];
-char constantarr_0_554[17];
-char constantarr_0_555[3];
-char constantarr_0_556[10];
-char constantarr_0_557[11];
-char constantarr_0_558[13];
+char constantarr_0_546[6];
+char constantarr_0_547[7];
+char constantarr_0_548[17];
+char constantarr_0_549[17];
+char constantarr_0_550[3];
+char constantarr_0_551[10];
+char constantarr_0_552[11];
+char constantarr_0_553[13];
 char constantarr_0_0[20] = "uncaught exception: ";
 char constantarr_0_1[1] = "\n";
 char constantarr_0_2[17] = "<<empty message>>";
@@ -1373,499 +1397,494 @@ char constantarr_0_62[7] = "rt-main";
 char constantarr_0_63[10] = "get-nprocs";
 char constantarr_0_64[22] = "as<by-val<global-ctx>>";
 char constantarr_0_65[10] = "global-ctx";
-char constantarr_0_66[15] = "new-lock-by-val";
+char constantarr_0_66[11] = "lock-by-val";
 char constantarr_0_67[4] = "lock";
-char constantarr_0_68[15] = "new-atomic-bool";
-char constantarr_0_69[11] = "atomic-bool";
-char constantarr_0_70[13] = "new-condition";
-char constantarr_0_71[9] = "condition";
-char constantarr_0_72[22] = "ref-of-val<global-ctx>";
-char constantarr_0_73[10] = "new-island";
-char constantarr_0_74[14] = "new-task-queue";
-char constantarr_0_75[10] = "task-queue";
-char constantarr_0_76[60] = "new-mut-list-by-val-with-capacity-from-unmanaged-memory<nat>";
-char constantarr_0_77[11] = "mut-arr<?t>";
-char constantarr_0_78[4] = "void";
-char constantarr_0_79[7] = "arr<?t>";
-char constantarr_0_80[35] = "unmanaged-alloc-zeroed-elements<?t>";
-char constantarr_0_81[28] = "unmanaged-alloc-elements<?t>";
-char constantarr_0_82[21] = "unmanaged-alloc-bytes";
-char constantarr_0_83[6] = "malloc";
-char constantarr_0_84[11] = "hard-forbid";
-char constantarr_0_85[11] = "null?<nat8>";
-char constantarr_0_86[10] = "to-nat<?t>";
-char constantarr_0_87[8] = "null<?t>";
-char constantarr_0_88[8] = "wrap-mul";
-char constantarr_0_89[18] = "set-zero-range<?t>";
-char constantarr_0_90[6] = "memset";
-char constantarr_0_91[19] = "as-any-ptr<ptr<?t>>";
-char constantarr_0_92[12] = "mut-list<?t>";
-char constantarr_0_93[26] = "as<by-val<island-gc-root>>";
-char constantarr_0_94[14] = "island-gc-root";
-char constantarr_0_95[25] = "default-exception-handler";
-char constantarr_0_96[20] = "print-err-no-newline";
-char constantarr_0_97[16] = "write-no-newline";
-char constantarr_0_98[13] = "size-of<char>";
-char constantarr_0_99[13] = "size-of<nat8>";
-char constantarr_0_100[5] = "write";
-char constantarr_0_101[21] = "as-any-ptr<ptr<char>>";
-char constantarr_0_102[10] = "data<char>";
-char constantarr_0_103[10] = "size<char>";
-char constantarr_0_104[7] = "!=<int>";
-char constantarr_0_105[6] = "==<?t>";
-char constantarr_0_106[13] = "unsafe-to-int";
-char constantarr_0_107[10] = "todo<void>";
-char constantarr_0_108[10] = "zeroed<?t>";
-char constantarr_0_109[6] = "stderr";
-char constantarr_0_110[9] = "print-err";
-char constantarr_0_111[14] = "show-exception";
-char constantarr_0_112[12] = "?<arr<char>>";
-char constantarr_0_113[12] = "empty?<char>";
-char constantarr_0_114[7] = "message";
-char constantarr_0_115[10] = "join<char>";
-char constantarr_0_116[15] = "empty?<arr<?t>>";
-char constantarr_0_117[8] = "size<?t>";
-char constantarr_0_118[18] = "subscript<arr<?t>>";
-char constantarr_0_119[6] = "assert";
-char constantarr_0_120[10] = "fail<void>";
-char constantarr_0_121[9] = "throw<?t>";
-char constantarr_0_122[17] = "get-exception-ctx";
-char constantarr_0_123[21] = "as-ref<exception-ctx>";
-char constantarr_0_124[17] = "exception-ctx-ptr";
-char constantarr_0_125[7] = "get-ctx";
-char constantarr_0_126[18] = "null?<jmp-buf-tag>";
-char constantarr_0_127[11] = "jmp-buf-ptr";
-char constantarr_0_128[20] = "set-thrown-exception";
-char constantarr_0_129[7] = "longjmp";
-char constantarr_0_130[15] = "number-to-throw";
-char constantarr_0_131[9] = "exception";
-char constantarr_0_132[13] = "get-backtrace";
-char constantarr_0_133[24] = "try-alloc-backtrace-arrs";
-char constantarr_0_134[34] = "try-alloc-uninitialized<ptr<nat8>>";
-char constantarr_0_135[9] = "try-alloc";
-char constantarr_0_136[12] = "try-gc-alloc";
-char constantarr_0_137[12] = "acquire-lock";
-char constantarr_0_138[18] = "acquire-lock-recur";
-char constantarr_0_139[16] = "try-acquire-lock";
-char constantarr_0_140[7] = "try-set";
-char constantarr_0_141[10] = "try-change";
-char constantarr_0_142[23] = "compare-exchange-strong";
-char constantarr_0_143[12] = "ptr-to<bool>";
-char constantarr_0_144[5] = "value";
-char constantarr_0_145[23] = "ref-of-val<atomic-bool>";
-char constantarr_0_146[9] = "is-locked";
-char constantarr_0_147[12] = "yield-thread";
-char constantarr_0_148[13] = "pthread-yield";
-char constantarr_0_149[9] = "==<int32>";
-char constantarr_0_150[10] = "noctx-incr";
-char constantarr_0_151[16] = "ref-of-val<lock>";
-char constantarr_0_152[2] = "lk";
-char constantarr_0_153[18] = "try-gc-alloc-recur";
-char constantarr_0_154[11] = "validate-gc";
-char constantarr_0_155[18] = "ptr-less-eq?<bool>";
-char constantarr_0_156[13] = "ptr-less?<?t>";
-char constantarr_0_157[10] = "mark-begin";
-char constantarr_0_158[8] = "mark-cur";
-char constantarr_0_159[8] = "mark-end";
-char constantarr_0_160[17] = "ptr-less-eq?<nat>";
-char constantarr_0_161[11] = "ptr-eq?<?t>";
-char constantarr_0_162[10] = "data-begin";
-char constantarr_0_163[8] = "data-cur";
-char constantarr_0_164[8] = "data-end";
-char constantarr_0_165[7] = "-<bool>";
-char constantarr_0_166[10] = "size-words";
-char constantarr_0_167[6] = "+<nat>";
-char constantarr_0_168[11] = "range-free?";
-char constantarr_0_169[12] = "set-mark-cur";
-char constantarr_0_170[12] = "set-data-cur";
-char constantarr_0_171[15] = "some<ptr<nat8>>";
-char constantarr_0_172[19] = "ptr-cast<nat8, nat>";
-char constantarr_0_173[9] = "incr<nat>";
-char constantarr_0_174[12] = "release-lock";
-char constantarr_0_175[10] = "must-unset";
-char constantarr_0_176[9] = "try-unset";
-char constantarr_0_177[6] = "get-gc";
-char constantarr_0_178[2] = "gc";
-char constantarr_0_179[10] = "get-gc-ctx";
-char constantarr_0_180[14] = "as-ref<gc-ctx>";
-char constantarr_0_181[10] = "gc-ctx-ptr";
-char constantarr_0_182[13] = "some<ptr<?t>>";
-char constantarr_0_183[18] = "ptr-cast<?t, nat8>";
-char constantarr_0_184[16] = "value<ptr<nat8>>";
-char constantarr_0_185[34] = "try-alloc-uninitialized<arr<char>>";
-char constantarr_0_186[10] = "funs-count";
-char constantarr_0_187[20] = "some<backtrace-arrs>";
-char constantarr_0_188[14] = "backtrace-arrs";
-char constantarr_0_189[21] = "value<ptr<ptr<nat8>>>";
-char constantarr_0_190[21] = "value<ptr<arr<char>>>";
-char constantarr_0_191[9] = "backtrace";
-char constantarr_0_192[18] = "as<arr<arr<char>>>";
-char constantarr_0_193[21] = "value<backtrace-arrs>";
-char constantarr_0_194[13] = "unsafe-to-nat";
-char constantarr_0_195[6] = "to-int";
-char constantarr_0_196[9] = "code-ptrs";
-char constantarr_0_197[15] = "unsafe-to-int32";
-char constantarr_0_198[14] = "code-ptrs-size";
-char constantarr_0_199[25] = "fill-fun-ptrs-names-recur";
-char constantarr_0_200[7] = "!=<nat>";
-char constantarr_0_201[14] = "set<ptr<nat8>>";
-char constantarr_0_202[12] = "+<ptr<nat8>>";
-char constantarr_0_203[11] = "get-fun-ptr";
-char constantarr_0_204[14] = "set<arr<char>>";
-char constantarr_0_205[12] = "+<arr<char>>";
-char constantarr_0_206[12] = "get-fun-name";
-char constantarr_0_207[8] = "fun-ptrs";
-char constantarr_0_208[9] = "fun-names";
-char constantarr_0_209[13] = "sort-together";
-char constantarr_0_210[15] = "swap<ptr<nat8>>";
-char constantarr_0_211[9] = "deref<?t>";
-char constantarr_0_212[15] = "swap<arr<char>>";
-char constantarr_0_213[24] = "partition-recur-together";
-char constantarr_0_214[15] = "ptr-less?<nat8>";
-char constantarr_0_215[10] = "noctx-decr";
-char constantarr_0_216[10] = "code-names";
-char constantarr_0_217[21] = "fill-code-names-recur";
-char constantarr_0_218[20] = "ptr-less?<arr<char>>";
-char constantarr_0_219[15] = "incr<ptr<nat8>>";
-char constantarr_0_220[15] = "incr<arr<char>>";
-char constantarr_0_221[14] = "arr<arr<char>>";
-char constantarr_0_222[12] = "noctx-at<?t>";
-char constantarr_0_223[8] = "data<?t>";
-char constantarr_0_224[5] = "~<?t>";
-char constantarr_0_225[1] = "+";
-char constantarr_0_226[3] = "and";
-char constantarr_0_227[7] = ">=<nat>";
-char constantarr_0_228[23] = "alloc-uninitialized<?t>";
-char constantarr_0_229[5] = "alloc";
-char constantarr_0_230[8] = "gc-alloc";
-char constantarr_0_231[15] = "todo<ptr<nat8>>";
-char constantarr_0_232[18] = "copy-data-from<?t>";
-char constantarr_0_233[6] = "memcpy";
-char constantarr_0_234[5] = "+<?t>";
-char constantarr_0_235[13] = "tail<arr<?t>>";
-char constantarr_0_236[6] = "forbid";
-char constantarr_0_237[13] = "subscript<?t>";
-char constantarr_0_238[14] = "from<nat, nat>";
-char constantarr_0_239[12] = "to<nat, nat>";
-char constantarr_0_240[1] = "-";
-char constantarr_0_241[12] = "-><nat, nat>";
-char constantarr_0_242[13] = "arrow<?a, ?b>";
-char constantarr_0_243[12] = "return-stack";
-char constantarr_0_244[29] = "set-any-unhandled-exceptions?";
-char constantarr_0_245[14] = "get-global-ctx";
-char constantarr_0_246[18] = "as-ref<global-ctx>";
-char constantarr_0_247[8] = "gctx-ptr";
-char constantarr_0_248[18] = "new-island.lambda0";
-char constantarr_0_249[19] = "default-log-handler";
-char constantarr_0_250[5] = "print";
-char constantarr_0_251[16] = "print-no-newline";
-char constantarr_0_252[6] = "stdout";
-char constantarr_0_253[6] = "to-str";
-char constantarr_0_254[5] = "level";
-char constantarr_0_255[18] = "new-island.lambda1";
-char constantarr_0_256[6] = "island";
-char constantarr_0_257[6] = "new-gc";
-char constantarr_0_258[20] = "ptr-cast<bool, nat8>";
-char constantarr_0_259[21] = "as-any-ptr<ptr<bool>>";
-char constantarr_0_260[23] = "new-thread-safe-counter";
-char constantarr_0_261[19] = "thread-safe-counter";
-char constantarr_0_262[18] = "ref-of-val<island>";
-char constantarr_0_263[11] = "set-islands";
-char constantarr_0_264[11] = "arr<island>";
-char constantarr_0_265[14] = "ptr-to<island>";
-char constantarr_0_266[7] = "do-main";
-char constantarr_0_267[17] = "new-exception-ctx";
-char constantarr_0_268[13] = "exception-ctx";
-char constantarr_0_269[11] = "new-log-ctx";
-char constantarr_0_270[7] = "log-ctx";
-char constantarr_0_271[26] = "zeroed<fun1<void, logged>>";
-char constantarr_0_272[30] = "as<by-val<thread-local-stuff>>";
-char constantarr_0_273[18] = "thread-local-stuff";
-char constantarr_0_274[25] = "ref-of-val<exception-ctx>";
-char constantarr_0_275[19] = "ref-of-val<log-ctx>";
-char constantarr_0_276[7] = "new-ctx";
-char constantarr_0_277[18] = "as-any-ptr<gc-ctx>";
-char constantarr_0_278[12] = "context-head";
-char constantarr_0_279[23] = "size-of<by-val<gc-ctx>>";
-char constantarr_0_280[6] = "set-gc";
-char constantarr_0_281[12] = "set-next-ctx";
-char constantarr_0_282[13] = "value<gc-ctx>";
-char constantarr_0_283[16] = "set-context-head";
-char constantarr_0_284[8] = "next-ctx";
-char constantarr_0_285[14] = "ref-of-val<gc>";
-char constantarr_0_286[11] = "set-handler";
-char constantarr_0_287[11] = "log-handler";
-char constantarr_0_288[26] = "ref-of-val<island-gc-root>";
-char constantarr_0_289[7] = "gc-root";
-char constantarr_0_290[3] = "ctx";
-char constantarr_0_291[22] = "as-any-ptr<global-ctx>";
-char constantarr_0_292[2] = "id";
-char constantarr_0_293[25] = "as-any-ptr<exception-ctx>";
-char constantarr_0_294[19] = "as-any-ptr<log-ctx>";
-char constantarr_0_295[30] = "ref-of-val<thread-local-stuff>";
-char constantarr_0_296[15] = "ref-of-val<ctx>";
-char constantarr_0_297[79] = "as<fun-act2<fut<nat>, arr<ptr<char>>, fun-ptr2<fut<nat>, ctx, arr<arr<char>>>>>";
-char constantarr_0_298[14] = "add-first-task";
-char constantarr_0_299[10] = "then2<nat>";
-char constantarr_0_300[16] = "then<?out, void>";
-char constantarr_0_301[24] = "new-unresolved-fut<?out>";
-char constantarr_0_302[7] = "fut<?t>";
-char constantarr_0_303[23] = "fut-state-callbacks<?t>";
-char constantarr_0_304[14] = "then-void<?in>";
-char constantarr_0_305[6] = "lk<?t>";
-char constantarr_0_306[9] = "state<?t>";
-char constantarr_0_307[13] = "set-state<?t>";
-char constantarr_0_308[27] = "some<fut-callback-node<?t>>";
-char constantarr_0_309[21] = "fut-callback-node<?t>";
-char constantarr_0_310[8] = "head<?t>";
-char constantarr_0_311[38] = "subscript<void, result<?t, exception>>";
-char constantarr_0_312[22] = "call-with-ctx<?r, ?p0>";
-char constantarr_0_313[6] = "ok<?t>";
-char constantarr_0_314[9] = "value<?t>";
-char constantarr_0_315[14] = "err<exception>";
-char constantarr_0_316[17] = "forward-to!<?out>";
-char constantarr_0_317[13] = "then-void<?t>";
-char constantarr_0_318[22] = "resolve-or-reject!<?t>";
-char constantarr_0_319[29] = "todo<fut-state-callbacks<?t>>";
-char constantarr_0_320[22] = "fut-state-resolved<?t>";
-char constantarr_0_321[16] = "value<exception>";
-char constantarr_0_322[19] = "call-callbacks!<?t>";
-char constantarr_0_323[10] = "drop<void>";
-char constantarr_0_324[6] = "cb<?t>";
-char constantarr_0_325[28] = "value<fut-callback-node<?t>>";
-char constantarr_0_326[13] = "next-node<?t>";
-char constantarr_0_327[25] = "forward-to!<?out>.lambda0";
-char constantarr_0_328[20] = "subscript<?out, ?in>";
-char constantarr_0_329[10] = "get-island";
-char constantarr_0_330[17] = "subscript<island>";
-char constantarr_0_331[7] = "islands";
-char constantarr_0_332[29] = "island-and-exclusion<?r, ?p0>";
-char constantarr_0_333[8] = "add-task";
-char constantarr_0_334[19] = "new-task-queue-node";
-char constantarr_0_335[15] = "task-queue-node";
-char constantarr_0_336[4] = "task";
-char constantarr_0_337[10] = "tasks-lock";
-char constantarr_0_338[12] = "insert-task!";
-char constantarr_0_339[4] = "size";
-char constantarr_0_340[10] = "size-recur";
-char constantarr_0_341[4] = "next";
-char constantarr_0_342[22] = "value<task-queue-node>";
-char constantarr_0_343[4] = "head";
-char constantarr_0_344[8] = "set-head";
-char constantarr_0_345[21] = "some<task-queue-node>";
-char constantarr_0_346[4] = "time";
-char constantarr_0_347[12] = "insert-recur";
-char constantarr_0_348[8] = "set-next";
-char constantarr_0_349[5] = "tasks";
-char constantarr_0_350[22] = "ref-of-val<task-queue>";
-char constantarr_0_351[9] = "broadcast";
-char constantarr_0_352[9] = "set-value";
-char constantarr_0_353[21] = "ref-of-val<condition>";
-char constantarr_0_354[17] = "may-be-work-to-do";
-char constantarr_0_355[4] = "gctx";
-char constantarr_0_356[12] = "no-timestamp";
-char constantarr_0_357[9] = "exclusion";
-char constantarr_0_358[11] = "catch<void>";
-char constantarr_0_359[28] = "catch-with-exception-ctx<?t>";
-char constantarr_0_360[16] = "thrown-exception";
-char constantarr_0_361[11] = "jmp-buf-tag";
-char constantarr_0_362[4] = "zero";
-char constantarr_0_363[7] = "bytes64";
-char constantarr_0_364[7] = "bytes32";
-char constantarr_0_365[7] = "bytes16";
-char constantarr_0_366[8] = "bytes128";
-char constantarr_0_367[15] = "set-jmp-buf-ptr";
-char constantarr_0_368[19] = "ptr-to<jmp-buf-tag>";
-char constantarr_0_369[6] = "setjmp";
-char constantarr_0_370[17] = "call-with-ctx<?r>";
-char constantarr_0_371[24] = "subscript<?t, exception>";
-char constantarr_0_372[23] = "subscript<fut<?r>, ?p0>";
-char constantarr_0_373[12] = "fun<?r, ?p0>";
-char constantarr_0_374[36] = "subscript<?out, ?in>.lambda0.lambda0";
-char constantarr_0_375[11] = "reject!<?r>";
-char constantarr_0_376[36] = "subscript<?out, ?in>.lambda0.lambda1";
-char constantarr_0_377[28] = "subscript<?out, ?in>.lambda0";
-char constantarr_0_378[10] = "value<?in>";
-char constantarr_0_379[24] = "then<?out, void>.lambda0";
-char constantarr_0_380[15] = "subscript<?out>";
-char constantarr_0_381[24] = "island-and-exclusion<?r>";
-char constantarr_0_382[18] = "subscript<fut<?r>>";
-char constantarr_0_383[7] = "fun<?r>";
-char constantarr_0_384[31] = "subscript<?out>.lambda0.lambda0";
-char constantarr_0_385[31] = "subscript<?out>.lambda0.lambda1";
-char constantarr_0_386[23] = "subscript<?out>.lambda0";
-char constantarr_0_387[18] = "then2<nat>.lambda0";
-char constantarr_0_388[24] = "cur-island-and-exclusion";
-char constantarr_0_389[20] = "island-and-exclusion";
-char constantarr_0_390[9] = "island-id";
-char constantarr_0_391[5] = "delay";
-char constantarr_0_392[14] = "resolved<void>";
-char constantarr_0_393[15] = "tail<ptr<char>>";
-char constantarr_0_394[10] = "empty?<?t>";
-char constantarr_0_395[40] = "subscript<fut<nat>, ctx, arr<arr<char>>>";
-char constantarr_0_396[25] = "map<arr<char>, ptr<char>>";
-char constantarr_0_397[14] = "make-arr<?out>";
-char constantarr_0_398[18] = "fill-ptr-range<?t>";
-char constantarr_0_399[24] = "fill-ptr-range-recur<?t>";
-char constantarr_0_400[18] = "subscript<?t, nat>";
-char constantarr_0_401[14] = "subscript<?in>";
-char constantarr_0_402[33] = "map<arr<char>, ptr<char>>.lambda0";
-char constantarr_0_403[24] = "arr-from-begin-end<char>";
-char constantarr_0_404[5] = "-<?t>";
-char constantarr_0_405[13] = "find-cstr-end";
-char constantarr_0_406[17] = "find-char-in-cstr";
-char constantarr_0_407[8] = "==<char>";
-char constantarr_0_408[11] = "deref<char>";
-char constantarr_0_409[15] = "todo<ptr<char>>";
-char constantarr_0_410[10] = "incr<char>";
-char constantarr_0_411[30] = "add-first-task.lambda0.lambda0";
-char constantarr_0_412[22] = "add-first-task.lambda0";
-char constantarr_0_413[22] = "handle-exceptions<nat>";
-char constantarr_0_414[26] = "subscript<void, exception>";
-char constantarr_0_415[17] = "exception-handler";
-char constantarr_0_416[14] = "get-cur-island";
-char constantarr_0_417[30] = "handle-exceptions<nat>.lambda0";
-char constantarr_0_418[15] = "do-main.lambda0";
-char constantarr_0_419[80] = "call-with-ctx<fut<nat>, arr<ptr<char>>, fun-ptr2<fut<nat>, ctx, arr<arr<char>>>>";
-char constantarr_0_420[11] = "run-threads";
-char constantarr_0_421[45] = "unmanaged-alloc-elements<by-val<thread-args>>";
-char constantarr_0_422[19] = "start-threads-recur";
-char constantarr_0_423[22] = "+<by-val<thread-args>>";
-char constantarr_0_424[24] = "set<by-val<thread-args>>";
-char constantarr_0_425[11] = "thread-args";
-char constantarr_0_426[17] = "create-one-thread";
-char constantarr_0_427[14] = "pthread-create";
-char constantarr_0_428[9] = "!=<int32>";
-char constantarr_0_429[6] = "eagain";
-char constantarr_0_430[12] = "as-cell<nat>";
-char constantarr_0_431[16] = "as-ref<cell<?t>>";
-char constantarr_0_432[36] = "as-any-ptr<ptr<by-val<thread-args>>>";
-char constantarr_0_433[10] = "thread-fun";
-char constantarr_0_434[19] = "as-ref<thread-args>";
-char constantarr_0_435[15] = "thread-function";
-char constantarr_0_436[21] = "thread-function-recur";
-char constantarr_0_437[10] = "shut-down?";
-char constantarr_0_438[18] = "set-n-live-threads";
-char constantarr_0_439[14] = "n-live-threads";
-char constantarr_0_440[28] = "assert-islands-are-shut-down";
-char constantarr_0_441[9] = "needs-gc?";
-char constantarr_0_442[17] = "n-threads-running";
-char constantarr_0_443[6] = "empty?";
-char constantarr_0_444[21] = "has?<task-queue-node>";
-char constantarr_0_445[16] = "get-last-checked";
-char constantarr_0_446[11] = "choose-task";
-char constantarr_0_447[17] = "get-monotime-nsec";
-char constantarr_0_448[26] = "as<by-val<cell<timespec>>>";
-char constantarr_0_449[14] = "cell<timespec>";
-char constantarr_0_450[8] = "timespec";
-char constantarr_0_451[13] = "clock-gettime";
-char constantarr_0_452[15] = "clock-monotonic";
-char constantarr_0_453[26] = "ref-of-val<cell<timespec>>";
-char constantarr_0_454[13] = "get<timespec>";
-char constantarr_0_455[6] = "tv-sec";
-char constantarr_0_456[7] = "tv-nsec";
-char constantarr_0_457[9] = "todo<nat>";
-char constantarr_0_458[22] = "as<choose-task-result>";
-char constantarr_0_459[17] = "choose-task-recur";
-char constantarr_0_460[14] = "no-chosen-task";
-char constantarr_0_461[21] = "choose-task-in-island";
-char constantarr_0_462[32] = "as<choose-task-in-island-result>";
-char constantarr_0_463[7] = "do-a-gc";
-char constantarr_0_464[7] = "no-task";
-char constantarr_0_465[9] = "pop-task!";
-char constantarr_0_466[25] = "ref-of-val<mut-list<nat>>";
-char constantarr_0_467[28] = "currently-running-exclusions";
-char constantarr_0_468[19] = "as<pop-task-result>";
-char constantarr_0_469[14] = "contains?<nat>";
-char constantarr_0_470[13] = "contains?<?t>";
-char constantarr_0_471[19] = "contains-recur?<?t>";
-char constantarr_0_472[15] = "temp-as-arr<?t>";
-char constantarr_0_473[9] = "inner<?t>";
-char constantarr_0_474[19] = "temp-as-mut-arr<?t>";
-char constantarr_0_475[11] = "backing<?t>";
-char constantarr_0_476[9] = "pop-recur";
-char constantarr_0_477[11] = "to-opt-time";
-char constantarr_0_478[9] = "some<nat>";
-char constantarr_0_479[38] = "push-capacity-must-be-sufficient!<nat>";
-char constantarr_0_480[12] = "capacity<?t>";
-char constantarr_0_481[12] = "set-size<?t>";
-char constantarr_0_482[17] = "noctx-set-at!<?t>";
-char constantarr_0_483[7] = "set<?t>";
-char constantarr_0_484[11] = "is-no-task?";
-char constantarr_0_485[21] = "set-n-threads-running";
-char constantarr_0_486[11] = "chosen-task";
-char constantarr_0_487[10] = "any-tasks?";
-char constantarr_0_488[8] = "min-time";
-char constantarr_0_489[8] = "min<nat>";
-char constantarr_0_490[5] = "?<?t>";
-char constantarr_0_491[10] = "value<nat>";
-char constantarr_0_492[15] = "first-task-time";
-char constantarr_0_493[29] = "no-tasks-and-last-thread-out?";
-char constantarr_0_494[7] = "do-task";
-char constantarr_0_495[11] = "task-island";
-char constantarr_0_496[10] = "task-or-gc";
-char constantarr_0_497[6] = "action";
-char constantarr_0_498[12] = "return-task!";
-char constantarr_0_499[33] = "noctx-must-remove-unordered!<nat>";
-char constantarr_0_500[38] = "noctx-must-remove-unordered-recur!<?t>";
-char constantarr_0_501[8] = "drop<?t>";
-char constantarr_0_502[30] = "noctx-remove-unordered-at!<?t>";
-char constantarr_0_503[14] = "noctx-last<?t>";
-char constantarr_0_504[10] = "return-ctx";
-char constantarr_0_505[13] = "return-gc-ctx";
-char constantarr_0_506[12] = "some<gc-ctx>";
-char constantarr_0_507[46] = "run-garbage-collection<by-val<island-gc-root>>";
-char constantarr_0_508[13] = "set-needs-gc?";
-char constantarr_0_509[12] = "set-gc-count";
-char constantarr_0_510[8] = "gc-count";
-char constantarr_0_511[20] = "as<by-val<mark-ctx>>";
-char constantarr_0_512[8] = "mark-ctx";
-char constantarr_0_513[14] = "mark-visit<?a>";
-char constantarr_0_514[20] = "ref-of-val<mark-ctx>";
-char constantarr_0_515[14] = "clear-free-mem";
-char constantarr_0_516[14] = "set-shut-down?";
-char constantarr_0_517[7] = "wait-on";
-char constantarr_0_518[12] = "before-time?";
-char constantarr_0_519[9] = "thread-id";
-char constantarr_0_520[18] = "join-threads-recur";
-char constantarr_0_521[15] = "join-one-thread";
-char constantarr_0_522[27] = "as<by-val<cell<ptr<nat8>>>>";
-char constantarr_0_523[15] = "cell<ptr<nat8>>";
-char constantarr_0_524[12] = "pthread-join";
-char constantarr_0_525[27] = "ref-of-val<cell<ptr<nat8>>>";
-char constantarr_0_526[6] = "einval";
-char constantarr_0_527[5] = "esrch";
-char constantarr_0_528[14] = "get<ptr<nat8>>";
-char constantarr_0_529[19] = "unmanaged-free<nat>";
-char constantarr_0_530[4] = "free";
-char constantarr_0_531[35] = "unmanaged-free<by-val<thread-args>>";
-char constantarr_0_532[18] = "ptr-cast<nat8, ?t>";
-char constantarr_0_533[8] = "?<int32>";
-char constantarr_0_534[25] = "any-unhandled-exceptions?";
-char constantarr_0_535[4] = "main";
-char constantarr_0_536[12] = "==<opt<nat>>";
-char constantarr_0_537[9] = "parse-nat";
-char constantarr_0_538[15] = "parse-nat-recur";
-char constantarr_0_539[11] = "char-to-nat";
-char constantarr_0_540[11] = "first<char>";
-char constantarr_0_541[10] = "tail<char>";
-char constantarr_0_542[1] = "*";
-char constantarr_0_543[1] = "/";
-char constantarr_0_544[12] = "==<opt<int>>";
-char constantarr_0_545[9] = "parse-int";
-char constantarr_0_546[13] = "map<int, nat>";
-char constantarr_0_547[10] = "some<?out>";
-char constantarr_0_548[3] = "neg";
-char constantarr_0_549[6] = "to-nat";
-char constantarr_0_550[9] = "negative?";
-char constantarr_0_551[6] = "<<int>";
-char constantarr_0_552[7] = "max-int";
-char constantarr_0_553[17] = "parse-int.lambda0";
-char constantarr_0_554[17] = "parse-int.lambda1";
-char constantarr_0_555[3] = "mod";
-char constantarr_0_556[10] = "unsafe-mod";
-char constantarr_0_557[11] = "to-str<nat>";
-char constantarr_0_558[13] = "resolved<nat>";
+char constantarr_0_68[11] = "atomic-bool";
+char constantarr_0_69[9] = "condition";
+char constantarr_0_70[22] = "ref-of-val<global-ctx>";
+char constantarr_0_71[6] = "island";
+char constantarr_0_72[10] = "task-queue";
+char constantarr_0_73[56] = "mut-list-by-val-with-capacity-from-unmanaged-memory<nat>";
+char constantarr_0_74[11] = "mut-arr<?t>";
+char constantarr_0_75[4] = "void";
+char constantarr_0_76[7] = "arr<?t>";
+char constantarr_0_77[35] = "unmanaged-alloc-zeroed-elements<?t>";
+char constantarr_0_78[28] = "unmanaged-alloc-elements<?t>";
+char constantarr_0_79[21] = "unmanaged-alloc-bytes";
+char constantarr_0_80[6] = "malloc";
+char constantarr_0_81[11] = "hard-forbid";
+char constantarr_0_82[11] = "null?<nat8>";
+char constantarr_0_83[10] = "to-nat<?t>";
+char constantarr_0_84[8] = "null<?t>";
+char constantarr_0_85[8] = "wrap-mul";
+char constantarr_0_86[18] = "set-zero-range<?t>";
+char constantarr_0_87[6] = "memset";
+char constantarr_0_88[19] = "as-any-ptr<ptr<?t>>";
+char constantarr_0_89[12] = "mut-list<?t>";
+char constantarr_0_90[26] = "as<by-val<island-gc-root>>";
+char constantarr_0_91[14] = "island-gc-root";
+char constantarr_0_92[25] = "default-exception-handler";
+char constantarr_0_93[20] = "print-err-no-newline";
+char constantarr_0_94[16] = "write-no-newline";
+char constantarr_0_95[13] = "size-of<char>";
+char constantarr_0_96[13] = "size-of<nat8>";
+char constantarr_0_97[5] = "write";
+char constantarr_0_98[21] = "as-any-ptr<ptr<char>>";
+char constantarr_0_99[10] = "data<char>";
+char constantarr_0_100[10] = "size<char>";
+char constantarr_0_101[7] = "!=<int>";
+char constantarr_0_102[6] = "==<?t>";
+char constantarr_0_103[13] = "unsafe-to-int";
+char constantarr_0_104[10] = "todo<void>";
+char constantarr_0_105[10] = "zeroed<?t>";
+char constantarr_0_106[6] = "stderr";
+char constantarr_0_107[9] = "print-err";
+char constantarr_0_108[14] = "show-exception";
+char constantarr_0_109[12] = "?<arr<char>>";
+char constantarr_0_110[12] = "empty?<char>";
+char constantarr_0_111[7] = "message";
+char constantarr_0_112[10] = "join<char>";
+char constantarr_0_113[15] = "empty?<arr<?t>>";
+char constantarr_0_114[8] = "size<?t>";
+char constantarr_0_115[18] = "subscript<arr<?t>>";
+char constantarr_0_116[6] = "assert";
+char constantarr_0_117[10] = "fail<void>";
+char constantarr_0_118[9] = "throw<?t>";
+char constantarr_0_119[17] = "get-exception-ctx";
+char constantarr_0_120[21] = "as-ref<exception-ctx>";
+char constantarr_0_121[17] = "exception-ctx-ptr";
+char constantarr_0_122[7] = "get-ctx";
+char constantarr_0_123[18] = "null?<jmp-buf-tag>";
+char constantarr_0_124[11] = "jmp-buf-ptr";
+char constantarr_0_125[20] = "set-thrown-exception";
+char constantarr_0_126[7] = "longjmp";
+char constantarr_0_127[15] = "number-to-throw";
+char constantarr_0_128[9] = "exception";
+char constantarr_0_129[13] = "get-backtrace";
+char constantarr_0_130[24] = "try-alloc-backtrace-arrs";
+char constantarr_0_131[34] = "try-alloc-uninitialized<ptr<nat8>>";
+char constantarr_0_132[9] = "try-alloc";
+char constantarr_0_133[12] = "try-gc-alloc";
+char constantarr_0_134[8] = "acquire!";
+char constantarr_0_135[14] = "acquire-recur!";
+char constantarr_0_136[12] = "try-acquire!";
+char constantarr_0_137[8] = "try-set!";
+char constantarr_0_138[11] = "try-change!";
+char constantarr_0_139[23] = "compare-exchange-strong";
+char constantarr_0_140[12] = "ptr-to<bool>";
+char constantarr_0_141[5] = "value";
+char constantarr_0_142[23] = "ref-of-val<atomic-bool>";
+char constantarr_0_143[9] = "is-locked";
+char constantarr_0_144[12] = "yield-thread";
+char constantarr_0_145[13] = "pthread-yield";
+char constantarr_0_146[9] = "==<int32>";
+char constantarr_0_147[10] = "noctx-incr";
+char constantarr_0_148[16] = "ref-of-val<lock>";
+char constantarr_0_149[2] = "lk";
+char constantarr_0_150[18] = "try-gc-alloc-recur";
+char constantarr_0_151[11] = "validate-gc";
+char constantarr_0_152[18] = "ptr-less-eq?<bool>";
+char constantarr_0_153[13] = "ptr-less?<?t>";
+char constantarr_0_154[10] = "mark-begin";
+char constantarr_0_155[8] = "mark-cur";
+char constantarr_0_156[8] = "mark-end";
+char constantarr_0_157[17] = "ptr-less-eq?<nat>";
+char constantarr_0_158[11] = "ptr-eq?<?t>";
+char constantarr_0_159[10] = "data-begin";
+char constantarr_0_160[8] = "data-cur";
+char constantarr_0_161[8] = "data-end";
+char constantarr_0_162[7] = "-<bool>";
+char constantarr_0_163[10] = "size-words";
+char constantarr_0_164[6] = "+<nat>";
+char constantarr_0_165[11] = "range-free?";
+char constantarr_0_166[12] = "set-mark-cur";
+char constantarr_0_167[12] = "set-data-cur";
+char constantarr_0_168[15] = "some<ptr<nat8>>";
+char constantarr_0_169[19] = "ptr-cast<nat8, nat>";
+char constantarr_0_170[9] = "incr<nat>";
+char constantarr_0_171[8] = "release!";
+char constantarr_0_172[11] = "must-unset!";
+char constantarr_0_173[10] = "try-unset!";
+char constantarr_0_174[6] = "get-gc";
+char constantarr_0_175[2] = "gc";
+char constantarr_0_176[10] = "get-gc-ctx";
+char constantarr_0_177[14] = "as-ref<gc-ctx>";
+char constantarr_0_178[10] = "gc-ctx-ptr";
+char constantarr_0_179[13] = "some<ptr<?t>>";
+char constantarr_0_180[18] = "ptr-cast<?t, nat8>";
+char constantarr_0_181[16] = "value<ptr<nat8>>";
+char constantarr_0_182[34] = "try-alloc-uninitialized<arr<char>>";
+char constantarr_0_183[10] = "funs-count";
+char constantarr_0_184[20] = "some<backtrace-arrs>";
+char constantarr_0_185[14] = "backtrace-arrs";
+char constantarr_0_186[21] = "value<ptr<ptr<nat8>>>";
+char constantarr_0_187[21] = "value<ptr<arr<char>>>";
+char constantarr_0_188[9] = "backtrace";
+char constantarr_0_189[18] = "as<arr<arr<char>>>";
+char constantarr_0_190[21] = "value<backtrace-arrs>";
+char constantarr_0_191[13] = "unsafe-to-nat";
+char constantarr_0_192[6] = "to-int";
+char constantarr_0_193[9] = "code-ptrs";
+char constantarr_0_194[15] = "unsafe-to-int32";
+char constantarr_0_195[14] = "code-ptrs-size";
+char constantarr_0_196[25] = "fill-fun-ptrs-names-recur";
+char constantarr_0_197[7] = "!=<nat>";
+char constantarr_0_198[14] = "set<ptr<nat8>>";
+char constantarr_0_199[12] = "+<ptr<nat8>>";
+char constantarr_0_200[11] = "get-fun-ptr";
+char constantarr_0_201[14] = "set<arr<char>>";
+char constantarr_0_202[12] = "+<arr<char>>";
+char constantarr_0_203[12] = "get-fun-name";
+char constantarr_0_204[8] = "fun-ptrs";
+char constantarr_0_205[9] = "fun-names";
+char constantarr_0_206[13] = "sort-together";
+char constantarr_0_207[15] = "swap<ptr<nat8>>";
+char constantarr_0_208[9] = "deref<?t>";
+char constantarr_0_209[15] = "swap<arr<char>>";
+char constantarr_0_210[24] = "partition-recur-together";
+char constantarr_0_211[15] = "ptr-less?<nat8>";
+char constantarr_0_212[10] = "noctx-decr";
+char constantarr_0_213[10] = "code-names";
+char constantarr_0_214[21] = "fill-code-names-recur";
+char constantarr_0_215[20] = "ptr-less?<arr<char>>";
+char constantarr_0_216[15] = "incr<ptr<nat8>>";
+char constantarr_0_217[15] = "incr<arr<char>>";
+char constantarr_0_218[14] = "arr<arr<char>>";
+char constantarr_0_219[12] = "noctx-at<?t>";
+char constantarr_0_220[8] = "data<?t>";
+char constantarr_0_221[5] = "~<?t>";
+char constantarr_0_222[1] = "+";
+char constantarr_0_223[3] = "and";
+char constantarr_0_224[7] = ">=<nat>";
+char constantarr_0_225[23] = "alloc-uninitialized<?t>";
+char constantarr_0_226[5] = "alloc";
+char constantarr_0_227[8] = "gc-alloc";
+char constantarr_0_228[15] = "todo<ptr<nat8>>";
+char constantarr_0_229[18] = "copy-data-from<?t>";
+char constantarr_0_230[6] = "memcpy";
+char constantarr_0_231[5] = "+<?t>";
+char constantarr_0_232[13] = "tail<arr<?t>>";
+char constantarr_0_233[6] = "forbid";
+char constantarr_0_234[13] = "subscript<?t>";
+char constantarr_0_235[14] = "from<nat, nat>";
+char constantarr_0_236[12] = "to<nat, nat>";
+char constantarr_0_237[1] = "-";
+char constantarr_0_238[12] = "-><nat, nat>";
+char constantarr_0_239[13] = "arrow<?a, ?b>";
+char constantarr_0_240[12] = "return-stack";
+char constantarr_0_241[29] = "set-any-unhandled-exceptions?";
+char constantarr_0_242[14] = "get-global-ctx";
+char constantarr_0_243[18] = "as-ref<global-ctx>";
+char constantarr_0_244[8] = "gctx-ptr";
+char constantarr_0_245[14] = "island.lambda0";
+char constantarr_0_246[19] = "default-log-handler";
+char constantarr_0_247[5] = "print";
+char constantarr_0_248[16] = "print-no-newline";
+char constantarr_0_249[6] = "stdout";
+char constantarr_0_250[6] = "to-str";
+char constantarr_0_251[5] = "level";
+char constantarr_0_252[14] = "island.lambda1";
+char constantarr_0_253[20] = "ptr-cast<bool, nat8>";
+char constantarr_0_254[21] = "as-any-ptr<ptr<bool>>";
+char constantarr_0_255[19] = "thread-safe-counter";
+char constantarr_0_256[18] = "ref-of-val<island>";
+char constantarr_0_257[11] = "set-islands";
+char constantarr_0_258[11] = "arr<island>";
+char constantarr_0_259[14] = "ptr-to<island>";
+char constantarr_0_260[7] = "do-main";
+char constantarr_0_261[13] = "exception-ctx";
+char constantarr_0_262[7] = "log-ctx";
+char constantarr_0_263[26] = "zeroed<fun1<void, logged>>";
+char constantarr_0_264[30] = "as<by-val<thread-local-stuff>>";
+char constantarr_0_265[18] = "thread-local-stuff";
+char constantarr_0_266[25] = "ref-of-val<exception-ctx>";
+char constantarr_0_267[19] = "ref-of-val<log-ctx>";
+char constantarr_0_268[3] = "ctx";
+char constantarr_0_269[18] = "as-any-ptr<gc-ctx>";
+char constantarr_0_270[12] = "context-head";
+char constantarr_0_271[23] = "size-of<by-val<gc-ctx>>";
+char constantarr_0_272[6] = "set-gc";
+char constantarr_0_273[12] = "set-next-ctx";
+char constantarr_0_274[13] = "value<gc-ctx>";
+char constantarr_0_275[16] = "set-context-head";
+char constantarr_0_276[8] = "next-ctx";
+char constantarr_0_277[14] = "ref-of-val<gc>";
+char constantarr_0_278[11] = "set-handler";
+char constantarr_0_279[11] = "log-handler";
+char constantarr_0_280[26] = "ref-of-val<island-gc-root>";
+char constantarr_0_281[7] = "gc-root";
+char constantarr_0_282[22] = "as-any-ptr<global-ctx>";
+char constantarr_0_283[2] = "id";
+char constantarr_0_284[25] = "as-any-ptr<exception-ctx>";
+char constantarr_0_285[19] = "as-any-ptr<log-ctx>";
+char constantarr_0_286[30] = "ref-of-val<thread-local-stuff>";
+char constantarr_0_287[15] = "ref-of-val<ctx>";
+char constantarr_0_288[79] = "as<fun-act2<fut<nat>, arr<ptr<char>>, fun-ptr2<fut<nat>, ctx, arr<arr<char>>>>>";
+char constantarr_0_289[14] = "add-first-task";
+char constantarr_0_290[10] = "then2<nat>";
+char constantarr_0_291[16] = "then<?out, void>";
+char constantarr_0_292[16] = "unresolved<?out>";
+char constantarr_0_293[7] = "fut<?t>";
+char constantarr_0_294[23] = "fut-state-callbacks<?t>";
+char constantarr_0_295[14] = "then-void<?in>";
+char constantarr_0_296[15] = "with-lock<void>";
+char constantarr_0_297[17] = "call-with-ctx<?r>";
+char constantarr_0_298[6] = "lk<?t>";
+char constantarr_0_299[9] = "state<?t>";
+char constantarr_0_300[13] = "set-state<?t>";
+char constantarr_0_301[27] = "some<fut-callback-node<?t>>";
+char constantarr_0_302[21] = "fut-callback-node<?t>";
+char constantarr_0_303[8] = "head<?t>";
+char constantarr_0_304[38] = "subscript<void, result<?t, exception>>";
+char constantarr_0_305[22] = "call-with-ctx<?r, ?p0>";
+char constantarr_0_306[6] = "ok<?t>";
+char constantarr_0_307[9] = "value<?t>";
+char constantarr_0_308[14] = "err<exception>";
+char constantarr_0_309[22] = "then-void<?in>.lambda0";
+char constantarr_0_310[17] = "forward-to!<?out>";
+char constantarr_0_311[13] = "then-void<?t>";
+char constantarr_0_312[21] = "then-void<?t>.lambda0";
+char constantarr_0_313[22] = "resolve-or-reject!<?t>";
+char constantarr_0_314[34] = "with-lock<fut-state-callbacks<?t>>";
+char constantarr_0_315[29] = "todo<fut-state-callbacks<?t>>";
+char constantarr_0_316[22] = "fut-state-resolved<?t>";
+char constantarr_0_317[16] = "value<exception>";
+char constantarr_0_318[30] = "resolve-or-reject!<?t>.lambda0";
+char constantarr_0_319[19] = "call-callbacks!<?t>";
+char constantarr_0_320[10] = "drop<void>";
+char constantarr_0_321[6] = "cb<?t>";
+char constantarr_0_322[28] = "value<fut-callback-node<?t>>";
+char constantarr_0_323[13] = "next-node<?t>";
+char constantarr_0_324[25] = "forward-to!<?out>.lambda0";
+char constantarr_0_325[20] = "subscript<?out, ?in>";
+char constantarr_0_326[10] = "get-island";
+char constantarr_0_327[17] = "subscript<island>";
+char constantarr_0_328[7] = "islands";
+char constantarr_0_329[29] = "island-and-exclusion<?r, ?p0>";
+char constantarr_0_330[8] = "add-task";
+char constantarr_0_331[15] = "task-queue-node";
+char constantarr_0_332[4] = "task";
+char constantarr_0_333[10] = "tasks-lock";
+char constantarr_0_334[12] = "insert-task!";
+char constantarr_0_335[4] = "size";
+char constantarr_0_336[10] = "size-recur";
+char constantarr_0_337[4] = "next";
+char constantarr_0_338[22] = "value<task-queue-node>";
+char constantarr_0_339[4] = "head";
+char constantarr_0_340[8] = "set-head";
+char constantarr_0_341[21] = "some<task-queue-node>";
+char constantarr_0_342[4] = "time";
+char constantarr_0_343[12] = "insert-recur";
+char constantarr_0_344[8] = "set-next";
+char constantarr_0_345[5] = "tasks";
+char constantarr_0_346[22] = "ref-of-val<task-queue>";
+char constantarr_0_347[10] = "broadcast!";
+char constantarr_0_348[9] = "set-value";
+char constantarr_0_349[21] = "ref-of-val<condition>";
+char constantarr_0_350[17] = "may-be-work-to-do";
+char constantarr_0_351[4] = "gctx";
+char constantarr_0_352[12] = "no-timestamp";
+char constantarr_0_353[9] = "exclusion";
+char constantarr_0_354[11] = "catch<void>";
+char constantarr_0_355[28] = "catch-with-exception-ctx<?t>";
+char constantarr_0_356[16] = "thrown-exception";
+char constantarr_0_357[11] = "jmp-buf-tag";
+char constantarr_0_358[4] = "zero";
+char constantarr_0_359[7] = "bytes64";
+char constantarr_0_360[7] = "bytes32";
+char constantarr_0_361[7] = "bytes16";
+char constantarr_0_362[8] = "bytes128";
+char constantarr_0_363[15] = "set-jmp-buf-ptr";
+char constantarr_0_364[19] = "ptr-to<jmp-buf-tag>";
+char constantarr_0_365[6] = "setjmp";
+char constantarr_0_366[24] = "subscript<?t, exception>";
+char constantarr_0_367[23] = "subscript<fut<?r>, ?p0>";
+char constantarr_0_368[12] = "fun<?r, ?p0>";
+char constantarr_0_369[36] = "subscript<?out, ?in>.lambda0.lambda0";
+char constantarr_0_370[11] = "reject!<?r>";
+char constantarr_0_371[36] = "subscript<?out, ?in>.lambda0.lambda1";
+char constantarr_0_372[28] = "subscript<?out, ?in>.lambda0";
+char constantarr_0_373[10] = "value<?in>";
+char constantarr_0_374[24] = "then<?out, void>.lambda0";
+char constantarr_0_375[15] = "subscript<?out>";
+char constantarr_0_376[24] = "island-and-exclusion<?r>";
+char constantarr_0_377[18] = "subscript<fut<?r>>";
+char constantarr_0_378[7] = "fun<?r>";
+char constantarr_0_379[31] = "subscript<?out>.lambda0.lambda0";
+char constantarr_0_380[31] = "subscript<?out>.lambda0.lambda1";
+char constantarr_0_381[23] = "subscript<?out>.lambda0";
+char constantarr_0_382[18] = "then2<nat>.lambda0";
+char constantarr_0_383[24] = "cur-island-and-exclusion";
+char constantarr_0_384[20] = "island-and-exclusion";
+char constantarr_0_385[9] = "island-id";
+char constantarr_0_386[5] = "delay";
+char constantarr_0_387[14] = "resolved<void>";
+char constantarr_0_388[15] = "tail<ptr<char>>";
+char constantarr_0_389[10] = "empty?<?t>";
+char constantarr_0_390[40] = "subscript<fut<nat>, ctx, arr<arr<char>>>";
+char constantarr_0_391[25] = "map<arr<char>, ptr<char>>";
+char constantarr_0_392[14] = "make-arr<?out>";
+char constantarr_0_393[18] = "fill-ptr-range<?t>";
+char constantarr_0_394[24] = "fill-ptr-range-recur<?t>";
+char constantarr_0_395[18] = "subscript<?t, nat>";
+char constantarr_0_396[14] = "subscript<?in>";
+char constantarr_0_397[33] = "map<arr<char>, ptr<char>>.lambda0";
+char constantarr_0_398[24] = "arr-from-begin-end<char>";
+char constantarr_0_399[5] = "-<?t>";
+char constantarr_0_400[13] = "find-cstr-end";
+char constantarr_0_401[17] = "find-char-in-cstr";
+char constantarr_0_402[8] = "==<char>";
+char constantarr_0_403[11] = "deref<char>";
+char constantarr_0_404[15] = "todo<ptr<char>>";
+char constantarr_0_405[10] = "incr<char>";
+char constantarr_0_406[30] = "add-first-task.lambda0.lambda0";
+char constantarr_0_407[22] = "add-first-task.lambda0";
+char constantarr_0_408[22] = "handle-exceptions<nat>";
+char constantarr_0_409[26] = "subscript<void, exception>";
+char constantarr_0_410[17] = "exception-handler";
+char constantarr_0_411[14] = "get-cur-island";
+char constantarr_0_412[30] = "handle-exceptions<nat>.lambda0";
+char constantarr_0_413[15] = "do-main.lambda0";
+char constantarr_0_414[80] = "call-with-ctx<fut<nat>, arr<ptr<char>>, fun-ptr2<fut<nat>, ctx, arr<arr<char>>>>";
+char constantarr_0_415[11] = "run-threads";
+char constantarr_0_416[45] = "unmanaged-alloc-elements<by-val<thread-args>>";
+char constantarr_0_417[19] = "start-threads-recur";
+char constantarr_0_418[22] = "+<by-val<thread-args>>";
+char constantarr_0_419[24] = "set<by-val<thread-args>>";
+char constantarr_0_420[11] = "thread-args";
+char constantarr_0_421[17] = "create-one-thread";
+char constantarr_0_422[14] = "pthread-create";
+char constantarr_0_423[9] = "!=<int32>";
+char constantarr_0_424[6] = "eagain";
+char constantarr_0_425[12] = "as-cell<nat>";
+char constantarr_0_426[16] = "as-ref<cell<?t>>";
+char constantarr_0_427[36] = "as-any-ptr<ptr<by-val<thread-args>>>";
+char constantarr_0_428[10] = "thread-fun";
+char constantarr_0_429[19] = "as-ref<thread-args>";
+char constantarr_0_430[15] = "thread-function";
+char constantarr_0_431[21] = "thread-function-recur";
+char constantarr_0_432[10] = "shut-down?";
+char constantarr_0_433[18] = "set-n-live-threads";
+char constantarr_0_434[14] = "n-live-threads";
+char constantarr_0_435[28] = "assert-islands-are-shut-down";
+char constantarr_0_436[9] = "needs-gc?";
+char constantarr_0_437[17] = "n-threads-running";
+char constantarr_0_438[6] = "empty?";
+char constantarr_0_439[21] = "has?<task-queue-node>";
+char constantarr_0_440[16] = "get-last-checked";
+char constantarr_0_441[11] = "choose-task";
+char constantarr_0_442[17] = "get-monotime-nsec";
+char constantarr_0_443[26] = "as<by-val<cell<timespec>>>";
+char constantarr_0_444[14] = "cell<timespec>";
+char constantarr_0_445[8] = "timespec";
+char constantarr_0_446[13] = "clock-gettime";
+char constantarr_0_447[15] = "clock-monotonic";
+char constantarr_0_448[26] = "ref-of-val<cell<timespec>>";
+char constantarr_0_449[13] = "get<timespec>";
+char constantarr_0_450[6] = "tv-sec";
+char constantarr_0_451[7] = "tv-nsec";
+char constantarr_0_452[9] = "todo<nat>";
+char constantarr_0_453[22] = "as<choose-task-result>";
+char constantarr_0_454[17] = "choose-task-recur";
+char constantarr_0_455[14] = "no-chosen-task";
+char constantarr_0_456[21] = "choose-task-in-island";
+char constantarr_0_457[32] = "as<choose-task-in-island-result>";
+char constantarr_0_458[7] = "do-a-gc";
+char constantarr_0_459[7] = "no-task";
+char constantarr_0_460[9] = "pop-task!";
+char constantarr_0_461[25] = "ref-of-val<mut-list<nat>>";
+char constantarr_0_462[28] = "currently-running-exclusions";
+char constantarr_0_463[19] = "as<pop-task-result>";
+char constantarr_0_464[14] = "contains?<nat>";
+char constantarr_0_465[13] = "contains?<?t>";
+char constantarr_0_466[19] = "contains-recur?<?t>";
+char constantarr_0_467[15] = "temp-as-arr<?t>";
+char constantarr_0_468[9] = "inner<?t>";
+char constantarr_0_469[19] = "temp-as-mut-arr<?t>";
+char constantarr_0_470[11] = "backing<?t>";
+char constantarr_0_471[10] = "pop-recur!";
+char constantarr_0_472[11] = "to-opt-time";
+char constantarr_0_473[9] = "some<nat>";
+char constantarr_0_474[38] = "push-capacity-must-be-sufficient!<nat>";
+char constantarr_0_475[12] = "capacity<?t>";
+char constantarr_0_476[12] = "set-size<?t>";
+char constantarr_0_477[17] = "noctx-set-at!<?t>";
+char constantarr_0_478[7] = "set<?t>";
+char constantarr_0_479[11] = "is-no-task?";
+char constantarr_0_480[21] = "set-n-threads-running";
+char constantarr_0_481[11] = "chosen-task";
+char constantarr_0_482[10] = "any-tasks?";
+char constantarr_0_483[8] = "min-time";
+char constantarr_0_484[8] = "min<nat>";
+char constantarr_0_485[5] = "?<?t>";
+char constantarr_0_486[10] = "value<nat>";
+char constantarr_0_487[15] = "first-task-time";
+char constantarr_0_488[29] = "no-tasks-and-last-thread-out?";
+char constantarr_0_489[7] = "do-task";
+char constantarr_0_490[11] = "task-island";
+char constantarr_0_491[10] = "task-or-gc";
+char constantarr_0_492[6] = "action";
+char constantarr_0_493[12] = "return-task!";
+char constantarr_0_494[33] = "noctx-must-remove-unordered!<nat>";
+char constantarr_0_495[38] = "noctx-must-remove-unordered-recur!<?t>";
+char constantarr_0_496[8] = "drop<?t>";
+char constantarr_0_497[30] = "noctx-remove-unordered-at!<?t>";
+char constantarr_0_498[14] = "noctx-last<?t>";
+char constantarr_0_499[10] = "return-ctx";
+char constantarr_0_500[13] = "return-gc-ctx";
+char constantarr_0_501[12] = "some<gc-ctx>";
+char constantarr_0_502[46] = "run-garbage-collection<by-val<island-gc-root>>";
+char constantarr_0_503[13] = "set-needs-gc?";
+char constantarr_0_504[12] = "set-gc-count";
+char constantarr_0_505[8] = "gc-count";
+char constantarr_0_506[20] = "as<by-val<mark-ctx>>";
+char constantarr_0_507[8] = "mark-ctx";
+char constantarr_0_508[14] = "mark-visit<?a>";
+char constantarr_0_509[20] = "ref-of-val<mark-ctx>";
+char constantarr_0_510[14] = "clear-free-mem";
+char constantarr_0_511[14] = "set-shut-down?";
+char constantarr_0_512[7] = "wait-on";
+char constantarr_0_513[12] = "before-time?";
+char constantarr_0_514[9] = "thread-id";
+char constantarr_0_515[18] = "join-threads-recur";
+char constantarr_0_516[15] = "join-one-thread";
+char constantarr_0_517[27] = "as<by-val<cell<ptr<nat8>>>>";
+char constantarr_0_518[15] = "cell<ptr<nat8>>";
+char constantarr_0_519[12] = "pthread-join";
+char constantarr_0_520[27] = "ref-of-val<cell<ptr<nat8>>>";
+char constantarr_0_521[6] = "einval";
+char constantarr_0_522[5] = "esrch";
+char constantarr_0_523[14] = "get<ptr<nat8>>";
+char constantarr_0_524[19] = "unmanaged-free<nat>";
+char constantarr_0_525[4] = "free";
+char constantarr_0_526[35] = "unmanaged-free<by-val<thread-args>>";
+char constantarr_0_527[18] = "ptr-cast<nat8, ?t>";
+char constantarr_0_528[8] = "?<int32>";
+char constantarr_0_529[25] = "any-unhandled-exceptions?";
+char constantarr_0_530[4] = "main";
+char constantarr_0_531[12] = "==<opt<nat>>";
+char constantarr_0_532[9] = "parse-nat";
+char constantarr_0_533[15] = "parse-nat-recur";
+char constantarr_0_534[11] = "char-to-nat";
+char constantarr_0_535[11] = "first<char>";
+char constantarr_0_536[10] = "tail<char>";
+char constantarr_0_537[1] = "*";
+char constantarr_0_538[1] = "/";
+char constantarr_0_539[12] = "==<opt<int>>";
+char constantarr_0_540[9] = "parse-int";
+char constantarr_0_541[13] = "map<int, nat>";
+char constantarr_0_542[10] = "some<?out>";
+char constantarr_0_543[3] = "neg";
+char constantarr_0_544[6] = "to-nat";
+char constantarr_0_545[9] = "negative?";
+char constantarr_0_546[6] = "<<int>";
+char constantarr_0_547[7] = "max-int";
+char constantarr_0_548[17] = "parse-int.lambda0";
+char constantarr_0_549[17] = "parse-int.lambda1";
+char constantarr_0_550[3] = "mod";
+char constantarr_0_551[10] = "unsafe-mod";
+char constantarr_0_552[11] = "to-str<nat>";
+char constantarr_0_553[13] = "resolved<nat>";
 uint8_t mark(struct mark_ctx* ctx, uint8_t* ptr_any, uint64_t size_bytes);
 uint64_t words_of_bytes(uint64_t size_bytes);
 uint64_t round_up_to_multiple_of_8(uint64_t n);
@@ -1882,12 +1901,12 @@ uint8_t* incr_0(uint8_t* p);
 uint8_t _greater(uint64_t a, uint64_t b);
 int32_t rt_main(int32_t argc, char** argv, fun_ptr2 main_ptr);
 extern uint64_t get_nprocs(void);
-struct lock new_lock_by_val(void);
-struct _atomic_bool new_atomic_bool(void);
-struct condition new_condition(void);
-struct island new_island(struct global_ctx* gctx, uint64_t id, uint64_t max_threads);
-struct task_queue new_task_queue(uint64_t max_threads);
-struct mut_list new_mut_list_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity);
+struct lock lock_by_val(void);
+struct _atomic_bool _atomic_bool(void);
+struct condition condition(void);
+struct island island(struct global_ctx* gctx, uint64_t id, uint64_t max_threads);
+struct task_queue task_queue(uint64_t max_threads);
+struct mut_list mut_list_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity);
 struct mut_arr mut_arr(uint64_t size, uint64_t* data);
 uint64_t* unmanaged_alloc_zeroed_elements(uint64_t size_elements);
 uint64_t* unmanaged_alloc_elements_0(uint64_t size_elements);
@@ -1924,11 +1943,11 @@ struct opt_3 try_alloc_backtrace_arrs(struct ctx* ctx);
 struct opt_4 try_alloc_uninitialized_0(struct ctx* ctx, uint64_t size);
 struct opt_5 try_alloc(struct ctx* ctx, uint64_t size_bytes);
 struct opt_5 try_gc_alloc(struct gc* gc, uint64_t size_bytes);
-struct void_ acquire_lock(struct lock* a);
-struct void_ acquire_lock_recur(struct lock* a, uint64_t n_tries);
-uint8_t try_acquire_lock(struct lock* a);
-uint8_t try_set(struct _atomic_bool* a);
-uint8_t try_change(struct _atomic_bool* a, uint8_t old_value);
+struct void_ acquire__e(struct lock* a);
+struct void_ acquire_recur__e(struct lock* a, uint64_t n_tries);
+uint8_t try_acquire__e(struct lock* a);
+uint8_t try_set__e(struct _atomic_bool* a);
+uint8_t try_change__e(struct _atomic_bool* a, uint8_t old_value);
 struct void_ yield_thread(void);
 extern int32_t pthread_yield(void);
 uint8_t _equal_2(int32_t a, int32_t b);
@@ -1941,9 +1960,9 @@ uint8_t ptr_less_eq__q_1(uint64_t* a, uint64_t* b);
 uint64_t _minus_1(uint8_t* a, uint8_t* b);
 uint8_t range_free__q(uint8_t* mark, uint8_t* end);
 uint64_t* incr_1(uint64_t* p);
-struct void_ release_lock(struct lock* l);
-struct void_ must_unset(struct _atomic_bool* a);
-uint8_t try_unset(struct _atomic_bool* a);
+struct void_ release__e(struct lock* a);
+struct void_ must_unset__e(struct _atomic_bool* a);
+uint8_t try_unset__e(struct _atomic_bool* a);
 struct gc* get_gc(struct ctx* ctx);
 struct gc_ctx* get_gc_ctx_0(struct ctx* ctx);
 struct opt_6 try_alloc_uninitialized_1(struct ctx* ctx, uint64_t size);
@@ -1980,50 +1999,59 @@ struct arr_1 subscript_1(struct ctx* ctx, struct arr_1 a, struct arrow range);
 uint64_t _minus_2(struct ctx* ctx, uint64_t a, uint64_t b);
 struct arrow _arrow(struct ctx* ctx, uint64_t from, uint64_t to);
 struct global_ctx* get_global_ctx(struct ctx* ctx);
-struct void_ new_island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception it);
+struct void_ island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception it);
 struct void_ default_log_handler(struct ctx* ctx, struct logged* a);
 struct void_ print(struct arr_0 a);
 struct void_ print_no_newline(struct arr_0 a);
 int32_t stdout(void);
 struct arr_0 to_str_0(struct ctx* ctx, struct log_level a);
-struct void_ new_island__lambda1(struct ctx* ctx, struct void_ _closure, struct logged* log);
-struct gc new_gc(void);
-struct thread_safe_counter new_thread_safe_counter_0(void);
-struct thread_safe_counter new_thread_safe_counter_1(uint64_t init);
+struct void_ island__lambda1(struct ctx* ctx, struct void_ _closure, struct logged* log);
+struct gc gc(void);
+struct thread_safe_counter thread_safe_counter_0(void);
+struct thread_safe_counter thread_safe_counter_1(uint64_t init);
 struct fut_0* do_main(struct global_ctx* gctx, struct island* island, int32_t argc, char** argv, fun_ptr2 main_ptr);
-struct exception_ctx new_exception_ctx(void);
-struct log_ctx new_log_ctx(void);
-struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct island* island, uint64_t exclusion);
+struct exception_ctx exception_ctx(void);
+struct log_ctx log_ctx(void);
+struct ctx ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct island* island, uint64_t exclusion);
 struct gc_ctx* get_gc_ctx_1(struct gc* gc);
 struct fut_0* add_first_task(struct ctx* ctx, struct arr_4 all_args, fun_ptr2 main_ptr);
 struct fut_0* then2(struct ctx* ctx, struct fut_1* f, struct fun_ref0 cb);
 struct fut_0* then(struct ctx* ctx, struct fut_1* f, struct fun_ref1 cb);
-struct fut_0* new_unresolved_fut(struct ctx* ctx);
+struct fut_0* unresolved(struct ctx* ctx);
 struct void_ then_void_0(struct ctx* ctx, struct fut_1* f, struct fun_act1_1 cb);
-struct void_ subscript_2(struct ctx* ctx, struct fun_act1_1 a, struct result_1 p0);
-struct void_ call_w_ctx_135(struct fun_act1_1 a, struct ctx* ctx, struct result_1 p0);
+struct void_ with_lock_0(struct ctx* ctx, struct lock* a, struct fun_act0_0 f);
+struct void_ subscript_2(struct ctx* ctx, struct fun_act0_0 a);
+struct void_ call_w_ctx_136(struct fun_act0_0 a, struct ctx* ctx);
+struct void_ subscript_3(struct ctx* ctx, struct fun_act1_1 a, struct result_1 p0);
+struct void_ call_w_ctx_138(struct fun_act1_1 a, struct ctx* ctx, struct result_1 p0);
+struct void_ then_void_0__lambda0(struct ctx* ctx, struct then_void_0__lambda0* _closure);
 struct void_ forward_to__e(struct ctx* ctx, struct fut_0* from, struct fut_0* to);
 struct void_ then_void_1(struct ctx* ctx, struct fut_0* f, struct fun_act1_0 cb);
-struct void_ subscript_3(struct ctx* ctx, struct fun_act1_0 a, struct result_0 p0);
-struct void_ call_w_ctx_139(struct fun_act1_0 a, struct ctx* ctx, struct result_0 p0);
+struct void_ subscript_4(struct ctx* ctx, struct fun_act1_0 a, struct result_0 p0);
+struct void_ call_w_ctx_143(struct fun_act1_0 a, struct ctx* ctx, struct result_0 p0);
+struct void_ then_void_1__lambda0(struct ctx* ctx, struct then_void_1__lambda0* _closure);
 struct void_ resolve_or_reject__e(struct ctx* ctx, struct fut_0* f, struct result_0 result);
+struct fut_state_callbacks_0 with_lock_1(struct ctx* ctx, struct lock* a, struct fun_act0_2 f);
+struct fut_state_callbacks_0 subscript_5(struct ctx* ctx, struct fun_act0_2 a);
+struct fut_state_callbacks_0 call_w_ctx_148(struct fun_act0_2 a, struct ctx* ctx);
 struct fut_state_callbacks_0 todo_2(void);
+struct fut_state_callbacks_0 resolve_or_reject__e__lambda0(struct ctx* ctx, struct resolve_or_reject__e__lambda0* _closure);
 struct void_ call_callbacks__e(struct ctx* ctx, struct opt_0 node, struct result_0 value);
 struct void_ drop_0(struct void_ _p0);
 struct void_ forward_to__e__lambda0(struct ctx* ctx, struct forward_to__e__lambda0* _closure, struct result_0 it);
-struct fut_0* subscript_4(struct ctx* ctx, struct fun_ref1 f, struct void_ p0);
+struct fut_0* subscript_6(struct ctx* ctx, struct fun_ref1 f, struct void_ p0);
 struct island* get_island(struct ctx* ctx, uint64_t island_id);
-struct island* subscript_5(struct ctx* ctx, struct arr_3 a, uint64_t index);
+struct island* subscript_7(struct ctx* ctx, struct arr_3 a, uint64_t index);
 struct island* noctx_at_1(struct arr_3 a, uint64_t index);
 struct void_ add_task_0(struct ctx* ctx, struct island* a, uint64_t exclusion, struct fun_act0_0 action);
 struct void_ add_task_1(struct ctx* ctx, struct island* a, uint64_t timestamp, uint64_t exclusion, struct fun_act0_0 action);
-struct task_queue_node* new_task_queue_node(struct ctx* ctx, struct task task);
+struct task_queue_node* task_queue_node(struct ctx* ctx, struct task task);
 struct void_ insert_task__e(struct task_queue* a, struct task_queue_node* inserted);
 uint64_t size_0(struct task_queue* a);
 uint64_t size_recur(struct opt_2 node, uint64_t acc);
 struct void_ insert_recur(struct task_queue_node* prev, struct task_queue_node* inserted);
 struct task_queue* tasks(struct island* a);
-struct void_ broadcast(struct condition* c);
+struct void_ broadcast__e(struct condition* c);
 uint64_t no_timestamp(void);
 struct void_ catch(struct ctx* ctx, struct fun_act0_0 try, struct fun_act1_3 catcher);
 struct void_ catch_with_exception_ctx(struct ctx* ctx, struct exception_ctx* ec, struct fun_act0_0 try, struct fun_act1_3 catcher);
@@ -2032,40 +2060,38 @@ struct bytes32 zero_1(void);
 struct bytes16 zero_2(void);
 struct bytes128 zero_3(void);
 extern int32_t setjmp(struct jmp_buf_tag* env);
-struct void_ subscript_6(struct ctx* ctx, struct fun_act0_0 a);
-struct void_ call_w_ctx_167(struct fun_act0_0 a, struct ctx* ctx);
-struct void_ subscript_7(struct ctx* ctx, struct fun_act1_3 a, struct exception p0);
-struct void_ call_w_ctx_169(struct fun_act1_3 a, struct ctx* ctx, struct exception p0);
-struct fut_0* subscript_8(struct ctx* ctx, struct fun_act1_2 a, struct void_ p0);
-struct fut_0* call_w_ctx_171(struct fun_act1_2 a, struct ctx* ctx, struct void_ p0);
-struct void_ subscript_4__lambda0__lambda0(struct ctx* ctx, struct subscript_4__lambda0__lambda0* _closure);
+struct void_ subscript_8(struct ctx* ctx, struct fun_act1_3 a, struct exception p0);
+struct void_ call_w_ctx_176(struct fun_act1_3 a, struct ctx* ctx, struct exception p0);
+struct fut_0* subscript_9(struct ctx* ctx, struct fun_act1_2 a, struct void_ p0);
+struct fut_0* call_w_ctx_178(struct fun_act1_2 a, struct ctx* ctx, struct void_ p0);
+struct void_ subscript_6__lambda0__lambda0(struct ctx* ctx, struct subscript_6__lambda0__lambda0* _closure);
 struct void_ reject__e(struct ctx* ctx, struct fut_0* f, struct exception e);
-struct void_ subscript_4__lambda0__lambda1(struct ctx* ctx, struct subscript_4__lambda0__lambda1* _closure, struct exception it);
-struct void_ subscript_4__lambda0(struct ctx* ctx, struct subscript_4__lambda0* _closure);
+struct void_ subscript_6__lambda0__lambda1(struct ctx* ctx, struct subscript_6__lambda0__lambda1* _closure, struct exception it);
+struct void_ subscript_6__lambda0(struct ctx* ctx, struct subscript_6__lambda0* _closure);
 struct void_ then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, struct result_1 result);
-struct fut_0* subscript_9(struct ctx* ctx, struct fun_ref0 f);
-struct fut_0* subscript_10(struct ctx* ctx, struct fun_act0_1 a);
-struct fut_0* call_w_ctx_179(struct fun_act0_1 a, struct ctx* ctx);
-struct void_ subscript_9__lambda0__lambda0(struct ctx* ctx, struct subscript_9__lambda0__lambda0* _closure);
-struct void_ subscript_9__lambda0__lambda1(struct ctx* ctx, struct subscript_9__lambda0__lambda1* _closure, struct exception it);
-struct void_ subscript_9__lambda0(struct ctx* ctx, struct subscript_9__lambda0* _closure);
+struct fut_0* subscript_10(struct ctx* ctx, struct fun_ref0 f);
+struct fut_0* subscript_11(struct ctx* ctx, struct fun_act0_1 a);
+struct fut_0* call_w_ctx_186(struct fun_act0_1 a, struct ctx* ctx);
+struct void_ subscript_10__lambda0__lambda0(struct ctx* ctx, struct subscript_10__lambda0__lambda0* _closure);
+struct void_ subscript_10__lambda0__lambda1(struct ctx* ctx, struct subscript_10__lambda0__lambda1* _closure, struct exception it);
+struct void_ subscript_10__lambda0(struct ctx* ctx, struct subscript_10__lambda0* _closure);
 struct fut_0* then2__lambda0(struct ctx* ctx, struct then2__lambda0* _closure, struct void_ ignore);
 struct island_and_exclusion cur_island_and_exclusion(struct ctx* ctx);
 struct fut_1* delay(struct ctx* ctx);
 struct fut_1* resolved_0(struct ctx* ctx, struct void_ value);
 struct arr_4 tail_1(struct ctx* ctx, struct arr_4 a);
 uint8_t empty__q_2(struct arr_4 a);
-struct arr_4 subscript_11(struct ctx* ctx, struct arr_4 a, struct arrow range);
+struct arr_4 subscript_12(struct ctx* ctx, struct arr_4 a, struct arrow range);
 struct arr_1 map_0(struct ctx* ctx, struct arr_4 a, struct fun_act1_4 mapper);
 struct arr_1 make_arr(struct ctx* ctx, uint64_t size, struct fun_act1_5 f);
 struct arr_0* alloc_uninitialized_1(struct ctx* ctx, uint64_t size);
 struct void_ fill_ptr_range(struct ctx* ctx, struct arr_0* begin, uint64_t size, struct fun_act1_5 f);
 struct void_ fill_ptr_range_recur(struct ctx* ctx, struct arr_0* begin, uint64_t i, uint64_t size, struct fun_act1_5 f);
-struct arr_0 subscript_12(struct ctx* ctx, struct fun_act1_5 a, uint64_t p0);
-struct arr_0 call_w_ctx_196(struct fun_act1_5 a, struct ctx* ctx, uint64_t p0);
-struct arr_0 subscript_13(struct ctx* ctx, struct fun_act1_4 a, char* p0);
-struct arr_0 call_w_ctx_198(struct fun_act1_4 a, struct ctx* ctx, char* p0);
-char* subscript_14(struct ctx* ctx, struct arr_4 a, uint64_t index);
+struct arr_0 subscript_13(struct ctx* ctx, struct fun_act1_5 a, uint64_t p0);
+struct arr_0 call_w_ctx_203(struct fun_act1_5 a, struct ctx* ctx, uint64_t p0);
+struct arr_0 subscript_14(struct ctx* ctx, struct fun_act1_4 a, char* p0);
+struct arr_0 call_w_ctx_205(struct fun_act1_4 a, struct ctx* ctx, char* p0);
+char* subscript_15(struct ctx* ctx, struct arr_4 a, uint64_t index);
 char* noctx_at_2(struct arr_4 a, uint64_t index);
 struct arr_0 map_0__lambda0(struct ctx* ctx, struct map_0__lambda0* _closure, uint64_t i);
 struct arr_0 to_str_1(char* a);
@@ -2074,19 +2100,19 @@ uint64_t _minus_3(char* a, char* b);
 char* find_cstr_end(char* a);
 char* find_char_in_cstr(char* a, char c);
 uint8_t _equal_3(char a, char b);
-struct comparison compare_208(char a, char b);
+struct comparison compare_215(char a, char b);
 char* todo_3(void);
 char* incr_4(char* p);
 struct arr_0 add_first_task__lambda0__lambda0(struct ctx* ctx, struct void_ _closure, char* it);
 struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__lambda0* _closure);
 struct void_ handle_exceptions(struct ctx* ctx, struct fut_0* a);
-struct void_ subscript_15(struct ctx* ctx, struct fun1_0 a, struct exception p0);
-struct void_ call_w_ctx_215(struct fun1_0 a, struct ctx* ctx, struct exception p0);
+struct void_ subscript_16(struct ctx* ctx, struct fun1_0 a, struct exception p0);
+struct void_ call_w_ctx_222(struct fun1_0 a, struct ctx* ctx, struct exception p0);
 struct fun1_0 exception_handler(struct ctx* ctx, struct island* a);
 struct island* get_cur_island(struct ctx* ctx);
 struct void_ handle_exceptions__lambda0(struct ctx* ctx, struct void_ _closure, struct result_0 result);
 struct fut_0* do_main__lambda0(struct ctx* ctx, struct void_ _closure, struct arr_4 all_args, fun_ptr2 main_ptr);
-struct fut_0* call_w_ctx_220(struct fun_act2 a, struct ctx* ctx, struct arr_4 p0, fun_ptr2 p1);
+struct fut_0* call_w_ctx_227(struct fun_act2 a, struct ctx* ctx, struct arr_4 p0, fun_ptr2 p1);
 struct void_ run_threads(uint64_t n_threads, struct global_ctx* gctx);
 struct thread_args* unmanaged_alloc_elements_1(uint64_t size_elements);
 struct void_ start_threads_recur(uint64_t i, uint64_t n_threads, uint64_t* threads, struct thread_args* thread_args_begin, struct global_ctx* gctx);
@@ -2121,7 +2147,7 @@ struct arr_2 temp_as_arr_1(struct mut_arr a);
 struct mut_arr temp_as_mut_arr(struct mut_list* a);
 uint64_t* data_0(struct mut_list* a);
 uint64_t* data_1(struct mut_arr a);
-struct pop_task_result pop_recur(struct task_queue_node* prev, struct mut_list* exclusions, uint64_t cur_time, struct opt_8 first_task_time);
+struct pop_task_result pop_recur__e(struct task_queue_node* prev, struct mut_list* exclusions, uint64_t cur_time, struct opt_8 first_task_time);
 struct opt_8 to_opt_time(uint64_t a);
 struct void_ push_capacity_must_be_sufficient__e(struct mut_list* a, uint64_t value);
 uint64_t capacity(struct mut_list* a);
@@ -2142,50 +2168,65 @@ uint8_t empty__q_5(struct mut_list* a);
 struct void_ return_ctx(struct ctx* c);
 struct void_ return_gc_ctx(struct gc_ctx* gc_ctx);
 struct void_ run_garbage_collection(struct gc* gc, struct island_gc_root gc_root);
-struct void_ mark_visit_276(struct mark_ctx* mark_ctx, struct island_gc_root value);
-struct void_ mark_visit_277(struct mark_ctx* mark_ctx, struct task_queue value);
-struct void_ mark_visit_278(struct mark_ctx* mark_ctx, struct opt_2 value);
-struct void_ mark_visit_279(struct mark_ctx* mark_ctx, struct some_2 value);
-struct void_ mark_visit_280(struct mark_ctx* mark_ctx, struct task_queue_node value);
-struct void_ mark_visit_281(struct mark_ctx* mark_ctx, struct task value);
-struct void_ mark_visit_282(struct mark_ctx* mark_ctx, struct fun_act0_0 value);
-struct void_ mark_visit_283(struct mark_ctx* mark_ctx, struct subscript_4__lambda0__lambda0 value);
-struct void_ mark_visit_284(struct mark_ctx* mark_ctx, struct fun_ref1 value);
-struct void_ mark_visit_285(struct mark_ctx* mark_ctx, struct fun_act1_2 value);
-struct void_ mark_visit_286(struct mark_ctx* mark_ctx, struct then2__lambda0 value);
-struct void_ mark_visit_287(struct mark_ctx* mark_ctx, struct fun_ref0 value);
-struct void_ mark_visit_288(struct mark_ctx* mark_ctx, struct fun_act0_1 value);
-struct void_ mark_visit_289(struct mark_ctx* mark_ctx, struct add_first_task__lambda0 value);
-struct void_ mark_arr_290(struct mark_ctx* mark_ctx, struct arr_4 a);
-struct void_ mark_visit_291(struct mark_ctx* mark_ctx, struct add_first_task__lambda0* value);
-struct void_ mark_visit_292(struct mark_ctx* mark_ctx, struct then2__lambda0* value);
-struct void_ mark_visit_293(struct mark_ctx* mark_ctx, struct fut_0 value);
-struct void_ mark_visit_294(struct mark_ctx* mark_ctx, struct fut_state_0 value);
-struct void_ mark_visit_295(struct mark_ctx* mark_ctx, struct fut_state_callbacks_0 value);
-struct void_ mark_visit_296(struct mark_ctx* mark_ctx, struct opt_0 value);
-struct void_ mark_visit_297(struct mark_ctx* mark_ctx, struct some_0 value);
-struct void_ mark_visit_298(struct mark_ctx* mark_ctx, struct fut_callback_node_0 value);
-struct void_ mark_visit_299(struct mark_ctx* mark_ctx, struct fun_act1_0 value);
-struct void_ mark_visit_300(struct mark_ctx* mark_ctx, struct forward_to__e__lambda0 value);
-struct void_ mark_visit_301(struct mark_ctx* mark_ctx, struct fut_0* value);
-struct void_ mark_visit_302(struct mark_ctx* mark_ctx, struct forward_to__e__lambda0* value);
-struct void_ mark_visit_303(struct mark_ctx* mark_ctx, struct fut_callback_node_0* value);
-struct void_ mark_visit_304(struct mark_ctx* mark_ctx, struct exception value);
-struct void_ mark_arr_305(struct mark_ctx* mark_ctx, struct arr_0 a);
-struct void_ mark_visit_306(struct mark_ctx* mark_ctx, struct backtrace value);
-struct void_ mark_elems_307(struct mark_ctx* mark_ctx, struct arr_0* cur, struct arr_0* end);
-struct void_ mark_arr_308(struct mark_ctx* mark_ctx, struct arr_1 a);
-struct void_ mark_visit_309(struct mark_ctx* mark_ctx, struct subscript_4__lambda0__lambda0* value);
-struct void_ mark_visit_310(struct mark_ctx* mark_ctx, struct subscript_4__lambda0 value);
-struct void_ mark_visit_311(struct mark_ctx* mark_ctx, struct subscript_4__lambda0* value);
-struct void_ mark_visit_312(struct mark_ctx* mark_ctx, struct subscript_9__lambda0__lambda0 value);
-struct void_ mark_visit_313(struct mark_ctx* mark_ctx, struct subscript_9__lambda0__lambda0* value);
-struct void_ mark_visit_314(struct mark_ctx* mark_ctx, struct subscript_9__lambda0 value);
-struct void_ mark_visit_315(struct mark_ctx* mark_ctx, struct subscript_9__lambda0* value);
-struct void_ mark_visit_316(struct mark_ctx* mark_ctx, struct task_queue_node* value);
-struct void_ mark_visit_317(struct mark_ctx* mark_ctx, struct mut_list value);
-struct void_ mark_visit_318(struct mark_ctx* mark_ctx, struct mut_arr value);
-struct void_ mark_arr_319(struct mark_ctx* mark_ctx, struct arr_2 a);
+struct void_ mark_visit_283(struct mark_ctx* mark_ctx, struct island_gc_root value);
+struct void_ mark_visit_284(struct mark_ctx* mark_ctx, struct task_queue value);
+struct void_ mark_visit_285(struct mark_ctx* mark_ctx, struct opt_2 value);
+struct void_ mark_visit_286(struct mark_ctx* mark_ctx, struct some_2 value);
+struct void_ mark_visit_287(struct mark_ctx* mark_ctx, struct task_queue_node value);
+struct void_ mark_visit_288(struct mark_ctx* mark_ctx, struct task value);
+struct void_ mark_visit_289(struct mark_ctx* mark_ctx, struct fun_act0_0 value);
+struct void_ mark_visit_290(struct mark_ctx* mark_ctx, struct then_void_0__lambda0 value);
+struct void_ mark_visit_291(struct mark_ctx* mark_ctx, struct fut_1 value);
+struct void_ mark_visit_292(struct mark_ctx* mark_ctx, struct fut_state_1 value);
+struct void_ mark_visit_293(struct mark_ctx* mark_ctx, struct fut_state_callbacks_1 value);
+struct void_ mark_visit_294(struct mark_ctx* mark_ctx, struct opt_7 value);
+struct void_ mark_visit_295(struct mark_ctx* mark_ctx, struct some_7 value);
+struct void_ mark_visit_296(struct mark_ctx* mark_ctx, struct fut_callback_node_1 value);
+struct void_ mark_visit_297(struct mark_ctx* mark_ctx, struct fun_act1_1 value);
+struct void_ mark_visit_298(struct mark_ctx* mark_ctx, struct then__lambda0 value);
+struct void_ mark_visit_299(struct mark_ctx* mark_ctx, struct fun_ref1 value);
+struct void_ mark_visit_300(struct mark_ctx* mark_ctx, struct fun_act1_2 value);
+struct void_ mark_visit_301(struct mark_ctx* mark_ctx, struct then2__lambda0 value);
+struct void_ mark_visit_302(struct mark_ctx* mark_ctx, struct fun_ref0 value);
+struct void_ mark_visit_303(struct mark_ctx* mark_ctx, struct fun_act0_1 value);
+struct void_ mark_visit_304(struct mark_ctx* mark_ctx, struct add_first_task__lambda0 value);
+struct void_ mark_arr_305(struct mark_ctx* mark_ctx, struct arr_4 a);
+struct void_ mark_visit_306(struct mark_ctx* mark_ctx, struct add_first_task__lambda0* value);
+struct void_ mark_visit_307(struct mark_ctx* mark_ctx, struct then2__lambda0* value);
+struct void_ mark_visit_308(struct mark_ctx* mark_ctx, struct fut_0 value);
+struct void_ mark_visit_309(struct mark_ctx* mark_ctx, struct fut_state_0 value);
+struct void_ mark_visit_310(struct mark_ctx* mark_ctx, struct fut_state_callbacks_0 value);
+struct void_ mark_visit_311(struct mark_ctx* mark_ctx, struct opt_0 value);
+struct void_ mark_visit_312(struct mark_ctx* mark_ctx, struct some_0 value);
+struct void_ mark_visit_313(struct mark_ctx* mark_ctx, struct fut_callback_node_0 value);
+struct void_ mark_visit_314(struct mark_ctx* mark_ctx, struct fun_act1_0 value);
+struct void_ mark_visit_315(struct mark_ctx* mark_ctx, struct forward_to__e__lambda0 value);
+struct void_ mark_visit_316(struct mark_ctx* mark_ctx, struct fut_0* value);
+struct void_ mark_visit_317(struct mark_ctx* mark_ctx, struct forward_to__e__lambda0* value);
+struct void_ mark_visit_318(struct mark_ctx* mark_ctx, struct fut_callback_node_0* value);
+struct void_ mark_visit_319(struct mark_ctx* mark_ctx, struct exception value);
+struct void_ mark_arr_320(struct mark_ctx* mark_ctx, struct arr_0 a);
+struct void_ mark_visit_321(struct mark_ctx* mark_ctx, struct backtrace value);
+struct void_ mark_elems_322(struct mark_ctx* mark_ctx, struct arr_0* cur, struct arr_0* end);
+struct void_ mark_arr_323(struct mark_ctx* mark_ctx, struct arr_1 a);
+struct void_ mark_visit_324(struct mark_ctx* mark_ctx, struct then__lambda0* value);
+struct void_ mark_visit_325(struct mark_ctx* mark_ctx, struct fut_callback_node_1* value);
+struct void_ mark_visit_326(struct mark_ctx* mark_ctx, struct fut_1* value);
+struct void_ mark_visit_327(struct mark_ctx* mark_ctx, struct then_void_0__lambda0* value);
+struct void_ mark_visit_328(struct mark_ctx* mark_ctx, struct then_void_1__lambda0 value);
+struct void_ mark_visit_329(struct mark_ctx* mark_ctx, struct then_void_1__lambda0* value);
+struct void_ mark_visit_330(struct mark_ctx* mark_ctx, struct subscript_6__lambda0__lambda0 value);
+struct void_ mark_visit_331(struct mark_ctx* mark_ctx, struct subscript_6__lambda0__lambda0* value);
+struct void_ mark_visit_332(struct mark_ctx* mark_ctx, struct subscript_6__lambda0 value);
+struct void_ mark_visit_333(struct mark_ctx* mark_ctx, struct subscript_6__lambda0* value);
+struct void_ mark_visit_334(struct mark_ctx* mark_ctx, struct subscript_10__lambda0__lambda0 value);
+struct void_ mark_visit_335(struct mark_ctx* mark_ctx, struct subscript_10__lambda0__lambda0* value);
+struct void_ mark_visit_336(struct mark_ctx* mark_ctx, struct subscript_10__lambda0 value);
+struct void_ mark_visit_337(struct mark_ctx* mark_ctx, struct subscript_10__lambda0* value);
+struct void_ mark_visit_338(struct mark_ctx* mark_ctx, struct task_queue_node* value);
+struct void_ mark_visit_339(struct mark_ctx* mark_ctx, struct mut_list value);
+struct void_ mark_visit_340(struct mark_ctx* mark_ctx, struct mut_arr value);
+struct void_ mark_arr_341(struct mark_ctx* mark_ctx, struct arr_2 a);
 struct void_ clear_free_mem(uint8_t* mark_ptr, uint8_t* mark_end, uint64_t* data_ptr);
 struct void_ wait_on(struct condition* cond, struct opt_8 until_time, uint64_t last_checked);
 uint8_t before_time__q(struct opt_8 until_time);
@@ -2200,26 +2241,26 @@ extern void free(uint8_t* p);
 struct void_ unmanaged_free_1(struct thread_args* p);
 struct fut_0* main_0(struct ctx* ctx, struct arr_1 _p0);
 uint8_t _equal_4(struct opt_8 a, struct opt_8 b);
-struct comparison compare_334(struct opt_8 a, struct opt_8 b);
-struct comparison compare_335(struct none a, struct none b);
-struct comparison compare_336(struct some_8 a, struct some_8 b);
+struct comparison compare_356(struct opt_8 a, struct opt_8 b);
+struct comparison compare_357(struct none a, struct none b);
+struct comparison compare_358(struct some_8 a, struct some_8 b);
 struct opt_8 parse_nat(struct ctx* ctx, struct arr_0 a);
 struct opt_8 parse_nat_recur(struct ctx* ctx, struct arr_0 a, uint64_t accum);
 struct opt_8 char_to_nat(struct ctx* ctx, char c);
 char first(struct ctx* ctx, struct arr_0 a);
-char subscript_16(struct ctx* ctx, struct arr_0 a, uint64_t index);
+char subscript_17(struct ctx* ctx, struct arr_0 a, uint64_t index);
 char noctx_at_5(struct arr_0 a, uint64_t index);
 struct arr_0 tail_2(struct ctx* ctx, struct arr_0 a);
-struct arr_0 subscript_17(struct ctx* ctx, struct arr_0 a, struct arrow range);
+struct arr_0 subscript_18(struct ctx* ctx, struct arr_0 a, struct arrow range);
 uint64_t _times_0(struct ctx* ctx, uint64_t a, uint64_t b);
 uint64_t _divide(struct ctx* ctx, uint64_t a, uint64_t b);
 uint8_t _equal_5(struct opt_9 a, struct opt_9 b);
-struct comparison compare_348(struct opt_9 a, struct opt_9 b);
-struct comparison compare_349(struct some_9 a, struct some_9 b);
+struct comparison compare_370(struct opt_9 a, struct opt_9 b);
+struct comparison compare_371(struct some_9 a, struct some_9 b);
 struct opt_9 parse_int(struct ctx* ctx, struct arr_0 a);
 struct opt_9 map_1(struct ctx* ctx, struct opt_8 a, struct fun_act1_6 cb);
-int64_t subscript_18(struct ctx* ctx, struct fun_act1_6 a, uint64_t p0);
-int64_t call_w_ctx_353(struct fun_act1_6 a, struct ctx* ctx, uint64_t p0);
+int64_t subscript_19(struct ctx* ctx, struct fun_act1_6 a, uint64_t p0);
+int64_t call_w_ctx_375(struct fun_act1_6 a, struct ctx* ctx, uint64_t p0);
 int64_t neg_0(struct ctx* ctx, uint64_t a);
 int64_t neg_1(struct ctx* ctx, int64_t i);
 int64_t _times_1(struct ctx* ctx, int64_t a, int64_t b);
@@ -2388,15 +2429,15 @@ int32_t rt_main(int32_t argc, char** argv, fun_ptr2 main_ptr) {
 	n_threads0 = get_nprocs();
 	
 	struct global_ctx gctx_by_val1;
-	struct lock _0 = new_lock_by_val();
-	struct condition _1 = new_condition();
+	struct lock _0 = lock_by_val();
+	struct condition _1 = condition();
 	gctx_by_val1 = (struct global_ctx) {_0, (struct arr_3) {0u, NULL}, n_threads0, _1, 0, 0};
 	
 	struct global_ctx* gctx2;
 	gctx2 = (&gctx_by_val1);
 	
 	struct island island_by_val3;
-	island_by_val3 = new_island(gctx2, 0u, n_threads0);
+	island_by_val3 = island(gctx2, 0u, n_threads0);
 	
 	struct island* island4;
 	island4 = (&island_by_val3);
@@ -2428,40 +2469,40 @@ int32_t rt_main(int32_t argc, char** argv, fun_ptr2 main_ptr) {
 			return 0;
 	}
 }
-/* new-lock-by-val lock() */
-struct lock new_lock_by_val(void) {
-	struct _atomic_bool _0 = new_atomic_bool();
+/* lock-by-val lock() */
+struct lock lock_by_val(void) {
+	struct _atomic_bool _0 = _atomic_bool();
 	return (struct lock) {_0};
 }
-/* new-atomic-bool atomic-bool() */
-struct _atomic_bool new_atomic_bool(void) {
+/* atomic-bool atomic-bool() */
+struct _atomic_bool _atomic_bool(void) {
 	return (struct _atomic_bool) {0};
 }
-/* new-condition condition() */
-struct condition new_condition(void) {
-	struct lock _0 = new_lock_by_val();
+/* condition condition() */
+struct condition condition(void) {
+	struct lock _0 = lock_by_val();
 	return (struct condition) {_0, 0u};
 }
-/* new-island island(gctx global-ctx, id nat, max-threads nat) */
-struct island new_island(struct global_ctx* gctx, uint64_t id, uint64_t max_threads) {
+/* island island(gctx global-ctx, id nat, max-threads nat) */
+struct island island(struct global_ctx* gctx, uint64_t id, uint64_t max_threads) {
 	struct task_queue q0;
-	q0 = new_task_queue(max_threads);
+	q0 = task_queue(max_threads);
 	
 	struct island_gc_root gc_root1;
 	gc_root1 = (struct island_gc_root) {q0, (struct fun1_0) {0, .as0 = (struct void_) {}}, (struct fun1_1) {0, .as0 = (struct void_) {}}};
 	
-	struct gc _0 = new_gc();
-	struct lock _1 = new_lock_by_val();
-	struct thread_safe_counter _2 = new_thread_safe_counter_0();
+	struct gc _0 = gc();
+	struct lock _1 = lock_by_val();
+	struct thread_safe_counter _2 = thread_safe_counter_0();
 	return (struct island) {gctx, id, _0, gc_root1, _1, 0u, _2};
 }
-/* new-task-queue task-queue(max-threads nat) */
-struct task_queue new_task_queue(uint64_t max_threads) {
-	struct mut_list _0 = new_mut_list_by_val_with_capacity_from_unmanaged_memory(max_threads);
+/* task-queue task-queue(max-threads nat) */
+struct task_queue task_queue(uint64_t max_threads) {
+	struct mut_list _0 = mut_list_by_val_with_capacity_from_unmanaged_memory(max_threads);
 	return (struct task_queue) {(struct opt_2) {0, .as0 = (struct none) {}}, _0};
 }
-/* new-mut-list-by-val-with-capacity-from-unmanaged-memory<nat> mut-list<nat>(capacity nat) */
-struct mut_list new_mut_list_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity) {
+/* mut-list-by-val-with-capacity-from-unmanaged-memory<nat> mut-list<nat>(capacity nat) */
+struct mut_list mut_list_by_val_with_capacity_from_unmanaged_memory(uint64_t capacity) {
 	struct mut_arr backing0;
 	uint64_t* _0 = unmanaged_alloc_zeroed_elements(capacity);
 	backing0 = mut_arr(capacity, _0);
@@ -2786,21 +2827,21 @@ struct opt_5 try_alloc(struct ctx* ctx, uint64_t size_bytes) {
 }
 /* try-gc-alloc opt<ptr<nat8>>(gc gc, size-bytes nat) */
 struct opt_5 try_gc_alloc(struct gc* gc, uint64_t size_bytes) {
-	acquire_lock((&gc->lk));
+	acquire__e((&gc->lk));
 	struct opt_5 res0;
 	res0 = try_gc_alloc_recur(gc, size_bytes);
 	
-	release_lock((&gc->lk));
+	release__e((&gc->lk));
 	return res0;
 }
-/* acquire-lock void(a lock) */
-struct void_ acquire_lock(struct lock* a) {
-	return acquire_lock_recur(a, 0u);
+/* acquire! void(a lock) */
+struct void_ acquire__e(struct lock* a) {
+	return acquire_recur__e(a, 0u);
 }
-/* acquire-lock-recur void(a lock, n-tries nat) */
-struct void_ acquire_lock_recur(struct lock* a, uint64_t n_tries) {
+/* acquire-recur! void(a lock, n-tries nat) */
+struct void_ acquire_recur__e(struct lock* a, uint64_t n_tries) {
 	top:;
-	uint8_t _0 = try_acquire_lock(a);
+	uint8_t _0 = try_acquire__e(a);
 	uint8_t _1 = not(_0);
 	if (_1) {
 		uint8_t _2 = _equal_0(n_tries, 10000u);
@@ -2817,16 +2858,16 @@ struct void_ acquire_lock_recur(struct lock* a, uint64_t n_tries) {
 		return (struct void_) {};
 	}
 }
-/* try-acquire-lock bool(a lock) */
-uint8_t try_acquire_lock(struct lock* a) {
-	return try_set((&a->is_locked));
+/* try-acquire! bool(a lock) */
+uint8_t try_acquire__e(struct lock* a) {
+	return try_set__e((&a->is_locked));
 }
-/* try-set bool(a atomic-bool) */
-uint8_t try_set(struct _atomic_bool* a) {
-	return try_change(a, 0);
+/* try-set! bool(a atomic-bool) */
+uint8_t try_set__e(struct _atomic_bool* a) {
+	return try_change__e(a, 0);
 }
-/* try-change bool(a atomic-bool, old-value bool) */
-uint8_t try_change(struct _atomic_bool* a, uint8_t old_value) {
+/* try-change! bool(a atomic-bool, old-value bool) */
+uint8_t try_change__e(struct _atomic_bool* a, uint8_t old_value) {
 	uint8_t* _0 = (&a->value);
 	uint8_t* _1 = (&old_value);
 	uint8_t _2 = not(old_value);
@@ -2977,20 +3018,20 @@ uint8_t range_free__q(uint8_t* mark, uint8_t* end) {
 uint64_t* incr_1(uint64_t* p) {
 	return (p + 1u);
 }
-/* release-lock void(l lock) */
-struct void_ release_lock(struct lock* l) {
-	return must_unset((&l->is_locked));
+/* release! void(a lock) */
+struct void_ release__e(struct lock* a) {
+	return must_unset__e((&a->is_locked));
 }
-/* must-unset void(a atomic-bool) */
-struct void_ must_unset(struct _atomic_bool* a) {
+/* must-unset! void(a atomic-bool) */
+struct void_ must_unset__e(struct _atomic_bool* a) {
 	uint8_t did_unset0;
-	did_unset0 = try_unset(a);
+	did_unset0 = try_unset__e(a);
 	
 	return hard_assert(did_unset0);
 }
-/* try-unset bool(a atomic-bool) */
-uint8_t try_unset(struct _atomic_bool* a) {
-	return try_change(a, 1);
+/* try-unset! bool(a atomic-bool) */
+uint8_t try_unset__e(struct _atomic_bool* a) {
+	return try_change__e(a, 1);
 }
 /* get-gc gc() */
 struct gc* get_gc(struct ctx* ctx) {
@@ -3019,7 +3060,7 @@ struct opt_6 try_alloc_uninitialized_1(struct ctx* ctx, uint64_t size) {
 }
 /* funs-count (generated) (generated) */
 uint64_t funs_count_81(void) {
-	return 368u;
+	return 390u;
 }
 /* code-ptrs-size nat() */
 uint64_t code_ptrs_size(struct ctx* ctx) {
@@ -3100,22 +3141,22 @@ uint8_t* get_fun_ptr_86(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) get_nprocs;
 		}
 		case 16: {
-			return (uint8_t*) new_lock_by_val;
+			return (uint8_t*) lock_by_val;
 		}
 		case 17: {
-			return (uint8_t*) new_atomic_bool;
+			return (uint8_t*) _atomic_bool;
 		}
 		case 18: {
-			return (uint8_t*) new_condition;
+			return (uint8_t*) condition;
 		}
 		case 19: {
-			return (uint8_t*) new_island;
+			return (uint8_t*) island;
 		}
 		case 20: {
-			return (uint8_t*) new_task_queue;
+			return (uint8_t*) task_queue;
 		}
 		case 21: {
-			return (uint8_t*) new_mut_list_by_val_with_capacity_from_unmanaged_memory;
+			return (uint8_t*) mut_list_by_val_with_capacity_from_unmanaged_memory;
 		}
 		case 22: {
 			return (uint8_t*) mut_arr;
@@ -3226,19 +3267,19 @@ uint8_t* get_fun_ptr_86(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) try_gc_alloc;
 		}
 		case 58: {
-			return (uint8_t*) acquire_lock;
+			return (uint8_t*) acquire__e;
 		}
 		case 59: {
-			return (uint8_t*) acquire_lock_recur;
+			return (uint8_t*) acquire_recur__e;
 		}
 		case 60: {
-			return (uint8_t*) try_acquire_lock;
+			return (uint8_t*) try_acquire__e;
 		}
 		case 61: {
-			return (uint8_t*) try_set;
+			return (uint8_t*) try_set__e;
 		}
 		case 62: {
-			return (uint8_t*) try_change;
+			return (uint8_t*) try_change__e;
 		}
 		case 63: {
 			return (uint8_t*) yield_thread;
@@ -3277,13 +3318,13 @@ uint8_t* get_fun_ptr_86(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) incr_1;
 		}
 		case 75: {
-			return (uint8_t*) release_lock;
+			return (uint8_t*) release__e;
 		}
 		case 76: {
-			return (uint8_t*) must_unset;
+			return (uint8_t*) must_unset__e;
 		}
 		case 77: {
-			return (uint8_t*) try_unset;
+			return (uint8_t*) try_unset__e;
 		}
 		case 78: {
 			return (uint8_t*) get_gc;
@@ -3394,7 +3435,7 @@ uint8_t* get_fun_ptr_86(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) get_global_ctx;
 		}
 		case 114: {
-			return (uint8_t*) new_island__lambda0;
+			return (uint8_t*) island__lambda0;
 		}
 		case 115: {
 			return (uint8_t*) default_log_handler;
@@ -3412,28 +3453,28 @@ uint8_t* get_fun_ptr_86(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) to_str_0;
 		}
 		case 120: {
-			return (uint8_t*) new_island__lambda1;
+			return (uint8_t*) island__lambda1;
 		}
 		case 121: {
-			return (uint8_t*) new_gc;
+			return (uint8_t*) gc;
 		}
 		case 122: {
-			return (uint8_t*) new_thread_safe_counter_0;
+			return (uint8_t*) thread_safe_counter_0;
 		}
 		case 123: {
-			return (uint8_t*) new_thread_safe_counter_1;
+			return (uint8_t*) thread_safe_counter_1;
 		}
 		case 124: {
 			return (uint8_t*) do_main;
 		}
 		case 125: {
-			return (uint8_t*) new_exception_ctx;
+			return (uint8_t*) exception_ctx;
 		}
 		case 126: {
-			return (uint8_t*) new_log_ctx;
+			return (uint8_t*) log_ctx;
 		}
 		case 127: {
-			return (uint8_t*) new_ctx;
+			return (uint8_t*) ctx;
 		}
 		case 128: {
 			return (uint8_t*) get_gc_ctx_1;
@@ -3448,457 +3489,457 @@ uint8_t* get_fun_ptr_86(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) then;
 		}
 		case 132: {
-			return (uint8_t*) new_unresolved_fut;
+			return (uint8_t*) unresolved;
 		}
 		case 133: {
 			return (uint8_t*) then_void_0;
 		}
 		case 134: {
-			return (uint8_t*) subscript_2;
+			return (uint8_t*) with_lock_0;
 		}
 		case 135: {
-			return (uint8_t*) call_w_ctx_135;
+			return (uint8_t*) subscript_2;
 		}
 		case 136: {
-			return (uint8_t*) forward_to__e;
+			return (uint8_t*) call_w_ctx_136;
 		}
 		case 137: {
-			return (uint8_t*) then_void_1;
-		}
-		case 138: {
 			return (uint8_t*) subscript_3;
 		}
+		case 138: {
+			return (uint8_t*) call_w_ctx_138;
+		}
 		case 139: {
-			return (uint8_t*) call_w_ctx_139;
+			return (uint8_t*) then_void_0__lambda0;
 		}
 		case 140: {
-			return (uint8_t*) resolve_or_reject__e;
+			return (uint8_t*) forward_to__e;
 		}
 		case 141: {
-			return (uint8_t*) todo_2;
+			return (uint8_t*) then_void_1;
 		}
 		case 142: {
-			return (uint8_t*) call_callbacks__e;
-		}
-		case 143: {
-			return (uint8_t*) drop_0;
-		}
-		case 144: {
-			return (uint8_t*) forward_to__e__lambda0;
-		}
-		case 145: {
 			return (uint8_t*) subscript_4;
 		}
+		case 143: {
+			return (uint8_t*) call_w_ctx_143;
+		}
+		case 144: {
+			return (uint8_t*) then_void_1__lambda0;
+		}
+		case 145: {
+			return (uint8_t*) resolve_or_reject__e;
+		}
 		case 146: {
-			return (uint8_t*) get_island;
+			return (uint8_t*) with_lock_1;
 		}
 		case 147: {
 			return (uint8_t*) subscript_5;
 		}
 		case 148: {
-			return (uint8_t*) noctx_at_1;
+			return (uint8_t*) call_w_ctx_148;
 		}
 		case 149: {
-			return (uint8_t*) add_task_0;
+			return (uint8_t*) todo_2;
 		}
 		case 150: {
-			return (uint8_t*) add_task_1;
+			return (uint8_t*) resolve_or_reject__e__lambda0;
 		}
 		case 151: {
-			return (uint8_t*) new_task_queue_node;
+			return (uint8_t*) call_callbacks__e;
 		}
 		case 152: {
-			return (uint8_t*) insert_task__e;
+			return (uint8_t*) drop_0;
 		}
 		case 153: {
-			return (uint8_t*) size_0;
+			return (uint8_t*) forward_to__e__lambda0;
 		}
 		case 154: {
-			return (uint8_t*) size_recur;
-		}
-		case 155: {
-			return (uint8_t*) insert_recur;
-		}
-		case 156: {
-			return (uint8_t*) tasks;
-		}
-		case 157: {
-			return (uint8_t*) broadcast;
-		}
-		case 158: {
-			return (uint8_t*) no_timestamp;
-		}
-		case 159: {
-			return (uint8_t*) catch;
-		}
-		case 160: {
-			return (uint8_t*) catch_with_exception_ctx;
-		}
-		case 161: {
-			return (uint8_t*) zero_0;
-		}
-		case 162: {
-			return (uint8_t*) zero_1;
-		}
-		case 163: {
-			return (uint8_t*) zero_2;
-		}
-		case 164: {
-			return (uint8_t*) zero_3;
-		}
-		case 165: {
-			return (uint8_t*) setjmp;
-		}
-		case 166: {
 			return (uint8_t*) subscript_6;
 		}
-		case 167: {
-			return (uint8_t*) call_w_ctx_167;
+		case 155: {
+			return (uint8_t*) get_island;
 		}
-		case 168: {
+		case 156: {
 			return (uint8_t*) subscript_7;
 		}
+		case 157: {
+			return (uint8_t*) noctx_at_1;
+		}
+		case 158: {
+			return (uint8_t*) add_task_0;
+		}
+		case 159: {
+			return (uint8_t*) add_task_1;
+		}
+		case 160: {
+			return (uint8_t*) task_queue_node;
+		}
+		case 161: {
+			return (uint8_t*) insert_task__e;
+		}
+		case 162: {
+			return (uint8_t*) size_0;
+		}
+		case 163: {
+			return (uint8_t*) size_recur;
+		}
+		case 164: {
+			return (uint8_t*) insert_recur;
+		}
+		case 165: {
+			return (uint8_t*) tasks;
+		}
+		case 166: {
+			return (uint8_t*) broadcast__e;
+		}
+		case 167: {
+			return (uint8_t*) no_timestamp;
+		}
+		case 168: {
+			return (uint8_t*) catch;
+		}
 		case 169: {
-			return (uint8_t*) call_w_ctx_169;
+			return (uint8_t*) catch_with_exception_ctx;
 		}
 		case 170: {
-			return (uint8_t*) subscript_8;
+			return (uint8_t*) zero_0;
 		}
 		case 171: {
-			return (uint8_t*) call_w_ctx_171;
+			return (uint8_t*) zero_1;
 		}
 		case 172: {
-			return (uint8_t*) subscript_4__lambda0__lambda0;
+			return (uint8_t*) zero_2;
 		}
 		case 173: {
-			return (uint8_t*) reject__e;
+			return (uint8_t*) zero_3;
 		}
 		case 174: {
-			return (uint8_t*) subscript_4__lambda0__lambda1;
+			return (uint8_t*) setjmp;
 		}
 		case 175: {
-			return (uint8_t*) subscript_4__lambda0;
+			return (uint8_t*) subscript_8;
 		}
 		case 176: {
-			return (uint8_t*) then__lambda0;
+			return (uint8_t*) call_w_ctx_176;
 		}
 		case 177: {
 			return (uint8_t*) subscript_9;
 		}
 		case 178: {
-			return (uint8_t*) subscript_10;
+			return (uint8_t*) call_w_ctx_178;
 		}
 		case 179: {
-			return (uint8_t*) call_w_ctx_179;
+			return (uint8_t*) subscript_6__lambda0__lambda0;
 		}
 		case 180: {
-			return (uint8_t*) subscript_9__lambda0__lambda0;
+			return (uint8_t*) reject__e;
 		}
 		case 181: {
-			return (uint8_t*) subscript_9__lambda0__lambda1;
+			return (uint8_t*) subscript_6__lambda0__lambda1;
 		}
 		case 182: {
-			return (uint8_t*) subscript_9__lambda0;
+			return (uint8_t*) subscript_6__lambda0;
 		}
 		case 183: {
-			return (uint8_t*) then2__lambda0;
+			return (uint8_t*) then__lambda0;
 		}
 		case 184: {
-			return (uint8_t*) cur_island_and_exclusion;
+			return (uint8_t*) subscript_10;
 		}
 		case 185: {
-			return (uint8_t*) delay;
-		}
-		case 186: {
-			return (uint8_t*) resolved_0;
-		}
-		case 187: {
-			return (uint8_t*) tail_1;
-		}
-		case 188: {
-			return (uint8_t*) empty__q_2;
-		}
-		case 189: {
 			return (uint8_t*) subscript_11;
 		}
+		case 186: {
+			return (uint8_t*) call_w_ctx_186;
+		}
+		case 187: {
+			return (uint8_t*) subscript_10__lambda0__lambda0;
+		}
+		case 188: {
+			return (uint8_t*) subscript_10__lambda0__lambda1;
+		}
+		case 189: {
+			return (uint8_t*) subscript_10__lambda0;
+		}
 		case 190: {
-			return (uint8_t*) map_0;
+			return (uint8_t*) then2__lambda0;
 		}
 		case 191: {
-			return (uint8_t*) make_arr;
+			return (uint8_t*) cur_island_and_exclusion;
 		}
 		case 192: {
-			return (uint8_t*) alloc_uninitialized_1;
+			return (uint8_t*) delay;
 		}
 		case 193: {
-			return (uint8_t*) fill_ptr_range;
+			return (uint8_t*) resolved_0;
 		}
 		case 194: {
-			return (uint8_t*) fill_ptr_range_recur;
+			return (uint8_t*) tail_1;
 		}
 		case 195: {
-			return (uint8_t*) subscript_12;
+			return (uint8_t*) empty__q_2;
 		}
 		case 196: {
-			return (uint8_t*) call_w_ctx_196;
+			return (uint8_t*) subscript_12;
 		}
 		case 197: {
-			return (uint8_t*) subscript_13;
+			return (uint8_t*) map_0;
 		}
 		case 198: {
-			return (uint8_t*) call_w_ctx_198;
+			return (uint8_t*) make_arr;
 		}
 		case 199: {
-			return (uint8_t*) subscript_14;
+			return (uint8_t*) alloc_uninitialized_1;
 		}
 		case 200: {
-			return (uint8_t*) noctx_at_2;
+			return (uint8_t*) fill_ptr_range;
 		}
 		case 201: {
-			return (uint8_t*) map_0__lambda0;
+			return (uint8_t*) fill_ptr_range_recur;
 		}
 		case 202: {
-			return (uint8_t*) to_str_1;
+			return (uint8_t*) subscript_13;
 		}
 		case 203: {
-			return (uint8_t*) arr_from_begin_end;
+			return (uint8_t*) call_w_ctx_203;
 		}
 		case 204: {
-			return (uint8_t*) _minus_3;
+			return (uint8_t*) subscript_14;
 		}
 		case 205: {
-			return (uint8_t*) find_cstr_end;
+			return (uint8_t*) call_w_ctx_205;
 		}
 		case 206: {
-			return (uint8_t*) find_char_in_cstr;
-		}
-		case 207: {
-			return (uint8_t*) _equal_3;
-		}
-		case 208: {
-			return (uint8_t*) compare_208;
-		}
-		case 209: {
-			return (uint8_t*) todo_3;
-		}
-		case 210: {
-			return (uint8_t*) incr_4;
-		}
-		case 211: {
-			return (uint8_t*) add_first_task__lambda0__lambda0;
-		}
-		case 212: {
-			return (uint8_t*) add_first_task__lambda0;
-		}
-		case 213: {
-			return (uint8_t*) handle_exceptions;
-		}
-		case 214: {
 			return (uint8_t*) subscript_15;
 		}
+		case 207: {
+			return (uint8_t*) noctx_at_2;
+		}
+		case 208: {
+			return (uint8_t*) map_0__lambda0;
+		}
+		case 209: {
+			return (uint8_t*) to_str_1;
+		}
+		case 210: {
+			return (uint8_t*) arr_from_begin_end;
+		}
+		case 211: {
+			return (uint8_t*) _minus_3;
+		}
+		case 212: {
+			return (uint8_t*) find_cstr_end;
+		}
+		case 213: {
+			return (uint8_t*) find_char_in_cstr;
+		}
+		case 214: {
+			return (uint8_t*) _equal_3;
+		}
 		case 215: {
-			return (uint8_t*) call_w_ctx_215;
+			return (uint8_t*) compare_215;
 		}
 		case 216: {
-			return (uint8_t*) exception_handler;
+			return (uint8_t*) todo_3;
 		}
 		case 217: {
-			return (uint8_t*) get_cur_island;
+			return (uint8_t*) incr_4;
 		}
 		case 218: {
-			return (uint8_t*) handle_exceptions__lambda0;
+			return (uint8_t*) add_first_task__lambda0__lambda0;
 		}
 		case 219: {
-			return (uint8_t*) do_main__lambda0;
+			return (uint8_t*) add_first_task__lambda0;
 		}
 		case 220: {
-			return (uint8_t*) call_w_ctx_220;
+			return (uint8_t*) handle_exceptions;
 		}
 		case 221: {
-			return (uint8_t*) run_threads;
+			return (uint8_t*) subscript_16;
 		}
 		case 222: {
-			return (uint8_t*) unmanaged_alloc_elements_1;
+			return (uint8_t*) call_w_ctx_222;
 		}
 		case 223: {
-			return (uint8_t*) start_threads_recur;
+			return (uint8_t*) exception_handler;
 		}
 		case 224: {
-			return (uint8_t*) create_one_thread;
+			return (uint8_t*) get_cur_island;
 		}
 		case 225: {
-			return (uint8_t*) pthread_create;
+			return (uint8_t*) handle_exceptions__lambda0;
 		}
 		case 226: {
-			return (uint8_t*) _notEqual_2;
+			return (uint8_t*) do_main__lambda0;
 		}
 		case 227: {
-			return (uint8_t*) eagain;
+			return (uint8_t*) call_w_ctx_227;
 		}
 		case 228: {
-			return (uint8_t*) as_cell;
+			return (uint8_t*) run_threads;
 		}
 		case 229: {
-			return (uint8_t*) thread_fun;
+			return (uint8_t*) unmanaged_alloc_elements_1;
 		}
 		case 230: {
-			return (uint8_t*) thread_function;
+			return (uint8_t*) start_threads_recur;
 		}
 		case 231: {
-			return (uint8_t*) thread_function_recur;
+			return (uint8_t*) create_one_thread;
 		}
 		case 232: {
-			return (uint8_t*) assert_islands_are_shut_down;
+			return (uint8_t*) pthread_create;
 		}
 		case 233: {
-			return (uint8_t*) empty__q_3;
+			return (uint8_t*) _notEqual_2;
 		}
 		case 234: {
-			return (uint8_t*) has__q;
+			return (uint8_t*) eagain;
 		}
 		case 235: {
-			return (uint8_t*) empty__q_4;
+			return (uint8_t*) as_cell;
 		}
 		case 236: {
-			return (uint8_t*) get_last_checked;
+			return (uint8_t*) thread_fun;
 		}
 		case 237: {
-			return (uint8_t*) choose_task;
+			return (uint8_t*) thread_function;
 		}
 		case 238: {
-			return (uint8_t*) get_monotime_nsec;
+			return (uint8_t*) thread_function_recur;
 		}
 		case 239: {
-			return (uint8_t*) clock_gettime;
+			return (uint8_t*) assert_islands_are_shut_down;
 		}
 		case 240: {
-			return (uint8_t*) clock_monotonic;
+			return (uint8_t*) empty__q_3;
 		}
 		case 241: {
-			return (uint8_t*) get_0;
+			return (uint8_t*) has__q;
 		}
 		case 242: {
-			return (uint8_t*) todo_4;
+			return (uint8_t*) empty__q_4;
 		}
 		case 243: {
-			return (uint8_t*) choose_task_recur;
+			return (uint8_t*) get_last_checked;
 		}
 		case 244: {
-			return (uint8_t*) choose_task_in_island;
+			return (uint8_t*) choose_task;
 		}
 		case 245: {
-			return (uint8_t*) pop_task__e;
+			return (uint8_t*) get_monotime_nsec;
 		}
 		case 246: {
-			return (uint8_t*) contains__q_0;
+			return (uint8_t*) clock_gettime;
 		}
 		case 247: {
-			return (uint8_t*) contains__q_1;
+			return (uint8_t*) clock_monotonic;
 		}
 		case 248: {
-			return (uint8_t*) contains_recur__q;
+			return (uint8_t*) get_0;
 		}
 		case 249: {
-			return (uint8_t*) noctx_at_3;
+			return (uint8_t*) todo_4;
 		}
 		case 250: {
-			return (uint8_t*) temp_as_arr_0;
+			return (uint8_t*) choose_task_recur;
 		}
 		case 251: {
-			return (uint8_t*) temp_as_arr_1;
+			return (uint8_t*) choose_task_in_island;
 		}
 		case 252: {
-			return (uint8_t*) temp_as_mut_arr;
+			return (uint8_t*) pop_task__e;
 		}
 		case 253: {
-			return (uint8_t*) data_0;
+			return (uint8_t*) contains__q_0;
 		}
 		case 254: {
-			return (uint8_t*) data_1;
+			return (uint8_t*) contains__q_1;
 		}
 		case 255: {
-			return (uint8_t*) pop_recur;
+			return (uint8_t*) contains_recur__q;
 		}
 		case 256: {
-			return (uint8_t*) to_opt_time;
+			return (uint8_t*) noctx_at_3;
 		}
 		case 257: {
-			return (uint8_t*) push_capacity_must_be_sufficient__e;
+			return (uint8_t*) temp_as_arr_0;
 		}
 		case 258: {
-			return (uint8_t*) capacity;
+			return (uint8_t*) temp_as_arr_1;
 		}
 		case 259: {
-			return (uint8_t*) size_1;
+			return (uint8_t*) temp_as_mut_arr;
 		}
 		case 260: {
-			return (uint8_t*) noctx_set_at__e;
+			return (uint8_t*) data_0;
 		}
 		case 261: {
-			return (uint8_t*) is_no_task__q;
+			return (uint8_t*) data_1;
 		}
 		case 262: {
-			return (uint8_t*) min_time;
+			return (uint8_t*) pop_recur__e;
 		}
 		case 263: {
-			return (uint8_t*) min;
+			return (uint8_t*) to_opt_time;
 		}
 		case 264: {
-			return (uint8_t*) do_task;
+			return (uint8_t*) push_capacity_must_be_sufficient__e;
 		}
 		case 265: {
-			return (uint8_t*) return_task__e;
+			return (uint8_t*) capacity;
 		}
 		case 266: {
-			return (uint8_t*) noctx_must_remove_unordered__e;
+			return (uint8_t*) size_1;
 		}
 		case 267: {
-			return (uint8_t*) noctx_must_remove_unordered_recur__e;
+			return (uint8_t*) noctx_set_at__e;
 		}
 		case 268: {
-			return (uint8_t*) noctx_at_4;
+			return (uint8_t*) is_no_task__q;
 		}
 		case 269: {
-			return (uint8_t*) drop_1;
+			return (uint8_t*) min_time;
 		}
 		case 270: {
-			return (uint8_t*) noctx_remove_unordered_at__e;
+			return (uint8_t*) min;
 		}
 		case 271: {
-			return (uint8_t*) noctx_last;
+			return (uint8_t*) do_task;
 		}
 		case 272: {
-			return (uint8_t*) empty__q_5;
+			return (uint8_t*) return_task__e;
 		}
 		case 273: {
-			return (uint8_t*) return_ctx;
+			return (uint8_t*) noctx_must_remove_unordered__e;
 		}
 		case 274: {
-			return (uint8_t*) return_gc_ctx;
+			return (uint8_t*) noctx_must_remove_unordered_recur__e;
 		}
 		case 275: {
-			return (uint8_t*) run_garbage_collection;
+			return (uint8_t*) noctx_at_4;
 		}
 		case 276: {
-			return (uint8_t*) mark_visit_276;
+			return (uint8_t*) drop_1;
 		}
 		case 277: {
-			return (uint8_t*) mark_visit_277;
+			return (uint8_t*) noctx_remove_unordered_at__e;
 		}
 		case 278: {
-			return (uint8_t*) mark_visit_278;
+			return (uint8_t*) noctx_last;
 		}
 		case 279: {
-			return (uint8_t*) mark_visit_279;
+			return (uint8_t*) empty__q_5;
 		}
 		case 280: {
-			return (uint8_t*) mark_visit_280;
+			return (uint8_t*) return_ctx;
 		}
 		case 281: {
-			return (uint8_t*) mark_visit_281;
+			return (uint8_t*) return_gc_ctx;
 		}
 		case 282: {
-			return (uint8_t*) mark_visit_282;
+			return (uint8_t*) run_garbage_collection;
 		}
 		case 283: {
 			return (uint8_t*) mark_visit_283;
@@ -3922,7 +3963,7 @@ uint8_t* get_fun_ptr_86(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) mark_visit_289;
 		}
 		case 290: {
-			return (uint8_t*) mark_arr_290;
+			return (uint8_t*) mark_visit_290;
 		}
 		case 291: {
 			return (uint8_t*) mark_visit_291;
@@ -3973,10 +4014,10 @@ uint8_t* get_fun_ptr_86(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) mark_visit_306;
 		}
 		case 307: {
-			return (uint8_t*) mark_elems_307;
+			return (uint8_t*) mark_visit_307;
 		}
 		case 308: {
-			return (uint8_t*) mark_arr_308;
+			return (uint8_t*) mark_visit_308;
 		}
 		case 309: {
 			return (uint8_t*) mark_visit_309;
@@ -4009,150 +4050,216 @@ uint8_t* get_fun_ptr_86(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) mark_visit_318;
 		}
 		case 319: {
-			return (uint8_t*) mark_arr_319;
+			return (uint8_t*) mark_visit_319;
 		}
 		case 320: {
-			return (uint8_t*) clear_free_mem;
+			return (uint8_t*) mark_arr_320;
 		}
 		case 321: {
-			return (uint8_t*) wait_on;
+			return (uint8_t*) mark_visit_321;
 		}
 		case 322: {
-			return (uint8_t*) before_time__q;
+			return (uint8_t*) mark_elems_322;
 		}
 		case 323: {
-			return (uint8_t*) join_threads_recur;
+			return (uint8_t*) mark_arr_323;
 		}
 		case 324: {
-			return (uint8_t*) join_one_thread;
+			return (uint8_t*) mark_visit_324;
 		}
 		case 325: {
-			return (uint8_t*) pthread_join;
+			return (uint8_t*) mark_visit_325;
 		}
 		case 326: {
-			return (uint8_t*) einval;
+			return (uint8_t*) mark_visit_326;
 		}
 		case 327: {
-			return (uint8_t*) esrch;
+			return (uint8_t*) mark_visit_327;
 		}
 		case 328: {
-			return (uint8_t*) get_1;
+			return (uint8_t*) mark_visit_328;
 		}
 		case 329: {
-			return (uint8_t*) unmanaged_free_0;
+			return (uint8_t*) mark_visit_329;
 		}
 		case 330: {
-			return (uint8_t*) free;
+			return (uint8_t*) mark_visit_330;
 		}
 		case 331: {
-			return (uint8_t*) unmanaged_free_1;
+			return (uint8_t*) mark_visit_331;
 		}
 		case 332: {
-			return (uint8_t*) main_0;
+			return (uint8_t*) mark_visit_332;
 		}
 		case 333: {
-			return (uint8_t*) _equal_4;
+			return (uint8_t*) mark_visit_333;
 		}
 		case 334: {
-			return (uint8_t*) compare_334;
+			return (uint8_t*) mark_visit_334;
 		}
 		case 335: {
-			return (uint8_t*) compare_335;
+			return (uint8_t*) mark_visit_335;
 		}
 		case 336: {
-			return (uint8_t*) compare_336;
+			return (uint8_t*) mark_visit_336;
 		}
 		case 337: {
-			return (uint8_t*) parse_nat;
+			return (uint8_t*) mark_visit_337;
 		}
 		case 338: {
-			return (uint8_t*) parse_nat_recur;
+			return (uint8_t*) mark_visit_338;
 		}
 		case 339: {
-			return (uint8_t*) char_to_nat;
+			return (uint8_t*) mark_visit_339;
 		}
 		case 340: {
-			return (uint8_t*) first;
+			return (uint8_t*) mark_visit_340;
 		}
 		case 341: {
-			return (uint8_t*) subscript_16;
+			return (uint8_t*) mark_arr_341;
 		}
 		case 342: {
-			return (uint8_t*) noctx_at_5;
+			return (uint8_t*) clear_free_mem;
 		}
 		case 343: {
-			return (uint8_t*) tail_2;
+			return (uint8_t*) wait_on;
 		}
 		case 344: {
-			return (uint8_t*) subscript_17;
+			return (uint8_t*) before_time__q;
 		}
 		case 345: {
-			return (uint8_t*) _times_0;
+			return (uint8_t*) join_threads_recur;
 		}
 		case 346: {
-			return (uint8_t*) _divide;
+			return (uint8_t*) join_one_thread;
 		}
 		case 347: {
-			return (uint8_t*) _equal_5;
+			return (uint8_t*) pthread_join;
 		}
 		case 348: {
-			return (uint8_t*) compare_348;
+			return (uint8_t*) einval;
 		}
 		case 349: {
-			return (uint8_t*) compare_349;
+			return (uint8_t*) esrch;
 		}
 		case 350: {
-			return (uint8_t*) parse_int;
+			return (uint8_t*) get_1;
 		}
 		case 351: {
-			return (uint8_t*) map_1;
+			return (uint8_t*) unmanaged_free_0;
 		}
 		case 352: {
-			return (uint8_t*) subscript_18;
+			return (uint8_t*) free;
 		}
 		case 353: {
-			return (uint8_t*) call_w_ctx_353;
+			return (uint8_t*) unmanaged_free_1;
 		}
 		case 354: {
-			return (uint8_t*) neg_0;
+			return (uint8_t*) main_0;
 		}
 		case 355: {
-			return (uint8_t*) neg_1;
+			return (uint8_t*) _equal_4;
 		}
 		case 356: {
-			return (uint8_t*) _times_1;
+			return (uint8_t*) compare_356;
 		}
 		case 357: {
-			return (uint8_t*) to_int;
+			return (uint8_t*) compare_357;
 		}
 		case 358: {
-			return (uint8_t*) to_nat;
+			return (uint8_t*) compare_358;
 		}
 		case 359: {
-			return (uint8_t*) negative__q;
+			return (uint8_t*) parse_nat;
 		}
 		case 360: {
-			return (uint8_t*) _less_1;
+			return (uint8_t*) parse_nat_recur;
 		}
 		case 361: {
-			return (uint8_t*) max_int;
+			return (uint8_t*) char_to_nat;
 		}
 		case 362: {
-			return (uint8_t*) parse_int__lambda0;
+			return (uint8_t*) first;
 		}
 		case 363: {
-			return (uint8_t*) parse_int__lambda1;
+			return (uint8_t*) subscript_17;
 		}
 		case 364: {
-			return (uint8_t*) to_str_2;
+			return (uint8_t*) noctx_at_5;
 		}
 		case 365: {
-			return (uint8_t*) mod;
+			return (uint8_t*) tail_2;
 		}
 		case 366: {
-			return (uint8_t*) to_str_3;
+			return (uint8_t*) subscript_18;
 		}
 		case 367: {
+			return (uint8_t*) _times_0;
+		}
+		case 368: {
+			return (uint8_t*) _divide;
+		}
+		case 369: {
+			return (uint8_t*) _equal_5;
+		}
+		case 370: {
+			return (uint8_t*) compare_370;
+		}
+		case 371: {
+			return (uint8_t*) compare_371;
+		}
+		case 372: {
+			return (uint8_t*) parse_int;
+		}
+		case 373: {
+			return (uint8_t*) map_1;
+		}
+		case 374: {
+			return (uint8_t*) subscript_19;
+		}
+		case 375: {
+			return (uint8_t*) call_w_ctx_375;
+		}
+		case 376: {
+			return (uint8_t*) neg_0;
+		}
+		case 377: {
+			return (uint8_t*) neg_1;
+		}
+		case 378: {
+			return (uint8_t*) _times_1;
+		}
+		case 379: {
+			return (uint8_t*) to_int;
+		}
+		case 380: {
+			return (uint8_t*) to_nat;
+		}
+		case 381: {
+			return (uint8_t*) negative__q;
+		}
+		case 382: {
+			return (uint8_t*) _less_1;
+		}
+		case 383: {
+			return (uint8_t*) max_int;
+		}
+		case 384: {
+			return (uint8_t*) parse_int__lambda0;
+		}
+		case 385: {
+			return (uint8_t*) parse_int__lambda1;
+		}
+		case 386: {
+			return (uint8_t*) to_str_2;
+		}
+		case 387: {
+			return (uint8_t*) mod;
+		}
+		case 388: {
+			return (uint8_t*) to_str_3;
+		}
+		case 389: {
 			return (uint8_t*) resolved_1;
 		}
 		default:
@@ -4210,214 +4317,214 @@ struct arr_0 get_fun_name_87(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {10, constantarr_0_63};
 		}
 		case 16: {
-			return (struct arr_0) {15, constantarr_0_66};
+			return (struct arr_0) {11, constantarr_0_66};
 		}
 		case 17: {
-			return (struct arr_0) {15, constantarr_0_68};
+			return (struct arr_0) {11, constantarr_0_68};
 		}
 		case 18: {
-			return (struct arr_0) {13, constantarr_0_70};
+			return (struct arr_0) {9, constantarr_0_69};
 		}
 		case 19: {
-			return (struct arr_0) {10, constantarr_0_73};
+			return (struct arr_0) {6, constantarr_0_71};
 		}
 		case 20: {
-			return (struct arr_0) {14, constantarr_0_74};
+			return (struct arr_0) {10, constantarr_0_72};
 		}
 		case 21: {
-			return (struct arr_0) {60, constantarr_0_76};
+			return (struct arr_0) {56, constantarr_0_73};
 		}
 		case 22: {
-			return (struct arr_0) {11, constantarr_0_77};
+			return (struct arr_0) {11, constantarr_0_74};
 		}
 		case 23: {
-			return (struct arr_0) {35, constantarr_0_80};
+			return (struct arr_0) {35, constantarr_0_77};
 		}
 		case 24: {
-			return (struct arr_0) {28, constantarr_0_81};
+			return (struct arr_0) {28, constantarr_0_78};
 		}
 		case 25: {
-			return (struct arr_0) {21, constantarr_0_82};
+			return (struct arr_0) {21, constantarr_0_79};
 		}
 		case 26: {
-			return (struct arr_0) {6, constantarr_0_83};
+			return (struct arr_0) {6, constantarr_0_80};
 		}
 		case 27: {
-			return (struct arr_0) {11, constantarr_0_84};
+			return (struct arr_0) {11, constantarr_0_81};
 		}
 		case 28: {
-			return (struct arr_0) {11, constantarr_0_85};
+			return (struct arr_0) {11, constantarr_0_82};
 		}
 		case 29: {
-			return (struct arr_0) {18, constantarr_0_89};
+			return (struct arr_0) {18, constantarr_0_86};
 		}
 		case 30: {
-			return (struct arr_0) {6, constantarr_0_90};
+			return (struct arr_0) {6, constantarr_0_87};
 		}
 		case 31: {
-			return (struct arr_0) {25, constantarr_0_95};
+			return (struct arr_0) {25, constantarr_0_92};
 		}
 		case 32: {
-			return (struct arr_0) {20, constantarr_0_96};
+			return (struct arr_0) {20, constantarr_0_93};
 		}
 		case 33: {
-			return (struct arr_0) {16, constantarr_0_97};
+			return (struct arr_0) {16, constantarr_0_94};
 		}
 		case 34: {
-			return (struct arr_0) {5, constantarr_0_100};
+			return (struct arr_0) {5, constantarr_0_97};
 		}
 		case 35: {
-			return (struct arr_0) {7, constantarr_0_104};
+			return (struct arr_0) {7, constantarr_0_101};
 		}
 		case 36: {
-			return (struct arr_0) {6, constantarr_0_105};
+			return (struct arr_0) {6, constantarr_0_102};
 		}
 		case 37: {
 			return (struct arr_0) {0u, NULL};
 		}
 		case 38: {
-			return (struct arr_0) {10, constantarr_0_107};
+			return (struct arr_0) {10, constantarr_0_104};
 		}
 		case 39: {
-			return (struct arr_0) {6, constantarr_0_109};
+			return (struct arr_0) {6, constantarr_0_106};
 		}
 		case 40: {
-			return (struct arr_0) {9, constantarr_0_110};
+			return (struct arr_0) {9, constantarr_0_107};
 		}
 		case 41: {
-			return (struct arr_0) {14, constantarr_0_111};
+			return (struct arr_0) {14, constantarr_0_108};
 		}
 		case 42: {
-			return (struct arr_0) {12, constantarr_0_113};
+			return (struct arr_0) {12, constantarr_0_110};
 		}
 		case 43: {
-			return (struct arr_0) {10, constantarr_0_115};
+			return (struct arr_0) {10, constantarr_0_112};
 		}
 		case 44: {
-			return (struct arr_0) {15, constantarr_0_116};
+			return (struct arr_0) {15, constantarr_0_113};
 		}
 		case 45: {
-			return (struct arr_0) {18, constantarr_0_118};
+			return (struct arr_0) {18, constantarr_0_115};
 		}
 		case 46: {
-			return (struct arr_0) {6, constantarr_0_119};
+			return (struct arr_0) {6, constantarr_0_116};
 		}
 		case 47: {
-			return (struct arr_0) {10, constantarr_0_120};
+			return (struct arr_0) {10, constantarr_0_117};
 		}
 		case 48: {
-			return (struct arr_0) {9, constantarr_0_121};
+			return (struct arr_0) {9, constantarr_0_118};
 		}
 		case 49: {
-			return (struct arr_0) {17, constantarr_0_122};
+			return (struct arr_0) {17, constantarr_0_119};
 		}
 		case 50: {
-			return (struct arr_0) {18, constantarr_0_126};
+			return (struct arr_0) {18, constantarr_0_123};
 		}
 		case 51: {
-			return (struct arr_0) {7, constantarr_0_129};
+			return (struct arr_0) {7, constantarr_0_126};
 		}
 		case 52: {
-			return (struct arr_0) {15, constantarr_0_130};
+			return (struct arr_0) {15, constantarr_0_127};
 		}
 		case 53: {
-			return (struct arr_0) {13, constantarr_0_132};
+			return (struct arr_0) {13, constantarr_0_129};
 		}
 		case 54: {
-			return (struct arr_0) {24, constantarr_0_133};
+			return (struct arr_0) {24, constantarr_0_130};
 		}
 		case 55: {
-			return (struct arr_0) {34, constantarr_0_134};
+			return (struct arr_0) {34, constantarr_0_131};
 		}
 		case 56: {
-			return (struct arr_0) {9, constantarr_0_135};
+			return (struct arr_0) {9, constantarr_0_132};
 		}
 		case 57: {
-			return (struct arr_0) {12, constantarr_0_136};
+			return (struct arr_0) {12, constantarr_0_133};
 		}
 		case 58: {
-			return (struct arr_0) {12, constantarr_0_137};
+			return (struct arr_0) {8, constantarr_0_134};
 		}
 		case 59: {
-			return (struct arr_0) {18, constantarr_0_138};
+			return (struct arr_0) {14, constantarr_0_135};
 		}
 		case 60: {
-			return (struct arr_0) {16, constantarr_0_139};
+			return (struct arr_0) {12, constantarr_0_136};
 		}
 		case 61: {
-			return (struct arr_0) {7, constantarr_0_140};
+			return (struct arr_0) {8, constantarr_0_137};
 		}
 		case 62: {
-			return (struct arr_0) {10, constantarr_0_141};
+			return (struct arr_0) {11, constantarr_0_138};
 		}
 		case 63: {
-			return (struct arr_0) {12, constantarr_0_147};
+			return (struct arr_0) {12, constantarr_0_144};
 		}
 		case 64: {
-			return (struct arr_0) {13, constantarr_0_148};
+			return (struct arr_0) {13, constantarr_0_145};
 		}
 		case 65: {
-			return (struct arr_0) {9, constantarr_0_149};
+			return (struct arr_0) {9, constantarr_0_146};
 		}
 		case 66: {
 			return (struct arr_0) {0u, NULL};
 		}
 		case 67: {
-			return (struct arr_0) {10, constantarr_0_150};
+			return (struct arr_0) {10, constantarr_0_147};
 		}
 		case 68: {
-			return (struct arr_0) {18, constantarr_0_153};
+			return (struct arr_0) {18, constantarr_0_150};
 		}
 		case 69: {
-			return (struct arr_0) {11, constantarr_0_154};
+			return (struct arr_0) {11, constantarr_0_151};
 		}
 		case 70: {
-			return (struct arr_0) {18, constantarr_0_155};
+			return (struct arr_0) {18, constantarr_0_152};
 		}
 		case 71: {
-			return (struct arr_0) {17, constantarr_0_160};
+			return (struct arr_0) {17, constantarr_0_157};
 		}
 		case 72: {
-			return (struct arr_0) {7, constantarr_0_165};
+			return (struct arr_0) {7, constantarr_0_162};
 		}
 		case 73: {
-			return (struct arr_0) {11, constantarr_0_168};
+			return (struct arr_0) {11, constantarr_0_165};
 		}
 		case 74: {
-			return (struct arr_0) {9, constantarr_0_173};
+			return (struct arr_0) {9, constantarr_0_170};
 		}
 		case 75: {
-			return (struct arr_0) {12, constantarr_0_174};
+			return (struct arr_0) {8, constantarr_0_171};
 		}
 		case 76: {
-			return (struct arr_0) {10, constantarr_0_175};
+			return (struct arr_0) {11, constantarr_0_172};
 		}
 		case 77: {
-			return (struct arr_0) {9, constantarr_0_176};
+			return (struct arr_0) {10, constantarr_0_173};
 		}
 		case 78: {
-			return (struct arr_0) {6, constantarr_0_177};
+			return (struct arr_0) {6, constantarr_0_174};
 		}
 		case 79: {
-			return (struct arr_0) {10, constantarr_0_179};
+			return (struct arr_0) {10, constantarr_0_176};
 		}
 		case 80: {
-			return (struct arr_0) {34, constantarr_0_185};
+			return (struct arr_0) {34, constantarr_0_182};
 		}
 		case 81: {
 			return (struct arr_0) {0u, NULL};
 		}
 		case 82: {
-			return (struct arr_0) {9, constantarr_0_191};
+			return (struct arr_0) {9, constantarr_0_188};
 		}
 		case 83: {
-			return (struct arr_0) {14, constantarr_0_198};
+			return (struct arr_0) {14, constantarr_0_195};
 		}
 		case 84: {
-			return (struct arr_0) {25, constantarr_0_199};
+			return (struct arr_0) {25, constantarr_0_196};
 		}
 		case 85: {
-			return (struct arr_0) {7, constantarr_0_200};
+			return (struct arr_0) {7, constantarr_0_197};
 		}
 		case 86: {
 			return (struct arr_0) {0u, NULL};
@@ -4426,589 +4533,589 @@ struct arr_0 get_fun_name_87(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {0u, NULL};
 		}
 		case 88: {
-			return (struct arr_0) {13, constantarr_0_209};
+			return (struct arr_0) {13, constantarr_0_206};
 		}
 		case 89: {
-			return (struct arr_0) {15, constantarr_0_210};
+			return (struct arr_0) {15, constantarr_0_207};
 		}
 		case 90: {
-			return (struct arr_0) {15, constantarr_0_212};
+			return (struct arr_0) {15, constantarr_0_209};
 		}
 		case 91: {
-			return (struct arr_0) {24, constantarr_0_213};
+			return (struct arr_0) {24, constantarr_0_210};
 		}
 		case 92: {
-			return (struct arr_0) {10, constantarr_0_215};
+			return (struct arr_0) {10, constantarr_0_212};
 		}
 		case 93: {
-			return (struct arr_0) {21, constantarr_0_217};
+			return (struct arr_0) {21, constantarr_0_214};
 		}
 		case 94: {
-			return (struct arr_0) {12, constantarr_0_206};
+			return (struct arr_0) {12, constantarr_0_203};
 		}
 		case 95: {
-			return (struct arr_0) {15, constantarr_0_219};
+			return (struct arr_0) {15, constantarr_0_216};
 		}
 		case 96: {
-			return (struct arr_0) {15, constantarr_0_220};
+			return (struct arr_0) {15, constantarr_0_217};
 		}
 		case 97: {
-			return (struct arr_0) {12, constantarr_0_222};
+			return (struct arr_0) {12, constantarr_0_219};
 		}
 		case 98: {
-			return (struct arr_0) {5, constantarr_0_224};
+			return (struct arr_0) {5, constantarr_0_221};
 		}
 		case 99: {
-			return (struct arr_0) {1, constantarr_0_225};
+			return (struct arr_0) {1, constantarr_0_222};
 		}
 		case 100: {
-			return (struct arr_0) {7, constantarr_0_227};
+			return (struct arr_0) {7, constantarr_0_224};
 		}
 		case 101: {
-			return (struct arr_0) {23, constantarr_0_228};
+			return (struct arr_0) {23, constantarr_0_225};
 		}
 		case 102: {
-			return (struct arr_0) {5, constantarr_0_229};
+			return (struct arr_0) {5, constantarr_0_226};
 		}
 		case 103: {
-			return (struct arr_0) {8, constantarr_0_230};
+			return (struct arr_0) {8, constantarr_0_227};
 		}
 		case 104: {
-			return (struct arr_0) {15, constantarr_0_231};
+			return (struct arr_0) {15, constantarr_0_228};
 		}
 		case 105: {
-			return (struct arr_0) {18, constantarr_0_232};
+			return (struct arr_0) {18, constantarr_0_229};
 		}
 		case 106: {
-			return (struct arr_0) {6, constantarr_0_233};
+			return (struct arr_0) {6, constantarr_0_230};
 		}
 		case 107: {
-			return (struct arr_0) {13, constantarr_0_235};
+			return (struct arr_0) {13, constantarr_0_232};
 		}
 		case 108: {
-			return (struct arr_0) {6, constantarr_0_236};
+			return (struct arr_0) {6, constantarr_0_233};
 		}
 		case 109: {
-			return (struct arr_0) {6, constantarr_0_236};
+			return (struct arr_0) {6, constantarr_0_233};
 		}
 		case 110: {
-			return (struct arr_0) {13, constantarr_0_237};
+			return (struct arr_0) {13, constantarr_0_234};
 		}
 		case 111: {
-			return (struct arr_0) {1, constantarr_0_240};
+			return (struct arr_0) {1, constantarr_0_237};
 		}
 		case 112: {
-			return (struct arr_0) {12, constantarr_0_241};
+			return (struct arr_0) {12, constantarr_0_238};
 		}
 		case 113: {
-			return (struct arr_0) {14, constantarr_0_245};
+			return (struct arr_0) {14, constantarr_0_242};
 		}
 		case 114: {
-			return (struct arr_0) {18, constantarr_0_248};
+			return (struct arr_0) {14, constantarr_0_245};
 		}
 		case 115: {
-			return (struct arr_0) {19, constantarr_0_249};
+			return (struct arr_0) {19, constantarr_0_246};
 		}
 		case 116: {
-			return (struct arr_0) {5, constantarr_0_250};
+			return (struct arr_0) {5, constantarr_0_247};
 		}
 		case 117: {
-			return (struct arr_0) {16, constantarr_0_251};
+			return (struct arr_0) {16, constantarr_0_248};
 		}
 		case 118: {
-			return (struct arr_0) {6, constantarr_0_252};
+			return (struct arr_0) {6, constantarr_0_249};
 		}
 		case 119: {
-			return (struct arr_0) {6, constantarr_0_253};
+			return (struct arr_0) {6, constantarr_0_250};
 		}
 		case 120: {
-			return (struct arr_0) {18, constantarr_0_255};
+			return (struct arr_0) {14, constantarr_0_252};
 		}
 		case 121: {
-			return (struct arr_0) {6, constantarr_0_257};
+			return (struct arr_0) {2, constantarr_0_175};
 		}
 		case 122: {
-			return (struct arr_0) {23, constantarr_0_260};
+			return (struct arr_0) {19, constantarr_0_255};
 		}
 		case 123: {
-			return (struct arr_0) {23, constantarr_0_260};
+			return (struct arr_0) {19, constantarr_0_255};
 		}
 		case 124: {
-			return (struct arr_0) {7, constantarr_0_266};
+			return (struct arr_0) {7, constantarr_0_260};
 		}
 		case 125: {
-			return (struct arr_0) {17, constantarr_0_267};
+			return (struct arr_0) {13, constantarr_0_261};
 		}
 		case 126: {
-			return (struct arr_0) {11, constantarr_0_269};
+			return (struct arr_0) {7, constantarr_0_262};
 		}
 		case 127: {
-			return (struct arr_0) {7, constantarr_0_276};
+			return (struct arr_0) {3, constantarr_0_268};
 		}
 		case 128: {
-			return (struct arr_0) {10, constantarr_0_179};
+			return (struct arr_0) {10, constantarr_0_176};
 		}
 		case 129: {
-			return (struct arr_0) {14, constantarr_0_298};
+			return (struct arr_0) {14, constantarr_0_289};
 		}
 		case 130: {
-			return (struct arr_0) {10, constantarr_0_299};
+			return (struct arr_0) {10, constantarr_0_290};
 		}
 		case 131: {
-			return (struct arr_0) {16, constantarr_0_300};
+			return (struct arr_0) {16, constantarr_0_291};
 		}
 		case 132: {
-			return (struct arr_0) {24, constantarr_0_301};
+			return (struct arr_0) {16, constantarr_0_292};
 		}
 		case 133: {
-			return (struct arr_0) {14, constantarr_0_304};
+			return (struct arr_0) {14, constantarr_0_295};
 		}
 		case 134: {
-			return (struct arr_0) {38, constantarr_0_311};
+			return (struct arr_0) {15, constantarr_0_296};
 		}
 		case 135: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {13, constantarr_0_234};
 		}
 		case 136: {
-			return (struct arr_0) {17, constantarr_0_316};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 137: {
-			return (struct arr_0) {13, constantarr_0_317};
+			return (struct arr_0) {38, constantarr_0_304};
 		}
 		case 138: {
-			return (struct arr_0) {38, constantarr_0_311};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 139: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {22, constantarr_0_309};
 		}
 		case 140: {
-			return (struct arr_0) {22, constantarr_0_318};
+			return (struct arr_0) {17, constantarr_0_310};
 		}
 		case 141: {
-			return (struct arr_0) {29, constantarr_0_319};
+			return (struct arr_0) {13, constantarr_0_311};
 		}
 		case 142: {
-			return (struct arr_0) {19, constantarr_0_322};
+			return (struct arr_0) {38, constantarr_0_304};
 		}
 		case 143: {
-			return (struct arr_0) {10, constantarr_0_323};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 144: {
-			return (struct arr_0) {25, constantarr_0_327};
+			return (struct arr_0) {21, constantarr_0_312};
 		}
 		case 145: {
-			return (struct arr_0) {20, constantarr_0_328};
+			return (struct arr_0) {22, constantarr_0_313};
 		}
 		case 146: {
-			return (struct arr_0) {10, constantarr_0_329};
+			return (struct arr_0) {34, constantarr_0_314};
 		}
 		case 147: {
-			return (struct arr_0) {17, constantarr_0_330};
+			return (struct arr_0) {13, constantarr_0_234};
 		}
 		case 148: {
-			return (struct arr_0) {12, constantarr_0_222};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 149: {
-			return (struct arr_0) {8, constantarr_0_333};
+			return (struct arr_0) {29, constantarr_0_315};
 		}
 		case 150: {
-			return (struct arr_0) {8, constantarr_0_333};
+			return (struct arr_0) {30, constantarr_0_318};
 		}
 		case 151: {
-			return (struct arr_0) {19, constantarr_0_334};
+			return (struct arr_0) {19, constantarr_0_319};
 		}
 		case 152: {
-			return (struct arr_0) {12, constantarr_0_338};
+			return (struct arr_0) {10, constantarr_0_320};
 		}
 		case 153: {
-			return (struct arr_0) {4, constantarr_0_339};
+			return (struct arr_0) {25, constantarr_0_324};
 		}
 		case 154: {
-			return (struct arr_0) {10, constantarr_0_340};
+			return (struct arr_0) {20, constantarr_0_325};
 		}
 		case 155: {
-			return (struct arr_0) {12, constantarr_0_347};
+			return (struct arr_0) {10, constantarr_0_326};
 		}
 		case 156: {
-			return (struct arr_0) {5, constantarr_0_349};
+			return (struct arr_0) {17, constantarr_0_327};
 		}
 		case 157: {
-			return (struct arr_0) {9, constantarr_0_351};
+			return (struct arr_0) {12, constantarr_0_219};
 		}
 		case 158: {
-			return (struct arr_0) {12, constantarr_0_356};
+			return (struct arr_0) {8, constantarr_0_330};
 		}
 		case 159: {
-			return (struct arr_0) {11, constantarr_0_358};
+			return (struct arr_0) {8, constantarr_0_330};
 		}
 		case 160: {
-			return (struct arr_0) {28, constantarr_0_359};
+			return (struct arr_0) {15, constantarr_0_331};
 		}
 		case 161: {
-			return (struct arr_0) {4, constantarr_0_362};
+			return (struct arr_0) {12, constantarr_0_334};
 		}
 		case 162: {
-			return (struct arr_0) {4, constantarr_0_362};
+			return (struct arr_0) {4, constantarr_0_335};
 		}
 		case 163: {
-			return (struct arr_0) {4, constantarr_0_362};
+			return (struct arr_0) {10, constantarr_0_336};
 		}
 		case 164: {
-			return (struct arr_0) {4, constantarr_0_362};
+			return (struct arr_0) {12, constantarr_0_343};
 		}
 		case 165: {
-			return (struct arr_0) {6, constantarr_0_369};
+			return (struct arr_0) {5, constantarr_0_345};
 		}
 		case 166: {
-			return (struct arr_0) {13, constantarr_0_237};
+			return (struct arr_0) {10, constantarr_0_347};
 		}
 		case 167: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {12, constantarr_0_352};
 		}
 		case 168: {
-			return (struct arr_0) {24, constantarr_0_371};
+			return (struct arr_0) {11, constantarr_0_354};
 		}
 		case 169: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {28, constantarr_0_355};
 		}
 		case 170: {
-			return (struct arr_0) {23, constantarr_0_372};
+			return (struct arr_0) {4, constantarr_0_358};
 		}
 		case 171: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {4, constantarr_0_358};
 		}
 		case 172: {
-			return (struct arr_0) {36, constantarr_0_374};
+			return (struct arr_0) {4, constantarr_0_358};
 		}
 		case 173: {
-			return (struct arr_0) {11, constantarr_0_375};
+			return (struct arr_0) {4, constantarr_0_358};
 		}
 		case 174: {
-			return (struct arr_0) {36, constantarr_0_376};
+			return (struct arr_0) {6, constantarr_0_365};
 		}
 		case 175: {
-			return (struct arr_0) {28, constantarr_0_377};
+			return (struct arr_0) {24, constantarr_0_366};
 		}
 		case 176: {
-			return (struct arr_0) {24, constantarr_0_379};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 177: {
-			return (struct arr_0) {15, constantarr_0_380};
+			return (struct arr_0) {23, constantarr_0_367};
 		}
 		case 178: {
-			return (struct arr_0) {18, constantarr_0_382};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 179: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {36, constantarr_0_369};
 		}
 		case 180: {
-			return (struct arr_0) {31, constantarr_0_384};
+			return (struct arr_0) {11, constantarr_0_370};
 		}
 		case 181: {
-			return (struct arr_0) {31, constantarr_0_385};
+			return (struct arr_0) {36, constantarr_0_371};
 		}
 		case 182: {
-			return (struct arr_0) {23, constantarr_0_386};
+			return (struct arr_0) {28, constantarr_0_372};
 		}
 		case 183: {
-			return (struct arr_0) {18, constantarr_0_387};
+			return (struct arr_0) {24, constantarr_0_374};
 		}
 		case 184: {
-			return (struct arr_0) {24, constantarr_0_388};
+			return (struct arr_0) {15, constantarr_0_375};
 		}
 		case 185: {
-			return (struct arr_0) {5, constantarr_0_391};
+			return (struct arr_0) {18, constantarr_0_377};
 		}
 		case 186: {
-			return (struct arr_0) {14, constantarr_0_392};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 187: {
-			return (struct arr_0) {15, constantarr_0_393};
+			return (struct arr_0) {31, constantarr_0_379};
 		}
 		case 188: {
-			return (struct arr_0) {10, constantarr_0_394};
+			return (struct arr_0) {31, constantarr_0_380};
 		}
 		case 189: {
-			return (struct arr_0) {13, constantarr_0_237};
+			return (struct arr_0) {23, constantarr_0_381};
 		}
 		case 190: {
-			return (struct arr_0) {25, constantarr_0_396};
+			return (struct arr_0) {18, constantarr_0_382};
 		}
 		case 191: {
-			return (struct arr_0) {14, constantarr_0_397};
+			return (struct arr_0) {24, constantarr_0_383};
 		}
 		case 192: {
-			return (struct arr_0) {23, constantarr_0_228};
+			return (struct arr_0) {5, constantarr_0_386};
 		}
 		case 193: {
-			return (struct arr_0) {18, constantarr_0_398};
+			return (struct arr_0) {14, constantarr_0_387};
 		}
 		case 194: {
-			return (struct arr_0) {24, constantarr_0_399};
+			return (struct arr_0) {15, constantarr_0_388};
 		}
 		case 195: {
-			return (struct arr_0) {18, constantarr_0_400};
+			return (struct arr_0) {10, constantarr_0_389};
 		}
 		case 196: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {13, constantarr_0_234};
 		}
 		case 197: {
-			return (struct arr_0) {20, constantarr_0_328};
+			return (struct arr_0) {25, constantarr_0_391};
 		}
 		case 198: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {14, constantarr_0_392};
 		}
 		case 199: {
-			return (struct arr_0) {14, constantarr_0_401};
+			return (struct arr_0) {23, constantarr_0_225};
 		}
 		case 200: {
-			return (struct arr_0) {12, constantarr_0_222};
+			return (struct arr_0) {18, constantarr_0_393};
 		}
 		case 201: {
-			return (struct arr_0) {33, constantarr_0_402};
+			return (struct arr_0) {24, constantarr_0_394};
 		}
 		case 202: {
-			return (struct arr_0) {6, constantarr_0_253};
+			return (struct arr_0) {18, constantarr_0_395};
 		}
 		case 203: {
-			return (struct arr_0) {24, constantarr_0_403};
-		}
-		case 204: {
-			return (struct arr_0) {5, constantarr_0_404};
-		}
-		case 205: {
-			return (struct arr_0) {13, constantarr_0_405};
-		}
-		case 206: {
-			return (struct arr_0) {17, constantarr_0_406};
-		}
-		case 207: {
-			return (struct arr_0) {8, constantarr_0_407};
-		}
-		case 208: {
 			return (struct arr_0) {0u, NULL};
 		}
+		case 204: {
+			return (struct arr_0) {20, constantarr_0_325};
+		}
+		case 205: {
+			return (struct arr_0) {0u, NULL};
+		}
+		case 206: {
+			return (struct arr_0) {14, constantarr_0_396};
+		}
+		case 207: {
+			return (struct arr_0) {12, constantarr_0_219};
+		}
+		case 208: {
+			return (struct arr_0) {33, constantarr_0_397};
+		}
 		case 209: {
-			return (struct arr_0) {15, constantarr_0_409};
+			return (struct arr_0) {6, constantarr_0_250};
 		}
 		case 210: {
-			return (struct arr_0) {10, constantarr_0_410};
+			return (struct arr_0) {24, constantarr_0_398};
 		}
 		case 211: {
-			return (struct arr_0) {30, constantarr_0_411};
+			return (struct arr_0) {5, constantarr_0_399};
 		}
 		case 212: {
-			return (struct arr_0) {22, constantarr_0_412};
+			return (struct arr_0) {13, constantarr_0_400};
 		}
 		case 213: {
-			return (struct arr_0) {22, constantarr_0_413};
+			return (struct arr_0) {17, constantarr_0_401};
 		}
 		case 214: {
-			return (struct arr_0) {26, constantarr_0_414};
+			return (struct arr_0) {8, constantarr_0_402};
 		}
 		case 215: {
 			return (struct arr_0) {0u, NULL};
 		}
 		case 216: {
-			return (struct arr_0) {17, constantarr_0_415};
+			return (struct arr_0) {15, constantarr_0_404};
 		}
 		case 217: {
-			return (struct arr_0) {14, constantarr_0_416};
+			return (struct arr_0) {10, constantarr_0_405};
 		}
 		case 218: {
-			return (struct arr_0) {30, constantarr_0_417};
+			return (struct arr_0) {30, constantarr_0_406};
 		}
 		case 219: {
-			return (struct arr_0) {15, constantarr_0_418};
+			return (struct arr_0) {22, constantarr_0_407};
 		}
 		case 220: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {22, constantarr_0_408};
 		}
 		case 221: {
-			return (struct arr_0) {11, constantarr_0_420};
+			return (struct arr_0) {26, constantarr_0_409};
 		}
 		case 222: {
-			return (struct arr_0) {45, constantarr_0_421};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 223: {
-			return (struct arr_0) {19, constantarr_0_422};
+			return (struct arr_0) {17, constantarr_0_410};
 		}
 		case 224: {
-			return (struct arr_0) {17, constantarr_0_426};
+			return (struct arr_0) {14, constantarr_0_411};
 		}
 		case 225: {
-			return (struct arr_0) {14, constantarr_0_427};
+			return (struct arr_0) {30, constantarr_0_412};
 		}
 		case 226: {
-			return (struct arr_0) {9, constantarr_0_428};
+			return (struct arr_0) {15, constantarr_0_413};
 		}
 		case 227: {
-			return (struct arr_0) {6, constantarr_0_429};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 228: {
-			return (struct arr_0) {12, constantarr_0_430};
+			return (struct arr_0) {11, constantarr_0_415};
 		}
 		case 229: {
-			return (struct arr_0) {10, constantarr_0_433};
+			return (struct arr_0) {45, constantarr_0_416};
 		}
 		case 230: {
-			return (struct arr_0) {15, constantarr_0_435};
+			return (struct arr_0) {19, constantarr_0_417};
 		}
 		case 231: {
-			return (struct arr_0) {21, constantarr_0_436};
+			return (struct arr_0) {17, constantarr_0_421};
 		}
 		case 232: {
-			return (struct arr_0) {28, constantarr_0_440};
+			return (struct arr_0) {14, constantarr_0_422};
 		}
 		case 233: {
-			return (struct arr_0) {6, constantarr_0_443};
+			return (struct arr_0) {9, constantarr_0_423};
 		}
 		case 234: {
-			return (struct arr_0) {21, constantarr_0_444};
+			return (struct arr_0) {6, constantarr_0_424};
 		}
 		case 235: {
-			return (struct arr_0) {10, constantarr_0_394};
+			return (struct arr_0) {12, constantarr_0_425};
 		}
 		case 236: {
-			return (struct arr_0) {16, constantarr_0_445};
+			return (struct arr_0) {10, constantarr_0_428};
 		}
 		case 237: {
-			return (struct arr_0) {11, constantarr_0_446};
+			return (struct arr_0) {15, constantarr_0_430};
 		}
 		case 238: {
-			return (struct arr_0) {17, constantarr_0_447};
+			return (struct arr_0) {21, constantarr_0_431};
 		}
 		case 239: {
-			return (struct arr_0) {13, constantarr_0_451};
+			return (struct arr_0) {28, constantarr_0_435};
 		}
 		case 240: {
-			return (struct arr_0) {15, constantarr_0_452};
+			return (struct arr_0) {6, constantarr_0_438};
 		}
 		case 241: {
-			return (struct arr_0) {13, constantarr_0_454};
+			return (struct arr_0) {21, constantarr_0_439};
 		}
 		case 242: {
-			return (struct arr_0) {9, constantarr_0_457};
+			return (struct arr_0) {10, constantarr_0_389};
 		}
 		case 243: {
-			return (struct arr_0) {17, constantarr_0_459};
+			return (struct arr_0) {16, constantarr_0_440};
 		}
 		case 244: {
-			return (struct arr_0) {21, constantarr_0_461};
+			return (struct arr_0) {11, constantarr_0_441};
 		}
 		case 245: {
-			return (struct arr_0) {9, constantarr_0_465};
+			return (struct arr_0) {17, constantarr_0_442};
 		}
 		case 246: {
-			return (struct arr_0) {14, constantarr_0_469};
+			return (struct arr_0) {13, constantarr_0_446};
 		}
 		case 247: {
-			return (struct arr_0) {13, constantarr_0_470};
+			return (struct arr_0) {15, constantarr_0_447};
 		}
 		case 248: {
-			return (struct arr_0) {19, constantarr_0_471};
+			return (struct arr_0) {13, constantarr_0_449};
 		}
 		case 249: {
-			return (struct arr_0) {12, constantarr_0_222};
+			return (struct arr_0) {9, constantarr_0_452};
 		}
 		case 250: {
-			return (struct arr_0) {15, constantarr_0_472};
+			return (struct arr_0) {17, constantarr_0_454};
 		}
 		case 251: {
-			return (struct arr_0) {15, constantarr_0_472};
+			return (struct arr_0) {21, constantarr_0_456};
 		}
 		case 252: {
-			return (struct arr_0) {19, constantarr_0_474};
+			return (struct arr_0) {9, constantarr_0_460};
 		}
 		case 253: {
-			return (struct arr_0) {8, constantarr_0_223};
+			return (struct arr_0) {14, constantarr_0_464};
 		}
 		case 254: {
-			return (struct arr_0) {8, constantarr_0_223};
+			return (struct arr_0) {13, constantarr_0_465};
 		}
 		case 255: {
-			return (struct arr_0) {9, constantarr_0_476};
+			return (struct arr_0) {19, constantarr_0_466};
 		}
 		case 256: {
-			return (struct arr_0) {11, constantarr_0_477};
+			return (struct arr_0) {12, constantarr_0_219};
 		}
 		case 257: {
-			return (struct arr_0) {38, constantarr_0_479};
+			return (struct arr_0) {15, constantarr_0_467};
 		}
 		case 258: {
-			return (struct arr_0) {12, constantarr_0_480};
+			return (struct arr_0) {15, constantarr_0_467};
 		}
 		case 259: {
-			return (struct arr_0) {8, constantarr_0_117};
+			return (struct arr_0) {19, constantarr_0_469};
 		}
 		case 260: {
-			return (struct arr_0) {17, constantarr_0_482};
+			return (struct arr_0) {8, constantarr_0_220};
 		}
 		case 261: {
-			return (struct arr_0) {11, constantarr_0_484};
+			return (struct arr_0) {8, constantarr_0_220};
 		}
 		case 262: {
-			return (struct arr_0) {8, constantarr_0_488};
+			return (struct arr_0) {10, constantarr_0_471};
 		}
 		case 263: {
-			return (struct arr_0) {8, constantarr_0_489};
+			return (struct arr_0) {11, constantarr_0_472};
 		}
 		case 264: {
-			return (struct arr_0) {7, constantarr_0_494};
+			return (struct arr_0) {38, constantarr_0_474};
 		}
 		case 265: {
-			return (struct arr_0) {12, constantarr_0_498};
+			return (struct arr_0) {12, constantarr_0_475};
 		}
 		case 266: {
-			return (struct arr_0) {33, constantarr_0_499};
+			return (struct arr_0) {8, constantarr_0_114};
 		}
 		case 267: {
-			return (struct arr_0) {38, constantarr_0_500};
+			return (struct arr_0) {17, constantarr_0_477};
 		}
 		case 268: {
-			return (struct arr_0) {12, constantarr_0_222};
+			return (struct arr_0) {11, constantarr_0_479};
 		}
 		case 269: {
-			return (struct arr_0) {8, constantarr_0_501};
+			return (struct arr_0) {8, constantarr_0_483};
 		}
 		case 270: {
-			return (struct arr_0) {30, constantarr_0_502};
+			return (struct arr_0) {8, constantarr_0_484};
 		}
 		case 271: {
-			return (struct arr_0) {14, constantarr_0_503};
+			return (struct arr_0) {7, constantarr_0_489};
 		}
 		case 272: {
-			return (struct arr_0) {10, constantarr_0_394};
+			return (struct arr_0) {12, constantarr_0_493};
 		}
 		case 273: {
-			return (struct arr_0) {10, constantarr_0_504};
+			return (struct arr_0) {33, constantarr_0_494};
 		}
 		case 274: {
-			return (struct arr_0) {13, constantarr_0_505};
+			return (struct arr_0) {38, constantarr_0_495};
 		}
 		case 275: {
-			return (struct arr_0) {46, constantarr_0_507};
+			return (struct arr_0) {12, constantarr_0_219};
 		}
 		case 276: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {8, constantarr_0_496};
 		}
 		case 277: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {30, constantarr_0_497};
 		}
 		case 278: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {14, constantarr_0_498};
 		}
 		case 279: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {10, constantarr_0_389};
 		}
 		case 280: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {10, constantarr_0_499};
 		}
 		case 281: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {13, constantarr_0_500};
 		}
 		case 282: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {46, constantarr_0_502};
 		}
 		case 283: {
 			return (struct arr_0) {0u, NULL};
@@ -5122,46 +5229,46 @@ struct arr_0 get_fun_name_87(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {0u, NULL};
 		}
 		case 320: {
-			return (struct arr_0) {14, constantarr_0_515};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 321: {
-			return (struct arr_0) {7, constantarr_0_517};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 322: {
-			return (struct arr_0) {12, constantarr_0_518};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 323: {
-			return (struct arr_0) {18, constantarr_0_520};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 324: {
-			return (struct arr_0) {15, constantarr_0_521};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 325: {
-			return (struct arr_0) {12, constantarr_0_524};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 326: {
-			return (struct arr_0) {6, constantarr_0_526};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 327: {
-			return (struct arr_0) {5, constantarr_0_527};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 328: {
-			return (struct arr_0) {14, constantarr_0_528};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 329: {
-			return (struct arr_0) {19, constantarr_0_529};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 330: {
-			return (struct arr_0) {4, constantarr_0_530};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 331: {
-			return (struct arr_0) {35, constantarr_0_531};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 332: {
-			return (struct arr_0) {4, constantarr_0_535};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 333: {
-			return (struct arr_0) {12, constantarr_0_536};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 334: {
 			return (struct arr_0) {0u, NULL};
@@ -5173,97 +5280,163 @@ struct arr_0 get_fun_name_87(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {0u, NULL};
 		}
 		case 337: {
-			return (struct arr_0) {9, constantarr_0_537};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 338: {
-			return (struct arr_0) {15, constantarr_0_538};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 339: {
-			return (struct arr_0) {11, constantarr_0_539};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 340: {
-			return (struct arr_0) {11, constantarr_0_540};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 341: {
-			return (struct arr_0) {13, constantarr_0_237};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 342: {
-			return (struct arr_0) {12, constantarr_0_222};
+			return (struct arr_0) {14, constantarr_0_510};
 		}
 		case 343: {
-			return (struct arr_0) {10, constantarr_0_541};
+			return (struct arr_0) {7, constantarr_0_512};
 		}
 		case 344: {
-			return (struct arr_0) {13, constantarr_0_237};
+			return (struct arr_0) {12, constantarr_0_513};
 		}
 		case 345: {
-			return (struct arr_0) {1, constantarr_0_542};
+			return (struct arr_0) {18, constantarr_0_515};
 		}
 		case 346: {
-			return (struct arr_0) {1, constantarr_0_543};
+			return (struct arr_0) {15, constantarr_0_516};
 		}
 		case 347: {
-			return (struct arr_0) {12, constantarr_0_544};
+			return (struct arr_0) {12, constantarr_0_519};
 		}
 		case 348: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {6, constantarr_0_521};
 		}
 		case 349: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {5, constantarr_0_522};
 		}
 		case 350: {
-			return (struct arr_0) {9, constantarr_0_545};
+			return (struct arr_0) {14, constantarr_0_523};
 		}
 		case 351: {
-			return (struct arr_0) {13, constantarr_0_546};
+			return (struct arr_0) {19, constantarr_0_524};
 		}
 		case 352: {
-			return (struct arr_0) {20, constantarr_0_328};
+			return (struct arr_0) {4, constantarr_0_525};
 		}
 		case 353: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {35, constantarr_0_526};
 		}
 		case 354: {
-			return (struct arr_0) {3, constantarr_0_548};
+			return (struct arr_0) {4, constantarr_0_530};
 		}
 		case 355: {
-			return (struct arr_0) {3, constantarr_0_548};
+			return (struct arr_0) {12, constantarr_0_531};
 		}
 		case 356: {
-			return (struct arr_0) {1, constantarr_0_542};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 357: {
-			return (struct arr_0) {6, constantarr_0_195};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 358: {
-			return (struct arr_0) {6, constantarr_0_549};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 359: {
-			return (struct arr_0) {9, constantarr_0_550};
+			return (struct arr_0) {9, constantarr_0_532};
 		}
 		case 360: {
-			return (struct arr_0) {6, constantarr_0_551};
+			return (struct arr_0) {15, constantarr_0_533};
 		}
 		case 361: {
-			return (struct arr_0) {7, constantarr_0_552};
+			return (struct arr_0) {11, constantarr_0_534};
 		}
 		case 362: {
-			return (struct arr_0) {17, constantarr_0_553};
+			return (struct arr_0) {11, constantarr_0_535};
 		}
 		case 363: {
-			return (struct arr_0) {17, constantarr_0_554};
+			return (struct arr_0) {13, constantarr_0_234};
 		}
 		case 364: {
-			return (struct arr_0) {6, constantarr_0_253};
+			return (struct arr_0) {12, constantarr_0_219};
 		}
 		case 365: {
-			return (struct arr_0) {3, constantarr_0_555};
+			return (struct arr_0) {10, constantarr_0_536};
 		}
 		case 366: {
-			return (struct arr_0) {11, constantarr_0_557};
+			return (struct arr_0) {13, constantarr_0_234};
 		}
 		case 367: {
-			return (struct arr_0) {13, constantarr_0_558};
+			return (struct arr_0) {1, constantarr_0_537};
+		}
+		case 368: {
+			return (struct arr_0) {1, constantarr_0_538};
+		}
+		case 369: {
+			return (struct arr_0) {12, constantarr_0_539};
+		}
+		case 370: {
+			return (struct arr_0) {0u, NULL};
+		}
+		case 371: {
+			return (struct arr_0) {0u, NULL};
+		}
+		case 372: {
+			return (struct arr_0) {9, constantarr_0_540};
+		}
+		case 373: {
+			return (struct arr_0) {13, constantarr_0_541};
+		}
+		case 374: {
+			return (struct arr_0) {20, constantarr_0_325};
+		}
+		case 375: {
+			return (struct arr_0) {0u, NULL};
+		}
+		case 376: {
+			return (struct arr_0) {3, constantarr_0_543};
+		}
+		case 377: {
+			return (struct arr_0) {3, constantarr_0_543};
+		}
+		case 378: {
+			return (struct arr_0) {1, constantarr_0_537};
+		}
+		case 379: {
+			return (struct arr_0) {6, constantarr_0_192};
+		}
+		case 380: {
+			return (struct arr_0) {6, constantarr_0_544};
+		}
+		case 381: {
+			return (struct arr_0) {9, constantarr_0_545};
+		}
+		case 382: {
+			return (struct arr_0) {6, constantarr_0_546};
+		}
+		case 383: {
+			return (struct arr_0) {7, constantarr_0_547};
+		}
+		case 384: {
+			return (struct arr_0) {17, constantarr_0_548};
+		}
+		case 385: {
+			return (struct arr_0) {17, constantarr_0_549};
+		}
+		case 386: {
+			return (struct arr_0) {6, constantarr_0_250};
+		}
+		case 387: {
+			return (struct arr_0) {3, constantarr_0_550};
+		}
+		case 388: {
+			return (struct arr_0) {11, constantarr_0_552};
+		}
+		case 389: {
+			return (struct arr_0) {13, constantarr_0_553};
 		}
 		default:
 			return (struct arr_0) {0, NULL};
@@ -5512,8 +5685,8 @@ struct arrow _arrow(struct ctx* ctx, uint64_t from, uint64_t to) {
 struct global_ctx* get_global_ctx(struct ctx* ctx) {
 	return (struct global_ctx*) ctx->gctx_ptr;
 }
-/* new-island.lambda0 void(it exception) */
-struct void_ new_island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception it) {
+/* island.lambda0 void(it exception) */
+struct void_ island__lambda0(struct ctx* ctx, struct void_ _closure, struct exception it) {
 	return default_exception_handler(ctx, it);
 }
 /* default-log-handler void(a logged) */
@@ -5551,12 +5724,12 @@ struct arr_0 to_str_0(struct ctx* ctx, struct log_level a) {
 			return (struct arr_0) {0, NULL};
 	}
 }
-/* new-island.lambda1 void(log logged) */
-struct void_ new_island__lambda1(struct ctx* ctx, struct void_ _closure, struct logged* log) {
+/* island.lambda1 void(log logged) */
+struct void_ island__lambda1(struct ctx* ctx, struct void_ _closure, struct logged* log) {
 	return default_log_handler(ctx, log);
 }
-/* new-gc gc() */
-struct gc new_gc(void) {
+/* gc gc() */
+struct gc gc(void) {
 	uint8_t* mark_begin0;
 	uint8_t* _0 = malloc(16777216u);
 	mark_begin0 = (uint8_t*) _0;
@@ -5572,31 +5745,31 @@ struct gc new_gc(void) {
 	data_end3 = (data_begin2 + 16777216u);
 	
 	(memset((uint8_t*) mark_begin0, 0u, 16777216u), (struct void_) {});
-	struct lock _2 = new_lock_by_val();
+	struct lock _2 = lock_by_val();
 	return (struct gc) {_2, 0u, (struct opt_1) {0, .as0 = (struct none) {}}, 0, 16777216u, mark_begin0, mark_begin0, mark_end1, data_begin2, data_begin2, data_end3};
 }
-/* new-thread-safe-counter thread-safe-counter() */
-struct thread_safe_counter new_thread_safe_counter_0(void) {
-	return new_thread_safe_counter_1(0u);
+/* thread-safe-counter thread-safe-counter() */
+struct thread_safe_counter thread_safe_counter_0(void) {
+	return thread_safe_counter_1(0u);
 }
-/* new-thread-safe-counter thread-safe-counter(init nat) */
-struct thread_safe_counter new_thread_safe_counter_1(uint64_t init) {
-	struct lock _0 = new_lock_by_val();
+/* thread-safe-counter thread-safe-counter(init nat) */
+struct thread_safe_counter thread_safe_counter_1(uint64_t init) {
+	struct lock _0 = lock_by_val();
 	return (struct thread_safe_counter) {_0, init};
 }
 /* do-main fut<nat>(gctx global-ctx, island island, argc int32, argv ptr<ptr<char>>, main-ptr fun-ptr2<fut<nat>, ctx, arr<arr<char>>>) */
 struct fut_0* do_main(struct global_ctx* gctx, struct island* island, int32_t argc, char** argv, fun_ptr2 main_ptr) {
 	struct exception_ctx ectx0;
-	ectx0 = new_exception_ctx();
+	ectx0 = exception_ctx();
 	
 	struct log_ctx log_ctx1;
-	log_ctx1 = new_log_ctx();
+	log_ctx1 = log_ctx();
 	
 	struct thread_local_stuff tls2;
 	tls2 = (struct thread_local_stuff) {(&ectx0), (&log_ctx1)};
 	
 	struct ctx ctx_by_val3;
-	ctx_by_val3 = new_ctx(gctx, (&tls2), island, 0u);
+	ctx_by_val3 = ctx(gctx, (&tls2), island, 0u);
 	
 	struct ctx* ctx4;
 	ctx4 = (&ctx_by_val3);
@@ -5607,18 +5780,18 @@ struct fut_0* do_main(struct global_ctx* gctx, struct island* island, int32_t ar
 	struct arr_4 all_args6;
 	all_args6 = (struct arr_4) {(uint64_t) (int64_t) argc, argv};
 	
-	return call_w_ctx_220(add5, ctx4, all_args6, main_ptr);
+	return call_w_ctx_227(add5, ctx4, all_args6, main_ptr);
 }
-/* new-exception-ctx exception-ctx() */
-struct exception_ctx new_exception_ctx(void) {
+/* exception-ctx exception-ctx() */
+struct exception_ctx exception_ctx(void) {
 	return (struct exception_ctx) {NULL, (struct exception) {(struct arr_0) {0u, NULL}, (struct backtrace) {(struct arr_1) {0u, NULL}}}};
 }
-/* new-log-ctx log-ctx() */
-struct log_ctx new_log_ctx(void) {
+/* log-ctx log-ctx() */
+struct log_ctx log_ctx(void) {
 	return (struct log_ctx) {(struct fun1_1) {0}};
 }
-/* new-ctx ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion nat) */
-struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct island* island, uint64_t exclusion) {
+/* ctx ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion nat) */
+struct ctx ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, struct island* island, uint64_t exclusion) {
 	uint8_t* gc_ctx0;
 	struct gc_ctx* _0 = get_gc_ctx_1((&island->gc));
 	gc_ctx0 = (uint8_t*) _0;
@@ -5634,7 +5807,7 @@ struct ctx new_ctx(struct global_ctx* gctx, struct thread_local_stuff* tls, stru
 }
 /* get-gc-ctx gc-ctx(gc gc) */
 struct gc_ctx* get_gc_ctx_1(struct gc* gc) {
-	acquire_lock((&gc->lk));
+	acquire__e((&gc->lk));
 	struct gc_ctx* res3;
 	struct opt_1 _0 = gc->context_head;
 	switch (_0.kind) {
@@ -5663,7 +5836,7 @@ struct gc_ctx* get_gc_ctx_1(struct gc* gc) {
 			NULL;
 	}
 	
-	release_lock((&gc->lk));
+	release__e((&gc->lk));
 	return res3;
 }
 /* add-first-task fut<nat>(all-args arr<ptr<char>>, main-ptr fun-ptr2<fut<nat>, ctx, arr<arr<char>>>) */
@@ -5694,7 +5867,7 @@ struct fut_0* then2(struct ctx* ctx, struct fut_1* f, struct fun_ref0 cb) {
 /* then<?out, void> fut<nat>(f fut<void>, cb fun-ref1<nat, void>) */
 struct fut_0* then(struct ctx* ctx, struct fut_1* f, struct fun_ref1 cb) {
 	struct fut_0* res0;
-	res0 = new_unresolved_fut(ctx);
+	res0 = unresolved(ctx);
 	
 	struct then__lambda0* temp0;
 	uint8_t* _0 = alloc(ctx, sizeof(struct then__lambda0));
@@ -5704,20 +5877,96 @@ struct fut_0* then(struct ctx* ctx, struct fut_1* f, struct fun_ref1 cb) {
 	then_void_0(ctx, f, (struct fun_act1_1) {0, .as0 = temp0});
 	return res0;
 }
-/* new-unresolved-fut<?out> fut<nat>() */
-struct fut_0* new_unresolved_fut(struct ctx* ctx) {
+/* unresolved<?out> fut<nat>() */
+struct fut_0* unresolved(struct ctx* ctx) {
 	struct fut_0* temp0;
 	uint8_t* _0 = alloc(ctx, sizeof(struct fut_0));
 	temp0 = (struct fut_0*) _0;
 	
-	struct lock _1 = new_lock_by_val();
+	struct lock _1 = lock_by_val();
 	*temp0 = (struct fut_0) {_1, (struct fut_state_0) {0, .as0 = (struct fut_state_callbacks_0) {(struct opt_0) {0, .as0 = (struct none) {}}}}};
 	return temp0;
 }
 /* then-void<?in> void(f fut<void>, cb fun-act1<void, result<void, exception>>) */
 struct void_ then_void_0(struct ctx* ctx, struct fut_1* f, struct fun_act1_1 cb) {
-	acquire_lock((&f->lk));
-	struct fut_state_1 _0 = f->state;
+	struct then_void_0__lambda0* temp0;
+	uint8_t* _0 = alloc(ctx, sizeof(struct then_void_0__lambda0));
+	temp0 = (struct then_void_0__lambda0*) _0;
+	
+	*temp0 = (struct then_void_0__lambda0) {f, cb};
+	return with_lock_0(ctx, (&f->lk), (struct fun_act0_0) {0, .as0 = temp0});
+}
+/* with-lock<void> void(a lock, f fun-act0<void>) */
+struct void_ with_lock_0(struct ctx* ctx, struct lock* a, struct fun_act0_0 f) {
+	acquire__e(a);
+	struct void_ res0;
+	res0 = subscript_2(ctx, f);
+	
+	release__e(a);
+	return res0;
+}
+/* subscript<?t> void(a fun-act0<void>) */
+struct void_ subscript_2(struct ctx* ctx, struct fun_act0_0 a) {
+	return call_w_ctx_136(a, ctx);
+}
+/* call-w-ctx<void> (generated) (generated) */
+struct void_ call_w_ctx_136(struct fun_act0_0 a, struct ctx* ctx) {
+	struct fun_act0_0 _0 = a;
+	switch (_0.kind) {
+		case 0: {
+			struct then_void_0__lambda0* closure0 = _0.as0;
+			
+			return then_void_0__lambda0(ctx, closure0);
+		}
+		case 1: {
+			struct then_void_1__lambda0* closure1 = _0.as1;
+			
+			return then_void_1__lambda0(ctx, closure1);
+		}
+		case 2: {
+			struct subscript_6__lambda0__lambda0* closure2 = _0.as2;
+			
+			return subscript_6__lambda0__lambda0(ctx, closure2);
+		}
+		case 3: {
+			struct subscript_6__lambda0* closure3 = _0.as3;
+			
+			return subscript_6__lambda0(ctx, closure3);
+		}
+		case 4: {
+			struct subscript_10__lambda0__lambda0* closure4 = _0.as4;
+			
+			return subscript_10__lambda0__lambda0(ctx, closure4);
+		}
+		case 5: {
+			struct subscript_10__lambda0* closure5 = _0.as5;
+			
+			return subscript_10__lambda0(ctx, closure5);
+		}
+		default:
+			return (struct void_) {};
+	}
+}
+/* subscript<void, result<?t, exception>> void(a fun-act1<void, result<void, exception>>, p0 result<void, exception>) */
+struct void_ subscript_3(struct ctx* ctx, struct fun_act1_1 a, struct result_1 p0) {
+	return call_w_ctx_138(a, ctx, p0);
+}
+/* call-w-ctx<void, result<void, exception>> (generated) (generated) */
+struct void_ call_w_ctx_138(struct fun_act1_1 a, struct ctx* ctx, struct result_1 p0) {
+	struct fun_act1_1 _0 = a;
+	switch (_0.kind) {
+		case 0: {
+			struct then__lambda0* closure0 = _0.as0;
+			
+			return then__lambda0(ctx, closure0, p0);
+		}
+		default:
+			return (struct void_) {};
+	}
+}
+/* then-void<?in>.lambda0 void() */
+struct void_ then_void_0__lambda0(struct ctx* ctx, struct then_void_0__lambda0* _closure) {
+	struct fut_state_1 _0 = _closure->f->state;
 	switch (_0.kind) {
 		case 0: {
 			struct fut_state_callbacks_1 cbs0 = _0.as0;
@@ -5726,39 +5975,18 @@ struct void_ then_void_0(struct ctx* ctx, struct fut_1* f, struct fun_act1_1 cb)
 			uint8_t* _1 = alloc(ctx, sizeof(struct fut_callback_node_1));
 			temp0 = (struct fut_callback_node_1*) _1;
 			
-			*temp0 = (struct fut_callback_node_1) {cb, cbs0.head};
-			f->state = (struct fut_state_1) {0, .as0 = (struct fut_state_callbacks_1) {(struct opt_7) {1, .as1 = (struct some_7) {temp0}}}};
-			break;
+			*temp0 = (struct fut_callback_node_1) {_closure->cb, cbs0.head};
+			return (_closure->f->state = (struct fut_state_1) {0, .as0 = (struct fut_state_callbacks_1) {(struct opt_7) {1, .as1 = (struct some_7) {temp0}}}}, (struct void_) {});
 		}
 		case 1: {
 			struct fut_state_resolved_1 r1 = _0.as1;
 			
-			subscript_2(ctx, cb, (struct result_1) {0, .as0 = (struct ok_1) {r1.value}});
-			break;
+			return subscript_3(ctx, _closure->cb, (struct result_1) {0, .as0 = (struct ok_1) {r1.value}});
 		}
 		case 2: {
 			struct exception e2 = _0.as2;
 			
-			subscript_2(ctx, cb, (struct result_1) {1, .as1 = (struct err) {e2}});
-			break;
-		}
-		default:
-			(struct void_) {};
-	}
-	return release_lock((&f->lk));
-}
-/* subscript<void, result<?t, exception>> void(a fun-act1<void, result<void, exception>>, p0 result<void, exception>) */
-struct void_ subscript_2(struct ctx* ctx, struct fun_act1_1 a, struct result_1 p0) {
-	return call_w_ctx_135(a, ctx, p0);
-}
-/* call-w-ctx<void, result<void, exception>> (generated) (generated) */
-struct void_ call_w_ctx_135(struct fun_act1_1 a, struct ctx* ctx, struct result_1 p0) {
-	struct fun_act1_1 _0 = a;
-	switch (_0.kind) {
-		case 0: {
-			struct then__lambda0* closure0 = _0.as0;
-			
-			return then__lambda0(ctx, closure0, p0);
+			return subscript_3(ctx, _closure->cb, (struct result_1) {1, .as1 = (struct err) {e2}});
 		}
 		default:
 			return (struct void_) {};
@@ -5775,43 +6003,19 @@ struct void_ forward_to__e(struct ctx* ctx, struct fut_0* from, struct fut_0* to
 }
 /* then-void<?t> void(f fut<nat>, cb fun-act1<void, result<nat, exception>>) */
 struct void_ then_void_1(struct ctx* ctx, struct fut_0* f, struct fun_act1_0 cb) {
-	acquire_lock((&f->lk));
-	struct fut_state_0 _0 = f->state;
-	switch (_0.kind) {
-		case 0: {
-			struct fut_state_callbacks_0 cbs0 = _0.as0;
-			
-			struct fut_callback_node_0* temp0;
-			uint8_t* _1 = alloc(ctx, sizeof(struct fut_callback_node_0));
-			temp0 = (struct fut_callback_node_0*) _1;
-			
-			*temp0 = (struct fut_callback_node_0) {cb, cbs0.head};
-			f->state = (struct fut_state_0) {0, .as0 = (struct fut_state_callbacks_0) {(struct opt_0) {1, .as1 = (struct some_0) {temp0}}}};
-			break;
-		}
-		case 1: {
-			struct fut_state_resolved_0 r1 = _0.as1;
-			
-			subscript_3(ctx, cb, (struct result_0) {0, .as0 = (struct ok_0) {r1.value}});
-			break;
-		}
-		case 2: {
-			struct exception e2 = _0.as2;
-			
-			subscript_3(ctx, cb, (struct result_0) {1, .as1 = (struct err) {e2}});
-			break;
-		}
-		default:
-			(struct void_) {};
-	}
-	return release_lock((&f->lk));
+	struct then_void_1__lambda0* temp0;
+	uint8_t* _0 = alloc(ctx, sizeof(struct then_void_1__lambda0));
+	temp0 = (struct then_void_1__lambda0*) _0;
+	
+	*temp0 = (struct then_void_1__lambda0) {f, cb};
+	return with_lock_0(ctx, (&f->lk), (struct fun_act0_0) {1, .as1 = temp0});
 }
 /* subscript<void, result<?t, exception>> void(a fun-act1<void, result<nat, exception>>, p0 result<nat, exception>) */
-struct void_ subscript_3(struct ctx* ctx, struct fun_act1_0 a, struct result_0 p0) {
-	return call_w_ctx_139(a, ctx, p0);
+struct void_ subscript_4(struct ctx* ctx, struct fun_act1_0 a, struct result_0 p0) {
+	return call_w_ctx_143(a, ctx, p0);
 }
 /* call-w-ctx<void, result<nat, exception>> (generated) (generated) */
-struct void_ call_w_ctx_139(struct fun_act1_0 a, struct ctx* ctx, struct result_0 p0) {
+struct void_ call_w_ctx_143(struct fun_act1_0 a, struct ctx* ctx, struct result_0 p0) {
 	struct fun_act1_0 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -5828,11 +6032,81 @@ struct void_ call_w_ctx_139(struct fun_act1_0 a, struct ctx* ctx, struct result_
 			return (struct void_) {};
 	}
 }
+/* then-void<?t>.lambda0 void() */
+struct void_ then_void_1__lambda0(struct ctx* ctx, struct then_void_1__lambda0* _closure) {
+	struct fut_state_0 _0 = _closure->f->state;
+	switch (_0.kind) {
+		case 0: {
+			struct fut_state_callbacks_0 cbs0 = _0.as0;
+			
+			struct fut_callback_node_0* temp0;
+			uint8_t* _1 = alloc(ctx, sizeof(struct fut_callback_node_0));
+			temp0 = (struct fut_callback_node_0*) _1;
+			
+			*temp0 = (struct fut_callback_node_0) {_closure->cb, cbs0.head};
+			return (_closure->f->state = (struct fut_state_0) {0, .as0 = (struct fut_state_callbacks_0) {(struct opt_0) {1, .as1 = (struct some_0) {temp0}}}}, (struct void_) {});
+		}
+		case 1: {
+			struct fut_state_resolved_0 r1 = _0.as1;
+			
+			return subscript_4(ctx, _closure->cb, (struct result_0) {0, .as0 = (struct ok_0) {r1.value}});
+		}
+		case 2: {
+			struct exception e2 = _0.as2;
+			
+			return subscript_4(ctx, _closure->cb, (struct result_0) {1, .as1 = (struct err) {e2}});
+		}
+		default:
+			return (struct void_) {};
+	}
+}
 /* resolve-or-reject!<?t> void(f fut<nat>, result result<nat, exception>) */
 struct void_ resolve_or_reject__e(struct ctx* ctx, struct fut_0* f, struct result_0 result) {
-	acquire_lock((&f->lk));
+	struct fut_state_callbacks_0 callbacks0;
+	struct resolve_or_reject__e__lambda0* temp0;
+	uint8_t* _0 = alloc(ctx, sizeof(struct resolve_or_reject__e__lambda0));
+	temp0 = (struct resolve_or_reject__e__lambda0*) _0;
+	
+	*temp0 = (struct resolve_or_reject__e__lambda0) {f, result};
+	callbacks0 = with_lock_1(ctx, (&f->lk), (struct fun_act0_2) {0, .as0 = temp0});
+	
+	return call_callbacks__e(ctx, callbacks0.head, result);
+}
+/* with-lock<fut-state-callbacks<?t>> fut-state-callbacks<nat>(a lock, f fun-act0<fut-state-callbacks<nat>>) */
+struct fut_state_callbacks_0 with_lock_1(struct ctx* ctx, struct lock* a, struct fun_act0_2 f) {
+	acquire__e(a);
+	struct fut_state_callbacks_0 res0;
+	res0 = subscript_5(ctx, f);
+	
+	release__e(a);
+	return res0;
+}
+/* subscript<?t> fut-state-callbacks<nat>(a fun-act0<fut-state-callbacks<nat>>) */
+struct fut_state_callbacks_0 subscript_5(struct ctx* ctx, struct fun_act0_2 a) {
+	return call_w_ctx_148(a, ctx);
+}
+/* call-w-ctx<fut-state-callbacks<nat>> (generated) (generated) */
+struct fut_state_callbacks_0 call_w_ctx_148(struct fun_act0_2 a, struct ctx* ctx) {
+	struct fun_act0_2 _0 = a;
+	switch (_0.kind) {
+		case 0: {
+			struct resolve_or_reject__e__lambda0* closure0 = _0.as0;
+			
+			return resolve_or_reject__e__lambda0(ctx, closure0);
+		}
+		default:
+			return (struct fut_state_callbacks_0) {(struct opt_0) {0}};
+	}
+}
+/* todo<fut-state-callbacks<?t>> fut-state-callbacks<nat>() */
+struct fut_state_callbacks_0 todo_2(void) {
+	(abort(), (struct void_) {});
+	return (struct fut_state_callbacks_0) {(struct opt_0) {0}};
+}
+/* resolve-or-reject!<?t>.lambda0 fut-state-callbacks<nat>() */
+struct fut_state_callbacks_0 resolve_or_reject__e__lambda0(struct ctx* ctx, struct resolve_or_reject__e__lambda0* _closure) {
 	struct fut_state_callbacks_0 callbacks1;
-	struct fut_state_0 _0 = f->state;
+	struct fut_state_0 _0 = _closure->f->state;
 	switch (_0.kind) {
 		case 0: {
 			struct fut_state_callbacks_0 cbs0 = _0.as0;
@@ -5852,7 +6126,7 @@ struct void_ resolve_or_reject__e(struct ctx* ctx, struct fut_0* f, struct resul
 			(struct fut_state_callbacks_0) {(struct opt_0) {0}};
 	}
 	
-	struct result_0 _1 = result;struct fut_state_0 _2;
+	struct result_0 _1 = _closure->result;struct fut_state_0 _2;
 	
 	switch (_1.kind) {
 		case 0: {
@@ -5873,14 +6147,8 @@ struct void_ resolve_or_reject__e(struct ctx* ctx, struct fut_0* f, struct resul
 		default:
 			(struct fut_state_0) {0};
 	}
-	f->state = _2;
-	release_lock((&f->lk));
-	return call_callbacks__e(ctx, callbacks1.head, result);
-}
-/* todo<fut-state-callbacks<?t>> fut-state-callbacks<nat>() */
-struct fut_state_callbacks_0 todo_2(void) {
-	(abort(), (struct void_) {});
-	return (struct fut_state_callbacks_0) {(struct opt_0) {0}};
+	_closure->f->state = _2;
+	return callbacks1;
 }
 /* call-callbacks!<?t> void(node opt<fut-callback-node<nat>>, value result<nat, exception>) */
 struct void_ call_callbacks__e(struct ctx* ctx, struct opt_0 node, struct result_0 value) {
@@ -5893,7 +6161,7 @@ struct void_ call_callbacks__e(struct ctx* ctx, struct opt_0 node, struct result
 		case 1: {
 			struct some_0 s0 = _0.as1;
 			
-			struct void_ _1 = subscript_3(ctx, s0.value->cb, value);
+			struct void_ _1 = subscript_4(ctx, s0.value->cb, value);
 			drop_0(_1);
 			node = s0.value->next_node;
 			value = value;
@@ -5912,28 +6180,28 @@ struct void_ forward_to__e__lambda0(struct ctx* ctx, struct forward_to__e__lambd
 	return resolve_or_reject__e(ctx, _closure->to, it);
 }
 /* subscript<?out, ?in> fut<nat>(f fun-ref1<nat, void>, p0 void) */
-struct fut_0* subscript_4(struct ctx* ctx, struct fun_ref1 f, struct void_ p0) {
+struct fut_0* subscript_6(struct ctx* ctx, struct fun_ref1 f, struct void_ p0) {
 	struct island* island0;
 	island0 = get_island(ctx, f.island_and_exclusion.island);
 	
 	struct fut_0* res1;
-	res1 = new_unresolved_fut(ctx);
+	res1 = unresolved(ctx);
 	
-	struct subscript_4__lambda0* temp0;
-	uint8_t* _0 = alloc(ctx, sizeof(struct subscript_4__lambda0));
-	temp0 = (struct subscript_4__lambda0*) _0;
+	struct subscript_6__lambda0* temp0;
+	uint8_t* _0 = alloc(ctx, sizeof(struct subscript_6__lambda0));
+	temp0 = (struct subscript_6__lambda0*) _0;
 	
-	*temp0 = (struct subscript_4__lambda0) {f, p0, res1};
-	add_task_0(ctx, island0, f.island_and_exclusion.exclusion, (struct fun_act0_0) {1, .as1 = temp0});
+	*temp0 = (struct subscript_6__lambda0) {f, p0, res1};
+	add_task_0(ctx, island0, f.island_and_exclusion.exclusion, (struct fun_act0_0) {3, .as3 = temp0});
 	return res1;
 }
 /* get-island island(island-id nat) */
 struct island* get_island(struct ctx* ctx, uint64_t island_id) {
 	struct global_ctx* _0 = get_global_ctx(ctx);
-	return subscript_5(ctx, _0->islands, island_id);
+	return subscript_7(ctx, _0->islands, island_id);
 }
 /* subscript<island> island(a arr<island>, index nat) */
-struct island* subscript_5(struct ctx* ctx, struct arr_3 a, uint64_t index) {
+struct island* subscript_7(struct ctx* ctx, struct arr_3 a, uint64_t index) {
 	uint8_t _0 = _less_0(index, a.size);
 	assert(ctx, _0);
 	return noctx_at_1(a, index);
@@ -5952,16 +6220,16 @@ struct void_ add_task_0(struct ctx* ctx, struct island* a, uint64_t exclusion, s
 /* add-task void(a island, timestamp nat, exclusion nat, action fun-act0<void>) */
 struct void_ add_task_1(struct ctx* ctx, struct island* a, uint64_t timestamp, uint64_t exclusion, struct fun_act0_0 action) {
 	struct task_queue_node* node0;
-	node0 = new_task_queue_node(ctx, (struct task) {timestamp, exclusion, action});
+	node0 = task_queue_node(ctx, (struct task) {timestamp, exclusion, action});
 	
-	acquire_lock((&a->tasks_lock));
+	acquire__e((&a->tasks_lock));
 	struct task_queue* _0 = tasks(a);
 	insert_task__e(_0, node0);
-	release_lock((&a->tasks_lock));
-	return broadcast((&a->gctx->may_be_work_to_do));
+	release__e((&a->tasks_lock));
+	return broadcast__e((&a->gctx->may_be_work_to_do));
 }
-/* new-task-queue-node task-queue-node(task task) */
-struct task_queue_node* new_task_queue_node(struct ctx* ctx, struct task task) {
+/* task-queue-node task-queue-node(task task) */
+struct task_queue_node* task_queue_node(struct ctx* ctx, struct task task) {
 	struct task_queue_node* temp0;
 	uint8_t* _0 = alloc(ctx, sizeof(struct task_queue_node));
 	temp0 = (struct task_queue_node*) _0;
@@ -6059,12 +6327,12 @@ struct void_ insert_recur(struct task_queue_node* prev, struct task_queue_node* 
 struct task_queue* tasks(struct island* a) {
 	return (&(&a->gc_root)->tasks);
 }
-/* broadcast void(c condition) */
-struct void_ broadcast(struct condition* c) {
-	acquire_lock((&c->lk));
+/* broadcast! void(c condition) */
+struct void_ broadcast__e(struct condition* c) {
+	acquire__e((&c->lk));
 	uint64_t _0 = noctx_incr(c->value);
 	c->value = _0;
-	return release_lock((&c->lk));
+	return release__e((&c->lk));
 }
 /* no-timestamp nat() */
 uint64_t no_timestamp(void) {
@@ -6095,7 +6363,7 @@ struct void_ catch_with_exception_ctx(struct ctx* ctx, struct exception_ctx* ec,
 	uint8_t _2 = _equal_2(setjmp_result3, 0);
 	if (_2) {
 		struct void_ res4;
-		res4 = subscript_6(ctx, try);
+		res4 = subscript_2(ctx, try);
 		
 		ec->jmp_buf_ptr = old_jmp_buf1;
 		ec->thrown_exception = old_thrown_exception0;
@@ -6109,7 +6377,7 @@ struct void_ catch_with_exception_ctx(struct ctx* ctx, struct exception_ctx* ec,
 		
 		ec->jmp_buf_ptr = old_jmp_buf1;
 		ec->thrown_exception = old_thrown_exception0;
-		return subscript_7(ctx, catcher, thrown_exception5);
+		return subscript_8(ctx, catcher, thrown_exception5);
 	}
 }
 /* zero bytes64() */
@@ -6134,66 +6402,34 @@ struct bytes128 zero_3(void) {
 	struct bytes64 _1 = zero_0();
 	return (struct bytes128) {_0, _1};
 }
-/* subscript<?t> void(a fun-act0<void>) */
-struct void_ subscript_6(struct ctx* ctx, struct fun_act0_0 a) {
-	return call_w_ctx_167(a, ctx);
-}
-/* call-w-ctx<void> (generated) (generated) */
-struct void_ call_w_ctx_167(struct fun_act0_0 a, struct ctx* ctx) {
-	struct fun_act0_0 _0 = a;
-	switch (_0.kind) {
-		case 0: {
-			struct subscript_4__lambda0__lambda0* closure0 = _0.as0;
-			
-			return subscript_4__lambda0__lambda0(ctx, closure0);
-		}
-		case 1: {
-			struct subscript_4__lambda0* closure1 = _0.as1;
-			
-			return subscript_4__lambda0(ctx, closure1);
-		}
-		case 2: {
-			struct subscript_9__lambda0__lambda0* closure2 = _0.as2;
-			
-			return subscript_9__lambda0__lambda0(ctx, closure2);
-		}
-		case 3: {
-			struct subscript_9__lambda0* closure3 = _0.as3;
-			
-			return subscript_9__lambda0(ctx, closure3);
-		}
-		default:
-			return (struct void_) {};
-	}
-}
 /* subscript<?t, exception> void(a fun-act1<void, exception>, p0 exception) */
-struct void_ subscript_7(struct ctx* ctx, struct fun_act1_3 a, struct exception p0) {
-	return call_w_ctx_169(a, ctx, p0);
+struct void_ subscript_8(struct ctx* ctx, struct fun_act1_3 a, struct exception p0) {
+	return call_w_ctx_176(a, ctx, p0);
 }
 /* call-w-ctx<void, exception> (generated) (generated) */
-struct void_ call_w_ctx_169(struct fun_act1_3 a, struct ctx* ctx, struct exception p0) {
+struct void_ call_w_ctx_176(struct fun_act1_3 a, struct ctx* ctx, struct exception p0) {
 	struct fun_act1_3 _0 = a;
 	switch (_0.kind) {
 		case 0: {
-			struct subscript_4__lambda0__lambda1* closure0 = _0.as0;
+			struct subscript_6__lambda0__lambda1* closure0 = _0.as0;
 			
-			return subscript_4__lambda0__lambda1(ctx, closure0, p0);
+			return subscript_6__lambda0__lambda1(ctx, closure0, p0);
 		}
 		case 1: {
-			struct subscript_9__lambda0__lambda1* closure1 = _0.as1;
+			struct subscript_10__lambda0__lambda1* closure1 = _0.as1;
 			
-			return subscript_9__lambda0__lambda1(ctx, closure1, p0);
+			return subscript_10__lambda0__lambda1(ctx, closure1, p0);
 		}
 		default:
 			return (struct void_) {};
 	}
 }
 /* subscript<fut<?r>, ?p0> fut<nat>(a fun-act1<fut<nat>, void>, p0 void) */
-struct fut_0* subscript_8(struct ctx* ctx, struct fun_act1_2 a, struct void_ p0) {
-	return call_w_ctx_171(a, ctx, p0);
+struct fut_0* subscript_9(struct ctx* ctx, struct fun_act1_2 a, struct void_ p0) {
+	return call_w_ctx_178(a, ctx, p0);
 }
 /* call-w-ctx<gc-ptr(fut<nat>), void> (generated) (generated) */
-struct fut_0* call_w_ctx_171(struct fun_act1_2 a, struct ctx* ctx, struct void_ p0) {
+struct fut_0* call_w_ctx_178(struct fun_act1_2 a, struct ctx* ctx, struct void_ p0) {
 	struct fun_act1_2 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -6206,8 +6442,8 @@ struct fut_0* call_w_ctx_171(struct fun_act1_2 a, struct ctx* ctx, struct void_ 
 	}
 }
 /* subscript<?out, ?in>.lambda0.lambda0 void() */
-struct void_ subscript_4__lambda0__lambda0(struct ctx* ctx, struct subscript_4__lambda0__lambda0* _closure) {
-	struct fut_0* _0 = subscript_8(ctx, _closure->f.fun, _closure->p0);
+struct void_ subscript_6__lambda0__lambda0(struct ctx* ctx, struct subscript_6__lambda0__lambda0* _closure) {
+	struct fut_0* _0 = subscript_9(ctx, _closure->f.fun, _closure->p0);
 	return forward_to__e(ctx, _0, _closure->res);
 }
 /* reject!<?r> void(f fut<nat>, e exception) */
@@ -6215,22 +6451,22 @@ struct void_ reject__e(struct ctx* ctx, struct fut_0* f, struct exception e) {
 	return resolve_or_reject__e(ctx, f, (struct result_0) {1, .as1 = (struct err) {e}});
 }
 /* subscript<?out, ?in>.lambda0.lambda1 void(it exception) */
-struct void_ subscript_4__lambda0__lambda1(struct ctx* ctx, struct subscript_4__lambda0__lambda1* _closure, struct exception it) {
+struct void_ subscript_6__lambda0__lambda1(struct ctx* ctx, struct subscript_6__lambda0__lambda1* _closure, struct exception it) {
 	return reject__e(ctx, _closure->res, it);
 }
 /* subscript<?out, ?in>.lambda0 void() */
-struct void_ subscript_4__lambda0(struct ctx* ctx, struct subscript_4__lambda0* _closure) {
-	struct subscript_4__lambda0__lambda0* temp0;
-	uint8_t* _0 = alloc(ctx, sizeof(struct subscript_4__lambda0__lambda0));
-	temp0 = (struct subscript_4__lambda0__lambda0*) _0;
+struct void_ subscript_6__lambda0(struct ctx* ctx, struct subscript_6__lambda0* _closure) {
+	struct subscript_6__lambda0__lambda0* temp0;
+	uint8_t* _0 = alloc(ctx, sizeof(struct subscript_6__lambda0__lambda0));
+	temp0 = (struct subscript_6__lambda0__lambda0*) _0;
 	
-	*temp0 = (struct subscript_4__lambda0__lambda0) {_closure->f, _closure->p0, _closure->res};
-	struct subscript_4__lambda0__lambda1* temp1;
-	uint8_t* _1 = alloc(ctx, sizeof(struct subscript_4__lambda0__lambda1));
-	temp1 = (struct subscript_4__lambda0__lambda1*) _1;
+	*temp0 = (struct subscript_6__lambda0__lambda0) {_closure->f, _closure->p0, _closure->res};
+	struct subscript_6__lambda0__lambda1* temp1;
+	uint8_t* _1 = alloc(ctx, sizeof(struct subscript_6__lambda0__lambda1));
+	temp1 = (struct subscript_6__lambda0__lambda1*) _1;
 	
-	*temp1 = (struct subscript_4__lambda0__lambda1) {_closure->res};
-	return catch(ctx, (struct fun_act0_0) {0, .as0 = temp0}, (struct fun_act1_3) {0, .as0 = temp1});
+	*temp1 = (struct subscript_6__lambda0__lambda1) {_closure->res};
+	return catch(ctx, (struct fun_act0_0) {2, .as2 = temp0}, (struct fun_act1_3) {0, .as0 = temp1});
 }
 /* then<?out, void>.lambda0 void(result result<void, exception>) */
 struct void_ then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, struct result_1 result) {
@@ -6239,7 +6475,7 @@ struct void_ then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, stru
 		case 0: {
 			struct ok_1 o0 = _0.as0;
 			
-			struct fut_0* _1 = subscript_4(ctx, _closure->cb, o0.value);
+			struct fut_0* _1 = subscript_6(ctx, _closure->cb, o0.value);
 			return forward_to__e(ctx, _1, _closure->res);
 		}
 		case 1: {
@@ -6252,25 +6488,25 @@ struct void_ then__lambda0(struct ctx* ctx, struct then__lambda0* _closure, stru
 	}
 }
 /* subscript<?out> fut<nat>(f fun-ref0<nat>) */
-struct fut_0* subscript_9(struct ctx* ctx, struct fun_ref0 f) {
+struct fut_0* subscript_10(struct ctx* ctx, struct fun_ref0 f) {
 	struct fut_0* res0;
-	res0 = new_unresolved_fut(ctx);
+	res0 = unresolved(ctx);
 	
 	struct island* _0 = get_island(ctx, f.island_and_exclusion.island);
-	struct subscript_9__lambda0* temp0;
-	uint8_t* _1 = alloc(ctx, sizeof(struct subscript_9__lambda0));
-	temp0 = (struct subscript_9__lambda0*) _1;
+	struct subscript_10__lambda0* temp0;
+	uint8_t* _1 = alloc(ctx, sizeof(struct subscript_10__lambda0));
+	temp0 = (struct subscript_10__lambda0*) _1;
 	
-	*temp0 = (struct subscript_9__lambda0) {f, res0};
-	add_task_0(ctx, _0, f.island_and_exclusion.exclusion, (struct fun_act0_0) {3, .as3 = temp0});
+	*temp0 = (struct subscript_10__lambda0) {f, res0};
+	add_task_0(ctx, _0, f.island_and_exclusion.exclusion, (struct fun_act0_0) {5, .as5 = temp0});
 	return res0;
 }
 /* subscript<fut<?r>> fut<nat>(a fun-act0<fut<nat>>) */
-struct fut_0* subscript_10(struct ctx* ctx, struct fun_act0_1 a) {
-	return call_w_ctx_179(a, ctx);
+struct fut_0* subscript_11(struct ctx* ctx, struct fun_act0_1 a) {
+	return call_w_ctx_186(a, ctx);
 }
 /* call-w-ctx<gc-ptr(fut<nat>)> (generated) (generated) */
-struct fut_0* call_w_ctx_179(struct fun_act0_1 a, struct ctx* ctx) {
+struct fut_0* call_w_ctx_186(struct fun_act0_1 a, struct ctx* ctx) {
 	struct fun_act0_1 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -6283,31 +6519,31 @@ struct fut_0* call_w_ctx_179(struct fun_act0_1 a, struct ctx* ctx) {
 	}
 }
 /* subscript<?out>.lambda0.lambda0 void() */
-struct void_ subscript_9__lambda0__lambda0(struct ctx* ctx, struct subscript_9__lambda0__lambda0* _closure) {
-	struct fut_0* _0 = subscript_10(ctx, _closure->f.fun);
+struct void_ subscript_10__lambda0__lambda0(struct ctx* ctx, struct subscript_10__lambda0__lambda0* _closure) {
+	struct fut_0* _0 = subscript_11(ctx, _closure->f.fun);
 	return forward_to__e(ctx, _0, _closure->res);
 }
 /* subscript<?out>.lambda0.lambda1 void(it exception) */
-struct void_ subscript_9__lambda0__lambda1(struct ctx* ctx, struct subscript_9__lambda0__lambda1* _closure, struct exception it) {
+struct void_ subscript_10__lambda0__lambda1(struct ctx* ctx, struct subscript_10__lambda0__lambda1* _closure, struct exception it) {
 	return reject__e(ctx, _closure->res, it);
 }
 /* subscript<?out>.lambda0 void() */
-struct void_ subscript_9__lambda0(struct ctx* ctx, struct subscript_9__lambda0* _closure) {
-	struct subscript_9__lambda0__lambda0* temp0;
-	uint8_t* _0 = alloc(ctx, sizeof(struct subscript_9__lambda0__lambda0));
-	temp0 = (struct subscript_9__lambda0__lambda0*) _0;
+struct void_ subscript_10__lambda0(struct ctx* ctx, struct subscript_10__lambda0* _closure) {
+	struct subscript_10__lambda0__lambda0* temp0;
+	uint8_t* _0 = alloc(ctx, sizeof(struct subscript_10__lambda0__lambda0));
+	temp0 = (struct subscript_10__lambda0__lambda0*) _0;
 	
-	*temp0 = (struct subscript_9__lambda0__lambda0) {_closure->f, _closure->res};
-	struct subscript_9__lambda0__lambda1* temp1;
-	uint8_t* _1 = alloc(ctx, sizeof(struct subscript_9__lambda0__lambda1));
-	temp1 = (struct subscript_9__lambda0__lambda1*) _1;
+	*temp0 = (struct subscript_10__lambda0__lambda0) {_closure->f, _closure->res};
+	struct subscript_10__lambda0__lambda1* temp1;
+	uint8_t* _1 = alloc(ctx, sizeof(struct subscript_10__lambda0__lambda1));
+	temp1 = (struct subscript_10__lambda0__lambda1*) _1;
 	
-	*temp1 = (struct subscript_9__lambda0__lambda1) {_closure->res};
-	return catch(ctx, (struct fun_act0_0) {2, .as2 = temp0}, (struct fun_act1_3) {1, .as1 = temp1});
+	*temp1 = (struct subscript_10__lambda0__lambda1) {_closure->res};
+	return catch(ctx, (struct fun_act0_0) {4, .as4 = temp0}, (struct fun_act1_3) {1, .as1 = temp1});
 }
 /* then2<nat>.lambda0 fut<nat>(ignore void) */
 struct fut_0* then2__lambda0(struct ctx* ctx, struct then2__lambda0* _closure, struct void_ ignore) {
-	return subscript_9(ctx, _closure->cb);
+	return subscript_10(ctx, _closure->cb);
 }
 /* cur-island-and-exclusion island-and-exclusion() */
 struct island_and_exclusion cur_island_and_exclusion(struct ctx* ctx) {
@@ -6326,7 +6562,7 @@ struct fut_1* resolved_0(struct ctx* ctx, struct void_ value) {
 	uint8_t* _0 = alloc(ctx, sizeof(struct fut_1));
 	temp0 = (struct fut_1*) _0;
 	
-	struct lock _1 = new_lock_by_val();
+	struct lock _1 = lock_by_val();
 	*temp0 = (struct fut_1) {_1, (struct fut_state_1) {1, .as1 = (struct fut_state_resolved_1) {value}}};
 	return temp0;
 }
@@ -6335,14 +6571,14 @@ struct arr_4 tail_1(struct ctx* ctx, struct arr_4 a) {
 	uint8_t _0 = empty__q_2(a);
 	forbid_0(ctx, _0);
 	struct arrow _1 = _arrow(ctx, 1u, a.size);
-	return subscript_11(ctx, a, _1);
+	return subscript_12(ctx, a, _1);
 }
 /* empty?<?t> bool(a arr<ptr<char>>) */
 uint8_t empty__q_2(struct arr_4 a) {
 	return _equal_0(a.size, 0u);
 }
 /* subscript<?t> arr<ptr<char>>(a arr<ptr<char>>, range arrow<nat, nat>) */
-struct arr_4 subscript_11(struct ctx* ctx, struct arr_4 a, struct arrow range) {
+struct arr_4 subscript_12(struct ctx* ctx, struct arr_4 a, struct arrow range) {
 	uint8_t _0 = _lessOrEqual(range.from, range.to);
 	assert(ctx, _0);
 	uint8_t _1 = _lessOrEqual(range.to, a.size);
@@ -6381,7 +6617,7 @@ struct void_ fill_ptr_range_recur(struct ctx* ctx, struct arr_0* begin, uint64_t
 	top:;
 	uint8_t _0 = _notEqual_1(i, size);
 	if (_0) {
-		struct arr_0 _1 = subscript_12(ctx, f, i);
+		struct arr_0 _1 = subscript_13(ctx, f, i);
 		*(begin + i) = _1;
 		uint64_t _2 = noctx_incr(i);
 		begin = begin;
@@ -6394,11 +6630,11 @@ struct void_ fill_ptr_range_recur(struct ctx* ctx, struct arr_0* begin, uint64_t
 	}
 }
 /* subscript<?t, nat> arr<char>(a fun-act1<arr<char>, nat>, p0 nat) */
-struct arr_0 subscript_12(struct ctx* ctx, struct fun_act1_5 a, uint64_t p0) {
-	return call_w_ctx_196(a, ctx, p0);
+struct arr_0 subscript_13(struct ctx* ctx, struct fun_act1_5 a, uint64_t p0) {
+	return call_w_ctx_203(a, ctx, p0);
 }
 /* call-w-ctx<arr<char>, nat-64> (generated) (generated) */
-struct arr_0 call_w_ctx_196(struct fun_act1_5 a, struct ctx* ctx, uint64_t p0) {
+struct arr_0 call_w_ctx_203(struct fun_act1_5 a, struct ctx* ctx, uint64_t p0) {
 	struct fun_act1_5 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -6411,11 +6647,11 @@ struct arr_0 call_w_ctx_196(struct fun_act1_5 a, struct ctx* ctx, uint64_t p0) {
 	}
 }
 /* subscript<?out, ?in> arr<char>(a fun-act1<arr<char>, ptr<char>>, p0 ptr<char>) */
-struct arr_0 subscript_13(struct ctx* ctx, struct fun_act1_4 a, char* p0) {
-	return call_w_ctx_198(a, ctx, p0);
+struct arr_0 subscript_14(struct ctx* ctx, struct fun_act1_4 a, char* p0) {
+	return call_w_ctx_205(a, ctx, p0);
 }
 /* call-w-ctx<arr<char>, raw-ptr(char)> (generated) (generated) */
-struct arr_0 call_w_ctx_198(struct fun_act1_4 a, struct ctx* ctx, char* p0) {
+struct arr_0 call_w_ctx_205(struct fun_act1_4 a, struct ctx* ctx, char* p0) {
 	struct fun_act1_4 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -6428,7 +6664,7 @@ struct arr_0 call_w_ctx_198(struct fun_act1_4 a, struct ctx* ctx, char* p0) {
 	}
 }
 /* subscript<?in> ptr<char>(a arr<ptr<char>>, index nat) */
-char* subscript_14(struct ctx* ctx, struct arr_4 a, uint64_t index) {
+char* subscript_15(struct ctx* ctx, struct arr_4 a, uint64_t index) {
 	uint8_t _0 = _less_0(index, a.size);
 	assert(ctx, _0);
 	return noctx_at_2(a, index);
@@ -6441,8 +6677,8 @@ char* noctx_at_2(struct arr_4 a, uint64_t index) {
 }
 /* map<arr<char>, ptr<char>>.lambda0 arr<char>(i nat) */
 struct arr_0 map_0__lambda0(struct ctx* ctx, struct map_0__lambda0* _closure, uint64_t i) {
-	char* _0 = subscript_14(ctx, _closure->a, i);
-	return subscript_13(ctx, _closure->mapper, _0);
+	char* _0 = subscript_15(ctx, _closure->a, i);
+	return subscript_14(ctx, _closure->mapper, _0);
 }
 /* to-str arr<char>(a ptr<char>) */
 struct arr_0 to_str_1(char* a) {
@@ -6482,7 +6718,7 @@ char* find_char_in_cstr(char* a, char c) {
 }
 /* ==<char> bool(a char, b char) */
 uint8_t _equal_3(char a, char b) {
-	struct comparison _0 = compare_208(a, b);
+	struct comparison _0 = compare_215(a, b);
 	switch (_0.kind) {
 		case 0: {
 			return 0;
@@ -6498,7 +6734,7 @@ uint8_t _equal_3(char a, char b) {
 	}
 }
 /* compare<char> (generated) (generated) */
-struct comparison compare_208(char a, char b) {
+struct comparison compare_215(char a, char b) {
 	uint8_t _0 = (a < b);
 	if (_0) {
 		return (struct comparison) {0, .as0 = (struct less) {}};
@@ -6537,17 +6773,17 @@ struct void_ handle_exceptions(struct ctx* ctx, struct fut_0* a) {
 	return then_void_1(ctx, a, (struct fun_act1_0) {1, .as1 = (struct void_) {}});
 }
 /* subscript<void, exception> void(a fun1<void, exception>, p0 exception) */
-struct void_ subscript_15(struct ctx* ctx, struct fun1_0 a, struct exception p0) {
-	return call_w_ctx_215(a, ctx, p0);
+struct void_ subscript_16(struct ctx* ctx, struct fun1_0 a, struct exception p0) {
+	return call_w_ctx_222(a, ctx, p0);
 }
 /* call-w-ctx<void, exception> (generated) (generated) */
-struct void_ call_w_ctx_215(struct fun1_0 a, struct ctx* ctx, struct exception p0) {
+struct void_ call_w_ctx_222(struct fun1_0 a, struct ctx* ctx, struct exception p0) {
 	struct fun1_0 _0 = a;
 	switch (_0.kind) {
 		case 0: {
 			struct void_ closure0 = _0.as0;
 			
-			return new_island__lambda0(ctx, closure0, p0);
+			return island__lambda0(ctx, closure0, p0);
 		}
 		default:
 			return (struct void_) {};
@@ -6573,7 +6809,7 @@ struct void_ handle_exceptions__lambda0(struct ctx* ctx, struct void_ _closure, 
 			
 			struct island* _1 = get_cur_island(ctx);
 			struct fun1_0 _2 = exception_handler(ctx, _1);
-			return subscript_15(ctx, _2, e0.value);
+			return subscript_16(ctx, _2, e0.value);
 		}
 		default:
 			return (struct void_) {};
@@ -6584,7 +6820,7 @@ struct fut_0* do_main__lambda0(struct ctx* ctx, struct void_ _closure, struct ar
 	return add_first_task(ctx, all_args, main_ptr);
 }
 /* call-w-ctx<gc-ptr(fut<nat>), arr<ptr<char>>, some fun ptr type> (generated) (generated) */
-struct fut_0* call_w_ctx_220(struct fun_act2 a, struct ctx* ctx, struct arr_4 p0, fun_ptr2 p1) {
+struct fut_0* call_w_ctx_227(struct fun_act2 a, struct ctx* ctx, struct arr_4 p0, fun_ptr2 p1) {
 	struct fun_act2 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -6685,10 +6921,10 @@ uint8_t* thread_fun(uint8_t* args_ptr) {
 /* thread-function void(thread-id nat, gctx global-ctx) */
 struct void_ thread_function(uint64_t thread_id, struct global_ctx* gctx) {
 	struct exception_ctx ectx0;
-	ectx0 = new_exception_ctx();
+	ectx0 = exception_ctx();
 	
 	struct log_ctx log_ctx1;
-	log_ctx1 = new_log_ctx();
+	log_ctx1 = log_ctx();
 	
 	struct thread_local_stuff tls2;
 	tls2 = (struct thread_local_stuff) {(&ectx0), (&log_ctx1)};
@@ -6700,11 +6936,11 @@ struct void_ thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, 
 	top:;
 	uint8_t _0 = gctx->shut_down__q;
 	if (_0) {
-		acquire_lock((&gctx->lk));
+		acquire__e((&gctx->lk));
 		uint64_t _1 = noctx_decr(gctx->n_live_threads);
 		gctx->n_live_threads = _1;
 		assert_islands_are_shut_down(0u, gctx->islands);
-		return release_lock((&gctx->lk));
+		return release__e((&gctx->lk));
 	} else {
 		uint8_t _2 = _greater(gctx->n_live_threads, 0u);
 		hard_assert(_2);
@@ -6726,14 +6962,14 @@ struct void_ thread_function_recur(uint64_t thread_id, struct global_ctx* gctx, 
 				if (_4) {
 					hard_forbid(gctx->shut_down__q);
 					gctx->shut_down__q = 1;
-					broadcast((&gctx->may_be_work_to_do));
+					broadcast__e((&gctx->may_be_work_to_do));
 				} else {
 					wait_on((&gctx->may_be_work_to_do), n2.first_task_time, last_checked0);
 				}
-				acquire_lock((&gctx->lk));
+				acquire__e((&gctx->lk));
 				uint64_t _5 = noctx_incr(gctx->n_live_threads);
 				gctx->n_live_threads = _5;
-				release_lock((&gctx->lk));
+				release__e((&gctx->lk));
 				break;
 			}
 			default:
@@ -6753,14 +6989,14 @@ struct void_ assert_islands_are_shut_down(uint64_t i, struct arr_3 islands) {
 		struct island* island0;
 		island0 = noctx_at_1(islands, i);
 		
-		acquire_lock((&island0->tasks_lock));
+		acquire__e((&island0->tasks_lock));
 		hard_forbid((&island0->gc)->needs_gc__q);
 		uint8_t _1 = _equal_0(island0->n_threads_running, 0u);
 		hard_assert(_1);
 		struct task_queue* _2 = tasks(island0);
 		uint8_t _3 = empty__q_3(_2);
 		hard_assert(_3);
-		release_lock((&island0->tasks_lock));
+		release__e((&island0->tasks_lock));
 		uint64_t _4 = noctx_incr(i);
 		i = _4;
 		islands = islands;
@@ -6799,7 +7035,7 @@ uint64_t get_last_checked(struct condition* c) {
 }
 /* choose-task choose-task-result(gctx global-ctx) */
 struct choose_task_result choose_task(struct global_ctx* gctx) {
-	acquire_lock((&gctx->lk));
+	acquire__e((&gctx->lk));
 	uint64_t cur_time0;
 	cur_time0 = get_monotime_nsec();
 	
@@ -6831,7 +7067,7 @@ struct choose_task_result choose_task(struct global_ctx* gctx) {
 			(struct choose_task_result) {0};
 	}
 	
-	release_lock((&gctx->lk));
+	release__e((&gctx->lk));
 	return res4;
 }
 /* get-monotime-nsec nat() */
@@ -6917,7 +7153,7 @@ struct choose_task_result choose_task_recur(struct arr_3 islands, uint64_t i, ui
 }
 /* choose-task-in-island choose-task-in-island-result(island island, cur-time nat) */
 struct choose_task_in_island_result choose_task_in_island(struct island* island, uint64_t cur_time) {
-	acquire_lock((&island->tasks_lock));
+	acquire__e((&island->tasks_lock));
 	struct choose_task_in_island_result res2;
 	uint8_t _0 = (&island->gc)->needs_gc__q;
 	if (_0) {
@@ -6956,7 +7192,7 @@ struct choose_task_in_island_result choose_task_in_island(struct island* island,
 	} else {
 		(struct void_) {};
 	}
-	release_lock((&island->tasks_lock));
+	release__e((&island->tasks_lock));
 	return res2;
 }
 /* pop-task! pop-task-result(a task-queue, cur-time nat) */
@@ -6985,7 +7221,7 @@ struct pop_task_result pop_task__e(struct task_queue* a, uint64_t cur_time) {
 				uint8_t _2 = contains__q_0(exclusions0, task3.exclusion);
 				if (_2) {
 					struct opt_8 _3 = to_opt_time(task3.time);
-					res4 = pop_recur(head2, exclusions0, cur_time, _3);
+					res4 = pop_recur__e(head2, exclusions0, cur_time, _3);
 				} else {
 					a->head = head2->next;
 					res4 = (struct pop_task_result) {0, .as0 = head2->task};
@@ -7073,8 +7309,8 @@ uint64_t* data_0(struct mut_list* a) {
 uint64_t* data_1(struct mut_arr a) {
 	return a.inner.data;
 }
-/* pop-recur pop-task-result(prev task-queue-node, exclusions mut-list<nat>, cur-time nat, first-task-time opt<nat>) */
-struct pop_task_result pop_recur(struct task_queue_node* prev, struct mut_list* exclusions, uint64_t cur_time, struct opt_8 first_task_time) {
+/* pop-recur! pop-task-result(prev task-queue-node, exclusions mut-list<nat>, cur-time nat, first-task-time opt<nat>) */
+struct pop_task_result pop_recur__e(struct task_queue_node* prev, struct mut_list* exclusions, uint64_t cur_time, struct opt_8 first_task_time) {
 	top:;
 	struct opt_2 _0 = prev->next;
 	switch (_0.kind) {
@@ -7228,28 +7464,28 @@ struct void_ do_task(struct global_ctx* gctx, struct thread_local_stuff* tls, st
 			struct task task1 = _0.as0;
 			
 			struct ctx ctx2;
-			ctx2 = new_ctx(gctx, tls, island0, task1.exclusion);
+			ctx2 = ctx(gctx, tls, island0, task1.exclusion);
 			
-			call_w_ctx_167(task1.action, (&ctx2));
-			acquire_lock((&island0->tasks_lock));
+			call_w_ctx_136(task1.action, (&ctx2));
+			acquire__e((&island0->tasks_lock));
 			struct task_queue* _1 = tasks(island0);
 			return_task__e(_1, task1);
-			release_lock((&island0->tasks_lock));
+			release__e((&island0->tasks_lock));
 			return_ctx((&ctx2));
 			break;
 		}
 		case 1: {
 			run_garbage_collection((&island0->gc), island0->gc_root);
-			broadcast((&gctx->may_be_work_to_do));
+			broadcast__e((&gctx->may_be_work_to_do));
 			break;
 		}
 		default:
 			(struct void_) {};
 	}
-	acquire_lock((&island0->tasks_lock));
+	acquire__e((&island0->tasks_lock));
 	uint64_t _2 = noctx_decr(island0->n_threads_running);
 	island0->n_threads_running = _2;
-	return release_lock((&island0->tasks_lock));
+	return release__e((&island0->tasks_lock));
 }
 /* return-task! void(a task-queue, task task) */
 struct void_ return_task__e(struct task_queue* a, struct task task) {
@@ -7322,10 +7558,10 @@ struct void_ return_gc_ctx(struct gc_ctx* gc_ctx) {
 	struct gc* gc0;
 	gc0 = gc_ctx->gc;
 	
-	acquire_lock((&gc0->lk));
+	acquire__e((&gc0->lk));
 	gc_ctx->next_ctx = gc0->context_head;
 	gc0->context_head = (struct opt_1) {1, .as1 = (struct some_1) {gc_ctx}};
-	return release_lock((&gc0->lk));
+	return release__e((&gc0->lk));
 }
 /* run-garbage-collection<by-val<island-gc-root>> void(gc gc, gc-root island-gc-root) */
 struct void_ run_garbage_collection(struct gc* gc, struct island_gc_root gc_root) {
@@ -7337,23 +7573,23 @@ struct void_ run_garbage_collection(struct gc* gc, struct island_gc_root gc_root
 	struct mark_ctx mark_ctx0;
 	mark_ctx0 = (struct mark_ctx) {gc->size_words, gc->mark_begin, gc->data_begin};
 	
-	mark_visit_276((&mark_ctx0), gc_root);
+	mark_visit_283((&mark_ctx0), gc_root);
 	gc->mark_cur = gc->mark_begin;
 	gc->data_cur = gc->data_begin;
 	clear_free_mem(gc->mark_begin, gc->mark_end, gc->data_begin);
 	return validate_gc(gc);
 }
 /* mark-visit<island-gc-root> (generated) (generated) */
-struct void_ mark_visit_276(struct mark_ctx* mark_ctx, struct island_gc_root value) {
-	return mark_visit_277(mark_ctx, value.tasks);
+struct void_ mark_visit_283(struct mark_ctx* mark_ctx, struct island_gc_root value) {
+	return mark_visit_284(mark_ctx, value.tasks);
 }
 /* mark-visit<task-queue> (generated) (generated) */
-struct void_ mark_visit_277(struct mark_ctx* mark_ctx, struct task_queue value) {
-	mark_visit_278(mark_ctx, value.head);
-	return mark_visit_317(mark_ctx, value.currently_running_exclusions);
+struct void_ mark_visit_284(struct mark_ctx* mark_ctx, struct task_queue value) {
+	mark_visit_285(mark_ctx, value.head);
+	return mark_visit_339(mark_ctx, value.currently_running_exclusions);
 }
 /* mark-visit<opt<task-queue-node>> (generated) (generated) */
-struct void_ mark_visit_278(struct mark_ctx* mark_ctx, struct opt_2 value) {
+struct void_ mark_visit_285(struct mark_ctx* mark_ctx, struct opt_2 value) {
 	struct opt_2 _0 = value;
 	switch (_0.kind) {
 		case 0: {
@@ -7362,137 +7598,80 @@ struct void_ mark_visit_278(struct mark_ctx* mark_ctx, struct opt_2 value) {
 		case 1: {
 			struct some_2 value1 = _0.as1;
 			
-			return mark_visit_279(mark_ctx, value1);
+			return mark_visit_286(mark_ctx, value1);
 		}
 		default:
 			return (struct void_) {};
 	}
 }
 /* mark-visit<some<task-queue-node>> (generated) (generated) */
-struct void_ mark_visit_279(struct mark_ctx* mark_ctx, struct some_2 value) {
-	return mark_visit_316(mark_ctx, value.value);
+struct void_ mark_visit_286(struct mark_ctx* mark_ctx, struct some_2 value) {
+	return mark_visit_338(mark_ctx, value.value);
 }
 /* mark-visit<task-queue-node> (generated) (generated) */
-struct void_ mark_visit_280(struct mark_ctx* mark_ctx, struct task_queue_node value) {
-	mark_visit_281(mark_ctx, value.task);
-	return mark_visit_278(mark_ctx, value.next);
+struct void_ mark_visit_287(struct mark_ctx* mark_ctx, struct task_queue_node value) {
+	mark_visit_288(mark_ctx, value.task);
+	return mark_visit_285(mark_ctx, value.next);
 }
 /* mark-visit<task> (generated) (generated) */
-struct void_ mark_visit_281(struct mark_ctx* mark_ctx, struct task value) {
-	return mark_visit_282(mark_ctx, value.action);
+struct void_ mark_visit_288(struct mark_ctx* mark_ctx, struct task value) {
+	return mark_visit_289(mark_ctx, value.action);
 }
 /* mark-visit<fun-act0<void>> (generated) (generated) */
-struct void_ mark_visit_282(struct mark_ctx* mark_ctx, struct fun_act0_0 value) {
+struct void_ mark_visit_289(struct mark_ctx* mark_ctx, struct fun_act0_0 value) {
 	struct fun_act0_0 _0 = value;
 	switch (_0.kind) {
 		case 0: {
-			struct subscript_4__lambda0__lambda0* value0 = _0.as0;
+			struct then_void_0__lambda0* value0 = _0.as0;
 			
-			return mark_visit_309(mark_ctx, value0);
+			return mark_visit_327(mark_ctx, value0);
 		}
 		case 1: {
-			struct subscript_4__lambda0* value1 = _0.as1;
+			struct then_void_1__lambda0* value1 = _0.as1;
 			
-			return mark_visit_311(mark_ctx, value1);
+			return mark_visit_329(mark_ctx, value1);
 		}
 		case 2: {
-			struct subscript_9__lambda0__lambda0* value2 = _0.as2;
+			struct subscript_6__lambda0__lambda0* value2 = _0.as2;
 			
-			return mark_visit_313(mark_ctx, value2);
+			return mark_visit_331(mark_ctx, value2);
 		}
 		case 3: {
-			struct subscript_9__lambda0* value3 = _0.as3;
+			struct subscript_6__lambda0* value3 = _0.as3;
 			
-			return mark_visit_315(mark_ctx, value3);
+			return mark_visit_333(mark_ctx, value3);
+		}
+		case 4: {
+			struct subscript_10__lambda0__lambda0* value4 = _0.as4;
+			
+			return mark_visit_335(mark_ctx, value4);
+		}
+		case 5: {
+			struct subscript_10__lambda0* value5 = _0.as5;
+			
+			return mark_visit_337(mark_ctx, value5);
 		}
 		default:
 			return (struct void_) {};
 	}
 }
-/* mark-visit<subscript<?out, ?in>.lambda0.lambda0> (generated) (generated) */
-struct void_ mark_visit_283(struct mark_ctx* mark_ctx, struct subscript_4__lambda0__lambda0 value) {
-	mark_visit_284(mark_ctx, value.f);
-	return mark_visit_301(mark_ctx, value.res);
+/* mark-visit<then-void<?in>.lambda0> (generated) (generated) */
+struct void_ mark_visit_290(struct mark_ctx* mark_ctx, struct then_void_0__lambda0 value) {
+	mark_visit_326(mark_ctx, value.f);
+	return mark_visit_297(mark_ctx, value.cb);
 }
-/* mark-visit<fun-ref1<nat, void>> (generated) (generated) */
-struct void_ mark_visit_284(struct mark_ctx* mark_ctx, struct fun_ref1 value) {
-	return mark_visit_285(mark_ctx, value.fun);
+/* mark-visit<fut<void>> (generated) (generated) */
+struct void_ mark_visit_291(struct mark_ctx* mark_ctx, struct fut_1 value) {
+	return mark_visit_292(mark_ctx, value.state);
 }
-/* mark-visit<fun-act1<fut<nat>, void>> (generated) (generated) */
-struct void_ mark_visit_285(struct mark_ctx* mark_ctx, struct fun_act1_2 value) {
-	struct fun_act1_2 _0 = value;
+/* mark-visit<fut-state<void>> (generated) (generated) */
+struct void_ mark_visit_292(struct mark_ctx* mark_ctx, struct fut_state_1 value) {
+	struct fut_state_1 _0 = value;
 	switch (_0.kind) {
 		case 0: {
-			struct then2__lambda0* value0 = _0.as0;
+			struct fut_state_callbacks_1 value0 = _0.as0;
 			
-			return mark_visit_292(mark_ctx, value0);
-		}
-		default:
-			return (struct void_) {};
-	}
-}
-/* mark-visit<then2<nat>.lambda0> (generated) (generated) */
-struct void_ mark_visit_286(struct mark_ctx* mark_ctx, struct then2__lambda0 value) {
-	return mark_visit_287(mark_ctx, value.cb);
-}
-/* mark-visit<fun-ref0<nat>> (generated) (generated) */
-struct void_ mark_visit_287(struct mark_ctx* mark_ctx, struct fun_ref0 value) {
-	return mark_visit_288(mark_ctx, value.fun);
-}
-/* mark-visit<fun-act0<fut<nat>>> (generated) (generated) */
-struct void_ mark_visit_288(struct mark_ctx* mark_ctx, struct fun_act0_1 value) {
-	struct fun_act0_1 _0 = value;
-	switch (_0.kind) {
-		case 0: {
-			struct add_first_task__lambda0* value0 = _0.as0;
-			
-			return mark_visit_291(mark_ctx, value0);
-		}
-		default:
-			return (struct void_) {};
-	}
-}
-/* mark-visit<add-first-task.lambda0> (generated) (generated) */
-struct void_ mark_visit_289(struct mark_ctx* mark_ctx, struct add_first_task__lambda0 value) {
-	return mark_arr_290(mark_ctx, value.all_args);
-}
-/* mark-arr<raw-ptr(char)> (generated) (generated) */
-struct void_ mark_arr_290(struct mark_ctx* mark_ctx, struct arr_4 a) {
-	uint8_t dropped0;
-	dropped0 = mark(mark_ctx, (uint8_t*) a.data, (a.size * sizeof(char*)));
-	
-	return (struct void_) {};
-}
-/* mark-visit<gc-ptr(add-first-task.lambda0)> (generated) (generated) */
-struct void_ mark_visit_291(struct mark_ctx* mark_ctx, struct add_first_task__lambda0* value) {
-	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct add_first_task__lambda0));
-	if (_0) {
-		return mark_visit_289(mark_ctx, *value);
-	} else {
-		return (struct void_) {};
-	}
-}
-/* mark-visit<gc-ptr(then2<nat>.lambda0)> (generated) (generated) */
-struct void_ mark_visit_292(struct mark_ctx* mark_ctx, struct then2__lambda0* value) {
-	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct then2__lambda0));
-	if (_0) {
-		return mark_visit_286(mark_ctx, *value);
-	} else {
-		return (struct void_) {};
-	}
-}
-/* mark-visit<fut<nat>> (generated) (generated) */
-struct void_ mark_visit_293(struct mark_ctx* mark_ctx, struct fut_0 value) {
-	return mark_visit_294(mark_ctx, value.state);
-}
-/* mark-visit<fut-state<nat>> (generated) (generated) */
-struct void_ mark_visit_294(struct mark_ctx* mark_ctx, struct fut_state_0 value) {
-	struct fut_state_0 _0 = value;
-	switch (_0.kind) {
-		case 0: {
-			struct fut_state_callbacks_0 value0 = _0.as0;
-			
-			return mark_visit_295(mark_ctx, value0);
+			return mark_visit_293(mark_ctx, value0);
 		}
 		case 1: {
 			return (struct void_) {};
@@ -7500,18 +7679,157 @@ struct void_ mark_visit_294(struct mark_ctx* mark_ctx, struct fut_state_0 value)
 		case 2: {
 			struct exception value2 = _0.as2;
 			
-			return mark_visit_304(mark_ctx, value2);
+			return mark_visit_319(mark_ctx, value2);
+		}
+		default:
+			return (struct void_) {};
+	}
+}
+/* mark-visit<fut-state-callbacks<void>> (generated) (generated) */
+struct void_ mark_visit_293(struct mark_ctx* mark_ctx, struct fut_state_callbacks_1 value) {
+	return mark_visit_294(mark_ctx, value.head);
+}
+/* mark-visit<opt<fut-callback-node<void>>> (generated) (generated) */
+struct void_ mark_visit_294(struct mark_ctx* mark_ctx, struct opt_7 value) {
+	struct opt_7 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			return (struct void_) {};
+		}
+		case 1: {
+			struct some_7 value1 = _0.as1;
+			
+			return mark_visit_295(mark_ctx, value1);
+		}
+		default:
+			return (struct void_) {};
+	}
+}
+/* mark-visit<some<fut-callback-node<void>>> (generated) (generated) */
+struct void_ mark_visit_295(struct mark_ctx* mark_ctx, struct some_7 value) {
+	return mark_visit_325(mark_ctx, value.value);
+}
+/* mark-visit<fut-callback-node<void>> (generated) (generated) */
+struct void_ mark_visit_296(struct mark_ctx* mark_ctx, struct fut_callback_node_1 value) {
+	mark_visit_297(mark_ctx, value.cb);
+	return mark_visit_294(mark_ctx, value.next_node);
+}
+/* mark-visit<fun-act1<void, result<void, exception>>> (generated) (generated) */
+struct void_ mark_visit_297(struct mark_ctx* mark_ctx, struct fun_act1_1 value) {
+	struct fun_act1_1 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			struct then__lambda0* value0 = _0.as0;
+			
+			return mark_visit_324(mark_ctx, value0);
+		}
+		default:
+			return (struct void_) {};
+	}
+}
+/* mark-visit<then<?out, void>.lambda0> (generated) (generated) */
+struct void_ mark_visit_298(struct mark_ctx* mark_ctx, struct then__lambda0 value) {
+	mark_visit_299(mark_ctx, value.cb);
+	return mark_visit_316(mark_ctx, value.res);
+}
+/* mark-visit<fun-ref1<nat, void>> (generated) (generated) */
+struct void_ mark_visit_299(struct mark_ctx* mark_ctx, struct fun_ref1 value) {
+	return mark_visit_300(mark_ctx, value.fun);
+}
+/* mark-visit<fun-act1<fut<nat>, void>> (generated) (generated) */
+struct void_ mark_visit_300(struct mark_ctx* mark_ctx, struct fun_act1_2 value) {
+	struct fun_act1_2 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			struct then2__lambda0* value0 = _0.as0;
+			
+			return mark_visit_307(mark_ctx, value0);
+		}
+		default:
+			return (struct void_) {};
+	}
+}
+/* mark-visit<then2<nat>.lambda0> (generated) (generated) */
+struct void_ mark_visit_301(struct mark_ctx* mark_ctx, struct then2__lambda0 value) {
+	return mark_visit_302(mark_ctx, value.cb);
+}
+/* mark-visit<fun-ref0<nat>> (generated) (generated) */
+struct void_ mark_visit_302(struct mark_ctx* mark_ctx, struct fun_ref0 value) {
+	return mark_visit_303(mark_ctx, value.fun);
+}
+/* mark-visit<fun-act0<fut<nat>>> (generated) (generated) */
+struct void_ mark_visit_303(struct mark_ctx* mark_ctx, struct fun_act0_1 value) {
+	struct fun_act0_1 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			struct add_first_task__lambda0* value0 = _0.as0;
+			
+			return mark_visit_306(mark_ctx, value0);
+		}
+		default:
+			return (struct void_) {};
+	}
+}
+/* mark-visit<add-first-task.lambda0> (generated) (generated) */
+struct void_ mark_visit_304(struct mark_ctx* mark_ctx, struct add_first_task__lambda0 value) {
+	return mark_arr_305(mark_ctx, value.all_args);
+}
+/* mark-arr<raw-ptr(char)> (generated) (generated) */
+struct void_ mark_arr_305(struct mark_ctx* mark_ctx, struct arr_4 a) {
+	uint8_t dropped0;
+	dropped0 = mark(mark_ctx, (uint8_t*) a.data, (a.size * sizeof(char*)));
+	
+	return (struct void_) {};
+}
+/* mark-visit<gc-ptr(add-first-task.lambda0)> (generated) (generated) */
+struct void_ mark_visit_306(struct mark_ctx* mark_ctx, struct add_first_task__lambda0* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct add_first_task__lambda0));
+	if (_0) {
+		return mark_visit_304(mark_ctx, *value);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<gc-ptr(then2<nat>.lambda0)> (generated) (generated) */
+struct void_ mark_visit_307(struct mark_ctx* mark_ctx, struct then2__lambda0* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct then2__lambda0));
+	if (_0) {
+		return mark_visit_301(mark_ctx, *value);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<fut<nat>> (generated) (generated) */
+struct void_ mark_visit_308(struct mark_ctx* mark_ctx, struct fut_0 value) {
+	return mark_visit_309(mark_ctx, value.state);
+}
+/* mark-visit<fut-state<nat>> (generated) (generated) */
+struct void_ mark_visit_309(struct mark_ctx* mark_ctx, struct fut_state_0 value) {
+	struct fut_state_0 _0 = value;
+	switch (_0.kind) {
+		case 0: {
+			struct fut_state_callbacks_0 value0 = _0.as0;
+			
+			return mark_visit_310(mark_ctx, value0);
+		}
+		case 1: {
+			return (struct void_) {};
+		}
+		case 2: {
+			struct exception value2 = _0.as2;
+			
+			return mark_visit_319(mark_ctx, value2);
 		}
 		default:
 			return (struct void_) {};
 	}
 }
 /* mark-visit<fut-state-callbacks<nat>> (generated) (generated) */
-struct void_ mark_visit_295(struct mark_ctx* mark_ctx, struct fut_state_callbacks_0 value) {
-	return mark_visit_296(mark_ctx, value.head);
+struct void_ mark_visit_310(struct mark_ctx* mark_ctx, struct fut_state_callbacks_0 value) {
+	return mark_visit_311(mark_ctx, value.head);
 }
 /* mark-visit<opt<fut-callback-node<nat>>> (generated) (generated) */
-struct void_ mark_visit_296(struct mark_ctx* mark_ctx, struct opt_0 value) {
+struct void_ mark_visit_311(struct mark_ctx* mark_ctx, struct opt_0 value) {
 	struct opt_0 _0 = value;
 	switch (_0.kind) {
 		case 0: {
@@ -7520,29 +7838,29 @@ struct void_ mark_visit_296(struct mark_ctx* mark_ctx, struct opt_0 value) {
 		case 1: {
 			struct some_0 value1 = _0.as1;
 			
-			return mark_visit_297(mark_ctx, value1);
+			return mark_visit_312(mark_ctx, value1);
 		}
 		default:
 			return (struct void_) {};
 	}
 }
 /* mark-visit<some<fut-callback-node<nat>>> (generated) (generated) */
-struct void_ mark_visit_297(struct mark_ctx* mark_ctx, struct some_0 value) {
-	return mark_visit_303(mark_ctx, value.value);
+struct void_ mark_visit_312(struct mark_ctx* mark_ctx, struct some_0 value) {
+	return mark_visit_318(mark_ctx, value.value);
 }
 /* mark-visit<fut-callback-node<nat>> (generated) (generated) */
-struct void_ mark_visit_298(struct mark_ctx* mark_ctx, struct fut_callback_node_0 value) {
-	mark_visit_299(mark_ctx, value.cb);
-	return mark_visit_296(mark_ctx, value.next_node);
+struct void_ mark_visit_313(struct mark_ctx* mark_ctx, struct fut_callback_node_0 value) {
+	mark_visit_314(mark_ctx, value.cb);
+	return mark_visit_311(mark_ctx, value.next_node);
 }
 /* mark-visit<fun-act1<void, result<nat, exception>>> (generated) (generated) */
-struct void_ mark_visit_299(struct mark_ctx* mark_ctx, struct fun_act1_0 value) {
+struct void_ mark_visit_314(struct mark_ctx* mark_ctx, struct fun_act1_0 value) {
 	struct fun_act1_0 _0 = value;
 	switch (_0.kind) {
 		case 0: {
 			struct forward_to__e__lambda0* value0 = _0.as0;
 			
-			return mark_visit_302(mark_ctx, value0);
+			return mark_visit_317(mark_ctx, value0);
 		}
 		case 1: {
 			return (struct void_) {};
@@ -7552,60 +7870,60 @@ struct void_ mark_visit_299(struct mark_ctx* mark_ctx, struct fun_act1_0 value) 
 	}
 }
 /* mark-visit<forward-to!<?out>.lambda0> (generated) (generated) */
-struct void_ mark_visit_300(struct mark_ctx* mark_ctx, struct forward_to__e__lambda0 value) {
-	return mark_visit_301(mark_ctx, value.to);
+struct void_ mark_visit_315(struct mark_ctx* mark_ctx, struct forward_to__e__lambda0 value) {
+	return mark_visit_316(mark_ctx, value.to);
 }
 /* mark-visit<gc-ptr(fut<nat>)> (generated) (generated) */
-struct void_ mark_visit_301(struct mark_ctx* mark_ctx, struct fut_0* value) {
+struct void_ mark_visit_316(struct mark_ctx* mark_ctx, struct fut_0* value) {
 	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct fut_0));
 	if (_0) {
-		return mark_visit_293(mark_ctx, *value);
+		return mark_visit_308(mark_ctx, *value);
 	} else {
 		return (struct void_) {};
 	}
 }
 /* mark-visit<gc-ptr(forward-to!<?out>.lambda0)> (generated) (generated) */
-struct void_ mark_visit_302(struct mark_ctx* mark_ctx, struct forward_to__e__lambda0* value) {
+struct void_ mark_visit_317(struct mark_ctx* mark_ctx, struct forward_to__e__lambda0* value) {
 	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct forward_to__e__lambda0));
 	if (_0) {
-		return mark_visit_300(mark_ctx, *value);
+		return mark_visit_315(mark_ctx, *value);
 	} else {
 		return (struct void_) {};
 	}
 }
 /* mark-visit<gc-ptr(fut-callback-node<nat>)> (generated) (generated) */
-struct void_ mark_visit_303(struct mark_ctx* mark_ctx, struct fut_callback_node_0* value) {
+struct void_ mark_visit_318(struct mark_ctx* mark_ctx, struct fut_callback_node_0* value) {
 	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct fut_callback_node_0));
 	if (_0) {
-		return mark_visit_298(mark_ctx, *value);
+		return mark_visit_313(mark_ctx, *value);
 	} else {
 		return (struct void_) {};
 	}
 }
 /* mark-visit<exception> (generated) (generated) */
-struct void_ mark_visit_304(struct mark_ctx* mark_ctx, struct exception value) {
-	mark_arr_305(mark_ctx, value.message);
-	return mark_visit_306(mark_ctx, value.backtrace);
+struct void_ mark_visit_319(struct mark_ctx* mark_ctx, struct exception value) {
+	mark_arr_320(mark_ctx, value.message);
+	return mark_visit_321(mark_ctx, value.backtrace);
 }
 /* mark-arr<char> (generated) (generated) */
-struct void_ mark_arr_305(struct mark_ctx* mark_ctx, struct arr_0 a) {
+struct void_ mark_arr_320(struct mark_ctx* mark_ctx, struct arr_0 a) {
 	uint8_t dropped0;
 	dropped0 = mark(mark_ctx, (uint8_t*) a.data, (a.size * sizeof(char)));
 	
 	return (struct void_) {};
 }
 /* mark-visit<backtrace> (generated) (generated) */
-struct void_ mark_visit_306(struct mark_ctx* mark_ctx, struct backtrace value) {
-	return mark_arr_308(mark_ctx, value.return_stack);
+struct void_ mark_visit_321(struct mark_ctx* mark_ctx, struct backtrace value) {
+	return mark_arr_323(mark_ctx, value.return_stack);
 }
 /* mark-elems<arr<char>> (generated) (generated) */
-struct void_ mark_elems_307(struct mark_ctx* mark_ctx, struct arr_0* cur, struct arr_0* end) {
+struct void_ mark_elems_322(struct mark_ctx* mark_ctx, struct arr_0* cur, struct arr_0* end) {
 	top:;
 	uint8_t _0 = (cur == end);
 	if (_0) {
 		return (struct void_) {};
 	} else {
-		mark_arr_305(mark_ctx, *cur);
+		mark_arr_320(mark_ctx, *cur);
 		mark_ctx = mark_ctx;
 		cur = (cur + 1u);
 		end = end;
@@ -7613,84 +7931,139 @@ struct void_ mark_elems_307(struct mark_ctx* mark_ctx, struct arr_0* cur, struct
 	}
 }
 /* mark-arr<arr<char>> (generated) (generated) */
-struct void_ mark_arr_308(struct mark_ctx* mark_ctx, struct arr_1 a) {
+struct void_ mark_arr_323(struct mark_ctx* mark_ctx, struct arr_1 a) {
 	uint8_t _0 = mark(mark_ctx, (uint8_t*) a.data, (a.size * sizeof(struct arr_0)));
 	if (_0) {
-		return mark_elems_307(mark_ctx, a.data, (a.data + a.size));
+		return mark_elems_322(mark_ctx, a.data, (a.data + a.size));
 	} else {
 		return (struct void_) {};
 	}
 }
-/* mark-visit<gc-ptr(subscript<?out, ?in>.lambda0.lambda0)> (generated) (generated) */
-struct void_ mark_visit_309(struct mark_ctx* mark_ctx, struct subscript_4__lambda0__lambda0* value) {
-	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct subscript_4__lambda0__lambda0));
+/* mark-visit<gc-ptr(then<?out, void>.lambda0)> (generated) (generated) */
+struct void_ mark_visit_324(struct mark_ctx* mark_ctx, struct then__lambda0* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct then__lambda0));
 	if (_0) {
-		return mark_visit_283(mark_ctx, *value);
+		return mark_visit_298(mark_ctx, *value);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<gc-ptr(fut-callback-node<void>)> (generated) (generated) */
+struct void_ mark_visit_325(struct mark_ctx* mark_ctx, struct fut_callback_node_1* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct fut_callback_node_1));
+	if (_0) {
+		return mark_visit_296(mark_ctx, *value);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<gc-ptr(fut<void>)> (generated) (generated) */
+struct void_ mark_visit_326(struct mark_ctx* mark_ctx, struct fut_1* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct fut_1));
+	if (_0) {
+		return mark_visit_291(mark_ctx, *value);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<gc-ptr(then-void<?in>.lambda0)> (generated) (generated) */
+struct void_ mark_visit_327(struct mark_ctx* mark_ctx, struct then_void_0__lambda0* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct then_void_0__lambda0));
+	if (_0) {
+		return mark_visit_290(mark_ctx, *value);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<then-void<?t>.lambda0> (generated) (generated) */
+struct void_ mark_visit_328(struct mark_ctx* mark_ctx, struct then_void_1__lambda0 value) {
+	mark_visit_316(mark_ctx, value.f);
+	return mark_visit_314(mark_ctx, value.cb);
+}
+/* mark-visit<gc-ptr(then-void<?t>.lambda0)> (generated) (generated) */
+struct void_ mark_visit_329(struct mark_ctx* mark_ctx, struct then_void_1__lambda0* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct then_void_1__lambda0));
+	if (_0) {
+		return mark_visit_328(mark_ctx, *value);
+	} else {
+		return (struct void_) {};
+	}
+}
+/* mark-visit<subscript<?out, ?in>.lambda0.lambda0> (generated) (generated) */
+struct void_ mark_visit_330(struct mark_ctx* mark_ctx, struct subscript_6__lambda0__lambda0 value) {
+	mark_visit_299(mark_ctx, value.f);
+	return mark_visit_316(mark_ctx, value.res);
+}
+/* mark-visit<gc-ptr(subscript<?out, ?in>.lambda0.lambda0)> (generated) (generated) */
+struct void_ mark_visit_331(struct mark_ctx* mark_ctx, struct subscript_6__lambda0__lambda0* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct subscript_6__lambda0__lambda0));
+	if (_0) {
+		return mark_visit_330(mark_ctx, *value);
 	} else {
 		return (struct void_) {};
 	}
 }
 /* mark-visit<subscript<?out, ?in>.lambda0> (generated) (generated) */
-struct void_ mark_visit_310(struct mark_ctx* mark_ctx, struct subscript_4__lambda0 value) {
-	mark_visit_284(mark_ctx, value.f);
-	return mark_visit_301(mark_ctx, value.res);
+struct void_ mark_visit_332(struct mark_ctx* mark_ctx, struct subscript_6__lambda0 value) {
+	mark_visit_299(mark_ctx, value.f);
+	return mark_visit_316(mark_ctx, value.res);
 }
 /* mark-visit<gc-ptr(subscript<?out, ?in>.lambda0)> (generated) (generated) */
-struct void_ mark_visit_311(struct mark_ctx* mark_ctx, struct subscript_4__lambda0* value) {
-	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct subscript_4__lambda0));
+struct void_ mark_visit_333(struct mark_ctx* mark_ctx, struct subscript_6__lambda0* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct subscript_6__lambda0));
 	if (_0) {
-		return mark_visit_310(mark_ctx, *value);
+		return mark_visit_332(mark_ctx, *value);
 	} else {
 		return (struct void_) {};
 	}
 }
 /* mark-visit<subscript<?out>.lambda0.lambda0> (generated) (generated) */
-struct void_ mark_visit_312(struct mark_ctx* mark_ctx, struct subscript_9__lambda0__lambda0 value) {
-	mark_visit_287(mark_ctx, value.f);
-	return mark_visit_301(mark_ctx, value.res);
+struct void_ mark_visit_334(struct mark_ctx* mark_ctx, struct subscript_10__lambda0__lambda0 value) {
+	mark_visit_302(mark_ctx, value.f);
+	return mark_visit_316(mark_ctx, value.res);
 }
 /* mark-visit<gc-ptr(subscript<?out>.lambda0.lambda0)> (generated) (generated) */
-struct void_ mark_visit_313(struct mark_ctx* mark_ctx, struct subscript_9__lambda0__lambda0* value) {
-	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct subscript_9__lambda0__lambda0));
+struct void_ mark_visit_335(struct mark_ctx* mark_ctx, struct subscript_10__lambda0__lambda0* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct subscript_10__lambda0__lambda0));
 	if (_0) {
-		return mark_visit_312(mark_ctx, *value);
+		return mark_visit_334(mark_ctx, *value);
 	} else {
 		return (struct void_) {};
 	}
 }
 /* mark-visit<subscript<?out>.lambda0> (generated) (generated) */
-struct void_ mark_visit_314(struct mark_ctx* mark_ctx, struct subscript_9__lambda0 value) {
-	mark_visit_287(mark_ctx, value.f);
-	return mark_visit_301(mark_ctx, value.res);
+struct void_ mark_visit_336(struct mark_ctx* mark_ctx, struct subscript_10__lambda0 value) {
+	mark_visit_302(mark_ctx, value.f);
+	return mark_visit_316(mark_ctx, value.res);
 }
 /* mark-visit<gc-ptr(subscript<?out>.lambda0)> (generated) (generated) */
-struct void_ mark_visit_315(struct mark_ctx* mark_ctx, struct subscript_9__lambda0* value) {
-	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct subscript_9__lambda0));
+struct void_ mark_visit_337(struct mark_ctx* mark_ctx, struct subscript_10__lambda0* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct subscript_10__lambda0));
 	if (_0) {
-		return mark_visit_314(mark_ctx, *value);
+		return mark_visit_336(mark_ctx, *value);
 	} else {
 		return (struct void_) {};
 	}
 }
 /* mark-visit<gc-ptr(task-queue-node)> (generated) (generated) */
-struct void_ mark_visit_316(struct mark_ctx* mark_ctx, struct task_queue_node* value) {
+struct void_ mark_visit_338(struct mark_ctx* mark_ctx, struct task_queue_node* value) {
 	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct task_queue_node));
 	if (_0) {
-		return mark_visit_280(mark_ctx, *value);
+		return mark_visit_287(mark_ctx, *value);
 	} else {
 		return (struct void_) {};
 	}
 }
 /* mark-visit<mut-list<nat>> (generated) (generated) */
-struct void_ mark_visit_317(struct mark_ctx* mark_ctx, struct mut_list value) {
-	return mark_visit_318(mark_ctx, value.backing);
+struct void_ mark_visit_339(struct mark_ctx* mark_ctx, struct mut_list value) {
+	return mark_visit_340(mark_ctx, value.backing);
 }
 /* mark-visit<mut-arr<nat>> (generated) (generated) */
-struct void_ mark_visit_318(struct mark_ctx* mark_ctx, struct mut_arr value) {
-	return mark_arr_319(mark_ctx, value.inner);
+struct void_ mark_visit_340(struct mark_ctx* mark_ctx, struct mut_arr value) {
+	return mark_arr_341(mark_ctx, value.inner);
 }
 /* mark-arr<nat-64> (generated) (generated) */
-struct void_ mark_arr_319(struct mark_ctx* mark_ctx, struct arr_2 a) {
+struct void_ mark_arr_341(struct mark_ctx* mark_ctx, struct arr_2 a) {
 	uint8_t dropped0;
 	dropped0 = mark(mark_ctx, (uint8_t*) a.data, (a.size * sizeof(uint64_t)));
 	
@@ -7850,7 +8223,7 @@ struct fut_0* main_0(struct ctx* ctx, struct arr_1 _p0) {
 }
 /* ==<opt<nat>> bool(a opt<nat>, b opt<nat>) */
 uint8_t _equal_4(struct opt_8 a, struct opt_8 b) {
-	struct comparison _0 = compare_334(a, b);
+	struct comparison _0 = compare_356(a, b);
 	switch (_0.kind) {
 		case 0: {
 			return 0;
@@ -7866,7 +8239,7 @@ uint8_t _equal_4(struct opt_8 a, struct opt_8 b) {
 	}
 }
 /* compare<opt<nat>> (generated) (generated) */
-struct comparison compare_334(struct opt_8 a, struct opt_8 b) {
+struct comparison compare_356(struct opt_8 a, struct opt_8 b) {
 	struct opt_8 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -7877,7 +8250,7 @@ struct comparison compare_334(struct opt_8 a, struct opt_8 b) {
 				case 0: {
 					struct none b0 = _1.as0;
 					
-					return compare_335(a0, b0);
+					return compare_357(a0, b0);
 				}
 				case 1: {
 					return (struct comparison) {0, .as0 = (struct less) {}};
@@ -7897,7 +8270,7 @@ struct comparison compare_334(struct opt_8 a, struct opt_8 b) {
 				case 1: {
 					struct some_8 b1 = _2.as1;
 					
-					return compare_336(a1, b1);
+					return compare_358(a1, b1);
 				}
 				default:
 					return (struct comparison) {0};
@@ -7908,11 +8281,11 @@ struct comparison compare_334(struct opt_8 a, struct opt_8 b) {
 	}
 }
 /* compare<none> (generated) (generated) */
-struct comparison compare_335(struct none a, struct none b) {
+struct comparison compare_357(struct none a, struct none b) {
 	return (struct comparison) {1, .as1 = (struct equal) {}};
 }
 /* compare<some<nat>> (generated) (generated) */
-struct comparison compare_336(struct some_8 a, struct some_8 b) {
+struct comparison compare_358(struct some_8 a, struct some_8 b) {
 	struct comparison _0 = compare_7(a.value, b.value);
 	switch (_0.kind) {
 		case 0: {
@@ -8023,10 +8396,10 @@ struct opt_8 char_to_nat(struct ctx* ctx, char c) {
 char first(struct ctx* ctx, struct arr_0 a) {
 	uint8_t _0 = empty__q_0(a);
 	forbid_0(ctx, _0);
-	return subscript_16(ctx, a, 0u);
+	return subscript_17(ctx, a, 0u);
 }
 /* subscript<?t> char(a arr<char>, index nat) */
-char subscript_16(struct ctx* ctx, struct arr_0 a, uint64_t index) {
+char subscript_17(struct ctx* ctx, struct arr_0 a, uint64_t index) {
 	uint8_t _0 = _less_0(index, a.size);
 	assert(ctx, _0);
 	return noctx_at_5(a, index);
@@ -8042,10 +8415,10 @@ struct arr_0 tail_2(struct ctx* ctx, struct arr_0 a) {
 	uint8_t _0 = empty__q_0(a);
 	forbid_0(ctx, _0);
 	struct arrow _1 = _arrow(ctx, 1u, a.size);
-	return subscript_17(ctx, a, _1);
+	return subscript_18(ctx, a, _1);
 }
 /* subscript<?t> arr<char>(a arr<char>, range arrow<nat, nat>) */
-struct arr_0 subscript_17(struct ctx* ctx, struct arr_0 a, struct arrow range) {
+struct arr_0 subscript_18(struct ctx* ctx, struct arr_0 a, struct arrow range) {
 	uint8_t _0 = _lessOrEqual(range.from, range.to);
 	assert(ctx, _0);
 	uint8_t _1 = _lessOrEqual(range.to, a.size);
@@ -8085,7 +8458,7 @@ uint64_t _divide(struct ctx* ctx, uint64_t a, uint64_t b) {
 }
 /* ==<opt<int>> bool(a opt<int>, b opt<int>) */
 uint8_t _equal_5(struct opt_9 a, struct opt_9 b) {
-	struct comparison _0 = compare_348(a, b);
+	struct comparison _0 = compare_370(a, b);
 	switch (_0.kind) {
 		case 0: {
 			return 0;
@@ -8101,7 +8474,7 @@ uint8_t _equal_5(struct opt_9 a, struct opt_9 b) {
 	}
 }
 /* compare<opt<int>> (generated) (generated) */
-struct comparison compare_348(struct opt_9 a, struct opt_9 b) {
+struct comparison compare_370(struct opt_9 a, struct opt_9 b) {
 	struct opt_9 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -8112,7 +8485,7 @@ struct comparison compare_348(struct opt_9 a, struct opt_9 b) {
 				case 0: {
 					struct none b0 = _1.as0;
 					
-					return compare_335(a0, b0);
+					return compare_357(a0, b0);
 				}
 				case 1: {
 					return (struct comparison) {0, .as0 = (struct less) {}};
@@ -8132,7 +8505,7 @@ struct comparison compare_348(struct opt_9 a, struct opt_9 b) {
 				case 1: {
 					struct some_9 b1 = _2.as1;
 					
-					return compare_349(a1, b1);
+					return compare_371(a1, b1);
 				}
 				default:
 					return (struct comparison) {0};
@@ -8143,7 +8516,7 @@ struct comparison compare_348(struct opt_9 a, struct opt_9 b) {
 	}
 }
 /* compare<some<int>> (generated) (generated) */
-struct comparison compare_349(struct some_9 a, struct some_9 b) {
+struct comparison compare_371(struct some_9 a, struct some_9 b) {
 	struct comparison _0 = compare_37(a.value, b.value);
 	switch (_0.kind) {
 		case 0: {
@@ -8161,14 +8534,14 @@ struct comparison compare_349(struct some_9 a, struct some_9 b) {
 }
 /* parse-int opt<int>(a arr<char>) */
 struct opt_9 parse_int(struct ctx* ctx, struct arr_0 a) {
-	char _0 = subscript_16(ctx, a, 0u);
+	char _0 = subscript_17(ctx, a, 0u);
 	uint8_t _1 = _equal_3(_0, 45u);
 	if (_1) {
 		struct arr_0 _2 = tail_2(ctx, a);
 		struct opt_8 _3 = parse_nat(ctx, _2);
 		return map_1(ctx, _3, (struct fun_act1_6) {0, .as0 = (struct void_) {}});
 	} else {
-		char _4 = subscript_16(ctx, a, 0u);
+		char _4 = subscript_17(ctx, a, 0u);
 		uint8_t _5 = _equal_3(_4, 43u);struct arr_0 _6;
 		
 		if (_5) {
@@ -8190,7 +8563,7 @@ struct opt_9 map_1(struct ctx* ctx, struct opt_8 a, struct fun_act1_6 cb) {
 		case 1: {
 			struct some_8 s0 = _0.as1;
 			
-			int64_t _1 = subscript_18(ctx, cb, s0.value);
+			int64_t _1 = subscript_19(ctx, cb, s0.value);
 			return (struct opt_9) {1, .as1 = (struct some_9) {_1}};
 		}
 		default:
@@ -8198,11 +8571,11 @@ struct opt_9 map_1(struct ctx* ctx, struct opt_8 a, struct fun_act1_6 cb) {
 	}
 }
 /* subscript<?out, ?in> int(a fun-act1<int, nat>, p0 nat) */
-int64_t subscript_18(struct ctx* ctx, struct fun_act1_6 a, uint64_t p0) {
-	return call_w_ctx_353(a, ctx, p0);
+int64_t subscript_19(struct ctx* ctx, struct fun_act1_6 a, uint64_t p0) {
+	return call_w_ctx_375(a, ctx, p0);
 }
 /* call-w-ctx<int-64, nat-64> (generated) (generated) */
-int64_t call_w_ctx_353(struct fun_act1_6 a, struct ctx* ctx, uint64_t p0) {
+int64_t call_w_ctx_375(struct fun_act1_6 a, struct ctx* ctx, uint64_t p0) {
 	struct fun_act1_6 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -8371,7 +8744,7 @@ struct fut_0* resolved_1(struct ctx* ctx, uint64_t value) {
 	uint8_t* _0 = alloc(ctx, sizeof(struct fut_0));
 	temp0 = (struct fut_0*) _0;
 	
-	struct lock _1 = new_lock_by_val();
+	struct lock _1 = lock_by_val();
 	*temp0 = (struct fut_0) {_1, (struct fut_state_0) {1, .as1 = (struct fut_state_resolved_0) {value}}};
 	return temp0;
 }

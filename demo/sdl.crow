@@ -160,7 +160,7 @@ main fut nat(_ arr str) summon trusted
 	window = "Hello World!".to-c-str sdl-create-window 100, 100, 640, 480, sdl-window-shown
 	if window.as-any-ptr null?
 		"sdl-create-window" fail-sdl-error
-	renderer = window new-renderer
+	renderer = window renderer
 	texture = renderer create-texture
 
 	20 repeat {renderer main-loop texture}
@@ -185,7 +185,7 @@ main-loop void(renderer sdl-renderer, texture sdl-texture) summon trusted
 	renderer sdl-render-present
 	100 sleep-ms-sync
 
-new-renderer sdl-renderer(window sdl-window) summon trusted
+renderer sdl-renderer(window sdl-window) summon trusted
 	renderer = window sdl-create-renderer: -1, sdl-renderer-accelerated bits-or sdl-renderer-present-vsync
 	if renderer.as-any-ptr null?
 		"sdl-create-renderer" fail-sdl-error

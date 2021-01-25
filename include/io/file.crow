@@ -6,7 +6,7 @@ import
 		ref-eq?, size, size-of, some, str, todo, value, void, wrap-add
 	..cell: cell, get
 	..collection.arr: ~, subscript
-	..collection.mut-arr: cast-immutable, data, new-uninitialized-mut-arr, size
+	..collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
 	..collection.mut-list: ~=, move-to-arr!, mut-list
 	..collection.sort: sort
 	..exceptions: assert, forbid
@@ -92,7 +92,7 @@ read-dir arr str(path c-str) trusted summon
 
 read-link str(path str) summon trusted
 	| TODO: smart small and retry if necessAry
-	buff = 1000 new-uninitialized-mut-arr<char>
+	buff = 1000 uninitialized-mut-arr<char>
 	size = path.to-c-str readlink buff.data, buff.size
 	size check-errno-if-neg-one
 	buff.cast-immutable[0 -> size.to-nat]
@@ -164,7 +164,7 @@ try-read-file opt str(path c-str) summon trusted
 
 				| TODO: allocation can fail, then 'fd' is left open. Need finalizers
 				file-size-nat = file-size.to-nat
-				res = file-size-nat new-uninitialized-mut-arr<char>
+				res = file-size-nat uninitialized-mut-arr<char>
 				n-bytes-read = fd read res.data.ptr-cast, file-size-nat
 				| TODO: handle errors
 				forbid: n-bytes-read == -1
@@ -175,7 +175,7 @@ try-read-file opt str(path c-str) summon trusted
 		none
 
 get-cwd str() summon trusted
-	buff = 256 new-uninitialized-mut-arr<char>
+	buff = 256 uninitialized-mut-arr<char>
 	b = buff.data getcwd buff.size
 	if b null?
 		todo

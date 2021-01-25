@@ -6,23 +6,23 @@ import
 	.cell: cell, get, set
 	.collection.arr-util: each-with-index, first-some, map
 	.exceptions: catch
-	.fut-low-level: new-unresolved-fut, reject!, resolve!, resolve-or-reject!
+	.fut-low-level: reject!, resolve!, resolve-or-reject!, unresolved
 	.number-utils: -
 	.runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
-	.thread-utils: acquire-lock, new-lock, new-lock-by-val, release-lock, with-lock
+	.thread-utils: lock, lock-by-val, with-lock
 | Used to make code run after the next step. Equivalent to `sleep 0`.
 delay fut void()
 	void resolved
 
 resolved fut ?t(value ?t)
-	fut: new-lock-by-val, fut-state-resolved: value
+	fut: lock-by-val, fut-state-resolved: value
 
 rejected fut ?t(err exception)
-	fut: new-lock-by-val, err
+	fut: lock-by-val, err
 
 join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out> send<?in0> send<?in1>
-	res = new-unresolved-fut<?out>
-	lock = new-lock
+	res = unresolved<?out>
+	lock = lock
 	remaining = cell<nat>: 2
 	decr-remaining = as<act void()>: \
 		lock with-lock \
@@ -52,8 +52,8 @@ join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out>
 
 | TODO: send<arr ?a> should be unnecessary
 join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
-	res = new-unresolved-fut<arr ?a>
-	lock = new-lock
+	res = unresolved<arr ?a>
+	lock = lock
 	remaining = cell<nat>: a.size
 	a each-with-index \in, index
 		in then-void \value
@@ -91,27 +91,26 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 | NOTE: The function will be called with whatever ctx the fut terminates with!!!
 | TODO:PRIVATE (because this calls 'cb' synchronously sometimes)
 then-void void(f fut ?t, cb act void(result<?t, exception>)) unsafe
-	f.lk.ref-of-val acquire-lock
-	match f state
-	as fut-state-callbacks cbs
-		| create a new callback
-		f.state := fut-state-callbacks<?t>: some: fut-callback-node<?t>: cb, cbs.head
-	as fut-state-resolved r
-		cb[r.value ok]
-	as exception e
-		cb[e err]
-	f.lk.ref-of-val release-lock
+	f.lk.ref-of-val with-lock \
+		match f state
+		as fut-state-callbacks cbs
+			| create a new callback
+			f.state := fut-state-callbacks<?t>: some: fut-callback-node<?t>: cb, cbs.head
+		as fut-state-resolved r
+			cb[r.value ok]
+		as exception e
+			cb[e err]
 
 .forward-to! void(from fut ?t, to fut ?t) unsafe
 	from then-void {to resolve-or-reject! it}
 
 fut-catch fut result<?t, exception>(a fut ?t) trusted
-	res = new-unresolved-fut<result<?t, exception>>
+	res = unresolved<result<?t, exception>>
 	a then-void {res resolve! it}
 	res
 
 then fut ?out(f fut ?in, cb ref ?out(?in)) trusted send<?out> send<?in>
-	res = new-unresolved-fut<?out>
+	res = unresolved<?out>
 	f then-void \result
 		match result
 		as ok o
@@ -129,14 +128,14 @@ then2 fut ?out(f fut void, cb ref ?out()) send<?out>
 
 | Runs `f` in parallel.
 launch fut ?t(f fun fut ?t()) trusted
-	res = new-unresolved-fut<?t>
+	res = unresolved<?t>
 	island = get-cur-island
 	island add-task island.new-exclusion, \
 		f[] forward-to! res
 	res
 
 subscript fut ?r(f ref ?r()) trusted send<?r>
-	res = new-unresolved-fut<?r>
+	res = unresolved<?r>
 	f.island-and-exclusion.island.get-island add-task f.island-and-exclusion.exclusion, \
 		{f.fun[] forward-to! res} catch {res reject! it}
 	res
@@ -146,7 +145,7 @@ call-ref-void void(f ref void()) trusted
 
 subscript fut ?r(f ref ?r(?p0), p0 ?p0) trusted send<?r> send<?p0>
 	island = f.island-and-exclusion.island get-island
-	res = new-unresolved-fut<?r>
+	res = unresolved<?r>
 	island add-task f.island-and-exclusion.exclusion, \
 		{f.fun[p0] forward-to! res} catch {res reject! it}
 	res
@@ -156,7 +155,7 @@ call-ref-void void(f ref void(?p0), p0 ?p0) trusted send<?p0>
 
 subscript fut ?r(f ref ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> send<?p1>
 	island = f.island-and-exclusion.island get-island
-	res = new-unresolved-fut<?r>
+	res = unresolved<?r>
 	island add-task f.island-and-exclusion.exclusion, \
 		{f.fun[p0, p1] forward-to! res} catch {res reject! it}
 	res

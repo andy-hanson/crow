@@ -5,8 +5,8 @@ import
 	...collection.arr: empty?, has?, subscript
 	...collection.arr-util: contains?, last, rtail, split-by-subseq
 	...collection.dict: dict, each, has?
-	...collection.mut-dict: move-to-dict, mut-dict, mut-dict, remove, set-subscript, subscript
-	...collection.mut-list: ~=, index-of, move-to-arr, mut-list, pop-n-from-start!, size
+	...collection.mut-dict: move-to-dict!, mut-dict, remove!, set-subscript, subscript
+	...collection.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
 	...exceptions: assert, forbid
 	...fut-utils: resolved, subscript, then
 	...number-utils: incr, to-int
@@ -46,7 +46,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	client-states = mut-dict<fd-t, http-parse-state>
 
 	on-accepted-client = as<ref void(fd-t)>: \fd
-		client-states[fd] := new-http-parse-state
+		client-states[fd] := http-parse-state
 		void resolved
 	on-received-chunk = as<ref void(fd-t, arr nat8)>: \fd, bytes
 		match client-states[fd]
@@ -57,7 +57,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			state = s value
 			closed <- fd handle-chunk state, bytes.as-str, handler
 			if closed
-				client-states remove fd drop
+				client-states remove! fd drop
 			void resolved
 	tcp-server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
 
@@ -87,7 +87,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		false resolved
 
 .finish-request http-request(state http-parse-state)
-	http-request: state.method, state.url, state.headers.move-to-dict, state.unparsed.move-to-arr
+	http-request: state.method, state.url, state.headers.move-to-dict!, state.unparsed.move-to-arr!
 
 | TODO: write out to a stream, not str
 .response-to-str str(a http-response)
@@ -184,5 +184,5 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	| TODO:PERF: Use a circular buffer as we often take content off the front
 	unparsed mut-list char
 
-.new-http-parse-state http-parse-state()
+.http-parse-state http-parse-state()
 	http-parse-state: http-get, "", mut-dict, 0, mut-list

@@ -2,89 +2,83 @@ import
 	.bootstrap:
 		<, ==, !=, any-ptr, as, atomic-bool, bool, by-val, false, fun-ptr1, hard-assert,
 		hard-forbid, is-locked, lock, nat, noctx-decr, noctx-incr, not, null, null?, opt, ptr,
-		ptr-to, ref-of-val, subscript, todo, true, value, void, wrap-mul
+		ptr-to, ref-of-val, subscript, todo, true, value, void
 	.cell: cell, get
 	.io.time-low-level: get-monotime-nsec, timestamp
 	.posix.errno: eagain, einval, esrch
 	.posix.pthread: pthread-create, pthread-join, pthread-t, pthread-yield
-	.posix.unistd: usleep
 
 region atomic
 
-new-atomic-bool by-val atomic-bool() noctx
+atomic-bool by-val atomic-bool() noctx
 	atomic-bool: false
 
 | TODO: works on any primitive type, not just bool
 compare-exchange-strong bool(value-ptr ptr bool, expected-ptr ptr bool, desired bool) noctx builtin
 
-try-change bool(a atomic-bool, old-value bool) noctx trusted
+try-change! bool(a atomic-bool, old-value bool) noctx trusted
 	a.value.ptr-to compare-exchange-strong old-value.ptr-to, old-value.not
 
-try-set bool(a atomic-bool) noctx
-	a try-change false
+try-set! bool(a atomic-bool) noctx
+	a try-change! false
 
-try-unset bool(a atomic-bool) noctx
-	a try-change true
+try-unset! bool(a atomic-bool) noctx
+	a try-change! true
 
-must-unset void(a atomic-bool) noctx unsafe
-	did-unset = a try-unset
+must-unset! void(a atomic-bool) noctx unsafe
+	did-unset = a try-unset!
 	did-unset hard-assert
 
-new-lock lock()
-	lock: new-atomic-bool
+lock lock()
+	lock: atomic-bool
 
-new-lock-by-val by-val lock() noctx
-	lock: new-atomic-bool
+lock-by-val by-val lock() noctx
+	lock: atomic-bool
 
-try-acquire-lock bool(a lock) noctx trusted
-	a.is-locked.ref-of-val try-set
+try-acquire! bool(a lock) noctx trusted
+	a.is-locked.ref-of-val try-set!
 
-acquire-lock void(a lock) noctx unsafe
-	a acquire-lock-recur 0
+acquire! void(a lock) noctx unsafe
+	a acquire-recur! 0
 
-acquire-lock-recur void(a lock, n-tries nat) noctx unsafe
-	if a.try-acquire-lock not
+.acquire-recur! void(a lock, n-tries nat) noctx unsafe
+	if a.try-acquire! not
 		if n-tries == 10000
 			todo
 		else
 			yield-thread
-			a acquire-lock-recur n-tries.noctx-incr
+			a acquire-recur! n-tries.noctx-incr
 
 yield-thread void() noctx unsafe
 	err = pthread-yield
 	hard-assert: err == 0
 
-release-lock void(l lock) noctx unsafe
-	l.is-locked.ref-of-val must-unset
+release! void(a lock) noctx unsafe
+	a.is-locked.ref-of-val must-unset!
 
-with-lock ?t(l lock, f act ?t()) trusted
-	l acquire-lock
+with-lock ?t(a lock, f act ?t()) trusted
+	a acquire!
 	res = f[]
-	l release-lock
+	a release!
 	res
 
 condition record mut
 	lk by-val lock
 	value mut nat
 
-new-condition by-val condition() noctx
-	condition: new-lock-by-val, 0
+condition by-val condition() noctx
+	condition: lock-by-val, 0
 
-broadcast void(c condition) noctx trusted
-	c.lk.ref-of-val acquire-lock
+broadcast! void(c condition) noctx trusted
+	c.lk.ref-of-val acquire!
 	c.value := c.value noctx-incr
-	c.lk.ref-of-val release-lock
+	c.lk.ref-of-val release!
 
 last-checked alias
 	nat
 
 get-last-checked last-checked(c condition) noctx
 	c.value
-
-| TODO:MOVE
-sleep-ms-sync void(ms nat) noctx
-	| TODO: wrap-mul is unsafe
-	ms wrap-mul 1000 usleep
 
 wait-on void(cond condition, until-time opt timestamp, last-checked last-checked) noctx unsafe summon
 	| last-checked should have been called before a change, we wait until c.value is different
@@ -105,27 +99,27 @@ thread-safe-counter record mut
 	lk by-val lock
 	value mut nat
 
-new-thread-safe-counter by-val thread-safe-counter() noctx
-	0 new-thread-safe-counter
+thread-safe-counter by-val thread-safe-counter() noctx
+	0 thread-safe-counter
 
-new-thread-safe-counter by-val thread-safe-counter(init nat) noctx
-	thread-safe-counter: new-lock-by-val, init
+thread-safe-counter by-val thread-safe-counter(init nat) noctx
+	thread-safe-counter: lock-by-val, init
 
 | Returns the old value
 get-and-increment! nat(t thread-safe-counter) noctx unsafe
-	t.lk.ref-of-val acquire-lock
+	t.lk.ref-of-val acquire!
 	old = t value
 	t.value := old noctx-incr
-	t.lk.ref-of-val release-lock
+	t.lk.ref-of-val release!
 	old
 
 | Returns the old value
 get-and-decrement! nat(t thread-safe-counter) noctx unsafe
-	t.lk.ref-of-val acquire-lock
+	t.lk.ref-of-val acquire!
 	old = t value
 	hard-forbid: old == 0
 	t.value := old noctx-decr
-	t.lk.ref-of-val release-lock
+	t.lk.ref-of-val release!
 	old
 
 create-one-thread void

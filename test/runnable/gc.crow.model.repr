@@ -4,7 +4,7 @@ module(
 		import(none, 38, none)
 		import(
 			some(range(8, 118))
-			14
+			12
 			some([cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used]))
 		import(some(range(120, 135)), 27, some([print]))]
 	exports: []

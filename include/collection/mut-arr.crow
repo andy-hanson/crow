@@ -47,11 +47,11 @@ noctx-set-at void(a mut-arr ?t, index nat, value ?t) noctx unsafe
 	hard-assert: index < a.size
 	a.data + index set value
 
-new-uninitialized-mut-arr mut-arr ?t(size nat) unsafe
+uninitialized-mut-arr mut-arr ?t(size nat) unsafe
 	mut-arr: size, alloc-uninitialized<?t>: size
 
 make-mut-arr mut-arr ?t(size nat, f act ?t(nat)) trusted
-	res = new-uninitialized-mut-arr<?t>: size
+	res = uninitialized-mut-arr<?t>: size
 	res.data fill-ptr-range size, f
 	res
 

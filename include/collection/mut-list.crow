@@ -28,10 +28,10 @@ mut-list<?t> record mut
 capacity nat(a mut-list ?t) noctx unsafe
 	a.backing size
 
-new-mut-list-by-val by-val mut-list<?t>() noctx trusted
+mut-list-by-val by-val mut-list<?t>() noctx trusted
 	mut-list<?t>: mut-arr, 0
 
-new-mut-list-by-val-with-capacity-from-unmanaged-memory by-val mut-list ?t(capacity nat) noctx unsafe
+mut-list-by-val-with-capacity-from-unmanaged-memory by-val mut-list ?t(capacity nat) noctx unsafe
 	backing = mut-arr<?t>: capacity, capacity unmanaged-alloc-zeroed-elements<?t>
 	mut-list<?t>: backing, 0
 

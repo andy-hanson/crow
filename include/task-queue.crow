@@ -3,7 +3,7 @@ import
 		==, <=, as, bool, by-val, exclusion, false, hard-assert, has?, nat, none, not, opt,
 		ref-of-val, some, true, value, void, wrap-add
 	.collection.mut-list:
-		contains?, mut-list, new-mut-list-by-val-with-capacity-from-unmanaged-memory,
+		contains?, mut-list, mut-list-by-val-with-capacity-from-unmanaged-memory,
 		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
 	.io.time-low-level: timestamp
 
@@ -33,11 +33,11 @@ task-queue record mut
 empty? bool(a task-queue) noctx
 	a.head.has? not
 
-new-task-queue by-val task-queue(max-threads nat) unsafe noctx
-	task-queue: none, max-threads new-mut-list-by-val-with-capacity-from-unmanaged-memory<exclusion>
+task-queue by-val task-queue(max-threads nat) unsafe noctx
+	task-queue: none, max-threads mut-list-by-val-with-capacity-from-unmanaged-memory<exclusion>
 
 | Expose construction of nodes, because it's better to do this outside of a lock
-new-task-queue-node task-queue-node(task task)
+task-queue-node task-queue-node(task task)
 	task-queue-node: task, none
 
 no-task record
@@ -60,7 +60,7 @@ pop-task! pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 		task = head task
 		if task.time <= cur-time
 			if exclusions contains? task.exclusion
-				pop-recur: head, exclusions, cur-time, task.time to-opt-time
+				pop-recur!: head, exclusions, cur-time, task.time to-opt-time
 			else
 				a.head := head.next
 				head.task
@@ -84,7 +84,7 @@ to-opt-time opt timestamp(a timestamp) noctx
 return-task! void(a task-queue, task task) noctx unsafe
 	a.currently-running-exclusions.ref-of-val noctx-must-remove-unordered! task.exclusion
 
-.pop-recur pop-task-result
+.pop-recur! pop-task-result
 	prev task-queue-node
 	exclusions mut-list exclusion
 	cur-time timestamp
@@ -101,7 +101,7 @@ body
 		task = cur task
 		if task.time <= cur-time
 			if exclusions contains? task.exclusion
-				pop-recur: cur, exclusions, cur-time, match first-task-time
+				pop-recur!: cur, exclusions, cur-time, match first-task-time
 				as none
 					task.time to-opt-time
 				as some

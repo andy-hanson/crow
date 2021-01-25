@@ -1,6 +1,6 @@
 import
 	collection.dict: dict
-	collection.mut-set: add, has?, new-mut-set, remove
+	collection.mut-set: ~=, mut-set, remove!, subscript
 	io.net.http-server: http-handler, http-response, start-http-server
 	io.net.tcp-server: close-client, start-tcp-server, stop, tcp-handler
 	io.print: print
@@ -33,30 +33,30 @@ new-main fut nat(port str) unsafe summon
 	0 resolved
 
 old-main fut nat(port str) unsafe summon
-	clients = new-mut-set<fd-t>
+	clients = mut-set<fd-t>
 
 	on-accepted-client = as<ref void(fd-t)>: \fd
-		clients add fd
+		clients ~= fd
 		void resolved
 	on-received-chunk = as<ref void(fd-t, arr nat8)>: \client-fd, chunk
-		print: "CHUNK: " + chunk.as-str
-		if clients has? client-fd
-			print: "got chunk (" + chunk.size.to-str + " bytes) on " + client-fd.to-str
+		print: "CHUNK: " ~ chunk.as-str
+		if clients[client-fd]
+			print: "got chunk (" ~ chunk.size.to-str ~ " bytes) on " ~ client-fd.to-str
 			| TODO: this actually does not belong here..
 			response = ok-response
 			wrote = client-fd write response.data.ptr-cast<nat8, char>, response.size
 			if wrote == -1
-				print: "ERRNO IS: " + errno.to-str
+				print: "ERRNO IS: " ~ errno.to-str
 				perror: "WRITE ERR\0".data
 
-			print: "WROTE: " + wrote.to-str + " bytes to " + client-fd.to-str
-			print: "Response size: " + response.size.to-str
+			print: "WROTE: " ~ wrote.to-str ~ " bytes to " ~ client-fd.to-str
+			print: "Response size: " ~ response.size.to-str
 			assert: wrote == response.size.to-int
 			client-fd close-client
-			print: "Closed client on " + client-fd.to-str
-			clients remove client-fd
+			print: "Closed client on " ~ client-fd.to-str
+			clients remove! client-fd drop
 		else
-			print: "ignoring chunk from closed client " + client-fd.to-str
+			print: "ignoring chunk from closed client " ~ client-fd.to-str
 		void resolved
 	server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
 

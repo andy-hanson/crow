@@ -1,12 +1,12 @@
 import
 	...bits: bits-intersect?, bits-or
 	...bootstrap:
-		==, !=, <, arr, as, bool, by-val, data, drop, false, fut, int32, message, nat8, nat16,
+		==, !=, <, ->, arr, as, bool, by-val, data, drop, false, fut, int32, message, nat8, nat16,
 		nat32, not, or, ptr-cast-to-extern, ptr-to, ref-of-val, size-of, str, todo, to-int, true,
 		value, void
 	...cell: cell
-	...collection.arr: +, slice-up-to
-	...collection.mut-arr: cast-immutable, data, new-uninitialized-mut-arr, size
+	...collection.arr: ~, subscript
+	...collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
 	...exceptions: assert
 	...fut-utils: call-ref-void, handle-exceptions, then, then-void, fut-catch, resolved
 	...number-utils: to-int, to-int32, to-nat, to-nat32
@@ -138,7 +138,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 			perror: "accept() error\0".data
 			todo
 	else
-		print: "Accepted client " + client-fd.to-str
+		print: "Accepted client " ~ client-fd.to-str
 		client-fd set-non-blocking
 		client-event = epoll-event: (epollin bits-or epollet), client-fd.to-int.to-nat
 		err = epoll-fd epoll-ctl epoll-ctl-add, client-fd, client-event.ptr-to
@@ -147,7 +147,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		accept-clients: listen-fd, epoll-fd, on-accepted-client
 
 .handle-client void(fd fd-t, on-received-chunk ref void(fd-t, arr nat8)) unsafe summon
-	buf = new-uninitialized-mut-arr<nat8>: 256
+	buf = uninitialized-mut-arr<nat8>: 256
 	count = fd read buf.data, buf.size
 	if count < 0
 		err = errno
@@ -156,7 +156,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		else
 			perror: "read() failed\0".data
 	elif count != 0
-		chunk = buf.cast-immutable slice-up-to count.to-nat
+		chunk = buf.cast-immutable[0 -> count.to-nat]
 		on-received-chunk call-ref-void fd, chunk
 		fd handle-client on-received-chunk
 

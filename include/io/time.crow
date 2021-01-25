@@ -1,6 +1,6 @@
 import
 	..bootstrap: fut, nat, void
-	..fut-low-level: new-unresolved-fut, resolve
+	..fut-low-level: resolve!, unresolved
 	..number-utils: +, *
 	..runtime: add-task, get-cur-island, new-exclusion
 	.time-low-level: get-monotime-nsec
@@ -14,7 +14,7 @@ msec duration(a nat)
 delay fut void(duration duration) trusted summon
 	target-time = get-monotime-nsec + duration.nsec
 	island = get-cur-island
-	res = new-unresolved-fut<void>
+	res = unresolved<void>
 	island add-task target-time, island.new-exclusion, \
-		res resolve void
+		res resolve! void
 	res

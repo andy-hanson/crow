@@ -7,17 +7,17 @@ import
 		unsafe-to-nat, value, void
 	.cell: as-cell
 	.collection.arr-util: map, tail
-	.exceptions: new-exception-ctx
+	.exceptions: exception-ctx
 	.fut-utils: delay, handle-exceptions, then2
 	.io.process: exit-code
-	.logging: new-log-ctx
+	.logging: log-ctx
 	.posix.pthread: pthread-t
 	.runtime:
-		any-unhandled-exceptions?, global-ctx, new-ctx, new-island, set-islands, thread-function,
-		thread-local-stuff, island
+		any-unhandled-exceptions?, ctx, global-ctx, island, set-islands, thread-function,
+		thread-local-stuff
 	.sys.sysinfo: get-nprocs
 	.str-utils: to-str
-	.thread-utils: create-one-thread, join-one-thread, new-condition, new-lock-by-val
+	.thread-utils: create-one-thread, join-one-thread, condition, lock-by-val
 
 .main-ptr alias
 	fun-ptr2<fut nat, ctx, arr str>
@@ -25,9 +25,9 @@ import
 | Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
 	n-threads = get-nprocs
-	gctx-by-val = as<by-val<global-ctx>>: global-ctx: new-lock-by-val, [], n-threads, new-condition, false, false
+	gctx-by-val = as<by-val<global-ctx>>: global-ctx: lock-by-val, [], n-threads, condition, false, false
 	gctx = gctx-by-val ref-of-val
-	island-by-val = new-island: gctx, 0, n-threads
+	island-by-val = island: gctx, 0, n-threads
 	island = island-by-val ref-of-val
 
 	gctx.islands := arr: 1, island.ptr-to
@@ -50,10 +50,10 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 .do-main fut nat(gctx global-ctx, island island, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx
 	| Before we start the engine, add a task.
 	| Create a ctx manually so we can call functions that need it when creating the task
-	ectx = new-exception-ctx
-	log-ctx = new-log-ctx
+	ectx = exception-ctx
+	log-ctx = log-ctx
 	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val, log-ctx.ref-of-val
-	ctx-by-val = new-ctx: gctx, tls.ref-of-val, island, 0
+	ctx-by-val = ctx: gctx, tls.ref-of-val, island, 0
 	ctx = ctx-by-val ref-of-val
 	add = as<act fut nat(arr c-str, main-ptr)>: \all-args, main-ptr
 		add-first-task: all-args, main-ptr

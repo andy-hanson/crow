@@ -8,7 +8,7 @@ import
 		wrap-mul, wrap-sub
 	.posix.stdlib: free, malloc
 	.posix.string: memcpy, memset
-	.thread-utils: acquire-lock, new-lock-by-val, release-lock
+	.thread-utils: acquire!, lock-by-val, release!
 
 set-zero-range void(begin ptr ?t, size nat) noctx unsafe
 	| TODO: wrap-mul is unsafe
@@ -91,11 +91,11 @@ set-hard-limit void(gc gc, size-words nat) noctx unsafe
 | WARN: this locks up the GC for a long time
 get-stats gc-stats(gc gc) noctx unsafe
 	gc validate-gc
-	gc.lk.ref-of-val acquire-lock
+	gc.lk.ref-of-val acquire!
 	cur-word = gc.mark-cur - gc.mark-begin
 	used-words-remaining = words-used-in-range: 0, gc.mark-cur, gc.mark-end
 	total-words = gc.mark-end - gc.mark-begin
-	gc.lk.ref-of-val release-lock
+	gc.lk.ref-of-val release!
 	gc-stats: cur-word, total-words, cur-word wrap-add used-words-remaining
 
 words-used-in-range nat(acc nat, cur ptr bool, end ptr bool) noctx unsafe
@@ -104,7 +104,7 @@ words-used-in-range nat(acc nat, cur ptr bool, end ptr bool) noctx unsafe
 	else
 		acc wrap-add cur.deref.to-nat words-used-in-range cur.incr, end
 
-new-gc by-val gc() noctx unsafe
+gc by-val gc() noctx unsafe
 	| TODO: handle malloc failure
 	| 16 MB
 	size-words = 0x1000000
@@ -115,7 +115,7 @@ new-gc by-val gc() noctx unsafe
 
 	mark-begin.as-any-ptr memset 0, size-words
 
-	gc: new-lock-by-val, 0, none, false, size-words, mark-begin, mark-begin, mark-end, data-begin, data-begin, data-end
+	gc: lock-by-val, 0, none, false, size-words, mark-begin, mark-begin, mark-end, data-begin, data-begin, data-end
 
 run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	hard-assert: gc needs-gc?
@@ -145,7 +145,7 @@ force-needs-gc void(gc gc) unsafe
 	gc.needs-gc? := true
 
 get-gc-ctx gc-ctx(gc gc) noctx unsafe
-	gc.lk.ref-of-val acquire-lock
+	gc.lk.ref-of-val acquire!
 	res = match gc.context-head
 	as none
 		| NOTE: malloc'd memory is not traced for garbage collection.
@@ -160,15 +160,15 @@ get-gc-ctx gc-ctx(gc gc) noctx unsafe
 		gc.context-head := c next-ctx
 		c.next-ctx := none
 		c
-	gc.lk.ref-of-val release-lock
+	gc.lk.ref-of-val release!
 	res
 
 return-gc-ctx void(gc-ctx gc-ctx) noctx unsafe
 	gc = gc-ctx.gc
-	gc.lk.ref-of-val acquire-lock
+	gc.lk.ref-of-val acquire!
 	gc-ctx.next-ctx := gc context-head
 	gc.context-head := gc-ctx some
-	gc.lk.ref-of-val release-lock
+	gc.lk.ref-of-val release!
 
 get-gc-ctx gc-ctx() unsafe
 	get-ctx.gc-ctx-ptr as-ref
@@ -193,9 +193,9 @@ validate-gc void(gc gc) noctx unsafe
 	hard-assert: mark-idx == data-idx
 
 .try-gc-alloc opt any-ptr(gc gc, size-bytes nat) noctx trusted
-	gc.lk.ref-of-val acquire-lock
+	gc.lk.ref-of-val acquire!
 	res = gc try-gc-alloc-recur size-bytes
-	gc.lk.ref-of-val release-lock
+	gc.lk.ref-of-val release!
 	res
 
 .try-gc-alloc-recur opt any-ptr(gc gc, size-bytes nat) noctx unsafe
