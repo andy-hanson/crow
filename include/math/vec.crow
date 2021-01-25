@@ -1,6 +1,6 @@
 import
 	..bootstrap: float, str
-	..collection.arr: +
+	..collection.arr: ~
 	..number-utils: +, -, ^, neg, square-root
 	..str-conv: to-str
 
@@ -24,4 +24,4 @@ length float(a vec-2)
 	a.length-squared square-root
 
 to-str str(a vec-2)
-	"<" + a.x.to-str + ", " + a.y.to-str + ">"
+	"<" ~ a.x.to-str ~ ", " ~ a.y.to-str ~ ">"

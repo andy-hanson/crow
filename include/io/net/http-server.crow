@@ -5,7 +5,7 @@ import
 	...collection.arr: empty?, has?, subscript
 	...collection.arr-util: contains?, last, rtail, split-by-subseq
 	...collection.dict: dict, each, has?
-	...collection.mut-dict: move-to-dict, mut-dict, new-mut-dict, remove, set-subscript, subscript
+	...collection.mut-dict: move-to-dict, mut-dict, mut-dict, remove, set-subscript, subscript
 	...collection.mut-list: ~=, index-of, move-to-arr, mut-list, pop-n-from-start!, size
 	...exceptions: assert, forbid
 	...fut-utils: resolved, subscript, then
@@ -43,7 +43,7 @@ http-method union
 	http-post
 
 start-http-server fut http-server(port str, handler http-handler) trusted summon
-	client-states = new-mut-dict<fd-t, http-parse-state>
+	client-states = mut-dict<fd-t, http-parse-state>
 
 	on-accepted-client = as<ref void(fd-t)>: \fd
 		client-states[fd] := new-http-parse-state

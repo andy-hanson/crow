@@ -1,0 +1,92 @@
+<section>
+	<h2>fut and the runtime</h2>
+
+	What does it mean that <code class="fun-def">main</code> returns a <code>fut nat</code>?
+
+	<br />
+
+	This is a <em>future</em> value; it is a holder that will eventually have a value,
+	but that value generally isn't available immediately.
+
+	<br />
+
+	An example would be the result of an HTTP request, or the result of some computation that runs in parallel.
+
+	<br />
+
+	Filling in the value of a future is called <em>resolving</em> it.
+
+	<p>
+		The runtime maintains a list of <em>tasks</em> to do.
+		This starts with the main function, which may then add more tasks. (In the examples so far it hasn't.)
+		<br />
+		The typical way to add a new task is to call <code class="fun-ref">then</code>
+		on a <code class="struct-ref">fut</code>.
+	</p>
+
+	<crow-runnable src="fut"></crow-runnable>
+
+	(<code class="fun-ref">resolved</code> wraps a regular value in a <code class="fun-ref">fut</code>.)
+
+	<br />
+
+	Notice how <code>0 resolved</code> no longer appears at the end of <code class="fun-ref">main</code>,
+	but at the end of the function provided to <code>b then</code>.
+
+	<br />
+
+	<code class="fun-ref">then</code> takes a <code class="struct-ref">fut</code>,
+	and schedules another task to run when it is resolved.
+	<br />
+	The result of <code class="fun-ref">then</code> is another <code class="struct-ref">fut</code>;
+	the function value provided to <code class="fun-ref">then</code> returns a <code class="struct-ref">fut</code>
+	whose value will be forwarded to the result of <code class="fun-ref">then</code>.
+	<br />
+	In other words, <code class="local-def">b</code> (eventually) gets the value from
+	<code class="local-ref">x + 1 resolved</code>,
+	and <code class="local-def">c</code> (eventually) gets the value from <code class="local-ref">0 resolevd</code>.
+
+	<h3>parallelism</h3>
+
+	<p>
+		The parameter type to <code class="fun-ref">then</code> is actually not <code class="struct-ref">act</code>,
+		but a third function value type, <code class="struct-ref">ref</code>.
+
+		<br />
+
+		A <code class="struct-ref">ref</code> contains an <code class="struct-ref">act</code>
+		and a reference to the context that may execute it.
+
+		The big difference is that when you call a <code class="struct-ref">fun</code> or <code>act</code>,
+		the caller is responsible for evaluating the function body.
+
+		<br />
+
+		When you call a <code class="struct-reF">ref</code>, you add a new task.
+		The task is executed in the context that created it, not the context that called it.
+	</p>
+
+	<p>
+		No two functions from the same context will run in parallel.
+		This means that the example above has no parallelism, since all the tasks have the same context.
+
+		To create a new context, call <code class="fun-ref">launch</code>.
+	</p>
+
+	<crow-runnable src="launch"></crow-runnable>
+
+	<strong>The web interpreter does not run in parallel</strong>, so this example will be deterministic if run here.
+
+	<br />
+
+	But if you run the program from the command line,
+	you may see <code>running a</code> and <code>running b</code> printed in different orders.
+
+
+	TODO: document <code class="keyword">&lt;-</code> syntax.
+
+	TODO: example of calling a 'ref'.
+
+
+
+</section>

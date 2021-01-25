@@ -1,6 +1,6 @@
 import
 	.bootstrap:
-		<, ==, !=, any-ptr, as, atomic-bool, bool, by-val, drop, false, fun-ptr1, hard-assert,
+		<, ==, !=, any-ptr, as, atomic-bool, bool, by-val, false, fun-ptr1, hard-assert,
 		hard-forbid, is-locked, lock, nat, noctx-decr, noctx-incr, not, null, null?, opt, ptr,
 		ptr-to, ref-of-val, subscript, todo, true, value, void, wrap-mul
 	.cell: cell, get
@@ -30,7 +30,10 @@ must-unset void(a atomic-bool) noctx unsafe
 	did-unset = a try-unset
 	did-unset hard-assert
 
-new-lock by-val lock() noctx
+new-lock lock()
+	lock: new-atomic-bool
+
+new-lock-by-val by-val lock() noctx
 	lock: new-atomic-bool
 
 try-acquire-lock bool(a lock) noctx trusted
@@ -41,7 +44,7 @@ acquire-lock void(a lock) noctx unsafe
 
 acquire-lock-recur void(a lock, n-tries nat) noctx unsafe
 	if a.try-acquire-lock not
-		if n-tries == 1000
+		if n-tries == 10000
 			todo
 		else
 			yield-thread
@@ -54,7 +57,7 @@ yield-thread void() noctx unsafe
 release-lock void(l lock) noctx unsafe
 	l.is-locked.ref-of-val must-unset
 
-with-lock ?t(l lock, f fun ?t()) trusted
+with-lock ?t(l lock, f act ?t()) trusted
 	l acquire-lock
 	res = f[]
 	l release-lock
@@ -65,7 +68,7 @@ condition record mut
 	value mut nat
 
 new-condition by-val condition() noctx
-	condition: new-lock, 0
+	condition: new-lock-by-val, 0
 
 broadcast void(c condition) noctx trusted
 	c.lk.ref-of-val acquire-lock
@@ -106,31 +109,24 @@ new-thread-safe-counter by-val thread-safe-counter() noctx
 	0 new-thread-safe-counter
 
 new-thread-safe-counter by-val thread-safe-counter(init nat) noctx
-	thread-safe-counter: new-lock, init
+	thread-safe-counter: new-lock-by-val, init
 
-increment void(t thread-safe-counter) noctx
-	t.get-and-increment drop
+| Returns the old value
+get-and-increment! nat(t thread-safe-counter) noctx unsafe
+	t.lk.ref-of-val acquire-lock
+	old = t value
+	t.value := old noctx-incr
+	t.lk.ref-of-val release-lock
+	old
 
-get-and-increment nat(t thread-safe-counter) noctx trusted
-	l = t.lk.ref-of-val
-	l acquire-lock
-	res = t.value
-	t.value := t.value noctx-incr
-	l release-lock
-	res
-
-| Returns true if the counter is now 0.
-decrement bool(t thread-safe-counter) noctx
-	t.get-and-decrement == 0
-
-get-and-decrement nat(t thread-safe-counter) noctx trusted
-	l = t.lk.ref-of-val
-	l acquire-lock
-	res = t.value
-	hard-forbid: res == 0
-	t.value := t.value noctx-decr
-	l release-lock
-	res
+| Returns the old value
+get-and-decrement! nat(t thread-safe-counter) noctx unsafe
+	t.lk.ref-of-val acquire-lock
+	old = t value
+	hard-forbid: old == 0
+	t.value := old noctx-decr
+	t.lk.ref-of-val release-lock
+	old
 
 create-one-thread void
 	tid cell pthread-t

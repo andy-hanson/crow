@@ -37,7 +37,7 @@ subscript ?t(a mut-arr ?t, index nat)
 	a.inner[index]
 
 subscript mut-arr ?t(a mut-arr ?t, range arrow<nat, nat>)
-	mut-arr: a.inner[range]
+	mut-arr: void, a.inner[range]
 
 set-subscript void(a mut-arr ?t, index nat, value ?t) trusted
 	assert: index < a.size

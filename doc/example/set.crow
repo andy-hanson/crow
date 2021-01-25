@@ -1,21 +1,25 @@
 import
-	collection.arr-util: join, map
-	collection.mut-set: has?, move-to-set, mut-set, remove
-	collection.set: arr, has?, set, set-intersection, set-union
+	collection.arr-util: join
+	collection.mut-set: ~=, move-to-set!, mut-set, remove!, subscript
+	collection.set: -, ~, arr, intersect, set, size, subscript
 	io.print: print
 
 main fut nat(_ arr str) summon
-	a = set: [1, 2, 3]
-	print: a has? 2 to-str
-	print: a has? 4 to-str
-	b = set: [2, 3, 4, 5]
-	print: (a set-intersection b).arr map {it to-str} join ", "
-	print: (a set-union b).arr map {it to-str} join ", "
+	chili = set: ["beans", "pepper", "onion", "beans"]
+	print: "size: " ~ chili.size.to-str
+	print: "has pepper? " ~ chili["pepper"].to-str
+	print: "has potato? " ~ chili["potato"].to-str
 
-	m = mut-set: [2, 3, 4]
-	print: m has? 3 to-str
-	m remove 3
-	print: m has? 3 to-str
-	print: m.move-to-set.arr map {it to-str} join ", "
+	pepper-spray = set: ["pepper", "onion", "spray bottle"]
+	print: "union: " ~: (chili ~ pepper-spray).arr join ", "
+	print: "intersection: " ~: (chili intersect pepper-spray).arr join ", "
+	print: "difference: " ~: (chili - pepper-spray).arr join ", "
+
+	m = mut-set: ["beans", "pepper", "onion"]
+	print: "has pepper? " ~ m["pepper"].to-str
+	print: "remove pepper? " ~: m remove! "pepper" to-str
+	print: "remove pepper again? " ~: m remove! "pepper" to-str
+	m ~= ["spray bottle", "cumin"]
+	print: "after concat: " ~: m.move-to-set!.arr join ", "
 
 	0 resolved

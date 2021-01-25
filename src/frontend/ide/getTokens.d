@@ -162,8 +162,12 @@ void addSigReturnTypeAndParamsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Toke
 void addTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable TypeAst a) {
 	matchTypeAst!void(
 		a,
-		(ref immutable TypeAst.Fun) {
-			todo!void("!");
+		(ref immutable TypeAst.Fun it) {
+			add(alloc, tokens, immutable Token(
+				Token.Kind.keyword,
+				rangeOfStartAndName(it.range.start, shortSymAlphaLiteral("fun"))));
+			foreach (ref immutable TypeAst t; range(it.returnAndParamTypes))
+				addTypeTokens(alloc, tokens, t);
 		},
 		(ref immutable TypeAst.InstStruct it) {
 			addInstStructTokens(alloc, tokens, it);

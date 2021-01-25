@@ -330,6 +330,8 @@ immutable(Opt!ExternOp) externOpFromName(immutable Str a) {
 			? some(ExternOp.malloc)
 		: strEqLiteral(a, "memcpy")
 			? some(ExternOp.memcpy)
+		: strEqLiteral(a, "memmove")
+			? some(ExternOp.memmove)
 		: strEqLiteral(a, "memset")
 			? some(ExternOp.memset)
 		: strEqLiteral(a, "pthread_create")

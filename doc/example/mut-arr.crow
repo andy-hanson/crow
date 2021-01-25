@@ -7,8 +7,13 @@ main fut nat(_ arr str) summon
 	print: ingredients[2]
 	ingredients[2] := "chocolate"
 	print: ingredients[2]
+
 	a = ingredients arr
 	print: a[3]
+	slice = ingredients[1 -> 4]
 	ingredients[3] := "cinnamon"
-	print: "a[3]: " + a[3] + ", ingredients[3]: " + ingredients[3]
+	print: "a[3]: " ~ a[3]
+	print: "slice[2]: " ~ slice[2]
+	print: "ingredients[3]: " ~ ingredients[3]
+
 	0 resolved

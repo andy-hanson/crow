@@ -546,6 +546,7 @@ enum ExternOp : u8 {
 	longjmp,
 	malloc,
 	memcpy,
+	memmove,
 	memset,
 	pthreadCreate,
 	pthreadJoin,
@@ -610,6 +611,8 @@ private immutable(Str) strOfExternOp(immutable ExternOp op) {
 				return "malloc";
 			case ExternOp.memcpy:
 				return "memcpy";
+			case ExternOp.memmove:
+				return "memmove";
 			case ExternOp.memset:
 				return "memset";
 			case ExternOp.pthreadCreate:

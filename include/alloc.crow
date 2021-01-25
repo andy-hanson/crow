@@ -8,7 +8,7 @@ import
 		wrap-mul, wrap-sub
 	.posix.stdlib: free, malloc
 	.posix.string: memcpy, memset
-	.thread-utils: acquire-lock, new-lock, release-lock
+	.thread-utils: acquire-lock, new-lock-by-val, release-lock
 
 set-zero-range void(begin ptr ?t, size nat) noctx unsafe
 	| TODO: wrap-mul is unsafe
@@ -115,7 +115,7 @@ new-gc by-val gc() noctx unsafe
 
 	mark-begin.as-any-ptr memset 0, size-words
 
-	gc: new-lock, 0, none, false, size-words, mark-begin, mark-begin, mark-end, data-begin, data-begin, data-end
+	gc: new-lock-by-val, 0, none, false, size-words, mark-begin, mark-begin, mark-end, data-begin, data-begin, data-end
 
 run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	hard-assert: gc needs-gc?
@@ -193,20 +193,26 @@ validate-gc void(gc gc) noctx unsafe
 	hard-assert: mark-idx == data-idx
 
 .try-gc-alloc opt any-ptr(gc gc, size-bytes nat) noctx trusted
+	gc.lk.ref-of-val acquire-lock
+	res = gc try-gc-alloc-recur size-bytes
+	gc.lk.ref-of-val release-lock
+	res
+
+.try-gc-alloc-recur opt any-ptr(gc gc, size-bytes nat) noctx unsafe
 	gc validate-gc
 	| some: size-bytes unmanaged-alloc-bytes
 	size-words = size-bytes words-of-bytes
 	cur = gc data-cur
 	next = cur + size-words
 	if next ptr-less? gc.data-end
-		if gc.mark-cur range-free? (gc.mark-cur + size-words)
+		if gc.mark-cur range-free? gc.mark-cur + size-words
 			gc.mark-cur := gc.mark-cur + size-words
 			gc.data-cur := next
 			cur.ptr-cast<nat8, nat64> some<ptr nat8>
 		else
 			gc.mark-cur := gc.mark-cur incr
 			gc.data-cur := gc.data-cur incr
-			gc try-gc-alloc size-bytes
+			gc try-gc-alloc-recur size-bytes
 	else
 		none
 

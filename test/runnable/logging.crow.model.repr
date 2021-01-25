@@ -1,7 +1,7 @@
 module(
 	path: 52
 	imports: [
-		import(none, 37, none)
+		import(none, 38, none)
 		import(some(range(8, 80)), 28, some([get-log-handler, info, log, log-handler, warn, with-log-handler]))]
 	exports: []
 	structs: []

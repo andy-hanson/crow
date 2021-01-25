@@ -3,7 +3,7 @@ import
 	..bootstrap:
 		==, !=, >=, ->, and, arr, bool, data, false, has?, incr, nat, noctx-incr, none, not, opt, ptr,
 		set, size, some, subscript, true, value, void
-	..exceptions: forbid
+	..exceptions: assert, forbid
 	..number-utils: +, -, decr, incr
 	..opt-utils: force
 	.arr: ~, arr-eq?, empty?, noctx-at, subscript
@@ -188,3 +188,8 @@ count-subseqs nat(a arr ?t, subseq arr ?t) data<?t>
 		out set a[0 -> s.value]
 		rest = a[s.value + splitter.size -> a.size]
 		out.incr fill-subseqs-recur rest, splitter
+
+zip arr ?out(a arr ?a, b arr ?b, cb act ?out(?a, ?b))
+	assert: a.size == b.size
+	a.size make-arr \i
+		cb[a[i], b[i]]

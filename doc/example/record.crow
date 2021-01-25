@@ -16,4 +16,4 @@ main fut nat(_ arr str) summon
 	dinner: a.food, b.drink
 
 .to-str str(a dinner)
-	a.food + " and " + a.drink
+	a.food ~ " and " ~ a.drink

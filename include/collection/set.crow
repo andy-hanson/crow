@@ -1,37 +1,101 @@
 import
-	..bootstrap: arr, bool, data, some, void
-	..opt-utils: opt-join
-	.arr-util: map
-	.dict: combine, dict, has?, keys
+	..bootstrap: <=>, and, arr, bool, data, false, nat, not, size, true, void
+	.arr: empty?, subscript
+	.arr-util: tail
+	.mut-list: ~=, move-to-arr!, mut-list
+	.sort: sort-unique
 
 set<?t> record
+	ignore void
 	| TODO:PRIVATE
-	inner dict<?t, void>
+	values arr ?t
 
-arr arr ?t(a set ?t)
-	a.inner keys
-
-set set ?t()
+set set ?t() data<?t>
 	| TODO: type args should be unnecessary
-	set: dict<?t, void>
+	set: void, []
 
-set set ?t(a arr ?t)
-	voids = a map \ignore
-		void
-	| TODO: type args should be unnecessary
-	set: dict<?t, void>: a, voids
+set set ?t(a arr ?t) data<?t>
+	set: void, a.sort-unique
 
-has? bool(a set ?t, value ?t) data<?t>
-	a.inner has? value
+arr arr ?t(a set ?t) data<?t>
+	a.values
 
-set-intersection set ?t(a set ?t, b set ?t) data<?t>
-	d = a.inner combine b.inner, \k, x, y
-		x opt-join y, \xs, ys
-			void
-	set: d
+size nat(a set ?t) data<?t>
+	a.values size
 
-set-union set ?t(a set ?t, b set ?t) data<?t>
-	| TODO: compiler crashes without the type arguments!
-	d = a.inner combine<?t, void, void, void> b.inner, \k, x, y
-		void some
-	set: d
+subscript bool(a set ?t, value ?t) data<?t>
+	a.values has? value
+
+.has? bool(a arr ?t, value ?t) data<?t>
+	| TODO: binary search
+	if a empty?
+		false
+	else
+		match value <=> a[0]
+		as less
+			false
+		as equal
+			true
+		as greater
+			a.tail has? value
+
+~ set ?t(a set ?t, b set ?t) data<?t>
+	res = mut-list<?t>
+	res union! a.values, b.values
+	set: void, res.move-to-arr!
+
+.union! void(res mut-list ?t, a arr ?t, b arr ?t) data<?t>
+	if a empty?
+		if b.empty? not
+			res ~= b[0]
+			res union! a, b.tail
+	else
+		if b empty?
+			res ~= a[0]
+			res union! a.tail, b
+		else
+			match a[0] <=> b[0]
+			as less
+				res ~= a[0]
+				res union! a.tail, b
+			as equal
+				res ~= a[0]
+				res union! a.tail, b.tail
+			as greater
+				res ~= b[0]
+				res union! a, b.tail
+
+intersect set ?t(a set ?t, b set ?t) data<?t>
+	res = mut-list<?t>
+	res intersect! a.values, b.values
+	set: void, res.move-to-arr!
+
+.intersect! void(res mut-list ?t, a arr ?t, b arr ?t) data<?t>
+	if a.empty?.not and b.empty?.not
+		match a[0] <=> b[0]
+		as less
+			res intersect! a.tail, b
+		as equal
+			res ~= a[0]
+			res intersect! a.tail, b.tail
+		as greater
+			res intersect! a, b.tail
+
+- set ?t(a set ?t, b set ?t) data<?t>
+	res = mut-list<?t>
+	res subtract! a.values, b.values
+	set: void, res.move-to-arr!
+
+subtract! void(res mut-list ?t, a arr ?t, b arr ?t) data<?t>
+	if a.empty? not
+		if b empty?
+			res ~= a
+		else
+			match a[0] <=> b[0]
+			as less
+				res ~= a[0]
+				res subtract! a.tail, b
+			as equal
+				res subtract! a.tail, b.tail
+			as greater
+				res subtract! a, b.tail

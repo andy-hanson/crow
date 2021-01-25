@@ -1,0 +1,9 @@
+import
+	collection.arr-util: join, map
+	io.print: print
+
+main fut nat(_ arr str) summon
+	ingredients = ["plaintain", "potato"]
+	fried = ingredients map {"fried " ~ it}
+	print: fried join ", "
+	0 resolved

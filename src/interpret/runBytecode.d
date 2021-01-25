@@ -573,6 +573,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			push(a.dataStack, immutable Nat64(cast(immutable u64) a.extern_.malloc(nBytes)));
 			break;
 		case ExternOp.memcpy:
+		case ExternOp.memmove:
 			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
 			const ubyte* src = cast(ubyte*) pop(a.dataStack).raw();
 			ubyte* dest = cast(ubyte*) pop(a.dataStack).raw();

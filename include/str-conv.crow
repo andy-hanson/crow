@@ -1,7 +1,7 @@
 import
 	.bootstrap:
-		==, >, ?, bool, char, false, float, int, int16, int32, nat, nat16, nat32, none, opt, some,
-		str, todo, to-int, to-nat, true, value
+		==, >, ?, bool, char, data, false, float, int, int16, int32, nat, nat16, nat32, none, opt,
+		some, str, todo, to-int, to-nat, true, value
 	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: first, tail
 	.collection.dict: dict, each
@@ -56,7 +56,7 @@ to-str<?t> spec
 to-str str(a str)
 	a
 
-to-str str(a dict<?k, ?v>) to-str<?k> to-str<?v>
+to-str str(a dict<?k, ?v>) data<?k> to-str<?k> to-str<?v>
 	res = mut-list<char>
 	res ~= "["
 	a each \k, v

@@ -11,4 +11,4 @@ main fut nat(_ arr str) summon
 	as none
 		"not a nat"
 	as some s
-		"as many as " + s.value.to-str
+		"as many as " ~ s.value.to-str

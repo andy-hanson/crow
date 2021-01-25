@@ -1,64 +1,95 @@
 import
 	.bootstrap:
-		by-val, err, exception, exclusion, fun, fut, fut-callback-node, fut-state-callbacks,
-		fut-state-resolved, head, island, island-and-exclusion, lk, none, ok, opt, ref-of-val,
-		result, send, set-state, some, state, subscript, todo, value, void
+		==, arr, as, err, exception, exclusion, fun, fut, fut-callback-node, fut-state-callbacks,
+		fut-state-resolved, hard-unreachable, head, island, island-and-exclusion, lk, nat, none, ok, opt,
+		ref-of-val, result, send, set-state, size, some, state, subscript, value, void
+	.cell: cell, get, set
+	.collection.arr-util: each-with-index, first-some, map
 	.exceptions: catch
-	.fut-low-level: new-unresolved-fut, reject, resolve, resolve-or-reject
-	.opt-utils: force
+	.fut-low-level: new-unresolved-fut, reject!, resolve!, resolve-or-reject!
+	.number-utils: -
 	.runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
-	.thread-utils:
-		acquire-lock, decrement, new-lock, new-thread-safe-counter, release-lock,
-		thread-safe-counter
-
+	.thread-utils: acquire-lock, new-lock, new-lock-by-val, release-lock, with-lock
 | Used to make code run after the next step. Equivalent to `sleep 0`.
 delay fut void()
 	void resolved
 
 resolved fut ?t(value ?t)
-	fut: new-lock, fut-state-resolved: value
+	fut: new-lock-by-val, fut-state-resolved: value
 
 rejected fut ?t(err exception)
-	fut: new-lock, err
+	fut: new-lock-by-val, err
 
-.joiner<?out, ?in0, ?in1> record force-sendable
-	res fut ?out
-	fun ref ?out(?in0, ?in1)
-	arg0 mut opt result<?in0, exception>
-	arg1 mut opt result<?in1, exception>
-	| NOTE: we can't just check that both arg0 and arg1 are done -- we might try calling 'fun' twice.
-	| We need to atomically decrement the counter so we only call 'fun' once
-	n-remaining-args by-val thread-safe-counter
-
-.decr-joiner void(j joiner<?out, ?in0, ?in1>) unsafe send<?out> send<?in0> send<?in1>
-	if j.n-remaining-args.ref-of-val decrement
-		match j.arg0 force
-		as ok ok0
-			match j.arg1 force
-			as ok ok1
-				j.fun[ok0.value, ok1.value] forward-to j.res
-			as err e1
-				j.res reject e1.value
-		as err e0
-			match j.arg1 force
-			as ok
-				j.res reject e0.value
-			as err
-				| Combine the exceptions
-				todo
-
-join fut ?out(a fut ?in0, b fut ?in1, fun ref ?out(?in0, ?in1)) trusted send<?out> send<?in0> send<?in1>
+join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out> send<?in0> send<?in1>
 	res = new-unresolved-fut<?out>
-	joiner = joiner<?out, ?in0, ?in1>: res, fun, none, none, new-thread-safe-counter: 2
-	a then-void \value
-		joiner.arg0 := value some
-		joiner decr-joiner
-	b then-void \value
-		joiner.arg1 := value some
-		joiner decr-joiner
+	lock = new-lock
+	remaining = cell<nat>: 2
+	decr-remaining = as<act void()>: \
+		lock with-lock \
+			remaining set: remaining.get - 1
+			if remaining.get == 0
+				res finish-join! a, b, f
+	a then-void \ignore
+		decr-remaining[]
+	b then-void \ignore
+		decr-remaining[]
 	res
 
+.finish-join! void(res fut ?out, a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) unsafe send<?out> send<?in0> send<?in1>
+	match a state
+	as fut-state-callbacks
+		hard-unreachable<void>
+	as fut-state-resolved resolved-a
+		match b state
+		as fut-state-callbacks
+			hard-unreachable<void>
+		as fut-state-resolved resolved-b
+			f[resolved-a value, resolved-b value] forward-to! res
+		as exception e
+			res reject! e
+	as exception e
+		res reject! e
+
+| TODO: send<arr ?a> should be unnecessary
+join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
+	res = new-unresolved-fut<arr ?a>
+	lock = new-lock
+	remaining = cell<nat>: a.size
+	a each-with-index \in, index
+		in then-void \value
+			lock with-lock \
+				remaining set: remaining.get - 1
+				if remaining.get == 0
+					res finish-join! a
+	res
+
+| TODO: send<arr ?a> should be unnecessary
+.finish-join! void(res fut arr ?a, a arr fut ?a) unsafe send<?a> send<arr ?a> summon
+	exception = a first-some \x
+		match x state
+		as fut-state-callbacks
+			hard-unreachable<opt exception>
+		as fut-state-resolved
+			none
+		as exception e
+			e some
+	match exception
+	as none
+		res resolve!: a map {it must-be-resolved}
+	as some s
+		res reject! s.value
+
+.must-be-resolved ?a(a fut ?a) unsafe
+	match a state
+	as fut-state-callbacks
+		hard-unreachable
+	as fut-state-resolved r
+		r value
+	as exception
+		hard-unreachable
+
 | NOTE: The function will be called with whatever ctx the fut terminates with!!!
+| TODO:PRIVATE (because this calls 'cb' synchronously sometimes)
 then-void void(f fut ?t, cb act void(result<?t, exception>)) unsafe
 	f.lk.ref-of-val acquire-lock
 	match f state
@@ -71,12 +102,12 @@ then-void void(f fut ?t, cb act void(result<?t, exception>)) unsafe
 		cb[e err]
 	f.lk.ref-of-val release-lock
 
-forward-to void(from fut ?t, to fut ?t) unsafe
-	from then-void {to resolve-or-reject it}
+.forward-to! void(from fut ?t, to fut ?t) unsafe
+	from then-void {to resolve-or-reject! it}
 
 fut-catch fut result<?t, exception>(a fut ?t) trusted
 	res = new-unresolved-fut<result<?t, exception>>
-	a then-void {res resolve it}
+	a then-void {res resolve! it}
 	res
 
 then fut ?out(f fut ?in, cb ref ?out(?in)) trusted send<?out> send<?in>
@@ -84,9 +115,9 @@ then fut ?out(f fut ?in, cb ref ?out(?in)) trusted send<?out> send<?in>
 	f then-void \result
 		match result
 		as ok o
-			cb[o.value] forward-to res
+			cb[o.value] forward-to! res
 		as err e
-			res reject e.value
+			res reject! e.value
 	res
 
 | TODO: rename to just 'then'
@@ -96,18 +127,18 @@ then2 fut ?out(f fut void, cb ref ?out()) send<?out>
 	f then<?out, void> \ignore
 		cb[]
 
-| Runs 'f' in parallel.
-async fut ?t(f fun fut ?t()) trusted
+| Runs `f` in parallel.
+launch fut ?t(f fun fut ?t()) trusted
 	res = new-unresolved-fut<?t>
 	island = get-cur-island
 	island add-task island.new-exclusion, \
-		f[] forward-to res
+		f[] forward-to! res
 	res
 
 subscript fut ?r(f ref ?r()) trusted send<?r>
 	res = new-unresolved-fut<?r>
 	f.island-and-exclusion.island.get-island add-task f.island-and-exclusion.exclusion, \
-		{f.fun[] forward-to res} catch {res reject it}
+		{f.fun[] forward-to! res} catch {res reject! it}
 	res
 
 call-ref-void void(f ref void()) trusted
@@ -117,7 +148,7 @@ subscript fut ?r(f ref ?r(?p0), p0 ?p0) trusted send<?r> send<?p0>
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
 	island add-task f.island-and-exclusion.exclusion, \
-		{f.fun[p0] forward-to res} catch {res reject it}
+		{f.fun[p0] forward-to! res} catch {res reject! it}
 	res
 
 call-ref-void void(f ref void(?p0), p0 ?p0) trusted send<?p0>
@@ -127,7 +158,7 @@ subscript fut ?r(f ref ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> 
 	island = f.island-and-exclusion.island get-island
 	res = new-unresolved-fut<?r>
 	island add-task f.island-and-exclusion.exclusion, \
-		{f.fun[p0, p1] forward-to res} catch {res reject it}
+		{f.fun[p0, p1] forward-to! res} catch {res reject! it}
 	res
 
 call-ref-void void(f ref void(?p0, ?p1), p0 ?p0, p1 ?p1) send<?p0> send<?p1>

@@ -307,20 +307,24 @@ noctx-decr nat(n nat) noctx unsafe
 
 region hard assertions
 
-abort void() noctx unsafe extern<"abort">
+abort! void() noctx unsafe extern<"abort">
 
 | Zeroed data isn't safe as it would contain null pointers.
 | It's GC-safe though, since the GC treats a null pointer same as any external pointer.
 zeroed ?t() noctx unsafe builtin
 
+hard-unreachable ?t() unsafe noctx
+	abort!
+	zeroed
+
 todo ?t() trusted noctx
 	| TODO: soft-fail, remove 'trusted noctx' above
-	abort
+	abort!
 	zeroed
 
 hard-assert void(condition bool) noctx unsafe
 	if condition not
-		abort
+		abort!
 
 hard-forbid void(condition bool) noctx unsafe
 	condition.not hard-assert

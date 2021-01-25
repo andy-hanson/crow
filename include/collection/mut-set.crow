@@ -1,29 +1,77 @@
 import
-	..bootstrap: ->, arr, bool, data, drop, void
-	.arr-util: map
-	.mut-dict: has?, move-to-dict, mut-dict, remove, set-subscript
+	..bootstrap: ==, <=>, arr, bool, data, drop, false, nat, true, void
+	..number-utils: +
+	.arr-util: each
+	.mut-list: ~=, insert-at!, move-to-arr!, mut-list, remove-at!, size, subscript
 	.set: set
+	.sort: sort
 
 mut-set<?t> record mut
 	| TODO:PRIVATE
-	inner mut-dict<?t, void>
+	ignore void
+	inner mut-list<?t>
 
-mut-set mut-set ?t()
-	| TODO: type args should be unnecessary
-	mut-set: mut-dict<?t, void>
+mut-set mut-set ?t() data<?t>
+	mut-set: void, mut-list
 
-mut-set mut-set ?t(a arr ?t)
-	mut-set: mut-dict: a map \x
-		x -> void
+mut-set mut-set ?t(a arr ?t) data<?t>
+	mut-set: void, a.sort.mut-list
 
-has? bool(a mut-set ?t, value ?t) data<?t>
-	a.inner has? value
+subscript bool(a mut-set ?t, value ?t) data<?t>
+	a.inner has? 0, value
 
-add void(a mut-set ?t, value ?t) data<?t>
-	a.inner[value] := void
+size nat(a mut-set ?t) data<?t>
+	a.inner size
 
-remove void(a mut-set ?t, value ?t) data<?t>
-	a.inner remove value drop
+.has? bool(a mut-list ?t, index nat, value ?t) data<?t>
+	| TODO: binary search
+	if index == a.size
+		false
+	else
+		match value <=> a[index]
+		as less
+			false
+		as equal
+			true
+		as greater
+			a has? (index + 1), value
 
-move-to-set set ?t(a mut-set ?t) data<?t>
-	a.inner.move-to-dict set
+~= void(a mut-set ?t, value ?t) data<?t>
+	a.inner add! 0, value drop
+
+.add! bool(a mut-list ?t, index nat, value ?t) data<?t>
+	if index == a.size
+		a ~= value
+		true
+	else
+		match value <=> a[index]
+		as less
+			a insert-at! index, value
+			true
+		as equal
+			false
+		as greater
+			a add! (index + 1), value
+
+~= void(a mut-set ?t, values arr ?t) data<?t>
+	values each \value
+		a ~= value
+
+remove! bool(a mut-set ?t, value ?t) data<?t>
+	a.inner remove! 0, value
+
+.remove! bool(a mut-list ?t, index nat, value ?t) data<?t>
+	if index == a.size
+		false
+	else
+		match value <=> a[index]
+		as less
+			false
+		as equal
+			a remove-at! index drop
+			true
+		as greater
+			a remove! (index + 1), value
+
+move-to-set! set ?t(a mut-set ?t) data<?t>
+	set: void, a.inner move-to-arr!

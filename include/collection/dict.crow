@@ -1,27 +1,38 @@
 import
 	..bootstrap:
-		==, <=>, and, arr, arrow, as, bool, comparison, data, from, greater, has?, less,
+		==, <=>, ->, and, arr, arrow, as, bool, comparison, data, from, greater, has?, less,
 		nat, none, not, opt, size, some, subscript, to, void
+	..exceptions: assert
 	..number-utils: incr
 	..opt-utils: each
 	.arr: empty?, subscript
-	.arr-util: first, map, tail
+	.arr-util: first, map, tail, zip
 	.mut-list: ~=, move-to-arr!, mut-list
+	.sort: a, b, sort-by-first
 
 dict<?k, ?v> record
 	| TODO: PRIVATE
 	| Keys should be in sorted order
+	ignore void
 	keys arr ?k
 	values arr ?v
 
-dict dict<?k, ?v>()
+dict dict<?k, ?v>() data<?k>
 	dict: [], []
 
-dict dict<?k, ?v>(pairs arr arrow<?k, ?v>)
+dict dict<?k, ?v>(pairs arr arrow<?k, ?v>) data<?k>
 	keys = pairs map {it from}
 	values = pairs map {it to}
-	| TODO: shouldn't need type args
-	dict<?k, ?v>: keys, values
+	dict: keys, values
+
+dict dict<?k, ?v>(keys arr ?k, values arr ?v) data<?k>
+	assert: keys.size == values.size
+	sorted = keys sort-by-first values
+	dict: void, sorted.a, sorted.b
+
+arr arr arrow<?k, ?v>(a dict<?k, ?v>)
+	a.keys zip a.values, \key, value
+		key -> value
 
 empty? bool(d dict<?k, ?v>)
 	d.keys empty?
@@ -42,12 +53,12 @@ subscript opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
 has? bool(d dict<?k, ?v>, key ?k) data<?k>
 	d[key] has?
 
-map-values dict<?k, ?v-out>(d dict<?k, ?v-in>, mapper act ?v-out(?v-in))
+map-values dict<?k, ?v-out>(d dict<?k, ?v-in>, mapper act ?v-out(?v-in)) data<?k>
 	new-values = d.values map mapper
 	| TODO: should be able to infer type arguments 
 	dict<?k, ?v-out>: d.keys, new-values
 
-each void(d dict<?k, ?v>, f act void(?k, ?v))
+each void(d dict<?k, ?v>, f act void(?k, ?v)) data<?k>
 	if d.empty? not
 		f[d.keys.first, d.values.first]
 		| TODO: type arguments should be unnecessary

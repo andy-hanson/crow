@@ -506,6 +506,7 @@ void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeS
 	immutable int stackEffect = () {
 		final switch (op) {
 			case ExternOp.memcpy:
+			case ExternOp.memmove:
 			case ExternOp.memset:
 			case ExternOp.pthreadCreate:
 				return -3;

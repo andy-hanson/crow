@@ -3,23 +3,23 @@ import
 		cb, drop, err, exception, fut, fut-callback-node, fut-state-callbacks, fut-state-resolved,
 		todo, head, none, lk, next-node, opt, ok, ref-of-val, result, set-state, state, subscript,
 		value, void
-	.thread-utils: acquire-lock, new-lock, release-lock
+	.thread-utils: acquire-lock, new-lock-by-val, release-lock
 
 | Considered unsafe because normally it should not be possible to never resolve a fut
 new-unresolved-fut fut ?t() unsafe
-	fut: new-lock, fut-state-callbacks: none
+	fut: new-lock-by-val, fut-state-callbacks: none
 
-resolve void(f fut ?t, value ?t) unsafe
-	f resolve-or-reject value.ok
+resolve! void(f fut ?t, value ?t) unsafe
+	f resolve-or-reject! value.ok
 
-reject void(f fut ?t, e exception) unsafe
-	f resolve-or-reject e.err
+reject! void(f fut ?t, e exception) unsafe
+	f resolve-or-reject! e.err
 
-resolve-or-reject void(f fut ?t, result result<?t, exception>) unsafe
+resolve-or-reject! void(f fut ?t, result result<?t, exception>) unsafe
 	f.lk.ref-of-val acquire-lock
-	match f.state
+	callbacks = match f.state
 	as fut-state-callbacks cbs
-		cbs.head resolve-or-reject-recur result
+		cbs
 	as fut-state-resolved
 		todo
 	as exception
@@ -34,11 +34,13 @@ resolve-or-reject void(f fut ?t, result result<?t, exception>) unsafe
 		ex
 	f.lk.ref-of-val release-lock
 
-.resolve-or-reject-recur void(node opt fut-callback-node<?t>, value result<?t, exception>)
+	callbacks.head call-callbacks! result
+
+.call-callbacks! void(node opt fut-callback-node<?t>, value result<?t, exception>)
 	match node
 	as none
 		void
 	as some s
 		| the fun-ref will return a fut<void>, just ignore it
 		drop: s.value.cb[value]
-		s.value.next-node resolve-or-reject-recur value
+		s.value.next-node call-callbacks! value

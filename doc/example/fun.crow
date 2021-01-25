@@ -1,0 +1,16 @@
+import
+	collection.arr-util: join, map
+	io.print: print
+
+main fut nat(_ arr str) summon
+	print: call-it: \x
+		x + 1 to-str
+	print: call-it: {it * 2 to-str}
+
+	xs = ["crow", "crime"]
+	print: xs map {it[1 -> 4]} join ", "
+
+	0 resolved
+
+.call-it str(f fun str(nat))
+	f[3]

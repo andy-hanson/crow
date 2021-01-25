@@ -1,28 +1,34 @@
 import
-	..bootstrap: ==, <=>, arr, arrow, bool, data, drop, from, nat, none, opt, some, to, value, void
+	..bootstrap: ==, <=>, arr, arrow, bool, data, drop, from, nat, none, opt, size, some, to, value, void
+	..exceptions: assert
 	..number-utils: +
 	.arr-util: map
 	.dict: dict, has?, subscript
 	.mut-list:
-		~=, index-of, insert!, move-to-arr!, mut-list, remove-unordered-at!, size,
+		~=, index-of, insert-at!, move-to-arr!, mut-list, remove-unordered-at!, size,
 		set-subscript, subscript, temp-as-arr
+	.sort: sort-by-first!
 
 mut-dict<?k, ?v> record mut
+	| TODO: PRIVATE
+	ignore void
 	keys mut-list ?k
 	values mut-list ?v
 
-mut-dict mut-dict<?k, ?v>()
-	mut-dict: mut-list, mut-list
+mut-dict mut-dict<?k, ?v>() data<?k>
+	mut-dict: void, mut-list, mut-list
 
-mut-dict mut-dict<?k, ?v>(pairs arr arrow<?k, ?v>)
+mut-dict mut-dict<?k, ?v>(pairs arr arrow<?k, ?v>) data<?k>
 	keys = pairs map {it from}
 	values = pairs map {it to}
-	| TODO: shouldn't need type args
-	mut-dict<?k, ?v>: keys.mut-list, values.mut-list
+	mut-dict: keys, values
 
-new-mut-dict mut-dict<?k, ?v>()
-	| TODO: should be able to infer type arguments -- worked when there was only one field...
-	mut-dict<?k, ?v>: mut-list<?k>, mut-list<?v>
+mut-dict mut-dict<?k, ?v>(keys arr ?k, values arr ?v) data<?k>
+	assert: keys.size == values.size
+	mut-keys = keys mut-list
+	mut-values = values mut-list
+	mut-keys sort-by-first! mut-values
+	mut-dict: void, mut-keys, mut-values
 
 subscript opt ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	d.temp-as-dict[key]
@@ -37,8 +43,8 @@ set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
 	else
 		match key <=> a.keys[idx]
 		as less
-			a.keys insert! idx, key
-			a.values insert! idx, value
+			a.keys insert-at! idx, key
+			a.values insert-at! idx, value
 		as equal
 			a.values[idx] := value
 		as greater
@@ -47,11 +53,11 @@ set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
 has? bool(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	a.temp-as-dict has? key
 
-move-to-dict! dict<?k, ?v>(m mut-dict<?k, ?v>)
+move-to-dict! dict<?k, ?v>(m mut-dict<?k, ?v>) data<?k>
 	| TODO: should be able to infer type arguments 
 	dict<?k, ?v>: m.keys.move-to-arr!, m.values.move-to-arr!
 
-.temp-as-dict dict<?k, ?v>(m mut-dict<?k, ?v>) unsafe
+.temp-as-dict dict<?k, ?v>(m mut-dict<?k, ?v>) unsafe data<?k>
 	| TODO: should be able to infer type arguments 
 	dict<?k, ?v>: m.keys.temp-as-arr, m.values.temp-as-arr
 

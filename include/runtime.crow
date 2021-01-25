@@ -12,10 +12,10 @@ import
 	.io.time-low-level: get-monotime-nsec, timestamp
 	.logging: default-log-handler, log-ctx, log-handler, new-log-ctx, set-handler
 	.task-queue:
-		action, any-tasks?, empty?, exclusion, first-task-time, insert-task, new-task-queue,
-		new-task-queue-node, no-task, no-timestamp, pop-task, return-task, task, task-queue
+		action, any-tasks?, empty?, exclusion, first-task-time, insert-task!, new-task-queue,
+		new-task-queue-node, no-task, no-timestamp, pop-task!, return-task!, task, task-queue
 	.thread-utils:
-		acquire-lock, broadcast, condition, get-and-increment, get-last-checked, new-lock,
+		acquire-lock, broadcast, condition, get-and-increment!, get-last-checked, new-lock-by-val,
 		new-thread-safe-counter, release-lock, thread-safe-counter, wait-on
 
 get-global-ctx global-ctx() unsafe
@@ -74,13 +74,13 @@ exception-handler fun void(exception)(a island) trusted
 	a.gc-root.ref-of-val exception-handler
 
 new-exclusion exclusion(v island) noctx trusted
-	v.next-exclusion.ref-of-val get-and-increment
+	v.next-exclusion.ref-of-val get-and-increment!
 
 new-island by-val island(gctx global-ctx, id island-id, max-threads nat) summon noctx unsafe
 	q = max-threads.new-task-queue
 	gc-root = as<by-val<island-gc-root>>: island-gc-root: q, {it default-exception-handler}, \log
 		log default-log-handler
-	island: gctx, id, new-gc, gc-root, new-lock, 0, new-thread-safe-counter
+	island: gctx, id, new-gc, gc-root, new-lock-by-val, 0, new-thread-safe-counter
 
 default-exception-handler void(e exception) summon unsafe
 	print-err-no-newline: "uncaught exception: "
@@ -102,7 +102,7 @@ add-task void(a island, timestamp timestamp, exclusion exclusion, action act voi
 	node = new-task-queue-node: task: timestamp, exclusion, action
 
 	a.tasks-lock.ref-of-val acquire-lock
-	a.tasks insert-task node
+	a.tasks insert-task! node
 	a.tasks-lock.ref-of-val release-lock
 
 	a.gctx.may-be-work-to-do.ref-of-val broadcast
@@ -172,7 +172,7 @@ thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 		ctx = new-ctx: gctx, tls, island, task.exclusion
 		task.action call-with-ctx ctx.ref-of-val
 		island.tasks-lock.ref-of-val acquire-lock
-		island.tasks return-task task
+		island.tasks return-task! task
 		island.tasks-lock.ref-of-val release-lock
 		ctx.ref-of-val return-ctx
 	as do-a-gc
@@ -295,7 +295,7 @@ body
 			| because that would block GC
 			no-task: true, none
 	else
-		match island.tasks pop-task cur-time
+		match island.tasks pop-task! cur-time
 		as task t
 			t
 		as no-task n

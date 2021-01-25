@@ -10,7 +10,7 @@ main fut nat(_ arr str) summon
 	0 resolved
 
 .greet str(name str)
-	greeting + ", " + name.plural
+	greeting ~ ", " ~ name.plural
 
 .greeting str()
 	"Hello"
@@ -22,4 +22,4 @@ main fut nat(_ arr str) summon
 		"en"
 	else
 		"s"
-	name + suffix
+	name ~ suffix

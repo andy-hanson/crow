@@ -20,6 +20,7 @@ task record mut
 	action act void()
 
 task-queue record mut
+	| TODO:PRIVATE
 	| Very first node is a sentinel
 	head mut opt task-queue-node
 	| This is allocated with max-threads capacity on init, so never needs further allocation
@@ -49,7 +50,7 @@ pop-task-result union mut
 	no-task
 
 | Caller should call 'return-task' after running the task
-pop-task pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
+pop-task! pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 	exclusions = a.currently-running-exclusions ref-of-val
 	res = as<pop-task-result>: match a.head
 	as none
@@ -80,7 +81,7 @@ to-opt-time opt timestamp(a timestamp) noctx
 	else
 		a some
 
-return-task void(a task-queue, task task) noctx unsafe
+return-task! void(a task-queue, task task) noctx unsafe
 	a.currently-running-exclusions.ref-of-val noctx-must-remove-unordered! task.exclusion
 
 .pop-recur pop-task-result
@@ -107,12 +108,11 @@ body
 					first-task-time
 			else
 				prev.next := cur.next
-				exclusions push-capacity-must-be-sufficient! task.exclusion
 				task
 		else
 			no-task: true, task.time some
 
-insert-task void(a task-queue, inserted task-queue-node) noctx unsafe
+insert-task! void(a task-queue, inserted task-queue-node) noctx unsafe
 	size-before = a size
 	match a head
 	as none

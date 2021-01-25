@@ -4,10 +4,10 @@ import
 main fut nat(_ arr str) summon
 	nats = node<nat>: 1, some: node: 2, some: node: 3, none
 	floats = node<float>: 1.1, some: node: 2.2, none
-	print: "nats size: " + nats.size.to-str
-	print: "nats sum: " + nats.sum.to-str
-	print: "floats size: " + floats.size.to-str
-	print: "floats sum: " + floats.sum.to-str
+	print: "nats size: " ~ nats.size.to-str
+	print: "nats sum: " ~ nats.sum.to-str
+	print: "floats size: " ~ floats.size.to-str
+	print: "floats sum: " ~ floats.sum.to-str
 	0 resolved
 
 node<?t> record

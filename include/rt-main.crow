@@ -17,7 +17,7 @@ import
 		thread-local-stuff, island
 	.sys.sysinfo: get-nprocs
 	.str-utils: to-str
-	.thread-utils: create-one-thread, join-one-thread, new-condition, new-lock
+	.thread-utils: create-one-thread, join-one-thread, new-condition, new-lock-by-val
 
 .main-ptr alias
 	fun-ptr2<fut nat, ctx, arr str>
@@ -25,7 +25,7 @@ import
 | Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
 	n-threads = get-nprocs
-	gctx-by-val = as<by-val<global-ctx>>: global-ctx: new-lock, [], n-threads, new-condition, false, false
+	gctx-by-val = as<by-val<global-ctx>>: global-ctx: new-lock-by-val, [], n-threads, new-condition, false, false
 	gctx = gctx-by-val ref-of-val
 	island-by-val = new-island: gctx, 0, n-threads
 	island = island-by-val ref-of-val

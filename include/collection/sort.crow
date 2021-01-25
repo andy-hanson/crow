@@ -1,41 +1,53 @@
 import
-	..bootstrap: ==, <, <=, >, ->, arr, as, data, nat, void
+	..bootstrap: ==, !=, <, <=, >, ->, arr, as, data, nat, or, void
 	..exceptions: assert
 	..number-utils: +, -, /
+	.arr-util: each
 	.mut-arr: cast-immutable, mut-arr, size, set-subscript, subscript
+	.mut-list: ~=, empty?, last, move-to-arr!, mut-list, temp-as-mut-arr
 
 sort arr ?t(a arr ?t) data<?t> trusted
 	res = a mut-arr
-	res sort-in-place
+	res sort!
 	res cast-immutable
+
+sort-unique arr ?t(a arr ?t) data<?t> trusted
+	a.sort unique!
+
+.unique! arr ?t(a arr ?t) data<?t>
+	res = mut-list<?t>
+	a each \x
+		if res.empty? or x != res.last
+			res ~= x
+	res move-to-arr!
 
 test
 	assert: (sort: as<arr nat>: []) == []
 	assert: [3, 1, 2].sort == [1, 2, 3]
 
-sort-in-place void(a mut-arr ?t) data<?t>
+sort! void(a mut-list ?t) data<?t> trusted
+	a.temp-as-mut-arr sort!
+
+sort! void(a mut-arr ?t) data<?t>
 	if a.size > 1
 		| Perf -- in case a is sorted already, prefer the middle element as a pivot
-		a swap: 0, a.size / 2
+		a swap 0, a.size / 2
 		pivot = a[0]
-		index-of-first-value-gt-pivot = a partition-recur pivot, 1, a.size - 1
-		new-pivot-index = index-of-first-value-gt-pivot - 1
+		new-pivot-index = (a partition! pivot, 1, a.size - 1) - 1
 		a swap 0, new-pivot-index
-
-		a[0 -> new-pivot-index] sort-in-place
-		a[new-pivot-index + 1 -> a.size] sort-in-place
+		a[0 -> new-pivot-index] sort!
+		a[new-pivot-index + 1 -> a.size] sort!
 
 | Returns index of first value > pivot
-.partition-recur nat(a mut-arr ?t, pivot ?t, l nat, r nat) data<?t>
+.partition! nat(a mut-arr ?t, pivot ?t, l nat, r nat) data<?t>
 	assert: l <= a.size
 	assert: r < a.size
 	if l <= r
-		em = a[l]
-		if em < pivot
-			a partition-recur pivot, (l + 1), r
+		if a[l] < pivot
+			a partition! pivot, (l + 1), r
 		else
 			a swap l, r
-			a partition-recur pivot, l, r - 1
+			a partition! pivot, l, r - 1
 	else
 		l
 
@@ -43,3 +55,40 @@ sort-in-place void(a mut-arr ?t) data<?t>
 	old-x = a[x]
 	a[x] := a[y]
 	a[y] := old-x
+
+sorted-by-first<?a, ?b> record
+	a arr ?a
+	b arr ?b
+
+sort-by-first sorted-by-first<?a, ?b>(a arr ?a, b arr ?b) data<?a> trusted
+	mut-a = a mut-arr
+	mut-b = b mut-arr
+	mut-a sort-by-first! mut-b
+	mut-a.cast-immutable sorted-by-first mut-b.cast-immutable
+
+sort-by-first! void(a mut-list ?a, b mut-list ?b) data<?a> trusted
+	a.temp-as-mut-arr sort-by-first! b.temp-as-mut-arr
+
+sort-by-first! void(a mut-arr ?a, b mut-arr ?b) data<?a>
+	assert: a.size == b.size
+	if a.size > 1
+		a swap 0, a.size / 2
+		pivot = a[0]
+		new-pivot-index = (a partition-by-first! b, pivot, 1, a.size - 1) - 1
+		a swap 0, new-pivot-index
+		b swap 0, new-pivot-index
+		a[0 -> new-pivot-index] sort-by-first! b[0 -> new-pivot-index]
+		a[new-pivot-index + 1 -> a.size] sort-by-first! b[new-pivot-index + 1 -> b.size]
+
+.partition-by-first! nat(a mut-arr ?a, b mut-arr ?b, pivot ?a, l nat, r nat) data<?a>
+	assert: l <= a.size
+	assert: r < a.size
+	if l <= r
+		if a[l] < pivot
+			a partition-by-first! b, pivot, (l + 1), r
+		else
+			a swap l, r
+			b swap l, r
+			a partition-by-first! b, pivot, l, r - 1
+	else
+		l

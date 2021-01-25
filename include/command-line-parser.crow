@@ -5,7 +5,7 @@ import
 	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
 	.collection.dict: dict, each
-	.collection.mut-dict: move-to-dict!, mut-dict, new-mut-dict, set-subscript
+	.collection.mut-dict: move-to-dict!, mut-dict, set-subscript
 	.collection.mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
 	.exceptions: assert, fail, forbid
 	.number-utils: +
@@ -65,7 +65,7 @@ parse-cmd-line-args-dynamic parsed-cmd-line-args(args arr str)
 			parsed-cmd-line-args: nameless, named-args, rest[sep-index + 1 -> rest.size]
 
 parse-named-args dict<str, arr str>(args arr str)
-	res = new-mut-dict<str, arr str>
+	res = mut-dict<str, arr str>
 	args parse-named-args-recur res
 	res move-to-dict!
 

@@ -3,9 +3,13 @@ import
 	io.print: print
 
 main fut nat(_ arr str) summon
-	ingredients = ["beans", "garlic", "onion", "pepper", "cinnamon"]
-	print: ingredients[2]
+	chili = ["beans", "garlic", "onion", "pepper", "cumin"]
+	print: chili[2]
 
-	chopped-ingredients = ingredients[1 -> 4]
-	print: chopped-ingredients join ", "
+	to-chop = chili[1 -> 4]
+	print: to-chop join ", "
+
+	hold-the-onion = chili[0 -> 2] ~ chili[3 -> 5]
+	print: hold-the-onion join ", "
+
 	0 resolved
