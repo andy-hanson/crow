@@ -42,11 +42,11 @@ lint result<str, arr failure>(path str, options test-options) summon
 		space-space = " " ~ " "
 		if allow-double-space?.not and: line contains-subseq? space-space
 			message = "line " ~ ln ~ " contains a double space"
-			res ~= failure: path, message
+			res ~=: failure: path, message
 		width = line line-len
 		if width > max-line-length
 			message = "line " ~ ln ~ " is " ~ width.to-str ~ " columns long, should be <= " ~ max-line-length.to-str
-			res ~= failure: path, message
+			res ~=: failure: path, message
 	res move-to-arr!
 
 .ignored-extensions arr str()

@@ -279,7 +279,7 @@ void writeSym(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
 	writeSymAndGetSize(writer, a);
 }
 
-private immutable(Bool) isSymOperator(immutable Sym a) {
+immutable(Bool) isSymOperator(immutable Sym a) {
 	return immutable Bool(!isShortAlphaSym(a) && bitsOverlap(a.value, operatorBits));
 }
 

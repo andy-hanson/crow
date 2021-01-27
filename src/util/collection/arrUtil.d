@@ -1,7 +1,20 @@
 module util.collection.arrUtil;
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, arrOfD, ArrWithSize, at, begin, empty, first, ptrAt, ptrsRange, range, size, sizeEq;
+import util.collection.arr :
+	Arr,
+	arrOfD,
+	ArrWithSize,
+	at,
+	begin,
+	empty,
+	first,
+	ptrAt,
+	ptrsRange,
+	range,
+	size,
+	sizeEq,
+	toArr;
 import util.collection.mutArr : insert, moveToArr, mustPop, MutArr, mutArrAt, mutArrSize, push, setAt;
 import util.comparison : compareOr, Comparer, compareSizeT, Comparison;
 import util.memory : initMemory, initMemory_mut;
@@ -485,6 +498,18 @@ private immutable(Acc) each(Acc, T)(
 	return immutable Arr!T(cast(immutable) res, resSize);
 }
 
+@trusted immutable(ArrWithSize!T) append(T, Alloc)(ref Alloc alloc, immutable ArrWithSize!T a, immutable T b) {
+	immutable Arr!T aArr = toArr(a);
+	immutable size_t resSize = size(aArr) + 1;
+	ubyte* res = alloc.allocateBytes(size_t.sizeof + T.sizeof * resSize);
+	*(cast(size_t*) res) = resSize;
+	T* elements = cast(T*) (res + size_t.sizeof);
+	foreach (immutable size_t i; 0..size(aArr))
+		initMemory(elements + i, at(aArr, i));
+	initMemory(elements + size(aArr), b);
+	return immutable ArrWithSize!T(cast(immutable) res);
+}
+
 @trusted immutable(Arr!T) append(T, Alloc)(ref Alloc alloc, immutable Arr!T a, immutable T b) {
 	immutable size_t resSize = size(a) + 1;
 	T* res = cast(T*) alloc.allocateBytes(T.sizeof * resSize);
@@ -492,6 +517,18 @@ private immutable(Acc) each(Acc, T)(
 		initMemory(res + i, at(a, i));
 	initMemory(res + size(a), b);
 	return immutable Arr!T(cast(immutable) res, resSize);
+}
+
+@trusted immutable(ArrWithSize!T) prepend(T, Alloc)(ref Alloc alloc, immutable T a, immutable ArrWithSize!T b) {
+	immutable Arr!T bArr = toArr(b);
+	immutable size_t resSize = 1 + size(bArr);
+	ubyte* res = alloc.allocateBytes(size_t.sizeof + T.sizeof * resSize);
+	*(cast(size_t*) res) = resSize;
+	T* elements = cast(T*) (res + size_t.sizeof);
+	initMemory(elements + 0, a);
+	foreach (immutable size_t i; 0..size(bArr))
+		initMemory(elements + 1 + i, at(bArr, i));
+	return immutable ArrWithSize!T(cast(immutable) res);
 }
 
 @trusted immutable(Arr!T) prepend(T, Alloc)(ref Alloc alloc, immutable T a, immutable Arr!T b) {

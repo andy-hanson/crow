@@ -34,7 +34,7 @@ size nat(a mut-set ?t) data<?t>
 		as equal
 			true
 		as greater
-			a has? (index + 1), value
+			a has? index + 1, value
 
 ~= void(a mut-set ?t, value ?t) data<?t>
 	a.inner add! 0, value drop
@@ -51,7 +51,7 @@ size nat(a mut-set ?t) data<?t>
 		as equal
 			false
 		as greater
-			a add! (index + 1), value
+			a add! index + 1, value
 
 ~= void(a mut-set ?t, values arr ?t) data<?t>
 	values each \value
@@ -71,7 +71,7 @@ remove! bool(a mut-set ?t, value ?t) data<?t>
 			a remove-at! index drop
 			true
 		as greater
-			a remove! (index + 1), value
+			a remove! index + 1, value
 
 move-to-set! set ?t(a mut-set ?t) data<?t>
 	set: void, a.inner move-to-arr!

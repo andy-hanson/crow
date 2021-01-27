@@ -44,7 +44,7 @@ sort! void(a mut-arr ?t) data<?t>
 	assert: r < a.size
 	if l <= r
 		if a[l] < pivot
-			a partition! pivot, (l + 1), r
+			a partition! pivot, l + 1, r
 		else
 			a swap l, r
 			a partition! pivot, l, r - 1

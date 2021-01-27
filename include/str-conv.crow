@@ -83,7 +83,7 @@ to-str str(n nat16)
 
 to-str str(i int)
 	a = i.abs to-str
-	i.negative? ? ("-" ~ a), a
+	i.negative? ? "-" ~ a, a
 
 to-str str(i int32)
 	i.to-int to-str

@@ -105,9 +105,11 @@ import util.collection.arr :
 	arrRange = range,
 	setAt,
 	size,
-	sizeEq;
+	sizeEq,
+	toArr;
 import util.collection.arrUtil :
 	arrLiteral,
+	arrWithSizeLiteral,
 	exists,
 	fillArr_mut,
 	map,
@@ -298,20 +300,21 @@ immutable(CheckedExpr) checkCreateArr(Alloc)(
 		return none!ArrExpectedType;
 	}();
 
+	immutable Arr!ExprAst argAsts = toArr(ast.args);
 	if (has(opAet)) {
 		immutable ArrExpectedType aet = force(opAet);
-		immutable Arr!Expr args = map!Expr(alloc, ast.args, (ref immutable ExprAst it) =>
+		immutable Arr!Expr args = map!Expr(alloc, argAsts, (ref immutable ExprAst it) =>
 			checkAndExpect(alloc, ctx, it, aet.elementType));
 		immutable Expr expr = immutable Expr(range, immutable Expr.CreateArr(aet.arrType, args));
 		return immutable CheckedExpr(expr);
-	} else if (empty(ast.args)) {
+	} else if (empty(argAsts)) {
 		addDiag2(alloc, ctx, range, Diag(Diag.CreateArrNoExpectedType()));
 		return bogusWithoutChangingExpected(expected, range);
 	} else {
 		// Get type from the first arg's type.
-		immutable ExprAndType firstArg = checkAndInfer(alloc, ctx, first(ast.args));
+		immutable ExprAndType firstArg = checkAndInfer(alloc, ctx, first(argAsts));
 		immutable Type elementType = firstArg.type;
-		immutable Arr!ExprAst restArgs = tail(ast.args);
+		immutable Arr!ExprAst restArgs = tail(argAsts);
 		immutable Arr!Expr args = mapWithFirst!Expr(alloc, firstArg.expr, restArgs, (ref immutable ExprAst it) =>
 			checkAndExpect(alloc, ctx, it, elementType));
 		immutable Ptr!StructInst arrType = instantiateStructNeverDelay(
@@ -890,7 +893,7 @@ immutable(CheckedExpr) checkThen(Alloc)(
 		CallAst.Style.infix,
 		immutable NameAndRange(range.range.start, shortSymAlphaLiteral("then")),
 		emptyArrWithSize!TypeAst,
-		arrLiteral!ExprAst(alloc, [ast.futExpr.deref, lambda]));
+		arrWithSizeLiteral!ExprAst(alloc, [ast.futExpr.deref, lambda]));
 	return checkCall(alloc, ctx, range, call, expected);
 }
 

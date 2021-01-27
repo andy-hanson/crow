@@ -24,7 +24,7 @@ import frontend.check.inferringType :
 	tryGetTypeArgFromInferringTypeArgs_const,
 	typeArgsFromAsts;
 import frontend.check.instantiate : instantiateFun, instantiateSpecInst, instantiateStructNeverDelay, TypeParamsAndArgs;
-import frontend.parse.ast : CallAst, ExprAst, NameAndRange, TypeAst;
+import frontend.parse.ast : CallAst, ExprAst, NameAndRange, rangeOfNameAndRange, TypeAst;
 import frontend.programState : ProgramState;
 import model.diag : Diag;
 import model.model :
@@ -117,7 +117,8 @@ immutable(CheckedExpr) checkCall(Alloc)(
 	ref Expected expected,
 ) {
 	immutable Sym funName = ast.funName.name;
-	immutable size_t arity = size(ast.args);
+	immutable Arr!ExprAst argAsts = toArr(ast.args);
+	immutable size_t arity = size(argAsts);
 	immutable Arr!Type explicitTypeArgs = typeArgsFromAsts(alloc, ctx, toArr(ast.typeArgs));
 	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, funName, explicitTypeArgs, arity);
 
@@ -135,7 +136,7 @@ immutable(CheckedExpr) checkCall(Alloc)(
 
 		CommonOverloadExpected common =
 			getCommonOverloadParamExpected(alloc, programState(ctx), tempAsArr_mut(candidates), argIdx);
-		immutable Expr arg = checkExpr(alloc, ctx, at(ast.args, argIdx), common.expected);
+		immutable Expr arg = checkExpr(alloc, ctx, at(argAsts, argIdx), common.expected);
 
 		// If it failed to check, don't continue, just stop there.
 		if (typeIsBogus(arg)) {
@@ -161,10 +162,13 @@ immutable(CheckedExpr) checkCall(Alloc)(
 
 	const Arr!Candidate candidatesArr = moveToArr_const(alloc, candidates);
 
+	// Show diags at the function name and not at the whole call ast
+	immutable FileAndRange diagRange = immutable FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName));
+
 	if (!has(args) || size(candidatesArr) != 1) {
 		if (empty(candidatesArr)) {
 			immutable Arr!CalledDecl allCandidates = getAllCandidatesAsCalledDecls(alloc, ctx, funName);
-			addDiag2(alloc, ctx, range, immutable Diag(nu!(Diag.CallNoMatch)(
+			addDiag2(alloc, ctx, diagRange, immutable Diag(nu!(Diag.CallNoMatch)(
 				alloc,
 				funName,
 				expectedReturnType,
@@ -175,7 +179,7 @@ immutable(CheckedExpr) checkCall(Alloc)(
 		} else {
 			immutable Arr!CalledDecl matches = map_const!CalledDecl(alloc, candidatesArr, (ref const Candidate c) =>
 				c.called);
-			addDiag2(alloc, ctx, range, immutable Diag(Diag.CallMultipleMatches(funName, matches)));
+			addDiag2(alloc, ctx, diagRange, immutable Diag(Diag.CallMultipleMatches(funName, matches)));
 		}
 		return bogus(expected, range);
 	} else
@@ -194,7 +198,7 @@ immutable(CheckedExpr) checkIdentifierCall(Alloc)(
 		CallAst.Style.single,
 		immutable NameAndRange(range.range.start, name),
 		emptyArrWithSize!TypeAst,
-		emptyArr!ExprAst);
+		emptyArrWithSize!ExprAst);
 	return checkCall(alloc, ctx, range, callAst, expected);
 }
 

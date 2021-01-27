@@ -102,7 +102,7 @@ spec
 body
 	args = interpret? ? ["run", path, "--interpret"], ["run", path]
 	res = path-to-crow spawn-and-wait-result args, env
-	stdout-failures = path handle-output (path ~ ".stdout"), res.stdout, overwrite-output?
+	stdout-failures = path handle-output path ~ ".stdout", res.stdout, overwrite-output?
 	stderr-failures = if res.exit-code == 0 and: res.stderr == ""
 		[] as<arr failure>
 	else

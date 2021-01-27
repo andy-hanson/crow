@@ -12,4 +12,4 @@
 
 /name-not-found.crow 11:7-11:8 there is no function or field named 'y'
 
-/name-not-found.crow 12:7-12:10 there is no function named 'z'
+/name-not-found.crow 12:7-12:8 there is no function named 'z'

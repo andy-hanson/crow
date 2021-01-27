@@ -48,7 +48,7 @@ set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
 		as equal
 			a.values[idx] := value
 		as greater
-			a set-subscript-recur (idx + 1), key, value
+			a set-subscript-recur idx + 1, key, value
 
 has? bool(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	a.temp-as-dict has? key

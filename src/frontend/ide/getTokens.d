@@ -263,6 +263,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		a.kind,
 		(ref immutable BogusAst) {},
 		(ref immutable CallAst it) {
+			immutable Arr!ExprAst args = toArr(it.args);
 			void addName() {
 				add(alloc, tokens, immutable Token(Token.Kind.funRef, rangeOfNameAndRange(it.funName)));
 				addTypeArgsTokens(alloc, tokens, it.typeArgs);
@@ -271,24 +272,24 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 				case CallAst.Style.dot:
 				case CallAst.Style.setDot:
 				case CallAst.Style.infix:
-					addExprTokens(alloc, tokens, first(it.args));
+					addExprTokens(alloc, tokens, first(args));
 					addName();
-					addExprsTokens(alloc, tokens, tail(it.args));
+					addExprsTokens(alloc, tokens, tail(args));
 					break;
 				case CallAst.Style.prefix:
 				case CallAst.Style.setSingle:
 				case CallAst.Style.single:
 					addName();
-					addExprsTokens(alloc, tokens, it.args);
+					addExprsTokens(alloc, tokens, args);
 					break;
 				case CallAst.Style.setSubscript:
 				case CallAst.Style.subscript:
-					addExprsTokens(alloc, tokens, it.args);
+					addExprsTokens(alloc, tokens, args);
 					break;
 			}
 		},
 		(ref immutable CreateArrAst it) {
-			addExprsTokens(alloc, tokens, it.args);
+			addExprsTokens(alloc, tokens, toArr(it.args));
 		},
 		(ref immutable FunPtrAst) {
 			add(alloc, tokens, immutable Token(Token.Kind.identifier, a.range));

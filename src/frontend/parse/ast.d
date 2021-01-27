@@ -135,10 +135,10 @@ struct CallAst {
 	immutable Pos funNameStart;
 	immutable Style style;
 	immutable ArrWithSize!TypeAst typeArgs;
-	immutable Arr!ExprAst args;
+	immutable ArrWithSize!ExprAst args;
 
 	immutable this(
-		immutable Style s, immutable NameAndRange f, immutable ArrWithSize!TypeAst t, immutable Arr!ExprAst a) {
+		immutable Style s, immutable NameAndRange f, immutable ArrWithSize!TypeAst t, immutable ArrWithSize!ExprAst a) {
 		funNameName = f.name;
 		funNameStart = f.start;
 		style = s;
@@ -152,7 +152,7 @@ struct CallAst {
 }
 
 struct CreateArrAst {
-	immutable Arr!ExprAst args;
+	immutable ArrWithSize!ExprAst args;
 }
 
 struct FunPtrAst {
@@ -283,8 +283,7 @@ struct ExprAstKind {
 		seq,
 		then,
 	}
-	//TODO:PRIVATE
-	public immutable Kind kind;
+	immutable Kind kind;
 	union {
 		immutable BogusAst bogus;
 		immutable CallAst call;
@@ -316,6 +315,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable ThenAst a) { kind = Kind.then; then = a; }
 }
+static assert(ExprAstKind.sizeof <= 40);
 
 immutable(Bool) isCall(ref immutable ExprAstKind a) {
 	return immutable Bool(a.kind == ExprAstKind.Kind.call);
@@ -383,6 +383,7 @@ struct ExprAst {
 	immutable RangeWithinFile range;
 	immutable ExprAstKind kind;
 }
+static assert(ExprAst.sizeof <= 56);
 
 // This is the declaration, TypeAst.TypeParam is the use
 struct TypeParamAst {
@@ -1025,11 +1026,11 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 				reprNameAndRange(alloc, e.funName),
 				reprArr(alloc, toArr(e.typeArgs), (ref immutable TypeAst it) =>
 					reprTypeAst(alloc, it)),
-				reprArr(alloc, e.args, (ref immutable ExprAst it) =>
+				reprArr(alloc, toArr(e.args), (ref immutable ExprAst it) =>
 					reprExprAst(alloc, it))]),
 		(ref immutable CreateArrAst e) =>
 			reprRecord(alloc, "create-arr", [
-				reprArr(alloc, e.args, (ref immutable ExprAst it) =>
+				reprArr(alloc, toArr(e.args), (ref immutable ExprAst it) =>
 					reprExprAst(alloc, it))]),
 		(ref immutable FunPtrAst a) =>
 			reprRecord(alloc, "fun-ptr", [reprSym(a.name)]),

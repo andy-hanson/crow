@@ -32,6 +32,6 @@ parse-environ-entry arrow<str, str>(entry c-str) unsafe
 convert-environ ptr c-str(environ environ)
 	res = mut-list<c-str>
 	environ each \key, value
-		res ~= key ~ "=" ~ value to-c-str
+		res ~=: key ~ "=" ~ value to-c-str
 	res ~= null<char>
 	res.move-to-arr! data

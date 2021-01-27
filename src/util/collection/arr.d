@@ -172,11 +172,6 @@ ref immutable(T) last(T)(ref immutable Arr!T a) {
 	return at(a, size(a) - 1);
 }
 
-void setLast(T)(ref Arr!T a, T value) {
-	verify(size(a) != 0);
-	setAt(a, size(a) - 1, value);
-}
-
 @trusted T[] range(T)(Arr!T a) {
 	return a.begin_[0..a.size_];
 }
