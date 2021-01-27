@@ -8,12 +8,12 @@ main fut nat(_ arr str) summon
 	print: "yum, " ~ a.to-str
 	0 resolved
 
-.dinner record mut
+dinner record mut
 	food mut str
 	drink str
 
-.snarf! void(a dinner)
+snarf! void(a dinner)
 	a.food := "nothing"
 
-.to-str str(a dinner)
+to-str str(a dinner)
 	a.food ~ " and " ~ a.drink

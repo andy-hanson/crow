@@ -1,6 +1,6 @@
 import
 	..alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
-	..bootstrap: +, ==, <, arr, arrow, bool, data, hard-assert, nat, opt, ptr, set, size, void
+	..bootstrap: ==, <, arr, arrow, bool, data, hard-assert, nat, opt, ptr, set-subscript, size, void
 	..exceptions: assert
 	.arr: subscript
 	.arr-util: find-index
@@ -45,7 +45,7 @@ set-subscript void(a mut-arr ?t, index nat, value ?t) trusted
 
 noctx-set-at void(a mut-arr ?t, index nat, value ?t) noctx unsafe
 	hard-assert: index < a.size
-	a.data + index set value
+	a.data[index] := value
 
 uninitialized-mut-arr mut-arr ?t(size nat) unsafe
 	mut-arr: size, alloc-uninitialized<?t>: size

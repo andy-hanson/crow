@@ -12,7 +12,7 @@ main fut nat(_ arr str) summon
 	print: empty contains? (vec-2: 0.0, 0.0) to-str
 	0 resolved
 
-.contains? bool(a hitbox, p vec-2)
+contains? bool(a hitbox, p vec-2)
 	match a
 	as circle c
 		(p - c.center).length-squared <= c.radius ^ 2
@@ -21,19 +21,19 @@ main fut nat(_ arr str) summon
 	as empty
 		false
 
-.hitbox union
+hitbox union
 	circle
 	rect
 	empty
 
-.circle record
+circle record
 	center vec-2
 	radius float
 
-.rect record
+rect record
 	left float
 	right float
 	bottom float
 	top float
 
-.empty record
+empty record

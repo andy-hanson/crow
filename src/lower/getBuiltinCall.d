@@ -204,8 +204,6 @@ immutable(BuiltinKind) getBuiltinKind(
 				: isNat64(rt)
 				? LowExprKind.SpecialBinary.Kind.bitwiseOrNat64
 				: failBinary());
-		case shortSymAlphaLiteralValue("deref"):
-			return unary(LowExprKind.SpecialUnary.Kind.deref);
 		case shortSymAlphaLiteralValue("false"):
 			return constantBool(False);
 		case shortSymAlphaLiteralValue("get-ctx"):
@@ -226,13 +224,13 @@ immutable(BuiltinKind) getBuiltinKind(
 			return unary(LowExprKind.SpecialUnary.Kind.ptrTo);
 		case shortSymAlphaLiteralValue("ref-of-val"):
 			return unary(LowExprKind.SpecialUnary.Kind.refOfVal);
-		case shortSymAlphaLiteralValue("set"):
-			return isPtrRaw(p0) ? binary(LowExprKind.SpecialBinary.Kind.writeToPtr) : fail();
 		case shortSymAlphaLiteralValue("size-of"):
 			return immutable BuiltinKind(immutable BuiltinKind.SizeOf());
 		case shortSymAlphaLiteralValue("subscript"):
 			return isFunPtrType(p0)
 				? nAry(LowExprKind.SpecialNAry.Kind.callFunPtr)
+				: isPtrRaw(p0)
+				? unary(LowExprKind.SpecialUnary.Kind.deref)
 				: fail();
 		case shortSymAlphaLiteralValue("to-float"):
 			return unary(isInt64(p0)
@@ -321,19 +319,21 @@ immutable(BuiltinKind) getBuiltinKind(
 		case shortSymAlphaLiteralValue("zeroed"):
 			return immutable BuiltinKind(immutable BuiltinKind.Zeroed());
 		default:
-			if (symEqLongAlphaLiteral(name, "unsafe-bit-shift-left"))
+			if (symEqLongAlphaLiteral(name, "compare-exchange-strong"))
+				return trinary(LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool);
+			else if (symEqLongAlphaLiteral(name, "ptr-cast-from-extern")
+				|| symEqLongAlphaLiteral(name, "ptr-cast-to-extern"))
+				return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
+			else if (symEqLongAlphaLiteral(name, "set-subscript"))
+				return isPtrRaw(p0) ? binary(LowExprKind.SpecialBinary.Kind.writeToPtr) : fail();
+			else if (symEqLongAlphaLiteral(name, "truncate-to-int"))
+				return unary(LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64);
+			else if (symEqLongAlphaLiteral(name, "unsafe-bit-shift-left"))
 				return isNat64(rt) ? binary(LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-bit-shift-right"))
 				return isNat64(rt)
 					? binary(LowExprKind.SpecialBinary.Kind.unsafeBitShiftRightNat64)
 					: fail();
-			else if (symEqLongAlphaLiteral(name, "compare-exchange-strong"))
-				return trinary(LowExprKind.SpecialTrinary.Kind.compareExchangeStrongBool);
-			else if (symEqLongAlphaLiteral(name, "ptr-cast-from-extern")
-				|| symEqLongAlphaLiteral(name, "ptr-cast-to-extern"))
-				return immutable BuiltinKind(immutable BuiltinKind.PtrCast());
-			else if (symEqLongAlphaLiteral(name, "truncate-to-int"))
-				return unary(LowExprKind.SpecialUnary.Kind.truncateToInt64FromFloat64);
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int"))
 				return isNat64(p0) ? unary(LowExprKind.SpecialUnary.Kind.unsafeNat64ToInt64) : fail();
 			else if (symEqLongAlphaLiteral(name, "unsafe-to-int8"))

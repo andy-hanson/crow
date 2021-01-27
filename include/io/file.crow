@@ -4,7 +4,7 @@ import
 		+, ==, !=, <, ->, and, any-ptr, arr, as, as-any-ptr, bool, char, c-str, data, false, has?,
 		int32, nat8, nat16, nat32, none, not, null?, opt, ptr-cast, ptr-cast-from-extern, ptr-eq?,
 		ref-eq?, size, size-of, some, str, todo, value, void, wrap-add
-	..cell: cell, get
+	..cell: cell, subscript
 	..collection.arr: ~, subscript
 	..collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
 	..collection.mut-list: ~=, move-to-arr!, mut-list
@@ -83,8 +83,8 @@ read-dir arr str(path c-str) trusted summon
 	err = dirp readdir-r entry, result
 	| TODO: handle error
 	assert: err == 0
-	if result.get.as-any-ptr.null? not
-		assert: result.get ref-eq? entry
+	if result[].as-any-ptr.null? not
+		assert: result[] ref-eq? entry
 		name = entry.get-dirent-name
 		if name != "." and: name != ".."
 			res ~= entry.get-dirent-name
@@ -107,7 +107,7 @@ read-file str(path str) summon
 		print: "file does not exist: " ~ path
 		""
 	as some s
-		s.value
+		s value
 
 write-file void(path str, content str) summon
 	path.to-c-str write-file content

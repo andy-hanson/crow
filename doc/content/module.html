@@ -1,0 +1,57 @@
+<section>
+	<h2>modules</h3>
+
+	<p>
+		Each <code>.crow</code> file is a <em>module</em>.
+		Modules can access each other only through imports.
+	</p>
+
+	<p>
+		An import like <code>io.print</code> references a builtin module.
+		These come from the <code>include</code> directory that comes with Crow.
+	</p>
+
+	<p>
+	To import a module of your own, consider the relative path from the importing module to the imported module.
+	<br />
+	The relative path is specified by climbing up and then down.
+	Start with a single <code>.</code>, then an additional <code>.</code> for each parent directory you want to climb.
+	Then, write the name of each directory go down into, separated by <code>.</code>.
+	</p>
+
+	If you have these files:
+	<ul>
+		<li><code>root/a.crow</code></li>
+		<li><code>root/b.crow</code></li>
+		<li><code>root/x/c.crow</code></li>
+		<li><code>root/y/z/d.crow</code></li>
+	</ul>
+
+	If <code>a</code> wants to import:
+	<ul>
+		<li><code>b</code>: Use <code>.b</code></li>
+		<li><code>c</code>: Use <code>.x.c</code></li>
+		<li><code>d</code>: Use <code>.y.z.d</code></li>
+	</ul>
+
+	If <code>d</code> wants to import:
+	<ul>
+		<li><code>a</code>: Use <code>...a</code></li>
+		<li><code>b</code>: Use <code>...b</code></li>
+		<li><code>c</code>: Use <code>...x.c</code></li>
+	</ul>
+
+	Circular imports between modules are not allowed, meaning if <code>a</code> imports <code>b</code>,
+	<code>b</code> can't import <code>a</code> (and can't import any module that does).
+
+	<h3>Privacy</h3>
+
+	To make a definition private to its module, prepend a <code>.</code> to its name.
+
+	<crow-runnable no-run src="private"></crow-runnable>
+
+	In the above example, other modules could import <code class="fun-def">f</code>
+	but not <code class="fun-def">g</code>.
+
+	Functions, specs, and types can all be made private.
+</section>

@@ -1,8 +1,8 @@
 import
 	.alloc: try-alloc-uninitialized
 	.bootstrap:
-		+, !=, <, <=, >, any-ptr, arr, as, backtrace, deref, hard-assert, incr, nat, noctx-decr,
-		noctx-incr, none, opt, ptr, ptr-less?, set, some, str, to-int, unsafe-div, unsafe-to-int,
+		+, !=, <, <=, >, any-ptr, arr, as, backtrace, hard-assert, incr, nat, noctx-decr,
+		noctx-incr, none, opt, ptr, ptr-less?, set-subscript, some, str, subscript, to-int, unsafe-div, unsafe-to-int,
 		unsafe-to-int32, unsafe-to-nat, value, void, wrap-sub
 	sys.execinfo: backtrace
 
@@ -37,8 +37,8 @@ spec
 	unsafe
 body
 	if code-names ptr-less? end-code-names
-		code-names set: code-ptrs.deref get-fun-name fun-ptrs, fun-names, funs-count
-		code-names.incr fill-code-names-recur end-code-names, code-ptrs.incr, fun-ptrs, fun-names
+		code-names[] := code-ptrs[] get-fun-name fun-ptrs, fun-names, funs-count
+		code-names + 1 fill-code-names-recur end-code-names, code-ptrs.incr, fun-ptrs, fun-names
 
 .code-ptrs-size nat()
 	8
@@ -71,16 +71,16 @@ body
 
 .fill-fun-ptrs-names-recur void(i nat, fun-ptrs ptr any-ptr, fun-names ptr str) unsafe
 	if i != funs-count
-		fun-ptrs + i set i.get-fun-ptr
-		fun-names + i set i.get-fun-name
+		fun-ptrs[i] := i.get-fun-ptr
+		fun-names[i] := i.get-fun-name
 		i.noctx-incr fill-fun-ptrs-names-recur fun-ptrs, fun-names
 
 .get-fun-name str(code-ptr any-ptr, fun-ptrs ptr any-ptr, fun-names ptr str, size nat) unsafe
 	| TODO: this will fail to give a name for the last function
 	if size < 2
 		"<<UNKNOWN>>"
-	elif code-ptr ptr-less? fun-ptrs.incr.deref
-		fun-names deref
+	elif code-ptr ptr-less? fun-ptrs[1]
+		fun-names[]
 	else
 		code-ptr get-fun-name fun-ptrs.incr, fun-names.incr, size.noctx-decr
 
@@ -88,7 +88,7 @@ body
 	if size > 1
 		swap: a, 0, size unsafe-div 2
 		swap: b, 0, size unsafe-div 2
-		after-pivot = a partition-recur-together b, a.deref, 1, size.noctx-decr
+		after-pivot = a partition-recur-together b, a[], 1, size.noctx-decr
 		new-pivot-index = after-pivot noctx-decr
 		a swap 0, new-pivot-index
 		b swap 0, new-pivot-index
@@ -98,7 +98,7 @@ body
 
 .partition-recur-together nat(a ptr any-ptr, b ptr str, pivot any-ptr, l nat, r nat) unsafe
 	if l <= r
-		if (a + l).deref ptr-less? pivot
+		if a[l] ptr-less? pivot
 			a partition-recur-together b, pivot, l.noctx-incr, r
 		else
 			a swap l, r
@@ -108,6 +108,6 @@ body
 		l
 
 .swap void(a ptr ?t, lo nat, hi nat) unsafe
-	temp = a + lo deref
-	a + lo set: a + hi deref
-	a + hi set temp
+	temp = a[lo]
+	a[lo] := a[hi]
+	a[hi] := temp

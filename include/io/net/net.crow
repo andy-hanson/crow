@@ -1,7 +1,7 @@
 import
 	...bootstrap:
-		==, !=, as-ref, deref, nat16, none, null, null?, opt, ptr, ptr-to, some, str, todo, value
-	...cell: cell, get
+		==, !=, as-ref, nat16, none, null, null?, opt, ptr, ptr-to, some, subscript, str, todo, value
+	...cell: cell, subscript
 	...collection.arr: ~
 	...exceptions: assert
 	...opt-utils: force
@@ -29,8 +29,8 @@ connect-to-uri fd-t(u uri) trusted summon
 	hints = addrinfo: 0, af-unspec, sock-stream, 0, 0, null.as-ref, null, null
 	result = null cell<ptr<addrinfo>>
 	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
-	op-sock = result.get find-and-connect-working-socket
-	result.get freeaddrinfo
+	op-sock = result[] find-and-connect-working-socket
+	result[] freeaddrinfo
 	| TODO: handle failure
 	op-sock force
 
@@ -38,7 +38,7 @@ connect-to-uri fd-t(u uri) trusted summon
 	if ap null?
 		none
 	else
-		a = ap deref
+		a = ap[]
 		sock = socket: a.ai-family, a.ai-socktype, a.ai-protocol
 		print: "sock is " ~ sock.to-str
 		if sock == -1
@@ -60,8 +60,8 @@ bind-to-port fd-t(port str) unsafe summon
 	hints = addrinfo: ai-passive, af-inet, sock-stream, 0, 0, null.as-ref, null, null
 	result = null cell<ptr<addrinfo>>
 	check-posix-error: getaddrinfo: null, port.to-c-str, hints.ptr-to, result
-	op-sock = result.get find-and-bind-working-socket
-	result.get freeaddrinfo
+	op-sock = result[] find-and-bind-working-socket
+	result[] freeaddrinfo
 	match op-sock
 	as none
 		print: "Failed to bind to port " ~ port
@@ -73,7 +73,7 @@ bind-to-port fd-t(port str) unsafe summon
 	if ap null?
 		none
 	else
-		a = ap deref
+		a = ap[]
 		listen-fd = socket: a.ai-family, a.ai-socktype, 0
 		if listen-fd != -1
 			if (listen-fd bind a.ai-addr, a.ai-addrlen) == 0

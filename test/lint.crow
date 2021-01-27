@@ -1,5 +1,5 @@
 import
-	cell: cell, get, swap
+	cell: cell, swap, subscript
 	collection.arr-util:
 		contains?, contains-subseq?, each-with-index, exists?, ends-with?, first, tail
 	collection.mut-list: ~=, move-to-arr!, mut-list
@@ -70,7 +70,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 		if c == "\n"
 			nl = last-nl swap index.incr
 			res ~= s[nl -> index]
-	res ~= s[last-nl.get -> s.size]
+	res ~= s[last-nl[] -> s.size]
 	res move-to-arr!
 
 .max-line-length nat()

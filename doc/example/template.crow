@@ -16,7 +16,8 @@ node<?t> record
 
 size nat(a node ?t)
 	1 size a.tail
-.size nat(acc nat, a opt node ?t)
+
+size nat(acc nat, a opt node ?t)
 	match a
 	as none
 		acc
@@ -28,7 +29,8 @@ plus<?t> spec
 
 sum ?t(a node ?t) plus<?t>
 	a.head sum a.tail
-.sum ?t(acc ?t, a opt node ?t) plus<?t>
+
+sum ?t(acc ?t, a opt node ?t) plus<?t>
 	match a
 	as none
 		acc

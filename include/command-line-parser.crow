@@ -1,7 +1,7 @@
 import
 	.bootstrap:
 		==, ->, arr, bool, false, has?, none, opt, size, some, subscript, str, true, value, void
-	.cell: cell, get, set
+	.cell: cell, set-subscript, subscript
 	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
 	.collection.dict: dict, each
@@ -23,7 +23,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt 
 		match t-names index-of key
 		as none
 			if key == "help"
-				help set true
+				help[] := true
 			else
 				fail: "Unexpected arg " ~ key
 		as some s
@@ -32,7 +32,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt 
 			forbid: values[idx] has?
 			values[idx] := value.some
 
-	if help get
+	if help[]
 		none
 	else
 		make-t[values move-to-arr!] some
@@ -60,7 +60,7 @@ parse-cmd-line-args-dynamic parsed-cmd-line-args(args arr str)
 		as none
 			parsed-cmd-line-args: nameless, rest.parse-named-args, []
 		as some s2
-			sep-index = s2.value
+			sep-index = s2 value
 			named-args = rest[0 -> sep-index] parse-named-args
 			parsed-cmd-line-args: nameless, named-args, rest[sep-index + 1 -> rest.size]
 
@@ -76,6 +76,6 @@ parse-named-args dict<str, arr str>(args arr str)
 	as none
 		builder[first-name] := tl
 	as some s
-		next-named-arg-index = s.value
+		next-named-arg-index = s value
 		builder[first-name] := tl[0 -> next-named-arg-index]
 		args[next-named-arg-index -> args.size] parse-named-args-recur builder

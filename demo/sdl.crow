@@ -1,7 +1,7 @@
 import
 	bits: bit-shift-left, bits-or
 	io.print: print
-	thread-utils: sleep-ms-sync
+	io.time: delay, duration, msec
 
 c-int alias
 	int
@@ -163,7 +163,8 @@ main fut nat(_ arr str) summon trusted
 	renderer = window renderer
 	texture = renderer create-texture
 
-	20 repeat {renderer main-loop texture}
+	ignore <- 20 repeat-interval 100.msec, {renderer main-loop-body texture}
+	drop: ignore
 
 	| TODO: use 'finally'
 	texture sdl-destroy-texture
@@ -174,7 +175,7 @@ main fut nat(_ arr str) summon trusted
 	print: "Bye bye"
 	0 resolved
 
-main-loop void(renderer sdl-renderer, texture sdl-texture) summon trusted
+main-loop-body void(renderer sdl-renderer, texture sdl-texture) summon trusted
 	sdl-pump-events
 	key-states-ptr = null sdl-get-keyboard-state
 	key-states = arr: sdl-num-scancodes, key-states-ptr
@@ -183,7 +184,6 @@ main-loop void(renderer sdl-renderer, texture sdl-texture) summon trusted
 	"sdl-render-clear" handle-sdl-error: renderer sdl-render-clear
 	"sdl-render-copy" handle-sdl-error: renderer sdl-render-copy texture, null, null
 	renderer sdl-render-present
-	100 sleep-ms-sync
 
 renderer sdl-renderer(window sdl-window) summon trusted
 	renderer = window sdl-create-renderer: -1, sdl-renderer-accelerated bits-or sdl-renderer-present-vsync
@@ -212,7 +212,10 @@ fail-sdl-error void(operation str) summon trusted
 	sdl-quit
 
 | TODO:MOVE
-repeat void(times nat, action act void())
+repeat-interval fut void(times nat, interval duration, action act void()) summon
 	if times != 0
 		action[]
-		times.decr repeat action
+		ignore <- interval delay
+		times.decr repeat-interval interval, action
+	else
+		void resolved

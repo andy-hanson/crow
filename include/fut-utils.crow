@@ -3,7 +3,7 @@ import
 		==, arr, as, err, exception, exclusion, fun, fut, fut-callback-node, fut-state-callbacks,
 		fut-state-resolved, hard-unreachable, head, island, island-and-exclusion, lk, nat, none, ok, opt,
 		ref-of-val, result, send, set-state, size, some, state, subscript, value, void
-	.cell: cell, get, set
+	.cell: cell, set-subscript, subscript
 	.collection.arr-util: each-with-index, first-some, map
 	.exceptions: catch
 	.fut-low-level: reject!, resolve!, resolve-or-reject!, unresolved
@@ -26,8 +26,8 @@ join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out>
 	remaining = cell<nat>: 2
 	decr-remaining = as<act void()>: \
 		lock with-lock \
-			remaining set: remaining.get - 1
-			if remaining.get == 0
+			remaining[] := remaining[] - 1
+			if remaining[] == 0
 				res finish-join! a, b, f
 	a then-void \ignore
 		decr-remaining[]
@@ -58,8 +58,8 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 	a each-with-index \in, index
 		in then-void \value
 			lock with-lock \
-				remaining set: remaining.get - 1
-				if remaining.get == 0
+				remaining[] := remaining[] - 1
+				if remaining[] == 0
 					res finish-join! a
 	res
 

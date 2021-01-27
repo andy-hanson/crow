@@ -2,7 +2,7 @@ import
 	..alloc: alloc-uninitialized, fill-ptr-range
 	..bootstrap:
 		==, !=, >=, ->, and, arr, bool, data, false, has?, incr, nat, noctx-incr, none, not, opt, ptr,
-		set, size, some, subscript, true, value, void
+		set-subscript, size, some, subscript, true, value, void
 	..exceptions: assert, forbid
 	..number-utils: +, -, decr, incr
 	..opt-utils: force
@@ -183,9 +183,9 @@ count-subseqs nat(a arr ?t, subseq arr ?t) data<?t>
 .fill-subseqs-recur void(out ptr arr ?t, a arr ?t, splitter arr ?t) data<?t> unsafe
 	match a index-of-subseq splitter
 	as none
-		out set a
+		out[] := a
 	as some s
-		out set a[0 -> s.value]
+		out[] := a[0 -> s.value]
 		rest = a[s.value + splitter.size -> a.size]
 		out.incr fill-subseqs-recur rest, splitter
 

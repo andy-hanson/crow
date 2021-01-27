@@ -8,6 +8,6 @@ main fut nat(_ arr str) summon
 	print: baker["potato"]
 	0 resolved
 
-.make-cooker fun str(str)(type str)
+make-cooker fun str(str)(type str)
 	\b
 		type ~ " " ~ b

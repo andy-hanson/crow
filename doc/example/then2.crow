@@ -1,0 +1,12 @@
+import
+	io.print: print
+
+main fut nat(_ arr str) summon
+	a = 3 resolved
+	print: "this happens first"
+	x <- a
+	print: x to-str
+	b = x + 1 resolved
+	y <- b
+	print: y to-str
+	0 resolved

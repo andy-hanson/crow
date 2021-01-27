@@ -1,19 +1,13 @@
 import
-	.bootstrap: as-any-ptr, as-ref, ptr, void
+	.bootstrap: as-any-ptr, as-ref, ptr
 
 cell<?t> record mut
-	value mut ?t
+	subscript mut ?t
 
 as-cell cell ?t(p ptr ?t) noctx unsafe
 	p.as-any-ptr as-ref
 
-get ?t(c cell ?t) noctx
-	c.value
-
-set void(c cell ?t, v ?t) noctx
-	c.value := v
-
 swap ?t(c cell ?t, v ?t) noctx
-	res = c get
-	c set v
+	res = c[]
+	c[] := v
 	res

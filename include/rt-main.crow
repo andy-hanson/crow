@@ -1,9 +1,9 @@
 import
 	.alloc
 	.bootstrap:
-		?, !=, +, any-ptr, arr, as, as-any-ptr, as-ref, by-val, call-with-ctx, c-str, ctx, deref,
+		?, !=, +, any-ptr, arr, as, as-any-ptr, as-ref, by-val, call-with-ctx, c-str, ctx,
 		false, fun-ptr2, fut, get-ctx, int32, nat, noctx-decr, noctx-incr, null, ptr, ptr-to,
-		ref-of-val, set, state, str, subscript, to-int, unsafe-to-int, unsafe-to-int32,
+		ref-of-val, set-subscript, state, str, subscript, to-int, unsafe-to-int, unsafe-to-int32,
 		unsafe-to-nat, value, void
 	.cell: as-cell
 	.collection.arr-util: map, tail
@@ -105,7 +105,7 @@ spec
 body
 	if i != n-threads
 		thread-arg-ptr = thread-args-begin + i
-		thread-arg-ptr set thread-args: i, gctx
+		thread-arg-ptr[] := thread-args: i, gctx
 		thread-ptr = threads + i
 		thread-ptr.as-cell create-one-thread thread-arg-ptr.as-any-ptr, &thread-fun
 		i.noctx-incr start-threads-recur n-threads, threads, thread-args-begin, gctx
@@ -117,5 +117,5 @@ body
 
 .join-threads-recur void(i nat, n-threads nat, threads ptr pthread-t) noctx unsafe summon
 	if i != n-threads
-		(threads + i).deref join-one-thread
+		threads[i] join-one-thread
 		i.noctx-incr join-threads-recur n-threads, threads

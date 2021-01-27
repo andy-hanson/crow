@@ -283,7 +283,8 @@ struct ExprAstKind {
 		seq,
 		then,
 	}
-	immutable Kind kind;
+	//TODO:PRIVATE
+	public immutable Kind kind;
 	union {
 		immutable BogusAst bogus;
 		immutable CallAst call;

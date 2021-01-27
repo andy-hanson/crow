@@ -88,11 +88,21 @@ immutable(Ptr!ExprAst) allocExpr(Alloc)(ref Alloc alloc, immutable ExprAst e) {
 	return allocate(alloc, e);
 }
 
+enum AllowBlock {
+	noBlock,
+	allowBlock,
+}
+
+enum AllowCalls {
+	noCalls,
+	allowCalls,
+}
+
 struct ArgCtx {
 	// Allow things like 'if', 'match', '\' that continue into an indented block.
-	immutable Bool allowBlock;
+	immutable AllowBlock allowBlock;
 	// In `a b: c d e`, we parse `a b (c d e) and not `(a b c) d e`, since `: turns on `allowCall`.
-	immutable Bool allowCall;
+	immutable AllowCalls allowCalls;
 }
 
 struct ExprAndDedent {
@@ -130,7 +140,7 @@ immutable(Arr!ExprAst) parseSubscriptArgs(Alloc, SymAlloc)(ref Alloc alloc, ref 
 		return emptyArr!ExprAst;
 	else {
 		ArrBuilder!ExprAst builder;
-		immutable ArgCtx argCtx = immutable ArgCtx(False, True);
+		immutable ArgCtx argCtx = immutable ArgCtx(AllowBlock.noBlock, AllowCalls.allowCalls);
 		immutable ArgsAndMaybeDedent res = parseArgsRecur(alloc, lexer, argCtx, builder, 0);
 		verify(!has(res.dedent));
 		if (!tryTake(lexer, ']'))
@@ -212,8 +222,15 @@ immutable(ExprAndDedent) parseLetOrThen(Alloc, SymAlloc)(
 					}
 				}();
 				return immutable FromBefore(beforeCall.funNameName, beforeCall.args, beforeCall.typeArgs, style);
-			} else
-				return todo!(immutable FromBefore)("not settable");
+			} else {
+				addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
+					immutable ParseDiag.CantPrecedeEqLike()));
+				return immutable FromBefore(
+					shortSymAlphaLiteral("bogus"),
+					emptyArr!ExprAst,
+					emptyArrWithSize!TypeAst,
+					CallAst.Style.setSingle);
+			}
 		}();
 		immutable ExprAst call = immutable ExprAst(
 			range(lexer, start),
@@ -275,7 +292,7 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable ExprAst target,
-	immutable Bool allowBlock,
+	immutable AllowBlock allowBlock,
 	immutable u32 curIndent,
 ) {
 	immutable Pos start = curPos(lexer); // TODO: logically the call starts at the LHS start.
@@ -290,7 +307,9 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 			return immutable ExprAndMaybeDedent(target, none!size_t);
 		} else {
 			immutable Bool lowPrecedence = immutable Bool(precedence(force(operator)) < 0);
-			immutable ArgCtx argCtx = immutable ArgCtx(lowPrecedence, immutable Bool(lowPrecedence || tookColon));
+			immutable ArgCtx argCtx = immutable ArgCtx(
+				lowPrecedence ? AllowBlock.allowBlock : AllowBlock.noBlock,
+				lowPrecedence || tookColon ? AllowCalls.allowCalls : AllowCalls.noCalls);
 			immutable ExprAndMaybeDedent rhs = parseExprArg(alloc, lexer, argCtx, curIndent);
 			//TODO: use a more appropriate fn then
 			verify(!has(rhs.dedents));
@@ -303,7 +322,11 @@ immutable(ExprAndMaybeDedent) parseCall(Alloc, SymAlloc)(
 	} else {
 		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
 		immutable Bool tookColon = tryTake(lexer, ':');
-		immutable ArgsAndMaybeDedent args = parseArgs(alloc, lexer, ArgCtx(allowBlock, tookColon), curIndent);
+		immutable ArgsAndMaybeDedent args = parseArgs(
+			alloc,
+			lexer,
+			immutable ArgCtx(allowBlock, tookColon ? AllowCalls.allowCalls : AllowCalls.noCalls),
+			curIndent);
 		immutable ExprAstKind exprKind = immutable ExprAstKind(
 			immutable CallAst(CallAst.Style.infix, funName, typeArgs, prepend(alloc, target, args.args)));
 		return immutable ExprAndMaybeDedent(immutable ExprAst(range(lexer, start), exprKind), args.dedent);
@@ -382,7 +405,7 @@ immutable(ExprAndMaybeDedent) parseCalls(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable Pos start,
 	immutable ExprAndMaybeDedent ed,
-	immutable Bool allowBlock,
+	immutable AllowBlock allowBlock,
 	immutable u32 curIndent,
 ) {
 	if (has(ed.dedents))
@@ -684,12 +707,12 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			immutable ExprAst expr = immutable ExprAst(getRange(), immutable ExprAstKind(asLiteral(et)));
 			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 		case ExpressionToken.Kind.lparen:
-			immutable ExprAst expr = parseExprNoBlock(alloc, lexer);
+			immutable ExprAst inner = parseExprNoBlock(alloc, lexer);
 			takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
-			immutable ExprAst inner = tryParseDotsAndSubscripts(alloc, lexer, expr);
-			return noDedent(immutable ExprAst(
-				range(lexer, start),
-				immutable ExprAstKind(immutable ParenthesizedAst(allocate(alloc, inner)))));
+			immutable ExprAst expr = immutable ExprAst(
+				getRange(),
+				immutable ExprAstKind(immutable ParenthesizedAst(allocate(alloc, inner))));
+			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 		case ExpressionToken.Kind.match:
 			return ctx.allowBlock
 				? toMaybeDedent(parseMatch(alloc, lexer, start, curIndent))
@@ -729,7 +752,12 @@ immutable(ExprAndMaybeDedent) parseExprWorker(Alloc, SymAlloc)(
 	immutable u32 curIndent,
 ) {
 	immutable ExprAndMaybeDedent ed = parseExprBeforeCall(alloc, lexer, start, et, ctx, curIndent);
-	return ctx.allowCall ? parseCalls(alloc, lexer, start, ed, ctx.allowBlock, curIndent) : ed;
+	final switch (ctx.allowCalls) {
+		case AllowCalls.noCalls:
+			return ed;
+		case AllowCalls.allowCalls:
+			return parseCalls(alloc, lexer, start, ed, ctx.allowBlock, curIndent);
+	}
 }
 
 // This eats an expression, but does not eat any newlines.
@@ -745,8 +773,14 @@ immutable(ExprAst) parseExprNoBlock(Alloc, SymAlloc)(
 	immutable Pos start,
 	ref immutable ExpressionToken et,
 ) {
-	// curIndent doesn't matter since we don't allow to take a block
-	immutable ExprAndMaybeDedent ed = parseExprWorker(alloc, lexer, start, et, ArgCtx(False, True), 0);
+	immutable ExprAndMaybeDedent ed = parseExprWorker(
+		alloc,
+		lexer,
+		start,
+		et,
+		immutable ArgCtx(AllowBlock.noBlock, AllowCalls.allowCalls),
+		// curIndent doesn't matter since we don't allow to take a block
+		0);
 	// We set allowBlock to false, so not allowed to take newlines, so can't have dedents.
 	verify(!has(ed.dedents));
 	return ed.expr;
@@ -770,7 +804,17 @@ immutable(ExprAndDedent) parseExprNoLet(Alloc, SymAlloc)(
 	immutable ExpressionToken et,
 	immutable u32 curIndent,
 ) {
-	return addDedent(alloc, lexer, parseExprWorker(alloc, lexer, start, et, ArgCtx(True, True), curIndent), curIndent);
+	return addDedent(
+		alloc,
+		lexer,
+		parseExprWorker(
+			alloc,
+			lexer,
+			start,
+			et,
+			immutable ArgCtx(AllowBlock.allowBlock, AllowCalls.allowCalls),
+			curIndent),
+		curIndent);
 }
 
 immutable(ExprAndDedent) parseExprNoLet(Alloc, SymAlloc)(
@@ -789,7 +833,7 @@ immutable(ExprAndDedent) parseSingleStatementLine(Alloc, SymAlloc)(
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable ExpressionToken et = takeExpressionToken(alloc, lexer);
-	immutable ArgCtx argCtx = immutable ArgCtx(True, True);
+	immutable ArgCtx argCtx = immutable ArgCtx(AllowBlock.allowBlock, AllowCalls.allowCalls);
 	immutable ExprAndMaybeDedent expr = parseExprBeforeCall(alloc, lexer, start, et, argCtx, curIndent);
 	if (!has(expr.dedents)) {
 		immutable Opt!EqLikeKind kind = tryTakeEqLikeKind(lexer);
@@ -799,7 +843,7 @@ immutable(ExprAndDedent) parseSingleStatementLine(Alloc, SymAlloc)(
 	return addDedent(
 		alloc,
 		lexer,
-		has(expr.dedents) ? expr : parseCalls(alloc, lexer, start, expr, True, curIndent), curIndent);
+		has(expr.dedents) ? expr : parseCalls(alloc, lexer, start, expr, AllowBlock.allowBlock, curIndent), curIndent);
 }
 
 immutable(ExprAndDedent) addDedent(Alloc, SymAlloc)(

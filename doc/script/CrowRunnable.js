@@ -69,7 +69,8 @@ export const CrowRunnable = makeCustomElement({
 	connected: async ({ getAttribute, root }) => {
 
 		const comp = await compiler.getGlobalCompiler()
-		const src = nonNull(getAttribute('src'))
+		const src = nonNull(getAttribute("src"))
+		const noRun = getAttribute("no-run") !== null
 		const initialText = await (await fetch(`example/${src}.crow`)).text()
 		const MAIN = src
 
@@ -95,8 +96,8 @@ export const CrowRunnable = makeCustomElement({
 
 		const output = div({class:outputClass})
 
-		const runButton = button(playIcon())
-		runButton.onclick = () => {
+		const runButton = noRun ? null : button(playIcon())
+		if (runButton) runButton.onclick = () => {
 			try {
 				output.className = outputClass.name
 				removeAllChildren(output)
@@ -138,7 +139,7 @@ export const CrowRunnable = makeCustomElement({
 			console.log("Clicked???")
 		}
 
-		const bottom = div({class:bottomClass}, [runButton, copyButton, downloadButton])
+		const bottom = div({class:bottomClass}, [...(runButton ? [runButton] : []), copyButton, downloadButton])
 
 		const outerContainer = div({class:outerContainerClass}, [crowTextContainer, output, bottom])
 		root.append(outerContainer)

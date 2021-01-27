@@ -1,0 +1,5 @@
+f str()
+	"a"
+
+.g str()
+	"swordfish"

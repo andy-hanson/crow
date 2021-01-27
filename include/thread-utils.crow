@@ -3,7 +3,7 @@ import
 		<, ==, !=, any-ptr, as, atomic-bool, bool, by-val, false, fun-ptr1, hard-assert,
 		hard-forbid, is-locked, lock, nat, noctx-decr, noctx-incr, not, null, null?, opt, ptr,
 		ptr-to, ref-of-val, subscript, todo, true, value, void
-	.cell: cell, get
+	.cell: cell, subscript
 	.io.time-low-level: get-monotime-nsec, timestamp
 	.posix.errno: eagain, einval, esrch
 	.posix.pthread: pthread-create, pthread-join, pthread-t, pthread-yield
@@ -77,8 +77,8 @@ broadcast! void(c condition) noctx trusted
 last-checked alias
 	nat
 
-get-last-checked last-checked(c condition) noctx
-	c.value
+get-last-checked last-checked(a condition) noctx
+	a.value
 
 wait-on void(cond condition, until-time opt timestamp, last-checked last-checked) noctx unsafe summon
 	| last-checked should have been called before a change, we wait until c.value is different
@@ -150,4 +150,4 @@ join-one-thread void(tid pthread-t) noctx unsafe summon
 			todo
 		else
 			todo
-	hard-assert: thread-return.ref-of-val.get null?
+	hard-assert: thread-return.ref-of-val[] null?

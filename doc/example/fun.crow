@@ -12,5 +12,5 @@ main fut nat(_ arr str) summon
 
 	0 resolved
 
-.call-it str(f fun str(nat))
+call-it str(f fun str(nat))
 	f[3]

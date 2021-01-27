@@ -82,8 +82,12 @@ null? bool(a ptr ?t) noctx trusted
 any-ptr alias
 	ptr nat8
 
-deref ?t(p ptr ?t) noctx unsafe builtin
-set void(p ptr ?t, value ?t) noctx unsafe builtin
+subscript ?t(a ptr ?t) noctx unsafe builtin
+subscript ?t(a ptr ?t, n nat) noctx unsafe
+	(a + n)[]
+set-subscript void(a ptr ?t, value ?t) noctx unsafe builtin
+set-subscript void(a ptr ?t, n nat, value ?t) noctx unsafe
+	(a + n)[] := value
 
 | Unsafe because the ref will only be valid temporarily!
 ref-of-val ?t(b by-val ?t) noctx unsafe builtin
@@ -98,7 +102,7 @@ as-any-ptr any-ptr(ref ?t) noctx unsafe builtin
 as-ref ?t(p any-ptr) noctx unsafe builtin
 
 ref-of-ptr ?t(p ptr by-val<?t>) noctx unsafe
-	p.deref ref-of-val
+	p[] ref-of-val
 
 ptr-eq? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
 ptr-less? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin

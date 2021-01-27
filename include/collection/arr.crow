@@ -1,8 +1,8 @@
 import
 	..alloc: alloc-uninitialized, copy-data-from
 	..bootstrap:
-		+, -, ==, !=, <, <=, ->, arr, arrow, bool, by-val, data, deref, false, from, hard-assert, nat, not,
-		ptr, ref-of-ptr, size, to, true
+		+, -, ==, !=, <, <=, ->, arr, arrow, bool, by-val, data, false, from, hard-assert, nat, not,
+		ptr, ref-of-ptr, size, subscript, to, true
 	..exceptions: assert
 	..number-utils: +, -
 
@@ -17,7 +17,7 @@ has? bool(a arr ?t) noctx
 
 noctx-at ?t(a arr ?t, index nat) trusted noctx
 	hard-assert: index < a.size
-	a.data + index deref
+	a.data[index]
 
 subscript ?t(a arr ?t, index nat) trusted
 	assert: index < a.size

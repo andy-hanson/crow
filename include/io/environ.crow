@@ -1,5 +1,5 @@
 import
-	..bootstrap: ->, arrow, char, c-str, data, deref, from, incr, not, null, null?, ptr, str, to, void
+	..bootstrap: ->, arrow, char, c-str, data, from, incr, not, null, null?, ptr, subscript, str, to, void
 	..collection.arr: ~, arr-from-begin-end
 	..collection.dict: dict, each
 	..collection.mut-dict: move-to-dict!, mut-dict, set-subscript
@@ -16,8 +16,8 @@ get-environ environ() summon trusted
 	res move-to-dict!
 
 get-environ-recur void(env ptr c-str, res mut-dict<str, str>) unsafe
-	if env.deref.null? not
-		entry = env.deref.parse-environ-entry
+	if env[].null? not
+		entry = env[].parse-environ-entry
 		res[entry.from] := entry to
 		env.incr get-environ-recur res
 

@@ -1,9 +1,9 @@
 import
 	..alloc: alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
 	..bootstrap:
-		==, <, <=, >, >=, +, ->, arr, as-any-ptr, bool, by-val, data, deref, drop,
-		hard-assert, hard-forbid, nat, noctx-decr, noctx-incr, none, not, opt, ptr, set, size-of,
-		some, todo, void, zeroed
+		==, <, <=, >, >=, +, ->, arr, as-any-ptr, bool, by-val, data, drop,
+		hard-assert, hard-forbid, nat, noctx-decr, noctx-incr, none, not, opt, ptr, set-subscript,
+		size-of, some, subscript, todo, void, zeroed
 	..collection.arr-util: contains?, each, index-of
 	..collection.mut-arr:
 		data, fill-mut-arr, mut-arr, set-zero-elements, size, subscript, temp-as-arr
@@ -61,7 +61,7 @@ move-to-arr! arr ?t(a mut-list ?t) noctx trusted
 
 noctx-at ?t(a mut-list ?t, index nat) trusted noctx
 	hard-assert: index < a.size
-	a.data + index deref
+	a.data[index]
 
 subscript ?t(a mut-list ?t, index nat) trusted
 	assert: index < a.size
@@ -87,7 +87,7 @@ has? bool(a mut-list ?t) noctx
 
 noctx-set-at! void(a mut-list ?t, index nat, value ?t) noctx trusted
 	hard-assert: index < a.size
-	a.data + index set value
+	a.data[index] := value
 
 set-subscript void(a mut-list ?t, index nat, value ?t) trusted
 	assert: index < a.size
@@ -137,7 +137,7 @@ pop-n! void(a mut-list ?t, n nat) trusted
 ~= void(a mut-list ?t, value ?t) trusted
 	a incr-capacity!
 	a.size < a.capacity assert
-	a.data + a.size set value
+	a.data[a.size] := value
 	a.size := a.size incr
 
 ~= void(a mut-list ?t, values arr ?t)

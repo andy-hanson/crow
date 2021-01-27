@@ -1,10 +1,10 @@
 import
 	.bits: bits-and, bits-not
 	.bootstrap:
-		+, -, ==, !=, <, <=, >, any-ptr, as, as-any-ptr, as-ref, bool, by-val, deref, false,
+		+, -, ==, !=, <, <=, >, any-ptr, as, as-any-ptr, as-ref, bool, by-val, false,
 		gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, incr, lock, nat, nat8, nat64, noctx-incr,
 		none, not, null?, opt, or, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, ptr-cast, ref-of-val,
-		set, size-of, some, subscript, todo, to-nat, true, unsafe-div, value, void, wrap-add,
+		set-subscript, size-of, some, subscript, todo, to-nat, true, unsafe-div, value, void, wrap-add,
 		wrap-mul, wrap-sub
 	.posix.stdlib: free, malloc
 	.posix.string: memcpy, memset
@@ -45,8 +45,8 @@ mark-range-recur bool(marked-anything? bool, cur ptr bool, end ptr bool) noctx u
 	if cur ptr-eq? end
 		marked-anything?
 	else
-		new-marked-anything? = marked-anything? or cur.deref.not
-		cur set true
+		new-marked-anything? = marked-anything? or cur[].not
+		cur[] := true
 		mark-range-recur: new-marked-anything?, cur.incr, end
 
 mark-visit void(mark-ctx mark-ctx, value ?a) noctx unsafe builtin
@@ -102,7 +102,7 @@ words-used-in-range nat(acc nat, cur ptr bool, end ptr bool) noctx unsafe
 	if cur ptr-eq? end
 		acc
 	else
-		acc wrap-add cur.deref.to-nat words-used-in-range cur.incr, end
+		acc wrap-add cur[].to-nat words-used-in-range cur.incr, end
 
 gc by-val gc() noctx unsafe
 	| TODO: handle malloc failure
@@ -131,8 +131,8 @@ run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 
 .clear-free-mem void(mark-ptr ptr bool, mark-end ptr bool, data-ptr ptr nat64) noctx unsafe
 	if mark-ptr ptr-eq? mark-end not
-		if mark-ptr.deref not
-			data-ptr set 0xfadefadefadefade
+		if mark-ptr[] not
+			data-ptr[] := 0xfadefadefadefade
 		clear-free-mem: mark-ptr.incr, mark-end, data-ptr
 
 | GC info specific to a ctx.
@@ -178,7 +178,7 @@ get-gc gc() unsafe
 
 fill-ptr-range void(cur ptr ?t, end ptr ?t, value ?t) noctx unsafe
 	if cur ptr-eq? end not
-		cur set value
+		cur[] := value
 		cur.incr fill-ptr-range end, value
 
 validate-gc void(gc gc) noctx unsafe
@@ -219,7 +219,7 @@ validate-gc void(gc gc) noctx unsafe
 range-free? bool(mark ptr bool, end ptr bool) noctx unsafe
 	if mark ptr-eq? end
 		true
-	elif mark deref
+	elif mark[]
 		false
 	else
 		mark.incr range-free? end
@@ -274,5 +274,5 @@ fill-ptr-range void(begin ptr ?t, size nat, f act ?t(nat)) unsafe
 
 .fill-ptr-range-recur void(begin ptr ?t, i nat, size nat, f act ?t(nat)) unsafe
 	if i != size
-		begin + i set: f[i]
+		begin[i] := f[i]
 		begin fill-ptr-range-recur i.noctx-incr, size, f

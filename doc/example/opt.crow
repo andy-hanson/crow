@@ -6,7 +6,7 @@ main fut nat(_ arr str) summon
 	print: "1.5" rate-my-number
 	0 resolved
 
-.rate-my-number str(a str)
+rate-my-number str(a str)
 	match a parse-nat
 	as none
 		"not a nat"
