@@ -110,7 +110,7 @@ add-task void(a island, timestamp timestamp, exclusion exclusion, action act voi
 add-task void(a island, exclusion exclusion, action act void()) unsafe
 	a add-task no-timestamp, exclusion, action
 
-.thread-local-stuff record mut
+thread-local-stuff record mut
 	by-ref
 	# Reusing the exception ctx to avoid needing to allocate it every time
 	exception-ctx exception-ctx
@@ -155,7 +155,7 @@ thread-function void(thread-id nat, gctx global-ctx) noctx unsafe summon
 		# Do another task
 		thread-function-recur: thread-id, gctx, tls
 
-.ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion exclusion) noctx unsafe
+ctx by-val ctx(gctx global-ctx, tls thread-local-stuff, island island, exclusion exclusion) noctx unsafe
 	gc-ctx = island.gc.ref-of-val.get-gc-ctx.as-any-ptr
 	exception-ctx = tls exception-ctx
 	log-ctx = tls.log-ctx

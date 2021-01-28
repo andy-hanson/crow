@@ -313,9 +313,6 @@ MutArr!Candidate getInitialCandidates(Alloc)(
 ) {
 	MutArr!Candidate res = MutArr!Candidate();
 	eachFunInScope(ctx, funName, (ref immutable Opt!UsedFun used, immutable CalledDecl called) {
-		//debug {
-		//	printf("Fun in scope! Its arity: %lu = %lu\n", arity(called), size(sig(called).params));
-		//}
 		immutable size_t nTypeParams = size(typeParams(called));
 		if (arity(called) == actualArity &&
 			(empty(explicitTypeArgs) || nTypeParams == size(explicitTypeArgs))) {

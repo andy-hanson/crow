@@ -21,7 +21,7 @@ mut-list<?t> record mut
 	# TODO:PRIVATE (getter public)
 	size mut nat
 
-.data ptr ?t(a mut-list ?t) noctx unsafe
+data ptr ?t(a mut-list ?t) noctx unsafe
 	a.backing data
 
 # TODO: PRIVATE

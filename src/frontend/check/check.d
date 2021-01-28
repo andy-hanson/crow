@@ -147,6 +147,7 @@ import util.collection.arrUtil :
 	exists,
 	fillArr_mut,
 	map,
+	mapOp,
 	mapOpWithSize,
 	mapOrNone,
 	mapPtrs,
@@ -1326,18 +1327,23 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 	dictEach!(Sym, StructOrAliasAndIndex, compareSym)(
 		structsAndAliasesDict,
 		(ref immutable Sym name, ref immutable StructOrAliasAndIndex it) {
-			add(name, immutable NameReferents(some(it.structOrAlias), none!(Ptr!SpecDecl), emptyArr!(Ptr!FunDecl)));
+			if (isPublic(it.structOrAlias))
+				add(name, immutable NameReferents(some(it.structOrAlias), none!(Ptr!SpecDecl), emptyArr!(Ptr!FunDecl)));
 		});
 	dictEach!(Sym, SpecDeclAndIndex, compareSym)(
 		specsDict,
 		(ref immutable Sym name, ref immutable SpecDeclAndIndex it) {
-			add(name, immutable NameReferents(none!StructOrAlias, some(it.decl), emptyArr!(Ptr!FunDecl)));
+			if (it.decl.isPublic)
+				add(name, immutable NameReferents(none!StructOrAlias, some(it.decl), emptyArr!(Ptr!FunDecl)));
 		});
 	multiDictEach!(Sym, FunDeclAndIndex, compareSym)(
 		funsDict,
 		(ref immutable Sym name, immutable Arr!FunDeclAndIndex funs) {
-			immutable Arr!(Ptr!FunDecl) funDecls = map!(Ptr!FunDecl)(alloc, funs, (ref immutable FunDeclAndIndex it) =>
-				it.decl);
+			immutable Arr!(Ptr!FunDecl) funDecls = mapOp!(Ptr!FunDecl)(
+				alloc,
+				funs,
+				(ref immutable FunDeclAndIndex it) =>
+					it.decl.isPublic ? some(it.decl) : none!(Ptr!FunDecl));
 			add(name, immutable NameReferents(none!StructOrAlias, none!(Ptr!SpecDecl), funDecls));
 		});
 
@@ -1424,7 +1430,8 @@ void checkImportsOrExports(Alloc)(
 	ref ArrBuilder!Diagnostic diags,
 	immutable FileIndex thisFile,
 	ref immutable Arr!ModuleAndNames imports,
-) {	foreach (ref immutable ModuleAndNames m; arrRange(imports))
+) {
+	foreach (ref immutable ModuleAndNames m; arrRange(imports))
 		if (has(m.names))
 			foreach (ref immutable Sym name; arrRange(force(m.names)))
 				if (!hasKey(m.module_.allExportedNames, name))
