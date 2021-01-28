@@ -183,7 +183,7 @@ immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(Alloc, PathAlloc, Sy
 					1,
 					() =>
 						parseIndentedImportNames(alloc, lexer, start),
-					(immutable RangeWithinFile, immutable size_t dedent) =>
+					(immutable RangeWithinFile, immutable uint dedent) =>
 						immutable NamesAndDedent(
 							none!(Arr!Sym),
 							range(lexer, start),
@@ -196,7 +196,7 @@ immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(Alloc, PathAlloc, Sy
 		names.dedented);
 }
 
-immutable(NewlineOrDedent) newlineOrDedentFromNumber(immutable size_t dedent) {
+immutable(NewlineOrDedent) newlineOrDedentFromNumber(immutable uint dedent) {
 	switch (dedent) {
 		case 0:
 			return NewlineOrDedent.newline;

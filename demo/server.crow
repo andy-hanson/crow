@@ -61,11 +61,9 @@ old-main fut nat(port str) unsafe summon
 	server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
 
 	print: "will stop after 10 seconds"
-	ignore-me <- 10000.msec delay
-	drop: ignore-me
+	<- 10000.msec delay
 	print: "stopping..."
-	ignore-me-2 <- server.stop[]
-	drop: ignore-me-2
+	<- server.stop[]
 	print: "done"
 	0 resolved
 

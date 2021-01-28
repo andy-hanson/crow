@@ -8,7 +8,7 @@ import
 	...collection.arr: ~, subscript
 	...collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
 	...exceptions: assert
-	...fut-utils: call-ref-void, handle-exceptions, then, then-void, fut-catch, resolved
+	...fut-utils: callback!, call-ref-void, handle-exceptions, then, fut-catch, resolved
 	...number-utils: to-int, to-int32, to-nat, to-nat32
 	...posix.c-types: c-int
 	...posix.errno: eagain, errno, ewouldblock
@@ -69,7 +69,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 
 		print: "starting the server loop"
 		done = state tcp-server-loop
-		done.fut-catch then-void \r
+		done.fut-catch callback! \r
 			match r
 			as ok
 				print: "stopped normally"

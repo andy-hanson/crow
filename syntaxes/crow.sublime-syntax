@@ -254,6 +254,9 @@ contexts:
       pop: true
     # Skip beginning-of-line indent
     - match: ^\s+
+    # '<-' at beginning of line
+    - match: '<-'
+      scope: keyword
     # `foo:`
     - match: '{{name}}(\:)\s+'
       scope: variable.function.crow

@@ -44,6 +44,7 @@ import frontend.parse.ast :
 	StructDeclAst,
 	structs,
 	ThenAst,
+	ThenVoidAst,
 	TypeAst,
 	TypeParamAst;
 import util.bools : Bool, True;
@@ -344,6 +345,10 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		},
 		(ref immutable ThenAst it) {
 			addLambdaAstParam(alloc, tokens, it.left);
+			addExprTokens(alloc, tokens, it.futExpr);
+			addExprTokens(alloc, tokens, it.then);
+		},
+		(ref immutable ThenVoidAst it) {
 			addExprTokens(alloc, tokens, it.futExpr);
 			addExprTokens(alloc, tokens, it.then);
 		});

@@ -90,6 +90,7 @@ import frontend.parse.ast :
 	rangeOfNameAndRange,
 	SeqAst,
 	ThenAst,
+	ThenVoidAst,
 	TypeAst;
 import util.bools : Bool, not, True;
 import util.collection.arr :
@@ -897,6 +898,27 @@ immutable(CheckedExpr) checkThen(Alloc)(
 	return checkCall(alloc, ctx, range, call, expected);
 }
 
+immutable(CheckedExpr) checkThenVoid(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable FileAndRange range,
+	ref immutable ThenVoidAst ast,
+	ref Expected expected,
+) {
+	// TODO: NEATER (don't create a synthetic AST)
+	immutable ExprAst lambda = immutable ExprAst(
+		range.range,
+		immutable ExprAstKind(immutable LambdaAst(
+			emptyArr!(LambdaAst.Param),
+			ast.then)));
+	immutable CallAst call = immutable CallAst(
+		CallAst.Style.infix,
+		immutable NameAndRange(range.range.start, shortSymAlphaLiteral("then-void")),
+		emptyArrWithSize!TypeAst,
+		arrWithSizeLiteral!ExprAst(alloc, [ast.futExpr.deref, lambda]));
+	return checkCall(alloc, ctx, range, call, expected);
+}
+
 immutable(CheckedExpr) checkExprWorker(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
@@ -931,5 +953,7 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 		(ref immutable SeqAst a) =>
 			checkSeq(alloc, ctx, range, a, expected),
 		(ref immutable ThenAst a) =>
-			checkThen(alloc, ctx, range, a, expected));
+			checkThen(alloc, ctx, range, a, expected),
+		(ref immutable ThenVoidAst a) =>
+			checkThenVoid(alloc, ctx, range, a, expected));
 }

@@ -261,14 +261,14 @@ program(
 					field(fun, false, type(false, fun-act1))]))
 		struct(name: fun-act1, body: builtin(fun, [type(true, fut), type(false, void)]))
 		struct(
-			name: lambda(then-void, 0)
+			name: lambda(callback!, 0)
 			body: record([field(f, false, type(true, fut)), field(cb, false, type(false, fun-act1))]))
 		struct(
 			name: lambda(then, 0)
 			ptr?: true
 			body: record([field(cb, false, type(false, fun-ref1)), field(res, false, type(true, fut))]))
 		struct(
-			name: lambda(then-void, 0)
+			name: lambda(callback!, 0)
 			body: record([field(f, false, type(true, fut)), field(cb, false, type(false, fun-act1))]))
 		struct(name: lambda(forward-to!, 0), body: record([field(to, false, type(true, fut))]))
 		struct(name: fun-act0, body: builtin(fun, [type(false, fut-state-callbacks)]))
@@ -2614,7 +2614,7 @@ program(
 					res
 					call(unresolved, [])
 					seq(
-						call(then-void, [param-ref(f), lambda(0, alloc(record([param-ref(cb), local-ref(res)])))])
+						call(callback!, [param-ref(f), lambda(0, alloc(record([param-ref(cb), local-ref(res)])))])
 						local-ref(res)))))
 		fun(
 			true
@@ -2640,7 +2640,7 @@ program(
 			new-record)
 		fun(
 			true
-			then-void
+			callback!
 			type(false, void)
 			none
 			[param(f, type(true, fut)), param(cb, type(false, fun-act1))]
@@ -2718,9 +2718,9 @@ program(
 		fun(false, err, type(false, err), none, [param(value, type(false, exception))], new-record)
 		fun(
 			true
-			lambda(then-void, 0)
+			lambda(callback!, 0)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(then-void, 0))))
+			some(param("<<closure>>", type(true, lambda(callback!, 0))))
 			[]
 			expr-body(
 				match(
@@ -2765,10 +2765,10 @@ program(
 			type(false, void)
 			none
 			[param(from, type(true, fut)), param(to, type(true, fut))]
-			expr-body(call(then-void, [param-ref(from), lambda(0, alloc(record([param-ref(to)])))])))
+			expr-body(call(callback!, [param-ref(from), lambda(0, alloc(record([param-ref(to)])))])))
 		fun(
 			true
-			then-void
+			callback!
 			type(false, void)
 			none
 			[param(f, type(true, fut)), param(cb, type(false, fun-act1))]
@@ -2814,9 +2814,9 @@ program(
 		fun(false, value, type(false, nat), none, [param(a, type(false, fut-state-resolved))], field-get(0))
 		fun(
 			true
-			lambda(then-void, 0)
+			lambda(callback!, 0)
 			type(false, void)
-			some(param("<<closure>>", type(true, lambda(then-void, 0))))
+			some(param("<<closure>>", type(true, lambda(callback!, 0))))
 			[]
 			expr-body(
 				match(
@@ -3859,7 +3859,7 @@ program(
 			type(false, void)
 			none
 			[param(a, type(true, fut))]
-			expr-body(call(then-void, [param-ref(a), lambda(1, void)])))
+			expr-body(call(callback!, [param-ref(a), lambda(1, void)])))
 		fun(
 			true
 			subscript

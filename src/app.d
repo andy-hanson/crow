@@ -226,7 +226,7 @@ immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
 }
 
 immutable(int) help(ref immutable Command.Help a) {
-	print(a.helpText);
+	println(a.helpText);
 	return a.isDueToCommandParseError ? 1 : 0;
 }
 
@@ -272,8 +272,16 @@ void compileC(Alloc, PathAlloc)(
 	printf("%.*s", cast(uint) size(a), begin(a));
 }
 
+@trusted void println(immutable Str a) {
+	printf("%.*s\n", cast(uint) size(a), begin(a));
+}
+
 void print(immutable string a) {
 	print(strLiteral(a));
+}
+
+void println(immutable string a) {
+	println(strLiteral(a));
 }
 
 @trusted void printErr(immutable Str a) {

@@ -242,18 +242,18 @@ immutable(Command) parseTestCommand(Alloc)(ref Alloc alloc, immutable Arr!Str ar
 }
 
 immutable string versionText =
-	"Approximately 0.000\n";
+	"Approximately 0.000";
 
 immutable string helpAllText =
 	"Commands: (type a command then '--help' to see more)\n" ~
 	"\t'crow build'\n" ~
 	"\t'crow run'\n" ~
-	"\t'crow version'\n";
+	"\t'crow version'";
 
 immutable string helpBuildText =
 	"Command: crow build [PATH]\n" ~
 	"\tCompiles the program at [PATH] to a '.cpp' and executable file with the same name.\n" ~
-	"\tNo options.\n";
+	"\tNo options.";
 
 immutable string helpRunText =
 	"Command: crow run [PATH] [build args] -- [programArgs]\n" ~

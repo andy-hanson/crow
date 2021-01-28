@@ -19,6 +19,7 @@ import util.sym :
 	isAlphaIdentifierStart,
 	isAlphaIdentifierContinue,
 	isDigit,
+	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
 	Sym;
 import util.types : i32, i64, u32, u64, safeI32FromU32, safeSizeTToU32;
@@ -180,7 +181,7 @@ immutable(Bool) takeIndentOrDiagTopLevel(Alloc, SymAlloc)(ref Alloc alloc, ref L
 		lexer,
 		0,
 		() => True,
-		(immutable RangeWithinFile, immutable size_t dedent) {
+		(immutable RangeWithinFile, immutable uint dedent) {
 			verify(dedent == 0);
 			return False;
 		});
@@ -208,7 +209,7 @@ immutable(T) takeIndentOrFailGeneric(T, Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable u32 curIndent,
 	scope immutable(T) delegate() @safe @nogc pure nothrow cbIndent,
-	scope immutable(T) delegate(immutable RangeWithinFile, immutable size_t) @safe @nogc pure nothrow cbFail,
+	scope immutable(T) delegate(immutable RangeWithinFile, immutable uint) @safe @nogc pure nothrow cbFail,
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable IndentDelta delta = takeNewlineAndReturnIndentDelta(alloc, lexer, curIndent);
@@ -270,7 +271,7 @@ immutable(NewlineOrIndent) tryTakeIndentAfterNewline_topLevel(Alloc, SymAlloc)(
 			NewlineOrIndent.indent);
 }
 
-immutable(size_t) takeNewlineOrDedentAmount(Alloc, SymAlloc)(
+immutable(uint) takeNewlineOrDedentAmount(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable u32 curIndent,
@@ -279,7 +280,7 @@ immutable(size_t) takeNewlineOrDedentAmount(Alloc, SymAlloc)(
 	if (!takeOrAddDiagExpected(alloc, lexer, '\n', ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);
 	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
-	return matchIndentDelta!(immutable size_t)(
+	return matchIndentDelta!(immutable uint)(
 		delta,
 		(ref immutable IndentDelta.DedentOrSame it) {
 			return it.nDedents;
@@ -373,7 +374,7 @@ private:
 }
 
 // Note: Not issuing any diagnostics here. We'll fail later if we detect the wrong indent kind.
-IndentKind detectIndentKind(immutable Str str) {
+immutable(IndentKind) detectIndentKind(immutable Str str) {
 	if (empty(str))
 		// No indented lines, so it's irrelevant
 		return IndentKind.tabs;
@@ -383,7 +384,7 @@ IndentKind detectIndentKind(immutable Str str) {
 			return IndentKind.tabs;
 		else if (c0 == ' ') {
 			// Count spaces
-			size_t i = 0;
+			uint i = 0;
 			for (; i < size(str); i++)
 				if (at(str, i) != ' ')
 					break;
@@ -526,14 +527,24 @@ public immutable(Bool) isOperatorChar(immutable char c) {
 	}
 }
 
-public immutable(NameAndRange) takeOperator(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
+public immutable(NameAndRange) takeOperator(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable CStr begin,
+) {
+	immutable Pos start = posOfPtr(lexer, begin);
 	immutable Str name = takeOperatorRest(lexer, begin);
 	immutable Opt!Sym op = getSymFromOperator(lexer.allSymbols, name);
-	if (has(op))
-		return immutable NameAndRange(posOfPtr(lexer, begin), force(op));
-	else
-		// TODO: diagnostic: invalid operator
-		return todo!(immutable NameAndRange)("!");
+	immutable Sym operator = () {
+		if (has(op))
+			return force(op);
+		else {
+			addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
+				immutable ParseDiag.InvalidName(copyStr(alloc, name))));
+			return shortSymAlphaLiteral("bogus");
+		}
+	}();
+	return immutable NameAndRange(start, operator);
 }
 
 immutable(size_t) toHexDigit(immutable char c) {
@@ -574,8 +585,8 @@ public @trusted immutable(Str) takeStringLiteralAfterQuote(Alloc, SymAlloc)(ref 
 						immutable char a = *lexer.ptr;
 						lexer.ptr++;
 						immutable char b = *lexer.ptr;
-						immutable size_t na = a.toHexDigit;
-						immutable size_t nb = b.toHexDigit;
+						immutable size_t na = toHexDigit(a);
+						immutable size_t nb = toHexDigit(b);
 						return cast(char) (na * 16 + nb);
 					case '"':
 						return '"';
@@ -644,7 +655,7 @@ struct IndentDelta {
 	@safe @nogc pure nothrow:
 
 	struct DedentOrSame {
-		immutable size_t nDedents;
+		immutable uint nDedents;
 	}
 	struct Indent {}
 	enum Kind {

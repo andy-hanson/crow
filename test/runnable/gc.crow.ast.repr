@@ -20,16 +20,16 @@ file-ast(
 	aliases: []
 	structs: [
 		struct(
-			range(780, 811)
+			range(778, 809)
 			true
 			[]
 			none
 			record(
 				none
 				[
-					field(range(790, 795), false, a, inststruct(range(792, 795), name-range(792, nat)))
-					field(range(797, 802), false, b, inststruct(range(799, 802), name-range(799, nat)))
-					field(range(804, 809), false, c, inststruct(range(806, 809), name-range(806, nat)))]))]
+					field(range(788, 793), false, a, inststruct(range(790, 793), name-range(790, nat)))
+					field(range(795, 800), false, b, inststruct(range(797, 800), name-range(797, nat)))
+					field(range(802, 807), false, c, inststruct(range(804, 807), name-range(804, nat)))]))]
 	funs: [
 		fun-decl(
 			public?: true
@@ -178,8 +178,7 @@ file-ast(
 															[]
 															[call(dot, name-range(530, get-stats), [], [gc])])])]))
 									call(infix, name-range(552, force-needs-gc), [], [gc]))
-								then-ast(
-									name-range(568, v)
+								then-void(
 									delay
 									seq-ast(
 										seq-ast(
@@ -188,155 +187,155 @@ file-ast(
 													seq-ast(
 														call(
 															prefix
-															name-range(581, print)
+															name-range(579, print)
 															[]
 															[literal("-- after gc --")])
 														call(
 															prefix
-															name-range(606, print)
+															name-range(604, print)
 															[]
 															[
 																call(
 																	infix
-																	name-range(623, ~)
+																	name-range(621, ~)
 																	[]
 																	[
 																		literal("stats: ")
 																		call(
 																			dot
-																			name-range(638, to-str)
+																			name-range(636, to-str)
 																			[]
 																			[
 																				call(
 																					dot
-																					name-range(628, get-stats)
+																					name-range(626, get-stats)
 																					[]
 																					[gc])])])]))
 													call(
 														prefix
-														name-range(646, print)
+														name-range(644, print)
 														[]
 														[
 															call(
 																infix
-																name-range(666, ~)
+																name-range(664, ~)
 																[]
 																[
 																	literal("gc count: ")
 																	call(
 																		dot
-																		name-range(680, to-str)
+																		name-range(678, to-str)
 																		[]
-																		[call(dot, name-range(671, gc-count), [], [gc])])])]))
+																		[call(dot, name-range(669, gc-count), [], [gc])])])]))
 												call(
 													prefix
-													name-range(688, print)
+													name-range(686, print)
 													[]
 													[
 														call(
 															infix
-															name-range(701, ~)
+															name-range(699, ~)
 															[]
-															[literal("a: "), call(dot, name-range(705, to-str), [], [a])])]))
+															[literal("a: "), call(dot, name-range(703, to-str), [], [a])])]))
 											call(
 												prefix
-												name-range(713, print)
+												name-range(711, print)
 												[]
 												[
 													call(
 														infix
-														name-range(744, ~)
+														name-range(742, ~)
 														[]
 														[
 															literal("stats (after print): ")
 															call(
 																dot
-																name-range(759, to-str)
+																name-range(757, to-str)
 																[]
-																[call(dot, name-range(749, get-stats), [], [gc])])])]))
-										call(infix, name-range(770, resolved), [], [literal(nat(0, false))])))))))))
+																[call(dot, name-range(747, get-stats), [], [gc])])])]))
+										call(infix, name-range(768, resolved), [], [literal(nat(0, false))])))))))))
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(811, 826)
+				range(809, 824)
 				to-str
-				inststruct(range(818, 821), name-range(818, str))
-				[param(range(822, 825), some(a), inststruct(range(824, 825), name-range(824, r)))])
+				inststruct(range(816, 819), name-range(816, str))
+				[param(range(820, 823), some(a), inststruct(range(822, 823), name-range(822, r)))])
 			body: call(
 				infix
-				name-range(877, ~)
+				name-range(875, ~)
 				[]
 				[
 					call(
 						infix
-						name-range(868, ~)
+						name-range(866, ~)
 						[]
 						[
 							call(
 								infix
-								name-range(855, ~)
+								name-range(853, ~)
 								[]
 								[
 									call(
 										infix
-										name-range(846, ~)
+										name-range(844, ~)
 										[]
 										[
 											call(
 												infix
-												name-range(833, ~)
+												name-range(831, ~)
 												[]
 												[
 													literal("a=")
 													call(
 														dot
-														name-range(839, to-str)
+														name-range(837, to-str)
 														[]
-														[call(dot, name-range(837, a), [], [a])])])
+														[call(dot, name-range(835, a), [], [a])])])
 											literal(", b=")])
-									call(dot, name-range(861, to-str), [], [call(dot, name-range(859, b), [], [a])])])
+									call(dot, name-range(859, to-str), [], [call(dot, name-range(857, b), [], [a])])])
 							literal(", c=")])
-					call(dot, name-range(883, to-str), [], [call(dot, name-range(881, c), [], [a])])]))
+					call(dot, name-range(881, to-str), [], [call(dot, name-range(879, c), [], [a])])]))
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(891, 913)
+				range(889, 911)
 				to-str
-				inststruct(range(898, 901), name-range(898, str))
-				[param(range(902, 912), some(a), inststruct(range(904, 912), name-range(904, gc-stats)))])
+				inststruct(range(896, 899), name-range(896, str))
+				[param(range(900, 910), some(a), inststruct(range(902, 910), name-range(902, gc-stats)))])
 			summon: true
 			body: call(
 				infix
-				name-range(1012, ~)
+				name-range(1010, ~)
 				[]
 				[
 					call(
 						infix
-						name-range(994, ~)
+						name-range(992, ~)
 						[]
 						[
 							call(
 								infix
-								name-range(972, ~)
+								name-range(970, ~)
 								[]
 								[
 									call(
 										infix
-										name-range(954, ~)
+										name-range(952, ~)
 										[]
 										[
 											call(
 												infix
-												name-range(934, ~)
+												name-range(932, ~)
 												[]
 												[
 													literal("cur-word=")
 													call(
 														dot
-														name-range(947, to-str)
+														name-range(945, to-str)
 														[]
-														[call(dot, name-range(938, cur-word), [], [a])])])
+														[call(dot, name-range(936, cur-word), [], [a])])])
 											literal(", words-used=")])
-									call(dot, name-range(987, to-str), [], [call(dot, name-range(976, words-used), [], [a])])])
+									call(dot, name-range(985, to-str), [], [call(dot, name-range(974, words-used), [], [a])])])
 							literal(", words-free=")])
-					call(dot, name-range(1027, to-str), [], [call(dot, name-range(1016, words-free), [], [a])])]))])
+					call(dot, name-range(1025, to-str), [], [call(dot, name-range(1014, words-free), [], [a])])]))])

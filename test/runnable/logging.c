@@ -142,9 +142,9 @@ struct island_and_exclusion {
 	uint64_t exclusion;
 };
 struct fun_ref1;
-struct then_void_0__lambda0;
+struct callback__e_0__lambda0;
 struct then__lambda0;
-struct then_void_1__lambda0;
+struct callback__e_1__lambda0;
 struct forward_to__e__lambda0 {
 	struct fut_0* to;
 };
@@ -225,8 +225,8 @@ struct opt_1 {
 struct fun_act0_0 {
 	uint64_t kind;
 	union {
-		struct then_void_0__lambda0* as0;
-		struct then_void_1__lambda0* as1;
+		struct callback__e_0__lambda0* as0;
+		struct callback__e_1__lambda0* as1;
 		struct subscript_8__lambda0__lambda0* as2;
 		struct subscript_8__lambda0* as3;
 		struct subscript_13__lambda0__lambda0* as4;
@@ -451,7 +451,7 @@ struct fun_ref1 {
 	struct island_and_exclusion island_and_exclusion;
 	struct fun_act1_2 fun;
 };
-struct then_void_0__lambda0 {
+struct callback__e_0__lambda0 {
 	struct fut_1* f;
 	struct fun_act1_1 cb;
 };
@@ -459,7 +459,7 @@ struct then__lambda0 {
 	struct fun_ref1 cb;
 	struct fut_0* res;
 };
-struct then_void_1__lambda0 {
+struct callback__e_1__lambda0 {
 	struct fut_0* f;
 	struct fun_act1_0 cb;
 };
@@ -726,9 +726,9 @@ _Static_assert(sizeof(struct fut_state_resolved_1) == 0, "");
 _Static_assert(sizeof(struct fun_ref0) == 32, "");
 _Static_assert(sizeof(struct island_and_exclusion) == 16, "");
 _Static_assert(sizeof(struct fun_ref1) == 32, "");
-_Static_assert(sizeof(struct then_void_0__lambda0) == 24, "");
+_Static_assert(sizeof(struct callback__e_0__lambda0) == 24, "");
 _Static_assert(sizeof(struct then__lambda0) == 40, "");
-_Static_assert(sizeof(struct then_void_1__lambda0) == 24, "");
+_Static_assert(sizeof(struct callback__e_1__lambda0) == 24, "");
 _Static_assert(sizeof(struct forward_to__e__lambda0) == 8, "");
 _Static_assert(sizeof(struct resolve_or_reject__e__lambda0) == 48, "");
 _Static_assert(sizeof(struct subscript_8__lambda0) == 40, "");
@@ -1597,7 +1597,7 @@ char constantarr_0_274[16] = "then<?out, void>";
 char constantarr_0_275[16] = "unresolved<?out>";
 char constantarr_0_276[7] = "fut<?t>";
 char constantarr_0_277[23] = "fut-state-callbacks<?t>";
-char constantarr_0_278[14] = "then-void<?in>";
+char constantarr_0_278[14] = "callback!<?in>";
 char constantarr_0_279[15] = "with-lock<void>";
 char constantarr_0_280[17] = "call-with-ctx<?r>";
 char constantarr_0_281[6] = "lk<?t>";
@@ -1611,10 +1611,10 @@ char constantarr_0_288[22] = "call-with-ctx<?r, ?p0>";
 char constantarr_0_289[6] = "ok<?t>";
 char constantarr_0_290[9] = "value<?t>";
 char constantarr_0_291[14] = "err<exception>";
-char constantarr_0_292[22] = "then-void<?in>.lambda0";
+char constantarr_0_292[22] = "callback!<?in>.lambda0";
 char constantarr_0_293[17] = "forward-to!<?out>";
-char constantarr_0_294[13] = "then-void<?t>";
-char constantarr_0_295[21] = "then-void<?t>.lambda0";
+char constantarr_0_294[13] = "callback!<?t>";
+char constantarr_0_295[21] = "callback!<?t>.lambda0";
 char constantarr_0_296[22] = "resolve-or-reject!<?t>";
 char constantarr_0_297[34] = "with-lock<fut-state-callbacks<?t>>";
 char constantarr_0_298[29] = "todo<fut-state-callbacks<?t>>";
@@ -1990,18 +1990,18 @@ struct fut_0* add_first_task(struct ctx* ctx, struct arr_4 all_args, fun_ptr2 ma
 struct fut_0* then2(struct ctx* ctx, struct fut_1* f, struct fun_ref0 cb);
 struct fut_0* then(struct ctx* ctx, struct fut_1* f, struct fun_ref1 cb);
 struct fut_0* unresolved(struct ctx* ctx);
-struct void_ then_void_0(struct ctx* ctx, struct fut_1* f, struct fun_act1_1 cb);
+struct void_ callback__e_0(struct ctx* ctx, struct fut_1* f, struct fun_act1_1 cb);
 struct void_ with_lock_0(struct ctx* ctx, struct lock* a, struct fun_act0_0 f);
 struct void_ subscript_4(struct ctx* ctx, struct fun_act0_0 a);
 struct void_ call_w_ctx_140(struct fun_act0_0 a, struct ctx* ctx);
 struct void_ subscript_5(struct ctx* ctx, struct fun_act1_1 a, struct result_1 p0);
 struct void_ call_w_ctx_142(struct fun_act1_1 a, struct ctx* ctx, struct result_1 p0);
-struct void_ then_void_0__lambda0(struct ctx* ctx, struct then_void_0__lambda0* _closure);
+struct void_ callback__e_0__lambda0(struct ctx* ctx, struct callback__e_0__lambda0* _closure);
 struct void_ forward_to__e(struct ctx* ctx, struct fut_0* from, struct fut_0* to);
-struct void_ then_void_1(struct ctx* ctx, struct fut_0* f, struct fun_act1_0 cb);
+struct void_ callback__e_1(struct ctx* ctx, struct fut_0* f, struct fun_act1_0 cb);
 struct void_ subscript_6(struct ctx* ctx, struct fun_act1_0 a, struct result_0 p0);
 struct void_ call_w_ctx_147(struct fun_act1_0 a, struct ctx* ctx, struct result_0 p0);
-struct void_ then_void_1__lambda0(struct ctx* ctx, struct then_void_1__lambda0* _closure);
+struct void_ callback__e_1__lambda0(struct ctx* ctx, struct callback__e_1__lambda0* _closure);
 struct void_ resolve_or_reject__e(struct ctx* ctx, struct fut_0* f, struct result_0 result);
 struct fut_state_callbacks_0 with_lock_1(struct ctx* ctx, struct lock* a, struct fun_act0_2 f);
 struct fut_state_callbacks_0 subscript_7(struct ctx* ctx, struct fun_act0_2 a);
@@ -2150,7 +2150,7 @@ struct void_ mark_visit_293(struct mark_ctx* mark_ctx, struct some_2 value);
 struct void_ mark_visit_294(struct mark_ctx* mark_ctx, struct task_queue_node value);
 struct void_ mark_visit_295(struct mark_ctx* mark_ctx, struct task value);
 struct void_ mark_visit_296(struct mark_ctx* mark_ctx, struct fun_act0_0 value);
-struct void_ mark_visit_297(struct mark_ctx* mark_ctx, struct then_void_0__lambda0 value);
+struct void_ mark_visit_297(struct mark_ctx* mark_ctx, struct callback__e_0__lambda0 value);
 struct void_ mark_visit_298(struct mark_ctx* mark_ctx, struct fut_1 value);
 struct void_ mark_visit_299(struct mark_ctx* mark_ctx, struct fut_state_1 value);
 struct void_ mark_visit_300(struct mark_ctx* mark_ctx, struct fut_state_callbacks_1 value);
@@ -2187,9 +2187,9 @@ struct void_ mark_arr_330(struct mark_ctx* mark_ctx, struct arr_1 a);
 struct void_ mark_visit_331(struct mark_ctx* mark_ctx, struct then__lambda0* value);
 struct void_ mark_visit_332(struct mark_ctx* mark_ctx, struct fut_callback_node_1* value);
 struct void_ mark_visit_333(struct mark_ctx* mark_ctx, struct fut_1* value);
-struct void_ mark_visit_334(struct mark_ctx* mark_ctx, struct then_void_0__lambda0* value);
-struct void_ mark_visit_335(struct mark_ctx* mark_ctx, struct then_void_1__lambda0 value);
-struct void_ mark_visit_336(struct mark_ctx* mark_ctx, struct then_void_1__lambda0* value);
+struct void_ mark_visit_334(struct mark_ctx* mark_ctx, struct callback__e_0__lambda0* value);
+struct void_ mark_visit_335(struct mark_ctx* mark_ctx, struct callback__e_1__lambda0 value);
+struct void_ mark_visit_336(struct mark_ctx* mark_ctx, struct callback__e_1__lambda0* value);
 struct void_ mark_visit_337(struct mark_ctx* mark_ctx, struct subscript_8__lambda0__lambda0 value);
 struct void_ mark_visit_338(struct mark_ctx* mark_ctx, struct subscript_8__lambda0__lambda0* value);
 struct void_ mark_visit_339(struct mark_ctx* mark_ctx, struct subscript_8__lambda0 value);
@@ -3471,7 +3471,7 @@ uint8_t* get_fun_ptr_87(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) unresolved;
 		}
 		case 137: {
-			return (uint8_t*) then_void_0;
+			return (uint8_t*) callback__e_0;
 		}
 		case 138: {
 			return (uint8_t*) with_lock_0;
@@ -3489,13 +3489,13 @@ uint8_t* get_fun_ptr_87(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) call_w_ctx_142;
 		}
 		case 143: {
-			return (uint8_t*) then_void_0__lambda0;
+			return (uint8_t*) callback__e_0__lambda0;
 		}
 		case 144: {
 			return (uint8_t*) forward_to__e;
 		}
 		case 145: {
-			return (uint8_t*) then_void_1;
+			return (uint8_t*) callback__e_1;
 		}
 		case 146: {
 			return (uint8_t*) subscript_6;
@@ -3504,7 +3504,7 @@ uint8_t* get_fun_ptr_87(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) call_w_ctx_147;
 		}
 		case 148: {
-			return (uint8_t*) then_void_1__lambda0;
+			return (uint8_t*) callback__e_1__lambda0;
 		}
 		case 149: {
 			return (uint8_t*) resolve_or_reject__e;
@@ -5825,7 +5825,7 @@ struct fut_0* then(struct ctx* ctx, struct fut_1* f, struct fun_ref1 cb) {
 	temp0 = (struct then__lambda0*) _0;
 	
 	*temp0 = (struct then__lambda0) {cb, res0};
-	then_void_0(ctx, f, (struct fun_act1_1) {0, .as0 = temp0});
+	callback__e_0(ctx, f, (struct fun_act1_1) {0, .as0 = temp0});
 	return res0;
 }
 /* unresolved<?out> fut<nat>() */
@@ -5838,13 +5838,13 @@ struct fut_0* unresolved(struct ctx* ctx) {
 	*temp0 = (struct fut_0) {_1, (struct fut_state_0) {0, .as0 = (struct fut_state_callbacks_0) {(struct opt_0) {0, .as0 = (struct none) {}}}}};
 	return temp0;
 }
-/* then-void<?in> void(f fut<void>, cb fun-act1<void, result<void, exception>>) */
-struct void_ then_void_0(struct ctx* ctx, struct fut_1* f, struct fun_act1_1 cb) {
-	struct then_void_0__lambda0* temp0;
-	uint8_t* _0 = alloc(ctx, sizeof(struct then_void_0__lambda0));
-	temp0 = (struct then_void_0__lambda0*) _0;
+/* callback!<?in> void(f fut<void>, cb fun-act1<void, result<void, exception>>) */
+struct void_ callback__e_0(struct ctx* ctx, struct fut_1* f, struct fun_act1_1 cb) {
+	struct callback__e_0__lambda0* temp0;
+	uint8_t* _0 = alloc(ctx, sizeof(struct callback__e_0__lambda0));
+	temp0 = (struct callback__e_0__lambda0*) _0;
 	
-	*temp0 = (struct then_void_0__lambda0) {f, cb};
+	*temp0 = (struct callback__e_0__lambda0) {f, cb};
 	return with_lock_0(ctx, (&f->lk), (struct fun_act0_0) {0, .as0 = temp0});
 }
 /* with-lock<void> void(a lock, f fun-act0<void>) */
@@ -5865,14 +5865,14 @@ struct void_ call_w_ctx_140(struct fun_act0_0 a, struct ctx* ctx) {
 	struct fun_act0_0 _0 = a;
 	switch (_0.kind) {
 		case 0: {
-			struct then_void_0__lambda0* closure0 = _0.as0;
+			struct callback__e_0__lambda0* closure0 = _0.as0;
 			
-			return then_void_0__lambda0(ctx, closure0);
+			return callback__e_0__lambda0(ctx, closure0);
 		}
 		case 1: {
-			struct then_void_1__lambda0* closure1 = _0.as1;
+			struct callback__e_1__lambda0* closure1 = _0.as1;
 			
-			return then_void_1__lambda0(ctx, closure1);
+			return callback__e_1__lambda0(ctx, closure1);
 		}
 		case 2: {
 			struct subscript_8__lambda0__lambda0* closure2 = _0.as2;
@@ -5935,8 +5935,8 @@ struct void_ call_w_ctx_142(struct fun_act1_1 a, struct ctx* ctx, struct result_
 			return (struct void_) {};
 	}
 }
-/* then-void<?in>.lambda0 void() */
-struct void_ then_void_0__lambda0(struct ctx* ctx, struct then_void_0__lambda0* _closure) {
+/* callback!<?in>.lambda0 void() */
+struct void_ callback__e_0__lambda0(struct ctx* ctx, struct callback__e_0__lambda0* _closure) {
 	struct fut_state_1 _0 = _closure->f->state;
 	switch (_0.kind) {
 		case 0: {
@@ -5970,15 +5970,15 @@ struct void_ forward_to__e(struct ctx* ctx, struct fut_0* from, struct fut_0* to
 	temp0 = (struct forward_to__e__lambda0*) _0;
 	
 	*temp0 = (struct forward_to__e__lambda0) {to};
-	return then_void_1(ctx, from, (struct fun_act1_0) {0, .as0 = temp0});
+	return callback__e_1(ctx, from, (struct fun_act1_0) {0, .as0 = temp0});
 }
-/* then-void<?t> void(f fut<nat>, cb fun-act1<void, result<nat, exception>>) */
-struct void_ then_void_1(struct ctx* ctx, struct fut_0* f, struct fun_act1_0 cb) {
-	struct then_void_1__lambda0* temp0;
-	uint8_t* _0 = alloc(ctx, sizeof(struct then_void_1__lambda0));
-	temp0 = (struct then_void_1__lambda0*) _0;
+/* callback!<?t> void(f fut<nat>, cb fun-act1<void, result<nat, exception>>) */
+struct void_ callback__e_1(struct ctx* ctx, struct fut_0* f, struct fun_act1_0 cb) {
+	struct callback__e_1__lambda0* temp0;
+	uint8_t* _0 = alloc(ctx, sizeof(struct callback__e_1__lambda0));
+	temp0 = (struct callback__e_1__lambda0*) _0;
 	
-	*temp0 = (struct then_void_1__lambda0) {f, cb};
+	*temp0 = (struct callback__e_1__lambda0) {f, cb};
 	return with_lock_0(ctx, (&f->lk), (struct fun_act0_0) {1, .as1 = temp0});
 }
 /* subscript<void, result<?t, exception>> void(a fun-act1<void, result<nat, exception>>, p0 result<nat, exception>) */
@@ -6003,8 +6003,8 @@ struct void_ call_w_ctx_147(struct fun_act1_0 a, struct ctx* ctx, struct result_
 			return (struct void_) {};
 	}
 }
-/* then-void<?t>.lambda0 void() */
-struct void_ then_void_1__lambda0(struct ctx* ctx, struct then_void_1__lambda0* _closure) {
+/* callback!<?t>.lambda0 void() */
+struct void_ callback__e_1__lambda0(struct ctx* ctx, struct callback__e_1__lambda0* _closure) {
 	struct fut_state_0 _0 = _closure->f->state;
 	switch (_0.kind) {
 		case 0: {
@@ -6754,7 +6754,7 @@ struct fut_0* add_first_task__lambda0(struct ctx* ctx, struct add_first_task__la
 }
 /* handle-exceptions<nat> void(a fut<nat>) */
 struct void_ handle_exceptions(struct ctx* ctx, struct fut_0* a) {
-	return then_void_1(ctx, a, (struct fun_act1_0) {1, .as1 = (struct void_) {}});
+	return callback__e_1(ctx, a, (struct fun_act1_0) {1, .as1 = (struct void_) {}});
 }
 /* subscript<void, exception> void(a fun1<void, exception>, p0 exception) */
 struct void_ subscript_20(struct ctx* ctx, struct fun1_0 a, struct exception p0) {
@@ -7611,12 +7611,12 @@ struct void_ mark_visit_296(struct mark_ctx* mark_ctx, struct fun_act0_0 value) 
 	struct fun_act0_0 _0 = value;
 	switch (_0.kind) {
 		case 0: {
-			struct then_void_0__lambda0* value0 = _0.as0;
+			struct callback__e_0__lambda0* value0 = _0.as0;
 			
 			return mark_visit_334(mark_ctx, value0);
 		}
 		case 1: {
-			struct then_void_1__lambda0* value1 = _0.as1;
+			struct callback__e_1__lambda0* value1 = _0.as1;
 			
 			return mark_visit_336(mark_ctx, value1);
 		}
@@ -7660,8 +7660,8 @@ struct void_ mark_visit_296(struct mark_ctx* mark_ctx, struct fun_act0_0 value) 
 			return (struct void_) {};
 	}
 }
-/* mark-visit<then-void<?in>.lambda0> (generated) (generated) */
-struct void_ mark_visit_297(struct mark_ctx* mark_ctx, struct then_void_0__lambda0 value) {
+/* mark-visit<callback!<?in>.lambda0> (generated) (generated) */
+struct void_ mark_visit_297(struct mark_ctx* mark_ctx, struct callback__e_0__lambda0 value) {
 	mark_visit_333(mark_ctx, value.f);
 	return mark_visit_304(mark_ctx, value.cb);
 }
@@ -7971,23 +7971,23 @@ struct void_ mark_visit_333(struct mark_ctx* mark_ctx, struct fut_1* value) {
 		return (struct void_) {};
 	}
 }
-/* mark-visit<gc-ptr(then-void<?in>.lambda0)> (generated) (generated) */
-struct void_ mark_visit_334(struct mark_ctx* mark_ctx, struct then_void_0__lambda0* value) {
-	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct then_void_0__lambda0));
+/* mark-visit<gc-ptr(callback!<?in>.lambda0)> (generated) (generated) */
+struct void_ mark_visit_334(struct mark_ctx* mark_ctx, struct callback__e_0__lambda0* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct callback__e_0__lambda0));
 	if (_0) {
 		return mark_visit_297(mark_ctx, *value);
 	} else {
 		return (struct void_) {};
 	}
 }
-/* mark-visit<then-void<?t>.lambda0> (generated) (generated) */
-struct void_ mark_visit_335(struct mark_ctx* mark_ctx, struct then_void_1__lambda0 value) {
+/* mark-visit<callback!<?t>.lambda0> (generated) (generated) */
+struct void_ mark_visit_335(struct mark_ctx* mark_ctx, struct callback__e_1__lambda0 value) {
 	mark_visit_323(mark_ctx, value.f);
 	return mark_visit_321(mark_ctx, value.cb);
 }
-/* mark-visit<gc-ptr(then-void<?t>.lambda0)> (generated) (generated) */
-struct void_ mark_visit_336(struct mark_ctx* mark_ctx, struct then_void_1__lambda0* value) {
-	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct then_void_1__lambda0));
+/* mark-visit<gc-ptr(callback!<?t>.lambda0)> (generated) (generated) */
+struct void_ mark_visit_336(struct mark_ctx* mark_ctx, struct callback__e_1__lambda0* value) {
+	uint8_t _0 = mark(mark_ctx, (uint8_t*) value, sizeof(struct callback__e_1__lambda0));
 	if (_0) {
 		return mark_visit_335(mark_ctx, *value);
 	} else {

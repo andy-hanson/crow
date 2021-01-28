@@ -29,9 +29,9 @@ join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out>
 			remaining[] := remaining[] - 1
 			if remaining[] == 0
 				res finish-join! a, b, f
-	a then-void \ignore
+	a callback! \ignore
 		decr-remaining[]
-	b then-void \ignore
+	b callback! \ignore
 		decr-remaining[]
 	res
 
@@ -56,7 +56,7 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 	lock = lock
 	remaining = cell<nat>: a.size
 	a each-with-index \in, index
-		in then-void \value
+		in callback! \value
 			lock with-lock \
 				remaining[] := remaining[] - 1
 				if remaining[] == 0
@@ -88,9 +88,9 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 	as exception
 		hard-unreachable
 
-# NOTE: The function will be called with whatever ctx the fut terminates with!!!
-# TODO:PRIVATE (because this calls 'cb' synchronously sometimes)
-then-void void(f fut ?t, cb act void(result<?t, exception>)) unsafe
+# TODO: PRIVATE
+# WARN: Calls the callback immediately if possible
+callback! void(f fut ?t, cb act void(result<?t, exception>)) unsafe
 	f.lk.ref-of-val with-lock \
 		match f state
 		as fut-state-callbacks cbs
@@ -102,22 +102,26 @@ then-void void(f fut ?t, cb act void(result<?t, exception>)) unsafe
 			cb[e err]
 
 .forward-to! void(from fut ?t, to fut ?t) unsafe
-	from then-void {to resolve-or-reject! it}
+	from callback! {to resolve-or-reject! it}
 
 fut-catch fut result<?t, exception>(a fut ?t) trusted
 	res = unresolved<result<?t, exception>>
-	a then-void {res resolve! it}
+	a callback! {res resolve! it}
 	res
 
 then fut ?out(f fut ?in, cb ref ?out(?in)) trusted send<?out> send<?in>
 	res = unresolved<?out>
-	f then-void \result
+	f callback! \result
 		match result
 		as ok o
 			cb[o.value] forward-to! res
 		as err e
 			res reject! e.value
 	res
+
+then-void fut ?out(a fut void, cb ref ?out()) send<?out>
+	a then \ignore
+		cb[]
 
 # TODO: rename to just 'then'
 # This requires that we be able to handle two expected types at once,
@@ -164,7 +168,7 @@ call-ref-void void(f ref void(?p0, ?p1), p0 ?p0, p1 ?p1) send<?p0> send<?p1>
 	f[p0, p1] handle-exceptions
 
 handle-exceptions void(a fut ?t) trusted
-	a then-void \result
+	a callback! \result
 		match result
 		as ok
 			void

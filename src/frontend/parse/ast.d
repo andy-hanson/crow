@@ -264,6 +264,11 @@ struct ThenAst {
 	immutable Ptr!ExprAst then;
 }
 
+struct ThenVoidAst {
+	immutable Ptr!ExprAst futExpr;
+	immutable Ptr!ExprAst then;
+}
+
 struct ExprAstKind {
 	@safe @nogc pure nothrow:
 
@@ -282,6 +287,7 @@ struct ExprAstKind {
 		match,
 		seq,
 		then,
+		thenVoid,
 	}
 	immutable Kind kind;
 	union {
@@ -298,6 +304,7 @@ struct ExprAstKind {
 		immutable MatchAst match_;
 		immutable SeqAst seq;
 		immutable ThenAst then;
+		immutable ThenVoidAst thenVoid;
 	}
 
 	public:
@@ -314,6 +321,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable ParenthesizedAst a) { kind = Kind.parenthesized; parenthesized = a; }
 	@trusted immutable this(immutable SeqAst a) { kind = Kind.seq; seq = a; }
 	@trusted immutable this(immutable ThenAst a) { kind = Kind.then; then = a; }
+	@trusted immutable this(immutable ThenVoidAst a) { kind = Kind.thenVoid; thenVoid = a; }
 }
 static assert(ExprAstKind.sizeof <= 40);
 
@@ -335,19 +343,20 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 
 @trusted T matchExprAstKind(T)(
 	scope ref immutable ExprAstKind a,
-	scope immutable(T) delegate(ref immutable BogusAst) @safe @nogc pure nothrow cbBogus,
-	scope immutable(T) delegate(ref immutable CallAst) @safe @nogc pure nothrow cbCall,
-	scope immutable(T) delegate(ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
-	scope immutable(T) delegate(ref immutable FunPtrAst) @safe @nogc pure nothrow cbFunPtr,
-	scope immutable(T) delegate(ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
-	scope immutable(T) delegate(ref immutable IfAst) @safe @nogc pure nothrow cbIf,
-	scope immutable(T) delegate(ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
-	scope immutable(T) delegate(ref immutable LetAst) @safe @nogc pure nothrow cbLet,
-	scope immutable(T) delegate(ref immutable LiteralAst) @safe @nogc pure nothrow cbLiteral,
-	scope immutable(T) delegate(ref immutable MatchAst) @safe @nogc pure nothrow cbMatch,
-	scope immutable(T) delegate(ref immutable ParenthesizedAst) @safe @nogc pure nothrow cbParenthesized,
-	scope immutable(T) delegate(ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
-	scope immutable(T) delegate(ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
+	scope T delegate(ref immutable BogusAst) @safe @nogc pure nothrow cbBogus,
+	scope T delegate(ref immutable CallAst) @safe @nogc pure nothrow cbCall,
+	scope T delegate(ref immutable CreateArrAst) @safe @nogc pure nothrow cbCreateArr,
+	scope T delegate(ref immutable FunPtrAst) @safe @nogc pure nothrow cbFunPtr,
+	scope T delegate(ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
+	scope T delegate(ref immutable IfAst) @safe @nogc pure nothrow cbIf,
+	scope T delegate(ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
+	scope T delegate(ref immutable LetAst) @safe @nogc pure nothrow cbLet,
+	scope T delegate(ref immutable LiteralAst) @safe @nogc pure nothrow cbLiteral,
+	scope T delegate(ref immutable MatchAst) @safe @nogc pure nothrow cbMatch,
+	scope T delegate(ref immutable ParenthesizedAst) @safe @nogc pure nothrow cbParenthesized,
+	scope T delegate(ref immutable SeqAst) @safe @nogc pure nothrow cbSeq,
+	scope T delegate(ref immutable ThenAst) @safe @nogc pure nothrow cbThen,
+	scope T delegate(ref immutable ThenVoidAst) @safe @nogc pure nothrow cbThenVoid,
 ) {
 	final switch (a.kind) {
 		case ExprAstKind.Kind.bogus:
@@ -376,6 +385,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbSeq(a.seq);
 		case ExprAstKind.Kind.then:
 			return cbThen(a.then);
+		case ExprAstKind.Kind.thenVoid:
+			return cbThenVoid(a.thenVoid);
 	}
 }
 
@@ -1082,6 +1093,10 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 		(ref immutable ThenAst it) =>
 			reprRecord(alloc, "then-ast", [
 				reprNameAndRange(alloc, it.left),
+				reprExprAst(alloc, it.futExpr),
+				reprExprAst(alloc, it.then)]),
+		(ref immutable ThenVoidAst it) =>
+			reprRecord(alloc, "then-void", [
 				reprExprAst(alloc, it.futExpr),
 				reprExprAst(alloc, it.then)]));
 }

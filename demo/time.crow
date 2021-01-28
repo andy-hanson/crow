@@ -4,7 +4,6 @@ import
 
 main fut nat(_ arr str) summon
 	print: "Just a second..."
-	v <- 1000.msec delay
-	drop: v
+	<- 1000.msec delay
 	print: "OK, done"
 	0 resolved
