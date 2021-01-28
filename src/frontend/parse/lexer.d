@@ -9,8 +9,7 @@ import util.collection.arr : Arr, arrOfRange, at, begin, empty, first, last, siz
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail, slice;
 import util.collection.str : copyStr, CStr, emptyStr, NulTerminatedStr, Str, stripNulTerminator, strLiteral;
-import util.memory : allocate;
-import util.opt : force, has, none, Opt, optOr, some;
+import util.opt : force, has, Opt, optOr;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym :
@@ -37,7 +36,8 @@ struct Lexer(SymAlloc) {
 	private:
 	ArrBuilder!ParseDiagnostic diags;
 	immutable CStr sourceBegin;
-	CStr ptr;
+	//TODO:PRIVATE
+	public CStr ptr;
 	immutable IndentKind indentKind;
 }
 
@@ -87,7 +87,7 @@ void addDiagAtChar(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer, i
 	addDiag(alloc, lexer, immutable RangeWithinFile(a, lexer.curChar == '\0' ? a : a + 1), diag);
 }
 
-private void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.UnexpectedCharacter(curChar(lexer))));
 }
 
@@ -337,7 +337,7 @@ immutable(SymAndIsReserved) takeNameAllowReserved(Alloc, SymAlloc)(ref Alloc all
 			return todo!(immutable SymAndIsReserved)("!");
 	} else {
 		immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, s.str);
-		return immutable SymAndIsReserved(immutable NameAndRange(s.start, name), name.isReservedName);
+		return immutable SymAndIsReserved(immutable NameAndRange(s.start, name), isReservedName(name));
 	}
 }
 
@@ -356,115 +356,6 @@ immutable(Str) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Allo
 	return takeOrAddDiagExpected(alloc, lexer, '"', ParseDiag.Expected.Kind.quote)
 		? takeStringLiteralAfterQuote(lexer, alloc)
 		: emptyStr;
-}
-
-struct ExpressionToken {
-	@safe @nogc pure nothrow:
-
-	struct AmpersandAndName {
-		immutable Sym name;
-	}
-
-	enum Kind {
-		ampersandAndName,
-		if_,
-		lambda,
-		lbrace,
-		lbracket,
-		literal,
-		lparen,
-		match,
-		nameAndRange,
-		unexpected,
-	}
-	immutable Kind kind_;
-	union {
-		bool none_;
-		immutable AmpersandAndName ampersandAndName_;
-		immutable LiteralAst literal_;
-		immutable NameAndRange nameAndRange_;
-	}
-	@trusted immutable this(immutable Kind kind) {
-		none_ = true;
-		kind_ = kind;
-		verify(kind != Kind.literal && kind != Kind.nameAndRange);
-	}
-	@trusted immutable this(immutable AmpersandAndName a) { kind_ = Kind.ampersandAndName; ampersandAndName_ = a; }
-	@trusted immutable this(immutable LiteralAst a) { kind_ = Kind.literal; literal_ = a; }
-	@trusted immutable this(immutable NameAndRange a) { kind_ = Kind.nameAndRange; nameAndRange_ = a; }
-}
-
-@trusted ref immutable(LiteralAst) asLiteral(return scope ref immutable ExpressionToken a) {
-	verify(a.kind_ == ExpressionToken.Kind.literal);
-	return a.literal_;
-}
-
-private immutable(Bool) isNameAndRange(ref immutable ExpressionToken a) {
-	return Bool(a.kind_ == ExpressionToken.Kind.nameAndRange);
-}
-
-@trusted ref immutable(ExpressionToken.AmpersandAndName) asAmpersandAndName(
-	return scope ref immutable ExpressionToken a,
-) {
-	verify(a.kind_ == ExpressionToken.Kind.ampersandAndName);
-	return a.ampersandAndName_;
-}
-
-@trusted ref immutable(NameAndRange) asNameAndRange(return scope ref immutable ExpressionToken a) {
-	verify(a.isNameAndRange);
-	return a.nameAndRange_;
-}
-
-immutable(ExpressionToken) takeExpressionToken(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable CStr begin = lexer.ptr;
-	immutable Pos start = curPos(lexer);
-	immutable char c = next(lexer);
-	switch (c) {
-		case '(':
-			return immutable ExpressionToken(ExpressionToken.Kind.lparen);
-		case '[':
-			return immutable ExpressionToken(ExpressionToken.Kind.lbracket);
-		case '{':
-			return immutable ExpressionToken(ExpressionToken.Kind.lbrace);
-		case '\\':
-			return immutable ExpressionToken(ExpressionToken.Kind.lambda);
-		case '"':
-			return immutable ExpressionToken(
-				allocate(alloc, immutable LiteralAst(takeStringLiteralAfterQuote(lexer, alloc))));
-		case '+':
-		case '-':
-			return isDigit(*lexer.ptr)
-				? immutable ExpressionToken(takeNumber(alloc, lexer, some(c == '+' ? Sign.plus : Sign.minus)))
-				: takeOperator(lexer, begin);
-		case '&':
-			return immutable ExpressionToken(immutable ExpressionToken.AmpersandAndName(takeName(alloc, lexer)));
-		default:
-			if (isOperatorChar(c))
-				return takeOperator(lexer, begin);
-			else if (isAlphaIdentifierStart(c)) {
-				immutable Str nameStr = takeNameRest(lexer, begin);
-				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
-				if (name.isReservedName)
-					switch (name.value) {
-						case shortSymAlphaLiteralValue("if"):
-							return immutable ExpressionToken(ExpressionToken.Kind.if_);
-						case shortSymAlphaLiteralValue("match"):
-							return immutable ExpressionToken(ExpressionToken.Kind.match);
-						default:
-							addDiagOnReservedName(alloc, lexer, immutable NameAndRange(start, name));
-							return immutable ExpressionToken(ExpressionToken.Kind.unexpected);
-					}
-				else
-					return immutable ExpressionToken(immutable NameAndRange(start, name));
-			} else if (isDigit(c)) {
-				backUp(lexer);
-				return immutable ExpressionToken(takeNumber(alloc, lexer, none!Sign));
-			} else {
-				backUp(lexer);
-				addDiagUnexpected(alloc, lexer);
-				return immutable ExpressionToken(ExpressionToken.Kind.unexpected);
-			}
-	}
 }
 
 @trusted void skipUntilNewlineNoDiag(SymAlloc)(ref Lexer!SymAlloc lexer) {
@@ -507,11 +398,12 @@ IndentKind detectIndentKind(immutable Str str) {
 	}
 }
 
-@trusted void backUp(SymAlloc)(ref Lexer!SymAlloc lexer) {
+//TODO:PRIVATE
+public @trusted void backUp(SymAlloc)(ref Lexer!SymAlloc lexer) {
 	lexer.ptr--;
 }
 
-@trusted immutable(char) next(SymAlloc)(ref Lexer!SymAlloc lexer) {
+public @trusted immutable(char) next(SymAlloc)(ref Lexer!SymAlloc lexer) {
 	immutable char res = *lexer.ptr;
 	lexer.ptr++;
 	return res;
@@ -522,12 +414,12 @@ immutable(RangeWithinFile) range(SymAlloc)(ref Lexer!SymAlloc lexer, immutable C
 	return range(lexer, safeSizeTToU32(begin - lexer.sourceBegin));
 }
 
-enum Sign {
+public enum Sign {
 	plus,
 	minus,
 }
 
-@trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
+public @trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable Opt!Sign sign,
@@ -616,7 +508,7 @@ immutable(u64) charToNat(immutable char c) {
 }
 
 // NOTE: this will allow taking invalid operators, then we'll issue a diagnostic for them
-immutable(Bool) isOperatorChar(immutable char c) {
+public immutable(Bool) isOperatorChar(immutable char c) {
 	switch (c) {
 		case '=':
 		case '!':
@@ -634,14 +526,14 @@ immutable(Bool) isOperatorChar(immutable char c) {
 	}
 }
 
-immutable(ExpressionToken) takeOperator(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
+public immutable(NameAndRange) takeOperator(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
 	immutable Str name = takeOperatorRest(lexer, begin);
 	immutable Opt!Sym op = getSymFromOperator(lexer.allSymbols, name);
 	if (has(op))
-		return immutable ExpressionToken(immutable NameAndRange(posOfPtr(lexer, begin), force(op)));
+		return immutable NameAndRange(posOfPtr(lexer, begin), force(op));
 	else
 		// TODO: diagnostic: invalid operator
-		return todo!(immutable ExpressionToken)("!");
+		return todo!(immutable NameAndRange)("!");
 }
 
 immutable(size_t) toHexDigit(immutable char c) {
@@ -653,7 +545,7 @@ immutable(size_t) toHexDigit(immutable char c) {
 		return todo!size_t("parse diagnostic -- bad hex digit");
 }
 
-@trusted immutable(Str) takeStringLiteralAfterQuote(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
+public @trusted immutable(Str) takeStringLiteralAfterQuote(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
 	immutable CStr begin = lexer.ptr;
 	size_t nEscapedCharacters = 0;
 	// First get the max size
@@ -715,7 +607,7 @@ immutable(size_t) toHexDigit(immutable char c) {
 	return immutable Str(cast(immutable) res, size);
 }
 
-@trusted immutable(Str) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
+public @trusted immutable(Str) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
 	while (isAlphaIdentifierContinue(*lexer.ptr))
 		lexer.ptr++;
 	if (*lexer.ptr == '?' || *lexer.ptr == '!')
@@ -845,10 +737,11 @@ struct StrAndIsOperator {
 	}
 }
 
-immutable(Bool) isReservedName(immutable Sym name) {
+public immutable(Bool) isReservedName(immutable Sym name) {
 	switch (name.value) {
 		case shortSymAlphaLiteralValue("alias"):
 		case shortSymAlphaLiteralValue("builtin"):
+		case shortSymAlphaLiteralValue("elif"):
 		case shortSymAlphaLiteralValue("else"):
 		case shortSymAlphaLiteralValue("export"):
 		case shortSymAlphaLiteralValue("extern"):
@@ -858,7 +751,6 @@ immutable(Bool) isReservedName(immutable Sym name) {
 		case shortSymAlphaLiteralValue("import"):
 		case shortSymAlphaLiteralValue("match"):
 		case shortSymAlphaLiteralValue("mut"):
-		case shortSymAlphaLiteralValue("new-arr"):
 		case shortSymAlphaLiteralValue("noctx"):
 		case shortSymAlphaLiteralValue("record"):
 		case shortSymAlphaLiteralValue("sendable"):

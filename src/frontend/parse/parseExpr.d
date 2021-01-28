@@ -26,23 +26,30 @@ import frontend.parse.ast :
 	ThenAst,
 	TypeAst;
 import frontend.parse.lexer :
-	asAmpersandAndName,
 	addDiag,
 	addDiagAtChar,
-	asLiteral,
-	asNameAndRange,
+	addDiagOnReservedName,
+	addDiagUnexpected,
+	backUp,
 	curChar,
 	curPos,
-	ExpressionToken,
+	isOperatorChar,
+	isReservedName,
 	Lexer,
+	next,
 	range,
+	Sign,
 	skipUntilNewlineNoDiag,
-	takeExpressionToken,
 	takeIndentOrDiagTopLevel,
 	takeIndentOrFailGeneric,
+	takeName,
 	takeNameAndRange,
+	takeNameRest,
 	takeNewlineOrDedentAmount,
+	takeNumber,
+	takeOperator,
 	takeOrAddDiagExpected,
+	takeStringLiteralAfterQuote,
 	tryTake;
 import frontend.parse.parseType : tryParseTypeArgsBracketed;
 import model.parseDiag : EqLikeKind, ParseDiag;
@@ -50,11 +57,23 @@ import util.bools : Bool, False, True;
 import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, emptyArrWithSize, only, toArr;
 import util.collection.arrUtil : append, arrLiteral, arrWithSizeLiteral, exists, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
+import util.collection.str : CStr, Str;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
-import util.sym : isSymOperator, Operator, operatorForSym, prependSet, shortSymAlphaLiteral, Sym, symEq;
+import util.sym :
+	getSymFromAlphaIdentifier,
+	isAlphaIdentifierStart,
+	isDigit,
+	isSymOperator,
+	Operator,
+	operatorForSym,
+	prependSet,
+	shortSymAlphaLiteral,
+	shortSymAlphaLiteralValue,
+	Sym,
+	symEq;
 import util.types : u32;
 import util.util : max, todo, unreachable, verify;
 
@@ -759,27 +778,43 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			immutable ParseDiag(immutable ParseDiag.MatchWhenOrLambdaNeedsBlockCtx(kind)));
 	}
 
-	immutable ExpressionToken et = takeExpressionToken(alloc, lexer);
-	final switch (et.kind_) {
-		case ExpressionToken.Kind.ampersandAndName:
+	immutable(ExprAndMaybeDedent) handleLiteral(immutable LiteralAst literal) {
+		immutable ExprAst expr = immutable ExprAst(getRange(), immutable ExprAstKind(literal));
+		return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+	}
+
+	immutable(ExprAndMaybeDedent) handleName(immutable NameAndRange name) {
+		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
+		if (!empty(toArr(typeArgs))) {
 			return noDedent(immutable ExprAst(
 				getRange(),
-				immutable ExprAstKind(immutable FunPtrAst(asAmpersandAndName(et).name))));
-		case ExpressionToken.Kind.if_:
-			return isAllowBlock(allowedBlock)
-				? toMaybeDedent(parseIf(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent))
-				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.if_);
-		case ExpressionToken.Kind.lambda:
-			return isAllowBlock(allowedBlock)
-				? parseLambda(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent)
-				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda);
-		case ExpressionToken.Kind.lbracket:
+				immutable ExprAstKind(
+					immutable CallAst(CallAst.Style.single, name, typeArgs, emptyArrWithSize!ExprAst))));
+		} else {
+			immutable ExprAst expr = immutable ExprAst(
+				getRange(),
+				immutable ExprAstKind(immutable IdentifierAst(name.name)));
+			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+		}
+	}
+
+	immutable CStr begin = lexer.ptr;
+	immutable char c = next(lexer);
+	switch (c) {
+		case '(':
+			immutable ExprAst inner = parseExprNoBlock(alloc, lexer);
+			takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
+			immutable ExprAst expr = immutable ExprAst(
+				getRange(),
+				immutable ExprAstKind(immutable ParenthesizedAst(allocate(alloc, inner))));
+			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+		case '[':
 			immutable ArrWithSize!ExprAst args = parseSubscriptArgs(alloc, lexer);
 			immutable ExprAst expr = immutable ExprAst(
 				range(lexer, start),
 				immutable ExprAstKind(immutable CreateArrAst(args)));
 			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
-		case ExpressionToken.Kind.lbrace:
+		case '{':
 			immutable Ptr!ExprAst body_ = allocExpr(alloc, parseExprNoBlock(alloc, lexer));
 			takeOrAddDiagExpected(alloc, lexer, '}', ParseDiag.Expected.Kind.closingBrace);
 			immutable Arr!(LambdaAst.Param) params = bodyUsesIt(body_)
@@ -789,36 +824,52 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				getRange(),
 				immutable ExprAstKind(immutable LambdaAst(params, body_)));
 			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
-		case ExpressionToken.Kind.literal:
-			immutable ExprAst expr = immutable ExprAst(getRange(), immutable ExprAstKind(asLiteral(et)));
-			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
-		case ExpressionToken.Kind.lparen:
-			immutable ExprAst inner = parseExprNoBlock(alloc, lexer);
-			takeOrAddDiagExpected(alloc, lexer, ')', ParseDiag.Expected.Kind.closingParen);
-			immutable ExprAst expr = immutable ExprAst(
-				getRange(),
-				immutable ExprAstKind(immutable ParenthesizedAst(allocate(alloc, inner))));
-			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
-		case ExpressionToken.Kind.match:
+		case '\\':
 			return isAllowBlock(allowedBlock)
-				? toMaybeDedent(parseMatch(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent))
-				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
-		case ExpressionToken.Kind.nameAndRange:
-			immutable NameAndRange name = asNameAndRange(et);
-			immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
-			if (!empty(toArr(typeArgs))) {
-				return noDedent(immutable ExprAst(
-					getRange(),
-					immutable ExprAstKind(
-						immutable CallAst(CallAst.Style.single, name, typeArgs, emptyArrWithSize!ExprAst))));
+				? parseLambda(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent)
+				: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.lambda);
+		case '&':
+			immutable Sym name = takeName(alloc, lexer);
+			return noDedent(immutable ExprAst(
+				getRange(),
+				immutable ExprAstKind(immutable FunPtrAst(name))));
+		case '"':
+			return handleLiteral(immutable LiteralAst(takeStringLiteralAfterQuote(lexer, alloc)));
+		case '+':
+		case '-':
+			return isDigit(*lexer.ptr)
+				? handleLiteral(takeNumber(alloc, lexer, some(c == '+' ? Sign.plus : Sign.minus)))
+				: handleName(takeOperator(lexer, begin));
+		default:
+			if (isOperatorChar(c))
+				return handleName(takeOperator(lexer, begin));
+			else if (isAlphaIdentifierStart(c)) {
+				immutable Str nameStr = takeNameRest(lexer, begin);
+				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
+				if (isReservedName(name))
+					switch (name.value) {
+						case shortSymAlphaLiteralValue("if"):
+							return isAllowBlock(allowedBlock)
+								? toMaybeDedent(parseIf(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent))
+								: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.if_);
+						case shortSymAlphaLiteralValue("match"):
+							return isAllowBlock(allowedBlock)
+								? toMaybeDedent(parseMatch(alloc, lexer, start, asAllowBlock(allowedBlock).curIndent))
+								: blockNotAllowed(ParseDiag.MatchWhenOrLambdaNeedsBlockCtx.Kind.match);
+						default:
+							addDiagOnReservedName(alloc, lexer, immutable NameAndRange(start, name));
+							return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
+					}
+				else
+					return handleName(immutable NameAndRange(start, name));
+			} else if (isDigit(c)) {
+				backUp(lexer);
+				return handleLiteral(takeNumber(alloc, lexer, none!Sign));
 			} else {
-				immutable ExprAst expr = immutable ExprAst(
-					getRange(),
-					immutable ExprAstKind(immutable IdentifierAst(name.name)));
-				return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
+				backUp(lexer);
+				addDiagUnexpected(alloc, lexer);
+				return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 			}
-		case ExpressionToken.Kind.unexpected:
-			return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 	}
 }
 
