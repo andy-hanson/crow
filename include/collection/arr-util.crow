@@ -68,7 +68,7 @@ exists? bool(a arr ?t, pred act bool(?t))
 	else
 		a.tail exists? pred
 
-| TODO: only written this way to be `noctx`, else could defer to `some?`
+# TODO: only written this way to be `noctx`, else could defer to `some?`
 contains? bool(a arr ?t, value ?t) noctx data<?t>
 	a contains-recur? value, 0
 

@@ -1,4 +1,4 @@
-| /usr/include/netinet/in.h
+# /usr/include/netinet/in.h
 
 import
 	...bootstrap: drop, nat, nat16, void
@@ -8,16 +8,16 @@ in-port-t alias
 
 .sockaddr-sizer record
 	by-val
-	| 16 bytes
+	# 16 bytes
 	a nat
 	b nat
 
-| TOOD:KILL (allow unused record fields)
+# TOOD:KILL (allow unused record fields)
 useless void(a sockaddr-sizer)
 	drop: a.a
 	drop: a.b
 
-| Same size as sockaddr
+# Same size as sockaddr
 sockaddr-in record
 	by-val
 	sizer sockaddr-sizer

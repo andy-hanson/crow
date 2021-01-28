@@ -22,7 +22,7 @@ main fut nat(args arr str) summon
 		as none
 			false
 		as some s
-			| TODO: handle it..
+			# TODO: handle it..
 			assert: s.value empty?
 			true
 		max-failures = match max-failures-strs

@@ -1,38 +1,38 @@
+# /usr/include/asm-generic/poll.h
+
 import
 	..bits: bits-intersect?
 	..bootstrap: bool, by-val, int16, int32, ptr
 	.c-types: u-long
 	.extra-types: fd-t
 
-| /usr/include/asm-generic/poll.h
 pollfd record mut
 	fd fd-t
 	events int16
-	| mut, written to by 'poll'
+	# mut, written to by 'poll'
 	revents mut int16
 
 pollin int16()
-	| TODO: binary literals
+	# TODO: binary literals
 	1
 pollpri int16()
-	| TODO: binary literals
+	# TODO: binary literals
 	2
 pollout int16()
-	| TODO: binary literals
+	# TODO: binary literals
 	4
 pollerr int16()
-	| TODO: binary literals
+	# TODO: binary literals
 	8
 pollhup int16()
-	| TODO: binary literals
+	# TODO: binary literals
 	16
 pollnval int16()
-	| TODO: binary literals
+	# TODO: binary literals
 	32
 
-| /usr/include/x86_64-linux-gnu/sys/poll.h
+# /usr/include/x86_64-linux-gnu/sys/poll.h
 poll int32(fds ptr by-val<pollfd>, n-fds u-long, timeout int32) summon extern<"poll"> noctx
-
 
 has-pollin? bool(revents int16)
 	revents bits-intersect? pollin

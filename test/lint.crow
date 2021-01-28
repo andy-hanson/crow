@@ -31,7 +31,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 	bad-names = ["dyncall", "libfirm", "node_modules", "package-lock.json"]
 	name.first == "." or: bad-names contains? name or: bad-exts exists? {name ends-with? it}
 
-| Returns nubmer of errors
+# Returns numner of errors
 .lint-file arr failure(path str) summon
 	text = path read-file
 	res = mut-list<failure>
@@ -58,7 +58,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 .ignore-extension-of-name? bool(name str)
 	match name get-extension
 	as none
-		| Ignore extensionless files
+		# Ignore extensionless files
 		true
 	as some s
 		s.value ignore-extension?

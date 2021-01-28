@@ -41,19 +41,19 @@ spawn-and-wait-result process-result(exe str, args arr str, environ environ) tru
 	print: "spawn-and-wait-result: " ~ exe fold args, \a, b
 		a ~ " " ~ b
 
-	| TODO: kill, handle that error properly
+	# TODO: kill, handle that error properly
 	if exe is-file?
 		exe-c-str = exe.to-c-str
 		exe-c-str spawn-and-wait-result (exe-c-str convert-args args), environ.convert-environ
 	else
 		fail: exe ~ " is not a file"
 
-| This one shares stdout and stderr with parent process
+# This one shares stdout and stderr with parent process
 spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
-	| TODO: kill, handle that error properly
+	# TODO: kill, handle that error properly
 	if exe is-file?
-		| First argument should be the executable path
-		| TODO: &to-c-str
+		# First argument should be the executable path
+		# TODO: &to-c-str
 		exe-c-str = exe.to-c-str
 		exe-c-str spawn-and-wait (exe-c-str convert-args args), environ.convert-environ
 	else
@@ -66,7 +66,7 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	stdout-pipes = make-pipes
 	stderr-pipes = make-pipes
 
-	| TODO: Neater, move to own function
+	# TODO: Neater, move to own function
 	actions = posix-spawn-file-actions-t: 0, 0, null, zero
 	check-posix-error: actions posix-spawn-file-actions-init
 	check-posix-error: actions posix-spawn-file-actions-addclose stdout-pipes.write-pipe
@@ -80,11 +80,11 @@ spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-st
 	check-posix-error: posix-spawn: pid-cell, exe, actions, null, args, environ
 	pid = pid-cell[]
 
-	| Close child-side of pipes (from this process, child still has them)
+	# Close child-side of pipes (from this process, child still has them)
 	check-posix-error: stdout-pipes.read-pipe close
 	check-posix-error: stderr-pipes.read-pipe close
 
-	| Read from pipes
+	# Read from pipes
 	stdout-builder = mut-list<char>
 	stderr-builder = mut-list<char>
 	keep-polling: stdout-pipes.write-pipe, stderr-pipes.write-pipe, stdout-builder, stderr-builder
@@ -110,16 +110,16 @@ body
 	poll-fds = as<arr by-val pollfd>: [(pollfd: stdout-pipe, pollin, 0), (pollfd: stderr-pipe, pollin, 0)]
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
-	| timeout == -1 means we block
+	# timeout == -1 means we block
 	n-pollfds-with-events = poll: poll-fds.data, poll-fds.size, -1
 	if n-pollfds-with-events == 0
-		| TODO: is this even possible to reach? I think we always get has-pollhup? instead.
+		# TODO: is this even possible to reach? I think we always get has-pollhup? instead.
 		void
 	else
 		a = stdout-pollfd handle-revents stdout-builder
 		b = stderr-pollfd handle-revents stderr-builder
 		assert: a.any?.to-nat + b.any?.to-nat == n-pollfds-with-events.to-nat
-		| Apparently stdout and stderr can hang up at slightly different times.
+		# Apparently stdout and stderr can hang up at slightly different times.
 		if not: a.hung-up? and b.hung-up?
 			keep-polling: stdout-pipe, stderr-pipe, stdout-builder, stderr-builder
 
@@ -138,29 +138,29 @@ body
 	hung-up? = revents has-pollhup?
 	if revents.has-pollpri? or revents.has-pollout? or revents.has-pollerr? or revents.has-pollnval?
 		todo
-	| TODO: shouldn't need parens?
+	# TODO: shouldn't need parens?
 	handle-revents-result: had-pollin?, hung-up?
 
 .read-to-buffer-until-eof void(fd fd-t, buffer mut-list char) trusted summon
 	read-max = 1024
-	| It will write to the end of the buffer. So we must ensure that it has enough space at the end.
+	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	buffer reserve buffer.size + read-max
 	add-data-to = buffer.data + buffer.size
 	n-bytes-read = fd read add-data-to.as-any-ptr, read-max
 	if n-bytes-read == -1
-		| Error
+		# Error
 		todo
 	elif n-bytes-read == 0
-		| EOF, done
+		# EOF, done
 		void
 	else
 		assert: n-bytes-read.to-nat <= read-max
 		buffer unsafe-increase-size! n-bytes-read.to-nat
 		fd read-to-buffer-until-eof buffer
 
-| Args should be terminated by null.
-| Each entry in environ looks like "name=value", and final entry is null.
-| TODO: option to get stdout/stderr as a string rather than having them go to the terminal
+# Args should be terminated by null.
+# Each entry in environ looks like "name=value", and final entry is null.
+# TODO: option to get stdout/stderr as a string rather than having them go to the terminal
 spawn-and-wait exit-code(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
 	pid-cell = 0 cell<pid-t>
 	check-posix-error: posix-spawn: pid-cell, exe, null.as-ref, null, args, environ
@@ -177,14 +177,14 @@ wait-and-get-exit-code exit-code(pid pid-t) summon unsafe
 		signal = wait-status w-term-sig
 		print: "Process terminated with signal " ~ signal.to-str
 		todo
-		| use `wait-status w-term-sig`
-		| and `wait-status w-core-dump`
+		# use `wait-status w-term-sig`
+		# and `wait-status w-core-dump`
 	elif wait-status w-if-stopped
 		print: "WAIT STOPPED"
 		todo
-		| use `wait-status w-stop-sig`
+		# use `wait-status w-stop-sig`
 	elif wait-status w-if-continued
 		todo
 	else
-		| What other statuses are there?
+		# What other statuses are there?
 		todo

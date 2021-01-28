@@ -22,7 +22,7 @@ import
 .main-ptr alias
 	fun-ptr2<fut nat, ctx, arr str>
 
-| Treated specially by the compiler
+# Treated specially by the compiler
 rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx summon
 	n-threads = get-nprocs
 	gctx-by-val = as<by-val<global-ctx>>: global-ctx: lock-by-val, [], n-threads, condition, false, false
@@ -38,18 +38,18 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 
 	match main-fut state
 	as fut-state-callbacks
-		| Should never happen
+		# Should never happen
 		1
 	as fut-state-resolved r
-		| TODO: handle nat too big for int32
+		# TODO: handle nat too big for int32
 		gctx.any-unhandled-exceptions? ? 1, r.value.unsafe-to-int.unsafe-to-int32
 	as exception
-		| 'handle-exceptions' should have logged the error
+		# 'handle-exceptions' should have logged the error
 		1
 
 .do-main fut nat(gctx global-ctx, island island, argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx
-	| Before we start the engine, add a task.
-	| Create a ctx manually so we can call functions that need it when creating the task
+	# Before we start the engine, add a task.
+	# Create a ctx manually so we can call functions that need it when creating the task
 	ectx = exception-ctx
 	log-ctx = log-ctx
 	tls = as<by-val<thread-local-stuff>>: thread-local-stuff: ectx.ref-of-val, log-ctx.ref-of-val
@@ -65,20 +65,20 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	thread-id nat
 	gctx global-ctx
 
-| TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
-| We want main-fut to be available immediately, not after having run some user code.
-| So we create main-fut now, and forward the result of 'main' to that.
+# TODO: if mut-bag-node is in unmanaged memory, don't need ctx for this
+# We want main-fut to be available immediately, not after having run some user code.
+# So we create main-fut now, and forward the result of 'main' to that.
 .add-first-task fut nat(all-args arr c-str, main-ptr fun-ptr2<fut nat, ctx, arr str>) unsafe
-	| 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
-	| TODO: 'then' overload for fut<void> taking lambda with 0 params
+	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
+	# TODO: 'then' overload for fut<void> taking lambda with 0 params
 	res = delay then2 \
-		| First argument is the path to this executable.
+		# First argument is the path to this executable.
 		args = all-args tail
 		main-ptr[get-ctx, args map {it.to-str}]
 	res handle-exceptions
 	res
 
-| Each thread will get the thread ID, and the common arguments.
+# Each thread will get the thread ID, and the common arguments.
 .run-threads void(n-threads nat, gctx global-ctx) noctx unsafe summon
 	threads = n-threads unmanaged-alloc-elements<pthread-t>
 	thread-args = n-threads unmanaged-alloc-elements<by-val<thread-args>>

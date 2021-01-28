@@ -35,7 +35,7 @@ bytes128 record
 	n0 bytes64
 	n1 bytes64
 
-| TODO: remove
+# TODO: remove
 bytes256 record
 	by-val
 	n0 bytes128

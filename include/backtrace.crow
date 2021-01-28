@@ -13,7 +13,7 @@ get-fun-name str(fun-id nat) noctx unsafe builtin
 get-fun-ptr any-ptr(fun-id nat) noctx unsafe builtin
 
 get-backtrace backtrace() unsafe
-	| Being careful to avoid calling functions that may throw here
+	# Being careful to avoid calling functions that may throw here
 	match try-alloc-backtrace-arrs
 	as none
 		backtrace: as<arr str>: []
@@ -76,7 +76,7 @@ body
 		i.noctx-incr fill-fun-ptrs-names-recur fun-ptrs, fun-names
 
 .get-fun-name str(code-ptr any-ptr, fun-ptrs ptr any-ptr, fun-names ptr str, size nat) unsafe
-	| TODO: this will fail to give a name for the last function
+	# TODO: this will fail to give a name for the last function
 	if size < 2
 		"<<UNKNOWN>>"
 	elif code-ptr ptr-less? fun-ptrs[1]

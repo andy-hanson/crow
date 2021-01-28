@@ -6,7 +6,7 @@ import
 c-int alias
 	int
 
-| SDL.h
+# SDL.h
 
 sdl-flags alias
 	nat32
@@ -21,22 +21,22 @@ sdl-init-joystick sdl-flags()
 
 sdl-quit void() extern<"SDL_Quit", "SDL2"> noctx summon
 
-| SDL_error.h
+# SDL_error.h
 
 sdl-err alias
 	int
 
 sdl-get-error c-str() extern<"SDL_GetError", "SDL2"> noctx summon
 
-| SDL_events.h
+# SDL_events.h
 
 sdl-pump-events void() extern<"SDL_PumpEvents", "SDL2"> noctx summon
 
-| SDL_keyboard.h
+# SDL_keyboard.h
 
 sdl-get-keyboard-state ptr nat8(num-keys ptr int) extern<"SDL_GetKeyboardState", "SDL2"> noctx summon
 
-| SDL_rect.h
+# SDL_rect.h
 
 sdl-rect record
 	x c-int
@@ -44,7 +44,7 @@ sdl-rect record
 	w c-int
 	h c-int
 
-| SDL_render.h
+# SDL_render.h
 
 sdl-create-renderer sdl-renderer
 	window sdl-window
@@ -94,13 +94,13 @@ sdl-render-present void(renderer sdl-renderer) extern<"SDL_RenderPresent", "SDL2
 
 sdl-texture extern-ptr
 
-| SDL_rwops.h
+# SDL_rwops.h
 
 sdl-rwops extern-ptr
 
 sdl-rw-from-file sdl-rwops(file c-str, mode c-str) extern<"SDL_RWFromFile", "SDL2"> noctx summon unsafe
 
-| SDL_surface.h
+# SDL_surface.h
 
 sdl-free-surface void(surface sdl-surface) extern<"SDL_FreeSurface", "SDL2"> noctx summon unsafe
 
@@ -111,7 +111,7 @@ sdl-load-bmp-rw sdl-surface(src sdl-rwops, freesrc c-int) extern<"SDL_LoadBMP_RW
 sdl-load-bmp sdl-surface(file str) summon unsafe
 	file.to-c-str sdl-rw-from-file "rb".to-c-str sdl-load-bmp-rw 1
 
-| SDL_scancode.h
+# SDL_scancode.h
 
 sdl-scancode alias
 	nat
@@ -130,7 +130,7 @@ sdl-scancode-up sdl-scancode()
 sdl-num-scancodes sdl-scancode()
 	512
 
-| SDL_video.h
+# SDL_video.h
 
 sdl-destroy-window void(window sdl-window) extern<"SDL_DestroyWindow", "SDL2"> noctx summon unsafe
 
@@ -152,7 +152,7 @@ spec
 sdl-window-shown sdl-flags()
 	4
 
-| Not lib code
+# Not lib code
 
 
 main fut nat(_ arr str) summon trusted
@@ -166,7 +166,7 @@ main fut nat(_ arr str) summon trusted
 	ignore <- 20 repeat-interval 100.msec, {renderer main-loop-body texture}
 	drop: ignore
 
-	| TODO: use 'finally'
+	# TODO: use 'finally'
 	texture sdl-destroy-texture
 	renderer sdl-destroy-renderer
 	window sdl-destroy-window
@@ -211,7 +211,7 @@ fail-sdl-error void(operation str) summon trusted
 	fail: "sdl error in " ~ operation ~ " " ~ sdl-get-error.to-str
 	sdl-quit
 
-| TODO:MOVE
+# TODO:MOVE
 repeat-interval fut void(times nat, interval duration, action act void()) summon
 	if times != 0
 		action[]

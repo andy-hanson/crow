@@ -9,7 +9,7 @@ log-ctx record mut
 	handler mut log-handler
 
 log-ctx by-val log-ctx() noctx unsafe
-	| Handler is set when creating 'ctx'
+	# Handler is set when creating 'ctx'
 	log-ctx: zeroed
 
 log-handler alias

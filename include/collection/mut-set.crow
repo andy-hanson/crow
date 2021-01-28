@@ -7,7 +7,7 @@ import
 	.sort: sort
 
 mut-set<?t> record mut
-	| TODO:PRIVATE
+	# TODO:PRIVATE
 	ignore void
 	inner mut-list<?t>
 
@@ -24,7 +24,7 @@ size nat(a mut-set ?t) data<?t>
 	a.inner size
 
 .has? bool(a mut-list ?t, index nat, value ?t) data<?t>
-	| TODO: binary search
+	# TODO: binary search
 	if index == a.size
 		false
 	else

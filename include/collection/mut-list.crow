@@ -11,20 +11,20 @@ import
 	..number-utils: +, -, *, incr
 	..posix.string: memcpy, memmove
 
-| NOTE: this is not a normal record, compiler treats it specially
-| TODO: constructor should be private
+# NOTE: this is not a normal record, compiler treats it specially
+# TODO: constructor should be private
 mut-list<?t> record mut
-	| TODO:PRIVATE
-	| backing.size is the capacity
-	| For the GC's sake, unused parts of backing are filled with 'zeroed'
+	# TODO:PRIVATE
+	# backing.size is the capacity
+	# For the GC's sake, unused parts of backing are filled with 'zeroed'
 	backing mut mut-arr ?t
-	| TODO:PRIVATE (getter public)
+	# TODO:PRIVATE (getter public)
 	size mut nat
 
 .data ptr ?t(a mut-list ?t) noctx unsafe
 	a.backing data
 
-| TODO: PRIVATE
+# TODO: PRIVATE
 capacity nat(a mut-list ?t) noctx unsafe
 	a.backing size
 
@@ -123,7 +123,7 @@ pop! opt ?t(a mut-list ?t) trusted
 	else
 		new-size = a.size noctx-decr
 		res = a[new-size]
-		| Ensure GC doesn't hold on to the memory there
+		# Ensure GC doesn't hold on to the memory there
 		a[new-size] := zeroed
 		a.size := new-size
 		res some
@@ -191,7 +191,7 @@ noctx-must-remove-unordered! void(a mut-list ?t, value ?t) noctx unsafe data<?t>
 	assert: new-size <= a.capacity
 	a.size := new-size
 
-| Unsafe because increasing the size can expose uninitialized data
+# Unsafe because increasing the size can expose uninitialized data
 unsafe-increase-size! void(a mut-list ?t, increase-by nat) unsafe
 	a unsafe-set-size! a.size + increase-by
 
@@ -200,7 +200,7 @@ reduce-size-if-more-than! void(a mut-list ?t, new-size nat)
 		a.pop! drop
 		a reduce-size-if-more-than! new-size
 
-| TODO:MOVE
+# TODO:MOVE
 .round-up-to-power-of-two nat(n nat)
 	1 round-up-to-power-of-two-recur n
 .round-up-to-power-of-two-recur nat(acc nat, n nat)

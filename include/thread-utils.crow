@@ -13,7 +13,7 @@ region atomic
 atomic-bool by-val atomic-bool() noctx
 	atomic-bool: false
 
-| TODO: works on any primitive type, not just bool
+# TODO: works on any primitive type, not just bool
 compare-exchange-strong bool(value-ptr ptr bool, expected-ptr ptr bool, desired bool) noctx builtin
 
 try-change! bool(a atomic-bool, old-value bool) noctx trusted
@@ -81,7 +81,7 @@ get-last-checked last-checked(a condition) noctx
 	a.value
 
 wait-on void(cond condition, until-time opt timestamp, last-checked last-checked) noctx unsafe summon
-	| last-checked should have been called before a change, we wait until c.value is different
+	# last-checked should have been called before a change, we wait until c.value is different
 	if cond.value == last-checked
 		yield-thread
 		if until-time before-time?
@@ -94,7 +94,7 @@ before-time? bool(until-time opt timestamp) noctx summon
 	as some s
 		get-monotime-nsec < s.value
 
-| TODO: use atomic operations for this
+# TODO: use atomic operations for this
 thread-safe-counter record mut
 	lk by-val lock
 	value mut nat
@@ -105,7 +105,7 @@ thread-safe-counter by-val thread-safe-counter() noctx
 thread-safe-counter by-val thread-safe-counter(init nat) noctx
 	thread-safe-counter: lock-by-val, init
 
-| Returns the old value
+# Returns the old value
 get-and-increment! nat(t thread-safe-counter) noctx unsafe
 	t.lk.ref-of-val acquire!
 	old = t value
@@ -113,7 +113,7 @@ get-and-increment! nat(t thread-safe-counter) noctx unsafe
 	t.lk.ref-of-val release!
 	old
 
-| Returns the old value
+# Returns the old value
 get-and-decrement! nat(t thread-safe-counter) noctx unsafe
 	t.lk.ref-of-val acquire!
 	old = t value
@@ -134,10 +134,10 @@ body
 	err = tid pthread-create null, thread-fun, thread-arg
 	if err != 0
 		if err == eagain
-			| TODO: warn and make do with the threads it does let us create (so long as there's at least one)
+			# TODO: warn and make do with the threads it does let us create (so long as there's at least one)
 			todo
 		else
-			| Fatal error
+			# Fatal error
 			todo
 
 join-one-thread void(tid pthread-t) noctx unsafe summon

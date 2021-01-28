@@ -1,4 +1,4 @@
-| /usr/include/spawn.h
+# /usr/include/spawn.h
 
 import
 	..bootstrap: any-ptr, c-str, int32, ptr
@@ -13,8 +13,8 @@ posix-spawn-file-actions-t record mut
 	actions mut any-ptr
 	pad mut bytes64
 
-| TODO: type file-actions and attrp, currently these are always null
-| /usr/include/spawn.h
+# TODO: type file-actions and attrp, currently these are always null
+# /usr/include/spawn.h
 posix-spawn err-t
 	pid cell pid-t
 	executable-path c-str
@@ -28,7 +28,6 @@ spec
 	noctx
 	summon
 
-| TODO: these functions are marked __THROW, what does that do?
 posix-spawn-file-actions-init err-t
 	file-actions posix-spawn-file-actions-t
 spec

@@ -10,7 +10,7 @@ import
 	.sort: sort-by-first!
 
 mut-dict<?k, ?v> record mut
-	| TODO: PRIVATE
+	# TODO: PRIVATE
 	ignore void
 	keys mut-list ?k
 	values mut-list ?v
@@ -54,11 +54,11 @@ has? bool(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	a.temp-as-dict has? key
 
 move-to-dict! dict<?k, ?v>(m mut-dict<?k, ?v>) data<?k>
-	| TODO: should be able to infer type arguments 
+	# TODO: should be able to infer type arguments 
 	dict<?k, ?v>: m.keys.move-to-arr!, m.values.move-to-arr!
 
 .temp-as-dict dict<?k, ?v>(m mut-dict<?k, ?v>) unsafe data<?k>
-	| TODO: should be able to infer type arguments 
+	# TODO: should be able to infer type arguments 
 	dict<?k, ?v>: m.keys.temp-as-arr, m.values.temp-as-arr
 
 remove! opt ?v(a mut-dict<?k, ?v>, key ?k) data<?k>

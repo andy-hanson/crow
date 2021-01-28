@@ -61,13 +61,13 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			void resolved
 	tcp-server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
 
-	| TODO: KILL
+	# TODO: KILL
 	ignore <- handler[http-request: http-get, "", [].dict, ""]
 	drop: ignore
 
 	resolved: http-server: tcp-server.stop
 
-| Returns true when closed client
+# Returns true when closed client
 .handle-chunk fut bool(fd fd-t, state http-parse-state, chunk str, handler http-handler) summon trusted
 	state.unparsed ~= chunk
 	finished-request? = if state.content-length != 0
@@ -89,7 +89,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 .finish-request http-request(state http-parse-state)
 	http-request: state.method, state.url, state.headers.move-to-dict!, state.unparsed.move-to-arr!
 
-| TODO: write out to a stream, not str
+# TODO: write out to a stream, not str
 .response-to-str str(a http-response)
 	res = mut-list<char>
 	res ~= "HTTP/1.1 "
@@ -97,7 +97,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	res ~= " "
 	forbid: a.status-desc contains? "\n"
 	res ~= a.status-desc
-	| TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
+	# TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
 	a.headers each \k, v
 		res ~= "\r\n"
 		forbid: k contains? "\n"
@@ -113,10 +113,10 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	res ~= a.body
 	res move-to-arr!
 
-|ok-response str() noctx
-|	"HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"
+#ok-response str() noctx
+#	"HTTP/1.1 200 OK Feelin' Fine\nShoop: Da Woop\n\nHello, internet world!\n"
 
-| returns true if ready to clal handler
+# returns true if ready to clal handler
 .handle-http-initial bool(state http-parse-state)
 	match state.unparsed try-take-first-line
 	as none
@@ -128,16 +128,16 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 			as none
 				true
 			as some some-content-length-str
-				| set state.content-length
+				# set state.content-length
 				match some-content-length-str.value parse-nat
 				as none
-					| invalid content-length
+					# invalid content-length
 					todo
 				as some some-content-length
 					state.content-length := some-content-length value
 					false
 		elif state.url empty?
-			| Expect something like "GET / HTTP/1.1"
+			# Expect something like "GET / HTTP/1.1"
 			parts = line split-by-subseq " "
 			assert: parts.size == 3
 			state.method := parts[0] parse-method
@@ -179,9 +179,9 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	method mut http-method
 	url mut str
 	headers mut-dict<str, str>
-	| This is not set until after the end of headers
+	# This is not set until after the end of headers
 	content-length mut nat
-	| TODO:PERF: Use a circular buffer as we often take content off the front
+	# TODO:PERF: Use a circular buffer as we often take content off the front
 	unparsed mut-list char
 
 .http-parse-state http-parse-state()

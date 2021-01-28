@@ -1,4 +1,4 @@
-| /usr/include/dirent.h
+# /usr/include/dirent.h
 
 import
 	..bootstrap: nat16, char, c-str, int32
@@ -13,7 +13,7 @@ dirent record mut
 	d-off mut off-t
 	d-reclen mut nat16
 	d-type mut char
-	| TODO: d-name char[256]
+	# TODO: d-name char[256]
 	d-name mut bytes256
 
 opendir dir(name c-str) summon extern<"opendir"> noctx

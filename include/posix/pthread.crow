@@ -1,4 +1,4 @@
-| /usr/include/pthread.h
+# /usr/include/pthread.h
 
 import
 	..bootstrap: any-ptr, fun-ptr1
@@ -9,8 +9,8 @@ import
 pthread-t alias
 	u-long
 
-| writes to `thread`
-| attr -- not typing this as currently I only pass null
+# writes to `thread`
+# attr -- not typing this as currently I only pass null
 pthread-create err-t
 	thread cell pthread-t
 	attr any-ptr
@@ -22,9 +22,8 @@ spec
 	noctx
 	summon
 
-| writes to `thread-return`
+# writes to `thread-return`
 pthread-join err-t(thread pthread-t, thread-return cell any-ptr) unsafe extern<"pthread_join"> noctx summon
 
-| TODO: summon?
+# TODO: summon?
 pthread-yield err-t() unsafe extern<"pthread_yield"> noctx
-

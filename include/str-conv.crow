@@ -92,7 +92,7 @@ to-str str(i int16)
 	i.to-int to-str
 
 to-str str(a float)
-	| TODO: Use a real float to string algorithm
+	# TODO: Use a real float to string algorithm
 	times-100 = (a * 100.0).truncate-to-int
 	hundredths = times-100 mod 100
 	tenths = hundredths / 10
@@ -150,6 +150,6 @@ parse-int opt int(a str)
 	else
 		(a[0] == "+" ? a.tail, a).parse-nat map {it to-int}
 
-| TODO: handle the decimal point!
+# TODO: handle the decimal point!
 parse-float opt float(a str)
 	a.parse-nat map {it to-float}

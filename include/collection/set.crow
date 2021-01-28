@@ -7,11 +7,11 @@ import
 
 set<?t> record
 	ignore void
-	| TODO:PRIVATE
+	# TODO:PRIVATE
 	values arr ?t
 
 set set ?t() data<?t>
-	| TODO: type args should be unnecessary
+	# TODO: type args should be unnecessary
 	set: void, []
 
 set set ?t(a arr ?t) data<?t>
@@ -27,7 +27,7 @@ subscript bool(a set ?t, value ?t) data<?t>
 	a.values has? value
 
 .has? bool(a arr ?t, value ?t) data<?t>
-	| TODO: binary search
+	# TODO: binary search
 	if a empty?
 		false
 	else

@@ -19,9 +19,9 @@ test-uri void() summon
 	as some s
 		uri = s.value
 		uri test-get
-		| print: "host: " + uri.host
-		| print: "path and query: " + uri.path-and-query
-		| print: "port: " + uri.port.to-str
+		# print: "host: " + uri.host
+		# print: "path and query: " + uri.path-and-query
+		# print: "port: " + uri.port.to-str
 
 split-with-splitter<?t> record
 	before arr ?t
@@ -32,13 +32,13 @@ split<?t> record
 	before arr ?t
 	after arr ?t
 
-| TODO: ->UTILS
+# TODO: ->UTILS
 split-at-first opt split-with-splitter<?t>(a arr ?t, pred act bool(?t))
 	idx <- a find-index pred
-	| TODO: parens should be unnecessary
+	# TODO: parens should be unnecessary
 	some: split-with-splitter<?t>: (a slice-up-to idx), a[idx], (a slice-after idx)
 
-| If splitter is not present, right part is empty
+# If splitter is not present, right part is empty
 try-split split ?t(a arr ?t, pred act bool(?t))
 	match a find-index pred
 	as none
@@ -47,7 +47,7 @@ try-split split ?t(a arr ?t, pred act bool(?t))
 		idx = s.value
 		split<?t>: (a slice-up-to idx), (a slice-after idx)
 
-| If splitter is not present, right part is empty
+# If splitter is not present, right part is empty
 try-split-from-right split ?t(a arr ?t, pred act bool(?t))
 	match a find-rindex pred
 	as none
@@ -56,13 +56,13 @@ try-split-from-right split ?t(a arr ?t, pred act bool(?t))
 		index = s.value
 		split<?t>: (a slice-up-to index), (a slice-after index)
 
-| nghttp2-session-callbacks-new foo() extern<"nghttp2_session_callbacks_new"> noctx summon
-| nghttp2-session-client-new foo() extern<"nghttp2_session_client"> noctx summon
-| nghttp2-session-callbacks-del foo() extern<"nghttp2_session_callbacks_del"> noctx summon
-| nghttp2-submit-settings foo() extern<"nghttp2_submit_settings"> noctx summon
-| nghttp2-session-want-read foo() extern<"nghttp2_session_want_read"> noctx summon
-| nghttp2-session-want-write foo() extern<"nghttp2_session_want_write"> noctx summon
-| nghttp2-session-del foo() extern<"nghttp2_session_del"> noctx summon
+# nghttp2-session-callbacks-new foo() extern<"nghttp2_session_callbacks_new"> noctx summon
+# nghttp2-session-client-new foo() extern<"nghttp2_session_client"> noctx summon
+# nghttp2-session-callbacks-del foo() extern<"nghttp2_session_callbacks_del"> noctx summon
+# nghttp2-submit-settings foo() extern<"nghttp2_submit_settings"> noctx summon
+# nghttp2-session-want-read foo() extern<"nghttp2_session_want_read"> noctx summon
+# nghttp2-session-want-write foo() extern<"nghttp2_session_want_write"> noctx summon
+# nghttp2-session-del foo() extern<"nghttp2_session_del"> noctx summon
 
 
 
@@ -74,18 +74,18 @@ request record mut
 	port nat16
 
 test-get void(u uri) trusted summon
-	| act = zero as<by-val<sigaction>>
-	| act = new<by-val<sigaction>>
-	|	sa-handler. sig-ign
-	|	sa-flags. zero
-	|	sa-restorer. null
-	|	sa-mask. zero
-	| sigpipe act
+	# act = zero as<by-val<sigaction>>
+	# act = new<by-val<sigaction>>
+	#	sa-handler. sig-ign
+	#	sa-flags. zero
+	#	sa-restorer. null
+	#	sa-mask. zero
+	# sigpipe act
 
-	| Ignore SIGPIPE errors (WARN: This has a global effect!)
+	# Ignore SIGPIPE errors (WARN: This has a global effect!)
 	check-errno-if-not-zero: sigpipe sigignore
 
-	| ssl-load-error-strings
+	# ssl-load-error-strings
 	i = openssl-init-ssl: 0, null.as-ref
 	assert: i == 0
 
@@ -102,28 +102,28 @@ test-get void(u uri) trusted summon
 
 ssl-handshake void(ssl ssl, fd fd-t) summon
 	err = ssl ssl-set-fd fd
-	| TODO: handle errors
+	# TODO: handle errors
 	forbid: err == 0
 	err-clear-error
 	rv = ssl ssl-connect
-	| TODO: handle other return values
+	# TODO: handle other return values
 	assert: rv == 1
 
 
 
-| ALGORITHM:
-| eat 'https://'
-| eat up to `:/?#`
-| if saw `:`, eat up to `/`
-| if saw `/`, eat up to `?`
+# ALGORITHM:
+# eat 'https://'
+# eat up to `:/?#`
+# if saw `:`, eat up to `/`
+# if saw `/`, eat up to `?`
 
-| BETTER: do it in reverse
-| Parse off '#' from right
-| Parse off '?' from right
-| Then parse the *first* '/'
-| Then take a ':' from the left part
+# BETTER: do it in reverse
+# Parse off '#' from right
+# Parse off '?' from right
+# Then parse the *first* '/'
+# Then take a ':' from the left part
 parse-uri opt uri(uri str)
-	| Must start with https
+	# Must start with https
 	after-https <- uri try-remove-str-start "https://"
 
 	host-and-port-split-path-and-query-and-hash = after-https try-split {it == "/"}
@@ -139,6 +139,6 @@ parse-uri opt uri(uri str)
 	path-and-query = path-and-query-split-after-hash before
 	after-hash = path-and-query-split-after-hash after
 
-	| TODO: not bothering to split out query for now.
+	# TODO: not bothering to split out query for now.
 
 	some: uri: host, port, path-and-query, after-hash

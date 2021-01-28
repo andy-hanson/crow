@@ -39,8 +39,8 @@ ref-of-val-at ?t(a arr by-val<?t>, index nat) trusted
 	res + a.size copy-data-from b.data, b.size
 	arr: res-size, res
 
-| TODO: should be unnecessary, just use '=='
-| (But type system must recognize that `arr ?t` is data if `?t` is)
+# TODO: should be unnecessary, just use '=='
+# (But type system must recognize that `arr ?t` is data if `?t` is)
 arr-eq? bool(a arr ?t, b arr ?t) data<?t>
 	if a.size != b.size
 		false

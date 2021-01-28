@@ -10,7 +10,7 @@ import
 	.number-utils: -
 	.runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
 	.thread-utils: lock, lock-by-val, with-lock
-| Used to make code run after the next step. Equivalent to `sleep 0`.
+# Used to make code run after the next step. Equivalent to `sleep 0`.
 delay fut void()
 	void resolved
 
@@ -50,7 +50,7 @@ join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out>
 	as exception e
 		res reject! e
 
-| TODO: send<arr ?a> should be unnecessary
+# TODO: send<arr ?a> should be unnecessary
 join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 	res = unresolved<arr ?a>
 	lock = lock
@@ -63,7 +63,7 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 					res finish-join! a
 	res
 
-| TODO: send<arr ?a> should be unnecessary
+# TODO: send<arr ?a> should be unnecessary
 .finish-join! void(res fut arr ?a, a arr fut ?a) unsafe send<?a> send<arr ?a> summon
 	exception = a first-some \x
 		match x state
@@ -88,13 +88,13 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 	as exception
 		hard-unreachable
 
-| NOTE: The function will be called with whatever ctx the fut terminates with!!!
-| TODO:PRIVATE (because this calls 'cb' synchronously sometimes)
+# NOTE: The function will be called with whatever ctx the fut terminates with!!!
+# TODO:PRIVATE (because this calls 'cb' synchronously sometimes)
 then-void void(f fut ?t, cb act void(result<?t, exception>)) unsafe
 	f.lk.ref-of-val with-lock \
 		match f state
 		as fut-state-callbacks cbs
-			| create a new callback
+			# create a new callback
 			f.state := fut-state-callbacks<?t>: some: fut-callback-node<?t>: cb, cbs.head
 		as fut-state-resolved r
 			cb[r.value ok]
@@ -119,14 +119,14 @@ then fut ?out(f fut ?in, cb ref ?out(?in)) trusted send<?out> send<?in>
 			res reject! e.value
 	res
 
-| TODO: rename to just 'then'
-| This requires that we be able to handle two expected types at once,
-| and choose just one based on the arity of a lambda.
+# TODO: rename to just 'then'
+# This requires that we be able to handle two expected types at once,
+# and choose just one based on the arity of a lambda.
 then2 fut ?out(f fut void, cb ref ?out()) send<?out>
 	f then<?out, void> \ignore
 		cb[]
 
-| Runs `f` in parallel.
+# Runs `f` in parallel.
 launch fut ?t(f fun fut ?t()) trusted
 	res = unresolved<?t>
 	island = get-cur-island

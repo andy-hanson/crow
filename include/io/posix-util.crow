@@ -5,7 +5,7 @@ import
 	..posix.extra-types: err-t
 
 check-posix-error void(e err-t)
-	| TODO: throw an exception
+	# TODO: throw an exception
 	assert: e == 0
 
 check-errno-if-neg-one void(e int) summon trusted

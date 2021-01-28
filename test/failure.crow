@@ -79,7 +79,7 @@ print-failures nat(failures result<str, arr failure>, options test-options) summ
 	print-no-newline: " "
 	print: failure message
 
-| TODO:MOVE
+# TODO:MOVE
 .print-bold void() summon
 	print-no-newline: "\x1b[1m"
 

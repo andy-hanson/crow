@@ -1,4 +1,4 @@
-| /usr/include/netdb.h
+# /usr/include/netdb.h
 
 import
 	..bootstrap: c-str, int32, ptr, void
@@ -20,8 +20,8 @@ addrinfo record mut
 ai-passive int32()
 	1
 
-| Remember to call 'freeaddrinfo'!
-| Writes to 'pai'
+# Remember to call 'freeaddrinfo'!
+# Writes to 'pai'
 getaddrinfo int32
 	name c-str
 	service c-str

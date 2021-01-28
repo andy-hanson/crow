@@ -11,7 +11,7 @@ import
 	.thread-utils: acquire!, lock-by-val, release!
 
 set-zero-range void(begin ptr ?t, size nat) noctx unsafe
-	| TODO: wrap-mul is unsafe
+	# TODO: wrap-mul is unsafe
 	begin.as-any-ptr memset: 0, size wrap-mul size-of<?t>
 
 mark-ctx record mut
@@ -19,7 +19,7 @@ mark-ctx record mut
 	marks ptr bool
 	memory-start ptr nat64
 
-| Returns true if the range is GC-allocated memory and was not already marked
+# Returns true if the range is GC-allocated memory and was not already marked
 mark bool(ctx mark-ctx, ptr-any any-ptr, size-bytes nat) noctx unsafe summon
 	size-words = size-bytes words-of-bytes
 	ptr = ptr-any.ptr-cast as<ptr nat64>
@@ -57,12 +57,12 @@ gc record mut
 	context-head mut opt gc-ctx
 	needs-gc? mut bool
 	size-words mut nat
-	| 'mark-cur' and 'data-cur' run in parallel
-	| mark-end must be `mark-begin + size-words` and similar for data-end
+	# 'mark-cur' and 'data-cur' run in parallel
+	# mark-end must be `mark-begin + size-words` and similar for data-end
 	mark-begin ptr bool
 	mark-cur mut ptr bool
 	mark-end mut ptr bool
-	| We allocate data in increments of nat64
+	# We allocate data in increments of nat64
 	data-begin ptr nat64
 	data-cur mut ptr nat64
 	data-end mut ptr nat64
@@ -76,8 +76,8 @@ gc-stats record
 words-free nat(a gc-stats) noctx
 	a.total-words wrap-sub a.words-used
 
-| Super unsafe
-| WARN: Unfortunately this doesn't prevent the original allocation in new-gc, just forbids us to use it
+# Super unsafe
+# WARN: Unfortunately this doesn't prevent the original allocation in new-gc, just forbids us to use it
 set-hard-limit void(gc gc, size-words nat) noctx unsafe
 	gc validate-gc
 	hard-assert: size-words <= gc.size-words
@@ -88,7 +88,7 @@ set-hard-limit void(gc gc, size-words nat) noctx unsafe
 	gc.data-end := gc.data-begin + size-words
 	gc validate-gc
 
-| WARN: this locks up the GC for a long time
+# WARN: this locks up the GC for a long time
 get-stats gc-stats(gc gc) noctx unsafe
 	gc validate-gc
 	gc.lk.ref-of-val acquire!
@@ -105,8 +105,8 @@ words-used-in-range nat(acc nat, cur ptr bool, end ptr bool) noctx unsafe
 		acc wrap-add cur[].to-nat words-used-in-range cur.incr, end
 
 gc by-val gc() noctx unsafe
-	| TODO: handle malloc failure
-	| 16 MB
+	# TODO: handle malloc failure
+	# 16 MB
 	size-words = 0x1000000
 	mark-begin = ptr-cast<bool, nat8>: malloc: size-words
 	mark-end = mark-begin + size-words
@@ -135,8 +135,10 @@ run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 			data-ptr[] := 0xfadefadefadefade
 		clear-free-mem: mark-ptr.incr, mark-end, data-ptr
 
-| GC info specific to a ctx.
-| Currently they all share the common GC and must take a lock every time they allocate.
+###
+GC info specific to a ctx.
+Currently they all share the common GC and must take a lock every time they allocate.
+###
 gc-ctx record mut
 	gc mut gc
 	next-ctx mut opt gc-ctx
@@ -148,9 +150,9 @@ get-gc-ctx gc-ctx(gc gc) noctx unsafe
 	gc.lk.ref-of-val acquire!
 	res = match gc.context-head
 	as none
-		| NOTE: malloc'd memory is not traced for garbage collection.
-		| This is fine as 'gc' is kept alive anyway.
-		| TODO: `size-of<by-val<gc-ctx>>.malloc` should be legal
+		# NOTE: malloc'd memory is not traced for garbage collection.
+		# This is fine as 'gc' is kept alive anyway.
+		# TODO: `size-of<by-val<gc-ctx>>.malloc` should be legal
 		c = (size-of<by-val<gc-ctx>> malloc) as-ref<gc-ctx>
 		c.gc := gc
 		c.next-ctx := none
@@ -200,7 +202,6 @@ validate-gc void(gc gc) noctx unsafe
 
 .try-gc-alloc-recur opt any-ptr(gc gc, size-bytes nat) noctx unsafe
 	gc validate-gc
-	| some: size-bytes unmanaged-alloc-bytes
 	size-words = size-bytes words-of-bytes
 	cur = gc data-cur
 	next = cur + size-words
@@ -227,7 +228,7 @@ range-free? bool(mark ptr bool, end ptr bool) noctx unsafe
 gc-alloc any-ptr(gc gc, size nat) trusted
 	match gc try-gc-alloc size
 	as none
-		| TODO: throw an exception on OOM
+		# TODO: throw an exception on OOM
 		todo
 	as some s
 		s.value
@@ -239,7 +240,7 @@ try-alloc opt any-ptr(size-bytes nat) unsafe
 	get-gc try-gc-alloc size-bytes
 
 alloc-uninitialized ptr ?t(size nat) unsafe
-	| TODO: wrap-mul is unsafe!
+	# TODO: wrap-mul is unsafe!
 	ptr-cast<?t, nat8>: alloc: size wrap-mul size-of<?t>
 
 try-alloc-uninitialized opt ptr ?t(size nat) unsafe
@@ -260,7 +261,7 @@ unmanaged-alloc-zeroed-elements ptr ?t(size-elements nat) noctx unsafe
 	res
 
 unmanaged-alloc-elements ptr ?t(size-elements nat) noctx unsafe
-	| TODO: wrap-mul is unsafe!
+	# TODO: wrap-mul is unsafe!
 	ptr-cast: size-elements wrap-mul size-of<?t> unmanaged-alloc-bytes
 
 unmanaged-free void(p ptr ?t) noctx unsafe

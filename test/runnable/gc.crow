@@ -4,10 +4,10 @@ import
 
 main fut nat(_ arr str) summon unsafe
 	gc = get-gc
-	| To speed up 'gc.get-stats'
+	# To speed up 'gc.get-stats'
 	gc.hard-limit := 0x200
 
-	| We'll keep a alive, but not b
+	# We'll keep a alive, but not b
 	a = r: 1, 2, 3
 	b = r: 4, 5, 6
 	assert: size-of<by-val<r>> == 24

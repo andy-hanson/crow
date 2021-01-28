@@ -3,12 +3,12 @@ import
 	.posix.posix: fd-t, u-long
 	.str-conv: literal
 
-| /usr/include/openssl/ossl_typ.h
+# /usr/include/openssl/ossl_typ.h
 ssl extern-ptr
 ssl-ctx extern-ptr
 ssl-method extern-ptr
 
-| /usr/include/openssl/ssl.h
+# /usr/include/openssl/ssl.h
 ssl-load-error-strings void() extern<"SSL_load_error_strings"> noctx summon
 ssl-ctx-new ssl-ctx(meth ssl-method) extern<"SSL_CTX_new"> noctx summon
 tls-client-method ssl-method() extern<"TLS_client_method"> noctx summon
@@ -51,7 +51,7 @@ ssl-shutdown int32() extern<"SSL_shutdown"> noctx summon
 ssl-free void() extern<"SSL_free"> noctx summon
 ssl-ctx-free void(ctx ssl-ctx) extern<"SSL_CTX_free"> noctx summon
 
-| /usr/include/openssl/err.h
+# /usr/include/openssl/err.h
 err-clear-error void() extern<"ERR_clear_error"> noctx summon
 err-error-string c-str(e u-long, buf c-str) extern<"ERR_error_string"> noctx summon
 err-get-error u-long() extern<"ERR_get_error"> noctx summon

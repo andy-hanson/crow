@@ -1,6 +1,6 @@
 
-|import
-|	|io.net.http-server: http-handler, http-response, start-http-server
+#import
+#	#io.net.http-server: http-handler, http-response, start-http-server
 
 http-handler alias
 	ref nat()
@@ -8,7 +8,7 @@ http-handler alias
 main fut nat(_ arr str) unsafe summon
 	handler = as<http-handler>: \
 		resolved: 200
-	| Uncomment this line and it compiles successfully
-	| drop: handler[]
+	# Uncomment this line and it compiles successfully
+	# drop: handler[]
 	drop: handler
 	0 resolved

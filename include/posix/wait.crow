@@ -1,4 +1,4 @@
-| /usr/include/x86_64-linux-gnu/sys/wait.h
+# /usr/include/x86_64-linux-gnu/sys/wait.h
 
 import
 	..bits: bits-and, bit-shift-right, bits-intersect?
@@ -12,15 +12,15 @@ status-t alias
 	int32
 
 w-term-sig status-t(status status-t)
-	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
+	# /usr/include/x86_64-linux-gnu/bits/waitstatus.h
 	status bits-and 0x7f
 
 w-exit-status status-t(status status-t)
-	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
+	# /usr/include/x86_64-linux-gnu/bits/waitstatus.h
 	status bits-and 0xff00 bit-shift-right 8
 
 w-if-exited bool(status status-t)
-	| /usr/include/x86_64-linux-gnu/bits/waitstatus.h
+	# /usr/include/x86_64-linux-gnu/bits/waitstatus.h
 	status.w-term-sig == 0
 
 w-if-signaled bool(status status-t)

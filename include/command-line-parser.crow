@@ -10,14 +10,14 @@ import
 	.exceptions: assert, fail, forbid
 	.number-utils: +
 
-| TODO: this would be neater if we had reflection!
+# TODO: this would be neater if we had reflection!
 parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt arr str))
 	parsed = args parse-cmd-line-args-dynamic
 	assert: parsed.nameless empty?, "Should be no nameless args"
 	assert: parsed.after empty?
 
 	values = t-names.size fill-mut-list<opt arr str> none
-	| TODO: should not need a type argument here
+	# TODO: should not need a type argument here
 	help = false cell<bool>
 	parsed.named each \key, value
 		match t-names index-of key
@@ -28,7 +28,7 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt 
 				fail: "Unexpected arg " ~ key
 		as some s
 			idx = s value
-			| TODO: duplicate argument error
+			# TODO: duplicate argument error
 			forbid: values[idx] has?
 			values[idx] := value.some
 
@@ -37,18 +37,18 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt 
 	else
 		make-t[values move-to-arr!] some
 
-| Command line syntax:
-| `foo bar --a 1 --b 2 3 -- x y z`
-| nameless: foo bar
-| named: a = 1, b = 2 3
-| after: x y z
+# Command line syntax:
+# `foo bar --a 1 --b 2 3 -- x y z`
+# nameless: foo bar
+# named: a = 1, b = 2 3
+# after: x y z
 parsed-cmd-line-args record
 	nameless arr str
 	named dict<str, arr str>
 	after arr str
 
 parse-cmd-line-args-dynamic parsed-cmd-line-args(args arr str)
-	| Find the location of the first name beginning in '--'
+	# Find the location of the first name beginning in '--'
 	match args find-index {it starts-with? "--"}
 	as none
 		parsed-cmd-line-args: args, [].dict, []

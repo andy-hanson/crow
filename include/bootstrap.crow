@@ -8,15 +8,17 @@ drop void(_ ?t) noctx
 
 by-val<?t> builtin
 
-| A type is data if it is:
-| * A primitive
-| * A record or union of pure types
+###
+A type is data if it is:
+* A primitive
+* A record or union of pure types
+###
 data<?t> builtin-spec
 
-| A type is sendable if it does not have any thread-unsafe mutable state.
+# A type is sendable if it does not have any thread-unsafe mutable state.
 send<?t> builtin-spec
 
-| TODO: extern<?t> builtin-spec for extern ptr types
+## TODO: extern<?t> builtin-spec for extern ptr types
 
 region arrow
 
@@ -67,12 +69,14 @@ as ?t(value ?t) noctx builtin
 
 region ptr
 
-| A raw pointer. GC will not trace these.
-| WARN: If ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
+###
+A raw pointer. GC will not trace these.
+WARN: If ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
+###
 ptr<?t> builtin mut
 
 null ptr ?t() noctx builtin
-| Used by the compiler
+# Used by the compiler
 null-any ptr bool() noctx
 	null
 
@@ -89,16 +93,18 @@ set-subscript void(a ptr ?t, value ?t) noctx unsafe builtin
 set-subscript void(a ptr ?t, n nat, value ?t) noctx unsafe
 	(a + n)[] := value
 
-| Unsafe because the ref will only be valid temporarily!
+# Unsafe because the ref will only be valid temporarily!
 ref-of-val ?t(b by-val ?t) noctx unsafe builtin
 
-| This forces something to be stack-allocated.
-| WARN: If '?t' is a reference type already, this is a pointer to a pointer!
+###
+This forces something to be stack-allocated.
+WARN: If '?t' is a reference type already, this is a pointer to a pointer!
+###
 ptr-to ptr ?t(t ?t) noctx unsafe builtin
 
-| TODO: this function only works for by-ref types -- currently that is not checked by the type checker
+# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
 as-any-ptr any-ptr(ref ?t) noctx unsafe builtin
-| TODO: this function only works for by-ref types -- currently that is not checked by the type checker
+# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
 as-ref ?t(p any-ptr) noctx unsafe builtin
 
 ref-of-ptr ?t(p ptr by-val<?t>) noctx unsafe
@@ -125,12 +131,12 @@ incr ptr ?t(p ptr ?t) noctx unsafe
 decr ptr ?t(p ptr ?t) noctx unsafe
 	p - 1
 
-| WARN: for a reference type, this is the size of a pointer
+# WARN: for a reference type, this is the size of a pointer
 size-of<?t> nat() noctx unsafe builtin
 
-| TODO: require that ?out be an extern-ptr type
+# TODO: require that ?out be an extern-ptr type
 ptr-cast-to-extern ?out(p ptr ?in) noctx unsafe builtin
-| TODO: require that ?in be an extern-ptr type
+# TODO: require that ?in be an extern-ptr type
 ptr-cast-from-extern ptr ?out(p ?int) noctx unsafe builtin
 ptr-cast ptr ?out(p ptr ?in) noctx unsafe builtin
 
@@ -204,7 +210,7 @@ max ?t(a ?t, b ?t) noctx data<?t>
 
 region arr
 
-| NOTE: this is not a normal record, compiler treats it specially
+# NOTE: this is not a normal record, compiler treats it specially
 arr<?t> record force-data
 	by-val
 	size nat
@@ -230,14 +236,14 @@ not bool(a bool) noctx
 		false
 	else
 		true
-| 'b' is evaluated only if 'a' is true
+# 'b' is evaluated only if 'a' is true
 and bool(a bool, b bool) noctx builtin
-| 'b' is evaluated only if 'a' is false
+# 'b' is evaluated only if 'a' is false
 or bool(a bool, b bool) noctx builtin
-| Only one of 'if-true' and 'if-false' will be evaluated, depending on 'cond'
+# Only one of 'if-true' and 'if-false' will be evaluated, depending on 'cond'
 ? ?t(cond bool, if-true ?t, if-false ?t) noctx builtin
 
-| TODO:MOVE
+## TODO:MOVE
 to-nat nat(b bool) noctx
 	b ? 1, 0
 
@@ -262,7 +268,7 @@ unsafe-to-nat8 nat8(a nat) noctx builtin
 unsafe-to-nat16 nat16(a nat) noctx builtin
 unsafe-to-nat32 nat32(a nat) noctx builtin
 
-| UB for positive numbers >= 2 ** 63
+# UB for positive numbers >= 2 ** 63
 unsafe-to-int int(a nat) noctx builtin
 unsafe-to-int8 int8(a int) noctx builtin
 unsafe-to-int16 int16(a int) noctx builtin
@@ -313,8 +319,10 @@ region hard assertions
 
 abort! void() noctx unsafe extern<"abort">
 
-| Zeroed data isn't safe as it would contain null pointers.
-| It's GC-safe though, since the GC treats a null pointer same as any external pointer.
+###
+Zeroed data isn't safe as it would contain null pointers.
+It's GC-safe though, since the GC treats a null pointer same as any external pointer.
+###
 zeroed ?t() noctx unsafe builtin
 
 hard-unreachable ?t() unsafe noctx
@@ -322,7 +330,7 @@ hard-unreachable ?t() unsafe noctx
 	zeroed
 
 todo ?t() trusted noctx
-	| TODO: soft-fail, remove 'trusted noctx' above
+	## TODO: soft-fail, remove 'trusted noctx' above
 	abort!
 	zeroed
 
@@ -335,10 +343,10 @@ hard-forbid void(condition bool) noctx unsafe
 
 region bootstrap runtime
 
-| Since this fun is not marked 'noctx', it simply returns the ctx that already exists.
+# Since this fun is not marked 'noctx', it simply returns the ctx that already exists.
 get-ctx ctx() unsafe builtin
 
-| The ctx only exists temporarily, so can use 'any-ptr' without worrying about GC
+# The ctx only exists temporarily, so can use 'any-ptr' without worrying about GC
 ctx record mut
 	by-ref
 	gctx-ptr any-ptr
@@ -361,7 +369,7 @@ island-and-exclusion record
 
 region fun
 
-| Pointer to a function with no arguments (not even ctx)
+# Pointer to a function with no arguments (not even ctx)
 fun-ptr0<?r> builtin
 fun-ptr1<?r, ?p0> builtin
 fun-ptr2<?r, ?p0, ?p1> builtin
@@ -370,26 +378,32 @@ fun-ptr4<?r, ?p0, ?p1, ?p2, ?p3> builtin
 fun-ptr5<?r, ?p0, ?p1, ?p2, ?p3, ?p4> builtin
 fun-ptr6<?r, ?p0, ?p1, ?p2, ?p3, ?p4, ?p5> builtin
 
-| Don't reference directly, instead use syntax `fun ?r(?p0, ?p1)`
-| Contrasted with `act`, a fun can't close over mutable data, so is thread-safe.
-| It can still close over `send` data and perform I/O, so it's not a completely pure function.
+###
+Don't reference directly, instead use syntax `fun ?r(?p0, ?p1)`
+Contrasted with `act`, a fun can't close over mutable data, so is thread-safe.
+It can still close over `send` data and perform I/O, so it's not a completely pure function.
+###
 fun0<?r> builtin sendable
 fun1<?r, ?p0> builtin sendable
 fun2<?r, ?p0, ?p1> builtin sendable
 fun3<?r, ?p0, ?p1, ?p2> builtin sendable
 fun4<?r, ?p0, ?p1, ?p2, ?p3> builtin sendable
 
-| Don't reference directly, instead use syntax `act ?r(?p0, ?p1)`
-| Can close over anything. Can only be run by the exclusion context that created it.
+###
+Don't reference directly, instead use syntax `act ?r(?p0, ?p1)`
+Can close over anything. Can only be run by the exclusion context that created it.
+###
 fun-act0<?r> builtin mut
 fun-act1<?r, ?p0> builtin mut
 fun-act2<?r, ?p0, ?p1> builtin mut
 fun-act3<?r, ?p0, ?p1, ?p2> builtin mut
 fun-act4<?r, ?p0, ?p1, ?p2, ?p3> builtin mut
 
-| Don't reference directly, instead use syntax `act ?r(?p0, ?p1)`
-| This wraps an `act` combined with the island/exclusion it came from, and becomes sendable
-| since the `act` can't be called directly. Instead, it adds a task to the island.
+###
+Don't reference directly, instead use syntax `act ?r(?p0, ?p1)`
+This wraps an `act` combined with the island/exclusion it came from, and becomes sendable
+since the `act` can't be called directly. Instead, it adds a task to the island.
+###
 fun-ref0<?r> record force-sendable
 	by-val
 	island-and-exclusion island-and-exclusion
@@ -411,7 +425,7 @@ fun-ref4<?r, ?p0, ?p1, ?p2, ?p3> record force-sendable
 	island-and-exclusion island-and-exclusion
 	fun act fut ?r(?p0, ?p1, ?p2, ?p3)
 
-| calling a fun-ptr is a primitive operation
+# Calling a fun-ptr is a primitive operation
 subscript ?r(a fun-ptr0 ?r) noctx builtin
 subscript ?r(a fun-ptr1<?r, ?p0>, p0 ?p0) noctx builtin
 subscript ?r(a fun-ptr2<?r, ?p0, ?p1>, p0 ?p0, p1 ?p1) noctx builtin
@@ -462,7 +476,7 @@ backtrace record
 exception record
 	by-val
 	message str
-	| TODO: accessing backtrace should be unsafe
+	## TODO: accessing backtrace should be unsafe
 	backtrace backtrace
 
 fut<?t> record force-sendable
@@ -478,7 +492,7 @@ fut-state-callbacks<?t> record mut
 	head opt fut-callback-node<?t>
 
 fut-callback-node<?t> record mut
-	| WARN: the cb will be called with whatever ctx resolves the fut, not the ctx that created it
+	# WARN: the cb will be called with whatever ctx resolves the fut, not the ctx that created it
 	cb act void(result<?t, exception>)
 	next-node opt fut-callback-node<?t>
 
@@ -492,6 +506,4 @@ atomic-bool record force-sendable
 
 lock record sendable
 	by-ref
-	| Storing this by-val to avoid needing allocations.
-	| User should prefer to store the lock by-val too, and only pass by-ref
 	is-locked by-val atomic-bool

@@ -7,23 +7,23 @@ import
 		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
 	.io.time-low-level: timestamp
 
-| TODO: use a heap, not a list
+# TODO: use a heap, not a list
 
 no-timestamp nat() noctx
 	0
 
 task record mut
 	by-val
-	| 0 for non-timed tasks
+	# 0 for non-timed tasks
 	time timestamp
 	exclusion exclusion
 	action act void()
 
 task-queue record mut
-	| TODO:PRIVATE
-	| Very first node is a sentinel
+	# TODO:PRIVATE
+	# Very first node is a sentinel
 	head mut opt task-queue-node
-	| This is allocated with max-threads capacity on init, so never needs further allocation
+	# This is allocated with max-threads capacity on init, so never needs further allocation
 	currently-running-exclusions by-val mut-list exclusion
 
 .task-queue-node record mut
@@ -36,7 +36,7 @@ empty? bool(a task-queue) noctx
 task-queue by-val task-queue(max-threads nat) unsafe noctx
 	task-queue: none, max-threads mut-list-by-val-with-capacity-from-unmanaged-memory<exclusion>
 
-| Expose construction of nodes, because it's better to do this outside of a lock
+# Expose construction of nodes, because it's better to do this outside of a lock
 task-queue-node task-queue-node(task task)
 	task-queue-node: task, none
 
@@ -49,7 +49,7 @@ pop-task-result union mut
 	task
 	no-task
 
-| Caller should call 'return-task' after running the task
+# Caller should call 'return-task' after running the task
 pop-task! pop-task-result(a task-queue, cur-time timestamp) noctx unsafe
 	exclusions = a.currently-running-exclusions ref-of-val
 	res = as<pop-task-result>: match a.head

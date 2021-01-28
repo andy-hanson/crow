@@ -30,7 +30,7 @@ sort! void(a mut-list ?t) data<?t> trusted
 
 sort! void(a mut-arr ?t) data<?t>
 	if a.size > 1
-		| Perf -- in case a is sorted already, prefer the middle element as a pivot
+		# Perf -- in case a is sorted already, prefer the middle element as a pivot
 		a swap 0, a.size / 2
 		pivot = a[0]
 		new-pivot-index = (a partition! pivot, 1, a.size - 1) - 1
@@ -38,7 +38,7 @@ sort! void(a mut-arr ?t) data<?t>
 		a[0 -> new-pivot-index] sort!
 		a[new-pivot-index + 1 -> a.size] sort!
 
-| Returns index of first value > pivot
+# Returns index of first value > pivot
 .partition! nat(a mut-arr ?t, pivot ?t, l nat, r nat) data<?t>
 	assert: l <= a.size
 	assert: r < a.size

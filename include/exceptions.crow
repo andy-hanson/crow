@@ -11,7 +11,7 @@ exception-ctx record mut
 	thrown-exception mut exception
 
 exception-ctx by-val exception-ctx() noctx unsafe
-	| Nothing on the exception-ctx initially
+	# Nothing on the exception-ctx initially
 	exception-ctx: null, exception: "", backtrace: as<arr str>: []
 
 get-exception-ctx exception-ctx() unsafe
@@ -52,7 +52,7 @@ throw ?t(e exception) trusted
 	hard-forbid: exn-ctx.jmp-buf-ptr null?
 	exn-ctx.thrown-exception := e
 	exn-ctx.jmp-buf-ptr longjmp number-to-throw
-	| Unreachable
+	# Unreachable
 	todo
 
 .number-to-throw int32()
@@ -80,18 +80,18 @@ catch-with-exception-ctx ?t(ec exception-ctx, try act ?t(), catcher act ?t(excep
 	ec.jmp-buf-ptr := store ptr-to
 	setjmp-result = ec.jmp-buf-ptr setjmp
 	if setjmp-result == 0
-		| Get here after setting the jump.
-		| If it throws, we'll go to the above branch.
+		# Get here after setting the jump.
+		# If it throws, we'll go to the above branch.
 		res = try[]
 		ec.jmp-buf-ptr := old-jmp-buf
 		ec.thrown-exception := old-thrown-exception
 		res
 	else
-		| This is what we threw in 'throw'
+		# This is what we threw in 'throw'
 		assert: setjmp-result == number-to-throw
-		| Get here if we throw inside of `try`
+		# Get here if we throw inside of `try`
 		thrown-exception = ec thrown-exception
-		| NOTE: changing thrown-exception back probably isn't really necessary
+		# NOTE: changing thrown-exception back probably isn't really necessary
 		ec.jmp-buf-ptr := old-jmp-buf
 		ec.thrown-exception := old-thrown-exception
 		catcher[thrown-exception]

@@ -9,7 +9,7 @@ sigaction record mut
 	sa-restorer any-ptr
 	sa-mask sigset-t
 
-| Not in include headers, something I added
+# Not in include headers, something I added
 signal-t alias
 	int32
 

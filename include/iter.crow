@@ -4,7 +4,7 @@ import
 	.exceptions: assert, forbid
 	.number-utils: +, incr
 
-| TODO: Depend on a spec, then move to cell.crow
+# TODO: Depend on a spec, then move to cell.crow
 get-and-incr nat(c cell nat)
 	res = c get
 	c set: res incr
@@ -16,14 +16,14 @@ cell-incr void(c cell nat)
 cell-add void(c cell nat, n nat)
 	c set: c.get + n
 
-| TODO: ALIAS
+# TODO: ALIAS
 iterator<?t> record mut
 	get-next act opt ?t()
 
 next opt ?t(i iterator ?t)
 	i.get-next[]
 
-| Iterator that can be started over from the beginning.
+# Iterator that can be started over from the beginning.
 stream<?t> record mut
 	get-iter act iterator ?t()
 
@@ -37,7 +37,7 @@ to-stream<?t, ?e> stream ?e(t ?t) iter<?t, ?e>
 	{t iter} stream
 
 iter iterator nat(r arrow<nat, nat>)
-	| TODO: should not need a type argument here
+	# TODO: should not need a type argument here
 	n = r.from cell<nat>
 	iterator: \
 		if n.get >= r.to
@@ -70,5 +70,5 @@ filter stream ?t(in stream ?t, pred act bool(?t))
 		if pred[v]
 			v some
 		else
-			| This one didn't satisfy the predicate, but keep trying until we get one or each the end
+			# This one didn't satisfy the predicate, but keep trying until we get one or each the end
 			i filter-recur pred

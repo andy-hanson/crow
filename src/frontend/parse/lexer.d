@@ -689,7 +689,10 @@ immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(
 
 	if (tryTake(lexer, '\n'))
 		return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
-	else if (tryTake(lexer, '|')) {
+	else if (tryTake(lexer, "###\n")) {
+		skipBlockComment(alloc, lexer);
+		return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
+	} else if (tryTake(lexer, '#')) {
 		skipRestOfLineAndNewline(lexer);
 		return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
 	} else if (tryTake(lexer, "region ")) {
@@ -707,6 +710,13 @@ immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(
 				? immutable IndentDelta(immutable IndentDelta.Indent())
 				: immutable IndentDelta(immutable IndentDelta.DedentOrSame(-delta));
 	}
+}
+
+void skipBlockComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	skipRestOfLineAndNewline(lexer);
+	takeIndentAmount(alloc, lexer);
+	if (!tryTake(lexer, "###\n"))
+		skipBlockComment(alloc, lexer);
 }
 
 struct StrAndIsOperator {

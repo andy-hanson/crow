@@ -29,7 +29,7 @@ is-dir? bool(path str) summon
 is-dir? bool(path c-str) summon
 	match path get-stat
 	as none
-		| raise exception -- path does not exist
+		# raise exception -- path does not exist
 		todo
 	as some s
 		(s.value.st-mode bits-and s-ifmt) == s-ifdir
@@ -51,7 +51,7 @@ path-exists? bool(path str) summon
 	path.to-c-str path-exists?
 
 get-dirent-name str(d dirent) unsafe noctx
-	| TODO: this is offsetof(d, d-name)
+	# TODO: this is offsetof(d, d-name)
 	name-offset = size-of<ino-t> wrap-add size-of<off-t> wrap-add size-of<nat16> wrap-add size-of<char>
 	name-ptr = d.as-any-ptr + name-offset
 	name-ptr.ptr-cast<char, nat8> to-str
@@ -66,22 +66,22 @@ seek-end int32()
 read-dir arr str(path str) summon
 	path.to-c-str read-dir
 
-| Returns array of filenames in the directory.
+# Returns array of filenames in the directory.
 read-dir arr str(path c-str) trusted summon
 	dirp = path opendir
-	| TODO: handle errors
+	# TODO: handle errors
 	forbid: dirp.ptr-cast-from-extern<any-ptr, dir> null?
 	res = mut-list<str>
 	dirp read-dir-recur res
 	res.move-to-arr! sort
 
 .read-dir-recur void(dirp dir, res mut-list str) unsafe summon
-	| Initial value of entry / result should not matter
+	# Initial value of entry / result should not matter
 	entry = dirent: 0, 0, 0, "\0", zero
-	| TODO: should not need a type argument here
+	# TODO: should not need a type argument here
 	result = entry cell<dirent>
 	err = dirp readdir-r entry, result
-	| TODO: handle error
+	# TODO: handle error
 	assert: err == 0
 	if result[].as-any-ptr.null? not
 		assert: result[] ref-eq? entry
@@ -91,7 +91,7 @@ read-dir arr str(path c-str) trusted summon
 		dirp read-dir-recur res
 
 read-link str(path str) summon trusted
-	| TODO: smart small and retry if necessAry
+	# TODO: smart small and retry if necessAry
 	buff = 1000 uninitialized-mut-arr<char>
 	size = path.to-c-str readlink buff.data, buff.size
 	size check-errno-if-neg-one
@@ -103,7 +103,7 @@ current-executable-path str() summon trusted
 read-file str(path str) summon
 	match path try-read-file
 	as none
-		| TODO: don't print, warn
+		# TODO: don't print, warn
 		print: "file does not exist: " ~ path
 		""
 	as some s
@@ -130,7 +130,7 @@ write-file void(path c-str, content str) summon trusted
 			if wrote-bytes == -1
 				todo
 			else
-				| didn't write all the bytes?
+				# didn't write all the bytes?
 				todo
 		err = fd close
 		if err != 0
@@ -150,23 +150,23 @@ try-read-file opt str(path c-str) summon trusted
 				todo
 		else
 			file-size = fd lseek 0, seek-end
-			| TODO: handle errors
+			# TODO: handle errors
 			forbid: file-size == -1
-			| TODO: this is just a sanity check
+			# TODO: this is just a sanity check
 			assert: file-size < 1000000000
 			if file-size == 0
 				some: ""
 			else
-				| Go back to beginning
+				# Go back to beginning
 				off = fd lseek 0, seek-set
-				| TODO: handle errors
+				# TODO: handle errors
 				assert: off == 0
 
-				| TODO: allocation can fail, then 'fd' is left open. Need finalizers
+				# TODO: allocation can fail, then 'fd' is left open. Need finalizers
 				file-size-nat = file-size.to-nat
 				res = file-size-nat uninitialized-mut-arr<char>
 				n-bytes-read = fd read res.data.ptr-cast, file-size-nat
-				| TODO: handle errors
+				# TODO: handle errors
 				forbid: n-bytes-read == -1
 				assert: n-bytes-read == file-size
 				check-posix-error: fd close
@@ -184,7 +184,7 @@ get-cwd str() summon trusted
 		b to-str
 
 get-stat opt stat-t(path c-str) summon trusted
-	| Initial value doesn't really matter
+	# Initial value doesn't really matter
 	s = empty-stat
 	err = path stat s
 	if err == 0

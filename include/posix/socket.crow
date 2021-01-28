@@ -1,3 +1,5 @@
+# Corresponds to /usr/include/x86_64-linux-gnu/bits/socket.h
+
 import
 	..bootstrap: any-ptr, int32
 	..cell: cell
@@ -5,8 +7,6 @@ import
 	.extra-types: err-t, fd-t
 	.types: socklen-t
 	.unistd: ssize-t
-
-| Corresponds to /usr/include/x86_64-linux-gnu/bits/socket.h
 
 af-unspec int32() noctx
 	0

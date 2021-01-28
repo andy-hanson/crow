@@ -21,17 +21,17 @@ uri record
 	host str
 	port nat16
 	path-and-query str
-	| Basically just ignored
+	# Basically just ignored
 	after-hash str
 
-| Returns fd of an an opened socket to uri
+# Returns fd of an an opened socket to uri
 connect-to-uri fd-t(u uri) trusted summon
 	hints = addrinfo: 0, af-unspec, sock-stream, 0, 0, null.as-ref, null, null
 	result = null cell<ptr<addrinfo>>
 	check-posix-error: u.host.to-c-str getaddrinfo u.port.to-str.to-c-str, hints.ptr-to, result
 	op-sock = result[] find-and-connect-working-socket
 	result[] freeaddrinfo
-	| TODO: handle failure
+	# TODO: handle failure
 	op-sock force
 
 .find-and-connect-working-socket opt fd-t(ap ptr addrinfo) unsafe summon
@@ -42,7 +42,7 @@ connect-to-uri fd-t(u uri) trusted summon
 		sock = socket: a.ai-family, a.ai-socktype, a.ai-protocol
 		print: "sock is " ~ sock.to-str
 		if sock == -1
-			| Ignore error and try again
+			# Ignore error and try again
 			a.ai-next find-and-connect-working-socket
 		else
 			err = sock connect a.ai-addr, a.ai-addrlen
@@ -50,7 +50,7 @@ connect-to-uri fd-t(u uri) trusted summon
 			if err == -1
 				print: "connect() failed: "
 				check-posix-error: sock close
-				| Ignore error and try again
+				# Ignore error and try again
 				a.ai-next find-and-connect-working-socket
 			else
 				assert: err == 0

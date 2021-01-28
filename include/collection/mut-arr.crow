@@ -7,9 +7,9 @@ import
 
 mut-arr<?t> record mut
 	by-val
-	| Adding a dummy field so the constructor won't conflict with mut-arr from arr
+	# Adding a dummy field so the constructor won't conflict with mut-arr from arr
 	ignore void
-	| TODO:PRIVATE
+	# TODO:PRIVATE
 	inner arr ?t
 
 mut-arr mut-arr ?t() noctx

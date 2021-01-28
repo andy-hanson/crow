@@ -42,7 +42,7 @@ old-main fut nat(port str) unsafe summon
 		print: "CHUNK: " ~ chunk.as-str
 		if clients[client-fd]
 			print: "got chunk (" ~ chunk.size.to-str ~ " bytes) on " ~ client-fd.to-str
-			| TODO: this actually does not belong here..
+			# TODO: this actually does not belong here..
 			response = ok-response
 			wrote = client-fd write response.data.ptr-cast<nat8, char>, response.size
 			if wrote == -1

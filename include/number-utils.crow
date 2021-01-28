@@ -24,7 +24,7 @@ incr int(i int)
 	forbid: i == max-int
 	i wrap-add 1
 
-| TODO: use specs for this kind of function
+# TODO: use specs for this kind of function
 decr nat(a nat)
 	a - 1
 decr int(a int)
@@ -40,7 +40,7 @@ decr int32(a int32)
 	assert: a >= b
 	a wrap-sub b
 * nat(a nat, b nat)
-	| TODO: better safety check
+	# TODO: better safety check
 	if a == 0 or: b == 0
 		0
 	else
@@ -59,19 +59,19 @@ mod nat(a nat, b nat) trusted
 	a unsafe-mod b
 
 + int(a int, b int)
-	| TODO: safety check
+	# TODO: safety check
 	a wrap-add b
 + int32(a int32, b int32)
 	a.to-int wrap-add b.to-int to-int32
 
 - int(a int, b int)
-	| TODO: safety check
+	# TODO: safety check
 	a wrap-sub b
 - int32(a int32, b int32)
 	a.to-int wrap-sub b.to-int to-int32
 
 * int(a int, b int)
-	| TODO: safety check
+	# TODO: safety check
 	a wrap-mul b
 / int(a int, b int) trusted
 	forbid: b == 0

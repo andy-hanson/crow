@@ -16,7 +16,7 @@ find-char-in-cstr c-str(a c-str, c char) unsafe noctx
 	if a[] == c
 		a
 	elif a[] == "\0"
-		| Did not find the char
+		# Did not find the char
 		todo
 	else
 		a.incr find-char-in-cstr c

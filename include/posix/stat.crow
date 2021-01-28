@@ -3,7 +3,7 @@ import
 	.c-types: u-long, u-long-long
 	.types: blkcnt-t, blksize-t, dev-t, gid-t, ino-t, mode-t, nlink-t, off-t, time-t, uid-t
 
-| based on my /usr/include/x86_64-linux-gnu/asm/stat.h `struct stat64`
+# based on my /usr/include/x86_64-linux-gnu/asm/stat.h `struct stat64`
 stat-t record mut
 	st-dev mut dev-t
 	pad0 mut nat32
@@ -32,13 +32,13 @@ empty-stat stat-t()
 	stat-t: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 s-ifmt nat32()
-	| TODO: "octal170000"
+	# TODO: "octal170000"
 	61440
 
 s-ifdir nat32()
-	| TODO: "octal40000"
+	# TODO: "octal40000"
 	16384
 
 s-ifreg nat32()
-	| TODO: "octal100000"
+	# TODO: "octal100000"
 	32768

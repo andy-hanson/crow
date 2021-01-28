@@ -11,8 +11,8 @@ import
 	.sort: a, b, sort-by-first
 
 dict<?k, ?v> record
-	| TODO: PRIVATE
-	| Keys should be in sorted order
+	# TODO: PRIVATE
+	# Keys should be in sorted order
 	ignore void
 	keys arr ?k
 	values arr ?v
@@ -38,7 +38,7 @@ empty? bool(d dict<?k, ?v>)
 	d.keys empty?
 
 subscript opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
-	| TODO: should not need to provide type arguments
+	# TODO: should not need to provide type arguments
 	subscript-recur<?k, ?v>: d.keys, d.values, 0, key
 
 .subscript-recur<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
@@ -47,7 +47,7 @@ subscript opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
 	elif key == keys[idx]
 		values[idx] some
 	else
-		| TODO: should not need to provide type arguments!
+		# TODO: should not need to provide type arguments!
 		subscript-recur<?k, ?v>: keys, values, idx.incr, key
 
 has? bool(d dict<?k, ?v>, key ?k) data<?k>
@@ -55,13 +55,13 @@ has? bool(d dict<?k, ?v>, key ?k) data<?k>
 
 map-values dict<?k, ?v-out>(d dict<?k, ?v-in>, mapper act ?v-out(?v-in)) data<?k>
 	new-values = d.values map mapper
-	| TODO: should be able to infer type arguments 
+	# TODO: should be able to infer type arguments 
 	dict<?k, ?v-out>: d.keys, new-values
 
 each void(d dict<?k, ?v>, f act void(?k, ?v)) data<?k>
 	if d.empty? not
 		f[d.keys.first, d.values.first]
-		| TODO: type arguments should be unnecessary
+		# TODO: type arguments should be unnecessary
 		d.keys.tail dict<?k, ?v> d.values.tail each f
 
 combine dict<?k, ?out>(a dict<?k, ?in-0>, b dict<?k, ?in-1>, cb act opt ?out(?k, opt ?in-0, opt ?in-1)) data<?k>

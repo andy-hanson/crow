@@ -26,14 +26,21 @@ contexts:
     - match: '(?<=[a-z0-9\-\?])<'
       scope: comment # punctuation.definition.generic.begin
       push: type_args
-    # capital letters
     - match: "[A-Z]"
       scope: invalid
-    # comment
-    - match: \|.*
+    - match: '^###\n'
       scope: comment
-    # 'region' comment
+      push: block_comment
+    - match: '#.*'
+      scope: comment
     - match: '^\s*region[^\n]*\n'
+      scope: comment
+
+  block_comment:
+    - match: '^###'
+      scope: comment
+      pop: true
+    - match: '.*'
       scope: comment
 
   type_args:

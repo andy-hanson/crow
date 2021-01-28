@@ -28,7 +28,7 @@ resolve-or-reject! void(f fut ?t, result result<?t, exception>) unsafe
 		as ok o
 			fut-state-resolved: o.value
 		as err e
-			| TODO: should work without this variable
+			# TODO: should work without this variable
 			ex = e value
 			ex
 		callbacks
@@ -40,6 +40,6 @@ resolve-or-reject! void(f fut ?t, result result<?t, exception>) unsafe
 	as none
 		void
 	as some s
-		| the fun-ref will return a fut<void>, just ignore it
+		# the fun-ref will return a fut<void>, just ignore it
 		drop: s.value.cb[value]
 		s.value.next-node call-callbacks! value

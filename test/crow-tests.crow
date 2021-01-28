@@ -71,9 +71,9 @@ spec
 body
 	res = path-to-crow spawn-and-wait-result ["print", print-kind, path], env
 	output-path = path ~ "." ~ print-kind ~ ".repr"
-	| NOTE: compiler may have both stderr and stdout!
+	# NOTE: compiler may have both stderr and stdout!
 	output-failures = if res.stdout.empty? and: res.exit-code != 0
-		| Just have a file for the err
+		# Just have a file for the err
 		[] as<arr failure>
 	else
 		path handle-output output-path, res.stdout, overwrite-output?
@@ -85,7 +85,7 @@ body
 		print-test-result: false, []
 	elif res.exit-code == 1
 		stderr-no-color = res.stderr remove-colors
-		| We should stop even if no test failure in handling the output
+		# We should stop even if no test failure in handling the output
 		print-test-result: true, handle-output: path, output-path ~ ".err", stderr-no-color, overwrite-output?
 	else
 		message = "unexpected exit code: " ~ res.exit-code.to-str
