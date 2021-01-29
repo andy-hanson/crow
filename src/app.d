@@ -227,7 +227,12 @@ immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
 
 immutable(int) help(ref immutable Command.Help a) {
 	println(a.helpText);
-	return a.isDueToCommandParseError ? 1 : 0;
+	final switch (a.kind) {
+		case Command.Help.Kind.requested:
+			return 0;
+		case Command.Help.Kind.error:
+			return 1;
+	}
 }
 
 void compileC(Alloc, PathAlloc)(

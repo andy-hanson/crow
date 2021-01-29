@@ -1,11 +1,12 @@
 module lib.cliParser;
 
+import frontend.lang : crowExtension;
 import lib.compiler : PrintFormat, PrintKind;
 import util.bools : Bool, False, True;
 import util.collection.arr : Arr, at, empty, emptyArr, first, only, size;
 import util.collection.arrUtil : slice, tail;
-import util.collection.str : Str, strEqLiteral;
-import util.opt : forceOrTodo, none, Opt, some;
+import util.collection.str : Str, strEq, strEqLiteral;
+import util.opt : force, has, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, baseName, parentStr, parseAbsoluteOrRelPath, Path, rootPath;
 import util.sym : AllSymbols, Sym;
 import util.util : todo;
@@ -14,11 +15,11 @@ import util.util : todo;
 
 @trusted Out matchCommand(Out)(
 	ref immutable Command a,
-	scope immutable(Out) delegate(ref immutable Command.Build) @safe @nogc nothrow cbBuild,
-	scope immutable(Out) delegate(ref immutable Command.Help) @safe @nogc nothrow cbHelp,
-	scope immutable(Out) delegate(ref immutable Command.Print) @safe @nogc nothrow cbPrint,
-	scope immutable(Out) delegate(ref immutable Command.Run) @safe @nogc nothrow cbRun,
-	scope immutable(Out) delegate(ref immutable Command.Test) @safe @nogc nothrow cbTest,
+	scope Out delegate(ref immutable Command.Build) @safe @nogc nothrow cbBuild,
+	scope Out delegate(ref immutable Command.Help) @safe @nogc nothrow cbHelp,
+	scope Out delegate(ref immutable Command.Print) @safe @nogc nothrow cbPrint,
+	scope Out delegate(ref immutable Command.Run) @safe @nogc nothrow cbRun,
+	scope Out delegate(ref immutable Command.Test) @safe @nogc nothrow cbTest,
 ) {
 	final switch (a.kind) {
 		case Command.Kind.build:
@@ -43,8 +44,12 @@ struct Command {
 		immutable Arr!Str cFlags;
 	}
 	struct Help {
+		enum Kind {
+			requested,
+			error,
+		}
 		immutable string helpText;
-		immutable Bool isDueToCommandParseError;
+		immutable Kind kind;
 	}
 	struct Print {
 		immutable PrintKind kind;
@@ -97,14 +102,14 @@ immutable(Command) parseCommand(Alloc, PathAlloc, SymAlloc)(
 	immutable Arr!Str args,
 ) {
 	if (size(args) == 0)
-		return immutable Command(immutable Command.Help(helpAllText, True));
+		return immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
 	else {
 		immutable Str arg0 = first(args);
 		immutable Arr!Str cmdArgs = tail(args);
 		return isHelp(arg0)
-			? immutable Command(immutable Command.Help(helpAllText, False))
+			? immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.requested))
 			: isSpecialArg(arg0, "version")
-			? immutable Command(immutable Command.Help(versionText, False))
+			? immutable Command(immutable Command.Help(versionText, Command.Help.Kind.requested))
 			: strEqLiteral(arg0, "print")
 			? parsePrintCommand(alloc, allPaths, allSymbols, cwd, cmdArgs)
 			: strEqLiteral(arg0, "build")
@@ -113,7 +118,7 @@ immutable(Command) parseCommand(Alloc, PathAlloc, SymAlloc)(
 			? parseRunCommand(alloc, allPaths, allSymbols, cwd, cmdArgs)
 			: strEqLiteral(arg0, "test")
 			? parseTestCommand(alloc, cmdArgs)
-			: immutable Command(immutable Command.Help(helpAllText, True));
+			: immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
 	}
 }
 
@@ -127,7 +132,21 @@ immutable(Bool) isHelp(immutable Str a) {
 	return isSpecialArg(a, "help");
 }
 
-immutable(ProgramDirAndMain) parseProgramDirAndMain(Alloc, PathAlloc, SymAlloc)(
+immutable(Command) useProgramDirAndMain(Alloc, PathAlloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
+	ref AllSymbols!SymAlloc allSymbols,
+	immutable Str cwd,
+	immutable Str arg,
+	scope immutable(Command) delegate(ref immutable ProgramDirAndMain) @safe pure @nogc nothrow cb,
+) {
+	immutable Opt!ProgramDirAndMain p = parseProgramDirAndMain(alloc, allPaths, allSymbols, cwd, arg);
+	return has(p)
+		? cb(force(p))
+		: immutable Command(immutable Command.Help("Invalid path", Command.Help.Kind.error));
+}
+
+immutable(Opt!ProgramDirAndMain) parseProgramDirAndMain(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
@@ -135,10 +154,16 @@ immutable(ProgramDirAndMain) parseProgramDirAndMain(Alloc, PathAlloc, SymAlloc)(
 	immutable Str arg,
 ) {
 	immutable Opt!AbsolutePath mainAbsolutePathOption = parseAbsoluteOrRelPath(allPaths, allSymbols, cwd, arg);
-	immutable AbsolutePath mainAbsolutePath = forceOrTodo(mainAbsolutePathOption);
-	immutable Str dir = parentStr(alloc, allPaths, mainAbsolutePath);
-	immutable Sym name = baseName(allPaths, mainAbsolutePath);
-	return immutable ProgramDirAndMain(dir, rootPath(allPaths, name));
+	if (!has(mainAbsolutePathOption))
+		return none!ProgramDirAndMain;
+	else {
+		immutable AbsolutePath mainAbsolutePath = force(mainAbsolutePathOption);
+		immutable Str dir = parentStr(alloc, allPaths, mainAbsolutePath);
+		immutable Sym name = baseName(allPaths, mainAbsolutePath);
+		return empty(mainAbsolutePath.extension) || strEq(mainAbsolutePath.extension, crowExtension())
+			? some(immutable ProgramDirAndMain(dir, rootPath(allPaths, name)))
+			: none!ProgramDirAndMain;
+	}
 }
 
 struct FormatAndPath {
@@ -162,10 +187,17 @@ immutable(Command) parsePrintCommand(Alloc, PathAlloc, SymAlloc)(
 			: size(args) == 4 && strEqLiteral(at(args, 1), "--format") && strEqLiteral(at(args, 2), "json")
 			? immutable FormatAndPath(PrintFormat.json, at(args, 3))
 			: todo!(immutable FormatAndPath)("Command.HelpPrint");
-		return immutable Command(Command.Print(
-			parsePrintKind(first(args)),
-			parseProgramDirAndMain(alloc, allPaths, allSymbols, cwd, formatAndPath.path),
-			formatAndPath.format));
+		return useProgramDirAndMain(
+			alloc,
+			allPaths,
+			allSymbols,
+			cwd,
+			formatAndPath.path,
+			(ref immutable ProgramDirAndMain it) =>
+				immutable Command(immutable Command.Print(
+					parsePrintKind(first(args)),
+					it,
+					formatAndPath.format)));
 	}
 }
 
@@ -191,10 +223,9 @@ immutable(Command) parseBuildCommand(Alloc, PathAlloc, SymAlloc)(
 	ref immutable Arr!Str args,
 ) {
 	return size(args) == 1 && !isHelp(args.only)
-		? immutable Command(immutable Command.Build(
-			parseProgramDirAndMain(alloc, allPaths, allSymbols, cwd, args.only),
-			emptyArr!Str))
-		: immutable Command(immutable Command.Help(helpBuildText, True));
+		? useProgramDirAndMain(alloc, allPaths, allSymbols, cwd, args.only, (ref immutable ProgramDirAndMain it) =>
+			immutable Command(immutable Command.Build(it, emptyArr!Str)))
+		: immutable Command(immutable Command.Help(helpBuildText, Command.Help.Kind.error));
 }
 
 immutable(Command) parseRunCommand(Alloc, PathAlloc, SymAlloc)(
@@ -204,32 +235,36 @@ immutable(Command) parseRunCommand(Alloc, PathAlloc, SymAlloc)(
 	immutable Str cwd,
 	immutable Arr!Str args,
 ) {
-	if (size(args) == 0 || isHelp(args.first))
-		return immutable Command(immutable Command.Help(helpRunText, False));
-	else {
-		immutable ProgramDirAndMain programDirAndMain =
-			parseProgramDirAndMain(alloc, allPaths, allSymbols, cwd, first(args));
-		immutable Arr!Str argsAfterMain = tail(args);
-		struct InterpretAndRemainingArgs {
-			immutable Bool interpret;
-			immutable Arr!Str remainingArgs;
-		}
-		immutable InterpretAndRemainingArgs ira =
-			!empty(argsAfterMain) && strEqLiteral(at(argsAfterMain, 0), "--interpret")
-				? immutable InterpretAndRemainingArgs(True, tail(argsAfterMain))
-				: immutable InterpretAndRemainingArgs(False, argsAfterMain);
-		return empty(ira.remainingArgs)
-			? immutable Command(immutable Command.Run(
-				immutable Command.Build(programDirAndMain, emptyArr!Str),
-				ira.interpret,
-				emptyArr!Str))
-			: strEqLiteral(at(ira.remainingArgs, 0), "--")
-			? immutable Command(immutable Command.Run(
-				immutable Command.Build(programDirAndMain, emptyArr!Str),
-				ira.interpret,
-				slice(ira.remainingArgs, 1)))
-			: immutable Command(immutable Command.Help(helpRunText, True));
-	}
+	return size(args) == 0 || isHelp(args.first)
+		? immutable Command(immutable Command.Help(helpRunText, Command.Help.Kind.requested))
+		: useProgramDirAndMain(
+			alloc,
+			allPaths,
+			allSymbols,
+			cwd,
+			first(args),
+			(ref immutable ProgramDirAndMain programDirAndMain) {
+				immutable Arr!Str argsAfterMain = tail(args);
+				struct InterpretAndRemainingArgs {
+					immutable Bool interpret;
+					immutable Arr!Str remainingArgs;
+				}
+				immutable InterpretAndRemainingArgs ira =
+					!empty(argsAfterMain) && strEqLiteral(at(argsAfterMain, 0), "--interpret")
+						? immutable InterpretAndRemainingArgs(True, tail(argsAfterMain))
+						: immutable InterpretAndRemainingArgs(False, argsAfterMain);
+				return empty(ira.remainingArgs)
+					? immutable Command(immutable Command.Run(
+						immutable Command.Build(programDirAndMain, emptyArr!Str),
+						ira.interpret,
+						emptyArr!Str))
+					: strEqLiteral(at(ira.remainingArgs, 0), "--")
+					? immutable Command(immutable Command.Run(
+						immutable Command.Build(programDirAndMain, emptyArr!Str),
+						ira.interpret,
+						slice(ira.remainingArgs, 1)))
+					: immutable Command(immutable Command.Help(helpRunText, Command.Help.Kind.error));
+			});
 }
 
 immutable(Command) parseTestCommand(Alloc)(ref Alloc alloc, immutable Arr!Str args) {
@@ -238,7 +273,7 @@ immutable(Command) parseTestCommand(Alloc)(ref Alloc alloc, immutable Arr!Str ar
 	else if (size(args) == 1)
 		return immutable Command(immutable Command.Test(some(first(args))));
 	else
-		return immutable Command(immutable Command.Help(helpAllText, True));
+		return immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
 }
 
 immutable string versionText =
