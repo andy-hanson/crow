@@ -29,13 +29,26 @@ file-ast(
 							prefix
 							name-range(170, as)
 							[inststruct(range(173, 184), name-range(173, log-handler))]
-							[lambda([name-range(188, logged)])])
+							[
+								lambda(
+									[name-range(188, logged)]
+									seq-ast(
+										call(subscript, name-range(199, subscript), [], [lh, logged])
+										call(subscript, name-range(212, subscript), [], [lh, logged])))])
 						seq-ast(
 							seq-ast(
-								call(infix, name-range(230, with-log-handler), [], [doubler, lambda([])])
+								call(
+									infix
+									name-range(230, with-log-handler)
+									[]
+									[
+										doubler
+										lambda([], call(infix, name-range(256, log), [], [warn, literal("Logged twice")]))])
 								call(
 									infix
 									name-range(286, with-log-handler)
 									[]
-									[lambda([name-range(276, it)]), lambda([])]))
+									[
+										lambda-line(call(infix, name-range(280, drop), [], [it]))
+										lambda([], call(infix, name-range(312, log), [], [warn, literal("Logged never")]))]))
 							call(infix, name-range(334, resolved), [], [literal(nat(0, false))]))))))])

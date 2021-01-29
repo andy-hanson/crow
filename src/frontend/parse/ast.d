@@ -175,6 +175,10 @@ struct LambdaAst {
 	immutable Ptr!ExprAst body_;
 }
 
+struct LambdaSingleLineAst {
+	immutable Ptr!ExprAst body_;
+}
+
 struct LetAst {
 	immutable NameAndRange name;
 	immutable Ptr!ExprAst initializer;
@@ -281,6 +285,7 @@ struct ExprAstKind {
 		identifier,
 		if_,
 		lambda,
+		lambdaSingleLine,
 		let,
 		literal,
 		parenthesized,
@@ -298,6 +303,7 @@ struct ExprAstKind {
 		immutable IdentifierAst identifier;
 		immutable IfAst if_;
 		immutable LambdaAst lambda;
+		immutable LambdaSingleLineAst lambdaSingleLine;
 		immutable LetAst let;
 		immutable LiteralAst literal;
 		immutable ParenthesizedAst parenthesized;
@@ -315,6 +321,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
 	@trusted immutable this(immutable IfAst a) { kind = Kind.if_; if_ = a; }
 	@trusted immutable this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
+	@trusted immutable this(immutable LambdaSingleLineAst a) { kind = Kind.lambdaSingleLine; lambdaSingleLine = a; }
 	@trusted immutable this(immutable LetAst a) { kind = Kind.let; let = a; }
 	@trusted immutable this(immutable LiteralAst a) { kind = Kind.literal; literal = a; }
 	@trusted immutable this(immutable MatchAst a) { kind = Kind.match; match_ = a; }
@@ -350,6 +357,7 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	scope T delegate(ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
 	scope T delegate(ref immutable IfAst) @safe @nogc pure nothrow cbIf,
 	scope T delegate(ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
+	scope T delegate(ref immutable LambdaSingleLineAst) @safe @nogc pure nothrow cbLambdaSingleLine,
 	scope T delegate(ref immutable LetAst) @safe @nogc pure nothrow cbLet,
 	scope T delegate(ref immutable LiteralAst) @safe @nogc pure nothrow cbLiteral,
 	scope T delegate(ref immutable MatchAst) @safe @nogc pure nothrow cbMatch,
@@ -373,6 +381,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbIf(a.if_);
 		case ExprAstKind.Kind.lambda:
 			return cbLambda(a.lambda);
+		case ExprAstKind.Kind.lambdaSingleLine:
+			return cbLambdaSingleLine(a.lambdaSingleLine);
 		case ExprAstKind.Kind.let:
 			return cbLet(a.let);
 		case ExprAstKind.Kind.literal:
@@ -1053,10 +1063,14 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 				reprExprAst(alloc, e.then),
 				reprOpt(alloc, e.else_, (ref immutable Ptr!ExprAst it) =>
 					reprExprAst(alloc, it))]),
-		(ref immutable LambdaAst a) =>
+		(ref immutable LambdaAst it) =>
 			reprRecord(alloc, "lambda", [
-				reprArr(alloc, a.params, (ref immutable LambdaAst.Param it) =>
-					reprNameAndRange(alloc, it))]),
+				reprArr(alloc, it.params, (ref immutable LambdaAst.Param it) =>
+					reprNameAndRange(alloc, it)),
+				reprExprAst(alloc, it.body_)]),
+		(ref immutable LambdaSingleLineAst it) =>
+			reprRecord(alloc, "lambda-line", [
+				reprExprAst(alloc, it.body_)]),
 		(ref immutable LetAst a) =>
 			reprRecord(alloc, "let", [
 				reprNameAndRange(alloc, a.name),

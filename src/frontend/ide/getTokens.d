@@ -19,6 +19,7 @@ import frontend.parse.ast :
 	imports,
 	ImportsOrExportsAst,
 	LambdaAst,
+	LambdaSingleLineAst,
 	LetAst,
 	LiteralAst,
 	MatchAst,
@@ -307,6 +308,9 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		(ref immutable LambdaAst it) {
 			foreach (ref immutable LambdaAst.Param param; range(it.params))
 				addLambdaAstParam(alloc, tokens, param);
+			addExprTokens(alloc, tokens, it.body_);
+		},
+		(ref immutable LambdaSingleLineAst it) {
 			addExprTokens(alloc, tokens, it.body_);
 		},
 		(ref immutable LetAst it) {

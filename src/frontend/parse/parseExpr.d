@@ -16,10 +16,10 @@ import frontend.parse.ast :
 	isCall,
 	isIdentifier,
 	LambdaAst,
+	LambdaSingleLineAst,
 	LetAst,
 	LiteralAst,
 	MatchAst,
-	matchExprAstKind,
 	NameAndRange,
 	ParenthesizedAst,
 	SeqAst,
@@ -55,8 +55,8 @@ import frontend.parse.lexer :
 import frontend.parse.parseType : tryParseTypeArgsBracketed;
 import model.parseDiag : EqLikeKind, ParseDiag;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, emptyArrWithSize, only, toArr;
-import util.collection.arrUtil : append, arrLiteral, arrWithSizeLiteral, exists, prepend;
+import util.collection.arr : ArrWithSize, empty, emptyArrWithSize, toArr;
+import util.collection.arrUtil : append, arrWithSizeLiteral, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
 import util.collection.str : CStr, Str;
 import util.memory : allocate;
@@ -73,8 +73,7 @@ import util.sym :
 	prependSet,
 	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
-	Sym,
-	symEq;
+	Sym;
 import util.util : max, todo, unreachable, verify;
 
 immutable(ExprAst) parseFunExprBody(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -537,43 +536,6 @@ immutable(OptNameOrDedent) nameOrDedentFromOptDedents(immutable Opt!uint dedents
 		: noNameOrDedent();
 }
 
-immutable(Bool) someInOwnBody(
-	ref immutable ExprAst body_,
-	scope immutable(Bool) delegate(ref immutable ExprAst) @safe @nogc pure nothrow cb,
-) {
-	// Since this is only used checking for 'it' in a braced lambda, any multi-line ast is unreachable
-	if (cb(body_))
-		return True;
-
-	immutable(Bool) recur(ref immutable ExprAst sub) {
-		return someInOwnBody(sub, cb);
-	}
-
-	return matchExprAstKind!(immutable Bool)(
-		body_.kind,
-		(ref immutable(BogusAst)) => False,
-		(ref immutable CallAst e) => exists(toArr(e.args), &recur),
-		(ref immutable CreateArrAst e) => exists(toArr(e.args), &recur),
-		(ref immutable(FunPtrAst)) => False,
-		(ref immutable(IdentifierAst)) => False,
-		(ref immutable(IfAst)) => unreachable!(immutable Bool),
-		(ref immutable(LambdaAst)) => False,
-		(ref immutable(LetAst)) => unreachable!(immutable Bool),
-		(ref immutable(LiteralAst)) => False,
-		(ref immutable(MatchAst)) => unreachable!(immutable Bool),
-		(ref immutable ParenthesizedAst it) => recur(it.inner),
-		(ref immutable(SeqAst)) => unreachable!(immutable Bool),
-		(ref immutable(ThenAst)) => unreachable!(immutable Bool),
-		(ref immutable(ThenVoidAst)) => unreachable!(immutable Bool));
-}
-
-immutable(Bool) bodyUsesIt(ref immutable ExprAst body_) {
-	return someInOwnBody(body_, (ref immutable ExprAst it) =>
-		immutable Bool(
-			isIdentifier(it.kind) &&
-			symEq(asIdentifier(it.kind).name, shortSymAlphaLiteral("it"))));
-}
-
 immutable(ExprAst) tryParseDotsAndSubscripts(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
@@ -745,7 +707,9 @@ immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
 	}
 	return takeIndentOrFail_ExprAndMaybeDedent(alloc, lexer, curIndent, () {
 		immutable ExprAndDedent bodyAndDedent = parseStatementsAndExtraDedents(alloc, lexer, curIndent + 1);
-		immutable LambdaAst lambda = LambdaAst(finishArr(alloc, parameters), allocExpr(alloc, bodyAndDedent.expr));
+		immutable LambdaAst lambda = immutable LambdaAst(
+			finishArr(alloc, parameters),
+			allocExpr(alloc, bodyAndDedent.expr));
 		return immutable ExprAndMaybeDedent(
 			immutable ExprAst(range(lexer, start), immutable ExprAstKind(lambda)),
 			some!uint(bodyAndDedent.dedents));
@@ -827,12 +791,9 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 		case '{':
 			immutable Ptr!ExprAst body_ = allocExpr(alloc, parseExprNoBlock(alloc, lexer));
 			takeOrAddDiagExpected(alloc, lexer, '}', ParseDiag.Expected.Kind.closingBrace);
-			immutable Arr!(LambdaAst.Param) params = bodyUsesIt(body_)
-				? arrLiteral!(LambdaAst.Param)(alloc, [immutable LambdaAst.Param(start, shortSymAlphaLiteral("it"))])
-				: emptyArr!(LambdaAst.Param);
 			immutable ExprAst expr = immutable ExprAst(
 				getRange(),
-				immutable ExprAstKind(immutable LambdaAst(params, body_)));
+				immutable ExprAstKind(immutable LambdaSingleLineAst(body_)));
 			return noDedent(tryParseDotsAndSubscripts(alloc, lexer, expr));
 		case '\\':
 			return isAllowBlock(allowedBlock)

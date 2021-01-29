@@ -143,6 +143,18 @@ immutable(Bool) contains(T)(
 		equals(v, value));
 }
 
+immutable(Opt!Out) findSome(Out, T)(
+	immutable Arr!T a,
+	scope immutable(Opt!Out) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+) {
+	foreach (ref immutable T x; range(a)) {
+		immutable Opt!Out o = cb(x);
+		if (has(o))
+			return o;
+	}
+	return none!Out;
+}
+
 immutable(Opt!T) find(T)(
 	immutable Arr!T a,
 	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,

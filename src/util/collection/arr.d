@@ -97,6 +97,10 @@ immutable(size_t) size(T)(const Arr!T a) {
 	return a.size_;
 }
 
+immutable(size_t) size(T)(const T[] a) {
+	return a.length;
+}
+
 immutable(Bool) sizeEq(T, U)(const Arr!T a, const Arr!U b) {
 	return immutable Bool(size(a) == size(b));
 }

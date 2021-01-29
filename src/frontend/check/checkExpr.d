@@ -80,6 +80,7 @@ import frontend.parse.ast :
 	IdentifierAst,
 	IfAst,
 	LambdaAst,
+	LambdaSingleLineAst,
 	LetAst,
 	LiteralAst,
 	MatchAst,
@@ -95,6 +96,7 @@ import frontend.parse.ast :
 import util.bools : Bool, not, True;
 import util.collection.arr :
 	Arr,
+	arrOfD,
 	at,
 	castImmutable,
 	empty,
@@ -112,6 +114,7 @@ import util.collection.arrUtil :
 	arrLiteral,
 	arrWithSizeLiteral,
 	exists,
+	findSome,
 	fillArr_mut,
 	map,
 	mapOrNone,
@@ -140,7 +143,7 @@ import util.collection.str : copyStr, Str;
 import util.memory : nu;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : FileAndRange;
+import util.sourceRange : FileAndRange, Pos;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
 import util.types : i8, i16, i32, i64, u8, u16, u32, u64;
 import util.util : todo, unreachable, verify;
@@ -691,11 +694,73 @@ immutable(CheckedExpr) checkFunPtr(Alloc)(
 	return check(alloc, ctx, expected, immutable Type(structInst), expr);
 }
 
+immutable(CheckedExpr) checkLambdaSingleLine(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable FileAndRange range,
+	ref immutable LambdaSingleLineAst ast,
+	ref Expected expected,
+) {
+	immutable Opt!Pos itPos = findIt(ast.body_);
+	return has(itPos)
+		? checkLambdaCommon(alloc, ctx, range, [immutable LambdaAst.Param(force(itPos), itSym)], ast.body_, expected)
+		: checkLambdaCommon(alloc, ctx, range, [], ast.body_, expected);
+}
+
+immutable Sym itSym = shortSymAlphaLiteral("it");
+
+immutable(Opt!Pos) findIt(ref immutable ExprAst a) {
+	// Since this is only used checking for 'it' in a braced lambda, any multi-line ast is unreachable
+	return matchExprAstKind!(immutable Opt!Pos)(
+		a.kind,
+		(ref immutable(BogusAst)) =>
+			none!Pos,
+		(ref immutable CallAst e) =>
+			findSome(toArr(e.args), (ref immutable ExprAst arg) => findIt(arg)),
+		(ref immutable CreateArrAst e) =>
+			findSome(toArr(e.args), (ref immutable ExprAst arg) => findIt(arg)),
+		(ref immutable(FunPtrAst)) =>
+			none!Pos,
+		(ref immutable IdentifierAst id) =>
+			symEq(id.name, itSym) ? some(a.range.start) : none!Pos,
+		(ref immutable(IfAst)) =>
+			unreachable!(immutable Opt!Pos),
+		(ref immutable(LambdaAst)) =>
+			none!Pos,
+		(ref immutable(LambdaSingleLineAst)) =>
+			none!Pos,
+		(ref immutable(LetAst)) =>
+			unreachable!(immutable Opt!Pos),
+		(ref immutable(LiteralAst)) =>
+			none!Pos,
+		(ref immutable(MatchAst)) =>
+			unreachable!(immutable Opt!Pos),
+		(ref immutable ParenthesizedAst it) =>
+			findIt(it.inner),
+		(ref immutable(SeqAst)) =>
+			unreachable!(immutable Opt!Pos),
+		(ref immutable(ThenAst)) =>
+			unreachable!(immutable Opt!Pos),
+		(ref immutable(ThenVoidAst)) =>
+			unreachable!(immutable Opt!Pos));
+}
+
 immutable(CheckedExpr) checkLambda(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
 	ref immutable LambdaAst ast,
+	ref Expected expected,
+) {
+	return checkLambdaCommon!Alloc(alloc, ctx, range, arrRange(ast.params), ast.body_, expected);
+}
+
+immutable(CheckedExpr) checkLambdaCommon(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable FileAndRange range,
+	scope immutable LambdaAst.Param[] paramAsts,
+	ref immutable ExprAst bodyAst,
 	ref Expected expected,
 ) {
 	immutable Opt!ExpectedLambdaType opEt = getExpectedLambdaType(alloc, ctx, range, expected);
@@ -705,19 +770,19 @@ immutable(CheckedExpr) checkLambda(Alloc)(
 	immutable ExpectedLambdaType et = force(opEt);
 	immutable FunKind kind = et.kind;
 
-	if (!sizeEq(ast.params, et.paramTypes)) {
-		addDiag2(alloc, ctx, range, immutable Diag(Diag.LambdaWrongNumberParams(et.funStructInst, size(ast.params))));
+	if (!sizeEq(arrOfD(paramAsts), et.paramTypes)) {
+		addDiag2(alloc, ctx, range, immutable Diag(Diag.LambdaWrongNumberParams(et.funStructInst, size(paramAsts))));
 		return bogus(expected, range);
 	}
 
-	immutable Arr!Param params = checkFunOrSendFunParamsForLambda(alloc, ctx, ast.params, et.paramTypes);
+	immutable Arr!Param params = checkFunOrSendFunParamsForLambda(alloc, ctx, arrOfD(paramAsts), et.paramTypes);
 	LambdaInfo info = LambdaInfo(kind, params);
 	Expected returnTypeInferrer = copyWithNewExpectedType(expected, et.nonInstantiatedPossiblyFutReturnType);
 
 	immutable Ptr!Expr body_ = withLambda(alloc, ctx, info, () =>
 		// Note: checking the body of the lambda may fill in candidate type args
 		// if the expected return type contains candidate's type params
-		allocExpr(alloc, checkExpr(alloc, ctx, ast.body_, returnTypeInferrer)));
+		allocExpr(alloc, checkExpr(alloc, ctx, bodyAst, returnTypeInferrer)));
 	immutable Arr!(Ptr!ClosureField) closureFields = moveToArr(alloc, info.closureFields);
 
 	final switch (kind) {
@@ -942,6 +1007,8 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			checkIf(alloc, ctx, range, a, expected),
 		(ref immutable LambdaAst a) =>
 			checkLambda(alloc, ctx, range, a, expected),
+		(ref immutable LambdaSingleLineAst a) =>
+			checkLambdaSingleLine(alloc, ctx, range, a, expected),
 		(ref immutable LetAst a) =>
 			checkLet(alloc, ctx, range, a, expected),
 		(ref immutable LiteralAst a) =>
