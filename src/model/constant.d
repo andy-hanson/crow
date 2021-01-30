@@ -5,7 +5,6 @@ module model.constant;
 import util.bools : Bool, True;
 import util.collection.arrUtil : eachCorresponds;
 import util.ptr : Ptr;
-import util.types : u8;
 import util.util : verify;
 
 // WARN: The type of a constant is implicit (given by context).
@@ -36,7 +35,7 @@ struct Constant {
 		immutable Constant[] args;
 	}
 	struct Union {
-		immutable u8 memberIndex;
+		immutable ubyte memberIndex;
 		immutable Ptr!Constant arg;
 	}
 	struct Void {}

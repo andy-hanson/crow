@@ -32,7 +32,6 @@ import util.path : AbsolutePath, AllPaths, PathAndStorageKind, pathToStr;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths;
 import util.sym : Sym;
-import util.types : u8;
 import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic, writeStr;
 import util.writerUtils : writeRangeWithinFile, writePos;
 
@@ -225,8 +224,8 @@ struct Diag {
 	}
 	struct WrongNumberTypeArgsForStruct {
 		immutable StructOrAlias decl;
-		immutable u8 nExpectedTypeArgs;
-		immutable u8 nActualTypeArgs;
+		immutable ubyte nExpectedTypeArgs;
+		immutable ubyte nActualTypeArgs;
 	}
 
 	private:

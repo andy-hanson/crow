@@ -25,7 +25,6 @@ import util.memory : allocate, nu;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
-import util.types : u8;
 import util.util : verify;
 
 immutable LowType boolType = immutable LowType(PrimitiveType.bool_);
@@ -67,7 +66,7 @@ immutable(LowExpr) genDrop(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref immutable LowExpr a,
-	immutable u8 localIndex,
+	immutable ubyte localIndex,
 ) {
 	// TODO: less hacky way?
 	return immutable LowExpr(
@@ -172,7 +171,7 @@ immutable(LowExpr) genCreateUnion(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowType.Union union_,
-	immutable u8 memberIndex,
+	immutable ubyte memberIndex,
 	immutable LowExpr member,
 ) {
 	return immutable LowExpr(
@@ -301,7 +300,7 @@ immutable(LowExpr) recordFieldGet(Alloc)(
 	ref immutable FileAndRange range,
 	ref immutable LowExpr target,
 	immutable LowType fieldType,
-	immutable u8 fieldIndex,
+	immutable ubyte fieldIndex,
 ) {
 	return immutable LowExpr(fieldType, range, immutable LowExprKind(
 		immutable LowExprKind.RecordFieldGet(
@@ -341,7 +340,7 @@ immutable(LowExpr) genVoid(ref immutable FileAndRange source) {
 immutable(Ptr!LowLocal) genLocal(Alloc)(
 	ref Alloc alloc,
 	immutable Sym name,
-	immutable u8 index,
+	immutable ubyte index,
 	immutable LowType type,
 ) {
 	return nu!LowLocal(alloc, immutable LowLocalSource(immutable LowLocalSource.Generated(name, index)), type);

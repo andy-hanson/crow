@@ -51,7 +51,7 @@ import util.opt : none, some;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral;
-import util.types : safeSizeTToU8, u8;
+import util.types : safeSizeTToU8;
 import util.util : unreachable;
 
 immutable(LowFun) generateCompareFun(Alloc)(
@@ -334,7 +334,7 @@ immutable(LowFunExprBody) genCompareRecord(Alloc)(
 			return accum;
 		else {
 			// Generate the comparisons in reverse -- though the first field is the to actually be compared first
-			immutable u8 fieldIndex = safeSizeTToU8(size(fields) - 1);
+			immutable ubyte fieldIndex = safeSizeTToU8(size(fields) - 1);
 			immutable Ptr!LowField field = ptrAt(fields, fieldIndex);
 			immutable LowExpr compareThisField =
 				compareOneField(alloc, range, comparisonTypes, compareFuns, field.type, fieldIndex, a, b);
@@ -353,7 +353,7 @@ immutable(LowExpr) compareOneField(Alloc)(
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const CompareFuns compareFuns,
 	immutable LowType fieldType,
-	immutable u8 fieldIndex,
+	immutable ubyte fieldIndex,
 	ref immutable LowExpr a,
 	ref immutable LowExpr b,
 ) {

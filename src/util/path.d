@@ -12,7 +12,7 @@ import util.opt : has, flatMapOption, force, forceOrTodo, mapOption, none, Opt, 
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : AllSymbols, eachCharInSym, getSymFromAlphaIdentifier, Sym, symSize, tryGetSymFromStr;
-import util.types : u8, safeSizeTToU16;
+import util.types : safeSizeTToU16;
 import util.util : todo, verify;
 
 struct AllPaths(Alloc) {
@@ -85,11 +85,11 @@ immutable(Path) childPath(Alloc)(ref AllPaths!Alloc allPaths, immutable Path par
 
 struct RelPath {
 	private:
-	immutable u8 nParents_;
+	immutable ubyte nParents_;
 	immutable Path path_;
 }
 
-immutable(u8) nParents(ref immutable RelPath a) {
+immutable(ubyte) nParents(ref immutable RelPath a) {
 	return a.nParents_;
 }
 immutable(Path) path(ref immutable RelPath a) {
@@ -109,7 +109,7 @@ immutable(Opt!Path) resolvePath(Alloc)(
 			? resolvePath(
 				allPaths,
 				parent(allPaths, force(path)),
-				immutable RelPath(cast(u8) (relPath.nParents_ - 1), relPath.path_))
+				immutable RelPath(cast(ubyte) (relPath.nParents_ - 1), relPath.path_))
 			: none!Path;
 }
 
@@ -334,13 +334,13 @@ private immutable(Opt!RootAndPath) parseAbsoluteOrRelPathWithoutExtension(Alloc,
 private immutable(string) dropParents(Alloc)(
 	ref const AllPaths!Alloc allPaths,
 	ref immutable string path,
-	immutable u8 nParents,
+	immutable ubyte nParents,
 ) {
 	if (nParents == 0)
 		return path;
 	else {
 		immutable Opt!string p = pathParent(path);
-		return dropParents(allPaths, forceOrTodo(p), cast(u8) (nParents - 1));
+		return dropParents(allPaths, forceOrTodo(p), cast(ubyte) (nParents - 1));
 	}
 }
 

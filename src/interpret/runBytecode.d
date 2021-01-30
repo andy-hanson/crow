@@ -71,12 +71,8 @@ import util.types :
 	Nat32,
 	Nat64,
 	safeIntFromNat64,
-	safeSizeTFromI32,
 	safeSizeTFromU64,
-	u8,
-	u16,
-	u32,
-	u64,
+	safeU32FromI32,
 	zero;
 import util.util : min, todo, unreachable, verify;
 import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, writeStatic;
@@ -105,7 +101,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 
 	push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
 	// These need to be CStrs
-	push(interpreter.dataStack, immutable Nat64(cast(immutable u64) begin(allArgs)));
+	push(interpreter.dataStack, immutable Nat64(cast(immutable ulong) begin(allArgs)));
 	for (;;) {
 		final switch (step(dbg, tempAlloc, allPaths, interpreter)) {
 			case StepResult.continue_:
@@ -128,7 +124,7 @@ enum StepResult {
 }
 
 alias DataStack = GlobalAllocatedStack!(Nat64, 1024 * 4);
-private alias ReturnStack = GlobalAllocatedStack!(immutable(u8)*, 1024);
+private alias ReturnStack = GlobalAllocatedStack!(immutable(ubyte)*, 1024);
 // Gives start stack position of each function
 private alias StackStartStack = GlobalAllocatedStack!(Nat16, 1024);
 
@@ -161,7 +157,7 @@ private struct InterpreterRestore {
 	// This is the stack sizes and byte code index to be restored by longjmp
 	immutable ByteCodeIndex nextByteCodeIndex;
 	immutable Nat32 dataStackSize;
-	immutable u8*[] restoreReturnStack;
+	immutable ubyte*[] restoreReturnStack;
 	immutable Nat16[] restoreStackStartStack;
 }
 
@@ -205,7 +201,7 @@ private void showStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpr
 
 private @trusted void showReturnStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpreter!Extern a) {
 	writeStatic(writer, "call stack:");
-	foreach (immutable u8* ptr; asTempArr(a.returnStack)) {
+	foreach (immutable ubyte* ptr; asTempArr(a.returnStack)) {
 		writeChar(writer, ' ');
 		writeFunNameAtByteCodePtr(writer, a, ptr);
 	}
@@ -243,7 +239,7 @@ private void writeFunNameAtIndex(Alloc, Extern)(
 private void writeFunNameAtByteCodePtr(Alloc, Extern)(
 	ref Writer!Alloc writer,
 	ref const Interpreter!Extern interpreter,
-	immutable u8* ptr,
+	immutable ubyte* ptr,
 ) {
 	writeFunNameAtIndex(writer, interpreter, byteCodeIndexOfPtr(interpreter, ptr));
 }
@@ -257,7 +253,7 @@ private immutable(ByteCodeSource) byteCodeSourceAtIndex(Extern)(
 
 private immutable(ByteCodeSource) byteCodeSourceAtByteCodePtr(Extern)(
 	ref const Interpreter!Extern a,
-	immutable u8* ptr,
+	immutable ubyte* ptr,
 ) {
 	return byteCodeSourceAtIndex(a, byteCodeIndexOfPtr(a, ptr));
 }
@@ -270,7 +266,10 @@ private void setNextByteCodeIndex(Extern)(ref Interpreter!Extern a, immutable By
 	setReaderPtr(a.reader, ptrAt(a.byteCode.byteCode, index.index.raw()).rawPtr());
 }
 
-pure @trusted immutable(ByteCodeIndex) byteCodeIndexOfPtr(Extern)(ref const Interpreter!Extern a, immutable u8* ptr) {
+pure @trusted immutable(ByteCodeIndex) byteCodeIndexOfPtr(Extern)(
+	ref const Interpreter!Extern a,
+	immutable ubyte* ptr,
+) {
 	return immutable ByteCodeIndex((immutable Nat64(ptr - begin(a.byteCode.byteCode))).to32());
 }
 
@@ -404,7 +403,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 private:
 
 void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
-	push(dataStack, immutable Nat64(cast(immutable u64) stackRef(dataStack, offset.offset)));
+	push(dataStack, immutable Nat64(cast(immutable ulong) stackRef(dataStack, offset.offset)));
 }
 
 @trusted void read(TempAlloc, Extern)(
@@ -413,7 +412,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	immutable Nat16 offset,
 	immutable Nat16 size,
 ) {
-	immutable u8* ptr = cast(immutable u8*) pop(a.dataStack).raw();
+	immutable ubyte* ptr = cast(immutable ubyte*) pop(a.dataStack).raw();
 	checkPtr(tempAlloc, a, ptr, offset, size);
 	if (size < immutable Nat16(8)) { //TODO: just have 2 different ops then
 		push(a.dataStack, readPartialBytes(ptr + offset.raw(), size.raw()));
@@ -428,11 +427,11 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 @system void checkPtr(TempAlloc, Extern)(
 	ref TempAlloc tempAlloc,
 	ref const Interpreter!Extern a,
-	const u8* ptrWithoutOffset,
+	const ubyte* ptrWithoutOffset,
 	immutable Nat16 offset,
 	immutable Nat16 size,
 ) {
-	const u8* ptr = ptrWithoutOffset + offset.raw();
+	const ubyte* ptr = ptrWithoutOffset + offset.raw();
 	const PtrRange ptrRange = const PtrRange(ptr, ptr + size.raw());
 	if (!contains(stackPtrRange(a.dataStack), ptrRange)
 		&& !a.extern_.hasMallocedPtr(ptrRange)
@@ -467,7 +466,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 ) {
 	if (size < immutable Nat16(8)) { //TODO: just have 2 different ops then
 		immutable Nat64 value = pop(a.dataStack);
-		u8* ptr = cast(u8*) pop(a.dataStack).raw();
+		ubyte* ptr = cast(ubyte*) pop(a.dataStack).raw();
 		checkPtr(tempAlloc, a, ptr, offset, size);
 		writePartialBytes(ptr + offset.raw(), value.raw(), size.raw());
 	} else {
@@ -479,7 +478,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 		checkPtr(
 			tempAlloc,
 			a,
-			cast(const u8*) ptrWithoutOffset,
+			cast(const ubyte*) ptrWithoutOffset,
 			offsetWords * immutable Nat16(8),
 			sizeWords * immutable Nat16(8));
 		Nat64* ptr = ptrWithoutOffset + offsetWords.raw();
@@ -489,7 +488,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	}
 }
 
-@trusted immutable(Nat64) readPartialBytes(immutable u8* ptr, immutable ushort size) {
+@trusted immutable(Nat64) readPartialBytes(immutable ubyte* ptr, immutable ushort size) {
 	//TODO: Just have separate ops for separate sizes
 	switch (size) {
 		case 1:
@@ -503,17 +502,17 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	}
 }
 
-@trusted void writePartialBytes(u8* ptr, immutable u64 value, immutable ushort size) {
+@trusted void writePartialBytes(ubyte* ptr, immutable ulong value, immutable ushort size) {
 	//TODO: Just have separate ops for separate sizes
 	switch (size) {
 		case 1:
-			*(cast(u8*) ptr) = cast(immutable u8) value;
+			*(cast(ubyte*) ptr) = cast(immutable ubyte) value;
 			break;
 		case 2:
-			*(cast(u16*) ptr) = cast(immutable u16) value;
+			*(cast(ushort*) ptr) = cast(immutable ushort) value;
 			break;
 		case 4:
-			*(cast(u32*) ptr) = cast(immutable u32) value;
+			*(cast(uint*) ptr) = cast(immutable uint) value;
 			break;
 		default:
 			unreachable!void();
@@ -523,8 +522,8 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 
 //TODO:MOVE?
 @trusted immutable(Nat64) getBytes(immutable Nat64 a, immutable Nat8 byteOffset, immutable Nat8 sizeBytes) {
-	verify(byteOffset + sizeBytes <= immutable Nat8(u64.sizeof));
-	return readPartialBytes((cast(immutable u8*) &a) + byteOffset.raw(), sizeBytes.raw());
+	verify(byteOffset + sizeBytes <= immutable Nat8(ulong.sizeof));
+	return readPartialBytes((cast(immutable ubyte*) &a) + byteOffset.raw(), sizeBytes.raw());
 }
 
 void call(Extern)(ref Interpreter!Extern a, immutable ByteCodeIndex address, immutable Nat8 parametersSize) {
@@ -547,17 +546,17 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 		case ExternOp.backtrace:
 			immutable int size = cast(int) pop(a.dataStack).to32().raw();
 			void** array = cast(void**) pop(a.dataStack).raw();
-			immutable size_t res = backtrace(tempAlloc, a, array, safeSizeTFromI32(size));
+			immutable size_t res = backtrace(tempAlloc, a, array, safeU32FromI32(size));
 			verify(res <= int.max);
 			push(a.dataStack, immutable Nat64(res));
 			break;
 		case ExternOp.clockGetTime:
 			Ptr!TimeSpec timespecPtr = Ptr!TimeSpec(cast(TimeSpec*) pop(a.dataStack).raw());
 			immutable int clockId = i32OfU64Bits(pop(a.dataStack).raw());
-			push(a.dataStack, immutable Nat64(cast(immutable u64) a.extern_.clockGetTime(clockId, timespecPtr)));
+			push(a.dataStack, immutable Nat64(cast(immutable ulong) a.extern_.clockGetTime(clockId, timespecPtr)));
 			break;
 		case ExternOp.free:
-			a.extern_.free(cast(u8*) pop(a.dataStack).raw());
+			a.extern_.free(cast(ubyte*) pop(a.dataStack).raw());
 			break;
 		case ExternOp.getNProcs:
 			push(a.dataStack, immutable Nat64(a.extern_.getNProcs()));
@@ -570,7 +569,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			break;
 		case ExternOp.malloc:
 			immutable ulong nBytes = safeSizeTFromU64(pop(a.dataStack).raw());
-			push(a.dataStack, immutable Nat64(cast(immutable u64) a.extern_.malloc(nBytes)));
+			push(a.dataStack, immutable Nat64(cast(immutable ulong) a.extern_.malloc(nBytes)));
 			break;
 		case ExternOp.memcpy:
 		case ExternOp.memmove:
@@ -598,7 +597,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			break;
 		case ExternOp.setjmp:
 			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack).raw();
-			checkPtr(tempAlloc, a, cast(const u8*) jmpBufPtr, immutable Nat16(0), immutable Nat16(JmpBufTag.sizeof));
+			checkPtr(tempAlloc, a, cast(const ubyte*) jmpBufPtr, immutable Nat16(0), immutable Nat16(JmpBufTag.sizeof));
 			overwriteMemory(jmpBufPtr, createInterpreterRestore(a));
 			push(a.dataStack, immutable Nat64(0));
 			break;
@@ -616,7 +615,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 	ref TempAlloc tempAlloc,
 	ref Interpreter!Extern a,
 	void** res,
-	immutable size_t size,
+	immutable uint size,
 ) {
 	checkPtr(
 		tempAlloc,
@@ -652,17 +651,17 @@ pure: // TODO: many more are pure actually..
 alias JmpBufTag = immutable InterpreterRestore*;
 
 @trusted immutable(Nat64) pack(immutable Nat64[] values, immutable Nat8[] sizes) {
-	u64 res;
-	u8* bytePtr = cast(u8*) &res;
+	ulong res;
+	ubyte* bytePtr = cast(ubyte*) &res;
 	Nat64 totalSize = immutable Nat64(0);
 	zipSystem!(Nat64, Nat8)(values, sizes, (ref immutable Nat64 value, ref immutable Nat8 size) {
 		//TODO: use a 'size' type
 		if (size == immutable Nat8(1))
 			*bytePtr = value.to8().raw();
 		else if (size == immutable Nat8(2))
-			*(cast(u16*) bytePtr) = value.to16().raw();
+			*(cast(ushort*) bytePtr) = value.to16().raw();
 		else if (size == immutable Nat8(4))
-			*(cast(u32*) bytePtr) = value.to32().raw();
+			*(cast(uint*) bytePtr) = value.to32().raw();
 		else
 			unreachable!void();
 		bytePtr += size.raw();

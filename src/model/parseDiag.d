@@ -8,7 +8,6 @@ import util.path : PathAndStorageKind, PathAndRange, RelPath;
 import util.ptr : Ptr;
 import util.sourceRange : RangeWithinFile;
 import util.sym : Sym;
-import util.types : u32;
 
 enum EqLikeKind {
 	equals,
@@ -50,8 +49,8 @@ struct ParseDiag {
 		immutable Opt!PathAndRange importedFrom;
 	}
 	struct IndentNotDivisible {
-		immutable u32 nSpaces;
-		immutable u32 nSpacesPerIndent;
+		immutable uint nSpaces;
+		immutable uint nSpacesPerIndent;
 	}
 	struct IndentTooMuch {}
 	struct IndentWrongCharacter {

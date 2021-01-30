@@ -36,7 +36,7 @@ import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.dbg : dbgLog = log;
 import util.ptr : Ptr;
 import util.util : divRoundUp, repeat, verify;
-import util.types : catU4U4, decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64, zero;
+import util.types : catU4U4, decr, incr, Int16, Nat8, Nat16, Nat32, Nat64, zero;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
 struct ByteCodeWriter(Alloc) {
@@ -66,7 +66,7 @@ struct StackEntries {
 	immutable ByteCodeIndex mainIndex,
 	immutable FileToFuns fileToFuns,
 ) {
-	immutable u8[] bytes = finishByteWriter(writer.byteWriter);
+	immutable ubyte[] bytes = finishByteWriter(writer.byteWriter);
 	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources =
 		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(writer.alloc, writer.sources));
 	return immutable ByteCode(bytes, sources, fileToFuns, text, mainIndex);
@@ -281,7 +281,7 @@ void writePushEmptySpace(Debug, Alloc)(
 	ref immutable ByteCodeSource source,
 	immutable Nat16 nSpaces,
 ) {
-	foreach (immutable u16 i; 0..nSpaces.raw())
+	foreach (immutable ushort i; 0..nSpaces.raw())
 		writePushConstant(dbg, writer, source, immutable Nat8(0));
 }
 
@@ -480,7 +480,7 @@ immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(
 	pushU32(writer, source, nCases);
 	writer.nextStackEntry -= 1;
 	immutable ByteCodeIndex addresses = nextByteCodeIndex(writer);
-	foreach (immutable u32 i; 0..nCases.raw()) {
+	foreach (immutable uint i; 0..nCases.raw()) {
 		static assert(ByteCodeOffset.sizeof == Nat16.sizeof);
 		pushU16(writer, source, immutable Nat16(0));
 	}
@@ -619,17 +619,17 @@ void pushU8(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource
 
 void pushU16(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat16 value) {
 	bytePushU16(writer.byteWriter, value);
-	repeat(u16.sizeof, () { pushSource(writer, source); });
+	repeat(ushort.sizeof, () { pushSource(writer, source); });
 }
 
 void pushU32(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat32 value) {
 	bytePushU32(writer.byteWriter, value);
-	repeat(u32.sizeof, () { pushSource(writer, source); });
+	repeat(uint.sizeof, () { pushSource(writer, source); });
 }
 
 void pushU64(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source, immutable Nat64 value) {
 	bytePushU64(writer.byteWriter, value);
-	repeat(u64.sizeof, () { pushSource(writer, source); });
+	repeat(ulong.sizeof, () { pushSource(writer, source); });
 }
 
 private void pushSource(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {

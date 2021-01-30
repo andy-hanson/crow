@@ -28,7 +28,7 @@ import util.sym :
 	symForOperator,
 	symSize,
 	writeSym;
-import util.types : u8, safeSizeTToU32;
+import util.types : safeSizeTToU32;
 import util.util : todo, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
@@ -1258,7 +1258,7 @@ struct Expr {
 
 	struct ImplicitConvertToUnion {
 		immutable Ptr!StructInst unionType;
-		immutable u8 memberIndex;
+		immutable ubyte memberIndex;
 		immutable Ptr!Expr inner;
 	}
 

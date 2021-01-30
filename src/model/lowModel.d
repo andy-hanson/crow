@@ -23,7 +23,6 @@ import util.opt : Opt;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : u8;
 import util.util : verify;
 
 struct LowExternPtrType {
@@ -597,7 +596,7 @@ struct LowExprKind {
 	}
 
 	struct ConvertToUnion {
-		immutable u8 memberIndex;
+		immutable ubyte memberIndex;
 		immutable Ptr!LowExpr arg;
 	}
 
@@ -638,7 +637,7 @@ struct LowExprKind {
 		@safe @nogc pure nothrow:
 
 		immutable Ptr!LowExpr target;
-		immutable u8 fieldIndex;
+		immutable ubyte fieldIndex;
 
 		//TODO:NOT INSTANCE
 		immutable(Bool) targetIsPointer() immutable {
@@ -657,7 +656,7 @@ struct LowExprKind {
 		@safe @nogc pure nothrow:
 
 		immutable Ptr!LowExpr target;
-		immutable u8 fieldIndex;
+		immutable ubyte fieldIndex;
 		immutable Ptr!LowExpr value;
 
 		//TODO:NOT INSTANCE

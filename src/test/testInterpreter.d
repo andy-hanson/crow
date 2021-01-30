@@ -72,7 +72,7 @@ import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.ptr : ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex, Pos;
 import util.sym : shortSymAlphaLiteral;
-import util.types : Nat8, Nat16, Nat32, Nat64, u8, u16, u32, u64;
+import util.types : Nat8, Nat16, Nat32, Nat64;
 import util.util : repeatImpure, verify;
 
 void testInterpreter(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
@@ -477,34 +477,34 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	stepAndExpect(test, interpreter, [
 		immutable Nat64(1),
 		immutable Nat64(2),
-		immutable Nat64(cast(immutable u64) begin(interpreter.dataStack))]);
+		immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack))]);
 	stepAndExpect(test, interpreter, [
 		immutable Nat64(1),
 		immutable Nat64(2),
-		immutable Nat64(cast(immutable u64) begin(interpreter.dataStack)),
-		immutable Nat64(cast(immutable u64) (begin(interpreter.dataStack) + 1)),
+		immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack)),
+		immutable Nat64(cast(immutable ulong) (begin(interpreter.dataStack) + 1)),
 	]);
 	stepAndExpect(test, interpreter, [
 		immutable Nat64(1),
 		immutable Nat64(2),
-		immutable Nat64(cast(immutable u64) begin(interpreter.dataStack)),
-		immutable Nat64(cast(immutable u64) (begin(interpreter.dataStack) + 1)),
+		immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack)),
+		immutable Nat64(cast(immutable ulong) (begin(interpreter.dataStack) + 1)),
 		immutable Nat64(4),
 	]);
 	stepAndExpect(test, interpreter, [
 		immutable Nat64(1),
 		immutable Nat64(2),
-		immutable Nat64(cast(immutable u64) begin(interpreter.dataStack)),
-		immutable Nat64(cast(immutable u64) (cast(immutable u32*) begin(interpreter.dataStack) + 3)),
+		immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack)),
+		immutable Nat64(cast(immutable ulong) (cast(immutable uint*) begin(interpreter.dataStack) + 3)),
 	]);
 }
 
 @trusted void testReadSubword(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	struct S {
-		u32 a;
-		u16 b;
-		u8 c;
-		u8 d;
+		uint a;
+		ushort b;
+		ubyte c;
+		ubyte d;
 	}
 	union U {
 		S s;
@@ -535,7 +535,7 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	immutable Nat64 value,
 ) {
 	stepAndExpect(test, interpreter, [value]);
-	immutable Nat64 ptr = immutable Nat64(cast(immutable u64) begin(interpreter.dataStack));
+	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack));
 	stepAndExpect(test, interpreter, [value, ptr]);
 	stepAndExpect(test, interpreter, [value, immutable Nat64(0x01234567)]);
 	stepAndExpect(test, interpreter, [value, immutable Nat64(0x01234567), ptr]);
@@ -568,7 +568,7 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	ref Interpreter!(FakeExtern!Alloc) interpreter,
 ) {
 	stepNAndExpect(test, interpreter, 3, [immutable Nat64(1), immutable Nat64(2), immutable Nat64(3)]);
-	immutable Nat64 ptr = immutable Nat64(cast(immutable u64) begin(interpreter.dataStack));
+	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack));
 	stepAndExpect(test, interpreter, [immutable Nat64(1), immutable Nat64(2), immutable Nat64(3), ptr]);
 	stepAndExpect(test, interpreter, [
 		immutable Nat64(1),
@@ -605,10 +605,10 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	ref Interpreter!(FakeExtern!Alloc) interpreter,
 ) {
 	struct S {
-		u32 a;
-		u16 b;
-		u8 c;
-		u8 d;
+		uint a;
+		ushort b;
+		ubyte c;
+		ubyte d;
 	}
 	union U {
 		S s;
@@ -621,7 +621,7 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	}
 
 	stepAndExpect(test, interpreter, [immutable Nat64(0)]);
-	immutable Nat64 ptr = immutable Nat64(cast(immutable u64) begin(interpreter.dataStack));
+	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack));
 	stepAndExpect(test, interpreter, [immutable Nat64(0), ptr]);
 	stepAndExpect(test, interpreter, [immutable Nat64(0), ptr, immutable Nat64(0x0123456789abcdef)]);
 	stepAndExpect(test, interpreter, [toNat(immutable S(0x89abcdef, 0, 0, 0))]);
@@ -662,7 +662,7 @@ void testStackRef(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	ref Interpreter!(FakeExtern!Alloc) interpreter,
 ) {
 	stepNAndExpect(test, interpreter, 3, [immutable Nat64(0), immutable Nat64(0), immutable Nat64(0)]);
-	immutable Nat64 ptr = immutable Nat64(cast(immutable u64) begin(interpreter.dataStack));
+	immutable Nat64 ptr = immutable Nat64(cast(immutable ulong) begin(interpreter.dataStack));
 	stepAndExpect(test, interpreter, [immutable Nat64(0), immutable Nat64(0), immutable Nat64(0), ptr]);
 	stepNAndExpect(test, interpreter, 2, [
 		immutable Nat64(0),
@@ -693,7 +693,7 @@ void stepAndExpect(Debug, Alloc, Extern)(
 	stepNAndExpect(test, interpreter, 1, expected);
 }
 
-void verifyStackEntry(Alloc)(ref ByteCodeWriter!Alloc writer, immutable u16 n) {
+void verifyStackEntry(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ushort n) {
 	verify(getNextStackEntry(writer) == immutable StackEntry(immutable Nat16(n)));
 }
 

@@ -87,7 +87,7 @@ import util.sym :
 	shortSymAlphaLiteralValue,
 	Sym,
 	symEq;
-import util.types : abs, i64OfU64Bits, u8;
+import util.types : abs, i64OfU64Bits;
 import util.util : drop, todo, unreachable, verify;
 import util.writer :
 	finishWriter,
@@ -1568,7 +1568,7 @@ void writeRecordFieldRef(Alloc)(
 	ref const FunBodyCtx ctx,
 	immutable Bool targetIsPointer,
 	immutable LowType.Record record,
-	immutable u8 fieldIndex,
+	immutable ubyte fieldIndex,
 ) {
 	writeStatic(writer, targetIsPointer ? "->" : ".");
 	writeMangledName(writer, name(at(fullIndexDictGet(ctx.ctx.program.allRecords, record).fields, fieldIndex)));

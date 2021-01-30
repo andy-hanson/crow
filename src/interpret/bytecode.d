@@ -9,7 +9,7 @@ import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.str : NulTerminatedStr, strLiteral, strOfNulTerminatedStr;
 import util.repr : Repr, reprArr, reprHex, reprInt, reprNat, reprRecord, reprStr, reprSym;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8, zero;
+import util.types : Int16, Nat8, Nat16, Nat32, Nat64, zero;
 import util.sourceRange : FileIndex, Pos;
 import util.util : verify;
 
@@ -250,14 +250,14 @@ struct ByteCodeSource {
 struct ByteCode {
 	@safe @nogc pure nothrow:
 
-	immutable u8[] byteCode;
+	immutable ubyte[] byteCode;
 	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources; // parallel to byteCode
 	immutable FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
 	immutable ubyte[] text;
 	immutable ByteCodeIndex main;
 
 	immutable this(
-		immutable u8[] bc,
+		immutable ubyte[] bc,
 		immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) s,
 		immutable FileToFuns ff,
 		immutable ubyte[] t,
@@ -538,7 +538,7 @@ struct ByteCodeOffset {
 
 immutable Nat16 stackEntrySize = immutable Nat16(8);
 
-enum ExternOp : u8 {
+enum ExternOp : ubyte {
 	backtrace,
 	clockGetTime,
 	free,
@@ -561,7 +561,7 @@ struct TimeSpec {
 	long tv_nsec;
 }
 
-enum FnOp : u8 {
+enum FnOp : ubyte {
 	addFloat64,
 	bitsNotNat64,
 	bitwiseAnd,

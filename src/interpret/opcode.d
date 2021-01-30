@@ -2,13 +2,11 @@ module interpret.opcode;
 
 @safe @nogc pure nothrow:
 
-import util.types : u8;
-
 // Implementation detail of bytecodeReader and bytecodeWriter
 // Use one of those instead of using these directly.
 // An Operation may map to multiple OpCodes to make the encoding more efficient.
 
-enum OpCode : u8 {
+enum OpCode : ubyte {
 	// reserve small numbers since they can appear by accident
 	reserved0,
 	reserved1,

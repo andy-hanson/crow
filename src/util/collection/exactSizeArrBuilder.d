@@ -4,7 +4,6 @@ module util.collection.exactSizeArrBuilder;
 
 import util.collection.arr : arrOfRange_mut;
 import util.memory : initMemory_mut;
-import util.types : u8, u16, u32, u64;
 import util.util : verify;
 
 //TODO:MOVE
@@ -30,29 +29,29 @@ immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T 
 	a.cur++;
 }
 
-@trusted void add16(ref ExactSizeArrBuilder!ubyte a, immutable u16 value) {
+@trusted void add16(ref ExactSizeArrBuilder!ubyte a, immutable ushort value) {
 	verify(a.cur + 2 <= a.end);
-	u16* ptr = cast(u16*) a.cur;
+	ushort* ptr = cast(ushort*) a.cur;
 	*ptr = value;
-	a.cur = cast(u8*) (ptr + 1);
+	a.cur = cast(ubyte*) (ptr + 1);
 }
 
-@trusted void add32(ref ExactSizeArrBuilder!ubyte a, immutable u32 value) {
+@trusted void add32(ref ExactSizeArrBuilder!ubyte a, immutable uint value) {
 	verify(a.cur + 4 <= a.end);
-	u32* ptr = cast(u32*) a.cur;
+	uint* ptr = cast(uint*) a.cur;
 	*ptr = value;
-	a.cur = cast(u8*) (ptr + 1);
+	a.cur = cast(ubyte*) (ptr + 1);
 }
 
-@trusted void add64(ref ExactSizeArrBuilder!ubyte a, immutable u64 value) {
+@trusted void add64(ref ExactSizeArrBuilder!ubyte a, immutable ulong value) {
 	verify(a.cur + 8 <= a.end);
-	u64* ptr = cast(u64*) a.cur;
+	ulong* ptr = cast(ulong*) a.cur;
 	*ptr = value;
-	a.cur = cast(u8*) (ptr + 1);
+	a.cur = cast(ubyte*) (ptr + 1);
 }
 
 @trusted void add64TextPtr(ref ExactSizeArrBuilder!ubyte a, immutable size_t textIndex) {
-	add64(a, cast(immutable u64) (a.begin + textIndex));
+	add64(a, cast(immutable ulong) (a.begin + textIndex));
 }
 
 @trusted T[] finish(T)(ref ExactSizeArrBuilder!T a) {

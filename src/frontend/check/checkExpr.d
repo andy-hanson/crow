@@ -142,7 +142,6 @@ import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileAndRange, Pos;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
-import util.types : i8, i16, i32, i64, u8, u16, u32, u64;
 import util.util : todo, unreachable, verify;
 
 immutable(Ptr!Expr) checkFunctionBody(Alloc)(
@@ -531,13 +530,13 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 				return asFloat(cast(immutable double) it.value);
 			else {
 				immutable(Opt!IntRange) intRange = ptrEquals(expectedStruct, integrals.int8)
-					? some(immutable IntRange(i8.min, i8.max))
+					? some(immutable IntRange(byte.min, byte.max))
 					: ptrEquals(expectedStruct, integrals.int16)
-					? some(immutable IntRange(i16.min, i16.max))
+					? some(immutable IntRange(short.min, short.max))
 					: ptrEquals(expectedStruct, integrals.int32)
-					? some(immutable IntRange(i32.min, i32.max))
+					? some(immutable IntRange(int.min, int.max))
 					: ptrEquals(expectedStruct, integrals.int64)
-					? some(immutable IntRange(i64.min, i64.max))
+					? some(immutable IntRange(long.min, long.max))
 					: none!IntRange;
 				immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
 				if (has(intRange)) {
@@ -556,21 +555,21 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 				return asFloat(cast(immutable double) it.value);
 			else {
 				immutable(Opt!ulong) max = ptrEquals(expectedStruct, integrals.nat8)
-					? some!ulong(u8.max)
+					? some!ulong(ubyte.max)
 					: ptrEquals(expectedStruct, integrals.nat16)
-					? some!ulong(u16.max)
+					? some!ulong(ushort.max)
 					: ptrEquals(expectedStruct, integrals.nat32)
-					? some!ulong(u32.max)
+					? some!ulong(uint.max)
 					: ptrEquals(expectedStruct, integrals.nat64)
-					? some(u64.max)
+					? some(ulong.max)
 					: ptrEquals(expectedStruct, integrals.int8)
-					? some!ulong(i8.max)
+					? some!ulong(byte.max)
 					: ptrEquals(expectedStruct, integrals.int16)
-					? some!ulong(i16.max)
+					? some!ulong(short.max)
 					: ptrEquals(expectedStruct, integrals.int32)
-					? some!ulong(i32.max)
+					? some!ulong(int.max)
 					: ptrEquals(expectedStruct, integrals.int64)
-					? some!ulong(i64.max)
+					? some!ulong(long.max)
 					: none!ulong;
 				immutable Constant constant = immutable Constant(immutable Constant.Integral(it.value));
 				if (has(max)) {

@@ -4,18 +4,18 @@ module util.collection.byteReader;
 
 import util.collection.arr : end;
 import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr;
-import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8;
+import util.types : Int16, Nat8, Nat16, Nat32, Nat64;
 
 struct ByteReader {
 	private:
-	immutable(u8)* ptr;
+	immutable(ubyte)* ptr;
 }
 
-immutable(u8*) getPtr(ref const ByteReader reader) {
+immutable(ubyte*) getPtr(ref const ByteReader reader) {
 	return reader.ptr;
 }
 
-void setPtr(ref ByteReader reader, immutable(u8)* ptr) {
+void setPtr(ref ByteReader reader, immutable(ubyte)* ptr) {
 	reader.ptr = ptr;
 }
 
@@ -26,7 +26,7 @@ void setPtr(ref ByteReader reader, immutable(u8)* ptr) {
 @trusted immutable(Int16) readInt16(ref ByteReader reader) {
 	immutable Int16* ptr = cast(immutable Int16*) reader.ptr;
 	immutable Int16 res = *ptr;
-	reader.ptr = cast(immutable u8*) (ptr + 1);
+	reader.ptr = cast(immutable ubyte*) (ptr + 1);
 	return res;
 }
 
@@ -39,21 +39,21 @@ void setPtr(ref ByteReader reader, immutable(u8)* ptr) {
 @trusted immutable(Nat16) readU16(ref ByteReader reader) {
 	immutable Nat16* ptr = cast(immutable Nat16*) reader.ptr;
 	immutable Nat16 res = *ptr;
-	reader.ptr = cast(immutable u8*) (ptr + 1);
+	reader.ptr = cast(immutable ubyte*) (ptr + 1);
 	return res;
 }
 
 @trusted immutable(Nat32) readU32(ref ByteReader reader) {
 	immutable Nat32* ptr = cast(immutable Nat32*) reader.ptr;
 	immutable Nat32 res = *ptr;
-	reader.ptr = cast(immutable u8*) (ptr + 1);
+	reader.ptr = cast(immutable ubyte*) (ptr + 1);
 	return res;
 }
 
 @trusted immutable(Nat64) readU64(ref ByteReader reader) {
 	immutable Nat64* ptr = cast(immutable Nat64*) reader.ptr;
 	immutable Nat64 res = *ptr;
-	reader.ptr = cast(immutable u8*) (ptr + 1);
+	reader.ptr = cast(immutable ubyte*) (ptr + 1);
 	return res;
 }
 
@@ -70,6 +70,6 @@ void setPtr(ref ByteReader reader, immutable(u8)* ptr) {
 @trusted immutable(NulTerminatedStr) readNulTerminatedStr(ref ByteReader reader) {
 	immutable char* begin = cast(immutable char*) reader.ptr;
 	immutable NulTerminatedStr res = nulTerminatedStrOfCStr(begin);
-	setPtr(reader, cast(immutable u8*) end(res.str));
+	setPtr(reader, cast(immutable ubyte*) end(res.str));
 	return res;
 }

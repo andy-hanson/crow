@@ -4,7 +4,7 @@ module util.collection.byteWriter;
 
 import util.collection.mutArr : moveToArr, MutArr, mutArrPtrAt, mutArrSize, push, pushAll;
 import util.ptr : Ptr;
-import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8;
+import util.types : Int16, Nat8, Nat16, Nat32, Nat64;
 import util.util : verify;
 
 // NOTE: When this writes a u16/u32/u64, it is written in platform-dependent order.
@@ -12,7 +12,7 @@ import util.util : verify;
 
 struct ByteWriter(Alloc) {
 	Ptr!Alloc alloc;
-	MutArr!(immutable u8) bytes;
+	MutArr!(immutable ubyte) bytes;
 }
 
 ByteWriter!Alloc newByteWriter(Alloc)(Ptr!Alloc alloc) {
@@ -23,7 +23,7 @@ immutable(size_t) nextByteIndex(Alloc)(ref const ByteWriter!Alloc writer) {
 	return mutArrSize(writer.bytes);
 }
 
-immutable(u8[]) finishByteWriter(Alloc)(ref ByteWriter!Alloc writer) {
+immutable(ubyte[]) finishByteWriter(Alloc)(ref ByteWriter!Alloc writer) {
 	return moveToArr(writer.alloc, writer.bytes);
 }
 
@@ -65,8 +65,8 @@ private:
 	pushAll(writer.alloc, writer.bytes, asBytes!T(&value));
 }
 
-@system immutable(u8[]) asBytes(T)(immutable T* value) {
-	return (cast(immutable u8*) value)[0..T.sizeof];
+@system immutable(ubyte[]) asBytes(T)(immutable T* value) {
+	return (cast(immutable ubyte*) value)[0..T.sizeof];
 }
 
 @trusted void writeBytes(T, Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutable T value) {

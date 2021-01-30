@@ -11,7 +11,7 @@ import util.collection.globalAllocatedStack : asTempArr;
 import util.path : AllPaths;
 import util.ptr : Ptr;
 import util.sym : AllSymbols;
-import util.types : Nat64, u8;
+import util.types : Nat64;
 import util.util : verify;
 import util.writer : finishWriter, writeChar, writeNat, Writer, writeStatic;
 
@@ -57,19 +57,19 @@ void expectReturnStack(Debug, Alloc, Extern)(
 	ref const Interpreter!Extern interpreter,
 	scope immutable ByteCodeIndex[] expected,
 ) {
-	immutable u8*[] stack = asTempArr(interpreter.returnStack);
+	immutable ubyte*[] stack = asTempArr(interpreter.returnStack);
 	immutable Bool eq = immutable Bool(
 		sizeEq(stack, expected) &&
-		eachCorresponds!(immutable(u8)*, ByteCodeIndex)(
+		eachCorresponds!(immutable(ubyte)*, ByteCodeIndex)(
 			stack,
 			expected,
-			(ref immutable u8* a, ref immutable ByteCodeIndex b) =>
+			(ref immutable ubyte* a, ref immutable ByteCodeIndex b) =>
 				immutable Bool(byteCodeIndexOfPtr(interpreter, a) == b)));
 	if (!eq) {
 		debug {
 			Writer!Alloc writer = test.writer();
 			writeStatic(writer, "expected:\nreturn:");
-			foreach (immutable u8* ptr; stack) {
+			foreach (immutable ubyte* ptr; stack) {
 				writeChar(writer, ' ');
 				writeNat(writer, byteCodeIndexOfPtr(interpreter, ptr).index.raw());
 			}

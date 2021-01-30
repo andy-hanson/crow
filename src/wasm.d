@@ -15,7 +15,7 @@ import lib.server :
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.bools : Bool, False;
 import util.collection.arr : size;
-import util.collection.str : CStr, string, strToCStr;
+import util.collection.str : CStr, strToCStr;
 import util.path : StorageKind;
 import util.ptr : ptrTrustMe_mut;
 import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;

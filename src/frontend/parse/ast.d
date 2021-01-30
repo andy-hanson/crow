@@ -26,7 +26,7 @@ import util.repr :
 	reprSym;
 import util.sourceRange : Pos, reprRangeWithinFile, rangeOfStartAndName, RangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symSize;
-import util.types : safeSizeTToU32, u8;
+import util.types : safeSizeTToU32;
 import util.util : verify;
 
 struct NameAndRange {
@@ -722,7 +722,7 @@ struct TestAst {
 struct ImportAst {
 	immutable RangeWithinFile range;
 	// Not using RelPath here because if nDots == 0, it's not a relative path
-	immutable u8 nDots;
+	immutable ubyte nDots;
 	immutable Path path;
 	immutable Opt!(Sym[]) names;
 }

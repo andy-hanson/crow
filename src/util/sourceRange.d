@@ -7,23 +7,23 @@ import util.collection.fullIndexDict : FullIndexDict;
 import util.path : PathAndStorageKind;
 import util.repr : Repr, reprNat, reprRecord;
 import util.sym : Sym, symSize;
-import util.types : safeU32ToU16, safeSizeTToU32, u16, u32;
+import util.types : safeU32ToU16, safeSizeTToU32;
 
-alias Pos = u32;
+alias Pos = uint;
 
 alias FilePaths = FullIndexDict!(FileIndex, PathAndStorageKind);
 
 struct FileIndex {
-	immutable u16 index;
+	immutable ushort index;
 
-	static immutable FileIndex none = FileIndex(u16.max);
+	static immutable FileIndex none = FileIndex(ushort.max);
 }
 
 struct RangeWithinFile {
 	immutable Pos start;
 	immutable Pos end;
 
-	static immutable RangeWithinFile max = immutable RangeWithinFile(immutable Pos(u32.max), immutable Pos(u32.max));
+	static immutable RangeWithinFile max = immutable RangeWithinFile(immutable Pos(uint.max), immutable Pos(uint.max));
 	static immutable RangeWithinFile empty = immutable RangeWithinFile(immutable Pos(0), immutable Pos(0));
 }
 static assert(RangeWithinFile.sizeof == 8);
@@ -49,7 +49,7 @@ struct FileAndRange {
 	@safe @nogc pure nothrow:
 
 	immutable FileIndex fileIndex;
-	immutable u16 size;
+	immutable ushort size;
 	immutable Pos start;
 
 	immutable this(immutable FileIndex fi, immutable RangeWithinFile r) {

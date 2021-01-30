@@ -11,7 +11,6 @@ import util.collection.str : CStr, strEqCStr, strEqLiteral, strLiteral, strOfCSt
 import util.comparison : Comparison;
 import util.opt : has, Opt, force, none, some;
 import util.ptr : Ptr, ptrTrustMe_mut;
-import util.types : u64;
 import util.util : unreachable, verify;
 import util.writer : finishWriter, writeChar, writeStatic, Writer;
 
@@ -37,7 +36,7 @@ immutable(Bool) isAlphaIdentifierContinue(immutable char c) {
 }
 
 struct Sym {
-	immutable u64 value;
+	immutable ulong value;
 }
 
 struct AllSymbols(Alloc) {
@@ -247,11 +246,11 @@ immutable(Sym) shortSymAlphaLiteral(immutable string name) {
 	return Sym(packAlphaIdentifier(strLiteral(name)));
 }
 
-immutable(u64) shortSymAlphaLiteralValue(immutable string name) {
+immutable(ulong) shortSymAlphaLiteralValue(immutable string name) {
 	return shortSymAlphaLiteral(name).value;
 }
 
-immutable(u64) operatorSymValue(immutable Operator a) {
+immutable(ulong) operatorSymValue(immutable Operator a) {
 	return symForOperator(a).value;
 }
 
@@ -309,24 +308,24 @@ immutable(Bool) canPackAlphaChar5(immutable char c) {
 		('0' <= c && c <= '3'));
 }
 
-immutable(u64) packAlphaChar5(immutable char c) {
+immutable(ulong) packAlphaChar5(immutable char c) {
 	// 0 means no character, so start at 1
 	return 'a' <= c && c <= 'z' ? 1 + c - 'a' :
 		c == '-' ? 1 + 26 :
 		'0' <= c && c <= '3' ? 1 + 26 + 1 + c - '0' :
-		unreachable!u64;
+		unreachable!ulong;
 }
 
-immutable(u64) packAlphaChar6(immutable char c) {
+immutable(ulong) packAlphaChar6(immutable char c) {
 	return 'a' <= c && c <= 'z' ? 1 + c - 'a' :
 		c == '-' ? 1 + 26 :
 		'0' <= c && c <= '9' ? 1 + 26 + 1 + c - '0' :
 		c == '?' ? 1 + 26 + 1 + 10 :
 		c == '!' ? 1 + 26 + 1 + 10 + 1 :
-		unreachable!u64;
+		unreachable!ulong;
 }
 
-immutable(char) unpackAlphaChar(immutable u64 n) {
+immutable(char) unpackAlphaChar(immutable ulong n) {
 	verify(n != 0);
 	return n < 1 + 26 ? cast(char) ('a' + (n - 1)) :
 		n == 1 + 26 ? '-' :
@@ -349,9 +348,9 @@ immutable(char) unpackAlphaChar(immutable u64 n) {
 //	If alpha: we store a pointer to a nul-terminated string.
 
 // Bit to be set when the sym is short
-immutable u64 shortAlphaSymMarker = 0x8000000000000000;
+immutable ulong shortAlphaSymMarker = 0x8000000000000000;
 // shortAlphaSymMarker is not set, we'll be looking at an operator if these bits are set.
-immutable u64 operatorBits = 0x7fff000000000000;
+immutable ulong operatorBits = 0x7fff000000000000;
 
 immutable size_t alphaIdentifierMaxChars = 12;
 
@@ -367,7 +366,7 @@ immutable(Bool) canPackAlphaIdentifier(immutable string str) {
 	}
 }
 
-immutable u64 setPrefix =
+immutable ulong setPrefix =
 	(packAlphaChar5('-') << (5 * 3)) |
 	(packAlphaChar5('t') << (5 * 2)) |
 	(packAlphaChar5('e') << (5 * 1)) |
@@ -375,22 +374,22 @@ immutable u64 setPrefix =
 
 immutable(Sym) prefixAlphaIdentifierWithSet(immutable Sym a, immutable size_t symSize) {
 	verify(symSize != 0);
-	immutable u64 inputSizeBits = symSize == 1
+	immutable ulong inputSizeBits = symSize == 1
 		? 2 + 6
 		: 2 + 2 * 6 + (symSize - 2) * 5;
 	// If prepended to a symbol of size 1, the '-' should take up 6 bits.
-	immutable u64 prefixSizeBits = symSize == 1 ? 6 + 5 * 3 : 5 * 4;
-	immutable u64 prefixBits = setPrefix << (64 - inputSizeBits - prefixSizeBits);
+	immutable ulong prefixSizeBits = symSize == 1 ? 6 + 5 * 3 : 5 * 4;
+	immutable ulong prefixBits = setPrefix << (64 - inputSizeBits - prefixSizeBits);
 	return immutable Sym(a.value | prefixBits);
 }
 
-immutable(u64) packAlphaIdentifier(immutable string str) {
+immutable(ulong) packAlphaIdentifier(immutable string str) {
 	verify(canPackAlphaIdentifier(str));
 
-	u64 res = 0;
+	ulong res = 0;
 	foreach (immutable size_t i; 0..12) {
 		immutable Bool is6Bit = i < 2;
-		immutable u64 value = () {
+		immutable ulong value = () {
 			if (i < size(str)) {
 				immutable char c = at(str, size(str) - 1 - i);
 				return is6Bit ? packAlphaChar6(c) : packAlphaChar5(c);
@@ -409,7 +408,7 @@ void unpackShortAlphaIdentifier(
 	scope void delegate(immutable char) @safe @nogc pure nothrow cb,
 ) {
 	verify(isShortAlphaSym(sym));
-	u64 p = sym.value;
+	ulong p = sym.value;
 	foreach (immutable size_t i; 0..10) {
 		immutable size_t c = p & 0b11111;
 		if (c != 0)
@@ -449,7 +448,7 @@ immutable(CStr) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, scope re
 
 immutable(Sym) getSymFromLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, scope ref immutable string str) {
 	immutable CStr cstr = getOrAddLongStr(allSymbols, str);
-	immutable Sym res = immutable Sym(cast(immutable u64) cstr);
+	immutable Sym res = immutable Sym(cast(immutable ulong) cstr);
 	verify(isLongAlphaSym(res));
 	return res;
 }
@@ -464,6 +463,6 @@ void assertSym(immutable Sym sym, immutable string str) {
 	verify(idx == size(str));
 }
 
-immutable(Bool) bitsOverlap(immutable u64 a, immutable u64 b) {
+immutable(Bool) bitsOverlap(immutable ulong a, immutable ulong b) {
 	return Bool((a & b) != 0);
 }

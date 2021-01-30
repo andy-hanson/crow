@@ -67,7 +67,6 @@ import util.path : AllPaths, childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : AllSymbols, shortSymAlphaLiteral, shortSymAlphaLiteralValue, Sym, symEq;
-import util.types : u8, u32;
 import util.util : todo, unreachable, verify;
 
 struct FileAstAndParseDiagnostics {
@@ -138,7 +137,7 @@ struct NamesAndDedent {
 }
 
 struct NDotsAndPath {
-	immutable u8 nDots;
+	immutable ubyte nDots;
 	immutable Path path;
 }
 
@@ -147,7 +146,7 @@ immutable(NDotsAndPath) parseImportPath(Alloc, PathAlloc, SymAlloc)(
 	ref AllPaths!PathAlloc allPaths,
 	ref Lexer!SymAlloc lexer,
 ) {
-	u8 nDots = 0;
+	ubyte nDots = 0;
 	while (tryTake(lexer, '.')) {
 		verify(nDots < 255);
 		nDots++;
@@ -345,7 +344,7 @@ immutable(SigAstAndMaybeDedent) parseSigAfterNameAndSpace(Alloc, SymAlloc)(
 immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable u32 curIndent,
+	immutable uint curIndent,
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable Sym sigName = takeName(alloc, lexer);

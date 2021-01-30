@@ -7,7 +7,7 @@ import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
 import test.testUtil : expectDataStack, Test;
 import util.collection.globalAllocatedStack : clearStack, pushAll;
-import util.types : float64, i8, i16, i32, i64, Nat64, u8, u16, u32, u64, u64OfFloat64Bits;
+import util.types : Nat64, u64OfFloat64Bits;
 import util.util : verify,verifyEq;
 
 void testApplyFn(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
@@ -55,10 +55,10 @@ void testApplyFn(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	verify(u64OfI32Bits(-1) == immutable Nat64(0x00000000ffffffff));
 
 	testFn(test, [u64OfI32Bits(-1), u64OfI32Bits(1)], FnOp.lessInt32, [immutable Nat64(1)]);
-	testFn(test, [u64OfI32Bits(i32.max), u64OfI32Bits(1)], FnOp.lessInt32, [immutable Nat64(0)]);
+	testFn(test, [u64OfI32Bits(int.max), u64OfI32Bits(1)], FnOp.lessInt32, [immutable Nat64(0)]);
 
 	testFn(test, [u64OfI64Bits(-1), u64OfI64Bits(1)], FnOp.lessInt64, [immutable Nat64(1)]);
-	testFn(test, [u64OfI64Bits(i64.max), u64OfI64Bits(1)], FnOp.lessInt64, [immutable Nat64(0)]);
+	testFn(test, [u64OfI64Bits(long.max), u64OfI64Bits(1)], FnOp.lessInt64, [immutable Nat64(0)]);
 
 	testFn(test, [immutable Nat64(1), immutable Nat64(3)], FnOp.lessNat, [immutable Nat64(1)]);
 	testFn(test, [immutable Nat64(1), one], FnOp.lessNat, [immutable Nat64(0)]);
@@ -71,7 +71,7 @@ void testApplyFn(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 
 	testFn(test, [u64OfFloat64Bits(1.5), u64OfFloat64Bits(2.6)], FnOp.subFloat64, [u64OfFloat64Bits(-1.1)]);
 
-	testFn(test, [u64OfFloat64Bits(-float64.infinity)], FnOp.truncateToInt64FromFloat64, [u64OfI64Bits(i64.min)]);
+	testFn(test, [u64OfFloat64Bits(-double.infinity)], FnOp.truncateToInt64FromFloat64, [u64OfI64Bits(long.min)]);
 	testFn(test, [u64OfFloat64Bits(-9.0)], FnOp.truncateToInt64FromFloat64, [u64OfI64Bits(-9)]);
 
 	testFn(test, [u64OfFloat64Bits(9.0), u64OfFloat64Bits(5.0)], FnOp.unsafeDivFloat64, [u64OfFloat64Bits(1.8)]);
@@ -100,8 +100,8 @@ private:
 @trusted void testCompareExchangeStrong(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	bool b0 = false;
 	bool b1 = false;
-	immutable Nat64 b0Ptr = immutable Nat64(cast(immutable u64) &b0);
-	immutable Nat64 b1Ptr = immutable Nat64(cast(immutable u64) &b1);
+	immutable Nat64 b0Ptr = immutable Nat64(cast(immutable ulong) &b0);
+	immutable Nat64 b1Ptr = immutable Nat64(cast(immutable ulong) &b1);
 	testFn(test, [b0Ptr, b1Ptr, immutable Nat64(1)], FnOp.compareExchangeStrongBool, [immutable Nat64(1)]);
 	verifyEq(b0, true);
 	verifyEq(b1, false);
@@ -114,20 +114,20 @@ private:
 	verifyEq(b1, true);
 }
 
-immutable(Nat64) u64OfI8Bits(immutable i8 a) {
-	return immutable Nat64(cast(u64) (cast(u8) a));
+immutable(Nat64) u64OfI8Bits(immutable byte a) {
+	return immutable Nat64(cast(ulong) (cast(ubyte) a));
 }
 
-immutable(Nat64) u64OfI16Bits(immutable i16 a) {
-	return immutable Nat64(cast(u64) (cast(u16) a));
+immutable(Nat64) u64OfI16Bits(immutable short a) {
+	return immutable Nat64(cast(ulong) (cast(ushort) a));
 }
 
-immutable(Nat64) u64OfI32Bits(immutable i32 a) {
-	return immutable Nat64(cast(u64) (cast(u32) a));
+immutable(Nat64) u64OfI32Bits(immutable int a) {
+	return immutable Nat64(cast(ulong) (cast(uint) a));
 }
 
-immutable(Nat64) u64OfI64Bits(immutable i64 a) {
-	return immutable Nat64(cast(u64) a);
+immutable(Nat64) u64OfI64Bits(immutable long a) {
+	return immutable Nat64(cast(ulong) a);
 }
 
 void testFn(Debug, Alloc)(

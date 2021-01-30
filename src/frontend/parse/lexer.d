@@ -22,8 +22,8 @@ import util.sym :
 	shortSymAlphaLiteral,
 	shortSymAlphaLiteralValue,
 	Sym;
-import util.types : i32, i64, u32, u64, safeI32FromU32, safeSizeTToU32;
-import util.util : todo, unreachable, verify;
+import util.types : safeI32FromU32, safeSizeTToU32;
+import util.util : drop, todo, unreachable, verify;
 
 private enum IndentKind {
 	tabs,
@@ -207,7 +207,7 @@ immutable(Bool) takeIndentOrDiagTopLevelAfterNewline(Alloc, SymAlloc)(ref Alloc 
 immutable(T) takeIndentOrFailGeneric(T, Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable u32 curIndent,
+	immutable uint curIndent,
 	scope immutable(T) delegate() @safe @nogc pure nothrow cbIndent,
 	scope immutable(T) delegate(immutable RangeWithinFile, immutable uint) @safe @nogc pure nothrow cbFail,
 ) {
@@ -231,7 +231,7 @@ immutable(T) takeIndentOrFailGeneric(T, Alloc, SymAlloc)(
 private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable u32 curIndent,
+	immutable uint curIndent,
 ) {
 	if (*lexer.ptr != '\n') {
 		//TODO: not always expecting indent..
@@ -274,7 +274,7 @@ immutable(NewlineOrIndent) tryTakeIndentAfterNewline_topLevel(Alloc, SymAlloc)(
 immutable(uint) takeNewlineOrDedentAmount(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable u32 curIndent,
+	immutable uint curIndent,
 ) {
 	// Must be at the end of a line
 	if (!takeOrAddDiagExpected(alloc, lexer, '\n', ParseDiag.Expected.Kind.endOfLine))
@@ -425,7 +425,7 @@ public @trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable Opt!Sign sign,
 ) {
-	immutable u64 base = tryTake(lexer, "0x") ? 16 : 10;
+	immutable ulong base = tryTake(lexer, "0x") ? 16 : 10;
 	immutable LiteralAst.Nat n = takeNat(lexer, base);
 	if (*lexer.ptr == '.' && isDigit(*(lexer.ptr + 1))) {
 		lexer.ptr++;
@@ -433,11 +433,11 @@ public @trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
 	} else if (has(sign))
 		final switch (force(sign)) {
 			case Sign.plus:
-				return immutable LiteralAst(immutable LiteralAst.Int(n.value, immutable Bool(n.value > i64.max)));
+				return immutable LiteralAst(immutable LiteralAst.Int(n.value, immutable Bool(n.value > long.max)));
 			case Sign.minus:
 				return immutable LiteralAst(immutable LiteralAst.Int(
 					-n.value,
-					immutable Bool(n.value > (cast(u64) i64.max) + 1)));
+					immutable Bool(n.value > (cast(ulong) long.max) + 1)));
 		}
 	else
 		return immutable LiteralAst(n);
@@ -447,7 +447,7 @@ public @trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable Sign sign,
 	ref immutable LiteralAst.Nat natPart,
-	immutable u64 base,
+	immutable ulong base,
 ) {
 	// TODO: improve accuracy
 	const char *cur = lexer.ptr;
@@ -494,12 +494,12 @@ immutable(ulong) getDivisor(immutable ulong acc, immutable ulong a, immutable ul
 		return immutable LiteralAst.Nat(value, overflow);
 }
 
-immutable(u64) charToNat(immutable char c) {
+immutable(ulong) charToNat(immutable char c) {
 	return '0' <= c && c <= '9'
 		? c - '0'
 		: 'a' <= c && c <= 'f'
 		? 10 + (c - 'a')
-		: u64.max;
+		: ulong.max;
 }
 
 @trusted immutable(string) takeOperatorRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
@@ -556,7 +556,10 @@ immutable(size_t) toHexDigit(immutable char c) {
 		return todo!size_t("parse diagnostic -- bad hex digit");
 }
 
-public @trusted immutable(string) takeStringLiteralAfterQuote(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
+public @trusted immutable(string) takeStringLiteralAfterQuote(Alloc, SymAlloc)(
+	ref Lexer!SymAlloc lexer,
+	ref Alloc alloc,
+) {
 	immutable CStr begin = lexer.ptr;
 	size_t nEscapedCharacters = 0;
 	// First get the max size
@@ -627,13 +630,13 @@ public @trusted immutable(string) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexe
 }
 
 // Called after the newline
-@trusted u32 takeIndentAmount(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+@trusted uint takeIndentAmount(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable CStr begin = lexer.ptr;
 	if (lexer.indentKind == IndentKind.tabs) {
 		while (*lexer.ptr == '\t') lexer.ptr++;
 		if (*lexer.ptr == ' ')
 			addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(True)));
-		immutable u32 res = (lexer.ptr - begin).safeSizeTToU32;
+		immutable uint res = (lexer.ptr - begin).safeSizeTToU32;
 		return res;
 	} else {
 		immutable Pos start = curPos(lexer);
@@ -641,9 +644,9 @@ public @trusted immutable(string) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexe
 			lexer.ptr++;
 		if (*lexer.ptr == '\t')
 			addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(False)));
-		immutable u32 nSpaces = (lexer.ptr - begin).safeSizeTToU32;
-		immutable u32 nSpacesPerIndent = lexer.indentKind == IndentKind.spaces2 ? 2 : 4;
-		immutable u32 res = nSpaces / nSpacesPerIndent;
+		immutable uint nSpaces = (lexer.ptr - begin).safeSizeTToU32;
+		immutable uint nSpacesPerIndent = lexer.indentKind == IndentKind.spaces2 ? 2 : 4;
+		immutable uint res = nSpaces / nSpacesPerIndent;
 		if (res * nSpacesPerIndent != nSpaces)
 			addDiag(alloc, lexer, range(lexer, start), immutable ParseDiag(
 				immutable ParseDiag.IndentNotDivisible(nSpaces, nSpacesPerIndent)));
@@ -693,10 +696,10 @@ struct IndentDelta {
 immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable u32 curIndent,
+	immutable uint curIndent,
 ) {
 	// comment / region counts as a blank line no matter its indent level.
-	immutable u32 newIndent = takeIndentAmount(alloc, lexer);
+	immutable uint newIndent = takeIndentAmount(alloc, lexer);
 
 	if (tryTake(lexer, '\n'))
 		return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
@@ -711,7 +714,7 @@ immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(
 		return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
 	} else {
 		// If we got here, we're looking at a non-empty line (or EOF)
-		immutable i32 delta = safeI32FromU32(newIndent) - safeI32FromU32(curIndent);
+		immutable int delta = safeI32FromU32(newIndent) - safeI32FromU32(curIndent);
 		if (delta > 1) {
 			addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.IndentTooMuch()));
 			skipRestOfLineAndNewline(lexer);
@@ -725,7 +728,7 @@ immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(
 
 void skipBlockComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	skipRestOfLineAndNewline(lexer);
-	takeIndentAmount(alloc, lexer);
+	drop(takeIndentAmount(alloc, lexer));
 	if (!tryTake(lexer, "###\n"))
 		skipBlockComment(alloc, lexer);
 }

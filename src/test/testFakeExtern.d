@@ -6,7 +6,6 @@ import interpret.fakeExtern : FakeExtern, newFakeExtern;
 import test.testUtil : Test;
 import util.collection.arr : empty;
 import util.collection.str : strEqLiteral;
-import util.types : u8;
 import util.util : verify;
 
 void testFakeExtern(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
@@ -18,8 +17,8 @@ private:
 
 @trusted void testMallocAndFree(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	FakeExtern!Alloc extern_ = newFakeExtern!Alloc(test.alloc);
-	u8* ptr = extern_.malloc(8);
-	u8* ptr2 = extern_.malloc(16);
+	ubyte* ptr = extern_.malloc(8);
+	ubyte* ptr2 = extern_.malloc(16);
 	*ptr = 1;
 	verify(*ptr == 1);
 	verify(ptr2 != ptr + 8);

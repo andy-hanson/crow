@@ -26,7 +26,6 @@ import util.opt : Opt;
 import util.ptr : comparePtr, Ptr;
 import util.sourceRange : FileAndRange;
 import util.sym : shortSymAlphaLiteral, Sym;
-import util.types : u8;
 import util.util : todo, unreachable, verify;
 
 enum BuiltinStructKind {
@@ -312,7 +311,7 @@ struct ConcreteFieldSource {
 
 struct ConcreteField {
 	immutable ConcreteFieldSource source;
-	immutable u8 index;
+	immutable ubyte index;
 	immutable Bool isMutable;
 	immutable ConcreteType type;
 }
@@ -433,10 +432,10 @@ struct ConcreteFunBody {
 		immutable string externName;
 	}
 	struct RecordFieldGet {
-		immutable u8 fieldIndex;
+		immutable ubyte fieldIndex;
 	}
 	struct RecordFieldSet {
-		immutable u8 fieldIndex;
+		immutable ubyte fieldIndex;
 	}
 
 	private:
@@ -726,7 +725,7 @@ struct ConcreteExprKind {
 	}
 
 	struct ConvertToUnion {
-		immutable u8 memberIndex;
+		immutable ubyte memberIndex;
 		immutable Ptr!ConcreteExpr arg;
 	}
 

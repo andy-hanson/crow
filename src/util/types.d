@@ -5,20 +5,6 @@ module util.types;
 import util.bools : Bool;
 import util.util : verify;
 
-alias u8 = ubyte;
-alias u16 = ushort;
-alias u32 = uint;
-alias u64 = ulong;
-
-alias i8 = byte;
-alias i16 = short;
-alias i32 = int;
-alias i64 = long;
-
-alias float64 = double;
-
-alias ssize_t = long;
-
 struct NatN(T) {
 	immutable(NatN!T) opBinary(string op)(immutable NatN!T b) const {
 		// Can't use '==' to compare strings due to https://github.com/ldc-developers/ldc/issues/3615
@@ -181,9 +167,9 @@ immutable(size_t) incr(immutable size_t a) {
 	return a + 1;
 }
 
-immutable(u8) safeIncrU8(immutable u8 a) {
-	verify(a != u8.max);
-	return cast(u8) (a + 1);
+immutable(ubyte) safeIncrU8(immutable ubyte a) {
+	verify(a != ubyte.max);
+	return cast(ubyte) (a + 1);
 }
 
 immutable(Bool) zero(T)(immutable NatN!T a) {
@@ -201,41 +187,41 @@ alias Nat64 = NatN!ulong;
 alias Int16 = IntN!short;
 private alias Int32 = IntN!int;
 
-immutable(u8) bottomU8OfU64(immutable u64 u) {
-	return cast(immutable u8) u;
+immutable(ubyte) bottomU8OfU64(immutable ulong u) {
+	return cast(immutable ubyte) u;
 }
 
-immutable(u16) bottomU16OfU64(immutable u64 u) {
-	return cast(immutable u16) u;
+immutable(ushort) bottomU16OfU64(immutable ulong u) {
+	return cast(immutable ushort) u;
 }
 
-immutable(u32) bottomU32OfU64(immutable u64 u) {
-	return cast(immutable u32) u;
+immutable(uint) bottomU32OfU64(immutable ulong u) {
+	return cast(immutable uint) u;
 }
 
-immutable(i32) safeI32FromU32(immutable u32 u) {
-	verify(u <= i32.max);
-	return cast(immutable i32) u;
+immutable(int) safeI32FromU32(immutable uint u) {
+	verify(u <= int.max);
+	return cast(immutable int) u;
 }
 
-immutable(u16) safeU32ToU16(immutable u32 u) {
-	verify(u <= u16.max);
-	return cast(immutable u16) u;
+immutable(ushort) safeU32ToU16(immutable uint u) {
+	verify(u <= ushort.max);
+	return cast(immutable ushort) u;
 }
 
-immutable(u8) safeU16ToU8(immutable u16 u) {
-	verify(u <= u8.max);
-	return cast(immutable u8) u;
+immutable(ubyte) safeU16ToU8(immutable ushort u) {
+	verify(u <= ubyte.max);
+	return cast(immutable ubyte) u;
 }
 
-immutable(u16) safeSizeTToU16(immutable size_t s) {
-	verify(s <= u16.max);
-	return cast(immutable u16) s;
+immutable(ushort) safeSizeTToU16(immutable size_t s) {
+	verify(s <= ushort.max);
+	return cast(immutable ushort) s;
 }
 
-immutable(u32) safeSizeTToU32(immutable size_t s) {
-	verify(s <= u32.max);
-	return cast(immutable u32) s;
+immutable(uint) safeSizeTToU32(immutable size_t s) {
+	verify(s <= uint.max);
+	return cast(immutable uint) s;
 }
 
 immutable(int) safeIntFromSizeT(immutable size_t s) {
@@ -248,38 +234,38 @@ immutable(int) safeIntFromNat64(immutable Nat64 a) {
 	return cast(immutable int) a.value;
 }
 
-immutable(u8) safeSizeTToU8(immutable size_t s) {
+immutable(ubyte) safeSizeTToU8(immutable size_t s) {
 	verify(s <= 255);
-	return cast(immutable u8) s;
+	return cast(immutable ubyte) s;
 }
 
-immutable(u32) safeU32FromI64(immutable i64 a) {
-	verify(a >= 0 && a <= u32.max);
-	return cast(immutable u32) a;
+immutable(uint) safeU32FromI64(immutable long a) {
+	verify(a >= 0 && a <= uint.max);
+	return cast(immutable uint) a;
 }
 
-immutable(size_t) safeSizeTFromSSizeT(immutable ssize_t s) {
+immutable(uint) safeU32FromI32(immutable int a) {
+	return safeU32FromI64(a);
+}
+
+immutable(ulong) safeUlongFromLong(immutable long s) {
 	verify(s >= 0);
-	return cast(immutable size_t) s;
+	return cast(immutable ulong) s;
 }
 
-immutable(size_t) safeSizeTFromI32(immutable int a) {
-	return safeSizeTFromSSizeT(a);
-}
-
-immutable(size_t) safeSizeTFromU64(immutable u64 a) {
+immutable(size_t) safeSizeTFromU64(immutable ulong a) {
 	verify(a <= size_t.max);
 	return cast(immutable size_t) a;
 }
 
-immutable(u64) abs(immutable i64 a) {
+immutable(ulong) abs(immutable long a) {
 	return a < 0 ? -a : a;
 }
 immutable(double) abs(immutable double a) {
 	return a < 0 ? -a : a;
 }
 
-private immutable u8 maxU4 = 0xf;
+private immutable ubyte maxU4 = 0xf;
 
 immutable(Nat8) catU4U4(immutable Nat8 a, immutable Nat8 b) {
 	verify(a.value <= maxU4);
@@ -296,25 +282,25 @@ immutable(U4U4) u4u4OfU8(immutable Nat8 a) {
 	return immutable U4U4(immutable Nat8(a.raw() >> 4), immutable Nat8(a.raw() & maxU4));
 }
 
-immutable(Nat64) u64OfFloat64Bits(immutable float64 value) {
+immutable(Nat64) u64OfFloat64Bits(immutable double value) {
 	Converter64 conv;
 	conv.asFloat64 = value;
 	return immutable Nat64(conv.asU64);
 }
 
-immutable(float64) float64OfU64Bits(immutable u64 value) {
+immutable(double) float64OfU64Bits(immutable ulong value) {
 	Converter64 conv;
 	conv.asU64 = value;
 	return conv.asFloat64;
 }
 
-immutable(i32) i32OfU64Bits(immutable u64 value) {
+immutable(int) i32OfU64Bits(immutable ulong value) {
 	Converter32 conv;
-	conv.asU32 = cast(u32) value;
+	conv.asU32 = cast(uint) value;
 	return conv.asI32;
 }
 
-immutable(i64) i64OfU64Bits(immutable u64 value) {
+immutable(long) i64OfU64Bits(immutable ulong value) {
 	Converter64 conv;
 	conv.asU64 = value;
 	return conv.asI64;
@@ -323,12 +309,12 @@ immutable(i64) i64OfU64Bits(immutable u64 value) {
 private:
 
 union Converter32 {
-	i32 asI32;
-	u32 asU32;
+	int asI32;
+	uint asU32;
 }
 
 union Converter64 {
-	u64 asU64;
-	i64 asI64;
-	float64 asFloat64;
+	ulong asU64;
+	long asI64;
+	double asFloat64;
 }

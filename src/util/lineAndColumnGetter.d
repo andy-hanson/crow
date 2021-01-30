@@ -7,20 +7,20 @@ import util.collection.arrUtil : slice;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : emptyStr;
 import util.sourceRange : Pos;
-import util.types : safeSizeTToU16, safeSizeTToU32, safeU32ToU16, u8, u16, u32;
+import util.types : safeSizeTToU16, safeSizeTToU32, safeU32ToU16;
 import util.util : verify;
 
 struct LineAndColumn {
-	immutable u16 line;
-	immutable u16 column;
+	immutable ushort line;
+	immutable ushort column;
 }
 
 struct LineAndColumnGetter {
 	@safe @nogc pure nothrow:
 	immutable Pos[] lineToPos;
-	immutable u8[] lineToNTabs;
+	immutable ubyte[] lineToNTabs;
 
-	immutable this(immutable Pos[] lp, immutable u8[] lnt) {
+	immutable this(immutable Pos[] lp, immutable ubyte[] lnt) {
 		lineToPos = lp;
 		lineToNTabs = lnt;
 		verify(size(lineToPos) == size(lineToNTabs));
@@ -29,12 +29,12 @@ struct LineAndColumnGetter {
 
 immutable(LineAndColumnGetter) lineAndColumnGetterForText(Alloc)(ref Alloc alloc, immutable string text) {
 	ArrBuilder!Pos lineToPos;
-	ArrBuilder!u8 lineToNTabs;
+	ArrBuilder!ubyte lineToNTabs;
 
 	add(alloc, lineToPos, 0);
 	add(alloc, lineToNTabs, text.getNTabs);
 
-	foreach (immutable u32 i; 0..safeSizeTToU32(size(text))) {
+	foreach (immutable uint i; 0..safeSizeTToU32(size(text))) {
 		if (at(text, i) == '\n') {
 			add(alloc, lineToPos, i + 1);
 			add(alloc, lineToNTabs, slice(text, i + 1).getNTabs);
@@ -49,11 +49,11 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(Alloc)(ref Alloc 
 }
 
 immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc, immutable Pos pos) {
-	u16 lowLine = 0; // inclusive
-	u16 highLine = size(lc.lineToPos).safeSizeTToU16;
+	ushort lowLine = 0; // inclusive
+	ushort highLine = size(lc.lineToPos).safeSizeTToU16;
 
 	while (lowLine < highLine - 1) {
-		immutable u16 middleLine = mid(lowLine, highLine);
+		immutable ushort middleLine = mid(lowLine, highLine);
 		immutable Pos middlePos = at(lc.lineToPos, middleLine);
 		if (pos == middlePos)
 			return LineAndColumn(middleLine, 0);
@@ -65,13 +65,13 @@ immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc
 			lowLine = middleLine;
 	}
 
-	immutable u16 line = lowLine;
+	immutable ushort line = lowLine;
 	immutable Pos lineStart = at(lc.lineToPos, line);
 	verify((pos >= lineStart && line == size(lc.lineToPos) - 1) || pos <= at(lc.lineToPos, line + 1));
 
-	immutable u32 nCharsIntoLine = pos - lineStart;
-	immutable u8 nTabs = at(lc.lineToNTabs, line);
-	immutable u32 column = nCharsIntoLine <= nTabs
+	immutable uint nCharsIntoLine = pos - lineStart;
+	immutable ubyte nTabs = at(lc.lineToNTabs, line);
+	immutable uint column = nCharsIntoLine <= nTabs
 		? nCharsIntoLine * TAB_SIZE
 		: nTabs * (TAB_SIZE - 1) + nCharsIntoLine;
 	return immutable LineAndColumn(line, column.safeU32ToU16);
@@ -79,14 +79,14 @@ immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc
 
 private:
 
-immutable u32 TAB_SIZE = 4; // TODO: configurable
+immutable uint TAB_SIZE = 4; // TODO: configurable
 
-u16 mid(immutable u16 a, immutable u16 b) {
+ushort mid(immutable ushort a, immutable ushort b) {
 	return (a + b) / 2;
 }
 
-u8 getNTabs(immutable string text) {
-	u8 i = 0;
+ubyte getNTabs(immutable string text) {
+	ubyte i = 0;
 	while (i < ubyte.max
 		&& i < size(text)
 		&& at(text, i) == '\t'

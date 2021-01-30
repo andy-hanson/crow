@@ -28,7 +28,7 @@ import util.collection.byteReader :
 	setPtr,
 	skipBytes;
 import util.collection.str : NulTerminatedStr;
-import util.types : incr, Nat8, Nat16, Nat32, Nat64, safeSizeTFromU64, U4U4, u4u4OfU8, u8;
+import util.types : incr, Nat8, Nat16, Nat32, Nat64, safeSizeTFromU64, U4U4, u4u4OfU8;
 import util.util : unreachable;
 
 struct ByteCodeReader {
@@ -36,15 +36,15 @@ struct ByteCodeReader {
 	ByteReader reader;
 }
 
-@trusted ByteCodeReader newByteCodeReader(immutable u8* bytes, immutable Nat32 start) {
+@trusted ByteCodeReader newByteCodeReader(immutable ubyte* bytes, immutable Nat32 start) {
 	return ByteCodeReader(ByteReader(bytes + start.raw()));
 }
 
-immutable(u8)* getReaderPtr(ref const ByteCodeReader reader) {
+immutable(ubyte)* getReaderPtr(ref const ByteCodeReader reader) {
 	return getPtr(reader.reader);
 }
 
-void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
+void setReaderPtr(ref ByteCodeReader reader, immutable ubyte* bytes) {
 	setPtr(reader.reader, bytes);
 }
 

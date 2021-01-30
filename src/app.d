@@ -59,10 +59,9 @@ import util.sym : AllSymbols, shortSymAlphaLiteral;
 import util.types :
 	float64OfU64Bits,
 	Nat64,
-	safeSizeTFromSSizeT,
 	safeSizeTFromU64,
+	safeUlongFromLong,
 	safeU32FromI64,
-	ssize_t,
 	u64OfFloat64Bits;
 import util.util : todo, unreachable, verify;
 import util.writer : Writer;
@@ -612,7 +611,7 @@ extern(C) {
 	immutable size_t contentSize = safeSizeTFromU64(fileSize + 1);
 	char* content = cast(char*) tempAlloc.allocateBytes(char.sizeof * contentSize); // + 1 for the '\0'
 	scope (exit) tempAlloc.freeBytes(cast(ubyte*) content, char.sizeof * contentSize);
-	immutable ssize_t nBytesRead = read(fd, content, fileSize);
+	immutable long nBytesRead = read(fd, content, fileSize);
 
 	if (nBytesRead == -1)
 		return todo!T("read failed");
@@ -636,7 +635,7 @@ extern(C) {
 	immutable int fd = tryOpen(tempAlloc, allPaths, path, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
 	scope(exit) close(fd);
 
-	immutable ssize_t wroteBytes = posixWrite(fd, content.begin, size(content));
+	immutable long wroteBytes = posixWrite(fd, content.begin, size(content));
 	if (wroteBytes != size(content))
 		if (wroteBytes == -1)
 			todo!void("writeFile failed");
@@ -751,10 +750,10 @@ immutable size_t maxPathSize = 1024;
 
 @trusted immutable(string) getPathToThisExecutable(Alloc)(ref Alloc alloc) {
 	char[maxPathSize] buff;
-	immutable ssize_t size = readlink("/proc/self/exe", buff.ptr, maxPathSize);
+	immutable long size = readlink("/proc/self/exe", buff.ptr, maxPathSize);
 	if (size < 0)
 		todo!void("posix error");
-	return copyStr(alloc, cast(immutable) buff.ptr[0..safeSizeTFromSSizeT(size)]);
+	return copyStr(alloc, cast(immutable) buff.ptr[0..safeUlongFromLong(size)]);
 }
 
 // Return should be const, but some posix functions aren't marked that way
