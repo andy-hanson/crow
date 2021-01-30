@@ -3,10 +3,10 @@ module frontend.parse.ast;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, True;
-import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, toArr;
+import util.collection.arr : ArrWithSize, empty, emptyArr, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
-import util.collection.str : emptyStr, Str;
+import util.collection.str : emptyStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, pathToStr;
 import util.ptr : Ptr;
@@ -56,7 +56,7 @@ struct TypeAst {
 		}
 		immutable RangeWithinFile range;
 		immutable Kind kind;
-		immutable Arr!TypeAst returnAndParamTypes;
+		immutable TypeAst[] returnAndParamTypes;
 	}
 
 	struct InstStruct {
@@ -171,7 +171,7 @@ struct IfAst {
 
 struct LambdaAst {
 	alias Param = NameAndRange;
-	immutable Arr!Param params;
+	immutable Param[] params;
 	immutable Ptr!ExprAst body_;
 }
 
@@ -204,7 +204,7 @@ struct LiteralAst {
 	immutable this(immutable Float a) { kind = Kind.float_; float_ = a; }
 	immutable this(immutable Int a) { kind = Kind.int_; int_ = a; }
 	immutable this(immutable Nat a) { kind = Kind.nat; nat = a; }
-	@trusted immutable this(immutable Str a) { kind = Kind.str; str = a; }
+	@trusted immutable this(immutable string a) { kind = Kind.str; str = a; }
 
 	private:
 	enum Kind {
@@ -218,7 +218,7 @@ struct LiteralAst {
 		immutable Float float_;
 		immutable Int int_;
 		immutable Nat nat;
-		immutable Str str;
+		immutable string str;
 	}
 }
 
@@ -227,7 +227,7 @@ struct LiteralAst {
 	scope immutable(T) delegate(ref immutable LiteralAst.Float) @safe @nogc pure nothrow cbFloat,
 	scope immutable(T) delegate(ref immutable LiteralAst.Int) @safe @nogc pure nothrow cbInt,
 	scope immutable(T) delegate(ref immutable LiteralAst.Nat) @safe @nogc pure nothrow cbNat,
-	scope immutable(T) delegate(ref immutable Str) @safe @nogc pure nothrow cbStr,
+	scope immutable(T) delegate(ref immutable string) @safe @nogc pure nothrow cbStr,
 ) {
 	final switch (a.kind) {
 		case LiteralAst.Kind.float_:
@@ -250,7 +250,7 @@ struct MatchAst {
 	}
 
 	immutable Ptr!ExprAst matched;
-	immutable Arr!CaseAst cases;
+	immutable CaseAst[] cases;
 }
 
 struct ParenthesizedAst {
@@ -533,7 +533,7 @@ struct StructDeclAst {
 				immutable TypeAst type;
 			}
 			private immutable Opt!(Ptr!RecordModifiers) modifiers_;
-			immutable Arr!Field fields;
+			immutable Field[] fields;
 
 			//TODO: NOT INSTANCE
 			immutable(RecordModifiers) modifiers() immutable {
@@ -553,7 +553,7 @@ struct StructDeclAst {
 			}
 		}
 		struct Union {
-			immutable Arr!(TypeAst.InstStruct) members;
+			immutable TypeAst.InstStruct[] members;
 		}
 
 		private:
@@ -628,18 +628,18 @@ struct SpecBodyAst {
 	immutable Kind kind;
 	union {
 		immutable Builtin builtin;
-		immutable Arr!SigAst sigs;
+		immutable SigAst[] sigs;
 	}
 
 	public:
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted immutable this(immutable Arr!SigAst a) { kind = Kind.sigs; sigs = a; }
+	@trusted immutable this(immutable SigAst[] a) { kind = Kind.sigs; sigs = a; }
 }
 
 @trusted T matchSpecBodyAst(T)(
 	ref immutable SpecBodyAst a,
 	scope T delegate(ref immutable SpecBodyAst.Builtin) @safe @nogc pure nothrow cbBuiltin,
-	scope T delegate(ref immutable Arr!SigAst) @safe @nogc pure nothrow cbSigs,
+	scope T delegate(ref immutable SigAst[]) @safe @nogc pure nothrow cbSigs,
 ) {
 	final switch (a.kind) {
 		case SpecBodyAst.Kind.builtin:
@@ -663,8 +663,8 @@ struct FunBodyAst {
 	struct Builtin {}
 	struct Extern {
 		immutable Bool isGlobal;
-		immutable Str externName;
-		immutable Opt!Str libraryName;
+		immutable string externName;
+		immutable Opt!string libraryName;
 	}
 
 	private:
@@ -706,7 +706,7 @@ struct FunDeclAst {
 	immutable RangeWithinFile range;
 	immutable ArrWithSize!TypeParamAst typeParams; // If this is empty, infer type params
 	immutable Ptr!SigAst sig; // Ptr to keep this struct from getting too big
-	immutable Arr!SpecUseAst specUses;
+	immutable SpecUseAst[] specUses;
 	immutable Bool isPublic;
 	immutable Bool noCtx;
 	immutable Bool summon;
@@ -724,26 +724,26 @@ struct ImportAst {
 	// Not using RelPath here because if nDots == 0, it's not a relative path
 	immutable u8 nDots;
 	immutable Path path;
-	immutable Opt!(Arr!Sym) names;
+	immutable Opt!(Sym[]) names;
 }
 
 struct ImportsOrExportsAst {
 	immutable RangeWithinFile range;
-	immutable Arr!ImportAst paths;
+	immutable ImportAst[] paths;
 }
 
 // TODO: I'm doing this because the wasm compilation generates a call to 'memset' whenever there's a big struct.
 struct FileAstPart0 {
 	immutable Opt!ImportsOrExportsAst imports;
 	immutable Opt!ImportsOrExportsAst exports;
-	immutable Arr!SpecDeclAst specs;
+	immutable SpecDeclAst[] specs;
 }
 
 struct FileAstPart1 {
-	immutable Arr!StructAliasAst structAliases;
-	immutable Arr!StructDeclAst structs;
-	immutable Arr!FunDeclAst funs;
-	immutable Arr!TestAst tests;
+	immutable StructAliasAst[] structAliases;
+	immutable StructDeclAst[] structs;
+	immutable FunDeclAst[] funs;
+	immutable TestAst[] tests;
 }
 
 struct FileAst {
@@ -770,23 +770,23 @@ ref immutable(Opt!ImportsOrExportsAst) exports(return scope ref immutable FileAs
 	return a.part0.exports;
 }
 
-ref immutable(Arr!SpecDeclAst) specs(return scope ref immutable FileAst a) {
+ref immutable(SpecDeclAst[]) specs(return scope ref immutable FileAst a) {
 	return a.part0.specs;
 }
 
-ref immutable(Arr!StructAliasAst) structAliases(return scope ref immutable FileAst a) {
+ref immutable(StructAliasAst[]) structAliases(return scope ref immutable FileAst a) {
 	return a.part1.structAliases;
 }
 
-ref immutable(Arr!StructDeclAst) structs(return scope ref immutable FileAst a) {
+ref immutable(StructDeclAst[]) structs(return scope ref immutable FileAst a) {
 	return a.part1.structs;
 }
 
-ref immutable(Arr!FunDeclAst) funs(return scope ref immutable FileAst a) {
+ref immutable(FunDeclAst[]) funs(return scope ref immutable FileAst a) {
 	return a.part1.funs;
 }
 
-ref immutable(Arr!TestAst) tests(return scope ref immutable FileAst a) {
+ref immutable(TestAst[]) tests(return scope ref immutable FileAst a) {
 	return a.part1.tests;
 }
 
@@ -852,7 +852,7 @@ immutable(Repr) reprSpecBodyAst(Alloc)(ref Alloc alloc, ref immutable SpecBodyAs
 		a,
 		(ref immutable SpecBodyAst.Builtin) =>
 			reprSym("builtin"),
-		(ref immutable Arr!SigAst sigs) =>
+		(ref immutable SigAst[] sigs) =>
 			reprArr(alloc, sigs, (ref immutable SigAst sig) =>
 				reprSig(alloc, sig)));
 }
@@ -1086,7 +1086,7 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 						reprRecord(alloc, "int", [reprInt(it.value), reprBool(it.overflow)]),
 					(ref immutable LiteralAst.Nat it) =>
 						reprRecord(alloc, "nat", [reprNat(it.value), reprBool(it.overflow)]),
-					(ref immutable Str it) =>
+					(ref immutable string it) =>
 						reprStr(it))]),
 		(ref immutable MatchAst it) =>
 			reprRecord(alloc, "match", [

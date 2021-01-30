@@ -22,7 +22,7 @@ import model.lowModel :
 	LowType;
 import model.model : decl, FunInst, name;
 import util.bools : False;
-import util.collection.arr : Arr, emptyArr, size;
+import util.collection.arr : emptyArr, size;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex;
 import util.collection.dict : mustGetAt;
 import util.memory : allocate, nu;
@@ -63,7 +63,7 @@ immutable(Opt!SpecialBuiltinKind) getSpecialBuiltinKind(ref immutable ConcreteFu
 immutable(LowFun) generateSpecialBuiltin(Alloc)(
 	ref Alloc alloc,
 	ref immutable ConcreteFunToName funToName,
-	ref immutable Arr!LowFunCause lowFunCauses,
+	ref immutable LowFunCause[] lowFunCauses,
 	ref immutable LowType strType,
 	immutable SpecialBuiltinKind kind,
 ) {
@@ -83,7 +83,7 @@ private:
 immutable(LowFun) allFunsCount(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
-	ref immutable Arr!LowFunCause lowFunCauses,
+	ref immutable LowFunCause[] lowFunCauses,
 ) {
 	immutable LowExpr expr = constantNat64(range, size(lowFunCauses));
 	immutable LowFunExprBody body_ = immutable LowFunExprBody(False, allocate(alloc, expr));
@@ -104,12 +104,12 @@ immutable(LowFun) getFunName(Alloc)(
 	ref Alloc alloc,
 	ref immutable ConcreteFunToName funToName,
 	ref immutable FileAndRange range,
-	ref immutable Arr!LowFunCause lowFunCauses,
+	ref immutable LowFunCause[] lowFunCauses,
 	ref immutable LowType strType,
 ) {
-	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [genParam(shortSymAlphaLiteral("fun-id"), nat64Type)]);
+	immutable LowParam[] params = arrLiteral!LowParam(alloc, [genParam(shortSymAlphaLiteral("fun-id"), nat64Type)]);
 	immutable LowExpr funId = paramRef(range, nat64Type, immutable LowParamIndex(0));
-	immutable Arr!LowExpr cases = map(alloc, lowFunCauses, (ref immutable LowFunCause cause) =>
+	immutable LowExpr[] cases = map(alloc, lowFunCauses, (ref immutable LowFunCause cause) =>
 		immutable LowExpr(strType, range, immutable LowExprKind(nameFromLowFunCause(funToName, cause))));
 	immutable LowExpr expr = genSwitch(alloc, strType, range, funId, cases);
 	immutable LowFunExprBody body_ = immutable LowFunExprBody(False, allocate(alloc, expr));
@@ -151,11 +151,11 @@ immutable(Constant) nameFromLowFunCause(ref immutable ConcreteFunToName funToNam
 immutable(LowFun) getFunPtr(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
-	ref immutable Arr!LowFunCause causes,
+	ref immutable LowFunCause[] causes,
 ) {
-	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [genParam(shortSymAlphaLiteral("fun-id"), nat64Type)]);
+	immutable LowParam[] params = arrLiteral!LowParam(alloc, [genParam(shortSymAlphaLiteral("fun-id"), nat64Type)]);
 	immutable LowExpr funId = paramRef(range, nat64Type, immutable LowParamIndex(0));
-	immutable Arr!LowExpr cases = mapWithIndex(alloc, causes, (immutable size_t i, ref immutable LowFunCause cause) =>
+	immutable LowExpr[] cases = mapWithIndex(alloc, causes, (immutable size_t i, ref immutable LowFunCause cause) =>
 		// TODO: maybe globals shouldn't compile to functions
 		isConcreteFun(cause) && isGlobal(body_(asConcreteFun(cause).deref()))
 			? immutable LowExpr(anyPtrType, range, immutable LowExprKind(immutable Constant(immutable Constant.Null())))

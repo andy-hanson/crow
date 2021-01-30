@@ -3,7 +3,7 @@ module util.collection.sortUtil;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
-import util.collection.arr : Arr, at, empty, first, size;
+import util.collection.arr : at, empty, first, size;
 import util.collection.arrUtil : tail;
 import util.comparison : Comparer, Comparison;
 import util.opt : none, Opt, some;
@@ -11,16 +11,16 @@ import util.opt : none, Opt, some;
 void eachSorted(T, A0, A1, A2, A3)(
 	immutable T lastComparable,
 	immutable Comparer!T comparer,
-	immutable Arr!A0 a0,
+	immutable A0[] a0,
 	scope immutable(T) delegate(ref immutable A0) @safe @nogc pure nothrow getComparable0,
 	scope void delegate(ref immutable A0) @safe @nogc pure nothrow cb0,
-	immutable Arr!A1 a1,
+	immutable A1[] a1,
 	scope immutable(T) delegate(ref immutable A1) @safe @nogc pure nothrow getComparable1,
 	scope void delegate(ref immutable A1) @safe @nogc pure nothrow cb1,
-	immutable Arr!A2 a2,
+	immutable A2[] a2,
 	scope immutable(T) delegate(ref immutable A2) @safe @nogc pure nothrow getComparable2,
 	scope void delegate(ref immutable A2) @safe @nogc pure nothrow cb2,
-	immutable Arr!A3 a3,
+	immutable A3[] a3,
 	scope immutable(T) delegate(ref immutable A3) @safe @nogc pure nothrow getComparable3,
 	scope void delegate(ref immutable A3) @safe @nogc pure nothrow cb3,
 ) {
@@ -79,7 +79,7 @@ struct UnsortedPair {
 }
 
 // Returns index of lower value
-immutable(Opt!UnsortedPair) findUnsortedPair(T)(ref immutable Arr!T a, immutable Comparer!T compare) {
+immutable(Opt!UnsortedPair) findUnsortedPair(T)(ref immutable T[] a, immutable Comparer!T compare) {
 	if (!empty(a)) {
 		foreach (immutable size_t i; 0..size(a) - 1) {
 			final switch (compare(at(a, i), at(a, i + 1))) {

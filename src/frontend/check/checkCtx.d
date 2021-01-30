@@ -7,7 +7,7 @@ import frontend.programState : ProgramState;
 import model.diag : Diag, Diagnostic;
 import model.model : matchStructOrAlias, Module, ModuleAndNames, NameReferents, SpecDecl, StructAlias, StructDecl;
 import util.bools : Bool, True;
-import util.collection.arr : Arr, at, castImmutable, setAt, size;
+import util.collection.arr : at, castImmutable, setAt, size;
 import util.collection.arrBuilder : add, ArrBuilder;
 import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
 import util.collection.dict : getPtrAt;
@@ -20,21 +20,21 @@ import util.sym : indexOfSym, Sym;
 struct CheckCtx {
 	Ptr!ProgramState programState;
 	immutable FileIndex fileIndex;
-	immutable Arr!ModuleAndNames imports;
-	immutable Arr!ModuleAndNames reExports;
+	immutable ModuleAndNames[] imports;
+	immutable ModuleAndNames[] reExports;
 	// One entry for a whole-module import, or one entry for each named import
 	// Note: This is unnecessary for re-exports as those are never considered unused, but simpler to always have this
-	Arr!Bool importsAndReExportsUsed;
-	Arr!Bool structAliasesUsed;
-	Arr!Bool structsUsed;
-	Arr!Bool specsUsed;
+	Bool[] importsAndReExportsUsed;
+	Bool[] structAliasesUsed;
+	Bool[] structsUsed;
+	Bool[] specsUsed;
 	Ptr!(ArrBuilder!Diagnostic) diagsBuilder;
 }
 
-Arr!Bool newUsedImportsAndReExports(Alloc)(
+Bool[] newUsedImportsAndReExports(Alloc)(
 	ref Alloc alloc,
-	ref immutable Arr!ModuleAndNames imports,
-	ref immutable Arr!ModuleAndNames reExports,
+	ref immutable ModuleAndNames[] imports,
+	ref immutable ModuleAndNames[] reExports,
 ) {
 	immutable size_t size = eachCat!(size_t, ModuleAndNames)(
 		0,
@@ -48,9 +48,9 @@ Arr!Bool newUsedImportsAndReExports(Alloc)(
 void checkForUnused(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
-	immutable Arr!StructAlias structAliases,
-	immutable Arr!StructDecl structDecls,
-	immutable Arr!SpecDecl specDecls,
+	immutable StructAlias[] structAliases,
+	immutable StructDecl[] structDecls,
+	immutable SpecDecl[] specDecls,
 ) {
 	checkUnusedImports(alloc, ctx);
 

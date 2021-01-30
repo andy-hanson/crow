@@ -30,10 +30,9 @@ import util.collection.byteWriter :
 	writeU16,
 	writeU32;
 import interpret.opcode : OpCode;
-import util.collection.arr : Arr, empty, sizeNat;
+import util.collection.arr : empty, sizeNat;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
-import util.collection.str : Str;
 import util.dbg : dbgLog = log;
 import util.ptr : Ptr;
 import util.util : divRoundUp, repeat, verify;
@@ -63,11 +62,11 @@ struct StackEntries {
 
 @trusted immutable(ByteCode) finishByteCode(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
-	immutable Arr!ubyte text,
+	immutable ubyte[] text,
 	immutable ByteCodeIndex mainIndex,
 	immutable FileToFuns fileToFuns,
 ) {
-	immutable Arr!u8 bytes = finishByteWriter(writer.byteWriter);
+	immutable u8[] bytes = finishByteWriter(writer.byteWriter);
 	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources =
 		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(writer.alloc, writer.sources));
 	return immutable ByteCode(bytes, sources, fileToFuns, text, mainIndex);
@@ -454,7 +453,7 @@ void writePack(Debug, Alloc)(
 	ref Debug dbg,
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	scope immutable Arr!Nat8 sizes,
+	scope immutable Nat8[] sizes,
 ) {
 	log(dbg, writer, "write pack");
 	verify(!empty(sizes));
@@ -534,9 +533,9 @@ void writeExtern(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeS
 void writeExternDynCall(Alloc)(
 	ref ByteCodeWriter!Alloc writer,
 	ref immutable ByteCodeSource source,
-	immutable Str name,
+	immutable string name,
 	immutable DynCallType returnType,
-	immutable Arr!DynCallType parameterTypes,
+	immutable DynCallType[] parameterTypes,
 ) {
 	pushOpcode(writer, source, OpCode.externDynCall);
 	foreach (immutable char c; name)

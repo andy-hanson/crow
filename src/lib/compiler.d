@@ -20,8 +20,8 @@ import model.model : AbsolutePathsGetter, getAbsolutePath, Module, Program;
 import model.reprConcreteModel : reprOfConcreteProgram;
 import model.reprLowModel : reprOfLowProgram;
 import model.reprModel : reprModule;
-import util.collection.arr : Arr, begin, empty, emptyArr, size;
-import util.collection.str : emptyStr, Str;
+import util.collection.arr : begin, empty, emptyArr, size;
+import util.collection.str : emptyStr;
 import util.opt : force, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, Path, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -43,8 +43,8 @@ enum PrintKind {
 }
 
 struct DiagsAndResultStrs {
-	immutable Str diagnostics;
-	immutable Str result;
+	immutable string diagnostics;
+	immutable string result;
 }
 
 immutable(DiagsAndResultStrs) print(Alloc, PathAlloc, SymAlloc, ReadOnlyStorage)(
@@ -82,7 +82,7 @@ immutable(int) buildAndInterpret(Debug, Alloc, PathAlloc, SymAlloc, ReadOnlyStor
 	ref Extern extern_,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable Path mainPath,
-	ref immutable Arr!Str programArgs,
+	ref immutable string[] programArgs,
 ) {
 	immutable ProgramsAndFilesInfo programs =
 		buildToLowProgram(alloc, allPaths, allSymbols, storage, mainPath);
@@ -124,7 +124,7 @@ private:
 	ref immutable Diags diagnostics,
 ) {
 	immutable int stderr = 2;
-	immutable Str s = strOfDiagnostics(alloc, allPaths, showDiagOptions, filesInfo, diagnostics);
+	immutable string s = strOfDiagnostics(alloc, allPaths, showDiagOptions, filesInfo, diagnostics);
 	extern_.write(stderr, begin(s), size(s));
 }
 
@@ -138,7 +138,7 @@ immutable(DiagsAndResultStrs) printTokens(Alloc, PathAlloc, SymAlloc, ReadOnlySt
 	immutable PrintFormat format,
 ) {
 	immutable FileAstAndDiagnostics astResult = parseSingleAst(alloc, allPaths, allSymbols, storage, mainPath);
-	immutable Arr!Token tokens = tokensOfAst(alloc, astResult.ast);
+	immutable Token[] tokens = tokensOfAst(alloc, astResult.ast);
 	return immutable DiagsAndResultStrs(
 		strOfDiagnostics(alloc, allPaths, showDiagOptions, astResult.filesInfo, astResult.diagnostics),
 		showRepr(alloc, reprTokens(alloc, tokens), format));
@@ -216,7 +216,7 @@ immutable(DiagsAndResultStrs) printLowModel(Alloc, PathAlloc, SymAlloc, ReadOnly
 }
 
 //TODO:INLINE
-immutable(Str) showAst(Alloc, PathAlloc)(
+immutable(string) showAst(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable FileAst ast,
@@ -226,12 +226,12 @@ immutable(Str) showAst(Alloc, PathAlloc)(
 }
 
 //TODO:INLINE
-immutable(Str) showModule(Alloc)(ref Alloc alloc, ref immutable Module a, immutable PrintFormat format) {
+immutable(string) showModule(Alloc)(ref Alloc alloc, ref immutable Module a, immutable PrintFormat format) {
 	return showRepr(alloc, reprModule(alloc, a), format);
 }
 
 //TODO:INLINE
-immutable(Str) showConcreteProgram(Alloc)(
+immutable(string) showConcreteProgram(Alloc)(
 	ref Alloc alloc,
 	ref immutable ConcreteProgram a,
 	immutable PrintFormat format,
@@ -240,14 +240,14 @@ immutable(Str) showConcreteProgram(Alloc)(
 }
 
 //TODO:INLINE
-immutable(Str) showLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a, immutable PrintFormat format) {
+immutable(string) showLowProgram(Alloc)(ref Alloc alloc, ref immutable LowProgram a, immutable PrintFormat format) {
 	return showRepr(alloc, reprOfLowProgram(alloc, a), format);
 }
 
 public struct BuildToCResult {
-	immutable Str cSource;
-	immutable Str diagnostics;
-	immutable Arr!Str allExternLibraryNames;
+	immutable string cSource;
+	immutable string diagnostics;
+	immutable string[] allExternLibraryNames;
 }
 
 public immutable(BuildToCResult) buildToC(Alloc, PathAlloc, SymAlloc, ReadOnlyStorage)(
@@ -273,7 +273,7 @@ public immutable(BuildToCResult) buildToC(Alloc, PathAlloc, SymAlloc, ReadOnlySt
 				showDiagOptions,
 				programs.program.filesInfo,
 				programs.program.diagnostics),
-			emptyArr!Str);
+			emptyArr!string);
 }
 
 struct ConcreteAndLowProgram {
@@ -309,14 +309,14 @@ public immutable(AbsolutePath) getAbsolutePathFromStorage(Alloc, Storage)(
 	ref Alloc alloc,
 	ref Storage storage,
 	immutable Path path,
-	immutable Str extension,
+	immutable string extension,
 ) {
 	immutable AbsolutePathsGetter abs = storage.absolutePathsGetter();
 	immutable PathAndStorageKind pk = immutable PathAndStorageKind(path, StorageKind.local);
 	return getAbsolutePath(alloc, abs, pk, extension);
 }
 
-immutable(Str) showRepr(Alloc)(ref Alloc alloc, immutable Repr a, immutable PrintFormat format) {
+immutable(string) showRepr(Alloc)(ref Alloc alloc, immutable Repr a, immutable PrintFormat format) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	final switch (format) {
 		case PrintFormat.repr:

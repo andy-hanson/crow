@@ -25,9 +25,8 @@ import model.model :
 	Type;
 import model.parseDiag : ParseDiag;
 import util.bools : False;
-import util.collection.arr : Arr;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.collection.str : emptyStr, Str;
+import util.collection.str : emptyStr;
 import util.opt : Opt;
 import util.path : AbsolutePath, AllPaths, PathAndStorageKind, pathToStr;
 import util.ptr : Ptr;
@@ -52,7 +51,7 @@ struct Diag {
 	struct CallMultipleMatches {
 		immutable Sym funName;
 		// Unlike CallNoMatch, these are only the ones that match
-		immutable Arr!CalledDecl matches;
+		immutable CalledDecl[] matches;
 	}
 
 	struct CallNoMatch {
@@ -62,9 +61,9 @@ struct Diag {
 		immutable size_t actualNTypeArgs;
 		immutable size_t actualArity;
 		// NOTE: we may have given up early and this may not be as much as actualArity
-		immutable Arr!Type actualArgTypes;
+		immutable Type[] actualArgTypes;
 		// All candidates, including those with wrong arity
-		immutable Arr!CalledDecl allCandidates;
+		immutable CalledDecl[] allCandidates;
 	}
 
 	struct CantCall {
@@ -85,7 +84,7 @@ struct Diag {
 	struct CantCreateRecordWithoutExpectedType {}
 	struct CantInferTypeArguments {}
 	struct CommonTypesMissing {
-		immutable Arr!Str missing;
+		immutable string[] missing;
 	}
 	struct CreateArrNoExpectedType {}
 	struct CreateRecordByRefNoCtx {
@@ -93,8 +92,8 @@ struct Diag {
 	}
 	struct CreateRecordMultiLineWrongFields {
 		immutable Ptr!StructDecl decl;
-		immutable Arr!RecordField fields;
-		immutable Arr!Sym providedFieldNames;
+		immutable RecordField[] fields;
+		immutable Sym[] providedFieldNames;
 	}
 	struct DuplicateDeclaration {
 		enum Kind {
@@ -136,7 +135,7 @@ struct Diag {
 		immutable Sym name;
 	}
 	struct MatchCaseStructNamesDoNotMatch {
-		immutable Arr!(Ptr!StructInst) unionMembers;
+		immutable Ptr!StructInst[] unionMembers;
 	}
 	struct MatchOnNonUnion {
 		immutable Type type;
@@ -714,7 +713,7 @@ private void writeFileNoResetWriter(TempAlloc, Alloc, PathAlloc)(
 		writeStatic(writer, "<generated code> ");
 	} else {
 		immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, fileIndex);
-		immutable Str pathStr = pathToStr(tempAlloc, allPaths, emptyStr, path.path, crowExtension);
+		immutable string pathStr = pathToStr(tempAlloc, allPaths, emptyStr, path.path, crowExtension);
 		if (options.color) {
 			immutable AbsolutePath abs = getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, crowExtension);
 			writeHyperlink(writer, pathToStr(tempAlloc, allPaths, abs), pathStr);
@@ -725,4 +724,4 @@ private void writeFileNoResetWriter(TempAlloc, Alloc, PathAlloc)(
 	}
 }
 
-alias Diags = Arr!Diagnostic;
+alias Diags = Diagnostic[];

@@ -95,7 +95,6 @@ import frontend.parse.ast :
 	TypeAst;
 import util.bools : Bool, not, True;
 import util.collection.arr :
-	Arr,
 	at,
 	castImmutable,
 	empty,
@@ -137,7 +136,7 @@ import util.collection.mutArr :
 	push,
 	tempAsArr,
 	tempAsArr_mut;
-import util.collection.str : copyStr, Str;
+import util.collection.str : copyStr;
 import util.memory : nu;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
@@ -152,11 +151,11 @@ immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable CommonTypes commonTypes,
 	ref immutable FunsDict funsDict,
-	ref Arr!Bool usedFuns,
+	ref Bool[] usedFuns,
 	immutable Type returnType,
-	immutable Arr!TypeParam typeParams,
-	immutable Arr!Param params,
-	immutable Arr!(Ptr!SpecInst) specs,
+	immutable TypeParam[] typeParams,
+	immutable Param[] params,
+	immutable Ptr!SpecInst[] specs,
 	immutable FunFlags flags,
 	ref immutable ExprAst ast,
 ) {
@@ -302,10 +301,10 @@ immutable(CheckedExpr) checkCreateArr(Alloc)(
 		return none!ArrExpectedType;
 	}();
 
-	immutable Arr!ExprAst argAsts = toArr(ast.args);
+	immutable ExprAst[] argAsts = toArr(ast.args);
 	if (has(opAet)) {
 		immutable ArrExpectedType aet = force(opAet);
-		immutable Arr!Expr args = map!Expr(alloc, argAsts, (ref immutable ExprAst it) =>
+		immutable Expr[] args = map!Expr(alloc, argAsts, (ref immutable ExprAst it) =>
 			checkAndExpect(alloc, ctx, it, aet.elementType));
 		immutable Expr expr = immutable Expr(range, immutable Expr.CreateArr(aet.arrType, args));
 		return immutable CheckedExpr(expr);
@@ -316,8 +315,8 @@ immutable(CheckedExpr) checkCreateArr(Alloc)(
 		// Get type from the first arg's type.
 		immutable ExprAndType firstArg = checkAndInfer(alloc, ctx, first(argAsts));
 		immutable Type elementType = firstArg.type;
-		immutable Arr!ExprAst restArgs = tail(argAsts);
-		immutable Arr!Expr args = mapWithFirst!Expr(alloc, firstArg.expr, restArgs, (ref immutable ExprAst it) =>
+		immutable ExprAst[] restArgs = tail(argAsts);
+		immutable Expr[] args = mapWithFirst!Expr(alloc, firstArg.expr, restArgs, (ref immutable ExprAst it) =>
 			checkAndExpect(alloc, ctx, it, elementType));
 		immutable Ptr!StructInst arrType = instantiateStructNeverDelay(
 			alloc,
@@ -332,7 +331,7 @@ struct ExpectedLambdaType {
 	immutable Ptr!StructInst funStructInst;
 	immutable Ptr!StructDecl funStruct;
 	immutable FunKind kind;
-	immutable Arr!Type paramTypes;
+	immutable Type[] paramTypes;
 	immutable Type nonInstantiatedPossiblyFutReturnType;
 }
 
@@ -356,8 +355,8 @@ immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(Alloc)(
 	} else {
 		immutable FunKind kind = force(opKind);
 		immutable Type nonInstantiatedNonFutReturnType = first(expectedStructInst.typeArgs);
-		immutable Arr!Type nonInstantiatedParamTypes = tail(expectedStructInst.typeArgs);
-		immutable Opt!(Arr!Type) paramTypes = mapOrNone!Type(
+		immutable Type[] nonInstantiatedParamTypes = tail(expectedStructInst.typeArgs);
+		immutable Opt!(Type[]) paramTypes = mapOrNone!Type(
 			alloc,
 			nonInstantiatedParamTypes,
 			(ref immutable Type it) =>
@@ -411,7 +410,7 @@ immutable(Opt!Expr) getIdentifierInLambda(
 struct IdentifierAndLambdas {
 	immutable Expr expr;
 	// Lambdas outside of this identifier. Se must note those as closures.
-	Arr!(Ptr!LambdaInfo) outerLambdas;
+	Ptr!LambdaInfo[] outerLambdas;
 }
 
 Opt!IdentifierAndLambdas getIdentifierNonCall(
@@ -426,7 +425,7 @@ Opt!IdentifierAndLambdas getIdentifierNonCall(
 			return someMut(IdentifierAndLambdas(force(id), slice(tempAsArr_mut(ctx.lambdas), i + 1)));
 	}
 
-	Arr!(Ptr!LambdaInfo) allLambdas = tempAsArr_mut(ctx.lambdas);
+	Ptr!LambdaInfo[] allLambdas = tempAsArr_mut(ctx.lambdas);
 	foreach (ref LocalAndUsed local; mutArrRangeMut(ctx.messageOrFunctionLocals))
 		if (symEq(local.local.name, name)) {
 			local.isUsed = true;
@@ -449,7 +448,7 @@ immutable(CheckedExpr) checkRef(Alloc)(
 	ref ExprCtx ctx,
 	ref immutable Expr expr,
 	immutable Sym name,
-	Arr!(Ptr!LambdaInfo) passedLambdas,
+	Ptr!LambdaInfo[] passedLambdas,
 	ref Expected expected,
 ) {
 	immutable Type type = getType(expr, ctx.commonTypes);
@@ -587,7 +586,7 @@ immutable(CheckedExpr) checkLiteral(Alloc)(
 				}
 			}
 		},
-		(ref immutable Str it) {
+		(ref immutable string it) {
 			if (ptrEquals(expectedStruct, ctx.commonTypes.char_)) {
 				if (size(it) != 1)
 					todo!void("char literal must be one char");
@@ -630,11 +629,11 @@ immutable(Expr) checkWithLocal(Alloc)(
 	}
 }
 
-immutable(Arr!Param) checkFunOrSendFunParamsForLambda(Alloc)(
+immutable(Param[]) checkFunOrSendFunParamsForLambda(Alloc)(
 	ref Alloc alloc,
 	ref const ExprCtx ctx,
-	immutable Arr!(LambdaAst.Param) paramAsts,
-	immutable Arr!Type expectedParamTypes,
+	immutable LambdaAst.Param[] paramAsts,
+	immutable Type[] expectedParamTypes,
 ) {
 	return mapZipWithIndex!(Param, LambdaAst.Param, Type, Alloc)(
 		alloc,
@@ -681,7 +680,7 @@ immutable(CheckedExpr) checkFunPtr(Alloc)(
 		immutable FunDeclAndArgs(funDecl, emptyArr!Type, emptyArr!Called));
 
 	immutable Ptr!StructDecl funPtrStruct = at(ctx.commonTypes.funPtrStructs, arity(funInst));
-	immutable Arr!Type returnTypeAndParamTypes =
+	immutable Type[] returnTypeAndParamTypes =
 		mapWithFirst(alloc, returnType(funDecl), params(funInst), (ref immutable Param it) => it.type);
 
 	immutable Ptr!StructInst structInst = instantiateStructNeverDelay(
@@ -773,7 +772,7 @@ immutable(CheckedExpr) checkLambdaCommon(Alloc)(
 		return bogus(expected, range);
 	}
 
-	immutable Arr!Param params = checkFunOrSendFunParamsForLambda(alloc, ctx, paramAsts, et.paramTypes);
+	immutable Param[] params = checkFunOrSendFunParamsForLambda(alloc, ctx, paramAsts, et.paramTypes);
 	LambdaInfo info = LambdaInfo(kind, params);
 	Expected returnTypeInferrer = copyWithNewExpectedType(expected, et.nonInstantiatedPossiblyFutReturnType);
 
@@ -781,7 +780,7 @@ immutable(CheckedExpr) checkLambdaCommon(Alloc)(
 		// Note: checking the body of the lambda may fill in candidate type args
 		// if the expected return type contains candidate's type params
 		allocExpr(alloc, checkExpr(alloc, ctx, bodyAst, returnTypeInferrer)));
-	immutable Arr!(Ptr!ClosureField) closureFields = moveToArr(alloc, info.closureFields);
+	immutable Ptr!ClosureField[] closureFields = moveToArr(alloc, info.closureFields);
 
 	final switch (kind) {
 		case FunKind.plain:
@@ -859,7 +858,7 @@ immutable(Expr) checkWithOptLocal(Alloc)(
 
 struct UnionAndMembers {
 	immutable Ptr!StructInst matchedUnion;
-	immutable Arr!(Ptr!StructInst) members;
+	immutable Ptr!StructInst[] members;
 }
 
 immutable(Opt!UnionAndMembers) getUnionBody(ref immutable Type t) {
@@ -892,7 +891,7 @@ immutable(CheckedExpr) checkMatch(Alloc)(
 		return bogus(expected, rangeInFile2(ctx, ast.matched.range));
 	} else {
 		immutable Ptr!StructInst matchedUnion = force(unionAndMembers).matchedUnion;
-		immutable Arr!(Ptr!StructInst) members = force(unionAndMembers).members;
+		immutable Ptr!StructInst[] members = force(unionAndMembers).members;
 		immutable Bool badCases = Bool(
 			!sizeEq(members, ast.cases) ||
 			zipSome(members, ast.cases, (ref immutable Ptr!StructInst member, ref immutable MatchAst.CaseAst caseAst) =>
@@ -901,7 +900,7 @@ immutable(CheckedExpr) checkMatch(Alloc)(
 			addDiag2(alloc, ctx, range, immutable Diag(Diag.MatchCaseStructNamesDoNotMatch(members)));
 			return bogus(expected, range);
 		} else {
-			immutable Arr!(Expr.Match.Case) cases = mapZip!(Expr.Match.Case)(
+			immutable Expr.Match.Case[] cases = mapZip!(Expr.Match.Case)(
 				alloc,
 				members,
 				ast.cases,

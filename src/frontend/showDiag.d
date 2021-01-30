@@ -27,10 +27,9 @@ import model.model :
 	writeType;
 import model.parseDiag : EqLikeKind, matchParseDiag, ParseDiag;
 import util.bools : Bool, not, True;
-import util.collection.arr : Arr, empty, only, size;
+import util.collection.arr : empty, only, size;
 import util.collection.arrUtil : exists, map, sort;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.collection.str : Str;
 import util.diff : diffSymbols;
 import util.lineAndColumnGetter : lineAndColumnAtPos;
 import util.opt : force, has;
@@ -57,7 +56,7 @@ struct ShowDiagOptions {
 	immutable Bool color;
 }
 
-immutable(Str) strOfDiagnostics(Alloc, PathAlloc)(
+immutable(string) strOfDiagnostics(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
@@ -80,7 +79,7 @@ immutable(Str) strOfDiagnostics(Alloc, PathAlloc)(
 	return finishWriter(writer);
 }
 
-public immutable(Str) strOfParseDiag(Alloc, PathAlloc)(
+public immutable(string) strOfParseDiag(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
@@ -333,7 +332,7 @@ void writeCalledDecls(Alloc, PathAlloc)(
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
-	ref immutable Arr!CalledDecl cs,
+	ref immutable CalledDecl[] cs,
 	scope immutable(Bool) delegate(ref immutable CalledDecl) @safe @nogc pure nothrow filter,
 ) {
 	foreach (ref immutable CalledDecl c; cs)
@@ -349,7 +348,7 @@ void writeCalledDecls(Alloc, PathAlloc)(
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
-	ref immutable Arr!CalledDecl cs,
+	ref immutable CalledDecl[] cs,
 ) {
 	writeCalledDecls(writer, allPaths, options, fi, cs, (ref immutable CalledDecl) => True);
 }
@@ -475,7 +474,7 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		},
 		(ref immutable Diag.CommonTypesMissing d) {
 			writeStatic(writer, "common types are missing from 'include.crow':");
-			foreach (immutable Str s; d.missing) {
+			foreach (immutable string s; d.missing) {
 				writeStatic(writer, "\n\t");
 				writeStr(writer, s);
 			}
@@ -492,7 +491,7 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			writeStatic(writer, "didn't get expected fields of ");
 			writeName(writer, d.decl.name);
 			writeChar(writer, ':');
-			immutable Arr!Sym expected = map(tempAlloc, d.fields, (ref immutable RecordField it) => it.name);
+			immutable Sym[] expected = map(tempAlloc, d.fields, (ref immutable RecordField it) => it.name);
 			diffSymbols(tempAlloc, writer, options.color, expected, d.providedFieldNames);
 		},
 		(ref immutable Diag.DuplicateDeclaration d) {

@@ -17,13 +17,12 @@ import model.model :
 	TypeParam,
 	writeStructDecl,
 	writeType;
-import util.collection.str : Str;
 import util.path : AllPaths;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sym : writeSym;
 import util.writer : finishWriter, writeChar, Writer, writeStatic;
 
-immutable(Str) getHoverStr(TempAlloc, Alloc, PathAlloc)(
+immutable(string) getHoverStr(TempAlloc, Alloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,

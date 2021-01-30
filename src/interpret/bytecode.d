@@ -4,9 +4,9 @@ module interpret.bytecode;
 
 import model.lowModel : LowFunIndex;
 import util.bools : Bool;
-import util.collection.arr : Arr, size;
+import util.collection.arr : size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
-import util.collection.str : NulTerminatedStr, Str, strLiteral, strOfNulTerminatedStr;
+import util.collection.str : NulTerminatedStr, strLiteral, strOfNulTerminatedStr;
 import util.repr : Repr, reprArr, reprHex, reprInt, reprNat, reprRecord, reprStr, reprSym;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8, zero;
@@ -240,7 +240,7 @@ struct FunNameAndPos {
 	immutable Pos pos;
 }
 
-alias FileToFuns = FullIndexDict!(FileIndex, Arr!FunNameAndPos);
+alias FileToFuns = FullIndexDict!(FileIndex, FunNameAndPos[]);
 
 struct ByteCodeSource {
 	immutable LowFunIndex fun;
@@ -250,17 +250,17 @@ struct ByteCodeSource {
 struct ByteCode {
 	@safe @nogc pure nothrow:
 
-	immutable Arr!u8 byteCode;
+	immutable u8[] byteCode;
 	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources; // parallel to byteCode
 	immutable FileToFuns fileToFuns; // Look up in 'sources' first, then can find the corresponding function here
-	immutable Arr!ubyte text;
+	immutable ubyte[] text;
 	immutable ByteCodeIndex main;
 
 	immutable this(
-		immutable Arr!u8 bc,
+		immutable u8[] bc,
 		immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) s,
 		immutable FileToFuns ff,
-		immutable Arr!ubyte t,
+		immutable ubyte[] t,
 		immutable ByteCodeIndex m,
 	) {
 		byteCode = bc;
@@ -371,7 +371,7 @@ struct Operation {
 	struct ExternDynCall {
 		immutable NulTerminatedStr name;
 		immutable DynCallType returnType;
-		immutable Arr!DynCallType parameterTypes;
+		immutable DynCallType[] parameterTypes;
 	}
 
 	// Runs a special function (stack effect determined by the function)
@@ -385,7 +385,7 @@ struct Operation {
 	}
 
 	struct Pack {
-		immutable Arr!Nat8 sizes;
+		immutable Nat8[] sizes;
 	}
 
 	// Push the value onto the stack.
@@ -417,7 +417,7 @@ struct Operation {
 	// A 0th offset is needed because otherwise there's no way to know how many cases there are.
 	struct Switch {
 		// The reader can't return the offsets since it doesn't have a length
-		immutable Arr!ByteCodeOffsetUnsigned offsets;
+		immutable ByteCodeOffsetUnsigned[] offsets;
 	}
 
 	// Pop divRoundUp(size, stackEntrySize) stack entries, then pop a pointer, then write to ptr + offset
@@ -594,7 +594,7 @@ enum FnOp : u8 {
 	wrapSubIntegral,
 }
 
-private immutable(Str) strOfExternOp(immutable ExternOp op) {
+private immutable(string) strOfExternOp(immutable ExternOp op) {
 	return strLiteral(() {
 		final switch (op) {
 			case ExternOp.backtrace:
@@ -629,7 +629,7 @@ private immutable(Str) strOfExternOp(immutable ExternOp op) {
 	}());
 }
 
-private immutable(Str) strOfFnOp(immutable FnOp fnOp) {
+private immutable(string) strOfFnOp(immutable FnOp fnOp) {
 	return strLiteral(() { final switch (fnOp) {
 		case FnOp.addFloat64:
 			return "add-float-64";

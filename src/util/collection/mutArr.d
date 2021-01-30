@@ -3,7 +3,6 @@ module util.collection.mutArr;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
-import util.collection.arr : Arr;
 import util.memory : initMemory_mut, memcpy, overwriteMemory;
 import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
 import util.util : verify;
@@ -110,8 +109,8 @@ T mustPop(T)(ref MutArr!T a) {
 	return a.begin_[0..a.size_];
 }
 
-@trusted immutable(Arr!T) moveToArr(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a) {
-	immutable Arr!T res = cast(immutable) a.begin_[0..a.size_];
+@trusted immutable(T[]) moveToArr(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a) {
+	immutable T[] res = cast(immutable) a.begin_[0..a.size_];
 	alloc.freeBytesPartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
 	a.size_ = 0;
@@ -119,7 +118,7 @@ T mustPop(T)(ref MutArr!T a) {
 	return res;
 }
 
-@trusted const(Arr!T) moveToArr_const(T, Alloc)(ref Alloc alloc, ref MutArr!T a) {
+@trusted const(T[]) moveToArr_const(T, Alloc)(ref Alloc alloc, ref MutArr!T a) {
 	const T[] res = a.begin_[0..a.size_];
 	alloc.freeBytesPartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
@@ -133,10 +132,10 @@ T mustPop(T)(ref MutArr!T a) {
 	return a.begin_[a.size_ - 1];
 }
 
-@trusted const(Arr!T) tempAsArr(T)(ref const MutArr!T a) {
+@trusted const(T[]) tempAsArr(T)(ref const MutArr!T a) {
 	return a.begin_[0..a.size_];
 }
-@trusted Arr!T tempAsArr_mut(T)(ref MutArr!T a) {
+@trusted T[] tempAsArr_mut(T)(ref MutArr!T a) {
 	return a.begin_[0..a.size_];
 }
 

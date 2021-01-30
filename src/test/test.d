@@ -15,13 +15,13 @@ import test.testSym : testSym;
 import test.testTokens : testTokens;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
-import util.collection.str : Str, strEqLiteral;
+import util.collection.str : strEqLiteral;
 import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols;
 
-int test(Debug, Alloc)(ref Debug dbg, ref Alloc alloc, immutable Opt!Str name) {
+int test(Debug, Alloc)(ref Debug dbg, ref Alloc alloc, immutable Opt!string name) {
 	Test!(Debug, Alloc) test = Test!(Debug, Alloc)(
 		ptrTrustMe_mut(dbg),
 		ptrTrustMe_mut(alloc),

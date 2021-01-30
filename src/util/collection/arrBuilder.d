@@ -3,7 +3,7 @@ module util.collection.arrBuilder;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
-import util.collection.arr : Arr, ArrWithSize, begin, emptyArrWithSize;
+import util.collection.arr : ArrWithSize, begin, emptyArrWithSize;
 import util.collection.mutArr : moveToArr, MutArr, mutArrIsEmpty, mutArrSize, push, pushAll;
 import util.memory : initMemory;
 import util.util : verify;
@@ -20,11 +20,11 @@ void addAll(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable T[] value) 
 	pushAll(alloc, a.data, value);
 }
 
-immutable(Arr!T) finishArr_immutable(T, Alloc)(ref Alloc alloc, ref ArrBuilder!(immutable T) a) {
+immutable(T[]) finishArr_immutable(T, Alloc)(ref Alloc alloc, ref ArrBuilder!(immutable T) a) {
 	return moveToArr(alloc, a.data);
 }
 
-immutable(Arr!T) finishArr(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a) {
+immutable(T[]) finishArr(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a) {
 	return moveToArr(alloc, a.data);
 }
 
@@ -68,7 +68,7 @@ immutable(size_t) arrWithSizeBuilderSize(T)(ref const ArrWithSizeBuilder!T a) {
 	return a.size_;
 }
 
-@trusted immutable(Arr!T) arrWithSizeBuilderAsTempArr(T)(ref const ArrWithSizeBuilder!T a) {
+@trusted immutable(T[]) arrWithSizeBuilderAsTempArr(T)(ref const ArrWithSizeBuilder!T a) {
 	return cast(immutable) begin(a)[0..a.size_];
 }
 

@@ -5,7 +5,7 @@ module util.dictReadOnlyStorage;
 import frontend.lang : crowExtension;
 import model.model : AbsolutePathsGetter;
 import util.collection.mutDict : getAt_mut, MutDict;
-import util.collection.str : NulTerminatedStr, Str, strEq, strLiteral;
+import util.collection.str : NulTerminatedStr, strEq, strLiteral;
 import util.opt : asImmutable, Opt;
 import util.path : comparePathAndStorageKind, PathAndStorageKind;
 import util.ptr : Ptr;
@@ -20,7 +20,7 @@ struct DictReadOnlyStorage {
 
 	immutable(T) withFile(T)(
 		ref immutable PathAndStorageKind pk,
-		immutable Str extension,
+		immutable string extension,
 		scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 	) const {
 		verify(strEq(extension, crowExtension));

@@ -2,7 +2,7 @@ module util.collection.dictUtil;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr, ptrAt, size;
+import util.collection.arr : ptrAt, size;
 import util.collection.dict : KeyValuePair;
 import util.collection.multiDict : MultiDict;
 import util.comparison : Comparison;
@@ -11,7 +11,7 @@ import util.ptr : Ptr;
 
 @trusted immutable(MultiDict!(K, V, compare)) buildMultiDict(K, V, alias compare, T, Alloc)(
 	ref Alloc alloc,
-	immutable Arr!T inputs,
+	immutable T[] inputs,
 	scope immutable(KeyValuePair!(K, V)) delegate(immutable size_t, immutable Ptr!T) @safe @nogc pure nothrow getPair,
 ) {
 	immutable(K)* keys = cast(immutable K*) alloc.allocateBytes(K.sizeof * size(inputs));

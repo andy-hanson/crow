@@ -58,7 +58,7 @@ import util.bools : Bool, False, True;
 import util.collection.arr : ArrWithSize, empty, emptyArrWithSize, toArr;
 import util.collection.arrUtil : append, arrWithSizeLiteral, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
-import util.collection.str : CStr, Str;
+import util.collection.str : CStr;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : Ptr;
@@ -815,7 +815,7 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			if (isOperatorChar(c))
 				return handleName(takeOperator(alloc, lexer, begin));
 			else if (isAlphaIdentifierStart(c)) {
-				immutable Str nameStr = takeNameRest(lexer, begin);
+				immutable string nameStr = takeNameRest(lexer, begin);
 				immutable Sym name = getSymFromAlphaIdentifier(lexer.allSymbols, nameStr);
 				if (isReservedName(name))
 					switch (name.value) {

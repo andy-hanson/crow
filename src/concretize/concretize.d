@@ -33,14 +33,14 @@ import model.model :
 	typeArgs,
 	typeEquals;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, emptyArr, only, size;
+import util.collection.arr : at, emptyArr, only, size;
 import util.collection.arrBuilder : finishArr_immutable;
 import util.collection.dict : getAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
 import util.collection.mutArr : moveToArr, MutArr;
 import util.collection.mutDict : mapToDict, mutDictIsEmpty;
 import util.collection.mutSet : moveToArr;
-import util.collection.str : Str, strLiteral;
+import util.collection.str : strLiteral;
 import util.memory : nu;
 import util.opt : force, has, Opt;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
@@ -72,7 +72,7 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 	// We remove items from these dicts when we process them.
 	verify(mutDictIsEmpty(ctx.concreteFunToBodyInputs));
 
-	immutable Arr!(Ptr!ConcreteFun) allConcreteFuns = finishArr_immutable(alloc, ctx.allConcreteFuns);
+	immutable Ptr!ConcreteFun[] allConcreteFuns = finishArr_immutable(alloc, ctx.allConcreteFuns);
 	immutable ConcreteFunToName funToName = getFunToName(alloc, ctx, allConcreteFuns);
 
 	return nu!ConcreteProgram(
@@ -101,13 +101,13 @@ private:
 immutable(ConcreteFunToName) getFunToName(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	ref immutable Arr!(Ptr!ConcreteFun) allConcreteFuns,
+	immutable Ptr!ConcreteFun[] allConcreteFuns,
 ) {
 	DictBuilder!(Ptr!ConcreteFun, Constant, comparePtr!ConcreteFun) res;
 	foreach (immutable Ptr!ConcreteFun f; allConcreteFuns) {
 		Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 		writeConcreteFunName(writer, f);
-		immutable Str name = finishWriter(writer);
+		immutable string name = finishWriter(writer);
 		addToDict(alloc, res, f, constantStr(alloc, ctx, name));
 	}
 	return finishDictShouldBeNoConflict(alloc, res);
@@ -146,7 +146,7 @@ void checkRtMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr!F
 		todo!void("rt main is template?");
 	if (!isInt32(commonTypes, returnType(mainFun)))
 		todo!void("checkRtMainSignature doesn't return int");
-	immutable Arr!Param params = params(mainFun);
+	immutable Param[] params = params(mainFun);
 	if (size(params) != 3)
 		todo!void("checkRtMainSignature wrong number params");
 	if (!isInt32(commonTypes, at(params, 0).type))
@@ -162,7 +162,7 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr
 		todo!void("main is template?");
 	if (!isFutNat(commonTypes, returnType(mainFun)))
 		todo!void("checkUserMainSignature doesn't return fut nat");
-	immutable Arr!Param params = params(mainFun);
+	immutable Param[] params = params(mainFun);
 	if (size(params) != 1)
 		todo!void("checkUserMainSignature should take 1 param");
 	if (!isArrStr(commonTypes, only(params).type))
@@ -170,7 +170,7 @@ void checkUserMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr
 }
 
 immutable(Ptr!FunInst) getMarkFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) markFuns = getFuns(program.specialModules.allocModule, shortSymAlphaLiteral("mark"));
+	immutable Ptr!FunDecl[] markFuns = getFuns(program.specialModules.allocModule, shortSymAlphaLiteral("mark"));
 	if (size(markFuns) != 1)
 		todo!void("wong number mark funs");
 	immutable Ptr!FunDecl markFun = only(markFuns);
@@ -179,7 +179,7 @@ immutable(Ptr!FunInst) getMarkFun(Alloc)(ref Alloc alloc, ref immutable Program 
 }
 
 immutable(Ptr!FunInst) getRtMainFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) mainFuns =
+	immutable Ptr!FunDecl[] mainFuns =
 		getFuns(program.specialModules.runtimeMainModule, shortSymAlphaLiteral("rt-main"));
 	if (size(mainFuns) != 1)
 		todo!void("wrong number rt-main funs");
@@ -189,7 +189,7 @@ immutable(Ptr!FunInst) getRtMainFun(Alloc)(ref Alloc alloc, ref immutable Progra
 }
 
 immutable(Ptr!FunInst) getUserMainFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) mainFuns = getFuns(program.specialModules.mainModule, shortSymAlphaLiteral("main"));
+	immutable Ptr!FunDecl[] mainFuns = getFuns(program.specialModules.mainModule, shortSymAlphaLiteral("main"));
 	if (size(mainFuns) != 1)
 		todo!void("wrong number main funs");
 	immutable Ptr!FunDecl mainFun = only(mainFuns);
@@ -198,7 +198,7 @@ immutable(Ptr!FunInst) getUserMainFun(Alloc)(ref Alloc alloc, ref immutable Prog
 }
 
 immutable(Ptr!FunInst) getAllocFun(Alloc)(ref Alloc alloc, ref immutable Program program) {
-	immutable Arr!(Ptr!FunDecl) allocFuns = getFuns(program.specialModules.allocModule, shortSymAlphaLiteral("alloc"));
+	immutable Ptr!FunDecl[] allocFuns = getFuns(program.specialModules.allocModule, shortSymAlphaLiteral("alloc"));
 	if (size(allocFuns) != 1)
 		todo!void("wrong number alloc funs");
 	immutable Ptr!FunDecl allocFun = only(allocFuns);
@@ -211,15 +211,15 @@ immutable(Ptr!FunInst) getCurIslandAndExclusionFun(Alloc, SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Program program,
 ) {
-	immutable Str name = strLiteral("cur-island-and-exclusion");
+	immutable string name = strLiteral("cur-island-and-exclusion");
 	immutable Sym sym = getSymFromAlphaIdentifier(allSymbols, name);
-	immutable Arr!(Ptr!FunDecl) funs = getFuns(program.specialModules.runtimeModule, sym);
+	immutable Ptr!FunDecl[] funs = getFuns(program.specialModules.runtimeModule, sym);
 	if (size(funs) != 1)
 		todo!void("wrong number cur-island-and=exclusion funs");
 	return nonTemplateFunInst(alloc, only(funs));
 }
 
-immutable(Arr!(Ptr!FunDecl)) getFuns(ref immutable Module a, immutable Sym name) {
+immutable(Ptr!FunDecl[]) getFuns(ref immutable Module a, immutable Sym name) {
 	immutable Opt!NameReferents optReferents = getAt(a.allExportedNames, name);
 	return has(optReferents) ? force(optReferents).funs : emptyArr!(Ptr!FunDecl);
 }

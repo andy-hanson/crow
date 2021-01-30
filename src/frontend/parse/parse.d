@@ -58,9 +58,9 @@ import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseType : parseType, parseTypeInstStruct, takeTypeArgsEnd, tryParseTypeArgsBracketed;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, emptyArr, emptyArrWithSize;
+import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, ArrWithSizeBuilder, finishArr;
-import util.collection.str : CStr, emptyStr, NulTerminatedStr, Str;
+import util.collection.str : CStr, emptyStr, NulTerminatedStr;
 import util.memory : allocate, nu;
 import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.path : AllPaths, childPath, Path, rootPath;
@@ -72,7 +72,7 @@ import util.util : todo, unreachable, verify;
 
 struct FileAstAndParseDiagnostics {
 	immutable Ptr!FileAst ast;
-	immutable Arr!ParseDiagnostic diagnostics;
+	immutable ParseDiagnostic[] diagnostics;
 }
 
 immutable(FileAstAndParseDiagnostics) parseFile(Alloc, PathAlloc, SymAlloc)(
@@ -132,7 +132,7 @@ struct ImportAndDedent {
 }
 
 struct NamesAndDedent {
-	immutable Opt!(Arr!Sym) names;
+	immutable Opt!(Sym[]) names;
 	immutable RangeWithinFile range;
 	immutable NewlineOrDedent dedented;
 }
@@ -185,11 +185,11 @@ immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(Alloc, PathAlloc, Sy
 						parseIndentedImportNames(alloc, lexer, start),
 					(immutable RangeWithinFile, immutable uint dedent) =>
 						immutable NamesAndDedent(
-							none!(Arr!Sym),
+							none!(Sym[]),
 							range(lexer, start),
 							newlineOrDedentFromNumber(dedent)));
 		}
-		return immutable NamesAndDedent(none!(Arr!Sym), range(lexer, start), takeNewlineOrSingleDedent(alloc, lexer));
+		return immutable NamesAndDedent(none!(Sym[]), range(lexer, start), takeNewlineOrSingleDedent(alloc, lexer));
 	}();
 	return immutable ImportAndDedent(
 		immutable ImportAst(names.range, path.nDots, path.path, names.names),
@@ -242,7 +242,7 @@ immutable(NamesAndDedent) parseIndentedImportNames(Alloc, SymAlloc)(
 	return immutable NamesAndDedent(some!(Sym[])(finishArr(alloc, names)), res.range, res.newlineOrDedent);
 }
 
-immutable(Arr!Sym) parseSingleImportNamesOnSingleLine(Alloc, SymAlloc)(
+immutable(Sym[]) parseSingleImportNamesOnSingleLine(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
@@ -355,7 +355,7 @@ immutable(SigAstAndDedent) parseSig(Alloc, SymAlloc)(
 	return SigAstAndDedent(s.sig, dedents);
 }
 
-immutable(Arr!SigAst) parseIndentedSigs(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(SigAst[]) parseIndentedSigs(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	ArrBuilder!SigAst res;
 	for (;;) {
 		immutable SigAstAndDedent sd = parseSig(alloc, lexer, 1);
@@ -482,7 +482,7 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 	return recur(immutable RecordModifiers(none!Pos, none!ExplicitByValOrRefAndRange));
 }
 
-immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
+immutable(TypeAst.InstStruct[]) parseUnionMembers(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
@@ -494,7 +494,7 @@ immutable(Arr!(TypeAst.InstStruct)) parseUnionMembers(Alloc, SymAlloc)(
 }
 
 struct SpecUsesAndSigFlagsAndKwBody {
-	immutable Arr!SpecUseAst specUses;
+	immutable SpecUseAst[] specUses;
 	immutable Bool noCtx;
 	immutable Bool summon;
 	immutable Bool unsafe;
@@ -504,7 +504,7 @@ struct SpecUsesAndSigFlagsAndKwBody {
 
 immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 	SpecUsesAndSigFlagsAndKwBody(
-		emptyArr!SpecUseAst,
+		[],
 		False,
 		False,
 		False,
@@ -517,8 +517,8 @@ immutable(FunBodyAst.Extern) takeExternName(Alloc, SymAlloc)(
 	immutable Bool isGlobal,
 ) {
 	if (tryTake(lexer, '<')) {
-		immutable Str externName = takeQuotedStr(lexer, alloc);
-		immutable Opt!Str libraryName = tryTake(lexer, ", ") ? some(takeQuotedStr(lexer, alloc)) : none!Str;
+		immutable string externName = takeQuotedStr(lexer, alloc);
+		immutable Opt!string libraryName = tryTake(lexer, ", ") ? some(takeQuotedStr(lexer, alloc)) : none!string;
 		takeTypeArgsEnd(alloc, lexer);
 		return immutable FunBodyAst.Extern(isGlobal, externName, libraryName);
 	} else {
@@ -526,7 +526,7 @@ immutable(FunBodyAst.Extern) takeExternName(Alloc, SymAlloc)(
 			alloc,
 			lexer,
 			immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.externName)));
-		return immutable FunBodyAst.Extern(isGlobal, emptyStr, none!Str);
+		return immutable FunBodyAst.Extern(isGlobal, emptyStr, none!string);
 	}
 }
 
@@ -540,7 +540,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 	immutable Bool trusted,
 	immutable Bool builtin,
 	immutable Opt!(FunBodyAst.Extern) extern_,
-	immutable Opt!Str mangle,
+	immutable Opt!string mangle,
 	scope immutable(Bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
 	immutable Pos start = curPos(lexer);
@@ -602,7 +602,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(Alloc, SymAlloc)(
 	immutable Bool trusted,
 	immutable Bool builtin,
 	immutable Opt!(FunBodyAst.Extern) extern_,
-	immutable Opt!Str mangle,
+	immutable Opt!string mangle,
 	scope immutable(Bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
 	if (canTakeNext())
@@ -644,7 +644,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(Alloc, SymAlloc)(
 			False,
 			False,
 			none!(FunBodyAst.Extern),
-			none!Str,
+			none!string,
 			() => immutable Bool(takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline));
 	} else
 		return immutable SpecUsesAndSigFlagsAndKwBody(
@@ -672,7 +672,7 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(Alloc,
 		False,
 		False,
 		none!(FunBodyAst.Extern),
-		none!Str,
+		none!string,
 		() => tryTake(lexer, ' '));
 }
 
@@ -797,7 +797,7 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 						todo!void("always indent spec");
 					if (has(purity))
 						todo!void("spec shouldn't have purity");
-					immutable Arr!SigAst sigs = parseIndentedSigs(alloc, lexer);
+					immutable SigAst[] sigs = parseIndentedSigs(alloc, lexer);
 					add(
 						alloc,
 						specs,

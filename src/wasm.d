@@ -14,8 +14,8 @@ import lib.server :
 	StrParseDiagnostic;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.bools : Bool, False;
-import util.collection.arr : Arr, size;
-import util.collection.str : CStr, Str, strToCStr;
+import util.collection.arr : size;
+import util.collection.str : CStr, string, strToCStr;
 import util.path : StorageKind;
 import util.ptr : ptrTrustMe_mut;
 import util.repr : Repr, jsonStrOfRepr, nameAndRepr, reprArr, reprNamedRecord, reprStr;
@@ -55,8 +55,8 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 	immutable size_t contentLength,
 ) {
 	WasmDebug dbg = WasmDebug(debugStart, debugLength);
-	immutable Str path = pathStart[0..pathLength];
-	immutable Str content = contentStart[0..contentLength];
+	immutable string path = pathStart[0..pathLength];
+	immutable string content = contentStart[0..contentLength];
 	addOrChangeFile(dbg, *server, storageKind, path, content);
 }
 
@@ -85,7 +85,7 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 	immutable char* pathStart, immutable size_t pathLength,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
-	immutable Arr!Token tokens = getTokens(resultAlloc, *server, storageKind, pathStart[0..pathLength]);
+	immutable Token[] tokens = getTokens(resultAlloc, *server, storageKind, pathStart[0..pathLength]);
 	immutable Repr repr = reprTokens(resultAlloc, tokens);
 	return jsonStrOfRepr(resultAlloc, repr);
 }
@@ -99,7 +99,7 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 	immutable size_t pathLength,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
-	immutable Arr!StrParseDiagnostic diags =
+	immutable StrParseDiagnostic[] diags =
 		getParseDiagnostics(resultAlloc, *server, storageKind, pathStart[0..pathLength]);
 	immutable Repr repr = reprParseDiagnostics(resultAlloc, diags);
 	return jsonStrOfRepr(resultAlloc, repr);
@@ -118,8 +118,8 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	WasmDebug dbg = WasmDebug(debugStart, debugLength);
-	immutable Str path = pathStart[0..pathLength];
-	immutable Str hover = getHover(dbg, resultAlloc, *server, storageKind, path, pos);
+	immutable string path = pathStart[0..pathLength];
+	immutable string hover = getHover(dbg, resultAlloc, *server, storageKind, path, pos);
 	return strToCStr(resultAlloc, hover);
 }
 
@@ -142,7 +142,7 @@ private:
 
 ubyte[1024 * 1024 * 1024] globalBuffer;
 
-immutable(Repr) reprParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable Arr!StrParseDiagnostic a) {
+immutable(Repr) reprParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable StrParseDiagnostic[] a) {
 	return reprArr(alloc, a, (ref immutable StrParseDiagnostic it) =>
 		reprNamedRecord(alloc, "diagnostic", [
 			nameAndRepr("range", reprRangeWithinFile(alloc, it.range)),
@@ -157,7 +157,7 @@ struct WasmDebug {
 		return False;
 	}
 
-	void write(scope ref immutable Str a) {
+	void write(scope ref immutable string a) {
 		foreach (immutable char c; a)
 			writeChar(c);
 		writeChar('\n');

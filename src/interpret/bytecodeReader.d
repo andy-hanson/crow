@@ -13,7 +13,7 @@ import interpret.bytecode :
 	Operation,
 	StackOffset;
 import interpret.opcode : OpCode;
-import util.collection.arr : Arr, at;
+import util.collection.arr : at;
 import util.collection.byteReader :
 	ByteReader,
 	getPtr,
@@ -81,7 +81,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 			immutable NulTerminatedStr name = readNulTerminatedStr(reader.reader);
 			static assert(DynCallType.sizeof == Nat8.sizeof);
 			immutable DynCallType returnType = cast(immutable DynCallType) readU8(reader.reader).raw();
-			immutable Arr!DynCallType parameterTypes =
+			immutable DynCallType[] parameterTypes =
 				readArray!DynCallType(reader.reader, readU8(reader.reader).raw());
 			return immutable Operation(immutable Operation.ExternDynCall(name, returnType, parameterTypes));
 		case OpCode.fn:
@@ -105,8 +105,8 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 			return immutable Operation(immutable Operation.StackRef(readStackOffset(reader)));
 		case OpCode.switch_:
 			immutable Nat32 size = readU32(reader.reader);
-			immutable Arr!Nat16 offsets = readArrayDoNotSkipBytes!Nat16(reader.reader, size.raw());
-			return immutable Operation(immutable Operation.Switch(cast(immutable Arr!ByteCodeOffsetUnsigned) offsets));
+			immutable Nat16[] offsets = readArrayDoNotSkipBytes!Nat16(reader.reader, size.raw());
+			return immutable Operation(immutable Operation.Switch(cast(immutable ByteCodeOffsetUnsigned[]) offsets));
 		case OpCode.write:
 			return immutable Operation(immutable Operation.Write(readU16(reader.reader), readU16(reader.reader)));
 	}
@@ -119,7 +119,7 @@ void setReaderPtr(ref ByteCodeReader reader, immutable u8* bytes) {
 @trusted void readerSwitch(
 	ref ByteCodeReader reader,
 	immutable Nat64 value,
-	immutable Arr!ByteCodeOffsetUnsigned offsets,
+	immutable ByteCodeOffsetUnsigned[] offsets,
 ) {
 	immutable ByteCodeOffsetUnsigned offset = at(offsets, safeSizeTFromU64(value.raw()));
 	// Jump is relative to after value.

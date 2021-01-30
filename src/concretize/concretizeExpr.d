@@ -67,7 +67,7 @@ import model.model :
 	Type,
 	typeArgs;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, emptyArr, ptrAt, size;
+import util.collection.arr : at, empty, emptyArr, ptrAt, size;
 import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
 import util.collection.mutArr : MutArr, mutArrSize, push;
 import util.collection.mutDict : addToMutDict, getOrAdd, mustDelete, mustGetAt_mut, MutDict;
@@ -160,10 +160,10 @@ immutable(ConcreteType) getConcreteType_forStructInst(Alloc)(
 	return getConcreteType_forStructInst_fromConcretizeCtx(alloc, ctx.concretizeCtx, i, s);
 }
 
-immutable(Arr!ConcreteType) typesToConcreteTypes(Alloc)(
+immutable(ConcreteType[]) typesToConcreteTypes(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	immutable Arr!Type typeArgs,
+	immutable Type[] typeArgs,
 ) {
 	immutable TypeArgsScope s = typeScope(ctx);
 	return typesToConcreteTypes_fromConcretizeCtx(alloc, ctx.concretizeCtx, typeArgs, s);
@@ -186,11 +186,11 @@ immutable(ConcreteExpr) concretizeCall(Alloc)(
 			: immutable ConstantsOrExprs(getArgs(alloc, ctx, e.args));
 	return matchConstantsOrExprs!(immutable ConcreteExpr)(
 		args,
-		(ref immutable Arr!Constant constants) => immutable ConcreteExpr(
+		(ref immutable Constant[] constants) => immutable ConcreteExpr(
 			concreteCalled.returnType,
 			range,
 			immutable ConcreteExprKind(evalConstant(concreteCalled, constants))),
-		(ref immutable Arr!ConcreteExpr exprs) => immutable ConcreteExpr(
+		(ref immutable ConcreteExpr[] exprs) => immutable ConcreteExpr(
 			concreteCalled.returnType,
 			range,
 			immutable ConcreteExprKind(immutable ConcreteExprKind.Call(concreteCalled, exprs))));
@@ -214,8 +214,8 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromFunInst(Alloc)(
 	ref ConcretizeExprCtx ctx,
 	immutable Ptr!FunInst funInst,
 ) {
-	immutable Arr!ConcreteType typeArgs = typesToConcreteTypes(alloc, ctx, typeArgs(funInst.deref));
-	immutable Arr!(Ptr!ConcreteFun) specImpls = map!(Ptr!ConcreteFun)(
+	immutable ConcreteType[] typeArgs = typesToConcreteTypes(alloc, ctx, typeArgs(funInst.deref));
+	immutable Ptr!ConcreteFun[] specImpls = map!(Ptr!ConcreteFun)(
 		alloc,
 		specImpls(funInst),
 		(ref immutable Called it) => getConcreteFunFromCalled(alloc, ctx, it));
@@ -242,12 +242,12 @@ immutable(ConcreteExpr) concretizeClosureFieldRef(Alloc)(
 struct ConstantsOrExprs {
 	@safe @nogc pure nothrow:
 
-	@trusted immutable this(immutable Arr!Constant a) {
+	@trusted immutable this(immutable Constant[] a) {
 		verify(inlineConstants);
 		kind_ = Kind.constants;
 		constants = a;
 	}
-	@trusted immutable this(immutable Arr!ConcreteExpr a) { kind_ = Kind.exprs; exprs = a; }
+	@trusted immutable this(immutable ConcreteExpr[] a) { kind_ = Kind.exprs; exprs = a; }
 
 	private:
 	enum Kind {
@@ -256,15 +256,15 @@ struct ConstantsOrExprs {
 	}
 	immutable Kind kind_;
 	union {
-		immutable Arr!Constant constants;
-		immutable Arr!ConcreteExpr exprs;
+		immutable Constant[] constants;
+		immutable ConcreteExpr[] exprs;
 	}
 }
 
 @trusted T matchConstantsOrExprs(T)(
 	ref immutable ConstantsOrExprs a,
-	scope T delegate(ref immutable Arr!Constant) @safe @nogc pure nothrow cbConstants,
-	scope T delegate(ref immutable Arr!ConcreteExpr) @safe @nogc pure nothrow cbExprs,
+	scope T delegate(ref immutable Constant[]) @safe @nogc pure nothrow cbConstants,
+	scope T delegate(ref immutable ConcreteExpr[]) @safe @nogc pure nothrow cbExprs,
 ) {
 	final switch (a.kind_) {
 		case ConstantsOrExprs.Kind.constants:
@@ -277,18 +277,18 @@ struct ConstantsOrExprs {
 immutable(ConstantsOrExprs) getConstantsOrExprs(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	ref immutable Arr!Expr argExprs,
+	ref immutable Expr[] argExprs,
 ) {
-	immutable Arr!ConcreteExpr exprs = getArgs(alloc, ctx, argExprs);
+	immutable ConcreteExpr[] exprs = getArgs(alloc, ctx, argExprs);
 	return inlineConstants && every(exprs, (ref immutable ConcreteExpr arg) => isConstant(arg.kind))
 		? immutable ConstantsOrExprs(map(alloc, exprs, (ref immutable ConcreteExpr arg) => asConstant(arg.kind)))
 		: immutable ConstantsOrExprs(exprs);
 }
 
-immutable(Arr!ConcreteExpr) getArgs(Alloc)(
+immutable(ConcreteExpr[]) getArgs(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeExprCtx ctx,
-	ref immutable Arr!Expr argExprs,
+	ref immutable Expr[] argExprs,
 ) {
 	return map(alloc, argExprs, (ref immutable Expr arg) =>
 		concretizeExpr(alloc, ctx, arg));
@@ -312,10 +312,10 @@ immutable(ConcreteExpr) getGetIslandAndExclusion(Alloc)(
 		immutable ConcreteExprKind.Call(getCurIslandAndExclusionFun(alloc, ctx.concretizeCtx), emptyArr!ConcreteExpr)));
 }
 
-immutable(Arr!ConcreteField) concretizeClosureFields(Alloc)(
+immutable(ConcreteField[]) concretizeClosureFields(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	ref immutable Arr!(Ptr!ClosureField) closure,
+	ref immutable Ptr!ClosureField[] closure,
 	ref immutable TypeArgsScope typeArgsScope,
 ) {
 	return mapWithIndex!ConcreteField(alloc, closure, (immutable size_t index, ref immutable Ptr!ClosureField it) =>
@@ -352,15 +352,15 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 	ctx.nextLambdaIndex++;
 
 	immutable TypeArgsScope tScope = typeScope(ctx);
-	immutable Arr!ConcreteParam params = concretizeParams(alloc, ctx.concretizeCtx, e.params, tScope);
+	immutable ConcreteParam[] params = concretizeParams(alloc, ctx.concretizeCtx, e.params, tScope);
 
 	immutable ConcreteType concreteType = getConcreteType_forStructInst(alloc, ctx, e.type);
 	immutable Ptr!ConcreteStruct concreteStruct = mustBeNonPointer(concreteType);
 
-	immutable Arr!ConcreteExpr closureArgs =
+	immutable ConcreteExpr[] closureArgs =
 		map!ConcreteExpr(alloc, e.closure, (ref immutable Ptr!ClosureField f) =>
 			concretizeExpr(alloc, ctx, f.expr));
-	immutable Arr!ConcreteField closureFields =
+	immutable ConcreteField[] closureFields =
 		concretizeClosureFields(alloc, ctx.concretizeCtx, e.closure, tScope);
 	immutable ConcreteType closureType = concreteTypeFromClosure(
 		alloc,
@@ -402,7 +402,7 @@ immutable(ConcreteExpr) concretizeLambda(Alloc)(
 	}
 	if (e.kind == FunKind.ref_) {
 		// For a fun-ref this is the inner 'act' type.
-		immutable Arr!ConcreteField fields = asRecord(body_(concreteStruct)).fields;
+		immutable ConcreteField[] fields = asRecord(body_(concreteStruct)).fields;
 		verify(size(fields) == 2);
 		immutable ConcreteField islandAndExclusionField = at(fields, 0);
 		verify(symEqLongAlphaLiteral(name(islandAndExclusionField), "island-and-exclusion"));
@@ -513,7 +513,7 @@ immutable(ConcreteExpr) concretizeMatch(Alloc)(
 		} else
 			return concretizeExpr(alloc, ctx, case_.then);
 	} else {
-		immutable Arr!(ConcreteExprKind.Match.Case) cases = map!(ConcreteExprKind.Match.Case)(
+		immutable ConcreteExprKind.Match.Case[] cases = map!(ConcreteExprKind.Match.Case)(
 			alloc,
 			e.cases,
 			(ref immutable Expr.Match.Case case_) {
@@ -593,10 +593,10 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 			immutable ConcreteType elementType = getConcreteType(alloc, ctx, elementType(e));
 			return matchConstantsOrExprs!(immutable ConcreteExpr)(
 				args,
-				(ref immutable Arr!Constant constants) =>
+				(ref immutable Constant[] constants) =>
 					immutable ConcreteExpr(arrayType, range, immutable ConcreteExprKind(
 						getConstantArr(alloc, ctx.concretizeCtx.allConstants, arrayStruct, elementType, constants))),
-				(ref immutable Arr!ConcreteExpr exprs) {
+				(ref immutable ConcreteExpr[] exprs) {
 					return immutable ConcreteExpr(arrayType, range, immutable ConcreteExprKind(
 						allocate(alloc, immutable ConcreteExprKind.CreateArr(arrayStruct, elementType, exprs))));
 				});
@@ -650,6 +650,6 @@ immutable(ConcreteExpr) concretizeExpr(Alloc)(
 		});
 }
 
-immutable(Constant) evalConstant(ref immutable ConcreteFun fn, immutable Arr!Constant /*parameters*/) {
+immutable(Constant) evalConstant(ref immutable ConcreteFun fn, immutable Constant[] /*parameters*/) {
 	return todo!(immutable Constant)("evalConstant");
 }

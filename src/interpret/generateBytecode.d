@@ -85,7 +85,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.model : FunDecl, Module, name, Program, range;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, only, size, sizeNat;
+import util.collection.arr : at, only, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.fullIndexDict :
 	FullIndexDict,
@@ -100,7 +100,7 @@ import util.collection.mutIndexMultiDict :
 	mutIndexMultiDictAdd,
 	mutIndexMultiDictMustGetAt,
 	newMutIndexMultiDict;
-import util.collection.str : Str, strEqLiteral;
+import util.collection.str : strEqLiteral;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
@@ -161,7 +161,7 @@ private:
 immutable(FileToFuns) fileToFuns(Alloc)(ref Alloc alloc, ref immutable Program program) {
 	immutable FullIndexDict!(FileIndex, Ptr!Module) modulesDict =
 		fullIndexDictOfArr!(FileIndex, Ptr!Module)(program.allModules);
-	return mapFullIndexDict!(FileIndex, Arr!FunNameAndPos, Ptr!Module, Alloc)(
+	return mapFullIndexDict!(FileIndex, FunNameAndPos[], Ptr!Module, Alloc)(
 		alloc,
 		modulesDict,
 		(immutable FileIndex, ref immutable Ptr!Module module_) =>
@@ -199,7 +199,7 @@ void generateBytecodeForFun(Debug, TempAlloc, CodeAlloc)(
 	ref immutable LowFun fun,
 ) {
 	Nat16 stackEntry = Nat16(0);
-	immutable Arr!StackEntries parameters = map!StackEntries(
+	immutable StackEntries[] parameters = map!StackEntries(
 		tempAlloc,
 		fun.params,
 		(ref immutable LowParam it) {
@@ -262,7 +262,7 @@ void generateExternCall(Debug, TempAlloc, CodeAlloc)(
 	if (has(op))
 		writeExtern(writer, source, force(op));
 	else {
-		immutable Arr!DynCallType parameterTypes = map(tempAlloc, fun.params, (ref immutable LowParam it) =>
+		immutable DynCallType[] parameterTypes = map(tempAlloc, fun.params, (ref immutable LowParam it) =>
 			toDynCallType(it.type));
 		immutable DynCallType returnType = toDynCallType(fun.returnType);
 		writeExternDynCall(writer, source, a.externName, returnType, parameterTypes);
@@ -315,7 +315,7 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 			unreachable!(immutable DynCallType));
 }
 
-immutable(Opt!ExternOp) externOpFromName(immutable Str a) {
+immutable(Opt!ExternOp) externOpFromName(immutable string a) {
 	return strEqLiteral(a, "backtrace")
 			? some(ExternOp.backtrace)
 		: strEqLiteral(a, "clock_gettime")
@@ -357,7 +357,7 @@ struct ExprCtx {
 	Ptr!(MutIndexMultiDict!(LowFunIndex, ByteCodeIndex)) funToReferences;
 	immutable ByteCodeIndex startOfCurrentFun;
 	immutable StackEntry regularParametersStart;
-	immutable Arr!StackEntries parameterEntries;
+	immutable StackEntries[] parameterEntries;
 	MutDict!(immutable Ptr!LowLocal, immutable StackEntries, comparePtr!LowLocal) localEntries;
 }
 
@@ -422,7 +422,7 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 			immutable StackEntries matchedEntriesWithoutKind =
 				immutable StackEntries(startStack, (stackAfterMatched.entry - startStack.entry).to8());
 			// TODO: 'mapOp' is overly complex, all but the last case return 'some'
-			immutable Arr!ByteCodeIndex delayedGotos = mapOpWithIndex!ByteCodeIndex(
+			immutable ByteCodeIndex[] delayedGotos = mapOpWithIndex!ByteCodeIndex(
 				tempAlloc,
 				it.cases,
 				(immutable size_t caseIndex, ref immutable LowExprKind.Match.Case case_) {
@@ -501,7 +501,7 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 			generateExpr(dbg, tempAlloc, writer, ctx, it.value);
 			immutable ByteCodeIndex indexOfFirstCaseOffset = writeSwitchDelay(writer, source, sizeNat(it.cases).to32());
 			// TODO: 'mapOp' is overly complex, all but the last case return 'some'
-			immutable Arr!ByteCodeIndex delayedGotos = mapOpWithIndex!ByteCodeIndex(
+			immutable ByteCodeIndex[] delayedGotos = mapOpWithIndex!ByteCodeIndex(
 				tempAlloc,
 				it.cases,
 				(immutable size_t caseIndex, ref immutable LowExpr case_) {
@@ -539,7 +539,7 @@ void generateArgs(Debug, CodeAlloc, TempAlloc)(
 	ref TempAlloc tempAlloc,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref ExprCtx ctx,
-	ref immutable Arr!LowExpr args,
+	ref immutable LowExpr[] args,
 ) {
 	foreach (ref immutable LowExpr arg; args)
 		generateExpr(dbg, tempAlloc, writer, ctx, arg);
@@ -584,7 +584,7 @@ void generateCreateRecordOrConstantRecord(Debug, CodeAlloc, TempAlloc)(
 		ctx.program,
 		ctx.typeLayout,
 		type,
-		(ref immutable Arr!Nat8 fieldSizes) {
+		(ref immutable Nat8[] fieldSizes) {
 			// TODO:PERF: if generating a record constant, could do the pack at compile time
 			writePack(dbg, writer, source, fieldSizes);
 		},
@@ -648,7 +648,7 @@ struct FieldOffsetAndSize {
 }
 
 immutable(Nat16) getFieldOffset(ref const ExprCtx ctx, immutable LowType.Record record, immutable Nat8 fieldIndex) {
-	immutable Arr!Nat16 fieldOffsets = fullIndexDictGet(ctx.typeLayout.fieldOffsets, record);
+	immutable Nat16[] fieldOffsets = fullIndexDictGet(ctx.typeLayout.fieldOffsets, record);
 	return at(fieldOffsets, fieldIndex);
 }
 

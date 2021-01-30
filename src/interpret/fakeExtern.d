@@ -5,9 +5,8 @@ module interpret.fakeExtern;
 import interpret.allocTracker : AllocTracker;
 import interpret.bytecode : DynCallType, TimeSpec;
 import util.bools : Bool;
-import util.collection.arr : Arr;
 import util.collection.mutArr : clear, moveToArr, MutArr, pushAll;
-import util.collection.str : NulTerminatedStr, Str;
+import util.collection.str : NulTerminatedStr;
 import util.ptr : Ptr, PtrRange;
 import util.types : Nat64;
 import util.util : todo, verify;
@@ -56,17 +55,17 @@ struct FakeExtern(Alloc) {
 	}
 
 	@trusted immutable(long) write(int fd, immutable char* buf, immutable size_t nBytes) {
-		immutable Arr!char arr = buf[0..nBytes];
+		immutable char[] arr = buf[0..nBytes];
 		verify(fd == 1 || fd == 2);
 		pushAll!(char, Alloc)(alloc.deref(), fd == 1 ? stdout : stderr, arr);
 		return nBytes;
 	}
 
-	immutable(Str) moveStdout() {
+	immutable(string) moveStdout() {
 		return moveToArr(alloc, stdout);
 	}
 
-	immutable(Str) moveStderr() {
+	immutable(string) moveStderr() {
 		return moveToArr(alloc, stderr);
 	}
 
@@ -95,8 +94,8 @@ struct FakeExtern(Alloc) {
 	immutable(Nat64) doDynCall(
 		ref immutable NulTerminatedStr,
 		immutable DynCallType,
-		ref immutable Arr!Nat64,
-		ref immutable Arr!DynCallType,
+		ref immutable Nat64[],
+		ref immutable DynCallType[],
 	) {
 		return todo!(immutable Nat64)("not for fake");
 	}

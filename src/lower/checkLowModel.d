@@ -26,7 +26,7 @@ import model.lowModel :
 	PrimitiveType,
 	symOfPrimitiveType;
 import model.reprConcreteModel : reprOfConcreteStructRef;
-import util.collection.arr : Arr, at, sizeEq;
+import util.collection.arr : at, sizeEq;
 import util.collection.arrUtil : tail, zip;
 import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has;
@@ -80,7 +80,7 @@ void checkLowExpr(Alloc)(
 			});
 		},
 		(ref immutable LowExprKind.CreateRecord it) {
-			immutable Arr!LowField fields = fullIndexDictGet(ctx.ctx.program.allRecords, asRecordType(type)).fields;
+			immutable LowField[] fields = fullIndexDictGet(ctx.ctx.program.allRecords, asRecordType(type)).fields;
 			zip!(LowField, LowExpr)(fields, it.args, (ref immutable LowField field, ref immutable LowExpr arg) {
 				checkLowExpr(alloc, ctx, field.type, arg);
 			});
@@ -220,24 +220,6 @@ void checkTypeEqual(Alloc)(
 	ref immutable LowType expected,
 	ref immutable LowType actual,
 ) {
-	debug {
-		if (!lowTypeEqual(expected, actual)) {
-			import util.collection.arr : begin, size;
-			import util.collection.str : Str;
-			import util.ptr : ptrTrustMe_mut;
-			import util.repr : writeRepr;
-			import util.writer : Writer, finishWriter, writeStatic;
-
-			Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
-			writeStatic(writer, "checkTypeEqual: expected:\n");
-			writeRepr(writer, reprOfLowType2(alloc, ctx, expected));
-			writeStatic(writer, "\nactual:\n");
-			writeRepr(writer, reprOfLowType2(alloc, ctx, actual));
-			//immutable Str s = finishWriter(writer);
-			//import core.stdc.stdio : printf;
-			//printf("%.*s\n", cast(int) size(s), begin(s));
-		}
-	}
 	verify(lowTypeEqual(expected, actual));
 }
 

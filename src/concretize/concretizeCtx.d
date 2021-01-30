@@ -64,13 +64,13 @@ import model.model :
 	typeParams,
 	worsePurity;
 import util.bools : Bool, False, not, True;
-import util.collection.arr : Arr, at, empty, emptyArr, only, ptrAt, sizeEq;
+import util.collection.arr : at, empty, emptyArr, only, ptrAt, sizeEq;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrMax, compareArr, exists, fold, map, mapPtrsWithIndex, mapWithIndex;
 import util.collection.mutArr : MutArr;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
-import util.collection.str : compareStr, copyStr, Str, strLiteral;
+import util.collection.str : compareStr, copyStr, strLiteral;
 import util.comparison : Comparison;
 import util.late : Late, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate, nu, nuMut;
@@ -98,10 +98,10 @@ struct TypeArgsScope {
 	TODO:PERF no need to store typeParams then.
 	*/
 
-	immutable Arr!TypeParam typeParams;
-	immutable Arr!ConcreteType typeArgs;
+	immutable TypeParam[] typeParams;
+	immutable ConcreteType[] typeArgs;
 
-	immutable this(immutable Arr!TypeParam tp, immutable Arr!ConcreteType ta) {
+	immutable this(immutable TypeParam[] tp, immutable ConcreteType[] ta) {
 		typeParams = tp;
 		typeArgs = ta;
 		verify(sizeEq(typeParams, typeArgs));
@@ -114,7 +114,7 @@ struct TypeArgsScope {
 
 private struct ConcreteStructKey {
 	immutable Ptr!StructDecl decl;
-	immutable Arr!ConcreteType typeArgs;
+	immutable ConcreteType[] typeArgs;
 }
 
 private immutable(Comparison) compareConcreteStructKey(ref const ConcreteStructKey a, ref const ConcreteStructKey b) {
@@ -126,8 +126,8 @@ struct ConcreteFunKey {
 	// We only need a FunDecl since we have the typeArgs and specImpls.
 	// FunInst is for debug info
 	immutable Ptr!FunInst inst;
-	immutable Arr!ConcreteType typeArgs;
-	immutable Arr!(Ptr!ConcreteFun) specImpls;
+	immutable ConcreteType[] typeArgs;
+	immutable Ptr!ConcreteFun[] specImpls;
 }
 
 private immutable(ContainingFunInfo) toContainingFunInfo(ref immutable ConcreteFunKey a) {
@@ -140,9 +140,9 @@ immutable(TypeArgsScope) typeArgsScope(ref immutable ConcreteFunKey a) {
 }
 
 struct ContainingFunInfo {
-	immutable Arr!TypeParam typeParams; // TODO: get this from cf?
-	immutable Arr!ConcreteType typeArgs;
-	immutable Arr!(Ptr!ConcreteFun) specImpls;
+	immutable TypeParam[] typeParams; // TODO: get this from cf?
+	immutable ConcreteType[] typeArgs;
+	immutable Ptr!ConcreteFun[] specImpls;
 }
 
 immutable(TypeArgsScope) typeArgsScope(ref immutable ContainingFunInfo a) {
@@ -175,7 +175,7 @@ private struct ConcreteFunBodyInputs {
 	immutable FunBody body_;
 }
 
-ref immutable(Arr!ConcreteType) typeArgs(return scope ref immutable ConcreteFunBodyInputs a) {
+ref immutable(ConcreteType[]) typeArgs(return scope ref immutable ConcreteFunBodyInputs a) {
 	return a.containing.typeArgs;
 }
 
@@ -199,7 +199,7 @@ struct ConcretizeCtx {
 	ArrBuilder!(immutable Ptr!ConcreteStruct) allConcreteStructs;
 	MutDict!(immutable ConcreteFunKey, immutable Ptr!ConcreteFun, compareConcreteFunKey) nonLambdaConcreteFuns;
 	ArrBuilder!(immutable Ptr!ConcreteFun) allConcreteFuns;
-	MutSet!(immutable Str, compareStr) allExternLibraryNames;
+	MutSet!(immutable string, compareStr) allExternLibraryNames;
 
 	// This will only have an entry while a ConcreteFun hasn't had it's body filled in yet.
 	MutDict!(
@@ -256,7 +256,7 @@ body {
 		getConcreteType_forStructInst(alloc, a, a.ctxStructInst, TypeArgsScope.empty));
 }
 
-immutable(Constant) constantStr(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable Str value) {
+immutable(Constant) constantStr(Alloc)(ref Alloc alloc, ref ConcretizeCtx a, immutable string value) {
 	immutable ConcreteType charType = charType(alloc, a);
 	immutable ConcreteType strType = strType(alloc, a);
 	immutable Ptr!ConcreteStruct strStruct = mustBeNonPointer(strType);
@@ -280,7 +280,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 	immutable size_t index,
 	immutable ConcreteType returnType,
 	immutable Ptr!ConcreteParam closureParam,
-	ref immutable Arr!ConcreteParam params,
+	ref immutable ConcreteParam[] params,
 	ref immutable ContainingFunInfo containing,
 	immutable Ptr!Expr body_,
 ) {
@@ -311,7 +311,7 @@ immutable(ConcreteType) getConcreteType_forStructInst(Alloc)(
 	immutable Ptr!StructInst i,
 	immutable TypeArgsScope typeArgsScope,
 ) {
-	immutable Arr!ConcreteType typeArgs = typesToConcreteTypes!Alloc(alloc, ctx, typeArgs(i), typeArgsScope);
+	immutable ConcreteType[] typeArgs = typesToConcreteTypes!Alloc(alloc, ctx, typeArgs(i), typeArgsScope);
 	if (ptrEquals(i.decl, ctx.commonTypes.byVal))
 		return byVal(only(typeArgs));
 	else {
@@ -355,10 +355,10 @@ immutable(ConcreteType) getConcreteType(Alloc)(
 			getConcreteType_forStructInst!Alloc(alloc, ctx, i, typeArgsScope));
 }
 
-immutable(Arr!ConcreteType) typesToConcreteTypes(Alloc)(
+immutable(ConcreteType[]) typesToConcreteTypes(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	immutable Arr!Type types,
+	immutable Type[] types,
 	ref immutable TypeArgsScope typeArgsScope,
 ) {
 	return map!ConcreteType(alloc, types, (ref immutable Type t) =>
@@ -368,7 +368,7 @@ immutable(Arr!ConcreteType) typesToConcreteTypes(Alloc)(
 immutable(ConcreteType) concreteTypeFromClosure(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	ref immutable Arr!ConcreteField closureFields,
+	ref immutable ConcreteField[] closureFields,
 	immutable ConcreteStructSource source,
 ) {
 	if (empty(closureFields))
@@ -416,7 +416,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(Alloc)(
 	immutable Ptr!FunDecl decl = key.inst.decl;
 	immutable TypeArgsScope typeScope = typeArgsScope(key);
 	immutable ConcreteType returnType = getConcreteType(alloc, ctx, returnType(decl), typeScope);
-	immutable Arr!ConcreteParam params = concretizeParams(alloc, ctx, params(decl), typeScope);
+	immutable ConcreteParam[] params = concretizeParams(alloc, ctx, params(decl), typeScope);
 	Ptr!ConcreteFun res = nuMut!ConcreteFun(
 		alloc,
 		immutable ConcreteFunSource(key.inst),
@@ -449,12 +449,12 @@ immutable(Ptr!ConcreteFun) concreteFunForTest(Alloc)(
 	return castImmutable(res);
 }
 
-immutable(Comparison) compareConcreteTypeArr(ref immutable Arr!ConcreteType a, ref immutable Arr!ConcreteType b) {
+immutable(Comparison) compareConcreteTypeArr(ref immutable ConcreteType[] a, ref immutable ConcreteType[] b) {
 	return compareArr!ConcreteType(a, b, (ref immutable ConcreteType x, ref immutable ConcreteType y) =>
 		compareConcreteType(x, y));
 }
 
-size_t sizeFromConcreteFields(immutable Arr!ConcreteField fields) {
+immutable(size_t) sizeFromConcreteFields(immutable ConcreteField[] fields) {
 	// TODO: this is definitely not accurate. Luckily I use static asserts in the generated code to check this.
 	size_t s = 0;
 	size_t maxFieldAlign = 1;
@@ -490,7 +490,7 @@ immutable(Bool) getDefaultIsPointerForFields(
 
 immutable(ConcreteStructInfo) getConcreteStructInfoForFields(
 	immutable ForcedByValOrRefOrNone forcedByValOrRef,
-	immutable Arr!ConcreteField fields,
+	immutable ConcreteField[] fields,
 ) {
 	immutable size_t sizeBytes = sizeFromConcreteFields(fields);
 	immutable Bool isSelfMutable = exists(fields, (ref immutable ConcreteField fld) =>
@@ -505,7 +505,7 @@ immutable(ConcreteStructInfo) getConcreteStructInfoForFields(
 void initializeConcreteStruct(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	ref immutable Arr!ConcreteType typeArgs,
+	ref immutable ConcreteType[] typeArgs,
 	immutable Ptr!StructInst i,
 	ref ConcreteStruct res,
 	ref immutable TypeArgsScope typeArgsScope,
@@ -548,7 +548,7 @@ void initializeConcreteStruct(Alloc)(
 				//defaultIsPointer is false because the 'extern' type *is* a pointer
 				False),
 		(ref immutable StructBody.Record r) {
-			immutable Arr!ConcreteField fields =
+			immutable ConcreteField[] fields =
 				mapPtrsWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, immutable Ptr!RecordField f) =>
 					immutable ConcreteField(
 						immutable ConcreteFieldSource(f),
@@ -558,7 +558,7 @@ void initializeConcreteStruct(Alloc)(
 			return getConcreteStructInfoForFields(r.flags.forcedByValOrRef, fields);
 		},
 		(ref immutable StructBody.Union u) {
-			immutable Arr!ConcreteType members = map!ConcreteType(alloc, u.members, (ref immutable Ptr!StructInst si) =>
+			immutable ConcreteType[] members = map!ConcreteType(alloc, u.members, (ref immutable Ptr!StructInst si) =>
 				getConcreteType_forStructInst(alloc, ctx, si, typeArgsScope));
 			immutable size_t maxMember =
 				arrMax(0, members, (ref immutable ConcreteType t) => sizeOrPointerSizeBytes(t));
@@ -621,9 +621,9 @@ immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 	ArrBuilder!Test allTestsBuilder;
 	foreach (immutable Ptr!Module m; ctx.program.allModules)
 		addAll(alloc, allTestsBuilder, m.tests);
-	immutable Arr!Test allTests = finishArr(alloc, allTestsBuilder);
+	immutable Test[] allTests = finishArr(alloc, allTestsBuilder);
 
-	immutable Arr!(Ptr!ConcreteFun) funs = mapWithIndex(
+	immutable Ptr!ConcreteFun[] funs = mapWithIndex(
 		alloc,
 		allTests,
 		(immutable size_t index, ref immutable Test it) =>
@@ -631,7 +631,7 @@ immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 	immutable Ptr!ConcreteStruct arrType = mustBeNonPointer(returnType);
 	immutable ConcreteType elementType = elementTypeFromArrType(arrType);
 
-	immutable Arr!ConcreteExpr args = map(alloc, funs, (ref immutable Ptr!ConcreteFun it) =>
+	immutable ConcreteExpr[] args = map(alloc, funs, (ref immutable Ptr!ConcreteFun it) =>
 		immutable ConcreteExpr(
 			elementType,
 			FileAndRange.empty,
@@ -648,10 +648,10 @@ immutable(ConcreteType) elementTypeFromArrType(ref immutable ConcreteStruct arrT
 	return only(asInst(arrType.source).typeArgs);
 }
 
-immutable(Arr!ConcreteParam) concretizeParams(Alloc)(
+immutable(ConcreteParam[]) concretizeParams(Alloc)(
 	ref Alloc alloc,
 	ref ConcretizeCtx ctx,
-	ref immutable Arr!Param params,
+	ref immutable Param[] params,
 	ref immutable TypeArgsScope typeArgsScope,
 ) {
 	return mapPtrsWithIndex!ConcreteParam(alloc, params, (immutable size_t index, immutable Ptr!Param p) =>

@@ -13,11 +13,11 @@ import interpret.fakeExtern : FakeExtern;
 import model.parseDiag : ParseDiagnostic;
 import model.model : Program;
 import util.bools : False;
-import util.collection.arr : Arr, at, emptyArr, freeArr;
+import util.collection.arr : at, emptyArr, freeArr;
 import util.collection.arrUtil : map;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
-import util.collection.str : copyToNulTerminatedStr, CStr, cStrOfNulTerminatedStr, emptyStr, NulTerminatedStr, Str;
+import util.collection.str : copyToNulTerminatedStr, CStr, cStrOfNulTerminatedStr, emptyStr, NulTerminatedStr;
 import util.comparison : Comparison;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt, some;
@@ -45,8 +45,8 @@ void addOrChangeFile(Debug, ServerAlloc)(
 	ref Debug,
 	ref Server!ServerAlloc server,
 	immutable StorageKind storageKind,
-	scope ref immutable Str path,
-	scope ref immutable Str content,
+	scope ref immutable string path,
+	scope ref immutable string content,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr contentCopy = copyToNulTerminatedStr(server.alloc, content);
@@ -61,7 +61,7 @@ void addOrChangeFile(Debug, ServerAlloc)(
 		});
 }
 
-void deleteFile(Alloc)(ref Server!Alloc server, immutable StorageKind storageKind, immutable Str path) {
+void deleteFile(Alloc)(ref Server!Alloc server, immutable StorageKind storageKind, immutable string path) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable(NulTerminatedStr) deleted = mustDelete(server.files, key);
 	trustedFree(server.alloc, deleted.str);
@@ -70,18 +70,18 @@ void deleteFile(Alloc)(ref Server!Alloc server, immutable StorageKind storageKin
 immutable(CStr) getFile(ServerAlloc)(
 	ref Server!ServerAlloc server,
 	immutable StorageKind storageKind,
-	immutable Str path,
+	immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable Opt!(immutable NulTerminatedStr) text = getAt_mut(server.files, key);
 	return has(text) ? cStrOfNulTerminatedStr(force(text)) : "";
 }
 
-immutable(Arr!Token) getTokens(Alloc, ServerAlloc)(
+immutable(Token[]) getTokens(Alloc, ServerAlloc)(
 	ref Alloc alloc,
 	ref Server!ServerAlloc server,
 	immutable StorageKind storageKind,
-	immutable Str path,
+	immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr text = mustGetAt_mut(server.files, key);
@@ -91,14 +91,14 @@ immutable(Arr!Token) getTokens(Alloc, ServerAlloc)(
 
 struct StrParseDiagnostic {
 	immutable RangeWithinFile range;
-	immutable Str message;
+	immutable string message;
 }
 
-immutable(Arr!StrParseDiagnostic) getParseDiagnostics(Alloc, ServerAlloc)(
+immutable(StrParseDiagnostic[]) getParseDiagnostics(Alloc, ServerAlloc)(
 	ref Alloc alloc,
 	ref Server!ServerAlloc server,
 	immutable StorageKind storageKind,
-	immutable Str path,
+	immutable string path,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr text = mustGetAt_mut(server.files, key);
@@ -107,12 +107,12 @@ immutable(Arr!StrParseDiagnostic) getParseDiagnostics(Alloc, ServerAlloc)(
 		immutable StrParseDiagnostic(it.range, strOfParseDiag(alloc, server.allPaths, showDiagOptions, it.diag)));
 }
 
-immutable(Str) getHover(Debug, Alloc, ServerAlloc)(
+immutable(string) getHover(Debug, Alloc, ServerAlloc)(
 	ref Debug dbg,
 	ref Alloc alloc,
 	ref Server!ServerAlloc server,
 	immutable StorageKind storageKind,
-	immutable Str path,
+	immutable string path,
 	immutable Pos pos,
 ) {
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
@@ -121,11 +121,11 @@ immutable(Str) getHover(Debug, Alloc, ServerAlloc)(
 	return getHoverFromProgram(alloc, server, storageKind, path, program, pos);
 }
 
-private pure immutable(Str) getHoverFromProgram(Alloc, ServerAlloc)(
+private pure immutable(string) getHoverFromProgram(Alloc, ServerAlloc)(
 	ref Alloc alloc,
 	ref Server!ServerAlloc server,
 	immutable StorageKind storageKind,
-	immutable Str path,
+	immutable string path,
 	ref immutable Program program,
 	immutable Pos pos,
 ) {
@@ -151,20 +151,20 @@ private pure immutable(Opt!FileIndex) getFileIndex(
 
 struct RunResult {
 	immutable int err;
-	immutable Str stdout;
-	immutable Str stderr;
+	immutable string stdout;
+	immutable string stderr;
 }
 
 immutable(RunResult) run(Debug, Alloc, ServerAlloc)(
 	ref Debug dbg,
 	ref Alloc alloc,
 	ref Server!ServerAlloc server,
-	immutable Str mainPathStr,
+	immutable string mainPathStr,
 ) {
 	immutable Path mainPath = toPath(server, mainPathStr);
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
-	immutable Arr!Str programArgs = emptyArr!Str;
+	immutable string[] programArgs = emptyArr!string;
 	FakeExtern!Alloc extern_ = FakeExtern!Alloc(ptrTrustMe_mut(alloc));
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
 	immutable int err = buildAndInterpret(
@@ -174,11 +174,11 @@ immutable(RunResult) run(Debug, Alloc, ServerAlloc)(
 
 private:
 
-@trusted void trustedFree(Alloc)(ref Alloc alloc, ref immutable Str a) {
+@trusted void trustedFree(Alloc)(ref Alloc alloc, ref immutable string a) {
 	freeArr(alloc, a);
 }
 
-pure immutable(Path) toPath(Alloc)(ref Server!Alloc server, scope ref immutable Str path) {
+pure immutable(Path) toPath(Alloc)(ref Server!Alloc server, scope ref immutable string path) {
 	return parsePath(server.allPaths, server.allSymbols, path);
 }
 

@@ -22,7 +22,6 @@ import model.lowModel :
 	LowParamSource,
 	LowType;
 import util.bools : False, True;
-import util.collection.arr : Arr;
 import util.collection.arrUtil : mapWithFirst2, mapWithOptFirst2, mapZip, prepend;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -41,8 +40,8 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 	immutable LowType returnType,
 	immutable LowType funType,
 	ref immutable LowType ctxType,
-	immutable Arr!LowType nonFunNonCtxParamTypes,
-	immutable Arr!ConcreteLambdaImpl impls,
+	immutable LowType[] nonFunNonCtxParamTypes,
+	immutable ConcreteLambdaImpl[] impls,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
 	immutable LowExpr funParamRef = paramRef(range, funType, immutable LowParamIndex(0));
@@ -50,7 +49,7 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 
 	ubyte localIndex = 0;
 
-	immutable Arr!(LowExprKind.Match.Case) cases = mapZip(
+	immutable LowExprKind.Match.Case[] cases = mapZip(
 		alloc,
 		impls,
 		fullIndexDictGet(allTypes.allUnions, asUnionType(funType)).members,
@@ -61,7 +60,7 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 			immutable Opt!LowExpr someCtxParamRef = some(ctxParamRef);
 			immutable Opt!LowExpr someClosureLocalRef = some(localRef(alloc, range, closureLocal));
 			//TODO:mapWithFirst2 (no opt)
-			immutable Arr!LowExpr args = mapWithOptFirst2!(LowExpr, LowType, Alloc)(
+			immutable LowExpr[] args = mapWithOptFirst2!(LowExpr, LowType, Alloc)(
 				alloc,
 				someCtxParamRef,
 				someClosureLocalRef,
@@ -75,7 +74,7 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 
 	immutable LowExpr expr = immutable LowExpr(returnType, range, immutable LowExprKind(
 		nu!(LowExprKind.Match)(alloc, allocate(alloc, funParamRef), cases)));
-	immutable Arr!LowParam params = mapWithFirst2!(LowParam, LowType, Alloc)(
+	immutable LowParam[] params = mapWithFirst2!(LowParam, LowType, Alloc)(
 		alloc,
 		immutable LowParam(
 			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("a"))),

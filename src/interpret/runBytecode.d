@@ -34,7 +34,7 @@ import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belo
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import util.bools : False;
 import util.dbg : log, logNoNewline;
-import util.collection.arr : Arr, begin, freeArr, ptrAt, sizeNat;
+import util.collection.arr : begin, freeArr, ptrAt, sizeNat;
 import util.collection.arrUtil : mapWithFirst, zipSystem;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.globalAllocatedStack :
@@ -55,7 +55,7 @@ import util.collection.globalAllocatedStack :
 	stackRef,
 	stackSize,
 	toArr;
-import util.collection.str : CStr, freeCStr, Str, strOfNulTerminatedStr, strToCStr;
+import util.collection.str : CStr, freeCStr, strOfNulTerminatedStr, strToCStr;
 import util.memory : allocate, overwriteMemory;
 import util.opt : has;
 import util.path : AbsolutePath, AllPaths, pathToCStr;
@@ -90,7 +90,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 	ref immutable ByteCode byteCode,
 	ref immutable FilesInfo filesInfo,
 	ref immutable AbsolutePath executablePath,
-	ref immutable Arr!Str args,
+	ref immutable string[] args,
 ) {
 	Interpreter!Extern interpreter = Interpreter!Extern(
 		ptrTrustMe_mut(extern_),
@@ -100,7 +100,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 
 	ExternAlloc!Extern externAlloc = ExternAlloc!Extern(ptrTrustMe_mut(extern_));
 	immutable CStr firstArg = pathToCStr(externAlloc, allPaths, executablePath);
-	immutable Arr!CStr allArgs = mapWithFirst!(CStr, Str)(externAlloc, firstArg, args, (ref immutable Str arg) =>
+	immutable CStr[] allArgs = mapWithFirst!(CStr, string)(externAlloc, firstArg, args, (ref immutable string arg) =>
 		strToCStr(externAlloc, arg));
 
 	push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
@@ -161,8 +161,8 @@ private struct InterpreterRestore {
 	// This is the stack sizes and byte code index to be restored by longjmp
 	immutable ByteCodeIndex nextByteCodeIndex;
 	immutable Nat32 dataStackSize;
-	immutable Arr!(immutable(u8)*) restoreReturnStack;
-	immutable Arr!Nat16 restoreStackStartStack;
+	immutable u8*[] restoreReturnStack;
+	immutable Nat16[] restoreStackStartStack;
 }
 
 private immutable(InterpreterRestore*) createInterpreterRestore(Extern)(ref Interpreter!Extern a) {
@@ -190,11 +190,11 @@ private void applyInterpreterRestore(Extern)(ref Interpreter!Extern a, ref immut
 }
 
 private void showStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpreter!Extern a) {
-	immutable Arr!Nat64 stack = asTempArr(a.dataStack);
+	immutable Nat64[] stack = asTempArr(a.dataStack);
 	showDataArr(writer, stack);
 }
 
-@trusted void showDataArr(Alloc)(ref Writer!Alloc writer, scope ref immutable Arr!Nat64 values) {
+@trusted void showDataArr(Alloc)(ref Writer!Alloc writer, scope ref immutable Nat64[] values) {
 	writeStatic(writer, "data: ");
 	foreach (immutable Nat64 value; values) {
 		writeChar(writer, ' ');
@@ -640,7 +640,7 @@ void applyExternDynCall(Debug, Extern)(
 		log(dbg, strOfNulTerminatedStr(op.name));
 	}
 
-	immutable Arr!Nat64 params = popN(a.dataStack, sizeNat(op.parameterTypes).to8());
+	immutable Nat64[] params = popN(a.dataStack, sizeNat(op.parameterTypes).to8());
 	immutable Nat64 value = a.extern_.doDynCall(op.name, op.returnType, params, op.parameterTypes);
 	if (op.returnType != DynCallType.void_)
 		push(a.dataStack, value);
@@ -651,7 +651,7 @@ pure: // TODO: many more are pure actually..
 // This isn't the structure the posix jmp-buf-tag has, but it fits inside it
 alias JmpBufTag = immutable InterpreterRestore*;
 
-@trusted immutable(Nat64) pack(immutable Arr!Nat64 values, immutable Arr!Nat8 sizes) {
+@trusted immutable(Nat64) pack(immutable Nat64[] values, immutable Nat8[] sizes) {
 	u64 res;
 	u8* bytePtr = cast(u8*) &res;
 	Nat64 totalSize = immutable Nat64(0);

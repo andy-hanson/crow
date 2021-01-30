@@ -17,7 +17,7 @@ import frontend.lang : crowExtension;
 import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, empty, emptyArr;
+import util.collection.arr : at, empty, emptyArr;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, copyArr, map, mapImpure, mapWithSoFar, prepend;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr;
@@ -66,7 +66,7 @@ immutable(Ptr!Program) frontendCompile(ModelAlloc, AstsAlloc, PathAlloc, SymAllo
 
 private struct FileAstAndArrDiagnosticAndLineAndColumnGetter {
 	immutable Ptr!FileAst ast;
-	immutable Arr!ParseDiagnostic diagnostics;
+	immutable ParseDiagnostic[] diagnostics;
 	immutable LineAndColumnGetter lineAndColumnGetter;
 }
 
@@ -152,7 +152,7 @@ struct ParsedEverything {
 	immutable FilePaths filePaths;
 	immutable LineAndColumnGetters lineAndColumnGetters;
 	immutable CommonModuleIndices commonModuleIndices;
-	immutable Arr!AstAndResolvedImports asts;
+	immutable AstAndResolvedImports[] asts;
 }
 
 struct CommonModuleIndices {
@@ -251,7 +251,7 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, PathAlloc, SymAlloc, ReadO
 	// That way when we process files in index order, all dependencies will be ready.
 	immutable(FileIndex) addFileIndex(
 		immutable AstAndResolvedImports result,
-		immutable Arr!ParseDiagnostic parseDiags,
+		immutable ParseDiagnostic[] parseDiags,
 		ref immutable LineAndColumnGetter lineAndColumnGetter,
 	) {
 		immutable FileIndex index = immutable FileIndex(safeSizeTToU16(arrBuilderSize(fileIndexToPath)));
@@ -284,8 +284,8 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, PathAlloc, SymAlloc, ReadO
 				immutable ImportAndExportPaths importsAndExports =
 					resolveImportAndExportPaths(modelAlloc, astAlloc, allPaths, path, ast.imports, ast.exports);
 
-				immutable(Arr!FileIndexAndNames) resolveImportsOrExports(
-					ref immutable Arr!ResolvedImport importsOrExports,
+				immutable(FileIndexAndNames[]) resolveImportsOrExports(
+					ref immutable ResolvedImport[] importsOrExports,
 				) {
 					return mapImpure!FileIndexAndNames(
 						modelAlloc,
@@ -333,8 +333,8 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, PathAlloc, SymAlloc, ReadO
 							return immutable FileIndexAndNames(fi, some(import_.importedFrom), import_.names);
 						});
 				}
-				immutable Arr!FileIndexAndNames resolvedImports = resolveImportsOrExports(importsAndExports.imports);
-				immutable Arr!FileIndexAndNames resolvedExports = resolveImportsOrExports(importsAndExports.exports);
+				immutable FileIndexAndNames[] resolvedImports = resolveImportsOrExports(importsAndExports.imports);
+				immutable FileIndexAndNames[] resolvedExports = resolveImportsOrExports(importsAndExports.exports);
 				return addFileIndex(
 					immutable AstAndResolvedImports(ast, path.storageKind, resolvedImports, resolvedExports),
 					importsAndExports.parseDiags,
@@ -372,7 +372,7 @@ immutable(PathAndStorageKind) runtimeMainPath(Alloc)(ref AllPaths!Alloc allPaths
 immutable(Diags) parseDiagnostics(Alloc)(
 	ref Alloc modelAlloc,
 	immutable FileIndex where,
-	immutable Arr!ParseDiagnostic diags,
+	immutable ParseDiagnostic[] diags,
 ) {
 	return map(modelAlloc, diags, (ref immutable ParseDiagnostic it) =>
 		immutable Diagnostic(
@@ -414,12 +414,12 @@ struct ResolvedImport {
 	// This is just used for error reporting in case the file can't be read.
 	immutable RangeWithinFile importedFrom;
 	immutable Opt!PathAndStorageKind resolvedPath;
-	immutable Opt!(Arr!Sym) names;
+	immutable Opt!(Sym[]) names;
 }
 
 struct ResolvedImportAndDiags {
 	immutable ResolvedImport resolved;
-	immutable Arr!ParseDiagnostic diags;
+	immutable ParseDiagnostic[] diags;
 }
 
 immutable(ResolvedImportAndDiags) tryResolveImport(Alloc, PathAlloc)(
@@ -428,7 +428,7 @@ immutable(ResolvedImportAndDiags) tryResolveImport(Alloc, PathAlloc)(
 	ref immutable PathAndStorageKind fromPath,
 	immutable ImportAst ast,
 ) {
-	immutable Opt!(Arr!Sym) names = mapOption!(Arr!Sym, Arr!Sym)(ast.names, (ref immutable Arr!Sym names) =>
+	immutable Opt!(Sym[]) names = mapOption!(Sym[], Sym[])(ast.names, (ref immutable Sym[] names) =>
 		copyArr(modelAlloc, names));
 	immutable(ResolvedImportAndDiags) resolved(immutable PathAndStorageKind pk) {
 		return immutable ResolvedImportAndDiags(
@@ -452,14 +452,14 @@ immutable(ResolvedImportAndDiags) tryResolveImport(Alloc, PathAlloc)(
 }
 
 struct ImportAndExportPaths {
-	immutable Arr!ResolvedImport imports;
-	immutable Arr!ResolvedImport exports;
-	immutable Arr!ParseDiagnostic parseDiags;
+	immutable ResolvedImport[] imports;
+	immutable ResolvedImport[] exports;
+	immutable ParseDiagnostic[] parseDiags;
 }
 
 struct ResolvedImportsAndParseDiags {
-	immutable Arr!ResolvedImport imports;
-	immutable Arr!ParseDiagnostic parseDiags;
+	immutable ResolvedImport[] imports;
+	immutable ParseDiagnostic[] parseDiags;
 }
 
 immutable(ResolvedImportsAndParseDiags) resolveImportOrExportPaths(ModelAlloc, AstAlloc, PathAlloc)(
@@ -469,9 +469,9 @@ immutable(ResolvedImportsAndParseDiags) resolveImportOrExportPaths(ModelAlloc, A
 	ref immutable PathAndStorageKind from,
 	ref immutable Opt!ImportsOrExportsAst importsOrExports,
 ) {
-	immutable Arr!ImportAst paths = has(importsOrExports) ? force(importsOrExports).paths : emptyArr!ImportAst;
+	immutable ImportAst[] paths = has(importsOrExports) ? force(importsOrExports).paths : emptyArr!ImportAst;
 	ArrBuilder!ParseDiagnostic diags;
-	immutable Arr!ResolvedImport resolved = map(astAlloc, paths, (ref immutable ImportAst i) {
+	immutable ResolvedImport[] resolved = map(astAlloc, paths, (ref immutable ImportAst i) {
 		immutable ResolvedImportAndDiags a = tryResolveImport(modelAlloc, allPaths, from, i);
 		addAll(modelAlloc, diags, a.diags);
 		return a.resolved;
@@ -500,8 +500,8 @@ immutable(ImportAndExportPaths) resolveImportAndExportPaths(ModelAlloc, AstAlloc
 struct AstAndResolvedImports {
 	immutable Ptr!FileAst ast;
 	immutable StorageKind storageKind; // Needed to determine which are in 'include'
-	immutable Arr!FileIndexAndNames resolvedImports;
-	immutable Arr!FileIndexAndNames resolvedExports;
+	immutable FileIndexAndNames[] resolvedImports;
+	immutable FileIndexAndNames[] resolvedExports;
 
 	static immutable AstAndResolvedImports empty = immutable AstAndResolvedImports(
 		emptyFileAst,
@@ -513,13 +513,13 @@ struct AstAndResolvedImports {
 struct FileIndexAndNames {
 	immutable FileIndex fileIndex;
 	immutable Opt!RangeWithinFile range;
-	immutable Opt!(Arr!Sym) names;
+	immutable Opt!(Sym[]) names;
 }
 
 //TODO:INLINE
-immutable(Arr!ModuleAndNames) mapImportsOrExports(ModelAlloc)(
+immutable(ModuleAndNames[]) mapImportsOrExports(ModelAlloc)(
 	ref ModelAlloc modelAlloc,
-	ref immutable Arr!FileIndexAndNames paths,
+	ref immutable FileIndexAndNames[] paths,
 	ref immutable FullIndexDict!(FileIndex, Ptr!Module) compiled,
 ) {
 	return map(modelAlloc, paths, (ref immutable FileIndexAndNames it) =>
@@ -527,7 +527,7 @@ immutable(Arr!ModuleAndNames) mapImportsOrExports(ModelAlloc)(
 }
 
 struct ModulesAndCommonTypes {
-	immutable Arr!(Ptr!Module) modules;
+	immutable Ptr!Module[] modules;
 	immutable Ptr!CommonTypes commonTypes;
 }
 
@@ -537,27 +537,27 @@ immutable(ModulesAndCommonTypes) getModules(ModelAlloc, SymAlloc)(
 	ref ArrBuilder!Diagnostic diagsBuilder,
 	ref ProgramState programState,
 	immutable FileIndex stdIndex,
-	ref immutable Arr!AstAndResolvedImports fileAsts,
+	ref immutable AstAndResolvedImports[] fileAsts,
 ) {
 	Late!(immutable Ptr!CommonTypes) commonTypes = late!(immutable Ptr!CommonTypes);
-	immutable Arr!(Ptr!Module) modules = mapWithSoFar!(Ptr!Module)(
+	immutable Ptr!Module[] modules = mapWithSoFar!(Ptr!Module)(
 		modelAlloc,
 		fileAsts,
-		(ref immutable AstAndResolvedImports ast, ref immutable Arr!(Ptr!Module) soFar, immutable size_t index) {
+		(ref immutable AstAndResolvedImports ast, ref immutable Ptr!Module[] soFar, immutable size_t index) {
 			immutable FullIndexDict!(FileIndex, Ptr!Module) compiled =
 				fullIndexDictOfArr!(FileIndex, Ptr!Module)(soFar);
 			immutable PathAndAst pathAndAst = immutable PathAndAst(immutable FileIndex(safeSizeTToU16(index)), ast.ast);
 			if (lateIsSet(commonTypes)) {
 				immutable Bool isInInclude = Bool(ast.storageKind == StorageKind.global);
-				immutable Arr!FileIndexAndNames allImports = isInInclude
+				immutable FileIndexAndNames[] allImports = isInInclude
 					? ast.resolvedImports
 					: prepend(
 						modelAlloc,
-						immutable FileIndexAndNames(stdIndex, none!RangeWithinFile, none!(Arr!Sym)),
+						immutable FileIndexAndNames(stdIndex, none!RangeWithinFile, none!(Sym[])),
 						ast.resolvedImports);
-				immutable Arr!ModuleAndNames mappedImports =
+				immutable ModuleAndNames[] mappedImports =
 					mapImportsOrExports(modelAlloc, allImports, compiled);
-				immutable Arr!ModuleAndNames mappedExports =
+				immutable ModuleAndNames[] mappedExports =
 					mapImportsOrExports(modelAlloc, ast.resolvedExports, compiled);
 				return check(
 					modelAlloc,
@@ -584,14 +584,14 @@ immutable(Ptr!Program) checkEverything(ModelAlloc, SymAlloc)(
 	ref ModelAlloc modelAlloc,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref ArrBuilder!Diagnostic diagsBuilder,
-	ref immutable Arr!AstAndResolvedImports allAsts,
+	ref immutable AstAndResolvedImports[] allAsts,
 	immutable Ptr!FilesInfo filesInfo,
 	ref immutable CommonModuleIndices moduleIndices,
 ) {
 	ProgramState programState = ProgramState(modelAlloc);
 	immutable ModulesAndCommonTypes modulesAndCommonTypes =
 		getModules(modelAlloc, allSymbols, diagsBuilder, programState, moduleIndices.std, allAsts);
-	immutable Arr!(Ptr!Module) modules = modulesAndCommonTypes.modules;
+	immutable Ptr!Module[] modules = modulesAndCommonTypes.modules;
 	immutable Ptr!Module bootstrapModule = at(modules, moduleIndices.bootstrap.index);
 	return nu!Program(
 		modelAlloc,

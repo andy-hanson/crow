@@ -45,7 +45,7 @@ import lower.lowExprHelpers :
 	voidType,
 	wrapMulNat64;
 import util.bools : False, True;
-import util.collection.arr : Arr, at, size;
+import util.collection.arr : at, size;
 import util.collection.arrUtil : arrLiteral, mapWithIndex;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate, nu;
@@ -66,7 +66,7 @@ immutable(LowFun) generateMarkVisitGcPtr(Alloc)(
 	immutable LowType pointerType = immutable LowType(pointerTypePtrGc);
 	immutable LowType pointeeType = pointerTypePtrGc.pointee;
 	immutable FileAndRange range = FileAndRange.empty;
-	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [
+	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
 		genParam(shortSymAlphaLiteral("mark-ctx"), markCtxType),
 		genParam(shortSymAlphaLiteral("value"), pointerType)]);
 	immutable LowExpr markCtx = paramRef(range, markCtxType, immutable LowParamIndex(0));
@@ -114,7 +114,7 @@ immutable(LowFun) generateMarkVisitNonArr(Alloc)(
 	ref immutable LowType paramType,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
-	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [
+	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
 		genParam(shortSymAlphaLiteral("mark-ctx"), markCtxType),
 		genParam(shortSymAlphaLiteral("value"), paramType)]);
 	immutable LowExpr markCtx = paramRef(range, markCtxType, immutable LowParamIndex(0));
@@ -141,7 +141,7 @@ immutable(LowFun) generateMarkVisitArrInner(Alloc)(
 	immutable LowType.PtrRaw elementPtrType,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
-	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [
+	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
 		genParam(shortSymAlphaLiteral("mark-ctx"), markCtxType),
 		genParam(shortSymAlphaLiteral("cur"), immutable LowType(elementPtrType)),
 		genParam(shortSymAlphaLiteral("end"), immutable LowType(elementPtrType))]);
@@ -190,7 +190,7 @@ immutable(LowFun) generateMarkVisitArrOuter(Alloc)(
 ) {
 	immutable LowType elementType = elementPtrType.pointee;
 	immutable FileAndRange range = FileAndRange.empty;
-	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [
+	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
 		genParam(shortSymAlphaLiteral("mark-ctx"), markCtxType),
 		genParam(shortSymAlphaLiteral("a"), immutable LowType(arrType))]);
 	immutable LowExpr markCtxParamRef = paramRef(range, markCtxType, immutable LowParamIndex(0));
@@ -282,7 +282,7 @@ immutable(LowFunExprBody) visitRecordBody(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref const MarkVisitFuns markVisitFuns,
-	immutable Arr!LowField fields,
+	immutable LowField[] fields,
 	ref immutable LowExpr markCtx,
 	ref immutable LowExpr value,
 ) {
@@ -316,11 +316,11 @@ immutable(LowFunExprBody) visitUnionBody(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	ref const MarkVisitFuns markVisitFuns,
-	ref immutable Arr!LowType unionMembers,
+	ref immutable LowType[] unionMembers,
 	ref immutable LowExpr markCtx,
 	ref immutable LowExpr value,
 ) {
-	immutable Arr!(LowExprKind.Match.Case) cases =
+	immutable LowExprKind.Match.Case[] cases =
 		mapWithIndex!(LowExprKind.Match.Case)(
 			alloc,
 			unionMembers,

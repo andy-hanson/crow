@@ -5,12 +5,11 @@ module model.model;
 import model.constant : Constant;
 import model.diag : Diags, FilesInfo; // TODO: move FilesInfo here?
 import util.bools : and, Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, first, only, size, sizeEq, toArr;
+import util.collection.arr : ArrWithSize, empty, emptyArr, first, only, size, sizeEq, toArr;
 import util.collection.arrUtil : compareArr;
 import util.collection.dict : Dict;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.mutArr : MutArr;
-import util.collection.str : Str;
 import util.comparison : compareOr, Comparison, ptrEquals;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
@@ -34,11 +33,11 @@ import util.util : todo, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
 struct AbsolutePathsGetter {
-	immutable Str globalPath;
-	immutable Str localPath;
+	immutable string globalPath;
+	immutable string localPath;
 }
 
-private immutable(Str) getBasePath(ref immutable AbsolutePathsGetter a, immutable StorageKind sk) {
+private immutable(string) getBasePath(ref immutable AbsolutePathsGetter a, immutable StorageKind sk) {
 	final switch (sk) {
 		case StorageKind.global:
 			return a.globalPath;
@@ -51,7 +50,7 @@ immutable(AbsolutePath) getAbsolutePath(Alloc)(
 	ref Alloc alloc,
 	ref immutable AbsolutePathsGetter a,
 	ref immutable PathAndStorageKind p,
-	immutable Str extension,
+	immutable string extension,
 ) {
 	return AbsolutePath(a.getBasePath(p.storageKind), p.path, extension);
 }
@@ -219,7 +218,7 @@ struct Sig {
 	immutable FileAndPos fileAndPos;
 	immutable Sym name;
 	immutable Type returnType;
-	immutable Arr!Param params;
+	immutable Param[] params;
 
 	immutable(RangeWithinFile) range() immutable {
 		return rangeOfStartAndName(fileAndPos.pos, name);
@@ -268,10 +267,10 @@ struct StructBody {
 	struct ExternPtr {}
 	struct Record {
 		immutable RecordFlags flags;
-		immutable Arr!RecordField fields;
+		immutable RecordField[] fields;
 	}
 	struct Union {
-		immutable Arr!(Ptr!StructInst) members;
+		immutable Ptr!StructInst[] members;
 	}
 
 	private:
@@ -353,7 +352,7 @@ struct StructAlias {
 	Late!(immutable Opt!(Ptr!StructInst)) target_;
 }
 
-immutable(Arr!TypeParam) typeParams(ref const StructAlias a) {
+immutable(TypeParam[]) typeParams(ref const StructAlias a) {
 	return toArr(a.typeParams_);
 }
 
@@ -378,7 +377,7 @@ struct StructDecl {
 	Late!(immutable StructBody) _body_;
 }
 
-immutable(Arr!TypeParam) typeParams(ref immutable StructDecl a) {
+immutable(TypeParam[]) typeParams(ref immutable StructDecl a) {
 	return toArr(a.typeParams_);
 }
 
@@ -401,9 +400,9 @@ struct StructDeclAndArgs {
 	@safe @nogc pure nothrow:
 
 	immutable Ptr!StructDecl decl;
-	immutable Arr!Type typeArgs;
+	immutable Type[] typeArgs;
 
-	immutable this(immutable Ptr!StructDecl d, immutable Arr!Type t) {
+	immutable this(immutable Ptr!StructDecl d, immutable Type[] t) {
 		verify(size(d.typeParams) == size(t));
 		decl = d;
 		typeArgs = t;
@@ -445,7 +444,7 @@ immutable(Ptr!StructDecl) decl(ref immutable StructInst i) {
 	return i.declAndArgs.decl;
 }
 
-ref immutable(Arr!Type) typeArgs(return scope ref immutable StructInst i) {
+ref immutable(Type[]) typeArgs(return scope ref immutable StructInst i) {
 	return i.declAndArgs.typeArgs;
 }
 
@@ -476,18 +475,18 @@ struct SpecBody {
 	immutable Kind kind;
 	union {
 		immutable Builtin builtin;
-		immutable Arr!Sig sigs;
+		immutable Sig[] sigs;
 	}
 
 	public:
 	immutable this(immutable Builtin a) { kind = Kind.builtin; builtin = a; }
-	@trusted immutable this(immutable Arr!Sig a) { kind = Kind.sigs; sigs = a; }
+	@trusted immutable this(immutable Sig[] a) { kind = Kind.sigs; sigs = a; }
 }
 
 @trusted T matchSpecBody(T)(
 	ref immutable SpecBody a,
 	scope T delegate(ref immutable SpecBody.Builtin) @safe @nogc pure nothrow cbBuiltin,
-	scope T delegate(ref immutable Arr!Sig) @safe @nogc pure nothrow cbSigs,
+	scope T delegate(ref immutable Sig[]) @safe @nogc pure nothrow cbSigs,
 ) {
 	final switch (a.kind) {
 		case SpecBody.Kind.builtin:
@@ -501,7 +500,7 @@ immutable(size_t) nSigs(ref immutable SpecBody a) {
 	return matchSpecBody(
 		a,
 		(ref immutable SpecBody.Builtin) => immutable size_t(0),
-		(ref immutable Arr!Sig sigs) => size(sigs));
+		(ref immutable Sig[] sigs) => size(sigs));
 }
 
 struct SpecDecl {
@@ -514,13 +513,13 @@ struct SpecDecl {
 	MutArr!(immutable Ptr!SpecInst) insts;
 }
 
-immutable(Arr!TypeParam) typeParams(ref immutable SpecDecl a) {
+immutable(TypeParam[]) typeParams(ref immutable SpecDecl a) {
 	return toArr(a.typeParams_);
 }
 
 struct SpecDeclAndArgs {
 	immutable Ptr!SpecDecl decl;
-	immutable Arr!Type typeArgs;
+	immutable Type[] typeArgs;
 }
 
 immutable(Comparison) compareSpecDeclAndArgs(ref immutable SpecDeclAndArgs a, ref immutable SpecDeclAndArgs b) {
@@ -539,7 +538,7 @@ immutable(Ptr!SpecDecl) decl(ref immutable SpecInst a) {
 	return a.declAndArgs.decl;
 }
 
-ref immutable(Arr!Type) typeArgs(return scope ref immutable SpecInst a) {
+ref immutable(Type[]) typeArgs(return scope ref immutable SpecInst a) {
 	return a.declAndArgs.typeArgs;
 }
 
@@ -554,8 +553,8 @@ struct FunBody {
 	struct CreateRecord {}
 	struct Extern {
 		immutable Bool isGlobal;
-		immutable Str externName;
-		immutable Opt!Str libraryName;
+		immutable string externName;
+		immutable Opt!string libraryName;
 	}
 	struct RecordFieldGet {
 		immutable ubyte fieldIndex;
@@ -691,10 +690,10 @@ struct FunDecl {
 }
 static assert(FunDecl.sizeof <= 48);
 
-immutable(Arr!TypeParam) typeParams(ref immutable FunDecl a) {
+immutable(TypeParam[]) typeParams(ref immutable FunDecl a) {
 	return toArr(a.typeParams_);
 }
-immutable(Arr!(Ptr!SpecInst)) specs(ref immutable FunDecl a) {
+immutable(Ptr!SpecInst[]) specs(ref immutable FunDecl a) {
 	return toArr(a.specs_);
 }
 
@@ -730,7 +729,7 @@ ref immutable(Type) returnType(return scope ref immutable FunDecl a) {
 	return a.sig.returnType;
 }
 
-ref immutable(Arr!Param) params(return scope ref immutable FunDecl a) {
+ref immutable(Param[]) params(return scope ref immutable FunDecl a) {
 	return a.sig.params;
 }
 
@@ -757,10 +756,10 @@ struct FunDeclAndArgs {
 	@safe @nogc pure nothrow:
 
 	immutable Ptr!FunDecl decl;
-	immutable Arr!Type typeArgs;
-	immutable Arr!Called specImpls;
+	immutable Type[] typeArgs;
+	immutable Called[] specImpls;
 
-	immutable this(immutable Ptr!FunDecl d, immutable Arr!Type ta, immutable Arr!Called si) {
+	immutable this(immutable Ptr!FunDecl d, immutable Type[] ta, immutable Called[] si) {
 		decl = d;
 		typeArgs = ta;
 		specImpls = si;
@@ -810,7 +809,7 @@ ref immutable(Type) returnType(return scope ref immutable FunInst a) {
 	return a.sig.returnType;
 }
 
-ref immutable(Arr!Param) params(return scope ref immutable FunInst a) {
+ref immutable(Param[]) params(return scope ref immutable FunInst a) {
 	return a.sig.params;
 }
 
@@ -818,11 +817,11 @@ immutable(Ptr!FunDecl) decl(ref immutable FunInst a) {
 	return a.funDeclAndArgs.decl;
 }
 
-immutable(Arr!Type) typeArgs(ref immutable FunInst a) {
+immutable(Type[]) typeArgs(ref immutable FunInst a) {
 	return a.funDeclAndArgs.typeArgs;
 }
 
-immutable(Arr!Called) specImpls(ref immutable FunInst a) {
+immutable(Called[]) specImpls(ref immutable FunInst a) {
 	return a.funDeclAndArgs.specImpls;
 }
 
@@ -906,11 +905,11 @@ ref immutable(Type) returnType(return scope ref immutable CalledDecl a) {
 	return a.sig.returnType;
 }
 
-ref immutable(Arr!Param) params(return scope ref immutable CalledDecl a) {
+ref immutable(Param[]) params(return scope ref immutable CalledDecl a) {
 	return a.sig.params;
 }
 
-immutable(Arr!TypeParam) typeParams(return scope ref immutable CalledDecl a) {
+immutable(TypeParam[]) typeParams(return scope ref immutable CalledDecl a) {
 	return matchCalledDecl(
 		a,
 		(immutable Ptr!FunDecl f) => f.typeParams,
@@ -997,7 +996,7 @@ ref immutable(Type) returnType(return scope ref immutable Called a) {
 	return a.sig.returnType;
 }
 
-ref immutable(Arr!Param) params(return scope ref immutable Called a) {
+ref immutable(Param[]) params(return scope ref immutable Called a) {
 	return a.sig.params;
 }
 
@@ -1045,7 +1044,7 @@ struct StructOrAlias {
 	}
 }
 
-immutable(Arr!TypeParam) typeParams(ref immutable StructOrAlias a) {
+immutable(TypeParam[]) typeParams(ref immutable StructOrAlias a) {
 	return matchStructOrAlias(
 		a,
 		(immutable Ptr!StructAlias al) => al.typeParams,
@@ -1086,49 +1085,49 @@ struct Module {
 	immutable Dict!(Sym, NameReferents, compareSym) allExportedNames;
 
 	//TODO:NOT INSTANCE
-	ref immutable(Arr!ModuleAndNames) imports() return scope immutable {
+	ref immutable(ModuleAndNames[]) imports() return scope immutable {
 		return importsAndExports_.imports;
 	}
 
-	ref immutable(Arr!ModuleAndNames) exports() return scope immutable {
+	ref immutable(ModuleAndNames[]) exports() return scope immutable {
 		return importsAndExports_.exports;
 	}
 
-	ref immutable(Arr!StructDecl) structs() return scope immutable {
+	ref immutable(StructDecl[]) structs() return scope immutable {
 		return arrs_.structs;
 	}
 
-	ref immutable(Arr!SpecDecl) specs() return scope immutable {
+	ref immutable(SpecDecl[]) specs() return scope immutable {
 		return arrs_.specs;
 	}
 
-	ref immutable(Arr!FunDecl) funs() return scope immutable {
+	ref immutable(FunDecl[]) funs() return scope immutable {
 		return arrs_.funs;
 	}
 
-	ref immutable(Arr!Test) tests() return scope immutable {
+	ref immutable(Test[]) tests() return scope immutable {
 		return arrs_.tests;
 	}
 }
 static assert(Module.sizeof <= 48);
 
 struct ModuleImportsExports {
-	immutable Arr!ModuleAndNames imports;
-	immutable Arr!ModuleAndNames exports;
+	immutable ModuleAndNames[] imports;
+	immutable ModuleAndNames[] exports;
 }
 
 struct ModuleArrs {
-	immutable Arr!StructDecl structs;
-	immutable Arr!SpecDecl specs;
-	immutable Arr!FunDecl funs;
-	immutable Arr!Test tests;
+	immutable StructDecl[] structs;
+	immutable SpecDecl[] specs;
+	immutable FunDecl[] funs;
+	immutable Test[] tests;
 }
 
 struct ModuleAndNames {
 	// none for an automatic import of std
 	immutable Opt!RangeWithinFile importSource;
 	immutable Ptr!Module module_;
-	immutable Opt!(Arr!Sym) names;
+	immutable Opt!(Sym[]) names;
 }
 
 struct NameReferents {
@@ -1136,7 +1135,7 @@ struct NameReferents {
 
 	immutable Opt!(StructOrAlias) structOrAlias;
 	immutable Opt!(Ptr!SpecDecl) spec;
-	immutable Arr!(Ptr!FunDecl) funs;
+	immutable Ptr!FunDecl[] funs;
 }
 
 enum FunKind {
@@ -1147,7 +1146,7 @@ enum FunKind {
 
 struct FunKindAndStructs {
 	immutable FunKind kind;
-	immutable Arr!(Ptr!StructDecl) structs;
+	immutable Ptr!StructDecl[] structs;
 }
 
 struct CommonTypes {
@@ -1163,8 +1162,8 @@ struct CommonTypes {
 	immutable Ptr!StructDecl byVal;
 	immutable Ptr!StructDecl arr;
 	immutable Ptr!StructDecl fut;
-	immutable Arr!(Ptr!StructDecl) funPtrStructs; // Indexed by arity
-	immutable Arr!FunKindAndStructs funKindsAndStructs;
+	immutable Ptr!StructDecl[] funPtrStructs; // Indexed by arity
+	immutable FunKindAndStructs[] funKindsAndStructs;
 }
 static assert(CommonTypes.sizeof <= 112);
 
@@ -1186,7 +1185,7 @@ struct Program {
 	immutable this(
 		immutable Ptr!FilesInfo f,
 		immutable Ptr!SpecialModules s,
-		immutable Arr!(Ptr!Module) all,
+		immutable Ptr!Module[] all,
 		immutable Ptr!CommonTypes ct,
 		immutable Diags d,
 	) {
@@ -1199,7 +1198,7 @@ struct Program {
 
 	immutable Ptr!FilesInfo filesInfo;
 	immutable Ptr!SpecialModules specialModules;
-	immutable Arr!(Ptr!Module) allModules;
+	immutable Ptr!Module[] allModules;
 	immutable Ptr!CommonTypes commonTypes;
 	immutable Diags diagnostics;
 }
@@ -1233,7 +1232,7 @@ struct Expr {
 
 	struct Call {
 		immutable Called called;
-		immutable Arr!Expr args;
+		immutable Expr[] args;
 	}
 
 	struct ClosureFieldRef {
@@ -1249,7 +1248,7 @@ struct Expr {
 
 	struct CreateArr {
 		immutable Ptr!StructInst arrType;
-		immutable Arr!Expr args;
+		immutable Expr[] args;
 	}
 
 	struct FunPtr {
@@ -1265,9 +1264,9 @@ struct Expr {
 
 	// type is the lambda's type (not the body's return type), e.g. a Fun1 or sendFun1 instance.
 	struct Lambda {
-		immutable Arr!Param params;
+		immutable Param[] params;
 		immutable Ptr!Expr body_;
-		immutable Arr!(Ptr!ClosureField) closure;
+		immutable Ptr!ClosureField[] closure;
 		// This is the funN type;
 		immutable Ptr!StructInst type;
 		immutable FunKind kind;
@@ -1298,7 +1297,7 @@ struct Expr {
 
 		immutable Ptr!Expr matched;
 		immutable Ptr!StructInst matchedUnion;
-		immutable Arr!Case cases;
+		immutable Case[] cases;
 		immutable Type type;
 	}
 
@@ -1312,7 +1311,7 @@ struct Expr {
 	}
 
 	struct StringLiteral {
-		immutable Str literal;
+		immutable string literal;
 	}
 
 	private:

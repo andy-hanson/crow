@@ -2,7 +2,7 @@ module util.collection.mutIndexDict;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr, at, setAt, size;
+import util.collection.arr : at, setAt, size;
 import util.collection.arrUtil : fillArr_mut;
 import util.collection.mutDict : ValueAndDidAdd;
 import util.bools : False, True;
@@ -10,7 +10,7 @@ import util.opt : force, has, noneMut, Opt, someMut;
 
 struct MutIndexDict(K, V) {
 	private:
-	Arr!(Opt!V) values_;
+	Opt!V[] values_;
 }
 
 MutIndexDict!(K, V) newMutIndexDict(K, V, Alloc)(ref Alloc alloc, immutable size_t size) {

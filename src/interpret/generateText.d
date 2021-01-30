@@ -17,7 +17,7 @@ import model.lowModel :
 	lowTypeEqual,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import util.collection.arr : Arr, at, castImmutable, empty, ptrAt, setAt, size;
+import util.collection.arr : at, castImmutable, empty, ptrAt, setAt, size;
 import util.collection.arrUtil : mapToMut, sum, zip;
 import util.collection.exactSizeArrBuilder :
 	exactSizeArrBuilderAdd,
@@ -35,9 +35,9 @@ import util.types : bottomU8OfU64, bottomU16OfU64, bottomU32OfU64, Nat8, Nat16, 
 import util.util : todo, unreachable, verify;
 
 struct TextAndInfo {
-	immutable Arr!ubyte text;
-	immutable Arr!(Arr!size_t) arrTypeIndexToConstantIndexToTextIndex;
-	immutable Arr!(Arr!size_t) pointeeTypeIndexToIndexToTextIndex;
+	immutable ubyte[] text;
+	immutable size_t[][] arrTypeIndexToConstantIndexToTextIndex;
+	immutable size_t[][] pointeeTypeIndexToIndexToTextIndex;
 }
 
 struct TextArrInfo {
@@ -73,12 +73,12 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 		ptrTrustMe(typeLayout),
 		// '1 +' because we add a dummy byte at 0
 		newExactSizeArrBuilder!ubyte(alloc, 1 + getAllConstantsSize(typeLayout, allConstants)),
-		mapToMut!(Arr!size_t, ArrTypeAndConstantsLow, Alloc)(
+		mapToMut!(size_t[], ArrTypeAndConstantsLow, Alloc)(
 			alloc,
 			allConstants.arrs,
 			(ref immutable ArrTypeAndConstantsLow it) =>
-				mapToMut(alloc, it.constants, (ref immutable Arr!Constant) => size_t(0))),
-	 	mapToMut!(Arr!size_t)(
+				mapToMut(alloc, it.constants, (ref immutable Constant[]) => size_t(0))),
+	 	mapToMut!(size_t[])(
 			alloc,
 			allConstants.pointers,
 			(ref immutable PointerTypeAndConstantsLow it) =>
@@ -123,8 +123,8 @@ struct Ctx {
 	immutable Ptr!AllConstantsLow allConstants;
 	immutable Ptr!TypeLayout typeLayout;
 	ExactSizeArrBuilder!ubyte text;
-	Arr!(Arr!size_t) arrTypeIndexToConstantIndexToTextIndex;
-	Arr!(Arr!size_t) pointeeTypeIndexToIndexToTextIndex;
+	size_t[][] arrTypeIndexToConstantIndexToTextIndex;
+	size_t[][] pointeeTypeIndexToIndexToTextIndex;
 }
 
 // Write out any constants that this points to.
@@ -171,10 +171,10 @@ void recurWriteArr(TempAlloc)(
 	immutable size_t arrTypeIndex,
 	immutable LowType elementType,
 	immutable size_t index, // constant index within the same type
-	immutable Arr!Constant elements,
+	immutable Constant[] elements,
 ) {
 	verify(!empty(elements));
-	Arr!size_t indexToTextIndex = at(ctx.arrTypeIndexToConstantIndexToTextIndex, arrTypeIndex);
+	size_t[] indexToTextIndex = at(ctx.arrTypeIndexToConstantIndexToTextIndex, arrTypeIndex);
 	if (at(indexToTextIndex, index) == 0) {
 		foreach (ref immutable Constant it; elements)
 			ensureConstant(tempAlloc, ctx, elementType, it);
@@ -192,7 +192,7 @@ void recurWritePointer(TempAlloc)(
 	immutable size_t index,
 	immutable Ptr!Constant pointee,
 ) {
-	Arr!size_t indexToTextIndex = at(ctx.pointeeTypeIndexToIndexToTextIndex, pointeeTypeIndex);
+	size_t[] indexToTextIndex = at(ctx.pointeeTypeIndexToIndexToTextIndex, pointeeTypeIndex);
 	if (at(indexToTextIndex, index) == 0) {
 		ensureConstant(tempAlloc, ctx, pointeeType, pointee);
 		setAt(indexToTextIndex, index, exactSizeArrBuilderCurSize(ctx.text));
@@ -203,7 +203,7 @@ void recurWritePointer(TempAlloc)(
 immutable(size_t) getAllConstantsSize(ref immutable TypeLayout typeLayout, ref immutable AllConstantsLow allConstants) {
 	immutable size_t arrsSize = sum(allConstants.arrs, (ref immutable ArrTypeAndConstantsLow arrs) =>
 		sizeOfType(typeLayout, arrs.elementType).raw() *
-		sum(arrs.constants, (ref immutable Arr!Constant elements) => size(elements)));
+		sum(arrs.constants, (ref immutable Constant[] elements) => size(elements)));
 	immutable size_t pointersSize = sum(allConstants.pointers, (ref immutable PointerTypeAndConstantsLow pointers) =>
 		sizeOfType(typeLayout, pointers.pointeeType).raw() * size(pointers.constants));
 	return arrsSize + pointersSize;
@@ -270,7 +270,7 @@ void writeConstant(TempAlloc)(
 				ctx.program,
 				ctx.typeLayout,
 				asRecordType(type),
-				(ref immutable Arr!Nat8) {
+				(ref immutable Nat8[]) {
 					todo!void("pack it");
 				},
 				(immutable size_t fieldIndex, ref immutable LowType fieldType, immutable Nat16 fieldSize) {

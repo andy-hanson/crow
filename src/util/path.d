@@ -6,7 +6,7 @@ import util.bools : Bool, False, True;
 import util.collection.arr : at, first, size;
 import util.collection.arrUtil : slice, sliceFromTo;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
-import util.collection.str : asCStr, copyStr, CStr, emptyStr, NulTerminatedStr, Str;
+import util.collection.str : asCStr, copyStr, CStr, emptyStr, NulTerminatedStr;
 import util.comparison : compareEnum, compareNat16, Comparison, compareOr;
 import util.opt : has, flatMapOption, force, forceOrTodo, mapOption, none, Opt, some;
 import util.ptr : Ptr;
@@ -29,12 +29,12 @@ struct Path {
 }
 
 struct AbsolutePath {
-	immutable Str root;
+	immutable string root;
 	immutable Path path;
-	immutable Str extension;
+	immutable string extension;
 }
 
-immutable(Str) parentStr(Alloc, PathAlloc)(
+immutable(string) parentStr(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath path,
@@ -45,7 +45,7 @@ immutable(Str) parentStr(Alloc, PathAlloc)(
 		: copyStr(alloc, path.root);
 }
 
-immutable(AbsolutePath) withExtension(ref immutable AbsolutePath a, immutable Str newExtension) {
+immutable(AbsolutePath) withExtension(ref immutable AbsolutePath a, immutable string newExtension) {
 	return immutable AbsolutePath(a.root, a.path, newExtension);
 }
 
@@ -142,12 +142,12 @@ private size_t pathToStrSize(Alloc)(ref const AllPaths!Alloc allPaths, immutable
 	return sz;
 }
 
-private @trusted immutable(Str) pathToStrWorker(Alloc, PathAlloc)(
+private @trusted immutable(string) pathToStrWorker(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,
-	immutable Str root,
+	immutable string root,
 	immutable Path path,
-	immutable Str extension,
+	immutable string extension,
 	immutable Bool nulTerminated,
 ) {
 	immutable size_t sz = size(root) + pathToStrSize(allPaths, path) + size(extension) + (nulTerminated ? 1 : 0);
@@ -184,12 +184,12 @@ private @trusted immutable(Str) pathToStrWorker(Alloc, PathAlloc)(
 	return cast(immutable) begin[0..sz];
 }
 
-immutable(Str) pathToStr(Alloc, PathAlloc)(
+immutable(string) pathToStr(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,
-	immutable Str root,
+	immutable string root,
 	immutable Path path,
-	immutable Str extension,
+	immutable string extension,
 ) {
 	return pathToStrWorker(alloc, allPaths, root, path, extension, False);
 }
@@ -197,9 +197,9 @@ immutable(Str) pathToStr(Alloc, PathAlloc)(
 immutable(CStr) pathToCStr(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,
-	immutable Str root,
+	immutable string root,
 	immutable Path path,
-	immutable Str extension,
+	immutable string extension,
 ) {
 	return pathToNulTerminatedStr(alloc, allPaths, root, path, extension).asCStr();
 }
@@ -207,14 +207,14 @@ immutable(CStr) pathToCStr(Alloc, PathAlloc)(
 private immutable(NulTerminatedStr) pathToNulTerminatedStr(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,
-	immutable Str root,
+	immutable string root,
 	immutable Path path,
-	immutable Str extension,
+	immutable string extension,
 ) {
 	return immutable NulTerminatedStr(pathToStrWorker(alloc, allPaths, root, path, extension, True));
 }
 
-immutable(Str) pathToStr(Alloc, PathAlloc)(
+immutable(string) pathToStr(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath path,
@@ -232,7 +232,7 @@ immutable(CStr) pathToCStr(Alloc, PathAlloc)(
 immutable(Path) parsePath(Alloc, SymAlloc)(
 	ref AllPaths!Alloc allPaths,
 	ref AllSymbols!SymAlloc symbols,
-	scope ref immutable Str str,
+	scope ref immutable string str,
 ) {
 	immutable size_t len = size(str);
 	size_t i = 0;
@@ -245,7 +245,7 @@ immutable(Path) parsePath(Alloc, SymAlloc)(
 		while (i < len && at(str, i) != '/')
 			i++;
 		verify(i != begin);
-		immutable Str part = sliceFromTo(str, begin, i);
+		immutable string part = sliceFromTo(str, begin, i);
 		return rootPath(allPaths, getSymFromAlphaIdentifier(symbols, part));
 	}();
 
@@ -259,7 +259,7 @@ immutable(Path) parsePath(Alloc, SymAlloc)(
 		immutable size_t begin = i;
 		while (i < len && at(str, i) != '/')
 			i++;
-		immutable Str part = sliceFromTo(str, begin, i);
+		immutable string part = sliceFromTo(str, begin, i);
 		return recur(i, childPath(allPaths, path, getSymFromAlphaIdentifier(symbols, part)));
 	}
 	return recur(i, path);
@@ -268,7 +268,7 @@ immutable(Path) parsePath(Alloc, SymAlloc)(
 private immutable(RelPath) parseRelPath(Alloc, SymAlloc)(
 	ref AllPaths!Alloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable Str s,
+	immutable string s,
 ) {
 	if (first(s) == '.')
 		if (at(s, 1) == '/')
@@ -298,8 +298,8 @@ immutable(Sym) baseName(Alloc)(ref const AllPaths!Alloc allPaths, ref immutable 
 immutable(Opt!AbsolutePath) parseAbsoluteOrRelPath(Alloc, SymAlloc)(
 	ref AllPaths!Alloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable Str cwd,
-	immutable Str s,
+	immutable string cwd,
+	immutable string s,
 ) {
 	immutable StrAndExtension se = removeExtension(s);
 	immutable Opt!RootAndPath rp =
@@ -311,8 +311,8 @@ immutable(Opt!AbsolutePath) parseAbsoluteOrRelPath(Alloc, SymAlloc)(
 private immutable(Opt!RootAndPath) parseAbsoluteOrRelPathWithoutExtension(Alloc, SymAlloc)(
 	ref AllPaths!Alloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable Str cwd,
-	immutable Str s,
+	immutable string cwd,
+	immutable string s,
 ) {
 	switch (first(s)) {
 		case '.':
@@ -331,25 +331,25 @@ private immutable(Opt!RootAndPath) parseAbsoluteOrRelPathWithoutExtension(Alloc,
 	}
 }
 
-private immutable(Str) dropParents(Alloc)(
+private immutable(string) dropParents(Alloc)(
 	ref const AllPaths!Alloc allPaths,
-	ref immutable Str path,
+	ref immutable string path,
 	immutable u8 nParents,
 ) {
 	if (nParents == 0)
 		return path;
 	else {
-		immutable Opt!Str p = pathParent(path);
+		immutable Opt!string p = pathParent(path);
 		return dropParents(allPaths, forceOrTodo(p), cast(u8) (nParents - 1));
 	}
 }
 
 private struct StrAndExtension {
-	immutable Str withoutExtension;
-	immutable Str extension; // Includes the '.' (if it exists)
+	immutable string withoutExtension;
+	immutable string extension; // Includes the '.' (if it exists)
 }
 
-private immutable(StrAndExtension) removeExtension(immutable Str s) {
+private immutable(StrAndExtension) removeExtension(immutable string s) {
 	// Deliberately not allowing i == 0
 	for (size_t i = size(s) - 1; i > 0; i--)
 		if (at(s, i) == '.')
@@ -359,14 +359,14 @@ private immutable(StrAndExtension) removeExtension(immutable Str s) {
 
 // AbsolutePath with no extension
 private struct RootAndPath {
-	immutable Str root;
+	immutable string root;
 	immutable Path path;
 }
 
 private immutable(Opt!RootAndPath) parseAbsolutePathNoExtension(Alloc, SymAlloc)(
 	ref AllPaths!Alloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
-	immutable Str s,
+	immutable string s,
 ) {
 	return flatMapOption(pathParentAndBaseName(s), (ref immutable ParentAndBaseName pbn) {
 		immutable Opt!Sym sym = tryGetSymFromStr(allSymbols, pbn.baseName);
@@ -388,7 +388,7 @@ immutable(AbsolutePath) childPath(Alloc)(
 	return immutable AbsolutePath(parent.root, childPath(allPaths, parent.path, name), parent.extension);
 }
 
-private immutable(Opt!size_t) pathSlashIndex(immutable Str s) {
+private immutable(Opt!size_t) pathSlashIndex(immutable string s) {
 	for (size_t i = s.size - 1; i > 0; i--)
 		if (at(s, i) == '/')
 			return some(i);
@@ -396,20 +396,20 @@ private immutable(Opt!size_t) pathSlashIndex(immutable Str s) {
 }
 
 private struct ParentAndBaseName {
-	immutable Str parent;
-	immutable Str baseName;
+	immutable string parent;
+	immutable string baseName;
 }
 
-immutable(Opt!Str) pathBaseName(return scope ref immutable Str s) {
+immutable(Opt!string) pathBaseName(return scope ref immutable string s) {
 	immutable Opt!ParentAndBaseName o = pathParentAndBaseName(s);
 	return mapOption(o, (ref immutable ParentAndBaseName p) => p.baseName);
 }
-immutable(Opt!Str) pathParent(return scope ref immutable Str s) {
+immutable(Opt!string) pathParent(return scope ref immutable string s) {
 	immutable Opt!ParentAndBaseName o = pathParentAndBaseName(s);
 	return mapOption(o, (ref immutable ParentAndBaseName p) => p.parent);
 }
 
-private immutable(Opt!ParentAndBaseName) pathParentAndBaseName(immutable Str s) {
+private immutable(Opt!ParentAndBaseName) pathParentAndBaseName(immutable string s) {
 	immutable Opt!size_t index = pathSlashIndex(s);
 	return has(index)
 		? some(immutable ParentAndBaseName(s.slice(0, force(index)), s.slice(force(index) + 1)))

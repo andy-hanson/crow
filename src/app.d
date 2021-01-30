@@ -27,7 +27,7 @@ import lib.compiler :
 import model.model : AbsolutePathsGetter;
 import test.test : test;
 import util.bools : Bool, True;
-import util.collection.arr : Arr, begin, empty, size;
+import util.collection.arr : begin, empty, size;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, map, tail, zipImpureSystem;
 import util.collection.str :
@@ -38,7 +38,6 @@ import util.collection.str :
 	emptyNulTerminatedStr,
 	emptyStr,
 	NulTerminatedStr,
-	Str,
 	strEqLiteral,
 	strLiteral,
 	strOfCStr,
@@ -85,7 +84,7 @@ struct StdoutDebug {
 		return false;
 	}
 
-	void write(scope ref immutable Str a) {
+	void write(scope ref immutable string a) {
 		debug {
 			printf("%.*s", cast(uint) size(a), begin(a));
 		}
@@ -104,9 +103,9 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable CommandLineArgs args,
 ) {
-	immutable Str crowDir = getCrowDirectory(args.pathToThisExecutable);
+	immutable string crowDir = getCrowDirectory(args.pathToThisExecutable);
 	immutable Command command = parseCommand(alloc, allPaths, allSymbols, getCwd(alloc), args.args);
-	immutable Str include = cat(alloc, crowDir, strLiteral("/include"));
+	immutable string include = cat(alloc, crowDir, strLiteral("/include"));
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(True);
 	StdoutDebug dbg;
 
@@ -182,19 +181,19 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 			test(dbg, alloc, it.name));
 }
 
-immutable(Str) getCrowDirectory(immutable Str pathToThisExecutable) {
-	immutable Opt!Str parent = pathParent(pathToThisExecutable);
+immutable(string) getCrowDirectory(immutable string pathToThisExecutable) {
+	immutable Opt!string parent = pathParent(pathToThisExecutable);
 	return climbUpToCrow(forceOrTodo(parent));
 }
 
-immutable(Str) climbUpToCrow(immutable Str p) {
-	immutable Opt!Str par = pathParent(p);
-	immutable Opt!Str bn = pathBaseName(p);
+immutable(string) climbUpToCrow(immutable string p) {
+	immutable Opt!string par = pathParent(p);
+	immutable Opt!string bn = pathBaseName(p);
 	return strEqLiteral(bn.forceOrTodo, "crow")
 		? p
 		: has(par)
 		? climbUpToCrow(force(par))
-		: todo!Str("no 'crow' directory in path");
+		: todo!string("no 'crow' directory in path");
 }
 
 immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
@@ -203,7 +202,7 @@ immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable ProgramDirAndMain programDirAndMain,
-	ref immutable Str include,
+	ref immutable string include,
 ) {
 	RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
 		ptrTrustMe_mut(allPaths),
@@ -240,12 +239,12 @@ void compileC(Alloc, PathAlloc)(
 	ref AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
-	ref immutable Arr!Str allExternLibraryNames,
+	ref immutable string[] allExternLibraryNames,
 ) {
 	immutable AbsolutePath cCompiler =
 		AbsolutePath(strLiteral("/usr/bin"), rootPath(allPaths, shortSymAlphaLiteral("cc")), emptyStr);
-	ArrBuilder!Str args;
-	addAll(alloc, args, arrLiteral!Str(alloc, [
+	ArrBuilder!string args;
+	addAll(alloc, args, arrLiteral!string(alloc, [
 		strLiteral("-Werror"),
 		strLiteral("-Wextra"),
 		strLiteral("-Wall"),
@@ -259,9 +258,9 @@ void compileC(Alloc, PathAlloc)(
 		strLiteral("-pthread"),
 		strLiteral("-lm"),
 	]));
-	foreach (immutable Str it; allExternLibraryNames)
+	foreach (immutable string it; allExternLibraryNames)
 		add(alloc, args, cat(alloc, strLiteral("-l"), it));
-	addAll(alloc, args, arrLiteral!Str(alloc, [
+	addAll(alloc, args, arrLiteral!string(alloc, [
 		// TODO: configurable whether we want debug or release
 		strLiteral("-g"),
 		pathToStr(alloc, allPaths, cPath),
@@ -313,10 +312,10 @@ struct RealReadOnlyStorage(PathAlloc, Alloc) {
 
 	immutable(T) withFile(T)(
 		ref immutable PathAndStorageKind pk,
-		immutable Str extension,
+		immutable string extension,
 		scope immutable(T) delegate(ref immutable Opt!NulTerminatedStr) @safe @nogc nothrow cb,
 	) {
-		immutable Str root = () {
+		immutable string root = () {
 			final switch (pk.storageKind) {
 				case StorageKind.global:
 					return include;
@@ -331,8 +330,8 @@ struct RealReadOnlyStorage(PathAlloc, Alloc) {
 	private:
 	Ptr!(AllPaths!PathAlloc) allPaths;
 	Ptr!Alloc tempAlloc;
-	immutable Str include;
-	immutable Str user;
+	immutable string include;
+	immutable string user;
 }
 
 
@@ -410,8 +409,8 @@ struct RealExtern {
 	@trusted immutable(Nat64) doDynCall(
 		ref immutable NulTerminatedStr name,
 		immutable DynCallType returnType,
-		ref immutable Arr!Nat64 parameters,
-		ref immutable Arr!DynCallType parameterTypes,
+		ref immutable Nat64[] parameters,
+		ref immutable DynCallType[] parameterTypes,
 	) {
 		// TODO: don't just get everything from SDL...
 		DCpointer ptr = dlsym(sdlHandle, asCStr(name));
@@ -632,7 +631,7 @@ extern(C) {
 	ref TempAlloc tempAlloc,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath path,
-	ref immutable Str content,
+	ref immutable string content,
 ) {
 	immutable int fd = tryOpen(tempAlloc, allPaths, path, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
 	scope(exit) close(fd);
@@ -651,7 +650,7 @@ extern(C) {
 	ref TempAlloc tempAlloc,
 	ref const AllPaths!PathAlloc allPaths,
 	immutable AbsolutePath executable,
-	immutable Arr!Str args,
+	immutable string[] args,
 ) {
 	immutable CStr executableCStr = pathToCStr(tempAlloc, allPaths, executable);
 	return spawnAndWaitSync(executableCStr, convertArgs(tempAlloc, executableCStr, args));
@@ -663,7 +662,7 @@ extern(C) {
 	ref TempAlloc tempAlloc,
 	ref const AllPaths!PathAlloc allPaths,
 	immutable AbsolutePath executable,
-	immutable Arr!Str args,
+	immutable string[] args,
 ) {
 	immutable CStr executableCStr = pathToCStr(tempAlloc, allPaths, executable);
 	immutable int err = execvpe(executableCStr, convertArgs(tempAlloc, executableCStr, args), environ);
@@ -674,8 +673,8 @@ extern(C) {
 }
 
 struct CommandLineArgs {
-	immutable Str pathToThisExecutable;
-	immutable Arr!Str args;
+	immutable string pathToThisExecutable;
+	immutable string[] args;
 }
 
 @trusted immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
@@ -683,17 +682,17 @@ struct CommandLineArgs {
 	immutable size_t argc,
 	immutable CStr* argv,
 ) {
-	immutable Arr!CStr allArgs = argv[0..argc];
-	immutable Arr!Str args = map!(Str, CStr, Alloc)(alloc, allArgs, (ref immutable CStr a) => strOfCStr(a));
+	immutable CStr[] allArgs = argv[0..argc];
+	immutable string[] args = map!(string, CStr, Alloc)(alloc, allArgs, (ref immutable CStr a) => strOfCStr(a));
 	// Take the tail because the first one is 'crow'
 	return immutable CommandLineArgs(getPathToThisExecutable(alloc), tail(args));
 }
 
-@trusted immutable(Str) getCwd(Alloc)(ref Alloc alloc) {
+@trusted immutable(string) getCwd(Alloc)(ref Alloc alloc) {
 	char[maxPathSize] buff;
 	char* b = getcwd(buff.ptr, maxPathSize);
 	if (b == null)
-		return todo!Str("getcwd failed");
+		return todo!string("getcwd failed");
 	else {
 		verify(b == buff.ptr);
 		return copyCStrToStr(alloc, cast(immutable) buff.ptr);
@@ -713,12 +712,12 @@ struct CommandLineArgs {
 	return fd;
 }
 
-immutable(Str) copyCStrToStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
+immutable(string) copyCStrToStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
 	return copyStr(alloc, strOfCStr(begin));
 }
 
 immutable(CStr) copyCStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
-	immutable Str str = strOfCStr(begin);
+	immutable string str = strOfCStr(begin);
 	return copyToNulTerminatedStr!Alloc(alloc, str).asCStr();
 }
 
@@ -750,7 +749,7 @@ immutable(CStr) copyCStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
 
 immutable size_t maxPathSize = 1024;
 
-@trusted immutable(Str) getPathToThisExecutable(Alloc)(ref Alloc alloc) {
+@trusted immutable(string) getPathToThisExecutable(Alloc)(ref Alloc alloc) {
 	char[maxPathSize] buff;
 	immutable ssize_t size = readlink("/proc/self/exe", buff.ptr, maxPathSize);
 	if (size < 0)
@@ -759,12 +758,12 @@ immutable size_t maxPathSize = 1024;
 }
 
 // Return should be const, but some posix functions aren't marked that way
-@system immutable(CStr*) convertArgs(Alloc)(ref Alloc alloc, immutable CStr executableCStr, immutable Arr!Str args) {
+@system immutable(CStr*) convertArgs(Alloc)(ref Alloc alloc, immutable CStr executableCStr, immutable string[] args) {
 	ArrBuilder!CStr cArgs;
 	// Make a mutable copy
 	immutable CStr executableCopy = copyCStr(alloc, executableCStr);
 	add(alloc, cArgs, executableCopy);
-	foreach (immutable Str arg; args)
+	foreach (immutable string arg; args)
 		add(alloc, cArgs, strToCStr(alloc, arg));
 	add(alloc, cArgs, null);
 	return finishArr(alloc, cArgs).begin;

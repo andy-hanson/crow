@@ -22,7 +22,7 @@ import model.model :
 	Type,
 	TypeParam;
 import util.bools : Bool;
-import util.collection.arr : Arr, ptrsRange;
+import util.collection.arr : ptrsRange;
 import util.opt : force, has, none, Opt, optOr2, some;
 import util.ptr : Ptr;
 import util.sourceRange : hasPos, Pos;
@@ -156,7 +156,7 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 private:
 
 immutable(Opt!Position) positionInImportsOrExports(
-	ref immutable Arr!ModuleAndNames importsOrExports,
+	ref immutable ModuleAndNames[] importsOrExports,
 	immutable Pos pos,
 ) {
 	foreach (immutable Ptr!ModuleAndNames im; ptrsRange(importsOrExports)) {

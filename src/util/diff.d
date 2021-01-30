@@ -3,7 +3,7 @@ module util.diff;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, only, size;
+import util.collection.arr : at, only, size;
 import util.collection.arrUtil : arrMax, arrMaxIndex, contains, slice;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.mutSlice :
@@ -25,8 +25,8 @@ void diffSymbols(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
 	immutable Bool color,
-	immutable Arr!Sym a,
-	immutable Arr!Sym b
+	immutable Sym[] a,
+	immutable Sym[] b
 ) {
 	printDiff(writer, color, a, b, longestCommonSubsequence(tempAlloc, a, b));
 }
@@ -54,8 +54,8 @@ void mutSliceSetAtPossiblyReversed(T)(
 // 'scratch' is an input for performance -- it's treated as uninitialized.
 // Based on https://www.ics.uci.edu/~dan/pubs/p341-hirschberg.pdf
 void getMaximumCommonSubsequenceLengths(T)(
-	immutable Arr!T a,
-	immutable Arr!T b,
+	immutable T[] a,
+	immutable T[] b,
 	ref MutSlice!size_t result,
 	immutable Bool reversed,
 ) {
@@ -97,8 +97,8 @@ void getMaximumCommonSubsequenceLengths(T)(
 // Then the maximum common subsequence is where a prefix and suffix of b meet with the greatest sum of those sizes.
 // Returns index to split 'b' at.
 immutable(size_t) findBestSplitIndex(
-	ref immutable Arr!Sym a,
-	ref immutable Arr!Sym b,
+	ref immutable Sym[] a,
+	ref immutable Sym[] b,
 	ref MutSlice!size_t scratch,
 ) {
 	immutable size_t i = size(a) / 2;
@@ -119,8 +119,8 @@ immutable(size_t) findBestSplitIndex(
 
 void longestCommonSubsequenceRecur(Alloc)(
 	ref Alloc alloc,
-	immutable Arr!Sym a,
-	immutable Arr!Sym b,
+	immutable Sym[] a,
+	immutable Sym[] b,
 	ref MutSlice!size_t scratch,
 	ref ArrBuilder!Sym res,
 ) {
@@ -139,10 +139,10 @@ void longestCommonSubsequenceRecur(Alloc)(
 	}
 }
 
-immutable(Arr!Sym) longestCommonSubsequence(Alloc)(
+immutable(Sym[]) longestCommonSubsequence(Alloc)(
 	ref Alloc alloc,
-	ref immutable Arr!Sym a,
-	ref immutable Arr!Sym b,
+	ref immutable Sym[] a,
+	ref immutable Sym[] b,
 ) {
 	MutSlice!size_t scratch = newUninitializedMutSlice!size_t(alloc, (size(b) + 1) * 2);
 	ArrBuilder!Sym res;
@@ -153,9 +153,9 @@ immutable(Arr!Sym) longestCommonSubsequence(Alloc)(
 void printDiff(Alloc)(
 	ref Writer!Alloc writer,
 	immutable Bool color,
-	ref immutable Arr!Sym a,
-	ref immutable Arr!Sym b,
-	immutable Arr!Sym commonSyms,
+	ref immutable Sym[] a,
+	ref immutable Sym[] b,
+	immutable Sym[] commonSyms,
 ) {
 	immutable Sym expected = shortSymAlphaLiteral("expected");
 	// + 2 for a margin

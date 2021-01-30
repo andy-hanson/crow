@@ -43,7 +43,7 @@ import model.lowModel :
 	matchLowType,
 	PrimitiveType;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, empty, ptrAt, size;
+import util.collection.arr : empty, ptrAt, size;
 import util.collection.arrUtil : arrLiteral, fillArr, mapWithIndex, rtail;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate, nu;
@@ -63,7 +63,7 @@ immutable(LowFun) generateCompareFun(Alloc)(
 	immutable Bool typeIsArr,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
-	immutable Arr!LowParam params = arrLiteral!LowParam(alloc, [
+	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
 		immutable LowParam(
 			immutable LowParamSource(immutable LowParamSource.Generated(shortSymAlphaLiteral("a"))),
 			paramType),
@@ -166,7 +166,7 @@ immutable(LowExpr) combineCompares(Alloc)(
 	immutable LowExpr compareFirst,
 	immutable LowExpr compareSecond,
 ) {
-	immutable Arr!(LowExprKind.Match.Case) cases = arrLiteral!(LowExprKind.Match.Case)(alloc, [
+	immutable LowExprKind.Match.Case[] cases = arrLiteral!(LowExprKind.Match.Case)(alloc, [
 		immutable LowExprKind.Match.Case(none!(Ptr!LowLocal), genComparisonLess(alloc, range, comparisonTypes)),
 		immutable LowExprKind.Match.Case(none!(Ptr!LowLocal), compareSecond),
 		immutable LowExprKind.Match.Case(none!(Ptr!LowLocal), genComparisonGreater(alloc, range, comparisonTypes))]);
@@ -275,7 +275,7 @@ immutable(LowFunExprBody) genCompareUnion(Alloc)(
 	ref immutable LowExpr a,
 	ref immutable LowExpr b,
 ) {
-	immutable Arr!(LowExprKind.Match.Case) aCases =
+	immutable LowExprKind.Match.Case[] aCases =
 		mapWithIndex(alloc, union_.members, (immutable size_t aIndex, ref immutable LowType aType) {
 			immutable Ptr!LowLocal aLocal = genLocal(
 				alloc,
@@ -283,7 +283,7 @@ immutable(LowFunExprBody) genCompareUnion(Alloc)(
 				safeSizeTToU8(aIndex),
 				aType);
 			immutable LowExpr getALocal = localRef(alloc, range, aLocal);
-			immutable Arr!(LowExprKind.Match.Case) bCases =
+			immutable LowExprKind.Match.Case[] bCases =
 				fillArr(alloc, size(union_.members), (immutable size_t bIndex) {
 					if (aIndex < bIndex)
 						return immutable LowExprKind.Match.Case(
@@ -325,11 +325,11 @@ immutable(LowFunExprBody) genCompareRecord(Alloc)(
 	ref immutable FileAndRange range,
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const CompareFuns compareFuns,
-	immutable Arr!LowField allFields,
+	immutable LowField[] allFields,
 	ref immutable LowExpr a,
 	ref immutable LowExpr b,
 ) {
-	immutable(LowExpr) recur(immutable LowExpr accum, immutable Arr!LowField fields) {
+	immutable(LowExpr) recur(immutable LowExpr accum, immutable LowField[] fields) {
 		if (empty(fields))
 			return accum;
 		else {

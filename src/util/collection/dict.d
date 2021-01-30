@@ -3,7 +3,7 @@ module util.collection.dict;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, ptrsRange;
+import util.collection.arr : ptrsRange;
 import util.comparison : Comparison;
 import util.opt : force, none, Opt, some;
 import util.ptr : Ptr, ptrTrustMe;
@@ -15,8 +15,7 @@ struct KeyValuePair(K, V) {
 }
 
 struct Dict(K, V, alias cmp) {
-	//TODO: private:
-	Arr!(KeyValuePair!(K, V)) pairs;
+	KeyValuePair!(K, V)[] pairs;
 }
 
 void dictEach(K, V, alias cmp)(

@@ -2,7 +2,7 @@ module util.collection.byteReader;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr, end;
+import util.collection.arr : end;
 import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr;
 import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8;
 
@@ -57,13 +57,13 @@ void setPtr(ref ByteReader reader, immutable(u8)* ptr) {
 	return res;
 }
 
-@trusted immutable(Arr!T) readArray(T)(ref ByteReader reader, immutable size_t size) {
-	immutable Arr!T res = (cast(immutable T*) reader.ptr)[0..size];
+@trusted immutable(T[]) readArray(T)(ref ByteReader reader, immutable size_t size) {
+	immutable T[] res = (cast(immutable T*) reader.ptr)[0..size];
 	skipBytes(reader, size * T.sizeof);
 	return res;
 }
 
-@trusted immutable(Arr!T) readArrayDoNotSkipBytes(T)(ref ByteReader reader, immutable size_t size) {
+@trusted immutable(T[]) readArrayDoNotSkipBytes(T)(ref ByteReader reader, immutable size_t size) {
 	return (cast(immutable T*) reader.ptr)[0..size];
 }
 

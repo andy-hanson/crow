@@ -38,7 +38,7 @@ import model.model :
 	TypeParam;
 import util.bools : Bool, False, True;
 import util.cell : Cell, cellGet, cellSet;
-import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
+import util.collection.arr : at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
 import util.collection.arrUtil : find, findIndex, map, mapOrNone, mapZipOrNone;
 import util.collection.mutArr : MutArr;
 import util.memory : allocate, nu;
@@ -54,7 +54,7 @@ immutable(Ptr!Expr) allocExpr(Alloc)(ref Alloc alloc, immutable Expr e) {
 
 struct LambdaInfo {
 	immutable FunKind funKind;
-	immutable Arr!Param lambdaParams;
+	immutable Param[] lambdaParams;
 	MutArr!LocalAndUsed locals;
 	MutArr!(immutable Ptr!ClosureField) closureFields;
 }
@@ -64,12 +64,12 @@ struct ExprCtx {
 	immutable Ptr!StructsAndAliasesDict structsAndAliasesDict;
 	immutable Ptr!FunsDict funsDict;
 	immutable Ptr!CommonTypes commonTypes;
-	immutable Arr!(Ptr!SpecInst) outermostFunSpecs;
-	immutable Arr!Param outermostFunParams;
-	immutable Arr!TypeParam outermostFunTypeParams;
+	immutable Ptr!SpecInst[] outermostFunSpecs;
+	immutable Param[] outermostFunParams;
+	immutable TypeParam[] outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
-	Arr!Bool funsUsed;
-	Arr!Bool paramsUsed;
+	Bool[] funsUsed;
+	Bool[] paramsUsed;
 
 	// Locals of the function or message. Lambda locals are stored in the lambda.
 	// (Note the Let stores the local and this points to that.)
@@ -104,7 +104,7 @@ ref immutable(ProgramState) programState(return scope ref immutable ExprCtx ctx)
 	return ctx.checkCtx.programState;
 }
 
-immutable(Arr!Type) typeArgsFromAsts(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable Arr!TypeAst typeAsts) {
+immutable(Type[]) typeArgsFromAsts(Alloc)(ref Alloc alloc, ref ExprCtx ctx, immutable TypeAst[] typeAsts) {
 	return map!Type(alloc, typeAsts, (ref immutable TypeAst it) =>
 		typeFromAst!Alloc(
 			alloc,
@@ -133,21 +133,21 @@ immutable(Opt!Type) tryGetInferred(ref const SingleInferringType a) {
 struct InferringTypeArgs {
 	@safe @nogc pure nothrow:
 
-	immutable Arr!TypeParam params;
-	Arr!SingleInferringType args;
+	immutable TypeParam[] params;
+	SingleInferringType[] args;
 
 	static InferringTypeArgs none() {
 		return InferringTypeArgs(emptyArr!TypeParam, emptyArr_mut!SingleInferringType);
 	}
 
-	this(immutable Arr!TypeParam ps, Arr!SingleInferringType as) {
+	this(immutable TypeParam[] ps, SingleInferringType[] as) {
 		params = ps;
 		args = as;
 		verify(sizeEq(params, args));
 		foreach (immutable size_t i; 0..size(params))
 			verify(at(params, i).index == i);
 	}
-	const this(immutable Arr!TypeParam ps, const Arr!SingleInferringType as) {
+	const this(immutable TypeParam[] ps, const SingleInferringType[] as) {
 		params = ps;
 		args = as;
 		verify(sizeEq(params, args));
@@ -288,7 +288,7 @@ immutable(CheckedExpr) check(Alloc)(
 		immutable Ptr!StructInst exprStruct = asStructInst(exprType);
 		immutable StructBody body_ = body_(expectedStruct.decl.deref);
 		if (isUnion(body_)) {
-			immutable Arr!(Ptr!StructInst) members = asUnion(body_).members;
+			immutable Ptr!StructInst[] members = asUnion(body_).members;
 			// This is like 't' but with the union's type parameters
 			immutable Opt!size_t opMemberIndex = findIndex(members, (ref immutable Ptr!StructInst it) =>
 				ptrEquals(it.decl, exprStruct.decl));
@@ -425,15 +425,15 @@ immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	immutable Ptr!StructDecl decl,
-	immutable Arr!Type as,
-	immutable Arr!Type bs,
+	immutable Type[] as,
+	immutable Type[] bs,
 	ref InferringTypeArgs aInferringTypeArgs,
 ) {
 	// If we need to set at least one type arg, return Set.
 	// If all passed, return Keep.
 	// Else, return Fail.
 	Bool someIsSet = False;
-	immutable Opt!(Arr!Type) newTypeArgs = mapZipOrNone!(Type, Type, Type, Alloc)(
+	immutable Opt!(Type[]) newTypeArgs = mapZipOrNone!(Type, Type, Type, Alloc)(
 		alloc,
 		as,
 		bs,
@@ -509,7 +509,7 @@ immutable(Opt!Type) tryGetDeeplyInstantiatedTypeWorker(Alloc)(
 			return has(ta) ? tryGetInferred(force(ta)) : some(t);
 		},
 		(immutable Ptr!StructInst i) {
-			immutable Opt!(Arr!Type) typeArgs = mapOrNone!Type(alloc, typeArgs(i), (ref immutable Type t) =>
+			immutable Opt!(Type[]) typeArgs = mapOrNone!Type(alloc, typeArgs(i), (ref immutable Type t) =>
 				tryGetDeeplyInstantiatedTypeWorker(alloc, programState, t, inferringTypeArgs));
 			return has(typeArgs)
 				? some(immutable Type(instantiateStructNeverDelay(

@@ -62,7 +62,7 @@ import model.lowModel :
 	PointerTypeAndConstantsLow;
 import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.bools : False;
-import util.collection.arr : Arr, emptyArr;
+import util.collection.arr : emptyArr;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.globalAllocatedStack : begin, pop, push;
 import util.collection.str : emptyStr, strLiteral;
@@ -106,7 +106,7 @@ immutable(ByteCode) makeByteCode(Debug, Alloc)(
 
 immutable(FileToFuns) dummyFileToFuns() {
 	static immutable FunNameAndPos[][] dummy = [[immutable FunNameAndPos(shortSymAlphaLiteral("a"), immutable Pos(0))]];
-	return fullIndexDictOfArr!(FileIndex, Arr!FunNameAndPos)(dummy);
+	return fullIndexDictOfArr!(FileIndex, FunNameAndPos[])(dummy);
 }
 
 //TODO:NOT TRUSTED

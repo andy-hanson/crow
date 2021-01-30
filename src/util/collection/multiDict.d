@@ -2,7 +2,7 @@ module util.collection.multiDict;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr, emptyArr;
+import util.collection.arr : emptyArr;
 import util.comparison : Comparison;
 import util.util : verify;
 
@@ -15,7 +15,7 @@ struct MultiDict(K, V, alias compare) {
 
 @trusted void multiDictEach(K, V, alias compare)(
 	ref immutable MultiDict!(K, V, compare) a,
-	scope void delegate(ref immutable K, immutable Arr!V) @safe @nogc pure nothrow cb,
+	scope void delegate(ref immutable K, immutable V[]) @safe @nogc pure nothrow cb,
 ) {
 	void recur(immutable K k, immutable size_t startI, immutable size_t curI) {
 		verify(curI > startI);
@@ -35,7 +35,7 @@ struct MultiDict(K, V, alias compare) {
 		recur(a.keys[0], 0, 1);
 }
 
-@trusted immutable(Arr!V) multiDictGetAt(K, V, alias compare)(
+@trusted immutable(V[]) multiDictGetAt(K, V, alias compare)(
 	ref immutable MultiDict!(K, V, compare) d,
 	ref immutable K key,
 ) {

@@ -2,10 +2,10 @@ module util.lineAndColumnGetter;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr, at, size;
+import util.collection.arr : at, size;
 import util.collection.arrUtil : slice;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : emptyStr, Str;
+import util.collection.str : emptyStr;
 import util.sourceRange : Pos;
 import util.types : safeSizeTToU16, safeSizeTToU32, safeU32ToU16, u8, u16, u32;
 import util.util : verify;
@@ -17,17 +17,17 @@ struct LineAndColumn {
 
 struct LineAndColumnGetter {
 	@safe @nogc pure nothrow:
-	immutable Arr!Pos lineToPos;
-	immutable Arr!u8 lineToNTabs;
+	immutable Pos[] lineToPos;
+	immutable u8[] lineToNTabs;
 
-	immutable this(immutable Arr!Pos lp, immutable Arr!u8 lnt) {
+	immutable this(immutable Pos[] lp, immutable u8[] lnt) {
 		lineToPos = lp;
 		lineToNTabs = lnt;
 		verify(size(lineToPos) == size(lineToNTabs));
 	}
 }
 
-immutable(LineAndColumnGetter) lineAndColumnGetterForText(Alloc)(ref Alloc alloc, immutable Str text) {
+immutable(LineAndColumnGetter) lineAndColumnGetterForText(Alloc)(ref Alloc alloc, immutable string text) {
 	ArrBuilder!Pos lineToPos;
 	ArrBuilder!u8 lineToNTabs;
 
@@ -85,7 +85,7 @@ u16 mid(immutable u16 a, immutable u16 b) {
 	return (a + b) / 2;
 }
 
-u8 getNTabs(immutable Str text) {
+u8 getNTabs(immutable string text) {
 	u8 i = 0;
 	while (i < ubyte.max
 		&& i < size(text)

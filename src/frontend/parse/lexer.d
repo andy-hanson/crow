@@ -5,10 +5,10 @@ module frontend.parse.lexer;
 import frontend.parse.ast : LiteralAst, NameAndRange, rangeOfNameAndRange;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, arrOfRange, at, begin, empty, first, last, size;
+import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail, slice;
-import util.collection.str : copyStr, CStr, emptyStr, NulTerminatedStr, Str, stripNulTerminator, strLiteral;
+import util.collection.str : copyStr, CStr, emptyStr, NulTerminatedStr, stripNulTerminator, strLiteral;
 import util.opt : force, has, Opt, optOr;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
@@ -48,8 +48,8 @@ struct Lexer(SymAlloc) {
 	immutable NulTerminatedStr source,
 ) {
 	// Note: We *are* relying on the nul terminator to stop the lexer.
-	immutable Str str = stripNulTerminator(source);
-	immutable Str useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc, str, strLiteral("\n\0")));
+	immutable string str = stripNulTerminator(source);
+	immutable string useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc, str, strLiteral("\n\0")));
 	return Lexer!SymAlloc(
 		allSymbols,
 		ArrBuilder!ParseDiagnostic(),
@@ -79,7 +79,7 @@ void addDiag(Alloc, SymAlloc)(
 	add(alloc, lexer.diags, immutable ParseDiagnostic(range, diag));
 }
 
-immutable(Arr!ParseDiagnostic) finishDiags(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(ParseDiagnostic[]) finishDiags(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	return finishArr(alloc, lexer.diags);
 }
 
@@ -353,7 +353,7 @@ immutable(Sym) takeName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lex
 	return takeNameAndRange(alloc, lexer).name;
 }
 
-immutable(Str) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
+immutable(string) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
 	return takeOrAddDiagExpected(alloc, lexer, '"', ParseDiag.Expected.Kind.quote)
 		? takeStringLiteralAfterQuote(lexer, alloc)
 		: emptyStr;
@@ -374,7 +374,7 @@ private:
 }
 
 // Note: Not issuing any diagnostics here. We'll fail later if we detect the wrong indent kind.
-immutable(IndentKind) detectIndentKind(immutable Str str) {
+immutable(IndentKind) detectIndentKind(immutable string str) {
 	if (empty(str))
 		// No indented lines, so it's irrelevant
 		return IndentKind.tabs;
@@ -502,7 +502,7 @@ immutable(u64) charToNat(immutable char c) {
 		: u64.max;
 }
 
-@trusted immutable(Str) takeOperatorRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
+@trusted immutable(string) takeOperatorRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
 	while (isOperatorChar(*lexer.ptr))
 		lexer.ptr++;
 	return arrOfRange(begin, lexer.ptr);
@@ -533,7 +533,7 @@ public immutable(NameAndRange) takeOperator(Alloc, SymAlloc)(
 	immutable CStr begin,
 ) {
 	immutable Pos start = posOfPtr(lexer, begin);
-	immutable Str name = takeOperatorRest(lexer, begin);
+	immutable string name = takeOperatorRest(lexer, begin);
 	immutable Opt!Sym op = getSymFromOperator(lexer.allSymbols, name);
 	immutable Sym operator = () {
 		if (has(op))
@@ -556,7 +556,7 @@ immutable(size_t) toHexDigit(immutable char c) {
 		return todo!size_t("parse diagnostic -- bad hex digit");
 }
 
-public @trusted immutable(Str) takeStringLiteralAfterQuote(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
+public @trusted immutable(string) takeStringLiteralAfterQuote(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
 	immutable CStr begin = lexer.ptr;
 	size_t nEscapedCharacters = 0;
 	// First get the max size
@@ -618,7 +618,7 @@ public @trusted immutable(Str) takeStringLiteralAfterQuote(Alloc, SymAlloc)(ref 
 	return cast(immutable) res[0..size];
 }
 
-public @trusted immutable(Str) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
+public @trusted immutable(string) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
 	while (isAlphaIdentifierContinue(*lexer.ptr))
 		lexer.ptr++;
 	if (*lexer.ptr == '?' || *lexer.ptr == '!')
@@ -731,7 +731,7 @@ void skipBlockComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer
 }
 
 struct StrAndIsOperator {
-	immutable Str str;
+	immutable string str;
 	immutable Pos start;
 	immutable Bool isOperator;
 }
@@ -741,17 +741,17 @@ struct StrAndIsOperator {
 	immutable Pos start = curPos(lexer);
 	if (isOperatorChar(*lexer.ptr)) {
 		lexer.ptr++;
-		immutable Str op = takeOperatorRest(lexer, begin);
+		immutable string op = takeOperatorRest(lexer, begin);
 		return immutable StrAndIsOperator(op, start, True);
 	} else if (isAlphaIdentifierStart(*lexer.ptr)) {
 		lexer.ptr++;
-		immutable Str name = takeNameRest(lexer, begin);
+		immutable string name = takeNameRest(lexer, begin);
 		return immutable StrAndIsOperator(name, start, False);
 	} else {
 		while (*lexer.ptr != ' ' && *lexer.ptr != '\n')
 			lexer.ptr++;
 		// Copy since it's used in a diag
-		immutable Str s = copyStr(alloc, arrOfRange(begin, lexer.ptr));
+		immutable string s = copyStr(alloc, arrOfRange(begin, lexer.ptr));
 		addDiag(alloc, lexer, range(lexer, begin), immutable ParseDiag(
 			immutable ParseDiag.InvalidName(s)));
 		return immutable StrAndIsOperator(strLiteral(""), start, False);

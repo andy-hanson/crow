@@ -2,7 +2,6 @@ module util.collection.mutSlice;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr;
 import util.memory : overwriteMemory;
 import util.util : verify;
 
@@ -42,7 +41,7 @@ MutSlice!T mutSlice(T)(MutSlice!T a, immutable size_t lo) {
 	return MutSlice!T(cast(T*) alloc.allocateBytes(T.sizeof * size), size);
 }
 
-@trusted const(Arr!T) mutSliceTempAsArr(T)(ref const MutSlice!T a) {
+@trusted const(T[]) mutSliceTempAsArr(T)(ref const MutSlice!T a) {
 	return a.begin_[0..a.size_];
 }
 

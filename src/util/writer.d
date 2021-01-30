@@ -4,9 +4,9 @@ module util.writer;
 
 import util.bools : Bool, False;
 import util.ptr : Ptr;
-import util.collection.arr : Arr, at, size;
+import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr, Str, strLiteral;
+import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr, strLiteral;
 import util.ptr : PtrRange;
 import util.types : abs;
 import util.util : verify;
@@ -18,7 +18,7 @@ struct Writer(Alloc) {
 	ArrBuilder!char res;
 }
 
-immutable(Str) finishWriter(Alloc)(ref Writer!Alloc writer) {
+immutable(string) finishWriter(Alloc)(ref Writer!Alloc writer) {
 	return finishArr(writer.alloc.deref, writer.res);
 }
 
@@ -31,7 +31,7 @@ void writeChar(Alloc)(ref Writer!Alloc writer, immutable char c) {
 	add(writer.alloc, writer.res, c);
 }
 
-void writeStr(Alloc)(ref Writer!Alloc writer, immutable Str s) {
+void writeStr(Alloc)(ref Writer!Alloc writer, immutable string s) {
 	foreach (immutable char c; s)
 		writeChar(writer, c);
 }
@@ -110,7 +110,7 @@ void writeInt(Alloc)(ref Writer!Alloc writer, immutable long i, immutable ulong 
 
 void writeWithCommas(T, Alloc)(
 	ref Writer!Alloc writer,
-	immutable Arr!T a,
+	immutable T[] a,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	writeWithCommas!(T, Alloc)(writer, a, False, cb);
@@ -118,7 +118,7 @@ void writeWithCommas(T, Alloc)(
 
 void writeWithCommas(T, Alloc)(
 	ref Writer!Alloc writer,
-	immutable Arr!T a,
+	immutable T[] a,
 	immutable Bool leadingComma,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
@@ -143,7 +143,7 @@ void writeWithCommas(Alloc)(
 
 void writeWithNewlines(T, Alloc)(
 	ref Writer!Alloc writer,
-	ref immutable Arr!T a,
+	ref immutable T[] a,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t i; 0..size(a)) {
@@ -153,7 +153,7 @@ void writeWithNewlines(T, Alloc)(
 	}
 }
 
-void writeQuotedStr(Alloc)(ref Writer!Alloc writer, ref immutable Str s) {
+void writeQuotedStr(Alloc)(ref Writer!Alloc writer, ref immutable string s) {
 	writeChar(writer, '"');
 	foreach (immutable char c; s)
 		writeEscapedChar_inner(writer, c);
@@ -210,7 +210,7 @@ void writeReset(Alloc)(ref Writer!Alloc writer) {
 	writeStatic(writer, "\x1b[m");
 }
 
-void writeHyperlink(Alloc)(ref Writer!Alloc writer, immutable Str url, immutable Str text) {
+void writeHyperlink(Alloc)(ref Writer!Alloc writer, immutable string url, immutable string text) {
 	// documentation: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 	// https://purpleidea.com/blog/2018/06/29/hyperlinks-in-gnome-terminal/
 	// TODO: I haven't got this to work on any terminal emulator I have installed. :(

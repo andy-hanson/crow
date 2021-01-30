@@ -2,14 +2,14 @@ module util.collection.fullIndexDict;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr, at, emptyArr, emptyArr_mut, ptrAt, setAt, size;
+import util.collection.arr : at, emptyArr, emptyArr_mut, ptrAt, setAt, size;
 import util.collection.arrUtil : mapWithIndex;
 import util.ptr : Ptr;
 import util.types : safeSizeTToU16, safeSizeTToU32;
 
 struct FullIndexDict(K, V) {
 	//TODO:PRIVATE:
-	Arr!V values;
+	V[] values;
 }
 
 immutable(FullIndexDict!(K, V)) emptyFullIndexDict(K, V)() {

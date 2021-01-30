@@ -3,10 +3,10 @@ module util.repr;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, emptyArr, first, size;
+import util.collection.arr : at, empty, emptyArr, first, size;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
 import util.collection.fullIndexDict : FullIndexDict;
-import util.collection.str : CStr, Str;
+import util.collection.str : CStr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -25,11 +25,11 @@ import util.writer :
 	writeStatic,
 	writeWithCommas;
 
-immutable(Repr) reprRecord(immutable Sym name, immutable Arr!Repr children) {
+immutable(Repr) reprRecord(immutable Sym name, immutable Repr[] children) {
 	return immutable Repr(immutable ReprRecord(name, children));
 }
 
-immutable(Repr) reprRecord(immutable string name, immutable Arr!Repr children) {
+immutable(Repr) reprRecord(immutable string name, immutable Repr[] children) {
 	return reprRecord(shortSymAlphaLiteral(name), children);
 }
 
@@ -43,10 +43,10 @@ immutable(Repr) reprRecord(Alloc)(ref Alloc alloc, immutable string name, scope 
 
 private struct ReprRecord {
 	immutable Sym name;
-	immutable Arr!Repr children;
+	immutable Repr[] children;
 }
 
-immutable(Repr) reprNamedRecord(immutable string name, immutable Arr!NameAndRepr children) {
+immutable(Repr) reprNamedRecord(immutable string name, immutable NameAndRepr[] children) {
 	return immutable Repr(immutable ReprNamedRecord(shortSymAlphaLiteral(name), children));
 }
 
@@ -133,7 +133,7 @@ immutable(Repr) reprOpt(Alloc, T)(
 
 private struct ReprNamedRecord {
 	immutable Sym name;
-	immutable Arr!NameAndRepr children;
+	immutable NameAndRepr[] children;
 }
 
 immutable(NameAndRepr) nameAndRepr(immutable string name, immutable Repr value) {
@@ -147,7 +147,7 @@ struct NameAndRepr {
 
 private struct ReprArr {
 	immutable Bool showIndices;
-	immutable Arr!Repr arr;
+	immutable Repr[] arr;
 }
 
 private struct ReprInt {
@@ -178,7 +178,7 @@ struct Repr {
 		immutable ReprInt int_;
 		immutable Opt!(Ptr!Repr) opt;
 		immutable ReprRecord record;
-		immutable Str str;
+		immutable string str;
 		immutable Sym symbol;
 	}
 
@@ -190,7 +190,7 @@ struct Repr {
 	immutable this(immutable ReprInt a) { kind = Kind.int_; int_ = a; }
 	@trusted immutable this(immutable Opt!(Ptr!Repr) a) { kind = Kind.opt; opt = a; }
 	@trusted immutable this(immutable ReprRecord a) { kind = Kind.record; record = a; }
-	@trusted immutable this(immutable Str a) { kind = Kind.str; str = a; }
+	@trusted immutable this(immutable string a) { kind = Kind.str; str = a; }
 	immutable this(immutable Sym a) { kind = Kind.symbol; symbol = a; }
 }
 
@@ -203,7 +203,7 @@ private @trusted T matchRepr(T)(
 	scope T delegate(ref immutable ReprNamedRecord) @safe @nogc pure nothrow cbNamedRecord,
 	scope T delegate(immutable Opt!(Ptr!Repr)) @safe @nogc pure nothrow cbOpt,
 	scope T delegate(ref immutable ReprRecord) @safe @nogc pure nothrow cbRecord,
-	scope T delegate(ref immutable Str) @safe @nogc pure nothrow cbStr,
+	scope T delegate(ref immutable string) @safe @nogc pure nothrow cbStr,
 	scope T delegate(immutable Sym) @safe @nogc pure nothrow cbSym,
 ) {
 	final switch (a.kind) {
@@ -291,7 +291,7 @@ void writeReprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Repr a) {
 			});
 			writeStatic(writer, "]}");
 		},
-		(ref immutable Str it) {
+		(ref immutable string it) {
 			writeQuotedStr(writer, it);
 		},
 		(immutable Sym it) {
@@ -376,7 +376,7 @@ void writeRepr(Alloc)(
 			} else
 				writeReprRecordSingleLine(writer, s);
 		},
-		(ref immutable Str s) {
+		(ref immutable string s) {
 			writeQuotedStr(writer, s);
 		},
 		(immutable Sym s) {
@@ -405,7 +405,7 @@ immutable(int) measureReprSingleLine(ref immutable Repr a, immutable int availab
 				: available - safeIntFromSizeT("none".length),
 		(ref immutable ReprRecord s) =>
 			measureReprRecord(s, available),
-		(ref immutable Str s) =>
+		(ref immutable string s) =>
 			available - measureQuotedStr(s),
 		(immutable Sym s) =>
 			available - safeIntFromSizeT(symSize(s)));
@@ -420,7 +420,7 @@ immutable(int) measureReprNamedRecord(ref immutable ReprNamedRecord a, immutable
 		a.children,
 		available - safeIntFromSizeT(symSize(a.name)) - safeIntFromSizeT("()".length));
 }
-immutable(int) measureReprNamedRecordRecur(immutable Arr!NameAndRepr xs, immutable int available) {
+immutable(int) measureReprNamedRecordRecur(immutable NameAndRepr[] xs, immutable int available) {
 	if (empty(xs))
 		return available;
 	else {
@@ -439,7 +439,7 @@ immutable(int) measureReprRecord(ref immutable ReprRecord a, immutable int avail
 		available - safeIntFromSizeT(symSize(a.name)) - safeIntFromSizeT("()".length));
 }
 
-immutable(int) measureCommaSeparatedChildren(immutable Arr!Repr xs, immutable int available) {
+immutable(int) measureCommaSeparatedChildren(immutable Repr[] xs, immutable int available) {
 	if (empty(xs))
 		return available;
 	else {
@@ -479,7 +479,7 @@ void writeReprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Repr a) {
 		(ref immutable ReprRecord s) {
 			writeReprRecordSingleLine(writer, s);
 		},
-		(ref immutable Str s) {
+		(ref immutable string s) {
 			writeQuotedStr(writer, s);
 		},
 		(immutable Sym s) {
@@ -487,7 +487,7 @@ void writeReprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Repr a) {
 		});
 }
 
-void writeReprArrSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Arr!Repr a) {
+void writeReprArrSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Repr[] a) {
 	writeChar(writer, '[');
 	writeCommaSeparatedChildren(writer, a);
 	writeChar(writer, ']');
@@ -511,7 +511,7 @@ void writeReprRecordSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Rep
 	writeChar(writer, ')');
 }
 
-void writeCommaSeparatedChildren(Alloc)(ref Writer!Alloc writer, ref immutable Arr!Repr a) {
+void writeCommaSeparatedChildren(Alloc)(ref Writer!Alloc writer, ref immutable Repr[] a) {
 	writeWithCommas!Repr(writer, a, (ref immutable Repr it) {
 		writeReprSingleLine(writer, it);
 	});
@@ -532,7 +532,7 @@ immutable(int) measureReprInt(immutable ReprInt s) {
 	return (s.value < 0 ? 1 : 0) + recur(1, abs(s.value) / s.base);
 }
 
-immutable(int) measureQuotedStr(ref immutable Str s) {
+immutable(int) measureQuotedStr(ref immutable string s) {
 	return 2 + safeIntFromSizeT(size(s));
 }
 

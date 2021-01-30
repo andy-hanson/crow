@@ -3,7 +3,6 @@ module util.collection.mutDict;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr;
 import util.collection.arrUtil : map_mut;
 import util.collection.dict : Dict, KeyValuePair;
 import util.collection.mutArr :
@@ -33,8 +32,8 @@ struct MutDict(K, V, alias cmp) {
 	ref Alloc alloc,
 	ref MutDict!(immutable K, immutable V, cmp) a,
 ) {
-	const Arr!(KeyValuePair!(immutable K, immutable V)) pairs = moveToArr_const(alloc, a.pairs);
-	return immutable Dict!(K, V, cmp)(cast(immutable Arr!(KeyValuePair!(K, V))) pairs);
+	const KeyValuePair!(immutable K, immutable V)[] pairs = moveToArr_const(alloc, a.pairs);
+	return immutable Dict!(K, V, cmp)(cast(immutable KeyValuePair!(K, V)[]) pairs);
 }
 
 immutable(Dict!(K, VOut, cmp)) mapToDict(K, VOut, VIn, alias cmp, Alloc)(
@@ -49,11 +48,11 @@ immutable(Dict!(K, VOut, cmp)) mapToDict(K, VOut, VIn, alias cmp, Alloc)(
 			immutable KeyValuePair!(K, VOut)(pair.key, cb(pair.value))));
 }
 
-Arr!(KeyValuePair!(K, V)) tempPairs_mut(K, V, alias cmp)(ref MutDict!(K, V, cmp) a) {
+KeyValuePair!(K, V)[] tempPairs_mut(K, V, alias cmp)(ref MutDict!(K, V, cmp) a) {
 	return tempAsArr_mut(a.pairs);
 }
 
-const(Arr!(KeyValuePair!(K, V))) tempPairs(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a) {
+const(KeyValuePair!(K, V)[]) tempPairs(K, V, alias cmp)(ref const MutDict!(K, V, cmp) a) {
 	return tempAsArr(a.pairs);
 }
 

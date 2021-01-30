@@ -2,7 +2,7 @@ module util.collection.exactSizeArrBuilder;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr, arrOfRange_mut;
+import util.collection.arr : arrOfRange_mut;
 import util.memory : initMemory_mut;
 import util.types : u8, u16, u32, u64;
 import util.util : verify;
@@ -55,9 +55,9 @@ immutable(size_t) exactSizeArrBuilderCurSize(T)(ref const ExactSizeArrBuilder!T 
 	add64(a, cast(immutable u64) (a.begin + textIndex));
 }
 
-@trusted Arr!T finish(T)(ref ExactSizeArrBuilder!T a) {
+@trusted T[] finish(T)(ref ExactSizeArrBuilder!T a) {
 	verify(a.cur == a.end);
-	Arr!T res = arrOfRange_mut(a.begin, a.end);
+	T[] res = arrOfRange_mut(a.begin, a.end);
 	a.begin = null;
 	a.cur = null;
 	a.end = null;

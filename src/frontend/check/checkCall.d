@@ -64,7 +64,6 @@ import model.model :
 	worstCasePurity;
 import util.bools : Bool, False, True;
 import util.collection.arr :
-	Arr,
 	at,
 	empty,
 	emptyArr,
@@ -116,9 +115,9 @@ immutable(CheckedExpr) checkCall(Alloc)(
 	ref Expected expected,
 ) {
 	immutable Sym funName = ast.funName.name;
-	immutable Arr!ExprAst argAsts = toArr(ast.args);
+	immutable ExprAst[] argAsts = toArr(ast.args);
 	immutable size_t arity = size(argAsts);
-	immutable Arr!Type explicitTypeArgs = typeArgsFromAsts(alloc, ctx, toArr(ast.typeArgs));
+	immutable Type[] explicitTypeArgs = typeArgsFromAsts(alloc, ctx, toArr(ast.typeArgs));
 	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, funName, explicitTypeArgs, arity);
 
 	// TODO: may not need to be deeply instantiated to do useful filtering here
@@ -128,7 +127,7 @@ immutable(CheckedExpr) checkCall(Alloc)(
 
 	ArrBuilder!Type actualArgTypes;
 	Bool someArgIsBogus = False;
-	immutable Opt!(Arr!Expr) args = fillArrOrFail!Expr(alloc, arity, (immutable size_t argIdx) {
+	immutable Opt!(Expr[]) args = fillArrOrFail!Expr(alloc, arity, (immutable size_t argIdx) {
 		if (mutArrIsEmpty(candidates))
 			// Already certainly failed.
 			return none!Expr;
@@ -159,14 +158,14 @@ immutable(CheckedExpr) checkCall(Alloc)(
 		filterUnordered(candidates, (ref Candidate it) => candidateIsPreferred(it));
 	}
 
-	const Arr!Candidate candidatesArr = moveToArr_const(alloc, candidates);
+	const Candidate[] candidatesArr = moveToArr_const(alloc, candidates);
 
 	// Show diags at the function name and not at the whole call ast
 	immutable FileAndRange diagRange = immutable FileAndRange(range.fileIndex, rangeOfNameAndRange(ast.funName));
 
 	if (!has(args) || size(candidatesArr) != 1) {
 		if (empty(candidatesArr)) {
-			immutable Arr!CalledDecl allCandidates = getAllCandidatesAsCalledDecls(alloc, ctx, funName);
+			immutable CalledDecl[] allCandidates = getAllCandidatesAsCalledDecls(alloc, ctx, funName);
 			addDiag2(alloc, ctx, diagRange, immutable Diag(nu!(Diag.CallNoMatch)(
 				alloc,
 				funName,
@@ -176,7 +175,7 @@ immutable(CheckedExpr) checkCall(Alloc)(
 				finishArr(alloc, actualArgTypes),
 				allCandidates)));
 		} else {
-			immutable Arr!CalledDecl matches = map_const!CalledDecl(alloc, candidatesArr, (ref const Candidate c) =>
+			immutable CalledDecl[] matches = map_const!CalledDecl(alloc, candidatesArr, (ref const Candidate c) =>
 				c.called);
 			addDiag2(alloc, ctx, diagRange, immutable Diag(Diag.CallMultipleMatches(funName, matches)));
 		}
@@ -251,7 +250,7 @@ void eachFunInScope(
 		matchSpecBody(
 			specInst.body_,
 			(ref immutable SpecBody.Builtin) {},
-			(ref immutable Arr!Sig sigs) {
+			(ref immutable Sig[] sigs) {
 				foreach (immutable size_t i; 0..size(sigs))
 					if (symEq(at(sigs, i).name, funName)) {
 						immutable Opt!UsedFun used = none!UsedFun;
@@ -293,7 +292,7 @@ struct Candidate {
 	immutable Opt!UsedFun used;
 	immutable CalledDecl called;
 	// Note: this is always empty if calling a SpecSig
-	Arr!SingleInferringType typeArgs;
+	SingleInferringType[] typeArgs;
 }
 
 InferringTypeArgs inferringTypeArgs(ref Candidate a) {
@@ -307,7 +306,7 @@ MutArr!Candidate getInitialCandidates(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	immutable Sym funName,
-	immutable Arr!Type explicitTypeArgs,
+	immutable Type[] explicitTypeArgs,
 	immutable size_t actualArity,
 ) {
 	MutArr!Candidate res = MutArr!Candidate();
@@ -315,7 +314,7 @@ MutArr!Candidate getInitialCandidates(Alloc)(
 		immutable size_t nTypeParams = size(typeParams(called));
 		if (arity(called) == actualArity &&
 			(empty(explicitTypeArgs) || nTypeParams == size(explicitTypeArgs))) {
-			Arr!SingleInferringType inferringTypeArgs = fillArr_mut!(SingleInferringType, Alloc)(
+			SingleInferringType[] inferringTypeArgs = fillArr_mut!(SingleInferringType, Alloc)(
 				alloc,
 				nTypeParams,
 				(immutable size_t i) =>
@@ -330,7 +329,7 @@ MutArr!Candidate getInitialCandidates(Alloc)(
 	return res;
 }
 
-immutable(Arr!CalledDecl) getAllCandidatesAsCalledDecls(Alloc)(
+immutable(CalledDecl[]) getAllCandidatesAsCalledDecls(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	immutable Sym funName,
@@ -360,7 +359,7 @@ immutable(Type) getCandidateExpectedParameterTypeRecur(Alloc)(
 		},
 		(immutable Ptr!StructInst i) {
 			//TODO:PERF, the map might change nothing, so don't reallocate in that situation
-			immutable Arr!Type typeArgs = map!Type(alloc, i.typeArgs, (ref immutable Type t) =>
+			immutable Type[] typeArgs = map!Type(alloc, i.typeArgs, (ref immutable Type t) =>
 				getCandidateExpectedParameterTypeRecur(alloc, programState, candidate, t));
 			return immutable Type(
 				instantiateStructNeverDelay(alloc, programState, immutable StructDeclAndArgs(i.decl, typeArgs)));
@@ -389,7 +388,7 @@ struct CommonOverloadExpected {
 Expected getCommonOverloadParamExpectedForMultipleCandidates(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	const Arr!Candidate candidates,
+	const Candidate[] candidates,
 	immutable size_t argIdx,
 	immutable Opt!Type expected,
 ) {
@@ -413,7 +412,7 @@ Expected getCommonOverloadParamExpectedForMultipleCandidates(Alloc)(
 CommonOverloadExpected getCommonOverloadParamExpected(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
-	Arr!Candidate candidates,
+	Candidate[] candidates,
 	immutable size_t argIdx,
 ) {
 	switch (size(candidates)) {
@@ -521,7 +520,7 @@ immutable(Opt!Called) findSpecSigImplementation(Alloc)(
 		filterByParamType(alloc, programState(ctx), candidates, at(specSig.params, argIdx).type, argIdx);
 
 	// If any candidates left take specs -- leave as a TODO
-	const Arr!Candidate candidatesArr = moveToArr_const(alloc, candidates);
+	const Candidate[] candidatesArr = moveToArr_const(alloc, candidates);
 	switch (size(candidatesArr)) {
 		case 0:
 			addDiag2(alloc, ctx, range, immutable Diag(Diag.SpecImplNotFound(specSig.name)));
@@ -546,7 +545,7 @@ immutable(Bool) findBuiltinSpecOnType(
 			(ref immutable SpecBody.Builtin b) =>
 				immutable Bool(
 					b.kind == kind && typeEquals(only(inst.typeArgs), type)),
-			(ref immutable Arr!Sig) =>
+			(ref immutable Sig[]) =>
 				//TODO: might inherit from builtin spec?
 				False));
 }
@@ -576,12 +575,12 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 
 // On failure, returns none.
 //TODO: make @safe
-@trusted immutable(Opt!(Arr!Called)) checkSpecImpls(Alloc)(
+@trusted immutable(Opt!(Called[])) checkSpecImpls(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
 	immutable Ptr!FunDecl called,
-	immutable Arr!Type typeArgz,
+	immutable Type[] typeArgz,
 	immutable Bool allowSpecs,
 ) {
 	// We store the impls in a flat array. Calculate the size ahead of time.
@@ -589,7 +588,7 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 		nSigs(specInst.body_));
 	if (nImpls != 0 && !allowSpecs) {
 		addDiag2(alloc, ctx, range, immutable Diag(Diag.SpecImplHasSpecs()));
-		return none!(Arr!Called);
+		return none!(Called[]);
 	} else {
 		MutArr!(immutable Called) res = newUninitializedMutArr!(immutable Called)(alloc, nImpls);
 		size_t outI = 0;
@@ -603,7 +602,7 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 				specInstInstantiated.body_,
 				(ref immutable SpecBody.Builtin b) =>
 					checkBuiltinSpec(alloc, ctx, called, range, b.kind, only(typeArgs(specInstInstantiated))),
-				(ref immutable Arr!Sig sigs) {
+				(ref immutable Sig[] sigs) {
 					foreach (ref immutable Sig sig; sigs) {
 						immutable Opt!Called impl = findSpecSigImplementation(alloc, ctx, range, sig);
 						if (!has(impl))
@@ -624,13 +623,13 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 	}
 }
 
-immutable(Opt!(Arr!Type)) finishCandidateTypeArgs(Alloc)(
+immutable(Opt!(Type[])) finishCandidateTypeArgs(Alloc)(
 	ref Alloc alloc,
 	ref ExprCtx ctx,
 	ref immutable FileAndRange range,
 	ref const Candidate candidate,
 ) {
-	immutable Opt!(Arr!Type) res = mapOrNone_const!Type(alloc, candidate.typeArgs, (ref const SingleInferringType i) =>
+	immutable Opt!(Type[]) res = mapOrNone_const!Type(alloc, candidate.typeArgs, (ref const SingleInferringType i) =>
 		tryGetInferred(i));
 	if (!has(res))
 		addDiag2(alloc, ctx, range, immutable Diag(Diag.CantInferTypeArguments()));
@@ -647,13 +646,13 @@ immutable(Opt!Called) getCalledFromCandidate(Alloc)(
 	if (has(candidate.used))
 		markUsedFun(ctx, force(candidate.used));
 	checkCalledDeclFlags(alloc, ctx, candidate.called, range);
-	immutable Opt!(Arr!Type) candidateTypeArgs = finishCandidateTypeArgs(alloc, ctx, range, candidate);
+	immutable Opt!(Type[]) candidateTypeArgs = finishCandidateTypeArgs(alloc, ctx, range, candidate);
 	if (has(candidateTypeArgs)) {
-		immutable Arr!Type typeArgs = force(candidateTypeArgs);
+		immutable Type[] typeArgs = force(candidateTypeArgs);
 		return matchCalledDecl(
 			candidate.called,
 			(immutable Ptr!FunDecl f) {
-				immutable Opt!(Arr!Called) specImpls = checkSpecImpls(alloc, ctx, range, f, typeArgs, allowSpecs);
+				immutable Opt!(Called[]) specImpls = checkSpecImpls(alloc, ctx, range, f, typeArgs, allowSpecs);
 				return has(specImpls)
 					? some(immutable Called(
 						instantiateFun(
@@ -673,7 +672,7 @@ immutable(CheckedExpr) checkCallAfterChoosingOverload(Alloc)(
 	ref ExprCtx ctx,
 	ref const Candidate candidate,
 	ref immutable FileAndRange range,
-	immutable Arr!Expr args,
+	immutable Expr[] args,
 	ref Expected expected,
 ) {
 	immutable Opt!Called opCalled = getCalledFromCandidate(alloc, ctx, range, candidate, True);

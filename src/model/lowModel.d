@@ -16,10 +16,8 @@ import model.concreteModel :
 import model.constant : Constant;
 import model.model : asRecord, body_;
 import util.bools : Bool, False;
-import util.collection.arr : Arr;
 import util.collection.arrUtil : slice;
 import util.collection.fullIndexDict : FullIndexDict;
-import util.collection.str : Str;
 import util.comparison : compareEnum, compareSizeT, Comparison;
 import util.opt : Opt;
 import util.ptr : Ptr;
@@ -36,7 +34,7 @@ struct LowRecord {
 	@safe @nogc pure nothrow:
 
 	immutable Ptr!ConcreteStruct source;
-	immutable Arr!LowField fields;
+	immutable LowField[] fields;
 
 	//TODO:MOVE
 	immutable(Bool) packed() immutable {
@@ -55,13 +53,13 @@ immutable(Bool) isArr(ref immutable LowRecord a) {
 
 struct LowUnion {
 	immutable Ptr!ConcreteStruct source;
-	immutable Arr!LowType members;
+	immutable LowType[] members;
 }
 
 struct LowFunPtrType {
 	immutable Ptr!ConcreteStruct source;
 	immutable LowType returnType;
-	immutable Arr!LowType paramTypes;
+	immutable LowType[] paramTypes;
 }
 
 enum PrimitiveType {
@@ -432,7 +430,7 @@ struct LowFunBody {
 
 	struct Extern {
 		immutable Bool isGlobal;
-		immutable Str externName;
+		immutable string externName;
 	}
 
 	enum Kind {
@@ -477,7 +475,7 @@ struct LowFunSource {
 
 	struct Generated {
 		immutable Sym name;
-		immutable Arr!LowType typeArgs;
+		immutable LowType[] typeArgs;
 	}
 
 	@trusted immutable this(immutable Ptr!ConcreteFun a) { kind_ = Kind.concreteFun; concreteFun_ = a; }
@@ -539,7 +537,7 @@ struct LowFun {
 	ref immutable(LowFunParamsKind) paramsKind() return scope immutable {
 		return sig.paramsKind;
 	}
-	ref immutable(Arr!LowParam) params() return scope immutable {
+	ref immutable(LowParam[]) params() return scope immutable {
 		return sig.params;
 	}
 }
@@ -549,14 +547,14 @@ struct LowFunSig {
 	immutable LowType returnType;
 	immutable LowFunParamsKind paramsKind;
 	// Includes ctx and closure params
-	immutable Arr!LowParam params;
+	immutable LowParam[] params;
 }
 
 immutable(size_t) firstRegularParamIndex(ref immutable LowFun a) {
 	return (a.paramsKind.hasCtx ? 1 : 0) + (a.paramsKind.hasClosure ? 1 : 0);
 }
 
-immutable(Arr!LowParam) regularParams(ref immutable LowFun a) {
+immutable(LowParam[]) regularParams(ref immutable LowFun a) {
 	return slice(a.params, firstRegularParamIndex(a));
 }
 
@@ -591,11 +589,11 @@ struct LowExprKind {
 
 	struct Call {
 		immutable LowFunIndex called;
-		immutable Arr!LowExpr args; // Includes implicit ctx arg if needed
+		immutable LowExpr[] args; // Includes implicit ctx arg if needed
 	}
 
 	struct CreateRecord {
-		immutable Arr!LowExpr args;
+		immutable LowExpr[] args;
 	}
 
 	struct ConvertToUnion {
@@ -625,7 +623,7 @@ struct LowExprKind {
 		}
 
 		immutable Ptr!LowExpr matchedValue;
-		immutable Arr!Case cases;
+		immutable Case[] cases;
 	}
 
 	struct ParamRef {
@@ -802,17 +800,17 @@ struct LowExprKind {
 			callFunPtr,
 		}
 		immutable Kind kind;
-		immutable Arr!LowExpr args;
+		immutable LowExpr[] args;
 	}
 
 	struct Switch {
 		immutable Ptr!LowExpr value;
-		immutable Arr!LowExpr cases;
+		immutable LowExpr[] cases;
 	}
 
 	struct TailRecur {
 		// Note: This omits the ctx param since it doesn't change.
-		immutable Arr!LowExpr args;
+		immutable LowExpr[] args;
 	}
 
 	struct Zeroed {}
@@ -1001,32 +999,32 @@ struct ArrTypeAndConstantsLow {
 	@safe @nogc pure nothrow:
 
 	@disable this(ref const ArrTypeAndConstantsLow);
-	immutable this(immutable LowType.Record a, immutable LowType e, immutable Arr!(Arr!Constant) c) {
+	immutable this(immutable LowType.Record a, immutable LowType e, immutable Constant[][] c) {
 		arrType = a; elementType = e; constants = c;
 	}
 
 	immutable LowType.Record arrType;
 	immutable LowType elementType;
-	immutable Arr!(Arr!Constant) constants;
+	immutable Constant[][] constants;
 }
 
 struct PointerTypeAndConstantsLow {
 	@safe @nogc pure nothrow:
 
 	@disable this(ref const PointerTypeAndConstantsLow);
-	immutable this(immutable LowType p, immutable Arr!(Ptr!Constant) c) {
+	immutable this(immutable LowType p, immutable Ptr!Constant[] c) {
 		pointeeType = p; constants = c;
 	}
 
 	immutable LowType pointeeType;
-	immutable Arr!(Ptr!Constant) constants;
+	immutable Ptr!Constant[] constants;
 }
 
 // TODO: rename -- this is not all constants, just the ones by-ref
 struct AllConstantsLow {
-	immutable Arr!ArrTypeAndConstantsLow arrs;
+	immutable ArrTypeAndConstantsLow[] arrs;
 	// These are just the by-ref records
-	immutable Arr!PointerTypeAndConstantsLow pointers;
+	immutable PointerTypeAndConstantsLow[] pointers;
 }
 
 struct LowProgram {

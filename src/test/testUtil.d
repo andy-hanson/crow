@@ -5,10 +5,9 @@ module test.testUtil;
 import interpret.bytecode : ByteCodeIndex;
 import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, showDataArr;
 import util.bools : Bool;
-import util.collection.arr : Arr, sizeEq;
+import util.collection.arr : sizeEq;
 import util.collection.arrUtil : eachCorresponds;
 import util.collection.globalAllocatedStack : asTempArr;
-import util.collection.str : Str;
 import util.path : AllPaths;
 import util.ptr : Ptr;
 import util.sym : AllSymbols;
@@ -26,7 +25,7 @@ struct Test(Debug, Alloc) {
 		return Writer!Alloc(alloc);
 	}
 
-	void fail(immutable Str) {
+	void fail(immutable string) {
 		verify(false);
 	}
 }
@@ -36,7 +35,7 @@ void expectDataStack(Debug, Alloc)(
 	ref const DataStack dataStack,
 	scope immutable Nat64[] expected,
 ) {
-	immutable Arr!Nat64 stack = asTempArr(dataStack);
+	immutable Nat64[] stack = asTempArr(dataStack);
 	immutable Bool eq = immutable Bool(
 		sizeEq(stack, expected) &&
 		eachCorresponds!(Nat64, Nat64)(stack, expected, (ref immutable Nat64 a, ref immutable Nat64 b) =>
@@ -58,7 +57,7 @@ void expectReturnStack(Debug, Alloc, Extern)(
 	ref const Interpreter!Extern interpreter,
 	scope immutable ByteCodeIndex[] expected,
 ) {
-	immutable Arr!(immutable(u8)*) stack = asTempArr(interpreter.returnStack);
+	immutable u8*[] stack = asTempArr(interpreter.returnStack);
 	immutable Bool eq = immutable Bool(
 		sizeEq(stack, expected) &&
 		eachCorresponds!(immutable(u8)*, ByteCodeIndex)(

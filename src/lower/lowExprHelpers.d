@@ -19,7 +19,7 @@ import model.lowModel :
 	LowType,
 	name,
 	PrimitiveType;
-import util.collection.arr : Arr, at, emptyArr, size;
+import util.collection.arr : at, emptyArr, size;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.memory : allocate, nu;
 import util.ptr : Ptr;
@@ -156,7 +156,7 @@ immutable(LowExpr) constantNat64(
 immutable(LowExpr) genCreateRecord(
 	ref immutable FileAndRange range,
 	immutable LowType.Record record,
-	immutable Arr!LowExpr args,
+	immutable LowExpr[] args,
 ) {
 	return immutable LowExpr(
 		immutable LowType(record),
@@ -213,7 +213,7 @@ immutable(LowExpr) genTailRecur(Alloc)(
 	ref Alloc alloc,
 	ref immutable FileAndRange range,
 	immutable LowType returnType,
-	immutable Arr!LowExpr args,
+	immutable LowExpr[] args,
 ) {
 	return immutable LowExpr(returnType, range, immutable LowExprKind(immutable LowExprKind.TailRecur(args)));
 }
@@ -223,7 +223,7 @@ immutable(LowExpr) genCall(Alloc)(
 	ref immutable FileAndRange range,
 	immutable LowFunIndex called,
 	immutable LowType returnType,
-	immutable Arr!LowExpr args,
+	immutable LowExpr[] args,
 ) {
 	return immutable LowExpr(
 		returnType,
@@ -380,7 +380,7 @@ immutable(LowExpr) genSwitch(Alloc)(
 	ref immutable LowType type,
 	ref immutable FileAndRange range,
 	ref immutable LowExpr value,
-	ref immutable Arr!LowExpr cases,
+	ref immutable LowExpr[] cases,
 ) {
 	return immutable LowExpr(type, range, immutable LowExprKind(
 		immutable LowExprKind.Switch(allocate(alloc, value), cases)));

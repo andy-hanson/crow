@@ -63,7 +63,7 @@ import model.lowModel :
 	regularParams;
 import model.model : FunInst, Local, name, Param;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, emptyArr, first, only, setAt, size, sizeEq;
+import util.collection.arr : at, empty, emptyArr, first, only, setAt, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, every, fillArr_mut, map, tail, zip;
 import util.collection.dict : Dict, getAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
@@ -76,7 +76,6 @@ import util.collection.fullIndexDict :
 	fullIndexDictGetPtr,
 	fullIndexDictSize;
 import util.collection.mutDict : insertOrUpdate, MutDict, setInDict;
-import util.collection.str : Str;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sym :
@@ -103,7 +102,7 @@ import util.writer :
 	writeStr,
 	writeWithCommas;
 
-immutable(Str) writeToC(Alloc, TempAlloc)(
+immutable(string) writeToC(Alloc, TempAlloc)(
 	ref Alloc alloc,
 	ref TempAlloc tempAlloc,
 	ref immutable LowProgram program,
@@ -155,7 +154,7 @@ void writeConstants(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref i
 
 	foreach (ref immutable ArrTypeAndConstantsLow a; allConstants.arrs) {
 		foreach (immutable size_t i; 0..size(a.constants)) {
-			immutable Arr!Constant elements = at(a.constants, i);
+			immutable Constant[] elements = at(a.constants, i);
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, size(elements));
 			writeStatic(writer, " = ");
 			if (isChar(a.elementType)) {
@@ -498,9 +497,9 @@ enum StructState {
 }
 
 struct StructStates {
-	Arr!Bool funPtrStates; // No need to define, just declared or not
-	Arr!StructState recordStates;
-	Arr!StructState unionStates;
+	Bool[] funPtrStates; // No need to define, just declared or not
+	StructState[] recordStates;
+	StructState[] unionStates;
 }
 
 immutable(Bool) canReferenceTypeAsValue(
@@ -868,7 +867,7 @@ struct WriteExprResult {
 	// If the write kind was TempOrInline, this indicates that it should be done inline.
 	struct Done {
 		// Args (not written inline) prepared for writing inline.
-		immutable Arr!WriteExprResult args;
+		immutable WriteExprResult[] args;
 	}
 
 	@trusted immutable this(immutable Done a) { kind = Kind.done; done = a; }
@@ -956,8 +955,8 @@ void writeTempOrInlines(Alloc, TempAlloc)(
 	ref Writer!Alloc writer,
 	ref TempAlloc tempAlloc,
 	ref FunBodyCtx ctx,
-	immutable Arr!LowExpr exprs,
-	immutable Arr!WriteExprResult args,
+	immutable LowExpr[] exprs,
+	immutable WriteExprResult[] args,
 ) {
 	verify(sizeEq(exprs, args));
 	writeWithCommas(writer, size(args), (immutable size_t i) {
@@ -981,7 +980,7 @@ struct WriteKind {
 	@safe @nogc pure nothrow:
 
 	struct Inline {
-		immutable Arr!WriteExprResult args;
+		immutable WriteExprResult[] args;
 	}
 	// May write a temp now, or delay and write inline when needed.
 	struct InlineOrTemp {}
@@ -1075,12 +1074,12 @@ immutable(Bool) isVoid(ref immutable WriteKind a) {
 	}
 }
 
-immutable(Arr!WriteExprResult) writeExprsTempOrInline(Alloc, TempAlloc)(
+immutable(WriteExprResult[]) writeExprsTempOrInline(Alloc, TempAlloc)(
 	ref Writer!Alloc writer,
 	ref TempAlloc tempAlloc,
 	immutable size_t indent,
 	ref FunBodyCtx ctx,
-	immutable Arr!LowExpr args,
+	immutable LowExpr[] args,
 ) {
 	return map!(WriteExprResult, LowExpr, TempAlloc)(tempAlloc, args, (ref immutable LowExpr arg) =>
 		writeExprTempOrInline(writer, tempAlloc, indent, ctx, arg));
@@ -1122,8 +1121,8 @@ immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
 		return writeNonInlineable(writer, indent, ctx, writeKind, type, cb);
 	}
 	immutable(WriteExprResult) inlineable(
-		ref immutable Arr!LowExpr args,
-		scope void delegate(ref immutable Arr!WriteExprResult) @safe @nogc pure nothrow inline,
+		ref immutable LowExpr[] args,
+		scope void delegate(ref immutable WriteExprResult[]) @safe @nogc pure nothrow inline,
 	) {
 		return writeInlineable(writer, tempAlloc, indent, ctx, writeKind, type, args, inline);
 	}
@@ -1142,7 +1141,7 @@ immutable(WriteExprResult) writeExpr(Alloc, TempAlloc)(
 		(ref immutable LowExprKind.Call it) =>
 			writeCallExpr(writer, tempAlloc, indent, ctx, writeKind, type, it),
 		(ref immutable LowExprKind.CreateRecord it) =>
-			inlineable(it.args, (ref immutable Arr!WriteExprResult args) {
+			inlineable(it.args, (ref immutable WriteExprResult[] args) {
 				writeCastToType(writer, ctx.ctx, type);
 				writeChar(writer, '{');
 				writeTempOrInlines(writer, tempAlloc, ctx, it.args, args);
@@ -1288,10 +1287,10 @@ immutable(WriteExprResult) writeInlineable(Alloc, TempAlloc)(
 	ref FunBodyCtx ctx,
 	ref immutable WriteKind writeKind,
 	ref immutable LowType type,
-	immutable Arr!LowExpr args,
-	scope void delegate(ref immutable Arr!WriteExprResult) @safe @nogc pure nothrow inline,
+	immutable LowExpr[] args,
+	scope void delegate(ref immutable WriteExprResult[]) @safe @nogc pure nothrow inline,
 ) {
-	immutable(Arr!WriteExprResult) setup() {
+	immutable(WriteExprResult[]) setup() {
 		return writeExprsTempOrInline(writer, tempAlloc, indent, ctx, args);
 	}
 
@@ -1301,7 +1300,7 @@ immutable(WriteExprResult) writeInlineable(Alloc, TempAlloc)(
 		inline(asInline(writeKind).args);
 		return writeExprDone();
 	} else {
-		immutable Arr!WriteExprResult argTemps = setup();
+		immutable WriteExprResult[] argTemps = setup();
 		return writeNonInlineable!Alloc(writer, indent, ctx, writeKind, type, () {
 			inline(argTemps);
 		});
@@ -1326,7 +1325,7 @@ immutable(WriteExprResult) writeInlineableSingleArg(Alloc, TempAlloc)(
 		writeKind,
 		type,
 		arrLiteral!LowExpr(tempAlloc, [arg]),
-		(ref immutable Arr!WriteExprResult args) {
+		(ref immutable WriteExprResult[] args) {
 			inline(only(args));
 		});
 }
@@ -1348,7 +1347,7 @@ immutable(WriteExprResult) writeInlineableSimple(Alloc, TempAlloc)(
 		writeKind,
 		type,
 		emptyArr!LowExpr,
-		(ref immutable Arr!WriteExprResult) {
+		(ref immutable WriteExprResult[]) {
 			inline();
 		});
 }
@@ -1382,7 +1381,7 @@ immutable(WriteExprResult) writeCallExpr(Alloc, TempAlloc)(
 	ref immutable LowType type,
 	ref immutable LowExprKind.Call a,
 ) {
-	immutable Arr!WriteExprResult args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, a.args);
+	immutable WriteExprResult[] args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, a.args);
 	return writeNonInlineable(writer, indent, ctx, writeKind, type, () {
 		immutable Ptr!LowFun called = fullIndexDictGetPtr(ctx.ctx.program.allFuns, a.called);
 		immutable Bool isCVoid = isExtern(called.body_) && isVoid(called.returnType);
@@ -1407,8 +1406,8 @@ void writeTailRecur(Alloc, TempAlloc)(
 	ref FunBodyCtx ctx,
 	ref immutable LowExprKind.TailRecur a,
 ) {
-	immutable Arr!LowParam params = regularParams(fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun));
-	immutable Arr!WriteExprResult args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, a.args);
+	immutable LowParam[] params = regularParams(fullIndexDictGet(ctx.ctx.program.allFuns, ctx.curFun));
+	immutable WriteExprResult[] args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, a.args);
 	zip!(LowParam, LowExpr, WriteExprResult)(
 		params,
 		a.args,
@@ -1631,7 +1630,7 @@ void writeConstantRef(Alloc)(
 			writeConstantPointerStorageName(writer, ctx, asPtrGc(type).pointee, it.index);
 		},
 		(ref immutable Constant.Record it) {
-			immutable Arr!LowField fields = fullIndexDictGet(ctx.program.allRecords, asRecordType(type)).fields;
+			immutable LowField[] fields = fullIndexDictGet(ctx.program.allRecords, asRecordType(type)).fields;
 			verify(sizeEq(fields, it.args));
 			if (pos == ConstantRefPos.outer)
 				writeCastToType(writer, ctx, type);
@@ -1834,7 +1833,7 @@ void writeZeroedValue(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref
 		(immutable LowType.Record it) {
 			writeCastToType(writer, ctx, type);
 			writeChar(writer, '{');
-			immutable Arr!LowField fields = fullIndexDictGet(ctx.program.allRecords, it).fields;
+			immutable LowField[] fields = fullIndexDictGet(ctx.program.allRecords, it).fields;
 			writeWithCommas!LowField(writer, fields, (ref immutable LowField field) {
 				writeZeroedValue(writer, ctx, field.type);
 			});
@@ -1871,7 +1870,7 @@ immutable(WriteExprResult) writeSpecialBinary(Alloc, TempAlloc)(
 			writeKind,
 			type,
 			arrLiteral!LowExpr(tempAlloc, [it.left, it.right]),
-			(ref immutable Arr!WriteExprResult args) {
+			(ref immutable WriteExprResult[] args) {
 				verify(size(args) == 2);
 				writeChar(writer, '(');
 				writeTempOrInline(writer, tempAlloc, ctx, it.left, at(args, 0));
@@ -2130,7 +2129,7 @@ immutable(WriteExprResult) writeSpecialNAry(Alloc, TempAlloc)(
 	final switch (it.kind) {
 		case LowExprKind.SpecialNAry.Kind.callFunPtr:
 			immutable WriteExprResult fn = writeExprTempOrInline(writer, tempAlloc, indent, ctx, first(it.args));
-			immutable Arr!WriteExprResult args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, tail(it.args));
+			immutable WriteExprResult[] args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, tail(it.args));
 			return writeNonInlineable(writer, indent, ctx, writeKind, type, () {
 				writeTempOrInline(writer, tempAlloc, ctx, first(it.args), fn);
 				writeChar(writer, '(');

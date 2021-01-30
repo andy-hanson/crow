@@ -3,7 +3,6 @@ module model.constant;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, True;
-import util.collection.arr : Arr;
 import util.collection.arrUtil : eachCorresponds;
 import util.ptr : Ptr;
 import util.types : u8;
@@ -34,7 +33,7 @@ struct Constant {
 	}
 	// This is a record by-value.
 	struct Record {
-		immutable Arr!Constant args;
+		immutable Constant[] args;
 	}
 	struct Union {
 		immutable u8 memberIndex;

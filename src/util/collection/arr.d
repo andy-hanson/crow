@@ -25,8 +25,6 @@ struct ArrWithSize(T) {
 	return immutable ArrWithSize!T(cast(immutable ubyte*) &zero);
 }
 
-alias Arr(T) = T[];
-
 @system void freeArr(Alloc, T)(ref Alloc alloc, immutable T[] a) {
 	alloc.freeBytes(cast(ubyte*) begin(a), size(a) * T.sizeof);
 }

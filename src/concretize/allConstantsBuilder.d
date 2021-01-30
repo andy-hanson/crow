@@ -11,12 +11,11 @@ import model.concreteModel :
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
 import util.bools : Bool;
-import util.collection.arr : Arr, empty;
+import util.collection.arr : empty;
 import util.collection.arrUtil : arrEqual, findIndex_const, map, map_mut;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
 import util.collection.mutDict : getOrAdd, MutDict, mustGetAt_mut, mutDictSize, tempPairs_mut;
-import util.collection.str : Str;
 import util.memory : allocate;
 import util.opt : force, has, Opt;
 import util.ptr : comparePtr, Ptr, ptrTrustMe_mut;
@@ -32,7 +31,7 @@ private struct ArrTypeAndConstants {
 	immutable Ptr!ConcreteStruct arrType;
 	immutable ConcreteType elementType;
 	immutable size_t typeIndex; // order this was inserted into 'arrs'
-	MutArr!(immutable Arr!Constant) constants;
+	MutArr!(immutable Constant[]) constants;
 }
 
 private struct PointerTypeAndConstants {
@@ -41,13 +40,13 @@ private struct PointerTypeAndConstants {
 }
 
 immutable(AllConstantsConcrete) finishAllConstants(Alloc)(ref Alloc alloc, ref AllConstantsBuilder a) {
-	immutable Arr!ArrTypeAndConstantsConcrete arrs =
+	immutable ArrTypeAndConstantsConcrete[] arrs =
 		map_mut(alloc, tempPairs_mut(a.arrs), (ref KeyValuePair!(immutable ConcreteType, ArrTypeAndConstants) pair) =>
 			immutable ArrTypeAndConstantsConcrete(
 				pair.value.arrType,
 				pair.value.elementType,
-				moveToArr!(immutable Arr!Constant, Alloc)(alloc, pair.value.constants)));
-	immutable Arr!PointerTypeAndConstantsConcrete records =
+				moveToArr!(immutable Constant[], Alloc)(alloc, pair.value.constants)));
+	immutable PointerTypeAndConstantsConcrete[] records =
 		map_mut(
 			alloc,
 			tempPairs_mut(a.pointers),
@@ -91,7 +90,7 @@ immutable(Constant) getConstantArr(Alloc)(
 	ref AllConstantsBuilder allConstants,
 	immutable Ptr!ConcreteStruct arrStruct,
 	ref immutable ConcreteType elementType,
-	ref immutable Arr!Constant elements,
+	ref immutable Constant[] elements,
 ) {
 	if (empty(elements))
 		return constantEmptyArr();
@@ -100,11 +99,11 @@ immutable(Constant) getConstantArr(Alloc)(
 			ArrTypeAndConstants(
 				arrStruct,
 				elementType,
-				mutDictSize(allConstants.arrs), MutArr!(immutable Arr!Constant)())));
-		immutable size_t index = findOrPush!(immutable Arr!Constant, Alloc)(
+				mutDictSize(allConstants.arrs), MutArr!(immutable Constant[])())));
+		immutable size_t index = findOrPush!(immutable Constant[], Alloc)(
 			alloc,
 			d.constants,
-			(ref immutable Arr!Constant it) =>
+			(ref immutable Constant[] it) =>
 				constantArrEqual(it, elements),
 			() =>
 				elements);
@@ -124,16 +123,16 @@ immutable(Constant) getConstantStr(Alloc)(
 	ref AllConstantsBuilder allConstants,
 	immutable Ptr!ConcreteStruct strStruct,
 	ref immutable ConcreteType charType,
-	ref immutable Str str,
+	ref immutable string str,
 ) {
-	immutable Arr!Constant chars = map(alloc, str, (ref immutable char c) =>
+	immutable Constant[] chars = map(alloc, str, (ref immutable char c) =>
 		immutable Constant(immutable Constant.Integral(c)));
 	return getConstantArr(alloc, allConstants, strStruct, charType, chars);
 }
 
 private:
 
-immutable(Bool) constantArrEqual(ref immutable Arr!Constant a, ref immutable Arr!Constant b) {
+immutable(Bool) constantArrEqual(ref immutable Constant[] a, ref immutable Constant[] b) {
 	return arrEqual(a, b, (ref immutable Constant x, ref immutable Constant y) =>
 		constantEqual(x, y));
 }

@@ -2,7 +2,6 @@ module util.collection.byteWriter;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr;
 import util.collection.mutArr : moveToArr, MutArr, mutArrPtrAt, mutArrSize, push, pushAll;
 import util.ptr : Ptr;
 import util.types : Int16, Nat8, Nat16, Nat32, Nat64, u8;
@@ -24,7 +23,7 @@ immutable(size_t) nextByteIndex(Alloc)(ref const ByteWriter!Alloc writer) {
 	return mutArrSize(writer.bytes);
 }
 
-immutable(Arr!u8) finishByteWriter(Alloc)(ref ByteWriter!Alloc writer) {
+immutable(u8[]) finishByteWriter(Alloc)(ref ByteWriter!Alloc writer) {
 	return moveToArr(writer.alloc, writer.bytes);
 }
 
@@ -66,7 +65,7 @@ private:
 	pushAll(writer.alloc, writer.bytes, asBytes!T(&value));
 }
 
-@system immutable(Arr!u8) asBytes(T)(immutable T* value) {
+@system immutable(u8[]) asBytes(T)(immutable T* value) {
 	return (cast(immutable u8*) value)[0..T.sizeof];
 }
 

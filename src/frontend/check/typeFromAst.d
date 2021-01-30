@@ -33,7 +33,7 @@ import model.model :
 	TypeParam,
 	typeParams;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, size, toArr;
+import util.collection.arr : at, size, toArr;
 import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map;
 import util.collection.dict : getAt;
 import util.opt : force, has, mapOption, none, Opt, some;
@@ -73,8 +73,8 @@ immutable(Opt!(Ptr!StructInst)) instStructFromAst(Alloc)(
 	else {
 		immutable StructOrAlias sOrA = force(opDecl);
 		immutable size_t nExpectedTypeArgs = size(typeParams(sOrA));
-		immutable Arr!TypeAst typeArgAsts = toArr(ast.typeArgs);
-		immutable Arr!Type typeArgs = () {
+		immutable TypeAst[] typeArgAsts = toArr(ast.typeArgs);
+		immutable Type[] typeArgs = () {
 			immutable size_t nActualTypeArgs = size(typeArgAsts);
 			if (nActualTypeArgs != nExpectedTypeArgs) {
 				addDiag(alloc, ctx, ast.range, immutable Diag(
@@ -176,7 +176,7 @@ private immutable(Type) typeFromFunAst(Alloc)(
 		// We don't have a fun type big enough
 		todo!void("!");
 	immutable Ptr!StructDecl decl = at(f.structs, size(ast.returnAndParamTypes) - 1);
-	immutable Arr!Type typeArgs = map!Type(alloc, ast.returnAndParamTypes, (ref immutable TypeAst it) =>
+	immutable Type[] typeArgs = map!Type(alloc, ast.returnAndParamTypes, (ref immutable TypeAst it) =>
 		typeFromAst(alloc, ctx, commonTypes, it, structsAndAliasesDict, typeParamsScope, delayStructInsts));
 	return immutable Type(instantiateStruct(
 		alloc,
@@ -209,11 +209,11 @@ immutable(Opt!(Ptr!SpecDecl)) tryFindSpec(Alloc)(
 			nr.spec);
 }
 
-immutable(Arr!Type) typeArgsFromAsts(Alloc)(
+immutable(Type[]) typeArgsFromAsts(Alloc)(
 	ref Alloc alloc,
 	ref CheckCtx ctx,
 	ref immutable CommonTypes commonTypes,
-	immutable Arr!TypeAst typeAsts,
+	immutable TypeAst[] typeAsts,
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable TypeParamsScope typeParamsScope,
 	DelayStructInsts delayStructInsts,

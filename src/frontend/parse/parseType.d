@@ -6,7 +6,7 @@ import frontend.parse.ast : NameAndRange, range, TypeAst;
 import frontend.parse.lexer : addDiag, curPos, Lexer, range, takeNameAndRange, takeOrAddDiagExpected, tryTake;
 import model.parseDiag : ParseDiag;
 import util.bools : Bool;
-import util.collection.arr : Arr, ArrWithSize, at, empty, emptyArrWithSize, toArr;
+import util.collection.arr : ArrWithSize, at, empty, emptyArrWithSize, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
 import util.collection.arrUtil : arrWithSizeLiteral;
 import util.opt : force, has, none, Opt, some;
@@ -81,7 +81,7 @@ immutable(TypeAst) parseType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAllo
 			return todo!(immutable TypeAst)("diagnostic -- function type missing parens");
 	} else {
 		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsAllowSpace(alloc, lexer);
-		immutable Arr!TypeAst typeArgsArr = toArr(typeArgs);
+		immutable TypeAst[] typeArgsArr = toArr(typeArgs);
 		if (isTypeParam && !empty(typeArgsArr))
 			addDiag(alloc, lexer, at(typeArgsArr, 0).range,
 				immutable ParseDiag(immutable ParseDiag.TypeParamCantHaveTypeArgs()));

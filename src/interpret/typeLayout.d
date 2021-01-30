@@ -4,7 +4,7 @@ module interpret.typeLayout;
 
 import interpret.bytecode : stackEntrySize;
 import model.lowModel : LowField, LowProgram, LowRecord, LowType, LowUnion, matchLowType, PrimitiveType;
-import util.collection.arr : Arr, at, empty, size;
+import util.collection.arr : at, empty, size;
 import util.collection.arrUtil : arrMax, map, mapOp, slice;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictGet, fullIndexDictSize;
 import util.collection.fullIndexDictBuilder :
@@ -22,7 +22,7 @@ import util.util : divRoundUp, roundUp, verify;
 struct TypeLayout {
 	// All in bytes
 	immutable FullIndexDict!(LowType.Record, Nat16) recordSizes;
-	immutable FullIndexDict!(LowType.Record, Arr!Nat16) fieldOffsets;
+	immutable FullIndexDict!(LowType.Record, Nat16[]) fieldOffsets;
 	immutable FullIndexDict!(LowType.Union, Nat16) unionSizes;
 }
 
@@ -52,7 +52,7 @@ immutable(Nat8) nStackEntriesForType(ref immutable TypeLayout typeLayout, ref im
 immutable(TypeLayout) layOutTypes(Alloc)(ref Alloc alloc, ref immutable LowProgram program) {
 	TypeLayoutBuilder builder = TypeLayoutBuilder(
 		newFullIndexDictBuilder!(LowType.Record, Nat16)(alloc, fullIndexDictSize(program.allRecords)),
-		newFullIndexDictBuilder!(LowType.Record, Arr!Nat16)(alloc, fullIndexDictSize(program.allRecords)),
+		newFullIndexDictBuilder!(LowType.Record, Nat16[])(alloc, fullIndexDictSize(program.allRecords)),
 		newFullIndexDictBuilder!(LowType.Union, Nat16)(alloc, fullIndexDictSize(program.allUnions)));
 	fullIndexDictEach!(LowType.Record, LowRecord)(
 		program.allRecords,
@@ -79,7 +79,7 @@ void walkRecordFields(TempAlloc)(
 	ref immutable LowProgram program,
 	ref immutable TypeLayout typeLayout,
 	immutable LowType.Record type,
-	scope void delegate(ref immutable Arr!Nat8) @safe @nogc pure nothrow cbPack,
+	scope void delegate(ref immutable Nat8[]) @safe @nogc pure nothrow cbPack,
 	scope void delegate(
 		immutable size_t,
 		ref immutable LowType,
@@ -90,9 +90,9 @@ void walkRecordFields(TempAlloc)(
 
 	void maybePack(immutable Opt!size_t packStart, immutable size_t packEnd) {
 		if (has(packStart)) {
-			// TODO: could just write these to a MaxArr!Nat16 when making in the first place
+			// TODO: could just write these to a MaxNat16[] when making in the first place
 			// (instead of Opt!size_t packStart, have MaxArr!(size_t, 3))
-			immutable Arr!Nat8 fieldSizes = mapOp!Nat8(
+			immutable Nat8[] fieldSizes = mapOp!Nat8(
 				tempAlloc,
 				slice(record.fields, force(packStart), packEnd - force(packStart)),
 				(ref immutable LowField field) {
@@ -132,7 +132,7 @@ private:
 
 struct TypeLayoutBuilder {
 	FullIndexDictBuilder!(LowType.Record, Nat16) recordSizes;
-	FullIndexDictBuilder!(LowType.Record, Arr!Nat16) recordFieldOffsets;
+	FullIndexDictBuilder!(LowType.Record, Nat16[]) recordFieldOffsets;
 	FullIndexDictBuilder!(LowType.Union, Nat16) unionSizes;
 }
 
@@ -146,7 +146,7 @@ immutable(Nat16) fillRecordSize(Alloc)(
 	ref TypeLayoutBuilder builder,
 ) {
 	Nat16 offset = immutable Nat16(0);
-	immutable Arr!Nat16 fieldOffsets = map(alloc, record.fields, (ref immutable LowField field) {
+	immutable Nat16[] fieldOffsets = map(alloc, record.fields, (ref immutable LowField field) {
 		immutable Nat16 fieldSize = sizeOfType(alloc, program, field.type, builder);
 		// If field would stretch across a boundary, move offset up to the next boundary
 		immutable Nat16 mod = offset % fieldBoundary;

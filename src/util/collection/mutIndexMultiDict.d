@@ -2,7 +2,6 @@ module util.collection.mutIndexMultiDict;
 
 @safe @nogc pure nothrow:
 
-import util.collection.arr : Arr;
 import util.collection.arrUtil : fillArr_mut;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr_mut;
 import util.collection.mutArr : MutArr, push, tempAsArr;
@@ -28,7 +27,7 @@ void mutIndexMultiDictAdd(K, V, Alloc)(
 }
 
 // WARN: result is temporary only!
-const(Arr!V) mutIndexMultiDictMustGetAt(K, V)(const ref MutIndexMultiDict!(K, V) a, immutable K key) {
+const(V[]) mutIndexMultiDictMustGetAt(K, V)(const ref MutIndexMultiDict!(K, V) a, immutable K key) {
 	return tempAsArr(fullIndexDictGet(a.inner, key));
 }
 

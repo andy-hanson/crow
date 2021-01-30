@@ -49,7 +49,7 @@ import frontend.parse.ast :
 	TypeAst,
 	TypeParamAst;
 import util.bools : Bool, True;
-import util.collection.arr : Arr, ArrWithSize, first, toArr;
+import util.collection.arr : ArrWithSize, first, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : tail;
 import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
@@ -87,12 +87,12 @@ struct Token {
 	immutable RangeWithinFile range;
 }
 
-immutable(Repr) reprTokens(Alloc)(ref Alloc alloc, ref immutable Arr!Token tokens) {
+immutable(Repr) reprTokens(Alloc)(ref Alloc alloc, ref immutable Token[] tokens) {
 	return reprArr(alloc, tokens, (ref immutable Token it) =>
 		reprToken(alloc, it));
 }
 
-immutable(Arr!Token) tokensOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
+immutable(Token[]) tokensOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast) {
 	ArrBuilder!Token tokens;
 
 	addImportTokens!Alloc(alloc, tokens, imports(ast), shortSymAlphaLiteral("import"));
@@ -114,7 +114,7 @@ immutable(Arr!Token) tokensOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst a
 		funs(ast), (ref immutable FunDeclAst it) => it.range, (ref immutable FunDeclAst it) {
 			addFunTokens(alloc, tokens, it);
 		});
-	immutable Arr!Token res = finishArr(alloc, tokens);
+	immutable Token[] res = finishArr(alloc, tokens);
 	assertTokensSorted(res);
 	return res;
 }
@@ -147,7 +147,7 @@ void addSpecTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 	matchSpecBodyAst!void(
 		a.body_,
 		(ref immutable SpecBodyAst.Builtin) {},
-		(ref immutable Arr!SigAst sigs) {
+		(ref immutable SigAst[] sigs) {
 			foreach (ref immutable SigAst sig; sigs) {
 				add(alloc, tokens, immutable Token(Token.Kind.funDef, rangeAtName(True, sig.range.start, sig.name)));
 				addSigReturnTypeAndParamsTokens(alloc, tokens, sig);
@@ -265,7 +265,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		a.kind,
 		(ref immutable BogusAst) {},
 		(ref immutable CallAst it) {
-			immutable Arr!ExprAst args = toArr(it.args);
+			immutable ExprAst[] args = toArr(it.args);
 			void addName() {
 				add(alloc, tokens, immutable Token(Token.Kind.funRef, rangeOfNameAndRange(it.funName)));
 				addTypeArgsTokens(alloc, tokens, it.typeArgs);
@@ -327,7 +327,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 					Token.Kind.literalNumber,
 				(ref immutable LiteralAst.Nat) =>
 					Token.Kind.literalNumber,
-				(ref immutable Str) =>
+				(ref immutable string) =>
 					Token.Kind.literalString);
 			add(alloc, tokens, immutable Token(kind, a.range));
 		},
@@ -362,12 +362,12 @@ void addLambdaAstParam(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref 
 	add(alloc, tokens, immutable Token(Token.Kind.paramDef, rangeOfNameAndRange(param)));
 }
 
-void addExprsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, immutable Arr!ExprAst exprs) {
+void addExprsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, immutable ExprAst[] exprs) {
 	foreach (ref immutable ExprAst expr; exprs)
 		addExprTokens(alloc, tokens, expr);
 }
 
-void assertTokensSorted(ref immutable Arr!Token tokens) {
+void assertTokensSorted(ref immutable Token[] tokens) {
 	immutable Opt!UnsortedPair pair = findUnsortedPair!Token(tokens, (ref immutable Token a, ref immutable Token b) =>
 		compareRangeWithinFile(a.range, b.range));
 	if (has(pair))

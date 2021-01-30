@@ -13,7 +13,6 @@ import util.collection.str :
 	emptyStr,
 	NulTerminatedStr,
 	nulTerminatedStrOfCStr,
-	Str,
 	strEqLiteral,
 	strLiteral,
 	strOfNulTerminatedStr;
@@ -37,7 +36,7 @@ import util.util : verify, verifyFail;
 		frontendCompile(test.alloc, test.alloc, test.allPaths, test.allSymbols, storage, path);
 	immutable Ptr!Module mainModule = last(program.allModules);
 
-	immutable(Str) hover(immutable Pos pos) {
+	immutable(string) hover(immutable Pos pos) {
 		immutable Opt!Position position = getPosition(mainModule, pos);
 		return has(position)
 			? getHoverStr!(Alloc, Alloc, Alloc)(test.alloc, test.alloc, test.allPaths, program, force(position))
@@ -74,7 +73,7 @@ import util.util : verify, verifyFail;
 
 private:
 
-void verifyStrEq(Debug)(ref Debug dbg, immutable Pos pos, immutable Str actual, immutable string expected) {
+void verifyStrEq(Debug)(ref Debug dbg, immutable Pos pos, immutable string actual, immutable string expected) {
 	if (!strEqLiteral(actual, expected)) {
 		logNoNewline(dbg, strLiteral("at position "));
 		logNat(dbg, pos);

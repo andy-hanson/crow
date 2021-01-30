@@ -19,9 +19,7 @@ import model.model :
 	StructInst,
 	summon;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr;
 import util.collection.dict : Dict;
-import util.collection.str : Str;
 import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateSet;
 import util.opt : Opt;
@@ -89,14 +87,14 @@ struct ConcreteStructBody {
 
 	struct Builtin {
 		immutable BuiltinStructKind kind;
-		immutable Arr!ConcreteType typeArgs;
+		immutable ConcreteType[] typeArgs;
 	}
 	struct ExternPtr {}
 	struct Record {
-		immutable Arr!ConcreteField fields;
+		immutable ConcreteField[] fields;
 	}
 	struct Union {
-		immutable Arr!ConcreteType members;
+		immutable ConcreteType[] members;
 	}
 
 	private:
@@ -182,7 +180,7 @@ struct ConcreteStructSource {
 
 	struct Inst {
 		immutable Ptr!StructInst inst;
-		immutable Arr!ConcreteType typeArgs;
+		immutable ConcreteType[] typeArgs;
 	}
 
 	struct Lambda {
@@ -426,13 +424,13 @@ struct ConcreteFunBody {
 	@safe @nogc pure nothrow:
 
 	struct Builtin {
-		immutable Arr!ConcreteType typeArgs;
+		immutable ConcreteType[] typeArgs;
 	}
 	struct CreateRecord {
 	}
 	struct Extern {
 		immutable Bool isGlobal;
-		immutable Str externName;
+		immutable string externName;
 	}
 	struct RecordFieldGet {
 		immutable u8 fieldIndex;
@@ -590,7 +588,7 @@ struct ConcreteFun {
 		return sig.closureParam;
 	}
 
-	ref immutable(Arr!ConcreteParam) paramsExcludingCtxAndClosure() return scope immutable {
+	ref immutable(ConcreteParam[]) paramsExcludingCtxAndClosure() return scope immutable {
 		return sig.paramsExcludingCtxAndClosure;
 	}
 }
@@ -602,7 +600,7 @@ struct ConcreteFunSig {
 		immutable ConcreteType returnType,
 		immutable Bool n,
 		immutable Opt!(Ptr!ConcreteParam) c,
-		immutable Arr!ConcreteParam p,
+		immutable ConcreteParam[] p,
 	) {
 		returnStruct = returnType.struct_;
 		returnTypeNeedsPtr = returnType.isPointer;
@@ -616,7 +614,7 @@ struct ConcreteFunSig {
 	immutable Bool returnTypeNeedsPtr;
 	immutable Bool needsCtx;
 	immutable Opt!(Ptr!ConcreteParam) closureParam;
-	immutable Arr!ConcreteParam paramsExcludingCtxAndClosure;
+	immutable ConcreteParam[] paramsExcludingCtxAndClosure;
 }
 static assert(ConcreteFunSig.sizeof <= 48);
 
@@ -707,7 +705,7 @@ struct ConcreteExprKind {
 
 	struct Call {
 		immutable Ptr!ConcreteFun called;
-		immutable Arr!ConcreteExpr args;
+		immutable ConcreteExpr[] args;
 	}
 
 	struct Cond {
@@ -719,12 +717,12 @@ struct ConcreteExprKind {
 	struct CreateArr {
 		immutable Ptr!ConcreteStruct arrType;
 		immutable ConcreteType elementType;
-		immutable Arr!ConcreteExpr args;
+		immutable ConcreteExpr[] args;
 	}
 
 	// TODO: this is only used for closures now, since normal record creation always goes through a function.
 	struct CreateRecord {
-		immutable Arr!ConcreteExpr args;
+		immutable ConcreteExpr[] args;
 	}
 
 	struct ConvertToUnion {
@@ -763,7 +761,7 @@ struct ConcreteExprKind {
 		}
 
 		immutable Ptr!ConcreteExpr matchedValue;
-		immutable Arr!Case cases;
+		immutable Case[] cases;
 	}
 
 	struct ParamRef {
@@ -933,32 +931,32 @@ immutable(Bool) isConstant(ref immutable ConcreteExprKind a) {
 struct ArrTypeAndConstantsConcrete {
 	immutable Ptr!ConcreteStruct arrType;
 	immutable ConcreteType elementType;
-	immutable Arr!(Arr!Constant) constants;
+	immutable Constant[][] constants;
 }
 
 struct PointerTypeAndConstantsConcrete {
 	immutable Ptr!ConcreteStruct pointeeType;
-	immutable Arr!(Ptr!Constant) constants;
+	immutable Ptr!Constant[] constants;
 }
 
 // TODO: rename -- this is not all constants, just the ones by-ref
 struct AllConstantsConcrete {
-	immutable Arr!ArrTypeAndConstantsConcrete arrs;
+	immutable ArrTypeAndConstantsConcrete[] arrs;
 	// These are just the by-ref records
-	immutable Arr!PointerTypeAndConstantsConcrete pointers;
+	immutable PointerTypeAndConstantsConcrete[] pointers;
 }
 
 struct ConcreteProgram {
 	@safe @nogc pure nothrow:
 
 	immutable AllConstantsConcrete allConstants;
-	immutable Arr!(Ptr!ConcreteStruct) allStructs;
-	immutable Arr!(Ptr!ConcreteFun) allFuns;
+	immutable Ptr!ConcreteStruct[] allStructs;
+	immutable Ptr!ConcreteFun[] allFuns;
 	immutable ConcreteFunToName funToName;
-	immutable Dict!(Ptr!ConcreteStruct, Arr!ConcreteLambdaImpl, comparePtr!ConcreteStruct) funStructToImpls;
+	immutable Dict!(Ptr!ConcreteStruct, ConcreteLambdaImpl[], comparePtr!ConcreteStruct) funStructToImpls;
 	immutable Ptr!ConcreteCommonFuns commonFuns;
 	immutable Ptr!ConcreteStruct ctxType;
-	immutable Arr!Str allExternLibraryNames;
+	immutable string[] allExternLibraryNames;
 
 	//TODO:NOT INSTANCE
 	immutable(Ptr!ConcreteFun) markFun() immutable { return commonFuns.markFun; }
