@@ -17,7 +17,7 @@ import frontend.lang : crowExtension;
 import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, empty, emptyArr, range;
+import util.collection.arr : Arr, at, empty, emptyArr;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, copyArr, map, mapImpure, mapWithSoFar, prepend;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr;
@@ -428,7 +428,7 @@ immutable(ResolvedImportAndDiags) tryResolveImport(Alloc, PathAlloc)(
 	ref immutable PathAndStorageKind fromPath,
 	immutable ImportAst ast,
 ) {
-	immutable Opt!(Arr!Sym) names = mapOption(ast.names, (ref immutable Arr!Sym names) =>
+	immutable Opt!(Arr!Sym) names = mapOption!(Arr!Sym, Arr!Sym)(ast.names, (ref immutable Arr!Sym names) =>
 		copyArr(modelAlloc, names));
 	immutable(ResolvedImportAndDiags) resolved(immutable PathAndStorageKind pk) {
 		return immutable ResolvedImportAndDiags(

@@ -74,7 +74,6 @@ import util.collection.arr :
 	only_const,
 	onlyPtr_mut,
 	ptrAt,
-	arrRange = range,
 	size,
 	toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -248,7 +247,7 @@ void eachFunInScope(
 	scope void delegate(ref immutable Opt!UsedFun, immutable CalledDecl) @safe @nogc pure nothrow cb,
 ) {
 	size_t totalIndex = 0;
-	foreach (immutable Ptr!SpecInst specInst; arrRange(ctx.outermostFunSpecs))
+	foreach (immutable Ptr!SpecInst specInst; ctx.outermostFunSpecs)
 		matchSpecBody(
 			specInst.body_,
 			(ref immutable SpecBody.Builtin) {},
@@ -261,7 +260,7 @@ void eachFunInScope(
 				totalIndex += size(sigs);
 			});
 
-	foreach (ref immutable FunDeclAndIndex f; arrRange(multiDictGetAt(ctx.funsDict, funName))) {
+	foreach (ref immutable FunDeclAndIndex f; multiDictGetAt(ctx.funsDict, funName)) {
 		immutable Opt!UsedFun used = some(immutable UsedFun(f.index));
 		cb(used, immutable CalledDecl(f.decl));
 	}
@@ -271,7 +270,7 @@ void eachFunInScope(
 		funName,
 		immutable Empty(),
 		(immutable(Empty), immutable Ptr!Module, immutable ImportIndex index, ref immutable NameReferents it) {
-			foreach (immutable Ptr!FunDecl f; arrRange(it.funs)) {
+			foreach (immutable Ptr!FunDecl f; it.funs) {
 				immutable Opt!UsedFun used = some(immutable UsedFun(index));
 				cb(used, immutable CalledDecl(f));
 			}
@@ -595,7 +594,7 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 		MutArr!(immutable Called) res = newUninitializedMutArr!(immutable Called)(alloc, nImpls);
 		size_t outI = 0;
 		Bool allSucceeded = True;
-		foreach (immutable Ptr!SpecInst specInst; arrRange(called.specs)) {
+		foreach (immutable Ptr!SpecInst specInst; called.specs) {
 			// specInst was instantiated potentially based on f's params.
 			// Meed to instantiate it again.
 			immutable TypeParamsAndArgs tpa = immutable TypeParamsAndArgs(called.typeParams, typeArgz);
@@ -605,7 +604,7 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 				(ref immutable SpecBody.Builtin b) =>
 					checkBuiltinSpec(alloc, ctx, called, range, b.kind, only(typeArgs(specInstInstantiated))),
 				(ref immutable Arr!Sig sigs) {
-					foreach (ref immutable Sig sig; arrRange(sigs)) {
+					foreach (ref immutable Sig sig; sigs) {
 						immutable Opt!Called impl = findSpecSigImplementation(alloc, ctx, range, sig);
 						if (!has(impl))
 							return False;
@@ -619,9 +618,9 @@ immutable(Bool) checkBuiltinSpec(Alloc)(
 		}
 		if (allSucceeded) {
 			verify(outI == nImpls);
-			return some(moveToArr(alloc, res));
+			return some!(Called[])(moveToArr(alloc, res));
 		} else
-			return none!(Arr!Called);
+			return none!(Called[]);
 	}
 }
 

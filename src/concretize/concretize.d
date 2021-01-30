@@ -33,7 +33,7 @@ import model.model :
 	typeArgs,
 	typeEquals;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, emptyArr, only, range, size;
+import util.collection.arr : Arr, at, emptyArr, only, size;
 import util.collection.arrBuilder : finishArr_immutable;
 import util.collection.dict : getAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
@@ -81,8 +81,11 @@ immutable(Ptr!ConcreteProgram) concretize(Alloc, SymAlloc)(
 		finishArr_immutable(alloc, ctx.allConcreteStructs),
 		allConcreteFuns,
 		funToName,
-		mapToDict(alloc, ctx.funStructToImpls, (ref MutArr!(immutable ConcreteLambdaImpl) it) =>
-			moveToArr(alloc, it)),
+		mapToDict!(Ptr!ConcreteStruct, ConcreteLambdaImpl[], MutArr!(immutable ConcreteLambdaImpl))(
+			alloc,
+			ctx.funStructToImpls,
+			(ref MutArr!(immutable ConcreteLambdaImpl) it) =>
+				moveToArr(alloc, it)),
 		nu!ConcreteCommonFuns(
 			alloc,
 			markConcreteFun,
@@ -101,7 +104,7 @@ immutable(ConcreteFunToName) getFunToName(Alloc)(
 	ref immutable Arr!(Ptr!ConcreteFun) allConcreteFuns,
 ) {
 	DictBuilder!(Ptr!ConcreteFun, Constant, comparePtr!ConcreteFun) res;
-	foreach (immutable Ptr!ConcreteFun f; range(allConcreteFuns)) {
+	foreach (immutable Ptr!ConcreteFun f; allConcreteFuns) {
 		Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 		writeConcreteFunName(writer, f);
 		immutable Str name = finishWriter(writer);

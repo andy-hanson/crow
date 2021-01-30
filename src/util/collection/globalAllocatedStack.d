@@ -3,7 +3,7 @@ module util.collection.globalAllocatedStack;
 @safe @nogc nothrow: // not pure (accesses global data)
 
 import util.bools : Bool;
-import util.collection.arr : Arr, at, range, size;
+import util.collection.arr : Arr, at, size;
 import util.collection.arrUtil : copyArr;
 import util.ptr : PtrRange;
 import util.types : decr, Nat8, Nat32, Nat64, safeSizeTToU32, u8, zero;
@@ -47,14 +47,14 @@ void clearStack(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
 }
 
 @trusted immutable(Arr!T) asTempArr(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
-	return immutable Arr!T(cast(immutable) a.values.ptr, a.size);
+	return cast(immutable) a.values[0..a.size];
 }
 
 immutable(Arr!T) toArr(Alloc, T, size_t capacity)(ref Alloc alloc, ref const GlobalAllocatedStack!(T, capacity) a) {
 	return copyArr(alloc, asTempArr(a));
 }
 
-void setToArr(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Arr!T arr) {
+void setToArr(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable T[] arr) {
 	verify(size(arr) < capacity);
 	foreach (immutable size_t i; 0..size(arr))
 		a.values[i] = at(arr, i);
@@ -71,8 +71,8 @@ void push(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutabl
 	a.size++;
 }
 
-void pushAll(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, scope immutable Arr!T values) {
-	foreach (ref immutable T value; range(values))
+void pushAll(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, scope immutable T[] values) {
+	foreach (ref immutable T value; values)
 		push(a, value);
 }
 
@@ -88,7 +88,7 @@ immutable(T) peek(T, size_t capacity)(
 @trusted immutable(Arr!Nat64) popN(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Nat8 n) {
 	verify(a.size >= n.raw());
 	a.size -= n.raw();
-	return immutable Arr!Nat64(cast(immutable) (a.values.ptr + a.size), n.raw());
+	return cast(immutable) a.values[a.size..a.size + n.raw()];
 }
 
 immutable(T) pop(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {

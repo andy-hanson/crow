@@ -62,7 +62,7 @@ import model.lowModel :
 	PointerTypeAndConstantsLow;
 import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.bools : False;
-import util.collection.arr : Arr, arrOfD, emptyArr;
+import util.collection.arr : Arr, emptyArr;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.globalAllocatedStack : begin, pop, push;
 import util.collection.str : emptyStr, strLiteral;
@@ -105,13 +105,12 @@ immutable(ByteCode) makeByteCode(Debug, Alloc)(
 }
 
 immutable(FileToFuns) dummyFileToFuns() {
-	static immutable FunNameAndPos dummy = immutable FunNameAndPos(shortSymAlphaLiteral("a"), immutable Pos(0));
-	static immutable Arr!FunNameAndPos dummyArr = immutable Arr!FunNameAndPos(&dummy, 1);
-	return fullIndexDictOfArr!(FileIndex, Arr!FunNameAndPos)(
-		immutable Arr!(Arr!FunNameAndPos)(&dummyArr, 1));
+	static immutable FunNameAndPos[][] dummy = [[immutable FunNameAndPos(shortSymAlphaLiteral("a"), immutable Pos(0))]];
+	return fullIndexDictOfArr!(FileIndex, Arr!FunNameAndPos)(dummy);
 }
 
-void doInterpret(Debug, Alloc)(
+//TODO:NOT TRUSTED
+@trusted void doInterpret(Debug, Alloc)(
 	ref Test!(Debug, Alloc) test,
 	ref immutable ByteCode byteCode,
 	scope void delegate(ref Interpreter!(FakeExtern!Alloc)) @safe @nogc nothrow runInterpreter,
@@ -121,11 +120,10 @@ void doInterpret(Debug, Alloc)(
 	immutable LineAndColumnGetter lcg = lineAndColumnGetterForEmptyFile(test.alloc);
 	static immutable AbsolutePathsGetter emptyAbsolutePathsGetter = immutable AbsolutePathsGetter(emptyStr, emptyStr);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
-		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
-			immutable Arr!PathAndStorageKind(ptrTrustMe(pk).rawPtr(), 1)),
+		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(ptrTrustMe(pk).rawPtr()[0..1]),
 		ptrTrustMe(emptyAbsolutePathsGetter),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
-			immutable Arr!LineAndColumnGetter(ptrTrustMe(lcg).rawPtr(), 1)));
+			ptrTrustMe(lcg).rawPtr()[0..1]));
 	immutable LowFun lowFun = immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(test.alloc, shortSymAlphaLiteral("test"), emptyArr!LowType)),
 		nu!LowFunSig(
@@ -142,7 +140,7 @@ void doInterpret(Debug, Alloc)(
 			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
 			emptyFullIndexDict!(LowType.Record, LowRecord),
 			emptyFullIndexDict!(LowType.Union, LowUnion)),
-		fullIndexDictOfArr!(LowFunIndex, LowFun)(immutable Arr!LowFun(ptrTrustMe(lowFun).rawPtr(), 1)),
+		fullIndexDictOfArr!(LowFunIndex, LowFun)(ptrTrustMe(lowFun).rawPtr()[0..1]),
 		immutable LowFunIndex(0));
 	FakeExtern!Alloc extern_ = newFakeExtern(test.alloc);
 	Interpreter!(FakeExtern!Alloc) interpreter = Interpreter!(FakeExtern!Alloc)(
@@ -435,7 +433,7 @@ void testPack(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 				immutable Nat64(0x89ab),
 				immutable Nat64(0xcd)]);
 			immutable Nat8[3] a = [immutable Nat8(4), immutable Nat8(2), immutable Nat8(1)];
-			writePack!(Debug, Alloc)(test.dbg, writer, source, arrOfD(a));
+			writePack!(Debug, Alloc)(test.dbg, writer, source, a);
 			writeReturn(test.dbg, writer, source);
 		},
 		(ref Interpreter!(FakeExtern!Alloc) interpreter) {

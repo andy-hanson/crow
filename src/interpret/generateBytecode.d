@@ -85,7 +85,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.model : FunDecl, Module, name, Program, range;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, only, range, size, sizeNat;
+import util.collection.arr : Arr, at, only, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.fullIndexDict :
 	FullIndexDict,
@@ -145,7 +145,7 @@ immutable(ByteCode) generateBytecode(Debug, CodeAlloc, TempAlloc)(
 	fullIndexDictEach!(LowFunIndex, ByteCodeIndex)(
 		funToDefinition,
 		(immutable LowFunIndex index, ref immutable ByteCodeIndex definition) {
-			foreach (immutable ByteCodeIndex reference; range(mutIndexMultiDictMustGetAt(funToReferences, index)))
+			foreach (immutable ByteCodeIndex reference; mutIndexMultiDictMustGetAt(funToReferences, index))
 				fillDelayedCall(writer, reference, definition);
 		});
 
@@ -447,7 +447,7 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 						// Last one doesn't need a jump, just continues straight into the code after it.
 						return none!ByteCodeIndex;
 				});
-			foreach (immutable ByteCodeIndex jumpIndex; range(delayedGotos))
+			foreach (immutable ByteCodeIndex jumpIndex; delayedGotos)
 				fillInJumpDelayed(writer, jumpIndex);
 			writeRemove(dbg, writer, source, matchedEntriesWithoutKind);
 		},
@@ -513,7 +513,7 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 					} else
 						return none!ByteCodeIndex;
 				});
-			foreach (immutable ByteCodeIndex jumpIndex; range(delayedGotos))
+			foreach (immutable ByteCodeIndex jumpIndex; delayedGotos)
 				fillInJumpDelayed(writer, jumpIndex);
 		},
 		(ref immutable LowExprKind.TailRecur it) {
@@ -541,7 +541,7 @@ void generateArgs(Debug, CodeAlloc, TempAlloc)(
 	ref ExprCtx ctx,
 	ref immutable Arr!LowExpr args,
 ) {
-	foreach (ref immutable LowExpr arg; range(args))
+	foreach (ref immutable LowExpr arg; args)
 		generateExpr(dbg, tempAlloc, writer, ctx, arg);
 }
 

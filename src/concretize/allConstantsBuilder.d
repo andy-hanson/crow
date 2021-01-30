@@ -11,7 +11,7 @@ import model.concreteModel :
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
 import util.bools : Bool;
-import util.collection.arr : Arr, arrOfD, asImmutable, empty;
+import util.collection.arr : Arr, empty;
 import util.collection.arrUtil : arrEqual, findIndex_const, map, map_mut;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push, tempAsArr;
@@ -46,7 +46,7 @@ immutable(AllConstantsConcrete) finishAllConstants(Alloc)(ref Alloc alloc, ref A
 			immutable ArrTypeAndConstantsConcrete(
 				pair.value.arrType,
 				pair.value.elementType,
-				asImmutable(moveToArr!(immutable Arr!Constant, Alloc)(alloc, pair.value.constants))));
+				moveToArr!(immutable Arr!Constant, Alloc)(alloc, pair.value.constants)));
 	immutable Arr!PointerTypeAndConstantsConcrete records =
 		map_mut(
 			alloc,
@@ -54,7 +54,7 @@ immutable(AllConstantsConcrete) finishAllConstants(Alloc)(ref Alloc alloc, ref A
 			(ref KeyValuePair!(immutable Ptr!ConcreteStruct, PointerTypeAndConstants) pair) =>
 				immutable PointerTypeAndConstantsConcrete(
 					pair.key,
-					asImmutable(moveToArr!(immutable Ptr!Constant, Alloc)(alloc, pair.value.constants))));
+					moveToArr!(immutable Ptr!Constant, Alloc)(alloc, pair.value.constants)));
 	return immutable AllConstantsConcrete(arrs, records);
 }
 
@@ -116,7 +116,7 @@ immutable(Constant) constantEmptyArr() {
 	static immutable Constant[2] fields = [
 		immutable Constant(immutable Constant.Integral(0)),
 		immutable Constant(immutable Constant.Null())];
-	return immutable Constant(immutable Constant.Record(arrOfD(fields)));
+	return immutable Constant(immutable Constant.Record(fields));
 }
 
 immutable(Constant) getConstantStr(Alloc)(

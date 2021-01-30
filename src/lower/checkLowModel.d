@@ -26,7 +26,7 @@ import model.lowModel :
 	PrimitiveType,
 	symOfPrimitiveType;
 import model.reprConcreteModel : reprOfConcreteStructRef;
-import util.collection.arr : Arr, at, range, sizeEq;
+import util.collection.arr : Arr, at, sizeEq;
 import util.collection.arrUtil : tail, zip;
 import util.collection.fullIndexDict : fullIndexDictEachValue, fullIndexDictGet, fullIndexDictGetPtr;
 import util.opt : force, has;
@@ -205,7 +205,7 @@ void checkLowExpr(Alloc)(
 		},
 		(ref immutable LowExprKind.Switch it) {
 			checkLowExpr(alloc, ctx, nat64Type, it.value);
-			foreach (ref immutable LowExpr case_; range(it.cases))
+			foreach (ref immutable LowExpr case_; it.cases)
 				checkLowExpr(alloc, ctx, type, case_);
 		},
 		(ref immutable LowExprKind.TailRecur) {

@@ -34,7 +34,7 @@ import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belo
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
 import util.bools : False;
 import util.dbg : log, logNoNewline;
-import util.collection.arr : Arr, begin, freeArr, ptrAt, range, sizeNat;
+import util.collection.arr : Arr, begin, freeArr, ptrAt, sizeNat;
 import util.collection.arrUtil : mapWithFirst, zipSystem;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.globalAllocatedStack :
@@ -117,7 +117,7 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 		}
 	}
 
-	foreach (immutable CStr arg; range(allArgs))
+	foreach (immutable CStr arg; allArgs)
 		freeCStr(externAlloc, arg);
 	freeArr(externAlloc, allArgs);
 }
@@ -196,7 +196,7 @@ private void showStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpr
 
 @trusted void showDataArr(Alloc)(ref Writer!Alloc writer, scope ref immutable Arr!Nat64 values) {
 	writeStatic(writer, "data: ");
-	foreach (immutable Nat64 value; range(values)) {
+	foreach (immutable Nat64 value; values) {
 		writeChar(writer, ' ');
 		writeHex!Alloc(writer, value.raw());
 	}
@@ -205,7 +205,7 @@ private void showStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpr
 
 private @trusted void showReturnStack(Alloc, Extern)(ref Writer!Alloc writer, ref const Interpreter!Extern a) {
 	writeStatic(writer, "call stack:");
-	foreach (immutable u8* ptr; range(asTempArr(a.returnStack))) {
+	foreach (immutable u8* ptr; asTempArr(a.returnStack)) {
 		writeChar(writer, ' ');
 		writeFunNameAtByteCodePtr(writer, a, ptr);
 	}

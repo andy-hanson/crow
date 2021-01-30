@@ -171,9 +171,9 @@ immutable(ImportAndDedent) parseSingleModuleImportOnOwnLine(Alloc, PathAlloc, Sy
 	immutable NamesAndDedent names = () {
 		if (tryTake(lexer, ':')) {
 			if (tryTake(lexer, ' ')) {
-				immutable Arr!Sym names = parseSingleImportNamesOnSingleLine(alloc, lexer);
+				immutable Sym[] names = parseSingleImportNamesOnSingleLine(alloc, lexer);
 				return immutable NamesAndDedent(
-					some(names),
+					some!(Sym[])(names),
 					range(lexer, start),
 					takeNewlineOrSingleDedent(alloc, lexer));
 			} else
@@ -239,7 +239,7 @@ immutable(NamesAndDedent) parseIndentedImportNames(Alloc, SymAlloc)(
 		}
 	}
 	immutable NewlineOrDedentAndRange res = recur();
-	return immutable NamesAndDedent(some(finishArr(alloc, names)), res.range, res.newlineOrDedent);
+	return immutable NamesAndDedent(some!(Sym[])(finishArr(alloc, names)), res.range, res.newlineOrDedent);
 }
 
 immutable(Arr!Sym) parseSingleImportNamesOnSingleLine(Alloc, SymAlloc)(

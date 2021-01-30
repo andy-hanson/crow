@@ -3,7 +3,6 @@ module interpret.allocTracker;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : range;
 import util.collection.arrUtil : exists_const;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutDict : addToMutDict, mustDelete, MutDict, tempPairs;
@@ -32,7 +31,7 @@ struct AllocTracker {
 
 	@trusted void writeMallocedRanges(WriterAlloc)(ref Writer!WriterAlloc writer) const {
 		Bool first = True;
-		foreach (ref const KeyValuePair!(const ubyte*, immutable size_t) pair; range(tempPairs(allocations))) {
+		foreach (ref const KeyValuePair!(const ubyte*, immutable size_t) pair; tempPairs(allocations)) {
 			if (first)
 				first = False;
 			else

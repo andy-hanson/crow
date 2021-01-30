@@ -129,7 +129,6 @@ import util.collection.arr :
 	emptyArrWithSize,
 	ptrAt,
 	ptrsRange,
-	arrRange = range,
 	size,
 	sizeEq,
 	toArr;
@@ -486,11 +485,11 @@ void collectTypeParamsInAst(Alloc)(
 	matchTypeAst!void(
 		ast,
 		(ref immutable TypeAst.Fun it) {
-			foreach (ref immutable TypeAst paramType; arrRange(it.returnAndParamTypes))
+			foreach (ref immutable TypeAst paramType; it.returnAndParamTypes)
 				collectTypeParamsInAst(alloc, ctx, paramType, res);
 		},
 		(ref immutable TypeAst.InstStruct i) {
-			foreach (ref immutable TypeAst arg; arrRange(toArr(i.typeArgs)))
+			foreach (ref immutable TypeAst arg; toArr(i.typeArgs))
 				collectTypeParamsInAst(alloc, ctx, arg, res);
 		},
 		(ref immutable TypeAst.TypeParam tp) {
@@ -508,7 +507,7 @@ immutable(ArrWithSize!TypeParam) collectTypeParams(Alloc)(
 ) {
 	ArrWithSizeBuilder!TypeParam res;
 	collectTypeParamsInAst(alloc, ctx, ast.returnType, res);
-	foreach (ref immutable ParamAst p; arrRange(toArr(ast.params)))
+	foreach (ref immutable ParamAst p; toArr(ast.params))
 		collectTypeParamsInAst(alloc, ctx, p.type, res);
 	return finishArr(alloc, res);
 }
@@ -909,7 +908,7 @@ void checkStructBodies(Alloc)(
 			setBody(struct_, body_);
 		});
 
-	foreach (ref immutable StructDecl struct_; arrRange(castImmutable(structs))) {
+	foreach (ref immutable StructDecl struct_; castImmutable(structs)) {
 		matchStructBody!void(
 			body_(struct_),
 			(ref immutable StructBody.Bogus) {},
@@ -917,7 +916,7 @@ void checkStructBodies(Alloc)(
 			(ref immutable StructBody.ExternPtr) {},
 			(ref immutable StructBody.Record) {},
 			(ref immutable StructBody.Union u) {
-				foreach (ref immutable Ptr!StructInst member; arrRange(u.members))
+				foreach (ref immutable Ptr!StructInst member; u.members)
 					if (isUnion(body_(member.decl.deref)))
 						todo!void("unions can't contain unions");
 			});
@@ -1008,7 +1007,7 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 	ref immutable Arr!TestAst testAsts,
 ) {
 	ExactSizeArrBuilder!FunDecl funsBuilder = newExactSizeArrBuilder!FunDecl(alloc, countFunsForStruct(asts, structs));
-	foreach (ref immutable FunDeclAst funAst; arrRange(asts)) {
+	foreach (ref immutable FunDeclAst funAst; asts) {
 		immutable ArrWithSize!TypeParam typeParams = empty(toArr(funAst.typeParams))
 			? collectTypeParams(alloc, ctx, funAst.sig)
 			: checkTypeParams(alloc, ctx, funAst.typeParams);
@@ -1045,7 +1044,7 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 				name(it),
 				immutable FunDeclAndIndex(immutable ModuleLocalFunIndex(index), it)));
 
-	foreach (ref const FunDecl f; arrRange(funs))
+	foreach (ref const FunDecl f; funs)
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.funNames, name(f));
 
 	Arr!FunDecl funsWithAsts = slice(funs, 0, size(asts));
@@ -1244,9 +1243,9 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 ) {
 	checkStructBodies!Alloc(alloc, ctx, commonTypes, structsAndAliasesDict, structs, ast.structs, delayStructInsts);
 	immutable Arr!StructDecl structsImmutable = castImmutable(structs);
-	foreach (ref const StructDecl s; arrRange(structs))
+	foreach (ref const StructDecl s; structs)
 		if (isRecord(s.body_))
-			foreach (ref immutable RecordField f; arrRange(asRecord(s.body_).fields))
+			foreach (ref immutable RecordField f; asRecord(s.body_).fields)
 				addToMutSymSetOkIfPresent(alloc, ctx.programState.names.recordFieldNames, f.name);
 
 	while (!mutArrIsEmpty(delayStructInsts)) {
@@ -1260,7 +1259,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 
 	immutable Arr!SpecDecl specs = checkSpecDecls(alloc, ctx, commonTypes, structsAndAliasesDict, ast.specs);
 	immutable SpecsDict specsDict = buildSpecsDict(alloc, ctx, specs);
-	foreach (ref immutable SpecDecl s; arrRange(specs))
+	foreach (ref immutable SpecDecl s; specs)
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.specNames, s.name);
 
 	immutable FunsAndDict funsAndDict = checkFuns(
@@ -1316,7 +1315,7 @@ immutable(Dict!(Sym, NameReferents, compareSym)) getAllExportedNames(Alloc)(
 			});
 	}
 
-	foreach (ref immutable ModuleAndNames e; arrRange(reExports)) {
+	foreach (ref immutable ModuleAndNames e; reExports) {
 		dictEach!(Sym, NameReferents, compareSym)(
 			e.module_.allExportedNames,
 			(ref immutable Sym name, ref immutable NameReferents value) {
@@ -1384,10 +1383,10 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 
 	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies
 	Arr!StructDecl structs = checkStructsInitial(alloc, ctx, ast.structs);
-	foreach (ref const StructDecl s; arrRange(structs))
+	foreach (ref const StructDecl s; structs)
 		addToMutSymSetOkIfPresent(alloc, programState.names.structAndAliasNames, s.name);
 	Arr!StructAlias structAliases = checkStructAliasesInitial(alloc, ctx, ast.structAliases);
-	foreach (ref const StructAlias a; arrRange(structAliases))
+	foreach (ref const StructAlias a; structAliases)
 		addToMutSymSetOkIfPresent(alloc, programState.names.structAndAliasNames, a.name);
 	immutable StructsAndAliasesDict structsAndAliasesDict =
 		buildStructsAndAliasesDict(alloc, ctx, castImmutable(structs), castImmutable(structAliases));
@@ -1431,9 +1430,9 @@ void checkImportsOrExports(Alloc)(
 	immutable FileIndex thisFile,
 	ref immutable Arr!ModuleAndNames imports,
 ) {
-	foreach (ref immutable ModuleAndNames m; arrRange(imports))
+	foreach (ref immutable ModuleAndNames m; imports)
 		if (has(m.names))
-			foreach (ref immutable Sym name; arrRange(force(m.names)))
+			foreach (ref immutable Sym name; force(m.names))
 				if (!hasKey(m.module_.allExportedNames, name))
 					add(alloc, diags, immutable Diagnostic(
 						// TODO: use the range of the particular name

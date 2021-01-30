@@ -222,7 +222,7 @@ immutable(Command) parseBuildCommand(Alloc, PathAlloc, SymAlloc)(
 	ref immutable Str cwd,
 	ref immutable Arr!Str args,
 ) {
-	return size(args) == 1 && !isHelp(args.only)
+	return size(args) == 1 && !isHelp(only(args))
 		? useProgramDirAndMain(alloc, allPaths, allSymbols, cwd, args.only, (ref immutable ProgramDirAndMain it) =>
 			immutable Command(immutable Command.Build(it, emptyArr!Str)))
 		: immutable Command(immutable Command.Help(helpBuildText, Command.Help.Kind.error));

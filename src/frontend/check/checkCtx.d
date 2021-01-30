@@ -7,7 +7,7 @@ import frontend.programState : ProgramState;
 import model.diag : Diag, Diagnostic;
 import model.model : matchStructOrAlias, Module, ModuleAndNames, NameReferents, SpecDecl, StructAlias, StructDecl;
 import util.bools : Bool, True;
-import util.collection.arr : Arr, at, castImmutable, range, setAt, size;
+import util.collection.arr : Arr, at, castImmutable, setAt, size;
 import util.collection.arrBuilder : add, ArrBuilder;
 import util.collection.arrUtil : eachCat, fillArr_mut, zipPtrFirst;
 import util.collection.dict : getPtrAt;
@@ -81,9 +81,9 @@ void checkForUnused(Alloc)(
 
 private void checkUnusedImports(Alloc)(ref Alloc alloc, ref CheckCtx ctx) {
 	size_t index = 0;
-	foreach (ref immutable ModuleAndNames it; range(ctx.imports)) {
+	foreach (ref immutable ModuleAndNames it; ctx.imports) {
 		if (has(it.names)) {
-			foreach (ref immutable Sym name; range(force(it.names))) {
+			foreach (ref immutable Sym name; force(it.names)) {
 				if (!at(ctx.importsAndReExportsUsed, index) && has(it.importSource))
 					addDiag(alloc, ctx, force(it.importSource), immutable Diag(
 						immutable Diag.UnusedImport(it.module_, some(name))));

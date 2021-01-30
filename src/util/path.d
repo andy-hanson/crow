@@ -3,7 +3,7 @@ module util.path;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : at, first, range, size;
+import util.collection.arr : at, first, size;
 import util.collection.arrUtil : slice, sliceFromTo;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.collection.str : asCStr, copyStr, CStr, emptyStr, NulTerminatedStr, Str;
@@ -157,7 +157,7 @@ private @trusted immutable(Str) pathToStrWorker(Alloc, PathAlloc)(
 		cur--;
 		*cur = '\0';
 	}
-	foreach_reverse (immutable char c; range(extension)) {
+	foreach_reverse (immutable char c; extension) {
 		cur--;
 		*cur = c;
 	}
@@ -176,12 +176,12 @@ private @trusted immutable(Str) pathToStrWorker(Alloc, PathAlloc)(
 	}
 	walkPathBackwards(allPaths, path, &onSym);
 	verify(cur == begin + size(root));
-	foreach_reverse (immutable char c; range(root)) {
+	foreach_reverse (immutable char c; root) {
 		cur--;
 		*cur = c;
 	}
 	verify(cur == begin);
-	return immutable Str(cast(immutable) begin, sz);
+	return cast(immutable) begin[0..sz];
 }
 
 immutable(Str) pathToStr(Alloc, PathAlloc)(
@@ -270,7 +270,7 @@ private immutable(RelPath) parseRelPath(Alloc, SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	immutable Str s,
 ) {
-	if (s.first == '.')
+	if (first(s) == '.')
 		if (at(s, 1) == '/')
 			return parseRelPath(allPaths, allSymbols, s.slice(2));
 		else if (at(s, 1) == '.' && at(s, 2) == '/') {
@@ -314,7 +314,7 @@ private immutable(Opt!RootAndPath) parseAbsoluteOrRelPathWithoutExtension(Alloc,
 	immutable Str cwd,
 	immutable Str s,
 ) {
-	switch (s.first) {
+	switch (first(s)) {
 		case '.':
 			//TODO: handle parse error (return none if so)
 			immutable RelPath rp = parseRelPath(allPaths, allSymbols, s);

@@ -99,7 +99,7 @@ import model.lowModel :
 	PrimitiveType;
 import model.model : decl, FunInst, name, range;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, emptyArr, first, only, arrRange = range, size;
+import util.collection.arr : Arr, at, empty, emptyArr, first, only, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
 	arrLiteral,
@@ -241,7 +241,7 @@ AllLowTypesWithCtx getAllLowTypes(Alloc)(
 		return immutable LowType(immutable LowType.Union(i));
 	}
 
-	foreach (immutable Ptr!ConcreteStruct s; arrRange(program.allStructs)) {
+	foreach (immutable Ptr!ConcreteStruct s; program.allStructs) {
 		immutable Opt!LowType lowType = matchConcreteStructBody!(immutable Opt!LowType)(
 			body_(s),
 			(ref immutable ConcreteStructBody.Builtin it) {
@@ -572,7 +572,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 		}
 
 		void generateCompareForFields(immutable LowType.Record record) {
-			foreach (ref immutable LowField field; arrRange(fullIndexDictGet(allTypes.allRecords, record).fields))
+			foreach (ref immutable LowField field; fullIndexDictGet(allTypes.allRecords, record).fields)
 				generateCompareForType(field.type);
 		}
 
@@ -621,7 +621,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				immutable ValueAndDidAdd!(immutable LowFunIndex) index =
 					getOrAddAndDidAdd(compareFuns.unionToCompare, it, () => addIt(False));
 				if (index.didAdd)
-					foreach (ref immutable LowType member; arrRange(fullIndexDictGet(allTypes.allUnions, it).members))
+					foreach (ref immutable LowType member; fullIndexDictGet(allTypes.allUnions, it).members)
 						generateCompareForType(member);
 				return some(index.value);
 			});
@@ -679,7 +679,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 						it,
 						() => addNonArr());
 					if (index.didAdd)
-						foreach (ref immutable LowField field; arrRange(record.fields))
+						foreach (ref immutable LowField field; record.fields)
 							maybeGenerateMarkVisitForType(field.type);
 					return index.value;
 				}
@@ -688,7 +688,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				immutable ValueAndDidAdd!(immutable LowFunIndex) index =
 					getOrAddAndDidAdd(markVisitFuns.unionToVisit, it, () => addNonArr());
 				if (index.didAdd)
-					foreach (ref immutable LowType member; arrRange(fullIndexDictGet(allTypes.allUnions, it).members))
+					foreach (ref immutable LowType member; fullIndexDictGet(allTypes.allUnions, it).members)
 						maybeGenerateMarkVisitForType(member);
 				return index.value;
 			});
@@ -698,7 +698,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	Late!(immutable LowType) markCtxTypeLate = late!(immutable LowType);
 	Late!(immutable LowType) strTypeLate = late!(immutable LowType);
 
-	foreach (immutable Ptr!ConcreteFun fun; arrRange(program.allFuns)) {
+	foreach (immutable Ptr!ConcreteFun fun; program.allFuns) {
 		immutable Opt!LowFunIndex opIndex = matchConcreteFunBody!(immutable Opt!LowFunIndex)(
 			body_(fun),
 			(ref immutable ConcreteFunBody.Builtin it) {

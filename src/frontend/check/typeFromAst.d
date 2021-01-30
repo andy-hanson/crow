@@ -33,7 +33,7 @@ import model.model :
 	TypeParam,
 	typeParams;
 import util.bools : Bool;
-import util.collection.arr : Arr, at, range, size, toArr;
+import util.collection.arr : Arr, at, size, toArr;
 import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map;
 import util.collection.dict : getAt;
 import util.opt : force, has, mapOption, none, Opt, some;

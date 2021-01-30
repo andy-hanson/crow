@@ -17,7 +17,7 @@ import model.lowModel :
 	lowTypeEqual,
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
-import util.collection.arr : Arr, at, castImmutable, empty, ptrAt, range, setAt, size;
+import util.collection.arr : Arr, at, castImmutable, empty, ptrAt, setAt, size;
 import util.collection.arrUtil : mapToMut, sum, zip;
 import util.collection.exactSizeArrBuilder :
 	exactSizeArrBuilderAdd,
@@ -176,10 +176,10 @@ void recurWriteArr(TempAlloc)(
 	verify(!empty(elements));
 	Arr!size_t indexToTextIndex = at(ctx.arrTypeIndexToConstantIndexToTextIndex, arrTypeIndex);
 	if (at(indexToTextIndex, index) == 0) {
-		foreach (ref immutable Constant it; range(elements))
+		foreach (ref immutable Constant it; elements)
 			ensureConstant(tempAlloc, ctx, elementType, it);
 		setAt(indexToTextIndex, index, exactSizeArrBuilderCurSize(ctx.text));
-		foreach (ref immutable Constant it; range(elements))
+		foreach (ref immutable Constant it; elements)
 			writeConstant(tempAlloc, ctx, elementType, it);
 	}
 }

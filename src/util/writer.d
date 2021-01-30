@@ -4,7 +4,7 @@ module util.writer;
 
 import util.bools : Bool, False;
 import util.ptr : Ptr;
-import util.collection.arr : Arr, at, range, size;
+import util.collection.arr : Arr, at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr, Str, strLiteral;
 import util.ptr : PtrRange;
@@ -32,7 +32,7 @@ void writeChar(Alloc)(ref Writer!Alloc writer, immutable char c) {
 }
 
 void writeStr(Alloc)(ref Writer!Alloc writer, immutable Str s) {
-	foreach (immutable char c; range(s))
+	foreach (immutable char c; s)
 		writeChar(writer, c);
 }
 
@@ -155,7 +155,7 @@ void writeWithNewlines(T, Alloc)(
 
 void writeQuotedStr(Alloc)(ref Writer!Alloc writer, ref immutable Str s) {
 	writeChar(writer, '"');
-	foreach (immutable char c; range(s))
+	foreach (immutable char c; s)
 		writeEscapedChar_inner(writer, c);
 	writeChar(writer, '"');
 }

@@ -3,7 +3,7 @@ module util.ptr;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
-import util.collection.arr : Arr, begin, end;
+import util.collection.arr : begin, end;
 import util.comparison : Comparison;
 import util.util : verify;
 
@@ -83,7 +83,7 @@ struct PtrRange {
 	const ubyte* end;
 }
 
-@trusted const(PtrRange) ptrRangeOfArr(T)(const Arr!T a) {
+@trusted const(PtrRange) ptrRangeOfArr(T)(const T[] a) {
 	return const PtrRange(cast(const ubyte*) begin(a), cast(const ubyte*) end(a));
 }
 

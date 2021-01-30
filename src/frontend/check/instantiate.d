@@ -60,8 +60,8 @@ struct TypeParamsAndArgs {
 }
 
 immutable(Opt!(Ptr!T)) tryGetTypeArg(T)(
-	ref immutable Arr!TypeParam typeParams,
-	ref immutable Arr!T typeArgs,
+	ref immutable TypeParam[] typeParams,
+	ref immutable T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
 	immutable Bool hasTypeParam = ptrEquals(ptrAt(typeParams, typeParam.index), typeParam);

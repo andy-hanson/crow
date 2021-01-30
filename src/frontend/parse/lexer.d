@@ -615,7 +615,7 @@ public @trusted immutable(Str) takeStringLiteralAfterQuote(Alloc, SymAlloc)(ref 
 	// Skip past the closing '"'
 	lexer.ptr++;
 	verify(outI == size);
-	return immutable Str(cast(immutable) res, size);
+	return cast(immutable) res[0..size];
 }
 
 public @trusted immutable(Str) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {

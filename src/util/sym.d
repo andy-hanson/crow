@@ -3,7 +3,7 @@ module util.sym;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, not, True;
-import util.collection.arr : Arr, at, empty, first, last, only, range, size;
+import util.collection.arr : Arr, at, empty, first, last, only, size;
 import util.collection.arrUtil : contains, every, findIndex, slice, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
@@ -214,7 +214,7 @@ void eachCharInSym(immutable Sym a, scope void delegate(immutable char) @safe @n
 			cb(c);
 	} else {
 		verify(isLongAlphaSym(a));
-		foreach (immutable char c; range(asLongAlphaSym(a)))
+		foreach (immutable char c; asLongAlphaSym(a))
 			cb(c);
 	}
 }
@@ -362,7 +362,7 @@ immutable(Bool) canPackAlphaIdentifier(immutable Str str) {
 		return True;
 	else {
 		immutable Str after2 = slice(str, 0, size(str) - 2);
-		return every(after2, (ref immutable char c) =>
+		return every!char(after2, (ref immutable char c) =>
 			canPackAlphaChar5(c));
 	}
 }

@@ -16,7 +16,7 @@ void add(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
 	push(alloc, a.data, value);
 }
 
-void addAll(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable Arr!T value) {
+void addAll(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable T[] value) {
 	pushAll(alloc, a.data, value);
 }
 
@@ -69,7 +69,7 @@ immutable(size_t) arrWithSizeBuilderSize(T)(ref const ArrWithSizeBuilder!T a) {
 }
 
 @trusted immutable(Arr!T) arrWithSizeBuilderAsTempArr(T)(ref const ArrWithSizeBuilder!T a) {
-	return immutable Arr!T(cast(immutable) begin(a), a.size_);
+	return cast(immutable) begin(a)[0..a.size_];
 }
 
 @trusted immutable(ArrWithSize!T) finishArr(T, Alloc)(ref Alloc alloc, ref ArrWithSizeBuilder!T a) {

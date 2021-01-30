@@ -3,7 +3,7 @@ module util.diff;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, only, range, size;
+import util.collection.arr : Arr, at, only, size;
 import util.collection.arrUtil : arrMax, arrMaxIndex, contains, slice;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.mutSlice :
@@ -33,7 +33,7 @@ void diffSymbols(TempAlloc, Alloc)(
 
 private:
 
-ref immutable(T) atPossiblyReversed(T)(ref immutable Arr!T a, immutable size_t i, immutable Bool reversed) {
+ref immutable(T) atPossiblyReversed(T)(ref immutable T[] a, immutable size_t i, immutable Bool reversed) {
 	return at(a, reversed ? size(a) - 1 - i : i);
 }
 ref const(T) mutSliceAtPossiblyReversed(T)(ref const MutSlice!T a, immutable size_t i, immutable Bool reversed) {
@@ -208,7 +208,7 @@ void printDiff(Alloc)(
 		bi++;
 	}
 
-	foreach (immutable Sym commonSym; range(commonSyms)) {
+	foreach (immutable Sym commonSym; commonSyms) {
 		while (!symEq(at(a, ai), commonSym) && !symEq(at(b, bi), commonSym))
 			misspelling();
 		while (!symEq(at(a, ai), commonSym))

@@ -832,7 +832,7 @@ immutable(Repr) reprImportAst(Alloc, PathAlloc)(
 	return reprRecord(alloc, "import-ast", [
 		reprNat(a.nDots),
 		reprStr(pathToStr(alloc, allPaths, emptyStr, a.path, emptyStr)),
-		reprOpt(alloc, a.names, (ref immutable Arr!Sym names) =>
+		reprOpt!(Alloc, Sym[])(alloc, a.names, (ref immutable Sym[] names) =>
 			reprArr(alloc, names, (ref immutable Sym name) =>
 				reprSym(name)))]);
 }

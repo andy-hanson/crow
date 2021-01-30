@@ -41,7 +41,7 @@ import model.model :
 	unsafe;
 import model.reprConstant : reprOfConstant;
 import util.bools : True;
-import util.collection.arr : Arr, empty;
+import util.collection.arr : empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : map;
 import util.opt : force;
@@ -85,7 +85,7 @@ immutable(Repr) reprModuleAndNames(Alloc)(ref Alloc alloc, ref immutable ModuleA
 		reprOpt(alloc, a.importSource, (ref immutable RangeWithinFile it) =>
 			reprRangeWithinFile(alloc, it)),
 		reprNat(a.module_.fileIndex.index),
-		reprOpt(alloc, a.names, (ref immutable Arr!Sym names) =>
+		reprOpt!(Alloc, Sym[])(alloc, a.names, (ref immutable Sym[] names) =>
 			reprArr(alloc, names, (ref immutable Sym name) =>
 				reprSym(name)))]);
 }

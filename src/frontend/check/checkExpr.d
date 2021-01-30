@@ -96,7 +96,6 @@ import frontend.parse.ast :
 import util.bools : Bool, not, True;
 import util.collection.arr :
 	Arr,
-	arrOfD,
 	at,
 	castImmutable,
 	empty,
@@ -105,7 +104,6 @@ import util.collection.arr :
 	first,
 	only,
 	ptrsRange,
-	arrRange = range,
 	setAt,
 	size,
 	sizeEq,
@@ -383,8 +381,8 @@ immutable(Opt!ExpectedLambdaType) getExpectedLambdaType(Alloc)(
 
 immutable(Opt!FunKind) getFunStructInfo(ref immutable CommonTypes a, immutable Ptr!StructDecl s) {
 	//TODO: use arrUtils
-	foreach (ref immutable FunKindAndStructs fs; arrRange(a.funKindsAndStructs))
-		foreach (immutable Ptr!StructDecl funStruct; arrRange(fs.structs))
+	foreach (ref immutable FunKindAndStructs fs; a.funKindsAndStructs)
+		foreach (immutable Ptr!StructDecl funStruct; fs.structs)
 			if (ptrEquals(s, funStruct))
 				return some(fs.kind);
 	return none!FunKind;
@@ -752,7 +750,7 @@ immutable(CheckedExpr) checkLambda(Alloc)(
 	ref immutable LambdaAst ast,
 	ref Expected expected,
 ) {
-	return checkLambdaCommon!Alloc(alloc, ctx, range, arrRange(ast.params), ast.body_, expected);
+	return checkLambdaCommon!Alloc(alloc, ctx, range, ast.params, ast.body_, expected);
 }
 
 immutable(CheckedExpr) checkLambdaCommon(Alloc)(
@@ -770,12 +768,12 @@ immutable(CheckedExpr) checkLambdaCommon(Alloc)(
 	immutable ExpectedLambdaType et = force(opEt);
 	immutable FunKind kind = et.kind;
 
-	if (!sizeEq(arrOfD(paramAsts), et.paramTypes)) {
+	if (!sizeEq(paramAsts, et.paramTypes)) {
 		addDiag2(alloc, ctx, range, immutable Diag(Diag.LambdaWrongNumberParams(et.funStructInst, size(paramAsts))));
 		return bogus(expected, range);
 	}
 
-	immutable Arr!Param params = checkFunOrSendFunParamsForLambda(alloc, ctx, arrOfD(paramAsts), et.paramTypes);
+	immutable Arr!Param params = checkFunOrSendFunParamsForLambda(alloc, ctx, paramAsts, et.paramTypes);
 	LambdaInfo info = LambdaInfo(kind, params);
 	Expected returnTypeInferrer = copyWithNewExpectedType(expected, et.nonInstantiatedPossiblyFutReturnType);
 
@@ -787,7 +785,7 @@ immutable(CheckedExpr) checkLambdaCommon(Alloc)(
 
 	final switch (kind) {
 		case FunKind.plain:
-			foreach (immutable Ptr!ClosureField cf; arrRange(closureFields))
+			foreach (immutable Ptr!ClosureField cf; closureFields)
 				if (worstCasePurity(cf.type) == Purity.mut)
 					addDiag2(alloc, ctx, range, immutable Diag(Diag.LambdaClosesOverMut(cf)));
 			break;

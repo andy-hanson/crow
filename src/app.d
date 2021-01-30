@@ -27,7 +27,7 @@ import lib.compiler :
 import model.model : AbsolutePathsGetter;
 import test.test : test;
 import util.bools : Bool, True;
-import util.collection.arr : Arr, begin, empty, range, size;
+import util.collection.arr : Arr, begin, empty, size;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, map, tail, zipImpureSystem;
 import util.collection.str :
@@ -259,7 +259,7 @@ void compileC(Alloc, PathAlloc)(
 		strLiteral("-pthread"),
 		strLiteral("-lm"),
 	]));
-	foreach (immutable Str it; range(allExternLibraryNames))
+	foreach (immutable Str it; allExternLibraryNames)
 		add(alloc, args, cat(alloc, strLiteral("-l"), it));
 	addAll(alloc, args, arrLiteral!Str(alloc, [
 		// TODO: configurable whether we want debug or release
@@ -273,23 +273,15 @@ void compileC(Alloc, PathAlloc)(
 		todo!void("C compile error");
 }
 
-@trusted void print(immutable Str a) {
+@trusted void print(immutable string a) {
 	printf("%.*s", cast(uint) size(a), begin(a));
 }
 
-@trusted void println(immutable Str a) {
+@trusted void println(immutable string a) {
 	printf("%.*s\n", cast(uint) size(a), begin(a));
 }
 
-void print(immutable string a) {
-	print(strLiteral(a));
-}
-
-void println(immutable string a) {
-	println(strLiteral(a));
-}
-
-@trusted void printErr(immutable Str a) {
+@trusted void printErr(immutable string a) {
 	fprintf(stderr, "%.*s", cast(uint) size(a), begin(a));
 }
 
@@ -632,7 +624,7 @@ extern(C) {
 	content[fileSize] = '\0';
 
 	immutable Opt!NulTerminatedStr s =
-		some(immutable NulTerminatedStr(immutable Str(cast(immutable) content, contentSize)));
+		some(immutable NulTerminatedStr(cast(immutable) content[0..contentSize]));
 	return cb(s);
 }
 
@@ -686,15 +678,15 @@ struct CommandLineArgs {
 	immutable Arr!Str args;
 }
 
-immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
+@trusted immutable(CommandLineArgs) parseCommandLineArgs(Alloc)(
 	ref Alloc alloc,
 	immutable size_t argc,
 	immutable CStr* argv,
 ) {
-	immutable Arr!CStr allArgs = immutable Arr!CStr(argv, argc);
+	immutable Arr!CStr allArgs = argv[0..argc];
 	immutable Arr!Str args = map!(Str, CStr, Alloc)(alloc, allArgs, (ref immutable CStr a) => strOfCStr(a));
 	// Take the tail because the first one is 'crow'
-	return immutable CommandLineArgs(getPathToThisExecutable(alloc), args.tail);
+	return immutable CommandLineArgs(getPathToThisExecutable(alloc), tail(args));
 }
 
 @trusted immutable(Str) getCwd(Alloc)(ref Alloc alloc) {
@@ -763,7 +755,7 @@ immutable size_t maxPathSize = 1024;
 	immutable ssize_t size = readlink("/proc/self/exe", buff.ptr, maxPathSize);
 	if (size < 0)
 		todo!void("posix error");
-	return copyStr(alloc, immutable Str(cast(immutable) buff.ptr, safeSizeTFromSSizeT(size)));
+	return copyStr(alloc, cast(immutable) buff.ptr[0..safeSizeTFromSSizeT(size)]);
 }
 
 // Return should be const, but some posix functions aren't marked that way
@@ -772,7 +764,7 @@ immutable size_t maxPathSize = 1024;
 	// Make a mutable copy
 	immutable CStr executableCopy = copyCStr(alloc, executableCStr);
 	add(alloc, cArgs, executableCopy);
-	foreach (immutable Str arg; range(args))
+	foreach (immutable Str arg; args)
 		add(alloc, cArgs, strToCStr(alloc, arg));
 	add(alloc, cArgs, null);
 	return finishArr(alloc, cArgs).begin;

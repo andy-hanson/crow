@@ -3,14 +3,14 @@ module util.collection.str;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
-import util.collection.arr : Arr, at, begin, emptyArr, first, freeArr, size;
+import util.collection.arr : at, begin, emptyArr, first, freeArr, size;
 import util.collection.arrUtil : compareArr, rtail, tail;
 import util.comparison : Comparison;
 import util.memory : memcpy;
 import util.util : verify;
 
 alias CStr = immutable(char)*;
-alias Str = Arr!char;
+alias Str = string;
 
 immutable(Comparison) compareStr(ref immutable Str a, ref immutable Str b) {
 	return compareArr!char(a, b, (ref immutable char ca, ref immutable char cb) =>
@@ -31,19 +31,21 @@ immutable(NulTerminatedStr) emptyNulTerminatedStr() {
 }
 
 @trusted immutable(Str) strLiteral(immutable string s) {
-	return immutable Str(s.ptr, s.length);
+	return s;
 }
 
 @trusted immutable(Str) strOfCStr(immutable CStr c) {
-	return immutable Str(c, end(c) - c);
+	immutable size_t size = end(c) - c;
+	return c[0..size];
 }
 
 @trusted immutable(CStr) cStrOfNulTerminatedStr(immutable NulTerminatedStr a) {
 	return begin(a.str);
 }
 
-immutable(NulTerminatedStr) nulTerminatedStrOfCStr(immutable CStr c) {
-	return immutable NulTerminatedStr(immutable Str(c, end(c) - c + 1));
+@trusted immutable(NulTerminatedStr) nulTerminatedStrOfCStr(immutable CStr c) {
+	immutable size_t size = end(c) - c;
+	return immutable NulTerminatedStr(c[0..size + 1]);
 }
 
 struct NulTerminatedStr {
@@ -62,9 +64,9 @@ immutable(Str) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 
 @trusted immutable(NulTerminatedStr) copyToNulTerminatedStr(Alloc)(ref Alloc alloc, ref immutable Str s) {
 	char* res = cast(char*) alloc.allocateBytes(size(s) + 1);
-	memcpy(cast(ubyte*) res, cast(ubyte*) begin(s), size(s));
+	memcpy(cast(ubyte*) res, cast(ubyte*) s.ptr, size(s));
 	res[size(s)] = '\0';
-	return immutable NulTerminatedStr(immutable Str(cast(immutable) res, size(s) + 1));
+	return immutable NulTerminatedStr(cast(immutable) res[0..size(s) + 1]);
 }
 
 @trusted immutable(CStr) asCStr(immutable NulTerminatedStr s) {
@@ -100,5 +102,5 @@ immutable(Str) stripNulTerminator(immutable NulTerminatedStr a) {
 	char* begin = cast(char*) alloc.allocateBytes(char.sizeof * size(s));
 	foreach (immutable size_t i; 0..size(s))
 		begin[i] = at(s, i);
-	return immutable Str(cast(immutable) begin, size(s));
+	return cast(immutable) begin[0..size(s)];
 }

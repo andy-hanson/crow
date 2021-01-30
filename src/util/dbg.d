@@ -2,22 +2,12 @@ module util.dbg;
 
 @safe @nogc pure nothrow:
 
-import util.collection.str : Str, strLiteral;
-
 void log(Debug)(ref Debug dbg, immutable string a) {
-	log(dbg, strLiteral(a));
-}
-
-void log(Debug)(ref Debug dbg, immutable Str a) {
 	dbg.write(a);
 	dbg.writeChar('\n');
 }
 
 void logNoNewline(Debug)(ref Debug dbg, immutable string a) {
-	logNoNewline(dbg, strLiteral(a));
-}
-
-void logNoNewline(Debug)(ref Debug dbg, immutable Str a) {
 	dbg.write(a);
 }
 

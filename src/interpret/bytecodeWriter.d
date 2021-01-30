@@ -30,7 +30,7 @@ import util.collection.byteWriter :
 	writeU16,
 	writeU32;
 import interpret.opcode : OpCode;
-import util.collection.arr : Arr, empty, range, sizeNat;
+import util.collection.arr : Arr, empty, sizeNat;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictOfArr;
 import util.collection.str : Str;
@@ -459,7 +459,7 @@ void writePack(Debug, Alloc)(
 	log(dbg, writer, "write pack");
 	verify(!empty(sizes));
 	Nat8 sizeSum = immutable Nat8(0);
-	foreach (immutable Nat8 size; range(sizes)) {
+	foreach (immutable Nat8 size; sizes) {
 		// TODO: size type
 		verify(size == immutable Nat8(1) || size == immutable Nat8(2) || size == immutable Nat8(4));
 		sizeSum += size;
@@ -467,7 +467,7 @@ void writePack(Debug, Alloc)(
 	verify(sizeSum <= immutable Nat8(8));
 	pushOpcode(writer, source, OpCode.pack);
 	pushU8(writer, source, sizeNat(sizes).to8());
-	foreach (immutable Nat8 size; range(sizes))
+	foreach (immutable Nat8 size; sizes)
 		pushU8(writer, source, size);
 	writer.nextStackEntry -= decr(sizeNat(sizes)).to16();
 }
@@ -539,12 +539,12 @@ void writeExternDynCall(Alloc)(
 	immutable Arr!DynCallType parameterTypes,
 ) {
 	pushOpcode(writer, source, OpCode.externDynCall);
-	foreach (immutable char c; range(name))
+	foreach (immutable char c; name)
 		pushU8(writer, source, immutable Nat8(c));
 	pushU8(writer, source, immutable Nat8('\0'));
 	pushU8(writer, source, immutable Nat8(returnType));
 	pushU8(writer, source, sizeNat(parameterTypes).to8());
-	foreach (immutable DynCallType t; range(parameterTypes)) {
+	foreach (immutable DynCallType t; parameterTypes) {
 		verify(t != DynCallType.void_);
 		pushU8(writer, source, immutable Nat8(t));
 	}

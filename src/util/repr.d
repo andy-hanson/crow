@@ -3,10 +3,10 @@ module util.repr;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, emptyArr, first, range, size;
+import util.collection.arr : Arr, at, empty, emptyArr, first, size;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
 import util.collection.fullIndexDict : FullIndexDict;
-import util.collection.str : CStr, Str, strLiteral;
+import util.collection.str : CStr, Str;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -60,7 +60,7 @@ immutable(Repr) reprNamedRecord(Alloc)(
 
 immutable(Repr) reprArr(T, Alloc)(
 	ref Alloc alloc,
-	immutable Arr!T xs,
+	immutable T[] xs,
 	scope immutable(Repr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return immutable Repr(immutable ReprArr(False, map(alloc, xs, cb)), true);
@@ -68,7 +68,7 @@ immutable(Repr) reprArr(T, Alloc)(
 
 immutable(Repr) reprArr(T, Alloc)(
 	ref Alloc alloc,
-	immutable Arr!T xs,
+	immutable T[] xs,
 	scope immutable(Repr) delegate(immutable size_t, ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	return immutable Repr(immutable ReprArr(False, mapWithIndex(alloc, xs, cb)), true);
@@ -110,12 +110,8 @@ immutable(Repr) reprNat(immutable size_t a) {
 	return immutable Repr(immutable ReprInt(a, 10));
 }
 
-immutable(Repr) reprStr(immutable Str a) {
-	return immutable Repr(a);
-}
-
 immutable(Repr) reprStr(immutable string a) {
-	return reprStr(strLiteral(a));
+	return immutable Repr(a);
 }
 
 immutable(Repr) reprSym(immutable Sym a) {
@@ -131,7 +127,7 @@ immutable(Repr) reprOpt(Alloc, T)(
 	immutable Opt!T opt,
 	scope immutable(Repr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return immutable Repr(mapOption(opt, (ref immutable T t) =>
+	return immutable Repr(mapOption!(Ptr!Repr, T)(opt, (ref immutable T t) =>
 		allocate!Repr(alloc, cb(t))));
 }
 
@@ -269,7 +265,7 @@ void writeReprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Repr a) {
 		(ref immutable ReprNamedRecord it) {
 			writeStatic(writer, "{\"_type\":");
 			writeQuotedSym(writer, it.name);
-			foreach (ref immutable NameAndRepr pair; range(it.children)) {
+			foreach (ref immutable NameAndRepr pair; it.children) {
 				writeChar(writer, ',');
 				writeQuotedSym(writer, pair.name);
 				writeChar(writer, ':');
@@ -350,7 +346,7 @@ void writeRepr(Alloc)(
 			if (measureReprNamedRecord(it, availableWidth) < 0) {
 				writeSym(writer, it.name);
 				writeChar(writer, '(');
-				foreach (ref immutable NameAndRepr element; it.children.range) {
+				foreach (ref immutable NameAndRepr element; it.children) {
 					writeNewline(writer, indent + 1);
 					writeSym(writer, element.name);
 					writeStatic(writer, ": ");
@@ -372,7 +368,7 @@ void writeRepr(Alloc)(
 			if (measureReprRecord(s, availableWidth) < 0) {
 				writeSym(writer, s.name);
 				writeChar(writer, '(');
-				foreach (ref immutable Repr element; s.children.range) {
+				foreach (ref immutable Repr element; s.children) {
 					writeNewline(writer, indent + 1);
 					writeRepr(writer, indent + 1, availableWidth - indentSize, element);
 				}

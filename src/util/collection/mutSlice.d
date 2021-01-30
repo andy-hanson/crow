@@ -42,8 +42,8 @@ MutSlice!T mutSlice(T)(MutSlice!T a, immutable size_t lo) {
 	return MutSlice!T(cast(T*) alloc.allocateBytes(T.sizeof * size), size);
 }
 
-const(Arr!T) mutSliceTempAsArr(T)(ref const MutSlice!T a) {
-	return const Arr!T(a.begin_, a.size_);
+@trusted const(Arr!T) mutSliceTempAsArr(T)(ref const MutSlice!T a) {
+	return a.begin_[0..a.size_];
 }
 
 void mutSliceFill(T)(ref MutSlice!T a, immutable T value) {

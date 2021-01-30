@@ -63,7 +63,7 @@ import model.lowModel :
 	regularParams;
 import model.model : FunInst, Local, name, Param;
 import util.bools : Bool, False, True;
-import util.collection.arr : Arr, at, empty, emptyArr, first, only, range, setAt, size, sizeEq;
+import util.collection.arr : Arr, at, empty, emptyArr, first, only, setAt, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, every, fillArr_mut, map, tail, zip;
 import util.collection.dict : Dict, getAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
@@ -139,28 +139,28 @@ immutable(Str) writeToC(Alloc, TempAlloc)(
 private:
 
 void writeConstants(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable AllConstantsLow allConstants) {
-	foreach (ref immutable ArrTypeAndConstantsLow a; range(allConstants.arrs)) {
+	foreach (ref immutable ArrTypeAndConstantsLow a; allConstants.arrs) {
 		foreach (immutable size_t i; 0..size(a.constants)) {
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, size(at(a.constants, i)));
 			writeStatic(writer, ";\n");
 		}
 	}
 
-	foreach (ref immutable PointerTypeAndConstantsLow a; range(allConstants.pointers)) {
+	foreach (ref immutable PointerTypeAndConstantsLow a; allConstants.pointers) {
 		foreach (immutable size_t i; 0..size(a.constants)) {
 			declareConstantPointerStorage(writer, ctx, a.pointeeType, i);
 			writeStatic(writer, ";\n");
 		}
 	}
 
-	foreach (ref immutable ArrTypeAndConstantsLow a; range(allConstants.arrs)) {
+	foreach (ref immutable ArrTypeAndConstantsLow a; allConstants.arrs) {
 		foreach (immutable size_t i; 0..size(a.constants)) {
 			immutable Arr!Constant elements = at(a.constants, i);
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, size(elements));
 			writeStatic(writer, " = ");
 			if (isChar(a.elementType)) {
 				writeChar(writer, '"');
-				foreach (immutable Constant element; range(elements))
+				foreach (immutable Constant element; elements)
 					writeEscapedChar_inner(writer, cast(immutable char) asIntegral(element).value);
 				writeChar(writer, '"');
 			} else {
@@ -174,7 +174,7 @@ void writeConstants(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref i
 		}
 	}
 
-	foreach (ref immutable PointerTypeAndConstantsLow a; range(allConstants.pointers)) {
+	foreach (ref immutable PointerTypeAndConstantsLow a; allConstants.pointers) {
 		foreach (immutable size_t i; 0..size(a.constants)) {
 			declareConstantPointerStorage(writer, ctx, a.pointeeType, i);
 			writeStatic(writer, " = ");
@@ -463,7 +463,7 @@ void writeStructEnd(Alloc)(ref Writer!Alloc writer) {
 
 void writeRecord(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable LowRecord a) {
 	writeStructHead(writer, ctx, a.source);
-	foreach (ref immutable LowField field; range(a.fields)) {
+	foreach (ref immutable LowField field; a.fields) {
 		writeStatic(writer, "\n\t");
 		writeType(writer, ctx, field.type);
 		writeChar(writer, ' ');
@@ -794,7 +794,7 @@ void writeFunReturnTypeNameAndParams(Alloc)(
 			writeStatic(writer, "void");
 		else {
 			doWriteParam(writer, ctx, first(fun.params));
-			foreach (ref immutable LowParam p; range(tail(fun.params))) {
+			foreach (ref immutable LowParam p; tail(fun.params)) {
 				writeStatic(writer, ", ");
 				doWriteParam(writer, ctx, p);
 			}

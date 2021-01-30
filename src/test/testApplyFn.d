@@ -6,7 +6,6 @@ import interpret.applyFn : applyFn;
 import interpret.bytecode : FnOp;
 import interpret.runBytecode : DataStack;
 import test.testUtil : expectDataStack, Test;
-import util.collection.arr : arrOfD;
 import util.collection.globalAllocatedStack : clearStack, pushAll;
 import util.types : float64, i8, i16, i32, i64, Nat64, u8, u16, u32, u64, u64OfFloat64Bits;
 import util.util : verify,verifyEq;
@@ -138,7 +137,7 @@ void testFn(Debug, Alloc)(
 	scope immutable Nat64[] stackOut,
 ) {
 	DataStack dataStack;
-	pushAll(dataStack, arrOfD(stackIn));
+	pushAll(dataStack, stackIn);
 	applyFn(test.dbg, dataStack, fnOp);
 	expectDataStack(test, dataStack, stackOut);
 	clearStack(dataStack);

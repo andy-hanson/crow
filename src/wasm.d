@@ -14,7 +14,7 @@ import lib.server :
 	StrParseDiagnostic;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.bools : Bool, False;
-import util.collection.arr : Arr, range, size;
+import util.collection.arr : Arr, size;
 import util.collection.str : CStr, Str, strToCStr;
 import util.path : StorageKind;
 import util.ptr : ptrTrustMe_mut;
@@ -55,8 +55,8 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 	immutable size_t contentLength,
 ) {
 	WasmDebug dbg = WasmDebug(debugStart, debugLength);
-	immutable Str path = immutable Str(pathStart, pathLength);
-	immutable Str content = immutable Str(contentStart, contentLength);
+	immutable Str path = pathStart[0..pathLength];
+	immutable Str content = contentStart[0..contentLength];
 	addOrChangeFile(dbg, *server, storageKind, path, content);
 }
 
@@ -66,7 +66,7 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 	immutable char* pathStart,
 	immutable size_t pathLength,
 ) {
-	deleteFile(*server, storageKind, immutable Str(pathStart, pathLength));
+	deleteFile(*server, storageKind, pathStart[0..pathLength]);
 }
 
 @system extern(C) immutable(CStr) getFile(
@@ -75,7 +75,7 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 	immutable char* pathStart,
 	immutable size_t pathLength,
 ) {
-	return getFile(*server, storageKind, immutable Str(pathStart, pathLength));
+	return getFile(*server, storageKind, pathStart[0..pathLength]);
 }
 
 @system extern(C) immutable(CStr) getTokens(
@@ -85,7 +85,7 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 	immutable char* pathStart, immutable size_t pathLength,
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
-	immutable Arr!Token tokens = getTokens(resultAlloc, *server, storageKind, immutable Str(pathStart, pathLength));
+	immutable Arr!Token tokens = getTokens(resultAlloc, *server, storageKind, pathStart[0..pathLength]);
 	immutable Repr repr = reprTokens(resultAlloc, tokens);
 	return jsonStrOfRepr(resultAlloc, repr);
 }
@@ -100,7 +100,7 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	immutable Arr!StrParseDiagnostic diags =
-		getParseDiagnostics(resultAlloc, *server, storageKind, immutable Str(pathStart, pathLength));
+		getParseDiagnostics(resultAlloc, *server, storageKind, pathStart[0..pathLength]);
 	immutable Repr repr = reprParseDiagnostics(resultAlloc, diags);
 	return jsonStrOfRepr(resultAlloc, repr);
 }
@@ -118,7 +118,7 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	WasmDebug dbg = WasmDebug(debugStart, debugLength);
-	immutable Str path = immutable Str(pathStart, pathLength);
+	immutable Str path = pathStart[0..pathLength];
 	immutable Str hover = getHover(dbg, resultAlloc, *server, storageKind, path, pos);
 	return strToCStr(resultAlloc, hover);
 }
@@ -134,7 +134,7 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 ) {
 	RangeAlloc resultAlloc = RangeAlloc(resultStart, resultLength);
 	WasmDebug dbg = WasmDebug(debugStart, debugLength);
-	immutable RunResult result = run(dbg, resultAlloc, *server, immutable Str(pathStart, pathLength));
+	immutable RunResult result = run(dbg, resultAlloc, *server, pathStart[0..pathLength]);
 	return writeRunResult(server.alloc, result);
 }
 
@@ -158,7 +158,7 @@ struct WasmDebug {
 	}
 
 	void write(scope ref immutable Str a) {
-		foreach (immutable char c; range(a))
+		foreach (immutable char c; a)
 			writeChar(c);
 		writeChar('\n');
 	}

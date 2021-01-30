@@ -27,7 +27,7 @@ import model.model :
 	writeType;
 import model.parseDiag : EqLikeKind, matchParseDiag, ParseDiag;
 import util.bools : Bool, not, True;
-import util.collection.arr : Arr, empty, only, range, size;
+import util.collection.arr : Arr, empty, only, size;
 import util.collection.arrUtil : exists, map, sort;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.str : Str;
@@ -336,7 +336,7 @@ void writeCalledDecls(Alloc, PathAlloc)(
 	ref immutable Arr!CalledDecl cs,
 	scope immutable(Bool) delegate(ref immutable CalledDecl) @safe @nogc pure nothrow filter,
 ) {
-	foreach (ref immutable CalledDecl c; cs.range)
+	foreach (ref immutable CalledDecl c; cs)
 		if (filter(c)) {
 			writeNl(writer);
 			writeChar(writer, '\t');
@@ -475,7 +475,7 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 		},
 		(ref immutable Diag.CommonTypesMissing d) {
 			writeStatic(writer, "common types are missing from 'include.crow':");
-			foreach (immutable Str s; range(d.missing)) {
+			foreach (immutable Str s; d.missing) {
 				writeStatic(writer, "\n\t");
 				writeStr(writer, s);
 			}

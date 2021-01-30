@@ -23,10 +23,10 @@ immutable(size_t) fullIndexDictSize(K, V)(ref const FullIndexDict!(K, V) a) {
 	return size(a.values);
 }
 
-immutable(FullIndexDict!(K, V)) fullIndexDictOfArr(K, V)(immutable Arr!V values) {
+immutable(FullIndexDict!(K, V)) fullIndexDictOfArr(K, V)(immutable V[] values) {
 	return immutable FullIndexDict!(K, V)(values);
 }
-FullIndexDict!(K, V) fullIndexDictOfArr_mut(K, V)(Arr!V values) {
+FullIndexDict!(K, V) fullIndexDictOfArr_mut(K, V)(V[] values) {
 	return FullIndexDict!(K, V)(values);
 }
 

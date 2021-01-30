@@ -5,7 +5,7 @@ module interpret.fakeExtern;
 import interpret.allocTracker : AllocTracker;
 import interpret.bytecode : DynCallType, TimeSpec;
 import util.bools : Bool;
-import util.collection.arr : Arr, range;
+import util.collection.arr : Arr;
 import util.collection.mutArr : clear, moveToArr, MutArr, pushAll;
 import util.collection.str : NulTerminatedStr, Str;
 import util.ptr : Ptr, PtrRange;
@@ -55,8 +55,8 @@ struct FakeExtern(Alloc) {
 		return ptr;
 	}
 
-	immutable(long) write(int fd, immutable char* buf, immutable size_t nBytes) {
-		immutable Arr!char arr = immutable Arr!char(buf, nBytes);
+	@trusted immutable(long) write(int fd, immutable char* buf, immutable size_t nBytes) {
+		immutable Arr!char arr = buf[0..nBytes];
 		verify(fd == 1 || fd == 2);
 		pushAll!(char, Alloc)(alloc.deref(), fd == 1 ? stdout : stderr, arr);
 		return nBytes;

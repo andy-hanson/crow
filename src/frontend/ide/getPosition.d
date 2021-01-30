@@ -22,7 +22,7 @@ import model.model :
 	Type,
 	TypeParam;
 import util.bools : Bool;
-import util.collection.arr : Arr, ptrsRange, range;
+import util.collection.arr : Arr, ptrsRange;
 import util.opt : force, has, none, Opt, optOr2, some;
 import util.ptr : Ptr;
 import util.sourceRange : hasPos, Pos;
@@ -114,16 +114,16 @@ immutable(Opt!Position) getPosition(ref immutable Module module_, immutable Pos 
 	if (has(fromImportsOrExports))
 		return fromImportsOrExports;
 
-	foreach (ref immutable Ptr!StructDecl s; ptrsRange(module_.structs))
+	foreach (immutable Ptr!StructDecl s; ptrsRange(module_.structs))
 		if (hasPos(s.range.range, pos))
 			return some(positionInStruct(s, pos));
 
-	foreach (ref immutable Ptr!SpecDecl s; ptrsRange(module_.specs))
+	foreach (immutable Ptr!SpecDecl s; ptrsRange(module_.specs))
 		if (hasPos(s.range.range, pos))
 			//TODO: delve inside!
 			return some(immutable Position(s));
 
-	foreach (ref immutable Ptr!FunDecl f; ptrsRange(module_.funs)) {
+	foreach (immutable Ptr!FunDecl f; ptrsRange(module_.funs)) {
 		if (hasPos(f.sig.range, pos))
 			//TODO: delve inside!
 			return some(immutable Position(f));
@@ -163,7 +163,7 @@ immutable(Opt!Position) positionInImportsOrExports(
 		if (has(im.importSource) && hasPos(force(im.importSource), pos)) {
 			if (has(im.names)) {
 				Pos namePos = force(im.importSource).start;
-				foreach (immutable Sym name; range(force(im.names))) {
+				foreach (immutable Sym name; force(im.names)) {
 					immutable Pos nameEnd = safeSizeTToU32(namePos + symSize(name));
 					if (pos < nameEnd)
 						return some(immutable Position(immutable Position.ImportedName(im, name)));

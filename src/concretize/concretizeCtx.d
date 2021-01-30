@@ -64,7 +64,7 @@ import model.model :
 	typeParams,
 	worsePurity;
 import util.bools : Bool, False, not, True;
-import util.collection.arr : Arr, at, empty, emptyArr, only, ptrAt, range, sizeEq;
+import util.collection.arr : Arr, at, empty, emptyArr, only, ptrAt, sizeEq;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrMax, compareArr, exists, fold, map, mapPtrsWithIndex, mapWithIndex;
 import util.collection.mutArr : MutArr;
@@ -458,7 +458,7 @@ size_t sizeFromConcreteFields(immutable Arr!ConcreteField fields) {
 	// TODO: this is definitely not accurate. Luckily I use static asserts in the generated code to check this.
 	size_t s = 0;
 	size_t maxFieldAlign = 1;
-	foreach (ref immutable ConcreteField field; range(fields)) {
+	foreach (ref immutable ConcreteField field; fields) {
 		immutable size_t itsSize = sizeOrPointerSizeBytes(field.type);
 		//TODO: this is wrong!
 		const size_t itsAlign = min(itsSize, 8);
@@ -619,7 +619,7 @@ immutable(ConcreteFunBody) bodyForAllTests(Alloc)(
 ) {
 	// Step 1: collect all tests
 	ArrBuilder!Test allTestsBuilder;
-	foreach (immutable Ptr!Module m; range(ctx.program.allModules))
+	foreach (immutable Ptr!Module m; ctx.program.allModules)
 		addAll(alloc, allTestsBuilder, m.tests);
 	immutable Arr!Test allTests = finishArr(alloc, allTestsBuilder);
 

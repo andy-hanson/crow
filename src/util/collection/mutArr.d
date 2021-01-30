@@ -3,7 +3,7 @@ module util.collection.mutArr;
 @safe @nogc pure nothrow:
 
 import util.bools : Bool;
-import util.collection.arr : Arr, range;
+import util.collection.arr : Arr;
 import util.memory : initMemory_mut, memcpy, overwriteMemory;
 import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
 import util.util : verify;
@@ -63,8 +63,8 @@ void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T v
 	verify(a.size_ <= a.capacity_);
 }
 
-void pushAll(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a, immutable Arr!T values) {
-	foreach (ref immutable T value; range(values))
+void pushAll(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a, immutable T[] values) {
+	foreach (ref immutable T value; values)
 		push(alloc, a, value);
 }
 
@@ -111,7 +111,7 @@ T mustPop(T)(ref MutArr!T a) {
 }
 
 @trusted immutable(Arr!T) moveToArr(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a) {
-	immutable Arr!T res = immutable Arr!T(cast(immutable) a.begin_, a.size_);
+	immutable Arr!T res = cast(immutable) a.begin_[0..a.size_];
 	alloc.freeBytesPartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
 	a.size_ = 0;
@@ -120,7 +120,7 @@ T mustPop(T)(ref MutArr!T a) {
 }
 
 @trusted const(Arr!T) moveToArr_const(T, Alloc)(ref Alloc alloc, ref MutArr!T a) {
-	const Arr!T res = const Arr!T(a.begin_, a.size_);
+	const T[] res = a.begin_[0..a.size_];
 	alloc.freeBytesPartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
 	a.size_ = 0;
@@ -133,11 +133,11 @@ T mustPop(T)(ref MutArr!T a) {
 	return a.begin_[a.size_ - 1];
 }
 
-const(Arr!T) tempAsArr(T)(ref const MutArr!T a) {
-	return const Arr!T(a.begin_, a.size_);
+@trusted const(Arr!T) tempAsArr(T)(ref const MutArr!T a) {
+	return a.begin_[0..a.size_];
 }
-Arr!T tempAsArr_mut(T)(ref MutArr!T a) {
-	return Arr!T(a.begin_, a.size_);
+@trusted Arr!T tempAsArr_mut(T)(ref MutArr!T a) {
+	return a.begin_[0..a.size_];
 }
 
 @trusted void deleteAt(T)(ref MutArr!T a, immutable size_t index) {

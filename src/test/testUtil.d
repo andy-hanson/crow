@@ -5,7 +5,7 @@ module test.testUtil;
 import interpret.bytecode : ByteCodeIndex;
 import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, showDataArr;
 import util.bools : Bool;
-import util.collection.arr : Arr, arrOfD, range, sizeEq;
+import util.collection.arr : Arr, sizeEq;
 import util.collection.arrUtil : eachCorresponds;
 import util.collection.globalAllocatedStack : asTempArr;
 import util.collection.str : Str;
@@ -37,16 +37,15 @@ void expectDataStack(Debug, Alloc)(
 	scope immutable Nat64[] expected,
 ) {
 	immutable Arr!Nat64 stack = asTempArr(dataStack);
-	immutable Arr!Nat64 expectedArr = arrOfD(expected);
 	immutable Bool eq = immutable Bool(
-		sizeEq(stack, expectedArr) &&
-		eachCorresponds!(Nat64, Nat64)(stack, expectedArr, (ref immutable Nat64 a, ref immutable Nat64 b) =>
+		sizeEq(stack, expected) &&
+		eachCorresponds!(Nat64, Nat64)(stack, expected, (ref immutable Nat64 a, ref immutable Nat64 b) =>
 			immutable Bool(a == b)));
 	if (!eq) {
 		debug {
 			Writer!Alloc writer = test.writer();
 			writeStatic(writer, "expected:\n");
-			showDataArr(writer, expectedArr);
+			showDataArr(writer, expected);
 			writeStatic(writer, "\nactual:\n");
 			showDataArr(writer, stack);
 			test.fail(finishWriter(writer));
@@ -60,19 +59,18 @@ void expectReturnStack(Debug, Alloc, Extern)(
 	scope immutable ByteCodeIndex[] expected,
 ) {
 	immutable Arr!(immutable(u8)*) stack = asTempArr(interpreter.returnStack);
-	immutable Arr!ByteCodeIndex expectedArr = arrOfD(expected);
 	immutable Bool eq = immutable Bool(
-		sizeEq(stack, expectedArr) &&
+		sizeEq(stack, expected) &&
 		eachCorresponds!(immutable(u8)*, ByteCodeIndex)(
 			stack,
-			expectedArr,
+			expected,
 			(ref immutable u8* a, ref immutable ByteCodeIndex b) =>
 				immutable Bool(byteCodeIndexOfPtr(interpreter, a) == b)));
 	if (!eq) {
 		debug {
 			Writer!Alloc writer = test.writer();
 			writeStatic(writer, "expected:\nreturn:");
-			foreach (immutable u8* ptr; range(stack)) {
+			foreach (immutable u8* ptr; stack) {
 				writeChar(writer, ' ');
 				writeNat(writer, byteCodeIndexOfPtr(interpreter, ptr).index.raw());
 			}

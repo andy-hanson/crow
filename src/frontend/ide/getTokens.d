@@ -49,7 +49,7 @@ import frontend.parse.ast :
 	TypeAst,
 	TypeParamAst;
 import util.bools : Bool, True;
-import util.collection.arr : Arr, ArrWithSize, first, range, toArr;
+import util.collection.arr : Arr, ArrWithSize, first, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : tail;
 import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
@@ -134,7 +134,7 @@ void addImportTokens(Alloc)(
 ) {
 	if (has(a)) {
 		add(alloc, tokens, immutable Token(Token.Kind.keyword, rangeAtName(True, force(a).range.start, keyword)));
-		foreach (ref immutable ImportAst path; range(force(a).paths))
+		foreach (ref immutable ImportAst path; force(a).paths)
 			add(alloc, tokens, immutable Token(
 				Token.Kind.importPath,
 				immutable RangeWithinFile(path.range.start + path.nDots, path.range.end)));
@@ -148,7 +148,7 @@ void addSpecTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		a.body_,
 		(ref immutable SpecBodyAst.Builtin) {},
 		(ref immutable Arr!SigAst sigs) {
-			foreach (ref immutable SigAst sig; range(sigs)) {
+			foreach (ref immutable SigAst sig; sigs) {
 				add(alloc, tokens, immutable Token(Token.Kind.funDef, rangeAtName(True, sig.range.start, sig.name)));
 				addSigReturnTypeAndParamsTokens(alloc, tokens, sig);
 			}
@@ -157,7 +157,7 @@ void addSpecTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 
 void addSigReturnTypeAndParamsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immutable SigAst a) {
 	addTypeTokens(alloc, tokens, a.returnType);
-	foreach (ref immutable ParamAst param; range(toArr(a.params)))
+	foreach (ref immutable ParamAst param; toArr(a.params))
 		addParamTokens(alloc, tokens, param);
 }
 
@@ -168,7 +168,7 @@ void addTypeTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			add(alloc, tokens, immutable Token(
 				Token.Kind.keyword,
 				rangeOfStartAndName(it.range.start, shortSymAlphaLiteral("fun"))));
-			foreach (ref immutable TypeAst t; range(it.returnAndParamTypes))
+			foreach (ref immutable TypeAst t; it.returnAndParamTypes)
 				addTypeTokens(alloc, tokens, t);
 		},
 		(ref immutable TypeAst.InstStruct it) {
@@ -189,7 +189,7 @@ void addTypeArgsTokens(Alloc)(
 	ref ArrBuilder!Token tokens,
 	ref immutable ArrWithSize!TypeAst typeArgs,
 ) {
-	foreach (ref immutable TypeAst typeArg; range(toArr(typeArgs)))
+	foreach (ref immutable TypeAst typeArg; toArr(typeArgs))
 		addTypeTokens(alloc, tokens, typeArg);
 }
 
@@ -204,7 +204,7 @@ void addTypeParamsTokens(Alloc)(
 	ref ArrBuilder!Token tokens,
 	ref immutable ArrWithSize!TypeParamAst a,
 ) {
-	foreach (ref immutable TypeParamAst typeParam; range(toArr(a)))
+	foreach (ref immutable TypeParamAst typeParam; toArr(a))
 		add(alloc, tokens, immutable Token(Token.Kind.typeParamDef, typeParam.range));
 }
 
@@ -230,7 +230,7 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 				add(alloc, tokens, immutable Token(
 					Token.Kind.explicitByValOrRef, rangeOfExplicitByValOrRef(force(explicitByValOrRef))));
 			}
-			foreach (ref immutable StructDeclAst.Body.Record.Field field; range(record.fields)) {
+			foreach (ref immutable StructDeclAst.Body.Record.Field field; record.fields) {
 				add(alloc, tokens, immutable Token(
 					Token.Kind.fieldDef,
 					rangeAtName(True, field.range.start, field.name)));
@@ -238,7 +238,7 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 			}
 		},
 		(ref immutable StructDeclAst.Body.Union union_) {
-			foreach (ref immutable TypeAst.InstStruct member; range(union_.members))
+			foreach (ref immutable TypeAst.InstStruct member; union_.members)
 				addInstStructTokens(alloc, tokens, member);
 		});
 }
@@ -247,7 +247,7 @@ void addFunTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immut
 	add(alloc, tokens, immutable Token(Token.Kind.funDef, rangeAtName(a.isPublic, a.range.start, a.sig.name)));
 	addTypeParamsTokens(alloc, tokens, a.typeParams);
 	addSigReturnTypeAndParamsTokens(alloc, tokens, a.sig);
-	foreach (ref immutable SpecUseAst specUse; range(a.specUses)) {
+	foreach (ref immutable SpecUseAst specUse; a.specUses) {
 		add(alloc, tokens, immutable Token(Token.Kind.specRef, rangeOfNameAndRange(specUse.spec)));
 		addTypeArgsTokens(alloc, tokens, specUse.typeArgs);
 	}
@@ -306,7 +306,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 				addExprTokens(alloc, tokens, force(it.else_));
 		},
 		(ref immutable LambdaAst it) {
-			foreach (ref immutable LambdaAst.Param param; range(it.params))
+			foreach (ref immutable LambdaAst.Param param; it.params)
 				addLambdaAstParam(alloc, tokens, param);
 			addExprTokens(alloc, tokens, it.body_);
 		},
@@ -333,7 +333,7 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		},
 		(ref immutable MatchAst it) {
 			addExprTokens(alloc, tokens, it.matched);
-			foreach (ref immutable MatchAst.CaseAst case_; range(it.cases)) {
+			foreach (ref immutable MatchAst.CaseAst case_; it.cases) {
 				add(alloc, tokens, immutable Token(Token.Kind.structRef, rangeOfNameAndRange(case_.structName)));
 				if (has(case_.local))
 					add(alloc, tokens, immutable Token(Token.Kind.localDef, rangeOfNameAndRange(force(case_.local))));
@@ -363,7 +363,7 @@ void addLambdaAstParam(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref 
 }
 
 void addExprsTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, immutable Arr!ExprAst exprs) {
-	foreach (ref immutable ExprAst expr; range(exprs))
+	foreach (ref immutable ExprAst expr; exprs)
 		addExprTokens(alloc, tokens, expr);
 }
 

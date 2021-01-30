@@ -5,7 +5,7 @@ module model.model;
 import model.constant : Constant;
 import model.diag : Diags, FilesInfo; // TODO: move FilesInfo here?
 import util.bools : and, Bool, False, True;
-import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, first, only, range, size, sizeEq, toArr;
+import util.collection.arr : Arr, ArrWithSize, empty, emptyArr, first, only, size, sizeEq, toArr;
 import util.collection.arrUtil : compareArr;
 import util.collection.dict : Dict;
 import util.collection.fullIndexDict : FullIndexDict;
@@ -736,7 +736,7 @@ ref immutable(Arr!Param) params(return scope ref immutable FunDecl a) {
 
 private immutable(size_t) nSpecImpls(ref immutable FunDecl a) {
 	size_t n = 0;
-	foreach (immutable Ptr!SpecInst s; a.specs.range)
+	foreach (immutable Ptr!SpecInst s; a.specs)
 		n += s.body_.nSigs;
 	return n;
 }
