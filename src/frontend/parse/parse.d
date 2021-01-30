@@ -57,7 +57,6 @@ import frontend.parse.lexer :
 import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseType : parseType, parseTypeInstStruct, takeTypeArgsEnd, tryParseTypeArgsBracketed;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
-import util.bools : Bool, False, True;
 import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, ArrWithSizeBuilder, finishArr;
 import util.collection.str : CStr, emptyStr, NulTerminatedStr;
@@ -219,7 +218,7 @@ immutable(NamesAndDedent) parseIndentedImportNames(Alloc, SymAlloc)(
 	immutable(NewlineOrDedentAndRange) recur() {
 		takeCommaSeparatedNames(alloc, lexer, names);
 		immutable RangeWithinFile range0 = range(lexer, start);
-		immutable Bool trailingComma = tryTake(lexer, ',');
+		immutable bool trailingComma = tryTake(lexer, ',');
 		switch (takeNewlineOrDedentAmount(alloc, lexer, 2)) {
 			case 0:
 				if (!trailingComma)
@@ -462,7 +461,7 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 					return immutable RecordModifiers(some(start), prevModifiers.explicitByValOrRef);
 				default:
 					takeOrAddDiagExpected(alloc, lexer, ' ', ParseDiag.Expected.Kind.space);
-					immutable Bool isMutable = tryTake(lexer, "mut ");
+					immutable bool isMutable = tryTake(lexer, "mut ");
 					immutable TypeAst type = parseType(alloc, lexer);
 					add(alloc, res, immutable StructDeclAst.Body.Record.Field(
 						range(lexer, start), isMutable, name, type));
@@ -494,26 +493,26 @@ immutable(TypeAst.InstStruct[]) parseUnionMembers(Alloc, SymAlloc)(
 
 struct SpecUsesAndSigFlagsAndKwBody {
 	immutable SpecUseAst[] specUses;
-	immutable Bool noCtx;
-	immutable Bool summon;
-	immutable Bool unsafe;
-	immutable Bool trusted;
+	immutable bool noCtx;
+	immutable bool summon;
+	immutable bool unsafe;
+	immutable bool trusted;
 	immutable Opt!(Ptr!FunBodyAst) body_; // none for 'builtin' or 'extern'
 }
 
 immutable(SpecUsesAndSigFlagsAndKwBody) emptySpecUsesAndSigFlagsAndKwBody =
 	SpecUsesAndSigFlagsAndKwBody(
 		[],
-		False,
-		False,
-		False,
-		False,
+		false,
+		false,
+		false,
+		false,
 		none!(Ptr!FunBodyAst));
 
 immutable(FunBodyAst.Extern) takeExternName(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable Bool isGlobal,
+	immutable bool isGlobal,
 ) {
 	if (tryTake(lexer, '<')) {
 		immutable string externName = takeQuotedStr(lexer, alloc);
@@ -533,19 +532,19 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	ref ArrBuilder!SpecUseAst specUses,
-	immutable Bool noCtx,
-	immutable Bool summon,
-	immutable Bool unsafe,
-	immutable Bool trusted,
-	immutable Bool builtin,
+	immutable bool noCtx,
+	immutable bool summon,
+	immutable bool unsafe,
+	immutable bool trusted,
+	immutable bool builtin,
 	immutable Opt!(FunBodyAst.Extern) extern_,
 	immutable Opt!string mangle,
-	scope immutable(Bool) delegate() @safe @nogc pure nothrow canTakeNext,
+	scope immutable(bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable SymAndIsReserved name = takeNameAllowReserved(alloc, lexer);
 	if (name.isReserved) {
-		scope immutable(SpecUsesAndSigFlagsAndKwBody) setExtern(immutable Bool isGlobal) {
+		scope immutable(SpecUsesAndSigFlagsAndKwBody) setExtern(immutable bool isGlobal) {
 			if (has(extern_))
 				todo!void("duplicate");
 			immutable Opt!(FunBodyAst.Extern) extern2 = some(takeExternName(alloc, lexer, isGlobal));
@@ -556,27 +555,27 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseNextSpec(Alloc, SymAlloc)(
 			case shortSymAlphaLiteralValue("noctx"):
 				if (noCtx) todo!void("duplicate");
 				return nextSpecOrStop(
-					alloc, lexer, specUses, True, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+					alloc, lexer, specUses, true, summon, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 			case shortSymAlphaLiteralValue("summon"):
 				if (summon) todo!void("duplicate");
 				return nextSpecOrStop(
-					alloc, lexer, specUses, noCtx, True, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
+					alloc, lexer, specUses, noCtx, true, unsafe, trusted, builtin, extern_, mangle, canTakeNext);
 			case shortSymAlphaLiteralValue("unsafe"):
 				if (unsafe) todo!void("duplicate");
 				return nextSpecOrStop(
-					alloc, lexer, specUses, noCtx, summon, True, trusted, builtin, extern_, mangle, canTakeNext);
+					alloc, lexer, specUses, noCtx, summon, true, trusted, builtin, extern_, mangle, canTakeNext);
 			case shortSymAlphaLiteralValue("trusted"):
 				if (trusted) todo!void("duplicate");
 				return nextSpecOrStop(
-					alloc, lexer, specUses, noCtx, summon, unsafe, True, builtin, extern_, mangle, canTakeNext);
+					alloc, lexer, specUses, noCtx, summon, unsafe, true, builtin, extern_, mangle, canTakeNext);
 			case shortSymAlphaLiteralValue("builtin"):
 				if (builtin) todo!void("duplicate");
 				return nextSpecOrStop(
-					alloc, lexer, specUses, noCtx, summon, unsafe, trusted, True, extern_, mangle, canTakeNext);
+					alloc, lexer, specUses, noCtx, summon, unsafe, trusted, true, extern_, mangle, canTakeNext);
 			case shortSymAlphaLiteralValue("extern"):
-				return setExtern(False);
+				return setExtern(false);
 			case shortSymAlphaLiteralValue("global"):
-				return setExtern(True);
+				return setExtern(true);
 			default: {
 				addDiagOnReservedName(alloc, lexer, name.name);
 				return nextSpecOrStop(
@@ -595,14 +594,14 @@ immutable(SpecUsesAndSigFlagsAndKwBody) nextSpecOrStop(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	ref ArrBuilder!SpecUseAst specUses,
-	immutable Bool noCtx,
-	immutable Bool summon,
-	immutable Bool unsafe,
-	immutable Bool trusted,
-	immutable Bool builtin,
+	immutable bool noCtx,
+	immutable bool summon,
+	immutable bool unsafe,
+	immutable bool trusted,
+	immutable bool builtin,
 	immutable Opt!(FunBodyAst.Extern) extern_,
 	immutable Opt!string mangle,
-	scope immutable(Bool) delegate() @safe @nogc pure nothrow canTakeNext,
+	scope immutable(bool) delegate() @safe @nogc pure nothrow canTakeNext,
 ) {
 	if (canTakeNext())
 		return parseNextSpec!(Alloc, SymAlloc)(
@@ -637,21 +636,21 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseIndentedSpecUses(Alloc, SymAlloc)(
 			alloc,
 			lexer,
 			builder,
-			False,
-			False,
-			False,
-			False,
-			False,
+			false,
+			false,
+			false,
+			false,
+			false,
 			none!(FunBodyAst.Extern),
 			none!string,
-			() => immutable Bool(takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline));
+			() => takeNewlineOrSingleDedent(alloc, lexer) == NewlineOrDedent.newline);
 	} else
 		return immutable SpecUsesAndSigFlagsAndKwBody(
 			emptyArr!SpecUseAst,
-			False,
-			False,
-			False,
-			False,
+			false,
+			false,
+			false,
+			false,
 			none!(Ptr!FunBodyAst));
 }
 
@@ -665,11 +664,11 @@ immutable(SpecUsesAndSigFlagsAndKwBody) parseSpecUsesAndSigFlagsAndKwBody(Alloc,
 		alloc,
 		lexer,
 		builder,
-		False,
-		False,
-		False,
-		False,
-		False,
+		false,
+		false,
+		false,
+		false,
+		false,
 		none!(FunBodyAst.Extern),
 		none!string,
 		() => tryTake(lexer, ' '));
@@ -684,7 +683,7 @@ struct FunDeclStuff {
 immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable Bool isPublic,
+	immutable bool isPublic,
 	immutable Pos start,
 	immutable Sym name,
 	immutable ArrWithSize!TypeParamAst typeParams,
@@ -733,7 +732,7 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 	ref ArrBuilder!TestAst tests,
 ) {
 	immutable Pos start = curPos(lexer);
-	immutable Bool isPublic = immutable Bool(!tryTake(lexer, '.'));
+	immutable bool isPublic = !tryTake(lexer, '.');
 	immutable Sym name = takeName(alloc, lexer);
 	immutable ArrWithSize!TypeParamAst typeParams = parseTypeParams(alloc, lexer);
 	if (!tryTake(lexer, ' ')) {
@@ -755,14 +754,14 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 				? parsePurity(alloc, lexer)
 				: none!PuritySpecifierAndRange;
 
-			immutable Bool tookIndent = () {
+			immutable bool tookIndent = () {
 				final switch (after) {
 					case SpaceOrNewlineOrIndent.space:
-						return Bool(takeNewlineOrIndent_topLevel(alloc, lexer) == NewlineOrIndent.indent);
+						return takeNewlineOrIndent_topLevel(alloc, lexer) == NewlineOrIndent.indent;
 					case SpaceOrNewlineOrIndent.newline:
-						return False;
+						return false;
 					case SpaceOrNewlineOrIndent.indent:
-						return True;
+						return true;
 				}
 			}();
 

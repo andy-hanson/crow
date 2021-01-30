@@ -21,7 +21,6 @@ import model.model :
 	StructInst,
 	Type,
 	TypeParam;
-import util.bools : Bool;
 import util.collection.arr : ptrsRange;
 import util.opt : force, has, none, Opt, optOr2, some;
 import util.ptr : Ptr;
@@ -209,6 +208,6 @@ immutable(Opt!Position) positionOfType(ref immutable Type a) {
 		(immutable Ptr!StructInst it) => some(immutable Position(decl(it))));
 }
 
-immutable(Bool) nameHasPos(immutable Pos start, immutable Sym name, immutable Pos pos) {
-	return immutable Bool(start <= pos && pos < start + symSize(name));
+immutable(bool) nameHasPos(immutable Pos start, immutable Sym name, immutable Pos pos) {
+	return start <= pos && pos < start + symSize(name);
 }

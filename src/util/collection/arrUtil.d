@@ -1,6 +1,5 @@
 module util.collection.arrUtil;
 
-import util.bools : Bool, False, True;
 import util.collection.arr :
 	ArrWithSize,
 	at,
@@ -101,42 +100,42 @@ immutable(ArrWithSize!T) arrWithSizeLiteral(T, Alloc)(ref Alloc alloc, scope imm
 	return some!(Out[])(cast(immutable) res[0..size]);
 }
 
-immutable(Bool) exists(T)(
+immutable(bool) exists(T)(
 	scope immutable T[] arr,
-	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref immutable T x; arr)
 		if (cb(x))
-			return True;
-	return False;
+			return true;
+	return false;
 }
 
-immutable(Bool) exists_const(T)(
+immutable(bool) exists_const(T)(
 	scope const T[] arr,
-	scope immutable(Bool) delegate(ref const T) @safe @nogc pure nothrow cb,
+	scope immutable(bool) delegate(ref const T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref const T x; arr)
 		if (cb(x))
-			return True;
-	return False;
+			return true;
+	return false;
 }
 
-immutable(Bool) every(T)(
+immutable(bool) every(T)(
 	scope ref immutable T[] arr,
-	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref immutable T x; arr)
 		if (!cb(x))
-			return False;
-	return True;
+			return false;
+	return true;
 }
 
-immutable(Bool) contains(T)(
+immutable(bool) contains(T)(
 	scope ref immutable T[] arr,
 	scope ref immutable T value,
-	immutable(Bool) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow equals,
+	immutable(bool) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow equals,
 ) {
-	return exists(arr, (ref immutable T v) =>
+	return exists!T(arr, (ref immutable T v) =>
 		equals(v, value));
 }
 
@@ -154,7 +153,7 @@ immutable(Opt!Out) findSome(Out, T)(
 
 immutable(Opt!T) find(T)(
 	immutable T[] a,
-	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (ref immutable T x; a)
 		if (cb(x))
@@ -164,7 +163,7 @@ immutable(Opt!T) find(T)(
 
 immutable(Opt!size_t) findIndex(T)(
 	ref immutable T[] a,
-	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
+	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t i; 0..size(a))
 		if (cb(at(a, i)))
@@ -174,7 +173,7 @@ immutable(Opt!size_t) findIndex(T)(
 
 immutable(Opt!size_t) findIndex_const(T)(
 	const T[] a,
-	scope immutable(Bool) delegate(ref const T) @safe @nogc pure nothrow cb,
+	scope immutable(bool) delegate(ref const T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t i; 0..size(a))
 		if (cb(at(a, i)))
@@ -184,7 +183,7 @@ immutable(Opt!size_t) findIndex_const(T)(
 
 immutable(Opt!(Ptr!T)) findPtr(T)(
 	ref immutable T[] arr,
-	scope immutable(Bool) delegate(immutable Ptr!T) @safe @nogc pure nothrow cb,
+	scope immutable(bool) delegate(immutable Ptr!T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable Ptr!T x; ptrsRange(arr))
 		if (cb(x))
@@ -719,36 +718,36 @@ void zipPtrFirst(T, U)(
 	return some!(Out[])(cast(immutable) res[0..sz]);
 }
 
-immutable(Bool) zipSome(In0, In1)(
+immutable(bool) zipSome(In0, In1)(
 	ref immutable In0[] in0,
 	ref immutable In1[] in1,
-	scope immutable(Bool) delegate(ref immutable In0, ref immutable In1) @safe @nogc pure nothrow cb,
+	scope immutable(bool) delegate(ref immutable In0, ref immutable In1) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(in0, in1));
 	foreach (immutable size_t i; 0..size(in0))
 		if (cb(at(in0, i), at(in1, i)))
-			return True;
-	return False;
+			return true;
+	return false;
 }
 
-immutable(Bool) eachCorresponds(T, U)(
+immutable(bool) eachCorresponds(T, U)(
 	immutable T[] a,
 	immutable U[] b,
-	scope immutable(Bool) delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
+	scope immutable(bool) delegate(ref immutable T, ref immutable U) @safe @nogc pure nothrow cb,
 ) {
 	verify(sizeEq(a, b));
 	foreach (immutable size_t i; 0..size(a))
 		if (!cb(at(a, i), at(b, i)))
-			return False;
-	return True;
+			return false;
+	return true;
 }
 
-immutable(Bool) arrEqual(T)(
+immutable(bool) arrEqual(T)(
 	scope immutable T[] a,
 	scope immutable T[] b,
-	scope immutable(Bool) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow elementEqual,
+	scope immutable(bool) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow elementEqual,
 ) {
-	return immutable Bool(sizeEq(a, b) && eachCorresponds(a, b, elementEqual));
+	return sizeEq(a, b) && eachCorresponds!(T, T)(a, b, elementEqual);
 }
 
 immutable(Comparison) compareArr(T)(
@@ -798,7 +797,7 @@ immutable(size_t) sum(T)(
 
 immutable(size_t) count(T)(
 	ref immutable T[] a,
-	scope immutable(Bool) delegate(ref immutable T) @safe @nogc pure nothrow pred,
+	scope immutable(bool) delegate(ref immutable T) @safe @nogc pure nothrow pred,
 ) {
 	return sum(a, (ref immutable T it) =>
 		immutable size_t(pred(it) ? 1 : 0));
@@ -806,11 +805,11 @@ immutable(size_t) count(T)(
 
 void filterUnordered(T)(
 	ref MutArr!T a,
-	scope immutable(Bool) delegate(ref T) @safe @nogc pure nothrow pred,
+	scope immutable(bool) delegate(ref T) @safe @nogc pure nothrow pred,
 ) {
 	size_t i = 0;
 	while (i < mutArrSize(a)) {
-		immutable Bool b = pred(mutArrAt(a, i));
+		immutable bool b = pred(mutArrAt(a, i));
 		if (b)
 			i++;
 		else if (i == mutArrSize(a) - 1)

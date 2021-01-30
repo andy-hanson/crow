@@ -42,7 +42,6 @@ import model.lowModel :
 	LowUnion,
 	matchLowType,
 	PrimitiveType;
-import util.bools : Bool, False, True;
 import util.collection.arr : empty, ptrAt, size;
 import util.collection.arrUtil : arrLiteral, fillArr, mapWithIndex, rtail;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -60,7 +59,7 @@ immutable(LowFun) generateCompareFun(Alloc)(
 	ref immutable ComparisonTypes comparisonTypes,
 	ref const CompareFuns compareFuns,
 	ref immutable LowType paramType,
-	immutable Bool typeIsArr,
+	immutable bool typeIsArr,
 ) {
 	immutable FileAndRange range = FileAndRange.empty;
 	immutable LowParam[] params = arrLiteral!LowParam(alloc, [
@@ -83,7 +82,7 @@ immutable(LowFun) generateCompareFun(Alloc)(
 		nu!LowFunSig(
 			alloc,
 			immutable LowType(comparisonTypes.comparison),
-			immutable LowFunParamsKind(False, False),
+			immutable LowFunParamsKind(false, false),
 			params),
 		immutable LowFunBody(body_));
 }
@@ -156,7 +155,7 @@ immutable(LowFunExprBody) arrCompareBody(Alloc)(
 			bSizeIsZero,
 			genComparisonGreater(alloc, range, comparisonTypes),
 			firstThenRecur));
-	return immutable LowFunExprBody(True, allocate(alloc, expr));
+	return immutable LowFunExprBody(true, allocate(alloc, expr));
 }
 
 immutable(LowExpr) combineCompares(Alloc)(
@@ -247,7 +246,7 @@ immutable(LowFunExprBody) compareBody(Alloc)(
 			unreachable!(immutable LowFunExprBody),
 		(immutable PrimitiveType it) =>
 			immutable LowFunExprBody(
-				False,
+				false,
 				allocate(alloc, genComparePrimitive(alloc, range, comparisonTypes, it, a, b))),
 		(immutable LowType.PtrGc it) =>
 			record(asRecordType(it.pointee)),
@@ -317,7 +316,7 @@ immutable(LowFunExprBody) genCompareUnion(Alloc)(
 		immutable LowType(comparisonTypes.comparison),
 		range,
 		immutable LowExprKind(nu!(LowExprKind.Match)(alloc, allocate(alloc, a), aCases)));
-	return immutable LowFunExprBody(False, allocate(alloc, expr));
+	return immutable LowFunExprBody(false, allocate(alloc, expr));
 }
 
 immutable(LowFunExprBody) genCompareRecord(Alloc)(
@@ -344,7 +343,7 @@ immutable(LowFunExprBody) genCompareRecord(Alloc)(
 	}
 	//TODO: simpler -- just use the last field's comparison as the last value, not 'eq'
 	immutable LowExpr expr = recur(genComparisonEqual(alloc, range, comparisonTypes), allFields);
-	return immutable LowFunExprBody(False, allocate(alloc, expr));
+	return immutable LowFunExprBody(false, allocate(alloc, expr));
 }
 
 immutable(LowExpr) compareOneField(Alloc)(

@@ -12,7 +12,6 @@ import frontend.showDiag : ShowDiagOptions, strOfParseDiag;
 import interpret.fakeExtern : FakeExtern;
 import model.parseDiag : ParseDiagnostic;
 import model.model : Program;
-import util.bools : False;
 import util.collection.arr : at, emptyArr, freeArr;
 import util.collection.arrUtil : map;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
@@ -182,4 +181,4 @@ pure immutable(Path) toPath(Alloc)(ref Server!Alloc server, scope ref immutable 
 	return parsePath(server.allPaths, server.allSymbols, path);
 }
 
-immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
+immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);

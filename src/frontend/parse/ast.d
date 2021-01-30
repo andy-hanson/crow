@@ -2,7 +2,6 @@ module frontend.parse.ast;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, True;
 import util.collection.arr : ArrWithSize, empty, emptyArr, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
@@ -190,15 +189,15 @@ struct LiteralAst {
 
 	struct Float {
 		immutable double value;
-		immutable Bool overflow;
+		immutable bool overflow;
 	}
 	struct Int {
 		immutable long value;
-		immutable Bool overflow;
+		immutable bool overflow;
 	}
 	struct Nat {
 		immutable ulong value;
-		immutable Bool overflow;
+		immutable bool overflow;
 	}
 
 	immutable this(immutable Float a) { kind = Kind.float_; float_ = a; }
@@ -332,16 +331,16 @@ struct ExprAstKind {
 }
 static assert(ExprAstKind.sizeof <= 40);
 
-immutable(Bool) isCall(ref immutable ExprAstKind a) {
-	return immutable Bool(a.kind == ExprAstKind.Kind.call);
+immutable(bool) isCall(ref immutable ExprAstKind a) {
+	return a.kind == ExprAstKind.Kind.call;
 }
 @trusted ref immutable(CallAst) asCall(return scope ref immutable ExprAstKind a) {
 	verify(isCall(a));
 	return a.call;
 }
 
-immutable(Bool) isIdentifier(ref immutable ExprAstKind a) {
-	return immutable Bool(a.kind == ExprAstKind.Kind.identifier);
+immutable(bool) isIdentifier(ref immutable ExprAstKind a) {
+	return a.kind == ExprAstKind.Kind.identifier;
 }
 ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind a) {
 	verify(isIdentifier(a));
@@ -467,7 +466,7 @@ immutable(RangeWithinFile) rangeOfPuritySpecifier(ref immutable PuritySpecifierA
 
 struct StructAliasAst {
 	immutable RangeWithinFile range;
-	immutable Bool isPublic;
+	immutable bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParamAst typeParams;
 	immutable Ptr!TypeAst target;
@@ -513,8 +512,8 @@ struct RecordModifiers {
 	}
 
 	//TODO:NOT INSTANCE
-	immutable(Bool) any() immutable {
-		return immutable Bool(has(packed) || has(explicitByValOrRef));
+	immutable(bool) any() immutable {
+		return has(packed) || has(explicitByValOrRef);
 	}
 }
 
@@ -528,7 +527,7 @@ struct StructDeclAst {
 
 			struct Field {
 				immutable RangeWithinFile range;
-				immutable Bool isMutable;
+				immutable bool isMutable;
 				immutable Sym name;
 				immutable TypeAst type;
 			}
@@ -581,7 +580,7 @@ struct StructDeclAst {
 	}
 
 	immutable RangeWithinFile range;
-	immutable Bool isPublic;
+	immutable bool isPublic;
 	immutable Sym name; // start is range.start
 	immutable ArrWithSize!TypeParamAst typeParams;
 	immutable Opt!PuritySpecifierAndRange purity;
@@ -589,11 +588,11 @@ struct StructDeclAst {
 }
 static assert(StructDeclAst.sizeof <= 88);
 
-immutable(Bool) isRecord(ref immutable StructDeclAst.Body a) {
-	return Bool(a.kind == StructDeclAst.Body.Kind.record);
+immutable(bool) isRecord(ref immutable StructDeclAst.Body a) {
+	return a.kind == StructDeclAst.Body.Kind.record;
 }
-immutable(Bool) isUnion(ref immutable StructDeclAst.Body a) {
-	return Bool(a.kind == StructDeclAst.Body.Kind.union_);
+immutable(bool) isUnion(ref immutable StructDeclAst.Body a) {
+	return a.kind == StructDeclAst.Body.Kind.union_;
 }
 
 @trusted T matchStructDeclAstBody(T)(
@@ -651,7 +650,7 @@ struct SpecBodyAst {
 
 struct SpecDeclAst {
 	immutable RangeWithinFile range;
-	immutable Bool isPublic;
+	immutable bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParamAst typeParams;
 	immutable SpecBodyAst body_;
@@ -662,7 +661,7 @@ struct FunBodyAst {
 
 	struct Builtin {}
 	struct Extern {
-		immutable Bool isGlobal;
+		immutable bool isGlobal;
 		immutable string externName;
 		immutable Opt!string libraryName;
 	}
@@ -707,11 +706,11 @@ struct FunDeclAst {
 	immutable ArrWithSize!TypeParamAst typeParams; // If this is empty, infer type params
 	immutable Ptr!SigAst sig; // Ptr to keep this struct from getting too big
 	immutable SpecUseAst[] specUses;
-	immutable Bool isPublic;
-	immutable Bool noCtx;
-	immutable Bool summon;
-	immutable Bool unsafe;
-	immutable Bool trusted;
+	immutable bool isPublic;
+	immutable bool noCtx;
+	immutable bool summon;
+	immutable bool unsafe;
+	immutable bool trusted;
 	immutable Ptr!FunBodyAst body_;
 }
 
@@ -939,13 +938,13 @@ immutable(Repr) reprFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDeclAst 
 		add(alloc, fields, nameAndRepr("spec-uses", reprArr(alloc, a.specUses, (ref immutable SpecUseAst s) =>
 			reprSpecUseAst(alloc, s))));
 	if (a.noCtx)
-		add(alloc, fields, nameAndRepr("noctx", reprBool(True)));
+		add(alloc, fields, nameAndRepr("noctx", reprBool(true)));
 	if (a.summon)
-		add(alloc, fields, nameAndRepr("summon", reprBool(True)));
+		add(alloc, fields, nameAndRepr("summon", reprBool(true)));
 	if (a.unsafe)
-		add(alloc, fields, nameAndRepr("unsafe", reprBool(True)));
+		add(alloc, fields, nameAndRepr("unsafe", reprBool(true)));
 	if (a.trusted)
-		add(alloc, fields, nameAndRepr("trusted", reprBool(True)));
+		add(alloc, fields, nameAndRepr("trusted", reprBool(true)));
 	add(alloc, fields, nameAndRepr("body", reprFunBodyAst(alloc, a.body_)));
 	return reprNamedRecord("fun-decl", finishArr(alloc, fields));
 }

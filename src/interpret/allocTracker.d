@@ -2,7 +2,6 @@ module interpret.allocTracker;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, False, True;
 import util.collection.arrUtil : exists_const;
 import util.collection.dict : KeyValuePair;
 import util.collection.mutDict : addToMutDict, mustDelete, MutDict, tempPairs;
@@ -24,16 +23,18 @@ struct AllocTracker {
 		addToMutDict(alloc, allocations, ptr, size);
 	}
 
-	immutable(Bool) hasAllocedPtr(ref const PtrRange range) const {
-		return exists_const(tempPairs(allocations), (ref const KeyValuePair!(const ubyte*, immutable size_t) pair) =>
-			ptrInRange(pair, range));
+	immutable(bool) hasAllocedPtr(ref const PtrRange range) const {
+		return exists_const!(KeyValuePair!(const ubyte*, immutable size_t))(
+			tempPairs(allocations),
+			(ref const KeyValuePair!(const ubyte*, immutable size_t) pair) =>
+				ptrInRange(pair, range));
 	}
 
 	@trusted void writeMallocedRanges(WriterAlloc)(ref Writer!WriterAlloc writer) const {
-		Bool first = True;
+		bool first = true;
 		foreach (ref const KeyValuePair!(const ubyte*, immutable size_t) pair; tempPairs(allocations)) {
 			if (first)
-				first = False;
+				first = false;
 			else
 				writeStatic(writer, ", ");
 			writePtrRange(writer, const PtrRange(pair.key, pair.key + pair.value));
@@ -43,7 +44,7 @@ struct AllocTracker {
 
 private:
 
-@trusted immutable(Bool) ptrInRange(
+@trusted immutable(bool) ptrInRange(
 	ref const KeyValuePair!(const ubyte*, immutable size_t) pair,
 	ref const PtrRange range,
 ) {

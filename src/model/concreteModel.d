@@ -18,7 +18,6 @@ import model.model :
 	RecordField,
 	StructInst,
 	summon;
-import util.bools : Bool, False, True;
 import util.collection.dict : Dict;
 import util.comparison : compareBool, Comparison;
 import util.late : Late, lateGet, lateSet;
@@ -154,7 +153,7 @@ struct ConcreteStructBody {
 
 struct ConcreteType {
 	// NOTE: ConcreteType for 'ptr' (e.g. 'ptr byte') will *not* have isPointer set -- since it's not a ptr*
-	immutable Bool isPointer;
+	immutable bool isPointer;
 	immutable Ptr!ConcreteStruct struct_;
 }
 
@@ -170,8 +169,8 @@ immutable(Ptr!ConcreteStruct) mustBeNonPointer(ref immutable ConcreteType a) {
 struct ConcreteStructInfo {
 	immutable ConcreteStructBody body_;
 	immutable size_t sizeBytes; // TODO: never used?
-	immutable Bool isSelfMutable; //TODO: never used? (may need for GC though)
-	immutable Bool defaultIsPointer;
+	immutable bool isSelfMutable; //TODO: never used? (may need for GC though)
+	immutable bool defaultIsPointer;
 }
 
 struct ConcreteStructSource {
@@ -228,13 +227,13 @@ struct ConcreteStruct {
 	Late!(immutable ConcreteStructInfo) info_;
 }
 
-immutable(Bool) isArr(ref immutable ConcreteStruct a) {
-	return matchConcreteStructSource(
+immutable(bool) isArr(ref immutable ConcreteStruct a) {
+	return matchConcreteStructSource!(immutable bool)(
 		a.source,
 		(ref immutable ConcreteStructSource.Inst it) =>
 			isArr(it.inst),
 		(ref immutable ConcreteStructSource.Lambda it) =>
-			False);
+			false);
 }
 
 private ref immutable(ConcreteStructInfo) info(return scope ref const ConcreteStruct a) {
@@ -249,11 +248,11 @@ private immutable(size_t) sizeBytes(ref immutable ConcreteStruct a) {
 	return info(a).sizeBytes;
 }
 
-immutable(Bool) isSelfMutable(ref immutable ConcreteStruct a) {
+immutable(bool) isSelfMutable(ref immutable ConcreteStruct a) {
 	return info(a).isSelfMutable;
 }
 
-immutable(Bool) defaultIsPointer(ref immutable ConcreteStruct a) {
+immutable(bool) defaultIsPointer(ref immutable ConcreteStruct a) {
 	return info(a).defaultIsPointer;
 }
 
@@ -262,11 +261,11 @@ immutable(size_t) sizeOrPointerSizeBytes(ref immutable ConcreteType t) {
 }
 
 immutable(ConcreteType) byRef(immutable ConcreteType t) {
-	return immutable ConcreteType(True, t.struct_);
+	return immutable ConcreteType(true, t.struct_);
 }
 
 immutable(ConcreteType) byVal(ref immutable ConcreteType t) {
-	return immutable ConcreteType(False, t.struct_);
+	return immutable ConcreteType(false, t.struct_);
 }
 
 immutable(ConcreteType) concreteType_fromStruct(immutable Ptr!ConcreteStruct s) {
@@ -312,7 +311,7 @@ struct ConcreteFieldSource {
 struct ConcreteField {
 	immutable ConcreteFieldSource source;
 	immutable ubyte index;
-	immutable Bool isMutable;
+	immutable bool isMutable;
 	immutable ConcreteType type;
 }
 
@@ -345,8 +344,8 @@ struct ConcreteParamSource {
 	}
 }
 
-immutable(Bool) isClosure(ref immutable ConcreteParamSource a) {
-	return immutable Bool(a.kind_ == ConcreteParamSource.Kind.closure);
+immutable(bool) isClosure(ref immutable ConcreteParamSource a) {
+	return a.kind_ == ConcreteParamSource.Kind.closure;
 }
 
 @trusted T matchConcreteParamSource(T)(
@@ -428,7 +427,7 @@ struct ConcreteFunBody {
 	struct CreateRecord {
 	}
 	struct Extern {
-		immutable Bool isGlobal;
+		immutable bool isGlobal;
 		immutable string externName;
 	}
 	struct RecordFieldGet {
@@ -468,8 +467,8 @@ struct ConcreteFunBody {
 	immutable this(immutable RecordFieldSet a) { kind = Kind.recordFieldSet; recordFieldSet = a; }
 }
 
-immutable(Bool) isExtern(ref immutable ConcreteFunBody a) {
-	return Bool(a.kind == ConcreteFunBody.Kind.extern_);
+immutable(bool) isExtern(ref immutable ConcreteFunBody a) {
+	return a.kind == ConcreteFunBody.Kind.extern_;
 }
 
 @trusted ref immutable(ConcreteFunBody.Builtin) asBuiltin(return scope ref immutable ConcreteFunBody a) {
@@ -507,8 +506,8 @@ immutable(Bool) isExtern(ref immutable ConcreteFunBody a) {
 	}
 }
 
-immutable(Bool) isGlobal(ref immutable ConcreteFunBody a) {
-	return Bool(isExtern(a) && asExtern(a).isGlobal);
+immutable(bool) isGlobal(ref immutable ConcreteFunBody a) {
+	return isExtern(a) && asExtern(a).isGlobal;
 }
 
 struct ConcreteFunSource {
@@ -579,7 +578,7 @@ struct ConcreteFun {
 		return immutable ConcreteType(sig.returnTypeNeedsPtr, sig.returnStruct);
 	}
 
-	immutable(Bool) needsCtx() immutable {
+	immutable(bool) needsCtx() immutable {
 		return sig.needsCtx;
 	}
 
@@ -597,7 +596,7 @@ struct ConcreteFunSig {
 
 	immutable this(
 		immutable ConcreteType returnType,
-		immutable Bool n,
+		immutable bool n,
 		immutable Opt!(Ptr!ConcreteParam) c,
 		immutable ConcreteParam[] p,
 	) {
@@ -610,15 +609,15 @@ struct ConcreteFunSig {
 
 	// Breaking up `immutable ConcreteType returnType;` so bools can be stored together
 	immutable Ptr!ConcreteStruct returnStruct;
-	immutable Bool returnTypeNeedsPtr;
-	immutable Bool needsCtx;
+	immutable bool returnTypeNeedsPtr;
+	immutable bool needsCtx;
 	immutable Opt!(Ptr!ConcreteParam) closureParam;
 	immutable ConcreteParam[] paramsExcludingCtxAndClosure;
 }
 static assert(ConcreteFunSig.sizeof <= 48);
 
-immutable(Bool) isSummon(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(immutable Bool)(
+immutable(bool) isSummon(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource!(immutable bool)(
 		a.source,
 		(immutable Ptr!FunInst it) =>
 			summon(decl(it).deref()),
@@ -626,7 +625,7 @@ immutable(Bool) isSummon(ref immutable ConcreteFun a) {
 			isSummon(it.containingFun),
 		(ref immutable ConcreteFunSource.Test) =>
 			// 'isSummon' is called for direct calls, but tests are never called directly
-			unreachable!(immutable Bool)());
+			unreachable!(immutable bool)());
 }
 
 immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
@@ -640,37 +639,37 @@ immutable(FileAndRange) concreteFunRange(ref immutable ConcreteFun a) {
 			todo!(immutable FileAndRange)("!"));
 }
 
-immutable(Bool) isCallWithCtxFun(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(immutable Bool)(
+immutable(bool) isCallWithCtxFun(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource!(immutable bool)(
 		a.source,
 		(immutable Ptr!FunInst it) =>
 			isCallWithCtxFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
-			False,
+			false,
 		(ref immutable ConcreteFunSource.Test) =>
-			False);
+			false);
 }
 
-immutable(Bool) isCompareFun(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(immutable Bool)(
+immutable(bool) isCompareFun(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource!(immutable bool)(
 		a.source,
 		(immutable Ptr!FunInst it) =>
 			isCompareFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
-			False,
+			false,
 		(ref immutable ConcreteFunSource.Test) =>
-			False);
+			false);
 }
 
-immutable(Bool) isMarkVisitFun(ref immutable ConcreteFun a) {
-	return matchConcreteFunSource!(immutable Bool)(
+immutable(bool) isMarkVisitFun(ref immutable ConcreteFun a) {
+	return matchConcreteFunSource!(immutable bool)(
 		a.source,
 		(immutable Ptr!FunInst it) =>
 			isMarkVisitFun(it),
 		(ref immutable ConcreteFunSource.Lambda) =>
-			False,
+			false,
 		(ref immutable ConcreteFunSource.Test) =>
-			False);
+			false);
 }
 
 ref immutable(ConcreteFunBody) body_(return scope ref const ConcreteFun a) {
@@ -681,11 +680,11 @@ void setBody(ref ConcreteFun a, immutable Ptr!ConcreteFunBody value) {
 	lateSet(a._body_, value);
 }
 
-immutable(Bool) isExtern(ref immutable ConcreteFun a) {
+immutable(bool) isExtern(ref immutable ConcreteFun a) {
 	return isExtern(body_(a));
 }
 
-immutable(Bool) isGlobal(ref immutable ConcreteFun a) {
+immutable(bool) isGlobal(ref immutable ConcreteFun a) {
 	return isGlobal(body_(a));
 }
 
@@ -866,8 +865,8 @@ immutable(ConcreteType) returnType(return scope ref immutable ConcreteExprKind.C
 	return a.called.returnType;
 }
 
-immutable(Bool) isConstant(ref immutable ConcreteExprKind a) {
-	return immutable Bool(a.kind == ConcreteExprKind.Kind.constant);
+immutable(bool) isConstant(ref immutable ConcreteExprKind a) {
+	return a.kind == ConcreteExprKind.Kind.constant;
 }
 
 @trusted ref immutable(Constant) asConstant(return scope ref immutable ConcreteExprKind a) {

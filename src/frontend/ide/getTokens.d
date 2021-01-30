@@ -48,7 +48,6 @@ import frontend.parse.ast :
 	ThenVoidAst,
 	TypeAst,
 	TypeParamAst;
-import util.bools : Bool, True;
 import util.collection.arr : ArrWithSize, first, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : tail;
@@ -121,7 +120,7 @@ immutable(Token[]) tokensOfAst(Alloc)(ref Alloc alloc, ref immutable FileAst ast
 
 private:
 
-immutable(RangeWithinFile) rangeAtName(immutable Bool isPublic, immutable Pos start, immutable Sym name) {
+immutable(RangeWithinFile) rangeAtName(immutable bool isPublic, immutable Pos start, immutable Sym name) {
 	immutable Pos afterDot = start + (isPublic ? 0 : 1);
 	return immutable RangeWithinFile(afterDot, safeSizeTToU32(afterDot + symSize(name)));
 }
@@ -133,7 +132,7 @@ void addImportTokens(Alloc)(
 	immutable Sym keyword,
 ) {
 	if (has(a)) {
-		add(alloc, tokens, immutable Token(Token.Kind.keyword, rangeAtName(True, force(a).range.start, keyword)));
+		add(alloc, tokens, immutable Token(Token.Kind.keyword, rangeAtName(true, force(a).range.start, keyword)));
 		foreach (ref immutable ImportAst path; force(a).paths)
 			add(alloc, tokens, immutable Token(
 				Token.Kind.importPath,
@@ -149,7 +148,7 @@ void addSpecTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 		(ref immutable SpecBodyAst.Builtin) {},
 		(ref immutable SigAst[] sigs) {
 			foreach (ref immutable SigAst sig; sigs) {
-				add(alloc, tokens, immutable Token(Token.Kind.funDef, rangeAtName(True, sig.range.start, sig.name)));
+				add(alloc, tokens, immutable Token(Token.Kind.funDef, rangeAtName(true, sig.range.start, sig.name)));
 				addSigReturnTypeAndParamsTokens(alloc, tokens, sig);
 			}
 		});
@@ -233,7 +232,7 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 			foreach (ref immutable StructDeclAst.Body.Record.Field field; record.fields) {
 				add(alloc, tokens, immutable Token(
 					Token.Kind.fieldDef,
-					rangeAtName(True, field.range.start, field.name)));
+					rangeAtName(true, field.range.start, field.name)));
 				addTypeTokens(alloc, tokens, field.type);
 			}
 		},

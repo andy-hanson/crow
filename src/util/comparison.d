@@ -2,7 +2,6 @@ module util.comparison;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
 import util.ptr : Ptr;
 
 alias Comparer(T) = immutable(Comparison) delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow;
@@ -51,12 +50,12 @@ immutable(Comparison) compareEnum(E)(immutable E a, immutable E b) {
 	return compareNat32(uint(a), uint(b));
 }
 
-immutable(Comparison) compareBool(immutable Bool a, immutable Bool b) {
+immutable(Comparison) compareBool(immutable bool a, immutable bool b) {
 	return a
 		? b ? Comparison.equal : Comparison.greater
 		: b ? Comparison.less : Comparison.equal;
 }
 
-immutable(Bool) ptrEquals(T)(immutable Ptr!T a, immutable Ptr!T b) {
-	return Bool(a == b);
+immutable(bool) ptrEquals(T)(immutable Ptr!T a, immutable Ptr!T b) {
+	return a == b;
 }

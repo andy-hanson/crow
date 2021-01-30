@@ -2,7 +2,6 @@ module model.constant;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, True;
 import util.collection.arrUtil : eachCorresponds;
 import util.ptr : Ptr;
 import util.util : verify;
@@ -19,7 +18,7 @@ struct Constant {
 		immutable size_t index; // Index into AllConstants#arrs for this type.
 	}
 	struct BoolConstant { // TODO: just use Integral?
-		immutable Bool value;
+		immutable bool value;
 	}
 	// For int and nat types
 	struct Integral {
@@ -77,7 +76,7 @@ struct Constant {
 }
 static assert(Constant.sizeof <= 24);
 
-immutable(Bool) asBool(ref immutable Constant a) {
+immutable(bool) asBool(ref immutable Constant a) {
 	verify(a.kind == Constant.Kind.bool_);
 	return a.bool_.value;
 }
@@ -103,30 +102,31 @@ immutable(Constant.Pointer) asPointer(ref immutable Constant a) {
 }
 
 // WARN: Only do this with constants known to have the same type
-@trusted immutable(Bool) constantEqual(ref immutable Constant a, ref immutable Constant b) {
+@trusted immutable(bool) constantEqual(ref immutable Constant a, ref immutable Constant b) {
 	verify(a.kind == b.kind);
 	final switch (a.kind) {
 		case Constant.Kind.arr:
-			return immutable Bool(a.arr_.index == b.arr_.index);
+			return a.arr_.index == b.arr_.index;
 		case Constant.Kind.bool_:
-			return immutable Bool(a.bool_.value.value == b.bool_.value.value);
+			return a.bool_.value == b.bool_.value;
 		case Constant.Kind.float_:
 			//TODO: handle NaN
-			return immutable Bool(a.float_ == b.float_);
+			return a.float_ == b.float_;
 		case Constant.Kind.integral:
-			return immutable Bool(a.integral_.value == b.integral_.value);
+			return a.integral_.value == b.integral_.value;
 		case Constant.Kind.null_:
 		case Constant.Kind.void_:
-			return True;
+			return true;
 		case Constant.Kind.pointer:
-			return immutable Bool(a.pointer.index == b.pointer.index);
+			return a.pointer.index == b.pointer.index;
 		case Constant.Kind.record:
-			return eachCorresponds(a.record.args, b.record.args, (ref immutable Constant x, ref immutable Constant y) =>
-				constantEqual(x, y));
+			return eachCorresponds!(Constant, Constant)(
+				a.record.args,
+				b.record.args,
+				(ref immutable Constant x, ref immutable Constant y) =>
+					constantEqual(x, y));
 		case Constant.Kind.union_:
-			return immutable Bool(
-				a.union_.memberIndex == b.union_.memberIndex &&
-				constantEqual(a.union_.arg, b.union_.arg));
+			return a.union_.memberIndex == b.union_.memberIndex && constantEqual(a.union_.arg, b.union_.arg);
 	}
 }
 

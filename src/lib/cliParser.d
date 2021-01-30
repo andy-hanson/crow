@@ -2,7 +2,6 @@ module lib.cliParser;
 
 import frontend.lang : crowExtension;
 import lib.compiler : PrintFormat, PrintKind;
-import util.bools : Bool, False, True;
 import util.collection.arr : at, empty, emptyArr, first, only, size;
 import util.collection.arrUtil : slice, tail;
 import util.collection.str : strEq, strEqLiteral;
@@ -58,7 +57,7 @@ struct Command {
 	}
 	struct Run {
 		immutable Build build;
-		immutable Bool interpret;
+		immutable bool interpret;
 		immutable string[] programArgs;
 	}
 	struct Test {
@@ -124,11 +123,11 @@ immutable(Command) parseCommand(Alloc, PathAlloc, SymAlloc)(
 
 private:
 
-immutable(Bool) isSpecialArg(immutable string a, immutable string expected) {
-	return empty(a) ? True : (at(a, 0) == '-' ? isSpecialArg(tail(a), expected) : strEqLiteral(a, expected));
+immutable(bool) isSpecialArg(immutable string a, immutable string expected) {
+	return empty(a) ? true : (at(a, 0) == '-' ? isSpecialArg(tail(a), expected) : strEqLiteral(a, expected));
 }
 
-immutable(Bool) isHelp(immutable string a) {
+immutable(bool) isHelp(immutable string a) {
 	return isSpecialArg(a, "help");
 }
 
@@ -246,13 +245,13 @@ immutable(Command) parseRunCommand(Alloc, PathAlloc, SymAlloc)(
 			(ref immutable ProgramDirAndMain programDirAndMain) {
 				immutable string[] argsAfterMain = tail(args);
 				struct InterpretAndRemainingArgs {
-					immutable Bool interpret;
+					immutable bool interpret;
 					immutable string[] remainingArgs;
 				}
 				immutable InterpretAndRemainingArgs ira =
 					!empty(argsAfterMain) && strEqLiteral(at(argsAfterMain, 0), "--interpret")
-						? immutable InterpretAndRemainingArgs(True, tail(argsAfterMain))
-						: immutable InterpretAndRemainingArgs(False, argsAfterMain);
+						? immutable InterpretAndRemainingArgs(true, tail(argsAfterMain))
+						: immutable InterpretAndRemainingArgs(false, argsAfterMain);
 				return empty(ira.remainingArgs)
 					? immutable Command(immutable Command.Run(
 						immutable Command.Build(programDirAndMain, emptyArr!string),

@@ -2,7 +2,6 @@ module util.collection.dictBuilder;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, False, True;
 import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.mutArr : moveToArr, MutArr, mutArrAt, mutArrSize, push;
@@ -35,12 +34,12 @@ immutable(Dict!(K, V, cmp)) finishDict(Alloc, K, V, alias cmp)(
 	MutArr!(immutable KeyValuePair!(K, V)) res;
 	foreach (immutable size_t i; 0..allPairs.size) {
 		immutable KeyValuePair!(K, V) pair = at(allPairs, i);
-		Bool isConflict = False;
+		bool isConflict = false;
 		foreach (immutable size_t j; 0..mutArrSize(res)) {
 			immutable KeyValuePair!(K, V) resPair = mutArrAt(res, j);
 			if (cmp(pair.key, resPair.key) == Comparison.equal) {
 				cbConflict(pair.key, resPair.value, pair.value);
-				isConflict = True;
+				isConflict = true;
 				break;
 			}
 		}

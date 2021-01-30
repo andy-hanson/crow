@@ -21,7 +21,6 @@ import model.lowModel :
 	LowParamIndex,
 	LowType;
 import model.model : decl, FunInst, name;
-import util.bools : False;
 import util.collection.arr : emptyArr, size;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex;
 import util.collection.dict : mustGetAt;
@@ -86,7 +85,7 @@ immutable(LowFun) allFunsCount(Alloc)(
 	ref immutable LowFunCause[] lowFunCauses,
 ) {
 	immutable LowExpr expr = constantNat64(range, size(lowFunCauses));
-	immutable LowFunExprBody body_ = immutable LowFunExprBody(False, allocate(alloc, expr));
+	immutable LowFunExprBody body_ = immutable LowFunExprBody(false, allocate(alloc, expr));
 	return immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(
 			alloc,
@@ -95,7 +94,7 @@ immutable(LowFun) allFunsCount(Alloc)(
 		nu!LowFunSig(
 			alloc,
 			nat64Type,
-			immutable LowFunParamsKind(False, False),
+			immutable LowFunParamsKind(false, false),
 			emptyArr!LowParam),
 		immutable LowFunBody(body_));
 }
@@ -112,7 +111,7 @@ immutable(LowFun) getFunName(Alloc)(
 	immutable LowExpr[] cases = map(alloc, lowFunCauses, (ref immutable LowFunCause cause) =>
 		immutable LowExpr(strType, range, immutable LowExprKind(nameFromLowFunCause(funToName, cause))));
 	immutable LowExpr expr = genSwitch(alloc, strType, range, funId, cases);
-	immutable LowFunExprBody body_ = immutable LowFunExprBody(False, allocate(alloc, expr));
+	immutable LowFunExprBody body_ = immutable LowFunExprBody(false, allocate(alloc, expr));
 	return immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(
 			alloc,
@@ -121,7 +120,7 @@ immutable(LowFun) getFunName(Alloc)(
 		nu!LowFunSig(
 			alloc,
 			strType,
-			immutable LowFunParamsKind(False, False),
+			immutable LowFunParamsKind(false, false),
 			params),
 		immutable LowFunBody(body_));
 }
@@ -162,7 +161,7 @@ immutable(LowFun) getFunPtr(Alloc)(
 			: ptrCast(alloc, anyPtrType, range, immutable LowExpr(anyPtrType, range, immutable LowExprKind(
 				immutable LowExprKind.FunPtr(immutable LowFunIndex(i))))));
 	immutable LowExpr expr = genSwitch(alloc, anyPtrType, range, funId, cases);
-	immutable LowFunExprBody body_ = immutable LowFunExprBody(False, allocate(alloc, expr));
+	immutable LowFunExprBody body_ = immutable LowFunExprBody(false, allocate(alloc, expr));
 	return immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(
 			alloc,
@@ -171,7 +170,7 @@ immutable(LowFun) getFunPtr(Alloc)(
 		nu!LowFunSig(
 			alloc,
 			anyPtrType,
-			immutable LowFunParamsKind(False, False),
+			immutable LowFunParamsKind(false, false),
 			params),
 		immutable LowFunBody(body_));
 }

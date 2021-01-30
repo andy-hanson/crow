@@ -2,34 +2,33 @@ module util.opt;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, False, True;
 import util.ptr : Ptr, ptrTrustMe;
 import util.util : verify;
 
 struct Opt(T) {
 	private:
 	this(BeNone) {
-		has_ = False;
+		has_ = false;
 	}
 	this(BeNone) const {
-		has_ = False;
+		has_ = false;
 	}
 	this(BeNone) immutable {
-		has_ = False;
+		has_ = false;
 	}
 	@trusted this(T value) {
-		has_ = True;
+		has_ = true;
 		value_ = value;
 	}
 	@trusted this(const T value) const {
-		has_ = True;
+		has_ = true;
 		value_ = value;
 	}
 	@trusted this(immutable T value) immutable {
-		has_ = True;
+		has_ = true;
 		value_ = value;
 	}
-	Bool has_;
+	bool has_;
 	T value_ = void;
 }
 
@@ -63,7 +62,7 @@ Opt!T someMut(T)(T value) {
 	return Opt!T(value);
 }
 
-immutable(Bool) has(T)(const Opt!T a) {
+immutable(bool) has(T)(const Opt!T a) {
 	return a.has_;
 }
 

@@ -2,7 +2,6 @@ module util.collection.arr;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
 import util.ptr : Ptr;
 import util.memory : overwriteMemory;
 import util.types : Nat8, Nat32, Nat64;
@@ -79,12 +78,12 @@ immutable(size_t) size(T)(const T[] a) {
 	return a.length;
 }
 
-immutable(Bool) sizeEq(T, U)(const T[] a, const U[] b) {
-	return immutable Bool(size(a) == size(b));
+immutable(bool) sizeEq(T, U)(const T[] a, const U[] b) {
+	return size(a) == size(b);
 }
 
-immutable(Bool) empty(T)(const T[] a) {
-	return immutable Bool(size(a) == 0);
+immutable(bool) empty(T)(const T[] a) {
+	return size(a) == 0;
 }
 
 @trusted Ptr!T ptrAt(T)(return scope ref T[] a, immutable size_t index) {

@@ -2,7 +2,6 @@ module util.types;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
 import util.util : verify;
 
 struct NatN(T) {
@@ -172,12 +171,12 @@ immutable(ubyte) safeIncrU8(immutable ubyte a) {
 	return cast(ubyte) (a + 1);
 }
 
-immutable(Bool) zero(T)(immutable NatN!T a) {
-	return immutable Bool(a.value == 0);
+immutable(bool) zero(T)(immutable NatN!T a) {
+	return a.value == 0;
 }
 //TODO:KILL
-immutable(Bool) zero(immutable size_t a) {
-	return immutable Bool(a == 0);
+immutable(bool) zero(immutable size_t a) {
+	return a == 0;
 }
 
 alias Nat8 = NatN!ubyte;

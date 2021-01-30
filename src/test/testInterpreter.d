@@ -61,7 +61,6 @@ import model.lowModel :
 	LowUnion,
 	PointerTypeAndConstantsLow;
 import test.testUtil : expectDataStack, expectReturnStack, Test;
-import util.bools : False;
 import util.collection.arr : emptyArr;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.globalAllocatedStack : begin, pop, push;
@@ -129,9 +128,9 @@ immutable(FileToFuns) dummyFileToFuns() {
 		nu!LowFunSig(
 			test.alloc,
 			nat64Type,
-			immutable LowFunParamsKind(False, False),
+			immutable LowFunParamsKind(false, false),
 			emptyArr!LowParam),
-		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc, False, strLiteral("test"))));
+		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc, false, strLiteral("test"))));
 	immutable LowProgram lowProgram = immutable LowProgram(
 		immutable AllConstantsLow(emptyArr!ArrTypeAndConstantsLow, emptyArr!PointerTypeAndConstantsLow),
 		nu!AllLowTypes(

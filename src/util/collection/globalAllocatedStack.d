@@ -2,7 +2,6 @@ module util.collection.globalAllocatedStack;
 
 @safe @nogc nothrow: // not pure (accesses global data)
 
-import util.bools : Bool;
 import util.collection.arr : at, size;
 import util.collection.arrUtil : copyArr;
 import util.ptr : PtrRange;
@@ -61,8 +60,8 @@ void setToArr(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immu
 	a.size = safeSizeTToU32(size(arr));
 }
 
-immutable(Bool) isEmpty(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
-	return immutable Bool(a.size == 0);
+immutable(bool) isEmpty(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
+	return a.size == 0;
 }
 
 void push(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable T value) {

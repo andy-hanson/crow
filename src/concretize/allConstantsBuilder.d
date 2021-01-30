@@ -10,7 +10,6 @@ import model.concreteModel :
 	compareConcreteType,
 	PointerTypeAndConstantsConcrete;
 import model.constant : Constant, constantEqual;
-import util.bools : Bool;
 import util.collection.arr : empty;
 import util.collection.arrUtil : arrEqual, findIndex_const, map, map_mut;
 import util.collection.dict : KeyValuePair;
@@ -132,15 +131,15 @@ immutable(Constant) getConstantStr(Alloc)(
 
 private:
 
-immutable(Bool) constantArrEqual(ref immutable Constant[] a, ref immutable Constant[] b) {
-	return arrEqual(a, b, (ref immutable Constant x, ref immutable Constant y) =>
+immutable(bool) constantArrEqual(ref immutable Constant[] a, ref immutable Constant[] b) {
+	return arrEqual!Constant(a, b, (ref immutable Constant x, ref immutable Constant y) =>
 		constantEqual(x, y));
 }
 
 immutable(size_t) findOrPush(T, Alloc)(
 	ref Alloc alloc,
 	ref MutArr!T a,
-	scope immutable(Bool) delegate(ref const T) @safe @nogc pure nothrow cbFind,
+	scope immutable(bool) delegate(ref const T) @safe @nogc pure nothrow cbFind,
 	scope immutable(T) delegate() @safe @nogc pure nothrow cbPush,
 ) {
 	const Opt!size_t res = findIndex_const!T(tempAsArr(a), cbFind);

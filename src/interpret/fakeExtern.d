@@ -4,7 +4,6 @@ module interpret.fakeExtern;
 
 import interpret.allocTracker : AllocTracker;
 import interpret.bytecode : DynCallType, TimeSpec;
-import util.bools : Bool;
 import util.collection.mutArr : clear, moveToArr, MutArr, pushAll;
 import util.collection.str : NulTerminatedStr;
 import util.ptr : Ptr, PtrRange;
@@ -83,7 +82,7 @@ struct FakeExtern(Alloc) {
 		return 0;
 	}
 
-	immutable(Bool) hasMallocedPtr(ref const PtrRange range) const {
+	immutable(bool) hasMallocedPtr(ref const PtrRange range) const {
 		return allocTracker.hasAllocedPtr(range);
 	}
 

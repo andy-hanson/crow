@@ -4,7 +4,6 @@ module frontend.parse.lexer;
 
 import frontend.parse.ast : LiteralAst, NameAndRange, rangeOfNameAndRange;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
-import util.bools : Bool, False, True;
 import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail, slice;
@@ -92,44 +91,44 @@ void addDiagUnexpected(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexe
 	addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.UnexpectedCharacter(curChar(lexer))));
 }
 
-@trusted immutable(Bool) tryTake(SymAlloc)(ref Lexer!SymAlloc lexer, immutable char c) {
+@trusted immutable(bool) tryTake(SymAlloc)(ref Lexer!SymAlloc lexer, immutable char c) {
 	if (*lexer.ptr == c) {
 		lexer.ptr++;
-		return True;
+		return true;
 	} else
-		return False;
+		return false;
 }
 
-@trusted immutable(Bool) tryTake(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr c) {
+@trusted immutable(bool) tryTake(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr c) {
 	CStr ptr2 = lexer.ptr;
 	for (CStr cptr = c; *cptr != 0; cptr++) {
 		if (*ptr2 != *cptr)
-			return False;
+			return false;
 		ptr2++;
 	}
 	lexer.ptr = ptr2;
-	return True;
+	return true;
 }
 
-immutable(Bool) takeOrAddDiagExpected(Alloc, SymAlloc)(
+immutable(bool) takeOrAddDiagExpected(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable char c,
 	immutable ParseDiag.Expected.Kind kind,
 ) {
-	immutable Bool res = tryTake(lexer, c);
+	immutable bool res = tryTake(lexer, c);
 	if (!res)
 		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
 	return res;
 }
 
-immutable(Bool) takeOrAddDiagExpected(Alloc, SymAlloc)(
+immutable(bool) takeOrAddDiagExpected(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable CStr c,
 	immutable ParseDiag.Expected.Kind kind,
 ) {
-	immutable Bool res = tryTake(lexer, c);
+	immutable bool res = tryTake(lexer, c);
 	if (!res)
 		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(kind)));
 	return res;
@@ -175,22 +174,22 @@ immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(Alloc, SymAlloc)(ref All
 		});
 }
 
-immutable(Bool) takeIndentOrDiagTopLevel(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	return takeIndentOrFailGeneric!(immutable Bool)(
+immutable(bool) takeIndentOrDiagTopLevel(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	return takeIndentOrFailGeneric!(immutable bool)(
 		alloc,
 		lexer,
 		0,
-		() => True,
+		() => true,
 		(immutable RangeWithinFile, immutable uint dedent) {
 			verify(dedent == 0);
-			return False;
+			return false;
 		});
 }
 
-immutable(Bool) takeIndentOrDiagTopLevelAfterNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+immutable(bool) takeIndentOrDiagTopLevelAfterNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
 	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer, 0);
-	return matchIndentDelta!(immutable Bool)(
+	return matchIndentDelta!(immutable bool)(
 		delta,
 		(ref immutable IndentDelta.DedentOrSame dedent) {
 			verify(dedent.nDedents == 0);
@@ -199,9 +198,9 @@ immutable(Bool) takeIndentOrDiagTopLevelAfterNewline(Alloc, SymAlloc)(ref Alloc 
 				lexer,
 				immutable RangeWithinFile(start, start + 1),
 				immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.indent)));
-			return False;
+			return false;
 		},
-		(ref immutable IndentDelta.Indent) => True);
+		(ref immutable IndentDelta.Indent) => true);
 }
 
 immutable(T) takeIndentOrFailGeneric(T, Alloc, SymAlloc)(
@@ -245,10 +244,12 @@ private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(Alloc, S
 
 void takeDedentFromIndent1(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer, 1);
-	immutable Bool success = matchIndentDelta!(immutable Bool)(
+	immutable bool success = matchIndentDelta!(immutable bool)(
 		delta,
-		(ref immutable IndentDelta.DedentOrSame it) => immutable Bool(it.nDedents == 1),
-		(ref immutable IndentDelta.Indent) => False);
+		(ref immutable IndentDelta.DedentOrSame it) =>
+			it.nDedents == 1,
+		(ref immutable IndentDelta.Indent) =>
+			false);
 	if (!success) {
 		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.dedent)));
 		skipRestOfLineAndNewline(lexer);
@@ -324,7 +325,7 @@ void addDiagOnReservedName(Alloc, SymAlloc)(
 
 struct SymAndIsReserved {
 	immutable NameAndRange name;
-	immutable Bool isReserved;
+	immutable bool isReserved;
 }
 
 immutable(SymAndIsReserved) takeNameAllowReserved(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -332,7 +333,7 @@ immutable(SymAndIsReserved) takeNameAllowReserved(Alloc, SymAlloc)(ref Alloc all
 	if (s.isOperator) {
 		immutable Opt!Sym op = getSymFromOperator(lexer.allSymbols.deref(), s.str);
 		if (has(op))
-			return immutable SymAndIsReserved(immutable NameAndRange(s.start, force(op)), False);
+			return immutable SymAndIsReserved(immutable NameAndRange(s.start, force(op)), false);
 		else
 			// diagnostic: invalid operator
 			return todo!(immutable SymAndIsReserved)("!");
@@ -433,11 +434,9 @@ public @trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
 	} else if (has(sign))
 		final switch (force(sign)) {
 			case Sign.plus:
-				return immutable LiteralAst(immutable LiteralAst.Int(n.value, immutable Bool(n.value > long.max)));
+				return immutable LiteralAst(immutable LiteralAst.Int(n.value, n.value > long.max));
 			case Sign.minus:
-				return immutable LiteralAst(immutable LiteralAst.Int(
-					-n.value,
-					immutable Bool(n.value > (cast(ulong) long.max) + 1)));
+				return immutable LiteralAst(immutable LiteralAst.Int(-n.value, n.value > (cast(ulong) long.max) + 1));
 		}
 	else
 		return immutable LiteralAst(n);
@@ -452,7 +451,7 @@ public @trusted immutable(LiteralAst) takeNumber(Alloc, SymAlloc)(
 	// TODO: improve accuracy
 	const char *cur = lexer.ptr;
 	immutable LiteralAst.Nat rest = takeNat(lexer, base);
-	immutable Bool overflow = immutable Bool(natPart.overflow || rest.overflow);
+	immutable bool overflow = natPart.overflow || rest.overflow;
 	immutable ulong power = lexer.ptr - cur;
 	immutable double divisor = pow(1.0, base, power);
 	immutable double floatSign = () {
@@ -476,20 +475,20 @@ immutable(ulong) getDivisor(immutable ulong acc, immutable ulong a, immutable ul
 }
 
 @system immutable(LiteralAst.Nat) takeNat(SymAlloc)(ref Lexer!SymAlloc lexer, immutable ulong base) {
-	return takeNatRecur(lexer, base, 0, False);
+	return takeNatRecur(lexer, base, 0, false);
 }
 
 @system immutable(LiteralAst.Nat) takeNatRecur(SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 	immutable ulong base,
 	immutable ulong value,
-	immutable Bool overflow,
+	immutable bool overflow,
 ) {
 	immutable ulong digit = charToNat(*lexer.ptr);
 	if (digit < base) {
 		lexer.ptr++;
 		immutable ulong newValue = value * base + digit;
-		return takeNatRecur(lexer, base, newValue, immutable Bool(overflow || newValue / base != value));
+		return takeNatRecur(lexer, base, newValue, overflow || newValue / base != value);
 	} else
 		return immutable LiteralAst.Nat(value, overflow);
 }
@@ -509,7 +508,7 @@ immutable(ulong) charToNat(immutable char c) {
 }
 
 // NOTE: this will allow taking invalid operators, then we'll issue a diagnostic for them
-public immutable(Bool) isOperatorChar(immutable char c) {
+public immutable(bool) isOperatorChar(immutable char c) {
 	switch (c) {
 		case '=':
 		case '!':
@@ -521,9 +520,9 @@ public immutable(Bool) isOperatorChar(immutable char c) {
 		case '/':
 		case '^':
 		case '~':
-			return True;
+			return true;
 		default:
-			return False;
+			return false;
 	}
 }
 
@@ -635,7 +634,7 @@ public @trusted immutable(string) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexe
 	if (lexer.indentKind == IndentKind.tabs) {
 		while (*lexer.ptr == '\t') lexer.ptr++;
 		if (*lexer.ptr == ' ')
-			addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(True)));
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(true)));
 		immutable uint res = (lexer.ptr - begin).safeSizeTToU32;
 		return res;
 	} else {
@@ -643,7 +642,7 @@ public @trusted immutable(string) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexe
 		while (*lexer.ptr == ' ')
 			lexer.ptr++;
 		if (*lexer.ptr == '\t')
-			addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(False)));
+			addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.IndentWrongCharacter(false)));
 		immutable uint nSpaces = (lexer.ptr - begin).safeSizeTToU32;
 		immutable uint nSpacesPerIndent = lexer.indentKind == IndentKind.spaces2 ? 2 : 4;
 		immutable uint res = nSpaces / nSpacesPerIndent;
@@ -736,7 +735,7 @@ void skipBlockComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer
 struct StrAndIsOperator {
 	immutable string str;
 	immutable Pos start;
-	immutable Bool isOperator;
+	immutable bool isOperator;
 }
 
 @trusted immutable(StrAndIsOperator) takeNameAsTempStr(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
@@ -745,11 +744,11 @@ struct StrAndIsOperator {
 	if (isOperatorChar(*lexer.ptr)) {
 		lexer.ptr++;
 		immutable string op = takeOperatorRest(lexer, begin);
-		return immutable StrAndIsOperator(op, start, True);
+		return immutable StrAndIsOperator(op, start, true);
 	} else if (isAlphaIdentifierStart(*lexer.ptr)) {
 		lexer.ptr++;
 		immutable string name = takeNameRest(lexer, begin);
-		return immutable StrAndIsOperator(name, start, False);
+		return immutable StrAndIsOperator(name, start, false);
 	} else {
 		while (*lexer.ptr != ' ' && *lexer.ptr != '\n')
 			lexer.ptr++;
@@ -757,11 +756,11 @@ struct StrAndIsOperator {
 		immutable string s = copyStr(alloc, arrOfRange(begin, lexer.ptr));
 		addDiag(alloc, lexer, range(lexer, begin), immutable ParseDiag(
 			immutable ParseDiag.InvalidName(s)));
-		return immutable StrAndIsOperator(strLiteral(""), start, False);
+		return immutable StrAndIsOperator(strLiteral(""), start, false);
 	}
 }
 
-public immutable(Bool) isReservedName(immutable Sym name) {
+public immutable(bool) isReservedName(immutable Sym name) {
 	switch (name.value) {
 		case shortSymAlphaLiteralValue("alias"):
 		case shortSymAlphaLiteralValue("builtin"):
@@ -783,8 +782,8 @@ public immutable(Bool) isReservedName(immutable Sym name) {
 		case shortSymAlphaLiteralValue("trusted"):
 		case shortSymAlphaLiteralValue("union"):
 		case shortSymAlphaLiteralValue("unsafe"):
-			return True;
+			return true;
 		default:
-			return False;
+			return false;
 	}
 }

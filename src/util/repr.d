@@ -2,7 +2,6 @@ module util.repr;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, False, True;
 import util.collection.arr : at, empty, emptyArr, first, size;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
 import util.collection.fullIndexDict : FullIndexDict;
@@ -63,7 +62,7 @@ immutable(Repr) reprArr(T, Alloc)(
 	immutable T[] xs,
 	scope immutable(Repr) delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return immutable Repr(immutable ReprArr(False, map(alloc, xs, cb)), true);
+	return immutable Repr(immutable ReprArr(false, map(alloc, xs, cb)), true);
 }
 
 immutable(Repr) reprArr(T, Alloc)(
@@ -71,7 +70,7 @@ immutable(Repr) reprArr(T, Alloc)(
 	immutable T[] xs,
 	scope immutable(Repr) delegate(immutable size_t, ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	return immutable Repr(immutable ReprArr(False, mapWithIndex(alloc, xs, cb)), true);
+	return immutable Repr(immutable ReprArr(false, mapWithIndex(alloc, xs, cb)), true);
 }
 
 immutable(Repr) reprFullIndexDict(K, V, Alloc)(
@@ -79,10 +78,10 @@ immutable(Repr) reprFullIndexDict(K, V, Alloc)(
 	ref immutable FullIndexDict!(K, V) a,
 	scope immutable(Repr) delegate(ref immutable V) @safe @nogc pure nothrow cb,
 ) {
-	return immutable Repr(immutable ReprArr(True, map(alloc, a.values, cb)), true);
+	return immutable Repr(immutable ReprArr(true, map(alloc, a.values, cb)), true);
 }
 
-immutable(Repr) reprBool(immutable Bool a) {
+immutable(Repr) reprBool(immutable bool a) {
 	return immutable Repr(a);
 }
 
@@ -146,7 +145,7 @@ struct NameAndRepr {
 }
 
 private struct ReprArr {
-	immutable Bool showIndices;
+	immutable bool showIndices;
 	immutable Repr[] arr;
 }
 
@@ -172,7 +171,7 @@ struct Repr {
 	immutable Kind kind;
 	union {
 		immutable ReprArr arr;
-		immutable Bool bool_;
+		immutable bool bool_;
 		immutable ReprNamedRecord namedRecord;
 		immutable double float_;
 		immutable ReprInt int_;
@@ -183,7 +182,7 @@ struct Repr {
 	}
 
 	@trusted immutable this(immutable ReprArr a, bool b) { kind = Kind.arr; arr = a; }
-	immutable this(immutable Bool a) { kind = Kind.bool_; bool_ = a; }
+	immutable this(immutable bool a) { kind = Kind.bool_; bool_ = a; }
 
 	@trusted immutable this(immutable ReprNamedRecord a) { kind = Kind.namedRecord; namedRecord = a; }
 	immutable this(immutable double a) { kind = Kind.float_; float_ = a; }
@@ -197,7 +196,7 @@ struct Repr {
 private @trusted T matchRepr(T)(
 	ref immutable Repr a,
 	scope T delegate(ref immutable ReprArr) @safe @nogc pure nothrow cbArr,
-	scope T delegate(immutable Bool) @safe @nogc pure nothrow cbBool,
+	scope T delegate(immutable bool) @safe @nogc pure nothrow cbBool,
 	scope T delegate(immutable double) @safe @nogc pure nothrow cbFloat,
 	scope T delegate(immutable ReprInt) @safe @nogc pure nothrow cbInt,
 	scope T delegate(ref immutable ReprNamedRecord) @safe @nogc pure nothrow cbNamedRecord,
@@ -253,7 +252,7 @@ void writeReprJSON(Alloc)(ref Writer!Alloc writer, ref immutable Repr a) {
 			});
 			writeChar(writer, ']');
 		},
-		(immutable Bool it) {
+		(immutable bool it) {
 			writeReprBool(writer, it);
 		},
 		(immutable double it) {
@@ -333,7 +332,7 @@ void writeRepr(Alloc)(
 			} else
 				writeReprArrSingleLine(writer, s.arr);
 		},
-		(immutable Bool s) {
+		(immutable bool s) {
 			writeReprBool(writer, s);
 		},
 		(immutable double it) {
@@ -390,7 +389,7 @@ immutable(int) measureReprSingleLine(ref immutable Repr a, immutable int availab
 		a,
 		(ref immutable ReprArr s) =>
 			measureReprArr(s, available),
-		(immutable Bool s) =>
+		(immutable bool s) =>
 			available - measureReprBool(s),
 		(immutable double) =>
 			// TODO: more accurate
@@ -456,7 +455,7 @@ void writeReprSingleLine(Alloc)(ref Writer!Alloc writer, ref immutable Repr a) {
 		(ref immutable ReprArr s) {
 			writeReprArrSingleLine(writer, s.arr);
 		},
-		(immutable Bool s) {
+		(immutable bool s) {
 			writeReprBool(writer, s);
 		},
 		(immutable double it) {
@@ -517,11 +516,11 @@ void writeCommaSeparatedChildren(Alloc)(ref Writer!Alloc writer, ref immutable R
 	});
 }
 
-immutable(int) measureReprBool(ref immutable Bool s) {
+immutable(int) measureReprBool(ref immutable bool s) {
 	return s ? "true".length : "false".length;
 }
 
-void writeReprBool(Alloc)(ref Writer!Alloc writer, ref immutable Bool s) {
+void writeReprBool(Alloc)(ref Writer!Alloc writer, ref immutable bool s) {
 	writeStatic(writer, s ? "true" : "false");
 }
 

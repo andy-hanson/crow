@@ -6,7 +6,6 @@ import frontend.ide.getTokens : reprTokens, Token, tokensOfAst;
 import frontend.parse.ast : reprAst;
 import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import test.testUtil : Test;
-import util.bools : Bool;
 import util.collection.arr : emptyArr;
 import util.collection.arrUtil : arrEqual, arrLiteral;
 import util.collection.str : copyToNulTerminatedStr, strLiteral;
@@ -66,17 +65,17 @@ void testOne(Debug, Alloc)(ref Test!(Debug, Alloc) test, immutable string source
 	}
 }
 
-immutable(Bool) tokensEq(ref immutable Token[] a, ref immutable Token[] b) {
+immutable(bool) tokensEq(ref immutable Token[] a, ref immutable Token[] b) {
 	return arrEqual!Token(a, b, (ref immutable Token x, ref immutable Token y) =>
 		tokenEq(x, y));
 }
 
-immutable(Bool) tokenEq(ref immutable Token a, ref immutable Token b) {
-	return immutable Bool(a.kind == b.kind && rangeEq(a.range, b.range));
+immutable(bool) tokenEq(ref immutable Token a, ref immutable Token b) {
+	return a.kind == b.kind && rangeEq(a.range, b.range);
 }
 
-immutable(Bool) rangeEq(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) {
-	return immutable Bool(a.start == b.start && a.end == b.end);
+immutable(bool) rangeEq(ref immutable RangeWithinFile a, ref immutable RangeWithinFile b) {
+	return a.start == b.start && a.end == b.end;
 }
 
 immutable string testSource = `import

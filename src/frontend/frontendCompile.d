@@ -16,7 +16,6 @@ import frontend.parse.ast :
 import frontend.lang : crowExtension;
 import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
-import util.bools : Bool;
 import util.collection.arr : at, empty, emptyArr;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, copyArr, map, mapImpure, mapWithSoFar, prepend;
@@ -548,7 +547,7 @@ immutable(ModulesAndCommonTypes) getModules(ModelAlloc, SymAlloc)(
 				fullIndexDictOfArr!(FileIndex, Ptr!Module)(soFar);
 			immutable PathAndAst pathAndAst = immutable PathAndAst(immutable FileIndex(safeSizeTToU16(index)), ast.ast);
 			if (lateIsSet(commonTypes)) {
-				immutable Bool isInInclude = Bool(ast.storageKind == StorageKind.global);
+				immutable bool isInInclude = ast.storageKind == StorageKind.global;
 				immutable FileIndexAndNames[] allImports = isInInclude
 					? ast.resolvedImports
 					: prepend(

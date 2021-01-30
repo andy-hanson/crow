@@ -31,7 +31,6 @@ import model.model :
 	withType,
 	worsePurity,
 	worstCasePurity;
-import util.bools : Bool;
 import util.collection.arr : ptrAt, size, sizeEq;
 import util.collection.arrUtil : fold, map;
 import util.collection.mutDict : getOrAdd, getOrAddAndDidAdd, ValueAndDidAdd;
@@ -64,7 +63,7 @@ immutable(Opt!(Ptr!T)) tryGetTypeArg(T)(
 	ref immutable T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
-	immutable Bool hasTypeParam = ptrEquals(ptrAt(typeParams, typeParam.index), typeParam);
+	immutable bool hasTypeParam = ptrEquals(ptrAt(typeParams, typeParam.index), typeParam);
 	return hasTypeParam
 		? some(ptrAt(typeArgs, typeParam.index))
 		: none!(Ptr!T);
@@ -75,10 +74,7 @@ const(Opt!(Ptr!T)) tryGetTypeArg(T)(
 	ref const T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
-	immutable Bool hasTypeParam = Bool(
-		typeParam.index < size(typeParams) &&
-		ptrEquals(ptrAt(typeParams, typeParam.index), typeParam));
-	return hasTypeParam
+	return typeParam.index < size(typeParams) && ptrEquals(ptrAt(typeParams, typeParam.index), typeParam)
 		? someConst(ptrAt(typeArgs, typeParam.index))
 		: none!(Ptr!T);
 }
@@ -88,10 +84,7 @@ Opt!(Ptr!T) tryGetTypeArg(T)(
 	ref T[] typeArgs,
 	immutable Ptr!TypeParam typeParam,
 ) {
-	immutable Bool hasTypeParam = Bool(
-		typeParam.index < size(typeParams) &&
-		ptrEquals(ptrAt(typeParams, typeParam.index), typeParam));
-	return hasTypeParam
+	return typeParam.index < size(typeParams) && ptrEquals(ptrAt(typeParams, typeParam.index), typeParam)
 		? someMut(ptrAt(typeArgs, typeParam.index))
 		: noneMut!(Ptr!T);
 }

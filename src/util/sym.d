@@ -2,7 +2,6 @@ module util.sym;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, False, not, True;
 import util.collection.arr : at, empty, first, last, only, size;
 import util.collection.arrUtil : contains, every, findIndex, slice, tail;
 import util.collection.mutArr : last, MutArr, mutArrRange, push;
@@ -15,24 +14,24 @@ import util.util : unreachable, verify;
 import util.writer : finishWriter, writeChar, writeStatic, Writer;
 
 immutable(Opt!size_t) indexOfSym(ref immutable Sym[] a, immutable Sym value) {
-	return findIndex(a, (ref immutable Sym it) => symEq(it, value));
+	return findIndex!Sym(a, (ref immutable Sym it) => symEq(it, value));
 }
 
-immutable(Bool) containsSym(ref immutable Sym[] a, immutable Sym b) {
+immutable(bool) containsSym(ref immutable Sym[] a, immutable Sym b) {
 	return contains(a, b, (ref immutable Sym a, ref immutable Sym b) => symEq(a, b));
 }
 
-immutable(Bool) isAlphaIdentifierStart(immutable char c) {
-	return immutable Bool(('a' <= c && c <= 'z') || c == '?');
+immutable(bool) isAlphaIdentifierStart(immutable char c) {
+	return ('a' <= c && c <= 'z') || c == '?';
 }
 
-immutable(Bool) isDigit(immutable char c) {
-	return immutable Bool('0' <= c && c <= '9');
+immutable(bool) isDigit(immutable char c) {
+	return '0' <= c && c <= '9';
 }
 
-immutable(Bool) isAlphaIdentifierContinue(immutable char c) {
+immutable(bool) isAlphaIdentifierContinue(immutable char c) {
 	//TODO: only last character should be '?' or '!'
-	return immutable Bool(isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '?' || c == '!');
+	return isAlphaIdentifierStart(c) || c == '-' || isDigit(c) || c == '?' || c == '!';
 }
 
 struct Sym {
@@ -83,11 +82,11 @@ immutable(Sym) getSymFromAlphaIdentifier(Alloc)(ref AllSymbols!Alloc allSymbols,
 	return res;
 }
 
-private immutable(Bool) isAlphaIdentifier(ref immutable string a) {
+private immutable(bool) isAlphaIdentifier(ref immutable string a) {
 	if (empty(a))
-		return True;
+		return true;
 	else if (!isAlphaIdentifierStart(first(a)))
-		return False;
+		return false;
 	else {
 		immutable string t = tail(a);
 		return every!char(t, (ref immutable char c) =>
@@ -237,8 +236,8 @@ immutable(Comparison) compareSym(immutable Sym a, immutable Sym b) {
 
 alias MutSymSet = MutSet!(immutable Sym, compareSym);
 
-immutable(Bool) symEq(immutable Sym a, immutable Sym b) {
-	return Bool(a.value == b.value);
+immutable(bool) symEq(immutable Sym a, immutable Sym b) {
+	return a.value == b.value;
 }
 
 immutable(Sym) shortSymAlphaLiteral(immutable string name) {
@@ -254,9 +253,9 @@ immutable(ulong) operatorSymValue(immutable Operator a) {
 	return symForOperator(a).value;
 }
 
-immutable(Bool) symEqLongAlphaLiteral(immutable Sym a, immutable string lit) {
+immutable(bool) symEqLongAlphaLiteral(immutable Sym a, immutable string lit) {
 	verify(!canPackAlphaIdentifier(strLiteral(lit)));
-	return Bool(isLongAlphaSym(a) && strEqLiteral(asLongAlphaSym(a), lit));
+	return isLongAlphaSym(a) && strEqLiteral(asLongAlphaSym(a), lit);
 }
 
 immutable(string) strOfSym(Alloc)(ref Alloc alloc, immutable Sym a) {
@@ -278,8 +277,8 @@ void writeSym(Alloc)(ref Writer!Alloc writer, immutable Sym a) {
 	writeSymAndGetSize(writer, a);
 }
 
-immutable(Bool) isSymOperator(immutable Sym a) {
-	return immutable Bool(!isShortAlphaSym(a) && bitsOverlap(a.value, operatorBits));
+immutable(bool) isSymOperator(immutable Sym a) {
+	return !isShortAlphaSym(a) && bitsOverlap(a.value, operatorBits);
 }
 
 immutable(Opt!Operator) operatorForSym(immutable Sym a) {
@@ -301,11 +300,8 @@ void addToMutSymSetOkIfPresent(Alloc)(
 
 private:
 
-immutable(Bool) canPackAlphaChar5(immutable char c) {
-	return immutable Bool(
-		('a' <= c && c <= 'z') ||
-		c == '-' ||
-		('0' <= c && c <= '3'));
+immutable(bool) canPackAlphaChar5(immutable char c) {
+	return ('a' <= c && c <= 'z') || c == '-' || ('0' <= c && c <= '3');
 }
 
 immutable(ulong) packAlphaChar5(immutable char c) {
@@ -354,11 +350,11 @@ immutable ulong operatorBits = 0x7fff000000000000;
 
 immutable size_t alphaIdentifierMaxChars = 12;
 
-immutable(Bool) canPackAlphaIdentifier(immutable string str) {
+immutable(bool) canPackAlphaIdentifier(immutable string str) {
 	if (size(str) > alphaIdentifierMaxChars)
-		return False;
+		return false;
 	else if (size(str) <= 2)
-		return True;
+		return true;
 	else {
 		immutable string after2 = slice(str, 0, size(str) - 2);
 		return every!char(after2, (ref immutable char c) =>
@@ -388,7 +384,7 @@ immutable(ulong) packAlphaIdentifier(immutable string str) {
 
 	ulong res = 0;
 	foreach (immutable size_t i; 0..12) {
-		immutable Bool is6Bit = i < 2;
+		immutable bool is6Bit = i < 2;
 		immutable ulong value = () {
 			if (i < size(str)) {
 				immutable char c = at(str, size(str) - 1 - i);
@@ -424,13 +420,13 @@ void unpackShortAlphaIdentifier(
 }
 
 // Public for test only
-public immutable(Bool) isShortAlphaSym(immutable Sym a) {
+public immutable(bool) isShortAlphaSym(immutable Sym a) {
 	return bitsOverlap(a.value, shortAlphaSymMarker);
 }
 
 // Public for test only
-public immutable(Bool) isLongAlphaSym(immutable Sym a) {
-	return not(bitsOverlap(a.value, shortAlphaSymMarker | operatorBits));
+public immutable(bool) isLongAlphaSym(immutable Sym a) {
+	return !bitsOverlap(a.value, shortAlphaSymMarker | operatorBits);
 }
 
 @trusted immutable(string) asLongAlphaSym(immutable Sym a) {
@@ -463,6 +459,6 @@ void assertSym(immutable Sym sym, immutable string str) {
 	verify(idx == size(str));
 }
 
-immutable(Bool) bitsOverlap(immutable ulong a, immutable ulong b) {
-	return Bool((a & b) != 0);
+immutable(bool) bitsOverlap(immutable ulong a, immutable ulong b) {
+	return (a & b) != 0;
 }

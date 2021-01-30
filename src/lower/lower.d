@@ -98,7 +98,6 @@ import model.lowModel :
 	PointerTypeAndConstantsLow,
 	PrimitiveType;
 import model.model : decl, FunInst, name, range;
-import util.bools : Bool, False, True;
 import util.collection.arr : at, empty, emptyArr, first, only, size;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderSize, finishArr;
 import util.collection.arrUtil :
@@ -412,7 +411,7 @@ struct LowFunCause {
 	}
 	struct Compare {
 		immutable LowType type;
-		immutable Bool typeIsArr;
+		immutable bool typeIsArr;
 	}
 	struct MarkVisitArrInner {
 		immutable LowType.PtrRaw elementPtrType;
@@ -465,8 +464,8 @@ struct LowFunCause {
 	}
 }
 
-immutable(Bool) isConcreteFun(ref immutable LowFunCause a) {
-	return immutable Bool(a.kind == LowFunCause.Kind.concreteFun);
+immutable(bool) isConcreteFun(ref immutable LowFunCause a) {
+	return a.kind == LowFunCause.Kind.concreteFun;
 }
 
 @trusted immutable(Ptr!ConcreteFun) asConcreteFun(ref immutable LowFunCause a) {
@@ -510,28 +509,26 @@ immutable(size_t) sizeTOfPrimitiveType(immutable PrimitiveType a) {
 	return cast(immutable size_t) a;
 }
 
-immutable(Bool) needsMarkVisitFun(ref immutable AllLowTypes allTypes, ref immutable LowType a) {
-	return matchLowType!(immutable Bool)(
+immutable(bool) needsMarkVisitFun(ref immutable AllLowTypes allTypes, ref immutable LowType a) {
+	return matchLowType!(immutable bool)(
 		a,
 		(immutable LowType.ExternPtr) =>
-			False,
+			false,
 		(immutable LowType.FunPtr) =>
-			False,
+			false,
 		(immutable PrimitiveType) =>
-			False,
+			false,
 		(immutable LowType.PtrGc) =>
-			True,
+			true,
 		(immutable LowType.PtrRaw) =>
-			False,
+			false,
 		(immutable LowType.Record it) {
 			immutable LowRecord record = fullIndexDictGet(allTypes.allRecords, it);
-			return immutable Bool(
-				isArr(record) ||
-				exists(record.fields, (ref immutable LowField field) =>
-					needsMarkVisitFun(allTypes, field.type)));
+			return isArr(record) || exists!LowField(record.fields, (ref immutable LowField field) =>
+				needsMarkVisitFun(allTypes, field.type));
 		},
 		(immutable LowType.Union it) =>
-			exists(fullIndexDictGet(allTypes.allUnions, it).members, (ref immutable LowType member) =>
+			exists!LowType(fullIndexDictGet(allTypes.allUnions, it).members, (ref immutable LowType member) =>
 				needsMarkVisitFun(allTypes, member)));
 }
 
@@ -542,7 +539,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	ref immutable ConcreteProgram program,
 ) {
 	immutable LowType ctxType =
-		lowTypeFromConcreteType(alloc, getLowTypeCtx, immutable ConcreteType(True, program.ctxType));
+		lowTypeFromConcreteType(alloc, getLowTypeCtx, immutable ConcreteType(true, program.ctxType));
 	DictBuilder!(Ptr!ConcreteFun, LowFunIndex, comparePtr!ConcreteFun) concreteFunToLowFunIndexBuilder;
 	CompareFuns compareFuns = CompareFuns(
 		newMutIndexDict!(immutable LowType.Record, immutable LowFunIndex)(
@@ -567,7 +564,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 	}
 
 	immutable(Opt!LowFunIndex) generateCompareForType(immutable LowType lowType) @safe @nogc pure nothrow {
-		immutable(LowFunIndex) addIt(immutable Bool typeIsArr) {
+		immutable(LowFunIndex) addIt(immutable bool typeIsArr) {
 			return addLowFun(immutable LowFunCause(immutable LowFunCause.Compare(lowType, typeIsArr)));
 		}
 
@@ -587,7 +584,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
 					compareFuns.primitiveToCompare,
 					immutable PrimitiveTypeIndex(sizeTOfPrimitiveType(it)),
-					() => addIt(False));
+					() => addIt(false));
 				return some(index.value);
 			},
 			(immutable LowType.PtrGc it) {
@@ -595,7 +592,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
 					compareFuns.recordPtrToCompare,
 					record,
-					() => addIt(False));
+					() => addIt(false));
 				if (index.didAdd)
 					generateCompareForFields(record);
 				return some(index.value);
@@ -604,7 +601,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 				unreachable!(immutable Opt!LowFunIndex)(),
 			(immutable LowType.Record it) {
 				immutable LowRecord record = fullIndexDictGet(allTypes.allRecords, it);
-				immutable Bool typeIsArr = isArr(record);
+				immutable bool typeIsArr = isArr(record);
 				immutable ValueAndDidAdd!(immutable LowFunIndex) index = getOrAddAndDidAdd(
 					compareFuns.recordValToCompare,
 					it,
@@ -619,7 +616,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 			},
 			(immutable LowType.Union it) {
 				immutable ValueAndDidAdd!(immutable LowFunIndex) index =
-					getOrAddAndDidAdd(compareFuns.unionToCompare, it, () => addIt(False));
+					getOrAddAndDidAdd(compareFuns.unionToCompare, it, () => addIt(false));
 				if (index.didAdd)
 					foreach (ref immutable LowType member; fullIndexDictGet(allTypes.allUnions, it).members)
 						generateCompareForType(member);
@@ -950,13 +947,13 @@ immutable(LowFun) mainFun(Alloc)(
 				paramRef(FileAndRange.empty, int32Type, argc),
 				paramRef(FileAndRange.empty, charPtrPtrType, argv),
 				userMainFunPtr]))));
-	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(False, allocate(alloc, call)));
+	immutable LowFunBody body_ = immutable LowFunBody(immutable LowFunExprBody(false, allocate(alloc, call)));
 	return immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(alloc, shortSymAlphaLiteral("main"), emptyArr!LowType)),
 		nu!LowFunSig(
 			alloc,
 			int32Type,
-			immutable LowFunParamsKind(False, False),
+			immutable LowFunParamsKind(false, false),
 			params),
 		body_);
 }
@@ -1029,7 +1026,7 @@ immutable(LowFunBody) getLowFunBody(Alloc)(
 				ctxParam,
 				closureParam,
 				firstRegularParam,
-				False);
+				false);
 			immutable LowExpr expr = getLowExpr(alloc, exprCtx, it.expr, ExprPos.tail);
 			return immutable LowFunBody(
 				immutable LowFunExprBody(
@@ -1052,7 +1049,7 @@ struct GetLowExprCtx {
 	immutable Opt!LowParamIndex ctxParam;
 	immutable Opt!LowParamIndex closureParam;
 	immutable LowParamIndex firstRegularParam;
-	Bool hasTailRecur;
+	bool hasTailRecur;
 	size_t tempLocalIndex;
 	MutDict!(immutable Ptr!ConcreteLocal, immutable Ptr!LowLocal, comparePtr!ConcreteLocal) locals;
 }
@@ -1212,8 +1209,8 @@ immutable(LowExprKind) getCallExpr(Alloc)(
 ) {
 	immutable Opt!LowFunIndex opCalled = tryGetLowFunIndex(ctx, a.called);
 	if (has(opCalled)) {
-		immutable Bool isTailRecur = force(opCalled) == ctx.currentFun && exprPos == ExprPos.tail;
-		if (isTailRecur) ctx.hasTailRecur = True;
+		immutable bool isTailRecur = force(opCalled) == ctx.currentFun && exprPos == ExprPos.tail;
+		if (isTailRecur) ctx.hasTailRecur = true;
 		immutable Opt!LowExpr ctxArg = !isTailRecur && a.called.needsCtx
 			? some(getCtxParamRef(alloc, ctx, range))
 			: none!LowExpr;

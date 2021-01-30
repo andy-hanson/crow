@@ -2,7 +2,6 @@ module util.diff;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, False, True;
 import util.collection.arr : at, only, size;
 import util.collection.arrUtil : arrMax, arrMaxIndex, contains, slice;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -24,7 +23,7 @@ import util.util : max, verify;
 void diffSymbols(TempAlloc, Alloc)(
 	ref TempAlloc tempAlloc,
 	ref Writer!Alloc writer,
-	immutable Bool color,
+	immutable bool color,
 	immutable Sym[] a,
 	immutable Sym[] b
 ) {
@@ -33,17 +32,17 @@ void diffSymbols(TempAlloc, Alloc)(
 
 private:
 
-ref immutable(T) atPossiblyReversed(T)(ref immutable T[] a, immutable size_t i, immutable Bool reversed) {
+ref immutable(T) atPossiblyReversed(T)(ref immutable T[] a, immutable size_t i, immutable bool reversed) {
 	return at(a, reversed ? size(a) - 1 - i : i);
 }
-ref const(T) mutSliceAtPossiblyReversed(T)(ref const MutSlice!T a, immutable size_t i, immutable Bool reversed) {
+ref const(T) mutSliceAtPossiblyReversed(T)(ref const MutSlice!T a, immutable size_t i, immutable bool reversed) {
 	return mutSliceAt(a, reversed ? mutSliceSize(a) - 1 - i : i);
 }
 void mutSliceSetAtPossiblyReversed(T)(
 	ref MutSlice!T a,
 	immutable size_t i,
 	immutable T value,
-	immutable Bool reversed,
+	immutable bool reversed,
 ) {
 	mutSliceSetAt(a, reversed ? mutSliceSize(a) - 1 - i : i, value);
 }
@@ -57,7 +56,7 @@ void getMaximumCommonSubsequenceLengths(T)(
 	immutable T[] a,
 	immutable T[] b,
 	ref MutSlice!size_t result,
-	immutable Bool reversed,
+	immutable bool reversed,
 ) {
 	// The buffers need to be 1 more than the length of b,
 	// because they have an entry at size(b).
@@ -107,8 +106,8 @@ immutable(size_t) findBestSplitIndex(
 	verify(mutSliceSize(scratch) >= subseqsSize * 2);
 	MutSlice!size_t leftSubsequenceLengths = mutSlice(scratch, 0, subseqsSize);
 	MutSlice!size_t rightSubsequenceLengths = mutSlice(scratch, subseqsSize, subseqsSize);
-	getMaximumCommonSubsequenceLengths!Sym(slice(a, 0, i), b, leftSubsequenceLengths, False);
-	getMaximumCommonSubsequenceLengths!Sym(slice(a, i + 1), b, rightSubsequenceLengths, True);
+	getMaximumCommonSubsequenceLengths!Sym(slice(a, 0, i), b, leftSubsequenceLengths, false);
+	getMaximumCommonSubsequenceLengths!Sym(slice(a, i + 1), b, rightSubsequenceLengths, true);
 	return arrMaxIndex!(immutable size_t, size_t)(
 		mutSliceTempAsArr(leftSubsequenceLengths),
 		(ref const size_t leftLength, immutable size_t j) =>
@@ -152,7 +151,7 @@ immutable(Sym[]) longestCommonSubsequence(Alloc)(
 
 void printDiff(Alloc)(
 	ref Writer!Alloc writer,
-	immutable Bool color,
+	immutable bool color,
 	ref immutable Sym[] a,
 	ref immutable Sym[] b,
 	immutable Sym[] commonSyms,

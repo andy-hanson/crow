@@ -21,7 +21,6 @@ import model.lowModel :
 	LowParamIndex,
 	LowParamSource,
 	LowType;
-import util.bools : False, True;
 import util.collection.arrUtil : mapWithFirst2, mapWithOptFirst2, mapZip, prepend;
 import util.collection.dict : mustGetAt;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -96,8 +95,8 @@ immutable(LowFun) generateCallWithCtxFun(Alloc)(
 			alloc,
 			shortSymAlphaLiteral("call-w-ctx"),
 			prepend(alloc, returnType, nonFunNonCtxParamTypes))),
-		nu!LowFunSig(alloc, returnType, immutable LowFunParamsKind(True, False), params),
-		immutable LowFunBody(immutable LowFunExprBody(False, allocate(alloc, expr))));
+		nu!LowFunSig(alloc, returnType, immutable LowFunParamsKind(true, false), params),
+		immutable LowFunBody(immutable LowFunExprBody(false, allocate(alloc, expr))));
 }
 
 private:

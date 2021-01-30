@@ -2,7 +2,6 @@ module util.sourceRange;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.path : PathAndStorageKind;
 import util.repr : Repr, reprNat, reprRecord;
@@ -28,8 +27,8 @@ struct RangeWithinFile {
 }
 static assert(RangeWithinFile.sizeof == 8);
 
-immutable(Bool) hasPos(immutable RangeWithinFile a, immutable Pos p) {
-	return immutable Bool(a.start <= p && p < a.end);
+immutable(bool) hasPos(immutable RangeWithinFile a, immutable Pos p) {
+	return a.start <= p && p < a.end;
 }
 
 immutable(RangeWithinFile) rangeOfStartAndName(immutable Pos start, immutable Sym name) {

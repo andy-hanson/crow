@@ -4,7 +4,6 @@ module test.testUtil;
 
 import interpret.bytecode : ByteCodeIndex;
 import interpret.runBytecode : byteCodeIndexOfPtr, DataStack, Interpreter, showDataArr;
-import util.bools : Bool;
 import util.collection.arr : sizeEq;
 import util.collection.arrUtil : eachCorresponds;
 import util.collection.globalAllocatedStack : asTempArr;
@@ -36,10 +35,8 @@ void expectDataStack(Debug, Alloc)(
 	scope immutable Nat64[] expected,
 ) {
 	immutable Nat64[] stack = asTempArr(dataStack);
-	immutable Bool eq = immutable Bool(
-		sizeEq(stack, expected) &&
-		eachCorresponds!(Nat64, Nat64)(stack, expected, (ref immutable Nat64 a, ref immutable Nat64 b) =>
-			immutable Bool(a == b)));
+	immutable bool eq = sizeEq(stack, expected) &&
+		eachCorresponds!(Nat64, Nat64)(stack, expected, (ref immutable Nat64 a, ref immutable Nat64 b) => a == b);
 	if (!eq) {
 		debug {
 			Writer!Alloc writer = test.writer();
@@ -58,13 +55,12 @@ void expectReturnStack(Debug, Alloc, Extern)(
 	scope immutable ByteCodeIndex[] expected,
 ) {
 	immutable ubyte*[] stack = asTempArr(interpreter.returnStack);
-	immutable Bool eq = immutable Bool(
-		sizeEq(stack, expected) &&
+	immutable bool eq = sizeEq(stack, expected) &&
 		eachCorresponds!(immutable(ubyte)*, ByteCodeIndex)(
 			stack,
 			expected,
 			(ref immutable ubyte* a, ref immutable ByteCodeIndex b) =>
-				immutable Bool(byteCodeIndexOfPtr(interpreter, a) == b)));
+				byteCodeIndexOfPtr(interpreter, a) == b);
 	if (!eq) {
 		debug {
 			Writer!Alloc writer = test.writer();

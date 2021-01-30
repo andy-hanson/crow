@@ -32,7 +32,6 @@ import model.model :
 	Type,
 	typeArgs,
 	typeEquals;
-import util.bools : Bool;
 import util.collection.arr : at, emptyArr, only, size;
 import util.collection.arrBuilder : finishArr_immutable;
 import util.collection.dict : getAt;
@@ -113,30 +112,28 @@ immutable(ConcreteFunToName) getFunToName(Alloc)(
 	return finishDictShouldBeNoConflict(alloc, res);
 }
 
-immutable(Bool) isNat(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+immutable(bool) isNat(ref immutable CommonTypes commonTypes, ref immutable Type type) {
 	return typeEquals(type, immutable Type(commonTypes.integrals.nat64));
 }
 
-immutable(Bool) isInt32(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+immutable(bool) isInt32(ref immutable CommonTypes commonTypes, ref immutable Type type) {
 	return typeEquals(type, immutable Type(commonTypes.integrals.int32));
 }
 
-immutable(Bool) isStr(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+immutable(bool) isStr(ref immutable CommonTypes commonTypes, ref immutable Type type) {
 	return typeEquals(type, immutable Type(commonTypes.str));
 }
 
-immutable(Bool) isFutNat(ref immutable CommonTypes commonTypes, ref immutable Type type) {
-	return immutable Bool(
-		isStructInst(type) &&
+immutable(bool) isFutNat(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+	return isStructInst(type) &&
 		ptrEquals(decl(asStructInst(type).deref), commonTypes.fut) &&
-		isNat(commonTypes, only(typeArgs(asStructInst(type).deref))));
+		isNat(commonTypes, only(typeArgs(asStructInst(type).deref)));
 }
 
-immutable(Bool) isArrStr(ref immutable CommonTypes commonTypes, ref immutable Type type) {
-	return Bool(
-		isStructInst(type) &&
+immutable(bool) isArrStr(ref immutable CommonTypes commonTypes, ref immutable Type type) {
+	return isStructInst(type) &&
 		ptrEquals(decl(asStructInst(type).deref), commonTypes.arr) &&
-		isStr(commonTypes, only(typeArgs(asStructInst(type).deref))));
+		isStr(commonTypes, only(typeArgs(asStructInst(type).deref)));
 }
 
 void checkRtMainSignature(ref immutable CommonTypes commonTypes, immutable Ptr!FunDecl mainFun) {

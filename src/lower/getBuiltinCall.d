@@ -11,7 +11,6 @@ import model.lowModel :
 	LowExprKind,
 	LowType,
 	PrimitiveType;
-import util.bools : Bool, False, True;
 import util.collection.arr : size;
 import util.sym : Operator, operatorSymValue, shortSymAlphaLiteralValue, Sym, symEqLongAlphaLiteral;
 import util.util : todo;
@@ -110,7 +109,7 @@ immutable(BuiltinKind) getBuiltinKind(
 	immutable(BuiltinKind) constant(immutable Constant kind) {
 		return immutable BuiltinKind(kind);
 	}
-	immutable(BuiltinKind) constantBool(immutable Bool value) {
+	immutable(BuiltinKind) constantBool(immutable bool value) {
 		return constant(immutable Constant(immutable Constant.BoolConstant(value)));
 	}
 	immutable(BuiltinKind) unary(immutable LowExprKind.SpecialUnary.Kind kind) {
@@ -205,7 +204,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialBinary.Kind.bitwiseOrNat64
 				: failBinary());
 		case shortSymAlphaLiteralValue("false"):
-			return constantBool(False);
+			return constantBool(false);
 		case shortSymAlphaLiteralValue("get-ctx"):
 			return immutable BuiltinKind(immutable BuiltinKind.GetCtx());
 		case shortSymAlphaLiteralValue("nan?"):
@@ -257,7 +256,7 @@ immutable(BuiltinKind) getBuiltinKind(
 				? LowExprKind.SpecialUnary.Kind.toNatFromPtr
 				: failUnary());
 		case shortSymAlphaLiteralValue("true"):
-			return constantBool(True);
+			return constantBool(true);
 		case shortSymAlphaLiteralValue("unsafe-div"):
 			return binary(isFloat64(rt)
 				? LowExprKind.SpecialBinary.Kind.unsafeDivFloat64
@@ -357,46 +356,46 @@ immutable(BuiltinKind) getBuiltinKind(
 
 private:
 
-immutable(Bool) isPrimitiveType(ref immutable LowType t, immutable PrimitiveType p) {
-	return immutable Bool(isPrimitive(t) && asPrimitive(t) == p);
+immutable(bool) isPrimitiveType(ref immutable LowType t, immutable PrimitiveType p) {
+	return isPrimitive(t) && asPrimitive(t) == p;
 }
 
-immutable(Bool) isChar(ref immutable LowType t) {
+immutable(bool) isChar(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.char_);
 }
 
-immutable(Bool) isInt8(ref immutable LowType t) {
+immutable(bool) isInt8(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.int8);
 }
 
-immutable(Bool) isInt16(ref immutable LowType t) {
+immutable(bool) isInt16(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.int16);
 }
 
-immutable(Bool) isInt32(ref immutable LowType t) {
+immutable(bool) isInt32(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.int32);
 }
 
-immutable(Bool) isInt64(ref immutable LowType t) {
+immutable(bool) isInt64(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.int64);
 }
 
-immutable(Bool) isNat8(ref immutable LowType t) {
+immutable(bool) isNat8(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.nat8);
 }
 
-immutable(Bool) isNat16(ref immutable LowType t) {
+immutable(bool) isNat16(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.nat16);
 }
 
-immutable(Bool) isNat32(ref immutable LowType t) {
+immutable(bool) isNat32(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.nat32);
 }
 
-immutable(Bool) isNat64(ref immutable LowType t) {
+immutable(bool) isNat64(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.nat64);
 }
 
-immutable(Bool) isFloat64(ref immutable LowType t) {
+immutable(bool) isFloat64(ref immutable LowType t) {
 	return isPrimitiveType(t, PrimitiveType.float64);
 }

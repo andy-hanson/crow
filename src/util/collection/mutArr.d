@@ -2,7 +2,6 @@ module util.collection.mutArr;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
 import util.memory : initMemory_mut, memcpy, overwriteMemory;
 import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
 import util.util : verify;
@@ -36,8 +35,8 @@ immutable(size_t) mutArrSize(T)(ref const MutArr!T a) {
 	return a.size_;
 }
 
-immutable(Bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
-	return Bool(a.size_ == 0);
+immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
+	return a.size_ == 0;
 }
 
 void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T value) {

@@ -2,7 +2,6 @@ module model.parseDiag;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
 import util.opt : Opt;
 import util.path : PathAndStorageKind, PathAndRange, RelPath;
 import util.ptr : Ptr;
@@ -54,7 +53,7 @@ struct ParseDiag {
 	}
 	struct IndentTooMuch {}
 	struct IndentWrongCharacter {
-		immutable Bool expectedTabs;
+		immutable bool expectedTabs;
 	}
 	struct InvalidName {
 		immutable string actual;

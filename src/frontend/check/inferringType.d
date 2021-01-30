@@ -36,7 +36,6 @@ import model.model :
 	Type,
 	typeArgs,
 	TypeParam;
-import util.bools : Bool, False, True;
 import util.cell : Cell, cellGet, cellSet;
 import util.collection.arr : at, emptyArr, emptyArr_mut, setAt, size, sizeEq;
 import util.collection.arrUtil : find, findIndex, map, mapOrNone, mapZipOrNone;
@@ -68,8 +67,8 @@ struct ExprCtx {
 	immutable Param[] outermostFunParams;
 	immutable TypeParam[] outermostFunTypeParams;
 	immutable FunFlags outermostFunFlags;
-	Bool[] funsUsed;
-	Bool[] paramsUsed;
+	bool[] funsUsed;
+	bool[] paramsUsed;
 
 	// Locals of the function or message. Lambda locals are stored in the lambda.
 	// (Note the Let stores the local and this points to that.)
@@ -80,7 +79,7 @@ struct ExprCtx {
 }
 
 void markUsedLocalFun(ref ExprCtx a, immutable ModuleLocalFunIndex index) {
-	setAt(a.funsUsed, index.index, True);
+	setAt(a.funsUsed, index.index, true);
 }
 
 struct LocalAndUsed {
@@ -162,31 +161,31 @@ struct CheckedExpr {
 }
 
 // Inferring type args are in 'a', not 'b'
-immutable(Bool) matchTypesNoDiagnostic(Alloc)(
+immutable(bool) matchTypesNoDiagnostic(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable Type expectedType,
 	ref immutable Type setType,
 	ref InferringTypeArgs aInferringTypeArgs,
-	immutable Bool allowConvertAToBUnion
+	immutable bool allowConvertAToBUnion
 ) {
 	immutable SetTypeResult result =
 		checkAssignability(alloc, programState, expectedType, setType, aInferringTypeArgs, allowConvertAToBUnion);
-	return matchSetTypeResult(
+	return matchSetTypeResult!(immutable bool)(
 		result,
-		(ref immutable SetTypeResult.Set) => True,
-		(ref immutable SetTypeResult.Keep) => True,
-		(ref immutable SetTypeResult.Fail) => False);
+		(ref immutable SetTypeResult.Set) => true,
+		(ref immutable SetTypeResult.Keep) => true,
+		(ref immutable SetTypeResult.Fail) => false);
 }
 
-immutable(Bool) matchTypesNoDiagnostic(Alloc)(
+immutable(bool) matchTypesNoDiagnostic(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref immutable Type a,
 	ref immutable Type b,
 	ref InferringTypeArgs aInferringTypeArgs,
 ) {
-	return matchTypesNoDiagnostic(alloc, programState, a, b, aInferringTypeArgs, False);
+	return matchTypesNoDiagnostic(alloc, programState, a, b, aInferringTypeArgs, false);
 }
 
 struct Expected {
@@ -214,9 +213,9 @@ immutable(Opt!Type) tryGetInferred(ref const Expected expected) {
 }
 
 // TODO: if we have a bogus expected type we should probably not be doing any more checking at all?
-immutable(Bool) isBogus(ref const Expected expected) {
+immutable(bool) isBogus(ref const Expected expected) {
 	immutable Opt!Type t = tryGetInferred(expected);
-	return Bool(has(t) && isBogus(force(t)));
+	return has(t) && isBogus(force(t));
 }
 
 Expected copyWithNewExpectedType(ref Expected expected, immutable Type type) {
@@ -290,8 +289,9 @@ immutable(CheckedExpr) check(Alloc)(
 		if (isUnion(body_)) {
 			immutable Ptr!StructInst[] members = asUnion(body_).members;
 			// This is like 't' but with the union's type parameters
-			immutable Opt!size_t opMemberIndex = findIndex(members, (ref immutable Ptr!StructInst it) =>
-				ptrEquals(it.decl, exprStruct.decl));
+			immutable Opt!size_t opMemberIndex = findIndex!(Ptr!StructInst)(
+				members,
+				(ref immutable Ptr!StructInst it) => ptrEquals(it.decl, exprStruct.decl));
 			if (has(opMemberIndex)) {
 				immutable ubyte memberIndex = safeSizeTToU8(force(opMemberIndex));
 				immutable Ptr!StructInst instantiatedExpectedUnionMember =
@@ -302,7 +302,7 @@ immutable(CheckedExpr) check(Alloc)(
 					instantiatedExpectedUnionMember,
 					exprStruct,
 					expected.inferringTypeArgs,
-					False);
+					false);
 				return matchSetTypeResult!CheckedExpr(
 					setTypeResult,
 					(ref immutable SetTypeResult.Set) =>
@@ -338,7 +338,7 @@ immutable(CheckedExpr) check(Alloc)(
 }
 
 // Note: this may infer type parameters
-private immutable(Bool) setTypeNoDiagnostic(Alloc)(
+private immutable(bool) setTypeNoDiagnostic(Alloc)(
 	ref Alloc alloc,
 	ref ProgramState programState,
 	ref Expected expected,
@@ -350,16 +350,16 @@ private immutable(Bool) setTypeNoDiagnostic(Alloc)(
 		tryGetInferred(expected),
 		setType,
 		expected.inferringTypeArgs);
-	return matchSetTypeResult(
+	return matchSetTypeResult!(immutable bool)(
 		typeToSet,
 		(ref immutable SetTypeResult.Set s) {
 			cellSet(expected.type, some(s.type));
-			return True;
+			return true;
 		},
 		(ref immutable SetTypeResult.Keep) =>
-			True,
+			true,
 		(ref immutable SetTypeResult.Fail) =>
-			False);
+			false);
 }
 
 private Opt!(Ptr!SingleInferringType) tryGetTypeArgFromInferringTypeArgs(
@@ -432,17 +432,17 @@ immutable(SetTypeResult) checkAssignabilityForStructInstsWithSameDecl(Alloc)(
 	// If we need to set at least one type arg, return Set.
 	// If all passed, return Keep.
 	// Else, return Fail.
-	Bool someIsSet = False;
+	bool someIsSet = false;
 	immutable Opt!(Type[]) newTypeArgs = mapZipOrNone!(Type, Type, Type, Alloc)(
 		alloc,
 		as,
 		bs,
 		(ref immutable Type a, ref immutable Type b) {
-			immutable SetTypeResult res = checkAssignability(alloc, programState, a, b, aInferringTypeArgs, False);
+			immutable SetTypeResult res = checkAssignability(alloc, programState, a, b, aInferringTypeArgs, false);
 			return matchSetTypeResult(
 				res,
 				(ref immutable SetTypeResult.Set s) {
-					someIsSet = True;
+					someIsSet = true;
 					return some(s.type);
 				},
 				(ref immutable SetTypeResult.Keep) =>
@@ -467,7 +467,7 @@ immutable(SetTypeResult) setTypeNoDiagnosticWorker_forStructInst(Alloc)(
 	immutable Ptr!StructInst a,
 	immutable Ptr!StructInst b,
 	ref InferringTypeArgs aInferringTypeArgs,
-	immutable Bool allowConvertAToBUnion,
+	immutable bool allowConvertAToBUnion,
 ) {
 	// Handling a union expected type is done in Expected::check
 	// TODO: but it's done here to for case of call return type ...
@@ -477,8 +477,9 @@ immutable(SetTypeResult) setTypeNoDiagnosticWorker_forStructInst(Alloc)(
 	else {
 		immutable StructBody bBody = body_(b.decl.deref);
 		if (allowConvertAToBUnion && isUnion(bBody)) {
-			immutable Opt!(Ptr!StructInst) bMember = find(asUnion(bBody).members, (ref immutable Ptr!StructInst i) =>
-				ptrEquals(i.decl, a.decl));
+			immutable Opt!(Ptr!StructInst) bMember = find!(Ptr!StructInst)(
+				asUnion(bBody).members,
+				(ref immutable Ptr!StructInst i) => ptrEquals(i.decl, a.decl));
 			return has(bMember)
 				? checkAssignabilityForStructInstsWithSameDecl(
 					alloc,
@@ -528,7 +529,7 @@ immutable(SetTypeResult) checkAssignabilityOpt(Alloc)(
 	ref InferringTypeArgs aInferringTypeArgs,
 ) {
 	return has(a)
-		? checkAssignability(alloc, programState, force(a), b, aInferringTypeArgs, False)
+		? checkAssignability(alloc, programState, force(a), b, aInferringTypeArgs, false)
 		: immutable SetTypeResult(immutable SetTypeResult.Set(b));
 }
 
@@ -562,7 +563,7 @@ immutable(SetTypeResult) checkAssignability(Alloc)(
 	ref immutable Type a,
 	ref immutable Type b,
 	ref InferringTypeArgs aInferringTypeArgs,
-	immutable Bool allowConvertAToBUnion,
+	immutable bool allowConvertAToBUnion,
 ) {
 	return matchType!SetTypeResult(
 		a,

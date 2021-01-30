@@ -3,7 +3,6 @@ module interpret.bytecode;
 @safe @nogc nothrow: // not pure
 
 import model.lowModel : LowFunIndex;
-import util.bools : Bool;
 import util.collection.arr : size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.str : NulTerminatedStr, strLiteral, strOfNulTerminatedStr;
@@ -501,8 +500,8 @@ struct Operation {
 	immutable this(immutable Write a) { kind_ = Kind.write; write_ = a; }
 }
 
-immutable(Bool) isCall(ref immutable Operation op) {
-	return immutable Bool(op.kind_ == Operation.Kind.call);
+immutable(bool) isCall(ref immutable Operation op) {
+	return op.kind_ == Operation.Kind.call;
 }
 
 immutable(Operation.Call) asCall(ref immutable Operation op) {

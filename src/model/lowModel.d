@@ -15,7 +15,6 @@ import model.concreteModel :
 	name;
 import model.constant : Constant;
 import model.model : asRecord, body_;
-import util.bools : Bool, False;
 import util.collection.arrUtil : slice;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.comparison : compareEnum, compareSizeT, Comparison;
@@ -36,17 +35,17 @@ struct LowRecord {
 	immutable LowField[] fields;
 
 	//TODO:MOVE
-	immutable(Bool) packed() immutable {
-		return matchConcreteStructSource(
+	immutable(bool) packed() immutable {
+		return matchConcreteStructSource!(immutable bool)(
 			source.source,
 			(ref immutable ConcreteStructSource.Inst it) =>
 				asRecord(body_(it.inst)).flags.packed,
 			(ref immutable ConcreteStructSource.Lambda) =>
-				False);
+				false);
 	}
 }
 
-immutable(Bool) isArr(ref immutable LowRecord a) {
+immutable(bool) isArr(ref immutable LowRecord a) {
 	return isArr(a.source.deref());
 }
 
@@ -188,29 +187,29 @@ static assert(LowType.sizeof <= 16);
 	}
 }
 
-immutable(Bool) lowTypeEqual(ref immutable LowType a, ref immutable LowType b) {
-	return immutable Bool(a.kind_ == b.kind_ && () {
+immutable(bool) lowTypeEqual(ref immutable LowType a, ref immutable LowType b) {
+	return a.kind_ == b.kind_ && () {
 		final switch (a.kind_) {
 			case LowType.Kind.externPtr:
-				return immutable Bool(a.externPtr_.index == b.externPtr_.index);
+				return a.externPtr_.index == b.externPtr_.index;
 			case LowType.Kind.funPtr:
-				return immutable Bool(a.funPtr_.index == b.funPtr_.index);
+				return a.funPtr_.index == b.funPtr_.index;
 			case LowType.Kind.primitive:
-				return immutable Bool(a.primitive_ == b.primitive_);
+				return a.primitive_ == b.primitive_;
 			case LowType.Kind.ptrGc:
 				return lowTypeEqual(a.ptrGc_.pointee, b.ptrGc_.pointee);
 			case LowType.Kind.ptrRaw:
 				return lowTypeEqual(a.ptrRaw_.pointee, b.ptrRaw_.pointee);
 			case LowType.Kind.record:
-				return immutable Bool(a.record_.index == b.record_.index);
+				return a.record_.index == b.record_.index;
 			case LowType.Kind.union_:
-				return immutable Bool(a.union_.index == b.union_.index);
+				return a.union_.index == b.union_.index;
 		}
-	}());
+	}();
 }
 
-immutable(Bool) isPrimitive(ref immutable LowType a) {
-	return immutable Bool(a.kind_ == LowType.Kind.primitive);
+immutable(bool) isPrimitive(ref immutable LowType a) {
+	return a.kind_ == LowType.Kind.primitive;
 }
 
 immutable(PrimitiveType) asPrimitive(ref immutable LowType a) {
@@ -218,24 +217,24 @@ immutable(PrimitiveType) asPrimitive(ref immutable LowType a) {
 	return a.primitive_;
 }
 
-immutable(Bool) isChar(ref immutable LowType a) {
-	return immutable Bool(isPrimitive(a) && asPrimitive(a) == PrimitiveType.char_);
+immutable(bool) isChar(ref immutable LowType a) {
+	return isPrimitive(a) && asPrimitive(a) == PrimitiveType.char_;
 }
 
-immutable(Bool) isVoid(ref immutable LowType a) {
-	return immutable Bool(isPrimitive(a) && asPrimitive(a) == PrimitiveType.void_);
+immutable(bool) isVoid(ref immutable LowType a) {
+	return isPrimitive(a) && asPrimitive(a) == PrimitiveType.void_;
 }
 
-immutable(Bool) isFunPtrType(ref immutable LowType a) {
-	return immutable Bool(a.kind_ == LowType.Kind.funPtr);
+immutable(bool) isFunPtrType(ref immutable LowType a) {
+	return a.kind_ == LowType.Kind.funPtr;
 }
 
-immutable(Bool) isPtrGc(ref immutable LowType a) {
-	return immutable Bool(a.kind_ == LowType.Kind.ptrGc);
+immutable(bool) isPtrGc(ref immutable LowType a) {
+	return a.kind_ == LowType.Kind.ptrGc;
 }
 
-immutable(Bool) isPtrRaw(ref immutable LowType a) {
-	return immutable Bool(a.kind_ == LowType.Kind.ptrRaw);
+immutable(bool) isPtrRaw(ref immutable LowType a) {
+	return a.kind_ == LowType.Kind.ptrRaw;
 }
 
 @trusted immutable(LowType.PtrGc) asPtrGc(ref immutable LowType a) {
@@ -248,8 +247,8 @@ immutable(Bool) isPtrRaw(ref immutable LowType a) {
 	return a.ptrRaw_;
 }
 
-private immutable(Bool) isPtrGcOrRaw(ref immutable LowType a) {
-	return immutable Bool(isPtrGc(a) || isPtrRaw(a));
+private immutable(bool) isPtrGcOrRaw(ref immutable LowType a) {
+	return isPtrGc(a) || isPtrRaw(a);
 }
 
 @trusted immutable(Ptr!LowType) asGcOrRawPointee(ref immutable LowType a) {
@@ -419,7 +418,7 @@ struct LowLocal {
 }
 
 struct LowFunExprBody {
-	immutable Bool hasTailRecur;
+	immutable bool hasTailRecur;
 	immutable Ptr!LowExpr expr;
 }
 
@@ -428,7 +427,7 @@ struct LowFunBody {
 	@safe @nogc pure nothrow:
 
 	struct Extern {
-		immutable Bool isGlobal;
+		immutable bool isGlobal;
 		immutable string externName;
 	}
 
@@ -448,12 +447,12 @@ struct LowFunBody {
 }
 static assert(LowFunBody.sizeof <= 24);
 
-immutable(Bool) isExtern(ref immutable LowFunBody a) {
-	return immutable Bool(a.kind == LowFunBody.Kind.extern_);
+immutable(bool) isExtern(ref immutable LowFunBody a) {
+	return a.kind == LowFunBody.Kind.extern_;
 }
 
-@trusted immutable(Bool) isGlobal(ref immutable LowFunBody a) {
-	return immutable Bool(isExtern(a) && a.extern_.isGlobal);
+@trusted immutable(bool) isGlobal(ref immutable LowFunBody a) {
+	return isExtern(a) && a.extern_.isGlobal;
 }
 
 @trusted T matchLowFunBody(T)(
@@ -507,8 +506,8 @@ static assert(LowFunSource.sizeof <= 16);
 }
 
 struct LowFunParamsKind {
-	immutable Bool hasCtx;
-	immutable Bool hasClosure;
+	immutable bool hasCtx;
+	immutable bool hasClosure;
 }
 
 struct LowFun {
@@ -640,7 +639,7 @@ struct LowExprKind {
 		immutable ubyte fieldIndex;
 
 		//TODO:NOT INSTANCE
-		immutable(Bool) targetIsPointer() immutable {
+		immutable(bool) targetIsPointer() immutable {
 			return isPtrGcOrRaw(target.type);
 		}
 
@@ -660,7 +659,7 @@ struct LowExprKind {
 		immutable Ptr!LowExpr value;
 
 		//TODO:NOT INSTANCE
-		immutable(Bool) targetIsPointer() immutable {
+		immutable(bool) targetIsPointer() immutable {
 			return isPtrGcOrRaw(target.type);
 		}
 
@@ -958,8 +957,8 @@ static assert(LowExprKind.sizeof <= 32);
 	}
 }
 
-immutable(Bool) isLocalRef(ref immutable LowExprKind a) {
-	return immutable Bool(a.kind == LowExprKind.Kind.localRef);
+immutable(bool) isLocalRef(ref immutable LowExprKind a) {
+	return a.kind == LowExprKind.Kind.localRef;
 }
 
 @trusted ref immutable(LowExprKind.LocalRef) asLocalRef(return scope ref immutable LowExprKind a) {
@@ -967,8 +966,8 @@ immutable(Bool) isLocalRef(ref immutable LowExprKind a) {
 	return a.localRef;
 }
 
-immutable(Bool) isParamRef(ref immutable LowExprKind a) {
-	return immutable Bool(a.kind == LowExprKind.Kind.paramRef);
+immutable(bool) isParamRef(ref immutable LowExprKind a) {
+	return a.kind == LowExprKind.Kind.paramRef;
 }
 
 ref immutable(LowExprKind.ParamRef) asParamRef(return scope ref immutable LowExprKind a) {
@@ -976,8 +975,8 @@ ref immutable(LowExprKind.ParamRef) asParamRef(return scope ref immutable LowExp
 	return a.paramRef;
 }
 
-immutable(Bool) isRecordFieldGet(ref immutable LowExprKind a) {
-	return immutable Bool(a.kind == LowExprKind.Kind.recordFieldGet);
+immutable(bool) isRecordFieldGet(ref immutable LowExprKind a) {
+	return a.kind == LowExprKind.Kind.recordFieldGet;
 }
 
 @trusted ref immutable(LowExprKind.RecordFieldGet) asRecordFieldGet(return scope ref immutable LowExprKind a) {
@@ -985,8 +984,8 @@ immutable(Bool) isRecordFieldGet(ref immutable LowExprKind a) {
 	return a.recordFieldGet;
 }
 
-immutable(Bool) isSpecialUnary(ref immutable LowExprKind a) {
-	return immutable Bool(a.kind == LowExprKind.Kind.specialUnary);
+immutable(bool) isSpecialUnary(ref immutable LowExprKind a) {
+	return a.kind == LowExprKind.Kind.specialUnary;
 }
 
 @trusted ref immutable(LowExprKind.SpecialUnary) asSpecialUnary(return scope ref immutable LowExprKind a) {

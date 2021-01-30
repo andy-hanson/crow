@@ -2,7 +2,6 @@ module util.collection.dict;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, False, True;
 import util.collection.arr : ptrsRange;
 import util.comparison : Comparison;
 import util.opt : force, none, Opt, some;
@@ -26,11 +25,11 @@ void dictEach(K, V, alias cmp)(
 		cb(pair.key, pair.value);
 }
 
-immutable(Bool) hasKey(K, V, alias cmp)(ref immutable Dict!(K, V, cmp) a, immutable K key) {
+immutable(bool) hasKey(K, V, alias cmp)(ref immutable Dict!(K, V, cmp) a, immutable K key) {
 	foreach (ref immutable KeyValuePair!(K, V) pair; a.pairs)
 		if (cmp(pair.key, key) == Comparison.equal)
-			return True;
-	return False;
+			return true;
+	return false;
 }
 
 immutable(Opt!(Ptr!V)) getPtrAt(K, V, alias cmp)(immutable Dict!(K, V, cmp) d, immutable K key) {

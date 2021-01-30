@@ -2,7 +2,6 @@ module util.path;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, False, True;
 import util.collection.arr : at, first, size;
 import util.collection.arrUtil : slice, sliceFromTo;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
@@ -148,7 +147,7 @@ private @trusted immutable(string) pathToStrWorker(Alloc, PathAlloc)(
 	immutable string root,
 	immutable Path path,
 	immutable string extension,
-	immutable Bool nulTerminated,
+	immutable bool nulTerminated,
 ) {
 	immutable size_t sz = size(root) + pathToStrSize(allPaths, path) + size(extension) + (nulTerminated ? 1 : 0);
 	char* begin = cast(char*) alloc.allocateBytes(char.sizeof * sz);
@@ -191,7 +190,7 @@ immutable(string) pathToStr(Alloc, PathAlloc)(
 	immutable Path path,
 	immutable string extension,
 ) {
-	return pathToStrWorker(alloc, allPaths, root, path, extension, False);
+	return pathToStrWorker(alloc, allPaths, root, path, extension, false);
 }
 
 immutable(CStr) pathToCStr(Alloc, PathAlloc)(
@@ -211,7 +210,7 @@ private immutable(NulTerminatedStr) pathToNulTerminatedStr(Alloc, PathAlloc)(
 	immutable Path path,
 	immutable string extension,
 ) {
-	return immutable NulTerminatedStr(pathToStrWorker(alloc, allPaths, root, path, extension, True));
+	return immutable NulTerminatedStr(pathToStrWorker(alloc, allPaths, root, path, extension, true));
 }
 
 immutable(string) pathToStr(Alloc, PathAlloc)(

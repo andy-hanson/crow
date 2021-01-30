@@ -26,7 +26,6 @@ import lib.compiler :
 	print;
 import model.model : AbsolutePathsGetter;
 import test.test : test;
-import util.bools : Bool, True;
 import util.collection.arr : begin, empty, size;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, map, tail, zipImpureSystem;
@@ -105,7 +104,7 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 	immutable string crowDir = getCrowDirectory(args.pathToThisExecutable);
 	immutable Command command = parseCommand(alloc, allPaths, allSymbols, getCwd(alloc), args.args);
 	immutable string include = cat(alloc, crowDir, strLiteral("/include"));
-	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(True);
+	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 	StdoutDebug dbg;
 
 	return matchCommand!int(
@@ -397,7 +396,7 @@ struct RealExtern {
 		return 0;
 	}
 
-	immutable(Bool) hasMallocedPtr(ref const PtrRange range) const {
+	immutable(bool) hasMallocedPtr(ref const PtrRange range) const {
 		return allocTracker.hasAllocedPtr(range);
 	}
 

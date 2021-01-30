@@ -62,7 +62,6 @@ import model.lowModel :
 	PrimitiveType,
 	regularParams;
 import model.model : FunInst, Local, name, Param;
-import util.bools : Bool, False, True;
 import util.collection.arr : at, empty, emptyArr, first, only, setAt, size, sizeEq;
 import util.collection.arrUtil : arrLiteral, every, fillArr_mut, map, tail, zip;
 import util.collection.dict : Dict, getAt;
@@ -368,7 +367,7 @@ struct Ctx {
 
 struct FunBodyCtx {
 	immutable Ptr!Ctx ctx;
-	immutable Bool hasTailRecur;
+	immutable bool hasTailRecur;
 	immutable LowFunIndex curFun;
 	size_t nextTemp;
 }
@@ -497,53 +496,53 @@ enum StructState {
 }
 
 struct StructStates {
-	Bool[] funPtrStates; // No need to define, just declared or not
+	bool[] funPtrStates; // No need to define, just declared or not
 	StructState[] recordStates;
 	StructState[] unionStates;
 }
 
-immutable(Bool) canReferenceTypeAsValue(
+immutable(bool) canReferenceTypeAsValue(
 	ref immutable Ctx ctx,
 	ref const StructStates states,
 	ref immutable LowType t,
 ) {
-	return matchLowTypeCombinePtr!(immutable Bool)(
+	return matchLowTypeCombinePtr!(immutable bool)(
 		t,
 		(immutable LowType.ExternPtr) =>
 			// Declared all up front
-			True,
+			true,
 		(immutable LowType.FunPtr it) =>
-			immutable Bool(at(states.funPtrStates, it.index)),
+			at(states.funPtrStates, it.index),
 		(immutable PrimitiveType) =>
-			True,
+			true,
 		(immutable Ptr!LowType pointee) =>
 			canReferenceTypeAsPointee(ctx, states, pointee),
 		(immutable LowType.Record it) =>
-			immutable Bool(at(states.recordStates, it.index) == StructState.defined),
+			at(states.recordStates, it.index) == StructState.defined,
 		(immutable LowType.Union it) =>
-			immutable Bool(at(states.unionStates, it.index) == StructState.defined));
+			at(states.unionStates, it.index) == StructState.defined);
 }
 
-immutable(Bool) canReferenceTypeAsPointee(
+immutable(bool) canReferenceTypeAsPointee(
 	ref immutable Ctx ctx,
 	ref const StructStates states,
 	ref immutable LowType t,
 ) {
-	return matchLowTypeCombinePtr!(immutable Bool)(
+	return matchLowTypeCombinePtr!(immutable bool)(
 		t,
 		(immutable LowType.ExternPtr) =>
 			// Declared all up front
-			True,
+			true,
 		(immutable LowType.FunPtr it) =>
-			immutable Bool(at(states.funPtrStates, it.index)),
+			at(states.funPtrStates, it.index),
 		(immutable PrimitiveType) =>
-			True,
+			true,
 		(immutable Ptr!LowType pointee) =>
 			canReferenceTypeAsPointee(ctx, states, pointee),
 		(immutable LowType.Record it) =>
-			immutable Bool(at(states.recordStates, it.index) != StructState.none),
+			at(states.recordStates, it.index) != StructState.none,
 		(immutable LowType.Union it) =>
-			immutable Bool(at(states.unionStates, it.index) != StructState.none));
+			at(states.unionStates, it.index) != StructState.none);
 }
 
 void declareStruct(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, immutable Ptr!ConcreteStruct source) {
@@ -632,17 +631,17 @@ void maybeWriteIndexSuffix(Alloc)(ref Writer!Alloc writer, immutable Opt!size_t 
 	}
 }
 
-immutable(Bool) tryWriteFunPtrDeclaration(Alloc)(
+immutable(bool) tryWriteFunPtrDeclaration(Alloc)(
 	ref Writer!Alloc writer,
 	ref immutable Ctx ctx,
 	ref const StructStates structStates,
 	immutable LowType.FunPtr funPtrIndex,
 ) {
 	immutable LowFunPtrType funPtr = fullIndexDictGet(ctx.program.allFunPtrTypes, funPtrIndex);
-	immutable Bool canDeclare = immutable Bool(
+	immutable bool canDeclare =
 		canReferenceTypeAsPointee(ctx, structStates, funPtr.returnType) &&
 		every!LowType(funPtr.paramTypes, (ref immutable LowType it) =>
-			canReferenceTypeAsPointee(ctx, structStates, it)));
+			canReferenceTypeAsPointee(ctx, structStates, it));
 	if (canDeclare) {
 		writeStatic(writer, "typedef ");
 		writeType(writer, ctx, funPtr.returnType);
@@ -666,7 +665,9 @@ immutable(StructState) writeRecordDeclarationOrDefinition(Alloc)(
 ) {
 	verify(prevState != StructState.defined);
 	immutable LowRecord record = fullIndexDictGet(ctx.program.allRecords, recordIndex);
-	if (every(record.fields, (ref immutable LowField f) => canReferenceTypeAsValue(ctx, structStates, f.type))) {
+	immutable bool canWriteFields = every!LowField(record.fields, (ref immutable LowField f) =>
+		canReferenceTypeAsValue(ctx, structStates, f.type));
+	if (canWriteFields) {
 		writeRecord(writer, ctx, record);
 		return StructState.defined;
 	} else {
@@ -684,7 +685,7 @@ immutable(StructState) writeUnionDeclarationOrDefinition(Alloc)(
 ) {
 	verify(prevState != StructState.defined);
 	immutable LowUnion union_ = fullIndexDictGet(ctx.program.allUnions, unionIndex);
-	if (every(union_.members, (ref immutable LowType t) => canReferenceTypeAsValue(ctx, structStates, t))) {
+	if (every!LowType(union_.members, (ref immutable LowType t) => canReferenceTypeAsValue(ctx, structStates, t))) {
 		writeUnion(writer, ctx, union_);
 		return StructState.defined;
 	} else {
@@ -706,22 +707,22 @@ void writeStructs(Alloc, WriterAlloc)(ref Alloc alloc, ref Writer!WriterAlloc wr
 		});
 
 	StructStates structStates = StructStates(
-		fillArr_mut!Bool(alloc, fullIndexDictSize(ctx.program.allFunPtrTypes), (immutable size_t) =>
-			Bool(false)),
+		fillArr_mut!bool(alloc, fullIndexDictSize(ctx.program.allFunPtrTypes), (immutable size_t) =>
+			false),
 		fillArr_mut!StructState(alloc, fullIndexDictSize(ctx.program.allRecords), (immutable size_t) =>
 			StructState.none),
 		fillArr_mut!StructState(alloc, fullIndexDictSize(ctx.program.allUnions), (immutable size_t) =>
 			StructState.none));
 	for (;;) {
-		Bool madeProgress = False;
-		Bool someIncomplete = False;
+		bool madeProgress = false;
+		bool someIncomplete = false;
 		fullIndexDictEachKey!(LowType.FunPtr, LowFunPtrType)(
 			ctx.program.allFunPtrTypes,
 			(immutable LowType.FunPtr funPtrIndex) {
-				immutable Bool curState = at(structStates.funPtrStates, funPtrIndex.index);
+				immutable bool curState = at(structStates.funPtrStates, funPtrIndex.index);
 				if (!curState) {
 					if (tryWriteFunPtrDeclaration(writer, ctx, structStates, funPtrIndex)) {
-						setAt(structStates.funPtrStates, funPtrIndex.index, True);
+						setAt(structStates.funPtrStates, funPtrIndex.index, true);
 						madeProgress = true;
 					} else
 						someIncomplete = true;
@@ -889,8 +890,8 @@ immutable(WriteExprResult) writeExprDone() {
 	return immutable WriteExprResult(immutable WriteExprResult.Done(emptyArr!WriteExprResult()));
 }
 
-immutable(Bool) isDone(ref immutable WriteExprResult a) {
-	return immutable Bool(a.kind == WriteExprResult.Kind.done);
+immutable(bool) isDone(ref immutable WriteExprResult a) {
+	return a.kind == WriteExprResult.Kind.done;
 }
 
 @trusted immutable(WriteExprResult.Done) asDone(ref immutable WriteExprResult a) {
@@ -1021,8 +1022,8 @@ struct WriteKind {
 	}
 }
 
-immutable(Bool) isInline(ref immutable WriteKind a) {
-	return immutable Bool(a.kind == WriteKind.Kind.inline);
+immutable(bool) isInline(ref immutable WriteKind a) {
+	return a.kind == WriteKind.Kind.inline;
 }
 
 @trusted immutable(WriteKind.Inline) asInline(ref immutable WriteKind a) {
@@ -1030,20 +1031,20 @@ immutable(Bool) isInline(ref immutable WriteKind a) {
 	return a.inline;
 }
 
-immutable(Bool) isInlineOrTemp(ref immutable WriteKind a) {
-	return immutable Bool(a.kind == WriteKind.Kind.inlineOrTemp);
+immutable(bool) isInlineOrTemp(ref immutable WriteKind a) {
+	return a.kind == WriteKind.Kind.inlineOrTemp;
 }
 
-immutable(Bool) isMakeTemp(ref immutable WriteKind a) {
-	return immutable Bool(a.kind == WriteKind.Kind.makeTemp);
+immutable(bool) isMakeTemp(ref immutable WriteKind a) {
+	return a.kind == WriteKind.Kind.makeTemp;
 }
 
-immutable(Bool) isReturn(ref immutable WriteKind a) {
-	return immutable Bool(a.kind == WriteKind.Kind.return_);
+immutable(bool) isReturn(ref immutable WriteKind a) {
+	return a.kind == WriteKind.Kind.return_;
 }
 
-immutable(Bool) isVoid(ref immutable WriteKind a) {
-	return immutable Bool(a.kind == WriteKind.Kind.void_);
+immutable(bool) isVoid(ref immutable WriteKind a) {
+	return a.kind == WriteKind.Kind.void_;
 }
 
 @trusted T matchWriteKind(T)(
@@ -1384,7 +1385,7 @@ immutable(WriteExprResult) writeCallExpr(Alloc, TempAlloc)(
 	immutable WriteExprResult[] args = writeExprsTempOrInline(writer, tempAlloc, indent, ctx, a.args);
 	return writeNonInlineable(writer, indent, ctx, writeKind, type, () {
 		immutable Ptr!LowFun called = fullIndexDictGetPtr(ctx.ctx.program.allFuns, a.called);
-		immutable Bool isCVoid = isExtern(called.body_) && isVoid(called.returnType);
+		immutable bool isCVoid = isExtern(called.body_) && isVoid(called.returnType);
 		if (isCVoid)
 			//TODO: this is unnecessary if writeKind is not 'expr'
 			writeChar(writer, '(');
@@ -1566,7 +1567,7 @@ immutable(WriteExprResult) writeSwitch(Alloc, TempAlloc)(
 void writeRecordFieldRef(Alloc)(
 	ref Writer!Alloc writer,
 	ref const FunBodyCtx ctx,
-	immutable Bool targetIsPointer,
+	immutable bool targetIsPointer,
 	immutable LowType.Record record,
 	immutable ubyte fieldIndex,
 ) {
@@ -1653,22 +1654,22 @@ void writeConstantRef(Alloc)(
 		});
 }
 
-immutable(Bool) isSignedIntegral(immutable PrimitiveType a) {
+immutable(bool) isSignedIntegral(immutable PrimitiveType a) {
 	switch (a) {
 		case PrimitiveType.int8:
 		case PrimitiveType.int16:
 		case PrimitiveType.int32:
 		case PrimitiveType.int64:
-			return True;
+			return true;
 		case PrimitiveType.bool_:
 		case PrimitiveType.char_:
 		case PrimitiveType.nat8:
 		case PrimitiveType.nat16:
 		case PrimitiveType.nat32:
 		case PrimitiveType.nat64:
-			return False;
+			return false;
 		default:
-			return unreachable!(immutable Bool);
+			return unreachable!(immutable bool);
 	}
 }
 
@@ -2229,15 +2230,15 @@ void writeMangledName(Alloc)(ref Writer!Alloc writer, immutable Sym name) {
 	}
 }
 
-immutable(Bool) conflictsWithCName(immutable Sym name) {
+immutable(bool) conflictsWithCName(immutable Sym name) {
 	switch (name.value) {
 		case shortSymAlphaLiteralValue("atomic-bool"): // avoid conflicting with c's "atomic_bool" type
 		case shortSymAlphaLiteralValue("default"):
 		case shortSymAlphaLiteralValue("float"):
 		case shortSymAlphaLiteralValue("int"):
 		case shortSymAlphaLiteralValue("void"):
-			return True;
+			return true;
 		default:
-			return False;
+			return false;
 	}
 }

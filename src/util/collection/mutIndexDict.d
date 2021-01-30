@@ -5,7 +5,6 @@ module util.collection.mutIndexDict;
 import util.collection.arr : at, setAt, size;
 import util.collection.arrUtil : fillArr_mut;
 import util.collection.mutDict : ValueAndDidAdd;
-import util.bools : False, True;
 import util.opt : force, has, noneMut, Opt, someMut;
 
 struct MutIndexDict(K, V) {
@@ -33,10 +32,10 @@ immutable(ValueAndDidAdd!V) getOrAddAndDidAdd(K, V)(
 ) {
 	immutable size_t index = key.index;
 	if (has(at(a.values_, index)))
-		return immutable ValueAndDidAdd!V(force(at(a.values_, index)), False);
+		return immutable ValueAndDidAdd!V(force(at(a.values_, index)), false);
 	else {
 		immutable V value = getValue();
 		setAt(a.values_, index, someMut!V(value));
-		return immutable ValueAndDidAdd!V(value, True);
+		return immutable ValueAndDidAdd!V(value, true);
 	}
 }

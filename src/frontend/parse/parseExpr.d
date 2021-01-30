@@ -54,7 +54,6 @@ import frontend.parse.lexer :
 	tryTake;
 import frontend.parse.parseType : tryParseTypeArgsBracketed;
 import model.parseDiag : EqLikeKind, ParseDiag;
-import util.bools : Bool, False, True;
 import util.collection.arr : ArrWithSize, empty, emptyArrWithSize, toArr;
 import util.collection.arrUtil : append, arrWithSizeLiteral, prepend;
 import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
@@ -125,8 +124,8 @@ immutable(AllowedBlock) allowBlock(immutable uint curIndent) {
 	return immutable AllowedBlock(immutable AllowedBlock.AllowBlock(curIndent));
 }
 
-immutable(Bool) isAllowBlock(ref immutable AllowedBlock a) {
-	return immutable Bool(a.kind == AllowedBlock.Kind.allowBlock);
+immutable(bool) isAllowBlock(ref immutable AllowedBlock a) {
+	return a.kind == AllowedBlock.Kind.allowBlock;
 }
 
 immutable(AllowedBlock.AllowBlock) asAllowBlock(ref immutable AllowedBlock a) {
@@ -195,12 +194,12 @@ immutable(OptNameOrDedent) noNameOrDedent() {
 	return immutable OptNameOrDedent(immutable OptNameOrDedent.None());
 }
 
-immutable(Bool) isNone(ref immutable OptNameOrDedent a) {
-	return immutable Bool(a.kind == OptNameOrDedent.Kind.none);
+immutable(bool) isNone(ref immutable OptNameOrDedent a) {
+	return a.kind == OptNameOrDedent.Kind.none;
 }
 
-immutable(Bool) isName(ref immutable OptNameOrDedent a) {
-	return immutable Bool(a.kind == OptNameOrDedent.Kind.name);
+immutable(bool) isName(ref immutable OptNameOrDedent a) {
+	return a.kind == OptNameOrDedent.Kind.name;
 }
 
 ref immutable(NameAndRange) asName(return scope ref immutable OptNameOrDedent a) {
@@ -448,7 +447,7 @@ immutable(ExprAndMaybeNameOrDedent) parseCallsAfterName(Alloc, SymAlloc)(
 	if (precedence > argCtx.allowedCalls.minPrecedenceExclusive) {
 		//TODO: don't do this for operators
 		immutable ArrWithSize!TypeAst typeArgs = tryParseTypeArgsBracketed(alloc, lexer);
-		immutable Bool tookColon = tryTake(lexer, ':');
+		immutable bool tookColon = tryTake(lexer, ':');
 		immutable ArgCtx innerCtx = tookColon
 			? immutable ArgCtx(argCtx.allowedBlock, allowAllCalls())
 			: requirePrecedenceGt(argCtx, precedence);
@@ -688,12 +687,12 @@ immutable(ExprAndMaybeDedent) parseLambda(Alloc, SymAlloc)(
 	immutable uint curIndent,
 ) {
 	ArrBuilder!(LambdaAst.Param) parameters;
-	Bool isFirst = True;
+	bool isFirst = true;
 	while (curChar(lexer) != '\n') {
-		immutable Bool success = () {
+		immutable bool success = () {
 			if (isFirst) {
-				isFirst = False;
-				return True;
+				isFirst = false;
+				return true;
 			} else
 				return tryTake(lexer, ", ");
 		}();

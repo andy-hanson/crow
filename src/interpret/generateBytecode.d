@@ -84,7 +84,6 @@ import model.lowModel :
 	matchLowType,
 	PrimitiveType;
 import model.model : FunDecl, Module, name, Program, range;
-import util.bools : Bool, False, True;
 import util.collection.arr : at, only, size, sizeNat;
 import util.collection.arrUtil : map, mapOpWithIndex;
 import util.collection.fullIndexDict :
@@ -748,7 +747,7 @@ void writeBoolConstant(Debug, CodeAlloc)(
 	ref Debug dbg,
 	ref ByteCodeWriter!CodeAlloc writer,
 	ref immutable ByteCodeSource source,
-	immutable Bool value,
+	immutable bool value,
 ) {
 	writePushConstant(dbg, writer, source, immutable Nat8(value ? 1 : 0));
 }
@@ -925,7 +924,7 @@ void generatePtrToRecordFieldGet(Debug, TempAlloc, CodeAlloc)(
 	ref immutable ByteCodeSource source,
 	immutable LowType.Record record,
 	immutable ubyte fieldIndex,
-	immutable Bool targetIsPointer,
+	immutable bool targetIsPointer,
 	ref immutable LowExpr target,
 ) {
 	generateExpr(dbg, tempAlloc, writer, ctx, target);
@@ -982,7 +981,7 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 					generateExpr(dbg, tempAlloc, writer, ctx, a.right);
 				},
 				() {
-					writeBoolConstant(dbg, writer, source, False);
+					writeBoolConstant(dbg, writer, source, false);
 				});
 			break;
 		case LowExprKind.SpecialBinary.Kind.unsafeBitShiftLeftNat64:
@@ -1051,7 +1050,7 @@ void generateSpecialBinary(Debug, TempAlloc, CodeAlloc)(
 				source,
 				a.left,
 				() {
-					writeBoolConstant(dbg, writer, source, True);
+					writeBoolConstant(dbg, writer, source, true);
 				},
 				() {
 					generateExpr(dbg, tempAlloc, writer, ctx, a.right);

@@ -118,7 +118,6 @@ import model.model :
 	Type,
 	TypeParam,
 	typeParams;
-import util.bools : Bool, False, True;
 import util.collection.arr :
 	ArrWithSize,
 	at,
@@ -447,11 +446,11 @@ immutable(Ptr!StructDecl) bogusStructDecl(Alloc)(ref Alloc alloc, immutable size
 	Ptr!StructDecl res = nuMut!StructDecl(
 		alloc,
 		fileAndRange,
-		True,
+		true,
 		shortSymAlphaLiteral("bogus"),
 		finishArr(alloc, typeParams),
 		Purity.data,
-		False);
+		false);
 	setBody(res, immutable StructBody(immutable StructBody.Bogus()));
 	return castImmutable(res);
 }
@@ -493,7 +492,7 @@ void collectTypeParamsInAst(Alloc)(
 		},
 		(ref immutable TypeAst.TypeParam tp) {
 			immutable TypeParam[] a = arrWithSizeBuilderAsTempArr(res);
-			if (!exists(a, (ref immutable TypeParam it) => symEq(it.name, tp.name))) {
+			if (!exists!TypeParam(a, (ref immutable TypeParam it) => symEq(it.name, tp.name))) {
 				add(alloc, res, immutable TypeParam(rangeInFile(ctx, tp.range), tp.name, arrWithSizeBuilderSize(res)));
 			}
 		});
@@ -634,7 +633,7 @@ StructAlias[] checkStructAliasesInitial(Alloc)(
 
 struct PurityAndForced {
 	immutable Purity purity;
-	immutable Bool forced;
+	immutable bool forced;
 }
 
 immutable(PurityAndForced) getPurityFromAst(Alloc)(
@@ -657,15 +656,15 @@ immutable(PurityAndForced) getPurityFromAst(Alloc)(
 		immutable PurityAndForced res = () {
 			final switch (force(ast.purity).specifier) {
 				case PuritySpecifier.data:
-					return PurityAndForced(Purity.data, False);
+					return PurityAndForced(Purity.data, false);
 				case PuritySpecifier.forceData:
-					return PurityAndForced(Purity.data, True);
+					return PurityAndForced(Purity.data, true);
 				case PuritySpecifier.sendable:
-					return PurityAndForced(Purity.sendable, False);
+					return PurityAndForced(Purity.sendable, false);
 				case PuritySpecifier.forceSendable:
-					return PurityAndForced(Purity.sendable, True);
+					return PurityAndForced(Purity.sendable, true);
 				case PuritySpecifier.mut:
-					return PurityAndForced(Purity.mut, False);
+					return PurityAndForced(Purity.mut, false);
 			}
 		}();
 		if (res.purity == defaultPurity && !res.forced)
@@ -673,7 +672,7 @@ immutable(PurityAndForced) getPurityFromAst(Alloc)(
 				immutable Diag.PuritySpecifierRedundant(defaultPurity, getTypeKind(ast.body_))));
 		return res;
 	} else
-		return PurityAndForced(defaultPurity, False);
+		return PurityAndForced(defaultPurity, false);
 }
 
 immutable(TypeKind) getTypeKind(ref immutable StructDeclAst.Body a) {
@@ -780,7 +779,7 @@ immutable(StructBody) checkRecord(Alloc)(
 	ref MutArr!(Ptr!StructInst) delayStructInsts,
 ) {
 	immutable ForcedByValOrRefOrNone forcedByValOrRef = getForcedByValOrRef(r.explicitByValOrRef);
-	immutable Bool forcedByVal = immutable Bool(forcedByValOrRef == ForcedByValOrRefOrNone.byVal);
+	immutable bool forcedByVal = forcedByValOrRef == ForcedByValOrRefOrNone.byVal;
 	immutable RecordField[] fields = mapWithIndex(
 		alloc,
 		r.fields,
@@ -990,8 +989,8 @@ immutable(ArrWithSize!(Ptr!SpecInst)) checkSpecUses(Alloc)(
 	});
 }
 
-immutable(Bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
-	return immutable Bool(empty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal);
+immutable(bool) recordIsAlwaysByVal(ref immutable StructBody.Record record) {
+	return empty(record.fields) || record.flags.forcedByValOrRef == ForcedByValOrRefOrNone.byVal;
 }
 
 immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
@@ -1026,14 +1025,14 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 			structsAndAliasesDict,
 			specsDict,
 			immutable TypeParamsScope(toArr(typeParams)));
-		immutable FunFlags flags = FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted, False, False);
+		immutable FunFlags flags = FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted, false, false);
 		exactSizeArrBuilderAdd(funsBuilder, FunDecl(funAst.isPublic, flags, sig, typeParams, specUses));
 	}
 	foreach (immutable Ptr!StructDecl struct_; ptrsRange(structs))
 		addFunsForStruct(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_);
 	FunDecl[] funs = finish(funsBuilder);
-	Bool[] usedFuns = fillArr_mut!Bool(alloc, size(funs), (immutable size_t) =>
-		Bool(false));
+	bool[] usedFuns = fillArr_mut!bool(alloc, size(funs), (immutable size_t) =>
+		false);
 
 	immutable FunsDict funsDict = buildMultiDict!(Sym, FunDeclAndIndex, compareSym, FunDecl, Alloc)(
 		alloc,
@@ -1098,10 +1097,10 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 			ast.body_));
 	});
 
-	zipPtrFirst!(FunDecl, Bool)(
+	zipPtrFirst!(FunDecl, bool)(
 		castImmutable(funs),
 		castImmutable(usedFuns),
-		(immutable Ptr!FunDecl fun, ref immutable Bool used) {
+		(immutable Ptr!FunDecl fun, ref immutable bool used) {
 			if (!used && !fun.isPublic && !okIfUnused(fun))
 				addDiag(alloc, ctx, range(fun), immutable Diag(immutable Diag.UnusedPrivateFun(fun)));
 		});
@@ -1117,8 +1116,9 @@ immutable(size_t) countFunsForStruct(
 		if (isRecord(body_(s))) {
 			immutable StructBody.Record record = asRecord(body_(s));
 			immutable size_t constructors = recordIsAlwaysByVal(record) ? 1 : 2;
-			return constructors + size(record.fields) + count(record.fields, (ref immutable RecordField it) =>
+			immutable size_t nMutableFields = count!RecordField(record.fields, (ref immutable RecordField it) =>
 				it.isMutable);
+			return constructors + size(record.fields) + nMutableFields;
 		} else
 			return immutable size_t(0);
 	});
@@ -1373,11 +1373,11 @@ immutable(BootstrapCheck) checkWorker(Alloc, SymAlloc)(
 		// TODO: use temp alloc
 		newUsedImportsAndReExports(alloc, imports, reExports),
 		// TODO: use temp alloc
-		fillArr_mut(alloc, size(ast.structAliases), (immutable size_t) => Bool(false)),
+		fillArr_mut(alloc, size(ast.structAliases), (immutable size_t) => false),
 		// TODO: use temp alloc
-		fillArr_mut(alloc, size(ast.structs), (immutable size_t) => Bool(false)),
+		fillArr_mut(alloc, size(ast.structs), (immutable size_t) => false),
 		// TODO: use temp alloc
-		fillArr_mut(alloc, size(ast.specs), (immutable size_t) => Bool(false)),
+		fillArr_mut(alloc, size(ast.specs), (immutable size_t) => false),
 		ptrTrustMe_mut(diagsBuilder));
 
 	// Since structs may refer to each other, first get a structsAndAliasesDict, *then* fill in bodies

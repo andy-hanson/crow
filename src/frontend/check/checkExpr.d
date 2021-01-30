@@ -93,7 +93,6 @@ import frontend.parse.ast :
 	ThenAst,
 	ThenVoidAst,
 	TypeAst;
-import util.bools : Bool, not, True;
 import util.collection.arr :
 	at,
 	castImmutable,
@@ -150,7 +149,7 @@ immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 	ref immutable StructsAndAliasesDict structsAndAliasesDict,
 	ref immutable CommonTypes commonTypes,
 	ref immutable FunsDict funsDict,
-	ref Bool[] usedFuns,
+	ref bool[] usedFuns,
 	immutable Type returnType,
 	immutable TypeParam[] typeParams,
 	immutable Param[] params,
@@ -169,13 +168,13 @@ immutable(Ptr!Expr) checkFunctionBody(Alloc)(
 		flags,
 		usedFuns,
 		// TODO: use temp alloc
-		fillArr_mut!(Bool, Alloc)(alloc, size(params), (immutable size_t) =>
-			Bool(false)));
+		fillArr_mut!(bool, Alloc)(alloc, size(params), (immutable size_t) =>
+			false));
 	immutable Ptr!Expr res = allocExpr(alloc, checkAndExpect!Alloc(alloc, exprCtx, ast, returnType));
-	zipPtrFirst!(Param, Bool)(
+	zipPtrFirst!(Param, bool)(
 		params,
 		castImmutable(exprCtx.paramsUsed),
-		(immutable Ptr!Param param, ref immutable Bool used) {
+		(immutable Ptr!Param param, ref immutable bool used) {
 			if (!used && has(param.name))
 				addDiag(alloc, checkCtx, param.range, immutable Diag(immutable Diag.UnusedParam(param)));
 		});
@@ -432,13 +431,13 @@ Opt!IdentifierAndLambdas getIdentifierNonCall(
 		}
 	foreach (immutable Ptr!Param param; ptrsRange(ctx.outermostFunParams))
 		if (has(param.name) && symEq(force(param.name), name)) {
-			setAt(ctx.paramsUsed, param.index, True);
+			setAt(ctx.paramsUsed, param.index, true);
 			return someMut(IdentifierAndLambdas(immutable Expr(range, Expr.ParamRef(param)), allLambdas));
 		}
 	return noneMut!IdentifierAndLambdas;
 }
 
-immutable(Bool) nameIsParameterOrLocalInScope(ref ExprCtx ctx, immutable Sym name) {
+immutable(bool) nameIsParameterOrLocalInScope(ref ExprCtx ctx, immutable Sym name) {
 	return has(getIdentifierNonCall(ctx, FileAndRange.empty, name));
 }
 
@@ -891,10 +890,13 @@ immutable(CheckedExpr) checkMatch(Alloc)(
 	} else {
 		immutable Ptr!StructInst matchedUnion = force(unionAndMembers).matchedUnion;
 		immutable Ptr!StructInst[] members = force(unionAndMembers).members;
-		immutable Bool badCases = Bool(
+		immutable bool badCases =
 			!sizeEq(members, ast.cases) ||
-			zipSome(members, ast.cases, (ref immutable Ptr!StructInst member, ref immutable MatchAst.CaseAst caseAst) =>
-				not(symEq(member.decl.name, caseAst.structName.name))));
+			zipSome!(Ptr!StructInst, MatchAst.CaseAst)(
+				members,
+				ast.cases,
+				(ref immutable Ptr!StructInst member, ref immutable MatchAst.CaseAst caseAst) =>
+					!symEq(member.decl.name, caseAst.structName.name));
 		if (badCases) {
 			addDiag2(alloc, ctx, range, immutable Diag(Diag.MatchCaseStructNamesDoNotMatch(members)));
 			return bogus(expected, range);

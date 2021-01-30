@@ -2,7 +2,6 @@ module util.collection.sortUtil;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
 import util.collection.arr : at, empty, first, size;
 import util.collection.arrUtil : tail;
 import util.comparison : Comparer, Comparison;
@@ -27,11 +26,11 @@ void eachSorted(T, A0, A1, A2, A3)(
 	if (!empty(a0) || !empty(a1) || !empty(a2) || !empty(a3)) {
 		immutable T c0 = empty(a0) ? lastComparable : getComparable0(first(a0));
 		immutable T c1 = empty(a1) ? lastComparable : getComparable1(first(a1));
-		immutable Bool less01 = immutable Bool(comparer(c0, c1) != Comparison.greater);
+		immutable bool less01 = comparer(c0, c1) != Comparison.greater;
 		immutable T min01 = less01 ? c0 : c1;
 		immutable T c2 = empty(a2) ? lastComparable : getComparable2(first(a2));
 		immutable T c3 = empty(a3) ? lastComparable : getComparable3(first(a3));
-		immutable Bool less23 = immutable Bool(comparer(c2, c3) != Comparison.greater);
+		immutable bool less23 = comparer(c2, c3) != Comparison.greater;
 		immutable T min23 = less23 ? c2 : c3;
 		if (comparer(min01, min23) != Comparison.greater) {
 			if (less01) {

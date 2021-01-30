@@ -4,7 +4,6 @@ module model.model;
 
 import model.constant : Constant;
 import model.diag : Diags, FilesInfo; // TODO: move FilesInfo here?
-import util.bools : and, Bool, False, True;
 import util.collection.arr : ArrWithSize, empty, emptyArr, first, only, size, sizeEq, toArr;
 import util.collection.arrUtil : compareArr;
 import util.collection.dict : Dict;
@@ -63,8 +62,8 @@ enum Purity {
 	mut,
 }
 
-immutable(Bool) isDataOrSendable(immutable Purity a) {
-	return Bool(a != Purity.mut);
+immutable(bool) isDataOrSendable(immutable Purity a) {
+	return a != Purity.mut;
 }
 
 immutable(Sym) symOfPurity(immutable Purity a) {
@@ -78,8 +77,8 @@ immutable(Sym) symOfPurity(immutable Purity a) {
 	}
 }
 
-immutable(Bool) isPurityWorse(immutable Purity a, immutable Purity b) {
-	return Bool(a > b);
+immutable(bool) isPurityWorse(immutable Purity a, immutable Purity b) {
+	return a > b;
 }
 
 immutable(Purity) worsePurity(immutable Purity a, immutable Purity b) {
@@ -139,18 +138,18 @@ struct Type {
 	}
 }
 
-immutable(Bool) isBogus(ref immutable Type a) {
-	return Bool(a.kind == Type.Kind.bogus);
+immutable(bool) isBogus(ref immutable Type a) {
+	return a.kind == Type.Kind.bogus;
 }
-immutable(Bool) isTypeParam(ref immutable Type a) {
-	return Bool(a.kind == Type.Kind.typeParam);
+immutable(bool) isTypeParam(ref immutable Type a) {
+	return a.kind == Type.Kind.typeParam;
 }
 @trusted immutable(Ptr!TypeParam) asTypeParam(ref immutable Type a) {
 	verify(a.isTypeParam);
 	return a.typeParam;
 }
-immutable(Bool) isStructInst(ref immutable Type a) {
-	return Bool(a.kind == Type.Kind.structInst);
+immutable(bool) isStructInst(ref immutable Type a) {
+	return a.kind == Type.Kind.structInst;
 }
 @trusted immutable(Ptr!StructInst) asStructInst(ref immutable Type a) {
 	verify(a.isStructInst);
@@ -174,12 +173,15 @@ immutable(Purity) worstCasePurity(ref immutable Type a) {
 }
 
 //TODO:MOVE?
-immutable(Bool) typeEquals(immutable Type a, immutable Type b) {
-	return matchType(
+immutable(bool) typeEquals(immutable Type a, immutable Type b) {
+	return matchType!(immutable bool)(
 		a,
-		(ref immutable Type.Bogus) => isBogus(b),
-		(immutable Ptr!TypeParam p) => and!(() => isTypeParam(b), () => ptrEquals(p, asTypeParam(b))),
-		(immutable Ptr!StructInst i) => and!(() => isStructInst(b), () => ptrEquals(i, asStructInst(b))));
+		(ref immutable Type.Bogus) =>
+			isBogus(b),
+		(immutable Ptr!TypeParam p) =>
+			isTypeParam(b) && ptrEquals(p, asTypeParam(b)),
+		(immutable Ptr!StructInst i) =>
+			isStructInst(b) && ptrEquals(i, asStructInst(b)));
 }
 
 private immutable(Comparison) compareType(ref immutable Type a, ref immutable Type b) {
@@ -239,7 +241,7 @@ immutable(size_t) arity(ref const Sig a) {
 struct RecordField {
 	//TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
-	immutable Bool isMutable;
+	immutable bool isMutable;
 	immutable Sym name;
 	immutable Type type;
 	immutable size_t index;
@@ -256,7 +258,7 @@ enum ForcedByValOrRefOrNone {
 }
 
 struct RecordFlags {
-	immutable Bool packed;
+	immutable bool packed;
 	immutable ForcedByValOrRefOrNone forcedByValOrRef;
 }
 
@@ -299,18 +301,18 @@ struct StructBody {
 }
 static assert(StructBody.sizeof <= 32);
 
-immutable(Bool) isBogus(ref immutable StructBody a) {
-	return Bool(a.kind == StructBody.Kind.bogus);
+immutable(bool) isBogus(ref immutable StructBody a) {
+	return a.kind == StructBody.Kind.bogus;
 }
-immutable(Bool) isRecord(ref const StructBody a) {
-	return Bool(a.kind == StructBody.Kind.record);
+immutable(bool) isRecord(ref const StructBody a) {
+	return a.kind == StructBody.Kind.record;
 }
 @trusted ref const(StructBody.Record) asRecord(return scope ref const StructBody a) {
 	verify(a.isRecord);
 	return a.record;
 }
-immutable(Bool) isUnion(ref immutable StructBody a) {
-	return Bool(a.kind == StructBody.Kind.union_);
+immutable(bool) isUnion(ref immutable StructBody a) {
+	return a.kind == StructBody.Kind.union_;
 }
 @trusted ref immutable(StructBody.Union) asUnion(return scope ref immutable StructBody a) {
 	verify(a.isUnion);
@@ -343,7 +345,7 @@ struct StructAlias {
 	@safe @nogc pure nothrow:
 	// TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
-	immutable Bool isPublic;
+	immutable bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParam typeParams_;
 
@@ -366,12 +368,12 @@ void setTarget(ref StructAlias a, immutable Opt!(Ptr!StructInst) value) {
 struct StructDecl {
 	// TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
-	immutable Bool isPublic;
+	immutable bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParam typeParams_;
 	// Note: purity on the decl does not take type args into account
 	immutable Purity purity;
-	immutable Bool purityIsForced;
+	immutable bool purityIsForced;
 
 	private:
 	Late!(immutable StructBody) _body_;
@@ -381,7 +383,7 @@ immutable(TypeParam[]) typeParams(ref immutable StructDecl a) {
 	return toArr(a.typeParams_);
 }
 
-immutable(Bool) bodyIsSet(ref const StructDecl a) {
+immutable(bool) bodyIsSet(ref const StructDecl a) {
 	return lateIsSet(a._body_);
 }
 
@@ -428,7 +430,7 @@ struct StructInst {
 	Late!(immutable StructBody) _body_;
 }
 
-immutable(Bool) isArr(ref immutable StructInst i) {
+immutable(bool) isArr(ref immutable StructInst i) {
 	// TODO: only do this for the arr in bootstrap, not anything named 'arr'
 	return symEq(decl(i).name, shortSymAlphaLiteral("arr"));
 }
@@ -506,7 +508,7 @@ immutable(size_t) nSigs(ref immutable SpecBody a) {
 struct SpecDecl {
 	// TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
-	immutable Bool isPublic;
+	immutable bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParam typeParams_;
 	immutable SpecBody body_;
@@ -552,7 +554,7 @@ struct FunBody {
 	struct Builtin {}
 	struct CreateRecord {}
 	struct Extern {
-		immutable Bool isGlobal;
+		immutable bool isGlobal;
 		immutable string externName;
 		immutable Opt!string libraryName;
 	}
@@ -592,8 +594,8 @@ struct FunBody {
 }
 static assert(FunBody.sizeof <= 16);
 
-immutable(Bool) isExtern(ref immutable FunBody a) {
-	return Bool(a.kind == FunBody.Kind.extern_);
+immutable(bool) isExtern(ref immutable FunBody a) {
+	return a.kind == FunBody.Kind.extern_;
 }
 
 @trusted immutable(FunBody.Extern) asExtern(ref immutable FunBody a) {
@@ -629,21 +631,21 @@ immutable(Bool) isExtern(ref immutable FunBody a) {
 struct FunFlags {
 	@safe @nogc pure nothrow:
 
-	immutable Bool noCtx;
-	immutable Bool summon;
-	immutable Bool unsafe;
-	immutable Bool trusted;
-	immutable Bool preferred;
-	immutable Bool okIfUnused;
+	immutable bool noCtx;
+	immutable bool summon;
+	immutable bool unsafe;
+	immutable bool trusted;
+	immutable bool preferred;
+	immutable bool okIfUnused;
 
 	//TODO:NOT INSTANCE
 	immutable(FunFlags) withOkIfUnused() immutable {
-		return immutable FunFlags(noCtx, summon, unsafe, trusted, preferred, True);
+		return immutable FunFlags(noCtx, summon, unsafe, trusted, preferred, true);
 	}
 
-	static immutable FunFlags none = immutable FunFlags(False, False, False, False, False, False);
-	static immutable FunFlags justNoCtx = immutable FunFlags(True, False, False, False, False, False);
-	static immutable FunFlags justPreferred = immutable FunFlags(False, False, False, False, True, False);
+	static immutable FunFlags none = immutable FunFlags(false, false, false, false, false, false);
+	static immutable FunFlags justNoCtx = immutable FunFlags(true, false, false, false, false, false);
+	static immutable FunFlags justPreferred = immutable FunFlags(false, false, false, false, true, false);
 }
 static assert(FunFlags.sizeof == 6);
 
@@ -652,7 +654,7 @@ struct FunDecl {
 
 	@disable this(ref const FunDecl);
 	this(
-		immutable Bool ip,
+		immutable bool ip,
 		immutable FunFlags f,
 		immutable Ptr!Sig s,
 		immutable ArrWithSize!TypeParam tps,
@@ -666,7 +668,7 @@ struct FunDecl {
 		body_ = immutable FunBody(immutable FunBody.Builtin());
 	}
 	this(
-		immutable Bool ip,
+		immutable bool ip,
 		immutable FunFlags f,
 		immutable Ptr!Sig s,
 		immutable ArrWithSize!TypeParam tps,
@@ -681,7 +683,7 @@ struct FunDecl {
 		body_ = b;
 	}
 
-	immutable Bool isPublic;
+	immutable bool isPublic;
 	immutable FunFlags flags;
 	immutable Ptr!Sig sig;
 	immutable ArrWithSize!TypeParam typeParams_;
@@ -701,23 +703,23 @@ immutable(FileAndRange) range(return scope ref immutable FunDecl a) {
 	return range(a.sig);
 }
 
-immutable(Bool) isExtern(ref immutable FunDecl a) {
+immutable(bool) isExtern(ref immutable FunDecl a) {
 	return a.body_.isExtern;
 }
 
-immutable(Bool) noCtx(ref const FunDecl a) {
+immutable(bool) noCtx(ref const FunDecl a) {
 	return a.flags.noCtx;
 }
-immutable(Bool) summon(ref immutable FunDecl a) {
+immutable(bool) summon(ref immutable FunDecl a) {
 	return a.flags.summon;
 }
-immutable(Bool) unsafe(ref immutable FunDecl a) {
+immutable(bool) unsafe(ref immutable FunDecl a) {
 	return a.flags.unsafe;
 }
-immutable(Bool) trusted(ref immutable FunDecl a) {
+immutable(bool) trusted(ref immutable FunDecl a) {
 	return a.flags.trusted;
 }
-immutable(Bool) okIfUnused(ref immutable FunDecl a) {
+immutable(bool) okIfUnused(ref immutable FunDecl a) {
 	return a.flags.okIfUnused;
 }
 
@@ -740,8 +742,8 @@ private immutable(size_t) nSpecImpls(ref immutable FunDecl a) {
 	return n;
 }
 
-immutable(Bool) isTemplate(ref immutable FunDecl a) {
-	return Bool(!empty(a.typeParams) || !empty(a.specs));
+immutable(bool) isTemplate(ref immutable FunDecl a) {
+	return !empty(a.typeParams) || !empty(a.specs);
 }
 
 immutable(size_t) arity(ref const FunDecl a) {
@@ -782,17 +784,17 @@ struct FunInst {
 	immutable Sig sig;
 }
 
-immutable(Bool) isCallWithCtxFun(ref immutable FunInst a) {
+immutable(bool) isCallWithCtxFun(ref immutable FunInst a) {
 	// TODO: only do this for the call-with-ctx in bootstrap
 	return symEqLongAlphaLiteral(name(decl(a).deref()), "call-with-ctx");
 }
 
-immutable(Bool) isCompareFun(ref immutable FunInst a) {
+immutable(bool) isCompareFun(ref immutable FunInst a) {
 	// TODO: only do this for the '<=>' in bootstrap
 	return symEq(name(decl(a).deref()), symForOperator(Operator.compare));
 }
 
-immutable(Bool) isMarkVisitFun(ref immutable FunInst a) {
+immutable(bool) isMarkVisitFun(ref immutable FunInst a) {
 	// TODO: only do this for the 'mark-visit' in bootstrap
 	return symEq(name(decl(a).deref()), shortSymAlphaLiteral("mark-visit"));
 }
@@ -825,7 +827,7 @@ immutable(Called[]) specImpls(ref immutable FunInst a) {
 	return a.funDeclAndArgs.specImpls;
 }
 
-immutable(Bool) noCtx(ref immutable FunInst a) {
+immutable(bool) noCtx(ref immutable FunInst a) {
 	return decl(a).deref.noCtx;
 }
 
@@ -1058,7 +1060,7 @@ immutable(FileAndRange) range(ref immutable StructOrAlias a) {
 		(immutable Ptr!StructDecl d) => d.range);
 }
 
-immutable(Bool) isPublic(ref immutable StructOrAlias a) {
+immutable(bool) isPublic(ref immutable StructOrAlias a) {
 	return matchStructOrAlias(
 		a,
 		(immutable Ptr!StructAlias al) => al.isPublic,
@@ -1449,24 +1451,24 @@ ref immutable(FileAndRange) range(return ref immutable Expr a) {
 	}
 }
 
-immutable(Bool) typeIsBogus(ref immutable Expr a) {
-	return matchExpr!(immutable Bool)(
+immutable(bool) typeIsBogus(ref immutable Expr a) {
+	return matchExpr!(immutable bool)(
 		a,
-		(ref immutable Expr.Bogus) => True,
+		(ref immutable Expr.Bogus) => true,
 		(ref immutable Expr.Call e) => isBogus(returnType(e.called)),
 		(ref immutable Expr.ClosureFieldRef e) => isBogus(e.field.type),
 		(ref immutable Expr.Cond e) => isBogus(e.type),
-		(ref immutable Expr.CreateArr) => False,
-		(ref immutable Expr.FunPtr) => False,
-		(ref immutable Expr.ImplicitConvertToUnion) => False,
-		(ref immutable Expr.Lambda) => False,
+		(ref immutable Expr.CreateArr) => false,
+		(ref immutable Expr.FunPtr) => false,
+		(ref immutable Expr.ImplicitConvertToUnion) => false,
+		(ref immutable Expr.Lambda) => false,
 		(ref immutable Expr.Let e) => typeIsBogus(e.then),
-		(ref immutable Expr.Literal) => False,
+		(ref immutable Expr.Literal) => false,
 		(ref immutable Expr.LocalRef e) => isBogus(e.local.type),
 		(ref immutable Expr.Match e) => isBogus(e.type),
 		(ref immutable Expr.ParamRef e) => isBogus(e.param.type),
 		(ref immutable Expr.Seq e) => typeIsBogus(e.then),
-		(ref immutable Expr.StringLiteral e) => False);
+		(ref immutable Expr.StringLiteral e) => false);
 }
 
 immutable(Type) getType(ref immutable Expr a, ref immutable CommonTypes commonTypes) {

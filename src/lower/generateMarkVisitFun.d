@@ -44,7 +44,6 @@ import lower.lowExprHelpers :
 	seq,
 	voidType,
 	wrapMulNat64;
-import util.bools : False, True;
 import util.collection.arr : at, size;
 import util.collection.arrUtil : arrLiteral, mapWithIndex;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -92,7 +91,7 @@ immutable(LowFun) generateMarkVisitGcPtr(Alloc)(
 		} else
 			return genDrop(alloc, range, mark, 0);
 	}();
-	immutable LowFunExprBody body_ = immutable LowFunExprBody(False, allocate(alloc, expr));
+	immutable LowFunExprBody body_ = immutable LowFunExprBody(false, allocate(alloc, expr));
 	return immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(
 			alloc,
@@ -101,7 +100,7 @@ immutable(LowFun) generateMarkVisitGcPtr(Alloc)(
 		nu!LowFunSig(
 			alloc,
 			voidType,
-			immutable LowFunParamsKind(False, False),
+			immutable LowFunParamsKind(false, false),
 			params),
 		immutable LowFunBody(body_));
 }
@@ -129,7 +128,7 @@ immutable(LowFun) generateMarkVisitNonArr(Alloc)(
 		nu!LowFunSig(
 			alloc,
 			voidType,
-			immutable LowFunParamsKind(False, False),
+			immutable LowFunParamsKind(false, false),
 			params),
 		immutable LowFunBody(body_));
 }
@@ -175,9 +174,9 @@ immutable(LowFun) generateMarkVisitArrInner(Alloc)(
 		nu!LowFunSig(
 			alloc,
 			voidType,
-			immutable LowFunParamsKind(False, False),
+			immutable LowFunParamsKind(false, false),
 			params),
-		immutable LowFunBody(immutable LowFunExprBody(True, allocate(alloc, expr))));
+		immutable LowFunBody(immutable LowFunExprBody(true, allocate(alloc, expr))));
 }
 
 immutable(LowFun) generateMarkVisitArrOuter(Alloc)(
@@ -231,9 +230,9 @@ immutable(LowFun) generateMarkVisitArrOuter(Alloc)(
 		nu!LowFunSig(
 			alloc,
 			voidType,
-			immutable LowFunParamsKind(False, False),
+			immutable LowFunParamsKind(false, false),
 			params),
-		immutable LowFunBody(immutable LowFunExprBody(False, allocate(alloc, expr))));
+		immutable LowFunBody(immutable LowFunExprBody(false, allocate(alloc, expr))));
 }
 
 private:
@@ -309,7 +308,7 @@ immutable(LowFunExprBody) visitRecordBody(Alloc)(
 		}
 	}
 	immutable Opt!LowExpr e = recur(none!LowExpr, 0);
-	return immutable LowFunExprBody(False, allocate(alloc, has(e) ? force(e) : genVoid(range)));
+	return immutable LowFunExprBody(false, allocate(alloc, has(e) ? force(e) : genVoid(range)));
 }
 
 immutable(LowFunExprBody) visitUnionBody(Alloc)(
@@ -345,5 +344,5 @@ immutable(LowFunExprBody) visitUnionBody(Alloc)(
 			});
 	immutable LowExpr expr = immutable LowExpr(voidType, range, immutable LowExprKind(
 		allocate(alloc, immutable LowExprKind.Match(allocate(alloc, value), cases))));
-	return immutable LowFunExprBody(False, allocate(alloc, expr));
+	return immutable LowFunExprBody(false, allocate(alloc, expr));
 }

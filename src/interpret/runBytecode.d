@@ -32,7 +32,6 @@ import interpret.externAlloc : ExternAlloc;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
-import util.bools : False;
 import util.dbg : log, logNoNewline;
 import util.collection.arr : begin, freeArr, ptrAt, sizeNat;
 import util.collection.arrUtil : mapWithFirst, zipSystem;
@@ -294,7 +293,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 	if (dbg.enabled()) {
 		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 		writeStatic(writer, "STEP: ");
-		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(False);
+		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
 		writeByteCodeSource(tempAlloc, writer, allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
 		writeChar(writer, ' ');
 		writeReprNoNewline(writer, reprOperation(tempAlloc, operation));

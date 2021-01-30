@@ -2,13 +2,12 @@ module util.late;
 
 @safe @nogc pure nothrow:
 
-import util.bools : False, Bool, True;
 import util.memory : initMemory;
 import util.util : verify;
 
 struct Late(T) {
 	private:
-	Bool isSet_ = False;
+	bool isSet_ = false;
 	T value_ = void;
 }
 
@@ -16,7 +15,7 @@ struct Late(T) {
 	return Late!T();
 }
 
-immutable(Bool) lateIsSet(T)(ref const Late!T a) {
+immutable(bool) lateIsSet(T)(ref const Late!T a) {
 	return a.isSet_;
 }
 
@@ -33,13 +32,13 @@ immutable(Bool) lateIsSet(T)(ref const Late!T a) {
 @trusted void lateSet(T)(ref Late!T a, immutable T value) {
 	verify(!lateIsSet(a));
 	initMemory(&a.value_, value);
-	a.isSet_ = True;
+	a.isSet_ = true;
 }
 
 @trusted void lateSetOverwrite(T)(ref Late!T a, T value) {
 	verify(lateIsSet(a));
 	initMemory(&a.value_, value);
-	a.isSet_ = True;
+	a.isSet_ = true;
 }
 
 ref const(T) lazilySet(T)(ref Late!T a, scope T delegate() @safe @nogc pure nothrow cb) {

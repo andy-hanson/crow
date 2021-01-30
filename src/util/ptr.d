@@ -2,7 +2,6 @@ module util.ptr;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
 import util.collection.arr : begin, end;
 import util.comparison : Comparison;
 import util.util : verify;
@@ -54,8 +53,8 @@ struct Ptr(T) {
 	return const Ptr!T(&t);
 }
 
-immutable(Bool) ptrEquals(T)(const Ptr!T a, const Ptr!T b) {
-	return Bool(a.ptr == b.ptr);
+immutable(bool) ptrEquals(T)(const Ptr!T a, const Ptr!T b) {
+	return a.ptr == b.ptr;
 }
 
 immutable(Comparison) comparePtr(T)(const Ptr!T a, const Ptr!T b) {
@@ -87,6 +86,6 @@ struct PtrRange {
 	return const PtrRange(cast(const ubyte*) begin(a), cast(const ubyte*) end(a));
 }
 
-immutable(Bool) contains(const PtrRange a, const PtrRange b) {
-	return immutable Bool(a.begin <= b.begin && b.end <= a.end);
+immutable(bool) contains(const PtrRange a, const PtrRange b) {
+	return a.begin <= b.begin && b.end <= a.end;
 }

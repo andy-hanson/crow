@@ -2,7 +2,6 @@ module util.collection.str;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool;
 import util.collection.arr : at, begin, first, freeArr, size;
 import util.collection.arrUtil : compareArr, rtail, tail;
 import util.comparison : Comparison;
@@ -76,21 +75,18 @@ immutable(CStr) strToCStr(Alloc)(ref Alloc alloc, ref immutable string s) {
 	return copyToNulTerminatedStr(alloc, s).asCStr;
 }
 
-@trusted immutable(Bool) strEqCStr(immutable string a, immutable CStr b) {
+@trusted immutable(bool) strEqCStr(immutable string a, immutable CStr b) {
 	return *b == '\0'
-		? Bool(size(a) == 0)
-		: Bool(
-			size(a) != 0 &&
-			first(a) == *b &&
-			strEqCStr(tail(a), b + 1));
+		? size(a) == 0
+		: size(a) != 0 && first(a) == *b && strEqCStr(tail(a), b + 1);
 }
 
-immutable(Bool) strEqLiteral(immutable string a, immutable string b) {
+immutable(bool) strEqLiteral(immutable string a, immutable string b) {
 	return strEq(a, strLiteral(b));
 }
 
-immutable(Bool) strEq(immutable string a, immutable string b) {
-	return Bool(size(a) == size(b) && (size(a) == 0 || (at(a, 0) == at(b, 0) && strEq(tail(a), tail(b)))));
+immutable(bool) strEq(immutable string a, immutable string b) {
+	return size(a) == size(b) && (size(a) == 0 || (at(a, 0) == at(b, 0) && strEq(tail(a), tail(b))));
 }
 
 immutable(string) stripNulTerminator(immutable NulTerminatedStr a) {

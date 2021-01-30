@@ -32,7 +32,6 @@ import model.model :
 	Type,
 	TypeParam,
 	typeParams;
-import util.bools : Bool;
 import util.collection.arr : at, size, toArr;
 import util.collection.arrUtil : arrLiteral, fillArr, findPtr, map;
 import util.collection.dict : getAt;
@@ -136,7 +135,7 @@ immutable(Type) typeFromAst(Alloc)(
 		},
 		(ref immutable TypeAst.TypeParam p) {
 			immutable Opt!(Ptr!TypeParam) found =
-				findPtr(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
+				findPtr!TypeParam(typeParamsScope.innerTypeParams, (immutable Ptr!TypeParam it) =>
 					symEq(it.name, p.name));
 			if (has(found))
 				return immutable Type(force(found));
@@ -170,7 +169,7 @@ private immutable(Type) typeFromFunAst(Alloc)(
 	immutable Opt!(Ptr!FunKindAndStructs) optF = findPtr!FunKindAndStructs(
 		commonTypes.funKindsAndStructs,
 		(immutable Ptr!FunKindAndStructs it) =>
-			immutable Bool(it.kind == funKind));
+			it.kind == funKind);
 	immutable Ptr!FunKindAndStructs f = force(optF);
 	if (size(ast.returnAndParamTypes) > size(f.structs))
 		// We don't have a fun type big enough

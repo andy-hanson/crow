@@ -66,7 +66,6 @@ import model.model :
 	StructInst,
 	Type,
 	typeArgs;
-import util.bools : Bool, False, True;
 import util.collection.arr : at, empty, emptyArr, ptrAt, size;
 import util.collection.arrUtil : arrLiteral, every, map, mapWithIndex;
 import util.collection.mutArr : MutArr, mutArrSize, push;
@@ -97,7 +96,7 @@ immutable(Ptr!ConcreteExpr) allocExpr(Alloc)(ref Alloc alloc, immutable Concrete
 private:
 
 // TODO: command line flag? (default to true)
-immutable Bool inlineConstants = True;
+immutable bool inlineConstants = true;
 
 struct ConcretizeExprCtx {
 	Ptr!ConcretizeCtx concretizeCtx;
@@ -280,7 +279,7 @@ immutable(ConstantsOrExprs) getConstantsOrExprs(Alloc)(
 	ref immutable Expr[] argExprs,
 ) {
 	immutable ConcreteExpr[] exprs = getArgs(alloc, ctx, argExprs);
-	return inlineConstants && every(exprs, (ref immutable ConcreteExpr arg) => isConstant(arg.kind))
+	return inlineConstants && every!ConcreteExpr(exprs, (ref immutable ConcreteExpr arg) => isConstant(arg.kind))
 		? immutable ConstantsOrExprs(map(alloc, exprs, (ref immutable ConcreteExpr arg) => asConstant(arg.kind)))
 		: immutable ConstantsOrExprs(exprs);
 }
@@ -322,7 +321,7 @@ immutable(ConcreteField[]) concretizeClosureFields(Alloc)(
 		immutable ConcreteField(
 			immutable ConcreteFieldSource(it),
 			safeSizeTToU8(index),
-			False,
+			false,
 			getConcreteType_fromConcretizeCtx(alloc, ctx, it.type, typeArgsScope)));
 }
 

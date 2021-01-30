@@ -24,7 +24,6 @@ import model.model :
 	StructOrAlias,
 	Type;
 import model.parseDiag : ParseDiag;
-import util.bools : False;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.collection.str : emptyStr;
 import util.opt : Opt;
@@ -693,7 +692,7 @@ void writeFile(TempAlloc, Alloc, PathAlloc)(
 	ref immutable FilesInfo fi,
 	immutable FileIndex fileIndex,
 ) {
-	immutable ShowDiagOptions noColor = immutable ShowDiagOptions(False);
+	immutable ShowDiagOptions noColor = immutable ShowDiagOptions(false);
 	writeFileNoResetWriter(tempAlloc, writer, allPaths, noColor, fi, fileIndex);
 	// No need to reset writer since we didn't use color
 }

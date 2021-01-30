@@ -40,7 +40,6 @@ import model.model :
 	typeParams,
 	unsafe;
 import model.reprConstant : reprOfConstant;
-import util.bools : True;
 import util.collection.arr : empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : map;
@@ -105,7 +104,7 @@ immutable(Repr) reprStructDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutabl
 	if (a.purity != Purity.data)
 		add(alloc, fields, nameAndRepr("purity", reprSym(symOfPurity(a.purity))));
 	if (a.purityIsForced)
-		add(alloc, fields, nameAndRepr("forced", reprBool(True)));
+		add(alloc, fields, nameAndRepr("forced", reprBool(true)));
 	return reprNamedRecord("struct", finishArr(alloc, fields));
 }
 
@@ -117,15 +116,15 @@ immutable(Repr) reprFunDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable F
 	ArrBuilder!NameAndRepr fields;
 	add(alloc, fields, nameAndRepr("public?", reprBool(a.isPublic)));
 	if (noCtx(a))
-		add(alloc, fields, nameAndRepr("no-ctx", reprBool(True)));
+		add(alloc, fields, nameAndRepr("no-ctx", reprBool(true)));
 	if (summon(a))
-		add(alloc, fields, nameAndRepr("summon", reprBool(True)));
+		add(alloc, fields, nameAndRepr("summon", reprBool(true)));
 	if (unsafe(a))
-		add(alloc, fields, nameAndRepr("unsafe", reprBool(True)));
+		add(alloc, fields, nameAndRepr("unsafe", reprBool(true)));
 	if (trusted(a))
-		add(alloc, fields, nameAndRepr("trusted", reprBool(True)));
+		add(alloc, fields, nameAndRepr("trusted", reprBool(true)));
 	if (a.flags.preferred)
-		add(alloc, fields, nameAndRepr("preferred", reprBool(True)));
+		add(alloc, fields, nameAndRepr("preferred", reprBool(true)));
 	add(alloc, fields, nameAndRepr("sig", reprSig(alloc, ctx, a.sig)));
 	if (!empty(typeParams(a)))
 		add(alloc, fields, nameAndRepr("typeparams", reprArr(alloc, typeParams(a), (ref immutable TypeParam it) =>

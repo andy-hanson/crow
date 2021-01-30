@@ -13,7 +13,6 @@ import lib.server :
 	Server,
 	StrParseDiagnostic;
 import util.alloc.rangeAlloc : RangeAlloc;
-import util.bools : Bool, False;
 import util.collection.arr : size;
 import util.collection.str : CStr, strToCStr;
 import util.path : StorageKind;
@@ -152,9 +151,9 @@ immutable(Repr) reprParseDiagnostics(Alloc)(ref Alloc alloc, ref immutable StrPa
 struct WasmDebug {
 	@safe @nogc pure nothrow:
 
-	immutable(Bool) enabled() {
+	immutable(bool) enabled() {
 		// Enable this if there's a bug, but don't want it slowing things down otherwise
-		return False;
+		return false;
 	}
 
 	void write(scope ref immutable string a) {

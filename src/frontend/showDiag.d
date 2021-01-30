@@ -26,7 +26,6 @@ import model.model :
 	writeStructInst,
 	writeType;
 import model.parseDiag : EqLikeKind, matchParseDiag, ParseDiag;
-import util.bools : Bool, not, True;
 import util.collection.arr : empty, only, size;
 import util.collection.arrUtil : exists, map, sort;
 import util.collection.fullIndexDict : fullIndexDictGet;
@@ -53,7 +52,7 @@ import util.writer :
 import util.writerUtils : showChar, writeName, writeNl, writePathAndStorageKind, writeRelPath;
 
 struct ShowDiagOptions {
-	immutable Bool color;
+	immutable bool color;
 }
 
 immutable(string) strOfDiagnostics(Alloc, PathAlloc)(
@@ -333,7 +332,7 @@ void writeCalledDecls(Alloc, PathAlloc)(
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable CalledDecl[] cs,
-	scope immutable(Bool) delegate(ref immutable CalledDecl) @safe @nogc pure nothrow filter,
+	scope immutable(bool) delegate(ref immutable CalledDecl) @safe @nogc pure nothrow filter,
 ) {
 	foreach (ref immutable CalledDecl c; cs)
 		if (filter(c)) {
@@ -350,7 +349,7 @@ void writeCalledDecls(Alloc, PathAlloc)(
 	ref immutable FilesInfo fi,
 	ref immutable CalledDecl[] cs,
 ) {
-	writeCalledDecls(writer, allPaths, options, fi, cs, (ref immutable CalledDecl) => True);
+	writeCalledDecls(writer, allPaths, options, fi, cs, (ref immutable CalledDecl) => true);
 }
 
 void writeCallNoMatch(Alloc, PathAlloc)(
@@ -360,14 +359,13 @@ void writeCallNoMatch(Alloc, PathAlloc)(
 	ref immutable FilesInfo fi,
 	ref immutable Diag.CallNoMatch d,
 ) {
-	immutable Bool someCandidateHasCorrectNTypeArgs = Bool(
+	immutable bool someCandidateHasCorrectNTypeArgs =
 		d.actualNTypeArgs == 0 ||
-		exists(d.allCandidates, (ref immutable CalledDecl c) =>
-			immutable Bool(nTypeParams(c) == d.actualNTypeArgs)));
-	immutable Bool someCandidateHasCorrectArity = exists(d.allCandidates, (ref immutable CalledDecl c) =>
-		immutable Bool(
-			(d.actualNTypeArgs == 0 || nTypeParams(c) == d.actualNTypeArgs) &&
-			arity(c) == d.actualArity));
+		exists!CalledDecl(d.allCandidates, (ref immutable CalledDecl c) =>
+			nTypeParams(c) == d.actualNTypeArgs);
+	immutable bool someCandidateHasCorrectArity = exists!CalledDecl(d.allCandidates, (ref immutable CalledDecl c) =>
+		(d.actualNTypeArgs == 0 || nTypeParams(c) == d.actualNTypeArgs) &&
+		arity(c) == d.actualArity);
 
 	if (empty(d.allCandidates)) {
 		writeStatic(writer, "there is no function ");
@@ -400,8 +398,8 @@ void writeCallNoMatch(Alloc, PathAlloc)(
 		writeStatic(writer, "there are functions named ");
 		writeName(writer, d.funName);
 		writeStatic(writer, ", but they do not match the ");
-		immutable Bool hasRet = has(d.expectedReturnType);
-		immutable Bool hasArgs = not(empty(d.actualArgTypes));
+		immutable bool hasRet = has(d.expectedReturnType);
+		immutable bool hasArgs = empty(d.actualArgTypes);
 		immutable string descr = hasRet
 			? hasArgs ? "expected return type and actual argument types" : "expected return type"
 			: "actual argument types";
@@ -423,7 +421,7 @@ void writeCallNoMatch(Alloc, PathAlloc)(
 		writeNat(writer, d.actualArity);
 		writeStatic(writer, " arguments):");
 		writeCalledDecls(writer, allPaths, options, fi, d.allCandidates, (ref immutable CalledDecl c) =>
-			immutable Bool(arity(c) == d.actualArity));
+			arity(c) == d.actualArity);
 	}
 }
 

@@ -2,7 +2,6 @@ module util.writer;
 
 @safe @nogc pure nothrow:
 
-import util.bools : Bool, False;
 import util.ptr : Ptr;
 import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
@@ -113,13 +112,13 @@ void writeWithCommas(T, Alloc)(
 	immutable T[] a,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	writeWithCommas!(T, Alloc)(writer, a, False, cb);
+	writeWithCommas!(T, Alloc)(writer, a, false, cb);
 }
 
 void writeWithCommas(T, Alloc)(
 	ref Writer!Alloc writer,
 	immutable T[] a,
-	immutable Bool leadingComma,
+	immutable bool leadingComma,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
 	foreach (immutable size_t i; 0..size(a)) {

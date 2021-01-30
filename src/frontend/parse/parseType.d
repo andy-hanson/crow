@@ -5,7 +5,6 @@ module frontend.parse.parseType;
 import frontend.parse.ast : NameAndRange, range, TypeAst;
 import frontend.parse.lexer : addDiag, curPos, Lexer, range, takeNameAndRange, takeOrAddDiagExpected, tryTake;
 import model.parseDiag : ParseDiag;
-import util.bools : Bool;
 import util.collection.arr : ArrWithSize, at, empty, emptyArrWithSize, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, finishArr;
 import util.collection.arrUtil : arrWithSizeLiteral;
@@ -61,7 +60,7 @@ private immutable(ArrWithSize!TypeAst) tryParseTypeArgsAllowSpace(Alloc, SymAllo
 
 immutable(TypeAst) parseType(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
-	immutable Bool isTypeParam = tryTake(lexer, '?');
+	immutable bool isTypeParam = tryTake(lexer, '?');
 	immutable NameAndRange name = takeNameAndRange(alloc, lexer);
 
 	immutable Opt!(TypeAst.Fun.Kind) funKind = funKindFromName(name.name);

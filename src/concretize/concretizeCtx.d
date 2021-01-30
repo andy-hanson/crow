@@ -63,7 +63,6 @@ import model.model :
 	TypeParam,
 	typeParams,
 	worsePurity;
-import util.bools : Bool, False, not, True;
 import util.collection.arr : at, empty, emptyArr, only, ptrAt, sizeEq;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrMax, compareArr, exists, fold, map, mapPtrsWithIndex, mapWithIndex;
@@ -288,7 +287,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunForLambdaAndFillBody(Alloc)(
 		alloc,
 		immutable ConcreteFunSource(
 			nu!(ConcreteFunSource.Lambda)(alloc, body_.range, containingConcreteFun, index)),
-		nu!ConcreteFunSig(alloc, returnType, True, some(closureParam), params));
+		nu!ConcreteFunSig(alloc, returnType, true, some(closureParam), params));
 	immutable ConcreteFunBodyInputs bodyInputs = immutable ConcreteFunBodyInputs(containing, immutable FunBody(body_));
 	addToMutDict(alloc, ctx.concreteFunToBodyInputs, castImmutable(res), bodyInputs);
 	fillInConcreteFunBody(alloc, ctx, res);
@@ -385,7 +384,7 @@ immutable(ConcreteType) concreteTypeFromClosure(Alloc)(
 		lateSet(cs.info_, getConcreteStructInfoForFields(ForcedByValOrRefOrNone.none, closureFields));
 		add(alloc, ctx.allConcreteStructs, castImmutable(cs));
 		// TODO: consider passing closure by value
-		return immutable ConcreteType(True, castImmutable(cs));
+		return immutable ConcreteType(true, castImmutable(cs));
 	}
 }
 
@@ -420,7 +419,7 @@ immutable(Ptr!ConcreteFun) getConcreteFunFromKey(Alloc)(
 	Ptr!ConcreteFun res = nuMut!ConcreteFun(
 		alloc,
 		immutable ConcreteFunSource(key.inst),
-		nu!ConcreteFunSig(alloc, returnType, not(noCtx(decl)), none!(Ptr!ConcreteParam), params));
+		nu!ConcreteFunSig(alloc, returnType, !noCtx(decl), none!(Ptr!ConcreteParam), params));
 	immutable ConcreteFunBodyInputs bodyInputs = ConcreteFunBodyInputs(
 		toContainingFunInfo(key),
 		decl.body_);
@@ -437,7 +436,7 @@ immutable(Ptr!ConcreteFun) concreteFunForTest(Alloc)(
 	Ptr!ConcreteFun res = nuMut!ConcreteFun(
 		alloc,
 		immutable ConcreteFunSource(immutable ConcreteFunSource.Test(index)),
-		nu!ConcreteFunSig(alloc, voidType(alloc, ctx), True, none!(Ptr!ConcreteParam), emptyArr!ConcreteParam));
+		nu!ConcreteFunSig(alloc, voidType(alloc, ctx), true, none!(Ptr!ConcreteParam), emptyArr!ConcreteParam));
 	immutable ContainingFunInfo containing = immutable ContainingFunInfo(
 		emptyArr!TypeParam,
 		emptyArr!ConcreteType,
@@ -472,19 +471,19 @@ immutable(size_t) sizeFromConcreteFields(immutable ConcreteField[] fields) {
 	return max(s, 1);
 }
 
-immutable(Bool) getDefaultIsPointerForFields(
+immutable(bool) getDefaultIsPointerForFields(
 	immutable ForcedByValOrRefOrNone forcedByValOrRef,
 	immutable size_t sizeBytes,
-	immutable Bool isSelfMutable,
+	immutable bool isSelfMutable,
 ) {
 	final switch (forcedByValOrRef) {
 		case ForcedByValOrRefOrNone.none:
-			return immutable Bool(isSelfMutable || sizeBytes > (void*).sizeof * 2);
+			return isSelfMutable || sizeBytes > (void*).sizeof * 2;
 		case ForcedByValOrRefOrNone.byVal:
 			verify(!isSelfMutable);
-			return False;
+			return false;
 		case ForcedByValOrRefOrNone.byRef:
-			return True;
+			return true;
 	}
 }
 
@@ -493,7 +492,7 @@ immutable(ConcreteStructInfo) getConcreteStructInfoForFields(
 	immutable ConcreteField[] fields,
 ) {
 	immutable size_t sizeBytes = sizeFromConcreteFields(fields);
-	immutable Bool isSelfMutable = exists(fields, (ref immutable ConcreteField fld) =>
+	immutable bool isSelfMutable = exists!ConcreteField(fields, (ref immutable ConcreteField fld) =>
 		fld.isMutable);
 	return immutable ConcreteStructInfo(
 		immutable ConcreteStructBody(ConcreteStructBody.Record(fields)),
@@ -515,18 +514,18 @@ void initializeConcreteStruct(Alloc)(
 	// then make it not be a pointer and that would change the size?
 
 	// A record forced by-val should be marked early, in case it needs a 'ptr' to itself
-	immutable Bool initialDefaultIsPointer = matchStructBody(
+	immutable bool initialDefaultIsPointer = matchStructBody(
 		body_(i),
-		(ref immutable StructBody.Bogus) => True,
-		(ref immutable StructBody.Builtin) => True,
-		(ref immutable StructBody.ExternPtr) => True,
+		(ref immutable StructBody.Bogus) => true,
+		(ref immutable StructBody.Builtin) => true,
+		(ref immutable StructBody.ExternPtr) => true,
 		(ref immutable StructBody.Record it) =>
-			immutable Bool(it.flags.forcedByValOrRef != ForcedByValOrRefOrNone.byVal),
-		(ref immutable StructBody.Union) => True);
+			it.flags.forcedByValOrRef != ForcedByValOrRefOrNone.byVal,
+		(ref immutable StructBody.Union) => true);
 	lateSet(res.info_, immutable ConcreteStructInfo(
 		immutable ConcreteStructBody(immutable ConcreteStructBody.Record(emptyArr!ConcreteField)),
 		/*sizeBytes*/ 9999,
-		/*isSelfMutable*/ True,
+		/*isSelfMutable*/ true,
 		initialDefaultIsPointer));
 
 	immutable ConcreteStructInfo info = matchStructBody!(immutable ConcreteStructInfo)(
@@ -537,16 +536,16 @@ void initializeConcreteStruct(Alloc)(
 			return immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(ConcreteStructBody.Builtin(kind, typeArgs)),
 				getBuiltinStructSize(kind),
-				False,
-				False);
+				false,
+				false);
 		},
 		(ref immutable StructBody.ExternPtr it) =>
 			immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(immutable ConcreteStructBody.ExternPtr()),
 				(void*).sizeof,
-				False,
+				false,
 				//defaultIsPointer is false because the 'extern' type *is* a pointer
-				False),
+				false),
 		(ref immutable StructBody.Record r) {
 			immutable ConcreteField[] fields =
 				mapPtrsWithIndex!ConcreteField(alloc, r.fields, (immutable size_t index, immutable Ptr!RecordField f) =>
@@ -567,8 +566,8 @@ void initializeConcreteStruct(Alloc)(
 			return immutable ConcreteStructInfo(
 				immutable ConcreteStructBody(ConcreteStructBody.Union(members)),
 				sizeBytes,
-				False,
-				False);
+				false,
+				false);
 		});
 	lateSetOverwrite(res.info_, info);
 }
@@ -581,7 +580,7 @@ void fillInConcreteFunBody(Alloc)(
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf._body_)) {
 		// set to arbitrary temporarily
-		lateSet(cf._body_, nu!ConcreteFunBody(alloc, immutable ConcreteFunBody.Extern(False, strLiteral("<<temp>>"))));
+		lateSet(cf._body_, nu!ConcreteFunBody(alloc, immutable ConcreteFunBody.Extern(false, strLiteral("<<temp>>"))));
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
 			inputs.body_,
@@ -716,7 +715,7 @@ immutable(BuiltinStructKind) getBuiltinStructKind(immutable Sym name) {
 immutable(size_t) getBuiltinStructSize(immutable BuiltinStructKind kind) {
 	final switch (kind) {
 		case BuiltinStructKind.bool_:
-			return Bool.sizeof;
+			return bool.sizeof;
 		case BuiltinStructKind.char_:
 			return char.sizeof;
 		case BuiltinStructKind.float64:
