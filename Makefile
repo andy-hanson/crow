@@ -1,6 +1,6 @@
-.PHONY: debug doc-server sdl-demo unit-test end-to-end-test test
+.PHONY: debug end-to-end-test end-to-end-test-overwrite sdl-demo serve prepare-site test unit-test
 
-all: test lint bin/crow.wasm sdl-demo
+all: test lint bin/crow.wasm sdl-demo serve
 
 sdl-demo: bin/crow
 	bin/crow run demo/sdl.crow
@@ -10,17 +10,19 @@ dyncall:
 	cd dyncall && ./configure
 	cd dyncall && make
 
-doc/include-list.txt: bin/crow include/*.crow
-	./bin/crow run demo/gen-include-list.crow > doc/include-list.txt
+site/include-list.txt: bin/crow include/*.crow
+	./bin/crow run script/gen-include-list.crow --interpret > site/include-list.txt
 
-doc-server: doc/include-list.txt bin/crow.wasm
+prepare-site: bin/crow.wasm site/include-list.txt package
+
+serve: prepare-site
 	python -m SimpleHTTPServer 8080
 
 lint-dscanner:
 	dub run dscanner -- --styleCheck src/*.d src/*/*.d src/*/*/*.d
 
 lint-imports-exports:
-	rdmd test/lint.d
+	rdmd script/lint.d
 
 lint: lint-dscanner lint-imports-exports
 
@@ -61,3 +63,6 @@ wasm_flags = --enable-asserts=false --boundscheck=off
 bin/crow.wasm: $(src_deps)
 	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm \
 		--d-debug -g $(d_flags) $(wasm_flags) $(wasm_files)
+
+package: bin/crow
+	tar -C .. -cJf bin/crow.tar.xz crow/bin/crow crow/demo crow/include

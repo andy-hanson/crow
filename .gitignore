@@ -1,13 +1,7 @@
-# Ignore extensionless files (executables)
-# https://stackoverflow.com/questions/19023550/how-do-i-add-files-without-dots-in-them-all-extension-less-files-to-the-gitign
-*
-!/**/
-!*.*
-!Makefile
-!run
-!run-test
 bin
-demo/*.c
+demo-wip/*
+demo-wip/*.c
+!demo-wip/*.*
 doc/example/*.c
 dyncall
 crow-vscode/node_modules

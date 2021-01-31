@@ -1,0 +1,6 @@
+import
+	io.print: print
+
+main fut nat(_ arr str) summon
+	print: "Hello, world!"
+	0 resolved
