@@ -13,7 +13,6 @@ Install these tools (potentially from your operating system's package manager):
 
 Then run `make all`.
 It will build `bin/crow` and test.
-You can run it directly from there, or use `./run` which ensures an up-to-date build first.
 
 ## Other dependencies
 
@@ -67,7 +66,7 @@ run
 
 The VSCode extension supports syntax highlighting, compiler errors, and information on hover.
 
-See instructions in `crow-vscode/readme.md`.
+See instructions in `editor/crow-vscode/readme.md`.
 
 ## Sublime Text
 
@@ -75,8 +74,8 @@ Sublime Text has syntax support but no other support.
 To install the plugin, run the following from the directory containing this readme:
 
 ```sh
-bash -llc 'ln -s `pwd`/syntaxes/crow.sublime-syntax ~/.config/sublime-text-3/Packages/User/crow.sublime-syntax'
-bash -llc 'ln -s `pwd`/syntaxes/repr.sublime-syntax ~/.config/sublime-text-3/Packages/User/repr.sublime-syntax'
+bash -llc 'ln -s `pwd`/editor/sublime/crow.sublime-syntax ~/.config/sublime-text-3/Packages/User/crow.sublime-syntax'
+bash -llc 'ln -s `pwd`/editor/sublime/repr.sublime-syntax ~/.config/sublime-text-3/Packages/User/repr.sublime-syntax'
 ```
 
 

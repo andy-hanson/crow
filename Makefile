@@ -20,7 +20,7 @@ lint-dscanner:
 	dub run dscanner -- --styleCheck src/*.d src/*/*.d src/*/*/*.d
 
 lint-imports-exports:
-	rdmd lint.d
+	rdmd test/lint.d
 
 lint: lint-dscanner lint-imports-exports
 

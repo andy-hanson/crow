@@ -108,29 +108,27 @@ immutable(FileToFuns) dummyFileToFuns() {
 	return fullIndexDictOfArr!(FileIndex, FunNameAndPos[])(dummy);
 }
 
-//TODO:NOT TRUSTED
-@trusted void doInterpret(Debug, Alloc)(
+void doInterpret(Debug, Alloc)(
 	ref Test!(Debug, Alloc) test,
 	ref immutable ByteCode byteCode,
 	scope void delegate(ref Interpreter!(FakeExtern!Alloc)) @safe @nogc nothrow runInterpreter,
 ) {
 	immutable Path emptyPath = rootPath(test.allPaths, shortSymAlphaLiteral("test"));
-	immutable PathAndStorageKind pk = immutable PathAndStorageKind(emptyPath, StorageKind.global);
-	immutable LineAndColumnGetter lcg = lineAndColumnGetterForEmptyFile(test.alloc);
+	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
+	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc)];
 	static immutable AbsolutePathsGetter emptyAbsolutePathsGetter = immutable AbsolutePathsGetter(emptyStr, emptyStr);
 	immutable FilesInfo filesInfo = immutable FilesInfo(
-		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(ptrTrustMe(pk).rawPtr()[0..1]),
+		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(pk),
 		ptrTrustMe(emptyAbsolutePathsGetter),
-		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
-			ptrTrustMe(lcg).rawPtr()[0..1]));
-	immutable LowFun lowFun = immutable LowFun(
+		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(lcg));
+	immutable LowFun[1] lowFun = [immutable LowFun(
 		immutable LowFunSource(nu!(LowFunSource.Generated)(test.alloc, shortSymAlphaLiteral("test"), emptyArr!LowType)),
 		nu!LowFunSig(
 			test.alloc,
 			nat64Type,
 			immutable LowFunParamsKind(false, false),
 			emptyArr!LowParam),
-		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc, false, strLiteral("test"))));
+		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc, false, strLiteral("test"))))];
 	immutable LowProgram lowProgram = immutable LowProgram(
 		immutable AllConstantsLow(emptyArr!ArrTypeAndConstantsLow, emptyArr!PointerTypeAndConstantsLow),
 		nu!AllLowTypes(
@@ -139,7 +137,7 @@ immutable(FileToFuns) dummyFileToFuns() {
 			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
 			emptyFullIndexDict!(LowType.Record, LowRecord),
 			emptyFullIndexDict!(LowType.Union, LowUnion)),
-		fullIndexDictOfArr!(LowFunIndex, LowFun)(ptrTrustMe(lowFun).rawPtr()[0..1]),
+		fullIndexDictOfArr!(LowFunIndex, LowFun)(lowFun),
 		immutable LowFunIndex(0));
 	FakeExtern!Alloc extern_ = newFakeExtern(test.alloc);
 	Interpreter!(FakeExtern!Alloc) interpreter = Interpreter!(FakeExtern!Alloc)(
