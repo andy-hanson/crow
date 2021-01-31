@@ -50,7 +50,6 @@ immutable(NameAndTest!(Debug, Alloc)[]) allTests(Debug, Alloc) = [
 	immutable NameAndTest!(Debug, Alloc)("writer", &testWriter!(Debug, Alloc)),
 ];
 
-
 struct NameAndTest(Debug, Alloc) {
 	immutable string name;
 	immutable void function(ref Test!(Debug, Alloc)) @safe @nogc nothrow test; // not pure

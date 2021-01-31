@@ -679,9 +679,9 @@ void writeDiag(TempAlloc, Alloc, PathAlloc)(
 			} else {
 				writeStatic(writer, "imported module ");
 				// TODO: helper fn
-				immutable Sym moduleName =
+				immutable string moduleName =
 					baseName(allPaths, fullIndexDictGet(fi.filePaths, it.importedModule.fileIndex).path);
-				writeSym(writer, moduleName);
+				writeStr(writer, moduleName);
 			}
 			writeStatic(writer, " is unused");
 		},

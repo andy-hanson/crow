@@ -39,7 +39,7 @@ import util.path :
 	StorageKind;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndRange, FileIndex, FilePaths, RangeWithinFile;
-import util.sym : AllSymbols, shortSymAlphaLiteral, Sym;
+import util.sym : AllSymbols, Sym;
 import util.types : safeSizeTToU16;
 import util.util : unreachable, verify;
 
@@ -344,28 +344,28 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, PathAlloc, SymAlloc, ReadO
 
 pure:
 
-immutable(PathAndStorageKind) pathInInclude(Alloc)(ref AllPaths!Alloc allPaths, immutable Sym name) {
+immutable(PathAndStorageKind) pathInInclude(Alloc)(ref AllPaths!Alloc allPaths, scope immutable string name) {
 	return immutable PathAndStorageKind(rootPath(allPaths, name), StorageKind.global);
 }
 
 immutable(PathAndStorageKind) bootstrapPath(Alloc)(ref AllPaths!Alloc allPaths) {
-	return pathInInclude(allPaths, shortSymAlphaLiteral("bootstrap"));
+	return pathInInclude(allPaths, "bootstrap");
 }
 
 immutable(PathAndStorageKind) stdPath(Alloc)(ref AllPaths!Alloc allPaths) {
-	return pathInInclude(allPaths, shortSymAlphaLiteral("std"));
+	return pathInInclude(allPaths, "std");
 }
 
 immutable(PathAndStorageKind) allocPath(Alloc)(ref AllPaths!Alloc allPaths) {
-	return pathInInclude(allPaths, shortSymAlphaLiteral("alloc"));
+	return pathInInclude(allPaths, "alloc");
 }
 
 immutable(PathAndStorageKind) runtimePath(Alloc)(ref AllPaths!Alloc allPaths) {
-	return pathInInclude(allPaths, shortSymAlphaLiteral("runtime"));
+	return pathInInclude(allPaths, "runtime");
 }
 
 immutable(PathAndStorageKind) runtimeMainPath(Alloc)(ref AllPaths!Alloc allPaths) {
-	return pathInInclude(allPaths, shortSymAlphaLiteral("rt-main"));
+	return pathInInclude(allPaths, "rt-main");
 }
 
 immutable(Diags) parseDiagnostics(Alloc)(

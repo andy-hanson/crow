@@ -8,7 +8,7 @@ import util.path : AllPaths, baseName, nParents, parent, path, Path, PathAndStor
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : Sym, writeSym, writeSymAndGetSize;
 import util.util : repeat, todo;
-import util.writer : writeChar, writeNat, Writer, writeStatic;
+import util.writer : writeChar, writeNat, Writer, writeStatic, writeStr;
 
 private void writePath(Alloc, PathAlloc)(
 	ref Writer!Alloc writer,
@@ -20,7 +20,7 @@ private void writePath(Alloc, PathAlloc)(
 		writePath(writer, allPaths, force(par));
 		writeChar(writer, '/');
 	}
-	writeSym(writer, baseName(allPaths, p));
+	writeStr(writer, baseName(allPaths, p));
 }
 
 void writeRelPath(Alloc, PathAlloc)(

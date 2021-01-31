@@ -47,6 +47,7 @@ import frontend.parse.lexer :
 	takeIndentOrFailGeneric,
 	takeName,
 	takeNameAllowReserved,
+	takeNameAsTempStr,
 	takeNewlineOrDedentAmount,
 	takeNewlineOrIndent_topLevel,
 	takeNewlineOrSingleDedent,
@@ -152,10 +153,10 @@ immutable(NDotsAndPath) parseImportPath(Alloc, PathAlloc, SymAlloc)(
 	}
 	immutable(Path) addPathComponents(immutable Path path) {
 		return tryTake(lexer, '.')
-			? addPathComponents(childPath(allPaths, path, takeName(alloc, lexer)))
+			? addPathComponents(childPath(allPaths, path, takeNameAsTempStr(alloc, lexer).str))
 			: path;
 	}
-	immutable Path path = addPathComponents(rootPath(allPaths, takeName(alloc, lexer)));
+	immutable Path path = addPathComponents(rootPath(allPaths, takeNameAsTempStr(alloc, lexer).str));
 	return immutable NDotsAndPath(nDots, path);
 }
 

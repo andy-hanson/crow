@@ -9,7 +9,7 @@ import
 	..collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
 	..collection.mut-list: ~=, move-to-arr!, mut-list
 	..collection.sort: sort
-	..exceptions: assert, forbid
+	..exceptions: assert, fail, forbid
 	..number-utils: to-int, to-nat
 	..posix.bytes-types: zero
 	..posix.dirent: dir, dirent, opendir, readdir-r
@@ -23,14 +23,13 @@ import
 	.posix-util: check-errno-if-neg-one, check-posix-error
 	.print: print
 
-is-dir? bool(path str) summon
+is-dir? bool(path str) summon trusted
 	path.to-c-str is-dir?
 
-is-dir? bool(path c-str) summon
+is-dir? bool(path c-str) summon unsafe
 	match path get-stat
 	as none
-		# raise exception -- path does not exist
-		todo
+		fail: "path does not exist: " ~ path.to-str
 	as some s
 		(s.value.st-mode bits-and s-ifmt) == s-ifdir
 
@@ -174,7 +173,7 @@ try-read-file opt str(path c-str) summon trusted
 	else
 		none
 
-get-cwd str() summon trusted
+current-directory str() summon trusted
 	buff = 256 uninitialized-mut-arr<char>
 	b = buff.data getcwd buff.size
 	if b null?

@@ -305,7 +305,7 @@ immutable(ProgramsAndFilesInfo) buildToLowProgram(Alloc, PathAlloc, SymAlloc, Re
 		return immutable ProgramsAndFilesInfo(program, none!ConcreteAndLowProgram);
 }
 
-public immutable(AbsolutePath) getAbsolutePathFromStorage(Alloc, Storage)(
+immutable(AbsolutePath) getAbsolutePathFromStorage(Alloc, Storage)(
 	ref Alloc alloc,
 	ref Storage storage,
 	immutable Path path,

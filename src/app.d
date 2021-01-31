@@ -7,23 +7,26 @@ import core.stdc.string : strerror;
 import core.sys.posix.fcntl : open, O_CREAT, O_RDONLY, O_TRUNC, O_WRONLY, pid_t;
 import core.sys.posix.spawn : posix_spawn;
 import core.sys.posix.sys.wait : waitpid;
+import core.sys.posix.dirent : DIR, dirent, opendir, readdir;
+import core.sys.posix.sys.stat : mkdir, S_IRWXU;
 import core.sys.posix.sys.types : off_t;
 import core.sys.posix.time : clock_gettime, timespec;
-import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, posixWrite = write;
+import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, unlink, posixWrite = write;
 import std.process : execvpe;
 
 import frontend.showDiag : ShowDiagOptions;
 import interpret.allocTracker : AllocTracker;
 import interpret.applyFn : nat64OfI32, nat64OfI64;
 import interpret.bytecode : DynCallType, TimeSpec;
-import lib.cliParser : Command, matchCommand, parseCommand, ProgramDirAndMain;
-import lib.compiler :
-	buildAndInterpret,
-	buildToC,
-	BuildToCResult,
-	DiagsAndResultStrs,
-	getAbsolutePathFromStorage,
-	print;
+import lib.cliParser :
+	BuildOptions,
+	Command,
+	matchCommand,
+	parseCommand,
+	ProgramDirAndMain,
+	matchRunOptions,
+	RunOptions;
+import lib.compiler : buildAndInterpret, buildToC, BuildToCResult, DiagsAndResultStrs, print;
 import model.model : AbsolutePathsGetter;
 import test.test : test;
 import util.collection.arr : begin, empty, size;
@@ -31,8 +34,10 @@ import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral, cat, map, tail, zipImpureSystem;
 import util.collection.str :
 	asCStr,
+	catToNulTerminatedStr,
 	copyStr,
 	CStr,
+	cStrOfNulTerminatedStr,
 	copyToNulTerminatedStr,
 	emptyNulTerminatedStr,
 	emptyStr,
@@ -40,21 +45,21 @@ import util.collection.str :
 	strEqLiteral,
 	strLiteral,
 	strOfCStr,
-	strToCStr;
+	strToCStr,
+	strOfNulTerminatedStr;
 import util.opt : force, forceOrTodo, has, none, Opt, some;
 import util.path :
 	AbsolutePath,
 	AllPaths,
+	baseName,
 	PathAndStorageKind,
-	pathBaseName,
 	pathParent,
 	pathToCStr,
 	pathToStr,
 	rootPath,
-	StorageKind,
-	withExtension;
+	StorageKind;
 import util.ptr : Ptr, PtrRange, ptrTrustMe_mut;
-import util.sym : AllSymbols, shortSymAlphaLiteral;
+import util.sym : AllSymbols;
 import util.types :
 	float64OfU64Bits,
 	Nat64,
@@ -95,6 +100,7 @@ struct StdoutDebug {
 	}
 }
 
+
 immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
@@ -102,31 +108,24 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 	ref immutable CommandLineArgs args,
 ) {
 	immutable string crowDir = getCrowDirectory(args.pathToThisExecutable);
-	immutable Command command = parseCommand(alloc, allPaths, allSymbols, getCwd(alloc), args.args);
-	immutable string include = cat(alloc, crowDir, strLiteral("/include"));
+	immutable string includeDir = getIncludeDirectory(alloc, crowDir);
+	immutable string tempDir = setupTempDir(alloc, allPaths, crowDir);
+
+	immutable Command command = parseCommand!Alloc(alloc, allPaths, getCwd(alloc), args.args);
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 	StdoutDebug dbg;
 
 	return matchCommand!int(
 		command,
-		(ref immutable Command.Build it) {
-			immutable Opt!AbsolutePath exePath =
-				buildToCAndCompile(
-					alloc,
-					allPaths,
-					allSymbols,
-					showDiagOptions,
-					it.programDirAndMain,
-					include);
-			return has(exePath) ? 0 : 1;
-		},
+		(ref immutable Command.Build it) =>
+			runBuild(alloc, allPaths, allSymbols, includeDir, tempDir, it.programDirAndMain, it.options).err,
 		(ref immutable Command.Help it) =>
 			help(it),
 		(ref immutable Command.Print it) {
 			RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
 				ptrTrustMe_mut(allPaths),
 				ptrTrustMe_mut(alloc),
-				include,
+				includeDir,
 				it.programDirAndMain.programDir);
 			immutable DiagsAndResultStrs printed = print(
 				alloc,
@@ -141,84 +140,142 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 			if (!empty(printed.result)) print(printed.result);
 			return empty(printed.diagnostics) ? 0 : 1;
 		},
-		(ref immutable Command.Run it) {
-			RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
-				ptrTrustMe_mut(allPaths),
-				ptrTrustMe_mut(alloc),
-				include,
-				it.build.programDirAndMain.programDir);
-			if (it.interpret) {
-				RealExtern extern_ = newRealExtern();
-				return buildAndInterpret(
-					dbg,
-					alloc,
-					allPaths,
-					allSymbols,
-					storage,
-					extern_,
-					showDiagOptions,
-					it.build.programDirAndMain.mainPath,
-					it.programArgs);
-			} else {
-				immutable Opt!AbsolutePath exePath = buildToCAndCompile(
-					alloc,
-					allPaths,
-					allSymbols,
-					showDiagOptions,
-					it.build.programDirAndMain,
-					include);
-				if (!has(exePath))
-					return 1;
-				else {
-					replaceCurrentProcess(alloc, allPaths, force(exePath), it.programArgs);
-					return unreachable!int();
-				}
-			}
-		},
+		(ref immutable Command.Run run) =>
+			matchRunOptions!int(
+				run.options,
+				(ref immutable RunOptions.BuildAndRun it) {
+					immutable RunBuildResult built =
+						runBuild(alloc, allPaths, allSymbols, includeDir, tempDir, run.programDirAndMain, it.build);
+					if (built.err != 0)
+						return built.err;
+					else {
+						replaceCurrentProcess(alloc, allPaths, built.exePath, run.programArgs);
+						return unreachable!int();
+					}
+				},
+				(ref immutable RunOptions.Interpret) {
+					RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
+						ptrTrustMe_mut(allPaths),
+						ptrTrustMe_mut(alloc),
+						includeDir,
+						run.programDirAndMain.programDir);
+					RealExtern extern_ = newRealExtern();
+					return buildAndInterpret(
+						dbg,
+						alloc,
+						allPaths,
+						allSymbols,
+						storage,
+						extern_,
+						showDiagOptions,
+						run.programDirAndMain.mainPath,
+						run.programArgs);
+				}),
 		(ref immutable Command.Test it) =>
 			test(dbg, alloc, it.name));
 }
 
+@trusted immutable(string) setupTempDir(Alloc, PathAlloc)(
+	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
+	immutable string crowDir,
+) {
+	immutable NulTerminatedStr dirPath = catToNulTerminatedStr(alloc, crowDir, "/temp");
+	DIR* dir = opendir(cStrOfNulTerminatedStr(dirPath));
+	if (dir == null) {
+		if (errno == ENOENT) {
+			immutable int err = mkdir(cStrOfNulTerminatedStr(dirPath), S_IRWXU);
+			if (err != 0)
+				todo!void("error making temp");
+		} else
+			todo!void("failed to open dir");
+	} else {
+		while (true) {
+			immutable dirent* entry = cast(immutable) readdir(dir);
+			if (entry == null)
+				break;
+			immutable string entryName = strOfCStr(entry.d_name.ptr);
+			if (!strEqLiteral(entryName, ".") && !strEqLiteral(entryName, "..")) {
+				immutable CStr toUnlink = cStrOfNulTerminatedStr(
+					catToNulTerminatedStr(alloc, strOfNulTerminatedStr(dirPath), "/", entryName));
+				immutable int err = unlink(toUnlink);
+				if (err != 0) {
+					todo!void("failed to unlink");
+				}
+			}
+		}
+	}
+	return strOfNulTerminatedStr(dirPath);
+}
+
+struct RunBuildResult {
+	immutable int err;
+	immutable AbsolutePath exePath;
+}
+
+immutable(RunBuildResult) runBuild(Alloc, PathAlloc, SymAlloc)(
+	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
+	ref AllSymbols!SymAlloc allSymbols,
+	immutable string includeDir,
+	immutable string tempDir,
+	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable BuildOptions options,
+) {
+	immutable string name = baseName(allPaths, programDirAndMain.mainPath);
+	immutable AbsolutePath cPath = has(options.out_.outC)
+		? force(options.out_.outC)
+		: immutable AbsolutePath(tempDir, rootPath(allPaths, name), ".c");
+	immutable AbsolutePath exePath = has(options.out_.outExecutable)
+		? force(options.out_.outExecutable)
+		: immutable AbsolutePath(tempDir, rootPath(allPaths, name), "");
+	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
+	immutable int err = buildToCAndCompile(
+		alloc,
+		allPaths,
+		allSymbols,
+		showDiagOptions,
+		programDirAndMain,
+		includeDir,
+		cPath,
+		exePath);
+	return immutable RunBuildResult(err, exePath);
+}
+
+immutable(string) getIncludeDirectory(Alloc)(ref Alloc alloc, immutable string crowDir) {
+	return cat(alloc, crowDir, strLiteral("/include"));
+}
+
 immutable(string) getCrowDirectory(immutable string pathToThisExecutable) {
 	immutable Opt!string parent = pathParent(pathToThisExecutable);
-	return climbUpToCrow(forceOrTodo(parent));
+	immutable Opt!string res = pathParent(forceOrTodo(parent));
+	return forceOrTodo(res);
 }
 
-immutable(string) climbUpToCrow(immutable string p) {
-	immutable Opt!string par = pathParent(p);
-	immutable Opt!string bn = pathBaseName(p);
-	return strEqLiteral(bn.forceOrTodo, "crow")
-		? p
-		: has(par)
-		? climbUpToCrow(force(par))
-		: todo!string("no 'crow' directory in path");
-}
-
-immutable(Opt!AbsolutePath) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
+immutable(int) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable ProgramDirAndMain programDirAndMain,
-	ref immutable string include,
+	immutable string includeDir,
+	immutable AbsolutePath cPath,
+	immutable AbsolutePath exePath,
 ) {
 	RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
 		ptrTrustMe_mut(allPaths),
 		ptrTrustMe_mut(alloc),
-		include,
+		includeDir,
 		programDirAndMain.programDir);
-	immutable AbsolutePath cPath =
-		getAbsolutePathFromStorage(alloc, storage, programDirAndMain.mainPath, strLiteral(".c"));
 	immutable BuildToCResult result =
 		buildToC(alloc, allPaths, allSymbols, storage, showDiagOptions, programDirAndMain.mainPath);
 	if (empty(result.diagnostics)) {
 		writeFileSync(alloc, allPaths, cPath, result.cSource);
-		immutable AbsolutePath exePath = withExtension(cPath, emptyStr);
 		compileC(alloc, allPaths, cPath, exePath, result.allExternLibraryNames);
-		return some(exePath);
+		return 0;
 	} else {
 		printErr(result.diagnostics);
-		return none!AbsolutePath;
+		return 1;
 	}
 }
 
@@ -240,7 +297,7 @@ void compileC(Alloc, PathAlloc)(
 	ref immutable string[] allExternLibraryNames,
 ) {
 	immutable AbsolutePath cCompiler =
-		AbsolutePath(strLiteral("/usr/bin"), rootPath(allPaths, shortSymAlphaLiteral("cc")), emptyStr);
+		AbsolutePath(strLiteral("/usr/bin"), rootPath(allPaths, "cc"), emptyStr);
 	ArrBuilder!string args;
 	addAll(alloc, args, arrLiteral!string(alloc, [
 		strLiteral("-Werror"),
@@ -411,7 +468,10 @@ struct RealExtern {
 		ref immutable DynCallType[] parameterTypes,
 	) {
 		// TODO: don't just get everything from SDL...
-		DCpointer ptr = dlsym(sdlHandle, asCStr(name));
+		immutable CStr nameCStr = asCStr(name);
+		DCpointer ptr = dlsym(sdlHandle, nameCStr);
+		if (ptr == null)
+			printf("Can't load symbol %s\n", nameCStr);
 		verify(ptr != null);
 
 		dcReset(dcVm);
@@ -704,7 +764,8 @@ struct CommandLineArgs {
 	immutable int flags,
 	immutable int moreFlags,
 ) {
-	immutable int fd = open(pathToCStr(tempAlloc, allPaths, path), flags, moreFlags);
+	immutable CStr pathCStr = pathToCStr(tempAlloc, allPaths, path);
+	immutable int fd = open(pathCStr, flags, moreFlags);
 	if (fd == -1)
 		todo!void("can't write to file");
 	return fd;

@@ -3,7 +3,7 @@ module util.collection.str;
 @safe @nogc pure nothrow:
 
 import util.collection.arr : at, begin, first, freeArr, size;
-import util.collection.arrUtil : compareArr, rtail, tail;
+import util.collection.arrUtil : cat, compareArr, rtail, tail;
 import util.comparison : Comparison;
 import util.memory : memcpy;
 import util.util : verify;
@@ -98,4 +98,25 @@ immutable(string) stripNulTerminator(immutable NulTerminatedStr a) {
 	foreach (immutable size_t i; 0..size(s))
 		begin[i] = at(s, i);
 	return cast(immutable) begin[0..size(s)];
+}
+
+immutable(bool) startsWith(immutable string a, immutable string b) {
+	return size(a) >= size(b) && strEq(a[0..size(b)], b);
+}
+
+immutable(NulTerminatedStr) catToNulTerminatedStr(Alloc)(
+	ref Alloc alloc,
+	immutable string a,
+	immutable string b,
+) {
+	return catToNulTerminatedStr(alloc, a, b, "");
+}
+
+immutable(NulTerminatedStr) catToNulTerminatedStr(Alloc)(
+	ref Alloc alloc,
+	immutable string a,
+	immutable string b,
+	immutable string c,
+) {
+	return immutable NulTerminatedStr(cat(alloc, a, b, c, "\0"));
 }

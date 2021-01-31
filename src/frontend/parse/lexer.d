@@ -738,7 +738,10 @@ struct StrAndIsOperator {
 	immutable bool isOperator;
 }
 
-@trusted immutable(StrAndIsOperator) takeNameAsTempStr(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+@trusted public immutable(StrAndIsOperator) takeNameAsTempStr(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+) {
 	immutable CStr begin = lexer.ptr;
 	immutable Pos start = curPos(lexer);
 	if (isOperatorChar(*lexer.ptr)) {

@@ -178,7 +178,7 @@ private:
 }
 
 pure immutable(Path) toPath(Alloc)(ref Server!Alloc server, scope ref immutable string path) {
-	return parsePath(server.allPaths, server.allSymbols, path);
+	return parsePath(server.allPaths, path);
 }
 
 immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);

@@ -22,11 +22,10 @@ import util.opt : force, has, Opt;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
 import util.ptr : Ptr, ptrTrustMe_const;
 import util.sourceRange : Pos;
-import util.sym : shortSymAlphaLiteral;
 import util.util : verify, verifyFail;
 
 @trusted void testHover(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	immutable Path path = rootPath(test.allPaths, shortSymAlphaLiteral("main"));
+	immutable Path path = rootPath(test.allPaths, "main");
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(path, StorageKind.local);
 	MutFiles files;
 	immutable NulTerminatedStr contentStr = nulTerminatedStrOfCStr(content);

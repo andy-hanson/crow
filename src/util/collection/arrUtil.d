@@ -503,7 +503,7 @@ private immutable(Acc) each(Acc, T)(
 		initMemory(res + size(a) + size(b) + i, at(c, i));
 	foreach (immutable size_t i; 0..size(d))
 		initMemory(res + size(a) + size(b) + size(c) + i, at(d, i));
-	return immutable T[](cast(immutable) res, resSize);
+	return cast(immutable) res[0..resSize];
 }
 
 @trusted immutable(ArrWithSize!T) append(T, Alloc)(ref Alloc alloc, immutable ArrWithSize!T a, immutable T b) {
@@ -775,6 +775,19 @@ immutable(T) fold(T, U)(
 	return empty(arr)
 		? start
 		: fold!(T, U)(cb(start, first(arr)), tail(arr), cb);
+}
+
+immutable(Opt!T) foldOrStop(T, U)(
+	immutable T start,
+	immutable U[] arr,
+	scope immutable(Opt!T) delegate(ref immutable T a, ref immutable U b) @safe @nogc pure nothrow cb,
+) {
+	if (empty(arr))
+		return some(start);
+	else {
+		immutable Opt!T next = cb(start, first(arr));
+		return has(next) ? foldOrStop!(T, U)(force(next), tail(arr), cb) : none!T;
+	}
 }
 
 immutable(N) arrMax(N, T)(

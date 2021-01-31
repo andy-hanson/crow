@@ -11,7 +11,7 @@ dyncall:
 	cd dyncall && make
 
 site/include-list.txt: bin/crow include/*.crow
-	./bin/crow run script/gen-include-list.crow --interpret > site/include-list.txt
+	./bin/crow run script/gen-include-list.crow > site/include-list.txt
 
 prepare-site: bin/crow.wasm site/include-list.txt package
 
@@ -33,10 +33,10 @@ unit-test: bin/crow
 	./bin/crow test
 
 end-to-end-test: bin/crow
-	./bin/crow run test/test.crow
+	./bin/crow run test/test.crow --out test.c
 
 end-to-end-test-overwrite: bin/crow
-	./bin/crow run test/test.crow -- --overwrite-output
+	./bin/crow run test/test.crow --out test.c -- --overwrite-output
 
 test: unit-test end-to-end-test
 
