@@ -320,7 +320,7 @@ void writeRepr(Alloc)(
 		(ref immutable ReprArr s) {
 			if (measureReprArr(s, availableWidth) < 0) {
 				writeChar(writer, '[');
-				foreach (immutable size_t index; 0..size(s.arr)) {
+				foreach (immutable size_t index; 0 .. size(s.arr)) {
 					writeNewline(writer, indent + 1);
 					if (s.showIndices) {
 						writeNat(writer, index);
@@ -531,7 +531,7 @@ immutable(int) measureReprInt(immutable ReprInt s) {
 	return (s.value < 0 ? 1 : 0) + recur(1, abs(s.value) / s.base);
 }
 
-immutable(int) measureQuotedStr(ref immutable string s) {
+immutable(int) measureQuotedStr(immutable string s) {
 	return 2 + safeIntFromSizeT(size(s));
 }
 

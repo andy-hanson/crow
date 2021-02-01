@@ -64,7 +64,6 @@ import test.testUtil : expectDataStack, expectReturnStack, Test;
 import util.collection.arr : emptyArr;
 import util.collection.fullIndexDict : emptyFullIndexDict, fullIndexDictOfArr;
 import util.collection.globalAllocatedStack : begin, pop, push;
-import util.collection.str : emptyStr, strLiteral;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile;
 import util.memory : nu;
 import util.path : Path, PathAndStorageKind, rootPath, StorageKind;
@@ -116,7 +115,7 @@ void doInterpret(Debug, Alloc)(
 	immutable Path emptyPath = rootPath(test.allPaths, "test");
 	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
 	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc)];
-	static immutable AbsolutePathsGetter emptyAbsolutePathsGetter = immutable AbsolutePathsGetter(emptyStr, emptyStr);
+	static immutable AbsolutePathsGetter emptyAbsolutePathsGetter = immutable AbsolutePathsGetter("", "");
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(pk),
 		ptrTrustMe(emptyAbsolutePathsGetter),
@@ -128,7 +127,7 @@ void doInterpret(Debug, Alloc)(
 			nat64Type,
 			immutable LowFunParamsKind(false, false),
 			emptyArr!LowParam),
-		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc, false, strLiteral("test"))))];
+		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc, false, "test")))];
 	immutable LowProgram lowProgram = immutable LowProgram(
 		immutable AllConstantsLow(emptyArr!ArrTypeAndConstantsLow, emptyArr!PointerTypeAndConstantsLow),
 		nu!AllLowTypes(

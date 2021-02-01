@@ -16,7 +16,7 @@ import util.ptr : Ptr;
 ) {
 	immutable(K)* keys = cast(immutable K*) alloc.allocateBytes(K.sizeof * size(inputs));
 	immutable(V)* values = cast(immutable V*) alloc.allocateBytes(V.sizeof * size(inputs));
-	foreach (immutable size_t i; 0..size(inputs)) {
+	foreach (immutable size_t i; 0 .. size(inputs)) {
 		immutable KeyValuePair!(K, V) pair = getPair(i, ptrAt(inputs, i));
 		// Insert at the first place it's > the previous value.
 		size_t insertAt = 0;

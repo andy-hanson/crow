@@ -20,12 +20,12 @@ struct MultiDict(K, V, alias compare) {
 	void recur(immutable K k, immutable size_t startI, immutable size_t curI) {
 		verify(curI > startI);
 		if (curI == a.size)
-			cb(k, a.values[startI..curI]);
+			cb(k, a.values[startI .. curI]);
 		else {
 			if (compare(a.keys[curI], k) == Comparison.equal)
 				recur(k, startI, curI + 1);
 			else {
-				cb(k, a.values[startI..curI]);
+				cb(k, a.values[startI .. curI]);
 				recur(a.keys[curI], curI, curI + 1);
 			}
 		}
@@ -39,14 +39,14 @@ struct MultiDict(K, V, alias compare) {
 	ref immutable MultiDict!(K, V, compare) d,
 	ref immutable K key,
 ) {
-	foreach (immutable size_t i; 0..d.size) {
+	foreach (immutable size_t i; 0 .. d.size) {
 		if (compare(d.keys[i], key) == Comparison.equal) {
 			size_t j = i + 1;
 			for (; j < d.size; ++j) {
 				if (!compare(d.keys[j], key) == Comparison.equal)
 					break;
 			}
-			return d.values[i..j];
+			return d.values[i .. j];
 		}
 	}
 	return emptyArr!V;

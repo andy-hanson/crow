@@ -15,7 +15,7 @@ void add(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable T value) {
 	push(alloc, a.data, value);
 }
 
-void addAll(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, immutable T[] value) {
+void addAll(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a, scope immutable T[] value) {
 	pushAll(alloc, a.data, value);
 }
 
@@ -55,7 +55,7 @@ private @system const(T*) begin(T)(ref const ArrWithSizeBuilder!T a) {
 		const ubyte* oldData = a.data_;
 		a.capacity_ = a.capacity_ == 0 ? 4 : a.capacity_ * 2;
 		a.data_ = alloc.allocateBytes(size_t.sizeof + T.sizeof * a.capacity_);
-		foreach (immutable size_t i; 0..a.size_)
+		foreach (immutable size_t i; 0 .. a.size_)
 			initMemory(begin(a) + i, (cast(immutable T*) (oldData + size_t.sizeof))[i]);
 	}
 	verify(a.size_ < a.capacity_);
@@ -68,7 +68,7 @@ immutable(size_t) arrWithSizeBuilderSize(T)(ref const ArrWithSizeBuilder!T a) {
 }
 
 @trusted immutable(T[]) arrWithSizeBuilderAsTempArr(T)(ref const ArrWithSizeBuilder!T a) {
-	return cast(immutable) begin(a)[0..a.size_];
+	return cast(immutable) begin(a)[0 .. a.size_];
 }
 
 @trusted immutable(ArrWithSize!T) finishArr(T, Alloc)(ref Alloc alloc, ref ArrWithSizeBuilder!T a) {

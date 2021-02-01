@@ -5,7 +5,7 @@ module interpret.bytecode;
 import model.lowModel : LowFunIndex;
 import util.collection.arr : size;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
-import util.collection.str : NulTerminatedStr, strLiteral, strOfNulTerminatedStr;
+import util.collection.str : NulTerminatedStr, strOfNulTerminatedStr;
 import util.repr : Repr, reprArr, reprHex, reprInt, reprNat, reprRecord, reprStr, reprSym;
 import util.sym : shortSymAlphaLiteral, Sym;
 import util.types : Int16, Nat8, Nat16, Nat32, Nat64, zero;
@@ -594,42 +594,40 @@ enum FnOp : ubyte {
 }
 
 private immutable(string) strOfExternOp(immutable ExternOp op) {
-	return strLiteral(() {
-		final switch (op) {
-			case ExternOp.backtrace:
-				return "backtrace";
-			case ExternOp.clockGetTime:
-				return "clock_gettime";
-			case ExternOp.free:
-				return "free";
-			case ExternOp.getNProcs:
-				return "get_nprocs";
-			case ExternOp.longjmp:
-				return "longjmp";
-			case ExternOp.malloc:
-				return "malloc";
-			case ExternOp.memcpy:
-				return "memcpy";
-			case ExternOp.memmove:
-				return "memmove";
-			case ExternOp.memset:
-				return "memset";
-			case ExternOp.pthreadCreate:
-				return "pthread_create";
-			case ExternOp.pthreadJoin:
-				return "pthread_join";
-			case ExternOp.pthreadYield:
-				return "pthread_yield";
-			case ExternOp.setjmp:
-				return "setjmp";
-			case ExternOp.write:
-				return "write";
-		}
-	}());
+	final switch (op) {
+		case ExternOp.backtrace:
+			return "backtrace";
+		case ExternOp.clockGetTime:
+			return "clock_gettime";
+		case ExternOp.free:
+			return "free";
+		case ExternOp.getNProcs:
+			return "get_nprocs";
+		case ExternOp.longjmp:
+			return "longjmp";
+		case ExternOp.malloc:
+			return "malloc";
+		case ExternOp.memcpy:
+			return "memcpy";
+		case ExternOp.memmove:
+			return "memmove";
+		case ExternOp.memset:
+			return "memset";
+		case ExternOp.pthreadCreate:
+			return "pthread_create";
+		case ExternOp.pthreadJoin:
+			return "pthread_join";
+		case ExternOp.pthreadYield:
+			return "pthread_yield";
+		case ExternOp.setjmp:
+			return "setjmp";
+		case ExternOp.write:
+			return "write";
+	}
 }
 
 private immutable(string) strOfFnOp(immutable FnOp fnOp) {
-	return strLiteral(() { final switch (fnOp) {
+	final switch (fnOp) {
 		case FnOp.addFloat64:
 			return "add-float-64";
 		case FnOp.bitsNotNat64:
@@ -688,5 +686,5 @@ private immutable(string) strOfFnOp(immutable FnOp fnOp) {
 			return "wrap-mul-integral";
 		case FnOp.wrapSubIntegral:
 			return "wrap-sub-integral";
-	} }());
+	}
 }

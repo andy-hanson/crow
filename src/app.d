@@ -31,19 +31,17 @@ import model.model : AbsolutePathsGetter;
 import test.test : test;
 import util.collection.arr : begin, empty, size;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
-import util.collection.arrUtil : arrLiteral, cat, map, tail, zipImpureSystem;
+import util.collection.arrUtil : cat, map, tail, zipImpureSystem;
 import util.collection.str :
 	asCStr,
+	catToCStr,
 	catToNulTerminatedStr,
 	copyStr,
 	CStr,
 	cStrOfNulTerminatedStr,
-	copyToNulTerminatedStr,
 	emptyNulTerminatedStr,
-	emptyStr,
 	NulTerminatedStr,
-	strEqLiteral,
-	strLiteral,
+	strEq,
 	strOfCStr,
 	strToCStr,
 	strOfNulTerminatedStr;
@@ -85,7 +83,7 @@ struct StdoutDebug {
 		return false;
 	}
 
-	void write(scope ref immutable string a) {
+	void write(scope immutable string a) {
 		debug {
 			printf("%.*s", cast(uint) size(a), begin(a));
 		}
@@ -189,9 +187,8 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 			if (entry == null)
 				break;
 			immutable string entryName = strOfCStr(entry.d_name.ptr);
-			if (!strEqLiteral(entryName, ".") && !strEqLiteral(entryName, "..")) {
-				immutable CStr toUnlink = cStrOfNulTerminatedStr(
-					catToNulTerminatedStr(alloc, strOfNulTerminatedStr(dirPath), "/", entryName));
+			if (!strEq(entryName, ".") && !strEq(entryName, "..")) {
+				immutable CStr toUnlink = catToCStr(alloc, strOfNulTerminatedStr(dirPath), "/", entryName);
 				immutable int err = unlink(toUnlink);
 				if (err != 0) {
 					todo!void("failed to unlink");
@@ -235,7 +232,7 @@ immutable(RunBuildResult) runBuild(Alloc, PathAlloc)(
 }
 
 immutable(string) getIncludeDirectory(Alloc)(ref Alloc alloc, immutable string crowDir) {
-	return cat(alloc, crowDir, strLiteral("/include"));
+	return cat(alloc, crowDir, "/include");
 }
 
 immutable(string) getCrowDirectory(immutable string pathToThisExecutable) {
@@ -261,7 +258,7 @@ immutable(int) buildToCAndCompile(Alloc, PathAlloc)(
 	immutable BuildToCResult result =
 		buildToC(alloc, allPaths, storage, showDiagOptions, programDirAndMain.mainPath);
 	if (empty(result.diagnostics)) {
-		writeFileSync(alloc, allPaths, cPath, result.cSource);
+		writeFile(alloc, allPaths, cPath, result.cSource);
 		compileC(alloc, allPaths, cPath, exePath, result.allExternLibraryNames);
 		return 0;
 	} else {
@@ -285,35 +282,33 @@ void compileC(Alloc, PathAlloc)(
 	ref AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath cPath,
 	ref immutable AbsolutePath exePath,
-	ref immutable string[] allExternLibraryNames,
+	immutable string[] allExternLibraryNames,
 ) {
-	immutable AbsolutePath cCompiler =
-		AbsolutePath(strLiteral("/usr/bin"), rootPath(allPaths, "cc"), emptyStr);
 	ArrBuilder!string args;
-	addAll(alloc, args, arrLiteral!string(alloc, [
-		strLiteral("-Werror"),
-		strLiteral("-Wextra"),
-		strLiteral("-Wall"),
-		strLiteral("-ansi"),
-		strLiteral("-std=c11"),
-		strLiteral("-Wno-unused-parameter"),
-		strLiteral("-Wno-unused-but-set-variable"),
-		strLiteral("-Wno-unused-variable"),
-		strLiteral("-Wno-unused-value"),
-		strLiteral("-Wno-builtin-declaration-mismatch"), //TODO:KILL?
-		strLiteral("-pthread"),
-		strLiteral("-lm"),
-	]));
+	addAll(alloc, args, [
+		"-Werror",
+		"-Wextra",
+		"-Wall",
+		"-ansi",
+		"-std=c11",
+		"-Wno-unused-parameter",
+		"-Wno-unused-but-set-variable",
+		"-Wno-unused-variable",
+		"-Wno-unused-value",
+		"-Wno-builtin-declaration-mismatch", //TODO:KILL?
+		"-pthread",
+		"-lm",
+	]);
 	foreach (immutable string it; allExternLibraryNames)
-		add(alloc, args, cat(alloc, strLiteral("-l"), it));
-	addAll(alloc, args, arrLiteral!string(alloc, [
+		add(alloc, args, cat(alloc, "-l", it));
+	addAll(alloc, args, [
 		// TODO: configurable whether we want debug or release
-		strLiteral("-g"),
+		"-g",
 		pathToStr(alloc, allPaths, cPath),
-		strLiteral("-o"),
+		"-o",
 		pathToStr(alloc, allPaths, exePath),
-	]));
-	immutable int err = spawnAndWaitSync(alloc, allPaths, cCompiler, finishArr(alloc, args));
+	]);
+	immutable int err = spawnAndWait(alloc, allPaths, "/usr/bin/cc", finishArr(alloc, args));
 	if (err != 0)
 		todo!void("C compile error");
 }
@@ -672,17 +667,20 @@ extern(C) {
 	content[fileSize] = '\0';
 
 	immutable Opt!NulTerminatedStr s =
-		some(immutable NulTerminatedStr(cast(immutable) content[0..contentSize]));
+		some(immutable NulTerminatedStr(cast(immutable) content[0 .. contentSize]));
 	return cb(s);
 }
 
-@trusted void writeFileSync(TempAlloc, PathAlloc)(
+@trusted void writeFile(TempAlloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath path,
-	ref immutable string content,
+	immutable string content,
 ) {
-	immutable int fd = tryOpen(tempAlloc, allPaths, path, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
+	immutable CStr pathCStr = pathToCStr(tempAlloc, allPaths, path);
+	immutable int fd = open(pathCStr, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
+	if (fd == -1)
+		todo!void("can't write to file");
 	scope(exit) close(fd);
 
 	immutable long wroteBytes = posixWrite(fd, content.begin, size(content));
@@ -691,18 +689,6 @@ extern(C) {
 			todo!void("writeFile failed");
 		else
 			todo!void("writeFile -- didn't write all the bytes?");
-}
-
-// Returns the child process' error code.
-// WARN: A first arg will be prepended that is the executable path.
-@trusted int spawnAndWaitSync(TempAlloc, PathAlloc)(
-	ref TempAlloc tempAlloc,
-	ref const AllPaths!PathAlloc allPaths,
-	immutable AbsolutePath executable,
-	immutable string[] args,
-) {
-	immutable CStr executableCStr = pathToCStr(tempAlloc, allPaths, executable);
-	return spawnAndWaitSync(executableCStr, convertArgs(tempAlloc, executableCStr, args));
 }
 
 // Replaces this process with the given executable.
@@ -731,7 +717,7 @@ struct CommandLineArgs {
 	immutable size_t argc,
 	immutable CStr* argv,
 ) {
-	immutable CStr[] allArgs = argv[0..argc];
+	immutable CStr[] allArgs = argv[0 .. argc];
 	immutable string[] args = map!(string, CStr, Alloc)(alloc, allArgs, (ref immutable CStr a) => strOfCStr(a));
 	// Take the tail because the first one is 'crow'
 	return immutable CommandLineArgs(getPathToThisExecutable(alloc), tail(args));
@@ -748,30 +734,28 @@ struct CommandLineArgs {
 	}
 }
 
-@system int tryOpen(TempAlloc, PathAlloc)(
-	ref TempAlloc tempAlloc,
-	ref const AllPaths!PathAlloc allPaths,
-	ref immutable AbsolutePath path,
-	immutable int flags,
-	immutable int moreFlags,
-) {
-	immutable CStr pathCStr = pathToCStr(tempAlloc, allPaths, path);
-	immutable int fd = open(pathCStr, flags, moreFlags);
-	if (fd == -1)
-		todo!void("can't write to file");
-	return fd;
-}
-
 immutable(string) copyCStrToStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
 	return copyStr(alloc, strOfCStr(begin));
 }
 
-immutable(CStr) copyCStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
-	immutable string str = strOfCStr(begin);
-	return copyToNulTerminatedStr!Alloc(alloc, str).asCStr();
+immutable size_t maxPathSize = 0x1000;
+
+@trusted immutable(string) getPathToThisExecutable(Alloc)(ref Alloc alloc) {
+	char[maxPathSize] buff;
+	immutable long size = readlink("/proc/self/exe", buff.ptr, maxPathSize);
+	if (size < 0)
+		todo!void("posix error");
+	return copyStr(alloc, cast(immutable) buff.ptr[0 .. safeUlongFromLong(size)]);
 }
 
-@trusted immutable(int) spawnAndWaitSync(immutable CStr executablePath, immutable CStr* args) {
+// Returns the child process' error code.
+// WARN: A first arg will be prepended that is the executable path.
+@trusted int spawnAndWait(TempAlloc, PathAlloc)(
+	ref TempAlloc tempAlloc,
+	ref const AllPaths!PathAlloc allPaths,
+	immutable CStr executablePath,
+	immutable string[] args,
+) {
 	pid_t pid;
 	immutable int spawnStatus = posix_spawn(
 		&pid,
@@ -779,7 +763,7 @@ immutable(CStr) copyCStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
 		null,
 		null,
 		// https://stackoverflow.com/questions/50596439/can-string-literals-be-passed-in-posix-spawns-argv
-		cast(char**) args,
+		cast(char**) convertArgs(tempAlloc, executablePath, args),
 		cast(char**) environ);
 	if (spawnStatus == 0) {
 		int waitStatus;
@@ -797,22 +781,14 @@ immutable(CStr) copyCStr(Alloc)(ref Alloc alloc, immutable CStr begin) {
 		return todo!int("posix_spawn failed");
 }
 
-immutable size_t maxPathSize = 1024;
-
-@trusted immutable(string) getPathToThisExecutable(Alloc)(ref Alloc alloc) {
-	char[maxPathSize] buff;
-	immutable long size = readlink("/proc/self/exe", buff.ptr, maxPathSize);
-	if (size < 0)
-		todo!void("posix error");
-	return copyStr(alloc, cast(immutable) buff.ptr[0..safeUlongFromLong(size)]);
-}
-
 // Return should be const, but some posix functions aren't marked that way
-@system immutable(CStr*) convertArgs(Alloc)(ref Alloc alloc, immutable CStr executableCStr, immutable string[] args) {
+@system immutable(CStr*) convertArgs(Alloc)(
+	ref Alloc alloc,
+	immutable CStr executable,
+	immutable string[] args,
+) {
 	ArrBuilder!CStr cArgs;
-	// Make a mutable copy
-	immutable CStr executableCopy = copyCStr(alloc, executableCStr);
-	add(alloc, cArgs, executableCopy);
+	add(alloc, cArgs, executable);
 	foreach (immutable string arg; args)
 		add(alloc, cArgs, strToCStr(alloc, arg));
 	add(alloc, cArgs, null);

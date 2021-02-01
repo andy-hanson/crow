@@ -5,7 +5,7 @@ module test.testFakeExtern;
 import interpret.fakeExtern : FakeExtern, newFakeExtern;
 import test.testUtil : Test;
 import util.collection.arr : empty;
-import util.collection.str : strEqLiteral;
+import util.collection.str : strEq;
 import util.util : verify;
 
 void testFakeExtern(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
@@ -33,8 +33,8 @@ void testWrite(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	extern_.write(2, "tubular", 2);
 	extern_.write(1, "way cool", 5);
 
-	verify(strEqLiteral(extern_.moveStdout(), "gnarway c"));
-	verify(strEqLiteral(extern_.moveStderr(), "tu"));
+	verify(strEq(extern_.moveStdout(), "gnarway c"));
+	verify(strEq(extern_.moveStderr(), "tu"));
 	verify(empty(extern_.moveStdout()));
 	verify(empty(extern_.moveStderr()));
 }

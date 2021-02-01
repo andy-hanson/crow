@@ -35,7 +35,7 @@ void fullIndexDictEachKey(K, V)(
 	ref immutable FullIndexDict!(K, V) a,
 	scope void delegate(immutable K) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0..fullIndexDictSize(a))
+	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
 		cb(immutable K(i));
 }
 
@@ -43,7 +43,7 @@ void fullIndexDictEachValue(K, V)(
 	ref immutable FullIndexDict!(K, V) a,
 	scope void delegate(ref immutable V) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0..fullIndexDictSize(a))
+	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
 		cb(at(a.values, i));
 }
 
@@ -51,7 +51,7 @@ void fullIndexDictEach(K, V)(
 	ref immutable FullIndexDict!(K, V) a,
 	scope void delegate(immutable K, ref immutable V) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0..fullIndexDictSize(a))
+	foreach (immutable size_t i; 0 .. fullIndexDictSize(a))
 		cb(immutable K(i), at(a.values, i));
 }
 

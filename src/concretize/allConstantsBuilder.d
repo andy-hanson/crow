@@ -122,7 +122,7 @@ immutable(Constant) getConstantStr(Alloc)(
 	ref AllConstantsBuilder allConstants,
 	immutable Ptr!ConcreteStruct strStruct,
 	ref immutable ConcreteType charType,
-	ref immutable string str,
+	immutable string str,
 ) {
 	immutable Constant[] chars = map(alloc, str, (ref immutable char c) =>
 		immutable Constant(immutable Constant.Integral(c)));

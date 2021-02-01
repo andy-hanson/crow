@@ -5,7 +5,7 @@ module util.dictReadOnlyStorage;
 import frontend.lang : crowExtension;
 import model.model : AbsolutePathsGetter;
 import util.collection.mutDict : getAt_mut, MutDict;
-import util.collection.str : NulTerminatedStr, strEq, strLiteral;
+import util.collection.str : NulTerminatedStr, strEq;
 import util.opt : asImmutable, Opt;
 import util.path : comparePathAndStorageKind, PathAndStorageKind;
 import util.ptr : Ptr;
@@ -15,7 +15,7 @@ struct DictReadOnlyStorage {
 	@safe @nogc nothrow: // not pure
 
 	pure immutable(AbsolutePathsGetter) absolutePathsGetter() const {
-		return immutable AbsolutePathsGetter(strLiteral("include"), strLiteral("user"));
+		return immutable AbsolutePathsGetter("include", "user");
 	}
 
 	immutable(T) withFile(T)(

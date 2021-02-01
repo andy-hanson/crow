@@ -15,7 +15,6 @@ import model.concreteModel :
 	name;
 import model.constant : Constant;
 import model.model : asRecord, body_;
-import util.collection.arrUtil : slice;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.comparison : compareEnum, compareSizeT, Comparison;
 import util.opt : Opt;
@@ -553,7 +552,7 @@ immutable(size_t) firstRegularParamIndex(ref immutable LowFun a) {
 }
 
 immutable(LowParam[]) regularParams(ref immutable LowFun a) {
-	return slice(a.params, firstRegularParamIndex(a));
+	return a.params[firstRegularParamIndex(a) .. $];
 }
 
 immutable(FileAndRange) lowFunRange(ref immutable LowFun a) {

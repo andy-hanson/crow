@@ -6,8 +6,8 @@ import frontend.parse.ast : LiteralAst, NameAndRange, rangeOfNameAndRange;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.arrUtil : cat, rtail, slice;
-import util.collection.str : copyStr, CStr, emptyStr, NulTerminatedStr, stripNulTerminator, strLiteral;
+import util.collection.arrUtil : cat, rtail;
+import util.collection.str : copyStr, CStr, NulTerminatedStr, strOfNulTerminatedStr;
 import util.opt : force, has, Opt, optOr;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
@@ -47,8 +47,8 @@ struct Lexer(SymAlloc) {
 	immutable NulTerminatedStr source,
 ) {
 	// Note: We *are* relying on the nul terminator to stop the lexer.
-	immutable string str = stripNulTerminator(source);
-	immutable string useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc, str, strLiteral("\n\0")));
+	immutable string str = strOfNulTerminatedStr(source);
+	immutable string useStr = !empty(str) && last(str) == '\n' ? str : rtail(cat!char(alloc, str, "\n\0"));
 	return Lexer!SymAlloc(
 		allSymbols,
 		ArrBuilder!ParseDiagnostic(),
@@ -357,7 +357,7 @@ immutable(Sym) takeName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lex
 immutable(string) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
 	return takeOrAddDiagExpected(alloc, lexer, '"', ParseDiag.Expected.Kind.quote)
 		? takeStringLiteralAfterQuote(lexer, alloc)
-		: emptyStr;
+		: "";
 }
 
 @trusted void skipUntilNewlineNoDiag(SymAlloc)(ref Lexer!SymAlloc lexer) {
@@ -392,9 +392,9 @@ immutable(IndentKind) detectIndentKind(immutable string str) {
 			// Only allowed amounts are 2 and 4.
 			return i == 2 ? IndentKind.spaces2 : IndentKind.spaces4;
 		} else {
-			foreach (immutable size_t i; 0..size(str))
+			foreach (immutable size_t i; 0 .. size(str))
 				if (at(str, i) == '\n')
-					return detectIndentKind(slice(str, i + 1));
+					return detectIndentKind(str[i + 1 .. $]);
 			return IndentKind.tabs;
 		}
 	}
@@ -617,7 +617,7 @@ public @trusted immutable(string) takeStringLiteralAfterQuote(Alloc, SymAlloc)(
 	// Skip past the closing '"'
 	lexer.ptr++;
 	verify(outI == size);
-	return cast(immutable) res[0..size];
+	return cast(immutable) res[0 .. size];
 }
 
 public @trusted immutable(string) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {
@@ -759,7 +759,7 @@ struct StrAndIsOperator {
 		immutable string s = copyStr(alloc, arrOfRange(begin, lexer.ptr));
 		addDiag(alloc, lexer, range(lexer, begin), immutable ParseDiag(
 			immutable ParseDiag.InvalidName(s)));
-		return immutable StrAndIsOperator(strLiteral(""), start, false);
+		return immutable StrAndIsOperator("", start, false);
 	}
 }
 

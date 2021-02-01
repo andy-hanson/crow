@@ -16,7 +16,7 @@ import util.collection.arr : at, emptyArr, freeArr;
 import util.collection.arrUtil : map;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictSize;
 import util.collection.mutDict : getAt_mut, insertOrUpdate, mustDelete, mustGetAt_mut;
-import util.collection.str : copyToNulTerminatedStr, CStr, cStrOfNulTerminatedStr, emptyStr, NulTerminatedStr;
+import util.collection.str : copyToNulTerminatedStr, CStr, cStrOfNulTerminatedStr, NulTerminatedStr;
 import util.comparison : Comparison;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.opt : force, has, none, Opt, some;
@@ -44,8 +44,8 @@ void addOrChangeFile(Debug, ServerAlloc)(
 	ref Debug,
 	ref Server!ServerAlloc server,
 	immutable StorageKind storageKind,
-	scope ref immutable string path,
-	scope ref immutable string content,
+	scope immutable string path,
+	scope immutable string content,
 ) {
 	immutable PathAndStorageKind key = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable NulTerminatedStr contentCopy = copyToNulTerminatedStr(server.alloc, content);
@@ -132,9 +132,9 @@ private pure immutable(string) getHoverFromProgram(Alloc, ServerAlloc)(
 	immutable Opt!FileIndex fileIndex = getFileIndex(program.filesInfo.filePaths, pk);
 	if (has(fileIndex)) {
 		immutable Opt!Position position = getPosition(at(program.allModules, force(fileIndex).index), pos);
-		return has(position) ? getHoverStr(alloc, alloc, server.allPaths, program, force(position)) : emptyStr;
+		return has(position) ? getHoverStr(alloc, alloc, server.allPaths, program, force(position)) : "";
 	} else
-		return emptyStr;
+		return "";
 }
 
 //TODO:KILL, use a reverse lookup
@@ -142,7 +142,7 @@ private pure immutable(Opt!FileIndex) getFileIndex(
 	scope ref immutable FullIndexDict!(FileIndex, PathAndStorageKind) filePaths,
 	scope ref immutable PathAndStorageKind search,
 ) {
-	foreach (immutable size_t i; 0..fullIndexDictSize(filePaths))
+	foreach (immutable size_t i; 0 .. fullIndexDictSize(filePaths))
 		if (comparePathAndStorageKind(at(filePaths.values, i), search) == Comparison.equal)
 			return some(immutable FileIndex(safeSizeTToU16(i)));
 	return none!FileIndex;
@@ -173,11 +173,11 @@ immutable(RunResult) run(Debug, Alloc, ServerAlloc)(
 
 private:
 
-@trusted void trustedFree(Alloc)(ref Alloc alloc, ref immutable string a) {
+@trusted void trustedFree(Alloc)(ref Alloc alloc, immutable string a) {
 	freeArr(alloc, a);
 }
 
-pure immutable(Path) toPath(Alloc)(ref Server!Alloc server, scope ref immutable string path) {
+pure immutable(Path) toPath(Alloc)(ref Server!Alloc server, scope immutable string path) {
 	return parsePath(server.allPaths, path);
 }
 

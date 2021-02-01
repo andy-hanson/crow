@@ -66,7 +66,7 @@ private:
 }
 
 @system immutable(ubyte[]) asBytes(T)(immutable T* value) {
-	return (cast(immutable ubyte*) value)[0..T.sizeof];
+	return (cast(immutable ubyte*) value)[0 .. T.sizeof];
 }
 
 @trusted void writeBytes(T, Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutable T value) {

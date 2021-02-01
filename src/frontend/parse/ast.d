@@ -5,7 +5,6 @@ module frontend.parse.ast;
 import util.collection.arr : ArrWithSize, empty, emptyArr, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
-import util.collection.str : emptyStr;
 import util.opt : force, has, none, Opt, some;
 import util.path : AllPaths, Path, pathToStr;
 import util.ptr : Ptr;
@@ -830,7 +829,7 @@ immutable(Repr) reprImportAst(Alloc, PathAlloc)(
 ) {
 	return reprRecord(alloc, "import-ast", [
 		reprNat(a.nDots),
-		reprStr(pathToStr(alloc, allPaths, emptyStr, a.path, emptyStr)),
+		reprStr(pathToStr(alloc, allPaths, "", a.path, "")),
 		reprOpt!(Alloc, Sym[])(alloc, a.names, (ref immutable Sym[] names) =>
 			reprArr(alloc, names, (ref immutable Sym name) =>
 				reprSym(name)))]);

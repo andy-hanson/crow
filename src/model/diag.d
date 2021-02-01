@@ -25,7 +25,6 @@ import model.model :
 	Type;
 import model.parseDiag : ParseDiag;
 import util.collection.fullIndexDict : fullIndexDictGet;
-import util.collection.str : emptyStr;
 import util.opt : Opt;
 import util.path : AbsolutePath, AllPaths, PathAndStorageKind, pathToStr;
 import util.ptr : Ptr;
@@ -711,7 +710,7 @@ private void writeFileNoResetWriter(TempAlloc, Alloc, PathAlloc)(
 		writeStatic(writer, "<generated code> ");
 	} else {
 		immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, fileIndex);
-		immutable string pathStr = pathToStr(tempAlloc, allPaths, emptyStr, path.path, crowExtension);
+		immutable string pathStr = pathToStr(tempAlloc, allPaths, "", path.path, crowExtension);
 		if (options.color) {
 			immutable AbsolutePath abs = getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, crowExtension);
 			writeHyperlink(writer, pathToStr(tempAlloc, allPaths, abs), pathStr);

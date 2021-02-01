@@ -418,7 +418,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 	} else {
 		verify(zero(size % immutable Nat16(8)));
 		verify(zero(offset % immutable Nat16(8)));
-		foreach (immutable size_t i; 0..(size.raw() / 8))
+		foreach (immutable size_t i; 0 .. (size.raw() / 8))
 			push(a.dataStack, ((cast(immutable Nat64*) ptr) + (offset.raw() / 8))[i]);
 	}
 }
@@ -481,7 +481,7 @@ void pushStackRef(ref DataStack dataStack, immutable StackOffset offset) {
 			offsetWords * immutable Nat16(8),
 			sizeWords * immutable Nat16(8));
 		Nat64* ptr = ptrWithoutOffset + offsetWords.raw();
-		foreach (immutable ushort i; 0..sizeWords.raw())
+		foreach (immutable ushort i; 0 .. sizeWords.raw())
 			ptr[i] = peek(a.dataStack, (decr(sizeWords) - immutable Nat16(i)).to8());
 		popN(a.dataStack, incr(sizeWords).to8());
 	}
@@ -575,14 +575,14 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
 			const ubyte* src = cast(ubyte*) pop(a.dataStack).raw();
 			ubyte* dest = cast(ubyte*) pop(a.dataStack).raw();
-			foreach (immutable size_t i; 0..size)
+			foreach (immutable size_t i; 0 .. size)
 				dest[i] = src[i];
 			break;
 		case ExternOp.memset:
 			immutable size_t size = safeSizeTFromU64(pop(a.dataStack).raw());
 			immutable ubyte value = pop(a.dataStack).to8().raw();
 			ubyte* begin = cast(ubyte*) pop(a.dataStack).raw();
-			foreach (immutable size_t i; 0..size)
+			foreach (immutable size_t i; 0 .. size)
 				begin[i] = value;
 			break;
 		case ExternOp.pthreadCreate:
@@ -623,7 +623,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 		immutable Nat16(0),
 		(immutable Nat64((void*).sizeof * size)).to16());
 	immutable size_t resSize = min(stackSize(a.returnStack).raw(), size);
-	foreach (immutable size_t i; 0..resSize)
+	foreach (immutable size_t i; 0 .. resSize)
 		res[i] = cast(void*) byteCodeIndexOfPtr(a, a.returnStack.peek((immutable Nat64(i)).to8())).index.raw();
 	return resSize;
 }

@@ -146,6 +146,24 @@ export const CrowRunnable = makeCustomElement({
 	},
 })
 
+const Icon = makeCustomElement({
+	tagName: "crow-icon",
+	styleSheet: new StyleBuilder()
+		.rule(Selector.child(Selector.class(iconClass), Selector.tag("svg")), {
+			height: Measure.em(1.25),
+		})
+		.end(),
+	init: () => ({state:null, out:null}),
+	connected: async ({ getAttribute, root }) => {
+		const icon = getAttribute("icon")
+		const theIcon = nonNull({
+			copy: copyIcon,
+			download: downloadIcon,
+			play: playIcon,
+		}[icon])()
+		root.appendChild(theIcon)
+	},
+})
 
 // Icons from https://heroicons.com/
 

@@ -9,13 +9,7 @@ import model.model : Module, Program;
 import test.testUtil : Test;
 import util.collection.arr : last, size;
 import util.collection.mutDict : addToMutDict;
-import util.collection.str :
-	emptyStr,
-	NulTerminatedStr,
-	nulTerminatedStrOfCStr,
-	strEqLiteral,
-	strLiteral,
-	strOfNulTerminatedStr;
+import util.collection.str : NulTerminatedStr, nulTerminatedStrOfCStr, strEq, strOfNulTerminatedStr;
 import util.dbg : log, logNat, logNoNewline;
 import util.dictReadOnlyStorage : DictReadOnlyStorage, MutFiles;
 import util.opt : force, has, Opt;
@@ -39,14 +33,14 @@ import util.util : verify, verifyFail;
 		immutable Opt!Position position = getPosition(mainModule, pos);
 		return has(position)
 			? getHoverStr!(Alloc, Alloc, Alloc)(test.alloc, test.alloc, test.allPaths, program, force(position))
-			: emptyStr;
+			: "";
 	}
 
 	void checkHover(immutable Pos pos, immutable string expected) {
 		verifyStrEq(test.dbg, pos, hover(pos), expected);
 	}
 	void checkHoverRange(immutable Pos start, immutable Pos end, immutable string expected) {
-		foreach (immutable Pos pos; start..end)
+		foreach (immutable Pos pos; start .. end)
 			checkHover(pos, expected);
 	}
 
@@ -73,8 +67,8 @@ import util.util : verify, verifyFail;
 private:
 
 void verifyStrEq(Debug)(ref Debug dbg, immutable Pos pos, immutable string actual, immutable string expected) {
-	if (!strEqLiteral(actual, expected)) {
-		logNoNewline(dbg, strLiteral("at position "));
+	if (!strEq(actual, expected)) {
+		logNoNewline(dbg, "at position ");
 		logNat(dbg, pos);
 		log(dbg, "\nactual:");
 		log(dbg, actual);

@@ -13,10 +13,10 @@ dyncall:
 site/include-list.txt: bin/crow include/*.crow
 	./bin/crow run script/gen-include-list.crow > site/include-list.txt
 
-prepare-site: bin/crow.wasm site/include-list.txt package
+prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz
 
 serve: prepare-site
-	python -m SimpleHTTPServer 8080
+	cd site && python -m SimpleHTTPServer 8080
 
 lint-dscanner:
 	dub run dscanner -- --styleCheck src/*.d src/*/*.d src/*/*/*.d
@@ -64,5 +64,5 @@ bin/crow.wasm: $(src_deps)
 	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm \
 		--d-debug -g $(d_flags) $(wasm_flags) $(wasm_files)
 
-package: bin/crow
+bin/crow.tar.xz: bin/crow demo/* include/* include/*/*
 	tar -C .. -cJf bin/crow.tar.xz crow/bin/crow crow/demo crow/include

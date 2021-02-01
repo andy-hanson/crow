@@ -3,7 +3,7 @@ module test.testWriter;
 @safe @nogc pure nothrow:
 
 import test.testUtil : Test;
-import util.collection.str : strEqLiteral;
+import util.collection.str : strEq;
 import util.util : verify;
 import util.writer : finishWriter, writeFloatLiteral, Writer;
 
@@ -12,7 +12,7 @@ import util.writer : finishWriter, writeFloatLiteral, Writer;
 		Writer!Alloc writer = Writer!Alloc(test.alloc);
 		writeFloatLiteral(writer, value);
 		immutable string res = finishWriter(writer);
-		verify(strEqLiteral(res, expected));
+		verify(strEq(res, expected));
 	}
 
 	writes(-0.0, "-0.0");

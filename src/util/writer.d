@@ -5,7 +5,7 @@ module util.writer;
 import util.ptr : Ptr;
 import util.collection.arr : at, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr, strLiteral;
+import util.collection.str : CStr, cStrOfNulTerminatedStr, NulTerminatedStr;
 import util.ptr : PtrRange;
 import util.types : abs;
 import util.util : verify;
@@ -36,7 +36,7 @@ void writeStr(Alloc)(ref Writer!Alloc writer, immutable string s) {
 }
 
 void writeStatic(Alloc)(ref Writer!Alloc writer, immutable string c) {
-	writeStr(writer, strLiteral(c));
+	writeStr(writer, c);
 }
 
 void writeHex(Alloc)(ref Writer!Alloc writer, immutable ulong a) {
@@ -121,7 +121,7 @@ void writeWithCommas(T, Alloc)(
 	immutable bool leadingComma,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0..size(a)) {
+	foreach (immutable size_t i; 0 .. size(a)) {
 		if (leadingComma || i != 0)
 			writeStatic(writer, ", ");
 		cb(at(a, i));
@@ -133,7 +133,7 @@ void writeWithCommas(Alloc)(
 	immutable size_t n,
 	scope void delegate(immutable size_t) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0..n) {
+	foreach (immutable size_t i; 0 .. n) {
 		if (i != 0)
 			writeStatic(writer, ", ");
 		cb(i);
@@ -145,7 +145,7 @@ void writeWithNewlines(T, Alloc)(
 	ref immutable T[] a,
 	scope void delegate(ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0..size(a)) {
+	foreach (immutable size_t i; 0 .. size(a)) {
 		if (i != 0)
 			writeStatic(writer, "\n");
 		cb(at(a, i));
@@ -226,6 +226,6 @@ void writeHyperlink(Alloc)(ref Writer!Alloc writer, immutable string url, immuta
 
 void writeNewline(Alloc)(ref Writer!Alloc writer, immutable size_t indent) {
 	writeChar(writer, '\n');
-	foreach (immutable size_t _; 0..indent)
+	foreach (immutable size_t _; 0 .. indent)
 		writeChar(writer, '\t');
 }

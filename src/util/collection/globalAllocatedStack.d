@@ -46,7 +46,7 @@ void clearStack(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
 }
 
 @trusted immutable(T[]) asTempArr(T, size_t capacity)(ref const GlobalAllocatedStack!(T, capacity) a) {
-	return cast(immutable) a.values[0..a.size];
+	return cast(immutable) a.values[0 .. a.size];
 }
 
 immutable(T[]) toArr(Alloc, T, size_t capacity)(ref Alloc alloc, ref const GlobalAllocatedStack!(T, capacity) a) {
@@ -55,7 +55,7 @@ immutable(T[]) toArr(Alloc, T, size_t capacity)(ref Alloc alloc, ref const Globa
 
 void setToArr(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable T[] arr) {
 	verify(size(arr) < capacity);
-	foreach (immutable size_t i; 0..size(arr))
+	foreach (immutable size_t i; 0 .. size(arr))
 		a.values[i] = at(arr, i);
 	a.size = safeSizeTToU32(size(arr));
 }
@@ -87,7 +87,7 @@ immutable(T) peek(T, size_t capacity)(
 @trusted immutable(Nat64[]) popN(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a, immutable Nat8 n) {
 	verify(a.size >= n.raw());
 	a.size -= n.raw();
-	return cast(immutable) a.values[a.size..a.size + n.raw()];
+	return cast(immutable) a.values[a.size .. a.size + n.raw()];
 }
 
 immutable(T) pop(T, size_t capacity)(ref GlobalAllocatedStack!(T, capacity) a) {
@@ -114,7 +114,7 @@ void remove(T, size_t capacity)(
 	verify(!zero(nEntries));
 	verify(offset >= decr(nEntries));
 	verify(offset.raw() < a.size);
-	foreach (immutable size_t i; a.size - 1 - offset.raw()..a.size - nEntries.raw())
+	foreach (immutable size_t i; a.size - 1 - offset.raw() .. a.size - nEntries.raw())
 		a.values[i] = a.values[i + nEntries.raw()];
 	a.size -= nEntries.raw();
 }

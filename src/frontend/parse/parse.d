@@ -60,7 +60,7 @@ import frontend.parse.parseType : parseType, parseTypeInstStruct, takeTypeArgsEn
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, ArrWithSizeBuilder, finishArr;
-import util.collection.str : CStr, emptyStr, NulTerminatedStr;
+import util.collection.str : CStr, NulTerminatedStr;
 import util.memory : allocate, nu;
 import util.opt : force, has, mapOption, none, Opt, optOr, some;
 import util.path : AllPaths, childPath, Path, rootPath;
@@ -525,7 +525,7 @@ immutable(FunBodyAst.Extern) takeExternName(Alloc, SymAlloc)(
 			alloc,
 			lexer,
 			immutable ParseDiag(immutable ParseDiag.Expected(ParseDiag.Expected.Kind.externName)));
-		return immutable FunBodyAst.Extern(isGlobal, emptyStr, none!string);
+		return immutable FunBodyAst.Extern(isGlobal, "", none!string);
 	}
 }
 

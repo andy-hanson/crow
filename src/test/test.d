@@ -15,7 +15,7 @@ import test.testSym : testSym;
 import test.testTokens : testTokens;
 import test.testUtil : Test;
 import test.testWriter : testWriter;
-import util.collection.str : strEqLiteral;
+import util.collection.str : strEq;
 import util.opt : force, has, Opt;
 import util.path : AllPaths;
 import util.ptr : ptrTrustMe_mut;
@@ -28,7 +28,7 @@ int test(Debug, Alloc)(ref Debug dbg, ref Alloc alloc, immutable Opt!string name
 		AllSymbols!Alloc(ptrTrustMe_mut(alloc)),
 		AllPaths!Alloc(ptrTrustMe_mut(alloc)));
 	foreach (ref immutable NameAndTest!(Debug, Alloc) it; allTests!(Debug, Alloc))
-		if (!has(name) || strEqLiteral(force(name), it.name))
+		if (!has(name) || strEq(force(name), it.name))
 			it.test(test);
 	return 0;
 }

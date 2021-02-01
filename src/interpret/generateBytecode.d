@@ -99,7 +99,7 @@ import util.collection.mutIndexMultiDict :
 	mutIndexMultiDictAdd,
 	mutIndexMultiDictMustGetAt,
 	newMutIndexMultiDict;
-import util.collection.str : strEqLiteral;
+import util.collection.str : strEq;
 import util.opt : force, has, none, Opt, some;
 import util.ptr : comparePtr, Ptr, ptrTrustMe, ptrTrustMe_mut;
 import util.sourceRange : FileIndex;
@@ -315,33 +315,33 @@ immutable(DynCallType) toDynCallType(ref immutable LowType a) {
 }
 
 immutable(Opt!ExternOp) externOpFromName(immutable string a) {
-	return strEqLiteral(a, "backtrace")
+	return strEq(a, "backtrace")
 			? some(ExternOp.backtrace)
-		: strEqLiteral(a, "clock_gettime")
+		: strEq(a, "clock_gettime")
 			? some(ExternOp.clockGetTime)
-		: strEqLiteral(a, "free")
+		: strEq(a, "free")
 			? some(ExternOp.free)
-		: strEqLiteral(a, "get_nprocs")
+		: strEq(a, "get_nprocs")
 			? some(ExternOp.getNProcs)
-		: strEqLiteral(a, "longjmp")
+		: strEq(a, "longjmp")
 			? some(ExternOp.longjmp)
-		: strEqLiteral(a, "malloc")
+		: strEq(a, "malloc")
 			? some(ExternOp.malloc)
-		: strEqLiteral(a, "memcpy")
+		: strEq(a, "memcpy")
 			? some(ExternOp.memcpy)
-		: strEqLiteral(a, "memmove")
+		: strEq(a, "memmove")
 			? some(ExternOp.memmove)
-		: strEqLiteral(a, "memset")
+		: strEq(a, "memset")
 			? some(ExternOp.memset)
-		: strEqLiteral(a, "pthread_create")
+		: strEq(a, "pthread_create")
 			? some(ExternOp.pthreadCreate)
-		: strEqLiteral(a, "pthread_join")
+		: strEq(a, "pthread_join")
 			? some(ExternOp.pthreadJoin)
-		: strEqLiteral(a, "pthread_yield")
+		: strEq(a, "pthread_yield")
 			? some(ExternOp.pthreadYield)
-		: strEqLiteral(a, "setjmp")
+		: strEq(a, "setjmp")
 			? some(ExternOp.setjmp)
-		: strEqLiteral(a, "write")
+		: strEq(a, "write")
 			? some(ExternOp.write)
 		: none!ExternOp;
 }

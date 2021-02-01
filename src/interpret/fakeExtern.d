@@ -54,7 +54,7 @@ struct FakeExtern(Alloc) {
 	}
 
 	@trusted immutable(long) write(int fd, immutable char* buf, immutable size_t nBytes) {
-		immutable char[] arr = buf[0..nBytes];
+		immutable char[] arr = buf[0 .. nBytes];
 		verify(fd == 1 || fd == 2);
 		pushAll!(char, Alloc)(alloc.deref(), fd == 1 ? stdout : stderr, arr);
 		return nBytes;

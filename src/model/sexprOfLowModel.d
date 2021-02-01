@@ -39,7 +39,6 @@ import model.reprConcreteModel :
 	reprOfConcreteStructRef;
 import model.reprConstant : reprOfConstant;
 import util.collection.arr : size;
-import util.collection.str : strLiteral;
 import util.ptr : Ptr;
 import util.repr :
 	nameAndRepr,
@@ -227,22 +226,22 @@ immutable(Repr) reprOfLowExprKind(Alloc)(ref Alloc alloc, ref immutable LowExprK
 			reprOfConstant(alloc, it),
 		(ref immutable LowExprKind.SpecialUnary it) =>
 			reprRecord(alloc, "unary", [
-				reprStr(strLiteral(strOfSpecialUnaryKind(it.kind))),
+				reprStr(strOfSpecialUnaryKind(it.kind)),
 				reprOfLowExpr(alloc, it.arg)]),
 		(ref immutable LowExprKind.SpecialBinary it) =>
 			reprRecord(alloc, "binary", [
-				reprStr(strLiteral(strOfSpecialBinaryKind(it.kind))),
+				reprStr(strOfSpecialBinaryKind(it.kind)),
 				reprOfLowExpr(alloc, it.left),
 				reprOfLowExpr(alloc, it.right)]),
 		(ref immutable LowExprKind.SpecialTrinary it) =>
 			reprRecord(alloc, "trinary", [
-				reprStr(strLiteral(strOfSpecialTrinaryKind(it.kind))),
+				reprStr(strOfSpecialTrinaryKind(it.kind)),
 				reprOfLowExpr(alloc, it.p0),
 				reprOfLowExpr(alloc, it.p1),
 				reprOfLowExpr(alloc, it.p2)]),
 		(ref immutable LowExprKind.SpecialNAry it) =>
 			reprRecord(alloc, "n-ary", [
-				reprStr(strLiteral(strOfSpecialNAryKind(it.kind))),
+				reprStr(strOfSpecialNAryKind(it.kind)),
 				reprArr(alloc, it.args, (ref immutable LowExpr arg) =>
 					reprOfLowExpr(alloc, arg))]),
 		(ref immutable LowExprKind.Switch it) =>

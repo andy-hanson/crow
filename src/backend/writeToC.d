@@ -138,21 +138,21 @@ private:
 
 void writeConstants(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immutable AllConstantsLow allConstants) {
 	foreach (ref immutable ArrTypeAndConstantsLow a; allConstants.arrs) {
-		foreach (immutable size_t i; 0..size(a.constants)) {
+		foreach (immutable size_t i; 0 .. size(a.constants)) {
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, size(at(a.constants, i)));
 			writeStatic(writer, ";\n");
 		}
 	}
 
 	foreach (ref immutable PointerTypeAndConstantsLow a; allConstants.pointers) {
-		foreach (immutable size_t i; 0..size(a.constants)) {
+		foreach (immutable size_t i; 0 .. size(a.constants)) {
 			declareConstantPointerStorage(writer, ctx, a.pointeeType, i);
 			writeStatic(writer, ";\n");
 		}
 	}
 
 	foreach (ref immutable ArrTypeAndConstantsLow a; allConstants.arrs) {
-		foreach (immutable size_t i; 0..size(a.constants)) {
+		foreach (immutable size_t i; 0 .. size(a.constants)) {
 			immutable Constant[] elements = at(a.constants, i);
 			declareConstantArrStorage(writer, ctx, a.arrType, a.elementType, i, size(elements));
 			writeStatic(writer, " = ");
@@ -173,7 +173,7 @@ void writeConstants(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref i
 	}
 
 	foreach (ref immutable PointerTypeAndConstantsLow a; allConstants.pointers) {
-		foreach (immutable size_t i; 0..size(a.constants)) {
+		foreach (immutable size_t i; 0 .. size(a.constants)) {
 			declareConstantPointerStorage(writer, ctx, a.pointeeType, i);
 			writeStatic(writer, " = ");
 			writeConstantRef(writer, ctx, ConstantRefPos.inner, a.pointeeType, at(a.constants, i));
@@ -478,7 +478,7 @@ void writeUnion(Alloc)(ref Writer!Alloc writer, ref immutable Ctx ctx, ref immut
 	writeStructHead(writer, ctx, a.source);
 	writeStatic(writer, "\n\tuint64_t kind;");
 	writeStatic(writer, "\n\tunion {");
-	foreach (immutable size_t memberIndex; 0..size(a.members)) {
+	foreach (immutable size_t memberIndex; 0 .. size(a.members)) {
 		writeStatic(writer, "\n\t\t");
 		writeType(writer, ctx, at(a.members, memberIndex));
 		writeStatic(writer, " as");
@@ -1488,7 +1488,7 @@ immutable(WriteExprResult) writeMatch(Alloc, TempAlloc)(
 	writeStatic(writer, "switch (");
 	writeTempRef(writer, matchedValue);
 	writeStatic(writer, ".kind) {");
-	foreach (immutable size_t caseIndex; 0..size(a.cases)) {
+	foreach (immutable size_t caseIndex; 0 .. size(a.cases)) {
 		immutable LowExprKind.Match.Case case_ = at(a.cases, caseIndex);
 		writeNewline(writer, indent + 1);
 		writeStatic(writer, "case ");
@@ -1538,7 +1538,7 @@ immutable(WriteExprResult) writeSwitch(Alloc, TempAlloc)(
 	writeStatic(writer, "switch (");
 	writeTempOrInline(writer, tempAlloc, ctx, a.value, value);
 	writeStatic(writer, ") {");
-	foreach (immutable size_t caseIndex; 0..size(a.cases)) {
+	foreach (immutable size_t caseIndex; 0 .. size(a.cases)) {
 		immutable LowExpr case_ = at(a.cases, caseIndex);
 		writeNewline(writer, indent + 1);
 		writeStatic(writer, "case ");

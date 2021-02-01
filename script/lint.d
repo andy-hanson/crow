@@ -96,7 +96,7 @@ immutable(Members) getMembers(immutable string path) {
 	immutable(string)[] public_;
 	immutable(string)[] private_;
 
-	foreach (immutable string line; splitLines(res.output[index + lookFor.length..$])) {
+	foreach (immutable string line; splitLines(res.output[index + lookFor.length .. $])) {
 		if (!(contains(line, "enum:") || contains(line, "struct:"))) {
 			immutable ptrdiff_t space = indexOfAny(line, " \t");
 			if (space == -1) {
@@ -104,7 +104,7 @@ immutable(Members) getMembers(immutable string path) {
 				writeln(line);
 				assert(0);
 			}
-			immutable string name = line[0..space];
+			immutable string name = line[0 .. space];
 			if (contains(line, "access:public")) {
 				public_ ~= name;
 				// For some reason dscanner doesn't give non-nested unions like Converter64 access:private
@@ -160,7 +160,7 @@ immutable(ImportsAndRest) findImports(immutable string s) {
 	size_t lastImport = 0;
 	ptrdiff_t i = 0;
 	while (true) {
-		immutable ptrdiff_t importI = indexOf(s[i..$], "import ");
+		immutable ptrdiff_t importI = indexOf(s[i .. $], "import ");
 		if (importI == -1)
 			break;
 		i += importI;
@@ -170,7 +170,7 @@ immutable(ImportsAndRest) findImports(immutable string s) {
 		}
 		i += "import ".length;
 
-		immutable ptrdiff_t midI = indexOfAny(s[i..$], ":;");
+		immutable ptrdiff_t midI = indexOfAny(s[i .. $], ":;");
 		if (midI == -1)
 			break;
 		i += midI;
@@ -178,17 +178,17 @@ immutable(ImportsAndRest) findImports(immutable string s) {
 			continue;
 		i++;
 
-		immutable ptrdiff_t endI = indexOf(s[i..$], ';');
+		immutable ptrdiff_t endI = indexOf(s[i .. $], ';');
 		if (endI == -1)
 			break;
-		eachWord(s[i..i + endI], (immutable string word) {
+		eachWord(s[i .. i + endI], (immutable string word) {
 			res[word] = immutable Void();
 		});
 		i += endI + 1;
 		lastImport = i;
 	}
 
-	return immutable ImportsAndRest(castImmutable(res), s[lastImport..$]);
+	return immutable ImportsAndRest(castImmutable(res), s[lastImport .. $]);
 }
 
 @trusted immutable(Void[immutable string]) castImmutable(Void[immutable string] a) {
@@ -215,20 +215,20 @@ immutable(Uses[immutable string]) getUses(immutable string s) {
 
 void eachWord(immutable string s, scope void delegate(immutable string) @safe pure cb) {
 	long wordStart = -1;
-	foreach (immutable size_t i; 0..s.length) {
+	foreach (immutable size_t i; 0 .. s.length) {
 		if (isIdentifierChar(s[i])) {
 			if (wordStart == -1) {
 				wordStart = i;
 			}
 		} else {
 			if (wordStart != -1) {
-				cb(s[wordStart..i]);
+				cb(s[wordStart .. i]);
 				wordStart = -1;
 			}
 		}
 	}
 	if (wordStart != -1)
-		cb(s[wordStart..$]);
+		cb(s[wordStart .. $]);
 }
 
 immutable(bool) isIdentifierChar(immutable char c) {

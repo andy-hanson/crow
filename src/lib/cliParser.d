@@ -5,7 +5,7 @@ import lib.compiler : PrintFormat, PrintKind;
 import util.collection.arr : at, empty, emptyArr, first, only, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : findIndex, foldOrStop, tail;
-import util.collection.str : startsWith, strEq, strEqLiteral;
+import util.collection.str : startsWith, strEq;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, baseName, parentStr, parseAbsoluteOrRelPath, Path, rootPath;
@@ -155,13 +155,13 @@ immutable(Command) parseCommand(Alloc, PathAlloc)(
 			? immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.requested))
 			: isSpecialArg(arg0, "version")
 			? immutable Command(immutable Command.Help(versionText, Command.Help.Kind.requested))
-			: strEqLiteral(arg0, "print")
+			: strEq(arg0, "print")
 			? parsePrintCommand(alloc, allPaths, cwd, cmdArgs)
-			: strEqLiteral(arg0, "build")
+			: strEq(arg0, "build")
 			? parseBuildCommand(alloc, allPaths, cwd, cmdArgs)
-			: strEqLiteral(arg0, "run")
+			: strEq(arg0, "run")
 			? parseRunCommand(alloc, allPaths, cwd, cmdArgs)
-			: strEqLiteral(arg0, "test")
+			: strEq(arg0, "test")
 			? parseTestCommand(alloc, cmdArgs)
 			: immutable Command(immutable Command.Help(helpAllText, Command.Help.Kind.error));
 	}
@@ -178,7 +178,7 @@ immutable(BuildOut) emptyBuildOut() {
 }
 
 immutable(bool) isSpecialArg(immutable string a, immutable string expected) {
-	return empty(a) ? true : (at(a, 0) == '-' ? isSpecialArg(tail(a), expected) : strEqLiteral(a, expected));
+	return empty(a) ? true : (at(a, 0) == '-' ? isSpecialArg(tail(a), expected) : strEq(a, expected));
 }
 
 immutable(bool) isHelp(immutable string a) {
@@ -204,17 +204,12 @@ immutable(Opt!ProgramDirAndMain) parseProgramDirAndMain(Alloc, PathAlloc)(
 	immutable string cwd,
 	immutable string arg,
 ) {
-	immutable Opt!AbsolutePath mainAbsolutePathOption = parseAbsoluteOrRelPath(allPaths, cwd, arg);
-	if (!has(mainAbsolutePathOption))
-		return none!ProgramDirAndMain;
-	else {
-		immutable AbsolutePath mainAbsolutePath = force(mainAbsolutePathOption);
-		immutable string dir = parentStr(alloc, allPaths, mainAbsolutePath);
-		immutable string name = baseName(allPaths, mainAbsolutePath);
-		return empty(mainAbsolutePath.extension) || strEq(mainAbsolutePath.extension, crowExtension())
-			? some(immutable ProgramDirAndMain(dir, rootPath(allPaths, name)))
-			: none!ProgramDirAndMain;
-	}
+	immutable AbsolutePath mainAbsolutePath = parseAbsoluteOrRelPath(allPaths, cwd, arg);
+	immutable string dir = parentStr(alloc, allPaths, mainAbsolutePath);
+	immutable string name = baseName(allPaths, mainAbsolutePath);
+	return empty(mainAbsolutePath.extension) || strEq(mainAbsolutePath.extension, crowExtension())
+		? some(immutable ProgramDirAndMain(dir, rootPath(allPaths, name)))
+		: none!ProgramDirAndMain;
 }
 
 struct FormatAndPath {
@@ -225,15 +220,15 @@ struct FormatAndPath {
 immutable(Command) parsePrintCommand(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
-	ref immutable string cwd,
-	ref immutable string[] args,
+	immutable string cwd,
+	immutable string[] args,
 ) {
 	if (size(args) < 2)
 		return todo!Command("Command.HelpPrint");
 	else {
 		immutable FormatAndPath formatAndPath = size(args) == 2
 			? immutable FormatAndPath(PrintFormat.repr, at(args, 1))
-			: size(args) == 4 && strEqLiteral(at(args, 1), "--format") && strEqLiteral(at(args, 2), "json")
+			: size(args) == 4 && strEq(at(args, 1), "--format") && strEq(at(args, 2), "json")
 			? immutable FormatAndPath(PrintFormat.json, at(args, 3))
 			: todo!(immutable FormatAndPath)("Command.HelpPrint");
 		return useProgramDirAndMain(
@@ -250,15 +245,15 @@ immutable(Command) parsePrintCommand(Alloc, PathAlloc)(
 }
 
 immutable(PrintKind) parsePrintKind(immutable string a) {
-	return strEqLiteral(a, "tokens")
+	return strEq(a, "tokens")
 		? PrintKind.tokens
-		: strEqLiteral(a, "ast")
+		: strEq(a, "ast")
 		? PrintKind.ast
-		: strEqLiteral(a, "model")
+		: strEq(a, "model")
 		? PrintKind.model
-		: strEqLiteral(a, "concrete-model")
+		: strEq(a, "concrete-model")
 		? PrintKind.concreteModel
-		: strEqLiteral(a, "low-model")
+		: strEq(a, "low-model")
 		? PrintKind.lowModel
 		: todo!(immutable PrintKind)("parsePrintKind");
 }
@@ -322,9 +317,9 @@ immutable(Opt!RunOptions) parseRunOptions(Alloc, PathAlloc)(
 		return none!RunOptions;
 	else {
 		immutable ArgsPart part = only(argParts);
-		if (strEqLiteral(part.tag, "--interpret")) {
+		if (strEq(part.tag, "--interpret")) {
 			return empty(part.args) ? some(immutable RunOptions(immutable RunOptions.Interpret())) : none!RunOptions;
-		} else if (strEqLiteral(part.tag, "--out")) {
+		} else if (strEq(part.tag, "--out")) {
 			immutable Opt!BuildOut buildOut = parseBuildOut(allPaths, cwd, part.args);
 			return has(buildOut)
 				? some(immutable RunOptions(allocate(alloc, immutable RunOptions.BuildAndRun(
@@ -349,7 +344,7 @@ immutable(Opt!BuildOptions) parseBuildOptions(PathAlloc)(
 		return none!BuildOptions;
 	else {
 		immutable ArgsPart part = only(argParts);
-		if (strEqLiteral(part.tag, "--out")) {
+		if (strEq(part.tag, "--out")) {
 			immutable Opt!BuildOut buildOut = parseBuildOut(allPaths, cwd, part.args);
 			return has(buildOut)
 				? some(immutable BuildOptions(force(buildOut)))
@@ -368,23 +363,17 @@ immutable(Opt!BuildOut) parseBuildOut(PathAlloc)(
 		emptyBuildOut(),
 		args,
 		(ref immutable BuildOut o, ref immutable string arg) {
-			immutable Opt!AbsolutePath optPath = parseAbsoluteOrRelPath(allPaths, cwd, arg);
-			if (!has(optPath)) {
-				//TODO: better error message
+			immutable AbsolutePath path = parseAbsoluteOrRelPath(allPaths, cwd, arg);
+			if (empty(path.extension)) {
+				return has(o.outExecutable)
+					? none!BuildOut
+					: some(immutable BuildOut(o.outC, some(path)));
+			} else if (strEq(path.extension, ".c")) {
+				return has(o.outC)
+					? none!BuildOut
+					: some(immutable BuildOut(some(path), o.outExecutable));
+			} else
 				return none!BuildOut;
-			} else {
-				immutable AbsolutePath path = force(optPath);
-				if (empty(path.extension)) {
-					return has(o.outExecutable)
-						? none!BuildOut
-						: some(immutable BuildOut(o.outC, some(path)));
-				} else if (strEqLiteral(path.extension, ".c")) {
-					return has(o.outC)
-						? none!BuildOut
-						: some(immutable BuildOut(some(path), o.outExecutable));
-				} else
-					return none!BuildOut;
-			}
 		});
 }
 
@@ -409,7 +398,10 @@ immutable(SplitArgs) splitArgs(Alloc)(ref Alloc alloc, immutable string[] args) 
 		ArrBuilder!ArgsPart parts;
 		immutable size_t firstAfterDashDash =
 			splitArgsRecur(alloc, parts, args, force(firstArgIndex), force(firstArgIndex) + 1);
-		return immutable SplitArgs(args[0..force(firstArgIndex)], finishArr(alloc, parts), args[firstAfterDashDash..$]);
+		return immutable SplitArgs(
+			args[0 .. force(firstArgIndex)],
+			finishArr(alloc, parts),
+			args[firstAfterDashDash .. $]);
 	}
 }
 
@@ -421,13 +413,13 @@ immutable(size_t) splitArgsRecur(Alloc)(
 	immutable size_t index,
 ) {
 	if (index == size(args)) {
-		add(alloc, parts, immutable ArgsPart(at(args, curPartStart), args[curPartStart + 1..index]));
+		add(alloc, parts, immutable ArgsPart(at(args, curPartStart), args[curPartStart + 1 .. index]));
 		return index;
 	} else {
 		immutable string arg = at(args, index);
 		if (startsWith(arg, "--")) {
-			add(alloc, parts, immutable ArgsPart(at(args, curPartStart), args[curPartStart + 1..index]));
-			return strEqLiteral(arg, "--")
+			add(alloc, parts, immutable ArgsPart(at(args, curPartStart), args[curPartStart + 1 .. index]));
+			return strEq(arg, "--")
 				? index + 1
 				// Using `index + 0` to avoid dscanner warning about 'index' not being parameter 3
 				: splitArgsRecur(alloc, parts, args, index + 0, index + 1);

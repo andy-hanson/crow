@@ -151,7 +151,6 @@ import util.collection.arrUtil :
 	mapToMut,
 	mapWithIndex,
 	mapWithSizeWithIndex,
-	slice,
 	sum,
 	zipFirstMut,
 	zipMutPtrFirst,
@@ -167,7 +166,7 @@ import util.collection.exactSizeArrBuilder :
 import util.collection.multiDict : multiDictEach;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.mutDict : insertOrUpdate, moveToDict, MutDict;
-import util.collection.str : copyStr, strLiteral;
+import util.collection.str : copyStr;
 import util.memory : allocate, nu, nuMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
@@ -315,7 +314,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 		if (has(res))
 			return force(res);
 		else {
-			add(alloc, missing, strLiteral(name));
+			add(alloc, missing, name);
 			return instantiateNonTemplateStructDecl(alloc, ctx, delayedStructInsts, bogusStructDecl(alloc, 0));
 		}
 	}
@@ -342,7 +341,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 		if (has(res))
 			return force(res);
 		else {
-			add(alloc, missing, strLiteral(name));
+			add(alloc, missing, name);
 			return bogusStructDecl(alloc, nTypeParameters);
 		}
 	}
@@ -441,7 +440,7 @@ immutable(Ptr!CommonTypes) getCommonTypes(Alloc)(
 immutable(Ptr!StructDecl) bogusStructDecl(Alloc)(ref Alloc alloc, immutable size_t nTypeParameters) {
 	ArrWithSizeBuilder!TypeParam typeParams;
 	immutable FileAndRange fileAndRange = immutable FileAndRange(immutable FileIndex(0), RangeWithinFile.empty);
-	foreach (immutable size_t i; 0..nTypeParameters)
+	foreach (immutable size_t i; 0 .. nTypeParameters)
 		add(alloc, typeParams, immutable TypeParam(fileAndRange, shortSymAlphaLiteral("bogus"), i));
 	Ptr!StructDecl res = nuMut!StructDecl(
 		alloc,
@@ -464,8 +463,8 @@ immutable(ArrWithSize!TypeParam) checkTypeParams(Alloc)(
 		mapWithSizeWithIndex(alloc, toArr(asts), (immutable size_t index, ref immutable TypeParamAst ast) =>
 			immutable TypeParam(rangeInFile(ctx, ast.range), ast.name, index));
 	immutable TypeParam[] typeParams = toArr(res);
-	foreach (immutable size_t i; 0..size(typeParams))
-		foreach (immutable size_t prev_i; 0..i) {
+	foreach (immutable size_t i; 0 .. size(typeParams))
+		foreach (immutable size_t prev_i; 0 .. i) {
 			immutable TypeParam tp = at(typeParams, i);
 			if (symEq(tp.name, at(typeParams, prev_i).name))
 				addDiag(alloc, ctx, tp.range, immutable Diag(
@@ -533,8 +532,8 @@ immutable(Param[]) checkParams(Alloc)(
 				delayStructInsts);
 			return immutable Param(rangeInFile(ctx, ast.range), ast.name, type, index);
 		});
-	foreach (immutable size_t i; 0..size(params))
-		foreach (immutable size_t prev_i; 0..i) {
+	foreach (immutable size_t i; 0 .. size(params))
+		foreach (immutable size_t prev_i; 0 .. i) {
 			immutable Ptr!Param param = ptrAt(params, i);
 			immutable Ptr!Param prev = ptrAt(params, i - 1);
 			if (has(param.name) && has(prev.name) && symEq(force(param.name), force(prev.name)))
@@ -742,8 +741,8 @@ void everyPairWithIndex(T)(
 		immutable size_t,
 	) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0..size(a))
-		foreach (immutable size_t j; 0..i)
+	foreach (immutable size_t i; 0 .. size(a))
+		foreach (immutable size_t j; 0 .. i)
 			cb(at(a, j), at(a, i), j, i);
 }
 
@@ -752,8 +751,8 @@ void everyPair(T)(
 	ref immutable T[] a,
 	scope void delegate(ref immutable T, ref immutable T) @safe @nogc pure nothrow cb,
 ) {
-	foreach (immutable size_t i; 0..size(a))
-		foreach (immutable size_t j; 0..i)
+	foreach (immutable size_t i; 0 .. size(a))
+		foreach (immutable size_t j; 0 .. i)
 			cb(at(a, i), at(a, j));
 }
 
@@ -928,13 +927,13 @@ immutable(StructsAndAliasesDict) buildStructsAndAliasesDict(Alloc)(
 	immutable StructAlias[] aliases,
 ) {
 	DictBuilder!(Sym, StructOrAliasAndIndex, compareSym) d;
-	foreach (immutable size_t index; 0..size(structs)) {
+	foreach (immutable size_t index; 0 .. size(structs)) {
 		immutable Ptr!StructDecl decl = ptrAt(structs, index);
 		addToDict(alloc, d, decl.name, immutable StructOrAliasAndIndex(
 			immutable StructOrAlias(decl),
 			immutable ModuleLocalStructOrAliasIndex(index)));
 	}
-	foreach (immutable size_t index; 0..size(aliases)) {
+	foreach (immutable size_t index; 0 .. size(aliases)) {
 		immutable Ptr!StructAlias alias_ = ptrAt(aliases, index);
 		addToDict(alloc, d, alias_.name, immutable StructOrAliasAndIndex(
 			immutable StructOrAlias(alias_),
@@ -1045,7 +1044,7 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 	foreach (ref const FunDecl f; funs)
 		addToMutSymSetOkIfPresent(alloc, ctx.programState.names.funNames, name(f));
 
-	FunDecl[] funsWithAsts = slice(funs, 0, size(asts));
+	FunDecl[] funsWithAsts = funs[0 .. size(asts)];
 	zipMutPtrFirst!(FunDecl, FunDeclAst)(funsWithAsts, asts, (Ptr!FunDecl fun, ref immutable FunDeclAst funAst) {
 		overwriteMemory(&fun.body_, matchFunBodyAst(
 			funAst.body_,
@@ -1171,7 +1170,7 @@ void addFunsForStruct(Alloc, SymAlloc)(
 			exactSizeArrBuilderAdd(funsBuilder, constructor(byValType, FunFlags.justNoCtx));
 		}
 
-		foreach (immutable ubyte fieldIndex; 0..safeSizeTToU8(size(record.fields))) {
+		foreach (immutable ubyte fieldIndex; 0 .. safeSizeTToU8(size(record.fields))) {
 			immutable Ptr!RecordField field = ptrAt(record.fields, fieldIndex);
 			immutable Ptr!Sig getterSig = allocate(alloc, immutable Sig(
 				fileAndPosFromFileAndRange(field.range),
@@ -1213,7 +1212,7 @@ immutable(SpecsDict) buildSpecsDict(Alloc)(
 	ref immutable SpecDecl[] specs,
 ) {
 	DictBuilder!(Sym, SpecDeclAndIndex, compareSym) res;
-	foreach (immutable size_t index; 0..size(specs)) {
+	foreach (immutable size_t index; 0 .. size(specs)) {
 		immutable Ptr!SpecDecl spec = ptrAt(specs, index);
 		addToDict(alloc, res, spec.name, immutable SpecDeclAndIndex(spec, immutable ModuleLocalSpecIndex(index)));
 	}

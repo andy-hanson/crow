@@ -41,7 +41,7 @@ immutable(bool) mutArrIsEmpty(T)(ref const MutArr!T a) {
 
 void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T value) {
 	push(alloc, a, value); // pushed value is arbitrary, we're about to overwrite it
-	foreach_reverse (immutable size_t i; pos + 1..mutArrSize(a))
+	foreach_reverse (immutable size_t i; pos + 1 .. mutArrSize(a))
 		setAt(a, i, mutArrAt(a, i - 1));
 	setAt(a, pos, value);
 }
@@ -61,7 +61,7 @@ void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T v
 	verify(a.size_ <= a.capacity_);
 }
 
-void pushAll(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a, immutable T[] values) {
+void pushAll(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a, scope immutable T[] values) {
 	foreach (ref immutable T value; values)
 		push(alloc, a, value);
 }
@@ -101,15 +101,15 @@ T mustPop(T)(ref MutArr!T a) {
 }
 
 @trusted const(T[]) mutArrRange(T)(ref const MutArr!T a) {
-	return a.begin_[0..a.size_];
+	return a.begin_[0 .. a.size_];
 }
 
 @trusted T[] mutArrRangeMut(T)(ref MutArr!T a) {
-	return a.begin_[0..a.size_];
+	return a.begin_[0 .. a.size_];
 }
 
 @trusted immutable(T[]) moveToArr(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a) {
-	immutable T[] res = cast(immutable) a.begin_[0..a.size_];
+	immutable T[] res = cast(immutable) a.begin_[0 .. a.size_];
 	alloc.freeBytesPartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
 	a.size_ = 0;
@@ -118,7 +118,7 @@ T mustPop(T)(ref MutArr!T a) {
 }
 
 @trusted const(T[]) moveToArr_const(T, Alloc)(ref Alloc alloc, ref MutArr!T a) {
-	const T[] res = a.begin_[0..a.size_];
+	const T[] res = a.begin_[0 .. a.size_];
 	alloc.freeBytesPartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
 	a.size_ = 0;
@@ -132,15 +132,15 @@ T mustPop(T)(ref MutArr!T a) {
 }
 
 @trusted const(T[]) tempAsArr(T)(ref const MutArr!T a) {
-	return a.begin_[0..a.size_];
+	return a.begin_[0 .. a.size_];
 }
 @trusted T[] tempAsArr_mut(T)(ref MutArr!T a) {
-	return a.begin_[0..a.size_];
+	return a.begin_[0 .. a.size_];
 }
 
 @trusted void deleteAt(T)(ref MutArr!T a, immutable size_t index) {
 	verify(index < a.size_);
-	foreach (immutable size_t i; index..a.size_ - 1)
+	foreach (immutable size_t i; index .. a.size_ - 1)
 		overwriteMemory(a.begin_ + i, mutArrAt(a, i + 1));
 	a.size_--;
 }

@@ -250,7 +250,7 @@ void eachFunInScope(
 			specInst.body_,
 			(ref immutable SpecBody.Builtin) {},
 			(ref immutable Sig[] sigs) {
-				foreach (immutable size_t i; 0..size(sigs))
+				foreach (immutable size_t i; 0 .. size(sigs))
 					if (symEq(at(sigs, i).name, funName)) {
 						immutable Opt!UsedFun used = none!UsedFun;
 						cb(used, immutable CalledDecl(immutable SpecSig(specInst, ptrAt(sigs, i), totalIndex + i)));
@@ -515,7 +515,7 @@ immutable(Opt!Called) findSpecSigImplementation(Alloc)(
 ) {
 	MutArr!Candidate candidates = getInitialCandidates(alloc, ctx, specSig.name, emptyArr!Type, arity(specSig));
 	filterByReturnType(alloc, programState(ctx), candidates, specSig.returnType);
-	foreach (immutable size_t argIdx; 0..arity(specSig))
+	foreach (immutable size_t argIdx; 0 .. arity(specSig))
 		filterByParamType(alloc, programState(ctx), candidates, at(specSig.params, argIdx).type, argIdx);
 
 	// If any candidates left take specs -- leave as a TODO

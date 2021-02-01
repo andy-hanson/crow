@@ -14,6 +14,7 @@ body {
 	--lavender: #ab9df2;
 	--dark-gray: #2c292d;
 	--black: #1c191d; /*mine*/
+	--dark-blue: #3c6e74;/*mine*/
 
 	background: var(--white);
 	color: var(--black);
@@ -25,6 +26,16 @@ html, body {
 	height: 100%;
 	padding: 0;
 	margin: 0;
+}
+
+.download-link {
+	font-weight: bold;
+	text-decoration: none;
+	color: var(--dark-blue);
+}
+
+crow-icon {
+	display: inline-block;
 }
 
 nav {

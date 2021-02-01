@@ -69,7 +69,7 @@ import util.collection.arrUtil : arrMax, compareArr, exists, fold, map, mapPtrsW
 import util.collection.mutArr : MutArr;
 import util.collection.mutDict : addToMutDict, getOrAdd, getOrAddAndDidAdd, mustDelete, MutDict, ValueAndDidAdd;
 import util.collection.mutSet : addToMutSetOkIfPresent, MutSet;
-import util.collection.str : compareStr, copyStr, strLiteral;
+import util.collection.str : compareStr, copyStr;
 import util.comparison : Comparison;
 import util.late : Late, lateIsSet, lateSet, lateSetOverwrite, lazilySet;
 import util.memory : allocate, nu, nuMut;
@@ -580,7 +580,7 @@ void fillInConcreteFunBody(Alloc)(
 	// TODO: just assert it's not already set?
 	if (!lateIsSet(cf._body_)) {
 		// set to arbitrary temporarily
-		lateSet(cf._body_, nu!ConcreteFunBody(alloc, immutable ConcreteFunBody.Extern(false, strLiteral("<<temp>>"))));
+		lateSet(cf._body_, nu!ConcreteFunBody(alloc, immutable ConcreteFunBody.Extern(false, "<<temp>>")));
 		immutable ConcreteFunBodyInputs inputs = mustDelete(ctx.concreteFunToBodyInputs, castImmutable(cf));
 		immutable ConcreteFunBody body_ = matchFunBody!(immutable ConcreteFunBody)(
 			inputs.body_,

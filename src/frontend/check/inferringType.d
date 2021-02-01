@@ -143,14 +143,14 @@ struct InferringTypeArgs {
 		params = ps;
 		args = as;
 		verify(sizeEq(params, args));
-		foreach (immutable size_t i; 0..size(params))
+		foreach (immutable size_t i; 0 .. size(params))
 			verify(at(params, i).index == i);
 	}
 	const this(immutable TypeParam[] ps, const SingleInferringType[] as) {
 		params = ps;
 		args = as;
 		verify(sizeEq(params, args));
-		foreach (immutable size_t i; 0..size(params))
+		foreach (immutable size_t i; 0 .. size(params))
 			verify(at(params, i).index == i);
 	}
 }

@@ -172,7 +172,7 @@ void writeDupEntries(Debug, Alloc)(
 ) {
 	verify(!zero(entries.size));
 	verify(entries.start.entry + entries.size.to16() <= getNextStackEntry(writer).entry);
-	foreach (immutable ushort i; 0..entries.size.raw())
+	foreach (immutable ushort i; 0 .. entries.size.raw())
 		writeDupEntry(dbg, writer, source, immutable StackEntry(entries.start.entry + immutable Nat16(i)));
 }
 
@@ -281,7 +281,7 @@ void writePushEmptySpace(Debug, Alloc)(
 	ref immutable ByteCodeSource source,
 	immutable Nat16 nSpaces,
 ) {
-	foreach (immutable ushort i; 0..nSpaces.raw())
+	foreach (immutable ushort i; 0 .. nSpaces.raw())
 		writePushConstant(dbg, writer, source, immutable Nat8(0));
 }
 
@@ -480,7 +480,7 @@ immutable(ByteCodeIndex) writeSwitchDelay(Alloc)(
 	pushU32(writer, source, nCases);
 	writer.nextStackEntry -= 1;
 	immutable ByteCodeIndex addresses = nextByteCodeIndex(writer);
-	foreach (immutable uint i; 0..nCases.raw()) {
+	foreach (immutable uint i; 0 .. nCases.raw()) {
 		static assert(ByteCodeOffset.sizeof == Nat16.sizeof);
 		pushU16(writer, source, immutable Nat16(0));
 	}

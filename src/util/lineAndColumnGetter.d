@@ -3,9 +3,7 @@ module util.lineAndColumnGetter;
 @safe @nogc pure nothrow:
 
 import util.collection.arr : at, size;
-import util.collection.arrUtil : slice;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
-import util.collection.str : emptyStr;
 import util.sourceRange : Pos;
 import util.types : safeSizeTToU16, safeSizeTToU32, safeU32ToU16;
 import util.util : verify;
@@ -34,10 +32,10 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForText(Alloc)(ref Alloc alloc
 	add(alloc, lineToPos, 0);
 	add(alloc, lineToNTabs, text.getNTabs);
 
-	foreach (immutable uint i; 0..safeSizeTToU32(size(text))) {
+	foreach (immutable uint i; 0 .. safeSizeTToU32(size(text))) {
 		if (at(text, i) == '\n') {
 			add(alloc, lineToPos, i + 1);
-			add(alloc, lineToNTabs, slice(text, i + 1).getNTabs);
+			add(alloc, lineToNTabs, text[i + 1 .. $].getNTabs);
 		}
 	}
 
@@ -45,7 +43,7 @@ immutable(LineAndColumnGetter) lineAndColumnGetterForText(Alloc)(ref Alloc alloc
 }
 
 immutable(LineAndColumnGetter) lineAndColumnGetterForEmptyFile(Alloc)(ref Alloc alloc) {
-	return lineAndColumnGetterForText(alloc, emptyStr);
+	return lineAndColumnGetterForText(alloc, "");
 }
 
 immutable(LineAndColumn) lineAndColumnAtPos(ref immutable LineAndColumnGetter lc, immutable Pos pos) {

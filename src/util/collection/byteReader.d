@@ -58,13 +58,13 @@ void setPtr(ref ByteReader reader, immutable(ubyte)* ptr) {
 }
 
 @trusted immutable(T[]) readArray(T)(ref ByteReader reader, immutable size_t size) {
-	immutable T[] res = (cast(immutable T*) reader.ptr)[0..size];
+	immutable T[] res = (cast(immutable T*) reader.ptr)[0 .. size];
 	skipBytes(reader, size * T.sizeof);
 	return res;
 }
 
 @trusted immutable(T[]) readArrayDoNotSkipBytes(T)(ref ByteReader reader, immutable size_t size) {
-	return (cast(immutable T*) reader.ptr)[0..size];
+	return (cast(immutable T*) reader.ptr)[0 .. size];
 }
 
 @trusted immutable(NulTerminatedStr) readNulTerminatedStr(ref ByteReader reader) {

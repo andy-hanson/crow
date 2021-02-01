@@ -21,7 +21,6 @@ import model.reprConcreteModel : reprOfConcreteProgram;
 import model.reprLowModel : reprOfLowProgram;
 import model.reprModel : reprModule;
 import util.collection.arr : begin, empty, emptyArr, size;
-import util.collection.str : emptyStr;
 import util.opt : force, none, Opt, some;
 import util.path : AbsolutePath, AllPaths, Path, PathAndStorageKind, StorageKind;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -82,7 +81,7 @@ immutable(int) buildAndInterpret(Debug, Alloc, PathAlloc, SymAlloc, ReadOnlyStor
 	ref Extern extern_,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable Path mainPath,
-	ref immutable string[] programArgs,
+	immutable string[] programArgs,
 ) {
 	immutable ProgramsAndFilesInfo programs =
 		buildToLowProgram(alloc, allPaths, allSymbols, storage, mainPath);
@@ -170,10 +169,10 @@ immutable(DiagsAndResultStrs) printModel(Alloc, PathAlloc, SymAlloc, ReadOnlySto
 ) {
 	immutable Ptr!Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, mainPath);
 	return empty(program.diagnostics)
-		? immutable DiagsAndResultStrs(emptyStr, showModule(alloc, program.specialModules.mainModule, format))
+		? immutable DiagsAndResultStrs("", showModule(alloc, program.specialModules.mainModule, format))
 		: immutable DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allPaths, showDiagOptions, program.filesInfo, program.diagnostics),
-			emptyStr);
+			"");
 }
 
 immutable(DiagsAndResultStrs) printConcreteModel(Alloc, PathAlloc, SymAlloc, ReadOnlyStorage)(
@@ -188,11 +187,11 @@ immutable(DiagsAndResultStrs) printConcreteModel(Alloc, PathAlloc, SymAlloc, Rea
 	immutable Ptr!Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, mainPath);
 	if (empty(program.diagnostics)) {
 		immutable ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
-		return immutable DiagsAndResultStrs(emptyStr, showConcreteProgram(alloc, concreteProgram, format));
+		return immutable DiagsAndResultStrs("", showConcreteProgram(alloc, concreteProgram, format));
 	} else
 		return immutable DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allPaths, showDiagOptions, program.filesInfo, program.diagnostics),
-			emptyStr);
+			"");
 }
 
 immutable(DiagsAndResultStrs) printLowModel(Alloc, PathAlloc, SymAlloc, ReadOnlyStorage)(
@@ -208,11 +207,11 @@ immutable(DiagsAndResultStrs) printLowModel(Alloc, PathAlloc, SymAlloc, ReadOnly
 	if (empty(program.diagnostics)) {
 		immutable ConcreteProgram concreteProgram = concretize(alloc, allSymbols, program);
 		immutable Ptr!LowProgram lowProgram = lower(alloc, concreteProgram);
-		return immutable DiagsAndResultStrs(emptyStr, showLowProgram(alloc, lowProgram, format));
+		return immutable DiagsAndResultStrs("", showLowProgram(alloc, lowProgram, format));
 	} else
 		return immutable DiagsAndResultStrs(
 			strOfDiagnostics(alloc, allPaths, showDiagOptions, program.filesInfo, program.diagnostics),
-			emptyStr);
+			"");
 }
 
 //TODO:INLINE
@@ -263,10 +262,10 @@ public immutable(BuildToCResult) buildToC(Alloc, PathAlloc, ReadOnlyStorage)(
 	return empty(programs.program.diagnostics)
 		? immutable BuildToCResult(
 			writeToC(alloc, alloc, force(programs.concreteAndLowProgram).lowProgram),
-			emptyStr,
+			"",
 			force(programs.concreteAndLowProgram).concreteProgram.allExternLibraryNames)
 		: immutable BuildToCResult(
-			emptyStr,
+			"",
 			strOfDiagnostics(
 				alloc,
 				allPaths,

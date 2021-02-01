@@ -8,7 +8,7 @@ import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import test.testUtil : Test;
 import util.collection.arr : emptyArr;
 import util.collection.arrUtil : arrEqual, arrLiteral;
-import util.collection.str : copyToNulTerminatedStr, strLiteral;
+import util.collection.str : copyToNulTerminatedStr;
 import util.dbg : log;
 import util.repr : writeRepr;
 import util.sourceRange : RangeWithinFile;
@@ -44,12 +44,11 @@ private:
 
 void testOne(Debug, Alloc)(ref Test!(Debug, Alloc) test, immutable string source, immutable Token[] expectedTokens) {
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(test.alloc);
-	immutable string sourceStr = strLiteral(source);
 	immutable FileAstAndParseDiagnostics ast = parseFile(
 		test.alloc,
 		test.allPaths,
 		allSymbols,
-		copyToNulTerminatedStr(test.alloc, sourceStr));
+		copyToNulTerminatedStr(test.alloc, source));
 	immutable Token[] tokens = tokensOfAst(test.alloc, ast.ast);
 	if (!tokensEq(tokens, expectedTokens)) {
 		Writer!Alloc writer = Writer!Alloc(test.alloc);

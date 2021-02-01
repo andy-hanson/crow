@@ -108,7 +108,6 @@ import util.collection.arrUtil :
 	mapWithIndexAndConcatOne,
 	mapWithOptFirst,
 	mapWithOptFirst2,
-	slice,
 	tail;
 import util.collection.dict : Dict, getAt, mustGetAt;
 import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeNoConflict;
@@ -706,7 +705,7 @@ immutable(AllLowFuns) getAllLowFuns(Alloc)(
 					immutable LowType returnType = lowTypeFromConcreteType(alloc, getLowTypeCtx, fun.returnType);
 					// NOTE: 'paramsExcludingCtxAndClosure' includes the *explicit* ctx param on this function
 					immutable LowType[] nonFunNonCtxParamTypes =
-						map(alloc, slice(fun.paramsExcludingCtxAndClosure, 2), (ref immutable ConcreteParam it) =>
+						map(alloc, fun.paramsExcludingCtxAndClosure[2 .. $], (ref immutable ConcreteParam it) =>
 							lowTypeFromConcreteType(alloc, getLowTypeCtx, it.type));
 					// TODO: is it possible that we call a fun type but it's not implemented anywhere?
 					immutable Opt!(ConcreteLambdaImpl[]) optImpls = getAt(program.funStructToImpls, funStruct);

@@ -138,7 +138,7 @@ ValueAndDidAdd!V getOrAddAndDidAdd(Alloc, K, V, alias compare)(
 }
 
 private immutable(Opt!V) tryDeleteAndGet(K, V, alias cmp)(ref MutDict!(K, V, cmp) a, const K key) {
-	foreach (immutable size_t i; 0..mutDictSize(a)) {
+	foreach (immutable size_t i; 0 .. mutDictSize(a)) {
 		const KeyValuePair!(K, V) pair = mutArrAt(a.pairs, i);
 		if (cmp(pair.key, key) == Comparison.equal) {
 			deleteAt(a.pairs, i);

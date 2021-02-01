@@ -39,7 +39,6 @@ import util.collection.dictBuilder : addToDict, DictBuilder, finishDictShouldBeN
 import util.collection.mutArr : moveToArr, MutArr;
 import util.collection.mutDict : mapToDict, mutDictIsEmpty;
 import util.collection.mutSet : moveToArr;
-import util.collection.str : strLiteral;
 import util.memory : nu;
 import util.opt : force, has, Opt;
 import util.ptr : comparePtr, Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
@@ -208,8 +207,7 @@ immutable(Ptr!FunInst) getCurIslandAndExclusionFun(Alloc, SymAlloc)(
 	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable Program program,
 ) {
-	immutable string name = strLiteral("cur-island-and-exclusion");
-	immutable Sym sym = getSymFromAlphaIdentifier(allSymbols, name);
+	immutable Sym sym = getSymFromAlphaIdentifier(allSymbols, "cur-island-and-exclusion");
 	immutable Ptr!FunDecl[] funs = getFuns(program.specialModules.runtimeModule, sym);
 	if (size(funs) != 1)
 		todo!void("wrong number cur-island-and=exclusion funs");

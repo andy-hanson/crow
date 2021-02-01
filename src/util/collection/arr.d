@@ -16,7 +16,7 @@ struct ArrWithSize(T) {
 @trusted immutable(T[]) toArr(T)(ref immutable ArrWithSize!T a) {
 	immutable T* begin = cast(immutable T*) (a.sizeAndBegin_ + size_t.sizeof);
 	immutable size_t size = *(cast(immutable size_t*) a.sizeAndBegin_);
-	return begin[0..size];
+	return begin[0 .. size];
 }
 
 @trusted immutable(ArrWithSize!T) emptyArrWithSize(T)() {
@@ -38,22 +38,22 @@ struct ArrWithSize(T) {
 
 @system immutable(T[]) arrOfRange(T)(immutable T* begin, immutable T* end) {
 	verify(begin <= end);
-	return begin[0..end - begin];
+	return begin[0 .. end - begin];
 }
 
 @system T[] arrOfRange_mut(T)(T* begin, T* end) {
 	verify(begin <= end);
-	return begin[0..end - begin];
+	return begin[0 .. end - begin];
 }
 
 @trusted immutable(T[]) emptyArr(T)() {
 	immutable T* begin = null;
-	return begin[0..0];
+	return begin[0 .. 0];
 }
 
 @trusted T[] emptyArr_mut(T)() {
 	T* begin = null;
-	return begin[0..0];
+	return begin[0 .. 0];
 }
 
 @system immutable(T*) begin(T)(immutable T[] a) {

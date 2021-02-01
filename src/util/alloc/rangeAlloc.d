@@ -20,7 +20,7 @@ struct RangeAlloc {
 		ubyte* res = cur;
 		cur += nBytes;
 		//TODO:KILL
-		foreach (ref ubyte b; res[0..nBytes])
+		foreach (ref ubyte b; res[0 .. nBytes])
 			b = 42;
 		return res;
 	}

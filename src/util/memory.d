@@ -16,7 +16,7 @@ import util.ptr : Ptr;
 }
 
 @system void memcpy(ubyte* dest, const ubyte* src, immutable size_t length) {
-	foreach (immutable size_t i; 0..length)
+	foreach (immutable size_t i; 0 .. length)
 		dest[i] = src[i];
 }
 

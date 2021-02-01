@@ -87,9 +87,9 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 	// Ensure 0 is not a valid text index
 	exactSizeArrBuilderAdd(ctx.text, 0);
 
-	foreach (immutable size_t arrTypeIndex; 0..size(allConstants.arrs)) {
+	foreach (immutable size_t arrTypeIndex; 0 .. size(allConstants.arrs)) {
 		immutable Ptr!ArrTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.arrs, arrTypeIndex);
-		foreach (immutable size_t constantIndex; 0..size(typeAndConstants.constants))
+		foreach (immutable size_t constantIndex; 0 .. size(typeAndConstants.constants))
 			recurWriteArr(
 				tempAlloc,
 				ctx,
@@ -98,9 +98,9 @@ immutable(TextAndInfo) generateText(Alloc, TempAlloc)(
 				constantIndex,
 				at(typeAndConstants.constants, constantIndex));
 	}
-	foreach (immutable size_t pointeeTypeIndex; 0..size(allConstants.pointers)) {
+	foreach (immutable size_t pointeeTypeIndex; 0 .. size(allConstants.pointers)) {
 		immutable Ptr!PointerTypeAndConstantsLow typeAndConstants = ptrAt(allConstants.pointers, pointeeTypeIndex);
-		foreach (immutable size_t constantIndex; 0..size(typeAndConstants.constants))
+		foreach (immutable size_t constantIndex; 0 .. size(typeAndConstants.constants))
 			recurWritePointer(
 				tempAlloc,
 				ctx,

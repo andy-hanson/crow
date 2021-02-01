@@ -118,7 +118,6 @@ import util.collection.arrUtil :
 	mapZip,
 	mapZipWithIndex,
 	prepend,
-	slice,
 	tail,
 	zipPtrFirst,
 	zipSome;
@@ -417,10 +416,10 @@ Opt!IdentifierAndLambdas getIdentifierNonCall(
 	immutable Sym name,
 ) {
 	// Innermost lambda first
-	foreach_reverse (immutable size_t i; 0..mutArrSize(ctx.lambdas)) {
+	foreach_reverse (immutable size_t i; 0 .. mutArrSize(ctx.lambdas)) {
 		immutable Opt!Expr id = getIdentifierInLambda(range, name, mutArrAt(ctx.lambdas, i));
 		if (has(id))
-			return someMut(IdentifierAndLambdas(force(id), slice(tempAsArr_mut(ctx.lambdas), i + 1)));
+			return someMut(IdentifierAndLambdas(force(id), tempAsArr_mut(ctx.lambdas)[i + 1 .. $]));
 	}
 
 	Ptr!LambdaInfo[] allLambdas = tempAsArr_mut(ctx.lambdas);

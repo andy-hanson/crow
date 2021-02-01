@@ -21,7 +21,7 @@ import util.collection.arrBuilder : add, addAll, ArrBuilder, arrBuilderSize, fin
 import util.collection.arrUtil : arrLiteral, cat, copyArr, map, mapImpure, mapWithSoFar, prepend;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr;
 import util.collection.mutDict : getAt_mut, MutDict, setInDict;
-import util.collection.str : NulTerminatedStr, stripNulTerminator;
+import util.collection.str : NulTerminatedStr, strOfNulTerminatedStr;
 import util.late : late, Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter, lineAndColumnGetterForEmptyFile, lineAndColumnGetterForText;
 import util.memory : allocate, nu;
@@ -390,7 +390,7 @@ immutable(FileAstAndArrDiagnosticAndLineAndColumnGetter) parseSingle(ModelAlloc,
 	immutable Opt!NulTerminatedStr opFileContent,
 ) {
 	immutable LineAndColumnGetter lcg = has(opFileContent)
-		? lineAndColumnGetterForText(modelAlloc, stripNulTerminator(force(opFileContent)))
+		? lineAndColumnGetterForText(modelAlloc, strOfNulTerminatedStr(force(opFileContent)))
 		: lineAndColumnGetterForEmptyFile(modelAlloc);
 
 	// File content must go in astAlloc because we refer to strings without copying

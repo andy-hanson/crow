@@ -5,7 +5,7 @@ module interpret.typeLayout;
 import interpret.bytecode : stackEntrySize;
 import model.lowModel : LowField, LowProgram, LowRecord, LowType, LowUnion, matchLowType, PrimitiveType;
 import util.collection.arr : at, empty, size;
-import util.collection.arrUtil : arrMax, map, mapOp, slice;
+import util.collection.arrUtil : arrMax, map, mapOp;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictEach, fullIndexDictGet, fullIndexDictSize;
 import util.collection.fullIndexDictBuilder :
 	finishFullIndexDict,
@@ -94,7 +94,7 @@ void walkRecordFields(TempAlloc)(
 			// (instead of Opt!size_t packStart, have MaxArr!(size_t, 3))
 			immutable Nat8[] fieldSizes = mapOp!Nat8(
 				tempAlloc,
-				slice(record.fields, force(packStart), packEnd - force(packStart)),
+				record.fields[force(packStart) .. packEnd],
 				(ref immutable LowField field) {
 					immutable Nat8 size = sizeOfType(typeLayout, field.type).to8();
 					return zero(size) ? none!Nat8 : some(size);
