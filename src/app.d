@@ -73,9 +73,7 @@ import util.writer : Writer;
 extern(C) int main(immutable size_t argc, immutable CStr* argv) {
 	Mallocator mallocator;
 	immutable CommandLineArgs args = parseCommandLineArgs(mallocator, argc, argv);
-	AllPaths!Mallocator allPaths = AllPaths!Mallocator(ptrTrustMe_mut(mallocator));
-	AllSymbols!Mallocator allSymbols = AllSymbols!Mallocator(ptrTrustMe_mut(mallocator));
-	return go(mallocator, allPaths, allSymbols, args);
+	return go(mallocator, args);
 }
 
 private:
@@ -101,12 +99,8 @@ struct StdoutDebug {
 }
 
 
-immutable(int) go(Alloc, PathAlloc, SymAlloc)(
-	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
-	ref AllSymbols!SymAlloc allSymbols,
-	ref immutable CommandLineArgs args,
-) {
+immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
+	AllPaths!Alloc allPaths = AllPaths!Alloc(ptrTrustMe_mut(alloc));
 	immutable string crowDir = getCrowDirectory(args.pathToThisExecutable);
 	immutable string includeDir = getIncludeDirectory(alloc, crowDir);
 	immutable string tempDir = setupTempDir(alloc, allPaths, crowDir);
@@ -118,11 +112,11 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 	return matchCommand!int(
 		command,
 		(ref immutable Command.Build it) =>
-			runBuild(alloc, allPaths, allSymbols, includeDir, tempDir, it.programDirAndMain, it.options).err,
+			runBuild(alloc, allPaths, includeDir, tempDir, it.programDirAndMain, it.options).err,
 		(ref immutable Command.Help it) =>
 			help(it),
 		(ref immutable Command.Print it) {
-			RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
+			RealReadOnlyStorage!(Alloc, Alloc) storage = RealReadOnlyStorage!(Alloc, Alloc)(
 				ptrTrustMe_mut(allPaths),
 				ptrTrustMe_mut(alloc),
 				includeDir,
@@ -130,7 +124,6 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 			immutable DiagsAndResultStrs printed = print(
 				alloc,
 				allPaths,
-				allSymbols,
 				storage,
 				showDiagOptions,
 				it.kind,
@@ -145,7 +138,7 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 				run.options,
 				(ref immutable RunOptions.BuildAndRun it) {
 					immutable RunBuildResult built =
-						runBuild(alloc, allPaths, allSymbols, includeDir, tempDir, run.programDirAndMain, it.build);
+						runBuild(alloc, allPaths, includeDir, tempDir, run.programDirAndMain, it.build);
 					if (built.err != 0)
 						return built.err;
 					else {
@@ -154,12 +147,13 @@ immutable(int) go(Alloc, PathAlloc, SymAlloc)(
 					}
 				},
 				(ref immutable RunOptions.Interpret) {
-					RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
+					RealReadOnlyStorage!(Alloc, Alloc) storage = RealReadOnlyStorage!(Alloc, Alloc)(
 						ptrTrustMe_mut(allPaths),
 						ptrTrustMe_mut(alloc),
 						includeDir,
 						run.programDirAndMain.programDir);
 					RealExtern extern_ = newRealExtern();
+					AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 					return buildAndInterpret(
 						dbg,
 						alloc,
@@ -213,10 +207,9 @@ struct RunBuildResult {
 	immutable AbsolutePath exePath;
 }
 
-immutable(RunBuildResult) runBuild(Alloc, PathAlloc, SymAlloc)(
+immutable(RunBuildResult) runBuild(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
-	ref AllSymbols!SymAlloc allSymbols,
 	immutable string includeDir,
 	immutable string tempDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
@@ -233,7 +226,6 @@ immutable(RunBuildResult) runBuild(Alloc, PathAlloc, SymAlloc)(
 	immutable int err = buildToCAndCompile(
 		alloc,
 		allPaths,
-		allSymbols,
 		showDiagOptions,
 		programDirAndMain,
 		includeDir,
@@ -252,10 +244,9 @@ immutable(string) getCrowDirectory(immutable string pathToThisExecutable) {
 	return forceOrTodo(res);
 }
 
-immutable(int) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
+immutable(int) buildToCAndCompile(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
-	ref AllSymbols!SymAlloc allSymbols,
 	ref immutable ShowDiagOptions showDiagOptions,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	immutable string includeDir,
@@ -268,7 +259,7 @@ immutable(int) buildToCAndCompile(Alloc, PathAlloc, SymAlloc)(
 		includeDir,
 		programDirAndMain.programDir);
 	immutable BuildToCResult result =
-		buildToC(alloc, allPaths, allSymbols, storage, showDiagOptions, programDirAndMain.mainPath);
+		buildToC(alloc, allPaths, storage, showDiagOptions, programDirAndMain.mainPath);
 	if (empty(result.diagnostics)) {
 		writeFileSync(alloc, allPaths, cPath, result.cSource);
 		compileC(alloc, allPaths, cPath, exePath, result.allExternLibraryNames);

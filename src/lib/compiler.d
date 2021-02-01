@@ -47,16 +47,16 @@ struct DiagsAndResultStrs {
 	immutable string result;
 }
 
-immutable(DiagsAndResultStrs) print(Alloc, PathAlloc, SymAlloc, ReadOnlyStorage)(
+immutable(DiagsAndResultStrs) print(Alloc, PathAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
-	ref AllSymbols!SymAlloc allSymbols,
 	ref ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable PrintKind kind,
 	immutable PrintFormat format,
 	immutable Path mainPath,
 ) {
+	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 	final switch (kind) {
 		case PrintKind.tokens:
 			return printTokens(alloc, allPaths, allSymbols, storage, showDiagOptions, mainPath, format);
@@ -250,14 +250,14 @@ public struct BuildToCResult {
 	immutable string[] allExternLibraryNames;
 }
 
-public immutable(BuildToCResult) buildToC(Alloc, PathAlloc, SymAlloc, ReadOnlyStorage)(
+public immutable(BuildToCResult) buildToC(Alloc, PathAlloc, ReadOnlyStorage)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
-	ref AllSymbols!SymAlloc allSymbols,
 	ref ReadOnlyStorage storage,
 	ref immutable ShowDiagOptions showDiagOptions,
 	immutable Path mainPath,
 ) {
+	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 	immutable ProgramsAndFilesInfo programs =
 		buildToLowProgram(alloc, allPaths, allSymbols, storage, mainPath);
 	return empty(programs.program.diagnostics)
