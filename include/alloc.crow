@@ -2,7 +2,7 @@ import
 	.bits: bits-and, bits-not
 	.bootstrap:
 		+, -, ==, !=, <, <=, >, any-ptr, as, as-any-ptr, as-ref, bool, by-val, false,
-		gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, incr, lock, nat, nat8, nat64, noctx-incr,
+		gc-ctx-ptr, get-ctx, hard-assert, hard-forbid, lock, nat, nat8, nat64, noctx-incr,
 		none, not, null?, opt, or, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, ptr-cast, ref-of-val,
 		set-subscript, size-of, some, subscript, todo, to-nat, true, unsafe-div, value, void, wrap-add,
 		wrap-mul, wrap-sub
@@ -47,7 +47,7 @@ mark-range-recur bool(marked-anything? bool, cur ptr bool, end ptr bool) noctx u
 	else
 		new-marked-anything? = marked-anything? or cur[].not
 		cur[] := true
-		mark-range-recur: new-marked-anything?, cur.incr, end
+		mark-range-recur: new-marked-anything?, cur + 1, end
 
 mark-visit void(mark-ctx mark-ctx, value ?a) noctx unsafe builtin
 
@@ -102,7 +102,7 @@ words-used-in-range nat(acc nat, cur ptr bool, end ptr bool) noctx unsafe
 	if cur ptr-eq? end
 		acc
 	else
-		acc wrap-add cur[].to-nat words-used-in-range cur.incr, end
+		acc wrap-add cur[].to-nat words-used-in-range cur + 1, end
 
 gc by-val gc() noctx unsafe
 	# TODO: handle malloc failure
@@ -133,7 +133,7 @@ run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	if mark-ptr ptr-eq? mark-end not
 		if mark-ptr[] not
 			data-ptr[] := 0xfadefadefadefade
-		clear-free-mem: mark-ptr.incr, mark-end, data-ptr
+		clear-free-mem: mark-ptr + 1, mark-end, data-ptr
 
 ###
 GC info specific to a ctx.
@@ -181,7 +181,7 @@ get-gc gc() unsafe
 fill-ptr-range void(cur ptr ?t, end ptr ?t, value ?t) noctx unsafe
 	if cur ptr-eq? end not
 		cur[] := value
-		cur.incr fill-ptr-range end, value
+		cur + 1 fill-ptr-range end, value
 
 validate-gc void(gc gc) noctx unsafe
 	hard-assert: gc.mark-begin ptr-less-eq? gc.mark-cur
@@ -211,8 +211,8 @@ validate-gc void(gc gc) noctx unsafe
 			gc.data-cur := next
 			cur.ptr-cast<nat8, nat64> some<ptr nat8>
 		else
-			gc.mark-cur := gc.mark-cur incr
-			gc.data-cur := gc.data-cur incr
+			gc.mark-cur := gc.mark-cur + 1
+			gc.data-cur := gc.data-cur + 1
 			gc try-gc-alloc-recur size-bytes
 	else
 		none
@@ -223,7 +223,7 @@ range-free? bool(mark ptr bool, end ptr bool) noctx unsafe
 	elif mark[]
 		false
 	else
-		mark.incr range-free? end
+		mark + 1 range-free? end
 
 gc-alloc any-ptr(gc gc, size nat) trusted
 	match gc try-gc-alloc size

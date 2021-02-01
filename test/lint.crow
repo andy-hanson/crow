@@ -38,7 +38,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 	ext = path.get-extension force
 	allow-double-space? = ext == "err" or: ext == "sublime-syntax"
 	text.lines each-with-index \line, line-num
-		ln = line-num.incr.to-str
+		ln = line-num + 1 to-str
 		space-space = " " ~ " "
 		if allow-double-space?.not and: line contains-subseq? space-space
 			message = "line " ~ ln ~ " contains a double space"
@@ -68,7 +68,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 	last-nl = 0 cell<nat>
 	s each-with-index \c, index
 		if c == "\n"
-			nl = last-nl swap index.incr
+			nl = last-nl swap index + 1
 			res ~= s[nl -> index]
 	res ~= s[last-nl[] -> s.size]
 	res move-to-arr!
@@ -78,7 +78,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 
 .n-tabs nat(line str)
 	if line.empty?.not and: line.first == "\t"
-		line.tail.n-tabs incr
+		line.tail.n-tabs + 1
 	else
 		0
 

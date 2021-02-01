@@ -1,5 +1,5 @@
 import
-	..bootstrap: ->, arrow, char, c-str, data, from, incr, not, null, null?, ptr, subscript, str, to, void
+	..bootstrap: +, ->, arrow, char, c-str, data, from, not, null, null?, ptr, subscript, str, to, void
 	..collection.arr: ~, arr-from-begin-end
 	..collection.dict: dict, each
 	..collection.mut-dict: move-to-dict!, mut-dict, set-subscript
@@ -19,12 +19,12 @@ get-environ-recur void(env ptr c-str, res mut-dict<str, str>) unsafe
 	if env[].null? not
 		entry = env[].parse-environ-entry
 		res[entry.from] := entry to
-		env.incr get-environ-recur res
+		env + 1 get-environ-recur res
 
 parse-environ-entry arrow<str, str>(entry c-str) unsafe
 	key-end = entry find-char-in-cstr "="
 	key = entry arr-from-begin-end key-end
-	value-begin = key-end incr
+	value-begin = key-end + 1
 	value-end = value-begin find-cstr-end
 	value = value-begin arr-from-begin-end value-end
 	key -> value

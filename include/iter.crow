@@ -2,12 +2,12 @@ import
 	.bootstrap: ==, <=, bool, drop, nat, none, opt, some, subscript, value, void
 	.cell: cell, get, set
 	.exceptions: assert, forbid
-	.number-utils: +, incr
+	.number-utils: +
 
 # TODO: Depend on a spec, then move to cell.crow
 get-and-incr nat(c cell nat)
 	res = c get
-	c set: res incr
+	c set: res + 1
 	res
 
 cell-incr void(c cell nat)

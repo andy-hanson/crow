@@ -1,7 +1,7 @@
 import
 	.alloc: try-alloc-uninitialized
 	.bootstrap:
-		+, !=, <, <=, >, any-ptr, arr, as, backtrace, hard-assert, incr, nat, noctx-decr,
+		+, !=, <, <=, >, any-ptr, arr, as, backtrace, hard-assert, nat, noctx-decr,
 		noctx-incr, none, opt, ptr, ptr-less?, set-subscript, some, str, subscript, to-int, unsafe-div, unsafe-to-int,
 		unsafe-to-int32, unsafe-to-nat, value, void, wrap-sub
 	sys.execinfo: backtrace
@@ -38,7 +38,7 @@ spec
 body
 	if code-names ptr-less? end-code-names
 		code-names[] := code-ptrs[] get-fun-name fun-ptrs, fun-names, funs-count
-		code-names + 1 fill-code-names-recur end-code-names, code-ptrs.incr, fun-ptrs, fun-names
+		code-names + 1 fill-code-names-recur end-code-names, code-ptrs + 1, fun-ptrs, fun-names
 
 .code-ptrs-size nat()
 	8
@@ -69,20 +69,20 @@ body
 				as some fun-names
 					some: backtrace-arrs: code-ptrs.value, code-names.value, fun-ptrs.value, fun-names.value
 
-.fill-fun-ptrs-names-recur void(i nat, fun-ptrs ptr any-ptr, fun-names ptr str) unsafe
+.fill-fun-ptrs-names-recur void(i nat, fun-ptrs ptr any-ptr, fun-names ptr str) unsafe noctx
 	if i != funs-count
 		fun-ptrs[i] := i.get-fun-ptr
 		fun-names[i] := i.get-fun-name
 		i.noctx-incr fill-fun-ptrs-names-recur fun-ptrs, fun-names
 
-.get-fun-name str(code-ptr any-ptr, fun-ptrs ptr any-ptr, fun-names ptr str, size nat) unsafe
+.get-fun-name str(code-ptr any-ptr, fun-ptrs ptr any-ptr, fun-names ptr str, size nat) unsafe noctx
 	# TODO: this will fail to give a name for the last function
 	if size < 2
 		"<<UNKNOWN>>"
 	elif code-ptr ptr-less? fun-ptrs[1]
 		fun-names[]
 	else
-		code-ptr get-fun-name fun-ptrs.incr, fun-names.incr, size.noctx-decr
+		code-ptr get-fun-name fun-ptrs + 1, fun-names + 1, size.noctx-decr
 
 .sort-together void(a ptr any-ptr, b ptr str, size nat) unsafe
 	if size > 1

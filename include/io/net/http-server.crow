@@ -9,7 +9,7 @@ import
 	...collection.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
 	...exceptions: assert, forbid
 	...fut-utils: resolved, subscript, then
-	...number-utils: incr, to-int
+	...number-utils: +, to-int
 	...posix.extra-types: fd-t
 	...posix.unistd: write
 	...str-conv: parse-nat, to-str
@@ -166,7 +166,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	as none
 		none
 	as some s
-		line = a pop-n-from-start! s.value.incr rtail
+		line = a pop-n-from-start! s.value + 1 rtail
 		some: line strip-carriage-return
 
 .strip-carriage-return str(a str)

@@ -215,6 +215,6 @@ repeat-interval fut void(times nat, interval duration, action act void()) summon
 	if times != 0
 		action[]
 		<- interval delay
-		times.decr repeat-interval interval, action
+		times - 1 repeat-interval interval, action
 	else
 		void resolved

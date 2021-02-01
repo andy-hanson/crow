@@ -16,22 +16,6 @@ region arithmetic
 multiple-of? bool(a nat, b nat)
 	(a mod b) == 0
 
-incr nat(n nat)
-	forbid: n == max-nat
-	n wrap-add 1
-
-incr int(i int)
-	forbid: i == max-int
-	i wrap-add 1
-
-# TODO: use specs for this kind of function
-decr nat(a nat)
-	a - 1
-decr int(a int)
-	a - 1
-decr int32(a int32)
-	a - 1
-
 + nat(a nat, b nat)
 	res = a wrap-add b
 	assert: res >= a and: res >= b
@@ -139,7 +123,7 @@ unsafe-div float(a float, b float) noctx unsafe builtin
 	if b == 0
 		1.0
 	else
-		a * a ^ b.decr
+		a * a ^ (b - 1)
 
 square-root float(a float) noctx extern<"sqrt">
 

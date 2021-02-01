@@ -3,7 +3,7 @@ import
 		==, <=>, ->, and, arr, arrow, as, bool, comparison, data, from, greater, has?, less,
 		nat, none, not, opt, size, some, subscript, to, void
 	..exceptions: assert
-	..number-utils: incr
+	..number-utils: +
 	..opt-utils: each
 	.arr: empty?, subscript
 	.arr-util: first, map, tail, zip
@@ -48,7 +48,7 @@ subscript opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
 		values[idx] some
 	else
 		# TODO: should not need to provide type arguments!
-		subscript-recur<?k, ?v>: keys, values, idx.incr, key
+		subscript-recur<?k, ?v>: keys, values, idx + 1, key
 
 has? bool(d dict<?k, ?v>, key ?k) data<?k>
 	d[key] has?

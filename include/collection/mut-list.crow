@@ -8,7 +8,7 @@ import
 	..collection.mut-arr:
 		data, fill-mut-arr, mut-arr, set-zero-elements, size, subscript, temp-as-arr
 	..exceptions: assert
-	..number-utils: +, -, *, incr
+	..number-utils: +, -, *
 	..posix.string: memcpy, memmove
 
 # NOTE: this is not a normal record, compiler treats it specially
@@ -138,13 +138,13 @@ pop-n! void(a mut-list ?t, n nat) trusted
 	a incr-capacity!
 	a.size < a.capacity assert
 	a.data[a.size] := value
-	a.size := a.size incr
+	a.size := a.size + 1
 
 ~= void(a mut-list ?t, values arr ?t)
 	values each {a ~= it}
 
 .incr-capacity! void(a mut-list ?t) unsafe
-	a ensure-capacity a.size.incr.round-up-to-power-of-two
+	a ensure-capacity: a.size + 1 round-up-to-power-of-two
 
 push-capacity-must-be-sufficient! void(a mut-list ?t, value ?t) noctx unsafe
 	hard-assert: a.size < a.capacity

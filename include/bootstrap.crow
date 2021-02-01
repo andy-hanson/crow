@@ -125,12 +125,6 @@ ptr-compare comparison(a ptr ?t, b ptr ?t) noctx unsafe
 ref-eq? bool(a ?t, b ?t) noctx unsafe
 	a.as-any-ptr ptr-eq? b.as-any-ptr
 
-incr ptr ?t(p ptr ?t) noctx unsafe
-	p + 1
-
-decr ptr ?t(p ptr ?t) noctx unsafe
-	p - 1
-
 # WARN: for a reference type, this is the size of a pointer
 size-of<?t> nat() noctx unsafe builtin
 

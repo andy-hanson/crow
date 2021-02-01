@@ -557,7 +557,7 @@ program(
 							call(set-subscript, [param-ref(cur), call(true, [])])
 							call(
 								mark-range-recur
-								[local-ref(new-marked-anything?), call(incr, [param-ref(cur)]), param-ref(end)]))))))
+								[local-ref(new-marked-anything?), call(+, [param-ref(cur), 1]), param-ref(end)]))))))
 		fun(
 			false
 			ptr-eq?
@@ -574,7 +574,6 @@ program(
 			none
 			[param(a, type(false, ptr)), param(value, type(false, bool))]
 			builtin([type(false, bool)]))
-		fun(false, incr, type(false, ptr), none, [param(p, type(false, ptr))], expr-body(call(+, [param-ref(p), 1])))
 		fun(
 			false
 			>
@@ -1378,10 +1377,10 @@ program(
 											seq(
 												call(
 													set-mark-cur
-													[param-ref(gc), call(incr, [call(mark-cur, [param-ref(gc)])])])
+													[param-ref(gc), call(+, [call(mark-cur, [param-ref(gc)]), 1])])
 												call(
 													set-data-cur
-													[param-ref(gc), call(incr, [call(data-cur, [param-ref(gc)])])]))
+													[param-ref(gc), call(+, [call(data-cur, [param-ref(gc)]), 1])]))
 											call(try-gc-alloc-recur, [param-ref(gc), param-ref(size-bytes)])))
 									to-union(0, call(none, [])))))))))
 		fun(
@@ -1525,7 +1524,7 @@ program(
 					cond(
 						call(subscript, [param-ref(mark)])
 						call(false, [])
-						call(range-free?, [call(incr, [param-ref(mark)]), param-ref(end)])))))
+						call(range-free?, [call(+, [param-ref(mark), 1]), param-ref(end)])))))
 		fun(
 			false
 			set-mark-cur
@@ -1548,7 +1547,6 @@ program(
 			none
 			[param(p, type(false, ptr))]
 			builtin([type(false, nat8), type(false, nat)]))
-		fun(false, incr, type(false, ptr), none, [param(p, type(false, ptr))], expr-body(call(+, [param-ref(p), 1])))
 		fun(
 			false
 			release!
@@ -1643,7 +1641,7 @@ program(
 		fun(false, unsafe-to-int32, type(false, int32), none, [param(a, type(false, int))], builtin([]))
 		fun(true, code-ptrs-size, type(false, nat), none, [], expr-body(8))
 		fun(
-			true
+			false
 			fill-fun-ptrs-names-recur
 			type(false, void)
 			none
@@ -1882,7 +1880,7 @@ program(
 							[
 								call(+, [param-ref(code-names), 1])
 								param-ref(end-code-names)
-								call(incr, [param-ref(code-ptrs)])
+								call(+, [param-ref(code-ptrs), 1])
 								param-ref(fun-ptrs)
 								param-ref(fun-names)]))
 					void)))
@@ -1894,7 +1892,7 @@ program(
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, arr)]))
 		fun(
-			true
+			false
 			get-fun-name
 			type(false, arr)
 			none
@@ -1914,11 +1912,9 @@ program(
 							get-fun-name
 							[
 								param-ref(code-ptr)
-								call(incr, [param-ref(fun-ptrs)])
-								call(incr, [param-ref(fun-names)])
+								call(+, [param-ref(fun-ptrs), 1])
+								call(+, [param-ref(fun-names), 1])
 								call(noctx-decr, [param-ref(size)])])))))
-		fun(false, incr, type(false, ptr), none, [param(p, type(false, ptr))], expr-body(call(+, [param-ref(p), 1])))
-		fun(false, incr, type(false, ptr), none, [param(p, type(false, ptr))], expr-body(call(+, [param-ref(p), 1])))
 		fun(
 			false
 			arr
@@ -3822,7 +3818,7 @@ program(
 					cond(
 						call(==, [call(subscript, [param-ref(a)]), 0])
 						call(todo, [])
-						call(find-char-in-cstr, [call(incr, [param-ref(a)]), param-ref(c)])))))
+						call(find-char-in-cstr, [call(+, [param-ref(a), 1]), param-ref(c)])))))
 		fun(
 			false
 			==
@@ -3843,7 +3839,6 @@ program(
 		fun(false, subscript, type(false, char), none, [param(a, type(false, ptr))], builtin([type(false, char)]))
 		fun(false, todo, type(false, ptr), none, [], expr-body(seq(call(abort!, []), call(zeroed, []))))
 		fun(false, zeroed, type(false, ptr), none, [], builtin([type(false, ptr)]))
-		fun(false, incr, type(false, ptr), none, [param(p, type(false, ptr))], expr-body(call(+, [param-ref(p), 1])))
 		fun(
 			true
 			lambda(lambda(add-first-task, 0), 0)
@@ -5152,7 +5147,7 @@ program(
 							void)
 						call(
 							clear-free-mem
-							[call(incr, [param-ref(mark-ptr)]), param-ref(mark-end), param-ref(data-ptr)]))
+							[call(+, [param-ref(mark-ptr), 1]), param-ref(mark-end), param-ref(data-ptr)]))
 					void)))
 		fun(
 			false
@@ -5555,7 +5550,7 @@ program(
 						words-used-in-range
 						[
 							call(wrap-add, [param-ref(acc), call(to-nat, [call(subscript, [param-ref(cur)])])])
-							call(incr, [param-ref(cur)])
+							call(+, [param-ref(cur), 1])
 							param-ref(end)]))))
 		fun(
 			false

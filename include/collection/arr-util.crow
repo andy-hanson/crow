@@ -1,10 +1,10 @@
 import
 	..alloc: alloc-uninitialized, fill-ptr-range
 	..bootstrap:
-		==, !=, >=, ->, and, arr, bool, data, false, has?, incr, nat, noctx-incr, none, not, opt, ptr,
+		+, ==, !=, >=, ->, and, arr, bool, data, false, has?, nat, noctx-incr, none, not, opt, ptr,
 		set-subscript, size, some, subscript, true, value, void
 	..exceptions: assert, forbid
-	..number-utils: +, -, decr, incr
+	..number-utils: +, -
 	..opt-utils: force
 	.arr: ~, arr-eq?, empty?, noctx-at, subscript
 
@@ -28,7 +28,7 @@ each-with-index void(a arr ?t, f act void(?t, nat))
 .each-with-index-recur void(a arr ?t, f act void(?t, nat), n nat)
 	if n != a.size
 		f[a[n], n]
-		a each-with-index-recur f, n.incr
+		a each-with-index-recur f, n + 1
 
 map arr ?out(a arr ?in, mapper act ?out(?in)) trusted
 	a.size make-arr \i
@@ -40,7 +40,7 @@ first ?t(a arr ?t)
 
 last ?t(a arr ?t)
 	forbid: a empty?
-	a[a.size.decr]
+	a[a.size - 1]
 
 tail arr ?t(a arr ?t)
 	forbid: a empty?
@@ -122,7 +122,7 @@ index-of-subseq opt nat(a arr ?t, subseq arr ?t) data<?t>
 	elif a[i -> a.size] starts-with? subseq
 		i some
 	else
-		a index-of-subseq-recur subseq, i.incr
+		a index-of-subseq-recur subseq, i + 1
 
 index-of opt nat(a arr ?t, value ?t) data<?t>
 	a find-index {it == value}
@@ -139,13 +139,13 @@ find-index opt nat(a arr ?t, pred act bool(?t))
 	elif pred[a[index]]
 		index some
 	else
-		a find-index-recur index.incr, pred
+		a find-index-recur index + 1, pred
 
 find-rindex opt nat(a arr ?t, pred act bool(?t))
 	if a empty?
 		none
 	else
-		a find-rindex-recur a.size.decr, pred
+		a find-rindex-recur a.size - 1, pred
 
 .find-rindex-recur opt nat(a arr ?t, index nat, pred act bool(?t))
 	if pred[a[index]]
@@ -153,7 +153,7 @@ find-rindex opt nat(a arr ?t, pred act bool(?t))
 	elif index == 0
 		none
 	else
-		a find-rindex-recur index.decr, pred
+		a find-rindex-recur index - 1, pred
 
 join arr ?t(a arr arr ?t, joiner arr ?t)
 	if a empty?
@@ -164,7 +164,7 @@ join arr ?t(a arr arr ?t, joiner arr ?t)
 		a[0] ~ joiner ~: a.tail join joiner
 
 split-by-subseq arr arr ?t(a arr ?t, splitter arr ?t) data<?t> trusted
-	size = a count-subseqs splitter incr
+	size = (a count-subseqs splitter) + 1
 	data = size alloc-uninitialized<arr ?t>
 	data fill-subseqs-recur a, splitter
 	arr: size, data
@@ -178,7 +178,7 @@ count-subseqs nat(a arr ?t, subseq arr ?t) data<?t>
 		acc
 	as some s
 		rest = a[s.value + subseq.size -> a.size]
-		rest count-subseqs-recur subseq, acc.incr
+		rest count-subseqs-recur subseq, acc + 1
 
 .fill-subseqs-recur void(out ptr arr ?t, a arr ?t, splitter arr ?t) data<?t> unsafe
 	match a index-of-subseq splitter
@@ -187,7 +187,7 @@ count-subseqs nat(a arr ?t, subseq arr ?t) data<?t>
 	as some s
 		out[] := a[0 -> s.value]
 		rest = a[s.value + splitter.size -> a.size]
-		out.incr fill-subseqs-recur rest, splitter
+		out + 1 fill-subseqs-recur rest, splitter
 
 zip arr ?out(a arr ?a, b arr ?b, cb act ?out(?a, ?b))
 	assert: a.size == b.size
