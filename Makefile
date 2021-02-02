@@ -13,7 +13,10 @@ dyncall:
 site/include-list.txt: bin/crow include/*.crow
 	./bin/crow run script/gen-include-list.crow > site/include-list.txt
 
-prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz
+prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz pug
+
+pug: site/*.pug site/*/*.pug
+	pug site --prety
 
 serve: prepare-site
 	cd site && python -m SimpleHTTPServer 8080

@@ -1,0 +1,31 @@
+section
+	h2 Download
+
+	h3
+		a(class="download-link" href="./bin/crow.tar.xz").
+			<crow-icon icon="download"></crow-icon> Linux x64
+
+	| Run:
+	<p><code>
+		cd ~/Downloads
+		<br />
+		tar -xJf crow.tar.xz
+		<br />
+		cd crow
+		<br />
+		bin/crow run demo/hello
+	</code></p>
+
+	| This should print <code>Hello, world!</code>
+
+	h4 Installing
+
+	| Optionally, add this to your <code>~/.bashrc</code> (or equivalent):
+
+	<p><code>export PATH="~/Downloads/crow/bin:$PATH"</code></p>
+
+	| to make <code>crow</code> available on the command line anywhere.
+
+	h3 Other systems
+
+	| TODO

@@ -16,8 +16,9 @@ It will build `bin/crow` and test.
 
 ## Other dependencies
 
-* [`python`](https://www.python.org/) for `make doc-server`.
-* [`node`](https://nodejs.org/en/) for the VSCode extension.
+* [`node`](https://nodejs.org/en/) to build `site` and for the VSCode extension.
+* [`pug`](https://pugjs.org) (`npm install -g pug`) to build `site`.
+* [`python`](https://www.python.org/) for `make serve`.
 
 
 # Testing

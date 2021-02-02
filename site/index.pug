@@ -1,0 +1,31 @@
+doctype html
+html(lang="en")
+	head
+		meta(charset="utf-8")
+		title crow programming language
+		link(
+			rel="icon"
+			href="https://openclipart.org/download/28309/drunken-duck-crow-silhouette.svg"
+			type="image/x-icon")
+		link(rel="stylesheet" href="./index.css")
+		script(src="./crow-js/crow.js")
+		script(type="module" async src="./script/index.js")
+	body
+		header
+			nav
+				div(id="crow")
+					a(href="index.html")
+						img(src="https://openclipart.org/download/28309/drunken-duck-crow-silhouette.svg")
+				ul
+					li: a(href="index.html#download") download
+					li: a(href="index.html#hello") hello
+					li: a(href="index.html#record") record
+					li: a(href="index.html#union") union
+					li: a(href="index.html#spec") spec
+					li: a(href="index.html#collection") collection
+					li: a(href="index.html#fun") fun
+					li: a(href="index.html#fut") fut
+					li: a(href="index.html#module") module
+					li: a(href="index.html#extern") extern
+					li: a(href="index.html#test") test
+		main

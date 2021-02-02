@@ -2,7 +2,8 @@ bin
 demo-wip/*
 demo-wip/*.c
 !demo-wip/*.*
-doc/example/*.c
+site/example/*.c
+*.html
 dyncall
 crow-vscode/node_modules
 crow-vscode/client/node_modules
