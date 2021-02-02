@@ -71,7 +71,7 @@ export const CrowRunnable = makeCustomElement({
 		const comp = await compiler.getGlobalCompiler()
 		const src = nonNull(getAttribute("src"))
 		const noRun = getAttribute("no-run") !== null
-		const initialText = await (await fetch(`example/${src}.crow`)).text()
+		const initialText = await (await fetch(`/example/${src}.crow`)).text()
 		const MAIN = src
 
 		/** @type {MutableObservable<string>} */
@@ -146,25 +146,6 @@ export const CrowRunnable = makeCustomElement({
 	},
 })
 
-const Icon = makeCustomElement({
-	tagName: "crow-icon",
-	styleSheet: new StyleBuilder()
-		.rule(Selector.child(Selector.class(iconClass), Selector.tag("svg")), {
-			height: Measure.em(1.25),
-		})
-		.end(),
-	init: () => ({state:null, out:null}),
-	connected: async ({ getAttribute, root }) => {
-		const icon = getAttribute("icon")
-		const theIcon = nonNull({
-			copy: copyIcon,
-			download: downloadIcon,
-			play: playIcon,
-		}[icon])()
-		root.appendChild(theIcon)
-	},
-})
-
 // Icons from https://heroicons.com/
 
 const playIcon = () =>
@@ -228,4 +209,23 @@ const getIncludeFiles = async () =>
 
 /** @type {function(): Promise<ReadonlyArray<string>>} */
 const listInclude = async () =>
-	(await (await fetch('include-list.txt')).text()).trim().split('\n')
+	(await (await fetch('/include-list.txt')).text()).trim().split('\n')
+
+const Icon = makeCustomElement({
+	tagName: "crow-icon",
+	styleSheet: new StyleBuilder()
+		.rule(Selector.child(Selector.class(iconClass), Selector.tag("svg")), {
+			height: Measure.em(1.25),
+		})
+		.end(),
+	init: () => ({state:null, out:null}),
+	connected: async ({ getAttribute, root }) => {
+		const icon = getAttribute("icon")
+		const theIcon = nonNull({
+			copy: copyIcon,
+			download: downloadIcon,
+			play: playIcon,
+		}[icon])()
+		root.appendChild(theIcon)
+	},
+})

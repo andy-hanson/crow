@@ -1,0 +1,33 @@
+mixin page(title)
+	doctype html
+	html(lang="en")
+		head
+			meta(charset="utf-8")
+			title Crow programming language: #{title}
+			link(
+				rel="icon"
+				href="https://openclipart.org/download/28309/drunken-duck-crow-silhouette.svg"
+				type="image/x-icon")
+			link(rel="stylesheet" href="/index.css")
+			script(src="/crow-js/crow.js")
+			script(type="module" async src="/script/index.js")
+		body
+			header
+				nav
+					div(id="crow")
+						a(href="index.html")
+							img(src="https://openclipart.org/download/28309/drunken-duck-crow-silhouette.svg")
+					ul
+						li: a(href="/download.html") download
+						li: a(href="/tutorial/hello.html") hello
+						li: a(href="/tutorial/record.html") record
+						li: a(href="/tutorial/union.html") union
+						li: a(href="/tutorial/spec.html") spec
+						li: a(href="/tutorial/collection.html") collection
+						li: a(href="/tutorial/fun.html") fun
+						li: a(href="/tutorial/fut.html") fut
+						li: a(href="/tutorial/module.html") module
+						li: a(href="/tutorial/extern.html") extern
+						li: a(href="/tutorial/test.html") test
+			main
+				block

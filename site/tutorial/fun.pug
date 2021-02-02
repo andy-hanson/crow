@@ -1,0 +1,75 @@
+include ../pug-include/page.pug
++page("Function values")
+	section
+		h2 Function values
+
+		h3 fun
+
+		p.
+			A <em>function value</em> is a value that references a function,
+			as well as a <em>closure</em> of data for the function to access.
+
+		crow-runnable(src="fun")
+
+		p.
+			The <code>\x</code> syntax introduces a new function value.
+			<code>x</code> is the parameter of the inner function.
+			With multiple parameters it would be written <code>\x, y</code>.
+
+			The parameter list may not contain types; they are inferred from the type the expression must have.
+			For example, <code class="fun-ref">call-it</code> takes a <code>fun str(nat)</code>,
+			so <code>x</code> must be a <code>nat</code>.
+
+			<br />
+
+			If the compiler doesn't infer a type, you could write <code>as&lt;fun str(nat)>:</fun> to make it explicit.</code>
+
+		p.
+			There is an alternate syntax <code>{it * 2 to-str}</code> for short functions with a single parameter.
+			This implicitly takes a parameter called <code class="param-ref">it</code>.
+
+		p.
+			<code>fun str(nat)</code> is the type of a function value returning a
+			<code class="struct-ref">str</code> given a <code class="struct-ref">nat</code>.
+
+		p.
+			<code>f[3]</code> calls the function value, executing the inner function.
+
+		h4 closures
+
+		p.
+			The inner function may access variables from the outer function;
+			the variable is stored along with the function value.
+			<br />
+			This is called a <em>closure</em>.
+
+		crow-runnable(src="closure")
+
+		p.
+			In this example, the <code>type</code> variable becomes part of the closure returned by <code>make-cooker</code>.
+
+			The closure of a <code class="struct-ref">fun</code> must be <code class="spec-ref">data</code>.
+
+			This almost makes them pure functions, although performing I/O is still allowed.
+
+	section
+		h3 act
+
+		p.
+			An <code class="struct-ref">act</code> is like a <code class="struct-ref">fun</code>,
+			except the closure may include mutable values.
+			That's the only difference — the syntax to create and use them is identical.
+
+		p.
+			A <code class="struct-ref">fun</code> can be run in a parallel task, but an <code class="struct-ref">act</code>
+			always runs in the context that created it; no two <code class="struct-ref">act</code>s
+			closing over the same mutable value can run at the same time.
+
+		p.
+			Most common functions that take a function value and immediately call it take an
+			<code class="struct-ref">act</code> to give the caller more flexibility.
+
+			One example is <code class="fun-ref">map</code> from <code class="import">collection.arr-util</code>;
+			this produces an output arra yfrom an input array by applying a function to each element.
+
+		crow-runnable(src="act")

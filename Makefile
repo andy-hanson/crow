@@ -1,4 +1,4 @@
-.PHONY: debug end-to-end-test end-to-end-test-overwrite sdl-demo serve prepare-site test unit-test
+.PHONY: debug end-to-end-test end-to-end-test-overwrite pug-watch sdl-demo serve prepare-site test unit-test
 
 all: test lint bin/crow.wasm sdl-demo serve
 
@@ -17,6 +17,9 @@ prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz pug
 
 pug: site/*.pug site/*/*.pug
 	pug site --prety
+
+pug-watch:
+	pug site --pretty --watch
 
 serve: prepare-site
 	cd site && python -m SimpleHTTPServer 8080
