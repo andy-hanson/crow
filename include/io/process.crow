@@ -1,7 +1,7 @@
 import
 	..bootstrap:
-		+, ==, <=, and, arr, as, as-any-ptr, as-ref, bool, by-val, char, c-str, data, int32, not, null,
-		or, ptr, size, str, todo, to-nat, void
+		==, <=, and, arr, as, bool, by-val, char, c-str, data, int32, not, null,
+		or, size, str, todo, to-nat, void
 	..cell: cell, subscript
 	..collection.arr: ~, ref-of-val-at
 	..collection.arr-util: fold, map
@@ -22,6 +22,7 @@ import
 	..posix.wait:
 		status-t, waitpid, w-exit-status, w-if-continued, w-if-exited, w-if-signaled,
 		w-if-stopped, w-term-sig
+	..ptr: +, as-any-ptr, as-ref, ptr
 	..str-conv: to-str
 	..str-utils: to-c-str
 	.environ: convert-environ, environ

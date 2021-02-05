@@ -1,7 +1,8 @@
 # /usr/include/setjmp.h
 
 import
-	..bootstrap: int32, ptr, void
+	..bootstrap: int32, void
+	..ptr: ptr
 	.bytes-types: bytes64
 	.sigset: sigset-t
 

@@ -1,8 +1,8 @@
 import
 	.bootstrap:
 		cb, drop, err, exception, fut, fut-callback-node, fut-state-callbacks, fut-state-resolved,
-		todo, head, none, lk, next-node, opt, ok, ref-of-val, result, set-state, state, subscript,
-		value, void
+		todo, head, none, lk, next-node, opt, ok, result, set-state, state, subscript, value, void
+	.ptr: ref-of-val
 	.thread-utils: lock-by-val, with-lock
 
 unresolved fut ?t() unsafe

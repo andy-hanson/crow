@@ -6,8 +6,6 @@ void void() noctx builtin
 drop void(_ ?t) noctx
 	void
 
-by-val<?t> builtin
-
 ###
 A type is data if it is:
 * A primitive
@@ -67,7 +65,9 @@ err<?t> record
 
 as ?t(value ?t) noctx builtin
 
-region ptr
+region ptr.crow
+
+by-val<?t> builtin
 
 ###
 A raw pointer. GC will not trace these.
@@ -83,13 +83,6 @@ null? bool(a ptr ?t) noctx trusted
 any-ptr alias
 	ptr nat8
 
-subscript ?t(a ptr ?t) noctx unsafe builtin
-subscript ?t(a ptr ?t, n nat) noctx unsafe
-	(a + n)[]
-set-subscript void(a ptr ?t, value ?t) noctx unsafe builtin
-set-subscript void(a ptr ?t, n nat, value ?t) noctx unsafe
-	(a + n)[] := value
-
 # Unsafe because the ref will only be valid temporarily!
 ref-of-val ?t(b by-val ?t) noctx unsafe builtin
 
@@ -103,9 +96,6 @@ ptr-to ptr ?t(t ?t) noctx unsafe builtin
 as-any-ptr any-ptr(ref ?t) noctx unsafe builtin
 # TODO: this function only works for by-ref types -- currently that is not checked by the type checker
 as-ref ?t(p any-ptr) noctx unsafe builtin
-
-ref-of-ptr ?t(p ptr by-val<?t>) noctx unsafe
-	p[] ref-of-val
 
 ptr-eq? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
 ptr-less? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
@@ -135,12 +125,6 @@ magic-cast ?out(p ?in) noctx unsafe
 	p.as-any-ptr as-ref
 
 to-nat nat(p ptr ?t) noctx unsafe builtin
-
-+ ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
-- ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
-- nat(a ptr ?t, b ptr ?t) noctx unsafe
-	a.to-nat wrap-sub b.to-nat unsafe-div size-of<?t>
-
 
 region comparison
 

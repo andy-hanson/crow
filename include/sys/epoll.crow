@@ -1,7 +1,8 @@
 import
-	..bootstrap: nat32, nat64, ptr
+	..bootstrap: nat32, nat64
 	..posix.c-types: c-int
 	..posix.extra-types: err-t, fd-t
+	..ptr: ptr
 
 epoll-create1 fd-t(flags c-int) unsafe noctx extern<"epoll_create1"> summon
 

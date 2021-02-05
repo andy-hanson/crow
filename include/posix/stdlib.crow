@@ -1,5 +1,6 @@
 import
-	..bootstrap: any-ptr, nat, void
+	..bootstrap: nat, void
+	..ptr: any-ptr
 
 malloc any-ptr(size nat) unsafe extern<"malloc"> noctx
 free void(p any-ptr) unsafe extern<"free"> noctx

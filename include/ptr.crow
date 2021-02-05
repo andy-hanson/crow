@@ -1,0 +1,23 @@
+import
+	.bootstrap: nat, unsafe-div, wrap-sub, void
+export
+	.bootstrap:
+		any-ptr, as-any-ptr, as-ref, by-val, magic-cast, null, null?, ptr, ptr-cast,
+		ptr-cast-from-extern, ptr-cast-to-extern, ptr-compare, ptr-eq?, ptr-less?, ptr-less-eq?,
+		ptr-to, ref-eq?, ref-of-val, size-of, to-nat
+
++ ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
+
+- ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
+- nat(a ptr ?t, b ptr ?t) noctx unsafe
+	a.to-nat wrap-sub b.to-nat unsafe-div size-of<?t>
+
+subscript ?t(a ptr ?t) noctx unsafe builtin
+subscript ?t(a ptr ?t, n nat) noctx unsafe
+	(a + n)[]
+set-subscript void(a ptr ?t, value ?t) noctx unsafe builtin
+set-subscript void(a ptr ?t, n nat, value ?t) noctx unsafe
+	(a + n)[] := value
+
+ref-of-ptr ?t(p ptr by-val<?t>) noctx unsafe
+	p[] ref-of-val

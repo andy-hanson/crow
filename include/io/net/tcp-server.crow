@@ -2,8 +2,7 @@ import
 	...bits: bits-intersect?, bits-or
 	...bootstrap:
 		==, !=, <, ->, arr, as, bool, by-val, data, drop, false, fut, int32, message, nat8, nat16,
-		nat32, not, or, ptr-cast-to-extern, ptr-to, ref-of-val, size-of, str, todo, to-int, true,
-		value, void
+		nat32, not, or, str, todo, to-int, true, value, void
 	...cell: cell
 	...collection.arr: ~, subscript
 	...collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
@@ -19,6 +18,7 @@ import
 	...posix.stdio: perror
 	...posix.types: socklen-t
 	...posix.unistd: close, read
+	...ptr: ptr-cast-to-extern, ptr-to, ref-of-val, size-of
 	...str-conv: to-str
 	...sys.epoll:
 		data, epoll-create1, epoll-ctl, epoll-ctl-add, epollerr, epollet, epoll-event, epollhup,

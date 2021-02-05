@@ -1,6 +1,6 @@
 import
 	.bootstrap:
-		==, ->, arr, bool, false, has?, none, opt, size, some, subscript, str, true, value, void
+		==, ->, arr, bool, false, has?, none, opt, size, some, str, subscript, true, value, void
 	.cell: cell, set-subscript, subscript
 	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail

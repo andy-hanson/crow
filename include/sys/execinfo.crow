@@ -1,6 +1,6 @@
 import
-	..bootstrap: any-ptr, ptr
 	..posix.c-types: c-int
+	..ptr: any-ptr, ptr
 
 # Interpreter overrides this
 backtrace c-int(array ptr any-ptr, size c-int) unsafe noctx extern<"backtrace">

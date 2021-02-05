@@ -1,9 +1,10 @@
 import
 	.alloc: try-alloc-uninitialized
 	.bootstrap:
-		+, !=, <, <=, >, any-ptr, arr, as, backtrace, hard-assert, nat, noctx-decr,
-		noctx-incr, none, opt, ptr, ptr-less?, set-subscript, some, str, subscript, to-int, unsafe-div, unsafe-to-int,
-		unsafe-to-int32, unsafe-to-nat, value, void, wrap-sub
+		!=, <, <=, >, arr, as, backtrace, hard-assert, nat, noctx-decr, noctx-incr, none, opt,
+		some, str, to-int, unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, value,
+		void, wrap-sub
+	.ptr: +, any-ptr, ptr, ptr-less?, set-subscript, subscript
 	sys.execinfo: backtrace
 
 funs-count nat() noctx unsafe builtin

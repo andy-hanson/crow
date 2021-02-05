@@ -1,8 +1,9 @@
 import
-	.bootstrap: as, as-ref, by-val, get-ctx, log-ctx, str, subscript, void, zeroed
+	.bootstrap: as, by-val, get-ctx, log-ctx, str, subscript, void, zeroed
 	.collection.arr: ~
 	.exceptions: finally
 	.io.print: print
+	.ptr: as-ref
 
 log-ctx record mut
 	by-ref

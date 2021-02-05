@@ -1,5 +1,6 @@
 import
-	..bootstrap: any-ptr, fun-ptr1
+	..bootstrap: fun-ptr1
+	..ptr: any-ptr
 	.posix: u-long
 	.sigset: sigset-t
 

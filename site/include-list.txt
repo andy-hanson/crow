@@ -58,6 +58,7 @@ posix/time
 posix/types
 posix/unistd
 posix/wait
+ptr
 rt-main
 runtime
 std

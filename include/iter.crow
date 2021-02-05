@@ -1,8 +1,9 @@
 import
-	.bootstrap: ==, <=, bool, drop, nat, none, opt, some, subscript, value, void
+	.bootstrap: ==, <=, bool, drop, nat, none, opt, some, value, void
 	.cell: cell, get, set
 	.exceptions: assert, forbid
 	.number-utils: +
+	.ptr: subscript
 
 # TODO: Depend on a spec, then move to cell.crow
 get-and-incr nat(c cell nat)

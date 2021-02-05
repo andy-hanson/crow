@@ -1,6 +1,5 @@
 import
-	...bootstrap:
-		==, !=, as-ref, nat16, none, null, null?, opt, ptr, ptr-to, some, subscript, str, todo, value
+	...bootstrap: ==, !=, nat16, none, opt, some, str, todo, value
 	...cell: cell, subscript
 	...collection.arr: ~
 	...exceptions: assert
@@ -12,6 +11,7 @@ import
 	...posix.socket: af-inet, af-unspec, bind, connect, socket
 	...posix.socket-type: sock-stream
 	...posix.unistd: close
+	...ptr: as-ref, null, null?, ptr, ptr-to, subscript
 	...str-conv: to-str
 	...str-utils: to-c-str
 	..posix-util: check-posix-error

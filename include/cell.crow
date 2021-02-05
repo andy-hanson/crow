@@ -1,5 +1,5 @@
 import
-	.bootstrap: as-any-ptr, as-ref, ptr
+	.ptr: as-any-ptr, as-ref, ptr
 
 cell<?t> record mut
 	subscript mut ?t

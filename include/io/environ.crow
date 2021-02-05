@@ -1,11 +1,12 @@
 import
-	..bootstrap: +, ->, arrow, char, c-str, data, from, not, null, null?, ptr, subscript, str, to, void
+	..bootstrap: ->, arrow, char, c-str, data, from, not, null, null?, str, to, void
 	..collection.arr: ~, arr-from-begin-end
 	..collection.dict: dict, each
 	..collection.mut-dict: move-to-dict!, mut-dict, set-subscript
 	..collection.mut-list: ~=, move-to-arr!, mut-list
-	..str-utils: find-char-in-cstr, find-cstr-end, to-c-str
 	..posix.unistd: environ
+	..ptr: +, ptr, subscript
+	..str-utils: find-char-in-cstr, find-cstr-end, to-c-str
 
 environ alias
 	dict<str, str>

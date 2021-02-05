@@ -2,12 +2,13 @@ import
 	.bootstrap:
 		==, arr, as, err, exception, exclusion, fun, fut, fut-callback-node, fut-state-callbacks,
 		fut-state-resolved, hard-unreachable, head, island, island-and-exclusion, lk, nat, none, ok, opt,
-		ref-of-val, result, send, set-state, size, some, state, subscript, value, void
+		result, send, set-state, size, some, state, subscript, value, void
 	.cell: cell, set-subscript, subscript
 	.collection.arr-util: each-with-index, first-some, map
 	.exceptions: catch
 	.fut-low-level: reject!, resolve!, resolve-or-reject!, unresolved
 	.number-utils: -
+	.ptr: ref-of-val
 	.runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
 	.thread-utils: lock, lock-by-val, with-lock
 # Used to make code run after the next step. Equivalent to `sleep 0`.

@@ -1,11 +1,12 @@
 import
 	.bootstrap:
-		==, <=, as, bool, by-val, exclusion, false, hard-assert, has?, nat, none, not, opt,
-		ref-of-val, some, true, value, void, wrap-add
+		==, <=, as, bool, exclusion, false, hard-assert, has?, nat, none, not, opt,
+		some, true, value, void, wrap-add
 	.collection.mut-list:
 		contains?, mut-list, mut-list-by-val-with-capacity-from-unmanaged-memory,
 		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
 	.io.time-low-level: timestamp
+	.ptr: by-val, ref-of-val
 
 # TODO: use a heap, not a list
 
