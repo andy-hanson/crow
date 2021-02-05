@@ -2,7 +2,7 @@ include pug-include/page.pug
 +page("Home")
 	h2 crow
 
-	p Crow is programming language featuring:
+	p Crow is an upcoming programming language (in alpha state) featuring:
 	ul
 		li
 			p.
@@ -11,7 +11,7 @@ include pug-include/page.pug
 				unless a parameter gives it permission.
 				This means that just by looking at a function's signature, you know what it can do;
 				and if all parameters are <code>data</code>, it is functionally pure.
-				(Don't worry, you can directly call C libraries -- see <a href="index.html#extern">extern</a>.)
+				(Don't worry, you can directly call C libraries.)
 			p.
 				That means no global state, and no unsafe memory operations.
 				They also can't perform I/O without permission being passed in by a parameter.
@@ -35,4 +35,4 @@ include pug-include/page.pug
 				to refer to type-appropriate functions like <code>size-of</code> as in C++.
 	p.
 		Now, <a href="/download.html">download</a> crow
-		or go straight to the the <a href="index.html#hello">tutorial</a>.
+		or go straight to the the <a href="/tutorial">tutorial</a>.

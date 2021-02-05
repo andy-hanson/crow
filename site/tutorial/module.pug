@@ -1,5 +1,5 @@
-include ../pug-include/page.pug
-+page("Modules")
+include ../pug-include/tutorial.pug
++tutorialPage("module")
 	section
 		h2 Modules
 
@@ -14,7 +14,8 @@ include ../pug-include/page.pug
 			To import a module of your own, consider the relative path from the importing module to the imported module.
 			<br />
 			The relative path is specified by climbing up and then down.
-			Start with a single <code>.</code>, then an additional <code>.</code> for each parent directory you want to climb.
+			Start with a single <code>.</code>,
+			then an additional <code>.</code> for each parent directory you want to climb.
 			Then, write the name of each directory go down into, separated by <code>.</code>.
 
 		| If you have these files:

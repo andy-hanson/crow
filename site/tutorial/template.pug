@@ -1,5 +1,5 @@
-include ../pug-include/page.pug
-+page("Templates and specs")
+include ../pug-include/tutorial.pug
++tutorialPage("template")
 	section
 		h2 Templates and specs
 
@@ -28,7 +28,8 @@ include ../pug-include/page.pug
 
 			The syntax for an instance of a type template looks like <code>dict&lt;nat, str></code>,
 			but when there is a single type argument, as in <code>arr str</code>, the <code>&lt;></code> may be omitted.
-			This applies recursively, as in <code>opt node ?t</code> which is equivalent to <code>opt&lt;node&lt;?t>></code>.
+			This applies recursively, as in <code>opt node ?t</code>
+			which is equivalent to <code>opt&lt;node&lt;?t>></code>.
 
 		h4 Specifying function type arguments
 
@@ -44,7 +45,8 @@ include ../pug-include/page.pug
 
 		p.
 			Templates are type-checked abstractly;
-			that means that you can only perform operations on <code class="tparam-ref">?t</code> that work for all types.
+			that means that you can only perform operations on <code class="tparam-ref">?t</code>
+			that work for all types.
 
 			That's simple for <code class="fun-ref">size</code> which doesn't actually access the node heads.
 			But <code class="fun-ref">sum</code> needs to call a <code class="fun-ref">+</code> function,
@@ -58,11 +60,12 @@ include ../pug-include/page.pug
 
 		p.
 			In this example, <code class="fun-def">sum</code> wants to call <code class="fun-ref">+</code>,
-			but can't as there is no <code class="fun-def">+</code> function that takes <code class="tparam-ref">?t</code>
-			(that is, that works for any arbitrary type).
+			but can't as there is no <code class="fun-def">+</code> function
+			that takes <code class="tparam-ref">?t</code> (that is, that works for any arbitrary type).
 
 			But the caller knows that <code class="tparam-ref">?t</code> is <code class="struct-ref">nat</code>,
-			and is able to supply the <code class="fun-ref">+</code> function that <code class="fun-ref">sum</code> needs.
+			and is able to supply the <code class="fun-ref">+</code> function
+			that <code class="fun-ref">sum</code> needs.
 
 	section
 		h3 Tail recursion

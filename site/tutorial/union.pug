@@ -1,5 +1,5 @@
-include ../pug-include/page.pug
-+page("Unions")
+include ../pug-include/tutorial.pug
++tutorialPage("union")
 	section
 		h2 Unions
 
@@ -37,5 +37,6 @@ include ../pug-include/page.pug
 			The cases of a <code class="keyword">match</code> have to have the same order as the members of the union.
 			<br />
 			The syntax <code>as circle c</code> means this is the case for <code class="struct-ref">circle</code>,
-			and introduces a local <code>c</code> which is the <code class="struct-ref">circle</code> that the union contained.
+			and introduces a local <code>c</code> which is the
+			<code class="struct-ref">circle</code> that the union contained.
 			The local is optional, as in the <code>empty</code> case.

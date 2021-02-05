@@ -1,5 +1,5 @@
-include ../pug-include/page.pug
-+page("Function values")
+include ../pug-include/tutorial.pug
++tutorialPage("fun")
 	section
 		h2 Function values
 
@@ -22,7 +22,8 @@ include ../pug-include/page.pug
 
 			<br />
 
-			If the compiler doesn't infer a type, you could write <code>as&lt;fun str(nat)>:</fun> to make it explicit.</code>
+			If the compiler doesn't infer a type, you could write
+			<code>as&lt;fun str(nat)&gt;:</code> to make it explicit.
 
 		p.
 			There is an alternate syntax <code>{it * 2 to-str}</code> for short functions with a single parameter.
@@ -46,7 +47,8 @@ include ../pug-include/page.pug
 		crow-runnable(src="closure")
 
 		p.
-			In this example, the <code>type</code> variable becomes part of the closure returned by <code>make-cooker</code>.
+			In this example, the <code class="param-def">type</code> variable becomes part of the closure
+			returned by <code class="fun-def">make-cooker</code>.
 
 			The closure of a <code class="struct-ref">fun</code> must be <code class="spec-ref">data</code>.
 
@@ -61,9 +63,9 @@ include ../pug-include/page.pug
 			That's the only difference — the syntax to create and use them is identical.
 
 		p.
-			A <code class="struct-ref">fun</code> can be run in a parallel task, but an <code class="struct-ref">act</code>
-			always runs in the context that created it; no two <code class="struct-ref">act</code>s
-			closing over the same mutable value can run at the same time.
+			A <code class="struct-ref">fun</code> can be run in a parallel task,
+			but an <code class="struct-ref">act</code> always runs in the context that created it.
+			No two <code class="struct-ref">act</code>s closing over the same mutable value can run at the same time.
 
 		p.
 			Most common functions that take a function value and immediately call it take an

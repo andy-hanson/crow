@@ -1,5 +1,5 @@
-include ../pug-include/page.pug
-+page("Collections")
+include ../pug-include/tutorial.pug
++tutorialPage("collection")
 	section
 		h2 Collections
 
@@ -26,7 +26,8 @@ include ../pug-include/page.pug
 		h3 arr
 
 		p.
-			The <code class="struct-ref">arr</code> type, short for "array", stores multiple values contiguously in memory.
+			The <code class="struct-ref">arr</code> type, short for "array",
+			stores multiple values contiguously in memory.
 			An <code class="struct-ref">arr</code> is immutable, though it can store values with internal mutability.
 			For a type template, the purity is affected by the type arguments,
 			so <code>arr nat</code> is <code class="spec-ref">data</code> but <code>arr fut nat</code> is not.
@@ -65,12 +66,13 @@ include ../pug-include/page.pug
 		p.
 			The <code class="struct-ref">mut-arr</code> type is like <code class="struct-ref">arr</code>
 			but <code class="keyword">mut</code>.
-			It has mutable contents, but the size is not mutable, so it's mostly useful for implementing other data structures.
+			It has mutable contents, but the size is not mutable,
+			so it's mostly useful for implementing other data structures.
 
 		crow-runnable(src="mut-arr")
 		p.
-			<code class="struct-ref">opt</code> and <code class="struct-ref">arr</code> are the only auto-imported collections,
-			all others need to be explicitly imported.
+			<code class="struct-ref">opt</code> and <code class="struct-ref">arr</code>
+			are the only auto-imported collections; all others need to be explicitly imported.
 
 		h4 set-subscript
 		p.
@@ -91,7 +93,8 @@ include ../pug-include/page.pug
 		h3 mut-list
 
 		p.
-			<code class="struct-ref">mut-list</code> is like <code class="struct-ref">mut-arr</code> but with mutable size.
+			<code class="struct-ref">mut-list</code> is like <code class="struct-ref">mut-arr</code>
+			but with mutable size.
 			(It retains an excess capacity, so not every increase to the size requires a new allocation.)
 
 		crow-runnable(src="mut-list")
@@ -133,7 +136,8 @@ include ../pug-include/page.pug
 		crow-runnable(src="dict")
 
 		p.
-			Creating a literal <code class="struct-ref">dict</code> reuses <code class="fun-ref">-></code> as a key-value pair.
+			Creating a literal <code class="struct-ref">dict</code> reuses
+			<code class="fun-ref">-></code> as a key-value pair.
 			<br />
 
 			The keys must be <code class="spec-ref">data</code> (even for a <code class="struct-ref">mut-dict</code>);

@@ -16,6 +16,7 @@ site/include-list.txt: bin/crow include/*.crow
 prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz pug
 
 pug: site/*.pug site/*/*.pug
+	# BUG: --pretty flag doesn't have an effect when applied to a directory
 	pug site --prety
 
 pug-watch:
@@ -39,10 +40,10 @@ unit-test: bin/crow
 	./bin/crow test
 
 end-to-end-test: bin/crow
-	./bin/crow run test/test.crow --out test.c
+	./bin/crow run test/test.crow --out test/test.c
 
 end-to-end-test-overwrite: bin/crow
-	./bin/crow run test/test.crow --out test.c -- --overwrite-output
+	./bin/crow run test/test.crow --out test/test.c -- --overwrite-output
 
 test: unit-test end-to-end-test
 

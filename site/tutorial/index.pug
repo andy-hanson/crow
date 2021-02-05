@@ -1,5 +1,5 @@
-include ../pug-include/page.pug
-+page("Hello World!")
+include ../pug-include/tutorial.pug
++tutorialPage("index")
 	section
 		h2 Hello World!
 
@@ -13,9 +13,10 @@ include ../pug-include/page.pug
 			Crow syntax is based on indented blocks.
 			There is an indented block of code under <code class="keyword">import</code>
 			and one under <code class="fun-def">main</code>.
-			The indentation is mandatory.
-			An indent may be one tab, two spaces, or four spaces;
-			but every indent in the same file must use the same style.
+			The indentation is required.
+			<br />
+			An indent may be one tab, two spaces, or four spaces.
+			Every indent in the same file must use the same style.
 
 		| Here's what each part does:
 		ul
@@ -37,7 +38,8 @@ include ../pug-include/page.pug
 			li.
 				<code class="spec-ref">summon</code> is a type of spec.
 				A function's specs indicate preconditions that it relies on;
-				it allows <code class="fun-ref">main</code> to call other <code class="spec-ref">summon</code> functions,
+				it allows <code class="fun-ref">main</code> to call other
+				<code class="spec-ref">summon</code> functions,
 				and only <code class="spec-ref">summon</code> functions can call <code class="fun-ref">main</code>.
 				<br />
 				(There are also <a href="index.html#fun">other</a> ways to do I/O.)
@@ -56,7 +58,8 @@ include ../pug-include/page.pug
 			A name consists of letters (<code>a</code> through <code>z</code>),
 			numbers (<code>0</code> through <code>9</code>), and hyphens (<code>-</code>).
 			<br />
-			It may optionally end in a <code>?</code> (for booleans) or <code>!</code> (for functions with side effects).
+			It may optionally end in a <code>?</code> (for booleans)
+			or <code>!</code> (for functions with side effects).
 			<br />
 			A name must start with a letter.
 			<br />

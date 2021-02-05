@@ -27,7 +27,7 @@ lint result<str, arr failure>(path str, options test-options) summon
 	res move-to-arr!
 
 .excluded-from-lint? bool(name str)
-	bad-exts = [".bmp", ".err", ".png", ".repr", ".ttf", ".wasm", ".xz"]
+	bad-exts = [".bmp", ".err", ".html", ".png", ".repr", ".svg", ".ttf", ".wasm", ".xz"]
 	bad-names = ["dyncall", "libfirm", "node_modules", "package-lock.json"]
 	name.first == "." or: bad-names contains? name or: bad-exts exists? {name ends-with? it}
 
