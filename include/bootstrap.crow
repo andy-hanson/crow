@@ -76,9 +76,6 @@ WARN: If ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
 ptr<?t> builtin mut
 
 null ptr ?t() noctx builtin
-# Used by the compiler
-null-any ptr bool() noctx
-	null
 
 null? bool(a ptr ?t) noctx trusted
 	a.to-nat == (null<?t>).to-nat
