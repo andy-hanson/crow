@@ -1,8 +1,8 @@
 import
 	.bootstrap:
-		as, err, exception, exclusion, fun, fut-callback-node, fut-state-callbacks,
-		fut-state-resolved, hard-unreachable, head, island, island-and-exclusion, lk, ok,
-		result, send, set-state, state, value, void
+		as, exception, exclusion, fun, fut-callback-node, fut-state-callbacks,
+		fut-state-resolved, hard-unreachable, head, island, island-and-exclusion, lk,
+		send, set-state, state, value, void
 	.collection.arr: arr, size
 	.compare: ==
 	.cell: cell, set-subscript, subscript
@@ -13,6 +13,7 @@ import
 	.number: -, nat
 	.opt: none, opt, some
 	.ptr: ref-of-val
+	.result: err, ok, result
 	.runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
 	.thread-utils: lock, lock-by-val, with-lock
 export
