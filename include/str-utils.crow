@@ -1,7 +1,7 @@
 import
 	.bool: and
-	.bootstrap: arr, char, c-str, data, size, str, todo
-	.collection.arr: ~, arr-from-begin-end, has?
+	.bootstrap: char, c-str, str, todo
+	.collection.arr: ~, arr, arr-from-begin-end, data, has?, size
 	.collection.arr-util: first, tail
 	.compare: ==
 	.number: nat8

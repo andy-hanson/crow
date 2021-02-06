@@ -1,11 +1,13 @@
 import
 	..alloc: alloc-uninitialized, copy-data-from
 	..bool: bool, false, not, true
-	..bootstrap: ->, arr, arrow, by-val, data, from, hard-assert, size, to
+	..bootstrap: ->, arrow, from, hard-assert, to
 	..compare: ==, !=, <, <=
 	..exceptions: assert
 	..number: +, -, nat
-	..ptr: +, -, ptr, ref-of-ptr, subscript
+	..ptr: +, -, by-val, ptr, ref-of-ptr, subscript
+export
+	..bootstrap: arr, data, size
 
 arr-from-begin-end arr ?t(begin ptr ?t, end ptr ?t) unsafe noctx
 	arr: (end - begin), begin

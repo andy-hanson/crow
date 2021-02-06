@@ -1,7 +1,7 @@
 import
 	.bool: ?, bool, false, true
-	.bootstrap: char, data, str, todo
-	.collection.arr: ~, empty?, subscript
+	.bootstrap: char, str, todo
+	.collection.arr: ~, data, empty?, subscript
 	.collection.arr-util: first, tail
 	.collection.dict: dict, each
 	.collection.mut-list: ~=, move-to-arr!, mut-list, size

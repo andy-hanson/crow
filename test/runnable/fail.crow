@@ -1,9 +1,12 @@
+import
+	bootstrap: fut, str, void
+
+main fut nat(_ arr str) summon unsafe
+	foo
+	0 resolved
+
 foo void() unsafe summon
 	bar
 
 bar void() unsafe summon
 	fail: "FOO"
-
-main fut nat(_ arr str) summon unsafe
-	foo
-	0 resolved

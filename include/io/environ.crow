@@ -1,7 +1,7 @@
 import
 	..bool: not
-	..bootstrap: ->, arrow, char, c-str, data, from, str, to, void
-	..collection.arr: ~, arr-from-begin-end
+	..bootstrap: ->, arrow, char, c-str, from, str, to, void
+	..collection.arr: ~, data, arr-from-begin-end
 	..collection.dict: dict, each
 	..collection.mut-dict: move-to-dict!, mut-dict, set-subscript
 	..collection.mut-list: ~=, move-to-arr!, mut-list

@@ -1,16 +1,16 @@
 module(
 	path: 56
-	imports: [import(none, 42, none), import(some(range(8, 23)), 31, some([print]))]
+	imports: [import(none, 42, none), import(some(range(8, 33)), 0, some([fut, str, void])), import(some(range(35, 50)), 31, some([print]))]
 	exports: []
-	structs: [struct(range: file-range(56, range(127, 159)), public?: true, name: my-record)]
+	structs: [struct(range: file-range(56, range(154, 186)), public?: true, name: my-record)]
 	specs: []
 	funs: [
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(56, 25), main, fut(nat()), [param(file-range(56, range(38, 47)), none, arr(arr(char())))])
+			sig: sig(file-pos(56, 52), main, fut(nat()), [param(file-range(56, range(65, 74)), none, arr(arr(char())))])
 			body: let(
-				local(file-range(56, range(57, 58)), r, my-record())
+				local(file-range(56, range(84, 85)), r, my-record())
 				call(fun-inst(name: my-record), [string-lit("a"), string-lit("b")])
 				seq(
 					seq(
@@ -22,7 +22,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(56, 159), foo, void(), [param(file-range(56, range(168, 179)), some(r), my-record())])
+			sig: sig(file-pos(56, 186), foo, void(), [param(file-range(56, range(195, 206)), some(r), my-record())])
 			body: seq(
 				call(fun-inst(name: print), [call(fun-inst(name: a), [param-ref(r)])])
 				call(fun-inst(name: print), [call(fun-inst(name: b), [param-ref(r)])])))
@@ -30,31 +30,31 @@ module(
 			public?: true
 			preferred: true
 			sig: sig(
-				file-pos(56, 127)
+				file-pos(56, 154)
 				my-record
 				my-record()
 				[
-					param(file-range(56, range(145, 150)), some(a), arr(char()))
-					param(file-range(56, range(152, 157)), some(b), arr(char()))])
+					param(file-range(56, range(172, 177)), some(a), arr(char()))
+					param(file-range(56, range(179, 184)), some(b), arr(char()))])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
 			sig: sig(
-				file-pos(56, 127)
+				file-pos(56, 154)
 				my-record
 				by-val(my-record())
 				[
-					param(file-range(56, range(145, 150)), some(a), arr(char()))
-					param(file-range(56, range(152, 157)), some(b), arr(char()))])
+					param(file-range(56, range(172, 177)), some(a), arr(char()))
+					param(file-range(56, range(179, 184)), some(b), arr(char()))])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(56, 145), a, arr(char()), [param(file-range(56, range(145, 150)), some(a), my-record())])
+			sig: sig(file-pos(56, 172), a, arr(char()), [param(file-range(56, range(172, 177)), some(a), my-record())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(56, 152), b, arr(char()), [param(file-range(56, range(152, 157)), some(a), my-record())])
+			sig: sig(file-pos(56, 179), b, arr(char()), [param(file-range(56, range(179, 184)), some(a), my-record())])
 			body: field-get(1))])

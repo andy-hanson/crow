@@ -1,4 +1,5 @@
 import
+	bootstrap: as, drop, fut, str
 	logging: get-log-handler, info, log, log-handler, warn, with-log-handler
 
 main fut nat(_ arr str) summon

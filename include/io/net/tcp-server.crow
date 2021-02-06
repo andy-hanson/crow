@@ -1,9 +1,9 @@
 import
 	...bits: bits-intersect?, bits-or
 	...bool: bool, false, not, or, true
-	...bootstrap: ->, arr, as, by-val, data, drop, fut, message, str, todo, void
+	...bootstrap: ->, as, by-val, drop, fut, message, str, todo, void
 	...cell: cell
-	...collection.arr: ~, subscript
+	...collection.arr: ~, arr, data, subscript
 	...collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
 	...compare: ==, !=, <
 	...exceptions: assert

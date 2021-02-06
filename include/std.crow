@@ -1,9 +1,11 @@
 export
-	.bootstrap
+	.bool
 	.collection.arr
+	.compare
 	.exceptions
+	.fun
 	.fut-utils
-	#.number
-	#.opt
+	.number
+	.opt
 	.str-conv
 	.str-utils

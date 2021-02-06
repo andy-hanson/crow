@@ -1,14 +1,14 @@
 import
 	..alloc: alloc-uninitialized, fill-ptr-range
 	..bool: and, bool, false, not, true
-	..bootstrap: ->, arr, data, noctx-incr, size, void
+	..bootstrap: ->, noctx-incr, void
 	..compare: ==, !=, >=
 	..exceptions: assert, forbid
 	..fun: subscript
 	..number: +, -, nat
 	..opt: force, has?, none, opt, some, value
 	..ptr: +, ptr, set-subscript
-	.arr: ~, arr-eq?, empty?, noctx-at, subscript
+	.arr: ~, arr, arr-eq?, data, empty?, noctx-at, size, subscript
 
 make-arr arr ?t(size nat, f act ?t(nat)) trusted
 	data = size alloc-uninitialized<?t>

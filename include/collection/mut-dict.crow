@@ -1,8 +1,10 @@
 import
-	..bootstrap: arr, arrow, bool, data, drop, from, size, to, void
+	..bool: bool
+	..bootstrap: arrow, drop, from, to, void
 	..compare: ==, <=>
 	..exceptions: assert
 	..number: +, nat
+	.arr: arr, data, size
 	.arr-util: map
 	.dict: dict, has?, subscript
 	.mut-list:

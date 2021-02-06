@@ -1,9 +1,9 @@
 import
 	..bool: and, bool, false, not, true
-	..bootstrap: arr, data, size, void
+	..bootstrap: void
 	..compare: <=>
 	..number: nat
-	.arr: empty?, subscript
+	.arr: arr, data, empty?, size, subscript
 	.arr-util: tail
 	.mut-list: ~=, move-to-arr!, mut-list
 	.sort: sort-unique

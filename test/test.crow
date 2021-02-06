@@ -1,12 +1,12 @@
 #!/usr/bin/env crow
 
 import
+	bootstrap: fut, str, void
 	collection.arr-util: first
 	command-line-parser: parse-cmd-line-args
 	io.environ: get-environ
 	io.file: current-directory
 	io.print: print
-	opt: force, has?
 	path: child-path, parent-path
 	.failure: first-failures, print-failures, test-options
 	.lint: lint

@@ -1,3 +1,5 @@
+/wrong-number-type-args.crow 2:5-2:9 there is no function or variable named 'todo'
+
 /wrong-number-type-args.crow 1:16-1:25 parameter a is unused
 
 /wrong-number-type-args.crow 5:7-5:12 there are functions named 'magic', but none takes 1 type arguments. candidates:

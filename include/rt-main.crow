@@ -2,9 +2,10 @@ import
 	.alloc
 	.bool: ?, false
 	.bootstrap:
-		arr, as, call-with-ctx, c-str, ctx, fut, get-ctx, noctx-decr, noctx-incr,
+		as, call-with-ctx, c-str, ctx, fut, get-ctx, noctx-decr, noctx-incr,
 		state, str, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, void
 	.cell: as-cell
+	.collection.arr: arr
 	.collection.arr-util: map, tail
 	.compare: !=
 	.exceptions: exception-ctx

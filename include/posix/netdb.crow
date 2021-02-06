@@ -1,9 +1,10 @@
 # /usr/include/netdb.h
 
 import
-	..bootstrap: c-str, ptr, void
+	..bootstrap: c-str, void
 	..cell: cell
 	..number: int32
+	..ptr: ptr
 	.socket: sockaddr
 	.types: socklen-t
 

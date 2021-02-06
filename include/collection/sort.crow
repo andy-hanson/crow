@@ -1,9 +1,10 @@
 import
 	..bool: or
-	..bootstrap: ->, arr, as, data, void
+	..bootstrap: ->, as, void
 	..compare: ==, !=, <, <=, >
 	..exceptions: assert
 	..number: +, -, /, nat
+	.arr: arr, data
 	.arr-util: each
 	.mut-arr: cast-immutable, mut-arr, size, set-subscript, subscript
 	.mut-list: ~=, empty?, last, move-to-arr!, mut-list, temp-as-mut-arr

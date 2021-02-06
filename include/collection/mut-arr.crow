@@ -1,13 +1,13 @@
 import
 	..alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	..bool: bool
-	..bootstrap: arr, arrow, data, hard-assert, size, void
+	..bootstrap: arrow, hard-assert, void
 	..compare: ==, <
 	..exceptions: assert
 	..number: nat
 	..opt: opt
 	..ptr: ptr, set-subscript
-	.arr: subscript
+	.arr: arr, data, size, subscript
 	.arr-util: find-index
 
 mut-arr<?t> record mut

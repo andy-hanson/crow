@@ -1,8 +1,9 @@
 import
 	..bool: bool, false, true
-	..bootstrap: arr, data, drop, void
+	..bootstrap: drop, void
 	..compare: ==, <=>
 	..number: +, nat
+	.arr: arr, data
 	.arr-util: each
 	.mut-list: ~=, insert-at!, move-to-arr!, mut-list, remove-at!, size, subscript
 	.set: set

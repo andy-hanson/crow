@@ -1,7 +1,7 @@
 import
 	.bool: bool
-	.bootstrap: ->, char, size, str, void
-	.collection.arr: ~, empty?, subscript
+	.bootstrap: ->, char, str, void
+	.collection.arr: ~, empty?, size, subscript
 	.collection.arr-util: each, last, r-index-of, rtail
 	.compare: ==
 	.fun: subscript

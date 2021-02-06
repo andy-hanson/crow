@@ -1,8 +1,8 @@
 import
 	..bool: and, bool, not, or
-	..bootstrap: arr, as, by-val, char, c-str, data, size, str, todo, void
+	..bootstrap: as, by-val, char, c-str, str, todo, void
 	..cell: cell, subscript
-	..collection.arr: ~, ref-of-val-at
+	..collection.arr: ~, arr, data, ref-of-val-at, size
 	..collection.arr-util: fold, map
 	..collection.mut-list: data, move-to-arr!, mut-list, size, reserve, unsafe-increase-size!
 	..compare: ==, <=

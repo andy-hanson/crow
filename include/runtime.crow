@@ -2,11 +2,11 @@ import
 	.alloc: gc, get-gc-ctx, needs-gc?, return-gc-ctx, run-garbage-collection
 	.bool: ?, and, bool, false, not, or, true
 	.bootstrap:
-		arr, as, backtrace, call-with-ctx,
+		as, backtrace, call-with-ctx,
 		ctx, exception, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
 		island-and-exclusion, island-id, lock, message, noctx-decr, noctx-incr,
-		return-stack, size, str, void
-	.collection.arr: ~, empty?, noctx-at, subscript
+		return-stack, str, void
+	.collection.arr: ~, arr, empty?, noctx-at, size, subscript
 	.collection.arr-util: join
 	.compare: ==, !=, >, min
 	.exceptions: exception-ctx

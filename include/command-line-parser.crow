@@ -1,8 +1,8 @@
 import
 	.bool: bool, false, true
-	.bootstrap: ->, arr, size, str, void
+	.bootstrap: ->, str, void
 	.cell: cell, set-subscript, subscript
-	.collection.arr: ~, empty?, subscript
+	.collection.arr: ~, arr, empty?, size, subscript
 	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
 	.collection.dict: dict, each
 	.collection.mut-dict: move-to-dict!, mut-dict, set-subscript

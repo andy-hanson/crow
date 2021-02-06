@@ -1,7 +1,7 @@
 import
 	...bool: and, bool, false, true
-	...bootstrap: arr, as, char, data, drop, fut, size, str, todo, void
-	...collection.arr: empty?, has?, subscript
+	...bootstrap: as, char, drop, fut, str, todo, void
+	...collection.arr: arr, data, empty?, has?, size, subscript
 	...collection.arr-util: contains?, last, rtail, split-by-subseq
 	...collection.dict: dict, each, has?
 	...collection.mut-dict: move-to-dict!, mut-dict, remove!, set-subscript, subscript
