@@ -1,12 +1,13 @@
 import
-	.bool: bool, false, not, true
-	.bootstrap: as, exclusion, hard-assert, has?, none, opt, some, value, void, wrap-add
+	.bool: bool, false, true
+	.bootstrap: as, exclusion, hard-assert, void, wrap-add
 	.collection.mut-list:
 		contains?, mut-list, mut-list-by-val-with-capacity-from-unmanaged-memory,
 		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
 	.compare: ==, <=
 	.io.time-low-level: timestamp
 	.number: nat
+	.opt: none, opt, some, value
 	.ptr: by-val, ref-of-val
 
 # TODO: use a heap, not a list
@@ -33,7 +34,11 @@ task-queue record mut
 	next mut opt task-queue-node
 
 empty? bool(a task-queue) noctx
-	a.head.has? not
+	match a.head
+	as none
+		true
+	as some
+		false
 
 task-queue by-val task-queue(max-threads nat) unsafe noctx
 	task-queue: none, max-threads mut-list-by-val-with-capacity-from-unmanaged-memory<exclusion>

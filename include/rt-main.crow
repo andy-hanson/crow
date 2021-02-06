@@ -2,18 +2,18 @@ import
 	.alloc
 	.bool: ?, false
 	.bootstrap:
-		arr, as, call-with-ctx, c-str, ctx,
-		fun-ptr2, fut, get-ctx, noctx-decr, noctx-incr,
-		state, subscript, str, unsafe-to-int, unsafe-to-int32,
-		unsafe-to-nat, value, void
+		arr, as, call-with-ctx, c-str, ctx, fut, get-ctx, noctx-decr, noctx-incr,
+		state, str, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, void
 	.cell: as-cell
 	.collection.arr-util: map, tail
 	.compare: !=
 	.exceptions: exception-ctx
+	.fun: fun-ptr2, subscript
 	.fut-utils: delay, handle-exceptions, then2
 	.io.process: exit-code
 	.logging: log-ctx
 	.number: int32, nat, to-int
+	.opt: value
 	.posix.pthread: pthread-t
 	.ptr:
 		+, any-ptr, as-any-ptr, as-ref, by-val, null, ptr, ptr-to, ref-of-val, set-subscript,

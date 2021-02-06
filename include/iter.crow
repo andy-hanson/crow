@@ -1,10 +1,11 @@
 import
 	.bool: bool
-	.bootstrap: drop, none, opt, some, value, void
+	.bootstrap: drop, void
 	.cell: cell, get, set
 	.compare: ==, <=
 	.exceptions: assert, forbid
 	.number: +, nat
+	.opt: none, opt, some, value
 	.ptr: subscript
 
 # TODO: Depend on a spec, then move to cell.crow

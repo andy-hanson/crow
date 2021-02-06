@@ -1,5 +1,5 @@
 import
-	..bootstrap: arr, arrow, bool, data, drop, from, none, opt, size, some, to, value, void
+	..bootstrap: arr, arrow, bool, data, drop, from, size, to, void
 	..compare: ==, <=>
 	..exceptions: assert
 	..number: +, nat
@@ -8,6 +8,7 @@ import
 	.mut-list:
 		~=, index-of, insert-at!, move-to-arr!, mut-list, remove-unordered-at!, size,
 		set-subscript, subscript, temp-as-arr
+	..opt: none, opt, some, value
 	.sort: sort-by-first!
 
 mut-dict<?k, ?v> record mut

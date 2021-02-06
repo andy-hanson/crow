@@ -3,8 +3,9 @@ import
 	.bool: bool, not
 	.bootstrap:
 		arr, as, as-ref, backtrace, by-val, err, exception, exception-ctx-ptr, get-ctx,
-		hard-forbid, int32, ok, result, str, subscript, todo, void
+		hard-forbid, int32, ok, result, str, todo, void
 	.compare: ==
+	.fun: subscript
 	.posix.bytes-types: zero
 	.posix.setjmp: jmp-buf, jmp-buf-tag, longjmp, setjmp
 	.ptr: null, null?, ptr-to

@@ -1,7 +1,9 @@
 import
 	.bootstrap:
 		cb, drop, err, exception, fut, fut-callback-node, fut-state-callbacks, fut-state-resolved,
-		todo, head, none, lk, next-node, opt, ok, result, set-state, state, subscript, value, void
+		todo, head, lk, next-node, ok, result, set-state, state, void
+	.fun: subscript
+	.opt: none, opt, value
 	.ptr: ref-of-val
 	.thread-utils: lock-by-val, with-lock
 

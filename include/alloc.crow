@@ -3,9 +3,10 @@ import
 	.bool: bool, false, not, or, true
 	.bootstrap:
 		as, by-val, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid,
-		lock, nat, nat8, nat64, noctx-incr, none, opt, some, subscript, todo,
+		lock, nat, nat8, nat64, noctx-incr, none, opt, some, todo,
 		unsafe-div, value, void, wrap-add, wrap-mul, wrap-sub
 	.compare: ==, !=, <, <=, >
+	.fun: subscript
 	.posix.stdlib: free, malloc
 	.posix.string: memcpy, memset
 	.ptr:

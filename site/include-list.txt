@@ -1,6 +1,7 @@
 alloc
 backtrace
 bits
+bool
 bootstrap
 cell
 collection/arr-util
@@ -13,7 +14,9 @@ collection/mut-set
 collection/set
 collection/sort
 command-line-parser
+compare
 exceptions
+fun
 fut-low-level
 fut-utils
 io/environ
@@ -29,9 +32,9 @@ io/time
 iter
 logging
 math/vec
-number-utils
+number
 openssl
-opt-utils
+opt
 path
 posix/bytes-types
 posix/c-types

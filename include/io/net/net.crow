@@ -1,10 +1,11 @@
 import
-	...bootstrap: nat16, none, opt, some, str, todo, value
+	...bootstrap: str, todo
 	...cell: cell, subscript
 	...collection.arr: ~
 	...compare: ==, !=
 	...exceptions: assert
-	...opt-utils: force
+	...number: nat16
+	...opt: force, none, opt, some, value
 	...posix.extra-types: fd-t
 	...posix.netdb:
 		addrinfo, ai-addr, ai-addrlen, ai-family, ai-next, ai-passive, ai-protocol, ai-socktype,

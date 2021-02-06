@@ -6,6 +6,7 @@ import
 	io.environ: get-environ
 	io.file: current-directory
 	io.print: print
+	opt: force, has?
 	path: child-path, parent-path
 	.failure: first-failures, print-failures, test-options
 	.lint: lint
@@ -17,7 +18,7 @@ main fut nat(args arr str) summon
 		print-tests-strs = values[0]
 		overwrite-output-strs = values[1]
 		max-failures-strs = values[2]
-		print-tests? = print-tests-strs.has?
+		print-tests? = print-tests-strs has?
 		overwrite-output? = match overwrite-output-strs
 		as none
 			false

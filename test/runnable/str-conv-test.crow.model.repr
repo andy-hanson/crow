@@ -1,6 +1,6 @@
 module(
-	path: 55
-	imports: [import(none, 41, none), import(some(range(8, 23)), 30, some([print]))]
+	path: 56
+	imports: [import(none, 42, none), import(some(range(8, 23)), 31, some([print]))]
 	exports: []
 	structs: []
 	specs: []
@@ -8,7 +8,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(55, 25), main, fut(nat()), [param(file-range(55, range(38, 47)), none, arr(arr(char())))])
+			sig: sig(file-pos(56, 25), main, fut(nat()), [param(file-range(56, range(38, 47)), none, arr(arr(char())))])
 			body: seq(
 				seq(
 					seq(

@@ -1,9 +1,7 @@
 import
 	..bits: bits-and, bit-shift-left, bits-or
 	..bool: bool, false, not
-	..bootstrap:
-		->, and, arr, as, char, c-str, data, has?, none, opt,
-		size, size-of, some, str, todo, value, void, wrap-add
+	..bootstrap: ->, and, arr, as, char, c-str, data, size, size-of, str, todo, void, wrap-add
 	..cell: cell, subscript
 	..collection.arr: ~, subscript
 	..collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
@@ -12,6 +10,7 @@ import
 	..compare: ==, !=, <
 	..exceptions: assert, fail, forbid
 	..number: int32, nat8, nat16, nat32, to-int, to-nat
+	..opt: has?, none, opt, some, value
 	..posix.bytes-types: zero
 	..posix.dirent: dir, dirent, opendir, readdir-r
 	..posix.errno: enoent, errno

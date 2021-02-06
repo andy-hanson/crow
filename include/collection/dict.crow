@@ -1,12 +1,13 @@
 import
 	..bool: and, bool, not
 	..bootstrap:
-		->, arr, arrow, as, comparison, data, from, greater, has?, less,
-		none, opt, size, some, subscript, to, void
+		->, arr, arrow, as, comparison, data, from, greater, less,
+		size, to, void
 	..compare: ==, <=>
 	..exceptions: assert
+	..fun: subscript
 	..number: +, nat
-	..opt-utils: each
+	..opt: each, has?, none, opt, some
 	.arr: empty?, subscript
 	.arr-util: first, map, tail, zip
 	.mut-list: ~=, move-to-arr!, mut-list

@@ -1,8 +1,9 @@
 import
-	.bootstrap: c-str, fun-ptr6, null, str, void
+	.bootstrap: c-str, str, void
+	.fun: fun-ptr6
 	.number: int32, int64, nat8, nat32, nat64
 	.posix.posix: fd-t, u-long
-	.ptr: any-ptr, ptr
+	.ptr: any-ptr, null, ptr
 	.str-conv: literal
 
 # /usr/include/openssl/ossl_typ.h

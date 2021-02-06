@@ -39,16 +39,6 @@ some<?t> record
 
 none record
 
-empty? bool(a opt ?t) noctx
-	match a
-	as none
-		true
-	as some
-		false
-
-has? bool(a opt ?t) noctx
-	a.empty? not
-
 region result
 
 result<?ok, ?err> union

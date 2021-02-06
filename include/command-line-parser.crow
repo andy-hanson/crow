@@ -1,7 +1,6 @@
 import
 	.bool: bool, false, true
-	.bootstrap:
-		->, arr, has?, none, opt, size, some, str, subscript, value, void
+	.bootstrap: ->, arr, size, str, void
 	.cell: cell, set-subscript, subscript
 	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
@@ -10,7 +9,9 @@ import
 	.collection.mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
 	.compare: ==
 	.exceptions: assert, fail, forbid
+	.fun: subscript
 	.number: +
+	.opt: has?, none, opt, some, value
 
 # TODO: this would be neater if we had reflection!
 parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt arr str))

@@ -1,10 +1,11 @@
 import
 	.bool: ?, and, bool, or
 	.bootstrap:
-		->, arrow, from, subscript, to, unsafe-div, unsafe-to-int, unsafe-to-int32,
+		->, arrow, from, to, unsafe-div, unsafe-to-int, unsafe-to-int32,
 		unsafe-to-nat, unsafe-to-nat32, void, wrap-add, wrap-mul, wrap-sub
 	.compare: ==, <, <=, >=
 	.exceptions: assert, forbid
+	.fun: subscript
 export
 	.bootstrap: float, int, int8, int16, int32, int64, nat, nat8, nat16, nat32, nat64, to-int, to-nat
 

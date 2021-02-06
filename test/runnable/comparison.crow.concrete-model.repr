@@ -4236,21 +4236,7 @@ program(
 			type(false, bool)
 			none
 			[param(a, type(true, task-queue))]
-			expr-body(call(not, [call(has?, [call(head, [param-ref(a)])])])))
-		fun(
-			false
-			has?
-			type(false, bool)
-			none
-			[param(a, type(false, opt))]
-			expr-body(call(not, [call(empty?, [param-ref(a)])])))
-		fun(
-			false
-			empty?
-			type(false, bool)
-			none
-			[param(a, type(false, opt))]
-			expr-body(match(param-ref(a), [case(none, call(true, [])), case(none, call(false, []))])))
+			expr-body(match(call(head, [param-ref(a)]), [case(none, call(true, [])), case(none, call(false, []))])))
 		fun(
 			false
 			get-last-checked

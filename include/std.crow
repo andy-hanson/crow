@@ -4,6 +4,6 @@ export
 	.exceptions
 	.fut-utils
 	#.number
-	.opt-utils
+	#.opt
 	.str-conv
 	.str-utils

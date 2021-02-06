@@ -1,14 +1,16 @@
 import
 	.bootstrap:
 		arr, as, err, exception, exclusion, fun, fut, fut-callback-node, fut-state-callbacks,
-		fut-state-resolved, hard-unreachable, head, island, island-and-exclusion, lk, none, ok, opt,
-		result, send, set-state, size, some, state, subscript, value, void
+		fut-state-resolved, hard-unreachable, head, island, island-and-exclusion, lk, ok,
+		result, send, set-state, size, state, value, void
 	.compare: ==
 	.cell: cell, set-subscript, subscript
 	.collection.arr-util: each-with-index, first-some, map
 	.exceptions: catch
+	.fun: subscript
 	.fut-low-level: reject!, resolve!, resolve-or-reject!, unresolved
 	.number: -, nat
+	.opt: none, opt, some
 	.ptr: ref-of-val
 	.runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
 	.thread-utils: lock, lock-by-val, with-lock
