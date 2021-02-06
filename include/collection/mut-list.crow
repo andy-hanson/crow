@@ -10,7 +10,7 @@ import
 		data, fill-mut-arr, mut-arr, set-zero-elements, size, subscript, temp-as-arr
 	..compare: ==, <, <=, >, >=
 	..exceptions: assert
-	..number-utils: +, -, *
+	..number: +, -, *
 	..posix.string: memcpy, memmove
 	..ptr: +, as-any-ptr, by-val, ptr, set-subscript, subscript
 

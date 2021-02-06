@@ -8,8 +8,7 @@ import
 	.collection.dict: dict, each
 	.collection.mut-list: ~=, move-to-arr!, mut-list, size
 	.compare: ==, >
-	.number-utils:
-		+, *, /, abs, mod, multiple-of?, neg, negative?, to-int, to-float, truncate-to-int
+	.number: +, *, /, abs, mod, multiple-of?, neg, negative?, to-int, to-float, truncate-to-int
 	.opt-utils: map
 
 to-str str(b bool) noctx

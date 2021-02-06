@@ -4,7 +4,7 @@ import
 	..bootstrap: ->, arr, arrow, by-val, data, from, hard-assert, nat, size, to
 	..compare: ==, !=, <, <=
 	..exceptions: assert
-	..number-utils: +, -
+	..number: +, -
 	..ptr: +, -, ptr, ref-of-ptr, subscript
 
 arr-from-begin-end arr ?t(begin ptr ?t, end ptr ?t) unsafe noctx

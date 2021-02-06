@@ -10,7 +10,7 @@ import
 	.collection.mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
 	.compare: ==
 	.exceptions: assert, fail, forbid
-	.number-utils: +
+	.number: +
 
 # TODO: this would be neater if we had reflection!
 parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt arr str))

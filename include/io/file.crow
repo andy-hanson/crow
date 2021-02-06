@@ -12,7 +12,7 @@ import
 	..collection.sort: sort
 	..compare: ==, !=, <
 	..exceptions: assert, fail, forbid
-	..number-utils: to-int, to-nat
+	..number: to-int, to-nat
 	..posix.bytes-types: zero
 	..posix.dirent: dir, dirent, opendir, readdir-r
 	..posix.errno: enoent, errno

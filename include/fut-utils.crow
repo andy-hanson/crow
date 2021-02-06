@@ -8,7 +8,7 @@ import
 	.collection.arr-util: each-with-index, first-some, map
 	.exceptions: catch
 	.fut-low-level: reject!, resolve!, resolve-or-reject!, unresolved
-	.number-utils: -
+	.number: -
 	.ptr: ref-of-val
 	.runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
 	.thread-utils: lock, lock-by-val, with-lock

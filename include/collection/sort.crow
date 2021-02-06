@@ -3,7 +3,7 @@ import
 	..bootstrap: ->, arr, as, data, nat, void
 	..compare: ==, !=, <, <=, >
 	..exceptions: assert
-	..number-utils: +, -, /
+	..number: +, -, /
 	.arr-util: each
 	.mut-arr: cast-immutable, mut-arr, size, set-subscript, subscript
 	.mut-list: ~=, empty?, last, move-to-arr!, mut-list, temp-as-mut-arr

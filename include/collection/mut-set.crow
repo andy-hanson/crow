@@ -2,7 +2,7 @@ import
 	..bool: bool, false, true
 	..bootstrap: arr, data, drop, nat, void
 	..compare: ==, <=>
-	..number-utils: +
+	..number: +
 	.arr-util: each
 	.mut-list: ~=, insert-at!, move-to-arr!, mut-list, remove-at!, size, subscript
 	.set: set

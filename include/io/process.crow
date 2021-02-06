@@ -7,7 +7,7 @@ import
 	..collection.mut-list: data, move-to-arr!, mut-list, size, reserve, unsafe-increase-size!
 	..compare: ==, <=
 	..exceptions: assert, fail
-	..number-utils: +, to-nat
+	..number: +, to-nat
 	..posix.bytes-types: zero
 	..posix.extra-types: fd-t
 	..posix.poll:

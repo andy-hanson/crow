@@ -1,7 +1,7 @@
 import
 	..bootstrap: float, str
 	..collection.arr: ~
-	..number-utils: +, -, ^, neg, square-root
+	..number: +, -, ^, neg, square-root
 	..str-conv: to-str
 
 vec-2 record

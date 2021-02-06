@@ -10,7 +10,7 @@ import
 	...compare: ==, !=, <
 	...exceptions: assert
 	...fut-utils: callback!, call-ref-void, handle-exceptions, then, fut-catch, resolved
-	...number-utils: to-int, to-int32, to-nat, to-nat32
+	...number: to-int, to-int32, to-nat, to-nat32
 	...posix.c-types: c-int
 	...posix.errno: eagain, errno, ewouldblock
 	...posix.extra-types: fd-t

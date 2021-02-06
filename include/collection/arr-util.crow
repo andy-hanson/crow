@@ -6,7 +6,7 @@ import
 		size, some, subscript, value, void
 	..compare: ==, !=, >=
 	..exceptions: assert, forbid
-	..number-utils: +, -
+	..number: +, -
 	..opt-utils: force
 	..ptr: +, ptr, set-subscript
 	.arr: ~, arr-eq?, empty?, noctx-at, subscript

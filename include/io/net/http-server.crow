@@ -11,7 +11,7 @@ import
 	...compare: ==, !=, <=, >=
 	...exceptions: assert, forbid
 	...fut-utils: resolved, subscript, then
-	...number-utils: +, to-int
+	...number: +, to-int
 	...posix.extra-types: fd-t
 	...posix.unistd: write
 	...ptr: ptr-cast

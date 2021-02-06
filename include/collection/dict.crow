@@ -5,7 +5,7 @@ import
 		nat, none, opt, size, some, subscript, to, void
 	..compare: ==, <=>
 	..exceptions: assert
-	..number-utils: +
+	..number: +
 	..opt-utils: each
 	.arr: empty?, subscript
 	.arr-util: first, map, tail, zip
