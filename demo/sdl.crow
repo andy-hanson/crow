@@ -1,8 +1,10 @@
 import
+	bootstrap: void
 	bits: bit-shift-left, bits-or
 	io.print: print
 	io.time: delay, duration, msec
-	number: -
+	ptr: as-any-ptr, null, null?, ptr
+	str-utils: to-c-str, to-str
 
 c-int alias
 	int
