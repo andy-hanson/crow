@@ -4,8 +4,8 @@ export
 	.compare
 	.exceptions
 	.fun
-	.fut-utils
+	.fut
 	.number
 	.opt
+	.str
 	.str-conv
-	.str-utils

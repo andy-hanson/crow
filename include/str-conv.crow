@@ -1,6 +1,6 @@
 import
 	.bool: ?, bool, false, true
-	.bootstrap: char, str, todo
+	.bootstrap: todo
 	.collection.arr: ~, data, empty?, subscript
 	.collection.arr-util: first, tail
 	.collection.dict: dict, each
@@ -10,6 +10,7 @@ import
 		+, *, /, abs, float, int, int16, int32, mod, nat, nat16, nat32, multiple-of?, neg,
 		negative?, to-int, to-float, to-nat, truncate-to-int
 	.opt: map, none, opt, some, value
+	.str: char, str
 
 to-str str(b bool) noctx
 	b ? "true", "false"

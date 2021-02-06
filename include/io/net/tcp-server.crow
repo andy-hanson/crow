@@ -1,13 +1,13 @@
 import
 	...bits: bits-intersect?, bits-or
 	...bool: bool, false, not, or, true
-	...bootstrap: ->, as, by-val, drop, fut, message, str, todo, void
+	...bootstrap: ->, as, drop, message, todo, void
 	...cell: cell
 	...collection.arr: ~, arr, data, subscript
 	...collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
 	...compare: ==, !=, <
 	...exceptions: assert
-	...fut-utils: callback!, call-ref-void, handle-exceptions, then, fut-catch, resolved
+	...fut: callback!, call-ref-void, fut, handle-exceptions, then, fut-catch, resolved
 	...number: int32, nat8, nat16, nat32, to-int, to-int32, to-nat, to-nat32
 	...opt: value
 	...posix.c-types: c-int
@@ -19,7 +19,8 @@ import
 	...posix.stdio: perror
 	...posix.types: socklen-t
 	...posix.unistd: close, read
-	...ptr: ptr-cast-to-extern, ptr-to, ref-of-val, size-of
+	...ptr: by-val, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
+	...str: str
 	...str-conv: to-str
 	...sys.epoll:
 		data, epoll-create1, epoll-ctl, epoll-ctl-add, epollerr, epollet, epoll-event, epollhup,

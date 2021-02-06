@@ -18,7 +18,7 @@ compare
 exceptions
 fun
 fut-low-level
-fut-utils
+fut
 io/environ
 io/file
 io/net/http-server

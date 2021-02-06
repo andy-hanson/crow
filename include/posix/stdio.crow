@@ -1,5 +1,6 @@
 import
-	..bootstrap: c-str, void
+	..bootstrap: void
+	..str: c-str
 	.extra-types: fd-t
 
 perror void(s c-str) unsafe summon extern<"perror"> noctx

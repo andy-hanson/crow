@@ -1,6 +1,6 @@
 import
 	.bool: bool
-	.bootstrap: ->, char, str, void
+	.bootstrap: ->, void
 	.collection.arr: ~, empty?, size, subscript
 	.collection.arr-util: each, last, r-index-of, rtail
 	.compare: ==
@@ -8,6 +8,7 @@ import
 	.io.file: is-dir?, read-dir
 	.number: +, -, nat
 	.opt: none, opt, some, value
+	.str: char, str
 
 parent-path str(a str)
 	match a r-index-of "/"

@@ -1,9 +1,10 @@
 # /usr/include/unistd.h
 
 import
-	..bootstrap: c-str, void
+	..bootstrap: void
 	..number: int32, int64, nat
 	..ptr: any-ptr, ptr
+	..str: c-str
 	.c-types: size-t
 	.extra-types: err-t, fd-t
 	.types: off-t

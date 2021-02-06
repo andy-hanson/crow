@@ -1,5 +1,6 @@
 import
-	..bootstrap: fut, void
+	..bootstrap: void
+	..fut: fut
 	..fut-low-level: resolve!, unresolved
 	..number: +, *, nat
 	..runtime: add-task, get-cur-island, new-exclusion

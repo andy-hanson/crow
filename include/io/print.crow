@@ -1,5 +1,5 @@
 import
-	..bootstrap: char, hard-assert, str, unsafe-to-int, todo, void
+	..bootstrap: hard-assert, unsafe-to-int, todo, void
 	..collection.arr: data, size
 	..compare: ==, !=
 	..number: nat8
@@ -7,6 +7,7 @@ import
 	..posix.stdio: stderr, stdout
 	..posix.unistd: write
 	..ptr: as-any-ptr, size-of
+	..str: char, str
 
 print-no-newline void(a str) summon trusted noctx
 	stdout write-no-newline a

@@ -1,6 +1,6 @@
 import
-	..bootstrap: c-str
 	..number: int32, nat32
+	..str: c-str
 	.c-types: u-long, u-long-long
 	.types: blkcnt-t, blksize-t, dev-t, gid-t, ino-t, mode-t, nlink-t, off-t, time-t, uid-t
 

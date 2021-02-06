@@ -1,5 +1,5 @@
 import
-	bootstrap: as, fut, str, void
+	bootstrap: as, void
 	io.print: print
 
 main fut nat(_ arr str) summon

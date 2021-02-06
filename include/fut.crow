@@ -1,6 +1,6 @@
 import
 	.bootstrap:
-		as, err, exception, exclusion, fun, fut, fut-callback-node, fut-state-callbacks,
+		as, err, exception, exclusion, fun, fut-callback-node, fut-state-callbacks,
 		fut-state-resolved, hard-unreachable, head, island, island-and-exclusion, lk, ok,
 		result, send, set-state, state, value, void
 	.collection.arr: arr, size
@@ -15,6 +15,9 @@ import
 	.ptr: ref-of-val
 	.runtime: add-task, exception-handler, get-cur-island, get-island, new-exclusion
 	.thread-utils: lock, lock-by-val, with-lock
+export
+	.bootstrap: fut
+
 # Used to make code run after the next step. Equivalent to `sleep 0`.
 delay fut void()
 	void resolved

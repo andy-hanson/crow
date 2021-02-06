@@ -1,11 +1,12 @@
 import
 	.bool: and
-	.bootstrap: char, c-str, str, todo
+	.bootstrap: todo
 	.collection.arr: ~, arr, arr-from-begin-end, data, has?, size
 	.collection.arr-util: first, tail
 	.compare: ==
 	.number: nat8
 	.ptr: +, ptr-cast, subscript
+	.str: char, c-str, str
 
 as-str str(bytes arr nat8) unsafe noctx
 	arr: bytes.size, bytes.data ptr-cast<char, nat8>

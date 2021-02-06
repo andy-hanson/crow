@@ -1,5 +1,5 @@
 import
-	...bootstrap: str, todo
+	...bootstrap: todo
 	...cell: cell, subscript
 	...collection.arr: ~
 	...compare: ==, !=
@@ -14,6 +14,7 @@ import
 	...posix.socket-type: sock-stream
 	...posix.unistd: close
 	...ptr: as-ref, null, null?, ptr, ptr-to, subscript
+	...str: str
 	...str-conv: to-str
 	...str-utils: to-c-str
 	..posix-util: check-posix-error

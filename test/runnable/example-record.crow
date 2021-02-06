@@ -1,5 +1,4 @@
 import
-	bootstrap: fut, str
 	io.print: print
 
 rect record

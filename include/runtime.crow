@@ -2,10 +2,9 @@ import
 	.alloc: gc, get-gc-ctx, needs-gc?, return-gc-ctx, run-garbage-collection
 	.bool: ?, and, bool, false, not, or, true
 	.bootstrap:
-		as, backtrace, call-with-ctx,
-		ctx, exception, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
-		island-and-exclusion, island-id, lock, message, noctx-decr, noctx-incr,
-		return-stack, str, void
+		as, backtrace, call-with-ctx, ctx, exception, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx,
+		hard-assert, hard-forbid, island-and-exclusion, island-id, lock, message, noctx-decr,
+		noctx-incr, return-stack, void
 	.collection.arr: ~, arr, empty?, noctx-at, size, subscript
 	.collection.arr-util: join
 	.compare: ==, !=, >, min
@@ -16,6 +15,7 @@ import
 	.number: nat
 	.opt: none, opt, some, value
 	.ptr: as-any-ptr, as-ref, by-val, ref-of-val
+	.str: str
 	.task-queue:
 		action, any-tasks?, empty?, exclusion, first-task-time, insert-task!, no-task,
 		no-timestamp, pop-task!, return-task!, task, task-queue, task-queue-node

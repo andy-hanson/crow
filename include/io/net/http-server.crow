@@ -1,6 +1,6 @@
 import
 	...bool: and, bool, false, true
-	...bootstrap: as, char, drop, fut, str, todo, void
+	...bootstrap: as, drop, todo, void
 	...collection.arr: arr, data, empty?, has?, size, subscript
 	...collection.arr-util: contains?, last, rtail, split-by-subseq
 	...collection.dict: dict, each, has?
@@ -8,12 +8,13 @@ import
 	...collection.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
 	...compare: ==, !=, <=, >=
 	...exceptions: assert, forbid
-	...fut-utils: resolved, subscript, then
+	...fut: fut, resolved, subscript, then
 	...number: +, nat, nat8, to-int
 	...opt: none, opt, some, value
 	...posix.extra-types: fd-t
 	...posix.unistd: write
 	...ptr: ptr-cast
+	...str: char, str
 	...str-conv: parse-nat, to-str
 	...str-utils: as-str
 	..print: print

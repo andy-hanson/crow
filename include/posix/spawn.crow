@@ -1,8 +1,8 @@
 # /usr/include/spawn.h
 
 import
-	..bootstrap: c-str
 	..cell: cell
+	..str: c-str
 	..number: int32
 	..ptr: any-ptr, ptr
 	.bytes-types: bytes64
