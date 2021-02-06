@@ -2,7 +2,9 @@
 
 import
 	..bits: bits-intersect?
-	..bootstrap: bool, by-val, int16, int32, ptr
+	..bool: bool
+	..bootstrap: int16, int32
+	..ptr: by-val, ptr
 	.c-types: u-long
 	.extra-types: fd-t
 

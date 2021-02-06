@@ -1,5 +1,6 @@
 import
-	..bootstrap: ==, <=>, arr, arrow, bool, data, drop, from, nat, none, opt, size, some, to, value, void
+	..bootstrap: arr, arrow, bool, data, drop, from, nat, none, opt, size, some, to, value, void
+	..compare: ==, <=>
 	..exceptions: assert
 	..number-utils: +
 	.arr-util: map

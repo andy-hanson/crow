@@ -1,10 +1,12 @@
 import
+	.bool: bool, false, not, true
 	.bootstrap:
-		==, <=, as, bool, exclusion, false, hard-assert, has?, nat, none, not, opt,
-		some, true, value, void, wrap-add
+		as, exclusion, hard-assert, has?, nat, none, opt,
+		some, value, void, wrap-add
 	.collection.mut-list:
 		contains?, mut-list, mut-list-by-val-with-capacity-from-unmanaged-memory,
 		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
+	.compare: ==, <=
 	.io.time-low-level: timestamp
 	.ptr: by-val, ref-of-val
 

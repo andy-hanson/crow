@@ -1,12 +1,14 @@
 import
 	.alloc
+	.bool: ?, false
 	.bootstrap:
-		?, !=, arr, as, call-with-ctx, c-str, ctx,
-		false, fun-ptr2, fut, get-ctx, int32, nat, noctx-decr, noctx-incr, null,
+		arr, as, call-with-ctx, c-str, ctx,
+		fun-ptr2, fut, get-ctx, int32, nat, noctx-decr, noctx-incr, null,
 		state, subscript, str, to-int, unsafe-to-int, unsafe-to-int32,
 		unsafe-to-nat, value, void
 	.cell: as-cell
 	.collection.arr-util: map, tail
+	.compare: !=
 	.exceptions: exception-ctx
 	.fut-utils: delay, handle-exceptions, then2
 	.io.process: exit-code

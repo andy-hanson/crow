@@ -1,8 +1,8 @@
 import
 	..alloc: alloc-uninitialized, copy-data-from
-	..bootstrap:
-		==, !=, <, <=, ->, arr, arrow, bool, by-val, data, false, from, hard-assert, nat, not,
-		size, to, true
+	..bool: bool, false, not, true
+	..bootstrap: ->, arr, arrow, by-val, data, from, hard-assert, nat, size, to
+	..compare: ==, !=, <, <=
 	..exceptions: assert
 	..number-utils: +, -
 	..ptr: +, -, ptr, ref-of-ptr, subscript

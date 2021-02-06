@@ -1,11 +1,13 @@
 import
+	.bool: ?, bool, true
 	.bootstrap:
-		==, >, ?, bool, char, data, false, float, int, int16, int32, nat, nat16, nat32, none, opt,
-		some, str, todo, to-int, to-nat, true, value
+		char, data, false, float, int, int16, int32, nat, nat16, nat32, none, opt,
+		some, str, todo, to-int, to-nat, value
 	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: first, tail
 	.collection.dict: dict, each
 	.collection.mut-list: ~=, move-to-arr!, mut-list, size
+	.compare: ==, >
 	.number-utils:
 		+, *, /, abs, mod, multiple-of?, neg, negative?, to-int, to-float, truncate-to-int
 	.opt-utils: map

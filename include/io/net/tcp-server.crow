@@ -1,11 +1,13 @@
 import
 	...bits: bits-intersect?, bits-or
+	...bool: bool, false, not, or, true
 	...bootstrap:
-		==, !=, <, ->, arr, as, bool, by-val, data, drop, false, fut, int32, message, nat8, nat16,
-		nat32, not, or, str, todo, to-int, true, value, void
+		->, arr, as, by-val, data, drop, fut, int32, message, nat8, nat16,
+		nat32, str, todo, to-int, value, void
 	...cell: cell
 	...collection.arr: ~, subscript
 	...collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
+	...compare: ==, !=, <
 	...exceptions: assert
 	...fut-utils: callback!, call-ref-void, handle-exceptions, then, fut-catch, resolved
 	...number-utils: to-int, to-int32, to-nat, to-nat32

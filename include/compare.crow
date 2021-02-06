@@ -1,0 +1,2 @@
+export
+	.bootstrap: ==, !=, <, <=, >, >=, <=>, comparison, equal, greater, less, max, min, to-str

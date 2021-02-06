@@ -1,6 +1,8 @@
 import
 	..alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
-	..bootstrap: ==, <, arr, arrow, bool, data, hard-assert, nat, opt, size, void
+	..bool: bool
+	..bootstrap: arr, arrow, data, hard-assert, nat, opt, size, void
+	..compare: ==, <
 	..exceptions: assert
 	..ptr: ptr, set-subscript
 	.arr: subscript

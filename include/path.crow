@@ -1,7 +1,9 @@
 import
-	.bootstrap: ==, ->, bool, char, nat, none, opt, size, some, str, subscript, value, void
+	.bool: bool
+	.bootstrap: ->, char, nat, none, opt, size, some, str, subscript, value, void
 	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: each, last, r-index-of, rtail
+	.compare: ==
 	.io.file: is-dir?, read-dir
 	.number-utils: +, -
 

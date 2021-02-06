@@ -1,12 +1,14 @@
 import
+	...bool: and, bool, false, true
 	...bootstrap:
-		==, !=, <=, >=, and, arr, as, bool, char, data, drop, false, fut, nat, nat8, none, opt,
-		size, some, str, todo, true, value, void
+		arr, as, char, data, drop, fut, nat, nat8, none, opt,
+		size, some, str, todo, value, void
 	...collection.arr: empty?, has?, subscript
 	...collection.arr-util: contains?, last, rtail, split-by-subseq
 	...collection.dict: dict, each, has?
 	...collection.mut-dict: move-to-dict!, mut-dict, remove!, set-subscript, subscript
 	...collection.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
+	...compare: ==, !=, <=, >=
 	...exceptions: assert, forbid
 	...fut-utils: resolved, subscript, then
 	...number-utils: +, to-int

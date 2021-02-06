@@ -1,7 +1,9 @@
 import
+	..bool: and, bool, not
 	..bootstrap:
-		==, <=>, ->, and, arr, arrow, as, bool, comparison, data, from, greater, has?, less,
-		nat, none, not, opt, size, some, subscript, to, void
+		->, arr, arrow, as, comparison, data, from, greater, has?, less,
+		nat, none, opt, size, some, subscript, to, void
+	..compare: ==, <=>
 	..exceptions: assert
 	..number-utils: +
 	..opt-utils: each

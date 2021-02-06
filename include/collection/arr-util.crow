@@ -1,8 +1,10 @@
 import
 	..alloc: alloc-uninitialized, fill-ptr-range
+	..bool: and, bool, false, not, true
 	..bootstrap:
-		==, !=, >=, ->, and, arr, bool, data, false, has?, nat, noctx-incr, none, not, opt,
-		size, some, subscript, true, value, void
+		->, arr, data, has?, nat, noctx-incr, none, opt,
+		size, some, subscript, value, void
+	..compare: ==, !=, >=
 	..exceptions: assert, forbid
 	..number-utils: +, -
 	..opt-utils: force

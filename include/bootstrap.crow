@@ -126,7 +126,7 @@ magic-cast ?out(p ?in) noctx unsafe
 
 to-nat nat(p ptr ?t) noctx unsafe builtin
 
-region comparison
+region compare.crow
 
 less record
 equal record
@@ -201,7 +201,7 @@ c-str alias
 
 to-nat nat(c char) noctx builtin
 
-region bool
+region bool.crow
 
 bool builtin
 false bool() noctx builtin

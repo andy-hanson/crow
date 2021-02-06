@@ -1,7 +1,8 @@
 import
-	...bootstrap: ==, !=, nat16, none, opt, some, str, todo, value
+	...bootstrap: nat16, none, opt, some, str, todo, value
 	...cell: cell, subscript
 	...collection.arr: ~
+	...compare: ==, !=
 	...exceptions: assert
 	...opt-utils: force
 	...posix.extra-types: fd-t

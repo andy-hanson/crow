@@ -1,6 +1,6 @@
 import
-	..bootstrap:
-		==, !=, char, data, hard-assert, nat8, size, str, unsafe-to-int, todo, void
+	..bootstrap: char, data, hard-assert, nat8, size, str, unsafe-to-int, todo, void
+	..compare: ==, !=
 	..posix.extra-types: fd-t
 	..posix.stdio: stderr, stdout
 	..posix.unistd: write

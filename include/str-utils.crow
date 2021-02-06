@@ -1,7 +1,9 @@
 import
-	.bootstrap: ==, and, arr, char, c-str, data, nat8, size, str, todo
+	.bool: and
+	.bootstrap: arr, char, c-str, data, nat8, size, str, todo
 	.collection.arr: ~, arr-from-begin-end, has?
 	.collection.arr-util: first, tail
+	.compare: ==
 	.ptr: +, ptr-cast, subscript
 
 as-str str(bytes arr nat8) unsafe noctx

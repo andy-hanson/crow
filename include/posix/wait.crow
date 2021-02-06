@@ -2,7 +2,8 @@
 
 import
 	..bits: bits-and, bit-shift-right, bits-intersect?
-	..bootstrap: ==, !=, and, bool, int32
+	..bool: and, bool
+	..bootstrap: ==, !=, int32
 	..cell: cell
 	.types: pid-t
 

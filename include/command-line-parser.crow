@@ -1,12 +1,14 @@
 import
+	.bool: bool, false, true
 	.bootstrap:
-		==, ->, arr, bool, false, has?, none, opt, size, some, str, subscript, true, value, void
+		->, arr, has?, none, opt, size, some, str, subscript, value, void
 	.cell: cell, set-subscript, subscript
 	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
 	.collection.dict: dict, each
 	.collection.mut-dict: move-to-dict!, mut-dict, set-subscript
 	.collection.mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
+	.compare: ==
 	.exceptions: assert, fail, forbid
 	.number-utils: +
 

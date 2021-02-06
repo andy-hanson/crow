@@ -1,13 +1,15 @@
 import
 	.bits: bits-and, bits-not
+	.bool: bool, false, not, or, true
 	.bootstrap:
-		==, !=, <, <=, >, as, bool, by-val, false, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid,
-		lock, nat, nat8, nat64, noctx-incr, none, not, null?, opt, or, some, subscript, todo, true,
+		as, by-val, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid,
+		lock, nat, nat8, nat64, noctx-incr, none, opt, some, subscript, todo,
 		unsafe-div, value, void, wrap-add, wrap-mul, wrap-sub
+	.compare: ==, !=, <, <=, >
 	.posix.stdlib: free, malloc
 	.posix.string: memcpy, memset
 	.ptr:
-		+, -, any-ptr, as-any-ptr, as-ref, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, ptr-cast,
+		+, -, any-ptr, as-any-ptr, as-ref, null?, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, ptr-cast,
 		ref-of-val, set-subscript, size-of, subscript, to-nat
 	.thread-utils: acquire!, lock-by-val, release!
 

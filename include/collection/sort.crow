@@ -1,5 +1,7 @@
 import
-	..bootstrap: ==, !=, <, <=, >, ->, arr, as, data, nat, or, void
+	..bool: or
+	..bootstrap: ->, arr, as, data, nat, void
+	..compare: ==, !=, <, <=, >
 	..exceptions: assert
 	..number-utils: +, -, /
 	.arr-util: each

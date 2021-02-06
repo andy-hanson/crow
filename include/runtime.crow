@@ -1,12 +1,14 @@
 import
 	.alloc: gc, get-gc-ctx, needs-gc?, return-gc-ctx, run-garbage-collection
+	.bool: ?, and, bool, false, not, or, true
 	.bootstrap:
-		==, !=, >, ?, and, arr, as, backtrace, bool, call-with-ctx,
-		ctx, exception, exclusion, false, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
+		arr, as, backtrace, call-with-ctx,
+		ctx, exception, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
 		island-and-exclusion, island-id, lock, message, min, nat, noctx-decr, noctx-incr, none,
-		not, opt, or, return-stack, size, some, str, true, value, void
+		opt, return-stack, size, some, str, value, void
 	.collection.arr: ~, empty?, noctx-at, subscript
 	.collection.arr-util: join
+	.compare: ==, !=, >
 	.exceptions: exception-ctx
 	.io.print: print-err, print-err-no-newline
 	.io.time-low-level: get-monotime-nsec, timestamp
