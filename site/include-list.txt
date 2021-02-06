@@ -32,6 +32,7 @@ io/time
 iter
 logging
 math/vec
+misc
 number
 openssl
 opt
@@ -62,11 +63,13 @@ posix/types
 posix/unistd
 posix/wait
 ptr
+result
 rt-main
 runtime
 std
 str-conv
 str-utils
+str
 sys/epoll
 sys/execinfo
 sys/sysinfo

@@ -1,5 +1,5 @@
 import
-	..bootstrap: void
+	..misc: void
 	..str: c-str
 	.extra-types: fd-t
 

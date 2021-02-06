@@ -1,8 +1,8 @@
 # /usr/include/netdb.h
 
 import
-	..bootstrap: void
 	..cell: cell
+	..misc: void
 	..number: int32
 	..ptr: ptr
 	..str: c-str

@@ -1,7 +1,7 @@
 # /usr/include/unistd.h
 
 import
-	..bootstrap: void
+	..misc: void
 	..number: int32, int64, nat
 	..ptr: any-ptr, ptr
 	..str: c-str

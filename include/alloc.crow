@@ -2,7 +2,7 @@ import
 	.bits: bits-and, bits-not
 	.bool: bool, false, not, or, true
 	.bootstrap:
-		as, by-val, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid,
+		as, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid,
 		lock, nat, nat8, nat64, noctx-incr, none, opt, some, todo,
 		unsafe-div, value, void, wrap-add, wrap-mul, wrap-sub
 	.compare: ==, !=, <, <=, >
@@ -10,7 +10,7 @@ import
 	.posix.stdlib: free, malloc
 	.posix.string: memcpy, memset
 	.ptr:
-		+, -, any-ptr, as-any-ptr, as-ref, null?, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, ptr-cast,
+		+, -, any-ptr, as-any-ptr, as-ref, by-val, null?, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, ptr-cast,
 		ref-of-val, set-subscript, size-of, subscript, to-nat
 	.thread-utils: acquire!, lock-by-val, release!
 
@@ -26,7 +26,7 @@ mark-ctx record mut
 # Returns true if the range is GC-allocated memory and was not already marked
 mark bool(ctx mark-ctx, ptr-any any-ptr, size-bytes nat) noctx unsafe summon
 	size-words = size-bytes words-of-bytes
-	ptr = ptr-any.ptr-cast as<ptr nat64>
+	ptr = ptr-any.ptr-cast<nat64, nat8>
 	hard-assert: (ptr.to-nat bits-and 7) == 0
 	index = ptr - ctx.memory-start
 	gc-memory? = index < ctx.memory-size-words

@@ -1,5 +1,4 @@
 file-ast(
-	imports: ports(range(0, 25), [import-ast(0, "/bootstrap", some([void]))])
 	specs: []
 	aliases: []
 	structs: []
@@ -7,26 +6,26 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(25, 48)
+				range(0, 23)
 				main
-				inststruct(range(30, 37), name-range(30, fut), [inststruct(range(34, 37), name-range(34, nat))])
+				inststruct(range(5, 12), name-range(5, fut), [inststruct(range(9, 12), name-range(9, nat))])
 				[
 					param(
-						range(38, 47)
+						range(13, 22)
 						none
-						inststruct(range(40, 47), name-range(40, arr), [inststruct(range(44, 47), name-range(44, str))]))])
+						inststruct(range(15, 22), name-range(15, arr), [inststruct(range(19, 22), name-range(19, str))]))])
 			summon: true
 			unsafe: true
-			body: seq-ast(foo, call(infix, name-range(71, resolved), [], [literal(nat(0, false))])))
+			body: seq-ast(foo, call(infix, name-range(46, resolved), [], [literal(nat(0, false))])))
 		fun-decl(
 			public?: true
-			sig: sig-ast(range(81, 91), foo, inststruct(range(85, 89), name-range(85, void)), [])
+			sig: sig-ast(range(56, 66), foo, inststruct(range(60, 64), name-range(60, void)), [])
 			summon: true
 			unsafe: true
 			body: bar)
 		fun-decl(
 			public?: true
-			sig: sig-ast(range(112, 122), bar, inststruct(range(116, 120), name-range(116, void)), [])
+			sig: sig-ast(range(87, 97), bar, inststruct(range(91, 95), name-range(91, void)), [])
 			summon: true
 			unsafe: true
-			body: call(prefix, name-range(138, fail), [], [literal("FOO")]))])
+			body: call(prefix, name-range(113, fail), [], [literal("FOO")]))])

@@ -363,7 +363,7 @@ program(
 					call(words-of-bytes, [param-ref(size-bytes)])
 					let(
 						ptr
-						call(as, [call(ptr-cast, [param-ref(ptr-any)])])
+						call(ptr-cast, [param-ref(ptr-any)])
 						seq(
 							call(hard-assert, [call(==, [call(bits-and, [call(to-nat, [local-ref(ptr)]), 7]), 0])])
 							let(
@@ -438,7 +438,6 @@ program(
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			builtin([]))
 		fun(false, bits-not, type(false, nat), none, [param(a, type(false, nat))], builtin([]))
-		fun(false, as, type(false, ptr), none, [param(value, type(false, ptr))], builtin([type(false, ptr)]))
 		fun(
 			false
 			ptr-cast

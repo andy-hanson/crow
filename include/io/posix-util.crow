@@ -1,7 +1,7 @@
 import
-	..bootstrap: void
 	..compare: ==, !=
 	..exceptions: assert
+	..misc: void
 	..number: int
 	..posix.errno: errno
 	..posix.extra-types: err-t

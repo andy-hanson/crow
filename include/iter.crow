@@ -1,9 +1,9 @@
 import
 	.bool: bool
-	.bootstrap: drop, void
 	.cell: cell, get, set
 	.compare: ==, <=
 	.exceptions: assert, forbid
+	.misc: drop, void
 	.number: +, nat
 	.opt: none, opt, some, value
 	.ptr: subscript

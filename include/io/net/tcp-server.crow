@@ -1,13 +1,14 @@
 import
 	...bits: bits-intersect?, bits-or
 	...bool: bool, false, not, or, true
-	...bootstrap: ->, as, drop, message, todo, void
+	...bootstrap: todo
 	...cell: cell
 	...collection.arr: ~, arr, data, subscript
 	...collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
 	...compare: ==, !=, <
-	...exceptions: assert
+	...exceptions: assert, message
 	...fut: callback!, call-ref-void, fut, handle-exceptions, then, fut-catch, resolved
+	...misc: ->, as, drop, void
 	...number: int32, nat8, nat16, nat32, to-int, to-int32, to-nat, to-nat32
 	...opt: value
 	...posix.c-types: c-int

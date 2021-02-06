@@ -1,11 +1,11 @@
 import
 	.bool: bool
-	.bootstrap: ->, void
 	.collection.arr: ~, empty?, size, subscript
 	.collection.arr-util: each, last, r-index-of, rtail
 	.compare: ==
 	.fun: subscript
 	.io.file: is-dir?, read-dir
+	.misc: ->, void
 	.number: +, -, nat
 	.opt: none, opt, some, value
 	.str: char, str

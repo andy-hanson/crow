@@ -1,9 +1,9 @@
 import
 	..bool: and, bool, not
-	..bootstrap: ->, arrow, as, comparison, from, greater, less, to, void
-	..compare: ==, <=>
+	..compare: ==, <=>, comparison, greater, less
 	..exceptions: assert
 	..fun: subscript
+	..misc: ->, arrow, as, from, to, void
 	..number: +, nat
 	..opt: each, has?, none, opt, some
 	.arr: arr, data, empty?, size, subscript

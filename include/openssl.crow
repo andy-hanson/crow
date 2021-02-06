@@ -1,7 +1,7 @@
 import
-	.bootstrap: void
 	.fun: fun-ptr6
 	.number: int32, int64, nat8, nat32, nat64
+	.misc: void
 	.posix.posix: fd-t, u-long
 	.ptr: any-ptr, null, ptr
 	.str: c-str, str

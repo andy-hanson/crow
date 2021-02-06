@@ -1,8 +1,8 @@
 import
 	..bool: or
-	..bootstrap: ->, as, void
 	..compare: ==, !=, <, <=, >
 	..exceptions: assert
+	..misc: ->, as, void
 	..number: +, -, /, nat
 	.arr: arr, data
 	.arr-util: each

@@ -1,5 +1,4 @@
 import
-	bootstrap: void
 	collection.arr-util: each
 	collection.mut-list: ~=, move-to-arr!, mut-list, reduce-size-if-more-than!, size
 	io.file: try-read-file, write-file

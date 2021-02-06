@@ -1,5 +1,4 @@
 import
-	bootstrap: ->
 	cell: cell, swap, subscript
 	collection.arr-util:
 		contains?, contains-subseq?, each-with-index, exists?, ends-with?, first, tail

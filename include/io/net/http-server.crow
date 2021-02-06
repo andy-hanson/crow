@@ -1,6 +1,6 @@
 import
 	...bool: and, bool, false, true
-	...bootstrap: as, drop, todo, void
+	...bootstrap: todo
 	...collection.arr: arr, data, empty?, has?, size, subscript
 	...collection.arr-util: contains?, last, rtail, split-by-subseq
 	...collection.dict: dict, each, has?
@@ -9,6 +9,7 @@ import
 	...compare: ==, !=, <=, >=
 	...exceptions: assert, forbid
 	...fut: fut, resolved, subscript, then
+	...misc: as, drop, void
 	...number: +, nat, nat8, to-int
 	...opt: none, opt, some, value
 	...posix.extra-types: fd-t

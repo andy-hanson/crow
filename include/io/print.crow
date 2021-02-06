@@ -1,7 +1,8 @@
 import
-	..bootstrap: hard-assert, unsafe-to-int, todo, void
+	..bootstrap: hard-assert, unsafe-to-int, todo
 	..collection.arr: data, size
 	..compare: ==, !=
+	..misc: void
 	..number: nat8
 	..posix.extra-types: fd-t
 	..posix.stdio: stderr, stdout

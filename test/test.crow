@@ -1,7 +1,6 @@
 #!/usr/bin/env crow
 
 import
-	bootstrap: void
 	collection.arr-util: first
 	command-line-parser: parse-cmd-line-args
 	io.environ: get-environ

@@ -1,9 +1,7 @@
 file-ast(
 	imports: ports(
-		range(0, 103)
-		[
-			import-ast(0, "/bootstrap", some([as, drop]))
-			import-ast(0, "/logging", some([get-log-handler, info, log, log-handler, warn, with-log-handler]))])
+		range(0, 82)
+		[import-ast(0, "/logging", some([get-log-handler, info, log, log-handler, warn, with-log-handler]))])
 	specs: []
 	aliases: []
 	structs: []
@@ -11,46 +9,46 @@ file-ast(
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(103, 126)
+				range(82, 105)
 				main
-				inststruct(range(108, 115), name-range(108, fut), [inststruct(range(112, 115), name-range(112, nat))])
+				inststruct(range(87, 94), name-range(87, fut), [inststruct(range(91, 94), name-range(91, nat))])
 				[
 					param(
-						range(116, 125)
+						range(95, 104)
 						none
-						inststruct(range(118, 125), name-range(118, arr), [inststruct(range(122, 125), name-range(122, str))]))])
+						inststruct(range(97, 104), name-range(97, arr), [inststruct(range(101, 104), name-range(101, str))]))])
 			summon: true
 			body: seq-ast(
-				call(infix, name-range(140, log), [], [info, literal("Logged once")])
+				call(infix, name-range(119, log), [], [info, literal("Logged once")])
 				let(
-					name-range(159, lh)
+					name-range(138, lh)
 					get-log-handler
 					let(
-						name-range(181, doubler)
+						name-range(160, doubler)
 						call(
 							prefix
-							name-range(191, as)
-							[inststruct(range(194, 205), name-range(194, log-handler))]
+							name-range(170, as)
+							[inststruct(range(173, 184), name-range(173, log-handler))]
 							[
 								lambda(
-									[name-range(209, logged)]
+									[name-range(188, logged)]
 									seq-ast(
-										call(subscript, name-range(220, subscript), [], [lh, logged])
-										call(subscript, name-range(233, subscript), [], [lh, logged])))])
+										call(subscript, name-range(199, subscript), [], [lh, logged])
+										call(subscript, name-range(212, subscript), [], [lh, logged])))])
 						seq-ast(
 							seq-ast(
 								call(
 									infix
-									name-range(251, with-log-handler)
+									name-range(230, with-log-handler)
 									[]
 									[
 										doubler
-										lambda([], call(infix, name-range(277, log), [], [warn, literal("Logged twice")]))])
+										lambda([], call(infix, name-range(256, log), [], [warn, literal("Logged twice")]))])
 								call(
 									infix
-									name-range(307, with-log-handler)
+									name-range(286, with-log-handler)
 									[]
 									[
-										lambda-line(call(infix, name-range(301, drop), [], [it]))
-										lambda([], call(infix, name-range(333, log), [], [warn, literal("Logged never")]))]))
-							call(infix, name-range(355, resolved), [], [literal(nat(0, false))]))))))])
+										lambda-line(call(infix, name-range(280, drop), [], [it]))
+										lambda([], call(infix, name-range(312, log), [], [warn, literal("Logged never")]))]))
+							call(infix, name-range(334, resolved), [], [literal(nat(0, false))]))))))])

@@ -1,11 +1,10 @@
 import
 	.bool: bool, false, not, true
 	.bootstrap:
-		as, atomic-bool, fun-ptr1, hard-assert, hard-forbid, is-locked, lock, nat, noctx-decr,
-		noctx-incr, opt, todo, value, void
+		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat, noctx-decr, noctx-incr, opt, todo, value, void
 	.cell: cell, subscript
 	.compare: <, ==, !=
-	.fun: subscript
+	.fun: fun-ptr1, subscript
 	.io.time-low-level: get-monotime-nsec, timestamp
 	.posix.errno: eagain, einval, esrch
 	.posix.pthread: pthread-create, pthread-join, pthread-t, pthread-yield

@@ -1,6 +1,6 @@
 import
 	.bootstrap:
-		cb, drop, exception, fut, fut-callback-node, fut-state-callbacks, fut-state-resolved,
+		cb, exception, fut, fut-callback-node, fut-state-callbacks, fut-state-resolved,
 		todo, head, lk, next-node, set-state, state, void
 	.fun: subscript
 	.opt: none, opt, value
@@ -46,3 +46,6 @@ resolve-or-reject! void(f fut ?t, result result<?t, exception>) unsafe
 		# the fun-ref will return a fut<void>, just ignore it
 		drop: s.value.cb[value]
 		s.value.next-node call-callbacks! value
+
+drop void(_ ?t) noctx
+	void

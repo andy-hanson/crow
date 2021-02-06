@@ -1,9 +1,10 @@
 import
 	..alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	..bool: bool
-	..bootstrap: arrow, hard-assert, void
+	..bootstrap: hard-assert
 	..compare: ==, <
 	..exceptions: assert
+	..misc: arrow, void
 	..number: nat
 	..opt: opt
 	..ptr: ptr, set-subscript

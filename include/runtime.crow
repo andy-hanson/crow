@@ -2,16 +2,16 @@ import
 	.alloc: gc, get-gc-ctx, needs-gc?, return-gc-ctx, run-garbage-collection
 	.bool: ?, and, bool, false, not, or, true
 	.bootstrap:
-		as, backtrace, call-with-ctx, ctx, exception, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx,
-		hard-assert, hard-forbid, island-and-exclusion, island-id, lock, message, noctx-decr,
-		noctx-incr, return-stack, void
+		backtrace, call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert,
+		hard-forbid, island-and-exclusion, island-id, lock, noctx-decr, noctx-incr, return-stack
 	.collection.arr: ~, arr, empty?, noctx-at, size, subscript
 	.collection.arr-util: join
 	.compare: ==, !=, >, min
-	.exceptions: exception-ctx
+	.exceptions: exception, exception-ctx, message
 	.io.print: print-err, print-err-no-newline
 	.io.time-low-level: get-monotime-nsec, timestamp
 	.logging: default-log-handler, log-ctx, log-handler, set-handler
+	.misc: as, void
 	.number: nat
 	.opt: none, opt, some, value
 	.ptr: as-any-ptr, as-ref, by-val, ref-of-val

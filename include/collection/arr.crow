@@ -1,9 +1,10 @@
 import
 	..alloc: alloc-uninitialized, copy-data-from
 	..bool: bool, false, not, true
-	..bootstrap: ->, arrow, from, hard-assert, to
+	..bootstrap: hard-assert
 	..compare: ==, !=, <, <=
 	..exceptions: assert
+	..misc: ->, arrow, from, to
 	..number: +, -, nat
 	..ptr: +, -, by-val, ptr, ref-of-ptr, subscript
 export

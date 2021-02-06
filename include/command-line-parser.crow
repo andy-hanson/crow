@@ -1,6 +1,5 @@
 import
 	.bool: bool, false, true
-	.bootstrap: ->, void
 	.cell: cell, set-subscript, subscript
 	.collection.arr: ~, arr, empty?, size, subscript
 	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
@@ -10,6 +9,7 @@ import
 	.compare: ==
 	.exceptions: assert, fail, forbid
 	.fun: subscript
+	.misc: ->, void
 	.number: +
 	.opt: has?, none, opt, some, value
 	.str: str

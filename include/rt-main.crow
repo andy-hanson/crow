@@ -2,8 +2,8 @@ import
 	.alloc
 	.bool: ?, false
 	.bootstrap:
-		as, call-with-ctx, c-str, ctx, get-ctx, noctx-decr, noctx-incr,
-		state, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, void
+		call-with-ctx, ctx, get-ctx, noctx-decr, noctx-incr,
+		state, unsafe-to-int, unsafe-to-int32, unsafe-to-nat
 	.cell: as-cell
 	.collection.arr: arr
 	.collection.arr-util: map, tail
@@ -13,6 +13,7 @@ import
 	.fut: delay, fut, handle-exceptions, then2
 	.io.process: exit-code
 	.logging: log-ctx
+	.misc: as, void
 	.number: int32, nat, to-int
 	.opt: value
 	.posix.pthread: pthread-t
@@ -22,7 +23,7 @@ import
 	.runtime:
 		any-unhandled-exceptions?, ctx, global-ctx, island, set-islands, thread-function,
 		thread-local-stuff
-	.str: str
+	.str: c-str, str
 	.str-utils: to-str
 	.sys.sysinfo: get-nprocs
 	.thread-utils: create-one-thread, join-one-thread, condition, lock-by-val

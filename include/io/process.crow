@@ -1,12 +1,13 @@
 import
 	..bool: and, bool, not, or
-	..bootstrap: as, by-val, todo, void
+	..bootstrap: todo
 	..cell: cell, subscript
 	..collection.arr: ~, arr, data, ref-of-val-at, size
 	..collection.arr-util: fold, map
 	..collection.mut-list: data, move-to-arr!, mut-list, size, reserve, unsafe-increase-size!
 	..compare: ==, <=
 	..exceptions: assert, fail
+	..misc: as, void
 	..number: +, int32, to-nat
 	..posix.bytes-types: zero
 	..posix.extra-types: fd-t
@@ -22,7 +23,7 @@ import
 	..posix.wait:
 		status-t, waitpid, w-exit-status, w-if-continued, w-if-exited, w-if-signaled,
 		w-if-stopped, w-term-sig
-	..ptr: +, as-any-ptr, as-ref, null, ptr
+	..ptr: +, as-any-ptr, as-ref, by-val, null, ptr
 	..str: char, c-str, str
 	..str-conv: to-str
 	..str-utils: to-c-str

@@ -1,8 +1,8 @@
 import
 	..bool: bool
-	..bootstrap: arrow, drop, from, to, void
 	..compare: ==, <=>
 	..exceptions: assert
+	..misc: arrow, drop, from, to, void
 	..number: +, nat
 	.arr: arr, data, size
 	.arr-util: map

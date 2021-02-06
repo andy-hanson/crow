@@ -1,7 +1,7 @@
 import
 	..bool: bool, false, true
-	..bootstrap: drop, void
 	..compare: ==, <=>
+	..misc: drop, void
 	..number: +, nat
 	.arr: arr, data
 	.arr-util: each

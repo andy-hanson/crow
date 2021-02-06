@@ -1,8 +1,8 @@
 import
 	.bool: bool, false, not, true
-	.bootstrap: void
 	.exceptions: fail
 	.fun: subscript
+	.misc: void
 export
 	.bootstrap: none, opt, some, value
 
