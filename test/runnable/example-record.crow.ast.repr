@@ -1,48 +1,48 @@
 file-ast(
-	imports: ports(range(0, 25), [import-ast(0, "/io/print", some([print]))])
+	imports: ports(range(0, 36), [import-ast(0, "/io/print", some([print])), import-ast(0, "/number", some([*]))])
 	specs: []
 	aliases: []
 	structs: [
 		struct(
-			range(25, 65)
+			range(36, 76)
 			true
 			[]
 			none
 			record(
 				none
 				[
-					field(range(38, 49), false, width, inststruct(range(44, 49), name-range(44, float)))
-					field(range(51, 63), false, height, inststruct(range(58, 63), name-range(58, float)))]))]
+					field(range(49, 60), false, width, inststruct(range(55, 60), name-range(55, float)))
+					field(range(62, 74), false, height, inststruct(range(69, 74), name-range(69, float)))]))]
 	funs: [
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(65, 83)
+				range(76, 94)
 				area
-				inststruct(range(70, 75), name-range(70, float))
-				[param(range(76, 82), some(a), inststruct(range(78, 82), name-range(78, rect)))])
+				inststruct(range(81, 86), name-range(81, float))
+				[param(range(87, 93), some(a), inststruct(range(89, 93), name-range(89, rect)))])
 			body: call(
 				infix
-				name-range(93, *)
+				name-range(104, *)
 				[]
-				[call(dot, name-range(87, width), [], [a]), call(dot, name-range(97, height), [], [a])]))
+				[call(dot, name-range(98, width), [], [a]), call(dot, name-range(108, height), [], [a])]))
 		fun-decl(
 			public?: true
 			sig: sig-ast(
-				range(105, 128)
+				range(116, 139)
 				main
-				inststruct(range(110, 117), name-range(110, fut), [inststruct(range(114, 117), name-range(114, nat))])
+				inststruct(range(121, 128), name-range(121, fut), [inststruct(range(125, 128), name-range(125, nat))])
 				[
 					param(
-						range(118, 127)
+						range(129, 138)
 						none
-						inststruct(range(120, 127), name-range(120, arr), [inststruct(range(124, 127), name-range(124, str))]))])
+						inststruct(range(131, 138), name-range(131, arr), [inststruct(range(135, 138), name-range(135, str))]))])
 			summon: true
 			body: let(
-				name-range(137, r)
+				name-range(148, r)
 				call(
 					prefix
-					name-range(141, rect)
+					name-range(152, rect)
 					[]
 					[
 						literal(
@@ -56,7 +56,7 @@ file-ast(
 				seq-ast(
 					call(
 						prefix
-						name-range(157, print)
+						name-range(168, print)
 						[]
-						[call(infix, name-range(171, to-str), [], [call(dot, name-range(166, area), [], [r])])])
-					call(infix, name-range(181, resolved), [], [literal(nat(0, false))]))))])
+						[call(infix, name-range(182, to-str), [], [call(dot, name-range(177, area), [], [r])])])
+					call(infix, name-range(192, resolved), [], [literal(nat(0, false))]))))])

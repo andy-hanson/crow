@@ -3,8 +3,8 @@ import
 	.bool: ?, false
 	.bootstrap:
 		arr, as, call-with-ctx, c-str, ctx,
-		fun-ptr2, fut, get-ctx, int32, nat, noctx-decr, noctx-incr, null,
-		state, subscript, str, to-int, unsafe-to-int, unsafe-to-int32,
+		fun-ptr2, fut, get-ctx, noctx-decr, noctx-incr,
+		state, subscript, str, unsafe-to-int, unsafe-to-int32,
 		unsafe-to-nat, value, void
 	.cell: as-cell
 	.collection.arr-util: map, tail
@@ -13,8 +13,11 @@ import
 	.fut-utils: delay, handle-exceptions, then2
 	.io.process: exit-code
 	.logging: log-ctx
+	.number: int32, nat, to-int
 	.posix.pthread: pthread-t
-	.ptr: +, any-ptr, as-any-ptr, as-ref, by-val, ptr, ptr-to, ref-of-val, set-subscript, subscript
+	.ptr:
+		+, any-ptr, as-any-ptr, as-ref, by-val, null, ptr, ptr-to, ref-of-val, set-subscript,
+		subscript
 	.runtime:
 		any-unhandled-exceptions?, ctx, global-ctx, island, set-islands, thread-function,
 		thread-local-stuff

@@ -1,11 +1,11 @@
 import
 	.bool: bool
-	.bootstrap: ->, char, nat, none, opt, size, some, str, subscript, value, void
+	.bootstrap: ->, char, none, opt, size, some, str, subscript, value, void
 	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: each, last, r-index-of, rtail
 	.compare: ==
 	.io.file: is-dir?, read-dir
-	.number: +, -
+	.number: +, -, nat
 
 parent-path str(a str)
 	match a r-index-of "/"

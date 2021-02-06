@@ -1,8 +1,9 @@
 # /usr/include/dirent.h
 
 import
-	..bootstrap: nat16, char, c-str, int32
+	..bootstrap: char, c-str
 	..cell: cell
+	..number: int32, nat16
 	.bytes-types: bytes256
 	.types: ino-t, off-t
 

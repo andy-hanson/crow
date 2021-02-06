@@ -1,6 +1,6 @@
 # /usr/include/sys/sysinfo.h
 
 import
-	..bootstrap: nat
+	..number: nat
 
 get-nprocs nat() summon extern<"get_nprocs"> noctx

@@ -4,15 +4,16 @@ import
 	.bootstrap:
 		arr, as, backtrace, call-with-ctx,
 		ctx, exception, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert, hard-forbid,
-		island-and-exclusion, island-id, lock, message, min, nat, noctx-decr, noctx-incr, none,
+		island-and-exclusion, island-id, lock, message, noctx-decr, noctx-incr, none,
 		opt, return-stack, size, some, str, value, void
 	.collection.arr: ~, empty?, noctx-at, subscript
 	.collection.arr-util: join
-	.compare: ==, !=, >
+	.compare: ==, !=, >, min
 	.exceptions: exception-ctx
 	.io.print: print-err, print-err-no-newline
 	.io.time-low-level: get-monotime-nsec, timestamp
 	.logging: default-log-handler, log-ctx, log-handler, set-handler
+	.number: nat
 	.ptr: as-any-ptr, as-ref, by-val, ref-of-val
 	.task-queue:
 		action, any-tasks?, empty?, exclusion, first-task-time, insert-task!, no-task,

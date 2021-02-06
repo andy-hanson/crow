@@ -5,6 +5,7 @@ import
 	io.net.tcp-server: close-client, start-tcp-server, stop, tcp-handler
 	io.print: print
 	io.time: delay, msec
+	number: to-int
 	posix.errno: errno
 	posix.extra-types: fd-t
 	posix.stdio: perror

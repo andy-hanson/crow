@@ -1,13 +1,12 @@
 import
 	.bool: bool, false, not, true
-	.bootstrap:
-		as, exclusion, hard-assert, has?, nat, none, opt,
-		some, value, void, wrap-add
+	.bootstrap: as, exclusion, hard-assert, has?, none, opt, some, value, void, wrap-add
 	.collection.mut-list:
 		contains?, mut-list, mut-list-by-val-with-capacity-from-unmanaged-memory,
 		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
 	.compare: ==, <=
 	.io.time-low-level: timestamp
+	.number: nat
 	.ptr: by-val, ref-of-val
 
 # TODO: use a heap, not a list

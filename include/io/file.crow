@@ -2,8 +2,7 @@ import
 	..bits: bits-and, bit-shift-left, bits-or
 	..bool: bool, false, not
 	..bootstrap:
-		->, and, arr, as, char, c-str, data, has?,
-		int32, nat8, nat16, nat32, none, opt,
+		->, and, arr, as, char, c-str, data, has?, none, opt,
 		size, size-of, some, str, todo, value, void, wrap-add
 	..cell: cell, subscript
 	..collection.arr: ~, subscript
@@ -12,7 +11,7 @@ import
 	..collection.sort: sort
 	..compare: ==, !=, <
 	..exceptions: assert, fail, forbid
-	..number: to-int, to-nat
+	..number: int32, nat8, nat16, nat32, to-int, to-nat
 	..posix.bytes-types: zero
 	..posix.dirent: dir, dirent, opendir, readdir-r
 	..posix.errno: enoent, errno

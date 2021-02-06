@@ -2,10 +2,10 @@ import
 	..bool: and, bool, not
 	..bootstrap:
 		->, arr, arrow, as, comparison, data, from, greater, has?, less,
-		nat, none, opt, size, some, subscript, to, void
+		none, opt, size, some, subscript, to, void
 	..compare: ==, <=>
 	..exceptions: assert
-	..number: +
+	..number: +, nat
 	..opt-utils: each
 	.arr: empty?, subscript
 	.arr-util: first, map, tail, zip

@@ -2,11 +2,11 @@ import
 	..alloc: alloc-uninitialized, fill-ptr-range
 	..bool: and, bool, false, not, true
 	..bootstrap:
-		->, arr, data, has?, nat, noctx-incr, none, opt,
+		->, arr, data, has?, noctx-incr, none, opt,
 		size, some, subscript, value, void
 	..compare: ==, !=, >=
 	..exceptions: assert, forbid
-	..number: +, -
+	..number: +, -, nat
 	..opt-utils: force
 	..ptr: +, ptr, set-subscript
 	.arr: ~, arr-eq?, empty?, noctx-at, subscript

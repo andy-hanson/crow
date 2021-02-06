@@ -2,6 +2,7 @@ import
 	bits: bit-shift-left, bits-or
 	io.print: print
 	io.time: delay, duration, msec
+	number: -
 
 c-int alias
 	int

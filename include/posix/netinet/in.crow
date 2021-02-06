@@ -1,7 +1,8 @@
 # /usr/include/netinet/in.h
 
 import
-	...bootstrap: drop, nat, nat16, void
+	...bootstrap: drop, void
+	...number: nat, nat16
 
 in-port-t alias
 	nat16

@@ -1,5 +1,5 @@
 import
-	..bootstrap: nat32, nat64
+	..number: nat32, nat64
 	..posix.c-types: c-int
 	..posix.extra-types: err-t, fd-t
 	..ptr: ptr

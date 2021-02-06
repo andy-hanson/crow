@@ -1,7 +1,7 @@
 import
-	..bootstrap: fut, nat, void
+	..bootstrap: fut, void
 	..fut-low-level: resolve!, unresolved
-	..number: +, *
+	..number: +, *, nat
 	..runtime: add-task, get-cur-island, new-exclusion
 	.time-low-level: get-monotime-nsec
 

@@ -1,13 +1,13 @@
 import
 	..bool: and, bool, not, or
-	..bootstrap: arr, as, by-val, char, c-str, data, int32, size, str, todo, to-nat, void
+	..bootstrap: arr, as, by-val, char, c-str, data, size, str, todo, void
 	..cell: cell, subscript
 	..collection.arr: ~, ref-of-val-at
 	..collection.arr-util: fold, map
 	..collection.mut-list: data, move-to-arr!, mut-list, size, reserve, unsafe-increase-size!
 	..compare: ==, <=
 	..exceptions: assert, fail
-	..number: +, to-nat
+	..number: +, int32, to-nat
 	..posix.bytes-types: zero
 	..posix.extra-types: fd-t
 	..posix.poll:

@@ -1,9 +1,10 @@
 import
 	..alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	..bool: bool
-	..bootstrap: arr, arrow, data, hard-assert, nat, opt, size, void
+	..bootstrap: arr, arrow, data, hard-assert, opt, size, void
 	..compare: ==, <
 	..exceptions: assert
+	..number: nat
 	..ptr: ptr, set-subscript
 	.arr: subscript
 	.arr-util: find-index

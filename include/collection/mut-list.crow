@@ -3,14 +3,14 @@ import
 	..bool: bool, not
 	..bootstrap:
 		->, arr, data, drop,
-		hard-assert, hard-forbid, nat, noctx-decr, noctx-incr, none, opt,
+		hard-assert, hard-forbid, noctx-decr, noctx-incr, none, opt,
 		size-of, some, todo, void, zeroed
 	..collection.arr-util: contains?, each, index-of
 	..collection.mut-arr:
 		data, fill-mut-arr, mut-arr, set-zero-elements, size, subscript, temp-as-arr
 	..compare: ==, <, <=, >, >=
 	..exceptions: assert
-	..number: +, -, *
+	..number: +, -, *, nat
 	..posix.string: memcpy, memmove
 	..ptr: +, as-any-ptr, by-val, ptr, set-subscript, subscript
 

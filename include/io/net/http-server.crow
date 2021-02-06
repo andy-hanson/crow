@@ -1,7 +1,7 @@
 import
 	...bool: and, bool, false, true
 	...bootstrap:
-		arr, as, char, data, drop, fut, nat, nat8, none, opt,
+		arr, as, char, data, drop, fut, none, opt,
 		size, some, str, todo, value, void
 	...collection.arr: empty?, has?, subscript
 	...collection.arr-util: contains?, last, rtail, split-by-subseq
@@ -11,7 +11,7 @@ import
 	...compare: ==, !=, <=, >=
 	...exceptions: assert, forbid
 	...fut-utils: resolved, subscript, then
-	...number: +, to-int
+	...number: +, nat, nat8, to-int
 	...posix.extra-types: fd-t
 	...posix.unistd: write
 	...ptr: ptr-cast

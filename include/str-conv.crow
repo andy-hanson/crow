@@ -1,14 +1,14 @@
 import
 	.bool: ?, bool, true
-	.bootstrap:
-		char, data, false, float, int, int16, int32, nat, nat16, nat32, none, opt,
-		some, str, todo, to-int, to-nat, value
+	.bootstrap: char, data, false, none, opt, some, str, todo, value
 	.collection.arr: ~, empty?, subscript
 	.collection.arr-util: first, tail
 	.collection.dict: dict, each
 	.collection.mut-list: ~=, move-to-arr!, mut-list, size
 	.compare: ==, >
-	.number: +, *, /, abs, mod, multiple-of?, neg, negative?, to-int, to-float, truncate-to-int
+	.number:
+		+, *, /, abs, float, int, int16, int32, mod, nat, nat16, nat32, multiple-of?, neg,
+		negative?, to-int, to-float, to-nat, truncate-to-int
 	.opt-utils: map
 
 to-str str(b bool) noctx

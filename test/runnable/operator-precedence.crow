@@ -1,5 +1,6 @@
 import
 	io.print: print
+	number: +, *
 
 main fut nat(_ arr str) summon
 	print: to-str: 1 *: 2 + 3

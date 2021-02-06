@@ -3,7 +3,7 @@ export
 	.collection.arr
 	.exceptions
 	.fut-utils
-	.number
+	#.number
 	.opt-utils
 	.str-conv
 	.str-utils

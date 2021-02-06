@@ -1,7 +1,7 @@
 # Corresponds to /usr/include/x86_64-linux-gnu/bits/socket.h
 
 import
-	..bootstrap: int32
+	..number: int32
 	..cell: cell
 	..ptr: any-ptr
 	.c-types: size-t
