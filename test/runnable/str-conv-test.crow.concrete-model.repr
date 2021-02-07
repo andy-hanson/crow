@@ -451,16 +451,8 @@ program(
 			type(false, void)
 			none
 			[param(condition, type(false, bool))]
-			expr-body(cond(call(not, [param-ref(condition)]), call(abort!, []), void)))
-		fun(
-			false
-			not
-			type(false, bool)
-			none
-			[param(a, type(false, bool))]
-			expr-body(cond(param-ref(a), call(false, []), call(true, []))))
-		fun(false, false, type(false, bool), none, [], builtin([]))
-		fun(false, true, type(false, bool), none, [], builtin([]))
+			expr-body(cond(param-ref(condition), call(void, []), call(abort!, []))))
+		fun(false, void, type(false, void), none, [], builtin([]))
 		fun(false, abort!, type(false, void), none, [], extern(false))
 		fun(
 			false
@@ -479,6 +471,8 @@ program(
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			builtin([type(false, nat)]))
+		fun(false, false, type(false, bool), none, [], builtin([]))
+		fun(false, true, type(false, bool), none, [], builtin([]))
 		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, nat)]))
 		fun(
 			false
@@ -517,6 +511,13 @@ program(
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			expr-body(call(not, [call(<, [param-ref(b), param-ref(a)])])))
+		fun(
+			false
+			not
+			type(false, bool)
+			none
+			[param(a, type(false, bool))]
+			expr-body(cond(param-ref(a), call(false, []), call(true, []))))
 		fun(
 			false
 			+
@@ -741,7 +742,6 @@ program(
 			none
 			[param(ignore, type(false, void)), param(inner, type(false, arr))]
 			new-record)
-		fun(false, void, type(false, void), none, [], builtin([]))
 		fun(
 			false
 			arr
@@ -788,7 +788,7 @@ program(
 			type(false, void)
 			none
 			[param(condition, type(false, bool))]
-			expr-body(call(hard-assert, [call(not, [param-ref(condition)])])))
+			expr-body(cond(param-ref(condition), call(abort!, []), void)))
 		fun(
 			false
 			null?
@@ -1318,7 +1318,7 @@ program(
 			type(false, nat)
 			none
 			[param(n, type(false, nat))]
-			expr-body(seq(call(hard-assert, [call(<, [param-ref(n), -1])]), call(wrap-add, [param-ref(n), 1]))))
+			expr-body(seq(call(hard-forbid, [call(==, [param-ref(n), -1])]), call(wrap-add, [param-ref(n), 1]))))
 		fun(false, ref-of-val, type(true, lock), none, [param(b, type(false, lock))], builtin([type(true, lock)]))
 		fun(false, lk, type(false, lock), none, [param(a, type(true, gc))], field-get(0))
 		fun(

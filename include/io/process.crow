@@ -1,5 +1,5 @@
 import
-	..bool: and, bool, not, or
+	..bool: and, bool, not, or, to-nat
 	..bootstrap: todo
 	..cell: cell, subscript
 	..collection.arr: ~, arr, data, ref-of-val-at, size

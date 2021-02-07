@@ -1,2 +1,19 @@
+import
+	.bootstrap: nat
 export
-	.bootstrap: ?, and, bool, false, not, or, to-nat, true
+	.bootstrap: bool, false, true
+
+not bool(a bool) noctx
+	if a
+		false
+	else
+		true
+# 'b' is evaluated only if 'a' is true
+and bool(a bool, b bool) noctx builtin
+# 'b' is evaluated only if 'a' is false
+or bool(a bool, b bool) noctx builtin
+# Only one of 'if-true' and 'if-false' will be evaluated, depending on 'cond'
+? ?t(cond bool, if-true ?t, if-false ?t) noctx builtin
+
+to-nat nat(b bool) noctx
+	b ? 1, 0

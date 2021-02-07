@@ -1,6 +1,6 @@
 import
 	.bits: bits-and, bits-not
-	.bool: bool, false, not, or, true
+	.bool: bool, false, not, or, to-nat, true
 	.bootstrap:
 		as, gc-ctx-ptr, get-ctx, hard-assert, hard-forbid,
 		lock, nat, nat8, nat64, noctx-incr, none, opt, some, todo,

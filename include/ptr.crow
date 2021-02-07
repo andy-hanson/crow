@@ -1,10 +1,14 @@
 import
+	.bool: bool, or
+	.compare: ==, comparison, less, equal, greater
 	.bootstrap: nat, unsafe-div, wrap-sub, void
 export
-	.bootstrap:
-		any-ptr, as-any-ptr, as-ref, by-val, magic-cast, null, null?, ptr, ptr-cast,
-		ptr-cast-from-extern, ptr-cast-to-extern, ptr-compare, ptr-eq?, ptr-less?, ptr-less-eq?,
-		ptr-to, ref-eq?, ref-of-val, size-of, to-nat
+	.bootstrap: any-ptr, by-val, ptr
+
+null ptr ?t() noctx builtin
+
+null? bool(a ptr ?t) noctx trusted
+	a.to-nat == (null<?t>).to-nat
 
 + ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
 
@@ -21,3 +25,46 @@ set-subscript void(a ptr ?t, n nat, value ?t) noctx unsafe
 
 ref-of-ptr ?t(p ptr by-val<?t>) noctx unsafe
 	p[] ref-of-val
+
+magic-cast ?out(p ?in) noctx unsafe
+	p.as-any-ptr as-ref
+
+# Unsafe because the ref will only be valid temporarily!
+ref-of-val ?t(b by-val ?t) noctx unsafe builtin
+
+###
+This forces something to be stack-allocated.
+WARN: If '?t' is a reference type already, this is a pointer to a pointer!
+###
+ptr-to ptr ?t(t ?t) noctx unsafe builtin
+
+# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
+as-any-ptr any-ptr(ref ?t) noctx unsafe builtin
+# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
+as-ref ?t(p any-ptr) noctx unsafe builtin
+
+ptr-eq? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
+ptr-less? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
+ptr-less-eq? bool(a ptr ?t, b ptr ?t) noctx unsafe
+	a ptr-less? b or: a ptr-eq? b
+ptr-compare comparison(a ptr ?t, b ptr ?t) noctx unsafe
+	if a ptr-less? b
+		less
+	elif a ptr-eq? b
+		equal
+	else
+		greater
+
+ref-eq? bool(a ?t, b ?t) noctx unsafe
+	a.as-any-ptr ptr-eq? b.as-any-ptr
+
+# WARN: for a reference type, this is the size of a pointer
+size-of<?t> nat() noctx unsafe builtin
+
+# TODO: require that ?out be an extern-ptr type
+ptr-cast-to-extern ?out(p ptr ?in) noctx unsafe builtin
+# TODO: require that ?in be an extern-ptr type
+ptr-cast-from-extern ptr ?out(p ?int) noctx unsafe builtin
+ptr-cast ptr ?out(p ptr ?in) noctx unsafe builtin
+
+to-nat nat(p ptr ?t) noctx unsafe builtin

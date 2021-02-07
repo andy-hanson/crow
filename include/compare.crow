@@ -1,2 +1,41 @@
+import
+	.bool: ?, bool, false, not, true
+	.bootstrap: data, str
 export
-	.bootstrap: ==, !=, <, <=, >, >=, <=>, comparison, equal, greater, less, max, min, to-str
+	.bootstrap: ==, <=>, comparison, equal, greater, less
+
+to-str str(a comparison)
+	match a
+	as less
+		"less"
+	as equal
+		"equal"
+	as greater
+		"greater"
+
+!= bool(a ?t, b ?t) noctx data<?t>
+	a == b not
+
+< bool(a ?t, b ?t) noctx data<?t>
+	match a <=> b
+	as less
+		true
+	as equal
+		false
+	as greater
+		false
+
+<= bool(a ?t, b ?t) noctx data<?t>
+	b < a not
+
+> bool(a ?t, b ?t) noctx data<?t>
+	b < a
+
+>= bool(a ?t, b ?t) noctx data<?t>
+	a < b not
+
+min ?t(a ?t, b ?t) noctx data<?t>
+	a < b ? a, b
+
+max ?t(a ?t, b ?t) noctx data<?t>
+	a < b ? b, a

@@ -54,113 +54,8 @@ WARN: If ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
 ###
 ptr<?t> builtin mut
 
-null ptr ?t() noctx builtin
-
-null? bool(a ptr ?t) noctx trusted
-	a.to-nat == (null<?t>).to-nat
-
 any-ptr alias
 	ptr nat8
-
-# Unsafe because the ref will only be valid temporarily!
-ref-of-val ?t(b by-val ?t) noctx unsafe builtin
-
-###
-This forces something to be stack-allocated.
-WARN: If '?t' is a reference type already, this is a pointer to a pointer!
-###
-ptr-to ptr ?t(t ?t) noctx unsafe builtin
-
-# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
-as-any-ptr any-ptr(ref ?t) noctx unsafe builtin
-# TODO: this function only works for by-ref types -- currently that is not checked by the type checker
-as-ref ?t(p any-ptr) noctx unsafe builtin
-
-ptr-eq? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
-ptr-less? bool(a ptr ?t, b ptr ?t) noctx unsafe builtin
-ptr-less-eq? bool(a ptr ?t, b ptr ?t) noctx unsafe
-	a ptr-less? b or: a ptr-eq? b
-ptr-compare comparison(a ptr ?t, b ptr ?t) noctx unsafe
-	if a ptr-less? b
-		less
-	elif a ptr-eq? b
-		equal
-	else
-		greater
-
-ref-eq? bool(a ?t, b ?t) noctx unsafe
-	a.as-any-ptr ptr-eq? b.as-any-ptr
-
-# WARN: for a reference type, this is the size of a pointer
-size-of<?t> nat() noctx unsafe builtin
-
-# TODO: require that ?out be an extern-ptr type
-ptr-cast-to-extern ?out(p ptr ?in) noctx unsafe builtin
-# TODO: require that ?in be an extern-ptr type
-ptr-cast-from-extern ptr ?out(p ?int) noctx unsafe builtin
-ptr-cast ptr ?out(p ptr ?in) noctx unsafe builtin
-
-magic-cast ?out(p ?in) noctx unsafe
-	p.as-any-ptr as-ref
-
-to-nat nat(p ptr ?t) noctx unsafe builtin
-
-region compare.crow
-
-less record
-equal record
-greater record
-comparison union
-	less
-	equal
-	greater
-
-to-str str(a comparison)
-	match a
-	as less
-		"less"
-	as equal
-		"equal"
-	as greater
-		"greater"
-
-<=> comparison(a ?t, b ?t) data<?t> noctx builtin
-
-== bool(a ?t, b ?t) noctx data<?t>
-	match a <=> b
-	as less
-		false
-	as equal
-		true
-	as greater
-		false
-
-!= bool(a ?t, b ?t) noctx data<?t>
-	a == b not
-
-< bool(a ?t, b ?t) noctx data<?t>
-	match a <=> b
-	as less
-		true
-	as equal
-		false
-	as greater
-		false
-
-<= bool(a ?t, b ?t) noctx data<?t>
-	b < a not
-
-> bool(a ?t, b ?t) noctx data<?t>
-	b < a
-
->= bool(a ?t, b ?t) noctx data<?t>
-	a < b not
-
-min ?t(a ?t, b ?t) noctx data<?t>
-	a < b ? a, b
-
-max ?t(a ?t, b ?t) noctx data<?t>
-	a < b ? b, a
 
 region arr
 
@@ -185,21 +80,27 @@ region bool.crow
 bool builtin
 false bool() noctx builtin
 true bool() noctx builtin
-not bool(a bool) noctx
-	if a
-		false
-	else
-		true
-# 'b' is evaluated only if 'a' is true
-and bool(a bool, b bool) noctx builtin
-# 'b' is evaluated only if 'a' is false
-or bool(a bool, b bool) noctx builtin
-# Only one of 'if-true' and 'if-false' will be evaluated, depending on 'cond'
-? ?t(cond bool, if-true ?t, if-false ?t) noctx builtin
 
-## TODO:MOVE
-to-nat nat(b bool) noctx
-	b ? 1, 0
+region compare.crow
+
+less record
+equal record
+greater record
+comparison union
+	less
+	equal
+	greater
+
+<=> comparison(a ?t, b ?t) data<?t> noctx builtin
+
+== bool(a ?t, b ?t) noctx data<?t>
+	match a <=> b
+	as less
+		false
+	as equal
+		true
+	as greater
+		false
 
 region bootstrap arithmetic
 
@@ -262,7 +163,7 @@ unsafe-div nat(a nat, b nat) noctx unsafe builtin
 unsafe-div int(a int, b int) noctx unsafe builtin
 
 noctx-incr nat(n nat) noctx unsafe
-	hard-assert: n < 0xffffffffffffffff
+	hard-forbid: n == 0xffffffffffffffff
 	n wrap-add 1
 
 noctx-decr nat(n nat) noctx unsafe
@@ -289,11 +190,14 @@ todo ?t() trusted noctx
 	zeroed
 
 hard-assert void(condition bool) noctx unsafe
-	if condition not
+	if condition
+		void
+	else
 		abort!
 
 hard-forbid void(condition bool) noctx unsafe
-	condition.not hard-assert
+	if condition
+		abort!
 
 region bootstrap runtime
 

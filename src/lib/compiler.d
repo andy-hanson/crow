@@ -291,7 +291,7 @@ public immutable(DocumentResult) compileAndDocument(Alloc, PathAlloc, ReadOnlySt
 	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 	immutable Ptr!Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, mainPath);
 	return empty(program.diagnostics)
-		? immutable DocumentResult(document(alloc, program.specialModules.mainModule), "")
+		? immutable DocumentResult(document(alloc, allPaths, program, program.specialModules.mainModule), "")
 		: immutable DocumentResult(
 			"",
 			strOfDiagnostics(alloc, allPaths, showDiagOptions, program.filesInfo, program.diagnostics));

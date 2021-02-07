@@ -1135,7 +1135,7 @@ struct ModuleAndNames {
 struct NameReferents {
 	@safe @nogc pure nothrow:
 
-	immutable Opt!(StructOrAlias) structOrAlias;
+	immutable Opt!StructOrAlias structOrAlias;
 	immutable Opt!(Ptr!SpecDecl) spec;
 	immutable Ptr!FunDecl[] funs;
 }

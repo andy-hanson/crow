@@ -115,6 +115,17 @@ private immutable(Path) addManyChildren(Alloc)(ref AllPaths!Alloc allPaths, immu
 	return childPath(allPaths, has(bParent) ? addManyChildren(allPaths, a, force(bParent)) : a, baseName(allPaths, b));
 }
 
+public void eachPathPart(PathAlloc)(
+	ref const AllPaths!PathAlloc allPaths,
+	immutable Path a,
+	scope void delegate(immutable string) @safe @nogc pure nothrow cb,
+) {
+	immutable Opt!Path par = parent(allPaths, a);
+	if (has(par))
+		eachPathPart(allPaths, force(par), cb);
+	cb(baseName(allPaths, a));
+}
+
 private void walkPathBackwards(Alloc)(
 	ref const AllPaths!Alloc allPaths,
 	immutable Path a,
