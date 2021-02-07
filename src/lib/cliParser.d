@@ -17,6 +17,7 @@ import util.util : todo;
 @trusted Out matchCommand(Out)(
 	ref immutable Command a,
 	scope Out delegate(ref immutable Command.Build) @safe @nogc nothrow cbBuild,
+	scope Out delegate(ref immutable Command.Document) @safe @nogc nothrow cbDocument,
 	scope Out delegate(ref immutable Command.Help) @safe @nogc nothrow cbHelp,
 	scope Out delegate(ref immutable Command.Print) @safe @nogc nothrow cbPrint,
 	scope Out delegate(ref immutable Command.Run) @safe @nogc nothrow cbRun,
@@ -25,6 +26,8 @@ import util.util : todo;
 	final switch (a.kind) {
 		case Command.Kind.build:
 			return cbBuild(a.build);
+		case Command.Kind.document:
+			return cbDocument(a.document);
 		case Command.Kind.help:
 			return cbHelp(a.help);
 		case Command.Kind.print:
@@ -57,6 +60,10 @@ struct Command {
 		immutable ProgramDirAndMain programDirAndMain;
 		immutable BuildOptions options;
 	}
+	struct Document {
+		immutable ProgramDirAndMain programDirAndMain;
+		immutable Opt!AbsolutePath out_;
+	}
 	struct Help {
 		enum Kind {
 			requested,
@@ -80,6 +87,7 @@ struct Command {
 	}
 
 	@trusted immutable this(immutable Build a) { kind = Kind.build; build = a; }
+	@trusted immutable this(immutable Document a) { kind = Kind.document; document = a; }
 	@trusted immutable this(immutable Help a) { kind = Kind.help; help = a; }
 	@trusted immutable this(immutable Print a) { kind = Kind.print; print = a; }
 	@trusted immutable this(immutable Run a) { kind = Kind.run; run = a; }
@@ -88,6 +96,7 @@ struct Command {
 	private:
 	enum Kind {
 		build,
+		document,
 		help,
 		print,
 		run,
@@ -96,6 +105,7 @@ struct Command {
 	immutable Kind kind;
 	union {
 		immutable Build build;
+		immutable Document document;
 		immutable Help help;
 		immutable Print print;
 		immutable Run run;
@@ -159,6 +169,8 @@ immutable(Command) parseCommand(Alloc, PathAlloc)(
 			? parsePrintCommand(alloc, allPaths, cwd, cmdArgs)
 			: strEq(arg0, "build")
 			? parseBuildCommand(alloc, allPaths, cwd, cmdArgs)
+			: strEq(arg0, "document")
+			? parseDocumentCommand(alloc, allPaths, cwd, cmdArgs)
 			: strEq(arg0, "run")
 			? parseRunCommand(alloc, allPaths, cwd, cmdArgs)
 			: strEq(arg0, "test")
@@ -258,6 +270,30 @@ immutable(PrintKind) parsePrintKind(immutable string a) {
 		: todo!(immutable PrintKind)("parsePrintKind");
 }
 
+immutable(Command) parseDocumentCommand(Alloc, PathAlloc)(
+	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
+	immutable string cwd,
+	immutable string[] args,
+) {
+	immutable Command helpDocument = immutable Command(
+		immutable Command.Help(helpDocumentText, Command.Help.Kind.error));
+	immutable SplitArgs split = splitArgs(alloc, args);
+	return size(split.beforeFirstPart) != 1
+		? helpDocument
+		: useProgramDirAndMain(
+			alloc,
+			allPaths,
+			cwd,
+			only(split.beforeFirstPart),
+			(ref immutable ProgramDirAndMain it) {
+				immutable Opt!(Opt!AbsolutePath) out_ = parseDocumentOut(allPaths, cwd, split.parts);
+				return has(out_) && empty(split.afterDashDash)
+					? immutable Command(immutable Command.Document(it, force(out_)))
+					: helpDocument;
+			});
+}
+
 immutable(Command) parseBuildCommand(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
@@ -327,6 +363,24 @@ immutable(Opt!RunOptions) parseRunOptions(Alloc, PathAlloc)(
 				: none!RunOptions;
 		} else
 			return none!RunOptions;
+	}
+}
+
+// none for error, some(none) for nothing passed
+immutable(Opt!(Opt!AbsolutePath)) parseDocumentOut(PathAlloc)(
+	ref AllPaths!PathAlloc allPaths,
+	immutable string cwd,
+	immutable ArgsPart[] argParts,
+) {
+	if (empty(argParts))
+		return some(none!AbsolutePath);
+	if (size(argParts) != 1)
+		return none!(Opt!AbsolutePath);
+	else {
+		immutable ArgsPart part = only(argParts);
+		return strEq(part.tag, "--out") && size(part.args) == 1
+			? some(some(parseAbsoluteOrRelPath(allPaths, cwd, only(part.args))))
+			: none!(Opt!AbsolutePath);
 	}
 }
 
@@ -446,10 +500,14 @@ immutable string helpAllText =
 	"\t'crow run'\n" ~
 	"\t'crow version'";
 
+immutable string helpDocumentText =
+	"Command: crow document PATH --out [OUT.pug]\n" ~
+	"\tWrites documentation for the module at PATH to the output.\n";
+
 immutable string helpBuildText =
-	"Command: crow build [PATH]\n" ~
-	"\tCompiles the program at [PATH] to a '.cpp' and executable file with the same name.\n" ~
-	"\tNo options.";
+	"Command: crow build PATH --out OUT\n" ~
+	"\tCompiles the program at PATH to an executable OUT.\n" ~
+	"\tIf OUT has a '.c' extension, it will be C source code instead.\n";
 
 immutable string helpRunText =
 	"Command: crow run [PATH] [build args] -- [programArgs]\n" ~

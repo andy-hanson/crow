@@ -16,11 +16,11 @@ site/include-list.txt: bin/crow include/*.crow
 prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz pug
 
 pug: site/*.pug site/*/*.pug
-	# BUG: --pretty flag doesn't have an effect when applied to a directory
-	pug site --prety
+	pug site
 
 pug-watch:
-	pug site --pretty --watch
+	# WARN: Can't introduce --pretty as that introduces whitespace which changes how things render
+	pug site --watch
 
 serve: prepare-site
 	cd site && python -m SimpleHTTPServer 8080

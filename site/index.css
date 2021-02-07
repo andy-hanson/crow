@@ -12,6 +12,7 @@ body {
 	--green: #a9dc76;
 	--blue: #78dce8;
 	--lavender: #ab9df2;
+	--light-gray: #6c696d;
 	--dark-gray: #2c292d;
 	--black: #1c191d; /*mine*/
 	--dark-blue: #3c6e74;/*mine*/
@@ -31,6 +32,16 @@ html, body {
 a {
 	font-weight: bold;
 	text-decoration: none;
+}
+
+ul {
+	margin-block-start: 0;
+	margin-block-end: 0;
+	padding-inline-start: 0;
+}
+
+li {
+	list-style-type: none;
 }
 
 .download-link {
@@ -65,10 +76,11 @@ header nav {
 
 #side-nav-wrapper nav {
 	height: 19em;
-	width: 7em;
+	width: 7rem;
 	display: flex;
 	flex-direction: column;
 	border-radius: 0 0 1em 0;
+	font-size: 80%;
 }
 
 nav a {
@@ -93,13 +105,9 @@ nav ul.grow {
 #side-nav-wrapper nav ul {
 	flex-direction: column;
 	padding-top: 1em;
-	margin-block-start: 0;
-	margin-block-end: 0;
-	padding-inline-start: 0;
 }
 
 nav ul li {
-	list-style-type: none;
 	font-size: 125%;
 }
 
@@ -162,6 +170,10 @@ h3 {
 	color: #ffebbd;
 }
 
+.param-def {
+	color: #ffebbd;
+}
+
 .local-ref {
 	color: #ffebbd;
 }
@@ -195,3 +207,36 @@ h3 {
 #next {
 	float: right;
 }
+
+section > h4 > div {
+	display: inline-block;
+	background: var(--dark-gray);
+	color: var(--light-gray);
+	padding: 0.25em;
+	border-radius: 0.5em;
+}
+
+.function .fun-def {
+	margin-right: 0.25em;
+}
+
+.function ul {
+	display: inline-block;
+}
+
+.function ul li {
+	display: inline-block;
+}
+
+.function .params .param-def {
+	margin-right: 0.25em;
+}
+
+.function .params li+li {
+	margin-left: 0.5em;
+}
+
+.function .params li:last-of-type::after {
+	content: none;
+}
+

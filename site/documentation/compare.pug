@@ -1,0 +1,10 @@
+include ../pug-include/documentation.pug
++documentationPage("compare")
+	section
+		h2 Compare
+
+		+function("==", "?t", [["a", "?t"], ["b", "?t"]])
+			| Returns whether 'a' and 'b' are equal
+
+		+type("less")
+			| Not as much

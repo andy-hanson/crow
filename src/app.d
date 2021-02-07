@@ -26,7 +26,14 @@ import lib.cliParser :
 	ProgramDirAndMain,
 	matchRunOptions,
 	RunOptions;
-import lib.compiler : buildAndInterpret, buildToC, BuildToCResult, DiagsAndResultStrs, print;
+import lib.compiler :
+	buildAndInterpret,
+	buildToC,
+	BuildToCResult,
+	compileAndDocument,
+	DiagsAndResultStrs,
+	DocumentResult,
+	print;
 import model.model : AbsolutePathsGetter;
 import test.test : test;
 import util.collection.arr : begin, empty, size;
@@ -111,6 +118,8 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 		command,
 		(ref immutable Command.Build it) =>
 			runBuild(alloc, allPaths, includeDir, tempDir, it.programDirAndMain, it.options).err,
+		(ref immutable Command.Document it) =>
+			runDocument(alloc, allPaths, includeDir, it.programDirAndMain, it.out_),
 		(ref immutable Command.Help it) =>
 			help(it),
 		(ref immutable Command.Print it) {
@@ -199,6 +208,32 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 	return strOfNulTerminatedStr(dirPath);
 }
 
+immutable(int) runDocument(Alloc, PathAlloc)(
+	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
+	immutable string includeDir,
+	ref immutable ProgramDirAndMain programDirAndMain,
+	ref immutable Opt!AbsolutePath out_,
+) {
+	RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
+		ptrTrustMe_mut(allPaths),
+		ptrTrustMe_mut(alloc),
+		includeDir,
+		programDirAndMain.programDir);
+	immutable DocumentResult result =
+		compileAndDocument(alloc, allPaths, storage, showDiagOptions, programDirAndMain.mainPath);
+	if (empty(result.diagnostics)) {
+		if (has(out_))
+			writeFile(alloc, allPaths, force(out_), result.document);
+		else
+			print(result.document);
+		return 0;
+	} else {
+		printErr(result.diagnostics);
+		return 1;
+	}
+}
+
 struct RunBuildResult {
 	immutable int err;
 	immutable AbsolutePath exePath;
@@ -219,7 +254,6 @@ immutable(RunBuildResult) runBuild(Alloc, PathAlloc)(
 	immutable AbsolutePath exePath = has(options.out_.outExecutable)
 		? force(options.out_.outExecutable)
 		: immutable AbsolutePath(tempDir, rootPath(allPaths, name), "");
-	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 	immutable int err = buildToCAndCompile(
 		alloc,
 		allPaths,
@@ -230,6 +264,8 @@ immutable(RunBuildResult) runBuild(Alloc, PathAlloc)(
 		exePath);
 	return immutable RunBuildResult(err, exePath);
 }
+
+immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 
 immutable(string) getIncludeDirectory(Alloc)(ref Alloc alloc, immutable string crowDir) {
 	return cat(alloc, crowDir, "/include");

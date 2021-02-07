@@ -1,0 +1,52 @@
+include ./page.pug
+
+-
+	const pages = [
+		"index",
+		"collection/arr",
+		"compare",
+	]
+	const title = id =>
+		({
+			index: "Documentation",
+			"collection/arr": "Array",
+			"compare": "Comparison",
+		})[id]
+
+mixin documentationPage(id)
+	+anyPage(title(id))
+		div(id="side-nav-wrapper")
+			nav
+				ul
+					li: a(href="/documentation/") index
+					li: a(href="/documentation/collection/arr.html") collection.arr
+					li: a(href="/documentation/compare.html") compare
+			main
+				block
+
+// TODO: specs
+mixin function(name, returnType, params)
+	section.function
+		h4
+			div
+				span.fun-def= name
+				= " "
+				span.struct-ref= returnType
+				|(
+				ul.params
+					- for (let i = 0; i < params.length; i++)
+						li
+							span.param-def=params[i][0]
+							= " "
+							span.struct-ref=params[i][1]
+						if (i !== params.length - 1)
+							= ", "
+				|)
+		block
+
+mixin type(name)
+	section.type
+		h4
+			div
+				span.struct-def= name
+		block

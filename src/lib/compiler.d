@@ -4,6 +4,7 @@ module lib.compiler;
 
 import backend.writeToC : writeToC;
 import concretize.concretize : concretize;
+import document.document : document;
 import frontend.parse.ast : FileAst, reprAst;
 import frontend.frontendCompile : FileAstAndDiagnostics, frontendCompile, parseSingleAst;
 import frontend.ide.getTokens : Token, tokensOfAst, reprTokens;
@@ -273,6 +274,27 @@ public immutable(BuildToCResult) buildToC(Alloc, PathAlloc, ReadOnlyStorage)(
 				programs.program.filesInfo,
 				programs.program.diagnostics),
 			emptyArr!string);
+}
+
+public struct DocumentResult {
+	immutable string document;
+	immutable string diagnostics;
+}
+
+public immutable(DocumentResult) compileAndDocument(Alloc, PathAlloc, ReadOnlyStorage)(
+	ref Alloc alloc,
+	ref AllPaths!PathAlloc allPaths,
+	ref ReadOnlyStorage storage,
+	ref immutable ShowDiagOptions showDiagOptions,
+	immutable Path mainPath,
+) {
+	AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
+	immutable Ptr!Program program = frontendCompile(alloc, alloc, allPaths, allSymbols, storage, mainPath);
+	return empty(program.diagnostics)
+		? immutable DocumentResult(document(alloc, program.specialModules.mainModule), "")
+		: immutable DocumentResult(
+			"",
+			strOfDiagnostics(alloc, allPaths, showDiagOptions, program.filesInfo, program.diagnostics));
 }
 
 struct ConcreteAndLowProgram {
