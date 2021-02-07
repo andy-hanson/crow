@@ -781,7 +781,7 @@ immutable(StructBody) checkRecord(Alloc)(
 	immutable bool forcedByVal = forcedByValOrRef == ForcedByValOrRefOrNone.byVal;
 	immutable RecordField[] fields = mapWithIndex(
 		alloc,
-		r.fields,
+		toArr(r.fields),
 		(immutable size_t index, ref immutable StructDeclAst.Body.Record.Field field) {
 			immutable Type fieldType = typeFromAst!Alloc(
 				alloc,

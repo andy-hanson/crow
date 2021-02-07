@@ -540,7 +540,7 @@ program(
 			expr-body(
 				expr(
 					bool
-					file-range(0, range(1291, 1389))
+					file-range(0, range(1291, 1360))
 					match(
 						expr(
 							union(0)
@@ -1258,12 +1258,12 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(0, range(3760, 3896))
+					file-range(0, range(3760, 3783))
 					trinary(
 						"if"
 						expr(bool, file-range(0, range(3763, 3772)), param-ref(0))
 						expr(void, file-range(0, range(3775, 3781)), call(4, []))
-						expr(void, file-range(0, range(3760, 3896)), void)))))
+						expr(void, file-range(0, range(3760, 3783)), void)))))
 		27: fun(
 			null?
 			bool
@@ -1483,7 +1483,7 @@ program(
 			expr-body(
 				expr(
 					bool
-					file-range(0, range(1291, 1389))
+					file-range(0, range(1291, 1360))
 					match(
 						expr(
 							union(0)
@@ -2917,7 +2917,7 @@ program(
 			expr-body(
 				expr(
 					bool
-					file-range(0, range(1291, 1389))
+					file-range(0, range(1291, 1360))
 					match(
 						expr(
 							union(0)
@@ -6310,7 +6310,7 @@ program(
 			expr-body(
 				expr(
 					nat-64
-					file-range(0, range(3198, 3257))
+					file-range(0, range(3198, 3233))
 					seq(
 						expr(
 							void
@@ -12470,7 +12470,7 @@ program(
 			expr-body(
 				expr(
 					bool
-					file-range(0, range(1291, 1389))
+					file-range(0, range(1291, 1360))
 					match(
 						expr(
 							union(0)

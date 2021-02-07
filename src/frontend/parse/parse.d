@@ -37,8 +37,7 @@ import frontend.parse.lexer :
 	NewlineOrDedent,
 	NewlineOrIndent,
 	range,
-	skipBlankLines,
-	skipShebang,
+	skipBlankLinesAndGetDocComment,
 	skipUntilNewlineNoDiag,
 	SymAndIsReserved,
 	takeDedentFromIndent1,
@@ -59,10 +58,10 @@ import frontend.parse.parseExpr : parseFunExprBody;
 import frontend.parse.parseType : parseType, parseTypeInstStruct, takeTypeArgsEnd, tryParseTypeArgsBracketed;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
-import util.collection.arrBuilder : add, ArrBuilder, arrBuilderIsEmpty, ArrWithSizeBuilder, finishArr;
+import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, arrWithSizeBuilderIsEmpty, finishArr;
 import util.collection.str : CStr, NulTerminatedStr;
 import util.memory : allocate, nu;
-import util.opt : force, has, mapOption, none, Opt, optOr, some;
+import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, some, somePtr;
 import util.path : AllPaths, childPath, Path, rootPath;
 import util.ptr : Ptr, ptrTrustMe_mut;
 import util.sourceRange : Pos, RangeWithinFile;
@@ -440,7 +439,7 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	ArrBuilder!(StructDeclAst.Body.Record.Field) res;
+	ArrWithSizeBuilder!(StructDeclAst.Body.Record.Field) res;
 	pure immutable(StructDeclAst.Body.Record) recur(immutable RecordModifiers prevModifiers) {
 		immutable Pos start = curPos(lexer);
 		immutable Sym name = takeName(alloc, lexer);
@@ -451,13 +450,13 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 					immutable ExplicitByValOrRef value = name.value == shortSymAlphaLiteralValue("by-val")
 						? ExplicitByValOrRef.byVal
 						: ExplicitByValOrRef.byRef;
-					if (has(prevModifiers.explicitByValOrRef) || !arrBuilderIsEmpty(res))
+					if (has(prevModifiers.explicitByValOrRef) || !arrWithSizeBuilderIsEmpty(res))
 						todo!void("by-val or by-ref on later line");
 					return immutable RecordModifiers(
 						prevModifiers.packed,
 						some(immutable ExplicitByValOrRefAndRange(start, value)));
 				case shortSymAlphaLiteralValue("packed"):
-					if (has(prevModifiers.packed) || !arrBuilderIsEmpty(res))
+					if (has(prevModifiers.packed) || !arrWithSizeBuilderIsEmpty(res))
 						todo!void("'packed' on later line");
 					return immutable RecordModifiers(some(start), prevModifiers.explicitByValOrRef);
 				default:
@@ -474,7 +473,7 @@ immutable(StructDeclAst.Body.Record) parseRecordBody(Alloc, SymAlloc)(
 				return recur(newModifiers);
 			case NewlineOrDedent.dedent:
 				return immutable StructDeclAst.Body.Record(
-					newModifiers.any() ? some(allocate(alloc, newModifiers)) : none!(Ptr!RecordModifiers),
+					newModifiers.any() ? somePtr(allocate(alloc, newModifiers)) : nonePtr!RecordModifiers,
 					finishArr(alloc, res));
 		}
 	}
@@ -684,6 +683,7 @@ struct FunDeclStuff {
 immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
+	immutable string docComment,
 	immutable bool isPublic,
 	immutable Pos start,
 	immutable Sym name,
@@ -710,8 +710,9 @@ immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 		}
 	}();
 	immutable SpecUsesAndSigFlagsAndKwBody extra = stuff.extra;
-	return FunDeclAst(
+	return immutable FunDeclAst(
 		range(lexer, start),
+		docComment,
 		typeParams,
 		sig.sig,
 		extra.specUses,
@@ -731,6 +732,7 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 	ref ArrBuilder!StructDeclAst structs,
 	ref ArrBuilder!FunDeclAst funs,
 	ref ArrBuilder!TestAst tests,
+	immutable string docComment,
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable bool isPublic = !tryTake(lexer, '.');
@@ -777,7 +779,7 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 					add(
 						alloc,
 						structAliases,
-						immutable StructAliasAst(range(lexer, start), isPublic, name, typeParams, target));
+						immutable StructAliasAst(range(lexer, start), docComment, isPublic, name, typeParams, target));
 					break;
 				case NonFunKeyword.builtinSpec:
 					if (tookIndent)
@@ -786,6 +788,7 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 						todo!void("spec shouldn't have purity");
 					add(alloc, specs, immutable SpecDeclAst(
 						range(lexer, start),
+						docComment,
 						isPublic,
 						name,
 						typeParams,
@@ -802,6 +805,7 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 						specs,
 						immutable SpecDeclAst(
 							range(lexer, start),
+							docComment,
 							isPublic,
 							name,
 							typeParams,
@@ -829,8 +833,8 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 								return immutable StructDeclAst.Body(tookIndent
 									? parseRecordBody(alloc, lexer)
 									: immutable StructDeclAst.Body.Record(
-										none!(Ptr!RecordModifiers),
-										emptyArr!(StructDeclAst.Body.Record.Field)));
+										nonePtr!RecordModifiers,
+										emptyArrWithSize!(StructDeclAst.Body.Record.Field)));
 							case NonFunKeyword.union_:
 								return immutable StructDeclAst.Body(
 									immutable StructDeclAst.Body.Union(() {
@@ -847,11 +851,18 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 					add(
 						alloc,
 						structs,
-						immutable StructDeclAst(range(lexer, start), isPublic, name, typeParams, purity, body_));
+						immutable StructDeclAst(
+							range(lexer, start),
+							docComment,
+							isPublic,
+							name,
+							typeParams,
+							purity,
+							body_));
 					break;
 			}
 		} else
-			add(alloc, funs, parseFun(alloc, lexer, isPublic, start, name, typeParams));
+			add(alloc, funs, parseFun(alloc, lexer, docComment, isPublic, start, name, typeParams));
 	}
 }
 
@@ -883,8 +894,7 @@ immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
 	ref AllPaths!PathAlloc allPaths,
 	ref Lexer!SymAlloc lexer,
 ) {
-	skipShebang(lexer);
-	skipBlankLines(alloc, lexer);
+	immutable string moduleDocComment = skipBlankLinesAndGetDocComment(alloc, lexer);
 	immutable Opt!ImportsOrExportsAst imports = parseImportsOrExports(alloc, allPaths, lexer, "import\n");
 	immutable Opt!ImportsOrExportsAst exports = parseImportsOrExports(alloc, allPaths, lexer, "export\n");
 
@@ -895,14 +905,15 @@ immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
 	ArrBuilder!TestAst tests;
 
 	for (;;) {
-		skipBlankLines(alloc, lexer);
+		immutable string docComment = skipBlankLinesAndGetDocComment(alloc, lexer);
 		if (tryTake(lexer, '\0'))
 			break;
-		parseSpecOrStructOrFunOrTest(alloc, lexer, specs, structAliases, structs, funs, tests);
+		parseSpecOrStructOrFunOrTest(alloc, lexer, specs, structAliases, structs, funs, tests, docComment);
 	}
 
 	return nu!FileAst(
 		alloc,
+		moduleDocComment,
 		nu!FileAstPart0(alloc, imports, exports, finishArr(alloc, specs)),
 		nu!FileAstPart1(
 			alloc,

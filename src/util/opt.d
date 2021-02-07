@@ -5,6 +5,23 @@ module util.opt;
 import util.ptr : Ptr, ptrTrustMe;
 import util.util : verify;
 
+struct OptPtr(T) {
+	private:
+	T* value_;
+}
+
+immutable(OptPtr!T) somePtr(T)(immutable Ptr!T a) {
+	return immutable OptPtr!T(a.rawPtr());
+}
+
+immutable(OptPtr!T) nonePtr(T)() {
+	return immutable OptPtr!T(null);
+}
+
+immutable(Opt!(Ptr!T)) toOpt(T)(immutable OptPtr!T a) {
+	return a.value_ == null ? none!(Ptr!T) : some(immutable Ptr!T(a.value_));
+}
+
 struct Opt(T) {
 	private:
 	this(BeNone) {

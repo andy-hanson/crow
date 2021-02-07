@@ -134,26 +134,6 @@ immutable(bool) takeOrAddDiagExpected(Alloc, SymAlloc)(
 	return res;
 }
 
-void skipShebang(SymAlloc)(ref Lexer!SymAlloc lexer) {
-	if (tryTake(lexer, "#!"))
-		skipRestOfLineAndNewline(lexer);
-}
-
-//TODO: this is only called at base level, so dedenting should be impossible..
-void skipBlankLines(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable IndentDelta i = skipLinesAndGetIndentDelta(alloc, lexer, 0);
-	matchIndentDelta!void(
-		i,
-		(ref immutable IndentDelta.DedentOrSame it) {
-			verify(it.nDedents == 0);
-		},
-		(ref immutable IndentDelta.Indent it) {
-			addDiagAtChar(alloc, lexer, immutable ParseDiag(ParseDiag.Unexpected(ParseDiag.Unexpected.Kind.indent)));
-			skipRestOfLineAndNewline(lexer);
-			skipBlankLines(alloc, lexer);
-		});
-}
-
 enum NewlineOrIndent {
 	newline,
 	indent,
@@ -368,6 +348,13 @@ immutable(string) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref A
 }
 
 private:
+
+@trusted immutable(string) takeRestOfLineAndNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	immutable char* begin = lexer.ptr;
+	skipRestOfLineAndNewline(lexer);
+	immutable char* end = lexer.ptr - 1;
+	return copyStr(alloc, arrOfRange(begin, end));
+}
 
 @trusted void skipRestOfLineAndNewline(SymAlloc)(ref Lexer!SymAlloc lexer) {
 	skipUntilNewlineNoDiag(lexer);
@@ -689,6 +676,28 @@ struct IndentDelta {
 	}
 }
 
+public immutable(string) skipBlankLinesAndGetDocComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, "");
+}
+
+immutable(string) skipBlankLinesAndGetDocCommentRecur(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable string comment,
+) {
+	if (tryTake(lexer, '\n'))
+		return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, "");
+	else if (tryTake(lexer, "###\n"))
+		return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, takeBlockComment(alloc, lexer));
+	else if (tryTake(lexer, '#'))
+		return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, takeRestOfLineAndNewline(alloc, lexer));
+	else if (tryTake(lexer, "region ")) {
+		skipRestOfLineAndNewline(lexer);
+		return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, "");
+	} else
+		return comment;
+}
+
 // Returns the change in indent (and updates the indent)
 // Note: does nothing if not looking at a newline!
 // NOTE: never returns a value > 1 as double-indent is always illegal.
@@ -708,9 +717,6 @@ immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(
 	} else if (tryTake(lexer, '#')) {
 		skipRestOfLineAndNewline(lexer);
 		return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
-	} else if (tryTake(lexer, "region ")) {
-		skipRestOfLineAndNewline(lexer);
-		return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
 	} else {
 		// If we got here, we're looking at a non-empty line (or EOF)
 		immutable int delta = safeI32FromU32(newIndent) - safeI32FromU32(curIndent);
@@ -723,6 +729,13 @@ immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(
 				? immutable IndentDelta(immutable IndentDelta.Indent())
 				: immutable IndentDelta(immutable IndentDelta.DedentOrSame(-delta));
 	}
+}
+
+@trusted immutable(string) takeBlockComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	immutable char* begin = lexer.ptr;
+	skipBlockComment(alloc, lexer);
+	immutable char* end = lexer.ptr - "###\n".length;
+	return copyStr(alloc, arrOfRange(begin, end));
 }
 
 void skipBlockComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {

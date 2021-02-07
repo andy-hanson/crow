@@ -5,6 +5,7 @@ file-ast(
 	structs: [
 		struct(
 			range(25, 65)
+			""
 			true
 			[]
 			none

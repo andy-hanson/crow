@@ -4,6 +4,7 @@ file-ast(
 	structs: [
 		struct(
 			range(0, 29)
+			""
 			true
 			[]
 			none
@@ -13,7 +14,7 @@ file-ast(
 					field(range(10, 13), false, f, inststruct(range(12, 13), name-range(12, t)))
 					field(range(15, 19), false, g, type-param(range(17, 19), a))
 					field(range(21, 27), false, h, inststruct(range(23, 27), name-range(23, t), [type-param(range(25, 27), a)]))]))
-		struct(range(29, 41), true, [], none, union([inststruct(range(38, 39), name-range(38, t))]))]
+		struct(range(29, 41), "", true, [], none, union([inststruct(range(38, 39), name-range(38, t))]))]
 	funs: [
 		fun-decl(
 			public?: true

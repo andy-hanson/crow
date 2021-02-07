@@ -22,6 +22,7 @@ file-ast(
 	structs: [
 		struct(
 			range(815, 846)
+			""
 			true
 			[]
 			none

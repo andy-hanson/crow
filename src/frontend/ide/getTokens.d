@@ -229,7 +229,7 @@ void addStructTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref im
 				add(alloc, tokens, immutable Token(
 					Token.Kind.explicitByValOrRef, rangeOfExplicitByValOrRef(force(explicitByValOrRef))));
 			}
-			foreach (ref immutable StructDeclAst.Body.Record.Field field; record.fields) {
+			foreach (ref immutable StructDeclAst.Body.Record.Field field; toArr(record.fields)) {
 				add(alloc, tokens, immutable Token(
 					Token.Kind.fieldDef,
 					rangeAtName(true, field.range.start, field.name)));

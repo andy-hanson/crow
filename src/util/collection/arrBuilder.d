@@ -67,6 +67,10 @@ immutable(size_t) arrWithSizeBuilderSize(T)(ref const ArrWithSizeBuilder!T a) {
 	return a.size_;
 }
 
+immutable(bool) arrWithSizeBuilderIsEmpty(T)(ref const ArrWithSizeBuilder!T a) {
+	return a.size_ == 0;
+}
+
 @trusted immutable(T[]) arrWithSizeBuilderAsTempArr(T)(ref const ArrWithSizeBuilder!T a) {
 	return cast(immutable) begin(a)[0 .. a.size_];
 }

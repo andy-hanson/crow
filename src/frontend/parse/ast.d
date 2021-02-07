@@ -5,7 +5,7 @@ module frontend.parse.ast;
 import util.collection.arr : ArrWithSize, empty, emptyArr, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
-import util.opt : force, has, none, Opt, some;
+import util.opt : force, has, none, Opt, OptPtr, some, toOpt;
 import util.path : AllPaths, Path, pathToStr;
 import util.ptr : Ptr;
 import util.repr :
@@ -465,6 +465,7 @@ immutable(RangeWithinFile) rangeOfPuritySpecifier(ref immutable PuritySpecifierA
 
 struct StructAliasAst {
 	immutable RangeWithinFile range;
+	immutable string docComment;
 	immutable bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParamAst typeParams;
@@ -530,13 +531,14 @@ struct StructDeclAst {
 				immutable Sym name;
 				immutable TypeAst type;
 			}
-			private immutable Opt!(Ptr!RecordModifiers) modifiers_;
-			immutable Field[] fields;
+			private immutable OptPtr!RecordModifiers modifiers_;
+			immutable ArrWithSize!Field fields;
 
 			//TODO: NOT INSTANCE
 			immutable(RecordModifiers) modifiers() immutable {
-				return has(modifiers_)
-					? force(modifiers_)
+				immutable Opt!(Ptr!RecordModifiers) m = toOpt(modifiers_);
+				return has(m)
+					? force(m)
 					: immutable RecordModifiers(none!Pos, none!ExplicitByValOrRefAndRange);
 			}
 
@@ -579,12 +581,14 @@ struct StructDeclAst {
 	}
 
 	immutable RangeWithinFile range;
+	immutable string docComment;
 	immutable bool isPublic;
 	immutable Sym name; // start is range.start
 	immutable ArrWithSize!TypeParamAst typeParams;
 	immutable Opt!PuritySpecifierAndRange purity;
 	immutable Body body_;
 }
+static assert(StructDeclAst.Body.sizeof <= 24);
 static assert(StructDeclAst.sizeof <= 88);
 
 immutable(bool) isRecord(ref immutable StructDeclAst.Body a) {
@@ -649,6 +653,7 @@ struct SpecBodyAst {
 
 struct SpecDeclAst {
 	immutable RangeWithinFile range;
+	immutable string docComment;
 	immutable bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParamAst typeParams;
@@ -702,6 +707,7 @@ struct FunBodyAst {
 
 struct FunDeclAst {
 	immutable RangeWithinFile range;
+	immutable string docComment;
 	immutable ArrWithSize!TypeParamAst typeParams; // If this is empty, infer type params
 	immutable Ptr!SigAst sig; // Ptr to keep this struct from getting too big
 	immutable SpecUseAst[] specUses;
@@ -745,6 +751,7 @@ struct FileAstPart1 {
 }
 
 struct FileAst {
+	immutable string docComment;
 	immutable Ptr!FileAstPart0 part0;
 	immutable Ptr!FileAstPart1 part1;
 }
@@ -756,6 +763,7 @@ private immutable FileAstPart0 emptyFileAstPart0 =
 private immutable FileAstPart1 emptyFileAstPart1 =
 	immutable FileAstPart1(emptyArr!StructAliasAst, emptyArr!StructDeclAst, emptyArr!FunDeclAst, emptyArr!TestAst);
 private immutable FileAst emptyFileAstStorage = immutable FileAst(
+	"",
 	immutable Ptr!FileAstPart0(&emptyFileAstPart0),
 	immutable Ptr!FileAstPart1(&emptyFileAstPart1));
 immutable Ptr!FileAst emptyFileAst = immutable Ptr!FileAst(&emptyFileAstStorage);
@@ -838,6 +846,7 @@ immutable(Repr) reprImportAst(Alloc, PathAlloc)(
 immutable(Repr) reprSpecDeclAst(Alloc)(ref Alloc alloc, ref immutable SpecDeclAst a) {
 	return reprRecord(alloc, "spec-decl", [
 		reprRangeWithinFile(alloc, a.range),
+		reprStr(a.docComment),
 		reprBool(a.isPublic),
 		reprSym(a.name),
 		reprArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst it) =>
@@ -858,6 +867,7 @@ immutable(Repr) reprSpecBodyAst(Alloc)(ref Alloc alloc, ref immutable SpecBodyAs
 immutable(Repr) reprStructAliasAst(Alloc)(ref Alloc alloc, ref immutable StructAliasAst a) {
 	return reprRecord(alloc, "alias", [
 		reprRangeWithinFile(alloc, a.range),
+		reprStr(a.docComment),
 		reprBool(a.isPublic),
 		reprSym(a.name),
 		reprArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst it) =>
@@ -891,7 +901,7 @@ immutable(Repr) reprField(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Bo
 immutable(Repr) reprRecord(Alloc)(ref Alloc alloc, ref immutable StructDeclAst.Body.Record a) {
 	return reprRecord(alloc, "record", [
 		reprOptExplicitByValOrRefAndRange(alloc, a.explicitByValOrRef),
-		reprArr(alloc, a.fields, (ref immutable StructDeclAst.Body.Record.Field it) =>
+		reprArr(alloc, toArr(a.fields), (ref immutable StructDeclAst.Body.Record.Field it) =>
 			reprField(alloc, it))]);
 }
 
@@ -917,6 +927,7 @@ immutable(Repr) reprStructBodyAst(Alloc)(ref Alloc alloc, ref immutable StructDe
 immutable(Repr) reprStructDeclAst(Alloc)(ref Alloc alloc, ref immutable StructDeclAst a) {
 	return reprRecord(alloc, "struct", [
 		reprRangeWithinFile(alloc, a.range),
+		reprStr(a.docComment),
 		reprBool(a.isPublic),
 		reprArr(alloc, toArr(a.typeParams), (ref immutable TypeParamAst a) =>
 			reprTypeParamAst(alloc, a)),
@@ -926,6 +937,8 @@ immutable(Repr) reprStructDeclAst(Alloc)(ref Alloc alloc, ref immutable StructDe
 
 immutable(Repr) reprFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDeclAst a) {
 	ArrBuilder!NameAndRepr fields;
+	if (!empty(a.docComment))
+		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr("public?", reprBool(a.isPublic)));
 	if (!empty(toArr(a.typeParams)))
 		add(alloc, fields, nameAndRepr(
