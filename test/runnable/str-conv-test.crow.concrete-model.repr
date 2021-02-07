@@ -43,12 +43,17 @@ program(
 		struct(name: atomic-bool, mut?: true, ptr?: true, body: record([field(value, true, type(false, bool))]))
 		struct(
 			name: fut-state
-			body: union([type(false, fut-state-callbacks), type(false, fut-state-resolved), type(false, exception)]))
-		struct(name: fut-state-callbacks, body: record([field(head, false, type(false, opt))]))
+			body: union(
+				[
+					type(false, fut-state-no-callbacks)
+					type(true, fut-state-callbacks)
+					type(false, fut-state-resolved)
+					type(false, exception)]))
+		struct(name: fut-state-no-callbacks, body: record([]))
 		struct(
-			name: fut-callback-node
+			name: fut-state-callbacks
 			ptr?: true
-			body: record([field(cb, false, type(false, fun-act1)), field(next-node, false, type(false, opt))]))
+			body: record([field(cb, false, type(false, fun-act1)), field(next, false, type(false, opt))]))
 		struct(
 			name: exception
 			body: record([field(message, false, type(false, arr)), field(backtrace, false, type(false, backtrace))]))
@@ -62,7 +67,7 @@ program(
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, result)]))
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
 		struct(name: none, body: record([]))
-		struct(name: some, body: record([field(value, false, type(true, fut-callback-node))]))
+		struct(name: some, body: record([field(value, false, type(true, fut-state-callbacks))]))
 		struct(name: fut-state-resolved, body: record([field(value, false, type(false, nat))]))
 		struct(name: fun-ptr2, body: builtin(fun-ptr, [type(true, fut), type(true, ctx), type(false, arr)]))
 		struct(
@@ -231,17 +236,21 @@ program(
 			body: record([field(lk, false, type(false, lock)), field(state, true, type(false, fut-state))]))
 		struct(
 			name: fut-state
-			body: union([type(false, fut-state-callbacks), type(false, fut-state-resolved), type(false, exception)]))
-		struct(name: fut-state-callbacks, body: record([field(head, false, type(false, opt))]))
+			body: union(
+				[
+					type(false, fut-state-no-callbacks)
+					type(true, fut-state-callbacks)
+					type(false, fut-state-resolved)
+					type(false, exception)]))
 		struct(
-			name: fut-callback-node
+			name: fut-state-callbacks
 			ptr?: true
-			body: record([field(cb, false, type(false, fun-act1)), field(next-node, false, type(false, opt))]))
+			body: record([field(cb, false, type(false, fun-act1)), field(next, false, type(false, opt))]))
 		struct(name: result, body: union([type(false, ok), type(false, err)]))
 		struct(name: ok, body: record([field(value, false, type(false, void))]))
 		struct(name: fun-act1, body: builtin(fun, [type(false, void), type(false, result)]))
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
-		struct(name: some, body: record([field(value, false, type(true, fut-callback-node))]))
+		struct(name: some, body: record([field(value, false, type(true, fut-state-callbacks))]))
 		struct(name: fut-state-resolved, body: record([field(value, false, type(false, void))]))
 		struct(
 			name: fun-ref0
@@ -271,7 +280,7 @@ program(
 			name: lambda(callback!, 0)
 			body: record([field(f, false, type(true, fut)), field(cb, false, type(false, fun-act1))]))
 		struct(name: lambda(forward-to!, 0), body: record([field(to, false, type(true, fut))]))
-		struct(name: fun-act0, body: builtin(fun, [type(false, fut-state-callbacks)]))
+		struct(name: fun-act0, body: builtin(fun, [type(false, fut-state)]))
 		struct(
 			name: lambda(resolve-or-reject!, 0)
 			ptr?: true
@@ -619,6 +628,7 @@ program(
 												match(
 													call(state, [local-ref(main-fut)])
 													[
+														case(none, 1)
 														case(none, 1)
 														case(
 															some(r)
@@ -2617,8 +2627,7 @@ program(
 			type(true, fut)
 			none
 			[]
-			expr-body(
-				call(fut, [call(lock-by-val, []), to-union(0, call(fut-state-callbacks, [to-union(0, call(none, []))]))])))
+			expr-body(call(fut, [call(lock-by-val, []), to-union(0, call(fut-state-no-callbacks, []))])))
 		fun(
 			true
 			fut
@@ -2626,13 +2635,7 @@ program(
 			none
 			[param(lk, type(false, lock)), param(state, type(false, fut-state))]
 			new-record)
-		fun(
-			true
-			fut-state-callbacks
-			type(false, fut-state-callbacks)
-			none
-			[param(head, type(false, opt))]
-			new-record)
+		fun(false, fut-state-no-callbacks, type(false, fut-state-no-callbacks), none, [], new-record)
 		fun(
 			true
 			callback!
@@ -2681,19 +2684,11 @@ program(
 		fun(
 			true
 			fut-state-callbacks
-			type(false, fut-state-callbacks)
+			type(true, fut-state-callbacks)
 			none
-			[param(head, type(false, opt))]
+			[param(cb, type(false, fun-act1)), param(next, type(false, opt))]
 			new-record)
-		fun(false, some, type(false, some), none, [param(value, type(true, fut-callback-node))], new-record)
-		fun(
-			true
-			fut-callback-node
-			type(true, fut-callback-node)
-			none
-			[param(cb, type(false, fun-act1)), param(next-node, type(false, opt))]
-			new-record)
-		fun(false, head, type(false, opt), none, [param(a, type(false, fut-state-callbacks))], field-get(0))
+		fun(false, some, type(false, some), none, [param(value, type(true, fut-state-callbacks))], new-record)
 		fun(
 			true
 			subscript
@@ -2722,26 +2717,29 @@ program(
 					call(state, [get-field(param-ref("<<closure>>"), f)])
 					[
 						case(
+							none
+							call(
+								set-state
+								[
+									get-field(param-ref("<<closure>>"), f)
+									to-union(
+										1
+										call(
+											fut-state-callbacks
+											[get-field(param-ref("<<closure>>"), cb), to-union(0, call(none, []))]))]))
+						case(
 							some(cbs)
 							call(
 								set-state
 								[
 									get-field(param-ref("<<closure>>"), f)
 									to-union(
-										0
+										1
 										call(
 											fut-state-callbacks
 											[
-												to-union(
-													1
-													call(
-														some
-														[
-															call(
-																fut-callback-node
-																[
-																	get-field(param-ref("<<closure>>"), cb)
-																	call(head, [local-ref(cbs)])])]))]))]))
+												get-field(param-ref("<<closure>>"), cb)
+												to-union(1, call(some, [local-ref(cbs)]))]))]))
 						case(
 							some(r)
 							call(
@@ -2782,15 +2780,14 @@ program(
 			none
 			[param(a, type(true, fut)), param(state, type(false, fut-state))]
 			field-set(1))
-		fun(false, some, type(false, some), none, [param(value, type(true, fut-callback-node))], new-record)
 		fun(
 			true
-			fut-callback-node
-			type(true, fut-callback-node)
+			fut-state-callbacks
+			type(true, fut-state-callbacks)
 			none
-			[param(cb, type(false, fun-act1)), param(next-node, type(false, opt))]
+			[param(cb, type(false, fun-act1)), param(next, type(false, opt))]
 			new-record)
-		fun(false, head, type(false, opt), none, [param(a, type(false, fut-state-callbacks))], field-get(0))
+		fun(false, some, type(false, some), none, [param(value, type(true, fut-state-callbacks))], new-record)
 		fun(
 			true
 			subscript
@@ -2818,26 +2815,29 @@ program(
 					call(state, [get-field(param-ref("<<closure>>"), f)])
 					[
 						case(
+							none
+							call(
+								set-state
+								[
+									get-field(param-ref("<<closure>>"), f)
+									to-union(
+										1
+										call(
+											fut-state-callbacks
+											[get-field(param-ref("<<closure>>"), cb), to-union(0, call(none, []))]))]))
+						case(
 							some(cbs)
 							call(
 								set-state
 								[
 									get-field(param-ref("<<closure>>"), f)
 									to-union(
-										0
+										1
 										call(
 											fut-state-callbacks
 											[
-												to-union(
-													1
-													call(
-														some
-														[
-															call(
-																fut-callback-node
-																[
-																	get-field(param-ref("<<closure>>"), cb)
-																	call(head, [local-ref(cbs)])])]))]))]))
+												get-field(param-ref("<<closure>>"), cb)
+												to-union(1, call(some, [local-ref(cbs)]))]))]))
 						case(
 							some(r)
 							call(
@@ -2858,17 +2858,23 @@ program(
 			[param(f, type(true, fut)), param(result, type(false, result))]
 			expr-body(
 				let(
-					callbacks
+					old-state
 					call(
 						with-lock
 						[
 							call(ref-of-val, [call(lk, [param-ref(f)])])
 							lambda(0, alloc(record([param-ref(f), param-ref(result)])))])
-					call(call-callbacks!, [call(head, [local-ref(callbacks)]), param-ref(result)]))))
+					match(
+						local-ref(old-state)
+						[
+							case(none, call(void, []))
+							case(some(cbs), call(call-callbacks!, [local-ref(cbs), param-ref(result)]))
+							case(none, call(hard-unreachable, []))
+							case(none, call(hard-unreachable, []))]))))
 		fun(
 			true
 			with-lock
-			type(false, fut-state-callbacks)
+			type(false, fut-state)
 			none
 			[param(a, type(true, lock)), param(f, type(false, fun-act0))]
 			expr-body(
@@ -2878,19 +2884,17 @@ program(
 		fun(
 			true
 			subscript
-			type(false, fut-state-callbacks)
+			type(false, fut-state)
 			none
 			[param(a, type(false, fun-act0))]
 			expr-body(call(call-with-ctx, [param-ref(a), call(get-ctx, [])])))
 		fun(
 			false
 			call-with-ctx
-			type(false, fut-state-callbacks)
+			type(false, fut-state)
 			none
 			[param(f, type(false, fun-act0)), param(c, type(true, ctx))]
-			builtin([type(false, fut-state-callbacks)]))
-		fun(false, todo, type(false, fut-state-callbacks), none, [], expr-body(seq(call(abort!, []), call(zeroed, []))))
-		fun(false, zeroed, type(false, fut-state-callbacks), none, [], builtin([type(false, fut-state-callbacks)]))
+			builtin([type(false, fut-state)]))
 		fun(
 			true
 			fut-state-resolved
@@ -2903,15 +2907,13 @@ program(
 		fun(
 			true
 			lambda(resolve-or-reject!, 0)
-			type(false, fut-state-callbacks)
+			type(false, fut-state)
 			some(param("<<closure>>", type(true, lambda(resolve-or-reject!, 0))))
 			[]
 			expr-body(
 				let(
-					callbacks
-					match(
-						call(state, [get-field(param-ref("<<closure>>"), f)])
-						[case(some(cbs), local-ref(cbs)), case(none, call(todo, [])), case(none, call(todo, []))])
+					old
+					call(state, [get-field(param-ref("<<closure>>"), f)])
 					seq(
 						call(
 							set-state
@@ -2922,33 +2924,28 @@ program(
 									[
 										case(
 											some(o)
-											to-union(1, call(fut-state-resolved, [call(value, [local-ref(o)])])))
-										case(some(e), let(ex, call(value, [local-ref(e)]), to-union(2, local-ref(ex))))])])
-						local-ref(callbacks)))))
+											to-union(2, call(fut-state-resolved, [call(value, [local-ref(o)])])))
+										case(some(e), let(ex, call(value, [local-ref(e)]), to-union(3, local-ref(ex))))])])
+						local-ref(old)))))
 		fun(
 			true
 			call-callbacks!
 			type(false, void)
 			none
-			[param(node, type(false, opt)), param(value, type(false, result))]
+			[param(cbs, type(true, fut-state-callbacks)), param(value, type(false, result))]
 			expr-body(
-				match(
-					param-ref(node)
-					[
-						case(none, call(void, []))
-						case(
-							some(s)
-							seq(
-								call(
-									drop
-									[call(subscript, [call(cb, [call(value, [local-ref(s)])]), param-ref(value)])])
-								call(
-									call-callbacks!
-									[call(next-node, [call(value, [local-ref(s)])]), param-ref(value)])))])))
+				seq(
+					call(drop, [call(subscript, [call(cb, [param-ref(cbs)]), param-ref(value)])])
+					match(
+						call(next, [param-ref(cbs)])
+						[
+							case(none, call(void, []))
+							case(some(s), call(call-callbacks!, [call(value, [local-ref(s)]), param-ref(value)]))]))))
 		fun(false, drop, type(false, void), none, [param("_", type(false, void))], expr-body(call(void, [])))
-		fun(false, cb, type(false, fun-act1), none, [param(a, type(true, fut-callback-node))], field-get(0))
-		fun(false, value, type(true, fut-callback-node), none, [param(a, type(false, some))], field-get(0))
-		fun(false, next-node, type(false, opt), none, [param(a, type(true, fut-callback-node))], field-get(1))
+		fun(false, cb, type(false, fun-act1), none, [param(a, type(true, fut-state-callbacks))], field-get(0))
+		fun(false, next, type(false, opt), none, [param(a, type(true, fut-state-callbacks))], field-get(1))
+		fun(false, value, type(true, fut-state-callbacks), none, [param(a, type(false, some))], field-get(0))
+		fun(false, hard-unreachable, type(false, void), none, [], expr-body(seq(call(abort!, []), call(zeroed, []))))
 		fun(
 			true
 			lambda(forward-to!, 0)
@@ -3563,7 +3560,7 @@ program(
 			type(true, fut)
 			none
 			[param(value, type(false, void))]
-			expr-body(call(fut, [call(lock-by-val, []), to-union(1, call(fut-state-resolved, [param-ref(value)]))])))
+			expr-body(call(fut, [call(lock-by-val, []), to-union(2, call(fut-state-resolved, [param-ref(value)]))])))
 		fun(
 			true
 			fut
@@ -5666,7 +5663,7 @@ program(
 			type(true, fut)
 			none
 			[param(value, type(false, nat))]
-			expr-body(call(fut, [call(lock-by-val, []), to-union(1, call(fut-state-resolved, [param-ref(value)]))])))]
+			expr-body(call(fut, [call(lock-by-val, []), to-union(2, call(fut-state-resolved, [param-ref(value)]))])))]
 	rt-main
 	main
 	ctx)

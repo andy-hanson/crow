@@ -1,8 +1,7 @@
 import
 	.bootstrap:
-		exclusion, fun, fut-callback-node, fut-state-callbacks,
-		fut-state-resolved, hard-unreachable, head, island, island-and-exclusion, lk,
-		send, set-state, state, value
+		exclusion, fun, fut-state-callbacks, fut-state-resolved, hard-unreachable, island,
+		island-and-exclusion, lk, send, set-state, state, value
 	.collection.arr: arr, size
 	.compare: ==
 	.cell: cell, set-subscript, subscript
@@ -47,10 +46,14 @@ join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out>
 
 .finish-join! void(res fut ?out, a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) unsafe send<?out> send<?in0> send<?in1>
 	match a state
+	as fut-state-no-callbacks
+		hard-unreachable<void>
 	as fut-state-callbacks
 		hard-unreachable<void>
 	as fut-state-resolved resolved-a
 		match b state
+		as fut-state-no-callbacks
+			hard-unreachable<void>
 		as fut-state-callbacks
 			hard-unreachable<void>
 		as fut-state-resolved resolved-b
@@ -77,6 +80,8 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 .finish-join! void(res fut arr ?a, a arr fut ?a) unsafe send<?a> send<arr ?a> summon
 	exception = a first-some \x
 		match x state
+		as fut-state-no-callbacks
+			hard-unreachable<opt exception>
 		as fut-state-callbacks
 			hard-unreachable<opt exception>
 		as fut-state-resolved
@@ -91,6 +96,8 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 
 .must-be-resolved ?a(a fut ?a) unsafe
 	match a state
+	as fut-state-no-callbacks
+		hard-unreachable
 	as fut-state-callbacks
 		hard-unreachable
 	as fut-state-resolved r
@@ -103,9 +110,10 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 callback! void(f fut ?t, cb act void(result<?t, exception>)) unsafe
 	f.lk.ref-of-val with-lock \
 		match f state
+		as fut-state-no-callbacks
+			f.state := fut-state-callbacks: cb, none
 		as fut-state-callbacks cbs
-			# create a new callback
-			f.state := fut-state-callbacks<?t>: some: fut-callback-node<?t>: cb, cbs.head
+			f.state := fut-state-callbacks: cb, some: cbs
 		as fut-state-resolved r
 			cb[r.value ok]
 		as exception e

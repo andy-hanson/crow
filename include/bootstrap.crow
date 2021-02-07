@@ -342,17 +342,18 @@ fut<?t> record force-sendable
 	state mut fut-state ?t
 
 fut-state<?t> union mut
+	fut-state-no-callbacks
 	fut-state-callbacks<?t>
 	fut-state-resolved<?t>
 	exception
 
-fut-state-callbacks<?t> record mut
-	head opt fut-callback-node<?t>
+fut-state-no-callbacks record
 
-fut-callback-node<?t> record mut
+fut-state-callbacks<?t> record mut
+	by-ref
 	# WARN: the cb will be called with whatever ctx resolves the fut, not the ctx that created it
 	cb act void(result<?t, exception>)
-	next-node opt fut-callback-node<?t>
+	next opt fut-state-callbacks ?t
 
 fut-state-resolved<?t> record
 	value ?t

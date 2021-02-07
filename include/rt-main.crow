@@ -46,6 +46,9 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	n-threads run-threads gctx
 
 	match main-fut state
+	as fut-state-no-callbacks
+		# Should never happen
+		1
 	as fut-state-callbacks
 		# Should never happen
 		1
