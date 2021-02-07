@@ -1,3 +1,4 @@
+no-std
 import
 	.bits: bits-and, bits-not
 	.bool: bool, false, not, or, to-nat, true

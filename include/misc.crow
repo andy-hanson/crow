@@ -1,3 +1,4 @@
+no-std
 export
 	.bootstrap: as, void
 

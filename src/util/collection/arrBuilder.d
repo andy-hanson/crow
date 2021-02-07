@@ -3,7 +3,7 @@ module util.collection.arrBuilder;
 @safe @nogc pure nothrow:
 
 import util.collection.arr : ArrWithSize, begin, emptyArrWithSize;
-import util.collection.mutArr : moveToArr, MutArr, mutArrIsEmpty, mutArrSize, push, pushAll;
+import util.collection.mutArr : moveToArr, MutArr, mutArrSize, push, pushAll;
 import util.memory : initMemory;
 import util.util : verify;
 
@@ -25,10 +25,6 @@ immutable(T[]) finishArr_immutable(T, Alloc)(ref Alloc alloc, ref ArrBuilder!(im
 
 immutable(T[]) finishArr(T, Alloc)(ref Alloc alloc, ref ArrBuilder!T a) {
 	return moveToArr(alloc, a.data);
-}
-
-immutable(bool) arrBuilderIsEmpty(T)(ref const ArrBuilder!T a) {
-	return mutArrIsEmpty(a.data);
 }
 
 immutable(size_t) arrBuilderSize(T)(ref const ArrBuilder!T a) {

@@ -404,11 +404,6 @@ void generateExpr(Debug, CodeAlloc, TempAlloc)(
 				writeDupEntries(dbg, writer, source, entries);
 		},
 		(ref immutable LowExprKind.Match it) {
-			//debug {
-			//	import core.stdc.stdio : printf;
-			//	printf("generating match\n");
-			//}
-
 			immutable StackEntry startStack = getNextStackEntry(writer);
 			generateExpr(dbg, tempAlloc, writer, ctx, it.matchedValue);
 			// Move the union kind to top of stack

@@ -1,5 +1,5 @@
 # /usr/include/dirent.h
-
+no-std
 import
 	..cell: cell
 	..number: int32, nat16

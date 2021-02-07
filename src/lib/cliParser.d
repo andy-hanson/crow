@@ -169,7 +169,7 @@ immutable(Command) parseCommand(Alloc, PathAlloc)(
 			? parsePrintCommand(alloc, allPaths, cwd, cmdArgs)
 			: strEq(arg0, "build")
 			? parseBuildCommand(alloc, allPaths, cwd, cmdArgs)
-			: strEq(arg0, "document")
+			: strEq(arg0, "doc")
 			? parseDocumentCommand(alloc, allPaths, cwd, cmdArgs)
 			: strEq(arg0, "run")
 			? parseRunCommand(alloc, allPaths, cwd, cmdArgs)

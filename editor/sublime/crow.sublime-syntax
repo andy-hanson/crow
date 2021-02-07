@@ -64,6 +64,8 @@ contexts:
       push: top_level
 
   top_level:
+    - match: no-std
+      scope: keyword
     - match: export|import
       scope: keyword
       push: after_export_or_import_keyword

@@ -1,5 +1,5 @@
 # /usr/include/setjmp.h
-
+no-std
 import
 	..bootstrap: int32, void
 	..ptr: ptr

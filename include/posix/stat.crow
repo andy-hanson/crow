@@ -1,3 +1,4 @@
+no-std
 import
 	..number: int32, nat32
 	..str: c-str

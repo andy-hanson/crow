@@ -895,6 +895,7 @@ immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
 	ref Lexer!SymAlloc lexer,
 ) {
 	immutable string moduleDocComment = skipBlankLinesAndGetDocComment(alloc, lexer);
+	immutable bool noStd = tryTake(lexer, "no-std\n");
 	immutable Opt!ImportsOrExportsAst imports = parseImportsOrExports(alloc, allPaths, lexer, "import\n");
 	immutable Opt!ImportsOrExportsAst exports = parseImportsOrExports(alloc, allPaths, lexer, "export\n");
 
@@ -914,6 +915,7 @@ immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
 	return nu!FileAst(
 		alloc,
 		moduleDocComment,
+		noStd,
 		nu!FileAstPart0(alloc, imports, exports, finishArr(alloc, specs)),
 		nu!FileAstPart1(
 			alloc,

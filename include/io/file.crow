@@ -1,3 +1,4 @@
+no-std
 import
 	..bits: bits-and, bit-shift-left, bits-or
 	..bool: and, bool, false, not

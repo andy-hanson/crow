@@ -1,3 +1,4 @@
+no-std
 import
 	..number: nat32, nat64
 	..posix.c-types: c-int

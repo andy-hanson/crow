@@ -1,3 +1,4 @@
+no-std
 import
 	.fun: fun-ptr6
 	.number: int32, int64, nat8, nat32, nat64

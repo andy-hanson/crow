@@ -1,3 +1,4 @@
+no-std
 import
 	.bootstrap:
 		exclusion, fun, fut-state-callbacks, fut-state-resolved, hard-unreachable, island,

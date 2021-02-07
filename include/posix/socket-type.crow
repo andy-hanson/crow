@@ -1,5 +1,5 @@
 # /usr/include/x86_64-linux-gnu/bits/socket_type.h
-
+no-std
 import
 	..number: int32
 

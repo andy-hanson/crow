@@ -1114,7 +1114,7 @@ struct Module {
 static assert(Module.sizeof <= 48);
 
 struct ModuleImportsExports {
-	immutable ModuleAndNames[] imports;
+	immutable ModuleAndNames[] imports; // includes import of std (if applicable)
 	immutable ModuleAndNames[] exports;
 }
 

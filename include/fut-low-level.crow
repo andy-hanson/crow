@@ -1,3 +1,4 @@
+no-std
 import
 	.bootstrap:
 		cb, exception, fut, fut-state-callbacks, fut-state-no-callbacks, fut-state-resolved,

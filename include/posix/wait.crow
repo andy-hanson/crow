@@ -1,5 +1,5 @@
 # /usr/include/x86_64-linux-gnu/sys/wait.h
-
+no-std
 import
 	..bits: bits-and, bit-shift-right, bits-intersect?
 	..bool: and, bool

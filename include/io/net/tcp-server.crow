@@ -1,3 +1,4 @@
+no-std
 import
 	...bits: bits-intersect?, bits-or
 	...bool: bool, false, not, or, true

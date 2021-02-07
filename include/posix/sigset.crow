@@ -1,5 +1,5 @@
 # /usr/include/x86_64-linux-gnu/bits/sigset.h
-
+no-std
 import
 	.bytes-types: bytes128
 

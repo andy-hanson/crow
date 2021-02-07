@@ -1,3 +1,4 @@
+no-std
 import
 	..bootstrap: nat, void
 	..ptr: any-ptr

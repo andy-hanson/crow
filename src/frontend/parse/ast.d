@@ -752,6 +752,7 @@ struct FileAstPart1 {
 
 struct FileAst {
 	immutable string docComment;
+	immutable bool noStd;
 	immutable Ptr!FileAstPart0 part0;
 	immutable Ptr!FileAstPart1 part1;
 }
@@ -764,6 +765,7 @@ private immutable FileAstPart1 emptyFileAstPart1 =
 	immutable FileAstPart1(emptyArr!StructAliasAst, emptyArr!StructDeclAst, emptyArr!FunDeclAst, emptyArr!TestAst);
 private immutable FileAst emptyFileAstStorage = immutable FileAst(
 	"",
+	true,
 	immutable Ptr!FileAstPart0(&emptyFileAstPart0),
 	immutable Ptr!FileAstPart1(&emptyFileAstPart1));
 immutable Ptr!FileAst emptyFileAst = immutable Ptr!FileAst(&emptyFileAstStorage);

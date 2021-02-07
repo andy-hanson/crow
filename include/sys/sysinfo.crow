@@ -1,5 +1,5 @@
 # /usr/include/sys/sysinfo.h
-
+no-std
 import
 	..number: nat
 

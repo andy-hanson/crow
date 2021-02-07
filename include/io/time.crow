@@ -1,3 +1,4 @@
+no-std
 import
 	..fut: fut
 	..fut-low-level: resolve!, unresolved

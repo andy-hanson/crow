@@ -1,5 +1,5 @@
 # /usr/include/netinet/in.h
-
+no-std
 import
 	...misc: drop, void
 	...number: nat, nat16

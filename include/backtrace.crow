@@ -1,3 +1,4 @@
+no-std
 import
 	.alloc: try-alloc-uninitialized
 	.bootstrap:

@@ -1,5 +1,5 @@
 # /usr/include/asm-generic/poll.h
-
+no-std
 import
 	..bits: bits-intersect?
 	..bool: bool

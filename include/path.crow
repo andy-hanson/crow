@@ -1,3 +1,4 @@
+no-std
 import
 	.bool: bool
 	.collection.arr: ~, empty?, size, subscript

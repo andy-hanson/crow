@@ -1,5 +1,5 @@
 # /usr/include/spawn.h
-
+no-std
 import
 	..cell: cell
 	..str: c-str

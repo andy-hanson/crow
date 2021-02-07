@@ -1,2 +1,3 @@
+no-std
 export
 	.bootstrap: char, c-str, str

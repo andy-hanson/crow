@@ -186,15 +186,14 @@ immutable(ParsedEverything) parseEverything(ModelAlloc, AstAlloc, PathAlloc, Sym
 	immutable PathAndStorageKind runtimeMainPath = runtimeMainPath(allPaths);
 	immutable(FileIndex) parsePath(immutable PathAndStorageKind path) {
 		immutable Opt!ParseStatus parseStatus = getAt_mut(statuses, path);
-		if (has(parseStatus)) {
-			return matchParseStatusImpure!(immutable FileIndex)(
+		return has(parseStatus)
+			? matchParseStatusImpure!(immutable FileIndex)(
 				force(parseStatus),
 				(ref immutable ParseStatus.Started) =>
 					unreachable!(immutable FileIndex),
 				(ref immutable ParseStatus.Done it) =>
-					it.fileIndex);
-		} else
-			return parseRecur!(ModelAlloc, AstAlloc, PathAlloc, SymAlloc)(
+					it.fileIndex)
+			: parseRecur!(ModelAlloc, AstAlloc, PathAlloc, SymAlloc)(
 				modelAlloc,
 				astAlloc,
 				allPaths,
@@ -335,7 +334,7 @@ immutable(FileIndex) parseRecur(ModelAlloc, AstAlloc, PathAlloc, SymAlloc, ReadO
 				immutable FileIndexAndNames[] resolvedImports = resolveImportsOrExports(importsAndExports.imports);
 				immutable FileIndexAndNames[] resolvedExports = resolveImportsOrExports(importsAndExports.exports);
 				return addFileIndex(
-					immutable AstAndResolvedImports(ast, path.storageKind, resolvedImports, resolvedExports),
+					immutable AstAndResolvedImports(ast, resolvedImports, resolvedExports),
 					importsAndExports.parseDiags,
 					parseResult.lineAndColumnGetter);
 			}
@@ -498,15 +497,11 @@ immutable(ImportAndExportPaths) resolveImportAndExportPaths(ModelAlloc, AstAlloc
 
 struct AstAndResolvedImports {
 	immutable Ptr!FileAst ast;
-	immutable StorageKind storageKind; // Needed to determine which are in 'include'
 	immutable FileIndexAndNames[] resolvedImports;
 	immutable FileIndexAndNames[] resolvedExports;
 
-	static immutable AstAndResolvedImports empty = immutable AstAndResolvedImports(
-		emptyFileAst,
-		StorageKind.global,
-		emptyArr!FileIndexAndNames,
-		emptyArr!FileIndexAndNames);
+	static immutable AstAndResolvedImports empty =
+		immutable AstAndResolvedImports(emptyFileAst, emptyArr!FileIndexAndNames, emptyArr!FileIndexAndNames);
 }
 
 struct FileIndexAndNames {
@@ -547,8 +542,8 @@ immutable(ModulesAndCommonTypes) getModules(ModelAlloc, SymAlloc)(
 				fullIndexDictOfArr!(FileIndex, Ptr!Module)(soFar);
 			immutable PathAndAst pathAndAst = immutable PathAndAst(immutable FileIndex(safeSizeTToU16(index)), ast.ast);
 			if (lateIsSet(commonTypes)) {
-				immutable bool isInInclude = ast.storageKind == StorageKind.global;
-				immutable FileIndexAndNames[] allImports = isInInclude
+				immutable bool noStd = ast.ast.noStd;
+				immutable FileIndexAndNames[] allImports = noStd
 					? ast.resolvedImports
 					: prepend(
 						modelAlloc,

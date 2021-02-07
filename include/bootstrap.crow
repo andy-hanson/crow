@@ -1,3 +1,5 @@
+no-std
+
 region basic types
 
 void builtin
@@ -93,6 +95,10 @@ comparison union
 
 <=> comparison(a ?t, b ?t) data<?t> noctx builtin
 
+###
+True if both sides are same value.
+TODO: This should return true for `nan == nan`
+###
 == bool(a ?t, b ?t) noctx data<?t>
 	match a <=> b
 	as less

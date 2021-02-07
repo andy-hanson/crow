@@ -1,3 +1,4 @@
+no-std
 import
 	..alloc: alloc-uninitialized, fill-ptr-range
 	..bool: and, bool, false, not, true

@@ -1,5 +1,5 @@
 # /usr/include/unistd.h
-
+no-std
 import
 	..misc: void
 	..number: int32, int64, nat

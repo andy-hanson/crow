@@ -1,5 +1,5 @@
 # /usr/include/pthread.h
-
+no-std
 import
 	..cell: cell
 	..fun: fun-ptr1

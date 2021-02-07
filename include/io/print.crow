@@ -1,3 +1,4 @@
+no-std
 import
 	..bootstrap: hard-assert, unsafe-to-int, todo
 	..collection.arr: data, size

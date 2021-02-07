@@ -1,2 +1,3 @@
+no-std
 export
 	.bootstrap: err, ok, result

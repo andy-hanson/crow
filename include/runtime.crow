@@ -1,3 +1,4 @@
+no-std
 import
 	.alloc: gc, get-gc-ctx, needs-gc?, return-gc-ctx, run-garbage-collection
 	.bool: ?, and, bool, false, not, or, true

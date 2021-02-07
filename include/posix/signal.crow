@@ -1,5 +1,6 @@
+no-std
 import
-..fun: fun-ptr1
+	..fun: fun-ptr1
 	..ptr: any-ptr
 	.posix: u-long
 	.sigset: sigset-t

@@ -24,7 +24,7 @@ import util.util : verify, verifyFail;
 	MutFiles files;
 	immutable NulTerminatedStr contentStr = nulTerminatedStrOfCStr(content);
 	addToMutDict(test.alloc, files, key, contentStr);
-	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(files));
+	const DictReadOnlyStorage storage = const DictReadOnlyStorage(ptrTrustMe_const(files));
 	immutable Ptr!Program program =
 		frontendCompile(test.alloc, test.alloc, test.allPaths, test.allSymbols, storage, path);
 	immutable Ptr!Module mainModule = last(program.allModules);

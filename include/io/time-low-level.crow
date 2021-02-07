@@ -1,3 +1,4 @@
+no-std
 import
 	..bootstrap: as, nat, todo, unsafe-to-nat, wrap-add, wrap-mul
 	..cell: cell, subscript

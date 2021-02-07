@@ -1,3 +1,4 @@
+no-std
 import
 	.bootstrap: get-ctx, log-ctx, zeroed
 	.collection.arr: ~

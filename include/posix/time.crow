@@ -1,3 +1,4 @@
+no-std
 import
 	..cell: cell
 	.c-types: c-int, s-long

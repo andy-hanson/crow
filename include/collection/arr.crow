@@ -1,3 +1,4 @@
+no-std
 import
 	..alloc: alloc-uninitialized, copy-data-from
 	..bool: bool, false, not, true

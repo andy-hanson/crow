@@ -1,3 +1,4 @@
+no-std
 import
 	..bool: and, bool, not
 	..compare: ==, <=>, comparison, greater, less

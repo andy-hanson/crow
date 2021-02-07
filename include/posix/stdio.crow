@@ -1,3 +1,4 @@
+no-std
 import
 	..misc: void
 	..str: c-str

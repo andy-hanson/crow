@@ -1,3 +1,4 @@
+no-std
 import
 	..collection.arr: ~
 	..number: +, -, ^, float, neg, square-root

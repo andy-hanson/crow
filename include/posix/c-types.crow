@@ -1,3 +1,4 @@
+no-std
 import
 	..bootstrap: int32, int64, nat32, nat64
 
