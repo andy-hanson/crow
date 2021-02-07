@@ -2936,13 +2936,12 @@ program(
 			[param(cbs, type(true, fut-state-callbacks)), param(value, type(false, result))]
 			expr-body(
 				seq(
-					call(drop, [call(subscript, [call(cb, [param-ref(cbs)]), param-ref(value)])])
+					call(subscript, [call(cb, [param-ref(cbs)]), param-ref(value)])
 					match(
 						call(next, [param-ref(cbs)])
 						[
 							case(none, call(void, []))
 							case(some(s), call(call-callbacks!, [call(value, [local-ref(s)]), param-ref(value)]))]))))
-		fun(false, drop, type(false, void), none, [param("_", type(false, void))], expr-body(call(void, [])))
 		fun(false, cb, type(false, fun-act1), none, [param(a, type(true, fut-state-callbacks))], field-get(0))
 		fun(false, next, type(false, opt), none, [param(a, type(true, fut-state-callbacks))], field-get(1))
 		fun(false, value, type(true, fut-state-callbacks), none, [param(a, type(false, some))], field-get(0))

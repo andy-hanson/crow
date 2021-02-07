@@ -41,13 +41,9 @@ resolve-or-reject! void(f fut ?t, result result<?t, exception>) unsafe
 		hard-unreachable
 
 .call-callbacks! void(cbs fut-state-callbacks ?t, value result<?t, exception>)
-	# the fun-ref will return a fut<void>, just ignore it
-	drop: cbs.cb[value]
+	cbs.cb[value]
 	match cbs.next
 	as none
 		void
 	as some s
 		s.value call-callbacks! value
-
-drop void(_ ?t) noctx
-	void
