@@ -1,13 +1,11 @@
 module(
 	path: 59
 	imports: [import(none, 44, none), import(some(range(8, 23)), 34, some([print]))]
-	exports: []
 	structs: [
 		struct(range: file-range(59, range(141, 173)), public?: true, name: my-record)
 		struct(range: file-range(59, range(173, 219)), public?: true, name: my-byref-record)
 		struct(range: file-range(59, range(219, 243)), public?: true, name: my-other-record)
 		struct(range: file-range(59, range(243, 287)), public?: true, name: my-union)]
-	specs: []
 	funs: [
 		fun(
 			public?: true

@@ -29,7 +29,7 @@ mixin function(name, returnType, params)
 	section.function
 		h4
 			div
-				span.fun-def= name
+				span.fun-def=name
 				= " "
 				span.struct-ref= returnType
 				|(
@@ -44,9 +44,30 @@ mixin function(name, returnType, params)
 				|)
 		block
 
-mixin type(name)
-	section.type
+mixin record(name, fields)
+	section.record
 		h4
 			div
-				span.struct-def= name
+				span.struct-def=name
+				= " record"
+				ul.fields
+					each field in fields
+						li
+							span.fun-def=field[0]
+							= " "
+							span.struct-ref=field[1]
+							if (field.length === 3)
+								= " "
+								span.keyword=field[2]
 		block
+
+mixin union(name, members)
+	section.union
+		h4
+			div
+				span.struct-def=name
+				= " union"
+				ul.members
+					each member in members
+						li
+							span.struct-ref=member

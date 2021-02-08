@@ -5,7 +5,7 @@ module util.repr;
 import util.collection.arr : at, empty, emptyArr, first, size;
 import util.collection.arrUtil : arrLiteral, map, mapWithIndex, tail;
 import util.collection.fullIndexDict : FullIndexDict;
-import util.collection.str : CStr;
+import util.collection.str : CStr, SafeCStr, strOfSafeCStr;
 import util.memory : allocate;
 import util.opt : force, has, mapOption, Opt;
 import util.ptr : Ptr, ptrTrustMe_mut;
@@ -111,6 +111,10 @@ immutable(Repr) reprNat(immutable size_t a) {
 
 immutable(Repr) reprStr(immutable string a) {
 	return immutable Repr(a);
+}
+
+immutable(Repr) reprStr(immutable SafeCStr a) {
+	return reprStr(strOfSafeCStr(a));
 }
 
 immutable(Repr) reprSym(immutable Sym a) {

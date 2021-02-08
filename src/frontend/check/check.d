@@ -166,7 +166,7 @@ import util.collection.exactSizeArrBuilder :
 import util.collection.multiDict : multiDictEach;
 import util.collection.mutArr : mustPop, MutArr, mutArrIsEmpty;
 import util.collection.mutDict : insertOrUpdate, moveToDict, MutDict;
-import util.collection.str : copyStr;
+import util.collection.str : copySafeCStr, copyStr, emptySafeCStr;
 import util.memory : allocate, nu, nuMut, overwriteMemory;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : castImmutable, Ptr, ptrEquals, ptrTrustMe_mut;
@@ -445,9 +445,10 @@ immutable(Ptr!StructDecl) bogusStructDecl(Alloc)(ref Alloc alloc, immutable size
 	Ptr!StructDecl res = nuMut!StructDecl(
 		alloc,
 		fileAndRange,
-		true,
+		emptySafeCStr,
 		shortSymAlphaLiteral("bogus"),
 		finishArr(alloc, typeParams),
+		true,
 		Purity.data,
 		false);
 	setBody(res, immutable StructBody(immutable StructBody.Bogus()));
@@ -613,7 +614,13 @@ immutable(SpecDecl[]) checkSpecDecls(Alloc)(
 		immutable ArrWithSize!TypeParam typeParams = checkTypeParams(alloc, ctx, ast.typeParams);
 		immutable SpecBody body_ =
 			checkSpecBody(alloc, ctx, commonTypes, typeParams, structsAndAliasesDict, ast.name, ast.body_);
-		return immutable SpecDecl(rangeInFile(ctx, ast.range), ast.isPublic, ast.name, typeParams, body_);
+		return immutable SpecDecl(
+			rangeInFile(ctx, ast.range),
+			copySafeCStr(alloc, ast.docComment),
+			ast.isPublic,
+			ast.name,
+			typeParams,
+			body_);
 	});
 }
 
@@ -625,6 +632,7 @@ StructAlias[] checkStructAliasesInitial(Alloc)(
 	return mapToMut!StructAlias(alloc, asts, (ref immutable StructAliasAst ast) =>
 		StructAlias(
 			rangeInFile(ctx, ast.range),
+			copySafeCStr(alloc, ast.docComment),
 			ast.isPublic,
 			ast.name,
 			checkTypeParams(alloc, ctx, ast.typeParams)));
@@ -692,9 +700,10 @@ StructDecl[] checkStructsInitial(Alloc)(
 		immutable PurityAndForced p = getPurityFromAst(alloc, ctx, ast);
 		return StructDecl(
 			rangeInFile(ctx, ast.range),
-			ast.isPublic,
+			copySafeCStr(alloc, ast.docComment),
 			ast.name,
 			checkTypeParams(alloc, ctx, ast.typeParams),
+			ast.isPublic,
 			p.purity,
 			p.forced);
 	});
@@ -1024,8 +1033,11 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 			structsAndAliasesDict,
 			specsDict,
 			immutable TypeParamsScope(toArr(typeParams)));
-		immutable FunFlags flags = FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted, false, false);
-		exactSizeArrBuilderAdd(funsBuilder, FunDecl(funAst.isPublic, flags, sig, typeParams, specUses));
+		immutable FunFlags flags =
+			immutable FunFlags(funAst.noCtx, funAst.summon, funAst.unsafe, funAst.trusted, false, false, false);
+		exactSizeArrBuilderAdd(
+			funsBuilder,
+			FunDecl(copySafeCStr(alloc, funAst.docComment), funAst.isPublic, flags, sig, typeParams, specUses));
 	}
 	foreach (immutable Ptr!StructDecl struct_; ptrsRange(structs))
 		addFunsForStruct(alloc, allSymbols, ctx, funsBuilder, commonTypes, struct_);
@@ -1150,6 +1162,7 @@ void addFunsForStruct(Alloc, SymAlloc)(
 				returnType,
 				ctorParams));
 			return FunDecl(
+				emptySafeCStr,
 				struct_.isPublic,
 				flags.withOkIfUnused(),
 				ctorSig,
@@ -1159,15 +1172,15 @@ void addFunsForStruct(Alloc, SymAlloc)(
 		}
 
 		if (recordIsAlwaysByVal(record)) {
-			exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.justNoCtx));
+			exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.generatedNoCtx));
 		} else {
-			exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.justPreferred));
+			exactSizeArrBuilderAdd(funsBuilder, constructor(structType, FunFlags.generatedPreferred));
 			immutable Type byValType = immutable Type(
 				instantiateStructNeverDelay(
 					alloc,
 					ctx.programState,
 					immutable StructDeclAndArgs(commonTypes.byVal, arrLiteral!Type(alloc, [structType]))));
-			exactSizeArrBuilderAdd(funsBuilder, constructor(byValType, FunFlags.justNoCtx));
+			exactSizeArrBuilderAdd(funsBuilder, constructor(byValType, FunFlags.generatedNoCtx));
 		}
 
 		foreach (immutable ubyte fieldIndex; 0 .. safeSizeTToU8(size(record.fields))) {
@@ -1179,8 +1192,9 @@ void addFunsForStruct(Alloc, SymAlloc)(
 				arrLiteral!Param(alloc, [
 					immutable Param(field.range, some(shortSymAlphaLiteral("a")), structType, 0)])));
 			exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+				emptySafeCStr,
 				struct_.isPublic,
-				FunFlags.justNoCtx,
+				FunFlags.generatedNoCtx,
 				getterSig,
 				typeParams,
 				emptyArrWithSize!(Ptr!SpecInst),
@@ -1195,8 +1209,9 @@ void addFunsForStruct(Alloc, SymAlloc)(
 						immutable Param(field.range, some(shortSymAlphaLiteral("a")), structType, 0),
 						immutable Param(field.range, some(field.name), field.type, 1)])));
 				exactSizeArrBuilderAdd(funsBuilder, FunDecl(
+					emptySafeCStr,
 					struct_.isPublic,
-					FunFlags.justNoCtx,
+					FunFlags.generatedNoCtx,
 					setterSig,
 					typeParams,
 					emptyArrWithSize!(Ptr!SpecInst),
@@ -1277,6 +1292,7 @@ immutable(Ptr!Module) checkWorkerAfterCommonTypes(Alloc, SymAlloc)(
 	return nu!Module(
 		alloc,
 		fileIndex,
+		copySafeCStr(alloc, ast.docComment),
 		nu!ModuleImportsExports(alloc, imports, reExports),
 		nu!ModuleArrs(alloc, structsImmutable, specs, funsAndDict.funs, funsAndDict.tests),
 		getAllExportedNames(

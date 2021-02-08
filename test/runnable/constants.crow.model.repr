@@ -1,9 +1,7 @@
 module(
 	path: 59
 	imports: [import(none, 44, none), import(some(range(8, 23)), 34, some([print]))]
-	exports: []
 	structs: [struct(range: file-range(59, range(127, 159)), public?: true, name: my-record)]
-	specs: []
 	funs: [
 		fun(
 			public?: true

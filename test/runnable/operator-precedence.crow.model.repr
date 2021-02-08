@@ -1,9 +1,6 @@
 module(
 	path: 59
 	imports: [import(none, 44, none), import(some(range(8, 23)), 34, some([print]))]
-	exports: []
-	structs: []
-	specs: []
 	funs: [
 		fun(
 			public?: true

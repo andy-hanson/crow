@@ -135,7 +135,7 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 				showDiagOptions,
 				it.kind,
 				it.format,
-				it.programDirAndMain.mainPath);
+				getMain(includeDir, it.programDirAndMain));
 			if (!empty(printed.diagnostics)) printErr(printed.diagnostics);
 			if (!empty(printed.result)) print(printed.result);
 			return empty(printed.diagnostics) ? 0 : 1;
@@ -169,7 +169,7 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 						storage,
 						extern_,
 						showDiagOptions,
-						run.programDirAndMain.mainPath,
+						getMain(includeDir, run.programDirAndMain),
 						run.programArgs);
 				}),
 		(ref immutable Command.Test it) =>
@@ -221,7 +221,7 @@ immutable(int) runDocument(Alloc, PathAlloc)(
 		includeDir,
 		programDirAndMain.programDir);
 	immutable DocumentResult result =
-		compileAndDocument(alloc, allPaths, storage, showDiagOptions, programDirAndMain.mainPath);
+		compileAndDocument(alloc, allPaths, storage, showDiagOptions, getMain(includeDir, programDirAndMain));
 	if (empty(result.diagnostics)) {
 		if (has(out_))
 			writeFile(alloc, allPaths, force(out_), result.document);
@@ -292,7 +292,7 @@ immutable(int) buildToCAndCompile(Alloc, PathAlloc)(
 		includeDir,
 		programDirAndMain.programDir);
 	immutable BuildToCResult result =
-		buildToC(alloc, allPaths, storage, showDiagOptions, programDirAndMain.mainPath);
+		buildToC(alloc, allPaths, storage, showDiagOptions, getMain(includeDir, programDirAndMain));
 	if (empty(result.diagnostics)) {
 		writeFile(alloc, allPaths, cPath, result.cSource);
 		compileC(alloc, allPaths, cPath, exePath, result.allExternLibraryNames);
@@ -301,6 +301,12 @@ immutable(int) buildToCAndCompile(Alloc, PathAlloc)(
 		printErr(result.diagnostics);
 		return 1;
 	}
+}
+
+immutable(PathAndStorageKind) getMain(immutable string includeDir, immutable ProgramDirAndMain programDirAndMain) {
+	return immutable PathAndStorageKind(
+		programDirAndMain.mainPath,
+		strEq(includeDir, programDirAndMain.programDir) ? StorageKind.global : StorageKind.local);
 }
 
 immutable(int) help(ref immutable Command.Help a) {

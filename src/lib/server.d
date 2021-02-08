@@ -114,21 +114,19 @@ immutable(string) getHover(Debug, Alloc, ServerAlloc)(
 	immutable string path,
 	immutable Pos pos,
 ) {
+	immutable PathAndStorageKind pk = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
-	immutable Ptr!Program program =
-		frontendCompile(alloc, alloc, server.allPaths, server.allSymbols, storage, toPath(server, path));
-	return getHoverFromProgram(alloc, server, storageKind, path, program, pos);
+	immutable Ptr!Program program = frontendCompile(alloc, alloc, server.allPaths, server.allSymbols, storage, pk);
+	return getHoverFromProgram(alloc, server, pk, program, pos);
 }
 
 private pure immutable(string) getHoverFromProgram(Alloc, ServerAlloc)(
 	ref Alloc alloc,
 	ref Server!ServerAlloc server,
-	immutable StorageKind storageKind,
-	immutable string path,
+	ref immutable PathAndStorageKind pk,
 	ref immutable Program program,
 	immutable Pos pos,
 ) {
-	immutable PathAndStorageKind pk = immutable PathAndStorageKind(toPath(server, path), storageKind);
 	immutable Opt!FileIndex fileIndex = getFileIndex(program.filesInfo.filePaths, pk);
 	if (has(fileIndex)) {
 		immutable Opt!Position position = getPosition(at(program.allModules, force(fileIndex).index), pos);
@@ -160,14 +158,14 @@ immutable(RunResult) run(Debug, Alloc, ServerAlloc)(
 	ref Server!ServerAlloc server,
 	immutable string mainPathStr,
 ) {
-	immutable Path mainPath = toPath(server, mainPathStr);
+	immutable PathAndStorageKind main = immutable PathAndStorageKind(toPath(server, mainPathStr), StorageKind.local);
 	// TODO: use an arena so anything allocated during interpretation is cleaned up.
 	// Or just have interpreter free things.
 	immutable string[] programArgs = emptyArr!string;
 	FakeExtern!Alloc extern_ = FakeExtern!Alloc(ptrTrustMe_mut(alloc));
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
 	immutable int err = buildAndInterpret(
-		dbg, alloc, server.allPaths, server.allSymbols, storage, extern_, showDiagOptions, mainPath, programArgs);
+		dbg, alloc, server.allPaths, server.allSymbols, storage, extern_, showDiagOptions, main, programArgs);
 	return RunResult(err, extern_.moveStdout(), extern_.moveStderr());
 }
 

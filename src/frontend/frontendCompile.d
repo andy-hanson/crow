@@ -49,9 +49,8 @@ immutable(Ptr!Program) frontendCompile(ModelAlloc, AstsAlloc, PathAlloc, SymAllo
 	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref Storage storage,
-	immutable Path mainPath,
+	immutable PathAndStorageKind main,
 ) {
-	immutable PathAndStorageKind main = PathAndStorageKind(mainPath, StorageKind.local);
 	ArrBuilder!Diagnostic diagsBuilder;
 	immutable ParsedEverything parsed =
 		parseEverything(modelAlloc, allPaths, allSymbols, diagsBuilder, storage, main, astsAlloc);
@@ -80,15 +79,13 @@ immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, PathAlloc, SymAlloc, Read
 	ref AllPaths!PathAlloc allPaths,
 	ref AllSymbols!SymAlloc allSymbols,
 	ref ReadOnlyStorage storage,
-	immutable Path path,
+	immutable PathAndStorageKind path,
 ) {
 	// In this case model alloc and AST alloc are the same
-	immutable PathAndStorageKind pk = immutable PathAndStorageKind(path, StorageKind.local);
 	return storage.withFile!(immutable FileAstAndDiagnostics)(
-		pk,
+		path,
 		crowExtension,
 		(ref immutable Opt!NulTerminatedStr opFileContent) {
-			immutable PathAndStorageKind pathAndStorageKind = immutable PathAndStorageKind(path, StorageKind.local);
 			immutable FileAstAndArrDiagnosticAndLineAndColumnGetter res = parseSingle!(Alloc, Alloc, SymAlloc)(
 				alloc,
 				alloc,
@@ -100,7 +97,7 @@ immutable(FileAstAndDiagnostics) parseSingleAst(Alloc, PathAlloc, SymAlloc, Read
 				fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(
 					arrLiteral!LineAndColumnGetter(alloc, [res.lineAndColumnGetter]));
 			immutable FilePaths filePaths = fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(
-				arrLiteral!PathAndStorageKind(alloc, [pathAndStorageKind]));
+				arrLiteral!PathAndStorageKind(alloc, [path]));
 			return immutable FileAstAndDiagnostics(
 				res.ast,
 				immutable FilesInfo(filePaths, allocate(alloc, storage.absolutePathsGetter()), lc),

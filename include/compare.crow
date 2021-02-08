@@ -1,3 +1,20 @@
+###
+Functions for comparing things
+
+All `data` values have an ordering.
+(For non-`data`, you'll have to write your own comparison functions.
+They must have names specific to the type like `ptr-less?`.)
+
+For records, fields are compared in order.
+
+For unions, a member type listed earlier is considered less than a member type listed later.
+
+Restricting comparison to `data` means that it is ensured to be safe:
+
+* If `a == b`, `a.f == b.f`.
+* If `a < b` and `b < c`, `a < c`.
+###
+
 no-std
 import
 	.bool: ?, bool, false, not, true
@@ -35,8 +52,10 @@ to-str str(a comparison)
 >= bool(a ?t, b ?t) noctx data<?t>
 	a < b not
 
+# Returns the lesser argument
 min ?t(a ?t, b ?t) noctx data<?t>
 	a < b ? a, b
 
+# Returns the greater argument
 max ?t(a ?t, b ?t) noctx data<?t>
 	a < b ? b, a

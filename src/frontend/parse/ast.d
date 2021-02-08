@@ -5,6 +5,7 @@ module frontend.parse.ast;
 import util.collection.arr : ArrWithSize, empty, emptyArr, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : arrLiteral;
+import util.collection.str : emptySafeCStr, SafeCStr, safeCStrIsEmpty;
 import util.opt : force, has, none, Opt, OptPtr, some, toOpt;
 import util.path : AllPaths, Path, pathToStr;
 import util.ptr : Ptr;
@@ -465,7 +466,7 @@ immutable(RangeWithinFile) rangeOfPuritySpecifier(ref immutable PuritySpecifierA
 
 struct StructAliasAst {
 	immutable RangeWithinFile range;
-	immutable string docComment;
+	immutable SafeCStr docComment;
 	immutable bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParamAst typeParams;
@@ -581,7 +582,7 @@ struct StructDeclAst {
 	}
 
 	immutable RangeWithinFile range;
-	immutable string docComment;
+	immutable SafeCStr docComment;
 	immutable bool isPublic;
 	immutable Sym name; // start is range.start
 	immutable ArrWithSize!TypeParamAst typeParams;
@@ -653,7 +654,7 @@ struct SpecBodyAst {
 
 struct SpecDeclAst {
 	immutable RangeWithinFile range;
-	immutable string docComment;
+	immutable SafeCStr docComment;
 	immutable bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParamAst typeParams;
@@ -707,7 +708,7 @@ struct FunBodyAst {
 
 struct FunDeclAst {
 	immutable RangeWithinFile range;
-	immutable string docComment;
+	immutable SafeCStr docComment;
 	immutable ArrWithSize!TypeParamAst typeParams; // If this is empty, infer type params
 	immutable Ptr!SigAst sig; // Ptr to keep this struct from getting too big
 	immutable SpecUseAst[] specUses;
@@ -751,7 +752,7 @@ struct FileAstPart1 {
 }
 
 struct FileAst {
-	immutable string docComment;
+	immutable SafeCStr docComment;
 	immutable bool noStd;
 	immutable Ptr!FileAstPart0 part0;
 	immutable Ptr!FileAstPart1 part1;
@@ -764,7 +765,7 @@ private immutable FileAstPart0 emptyFileAstPart0 =
 private immutable FileAstPart1 emptyFileAstPart1 =
 	immutable FileAstPart1(emptyArr!StructAliasAst, emptyArr!StructDeclAst, emptyArr!FunDeclAst, emptyArr!TestAst);
 private immutable FileAst emptyFileAstStorage = immutable FileAst(
-	"",
+	emptySafeCStr,
 	true,
 	immutable Ptr!FileAstPart0(&emptyFileAstPart0),
 	immutable Ptr!FileAstPart1(&emptyFileAstPart1));
@@ -939,7 +940,7 @@ immutable(Repr) reprStructDeclAst(Alloc)(ref Alloc alloc, ref immutable StructDe
 
 immutable(Repr) reprFunDeclAst(Alloc)(ref Alloc alloc, ref immutable FunDeclAst a) {
 	ArrBuilder!NameAndRepr fields;
-	if (!empty(a.docComment))
+	if (!safeCStrIsEmpty(a.docComment))
 		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr("public?", reprBool(a.isPublic)));
 	if (!empty(toArr(a.typeParams)))

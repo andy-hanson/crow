@@ -8,9 +8,7 @@ module(
 			some([cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used]))
 		import(some(range(120, 135)), 34, some([print]))
 		import(some(range(137, 172)), 5, some([-, as-any-ptr, by-val, size-of]))]
-	exports: []
 	structs: [struct(range: file-range(59, range(815, 846)), public?: true, name: r)]
-	specs: []
 	funs: [
 		fun(
 			public?: true

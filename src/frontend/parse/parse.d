@@ -59,7 +59,7 @@ import frontend.parse.parseType : parseType, parseTypeInstStruct, takeTypeArgsEn
 import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.collection.arr : ArrWithSize, emptyArr, emptyArrWithSize;
 import util.collection.arrBuilder : add, ArrBuilder, ArrWithSizeBuilder, arrWithSizeBuilderIsEmpty, finishArr;
-import util.collection.str : CStr, NulTerminatedStr;
+import util.collection.str : CStr, NulTerminatedStr, SafeCStr;
 import util.memory : allocate, nu;
 import util.opt : force, has, mapOption, none, nonePtr, Opt, optOr, some, somePtr;
 import util.path : AllPaths, childPath, Path, rootPath;
@@ -683,7 +683,7 @@ struct FunDeclStuff {
 immutable(FunDeclAst) parseFun(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable string docComment,
+	immutable SafeCStr docComment,
 	immutable bool isPublic,
 	immutable Pos start,
 	immutable Sym name,
@@ -732,7 +732,7 @@ void parseSpecOrStructOrFunOrTest(Alloc, SymAlloc)(
 	ref ArrBuilder!StructDeclAst structs,
 	ref ArrBuilder!FunDeclAst funs,
 	ref ArrBuilder!TestAst tests,
-	immutable string docComment,
+	immutable SafeCStr docComment,
 ) {
 	immutable Pos start = curPos(lexer);
 	immutable bool isPublic = !tryTake(lexer, '.');
@@ -894,7 +894,7 @@ immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
 	ref AllPaths!PathAlloc allPaths,
 	ref Lexer!SymAlloc lexer,
 ) {
-	immutable string moduleDocComment = skipBlankLinesAndGetDocComment(alloc, lexer);
+	immutable SafeCStr moduleDocComment = skipBlankLinesAndGetDocComment(alloc, lexer);
 	immutable bool noStd = tryTake(lexer, "no-std\n");
 	immutable Opt!ImportsOrExportsAst imports = parseImportsOrExports(alloc, allPaths, lexer, "import\n");
 	immutable Opt!ImportsOrExportsAst exports = parseImportsOrExports(alloc, allPaths, lexer, "export\n");
@@ -906,7 +906,7 @@ immutable(Ptr!FileAst) parseFileInner(Alloc, PathAlloc, SymAlloc)(
 	ArrBuilder!TestAst tests;
 
 	for (;;) {
-		immutable string docComment = skipBlankLinesAndGetDocComment(alloc, lexer);
+		immutable SafeCStr docComment = skipBlankLinesAndGetDocComment(alloc, lexer);
 		if (tryTake(lexer, '\0'))
 			break;
 		parseSpecOrStructOrFunOrTest(alloc, lexer, specs, structAliases, structs, funs, tests, docComment);

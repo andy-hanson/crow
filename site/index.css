@@ -240,3 +240,10 @@ section > h4 > div {
 	content: none;
 }
 
+.record .fields {
+	margin-left: 1em;
+}
+
+.union .members {
+	margin-left: 1em;
+}

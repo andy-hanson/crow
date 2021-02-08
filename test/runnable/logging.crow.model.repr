@@ -3,9 +3,6 @@ module(
 	imports: [
 		import(none, 44, none)
 		import(some(range(8, 80)), 35, some([get-log-handler, info, log, log-handler, warn, with-log-handler]))]
-	exports: []
-	structs: []
-	specs: []
 	funs: [
 		fun(
 			public?: true

@@ -43,6 +43,7 @@ import model.reprConstant : reprOfConstant;
 import util.collection.arr : empty;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : map;
+import util.collection.str : safeCStrIsEmpty;
 import util.opt : force;
 import util.ptr : Ptr, ptrTrustMe;
 import util.repr :
@@ -63,18 +64,26 @@ import util.util : todo;
 
 immutable(Repr) reprModule(Alloc)(ref Alloc alloc, ref immutable Module a) {
 	Ctx ctx = Ctx(ptrTrustMe(a));
-	return reprNamedRecord(alloc, "module", [
-		nameAndRepr("path", reprNat(a.fileIndex.index)),
-		nameAndRepr("imports", reprArr(alloc, a.imports, (ref immutable ModuleAndNames m) =>
-			reprModuleAndNames(alloc, m))),
-		nameAndRepr("exports", reprArr(alloc, a.exports, (ref immutable ModuleAndNames m) =>
-			reprModuleAndNames(alloc, m))),
-		nameAndRepr("structs", reprArr(alloc, a.structs, (ref immutable StructDecl s) =>
-			reprStructDecl(alloc, ctx, s))),
-		nameAndRepr("specs", reprArr(alloc, a.specs, (ref immutable SpecDecl s) =>
-			reprSpecDecl(alloc, ctx, s))),
-		nameAndRepr("funs", reprArr(alloc, a.funs, (ref immutable FunDecl f) =>
-			reprFunDecl(alloc, ctx, f)))]);
+	ArrBuilder!NameAndRepr fields;
+	add(alloc, fields, nameAndRepr("path", reprNat(a.fileIndex.index)));
+	if (!safeCStrIsEmpty(a.docComment))
+		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
+	if (!empty(a.imports))
+		add(alloc, fields, nameAndRepr("imports", reprArr(alloc, a.imports, (ref immutable ModuleAndNames m) =>
+			reprModuleAndNames(alloc, m))));
+	if (!empty(a.exports))
+		add(alloc, fields, nameAndRepr("exports", reprArr(alloc, a.exports, (ref immutable ModuleAndNames m) =>
+			reprModuleAndNames(alloc, m))));
+	if (!empty(a.structs))
+		add(alloc, fields, nameAndRepr("structs", reprArr(alloc, a.structs, (ref immutable StructDecl s) =>
+			reprStructDecl(alloc, ctx, s))));
+	if (!empty(a.specs))
+		add(alloc, fields, nameAndRepr("specs", reprArr(alloc, a.specs, (ref immutable SpecDecl s) =>
+			reprSpecDecl(alloc, ctx, s))));
+	if (!empty(a.funs))
+		add(alloc, fields, nameAndRepr("funs", reprArr(alloc, a.funs, (ref immutable FunDecl f) =>
+			reprFunDecl(alloc, ctx, f))));
+	return reprNamedRecord("module", finishArr(alloc, fields));
 }
 
 private:
@@ -96,6 +105,8 @@ struct Ctx {
 immutable(Repr) reprStructDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable StructDecl a) {
 	ArrBuilder!NameAndRepr fields;
 	add(alloc, fields, nameAndRepr("range", reprFileAndRange(alloc, a.range)));
+	if (!safeCStrIsEmpty(a.docComment))
+		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr("public?", reprBool(a.isPublic)));
 	add(alloc, fields, nameAndRepr("name", reprSym(a.name)));
 	if (!empty(typeParams(a)))
@@ -114,6 +125,8 @@ immutable(Repr) reprSpecDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable 
 
 immutable(Repr) reprFunDecl(Alloc)(ref Alloc alloc, ref Ctx ctx, ref immutable FunDecl a) {
 	ArrBuilder!NameAndRepr fields;
+	if (!safeCStrIsEmpty(a.docComment))
+		add(alloc, fields, nameAndRepr("doc", reprStr(a.docComment)));
 	add(alloc, fields, nameAndRepr("public?", reprBool(a.isPublic)));
 	if (noCtx(a))
 		add(alloc, fields, nameAndRepr("no-ctx", reprBool(true)));

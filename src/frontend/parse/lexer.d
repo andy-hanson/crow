@@ -7,7 +7,14 @@ import model.parseDiag : ParseDiag, ParseDiagnostic;
 import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail;
-import util.collection.str : copyStr, CStr, NulTerminatedStr, strOfNulTerminatedStr;
+import util.collection.str :
+	copyStr,
+	copyToSafeCStr,
+	CStr,
+	emptySafeCStr,
+	NulTerminatedStr,
+	SafeCStr,
+	strOfNulTerminatedStr;
 import util.opt : force, has, Opt, optOr;
 import util.ptr : Ptr;
 import util.sourceRange : Pos, RangeWithinFile;
@@ -142,7 +149,7 @@ enum NewlineOrIndent {
 immutable(NewlineOrIndent) takeNewlineOrIndent_topLevel(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	if (!takeOrAddDiagExpected(alloc, lexer, '\n', ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);
-	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer, 0);
+	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(alloc, lexer, 0);
 	return matchIndentDelta!(immutable NewlineOrIndent)(
 		delta,
 		(ref immutable IndentDelta.DedentOrSame it) {
@@ -168,7 +175,7 @@ immutable(bool) takeIndentOrDiagTopLevel(Alloc, SymAlloc)(ref Alloc alloc, ref L
 
 immutable(bool) takeIndentOrDiagTopLevelAfterNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable Pos start = curPos(lexer);
-	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer, 0);
+	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(alloc, lexer, 0);
 	return matchIndentDelta!(immutable bool)(
 		delta,
 		(ref immutable IndentDelta.DedentOrSame dedent) {
@@ -219,11 +226,11 @@ private @trusted immutable(IndentDelta) takeNewlineAndReturnIndentDelta(Alloc, S
 	}
 	verify(*lexer.ptr == '\n');
 	lexer.ptr++;
-	return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
+	return skipBlankLinesAndGetIndentDelta(alloc, lexer, curIndent);
 }
 
 void takeDedentFromIndent1(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer, 1);
+	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(alloc, lexer, 1);
 	immutable bool success = matchIndentDelta!(immutable bool)(
 		delta,
 		(ref immutable IndentDelta.DedentOrSame it) =>
@@ -241,7 +248,7 @@ immutable(NewlineOrIndent) tryTakeIndentAfterNewline_topLevel(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 ) {
-	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer, 0);
+	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(alloc, lexer, 0);
 	return matchIndentDelta!(immutable NewlineOrIndent)(
 		delta,
 		(ref immutable IndentDelta.DedentOrSame it) {
@@ -260,7 +267,7 @@ immutable(uint) takeNewlineOrDedentAmount(Alloc, SymAlloc)(
 	// Must be at the end of a line
 	if (!takeOrAddDiagExpected(alloc, lexer, '\n', ParseDiag.Expected.Kind.endOfLine))
 		skipRestOfLineAndNewline(lexer);
-	immutable IndentDelta delta = skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
+	immutable IndentDelta delta = skipBlankLinesAndGetIndentDelta(alloc, lexer, curIndent);
 	return matchIndentDelta!(immutable uint)(
 		delta,
 		(ref immutable IndentDelta.DedentOrSame it) {
@@ -349,11 +356,11 @@ immutable(string) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref A
 
 private:
 
-@trusted immutable(string) takeRestOfLineAndNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+@trusted immutable(SafeCStr) takeRestOfLineAndNewline(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable char* begin = lexer.ptr;
 	skipRestOfLineAndNewline(lexer);
 	immutable char* end = lexer.ptr - 1;
-	return copyStr(alloc, arrOfRange(begin, end));
+	return copyToSafeCStr(alloc, arrOfRange(begin, end));
 }
 
 @trusted void skipRestOfLineAndNewline(SymAlloc)(ref Lexer!SymAlloc lexer) {
@@ -676,24 +683,24 @@ struct IndentDelta {
 	}
 }
 
-public immutable(string) skipBlankLinesAndGetDocComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
-	return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, "");
+public immutable(SafeCStr) skipBlankLinesAndGetDocComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+	return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, emptySafeCStr);
 }
 
-immutable(string) skipBlankLinesAndGetDocCommentRecur(Alloc, SymAlloc)(
+immutable(SafeCStr) skipBlankLinesAndGetDocCommentRecur(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
-	immutable string comment,
+	immutable SafeCStr comment,
 ) {
 	if (tryTake(lexer, '\n'))
-		return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, "");
+		return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, emptySafeCStr);
 	else if (tryTake(lexer, "###\n"))
 		return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, takeBlockComment(alloc, lexer));
 	else if (tryTake(lexer, '#'))
 		return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, takeRestOfLineAndNewline(alloc, lexer));
 	else if (tryTake(lexer, "region ")) {
 		skipRestOfLineAndNewline(lexer);
-		return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, "");
+		return skipBlankLinesAndGetDocCommentRecur(alloc, lexer, emptySafeCStr);
 	} else
 		return comment;
 }
@@ -701,41 +708,46 @@ immutable(string) skipBlankLinesAndGetDocCommentRecur(Alloc, SymAlloc)(
 // Returns the change in indent (and updates the indent)
 // Note: does nothing if not looking at a newline!
 // NOTE: never returns a value > 1 as double-indent is always illegal.
-immutable(IndentDelta) skipLinesAndGetIndentDelta(Alloc, SymAlloc)(
+immutable(IndentDelta) skipBlankLinesAndGetIndentDelta(Alloc, SymAlloc)(
 	ref Alloc alloc,
 	ref Lexer!SymAlloc lexer,
 	immutable uint curIndent,
 ) {
 	// comment / region counts as a blank line no matter its indent level.
 	immutable uint newIndent = takeIndentAmount(alloc, lexer);
-
 	if (tryTake(lexer, '\n'))
-		return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
-	else if (tryTake(lexer, "###\n")) {
-		skipBlockComment(alloc, lexer);
-		return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
-	} else if (tryTake(lexer, '#')) {
-		skipRestOfLineAndNewline(lexer);
-		return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
-	} else {
-		// If we got here, we're looking at a non-empty line (or EOF)
-		immutable int delta = safeI32FromU32(newIndent) - safeI32FromU32(curIndent);
-		if (delta > 1) {
-			addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.IndentTooMuch()));
+		// Ignore lines that are just whitespace
+		return skipBlankLinesAndGetIndentDelta(alloc, lexer, curIndent);
+
+	// For indent == 0, we'll try taking any comments as doc comments
+	if (newIndent != 0) {
+		// Comments can mean a dedent
+		if (tryTake(lexer, "###\n")) {
+			skipBlockComment(alloc, lexer);
+			return skipBlankLinesAndGetIndentDelta(alloc, lexer, curIndent);
+		} else if (tryTake(lexer, '#')) {
 			skipRestOfLineAndNewline(lexer);
-			return skipLinesAndGetIndentDelta(alloc, lexer, curIndent);
-		} else
-			return delta == 1
-				? immutable IndentDelta(immutable IndentDelta.Indent())
-				: immutable IndentDelta(immutable IndentDelta.DedentOrSame(-delta));
+			return skipBlankLinesAndGetIndentDelta(alloc, lexer, curIndent);
+		}
 	}
+
+	// If we got here, we're looking at a non-empty line (or EOF)
+	immutable int delta = safeI32FromU32(newIndent) - safeI32FromU32(curIndent);
+	if (delta > 1) {
+		addDiagAtChar(alloc, lexer, immutable ParseDiag(immutable ParseDiag.IndentTooMuch()));
+		skipRestOfLineAndNewline(lexer);
+		return skipBlankLinesAndGetIndentDelta(alloc, lexer, curIndent);
+	} else
+		return delta == 1
+			? immutable IndentDelta(immutable IndentDelta.Indent())
+			: immutable IndentDelta(immutable IndentDelta.DedentOrSame(-delta));
 }
 
-@trusted immutable(string) takeBlockComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
+@trusted immutable(SafeCStr) takeBlockComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {
 	immutable char* begin = lexer.ptr;
 	skipBlockComment(alloc, lexer);
-	immutable char* end = lexer.ptr - "###\n".length;
-	return copyStr(alloc, arrOfRange(begin, end));
+	immutable char* end = lexer.ptr - "\n###\n".length;
+	return copyToSafeCStr(alloc, arrOfRange(begin, end));
 }
 
 void skipBlockComment(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lexer) {

@@ -9,6 +9,7 @@ import util.collection.arrUtil : compareArr;
 import util.collection.dict : Dict;
 import util.collection.fullIndexDict : FullIndexDict;
 import util.collection.mutArr : MutArr;
+import util.collection.str : SafeCStr;
 import util.comparison : compareOr, Comparison, ptrEquals;
 import util.late : Late, lateGet, lateIsSet, lateSet;
 import util.lineAndColumnGetter : LineAndColumnGetter;
@@ -56,7 +57,7 @@ immutable(AbsolutePath) getAbsolutePath(Alloc)(
 
 alias LineAndColumnGetters = immutable FullIndexDict!(FileIndex, LineAndColumnGetter);
 
-enum Purity {
+enum Purity : ubyte {
 	data,
 	sendable,
 	mut,
@@ -345,6 +346,7 @@ struct StructAlias {
 	@safe @nogc pure nothrow:
 	// TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
+	immutable SafeCStr docComment;
 	immutable bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParam typeParams_;
@@ -368,9 +370,10 @@ void setTarget(ref StructAlias a, immutable Opt!(Ptr!StructInst) value) {
 struct StructDecl {
 	// TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
-	immutable bool isPublic;
+	immutable SafeCStr docComment;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParam typeParams_;
+	immutable bool isPublic;
 	// Note: purity on the decl does not take type args into account
 	immutable Purity purity;
 	immutable bool purityIsForced;
@@ -508,6 +511,7 @@ immutable(size_t) nSigs(ref immutable SpecBody a) {
 struct SpecDecl {
 	// TODO: use NameAndRange (more compact)
 	immutable FileAndRange range;
+	immutable SafeCStr docComment;
 	immutable bool isPublic;
 	immutable Sym name;
 	immutable ArrWithSize!TypeParam typeParams_;
@@ -635,31 +639,34 @@ struct FunFlags {
 	immutable bool summon;
 	immutable bool unsafe;
 	immutable bool trusted;
+	immutable bool generated;
 	immutable bool preferred;
 	immutable bool okIfUnused;
 
 	//TODO:NOT INSTANCE
 	immutable(FunFlags) withOkIfUnused() immutable {
-		return immutable FunFlags(noCtx, summon, unsafe, trusted, preferred, true);
+		return immutable FunFlags(noCtx, summon, unsafe, trusted, generated, preferred, true);
 	}
 
-	static immutable FunFlags none = immutable FunFlags(false, false, false, false, false, false);
-	static immutable FunFlags justNoCtx = immutable FunFlags(true, false, false, false, false, false);
-	static immutable FunFlags justPreferred = immutable FunFlags(false, false, false, false, true, false);
+	static immutable FunFlags none = immutable FunFlags(false, false, false, false, false, false, false);
+	static immutable FunFlags generatedNoCtx = immutable FunFlags(true, false, false, false, true, false, false);
+	static immutable FunFlags generatedPreferred = immutable FunFlags(false, false, false, false, true, true, false);
 }
-static assert(FunFlags.sizeof == 6);
+static assert(FunFlags.sizeof == 7);
 
 struct FunDecl {
 	@safe @nogc pure nothrow:
 
 	@disable this(ref const FunDecl);
 	this(
+		immutable SafeCStr dc,
 		immutable bool ip,
 		immutable FunFlags f,
 		immutable Ptr!Sig s,
 		immutable ArrWithSize!TypeParam tps,
 		immutable ArrWithSize!(Ptr!SpecInst) sps,
 	) {
+		docComment = dc;
 		isPublic = ip;
 		flags = f;
 		sig = s;
@@ -668,6 +675,7 @@ struct FunDecl {
 		body_ = immutable FunBody(immutable FunBody.Builtin());
 	}
 	this(
+		immutable SafeCStr dc,
 		immutable bool ip,
 		immutable FunFlags f,
 		immutable Ptr!Sig s,
@@ -675,6 +683,7 @@ struct FunDecl {
 		immutable ArrWithSize!(Ptr!SpecInst) sps,
 		immutable FunBody b,
 	) {
+		docComment = dc;
 		isPublic = ip;
 		flags = f;
 		sig = s;
@@ -683,6 +692,7 @@ struct FunDecl {
 		body_ = b;
 	}
 
+	immutable SafeCStr docComment;
 	immutable bool isPublic;
 	immutable FunFlags flags;
 	immutable Ptr!Sig sig;
@@ -690,7 +700,7 @@ struct FunDecl {
 	immutable ArrWithSize!(Ptr!SpecInst) specs_;
 	FunBody body_;
 }
-static assert(FunDecl.sizeof <= 48);
+static assert(FunDecl.sizeof <= 56);
 
 immutable(TypeParam[]) typeParams(ref immutable FunDecl a) {
 	return toArr(a.typeParams_);
@@ -718,6 +728,9 @@ immutable(bool) unsafe(ref immutable FunDecl a) {
 }
 immutable(bool) trusted(ref immutable FunDecl a) {
 	return a.flags.trusted;
+}
+immutable(bool) generated(ref immutable FunDecl a) {
+	return a.flags.generated;
 }
 immutable(bool) okIfUnused(ref immutable FunDecl a) {
 	return a.flags.okIfUnused;
@@ -1078,6 +1091,7 @@ struct Module {
 	@safe @nogc pure nothrow:
 
 	immutable FileIndex fileIndex;
+	immutable SafeCStr docComment;
 	private:
 	immutable Ptr!ModuleImportsExports importsAndExports_;
 	immutable Ptr!ModuleArrs arrs_;

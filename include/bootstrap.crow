@@ -85,8 +85,11 @@ true bool() noctx builtin
 
 region compare.crow
 
+# Comparison for `a < b`
 less record
+# Comparison for `a == b`
 equal record
+# Comparison for `a > b`
 greater record
 comparison union
 	less

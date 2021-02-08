@@ -109,3 +109,32 @@ immutable(NulTerminatedStr) catToNulTerminatedStr(Alloc)(
 ) {
 	return immutable NulTerminatedStr(cat(alloc, a, b, c, "\0"));
 }
+
+// CStr type that definitely has '\0' at the end
+// (Preferred to `string` as it is 8 bytes instead of 16)
+struct SafeCStr {
+	//TODO:private:
+	immutable CStr inner;
+}
+
+immutable SafeCStr emptySafeCStr = immutable SafeCStr("");
+
+immutable(bool) safeCStrIsEmpty(immutable SafeCStr a) {
+	return *a.inner == '\0';
+}
+
+private immutable(SafeCStr) safeCStrOfNulTerminatedStr(immutable NulTerminatedStr a) {
+	return immutable SafeCStr(asCStr(a));
+}
+
+immutable(SafeCStr) copyToSafeCStr(Alloc)(ref Alloc alloc, immutable string a) {
+	return safeCStrOfNulTerminatedStr(copyToNulTerminatedStr(alloc, a));
+}
+
+immutable(string) strOfSafeCStr(immutable SafeCStr a) {
+	return strOfCStr(a.inner);
+}
+
+immutable(SafeCStr) copySafeCStr(Alloc)(ref Alloc alloc, immutable SafeCStr a) {
+	return copyToSafeCStr(alloc, strOfSafeCStr(a));
+}
