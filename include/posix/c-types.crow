@@ -1,6 +1,6 @@
 no-std
 import
-	..bootstrap: int32, int64, nat32, nat64
+	..private.bootstrap: int32, int64, nat32, nat64
 
 c-int alias
 	int32

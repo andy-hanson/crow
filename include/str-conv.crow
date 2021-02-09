@@ -1,7 +1,6 @@
 no-std
 import
 	.bool: ?, bool, false, true
-	.bootstrap: todo
 	.collection.arr: ~, data, empty?, subscript
 	.collection.arr-util: first, tail
 	.collection.dict: dict, each
@@ -12,6 +11,7 @@ import
 		negative?, to-int, to-float, to-nat, truncate-to-int
 	.opt: map, none, opt, some, value
 	.str: char, str
+	.private.bootstrap: todo
 
 to-str str(b bool) noctx
 	b ? "true", "false"

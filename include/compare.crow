@@ -18,9 +18,9 @@ Restricting comparison to `data` means that it is ensured to be safe:
 no-std
 import
 	.bool: ?, bool, false, not, true
-	.bootstrap: data, str
+	.private.bootstrap: data, str
 export
-	.bootstrap: ==, <=>, comparison, equal, greater, less
+	.private.bootstrap: ==, <=>, comparison, equal, greater, less
 
 to-str str(a comparison)
 	match a

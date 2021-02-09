@@ -1,10 +1,10 @@
 no-std
 import
 	.bool: bool, not
-	.bootstrap:
+	.compare: ==, <
+	.private.bootstrap:
 		int, int8, int16, int32, nat, nat8, nat16, nat32, to-int, to-nat, todo, unsafe-to-int,
 		unsafe-to-int32, unsafe-to-nat, unsafe-to-nat8, unsafe-to-nat16, unsafe-to-nat32
-	.compare: ==, <
 
 bits-not nat(a nat) noctx builtin
 

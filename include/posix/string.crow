@@ -1,6 +1,6 @@
 no-std
 import
-	..bootstrap: nat, nat8, void
+	..private.bootstrap: nat, nat8, void
 	..ptr: any-ptr
 
 memcpy void(dest any-ptr, src any-ptr, size nat) extern<"memcpy"> noctx unsafe

@@ -3,26 +3,23 @@ include ../pug-include/documentation.pug
 +documentationPage("compare")
 	section
 		+record("less", [])
+			| Comparison for `a < b`
 		+record("equal", [])
+			| Comparison for `a == b`
 		+record("greater", [])
+			| Comparison for `a > b`
 		+union("comparison", ["less", "equal", "greater"])
 		+function("<=>", "comparison", [["a", "?t"], ["b", "?t"]])
-			| Docstring goes here
 		+function("==", "bool", [["a", "?t"], ["b", "?t"]])
-			| Docstring goes here
+			|True if both sides are same value.
+			|TODO: This should return true for `nan == nan`
 		+function("max", "?t", [["a", "?t"], ["b", "?t"]])
-			| Docstring goes here
+			| Returns the greater argument
 		+function("to-str", "arr char", [["a", "comparison"]])
-			| Docstring goes here
 		+function("min", "?t", [["a", "?t"], ["b", "?t"]])
-			| Docstring goes here
+			| Returns the lesser argument
 		+function(">=", "bool", [["a", "?t"], ["b", "?t"]])
-			| Docstring goes here
 		+function(">", "bool", [["a", "?t"], ["b", "?t"]])
-			| Docstring goes here
 		+function("<=", "bool", [["a", "?t"], ["b", "?t"]])
-			| Docstring goes here
 		+function("<", "bool", [["a", "?t"], ["b", "?t"]])
-			| Docstring goes here
 		+function("!=", "bool", [["a", "?t"], ["b", "?t"]])
-			| Docstring goes here

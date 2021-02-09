@@ -1,6 +1,6 @@
 no-std
 export
-	.bootstrap: as, void
+	.private.bootstrap: as, void
 
 arrow<?a, ?b> record
 	from ?a

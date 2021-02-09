@@ -2,9 +2,9 @@ no-std
 import
 	.bool: bool, or
 	.compare: ==, comparison, less, equal, greater
-	.bootstrap: nat, unsafe-div, wrap-sub, void
+	.private.bootstrap: nat, unsafe-div, wrap-sub, void
 export
-	.bootstrap: any-ptr, by-val, ptr
+	.private.bootstrap: any-ptr, by-val, ptr
 
 null ptr ?t() noctx builtin
 

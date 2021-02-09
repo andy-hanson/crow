@@ -1,17 +1,17 @@
 no-std
 import
-	.backtrace: get-backtrace
 	.bool: bool, not
-	.bootstrap:
-		arr, as, backtrace, err, exception-ctx-ptr, get-ctx,
-		hard-forbid, int32, ok, result, str, todo, void
 	.compare: ==
 	.fun: subscript
 	.posix.bytes-types: zero
 	.posix.setjmp: jmp-buf, jmp-buf-tag, longjmp, setjmp
 	.ptr: as-ref, by-val, null, null?, ptr-to
+	.private.backtrace: backtrace, get-backtrace
+	.private.bootstrap:
+		arr, as, err, exception-ctx-ptr, get-ctx,
+		hard-forbid, int32, ok, result, str, todo, void
 export
-	.bootstrap: exception, message
+	.private.bootstrap: exception, message
 
 exception-ctx record mut
 	jmp-buf-ptr mut jmp-buf

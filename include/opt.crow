@@ -5,7 +5,7 @@ import
 	.fun: subscript
 	.misc: void
 export
-	.bootstrap: none, opt, some, value
+	.private.bootstrap: none, opt, some, value
 
 empty? bool(a opt ?t) noctx
 	match a

@@ -1,8 +1,8 @@
 no-std
 import
-	..alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
+	..private.alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
+	..private.bootstrap: hard-assert
 	..bool: bool
-	..bootstrap: hard-assert
 	..compare: ==, <
 	..exceptions: assert
 	..misc: arrow, void

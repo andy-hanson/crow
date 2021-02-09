@@ -1,15 +1,15 @@
 no-std
 import
-	.bool: bool, false, not, true
+	..bool: bool, false, not, true
+	..cell: cell, subscript
+	..compare: <, ==, !=
+	..fun: fun-ptr1, subscript
+	..io.time-low-level: get-monotime-nsec, timestamp
+	..posix.errno: eagain, einval, esrch
+	..posix.pthread: pthread-create, pthread-join, pthread-t, pthread-yield
+	..ptr: any-ptr, by-val, null, null?, ptr, ptr-to, ref-of-val
 	.bootstrap:
 		as, atomic-bool, hard-assert, hard-forbid, is-locked, lock, nat, noctx-decr, noctx-incr, opt, todo, value, void
-	.cell: cell, subscript
-	.compare: <, ==, !=
-	.fun: fun-ptr1, subscript
-	.io.time-low-level: get-monotime-nsec, timestamp
-	.posix.errno: eagain, einval, esrch
-	.posix.pthread: pthread-create, pthread-join, pthread-t, pthread-yield
-	.ptr: any-ptr, by-val, null, null?, ptr, ptr-to, ref-of-val
 
 region atomic
 

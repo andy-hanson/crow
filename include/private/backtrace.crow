@@ -1,19 +1,21 @@
 no-std
 import
+	..compare: !=, <, <=, >
+	..ptr: +, any-ptr, ptr, ptr-less?, set-subscript, subscript
+	..sys.execinfo: backtrace
 	.alloc: try-alloc-uninitialized
 	.bootstrap:
-		arr, as, backtrace, hard-assert, nat, to-int, noctx-decr, noctx-incr, none, opt,
+		arr, as, hard-assert, nat, to-int, noctx-decr, noctx-incr, none, opt,
 		some, str, unsafe-div, unsafe-to-int, unsafe-to-int32, unsafe-to-nat, value,
 		void, wrap-sub
-	.compare: !=, <, <=, >
-	.ptr: +, any-ptr, ptr, ptr-less?, set-subscript, subscript
-	sys.execinfo: backtrace
+export
+	.bootstrap: backtrace, return-stack
 
-funs-count nat() noctx unsafe builtin
+.funs-count nat() noctx unsafe builtin
 
-get-fun-name str(fun-id nat) noctx unsafe builtin
+.get-fun-name str(fun-id nat) noctx unsafe builtin
 
-get-fun-ptr any-ptr(fun-id nat) noctx unsafe builtin
+.get-fun-ptr any-ptr(fun-id nat) noctx unsafe builtin
 
 get-backtrace backtrace() unsafe
 	# Being careful to avoid calling functions that may throw here

@@ -1,6 +1,6 @@
 no-std
 import
-	...bootstrap: todo
+	...private.bootstrap: todo
 	...cell: cell, subscript
 	...collection.arr: ~
 	...compare: ==, !=

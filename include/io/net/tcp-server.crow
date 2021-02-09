@@ -1,8 +1,8 @@
 no-std
 import
+	...private.bootstrap: todo
 	...bits: bits-intersect?, bits-or
 	...bool: bool, false, not, or, true
-	...bootstrap: todo
 	...cell: cell
 	...collection.arr: ~, arr, data, subscript
 	...collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr

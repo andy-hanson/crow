@@ -1,32 +1,32 @@
 no-std
 import
+	..bool: ?, false
+	..cell: as-cell
+	..collection.arr: arr
+	..collection.arr-util: map, tail
+	..compare: !=
+	..exceptions: exception-ctx
+	..fun: fun-ptr2, subscript
+	..fut: delay, fut, handle-exceptions, then2
+	..io.process: exit-code
+	..logging: log-ctx
+	..misc: as, void
+	..number: int32, nat, to-int
+	..opt: value
+	..posix.pthread: pthread-t
+	..ptr:
+		+, any-ptr, as-any-ptr, as-ref, by-val, null, ptr, ptr-to, ref-of-val, set-subscript,
+		subscript
+	..str: c-str, str
+	..str-utils: to-str
+	..sys.sysinfo: get-nprocs
 	.alloc
-	.bool: ?, false
 	.bootstrap:
 		call-with-ctx, ctx, get-ctx, noctx-decr, noctx-incr,
 		state, unsafe-to-int, unsafe-to-int32, unsafe-to-nat
-	.cell: as-cell
-	.collection.arr: arr
-	.collection.arr-util: map, tail
-	.compare: !=
-	.exceptions: exception-ctx
-	.fun: fun-ptr2, subscript
-	.fut: delay, fut, handle-exceptions, then2
-	.io.process: exit-code
-	.logging: log-ctx
-	.misc: as, void
-	.number: int32, nat, to-int
-	.opt: value
-	.posix.pthread: pthread-t
-	.ptr:
-		+, any-ptr, as-any-ptr, as-ref, by-val, null, ptr, ptr-to, ref-of-val, set-subscript,
-		subscript
 	.runtime:
 		any-unhandled-exceptions?, ctx, global-ctx, island, set-islands, thread-function,
 		thread-local-stuff
-	.str: c-str, str
-	.str-utils: to-str
-	.sys.sysinfo: get-nprocs
 	.thread-utils: create-one-thread, join-one-thread, condition, lock-by-val
 
 .main-ptr alias

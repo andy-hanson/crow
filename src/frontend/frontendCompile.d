@@ -28,6 +28,7 @@ import util.memory : allocate, nu;
 import util.opt : force, has, mapOption, Opt, none, some;
 import util.path :
 	AllPaths,
+	childPath,
 	comparePathAndStorageKind,
 	parent,
 	Path,
@@ -344,8 +345,13 @@ immutable(PathAndStorageKind) pathInInclude(Alloc)(ref AllPaths!Alloc allPaths, 
 	return immutable PathAndStorageKind(rootPath(allPaths, name), StorageKind.global);
 }
 
+immutable(PathAndStorageKind) pathInIncludePrivate(Alloc)(ref AllPaths!Alloc allPaths, scope immutable string name) {
+	immutable Path private_ = rootPath(allPaths, "private");
+	return immutable PathAndStorageKind(childPath(allPaths, private_, name), StorageKind.global);
+}
+
 immutable(PathAndStorageKind) bootstrapPath(Alloc)(ref AllPaths!Alloc allPaths) {
-	return pathInInclude(allPaths, "bootstrap");
+	return pathInIncludePrivate(allPaths, "bootstrap");
 }
 
 immutable(PathAndStorageKind) stdPath(Alloc)(ref AllPaths!Alloc allPaths) {
@@ -353,15 +359,15 @@ immutable(PathAndStorageKind) stdPath(Alloc)(ref AllPaths!Alloc allPaths) {
 }
 
 immutable(PathAndStorageKind) allocPath(Alloc)(ref AllPaths!Alloc allPaths) {
-	return pathInInclude(allPaths, "alloc");
+	return pathInIncludePrivate(allPaths, "alloc");
 }
 
 immutable(PathAndStorageKind) runtimePath(Alloc)(ref AllPaths!Alloc allPaths) {
-	return pathInInclude(allPaths, "runtime");
+	return pathInIncludePrivate(allPaths, "runtime");
 }
 
 immutable(PathAndStorageKind) runtimeMainPath(Alloc)(ref AllPaths!Alloc allPaths) {
-	return pathInInclude(allPaths, "rt-main");
+	return pathInIncludePrivate(allPaths, "rt-main");
 }
 
 immutable(Diags) parseDiagnostics(Alloc)(

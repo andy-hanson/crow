@@ -1,22 +1,23 @@
 no-std
 import
+	..bool: ?, and, bool, false, not, or, true
+	..collection.arr: ~, arr, empty?, noctx-at, size, subscript
+	..collection.arr-util: join
+	..compare: ==, !=, >, min
+	..exceptions: exception, exception-ctx, message
+	..io.print: print-err, print-err-no-newline
+	..io.time-low-level: get-monotime-nsec, timestamp
+	..logging: default-log-handler, log-ctx, log-handler, set-handler
+	..misc: as, void
+	..number: nat
+	..opt: none, opt, some, value
+	..ptr: as-any-ptr, as-ref, by-val, ref-of-val
+	..str: str
 	.alloc: gc, get-gc-ctx, needs-gc?, return-gc-ctx, run-garbage-collection
-	.bool: ?, and, bool, false, not, or, true
+	.backtrace: backtrace, return-stack
 	.bootstrap:
-		backtrace, call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert,
-		hard-forbid, island-and-exclusion, island-id, lock, noctx-decr, noctx-incr, return-stack
-	.collection.arr: ~, arr, empty?, noctx-at, size, subscript
-	.collection.arr-util: join
-	.compare: ==, !=, >, min
-	.exceptions: exception, exception-ctx, message
-	.io.print: print-err, print-err-no-newline
-	.io.time-low-level: get-monotime-nsec, timestamp
-	.logging: default-log-handler, log-ctx, log-handler, set-handler
-	.misc: as, void
-	.number: nat
-	.opt: none, opt, some, value
-	.ptr: as-any-ptr, as-ref, by-val, ref-of-val
-	.str: str
+		call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert,
+		hard-forbid, island-and-exclusion, island-id, lock, noctx-decr, noctx-incr
 	.task-queue:
 		action, any-tasks?, empty?, exclusion, first-task-time, insert-task!, no-task,
 		no-timestamp, pop-task!, return-task!, task, task-queue, task-queue-node

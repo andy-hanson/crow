@@ -1,7 +1,7 @@
 no-std
 import
+	...private.bootstrap: todo
 	...bool: and, bool, false, true
-	...bootstrap: todo
 	...collection.arr: arr, data, empty?, has?, size, subscript
 	...collection.arr-util: contains?, last, rtail, split-by-subseq
 	...collection.dict: dict, each, has?

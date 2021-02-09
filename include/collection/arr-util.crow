@@ -1,8 +1,8 @@
 no-std
 import
-	..alloc: alloc-uninitialized, fill-ptr-range
+	..private.alloc: alloc-uninitialized, fill-ptr-range
+	..private.bootstrap: noctx-incr
 	..bool: and, bool, false, not, true
-	..bootstrap: noctx-incr
 	..compare: ==, !=, >=
 	..exceptions: assert, forbid
 	..fun: subscript

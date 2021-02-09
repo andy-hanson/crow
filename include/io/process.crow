@@ -1,7 +1,7 @@
 no-std
 import
+	..private.bootstrap: todo
 	..bool: and, bool, not, or, to-nat
-	..bootstrap: todo
 	..cell: cell, subscript
 	..collection.arr: ~, arr, data, ref-of-val-at, size
 	..collection.arr-util: fold, map

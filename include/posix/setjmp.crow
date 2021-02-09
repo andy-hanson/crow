@@ -1,7 +1,7 @@
 # /usr/include/setjmp.h
 no-std
 import
-	..bootstrap: int32, void
+	..private.bootstrap: int32, void
 	..ptr: ptr
 	.bytes-types: bytes64
 	.sigset: sigset-t

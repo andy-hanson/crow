@@ -1,13 +1,13 @@
 no-std
 import
 	.bool: and
-	.bootstrap: todo
 	.collection.arr: ~, arr, arr-from-begin-end, data, has?, size
 	.collection.arr-util: first, tail
 	.compare: ==
 	.number: nat8
 	.ptr: +, ptr-cast, subscript
 	.str: char, c-str, str
+	.private.bootstrap: todo
 
 as-str str(bytes arr nat8) unsafe noctx
 	arr: bytes.size, bytes.data ptr-cast<char, nat8>

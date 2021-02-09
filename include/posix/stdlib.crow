@@ -1,6 +1,6 @@
 no-std
 import
-	..bootstrap: nat, void
+	..private.bootstrap: nat, void
 	..ptr: any-ptr
 
 malloc any-ptr(size nat) unsafe extern<"malloc"> noctx

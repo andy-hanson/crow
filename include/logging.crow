@@ -1,6 +1,5 @@
 no-std
 import
-	.bootstrap: get-ctx, log-ctx, zeroed
 	.collection.arr: ~
 	.exceptions: finally
 	.fun: subscript
@@ -8,6 +7,7 @@ import
 	.misc: as, void
 	.ptr: as-ref, by-val
 	.str: str
+	.private.bootstrap: get-ctx, log-ctx, zeroed
 
 log-ctx record mut
 	by-ref
