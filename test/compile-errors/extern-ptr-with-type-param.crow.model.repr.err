@@ -1,1 +1,1 @@
-/extern-ptr-with-type-param.crow 1:1-2:1 an 'extern-ptr' type should not be a template
+./test/compile-errors/extern-ptr-with-type-param.crow 1:1-2:1 an 'extern-ptr' type should not be a template

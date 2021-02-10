@@ -48,6 +48,7 @@ import util.collection.str :
 	cStrOfNulTerminatedStr,
 	emptyNulTerminatedStr,
 	NulTerminatedStr,
+	startsWith,
 	strEq,
 	strOfCStr,
 	strToCStr,
@@ -57,10 +58,12 @@ import util.path :
 	AbsolutePath,
 	AllPaths,
 	baseName,
+	Path,
 	PathAndStorageKind,
 	pathParent,
 	pathToCStr,
 	pathToStr,
+	removeFirstPathComponentIf,
 	rootPath,
 	StorageKind;
 import util.ptr : Ptr, PtrRange, ptrTrustMe_mut;
@@ -103,29 +106,30 @@ struct StdoutDebug {
 	}
 }
 
-
 immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 	AllPaths!Alloc allPaths = AllPaths!Alloc(ptrTrustMe_mut(alloc));
 	immutable string crowDir = getCrowDirectory(args.pathToThisExecutable);
 	immutable string includeDir = getIncludeDirectory(alloc, crowDir);
 	immutable string tempDir = setupTempDir(alloc, allPaths, crowDir);
 
-	immutable Command command = parseCommand!Alloc(alloc, allPaths, getCwd(alloc), args.args);
+	immutable string cwd = getCwd(alloc);
+	immutable Command command = parseCommand!Alloc(alloc, allPaths, cwd, args.args);
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 	StdoutDebug dbg;
 
 	return matchCommand!int(
 		command,
 		(ref immutable Command.Build it) =>
-			runBuild(alloc, allPaths, includeDir, tempDir, it.programDirAndMain, it.options).err,
+			runBuild(alloc, allPaths, cwd, includeDir, tempDir, it.programDirAndMain, it.options).err,
 		(ref immutable Command.Document it) =>
-			runDocument(alloc, allPaths, includeDir, it.programDirAndMain, it.out_),
+			runDocument(alloc, allPaths, cwd, includeDir, it.programDirAndMain, it.out_),
 		(ref immutable Command.Help it) =>
 			help(it),
 		(ref immutable Command.Print it) {
 			RealReadOnlyStorage!(Alloc, Alloc) storage = RealReadOnlyStorage!(Alloc, Alloc)(
 				ptrTrustMe_mut(allPaths),
 				ptrTrustMe_mut(alloc),
+				cwd,
 				includeDir,
 				it.programDirAndMain.programDir);
 			immutable DiagsAndResultStrs printed = print(
@@ -135,7 +139,7 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 				showDiagOptions,
 				it.kind,
 				it.format,
-				getMain(includeDir, it.programDirAndMain));
+				getMain(allPaths, includeDir, it.programDirAndMain));
 			if (!empty(printed.diagnostics)) printErr(printed.diagnostics);
 			if (!empty(printed.result)) print(printed.result);
 			return empty(printed.diagnostics) ? 0 : 1;
@@ -145,7 +149,7 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 				run.options,
 				(ref immutable RunOptions.BuildAndRun it) {
 					immutable RunBuildResult built =
-						runBuild(alloc, allPaths, includeDir, tempDir, run.programDirAndMain, it.build);
+						runBuild(alloc, allPaths, cwd, includeDir, tempDir, run.programDirAndMain, it.build);
 					if (built.err != 0)
 						return built.err;
 					else {
@@ -157,6 +161,7 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 					RealReadOnlyStorage!(Alloc, Alloc) storage = RealReadOnlyStorage!(Alloc, Alloc)(
 						ptrTrustMe_mut(allPaths),
 						ptrTrustMe_mut(alloc),
+						cwd,
 						includeDir,
 						run.programDirAndMain.programDir);
 					RealExtern extern_ = newRealExtern();
@@ -169,7 +174,7 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 						storage,
 						extern_,
 						showDiagOptions,
-						getMain(includeDir, run.programDirAndMain),
+						getMain(allPaths, includeDir, run.programDirAndMain),
 						run.programArgs);
 				}),
 		(ref immutable Command.Test it) =>
@@ -211,6 +216,7 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 immutable(int) runDocument(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
+	immutable string cwd,
 	immutable string includeDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	ref immutable Opt!AbsolutePath out_,
@@ -218,10 +224,11 @@ immutable(int) runDocument(Alloc, PathAlloc)(
 	RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
 		ptrTrustMe_mut(allPaths),
 		ptrTrustMe_mut(alloc),
+		cwd,
 		includeDir,
 		programDirAndMain.programDir);
 	immutable DocumentResult result =
-		compileAndDocument(alloc, allPaths, storage, showDiagOptions, getMain(includeDir, programDirAndMain));
+		compileAndDocument(alloc, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
 	if (empty(result.diagnostics)) {
 		if (has(out_))
 			writeFile(alloc, allPaths, force(out_), result.document);
@@ -242,6 +249,7 @@ struct RunBuildResult {
 immutable(RunBuildResult) runBuild(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
+	immutable string cwd,
 	immutable string includeDir,
 	immutable string tempDir,
 	ref immutable ProgramDirAndMain programDirAndMain,
@@ -258,6 +266,7 @@ immutable(RunBuildResult) runBuild(Alloc, PathAlloc)(
 		alloc,
 		allPaths,
 		showDiagOptions,
+		cwd,
 		programDirAndMain,
 		includeDir,
 		cPath,
@@ -281,6 +290,7 @@ immutable(int) buildToCAndCompile(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions showDiagOptions,
+	immutable string cwd,
 	ref immutable ProgramDirAndMain programDirAndMain,
 	immutable string includeDir,
 	immutable AbsolutePath cPath,
@@ -289,10 +299,11 @@ immutable(int) buildToCAndCompile(Alloc, PathAlloc)(
 	RealReadOnlyStorage!(PathAlloc, Alloc) storage = RealReadOnlyStorage!(PathAlloc, Alloc)(
 		ptrTrustMe_mut(allPaths),
 		ptrTrustMe_mut(alloc),
+		cwd,
 		includeDir,
 		programDirAndMain.programDir);
 	immutable BuildToCResult result =
-		buildToC(alloc, allPaths, storage, showDiagOptions, getMain(includeDir, programDirAndMain));
+		buildToC(alloc, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
 	if (empty(result.diagnostics)) {
 		writeFile(alloc, allPaths, cPath, result.cSource);
 		compileC(alloc, allPaths, cPath, exePath, result.allExternLibraryNames);
@@ -303,7 +314,19 @@ immutable(int) buildToCAndCompile(Alloc, PathAlloc)(
 	}
 }
 
-immutable(PathAndStorageKind) getMain(immutable string includeDir, immutable ProgramDirAndMain programDirAndMain) {
+immutable(PathAndStorageKind) getMain(PathAlloc)(
+	ref AllPaths!PathAlloc allPaths,
+	immutable string includeDir,
+	immutable ProgramDirAndMain programDirAndMain,
+) {
+	// Detect if we're building something already in 'include'
+	if (startsWith(includeDir, programDirAndMain.programDir)
+		&& strEq(includeDir[programDirAndMain.programDir.length .. $], "/include")) {
+		immutable Opt!Path withoutInclude = removeFirstPathComponentIf(allPaths, programDirAndMain.mainPath, "include");
+		if (has(withoutInclude))
+			return immutable PathAndStorageKind(force(withoutInclude), StorageKind.global);
+	}
+
 	return immutable PathAndStorageKind(
 		programDirAndMain.mainPath,
 		strEq(includeDir, programDirAndMain.programDir) ? StorageKind.global : StorageKind.local);
@@ -390,7 +413,7 @@ struct RealReadOnlyStorage(PathAlloc, Alloc) {
 	@safe @nogc nothrow: // not pure
 
 	immutable(AbsolutePathsGetter) absolutePathsGetter() const {
-		return immutable AbsolutePathsGetter(include, user);
+		return immutable AbsolutePathsGetter(cwd, include, user);
 	}
 
 	immutable(T) withFile(T)(
@@ -413,6 +436,7 @@ struct RealReadOnlyStorage(PathAlloc, Alloc) {
 	private:
 	Ptr!(AllPaths!PathAlloc) allPaths;
 	Ptr!Alloc tempAlloc;
+	immutable string cwd;
 	immutable string include;
 	immutable string user;
 }

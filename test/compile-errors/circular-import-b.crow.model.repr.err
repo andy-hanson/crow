@@ -1,5 +1,5 @@
-/circular-import-b.crow 2:5-2:23 imported module circular-import-a is unused
+./test/compile-errors/circular-import-b.crow 2:5-2:23 imported module circular-import-a is unused
 
-/circular-import-a.crow 2:5-2:23 circular import from circular-import-a to circular-import-b
+./test/compile-errors/circular-import-a.crow 2:5-2:23 circular import from test/compile-errors/circular-import-a to test/compile-errors/circular-import-b
 
-/circular-import-a.crow 2:5-2:23 imported module circular-import-a is unused
+./test/compile-errors/circular-import-a.crow 2:5-2:23 imported module circular-import-a is unused

@@ -31,23 +31,38 @@ struct AbsolutePath {
 	immutable string extension;
 }
 
-immutable(string) parentStr(Alloc, PathAlloc)(
-	ref Alloc alloc,
-	ref AllPaths!PathAlloc allPaths,
-	ref immutable AbsolutePath path,
-) {
-	immutable Opt!Path p = parent(allPaths, path.path);
-	return has(p)
-		? pathToStr(alloc, allPaths, path.root, force(p), "")
-		: copyStr(alloc, path.root);
-}
-
 immutable(Opt!Path) parent(Alloc)(ref const AllPaths!Alloc allPaths, immutable Path a) {
 	return mutArrAt(allPaths.pathToParent, a.index);
 }
 
 immutable(string) baseName(Alloc)(ref const AllPaths!Alloc allPaths, immutable Path a) {
 	return mutArrAt(allPaths.pathToBaseName, a.index);
+}
+
+immutable(Opt!Path) removeFirstPathComponentIf(Alloc)(
+	ref AllPaths!Alloc allPaths,
+	immutable Path a,
+	immutable string expected,
+) {
+	immutable Opt!Path parent = parent(allPaths, a);
+	return has(parent) ? removeFirstPathComponentIfRecur(allPaths, a, force(parent), expected) : none!Path;
+}
+private immutable(Opt!Path) removeFirstPathComponentIfRecur(Alloc)(
+	ref AllPaths!Alloc allPaths,
+	immutable Path a,
+	immutable Path par,
+	immutable string expected,
+) {
+	immutable Opt!Path grandParent = parent(allPaths, par);
+	if (has(grandParent)) {
+		immutable Opt!Path removed = removeFirstPathComponentIfRecur(allPaths, par, force(grandParent), expected);
+		return has(removed)
+			? some(childPath(allPaths, force(removed), baseName(allPaths, a)))
+			: none!Path;
+	} else
+		return strEq(baseName(allPaths, par), expected)
+			? some(rootPath(allPaths, baseName(allPaths, a)))
+			: none!Path;
 }
 
 private immutable(Path) getOrAddChild(Alloc)(

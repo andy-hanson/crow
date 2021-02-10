@@ -1,1 +1,1 @@
-/extern-ptr-is-mut.crow 4:5-4:8 struct 'r' has purity 'data', but field type a has purity 'mut'
+./test/compile-errors/extern-ptr-is-mut.crow 4:5-4:8 struct 'r' has purity 'data', but field type a has purity 'mut'

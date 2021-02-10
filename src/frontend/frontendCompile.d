@@ -18,7 +18,7 @@ import frontend.parse.parse : FileAstAndParseDiagnostics, parseFile;
 import frontend.programState : ProgramState;
 import util.collection.arr : at, empty, emptyArr;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, arrBuilderSize, finishArr;
-import util.collection.arrUtil : arrLiteral, cat, copyArr, map, mapImpure, mapWithSoFar, prepend;
+import util.collection.arrUtil : arrLiteral, cat, copyArr, map, mapImpure, mapOp, mapWithSoFar, prepend;
 import util.collection.fullIndexDict : FullIndexDict, fullIndexDictGet, fullIndexDictOfArr;
 import util.collection.mutDict : getAt_mut, MutDict, setInDict;
 import util.collection.str : NulTerminatedStr, strOfNulTerminatedStr;
@@ -519,8 +519,10 @@ immutable(ModuleAndNames[]) mapImportsOrExports(ModelAlloc)(
 	ref immutable FileIndexAndNames[] paths,
 	ref immutable FullIndexDict!(FileIndex, Ptr!Module) compiled,
 ) {
-	return map(modelAlloc, paths, (ref immutable FileIndexAndNames it) =>
-		immutable ModuleAndNames(it.range, fullIndexDictGet(compiled, it.fileIndex), it.names));
+	return mapOp(modelAlloc, paths, (ref immutable FileIndexAndNames it) =>
+		it.fileIndex == FileIndex.none
+			? none!ModuleAndNames
+			: some(immutable ModuleAndNames(it.range, fullIndexDictGet(compiled, it.fileIndex), it.names)));
 }
 
 struct ModulesAndCommonTypes {

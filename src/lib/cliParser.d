@@ -8,7 +8,7 @@ import util.collection.arrUtil : findIndex, foldOrStop, tail;
 import util.collection.str : startsWith, strEq;
 import util.memory : allocate;
 import util.opt : force, has, none, Opt, some;
-import util.path : AbsolutePath, AllPaths, baseName, parentStr, parseAbsoluteOrRelPath, Path, rootPath;
+import util.path : AbsolutePath, AllPaths, parseAbsoluteOrRelPath, Path;
 import util.ptr : Ptr;
 import util.util : todo;
 
@@ -217,10 +217,8 @@ immutable(Opt!ProgramDirAndMain) parseProgramDirAndMain(Alloc, PathAlloc)(
 	immutable string arg,
 ) {
 	immutable AbsolutePath mainAbsolutePath = parseAbsoluteOrRelPath(allPaths, cwd, arg);
-	immutable string dir = parentStr(alloc, allPaths, mainAbsolutePath);
-	immutable string name = baseName(allPaths, mainAbsolutePath);
 	return empty(mainAbsolutePath.extension) || strEq(mainAbsolutePath.extension, crowExtension())
-		? some(immutable ProgramDirAndMain(dir, rootPath(allPaths, name)))
+		? some(immutable ProgramDirAndMain(mainAbsolutePath.root, mainAbsolutePath.path))
 		: none!ProgramDirAndMain;
 }
 

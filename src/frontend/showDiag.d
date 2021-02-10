@@ -739,7 +739,7 @@ void showDiagnostic(TempAlloc, Alloc, PathAlloc)(
 	ref immutable FilesInfo fi,
 	ref immutable Diagnostic d,
 ) {
-	writeFileAndRange(tempAlloc, writer, allPaths, options, fi, d.where);
+	writeFileAndRange(writer, allPaths, options, fi, d.where);
 	writeChar(writer, ' ');
 	writeDiag(tempAlloc, writer, allPaths, options, fi, d.diag);
 	writeNl(writer);

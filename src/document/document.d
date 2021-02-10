@@ -6,6 +6,7 @@ import model.model :
 	body_,
 	FunDecl,
 	generated,
+	matchSpecBody,
 	matchStructBody,
 	matchStructOrAlias,
 	matchType,
@@ -17,6 +18,8 @@ import model.model :
 	Program,
 	RecordField,
 	returnType,
+	Sig,
+	SpecBody,
 	SpecDecl,
 	StructAlias,
 	StructBody,
@@ -150,7 +153,19 @@ void writeUnion(Alloc)(ref Writer!Alloc writer, ref immutable StructDecl a, ref 
 }
 
 void writeSpec(Alloc)(ref Writer!Alloc writer, ref immutable SpecDecl a) {
-	todo!void("!");
+	writeStatic(writer, "\n\t\t+spec(");
+	writeQuotedSym(writer, a.name);
+	matchSpecBody!void(
+		a.body_,
+		(ref immutable SpecBody.Builtin) {
+			writeStatic(writer, "\"builtin\"");
+		},
+		(ref immutable Sig[] sigs) {
+			writeStatic(writer, ", ");
+			writeStatic(writer, "\"TODO:WRITE SIGS\"");
+			cast(void) sigs;
+		});
+	writeStatic(writer, ")");
 	writeDocComment(writer, a.docComment);
 }
 
@@ -236,7 +251,7 @@ void eachLine(
 	immutable Opt!size_t index = findIndex!char(a, (ref immutable char c) => c == '\n');
 	if (has(index)) {
 		cb(a[0..force(index)]);
-		eachLine(a[force(index)+1..$], cb);
+		eachLine(a[force(index)+1 .. $], cb);
 	} else
 		cb(a);
 }

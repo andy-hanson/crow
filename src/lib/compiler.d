@@ -88,7 +88,7 @@ immutable(int) buildAndInterpret(Debug, Alloc, PathAlloc, SymAlloc, ReadOnlyStor
 	if (empty(programs.program.diagnostics)) {
 		immutable Ptr!LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
 		immutable ByteCode byteCode = generateBytecode(dbg, alloc, alloc, programs.program, lowProgram);
-		immutable AbsolutePath mainAbsolutePath = getAbsolutePathFromStorage(alloc, storage, main, crowExtension);
+		immutable AbsolutePath mainAbsolutePath = getAbsolutePathFromStorage(storage, main, crowExtension);
 		return runBytecode(
 			dbg,
 			alloc,
@@ -322,14 +322,13 @@ immutable(ProgramsAndFilesInfo) buildToLowProgram(Alloc, PathAlloc, SymAlloc, Re
 		return immutable ProgramsAndFilesInfo(program, none!ConcreteAndLowProgram);
 }
 
-immutable(AbsolutePath) getAbsolutePathFromStorage(Alloc, Storage)(
-	ref Alloc alloc,
+immutable(AbsolutePath) getAbsolutePathFromStorage(Storage)(
 	ref Storage storage,
 	immutable PathAndStorageKind path,
 	immutable string extension,
 ) {
 	immutable AbsolutePathsGetter abs = storage.absolutePathsGetter();
-	return getAbsolutePath(alloc, abs, path, extension);
+	return getAbsolutePath(abs, path, extension);
 }
 
 immutable(string) showRepr(Alloc)(ref Alloc alloc, immutable Repr a, immutable PrintFormat format) {

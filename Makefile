@@ -10,21 +10,6 @@ dyncall:
 	cd dyncall && ./configure
 	cd dyncall && make
 
-site/include-list.txt: bin/crow include/*.crow
-	./bin/crow run script/gen-include-list.crow > site/include-list.txt
-
-prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz pug
-
-pug: site/*.pug site/*/*.pug
-	pug site
-
-pug-watch:
-	# WARN: Can't introduce --pretty as that introduces whitespace which changes how things render
-	pug site --watch
-
-serve: prepare-site
-	cd site && python -m SimpleHTTPServer 8080
-
 lint-dscanner:
 	dub run dscanner -- --styleCheck src/*.d src/*/*.d src/*/*/*.d
 
@@ -73,3 +58,29 @@ bin/crow.wasm: $(src_deps)
 
 bin/crow.tar.xz: bin/crow demo/* include/* include/*/*
 	tar -C .. -cJf bin/crow.tar.xz crow/bin/crow crow/demo crow/include
+
+site/include-list.txt: bin/crow include/*.crow
+	./bin/crow run script/gen-include-list.crow > site/include-list.txt
+
+prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz pug
+
+pugs: site/documentation/compare.pug site/documentation/collection/arr.pug
+
+site/documentation/%.pug: include/%.crow
+	bin/crow doc $< --out $@
+
+
+
+#$(pugs): site/documentation/%.pug: include/%.crow
+
+site/%.html:
+
+pug: site/*.pug site/*/*.pug
+	pug site
+
+pug-watch:
+	# WARN: Can't introduce --pretty as that introduces whitespace which changes how things render
+	pug site --watch
+
+serve: prepare-site
+	cd site && python -m SimpleHTTPServer 8080

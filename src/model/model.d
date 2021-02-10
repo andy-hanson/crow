@@ -33,6 +33,7 @@ import util.util : todo, verify;
 import util.writer : writeChar, Writer, writeStatic, writeWithCommas;
 
 struct AbsolutePathsGetter {
+	immutable string cwd;
 	immutable string globalPath;
 	immutable string localPath;
 }
@@ -46,13 +47,12 @@ private immutable(string) getBasePath(ref immutable AbsolutePathsGetter a, immut
 	}
 }
 
-immutable(AbsolutePath) getAbsolutePath(Alloc)(
-	ref Alloc alloc,
+immutable(AbsolutePath) getAbsolutePath(
 	ref immutable AbsolutePathsGetter a,
 	ref immutable PathAndStorageKind p,
 	immutable string extension,
 ) {
-	return AbsolutePath(a.getBasePath(p.storageKind), p.path, extension);
+	return immutable AbsolutePath(getBasePath(a, p.storageKind), p.path, extension);
 }
 
 alias LineAndColumnGetters = immutable FullIndexDict!(FileIndex, LineAndColumnGetter);

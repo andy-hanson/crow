@@ -209,18 +209,22 @@ void writeReset(Alloc)(ref Writer!Alloc writer) {
 	writeStatic(writer, "\x1b[m");
 }
 
-void writeHyperlink(Alloc)(ref Writer!Alloc writer, immutable string url, immutable string text) {
+void writeHyperlink(Alloc)(
+	ref Writer!Alloc writer,
+	scope void delegate() @safe @nogc pure nothrow writeUrl,
+	scope void delegate() @safe @nogc pure nothrow writeText,
+) {
 	// documentation: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 	// https://purpleidea.com/blog/2018/06/29/hyperlinks-in-gnome-terminal/
 	// TODO: I haven't got this to work on any terminal emulator I have installed. :(
 	if (false) {
 		writeStatic(writer, "\x1b]8;;");
-		writeStr(writer, url);
+		writeUrl();
 		writeStatic(writer, "\x1b\\");
-		writeStr(writer, text);
+		writeText();
 		writeStatic(writer, "\x1b]8;;\x1b\\");
 	} else {
-		writeStr(writer, text);
+		writeText();
 	}
 }
 

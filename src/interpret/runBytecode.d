@@ -208,8 +208,7 @@ private @trusted void showReturnStack(Alloc, Extern)(ref Writer!Alloc writer, re
 	writeFunNameAtByteCodePtr(writer, a, getReaderPtr(a.reader));
 }
 
-private void writeByteCodeSource(TempAlloc, Alloc, PathAlloc)(
-	ref TempAlloc temp,
+private void writeByteCodeSource(Alloc, PathAlloc)(
 	ref Writer!Alloc writer,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions showDiagOptions,
@@ -222,7 +221,7 @@ private void writeByteCodeSource(TempAlloc, Alloc, PathAlloc)(
 		fullIndexDictGet(lowProgram.allFuns, source.fun).source,
 		(immutable Ptr!ConcreteFun it) {
 			immutable FileAndPos where = immutable FileAndPos(concreteFunRange(it).fileIndex, source.pos);
-			writeFileAndPos(temp, writer, allPaths, showDiagOptions, filesInfo, where);
+			writeFileAndPos(writer, allPaths, showDiagOptions, filesInfo, where);
 		},
 		(ref immutable LowFunSource.Generated) {});
 }
@@ -294,7 +293,7 @@ immutable(StepResult) step(Debug, TempAlloc, PathAlloc, Extern)(
 		Writer!TempAlloc writer = Writer!TempAlloc(ptrTrustMe_mut(tempAlloc));
 		writeStatic(writer, "STEP: ");
 		immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(false);
-		writeByteCodeSource(tempAlloc, writer, allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
+		writeByteCodeSource(writer, allPaths, showDiagOptions, a.lowProgram, a.filesInfo, source);
 		writeChar(writer, ' ');
 		writeReprNoNewline(writer, reprOperation(tempAlloc, operation));
 		if (isCall(operation)) {

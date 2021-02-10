@@ -1,13 +1,13 @@
 no-std
 import
-	..private.alloc: alloc-uninitialized, copy-data-from
-	..private.bootstrap: hard-assert
 	..bool: bool, false, not, true
 	..compare: ==, !=, <, <=
 	..exceptions: assert
 	..misc: ->, arrow, from, to
 	..number: +, -, nat
 	..ptr: +, -, by-val, ptr, ref-of-ptr, subscript
+	..private.alloc: alloc-uninitialized, copy-data-from
+	..private.bootstrap: hard-assert
 export
 	..private.bootstrap: arr, data, size
 

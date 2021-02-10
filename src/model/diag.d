@@ -26,12 +26,12 @@ import model.model :
 import model.parseDiag : ParseDiag;
 import util.collection.fullIndexDict : fullIndexDictGet;
 import util.opt : Opt;
-import util.path : AbsolutePath, AllPaths, PathAndStorageKind, pathToStr;
+import util.path : AbsolutePath, AllPaths, PathAndStorageKind;
 import util.ptr : Ptr;
 import util.sourceRange : FileAndPos, FileAndRange, FileIndex, FilePaths;
 import util.sym : Sym;
-import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic, writeStr;
-import util.writerUtils : writeRangeWithinFile, writePos;
+import util.writer : Writer, writeBold, writeHyperlink, writeChar, writeRed, writeReset, writeStatic;
+import util.writerUtils : writePathRelativeToCwd, writePos, writeRangeWithinFile;
 
 enum TypeKind {
 	builtin,
@@ -652,52 +652,48 @@ struct FilesInfo {
 	immutable Ptr!AbsolutePathsGetter absolutePathsGetter;
 	immutable LineAndColumnGetters lineAndColumnGetters;
 }
-static assert(FilesInfo.sizeof <= 48);
+static assert(FilesInfo.sizeof <= 56);
 
-void writeFileAndRange(TempAlloc, Alloc, PathAlloc)(
-	ref TempAlloc tempAlloc,
+void writeFileAndRange(Alloc, PathAlloc)(
 	ref Writer!Alloc writer,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable FileAndRange where,
 ) {
-	writeFileNoResetWriter(tempAlloc, writer, allPaths, options, fi, where.fileIndex);
+	writeFileNoResetWriter(writer, allPaths, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writeRangeWithinFile(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.range);
 	if (options.color)
 		writeReset(writer);
 }
 
-void writeFileAndPos(TempAlloc, Alloc, PathAlloc)(
-	ref TempAlloc tempAlloc,
+void writeFileAndPos(Alloc, PathAlloc)(
 	ref Writer!Alloc writer,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
 	ref immutable FilesInfo fi,
 	ref immutable FileAndPos where,
 ) {
-	writeFileNoResetWriter(tempAlloc, writer, allPaths, options, fi, where.fileIndex);
+	writeFileNoResetWriter(writer, allPaths, options, fi, where.fileIndex);
 	if (where.fileIndex != FileIndex.none)
 		writePos(writer, fullIndexDictGet(fi.lineAndColumnGetters, where.fileIndex), where.pos);
 	if (options.color)
 		writeReset(writer);
 }
 
-void writeFile(TempAlloc, Alloc, PathAlloc)(
-	ref TempAlloc tempAlloc,
+void writeFile(Alloc, PathAlloc)(
 	ref Writer!Alloc writer,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable FilesInfo fi,
 	immutable FileIndex fileIndex,
 ) {
 	immutable ShowDiagOptions noColor = immutable ShowDiagOptions(false);
-	writeFileNoResetWriter(tempAlloc, writer, allPaths, noColor, fi, fileIndex);
+	writeFileNoResetWriter(writer, allPaths, noColor, fi, fileIndex);
 	// No need to reset writer since we didn't use color
 }
 
-private void writeFileNoResetWriter(TempAlloc, Alloc, PathAlloc)(
-	ref TempAlloc tempAlloc,
+private void writeFileNoResetWriter(Alloc, PathAlloc)(
 	ref Writer!Alloc writer,
 	ref const AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions options,
@@ -710,13 +706,15 @@ private void writeFileNoResetWriter(TempAlloc, Alloc, PathAlloc)(
 		writeStatic(writer, "<generated code> ");
 	} else {
 		immutable PathAndStorageKind path = fullIndexDictGet(fi.filePaths, fileIndex);
-		immutable string pathStr = pathToStr(tempAlloc, allPaths, "", path.path, crowExtension);
+		immutable AbsolutePath abs = getAbsolutePath(fi.absolutePathsGetter, path, crowExtension);
 		if (options.color) {
-			immutable AbsolutePath abs = getAbsolutePath(tempAlloc, fi.absolutePathsGetter, path, crowExtension);
-			writeHyperlink(writer, pathToStr(tempAlloc, allPaths, abs), pathStr);
+			writeHyperlink(
+				writer,
+				() { writePathRelativeToCwd(writer, allPaths, fi.absolutePathsGetter.cwd, abs); },
+				() { writePathRelativeToCwd(writer, allPaths, fi.absolutePathsGetter.cwd, abs); });
 			writeRed(writer);
 		} else
-			writeStr(writer, pathStr);
+			writePathRelativeToCwd(writer, allPaths, fi.absolutePathsGetter.cwd, abs);
 		writeChar(writer, ' ');
 	}
 }

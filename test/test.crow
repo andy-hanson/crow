@@ -4,7 +4,6 @@ import
 	collection.arr-util: first
 	command-line-parser: parse-cmd-line-args
 	io.environ: get-environ
-	io.file: current-directory
 	io.print: print
 	path: child-path, parent-path
 	.failure: first-failures, print-failures, test-options
@@ -47,7 +46,7 @@ main fut nat(args arr str) summon
 	print: "\t--max-failures: stop after this many failures. Defaults to 10."
 
 .do-test nat(options test-options) summon
-	test-path = current-directory ~ "/test"
+	test-path = "./test"
 	crow-path = test-path parent-path
 	crow-exe = crow-path child-path "bin" child-path "crow"
 	env = get-environ

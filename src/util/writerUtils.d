@@ -2,9 +2,10 @@ module util.writerUtils;
 
 @safe @nogc pure nothrow:
 
+import util.collection.str : startsWith;
 import util.lineAndColumnGetter : LineAndColumn, lineAndColumnAtPos, LineAndColumnGetter;
 import util.opt : force, has, Opt;
-import util.path : AllPaths, baseName, nParents, parent, path, Path, PathAndStorageKind, RelPath;
+import util.path : AbsolutePath, AllPaths, baseName, nParents, parent, path, Path, PathAndStorageKind, RelPath;
 import util.sourceRange : Pos, RangeWithinFile;
 import util.sym : Sym, writeSym, writeSymAndGetSize;
 import util.util : repeat, todo;
@@ -21,6 +22,21 @@ private void writePath(Alloc, PathAlloc)(
 		writeChar(writer, '/');
 	}
 	writeStr(writer, baseName(allPaths, p));
+}
+
+void writePathRelativeToCwd(Alloc, PathAlloc)(
+	ref Writer!Alloc writer,
+	ref const AllPaths!PathAlloc allPaths,
+	immutable string cwd,
+	ref immutable AbsolutePath path,
+) {
+	if (startsWith(path.root, cwd)) {
+		writeStatic(writer, "./");
+		writeStr(writer, path.root[cwd.length .. $]);
+		writePath(writer, allPaths, path.path);
+		writeStr(writer, path.extension);
+	} else
+		todo!void("!");
 }
 
 void writeRelPath(Alloc, PathAlloc)(
