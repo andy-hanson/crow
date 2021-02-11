@@ -33,6 +33,7 @@ import lib.compiler :
 	compileAndDocument,
 	DiagsAndResultStrs,
 	DocumentResult,
+	ExitCode,
 	print;
 import model.model : AbsolutePathsGetter;
 import test.test : test;
@@ -62,6 +63,7 @@ import util.path :
 	PathAndStorageKind,
 	pathParent,
 	pathToCStr,
+	pathToNulTerminatedStr,
 	pathToStr,
 	removeFirstPathComponentIf,
 	rootPath,
@@ -78,10 +80,10 @@ import util.types :
 import util.util : todo, unreachable, verify;
 import util.writer : Writer;
 
-extern(C) int main(immutable size_t argc, immutable CStr* argv) {
+extern(C) immutable(int) main(immutable size_t argc, immutable CStr* argv) {
 	Mallocator mallocator;
 	immutable CommandLineArgs args = parseCommandLineArgs(mallocator, argc, argv);
-	return go(mallocator, args);
+	return go(mallocator, args).value;
 }
 
 private:
@@ -95,7 +97,7 @@ struct StdoutDebug {
 
 	void write(scope immutable string a) {
 		debug {
-			printf("%.*s", cast(uint) size(a), begin(a));
+			printf("%.*s", cast(immutable uint) size(a), begin(a));
 		}
 	}
 
@@ -106,7 +108,7 @@ struct StdoutDebug {
 	}
 }
 
-immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
+immutable(ExitCode) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 	AllPaths!Alloc allPaths = AllPaths!Alloc(ptrTrustMe_mut(alloc));
 	immutable string crowDir = getCrowDirectory(args.pathToThisExecutable);
 	immutable string includeDir = getIncludeDirectory(alloc, crowDir);
@@ -117,7 +119,7 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 	immutable ShowDiagOptions showDiagOptions = immutable ShowDiagOptions(true);
 	StdoutDebug dbg;
 
-	return matchCommand!int(
+	return matchCommand!(immutable ExitCode)(
 		command,
 		(ref immutable Command.Build it) =>
 			runBuild(alloc, allPaths, cwd, includeDir, tempDir, it.programDirAndMain, it.options).err,
@@ -142,19 +144,19 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 				getMain(allPaths, includeDir, it.programDirAndMain));
 			if (!empty(printed.diagnostics)) printErr(printed.diagnostics);
 			if (!empty(printed.result)) print(printed.result);
-			return empty(printed.diagnostics) ? 0 : 1;
+			return empty(printed.diagnostics) ? ExitCode.ok : ExitCode.error;
 		},
 		(ref immutable Command.Run run) =>
-			matchRunOptions!int(
+			matchRunOptions!(immutable ExitCode)(
 				run.options,
 				(ref immutable RunOptions.BuildAndRun it) {
 					immutable RunBuildResult built =
 						runBuild(alloc, allPaths, cwd, includeDir, tempDir, run.programDirAndMain, it.build);
-					if (built.err != 0)
+					if (built.err != ExitCode.ok)
 						return built.err;
 					else {
 						replaceCurrentProcess(alloc, allPaths, built.exePath, run.programArgs);
-						return unreachable!int();
+						return unreachable!ExitCode();
 					}
 				},
 				(ref immutable RunOptions.Interpret) {
@@ -213,7 +215,28 @@ immutable(int) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs args) {
 	return strOfNulTerminatedStr(dirPath);
 }
 
-immutable(int) runDocument(Alloc, PathAlloc)(
+@system immutable(ExitCode) mkdirRecur(TempAlloc)(ref TempAlloc tempAlloc, immutable string dir) {
+	immutable char* dirCStr = strToCStr(tempAlloc, dir);
+	immutable int err = mkdir(dirCStr, S_IRWXU);
+	if (err == ENOENT) {
+		immutable Opt!string par = pathParent(dir);
+		if (has(par)) {
+			immutable ExitCode res = mkdirRecur(tempAlloc, force(par));
+			return res == ExitCode.ok
+				? handleMkdirErr(mkdir(dirCStr, S_IRWXU), dirCStr)
+				: res;
+		}
+	}
+	return handleMkdirErr(err, dirCStr);
+}
+
+@system immutable(ExitCode) handleMkdirErr(immutable int err, immutable char* dir) {
+	if (err != 0)
+		fprintf(stderr, "Error making directory %s: %s\n", dir, strerror(errno));
+	return immutable ExitCode(err);
+}
+
+immutable(ExitCode) runDocument(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
 	immutable string cwd,
@@ -229,20 +252,15 @@ immutable(int) runDocument(Alloc, PathAlloc)(
 		programDirAndMain.programDir);
 	immutable DocumentResult result =
 		compileAndDocument(alloc, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
-	if (empty(result.diagnostics)) {
-		if (has(out_))
-			writeFile(alloc, allPaths, force(out_), result.document);
-		else
-			print(result.document);
-		return 0;
-	} else {
-		printErr(result.diagnostics);
-		return 1;
-	}
+	return empty(result.diagnostics)
+		? has(out_)
+			? writeFile(alloc, pathToNulTerminatedStr(alloc, allPaths, force(out_)), result.document)
+			: print(result.document)
+		: printErr(result.diagnostics);
 }
 
 struct RunBuildResult {
-	immutable int err;
+	immutable ExitCode err;
 	immutable AbsolutePath exePath;
 }
 
@@ -262,7 +280,7 @@ immutable(RunBuildResult) runBuild(Alloc, PathAlloc)(
 	immutable AbsolutePath exePath = has(options.out_.outExecutable)
 		? force(options.out_.outExecutable)
 		: immutable AbsolutePath(tempDir, rootPath(allPaths, name), "");
-	immutable int err = buildToCAndCompile(
+	immutable ExitCode err = buildToCAndCompile(
 		alloc,
 		allPaths,
 		showDiagOptions,
@@ -286,7 +304,7 @@ immutable(string) getCrowDirectory(immutable string pathToThisExecutable) {
 	return forceOrTodo(res);
 }
 
-immutable(int) buildToCAndCompile(Alloc, PathAlloc)(
+immutable(ExitCode) buildToCAndCompile(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
 	ref immutable ShowDiagOptions showDiagOptions,
@@ -305,13 +323,10 @@ immutable(int) buildToCAndCompile(Alloc, PathAlloc)(
 	immutable BuildToCResult result =
 		buildToC(alloc, allPaths, storage, showDiagOptions, getMain(allPaths, includeDir, programDirAndMain));
 	if (empty(result.diagnostics)) {
-		writeFile(alloc, allPaths, cPath, result.cSource);
-		compileC(alloc, allPaths, cPath, exePath, result.allExternLibraryNames);
-		return 0;
-	} else {
-		printErr(result.diagnostics);
-		return 1;
-	}
+		immutable ExitCode res = writeFile(alloc, pathToNulTerminatedStr(alloc, allPaths, cPath), result.cSource);
+		return res == ExitCode.ok ? compileC(alloc, allPaths, cPath, exePath, result.allExternLibraryNames) : res;
+	} else
+		return printErr(result.diagnostics);
 }
 
 immutable(PathAndStorageKind) getMain(PathAlloc)(
@@ -332,17 +347,17 @@ immutable(PathAndStorageKind) getMain(PathAlloc)(
 		strEq(includeDir, programDirAndMain.programDir) ? StorageKind.global : StorageKind.local);
 }
 
-immutable(int) help(ref immutable Command.Help a) {
+immutable(ExitCode) help(ref immutable Command.Help a) {
 	println(a.helpText);
 	final switch (a.kind) {
 		case Command.Help.Kind.requested:
-			return 0;
+			return ExitCode.ok;
 		case Command.Help.Kind.error:
-			return 1;
+			return ExitCode.error;
 	}
 }
 
-void compileC(Alloc, PathAlloc)(
+immutable(ExitCode) compileC(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
 	ref immutable AbsolutePath cPath,
@@ -374,20 +389,21 @@ void compileC(Alloc, PathAlloc)(
 		pathToStr(alloc, allPaths, exePath),
 	]);
 	immutable int err = spawnAndWait(alloc, allPaths, "/usr/bin/cc", finishArr(alloc, args));
-	if (err != 0)
-		todo!void("C compile error");
+	return ExitCode(err);
 }
 
-@trusted void print(immutable string a) {
+@trusted immutable(ExitCode) print(immutable string a) {
 	printf("%.*s", cast(uint) size(a), begin(a));
+	return ExitCode.ok;
 }
 
 @trusted void println(immutable string a) {
 	printf("%.*s\n", cast(uint) size(a), begin(a));
 }
 
-@trusted void printErr(immutable string a) {
+@trusted immutable(ExitCode) printErr(immutable string a) {
 	fprintf(stderr, "%.*s", cast(uint) size(a), begin(a));
+	return ExitCode.error;
 }
 
 struct Mallocator {
@@ -737,24 +753,39 @@ extern(C) {
 	return cb(s);
 }
 
-@trusted void writeFile(TempAlloc, PathAlloc)(
+@trusted immutable(ExitCode) writeFile(TempAlloc)(
 	ref TempAlloc tempAlloc,
-	ref const AllPaths!PathAlloc allPaths,
-	ref immutable AbsolutePath path,
-	immutable string content,
+	immutable NulTerminatedStr path,
+	string content,
 ) {
-	immutable CStr pathCStr = pathToCStr(tempAlloc, allPaths, path);
-	immutable int fd = open(pathCStr, O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
-	if (fd == -1)
-		todo!void("can't write to file");
-	scope(exit) close(fd);
+	immutable int fd = tryOpenFile(tempAlloc, path);
+	if (fd == -1) {
+		fprintf(stderr, "Failed to write file %s: %s\n", asCStr(path), strerror(errno));
+		return ExitCode.error;
+	} else {
+		scope(exit) close(fd);
 
-	immutable long wroteBytes = posixWrite(fd, content.begin, size(content));
-	if (wroteBytes != size(content))
-		if (wroteBytes == -1)
-			todo!void("writeFile failed");
-		else
-			todo!void("writeFile -- didn't write all the bytes?");
+		immutable long wroteBytes = posixWrite(fd, content.begin, size(content));
+		if (wroteBytes != size(content))
+			if (wroteBytes == -1)
+				todo!void("writeFile failed");
+			else
+				todo!void("writeFile -- didn't write all the bytes?");
+		return ExitCode.ok;
+	}
+}
+
+@system immutable(int) tryOpenFile(TempAlloc)(ref TempAlloc tempAlloc, immutable NulTerminatedStr path) {
+	immutable int fd = open(asCStr(path), O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
+	if (fd == -1 && errno == ENOENT) {
+		immutable Opt!string par = pathParent(strOfNulTerminatedStr(path));
+		if (has(par)) {
+			immutable ExitCode res = mkdirRecur(tempAlloc, force(par));
+			if (res == ExitCode.ok)
+				return open(asCStr(path), O_CREAT | O_WRONLY | O_TRUNC, 0b110_100_100);
+		}
+	}
+	return fd;
 }
 
 // Replaces this process with the given executable.
@@ -816,7 +847,7 @@ immutable size_t maxPathSize = 0x1000;
 
 // Returns the child process' error code.
 // WARN: A first arg will be prepended that is the executable path.
-@trusted int spawnAndWait(TempAlloc, PathAlloc)(
+@trusted immutable(int) spawnAndWait(TempAlloc, PathAlloc)(
 	ref TempAlloc tempAlloc,
 	ref const AllPaths!PathAlloc allPaths,
 	immutable CStr executablePath,

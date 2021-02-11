@@ -24,12 +24,19 @@ mixin documentationPage(id)
 			main
 				block
 
+mixin typeParams(typeParams)
+	- if (typeParams.length !== 0)
+		ul.typeParams
+			each typeParam in typeParams
+				li=typeParam
+
 // TODO: specs
-mixin function(name, returnType, params)
+mixin function(name, typeParams, returnType, params)
 	section.function
 		h4
 			div
 				span.fun-def=name
+				+typeParams(typeParams)
 				= " "
 				span.struct-ref= returnType
 				|(
@@ -44,11 +51,40 @@ mixin function(name, returnType, params)
 				|)
 		block
 
-mixin record(name, fields)
+mixin alias(name, typeParams, type)
+	section.alias
+		h4
+			div
+				span.struct-def=name
+				+typeParams(typeParams)
+				=" alias "
+				=type
+		block
+
+mixin builtinType(name, typeParams)
+	section.builtin
+		h4
+			div
+				span.struct-def=name
+				+typeParams(typeParams)
+				=" builtin"
+		block
+
+mixin externPtrType(name, typeParams)
+	section.extern-ptr
+		h4
+			div
+				span.struct-def=name
+				+typeParams(typeParams)
+				=" extern-ptr"
+		block
+
+mixin record(name, typeParams, fields)
 	section.record
 		h4
 			div
 				span.struct-def=name
+				+typeParams(typeParams)
 				= " record"
 				ul.fields
 					each field in fields
@@ -61,13 +97,25 @@ mixin record(name, fields)
 								span.keyword=field[2]
 		block
 
-mixin union(name, members)
+mixin union(name, typeParams, members)
 	section.union
 		h4
 			div
 				span.struct-def=name
+				+typeParams(typeParams)
 				= " union"
 				ul.members
 					each member in members
 						li
 							span.struct-ref=member
+		block
+
+mixin spec(name, typeParams, sigs_)
+	// TODO: use sigs
+	section.spec
+		h4
+			div
+				span.spec-def=name
+				+typeParams(typeParams)
+				= " spec"
+		block

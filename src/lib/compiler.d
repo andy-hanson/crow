@@ -71,9 +71,15 @@ immutable(DiagsAndResultStrs) print(Alloc, PathAlloc, ReadOnlyStorage)(
 	}
 }
 
-// These return program exit codes
+struct ExitCode {
+	@safe @nogc pure nothrow:
+	immutable int value;
 
-immutable(int) buildAndInterpret(Debug, Alloc, PathAlloc, SymAlloc, ReadOnlyStorage, Extern)(
+	static immutable(ExitCode) ok() { return immutable ExitCode(0); }
+	static immutable(ExitCode) error() { return immutable ExitCode(1); }
+}
+
+immutable(ExitCode) buildAndInterpret(Debug, Alloc, PathAlloc, SymAlloc, ReadOnlyStorage, Extern)(
 	ref Debug dbg,
 	ref Alloc alloc,
 	ref AllPaths!PathAlloc allPaths,
@@ -89,7 +95,7 @@ immutable(int) buildAndInterpret(Debug, Alloc, PathAlloc, SymAlloc, ReadOnlyStor
 		immutable Ptr!LowProgram lowProgram = force(programs.concreteAndLowProgram).lowProgram;
 		immutable ByteCode byteCode = generateBytecode(dbg, alloc, alloc, programs.program, lowProgram);
 		immutable AbsolutePath mainAbsolutePath = getAbsolutePathFromStorage(storage, main, crowExtension);
-		return runBytecode(
+		return immutable ExitCode(runBytecode(
 			dbg,
 			alloc,
 			allPaths,
@@ -98,7 +104,7 @@ immutable(int) buildAndInterpret(Debug, Alloc, PathAlloc, SymAlloc, ReadOnlyStor
 			byteCode,
 			programs.program.filesInfo,
 			mainAbsolutePath,
-			programArgs);
+			programArgs));
 	} else {
 		writeDiagsToExtern(
 			alloc,
@@ -107,7 +113,7 @@ immutable(int) buildAndInterpret(Debug, Alloc, PathAlloc, SymAlloc, ReadOnlyStor
 			showDiagOptions,
 			programs.program.filesInfo,
 			programs.program.diagnostics);
-		return 1;
+		return ExitCode.error;
 	}
 }
 

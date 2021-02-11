@@ -2,7 +2,7 @@ module lib.server;
 
 @safe @nogc nothrow: // not pure
 
-import lib.compiler : buildAndInterpret;
+import lib.compiler : buildAndInterpret, ExitCode;
 import frontend.frontendCompile : frontendCompile;
 import frontend.ide.getHover : getHoverStr;
 import frontend.ide.getPosition : getPosition, Position;
@@ -147,7 +147,7 @@ private pure immutable(Opt!FileIndex) getFileIndex(
 }
 
 struct RunResult {
-	immutable int err;
+	immutable ExitCode err;
 	immutable string stdout;
 	immutable string stderr;
 }
@@ -164,7 +164,7 @@ immutable(RunResult) run(Debug, Alloc, ServerAlloc)(
 	immutable string[] programArgs = emptyArr!string;
 	FakeExtern!Alloc extern_ = FakeExtern!Alloc(ptrTrustMe_mut(alloc));
 	DictReadOnlyStorage storage = DictReadOnlyStorage(ptrTrustMe_const(server.files));
-	immutable int err = buildAndInterpret(
+	immutable ExitCode err = buildAndInterpret(
 		dbg, alloc, server.allPaths, server.allSymbols, storage, extern_, showDiagOptions, main, programArgs);
 	return RunResult(err, extern_.moveStdout(), extern_.moveStderr());
 }

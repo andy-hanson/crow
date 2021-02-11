@@ -64,16 +64,16 @@ site/include-list.txt: bin/crow include/*.crow
 
 prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz pug
 
-pugs: site/documentation/compare.pug site/documentation/collection/arr.pug
+INCLUDE = $(wildcard include/**/*.crow)
+PUGS = $(patsubst include/%.crow, site/documentation/%.pug, $(INCLUDE))
+HTMLS = $(patsubst site/%.pug,)
 
-site/documentation/%.pug: include/%.crow
+site/documentation/%.pug: include/%.crow bin/crow
 	bin/crow doc $< --out $@
 
+pugs: $(PUGS)
 
-
-#$(pugs): site/documentation/%.pug: include/%.crow
-
-site/%.html:
+#TODO: site/%.html:
 
 pug: site/*.pug site/*/*.pug
 	pug site

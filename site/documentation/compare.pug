@@ -2,24 +2,24 @@
 include ../pug-include/documentation.pug
 +documentationPage("compare")
 	section
-		+record("less", [])
+		+record("less", [], [])
 			| Comparison for `a < b`
-		+record("equal", [])
+		+record("equal", [], [])
 			| Comparison for `a == b`
-		+record("greater", [])
+		+record("greater", [], [])
 			| Comparison for `a > b`
-		+union("comparison", ["less", "equal", "greater"])
-		+function("<=>", "comparison", [["a", "?t"], ["b", "?t"]])
-		+function("==", "bool", [["a", "?t"], ["b", "?t"]])
+		+union("comparison", [], ["less", "equal", "greater"])
+		+function("<=>", ["?t"], "comparison", [["a", "?t"], ["b", "?t"]])
+		+function("==", ["?t"], "bool", [["a", "?t"], ["b", "?t"]])
 			|True if both sides are same value.
 			|TODO: This should return true for `nan == nan`
-		+function("max", "?t", [["a", "?t"], ["b", "?t"]])
+		+function("max", ["?t"], "?t", [["a", "?t"], ["b", "?t"]])
 			| Returns the greater argument
-		+function("to-str", "arr char", [["a", "comparison"]])
-		+function("min", "?t", [["a", "?t"], ["b", "?t"]])
+		+function("to-str", [], "arr char", [["a", "comparison"]])
+		+function("min", ["?t"], "?t", [["a", "?t"], ["b", "?t"]])
 			| Returns the lesser argument
-		+function(">=", "bool", [["a", "?t"], ["b", "?t"]])
-		+function(">", "bool", [["a", "?t"], ["b", "?t"]])
-		+function("<=", "bool", [["a", "?t"], ["b", "?t"]])
-		+function("<", "bool", [["a", "?t"], ["b", "?t"]])
-		+function("!=", "bool", [["a", "?t"], ["b", "?t"]])
+		+function(">=", ["?t"], "bool", [["a", "?t"], ["b", "?t"]])
+		+function(">", ["?t"], "bool", [["a", "?t"], ["b", "?t"]])
+		+function("<=", ["?t"], "bool", [["a", "?t"], ["b", "?t"]])
+		+function("<", ["?t"], "bool", [["a", "?t"], ["b", "?t"]])
+		+function("!=", ["?t"], "bool", [["a", "?t"], ["b", "?t"]])

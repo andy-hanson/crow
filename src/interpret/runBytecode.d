@@ -97,6 +97,11 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 	immutable CStr firstArg = pathToCStr(externAlloc, allPaths, executablePath);
 	immutable CStr[] allArgs = mapWithFirst!(CStr, string)(externAlloc, firstArg, args, (ref immutable string arg) =>
 		strToCStr(externAlloc, arg));
+	scope(exit) {
+		foreach (immutable CStr arg; allArgs)
+			freeCStr(externAlloc, arg);
+		freeArr(externAlloc, allArgs);
+	}
 
 	push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
 	// These need to be CStrs
@@ -112,9 +117,6 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 		}
 	}
 
-	foreach (immutable CStr arg; allArgs)
-		freeCStr(externAlloc, arg);
-	freeArr(externAlloc, allArgs);
 }
 
 enum StepResult {

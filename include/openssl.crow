@@ -3,10 +3,10 @@ import
 	.fun: fun-ptr6
 	.number: int32, int64, nat8, nat32, nat64
 	.misc: void
-	.posix.posix: fd-t, u-long
+	.posix.c-types: u-long
+	.posix.extra-types: fd-t
 	.ptr: any-ptr, null, ptr
 	.str: c-str, str
-	.str-conv: literal
 
 # /usr/include/openssl/ossl_typ.h
 ssl extern-ptr
@@ -38,7 +38,7 @@ ssl-ctx-set-mode long(s ssl-ctx, op long) summon
 	s ssl-ctx-ctrl ssl-ctrl-mode, op, null
 
 proto-select-cb alias
-	fun-ptr6 int32 ssl ptr<str> ptr<nat8> ptr<nat8> nat32 any-ptr
+	fun-ptr6<int32, ssl, ptr str, ptr nat8, ptr nat8, nat32, any-ptr>
 
 ssl-ctx-set-next-proto-select-cb void
 	s ssl-ctx

@@ -222,6 +222,14 @@ immutable(CStr) pathToCStr(Alloc, PathAlloc)(
 	return pathToNulTerminatedStr(alloc, allPaths, root, path, extension).asCStr();
 }
 
+immutable(NulTerminatedStr) pathToNulTerminatedStr(Alloc, PathAlloc)(
+	ref Alloc alloc,
+	ref const AllPaths!PathAlloc allPaths,
+	ref immutable AbsolutePath path,
+) {
+	return pathToNulTerminatedStr(alloc, allPaths, path.root, path.path, path.extension);
+}
+
 private immutable(NulTerminatedStr) pathToNulTerminatedStr(Alloc, PathAlloc)(
 	ref Alloc alloc,
 	ref const AllPaths!PathAlloc allPaths,
@@ -404,6 +412,11 @@ private immutable(Opt!ParentAndBaseName) pathParentAndBaseName(immutable string 
 
 immutable(Comparison) comparePath(immutable Path a, immutable Path b) {
 	return compareNat16(a.index, b.index);
+}
+
+immutable(uint) nPathComponents(Alloc)(ref const AllPaths!Alloc allPaths, immutable Path a) {
+	immutable Opt!Path par = parent(allPaths, a);
+	return 1 + (has(par) ? nPathComponents(allPaths, force(par)) : 0);
 }
 
 enum StorageKind {

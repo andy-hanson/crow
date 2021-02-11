@@ -197,7 +197,7 @@ struct WasmDebug {
 immutable(CStr) writeRunResult(Alloc)(ref Alloc alloc, ref immutable RunResult result) {
 	Writer!Alloc writer = Writer!Alloc(ptrTrustMe_mut(alloc));
 	writeStatic(writer, "{\"err\":");
-	writeNat(writer, result.err);
+	writeNat(writer, result.err.value);
 	writeStatic(writer, ",\"stdout\":");
 	writeQuotedStr(writer, result.stdout);
 	writeStatic(writer, ",\"stderr\":");

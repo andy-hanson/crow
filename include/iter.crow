@@ -1,25 +1,12 @@
 no-std
 import
 	.bool: bool
-	.cell: cell, get, set
-	.compare: ==, <=
-	.exceptions: assert, forbid
-	.misc: drop, void
+	.cell: cell, set-subscript, subscript
+	.compare: >=
+	.fun: subscript
+	.misc: arrow, from, to, void
 	.number: +, nat
 	.opt: none, opt, some, value
-	.ptr: subscript
-
-# TODO: Depend on a spec, then move to cell.crow
-get-and-incr nat(c cell nat)
-	res = c get
-	c set: res + 1
-	res
-
-cell-incr void(c cell nat)
-	c.get-and-incr drop
-
-cell-add void(c cell nat, n nat)
-	c set: c.get + n
 
 # TODO: ALIAS
 iterator<?t> record mut
@@ -45,10 +32,12 @@ iter iterator nat(r arrow<nat, nat>)
 	# TODO: should not need a type argument here
 	n = r.from cell<nat>
 	iterator: \
-		if n.get >= r.to
+		if n[] >= r.to
 			none
 		else
-			n.get-and-incr some
+			res = n[]
+			n[] := res + 1
+			res some
 
 each void(s stream ?t, f act void(?t))
 	s.iter each-recur f

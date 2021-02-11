@@ -2,6 +2,7 @@ module test.test;
 
 @safe @nogc nothrow: // not pure
 
+import lib.compiler : ExitCode;
 import test.testApplyFn : testApplyFn;
 import test.testArrUtil : testArrUtil;
 import test.testByteReaderWriter : testByteReaderWriter;
@@ -21,7 +22,7 @@ import util.path : AllPaths;
 import util.ptr : ptrTrustMe_mut;
 import util.sym : AllSymbols;
 
-int test(Debug, Alloc)(ref Debug dbg, ref Alloc alloc, immutable Opt!string name) {
+immutable(ExitCode) test(Debug, Alloc)(ref Debug dbg, ref Alloc alloc, immutable Opt!string name) {
 	Test!(Debug, Alloc) test = Test!(Debug, Alloc)(
 		ptrTrustMe_mut(dbg),
 		ptrTrustMe_mut(alloc),
@@ -30,7 +31,7 @@ int test(Debug, Alloc)(ref Debug dbg, ref Alloc alloc, immutable Opt!string name
 	foreach (ref immutable NameAndTest!(Debug, Alloc) it; allTests!(Debug, Alloc))
 		if (!has(name) || strEq(force(name), it.name))
 			it.test(test);
-	return 0;
+	return ExitCode.ok;
 }
 
 private:
