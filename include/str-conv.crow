@@ -1,10 +1,10 @@
 no-std
 import
 	.bool: ?, bool, false, true
-	.collection.arr: ~, data, empty?, subscript
-	.collection.arr-util: first, tail
-	.collection.dict: dict, each
-	.collection.mut-list: ~=, move-to-arr!, mut-list, size
+	.col.arr: ~, data, empty?, subscript
+	.col.arr-util: first, tail
+	.col.dict: dict, each
+	.col.mut-list: ~=, move-to-arr!, mut-list, size
 	.compare: ==, >
 	.number:
 		+, *, /, abs, float, int, int16, int32, mod, nat, nat16, nat32, multiple-of?, neg,

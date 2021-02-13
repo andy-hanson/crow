@@ -1,7 +1,7 @@
 no-std
 import
 	..bool: bool, false, true
-	..collection.mut-list:
+	..col.mut-list:
 		contains?, mut-list, mut-list-by-val-with-capacity-from-unmanaged-memory,
 		noctx-must-remove-unordered!, push-capacity-must-be-sufficient!
 	..compare: ==, <=

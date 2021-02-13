@@ -39,6 +39,11 @@ The test runner will fail if the output is not exactly as in the file;
 if adding or changing tests, run `make end-to-end-test-overwrite`.
 
 
+# Working on the site
+
+`make watch-site` will automatically build `.html` files when the corresponding `.pug` file changes.
+
+
 # Debugging
 
 ### Debugging the compiler

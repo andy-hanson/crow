@@ -1,5 +1,5 @@
 import
-	collection.arr-util: each
+	col.arr-util: each
 	io.print: print
 	logging: info, log
 

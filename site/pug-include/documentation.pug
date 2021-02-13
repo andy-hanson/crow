@@ -3,36 +3,64 @@ include ./page.pug
 -
 	const pages = [
 		"index",
-		"collection/arr",
+		"bits",
+		"bool",
+		"cell",
+		"col/arr",
+		"col/arr-util",
+		"col/dict",
+		"col/mut-arr",
+		"col/mut-dict",
+		"col/mut-list",
+		"col/mut-set",
+		"col/set",
+		"col/sort",
+		"command-line-parser",
 		"compare",
+		"exceptions",
+		"fun",
+		"fut",
+		"io/environ",
+		"io/file",
+		"io/print",
+		"io/process",
+		"io/time",
+		"iter",
+		"logging",
+		"math/vec",
+		"misc",
+		"number",
+		"opt",
+		"path",
+		"ptr",
+		"result",
+		"str",
+		"str-conv",
+		"str-utils",
 	]
-	const title = id =>
-		({
-			index: "Documentation",
-			"collection/arr": "Array",
-			"compare": "Comparison",
-		})[id]
+	const title = id => id
 
 mixin documentationPage(id)
 	+anyPage(title(id))
-		div(id="side-nav-wrapper")
+		div#side-nav-wrapper.documentation
 			nav
 				ul
-					li: a(href="/documentation/") index
-					li: a(href="/documentation/collection/arr.html") collection.arr
-					li: a(href="/documentation/compare.html") compare
+					each page in pages
+						li: a(href="/documentation/" + page + ".html")= page.replace(/\//g, '.')
 			main
 				block
 
 mixin typeParams(typeParams)
 	- if (typeParams.length !== 0)
+		|<
 		ul.typeParams
 			each typeParam in typeParams
 				li=typeParam
+		|>
 
 // TODO: specs
 mixin function(name, typeParams, returnType, params)
-	section.function
+	section.doc.function
 		h4
 			div
 				span.fun-def=name
@@ -52,7 +80,7 @@ mixin function(name, typeParams, returnType, params)
 		block
 
 mixin alias(name, typeParams, type)
-	section.alias
+	section.doc.alias
 		h4
 			div
 				span.struct-def=name
@@ -62,7 +90,7 @@ mixin alias(name, typeParams, type)
 		block
 
 mixin builtinType(name, typeParams)
-	section.builtin
+	section.doc.builtin
 		h4
 			div
 				span.struct-def=name
@@ -71,7 +99,7 @@ mixin builtinType(name, typeParams)
 		block
 
 mixin externPtrType(name, typeParams)
-	section.extern-ptr
+	section.doc.extern-ptr
 		h4
 			div
 				span.struct-def=name
@@ -80,7 +108,7 @@ mixin externPtrType(name, typeParams)
 		block
 
 mixin record(name, typeParams, fields)
-	section.record
+	section.doc.record
 		h4
 			div
 				span.struct-def=name
@@ -98,7 +126,7 @@ mixin record(name, typeParams, fields)
 		block
 
 mixin union(name, typeParams, members)
-	section.union
+	section.doc.union
 		h4
 			div
 				span.struct-def=name
@@ -112,7 +140,7 @@ mixin union(name, typeParams, members)
 
 mixin spec(name, typeParams, sigs_)
 	// TODO: use sigs
-	section.spec
+	section.doc.spec
 		h4
 			div
 				span.spec-def=name

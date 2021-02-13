@@ -1,9 +1,9 @@
 no-std
 import
-	.collection.arr: arr, size
+	.col.arr: arr, size
 	.compare: ==
 	.cell: cell, set-subscript, subscript
-	.collection.arr-util: each-with-index, first-some, map
+	.col.arr-util: each-with-index, first-some, map
 	.exceptions: catch, exception
 	.fun: subscript
 	.misc: as, void

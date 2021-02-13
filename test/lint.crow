@@ -1,8 +1,8 @@
 import
 	cell: cell, swap, subscript
-	collection.arr-util:
+	col.arr-util:
 		contains?, contains-subseq?, each-with-index, exists?, ends-with?, first, tail
-	collection.mut-list: ~=, move-to-arr!, mut-list
+	col.mut-list: ~=, move-to-arr!, mut-list
 	io.file: read-file
 	io.print: print
 	path: base-name, each-child-recursive, get-extension

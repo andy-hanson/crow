@@ -1,5 +1,5 @@
 import
-	collection.mut-arr: arr, mut-arr, set-subscript, subscript
+	col.mut-arr: arr, mut-arr, set-subscript, subscript
 	io.print: print
 
 main fut nat(_ arr str) summon

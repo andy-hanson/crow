@@ -3,9 +3,9 @@ import
 	..private.bootstrap: todo
 	..bool: and, bool, not, or, to-nat
 	..cell: cell, subscript
-	..collection.arr: ~, arr, data, ref-of-val-at, size
-	..collection.arr-util: fold, map
-	..collection.mut-list: data, move-to-arr!, mut-list, size, reserve, unsafe-increase-size!
+	..col.arr: ~, arr, data, ref-of-val-at, size
+	..col.arr-util: fold, map
+	..col.mut-list: data, move-to-arr!, mut-list, size, reserve, unsafe-increase-size!
 	..compare: ==, <=
 	..exceptions: assert, fail
 	..misc: as, void

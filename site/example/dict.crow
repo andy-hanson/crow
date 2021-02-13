@@ -1,6 +1,6 @@
 import
-	collection.dict: dict, subscript
-	collection.mut-dict: mut-dict, remove!, set-subscript, subscript
+	col.dict: dict, subscript
+	col.mut-dict: mut-dict, remove!, set-subscript, subscript
 	io.print: print
 
 main fut nat(_ arr str) summon

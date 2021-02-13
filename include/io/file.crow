@@ -4,10 +4,10 @@ import
 	..bits: bits-and, bit-shift-left, bits-or
 	..bool: and, bool, false, not
 	..cell: cell, subscript
-	..collection.arr: ~, arr, data, size, subscript
-	..collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
-	..collection.mut-list: ~=, move-to-arr!, mut-list
-	..collection.sort: sort
+	..col.arr: ~, arr, data, size, subscript
+	..col.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
+	..col.mut-list: ~=, move-to-arr!, mut-list
+	..col.sort: sort
 	..compare: ==, !=, <
 	..exceptions: assert, fail, forbid
 	..misc: ->, as, void

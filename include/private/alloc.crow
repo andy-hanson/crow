@@ -155,7 +155,7 @@ get-gc-ctx gc-ctx(gc gc) noctx unsafe
 	gc.lk.ref-of-val acquire!
 	res = match gc.context-head
 	as none
-		# NOTE: malloc'd memory is not traced for garbage collection.
+		# NOTE: malloc'd memory is not traced for garbage col.
 		# This is fine as 'gc' is kept alive anyway.
 		# TODO: `size-of<by-val<gc-ctx>>.malloc` should be legal
 		c = (size-of<by-val<gc-ctx>> malloc) as-ref<gc-ctx>

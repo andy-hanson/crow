@@ -1,6 +1,6 @@
 import
-	collection.dict: dict
-	collection.mut-set: ~=, mut-set, remove!, subscript
+	col.dict: dict
+	col.mut-set: ~=, mut-set, remove!, subscript
 	io.net.http-server: http-handler, http-response, start-http-server
 	io.net.tcp-server: close-client, start-tcp-server, stop, tcp-handler
 	io.print: print

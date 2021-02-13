@@ -1,6 +1,6 @@
 import
-	collection.arr-util: first, first-some, tail
-	collection.mut-list: ~=, move-to-arr!, mut-list
+	col.arr-util: first, first-some, tail
+	col.mut-list: ~=, move-to-arr!, mut-list
 	io.environ: environ
 	io.print: print
 	io.process: exit-code, spawn-and-wait-result, stderr, stdout

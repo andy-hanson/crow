@@ -1,6 +1,6 @@
 import
 	io.print: print
-	collection.arr-util: ends-with?
+	col.arr-util: ends-with?
 
 main fut nat(_ arr str) summon
 	print: "albatross".greet

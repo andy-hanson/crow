@@ -1,8 +1,8 @@
 no-std
 import
 	..bool: ?, and, bool, false, not, or, true
-	..collection.arr: ~, arr, empty?, noctx-at, size, subscript
-	..collection.arr-util: join
+	..col.arr: ~, arr, empty?, noctx-at, size, subscript
+	..col.arr-util: join
 	..compare: ==, !=, >, min
 	..exceptions: exception, exception-ctx, message
 	..io.print: print-err, print-err-no-newline

@@ -2,8 +2,8 @@ no-std
 import
 	..bool: ?, false
 	..cell: as-cell
-	..collection.arr: arr
-	..collection.arr-util: map, tail
+	..col.arr: arr
+	..col.arr-util: map, tail
 	..compare: !=
 	..exceptions: exception-ctx
 	..fun: fun-ptr2, subscript

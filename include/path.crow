@@ -1,8 +1,8 @@
 no-std
 import
 	.bool: bool
-	.collection.arr: ~, empty?, size, subscript
-	.collection.arr-util: each, last, r-index-of, rtail
+	.col.arr: ~, empty?, size, subscript
+	.col.arr-util: each, last, r-index-of, rtail
 	.compare: ==
 	.fun: subscript
 	.io.file: is-dir?, read-dir

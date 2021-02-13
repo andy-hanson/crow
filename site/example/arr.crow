@@ -1,5 +1,5 @@
 import
-	collection.arr-util: join
+	col.arr-util: join
 	io.print: print
 
 main fut nat(_ arr str) summon

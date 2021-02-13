@@ -1,6 +1,6 @@
 no-std
 import
-	.collection.arr: ~
+	.col.arr: ~
 	.exceptions: finally
 	.fun: subscript
 	.io.print: print

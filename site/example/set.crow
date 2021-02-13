@@ -1,7 +1,7 @@
 import
-	collection.arr-util: join
-	collection.mut-set: ~=, move-to-set!, mut-set, remove!, subscript
-	collection.set: -, ~, arr, intersect, set, size, subscript
+	col.arr-util: join
+	col.mut-set: ~=, move-to-set!, mut-set, remove!, subscript
+	col.set: -, ~, arr, intersect, set, size, subscript
 	io.print: print
 
 main fut nat(_ arr str) summon

@@ -1,5 +1,5 @@
 import
-	collection.arr-util: try-remove-start
+	col.arr-util: try-remove-start
 	io.io: check-errno-if-not-zero, connect-to-uri, exit-code, print, uri
 	openssl
 		err-clear-error, openssl-init-ssl, ssl, ssl-connect, ssl-ctx, ssl-ctx-new,

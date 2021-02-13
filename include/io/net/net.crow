@@ -2,7 +2,7 @@ no-std
 import
 	...private.bootstrap: todo
 	...cell: cell, subscript
-	...collection.arr: ~
+	...col.arr: ~
 	...compare: ==, !=
 	...exceptions: assert
 	...number: nat16

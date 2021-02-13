@@ -2,30 +2,35 @@ no-std
 import
 	.bool: bool, false, true
 	.cell: cell, set-subscript, subscript
-	.collection.arr: ~, arr, empty?, size, subscript
-	.collection.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
-	.collection.dict: dict, each
-	.collection.mut-dict: move-to-dict!, mut-dict, set-subscript
-	.collection.mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
+	.col.arr: ~, arr, empty?, size, subscript
+	.col.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
+	.col.dict: dict, each
+	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
+	.col.mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
 	.compare: ==
 	.exceptions: assert, fail, forbid
-	.fun: subscript
 	.misc: ->, void
 	.number: +
 	.opt: has?, none, opt, some, value
 	.str: str
 
-# TODO: this would be neater if we had reflection!
-parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt arr str))
-	parsed = args parse-cmd-line-args-dynamic
+###
+Returns none on failure to parse.
+On success, returns an array of corresponding arguments.
+Each argument will be 'none' if the argument was passed, else an array of argument values.
+If the command line is "--a --c d" and arg-names are ["a", "b", "c"],
+"a" will get `[].some`, "b" will get `none`, and "c" will get `["d"].some`.
+###
+parse-command opt arr opt arr str(args arr str, arg-names arr str)
+	parsed = args parse-command-dynamic
 	assert: parsed.nameless empty?, "Should be no nameless args"
 	assert: parsed.after empty?
 
-	values = t-names.size fill-mut-list<opt arr str> none
+	values = arg-names.size fill-mut-list<opt arr str> none
 	# TODO: should not need a type argument here
 	help = false cell<bool>
 	parsed.named each \key, value
-		match t-names index-of key
+		match arg-names index-of key
 		as none
 			if key == "help"
 				help[] := true
@@ -40,36 +45,36 @@ parse-cmd-line-args opt ?t(args arr str, t-names arr str, make-t fun ?t(arr opt 
 	if help[]
 		none
 	else
-		make-t[values move-to-arr!] some
+		values.move-to-arr! some
 
 # Command line syntax:
 # `foo bar --a 1 --b 2 3 -- x y z`
 # nameless: foo bar
 # named: a = 1, b = 2 3
 # after: x y z
-parsed-cmd-line-args record
+.parsed-command record
 	nameless arr str
 	named dict<str, arr str>
 	after arr str
 
-parse-cmd-line-args-dynamic parsed-cmd-line-args(args arr str)
+.parse-command-dynamic parsed-command(args arr str)
 	# Find the location of the first name beginning in '--'
 	match args find-index {it starts-with? "--"}
 	as none
-		parsed-cmd-line-args: args, [].dict, []
+		parsed-command: args, [].dict, []
 	as some s
 		first-named-arg-index = s.value
 		nameless = args[0 -> first-named-arg-index]
 		rest = args[first-named-arg-index -> args.size]
 		match rest find-index {it == "--"}
 		as none
-			parsed-cmd-line-args: nameless, rest.parse-named-args, []
+			parsed-command: nameless, rest.parse-named-args, []
 		as some s2
 			sep-index = s2 value
 			named-args = rest[0 -> sep-index] parse-named-args
-			parsed-cmd-line-args: nameless, named-args, rest[sep-index + 1 -> rest.size]
+			parsed-command: nameless, named-args, rest[sep-index + 1 -> rest.size]
 
-parse-named-args dict<str, arr str>(args arr str)
+.parse-named-args dict<str, arr str>(args arr str)
 	res = mut-dict<str, arr str>
 	args parse-named-args-recur res
 	res move-to-dict!

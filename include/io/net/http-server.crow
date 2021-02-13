@@ -2,11 +2,11 @@ no-std
 import
 	...private.bootstrap: todo
 	...bool: and, bool, false, true
-	...collection.arr: arr, data, empty?, has?, size, subscript
-	...collection.arr-util: contains?, last, rtail, split-by-subseq
-	...collection.dict: dict, each, has?
-	...collection.mut-dict: move-to-dict!, mut-dict, remove!, set-subscript, subscript
-	...collection.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
+	...col.arr: arr, data, empty?, has?, size, subscript
+	...col.arr-util: contains?, last, rtail, split-by-subseq
+	...col.dict: dict, each, has?
+	...col.mut-dict: move-to-dict!, mut-dict, remove!, set-subscript, subscript
+	...col.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
 	...compare: ==, !=, <=, >=
 	...exceptions: assert, forbid
 	...fut: fut, resolved, subscript, then

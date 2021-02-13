@@ -1,6 +1,6 @@
 .PHONY: debug end-to-end-test end-to-end-test-overwrite pug-watch sdl-demo serve prepare-site test unit-test
 
-all: test lint bin/crow.wasm sdl-demo serve
+all: test lint sdl-demo serve
 
 sdl-demo: bin/crow
 	bin/crow run demo/sdl.crow
@@ -62,25 +62,22 @@ bin/crow.tar.xz: bin/crow demo/* include/* include/*/*
 site/include-list.txt: bin/crow include/*.crow
 	./bin/crow run script/gen-include-list.crow > site/include-list.txt
 
-prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz pug
-
-INCLUDE = $(wildcard include/**/*.crow)
-PUGS = $(patsubst include/%.crow, site/documentation/%.pug, $(INCLUDE))
-HTMLS = $(patsubst site/%.pug,)
+INCLUDE = $(wildcard include/*.crow include/*/*.crow)
+DOC_PUGS = $(patsubst include/%.crow, site/documentation/%.pug, $(INCLUDE))
+ALL_PUGS = $(wildcard site/*.pug site/tutorial/*.pug) site/documentation/index.pug $(DOC_PUGS)
+HTMLS = $(patsubst site/%.pug, site/%.html, $(ALL_PUGS))
 
 site/documentation/%.pug: include/%.crow bin/crow
 	bin/crow doc $< --out $@
 
-pugs: $(PUGS)
+# Pug automatically writes to the corresponding *.html file
+site/%.html: site/%.pug
+	pug $<
 
-#TODO: site/%.html:
+prepare-site: bin/crow.wasm site/include-list.txt bin/crow.tar.xz $(HTMLS)
 
-pug: site/*.pug site/*/*.pug
-	pug site
-
-pug-watch:
-	# WARN: Can't introduce --pretty as that introduces whitespace which changes how things render
-	pug site --watch
+watch-site:
+	while inotifywait --recursive --event modify,move,create,delete site; do make prepare-site; done
 
 serve: prepare-site
 	cd site && python -m SimpleHTTPServer 8080

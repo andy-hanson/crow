@@ -1,18 +1,23 @@
 #!/usr/bin/env crow
 
 import
-	collection.arr-util: first
-	command-line-parser: parse-cmd-line-args
+	col.arr-util: first
 	io.environ: get-environ
 	io.print: print
 	path: child-path, parent-path
+	parse-command: parse-command
 	.failure: first-failures, print-failures, test-options
 	.lint: lint
 	.crow-tests: run-crow-tests
 
 main fut nat(args arr str) summon
 	option-names = ["print-tests", "overwrite-output", "max-failures"]
-	options = args parse-cmd-line-args<test-options> option-names, \values
+	resolved: match args parse-command option-names
+	as none
+		print-help
+		1
+	as some s
+		values = s value
 		print-tests-strs = values[0]
 		overwrite-output-strs = values[1]
 		max-failures-strs = values[2]
@@ -20,24 +25,18 @@ main fut nat(args arr str) summon
 		overwrite-output? = match overwrite-output-strs
 		as none
 			false
-		as some s
+		as some sm
 			# TODO: handle it..
-			assert: s.value empty?
+			assert: sm.value empty?
 			true
 		max-failures = match max-failures-strs
 		as none
 			100
-		as some s
-			strs = s.value
+		as some sf
+			strs = sf value
 			assert: strs.size == 1
 			strs.first.parse-nat.force
-		test-options: print-tests?, overwrite-output?, max-failures
-	resolved: match options
-	as none
-		print-help
-		1
-	as some s
-		s.value do-test
+		do-test: test-options: print-tests?, overwrite-output?, max-failures
 
 .print-help void() summon
 	print: "test -- runs tests"

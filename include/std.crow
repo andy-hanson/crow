@@ -1,7 +1,7 @@
 no-std
 export
 	.bool
-	.collection.arr
+	.col.arr
 	.compare
 	.exceptions
 	.fun

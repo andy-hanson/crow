@@ -1,6 +1,6 @@
 import
-	collection.arr-util: join
-	collection.mut-list: ~=, empty?, move-to-arr!, mut-list
+	col.arr-util: join
+	col.mut-list: ~=, empty?, move-to-arr!, mut-list
 	io.print: print
 
 main fut nat(_ arr str) summon

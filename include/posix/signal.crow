@@ -1,8 +1,10 @@
 no-std
 import
 	..fun: fun-ptr1
+	..number: int, int32
+	..misc: void
 	..ptr: any-ptr
-	.posix: u-long
+	.c-types: u-long
 	.sigset: sigset-t
 
 sigaction record mut

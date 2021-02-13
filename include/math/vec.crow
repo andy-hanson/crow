@@ -1,6 +1,6 @@
 no-std
 import
-	..collection.arr: ~
+	..col.arr: ~
 	..number: +, -, ^, float, neg, square-root
 	..str: str
 	..str-conv: to-str

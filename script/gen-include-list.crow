@@ -1,5 +1,5 @@
 import
-	collection.arr-util: remove-end, remove-start
+	col.arr-util: remove-end, remove-start
 	io.print: print
 	path: each-child-recursive
 

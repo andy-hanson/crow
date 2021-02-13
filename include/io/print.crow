@@ -1,7 +1,7 @@
 no-std
 import
 	..private.bootstrap: hard-assert, unsafe-to-int, todo
-	..collection.arr: data, size
+	..col.arr: data, size
 	..compare: ==, !=
 	..misc: void
 	..number: nat8

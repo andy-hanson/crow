@@ -34,8 +34,10 @@ void writePathRelativeToCwd(Alloc, PathAlloc)(
 	if (startsWith(path.root, cwd) &&
 		(size(path.root) == size(cwd) || (size(path.root) > size(cwd) + 1 && path.root[size(cwd)] == '/'))) {
 		writeStatic(writer, "./");
-		if (size(path.root) != size(cwd))
-			writeStr(writer, path.root[size(cwd) .. $]);
+		if (size(path.root) != size(cwd)) {
+			writeStr(writer, path.root[size(cwd) + 1 .. $]);
+			writeChar(writer, '/');
+		}
 		writePath(writer, allPaths, path.path);
 		writeStr(writer, path.extension);
 	} else

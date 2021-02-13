@@ -4,8 +4,8 @@ import
 	...bits: bits-intersect?, bits-or
 	...bool: bool, false, not, or, true
 	...cell: cell
-	...collection.arr: ~, arr, data, subscript
-	...collection.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
+	...col.arr: ~, arr, data, subscript
+	...col.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
 	...compare: ==, !=, <
 	...exceptions: assert, message
 	...fut: callback!, call-ref-void, fut, handle-exceptions, then, fut-catch, resolved

@@ -76,11 +76,15 @@ header nav {
 
 #side-nav-wrapper nav {
 	height: 19em;
-	width: 7rem;
+	width: 8rem;
 	display: flex;
 	flex-direction: column;
 	border-radius: 0 0 1em 0;
 	font-size: 80%;
+}
+
+#side-nav-wrapper.documentation nav {
+	height: 50rem;
 }
 
 nav a {
@@ -206,6 +210,10 @@ h3 {
 
 #next {
 	float: right;
+}
+
+.doc ul.typeParams {
+	display: inline-block;
 }
 
 section > h4 > div {

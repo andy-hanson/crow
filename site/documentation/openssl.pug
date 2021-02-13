@@ -17,7 +17,6 @@ include ../pug-include/documentation.pug
 		+function("ssl-ctx-free", [], "void", [["ctx", "ssl-ctx"]])
 		+function("ssl-free", [], "void", [])
 		+function("ssl-set-fd", [], "int32", [["s", "ssl"], ["fd", "int32"]])
-		+function("tls-client-method", [], "ssl-method", [])
 		+function("ssl-load-error-strings", [], "void", [])
 			| /usr/include/openssl/ssl.h
 		+function("err-clear-error", [], "void", [])
@@ -30,3 +29,4 @@ include ../pug-include/documentation.pug
 		+function("ssl-ctrl-mode", [], "int32", [])
 		+function("ssl-ctrl-options", [], "int32", [])
 		+function("openssl-init-ssl", [], "int32", [["opts", "nat"], ["settings", "openssl-init-settings"]])
+		+function("tls-client-method", [], "ssl-method", [])
