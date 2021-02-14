@@ -1,4 +1,4 @@
 no-std
 export
 	.private.bootstrap:
-		call-with-ctx, fun-ptr0, fun-ptr1, fun-ptr2, fun-ptr3, fun-ptr4, fun-ptr5, fun-ptr6, subscript
+		fun-ptr0, fun-ptr1, fun-ptr2, fun-ptr3, fun-ptr4, fun-ptr5, fun-ptr6, subscript

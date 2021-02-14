@@ -22,18 +22,11 @@ import
 export
 	.private.bootstrap: ==, <=>, comparison, equal, greater, less
 
-to-str str(a comparison)
-	match a
-	as less
-		"less"
-	as equal
-		"equal"
-	as greater
-		"greater"
-
+# True iff `not: a == b`.
 != bool(a ?t, b ?t) noctx data<?t>
 	a == b not
 
+# True iff `(a <=> b) == less`.
 < bool(a ?t, b ?t) noctx data<?t>
 	match a <=> b
 	as less
@@ -43,12 +36,15 @@ to-str str(a comparison)
 	as greater
 		false
 
+# True iff `not: a > b`
 <= bool(a ?t, b ?t) noctx data<?t>
 	b < a not
 
+# True iff `(a <=> b) == greater`.
 > bool(a ?t, b ?t) noctx data<?t>
 	b < a
 
+# True iff `not: a < b`.
 >= bool(a ?t, b ?t) noctx data<?t>
 	a < b not
 
@@ -59,3 +55,13 @@ min ?t(a ?t, b ?t) noctx data<?t>
 # Returns the greater argument
 max ?t(a ?t, b ?t) noctx data<?t>
 	a < b ? b, a
+
+# Returns "less", "equal", or "greater"/
+to-str str(a comparison)
+	match a
+	as less
+		"less"
+	as equal
+		"equal"
+	as greater
+		"greater"

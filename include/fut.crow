@@ -20,16 +20,23 @@ import
 export
 	.private.bootstrap: fut
 
-# Used to make code run after the next step. Equivalent to `sleep 0`.
+# A future that resolves immediately.
+# Used to make code run in another task (to break up a big task).
 delay fut void()
 	void resolved
 
+# Converts a value to a `fut` resolved with that value.
 resolved fut ?t(value ?t)
 	fut: lock-by-val, fut-state-resolved: value
 
+# Returns a `fut` resolved with an exception.
 rejected fut ?t(err exception)
 	fut: lock-by-val, err
 
+###
+Calls `f` after both `a` and `b` have resolved.
+Returns a fut that will be resolved by the result of `f`.
+###
 join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out> send<?in0> send<?in1>
 	res = unresolved<?out>
 	lock = lock
@@ -64,8 +71,11 @@ join fut ?out(a fut ?in0, b fut ?in1, f ref ?out(?in0, ?in1)) trusted send<?out>
 	as exception e
 		res reject! e
 
-# TODO: send<arr ?a> should be unnecessary
+###
+Returns a `fut` that is resolved when every element of the input has resolved.
+###
 join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
+	# TODO: send<arr ?a> should be unnecessary
 	res = unresolved<arr ?a>
 	lock = lock
 	remaining = cell<nat>: a.size
@@ -157,6 +167,10 @@ launch fut ?t(f fun fut ?t()) trusted
 		f[] forward-to! res
 	res
 
+###
+Enqueues a task that will call the function,
+and returns a `fut` for the result of that task.
+###
 subscript fut ?r(f ref ?r()) trusted send<?r>
 	res = unresolved<?r>
 	f.island-and-exclusion.island.get-island add-task f.island-and-exclusion.exclusion, \

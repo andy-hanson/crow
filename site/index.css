@@ -178,6 +178,10 @@ h3 {
 	color: #ffebbd;
 }
 
+.tparam-def {
+	color: "#fc9867";
+}
+
 .local-ref {
 	color: #ffebbd;
 }
@@ -213,6 +217,10 @@ h3 {
 }
 
 .doc ul.typeParams {
+	display: inline-block;
+}
+
+.doc ul.typeParams li {
 	display: inline-block;
 }
 

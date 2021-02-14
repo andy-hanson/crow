@@ -1,72 +1,74 @@
 no-std
 import
 	.bool: bool, not
-	.compare: ==
 	.fun: subscript
-	.posix.bytes-types: zero
-	.posix.setjmp: jmp-buf, jmp-buf-tag, longjmp, setjmp
-	.ptr: as-ref, by-val, null, null?, ptr-to
-	.private.backtrace: backtrace, get-backtrace
-	.private.bootstrap:
-		arr, as, err, exception-ctx-ptr, get-ctx,
-		hard-forbid, int32, ok, result, str, todo, void
+	.private.backtrace: get-backtrace
+	.private.bootstrap: err, ok, result, str, void
+	.private.exception-low-level: catch-with-exception-ctx, get-exception-ctx
 export
 	.private.bootstrap: exception, message
-
-exception-ctx record mut
-	jmp-buf-ptr mut jmp-buf
-	thrown-exception mut exception
-
-exception-ctx by-val exception-ctx() noctx unsafe
-	# Nothing on the exception-ctx initially
-	exception-ctx: null, exception: "", backtrace: as<arr str>: []
-
-get-exception-ctx exception-ctx() unsafe
-	get-ctx.exception-ctx-ptr as-ref<exception-ctx>
+	.private.exception-low-level: throw
 
 region throwing
 
-rethrow ?t(e exception)
-	e throw
+# Create amd throw an exception with the given message.
+fail ?t(message str) trusted
+	throw: exception: message, get-backtrace
 
-fail ?t(reason str) trusted
-	throw: exception: reason, get-backtrace
-
+# Fail if the condition is false.
 assert void(condition bool)
 	if condition not
 		"assert failed" fail
 
+###
+Fail if the condition is false, providing a custom message.
+The message is eagerly evaluated; pass a `fun str()` instead to have it lazily evaluatied.
+###
 assert void(condition bool, message str)
 	if condition not
 		message fail
 
+###
+Fail if the condition is false, providing a custom message.
+The message is evaluated only if an exception will be thrown.
+###
 assert void(condition bool, message fun str())
 	if condition not
 		message[] fail
 
-unreachable ?t()
-	"should be unreachable" fail
-
+# Fail if the condition is true.
 forbid void(condition bool)
 	condition forbid "forbid failed"
 
+###
+Fail if the condition is true, providing a custom message.
+The message is eagerly evaluated; pass a `fun str()` instead to have it lazily evaluatied.
+###
 forbid void(condition bool, message str)
 	if condition
 		message fail
 
-throw ?t(e exception) trusted
-	exn-ctx = get-exception-ctx
-	hard-forbid: exn-ctx.jmp-buf-ptr null?
-	exn-ctx.thrown-exception := e
-	exn-ctx.jmp-buf-ptr longjmp number-to-throw
-	# Unreachable
-	todo
+###
+Fail if the condition is false, providing a custom message.
+The message is evaluated only if an exception will be thrown.
+###
+forbid void(condition bool, message fun str())
+	if condition
+		message[] fail
 
-.number-to-throw int32()
-	7
+###
+Fail unconditionally.
+This function is used to mark part of an `if` or `match` that should not be possible.
+###
+unreachable ?t()
+	"should be unreachable" fail
 
 region handling
 
+###
+Run `try`, and then run `after`, even if `try` threw an exception.
+(The exception is only temporarily caught to run `after` and is then rethrown.)
+###
 finally ?t(after act void(), try act ?t())
 	res = try catch \err
 		after[]
@@ -74,31 +76,16 @@ finally ?t(after act void(), try act ?t())
 	after[]
 	res
 
+###
+Run `try` and return `ok` containing its return value,
+or `err` containing an exception if it threw one.
+###
 catch result<?t, exception>(try act ?t())
 	{try[] ok} catch {it err}
 
+###
+Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
+(An exception thrown by `catcher` will not be caught.)
+###
 catch ?t(try act ?t(), catcher act ?t(exception)) trusted
 	get-exception-ctx catch-with-exception-ctx try, catcher
-
-catch-with-exception-ctx ?t(ec exception-ctx, try act ?t(), catcher act ?t(exception)) unsafe
-	old-thrown-exception = ec thrown-exception
-	old-jmp-buf = ec jmp-buf-ptr
-	store = jmp-buf-tag: zero, 0, zero
-	ec.jmp-buf-ptr := store ptr-to
-	setjmp-result = ec.jmp-buf-ptr setjmp
-	if setjmp-result == 0
-		# Get here after setting the jump.
-		# If it throws, we'll go to the above branch.
-		res = try[]
-		ec.jmp-buf-ptr := old-jmp-buf
-		ec.thrown-exception := old-thrown-exception
-		res
-	else
-		# This is what we threw in 'throw'
-		assert: setjmp-result == number-to-throw
-		# Get here if we throw inside of `try`
-		thrown-exception = ec thrown-exception
-		# NOTE: changing thrown-exception back probably isn't really necessary
-		ec.jmp-buf-ptr := old-jmp-buf
-		ec.thrown-exception := old-thrown-exception
-		catcher[thrown-exception]

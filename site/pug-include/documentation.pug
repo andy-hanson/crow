@@ -15,9 +15,8 @@ include ./page.pug
 		"col/mut-set",
 		"col/set",
 		"col/sort",
-		"command-line-parser",
 		"compare",
-		"exceptions",
+		"exception",
 		"fun",
 		"fut",
 		"io/environ",
@@ -26,11 +25,12 @@ include ./page.pug
 		"io/process",
 		"io/time",
 		"iter",
-		"logging",
+		"log",
 		"math/vec",
 		"misc",
 		"number",
 		"opt",
+		"parse-command",
 		"path",
 		"ptr",
 		"result",
@@ -54,8 +54,10 @@ mixin typeParams(typeParams)
 	- if (typeParams.length !== 0)
 		|<
 		ul.typeParams
-			each typeParam in typeParams
-				li=typeParam
+			- for (let i = 0; i < typeParams.length; i++)
+				li.tparam-def= typeParams[i]
+				if (i !== typeParams.length - 1)
+					= ", "
 		|>
 
 // TODO: specs

@@ -6,16 +6,28 @@ import
 		int, int8, int16, int32, nat, nat8, nat16, nat32, to-int, to-nat, todo, unsafe-to-int,
 		unsafe-to-int32, unsafe-to-nat, unsafe-to-nat8, unsafe-to-nat16, unsafe-to-nat32
 
+###
+Negates each bit in parallel.
+0 bits become 1 bits and vice versa.
+###
 bits-not nat(a nat) noctx builtin
 
+###
+Intersects each corresponding bit in parallel.
+Output bits will be 1 iff both input bits are.
+###
+bits-and nat(a nat, b nat) noctx builtin
 bits-and nat16(a nat16, b nat16) noctx builtin
 bits-and nat32(a nat32, b nat32) noctx builtin
-bits-and nat(a nat, b nat) noctx builtin
+bits-and int(a int, b int) noctx builtin
 bits-and int8(a int8, b int8) noctx builtin
 bits-and int16(a int16, b int16) noctx builtin
 bits-and int32(a int32, b int32) noctx builtin
-bits-and int(a int, b int) noctx builtin
 
+###
+Unions each corresponding bit in parallel.
+Output bits will be 1 iff either input bit is.
+###
 bits-or nat16(a nat16, b nat16) noctx builtin
 bits-or nat32(a nat32, b nat32) noctx builtin
 bits-or nat(a nat, b nat) noctx builtin
@@ -24,6 +36,7 @@ bits-or int16(a int16, b int16) noctx builtin
 bits-or int32(a int32, b int32) noctx builtin
 bits-or int(a int, b int) noctx builtin
 
+# True if the numbers have at least one bit in common.
 bits-intersect? bool(a int16, b int16) noctx
 	not: (a bits-and b) == 0
 bits-intersect? bool(a int32, b int32) noctx
@@ -33,6 +46,8 @@ bits-intersect? bool(a nat32, b nat32) noctx
 
 unsafe-bit-shift-left nat(a nat, b nat) noctx builtin unsafe
 unsafe-bit-shift-right nat(a nat, b nat) noctx builtin unsafe
+
+# Shifts the bits of 'a' left by 'b' bits.
 bit-shift-left nat8(a nat8, b nat8) noctx trusted
 	if b < 8
 		a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat8
@@ -48,6 +63,8 @@ bit-shift-left nat32(a nat32, b nat32) noctx trusted
 		a.to-nat unsafe-bit-shift-left b.to-nat unsafe-to-nat32
 	else
 		0
+
+# Shifts the bits of 'a' right by 'b' bits.
 bit-shift-right nat32(a nat32, b nat32) noctx trusted
 	if b < 32
 		a.to-nat unsafe-bit-shift-right b.to-nat unsafe-to-nat32

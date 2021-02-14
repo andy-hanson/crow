@@ -4,17 +4,31 @@ import
 export
 	.private.bootstrap: bool, false, true
 
+# Changes `true` to `false`, and `false` to `true`.
 not bool(a bool) noctx
 	if a
 		false
 	else
 		true
-# 'b' is evaluated only if 'a' is true
+
+###
+If `a` is false, returns false immediately and does not evaluate `b`.
+Else, returns `b`.
+###
 and bool(a bool, b bool) noctx builtin
-# 'b' is evaluated only if 'a' is false
+
+###
+If `a` is `true`, returns `true` immediately and does not evaluate `a`.
+Else, returns `b`.
+###
 or bool(a bool, b bool) noctx builtin
-# Only one of 'if-true' and 'if-false' will be evaluated, depending on 'cond'
+
+###
+If `cond` is true, evaluates `if-true` and returns the result, without evaluating `if-false`.
+If `cond` is false, evaluates `if-false` and returns the result, without evaluating `if-true`.
+###
 ? ?t(cond bool, if-true ?t, if-false ?t) noctx builtin
 
+# 0 for false, 1 for true.
 to-nat nat(b bool) noctx
 	b ? 1, 0

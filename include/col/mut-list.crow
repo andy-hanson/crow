@@ -15,8 +15,6 @@ import
 	..ptr: +, as-any-ptr, by-val, ptr, set-subscript, size-of, subscript
 	.arr: arr, data
 
-# NOTE: this is not a normal record, compiler treats it specially
-# TODO: constructor should be private
 mut-list<?t> record mut
 	# TODO:PRIVATE
 	# backing.size is the capacity

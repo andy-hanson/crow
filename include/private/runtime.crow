@@ -4,7 +4,7 @@ import
 	..col.arr: ~, arr, empty?, noctx-at, size, subscript
 	..col.arr-util: join
 	..compare: ==, !=, >, min
-	..exception: exception, exception-ctx, message
+	..exception: exception, message
 	..io.print: print-err, print-err-no-newline
 	..io.time-low-level: get-monotime-nsec, timestamp
 	..log: default-log-handler, log-ctx, log-handler, set-handler
@@ -18,6 +18,7 @@ import
 	.bootstrap:
 		call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert,
 		hard-forbid, island-and-exclusion, island-id, lock, noctx-decr, noctx-incr
+	.exception-low-level: exception-ctx
 	.task-queue:
 		action, any-tasks?, empty?, exclusion, first-task-time, insert-task!, no-task,
 		no-timestamp, pop-task!, return-task!, task, task-queue, task-queue-node

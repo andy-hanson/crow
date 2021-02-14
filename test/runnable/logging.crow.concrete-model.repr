@@ -1019,8 +1019,8 @@ program(
 			fail
 			type(false, void)
 			none
-			[param(reason, type(false, arr))]
-			expr-body(call(throw, [call(exception, [param-ref(reason), call(get-backtrace, [])])])))
+			[param(message, type(false, arr))]
+			expr-body(call(throw, [call(exception, [param-ref(message), call(get-backtrace, [])])])))
 		fun(
 			true
 			throw
@@ -1037,7 +1037,7 @@ program(
 								call(hard-forbid, [call(null?, [call(jmp-buf-ptr, [local-ref(exn-ctx)])])])
 								call(set-thrown-exception, [local-ref(exn-ctx), param-ref(e)]))
 							call(longjmp, [call(jmp-buf-ptr, [local-ref(exn-ctx)]), call(number-to-throw, [])]))
-						call(todo, [])))))
+						call(hard-unreachable, [])))))
 		fun(
 			true
 			get-exception-ctx
@@ -1079,6 +1079,7 @@ program(
 			[param(env, type(false, ptr)), param(val, type(false, int32))]
 			extern(false))
 		fun(true, number-to-throw, type(false, int32), none, [], expr-body(7))
+		fun(false, hard-unreachable, type(false, void), none, [], expr-body(seq(call(abort!, []), call(zeroed, []))))
 		fun(
 			false
 			exception
@@ -2947,7 +2948,6 @@ program(
 		fun(false, cb, type(false, fun-act1), none, [param(a, type(true, fut-state-callbacks))], field-get(0))
 		fun(false, next, type(false, opt), none, [param(a, type(true, fut-state-callbacks))], field-get(1))
 		fun(false, value, type(true, fut-state-callbacks), none, [param(a, type(false, some))], field-get(0))
-		fun(false, hard-unreachable, type(false, void), none, [], expr-body(seq(call(abort!, []), call(zeroed, []))))
 		fun(
 			true
 			lambda(forward-to!, 0)
@@ -3282,7 +3282,7 @@ program(
 												local-ref(res)))
 										seq(
 											call(
-												assert
+												hard-assert
 												[call(==, [local-ref(setjmp-result), call(number-to-throw, [])])])
 											let(
 												thrown-exception

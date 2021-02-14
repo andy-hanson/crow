@@ -5,7 +5,6 @@ import
 	..col.arr: arr
 	..col.arr-util: map, tail
 	..compare: !=
-	..exception: exception-ctx
 	..fun: fun-ptr2, subscript
 	..fut: delay, fut, handle-exceptions, then2
 	..io.process: exit-code
@@ -24,6 +23,7 @@ import
 	.bootstrap:
 		call-with-ctx, ctx, get-ctx, noctx-decr, noctx-incr,
 		state, unsafe-to-int, unsafe-to-int32, unsafe-to-nat
+	.exception-low-level: exception-ctx
 	.runtime:
 		any-unhandled-exceptions?, ctx, global-ctx, island, set-islands, thread-function,
 		thread-local-stuff
