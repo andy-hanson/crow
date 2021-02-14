@@ -3,8 +3,8 @@
 import
 	col.arr-util: first
 	io.environ: get-environ
+	io.path: child-path, parent-path
 	io.print: print
-	path: child-path, parent-path
 	parse-command: parse-command
 	.failure: first-failures, print-failures, test-options
 	.lint: lint

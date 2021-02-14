@@ -17,7 +17,7 @@ import
 	...ptr: as-ref, null, null?, ptr, ptr-to, subscript
 	...str: str
 	...str-conv: to-str
-	...str-utils: to-c-str
+	...str-util: to-c-str
 	..posix-util: check-posix-error
 	..print: print
 

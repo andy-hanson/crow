@@ -2,12 +2,18 @@ no-std
 export
 	.private.bootstrap: as, void
 
+###
+Generic record returned by `from -> to`.
+This is used for various purposes.
+###
 arrow<?a, ?b> record
 	from ?a
 	to ?b
 
+# Creates an `arrow`.
 -> arrow<?a, ?b>(from ?a, to ?b)
 	arrow: from, to
 
-drop void(_ ?t) noctx
+# Ignores the value and returns void.
+drop void(_ ?a) noctx
 	void

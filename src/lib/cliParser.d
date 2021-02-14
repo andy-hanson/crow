@@ -442,18 +442,21 @@ struct SplitArgs {
 }
 
 immutable(SplitArgs) splitArgs(Alloc)(ref Alloc alloc, immutable string[] args) {
-	immutable Opt!size_t firstArgIndex = findIndex!string(args, (ref immutable string arg) =>
+	immutable Opt!size_t optFirstArgIndex = findIndex!string(args, (ref immutable string arg) =>
 		startsWith(arg, "--"));
-	if (!has(firstArgIndex))
+	if (!has(optFirstArgIndex))
 		return immutable SplitArgs(args, emptyArr!ArgsPart, emptyArr!string);
 	else {
-		ArrBuilder!ArgsPart parts;
-		immutable size_t firstAfterDashDash =
-			splitArgsRecur(alloc, parts, args, force(firstArgIndex), force(firstArgIndex) + 1);
-		return immutable SplitArgs(
-			args[0 .. force(firstArgIndex)],
-			finishArr(alloc, parts),
-			args[firstAfterDashDash .. $]);
+		immutable size_t firstArgIndex = force(optFirstArgIndex);
+		immutable string[] beforeFirstPart = args[0 .. firstArgIndex];
+		if (strEq(at(args, firstArgIndex), "--"))
+			return immutable SplitArgs(beforeFirstPart, emptyArr!ArgsPart, args[firstArgIndex + 1 .. $]);
+		else {
+			ArrBuilder!ArgsPart parts;
+			immutable size_t firstAfterDashDash =
+				splitArgsRecur(alloc, parts, args, firstArgIndex, firstArgIndex + 1);
+			return immutable SplitArgs(beforeFirstPart, finishArr(alloc, parts), args[firstAfterDashDash .. $]);
+		}
 	}
 }
 

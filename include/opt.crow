@@ -7,6 +7,7 @@ import
 export
 	.private.bootstrap: none, opt, some, value
 
+# True iff a is `none`.
 empty? bool(a opt ?t) noctx
 	match a
 	as none
@@ -14,23 +15,27 @@ empty? bool(a opt ?t) noctx
 	as some
 		false
 
+# True iff a is `some`.
 has? bool(a opt ?t) noctx
 	a.empty? not
 
-each void(a opt ?in, cb act void(?in))
+# Calls `f` on the value in a `some`, or does nothing.
+each void(a opt ?in, f act void(?in))
 	match a
 	as none
 		void
 	as some s
-		cb[s value]
+		f[s value]
 
-map opt ?out(a opt ?in, cb act ?out(?in))
+# Converts `none` to `none`, or `some` to another `some` with `f` applied.
+map opt ?out(a opt ?in, f act ?out(?in))
 	match a
 	as none
 		none
 	as some s
-		cb[s value] some
+		f[s value] some
 
+# Converts an option to a value by supplying a default to handle `none`.
 opt-or ?t(a opt ?t, default act ?t())
 	match a
 	as none
@@ -38,6 +43,7 @@ opt-or ?t(a opt ?t, default act ?t())
 	as some s
 		s value
 
+# Converts an option to a value by failing on `none`.
 force ?t(a opt ?t)
 	match a
 	as none
@@ -45,7 +51,10 @@ force ?t(a opt ?t)
 	as some s
 		s value
 
-opt-join opt ?out(a opt ?in-0, b opt ?in-1, cb act ?out(?in-0, ?in-1))
+###
+Returns `some: f[a.force, b.force]` iff both `a` and `b` are `some`, else returns `none`.
+###
+opt-join opt ?out(a opt ?in-0, b opt ?in-1, f act ?out(?in-0, ?in-1))
 	match a
 	as none
 		none
@@ -54,4 +63,4 @@ opt-join opt ?out(a opt ?in-0, b opt ?in-1, cb act ?out(?in-0, ?in-1))
 		as none
 			none
 		as some sb
-			cb[sa value, sb value] some
+			f[sa value, sb value] some

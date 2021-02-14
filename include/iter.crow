@@ -8,26 +8,45 @@ import
 	.number: +, nat
 	.opt: none, opt, some, value
 
-# TODO: ALIAS
-iterator<?t> record mut
-	get-next act opt ?t()
-
-next opt ?t(i iterator ?t)
-	i.get-next[]
-
-# Iterator that can be started over from the beginning.
-stream<?t> record mut
+###
+Function to get an iterator.
+The iterator returned should be equivalent each time, so this can be used to iterate multiple times.
+###
+iterable<?t> record mut
 	get-iter act iterator ?t()
 
-iter iterator ?t(s stream ?t)
+# Get a new iterator at the beginning.
+iter iterator ?t(s iterable ?t)
 	s.get-iter[]
 
+# Converts anything with an `iter` function to an `iterable`.
+to-iterable<?a, ?e> iterable ?e(a ?a) iter<?a, ?e>
+	iterable: {a iter}
+
+# Spec for anything that has an iterator.
 iter<?t, ?e> spec
 	iter iterator ?e(t ?t)
 
-to-stream<?t, ?e> stream ?e(t ?t) iter<?t, ?e>
-	{t iter} stream
+###
+An iterator is a value that could iterate over anything.
+This is often a collection; but since any function may be provided,
+it could iterate an abstract sequence (such as numbers in a range) with no backing collection.
 
+An iterator mutates itself when `next` is called to advance.
+Once it returns `none`, all future calls should also return `none`.
+###
+iterator<?t> record mut
+	get-next act opt ?t()
+
+# Returns the current element and advances to the next.
+next opt ?t(i iterator ?t)
+	i.get-next[]
+
+###
+Iterator for a number range.
+The beginning is inclusive and the end is exclusive.
+The beginning must be less than the end.
+###
 iter iterator nat(r arrow<nat, nat>)
 	# TODO: should not need a type argument here
 	n = r.from cell<nat>
@@ -39,9 +58,9 @@ iter iterator nat(r arrow<nat, nat>)
 			n[] := res + 1
 			res some
 
-each void(s stream ?t, f act void(?t))
-	s.iter each-recur f
-
+# Calls a function for each element of an iterable.
+each void(a iterable ?t, f act void(?t))
+	a.iter each-recur f
 .each-recur void(i iterator ?t, f act void(?t))
 	match i next
 	as none
@@ -50,19 +69,31 @@ each void(s stream ?t, f act void(?t))
 		f[s.value]
 		i each-recur f
 
-filter stream ?t(in stream ?t, pred act bool(?t))
-	stream: \
-		itr = in iter
+# Returns a new iterable containing just the elements of the input for which `pred` returns true.
+filter iterable ?a(a iterable ?a, pred act bool(?a))
+	iterable: \
+		itr = a iter
 		{itr filter-recur pred} iterator
-
-.filter-recur opt ?t(i iterator ?t, pred act bool(?t))
-	match i next
+.filter-recur opt ?a(a iterator ?a, pred act bool(?a))
+	match a next
 	as none
 		none
 	as some s
-		v = s.value
+		v = s value
 		if pred[v]
 			v some
 		else
 			# This one didn't satisfy the predicate, but keep trying until we get one or each the end
-			i filter-recur pred
+			a filter-recur pred
+
+# Returns a new iterable which yields f[x] for each x in the input.
+map iterable ?b(a iterable ?a, f act ?b(?a))
+	iterable: \
+		itr = a iter
+		{itr map-recur f} iterator
+.map-recur opt ?b(a iterator ?a, f act ?b(?a))
+	match a next
+	as none
+		none
+	as some s
+		f[s value] some

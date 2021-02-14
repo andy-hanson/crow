@@ -34,14 +34,17 @@ none record
 
 region result.crow
 
+# Union that represents a value that may have failed.
 result<?ok, ?err> union
 	ok<?ok>
 	err<?err>
 
+# Successful case of a result.
 ok<?t> record
 	by-val
 	value ?t
 
+# Error case of a result.
 err<?t> record
 	by-val
 	value ?t
@@ -79,9 +82,17 @@ arr<?t> record force-data
 
 region str
 
+# Single character in a string.
+# This could be any UTF-8 code point.
 char builtin
+# String type.
 str alias
 	arr char
+###
+C-style string.
+This should be a valid pointer whose content ends in a "\0", though this is not enforced.
+Thus, all operations on `c-str` are unsafe.
+###
 c-str alias
 	ptr char
 

@@ -19,6 +19,7 @@ io/file
 io/net/http-server
 io/net/net
 io/net/tcp-server
+io/path
 io/posix-util
 io/print
 io/process
@@ -32,7 +33,6 @@ number
 openssl
 opt
 parse-command
-path
 posix/bytes-types
 posix/c-types
 posix/dirent
@@ -61,7 +61,9 @@ posix/wait
 private/alloc
 private/backtrace
 private/bootstrap
+private/exception-low-level
 private/fut-low-level
+private/log-low-level
 private/rt-main
 private/runtime
 private/task-queue
@@ -70,7 +72,7 @@ ptr
 result
 std
 str-conv
-str-utils
+str-util
 str
 sys/epoll
 sys/execinfo

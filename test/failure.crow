@@ -2,8 +2,8 @@ import
 	col.arr-util: each
 	col.mut-list: ~=, move-to-arr!, mut-list, reduce-size-if-more-than!, size
 	io.file: try-read-file, write-file
+	io.path: base-name
 	io.print: print, print-no-newline
-	path: base-name
 
 handle-output arr failure
 	original-path str

@@ -8,7 +8,7 @@ import
 	...col.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
 	...compare: ==, !=, <
 	...exception: assert, message
-	...fut: callback!, call-ref-void, fut, handle-exceptions, then, fut-catch, resolved
+	...fut: fut, handle-exceptions, then, fut-catch, resolved, subscript
 	...misc: ->, as, drop, void
 	...number: int32, nat8, nat16, nat32, to-int, to-int32, to-nat, to-nat32
 	...opt: value
@@ -21,6 +21,8 @@ import
 	...posix.stdio: perror
 	...posix.types: socklen-t
 	...posix.unistd: close, read
+	# TODO: don't use this
+	...private.fut-low-level: callback!
 	...ptr: by-val, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
 	...str: str
 	...str-conv: to-str
@@ -147,7 +149,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 		client-event = epoll-event: (epollin bits-or epollet), client-fd.to-int.to-nat
 		err = epoll-fd epoll-ctl epoll-ctl-add, client-fd, client-event.ptr-to
 		assert: err == 0
-		on-accepted-client call-ref-void client-fd
+		on-accepted-client[client-fd] handle-exceptions
 		accept-clients: listen-fd, epoll-fd, on-accepted-client
 
 .handle-client void(fd fd-t, on-received-chunk ref void(fd-t, arr nat8)) unsafe summon
@@ -161,7 +163,7 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 			perror: "read() failed\0".data
 	elif count != 0
 		chunk = buf.cast-immutable[0 -> count.to-nat]
-		on-received-chunk call-ref-void fd, chunk
+		on-received-chunk[fd, chunk] handle-exceptions
 		fd handle-client on-received-chunk
 
 .set-non-blocking void(fd fd-t) noctx unsafe summon

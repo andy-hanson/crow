@@ -9,7 +9,7 @@ import
 	..compare: ==, <=
 	..exception: assert, fail
 	..misc: as, void
-	..number: +, int32, to-nat
+	..number: +, int32, to-int, to-nat
 	..posix.bytes-types: zero
 	..posix.extra-types: fd-t
 	..posix.poll:
@@ -27,7 +27,7 @@ import
 	..ptr: +, as-any-ptr, as-ref, by-val, null, ptr
 	..str: char, c-str, str
 	..str-conv: to-str
-	..str-utils: to-c-str
+	..str-util: to-c-str
 	.environ: convert-environ, environ
 	.file: is-file?
 	.posix-util: check-posix-error
@@ -115,7 +115,7 @@ body
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
 	# timeout == -1 means we block
-	n-pollfds-with-events = poll: poll-fds.data, poll-fds.size, -1
+	n-pollfds-with-events = to-int: poll: poll-fds.data, poll-fds.size, -1
 	if n-pollfds-with-events == 0
 		# TODO: is this even possible to reach? I think we always get has-pollhup? instead.
 		void

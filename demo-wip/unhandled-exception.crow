@@ -7,7 +7,7 @@ main fut nat(_ arr str) summon
 	my-fun = as<ref void()>: \
 		fail: "I am error"
 
-	my-fun call-ref-void
+	my-fun[] handle-exceptions
 	print: "got here"
 	fail: "I, too, am error"
 

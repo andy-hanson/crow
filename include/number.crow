@@ -13,22 +13,37 @@ export
 
 region conversion
 
+###
+Convert a nat to float.
+Result is approximate for high values.
+###
 to-float float(a nat) noctx builtin
+###
+Convert an int to float.
+Result is approximate for high values.
+###
 to-float float(a int) noctx builtin
+###
+Convert a float to int by tossing any fractional part.
+###
 truncate-to-int int(a float) noctx builtin
 
 region arithmetic
 
+# True if `b * c == a` for some `c`.
 multiple-of? bool(a nat, b nat)
 	(a mod b) == 0
 
+# Add two nats. Fail if the result would overflow.
 + nat(a nat, b nat)
 	res = a wrap-add b
 	assert: res >= a and: res >= b
 	res
+# Subtract two nats. Fail if the result would be negative.
 - nat(a nat, b nat)
 	assert: a >= b
 	a wrap-sub b
+# Multiply two nats. Fail if the result would overflow.
 * nat(a nat, b nat)
 	# TODO: better safety check
 	if a == 0 or: b == 0
@@ -38,15 +53,26 @@ multiple-of? bool(a nat, b nat)
 		assert: res / b == a
 		assert: res / a == b
 		res
+# Divide two nats. Fails iff `b == 0`.
 / nat(a nat, b nat) trusted
 	forbid: b == 0
 	a unsafe-div b
 
 unsafe-mod nat(a nat, b nat) noctx unsafe builtin
 
+# Remainder of `a / b`.
 mod nat(a nat, b nat) trusted
 	forbid: b == 0
 	a unsafe-mod b
+
+# Remainder of `a / b.to-int`.
+mod nat(a int, b nat)
+	forbid: b == 0
+	if a < 0
+		abs-mod = a.abs mod b
+		abs-mod == 0 ? 0, b - abs-mod
+	else
+		a.to-nat mod b
 
 + int(a int, b int)
 	# TODO: safety check
@@ -68,63 +94,48 @@ mod nat(a nat, b nat) trusted
 	forbid: a == min-int and: b == -1
 	a unsafe-div b
 
+# Convert a nat to an int. Fail if the result would overflow.
 to-int int(n nat)
 	assert: n < max-int.to-nat
 	n unsafe-to-int
-
+# Convert an int to 32 bits. Fail if the result would overflow.
 to-int32 int32(a int)
 	assert: a >= min-int32.to-int
 	assert: a <= max-int32.to-int
 	a unsafe-to-int32
-to-int32 int32(n nat)
-	assert: n < max-int32.to-nat
-	n.unsafe-to-int unsafe-to-int32
 
-to-nat nat(i int)
-	forbid: i negative?
-	i unsafe-to-nat
-
-to-nat nat(i int32)
-	i.to-int to-nat
+# Convert an int to a nat. Fail if it's negative.
+to-nat nat(a int)
+	forbid: a < 0
+	a unsafe-to-nat
 
 to-nat32 nat32(a nat16) noctx trusted
 	a.to-nat unsafe-to-nat32
+
+# Convert a nat to 32 bits. Fail if the result would overflow.
 to-nat32 nat32(a nat)
 	assert: a < max-nat32.to-nat
 	a unsafe-to-nat32
 
-negative? bool(i int)
-	i < 0
-
-neg int(i int)
-	i * -1
-
-neg int(a nat)
-	a.to-int neg
-
-neg float(a float)
-	a * -1.0
-
+# Absolute value of an int, as a nat.
 abs nat(i int)
-	i-abs = i.negative? ? i.neg, i
+	i-abs = i < 0 ? i * -1, i
 	i-abs to-nat
 
-mod nat(a int, b nat)
-	forbid: b == 0
-	if a negative?
-		abs-mod = a.abs mod b
-		abs-mod == 0 ? 0, b - abs-mod
-	else
-		a.to-nat mod b
-
+# Add two floats. Never fails.
 + float(a float, b float) noctx builtin
+# Subtract two floats. Never fails.
 - float(a float, b float) noctx builtin
+# Multiply two floats. Never fails.
 * float(a float, b float) noctx builtin
+# Divide two floats. UB if `b == 0`.
 unsafe-div float(a float, b float) noctx unsafe builtin
+# Divide two floats. Fail if `b == 0`.
 / float(a float, b float) trusted
 	forbid: b == 0.0
 	a unsafe-div b
 
+# Raise a float to a power.
 ^ float(a float, b nat)
 	if b == 0
 		1.0
@@ -133,30 +144,44 @@ unsafe-div float(a float, b float) noctx unsafe builtin
 
 square-root float(a float) noctx extern<"sqrt">
 
+# True if the float is "Not A Number".
 nan? bool(a float) noctx builtin
 
 region constants
 
+# Lowest possible int32.
 min-int32 int32() noctx
 	-2147483648
+# Highest possible int32.
 max-int32 int32() noctx
 	2147483647
+# Lowest possible int.
 min-int int() noctx
 	-0x8000000000000000
+# Highest possible int.
 max-int int() noctx
 	0x7fffffffffffffff
+# Highest possible nat8.
 max-nat8 nat8() noctx
 	0xff
+# Highest possible nat16.
 max-nat16 nat16() noctx
 	0xffff
+# Highest possible nat32.
 max-nat32 nat32() noctx
 	0xffffffff
+# Highest possible nat.
 max-nat nat() noctx
 	0xffffffffffffffff
 
 region number iteration
 
-each void(r arrow<nat, nat>, f act void(nat))
-	if r.from < r.to
-		f[r.from]
-		r.from + 1 -> r.to each f
+###
+Calls a function for each number from `a.from` to `a.to`.
+`a.from` is inclusive and `a.to` is exclusive.
+Does nothing if `a.from` is not less than `a.to`.
+###
+each void(a arrow<nat, nat>, f act void(nat))
+	if a.from < a.to
+		f[a.from]
+		a.from + 1 -> a.to each f

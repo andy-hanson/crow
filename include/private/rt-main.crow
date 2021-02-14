@@ -6,9 +6,8 @@ import
 	..col.arr-util: map, tail
 	..compare: !=
 	..fun: fun-ptr2, subscript
-	..fut: delay, fut, handle-exceptions, then2
+	..fut: delay, fut, handle-exceptions, then-void
 	..io.process: exit-code
-	..log: log-ctx
 	..misc: as, void
 	..number: int32, nat, to-int
 	..opt: value
@@ -17,13 +16,14 @@ import
 		+, any-ptr, as-any-ptr, as-ref, by-val, null, ptr, ptr-to, ref-of-val, set-subscript,
 		subscript
 	..str: c-str, str
-	..str-utils: to-str
+	..str-util: to-str
 	..sys.sysinfo: get-nprocs
 	.alloc
 	.bootstrap:
 		call-with-ctx, ctx, get-ctx, noctx-decr, noctx-incr,
 		state, unsafe-to-int, unsafe-to-int32, unsafe-to-nat
 	.exception-low-level: exception-ctx
+	.log-low-level: log-ctx
 	.runtime:
 		any-unhandled-exceptions?, ctx, global-ctx, island, set-islands, thread-function,
 		thread-local-stuff
@@ -84,7 +84,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 .add-first-task fut nat(all-args arr c-str, main-ptr fun-ptr2<fut nat, ctx, arr str>) unsafe
 	# 'then' is useful here -- it handles any errors in 'main' and gets us main-fut immediately.
 	# TODO: 'then' overload for fut<void> taking lambda with 0 params
-	res = delay then2 \
+	res = delay then-void \
 		# First argument is the path to this executable.
 		args = all-args tail
 		main-ptr[get-ctx, args map {it.to-str}]

@@ -1,58 +1,23 @@
 no-std
 import
-	.col.arr: ~
 	.exception: finally
 	.fun: subscript
-	.io.print: print
 	.misc: as, void
-	.ptr: as-ref, by-val
 	.str: str
-	.private.bootstrap: get-ctx, log-ctx, zeroed
+	.private.log-low-level: set-log-handler
+export
+	.private.log-low-level: get-log-handler, info, logged, log-handler, log-level, to-str, warn
 
-log-ctx record mut
-	by-ref
-	handler mut log-handler
-
-log-ctx by-val log-ctx() noctx unsafe
-	# Handler is set when creating 'ctx'
-	log-ctx: zeroed
-
-log-handler alias
-	fun void(logged)
-
-default-log-handler void(a logged) summon
-	print: a.level.to-str ~ ": " ~ a.message
-
-info record
-warn record
-
-log-level union
-	info
-	warn
-
-.to-str str(a log-level)
-	match a
-	as info
-		"info"
-	as warn
-		"warn"
-
-logged record
-	level log-level
-	message str
-
+###
+Sends a log to the current log handler.
+###
 log void(level log-level, message str) trusted
 	get-log-handler[level logged message]
 
-get-log-handler log-handler()
-	get-log-ctx.handler
-
-.set-log-handler void(handler log-handler) trusted
-	get-log-ctx.handler := handler
-
-.get-log-ctx log-ctx() trusted
-	get-ctx.log-ctx.as-ref<log-ctx>
-
+###
+Temporarily replaces the log handler for this task.
+(Does not affect other tasks.)
+###
 with-log-handler ?t(handler log-handler, cb act ?t())
 	original-handler = get-log-handler
 	reset = as<act void()>: \

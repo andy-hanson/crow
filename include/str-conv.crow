@@ -5,28 +5,34 @@ import
 	.col.arr-util: first, tail
 	.col.dict: dict, each
 	.col.mut-list: ~=, move-to-arr!, mut-list, size
-	.compare: ==, >
+	.compare: ==, <, >
 	.number:
-		+, *, /, abs, float, int, int16, int32, mod, nat, nat16, nat32, multiple-of?, neg,
-		negative?, to-int, to-float, to-nat, truncate-to-int
+		+, *, /, abs, float, int, int16, int32, mod, nat, nat16, nat32, multiple-of?,
+		to-int, to-float, to-nat, truncate-to-int
 	.opt: map, none, opt, some, value
 	.str: char, str
-	.private.bootstrap: todo
 
+# "true" or "false".
 to-str str(b bool) noctx
 	b ? "true", "false"
 
+# Str containing a single character.
 to-str str(c char)
 	[c]
 
-parse-bool bool(a str)
+# Parses "true" or "false".
+parse-bool opt bool(a str)
 	if a == "true"
-		true
+		true some
 	elif a == "false"
-		false
+		false some
 	else
-		todo
+		none
 
+###
+Converts a nat to a str.
+Result is only digits, no punctuation.
+###
 to-str str(n nat)
 	if n == 0
 		"0"
@@ -53,9 +59,11 @@ to-str str(n nat)
 		lo = to-str: n mod 10
 		hi ~ lo
 
-to-str<?t> spec
-	to-str str(a ?t)
+# Spec of any type that could be converted to a str.
+to-str<?a> spec
+	to-str str(a ?a)
 
+# Identity function to satisfy the `to-str` spec.
 to-str str(a str)
 	a
 
@@ -86,7 +94,7 @@ to-str str(n nat16)
 
 to-str str(i int)
 	a = i.abs to-str
-	i.negative? ? "-" ~ a, a
+	i < 0 ? "-" ~ a, a
 
 to-str str(i int32)
 	i.to-int to-str
@@ -95,7 +103,7 @@ to-str str(i int16)
 	i.to-int to-str
 
 to-str str(a float)
-	# TODO: Use a real float to string algorithm
+	# TODO: Use a real float to str algorithm
 	times-100 = (a * 100.0).truncate-to-int
 	hundredths = times-100 mod 100
 	tenths = hundredths / 10
@@ -107,7 +115,7 @@ to-str str(a float)
 	else
 		whole-part ~ "." ~ hundredths.to-str
 
-char-to-nat opt nat(c char)
+.char-to-nat opt nat(c char)
 	if c == "0"
 		0 some
 	elif c == "1"
@@ -131,13 +139,16 @@ char-to-nat opt nat(c char)
 	else
 		none
 
+###
+Parse digits as a nat.
+Return none if the str contains any punctuation or whitespace.
+###
 parse-nat opt nat(a str)
 	if a empty?
 		none
 	else
 		a parse-nat-recur 0
-
-parse-nat-recur opt nat(a str, accum nat)
+.parse-nat-recur opt nat(a str, accum nat)
 	if a empty?
 		accum some
 	else
@@ -147,12 +158,20 @@ parse-nat-recur opt nat(a str, accum nat)
 		as some s
 			a.tail parse-nat-recur: accum * 10 + s.value
 
+###
+The str should be a series of digits, optionally preceded by "-" or "+".
+If not, this returns `none`.
+###
 parse-int opt int(a str)
 	if a[0] == "-"
-		a.tail.parse-nat map {it neg}
+		a.tail.parse-nat map {it.to-int * -1}
 	else
 		(a[0] == "+" ? a.tail, a).parse-nat map {it to-int}
 
 # TODO: handle the decimal point!
+###
+The str should be a valid int, optionally followed by a "." and then a valid int.
+If not, this returns `none`.
+###
 parse-float opt float(a str)
 	a.parse-nat map {it to-float}

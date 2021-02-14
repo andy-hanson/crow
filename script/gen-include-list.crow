@@ -1,7 +1,7 @@
 import
 	col.arr-util: remove-end, remove-start
+	io.file: each-child-recursive
 	io.print: print
-	path: each-child-recursive
 
 main fut nat(_ arr str) summon
 	filter = as<act bool(str)>: \x

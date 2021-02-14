@@ -1,15 +1,12 @@
 no-std
 import
-	.bool: bool
-	.col.arr: ~, empty?, size, subscript
-	.col.arr-util: each, last, r-index-of, rtail
-	.compare: ==
-	.fun: subscript
-	.io.file: is-dir?, read-dir
-	.misc: ->, void
-	.number: +, -, nat
-	.opt: none, opt, some, value
-	.str: char, str
+	..col.arr: ~, empty?, size, subscript
+	..col.arr-util: last, r-index-of, rtail
+	..compare: ==
+	..misc: ->
+	..number: +, -, nat
+	..opt: none, opt, some, value
+	..str: char, str
 
 parent-path str(a str)
 	match a r-index-of "/"
@@ -21,15 +18,8 @@ parent-path str(a str)
 child-path str(a str, child-name str)
 	a ~ "/" ~ child-name
 
-each-child-recursive void(path str, filter act bool(str), f act void(str)) summon
-	if path is-dir?
-		path.read-dir each \child-name
-			if filter[child-name]
-				path child-path child-name each-child-recursive filter, f
-	else
-		f[path]
-
-last-index-of opt nat(s str, c char)
+# TODO:MOVE
+.last-index-of opt nat(s str, c char)
 	if s empty?
 		none
 	elif s.last == c

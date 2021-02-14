@@ -12,6 +12,11 @@ import
 	.mut-list: ~=, move-to-arr!, mut-list
 	.sort: a, b, sort-by-first
 
+###
+A dictionary type that maps keys to values.
+Called a "map", "table", "hash table", or "associative array" in other languages.
+TODO:MORE
+###
 dict<?k, ?v> record
 	# TODO: PRIVATE
 	# Keys should be in sorted order

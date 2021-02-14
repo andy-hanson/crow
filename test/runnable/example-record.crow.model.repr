@@ -1,20 +1,20 @@
 module(
-	path: 60
+	path: 61
 	imports: [import(none, 45, none), import(some(range(8, 23)), 35, some([print]))]
-	structs: [struct(range: file-range(60, range(25, 65)), public?: true, name: rect)]
+	structs: [struct(range: file-range(61, range(25, 65)), public?: true, name: rect)]
 	funs: [
 		fun(
 			public?: true
-			sig: sig(file-pos(60, 65), area, float(), [param(file-range(60, range(76, 82)), some(a), rect())])
+			sig: sig(file-pos(61, 65), area, float(), [param(file-range(61, range(76, 82)), some(a), rect())])
 			body: call(
 				fun-inst(name: *)
 				[call(fun-inst(name: width), [param-ref(a)]), call(fun-inst(name: height), [param-ref(a)])]))
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(60, 105), main, fut(nat()), [param(file-range(60, range(118, 127)), none, arr(arr(char())))])
+			sig: sig(file-pos(61, 105), main, fut(nat()), [param(file-range(61, range(118, 127)), none, arr(arr(char())))])
 			body: let(
-				local(file-range(60, range(137, 138)), r, rect())
+				local(file-range(61, range(137, 138)), r, rect())
 				call(
 					fun-inst(name: rect)
 					[
@@ -29,31 +29,31 @@ module(
 			public?: true
 			preferred: true
 			sig: sig(
-				file-pos(60, 25)
+				file-pos(61, 25)
 				rect
 				rect()
 				[
-					param(file-range(60, range(38, 49)), some(width), float())
-					param(file-range(60, range(51, 63)), some(height), float())])
+					param(file-range(61, range(38, 49)), some(width), float())
+					param(file-range(61, range(51, 63)), some(height), float())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
 			sig: sig(
-				file-pos(60, 25)
+				file-pos(61, 25)
 				rect
 				by-val(rect())
 				[
-					param(file-range(60, range(38, 49)), some(width), float())
-					param(file-range(60, range(51, 63)), some(height), float())])
+					param(file-range(61, range(38, 49)), some(width), float())
+					param(file-range(61, range(51, 63)), some(height), float())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(60, 38), width, float(), [param(file-range(60, range(38, 49)), some(a), rect())])
+			sig: sig(file-pos(61, 38), width, float(), [param(file-range(61, range(38, 49)), some(a), rect())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(60, 51), height, float(), [param(file-range(60, range(51, 63)), some(a), rect())])
+			sig: sig(file-pos(61, 51), height, float(), [param(file-range(61, range(51, 63)), some(a), rect())])
 			body: field-get(1))])

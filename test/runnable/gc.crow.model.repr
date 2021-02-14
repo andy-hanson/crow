@@ -1,5 +1,5 @@
 module(
-	path: 60
+	path: 61
 	imports: [
 		import(none, 45, none)
 		import(
@@ -8,23 +8,23 @@ module(
 			some([cur-word, gc-count, gc-stats, get-gc, get-stats, force-needs-gc, set-hard-limit, words-free, words-used]))
 		import(some(range(130, 145)), 35, some([print]))
 		import(some(range(147, 182)), 5, some([-, as-any-ptr, by-val, size-of]))]
-	structs: [struct(range: file-range(60, range(825, 856)), public?: true, name: r)]
+	structs: [struct(range: file-range(61, range(825, 856)), public?: true, name: r)]
 	funs: [
 		fun(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(60, 184), main, fut(nat()), [param(file-range(60, range(197, 206)), none, arr(arr(char())))])
+			sig: sig(file-pos(61, 184), main, fut(nat()), [param(file-range(61, range(197, 206)), none, arr(arr(char())))])
 			body: let(
-				local(file-range(60, range(223, 225)), gc, gc())
+				local(file-range(61, range(223, 225)), gc, gc())
 				call(fun-inst(name: get-gc), [])
 				seq(
 					call(fun-inst(name: set-hard-limit), [local-ref(gc), literal(nat(), 512)])
 					let(
-						local(file-range(60, range(324, 325)), a, r())
+						local(file-range(61, range(324, 325)), a, r())
 						call(fun-inst(name: r), [literal(nat(), 1), literal(nat(), 2), literal(nat(), 3)])
 						let(
-							local(file-range(60, range(340, 341)), b, r())
+							local(file-range(61, range(340, 341)), b, r())
 							call(fun-inst(name: r), [literal(nat(), 4), literal(nat(), 5), literal(nat(), 6)])
 							seq(
 								seq(
@@ -175,7 +175,7 @@ module(
 											fut(nat()))])))))))
 		fun(
 			public?: true
-			sig: sig(file-pos(60, 856), to-str, arr(char()), [param(file-range(60, range(867, 870)), some(a), r())])
+			sig: sig(file-pos(61, 856), to-str, arr(char()), [param(file-range(61, range(867, 870)), some(a), r())])
 			body: call(
 				fun-inst(name: ~, type-args: [char()])
 				[
@@ -202,7 +202,7 @@ module(
 		fun(
 			public?: true
 			summon: true
-			sig: sig(file-pos(60, 936), to-str, arr(char()), [param(file-range(60, range(947, 957)), some(a), gc-stats())])
+			sig: sig(file-pos(61, 936), to-str, arr(char()), [param(file-range(61, range(947, 957)), some(a), gc-stats())])
 			body: call(
 				fun-inst(name: ~, type-args: [char()])
 				[
@@ -230,38 +230,38 @@ module(
 			public?: true
 			preferred: true
 			sig: sig(
-				file-pos(60, 825)
+				file-pos(61, 825)
 				r
 				r()
 				[
-					param(file-range(60, range(835, 840)), some(a), nat())
-					param(file-range(60, range(842, 847)), some(b), nat())
-					param(file-range(60, range(849, 854)), some(c), nat())])
+					param(file-range(61, range(835, 840)), some(a), nat())
+					param(file-range(61, range(842, 847)), some(b), nat())
+					param(file-range(61, range(849, 854)), some(c), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
 			sig: sig(
-				file-pos(60, 825)
+				file-pos(61, 825)
 				r
 				by-val(r())
 				[
-					param(file-range(60, range(835, 840)), some(a), nat())
-					param(file-range(60, range(842, 847)), some(b), nat())
-					param(file-range(60, range(849, 854)), some(c), nat())])
+					param(file-range(61, range(835, 840)), some(a), nat())
+					param(file-range(61, range(842, 847)), some(b), nat())
+					param(file-range(61, range(849, 854)), some(c), nat())])
 			body: new-record)
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(60, 835), a, nat(), [param(file-range(60, range(835, 840)), some(a), r())])
+			sig: sig(file-pos(61, 835), a, nat(), [param(file-range(61, range(835, 840)), some(a), r())])
 			body: field-get(0))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(60, 842), b, nat(), [param(file-range(60, range(842, 847)), some(a), r())])
+			sig: sig(file-pos(61, 842), b, nat(), [param(file-range(61, range(842, 847)), some(a), r())])
 			body: field-get(1))
 		fun(
 			public?: true
 			no-ctx: true
-			sig: sig(file-pos(60, 849), c, nat(), [param(file-range(60, range(849, 854)), some(a), r())])
+			sig: sig(file-pos(61, 849), c, nat(), [param(file-range(61, range(849, 854)), some(a), r())])
 			body: field-get(2))])

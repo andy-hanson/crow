@@ -5,11 +5,12 @@ import
 	io.net.tcp-server: close-client, start-tcp-server, stop, tcp-handler
 	io.print: print
 	io.time: delay, msec
-	number: to-int
 	posix.errno: errno
 	posix.extra-types: fd-t
 	posix.stdio: perror
 	posix.unistd: write
+	ptr: ptr-cast, size-of
+	str-util: as-str
 	sys.epoll: epoll-event
 
 main fut nat(args arr str) unsafe summon

@@ -7,7 +7,6 @@ import
 	..exception: exception, message
 	..io.print: print-err, print-err-no-newline
 	..io.time-low-level: get-monotime-nsec, timestamp
-	..log: default-log-handler, log-ctx, log-handler, set-handler
 	..misc: as, void
 	..number: nat
 	..opt: none, opt, some, value
@@ -19,6 +18,7 @@ import
 		call-with-ctx, ctx, exclusion, gc-ctx-ptr, gctx-ptr, get-ctx, hard-assert,
 		hard-forbid, island-and-exclusion, island-id, lock, noctx-decr, noctx-incr
 	.exception-low-level: exception-ctx
+	.log-low-level: default-log-handler, log-ctx, log-handler, set-handler
 	.task-queue:
 		action, any-tasks?, empty?, exclusion, first-task-time, insert-task!, no-task,
 		no-timestamp, pop-task!, return-task!, task, task-queue, task-queue-node

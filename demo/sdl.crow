@@ -3,7 +3,7 @@ import
 	io.print: print
 	io.time: delay, duration, msec
 	ptr: as-any-ptr, null, null?, ptr
-	str-utils: to-c-str, to-str
+	str-util: to-c-str, to-str
 
 c-int alias
 	int

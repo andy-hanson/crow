@@ -18,7 +18,7 @@ import
 	...ptr: ptr-cast
 	...str: char, str
 	...str-conv: parse-nat, to-str
-	...str-utils: as-str
+	...str-util: as-str
 	..print: print
 	.tcp-server: close-client, start-tcp-server, stop, tcp-handler
 

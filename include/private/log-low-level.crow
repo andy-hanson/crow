@@ -1,0 +1,58 @@
+no-std
+import
+	..col.arr: ~
+	..io.print: print
+	..ptr: as-ref, by-val
+	..misc: void
+	..str: str
+	.bootstrap: get-ctx, log-ctx, zeroed
+
+# Lowest-priority log level.
+info record
+# Log level for warnings.
+warn record
+
+###
+Log severity.
+The log handler can use this any way it wants.
+The default log handler just prints the level at the beginning of each log.
+###
+log-level union
+	info
+	warn
+
+# Returns "info" or "warn".
+to-str str(a log-level)
+	match a
+	as info
+		"info"
+	as warn
+		"warn"
+
+# Represents a single log line.
+logged record
+	level log-level
+	message str
+
+log-ctx record mut
+	by-ref
+	handler mut log-handler
+
+log-ctx by-val log-ctx() noctx unsafe
+	# Handler is set when creating 'ctx'
+	log-ctx: zeroed
+
+log-handler alias
+	fun void(logged)
+
+default-log-handler void(a logged) summon
+	print: a.level.to-str ~ ": " ~ a.message
+
+.get-log-ctx log-ctx() trusted
+	get-ctx.log-ctx as-ref<log-ctx>
+
+get-log-handler log-handler()
+	get-log-ctx handler
+
+set-log-handler void(handler log-handler) trusted
+	get-log-ctx.handler := handler

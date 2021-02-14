@@ -1,7 +1,7 @@
 no-std
 import
 	..col.arr: ~
-	..number: +, -, ^, float, neg, square-root
+	..number: +, -, *, ^, float, square-root
 	..str: str
 	..str-conv: to-str
 
@@ -12,11 +12,11 @@ vec-2 record
 + vec-2(a vec-2, b vec-2)
 	vec-2: a.x + b.x, a.y + b.y
 
-neg vec-2(a vec-2)
-	vec-2: a.x.neg, a.y.neg
-
 - vec-2(a vec-2, b vec-2)
 	vec-2: a.x - b.x, a.y - b.y
+
+* vec-2(a vec-2, b float)
+	vec-2: a.x * b, a.y * b
 
 length-squared float(a vec-2)
 	a.x ^ 2 + a.y ^ 2
