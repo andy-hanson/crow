@@ -322,7 +322,7 @@ program(
 		struct(
 			name: lambda(map, 0)
 			ptr?: true
-			body: record([field(mapper, false, type(false, fun-act1)), field(a, false, type(false, arr))]))
+			body: record([field(f, false, type(false, fun-act1)), field(a, false, type(false, arr))]))
 		struct(name: opt, body: union([type(false, none), type(false, some)]))
 		struct(name: some, body: record([field(value, false, type(false, ptr))]))
 		struct(
@@ -957,7 +957,7 @@ program(
 					call(?, [call(empty?, [call(message, [param-ref(a)])]), arr(0, 2), call(message, [param-ref(a)])])
 					let(
 						bt
-						call(join, [call(return-stack, [call(backtrace, [param-ref(a)])]), arr(0, 6)])
+						call(flatten, [call(return-stack, [call(backtrace, [param-ref(a)])]), arr(0, 6)])
 						call(~, [call(~, [local-ref(msg), arr(0, 6)]), local-ref(bt)])))))
 		fun(
 			false
@@ -976,7 +976,7 @@ program(
 		fun(false, message, type(false, arr), none, [param(a, type(false, exception))], field-get(0))
 		fun(
 			true
-			join
+			flatten
 			type(false, arr)
 			none
 			[param(a, type(false, arr)), param(joiner, type(false, arr))]
@@ -991,7 +991,7 @@ program(
 							~
 							[
 								call(~, [call(subscript, [param-ref(a), 0]), param-ref(joiner)])
-								call(join, [call(tail, [param-ref(a)]), param-ref(joiner)])])))))
+								call(flatten, [call(tail, [param-ref(a)]), param-ref(joiner)])])))))
 		fun(
 			false
 			empty?
@@ -3641,9 +3641,9 @@ program(
 			map
 			type(false, arr)
 			none
-			[param(a, type(false, arr)), param(mapper, type(false, fun-act1))]
+			[param(a, type(false, arr)), param(f, type(false, fun-act1))]
 			expr-body(
-				call(make-arr, [call(size, [param-ref(a)]), lambda(0, alloc(record([param-ref(mapper), param-ref(a)])))])))
+				call(make-arr, [call(size, [param-ref(a)]), lambda(0, alloc(record([param-ref(f), param-ref(a)])))])))
 		fun(
 			true
 			make-arr
@@ -3758,7 +3758,7 @@ program(
 				call(
 					subscript
 					[
-						get-field(param-ref("<<closure>>"), mapper)
+						get-field(param-ref("<<closure>>"), f)
 						call(subscript, [get-field(param-ref("<<closure>>"), a), param-ref(i)])])))
 		fun(
 			false

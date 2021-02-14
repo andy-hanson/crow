@@ -23,11 +23,11 @@ export
 	.private.bootstrap: ==, <=>, comparison, equal, greater, less
 
 # True iff `not: a == b`.
-!= bool(a ?t, b ?t) noctx data<?t>
+!= bool(a ?a, b ?a) noctx data<?a>
 	a == b not
 
 # True iff `(a <=> b) == less`.
-< bool(a ?t, b ?t) noctx data<?t>
+< bool(a ?a, b ?a) noctx data<?a>
 	match a <=> b
 	as less
 		true
@@ -37,23 +37,23 @@ export
 		false
 
 # True iff `not: a > b`
-<= bool(a ?t, b ?t) noctx data<?t>
+<= bool(a ?a, b ?a) noctx data<?a>
 	b < a not
 
 # True iff `(a <=> b) == greater`.
-> bool(a ?t, b ?t) noctx data<?t>
+> bool(a ?a, b ?a) noctx data<?a>
 	b < a
 
 # True iff `not: a < b`.
->= bool(a ?t, b ?t) noctx data<?t>
+>= bool(a ?a, b ?a) noctx data<?a>
 	a < b not
 
 # Returns the lesser argument
-min ?t(a ?t, b ?t) noctx data<?t>
+min ?a(a ?a, b ?a) noctx data<?a>
 	a < b ? a, b
 
 # Returns the greater argument
-max ?t(a ?t, b ?t) noctx data<?t>
+max ?a(a ?a, b ?a) noctx data<?a>
 	a < b ? b, a
 
 # Returns "less", "equal", or "greater"/

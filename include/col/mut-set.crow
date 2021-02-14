@@ -10,24 +10,34 @@ import
 	.set: set
 	.sort: sort
 
-mut-set<?t> record mut
+###
+Mutable set of unique values.
+This is like a `set` but mutable, or like a `mut-dict` with no values.
+Unlike `mut-list`, values are in sorted order, not insertion order,
+and it never stores two of the same value.
+###
+mut-set<?a> record mut
 	# TODO:PRIVATE
 	ignore void
-	inner mut-list<?t>
+	inner mut-list<?a>
 
-mut-set mut-set ?t() data<?t>
+# New empty `mut-set`.
+mut-set mut-set ?a() data<?a>
 	mut-set: void, mut-list
 
-mut-set mut-set ?t(a arr ?t) data<?t>
+# Copies the arr to a new mut-set.
+mut-set mut-set ?a(a arr ?a) data<?a>
 	mut-set: void, a.sort.mut-list
 
-subscript bool(a mut-set ?t, value ?t) data<?t>
-	a.inner has? 0, value
-
-size nat(a mut-set ?t) data<?t>
+# Number of values in the set.
+size nat(a mut-set ?a) data<?a>
 	a.inner size
 
-.has? bool(a mut-list ?t, index nat, value ?t) data<?t>
+# True iff the value is in the set.
+subscript bool(a mut-set ?a, value ?a) data<?a>
+	a.inner has? 0, value
+
+.has? bool(a mut-list ?a, index nat, value ?a) data<?a>
 	# TODO: binary search
 	if index == a.size
 		false
@@ -40,10 +50,13 @@ size nat(a mut-set ?t) data<?t>
 		as greater
 			a has? index + 1, value
 
-~= void(a mut-set ?t, value ?t) data<?t>
+###
+Adds a value to the set.
+Does nothing if the value is already in the set.
+###
+~= void(a mut-set ?a, value ?a) data<?a>
 	a.inner add! 0, value drop
-
-.add! bool(a mut-list ?t, index nat, value ?t) data<?t>
+.add! bool(a mut-list ?a, index nat, value ?a) data<?a>
 	if index == a.size
 		a ~= value
 		true
@@ -57,14 +70,19 @@ size nat(a mut-set ?t) data<?t>
 		as greater
 			a add! index + 1, value
 
-~= void(a mut-set ?t, values arr ?t) data<?t>
+# Adds multiple values to the set.
+~= void(a mut-set ?a, values arr ?a) data<?a>
 	values each \value
 		a ~= value
 
-remove! bool(a mut-set ?t, value ?t) data<?t>
+###
+Removes a value from the set.
+If the value was present, removes it and returns `true`.
+If the value was not present, does nothing and returns `false`.
+###
+remove! bool(a mut-set ?a, value ?a) data<?a>
 	a.inner remove! 0, value
-
-.remove! bool(a mut-list ?t, index nat, value ?t) data<?t>
+.remove! bool(a mut-list ?a, index nat, value ?a) data<?a>
 	if index == a.size
 		false
 	else
@@ -77,5 +95,9 @@ remove! bool(a mut-set ?t, value ?t) data<?t>
 		as greater
 			a remove! index + 1, value
 
-move-to-set! set ?t(a mut-set ?t) data<?t>
+###
+Convert to a `set`, clearning the original `mut-set` in the process.
+(This avoids copying but still ensures that the result is immutable.)
+###
+move-to-set! set ?a(a mut-set ?a) data<?a>
 	set: void, a.inner move-to-arr!

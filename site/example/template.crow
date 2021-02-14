@@ -10,27 +10,27 @@ main fut nat(_ arr str) summon
 	print: "floats sum: " ~ floats.sum.to-str
 	0 resolved
 
-node<?t> record
-	head ?t
-	tail opt node<?t>
+node<?a> record
+	head ?a
+	tail opt node<?a>
 
-size nat(a node ?t)
+size nat(a node ?a)
 	1 size a.tail
 
-size nat(acc nat, a opt node ?t)
+size nat(acc nat, a opt node ?a)
 	match a
 	as none
 		acc
 	as some s
 		acc + 1 size s.value.tail
 
-plus<?t> spec
-	+ ?t(a ?t, b ?t)
+plus<?a> spec
+	+ ?a(a ?a, b ?a)
 
-sum ?t(a node ?t) plus<?t>
+sum ?a(a node ?a) plus<?a>
 	a.head sum a.tail
 
-sum ?t(acc ?t, a opt node ?t) plus<?t>
+sum ?a(acc ?a, a opt node ?a) plus<?a>
 	match a
 	as none
 		acc

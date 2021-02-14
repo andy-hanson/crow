@@ -15,9 +15,9 @@ import
 		unsafe-div, value, void, wrap-add, wrap-mul, wrap-sub
 	.thread-utils: acquire!, lock-by-val, release!
 
-set-zero-range void(begin ptr ?t, size nat) noctx unsafe
+set-zero-range void(begin ptr ?a, size nat) noctx unsafe
 	# TODO: wrap-mul is unsafe
-	begin.as-any-ptr memset: 0, size wrap-mul size-of<?t>
+	begin.as-any-ptr memset: 0, size wrap-mul size-of<?a>
 
 mark-ctx record mut
 	memory-size-words nat
@@ -183,7 +183,7 @@ get-gc-ctx gc-ctx() unsafe
 get-gc gc() unsafe
 	get-gc-ctx.gc
 
-fill-ptr-range void(cur ptr ?t, end ptr ?t, value ?t) noctx unsafe
+fill-ptr-range void(cur ptr ?a, end ptr ?a, value ?a) noctx unsafe
 	if cur ptr-eq? end not
 		cur[] := value
 		cur + 1 fill-ptr-range end, value
@@ -244,41 +244,41 @@ alloc any-ptr(size-bytes nat) unsafe
 try-alloc opt any-ptr(size-bytes nat) unsafe
 	get-gc try-gc-alloc size-bytes
 
-alloc-uninitialized ptr ?t(size nat) unsafe
+alloc-uninitialized ptr ?a(size nat) unsafe
 	# TODO: wrap-mul is unsafe!
-	ptr-cast<?t, nat8>: alloc: size wrap-mul size-of<?t>
+	ptr-cast<?a, nat8>: alloc: size wrap-mul size-of<?a>
 
-try-alloc-uninitialized opt ptr ?t(size nat) unsafe
-	match size wrap-mul size-of<?t> try-alloc
+try-alloc-uninitialized opt ptr ?a(size nat) unsafe
+	match size wrap-mul size-of<?a> try-alloc
 	as none
 		none
 	as some s
-		some: s.value ptr-cast<?t, nat8>
+		some: s.value ptr-cast<?a, nat8>
 
 unmanaged-alloc-bytes any-ptr(size nat) noctx unsafe
 	res = size malloc
 	hard-forbid: res null?
 	res
 
-unmanaged-alloc-zeroed-elements ptr ?t(size-elements nat) noctx unsafe
-	res = size-elements unmanaged-alloc-elements<?t>
+unmanaged-alloc-zeroed-elements ptr ?a(size-elements nat) noctx unsafe
+	res = size-elements unmanaged-alloc-elements<?a>
 	res set-zero-range size-elements
 	res
 
-unmanaged-alloc-elements ptr ?t(size-elements nat) noctx unsafe
+unmanaged-alloc-elements ptr ?a(size-elements nat) noctx unsafe
 	# TODO: wrap-mul is unsafe!
-	ptr-cast: size-elements wrap-mul size-of<?t> unmanaged-alloc-bytes
+	ptr-cast: size-elements wrap-mul size-of<?a> unmanaged-alloc-bytes
 
-unmanaged-free void(p ptr ?t) noctx unsafe
+unmanaged-free void(p ptr ?a) noctx unsafe
 	p.ptr-cast free
 
-copy-data-from void(to ptr ?t, from ptr ?t, len nat) unsafe
-	to.as-any-ptr memcpy: from.as-any-ptr, len wrap-mul size-of<?t>
+copy-data-from void(to ptr ?a, from ptr ?a, len nat) unsafe
+	to.as-any-ptr memcpy: from.as-any-ptr, len wrap-mul size-of<?a>
 
-fill-ptr-range void(begin ptr ?t, size nat, f act ?t(nat)) unsafe
+fill-ptr-range void(begin ptr ?a, size nat, f act ?a(nat)) unsafe
 	begin fill-ptr-range-recur 0, size, f
 
-.fill-ptr-range-recur void(begin ptr ?t, i nat, size nat, f act ?t(nat)) unsafe
+.fill-ptr-range-recur void(begin ptr ?a, i nat, size nat, f act ?a(nat)) unsafe
 	if i != size
 		begin[i] := f[i]
 		begin fill-ptr-range-recur i.noctx-incr, size, f

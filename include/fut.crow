@@ -25,11 +25,11 @@ delay fut void()
 	void resolved
 
 # Converts a value to a `fut` resolved with that value.
-resolved fut ?t(value ?t)
+resolved fut ?a(value ?a)
 	fut: lock-by-val, fut-state-resolved: value
 
 # Returns a `fut` resolved with an exception.
-rejected fut ?t(err exception)
+rejected fut ?a(err exception)
 	fut: lock-by-val, err
 
 ###
@@ -115,15 +115,15 @@ join fut arr ?a(a arr fut ?a) trusted send<?a> send<arr ?a> summon
 	as exception
 		hard-unreachable
 
-.forward-to! void(from fut ?t, to fut ?t) unsafe
+.forward-to! void(from fut ?a, to fut ?a) unsafe
 	from callback! {to resolve-or-reject! it}
 
 ###
 Converts a `fut` that may be resolved with an exception
 to a `fut result` that can only be successfully resolved.
 ###
-fut-catch fut result<?t, exception>(a fut ?t) trusted
-	res = unresolved<result<?t, exception>>
+fut-catch fut result<?a, exception>(a fut ?a) trusted
+	res = unresolved<result<?a, exception>>
 	a callback! {res resolve! it}
 	res
 
@@ -155,8 +155,8 @@ then-void fut ?out(a fut void, cb ref ?out()) send<?out>
 ###
 Run `f` in a parallel task and return a `fut` for its result.
 ###
-launch fut ?t(f fun fut ?t()) trusted
-	res = unresolved<?t>
+launch fut ?a(f fun fut ?a()) trusted
+	res = unresolved<?a>
 	island = get-cur-island
 	island add-task island.new-exclusion, \
 		f[] forward-to! res
@@ -190,7 +190,7 @@ subscript fut ?r(f ref ?r(?p0, ?p1), p0 ?p0, p1 ?p1) trusted send<?r> send<?p0> 
 If the fut resolves successfully, does nothing.
 Else, this will call the default exception handler.
 ###
-handle-exceptions void(a fut ?t) trusted
+handle-exceptions void(a fut ?a) trusted
 	a callback! \result
 		match result
 		as ok

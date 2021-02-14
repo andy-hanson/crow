@@ -1,7 +1,6 @@
 #!/usr/bin/env crow
 
 import
-	col.arr-util: first
 	io.environ: get-environ
 	io.path: child-path, parent-path
 	io.print: print
@@ -35,7 +34,7 @@ main fut nat(args arr str) summon
 		as some sf
 			strs = sf value
 			assert: strs.size == 1
-			strs.first.parse-nat.force
+			strs[0].parse-nat force
 		do-test: test-options: print-tests?, overwrite-output?, max-failures
 
 .print-help void() summon

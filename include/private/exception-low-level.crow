@@ -21,7 +21,7 @@ exception-ctx by-val exception-ctx() noctx unsafe
 get-exception-ctx exception-ctx() unsafe
 	get-ctx.exception-ctx-ptr as-ref<exception-ctx>
 
-catch-with-exception-ctx ?t(ec exception-ctx, try act ?t(), catcher act ?t(exception)) unsafe
+catch-with-exception-ctx ?a(ec exception-ctx, try act ?a(), catcher act ?a(exception)) unsafe
 	old-thrown-exception = ec thrown-exception
 	old-jmp-buf = ec jmp-buf-ptr
 	store = jmp-buf-tag: zero, 0, zero
@@ -50,7 +50,7 @@ If you want to create and throw an exception, use `fail` instead.
 `throw` is useful for rethrowing an exception that was already caught.
 Throwing an exception does not modify its backtrace.
 ###
-throw ?t(e exception) trusted
+throw ?a(e exception) trusted
 	exn-ctx = get-exception-ctx
 	hard-forbid: exn-ctx.jmp-buf-ptr null?
 	exn-ctx.thrown-exception := e

@@ -23,38 +23,38 @@ test-uri void() summon
 		# print: "path and query: " + uri.path-and-query
 		# print: "port: " + uri.port.to-str
 
-split-with-splitter<?t> record
-	before arr ?t
-	at ?t
-	after arr ?t
+split-with-splitter<?a> record
+	before arr ?a
+	at ?a
+	after arr ?a
 
-split<?t> record
-	before arr ?t
-	after arr ?t
+split<?a> record
+	before arr ?a
+	after arr ?a
 
 # TODO: ->UTILS
-split-at-first opt split-with-splitter<?t>(a arr ?t, pred act bool(?t))
+split-at-first opt split-with-splitter<?a>(a arr ?a, pred act bool(?a))
 	idx <- a find-index pred
 	# TODO: parens should be unnecessary
-	some: split-with-splitter<?t>: (a slice-up-to idx), a[idx], (a slice-after idx)
+	some: split-with-splitter<?a>: (a slice-up-to idx), a[idx], (a slice-after idx)
 
 # If splitter is not present, right part is empty
-try-split split ?t(a arr ?t, pred act bool(?t))
+try-split split ?a(a arr ?a, pred act bool(?a))
 	match a find-index pred
 	as none
-		split<?t>: a, []
+		split<?a>: a, []
 	as some s
 		idx = s.value
-		split<?t>: (a slice-up-to idx), (a slice-after idx)
+		split<?a>: (a slice-up-to idx), (a slice-after idx)
 
 # If splitter is not present, right part is empty
-try-split-from-right split ?t(a arr ?t, pred act bool(?t))
+try-split-from-right split ?a(a arr ?a, pred act bool(?a))
 	match a find-rindex pred
 	as none
-		split<?t>: a, []
+		split<?a>: a, []
 	as some s
 		index = s.value
-		split<?t>: (a slice-up-to index), (a slice-after index)
+		split<?a>: (a slice-up-to index), (a slice-after index)
 
 # nghttp2-session-callbacks-new foo() extern<"nghttp2_session_callbacks_new"> noctx summon
 # nghttp2-session-client-new foo() extern<"nghttp2_session_client"> noctx summon

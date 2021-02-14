@@ -12,11 +12,11 @@ import
 Function to get an iterator.
 The iterator returned should be equivalent each time, so this can be used to iterate multiple times.
 ###
-iterable<?t> record mut
-	get-iter act iterator ?t()
+iterable<?a> record mut
+	get-iter act iterator ?a()
 
 # Get a new iterator at the beginning.
-iter iterator ?t(s iterable ?t)
+iter iterator ?a(s iterable ?a)
 	s.get-iter[]
 
 # Converts anything with an `iter` function to an `iterable`.
@@ -24,8 +24,8 @@ to-iterable<?a, ?e> iterable ?e(a ?a) iter<?a, ?e>
 	iterable: {a iter}
 
 # Spec for anything that has an iterator.
-iter<?t, ?e> spec
-	iter iterator ?e(t ?t)
+iter<?a, ?e> spec
+	iter iterator ?e(t ?a)
 
 ###
 An iterator is a value that could iterate over anything.
@@ -35,11 +35,11 @@ it could iterate an abstract sequence (such as numbers in a range) with no backi
 An iterator mutates itself when `next` is called to advance.
 Once it returns `none`, all future calls should also return `none`.
 ###
-iterator<?t> record mut
-	get-next act opt ?t()
+iterator<?a> record mut
+	get-next act opt ?a()
 
 # Returns the current element and advances to the next.
-next opt ?t(i iterator ?t)
+next opt ?a(i iterator ?a)
 	i.get-next[]
 
 ###
@@ -59,9 +59,9 @@ iter iterator nat(r arrow<nat, nat>)
 			res some
 
 # Calls a function for each element of an iterable.
-each void(a iterable ?t, f act void(?t))
+each void(a iterable ?a, f act void(?a))
 	a.iter each-recur f
-.each-recur void(i iterator ?t, f act void(?t))
+.each-recur void(i iterator ?a, f act void(?a))
 	match i next
 	as none
 		void

@@ -7,16 +7,16 @@ export
 	.private.bootstrap: any-ptr, by-val, ptr
 
 # Null pointer.
-null ptr ?t() noctx builtin
+null ptr ?a() noctx builtin
 
 # True if the pointer is `null`.
-null? bool(a ptr ?t) noctx trusted
-	a.to-nat == (null<?t>).to-nat
+null? bool(a ptr ?a) noctx trusted
+	a.to-nat == (null<?a>).to-nat
 
 # Advance the pointer by `offset`.
-+ ptr ?t(a ptr ?t, offset nat) noctx unsafe builtin
++ ptr ?a(a ptr ?a, offset nat) noctx unsafe builtin
 # Back up the pointer by `offset`.
-- ptr ?t(p ptr ?t, offset nat) noctx unsafe builtin
+- ptr ?a(p ptr ?a, offset nat) noctx unsafe builtin
 # Get the difference between two pointers, measured in strides of `?a`.
 # UB if `a < b` or if `size-of<?a> == 0`.
 - nat(a ptr ?a, b ptr ?a) noctx unsafe
@@ -42,14 +42,14 @@ set-subscript void(a ptr ?a, value ?a) noctx unsafe builtin
 Set the value pointed to at the offset.
 UB if that is not a valid pointer.
 ###
-set-subscript void(a ptr ?t, n nat, value ?t) noctx unsafe
+set-subscript void(a ptr ?a, n nat, value ?a) noctx unsafe
 	(a + n)[] := value
 
 ###
 Reinterpret a pointer to a ref.
 Does nothing at runtime, just changes the type.
 ###
-ref-of-ptr ?t(p ptr by-val<?t>) noctx unsafe
+ref-of-ptr ?a(p ptr by-val<?a>) noctx unsafe
 	p[] ref-of-val
 
 ###
@@ -66,7 +66,7 @@ ptr-to ptr ?a(t ?a) noctx unsafe builtin
 
 # TODO: this function only works for by-ref types -- currently that is not checked by the type checker
 # Convert a reference to `any-ptr`.
-as-any-ptr any-ptr(ref ?t) noctx unsafe builtin
+as-any-ptr any-ptr(ref ?a) noctx unsafe builtin
 # TODO: this function only works for by-ref types -- currently that is not checked by the type checker
 ###
 Convert a pointer to a reference of the chosen type.
@@ -128,4 +128,4 @@ Does nothing at runtime, just changes the type.
 ptr-cast ptr ?out(p ptr ?in) noctx unsafe builtin
 
 # Nat value of a pointer.
-to-nat nat(p ptr ?t) noctx unsafe builtin
+to-nat nat(p ptr ?a) noctx unsafe builtin

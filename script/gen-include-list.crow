@@ -1,5 +1,5 @@
 import
-	col.arr-util: remove-end, remove-start
+	col.arr-util: try-remove-end, try-remove-start
 	io.file: each-child-recursive
 	io.print: print
 
@@ -8,5 +8,5 @@ main fut nat(_ arr str) summon
 		drop: x
 		true
 	"include" each-child-recursive filter, \path
-		print: path remove-start "include/" remove-end ".crow"
+		print: (path try-remove-start "include/").force try-remove-end ".crow" force
 	0 resolved

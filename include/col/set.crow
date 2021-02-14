@@ -5,32 +5,44 @@ import
 	..misc: void
 	..number: nat
 	.arr: arr, data, empty?, size, subscript
-	.arr-util: tail
+	.arr-util: filter, tail
 	.mut-list: ~=, move-to-arr!, mut-list
 	.sort: sort-unique
 
-set<?t> record
+###
+Set of unique values.
+Unlike `arr`, the values are always in sorted order, and there are never two of the same value.
+###
+set<?a> record
 	ignore void
 	# TODO:PRIVATE
-	values arr ?t
+	values arr ?a
 
-set set ?t() data<?t>
+# Empty set.
+set set ?a() data<?a>
 	# TODO: type args should be unnecessary
 	set: void, []
 
-set set ?t(a arr ?t) data<?t>
+# Copies an `arr` to a `set`.
+set set ?a(a arr ?a) data<?a>
 	set: void, a.sort-unique
 
-arr arr ?t(a set ?t) data<?t>
+###
+Array of all values in the set, in sorted order.
+This is O(1) as it exposes the set's internal arr.
+This is safe because it's immutable.
+###
+arr arr ?a(a set ?a) data<?a>
 	a.values
 
-size nat(a set ?t) data<?t>
+# Number of values in the set.
+size nat(a set ?a) data<?a>
 	a.values size
 
-subscript bool(a set ?t, value ?t) data<?t>
+# True iff the value is in the set.
+subscript bool(a set ?a, value ?a) data<?a>
 	a.values has? value
-
-.has? bool(a arr ?t, value ?t) data<?t>
+.has? bool(a arr ?a, value ?a) data<?a>
 	# TODO: binary search
 	if a empty?
 		false
@@ -43,12 +55,16 @@ subscript bool(a set ?t, value ?t) data<?t>
 		as greater
 			a.tail has? value
 
-~ set ?t(a set ?t, b set ?t) data<?t>
-	res = mut-list<?t>
+###
+Union of two sets.
+Contains all values from either `a` or `b`.
+Equivalent to `set: a.arr ~ b.arr` (but more efficient).
+###
+~ set ?a(a set ?a, b set ?a) data<?a>
+	res = mut-list<?a>
 	res union! a.values, b.values
 	set: void, res.move-to-arr!
-
-.union! void(res mut-list ?t, a arr ?t, b arr ?t) data<?t>
+.union! void(res mut-list ?a, a arr ?a, b arr ?a) data<?a>
 	if a empty?
 		if b.empty? not
 			res ~= b[0]
@@ -69,12 +85,16 @@ subscript bool(a set ?t, value ?t) data<?t>
 				res ~= b[0]
 				res union! a, b.tail
 
-intersect set ?t(a set ?t, b set ?t) data<?t>
-	res = mut-list<?t>
+###
+Intersection of two sets.
+Contains only values that are in both `a` and `b`.
+Equivalent to `a filter {b[it]}` (but more efficient). 
+###
+intersect set ?a(a set ?a, b set ?a) data<?a>
+	res = mut-list<?a>
 	res intersect! a.values, b.values
 	set: void, res.move-to-arr!
-
-.intersect! void(res mut-list ?t, a arr ?t, b arr ?t) data<?t>
+.intersect! void(res mut-list ?a, a arr ?a, b arr ?a) data<?a>
 	if a.empty?.not and b.empty?.not
 		match a[0] <=> b[0]
 		as less
@@ -85,12 +105,16 @@ intersect set ?t(a set ?t, b set ?t) data<?t>
 		as greater
 			res intersect! a, b.tail
 
-- set ?t(a set ?t, b set ?t) data<?t>
-	res = mut-list<?t>
+###
+Difference of two sets.
+Contains values that are in `a` but not `b`.
+Equivalent to `a filter {b[it] not}` (but more efficient).
+###
+- set ?a(a set ?a, b set ?a) data<?a>
+	res = mut-list<?a>
 	res subtract! a.values, b.values
 	set: void, res.move-to-arr!
-
-subtract! void(res mut-list ?t, a arr ?t, b arr ?t) data<?t>
+.subtract! void(res mut-list ?a, a arr ?a, b arr ?a) data<?a>
 	if a.empty? not
 		if b empty?
 			res ~= a
@@ -103,3 +127,10 @@ subtract! void(res mut-list ?t, a arr ?t, b arr ?t) data<?t>
 				res subtract! a.tail, b.tail
 			as greater
 				res subtract! a, b.tail
+
+###
+Set containing a only values for which `f[x]` is true.
+This is O(a.size) as filtering does not change sort order.
+###
+filter set ?a(a set ?a, f act bool(?a))
+	set: void, a.values filter f

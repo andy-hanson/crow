@@ -8,75 +8,128 @@ import
 	..fun: subscript
 	..misc: ->, void
 	..number: +, -, nat
-	..opt: force, has?, none, opt, some, value
+	..opt: has?, none, opt, some, value
 	..ptr: +, ptr, set-subscript
-	.arr: ~, arr, arr-eq?, data, empty?, noctx-at, size, subscript
+	.arr: ~, arr, arr-from-begin-end, data, empty?, noctx-at, size, subscript
 
-make-arr arr ?t(size nat, f act ?t(nat)) trusted
-	data = size alloc-uninitialized<?t>
+###
+Equivalent to `[f[0], f[1], ..., f[size - 1]]`.
+Arr containing the result of `f` for each number 0 to size (exclusive).
+###
+make-arr arr ?a(size nat, f act ?a(nat)) trusted
+	data = size alloc-uninitialized<?a>
 	data fill-ptr-range size, f
 	arr: size, data
 
-fill-arr arr ?t(size nat, value ?t)
+###
+Equivalent to `[value, value, ...]`.
+Arr with the given `size` where every element is `value`.
+###
+fill-arr arr ?a(size nat, value ?a)
 	size make-arr \ignore
 		value
 
-each void(a arr ?t, f act void(?t))
+###
+Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc., in turn.
+Calls `f` for each element in `a`.
+###
+each void(a arr ?a, f act void(?a))
 	if a.empty? not
-		f[a first]
+		f[a[0]]
 		a.tail each f
 
-each-with-index void(a arr ?t, f act void(?t, nat))
+###
+Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc., in turn.
+Calls `f` for each element in `a`, also providing the index.
+###
+each-with-index void(a arr ?a, f act void(?a, nat))
 	a each-with-index-recur f, 0
-
-.each-with-index-recur void(a arr ?t, f act void(?t, nat), n nat)
+.each-with-index-recur void(a arr ?a, f act void(?a, nat), n nat)
 	if n != a.size
 		f[a[n], n]
 		a each-with-index-recur f, n + 1
 
-map arr ?out(a arr ?in, mapper act ?out(?in)) trusted
+###
+Arr of the elements of `a` for which `f[a[i]]` returns true.
+###
+filter arr ?a(a arr ?a, f act bool(?a)) trusted
+	data = a.size alloc-uninitialized<?a>
+	end = data filter-recur a, f
+	data arr-from-begin-end end
+.filter-recur ptr ?a(out ptr ?a, a arr ?a, f act bool(?a)) unsafe
+	if a empty?
+		out
+	else
+		next-out = if f[a[0]]
+			out[] := a[0]
+			out + 1
+		else
+			out
+		next-out filter-recur a.tail, f
+
+###
+Equivalent to `[f[a[0]], f[a[1]], ...]`.
+Arr of `f[x]` for each `x` in `a`.
+###
+map arr ?out(a arr ?in, f act ?out(?in)) trusted
 	a.size make-arr \i
-		mapper[a[i]]
+		f[a[i]]
 
-first ?t(a arr ?t)
-	forbid: a empty?
-	a[0]
-
-last ?t(a arr ?t)
+# Last element of an arr.
+last ?a(a arr ?a)
 	forbid: a empty?
 	a[a.size - 1]
 
-tail arr ?t(a arr ?t)
+###
+All but the first element of an arr.
+Fails if `a empty?`.
+###
+tail arr ?a(a arr ?a)
 	forbid: a empty?
 	a[1 -> a.size]
 
-rtail arr ?t(a arr ?t)
+###
+All but the last element of an arr.
+Fails if `a empty?`.
+###
+rtail arr ?a(a arr ?a)
 	forbid: a empty?
 	a[0 -> a.size - 1]
 
-first-some opt ?out(a arr ?in, cb act opt ?out(?in))
+###
+Calls `f` on each element of `a` and returns the first result that is `some`.
+Returns `none` if every call to `f` returned `none`.
+###
+first-some opt ?out(a arr ?in, f act opt ?out(?in))
 	if a empty?
 		none
 	else
-		match cb[a.first]
+		match f[a[0]]
 		as none
-			a.tail first-some cb
+			a.tail first-some f
 		as some s
 			s
 
-exists? bool(a arr ?t, pred act bool(?t))
+###
+Equivalent to `f[a[0]] or f[a[1]] or or ...`
+Calls `f` on each element of `a` and returns `true` the first time `f` does.
+###
+exists? bool(a arr ?a, f act bool(?a))
 	if a empty?
 		false
-	elif pred[a.first]
+	elif f[a[0]]
 		true
 	else
-		a.tail exists? pred
+		a.tail exists? f
 
 # TODO: only written this way to be `noctx`, else could defer to `some?`
-contains? bool(a arr ?t, value ?t) noctx data<?t>
+###
+Equivalent to `a exists? {it == value}`.
+Also equivalent to `a[0] == value or a[1] == value or ...`.
+###
+contains? bool(a arr ?a, value ?a) noctx data<?a>
 	a contains-recur? value, 0
-
-contains-recur? bool(a arr ?t, value ?t, i nat) noctx trusted data<?t>
+.contains-recur? bool(a arr ?a, value ?a, i nat) noctx trusted data<?a>
 	if i == a.size
 		false
 	elif (a noctx-at i) == value
@@ -84,43 +137,57 @@ contains-recur? bool(a arr ?t, value ?t, i nat) noctx trusted data<?t>
 	else
 		a contains-recur? value, i.noctx-incr
 
-contains-subseq? bool(a arr ?t, subseq arr ?t) data<?t>
+# TODO: data<arr ?a> should be unnecessary
+###
+True iff the sub-sequence appears in `a`.
+Equivalent to `a[0 -> subseq.size] == subseq or a[1 -> 1 + subseq.size] == subseq or ...`
+###
+contains-subseq? bool(a arr ?a, subseq arr ?a) data<?a> data<arr ?a>
 	a index-of-subseq subseq has?
 
-starts-with? bool(a arr ?t, start arr ?t) data<?t>
-	a.size >= start.size and: a[0 -> start.size] arr-eq? start
+# TODO: data<arr ?a> should be unnecessary
+# True iff the first elements of `a` are `start`, meaning `a[0 -> start.size] == start`.
+starts-with? bool(a arr ?a, start arr ?a) data<?a> data<arr ?a>
+	a.size >= start.size and: a[0 -> start.size] == start
 
-ends-with? bool(a arr ?t, end arr ?t) data<?t>
-	a.size >= end.size and: a[a.size - end.size -> a.size] arr-eq? end
+# TODO: data<arr ?a> should be unnecessary
+# True iff the last elements of `a` are `end`, meaning `a[a.size - end.size -> a.size] == end`.
+ends-with? bool(a arr ?a, end arr ?a) data<?a> data<arr ?a>
+	a.size >= end.size and: a[a.size - end.size -> a.size] == end
 
-remove-start arr ?t(a arr ?t, start arr ?t) data<?t>
-	a try-remove-start start force
-
-try-remove-start opt arr ?t(a arr ?t, start arr ?t) data<?t>
+# TODO: data<arr ?a> should be unnecessary
+# If `a` starts with `start`, returns the remaining elements, else returns `none`.
+try-remove-start opt arr ?a(a arr ?a, start arr ?a) data<?a> data<arr ?a>
 	if a starts-with? start
 		a[start.size -> a.size] some
 	else
 		none
 
-remove-end arr ?t(a arr ?t, end arr ?t) data<?t>
-	a try-remove-end end force
-
-try-remove-end opt arr ?t(a arr ?t, end arr ?t) data<?t>
+# TODO: data<arr ?a> should be unnecessary
+# If `a` ends with `end`, returns the preceding elements, else returns `none`.
+try-remove-end opt arr ?a(a arr ?a, end arr ?a) data<?a> data<arr ?a>
 	if a ends-with? end
 		a[0 -> a.size - end.size] some
 	else
 		none
 
-fold ?a(val ?a, a arr ?b, combine act ?a(?a, ?b))
+###
+This is like `each` but with a state variable that gets transformed by each call to `f`.
+For example, for a 2-element array, this is equivalent to `f[f[val, a[0]], a[1]]`.
+###
+fold ?a(val ?a, a arr ?b, f act ?a(?a, ?b))
 	if a empty?
 		val
 	else
-		combine[val, a.first] fold a.tail, combine
+		f[val, a[0]] fold a.tail, f
 
-index-of-subseq opt nat(a arr ?t, subseq arr ?t) data<?t>
+# TODO: data<arr ?a> should be unnecessary
+# Finds the first index where `a[i -> i + subseq.size] == subseq`.
+index-of-subseq opt nat(a arr ?a, subseq arr ?a) data<?a> data<arr ?a>
 	a index-of-subseq-recur subseq, 0
 
-.index-of-subseq-recur opt nat(a arr ?t, subseq arr ?t, i nat) data<?t>
+# TODO: data<arr ?a> should be unnecessary
+.index-of-subseq-recur opt nat(a arr ?a, subseq arr ?a, i nat) data<?a> data<arr ?a>
 	if i == a.size
 		none
 	elif a[i -> a.size] starts-with? subseq
@@ -128,55 +195,97 @@ index-of-subseq opt nat(a arr ?t, subseq arr ?t) data<?t>
 	else
 		a index-of-subseq-recur subseq, i + 1
 
-index-of opt nat(a arr ?t, value ?t) data<?t>
-	a find-index {it == value}
-
-r-index-of opt nat(a arr ?t, value ?t) data<?t>
-	a find-rindex {it == value}
-
-find-index opt nat(a arr ?t, pred act bool(?t))
-	a find-index-recur 0, pred
-
-.find-index-recur opt nat(a arr ?t, index nat, pred act bool(?t))
+###
+Equivalent to `f[a[0]] ? 0.some, f[a[1]] ? 1.some, ...`.
+Returns the first index for which `f[a[i]]` is true, or returns `none`.
+###
+find-index opt nat(a arr ?a, f act bool(?a))
+	a find-index-recur 0, f
+.find-index-recur opt nat(a arr ?a, index nat, f act bool(?a))
 	if index == a.size
 		none
-	elif pred[a[index]]
+	elif f[a[index]]
 		index some
 	else
-		a find-index-recur index + 1, pred
+		a find-index-recur index + 1, f
 
-find-rindex opt nat(a arr ?t, pred act bool(?t))
+###
+Like `find-index`, but starts from the end.
+Equivalent to `f[a[a.size - 1]] ? (a.size - 1 some), f[a[a.size - 2]] ? (a.size - 2 some), ...`.
+###
+find-rindex opt nat(a arr ?a, f act bool(?a))
 	if a empty?
 		none
 	else
-		a find-rindex-recur a.size - 1, pred
-
-.find-rindex-recur opt nat(a arr ?t, index nat, pred act bool(?t))
-	if pred[a[index]]
+		a find-rindex-recur a.size - 1, f
+.find-rindex-recur opt nat(a arr ?a, index nat, f act bool(?a))
+	if f[a[index]]
 		index some
 	elif index == 0
 		none
 	else
-		a find-rindex-recur index - 1, pred
+		a find-rindex-recur index - 1, f
 
-join arr ?t(a arr arr ?t, joiner arr ?t)
+###
+Returns the first index where `a[i] == value`.
+Equivalent to `a find-index {it == value}`.
+###
+index-of opt nat(a arr ?a, value ?a) data<?a>
+	a find-index {it == value}
+
+###
+Returns the last index where `a[i] == value`.
+Equivalent to `a find-rindex {it == value}`.
+###
+r-index-of opt nat(a arr ?a, value ?a) data<?a>
+	a find-rindex {it == value}
+
+###
+Concatenates many arrays into a single array.
+Equivalent to `a[0] ~ a[1] ~ ...`.
+###
+flatten arr ?a(a arr arr ?a)
+	a flatten []
+
+###
+Concatenates many arrays into a single array, with `joiner` in between.
+Equivalent to `a[0] ~ joiner ~ a[1] ~ joiner ~ ... ~ a[a.size - 1]`.
+###
+flatten arr ?a(a arr arr ?a, joiner arr ?a)
 	if a empty?
 		[]
 	elif a.size == 1
 		a[0]
 	else
-		a[0] ~ joiner ~: a.tail join joiner
+		a[0] ~ joiner ~: a.tail flatten joiner
 
-split-by-subseq arr arr ?t(a arr ?t, splitter arr ?t) data<?t> trusted
+# TODO: data<arr ?a> should be unnecessary
+###
+Splits `a` each time it finds `splitter`.
+For example, "a rose is a hose is a nose" split-by-subseq "is" would be
+["a rose ", " a hose ", " a nose"].
+###
+split-by-subseq arr arr ?a(a arr ?a, splitter arr ?a) data<?a> data<arr ?a> trusted
 	size = (a count-subseqs splitter) + 1
-	data = size alloc-uninitialized<arr ?t>
-	data fill-subseqs-recur a, splitter
+	data = size alloc-uninitialized<arr ?a>
+	data split-by-subseq-recur a, splitter
 	arr: size, data
+# TODO: data<arr ?a> should be unnecessary
+.split-by-subseq-recur void(out ptr arr ?a, a arr ?a, splitter arr ?a) data<?a> data<arr ?a> unsafe
+	match a index-of-subseq splitter
+	as none
+		out[] := a
+	as some s
+		out[] := a[0 -> s.value]
+		rest = a[s.value + splitter.size -> a.size]
+		out + 1 split-by-subseq-recur rest, splitter
 
-count-subseqs nat(a arr ?t, subseq arr ?t) data<?t>
+# TODO: data<arr ?a> should be unnecessary
+# Returns the number of indices for which `a[i -> i + subseq.size] == subseq`.
+count-subseqs nat(a arr ?a, subseq arr ?a) data<?a> data<arr ?a>
 	a count-subseqs-recur subseq, 0
-
-.count-subseqs-recur nat(a arr ?t, subseq arr ?t, acc nat) data<?t>
+# TODO: data<arr ?a> should be unnecessary
+.count-subseqs-recur nat(a arr ?a, subseq arr ?a, acc nat) data<?a> data<arr ?a>
 	match a index-of-subseq subseq
 	as none
 		acc
@@ -184,16 +293,12 @@ count-subseqs nat(a arr ?t, subseq arr ?t) data<?t>
 		rest = a[s.value + subseq.size -> a.size]
 		rest count-subseqs-recur subseq, acc + 1
 
-.fill-subseqs-recur void(out ptr arr ?t, a arr ?t, splitter arr ?t) data<?t> unsafe
-	match a index-of-subseq splitter
-	as none
-		out[] := a
-	as some s
-		out[] := a[0 -> s.value]
-		rest = a[s.value + splitter.size -> a.size]
-		out + 1 fill-subseqs-recur rest, splitter
-
-zip arr ?out(a arr ?a, b arr ?b, cb act ?out(?a, ?b))
+###
+Arr containing the result of `f` for corresponding elements of `a` and `b`.
+Equivalent to `[f[a[0], b[0]], f[a[1], b[1]], ...]`.
+Fails if the arrs have different sizes.
+###
+zip arr ?out(a arr ?a, b arr ?b, f act ?out(?a, ?b))
 	assert: a.size == b.size
 	a.size make-arr \i
-		cb[a[i], b[i]]
+		f[a[i], b[i]]

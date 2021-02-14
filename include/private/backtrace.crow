@@ -112,7 +112,7 @@ body
 	else
 		l
 
-.swap void(a ptr ?t, lo nat, hi nat) unsafe
+.swap void(a ptr ?a, lo nat, hi nat) unsafe
 	temp = a[lo]
 	a[lo] := a[hi]
 	a[hi] := temp

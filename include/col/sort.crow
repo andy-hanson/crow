@@ -10,16 +10,24 @@ import
 	.mut-arr: cast-immutable, mut-arr, size, set-subscript, subscript
 	.mut-list: ~=, empty?, last, move-to-arr!, mut-list, temp-as-mut-arr
 
-sort arr ?t(a arr ?t) data<?t> trusted
+###
+Returns a new array containing the same elements as `a`, but in sorted order.
+That means `res[i] <= res[i + 1]` for each element in the result.
+###
+sort arr ?a(a arr ?a) data<?a> trusted
 	res = a mut-arr
 	res sort!
 	res cast-immutable
 
-sort-unique arr ?t(a arr ?t) data<?t> trusted
+###
+Sort and remove duplicates.
+That means `res[i] < res[i + 1]` for each element in the result.
+`[2, 1, 2] sort-unique` is `[1, 2]`.
+###
+sort-unique arr ?a(a arr ?a) data<?a> trusted
 	a.sort unique!
-
-.unique! arr ?t(a arr ?t) data<?t>
-	res = mut-list<?t>
+.unique! arr ?a(a arr ?a) data<?a>
+	res = mut-list<?a>
 	a each \x
 		if res.empty? or x != res.last
 			res ~= x
@@ -29,10 +37,12 @@ test
 	assert: (sort: as<arr nat>: []) == []
 	assert: [3, 1, 2].sort == [1, 2, 3]
 
-sort! void(a mut-list ?t) data<?t> trusted
+# Sort a mut-list in place.
+sort! void(a mut-list ?a) data<?a> trusted
 	a.temp-as-mut-arr sort!
 
-sort! void(a mut-arr ?t) data<?t>
+# Sort a mut-list in place.
+sort! void(a mut-arr ?a) data<?a>
 	if a.size > 1
 		# Perf -- in case a is sorted already, prefer the middle element as a pivot
 		a swap 0, a.size / 2
@@ -43,7 +53,7 @@ sort! void(a mut-arr ?t) data<?t>
 		a[new-pivot-index + 1 -> a.size] sort!
 
 # Returns index of first value > pivot
-.partition! nat(a mut-arr ?t, pivot ?t, l nat, r nat) data<?t>
+.partition! nat(a mut-arr ?a, pivot ?a, l nat, r nat) data<?a>
 	assert: l <= a.size
 	assert: r < a.size
 	if l <= r
@@ -55,7 +65,7 @@ sort! void(a mut-arr ?t) data<?t>
 	else
 		l
 
-.swap void(a mut-arr ?t, x nat, y nat)
+.swap void(a mut-arr ?a, x nat, y nat)
 	old-x = a[x]
 	a[x] := a[y]
 	a[y] := old-x
@@ -64,15 +74,18 @@ sorted-by-first<?a, ?b> record
 	a arr ?a
 	b arr ?b
 
+# Sort `a`, and apply the same permutation to `b`.
 sort-by-first sorted-by-first<?a, ?b>(a arr ?a, b arr ?b) data<?a> trusted
 	mut-a = a mut-arr
 	mut-b = b mut-arr
 	mut-a sort-by-first! mut-b
 	mut-a.cast-immutable sorted-by-first mut-b.cast-immutable
 
+# Sort `a` in place, and apply the same permutation to `b` in place.
 sort-by-first! void(a mut-list ?a, b mut-list ?b) data<?a> trusted
 	a.temp-as-mut-arr sort-by-first! b.temp-as-mut-arr
 
+# Sort `a` in place, and apply the same permutation to `b` in place.
 sort-by-first! void(a mut-arr ?a, b mut-arr ?b) data<?a>
 	assert: a.size == b.size
 	if a.size > 1

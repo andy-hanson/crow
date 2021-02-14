@@ -8,14 +8,16 @@ import
 	..number: +, nat
 	..opt: each, has?, none, opt, some
 	.arr: arr, data, empty?, size, subscript
-	.arr-util: first, map, tail, zip
+	.arr-util: map, tail, zip
 	.mut-list: ~=, move-to-arr!, mut-list
 	.sort: a, b, sort-by-first
 
 ###
 A dictionary type that maps keys to values.
 Called a "map", "table", "hash table", or "associative array" in other languages.
-TODO:MORE
+Keys must be `data`; values can be anything.
+See `mut-dict` for a mutable version.
+See `set` for a dict with no values.
 ###
 dict<?k, ?v> record
 	# TODO: PRIVATE
@@ -24,30 +26,42 @@ dict<?k, ?v> record
 	keys arr ?k
 	values arr ?v
 
+# Empty dict.
 dict dict<?k, ?v>() data<?k>
 	dict: [], []
 
+###
+`dict` from `key -> value` pairs.
+Fails if some key is repeated.
+###
 dict dict<?k, ?v>(pairs arr arrow<?k, ?v>) data<?k>
 	keys = pairs map {it from}
 	values = pairs map {it to}
 	dict: keys, values
 
+###
+`dict` from keys and values from corresponding elements in the arrays.
+Fails if the key and value arrays have different sizes.
+Fails if some key is repeated.
+###
 dict dict<?k, ?v>(keys arr ?k, values arr ?v) data<?k>
 	assert: keys.size == values.size
 	sorted = keys sort-by-first values
 	dict: void, sorted.a, sorted.b
 
+# Converts a dict to an arr of `key -> value` pairs.
 arr arr arrow<?k, ?v>(a dict<?k, ?v>)
 	a.keys zip a.values, \key, value
 		key -> value
 
-empty? bool(d dict<?k, ?v>)
-	d.keys empty?
+# True iff the dict has no keys.
+empty? bool(a dict<?k, ?v>)
+	a.keys empty?
 
-subscript opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
+# Gets the value associated with a key, or returns `none`.
+subscript opt ?v(a dict<?k, ?v>, key ?k) trusted data<?k>
 	# TODO: should not need to provide type arguments
-	subscript-recur<?k, ?v>: d.keys, d.values, 0, key
-
+	subscript-recur<?k, ?v>: a.keys, a.values, 0, key
 .subscript-recur<?k, ?v> opt ?v(keys arr ?k, values arr ?v, idx nat, key ?k) data<?k>
 	if idx == keys.size
 		none
@@ -57,26 +71,36 @@ subscript opt ?v(d dict<?k, ?v>, key ?k) trusted data<?k>
 		# TODO: should not need to provide type arguments!
 		subscript-recur<?k, ?v>: keys, values, idx + 1, key
 
-has? bool(d dict<?k, ?v>, key ?k) data<?k>
-	d[key] has?
+# True iff the key is in the dict.
+has? bool(a dict<?k, ?v>, key ?k) data<?k>
+	a[key] has?
 
-map-values dict<?k, ?v-out>(d dict<?k, ?v-in>, mapper act ?v-out(?v-in)) data<?k>
-	new-values = d.values map mapper
+# Creates a new dict with the same keys, but with `f` applied to each value.
+map-values dict<?k, ?v-out>(a dict<?k, ?v-in>, f act ?v-out(?v-in)) data<?k>
 	# TODO: should be able to infer type arguments 
-	dict<?k, ?v-out>: d.keys, new-values
+	dict<?k, ?v-out>: a.keys, a.values map f
 
-each void(d dict<?k, ?v>, f act void(?k, ?v)) data<?k>
-	if d.empty? not
-		f[d.keys.first, d.values.first]
+###
+Calls `f` for each `key -> value` pair in the dict.
+Keys are iterated in sorted order, so each key passed to `f` is `>` all previous keys.
+###
+each void(a dict<?k, ?v>, f act void(?k, ?v)) data<?k>
+	if a.empty? not
+		f[a.keys[0], a.values[0]]
 		# TODO: type arguments should be unnecessary
-		d.keys.tail dict<?k, ?v> d.values.tail each f
+		a.keys.tail dict<?k, ?v> a.values.tail each f
 
-combine dict<?k, ?out>(a dict<?k, ?in-0>, b dict<?k, ?in-1>, cb act opt ?out(?k, opt ?in-0, opt ?in-1)) data<?k>
+###
+Combines two dicts.
+For each key in *either* `a` or `b`, calls `f`,
+providing the key's corresponding values from `a` and `b`.
+The result will only have `key -> value` pairs where `f` returns `some`.
+###
+combine dict<?k, ?out>(a dict<?k, ?in-0>, b dict<?k, ?in-1>, f act opt ?out(?k, opt ?in-0, opt ?in-1)) data<?k>
 	out-keys = mut-list<?k>
 	out-values = mut-list<?out>
-	combine-recur: out-keys, out-values, a.keys, a.values, b.keys, b.values, cb
+	combine-recur: out-keys, out-values, a.keys, a.values, b.keys, b.values, f
 	dict: out-keys.move-to-arr!, out-values.move-to-arr!
-
 .combine-recur void
 	out-keys mut-list ?k
 	out-values mut-list ?out

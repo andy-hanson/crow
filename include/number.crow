@@ -53,7 +53,7 @@ multiple-of? bool(a nat, b nat)
 		assert: res / b == a
 		assert: res / a == b
 		res
-# Divide two nats. Fails iff `b == 0`.
+# Divide two nats. Fails if `b == 0`.
 / nat(a nat, b nat) trusted
 	forbid: b == 0
 	a unsafe-div b

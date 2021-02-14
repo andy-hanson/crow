@@ -3,82 +3,141 @@ import
 	..private.alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	..private.bootstrap: hard-assert
 	..bool: bool
-	..compare: ==, <
+	..compare: ==, <, <=
 	..exception: assert
-	..misc: arrow, void
+	..misc: arrow, from, to, void
 	..number: nat
 	..opt: opt
 	..ptr: ptr, set-subscript
 	.arr: arr, data, size, subscript
 	.arr-util: find-index
 
-mut-arr<?t> record mut
+###
+Like `arr` but mutable.
+`mut-arr` is fixed-size, unlike `mut-list`. It can change elements but can't add or remove them.
+###
+mut-arr<?a> record mut
 	by-val
 	# Adding a dummy field so the constructor won't conflict with mut-arr from arr
 	ignore void
 	# TODO:PRIVATE
-	inner arr ?t
+	inner arr ?a
 
-mut-arr mut-arr ?t() noctx
+# Empty `mut-arr`.
+mut-arr mut-arr ?a() noctx
 	mut-arr: void, []
 
-mut-arr mut-arr ?t(size nat, data ptr ?t) noctx unsafe
+# `mut-arr` from a pointer and size.
+mut-arr mut-arr ?a(size nat, data ptr ?a) noctx unsafe
 	mut-arr: void, arr: size, data
 
-mut-arr mut-arr ?t(a arr ?t)
-	a.size make-mut-arr<?t> {a[it]}
+###
+Copies an `arr` to a `mut-arr`.
+Writing to the result won't affect the original.
+###
+mut-arr mut-arr ?a(a arr ?a)
+	a.size make-mut-arr<?a> {a[it]}
 
-arr arr ?t(a mut-arr ?t)
+###
+Copies a `mut-arr` to an `arr`.
+Further writes to the `mut-arr` won't affect the `arr` that was copied from it.
+###
+arr arr ?a(a mut-arr ?a)
 	a.copy.inner
 
-copy mut-arr ?t(a mut-arr ?t)
-	a.size make-mut-arr<?t> {a[it]}
+###
+Copies the elements of a `mut-arr`.
+Writing to the result won't affect the original.
+###
+copy mut-arr ?a(a mut-arr ?a)
+	a.size make-mut-arr<?a> {a[it]}
 
-size nat(a mut-arr ?t) noctx
+size nat(a mut-arr ?a) noctx
 	a.inner size
 
-data ptr ?t(a mut-arr ?t) noctx unsafe
+# Pointer to the beginning of the `mut-arr`.
+data ptr ?a(a mut-arr ?a) noctx unsafe
 	a.inner data
 
-subscript ?t(a mut-arr ?t, index nat)
+###
+Gets the element at the index.
+Fails if `index >= a.size`.
+###
+subscript ?a(a mut-arr ?a, index nat)
 	a.inner[index]
 
-subscript mut-arr ?t(a mut-arr ?t, range arrow<nat, nat>)
+###
+Slices the mut-arr.
+This is O(1).
+Writes to the slice will affect the original. (If you don't want that, use `copy`.)
+Fails if `range.from > range.to`.
+Fails if the slice would exceed the bounds of the `mut-arr`.
+###
+subscript mut-arr ?a(a mut-arr ?a, range arrow<nat, nat>)
+	assert: range.from <= range.to
+	assert: range.to <= a.size
 	mut-arr: void, a.inner[range]
 
-set-subscript void(a mut-arr ?t, index nat, value ?t) trusted
+###
+Write to a single element.
+Fails if `index >= a.size`.
+###
+set-subscript void(a mut-arr ?a, index nat, value ?a) trusted
 	assert: index < a.size
 	a noctx-set-at index, value
 
-noctx-set-at void(a mut-arr ?t, index nat, value ?t) noctx unsafe
+noctx-set-at void(a mut-arr ?a, index nat, value ?a) noctx unsafe
 	hard-assert: index < a.size
 	a.data[index] := value
 
-uninitialized-mut-arr mut-arr ?t(size nat) unsafe
-	mut-arr: size, alloc-uninitialized<?t>: size
+# Allocates a `mut-arr` without initializing any of its elements.
+uninitialized-mut-arr mut-arr ?a(size nat) unsafe
+	mut-arr: size, alloc-uninitialized<?a>: size
 
-make-mut-arr mut-arr ?t(size nat, f act ?t(nat)) trusted
-	res = uninitialized-mut-arr<?t>: size
+###
+`mut-arr` where each element is `f[i]`.
+Equivalent to `mut-arr: [f[0], f[1], ...]`.
+###
+make-mut-arr mut-arr ?a(size nat, f act ?a(nat)) trusted
+	res = uninitialized-mut-arr<?a>: size
 	res.data fill-ptr-range size, f
 	res
 
-fill-mut-arr mut-arr ?t(size nat, value ?t)
+###
+`mut-arr` where every element is `value`.
+Equivalent to `mut-arr: [value, value, ...]`.
+###
+fill-mut-arr mut-arr ?a(size nat, value ?a)
 	size make-mut-arr \ignore
 		value
 
-temp-as-arr arr ?t(a mut-arr ?t) noctx unsafe
+###
+Unsafe cast a mut-arr to arr.
+Called "temp" because it is UB if the mut-arr is written to while the `arr` is in use.
+###
+temp-as-arr arr ?a(a mut-arr ?a) noctx unsafe
 	a inner
 
-cast-immutable arr ?t(a mut-arr ?t) noctx unsafe
+###
+Unsafe cast a mut-arr to arr.
+Equivalent to `temp-as-arr`, but the implication is that
+the `mut-arr` will never be written to again, so the `arr` can be used forever.
+###
+cast-immutable arr ?a(a mut-arr ?a) noctx unsafe
 	a inner
 
-set-zero-elements void(a mut-arr ?t) noctx unsafe
+###
+Fill the `mut-arr` with 0 bits.
+This prevents the garbage collector from tracing those elements.
+Data structures that use a `mut-arr` should `set-zero-elements` on any elements they don't use.
+###
+set-zero-elements void(a mut-arr ?a) noctx unsafe
 	a.data set-zero-range a.size
 
-region misc
-
-index-of opt nat(a mut-arr ?t, value ?t) data<?t>
+# Equivalent to `a.temp-as-arr index-of value`.
+index-of opt nat(a mut-arr ?a, value ?a) data<?a>
 	a find-index {it == value}
 
-find-index opt nat(a mut-arr ?t, pred act bool(?t)) trusted
-	a.temp-as-arr find-index pred
+# Equivalent to `a.temp-as-arr find-index f`.
+find-index opt nat(a mut-arr ?a, f act bool(?a)) trusted
+	a.temp-as-arr find-index f

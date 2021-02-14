@@ -2,7 +2,7 @@ no-std
 import
 	.bool: ?, bool, false, true
 	.col.arr: ~, data, empty?, subscript
-	.col.arr-util: first, tail
+	.col.arr-util: tail
 	.col.dict: dict, each
 	.col.mut-list: ~=, move-to-arr!, mut-list, size
 	.compare: ==, <, >
@@ -79,7 +79,7 @@ to-str str(a dict<?k, ?v>) data<?k> to-str<?k> to-str<?v>
 	res ~= "]"
 	res move-to-arr!
 
-to-str str(a opt ?t) to-str<?t>
+to-str str(a opt ?a) to-str<?a>
 	match a
 	as none
 		"none"
@@ -152,7 +152,7 @@ parse-nat opt nat(a str)
 	if a empty?
 		accum some
 	else
-		match a.first.char-to-nat
+		match a[0].char-to-nat
 		as none
 			none
 		as some s

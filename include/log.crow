@@ -18,7 +18,7 @@ log void(level log-level, message str) trusted
 Temporarily replaces the log handler for this task.
 (Does not affect other tasks.)
 ###
-with-log-handler ?t(handler log-handler, cb act ?t())
+with-log-handler ?a(handler log-handler, cb act ?a())
 	original-handler = get-log-handler
 	reset = as<act void()>: \
 		log-handler := original-handler

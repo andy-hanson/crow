@@ -2,7 +2,7 @@ no-std
 import
 	..bool: ?, and, bool, false, not, or, true
 	..col.arr: ~, arr, empty?, noctx-at, size, subscript
-	..col.arr-util: join
+	..col.arr-util: flatten
 	..compare: ==, !=, >, min
 	..exception: exception, message
 	..io.print: print-err, print-err-no-newline
@@ -98,7 +98,7 @@ default-exception-handler void(e exception) summon unsafe
 # TODO: MOVE
 .show-exception str(a exception)
 	msg = a.message.empty? ? "<<empty message>>", a.message
-	bt = a.backtrace.return-stack join "\n\tat "
+	bt = a.backtrace.return-stack flatten "\n\tat "
 	msg ~ "\n\tat " ~ bt
 
 # TODO: move to exception.crow?

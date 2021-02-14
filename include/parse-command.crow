@@ -3,7 +3,7 @@ import
 	.bool: bool, false, true
 	.cell: cell, set-subscript, subscript
 	.col.arr: ~, arr, empty?, size, subscript
-	.col.arr-util: find-index, first, index-of, remove-start, starts-with?, tail
+	.col.arr-util: find-index, index-of, starts-with?, tail, try-remove-start
 	.col.dict: dict, each
 	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
 	.col.mut-list: fill-mut-list, move-to-arr!, set-subscript, subscript
@@ -11,7 +11,7 @@ import
 	.exception: assert, fail, forbid
 	.misc: ->, void
 	.number: +
-	.opt: has?, none, opt, some, value
+	.opt: force, has?, none, opt, some, value
 	.str: str
 
 ###
@@ -80,7 +80,7 @@ parse-command opt arr opt arr str(args arr str, arg-names arr str)
 	res move-to-dict!
 
 .parse-named-args-recur void(args arr str, builder mut-dict<str, arr str>)
-	first-name = args.first remove-start "--"
+	first-name = args[0] try-remove-start "--" force
 	tl = args tail
 	match tl find-index {it starts-with? "--"}
 	as none

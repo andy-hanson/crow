@@ -12,18 +12,18 @@ c[] := c[] + 1
 assert: c[] == 2
 ```
 ###
-cell<?t> record mut
-	subscript mut ?t
+cell<?a> record mut
+	subscript mut ?a
 
 ###
 Treats a pointer as a cell.
 UB if the pointer does not point to a mutable value.
 ###
-as-cell cell ?t(p ptr ?t) noctx unsafe
+as-cell cell ?a(p ptr ?a) noctx unsafe
 	p.as-any-ptr as-ref
 
 # Put `v` into the cell, and return the old value.
-swap ?t(c cell ?t, v ?t) noctx
+swap ?a(c cell ?a, v ?a) noctx
 	res = c[]
 	c[] := v
 	res

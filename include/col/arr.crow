@@ -1,9 +1,9 @@
 no-std
 import
-	..bool: bool, false, not, true
-	..compare: ==, !=, <, <=
+	..bool: bool, not
+	..compare: ==, <, <=
 	..exception: assert
-	..misc: ->, arrow, from, to
+	..misc: arrow, from, to
 	..number: +, -, nat
 	..ptr: +, -, by-val, ptr, ptr-less-eq?, ref-of-ptr, subscript
 	..private.alloc: alloc-uninitialized, copy-data-from
@@ -16,67 +16,54 @@ Arr or the range from begin to end.
 `begin` is inclusive and `end` is exclusive.
 UB if begin > end.
 ###
-arr-from-begin-end arr ?t(begin ptr ?t, end ptr ?t) unsafe noctx
+arr-from-begin-end arr ?a(begin ptr ?a, end ptr ?a) unsafe noctx
 	hard-assert: begin ptr-less-eq? end
 	arr: end - begin, begin
 
 # True iff `a.size == 0`.
-empty? bool(a arr ?t) noctx
+empty? bool(a arr ?a) noctx
 	a.size == 0
 
 # True iff `a.size != 0`.
-has? bool(a arr ?t) noctx
+has? bool(a arr ?a) noctx
 	a.empty? not
 
-noctx-at ?t(a arr ?t, index nat) trusted noctx
+noctx-at ?a(a arr ?a, index nat) trusted noctx
 	hard-assert: index < a.size
 	a.data[index]
 
 ###
-Gets the array element at the index.
+Gets the element at the index.
 Fails if `index >= a.size`.
 ###
-subscript ?t(a arr ?t, index nat) trusted
+subscript ?a(a arr ?a, index nat) trusted
 	assert: index < a.size
 	a noctx-at index
 
 ###
-Slices the array.
+Slices the arr.
 `range.from` is inclusive and `range.to` is exclusive.
 This works in O(1) without copying any elements.
 Fails if `range.from > range.to`.
-Fails if the slice would exceed the bounds of the array.
+Fails if the slice would exceed the bounds of the arr.
 ###
-subscript arr ?t(a arr ?t, range arrow<nat, nat>) trusted
+subscript arr ?a(a arr ?a, range arrow<nat, nat>) trusted
 	assert: range.from <= range.to
 	assert: range.to <= a.size
 	arr: range.to - range.from, a.data + range.from
 
-ref-of-val-at ?t(a arr by-val<?t>, index nat) trusted
+ref-of-val-at ?a(a arr by-val<?a>, index nat) trusted
 	assert: index < a.size
 	a.data + index ref-of-ptr
 
 ###
-Concatenates two arrays.
-This involves copying every element from both arrays into the new array.
+Concatenates two arrs.
+This involves copying every element from both arrs into the new arr.
 If you need to concatenate often, consider using `mut-list`.
 ###
-~ arr ?t(a arr ?t, b arr ?t) trusted
+~ arr ?a(a arr ?a, b arr ?a) trusted
 	res-size = a.size + b.size
-	res = res-size alloc-uninitialized<?t>
+	res = res-size alloc-uninitialized<?a>
 	res copy-data-from a.data, a.size
 	res + a.size copy-data-from b.data, b.size
 	arr: res-size, res
-
-# TODO: should be unnecessary, just use '=='
-# (But type system must recognize that `arr ?t` is data if `?t` is)
-# Ignore me
-arr-eq? bool(a arr ?t, b arr ?t) data<?t>
-	if a.size != b.size
-		false
-	elif a.empty?
-		true
-	elif a[0] != b[0]
-		false
-	else
-		a[1 -> a.size] arr-eq?: b[1 -> b.size]

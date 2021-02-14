@@ -8,7 +8,7 @@ export
 	.private.bootstrap: none, opt, some, value
 
 # True iff a is `none`.
-empty? bool(a opt ?t) noctx
+empty? bool(a opt ?a) noctx
 	match a
 	as none
 		true
@@ -16,7 +16,7 @@ empty? bool(a opt ?t) noctx
 		false
 
 # True iff a is `some`.
-has? bool(a opt ?t) noctx
+has? bool(a opt ?a) noctx
 	a.empty? not
 
 # Calls `f` on the value in a `some`, or does nothing.
@@ -36,7 +36,7 @@ map opt ?out(a opt ?in, f act ?out(?in))
 		f[s value] some
 
 # Converts an option to a value by supplying a default to handle `none`.
-opt-or ?t(a opt ?t, default act ?t())
+or-default ?a(a opt ?a, default act ?a())
 	match a
 	as none
 		default[]
@@ -44,7 +44,7 @@ opt-or ?t(a opt ?t, default act ?t())
 		s value
 
 # Converts an option to a value by failing on `none`.
-force ?t(a opt ?t)
+force ?a(a opt ?a)
 	match a
 	as none
 		fail: "tried to force empty option"

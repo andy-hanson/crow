@@ -14,20 +14,34 @@ import
 	..opt: none, opt, some, value
 	.sort: sort-by-first!
 
+###
+Mutable `dict`.
+Keys must still be `data`.
+###
 mut-dict<?k, ?v> record mut
 	# TODO: PRIVATE
 	ignore void
 	keys mut-list ?k
 	values mut-list ?v
 
+# New empty `mut-dict`.
 mut-dict mut-dict<?k, ?v>() data<?k>
 	mut-dict: void, mut-list, mut-list
 
+###
+`mut-dict` from `key -> value` pairs.
+Fails if some key is repeated.
+###
 mut-dict mut-dict<?k, ?v>(pairs arr arrow<?k, ?v>) data<?k>
 	keys = pairs map {it from}
 	values = pairs map {it to}
 	mut-dict: keys, values
 
+###
+`mut-dict` from keys and values from corresponding elements in the arrays.
+Fails if the key and value arrays have different sizes.
+Fails if some key is repeated.
+###
 mut-dict mut-dict<?k, ?v>(keys arr ?k, values arr ?v) data<?k>
 	assert: keys.size == values.size
 	mut-keys = keys mut-list
@@ -35,9 +49,15 @@ mut-dict mut-dict<?k, ?v>(keys arr ?k, values arr ?v) data<?k>
 	mut-keys sort-by-first! mut-values
 	mut-dict: void, mut-keys, mut-values
 
-subscript opt ?v(d mut-dict<?k, ?v>, key ?k) trusted data<?k>
-	d.temp-as-dict[key]
+# Gets the value associated with a key, or returns `none`.
+subscript opt ?v(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
+	a.temp-as-dict[key]
 
+###
+Sets the value associated with a key, or returns `none`.
+If the key already exists, overwrites the existing value,
+else this will add a new pair, increasing the size.
+###
 set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
 	a set-subscript-recur 0, key, value
 
@@ -55,17 +75,26 @@ set-subscript void(a mut-dict<?k, ?v>, key ?k, value ?v) data<?k>
 		as greater
 			a set-subscript-recur idx + 1, key, value
 
+# True iff the key is in the dict.
 has? bool(a mut-dict<?k, ?v>, key ?k) trusted data<?k>
 	a.temp-as-dict has? key
 
-move-to-dict! dict<?k, ?v>(m mut-dict<?k, ?v>) data<?k>
+###
+Convert to a `dict`, clearning the original `mut-dict` in the process.
+(This avoids copying but still ensures that the result is immutable.)
+###
+move-to-dict! dict<?k, ?v>(a mut-dict<?k, ?v>) data<?k>
 	# TODO: should be able to infer type arguments 
-	dict<?k, ?v>: m.keys.move-to-arr!, m.values.move-to-arr!
+	dict<?k, ?v>: a.keys.move-to-arr!, a.values.move-to-arr!
 
-.temp-as-dict dict<?k, ?v>(m mut-dict<?k, ?v>) unsafe data<?k>
+.temp-as-dict dict<?k, ?v>(a mut-dict<?k, ?v>) unsafe data<?k>
 	# TODO: should be able to infer type arguments 
-	dict<?k, ?v>: m.keys.temp-as-arr, m.values.temp-as-arr
+	dict<?k, ?v>: a.keys.temp-as-arr, a.values.temp-as-arr
 
+###
+Removes the key (and associated value).
+Returns the value that was associated with the key, or `none` if the key was not present.
+###
 remove! opt ?v(a mut-dict<?k, ?v>, key ?k) data<?k>
 	match a.keys index-of key
 	as none

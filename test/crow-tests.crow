@@ -1,5 +1,5 @@
 import
-	col.arr-util: first, first-some, tail
+	col.arr-util: first-some, tail
 	col.mut-list: ~=, move-to-arr!, mut-list
 	io.environ: environ
 	io.file: each-child-recursive
@@ -118,16 +118,16 @@ body
 .remove-colors-recur void(s str, out mut-list char)
 	if s empty?
 		void
-	elif s.first == "\x1b"
+	elif s[0] == "\x1b"
 		s.tail remove-colors-recur-2 out
 	else
-		out ~= s.first
+		out ~= s[0]
 		s.tail remove-colors-recur out
 
 .remove-colors-recur-2 void(s str, out mut-list char)
 	if s empty?
 		void
-	elif s.first == "m"
+	elif s[0] == "m"
 		s.tail remove-colors-recur out
 	else
 		s.tail remove-colors-recur-2 out

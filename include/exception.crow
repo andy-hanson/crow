@@ -12,7 +12,7 @@ export
 region throwing
 
 # Create amd throw an exception with the given message.
-fail ?t(message str) trusted
+fail ?a(message str) trusted
 	throw: exception: message, get-backtrace
 
 # Fail if the condition is false.
@@ -60,7 +60,7 @@ forbid void(condition bool, message fun str())
 Fail unconditionally.
 This function is used to mark part of an `if` or `match` that should not be possible.
 ###
-unreachable ?t()
+unreachable ?a()
 	"should be unreachable" fail
 
 region handling
@@ -69,7 +69,7 @@ region handling
 Run `try`, and then run `after`, even if `try` threw an exception.
 (The exception is only temporarily caught to run `after` and is then rethrown.)
 ###
-finally ?t(after act void(), try act ?t())
+finally ?a(after act void(), try act ?a())
 	res = try catch \err
 		after[]
 		err throw
@@ -80,12 +80,12 @@ finally ?t(after act void(), try act ?t())
 Run `try` and return `ok` containing its return value,
 or `err` containing an exception if it threw one.
 ###
-catch result<?t, exception>(try act ?t())
+catch result<?a, exception>(try act ?a())
 	{try[] ok} catch {it err}
 
 ###
 Run `try` and return what it returns, or return the result of `catcher` if `try` threw an exception.
 (An exception thrown by `catcher` will not be caught.)
 ###
-catch ?t(try act ?t(), catcher act ?t(exception)) trusted
+catch ?a(try act ?a(), catcher act ?a(exception)) trusted
 	get-exception-ctx catch-with-exception-ctx try, catcher

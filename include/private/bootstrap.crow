@@ -6,29 +6,29 @@ void builtin
 
 void void() noctx builtin
 
-as ?t(value ?t) noctx builtin
+as ?a(value ?a) noctx builtin
 
 ###
 A type is data if it is:
 * A primitive
 * A record or union of pure types
 ###
-data<?t> builtin-spec
+data<?a> builtin-spec
 
 # A type is sendable if it does not have any thread-unsafe mutable state.
-send<?t> builtin-spec
+send<?a> builtin-spec
 
-## TODO: extern<?t> builtin-spec for extern ptr types
+## TODO: extern<?a> builtin-spec for extern ptr types
 
 region opt.crow
 
-opt<?t> union
+opt<?a> union
 	none
-	some<?t>
+	some<?a>
 
-some<?t> record
+some<?a> record
 	by-val
-	value ?t
+	value ?a
 
 none record
 
@@ -40,24 +40,24 @@ result<?ok, ?err> union
 	err<?err>
 
 # Successful case of a result.
-ok<?t> record
+ok<?a> record
 	by-val
-	value ?t
+	value ?a
 
 # Error case of a result.
-err<?t> record
+err<?a> record
 	by-val
-	value ?t
+	value ?a
 
 region ptr.crow
 
-by-val<?t> builtin
+by-val<?a> builtin
 
 ###
 A raw pointer. GC will not trace these.
-WARN: If ?t is a reference type, ptr<?t> is a pointer to a pointer to ?t
+WARN: If ?a is a reference type, ptr<?a> is a pointer to a pointer to ?a
 ###
-ptr<?t> builtin mut
+ptr<?a> builtin mut
 
 any-ptr alias
 	ptr nat8
@@ -75,10 +75,10 @@ This means this is also the type for a slice of an array, and slicing is O(1).
 A slice does not keep the whole array alive, only the elements it can reach;
 elements not reachable by any slice will be garbage collected.
 ###
-arr<?t> record force-data
+arr<?a> record force-data
 	by-val
 	size nat
-	data ptr ?t
+	data ptr ?a
 
 region str
 
@@ -117,10 +117,10 @@ comparison union
 	equal
 	greater
 
-<=> comparison(a ?t, b ?t) data<?t> noctx builtin
+<=> comparison(a ?a, b ?a) data<?a> noctx builtin
 
 # True iff `(a <=> b) == equal`
-== bool(a ?t, b ?t) noctx data<?t>
+== bool(a ?a, b ?a) noctx data<?a>
 	match a <=> b
 	as less
 		false
@@ -205,13 +205,13 @@ abort! void() noctx unsafe extern<"abort">
 Zeroed data isn't safe as it would contain null pointers.
 It's GC-safe though, since the GC treats a null pointer same as any external pointer.
 ###
-zeroed ?t() noctx unsafe builtin
+zeroed ?a() noctx unsafe builtin
 
-hard-unreachable ?t() unsafe noctx
+hard-unreachable ?a() unsafe noctx
 	abort!
 	zeroed
 
-todo ?t() trusted noctx
+todo ?a() trusted noctx
 	## TODO: soft-fail, remove 'trusted noctx' above
 	abort!
 	zeroed
@@ -366,26 +366,26 @@ exception record
 	## TODO: accessing backtrace should be unsafe
 	backtrace backtrace
 
-fut<?t> record force-sendable
+fut<?a> record force-sendable
 	lk by-val lock
-	state mut fut-state ?t
+	state mut fut-state ?a
 
-fut-state<?t> union mut
+fut-state<?a> union mut
 	fut-state-no-callbacks
-	fut-state-callbacks<?t>
-	fut-state-resolved<?t>
+	fut-state-callbacks<?a>
+	fut-state-resolved<?a>
 	exception
 
 fut-state-no-callbacks record
 
-fut-state-callbacks<?t> record mut
+fut-state-callbacks<?a> record mut
 	by-ref
 	# WARN: the cb will be called with whatever ctx resolves the fut, not the ctx that created it
-	cb act void(result<?t, exception>)
-	next opt fut-state-callbacks ?t
+	cb act void(result<?a, exception>)
+	next opt fut-state-callbacks ?a
 
-fut-state-resolved<?t> record
-	value ?t
+fut-state-resolved<?a> record
+	value ?a
 
 region lock
 

@@ -1,8 +1,8 @@
 no-std
 import
 	.bool: and
-	.col.arr: ~, arr, arr-from-begin-end, data, has?, size
-	.col.arr-util: first, tail
+	.col.arr: ~, arr, arr-from-begin-end, data, has?, size, subscript
+	.col.arr-util: tail
 	.compare: ==
 	.number: nat8
 	.opt: none, opt, some, value
@@ -45,7 +45,7 @@ find-cstr-end c-str(a c-str) unsafe noctx
 
 # Strips whitespace from the front.
 lstrip str(a str)
-	if a.has? and: a.first == " "
+	if a.has? and: a[0] == " "
 		a.tail lstrip
 	else
 		a
