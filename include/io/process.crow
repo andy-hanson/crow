@@ -7,7 +7,7 @@ import
 	..col.arr-util: fold, map
 	..col.mut-list: data, move-to-arr!, mut-list, size, reserve, unsafe-increase-size!
 	..compare: ==, <=
-	..exceptions: assert, fail
+	..exception: assert, fail
 	..misc: as, void
 	..number: +, int32, to-nat
 	..posix.bytes-types: zero

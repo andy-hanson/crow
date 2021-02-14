@@ -4,7 +4,7 @@ import
 	.compare: ==
 	.cell: cell, set-subscript, subscript
 	.col.arr-util: each-with-index, first-some, map
-	.exceptions: catch, exception
+	.exception: catch, exception
 	.fun: subscript
 	.misc: as, void
 	.number: -, nat

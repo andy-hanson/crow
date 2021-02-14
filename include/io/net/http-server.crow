@@ -8,7 +8,7 @@ import
 	...col.mut-dict: move-to-dict!, mut-dict, remove!, set-subscript, subscript
 	...col.mut-list: ~=, index-of, move-to-arr!, mut-list, pop-n-from-start!, size
 	...compare: ==, !=, <=, >=
-	...exceptions: assert, forbid
+	...exception: assert, forbid
 	...fut: fut, resolved, subscript, then
 	...misc: as, drop, void
 	...number: +, nat, nat8, to-int

@@ -2,6 +2,9 @@ bin
 demo-wip/*
 demo-wip/*.c
 !demo-wip/*.*
+site/documentation/*
+site/documentation/**/*
+!site/documentation/index.pug
 site/example/*.c
 *.html
 dyncall

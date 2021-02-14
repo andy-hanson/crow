@@ -5,11 +5,11 @@ import
 	..col.arr: arr
 	..col.arr-util: map, tail
 	..compare: !=
-	..exceptions: exception-ctx
+	..exception: exception-ctx
 	..fun: fun-ptr2, subscript
 	..fut: delay, fut, handle-exceptions, then2
 	..io.process: exit-code
-	..logging: log-ctx
+	..log: log-ctx
 	..misc: as, void
 	..number: int32, nat, to-int
 	..opt: value

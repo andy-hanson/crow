@@ -2,7 +2,7 @@ no-std
 import
 	.bool: ?, and, bool, or
 	.compare: ==, <, <=, >=
-	.exceptions: assert, forbid
+	.exception: assert, forbid
 	.fun: subscript
 	.misc: ->, arrow, from, to, void
 	.private.bootstrap:

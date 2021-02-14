@@ -11,7 +11,7 @@ col/mut-set
 col/set
 col/sort
 compare
-exceptions
+exception
 fun
 fut
 io/environ
@@ -25,7 +25,7 @@ io/process
 io/time-low-level
 io/time
 iter
-logging
+log
 math/vec
 misc
 number

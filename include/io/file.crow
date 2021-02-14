@@ -9,7 +9,7 @@ import
 	..col.mut-list: ~=, move-to-arr!, mut-list
 	..col.sort: sort
 	..compare: ==, !=, <
-	..exceptions: assert, fail, forbid
+	..exception: assert, fail, forbid
 	..misc: ->, as, void
 	..number: int32, nat8, nat16, nat32, to-int, to-nat
 	..opt: has?, none, opt, some, value

@@ -1,7 +1,7 @@
 no-std
 import
 	.col.arr: ~
-	.exceptions: finally
+	.exception: finally
 	.fun: subscript
 	.io.print: print
 	.misc: as, void

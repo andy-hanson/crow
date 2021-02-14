@@ -7,7 +7,7 @@ import
 	..col.mut-arr:
 		data, fill-mut-arr, mut-arr, set-zero-elements, size, subscript, temp-as-arr
 	..compare: ==, <, <=, >, >=
-	..exceptions: assert
+	..exception: assert
 	..misc: ->, drop, void
 	..number: +, -, *, nat
 	..opt: none, opt, some

@@ -2,7 +2,7 @@ no-std
 import
 	..bool: bool, false, not, true
 	..compare: ==, !=, <, <=
-	..exceptions: assert
+	..exception: assert
 	..misc: ->, arrow, from, to
 	..number: +, -, nat
 	..ptr: +, -, by-val, ptr, ref-of-ptr, subscript

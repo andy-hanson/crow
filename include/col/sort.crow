@@ -2,7 +2,7 @@ no-std
 import
 	..bool: or
 	..compare: ==, !=, <, <=, >
-	..exceptions: assert
+	..exception: assert
 	..misc: ->, as, void
 	..number: +, -, /, nat
 	.arr: arr, data

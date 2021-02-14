@@ -4,7 +4,7 @@ import
 	..private.bootstrap: hard-assert
 	..bool: bool
 	..compare: ==, <
-	..exceptions: assert
+	..exception: assert
 	..misc: arrow, void
 	..number: nat
 	..opt: opt

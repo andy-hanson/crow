@@ -1,7 +1,7 @@
 no-std
 import
 	.bool: bool, false, not, true
-	.exceptions: fail
+	.exception: fail
 	.fun: subscript
 	.misc: void
 export

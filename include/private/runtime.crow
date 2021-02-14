@@ -4,10 +4,10 @@ import
 	..col.arr: ~, arr, empty?, noctx-at, size, subscript
 	..col.arr-util: join
 	..compare: ==, !=, >, min
-	..exceptions: exception, exception-ctx, message
+	..exception: exception, exception-ctx, message
 	..io.print: print-err, print-err-no-newline
 	..io.time-low-level: get-monotime-nsec, timestamp
-	..logging: default-log-handler, log-ctx, log-handler, set-handler
+	..log: default-log-handler, log-ctx, log-handler, set-handler
 	..misc: as, void
 	..number: nat
 	..opt: none, opt, some, value
@@ -100,7 +100,7 @@ default-exception-handler void(e exception) summon unsafe
 	bt = a.backtrace.return-stack join "\n\tat "
 	msg ~ "\n\tat " ~ bt
 
-# TODO: move to exceptions.crow?
+# TODO: move to exception.crow?
 set-this-islands-exception-handler void(exception-handler fun void(exception)) summon trusted
 	get-cur-island.gc-root.ref-of-val.exception-handler := exception-handler
 

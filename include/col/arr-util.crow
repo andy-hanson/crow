@@ -4,7 +4,7 @@ import
 	..private.bootstrap: noctx-incr
 	..bool: and, bool, false, not, true
 	..compare: ==, !=, >=
-	..exceptions: assert, forbid
+	..exception: assert, forbid
 	..fun: subscript
 	..misc: ->, void
 	..number: +, -, nat

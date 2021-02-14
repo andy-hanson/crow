@@ -1,7 +1,7 @@
 no-std
 import
 	..compare: ==, !=
-	..exceptions: assert
+	..exception: assert
 	..misc: void
 	..number: int
 	..posix.errno: errno
