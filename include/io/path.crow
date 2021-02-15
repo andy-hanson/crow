@@ -8,6 +8,10 @@ import
 	..opt: none, opt, some, value
 	..str: char, str
 
+###
+Gets the paremt of a path.
+Returns "" if the path has no parent.
+###
 parent-path str(a str)
 	match a r-index-of "/"
 	as none
@@ -15,6 +19,7 @@ parent-path str(a str)
 	as some s
 		a[0 -> s.value]
 
+# Gets a child of a path.
 child-path str(a str, child-name str)
 	a ~ "/" ~ child-name
 
@@ -27,6 +32,8 @@ child-path str(a str, child-name str)
 	else
 		s.rtail last-index-of c
 
+# Gets the extension from a file name or path.
+# Returns none if there is no extension.
 get-extension opt str(name str)
 	match name last-index-of "."
 	as none
@@ -34,6 +41,7 @@ get-extension opt str(name str)
 	as some s
 		name[s.value + 1 -> name.size] some
 
+# Removes the extension from a file name or path.
 remove-extension str(name str)
 	match name last-index-of "."
 	as none
@@ -41,12 +49,18 @@ remove-extension str(name str)
 	as some s
 		name[0 -> s.value]
 
+###
+Adds an extension to a file name or path.
+If an extension already exists, adds a second one, as in `foo.png.txt`.
+###
 add-extension str(name str, ext str)
 	name ~ "." ~ ext
 
+# Removes the extension (if it exists) and adds a new one.
 change-extension str(name str, ext str)
 	name.remove-extension add-extension ext
 
+# Gets just the file name without any directory names in from of it.
 base-name str(path str)
 	i = path last-index-of "/"
 	match i

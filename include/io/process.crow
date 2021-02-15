@@ -33,14 +33,21 @@ import
 	.posix-util: check-posix-error
 	.print: print
 
+# Alias for the exit code of a process.
 exit-code alias
 	int32
 
+# Represents the output of running a process.
 process-result record
 	exit-code exit-code
 	stdout str
 	stderr str
 
+###
+Launches a process and synchronously waits on the result.
+The child process' stdout and stderr will be sent to the `process-result`,
+not to the parent's stdout and stderr.
+###
 spawn-and-wait-result process-result(exe str, args arr str, environ environ) trusted summon
 	print: "spawn-and-wait-result: " ~ exe fold args, \a, b
 		a ~ " " ~ b
@@ -52,7 +59,10 @@ spawn-and-wait-result process-result(exe str, args arr str, environ environ) tru
 	else
 		fail: exe ~ " is not a file"
 
-# This one shares stdout and stderr with parent process
+###
+Launches a process and synchronously waits on the result.
+The child process shares stdout and stderr with the parent process.
+###
 spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
 	# TODO: kill, handle that error properly
 	if exe is-file?
@@ -66,7 +76,7 @@ spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
 .convert-args ptr c-str(exe-c-str c-str, args arr str)
 	data: [exe-c-str] ~ (args map {it to-c-str}) ~ [null]
 
-spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
+.spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
 	stdout-pipes = make-pipes
 	stderr-pipes = make-pipes
 
@@ -165,12 +175,12 @@ body
 # Args should be terminated by null.
 # Each entry in environ looks like "name=value", and final entry is null.
 # TODO: option to get stdout/stderr as a string rather than having them go to the terminal
-spawn-and-wait exit-code(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
+.spawn-and-wait exit-code(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
 	pid-cell = 0 cell<pid-t>
 	check-posix-error: posix-spawn: pid-cell, exe, null.as-ref, null, args, environ
 	pid-cell[] wait-and-get-exit-code
 
-wait-and-get-exit-code exit-code(pid pid-t) summon unsafe
+.wait-and-get-exit-code exit-code(pid pid-t) summon unsafe
 	wait-status-cell = 0 cell<status-t>
 	res-pid = pid waitpid wait-status-cell, 0
 	wait-status = wait-status-cell[]

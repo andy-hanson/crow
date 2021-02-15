@@ -1,6 +1,6 @@
 import
 	col.arr-util: try-remove-start
-	io.io: check-errno-if-not-zero, connect-to-uri, exit-code, print, uri
+	io.io: check-errno, connect-to-uri, exit-code, print, uri
 	openssl
 		err-clear-error, openssl-init-ssl, ssl, ssl-connect, ssl-ctx, ssl-ctx-new,
 		ssl-load-error-strings, ssl-new, ssl-set-fd, tls-client-method
@@ -83,7 +83,8 @@ test-get void(u uri) trusted summon
 	# sigpipe act
 
 	# Ignore SIGPIPE errors (WARN: This has a global effect!)
-	check-errno-if-not-zero: sigpipe sigignore
+	if sigpipe.sigignore != 0
+		check-errno
 
 	# ssl-load-error-strings
 	i = openssl-init-ssl: 0, null.as-ref

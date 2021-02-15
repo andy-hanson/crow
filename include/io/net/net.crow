@@ -21,6 +21,7 @@ import
 	..posix-util: check-posix-error
 	..print: print
 
+# Uniform Resource Identifier
 uri record
 	host str
 	port nat16
@@ -28,7 +29,7 @@ uri record
 	# Basically just ignored
 	after-hash str
 
-# Returns fd of an an opened socket to uri
+# Opens a socket, connects to the URI, and returns the fd.
 connect-to-uri fd-t(u uri) trusted summon
 	hints = addrinfo: 0, af-unspec, sock-stream, 0, 0, null.as-ref, null, null
 	result = null cell<ptr<addrinfo>>
@@ -60,6 +61,7 @@ connect-to-uri fd-t(u uri) trusted summon
 				assert: err == 0
 				sock some
 
+# Returns an fd bound to the given port.
 bind-to-port fd-t(port str) unsafe summon
 	hints = addrinfo: ai-passive, af-inet, sock-stream, 0, 0, null.as-ref, null, null
 	result = null cell<ptr<addrinfo>>

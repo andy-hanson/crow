@@ -1369,12 +1369,12 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(35, range(477, 502))
+					file-range(35, range(740, 765))
 					call(
 						32
 						[
-							expr(int-32, file-range(35, range(477, 483)), call(38, []))
-							expr(record(11), file-range(35, range(501, 502)), param-ref(0))]))))
+							expr(int-32, file-range(35, range(740, 746)), call(38, []))
+							expr(record(11), file-range(35, range(764, 765)), param-ref(0))]))))
 		32: fun(
 			write-no-newline
 			void
@@ -1383,76 +1383,76 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(35, range(651, 787))
+					file-range(35, range(827, 963))
 					seq(
 						expr(
 							void
-							file-range(35, range(651, 694))
+							file-range(35, range(827, 870))
 							call(
 								3
 								[
 									expr(
 										bool
-										file-range(35, range(664, 694))
+										file-range(35, range(840, 870))
 										call(
 											5
 											[
-												expr(nat-64, file-range(35, range(664, 677)), size-of(char))
-												expr(nat-64, file-range(35, range(681, 694)), size-of(nat-8))]))]))
+												expr(nat-64, file-range(35, range(840, 853)), size-of(char))
+												expr(nat-64, file-range(35, range(857, 870)), size-of(nat-8))]))]))
 						expr(
 							void
-							file-range(35, range(696, 787))
+							file-range(35, range(872, 963))
 							let(
 								res
 								expr(
 									int-64
-									file-range(35, range(702, 736))
+									file-range(35, range(878, 912))
 									call(
 										33
 										[
-											expr(int-32, file-range(35, range(702, 704)), param-ref(0))
+											expr(int-32, file-range(35, range(878, 880)), param-ref(0))
 											expr(
 												raw-ptr(nat-8)
-												file-range(35, range(717, 728))
+												file-range(35, range(893, 904))
 												unary(
 													"as-any-ptr"
 													expr(
 														raw-ptr(char)
-														file-range(35, range(712, 717))
+														file-range(35, range(888, 893))
 														get-field(
-															expr(record(11), file-range(35, range(711, 712)), param-ref(1))
+															expr(record(11), file-range(35, range(887, 888)), param-ref(1))
 															false
 															1))))
 											expr(
 												nat-64
-												file-range(35, range(731, 736))
-												get-field(expr(record(11), file-range(35, range(730, 731)), param-ref(1)), false, 0))]))
+												file-range(35, range(907, 912))
+												get-field(expr(record(11), file-range(35, range(906, 907)), param-ref(1)), false, 0))]))
 								expr(
 									void
-									file-range(35, range(738, 787))
+									file-range(35, range(914, 963))
 									trinary(
 										"if"
 										expr(
 											bool
-											file-range(35, range(741, 768))
+											file-range(35, range(917, 944))
 											call(
 												34
 												[
-													expr(int-64, file-range(35, range(741, 744)), local-ref(res))
+													expr(int-64, file-range(35, range(917, 920)), local-ref(res))
 													expr(
 														int-64
-														file-range(35, range(754, 768))
+														file-range(35, range(930, 944))
 														unary(
 															"unsafe-nat64-to-int64"
 															expr(
 																nat-64
-																file-range(35, range(749, 754))
+																file-range(35, range(925, 930))
 																get-field(
-																	expr(record(11), file-range(35, range(748, 749)), param-ref(1))
+																	expr(record(11), file-range(35, range(924, 925)), param-ref(1))
 																	false
 																	0))))]))
-										expr(void, file-range(35, range(782, 786)), call(37, []))
-										expr(void, file-range(35, range(738, 787)), void)))))))))
+										expr(void, file-range(35, range(958, 962)), call(37, []))
+										expr(void, file-range(35, range(914, 963)), void)))))))))
 		33: fun(
 			write
 			int-64
@@ -1567,13 +1567,13 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(35, range(540, 591))
+					file-range(35, range(586, 637))
 					seq(
 						expr(
 							void
-							file-range(35, range(540, 562))
-							call(31, [expr(record(11), file-range(35, range(540, 541)), param-ref(0))]))
-						expr(void, file-range(35, range(564, 589)), call(31, [expr(record(11), file-range(35, range(564, 568)), arr(0, 1))]))))))
+							file-range(35, range(586, 608))
+							call(31, [expr(record(11), file-range(35, range(586, 587)), param-ref(0))]))
+						expr(void, file-range(35, range(610, 635)), call(31, [expr(record(11), file-range(35, range(610, 614)), arr(0, 1))]))))))
 		40: fun(
 			show-exception
 			record(11)
@@ -7252,13 +7252,13 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(35, range(379, 422))
+					file-range(35, range(341, 384))
 					seq(
 						expr(
 							void
-							file-range(35, range(379, 397))
-							call(118, [expr(record(11), file-range(35, range(379, 380)), param-ref(0))]))
-						expr(void, file-range(35, range(399, 420)), call(118, [expr(record(11), file-range(35, range(399, 403)), arr(0, 1))]))))))
+							file-range(35, range(341, 359))
+							call(118, [expr(record(11), file-range(35, range(341, 342)), param-ref(0))]))
+						expr(void, file-range(35, range(361, 382)), call(118, [expr(record(11), file-range(35, range(361, 365)), arr(0, 1))]))))))
 		118: fun(
 			print-no-newline
 			void
@@ -7267,12 +7267,12 @@ program(
 			expr-body(
 				expr(
 					void
-					file-range(35, range(320, 345))
+					file-range(35, range(483, 508))
 					call(
 						32
 						[
-							expr(int-32, file-range(35, range(320, 326)), call(119, []))
-							expr(record(11), file-range(35, range(344, 345)), param-ref(0))]))))
+							expr(int-32, file-range(35, range(483, 489)), call(119, []))
+							expr(record(11), file-range(35, range(507, 508)), param-ref(0))]))))
 		119: fun(
 			stdout
 			int-32
@@ -14357,109 +14357,109 @@ program(
 			expr-body(
 				expr(
 					nat-64
-					file-range(12, range(300, 547))
+					file-range(12, range(393, 640))
 					let(
 						time-cell
 						expr(
 							record(83)
-							file-range(12, range(312, 360))
+							file-range(12, range(405, 453))
 							record(
 								[
 									expr(
 										record(82)
-										file-range(12, range(346, 360))
+										file-range(12, range(439, 453))
 										record(
 											[
-												expr(int-64, file-range(12, range(356, 357)), 0)
-												expr(int-64, file-range(12, range(359, 360)), 0)]))]))
+												expr(int-64, file-range(12, range(449, 450)), 0)
+												expr(int-64, file-range(12, range(452, 453)), 0)]))]))
 						expr(
 							nat-64
-							file-range(12, range(362, 547))
+							file-range(12, range(455, 640))
 							let(
 								err
 								expr(
 									int-32
-									file-range(12, range(368, 418))
+									file-range(12, range(461, 511))
 									call(
 										245
 										[
-											expr(int-32, file-range(12, range(368, 383)), call(246, []))
+											expr(int-32, file-range(12, range(461, 476)), call(246, []))
 											expr(
 												gc-ptr(record(83))
-												file-range(12, range(407, 418))
+												file-range(12, range(500, 511))
 												unary(
 													"ref-of-val"
-													expr(record(83), file-range(12, range(398, 407)), local-ref(time-cell))))]))
+													expr(record(83), file-range(12, range(491, 500)), local-ref(time-cell))))]))
 								expr(
 									nat-64
-									file-range(12, range(420, 547))
+									file-range(12, range(513, 640))
 									trinary(
 										"if"
 										expr(
 											bool
-											file-range(12, range(423, 431))
+											file-range(12, range(516, 524))
 											call(
 												65
 												[
-													expr(int-32, file-range(12, range(423, 426)), local-ref(err))
-													expr(int-32, file-range(12, range(430, 431)), 0)]))
+													expr(int-32, file-range(12, range(516, 519)), local-ref(err))
+													expr(int-32, file-range(12, range(523, 524)), 0)]))
 										expr(
 											nat-64
-											file-range(12, range(434, 535))
+											file-range(12, range(527, 628))
 											let(
 												time
 												expr(
 													record(82)
-													file-range(12, range(461, 463))
+													file-range(12, range(554, 556))
 													get-field(
 														expr(
 															gc-ptr(record(83))
-															file-range(12, range(450, 461))
+															file-range(12, range(543, 554))
 															unary(
 																"ref-of-val"
 																expr(
 																	record(83)
-																	file-range(12, range(441, 450))
+																	file-range(12, range(534, 543))
 																	local-ref(time-cell))))
 														true
 														0))
 												expr(
 													nat-64
-													file-range(12, range(466, 533))
+													file-range(12, range(559, 626))
 													unary(
 														"unsafe-int64-to-nat64"
 														expr(
 															int-64
-															file-range(12, range(466, 533))
+															file-range(12, range(559, 626))
 															binary(
 																"wrap-add (int-64)"
 																expr(
 																	int-64
-																	file-range(12, range(466, 506))
+																	file-range(12, range(559, 599))
 																	binary(
 																		"wrap-mul (int-64)"
 																		expr(
 																			int-64
-																			file-range(12, range(470, 477))
+																			file-range(12, range(563, 570))
 																			get-field(
 																				expr(
 																					record(82)
-																					file-range(12, range(466, 470))
+																					file-range(12, range(559, 563))
 																					local-ref(time))
 																				false
 																				0))
-																		expr(int-64, file-range(12, range(487, 497)), 1000000000)))
+																		expr(int-64, file-range(12, range(580, 590)), 1000000000)))
 																expr(
 																	int-64
-																	file-range(12, range(511, 519))
+																	file-range(12, range(604, 612))
 																	get-field(
 																		expr(
 																			record(82)
-																			file-range(12, range(507, 511))
+																			file-range(12, range(600, 604))
 																			local-ref(time))
 																		false
 																		1))))))))
-										expr(nat-64, file-range(12, range(542, 546)), call(247, []))))))))))
+										expr(nat-64, file-range(12, range(635, 639)), call(247, []))))))))))
 		245: fun(
 			clock-gettime
 			int-32

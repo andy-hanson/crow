@@ -4,9 +4,6 @@ import
 	io.print: print
 
 main fut nat(_ arr str) summon
-	filter = as<act bool(str)>: \x
-		drop: x
-		true
-	"include" each-child-recursive filter, \path
+	"include" each-child-recursive \path
 		print: (path try-remove-start "include/").force try-remove-end ".crow" force
 	0 resolved

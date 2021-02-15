@@ -11,19 +11,23 @@ import
 	..ptr: as-any-ptr, size-of
 	..str: char, str
 
-print-no-newline void(a str) summon trusted noctx
-	stdout write-no-newline a
-
+# Print to stdout, including a newline.
 print void(a str) summon noctx
 	a print-no-newline
 	"\n" print-no-newline
 
-print-err-no-newline void(s str) summon trusted noctx
-	stderr write-no-newline s
+# Print to stdout, without appending a newline.
+print-no-newline void(a str) summon trusted noctx
+	stdout write-no-newline a
 
+# Print to stderr, including a newline.
 print-err void(s str) summon noctx
 	s print-err-no-newline
 	"\n" print-err-no-newline
+
+# Print to stderr, without appending a newline.
+print-err-no-newline void(s str) summon trusted noctx
+	stderr write-no-newline s
 
 .write-no-newline void(fd fd-t, a str) summon unsafe noctx
 	hard-assert: size-of<char> == size-of<nat8>

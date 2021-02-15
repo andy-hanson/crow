@@ -7,12 +7,15 @@ import
 	..private.runtime: add-task, get-cur-island, new-exclusion
 	.time-low-level: get-monotime-nsec
 
+# Represents an amount of time.
 duration record
 	nsec nat
 
+# Duration in milliseconds.
 msec duration(a nat)
 	duration: a * 1000000
 
+# Returns a `fut` that will resolve after `duration` has passed.
 delay fut void(duration duration) trusted summon
 	target-time = get-monotime-nsec + duration.nsec
 	island = get-cur-island

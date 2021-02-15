@@ -1,8 +1,7 @@
 no-std
 import
-	..private.bootstrap: todo, wrap-add
 	..bits: bits-and, bit-shift-left, bits-or
-	..bool: and, bool, false, not
+	..bool: and, bool, false, not, true
 	..cell: cell, subscript
 	..col.arr: ~, arr, data, size, subscript
 	..col.arr-util: each
@@ -12,8 +11,8 @@ import
 	..compare: ==, !=, <
 	..exception: assert, fail, forbid
 	..fun: subscript
-	..misc: ->, as, void
-	..number: int32, nat8, nat16, nat32, to-int, to-nat
+	..misc: ->, as, drop, void
+	..number: +, int32, nat8, nat16, nat32, to-int, to-nat
 	..opt: has?, none, opt, some, value
 	..posix.bytes-types: zero
 	..posix.dirent: dir, dirent, opendir, readdir-r
@@ -26,54 +25,61 @@ import
 	..str: char, c-str, str
 	..str-conv: to-str
 	..str-util: to-c-str, to-str
+	..private.bootstrap: todo
 	.path: child-path
-	.posix-util: check-errno-if-neg-one, check-posix-error
+	.posix-util: check-errno, check-posix-error
 	.print: print
 
+# True if this is the path of a directory.
 is-dir? bool(path str) summon trusted
 	path.to-c-str is-dir?
 
-is-dir? bool(path c-str) summon unsafe
+.is-dir? bool(path c-str) summon unsafe
 	match path get-stat
 	as none
 		fail: "path does not exist: " ~ path.to-str
 	as some s
 		(s.value.st-mode bits-and s-ifmt) == s-ifdir
 
+# True if this is the path of a file.
 is-file? bool(path str) summon
 	path.to-c-str is-file?
 
-is-file? bool(path c-str) summon
+.is-file? bool(path c-str) summon
 	match path get-stat
 	as none
 		false
 	as some s
 		(s.value.st-mode bits-and s-ifmt) == s-ifreg
 
-path-exists? bool(path c-str) summon
-	path.get-stat has?
-
+# True if something (like a file or directory) exists at the path.
 path-exists? bool(path str) summon
 	path.to-c-str path-exists?
 
-get-dirent-name str(d dirent) unsafe noctx
+.path-exists? bool(path c-str) summon
+	path.get-stat has?
+
+.get-dirent-name str(d dirent) unsafe
 	# TODO: this is offsetof(d, d-name)
-	name-offset = size-of<ino-t> wrap-add size-of<off-t> wrap-add size-of<nat16> wrap-add size-of<char>
+	name-offset = size-of<ino-t> + size-of<off-t> + size-of<nat16> + size-of<char>
 	name-ptr = d.as-any-ptr + name-offset
 	name-ptr.ptr-cast<char, nat8> to-str
 
-seek-set int32()
+.seek-set int32()
 	0
-seek-cur int32()
-	1
-seek-end int32()
+#.seek-cur int32()
+#	1
+.seek-end int32()
 	2
 
+###
+Returns the basename of all children of the directory.
+Does not include ".." or ".".
+###
 read-dir arr str(path str) summon
 	path.to-c-str read-dir
 
-# Returns array of filenames in the directory.
-read-dir arr str(path c-str) trusted summon
+.read-dir arr str(path c-str) trusted summon
 	dirp = path opendir
 	# TODO: handle errors
 	forbid: dirp.ptr-cast-from-extern<any-ptr, dir> null?
@@ -96,16 +102,25 @@ read-dir arr str(path c-str) trusted summon
 			res ~= entry.get-dirent-name
 		dirp read-dir-recur res
 
+# Gets the path a link refers to.
 read-link str(path str) summon trusted
 	# TODO: smart small and retry if necessAry
 	buff = 1000 uninitialized-mut-arr<char>
 	size = path.to-c-str readlink buff.data, buff.size
-	size check-errno-if-neg-one
+	if size == -1
+		check-errno
 	buff.cast-immutable[0 -> size.to-nat]
 
+###
+Gets the path of the current executable.
+If you did specify a built executable, this will be that.
+If you didn't specify a built executable, this will be in a temp directory.
+If you are using the interpreter, this will be the path to `crow`.
+###
 current-executable-path str() summon trusted
 	"/proc/self/exe" read-link
 
+# Gets the full contents of the file as a string.
 read-file str(path str) summon
 	match path try-read-file
 	as none
@@ -115,10 +130,14 @@ read-file str(path str) summon
 	as some s
 		s value
 
+###
+Writes the full contents of the file as a string.
+If the file already exists, overwrites it.
+###
 write-file void(path str, content str) summon
 	path.to-c-str write-file content
 
-write-file void(path c-str, content str) summon trusted
+.write-file void(path c-str, content str) summon trusted
 	permission-rdwr = 6 as<nat32>
 	permission-rd = 4 as<nat32>
 	permission = (permission-rdwr bit-shift-left 6) bits-or (permission-rd bit-shift-left 3) bits-or permission-rd
@@ -142,10 +161,14 @@ write-file void(path c-str, content str) summon trusted
 		if err != 0
 			todo
 
+###
+Like `read-file`, but returns `none` if the file does not exist.
+Other errors (like permission errors) still throw.
+###
 try-read-file opt str(path str) summon
 	path.to-c-str try-read-file
 
-try-read-file opt str(path c-str) summon trusted
+.try-read-file opt str(path c-str) summon trusted
 	if path is-file?
 		fd = path open o-rdonly, 0
 		if fd == -1
@@ -180,6 +203,7 @@ try-read-file opt str(path c-str) summon trusted
 	else
 		none
 
+# Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted
 	buff = 256 uninitialized-mut-arr<char>
 	b = buff.data getcwd buff.size
@@ -189,7 +213,7 @@ current-directory str() summon trusted
 		assert: b ptr-eq? buff.data
 		b to-str
 
-get-stat opt stat-t(path c-str) summon trusted
+.get-stat opt stat-t(path c-str) summon trusted
 	# Initial value doesn't really matter
 	s = empty-stat
 	err = path stat s
@@ -202,6 +226,17 @@ get-stat opt stat-t(path c-str) summon trusted
 		else
 			todo
 
+###
+If `path` is a directory, calls `each-child-recursive` on every child of the directory.
+Else, calls `f[path]`.
+###
+each-child-recursive void(path str, f act void(str)) summon
+	filter = as<act bool(str)>: \x
+		drop: x
+		true
+	path each-child-recursive filter, f
+
+# `each-child-recursive` that does not descend into a child if `f[child-name]` returns false.
 each-child-recursive void(path str, filter act bool(str), f act void(str)) summon
 	if path is-dir?
 		path.read-dir each \child-name

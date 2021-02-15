@@ -22,31 +22,42 @@ import
 	..print: print
 	.tcp-server: close-client, start-tcp-server, stop, tcp-handler
 
+# Represents the state of the server.
 http-server record sendable
 	stop ref void()
 
+# Parse of a single HTTP request.
 http-request record
 	method http-method
 	url str
 	headers dict<str, str>
 	body str
 
+# Response to send to a single HTTP request.
 http-response record
 	status nat
 	status-desc str
 	headers dict<str, str>
 	body str
 
+# A function that can respond to HTTP requests.
 http-handler alias
 	ref http-response(http-request)
 
+# HTTP GET method.
 http-get record
+# HTTP POST method.
 http-post record
 
+# Method used by an HTTP request.
 http-method union
 	http-get
 	http-post
 
+###
+Starts running an HTTP server on the given port.
+Once the future is resolved, it is already serving requests.
+###
 start-http-server fut http-server(port str, handler http-handler) trusted summon
 	client-states = mut-dict<fd-t, http-parse-state>
 

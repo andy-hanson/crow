@@ -21,9 +21,7 @@ run-crow-tests result<str, arr failure>(path str, path-to-crow str, env environ,
 
 .list-tests arr str(path str) summon
 	res = mut-list<str>
-	filter = as<act bool(str)>: \s
-		true
-	path each-child-recursive filter, \child
+	path each-child-recursive \child
 		match child.base-name get-extension
 		as none
 			void

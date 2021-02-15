@@ -49,7 +49,7 @@ li {
 }
 
 #crow img {
-	width: 7rem;
+	width: 9rem;
 	height: 3rem;
 	filter: invert(100%); /* make white */
 	display: block;
@@ -76,7 +76,7 @@ header nav {
 
 #side-nav-wrapper nav {
 	height: 19em;
-	width: 8rem;
+	width: 9rem;
 	display: flex;
 	flex-direction: column;
 	border-radius: 0 0 1em 0;
