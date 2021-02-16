@@ -1,6 +1,13 @@
 .PHONY: debug end-to-end-test end-to-end-test-overwrite pug-watch sdl-demo serve prepare-site test unit-test
 
-all: test lint sdl-demo serve
+# WARN: Does not clean `dyncall` as that takes too long to restore
+# Also does not clean `node_modules` for the VSCode plugin
+clean:
+	rm -rf bin
+	rm -f site/*.html site/*/*.html site/*/*/*.html site/*/*/*/*.html
+	rm -rf temp
+
+all: clean test lint sdl-demo serve
 
 sdl-demo: bin/crow
 	bin/crow run demo/sdl.crow

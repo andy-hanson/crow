@@ -1,24 +1,31 @@
 # Crow
 
-TODO: Include a link to the website.
-This readme describes how to contribute to crow. For information about the langauge itself, visit the website.
+This readme describes how to contribute to crow.
+
+For information about the langauge itself, visit the [website](http://crow-lang.xyz/).
+
 
 # Setup
 
 Install these tools (potentially from your operating system's package manager):
 
-* [`hg`](http://mercurial-scm.org)
-* [`dmd`](https://dlang.org/download.html#dmd)
-* [`ldc`](https://wiki.dlang.org/LDC).
+* [`dmd`](https://dlang.org/download.html#dmd) (used to compile `bin/crow`)
+* [`git`](https://git-scm.com/) (used to get this repository)
+* [`hg`](http://mercurial-scm.org) (used to clone the dyncall library)
+* [`ldc`](https://wiki.dlang.org/LDC) (used to compile `bin/crow.wasm`).
+* [`node`](https://nodejs.org/en/) (needed to run `pug` for the VSCode extension).
+* [`pug`](https://pugjs.org) (`npm install -g pug`) (needed to build the site).
+* [`python`](https://www.python.org/) (needed to serve the site locally).
 
-Then run `make all`.
-It will build `bin/crow` and test.
+Then run:
 
-## Other dependencies
+```sh
+git clone https://github.com/andy-hanson/crow.git
+cd crow
+make all
+```
 
-* [`node`](https://nodejs.org/en/) to build `site` and for the VSCode extension.
-* [`pug`](https://pugjs.org) (`npm install -g pug`) to build `site`.
-* [`python`](https://www.python.org/) for `make serve`.
+This will build `bin/crow`, test, run some demos, then open a local copy of the website.
 
 
 # Testing
