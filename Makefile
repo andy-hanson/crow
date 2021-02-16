@@ -49,6 +49,7 @@ wasm_files = src/wasm.d src/*/*.d src/*/*/*.d
 
 bin/crow: $(cli_deps)
 	dmd -ofbin/crow $(d_flags) -debug -g $(app_files) $(app_link)
+	rm bin/crow.o
 
 # Not currently used for anything
 bin/crow-optimized: $(cli_deps)

@@ -28,7 +28,6 @@ import interpret.bytecodeReader :
 	readerSwitch,
 	setReaderPtr;
 import interpret.debugging : writeFunName;
-import interpret.externAlloc : ExternAlloc;
 import model.concreteModel : ConcreteFun, concreteFunRange;
 import model.diag : FilesInfo, writeFileAndPos; // TODO: FilesInfo probably belongs elsewhere
 import model.lowModel : LowFunSource, LowProgram, matchLowFunSource;
@@ -93,14 +92,13 @@ import util.writer : finishWriter, Writer, writeChar, writeHex, writePtrRange, w
 		ptrTrustMe(byteCode),
 		ptrTrustMe(filesInfo));
 
-	ExternAlloc!Extern externAlloc = ExternAlloc!Extern(ptrTrustMe_mut(extern_));
-	immutable CStr firstArg = pathToCStr(externAlloc, allPaths, executablePath);
-	immutable CStr[] allArgs = mapWithFirst!(CStr, string)(externAlloc, firstArg, args, (ref immutable string arg) =>
-		strToCStr(externAlloc, arg));
+	immutable CStr firstArg = pathToCStr(tempAlloc, allPaths, executablePath);
+	immutable CStr[] allArgs = mapWithFirst!(CStr, string)(tempAlloc, firstArg, args, (ref immutable string arg) =>
+		strToCStr(tempAlloc, arg));
 	scope(exit) {
 		foreach (immutable CStr arg; allArgs)
-			freeCStr(externAlloc, arg);
-		freeArr(externAlloc, allArgs);
+			freeCStr(tempAlloc, arg);
+		freeArr(tempAlloc, allArgs);
 	}
 
 	push(interpreter.dataStack, sizeNat(allArgs)); // TODO: this is an i32, add safety checks
@@ -162,14 +160,16 @@ private struct InterpreterRestore {
 	immutable Nat16[] restoreStackStartStack;
 }
 
-private immutable(InterpreterRestore*) createInterpreterRestore(Extern)(ref Interpreter!Extern a) {
-	ExternAlloc!Extern externAlloc = ExternAlloc!Extern(ptrTrustMe_mut(a.extern_));
+private immutable(InterpreterRestore*) createInterpreterRestore(Alloc, Extern)(
+	ref Alloc alloc,
+	ref Interpreter!Extern a,
+) {
 	immutable InterpreterRestore value = immutable InterpreterRestore(
 		nextByteCodeIndex(a),
 		stackSize(a.dataStack),
-		toArr(externAlloc, a.returnStack),
-		toArr(externAlloc, a.stackStartStack));
-	return allocate(externAlloc, value).rawPtr();
+		toArr(alloc, a.returnStack),
+		toArr(alloc, a.stackStartStack));
+	return allocate(alloc, value).rawPtr();
 }
 
 private void applyInterpreterRestore(Extern)(ref Interpreter!Extern a, ref immutable InterpreterRestore restore) {
@@ -565,6 +565,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 			immutable Nat64 val = pop(a.dataStack); // TODO: verify this is int32?
 			const JmpBufTag* jmpBufPtr = cast(const JmpBufTag*) pop(a.dataStack).raw();
 			applyInterpreterRestore(a, **jmpBufPtr);
+			//TODO: freeInterpreterRestore
 			push(a.dataStack, val);
 			break;
 		case ExternOp.malloc:
@@ -598,7 +599,7 @@ immutable(Nat64) removeAtStackOffset(Extern)(ref Interpreter!Extern a, immutable
 		case ExternOp.setjmp:
 			JmpBufTag* jmpBufPtr = cast(JmpBufTag*) pop(a.dataStack).raw();
 			checkPtr(tempAlloc, a, cast(const ubyte*) jmpBufPtr, immutable Nat16(0), immutable Nat16(JmpBufTag.sizeof));
-			overwriteMemory(jmpBufPtr, createInterpreterRestore(a));
+			overwriteMemory(jmpBufPtr, createInterpreterRestore(tempAlloc, a));
 			push(a.dataStack, immutable Nat64(0));
 			break;
 		case ExternOp.write:

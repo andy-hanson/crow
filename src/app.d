@@ -38,6 +38,7 @@ import lib.compiler :
 import model.model : AbsolutePathsGetter;
 import test.test : test;
 import util.alloc.alloc : allocateBytes, freeBytes;
+import util.alloc.rangeAlloc : RangeAlloc;
 import util.collection.arr : begin, empty, size;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, map, tail, zipImpureSystem;
@@ -81,10 +82,14 @@ import util.types :
 import util.util : todo, unreachable, verify;
 import util.writer : Writer;
 
-extern(C) immutable(int) main(immutable size_t argc, immutable CStr* argv) {
-	Mallocator mallocator;
-	immutable CommandLineArgs args = parseCommandLineArgs(mallocator, argc, argv);
-	return go(mallocator, args).value;
+@system extern(C) immutable(int) main(immutable size_t argc, immutable CStr* argv) {
+	immutable size_t memorySizeBytes = 1024 * 1024 * 1024;
+	ubyte* mem = cast(ubyte*) pureMalloc(memorySizeBytes);
+	scope(exit) pureFree(mem);
+	verify(mem != null);
+	RangeAlloc alloc = RangeAlloc(mem, memorySizeBytes);
+	immutable CommandLineArgs args = parseCommandLineArgs(alloc, argc, argv);
+	return go(alloc, args).value;
 }
 
 private:
@@ -167,7 +172,7 @@ immutable(ExitCode) go(Alloc)(ref Alloc alloc, ref immutable CommandLineArgs arg
 						cwd,
 						includeDir,
 						run.programDirAndMain.programDir);
-					RealExtern extern_ = newRealExtern();
+					RealExtern extern_ = RealExtern(ptrTrustMe_mut(alloc));
 					AllSymbols!Alloc allSymbols = AllSymbols!Alloc(ptrTrustMe_mut(alloc));
 					return buildAndInterpret(
 						dbg,
@@ -407,24 +412,6 @@ immutable(ExitCode) compileC(Alloc, PathAlloc)(
 	return ExitCode.error;
 }
 
-struct Mallocator {
-	@safe @nogc pure nothrow:
-
-	@disable this(ref const Mallocator);
-
-	@trusted ubyte* allocateBytesImpl(immutable size_t size) {
-		ubyte* res = cast(ubyte*) pureMalloc(size);
-		verify(res != null);
-		return res;
-	}
-
-	@trusted void freeBytesImpl(ubyte* ptr, immutable size_t) {
-		pureFree(cast(void*) ptr);
-	}
-
-	@trusted void freeBytesPartialImpl(ubyte* ptr, immutable size_t) {}
-}
-
 struct RealReadOnlyStorage(PathAlloc, Alloc) {
 	@safe @nogc nothrow: // not pure
 
@@ -457,11 +444,6 @@ struct RealReadOnlyStorage(PathAlloc, Alloc) {
 	immutable string user;
 }
 
-
-RealExtern newRealExtern() {
-	return RealExtern(true);
-}
-
 struct RealExtern {
 	@safe @nogc nothrow: // not pure
 
@@ -469,12 +451,13 @@ struct RealExtern {
 	@disable this();
 	@disable this(ref const RealExtern);
 
-	Mallocator alloc;
+	Ptr!RangeAlloc alloc;
 	AllocTracker allocTracker;
 	void* sdlHandle;
 	DCCallVM* dcVm;
 
-	this(bool) {
+	this(Ptr!RangeAlloc a) {
+		alloc = a;
 		// TODO: better way to find where it is (may depend on system)
 		sdlHandle = dlopen("/usr/lib64/libSDL2-2.0.so.0", RTLD_LAZY);
 		verify(sdlHandle != null);
@@ -498,12 +481,12 @@ struct RealExtern {
 
 	@system pure void free(ubyte* ptr) {
 		immutable size_t size = allocTracker.markFree(ptr);
-		freeBytes(alloc, ptr, size);
+		freeBytes(alloc.deref(), ptr, size);
 	}
 
 	@system pure ubyte* malloc(immutable size_t size) {
-		ubyte* ptr = allocateBytes(alloc, size);
-		allocTracker.markAlloced(alloc, ptr, size);
+		ubyte* ptr = allocateBytes(alloc.deref(), size);
+		allocTracker.markAlloced(alloc.deref(), ptr, size);
 		return ptr;
 	}
 
