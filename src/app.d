@@ -37,6 +37,7 @@ import lib.compiler :
 	print;
 import model.model : AbsolutePathsGetter;
 import test.test : test;
+import util.alloc.alloc : allocateBytes, freeBytes;
 import util.collection.arr : begin, empty, size;
 import util.collection.arrBuilder : add, addAll, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, map, tail, zipImpureSystem;
@@ -411,18 +412,17 @@ struct Mallocator {
 
 	@disable this(ref const Mallocator);
 
-	@trusted ubyte* allocateBytes(immutable size_t size) {
+	@trusted ubyte* allocateBytesImpl(immutable size_t size) {
 		ubyte* res = cast(ubyte*) pureMalloc(size);
 		verify(res != null);
 		return res;
 	}
 
-	@trusted void freeBytes(ubyte* ptr, immutable size_t) {
+	@trusted void freeBytesImpl(ubyte* ptr, immutable size_t) {
 		pureFree(cast(void*) ptr);
 	}
 
-	@trusted void freeBytesPartial(ubyte* ptr, immutable size_t) {
-	}
+	@trusted void freeBytesPartialImpl(ubyte* ptr, immutable size_t) {}
 }
 
 struct RealReadOnlyStorage(PathAlloc, Alloc) {
@@ -446,7 +446,7 @@ struct RealReadOnlyStorage(PathAlloc, Alloc) {
 			}
 		}();
 		immutable AbsolutePath ap = immutable AbsolutePath(root, pk.path, extension);
-		return tryReadFile(tempAlloc, allPaths, ap, cb);
+		return tryReadFile(tempAlloc.deref(), allPaths, ap, cb);
 	}
 
 	private:
@@ -498,11 +498,11 @@ struct RealExtern {
 
 	@system pure void free(ubyte* ptr) {
 		immutable size_t size = allocTracker.markFree(ptr);
-		alloc.freeBytes(ptr, size);
+		freeBytes(alloc, ptr, size);
 	}
 
 	@system pure ubyte* malloc(immutable size_t size) {
-		ubyte* ptr = alloc.allocateBytes(size);
+		ubyte* ptr = allocateBytes(alloc, size);
 		allocTracker.markAlloced(alloc, ptr, size);
 		return ptr;
 	}
@@ -736,8 +736,8 @@ extern(C) {
 	verify(off == 0);
 
 	immutable size_t contentSize = safeSizeTFromU64(fileSize + 1);
-	char* content = cast(char*) tempAlloc.allocateBytes(char.sizeof * contentSize); // + 1 for the '\0'
-	scope (exit) tempAlloc.freeBytes(cast(ubyte*) content, char.sizeof * contentSize);
+	char* content = cast(char*) allocateBytes(tempAlloc, char.sizeof * contentSize); // + 1 for the '\0'
+	scope (exit) freeBytes(tempAlloc, cast(ubyte*) content, char.sizeof * contentSize);
 	immutable long nBytesRead = read(fd, content, fileSize);
 
 	if (nBytesRead == -1)

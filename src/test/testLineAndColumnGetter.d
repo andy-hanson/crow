@@ -9,7 +9,7 @@ import util.util : verifyEq;
 
 void testLineAndColumnGetter(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	immutable string text = "a\n\tbb\nc\n";
-	immutable LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc, text);
+	immutable LineAndColumnGetter lcg = lineAndColumnGetterForText(test.alloc.deref(), text);
 	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(0)), immutable LineAndColumn(0, 0));
 	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(1)), immutable LineAndColumn(0, 1));
 	verifyEq(lineAndColumnAtPos(lcg, immutable Pos(2)), immutable LineAndColumn(1, 0));

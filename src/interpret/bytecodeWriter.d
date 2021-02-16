@@ -68,7 +68,7 @@ struct StackEntries {
 ) {
 	immutable ubyte[] bytes = finishByteWriter(writer.byteWriter);
 	immutable FullIndexDict!(ByteCodeIndex, ByteCodeSource) sources =
-		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(writer.alloc, writer.sources));
+		fullIndexDictOfArr!(ByteCodeIndex, ByteCodeSource)(finishArr(writer.alloc.deref(), writer.sources));
 	return immutable ByteCode(bytes, sources, fileToFuns, text, mainIndex);
 }
 
@@ -633,7 +633,7 @@ void pushU64(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSourc
 }
 
 private void pushSource(Alloc)(ref ByteCodeWriter!Alloc writer, ref immutable ByteCodeSource source) {
-	add(writer.alloc, writer.sources, source);
+	add(writer.alloc.deref(), writer.sources, source);
 }
 
 void log(Debug, Alloc)(ref Debug dbg, ref ByteCodeWriter!Alloc byteCodeWriter, immutable string message) {

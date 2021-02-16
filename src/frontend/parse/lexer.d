@@ -4,6 +4,7 @@ module frontend.parse.lexer;
 
 import frontend.parse.ast : LiteralAst, NameAndRange, rangeOfNameAndRange;
 import model.parseDiag : ParseDiag, ParseDiagnostic;
+import util.alloc.alloc : allocateBytes;
 import util.collection.arr : arrOfRange, at, begin, empty, first, last, size;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : cat, rtail;
@@ -565,7 +566,7 @@ public @trusted immutable(string) takeStringLiteralAfterQuote(Alloc, SymAlloc)(
 	}
 
 	immutable size_t size = (lexer.ptr - begin) - nEscapedCharacters;
-	char* res = cast(char*) alloc.allocateBytes(char.sizeof * size);
+	char* res = cast(char*) allocateBytes(alloc, char.sizeof * size);
 
 	size_t outI = 0;
 	lexer.ptr = begin;

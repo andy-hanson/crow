@@ -114,24 +114,25 @@ void doInterpret(Debug, Alloc)(
 ) {
 	immutable Path emptyPath = rootPath(test.allPaths, "test");
 	immutable PathAndStorageKind[1] pk = [immutable PathAndStorageKind(emptyPath, StorageKind.global)];
-	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc)];
+	immutable LineAndColumnGetter[1] lcg = [lineAndColumnGetterForEmptyFile(test.alloc.deref())];
 	static immutable AbsolutePathsGetter emptyAbsolutePathsGetter = immutable AbsolutePathsGetter("", "");
 	immutable FilesInfo filesInfo = immutable FilesInfo(
 		fullIndexDictOfArr!(FileIndex, PathAndStorageKind)(pk),
 		ptrTrustMe(emptyAbsolutePathsGetter),
 		fullIndexDictOfArr!(FileIndex, LineAndColumnGetter)(lcg));
 	immutable LowFun[1] lowFun = [immutable LowFun(
-		immutable LowFunSource(nu!(LowFunSource.Generated)(test.alloc, shortSymAlphaLiteral("test"), emptyArr!LowType)),
+		immutable LowFunSource(
+			nu!(LowFunSource.Generated)(test.alloc.deref(), shortSymAlphaLiteral("test"), emptyArr!LowType)),
 		nu!LowFunSig(
-			test.alloc,
+			test.alloc.deref(),
 			nat64Type,
 			immutable LowFunParamsKind(false, false),
 			emptyArr!LowParam),
-		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc, false, "test")))];
+		immutable LowFunBody(nu!(LowFunBody.Extern)(test.alloc.deref(), false, "test")))];
 	immutable LowProgram lowProgram = immutable LowProgram(
 		immutable AllConstantsLow(emptyArr!ArrTypeAndConstantsLow, emptyArr!PointerTypeAndConstantsLow),
 		nu!AllLowTypes(
-			test.alloc,
+			test.alloc.deref(),
 			emptyFullIndexDict!(LowType.ExternPtr, LowExternPtrType),
 			emptyFullIndexDict!(LowType.FunPtr, LowFunPtrType),
 			emptyFullIndexDict!(LowType.Record, LowRecord),
@@ -694,12 +695,12 @@ void verifyStackEntry(Alloc)(ref ByteCodeWriter!Alloc writer, immutable ushort n
 }
 
 void stepContinue(Debug, Alloc, Extern)(ref Test!(Debug, Alloc) test, ref Interpreter!Extern interpreter) {
-	immutable StepResult result = step(test.dbg, test.alloc, test.allPaths, interpreter);
+	immutable StepResult result = step(test.dbg, test.alloc.deref(), test.allPaths, interpreter);
 	verify(result == StepResult.continue_);
 }
 
 void stepExit(Debug, Alloc, Extern)(ref Test!(Debug, Alloc) test, ref Interpreter!Extern interpreter) {
-	immutable StepResult result = step(test.dbg, test.alloc, test.allPaths, interpreter);
+	immutable StepResult result = step(test.dbg, test.alloc.deref(), test.allPaths, interpreter);
 	verify(result == StepResult.exit);
 }
 

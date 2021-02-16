@@ -2,6 +2,7 @@ module util.collection.mutArr;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : allocateBytes, freeBytes, freeBytesPartial;
 import util.memory : initMemory_mut, memcpy, overwriteMemory;
 import util.opt : force, noneConst, noneMut, Opt, someConst, someMut;
 import util.util : verify;
@@ -14,7 +15,7 @@ struct MutArr(T) {
 }
 
 @system MutArr!T newUninitializedMutArr(T, Alloc)(ref Alloc alloc, immutable size_t size) {
-	return MutArr!T(cast(T*) alloc.allocateBytes(T.sizeof * size), size, size);
+	return MutArr!T(cast(T*) allocateBytes(alloc, T.sizeof * size), size, size);
 }
 
 @system T* mutArrPtrAt(T)(ref MutArr!T a, immutable size_t index) {
@@ -49,9 +50,9 @@ void insert(T, Alloc)(ref Alloc alloc, ref MutArr!T a, immutable size_t pos, T v
 @trusted void push(T, Alloc)(ref Alloc alloc, scope ref MutArr!T a, T value) {
 	if (a.size_ == a.capacity_) {
 		immutable size_t newCapacity = a.size_ == 0 ? 2 : a.size_ * 2;
-		T* newBegin = cast(T*) alloc.allocateBytes(newCapacity * T.sizeof);
+		T* newBegin = cast(T*) allocateBytes(alloc, newCapacity * T.sizeof);
 		memcpy(cast(ubyte*) newBegin, cast(ubyte*) a.begin_, a.size_ * T.sizeof);
-		alloc.freeBytes(cast(ubyte*) a.begin_, a.size_ * T.sizeof);
+		freeBytes!Alloc(alloc, cast(ubyte*) a.begin_, a.size_ * T.sizeof);
 		a.begin_ = newBegin;
 		a.capacity_ = newCapacity;
 	}
@@ -110,7 +111,7 @@ T mustPop(T)(ref MutArr!T a) {
 
 @trusted immutable(T[]) moveToArr(T, Alloc)(ref Alloc alloc, ref MutArr!(immutable T) a) {
 	immutable T[] res = cast(immutable) a.begin_[0 .. a.size_];
-	alloc.freeBytesPartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
+	freeBytesPartial(alloc, cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
 	a.size_ = 0;
 	a.capacity_ = 0;
@@ -119,7 +120,7 @@ T mustPop(T)(ref MutArr!T a) {
 
 @trusted const(T[]) moveToArr_const(T, Alloc)(ref Alloc alloc, ref MutArr!T a) {
 	const T[] res = a.begin_[0 .. a.size_];
-	alloc.freeBytesPartial(cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
+	freeBytesPartial(alloc, cast(ubyte*) (a.begin_ + a.size_), T.sizeof * (a.capacity_ - a.size_));
 	a.begin_ = null;
 	a.size_ = 0;
 	a.capacity_ = 0;

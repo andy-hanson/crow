@@ -2,6 +2,7 @@ module util.path;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : allocateBytes;
 import util.collection.arr : at, first, size;
 import util.collection.mutArr : MutArr, mutArrAt, mutArrRange, mutArrSize, push;
 import util.collection.str : asCStr, copyStr, CStr, NulTerminatedStr, strEq;
@@ -76,10 +77,10 @@ private immutable(Path) getOrAddChild(Alloc)(
 			return child;
 
 	immutable Path res = immutable Path(safeSizeTToU16(mutArrSize(allPaths.pathToParent)));
-	push(allPaths.alloc, children, res);
-	push(allPaths.alloc, allPaths.pathToParent, parent);
-	push(allPaths.alloc, allPaths.pathToBaseName, copyStr(allPaths.alloc, name));
-	push(allPaths.alloc, allPaths.pathToChildren, MutArr!Path());
+	push(allPaths.alloc.deref(), children, res);
+	push(allPaths.alloc.deref(), allPaths.pathToParent, parent);
+	push(allPaths.alloc.deref(), allPaths.pathToBaseName, copyStr(allPaths.alloc.deref(), name));
+	push(allPaths.alloc.deref(), allPaths.pathToChildren, MutArr!Path());
 	return res;
 }
 
@@ -170,7 +171,7 @@ private @trusted immutable(string) pathToStrWorker(Alloc, PathAlloc)(
 	immutable bool nulTerminated,
 ) {
 	immutable size_t sz = size(root) + pathToStrSize(allPaths, path) + size(extension) + (nulTerminated ? 1 : 0);
-	char* begin = cast(char*) alloc.allocateBytes(char.sizeof * sz);
+	char* begin = cast(char*) allocateBytes(alloc, char.sizeof * sz);
 	char* cur = begin + sz;
 	if (nulTerminated) {
 		cur--;

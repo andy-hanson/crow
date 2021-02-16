@@ -12,7 +12,7 @@ import util.path : StorageKind;
 import util.util : verify;
 
 @trusted void testServer(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
-	ubyte[] bytes = fillArrUninitialized!ubyte(test.alloc, 256);
+	ubyte[] bytes = fillArrUninitialized!ubyte(test.alloc.deref(), 256);
 	Server!RangeAlloc server = Server!RangeAlloc(RangeAlloc(begin(bytes), size(bytes)));
 	immutable string path = "main";
 	immutable string content = "content";

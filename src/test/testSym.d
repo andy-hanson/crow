@@ -25,7 +25,7 @@ void testSym(Debug, Alloc)(ref Test!(Debug, Alloc) test) {
 	immutable(Sym) getSym(immutable string a) {
 		immutable Opt!Sym opt = tryGetSymFromStr(allSymbols, a);
 		immutable Sym res = force(opt);
-		verify(strEq(strOfSym(test.alloc, res), a));
+		verify(strEq(strOfSym(test.alloc.deref(), res), a));
 		return res;
 	}
 

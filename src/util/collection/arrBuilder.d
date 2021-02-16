@@ -2,6 +2,7 @@ module util.collection.arrBuilder;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : allocateBytes, freeBytesPartial;
 import util.collection.arr : ArrWithSize, begin, emptyArrWithSize;
 import util.collection.mutArr : moveToArr, MutArr, mutArrSize, push, pushAll;
 import util.memory : initMemory;
@@ -50,7 +51,7 @@ private @system const(T*) begin(T)(ref const ArrWithSizeBuilder!T a) {
 	if (a.size_ == a.capacity_) {
 		const ubyte* oldData = a.data_;
 		a.capacity_ = a.capacity_ == 0 ? 4 : a.capacity_ * 2;
-		a.data_ = alloc.allocateBytes(size_t.sizeof + T.sizeof * a.capacity_);
+		a.data_ = allocateBytes(alloc, size_t.sizeof + T.sizeof * a.capacity_);
 		foreach (immutable size_t i; 0 .. a.size_)
 			initMemory(begin(a) + i, (cast(immutable T*) (oldData + size_t.sizeof))[i]);
 	}
@@ -75,7 +76,7 @@ immutable(bool) arrWithSizeBuilderIsEmpty(T)(ref const ArrWithSizeBuilder!T a) {
 	if (a.data_ == null)
 		return emptyArrWithSize!T;
 	else {
-		alloc.freeBytesPartial(cast(ubyte*) (begin(a) + a.size_), a.capacity_ - a.size_);
+		freeBytesPartial(alloc, cast(ubyte*) (begin(a) + a.size_), a.capacity_ - a.size_);
 		*(cast(size_t*) a.data_) = a.size_;
 		return immutable ArrWithSize!T(cast(immutable) a.data_);
 	}

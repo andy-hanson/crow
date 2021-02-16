@@ -13,7 +13,7 @@ struct RangeAlloc {
 		end = s + size;
 	}
 
-	@trusted ubyte* allocateBytes(immutable size_t nBytes) {
+	@trusted ubyte* allocateBytesImpl(immutable size_t nBytes) {
 		verify(start <= cur);
 		verify(cur <= end);
 		verify(cur + nBytes <= end);
@@ -25,11 +25,11 @@ struct RangeAlloc {
 		return res;
 	}
 
-	void freeBytes(ubyte*, immutable size_t) {
+	void freeBytesImpl(ubyte*, immutable size_t) {
 		// do nothing
 	}
 
-	void freeBytesPartial(ubyte*, immutable size_t) {
+	void freeBytesPartialImpl(ubyte*, immutable size_t) {
 		// do nothing
 	}
 

@@ -12,6 +12,7 @@ import lib.server :
 	RunResult,
 	Server,
 	StrParseDiagnostic;
+import util.alloc.alloc : allocateBytes;
 import util.alloc.rangeAlloc : RangeAlloc;
 import util.collection.arr : size;
 import util.collection.str : CStr, strToCStr;
@@ -24,6 +25,18 @@ import util.writer : finishWriterToCStr, writeChar, writeNat, writeQuotedStr, Wr
 
 // seems to be the required entry point
 extern(C) void _start() {}
+
+extern(C) @system pure void memset(scope ubyte* s, immutable int c, immutable size_t n) {
+	foreach (immutable int i; 0..n)
+		s[i] = cast(ubyte) c;
+}
+
+extern (C) @system pure int memcmp(scope const ubyte* s1, scope const ubyte* s2, immutable size_t n) {
+	foreach (immutable size_t i; 0..n)
+		if (s1[i] != s2[i])
+			return s1[i] < s2[i] ? -1 : 1;
+	return 0;
+}
 
 extern(C) immutable(size_t) getGlobalBufferSize() {
 	return globalBuffer.length;
@@ -38,7 +51,7 @@ extern(C) immutable(size_t) getGlobalBufferSize() {
 	immutable size_t allocLength,
 ) {
 	RangeAlloc alloc = RangeAlloc(allocStart, allocLength);
-	Server!RangeAlloc* ptr = cast(Server!RangeAlloc*) alloc.allocateBytes((Server!RangeAlloc).sizeof);
+	Server!RangeAlloc* ptr = cast(Server!RangeAlloc*) allocateBytes(alloc, (Server!RangeAlloc).sizeof);
 	ptr.__ctor(alloc.move());
 	return ptr;
 }

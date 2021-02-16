@@ -59,9 +59,11 @@ bin/crow-optimized: $(cli_deps)
 # Need '--boundscheck=off' to avoid `undefined symbol: __assert` on D array access
 wasm_flags = --enable-asserts=false --boundscheck=off
 
+# --Oz doesn't help
 bin/crow.wasm: $(src_deps)
 	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm \
 		--d-debug -g $(d_flags) $(wasm_flags) $(wasm_files)
+	rm bin/crow.o
 
 bin/crow.tar.xz: bin/crow demo/* include/* include/*/*
 	tar -C .. -cJf bin/crow.tar.xz crow/bin/crow crow/demo crow/include

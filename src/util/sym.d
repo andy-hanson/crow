@@ -438,7 +438,7 @@ immutable(CStr) getOrAddLongStr(Alloc)(ref AllSymbols!Alloc allSymbols, scope im
 	foreach (immutable CStr s; mutArrRange(allSymbols.largeStrings))
 		if (strEqCStr(str, s))
 			return s;
-	push(allSymbols.alloc, allSymbols.largeStrings, strToCStr(allSymbols.alloc, str));
+	push(allSymbols.alloc.deref(), allSymbols.largeStrings, strToCStr(allSymbols.alloc.deref(), str));
 	return allSymbols.largeStrings.last;
 }
 

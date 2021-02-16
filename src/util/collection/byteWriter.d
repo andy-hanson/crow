@@ -24,7 +24,7 @@ immutable(size_t) nextByteIndex(Alloc)(ref const ByteWriter!Alloc writer) {
 }
 
 immutable(ubyte[]) finishByteWriter(Alloc)(ref ByteWriter!Alloc writer) {
-	return moveToArr(writer.alloc, writer.bytes);
+	return moveToArr(writer.alloc.deref(), writer.bytes);
 }
 
 void pushInt16(Alloc)(ref ByteWriter!Alloc writer, immutable Int16 value) {
@@ -32,7 +32,7 @@ void pushInt16(Alloc)(ref ByteWriter!Alloc writer, immutable Int16 value) {
 }
 
 void pushU8(Alloc)(ref ByteWriter!Alloc writer, immutable Nat8 value) {
-	push(writer.alloc, writer.bytes, value.raw());
+	push(writer.alloc.deref(), writer.bytes, value.raw());
 }
 
 void pushU16(Alloc)(ref ByteWriter!Alloc writer, immutable Nat16 value) {
@@ -62,7 +62,7 @@ void writeU32(Alloc)(ref ByteWriter!Alloc writer, immutable Nat32 index, immutab
 private:
 
 @trusted void pushBytes(T, Alloc)(ref ByteWriter!Alloc writer, immutable T value) {
-	pushAll(writer.alloc, writer.bytes, asBytes!T(&value));
+	pushAll(writer.alloc.deref(), writer.bytes, asBytes!T(&value));
 }
 
 @system immutable(ubyte[]) asBytes(T)(immutable T* value) {

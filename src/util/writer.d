@@ -27,7 +27,7 @@ immutable(CStr) finishWriterToCStr(Alloc)(ref Writer!Alloc writer) {
 }
 
 void writeChar(Alloc)(ref Writer!Alloc writer, immutable char c) {
-	add(writer.alloc, writer.res, c);
+	add(writer.alloc.deref(), writer.res, c);
 }
 
 void writeStr(Alloc)(ref Writer!Alloc writer, immutable string s) {

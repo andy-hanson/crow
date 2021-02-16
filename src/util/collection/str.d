@@ -2,6 +2,7 @@ module util.collection.str;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : allocateBytes;
 import util.collection.arr : at, begin, freeArr, size;
 import util.collection.arrUtil : cat, compareArr, rtail, tail;
 import util.comparison : Comparison;
@@ -56,7 +57,7 @@ immutable(string) strOfNulTerminatedStr(immutable NulTerminatedStr a) {
 }
 
 @trusted immutable(NulTerminatedStr) copyToNulTerminatedStr(Alloc)(ref Alloc alloc, immutable string s) {
-	char* res = cast(char*) alloc.allocateBytes(size(s) + 1);
+	char* res = cast(char*) allocateBytes(alloc, size(s) + 1);
 	memcpy(cast(ubyte*) res, cast(ubyte*) s.ptr, size(s));
 	res[size(s)] = '\0';
 	return immutable NulTerminatedStr(cast(immutable) res[0 .. size(s) + 1]);
@@ -75,7 +76,7 @@ immutable(bool) strEq(immutable string a, immutable string b) {
 }
 
 @trusted immutable(string) copyStr(Alloc)(ref Alloc alloc, immutable string s) {
-	char* begin = cast(char*) alloc.allocateBytes(char.sizeof * size(s));
+	char* begin = cast(char*) allocateBytes(alloc, char.sizeof * size(s));
 	foreach (immutable size_t i; 0 .. size(s))
 		begin[i] = at(s, i);
 	return cast(immutable) begin[0 .. size(s)];

@@ -7,11 +7,11 @@ import util.ptr : Ptr;
 struct ExternAlloc(Extern) {
 	private Ptr!Extern extern_;
 
-	@system ubyte* allocateBytes(immutable size_t nBytes) {
+	@system ubyte* allocateBytesImpl(immutable size_t nBytes) {
 		return extern_.malloc(nBytes);
 	}
 
-	@system void freeBytes(ubyte* ptr, immutable size_t) {
+	@system void freeBytesImpl(ubyte* ptr, immutable size_t) {
 		extern_.free(ptr);
 	}
 }

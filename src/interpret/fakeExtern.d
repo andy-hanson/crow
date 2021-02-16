@@ -4,6 +4,7 @@ module interpret.fakeExtern;
 
 import interpret.allocTracker : AllocTracker;
 import interpret.bytecode : DynCallType, TimeSpec;
+import util.alloc.alloc : allocateBytes, freeBytes;
 import util.collection.mutArr : clear, moveToArr, MutArr, pushAll;
 import util.collection.str : NulTerminatedStr;
 import util.ptr : Ptr, PtrRange;
@@ -43,13 +44,13 @@ struct FakeExtern(Alloc) {
 	//TODO: not @trusted
 	@trusted void free(ubyte* ptr) {
 		immutable size_t size = allocTracker.markFree(ptr);
-		alloc.freeBytes(ptr, size);
+		freeBytes(alloc.deref(), ptr, size);
 	}
 
 	//TODO: not @trusted
 	@trusted ubyte* malloc(immutable size_t size) {
-		ubyte* ptr = alloc.allocateBytes(size);
-		allocTracker.markAlloced(alloc, ptr, size);
+		ubyte* ptr = allocateBytes(alloc.deref(), size);
+		allocTracker.markAlloced(alloc.deref(), ptr, size);
 		return ptr;
 	}
 
@@ -61,11 +62,11 @@ struct FakeExtern(Alloc) {
 	}
 
 	immutable(string) moveStdout() {
-		return moveToArr(alloc, stdout);
+		return moveToArr(alloc.deref(), stdout);
 	}
 
 	immutable(string) moveStderr() {
-		return moveToArr(alloc, stderr);
+		return moveToArr(alloc.deref(), stderr);
 	}
 
 	void clearOutput() {

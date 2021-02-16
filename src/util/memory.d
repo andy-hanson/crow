@@ -2,6 +2,7 @@ module util.memory;
 
 @safe @nogc pure nothrow:
 
+import util.alloc.alloc : allocateBytes;
 import util.ptr : Ptr;
 
 @trusted void initMemory(T)(T* ptr, immutable T value) {
@@ -29,7 +30,7 @@ immutable(Ptr!T) nu(T, Alloc, Args...)(ref Alloc alloc, Args args) {
 }
 
 @trusted immutable(Ptr!T) allocate(T, Alloc)(ref Alloc alloc, immutable T value) {
-	T* ptr = cast(T*) alloc.allocateBytes(T.sizeof);
+	T* ptr = cast(T*) allocateBytes(alloc, T.sizeof);
 	initMemory!T(ptr, value);
 	return immutable Ptr!T(cast(immutable) ptr);
 }
@@ -39,7 +40,7 @@ Ptr!T nuMut(T, Alloc, Args...)(ref Alloc alloc, Args args) {
 }
 
 private @trusted Ptr!T allocateMut(T, Alloc)(ref Alloc alloc, T value) {
-	T* ptr = cast(T*) alloc.allocateBytes(T.sizeof);
+	T* ptr = cast(T*) allocateBytes(alloc, T.sizeof);
 	initMemory_mut!T(ptr, value);
 	return Ptr!T(ptr);
 }
