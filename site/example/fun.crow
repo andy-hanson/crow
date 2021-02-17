@@ -1,5 +1,5 @@
 import
-	col.arr-util: join, map
+	col.arr-util: flatten, map
 	io.print: print
 
 main fut nat(_ arr str) summon
@@ -8,7 +8,7 @@ main fut nat(_ arr str) summon
 	print: call-it: {it * 2 to-str}
 
 	xs = ["crow", "crime"]
-	print: xs map {it[1 -> 4]} join ", "
+	print: xs map {it[1 -> 4]} flatten ", "
 
 	0 resolved
 

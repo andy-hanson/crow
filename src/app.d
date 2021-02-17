@@ -15,7 +15,7 @@ import core.sys.posix.unistd : close, getcwd, lseek, read, readlink, unlink, pos
 import std.process : execvpe;
 
 import frontend.showDiag : ShowDiagOptions;
-import interpret.allocTracker : AllocTracker;
+import interpret.allocTracker : AllocTracker, hasAllocedPtr, markAlloced, markFree, writeMarkedAllocedRanges;
 import interpret.applyFn : nat64OfI32, nat64OfI64;
 import interpret.bytecode : DynCallType, TimeSpec;
 import lib.cliParser :
@@ -480,13 +480,13 @@ struct RealExtern {
 	}
 
 	@system pure void free(ubyte* ptr) {
-		immutable size_t size = allocTracker.markFree(ptr);
+		immutable size_t size = markFree(allocTracker, ptr);
 		freeBytes(alloc.deref(), ptr, size);
 	}
 
 	@system pure ubyte* malloc(immutable size_t size) {
 		ubyte* ptr = allocateBytes(alloc.deref(), size);
-		allocTracker.markAlloced(alloc.deref(), ptr, size);
+		markAlloced(alloc.deref(), allocTracker, ptr, size);
 		return ptr;
 	}
 
@@ -505,11 +505,11 @@ struct RealExtern {
 	}
 
 	immutable(bool) hasMallocedPtr(ref const PtrRange range) const {
-		return allocTracker.hasAllocedPtr(range);
+		return hasAllocedPtr(allocTracker, range);
 	}
 
 	@trusted void writeMallocedRanges(WriterAlloc)(ref Writer!WriterAlloc writer) const {
-		allocTracker.writeMallocedRanges!WriterAlloc(writer);
+		writeMarkedAllocedRanges(writer, allocTracker);
 	}
 
 	@trusted immutable(Nat64) doDynCall(

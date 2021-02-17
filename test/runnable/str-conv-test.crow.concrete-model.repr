@@ -369,14 +369,14 @@ program(
 			none
 			[param(ctx, type(true, mark-ctx)), param(ptr-any, type(false, ptr)), param(size-bytes, type(false, nat))]
 			expr-body(
-				let(
-					size-words
-					call(words-of-bytes, [param-ref(size-bytes)])
+				seq(
+					call(hard-assert, [call(word-aligned?, [param-ref(ptr-any)])])
 					let(
-						ptr
-						call(ptr-cast, [param-ref(ptr-any)])
-						seq(
-							call(hard-assert, [call(==, [call(bits-and, [call(to-nat, [local-ref(ptr)]), 7]), 0])])
+						size-words
+						call(words-of-bytes, [param-ref(size-bytes)])
+						let(
+							ptr
+							call(ptr-cast, [param-ref(ptr-any)])
 							let(
 								index
 								call(-, [local-ref(ptr), call(memory-start, [param-ref(ctx)])])
@@ -415,6 +415,49 @@ program(
 											call(false, []))))))))))
 		fun(
 			false
+			hard-assert
+			type(false, void)
+			none
+			[param(condition, type(false, bool))]
+			expr-body(cond(param-ref(condition), call(void, []), call(abort!, []))))
+		fun(false, void, type(false, void), none, [], builtin([]))
+		fun(false, abort!, type(false, void), none, [], extern(false))
+		fun(
+			false
+			word-aligned?
+			type(false, bool)
+			none
+			[param(a, type(false, ptr))]
+			expr-body(call(==, [call(bits-and, [call(to-nat, [param-ref(a)]), 7]), 0])))
+		fun(
+			false
+			==
+			type(false, bool)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			expr-body(
+				match(
+					call(<=>, [param-ref(a), param-ref(b)])
+					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
+		fun(
+			false
+			<=>
+			type(false, comparison)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			builtin([type(false, nat)]))
+		fun(false, false, type(false, bool), none, [], builtin([]))
+		fun(false, true, type(false, bool), none, [], builtin([]))
+		fun(
+			false
+			bits-and
+			type(false, nat)
+			none
+			[param(a, type(false, nat)), param(b, type(false, nat))]
+			builtin([]))
+		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, nat8)]))
+		fun(
+			false
 			words-of-bytes
 			type(false, nat)
 			none
@@ -436,13 +479,6 @@ program(
 			expr-body(call(bits-and, [call(wrap-add, [param-ref(n), 7]), call(bits-not, [7])])))
 		fun(
 			false
-			bits-and
-			type(false, nat)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			builtin([]))
-		fun(
-			false
 			wrap-add
 			type(false, nat)
 			none
@@ -456,35 +492,6 @@ program(
 			none
 			[param(p, type(false, ptr))]
 			builtin([type(false, nat), type(false, nat8)]))
-		fun(
-			false
-			hard-assert
-			type(false, void)
-			none
-			[param(condition, type(false, bool))]
-			expr-body(cond(param-ref(condition), call(void, []), call(abort!, []))))
-		fun(false, void, type(false, void), none, [], builtin([]))
-		fun(false, abort!, type(false, void), none, [], extern(false))
-		fun(
-			false
-			==
-			type(false, bool)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			expr-body(
-				match(
-					call(<=>, [param-ref(a), param-ref(b)])
-					[case(none, call(false, [])), case(none, call(true, [])), case(none, call(false, []))])))
-		fun(
-			false
-			<=>
-			type(false, comparison)
-			none
-			[param(a, type(false, nat)), param(b, type(false, nat))]
-			builtin([type(false, nat)]))
-		fun(false, false, type(false, bool), none, [], builtin([]))
-		fun(false, true, type(false, bool), none, [], builtin([]))
-		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, nat)]))
 		fun(
 			false
 			-
@@ -502,6 +509,7 @@ program(
 			none
 			[param(a, type(false, nat)), param(b, type(false, nat))]
 			builtin([]))
+		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, nat)]))
 		fun(false, size-of, type(false, nat), none, [], builtin([type(false, nat)]))
 		fun(false, memory-start, type(false, ptr), none, [param(a, type(true, mark-ctx))], field-get(2))
 		fun(
@@ -808,7 +816,6 @@ program(
 			none
 			[param(a, type(false, ptr))]
 			expr-body(call(==, [call(to-nat, [param-ref(a)]), call(to-nat, [call(null, [])])])))
-		fun(false, to-nat, type(false, nat), none, [param(p, type(false, ptr))], builtin([type(false, nat8)]))
 		fun(false, null, type(false, ptr), none, [], builtin([type(false, nat8)]))
 		fun(
 			false
@@ -1392,12 +1399,30 @@ program(
 					seq(
 						seq(
 							seq(
-								call(
-									hard-assert
-									[
+								seq(
+									seq(
+										seq(
+											call(
+												hard-assert
+												[
+													call(
+														word-aligned?
+														[call(as-any-ptr, [call(mark-begin, [param-ref(gc)])])])])
+											call(
+												hard-assert
+												[
+													call(
+														word-aligned?
+														[call(as-any-ptr, [call(data-begin, [param-ref(gc)])])])]))
 										call(
-											ptr-less-eq?
-											[call(mark-begin, [param-ref(gc)]), call(mark-cur, [param-ref(gc)])])])
+											hard-assert
+											[call(word-aligned?, [call(as-any-ptr, [call(data-cur, [param-ref(gc)])])])]))
+									call(
+										hard-assert
+										[
+											call(
+												ptr-less-eq?
+												[call(mark-begin, [param-ref(gc)]), call(mark-cur, [param-ref(gc)])])]))
 								call(
 									hard-assert
 									[
@@ -1446,6 +1471,10 @@ program(
 															call(data-begin, [param-ref(gc)])])
 													call(size-words, [param-ref(gc)])])]))
 								call(hard-assert, [call(==, [local-ref(mark-idx), local-ref(data-idx)])])))))))
+		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(false, ptr))], builtin([type(false, ptr)]))
+		fun(false, mark-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(5))
+		fun(false, data-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(8))
+		fun(false, data-cur, type(false, ptr), none, [param(a, type(true, gc))], field-get(9))
 		fun(
 			false
 			ptr-less-eq?
@@ -1461,7 +1490,6 @@ program(
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, bool)]))
-		fun(false, mark-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(5))
 		fun(false, mark-cur, type(false, ptr), none, [param(a, type(true, gc))], field-get(6))
 		fun(false, mark-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(7))
 		fun(
@@ -1486,8 +1514,6 @@ program(
 			none
 			[param(a, type(false, ptr)), param(b, type(false, ptr))]
 			builtin([type(false, nat)]))
-		fun(false, data-begin, type(false, ptr), none, [param(a, type(true, gc))], field-get(8))
-		fun(false, data-cur, type(false, ptr), none, [param(a, type(true, gc))], field-get(9))
 		fun(false, data-end, type(false, ptr), none, [param(a, type(true, gc))], field-get(10))
 		fun(
 			false
@@ -2220,33 +2246,41 @@ program(
 			[]
 			expr-body(
 				let(
-					mark-begin
+					mark
 					call(ptr-cast, [call(malloc, [16777216])])
 					let(
 						mark-end
-						call(+, [local-ref(mark-begin), 16777216])
+						call(+, [local-ref(mark), 16777216])
 						let(
-							data-begin
+							data
 							call(ptr-cast, [call(malloc, [call(wrap-mul, [16777216, call(size-of, [])])])])
-							let(
-								data-end
-								call(+, [local-ref(data-begin), 16777216])
-								seq(
-									call(memset, [call(as-any-ptr, [local-ref(mark-begin)]), 0, 16777216])
-									call(
-										gc
-										[
-											call(lock-by-val, [])
-											0
-											to-union(0, call(none, []))
-											call(false, [])
-											16777216
-											local-ref(mark-begin)
-											local-ref(mark-begin)
-											local-ref(mark-end)
-											local-ref(data-begin)
-											local-ref(data-begin)
-											local-ref(data-end)]))))))))
+							seq(
+								call(hard-assert, [call(word-aligned?, [call(as-any-ptr, [local-ref(data)])])])
+								let(
+									data-end
+									call(+, [local-ref(data), 16777216])
+									seq(
+										call(memset, [call(as-any-ptr, [local-ref(mark)]), 0, 16777216])
+										let(
+											res
+											call(
+												as
+												[
+													call(
+														gc
+														[
+															call(lock-by-val, [])
+															0
+															to-union(0, call(none, []))
+															call(false, [])
+															16777216
+															local-ref(mark)
+															local-ref(mark)
+															local-ref(mark-end)
+															local-ref(data)
+															local-ref(data)
+															local-ref(data-end)])])
+											seq(call(validate-gc, [call(ref-of-val, [local-ref(res)])]), local-ref(res)))))))))))
 		fun(
 			false
 			ptr-cast
@@ -2254,7 +2288,7 @@ program(
 			none
 			[param(p, type(false, ptr))]
 			builtin([type(false, bool), type(false, nat8)]))
-		fun(false, as-any-ptr, type(false, ptr), none, [param(ref, type(false, ptr))], builtin([type(false, ptr)]))
+		fun(false, as, type(false, gc), none, [param(value, type(false, gc))], builtin([type(false, gc)]))
 		fun(
 			false
 			gc
@@ -2273,6 +2307,7 @@ program(
 				param(data-cur, type(false, ptr))
 				param(data-end, type(false, ptr))]
 			new-record)
+		fun(false, ref-of-val, type(true, gc), none, [param(a, type(false, gc))], builtin([type(true, gc)]))
 		fun(
 			false
 			thread-safe-counter
@@ -2505,7 +2540,6 @@ program(
 			[param(a, type(true, gc)), param(context-head, type(false, opt))]
 			field-set(2))
 		fun(false, next-ctx, type(false, opt), none, [param(a, type(true, gc-ctx))], field-get(1))
-		fun(false, ref-of-val, type(true, gc), none, [param(a, type(false, gc))], builtin([type(true, gc)]))
 		fun(false, gc, type(false, gc), none, [param(a, type(true, island))], field-get(2))
 		fun(
 			false

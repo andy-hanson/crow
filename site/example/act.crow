@@ -1,9 +1,9 @@
 import
-	col.arr-util: join, map
+	col.arr-util: flatten, map
 	io.print: print
 
 main fut nat(_ arr str) summon
 	ingredients = ["plaintain", "potato"]
 	fried = ingredients map {"fried " ~ it}
-	print: fried join ", "
+	print: fried flatten ", "
 	0 resolved

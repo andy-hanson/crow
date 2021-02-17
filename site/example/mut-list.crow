@@ -1,5 +1,5 @@
 import
-	col.arr-util: join
+	col.arr-util: flatten
 	col.mut-list: ~=, empty?, move-to-arr!, mut-list
 	io.print: print
 
@@ -8,6 +8,6 @@ main fut nat(_ arr str) summon
 	xs ~= "d"
 	xs ~= ["e", "f"]
 	a = xs move-to-arr!
-	print: a join ", "
+	print: a flatten ", "
 	print: xs.empty? to-str
 	0 resolved

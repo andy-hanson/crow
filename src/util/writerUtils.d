@@ -38,10 +38,12 @@ void writePathRelativeToCwd(Alloc, PathAlloc)(
 			writeStr(writer, path.root[size(cwd) + 1 .. $]);
 			writeChar(writer, '/');
 		}
-		writePath(writer, allPaths, path.path);
-		writeStr(writer, path.extension);
-	} else
-		todo!void("!");
+	} else {
+		writeStr(writer, path.root);
+		writeChar(writer, '/');
+	}
+	writePath(writer, allPaths, path.path);
+	writeStr(writer, path.extension);
 }
 
 void writeRelPath(Alloc, PathAlloc)(

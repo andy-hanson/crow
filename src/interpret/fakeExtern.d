@@ -2,7 +2,7 @@ module interpret.fakeExtern;
 
 @safe @nogc pure nothrow:
 
-import interpret.allocTracker : AllocTracker;
+import interpret.allocTracker : AllocTracker, hasAllocedPtr, markAlloced, markFree, writeMarkedAllocedRanges;
 import interpret.bytecode : DynCallType, TimeSpec;
 import util.alloc.alloc : allocateBytes, freeBytes;
 import util.collection.mutArr : clear, moveToArr, MutArr, pushAll;
@@ -43,14 +43,14 @@ struct FakeExtern(Alloc) {
 
 	//TODO: not @trusted
 	@trusted void free(ubyte* ptr) {
-		immutable size_t size = allocTracker.markFree(ptr);
+		immutable size_t size = markFree(allocTracker, ptr);
 		freeBytes(alloc.deref(), ptr, size);
 	}
 
 	//TODO: not @trusted
 	@trusted ubyte* malloc(immutable size_t size) {
 		ubyte* ptr = allocateBytes(alloc.deref(), size);
-		allocTracker.markAlloced(alloc.deref(), ptr, size);
+		markAlloced(alloc.deref(), allocTracker, ptr, size);
 		return ptr;
 	}
 
@@ -84,11 +84,11 @@ struct FakeExtern(Alloc) {
 	}
 
 	immutable(bool) hasMallocedPtr(ref const PtrRange range) const {
-		return allocTracker.hasAllocedPtr(range);
+		return hasAllocedPtr(allocTracker, range);
 	}
 
 	@trusted void writeMallocedRanges(WriterAlloc)(ref Writer!WriterAlloc writer) const {
-		allocTracker.writeMallocedRanges(writer);
+		writeMarkedAllocedRanges(writer, allocTracker);
 	}
 
 	immutable(Nat64) doDynCall(

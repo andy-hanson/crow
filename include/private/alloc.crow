@@ -26,9 +26,9 @@ mark-ctx record mut
 
 # Returns true if the range is GC-allocated memory and was not already marked
 mark bool(ctx mark-ctx, ptr-any any-ptr, size-bytes nat) noctx unsafe summon
+	hard-assert: ptr-any word-aligned?
 	size-words = size-bytes words-of-bytes
-	ptr = ptr-any.ptr-cast<nat64, nat8>
-	hard-assert: (ptr.to-nat bits-and 7) == 0
+	ptr = ptr-any ptr-cast<nat64, nat8>
 	index = ptr - ctx.memory-start
 	gc-memory? = index < ctx.memory-size-words
 	if gc-memory?
@@ -39,6 +39,9 @@ mark bool(ctx mark-ctx, ptr-any any-ptr, size-bytes nat) noctx unsafe summon
 	else
 		hard-assert: (index wrap-add size-words) > ctx.memory-size-words
 		false
+
+.word-aligned? bool(a any-ptr) noctx unsafe
+	(a.to-nat bits-and 7) == 0
 
 words-of-bytes nat(size-bytes nat) noctx trusted
 	size-bytes.round-up-to-multiple-of-8 unsafe-div 8
@@ -113,14 +116,17 @@ gc by-val gc() noctx unsafe
 	# TODO: handle malloc failure
 	# 16 MB
 	size-words = 0x1000000
-	mark-begin = ptr-cast<bool, nat8>: malloc: size-words
-	mark-end = mark-begin + size-words
-	data-begin = ptr-cast<nat64, nat8>: malloc: size-words wrap-mul size-of<nat64>
-	data-end = data-begin + size-words
+	mark = ptr-cast<bool, nat8>: malloc: size-words
+	mark-end = mark + size-words
+	data = ptr-cast<nat64, nat8>: malloc: size-words wrap-mul size-of<nat64>
+	hard-assert: data.as-any-ptr word-aligned?
+	data-end = data + size-words
 
-	mark-begin.as-any-ptr memset 0, size-words
+	mark.as-any-ptr memset 0, size-words
 
-	gc: lock-by-val, 0, none, false, size-words, mark-begin, mark-begin, mark-end, data-begin, data-begin, data-end
+	res = as<by-val gc>: gc: lock-by-val, 0, none, false, size-words, mark, mark, mark-end, data, data, data-end
+	res.ref-of-val validate-gc
+	res
 
 run-garbage-collection void(gc gc, gc-root ?a) noctx unsafe
 	hard-assert: gc needs-gc?
@@ -189,6 +195,9 @@ fill-ptr-range void(cur ptr ?a, end ptr ?a, value ?a) noctx unsafe
 		cur + 1 fill-ptr-range end, value
 
 validate-gc void(gc gc) noctx unsafe
+	hard-assert: gc.mark-begin.as-any-ptr word-aligned?
+	hard-assert: gc.data-begin.as-any-ptr word-aligned?
+	hard-assert: gc.data-cur.as-any-ptr word-aligned?
 	hard-assert: gc.mark-begin ptr-less-eq? gc.mark-cur
 	hard-assert: gc.mark-cur ptr-less-eq? gc.mark-end
 	hard-assert: gc.data-begin ptr-less-eq? gc.data-cur
@@ -236,7 +245,7 @@ gc-alloc any-ptr(gc gc, size nat) trusted
 		# TODO: throw an exception on OOM
 		todo
 	as some s
-		s.value
+		s value
 
 alloc any-ptr(size-bytes nat) unsafe
 	get-gc gc-alloc size-bytes

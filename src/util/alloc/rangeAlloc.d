@@ -2,15 +2,18 @@ module util.alloc.rangeAlloc;
 
 @safe @nogc pure nothrow:
 
-import util.util : verify;
+import util.util : roundUp, verify;
 
 struct RangeAlloc {
 	@safe @nogc pure nothrow:
 
 	@trusted this(ubyte* s, immutable size_t size) {
+		verify(size % 8 == 0);
 		start = s;
 		cur = s;
+		verify(isWordAligned(cur));
 		end = s + size;
+		verify(isWordAligned(end));
 	}
 
 	@trusted ubyte* allocateBytesImpl(immutable size_t nBytes) {
@@ -18,10 +21,9 @@ struct RangeAlloc {
 		verify(cur <= end);
 		verify(cur + nBytes <= end);
 		ubyte* res = cur;
-		cur += nBytes;
-		//TODO:KILL
-		foreach (ref ubyte b; res[0 .. nBytes])
-			b = 42;
+		verify(isWordAligned(res));
+		cur += roundUp(nBytes, 8);
+		verify(isWordAligned(cur));
 		return res;
 	}
 
@@ -58,4 +60,10 @@ struct RangeAlloc {
 	ubyte* start;
 	ubyte* cur;
 	ubyte* end;
+}
+
+private:
+
+immutable(bool) isWordAligned(const ubyte* a) {
+	return (cast(immutable size_t) a) % 8 == 0;
 }

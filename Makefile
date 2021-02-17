@@ -7,7 +7,9 @@ clean:
 	rm -f site/*.html site/*/*.html site/*/*/*.html site/*/*/*/*.html
 	rm -rf temp
 
-all: clean test lint sdl-demo serve
+all-clean: clean all-dirty
+
+all-dirty: test lint sdl-demo serve
 
 sdl-demo: bin/crow
 	bin/crow run demo/sdl.crow
@@ -60,10 +62,10 @@ bin/crow-optimized: $(cli_deps)
 # Need '--boundscheck=off' to avoid `undefined symbol: __assert` on D array access
 wasm_flags = --enable-asserts=false --boundscheck=off
 
-# --Oz doesn't help
+# To debug: Add `--d-debug -g`, remove `--Oz` and `-L=--strip-all`
+# --Oz breaks it: CompileError: WebAssembly.instantiate(): Compiling function #6000:"_D10concretizeQm__TQrTS4util5alloc10rangeAlloc1..." failed: not enough arguments on the stack for local.set, expected 1 more @+1538610
 bin/crow.wasm: $(src_deps)
-	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm \
-		--d-debug -g $(d_flags) $(wasm_flags) $(wasm_files)
+	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(d_flags) $(wasm_flags) $(wasm_files) -v -L=--strip-all
 	rm bin/crow.o
 
 bin/crow.tar.xz: bin/crow demo/* include/* include/*/*

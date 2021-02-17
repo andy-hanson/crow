@@ -130,7 +130,8 @@ class Allocator {
 
 	/** @return {BufferSpace} */
 	reserveRest() {
-		const res = {begin:this._cur, size:this._end - this._cur}
+		const begin = roundUpToWord(this._cur)
+		const res = {begin, size:this._end - begin}
 		this._cur = this._end
 		return res
 	}
@@ -376,4 +377,9 @@ const readString = (view, buffer, bufferSize) => {
 	for (let i = 0; i < bufferSize; i++)
 		s += String.fromCharCode(view.getUint8(buffer + i))
 	return s
+}
+
+const roundUpToWord = n => {
+	const diff = n % 8
+	return diff === 0 ? n : n + 8 - diff
 }

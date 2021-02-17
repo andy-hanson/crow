@@ -1,5 +1,5 @@
 import
-	col.arr-util: join
+	col.arr-util: flatten
 	io.print: print
 
 main fut nat(_ arr str) summon
@@ -7,9 +7,9 @@ main fut nat(_ arr str) summon
 	print: chili[2]
 
 	to-chop = chili[1 -> 4]
-	print: to-chop join ", "
+	print: to-chop flatten ", "
 
 	hold-the-onion = chili[0 -> 2] ~ chili[3 -> 5]
-	print: hold-the-onion join ", "
+	print: hold-the-onion flatten ", "
 
 	0 resolved

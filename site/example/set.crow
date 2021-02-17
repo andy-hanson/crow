@@ -1,5 +1,5 @@
 import
-	col.arr-util: join
+	col.arr-util: flatten
 	col.mut-set: ~=, move-to-set!, mut-set, remove!, subscript
 	col.set: -, ~, arr, intersect, set, size, subscript
 	io.print: print
@@ -11,15 +11,15 @@ main fut nat(_ arr str) summon
 	print: "has potato? " ~ chili["potato"].to-str
 
 	pepper-spray = set: ["pepper", "onion", "spray bottle"]
-	print: "union: " ~: (chili ~ pepper-spray).arr join ", "
-	print: "intersection: " ~: (chili intersect pepper-spray).arr join ", "
-	print: "difference: " ~: (chili - pepper-spray).arr join ", "
+	print: "union: " ~: (chili ~ pepper-spray).arr flatten ", "
+	print: "intersection: " ~: (chili intersect pepper-spray).arr flatten ", "
+	print: "difference: " ~: (chili - pepper-spray).arr flatten ", "
 
 	m = mut-set: ["beans", "pepper", "onion"]
 	print: "has pepper? " ~ m["pepper"].to-str
 	print: "remove pepper? " ~: m remove! "pepper" to-str
 	print: "remove pepper again? " ~: m remove! "pepper" to-str
 	m ~= ["spray bottle", "cumin"]
-	print: "after concat: " ~: m.move-to-set!.arr join ", "
+	print: "after concat: " ~: m.move-to-set!.arr flatten ", "
 
 	0 resolved

@@ -11,34 +11,34 @@ import util.writer : Writer, writePtrRange, writeStatic;
 struct AllocTracker {
 	@safe @nogc pure nothrow:
 
+	private:
 	@disable this(ref const AllocTracker);
-
 	MutDict!(const ubyte*, immutable size_t, comparePtrRaw!ubyte) allocations;
+}
 
-	immutable(size_t) markFree(const ubyte* ptr) {
-		return mustDelete(allocations, ptr);
-	}
+void markAlloced(Alloc)(ref Alloc alloc, ref AllocTracker a, const ubyte* ptr, immutable size_t size) {
+	addToMutDict(alloc, a.allocations, ptr, size);
+}
 
-	void markAlloced(Alloc)(ref Alloc alloc, const ubyte* ptr, immutable size_t size) {
-		addToMutDict(alloc, allocations, ptr, size);
-	}
+immutable(size_t) markFree(ref AllocTracker a, const ubyte* ptr) {
+	return mustDelete(a.allocations, ptr);
+}
 
-	immutable(bool) hasAllocedPtr(ref const PtrRange range) const {
-		return exists_const!(KeyValuePair!(const ubyte*, immutable size_t))(
-			tempPairs(allocations),
-			(ref const KeyValuePair!(const ubyte*, immutable size_t) pair) =>
-				ptrInRange(pair, range));
-	}
+immutable(bool) hasAllocedPtr(ref const AllocTracker a, ref const PtrRange range) {
+	return exists_const!(KeyValuePair!(const ubyte*, immutable size_t))(
+		tempPairs(a.allocations),
+		(ref const KeyValuePair!(const ubyte*, immutable size_t) pair) =>
+			ptrInRange(pair, range));
+}
 
-	@trusted void writeMallocedRanges(WriterAlloc)(ref Writer!WriterAlloc writer) const {
-		bool first = true;
-		foreach (ref const KeyValuePair!(const ubyte*, immutable size_t) pair; tempPairs(allocations)) {
-			if (first)
-				first = false;
-			else
-				writeStatic(writer, ", ");
-			writePtrRange(writer, const PtrRange(pair.key, pair.key + pair.value));
-		}
+@trusted void writeMarkedAllocedRanges(WriterAlloc)(ref Writer!WriterAlloc writer, ref const AllocTracker a) {
+	bool first = true;
+	foreach (ref const KeyValuePair!(const ubyte*, immutable size_t) pair; tempPairs(a.allocations)) {
+		if (first)
+			first = false;
+		else
+			writeStatic(writer, ", ");
+		writePtrRange(writer, const PtrRange(pair.key, pair.key + pair.value));
 	}
 }
 
