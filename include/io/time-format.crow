@@ -1,0 +1,122 @@
+no-std
+import
+	..bool
+	..col.arr: subscript
+	..col.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
+	..misc: ->
+	..number: +, nat
+	..posix.time: gmtime, localtime, strftime
+	..ptr: ptr-to
+	..str: char, str
+	..str-util: to-c-str
+	.time: seconds-since-epoch, unix-time
+	
+time-locale record
+	# TODO:PRIVATE
+	local-time? bool
+
+# User's local time formatting preferences.
+local-time time-locale()
+	time-locale: true
+
+# Not summon because getting GMT from a timestamp is a pure function
+gmt time-locale()
+	time-locale: false
+
+# E.g. "-0500"
+timezone-offset str(locale time-locale, time unix-time) summon
+	locale format time, "%z", 5
+
+# E.g. "EST"
+timezone-name str(locale time-locale, time unix-time) summon
+	locale format time, "%Z", 20
+
+# E.g. "2000"
+year str(locale time-locale, time unix-time) summon
+	locale format time, "%Y", 5
+
+# E.g. "00"
+year-2-digit str(locale time-locale, time unix-time) summon
+	locale format time, "%y", 2
+
+###
+Date formatted by local preferences
+E.g. "2020-01-30" or "01/30/20".
+###
+date str(locale time-locale, time unix-time) summon
+	if locale local-time?
+		locale format time, "%x", 10
+	else
+		locale iso-date time
+
+# HH:MM:SS, e.g. 00:00:00
+time-of-day str(locale time-locale, time unix-time) summon
+	locale format time, "%X", 8
+
+# E.g. "Mon"
+day-of-week-short str(locale time-locale, time unix-time) summon
+	locale format time, "%a", 3
+
+# E.g. "Monday"
+day-of-week-long str(locale time-locale, time unix-time) summon
+	locale format time, "%A", 9
+
+# Day from 001 to 366 inclusive
+day-of-year str(locale time-locale, time unix-time) summon
+	locale format time, "%j", 3
+
+# Month like "Jan"
+month-short str(locale time-locale, time unix-time) summon
+	locale format time, "%b", 3
+
+# Month like "January"
+month-long str(locale time-locale, time unix-time) summon
+	locale format time, "%B", 9
+
+# Month from 01 to 12 inclusive
+month-number str(locale time-locale, time unix-time) summon
+	locale format time, "%m", 2
+
+# Day of month from "01" to "31" inclusive
+day-of-month str(locale time-locale, time unix-time) summon
+	locale format time, "%d", 2
+
+# YYYY-MM-DD (ISO 8601 date format)
+iso-date str(locale time-locale, time unix-time) summon
+	locale format time, "%F", 10
+
+###
+ISO 8601 full timestamp, in UTC
+Example: 2000-01-01T00:00:00Z
+###
+iso-timestamp str(time unix-time) summon
+	gmt format time, "%FT%H:%M:%SZ", 20
+
+# Hour from 00 to 23 inclusive
+hour-of-24 str(locale time-locale, time unix-time) summon
+	locale format time, "%H", 2
+
+# Hour from 1 to 12 inclusive
+hour-of-12 str(locale time-locale, time unix-time) summon
+	locale format time, "%I", 2
+
+# "am" or "pm". Empty in GMT
+am-pm str(locale time-locale, time unix-time) summon
+	locale format time, "%P", 2
+
+# Minute from 00 to 59 inclusive
+minute str(locale time-locale, time unix-time) summon
+	locale format time, "%M", 2
+
+# Second from 00 to 60 inclusive (60 for leap seconds)
+second str(locale time-locale, time unix-time) summon
+	locale format time, "%S", 2
+
+.format str(locale time-locale, time unix-time, format str, max-size nat) trusted summon
+	tm = if locale local-time?
+		time.seconds-since-epoch.ptr-to localtime
+	else
+		time.seconds-since-epoch.ptr-to gmtime
+	res = uninitialized-mut-arr<char>: max-size + 1
+	len = strftime: res.data, res.size, format.to-c-str, tm
+	res.cast-immutable[0 -> len]

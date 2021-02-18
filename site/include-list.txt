@@ -23,6 +23,7 @@ io/path
 io/posix-util
 io/print
 io/process
+io/time-format
 io/time-low-level
 io/time
 iter

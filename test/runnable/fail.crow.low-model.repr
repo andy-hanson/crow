@@ -14562,7 +14562,7 @@ program(
 			int-32
 			param-kind(ctx: false, closure: false)
 			[]
-			expr-body(expr(int-32, file-range(11, range(268, 269)), 1)))
+			expr-body(expr(int-32, file-range(11, range(654, 655)), 1)))
 		248: fun(
 			todo
 			nat-64

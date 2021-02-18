@@ -1,7 +1,11 @@
+# /usr/include/time.h
+
 no-std
 import
 	..cell: cell
-	.c-types: c-int, s-long
+	..ptr: ptr
+	..private.bootstrap: c-str
+	.c-types: c-int, size-t, s-long
 	.extra-types: err-t
 
 timespec record
@@ -9,7 +13,17 @@ timespec record
 	tv-sec s-long
 	tv-nsec s-long
 
+tm extern-ptr
+
 clock-gettime err-t(clock-id clockid-t, timespec cell timespec) noctx summon extern<"clock_gettime">
+
+gmtime tm(timer ptr time-t) noctx summon unsafe extern<"gmtime">
+
+localtime tm(timer ptr time-t) noctx summon unsafe extern<"localtime">
+
+time time-t(timer ptr time-t) noctx summon unsafe extern<"time">
+
+strftime size-t(s c-str, max-size size-t, format c-str, tp tm) noctx summon extern<"strftime">
 
 clock-monotonic clockid-t() noctx
 	1
@@ -17,3 +31,6 @@ clock-monotonic clockid-t() noctx
 clockid-t alias
 	c-int
 
+# Seconds since the Epoch
+time-t alias
+	s-long

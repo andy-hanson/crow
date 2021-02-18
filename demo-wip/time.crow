@@ -1,9 +1,0 @@
-import
-	io.print: print
-	io.time: delay, msec
-
-main fut nat(_ arr str) summon
-	print: "Just a second..."
-	<- 1000.msec delay
-	print: "OK, done"
-	0 resolved

@@ -3,9 +3,17 @@ import
 	..fut: fut
 	..misc: void
 	..number: +, *, nat
+	..posix.time: time, time-t
 	..private.fut-low-level: resolve!, unresolved
 	..private.runtime: add-task, get-cur-island, new-exclusion
+	..ptr: null
 	.time-low-level: get-monotime-nsec
+
+unix-time record
+	seconds-since-epoch time-t
+
+get-unix-time unix-time() summon trusted
+	unix-time: null time
 
 # Represents an amount of time.
 duration record
