@@ -6,20 +6,20 @@ import
 
 main fut nat(_ arr str) summon
 	chili = set: ["beans", "pepper", "onion", "beans"]
-	print: "size: " ~ chili.size.to-str
-	print: "has pepper? " ~ chili["pepper"].to-str
-	print: "has potato? " ~ chili["potato"].to-str
+	print: "size: {chili size}"
+	print: "has pepper? {chili["pepper"]}"
+	print: "has potato? {chili["potato"]}"
 
 	pepper-spray = set: ["pepper", "onion", "spray bottle"]
-	print: "union: " ~: (chili ~ pepper-spray).arr flatten ", "
-	print: "intersection: " ~: (chili intersect pepper-spray).arr flatten ", "
-	print: "difference: " ~: (chili - pepper-spray).arr flatten ", "
+	print: "union: {(chili ~ pepper-spray).arr flatten ", "}"
+	print: "intersection: {(chili intersect pepper-spray).arr flatten ", "}"
+	print: "difference: {(chili - pepper-spray).arr flatten ", "}"
 
 	m = mut-set: ["beans", "pepper", "onion"]
-	print: "has pepper? " ~ m["pepper"].to-str
-	print: "remove pepper? " ~: m remove! "pepper" to-str
-	print: "remove pepper again? " ~: m remove! "pepper" to-str
+	print: "has pepper? {m["pepper"]}"
+	print: "remove pepper? {m remove! "pepper"}"
+	print: "remove pepper again? {m remove! "pepper"}"
 	m ~= ["spray bottle", "cumin"]
-	print: "after concat: " ~: m.move-to-set!.arr flatten ", "
+	print: "after concat: {m.move-to-set!.arr flatten ", "}"
 
 	0 resolved

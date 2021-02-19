@@ -41,24 +41,24 @@ old-main fut nat(port str) unsafe summon
 		clients ~= fd
 		void resolved
 	on-received-chunk = as<ref void(fd-t, arr nat8)>: \client-fd, chunk
-		print: "CHUNK: " ~ chunk.as-str
+		print: "CHUNK: {chunk as-str}"
 		if clients[client-fd]
-			print: "got chunk (" ~ chunk.size.to-str ~ " bytes) on " ~ client-fd.to-str
+			print: "got chunk ({chunk size} bytes) on {client-fd}"
 			# TODO: this actually does not belong here..
 			response = ok-response
 			wrote = client-fd write response.data.ptr-cast<nat8, char>, response.size
 			if wrote == -1
-				print: "ERRNO IS: " ~ errno.to-str
+				print: "ERRNO IS: {errno}"
 				perror: "WRITE ERR\0".data
 
-			print: "WROTE: " ~ wrote.to-str ~ " bytes to " ~ client-fd.to-str
-			print: "Response size: " ~ response.size.to-str
+			print: "WROTE: {wrote} bytes to {client-fd}"
+			print: "Response size: {response size}"
 			assert: wrote == response.size.to-int
 			client-fd close-client
-			print: "Closed client on " ~ client-fd.to-str
+			print: "Closed client on {client-fd}"
 			clients remove! client-fd drop
 		else
-			print: "ignoring chunk from closed client " ~ client-fd.to-str
+			print: "ignoring chunk from closed client {client-fd}"
 		void resolved
 	server = port start-tcp-server tcp-handler: on-accepted-client, on-received-chunk
 

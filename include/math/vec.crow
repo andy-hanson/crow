@@ -1,9 +1,8 @@
 no-std
 import
-	..col.arr: ~
 	..number: +, -, *, ^, float, square-root
 	..str: str
-	..str-conv: to-str
+	..str-conv: finish, interp, to-str, with-str, with-value
 
 ###
 2-dimensional vector.
@@ -34,4 +33,4 @@ length float(a vec-2)
 	a.length-squared square-root
 
 to-str str(a vec-2)
-	"<" ~ a.x.to-str ~ ", " ~ a.y.to-str ~ ">"
+	"<{a x}, {a y}>"

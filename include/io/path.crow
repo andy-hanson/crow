@@ -1,12 +1,13 @@
 no-std
 import
-	..col.arr: ~, empty?, size, subscript
+	..col.arr: empty?, size, subscript
 	..col.arr-util: last, r-index-of, rtail
 	..compare: ==
 	..misc: ->
 	..number: +, -, nat
 	..opt: none, opt, some, value
 	..str: char, str
+	..str-conv: finish, interp, to-str, with-str, with-value
 
 ###
 Gets the paremt of a path.
@@ -21,7 +22,7 @@ parent-path str(a str)
 
 # Gets a child of a path.
 child-path str(a str, child-name str)
-	a ~ "/" ~ child-name
+	"{a}/{child-name}"
 
 # TODO:MOVE
 .last-index-of opt nat(s str, c char)
@@ -54,7 +55,7 @@ Adds an extension to a file name or path.
 If an extension already exists, adds a second one, as in `foo.png.txt`.
 ###
 add-extension str(name str, ext str)
-	name ~ "." ~ ext
+	"{name}.{ext}"
 
 # Removes the extension (if it exists) and adds a new one.
 change-extension str(name str, ext str)

@@ -3,9 +3,9 @@ import
 
 main fut nat(_ arr str) summon
 	a = dinner: "ramen", "tea"
-	print: "yum, " ~ a.to-str
+	print: "yum, {a}"
 	a snarf!
-	print: "yum, " ~ a.to-str
+	print: "yum, {a}"
 	0 resolved
 
 dinner record mut
@@ -16,4 +16,4 @@ snarf! void(a dinner)
 	a.food := "nothing"
 
 to-str str(a dinner)
-	a.food ~ " and " ~ a.drink
+	"{a food} and {a drink}"

@@ -2,7 +2,6 @@ no-std
 import
 	...private.bootstrap: todo
 	...cell: cell, subscript
-	...col.arr: ~
 	...compare: ==, !=
 	...exception: assert
 	...number: nat16
@@ -16,7 +15,7 @@ import
 	...posix.unistd: close
 	...ptr: as-ref, null, null?, ptr, ptr-to, subscript
 	...str: str
-	...str-conv: to-str
+	...str-conv: finish, interp, to-str, with-str, with-value
 	...str-util: to-c-str
 	..posix-util: check-posix-error
 	..print: print
@@ -45,13 +44,13 @@ connect-to-uri fd-t(u uri) trusted summon
 	else
 		a = ap[]
 		sock = socket: a.ai-family, a.ai-socktype, a.ai-protocol
-		print: "sock is " ~ sock.to-str
+		print: "sock is {sock}"
 		if sock == -1
 			# Ignore error and try again
 			a.ai-next find-and-connect-working-socket
 		else
 			err = sock connect a.ai-addr, a.ai-addrlen
-			print: "err is " ~ err.to-str
+			print: "err is {err}"
 			if err == -1
 				print: "connect() failed: "
 				check-posix-error: sock close
@@ -70,7 +69,7 @@ bind-to-port fd-t(port str) unsafe summon
 	result[] freeaddrinfo
 	match op-sock
 	as none
-		print: "Failed to bind to port " ~ port
+		print: "Failed to bind to port {port}"
 		todo
 	as some s
 		s.value

@@ -4,7 +4,7 @@ import
 	...bits: bits-intersect?, bits-or
 	...bool: bool, false, not, or, true
 	...cell: cell
-	...col.arr: ~, arr, data, subscript
+	...col.arr: arr, data, subscript
 	...col.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
 	...compare: ==, !=, <
 	...exception: assert, message
@@ -25,7 +25,7 @@ import
 	...private.fut-low-level: callback!
 	...ptr: by-val, ptr-cast-to-extern, ptr-to, ref-of-val, size-of
 	...str: str
-	...str-conv: to-str
+	...str-conv: interp, finish, to-str, with-str, with-value
 	...sys.epoll:
 		data, epoll-create1, epoll-ctl, epoll-ctl-add, epollerr, epollet, epoll-event, epollhup,
 		epollin, epoll-wait, events
@@ -151,7 +151,7 @@ close-client void(client-fd fd-t) unsafe summon
 			perror: "accept() error\0".data
 			todo
 	else
-		print: "Accepted client " ~ client-fd.to-str
+		print: "Accepted client {client-fd}"
 		client-fd set-non-blocking
 		client-event = epoll-event: (epollin bits-or epollet), client-fd.to-int.to-nat
 		err = epoll-fd epoll-ctl epoll-ctl-add, client-fd, client-event.ptr-to

@@ -65,7 +65,7 @@ wasm_flags = --enable-asserts=false --boundscheck=off
 # To debug: Add `--d-debug -g`, remove `--Oz` and `-L=--strip-all`
 # --Oz breaks it: CompileError: WebAssembly.instantiate(): Compiling function #6000:"_D10concretizeQm__TQrTS4util5alloc10rangeAlloc1..." failed: not enough arguments on the stack for local.set, expected 1 more @+1538610
 bin/crow.wasm: $(src_deps)
-	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(d_flags) $(wasm_flags) $(wasm_files) -v -L=--strip-all
+	ldc2 -ofbin/crow.wasm -mtriple=wasm32-unknown-unknown-wasm $(d_flags) $(wasm_flags) $(wasm_files) -L=--strip-all
 	rm bin/crow.o
 
 bin/crow.tar.xz: bin/crow demo/* include/* include/*/*

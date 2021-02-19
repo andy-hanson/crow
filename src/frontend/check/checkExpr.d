@@ -27,6 +27,32 @@ import frontend.check.inferringType :
 	tryGetInferred;
 import frontend.check.instantiate : instantiateFun, instantiateStructNeverDelay;
 import frontend.check.typeFromAst : makeFutType;
+import frontend.parse.ast :
+	BogusAst,
+	CallAst,
+	CreateArrAst,
+	ExprAst,
+	ExprAstKind,
+	FunPtrAst,
+	IdentifierAst,
+	IfAst,
+	InterpolatedAst,
+	InterpolatedPart,
+	LambdaAst,
+	LambdaSingleLineAst,
+	LetAst,
+	LiteralAst,
+	MatchAst,
+	matchExprAstKind,
+	matchInterpolatedPart,
+	matchLiteralAst,
+	NameAndRange,
+	ParenthesizedAst,
+	rangeOfNameAndRange,
+	SeqAst,
+	ThenAst,
+	ThenVoidAst,
+	TypeAst;
 import model.constant : Constant;
 import model.diag : Diag;
 import model.model :
@@ -70,29 +96,6 @@ import model.model :
 	typeArgs,
 	TypeParam,
 	worstCasePurity;
-import frontend.parse.ast :
-	BogusAst,
-	CallAst,
-	CreateArrAst,
-	ExprAst,
-	ExprAstKind,
-	FunPtrAst,
-	IdentifierAst,
-	IfAst,
-	LambdaAst,
-	LambdaSingleLineAst,
-	LetAst,
-	LiteralAst,
-	MatchAst,
-	matchExprAstKind,
-	matchLiteralAst,
-	NameAndRange,
-	ParenthesizedAst,
-	rangeOfNameAndRange,
-	SeqAst,
-	ThenAst,
-	ThenVoidAst,
-	TypeAst;
 import util.collection.arr :
 	at,
 	castImmutable,
@@ -138,8 +141,9 @@ import util.collection.str : copyStr;
 import util.memory : nu;
 import util.opt : force, has, none, noneMut, Opt, some, someMut;
 import util.ptr : Ptr, ptrEquals, ptrTrustMe, ptrTrustMe_mut;
-import util.sourceRange : FileAndRange, Pos;
+import util.sourceRange : FileAndRange, Pos, RangeWithinFile;
 import util.sym : shortSymAlphaLiteral, Sym, symEq;
+import util.types : safeSizeTToU32;
 import util.util : todo, unreachable, verify;
 
 immutable(Ptr!Expr) checkFunctionBody(Alloc)(
@@ -272,6 +276,73 @@ immutable(CheckedExpr) checkIf(Alloc)(
 		return check(alloc, ctx, expected, voidType, expr);
 	}
 }
+
+immutable(CheckedExpr) checkInterpolated(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	ref immutable FileAndRange range,
+	ref immutable InterpolatedAst ast,
+	ref Expected expected,
+) {
+	// TODO: NEATER (don't create a synthetic AST)
+	// "a{b}c" ==> interp with-text "a" with-value b with-text "c" finish
+	immutable CallAst firstCall = immutable CallAst(
+		CallAst.style.single,
+		immutable NameAndRange(range.range.start, shortSymAlphaLiteral("interp")),
+		emptyArrWithSize!TypeAst,
+		emptyArrWithSize!ExprAst);
+	immutable ExprAst firstCallExpr = immutable ExprAst(
+		immutable RangeWithinFile(range.range.start, range.range.start),
+		immutable ExprAstKind(firstCall));
+	immutable CallAst call = checkInterpolatedRecur!Alloc(alloc, ctx, ast.parts, range.start + 1, firstCallExpr);
+	return checkCall(alloc, ctx, range, call, expected);
+}
+
+immutable(CallAst) checkInterpolatedRecur(Alloc)(
+	ref Alloc alloc,
+	ref ExprCtx ctx,
+	immutable InterpolatedPart[] parts,
+	immutable Pos pos,
+	ref immutable ExprAst left,
+) {
+	if (empty(parts))
+		return immutable CallAst(
+			CallAst.Style.infix,
+			immutable NameAndRange(pos, shortSymAlphaLiteral("finish")),
+			emptyArrWithSize!TypeAst,
+			arrWithSizeLiteral!(ExprAst, Alloc)(alloc, [left]));
+	else {
+		immutable CallAst c = matchInterpolatedPart!(immutable CallAst)(
+			parts[0],
+			(ref immutable string it) {
+				immutable ExprAst right = immutable ExprAst(
+					// TODO: this length may be wrong in the presence of escapes
+					immutable RangeWithinFile(pos, safeSizeTToU32(pos + it.length)),
+					immutable ExprAstKind(
+						immutable LiteralAst(it)));
+				return immutable CallAst(
+					CallAst.Style.infix,
+					immutable NameAndRange(pos, shortSymAlphaLiteral("with-str")),
+					emptyArrWithSize!TypeAst,
+					arrWithSizeLiteral!ExprAst(alloc, [left, right]));
+			},
+			(ref immutable ExprAst e) =>
+				immutable CallAst(
+					CallAst.Style.infix,
+					immutable NameAndRange(pos, shortSymAlphaLiteral("with-value")),
+					emptyArrWithSize!TypeAst,
+					arrWithSizeLiteral!ExprAst(alloc, [left, e])));
+		immutable Pos newPos = matchInterpolatedPart!(immutable Pos)(
+			parts[0],
+			(ref immutable string it) => safeSizeTToU32(pos + it.length),
+			(ref immutable ExprAst e) => e.range.end);
+		immutable ExprAst newLeft = immutable ExprAst(
+			immutable RangeWithinFile(pos, newPos),
+			immutable ExprAstKind(c));
+		return checkInterpolatedRecur(alloc, ctx, parts[1 .. $], newPos, newLeft);
+	}
+}
+
 
 struct ArrExpectedType {
 	immutable Ptr!StructInst arrType;
@@ -719,6 +790,12 @@ immutable(Opt!Pos) findIt(ref immutable ExprAst a) {
 			symEq(id.name, itSym) ? some(a.range.start) : none!Pos,
 		(ref immutable(IfAst)) =>
 			unreachable!(immutable Opt!Pos),
+		(ref immutable InterpolatedAst it) =>
+			findSome(it.parts, (ref immutable InterpolatedPart part) =>
+				matchInterpolatedPart!(immutable Opt!Pos)(
+					part,
+					(ref immutable string) => none!Pos,
+					(ref immutable ExprAst e) => findIt(e))),
 		(ref immutable(LambdaAst)) =>
 			none!Pos,
 		(ref immutable(LambdaSingleLineAst)) =>
@@ -838,7 +915,7 @@ immutable(CheckedExpr) checkLet(Alloc)(
 		ast.name.name,
 		init.type);
 	immutable Ptr!Expr then = allocExpr(alloc, checkWithLocal(alloc, ctx, local, ast.then, expected));
-	return CheckedExpr(immutable Expr(range, Expr.Let(local, allocExpr(alloc, init.expr), then)));
+	return CheckedExpr(immutable Expr(range, immutable Expr.Let(local, allocExpr(alloc, init.expr), then)));
 }
 
 immutable(Expr) checkWithOptLocal(Alloc)(
@@ -1002,6 +1079,8 @@ immutable(CheckedExpr) checkExprWorker(Alloc)(
 			checkIdentifier(alloc, ctx, range, a, expected),
 		(ref immutable IfAst a) =>
 			checkIf(alloc, ctx, range, a, expected),
+		(ref immutable InterpolatedAst a) =>
+			checkInterpolated(alloc, ctx, range, a, expected),
 		(ref immutable LambdaAst a) =>
 			checkLambda(alloc, ctx, range, a, expected),
 		(ref immutable LambdaSingleLineAst a) =>

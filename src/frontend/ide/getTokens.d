@@ -18,6 +18,7 @@ import frontend.parse.ast :
 	ImportAst,
 	imports,
 	ImportsOrExportsAst,
+	InterpolatedAst,
 	LambdaAst,
 	LambdaSingleLineAst,
 	LetAst,
@@ -25,6 +26,7 @@ import frontend.parse.ast :
 	MatchAst,
 	matchExprAstKind,
 	matchFunBodyAst,
+	matchInterpolatedPart,
 	matchLiteralAst,
 	matchSpecBodyAst,
 	matchStructDeclAstBody,
@@ -48,7 +50,7 @@ import frontend.parse.ast :
 	ThenVoidAst,
 	TypeAst,
 	TypeParamAst;
-import util.collection.arr : ArrWithSize, first, toArr;
+import util.collection.arr : ArrWithSize, at, empty, first, last, size, toArr;
 import util.collection.arrBuilder : add, ArrBuilder, finishArr;
 import util.collection.arrUtil : tail;
 import util.collection.sortUtil : eachSorted, findUnsortedPair, UnsortedPair;
@@ -303,6 +305,44 @@ void addExprTokens(Alloc)(ref Alloc alloc, ref ArrBuilder!Token tokens, ref immu
 			addExprTokens(alloc, tokens, it.then);
 			if (has(it.else_))
 				addExprTokens(alloc, tokens, force(it.else_));
+		},
+		(ref immutable InterpolatedAst it) {
+			Pos pos = a.range.start;
+			if (!empty(it.parts)) {
+				// Ensure opening quote is highlighted
+				matchInterpolatedPart!void(
+					it.parts[0],
+					(ref immutable(string)) {},
+					(ref immutable(ExprAst)) {
+						add(alloc, tokens, immutable Token(
+							Token.Kind.literalString,
+							immutable RangeWithinFile(pos, pos + 1)));
+					});
+				foreach (immutable size_t i; 0..size(it.parts))
+					matchInterpolatedPart!void(
+						at(it.parts, i),
+						(ref immutable string s) {
+							// TODO: length may be wrong if there are escapes
+							// Ensure the closing quote is highlighted
+							immutable Pos end = safeSizeTToU32(pos + s.length) + (i == size(it.parts) - 1 ? 1 : 0);
+							add(alloc, tokens, immutable Token(
+								Token.Kind.literalString,
+								immutable RangeWithinFile(pos, end)));
+						},
+						(ref immutable ExprAst e) {
+							addExprTokens(alloc, tokens, e);
+							pos = safeSizeTToU32(e.range.end + 1);
+						});
+				// Ensure closing quote is highlighted
+				matchInterpolatedPart!void(
+					last(it.parts),
+					(ref immutable(string)) {},
+					(ref immutable(ExprAst)) {
+						add(alloc, tokens, immutable Token(
+							Token.Kind.literalString,
+							immutable RangeWithinFile(a.range.end - 1, a.range.end)));
+					});
+			}
 		},
 		(ref immutable LambdaAst it) {
 			foreach (ref immutable LambdaAst.Param param; it.params)

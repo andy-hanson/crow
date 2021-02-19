@@ -326,9 +326,13 @@ contexts:
     - meta_include_prototype: false
     - match: '"'
       pop: true
+    - match: ASS
+      scope: constant.character.escape
     - match: \\.
       scope: constant.character.escape
-    - match: '\{([^}])\}'
-      scope: punctuation
+    #- match: '\{'
+    #  scope: constant.character.escape
+    - match: \{([^}]*)\}
+      scope: constant.character.escape
       captures:
         1: string.interpolated

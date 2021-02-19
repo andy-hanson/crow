@@ -12,12 +12,12 @@ lint result<str, arr failure>(path str, options test-options) summon
 	files = path list-lintable-files
 	failures = files flat-map-with-max-size options.max-failures, \file
 		if options.print-tests?
-			print: "lint " ~ file
+			print: "lint {file}"
 		file lint-file
 	if failures has?
 		err: failures
 	else
-		ok: "linted " ~ files.size.to-str ~ " files"
+		ok: "linted {files size} files"
 
 .list-lintable-files arr str(path str) summon
 	res = mut-list<str>
@@ -41,11 +41,11 @@ lint result<str, arr failure>(path str, options test-options) summon
 		ln = line-num + 1 to-str
 		space-space = " " ~ " "
 		if allow-double-space?.not and: line contains-subseq? space-space
-			message = "line " ~ ln ~ " contains a double space"
+			message = "line {ln} contains a double space"
 			res ~=: failure: path, message
 		width = line line-len
 		if width > max-line-length
-			message = "line " ~ ln ~ " is " ~ width.to-str ~ " columns long, should be <= " ~ max-line-length.to-str
+			message = "line {ln} is {width} columns long, should be <= {max-line-length}"
 			res ~=: failure: path, message
 	res move-to-arr!
 

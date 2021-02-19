@@ -343,9 +343,16 @@ immutable(Sym) takeName(Alloc, SymAlloc)(ref Alloc alloc, ref Lexer!SymAlloc lex
 }
 
 immutable(string) takeQuotedStr(Alloc, SymAlloc)(ref Lexer!SymAlloc lexer, ref Alloc alloc) {
-	return takeOrAddDiagExpected(alloc, lexer, '"', ParseDiag.Expected.Kind.quote)
-		? takeStringLiteralAfterQuote(lexer, alloc)
-		: "";
+	if (takeOrAddDiagExpected(alloc, lexer, '"', ParseDiag.Expected.Kind.quote)) {
+		immutable StringPart sp = takeStringPart(alloc, lexer);
+		final switch (sp.after) {
+			case StringPart.After.quote:
+				return sp.text;
+			case StringPart.After.lbrace:
+				return todo!(immutable string)("!");
+		}
+	} else
+		return "";
 }
 
 @trusted void skipUntilNewlineNoDiag(SymAlloc)(ref Lexer!SymAlloc lexer) {
@@ -550,14 +557,24 @@ immutable(size_t) toHexDigit(immutable char c) {
 		return todo!size_t("parse diagnostic -- bad hex digit");
 }
 
-public @trusted immutable(string) takeStringLiteralAfterQuote(Alloc, SymAlloc)(
-	ref Lexer!SymAlloc lexer,
+public struct StringPart {
+	immutable string text;
+	immutable After after;
+
+	enum After {
+		quote,
+		lbrace,
+	}
+}
+
+public @trusted immutable(StringPart) takeStringPart(Alloc, SymAlloc)(
 	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
 ) {
 	immutable CStr begin = lexer.ptr;
 	size_t nEscapedCharacters = 0;
 	// First get the max size
-	while (*lexer.ptr != '"') {
+	while (*lexer.ptr != '"' && *lexer.ptr != '{') {
 		if (*lexer.ptr == '\\') {
 			lexer.ptr++;
 			nEscapedCharacters += (*lexer.ptr == 'x' ? 3 : 1);
@@ -570,7 +587,7 @@ public @trusted immutable(string) takeStringLiteralAfterQuote(Alloc, SymAlloc)(
 
 	size_t outI = 0;
 	lexer.ptr = begin;
-	while (*lexer.ptr != '"') {
+	while (*lexer.ptr != '"' && *lexer.ptr != '{') {
 		if (*lexer.ptr == '\\') {
 			lexer.ptr++;
 			immutable char c = () {
@@ -587,6 +604,8 @@ public @trusted immutable(string) takeStringLiteralAfterQuote(Alloc, SymAlloc)(
 						return cast(char) (na * 16 + nb);
 					case '"':
 						return '"';
+					case '{':
+						return '{';
 					case 'n':
 						return '\n';
 					case 'r':
@@ -609,10 +628,19 @@ public @trusted immutable(string) takeStringLiteralAfterQuote(Alloc, SymAlloc)(
 		lexer.ptr++;
 	}
 
-	// Skip past the closing '"'
+	immutable StringPart.After after = () {
+		switch (*lexer.ptr) {
+			case '"':
+				return StringPart.After.quote;
+			case '{':
+				return StringPart.After.lbrace;
+			default:
+				return unreachable!(immutable StringPart.After);
+		}
+	}();
 	lexer.ptr++;
 	verify(outI == size);
-	return cast(immutable) res[0 .. size];
+	return immutable StringPart(cast(immutable) res[0 .. size], after);
 }
 
 public @trusted immutable(string) takeNameRest(SymAlloc)(ref Lexer!SymAlloc lexer, immutable CStr begin) {

@@ -4,6 +4,6 @@ import
 
 main fut nat(_ arr str) summon
 	ingredients = ["plaintain", "potato"]
-	fried = ingredients map {"fried " ~ it}
+	fried = ingredients map {"fried {it}"}
 	print: fried flatten ", "
 	0 resolved

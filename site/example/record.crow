@@ -16,4 +16,4 @@ mix dinner(a dinner, b dinner)
 	dinner: a.food, b.drink
 
 to-str str(a dinner)
-	a.food ~ " and " ~ a.drink
+	"{a food} and {a drink}"

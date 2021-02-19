@@ -84,7 +84,7 @@ to-str str(a opt ?a) to-str<?a>
 	as none
 		"none"
 	as some s
-		"some(" ~ s.value.to-str ~ ")"
+		"some({s value})"
 
 to-str str(n nat32)
 	n.to-nat to-str
@@ -94,7 +94,7 @@ to-str str(n nat16)
 
 to-str str(i int)
 	a = i.abs to-str
-	i < 0 ? "-" ~ a, a
+	i < 0 ? "-{a}", a
 
 to-str str(i int32)
 	i.to-int to-str
@@ -111,9 +111,9 @@ to-str str(a float)
 	if hundredths == 0
 		whole-part
 	elif hundredths multiple-of? 10
-		whole-part ~ "." ~ tenths.to-str
+		"{whole-part}.{tenths}"
 	else
-		whole-part ~ "." ~ hundredths.to-str
+		"{whole-part}.{hundredths}"
 
 .char-to-nat opt nat(c char)
 	if c == "0"
@@ -175,3 +175,22 @@ If not, this returns `none`.
 ###
 parse-float opt float(a str)
 	a.parse-nat map {it to-float}
+
+
+region Interpolation
+
+interp record mut
+	data mut-list char
+
+interp interp()
+	interp: mut-list
+
+with-str interp(a interp, b str)
+	a.data ~= b
+	a
+
+with-value interp(a interp, b ?a) to-str<?a>
+	a with-str b.to-str
+
+finish str(a interp)
+	a.data move-to-arr!

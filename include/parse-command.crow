@@ -2,7 +2,7 @@ no-std
 import
 	.bool: bool, false, true
 	.cell: cell, set-subscript, subscript
-	.col.arr: ~, arr, empty?, size, subscript
+	.col.arr: arr, empty?, size, subscript
 	.col.arr-util: find-index, index-of, starts-with?, tail, try-remove-start
 	.col.dict: dict, each
 	.col.mut-dict: move-to-dict!, mut-dict, set-subscript
@@ -13,6 +13,7 @@ import
 	.number: +
 	.opt: force, has?, none, opt, some, value
 	.str: str
+	.str-conv: interp, finish, to-str, with-str, with-value
 
 ###
 Returns none on failure to parse.
@@ -35,7 +36,7 @@ parse-command opt arr opt arr str(args arr str, arg-names arr str)
 			if key == "help"
 				help[] := true
 			else
-				fail: "Unexpected arg " ~ key
+				fail: "Unexpected arg {key}"
 		as some s
 			idx = s value
 			# TODO: duplicate argument error

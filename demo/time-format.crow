@@ -7,15 +7,15 @@ import
 
 main fut nat(_ arr str) summon unsafe
 	t = get-unix-time
-	print: "ISO time: " ~: t iso-timestamp
-	print: "local timezone: " ~: local-time timezone-name t
-	print: "local timezone offset: " ~: local-time timezone-offset t
-	print: "year: " ~: gmt year t
-	print: "date (UTC): " ~: gmt date t
-	print: "date (local): " ~: local-time date t
-	print: "date (local in ISO 8601 format): " ~: local-time iso-date t
-	print: "time (UTC): " ~: gmt time-of-day t
-	print: "time (local): " ~: local-time time-of-day t
-	print: "day of week (UTC): " ~: gmt day-of-week-long t
-	print: "day of week (local): " ~: local-time day-of-week-long t
+	print: "ISO time: {t iso-timestamp}"
+	print: "local timezone: {local-time timezone-name t}"
+	print: "local timezone offset: {local-time timezone-offset t}"
+	print: "year: {gmt year t}"
+	print: "date (UTC): {gmt date t}"
+	print: "date (local): {local-time date t}"
+	print: "date (local in ISO 8601 format): {local-time iso-date t}"
+	print: "time (UTC): {gmt time-of-day t}"
+	print: "time (local): {local-time time-of-day t}"
+	print: "day of week (UTC): {gmt day-of-week-long t}"
+	print: "day of week (local): {local-time day-of-week-long t}"
 	0 resolved

@@ -168,6 +168,41 @@ struct IfAst {
 	immutable Opt!(Ptr!ExprAst) else_;
 }
 
+struct InterpolatedAst {
+	immutable InterpolatedPart[] parts;
+}
+
+struct InterpolatedPart {
+	@safe @nogc pure nothrow:
+
+	@trusted immutable this(immutable string a) { kind = Kind.string_; string_ = a; }
+	@trusted immutable this(immutable ExprAst a) { kind = Kind.expr; expr = a; }
+
+	private:
+	enum Kind {
+		string_,
+		expr,
+	}
+	immutable Kind kind;
+	union {
+		immutable string string_;
+		immutable ExprAst expr;
+	}
+}
+
+@trusted T matchInterpolatedPart(T)(
+	ref immutable InterpolatedPart a,
+	scope immutable(T) delegate(ref immutable string) @safe @nogc pure nothrow cbString,
+	scope immutable(T) delegate(ref immutable ExprAst) @safe @nogc pure nothrow cbExpr,
+) {
+	final switch (a.kind) {
+		case InterpolatedPart.Kind.string_:
+			return cbString(a.string_);
+		case InterpolatedPart.Kind.expr:
+			return cbExpr(a.expr);
+	}
+}
+
 struct LambdaAst {
 	alias Param = NameAndRange;
 	immutable Param[] params;
@@ -283,6 +318,7 @@ struct ExprAstKind {
 		funPtr,
 		identifier,
 		if_,
+		interpolated,
 		lambda,
 		lambdaSingleLine,
 		let,
@@ -301,6 +337,7 @@ struct ExprAstKind {
 		immutable FunPtrAst funPtr;
 		immutable IdentifierAst identifier;
 		immutable IfAst if_;
+		immutable InterpolatedAst interpolated;
 		immutable LambdaAst lambda;
 		immutable LambdaSingleLineAst lambdaSingleLine;
 		immutable LetAst let;
@@ -319,6 +356,7 @@ struct ExprAstKind {
 	@trusted immutable this(immutable FunPtrAst a) { kind = Kind.funPtr; funPtr = a; }
 	@trusted immutable this(immutable IdentifierAst a) { kind = Kind.identifier; identifier = a; }
 	@trusted immutable this(immutable IfAst a) { kind = Kind.if_; if_ = a; }
+	@trusted immutable this(immutable InterpolatedAst a) { kind = Kind.interpolated; interpolated = a; }
 	@trusted immutable this(immutable LambdaAst a) { kind = Kind.lambda; lambda = a; }
 	@trusted immutable this(immutable LambdaSingleLineAst a) { kind = Kind.lambdaSingleLine; lambdaSingleLine = a; }
 	@trusted immutable this(immutable LetAst a) { kind = Kind.let; let = a; }
@@ -355,6 +393,7 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 	scope T delegate(ref immutable FunPtrAst) @safe @nogc pure nothrow cbFunPtr,
 	scope T delegate(ref immutable IdentifierAst) @safe @nogc pure nothrow cbIdentifier,
 	scope T delegate(ref immutable IfAst) @safe @nogc pure nothrow cbIf,
+	scope T delegate(ref immutable InterpolatedAst) @safe @nogc pure nothrow cbInterpolated,
 	scope T delegate(ref immutable LambdaAst) @safe @nogc pure nothrow cbLambda,
 	scope T delegate(ref immutable LambdaSingleLineAst) @safe @nogc pure nothrow cbLambdaSingleLine,
 	scope T delegate(ref immutable LetAst) @safe @nogc pure nothrow cbLet,
@@ -378,6 +417,8 @@ ref immutable(IdentifierAst) asIdentifier(return scope ref immutable ExprAstKind
 			return cbIdentifier(a.identifier);
 		case ExprAstKind.Kind.if_:
 			return cbIf(a.if_);
+		case ExprAstKind.Kind.interpolated:
+			return cbInterpolated(a.interpolated);
 		case ExprAstKind.Kind.lambda:
 			return cbLambda(a.lambda);
 		case ExprAstKind.Kind.lambdaSingleLine:
@@ -1077,6 +1118,10 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 				reprExprAst(alloc, e.then),
 				reprOpt(alloc, e.else_, (ref immutable Ptr!ExprAst it) =>
 					reprExprAst(alloc, it))]),
+		(ref immutable InterpolatedAst it) =>
+			reprRecord(alloc, "interpolated", [
+				reprArr(alloc, it.parts, (ref immutable InterpolatedPart part) =>
+					reprInterpolatedPart(alloc, part))]),
 		(ref immutable LambdaAst it) =>
 			reprRecord(alloc, "lambda", [
 				reprArr(alloc, it.params, (ref immutable LambdaAst.Param it) =>
@@ -1127,6 +1172,13 @@ immutable(Repr) reprExprAstKind(Alloc)(ref Alloc alloc, ref immutable ExprAstKin
 			reprRecord(alloc, "then-void", [
 				reprExprAst(alloc, it.futExpr),
 				reprExprAst(alloc, it.then)]));
+}
+
+immutable(Repr) reprInterpolatedPart(Alloc)(ref Alloc alloc, ref immutable InterpolatedPart a) {
+	return matchInterpolatedPart!(immutable Repr)(
+		a,
+		(ref immutable string it) => reprStr(it),
+		(ref immutable ExprAst it) => reprExprAst(alloc, it));
 }
 
 immutable(Sym) symOfCallAstStyle(immutable CallAst.Style a) {

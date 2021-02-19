@@ -26,7 +26,7 @@ import
 		w-if-stopped, w-term-sig
 	..ptr: +, as-any-ptr, as-ref, by-val, null, ptr
 	..str: char, c-str, str
-	..str-conv: to-str
+	..str-conv: finish, interp, to-str, with-str, with-value
 	..str-util: to-c-str
 	.environ: convert-environ, environ
 	.file: is-file?
@@ -49,15 +49,15 @@ The child process' stdout and stderr will be sent to the `process-result`,
 not to the parent's stdout and stderr.
 ###
 spawn-and-wait-result process-result(exe str, args arr str, environ environ) trusted summon
-	print: "spawn-and-wait-result: " ~ exe fold args, \a, b
-		a ~ " " ~ b
+	print: "spawn-and-wait-result: {exe}" fold args, \a, b
+		"{a} {b}"
 
 	# TODO: kill, handle that error properly
 	if exe is-file?
 		exe-c-str = exe.to-c-str
 		exe-c-str spawn-and-wait-result (exe-c-str convert-args args), environ.convert-environ
 	else
-		fail: exe ~ " is not a file"
+		fail: "{exe} is not a file"
 
 ###
 Launches a process and synchronously waits on the result.
@@ -71,7 +71,7 @@ spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
 		exe-c-str = exe.to-c-str
 		exe-c-str spawn-and-wait (exe-c-str convert-args args), environ.convert-environ
 	else
-		fail: exe ~ " is not a file"
+		fail: "{exe} is not a file"
 
 .convert-args ptr c-str(exe-c-str c-str, args arr str)
 	data: [exe-c-str] ~ (args map {it to-c-str}) ~ [null]
@@ -189,7 +189,7 @@ body
 		wait-status w-exit-status
 	elif wait-status w-if-signaled
 		signal = wait-status w-term-sig
-		print: "Process terminated with signal " ~ signal.to-str
+		print: "Process terminated with signal {signal}"
 		todo
 		# use `wait-status w-term-sig`
 		# and `wait-status w-core-dump`

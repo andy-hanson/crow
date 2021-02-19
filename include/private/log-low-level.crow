@@ -1,10 +1,10 @@
 no-std
 import
-	..col.arr: ~
 	..io.print: print
 	..ptr: as-ref, by-val
 	..misc: void
 	..str: str
+	..str-conv: finish, interp, to-str, with-str, with-value
 	.bootstrap: get-ctx, log-ctx, zeroed
 
 # Lowest-priority log level.
@@ -46,7 +46,7 @@ log-handler alias
 	fun void(logged)
 
 default-log-handler void(a logged) summon
-	print: a.level.to-str ~ ": " ~ a.message
+	print: "{a level}: {a message}"
 
 .get-log-ctx log-ctx() trusted
 	get-ctx.log-ctx as-ref<log-ctx>

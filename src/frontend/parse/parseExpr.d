@@ -13,6 +13,8 @@ import frontend.parse.ast :
 	FunPtrAst,
 	IdentifierAst,
 	IfAst,
+	InterpolatedAst,
+	InterpolatedPart,
 	isCall,
 	isIdentifier,
 	LambdaAst,
@@ -41,6 +43,7 @@ import frontend.parse.lexer :
 	range,
 	Sign,
 	skipUntilNewlineNoDiag,
+	StringPart,
 	takeIndentOrDiagTopLevel,
 	takeIndentOrFailGeneric,
 	takeName,
@@ -50,7 +53,7 @@ import frontend.parse.lexer :
 	takeNumber,
 	takeOperator,
 	takeOrAddDiagExpected,
-	takeStringLiteralAfterQuote,
+	takeStringPart,
 	tryTake;
 import frontend.parse.parseType : tryParseTypeArgsBracketed;
 import model.parseDiag : EqLikeKind, ParseDiag;
@@ -803,8 +806,16 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 			return noDedent(immutable ExprAst(
 				getRange(),
 				immutable ExprAstKind(immutable FunPtrAst(name))));
-		case '"':
-			return handleLiteral(immutable LiteralAst(takeStringLiteralAfterQuote(lexer, alloc)));
+		case '"': {
+			immutable StringPart part = takeStringPart(alloc, lexer);
+			final switch (part.after) {
+				case StringPart.After.quote:
+					return handleLiteral(immutable LiteralAst(part.text));
+				case StringPart.After.lbrace:
+					immutable ExprAst interpolated = takeInterpolated(alloc, lexer, start, part.text);
+					return noDedent(tryParseDotsAndSubscripts(alloc, lexer, interpolated));
+			}
+		}
 		case '+':
 		case '-':
 			return isDigit(*lexer.ptr)
@@ -840,6 +851,41 @@ immutable(ExprAndMaybeDedent) parseExprBeforeCall(Alloc, SymAlloc)(
 				addDiagUnexpected(alloc, lexer);
 				return skipRestOfLineAndReturnBogusNoDiag(lexer, start);
 			}
+	}
+}
+
+immutable(ExprAst) takeInterpolated(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Pos start,
+	immutable string firstText,
+) {
+	ArrBuilder!InterpolatedPart parts;
+	if (!empty(firstText))
+		add(alloc, parts, immutable InterpolatedPart(firstText));
+	return takeInterpolatedRecur(alloc, lexer, start, parts);
+}
+
+immutable(ExprAst) takeInterpolatedRecur(Alloc, SymAlloc)(
+	ref Alloc alloc,
+	ref Lexer!SymAlloc lexer,
+	immutable Pos start,
+	ref ArrBuilder!InterpolatedPart parts,
+) {
+	immutable ExprAst e = parseExprNoBlock(alloc, lexer);
+	add(alloc, parts, immutable InterpolatedPart(e));
+	if (!tryTake(lexer, '}'))
+		todo!void("!");
+	immutable StringPart part = takeStringPart(alloc, lexer);
+	if (!empty(part.text))
+		add(alloc, parts, immutable InterpolatedPart(part.text));
+	final switch (part.after) {
+		case StringPart.After.quote:
+			return immutable ExprAst(
+				range(lexer, start),
+				immutable ExprAstKind(immutable InterpolatedAst(finishArr(alloc, parts))));
+		case StringPart.After.lbrace:
+			return takeInterpolatedRecur(alloc, lexer, start, parts);
 	}
 }
 

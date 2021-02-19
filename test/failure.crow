@@ -19,7 +19,7 @@ body
 			output-path write-file actual
 			[]
 		else
-			[original-path failure output-path.base-name ~ " does not exist. actual was:\n" ~ actual]
+			[original-path failure "{output-path base-name} does not exist. actual was:\n{actual}"]
 	as some s
 		if s.value == actual
 			[]
@@ -27,7 +27,7 @@ body
 			output-path write-file actual
 			[]
 		else
-			message = output-path.base-name ~ " was not as expected. actual:\n" ~ actual
+			message = "{output-path base-name} was not as expected. actual:\n{actual}"
 			[original-path failure message]
 
 flat-map-with-max-size arr ?out(a arr ?in, max-size nat, mapper act arr<?out>(?in)) trusted
@@ -52,7 +52,7 @@ first-failures result<str, arr failure>(a result<str, arr failure>, b fun result
 	as ok ok-a
 		match b[]
 		as ok ok-b
-			ok: ok-a.value ~ "\n" ~ ok-b.value
+			ok: "{ok-a value}\n{ok-b value}"
 		as err e
 			e
 	as err e
@@ -67,9 +67,9 @@ print-failures nat(failures result<str, arr failure>, options test-options) summ
 		e.value each {it print-failure}
 		n-failures = e.value.size
 		print: if n-failures == options.max-failures
-			"hit maximum of " ~ options.max-failures.to-str ~ " failures"
+			"hit maximum of {options max-failures} failures"
 		else
-			n-failures.to-str ~ " failures"
+			"{n-failures} failures"
 		n-failures
 
 .print-failure void(failure failure) summon

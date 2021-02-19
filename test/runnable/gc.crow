@@ -15,19 +15,19 @@ main fut nat(_ arr str) summon unsafe
 	assert: size-of<by-val<r>> == 24
 	assert: b.as-any-ptr - a.as-any-ptr == 24
 
-	print: "stats: " ~ gc.get-stats.to-str
-	print: "gc count: " ~ gc.gc-count.to-str
-	print: "a: " ~ a.to-str
-	print: "stats (after print): " ~ gc.get-stats.to-str
+	print: "stats: {gc get-stats}"
+	print: "gc count: {gc gc-count}"
+	print: "a: {a}"
+	print: "stats (after print): {gc get-stats}"
 
 	gc force-needs-gc
 	<- delay
 
 	print: "-- after gc --"
-	print: "stats: " ~ gc.get-stats.to-str
-	print: "gc count: " ~ gc.gc-count.to-str
-	print: "a: " ~ a.to-str
-	print: "stats (after print): " ~ gc.get-stats.to-str
+	print: "stats: {gc get-stats}"
+	print: "gc count: {gc gc-count}"
+	print: "a: {a}"
+	print: "stats (after print): {gc get-stats}"
 
 	0 resolved
 
@@ -37,7 +37,7 @@ r record
 	c nat
 
 to-str str(a r)
-	"a=" ~ a.a.to-str ~ ", b=" ~ a.b.to-str ~ ", c=" ~ a.c.to-str
+	"a={a a}, b={a b}, c={a c}"
 
 to-str str(a gc-stats) summon
-	"cur-word=" ~ a.cur-word.to-str ~ ", words-used=" ~ a.words-used.to-str ~ ", words-free=" ~ a.words-free.to-str
+	"cur-word={a cur-word}, words-used={a words-used}, words-free={a words-free}"

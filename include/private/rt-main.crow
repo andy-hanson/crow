@@ -87,7 +87,7 @@ rt-main exit-code(argc int32, argv ptr c-str, main-ptr main-ptr) trusted noctx s
 	res = delay then-void \
 		# First argument is the path to this executable.
 		args = all-args tail
-		main-ptr[get-ctx, args map {it.to-str}]
+		main-ptr[get-ctx, args map {it to-str}]
 	res handle-exceptions
 	res
 

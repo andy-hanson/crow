@@ -10,4 +10,4 @@ main fut nat(_ arr str) summon
 
 make-cooker fun str(str)(type str)
 	\b
-		type ~ " " ~ b
+		"{type} {b}"
