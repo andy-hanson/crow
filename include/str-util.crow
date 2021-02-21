@@ -1,7 +1,7 @@
 no-std
 import
 	.bool: and
-	.col.arr: ~, arr, arr-from-begin-end, data, has?, size, subscript
+	.col.arr: ~, arr, arr-from-begin-end, begin-ptr, has?, size, subscript
 	.col.arr-util: tail
 	.compare: ==
 	.number: nat8
@@ -12,11 +12,11 @@ import
 
 # Treats bytes as a string.
 as-str str(bytes arr nat8) unsafe noctx
-	arr: bytes.size, bytes.data ptr-cast<char, nat8>
+	arr: bytes.size, bytes.begin-ptr ptr-cast<char, nat8>
 
 # Converts a str to a c-str by appending "\0".
 to-c-str c-str(a str)
-	a ~ "\0" data
+	a ~ "\0" begin-ptr
 
 # Treats a c-str as a str by walking to the end.
 to-str str(a c-str) unsafe noctx

@@ -78,7 +78,7 @@ elements not reachable by any slice will be garbage collected.
 arr<?a> record force-data
 	by-val
 	size nat
-	data ptr ?a
+	begin-ptr ptr ?a
 
 region str
 

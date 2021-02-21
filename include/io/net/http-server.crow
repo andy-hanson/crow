@@ -2,7 +2,7 @@ no-std
 import
 	...private.bootstrap: todo
 	...bool: and, bool, false, true
-	...col.arr: arr, data, empty?, has?, size, subscript
+	...col.arr: arr, begin-ptr, empty?, has?, size, subscript
 	...col.arr-util: contains?, last, rtail, split-by-subseq
 	...col.dict: dict, each, has?
 	...col.mut-dict: move-to-dict!, mut-dict, remove!, set-subscript, subscript
@@ -95,7 +95,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	if finished-request?
 		res <- handler[state finish-request]
 		res-str = res response-to-str
-		wrote = fd write res-str.data.ptr-cast<nat8, char>, res-str.size
+		wrote = fd write res-str.begin-ptr.ptr-cast<nat8, char>, res-str.size
 		assert: wrote == res-str.size.to-int
 		fd close-client
 		true resolved

@@ -2,9 +2,9 @@ no-std
 import
 	..bool: and, bool, false, not, true
 	..compare: <=>
-	..misc: void
+	..misc: data, void
 	..number: nat
-	.arr: arr, data, empty?, size, subscript
+	.arr: arr, empty?, size, subscript
 	.arr-util: filter, tail
 	.mut-list: ~=, move-to-arr!, mut-list
 	.sort: sort-unique

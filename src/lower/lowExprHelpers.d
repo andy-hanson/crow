@@ -370,7 +370,7 @@ immutable(LowType.PtrRaw) getElementPtrTypeFromArrType(
 	immutable LowRecord arrRecord = fullIndexDictGet(allTypes.allRecords, arrType);
 	verify(size(arrRecord.fields) == 2);
 	verify(symEq(name(at(arrRecord.fields, 0)), shortSymAlphaLiteral("size")));
-	verify(symEq(name(at(arrRecord.fields, 1)), shortSymAlphaLiteral("data")));
+	verify(symEq(name(at(arrRecord.fields, 1)), shortSymAlphaLiteral("begin-ptr")));
 	return asPtrRaw(at(arrRecord.fields, 1).type);
 }
 

@@ -3,9 +3,9 @@ import
 	..private.bootstrap: todo
 	..bool: and, bool, not, or, to-nat
 	..cell: cell, subscript
-	..col.arr: ~, arr, data, ref-of-val-at, size
+	..col.arr: ~, arr, begin-ptr, ref-of-val-at, size
 	..col.arr-util: fold, map
-	..col.mut-list: data, move-to-arr!, mut-list, size, reserve, unsafe-increase-size!
+	..col.mut-list: end-ptr, move-to-arr!, mut-list, size, reserve, unsafe-increase-size!
 	..compare: ==, <=
 	..exception: assert, fail
 	..misc: as, void
@@ -24,7 +24,7 @@ import
 	..posix.wait:
 		status-t, waitpid, w-exit-status, w-if-continued, w-if-exited, w-if-signaled,
 		w-if-stopped, w-term-sig
-	..ptr: +, as-any-ptr, as-ref, by-val, null, ptr
+	..ptr: as-any-ptr, as-ref, by-val, null, ptr
 	..str: char, c-str, str
 	..str-conv: finish, interp, to-str, with-str, with-value
 	..str-util: to-c-str
@@ -74,7 +74,7 @@ spawn-and-wait exit-code(exe str, args arr str, environ environ) trusted summon
 		fail: "{exe} is not a file"
 
 .convert-args ptr c-str(exe-c-str c-str, args arr str)
-	data: [exe-c-str] ~ (args map {it to-c-str}) ~ [null]
+	begin-ptr: [exe-c-str] ~ (args map {it to-c-str}) ~ [null]
 
 .spawn-and-wait-result process-result(exe c-str, args ptr c-str, environ ptr c-str) summon unsafe
 	stdout-pipes = make-pipes
@@ -125,7 +125,7 @@ body
 	stdout-pollfd = poll-fds ref-of-val-at 0
 	stderr-pollfd = poll-fds ref-of-val-at 1
 	# timeout == -1 means we block
-	n-pollfds-with-events = to-int: poll: poll-fds.data, poll-fds.size, -1
+	n-pollfds-with-events = to-int: poll: poll-fds.begin-ptr, poll-fds.size, -1
 	if n-pollfds-with-events == 0
 		# TODO: is this even possible to reach? I think we always get has-pollhup? instead.
 		void
@@ -159,7 +159,7 @@ body
 	read-max = 1024
 	# It will write to the end of the buffer. So we must ensure that it has enough space at the end.
 	buffer reserve buffer.size + read-max
-	add-data-to = buffer.data + buffer.size
+	add-data-to = buffer end-ptr
 	n-bytes-read = fd read add-data-to.as-any-ptr, read-max
 	if n-bytes-read == -1
 		# Error

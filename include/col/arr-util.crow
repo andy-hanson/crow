@@ -6,20 +6,20 @@ import
 	..compare: ==, !=, >=
 	..exception: assert, forbid
 	..fun: subscript
-	..misc: ->, void
+	..misc: ->, data, void
 	..number: +, -, nat
 	..opt: has?, none, opt, some, value
-	..ptr: +, ptr, set-subscript
-	.arr: ~, arr, arr-from-begin-end, data, empty?, noctx-at, size, subscript
+	..ptr: +, ptr, ptr-eq?, set-subscript, subscript
+	.arr: ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
 
 ###
 Equivalent to `[f[0], f[1], ..., f[size - 1]]`.
 Arr containing the result of `f` for each number 0 to size (exclusive).
 ###
 make-arr arr ?a(size nat, f act ?a(nat)) trusted
-	data = size alloc-uninitialized<?a>
-	data fill-ptr-range size, f
-	arr: size, data
+	res = size alloc-uninitialized<?a>
+	res fill-ptr-range size, f
+	arr: size, res
 
 ###
 Equivalent to `[value, value, ...]`.
@@ -33,10 +33,12 @@ fill-arr arr ?a(size nat, value ?a)
 Equivalent to calling `f[a[0]]`, `f[a[1]]`, etc., in turn.
 Calls `f` for each element in `a`.
 ###
-each void(a arr ?a, f act void(?a))
-	if a.empty? not
-		f[a[0]]
-		a.tail each f
+each void(a arr ?a, f act void(?a)) trusted
+	a.begin-ptr each-recur a.end-ptr, f
+.each-recur void(cur ptr ?a, end ptr ?a, f act void(?a)) unsafe
+	if cur ptr-eq? end not
+		f[cur[]]
+		cur + 1 each-recur end, f
 
 ###
 Equivalent to calling `f[a[0], 0]`, `f[a[1], 1]`, etc., in turn.
@@ -53,9 +55,9 @@ each-with-index void(a arr ?a, f act void(?a, nat))
 Arr of the elements of `a` for which `f[a[i]]` returns true.
 ###
 filter arr ?a(a arr ?a, f act bool(?a)) trusted
-	data = a.size alloc-uninitialized<?a>
-	end = data filter-recur a, f
-	data arr-from-begin-end end
+	res = a.size alloc-uninitialized<?a>
+	end = res filter-recur a, f
+	res arr-from-begin-end end
 .filter-recur ptr ?a(out ptr ?a, a arr ?a, f act bool(?a)) unsafe
 	if a empty?
 		out
@@ -74,6 +76,10 @@ Arr of `f[x]` for each `x` in `a`.
 map arr ?out(a arr ?in, f act ?out(?in)) trusted
 	a.size make-arr \i
 		f[a[i]]
+
+# `a[0]`
+first ?a(a arr ?a)
+	a[0]
 
 # Last element of an arr.
 last ?a(a arr ?a)
@@ -175,11 +181,13 @@ try-remove-end opt arr ?a(a arr ?a, end arr ?a) data<?a> data<arr ?a>
 This is like `each` but with a state variable that gets transformed by each call to `f`.
 For example, for a 2-element array, this is equivalent to `f[f[val, a[0]], a[1]]`.
 ###
-fold ?a(val ?a, a arr ?b, f act ?a(?a, ?b))
-	if a empty?
-		val
+fold ?a(acc ?a, a arr ?b, f act ?a(?a, ?b)) trusted
+	acc fold-recur a.begin-ptr, a.end-ptr, f
+.fold-recur ?a(acc ?a, cur ptr ?b, end ptr ?b, f act ?a(?a, ?b)) unsafe
+	if cur ptr-eq? end
+		acc
 	else
-		f[val, a[0]] fold a.tail, f
+		f[acc, cur[]] fold-recur cur + 1, end, f
 
 # TODO: data<arr ?a> should be unnecessary
 # Finds the first index where `a[i -> i + subseq.size] == subseq`.
@@ -267,9 +275,9 @@ For example, "a rose is a hose is a nose" split-by-subseq "is" would be
 ###
 split-by-subseq arr arr ?a(a arr ?a, splitter arr ?a) data<?a> data<arr ?a> trusted
 	size = (a count-subseqs splitter) + 1
-	data = size alloc-uninitialized<arr ?a>
-	data split-by-subseq-recur a, splitter
-	arr: size, data
+	res = size alloc-uninitialized<arr ?a>
+	res split-by-subseq-recur a, splitter
+	arr: size, res
 # TODO: data<arr ?a> should be unnecessary
 .split-by-subseq-recur void(out ptr arr ?a, a arr ?a, splitter arr ?a) data<?a> data<arr ?a> unsafe
 	match a index-of-subseq splitter

@@ -3,9 +3,9 @@ import
 	..bool: or
 	..compare: ==, !=, <, <=, >
 	..exception: assert
-	..misc: ->, as, void
+	..misc: ->, as, data, void
 	..number: +, -, /, nat
-	.arr: arr, data
+	.arr: arr
 	.arr-util: each
 	.mut-arr: cast-immutable, mut-arr, size, set-subscript, subscript
 	.mut-list: ~=, empty?, last, move-to-arr!, mut-list, temp-as-mut-arr

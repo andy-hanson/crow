@@ -1,11 +1,12 @@
 no-std
 import
 	.bool: ?, bool, false, true
-	.col.arr: ~, data, empty?, subscript
+	.col.arr: ~, empty?, subscript
 	.col.arr-util: tail
 	.col.dict: dict, each
 	.col.mut-list: ~=, move-to-arr!, mut-list, size
 	.compare: ==, <, >
+	.misc: data
 	.number:
 		+, *, /, abs, float, int, int16, int32, mod, nat, nat16, nat32, multiple-of?,
 		to-int, to-float, to-nat, truncate-to-int
@@ -180,17 +181,17 @@ parse-float opt float(a str)
 region Interpolation
 
 interp record mut
-	data mut-list char
+	inner mut-list char
 
 interp interp()
 	interp: mut-list
 
 with-str interp(a interp, b str)
-	a.data ~= b
+	a.inner ~= b
 	a
 
 with-value interp(a interp, b ?a) to-str<?a>
 	a with-str b.to-str
 
 finish str(a interp)
-	a.data move-to-arr!
+	a.inner move-to-arr!

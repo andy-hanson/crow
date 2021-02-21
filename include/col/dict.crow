@@ -4,10 +4,10 @@ import
 	..compare: ==, <=>, comparison, greater, less
 	..exception: assert
 	..fun: subscript
-	..misc: ->, arrow, as, from, to, void
+	..misc: ->, arrow, as, data, from, to, void
 	..number: +, nat
 	..opt: each, has?, none, opt, some
-	.arr: arr, data, empty?, size, subscript
+	.arr: arr, empty?, size, subscript
 	.arr-util: map, tail, zip
 	.mut-list: ~=, move-to-arr!, mut-list
 	.sort: a, b, sort-by-first

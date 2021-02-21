@@ -1,7 +1,7 @@
 no-std
 import
 	..private.bootstrap: hard-assert, unsafe-to-int, todo
-	..col.arr: data, size
+	..col.arr: begin-ptr, size
 	..compare: ==, !=
 	..misc: void
 	..number: nat8
@@ -31,7 +31,7 @@ print-err-no-newline void(s str) summon trusted noctx
 
 .write-no-newline void(fd fd-t, a str) summon unsafe noctx
 	hard-assert: size-of<char> == size-of<nat8>
-	res = fd write a.data.as-any-ptr, a.size
+	res = fd write a.begin-ptr.as-any-ptr, a.size
 	if res != a.size.unsafe-to-int
 		# Retry?
 		todo

@@ -1,0 +1,116 @@
+no-std
+import
+	..bool: and, bool
+	..compare: ==, !=
+	..exception: assert
+	..fun: subscript
+	..misc: ->, void
+	..number: +, nat
+	..opt: force, none, opt, some
+	..ptr: +, -, ptr-eq?, set-subscript
+	.arr: arr, empty?, size
+	.arr-util: each, first, fold, tail
+	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
+	.stack: ~, arr, each, empty?, fold, size, stack
+
+queue<?a> record
+	left arr ?a
+	right stack ?a
+
+# Empty queue.
+queue queue ?a()
+	queue: [], stack
+
+###
+Convert an arr to a queue.
+This is O(1).
+###
+queue queue ?a(a arr ?a)
+	queue: a, stack
+
+arr arr ?a(a queue ?a) trusted
+	res = a.size uninitialized-mut-arr<?a>
+	end = res.begin-ptr fold a, \out, x
+		out[] := x
+		out + 1
+	assert: end ptr-eq? res.end-ptr
+	res cast-immutable
+
+size nat(a queue ?a)
+	a.left.size + a.right.size
+
+~ queue ?a(a queue ?a, value ?a)
+	queue: a.left, a.right ~ value
+
+empty? bool(a queue ?a)
+	a.left.empty? and a.right.empty?
+
+dequeued<?a> record
+	value ?a
+	rest queue ?a
+
+dequeue opt dequeued ?a(a queue ?a)
+	if a.left empty?
+		right-arr = a.right arr
+		if right-arr empty?
+			none
+		else
+			some: dequeued: right-arr.first, queue: right-arr.tail, stack
+	else
+		some: dequeued: a.left.first, queue: a.left.tail, a.right
+
+region iteration
+
+each void(a queue ?a, f act void(?a))
+	a.left each f
+	a.right each f
+
+fold ?a(acc ?a, a queue ?b, f act ?a(?a, ?b))
+	acc fold a.left, f fold a.right, f
+
+filter queue ?a(a queue ?a, f act bool(?a)) trusted
+	res = a.size uninitialized-mut-arr<?a>
+	end = res.begin-ptr fold a, \out, x
+		if f[x]
+			out[] := x
+			out + 1
+		else
+			out
+	queue: res[0 -> end - res.begin-ptr] cast-immutable
+
+map queue ?out(a queue ?in, f act ?out(?in)) trusted
+	res = a.size uninitialized-mut-arr<?out>
+	end = res.begin-ptr fold a, \out, x
+		out[] := f[x]
+		out + 1
+	assert: end ptr-eq? res.end-ptr
+	queue: res.cast-immutable
+
+test
+	a = queue<nat>
+	assert: a empty?
+	assert: a.arr == []
+	assert: a.dequeue == none
+
+	b = a ~ 1
+	assert: b.arr == [1]
+	bd = b.dequeue force
+	assert: bd.value == 1
+	assert: bd.rest empty?
+
+	c = b ~ 2
+	assert: c.arr == [1, 2]
+	cd = c.dequeue force
+	assert: cd.value == 1
+	cdr = cd rest
+
+	assert: cdr.arr == [2]
+	cdd = cdr.dequeue force
+	assert: cdd.value == 2
+	assert: cdd.rest empty?
+
+	d = c ~ 3
+	assert: d.arr == [1, 2, 3]
+
+	assert: (d filter {it != 2}).arr == [1, 3]
+	assert: (d map {it + 10}).arr == [11, 12, 13]

@@ -1,6 +1,6 @@
 no-std
 import
-	.bool: ?, and, bool, or
+	.bool: ?, and, bool, not, or
 	.compare: ==, <, <=, >=
 	.exception: assert, forbid
 	.fun: subscript
@@ -33,6 +33,14 @@ region arithmetic
 # True if `b * c == a` for some `c`.
 multiple-of? bool(a nat, b nat)
 	(a mod b) == 0
+
+# Equivlaent to `a multiple-of? 2`
+even? bool(a nat)
+	a multiple-of? 2
+
+# Not even
+odd? bool(a nat)
+	a.even? not
 
 # Add two nats. Fail if the result would overflow.
 + nat(a nat, b nat)

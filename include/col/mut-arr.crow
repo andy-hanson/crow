@@ -2,16 +2,17 @@ no-std
 import
 	..private.alloc: alloc-uninitialized, fill-ptr-range, set-zero-range
 	..private.bootstrap: hard-assert
-	..bool: bool
+	..bool: bool, not
 	..compare: ==, <, <=
 	..exception: assert
-	..misc: arrow, from, to, void
+	..fun: subscript
+	..misc: arrow, data, from, to, void
 	..number: *, nat
 	..opt: opt
 	..posix.string: memcpy
-	..ptr: as-any-ptr, ptr, ptr-less-eq?, set-subscript, size-of
-	.arr: arr, arr-from-begin-end, data, size, subscript
-	.arr-util: find-index
+	..ptr: +, as-any-ptr, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript
+	.arr: arr, arr-from-begin-end, begin-ptr, size, subscript
+	.arr-util: each, find-index, fold
 
 ###
 Like `arr` but mutable.
@@ -29,8 +30,8 @@ mut-arr mut-arr ?a() noctx
 	mut-arr: void, []
 
 # `mut-arr` from a pointer and size.
-mut-arr mut-arr ?a(size nat, data ptr ?a) noctx unsafe
-	mut-arr: void, arr: size, data
+mut-arr mut-arr ?a(size nat, begin-ptr ptr ?a) noctx unsafe
+	mut-arr: void, arr: size, begin-ptr
 
 ###
 Copies an `arr` to a `mut-arr`.
@@ -59,14 +60,24 @@ copy mut-arr ?a(a mut-arr ?a)
 
 copy-from! void(dest mut-arr ?a, source arr ?a) trusted
 	assert: dest.size == source.size
-	memcpy: dest.data.as-any-ptr, source.data.as-any-ptr, dest.size * size-of<?a>
+	memcpy: dest.begin-ptr.as-any-ptr, source.begin-ptr.as-any-ptr, dest.size * size-of<?a>
+
+empty? bool(a mut-arr ?a) noctx
+	a.size == 0
 
 size nat(a mut-arr ?a) noctx
 	a.inner size
 
 # Pointer to the beginning of the `mut-arr`.
-data ptr ?a(a mut-arr ?a) noctx unsafe
-	a.inner data
+begin-ptr ptr ?a(a mut-arr ?a) noctx unsafe
+	a.inner begin-ptr
+
+###
+Pointer to the end of the `mut-arr`.
+This is one past the last valid pointer.
+###
+end-ptr ptr ?a(a mut-arr ?a) noctx unsafe
+	a.begin-ptr + a.size
 
 ###
 Gets the element at the index.
@@ -93,12 +104,8 @@ Fails if `index >= a.size`.
 ###
 set-subscript void(a mut-arr ?a, index nat, value ?a) trusted
 	assert: index < a.size
-	a noctx-set-at index, value
-
-noctx-set-at void(a mut-arr ?a, index nat, value ?a) noctx unsafe
-	hard-assert: index < a.size
-	a.data[index] := value
-
+	a.begin-ptr[index] := value
+	
 # Allocates a `mut-arr` without initializing any of its elements.
 uninitialized-mut-arr mut-arr ?a(size nat) unsafe
 	mut-arr: size, alloc-uninitialized<?a>: size
@@ -109,7 +116,7 @@ Equivalent to `mut-arr: [f[0], f[1], ...]`.
 ###
 make-mut-arr mut-arr ?a(size nat, f act ?a(nat)) trusted
 	res = uninitialized-mut-arr<?a>: size
-	res.data fill-ptr-range size, f
+	res.begin-ptr fill-ptr-range size, f
 	res
 
 ###
@@ -141,7 +148,7 @@ This prevents the garbage collector from tracing those elements.
 Data structures that use a `mut-arr` should `set-zero-elements` on any elements they don't use.
 ###
 set-zero-elements void(a mut-arr ?a) noctx unsafe
-	a.data set-zero-range a.size
+	a.begin-ptr set-zero-range a.size
 
 # Equivalent to `a.temp-as-arr index-of value`.
 index-of opt nat(a mut-arr ?a, value ?a) data<?a>
@@ -150,3 +157,19 @@ index-of opt nat(a mut-arr ?a, value ?a) data<?a>
 # Equivalent to `a.temp-as-arr find-index f`.
 find-index opt nat(a mut-arr ?a, f act bool(?a)) trusted
 	a.temp-as-arr find-index f
+
+region iteration
+
+# Calls 'f' on each element in the mut-arr.
+each void(a mut-arr ?a, f act void(?a)) trusted
+	a.temp-as-arr each f
+
+fold ?a(acc ?a, a mut-arr ?b, f act ?a(?a, ?b)) trusted
+	acc fold a.temp-as-arr, f
+
+map! void(a mut-arr ?a, f act ?a(?a)) trusted
+	a.begin-ptr map-recur! a.end-ptr, f
+.map-recur! void(cur ptr ?a, end ptr ?a, f act ?a(?a)) unsafe
+	if cur ptr-eq? end not
+		cur[] := f[cur[]]
+		cur + 1 map-recur! end, f

@@ -3,9 +3,9 @@ import
 	..bits: bits-and, bit-shift-left, bits-or
 	..bool: and, bool, false, not, true
 	..cell: cell, subscript
-	..col.arr: arr, data, size, subscript
+	..col.arr: arr, begin-ptr, size, subscript
 	..col.arr-util: each
-	..col.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
+	..col.mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
 	..col.mut-list: ~=, move-to-arr!, mut-list
 	..col.sort: sort
 	..compare: ==, !=, <
@@ -106,7 +106,7 @@ read-dir arr str(path str) summon
 read-link str(path str) summon trusted
 	# TODO: smart small and retry if necessAry
 	buff = 1000 uninitialized-mut-arr<char>
-	size = path.to-c-str readlink buff.data, buff.size
+	size = path.to-c-str readlink buff.begin-ptr, buff.size
 	if size == -1
 		check-errno
 	buff.cast-immutable[0 -> size.to-nat]
@@ -150,7 +150,7 @@ write-file void(path str, content str) summon
 		print: "permission: {permission}"
 		todo
 	else
-		wrote-bytes = fd write content.data.ptr-cast<nat8, char>, content.size
+		wrote-bytes = fd write content.begin-ptr.ptr-cast<nat8, char>, content.size
 		if wrote-bytes != content.size.to-int
 			if wrote-bytes == -1
 				todo
@@ -194,7 +194,7 @@ try-read-file opt str(path str) summon
 				# TODO: allocation can fail, then 'fd' is left open. Need finalizers
 				file-size-nat = file-size.to-nat
 				res = file-size-nat uninitialized-mut-arr<char>
-				n-bytes-read = fd read res.data.ptr-cast, file-size-nat
+				n-bytes-read = fd read res.begin-ptr.ptr-cast, file-size-nat
 				# TODO: handle errors
 				forbid: n-bytes-read == -1
 				assert: n-bytes-read == file-size
@@ -206,11 +206,11 @@ try-read-file opt str(path str) summon
 # Gets the current directory (of the user that ran the program).
 current-directory str() summon trusted
 	buff = 256 uninitialized-mut-arr<char>
-	b = buff.data getcwd buff.size
+	b = buff.begin-ptr getcwd buff.size
 	if b null?
 		todo
 	else
-		assert: b ptr-eq? buff.data
+		assert: b ptr-eq? buff.begin-ptr
 		b to-str
 
 .get-stat opt stat-t(path c-str) summon trusted

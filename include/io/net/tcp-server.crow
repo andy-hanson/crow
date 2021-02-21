@@ -4,8 +4,8 @@ import
 	...bits: bits-intersect?, bits-or
 	...bool: bool, false, not, or, true
 	...cell: cell
-	...col.arr: arr, data, subscript
-	...col.mut-arr: cast-immutable, data, size, uninitialized-mut-arr
+	...col.arr: arr, begin-ptr, subscript
+	...col.mut-arr: cast-immutable, begin-ptr, size, uninitialized-mut-arr
 	...compare: ==, !=, <
 	...exception: assert, message
 	...fut: fut, handle-exceptions, then, fut-catch, resolved, subscript
@@ -58,14 +58,14 @@ start-tcp-server tcp-server(port str, handler tcp-handler) unsafe summon
 
 	epoll-fd = 0 epoll-create1
 	if epoll-fd < 0
-		perror: "epoll-create1 failed\0".data
+		perror: "epoll-create1 failed\0".begin-ptr
 		todo
 	else
 		event-flags = as<nat32>: epollin bits-or epollet
 		accept-event = epoll-event: event-flags, port-fd.to-int.to-nat
 		ctl-err = epoll-fd epoll-ctl epoll-ctl-add, port-fd, accept-event.ptr-to
 		if ctl-err != 0
-			perror: "epoll-ctl failed\0".data
+			perror: "epoll-ctl failed\0".begin-ptr
 			todo
 
 		state = tcp-server-state: false, false, 0, port-fd, epoll-fd, 0, handler
@@ -148,7 +148,7 @@ close-client void(client-fd fd-t) unsafe summon
 		if e == eagain or: e == ewouldblock
 			print: "done accepting clients"
 		else
-			perror: "accept() error\0".data
+			perror: "accept() error\0".begin-ptr
 			todo
 	else
 		print: "Accepted client {client-fd}"
@@ -161,13 +161,13 @@ close-client void(client-fd fd-t) unsafe summon
 
 .handle-client void(fd fd-t, on-received-chunk ref void(fd-t, arr nat8)) unsafe summon
 	buf = uninitialized-mut-arr<nat8>: 256
-	count = fd read buf.data, buf.size
+	count = fd read buf.begin-ptr, buf.size
 	if count < 0
 		err = errno
 		if err == eagain
 			print: "read EAGAIN"
 		else
-			perror: "read() failed\0".data
+			perror: "read() failed\0".begin-ptr
 	elif count != 0
 		chunk = buf.cast-immutable[0 -> count.to-nat]
 		on-received-chunk[fd, chunk] handle-exceptions
@@ -176,10 +176,10 @@ close-client void(client-fd fd-t) unsafe summon
 .set-non-blocking void(fd fd-t) noctx unsafe summon
 	flags = fd fcntl f-getfl, 0
 	if flags < 0
-		perror: "fcntl() error\0".data
+		perror: "fcntl() error\0".begin-ptr
 		todo
 	else
 		err = fd fcntl: f-setfl, flags bits-or o-nonblock
 		if err < 0
-			perror: "fcntl() error\0".data
+			perror: "fcntl() error\0".begin-ptr
 			todo

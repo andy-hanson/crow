@@ -46,10 +46,10 @@ old-main fut nat(port str) unsafe summon
 			print: "got chunk ({chunk size} bytes) on {client-fd}"
 			# TODO: this actually does not belong here..
 			response = ok-response
-			wrote = client-fd write response.data.ptr-cast<nat8, char>, response.size
+			wrote = client-fd write response.begin-ptr.ptr-cast<nat8, char>, response.size
 			if wrote == -1
 				print: "ERRNO IS: {errno}"
-				perror: "WRITE ERR\0".data
+				perror: "WRITE ERR\0".begin-ptr
 
 			print: "WROTE: {wrote} bytes to {client-fd}"
 			print: "Response size: {response size}"

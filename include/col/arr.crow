@@ -9,7 +9,10 @@ import
 	..private.alloc: alloc-uninitialized, copy-data-from
 	..private.bootstrap: hard-assert
 export
-	..private.bootstrap: arr, data, size
+	..private.bootstrap: arr, begin-ptr, size
+
+end-ptr ptr ?a(a arr ?a) noctx unsafe
+	a.begin-ptr + a.size
 
 ###
 Arr or the range from begin to end.
@@ -30,7 +33,7 @@ has? bool(a arr ?a) noctx
 
 noctx-at ?a(a arr ?a, index nat) trusted noctx
 	hard-assert: index < a.size
-	a.data[index]
+	a.begin-ptr[index]
 
 ###
 Gets the element at the index.
@@ -50,11 +53,11 @@ Fails if the slice would exceed the bounds of the arr.
 subscript arr ?a(a arr ?a, range arrow<nat, nat>) trusted
 	assert: range.from <= range.to
 	assert: range.to <= a.size
-	arr: range.to - range.from, a.data + range.from
+	arr: range.to - range.from, a.begin-ptr + range.from
 
 ref-of-val-at ?a(a arr by-val<?a>, index nat) trusted
 	assert: index < a.size
-	a.data + index ref-of-ptr
+	a.begin-ptr + index ref-of-ptr
 
 ###
 Concatenates two arrs.
@@ -64,6 +67,6 @@ If you need to concatenate often, consider using `mut-list`.
 ~ arr ?a(a arr ?a, b arr ?a) trusted
 	res-size = a.size + b.size
 	res = res-size alloc-uninitialized<?a>
-	res copy-data-from a.data, a.size
-	res + a.size copy-data-from b.data, b.size
+	res copy-data-from a.begin-ptr, a.size
+	res + a.size copy-data-from b.begin-ptr, b.size
 	arr: res-size, res

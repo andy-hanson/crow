@@ -1,7 +1,7 @@
 no-std
 import
 	..bool: not
-	..col.arr: ~, data, arr-from-begin-end
+	..col.arr: ~, begin-ptr, arr-from-begin-end
 	..col.dict: dict, each
 	..col.mut-dict: move-to-dict!, mut-dict, set-subscript
 	..col.mut-list: ~=, move-to-arr!, mut-list
@@ -47,4 +47,4 @@ convert-environ ptr c-str(environ environ)
 	environ each \key, value
 		res ~=: key ~ "=" ~ value to-c-str
 	res ~= null<char>
-	res.move-to-arr! data
+	res.move-to-arr! begin-ptr

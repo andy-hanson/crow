@@ -1,0 +1,155 @@
+no-std
+import
+	..bool: and, bool
+	..compare: ==
+	..exception: assert
+	..fun: subscript
+	..misc: ->, void
+	..number: +, even?, nat
+	..opt: force, none, opt, some, value
+	..ptr: +, -, ptr-eq?, set-subscript
+	.arr: arr, empty?, size
+	.arr-util: each, first, fold, last, rtail, tail
+	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
+	.stack:
+		~, arr, arr-reverse, each, each-reverse, empty?, fold, fold-reverse, pop, rest, size,
+		stack, value
+
+deque<?a> record
+	# TODO:PRIVATE
+	# NOTE: This is in reverse (top of the stack furthest left)
+	left stack ?a
+	mid arr ?a
+	right stack ?a
+
+# Empty deque.
+deque deque ?a()
+	deque: []
+
+###
+Convert an arr to a deque.
+This is O(1).
+###
+deque deque ?a(a arr ?a)
+	deque: stack, a, stack
+
+arr arr ?a(a deque ?a) trusted
+	res = a.size uninitialized-mut-arr<?a>
+	end = res.begin-ptr fold a, \out, x
+		out[] := x
+		out + 1
+	assert: end ptr-eq? res.end-ptr
+	res cast-immutable
+
+empty? bool(a deque ?a)
+	a.left.empty? and a.mid.empty? and a.right.empty?
+
+size nat(a deque ?a)
+	a.left.size + a.mid.size + a.right.size
+
+~ deque ?a(a deque ?a, value ?a)
+	deque: a.left, a.mid, a.right ~ value
+
+~ deque ?a(value ?a, a deque ?a)
+	deque: a.left ~ value, a.mid, a.right
+
+popped<?a> record
+	value ?a
+	rest deque ?a
+
+pop-left opt popped ?a(a deque ?a)
+	match a.left pop
+	as none
+		if a.mid empty?
+			right-arr = a.right arr
+			if right-arr empty?
+				none
+			else
+				some: popped: right-arr.first, deque: stack, right-arr.tail, stack
+		else
+			some: popped: a.mid.first, deque: stack, a.mid.tail, a.right
+	as some s
+		some: popped: s.value.value, deque: s.value.rest, a.mid, a.right
+
+pop-right opt popped ?a(a deque ?a)
+	match a.right pop
+	as none
+		if a.mid empty?
+			left-arr = a.left arr-reverse
+			if left-arr empty?
+				none
+			else
+				some: popped: left-arr.last, deque: stack, left-arr.rtail, stack
+		else
+			some: popped: a.mid.last, deque: a.left, a.mid.rtail, stack
+	as some s
+		some: popped: s.value.value, deque: a.left, a.mid, s.value.rest
+
+region iteration
+
+each void(a deque ?a, f act void(?a))
+	a.left each-reverse f
+	a.mid each f
+	a.right each f
+
+fold ?a(acc ?a, a deque ?b, f act ?a(?a, ?b))
+	acc fold-reverse a.left, f fold a.mid, f fold a.right, f
+
+filter deque ?a(a deque ?a, f act bool(?a)) trusted
+	res = a.size uninitialized-mut-arr<?a>
+	end = res.begin-ptr fold a, \out, x
+		if f[x]
+			out[] := x
+			out + 1
+		else
+			out
+	deque: res[0 -> end - res.begin-ptr] cast-immutable
+
+map deque ?out(a deque ?in, f act ?out(?in)) trusted
+	res = a.size uninitialized-mut-arr<?out>
+	end = res.begin-ptr fold a, \out, x
+		out[] := f[x]
+		out + 1
+	assert: end ptr-eq? res.end-ptr
+	deque: res.cast-immutable
+
+test
+	a = deque<nat>
+	assert: a empty?
+	assert: a.arr == []
+	assert: a.pop-left == none
+	assert: a.pop-right == none
+
+	bl = 1 ~ a
+	assert: bl.arr == [1]
+	bl-pop-left = bl.pop-left force
+	assert: bl-pop-left == popped: 1, deque
+	assert: bl.pop-right == bl-pop-left.some
+
+	br = a ~ 1
+	assert: br.arr == bl.arr
+	assert: br.pop-left == bl-pop-left.some
+	assert: br.pop-right == bl-pop-left.some
+
+	# Now it has 1 node on the left and 2 on the right.
+	c = bl ~ 2 ~ 3
+	c-pop = c.pop-left force
+	assert: c-pop.value == 1
+
+	# Forces it to convert to an array
+	d = c-pop.rest
+	d-pop = d.pop-left force
+	assert: d-pop == popped: 2, deque: [3]
+
+	# Test converting right stack to array
+	x = 1 ~ (2 ~ (3 ~ [].deque))
+	x-pop = x.pop-right force
+	assert: x-pop.value == 3
+	assert: x-pop == popped: 3, deque: [1, 2]
+
+	six = 1 ~ (2 ~ [3, 4].deque) ~ 5 ~ 6
+	folded = 10 fold six, \x, y
+		x + y
+	assert: folded == 31
+	assert: (six filter {it even?}).arr == [2, 4, 6]
+	assert: (six map {it + 10}).arr == [11, 12, 13, 14, 15, 16]

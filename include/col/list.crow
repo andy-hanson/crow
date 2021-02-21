@@ -1,18 +1,19 @@
 no-std
 import
 	..bool: ?, bool
-	..compare: ==, >
+	..compare: ==, !=, >
 	..exception: assert, forbid
 	..fun: subscript
-	..misc: ->, drop, void
+	..misc: ->, as, drop, void
 	..number: +, -, nat
 	..opt: empty?, none, opt, some, value
-	..ptr: +, -, ptr, set-subscript
-	.arr: arr, empty?, size, subscript
-	.arr-util: each, each-with-index, fold, rtail
+	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
+	..str: str
+	.arr: arr, begin-ptr, end-ptr, empty?, size, subscript
+	.arr-util: each, each-with-index, first-some, fold, rtail
 	.mut-arr:
-		cast-immutable, copy-from!, data, mut-arr, mut-arr-from-begin-end, set-subscript, size,
-		subscript, uninitialized-mut-arr
+		begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end,
+		set-subscript, size, subscript, uninitialized-mut-arr
 
 ###
 Immutable list type.
@@ -42,8 +43,8 @@ This is O(n).
 ###
 arr arr ?a(a list ?a) trusted
 	res = a.size uninitialized-mut-arr<?a>
-	res.data + res.size write-out! a
-	res.cast-immutable
+	res.end-ptr write-out! a
+	res cast-immutable
 
 ###
 Append a value to the list.
@@ -105,38 +106,7 @@ rtail list ?a(a list ?a)
 			s value
 	else
 		list: void, a.prev, a.values.rtail
-
-# Call a function for each element in the list.
-each void(a list ?a, f act void(?a))
-	match a.prev
-	as none
-		void
-	as some s
-		s.value each f
-	a.values each f
-
-fold ?a(val ?a, a list ?b, f act ?a(?a, ?b))
-	v = match a.prev
-	as none
-		val
-	as some s
-		val fold s.value, f
-	v fold a.values, f
-
-map list ?out(a list ?in, f act ?out(?in)) trusted
-	res = a.size uninitialized-mut-arr<?out>
-	drop: res.data map-recur a, f
-	list: res.cast-immutable
-.map-recur ptr ?out(out ptr ?out, a list ?in, f act ?out(?in)) unsafe
-	next-out = match a prev
-	as none
-		out
-	as some s
-		out map-recur s.value, f
-	a.values each-with-index \value, index
-		next-out[index] := f[value]
-	next-out + a.values.size
-
+		
 ###
 Number of elements in the list.
 This is O(ln a.size).
@@ -164,8 +134,8 @@ This is O(n).
 ~ list ?a(a list ?a, b list ?a) trusted
 	a-size = a size
 	res = a-size + b.size uninitialized-mut-arr<?a>
-	res.data + res.size write-out! b
-	res.data + a-size write-out! a
+	res.end-ptr write-out! b
+	res.begin-ptr + a-size write-out! a
 	list: res.cast-immutable
 
 .write-out! void(end ptr ?a, a list ?a) unsafe
@@ -177,10 +147,80 @@ This is O(n).
 	as some s
 		new-end write-out! s.value
 
+region iteration
+
+# Call a function for each element in the list.
+each void(a list ?a, f act void(?a))
+	match a.prev
+	as none
+		void
+	as some s
+		s.value each f
+	a.values each f
+
+# Call a function for each element in the list and accumulate.
+fold ?a(acc ?a, a list ?b, f act ?a(?a, ?b))
+	v = match a.prev
+	as none
+		acc
+	as some s
+		acc fold s.value, f
+	v fold a.values, f
+
+# Produce a list with `f[x]` applied to each element `x` in the input.
+map list ?out(a list ?in, f act ?out(?in)) trusted
+	res = a.size uninitialized-mut-arr<?out>
+	drop: res.begin-ptr map-recur a, f
+	list: res.cast-immutable
+.map-recur ptr ?out(out ptr ?out, a list ?in, f act ?out(?in)) unsafe
+	next-out = match a prev
+	as none
+		out
+	as some s
+		out map-recur s.value, f
+	a.values each-with-index \value, index
+		next-out[index] := f[value]
+	next-out + a.values.size
+
+filter list ?a(a list ?a, f act bool(?a)) trusted
+	res = a.size uninitialized-mut-arr<?a>
+	end = res.begin-ptr filter-recur a, f
+	list: res[0 -> end - res.begin-ptr] cast-immutable
+.filter-recur ptr ?a(out ptr ?a, a list ?a, f act bool(?a)) unsafe
+	new-out = match a prev
+	as none
+		out
+	as some s
+		out filter-recur s.value, f
+	new-out filter-recur-arr a.values.begin-ptr, a.values.end-ptr, f
+.filter-recur-arr ptr ?a(out ptr ?a, cur ptr ?a, end ptr ?a, f act bool(?a)) unsafe
+	if cur ptr-eq? end
+		out
+	else
+		new-out = if f[cur[]]
+			out[] := cur[]
+			out + 1
+		else
+			out
+		new-out filter-recur-arr cur + 1, end, f
+
+first-some opt ?out(a list ?in, f act opt ?out(?in))
+	before = as<opt ?out>: match a prev
+	as none
+		none
+	as some s
+		s.value first-some f
+
+	match before
+	as none
+		a.values first-some f
+	as some s
+		s
+
 test
 	a = list<nat>
-	assert: a.arr == []
 	assert: a empty?
+	assert: a.arr == []
 	# TODO: assert a.last throws
 
 	b = a ~ 1
@@ -211,6 +251,13 @@ test
 	e2 = e map {it + 10}
 	assert: e2.arr == [11, 12, 13, 14]
 
+	e3 = e filter {it != 2}
+	assert: e3.arr == [1, 3, 4]
+
 	folded = 5 fold e, \x, y
 		x + y
 	assert: folded == 15
+
+	# TODO: compiler crashes without a type argument here
+	assert: (e first-some<str, nat> {it == 3 ? "three".some, none}) == "three".some
+	assert: (e first-some<str, nat> {it == 5 ? "five".some, none}) == none

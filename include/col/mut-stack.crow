@@ -1,0 +1,59 @@
+no-std
+import
+	..bool: bool
+	..misc: void
+	..opt: none, opt, some
+	.arr: arr
+	.mut-list: ~=, arr, copy, each, empty?, filter!, fold, last, map!, mut-list, pop!
+
+###
+Unlike `mut-list`, this is not guaranteed to be represented as an array.
+###
+mut-stack<?a> record mut
+	# TODO: PRIVATE
+	inner mut-list ?a
+
+# New empty `mut-stack`.
+mut-stack mut-stack ?a()
+	mut-stack: mut-list<?a>
+
+copy mut-stack ?a(a mut-stack ?a)
+	mut-stack: a.inner copy
+
+mut-stack mut-stack ?a(a arr ?a)
+	mut-stack: mut-list: a
+
+arr arr ?a(a mut-stack ?a)
+	a.inner arr
+
+empty? bool(a mut-stack ?a)
+	a.inner empty?
+
+~= void(a mut-stack ?a, value ?a)
+	a.inner ~= value
+
+~= void(a mut-stack ?a, values arr ?a)
+	a.inner ~= values
+
+peek opt ?a(a mut-stack ?a)
+	if a empty?
+		none
+	else
+		some: a.inner last
+
+pop! opt ?a(a mut-stack ?a)
+	a.inner pop!
+
+region iteration
+
+each void(a mut-stack ?a, f act void(?a))
+	a.inner each f
+
+fold ?a(acc ?a, a mut-stack ?b, f act ?a(?a, ?b))
+	acc fold a.inner, f
+
+filter! void(a mut-stack ?a, f act bool(?a))
+	a.inner filter! f
+
+map! void(a mut-stack ?a, f act ?a(?a))
+	a.inner map! f
