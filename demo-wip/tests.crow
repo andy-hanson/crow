@@ -1,9 +1,12 @@
 import
 	col.arr-util: each
+	col.list: list
 	io.print: print
-	logging: info, log
+	log: info, log
+	private.bootstrap: ctx, get-ctx
 
 main fut nat(_ arr str) summon
+	drop: list<nat>
 	run-all-tests
 	0 resolved
 
@@ -11,7 +14,7 @@ all-tests arr fun-ptr1<void, ctx>() builtin
 
 run-all-tests void() summon trusted
 	tests = all-tests
-	print: "Running " + tests.size.to-str + " tests"
+	print: "Running {tests size} tests"
 	tests each \test
 		test[get-ctx]
 	print: "done"

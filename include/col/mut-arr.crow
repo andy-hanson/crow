@@ -6,10 +6,11 @@ import
 	..compare: ==, <, <=
 	..exception: assert
 	..misc: arrow, from, to, void
-	..number: nat
+	..number: *, nat
 	..opt: opt
-	..ptr: ptr, set-subscript
-	.arr: arr, data, size, subscript
+	..posix.string: memcpy
+	..ptr: as-any-ptr, ptr, ptr-less-eq?, set-subscript, size-of
+	.arr: arr, arr-from-begin-end, data, size, subscript
 	.arr-util: find-index
 
 ###
@@ -45,12 +46,20 @@ Further writes to the `mut-arr` won't affect the `arr` that was copied from it.
 arr arr ?a(a mut-arr ?a)
 	a.copy.inner
 
+mut-arr-from-begin-end mut-arr ?a(begin ptr ?a, end ptr ?a) unsafe noctx
+	hard-assert: begin ptr-less-eq? end
+	mut-arr: void, arr-from-begin-end: begin, end
+
 ###
 Copies the elements of a `mut-arr`.
 Writing to the result won't affect the original.
 ###
 copy mut-arr ?a(a mut-arr ?a)
 	a.size make-mut-arr<?a> {a[it]}
+
+copy-from! void(dest mut-arr ?a, source arr ?a) trusted
+	assert: dest.size == source.size
+	memcpy: dest.data.as-any-ptr, source.data.as-any-ptr, dest.size * size-of<?a>
 
 size nat(a mut-arr ?a) noctx
 	a.inner size
