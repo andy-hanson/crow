@@ -1,14 +1,13 @@
 no-std
 import
-	..bool: or
-	..compare: ==, !=, <, <=, >
+	..compare: ==, <, <=, >
 	..exception: assert
 	..misc: ->, as, data, void
 	..number: +, -, /, nat
+	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
 	.arr: arr
-	.arr-util: each
-	.mut-arr: cast-immutable, mut-arr, size, set-subscript, subscript
-	.mut-list: ~=, empty?, last, move-to-arr!, mut-list, temp-as-mut-arr
+	.mut-arr: begin-ptr, cast-immutable, empty?, end-ptr, mut-arr, size, set-subscript, subscript
+	.mut-list: mut-list, temp-as-mut-arr
 
 ###
 Returns a new array containing the same elements as `a`, but in sorted order.
@@ -25,13 +24,7 @@ That means `res[i] < res[i + 1]` for each element in the result.
 `[2, 1, 2] sort-unique` is `[1, 2]`.
 ###
 sort-unique arr ?a(a arr ?a) data<?a> trusted
-	a.sort unique!
-.unique! arr ?a(a arr ?a) data<?a>
-	res = mut-list<?a>
-	a each \x
-		if res.empty? or x != res.last
-			res ~= x
-	res move-to-arr!
+	a.mut-arr.sort-unique! cast-immutable
 
 test
 	assert: (sort: as<arr nat>: []) == []
@@ -51,6 +44,25 @@ sort! void(a mut-arr ?a) data<?a>
 		a swap 0, new-pivot-index
 		a[0 -> new-pivot-index] sort!
 		a[new-pivot-index + 1 -> a.size] sort!
+
+# Sort a mut-list in place, remove unique elements, and return the (now shorter) mut-arr.
+sort-unique! mut-arr ?a(a mut-arr ?a) data<?a> trusted
+	if a empty?
+		a
+	else
+		a sort!
+		end = a.begin-ptr[] unique-recur! a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr
+		a[0 -> end - a.begin-ptr]
+.unique-recur! ptr ?a(prev ?a, read ptr ?a, write ptr ?a, end ptr ?a) data<?a> unsafe
+	if read ptr-eq? end
+		write
+	else
+		here = read[]
+		if here == prev
+			prev unique-recur! read + 1, write, end
+		else
+			write[] := here
+			here unique-recur! read + 1, write + 1, end
 
 # Returns index of first value > pivot
 .partition! nat(a mut-arr ?a, pivot ?a, l nat, r nat) data<?a>

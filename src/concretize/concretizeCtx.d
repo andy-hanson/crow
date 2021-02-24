@@ -521,7 +521,7 @@ void initializeConcreteStruct(Alloc)(
 		(ref immutable StructBody.ExternPtr) => true,
 		(ref immutable StructBody.Record it) =>
 			it.flags.forcedByValOrRef != ForcedByValOrRefOrNone.byVal,
-		(ref immutable StructBody.Union) => true);
+		(ref immutable StructBody.Union) => false);
 	lateSet(res.info_, immutable ConcreteStructInfo(
 		immutable ConcreteStructBody(immutable ConcreteStructBody.Record(emptyArr!ConcreteField)),
 		/*sizeBytes*/ 9999,

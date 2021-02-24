@@ -3,7 +3,7 @@ import
 	..private.alloc: alloc-uninitialized, fill-ptr-range
 	..private.bootstrap: noctx-incr
 	..bool: and, bool, false, not, true
-	..compare: ==, !=, >=
+	..compare: ==, !=, <, <=, >=
 	..exception: assert, forbid
 	..fun: subscript
 	..misc: ->, data, void
@@ -142,6 +142,20 @@ contains? bool(a arr ?a, value ?a) noctx data<?a>
 		true
 	else
 		a contains-recur? value, i.noctx-incr
+
+try-remove opt arr ?a(a arr ?a, value ?a) data<?a>
+	a try-remove-recur 0, value
+.try-remove-recur opt arr ?a(a arr ?a, index nat, value ?a) data<?a>
+	if index == a.size
+		none
+	elif a[index] == value
+		a remove-index index some
+	else
+		a try-remove-recur index + 1, value
+
+remove-index arr ?a(a arr ?a, index nat)
+	assert: index < a.size
+	a[0 -> index] ~ a[index + 1 -> a.size]
 
 # TODO: data<arr ?a> should be unnecessary
 ###
@@ -310,3 +324,8 @@ zip arr ?out(a arr ?a, b arr ?b, f act ?out(?a, ?b))
 	assert: a.size == b.size
 	a.size make-arr \i
 		f[a[i], b[i]]
+
+insert arr ?a(a arr ?a, index nat, value ?a)
+	assert: index <= a.size
+	# TODO:PERF (only concat once)
+	a[0 -> index] ~ [value] ~ a[index -> a.size]

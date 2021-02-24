@@ -108,9 +108,19 @@ subscript ?a(a mut-list ?a, index nat) trusted
 	assert: index < a.size
 	a.begin-ptr[index]
 
-# Gets the last element.
+###
+Gets the last element.
+Fails if the list is empty.
+###
 last ?a(a mut-list ?a)
 	a[a.size - 1]
+
+###
+Sets the last element.
+Fails if the list is empty.
+###
+set-last void(a mut-list ?a, value ?a)
+	a[a.size - 1] := value
 
 ###
 Converts to an `mut-arr`.

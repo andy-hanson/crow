@@ -1,0 +1,10 @@
+main fut nat(_ arr str) summon
+	0 f
+	0 resolved
+
+f void(_ u ?a)
+	void
+
+u<?a> union
+	nat
+	arr<?a>

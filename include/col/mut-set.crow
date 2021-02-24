@@ -100,4 +100,4 @@ Convert to a `set`, clearning the original `mut-set` in the process.
 (This avoids copying but still ensures that the result is immutable.)
 ###
 move-to-set! set ?a(a mut-set ?a) data<?a>
-	set: void, a.inner move-to-arr!
+	set: a.inner move-to-arr!

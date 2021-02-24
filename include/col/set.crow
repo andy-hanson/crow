@@ -1,136 +1,603 @@
 no-std
 import
-	..bool: and, bool, false, not, true
-	..compare: <=>
-	..misc: data, void
-	..number: nat
-	.arr: arr, empty?, size, subscript
-	.arr-util: filter, tail
-	.mut-list: ~=, move-to-arr!, mut-list
-	.sort: sort-unique
+	..bool: bool, false, not, true
+	..compare: ==, !=, <, >, <=>
+	..exception: assert, forbid, unreachable
+	..fun: subscript
+	..misc: ->, as, data, drop, void
+	..number: +, -, /, nat
+	..opt: empty?, force, none, opt, some, value
+	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
+	..str: char, str
+	.arr: ~, arr, begin-ptr, empty?, end-ptr, size, subscript
+	.arr-util: each, fold, insert, last, rtail, tail, try-remove
+	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
+	.mut-list: ~=, move-to-arr!, mut-list, set-last
+	.mut-stack: ~=, mut-stack, peek, pop!
+	.sort: sort-unique, sort-unique!
 
 ###
 Set of unique values.
 Unlike `arr`, the values are always in sorted order, and there are never two of the same value.
 ###
 set<?a> record
-	ignore void
-	# TODO:PRIVATE
-	values arr ?a
+	# TODO: PRIVATE
+	root node ?a
+	total-size nat
 
-# Empty set.
-set set ?a() data<?a>
-	# TODO: type args should be unnecessary
-	set: void, []
-
-# Copies an `arr` to a `set`.
-set set ?a(a arr ?a) data<?a>
-	set: void, a.sort-unique
-
-###
-Array of all values in the set, in sorted order.
-This is O(1) as it exposes the set's internal arr.
-This is safe because it's immutable.
-###
-arr arr ?a(a set ?a) data<?a>
-	a.values
+# True iff the set is empty.
+empty? bool(a set ?a) data<?a>
+	a.size == 0
 
 # Number of values in the set.
 size nat(a set ?a) data<?a>
-	a.values size
+	a total-size
+
+# Empty `set`.
+set set ?a()
+	root = [] as<arr ?a>
+	set: root, 0
+
+.node<?a> union
+	# TODO: SYNTAX should not require <>
+	inner-node<?a>
+	arr<?a>
+
+.inner-node<?a> record
+	by-ref
+	value ?a
+	left node ?a
+	right node ?a
+
+# Copy an `arr` to a `set`.
+set set ?a(a arr ?a) data<?a>
+	values = a sort-unique
+	set: values, values.size
+
+###
+Array of all values in the set, in sorted order.
+This is O(a size).
+###
+arr arr ?a(a set ?a) data<?a>
+	match a.root
+	as inner-node i
+		i tree-to-arr a.size
+	as arr arr
+		arr
 
 # True iff the value is in the set.
 subscript bool(a set ?a, value ?a) data<?a>
-	a.values has? value
-.has? bool(a arr ?a, value ?a) data<?a>
-	# TODO: binary search
-	if a empty?
-		false
-	else
-		match value <=> a[0]
+	a.root has? value
+.has? bool(a node ?a, value ?a) data<?a>
+	match a
+	as inner-node i
+		match value <=> i.value
 		as less
-			false
+			i.left has? value
 		as equal
 			true
 		as greater
-			a.tail has? value
+			i.right has? value
+	as arr arr
+		arr find-insertion-index value empty?
+
+###
+Add a value to the set.
+No effect if the value is already in the set.
+This is O(a.size ln)
+###
+~ set ?a(a set ?a, value ?a) data<?a>
+	new-size = a.size + 1
+	match a.root add-recur value, new-size.get-max-height
+	as none
+		a
+	as inserted i
+		set: i.node, a.size + 1
+	as find-scapegoat
+		unreachable
+
+###
+Add many values to the set.
+This is O(a.size + b.size).
+###
+~ set ?a(a set ?a, b arr ?a) data<?a>
+	a ~ b.set
 
 ###
 Union of two sets.
-Contains all values from either `a` or `b`.
-Equivalent to `set: a.arr ~ b.arr` (but more efficient).
+This is O(a.size + b.size).
 ###
-~ set ?a(a set ?a, b set ?a) data<?a>
-	res = mut-list<?a>
-	res union! a.values, b.values
-	set: void, res.move-to-arr!
-.union! void(res mut-list ?a, a arr ?a, b arr ?a) data<?a>
-	if a empty?
-		if b.empty? not
-			res ~= b[0]
-			res union! a, b.tail
-	else
-		if b empty?
-			res ~= a[0]
-			res union! a.tail, b
-		else
-			match a[0] <=> b[0]
-			as less
-				res ~= a[0]
-				res union! a.tail, b
-			as equal
-				res ~= a[0]
-				res union! a.tail, b.tail
-			as greater
-				res ~= b[0]
-				res union! a, b.tail
+~ set ?a(a set ?a, b set ?a) trusted data<?a>
+	out = a.size + b.size uninitialized-mut-arr<?a>
+	b-iter = b iter
+	end = out.begin-ptr fold a, \cur, value
+		cur walk-iter-union! value, b-iter
+	end2 = end fold-iter b-iter, \cur, value
+		cur[] := value
+		cur + 1
+	set: out[0 -> end2 - out.begin-ptr] cast-immutable
 
-###
-Intersection of two sets.
-Contains only values that are in both `a` and `b`.
-Equivalent to `a filter {b[it]}` (but more efficient). 
-###
-intersect set ?a(a set ?a, b set ?a) data<?a>
-	res = mut-list<?a>
-	res intersect! a.values, b.values
-	set: void, res.move-to-arr!
-.intersect! void(res mut-list ?a, a arr ?a, b arr ?a) data<?a>
-	if a.empty?.not and b.empty?.not
-		match a[0] <=> b[0]
+.walk-iter-union! ptr ?a(out ptr ?a, value ?a, a iter ?a) data<?a> unsafe
+	match a peek
+	as none
+		out[] := value
+		out + 1
+	as some s
+		peek = s value
+		match value <=> peek
 		as less
-			res intersect! a.tail, b
+			out[] := value
+			out + 1
 		as equal
-			res ~= a[0]
-			res intersect! a.tail, b.tail
+			out[] := value
+			a.next! drop
+			out + 1
 		as greater
-			res intersect! a, b.tail
+			out[] := peek
+			a.next! drop
+			out + 1 walk-iter-union! value, a
+
+intersect set ?a(a set ?a, b set ?a) trusted data<?a>
+	b-iter = b iter
+	a filter {b-iter walk-iter-has? it}
+
+.walk-iter-has? bool(a iter ?a, value ?a) data<?a> unsafe
+	match a peek
+	as none
+		false
+	as some s
+		match value <=> s.value
+		as less
+			false
+		as equal
+			a.next! drop
+			true
+		as greater
+			a.next! drop
+			a walk-iter-has? value
 
 ###
-Difference of two sets.
-Contains values that are in `a` but not `b`.
-Equivalent to `a filter {b[it] not}` (but more efficient).
+Returns a set that does not contain 'b'.
+If 'b' is not in the set, returns it unmodified.
+This is O(a.size ln).
 ###
-- set ?a(a set ?a, b set ?a) data<?a>
-	res = mut-list<?a>
-	res subtract! a.values, b.values
-	set: void, res.move-to-arr!
-.subtract! void(res mut-list ?a, a arr ?a, b arr ?a) data<?a>
-	if a.empty? not
-		if b empty?
-			res ~= a
+- set ?a(a set ?a, b ?a) data<?a>
+	match a try-remove b
+	as none
+		a
+	as some s
+		s value
+
+###
+If 'b' is in the set, returns `none~.
+Else, returns a set with 'b' removed.
+This is O(a.size ln).
+###
+try-remove opt set ?a(a set ?a, b ?a) data<?a>
+	match a.root try-remove-recur b
+	as none
+		none
+	as some s
+		some: set: s.value, a.size - 1
+
+.try-remove-recur opt node ?a(a node ?a, b ?a) data<?a>
+	match a
+	as inner-node i
+		match b <=> i.value
+		as less
+			match i.left try-remove-recur b
+			as none
+				none
+			as some s
+				new-left = s value
+				some: inner-node: i.value, new-left, i.right
+		as equal
+			# Remove the base of the tree -- making one of the sides take over.
+			match i.left pop-right
+			as none
+				i.right some
+			as some s
+				popped = s value
+				some: inner-node: popped.value, popped.rest, i.right
+		as greater
+			match i.right try-remove-recur b
+			as none
+				none
+			as some s
+				some: inner-node: i.value, i.left, s.value
+	as arr arr
+		# TODO: use a binary search (try-remove uses linear search since it's for arbitrary arr)
+		match arr try-remove b
+		as none
+			none
+		as some s
+			arr2 = s value
+			arr2.as<node ?a> some
+
+.popped<?a> record
+	value ?a
+	rest node ?a
+
+.pop-right opt popped ?a(a node ?a)
+	match a
+	as inner-node i
+		match i.right pop-right
+		as none
+			# Then this is rightmost
+			some: popped: i.value, i.left
+		as some s
+			some: popped: s.value.value, inner-node: i.value, i.left, s.value.rest
+	as arr arr
+		if arr empty?
+			none
 		else
-			match a[0] <=> b[0]
-			as less
-				res ~= a[0]
-				res subtract! a.tail, b
-			as equal
-				res subtract! a.tail, b.tail
-			as greater
-				res subtract! a, b.tail
+			some: popped: arr.last, arr.rtail
 
-###
-Set containing a only values for which `f[x]` is true.
-This is O(a.size) as filtering does not change sort order.
-###
-filter set ?a(a set ?a, f act bool(?a))
-	set: void, a.values filter f
+- set ?a(a set ?a, b set ?a) trusted data<?a>
+	b-iter = b iter
+	a filter {b-iter walk-iter-has? it not}
+
+.iter<?a> record mut
+	cur mut arr ?a
+	# If a node is on the stack, we have yet to write out the middle and right.
+	# TODO:PERF use a mut-arr, initialized to the tree's height
+	stack mut-stack inner-node ?a
+
+.iter iter ?a(a set ?a) trusted
+	stack = mut-stack<inner-node ?a>
+	cur = stack init-iter-recur! a.root
+	iter: cur, stack
+.init-iter-recur! arr ?a(stack mut-stack inner-node ?a, node node ?a)
+	match node
+	as inner-node i
+		stack ~= i
+		stack init-iter-recur! i.left
+	as arr arr
+		arr
+.peek opt ?a(a iter ?a)
+	if a.cur empty?
+		match a.stack peek
+		as none
+			none
+		as some s
+			s.value.value some
+	else
+		a.cur[0] some
+.next! opt ?a(a iter ?a) trusted
+	if a.cur empty?
+		match a.stack pop!
+		as none
+			none
+		as some s
+			node = s value
+			res = node value
+			match node right
+			as inner-node i
+				a.stack ~= i
+			as arr arr
+				a.cur := arr
+			res some
+	else
+		res = a.cur[0]
+		a.cur := a.cur tail
+		res some
+
+# Folds the remaining elements from the iter
+.fold-iter ?a(acc ?a, a iter ?b, f act ?a(?a, ?b))
+	mid = acc fold a.cur, f
+	mid fold-iter-recur a.stack, f
+.fold-iter-recur ?a(acc ?a, stack mut-stack inner-node ?b, f act ?a(?a, ?b))
+	match stack pop!
+	as none
+		acc
+	as some s
+		mid = acc fold-recur-inner-node s.value, f
+		mid fold-iter-recur stack, f
+
+.inserted<?a> record
+	by-val
+	node node ?a
+
+.find-scapegoat record
+	# size of this subtree
+	size nat
+	# height of this subtree
+	height nat
+
+.add-result<?a> union
+	none
+	# TODO: SYNTAX should not require <>
+	inserted<?a>
+	find-scapegoat
+
+.add-recur add-result ?a(a node ?a, value ?a, max-height nat) data<?a>
+	match a
+	as inner-node i
+		i add-to-inner value, max-height
+	as arr arr
+		arr add-to-arr value, max-height
+
+.add-to-inner add-result ?a(a inner-node ?a, value ?a, max-height nat) data<?a>
+	match value <=> a.value
+	as less
+		match a.left add-recur value, max-height - 1
+		as none
+			none
+		as inserted new-left
+			inserted: inner-node: a.value, new-left.node, a.right
+		as find-scapegoat f
+			a handle-scapegoat value, a.right, f
+	as equal
+		none
+	as greater
+		match a.right add-recur value, max-height - 1
+		as none
+			none
+		as inserted new-right
+			inserted: inner-node: a.value, a.left, new-right.node
+		as find-scapegoat f
+			a handle-scapegoat value, a.left, f
+
+.add-to-arr add-result ?a(a arr ?a, value ?a, max-height nat) data<?a>
+	match a find-insertion-index value
+	as none
+		none
+	as some s
+		insert-index = s value
+		if a.size < 4
+			inserted: a insert insert-index, value
+		elif max-height == 0
+			# Can't add new nodes
+			find-scapegoat: a.size + 1, 1
+		else
+			a break-up-arr value, insert-index, max-height
+
+.break-up-arr add-result ?a(a arr ?a, value ?a, insert-index nat, max-height nat) data<?a>
+	# Break it up into nodes, adding to height
+	mid-index = a.size / 2
+	mid = a[mid-index]
+	left-arr = a[0 -> mid-index]
+	right-arr = a[mid-index + 1 -> a.size]
+	forbid: left-arr empty?
+	forbid: right-arr empty?
+	if insert-index < mid-index
+		match left-arr add-to-arr value, max-height - 1
+		as none
+			unreachable
+		as inserted i
+			x = as<node ?a>: right-arr
+			inserted: inner-node: mid, i.node, x
+		as find-scapegoat
+			unreachable
+	else
+		match right-arr add-to-arr value, max-height - 1
+		as none
+			unreachable
+		as inserted i
+			inserted: inner-node: mid, left-arr, i.node
+		as find-scapegoat
+			unreachable
+
+.handle-scapegoat add-result ?a(a inner-node ?a, value ?a, other-subtree node ?a, f find-scapegoat) data<?a>
+	size-here = f.size + 1 + other-subtree.walk-size
+	height-here = f.height + 1
+	if height-here > size-here.get-max-height
+		inserted: a tree-to-arr value, size-here
+	else
+		find-scapegoat: size-here, height-here
+
+.walk-size nat(a node ?a)
+	match a
+	as inner-node i
+		i.left.walk-size + 1 + i.right.walk-size
+	as arr arr
+		arr.size
+
+.tree-to-arr arr ?a(a inner-node ?a, value ?a, size nat) trusted data<?a>
+	out = size uninitialized-mut-arr<?a>
+	end = out.begin-ptr tree-to-arr-recur! a, value
+	assert: end ptr-eq? out.end-ptr
+	out cast-immutable
+.tree-to-arr arr ?a(a inner-node ?a, size nat) trusted data<?a>
+	out = size uninitialized-mut-arr<?a>
+	end = out.begin-ptr tree-to-arr-recur! a
+	assert: end ptr-eq? out.end-ptr
+	out cast-immutable
+.tree-to-arr-recur! ptr ?a(out ptr ?a, a node ?a, value ?a) data<?a> unsafe
+	match a
+	as inner-node i
+		match value <=> i.value
+		as less
+			mid = out tree-to-arr-recur! i.left, value
+			mid[] := i.value
+			mid + 1 tree-to-arr-recur! i.right
+		as equal
+			unreachable
+		as greater
+			mid = out tree-to-arr-recur! i.left
+			mid[] := i.value
+			mid + 1 tree-to-arr-recur! i.right, value
+	as arr arr
+		# Find first x > value, insert it before there
+		idx = arr find-insertion-index value force
+		mid = out copy-out! arr[0 -> idx]
+		mid[] := value
+		mid + 1 copy-out! arr[idx -> arr.size]
+# Version where we know we don't have to insert value
+.tree-to-arr-recur! ptr ?a(out ptr ?a, a node ?a) unsafe
+	match a
+	as inner-node i
+		mid = out tree-to-arr-recur! i.left
+		mid[] := i.value
+		mid + 1 tree-to-arr-recur! i.right
+	as arr arr
+		out copy-out! arr
+
+# TODO:PERF
+.copy-out! ptr ?a(out ptr ?a, a arr ?a) unsafe
+	out fold a, \cur, x
+		cur[] := x
+		cur + 1
+
+# TODO:PERF
+.get-max-height nat(size nat)
+	if size < 4
+		0
+	else
+		(size / 2).get-max-height + 1
+
+# Returns none if the value is already in the arr
+.find-insertion-index opt nat(a arr ?a, value ?a) trusted data<?a>
+	match a.begin-ptr find-insertion-ptr a.end-ptr, value
+	as none
+		none
+	as some s
+		s.value - a.begin-ptr some
+
+.find-insertion-ptr opt ptr ?a(begin ptr ?a, end ptr ?a, value ?a) unsafe data<?a>
+	if begin ptr-eq? end
+		begin some
+	else
+		mid = begin + (end - begin) / 2
+		match value <=> mid[]
+		as less
+			begin find-insertion-ptr mid, value
+		as equal
+			none
+		as greater
+			mid + 1 find-insertion-ptr end, value
+
+
+region iteration
+
+each void(a set ?a, f act void(?a)) data<?a>
+	a.root each-recur f
+.each-recur void(a node ?a, f act void(?a))
+	match a
+	as inner-node i
+		i.left each-recur f
+		f[i.value]
+		i.right each-recur f
+	as arr arr
+		arr each f
+
+fold ?a(acc ?a, a set ?b, f act ?a(?a, ?b)) data<?b>
+	acc fold-recur a.root, f
+.fold-recur ?a(acc ?a, a node ?b, f act ?a(?a, ?b))
+	match a
+	as inner-node i
+		acc fold-recur-inner-node i, f
+	as arr arr
+		acc fold arr, f
+.fold-recur-inner-node ?a(acc ?a, a inner-node ?b, f act ?a(?a, ?b))
+	left-value = acc fold-recur a.left, f
+	f[left-value, a.value] fold-recur a.right, f
+
+filter set ?a(a set ?a, f act bool(?a)) trusted data<?a>
+	out = a.size uninitialized-mut-arr<?a>
+	end = out.begin-ptr fold a, \cur, value
+		if f[value]
+			cur[] := value
+			cur + 1
+		else
+			cur
+	set: out[0 -> end - out.begin-ptr] cast-immutable
+
+# TODO: first-some
+
+map set ?out(a set ?in, f act ?out(?in)) data<?in> data<?out> trusted
+	out = a.size uninitialized-mut-arr<?out>
+	end = out.begin-ptr fold a, \cur, value
+		cur[] := f[value]
+		cur + 1
+	assert: end ptr-eq? out.end-ptr
+	set: out[0 -> end - out.begin-ptr].sort-unique! cast-immutable
+
+.dbg str(a set str)
+	res = mut-list<char>
+	res dbg-recur! a.root
+	res move-to-arr!
+.dbg-recur! void(res mut-list char, a node str)
+	match a
+	as inner-node i
+		res ~= "("
+		res dbg-recur! i.left
+		res ~= " "
+		res ~= i value
+		res ~= " "
+		res dbg-recur! i.right
+		res ~= ")"
+	as arr arr
+		if arr empty?
+			res ~= "[]"
+		else
+			res ~= "["
+			arr each \x
+				res ~= x
+				res ~= " "
+			res.last := "]"
+
+.validate void(a set str, expected str)
+	assert: a.size == a.root.walk-size
+	assert: a.dbg == expected
+
+test
+	s0 = set<str>
+	s0 validate "[]"
+
+	s1 = s0 ~ "h"
+	s1 validate "[h]"
+
+	s2 = s1 ~ "k"
+	s2 validate "[h k]"
+
+	s3 = s2 ~ "i"
+	s3 validate "[h i k]"
+
+	s4 = s3 ~ "j"
+	s4 validate "[h i j k]"
+
+	assert: s4["h"]
+	assert: s4 ~ "i" == s4
+
+	s5 = s4 ~ "l"
+	s5 validate "([h i] j [k l])"
+
+	(s5 - "i") validate "([h] j [k l])"
+	(s5 - "j") validate "([h] i [k l])"
+	(s5 - "k") validate "([h i] j [l])"
+	s6 = s5 ~ "jj"
+	s6 validate "([h i] j [jj k l])"
+
+	s7 = s6 ~ "ji"
+	s7 validate "([h i] j [ji jj k l])"
+
+	s8 = s7 ~ "jk"
+	s8 validate "([h i] j ([ji jj] k [jk l]))"
+
+	s8-k = s8 - "k"
+	s8-k validate "([h i] j ([ji] jj [jk l]))"
+	s8-k-jj = s8-k - "jj"
+	s8-k-jj validate "([h i] j ([] ji [jk l]))"
+	s8-k-jj - "ji" validate "([h i] j [jk l])"
+
+	s9 = s8 ~ "m"
+	s9 validate "([h i] j ([ji jj] k [jk l m]))"
+	s10 = s9 ~ "n"
+	s10 validate "([h i] j ([ji jj] k [jk l m n]))"
+	s11 = s10 ~ "o"
+	s11 validate "[h i j ji jj k jk l m n o]"
+
+	s8 ~ ["a", "jii", "z"].set validate "[a h i j ji jii jj jk k l z]"
+	s8 - s4 validate "[ji jj jk l]"
+	s8-k-jj intersect s3 validate "[h i]"
+
+	folded = "s" fold s8, \x, y
+		x ~ y
+	assert: folded == "shijjijjkjkl"
+
+	filtered = s8 filter {it[0] != "j"}
+	filtered validate "[h i k l]"
+
+	mapped = s8 map {it[0 -> 1]}
+	mapped validate "[h i j k l]"
