@@ -1,32 +1,34 @@
 import
 	col.arr-util: each
-	#col.deque: deque
-	#col.dict: dict
-	#col.list: list
-	#col.mut-dict: mut-dict
-	#col.mut-list: mut-list
-	#col.mut-set: mut-set
-	#col.mut-stack: mut-stack
+	col.deque: deque
+	col.dict: dict
+	col.list: list
+	col.mut-dict: mut-dict
+	col.mut-list: mut-list
+	col.mut-set: mut-set
+	col.mut-stack: mut-stack
+	col.priority-queue: priority-queue
 	col.set: set
-	#col.stack: stack
-	#col.queue: queue
+	col.stack: stack
+	col.queue: queue
 	io.print: print
 	#io.time-format: gmt
 	log: info, log
 	private.bootstrap: ctx, get-ctx
 
 main fut nat(_ arr str) summon
-	#drop: deque<nat>
-	#drop: dict<nat, nat>
-	#drop: mut-dict<nat, nat>
-	#drop: mut-list<nat>
-	#drop: mut-set<nat>
-	#drop: mut-stack<nat>
-	#drop: list<nat>
-	#drop: set<nat>
+	drop: deque<nat>
+	drop: dict<nat, nat>
+	drop: list<nat>
+	drop: mut-dict<nat, nat>
+	drop: mut-list<nat>
+	drop: mut-set<nat>
+	drop: mut-stack<nat>
+	drop: priority-queue<nat, nat>
 	drop: set<nat>
-	#drop: stack<nat>
-	#drop: queue<nat>
+	drop: set<nat>
+	drop: stack<nat>
+	drop: queue<nat>
 	#drop: gmt
 	run-all-tests
 	0 resolved
@@ -41,5 +43,5 @@ run-all-tests void() summon trusted
 	print: "done"
 
 test
-	assert: 1 + 1 == 2
+	1 + 1 is 2
 	info log "I am a test!"

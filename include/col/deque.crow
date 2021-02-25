@@ -1,8 +1,7 @@
 no-std
 import
 	..bool: and, bool
-	..compare: ==
-	..exception: assert
+	..exception: assert, is
 	..fun: subscript
 	..misc: ->, void
 	..number: +, even?, nat
@@ -116,40 +115,39 @@ map deque ?out(a deque ?in, f act ?out(?in)) trusted
 test
 	a = deque<nat>
 	assert: a empty?
-	assert: a.arr == []
-	assert: a.pop-left == none
-	assert: a.pop-right == none
+	a.arr is []
+	a.pop-left is none
+	a.pop-right is none
 
 	bl = 1 ~ a
-	assert: bl.arr == [1]
+	bl.arr is [1]
 	bl-pop-left = bl.pop-left force
-	assert: bl-pop-left == popped: 1, deque
-	assert: bl.pop-right == bl-pop-left.some
+	bl-pop-left is popped: 1, deque
+	bl.pop-right is bl-pop-left.some
 
 	br = a ~ 1
-	assert: br.arr == bl.arr
-	assert: br.pop-left == bl-pop-left.some
-	assert: br.pop-right == bl-pop-left.some
+	br.arr is bl.arr
+	br.pop-left is bl-pop-left.some
+	br.pop-right is bl-pop-left.some
 
 	# Now it has 1 node on the left and 2 on the right.
 	c = bl ~ 2 ~ 3
 	c-pop = c.pop-left force
-	assert: c-pop.value == 1
+	c-pop.value is 1
 
 	# Forces it to convert to an array
 	d = c-pop.rest
-	d-pop = d.pop-left force
-	assert: d-pop == popped: 2, deque: [3]
+	d.pop-left is some: popped: 2, deque: [3]
 
 	# Test converting right stack to array
 	x = 1 ~ (2 ~ (3 ~ [].deque))
 	x-pop = x.pop-right force
-	assert: x-pop.value == 3
-	assert: x-pop == popped: 3, deque: [1, 2]
+	x-pop.value is 3
+	x-pop is popped: 3, deque: [1, 2]
 
 	six = 1 ~ (2 ~ [3, 4].deque) ~ 5 ~ 6
 	folded = 10 fold six, \x, y
 		x + y
-	assert: folded == 31
-	assert: (six filter {it even?}).arr == [2, 4, 6]
-	assert: (six map {it + 10}).arr == [11, 12, 13, 14, 15, 16]
+	folded is 31
+	(six filter {it even?}).arr is [2, 4, 6]
+	(six map {it + 10}).arr is [11, 12, 13, 14, 15, 16]

@@ -2,7 +2,7 @@ no-std
 import
 	..bool: ?, bool
 	..compare: ==, !=
-	..exception: assert, fail, forbid
+	..exception: assert, fail, forbid, is
 	..fun: subscript
 	..misc: drop, void
 	..number: +, nat
@@ -192,33 +192,33 @@ first-some opt ?out(a stack ?in, f act opt ?out(?in))
 test
 	a = stack<nat>
 	assert: a empty?
-	assert: a.arr == []
+	a.arr is []
 	# TODO: assert a.last throws
 
 	b = a ~ 1
-	assert: b.arr == [1]
-	assert: b.last == 1
-	assert: b.rtail == a
+	b.arr is [1]
+	b.last is 1
+	b.rtail is a
 	forbid: b empty?
 
 
 	c = b ~ 2
-	assert: c.arr == [1, 2]
-	assert: c.last == 2
-	assert: c.rtail == b
+	c.arr is [1, 2]
+	c.last is 2
+	c.rtail is b
 
 	d = c ~ 3
-	assert: d.arr == [1, 2, 3]
+	d.arr is [1, 2, 3]
 
 	d2 = d map {it + 10}
-	assert: d2.arr == [11, 12, 13]
+	d2.arr is [11, 12, 13]
 
 	d3 = d filter {it != 2}
-	assert: d3.arr == [1, 3]
+	d3.arr is [1, 3]
 
 	folded = 5 fold d, \x, y
 		x + y
-	assert: folded == 11
+	folded is 11
 
-	assert: (d first-some<str, nat> {it == 2 ? "two".some, none}) == "two".some
-	assert: (d first-some<str, nat> {it == 5 ? "five".some, none}) == none
+	(d first-some<str, nat> {it == 2 ? "two".some, none}) is "two".some
+	(d first-some<str, nat> {it == 5 ? "five".some, none}) is none

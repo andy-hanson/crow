@@ -1,0 +1,239 @@
+no-std
+import
+	..bool: ?, bool, false, not, true
+	..compare: ==, <, <=, <=>
+	..exception: assert, is
+	..log: info, log
+	..misc: ->, arrow, as, data, drop, from, to, void
+	..number: +, nat
+	..opt: force, none, opt, some, value
+	..ptr: +, ptr, ptr-eq?, set-subscript
+	..str: char, str
+	..str-conv: to-str
+	.arr: arr, empty?, size
+	.arr-util: each, first, fold, tail
+	.mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr
+	.mut-list: ~=, move-to-arr!, mut-list, pop-n!
+	.sort: sort, sort!
+
+priority-queue<?k, ?v> record
+	root opt node<?k, ?v>
+
+###
+Priority queue consists of a linked list of nodes with two parts.
+First part is recently inserted values. These all have a single pair in 'min' and nothing in 'pairs'.
+Next part is compacted arrays of pairs. These are sorted biggest to smallest.
+They grow exponentially from right to left, so total # of these nodes is logarithmic in queue size.
+
+So node sizes might look like:
+
+	1 1 1 8 4 2 1
+
+A push operation just adds to the left.
+A pop operation will compact all the left nodes into a big node,
+and also compact any nodes of the same size or less with it.
+(This applies recursively, so if the 3 1s were compacted,
+they would join with the `1` on the right to size 4, then with the `2` on the right to size 6,
+then with the `4` to size 10, then with the `8` to size 18, leaving only one node.)
+###
+
+.node<?k, ?v> record
+	min arrow<?k, ?v>
+	pairs arr arrow<?k, ?v>
+	next opt node<?k, ?v>
+
+priority-queue priority-queue<?k, ?v>() data<?k>
+	priority-queue: none
+
+prioirty-queue priority-queue<?k, ?v>(a arr arrow<?k, ?v>) data<?k>
+	if a empty?
+		priority-queue
+	else
+		sorted = a sort \x, y
+			x.from <=> y.from
+		priority-queue: some: node: sorted.first, sorted.tail, none
+
+###
+Add a pair to the queue.
+This is O(1).
+###
+~ priority-queue<?k, ?v>(a priority-queue<?k, ?v>, b arrow<?k, ?v>) data<?k>
+	priority-queue: some: node: b, [], a.root
+
+popped<?k, ?v> record
+	popped arrow<?k, ?v>
+	rest priority-queue<?k, ?v>
+
+pop opt popped<?k, ?v>(a priority-queue<?k, ?v>) data<?k>
+	match a.compact-leading-nodes root
+	as none
+		none
+	as some some-root
+		root = some-root value
+		match root next
+		as none
+			some: root pop-from-node
+		as some some-next
+			next = some-next value
+			match next pop-no-compact-recur root.min.from
+			as none
+				some: root pop-from-node
+			as some s
+				some: root combine-with-popped s.value
+
+.pop-from-node popped<?k, ?v>(a node<?k, ?v>)
+	rest = if a.pairs empty?
+		a next
+	else
+		some: node: a.pairs.first, a.pairs.tail, a.next
+	popped: a.min, priority-queue: rest
+
+# Returns none if this (or any following node) did not have a lower min.
+.pop-no-compact-recur opt popped<?k, ?v>(a node<?k, ?v>, min ?k) data<?k>
+	is-min? = a.min.from < min
+	next-popped = match a next
+	as none
+		none as<opt popped<?k, ?v>>
+	as some s
+		s.value pop-no-compact-recur (is-min? ? a.min.from, min)
+
+	match next-popped
+	as none
+		is-min? ? a.pop-from-node.some, none
+	as some s
+		some: a combine-with-popped s.value
+
+combine-with-popped popped<?k, ?v>(a node<?k, ?v>, popped popped<?k, ?v>)
+	node = node<?k, ?v>: a.min, a.pairs, popped.rest.root
+	popped: popped.popped, priority-queue: some: node
+
+.compact-leading-nodes priority-queue<?k, ?v>(a priority-queue<?k, ?v>) data<?k> trusted
+	mid = a.root find-mid 0
+	if mid.n-before-mid == 0
+		a
+	else
+		root = a.root force
+		priority-queue: some: match mid.mid plan root, mid.n-before-mid
+		as plan-did-compact p
+			p node
+		as plan-will-compact w
+			root do-compact w.n-elements-to-compact, mid.mid
+
+.found-mid<?k, ?v> record
+	mid opt node<?k, ?v>
+	n-before-mid nat
+
+# Finds the first node with 'pairs' non-empty.
+# Also returns the # of nodes before that
+.find-mid found-mid<?k, ?v>(a opt node<?k, ?v>, n-before nat)
+	match a
+	as none
+		found-mid: none, n-before
+	as some s
+		node = s value
+		if node.pairs empty?
+			node.next find-mid n-before + 1
+		else
+			found-mid: node.some, n-before
+
+.plan-did-compact<?k, ?v> record
+	node node<?k, ?v>
+
+.plan-will-compact<?k, ?v> record
+	n-elements-to-compact nat
+
+.plan<?k, ?v> union
+	plan-did-compact<?k, ?v>
+	plan-will-compact<?k, ?v>
+
+# We only call this if we will definitely compact something,
+# TODO: 'plan' is misnamed, this now does the compaction during the recursion
+.plan plan<?k, ?v>(a opt node<?k, ?v>, root node<?k, ?v>, n-singles nat) data<?k>
+	match a
+	as none
+		plan-will-compact<?k, ?v>: n-singles
+	as some s
+		node = s value
+		match node.next plan root, n-singles
+		as plan-did-compact d
+			new-node = node<?k, ?v>: node.min, node.pairs, d.node.some
+			plan-did-compact: new-node
+		as plan-will-compact c
+			node-size-here = 1 + node.pairs.size
+			if node-size-here <= c.n-elements-to-compact
+				plan-will-compact: c.n-elements-to-compact + node-size-here
+			else
+				compacted = root do-compact c.n-elements-to-compact, node.next
+				plan-did-compact: node: node.min, node.pairs, some: compacted
+
+.do-compact node<?k, ?v>(root node<?k, ?v>, n-to-compact nat, nodes-to-compact opt node<?k, ?v>) trusted data<?k>
+	compacted = n-to-compact uninitialized-mut-arr<arrow<?k, ?v>>
+	mid = compacted.begin-ptr compact-singles! root
+	end = mid compact-non-singles! nodes-to-compact
+	assert: end ptr-eq? compacted.end-ptr
+	compacted sort! \x, y
+		x.from <=> y.from
+	arr = compacted cast-immutable
+	node: arr.first, arr.tail, none
+
+.compact-singles! ptr arrow<?k, ?v>(out ptr arrow<?k, ?v>, a node<?k, ?v>) unsafe
+	if a.pairs empty?
+		out[] := a.min
+		match a next
+		as none
+			out + 1
+		as some s
+			out + 1 compact-singles! s.value
+	else
+		out
+
+.compact-non-singles! ptr arrow<?k, ?v>(out ptr arrow<?k, ?v>, a opt node<?k, ?v>) unsafe
+	match a
+	as none
+		out
+	as some s
+		node = s value
+		out[] := node min
+		out2 = out + 1 fold node.pairs, \cur, x
+			cur[] := x
+			cur + 1
+		out2 compact-non-singles! node.next
+
+.dbg str(a priority-queue<nat, str>)
+	res = mut-list<char>
+	res dbg-recur! a.root, true
+	res move-to-arr!
+.dbg-recur! void(out mut-list char, a opt node<nat, str>, first bool)
+	match a
+	as none
+		void
+	as some s
+		if first not
+			out ~= "; "
+		node = s value
+		out ~= node.min.from to-str
+		out ~= " "
+		out ~= node.min.to to-str
+		out ~= " ["
+		if node.pairs.empty? not
+			node.pairs each \pair
+				out ~= pair.from to-str
+				out ~= " "
+				out ~= pair.to to-str
+				out ~= ", "
+			out pop-n! ", ".size
+		out ~= "]"
+		out dbg-recur! node.next, false
+
+###
+0 "zero" [1 "one", ]; 1 []; 2 [3 4];
+###
+
+test
+	p = priority-queue<nat, str>
+
+	p1 = p ~ (5 -> "5")
+
+	drop: p
+	info log p1.dbg
+	p1.dbg is "5 5 []"

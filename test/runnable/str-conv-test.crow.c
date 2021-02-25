@@ -1921,13 +1921,13 @@ char constantarr_0_541[18] = "ptr-cast<nat8, ?a>";
 char constantarr_0_542[8] = "?<int32>";
 char constantarr_0_543[25] = "any-unhandled-exceptions?";
 char constantarr_0_544[4] = "main";
-char constantarr_0_545[12] = "==<opt<nat>>";
+char constantarr_0_545[12] = "is<opt<nat>>";
 char constantarr_0_546[9] = "parse-nat";
 char constantarr_0_547[15] = "parse-nat-recur";
 char constantarr_0_548[11] = "char-to-nat";
 char constantarr_0_549[15] = "subscript<char>";
 char constantarr_0_550[10] = "tail<char>";
-char constantarr_0_551[12] = "==<opt<int>>";
+char constantarr_0_551[12] = "is<opt<int>>";
 char constantarr_0_552[9] = "parse-int";
 char constantarr_0_553[13] = "map<int, nat>";
 char constantarr_0_554[10] = "some<?out>";
@@ -2324,10 +2324,11 @@ struct void_ unmanaged_free_0(uint64_t* p);
 extern void free(uint8_t* p);
 struct void_ unmanaged_free_1(struct thread_args* p);
 struct fut_0* main_0(struct ctx* ctx, struct arr_1 _p0);
+struct void_ is_0(struct ctx* ctx, struct opt_9 a, struct opt_9 b);
 uint8_t _equal_4(struct opt_9 a, struct opt_9 b);
-struct comparison compare_384(struct opt_9 a, struct opt_9 b);
-struct comparison compare_385(struct none a, struct none b);
-struct comparison compare_386(struct some_9 a, struct some_9 b);
+struct comparison compare_385(struct opt_9 a, struct opt_9 b);
+struct comparison compare_386(struct none a, struct none b);
+struct comparison compare_387(struct some_9 a, struct some_9 b);
 struct opt_9 parse_nat(struct ctx* ctx, struct arr_0 a);
 struct opt_9 parse_nat_recur(struct ctx* ctx, struct arr_0 a, uint64_t accum);
 struct opt_9 char_to_nat(struct ctx* ctx, char c);
@@ -2335,13 +2336,14 @@ char subscript_25(struct ctx* ctx, struct arr_0 a, uint64_t index);
 char noctx_at_4(struct arr_0 a, uint64_t index);
 char subscript_26(char* a, uint64_t n);
 struct arr_0 tail_2(struct ctx* ctx, struct arr_0 a);
+struct void_ is_1(struct ctx* ctx, struct opt_10 a, struct opt_10 b);
 uint8_t _equal_5(struct opt_10 a, struct opt_10 b);
-struct comparison compare_395(struct opt_10 a, struct opt_10 b);
-struct comparison compare_396(struct some_10 a, struct some_10 b);
+struct comparison compare_397(struct opt_10 a, struct opt_10 b);
+struct comparison compare_398(struct some_10 a, struct some_10 b);
 struct opt_10 parse_int(struct ctx* ctx, struct arr_0 a);
 struct opt_10 map_1(struct ctx* ctx, struct opt_9 a, struct fun_act1_7 f);
 int64_t subscript_27(struct ctx* ctx, struct fun_act1_7 a, uint64_t p0);
-int64_t call_w_ctx_400(struct fun_act1_7 a, struct ctx* ctx, uint64_t p0);
+int64_t call_w_ctx_402(struct fun_act1_7 a, struct ctx* ctx, uint64_t p0);
 int64_t _times_1(struct ctx* ctx, int64_t a, int64_t b);
 int64_t to_int(struct ctx* ctx, uint64_t n);
 uint64_t to_nat(struct ctx* ctx, int64_t a);
@@ -3152,7 +3154,7 @@ struct opt_6 try_alloc_uninitialized_1(struct ctx* ctx, uint64_t size) {
 }
 /* funs-count (generated) (generated) */
 uint64_t funs_count_81(void) {
-	return 413u;
+	return 415u;
 }
 /* code-ptrs-size nat() */
 uint64_t code_ptrs_size(struct ctx* ctx) {
@@ -4338,10 +4340,10 @@ uint8_t* get_fun_ptr_87(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) main_0;
 		}
 		case 383: {
-			return (uint8_t*) _equal_4;
+			return (uint8_t*) is_0;
 		}
 		case 384: {
-			return (uint8_t*) compare_384;
+			return (uint8_t*) _equal_4;
 		}
 		case 385: {
 			return (uint8_t*) compare_385;
@@ -4350,81 +4352,87 @@ uint8_t* get_fun_ptr_87(uint64_t fun_id) {switch (fun_id) {
 			return (uint8_t*) compare_386;
 		}
 		case 387: {
-			return (uint8_t*) parse_nat;
+			return (uint8_t*) compare_387;
 		}
 		case 388: {
-			return (uint8_t*) parse_nat_recur;
+			return (uint8_t*) parse_nat;
 		}
 		case 389: {
-			return (uint8_t*) char_to_nat;
+			return (uint8_t*) parse_nat_recur;
 		}
 		case 390: {
-			return (uint8_t*) subscript_25;
+			return (uint8_t*) char_to_nat;
 		}
 		case 391: {
-			return (uint8_t*) noctx_at_4;
+			return (uint8_t*) subscript_25;
 		}
 		case 392: {
-			return (uint8_t*) subscript_26;
+			return (uint8_t*) noctx_at_4;
 		}
 		case 393: {
-			return (uint8_t*) tail_2;
+			return (uint8_t*) subscript_26;
 		}
 		case 394: {
-			return (uint8_t*) _equal_5;
+			return (uint8_t*) tail_2;
 		}
 		case 395: {
-			return (uint8_t*) compare_395;
+			return (uint8_t*) is_1;
 		}
 		case 396: {
-			return (uint8_t*) compare_396;
+			return (uint8_t*) _equal_5;
 		}
 		case 397: {
-			return (uint8_t*) parse_int;
+			return (uint8_t*) compare_397;
 		}
 		case 398: {
-			return (uint8_t*) map_1;
+			return (uint8_t*) compare_398;
 		}
 		case 399: {
-			return (uint8_t*) subscript_27;
+			return (uint8_t*) parse_int;
 		}
 		case 400: {
-			return (uint8_t*) call_w_ctx_400;
+			return (uint8_t*) map_1;
 		}
 		case 401: {
-			return (uint8_t*) _times_1;
+			return (uint8_t*) subscript_27;
 		}
 		case 402: {
-			return (uint8_t*) to_int;
+			return (uint8_t*) call_w_ctx_402;
 		}
 		case 403: {
-			return (uint8_t*) to_nat;
+			return (uint8_t*) _times_1;
 		}
 		case 404: {
-			return (uint8_t*) _less_1;
+			return (uint8_t*) to_int;
 		}
 		case 405: {
-			return (uint8_t*) max_int;
+			return (uint8_t*) to_nat;
 		}
 		case 406: {
-			return (uint8_t*) parse_int__lambda0;
+			return (uint8_t*) _less_1;
 		}
 		case 407: {
-			return (uint8_t*) parse_int__lambda1;
+			return (uint8_t*) max_int;
 		}
 		case 408: {
-			return (uint8_t*) to_str_3;
+			return (uint8_t*) parse_int__lambda0;
 		}
 		case 409: {
-			return (uint8_t*) mod;
+			return (uint8_t*) parse_int__lambda1;
 		}
 		case 410: {
-			return (uint8_t*) to_str_4;
+			return (uint8_t*) to_str_3;
 		}
 		case 411: {
-			return (uint8_t*) with_value_2;
+			return (uint8_t*) mod;
 		}
 		case 412: {
+			return (uint8_t*) to_str_4;
+		}
+		case 413: {
+			return (uint8_t*) with_value_2;
+		}
+		case 414: {
 			return (uint8_t*) resolved_1;
 		}
 		default:
@@ -5590,7 +5598,7 @@ struct arr_0 get_fun_name_89(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {12, constantarr_0_545};
 		}
 		case 384: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {6, constantarr_0_101};
 		}
 		case 385: {
 			return (struct arr_0) {0u, NULL};
@@ -5599,81 +5607,87 @@ struct arr_0 get_fun_name_89(uint64_t fun_id) {switch (fun_id) {
 			return (struct arr_0) {0u, NULL};
 		}
 		case 387: {
-			return (struct arr_0) {9, constantarr_0_546};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 388: {
-			return (struct arr_0) {15, constantarr_0_547};
+			return (struct arr_0) {9, constantarr_0_546};
 		}
 		case 389: {
-			return (struct arr_0) {11, constantarr_0_548};
+			return (struct arr_0) {15, constantarr_0_547};
 		}
 		case 390: {
-			return (struct arr_0) {15, constantarr_0_549};
+			return (struct arr_0) {11, constantarr_0_548};
 		}
 		case 391: {
-			return (struct arr_0) {12, constantarr_0_217};
+			return (struct arr_0) {15, constantarr_0_549};
 		}
 		case 392: {
-			return (struct arr_0) {13, constantarr_0_208};
+			return (struct arr_0) {12, constantarr_0_217};
 		}
 		case 393: {
-			return (struct arr_0) {10, constantarr_0_550};
+			return (struct arr_0) {13, constantarr_0_208};
 		}
 		case 394: {
-			return (struct arr_0) {12, constantarr_0_551};
+			return (struct arr_0) {10, constantarr_0_550};
 		}
 		case 395: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {12, constantarr_0_551};
 		}
 		case 396: {
-			return (struct arr_0) {0u, NULL};
+			return (struct arr_0) {6, constantarr_0_101};
 		}
 		case 397: {
-			return (struct arr_0) {9, constantarr_0_552};
-		}
-		case 398: {
-			return (struct arr_0) {13, constantarr_0_553};
-		}
-		case 399: {
-			return (struct arr_0) {20, constantarr_0_346};
-		}
-		case 400: {
 			return (struct arr_0) {0u, NULL};
 		}
+		case 398: {
+			return (struct arr_0) {0u, NULL};
+		}
+		case 399: {
+			return (struct arr_0) {9, constantarr_0_552};
+		}
+		case 400: {
+			return (struct arr_0) {13, constantarr_0_553};
+		}
 		case 401: {
-			return (struct arr_0) {1, constantarr_0_261};
+			return (struct arr_0) {20, constantarr_0_346};
 		}
 		case 402: {
-			return (struct arr_0) {6, constantarr_0_192};
+			return (struct arr_0) {0u, NULL};
 		}
 		case 403: {
-			return (struct arr_0) {6, constantarr_0_555};
+			return (struct arr_0) {1, constantarr_0_261};
 		}
 		case 404: {
-			return (struct arr_0) {6, constantarr_0_556};
+			return (struct arr_0) {6, constantarr_0_192};
 		}
 		case 405: {
-			return (struct arr_0) {7, constantarr_0_557};
+			return (struct arr_0) {6, constantarr_0_555};
 		}
 		case 406: {
-			return (struct arr_0) {17, constantarr_0_558};
+			return (struct arr_0) {6, constantarr_0_556};
 		}
 		case 407: {
-			return (struct arr_0) {17, constantarr_0_559};
+			return (struct arr_0) {7, constantarr_0_557};
 		}
 		case 408: {
-			return (struct arr_0) {6, constantarr_0_244};
+			return (struct arr_0) {17, constantarr_0_558};
 		}
 		case 409: {
-			return (struct arr_0) {3, constantarr_0_560};
+			return (struct arr_0) {17, constantarr_0_559};
 		}
 		case 410: {
-			return (struct arr_0) {11, constantarr_0_562};
+			return (struct arr_0) {6, constantarr_0_244};
 		}
 		case 411: {
-			return (struct arr_0) {14, constantarr_0_563};
+			return (struct arr_0) {3, constantarr_0_560};
 		}
 		case 412: {
+			return (struct arr_0) {11, constantarr_0_562};
+		}
+		case 413: {
+			return (struct arr_0) {14, constantarr_0_563};
+		}
+		case 414: {
 			return (struct arr_0) {13, constantarr_0_564};
 		}
 		default:
@@ -8689,37 +8703,34 @@ struct void_ unmanaged_free_1(struct thread_args* p) {
 /* main fut<nat>(_ arr<arr<char>>) */
 struct fut_0* main_0(struct ctx* ctx, struct arr_1 _p0) {
 	struct opt_9 _0 = parse_nat(ctx, (struct arr_0) {0u, NULL});
-	uint8_t _1 = _equal_4(_0, (struct opt_9) {0, .as0 = (struct none) {}});
-	assert(ctx, _1);
-	struct opt_9 _2 = parse_nat(ctx, (struct arr_0) {1, constantarr_0_10});
-	uint8_t _3 = _equal_4(_2, (struct opt_9) {1, .as1 = (struct some_9) {1u}});
-	assert(ctx, _3);
-	struct opt_9 _4 = parse_nat(ctx, (struct arr_0) {3, constantarr_0_11});
-	uint8_t _5 = _equal_4(_4, (struct opt_9) {0, .as0 = (struct none) {}});
-	assert(ctx, _5);
-	struct opt_9 _6 = parse_nat(ctx, (struct arr_0) {2, constantarr_0_12});
-	uint8_t _7 = _equal_4(_6, (struct opt_9) {0, .as0 = (struct none) {}});
-	assert(ctx, _7);
-	struct opt_10 _8 = parse_int(ctx, (struct arr_0) {3, constantarr_0_13});
-	uint8_t _9 = _equal_5(_8, (struct opt_10) {1, .as1 = (struct some_10) {123}});
-	assert(ctx, _9);
-	struct opt_10 _10 = parse_int(ctx, (struct arr_0) {4, constantarr_0_14});
-	uint8_t _11 = _equal_5(_10, (struct opt_10) {1, .as1 = (struct some_10) {-123}});
-	assert(ctx, _11);
-	struct opt_10 _12 = parse_int(ctx, (struct arr_0) {4, constantarr_0_15});
-	uint8_t _13 = _equal_5(_12, (struct opt_10) {1, .as1 = (struct some_10) {123}});
-	assert(ctx, _13);
-	struct opt_10 _14 = parse_int(ctx, (struct arr_0) {4, constantarr_0_16});
-	uint8_t _15 = _equal_5(_14, (struct opt_10) {0, .as0 = (struct none) {}});
-	assert(ctx, _15);
-	struct opt_9 _16 = parse_nat(ctx, (struct arr_0) {1, constantarr_0_10});
-	struct arr_0 _17 = to_str_4(ctx, _16);
-	print(_17);
+	is_0(ctx, _0, (struct opt_9) {0, .as0 = (struct none) {}});
+	struct opt_9 _1 = parse_nat(ctx, (struct arr_0) {1, constantarr_0_10});
+	is_0(ctx, _1, (struct opt_9) {1, .as1 = (struct some_9) {1u}});
+	struct opt_9 _2 = parse_nat(ctx, (struct arr_0) {3, constantarr_0_11});
+	is_0(ctx, _2, (struct opt_9) {0, .as0 = (struct none) {}});
+	struct opt_9 _3 = parse_nat(ctx, (struct arr_0) {2, constantarr_0_12});
+	is_0(ctx, _3, (struct opt_9) {0, .as0 = (struct none) {}});
+	struct opt_10 _4 = parse_int(ctx, (struct arr_0) {3, constantarr_0_13});
+	is_1(ctx, _4, (struct opt_10) {1, .as1 = (struct some_10) {123}});
+	struct opt_10 _5 = parse_int(ctx, (struct arr_0) {4, constantarr_0_14});
+	is_1(ctx, _5, (struct opt_10) {1, .as1 = (struct some_10) {-123}});
+	struct opt_10 _6 = parse_int(ctx, (struct arr_0) {4, constantarr_0_15});
+	is_1(ctx, _6, (struct opt_10) {1, .as1 = (struct some_10) {123}});
+	struct opt_10 _7 = parse_int(ctx, (struct arr_0) {4, constantarr_0_16});
+	is_1(ctx, _7, (struct opt_10) {0, .as0 = (struct none) {}});
+	struct opt_9 _8 = parse_nat(ctx, (struct arr_0) {1, constantarr_0_10});
+	struct arr_0 _9 = to_str_4(ctx, _8);
+	print(_9);
 	return resolved_1(ctx, 0u);
 }
-/* ==<opt<nat>> bool(a opt<nat>, b opt<nat>) */
+/* is<opt<nat>> void(a opt<nat>, b opt<nat>) */
+struct void_ is_0(struct ctx* ctx, struct opt_9 a, struct opt_9 b) {
+	uint8_t _0 = _equal_4(a, b);
+	return assert(ctx, _0);
+}
+/* ==<?a> bool(a opt<nat>, b opt<nat>) */
 uint8_t _equal_4(struct opt_9 a, struct opt_9 b) {
-	struct comparison _0 = compare_384(a, b);
+	struct comparison _0 = compare_385(a, b);
 	switch (_0.kind) {
 		case 0: {
 			return 0;
@@ -8735,7 +8746,7 @@ uint8_t _equal_4(struct opt_9 a, struct opt_9 b) {
 	}
 }
 /* compare<opt<nat>> (generated) (generated) */
-struct comparison compare_384(struct opt_9 a, struct opt_9 b) {
+struct comparison compare_385(struct opt_9 a, struct opt_9 b) {
 	struct opt_9 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -8746,7 +8757,7 @@ struct comparison compare_384(struct opt_9 a, struct opt_9 b) {
 				case 0: {
 					struct none b0 = _1.as0;
 					
-					return compare_385(a0, b0);
+					return compare_386(a0, b0);
 				}
 				case 1: {
 					return (struct comparison) {0, .as0 = (struct less) {}};
@@ -8766,7 +8777,7 @@ struct comparison compare_384(struct opt_9 a, struct opt_9 b) {
 				case 1: {
 					struct some_9 b1 = _2.as1;
 					
-					return compare_386(a1, b1);
+					return compare_387(a1, b1);
 				}
 				default:
 					return (struct comparison) {0};
@@ -8777,11 +8788,11 @@ struct comparison compare_384(struct opt_9 a, struct opt_9 b) {
 	}
 }
 /* compare<none> (generated) (generated) */
-struct comparison compare_385(struct none a, struct none b) {
+struct comparison compare_386(struct none a, struct none b) {
 	return (struct comparison) {1, .as1 = (struct equal) {}};
 }
 /* compare<some<nat>> (generated) (generated) */
-struct comparison compare_386(struct some_9 a, struct some_9 b) {
+struct comparison compare_387(struct some_9 a, struct some_9 b) {
 	struct comparison _0 = compare_5(a.value, b.value);
 	switch (_0.kind) {
 		case 0: {
@@ -8911,9 +8922,14 @@ struct arr_0 tail_2(struct ctx* ctx, struct arr_0 a) {
 	struct arrow _1 = _arrow(ctx, 1u, a.size);
 	return subscript_6(ctx, a, _1);
 }
-/* ==<opt<int>> bool(a opt<int>, b opt<int>) */
+/* is<opt<int>> void(a opt<int>, b opt<int>) */
+struct void_ is_1(struct ctx* ctx, struct opt_10 a, struct opt_10 b) {
+	uint8_t _0 = _equal_5(a, b);
+	return assert(ctx, _0);
+}
+/* ==<?a> bool(a opt<int>, b opt<int>) */
 uint8_t _equal_5(struct opt_10 a, struct opt_10 b) {
-	struct comparison _0 = compare_395(a, b);
+	struct comparison _0 = compare_397(a, b);
 	switch (_0.kind) {
 		case 0: {
 			return 0;
@@ -8929,7 +8945,7 @@ uint8_t _equal_5(struct opt_10 a, struct opt_10 b) {
 	}
 }
 /* compare<opt<int>> (generated) (generated) */
-struct comparison compare_395(struct opt_10 a, struct opt_10 b) {
+struct comparison compare_397(struct opt_10 a, struct opt_10 b) {
 	struct opt_10 _0 = a;
 	switch (_0.kind) {
 		case 0: {
@@ -8940,7 +8956,7 @@ struct comparison compare_395(struct opt_10 a, struct opt_10 b) {
 				case 0: {
 					struct none b0 = _1.as0;
 					
-					return compare_385(a0, b0);
+					return compare_386(a0, b0);
 				}
 				case 1: {
 					return (struct comparison) {0, .as0 = (struct less) {}};
@@ -8960,7 +8976,7 @@ struct comparison compare_395(struct opt_10 a, struct opt_10 b) {
 				case 1: {
 					struct some_10 b1 = _2.as1;
 					
-					return compare_396(a1, b1);
+					return compare_398(a1, b1);
 				}
 				default:
 					return (struct comparison) {0};
@@ -8971,7 +8987,7 @@ struct comparison compare_395(struct opt_10 a, struct opt_10 b) {
 	}
 }
 /* compare<some<int>> (generated) (generated) */
-struct comparison compare_396(struct some_10 a, struct some_10 b) {
+struct comparison compare_398(struct some_10 a, struct some_10 b) {
 	struct comparison _0 = compare_37(a.value, b.value);
 	switch (_0.kind) {
 		case 0: {
@@ -9027,10 +9043,10 @@ struct opt_10 map_1(struct ctx* ctx, struct opt_9 a, struct fun_act1_7 f) {
 }
 /* subscript<?out, ?in> int(a fun-act1<int, nat>, p0 nat) */
 int64_t subscript_27(struct ctx* ctx, struct fun_act1_7 a, uint64_t p0) {
-	return call_w_ctx_400(a, ctx, p0);
+	return call_w_ctx_402(a, ctx, p0);
 }
 /* call-w-ctx<int-64, nat-64> (generated) (generated) */
-int64_t call_w_ctx_400(struct fun_act1_7 a, struct ctx* ctx, uint64_t p0) {
+int64_t call_w_ctx_402(struct fun_act1_7 a, struct ctx* ctx, uint64_t p0) {
 	struct fun_act1_7 _0 = a;
 	switch (_0.kind) {
 		case 0: {

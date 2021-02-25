@@ -1,7 +1,9 @@
 no-std
 import
 	.bool: bool, not
+	.compare: ==
 	.fun: subscript
+	.misc: data
 	.private.backtrace: get-backtrace
 	.private.bootstrap: err, ok, result, str, void
 	.private.exception-low-level: catch-with-exception-ctx, get-exception-ctx
@@ -35,6 +37,9 @@ The message is evaluated only if an exception will be thrown.
 assert void(condition bool, message fun str())
 	if condition not
 		message[] fail
+
+is void(a ?a, b ?a) data<?a>
+	assert: a == b
 
 # Fail if the condition is true.
 forbid void(condition bool)

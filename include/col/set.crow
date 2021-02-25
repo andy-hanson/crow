@@ -2,7 +2,7 @@ no-std
 import
 	..bool: bool, false, not, true
 	..compare: ==, !=, <, >, <=>
-	..exception: assert, forbid, unreachable
+	..exception: assert, forbid, is, unreachable
 	..fun: subscript
 	..misc: ->, as, data, drop, void
 	..number: +, -, /, nat
@@ -538,8 +538,8 @@ map set ?out(a set ?in, f act ?out(?in)) data<?in> data<?out> trusted
 			res.last := "]"
 
 .validate void(a set str, expected str)
-	assert: a.size == a.root.walk-size
-	assert: a.dbg == expected
+	a.size is a.root.walk-size
+	a.dbg is expected
 
 test
 	s0 = set<str>
@@ -558,7 +558,7 @@ test
 	s4 validate "[h i j k]"
 
 	assert: s4["h"]
-	assert: s4 ~ "i" == s4
+	s4 ~ "i" is s4
 
 	s5 = s4 ~ "l"
 	s5 validate "([h i] j [k l])"
@@ -594,7 +594,7 @@ test
 
 	folded = "s" fold s8, \x, y
 		x ~ y
-	assert: folded == "shijjijjkjkl"
+	folded is "shijjijjkjkl"
 
 	filtered = s8 filter {it[0] != "j"}
 	filtered validate "[h i k l]"

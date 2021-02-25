@@ -1,7 +1,8 @@
 no-std
 import
-	..compare: ==, <, <=, >
-	..exception: assert
+	..compare: ==, <, <=, >, <=>, comparison, less
+	..exception: assert, is
+	..fun: subscript
 	..misc: ->, as, data, void
 	..number: +, -, /, nat
 	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
@@ -13,9 +14,12 @@ import
 Returns a new array containing the same elements as `a`, but in sorted order.
 That means `res[i] <= res[i + 1]` for each element in the result.
 ###
-sort arr ?a(a arr ?a) data<?a> trusted
+sort arr ?a(a arr ?a) data<?a>
+	a sort \x, y
+		x <=> y
+sort arr ?a(a arr ?a, comparer act comparison(?a, ?a)) trusted
 	res = a mut-arr
-	res sort!
+	res sort! comparer
 	res cast-immutable
 
 ###
@@ -27,30 +31,38 @@ sort-unique arr ?a(a arr ?a) data<?a> trusted
 	a.mut-arr.sort-unique! cast-immutable
 
 test
-	assert: (sort: as<arr nat>: []) == []
-	assert: [3, 1, 2].sort == [1, 2, 3]
+	(sort: as<arr nat>: []) is []
+	[3, 1, 2].sort is [1, 2, 3]
 
 # Sort a mut-list in place.
 sort! void(a mut-list ?a) data<?a> trusted
 	a.temp-as-mut-arr sort!
+sort! void(a mut-list ?a, comparer act comparison(?a, ?a)) trusted
+	a.temp-as-mut-arr sort! comparer
 
-# Sort a mut-list in place.
+# Sort a mut-arr in place.
 sort! void(a mut-arr ?a) data<?a>
+	a sort! \x, y
+		x <=> y
+sort! void(a mut-arr ?a, comparer act comparison(?a, ?a))
 	if a.size > 1
 		# Perf -- in case a is sorted already, prefer the middle element as a pivot
 		a swap 0, a.size / 2
 		pivot = a[0]
-		new-pivot-index = (a partition! pivot, 1, a.size - 1) - 1
+		new-pivot-index = (a partition! pivot, 1, a.size - 1, comparer) - 1
 		a swap 0, new-pivot-index
-		a[0 -> new-pivot-index] sort!
-		a[new-pivot-index + 1 -> a.size] sort!
+		a[0 -> new-pivot-index] sort! comparer
+		a[new-pivot-index + 1 -> a.size] sort! comparer
 
 # Sort a mut-list in place, remove unique elements, and return the (now shorter) mut-arr.
-sort-unique! mut-arr ?a(a mut-arr ?a) data<?a> trusted
+sort-unique! mut-arr ?a(a mut-arr ?a) data<?a>
+	a sort-unique! \x, y
+		x <=> y
+sort-unique! mut-arr ?a(a mut-arr ?a, comparer act comparison(?a, ?a)) data<?a> trusted
 	if a empty?
 		a
 	else
-		a sort!
+		a sort! comparer
 		end = a.begin-ptr[] unique-recur! a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr
 		a[0 -> end - a.begin-ptr]
 .unique-recur! ptr ?a(prev ?a, read ptr ?a, write ptr ?a, end ptr ?a) data<?a> unsafe
@@ -65,15 +77,15 @@ sort-unique! mut-arr ?a(a mut-arr ?a) data<?a> trusted
 			here unique-recur! read + 1, write + 1, end
 
 # Returns index of first value > pivot
-.partition! nat(a mut-arr ?a, pivot ?a, l nat, r nat) data<?a>
+.partition! nat(a mut-arr ?a, pivot ?a, l nat, r nat, comparer act comparison(?a, ?a))
 	assert: l <= a.size
 	assert: r < a.size
 	if l <= r
-		if a[l] < pivot
-			a partition! pivot, l + 1, r
+		if comparer[a[l], pivot] == less
+			a partition! pivot, l + 1, r, comparer
 		else
 			a swap l, r
-			a partition! pivot, l, r - 1
+			a partition! pivot, l, r - 1, comparer
 	else
 		l
 

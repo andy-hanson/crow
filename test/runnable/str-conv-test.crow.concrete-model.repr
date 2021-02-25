@@ -5682,33 +5682,26 @@ program(
 											seq(
 												seq(
 													call(
-														assert
+														is
 														[
-															call(
-																==
-																[
-																	call(parse-nat, [record([0, null])])
-																	to-union(0, call(none, []))])])
-													call(
-														assert
-														[
-															call(
-																==
-																[call(parse-nat, [arr(0, 10)]), to-union(1, call(some, [1]))])]))
-												call(
-													assert
-													[call(==, [call(parse-nat, [arr(0, 11)]), to-union(0, call(none, []))])]))
-											call(
-												assert
-												[call(==, [call(parse-nat, [arr(0, 12)]), to-union(0, call(none, []))])]))
-										call(
-											assert
-											[call(==, [call(parse-int, [arr(0, 13)]), to-union(1, call(some, [123]))])]))
-									call(assert, [call(==, [call(parse-int, [arr(0, 14)]), to-union(1, call(some, [-123]))])]))
-								call(assert, [call(==, [call(parse-int, [arr(0, 15)]), to-union(1, call(some, [123]))])]))
-							call(assert, [call(==, [call(parse-int, [arr(0, 16)]), to-union(0, call(none, []))])]))
+															call(parse-nat, [record([0, null])])
+															to-union(0, call(none, []))])
+													call(is, [call(parse-nat, [arr(0, 10)]), to-union(1, call(some, [1]))]))
+												call(is, [call(parse-nat, [arr(0, 11)]), to-union(0, call(none, []))]))
+											call(is, [call(parse-nat, [arr(0, 12)]), to-union(0, call(none, []))]))
+										call(is, [call(parse-int, [arr(0, 13)]), to-union(1, call(some, [123]))]))
+									call(is, [call(parse-int, [arr(0, 14)]), to-union(1, call(some, [-123]))]))
+								call(is, [call(parse-int, [arr(0, 15)]), to-union(1, call(some, [123]))]))
+							call(is, [call(parse-int, [arr(0, 16)]), to-union(0, call(none, []))]))
 						call(print, [call(to-str, [call(parse-nat, [arr(0, 10)])])]))
 					call(resolved, [0]))))
+		fun(
+			true
+			is
+			type(false, void)
+			none
+			[param(a, type(false, opt)), param(b, type(false, opt))]
+			expr-body(call(assert, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(
 			false
 			==
@@ -5830,6 +5823,13 @@ program(
 				seq(
 					call(forbid, [call(empty?, [param-ref(a)])])
 					call(subscript, [param-ref(a), call(->, [1, call(size, [param-ref(a)])])]))))
+		fun(
+			true
+			is
+			type(false, void)
+			none
+			[param(a, type(false, opt)), param(b, type(false, opt))]
+			expr-body(call(assert, [call(==, [param-ref(a), param-ref(b)])])))
 		fun(
 			false
 			==

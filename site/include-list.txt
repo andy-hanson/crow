@@ -11,6 +11,7 @@ col/mut-dict
 col/mut-list
 col/mut-set
 col/mut-stack
+col/priority-queue
 col/queue
 col/set
 col/sort

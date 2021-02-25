@@ -2,16 +2,16 @@ import
 	io.print: print
 
 main fut nat(_ arr str) summon
-	assert: "".parse-nat == none
-	assert: "1".parse-nat == 1.some
-	assert: "1.2".parse-nat == none
+	"".parse-nat is none
+	"1".parse-nat is 1.some
+	"1.2".parse-nat is none
 
-	assert: "+1".parse-nat == none
+	"+1".parse-nat is none
 
-	assert: "123".parse-int == 123.some
-	assert: "-123".parse-int == -123.some
-	assert: "+123".parse-int == 123.some
-	assert: "*123".parse-int == none
+	"123".parse-int is 123.some
+	"-123".parse-int is -123.some
+	"+123".parse-int is 123.some
+	"*123".parse-int is none
 
 	print: "1".parse-nat.to-str
 	0 resolved

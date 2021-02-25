@@ -7,9 +7,9 @@ Mutable reference to a single value.
 Example:
 ```
 c = cell<nat>: 1
-assert: c[] == 1
+c[] is 1
 c[] := c[] + 1
-assert: c[] == 2
+c[] is 2
 ```
 ###
 cell<?a> record mut
