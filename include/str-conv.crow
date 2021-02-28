@@ -3,10 +3,8 @@ import
 	.bool: ?, bool, false, true
 	.col.arr: ~, empty?, subscript
 	.col.arr-util: tail
-	.col.dict: dict, each
-	.col.mut-list: ~=, move-to-arr!, mut-list, size
-	.compare: ==, <, >
-	.misc: data
+	.col.mut-list: ~=, move-to-arr!, mut-list
+	.compare: ==, <
 	.number:
 		+, *, /, abs, float, int, int16, int32, mod, nat, nat16, nat32, multiple-of?,
 		to-int, to-float, to-nat, truncate-to-int
@@ -67,18 +65,6 @@ to-str<?a> spec
 # Identity function to satisfy the `to-str` spec.
 to-str str(a str)
 	a
-
-to-str str(a dict<?k, ?v>) data<?k> to-str<?k> to-str<?v>
-	res = mut-list<char>
-	res ~= "["
-	a each \k, v
-		if res.size > 1
-			res ~= ", "
-		res ~= k.to-str
-		res ~= " -> "
-		res ~= v.to-str
-	res ~= "]"
-	res move-to-arr!
 
 to-str str(a opt ?a) to-str<?a>
 	match a

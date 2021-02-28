@@ -1104,7 +1104,7 @@ immutable(FunsAndDict) checkFuns(Alloc, SymAlloc)(
 			emptyArr!TypeParam,
 			emptyArr!Param,
 			emptyArr!(Ptr!SpecInst),
-			FunFlags.none,
+			FunFlags.unsafe_,
 			ast.body_));
 	});
 

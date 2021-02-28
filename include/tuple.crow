@@ -1,0 +1,10 @@
+no-std
+import
+	.misc: arrow, from, to
+
+pair<?a, ?b> record
+	a ?a
+	b ?b
+
+pair pair<?a, ?b>(a arrow<?a, ?b>)
+	pair: a.from, a.to

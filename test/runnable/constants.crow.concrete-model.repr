@@ -2173,7 +2173,7 @@ program(
 			[param(from, type(false, nat)), param(to, type(false, nat))]
 			expr-body(call(arrow, [param-ref(from), param-ref(to)])))
 		fun(
-			true
+			false
 			arrow
 			type(false, arrow)
 			none
@@ -2385,13 +2385,7 @@ program(
 							seq(
 								call(
 									set-backing
-									[
-										param-ref(a)
-										call(
-											mut-arr
-											[
-												param-ref(new-capacity)
-												call(alloc-uninitialized, [param-ref(new-capacity)])])])
+									[param-ref(a), call(uninitialized-mut-arr, [param-ref(new-capacity)])])
 								call(
 									copy-data-from
 									[call(begin-ptr, [param-ref(a)]), local-ref(old-begin), call(size, [param-ref(a)])]))
@@ -2407,6 +2401,13 @@ program(
 												[
 													call(+, [call(size, [param-ref(a)]), 1])
 													call(size, [call(backing, [param-ref(a)])])])])]))))))
+		fun(
+			true
+			uninitialized-mut-arr
+			type(false, mut-arr)
+			none
+			[param(size, type(false, nat))]
+			expr-body(call(mut-arr, [param-ref(size), call(alloc-uninitialized, [param-ref(size)])])))
 		fun(
 			false
 			mut-arr

@@ -3,8 +3,10 @@ import
 	col.deque: deque
 	col.dict: dict
 	col.list: list
+	col.mut-deque: mut-deque
 	col.mut-dict: mut-dict
 	col.mut-list: mut-list
+	col.mut-priority-queue: mut-priority-queue
 	col.mut-set: mut-set
 	col.mut-stack: mut-stack
 	col.priority-queue: priority-queue
@@ -20,8 +22,10 @@ main fut nat(_ arr str) summon
 	drop: deque<nat>
 	drop: dict<nat, nat>
 	drop: list<nat>
+	drop: mut-deque<nat>
 	drop: mut-dict<nat, nat>
 	drop: mut-list<nat>
+	drop: mut-priority-queue<nat, nat>
 	drop: mut-set<nat>
 	drop: mut-stack<nat>
 	drop: priority-queue<nat, nat>

@@ -2,12 +2,12 @@ no-std
 import
 	..private.alloc:
 		alloc-uninitialized, copy-data-from, set-zero-range, unmanaged-alloc-zeroed-elements
-	..private.bootstrap: hard-assert, noctx-decr, noctx-incr, todo, zeroed
+	..private.bootstrap: hard-assert, noctx-decr, noctx-incr, todo
 	..bool: bool, not
 	..col.arr-util: contains?, index-of
 	..col.mut-arr:
-		begin-ptr, each, fill-mut-arr, fold, map!, mut-arr, set-zero-elements, size, subscript,
-		temp-as-arr
+		begin-ptr, each, each-with-index, fill-mut-arr, fold, fold-reverse, map!, mut-arr,
+		reverse!, set-zero-elements, size, subscript, temp-as-arr, uninitialized-mut-arr
 	..compare: ==, <, <=, >, >=
 	..exception: assert
 	..fun: subscript
@@ -15,7 +15,7 @@ import
 	..number: +, -, *, nat
 	..opt: none, opt, some
 	..posix.string: memcpy, memmove
-	..ptr: +, -, as-any-ptr, by-val, ptr, ptr-eq?, set-subscript, size-of, subscript
+	..ptr: +, -, as-any-ptr, by-val, ptr, ptr-eq?, set-subscript, size-of, subscript, zeroed
 	.arr: arr
 	.arr-util: each
 
@@ -68,13 +68,26 @@ mut-list mut-list ?a()
 	mut-list: mut-arr, 0
 
 ###
-Copies an array to a `mut-list`.
+Copies an `arr` to a `mut-list`.
 Writes to the `mut-list` won't affect the `arr`.
 ###
 mut-list mut-list ?a(a arr ?a)
 	res = mut-list<?a>
 	res ~= a
 	res
+
+# TODO: use an 'each' spec to combine these functions
+###
+Copies a `mut-arr` to a `mut-list`.
+Writes to the `mut-list` won't affect the `mut-arr`.
+###
+mut-list mut-list ?a(a mut-arr ?a)
+	res = mut-list<?a>
+	res ~= a
+	res
+
+empty! void(a mut-list ?a)
+	a pop-n! a.size
 
 ###
 Copies the `mut-list`.
@@ -102,22 +115,27 @@ move-to-arr! arr ?a(a mut-list ?a) noctx trusted
 
 ###
 Gets the element at the index.
-Fails if `index >= a.size`.
+Throws if `index >= a.size`.
 ###
 subscript ?a(a mut-list ?a, index nat) trusted
 	assert: index < a.size
 	a.begin-ptr[index]
 
-###
-Gets the last element.
-Fails if the list is empty.
-###
-last ?a(a mut-list ?a)
-	a[a.size - 1]
+first opt ?a(a mut-list ?a)
+	if a empty?
+		none
+	else
+		a[0] some
+
+last opt ?a(a mut-list ?a)
+	if a empty?
+		none
+	else
+		a[a.size - 1] some
 
 ###
 Sets the last element.
-Fails if the list is empty.
+Throws if the list is empty.
 ###
 set-last void(a mut-list ?a, value ?a)
 	a[a.size - 1] := value
@@ -146,7 +164,7 @@ has? bool(a mut-list ?a) noctx
 
 ###
 Sets the element at the index.
-Fails if `index >= a.size`.
+Throws if `index >= a.size`.
 ###
 set-subscript void(a mut-list ?a, index nat, value ?a) trusted
 	assert: index < a.size
@@ -168,7 +186,7 @@ copy-range-to-arr arr ?a(a mut-list ?a, begin nat, size nat) trusted
 ###
 Removes the first `n` elements and returns them as an array.
 This is O(a.size - n) because of the cost of copying, and all remaining elements must be shifted.
-Fails if `n > a.size`.
+Throws if `n > a.size`.
 ###
 pop-n-from-start! arr ?a(a mut-list ?a, n nat) trusted
 	assert: n <= a.size
@@ -197,7 +215,7 @@ pop! opt ?a(a mut-list ?a) trusted
 
 ###
 Pops `n` times, discarding the result.
-Fails if `n > a.size`.
+Throws if `n > a.size`.
 ###
 pop-n! void(a mut-list ?a, n nat) trusted
 	assert: n <= a.size
@@ -212,8 +230,13 @@ pop-n! void(a mut-list ?a, n nat) trusted
 	a.begin-ptr[a size] := value
 	a.size := a.size + 1
 
+# TODO: Use an 'each' spec..
 # Push multiple values onto the end of the list.
 ~= void(a mut-list ?a, values arr ?a)
+	values each {a ~= it}
+~= void(a mut-list ?a, values mut-arr ?a)
+	values each {a ~= it}
+~= void(a mut-list ?a, values mut-list ?a)
 	values each {a ~= it}
 
 .incr-capacity! void(a mut-list ?a) unsafe
@@ -227,7 +250,7 @@ push-capacity-must-be-sufficient! void(a mut-list ?a, value ?a) noctx unsafe
 .increase-capacity-to! void(a mut-list ?a, new-capacity nat) unsafe
 	assert: new-capacity > a.capacity
 	old-begin = a begin-ptr
-	a.backing := mut-arr: new-capacity, alloc-uninitialized<?a>: new-capacity
+	a.backing := new-capacity uninitialized-mut-arr<?a>
 	a.begin-ptr copy-data-from old-begin, a.size
 	a.backing[a.size + 1 -> a.backing.size] set-zero-elements
 
@@ -249,7 +272,7 @@ Removes `a[index]`, replaces it with the last value, and returns the old `a[inde
 If `a[index]` is the last value, simply pops it.
 This is more efficient than `a remove-at! index`,
 which has to shift all values past `index` to the left.
-Fails if `index >= a.size`.
+Throws if `index >= a.size`.
 ###
 remove-unordered-at! ?a(a mut-list ?a, index nat) trusted
 	assert: index < a.size
@@ -282,7 +305,7 @@ noctx-must-remove-unordered! void(a mut-list ?a, value ?a) noctx unsafe data<?a>
 Directly increases the `size` without touching the data.
 Unsafe because this will expose uninitialized elements (between the old size and the new size).
 You should write to the newly exposed elements immediately after calling this.
-Fails if this would increase the size past the capacity.
+Throws if this would increase the size past the capacity.
 ###
 unsafe-increase-size! void(a mut-list ?a, increase-by nat) unsafe
 	a unsafe-set-size! a.size + increase-by
@@ -313,7 +336,7 @@ index-of opt nat(a mut-list ?a, value ?a) data<?a> trusted
 Sets `a[index] := value`, but first shifts all elements from `index` onwards to the right to make room.
 Increases the size by 1.
 This is O(a.size - index) due to having to move other elements.
-Fails if `index > a.size`.
+Throws if `index > a.size`.
 ###
 insert-at! void(a mut-list ?a, index nat, value ?a) trusted
 	assert: index <= a.size
@@ -331,7 +354,7 @@ Removes `a[index]`, and shifts all values from `index` onwards to the left to fi
 Returns the old `a[index]`.
 Decreases the size by 1.
 This is O(a.size - index) due to having to move other elements.
-Fails if `index >= a.size`.
+Throws if `index >= a.size`.
 ###
 remove-at! ?a(a mut-list ?a, index nat) trusted
 	assert: index < a.size
@@ -344,14 +367,23 @@ remove-at! ?a(a mut-list ?a, index nat) trusted
 	res
 
 
+reverse! void(a mut-list ?a) trusted
+	a.temp-as-mut-arr reverse!
+
 region iteration
 
 # Calls `f` for each element in `a`.
 each void(a mut-list ?a, f act void(?a)) trusted
 	a.temp-as-mut-arr each f
 
+each-with-index void(a mut-list ?a, f act void(?a, nat)) trusted
+	a.temp-as-mut-arr each-with-index f
+
 fold ?a(acc ?a, a mut-list ?b, f act ?a(?a, ?b)) trusted
 	acc fold a.temp-as-mut-arr, f
+
+fold-reverse ?a(acc ?a, a mut-list ?b, f act ?a(?a, ?b)) trusted
+	acc fold-reverse a.temp-as-mut-arr, f
 
 filter! void(a mut-list ?a, f act bool(?a)) trusted
 	new-end = a.begin-ptr filter-recur! a.begin-ptr, a.end-ptr, f

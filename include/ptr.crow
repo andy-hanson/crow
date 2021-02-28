@@ -4,7 +4,7 @@ import
 	.compare: ==, comparison, less, equal, greater
 	.private.bootstrap: nat, unsafe-div, wrap-sub, void
 export
-	.private.bootstrap: any-ptr, by-val, ptr
+	.private.bootstrap: any-ptr, by-val, ptr, zeroed
 
 # Null pointer.
 null ptr ?a() noctx builtin

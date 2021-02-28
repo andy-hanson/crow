@@ -1692,8 +1692,10 @@ immutable(WriteExprResult) writeSpecialUnary(Alloc, TempAlloc)(
 			type,
 			a.arg,
 			(ref immutable WriteExprResult temp) {
+				writeChar(writer, '(');
 				writeStatic(writer, prefix);
 				writeTempOrInline(writer, tempAlloc, ctx, a.arg, temp);
+				writeChar(writer, ')');
 			});
 	}
 

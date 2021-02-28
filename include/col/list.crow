@@ -2,18 +2,21 @@ no-std
 import
 	..bool: ?, bool
 	..compare: ==, !=, >
-	..exception: assert, forbid, is
+	..exception: assert, forbid
 	..fun: subscript
 	..misc: ->, as, drop, void
 	..number: +, -, nat
 	..opt: empty?, none, opt, some, value
 	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
-	..str: str
-	.arr: arr, begin-ptr, end-ptr, empty?, size, subscript
-	.arr-util: each, each-with-index, first-some, fold, rtail
+	..str: char, str
+	..str-conv: to-str
+	..test: is
+	.arr: arr, begin-ptr, end-ptr, empty?, size
+	.arr-util: each, each-with-index, first, first-some, fold, last, rtail
 	.mut-arr:
 		begin-ptr, cast-immutable, copy-from!, end-ptr, mut-arr, mut-arr-from-begin-end,
 		set-subscript, size, subscript, uninitialized-mut-arr
+	.mut-list: ~=, move-to-arr!, mut-list, set-last
 
 ###
 Immutable list type.
@@ -57,18 +60,18 @@ every 4 steps it allocates an array of size 4, etc.
 	res.values[res.values.size - 1] := value
 	list: void, res.prev-list, res.values.cast-immutable
 
-.mut-list<?a> record mut
+.list-builder<?a> record mut
 	prev-list opt list ?a
 	values mut-arr ?a
 
-.push-recur mut-list ?a(a list ?a, size-right nat) unsafe
+.push-recur list-builder ?a(a list ?a, size-right nat) unsafe
 	if a.values.size > size-right
-		mut-list: a.some, size-right.uninitialized-mut-arr
+		list-builder: a.some, size-right.uninitialized-mut-arr
 	else
 		new-size-right = size-right + a.values.size
 		res = match a prev
 		as none
-			mut-list<?a>: none, new-size-right.uninitialized-mut-arr
+			list-builder<?a>: none, new-size-right.uninitialized-mut-arr
 		as some s
 			s.value push-recur new-size-right
 		offset = res.values.size - size-right - a.values.size
@@ -83,18 +86,27 @@ empty? bool(a list ?a)
 	res
 
 ###
+Oldest appended value.
+This is O(a.size ln)
+###
+first opt ?a(a list ?a)
+	match a.prev
+	as none
+		a.values first
+	as some s
+		s.value first
+
+###
 Most recently appended value.
 This is O(1).
-Fails if the list is empty.
 ###
-last ?a(a list ?a)
-	forbid: a empty?
-	a.values[a.values.size - 1]
+last opt ?a(a list ?a)
+	a.values last
 
 ###
 All but the last value.
 This is O(1).
-Fails if the list is empty.
+Throws if the list is empty.
 ###
 rtail list ?a(a list ?a)
 	forbid: a.values.size == 0
@@ -217,42 +229,64 @@ first-some opt ?out(a list ?in, f act opt ?out(?in))
 	as some s
 		s
 
+.dbg str(a list nat)
+	res = mut-list<char>
+	res dbg-recur! a
+	res move-to-arr!
+.dbg-recur! void(out mut-list char, a list nat)
+	match a prev
+	as none
+		void
+	as some s
+		out dbg-recur! s.value
+		out ~= " "
+	out ~= "["
+	if a.values empty?
+		out ~= "]"
+	else
+		a.values each \x
+			out ~= x to-str
+			out ~= " "
+		out.last := "]"
+
 test
 	a = list<nat>
 	assert: a empty?
 	a.arr is []
-	# TODO: assert a.last throws
+	a.dbg is "[]"
+	a.last is none
 
 	b = a ~ 1
-	b.arr is [1]
-	b.last is 1
+	b.dbg is "[1]"
+	b.last is 1.some
 	b.rtail.arr is []
 	forbid: b empty?
 
 	c = b ~ 2
-	c.arr is [1, 2]
-	c.last is 2
+	c.dbg is "[1 2]"
+	c.last is 2.some
 	c.rtail.arr is [1]
 
 	d = c ~ 3
-	d.arr is [1, 2, 3]
-	d.last is 3
+	d.dbg is "[1 2] [3]"
+	d.last is 3.some
 	d.rtail.arr is [1, 2]
 
 	e = d ~ 4
-	e.arr is [1, 2, 3, 4]
-	e.last is 4
+	e.dbg is "[1 2 3 4]"
+	e.last is 4.some
 	e.rtail.arr is d.arr
 	e.size is 4
 
-	(e ~ [5, 6]).arr is [1, 2, 3, 4, 5, 6]
-	(c ~ d).arr is [1, 2, 1, 2, 3]
+	e56 = e ~ [5, 6]
+	e56.dbg is "[1 2 3 4] [5 6]"
+	(c ~ d).dbg is "[1 2 1 2 3]"
 
 	e2 = e map {it + 10}
-	e2.arr is [11, 12, 13, 14]
+	e2.dbg is "[11 12 13 14]"
 
 	e3 = e filter {it != 2}
-	e3.arr is [1, 3, 4]
+	e3.dbg is "[1 3 4]"
 
 	folded = 5 fold e, \x, y
 		x + y

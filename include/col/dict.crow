@@ -32,7 +32,7 @@ dict dict<?k, ?v>() data<?k>
 
 ###
 `dict` from `key -> value` pairs.
-Fails if some key is repeated.
+Throws if some key is repeated.
 ###
 dict dict<?k, ?v>(pairs arr arrow<?k, ?v>) data<?k>
 	keys = pairs map {it from}
@@ -41,8 +41,8 @@ dict dict<?k, ?v>(pairs arr arrow<?k, ?v>) data<?k>
 
 ###
 `dict` from keys and values from corresponding elements in the arrays.
-Fails if the key and value arrays have different sizes.
-Fails if some key is repeated.
+Throws if the key and value arrays have different sizes.
+Throws if some key is repeated.
 ###
 dict dict<?k, ?v>(keys arr ?k, values arr ?v) data<?k>
 	assert: keys.size == values.size

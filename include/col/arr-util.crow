@@ -9,7 +9,7 @@ import
 	..misc: ->, data, void
 	..number: +, -, nat
 	..opt: has?, none, opt, some, value
-	..ptr: +, ptr, ptr-eq?, set-subscript, subscript
+	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
 	.arr: ~, arr, arr-from-begin-end, begin-ptr, empty?, end-ptr, noctx-at, size, subscript
 
 ###
@@ -51,6 +51,13 @@ each-with-index void(a arr ?a, f act void(?a, nat))
 		f[a[n], n]
 		a each-with-index-recur f, n + 1
 
+each-ptr void(a arr ?a, f act void(ptr ?a)) unsafe
+	a.begin-ptr each-ptr-recur a.end-ptr, f
+each-ptr-recur void(cur ptr ?a, end ptr ?a, f act void(ptr ?a)) unsafe
+	if cur ptr-eq? end not
+		f[cur]
+		cur + 1 each-ptr-recur end, f
+
 ###
 Arr of the elements of `a` for which `f[a[i]]` returns true.
 ###
@@ -77,18 +84,21 @@ map arr ?out(a arr ?in, f act ?out(?in)) trusted
 	a.size make-arr \i
 		f[a[i]]
 
-# `a[0]`
-first ?a(a arr ?a)
-	a[0]
+first opt ?a(a arr ?a)
+	if a empty?
+		none
+	else
+		a[0] some
 
-# Last element of an arr.
-last ?a(a arr ?a)
-	forbid: a empty?
-	a[a.size - 1]
+last opt ?a(a arr ?a)
+	if a empty?
+		none
+	else
+		a[a.size - 1] some
 
 ###
 All but the first element of an arr.
-Fails if `a empty?`.
+Throws if `a empty?`.
 ###
 tail arr ?a(a arr ?a)
 	forbid: a empty?
@@ -96,7 +106,7 @@ tail arr ?a(a arr ?a)
 
 ###
 All but the last element of an arr.
-Fails if `a empty?`.
+Throws if `a empty?`.
 ###
 rtail arr ?a(a arr ?a)
 	forbid: a empty?
@@ -202,6 +212,15 @@ fold ?a(acc ?a, a arr ?b, f act ?a(?a, ?b)) trusted
 		acc
 	else
 		f[acc, cur[]] fold-recur cur + 1, end, f
+
+fold-reverse ?a(acc ?a, a arr ?b, f act ?a(?a, ?b)) trusted
+	acc fold-reverse-recur a.begin-ptr, a.end-ptr, f
+.fold-reverse-recur ?a(acc ?a, begin ptr ?b, cur ptr ?b, f act ?a(?a, ?b)) unsafe
+	if cur ptr-eq? begin
+		acc
+	else
+		prev = cur - 1
+		f[acc, prev[]] fold-reverse-recur begin, prev, f
 
 # TODO: data<arr ?a> should be unnecessary
 # Finds the first index where `a[i -> i + subseq.size] == subseq`.
@@ -318,7 +337,7 @@ count-subseqs nat(a arr ?a, subseq arr ?a) data<?a> data<arr ?a>
 ###
 Arr containing the result of `f` for corresponding elements of `a` and `b`.
 Equivalent to `[f[a[0], b[0]], f[a[1], b[1]], ...]`.
-Fails if the arrs have different sizes.
+Throws if the arrs have different sizes.
 ###
 zip arr ?out(a arr ?a, b arr ?b, f act ?out(?a, ?b))
 	assert: a.size == b.size

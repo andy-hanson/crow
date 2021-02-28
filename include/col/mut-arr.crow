@@ -6,13 +6,13 @@ import
 	..compare: ==, <, <=
 	..exception: assert
 	..fun: subscript
-	..misc: arrow, data, from, to, void
-	..number: *, nat
-	..opt: opt
+	..misc: ->, arrow, data, from, to, void
+	..number: -, *, nat
+	..opt: none, opt, some
 	..posix.string: memcpy
-	..ptr: +, as-any-ptr, ptr, ptr-eq?, ptr-less-eq?, set-subscript, size-of, subscript
+	..ptr: +, -, as-any-ptr, ptr, ptr-eq?, ptr-less?, ptr-less-eq?, set-subscript, size-of, subscript
 	.arr: arr, arr-from-begin-end, begin-ptr, size, subscript
-	.arr-util: each, find-index, fold
+	.arr-util: each, each-with-index, find-index, fold, fold-reverse
 
 ###
 Like `arr` but mutable.
@@ -81,7 +81,7 @@ end-ptr ptr ?a(a mut-arr ?a) noctx unsafe
 
 ###
 Gets the element at the index.
-Fails if `index >= a.size`.
+Throws if `index >= a.size`.
 ###
 subscript ?a(a mut-arr ?a, index nat)
 	a.inner[index]
@@ -90,8 +90,8 @@ subscript ?a(a mut-arr ?a, index nat)
 Slices the mut-arr.
 This is O(1).
 Writes to the slice will affect the original. (If you don't want that, use `copy`.)
-Fails if `range.from > range.to`.
-Fails if the slice would exceed the bounds of the `mut-arr`.
+Throws if `range.from > range.to`.
+Throws if the slice would exceed the bounds of the `mut-arr`.
 ###
 subscript mut-arr ?a(a mut-arr ?a, range arrow<nat, nat>)
 	assert: range.from <= range.to
@@ -100,12 +100,30 @@ subscript mut-arr ?a(a mut-arr ?a, range arrow<nat, nat>)
 
 ###
 Write to a single element.
-Fails if `index >= a.size`.
+Throws if `index >= a.size`.
 ###
 set-subscript void(a mut-arr ?a, index nat, value ?a) trusted
 	assert: index < a.size
 	a.begin-ptr[index] := value
-	
+
+first opt ?a(a mut-arr ?a)
+	if a empty?
+		none
+	else
+		a[0] some
+
+last opt ?a(a mut-arr ?a)
+	if a empty?
+		none
+	else
+		a[0] some
+
+tail mut-arr ?a(a mut-arr ?a)
+	a[1 -> a.size]
+
+rtail mut-arr ?a(a mut-arr ?a)
+	a[0 -> a.size - 1]
+
 # Allocates a `mut-arr` without initializing any of its elements.
 uninitialized-mut-arr mut-arr ?a(size nat) unsafe
 	mut-arr: size, alloc-uninitialized<?a>: size
@@ -115,7 +133,7 @@ uninitialized-mut-arr mut-arr ?a(size nat) unsafe
 Equivalent to `mut-arr: [f[0], f[1], ...]`.
 ###
 make-mut-arr mut-arr ?a(size nat, f act ?a(nat)) trusted
-	res = uninitialized-mut-arr<?a>: size
+	res = size uninitialized-mut-arr<?a>
 	res.begin-ptr fill-ptr-range size, f
 	res
 
@@ -126,6 +144,11 @@ Equivalent to `mut-arr: [value, value, ...]`.
 fill-mut-arr mut-arr ?a(size nat, value ?a)
 	size make-mut-arr \ignore
 		value
+
+zeroed-mut-arr mut-arr ?a(size nat) unsafe
+	res = size uninitialized-mut-arr<?a>
+	res set-zero-elements
+	res
 
 ###
 Unsafe cast a mut-arr to arr.
@@ -158,14 +181,28 @@ index-of opt nat(a mut-arr ?a, value ?a) data<?a>
 find-index opt nat(a mut-arr ?a, f act bool(?a)) trusted
 	a.temp-as-arr find-index f
 
+reverse! void(a mut-arr ?a) trusted
+	a.begin-ptr reverse-recur! a.end-ptr - 1
+.reverse-recur! void(left ptr ?a, right ptr ?a) unsafe
+	if left ptr-less? right
+		tmp = left[]
+		left[] := right[]
+		right[] := tmp
+		left + 1 reverse-recur! right - 1
+
 region iteration
 
 # Calls 'f' on each element in the mut-arr.
 each void(a mut-arr ?a, f act void(?a)) trusted
 	a.temp-as-arr each f
 
+each-with-index void(a mut-arr ?a, f act void(?a, nat)) trusted
+	a.temp-as-arr each-with-index f
+
 fold ?a(acc ?a, a mut-arr ?b, f act ?a(?a, ?b)) trusted
 	acc fold a.temp-as-arr, f
+fold-reverse ?a(acc ?a, a mut-arr ?b, f act ?a(?a, ?b)) trusted
+	acc fold-reverse a.temp-as-arr, f
 
 map! void(a mut-arr ?a, f act ?a(?a)) trusted
 	a.begin-ptr map-recur! a.end-ptr, f

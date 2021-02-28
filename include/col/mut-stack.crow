@@ -2,7 +2,7 @@ no-std
 import
 	..bool: bool
 	..misc: void
-	..opt: none, opt, some
+	..opt: none, opt
 	.arr: arr
 	.mut-list: ~=, arr, copy, each, empty?, filter!, fold, last, map!, mut-list, pop!
 
@@ -35,11 +35,11 @@ empty? bool(a mut-stack ?a)
 ~= void(a mut-stack ?a, values arr ?a)
 	a.inner ~= values
 
-peek opt ?a(a mut-stack ?a)
+last opt ?a(a mut-stack ?a)
 	if a empty?
 		none
 	else
-		some: a.inner last
+		a.inner last
 
 pop! opt ?a(a mut-stack ?a)
 	a.inner pop!

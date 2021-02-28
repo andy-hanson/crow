@@ -1,0 +1,198 @@
+no-std
+import
+	..bool: bool, false, not, true
+	..compare: ==, <, >=
+	..exception: assert
+	..misc: ->, arrow, data, drop, from, to, void
+	..number: +, /, nat
+	..opt: force, none, opt, some, value
+	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
+	..str: char, str
+	..str-conv: to-str
+	..test: is
+	.arr: arr
+	.mut-arr: begin-ptr, cast-immutable, copy, mut-arr, reverse!, uninitialized-mut-arr
+	.mut-list:
+		~=, begin-ptr, each, each-with-index, empty?, empty!, end-ptr, fold, fold-reverse,
+		move-to-arr!, mut-list, pop!, pop-n!, reverse!, set-last, size, subscript
+	.sort: sort-by!
+
+mut-priority-queue<?k, ?v> record mut
+	by-ref
+	# TODO:PRIVATE
+	# TODO: Use by-val
+	# The smallest value goes on the right
+	mins mut-list arrow<?k, ?v>
+	# This may be shorter than mins -- buckets on the right considered missing.
+	buckets mut-list mut-list arrow<?k, ?v>
+
+mut-priority-queue mut-priority-queue<?k, ?v>() data<?k>
+	mut-priority-queue: mut-list, mut-list
+
+mut-priority-queue mut-priority-queue<?k, ?v>(a arr arrow<?k, ?v>) data<?k>
+	mins = mut-list: a
+	mins sort-by! {it from}
+	mut-priority-queue: mins, mut-list
+
+empty! void(a mut-priority-queue<?k, ?v>) data<?k>
+	a.mins empty!
+	a.buckets empty!
+
+empty? bool(a mut-priority-queue<?k, ?v>) data<?k>
+	a.mins empty?
+
+size nat(a mut-priority-queue<?k, ?v>) data<?k>
+	n-in-buckets = 0 fold a.buckets, \acc, b
+		acc + b.size
+	a.mins.size + n-in-buckets
+
+~= void(a mut-priority-queue<?k, ?v>, pair arrow<?k, ?v>) trusted data<?k>
+	ptr = a.mins.begin-ptr binary-search a.mins.end-ptr, pair.from
+	index = ptr - a.mins.begin-ptr
+	if index == a.mins.size
+		a.mins ~= pair
+	else
+		a.buckets add-to-bucket! index, pair
+
+copy mut-priority-queue<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k>
+	mins = a spread-all-buckets
+	a.mins empty!
+	a.mins ~= mins
+	a.buckets empty!
+	mut-priority-queue: mins.mut-list, mut-list
+
+arr arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> trusted
+	a.mut-arr cast-immutable
+
+mut-arr mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k>
+	mins = a spread-all-buckets
+	a.mins empty!
+	a.mins ~= mins
+	a.buckets empty!
+	res = mins copy
+	res reverse!
+	res
+
+# Output is high-to-low
+.spread-all-buckets mut-arr arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k> trusted
+	new-mins = a.size uninitialized-mut-arr<arrow<?k, ?v>>
+	new-mins.begin-ptr spread-all-buckets-recur! a, 0
+	new-mins
+.spread-all-buckets-recur! void(out ptr arrow<?k, ?v>, a mut-priority-queue<?k, ?v>, index nat) unsafe data<?k>
+	if index < a.mins.size
+		mid = if index < a.buckets.size
+			a.buckets[index] sort-by! {it from}
+			out fold-reverse a.buckets[index], \cur, x
+				cur[] := x
+				cur + 1
+		else
+			out
+		mid[] := a.mins[index]
+		mid + 1 spread-all-buckets-recur! a, index + 1
+
+###
+Returns the farthest right min s.t. key >= min. (The mins are sorted highest first.)
+If no such min, returns pointer past the end of mins.
+'left' is inclusive, 'right' is exclusive.
+###
+.binary-search ptr arrow<?k, ?v>(left ptr arrow<?k, ?v>, right ptr arrow<?k, ?v>, key ?k) unsafe data<?k>
+	if left ptr-eq? right
+		left
+	else
+		mid = left + (right - left) / 2
+		if key >= mid[].from
+			left binary-search mid, key
+		else
+			mid + 1 binary-search right, key
+
+.add-to-bucket! void(buckets mut-list mut-list arrow<?k, ?v>, index nat, pair arrow<?k, ?v>)
+	if index < buckets.size
+		buckets[index] ~= pair
+	else
+		# TODO: type args should be unnecessary
+		buckets ~= mut-list<arrow<?k, ?v>>
+		buckets add-to-bucket! index, pair
+
+pop-value! opt ?v(a mut-priority-queue<?k, ?v>) data<?k>
+	match a pop!
+	as none
+		none
+	as some s
+		s.value.to some
+
+pop! opt arrow<?k, ?v>(a mut-priority-queue<?k, ?v>) data<?k>
+	res = a.mins pop!
+	if a.mins.size < a.buckets.size
+		assert: a.mins.size + 1 == a.buckets.size
+		bucket = a.buckets.pop! force
+		bucket sort-by! {it from}
+		# Mins are popped off from the right.
+		# Note thie preserves insertion order: 'sort-by!' doesn't change that,
+		# then we reverse, then popping from the right reverses it again.
+		bucket reverse!
+		a.mins ~= bucket
+	res
+
+.dbg str(a mut-priority-queue<nat, str>)
+	out = mut-list<char>
+	a.mins each-with-index \min, index
+		out write-pair! min
+		if index < a.buckets.size
+			bucket = a.buckets[index]
+			if bucket.empty? not
+				out ~= " ["
+				bucket each \pair
+					out write-pair! pair
+					out ~= ", "
+				out.pop! drop
+				out.last := "]"
+		out ~= ", "
+	if a.mins.empty? not
+		out pop-n! 2
+	out move-to-arr!
+
+.write-pair! void(out mut-list<char>, pair arrow<nat, str>)
+	out ~= pair.from to-str
+	out ~= " -> "
+	out ~= pair.to
+
+.verify void(a mut-priority-queue<nat, str>, expected str)
+	a.dbg is expected
+
+test
+	a = mut-priority-queue<nat, str>
+	a.empty? is true
+	a.pop! is none
+	a verify ""
+
+	a ~= 5 -> "5"
+	a.empty? is false
+	a verify "5 -> 5"
+
+	a ~= 6 -> "6"
+	a verify "5 -> 5 [6 -> 6]"
+
+	a ~= 2 -> "2"
+	a verify "5 -> 5 [6 -> 6], 2 -> 2"
+
+	a ~= 3 -> "3a"
+	a verify "5 -> 5 [6 -> 6], 2 -> 2 [3 -> 3a]"
+
+	a ~= 4 -> "4"
+	a ~= 3 -> "3b"
+	a verify "5 -> 5 [6 -> 6], 2 -> 2 [3 -> 3a, 4 -> 4, 3 -> 3b]"
+
+	a.pop! is (2 -> "2").some
+	a verify "5 -> 5 [6 -> 6], 4 -> 4, 3 -> 3b, 3 -> 3a"
+
+	a ~= 4 -> "4b"
+	a verify "5 -> 5 [6 -> 6], 4 -> 4 [4 -> 4b], 3 -> 3b, 3 -> 3a"
+
+	a.pop! is (3 -> "3a").some
+	a.pop! is (3 -> "3b").some
+	a verify "5 -> 5 [6 -> 6], 4 -> 4 [4 -> 4b]"
+	a.pop! is (4 -> "4").some
+	a verify "5 -> 5 [6 -> 6], 4 -> 4b"
+
+	a.arr is [4 -> "4b", 5 -> "5", 6 -> "6"]
+	a verify "6 -> 6, 5 -> 5, 4 -> 4b"

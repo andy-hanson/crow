@@ -196,4 +196,4 @@ handle-exceptions void(a fut ?a) trusted
 		as ok
 			void
 		as err e
-			get-cur-island.exception-handler[e.value]
+			get-cur-island.exception-handler[e value]

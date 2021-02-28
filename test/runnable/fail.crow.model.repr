@@ -1,22 +1,22 @@
 module(
-	path: 61
+	path: 63
 	imports: [import(none, 45, none)]
 	funs: [
 		fun(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(61, 0), main, fut(nat()), [param(file-range(61, range(13, 22)), none, arr(arr(char())))])
+			sig: sig(file-pos(63, 0), main, fut(nat()), [param(file-range(63, range(13, 22)), none, arr(arr(char())))])
 			body: seq(call(fun-inst(name: foo), []), call(fun-inst(name: resolved, type-args: [nat()]), [literal(nat(), 0)])))
 		fun(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(61, 56), foo, void(), [])
+			sig: sig(file-pos(63, 56), foo, void(), [])
 			body: call(fun-inst(name: bar), []))
 		fun(
 			public?: true
 			summon: true
 			unsafe: true
-			sig: sig(file-pos(61, 87), bar, void(), [])
+			sig: sig(file-pos(63, 87), bar, void(), [])
 			body: call(fun-inst(name: fail, type-args: [void()]), [string-lit("FOO")]))])

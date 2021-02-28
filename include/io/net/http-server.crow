@@ -1,7 +1,7 @@
 no-std
 import
 	...private.bootstrap: todo
-	...bool: and, bool, false, true
+	...bool: bool, false, true
 	...col.arr: arr, begin-ptr, empty?, has?, size, subscript
 	...col.arr-util: contains?, last, rtail, split-by-subseq
 	...col.dict: dict, each, has?
@@ -109,10 +109,10 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 .response-to-str str(a http-response)
 	res = mut-list<char>
 	res ~= "HTTP/1.1 "
-	res ~= a.status.to-str
+	res ~= a.status to-str
 	res ~= " "
 	forbid: a.status-desc contains? "\n"
-	res ~= a.status-desc
+	res ~= a status-desc
 	# TODO: headers are case insensitive, maybe forbid any upper-case letters in headers to be consistent
 	a.headers each \k, v
 		res ~= "\r\n"
@@ -124,9 +124,9 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 	forbid: a.headers has? "Content-Length"
 	if a.body has?
 		res ~= "Content-Length: "
-		res ~= a.body.size.to-str
+		res ~= a.body.size to-str
 	res ~= "\r\n\r\n"
-	res ~= a.body
+	res ~= a body
 	res move-to-arr!
 
 #ok-response str() noctx
@@ -186,7 +186,7 @@ start-http-server fut http-server(port str, handler http-handler) trusted summon
 		some: line strip-carriage-return
 
 .strip-carriage-return str(a str)
-	if a.has? and: a.last == "\r"
+	if a.last == "\r".some
 		a rtail
 	else
 		a

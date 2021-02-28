@@ -1,6 +1,6 @@
 no-std
 import
-	..col.arr: empty?, size, subscript
+	..col.arr: size, subscript
 	..col.arr-util: last, r-index-of, rtail
 	..compare: ==
 	..misc: ->
@@ -25,13 +25,15 @@ child-path str(a str, child-name str)
 	"{a}/{child-name}"
 
 # TODO:MOVE
-.last-index-of opt nat(s str, c char)
-	if s empty?
+.last-index-of opt nat(a str, c char)
+	match a last
+	as none
 		none
-	elif s.last == c
-		s.size - 1 some
-	else
-		s.rtail last-index-of c
+	as some s
+		if s.value == c
+			a.size - 1 some
+		else
+			a.rtail last-index-of c
 
 # Gets the extension from a file name or path.
 # Returns none if there is no extension.

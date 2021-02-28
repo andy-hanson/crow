@@ -3,9 +3,10 @@ import
 	..io.print: print
 	..ptr: as-ref, by-val
 	..misc: void
+	..ptr: zeroed
 	..str: str
 	..str-conv: finish, interp, to-str, with-str, with-value
-	.bootstrap: get-ctx, log-ctx, zeroed
+	.bootstrap: get-ctx, log-ctx
 
 # Lowest-priority log level.
 info record

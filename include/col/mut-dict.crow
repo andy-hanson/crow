@@ -30,7 +30,7 @@ mut-dict mut-dict<?k, ?v>() data<?k>
 
 ###
 `mut-dict` from `key -> value` pairs.
-Fails if some key is repeated.
+Throws if some key is repeated.
 ###
 mut-dict mut-dict<?k, ?v>(pairs arr arrow<?k, ?v>) data<?k>
 	keys = pairs map {it from}
@@ -39,8 +39,8 @@ mut-dict mut-dict<?k, ?v>(pairs arr arrow<?k, ?v>) data<?k>
 
 ###
 `mut-dict` from keys and values from corresponding elements in the arrays.
-Fails if the key and value arrays have different sizes.
-Fails if some key is repeated.
+Throws if the key and value arrays have different sizes.
+Throws if some key is repeated.
 ###
 mut-dict mut-dict<?k, ?v>(keys arr ?k, values arr ?v) data<?k>
 	assert: keys.size == values.size

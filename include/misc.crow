@@ -7,6 +7,7 @@ Generic record returned by `from -> to`.
 This is used for various purposes.
 ###
 arrow<?a, ?b> record
+	by-val
 	from ?a
 	to ?b
 

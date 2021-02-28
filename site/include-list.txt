@@ -7,8 +7,10 @@ col/deque
 col/dict
 col/list
 col/mut-arr
+col/mut-deque
 col/mut-dict
 col/mut-list
+col/mut-priority-queue
 col/mut-set
 col/mut-stack
 col/priority-queue
@@ -84,3 +86,5 @@ str
 sys/epoll
 sys/execinfo
 sys/sysinfo
+test
+tuple

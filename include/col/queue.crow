@@ -2,12 +2,13 @@ no-std
 import
 	..bool: and, bool
 	..compare: !=
-	..exception: assert, is
+	..exception: assert
 	..fun: subscript
 	..misc: ->, void
 	..number: +, nat
-	..opt: force, none, opt, some
+	..opt: force, none, opt, some, value
 	..ptr: +, -, ptr-eq?, set-subscript
+	..test: is
 	.arr: arr, empty?, size
 	.arr-util: each, first, fold, tail
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
@@ -50,14 +51,16 @@ dequeued<?a> record
 	rest queue ?a
 
 dequeue opt dequeued ?a(a queue ?a)
-	if a.left empty?
+	match a.left first
+	as none
 		right-arr = a.right arr
-		if right-arr empty?
+		match right-arr first
+		as none
 			none
-		else
-			some: dequeued: right-arr.first, queue: right-arr.tail, stack
-	else
-		some: dequeued: a.left.first, queue: a.left.tail, a.right
+		as some s
+			some: dequeued: s.value, queue: right-arr.tail, stack
+	as some s
+		some: dequeued: s.value, queue: a.left.tail, a.right
 
 region iteration
 

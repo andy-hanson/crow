@@ -1,13 +1,15 @@
 no-std
 import
-	..compare: ==, <, <=, >, <=>, comparison, less
-	..exception: assert, is
+	..bool: not
+	..compare: ==, <, <=, >, <=>, comparison, equal, less
+	..exception: assert, forbid
 	..fun: subscript
 	..misc: ->, as, data, void
 	..number: +, -, /, nat
 	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
-	.arr: arr
-	.mut-arr: begin-ptr, cast-immutable, empty?, end-ptr, mut-arr, size, set-subscript, subscript
+	..test: is
+	.arr: arr, subscript
+	.mut-arr: arr, begin-ptr, cast-immutable, empty?, end-ptr, mut-arr, size, set-subscript, subscript
 	.mut-list: mut-list, temp-as-mut-arr
 
 ###
@@ -21,6 +23,11 @@ sort arr ?a(a arr ?a, comparer act comparison(?a, ?a)) trusted
 	res = a mut-arr
 	res sort! comparer
 	res cast-immutable
+sort-by arr ?a(a arr ?a, f act ?b(?a)) data<?b>
+	a sort \x, y
+		f[x] <=> f[y]
+
+# TODO: try https://github.com/BonzaiThePenguin/WikiSort
 
 ###
 Sort and remove duplicates.
@@ -34,60 +41,73 @@ test
 	(sort: as<arr nat>: []) is []
 	[3, 1, 2].sort is [1, 2, 3]
 
+	# Test that it's a stable sort
+	arr = mut-arr: ["2a", "2b", "1a", "1b"]
+	arr sort! \x, y
+		x[0] <=> y[0]
+	arr.arr is ["1a", "1b", "2a", "2b"]
+
+
 # Sort a mut-list in place.
 sort! void(a mut-list ?a) data<?a> trusted
 	a.temp-as-mut-arr sort!
 sort! void(a mut-list ?a, comparer act comparison(?a, ?a)) trusted
 	a.temp-as-mut-arr sort! comparer
+sort-by! void(a mut-list ?a, f act ?b(?a)) data<?b> trusted
+	a.temp-as-mut-arr sort-by! f
 
 # Sort a mut-arr in place.
 sort! void(a mut-arr ?a) data<?a>
 	a sort! \x, y
 		x <=> y
-sort! void(a mut-arr ?a, comparer act comparison(?a, ?a))
-	if a.size > 1
-		# Perf -- in case a is sorted already, prefer the middle element as a pivot
-		a swap 0, a.size / 2
-		pivot = a[0]
-		new-pivot-index = (a partition! pivot, 1, a.size - 1, comparer) - 1
-		a swap 0, new-pivot-index
-		a[0 -> new-pivot-index] sort! comparer
-		a[new-pivot-index + 1 -> a.size] sort! comparer
+sort! void(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
+	if a.empty? not
+		a.begin-ptr insertion-sort-recur! a.begin-ptr + 1, a.end-ptr, comparer
+sort-by! void(a mut-arr ?a, f act ?b(?a)) data<?b>
+	a sort! \x, y
+		f[x] <=> f[y]
+
+.insertion-sort-recur! void(begin ptr ?a, cur ptr ?a, end ptr ?a, comparer act comparison(?a, ?a)) unsafe
+	if cur ptr-eq? end not
+		begin insert! cur, cur[], comparer
+		begin insertion-sort-recur! cur + 1, end, comparer
+
+.insert! void(begin ptr ?a, cur ptr ?a, value ?a, comparer act comparison(?a, ?a)) unsafe
+	forbid: begin ptr-eq? cur
+	prev = cur - 1
+	if comparer[value, prev[]] == less
+		cur[] := prev[]
+		if begin ptr-eq? prev
+			prev[] := value
+		else
+			begin insert! prev, value, comparer
+	else
+		cur[] := value
 
 # Sort a mut-list in place, remove unique elements, and return the (now shorter) mut-arr.
 sort-unique! mut-arr ?a(a mut-arr ?a) data<?a>
 	a sort-unique! \x, y
 		x <=> y
-sort-unique! mut-arr ?a(a mut-arr ?a, comparer act comparison(?a, ?a)) data<?a> trusted
+sort-unique! mut-arr ?a(a mut-arr ?a, comparer act comparison(?a, ?a)) trusted
 	if a empty?
 		a
 	else
 		a sort! comparer
-		end = a.begin-ptr[] unique-recur! a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr
+		end = a.begin-ptr[] unique-recur! a.begin-ptr + 1, a.begin-ptr + 1, a.end-ptr, comparer
 		a[0 -> end - a.begin-ptr]
-.unique-recur! ptr ?a(prev ?a, read ptr ?a, write ptr ?a, end ptr ?a) data<?a> unsafe
+sort-unique-by! mut-arr ?a(a mut-arr ?a, f act ?b(?a)) data<?b>
+	a sort-unique! \x, y
+		f[x] <=> f[y]
+.unique-recur! ptr ?a(prev ?a, read ptr ?a, write ptr ?a, end ptr ?a, comparer act comparison(?a, ?a)) unsafe
 	if read ptr-eq? end
 		write
 	else
 		here = read[]
-		if here == prev
-			prev unique-recur! read + 1, write, end
+		if comparer[here, prev] == equal
+			prev unique-recur! read + 1, write, end, comparer
 		else
 			write[] := here
-			here unique-recur! read + 1, write + 1, end
-
-# Returns index of first value > pivot
-.partition! nat(a mut-arr ?a, pivot ?a, l nat, r nat, comparer act comparison(?a, ?a))
-	assert: l <= a.size
-	assert: r < a.size
-	if l <= r
-		if comparer[a[l], pivot] == less
-			a partition! pivot, l + 1, r, comparer
-		else
-			a swap l, r
-			a partition! pivot, l, r - 1, comparer
-	else
-		l
+			here unique-recur! read + 1, write + 1, end, comparer
 
 .swap void(a mut-arr ?a, x nat, y nat)
 	old-x = a[x]

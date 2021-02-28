@@ -66,7 +66,7 @@ each void(a iterable ?a, f act void(?a))
 	as none
 		void
 	as some s
-		f[s.value]
+		f[s value]
 		i each-recur f
 
 # Returns a new iterable containing just the elements of the input for which `pred` returns true.

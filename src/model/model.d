@@ -651,6 +651,7 @@ struct FunFlags {
 	static immutable FunFlags none = immutable FunFlags(false, false, false, false, false, false, false);
 	static immutable FunFlags generatedNoCtx = immutable FunFlags(true, false, false, false, true, false, false);
 	static immutable FunFlags generatedPreferred = immutable FunFlags(false, false, false, false, true, true, false);
+	static immutable FunFlags unsafe_ = immutable FunFlags(false, false, true, false, false, false, false);
 }
 static assert(FunFlags.sizeof == 7);
 

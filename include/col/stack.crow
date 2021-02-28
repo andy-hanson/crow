@@ -2,13 +2,14 @@ no-std
 import
 	..bool: ?, bool
 	..compare: ==, !=
-	..exception: assert, fail, forbid, is
+	..exception: assert, fail, forbid
 	..fun: subscript
 	..misc: drop, void
 	..number: +, nat
 	..opt: empty?, none, opt, some, value
 	..ptr: +, -, ptr-eq?, set-subscript
 	..str: str
+	..test: calls, fn, is, spy-act
 	.arr: arr
 	.arr-util: fold
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, uninitialized-mut-arr
@@ -75,21 +76,28 @@ size nat(a stack ?a)
 		acc + 1
 
 ###
+Oldest element.
+This is O(a size).
+###
+first opt ?a(a stack ?a)
+	none fold-reverse a, \ignore, x
+		x some
+
+###
 Most recently appended element.
 This is O(1).
-Fails if the stack is empty.
 ###
-last ?a(a stack ?a)
+last opt ?a(a stack ?a)
 	match a last-node
 	as none
-		fail: "Stack is empty"
+		none
 	as some s
-		s.value value
+		s.value.value some
 
 ###
 All but the last element.
 This is O(1).
-Fails if the stack is empty.
+Throws if the stack is empty.
 ###
 rtail stack ?a(a stack ?a)
 	match a last-node
@@ -129,7 +137,7 @@ each-reverse void(a stack ?a, f act void(?a))
 		void
 	as some s
 		f[s.value value]
-		s.value.prev each-recur f
+		s.value.prev each-reverse-recur f
 
 # Call a function for each element in the stack and accumulate.
 fold ?a(acc ?a, a stack ?b, f act ?a(?a, ?b))
@@ -193,22 +201,28 @@ test
 	a = stack<nat>
 	assert: a empty?
 	a.arr is []
-	# TODO: assert a.last throws
+	a.last is none
 
 	b = a ~ 1
 	b.arr is [1]
-	b.last is 1
+	b.last is 1.some
 	b.rtail is a
 	forbid: b empty?
 
-
 	c = b ~ 2
 	c.arr is [1, 2]
-	c.last is 2
+	c.last is 2.some
 	c.rtail is b
 
 	d = c ~ 3
 	d.arr is [1, 2, 3]
+
+	each-spy = spy-act<void, nat>: void
+	d each each-spy.fn
+	each-spy.calls is [1, 2, 3]
+
+	d each-reverse each-spy.fn
+	each-spy.calls is [3, 2, 1]
 
 	d2 = d map {it + 10}
 	d2.arr is [11, 12, 13]

@@ -2,18 +2,19 @@ no-std
 import
 	..bool: bool, false, not, true
 	..compare: ==, !=, <, >, <=>
-	..exception: assert, forbid, is, unreachable
+	..exception: assert, forbid, unreachable
 	..fun: subscript
 	..misc: ->, as, data, drop, void
 	..number: +, -, /, nat
 	..opt: empty?, force, none, opt, some, value
 	..ptr: +, -, ptr, ptr-eq?, set-subscript, subscript
 	..str: char, str
+	..test: is
 	.arr: ~, arr, begin-ptr, empty?, end-ptr, size, subscript
 	.arr-util: each, fold, insert, last, rtail, tail, try-remove
 	.mut-arr: begin-ptr, cast-immutable, end-ptr, subscript, uninitialized-mut-arr
 	.mut-list: ~=, move-to-arr!, mut-list, set-last
-	.mut-stack: ~=, mut-stack, peek, pop!
+	.mut-stack: ~=, mut-stack, last, pop!
 	.sort: sort-unique, sort-unique!
 
 ###
@@ -228,10 +229,11 @@ try-remove opt set ?a(a set ?a, b ?a) data<?a>
 		as some s
 			some: popped: s.value.value, inner-node: i.value, i.left, s.value.rest
 	as arr arr
-		if arr empty?
+		match arr last
+		as none
 			none
-		else
-			some: popped: arr.last, arr.rtail
+		as some s
+			some: popped: s.value, arr.rtail
 
 - set ?a(a set ?a, b set ?a) trusted data<?a>
 	b-iter = b iter
@@ -256,7 +258,7 @@ try-remove opt set ?a(a set ?a, b ?a) data<?a>
 		arr
 .peek opt ?a(a iter ?a)
 	if a.cur empty?
-		match a.stack peek
+		match a.stack last
 		as none
 			none
 		as some s

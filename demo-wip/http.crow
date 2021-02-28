@@ -17,7 +17,7 @@ test-uri void() summon
 	as none
 		print: "did not parse"
 	as some s
-		uri = s.value
+		uri = s value
 		uri test-get
 		# print: "host: " + uri.host
 		# print: "path and query: " + uri.path-and-query
@@ -44,7 +44,7 @@ try-split split ?a(a arr ?a, pred act bool(?a))
 	as none
 		split<?a>: a, []
 	as some s
-		idx = s.value
+		idx = s value
 		split<?a>: (a slice-up-to idx), (a slice-after idx)
 
 # If splitter is not present, right part is empty
@@ -53,7 +53,7 @@ try-split-from-right split ?a(a arr ?a, pred act bool(?a))
 	as none
 		split<?a>: a, []
 	as some s
-		index = s.value
+		index = s value
 		split<?a>: (a slice-up-to index), (a slice-after index)
 
 # nghttp2-session-callbacks-new foo() extern<"nghttp2_session_callbacks_new"> noctx summon
